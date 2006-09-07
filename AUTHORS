@@ -1,0 +1,19 @@
+The Vision Workbench was developed within the Autonomous Systems and 
+Robotics area of the Inteligent Systems Division at NASA's Ames 
+Research Center.  It is predominantly a joint venture of the 
+Intelligent Robotics Group (IRG) and the Adaptive Control and 
+Evolvable Systems Group (ACES) at Ames.
+
+Credit goes to the following developers for contributing time and
+energy to this effort.
+
+Laurence Edwards -- Project Manager
+Michael Broxton  -- Lead Developer
+Matthew Hancher  -- Lead Developer
+
+Kerri Cahoy      -- Testing
+Matthew Deans    -- InterestPoint
+Patrick Mihelich -- HDR
+Aaron Rolett     -- Mosaic
+Randy Sargent    -- Mosaic
+Ian Saxton       -- GPU
