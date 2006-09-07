@@ -1,0 +1,464 @@
+// __BEGIN_LICENSE__
+//
+// Copyright (C) 2006 United States Government as represented by the
+// Administrator of the National Aeronautics and Space Administration
+// (NASA).  All Rights Reserved.
+// 
+// This software is distributed under the NASA Open Source Agreement
+// (NOSA), version 1.3.  The NOSA has been approved by the Open Source
+// Initiative.  See the file COPYING at the top of the distribution
+// directory tree for the complete NOSA document.
+// 
+// THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
+// KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
+// LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
+// SPECIFICATIONS, ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+// A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
+// THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
+// DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
+//
+// __END_LICENSE__
+
+/// \file Functors.h
+/// 
+/// General-purpose functors and functor support code.
+/// 
+/// This file provides a few mix-in base classes that you can use when
+/// writing your own polymorphic functors.  They instruct the return
+/// type deduction system about the return type of your functor in
+/// some of the common cases.
+///
+/// It also provides a collection of functors implementing the
+/// standard arithmetic operations and so forth, which also serve to
+/// demonstrate how to use the mix-ins.
+///
+#ifndef __VW_CORE_FUNCTORS_H__
+#define __VW_CORE_FUNCTORS_H__
+
+#include <vw/Core/TypeDeduction.h>
+
+namespace vw {
+
+  /// A mix-in specifying that a functor is an unary functor 
+  /// whose return type is the same as its argument type.
+  struct UnaryReturnSameType {
+    /// \cond INTERNAL
+    template <class Args> struct result;
+    template <class ChannelT, class FuncT>
+    struct result<FuncT(ChannelT)> {
+      typedef ChannelT type;
+    };    
+    /// \endcond
+  };
+
+  /// A mix-in specifying that a functor is a unary functor 
+  /// whose return type is determined by the given traits 
+  /// template class.
+  template <template<class> class ResultT>
+  struct UnaryReturnTemplateType {
+    /// \cond INTERNAL
+    template <class Args> struct result {};
+    template <class FuncT, class ArgT>
+    struct result<FuncT(ArgT)> {
+      typedef typename ResultT<ArgT>::type type;
+    };
+    /// \endcond
+  };
+
+  /// A mix-in specifying that a functor is a binary functor 
+  /// whose return type is determined by the given traits 
+  /// template class.
+  template <template<class,class> class ResultT>
+  struct BinaryReturnTemplateType {
+    /// \cond INTERNAL
+    template <class Args> struct result {};
+    template <class FuncT, class Arg1T, class Arg2T>
+    struct result<FuncT(Arg1T,Arg2T)> {
+      typedef typename ResultT<Arg1T,Arg2T>::type type;
+    };
+    /// \endcond
+  };
+
+  /// A mix-in specifying that a functor always returns a 
+  /// particular type.
+  template <class T>
+  struct ReturnFixedType {
+    /// \cond INTERNAL
+    template <class Args>
+    struct result {
+      typedef T type;
+    };
+    /// \endcond
+  };
+
+  /// A mix-in specifying that a functor is an unary functor 
+  /// whose return type is determined by the given binary 
+  /// type function with the given first argument.
+  template <template<class,class> class ResultT, class ValT>
+  struct UnaryReturnBinaryTemplateBind1st {
+    /// \cond INTERNAL
+    template <class Args> struct result { typedef void type; };
+    template <class FuncT, class ArgT>
+    struct result<FuncT(ArgT)> {
+      typedef typename ResultT<ValT,ArgT>::type type;
+    };
+    /// \endcond
+  };
+
+  /// A mix-in specifying that a functor is an unary functor 
+  /// whose return type is determined by the given binary 
+  /// type function with the given second argument.
+  template <template<class,class> class ResultT, class ValT>
+  struct UnaryReturnBinaryTemplateBind2nd {
+    /// \cond INTERNAL
+    template <class Args> struct result { typedef void type; };
+    template <class FuncT, class ArgT>
+    struct result<FuncT(ArgT)> {
+      typedef typename ResultT<ArgT,ValT>::type type;
+    };
+    /// \endcond
+  };
+
+  template <template<class,class> class FuncT, class ValT>
+  struct BinaryBind1st {
+    template <class ArgT>
+    struct bound_type {
+      typedef typename FuncT<ValT,ArgT>::type type;
+    };
+  };
+
+
+  /// \cond INTERNAL
+
+  // ********************************************************************
+  // PixelType Arithmetic Operation Functors
+  //
+  // We could build these on top of Phoenix instead, but I think it 
+  // makes sense to wait until Phoenix 2 stabilizes, or until the 
+  // typeof keyword becomes standard, since the main problem these 
+  // classes exist to solve is having known functor types).  (I'm not 
+  // actually sure that is correct, but whatever.  'Tis a problem for 
+  // another day.  Meanwhile, we can use these.)
+  //
+  // ********************************************************************
+
+  // Unary negation of an argument
+  class ArgNegationFunctor : public UnaryReturnSameType {
+  public:
+    template <class ArgT>
+    typename result<ArgNegationFunctor(ArgT)>::type
+    inline operator()( ArgT const& arg ) const { return -arg; }
+  };
+
+  // Binary sum of two arguments
+  class ArgArgSumFunctor : public BinaryReturnTemplateType<SumType> {
+  public:
+    template <class Arg1T, class Arg2T>
+    inline typename SumType<Arg1T,Arg2T>::type operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1+arg2; }
+  };
+
+  // Unary sum of an argument and a value
+  template <class ValT>
+  class ArgValSumFunctor : public UnaryReturnBinaryTemplateBind2nd<SumType,ValT> {
+  private:
+    const ValT m_val;
+  public:
+    ArgValSumFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline typename SumType<ArgT,ValT>::type operator()( ArgT const& arg ) const { return arg+m_val; }
+  };
+
+  // Unary sum of a value and an argument
+  template <class ValT>
+  class ValArgSumFunctor : public UnaryReturnBinaryTemplateBind1st<SumType,ValT> {
+  private:
+    const ValT m_val;
+  public:
+    ValArgSumFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline typename SumType<ValT,ArgT>::type operator()( ArgT const& arg ) const { return m_val+arg; }
+  };
+
+  // Binary difference of two arguments
+  struct ArgArgDifferenceFunctor : BinaryReturnTemplateType<DifferenceType> {
+    template <class Arg1T, class Arg2T>
+    inline typename DifferenceType<Arg1T,Arg2T>::type operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1-arg2; }
+  };
+  
+  // Unary difference of an argument and a value
+  template <class ValT>
+  class ArgValDifferenceFunctor : public UnaryReturnBinaryTemplateBind2nd<DifferenceType,ValT> {
+  private:
+    const ValT m_val;
+  public:
+    ArgValDifferenceFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline typename DifferenceType<ArgT,ValT>::type operator()( ArgT const& arg ) const { return arg-m_val; }
+  };
+
+  // Unary difference of a value and an argument
+  template <class ValT>
+  class ValArgDifferenceFunctor : public UnaryReturnBinaryTemplateBind1st<DifferenceType,ValT> {
+  private:
+    const ValT m_val;
+  public:
+    ValArgDifferenceFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline typename DifferenceType<ValT,ArgT>::type operator()( ArgT const& arg ) const { return m_val-arg; }
+  };
+
+  // Binary product of two arguments
+  struct ArgArgProductFunctor : public BinaryReturnTemplateType<ProductType> {
+    template <class Arg1T, class Arg2T>
+    inline typename ProductType<Arg1T,Arg2T>::type operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1*arg2; }
+  };
+
+  // Unary product of an argument and a value
+  template <class ValT>
+  class ArgValProductFunctor : public UnaryReturnTemplateType<BinaryBind1st<ProductType,ValT>::template bound_type> {//UnaryReturnBinaryTemplateBind2nd<ProductType,ValT> {
+  private:
+    const ValT m_val;
+  public:
+    ArgValProductFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline typename ProductType<ArgT,ValT>::type operator()( ArgT const& arg ) const { return arg*m_val; }
+  };
+
+  // Unary product of a value and an argument
+  template <class ValT>
+  class ValArgProductFunctor : public UnaryReturnBinaryTemplateBind1st<ProductType,ValT> {
+  private:
+    const ValT m_val;
+  public:
+    ValArgProductFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline typename ProductType<ValT,ArgT>::type operator()( ArgT const& arg ) const { return m_val*arg; }
+  };
+
+  // Binary quotient of two arguments
+  struct ArgArgQuotientFunctor : BinaryReturnTemplateType<QuotientType> {
+    template <class Arg1T, class Arg2T>
+    inline typename QuotientType<Arg1T,Arg2T>::type operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1/arg2; }
+  };
+
+  // Unary quotient of an argument and a value
+  template <class ValT>
+  class ArgValQuotientFunctor : public UnaryReturnBinaryTemplateBind2nd<QuotientType,ValT> {
+  private:
+    const ValT m_val;
+  public:
+    ArgValQuotientFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline typename QuotientType<ArgT,ValT>::type operator()( ArgT const& arg ) const { return arg/m_val; }
+  };
+
+  // Unary quotient of a value and an argument
+  template <class ValT>
+  class ValArgQuotientFunctor : public UnaryReturnBinaryTemplateBind1st<QuotientType,ValT> {
+  private:
+    const ValT m_val;
+  public:
+    ValArgQuotientFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline typename QuotientType<ValT,ArgT>::type operator()( ArgT const& arg ) const { return m_val/arg; }
+  };
+
+  // Binary equality operator of two arguments
+  class ArgArgEqualityFunctor : ReturnFixedType<bool> {
+  public:
+    template <class Arg1T, class Arg2T>
+    inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1==arg2; }
+  };
+
+  // Unary equality operator of an argument and a value
+  template <class ValT>
+  class ArgValEqualityFunctor : ReturnFixedType<bool> {
+  private:
+    const ValT m_val;
+  public:
+    ArgValEqualityFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline bool operator()( ArgT const& arg ) const { return arg==m_val; }
+  };
+
+  // Unary equality operator of a value and an argument
+  template <class ValT>
+  class ValArgEqualityFunctor : ReturnFixedType<bool> {
+  private:
+    const ValT m_val;
+  public:
+    ValArgEqualityFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline bool operator()( ArgT const& arg ) const { return m_val==arg; }
+  };
+
+  // Binary inequality operator of two arguments
+  class ArgArgInequalityFunctor : ReturnFixedType<bool> {
+  public:
+    template <class Arg1T, class Arg2T>
+    inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1!=arg2; }
+  };
+
+  // Unary inequality operator of an argument and a value
+  template <class ValT>
+  class ArgValInequalityFunctor : ReturnFixedType<bool> {
+  private:
+    const ValT m_val;
+  public:
+    ArgValInequalityFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline bool operator()( ArgT const& arg ) const { return arg!=m_val; }
+  };
+
+  // Unary inequality operator of a value and an argument
+  template <class ValT>
+  class ValArgInequalityFunctor : ReturnFixedType<bool> {
+  private:
+    const ValT m_val;
+  public:
+    ValArgInequalityFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline bool operator()( ArgT const& arg ) const { return m_val!=arg; }
+  };
+
+  // Binary less-than operator of two arguments
+  class ArgArgLessThanFunctor : ReturnFixedType<bool> {
+  public:
+    template <class Arg1T, class Arg2T>
+    inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1<arg2; }
+  };
+
+  // Unary less-than operator of an argument and a value
+  template <class ValT>
+  class ArgValLessThanFunctor : ReturnFixedType<bool> {
+  private:
+    const ValT m_val;
+  public:
+    ArgValLessThanFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline bool operator()( ArgT const& arg ) const { return arg<m_val; }
+  };
+
+  // Unary less-than operator of a value and an argument
+  template <class ValT>
+  class ValArgLessThanFunctor : ReturnFixedType<bool> {
+  private:
+    const ValT m_val;
+  public:
+    ValArgLessThanFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline bool operator()( ArgT const& arg ) const { return m_val<arg; }
+  };
+
+  // Binary less-than-or-equal operator of two arguments
+  class ArgArgLessThanOrEqualFunctor : ReturnFixedType<bool> {
+  public:
+    template <class Arg1T, class Arg2T>
+    inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1<=arg2; }
+  };
+
+  // Unary less-than-or-equal operator of an argument and a value
+  template <class ValT>
+  class ArgValLessThanOrEqualFunctor : ReturnFixedType<bool> {
+  private:
+    const ValT m_val;
+  public:
+    ArgValLessThanOrEqualFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline bool operator()( ArgT const& arg ) const { return arg<=m_val; }
+  };
+
+  // Unary less-than-or-equal operator of a value and an argument
+  template <class ValT>
+  class ValArgLessThanOrEqualFunctor : ReturnFixedType<bool> {
+  private:
+    const ValT m_val;
+  public:
+    ValArgLessThanOrEqualFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline bool operator()( ArgT const& arg ) const { return m_val<=arg; }
+  };
+
+  // Binary greater-than operator of two arguments
+  class ArgArgGreaterThanFunctor : ReturnFixedType<bool> {
+  public:
+    template <class Arg1T, class Arg2T>
+    inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1>arg2; }
+  };
+
+  // Unary greater-than operator of an argument and a value
+  template <class ValT>
+  class ArgValGreaterThanFunctor : ReturnFixedType<bool> {
+  private:
+    const ValT m_val;
+  public:
+    ArgValGreaterThanFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline bool operator()( ArgT const& arg ) const { return arg>m_val; }
+  };
+
+  // Unary greater-than operator of a value and an argument
+  template <class ValT>
+  class ValArgGreaterThanFunctor : ReturnFixedType<bool> {
+  private:
+    const ValT m_val;
+  public:
+    ValArgGreaterThanFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline bool operator()( ArgT const& arg ) const { return m_val>arg; }
+  };
+
+  // Binary greater-than-or-equal operator of two arguments
+  class ArgArgGreaterThanOrEqualFunctor : ReturnFixedType<bool> {
+  public:
+    template <class Arg1T, class Arg2T>
+    inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1>=arg2; }
+  };
+
+  // Unary greater-than-or-equal operator of an argument and a value
+  template <class ValT>
+  class ArgValGreaterThanOrEqualFunctor : ReturnFixedType<bool> {
+  private:
+    const ValT m_val;
+  public:
+    ArgValGreaterThanOrEqualFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline bool operator()( ArgT const& arg ) const { return arg>=m_val; }
+  };
+
+  // Unary greater-than-or-equal operator of a value and an argument
+  template <class ValT>
+  class ValArgGreaterThanOrEqualFunctor : ReturnFixedType<bool> {
+  private:
+    const ValT m_val;
+  public:
+    ValArgGreaterThanOrEqualFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline bool operator()( ArgT const& arg ) const { return m_val>=arg; }
+  };
+
+  /// \endcond INTERNAL
+
+} // namespace vw
+
+#endif  // __VW_CORE_FUNCTORS_H__
