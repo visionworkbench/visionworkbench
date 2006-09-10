@@ -143,23 +143,21 @@ namespace vw {
   // ********************************************************************
 
   // Unary negation of an argument
-  class ArgNegationFunctor : public UnaryReturnSameType {
-  public:
+  struct ArgNegationFunctor : UnaryReturnSameType {
     template <class ArgT>
     typename result<ArgNegationFunctor(ArgT)>::type
     inline operator()( ArgT const& arg ) const { return -arg; }
   };
 
   // Binary sum of two arguments
-  class ArgArgSumFunctor : public BinaryReturnTemplateType<SumType> {
-  public:
+  struct ArgArgSumFunctor : BinaryReturnTemplateType<SumType> {
     template <class Arg1T, class Arg2T>
     inline typename SumType<Arg1T,Arg2T>::type operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1+arg2; }
   };
 
   // Unary sum of an argument and a value
   template <class ValT>
-  class ArgValSumFunctor : public UnaryReturnBinaryTemplateBind2nd<SumType,ValT> {
+  struct ArgValSumFunctor : UnaryReturnBinaryTemplateBind2nd<SumType,ValT> {
   private:
     const ValT m_val;
   public:
@@ -171,7 +169,7 @@ namespace vw {
 
   // Unary sum of a value and an argument
   template <class ValT>
-  class ValArgSumFunctor : public UnaryReturnBinaryTemplateBind1st<SumType,ValT> {
+  struct ValArgSumFunctor : UnaryReturnBinaryTemplateBind1st<SumType,ValT> {
   private:
     const ValT m_val;
   public:
@@ -189,7 +187,7 @@ namespace vw {
   
   // Unary difference of an argument and a value
   template <class ValT>
-  class ArgValDifferenceFunctor : public UnaryReturnBinaryTemplateBind2nd<DifferenceType,ValT> {
+  struct ArgValDifferenceFunctor : UnaryReturnBinaryTemplateBind2nd<DifferenceType,ValT> {
   private:
     const ValT m_val;
   public:
@@ -201,7 +199,7 @@ namespace vw {
 
   // Unary difference of a value and an argument
   template <class ValT>
-  class ValArgDifferenceFunctor : public UnaryReturnBinaryTemplateBind1st<DifferenceType,ValT> {
+  struct ValArgDifferenceFunctor : UnaryReturnBinaryTemplateBind1st<DifferenceType,ValT> {
   private:
     const ValT m_val;
   public:
@@ -212,14 +210,14 @@ namespace vw {
   };
 
   // Binary product of two arguments
-  struct ArgArgProductFunctor : public BinaryReturnTemplateType<ProductType> {
+  struct ArgArgProductFunctor : BinaryReturnTemplateType<ProductType> {
     template <class Arg1T, class Arg2T>
     inline typename ProductType<Arg1T,Arg2T>::type operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1*arg2; }
   };
 
   // Unary product of an argument and a value
   template <class ValT>
-  class ArgValProductFunctor : public UnaryReturnTemplateType<BinaryBind1st<ProductType,ValT>::template bound_type> {//UnaryReturnBinaryTemplateBind2nd<ProductType,ValT> {
+  struct ArgValProductFunctor : UnaryReturnTemplateType<BinaryBind1st<ProductType,ValT>::template bound_type> {//UnaryReturnBinaryTemplateBind2nd<ProductType,ValT> {
   private:
     const ValT m_val;
   public:
@@ -231,7 +229,7 @@ namespace vw {
 
   // Unary product of a value and an argument
   template <class ValT>
-  class ValArgProductFunctor : public UnaryReturnBinaryTemplateBind1st<ProductType,ValT> {
+  struct ValArgProductFunctor : UnaryReturnBinaryTemplateBind1st<ProductType,ValT> {
   private:
     const ValT m_val;
   public:
@@ -249,7 +247,7 @@ namespace vw {
 
   // Unary quotient of an argument and a value
   template <class ValT>
-  class ArgValQuotientFunctor : public UnaryReturnBinaryTemplateBind2nd<QuotientType,ValT> {
+  struct ArgValQuotientFunctor : UnaryReturnBinaryTemplateBind2nd<QuotientType,ValT> {
   private:
     const ValT m_val;
   public:
@@ -261,7 +259,7 @@ namespace vw {
 
   // Unary quotient of a value and an argument
   template <class ValT>
-  class ValArgQuotientFunctor : public UnaryReturnBinaryTemplateBind1st<QuotientType,ValT> {
+  struct ValArgQuotientFunctor : UnaryReturnBinaryTemplateBind1st<QuotientType,ValT> {
   private:
     const ValT m_val;
   public:
@@ -272,15 +270,14 @@ namespace vw {
   };
 
   // Binary equality operator of two arguments
-  class ArgArgEqualityFunctor : ReturnFixedType<bool> {
-  public:
+  struct ArgArgEqualityFunctor : ReturnFixedType<bool> {
     template <class Arg1T, class Arg2T>
     inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1==arg2; }
   };
 
   // Unary equality operator of an argument and a value
   template <class ValT>
-  class ArgValEqualityFunctor : ReturnFixedType<bool> {
+  struct ArgValEqualityFunctor : ReturnFixedType<bool> {
   private:
     const ValT m_val;
   public:
@@ -292,7 +289,7 @@ namespace vw {
 
   // Unary equality operator of a value and an argument
   template <class ValT>
-  class ValArgEqualityFunctor : ReturnFixedType<bool> {
+  struct ValArgEqualityFunctor : ReturnFixedType<bool> {
   private:
     const ValT m_val;
   public:
@@ -303,15 +300,14 @@ namespace vw {
   };
 
   // Binary inequality operator of two arguments
-  class ArgArgInequalityFunctor : ReturnFixedType<bool> {
-  public:
+  struct ArgArgInequalityFunctor : ReturnFixedType<bool> {
     template <class Arg1T, class Arg2T>
     inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1!=arg2; }
   };
 
   // Unary inequality operator of an argument and a value
   template <class ValT>
-  class ArgValInequalityFunctor : ReturnFixedType<bool> {
+  struct ArgValInequalityFunctor : ReturnFixedType<bool> {
   private:
     const ValT m_val;
   public:
@@ -323,7 +319,7 @@ namespace vw {
 
   // Unary inequality operator of a value and an argument
   template <class ValT>
-  class ValArgInequalityFunctor : ReturnFixedType<bool> {
+  struct ValArgInequalityFunctor : ReturnFixedType<bool> {
   private:
     const ValT m_val;
   public:
@@ -334,15 +330,14 @@ namespace vw {
   };
 
   // Binary less-than operator of two arguments
-  class ArgArgLessThanFunctor : ReturnFixedType<bool> {
-  public:
+  struct ArgArgLessThanFunctor : ReturnFixedType<bool> {
     template <class Arg1T, class Arg2T>
     inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1<arg2; }
   };
 
   // Unary less-than operator of an argument and a value
   template <class ValT>
-  class ArgValLessThanFunctor : ReturnFixedType<bool> {
+  struct ArgValLessThanFunctor : ReturnFixedType<bool> {
   private:
     const ValT m_val;
   public:
@@ -354,7 +349,7 @@ namespace vw {
 
   // Unary less-than operator of a value and an argument
   template <class ValT>
-  class ValArgLessThanFunctor : ReturnFixedType<bool> {
+  struct ValArgLessThanFunctor : ReturnFixedType<bool> {
   private:
     const ValT m_val;
   public:
@@ -365,15 +360,14 @@ namespace vw {
   };
 
   // Binary less-than-or-equal operator of two arguments
-  class ArgArgLessThanOrEqualFunctor : ReturnFixedType<bool> {
-  public:
+  struct ArgArgLessThanOrEqualFunctor : ReturnFixedType<bool> {
     template <class Arg1T, class Arg2T>
     inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1<=arg2; }
   };
 
   // Unary less-than-or-equal operator of an argument and a value
   template <class ValT>
-  class ArgValLessThanOrEqualFunctor : ReturnFixedType<bool> {
+  struct ArgValLessThanOrEqualFunctor : ReturnFixedType<bool> {
   private:
     const ValT m_val;
   public:
@@ -385,7 +379,7 @@ namespace vw {
 
   // Unary less-than-or-equal operator of a value and an argument
   template <class ValT>
-  class ValArgLessThanOrEqualFunctor : ReturnFixedType<bool> {
+  struct ValArgLessThanOrEqualFunctor : ReturnFixedType<bool> {
   private:
     const ValT m_val;
   public:
@@ -396,15 +390,14 @@ namespace vw {
   };
 
   // Binary greater-than operator of two arguments
-  class ArgArgGreaterThanFunctor : ReturnFixedType<bool> {
-  public:
+  struct ArgArgGreaterThanFunctor : ReturnFixedType<bool> {
     template <class Arg1T, class Arg2T>
     inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1>arg2; }
   };
 
   // Unary greater-than operator of an argument and a value
   template <class ValT>
-  class ArgValGreaterThanFunctor : ReturnFixedType<bool> {
+  struct ArgValGreaterThanFunctor : ReturnFixedType<bool> {
   private:
     const ValT m_val;
   public:
@@ -416,7 +409,7 @@ namespace vw {
 
   // Unary greater-than operator of a value and an argument
   template <class ValT>
-  class ValArgGreaterThanFunctor : ReturnFixedType<bool> {
+  struct ValArgGreaterThanFunctor : ReturnFixedType<bool> {
   private:
     const ValT m_val;
   public:
@@ -427,15 +420,14 @@ namespace vw {
   };
 
   // Binary greater-than-or-equal operator of two arguments
-  class ArgArgGreaterThanOrEqualFunctor : ReturnFixedType<bool> {
-  public:
+  struct ArgArgGreaterThanOrEqualFunctor : ReturnFixedType<bool> {
     template <class Arg1T, class Arg2T>
     inline bool operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { return arg1>=arg2; }
   };
 
   // Unary greater-than-or-equal operator of an argument and a value
   template <class ValT>
-  class ArgValGreaterThanOrEqualFunctor : ReturnFixedType<bool> {
+  struct ArgValGreaterThanOrEqualFunctor : ReturnFixedType<bool> {
   private:
     const ValT m_val;
   public:
@@ -447,7 +439,7 @@ namespace vw {
 
   // Unary greater-than-or-equal operator of a value and an argument
   template <class ValT>
-  class ValArgGreaterThanOrEqualFunctor : ReturnFixedType<bool> {
+  struct ValArgGreaterThanOrEqualFunctor : ReturnFixedType<bool> {
   private:
     const ValT m_val;
   public:

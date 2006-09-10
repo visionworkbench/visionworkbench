@@ -25,7 +25,19 @@
 
 if MAKE_MODULE_MATH
 
-#include_HEADERS = 
+include_HEADERS = Vector.h
+
+endif
+
+########################################################################
+# tests
+########################################################################
+
+if MAKE_MODULE_VW
+
+TESTS_H = tests/TestVector.h
+
+TESTS_EXTRAS = 
 
 endif
 

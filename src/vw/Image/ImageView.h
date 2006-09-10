@@ -22,7 +22,7 @@
 /// \file ImageView.h
 /// 
 /// Defines the core in-memory image view type.
-
+///
 #ifndef __VW_IMAGE__IMAGE_VIEW_H__
 #define __VW_IMAGE__IMAGE_VIEW_H__
 

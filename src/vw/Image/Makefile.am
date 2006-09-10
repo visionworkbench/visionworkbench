@@ -26,11 +26,12 @@
 if MAKE_MODULE_VW
 
 include_HEADERS = PixelIterator.h ImageViewBase.h PixelAccessors.h	\
-	ImageView.h ImageViewRef.h PixelTypeInfo.h PixelTypes.h
+	ImageView.h ImageViewRef.h PixelTypeInfo.h PixelTypes.h		\
+	GenericImageBuffer.h
 
-foo_SOURCES = foo.cc
+libvwImage_la_SOURCES = GenericImageBuffer.cc
 
-bin_PROGRAMS = foo
+lib_LTLIBRARIES = libvwImage.la
 
 endif
 
@@ -38,10 +39,14 @@ endif
 # tests
 ########################################################################
 
+if MAKE_MODULE_VW
+
 TESTS_H = tests/TestPixelTypes.h tests/TestImageView.h	\
 	tests/TestImageViewRef.h
 
 TESTS_EXTRAS = 
+
+endif
 
 ########################################################################
 # general

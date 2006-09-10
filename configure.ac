@@ -225,7 +225,7 @@ if test ${MAKE_MODULE_VW} != "yes"; then
   AC_MSG_ERROR([cannot build the Vision Workbench core!])
 fi
 
-AX_MODULE(MATH, Math, no, [VW])
+AX_MODULE(MATH, Math, yes, [VW])
 AX_MODULE(INTERESTPOINT, InterestPoint, no, [VW])
 AX_MODULE(PANORAMA, Panorama, no, [VW BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
 AX_MODULE(HDR, HDR, no, [VW])
