@@ -23,7 +23,6 @@
 #include <cxxtest/TestSuite.h>
 #include <vw/Math/Vector.h>
 
-using namespace std;
 using namespace vw;
 
 class TestVector : public CxxTest::TestSuite
@@ -32,6 +31,7 @@ public:
 
   void test_static_vector()
   {
+    // Default constructor
     Vector<float,4> v;
     TS_ASSERT_EQUALS(v.size(),4);
     TS_ASSERT_EQUALS(v(0),0);
@@ -39,7 +39,9 @@ public:
     TS_ASSERT_EQUALS(v(2),0);
     TS_ASSERT_EQUALS(v(3),0);
 
+    // Values constructor
     Vector<float,4> v2(6,7,8,9);
+    TS_ASSERT_EQUALS(v2.size(),4);
     TS_ASSERT_EQUALS(v2[0],6);
     TS_ASSERT_EQUALS(v2[1],7);
     TS_ASSERT_EQUALS(v2[2],8);
@@ -52,18 +54,22 @@ public:
     TS_ASSERT_EQUALS(v2.y(),7);
     TS_ASSERT_EQUALS(v2.z(),8);
 
-    Vector<float,4> v3=v2;
+    // Copy constructor
+    Vector<float,4> v3(v2);
+    TS_ASSERT_EQUALS(v3.size(),4);
     TS_ASSERT_EQUALS(v3(0),6);
     TS_ASSERT_EQUALS(v3(1),7);
     TS_ASSERT_EQUALS(v3(2),8);
     TS_ASSERT_EQUALS(v3(3),9);
 
+    // set_size()
     TS_ASSERT_THROWS(v.set_size(3), ArgumentErr);
     TS_ASSERT_THROWS_NOTHING(v.set_size(4));
 
+    // Iterators
     TS_ASSERT_EQUALS(&(*(v.begin())),&(v(0)));
     TS_ASSERT_EQUALS(&(*(v.begin()+1)),&(v(1)));
-    TS_ASSERT_EQUALS(&(*(v.end())),(&(v(0)))+4);
+    TS_ASSERT_EQUALS(v.end(),v.begin()+4);
   }    
 
   void test_dynamic_vector()
@@ -96,9 +102,91 @@ public:
     TS_ASSERT_EQUALS(&(*(v.end()-1)),&(v(2)));
   }    
 
+  void test_vector_proxy()
+  {
+    float data[] = {1,2,3,4};
+
+    VectorProxy<float,4> vp1(data);
+    TS_ASSERT_EQUALS(vp1.size(),4);
+    TS_ASSERT_EQUALS(vp1(0),1);
+    TS_ASSERT_EQUALS(vp1(1),2);
+    TS_ASSERT_EQUALS(vp1(2),3);
+    TS_ASSERT_EQUALS(vp1(3),4);
+
+    TS_ASSERT_THROWS_NOTHING( (vp1=Vector<float,4>(5,6,7,8)) );
+    TS_ASSERT_EQUALS(vp1.size(),4);
+    TS_ASSERT_EQUALS(vp1(0),5);
+    TS_ASSERT_EQUALS(vp1(1),6);
+    TS_ASSERT_EQUALS(vp1(2),7);
+    TS_ASSERT_EQUALS(vp1(3),8);
+
+    VectorProxy<float> vp2(4,data);
+    TS_ASSERT_EQUALS(vp2.size(),4);
+    TS_ASSERT_EQUALS(vp2(0),5);
+    TS_ASSERT_EQUALS(vp2(1),6);
+    TS_ASSERT_EQUALS(vp2(2),7);
+    TS_ASSERT_EQUALS(vp2(3),8);
+
+    TS_ASSERT_THROWS_NOTHING( (vp2=Vector<float,4>(1,2,3,4)) );
+    TS_ASSERT_EQUALS(vp1.size(),4);
+    TS_ASSERT_EQUALS(vp2(0),1);
+    TS_ASSERT_EQUALS(vp2(1),2);
+    TS_ASSERT_EQUALS(vp2(2),3);
+    TS_ASSERT_EQUALS(vp2(3),4);
+  }
+
+  void test_subvector()
+  {
+    Vector<float,4> v(1,2,3,4);
+    Vector<float> sv = subvector(v,2,2);
+    TS_ASSERT_EQUALS( sv.size(), 2 );
+    TS_ASSERT_EQUALS( sv(0), 3 );
+    TS_ASSERT_EQUALS( sv(1), 4 );
+    subvector(v,1,2) = Vector<float,2>(4,5);
+    TS_ASSERT_EQUALS( v(0), 1 );
+    TS_ASSERT_EQUALS( v(1), 4 );
+    TS_ASSERT_EQUALS( v(2), 5 );
+    TS_ASSERT_EQUALS( v(3), 4 );
+  }
+
+  void test_vector_iostream()
+  {
+    std::ostringstream oss;
+    Vector<float,3> v1(1,2,3);
+    oss << v1;
+    TS_ASSERT_EQUALS( oss.str(), "[3](1,2,3)" );
+    oss.str("");
+    Vector<float> v2=v1;
+    oss << v2;
+    TS_ASSERT_EQUALS( oss.str(), "[3](1,2,3)" );
+  }
+
+  void test_vector_equality()
+  {
+    Vector<float,3> v1(1,2,3), v2(1.1,1.9,3), v3(1,2,3);
+    TS_ASSERT_EQUALS( v1==v2, false );
+    TS_ASSERT_EQUALS( v1==v3, true );
+    TS_ASSERT_EQUALS( equal(v1,v2), false );
+    TS_ASSERT_EQUALS( equal(v1,v3), true );
+    TS_ASSERT_EQUALS( equal(v1,v2,.05), false );
+    TS_ASSERT_EQUALS( equal(v1,v3,.05), true );
+    TS_ASSERT_EQUALS( equal(v1,v2,.5), true );
+    TS_ASSERT_EQUALS( equal(v1,v3,.5), true );
+    TS_ASSERT_EQUALS( v1!=v2, true );
+    TS_ASSERT_EQUALS( v1!=v3, false );
+    TS_ASSERT_EQUALS( not_equal(v1,v2), true );
+    TS_ASSERT_EQUALS( not_equal(v1,v3), false );
+    TS_ASSERT_EQUALS( not_equal(v1,v2,.05), true );
+    TS_ASSERT_EQUALS( not_equal(v1,v3,.05), false );
+    TS_ASSERT_EQUALS( not_equal(v1,v2,.5), false );
+    TS_ASSERT_EQUALS( not_equal(v1,v3,.5), false );
+  }
+
   void test_basic_vector_math()
   {
     Vector<float,3> v1(1,2,3), v2(2,4,4);
+
+    TS_ASSERT_EQUALS(-v1,(Vector<float,3>(-1,-2,-3)));
 
     TS_ASSERT_EQUALS(elem_sum(v1,v2),(Vector<float,3>(3,6,7)));
     TS_ASSERT_EQUALS(v1+v2,(Vector<float,3>(3,6,7)));
@@ -112,23 +200,43 @@ public:
 
     TS_ASSERT_EQUALS(elem_prod(v1,v2),(Vector<float,3>(2,8,12)));
     TS_ASSERT_EQUALS(elem_prod(v1,2),(Vector<float,3>(2,4,6)));
+    TS_ASSERT_EQUALS(v1*2,(Vector<float,3>(2,4,6)));
     TS_ASSERT_EQUALS(elem_prod(3,v1),(Vector<float,3>(3,6,9)));
+    TS_ASSERT_EQUALS(3*v1,(Vector<float,3>(3,6,9)));
 
     TS_ASSERT_EQUALS(elem_quot(v1,v2),(Vector<float,3>(0.5,0.5,0.75)));
     TS_ASSERT_EQUALS(elem_quot(v1,2),(Vector<float,3>(0.5,1,1.5)));
+    TS_ASSERT_EQUALS(v1/2,(Vector<float,3>(0.5,1,1.5)));
     TS_ASSERT_EQUALS(elem_quot(3,v1),(Vector<float,3>(3,1.5,1)));
   }
 
-  void test_basic_vector_comparison()
+  void test_vector_elem_comparison()
   {
     Vector<float,3> v1(1,2,3), v2(2,2,2);
 
     TS_ASSERT_EQUALS(elem_eq(v1,v2),(Vector<bool,3>(false,true,false)));
+    TS_ASSERT_EQUALS(elem_eq(v1,2),(Vector<bool,3>(false,true,false)));
+    TS_ASSERT_EQUALS(elem_eq(2,v1),(Vector<bool,3>(false,true,false)));
+
     TS_ASSERT_EQUALS(elem_neq(v1,v2),(Vector<bool,3>(true,false,true)));
+    TS_ASSERT_EQUALS(elem_neq(v1,2),(Vector<bool,3>(true,false,true)));
+    TS_ASSERT_EQUALS(elem_neq(2,v1),(Vector<bool,3>(true,false,true)));
+
     TS_ASSERT_EQUALS(elem_lt(v1,v2),(Vector<bool,3>(true,false,false)));
+    TS_ASSERT_EQUALS(elem_lt(v1,2),(Vector<bool,3>(true,false,false)));
+    TS_ASSERT_EQUALS(elem_lt(2,v1),(Vector<bool,3>(false,false,true)));
+
     TS_ASSERT_EQUALS(elem_gt(v1,v2),(Vector<bool,3>(false,false,true)));
+    TS_ASSERT_EQUALS(elem_gt(v1,2),(Vector<bool,3>(false,false,true)));
+    TS_ASSERT_EQUALS(elem_gt(2,v1),(Vector<bool,3>(true,false,false)));
+
     TS_ASSERT_EQUALS(elem_lte(v1,v2),(Vector<bool,3>(true,true,false)));
+    TS_ASSERT_EQUALS(elem_lte(v1,2),(Vector<bool,3>(true,true,false)));
+    TS_ASSERT_EQUALS(elem_lte(2,v1),(Vector<bool,3>(false,true,true)));
+
     TS_ASSERT_EQUALS(elem_gte(v1,v2),(Vector<bool,3>(false,true,true)));
+    TS_ASSERT_EQUALS(elem_gte(v1,2),(Vector<bool,3>(false,true,true)));
+    TS_ASSERT_EQUALS(elem_gte(2,v1),(Vector<bool,3>(true,true,false)));
   }
 
   void test_vector_norms()
@@ -155,20 +263,6 @@ public:
     TS_ASSERT_DELTA( vn(0), 0.26726, 0.0001 );
     TS_ASSERT_DELTA( vn(1), 0.53452, 0.0001 );
     TS_ASSERT_DELTA( vn(2), 0.80178, 0.0001 );
-  }
-
-  void test_subvector()
-  {
-    Vector<float,4> v(1,2,3,4);
-    Vector<float> sv = subvector(v,2,2);
-    TS_ASSERT_EQUALS( sv.size(), 2 );
-    TS_ASSERT_EQUALS( sv(0), 3 );
-    TS_ASSERT_EQUALS( sv(1), 4 );
-    subvector(v,1,2) = Vector<float,2>(4,5);
-    TS_ASSERT_EQUALS( v(0), 1 );
-    TS_ASSERT_EQUALS( v(1), 4 );
-    TS_ASSERT_EQUALS( v(2), 5 );
-    TS_ASSERT_EQUALS( v(3), 4 );
   }
 
   void test_vector_transpose()

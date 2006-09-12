@@ -28,14 +28,24 @@
 ///   Element access via vec(i) and vec[i]
 ///   Seamless conversion between compatibile vector types
 ///   Vector<T,N> construction with between zero and four initializer elements
-///   Vector addition, subtraction, and negation
+///   Dynamic and fixed VectorProxy proxy objects
+///   Subvector access via subvector()
+///   Vector transposition via transpose()
+///   Explicit expression evaluation via eval()
+///   Printing of vectors to ostreams
+///   Equality of vectors with or without an epsilon
+///   Vector negation, addition, subtraction
 ///   Scalar multiplication and division
-///   Scalar addition and subtraction
-///   Dot product via dot_prod()
+///   Elementwise vector addition, subtraction, multiplication, and division
+///   Elementwise scalar addition, subtraction, multiplication, and division
+///   Vector negation, addition, subtraction of transposed vectors
+///   Scalar multiplication and division of transposed vectors
+///   Elementwise comprison operations.
+///   Norms via norm_1(), norm_2(), norm_2_sqr(), and norm_inf()
+///   Sum and product of elements via sum() and prod()
+///   Vector normalization via normalize()
+///   Dot/inner product via dot_prod(v1,v2) or transpose(v1)*v2
 ///   Cross product of 3-element vectors via cross_prod()
-///   Sum of elements via sum()
-///   Norms via norm_1(), norm_2(), and norm_inf()
-///   Elementwise multiplication and division via elem_prod() and elem_quot()
 ///
 #ifndef __VW_MATH__VECTOR_H__
 #define __VW_MATH__VECTOR_H__
@@ -56,6 +66,7 @@
 
 namespace vw {
 namespace math {
+
   namespace bnu = boost::numeric::ublas;
 
   /// \cond INTERNAL
@@ -73,10 +84,23 @@ namespace math {
   };
   /// \endcond
 
-  // Forward delcaration for friend statements
-  class MatrixImplementation;
+  /// A type function to compute the dimension of a vector expression 
+  /// at compile time (or zero for dynamically-sized vectors).
+  template <class VectorT>
+  struct VectorSize {
+    const static int value = 0;
+  };
 
 
+  // *******************************************************************
+  // class VectorBase<VectorT>
+  // A CRTP vector base class.
+  // *******************************************************************
+
+  /// A CRTP base class for vectors and vector expressions.  
+  /// Provides a mechanism for restricting function arguments to 
+  /// vectors, and provides the various arithmetic assignment 
+  /// operators.
   template <class VectorT>
   struct VectorBase {
 
@@ -85,35 +109,38 @@ namespace math {
 
     /// Returns the derived implementation type.
     VectorT const& impl() const { return *static_cast<VectorT const*>(this); }
+    
+    /// Sum-assignment operator
+    template <class T>
+    VectorT& operator+=( T const& v ) {
+      return impl() = impl() + v;
+    }
 
-    /// Scalar product-assignment operator
-    template <class ScalarT>
-    typename boost::enable_if< IsScalar<ScalarT>, VectorT& >::type
-    operator*=( ScalarT s ) {
+    /// Difference-assignment operator
+    template <class T>
+    VectorT& operator-=( T const& v ) {
+      return impl() = impl() - v;
+    }
+
+    /// Product-assignment operator
+    template <class T>
+    VectorT& operator*=( T s ) {
       return impl() = impl() * s;
     }
 
-    /// Scalar quotient-assignment operator
-    template <class ScalarT>
-    typename boost::enable_if< IsScalar<ScalarT>, VectorT& >::type
-    operator/=( ScalarT s ) {
+    /// Quotient-assignment operator
+    template <class T>
+    VectorT& operator/=( T s ) {
       return impl() = impl() / s;
-    }
-    
-    /// Vector sum-assignment operator
-    template <class OtherT>
-    VectorT& operator+=( VectorBase<OtherT> const& other ) {
-      return impl() = impl() + other.impl();
-    }
-
-    /// Vector difference-assignment operator
-    template <class OtherT>
-    VectorT& operator-=( VectorBase<OtherT> const& other ) {
-      return impl() = impl() - other.impl();
     }
 
   };
 
+
+  // *******************************************************************
+  // class Vector<ElemT,SizeN>
+  // A statically-allocated fixed-dimension vector class.
+  // *******************************************************************
 
   /// A fixed-dimension mathematical vector class.
   template <class ElemT, int SizeN = 0>
@@ -121,7 +148,6 @@ namespace math {
   {
     typedef bnu::vector<ElemT,FixedArray<ElemT,SizeN> > core_type;
     core_type core_;
-    friend class MatrixImplementation;
   public:
     typedef ElemT value_type;
 
@@ -139,7 +165,6 @@ namespace math {
     /// Constructs a vector whose first element is as given.
     Vector( ElemT e1 ) : core_(SizeN) {
       BOOST_STATIC_ASSERT( SizeN >= 1 );
-      initialize_( e1 );
       (*this)[0] = e1;
       for( unsigned i=1; i<SizeN; ++i ) (*this)[i] = ElemT();
     }
@@ -285,13 +310,22 @@ namespace math {
 
   };
 
+  template <class ElemT, int SizeN>
+  struct VectorSize<Vector<ElemT,SizeN> > {
+    const static int value = SizeN;
+  };
+  
+
+  // *******************************************************************
+  // class Vector<ElemT>
+  // A dynamically-allocated arbitrary-dimension vector class.
+  // *******************************************************************
 
   /// An arbitrary-dimension mathematical vector class.
   template <class ElemT>
   class Vector<ElemT,0> : public VectorBase<Vector<ElemT> > {
     typedef bnu::vector<ElemT> core_type;
     core_type core_;
-    friend class MatrixImplementation;
   public:
     typedef ElemT value_type;
 
@@ -401,12 +435,17 @@ namespace math {
   };
 
 
+  // *******************************************************************
+  // class VectorProxy<ElemT,SizeN>
+  // A fixed-dimension vector proxy class, treating an arbitrary block 
+  // of memory as a Vector.
+  // *******************************************************************
+
   /// A fixed-dimension mathematical vector class.
   template <class ElemT, int SizeN = 0>
   class VectorProxy : public VectorBase<VectorProxy<ElemT,SizeN> >
   {
     ElemT *m_ptr;
-    friend class MatrixImplementation;
   public:
     typedef ElemT value_type;
 
@@ -522,13 +561,23 @@ namespace math {
 
   };
 
+  template <class ElemT, int SizeN>
+  struct VectorSize<VectorProxy<ElemT,SizeN> > {
+    const static int value = SizeN;
+  };
+
+
+  // *******************************************************************
+  // class VectorProxy<ElemT>
+  // An arbitrary-dimension vector proxy class, treating an arbitrary 
+  // block of memory as a Vector.
+  // *******************************************************************
 
   /// An arbitrary-dimension vector proxy class.
   template <class ElemT>
   class VectorProxy<ElemT,0> : public VectorBase<VectorProxy<ElemT> > {
     ElemT *m_ptr;
     unsigned m_size;
-    friend class MatrixImplementation;
   public:
     typedef ElemT value_type;
 
@@ -613,23 +662,130 @@ namespace math {
 
   };
 
+  /// Shallow proxy view of an block of memory as a vector.
+  template <class DataT>
+  VectorProxy<DataT> 
+  vector_proxy( DataT* data, int size) {
+    return VectorProxy<DataT>( data, size );
+  }
 
+
+  // *******************************************************************
+  // class VectorTranspose<VectorT>
+  // A transposed vector wrapper class.
+  // *******************************************************************
+
+  /// A transposed vector class.  This class represents the transposed
+  /// version of a vector.  Note that unlike a transposed matrix, a
+  /// transposed vector is not simply another vector.  For this reason
+  /// VectorTransposed does not derive from VectorBase<>, since that
+  /// would permit a variety of mathematically meaninless expressions
+  /// to be created with unexpected results.  An unfortunate side
+  /// effect of this is that explicit overloads must be provided for
+  /// all operations on transposed vectors.  For the moment only a
+  /// limited set of operations are supported, including primarily the
+  /// mathematical operators.
   template <class VectorT>
-  struct VectorSize {
-    const static int value = 0;
+  class VectorTranspose {
+    // We want to store Vector objects by reference so that we don't copy 
+    // them, but we want to store everything else by value so that we can 
+    // return transposed versions of various vector expressions.
+    template <class T> struct VectorClosure { typedef T type; };
+    template <class ElemT, int SizeN> struct VectorClosure<Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN>& type; };
+    template <class ElemT, int SizeN> struct VectorClosure<const Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN> const& type; };
+    typename VectorClosure<VectorT>::type m_vector;
+  public:
+    typedef typename VectorT::value_type value_type;
+
+    typedef typename boost::mpl::if_<boost::is_const<VectorT>,
+                                     typename VectorT::const_reference_type,
+                                     typename VectorT::reference_type>::type reference_type;
+    typedef typename VectorT::const_reference_type const_reference_type;
+
+    typedef typename boost::mpl::if_<boost::is_const<VectorT>,
+                                     typename VectorT::const_iterator,
+                                     typename VectorT::iterator>::type iterator;
+    typedef typename VectorT::const_iterator const_iterator;
+
+    explicit VectorTranspose( VectorT& v ) : m_vector(v) {}
+    
+    template <class OtherT>
+    VectorTranspose& operator=( VectorTranspose<OtherT> const& v ) {
+      VW_ASSERT( v.size()==size(), 
+                 ArgumentErr() << "Vectors must have same size in transposed vector assignment" );
+      m_vector = v.inner();
+      return *this;
+    }
+
+    VectorT& inner() {
+      return m_vector;
+    }
+
+    VectorT const& inner() const {
+      return m_vector;
+    }
+
+    unsigned size() const {
+      return m_vector.size();
+    }
+
+    reference_type operator()( int i ) {
+      return m_vector(i);
+    }
+
+    const_reference_type operator()( int i ) const {
+      return m_vector(i);
+    }
+
+    iterator begin() {
+      return m_vector.begin();
+    }
+
+    const_iterator begin() const {
+      return m_vector.begin();
+    }
+
+    iterator end() {
+      return m_vector.begin();
+    }
+
+    const_iterator end() const {
+      return m_vector.begin();
+    }
+
   };
 
-  template <class ElemT, int SizeN>
-  struct VectorSize<Vector<ElemT,SizeN> > {
-    const static int value = SizeN;
-  };
+  /// Vector transpose.
+  template <class VectorT>
+  inline VectorTranspose<VectorT> transpose( VectorBase<VectorT>& vector ) {
+    return VectorTranspose<VectorT>( vector.impl() );
+  }
 
-  template <class ElemT, int SizeN>
-  struct VectorSize<VectorProxy<ElemT,SizeN> > {
-    const static int value = SizeN;
-  };
+  /// Vector transpose (const overload).
+  template <class VectorT>
+  inline VectorTranspose<const VectorT> transpose( VectorBase<VectorT> const& vector ) {
+    return VectorTranspose<const VectorT>( vector.impl() );
+  }
+
+  /// Vector transpose (transpose overload).
+  template <class VectorT>
+  inline VectorT& transpose( VectorTranspose<VectorT>& vector ) {
+    return vector.inner();
+  }
+
+  /// Vector transpose (const transpose overload).
+  template <class VectorT>
+  inline VectorT const& transpose( VectorTranspose<VectorT> const& vector ) {
+    return vector.inner();
+  }
 
 
+  // *******************************************************************
+  // class SubVector<VectorT>
+  // An dynamically-sized subvector class.
+  // *******************************************************************
+
+  /// A subvector class.
   template <class VectorT>
   class SubVector : public VectorBase<SubVector<VectorT> > {
     VectorT& m_vector;
@@ -704,100 +860,15 @@ namespace math {
   }
 
 
+  // *******************************************************************
+  // class VectorUnaryFunc<VectorT,FuncT>
+  // An unary elementwise vector function class.
+  // *******************************************************************
 
-  template <class VectorT>
-  class TransposedVector {
-    // We want to store Vector objects by reference so that we don't copy 
-    // them, but we want to store everything else by value so that we can 
-    // return transposed versions of various vector expressions.
-    template <class T> struct IsPlainVector : boost::false_type {};
-    template <class ElemT, int SizeN> struct IsPlainVector<Vector<ElemT,SizeN> > : boost::true_type{};
-    template <class ElemT, int SizeN> struct IsPlainVector<const Vector<ElemT,SizeN> > : boost::true_type{};
-    typename boost::mpl::if_<IsPlainVector<VectorT>,VectorT&,VectorT>::type m_vector;
-  public:
-    typedef typename VectorT::value_type value_type;
-
-    typedef typename boost::mpl::if_<boost::is_const<VectorT>,
-                                     typename VectorT::const_reference_type,
-                                     typename VectorT::reference_type>::type reference_type;
-    typedef typename VectorT::const_reference_type const_reference_type;
-
-    typedef typename boost::mpl::if_<boost::is_const<VectorT>,
-                                     typename VectorT::const_iterator,
-                                     typename VectorT::iterator>::type iterator;
-    typedef typename VectorT::const_iterator const_iterator;
-
-    explicit TransposedVector( VectorT& v ) : m_vector(v) {}
-    
-    template <class OtherT>
-    TransposedVector& operator=( TransposedVector<OtherT> const& v ) {
-      VW_ASSERT( v.size()==size(), 
-                 ArgumentErr() << "Vectors must have same size in transposed vector assignment" );
-      m_vector = v.impl();
-      return *this;
-    }
-
-    VectorT& impl() {
-      return m_vector;
-    }
-
-    VectorT const& impl() const {
-      return m_vector;
-    }
-
-    unsigned size() const {
-      return m_vector.size();
-    }
-
-    reference_type operator()( int i ) {
-      return m_vector(i);
-    }
-
-    const_reference_type operator()( int i ) const {
-      return m_vector(i);
-    }
-
-    iterator begin() {
-      return m_vector.begin();
-    }
-
-    const_iterator begin() const {
-      return m_vector.begin();
-    }
-
-    iterator end() {
-      return m_vector.begin();
-    }
-
-    const_iterator end() const {
-      return m_vector.begin();
-    }
-
-  };
-
-  template <class VectorT>
-  inline TransposedVector<VectorT> transpose( VectorBase<VectorT>& vector ) {
-    return TransposedVector<VectorT>( vector.impl() );
-  }
-
-  template <class VectorT>
-  inline TransposedVector<const VectorT> transpose( VectorBase<VectorT> const& vector ) {
-    return TransposedVector<const VectorT>( vector.impl() );
-  }
-
-  template <class VectorT>
-  inline VectorT& transpose( TransposedVector<VectorT>& vector ) {
-    return vector.impl();
-  }
-
-  template <class VectorT>
-  inline VectorT const& transpose( TransposedVector<VectorT> const& vector ) {
-    return vector.impl();
-  }
-
-
+  /// An unary elementwise vector function class.
   template <class VectorT, class FuncT>
-  class VectorUnaryFunc : public VectorBase<VectorUnaryFunc<VectorT,FuncT> > {
+  class VectorUnaryFunc : public VectorBase<VectorUnaryFunc<VectorT,FuncT> >
+  {
     VectorT const& v;
     FuncT func;
   public:
@@ -806,20 +877,11 @@ namespace math {
     typedef value_type reference_type;
     typedef value_type const_reference_type;
 
-    VectorUnaryFunc( VectorT const& v ) : v(v) {}
-
-    template <class Arg1>
-    VectorUnaryFunc( VectorT const& v, Arg1 a1 ) : v(v), func(a1) {}
-
-    unsigned size() const {
-      return v.size();
-    }
-
-    reference_type operator()( int i ) const {
-      return func(v(i));
-    }
-
-    class iterator : public boost::iterator_facade<iterator, value_type, boost::random_access_traversal_tag, value_type> {
+    class iterator : public boost::iterator_facade<iterator,
+                                                   value_type,
+                                                   boost::random_access_traversal_tag,
+                                                   reference_type>
+    {
       friend class boost::iterator_core_access;
 
       typename VectorT::const_iterator i;
@@ -835,11 +897,24 @@ namespace math {
       iterator(typename VectorT::const_iterator const& i,
                FuncT const& func) : i(i), func(func) {}
     };
+
     typedef iterator const_iterator;
+
+    VectorUnaryFunc( VectorT const& v ) : v(v) {}
+
+    template <class Arg1>
+    VectorUnaryFunc( VectorT const& v, Arg1 a1 ) : v(v), func(a1) {}
+
+    unsigned size() const {
+      return v.size();
+    }
+
+    reference_type operator()( int i ) const {
+      return func(v(i));
+    }
 
     iterator begin() const { return iterator(v.begin(),func); }
     iterator end() const { return iterator(v.end(),func); }
-
   };
 
   template <class VectorT, class FuncT>
@@ -848,6 +923,12 @@ namespace math {
   };
 
 
+  // *******************************************************************
+  // class VectorBinaryFunc<Vector1T,Vector2T,FuncT>
+  // A binary elementwise vector function class.
+  // *******************************************************************
+
+  /// A binary elementwise vector function class.
   template <class Vector1T, class Vector2T, class FuncT>
   class VectorBinaryFunc : public VectorBase<VectorBinaryFunc<Vector1T,Vector2T,FuncT> > {
     Vector1T const& v1;
@@ -858,6 +939,31 @@ namespace math {
     
     typedef value_type reference_type;
     typedef value_type const_reference_type;
+
+    class iterator : public boost::iterator_facade<iterator,
+                                                   value_type,
+                                                   boost::random_access_traversal_tag,
+                                                   reference_type>
+    {
+      friend class boost::iterator_core_access;
+
+      typename Vector1T::const_iterator i1;
+      typename Vector2T::const_iterator i2;
+      FuncT func;
+
+      bool equal( iterator const& iter ) const { return (i1==iter.i1) && (i2==iter.i2); }
+      ptrdiff_t distance_to( iterator const &iter ) const { return iter.i1 - i1; }
+      void increment() { ++i1; ++i2; }
+      void decrement() { --i1; --i2; }
+      void advance( ptrdiff_t n ) { i1+=n; i2+=n; }
+      typename iterator::reference dereference() const { return func(*i1,*i2); }
+    public:
+      iterator(typename Vector1T::const_iterator const& i1,
+               typename Vector2T::const_iterator const& i2,
+               FuncT const& func) : i1(i1), i2(i2), func(func) {}
+    };
+
+    typedef iterator const_iterator;
 
     VectorBinaryFunc( Vector1T const& v1, Vector2T const& v2 ) : v1(v1), v2(v2) {
       VW_ASSERT( v1.size() == v2.size(), ArgumentErr() << "Vectors must have same size in VectorBinaryFunc" );
@@ -876,26 +982,6 @@ namespace math {
       return func(v1(i),v2(i));
     }
 
-    class iterator : public boost::iterator_facade<iterator, value_type, boost::random_access_traversal_tag, value_type> {
-      friend class boost::iterator_core_access;
-
-      typename Vector1T::const_iterator i1;
-      typename Vector2T::const_iterator i2;
-      FuncT func;
-
-      bool equal( iterator const& iter ) const { return (i1==iter.i1) && (i2==iter.i2); }
-      ptrdiff_t distance_to( iterator const &iter ) const { return iter.i1 - i1; }
-      void increment() { ++i1; ++i2; }
-      void decrement() { --i1; --i2; }
-      void advance( ptrdiff_t n ) { i1+=n; i2+=n; }
-      typename iterator::reference dereference() const { return func(*i1,*i2); }
-    public:
-      iterator(typename Vector1T::const_iterator const& i1,
-               typename Vector2T::const_iterator const& i2,
-               FuncT const& func) : i1(i1), i2(i2), func(func) {}
-    };
-    typedef iterator const_iterator;
-
     iterator begin() const { return iterator(v1.begin(),v2.begin(),func); }
     iterator end() const { return iterator(v1.end(),v2.end(),func); }
   };
@@ -905,6 +991,29 @@ namespace math {
     static const int value = (VectorSize<Vector1T>::value!=0)?(VectorSize<Vector1T>::value):(VectorSize<Vector2T>::value);
   };
 
+
+  // *******************************************************************
+  // Explicit vector expression evaluation functions.
+  // *******************************************************************
+
+  /// Forces evaluation of an arbitrary vector expression to a Vector
+  /// object.
+  template <class VectorT>
+  Vector<typename VectorT::value_type, VectorSize<VectorT>::value>
+  inline eval( VectorBase<VectorT> const& v ) {
+    return v;
+  }
+
+  /// Forwarding overload for plain Vector objects.
+  template <class ElemT, int SizeN>
+  inline Vector<ElemT,SizeN> const& eval( Vector<ElemT,SizeN> const& v ) {
+    return v;
+  }
+
+
+  // *******************************************************************
+  // Vector iostream interface functions.
+  // *******************************************************************
 
   /// Dumps a vector to a std::ostream
   template <class VectorT>
@@ -919,8 +1028,8 @@ namespace math {
 
   /// Dumps a transposed vector to a std::ostream
   template <class VectorT>
-  inline std::ostream& operator<<( std::ostream& os, TransposedVector<VectorT> const& v ) {
-    VectorT const& vr = v.impl();
+  inline std::ostream& operator<<( std::ostream& os, VectorTranspose<VectorT> const& v ) {
+    VectorT const& vr = v.inner();
     unsigned size = vr.size();
     os << '[' << size << "'](";
     if( size > 0 ) os << vr(0);
@@ -929,9 +1038,16 @@ namespace math {
   }
 
 
-  /// Equality of two vectors.  Two vectors are considered equal if they have the 
-  /// same dimensions and their elements are all equivalent with respect to the 
-  /// standard c++ operator==(). 
+  // *******************************************************************
+  // Vector comparison operators and functions.
+  // Note that only equality and inequality operators are provided,
+  // in keeping with standard mathematical notation.  Users who want 
+  // particular orderings can defined those operators appropriately.
+  // *******************************************************************
+
+  /// Equality of two vectors.  Two vectors are considered equal if
+  /// they have the same dimensions and their elements are all
+  /// equivalent with respect to the standard c++ operator==().
   template <class Vector1T, class Vector2T>
   inline bool operator==( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
     if (v1.impl().size() != v2.impl().size()) { return false; }
@@ -945,7 +1061,7 @@ namespace math {
 
   /// Equality of two vectors measured to within epsilon.  Two vectors
   /// are considered equal if they have the same dimensions and their
-  /// elements are equal to within the specified tolerance. 
+  /// elements are equal to within the specified tolerance.
   template <class Vector1T, class Vector2T>
   inline bool equal( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2, double epsilon = 0 ) {
     if (v1.impl().size() != v2.impl().size()) { return false; }
@@ -953,7 +1069,7 @@ namespace math {
     typename Vector1T::const_iterator iter1 = v1.impl().begin();
     typename Vector2T::const_iterator iter2 = v2.impl().begin();
     for (; iter1 != v1.impl().end(); ++iter1, ++iter2)
-      if (fabs(*iter1 - *iter2) >= epsilon) { return false; }
+      if (fabs(*iter1 - *iter2) > epsilon) { return false; }
     return true;
   }
 
@@ -975,7 +1091,11 @@ namespace math {
   }
 
 
-  /// Negation of a vector
+  // *******************************************************************
+  // Basic elementwise mathematical vector operators and functions.
+  // *******************************************************************
+
+  /// Negation of a vector.
   template <class VectorT>
   VectorUnaryFunc<VectorT, ArgNegationFunctor>
   inline operator-( VectorBase<VectorT> const& v ) {
@@ -984,9 +1104,9 @@ namespace math {
 
   /// Negation of a transposed vector.
   template <class VectorT>
-  TransposedVector<const VectorUnaryFunc<VectorT, ArgNegationFunctor> >
-  inline operator-( TransposedVector<VectorT> const& v ) {
-    return transpose(-v.impl());
+  VectorTranspose<const VectorUnaryFunc<VectorT, ArgNegationFunctor> >
+  inline operator-( VectorTranspose<VectorT> const& v ) {
+    return transpose(-v.inner());
   }
 
 
@@ -1006,9 +1126,9 @@ namespace math {
 
   /// Sum of two transposed vectors.
   template <class Vector1T, class Vector2T>
-  TransposedVector<const VectorBinaryFunc<Vector1T, Vector2T, ArgArgSumFunctor> >
-  inline operator+( TransposedVector<Vector1T> const& v1, TransposedVector<Vector2T> const& v2 ) {
-    return transpose(v1.impl()+v2.impl());
+  VectorTranspose<const VectorBinaryFunc<Vector1T, Vector2T, ArgArgSumFunctor> >
+  inline operator+( VectorTranspose<Vector1T> const& v1, VectorTranspose<Vector2T> const& v2 ) {
+    return transpose(v1.inner()+v2.inner());
   }
 
   /// Elementwise sum of a scalar and a vector.
@@ -1044,9 +1164,9 @@ namespace math {
 
   /// Difference of two transposed vectors.
   template <class Vector1T, class Vector2T>
-  TransposedVector<const VectorBinaryFunc<Vector1T, Vector2T, ArgArgDifferenceFunctor> >
-  inline operator-( TransposedVector<Vector1T> const& v1, TransposedVector<Vector2T> const& v2 ) {
-    return transpose(v1.impl()-v2.impl());
+  VectorTranspose<const VectorBinaryFunc<Vector1T, Vector2T, ArgArgDifferenceFunctor> >
+  inline operator-( VectorTranspose<Vector1T> const& v1, VectorTranspose<Vector2T> const& v2 ) {
+    return transpose(v1.inner()-v2.inner());
   }
 
   /// Elementwise difference of a scalar and a vector.
@@ -1092,9 +1212,9 @@ namespace math {
   /// Product of a scalar and a transposed vector.
   template <class ScalarT, class VectorT>
   typename boost::enable_if< IsScalar<ScalarT>,
-                             TransposedVector<const VectorUnaryFunc<VectorT, ValArgProductFunctor<ScalarT> > > >::type
-  inline operator*( ScalarT s, TransposedVector<VectorT> const& v ) {
-    return transpose(s*v.impl());
+                             VectorTranspose<const VectorUnaryFunc<VectorT, ValArgProductFunctor<ScalarT> > > >::type
+  inline operator*( ScalarT s, VectorTranspose<VectorT> const& v ) {
+    return transpose(s*v.inner());
   }
 
   /// Elementwise product of a vector and a scalar.
@@ -1116,9 +1236,9 @@ namespace math {
   /// Product of a transposed vector and a scalar.
   template <class ScalarT, class VectorT>
   typename boost::enable_if< IsScalar<ScalarT>,
-                             TransposedVector<const VectorUnaryFunc<VectorT, ArgValProductFunctor<ScalarT> > > >::type
-  inline operator*( TransposedVector<VectorT> const& v, ScalarT s ) {
-    return transpose(v.impl()*s);
+                             VectorTranspose<const VectorUnaryFunc<VectorT, ArgValProductFunctor<ScalarT> > > >::type
+  inline operator*( VectorTranspose<VectorT> const& v, ScalarT s ) {
+    return transpose(v.inner()*s);
   }
 
 
@@ -1156,20 +1276,24 @@ namespace math {
   /// Quotient of a transposed vector and a scalar.
   template <class ScalarT, class VectorT>
   typename boost::enable_if< IsScalar<ScalarT>,
-                             TransposedVector<const VectorUnaryFunc<VectorT, ArgValQuotientFunctor<ScalarT> > > >::type
-  inline operator/( TransposedVector<VectorT> const& v, ScalarT s ) {
-    return transpose(v.impl()/s);
+                             VectorTranspose<const VectorUnaryFunc<VectorT, ArgValQuotientFunctor<ScalarT> > > >::type
+  inline operator/( VectorTranspose<VectorT> const& v, ScalarT s ) {
+    return transpose(v.inner()/s);
   }
 
 
-  /// Elementwise equality operator
+  // *******************************************************************
+  // Elementwise vector comparison functions.
+  // *******************************************************************
+
+  /// Elementwise equality of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgEqualityFunctor>
   inline elem_eq( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
     return VectorBinaryFunc<Vector1T, Vector2T, ArgArgEqualityFunctor>( v1.impl(), v2.impl() );
   }
 
-  /// Elementwise equality operator of a scalar and a vector.
+  /// Elementwise equality of a scalar and a vector.
   template <class ScalarT, class VectorT>
   typename boost::enable_if< IsScalar<ScalarT>,
                              VectorUnaryFunc<VectorT, ValArgEqualityFunctor<ScalarT> > >::type
@@ -1177,7 +1301,7 @@ namespace math {
     return VectorUnaryFunc<VectorT, ValArgEqualityFunctor<ScalarT> >( v.impl(), s );
   }
 
-  /// Elementwise equality operator of a vector and a scalar.
+  /// Elementwise equality of a vector and a scalar.
   template <class ScalarT, class VectorT>
   typename boost::enable_if< IsScalar<ScalarT>,
                              VectorUnaryFunc<VectorT, ArgValEqualityFunctor<ScalarT> > >::type
@@ -1186,14 +1310,14 @@ namespace math {
   }
 
 
-  /// Elementwise inequality operator
+  /// Elementwise inequality of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgInequalityFunctor>
   inline elem_neq( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
     return VectorBinaryFunc<Vector1T, Vector2T, ArgArgInequalityFunctor>( v1.impl(), v2.impl() );
   }
 
-  /// Elementwise inequality operator of a scalar and a vector.
+  /// Elementwise inequality of a scalar and a vector.
   template <class ScalarT, class VectorT>
   typename boost::enable_if< IsScalar<ScalarT>,
                              VectorUnaryFunc<VectorT, ValArgInequalityFunctor<ScalarT> > >::type
@@ -1201,7 +1325,7 @@ namespace math {
     return VectorUnaryFunc<VectorT, ValArgInequalityFunctor<ScalarT> >( v.impl(), s );
   }
 
-  /// Elementwise inequality operator of a vector and a scalar.
+  /// Elementwise inequality of a vector and a scalar.
   template <class ScalarT, class VectorT>
   typename boost::enable_if< IsScalar<ScalarT>,
                              VectorUnaryFunc<VectorT, ArgValInequalityFunctor<ScalarT> > >::type
@@ -1210,14 +1334,14 @@ namespace math {
   }
 
 
-  /// Elementwise less than operator
+  /// Elementwise less-than of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgLessThanFunctor>
   inline elem_lt( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
     return VectorBinaryFunc<Vector1T, Vector2T, ArgArgLessThanFunctor>( v1.impl(), v2.impl() );
   }
 
-  /// Elementwise less than operator of a scalar and a vector.
+  /// Elementwise less-than of a scalar and a vector.
   template <class ScalarT, class VectorT>
   typename boost::enable_if< IsScalar<ScalarT>,
                              VectorUnaryFunc<VectorT, ValArgLessThanFunctor<ScalarT> > >::type
@@ -1225,7 +1349,7 @@ namespace math {
     return VectorUnaryFunc<VectorT, ValArgLessThanFunctor<ScalarT> >( v.impl(), s );
   }
 
-  /// Elementwise less than operator of a vector and a scalar.
+  /// Elementwise less-than of a vector and a scalar.
   template <class ScalarT, class VectorT>
   typename boost::enable_if< IsScalar<ScalarT>,
                              VectorUnaryFunc<VectorT, ArgValLessThanFunctor<ScalarT> > >::type
@@ -1234,14 +1358,14 @@ namespace math {
   }
 
 
-  /// Elementwise less than or equal to operator
+  /// Elementwise less-than-or-equal-to of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgLessThanOrEqualFunctor>
   inline elem_lte( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
     return VectorBinaryFunc<Vector1T, Vector2T, ArgArgLessThanOrEqualFunctor>( v1.impl(), v2.impl() );
   }
 
-  /// Elementwise less than or equal to operator of a scalar and a vector.
+  /// Elementwise less-than-or-equal-to of a scalar and a vector.
   template <class ScalarT, class VectorT>
   typename boost::enable_if< IsScalar<ScalarT>,
                              VectorUnaryFunc<VectorT, ValArgLessThanOrEqualFunctor<ScalarT> > >::type
@@ -1249,7 +1373,7 @@ namespace math {
     return VectorUnaryFunc<VectorT, ValArgLessThanOrEqualFunctor<ScalarT> >( v.impl(), s );
   }
 
-  /// Elementwise less than or equal to operator of a vector and a scalar.
+  /// Elementwise less-than-or-equal-to of a vector and a scalar.
   template <class ScalarT, class VectorT>
   typename boost::enable_if< IsScalar<ScalarT>,
                              VectorUnaryFunc<VectorT, ArgValLessThanOrEqualFunctor<ScalarT> > >::type
@@ -1258,14 +1382,14 @@ namespace math {
   }
 
 
-  /// Elementwise greater than operator
+  /// Elementwise greater-than of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgGreaterThanFunctor>
   inline elem_gt( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
     return VectorBinaryFunc<Vector1T, Vector2T, ArgArgGreaterThanFunctor>( v1.impl(), v2.impl() );
   }
 
-  /// Elementwise greater than operator of a scalar and a vector.
+  /// Elementwise greater-than of a scalar and a vector.
   template <class ScalarT, class VectorT>
   typename boost::enable_if< IsScalar<ScalarT>,
                              VectorUnaryFunc<VectorT, ValArgGreaterThanFunctor<ScalarT> > >::type
@@ -1273,7 +1397,7 @@ namespace math {
     return VectorUnaryFunc<VectorT, ValArgGreaterThanFunctor<ScalarT> >( v.impl(), s );
   }
 
-  /// Elementwise greater than operator of a vector and a scalar.
+  /// Elementwise greater-than of a vector and a scalar.
   template <class ScalarT, class VectorT>
   typename boost::enable_if< IsScalar<ScalarT>,
                              VectorUnaryFunc<VectorT, ArgValGreaterThanFunctor<ScalarT> > >::type
@@ -1282,14 +1406,14 @@ namespace math {
   }
 
 
-  /// Elementwise greater than or equal to operator
+  /// Elementwise greater-than-or-equal-to of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgGreaterThanOrEqualFunctor>
   inline elem_gte( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
     return VectorBinaryFunc<Vector1T, Vector2T, ArgArgGreaterThanOrEqualFunctor>( v1.impl(), v2.impl() );
   }
 
-  /// Elementwise less than or equal to operator of a scalar and a vector.
+  /// Elementwise greater-than-or-equal-to of a scalar and a vector.
   template <class ScalarT, class VectorT>
   typename boost::enable_if< IsScalar<ScalarT>,
                              VectorUnaryFunc<VectorT, ValArgGreaterThanOrEqualFunctor<ScalarT> > >::type
@@ -1297,7 +1421,7 @@ namespace math {
     return VectorUnaryFunc<VectorT, ValArgGreaterThanOrEqualFunctor<ScalarT> >( v.impl(), s );
   }
 
-  /// Elementwise less than or equal to operator of a vector and a scalar.
+  /// Elementwise greater-than-or-equal-to of a vector and a scalar.
   template <class ScalarT, class VectorT>
   typename boost::enable_if< IsScalar<ScalarT>,
                              VectorUnaryFunc<VectorT, ArgValGreaterThanOrEqualFunctor<ScalarT> > >::type
@@ -1305,6 +1429,10 @@ namespace math {
     return VectorUnaryFunc<VectorT, ArgValGreaterThanOrEqualFunctor<ScalarT> >( v.impl(), s );
   }
 
+
+  // *******************************************************************
+  // Vector norms and similar functions.
+  // *******************************************************************
 
   /// Vector 1-norm
   template <class VectorT>
@@ -1362,6 +1490,11 @@ namespace math {
     return result;
   }
 
+
+  // *******************************************************************
+  // Assorted mathematical vector functions.
+  // *******************************************************************
+
   /// Returns a normalized (unit) vector.
   template <class VectorT>
   VectorUnaryFunc<VectorT, ArgValQuotientFunctor<double> >
@@ -1384,8 +1517,8 @@ namespace math {
   /// Vector inner product via transpose
   template <class Vector1T, class Vector2T>
   typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type
-  inline operator*( TransposedVector<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    return dot_prod( v1.impl(), v2 );
+  inline operator*( VectorTranspose<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
+    return dot_prod( v1.inner(), v2 );
   }
 
   /// Vector cross product. (Only valid for 3-element vectors.)
@@ -1400,6 +1533,8 @@ namespace math {
 
 } // namespace math
 
+  // Typedefs for commonly-used static vector types and using 
+  // directives for backwards compatability.
   using math::Vector;
   using math::VectorBase;
   using math::VectorProxy;
