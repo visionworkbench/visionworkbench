@@ -477,5 +477,7 @@ AC_DEFUN([AX_MODULE],
     AC_MSG_NOTICE(HAVE_PKG_$1 = ${HAVE_PKG_$1})
   fi
 
-  AM_CONDITIONAL([MAKE_MODULE_$1], [test "$MAKE_MODULE_$1" = "yes"])
+#  We're putting these in configure.ac manually by now, for 
+#  backwards compatability with older versions of automake.
+#  AM_CONDITIONAL([MAKE_MODULE_$1], [test "$MAKE_MODULE_$1" = "yes"])
 ])

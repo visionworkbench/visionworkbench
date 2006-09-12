@@ -50,4 +50,6 @@ includedir = $(prefix)/include/vw/Math
 AM_CPPFLAGS = @MODULE_MATH_CPPFLAGS@
 AM_LDFLAGS  = @MODULE_MATH_LDFLAGS@
 
+EXTRA_DIST = $(TESTS_H) $(TESTS_EXTRAS) 
+
 include $(top_srcdir)/config/rules.mak

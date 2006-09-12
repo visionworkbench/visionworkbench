@@ -36,5 +36,5 @@ fi
 
 aclocal
 autoheader
-automake
+automake -a
 autoconf
