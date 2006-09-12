@@ -814,10 +814,10 @@ namespace math {
     }
 
     /// Returns the underlying non-transposed matrix.
-    MatrixT& inner() { return m_matrix; }
+    MatrixT& child() { return m_matrix; }
     
     /// Returns the underlying non-transposed matrix (const overload).
-    MatrixT const& inner() const { return m_matrix; }
+    MatrixT const& child() const { return m_matrix; }
 
     /// Returns the number of rows in the matrix.
     unsigned rows() const { return m_matrix.cols(); }
@@ -874,13 +874,13 @@ namespace math {
   /// Matrix transpose (transpose overload).
   template <class MatrixT>
   inline MatrixT& transpose( MatrixTranspose<MatrixT>& m ) {
-    return m.inner();
+    return m.child();
   }
 
   /// Matrix transpose (const transpose overload).
   template <class MatrixT>
   inline MatrixT const& transpose( MatrixTranspose<MatrixT> const& m ) {
-    return m.inner();
+    return m.child();
   }
 
 
@@ -1854,14 +1854,14 @@ namespace math {
   template <class MatrixT, class VectorT>
   MatrixVectorProduct<MatrixT,VectorT,true>
   inline operator*( MatrixTranspose<MatrixT> const& m, VectorBase<VectorT> const& v ) {
-    return MatrixVectorProduct<MatrixT,VectorT,true>( m.inner(), v.impl() );
+    return MatrixVectorProduct<MatrixT,VectorT,true>( m.child(), v.impl() );
   }
 
   /// Product of a transposed vector and a matrix
   template <class VectorT, class MatrixT>
   VectorTranspose<const MatrixVectorProduct<MatrixT,VectorT,true> >
   inline operator*( VectorTranspose<VectorT> const& v, MatrixBase<MatrixT> const& m ) {
-    return transpose(MatrixVectorProduct<MatrixT,VectorT,true>( m.impl(), v.inner() ));
+    return transpose(MatrixVectorProduct<MatrixT,VectorT,true>( m.impl(), v.child() ));
   }
 
 

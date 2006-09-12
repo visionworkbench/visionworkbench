@@ -23,14 +23,18 @@
 /// 
 /// Types and traits for compound (i.e. multi-channel) types.
 ///
-#ifndef __VW_CORE_COMPOUND_TYPES_H__
-#define __VW_CORE_COMPOUND_TYPES_H__
+#ifndef __VW_CORE__COMPOUND_TYPES_H__
+#define __VW_CORE__COMPOUND_TYPES_H__
 
 #include <boost/utility/result_of.hpp>
 
 #include <vw/Core/FundamentalTypes.h>
 
 namespace vw {
+
+  // *******************************************************************
+  // Compount type traits classes.
+  // *******************************************************************
 
   // Default compound type traits templates.  Compound types are mainly used 
   // as pixel types, but the type traits machinery is defined here in more 
@@ -50,6 +54,23 @@ namespace vw {
   template <class T> struct IsCompound<const T> : public IsCompound<T> {};
   template <class T1, class T2> struct CompoundIsCompatible<T1, const T2> : public CompoundIsCompatible<T1,T2> {};
 
+  // These functions take a required ResultT template parameter so the caller 
+  // can specify whether to return by value or by reference.  This is somewhat 
+  // annoying.  Is there a better way?
+  template <class ResultT, class PixelT>
+  inline ResultT compound_select_channel( PixelT& pixel, typename boost::disable_if<IsCompound<PixelT>, unsigned>::type channel ) {
+    return pixel;
+  }
+
+  template <class ResultT, class PixelT>
+  inline ResultT compound_select_channel( PixelT& pixel, typename boost::enable_if<IsCompound<PixelT>, unsigned>::type channel ) {
+    return pixel[channel];
+  }
+
+
+  // *******************************************************************
+  // Binary elementwise compound type functor.
+  // *******************************************************************
 
   template <class FuncT>
   class BinaryCompoundFunctor {
@@ -139,6 +160,10 @@ namespace vw {
   }
 
 
+  // *******************************************************************
+  // Unary elementwise compound type functor.
+  // *******************************************************************
+
   template <class FuncT>
   class UnaryCompoundFunctor {
     FuncT func;
@@ -227,4 +252,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_CORE_COMPOUND_TYPES_H__
+#endif // __VW_CORE__COMPOUND_TYPES_H__

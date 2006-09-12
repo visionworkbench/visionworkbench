@@ -713,15 +713,15 @@ namespace math {
     VectorTranspose& operator=( VectorTranspose<OtherT> const& v ) {
       VW_ASSERT( v.size()==size(), 
                  ArgumentErr() << "Vectors must have same size in transposed vector assignment" );
-      m_vector = v.inner();
+      m_vector = v.child();
       return *this;
     }
 
-    VectorT& inner() {
+    VectorT& child() {
       return m_vector;
     }
 
-    VectorT const& inner() const {
+    VectorT const& child() const {
       return m_vector;
     }
 
@@ -770,13 +770,13 @@ namespace math {
   /// Vector transpose (transpose overload).
   template <class VectorT>
   inline VectorT& transpose( VectorTranspose<VectorT>& vector ) {
-    return vector.inner();
+    return vector.child();
   }
 
   /// Vector transpose (const transpose overload).
   template <class VectorT>
   inline VectorT const& transpose( VectorTranspose<VectorT> const& vector ) {
-    return vector.inner();
+    return vector.child();
   }
 
 
@@ -1029,7 +1029,7 @@ namespace math {
   /// Dumps a transposed vector to a std::ostream
   template <class VectorT>
   inline std::ostream& operator<<( std::ostream& os, VectorTranspose<VectorT> const& v ) {
-    VectorT const& vr = v.inner();
+    VectorT const& vr = v.child();
     unsigned size = vr.size();
     os << '[' << size << "'](";
     if( size > 0 ) os << vr(0);
@@ -1106,7 +1106,7 @@ namespace math {
   template <class VectorT>
   VectorTranspose<const VectorUnaryFunc<VectorT, ArgNegationFunctor> >
   inline operator-( VectorTranspose<VectorT> const& v ) {
-    return transpose(-v.inner());
+    return transpose(-v.child());
   }
 
 
@@ -1128,7 +1128,7 @@ namespace math {
   template <class Vector1T, class Vector2T>
   VectorTranspose<const VectorBinaryFunc<Vector1T, Vector2T, ArgArgSumFunctor> >
   inline operator+( VectorTranspose<Vector1T> const& v1, VectorTranspose<Vector2T> const& v2 ) {
-    return transpose(v1.inner()+v2.inner());
+    return transpose(v1.child()+v2.child());
   }
 
   /// Elementwise sum of a scalar and a vector.
@@ -1166,7 +1166,7 @@ namespace math {
   template <class Vector1T, class Vector2T>
   VectorTranspose<const VectorBinaryFunc<Vector1T, Vector2T, ArgArgDifferenceFunctor> >
   inline operator-( VectorTranspose<Vector1T> const& v1, VectorTranspose<Vector2T> const& v2 ) {
-    return transpose(v1.inner()-v2.inner());
+    return transpose(v1.child()-v2.child());
   }
 
   /// Elementwise difference of a scalar and a vector.
@@ -1214,7 +1214,7 @@ namespace math {
   typename boost::enable_if< IsScalar<ScalarT>,
                              VectorTranspose<const VectorUnaryFunc<VectorT, ValArgProductFunctor<ScalarT> > > >::type
   inline operator*( ScalarT s, VectorTranspose<VectorT> const& v ) {
-    return transpose(s*v.inner());
+    return transpose(s*v.child());
   }
 
   /// Elementwise product of a vector and a scalar.
@@ -1238,7 +1238,7 @@ namespace math {
   typename boost::enable_if< IsScalar<ScalarT>,
                              VectorTranspose<const VectorUnaryFunc<VectorT, ArgValProductFunctor<ScalarT> > > >::type
   inline operator*( VectorTranspose<VectorT> const& v, ScalarT s ) {
-    return transpose(v.inner()*s);
+    return transpose(v.child()*s);
   }
 
 
@@ -1278,7 +1278,7 @@ namespace math {
   typename boost::enable_if< IsScalar<ScalarT>,
                              VectorTranspose<const VectorUnaryFunc<VectorT, ArgValQuotientFunctor<ScalarT> > > >::type
   inline operator/( VectorTranspose<VectorT> const& v, ScalarT s ) {
-    return transpose(v.inner()/s);
+    return transpose(v.child()/s);
   }
 
 
@@ -1518,7 +1518,7 @@ namespace math {
   template <class Vector1T, class Vector2T>
   typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type
   inline operator*( VectorTranspose<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    return dot_prod( v1.inner(), v2 );
+    return dot_prod( v1.child(), v2 );
   }
 
   /// Vector cross product. (Only valid for 3-element vectors.)
