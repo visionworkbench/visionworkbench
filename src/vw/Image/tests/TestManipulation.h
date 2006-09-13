@@ -188,6 +188,34 @@ public:
     TS_ASSERT_EQUALS( &(subsample(im,2)(0,1)), &(im(0,2)) );
   }
 
+  void testSelectCol()
+  {
+    ImageView<double> im(2,2); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4;
+    ImageView<double> im2 = select_col(im,1);
+    TS_ASSERT_EQUALS( im2.cols(), 1 );
+    TS_ASSERT_EQUALS( im2.rows(), 2 );
+    TS_ASSERT_EQUALS( im2.planes(), 1 );
+    TS_ASSERT_EQUALS( im2(0,0), 2 );
+    TS_ASSERT_EQUALS( im2(0,1), 4 );
+    // Make sure it's really shallow.
+    TS_ASSERT_EQUALS( select_col(im,1)(0,1), im(1,1) );
+    TS_ASSERT_EQUALS( &(select_col(im,1)(0,1)), &(im(1,1)) );
+  }
+
+  void testSelectRow()
+  {
+    ImageView<double> im(2,2); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4;
+    ImageView<double> im2 = select_row(im,1);
+    TS_ASSERT_EQUALS( im2.cols(), 2 );
+    TS_ASSERT_EQUALS( im2.rows(), 1 );
+    TS_ASSERT_EQUALS( im2.planes(), 1 );
+    TS_ASSERT_EQUALS( im2(0,0), 3 );
+    TS_ASSERT_EQUALS( im2(1,0), 4 );
+    // Make sure it's really shallow.
+    TS_ASSERT_EQUALS( select_row(im,1)(1,0), im(1,1) );
+    TS_ASSERT_EQUALS( &(select_row(im,1)(1,0)), &(im(1,1)) );
+  }
+
   void testSelectPlane()
   {
     ImageView<double> im(1,2,2); im(0,0,0)=1; im(0,1,0)=2; im(0,0,1)=3; im(0,1,1)=4;
@@ -200,20 +228,6 @@ public:
     // Make sure it's really shallow.
     TS_ASSERT_EQUALS( select_plane(im,0)(0,1), im(0,1) );
     TS_ASSERT_EQUALS( &(select_plane(im,0)(0,1)), &(im(0,1)) );
-  }
-
-  void testSelectChannel()
-  {
-    ImageView<PixelRGB<double> > im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
-    ImageView<double> im2 = select_channel(im,1);
-    TS_ASSERT_EQUALS( im2.cols(), 1 );
-    TS_ASSERT_EQUALS( im2.rows(), 2 );
-    TS_ASSERT_EQUALS( im2.planes(), 1 );
-    TS_ASSERT_EQUALS( im2(0,0), 2 );
-    TS_ASSERT_EQUALS( im2(0,1), 5 );
-    // Make sure it's really shallow.
-    TS_ASSERT_EQUALS( select_channel(im,1)(0,1), im(0,1)[1] );
-    TS_ASSERT_EQUALS( &(select_channel(im,1)(0,1)), &(im(0,1)[1]) );
   }
 
   void testChannelsToPlanes()

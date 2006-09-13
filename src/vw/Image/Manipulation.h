@@ -35,9 +35,11 @@
 /// "slices" of images, returning a new view composed from individual
 /// channels or planes of the source image. These include:
 /// 
+/// - select_col() : takes a single-column slice of an image
+/// - select_row() : takes a single-row slice of an image
 /// - select_plane() : takes a single-plane slice of an image
-/// - select_channel() : takes a single-channel slice of an image
 /// - channels_to_planes() : reinterprets a multi-channel image as a multi-plane image
+/// - planes_to_channels() : reinterprets a multi-plane image as a multi-channel image
 ///
 #ifndef __VW_IMAGE__MANIPULATION_H__
 #define __VW_IMAGE__MANIPULATION_H__
@@ -803,6 +805,124 @@ namespace vw {
   template <class ImageT>
   inline SubsampleView<ImageT> subsample( ImageT const& v, unsigned xfactor, unsigned yfactor ) {
     return SubsampleView<ImageT>( v, xfactor, yfactor );
+  }
+
+
+  // *******************************************************************
+  // SelectCol
+  // *******************************************************************
+
+  /// Return a single column from an image
+  /// \see vw::select_col
+  template <class ImageT>
+  class SelectColView : public ImageViewBase<SelectColView<ImageT> >
+  {
+  private:
+    ImageT m_image;
+    unsigned m_col;
+  public:
+
+    typedef typename ImageT::pixel_type pixel_type;
+    typedef typename ImageT::pixel_accessor pixel_accessor;
+
+    SelectColView( ImageT const& image, unsigned col ) : m_image(image), m_col(col) {}
+
+    inline unsigned cols() const { return 1; }
+    inline unsigned rows() const { return m_image.rows(); }
+    inline unsigned planes() const { return m_image.planes(); }
+
+    inline pixel_accessor origin() const { return m_image.origin().advance(m_col,0,0); }
+
+    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
+    inline operator()( int i, int j, int p=0) const { return m_image(m_col,j,p); }
+
+    template <class ViewT>
+    SelectColView& operator=( ImageViewBase<ViewT> const& view ) {
+      view.impl().rasterize( *this );
+      return *this;
+    }
+
+    /// \cond INTERNAL
+    typedef SelectColView<typename ImageT::prerasterize_type> prerasterize_type;
+    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize(), m_col ); }
+    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+    /// \endcond
+  };
+
+  /// \cond INTERNAL
+  // View type Traits
+  template <class ImageT>
+  struct IsReferenceable<SelectColView<ImageT> > : public IsReferenceable<ImageT> {};
+
+  template <class ImageT>
+  struct IsMultiplyAccessible<SelectColView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
+  /// \endcond
+
+  /// Extracts a single column of an image.  This function returns a
+  /// writeable view of a single column of a multi-column image.  
+  /// \see vw::SelectColView
+  template <class ImageT>
+  SelectColView<ImageT> select_col( ImageViewBase<ImageT> const& v, unsigned col ) {
+    return SelectColView<ImageT>( v.impl(), col );
+  }
+
+
+  // *******************************************************************
+  // SelectRow
+  // *******************************************************************
+
+  /// Return a single row from an image
+  /// \see vw::select_row
+  template <class ImageT>
+  class SelectRowView : public ImageViewBase<SelectRowView<ImageT> >
+  {
+  private:
+    ImageT m_image;
+    unsigned m_row;
+  public:
+
+    typedef typename ImageT::pixel_type pixel_type;
+    typedef typename ImageT::pixel_accessor pixel_accessor;
+
+    SelectRowView( ImageT const& image, unsigned row ) : m_image(image), m_row(row) {}
+
+    inline unsigned cols() const { return m_image.cols(); }
+    inline unsigned rows() const { return 1; }
+    inline unsigned planes() const { return m_image.planes(); }
+
+    inline pixel_accessor origin() const { return m_image.origin().advance(0,m_row,0); }
+
+    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
+    inline operator()( int i, int j, int p=0) const { return m_image(i,m_row,p); }
+
+    template <class ViewT>
+    SelectRowView& operator=( ImageViewBase<ViewT> const& view ) {
+      view.impl().rasterize( *this );
+      return *this;
+    }
+
+    /// \cond INTERNAL
+    typedef SelectRowView<typename ImageT::prerasterize_type> prerasterize_type;
+    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize(), m_row ); }
+    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+    /// \endcond
+  };
+
+  /// \cond INTERNAL
+  // View type Traits
+  template <class ImageT>
+  struct IsReferenceable<SelectRowView<ImageT> > : public IsReferenceable<ImageT> {};
+
+  template <class ImageT>
+  struct IsMultiplyAccessible<SelectRowView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
+  /// \endcond
+
+  /// Extracts a single row of an image.  This function returns a
+  /// writeable view of a single row of a multi-row image.  
+  /// \see vw::SelectRowView
+  template <class ImageT>
+  SelectRowView<ImageT> select_row( ImageViewBase<ImageT> const& v, unsigned row ) {
+    return SelectRowView<ImageT>( v.impl(), row );
   }
 
 
