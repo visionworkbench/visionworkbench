@@ -27,6 +27,7 @@
 #define __VW_CORE__COMPOUND_TYPES_H__
 
 #include <boost/utility/result_of.hpp>
+#include <boost/utility/enable_if.hpp>
 
 #include <vw/Core/FundamentalTypes.h>
 
@@ -248,6 +249,21 @@ namespace vw {
   typename CompoundResult<FuncT,ArgT>::type
   inline compound_apply( FuncT const& func, ArgT const& arg ) {
     return UnaryCompoundFunctor<FuncT>(func)(arg);
+  }
+
+  template <class T>
+  struct CastingFunctor {
+    typedef T result_type;
+    template <class ArgT>
+    T operator()( ArgT const& arg ) const {
+      return (T)(arg);
+    }
+  };
+
+  template <class ChannelT, class ArgT>
+  typename CompoundChannelCast<ArgT,ChannelT>::type
+  inline compound_channel_cast( ArgT const& arg ) {
+    return compound_apply( CastingFunctor<ChannelT>(), arg );
   }
 
 } // namespace vw
