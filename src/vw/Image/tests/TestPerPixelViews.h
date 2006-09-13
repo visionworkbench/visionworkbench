@@ -33,7 +33,7 @@ class TestPerPixelViews : public CxxTest::TestSuite
 public:
 
   template <template<class> class TraitT, class T>
-  bool bool_trait( T const& arg ) {
+  static bool bool_trait( T const& arg ) {
     return TraitT<T>::value;
   }
 
