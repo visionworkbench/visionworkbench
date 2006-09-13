@@ -1948,12 +1948,20 @@ namespace math {
 
 } // namespace math
 
+  // Typedefs for commonly-used static vector types and using 
+  // directives for backwards compatability.
   using math::Matrix;
   using math::MatrixBase;
   using math::MatrixProxy;
-  typedef Matrix<double,2,2> Matrix2x2;
-  typedef Matrix<double,3,3> Matrix3x3;
-  typedef Matrix<double,4,4> Matrix4x4;
+  typedef Matrix<float64,2,2> Matrix2x2;
+  typedef Matrix<float64,3,3> Matrix3x3;
+  typedef Matrix<float64,4,4> Matrix4x4;
+  typedef Matrix<float32,2,2> Matrix2x2f;
+  typedef Matrix<float32,3,3> Matrix3x3f;
+  typedef Matrix<float32,4,4> Matrix4x4f;
+  typedef Matrix<int32,2,2> Matrix2x2i;
+  typedef Matrix<int32,3,3> Matrix3x3i;
+  typedef Matrix<int32,4,4> Matrix4x4i;
 
 } // namespace vw
 

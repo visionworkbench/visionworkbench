@@ -46,7 +46,7 @@
 
 #include <vw/Core/CompoundTypes.h>
 #include <vw/Image/ImageViewBase.h>
-//#include <vw/BBox.h>
+#include <vw/Math/BBox.h>
 
 namespace vw {
 
@@ -707,11 +707,11 @@ namespace vw {
     return CropView<ImageT>( v, upper_left_x, upper_left_y, width, height );
   }
 
-  // /// Crop an image.
-  // template <class ImageT>
-  // inline CropView<ImageT> crop( ImageT const& v, BBox<int,2> const& bbox ) {
-  //   return CropView<ImageT>( v, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height() );
-  // }
+  /// Crop an image.
+  template <class ImageT>
+  inline CropView<ImageT> crop( ImageT const& v, BBox<int,2> const& bbox ) {
+    return CropView<ImageT>( v, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height() );
+  }
 
 
   // *******************************************************************

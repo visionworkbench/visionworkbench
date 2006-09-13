@@ -1538,9 +1538,15 @@ namespace math {
   using math::Vector;
   using math::VectorBase;
   using math::VectorProxy;
-  typedef Vector<double,2> Vector2;
-  typedef Vector<double,3> Vector3;
-  typedef Vector<double,4> Vector4;
+  typedef Vector<float64,2> Vector2;
+  typedef Vector<float64,3> Vector3;
+  typedef Vector<float64,4> Vector4;
+  typedef Vector<float32,2> Vector2f;
+  typedef Vector<float32,3> Vector3f;
+  typedef Vector<float32,4> Vector4f;
+  typedef Vector<int32,2> Vector2i;
+  typedef Vector<int32,3> Vector3i;
+  typedef Vector<int32,4> Vector4i;
 
 } // namespace vw
 

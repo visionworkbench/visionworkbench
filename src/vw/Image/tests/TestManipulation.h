@@ -160,9 +160,17 @@ public:
     TS_ASSERT_EQUALS( im2.rows(), 2 );
     TS_ASSERT_EQUALS( im2(0,0), 4 );
     TS_ASSERT_EQUALS( im2(0,1), 6 );
+
+    ImageView<double> im3 = crop(im,BBox2i(1,1,1,2));
+    TS_ASSERT_EQUALS( im3.cols(), 1 );
+    TS_ASSERT_EQUALS( im3.rows(), 2 );
+    TS_ASSERT_EQUALS( im3(0,0), 4 );
+    TS_ASSERT_EQUALS( im3(0,1), 6 );
+
     // Make sure it's really shallow.
     TS_ASSERT_EQUALS( crop(im,1,1,1,2)(0,0), im(1,1) );
     TS_ASSERT_EQUALS( &(crop(im,1,1,1,2)(0,0)), &(im(1,1)) );
+
   }
 
   void testSubsample()
