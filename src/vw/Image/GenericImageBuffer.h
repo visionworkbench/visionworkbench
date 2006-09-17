@@ -51,7 +51,7 @@ namespace vw {
         rows( image.impl().rows() ),
         planes( image.impl().planes() ),
         pixel_format( PixelFormatID<typename ImageT::pixel_type>::value ),
-        channel_type( ChannelTypeID<typename PixelChannelType<typename ImageT::pixel_type>::type>::value )
+        channel_type( ChannelTypeID<typename CompoundChannelType<typename ImageT::pixel_type>::type>::value )
     {}
   };
 

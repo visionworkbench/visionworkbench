@@ -128,18 +128,8 @@ namespace vw {
   };
 
 
-  /// \cond INTERNAL
-
   // ********************************************************************
-  // PixelType Arithmetic Operation Functors
-  //
-  // We could build these on top of Phoenix instead, but I think it 
-  // makes sense to wait until Phoenix 2 stabilizes, or until the 
-  // typeof keyword becomes standard, since the main problem these 
-  // classes exist to solve is having known functor types).  (I'm not 
-  // actually sure that is correct, but whatever.  'Tis a problem for 
-  // another day.  Meanwhile, we can use these.)
-  //
+  // PixelType Arithmetic Operator Functors
   // ********************************************************************
 
   // Unary negation of an argument
@@ -448,8 +438,6 @@ namespace vw {
     template <class ArgT>
     inline bool operator()( ArgT const& arg ) const { return m_val>=arg; }
   };
-
-  /// \endcond INTERNAL
 
 } // namespace vw
 

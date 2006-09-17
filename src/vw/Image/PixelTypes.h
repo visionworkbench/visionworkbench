@@ -34,6 +34,7 @@
 #include <ostream>
 
 #include <vw/Image/PixelTypeInfo.h>
+#include <vw/Image/PixelMath.h>
 
 namespace vw {
 

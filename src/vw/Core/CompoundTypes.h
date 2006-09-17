@@ -42,7 +42,7 @@ namespace vw {
   // general terms to avoid undesirable dependencies. 
   template <class T> struct CompoundChannelType { typedef T type; };
   template <class T> struct CompoundNumChannels { static const unsigned value = 1; };
-  template <class T, class ChannelT> struct CompoundChannelCast { typedef T type; };
+  template <class T, class ChannelT> struct CompoundChannelCast { typedef ChannelT type; };
   template <class T> struct IsCompound
     : public boost::mpl::not_< boost::is_same< typename CompoundChannelType<T>::type, T > >::type {};
   template <class T1, class T2> struct CompoundIsCompatible

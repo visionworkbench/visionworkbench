@@ -25,7 +25,7 @@
 
 if MAKE_MODULE_MATH
 
-include_HEADERS = Vector.h Matrix.h BBox.h
+include_HEADERS = Vector.h Matrix.h BBox.h Functors.h
 
 endif
 
@@ -35,7 +35,8 @@ endif
 
 if MAKE_MODULE_VW
 
-TESTS_H = tests/TestVector.h tests/TestMatrix.h tests/TestBBox.h
+TESTS_H = tests/TestVector.h tests/TestMatrix.h tests/TestBBox.h	\
+	tests/TestFunctors.h
 
 TESTS_EXTRAS = 
 

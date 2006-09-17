@@ -31,6 +31,18 @@ include_HEADERS = Exception.h FundamentalTypes.h TypeDeduction.h	\
 endif
 
 ########################################################################
+# tests
+########################################################################
+
+if MAKE_MODULE_VW
+
+TESTS_H = tests/TestCompoundTypes.h tests/TestFunctors.h
+
+TESTS_EXTRAS = 
+
+endif
+
+########################################################################
 # general
 ########################################################################
 
@@ -38,5 +50,7 @@ includedir = $(prefix)/include/vw/Core
 
 AM_CPPFLAGS = @MODULE_VW_CPPFLAGS@
 AM_LDFLAGS  = @MODULE_VW_LDFLAGS@
+
+EXTRA_DIST = $(TESTS_H) $(TESTS_EXTRAS) 
 
 include $(top_srcdir)/config/rules.mak

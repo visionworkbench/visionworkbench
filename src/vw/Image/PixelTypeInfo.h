@@ -24,8 +24,8 @@
 /// Base classes, support classes, and other infrastructure 
 /// to support the pixel types.
 ///
-#ifndef __VW_IMAGE__PIXEL_TYPE_INFO_H__
-#define __VW_IMAGE__PIXEL_TYPE_INFO_H__
+#ifndef __VW_IMAGE_PIXELTYPEINFO_H__
+#define __VW_IMAGE_PIXELTYPEINFO_H__
 
 #include <complex>
 #include <boost/integer_traits.hpp>
@@ -60,6 +60,7 @@ namespace vw {
   struct PixelMakeReal {
     typedef typename PixelChannelCast<PixelT,typename MakeReal<typename PixelChannelType<PixelT>::type>::type>::type type;
   };
+
 
   // *******************************************************************
   // Pixel channel standard range computation logic
@@ -155,82 +156,6 @@ namespace vw {
 
 
   // *******************************************************************
-  // Pixel math base class and free functions.
-  //
-  // Here we define the PixelMathBase CRTP base class, which can be 
-  // used as a mix-in to give any pixel-like type the usual pixel math 
-  // behavior.
-  // *******************************************************************
-
-  /// This CRTP base class, and the related free operator overloads,
-  /// provide some default pixel math behavior used by pixel types
-  /// such as PixelRGB.  It makes extensive use of type computation
-  /// mechanisms to handle things like type promotion, so that for
-  /// example a PixelRGB<int> multiplied by a float returns a
-  /// PixelRGB<float>.  The following operators are currently
-  /// supported:
-  /// 
-  ///  - <TT>-</TT> pixel
-  ///  - pixel <TT>+</TT> pixel
-  ///  - pixel <TT>+=</TT> pixel
-  ///  - pixel <TT>-</TT> pixel
-  ///  - pixel <TT>-=</TT> pixel
-  ///  - pixel <TT>*</TT> scalar
-  ///  - scalar <TT>*</TT> pixel
-  ///  - pixel <TT>*=</TT> scalar
-  ///  - pixel <TT>/</TT> scalar
-  ///  - pixel <TT>/=</TT> scalar
-  ///
-  /// To use this class, simply derive your pixel type from it in 
-  /// the usual CRTP manner.  Your pixel type must provide operator[]
-  /// and you must specialize the usual compound type traits:
-  /// CompoundChannelType, CompoundNumChannels, and CompoundChannelCast.
-  template <class DerivedT>
-  class PixelMathBase {
-  public:
-    template <class ArgT> inline DerivedT& operator+=( ArgT a ) { return *static_cast<DerivedT*>(this) = (static_cast<DerivedT const&>(*this) + a ); }
-    template <class ArgT> inline DerivedT& operator-=( ArgT a ) { return *static_cast<DerivedT*>(this) = (static_cast<DerivedT const&>(*this) - a ); }
-    template <class ArgT> inline DerivedT& operator*=( ArgT a ) { return *static_cast<DerivedT*>(this) = (static_cast<DerivedT const&>(*this) * a ); }
-    template <class ArgT> inline DerivedT& operator/=( ArgT a ) { return *static_cast<DerivedT*>(this) = (static_cast<DerivedT const&>(*this) / a ); }
-  };
-
-  template <class PixelT>
-  inline PixelT operator-( PixelMathBase<PixelT> const& pixel ) {
-    return compound_apply(ArgNegationFunctor(), static_cast<PixelT const&>(pixel) );
-  }
-
-  template <class Pixel1T, class Pixel2T>
-  typename boost::enable_if< CompoundIsCompatible<Pixel1T,Pixel2T>, typename CompoundResult<ArgArgSumFunctor, Pixel1T, Pixel2T>::type >::type
-  inline operator+( PixelMathBase<Pixel1T> const& pixel1, PixelMathBase<Pixel2T> const& pixel2 ) {
-    return compound_apply(ArgArgSumFunctor(), static_cast<Pixel1T const&>(pixel1), static_cast<Pixel2T const&>(pixel2) );
-  }
-
-  template <class Pixel1T, class Pixel2T>
-  typename boost::enable_if< CompoundIsCompatible<Pixel1T,Pixel2T>, typename CompoundResult<ArgArgDifferenceFunctor, Pixel1T, Pixel2T>::type >::type
-  inline operator-( PixelMathBase<Pixel1T> const& pixel1, PixelMathBase<Pixel2T> const& pixel2 ) {
-    return compound_apply(ArgArgDifferenceFunctor(), static_cast<Pixel1T const&>(pixel1), static_cast<Pixel2T const&>(pixel2) );
-  }
-
-  template <class PixelT, class ScalarT>
-  typename boost::enable_if< IsScalar<ScalarT>, typename CompoundResult<ArgValProductFunctor<ScalarT>, PixelT>::type >::type
-  inline operator*( PixelMathBase<PixelT> const& pixel, ScalarT scalar ) {
-    return compound_apply(ArgValProductFunctor<ScalarT>(scalar), static_cast<PixelT const&>(pixel) );
-  }
-
-  template <class ScalarT, class PixelT>
-  typename boost::enable_if< IsScalar<ScalarT>, typename CompoundResult<ValArgProductFunctor<ScalarT>, PixelT>::type >::type
-  inline operator*( ScalarT scalar, PixelMathBase<PixelT> const& pixel ) {
-    return compound_apply(ValArgProductFunctor<ScalarT>(scalar), static_cast<PixelT const&>(pixel) );
-  }
-
-  template <class PixelT, class ScalarT>
-  typename boost::enable_if< IsScalar<ScalarT>, typename CompoundResult<ArgValQuotientFunctor<ScalarT>, PixelT>::type >::type
-  inline operator/( PixelMathBase<PixelT> const& pixel, ScalarT scalar ) {
-    return compound_apply(ArgValQuotientFunctor<ScalarT>(scalar), static_cast<PixelT const&>(pixel) );
-  }
-
-
-  // *******************************************************************
   // A pixel type convenience macro and forward declrations.
   // *******************************************************************
 
@@ -261,6 +186,7 @@ namespace vw {
   template <class ChannelT> class PixelRGB;
   template <class ChannelT> class PixelRGBA;
   template <class ChannelT> class PixelHSV;
+
 
   // *******************************************************************
   // Run-time pixel type manipulation routines.
@@ -367,4 +293,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_IMAGE__PIXEL_TYPE_INFO_H__
+#endif // __VW_IMAGE_PIXELTYPEINFO_H__
