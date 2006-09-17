@@ -23,8 +23,8 @@
 /// 
 /// A convenience header that includes the header files in vw/Image.
 /// 
-#ifndef __VW__IMAGE_H__
-#define __VW__IMAGE_H__
+#ifndef __VW_IMAGE_H__
+#define __VW_IMAGE_H__
 
 #include <vw/Image/PixelIterator.h>
 #include <vw/Image/ImageViewBase.h>
@@ -32,6 +32,11 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/PixelTypeInfo.h>
+#include <vw/Image/PixelMath.h>
 #include <vw/Image/PixelTypes.h>
+#include <vw/Image/PerPixelViews.h>
+#include <vw/Image/ImageMath.h>
+#include <vw/Image/GenericImageBuffer.h>
+#include <vw/Image/Manipulation.h>
 
-#endif // __VW__IMAGE_H__
+#endif // __VW_IMAGE_H__

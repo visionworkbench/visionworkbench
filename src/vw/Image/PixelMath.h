@@ -89,6 +89,13 @@ namespace vw {
     return compound_apply(ftor<ScalarT>(scalar), pixel.impl() );        \
   }
 
+#define VW_PIXEL_MATH_STD_UNARY_FUNCTION(func,ftor)     \
+  VW_PIXEL_MATH_UNARY_FUNCTION(func,ftor)               \
+  using ::func;
+
+#define VW_PIXEL_MATH_STD_BINARY_PP_FUNCTION(func,ftor) \
+  VW_PIXEL_MATH_BINARY_PP_FUNCTION(func,ftor)           \
+  using ::func;
 
   // *******************************************************************
   // Default mathematical operator overlaods
@@ -113,59 +120,59 @@ namespace vw {
   // Default mathematical function overlaods
   // *******************************************************************
 
-  VW_PIXEL_MATH_UNARY_FUNCTION(acos, vw::math::ArgAcosFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(asin, vw::math::ArgAsinFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(atan, vw::math::ArgAtanFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(cos, vw::math::ArgCosFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(sin, vw::math::ArgSinFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(tan, vw::math::ArgTanFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(cosh, vw::math::ArgCoshFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(sinh, vw::math::ArgSinhFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(tanh, vw::math::ArgTanhFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(exp, vw::math::ArgExpFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(log, vw::math::ArgLogFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(log10, vw::math::ArgLog10Functor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(sqrt, vw::math::ArgSqrtFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(ceil, vw::math::ArgCeilFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(floor, vw::math::ArgFloorFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(acos, vw::math::ArgAcosFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(asin, vw::math::ArgAsinFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(atan, vw::math::ArgAtanFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(cos, vw::math::ArgCosFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(sin, vw::math::ArgSinFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(tan, vw::math::ArgTanFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(cosh, vw::math::ArgCoshFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(sinh, vw::math::ArgSinhFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(tanh, vw::math::ArgTanhFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(exp, vw::math::ArgExpFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(log, vw::math::ArgLogFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(log10, vw::math::ArgLog10Functor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(sqrt, vw::math::ArgSqrtFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(ceil, vw::math::ArgCeilFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(floor, vw::math::ArgFloorFunctor)
 
-  VW_PIXEL_MATH_BINARY_PP_FUNCTION(atan2, vw::math::ArgArgAtan2Functor)
+  VW_PIXEL_MATH_STD_BINARY_PP_FUNCTION(atan2, vw::math::ArgArgAtan2Functor)
   VW_PIXEL_MATH_BINARY_PS_FUNCTION(atan2, vw::math::ArgValAtan2Functor)
   VW_PIXEL_MATH_BINARY_SP_FUNCTION(atan2, vw::math::ValArgAtan2Functor)
-  VW_PIXEL_MATH_BINARY_PP_FUNCTION(pow, vw::math::ArgArgPowFunctor)
+  VW_PIXEL_MATH_STD_BINARY_PP_FUNCTION(pow, vw::math::ArgArgPowFunctor)
   VW_PIXEL_MATH_BINARY_PS_FUNCTION(pow, vw::math::ArgValPowFunctor)
   VW_PIXEL_MATH_BINARY_SP_FUNCTION(pow, vw::math::ValArgPowFunctor)
 
 #ifndef WIN32
-  VW_PIXEL_MATH_UNARY_FUNCTION(acosh, vw::math::ArgAcoshFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(asinh, vw::math::ArgAsinhFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(atanh, vw::math::ArgAtanhFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(exp2, vw::math::ArgExp2Functor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(expm1, vw::math::ArgExpm1Functor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(log2, vw::math::ArgLog2Functor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(log1p, vw::math::ArgLog1pFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(cbrt, vw::math::ArgCbrtFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(erf, vw::math::ArgErfFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(erfc, vw::math::ArgErfcFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(tgamma,vw::math::ArgTgammaFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(lgamma,vw::math::ArgLgammaFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(round, vw::math::ArgRoundFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(trunc, vw::math::ArgTruncFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(acosh, vw::math::ArgAcoshFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(asinh, vw::math::ArgAsinhFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(atanh, vw::math::ArgAtanhFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(exp2, vw::math::ArgExp2Functor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(expm1, vw::math::ArgExpm1Functor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(log2, vw::math::ArgLog2Functor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(log1p, vw::math::ArgLog1pFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(cbrt, vw::math::ArgCbrtFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(erf, vw::math::ArgErfFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(erfc, vw::math::ArgErfcFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(tgamma,vw::math::ArgTgammaFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(lgamma,vw::math::ArgLgammaFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(round, vw::math::ArgRoundFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(trunc, vw::math::ArgTruncFunctor)
 
-  VW_PIXEL_MATH_BINARY_PP_FUNCTION(hypot, vw::math::ArgArgHypotFunctor)
+  VW_PIXEL_MATH_STD_BINARY_PP_FUNCTION(hypot, vw::math::ArgArgHypotFunctor)
   VW_PIXEL_MATH_BINARY_PS_FUNCTION(hypot, vw::math::ArgValHypotFunctor)
   VW_PIXEL_MATH_BINARY_SP_FUNCTION(hypot, vw::math::ValArgHypotFunctor)
-  VW_PIXEL_MATH_BINARY_PP_FUNCTION(copysign, vw::math::ArgArgCopysignFunctor)
+  VW_PIXEL_MATH_STD_BINARY_PP_FUNCTION(copysign, vw::math::ArgArgCopysignFunctor)
   VW_PIXEL_MATH_BINARY_PS_FUNCTION(copysign, vw::math::ArgValCopysignFunctor)
   VW_PIXEL_MATH_BINARY_SP_FUNCTION(copysign, vw::math::ValArgCopysignFunctor)
-  VW_PIXEL_MATH_BINARY_PP_FUNCTION(fdim, vw::math::ArgArgFdimFunctor)
+  VW_PIXEL_MATH_STD_BINARY_PP_FUNCTION(fdim, vw::math::ArgArgFdimFunctor)
   VW_PIXEL_MATH_BINARY_PS_FUNCTION(fdim, vw::math::ArgValFdimFunctor)
   VW_PIXEL_MATH_BINARY_SP_FUNCTION(fdim, vw::math::ValArgFdimFunctor)
 #endif // WIN32
 
   VW_PIXEL_MATH_UNARY_FUNCTION(real, vw::math::ArgRealFunctor)
   VW_PIXEL_MATH_UNARY_FUNCTION(imag, vw::math::ArgImagFunctor)
-  VW_PIXEL_MATH_UNARY_FUNCTION(abs,  vw::math::ArgAbsFunctor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(abs,  vw::math::ArgAbsFunctor)
   VW_PIXEL_MATH_UNARY_FUNCTION(conj, vw::math::ArgConjFunctor)
 
 } // namespace vw

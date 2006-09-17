@@ -23,14 +23,42 @@
 ///
 /// Standard mathematical functions operating on images.
 ///
-/// This header provides overloaded versions of many of the standard 
-/// C++ mathematical functions to operate on images.  The binary 
-/// functions can operate either on two images (with the same pixel 
-/// type and dimensions) or on an image and a scalar.
+/// This header provides overloaded versions of many of the standard
+/// C++ mathematical operators and functions to operate on images.
+/// The binary functions can operate either on two images (with the
+/// same pixel type and dimensions) or on an image and a scalar.  The
+/// following operators are currently supported:
+/// 
+///  - <TT>-</TT> image
+///  - image <TT>+</TT> image
+///  - image <TT>+=</TT> image
+///  - image <TT>+ </TT>scalar
+///  - image <TT>+= </TT>scalar
+///  - scalar <TT>+</TT> image
+///  - image <TT>-</TT> image
+///  - image <TT>-=</TT> image
+///  - image <TT>- </TT>scalar
+///  - image <TT>-= </TT>scalar
+///  - scalar <TT>-</TT> image
+///  - image <TT>*</TT> image
+///  - image <TT>*=</TT> image
+///  - image <TT>* </TT>scalar
+///  - image <TT>*= </TT>scalar
+///  - scalar <TT>*</TT> image
+///  - image <TT>/</TT> image
+///  - image <TT>/=</TT> image
+///  - image <TT>/ </TT>scalar
+///  - image <TT>/= </TT>scalar
+///  - scalar <TT>/</TT> image
 ///
-/// These functions return either an UnaryPerPixelView or a
-/// BinaryPerPixelView, which adopt the same pixel type and dimensions
-/// as the source image(s), except where otherwise noted.
+/// Each function returns either an UnaryPerPixelView or a
+/// BinaryPerPixelView, as appropriate, so they can be combined
+/// efficiently without introducing intermediate image buffers.  The
+/// resulting view adopts the same pixel type and dimensions as the
+/// source image, except where otherwise noted.  In order for the
+/// image functions to work, the corresponding functions for the
+/// underlying pixel types must exist.  We currently don't support the
+/// comparison operators here.
 ///
 #ifndef __VW_IMAGE_IMAGEMATH_H__
 #define __VW_IMAGE_IMAGEMATH_H__
@@ -72,6 +100,55 @@ namespace vw {
   inline func( ScalarT scalar, ImageViewBase<ImageT> const& image ) {   \
     return UnaryPerPixelView<ImageT,ftor<ScalarT> >( image.impl(), ftor<ScalarT>(scalar) ); \
   }
+
+
+  // *******************************************************************
+  // Default mathematical operator overlaods
+  // *******************************************************************
+
+  /// Negation of an image.
+  VW_IMAGE_MATH_UNARY_FUNCTION(operator-, vw::ArgNegationFunctor)
+
+  /// Sum of two images.
+  VW_IMAGE_MATH_BINARY_II_FUNCTION(operator +, vw::ArgArgSumFunctor)
+
+  /// Sum of an image and a scalar.
+  VW_IMAGE_MATH_BINARY_IS_FUNCTION(operator +, vw::ArgValSumFunctor)
+
+  /// Sum of a scalar and an image.
+  VW_IMAGE_MATH_BINARY_SI_FUNCTION(operator +, vw::ValArgSumFunctor)
+
+  /// Difference of two images.
+  VW_IMAGE_MATH_BINARY_II_FUNCTION(operator -, vw::ArgArgDifferenceFunctor)
+
+  /// Difference of an image and a scalar.
+  VW_IMAGE_MATH_BINARY_IS_FUNCTION(operator -, vw::ArgValDifferenceFunctor)
+
+  /// Difference of a scalar and an image.
+  VW_IMAGE_MATH_BINARY_SI_FUNCTION(operator -, vw::ValArgDifferenceFunctor)
+
+  /// Product of two images.
+  VW_IMAGE_MATH_BINARY_II_FUNCTION(operator *, vw::ArgArgProductFunctor)
+
+  /// Product of an image and a scalar.
+  VW_IMAGE_MATH_BINARY_IS_FUNCTION(operator *, vw::ArgValProductFunctor)
+
+  /// Product of a scalar and an image.
+  VW_IMAGE_MATH_BINARY_SI_FUNCTION(operator *, vw::ValArgProductFunctor)
+
+  /// Quotient of two images.
+  VW_IMAGE_MATH_BINARY_II_FUNCTION(operator /, vw::ArgArgQuotientFunctor)
+
+  /// Quotient of an image and a scalar.
+  VW_IMAGE_MATH_BINARY_IS_FUNCTION(operator /, vw::ArgValQuotientFunctor)
+
+  /// Quotient of a scalar and an image.
+  VW_IMAGE_MATH_BINARY_SI_FUNCTION(operator /, vw::ValArgQuotientFunctor)
+
+
+  // *******************************************************************
+  // Default mathematical function overlaods
+  // *******************************************************************
 
   /// Computes the arccosine, \f$\cos^{-1} x\f$, of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(acos, vw::math::ArgAcosFunctor)

@@ -79,6 +79,11 @@ namespace vw {
     /// Returns the number of channels in the image's pixel type.
     inline int channels() const { return CompoundNumChannels<typename ImplT::pixel_type>::value; }
 
+    template <class ArgT> inline ImplT& operator+=( ArgT a ) { return *static_cast<ImplT*>(this) = (static_cast<ImplT const&>(*this) + a ); }
+    template <class ArgT> inline ImplT& operator-=( ArgT a ) { return *static_cast<ImplT*>(this) = (static_cast<ImplT const&>(*this) - a ); }
+    template <class ArgT> inline ImplT& operator*=( ArgT a ) { return *static_cast<ImplT*>(this) = (static_cast<ImplT const&>(*this) * a ); }
+    template <class ArgT> inline ImplT& operator/=( ArgT a ) { return *static_cast<ImplT*>(this) = (static_cast<ImplT const&>(*this) / a ); }
+
     /// \cond INTERNAL
     protected:
     // These are defined here to prevent the user from accidentally
