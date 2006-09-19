@@ -82,13 +82,16 @@ namespace vw {
   class ProceduralPixelAccessor
   {
   private:
+    typedef typename boost::mpl::if_<IsFloatingPointIndexable<ViewT>, float, int>::type offset_type;
     ViewT const& m_view;
-    int m_c, m_r, m_p;
+    offset_type m_c, m_r;
+    int m_p;
+
   public:
     typedef typename ViewT::pixel_type pixel_type;
 
     ProceduralPixelAccessor( ViewT const& view ) : m_view(view), m_c(0), m_r(0), m_p(0) {}
-    ProceduralPixelAccessor( ViewT const& view, int c, int r, int p=0 ) : m_view(view), m_c(c), m_r(r), m_p(p) {}
+    ProceduralPixelAccessor( ViewT const& view, offset_type c, offset_type r, int p=0 ) : m_view(view), m_c(c), m_r(r), m_p(p) {}
 
     inline ProceduralPixelAccessor& next_col() { ++m_c; return *this; }
     inline ProceduralPixelAccessor& prev_col() { --m_c; return *this; }
@@ -96,7 +99,7 @@ namespace vw {
     inline ProceduralPixelAccessor& prev_row() { --m_r; return *this; }
     inline ProceduralPixelAccessor& next_plane() { ++m_p; return *this; }
     inline ProceduralPixelAccessor& prev_plane() { --m_p; return *this; }
-    inline ProceduralPixelAccessor& advance( ptrdiff_t dc, ptrdiff_t dr, ptrdiff_t dp=0 ) { m_c+=dc; m_r+=dr; m_p+=dp; return *this; }
+    inline ProceduralPixelAccessor& advance( offset_type dc, offset_type dr, ptrdiff_t dp=0 ) { m_c+=dc; m_r+=dr; m_p+=dp; return *this; }
 
     inline pixel_type operator*() const { return m_view(m_c,m_r,m_p); }
   };

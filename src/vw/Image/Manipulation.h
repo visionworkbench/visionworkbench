@@ -647,18 +647,26 @@ namespace vw {
   class CropView : public ImageViewBase< CropView<ImageT> >
   {
   private:
-    ImageT m_image;
-    unsigned m_ci, m_cj, m_di, m_dj;
-  public:
+    typedef typename boost::mpl::if_<IsFloatingPointIndexable<ImageT>, float, int>::type offset_type;
 
+    ImageT m_image;
+    offset_type m_ci, m_cj;
+    unsigned m_di, m_dj;
+
+  public:
     typedef typename ImageT::pixel_type pixel_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
-    CropView( ImageT const& image, unsigned const &upper_left_i, unsigned const &upper_left_j, unsigned const &width, unsigned const &height ) : 
-      m_image(image), m_ci(upper_left_i), m_cj(upper_left_j), m_di(width), m_dj(height) {      
-      VW_ASSERT( m_ci + m_di <= m_image.cols() && m_cj + m_dj <= m_image.rows(),
-                 ArgumentErr() << "CropView: Crop dimensions exceed image boundary." );
-    }
+    CropView( ImageT const& image, offset_type const upper_left_i, offset_type const upper_left_j, unsigned const width, unsigned const height ) : 
+      m_image(image), m_ci(upper_left_i), m_cj(upper_left_j), m_di(width), m_dj(height) {}
+
+    template<class RealT>
+    CropView( ImageT const& image, BBox<RealT,2> const& bbox) :
+      m_image(image), 
+      m_ci((offset_type)(bbox.min()[0])), 
+      m_cj((offset_type)(bbox.min()[1])), 
+      m_di((unsigned)round(bbox.width())), 
+      m_dj((unsigned)round(bbox.height())) {}
 
     inline unsigned cols() const { return m_di; }
     inline unsigned rows() const { return m_dj; }
@@ -667,10 +675,7 @@ namespace vw {
     inline pixel_accessor origin() const { return m_image.origin().advance(m_ci, m_cj); }
 
     typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j ) const { return m_image(m_ci + i, m_cj + j); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j, int p ) const { return m_image(m_ci + i, m_cj + j, p); }
+    inline operator()( offset_type i, offset_type j, int p=0 ) const { return m_image(m_ci + i, m_cj + j, p); }
 
     CropView& operator=( CropView const& view ) {
       view.rasterize( *this );
@@ -698,6 +703,9 @@ namespace vw {
   // Type traits
   template <class ImageT>
   struct IsReferenceable<CropView<ImageT> >  : public IsReferenceable<ImageT> {}; 
+
+  template <class ImageT>
+  struct IsFloatingPointIndexable<CropView<ImageT> >  : public IsFloatingPointIndexable<ImageT> {}; 
 
   template <class ImageT>
   struct IsMultiplyAccessible<CropView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
