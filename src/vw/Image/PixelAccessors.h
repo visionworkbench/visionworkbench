@@ -99,7 +99,7 @@ namespace vw {
     inline ProceduralPixelAccessor& prev_row() { --m_r; return *this; }
     inline ProceduralPixelAccessor& next_plane() { ++m_p; return *this; }
     inline ProceduralPixelAccessor& prev_plane() { --m_p; return *this; }
-    inline ProceduralPixelAccessor& advance( offset_type dc, offset_type dr, ptrdiff_t dp=0 ) { m_c+=dc; m_r+=dr; m_p+=dp; return *this; }
+    inline ProceduralPixelAccessor& advance( offset_type dc, offset_type dr, int dp=0 ) { m_c+=dc; m_r+=dr; m_p+=dp; return *this; }
 
     inline pixel_type operator*() const { return m_view(m_c,m_r,m_p); }
   };
