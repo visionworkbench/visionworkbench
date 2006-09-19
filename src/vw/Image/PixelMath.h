@@ -97,6 +97,7 @@ namespace vw {
   VW_PIXEL_MATH_BINARY_PP_FUNCTION(func,ftor)           \
   using ::func;
 
+
   // *******************************************************************
   // Default mathematical operator overlaods
   // *******************************************************************

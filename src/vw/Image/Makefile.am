@@ -42,9 +42,9 @@ endif
 
 if MAKE_MODULE_VW
 
-TESTS_H = tests/TestPixelMath.h tests/TestPixelTypes.h	\
-	tests/TestImageView.h tests/TestImageViewRef.h				\
-	tests/TestManipulation.h tests/TestPerPixelViews.h		\
+TESTS_H = tests/TestPixelMath.h tests/TestPixelTypes.h		\
+	tests/TestImageView.h tests/TestImageViewRef.h		\
+	tests/TestManipulation.h tests/TestPerPixelViews.h	\
 	tests/TestImageMath.h tests/TestEdgeExtend.h
 
 TESTS_EXTRAS = 

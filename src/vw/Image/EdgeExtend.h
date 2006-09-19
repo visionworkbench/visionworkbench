@@ -58,12 +58,14 @@ namespace vw {
   struct ZeroEdgeExtend {};
   /// A special dummy type specifying constant edge extension.
   struct ConstantEdgeExtend {};
+  /// A special dummy type specifying periodic edge extension.
+  struct PeriodicEdgeExtend {};
   /// A special dummy type specifying reflection edge extension.
   struct ReflectEdgeExtend {};
 
-	/// \cond INTERNAL
-	// Abstract "Base" template for edge extend methods
-	//
+  /// \cond INTERNAL
+  // Abstract "Base" template for edge extend methods
+  //
   // The logic for determining the type of the edge extension to use
   // in the EdgeExtendView class activates the appropriate
   // implementation class using the dummy classes above.  You can
@@ -78,7 +80,7 @@ namespace vw {
   /// No Edge Extend Implementation
   template <class ViewT>
   struct EdgeExtendImplementation<NoEdgeExtend,ViewT> {
-    static inline typename ViewT::pixel_type edge_extend(const ViewT &view, int i, int j, int p ) { 
+    static inline typename ViewT::pixel_type edge_extend( const ViewT &view, int i, int j, int p ) { 
       return view(i,j,p);
     }
   };
@@ -91,7 +93,7 @@ namespace vw {
   /// value) outside the image boundaries.
   template <class ViewT>
   struct EdgeExtendImplementation<ZeroEdgeExtend,ViewT> {
-    static inline typename ViewT::pixel_type edge_extend(const ViewT &view, int i, int j, int p ) { 
+    static inline typename ViewT::pixel_type edge_extend( const ViewT &view, int i, int j, int p ) { 
       if( i>=0 && j>=0 && i<view.cols() && j<view.rows() )
         return view(i,j,p);
       else
@@ -107,7 +109,7 @@ namespace vw {
   /// the image boundaries.
   template <class ViewT>
   struct EdgeExtendImplementation<ConstantEdgeExtend,ViewT> {
-    static inline typename ViewT::pixel_type edge_extend(const ViewT &view, int i, int j, int p ) { 
+    static inline typename ViewT::pixel_type edge_extend( const ViewT &view, int i, int j, int p ) { 
       return view((i<0) ? 0 : (i>int(view.cols()-1)) ? (view.cols()-1) : i,
                   (j<0) ? 0 : (j>=int(view.rows()-1)) ? (view.rows()-1) : j, p);
     }
@@ -118,13 +120,31 @@ namespace vw {
   /// An operator supporting reflection image edge extension.
   template <class ViewT>
   struct EdgeExtendImplementation<ReflectEdgeExtend,ViewT> {
-    static inline typename ViewT::pixel_type edge_extend(const ViewT &view, int i, int j, int p ) { 
+    static inline typename ViewT::pixel_type edge_extend( const ViewT &view, int i, int j, int p ) { 
       int d_i=i, d_j=j;
-      if( d_i<0 ) d_i=-d_i;
-      else if( d_i>=(int)view.cols() ) d_i = 2*view.cols()-d_i;
+      if( d_i < 0 ) d_i = -d_i;
+      int vcm1 = view.cols() - 1;
+      d_i %= 2*vcm1;
+      if( d_i > vcm1 ) d_i = 2*vcm1 - d_i;
       if( d_j<0 ) d_j=-d_j;
-      else if( d_j>=(int)view.rows() ) d_j = 2*view.rows()-d_j;
-      std::cout << "Test: " << i << "  " << j << "      "<< d_i << "  " << d_j << "\n";
+      int vrm1 = view.rows() - 1;
+      d_j %= 2*vrm1;
+      if( d_j > vrm1 ) d_j = 2*vrm1 - d_j;
+      return view(d_i,d_j,p);
+    }
+  };
+
+  /// Periodic Edge Extend Implementation
+  ///
+  /// An operator supporting periodic image edge extension.
+  template <class ViewT>
+  struct EdgeExtendImplementation<PeriodicEdgeExtend,ViewT> {
+    static inline typename ViewT::pixel_type edge_extend( const ViewT &view, int i, int j, int p ) { 
+      int d_i=i, d_j=j;
+      d_i %= int(view.cols());
+      if( d_i < 0 ) d_i += view.cols();
+      d_j %= int(view.rows());
+      if( d_j < 0 ) d_j += view.rows();
       return view(d_i,d_j,p);
     }
   };

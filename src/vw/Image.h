@@ -38,5 +38,6 @@
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/GenericImageBuffer.h>
 #include <vw/Image/Manipulation.h>
+#include <vw/Image/EdgeExtend.h>
 
 #endif // __VW_IMAGE_H__
