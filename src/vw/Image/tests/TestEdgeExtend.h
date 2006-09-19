@@ -25,6 +25,9 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/EdgeExtend.h>
 
+#include <boost/utility/result_of.hpp>
+#include <boost/type_traits.hpp>
+
 using namespace vw;
 
 class TestEdgeExtend : public CxxTest::TestSuite
@@ -35,6 +38,27 @@ public:
   static bool bool_trait( T const& arg ) {
     return TraitT<T>::value;
   }
+
+  class SomeType {};
+
+  void testNoEdgeExtend()
+  {
+    ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
+    EdgeExtendView<ImageView<double>, NoEdgeExtend> im2 = edge_extend(im, NoEdgeExtend() );
+    TS_ASSERT_EQUALS( im2.cols(), 2 );
+    TS_ASSERT_EQUALS( im2.rows(), 3 );
+    TS_ASSERT_EQUALS( im2(1,1), 4 );
+
+    // Test the accessor
+    TS_ASSERT_EQUALS( *(im2.origin().advance(1,1)), 4 );
+
+    // Test the traits
+    TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ZeroEdgeExtend() ) ) );
+    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ZeroEdgeExtend() ) ) );
+    TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ZeroEdgeExtend()).origin() ) );
+    TS_ASSERT( (boost::is_same<boost::result_of<NoEdgeExtend(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
+  }
+
 
   void testZeroEdgeExtend()
   {
@@ -63,6 +87,7 @@ public:
     TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ZeroEdgeExtend() ) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ZeroEdgeExtend() ) ) );
     TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ZeroEdgeExtend()).origin() ) );
+    TS_ASSERT( (boost::is_same<boost::result_of<ZeroEdgeExtend(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
   }
 
   void testConstantEdgeExtend()
@@ -92,6 +117,7 @@ public:
     TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ZeroEdgeExtend() ) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ZeroEdgeExtend() ) ) );
     TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ZeroEdgeExtend()).origin() ) );
+    TS_ASSERT( (boost::is_same<boost::result_of<ConstantEdgeExtend(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
   }
 
   void testPeriodicEdgeExtend()
@@ -132,6 +158,7 @@ public:
     TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, PeriodicEdgeExtend() ) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, PeriodicEdgeExtend() ) ) );
     TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, PeriodicEdgeExtend()).origin() ) );
+    TS_ASSERT( (boost::is_same<boost::result_of<PeriodicEdgeExtend(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
   }
 
   void testReflectEdgeExtend()
@@ -172,6 +199,7 @@ public:
     TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ReflectEdgeExtend() ) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ReflectEdgeExtend() ) ) );
     TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ReflectEdgeExtend()).origin() ) );
+    TS_ASSERT( (boost::is_same<boost::result_of<ReflectEdgeExtend(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
   }
 
 };
