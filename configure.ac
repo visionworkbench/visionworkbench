@@ -267,5 +267,8 @@ AC_CONFIG_FILES([                       \
   src/vw/Math/Makefile                  \
 ])
 
+# This hideous hack makes it possible to use GNU make's conditionals.
+ENDIF=endif
+AC_SUBST(ENDIF)
 
 AC_OUTPUT
