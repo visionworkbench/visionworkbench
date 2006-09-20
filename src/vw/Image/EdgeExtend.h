@@ -58,7 +58,7 @@ namespace vw {
   // implementing the function call operator, as shown in the 
   // examples below.
 
-  /// A base class for the edge extension types, which provides the 
+  /// A base class for the edge extension types that provides the 
   /// common return type deduction logic in case users want to use 
   /// these types in a more general manner.
   struct EdgeExtendBase {

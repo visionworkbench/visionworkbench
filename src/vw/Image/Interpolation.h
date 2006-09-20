@@ -42,35 +42,28 @@
 
 namespace vw {
 
-  /// The namespace for interpolation modes.  We define the
-  /// interpolation modes as placeholder classes that may be passed to
-  /// the interpolation routines as dummy variables.
-
-  /// Bilinear interpolation between the four nearest pixels
-  class BilinearInterpolation {};
-  /// Bicubic interpolation between the nine nearest pixels
-  class BicubicInterpolation {};
-  /// Interpolate by using the value of the nearest pixel
-  class NearestPixelInterpolation {};
-
 	/// \cond INTERNAL
-	// Abstract "Base" template for interpolation methods
-	//
-  // The logic for determining the type of the interpolation to use in
-  // the InterpolationView class activates the appropriate method
-  // using the dummy classes above.  You can easily extend the list of
-  // supported interpolation modes by creating a new dummy type in the
-  // namespace interpolation, and then define a specialization of
-  // InterpolationImplementation similar to those below with a method
-  // called interpolate(i,j,p,view).  Be certain that the view
-  // argument is passed by reference in this function.
-  template <class InterpT, class ViewT>
-  struct InterpolationImplementation {};
+	// Functors for common interpolation modes.  You may define your own
+	// functor similar to those that appear below.  The functor must
+	// define the call operator, which takes a view and a set of
+	// (floating point) coordinates, and return the interpolated value
+	// at that sub-pixel location.
+
+  /// A base class for the interpolation types that provides the
+  /// common return type deduction logic in case users want to use
+  /// these types in a more general manner.
+  struct InterpolationBase {
+    template <class ArgsT> struct result {};
+    template <class FuncT, class ViewT, class IT, class JT, class PT>
+    struct result<FuncT(ViewT,IT,JT,PT)> {
+      typedef typename boost::remove_reference<ViewT>::type::pixel_type type;
+    };
+  };
 
   // Bilinear interpolation operator
-  template <class ViewT>
-  struct InterpolationImplementation<BilinearInterpolation,ViewT> {
-    static inline typename ViewT::pixel_type interpolate(const ViewT &view, float i, float j, unsigned p ) { 
+  struct BilinearInterpolation : InterpolationBase {
+    template <class ViewT>
+    inline typename ViewT::pixel_type operator()(const ViewT &view, float i, float j, unsigned p ) const { 
       typedef typename ViewT::pixel_type pixel_type;
 
       int x = int(floor(i));       int y = int(floor(j));
@@ -83,9 +76,9 @@ namespace vw {
   };
 
   // Bicubic interpolation operator
-  template <class ViewT>
-  struct InterpolationImplementation<BicubicInterpolation,ViewT> {
-    static inline typename ViewT::pixel_type interpolate( const ViewT &view, float i, float j, unsigned p ) { 
+  struct BicubicInterpolation : InterpolationBase {
+    template <class ViewT>
+    inline typename ViewT::pixel_type operator()( const ViewT &view, float i, float j, unsigned p ) const { 
       typedef typename ViewT::pixel_type pixel_type;
       
       int x = int(floor(i));       int y = int(floor(j));
@@ -107,9 +100,9 @@ namespace vw {
   };
 
   // NearestPixel interpolation operator.  
-  template <class ViewT>
-  struct InterpolationImplementation<NearestPixelInterpolation, ViewT> {
-    static inline typename ViewT::pixel_type interpolate( const ViewT &view, float i, float j, unsigned p ) {
+  struct NearestPixelInterpolation : InterpolationBase {
+    template <class ViewT>
+    inline typename ViewT::pixel_type operator()( const ViewT &view, float i, float j, unsigned p ) const {
       int x = int(lroundf(i));       int y = int(lroundf(j));
       return view(x,y,p);
     }
@@ -124,19 +117,20 @@ namespace vw {
   /// some interpolation method.  For pixels that fall outside the range
   /// of the wrapped image view, an newly constructed (empty) pixeltype
   /// is returned.
-  template <class ImageT, class InterpT = BilinearInterpolation, class EdgeT = ZeroEdgeExtend>
-  class InterpolationView : public ImageViewBase<InterpolationView<ImageT, InterpT, EdgeT> >
+  template <class ImageT, class InterpT>
+  class InterpolationView : public ImageViewBase<InterpolationView<ImageT, InterpT> >
   {
   private:
     ImageT m_image;
-    EdgeExtendView<ImageT,EdgeT> m_extend;
+    InterpT m_interp_func;
   public:
 
     typedef typename boost::remove_cv<typename ImageT::pixel_type>::type base_pixel_type;
     typedef const base_pixel_type pixel_type;
-    typedef ProceduralPixelAccessor<InterpolationView<ImageT, InterpT, EdgeT> > pixel_accessor;
+    typedef ProceduralPixelAccessor<InterpolationView<ImageT, InterpT> > pixel_accessor;
     
-    InterpolationView( ImageT const& image ) : m_image(image), m_extend(image) {}
+    InterpolationView( ImageT const& image, InterpT const& interp_func = InterpT() ) : 
+      m_image(image), m_interp_func(interp_func) {}
 
     inline unsigned cols() const { return m_image.cols(); }
     inline unsigned rows() const { return m_image.rows(); }
@@ -144,7 +138,7 @@ namespace vw {
 
     inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
 
-    inline pixel_type operator()(float i, float j, int p = 0) const { return InterpolationImplementation<InterpT, EdgeExtendView<ImageT,EdgeT> >::interpolate(m_extend,i,j,p); }
+    inline pixel_type operator() (float i, float j, int p = 0) const { return m_interp_func(m_image,i,j,p); }
 
     /// \cond INTERNAL
     // We can make an optimization here.  If the pixels in the child
@@ -153,8 +147,8 @@ namespace vw {
     // do not need to rasterize the child before we proceed to
     // rasterize ourself.
     typedef typename boost::mpl::if_< IsMultiplyAccessible<ImageT>, 
- 				      InterpolationView<typename ImageT::prerasterize_type, InterpT, EdgeT>,
- 				      InterpolationView<ImageView<base_pixel_type>, InterpT, EdgeT> >::type prerasterize_type;
+ 				      InterpolationView<typename ImageT::prerasterize_type, InterpT>,
+ 				      InterpolationView<ImageView<base_pixel_type>, InterpT> >::type prerasterize_type;
 
     inline prerasterize_type prerasterize() const {
       if (IsMultiplyAccessible<ImageT>::value) {
@@ -172,8 +166,8 @@ namespace vw {
   
   /// \cond INTERNAL
   // Type traits 
-  template <class ImageT, class InterpT, class EdgeT>
-  struct IsFloatingPointIndexable<InterpolationView<ImageT, InterpT, EdgeT> > : public boost::true_type {};
+  template <class ImageT, class InterpT>
+  struct IsFloatingPointIndexable<InterpolationView<ImageT, InterpT> > : public boost::true_type {};
   /// \endcond
 	
 
@@ -181,24 +175,33 @@ namespace vw {
   // Functional API
   // -------------------------------------------------------------------------------
 
-	/// Helper function for quickly creating a bilinear interpolation view of an image.
-  template <class ImageT>
-  InterpolationView<ImageT, BilinearInterpolation> bilinear_interpolation( ImageViewBase<ImageT> const& v ) {
-    return InterpolationView<ImageT, BilinearInterpolation>( v.impl() );
+	/// Use this free function to pass in an arbitrary interpolation
+	/// functor.  You can use of the predefined functors at the top of
+	/// this file or use one of your own devising.  
+  /// 
+  /// This version of interpolate takes an extra argument, the edge
+  /// extension functor, and it automatically edge extends the image
+  /// before interpolating.  See EdgeExtend.h for a list of built-in
+  /// functors.
+  template <class ImageT, class InterpT, class EdgeExtendT>
+  InterpolationView<EdgeExtendView<ImageT,EdgeExtendT>, InterpT> interpolate( ImageViewBase<ImageT> const& v, 
+                                                                              InterpT const& interp_func,
+                                                                              EdgeExtendT const& edge_extend_func) {
+    return InterpolationView<EdgeExtendView<ImageT, EdgeExtendT>, InterpT>( edge_extend(v, edge_extend_func) , interp_func );
   }
 
-	/// Helper function for quickly creating a bicubic interpolation view of an image.
-  template <class ImageT>
-  InterpolationView<ImageT, BicubicInterpolation> bicubic_interpolation( ImageViewBase<ImageT> const& v ) {
-    return InterpolationView<ImageT, BicubicInterpolation>( v.impl() );
+	/// Use this free function to pass in an arbitrary interpolation
+	/// functor.  You can use of the predefined functors at the top of
+	/// this file or even one of your own devising.  
+  /// 
+  /// This version of the interpolation function uses Constant edge
+  /// extension by default.
+  template <class ImageT, class InterpT> InterpolationView<EdgeExtendView<ImageT, ConstantEdgeExtend>, InterpT> 
+  interpolate( ImageViewBase<ImageT> const& v, InterpT const& interp_func) {
+    return InterpolationView<EdgeExtendView<ImageT, ConstantEdgeExtend>, InterpT>( edge_extend(v, ConstantEdgeExtend()), interp_func );
   }
-	
-	/// Helper function for quickly creating a nearest neighbor interpolation view of an image.
-  template <class ImageT>
-  InterpolationView<ImageT, NearestPixelInterpolation> nearest_pixel_interpolation( ImageViewBase<ImageT> const& v ) {
-    return InterpolationView<ImageT, NearestPixelInterpolation>( v.impl() );
-  }
+
 	
 } // namespace vw
 
-#endif // __VW_ITERPOLATION_H__
+#endif // __VW_INTERPOLATION_H__

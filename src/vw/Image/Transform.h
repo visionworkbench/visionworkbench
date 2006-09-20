@@ -1,0 +1,490 @@
+// __BEGIN_LICENSE__
+//
+// Copyright (C) 2006 United States Government as represented by the
+// Administrator of the National Aeronautics and Space Administration
+// (NASA).  All Rights Reserved.
+// 
+// This software is distributed under the NASA Open Source Agreement
+// (NOSA), version 1.3.  The NOSA has been approved by the Open Source
+// Initiative.  See the file COPYING at the top of the distribution
+// directory tree for the complete NOSA document.
+// 
+// THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
+// KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
+// LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
+// SPECIFICATIONS, ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+// A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
+// THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
+// DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
+//
+// __END_LICENSE__
+
+/// \file Transform.h
+/// 
+/// ImageView classes for transforming the domain of an image
+/// (image warping).
+/// 
+/// Two types of transformations are supported by these classes:
+///
+/// \ref free_transform(): Transforms an image according to a mapping
+/// functor.  An attempt is made to automatically determine the size
+/// and to shift the origin of the output image so that the entire
+/// warped input image appears within the bounds of the output image.
+/// This transform is useful for retaining all of the transformed
+/// pixels without regord to output image size and absolute image
+/// postion in the pixel space.  However, this transform is not ideal
+/// for image registration, since the origin of the image may change
+/// by an amount that depends on the bounds of the output image.  In
+/// essence, this transform is not guaranteed to be invertible.
+///
+/// \ref fixed_transform(): Transforms an image according to a mapping
+/// functor, but does not shift the origin of new image or attempt to
+/// resize the output image automatically.  Instead, the user may
+/// specify the size of the output image.  If no size is specified,
+/// the output image is set to the size of the input image.  Use this
+/// transform when absolute position in the pixel space matters
+/// (e.g. image registration).  This transformation is invertible.
+///
+/// Under some circumstances, the free transform may not be able to
+/// resize the output image to fit all of the warped pixels.  For
+/// example, if a perspective warping causes pixels to move to
+/// infinity, the determine_size() operation will fail.  The
+/// determine_size() function will fail if (1) the output image exceeds
+/// hard limits placed on the size on any one dimension of the
+/// image.  When determine_size() fails, the size of the input image is
+/// used for the output image, and a warning message is printed to
+/// stdout.
+///
+#ifndef __VW_TRANSFORM_H__
+#define __VW_TRANSFORM_H__
+
+// Vision Workbench
+#include <vw/Image/ImageViewBase.h>
+#include <vw/Image/Interpolation.h>
+#include <vw/Image/Manipulation.h>
+#include <vw/Math/Matrix.h>
+#include <vw/Math/Vector.h>
+
+// Boost 
+#include <boost/concept_check.hpp>
+
+static const unsigned VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE = 1;    
+static const unsigned VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE = 10000000; // Ten Gigapixels
+
+namespace vw {
+
+  /// \cond INTERNAL
+  namespace transform_concepts {
+    /// \endcond
+
+    /// Transform functors are classes that provide the basic
+    /// functionality defined in the concepts below.  The transform
+    /// class expects mapping function to (at the very least) have
+    /// defined a default constructor and an operator() that takes one
+    /// argument: a Vector2 representing the pixel location in the
+    /// output image and returns a Vector2 that is the corresponding
+    /// pixel location in the input image.
+    ///
+    /// This concept is checked by the TransformImageView classes to ensure
+    /// that the transform functor adheres to these specifications.
+    template <class TransformT>
+    struct TransformConcept {
+      void constraints() {
+				Vector2 p(0,0);
+				Vector2 p_out = mapper.reverse(p);
+      }
+      TransformT mapper;
+    };
+    
+    /// In addition to the requirements specified in \ref
+    /// TransformConcept, the compute_size() method of TransformView
+    /// requires that the transform functor also provide the inverse
+    /// of the operator() in a method called reverse().
+    template <class TransformT>
+    struct InvertibleTransformConcept {
+      void constraints() {
+				boost::function_requires< TransformConcept<TransformT> >();
+				Vector2 p(0,0);
+				Vector2 p_out = mapper.forward(p);
+      }
+      TransformT mapper;
+    };
+  }
+
+  // -------------------------------------------------------------------
+  // Built-in transform functors
+  // -------------------------------------------------------------------
+
+  
+  /// Resample Image Transform Functor
+  ///
+  /// Transform points for image warping by applying a (possibly
+  /// non-uniform) scaling in x and y.
+  class ResampleTransform {
+    double m_xfactor, m_yfactor;
+  public:    
+    ResampleTransform(double x_scaling, double y_scaling) : 
+      m_xfactor( x_scaling ) , m_yfactor( y_scaling ) {}
+
+    inline Vector2 reverse(const Vector2 &p) const {
+      return Vector2( p(0) / m_xfactor, p(1) / m_yfactor );
+    }
+
+    inline Vector2 forward(const Vector2 &p) const {
+      return Vector2( p(0) * m_xfactor, p(1) * m_yfactor );
+    }
+  };
+
+
+  /// Translate Image Transform Functor
+  ///
+  /// Reposition an image by applying a translation to x and y.
+  class TranslateTransform {
+    double m_xtrans, m_ytrans;
+  public:
+    TranslateTransform(double x_translation, double y_translation) : 
+      m_xtrans( x_translation ) , m_ytrans( y_translation ) {}
+                
+    inline Vector2 reverse(const Vector2 &p) const {
+      return Vector2( p(0) - m_xtrans, p(1) - m_ytrans );
+    }
+
+    inline Vector2 forward(const Vector2 &p) const {
+      return Vector2( p(0) + m_xtrans, p(1) + m_ytrans );
+    }
+  };
+
+
+  /// Homography Image Mapping Functor
+  ///
+  /// Transform points for image warping by applying a linear operator
+  /// (a 3x3 homography).
+  template <class TransformT>
+  class HomographyTransform {
+  private:
+    Matrix<TransformT> m_H_inverse;
+    Matrix<TransformT> m_H;
+  public:
+
+    HomographyTransform(Matrix<TransformT> &H) : m_H_inverse( inverse(H) ), m_H(H) {
+      VW_ASSERT ( (m_H.rows() == 3) && (m_H.cols() == 3),
+                  ArgumentErr() << "HomographyTransform: Invalid dimensions for homography. Matrix must be 3x3.");
+    }
+
+    /// This defines the transformation from coordinates in our target
+    /// image back to coordinatess in the original image.
+    inline Vector2 reverse(const Vector2 &p) const {
+      double w = m_H_inverse(2,0) * p(0) + m_H_inverse(2,1) * p(1) + m_H_inverse(2,2);
+      return Vector2( ( m_H_inverse(0,0) * p(0) + m_H_inverse(0,1) * p(1) + m_H_inverse(0,2) ) / w,
+                      ( m_H_inverse(1,0) * p(0) + m_H_inverse(1,1) * p(1) + m_H_inverse(1,2) ) / w);
+    }
+		
+    /// This function defines the inverse transformation: from
+    /// coordinates in the original image to coordinates in the
+    /// transformed image.  This routine is not needed to compute the
+    /// transformation, but it is used to determine the size of the
+    /// output image when a FreeTransfrom() is called.
+    inline Vector2 forward(const Vector2 &p) const {
+      double w = m_H(2,0) * p(0) + m_H(2,1) * p(1) + m_H(2,2);
+      return Vector2( ( m_H(0,0) * p(0) + m_H(0,1) * p(1) + m_H(0,2) ) / w,
+											( m_H(1,0) * p(0) + m_H(1,1) * p(1) + m_H(1,2) ) / w);
+    }
+  };
+
+
+  /// PointToPoint Image Mapping Functor
+  ///
+  /// Transform points for image warping, taking one pixel location as input, and
+  /// mapping it to a new pixel location as output.
+  class PointToPointTransform {
+    ImageView<Vector2> m_point;
+  public:
+    PointToPointTransform(ImageView<Vector2> &point) : m_point(point) {}
+    
+    inline Vector2 reverse(const Vector2 &p) const {
+      VW_DEBUG_ASSERT(int(p.x()) >= 0  &&  int(p.y()) >= 0 && int(p.x()) < m_point.cols() && int(p.y()) < m_point.rows(),
+                      LogicErr() << "Point to point transform: exceeded map dimensions.");
+      return m_point(int(p.x()), int(p.y()));
+    }
+  };
+
+	
+  /// Radial Distortion Transform Adapter 
+  /// 
+  /// This is an adaptor class that allows you to write mapping
+  /// functors in polar coordinates (i.e. radius, theta).  The origin
+  /// of the polar coordinate system is centered at the image center,
+  /// and the radius is scaled by <TT>image_width/2</TT>, so that a
+  /// polar coordinate of <TT>[1.0, 0.0]</TT> places you at the center
+  /// of the right edge of the image (<TT>[image_width,
+  /// image_height/2]</TT> in cartesian coordinates).
+  template <class ImplT, class ImageT>
+  class RadialTransformAdaptor {
+  private:
+    ImplT m_impl;
+    double m_half_width;
+    double m_half_height;
+
+  public:
+
+    RadialTransformAdaptor(ImplT const &mapping_functor, ImageViewBase<ImageT> const &image) : 
+      m_impl(mapping_functor), 
+      m_half_width(image.impl().cols()/2),
+      m_half_height(image.impl().rows()/2) {
+    }
+
+    inline Vector2 reverse(const Vector2 &p) const {   
+      boost::function_requires< transform_concepts::TransformConcept<ImplT> >();
+			
+      // Convert from cartesian to polar coordinates, where we scale r
+      // such that r=1.0 corresponds to image_width/2, and the origin
+      // is at [image_width/2, image_height/2] in the image.
+      Vector2 centered_point( p(0) - m_half_width, p(1) - m_half_height );
+      Vector2 polar_coordinates( norm_2(centered_point) / m_half_width, 
+																 atan2(centered_point(1),centered_point(0)) );
+
+      // Call out to the radial mapping functor that we have wrapped.
+      Vector2 result = m_impl(polar_coordinates);
+      
+      // Convert from polar coordinates back to cartesian coordinates
+      return Vector2(m_half_width * result(0) * cos(result(1)) + m_half_width, 
+										 m_half_width * result(0) * sin(result(1)) + m_half_height);
+    }
+
+    inline Vector2 forward(const Vector2 &p) const {
+      boost::function_requires< transform_concepts::InvertibleTransformConcept<ImplT> >();
+     
+      Vector2 centered_point( p(0) - m_half_width, p(1) - m_half_height );
+      Vector2 polar_coordinates(norm_2(centered_point) / m_half_width, 
+																atan2(centered_point(1),centered_point(0)) );
+      Vector2 result = m_impl.reverse(polar_coordinates);
+      return Vector2(m_half_width * result(0) * cos(result(1)) + m_half_width, 
+										 result(0) * sin(result(1)) + m_half_height);
+    }
+  };
+	
+  // ------------------------
+  // class TransformView
+  // ------------------------
+
+  /// An image view for transforming an image with an arbitrary mapping functor.  
+  template <class ImageT, class TransformT>
+  class TransformView : public ImageViewBase<TransformView<ImageT,TransformT> >
+  {
+
+//     // If the image we are transforming cannot be floating point
+//     // indexed, it needs to be wrapped in some sort of interpolation
+//     // view.  However, if it can be floating point indexed (e.g. if we
+//     // are transforming a TransformView, or a procedurally generated
+//     // image), we assume that the user does not want any additional
+//     // interpolation so we set things up to directly access the image
+//     // pixels.
+//     typedef typename boost::mpl::if_<IsFloatingPointIndexable<ImageT>, 
+// 				     ImageT,
+// 				     InterpolationView<ImageT,InterpT,EdgeT> >::type interpolation_view_
+
+    ImageT m_image;
+    TransformT m_mapper;
+    unsigned m_width, m_height;
+    
+  public:
+    typedef typename ImageT::pixel_type pixel_type;
+    typedef ProceduralPixelAccessor<TransformView> pixel_accessor;
+
+    /// \cond INTERNAL
+    BOOST_CLASS_REQUIRE(TransformT, transform_concepts, TransformConcept);
+    /// \endcond
+    
+    /// The default constructor creates a tranformed image with the
+    /// same dimensions as the original.
+    TransformView( ImageT const& view, TransformT const& mapper ) :
+      m_image(view), m_mapper(mapper), m_width(view.cols()), m_height(view.rows()) {}
+
+    /// This constructor allows you to specify the size of the
+    /// transformed image.
+    TransformView( ImageT const& view, TransformT const& mapper, unsigned width, unsigned height ) : 
+      m_image(view), m_mapper(mapper), m_width(width), m_height(height) {}
+    
+    inline unsigned cols() const { return m_width; }
+    inline unsigned rows() const { return m_height; }
+    inline unsigned planes() const { return m_image.planes(); }
+
+    inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
+
+    inline pixel_type operator()( float i, float j, int p=0 ) const {
+      Vector2 pt_backprojected = m_mapper.reverse(Vector2(i,j));
+      return m_image(pt_backprojected[0], pt_backprojected[1], p);
+    }
+
+    /// \cond INTERNAL
+    typedef TransformView<typename ImageT::prerasterize_type, TransformT> prerasterize_type;
+    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize(), m_mapper, m_width, m_height ); }
+    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+    /// \endcond
+  };
+
+  /// \cond INTERNAL
+  // Type Traits
+  template <class ImplT, class TransformT>
+  struct IsFloatingPointIndexable<TransformView<ImplT, TransformT> > : public boost::true_type {};
+  /// \endcond
+
+  template <class ViewT, class TransformT>
+  inline BBox2f compute_transformed_bbox(ImageViewBase<ViewT> const& image, 
+                                         TransformT const& transform_func,
+                                         unsigned min_image_size = VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE,
+                                         unsigned max_image_size = VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE) {
+    Vector2 pt;
+    BBox2f bbox;
+    for (pt[0] = 0; pt[0] < image.impl().cols(); (pt[0])++)
+      for (pt[1] = 0; pt[1] < image.impl().rows(); (pt[1])++) 
+        bbox.grow(transform_func.forward(pt));
+    
+    // If the image bounding box is too large or too small, print a
+    // warning message.
+    if ( (bbox.width() * bbox.height()) < min_image_size ) {
+      std::cout << "Warning: The transformed image exceeds the minimum (" << min_image_size << ") \n"
+                << "         recommended image dimension in compute_transformed_bbox().\n";
+    }
+    if ( (bbox.width() * bbox.height()) > max_image_size ) {
+      std::cout << "Warning: The transformed image exceeds the maximum (" << max_image_size << ") \n"
+                << "         recommended image dimension in compute_transformed_bbox().\n";
+    }
+    return bbox;
+  }
+
+  /// Compute full extent of the transformed image by performing the
+  /// inverse transformation on the pixel coordinates of the input
+  /// image.  This version of the function computes the bounds by
+  /// computing only the transformed pixel locations for the perimiter
+  /// pixels of the input image.  This is much faster than calculating
+  /// the transformed position for all pixels in the input image, and
+  /// for most transformations points on the interior of the input
+  /// image will end up on the interior of the output image.
+  template <class ViewT, class TransformT>
+  inline BBox2f compute_transformed_bbox_fast(ImageViewBase<ViewT> const& image, 
+                                              TransformT const& transform_func,
+                                              unsigned min_image_size = VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE,
+                                              unsigned max_image_size = VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE) {
+    Vector2 pt;
+    BBox2f bbox;
+    
+    // Top edge
+    for (pt[0] = 0; pt[0] < image.impl().cols(); (pt[0])++) {
+      pt[1] = 0;
+      bbox.grow(transform_func.forward(pt));
+    }
+
+    // Bottom edge
+    for (pt[0] = 0; pt[0] < image.impl().cols(); (pt[0])++) {
+      pt[1] = image.impl().rows() - 1;
+      bbox.grow(transform_func.forward(pt));
+    }
+
+    // Left edge
+    for (pt[1] = 0; pt[1] < image.impl().rows(); (pt[1])++) {
+      pt[0] = 0;
+      bbox.grow(transform_func.forward(pt));
+    }
+
+    // Right edge
+    for (pt[1] = 0; pt[1] < image.impl().rows(); (pt[1])++) {
+      pt[0] = image.impl().cols() - 1;
+      bbox.grow(transform_func.forward(pt));
+    }
+    
+    // If the image bounding box is too large or too small, fall
+    // back and set the size of the output image to the size of the
+    // input image and print a warning message.
+    if ( (bbox.width() * bbox.height()) < min_image_size ) {
+      std::cout << "Warning: The transformed image exceeds the minimum (" << min_image_size << ") \n"
+                << "         recommended image dimension in compute_transformed_bbox_fast().\n";
+    }
+    if ( (bbox.width() * bbox.height()) > max_image_size ) {
+      std::cout << "Warning: The transformed image exceeds the maximum (" << max_image_size << ") \n"
+                << "         recommended image dimension in compute_transformed_bbox_fast().\n";
+    }
+    return bbox;
+  }
+
+  // -------------------------------------------------------------------------------
+  // Functional API
+  // -------------------------------------------------------------------------------
+
+  /// Apply a Transformation using an arbitary mapping functor.
+  ///
+  /// Returns a transformed image view.  The user can specify the type
+  /// of interpolation and edge extension to be done by supplying the
+  /// appropriate functors in the last two arguments.  For example:
+  /// 
+  /// <TT>transform(input, transform_functor, BicubicInterpolation(), ZeroEdgeExtend());</TT>
+  ///
+  /// See Interpolation.h and EdegExtend.h for a list of built-in
+  /// interpolation and edge extension modes.  It is also possible to
+  /// write your own.  Again, see the above files for more information.
+  ///
+  template <class ImageT, class TransformT, class EdgeT, class InterpT>
+  TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT>
+  inline fixed_transform( ImageViewBase<ImageT> const& v, 
+                          TransformT const& transform_func, 
+                          EdgeT const& edge_func,
+                          InterpT const& interp_func) {
+    return TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT> 
+      (interpolate(v, interp_func, edge_func), transform_func);
+  }
+
+  /// Convenience function: transform with a default interpolation scheme of bilinear interpolation
+  template <class ImageT, class TransformT, class EdgeT>
+  TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
+  inline fixed_transform( ImageViewBase<ImageT> const& v, 
+                          TransformT const& transform_func, 
+                          EdgeT const& edge_func) {
+    return TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT> 
+      (interpolate(v, BilinearInterpolation(), edge_func), transform_func);
+  }
+
+  /// Convenience function: transform with a default scheme of bilinear interpolation and zero edge extension
+  template <class ImageT, class TransformT>
+  TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT>
+  inline transform( ImageViewBase<ImageT> const& v, 
+                    TransformT const& transform_func) {
+    return TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT> 
+      (interpolate(v, BilinearInterpolation(), ZeroEdgeExtend()), transform_func);
+  }
+
+  /// Free Transform
+  template <class ImageT, class TransformT, class EdgeT, class InterpT>
+  CropView<TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT> >
+  inline free_transform( ImageViewBase<ImageT> const& v, 
+                         TransformT const& transform_func, 
+                         BBox2f const& bbox, 
+                         EdgeT const& edge_func,
+                         InterpT const& interp_func) {
+    return crop(TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT>
+                (interpolate(v, interp_func, edge_func), transform_func), bbox);
+  }
+
+  /// Convenience function: free transform with a default scheme of bilinear interpolation.
+  template <class ImageT, class TransformT, class EdgeT>
+  CropView<TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT> >
+  inline free_transform( ImageViewBase<ImageT> const& v, 
+                         TransformT const& transform_func, 
+                         BBox2f const& bbox, 
+                         EdgeT const& edge_func) {
+    return crop(TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
+                (interpolate(v, BilinearInterpolation(), edge_func), transform_func), bbox);
+  }
+
+  /// Convenience function: transform with a default scheme of bilinear interpolation and zero edge extension
+  template <class ImageT, class TransformT>
+  CropView<TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT> >
+  inline free_transform( ImageViewBase<ImageT> const& v, 
+                         TransformT const& transform_func, 
+                         BBox2f const& bbox) {
+    return crop(TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT>
+                (interpolate(v, BilinearInterpolation(), ZeroEdgeExtend()), transform_func), bbox);
+  }
+
+} // namespace vw
+
+#endif // __VW_TRANSFORM_H__ 

@@ -28,7 +28,7 @@ if MAKE_MODULE_VW
 include_HEADERS = PixelIterator.h ImageViewBase.h PixelAccessors.h		\
 	ImageView.h ImageViewRef.h PixelTypeInfo.h PixelMath.h PixelTypes.h	\
 	GenericImageBuffer.h Manipulation.h PerPixelViews.h ImageMath.h			\
-	EdgeExtend.h Interpolation.h
+	EdgeExtend.h Interpolation.h Transform.h
 
 libvwImage_la_SOURCES = GenericImageBuffer.cc
 
@@ -42,11 +42,11 @@ endif
 
 if MAKE_MODULE_VW
 
-TESTS_H = tests/TestPixelMath.h tests/TestPixelTypes.h		\
-	tests/TestImageView.h tests/TestImageViewRef.h		\
-	tests/TestManipulation.h tests/TestPerPixelViews.h	\
-	tests/TestImageMath.h tests/TestEdgeExtend.h          \
-	tests/TestInterpolation.h
+TESTS_H = tests/TestPixelMath.h tests/TestPixelTypes.h	\
+	tests/TestImageView.h tests/TestImageViewRef.h				\
+	tests/TestManipulation.h tests/TestPerPixelViews.h		\
+	tests/TestImageMath.h tests/TestEdgeExtend.h					\
+	tests/TestInterpolation.h tests/TestTransform.h
 
 TESTS_EXTRAS = 
 
