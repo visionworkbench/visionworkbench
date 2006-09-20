@@ -73,6 +73,10 @@ static const unsigned VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE = 10000000; // Ten Gig
 
 namespace vw {
 
+  // -------------------------------------------------------------------------------
+  // Transform Concepts
+  // -------------------------------------------------------------------------------
+
   /// \cond INTERNAL
   namespace transform_concepts {
     /// \endcond
@@ -80,13 +84,13 @@ namespace vw {
     /// Transform functors are classes that provide the basic
     /// functionality defined in the concepts below.  The transform
     /// class expects mapping function to (at the very least) have
-    /// defined a default constructor and an operator() that takes one
-    /// argument: a Vector2 representing the pixel location in the
-    /// output image and returns a Vector2 that is the corresponding
-    /// pixel location in the input image.
+    /// defined a default constructor and a reverse() method that
+    /// takes one argument: a Vector2 representing the pixel location
+    /// in the output image and returns a Vector2 that is the
+    /// corresponding pixel location in the input image.
     ///
-    /// This concept is checked by the TransformImageView classes to ensure
-    /// that the transform functor adheres to these specifications.
+    /// This concept is checked by the TransformView classes to ensure
+    /// that the functor adheres to these specifications.
     template <class TransformT>
     struct TransformConcept {
       void constraints() {
@@ -97,9 +101,11 @@ namespace vw {
     };
     
     /// In addition to the requirements specified in \ref
-    /// TransformConcept, the compute_size() method of TransformView
-    /// requires that the transform functor also provide the inverse
-    /// of the operator() in a method called reverse().
+    /// TransformConcept, the compute_transformed_bbox() functions
+    /// require that the transform functor also provide the inverse of
+    /// the reverse() in a method called forward().  Given a pixel
+    /// location of the input image, the forward() method returns the
+    /// corresponding pixel location in the output image.
     template <class TransformT>
     struct InvertibleTransformConcept {
       void constraints() {
@@ -111,10 +117,9 @@ namespace vw {
     };
   }
 
-  // -------------------------------------------------------------------
+  // -------------------------------------------------------------------------------
   // Built-in transform functors
-  // -------------------------------------------------------------------
-
+  // -------------------------------------------------------------------------------
   
   /// Resample Image Transform Functor
   ///
@@ -192,19 +197,39 @@ namespace vw {
   };
 
 
-  /// PointToPoint Image Mapping Functor
+  /// PointLookup Image Mapping Functor
   ///
-  /// Transform points for image warping, taking one pixel location as input, and
-  /// mapping it to a new pixel location as output.
-  class PointToPointTransform {
-    ImageView<Vector2> m_point;
+  /// Transform points in an image based on values in a lookup-table
+  /// image.  The pixel location in the input image that corresponds
+  /// to location (i,j) in the output image is at the position stored
+  /// in lookup_image(i,j).
+  class PointLookupTransform {
+    ImageView<Vector2> m_lookup_image;
   public:
-    PointToPointTransform(ImageView<Vector2> &point) : m_point(point) {}
+    PointLookupTransform(ImageView<Vector2> &lookup_image) : m_lookup_image(lookup_image) {}
     
     inline Vector2 reverse(const Vector2 &p) const {
       VW_DEBUG_ASSERT(int(p.x()) >= 0  &&  int(p.y()) >= 0 && int(p.x()) < m_point.cols() && int(p.y()) < m_point.rows(),
-                      LogicErr() << "Point to point transform: exceeded map dimensions.");
-      return m_point(int(p.x()), int(p.y()));
+                      LogicErr() << "Point lookup transform: exceeded lookup table dimensions.");
+      return m_lookup_image(int(p.x()), int(p.y()));
+    }
+  };
+
+  /// PointOffset Image Mapping Functor
+  ///
+  /// Transform points in an image based on offset values in a
+  /// lookup-table image.  The pixel location in the input image that
+  /// corresponds to location (i,j) in the output image is at the
+  /// position stored in (i,j) + lookup_image(i,j).
+  class PointOffsetTransform {
+    ImageView<Vector2> m_offset_image;
+  public:
+    PointOffsetTransform(ImageView<Vector2> &offset_image) : m_offset_image(offset_image) {}
+    
+    inline Vector2 reverse(const Vector2 &p) const {
+      VW_DEBUG_ASSERT(int(p.x()) >= 0  &&  int(p.y()) >= 0 && int(p.x()) < m_point.cols() && int(p.y()) < m_point.rows(),
+                      LogicErr() << "Point offest transform: exceeded lookup table dimensions.");
+      return p + m_offset_image(int(p.x()), int(p.y()));
     }
   };
 
@@ -271,17 +296,6 @@ namespace vw {
   template <class ImageT, class TransformT>
   class TransformView : public ImageViewBase<TransformView<ImageT,TransformT> >
   {
-
-//     // If the image we are transforming cannot be floating point
-//     // indexed, it needs to be wrapped in some sort of interpolation
-//     // view.  However, if it can be floating point indexed (e.g. if we
-//     // are transforming a TransformView, or a procedurally generated
-//     // image), we assume that the user does not want any additional
-//     // interpolation so we set things up to directly access the image
-//     // pixels.
-//     typedef typename boost::mpl::if_<IsFloatingPointIndexable<ImageT>, 
-// 				     ImageT,
-// 				     InterpolationView<ImageT,InterpT,EdgeT> >::type interpolation_view_
 
     ImageT m_image;
     TransformT m_mapper;
@@ -422,17 +436,16 @@ namespace vw {
   /// See Interpolation.h and EdegExtend.h for a list of built-in
   /// interpolation and edge extension modes.  It is also possible to
   /// write your own.  Again, see the above files for more information.
-  ///
   template <class ImageT, class TransformT, class EdgeT, class InterpT>
   TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT>
   inline fixed_transform( ImageViewBase<ImageT> const& v, 
                           TransformT const& transform_func, 
                           EdgeT const& edge_func,
                           InterpT const& interp_func) {
-    return TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT> 
+    return TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT>
       (interpolate(v, interp_func, edge_func), transform_func);
   }
-
+  
   /// Convenience function: transform with a default interpolation scheme of bilinear interpolation
   template <class ImageT, class TransformT, class EdgeT>
   TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
@@ -446,13 +459,15 @@ namespace vw {
   /// Convenience function: transform with a default scheme of bilinear interpolation and zero edge extension
   template <class ImageT, class TransformT>
   TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT>
-  inline transform( ImageViewBase<ImageT> const& v, 
-                    TransformT const& transform_func) {
+  inline fixed_transform( ImageViewBase<ImageT> const& v, 
+                          TransformT const& transform_func) {
     return TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT> 
       (interpolate(v, BilinearInterpolation(), ZeroEdgeExtend()), transform_func);
   }
-
+  
+  /// --------------
   /// Free Transform
+  /// --------------
   template <class ImageT, class TransformT, class EdgeT, class InterpT>
   CropView<TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT> >
   inline free_transform( ImageViewBase<ImageT> const& v, 
