@@ -146,23 +146,23 @@ namespace vw {
     ImageT m_image;
     ptrdiff_t m_xoffset, m_yoffset;
     unsigned m_cols, m_rows;
-    EdgeExtendT m_extend;
+    EdgeExtendT m_extend_func;
   public:
 
     typedef typename ImageT::pixel_type pixel_type;
     typedef ProceduralPixelAccessor<EdgeExtendView<ImageT, EdgeExtendT> > pixel_accessor;
 
     EdgeExtendView( ImageT const& image )
-      : m_image(image), m_xoffset(0), m_yoffset(0), m_cols(image.cols()), m_rows(image.rows()), m_extend() {}
+      : m_image(image), m_xoffset(0), m_yoffset(0), m_cols(image.cols()), m_rows(image.rows()), m_extend_func() {}
     
     EdgeExtendView( ImageT const& image, EdgeExtendT const& extend )
-      : m_image(image), m_xoffset(0), m_yoffset(0), m_cols(image.cols()), m_rows(image.rows()), m_extend(extend) {}
+      : m_image(image), m_xoffset(0), m_yoffset(0), m_cols(image.cols()), m_rows(image.rows()), m_extend_func(extend) {}
     
     EdgeExtendView( ImageT const& image, ptrdiff_t xoffset, ptrdiff_t yoffset, unsigned cols, unsigned rows )
-      : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), m_cols(cols), m_rows(rows), m_extend() {}
+      : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), m_cols(cols), m_rows(rows), m_extend_func() {}
     
     EdgeExtendView( ImageT const& image, ptrdiff_t xoffset, ptrdiff_t yoffset, unsigned cols, unsigned rows, EdgeExtendT const& extend )
-      : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), m_cols(cols), m_rows(rows), m_extend(extend) {}
+      : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), m_cols(cols), m_rows(rows), m_extend_func(extend) {}
 
     inline unsigned cols() const { return m_cols; }
     inline unsigned rows() const { return m_rows; }
@@ -170,7 +170,11 @@ namespace vw {
 
     inline pixel_accessor origin() const { return pixel_accessor(*this,m_xoffset,m_yoffset); }
 
-    inline pixel_type operator()( int i, int j, int p = 0 ) const { return m_extend(m_image,i,j,p); }
+    inline pixel_type operator()( int i, int j, int p = 0 ) const { return m_extend_func(m_image,i,j,p); }
+
+    ImageT const& child() const { return m_image; }
+
+    EdgeExtendT const& func() const { return m_extend_func; }
 
     typedef EdgeExtendView<typename ImageT::prerasterize_type,EdgeExtendT> prerasterize_type;
     inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize(), m_xoffset, m_yoffset, m_cols, m_rows ); }

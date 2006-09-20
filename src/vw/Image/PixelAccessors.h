@@ -90,7 +90,7 @@ namespace vw {
   public:
     typedef typename ViewT::pixel_type pixel_type;
 
-    ProceduralPixelAccessor( ViewT const& view ) : m_view(view), m_c(0), m_r(0), m_p(0) {}
+    ProceduralPixelAccessor( ViewT const& view ) : m_view(view), m_c(), m_r(), m_p() {}
     ProceduralPixelAccessor( ViewT const& view, offset_type c, offset_type r, int p=0 ) : m_view(view), m_c(c), m_r(r), m_p(p) {}
 
     inline ProceduralPixelAccessor& next_col() { ++m_c; return *this; }
