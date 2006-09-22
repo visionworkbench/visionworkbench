@@ -46,6 +46,11 @@ if DIST_CONFIG_OPTIONS_DEFAULT
 	cp $(DIST_CONFIG_OPTIONS_DEFAULT) $(distdir)/config/config.options.default
 endif
 
+check-local:
+	@echo ==============================
+	@echo All tests passed successfully!
+	@echo ==============================
+
 doxygen: 
 	cd src/vw; doxygen
 

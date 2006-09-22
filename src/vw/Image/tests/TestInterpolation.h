@@ -54,9 +54,7 @@ public:
     // Test the traits
     TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) ); 
     TS_ASSERT( bool_trait<IsFloatingPointIndexable>( interpolate(im, BilinearInterpolation()) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( interpolate(im, BilinearInterpolation()) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( interpolate(im, BilinearInterpolation()) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( interpolate(im, BilinearInterpolation()) ) );
   }
 
 
@@ -78,9 +76,7 @@ public:
     // Test the traits
     TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) ); 
     TS_ASSERT( bool_trait<IsFloatingPointIndexable>( interpolate(im, BicubicInterpolation()) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( interpolate(im, BicubicInterpolation()) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( interpolate(im, BicubicInterpolation()) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( interpolate(im, BicubicInterpolation()) ) );
   }
 
   void testNearestPixelInterpolation()
@@ -102,9 +98,7 @@ public:
     // Test the traits
     TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) ); 
     TS_ASSERT( bool_trait<IsFloatingPointIndexable>( interpolate(im, NearestPixelInterpolation()) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( interpolate(im, NearestPixelInterpolation()) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( interpolate(im, NearestPixelInterpolation()) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( interpolate(im, NearestPixelInterpolation()) ) );
   }
 
 

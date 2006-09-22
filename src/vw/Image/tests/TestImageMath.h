@@ -53,9 +53,7 @@ public:
     TS_ASSERT_EQUALS( im2(1,1), -4 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsReferenceable>( -im1 ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( -im1 ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( (-im1).origin() ) );
   }
 
   void testSum()
@@ -94,9 +92,7 @@ public:
     TS_ASSERT_EQUALS( im3(1,1), 11 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsReferenceable>( im1 + im2 ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( im1 + im2 ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( (im1 + im2).origin() ) );
   }
 
   void testDifference()
@@ -135,9 +131,7 @@ public:
     TS_ASSERT_EQUALS( im3(1,1), -9 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsReferenceable>( im1 - im2 ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( im1 - im2 ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( (im1 - im2).origin() ) );
   }
 
   void testProduct()
@@ -176,9 +170,7 @@ public:
     TS_ASSERT_EQUALS( im3(1,1), 24 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsReferenceable>( im1 * im2 ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( im1 * im2 ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( (im1 * im2).origin() ) );
   }
 
   void testQuotient()
@@ -217,9 +209,7 @@ public:
     TS_ASSERT_EQUALS( im3(1,1), 0.0625 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsReferenceable>( im1 / im2 ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( im1 / im2 ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( (im1 / im2).origin() ) );
   }
 
   void test_real() {

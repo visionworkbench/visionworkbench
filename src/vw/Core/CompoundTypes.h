@@ -23,8 +23,8 @@
 /// 
 /// Types and traits for compound (i.e. multi-channel) types.
 ///
-#ifndef __VW_CORE__COMPOUND_TYPES_H__
-#define __VW_CORE__COMPOUND_TYPES_H__
+#ifndef __VW_CORE_COMPOUND_TYPES_H__
+#define __VW_CORE_COMPOUND_TYPES_H__
 
 #include <boost/utility/result_of.hpp>
 #include <boost/utility/enable_if.hpp>
@@ -143,7 +143,7 @@ namespace vw {
 
     template <class Arg1T, class Arg2T>
     typename result<BinaryCompoundFunctor(Arg1T,Arg2T)>::type
-    inline operator()( Arg1T const& arg1, Arg2T const& arg2 ) {
+    inline operator()( Arg1T const& arg1, Arg2T const& arg2 ) const {
       typedef typename result<BinaryCompoundFunctor(Arg1T,Arg2T)>::type result_type;
       return Helper<IsCompound<result_type>::value,CompoundNumChannels<result_type>::value,result_type,Arg1T,Arg2T>::construct(func,arg1,arg2);
     }
@@ -234,7 +234,7 @@ namespace vw {
 
     template <class ArgT>
     typename result<UnaryCompoundFunctor(ArgT)>::type
-    inline operator()( ArgT const& arg ) {
+    inline operator()( ArgT const& arg ) const {
       typedef typename result<UnaryCompoundFunctor(ArgT)>::type result_type;
       return Helper<IsCompound<result_type>::value,CompoundNumChannels<result_type>::value,result_type,ArgT>::construct(func,arg);
     }
@@ -268,4 +268,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_CORE__COMPOUND_TYPES_H__
+#endif // __VW_CORE_COMPOUND_TYPES_H__

@@ -24,7 +24,7 @@
 
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Image/ImageView.h>
-#include <vw/Image/PixelTypes.h>
+#include <vw/Core/Functors.h>
 
 using namespace vw;
 
@@ -37,64 +37,44 @@ public:
     return TraitT<T>::value;
   }
 
-  void testSelectChannel()
-  {
-    ImageView<PixelRGB<double> > im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
-    ImageView<double> im2 = select_channel(im,1);
-    TS_ASSERT_EQUALS( im2.cols(), 1 );
-    TS_ASSERT_EQUALS( im2.rows(), 2 );
-    TS_ASSERT_EQUALS( im2.planes(), 1 );
-    TS_ASSERT_EQUALS( im2(0,0), 2 );
-    TS_ASSERT_EQUALS( im2(0,1), 5 );
-
-    // Make sure it's really shallow.
-    TS_ASSERT_EQUALS( select_channel(im,1)(0,1), im(0,1)[1] );
-    TS_ASSERT_EQUALS( &(select_channel(im,1)(0,1)), &(im(0,1)[1]) );
-
-    // Test the traits
-    TS_ASSERT( bool_trait<IsReferenceable>( select_channel(im,1) ) );
-    TS_ASSERT( bool_trait<IsMultiplyAccessible>( select_channel(im,1) ) );
-    TS_ASSERT( bool_trait<IsReferenceable>( select_channel(im,1).origin() ) );
+  template <class T1, class T2>
+  static bool has_pixel_type( T2 ) {
+    return boost::is_same<T1,typename T2::pixel_type>::value;
   }
 
-  void testPixelCast()
-  {
-    ImageView<PixelRGB<double> > im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
-    ImageView<PixelRGBA<double> > im2 = pixel_cast<PixelRGBA<double> >(im);
-    TS_ASSERT_EQUALS( im2.cols(), 1 );
-    TS_ASSERT_EQUALS( im2.rows(), 2 );
-    TS_ASSERT_EQUALS( im2.planes(), 1 );
-    TS_ASSERT_EQUALS( im2(0,0)[0], im(0,0)[0] );
-    TS_ASSERT_EQUALS( im2(0,0)[1], im(0,0)[1] );
-    TS_ASSERT_EQUALS( im2(0,0)[2], im(0,0)[2] );
-    TS_ASSERT_EQUALS( im2(0,1)[0], im(0,1)[0] );
-    TS_ASSERT_EQUALS( im2(0,1)[1], im(0,1)[1] );
-    TS_ASSERT_EQUALS( im2(0,1)[2], im(0,1)[2] );
-
-    // Test the traits
-    TS_ASSERT( !bool_trait<IsReferenceable>( pixel_cast<PixelRGBA<double> >(im) ) );
-    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( pixel_cast<PixelRGBA<double> >(im) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( pixel_cast<PixelRGBA<double> >(im).origin() ) );
+  template <class T>
+  static T square(T arg) {
+    return arg*arg;
   }
 
-  void testChannelCast()
-  {
-    ImageView<PixelRGB<double> > im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
-    ImageView<PixelRGB<float> > im2 = channel_cast<float>(im);
-    TS_ASSERT_EQUALS( im2.cols(), 1 );
-    TS_ASSERT_EQUALS( im2.rows(), 2 );
-    TS_ASSERT_EQUALS( im2.planes(), 1 );
-    TS_ASSERT_EQUALS( im2(0,0)[0], im(0,0)[0] );
-    TS_ASSERT_EQUALS( im2(0,0)[1], im(0,0)[1] );
-    TS_ASSERT_EQUALS( im2(0,0)[2], im(0,0)[2] );
-    TS_ASSERT_EQUALS( im2(0,1)[0], im(0,1)[0] );
-    TS_ASSERT_EQUALS( im2(0,1)[1], im(0,1)[1] );
-    TS_ASSERT_EQUALS( im2(0,1)[2], im(0,1)[2] );
+  void test_per_pixel_view_function() {
+    ImageView<float> im(2,2); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4;
+    UnaryPerPixelView<ImageView<float>, float(*)(float)> ppv( im, square );
+    TS_ASSERT_EQUALS( ppv.cols(), 2 );
+    TS_ASSERT_EQUALS( ppv.rows(), 2 );
+    TS_ASSERT_EQUALS( ppv.planes(), 1 );
+    TS_ASSERT_EQUALS( ppv(0,0), 1 );
+    TS_ASSERT_EQUALS( ppv(1,0), 4 );
+    TS_ASSERT_EQUALS( ppv(0,1), 9 );
+    TS_ASSERT_EQUALS( ppv(1,1), 16 );
+    TS_ASSERT( has_pixel_type<float>( ppv ) );
+    TS_ASSERT( !bool_trait<IsMultiplyAccessible>(ppv) );
+    TS_ASSERT( bool_trait<IsImageView>(ppv) );
+  }
 
-    // Test the traits
-    TS_ASSERT( !bool_trait<IsReferenceable>( channel_cast<float>(im) ) );
-    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( channel_cast<float>(im) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( channel_cast<float>(im).origin() ) );
+  void test_per_pixel_view_functor() {
+    ImageView<float> im(2,2); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4;
+    UnaryPerPixelView<ImageView<float>, ArgNegationFunctor> ppv( im );
+    TS_ASSERT_EQUALS( ppv.cols(), 2 );
+    TS_ASSERT_EQUALS( ppv.rows(), 2 );
+    TS_ASSERT_EQUALS( ppv.planes(), 1 );
+    TS_ASSERT_EQUALS( ppv(0,0), -1 );
+    TS_ASSERT_EQUALS( ppv(1,0), -2 );
+    TS_ASSERT_EQUALS( ppv(0,1), -3 );
+    TS_ASSERT_EQUALS( ppv(1,1), -4 );
+    TS_ASSERT( has_pixel_type<float>( ppv ) );
+    TS_ASSERT( !bool_trait<IsMultiplyAccessible>(ppv) );
+    TS_ASSERT( bool_trait<IsImageView>(ppv) );
   }
 
 };

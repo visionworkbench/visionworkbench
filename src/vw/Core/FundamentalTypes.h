@@ -97,17 +97,16 @@ namespace vw {
   inline unsigned _numeric( uint8 v ) { return v; }
   inline int _numeric( int8 v ) { return v; }
 
-  /// This traits class determines whether a dereferenceable or
-  /// indexable type, such as an iterator or image view, returns
-  /// elements whose address can be taken.  For example, a
-  /// MemoryStridingPixelIterator is referenceable whereas a
-  /// ProceduralPixelIterator is not: the latter's pixel values are
-  /// determined on the fly via function evaluation and do not reside
-  /// anywhere in memory.  This trait evaluates to false by default,
-  /// which is always safe, but certain algorithms can make
-  /// optimizations when it is true.
-  template <class T>
-  struct IsReferenceable : public boost::false_type {};
+  /// This type function copies the cv-qualifiers and reference 
+  /// properties of one type onto a second base type.
+  template <class SrcT, class DstT>
+  struct CopyCVR {
+    typedef typename boost::remove_reference<SrcT>::type base_src;
+    typedef typename boost::remove_cv<typename boost::remove_reference<DstT>::type>::type base_dst;
+    typedef typename boost::mpl::if_< boost::is_volatile<base_src>, volatile base_dst, base_dst >::type v_dst;
+    typedef typename boost::mpl::if_< boost::is_const<base_src>, const v_dst, v_dst >::type cv_dst;
+    typedef typename boost::mpl::if_< boost::is_reference<SrcT>, cv_dst&, cv_dst >::type type;
+  };
 
 } // namespace vw
 

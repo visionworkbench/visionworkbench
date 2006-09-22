@@ -23,8 +23,8 @@
 /// 
 /// Defines the core in-memory image view type.
 ///
-#ifndef __VW_IMAGE__IMAGE_VIEW_H__
-#define __VW_IMAGE__IMAGE_VIEW_H__
+#ifndef __VW_IMAGE_IMAGE_VIEW_H__
+#define __VW_IMAGE_IMAGE_VIEW_H__
 
 #include <vw/config.h>
 
@@ -74,8 +74,8 @@ namespace vw {
     /// The pixel type of the image.
     typedef PixelT pixel_type;
 
-    /// The data type of the image, considered as a container.
-    typedef PixelT value_type;
+    /// The data type of the image, considered as a functor or container.
+    typedef PixelT& result_type;
 
     /// The image's %pixel_accessor type.
     typedef MemoryStridingPixelAccessor<PixelT> pixel_accessor;
@@ -123,11 +123,11 @@ namespace vw {
       return *this;
     }
 
-    value_type *data() {
+    pixel_type *data() {
       return &(operator()(0,0));
     }
 
-    const value_type *data() const {
+    const pixel_type *data() const {
       return &(operator()(0,0));
     }
 
@@ -146,12 +146,12 @@ namespace vw {
     }
 
     /// Returns the pixel at the given position in the first plane.
-    inline pixel_type& operator()( int col, int row ) const {
+    inline result_type operator()( int col, int row ) const {
       return *(m_origin + col*m_cstride + row*m_rstride);
     }
   
     /// Returns the pixel at the given position in the given plane.
-    inline pixel_type& operator()( int col, int row, int plane ) const {
+    inline result_type operator()( int col, int row, int plane ) const {
       return *(m_origin + col*m_cstride + row*m_rstride + plane*m_pstride);
     }
   
@@ -232,9 +232,6 @@ namespace vw {
 
   // Image view traits
   /// \cond INTERNAL
-  template <class ImageT>
-  struct IsReferenceable<ImageView<ImageT> > : public boost::true_type {};
-
   template <class PixelT>
   struct IsResizable<ImageView<PixelT> > : public boost::true_type {};
 
@@ -244,4 +241,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif /* __VW_IMAGE__IMAGE_VIEW_H__ */
+#endif // __VW_IMAGE_IMAGE_VIEW_H__

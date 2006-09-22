@@ -37,8 +37,8 @@
 ///  - \ref vw::PeriodicEdgeExtend extends an image by repeating it periodically
 ///  - \ref vw::NoEdgeExtend is a special class that can be used to represent no edge extension
 ///
-#ifndef __VW_IMAGE_EDGEEXTEND_H__
-#define __VW_IMAGE_EDGEEXTEND_H__
+#ifndef __VW_IMAGE_EDGE_EXTEND_H__
+#define __VW_IMAGE_EDGE_EXTEND_H__
 
 #include <boost/type_traits.hpp>
 
@@ -150,6 +150,7 @@ namespace vw {
   public:
 
     typedef typename ImageT::pixel_type pixel_type;
+    typedef pixel_type result_type;
     typedef ProceduralPixelAccessor<EdgeExtendView<ImageT, EdgeExtendT> > pixel_accessor;
 
     EdgeExtendView( ImageT const& image )
@@ -169,11 +170,9 @@ namespace vw {
     inline unsigned planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this,m_xoffset,m_yoffset); }
-
-    inline pixel_type operator()( int i, int j, int p = 0 ) const { return m_extend_func(m_image,i,j,p); }
+    inline result_type operator()( int i, int j, int p = 0 ) const { return m_extend_func(m_image,i,j,p); }
 
     ImageT const& child() const { return m_image; }
-
     EdgeExtendT const& func() const { return m_extend_func; }
 
     typedef EdgeExtendView<typename ImageT::prerasterize_type,EdgeExtendT> prerasterize_type;
@@ -240,4 +239,4 @@ namespace vw {
   
 } // namespace vw
 
-#endif // __VW_IMAGE_EDGEEXTEND_H__
+#endif // __VW_IMAGE_EDGE_EXTEND_H__

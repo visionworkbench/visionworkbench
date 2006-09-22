@@ -29,9 +29,9 @@ include_HEADERS = PixelIterator.h ImageViewBase.h PixelAccessors.h	\
 	ImageView.h ImageViewRef.h PixelTypeInfo.h PixelMath.h		\
 	PixelTypes.h GenericImageBuffer.h Manipulation.h		\
 	PerPixelViews.h ImageMath.h EdgeExtend.h Interpolation.h	\
-	Convolution.h Transform.h
+	Convolution.h Filter.h Filter.h Transform.h
 
-libvwImage_la_SOURCES = GenericImageBuffer.cc
+libvwImage_la_SOURCES = GenericImageBuffer.cc Filter.cc
 
 lib_LTLIBRARIES = libvwImage.la
 
@@ -48,9 +48,11 @@ TESTS_H = tests/TestPixelMath.h tests/TestPixelTypes.h		\
 	tests/TestManipulation.h tests/TestPerPixelViews.h	\
 	tests/TestImageMath.h tests/TestEdgeExtend.h		\
 	tests/TestInterpolation.h tests/TestConvolution.h	\
-	tests/TestTransform.h
+	tests/TestFilter.h tests/TestTransform.h
 
 TESTS_EXTRAS = 
+
+TESTS_LIBS = @PKG_VW_LDFLAGS@ .libs/libvwImage.a
 
 endif
 

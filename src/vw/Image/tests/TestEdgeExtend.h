@@ -53,9 +53,7 @@ public:
     TS_ASSERT_EQUALS( *(im2.origin().advance(1,1)), 4 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ZeroEdgeExtend() ) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ZeroEdgeExtend() ) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ZeroEdgeExtend()).origin() ) );
     TS_ASSERT( (boost::is_same<boost::result_of<NoEdgeExtend(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
   }
 
@@ -84,9 +82,7 @@ public:
     TS_ASSERT_EQUALS( *(im2.origin().advance(1,1)), 4 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ZeroEdgeExtend() ) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ZeroEdgeExtend() ) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ZeroEdgeExtend()).origin() ) );
     TS_ASSERT( (boost::is_same<boost::result_of<ZeroEdgeExtend(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
   }
 
@@ -114,9 +110,7 @@ public:
     TS_ASSERT_EQUALS( *(im2.origin().advance(1,1)), 4 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ZeroEdgeExtend() ) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ZeroEdgeExtend() ) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ZeroEdgeExtend()).origin() ) );
     TS_ASSERT( (boost::is_same<boost::result_of<ConstantEdgeExtend(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
   }
 
@@ -155,9 +149,7 @@ public:
     TS_ASSERT_EQUALS( *(im2.origin().advance(1,1)), 4 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, PeriodicEdgeExtend() ) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, PeriodicEdgeExtend() ) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, PeriodicEdgeExtend()).origin() ) );
     TS_ASSERT( (boost::is_same<boost::result_of<PeriodicEdgeExtend(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
   }
 
@@ -196,9 +188,7 @@ public:
     TS_ASSERT_EQUALS( *(im2.origin().advance(1,1)), 4 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ReflectEdgeExtend() ) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ReflectEdgeExtend() ) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( edge_extend(im, ReflectEdgeExtend()).origin() ) );
     TS_ASSERT( (boost::is_same<boost::result_of<ReflectEdgeExtend(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
   }
 

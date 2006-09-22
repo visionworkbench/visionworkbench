@@ -103,12 +103,14 @@ namespace vw {
   {
   private:
     EdgeExtendView<ImageT,EdgeT> m_image;
-    Rotate180View<KernelT> m_kernel;
+    RemapView<KernelT,-1,-2,-1,-2> m_kernel;
     int m_ci, m_cj;
 
   public:
     /// The pixel type of the image view.
     typedef typename ProductType<typename ImageT::pixel_type, typename KernelT::pixel_type>::type pixel_type;
+
+    typedef pixel_type result_type;
 
     /// The view's %pixel_accessor type.
     typedef ProceduralPixelAccessor<ConvolutionView<ImageT, KernelT, EdgeT> > pixel_accessor;
@@ -134,7 +136,7 @@ namespace vw {
     inline pixel_accessor origin() const { return pixel_accessor( *this ); }
 
     /// Returns the pixel at the given position in the given plane.
-    inline pixel_type operator()( int x, int y, int p=0 ) const {
+    inline result_type operator()( int x, int y, int p=0 ) const {
       if( (x >= m_ci) && (y >= m_cj) &&
 	  (x <= int(m_image.cols())-int(m_kernel.cols())+m_ci) &&
 	  (y <= int(m_image.rows())-int(m_kernel.rows())+m_cj) ) {
@@ -256,6 +258,7 @@ namespace vw {
   public:
     /// The pixel type of the view.
     typedef typename ProductType<typename ImageT::pixel_type, KernelT>::type pixel_type;
+    typedef pixel_type result_type;
 
     /// The view's %pixel_accessor type.
     typedef ProceduralPixelAccessor<SeparableConvolutionView<ImageT, KernelT, EdgeT> > pixel_accessor;
@@ -283,8 +286,7 @@ namespace vw {
     inline pixel_accessor origin() const { return pixel_accessor( *this ); }
 
     /// Returns the pixel at the given position in the given plane.
-    inline pixel_type operator()( int x, int y, int p = 0 ) const
-    {
+    inline result_type operator()( int x, int y, int p = 0 ) const {
       if( m_kernel2d.cols()==0 ) generate2DKernel();
 
       if( (x >= int(m_ci)) && (y >= int(m_cj)) &&

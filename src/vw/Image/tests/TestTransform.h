@@ -65,7 +65,6 @@ public:
     // Test the traits
     TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) ); 
     TS_ASSERT( bool_trait<IsFloatingPointIndexable>( fixed_transform(im, TranslateTransform(1,1)) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( fixed_transform(im, TranslateTransform(1,1)) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( fixed_transform(im, TranslateTransform(1,1)) ) );
   }
 

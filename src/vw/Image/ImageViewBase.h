@@ -97,9 +97,6 @@ namespace vw {
 
   // *******************************************************************
   // Default image traits templates
-  //
-  // We do not define the default IsReferenceable template here  
-  // because it has already been defined in FundamentalTypes.h.
   // *******************************************************************
 
   /// Indicates whether a view can be resized via <B>set_size()</B>.

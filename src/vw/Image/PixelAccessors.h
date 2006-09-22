@@ -23,8 +23,8 @@
 /// 
 /// Standard pixel accessor types for general image views.
 /// 
-#ifndef __VW_IMAGE__PIXEL_ACCESSORS_H__
-#define __VW_IMAGE__PIXEL_ACCESSORS_H__
+#ifndef __VW_IMAGE_PIXEL_ACCESSORS_H__
+#define __VW_IMAGE_PIXEL_ACCESSORS_H__
 
 #include <boost/type_traits.hpp>
 
@@ -40,13 +40,12 @@ namespace vw {
   /// This template produces the correct const accessor when passed a 
   /// const pixel type.  It is primarily intended to be used by ImageView.
   template <class PixelT>
-  class MemoryStridingPixelAccessor
-  {
-  protected:
+  class MemoryStridingPixelAccessor {
     PixelT *m_ptr;
     ptrdiff_t m_cstride, m_rstride, m_pstride;
   public:
     typedef PixelT pixel_type;
+    typedef PixelT& result_type;
 
     MemoryStridingPixelAccessor( PixelT *ptr, ptrdiff_t cstride, ptrdiff_t rstride, ptrdiff_t pstride )
       : m_ptr(ptr), m_cstride(cstride), m_rstride(rstride), m_pstride(pstride) {}
@@ -62,13 +61,8 @@ namespace vw {
       return *this;
     }
 
-    inline PixelT& operator*() const { return *m_ptr; }
+    inline result_type operator*() const { return *m_ptr; }
   };
-
-  /// \cond INTERNAL
-  template <class PixelT>
-  struct IsReferenceable<MemoryStridingPixelAccessor<PixelT> > : public boost::true_type {};
-  /// \endcond
 
 
   /// A generic "procedural" pixel accessor that keeps track of it
@@ -79,16 +73,14 @@ namespace vw {
   /// keeps track of the current position in image coordintes and 
   /// invokes the view's function operator when dereferenced.
   template <class ViewT>
-  class ProceduralPixelAccessor
-  {
-  private:
+  class ProceduralPixelAccessor {
     typedef typename boost::mpl::if_<IsFloatingPointIndexable<ViewT>, float, int>::type offset_type;
     ViewT const& m_view;
     offset_type m_c, m_r;
     int m_p;
-
   public:
     typedef typename ViewT::pixel_type pixel_type;
+    typedef typename ViewT::result_type result_type;
 
     ProceduralPixelAccessor( ViewT const& view ) : m_view(view), m_c(), m_r(), m_p() {}
     ProceduralPixelAccessor( ViewT const& view, offset_type c, offset_type r, int p=0 ) : m_view(view), m_c(c), m_r(r), m_p(p) {}
@@ -101,9 +93,9 @@ namespace vw {
     inline ProceduralPixelAccessor& prev_plane() { --m_p; return *this; }
     inline ProceduralPixelAccessor& advance( offset_type dc, offset_type dr, int dp=0 ) { m_c+=dc; m_r+=dr; m_p+=dp; return *this; }
 
-    inline pixel_type operator*() const { return m_view(m_c,m_r,m_p); }
+    inline result_type operator*() const { return m_view(m_c,m_r,m_p); }
   };
 
 } // namespace vw
 
-#endif // __VW_IMAGE__PIXEL_ACCESSORS_H__
+#endif // __VW_IMAGE_PIXEL_ACCESSORS_H__

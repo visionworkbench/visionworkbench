@@ -22,10 +22,10 @@
 /// \file Manipulation.h
 ///
 /// Simple image manipulation functions, such as flipping and
-/// cropping.  All of the functions in this file return <i>shallow</i>
-/// views of the ImageView.  That is, they do not copy the data underneath 
-/// but instead they refer to the same data, indexing and accessing it in 
-/// a different way.
+/// cropping.  All of the functions in this file except copy() return
+/// <i>shallow</i> views of the ImageView.  That is, they do not copy
+/// the data underneath but instead they refer to the same data,
+/// indexing and accessing it in a different way.
 /// 
 /// The first collection of functions in this file perform basic
 /// transformations to the domain of the image, such as transposition,
@@ -38,22 +38,26 @@
 /// - select_col() : takes a single-column slice of an image
 /// - select_row() : takes a single-row slice of an image
 /// - select_plane() : takes a single-plane slice of an image
+/// - select_channel() : takes a single-channel slice of an image
 /// - channels_to_planes() : reinterprets a multi-channel image as a multi-plane image
 /// - planes_to_channels() : reinterprets a multi-plane image as a multi-channel image
+/// - pixel_cast() : casts the pixels of an image to a new pixel type
+/// - channel_cast() : casts the channels of an image while retaining the pixel format
 ///
-#ifndef __VW_IMAGE__MANIPULATION_H__
-#define __VW_IMAGE__MANIPULATION_H__
+#ifndef __VW_IMAGE_MANIPULATION_H__
+#define __VW_IMAGE_MANIPULATION_H__
 
 #include <boost/mpl/logical.hpp>
 
 #include <vw/Core/CompoundTypes.h>
 #include <vw/Image/ImageViewBase.h>
+#include <vw/Image/PerPixelViews.h>
 #include <vw/Math/BBox.h>
 
 namespace vw {
 
   // *******************************************************************
-  // Copy
+  // copy()
   // *******************************************************************
 
   // Class definition
@@ -63,8 +67,8 @@ namespace vw {
   private:
     ImageView<typename ImageT::pixel_type> m_image;
   public:
-
     typedef typename ImageView<typename ImageT::pixel_type>::pixel_type pixel_type;
+    typedef pixel_type const& result_type;
     typedef typename ImageView<typename ImageT::pixel_type>::pixel_accessor pixel_accessor;
 
     CopyView( ImageT const& image ) : m_image(image.cols(),image.rows(),image.planes()) {
@@ -76,26 +80,16 @@ namespace vw {
     inline unsigned planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return m_image.origin(); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j ) const { return m_image(i,j); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j, int p ) const { return m_image(i,j,p); }
+    inline result_type operator()( int i, int j ) const { return m_image(i,j); }
+    inline result_type operator()( int i, int j, int p ) const { return m_image(i,j,p); }
 
     typedef CopyView prerasterize_type;
     inline prerasterize_type prerasterize() const { return *this; }
     template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( m_image, dest ); }
   };
 
-  // Type Traits
-  template <class ImageT>
-  struct IsReferenceable<CopyView<ImageT> > : public boost::true_type {};
-
   template <class ImageT>
   struct IsMultiplyAccessible<CopyView<ImageT> > : public boost::true_type {};
-
-  /// \endcond
 
   /// Make a (deep) copy of an image.
   template <class ImageT>
@@ -105,547 +99,152 @@ namespace vw {
 
 
   // *******************************************************************
-  // Transpose
+  // Axis remapping views: transpose, flipping and rotation.
   // *******************************************************************
 
-  // Specialized pixel accessor
-  template <class ImageAccT>
-  class TransposePixelAccessor
-  {
-  private:
-    ImageAccT m_acc;
-  public:
-    typedef typename ImageAccT::pixel_type pixel_type;
-    TransposePixelAccessor( ImageAccT const& iter ) : m_acc(iter) {}
-    inline TransposePixelAccessor& next_col() { m_acc.next_row(); return *this; }
-    inline TransposePixelAccessor& prev_col() { m_acc.prev_row(); return *this; }
-    inline TransposePixelAccessor& next_row() { m_acc.next_col(); return *this; }
-    inline TransposePixelAccessor& prev_row() { m_acc.prev_col(); return *this; }
-    inline TransposePixelAccessor& next_plane() { m_acc.next_plane(); return *this; }
-    inline TransposePixelAccessor& prev_plane() { m_acc.prev_plane(); return *this; }
-    inline TransposePixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_acc.advance(dj,di,dp); return *this; }
+  template <int Mode>
+  struct AxisTraits {};
 
-    typename boost::mpl::if_< IsReferenceable<ImageAccT>, pixel_type&, pixel_type >::type
-    inline operator*() const { return *m_acc; }
+  template <> struct AxisTraits<1> {
+    template <class AccessT> static inline void iterate( AccessT& acc ) { acc.next_col(); }
+    static inline int advance( int dc, int dr, int dp ) { return dc; }
+    template <class ViewT> static inline int index( int c, int r, int p, ViewT const& view ) { return c; }
+    template <class ViewT> static inline int size( ViewT const& view ) { return view.cols(); }
   };
 
-  /// \cond INTERNAL
-  // Accessor type traits
-  template <class ImageAccT>
-  struct IsReferenceable<TransposePixelAccessor<ImageAccT> > : public IsReferenceable<ImageAccT> {};
-  /// \endcond
+  template <> struct AxisTraits<-1> {
+    template <class AccessT> static inline void iterate( AccessT& acc ) { acc.prev_col(); }
+    static inline int advance( int dc, int dr, int dp ) { return -dc; }
+    template <class ViewT> static inline int index( int c, int r, int p, ViewT const& view ) { return view.cols()-1-c; }
+    template <class ViewT> static inline int size( ViewT const& view ) { return view.cols(); }
+  };
 
-  // Class definition
-  template <class ImageT>
-  class TransposeView : public ImageViewBase<TransposeView<ImageT> >
-  {
-  private:
-    ImageT m_image;
+  template <> struct AxisTraits<2> {
+    template <class AccessT> static inline void iterate( AccessT& acc ) { acc.next_row(); }
+    static inline int advance( int dc, int dr, int dp ) { return dr; }
+    template <class ViewT> static inline int index( int c, int r, int p, ViewT const& view ) { return r; }
+    template <class ViewT> static inline int size( ViewT const& view ) { return view.rows(); }
+  };
+
+  template <> struct AxisTraits<-2> {
+    template <class AccessT> static inline void iterate( AccessT& acc ) { acc.prev_row(); }
+    static inline int advance( int dc, int dr, int dp ) { return -dr; }
+    template <class ViewT> static inline int index( int c, int r, int p, ViewT const& view ) { return view.rows()-1-r; }
+    template <class ViewT> static inline int size( ViewT const& view ) { return view.rows(); }
+  };
+
+  template <class ChildT, int FwdColMode, int FwdRowMode, int RevColMode, int RevRowMode>
+  class RemapPixelAccessor {
+    ChildT m_child;
+  public:
+    typedef typename ChildT::pixel_type pixel_type;
+    typedef typename ChildT::result_type result_type;
+    RemapPixelAccessor( ChildT const& child ) : m_child(child) {}
+    
+    inline RemapPixelAccessor& next_col() { AxisTraits<FwdColMode>::iterate(m_child); return *this; }
+    inline RemapPixelAccessor& prev_col() { AxisTraits<-FwdColMode>::iterate(m_child); return *this; }
+    inline RemapPixelAccessor& next_row() { AxisTraits<FwdRowMode>::iterate(m_child); return *this; }
+    inline RemapPixelAccessor& prev_row() { AxisTraits<-FwdRowMode>::iterate(m_child); return *this; }
+    inline RemapPixelAccessor& next_plane() { m_child.next_plane(); return *this; }
+    inline RemapPixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
+    inline RemapPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { 
+      m_child.advance( AxisTraits<RevColMode>::advance(di,dj), AxisTraits<RevRowMode>::advance(di,dj), dp );
+      return *this;
+    }
+
+    inline result_type operator*() const { return *m_child; }
+  };
+
+  template <class ChildT, int FwdColMode, int FwdRowMode, int RevColMode, int RevRowMode>
+  class RemapView : public ImageViewBase<RemapView<ChildT,FwdColMode,FwdRowMode,RevColMode,RevRowMode> > {
+    ChildT m_child;
   public:
 
-    typedef typename ImageT::pixel_type pixel_type;
-    typedef TransposePixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
+    typedef typename ChildT::pixel_type pixel_type;
+    typedef typename ChildT::result_type result_type;
+    typedef RemapPixelAccessor<typename ChildT::pixel_accessor,FwdColMode,FwdRowMode,RevColMode,RevRowMode> pixel_accessor;
 
-    TransposeView( ImageT const& image ) : m_image(image) {}
+    RemapView( ChildT const& child ) : m_child(child) {}
 
-    inline unsigned cols() const { return m_image.rows(); }
-    inline unsigned rows() const { return m_image.cols(); }
-    inline unsigned planes() const { return m_image.planes(); }
+    inline unsigned cols() const { return AxisTraits<FwdColMode>::size( m_child ); }
+    inline unsigned rows() const { return AxisTraits<FwdRowMode>::size( m_child ); }
+    inline unsigned planes() const { return m_child.planes(); }
 
-    inline pixel_accessor origin() const { return m_image.origin(); }
+    inline pixel_accessor origin() const {
+      return m_child.origin().advance( AxisTraits<RevColMode>::index(0,0,0,*this),
+                                       AxisTraits<RevRowMode>::index(0,0,0,*this) );
+    }
 
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j ) const { return m_image(j,i); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j, int p ) const { return m_image(j,i,p); }
+    inline result_type operator()( int c, int r, int p=0 ) const {
+      return m_child( AxisTraits<RevColMode>::index(c,r,p,*this),
+                      AxisTraits<RevRowMode>::index(c,r,p,*this), p );
+    }
 
     template <class ViewT>
-    TransposeView& operator=( ImageViewBase<ViewT> const& view ) {
+    RemapView& operator=( ImageViewBase<ViewT> const& view ) {
       view.impl().rasterize( *this );
       return *this;
     }
 
-    ImageT const& child() const {
-      return m_image;
+    ChildT const& child() const {
+      return m_child;
     }
 
     /// \cond INTERNAL
-    typedef TransposeView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize() ); }
+    typedef RemapView<typename ChildT::prerasterize_type,FwdColMode,FwdRowMode,RevColMode,RevRowMode> prerasterize_type;
+    inline prerasterize_type prerasterize() const { return prerasterize_type( m_child.prerasterize() ); }
     template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
     /// \endcond
   };
 
-  /// \cond INTERNAL
   // Type Traits
-  template <class ImageT>
-  struct IsReferenceable<TransposeView<ImageT> > : public IsReferenceable<ImageT> {};
-
-  template <class ImageT>
-  struct IsMultiplyAccessible<TransposeView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
+  template <class ChildT, int FwdColMode, int FwdRowMode, int RevColMode, int RevRowMode>
+  struct IsMultiplyAccessible<RemapView<ChildT,FwdColMode,FwdRowMode,RevColMode,RevRowMode> > : public IsMultiplyAccessible<ChildT> {};
 
   /// Transpose an image.
   template <class ImageT>
-  TransposeView<ImageT> transpose( ImageViewBase<ImageT> const& v ) {
-    return TransposeView<ImageT>( v.impl() );
+  RemapView<ImageT,2,1,2,1> transpose( ImageViewBase<ImageT> const& v ) {
+    return RemapView<ImageT,2,1,2,1>( v.impl() );
   }
 
-
-  // *******************************************************************
-  // Rotate180
-  // *******************************************************************
-
-  // Specialized pixel accessor
-  template <class ImageAccT>
-  class Rotate180PixelAccessor
-  {
-  private:
-    ImageAccT m_image;
-  public:
-    typedef typename ImageAccT::pixel_type pixel_type;
-    Rotate180PixelAccessor( ImageAccT const& image ) : m_image(image) {}
-
-    inline Rotate180PixelAccessor& next_col() { m_image.prev_col(); return *this; }
-    inline Rotate180PixelAccessor& prev_col() { m_image.next_col(); return *this; }
-    inline Rotate180PixelAccessor& next_row() { m_image.prev_row(); return *this; }
-    inline Rotate180PixelAccessor& prev_row() { m_image.next_row(); return *this; }
-    inline Rotate180PixelAccessor& next_plane() { m_image.prev_plane(); return *this; }
-    inline Rotate180PixelAccessor& prev_plane() { m_image.next_plane(); return *this; }
-    inline Rotate180PixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_image.advance(-di,-dj,dp); return *this; }
-
-    typename boost::mpl::if_< IsReferenceable<ImageAccT>, pixel_type&, pixel_type >::type
-    inline operator*() const { return *m_image; }
-  };
-
-  /// \cond INTERNAL
-  template <class ImageAccT>
-  struct IsReferenceable<Rotate180PixelAccessor<ImageAccT> > : public IsReferenceable<ImageAccT> {};
-  /// \endcond
-
-  // Image View Class
-  template <class ImageT>
-  class Rotate180View : public ImageViewBase<Rotate180View<ImageT> >
-  {
-  private:
-    ImageT m_image;
-  public:
-
-    typedef typename ImageT::pixel_type pixel_type;
-    typedef Rotate180PixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
-
-    Rotate180View( ImageT const& image ) : m_image(image) {}
-
-    inline unsigned cols() const { return m_image.cols(); }
-    inline unsigned rows() const { return m_image.rows(); }
-    inline unsigned planes() const { return m_image.planes(); }
-
-    inline pixel_accessor origin() const { return m_image.origin().advance(cols()-1,rows()-1); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j ) const { return m_image(cols()-1-i,rows()-1-j); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j, int p ) const { return m_image(cols()-1-i,rows()-1-j,p); }
-
-    template <class ViewT>
-    Rotate180View& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this );
-      return *this;
-    }
-
-    ImageT const& child() const {
-      return m_image;
-    }
-
-    /// \cond INTERNAL
-    typedef Rotate180View<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize() ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
-    /// \endcond
-  };
-
-  /// \cond INTERNAL
-  // Type traits
-  template <class ImageT>
-  struct IsReferenceable<Rotate180View<ImageT> > : public IsReferenceable<ImageT> {};
-
-  template <class ImageT>
-  struct IsMultiplyAccessible<Rotate180View<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
-  
   /// Rotate an image 180 degrees.
   template <class ImageT>
-  Rotate180View<ImageT> rotate_180( ImageViewBase<ImageT> const& v ) {
-    return Rotate180View<ImageT>( v.impl() );
+  RemapView<ImageT,-1,-2,-1,-2> rotate_180( ImageViewBase<ImageT> const& v ) {
+    return RemapView<ImageT,-1,-2,-1,-2>( v.impl() );
   }
-
-
-  // *******************************************************************
-  // Rotate90CW
-  // *******************************************************************
-
-  // Specialized pixel accessor
-  template <class ImageAccT>
-  class Rotate90CWPixelAccessor
-  {
-  private:
-    ImageAccT m_acc;
-  public:
-    typedef typename ImageAccT::pixel_type pixel_type;
-    Rotate90CWPixelAccessor( ImageAccT const& iter ) : m_acc(iter) {}
-    inline Rotate90CWPixelAccessor& next_col() { m_acc.prev_row(); return *this; }
-    inline Rotate90CWPixelAccessor& prev_col() { m_acc.next_row(); return *this; }
-    inline Rotate90CWPixelAccessor& next_row() { m_acc.next_col(); return *this; }
-    inline Rotate90CWPixelAccessor& prev_row() { m_acc.prev_col(); return *this; }
-    inline Rotate90CWPixelAccessor& next_plane() { m_acc.next_plane(); return *this; }
-    inline Rotate90CWPixelAccessor& prev_plane() { m_acc.prev_plane(); return *this; }
-    inline Rotate90CWPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_acc.advance(dj,-di,dp); return *this; }
-
-    typename boost::mpl::if_< IsReferenceable<ImageAccT>, pixel_type&, pixel_type >::type
-    inline operator*() const { return *m_acc; }
-  };
-
-  /// \cond INTERNAL
-  // Accessor type traits
-  template <class ImageAccT>
-  struct IsReferenceable<Rotate90CWPixelAccessor<ImageAccT> > : public IsReferenceable<ImageAccT> {};
-  /// \endcond
-
-  // Class definition
-  template <class ImageT>
-  class Rotate90CWView : public ImageViewBase<Rotate90CWView<ImageT> >
-  {
-  private:
-    ImageT m_image;
-  public:
-
-    typedef typename ImageT::pixel_type pixel_type;
-    typedef Rotate90CWPixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
-
-    Rotate90CWView( ImageT const& image ) : m_image(image) {}
-
-    inline unsigned cols() const { return m_image.rows(); }
-    inline unsigned rows() const { return m_image.cols(); }
-    inline unsigned planes() const { return m_image.planes(); }
-
-    inline pixel_accessor origin() const { return m_image.origin().advance(0,cols()-1); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j ) const { return m_image(j,cols()-1-i); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j, int p ) const { return m_image(j,cols()-1-i,p); }
-
-    template <class ViewT>
-    Rotate90CWView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this );
-      return *this;
-    }
-
-    ImageT const& child() const {
-      return m_image;
-    }
-
-    /// \cond INTERNAL
-    typedef Rotate90CWView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize() ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
-    /// \endcond
-  };
-
-  /// \cond INTERNAL
-  // Type tTraits
-  template <class ImageT>
-  struct IsReferenceable<Rotate90CWView<ImageT> > : public IsReferenceable<ImageT> {};
-
-  template <class ImageT>
-  struct IsMultiplyAccessible<Rotate90CWView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
 
   /// Rotate an image 90 degrees clockwise.
   template <class ImageT>
-  Rotate90CWView<ImageT> rotate_90_cw( ImageViewBase<ImageT> const& v ) {
-    return Rotate90CWView<ImageT>( v.impl() );
+  RemapView<ImageT,-2,1,2,-1> rotate_90_cw( ImageViewBase<ImageT> const& v ) {
+    return RemapView<ImageT,-2,1,2,-1>( v.impl() );
   }
-
-
-  // *******************************************************************
-  // Rotate90CCW
-  // *******************************************************************
-
-  // Specialized pixel accessor
-  template <class ImageAccT>
-  class Rotate90CCWPixelAccessor
-  {
-  private:
-    ImageAccT m_acc;
-  public:
-    typedef typename ImageAccT::pixel_type pixel_type;
-    Rotate90CCWPixelAccessor( ImageAccT const& iter ) : m_acc(iter) {}
-    inline Rotate90CCWPixelAccessor& next_col() { m_acc.next_row(); return *this; }
-    inline Rotate90CCWPixelAccessor& prev_col() { m_acc.prev_row(); return *this; }
-    inline Rotate90CCWPixelAccessor& next_row() { m_acc.prev_col(); return *this; }
-    inline Rotate90CCWPixelAccessor& prev_row() { m_acc.next_col(); return *this; }
-    inline Rotate90CCWPixelAccessor& next_plane() { m_acc.next_plane(); return *this; }
-    inline Rotate90CCWPixelAccessor& prev_plane() { m_acc.prev_plane(); return *this; }
-    inline Rotate90CCWPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_acc.advance(-dj,di,dp); return *this; }
-
-    typename boost::mpl::if_< IsReferenceable<ImageAccT>, pixel_type&, pixel_type >::type
-    inline operator*() const { return *m_acc; }
-  };
-
-  /// \cond INTERNAL
-  // Accessor type traits
-  template <class ImageAccT>
-  struct IsReferenceable<Rotate90CCWPixelAccessor<ImageAccT> > : public IsReferenceable<ImageAccT> {};
-  /// \endcond
-
-  // Class definition
-  template <class ImageT>
-  class Rotate90CCWView : public ImageViewBase<Rotate90CCWView<ImageT> >
-  {
-  private:
-    ImageT m_image;
-  public:
-
-    typedef typename ImageT::pixel_type pixel_type;
-    typedef Rotate90CCWPixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
-
-    Rotate90CCWView( ImageT const& image ) : m_image(image) {}
-
-    inline unsigned cols() const { return m_image.rows(); }
-    inline unsigned rows() const { return m_image.cols(); }
-    inline unsigned planes() const { return m_image.planes(); }
-
-    inline pixel_accessor origin() const { return m_image.origin().advance(rows()-1,0); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j ) const { return m_image(rows()-1-j,i); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j, int p ) const { return m_image(rows()-1-j,i,p); }
-
-    template <class ViewT>
-    Rotate90CCWView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this );
-      return *this;
-    }
-
-    ImageT const& child() const {
-      return m_image;
-    }
-
-    /// \cond INTERNAL
-    typedef Rotate90CCWView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize() ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
-    /// \endcond
-  };
-
-  /// \cond INTERNAL
-  // Type traits
-  template <class ImageT>
-  struct IsReferenceable<Rotate90CCWView<ImageT> > : public IsReferenceable<ImageT> {};
-
-  template <class ImageT>
-  struct IsMultiplyAccessible<Rotate90CCWView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
 
   /// Rotate an image 90 degrees counter-clockwise.
   template <class ImageT>
-  Rotate90CCWView<ImageT> rotate_90_ccw( ImageViewBase<ImageT> const& v ) {
-    return Rotate90CCWView<ImageT>( v.impl() );
+  RemapView<ImageT,2,-1,-2,1> rotate_90_ccw( ImageViewBase<ImageT> const& v ) {
+    return RemapView<ImageT,2,-1,-2,1>( v.impl() );
   }
-
-
-  // *******************************************************************
-  // FlipVertical
-  // *******************************************************************
-
-  // Specialized pixel accessor
-  template <class ImageAccT>
-  class FlipVerticalPixelAccessor
-  {
-  private:
-    ImageAccT m_acc;
-  public:
-    typedef typename ImageAccT::pixel_type pixel_type;
-    FlipVerticalPixelAccessor( ImageAccT const& iter ) : m_acc(iter) {}
-    inline FlipVerticalPixelAccessor& next_col() { m_acc.next_col(); return *this; }
-    inline FlipVerticalPixelAccessor& prev_col() { m_acc.prev_col(); return *this; }
-    inline FlipVerticalPixelAccessor& next_row() { m_acc.prev_row(); return *this; }
-    inline FlipVerticalPixelAccessor& prev_row() { m_acc.next_row(); return *this; }
-    inline FlipVerticalPixelAccessor& next_plane() { m_acc.next_plane(); return *this; }
-    inline FlipVerticalPixelAccessor& prev_plane() { m_acc.prev_plane(); return *this; }
-    inline FlipVerticalPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_acc.advance(di,-dj,dp); return *this; }
-
-    typename boost::mpl::if_< IsReferenceable<ImageAccT>, pixel_type&, pixel_type >::type
-    inline operator*() const { return *m_acc; }
-  };
-
-  /// \cond INTERNAL
-  // Accessor type traits
-  template <class ImageAccT>
-  struct IsReferenceable<FlipVerticalPixelAccessor<ImageAccT> > : public IsReferenceable<ImageAccT> {};
-  /// \endcond
-
-  // Class definition
-  template <class ImageT>
-  class FlipVerticalView : public ImageViewBase<FlipVerticalView<ImageT> >
-  {
-  private:
-    ImageT m_image;
-  public:
-
-    typedef typename ImageT::pixel_type pixel_type;
-    typedef FlipVerticalPixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
-
-    FlipVerticalView( ImageT const& image ) : m_image(image) {}
-
-    inline unsigned cols() const { return m_image.cols(); }
-    inline unsigned rows() const { return m_image.rows(); }
-    inline unsigned planes() const { return m_image.planes(); }
-
-    inline pixel_accessor origin() const { return m_image.origin().advance(0,rows()-1); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j ) const { return m_image(i,rows()-1-j); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j, int p ) const { return m_image(i,rows()-1-j,p); }
-
-    ImageT const& child() const {
-      return m_image;
-    }
-
-    template <class ViewT>
-    FlipVerticalView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this );
-      return *this;
-    }
-
-    /// \cond INTERNAL
-    typedef FlipVerticalView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize() ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
-    /// \endcond
-  };
-
-  /// \cond INTERNAL
-  // Type traits
-  template <class ImageT>
-  struct IsReferenceable<FlipVerticalView<ImageT> > : public IsReferenceable<ImageT> {};
-
-  template <class ImageT>
-  struct IsMultiplyAccessible<FlipVerticalView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
 
   /// Flip an image vertically.
   template <class ImageT>
-  FlipVerticalView<ImageT> flip_vertical( ImageViewBase<ImageT> const& v ) {
-    return FlipVerticalView<ImageT>( v.impl() );
+  RemapView<ImageT,1,-2,1,-2> flip_vertical( ImageViewBase<ImageT> const& v ) {
+    return RemapView<ImageT,1,-2,1,-2>( v.impl() );
   }
-
-
-  // *******************************************************************
-  // FlipHorizontal
-  // *******************************************************************
-
-  // Specialized pixel accessor
-  template <class ImageAccT>
-  class FlipHorizontalPixelAccessor
-  {
-  private:
-    ImageAccT m_acc;
-  public:
-    typedef typename ImageAccT::pixel_type pixel_type;
-    FlipHorizontalPixelAccessor( ImageAccT const& iter ) : m_acc(iter) {}
-    inline FlipHorizontalPixelAccessor& next_col() { m_acc.prev_col(); return *this; }
-    inline FlipHorizontalPixelAccessor& prev_col() { m_acc.next_col(); return *this; }
-    inline FlipHorizontalPixelAccessor& next_row() { m_acc.next_row(); return *this; }
-    inline FlipHorizontalPixelAccessor& prev_row() { m_acc.prev_row(); return *this; }
-    inline FlipHorizontalPixelAccessor& next_plane() { m_acc.next_plane(); return *this; }
-    inline FlipHorizontalPixelAccessor& prev_plane() { m_acc.prev_plane(); return *this; }
-    inline FlipHorizontalPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_acc.advance(-di,dj,dp); return *this; }
-
-    typename boost::mpl::if_< IsReferenceable<ImageAccT>, pixel_type&, pixel_type >::type
-    inline operator*() const { return *m_acc; }
-  };
-
-  /// \cond INTERNAL
-  // Accessor type traits
-  template <class ImageAccT>
-  struct IsReferenceable<FlipHorizontalPixelAccessor<ImageAccT> > : public IsReferenceable<ImageAccT> {};
-  /// \endcond
-
-  // Class definition
-  template <class ImageT>
-  class FlipHorizontalView : public ImageViewBase<FlipHorizontalView<ImageT> >
-  {
-  private:
-    ImageT m_image;
-  public:
-
-    typedef typename ImageT::pixel_type pixel_type;
-    typedef FlipHorizontalPixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
-
-    FlipHorizontalView( ImageT const& image ) : m_image(image) {}
-
-    inline unsigned cols() const { return m_image.cols(); }
-    inline unsigned rows() const { return m_image.rows(); }
-    inline unsigned planes() const { return m_image.planes(); }
-
-    inline pixel_accessor origin() const { return m_image.origin().advance(cols()-1,0); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j ) const { return m_image(cols()-1-i,j); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j, int p ) const { return m_image(cols()-1-i,j,p); }
-
-    template <class ViewT>
-    FlipHorizontalView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this );
-      return *this;
-    }
-
-    ImageT const& child() const {
-      return m_image;
-    }
-
-    /// \cond INTERNAL
-    typedef FlipHorizontalView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize() ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
-    /// \endcond
-  };
-
-  /// \cond INTERNAL
-  // Type traits
-  template <class ImageT>
-  struct IsReferenceable<FlipHorizontalView<ImageT> > : public IsReferenceable<ImageT> {};
-
-  template <class ImageT>
-  struct IsMultiplyAccessible<FlipHorizontalView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
 
   /// Flip an image horizontally.
   template <class ImageT>
-  FlipHorizontalView<ImageT> flip_horizontal( ImageViewBase<ImageT> const& v ) {
-    return FlipHorizontalView<ImageT>( v.impl() );
+  RemapView<ImageT,-1,2,-1,2> flip_horizontal( ImageViewBase<ImageT> const& v ) {
+    return RemapView<ImageT,-1,2,-1,2>( v.impl() );
   }
 
 
   // *******************************************************************
-  // Crop
+  // crop()
   // *******************************************************************
 
   // Class definition
   template <class ImageT>
-  class CropView : public ImageViewBase< CropView<ImageT> >
-  {
+  class CropView : public ImageViewBase< CropView<ImageT> > {
   private:
     typedef typename boost::mpl::if_<IsFloatingPointIndexable<ImageT>, float, int>::type offset_type;
 
@@ -655,6 +254,7 @@ namespace vw {
 
   public:
     typedef typename ImageT::pixel_type pixel_type;
+    typedef typename ImageT::result_type result_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
     CropView( ImageT const& image, offset_type const upper_left_i, offset_type const upper_left_j, unsigned const width, unsigned const height ) : 
@@ -674,8 +274,7 @@ namespace vw {
 
     inline pixel_accessor origin() const { return m_image.origin().advance(m_ci, m_cj); }
 
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( offset_type i, offset_type j, int p=0 ) const { return m_image(m_ci + i, m_cj + j, p); }
+    inline result_type operator()( offset_type i, offset_type j, int p=0 ) const { return m_image(m_ci + i, m_cj + j, p); }
 
     CropView& operator=( CropView const& view ) {
       view.rasterize( *this );
@@ -702,9 +301,6 @@ namespace vw {
   /// \cond INTERNAL
   // Type traits
   template <class ImageT>
-  struct IsReferenceable<CropView<ImageT> >  : public IsReferenceable<ImageT> {}; 
-
-  template <class ImageT>
   struct IsFloatingPointIndexable<CropView<ImageT> >  : public IsFloatingPointIndexable<ImageT> {}; 
 
   template <class ImageT>
@@ -725,18 +321,17 @@ namespace vw {
 
 
   // *******************************************************************
-  // Subsample
+  // subsample()
   // *******************************************************************
 
   // Specialized image accessor
   template <class ImageAccT>
-  class SubsamplePixelAccessor
-  {
-  private:
+  class SubsamplePixelAccessor {
     ImageAccT m_acc;
     unsigned m_xdelta, m_ydelta;
   public:
     typedef typename ImageAccT::pixel_type pixel_type;
+    typedef typename ImageAccT::result_type result_type;
     SubsamplePixelAccessor( ImageAccT const& iter , unsigned xdelta, unsigned ydelta) : m_acc(iter), m_xdelta(xdelta), m_ydelta(ydelta) {}
 
     inline SubsamplePixelAccessor& next_col() { m_acc.advance(  m_xdelta, 0 ); return *this; }
@@ -747,25 +342,17 @@ namespace vw {
     inline SubsamplePixelAccessor& prev_plane() { m_acc.prev_plane(); return *this; }
     inline SubsamplePixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_acc.advance((ptrdiff_t)m_xdelta*di,(ptrdiff_t)m_ydelta*dj,dp); return *this; }
 
-    typename boost::mpl::if_< IsReferenceable<ImageAccT>, pixel_type&, pixel_type >::type
-    inline operator*() const { return *m_acc; }
+    inline result_type operator*() const { return *m_acc; }
   };
-
-  /// \cond INTERNAL
-  template <class ImageAccT>
-  struct IsReferenceable<SubsamplePixelAccessor<ImageAccT> > : public IsReferenceable<ImageAccT> {};
-  /// \endcond
 
   // Class definition
   template <class ImageT>
-  class SubsampleView : public ImageViewBase<SubsampleView<ImageT> >
-  {
-  private:
+  class SubsampleView : public ImageViewBase<SubsampleView<ImageT> > {
     ImageT m_image;
     unsigned m_xdelta, m_ydelta;
   public:
-
     typedef typename ImageT::pixel_type pixel_type;
+    typedef typename ImageT::result_type result_type;
     typedef SubsamplePixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
 
     SubsampleView( ImageT const& image, unsigned subsampling_factor ) : m_image(image), m_xdelta(subsampling_factor), m_ydelta(subsampling_factor) {}
@@ -776,16 +363,10 @@ namespace vw {
     inline unsigned planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(m_image.origin(), m_xdelta, m_ydelta); }
+    inline result_type operator()( int i, int j ) const { return m_image(m_xdelta*i,m_ydelta*j); }
+    inline result_type operator()( int i, int j, int p ) const { return m_image(m_xdelta*i,m_ydelta*j,p); }
 
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j ) const { return m_image(m_xdelta*i,m_ydelta*j); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j, int p ) const { return m_image(m_xdelta*i,m_ydelta*j,p); }
-
-    ImageT const& child() const {
-      return m_image;
-    }
+    ImageT const& child() const { return m_image; }
 
     /// \cond INTERNAL
     typedef SubsampleView<typename ImageT::prerasterize_type> prerasterize_type;
@@ -795,10 +376,6 @@ namespace vw {
   };
 
   /// \cond INTERNAL
-  // Type Traits
-  template <class ImageT>
-  struct IsReferenceable<SubsampleView<ImageT> > : public IsReferenceable<ImageT> {};
-
   template <class ImageT>
   struct IsMultiplyAccessible<SubsampleView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
   /// \endcond
@@ -817,20 +394,18 @@ namespace vw {
 
 
   // *******************************************************************
-  // SelectCol
+  // select_col()
   // *******************************************************************
 
   /// Return a single column from an image
   /// \see vw::select_col
   template <class ImageT>
-  class SelectColView : public ImageViewBase<SelectColView<ImageT> >
-  {
-  private:
+  class SelectColView : public ImageViewBase<SelectColView<ImageT> > {
     ImageT m_image;
     unsigned m_col;
   public:
-
     typedef typename ImageT::pixel_type pixel_type;
+    typedef typename ImageT::result_type result_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
     SelectColView( ImageT const& image, unsigned col ) : m_image(image), m_col(col) {}
@@ -840,9 +415,7 @@ namespace vw {
     inline unsigned planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return m_image.origin().advance(m_col,0,0); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j, int p=0) const { return m_image(m_col,j,p); }
+    inline result_type operator()( int i, int j, int p=0) const { return m_image(m_col,j,p); }
 
     template <class ViewT>
     SelectColView& operator=( ImageViewBase<ViewT> const& view ) {
@@ -860,9 +433,6 @@ namespace vw {
   /// \cond INTERNAL
   // View type Traits
   template <class ImageT>
-  struct IsReferenceable<SelectColView<ImageT> > : public IsReferenceable<ImageT> {};
-
-  template <class ImageT>
   struct IsMultiplyAccessible<SelectColView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
   /// \endcond
 
@@ -876,20 +446,18 @@ namespace vw {
 
 
   // *******************************************************************
-  // SelectRow
+  // select_row()
   // *******************************************************************
 
   /// Return a single row from an image
   /// \see vw::select_row
   template <class ImageT>
-  class SelectRowView : public ImageViewBase<SelectRowView<ImageT> >
-  {
-  private:
+  class SelectRowView : public ImageViewBase<SelectRowView<ImageT> > {
     ImageT m_image;
     unsigned m_row;
   public:
-
     typedef typename ImageT::pixel_type pixel_type;
+    typedef typename ImageT::result_type result_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
     SelectRowView( ImageT const& image, unsigned row ) : m_image(image), m_row(row) {}
@@ -900,8 +468,7 @@ namespace vw {
 
     inline pixel_accessor origin() const { return m_image.origin().advance(0,m_row,0); }
 
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j, int p=0) const { return m_image(i,m_row,p); }
+    inline result_type operator()( int i, int j, int p=0) const { return m_image(i,m_row,p); }
 
     template <class ViewT>
     SelectRowView& operator=( ImageViewBase<ViewT> const& view ) {
@@ -909,21 +476,14 @@ namespace vw {
       return *this;
     }
 
-    /// \cond INTERNAL
     typedef SelectRowView<typename ImageT::prerasterize_type> prerasterize_type;
     inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize(), m_row ); }
     template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
-    /// \endcond
   };
 
-  /// \cond INTERNAL
   // View type Traits
   template <class ImageT>
-  struct IsReferenceable<SelectRowView<ImageT> > : public IsReferenceable<ImageT> {};
-
-  template <class ImageT>
   struct IsMultiplyAccessible<SelectRowView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
-  /// \endcond
 
   /// Extracts a single row of an image.  This function returns a
   /// writeable view of a single row of a multi-row image.  
@@ -935,20 +495,18 @@ namespace vw {
 
 
   // *******************************************************************
-  // SelectPlane 
+  // select_plane() 
   // *******************************************************************
 
   /// Return a single plane from a multi-plane image
   /// \see vw::select_plane
   template <class ImageT>
-  class SelectPlaneView : public ImageViewBase<SelectPlaneView<ImageT> >
-  {
-  private:
+  class SelectPlaneView : public ImageViewBase<SelectPlaneView<ImageT> > {
     ImageT m_image;
     unsigned m_plane;
   public:
-
     typedef typename ImageT::pixel_type pixel_type;
+    typedef typename ImageT::result_type result_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
     SelectPlaneView( ImageT const& image, unsigned plane ) : m_image(image), m_plane(plane) {}
@@ -958,12 +516,8 @@ namespace vw {
     inline unsigned planes() const { return 1; }
 
     inline pixel_accessor origin() const { return m_image.origin().advance(0,0,m_plane); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j ) const { return m_image(i,j,m_plane); }
-
-    typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type
-    inline operator()( int i, int j, int p ) const { return m_image(i,j,m_plane+p); }
+    inline result_type operator()( int i, int j ) const { return m_image(i,j,m_plane); }
+    inline result_type operator()( int i, int j, int p ) const { return m_image(i,j,m_plane+p); }
 
     template <class ViewT>
     SelectPlaneView& operator=( ImageViewBase<ViewT> const& view ) {
@@ -981,9 +535,6 @@ namespace vw {
   /// \cond INTERNAL
   // View type Traits
   template <class ImageT>
-  struct IsReferenceable<SelectPlaneView<ImageT> > : public IsReferenceable<ImageT> {};
-
-  template <class ImageT>
   struct IsMultiplyAccessible<SelectPlaneView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
   /// \endcond
 
@@ -997,7 +548,48 @@ namespace vw {
 
 
   // *******************************************************************
-  // ChannelsToPlanes
+  // select_channel()
+  // *******************************************************************
+
+  /// A channel selecting functor, used by \ref select_channel().
+  template <class ImageT>
+  struct SelectChannelFunctor {
+    int m_channel;
+  public:
+    SelectChannelFunctor( int channel ) : m_channel(channel) {}
+
+    // Computes an appropriate reference-to-channel type.
+    typedef typename CompoundChannelType<typename ImageT::pixel_type>::type base_channel_type;
+    typedef typename boost::mpl::if_<boost::is_const<ImageT>,typename boost::add_const<base_channel_type>::type,base_channel_type>::type channel_type;
+    typedef typename boost::mpl::if_<boost::is_reference<typename ImageT::result_type>,channel_type&,channel_type>::type result_type;
+
+    template <class ArgT>
+    result_type operator()( ArgT& pixel ) const {
+      return compound_select_channel<result_type>(pixel,m_channel);
+    }
+  };
+
+  /// Extracts a single channel of a multi-channel image.  This function
+  /// returns a writeable view of a single channel of a multi-channel
+  /// image.
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,SelectChannelFunctor<ImageT> >
+  inline select_channel( ImageViewBase<ImageT>& image, int channel ) {
+    return UnaryPerPixelView<ImageT,SelectChannelFunctor<ImageT> >( image.impl(), SelectChannelFunctor<ImageT>(channel) );
+  }
+
+  /// Extracts a single channel of a multi-channel image (const overload).
+  /// This function returns a writeable view of a single channel of a
+  /// multi-channel image.
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,SelectChannelFunctor<const ImageT> >
+  inline select_channel( ImageViewBase<ImageT> const& image, int channel ) {
+    return UnaryPerPixelView<ImageT,SelectChannelFunctor<const ImageT> >( image.impl(), SelectChannelFunctor<const ImageT>(channel) );
+  }
+
+
+  // *******************************************************************
+  // channels_to_planes()
   // *******************************************************************
 
   /// A channels-to-planes pixel accessor adaptor.
@@ -1012,9 +604,8 @@ namespace vw {
     ImageAccT m_acc;
     unsigned m_channel;
   public:
-    typedef typename CompoundChannelType<typename ImageAccT::pixel_type>::type base_pixel_type;
-    typedef typename boost::mpl::if_<boost::is_const<typename ImageAccT::pixel_type>,typename boost::add_const<base_pixel_type>::type,base_pixel_type>::type pixel_type;
-    typedef typename boost::mpl::if_<IsReferenceable<ImageAccT>,pixel_type&,pixel_type>::type result_type;
+    typedef typename CompoundChannelType<typename ImageAccT::pixel_type>::type pixel_type;
+    typedef typename CopyCVR<typename ImageAccT::result_type, pixel_type>::type result_type;
 
     ChannelsToPlanesAccessor( ImageAccT const& iter ) : m_acc(iter), m_channel(0) {}
     inline ChannelsToPlanesAccessor& next_col() { m_acc.next_col(); return *this; }
@@ -1028,43 +619,27 @@ namespace vw {
     inline result_type operator*() const { return compound_select_channel<result_type>(*m_acc,m_channel); }
   };
 
-  /// \cond INTERNAL
-  // Accessor type traits
-  template <class ImageAccT>
-  struct IsReferenceable<ChannelsToPlanesAccessor<ImageAccT> > : public IsReferenceable<ImageAccT> {};
-  /// \endcond
-
   /// A view that turns a one plane, multi-channel view into a mulit-plane, one channel view.
   /// \see vw::channels_to_planes
   template <class ImageT>
-  class ChannelsToPlanesView : public ImageViewBase<ChannelsToPlanesView<ImageT> >
-  {
-  private:
+  class ChannelsToPlanesView : public ImageViewBase<ChannelsToPlanesView<ImageT> > {
     ImageT m_image;
   public:
 
-    typedef typename CompoundChannelType<typename ImageT::pixel_type>::type base_pixel_type;
-    typedef typename boost::mpl::if_<boost::is_const<typename ImageT::pixel_type>,typename boost::add_const<base_pixel_type>::type,base_pixel_type>::type pixel_type;
-    typedef typename boost::mpl::if_< IsReferenceable<ImageT>, pixel_type&, pixel_type >::type result_type;
+    typedef typename CompoundChannelType<typename ImageT::pixel_type>::type pixel_type;
+    typedef typename CopyCVR<typename ImageT::result_type, pixel_type>::type result_type;
 
     typedef typename boost::mpl::if_< IsCompound<typename ImageT::pixel_type>, 
                                       ChannelsToPlanesAccessor<typename ImageT::pixel_accessor>,
                                       typename ImageT::pixel_accessor >::type pixel_accessor;
     
     ChannelsToPlanesView( ImageT const& image ) : m_image(image) {
-      VW_ASSERT( m_image.planes()==1 || m_image.channels()==1, ArgumentErr() <<
-                 "ChannelsToPlanesView: The image must be multi-channel, single plane or single-channel, multi-plane.");
+      VW_ASSERT( m_image.planes()==1 , ArgumentErr() << "ChannelsToPlanesView: The image must be single plane.");
     }
     
     inline unsigned cols() const { return m_image.cols(); }
     inline unsigned rows() const { return m_image.rows(); }
-    inline unsigned planes() const { 
-      if( IsCompound<typename ImageT::pixel_type>::value ) {
-        return m_image.channels();
-      } else {
-        return m_image.planes();
-      }
-    }
+    inline unsigned planes() const { return m_image.channels(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(m_image.origin()); }
 
@@ -1092,9 +667,6 @@ namespace vw {
   /// \cond INTERNAL
   // View type Traits
   template <class ImageT>
-  struct IsReferenceable<ChannelsToPlanesView<ImageT> > : public IsReferenceable<ImageT> {};
-
-  template <class ImageT>
   struct IsMultiplyAccessible<ChannelsToPlanesView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
   /// \endcond
 
@@ -1114,22 +686,19 @@ namespace vw {
 
 
   // *******************************************************************
-  // PlanesToChannels
+  // planes_to_channels()
   // *******************************************************************
 
   /// A view that turns a multi-plane, single-channel view into a
   /// one-plane, multi-channel view.
   /// \see vw::planes_to_channels
   template <class PixelT,class ImageT>
-  class PlanesToChannelsView : public ImageViewBase<PlanesToChannelsView<PixelT,ImageT> >
-  {
-  private:
+  class PlanesToChannelsView : public ImageViewBase<PlanesToChannelsView<PixelT,ImageT> > {
     ImageT m_image;
   public:
 
     typedef PixelT pixel_type;
     typedef PixelT result_type;
-
     typedef ProceduralPixelAccessor<PlanesToChannelsView> pixel_accessor;
     
     PlanesToChannelsView( ImageT const& image ) : m_image(image) {
@@ -1175,6 +744,46 @@ namespace vw {
     return PlanesToChannelsView<PixelT,ImageT>( v.impl() );
   }
 
+
+  // *******************************************************************
+  // pixel_cast()
+  // *******************************************************************
+
+  /// A pixel casting functor, used by \ref pixel_cast().
+  template <class PixelT>
+  struct PixelCastFunctor : ReturnFixedType<PixelT> {
+    template <class ArgT>
+    PixelT operator()( ArgT const& pixel ) const {
+      return (PixelT)(pixel);
+    }
+  };
+
+  /// Create a new image view by statically casting the pixels to a new type.
+  template <class PixelT, class ImageT>
+  inline UnaryPerPixelView<ImageT,PixelCastFunctor<PixelT> > pixel_cast( ImageViewBase<ImageT> const& image ) {
+    return UnaryPerPixelView<ImageT,PixelCastFunctor<PixelT> >( image.impl() );
+  }
+
+
+  // *******************************************************************
+  // channel_cast()
+  // *******************************************************************
+
+  /// A pixel channel casting functor, used by \ref channel_cast().
+  template <class ChannelT>
+  struct PixelChannelCastFunctor : UnaryReturnBinaryTemplateBind2nd<CompoundChannelCast,ChannelT> {
+    template <class ArgT>
+    typename CompoundChannelCast<ArgT,ChannelT>::type operator()( ArgT const& pixel ) const {
+      return compound_channel_cast<ChannelT>(pixel);
+    }
+  };
+
+  /// Create a new image view by statically casting the channels of the pixels to a new type.
+  template <class ChannelT, class ImageT>
+  inline UnaryPerPixelView<ImageT,PixelChannelCastFunctor<ChannelT> > channel_cast( ImageViewBase<ImageT> const& image ) {
+    return UnaryPerPixelView<ImageT,PixelChannelCastFunctor<ChannelT> >( image.impl() );
+  }
+
 } // namespace vw
 
-#endif // __VW_IMAGE__MANIPULATION_H__
+#endif // __VW_IMAGE_MANIPULATION_H__

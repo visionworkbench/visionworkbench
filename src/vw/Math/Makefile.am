@@ -36,7 +36,7 @@ endif
 if MAKE_MODULE_VW
 
 TESTS_H = tests/TestVector.h tests/TestMatrix.h tests/TestBBox.h	\
-	tests/TestFunctors.h
+	tests/TestFunctions.h tests/TestFunctors.h
 
 TESTS_EXTRAS = 
 

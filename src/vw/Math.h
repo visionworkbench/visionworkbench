@@ -26,6 +26,7 @@
 #ifndef __VW_MATH_H__
 #define __VW_MATH_H__
 
+#include <vw/Math/Functions.h>
 #include <vw/Math/Functors.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>

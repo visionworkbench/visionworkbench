@@ -92,7 +92,6 @@ public:
     // Test the traits
     TS_ASSERT( is_of_type<double>( cnv(0,0) ) );
     TS_ASSERT( is_of_type<double>( *(cnv.origin()) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( cnv ) );
     TS_ASSERT( !bool_trait<IsResizable>( cnv ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( cnv ) );
     TS_ASSERT( !bool_trait<IsFloatingPointIndexable>( cnv ) );
@@ -126,7 +125,6 @@ public:
     // Test the traits
     TS_ASSERT( is_of_type<double>( cnv(0,0) ) );
     TS_ASSERT( is_of_type<double>( *(cnv.origin()) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( cnv ) );
     TS_ASSERT( !bool_trait<IsResizable>( cnv ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( cnv ) );
     TS_ASSERT( !bool_trait<IsFloatingPointIndexable>( cnv ) );
@@ -161,7 +159,6 @@ public:
     // Test the traits
     TS_ASSERT( is_of_type<double>( cnv(0,0) ) );
     TS_ASSERT( is_of_type<double>( *(cnv.origin()) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( cnv ) );
     TS_ASSERT( !bool_trait<IsResizable>( cnv ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( cnv ) );
     TS_ASSERT( !bool_trait<IsFloatingPointIndexable>( cnv ) );
@@ -196,7 +193,6 @@ public:
     // Test the traits
     TS_ASSERT( is_of_type<double>( cnv(0,0) ) );
     TS_ASSERT( is_of_type<double>( *(cnv.origin()) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( cnv ) );
     TS_ASSERT( !bool_trait<IsResizable>( cnv ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( cnv ) );
     TS_ASSERT( !bool_trait<IsFloatingPointIndexable>( cnv ) );

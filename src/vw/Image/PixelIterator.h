@@ -23,14 +23,12 @@
 /// 
 /// An STL-compliant iterator for general image views.
 ///
-#ifndef __VW_IMAGE__PIXEL_ITERATOR_H__
-#define __VW_IMAGE__PIXEL_ITERATOR_H__
+#ifndef __VW_IMAGE_PIXEL_ITERATOR_H__
+#define __VW_IMAGE_PIXEL_ITERATOR_H__
 
 #include <boost/type_traits.hpp>
 #include <boost/mpl/if.hpp>
 #include <boost/iterator/iterator_facade.hpp>
-
-#include <vw/Core/FundamentalTypes.h> // For IsReferenceable
 
 namespace vw {
 
@@ -48,7 +46,7 @@ namespace vw {
   class PixelIterator : public boost::iterator_facade<PixelIterator<ViewT>,
                                                       typename ViewT::pixel_type,
                                                       boost::random_access_traversal_tag,
-                                                      typename boost::mpl::if_< IsReferenceable<ViewT>, typename ViewT::pixel_type&, const typename ViewT::pixel_type >::type> {
+                                                      typename ViewT::result_type> {
       
     // This is required for boost::iterator_facade
     friend class boost::iterator_core_access;
@@ -99,4 +97,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_IMAGE__PIXEL_ITERATOR_H__
+#endif // __VW_IMAGE_PIXEL_ITERATOR_H__

@@ -55,8 +55,8 @@
 /// used for the output image, and a warning message is printed to
 /// stdout.
 ///
-#ifndef __VW_TRANSFORM_H__
-#define __VW_TRANSFORM_H__
+#ifndef __VW_IMAGE_TRANSFORM_H__
+#define __VW_IMAGE_TRANSFORM_H__
 
 // Vision Workbench
 #include <vw/Image/ImageViewBase.h>
@@ -303,6 +303,7 @@ namespace vw {
     
   public:
     typedef typename ImageT::pixel_type pixel_type;
+    typedef pixel_type result_type;
     typedef ProceduralPixelAccessor<TransformView> pixel_accessor;
 
     /// \cond INTERNAL
@@ -325,7 +326,7 @@ namespace vw {
 
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
 
-    inline pixel_type operator()( float i, float j, int p=0 ) const {
+    inline result_type operator()( float i, float j, int p=0 ) const {
       Vector2 pt_backprojected = m_mapper.reverse(Vector2(i,j));
       return m_image(pt_backprojected[0], pt_backprojected[1], p);
     }
@@ -502,4 +503,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_TRANSFORM_H__ 
+#endif // __VW_IMAGE_TRANSFORM_H__ 

@@ -29,13 +29,13 @@
 #ifndef __VW_MATH_FUNCTORS_H__
 #define __VW_MATH_FUNCTORS_H__
 
-#include <math.h>
 #include <cstdlib>
 #include <limits>
 #include <complex>
 
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Functors.h>
+#include <vw/Math/Functions.h>
 
 namespace vw {
 namespace math {
@@ -111,7 +111,7 @@ namespace math {
   __VW_UNARY_IMAGE_MATH_FUNCTOR( Asin, asin )
   __VW_UNARY_IMAGE_MATH_FUNCTOR( Atan, atan )
   __VW_UNARY_IMAGE_MATH_FUNCTOR( Cos, cos )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Sin ,sin )
+  __VW_UNARY_IMAGE_MATH_FUNCTOR( Sin, sin )
   __VW_UNARY_IMAGE_MATH_FUNCTOR( Tan, tan )
   __VW_UNARY_IMAGE_MATH_FUNCTOR( Cosh, cosh )
   __VW_UNARY_IMAGE_MATH_FUNCTOR( Sinh, sinh )

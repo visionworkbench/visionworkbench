@@ -29,8 +29,8 @@
 /// - nearest pixel interpolation  ( vw::interpolation::NearestPixel()  )
 ///   (unless the underlying image view can also be accessed using real pixel values)
 ///
-#ifndef __VW_INTERPOLATION_H__
-#define __VW_INTERPOLATION_H__
+#ifndef __VW_IMAGE_INTERPOLATION_H__
+#define __VW_IMAGE_INTERPOLATION_H__
 
 #include <boost/type_traits.hpp>
 #include <boost/mpl/logical.hpp>
@@ -125,8 +125,8 @@ namespace vw {
     InterpT m_interp_func;
   public:
 
-    typedef typename boost::remove_cv<typename ImageT::pixel_type>::type base_pixel_type;
-    typedef const base_pixel_type pixel_type;
+    typedef typename ImageT::pixel_type pixel_type;
+    typedef pixel_type result_type;
     typedef ProceduralPixelAccessor<InterpolationView<ImageT, InterpT> > pixel_accessor;
     
     InterpolationView( ImageT const& image, InterpT const& interp_func = InterpT() ) : 
@@ -138,7 +138,7 @@ namespace vw {
 
     inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
 
-    inline pixel_type operator() (float i, float j, int p = 0) const { return m_interp_func(m_image,i,j,p); }
+    inline result_type operator() (float i, float j, int p = 0) const { return m_interp_func(m_image,i,j,p); }
 
     /// \cond INTERNAL
     // We can make an optimization here.  If the pixels in the child
@@ -148,15 +148,15 @@ namespace vw {
     // rasterize ourself.
     typedef typename boost::mpl::if_< IsMultiplyAccessible<ImageT>, 
  				      InterpolationView<typename ImageT::prerasterize_type, InterpT>,
- 				      InterpolationView<ImageView<base_pixel_type>, InterpT> >::type prerasterize_type;
+ 				      InterpolationView<ImageView<pixel_type>, InterpT> >::type prerasterize_type;
 
     inline prerasterize_type prerasterize() const {
-      if (IsMultiplyAccessible<ImageT>::value) {
-				return prerasterize_type( m_image.prerasterize() );
+      if( IsMultiplyAccessible<ImageT>::value ) {
+        return prerasterize_type( m_image.prerasterize() );
       } else {
-				ImageView<base_pixel_type> buf( m_image.cols(), m_image.rows() );
-				m_image.rasterize( buf );
-				return prerasterize_type( buf );
+        ImageView<pixel_type> buf( m_image.cols(), m_image.rows() );
+        m_image.rasterize( buf );
+        return prerasterize_type( buf );
       }
     }
 
@@ -175,9 +175,9 @@ namespace vw {
   // Functional API
   // -------------------------------------------------------------------------------
 
-	/// Use this free function to pass in an arbitrary interpolation
-	/// functor.  You can use of the predefined functors at the top of
-	/// this file or use one of your own devising.  
+  /// Use this free function to pass in an arbitrary interpolation
+  /// functor.  You can use of the predefined functors at the top of
+  /// this file or use one of your own devising.  
   /// 
   /// This version of interpolate takes an extra argument, the edge
   /// extension functor, and it automatically edge extends the image
@@ -201,7 +201,6 @@ namespace vw {
     return InterpolationView<EdgeExtendView<ImageT, ConstantEdgeExtend>, InterpT>( edge_extend(v, ConstantEdgeExtend()), interp_func );
   }
 
-	
 } // namespace vw
 
-#endif // __VW_INTERPOLATION_H__
+#endif // __VW_IMAGE_INTERPOLATION_H__

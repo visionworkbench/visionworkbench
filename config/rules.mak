@@ -47,7 +47,7 @@ DEPDIR = .deps
 
 %.test: %.cxx 
 	if test ! -d "$(DEPDIR)/tests" ; then mkdir -p "$(DEPDIR)/tests" ; fi
-	if $(CXXCOMPILE) -I$(CXXTEST_DIR) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -o $@ $<; \
+	if $(CXXCOMPILE) -I$(CXXTEST_DIR) -MT $@ -MD -MP -MF "$(DEPDIR)/$*.Tpo" -o $@ $< $(TESTS_LIBS); \
 	then mv -f "$(DEPDIR)/$*.Tpo" "$(DEPDIR)/$*.Po"; else rm -f "$(DEPDIR)/$*.Tpo"; exit 1; fi
 
 ifneq  ($(strip $(wildcard .deps/tests/*.Po)),)

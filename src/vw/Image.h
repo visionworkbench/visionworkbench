@@ -41,5 +41,6 @@
 #include <vw/Image/EdgeExtend.h>
 #include <vw/Image/Interpolation.h>
 #include <vw/Image/Convolution.h>
+#include <vw/Image/Filter.h>
 
 #endif // __VW_IMAGE_H__

@@ -32,8 +32,8 @@
 /// a virtualized reference to an arbitrary image view with a given 
 /// pixel type.
 ///
-#ifndef __VW_IMAGE__IMAGE_VIEW_REF_H__
-#define __VW_IMAGE__IMAGE_VIEW_REF_H__
+#ifndef __VW_IMAGE_IMAGE_VIEW_REF_H__
+#define __VW_IMAGE_IMAGE_VIEW_REF_H__
 
 #include <boost/type_traits.hpp>
 #include <boost/shared_ptr.hpp>
@@ -174,7 +174,8 @@ namespace vw {
   private:
     boost::shared_ptr< ImageViewRefBase<typename boost::add_const<PixelT>::type > > m_view;
   public:
-    typedef typename boost::add_const<PixelT>::type pixel_type;
+    typedef PixelT pixel_type;
+    typedef pixel_type result_type;
     typedef ImageViewRefAccessor<typename boost::add_const<PixelT>::type > pixel_accessor;
 
     template <class ViewT> ImageViewRef( ImageViewBase<ViewT> const& view ) : m_view( new ImageViewRefImpl<ViewT>(view) ) {}
@@ -212,4 +213,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_IMAGE__IMAGE_VIEW_REF_H__
+#endif // __VW_IMAGE_IMAGE_VIEW_REF_H__

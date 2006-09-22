@@ -37,7 +37,7 @@ public:
     return TraitT<T>::value;
   }
 
-  void testCopy()
+  void test_copy()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
     ImageView<double> im2 = copy(im);
@@ -56,12 +56,10 @@ public:
     TS_ASSERT_DIFFERS( &(copy(im)(1,0)), &(im(1,0)) );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsReferenceable>( copy(im) ) );
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( copy(im) ) );
-    TS_ASSERT( bool_trait<IsReferenceable>( copy(im).origin() ) );
   }
 
-  void testTranspose()
+  void test_transpose()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
     ImageView<double> im2 = transpose(im);
@@ -79,12 +77,10 @@ public:
     TS_ASSERT_EQUALS( &(transpose(im)(1,0)), &(im(0,1)) );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsReferenceable>( transpose(im) ) );
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( transpose(im) ) );
-    TS_ASSERT( bool_trait<IsReferenceable>( transpose(im).origin() ) );
   }
 
-  void testRotate180()
+  void test_rotate_180()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
     ImageView<double> im2 = rotate_180(im);
@@ -102,12 +98,10 @@ public:
     TS_ASSERT_EQUALS( &(rotate_180(im)(1,0)), &(im(0,2)) );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsReferenceable>( rotate_180(im) ) );
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( rotate_180(im) ) );
-    TS_ASSERT( bool_trait<IsReferenceable>( rotate_180(im).origin() ) );
   }
 
-  void testRotate90CW()
+  void test_rotate_90_cw()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
     ImageView<double> im2 = rotate_90_cw(im);
@@ -125,12 +119,10 @@ public:
     TS_ASSERT_EQUALS( &(rotate_90_cw(im)(2,1)), &(im(1,0)) );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsReferenceable>( rotate_90_cw(im) ) );
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( rotate_90_cw(im) ) );
-    TS_ASSERT( bool_trait<IsReferenceable>( rotate_90_cw(im).origin() ) );
   }
 
-  void testRotate90CCW()
+  void test_rotate_90_ccw()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
     ImageView<double> im2 = rotate_90_ccw(im);
@@ -148,12 +140,10 @@ public:
     TS_ASSERT_EQUALS( &(rotate_90_ccw(im)(0,0)), &(im(1,0)) );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsReferenceable>( rotate_90_ccw(im) ) );
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( rotate_90_ccw(im) ) );
-    TS_ASSERT( bool_trait<IsReferenceable>( rotate_90_ccw(im).origin() ) );
   }
 
-  void testFlipVertical()
+  void test_flip_vertical()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
     ImageView<double> im2 = flip_vertical(im);
@@ -171,12 +161,10 @@ public:
     TS_ASSERT_EQUALS( &(flip_vertical(im)(1,0)), &(im(1,2)) );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsReferenceable>( flip_vertical(im) ) );
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( flip_vertical(im) ) );
-    TS_ASSERT( bool_trait<IsReferenceable>( flip_vertical(im).origin() ) );
   }
   
-  void testFlipHorizontal()
+  void test_flip_horizontal()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
     ImageView<double> im2 = flip_horizontal(im);
@@ -194,12 +182,10 @@ public:
     TS_ASSERT_EQUALS( &(flip_horizontal(im)(1,0)), &(im(0,0)) );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsReferenceable>( flip_horizontal(im) ) );
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( flip_horizontal(im) ) );
-    TS_ASSERT( bool_trait<IsReferenceable>( flip_horizontal(im).origin() ) );
   }
   
-  void testCrop()
+  void test_crop()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
     ImageView<double> im2 = crop(im,1,1,1,2);
@@ -219,12 +205,10 @@ public:
     TS_ASSERT_EQUALS( &(crop(im,1,1,1,2)(0,0)), &(im(1,1)) );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsReferenceable>( crop(im,1,1,1,2) ) );
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( crop(im,1,1,1,2) ) );
-    TS_ASSERT( bool_trait<IsReferenceable>( crop(im,1,1,1,2).origin() ) );
   }
 
-  void testSubsample()
+  void test_subsample()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
     ImageView<double> im2 = subsample(im,1,2);
@@ -240,12 +224,10 @@ public:
     TS_ASSERT_EQUALS( &(subsample(im,2)(0,1)), &(im(0,2)) );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsReferenceable>( subsample(im,1,2) ) );
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( subsample(im,1,2) ) );
-    TS_ASSERT( bool_trait<IsReferenceable>( subsample(im,1,2).origin() ) );
   }
 
-  void testSelectCol()
+  void test_select_col()
   {
     ImageView<double> im(2,2); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4;
     ImageView<double> im2 = select_col(im,1);
@@ -260,12 +242,10 @@ public:
     TS_ASSERT_EQUALS( &(select_col(im,1)(0,1)), &(im(1,1)) );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsReferenceable>( select_col(im,1) ) );
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( select_col(im,1) ) );
-    TS_ASSERT( bool_trait<IsReferenceable>( select_col(im,1).origin() ) );
   }
 
-  void testSelectRow()
+  void test_select_row()
   {
     ImageView<double> im(2,2); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4;
     ImageView<double> im2 = select_row(im,1);
@@ -280,12 +260,10 @@ public:
     TS_ASSERT_EQUALS( &(select_row(im,1)(1,0)), &(im(1,1)) );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsReferenceable>( select_row(im,1) ) );
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( select_row(im,1) ) );
-    TS_ASSERT( bool_trait<IsReferenceable>( select_row(im,1).origin() ) );
   }
 
-  void testSelectPlane()
+  void test_select_plane()
   {
     ImageView<double> im(1,2,2); im(0,0,0)=1; im(0,1,0)=2; im(0,0,1)=3; im(0,1,1)=4;
     ImageView<double> im2 = select_plane(im,1);
@@ -300,12 +278,28 @@ public:
     TS_ASSERT_EQUALS( &(select_plane(im,0)(0,1)), &(im(0,1)) );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsReferenceable>( select_plane(im,1) ) );
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( select_plane(im,1) ) );
-    TS_ASSERT( bool_trait<IsReferenceable>( select_plane(im,1).origin() ) );
   }
 
-  void testChannelsToPlanes()
+  void test_select_channel()
+  {
+    ImageView<PixelRGB<double> > im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
+    ImageView<double> im2 = select_channel(im,1);
+    TS_ASSERT_EQUALS( im2.cols(), 1 );
+    TS_ASSERT_EQUALS( im2.rows(), 2 );
+    TS_ASSERT_EQUALS( im2.planes(), 1 );
+    TS_ASSERT_EQUALS( im2(0,0), 2 );
+    TS_ASSERT_EQUALS( im2(0,1), 5 );
+
+    // Make sure it's really shallow.
+    TS_ASSERT_EQUALS( select_channel(im,1)(0,1), im(0,1)[1] );
+    TS_ASSERT_EQUALS( &(select_channel(im,1)(0,1)), &(im(0,1)[1]) );
+
+    // Test the traits
+    TS_ASSERT( bool_trait<IsMultiplyAccessible>( select_channel(im,1) ) );
+  }
+
+  void test_channels_to_planes()
   {
     ImageView<PixelRGB<double> > im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
     ImageView<double> im2 = channels_to_planes(im);
@@ -324,12 +318,10 @@ public:
     TS_ASSERT_EQUALS( &(channels_to_planes(im)(0,1,1)), &(im(0,1)[1]) );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsReferenceable>( channels_to_planes(im) ) );
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( channels_to_planes(im) ) );
-    TS_ASSERT( bool_trait<IsReferenceable>( channels_to_planes(im).origin() ) );
   }
 
-  void testPlanesToChannels()
+  void test_planes_to_channels()
   {
     ImageView<double> im(1,2,3); im(0,0,0)=1; im(0,0,1)=2; im(0,0,2)=3; im(0,1,0)=4; im(0,1,1)=5; im(0,1,2)=6;
     ImageView<PixelRGB<double> > im2 = planes_to_channels<PixelRGB<double> >(im);
@@ -344,9 +336,43 @@ public:
     TS_ASSERT_EQUALS( im2(0,1)[2], 6 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsReferenceable>( planes_to_channels<PixelRGB<double> >(im) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( planes_to_channels<PixelRGB<double> >(im) ) );
-    TS_ASSERT( !bool_trait<IsReferenceable>( planes_to_channels<PixelRGB<double> >(im).origin() ) );
+  }
+
+  void test_pixel_cast()
+  {
+    ImageView<PixelRGB<double> > im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
+    ImageView<PixelRGBA<double> > im2 = pixel_cast<PixelRGBA<double> >(im);
+    TS_ASSERT_EQUALS( im2.cols(), 1 );
+    TS_ASSERT_EQUALS( im2.rows(), 2 );
+    TS_ASSERT_EQUALS( im2.planes(), 1 );
+    TS_ASSERT_EQUALS( im2(0,0)[0], im(0,0)[0] );
+    TS_ASSERT_EQUALS( im2(0,0)[1], im(0,0)[1] );
+    TS_ASSERT_EQUALS( im2(0,0)[2], im(0,0)[2] );
+    TS_ASSERT_EQUALS( im2(0,1)[0], im(0,1)[0] );
+    TS_ASSERT_EQUALS( im2(0,1)[1], im(0,1)[1] );
+    TS_ASSERT_EQUALS( im2(0,1)[2], im(0,1)[2] );
+
+    // Test the traits
+    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( pixel_cast<PixelRGBA<double> >(im) ) );
+  }
+
+  void test_channel_cast()
+  {
+    ImageView<PixelRGB<double> > im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
+    ImageView<PixelRGB<float> > im2 = channel_cast<float>(im);
+    TS_ASSERT_EQUALS( im2.cols(), 1 );
+    TS_ASSERT_EQUALS( im2.rows(), 2 );
+    TS_ASSERT_EQUALS( im2.planes(), 1 );
+    TS_ASSERT_EQUALS( im2(0,0)[0], im(0,0)[0] );
+    TS_ASSERT_EQUALS( im2(0,0)[1], im(0,0)[1] );
+    TS_ASSERT_EQUALS( im2(0,0)[2], im(0,0)[2] );
+    TS_ASSERT_EQUALS( im2(0,1)[0], im(0,1)[0] );
+    TS_ASSERT_EQUALS( im2(0,1)[1], im(0,1)[1] );
+    TS_ASSERT_EQUALS( im2(0,1)[2], im(0,1)[2] );
+
+    // Test the traits
+    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( channel_cast<float>(im) ) );
   }
 
 };
