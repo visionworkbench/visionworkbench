@@ -19,31 +19,37 @@
 //
 // __END_LICENSE__
 
-/// \file vw.h
+/// \file Core/Debugging.cc
 /// 
-/// A convenience header that includes all the public Vision Workbench
-/// header files.  Careful: this is an awful lot of stuff, and you may
-/// want be more selective!
-/// 
-#ifndef __VW_VW_H__
-#define __VW_VW_H__
+/// Types and functions to assist in debugging code.
+///
+#include <vw/Core/Debugging.h>
 
-#include <vw/config.h>
+#include <iostream>
 
-#if defined(VW_HAVE_PKG_CORE) && VW_HAVE_PKG_CORE==1
-#include <vw/Core.h>
-#endif
+namespace {
+  // A null output stream buffer that silently ignores any data.
+  class NullStreamBuf : public ::std::basic_streambuf<char> {
+    virtual NullStreamBuf::int_type overflow( NullStreamBuf::int_type c ) {
+      return NullStreamBuf::traits_type::not_eof( c );
+    }
+  };
 
-#if defined(VW_HAVE_PKG_MATH) && VW_HAVE_PKG_MATH==1
-#include <vw/Math.h>
-#endif
+  static NullStreamBuf g_the_nullbuf;
+  static std::ostream g_the_nullstream( &g_the_nullbuf );
+  static std::ostream g_the_ostream( std::clog.rdbuf() );
+  static vw::MessageLevel g_the_level = vw::InfoMessage;
+}
 
-#if defined(VW_HAVE_PKG_IMAGE) && VW_HAVE_PKG_IMAGE==1
-#include <vw/Image.h>
-#endif
+std::ostream& vw::print( vw::MessageLevel level ) {
+  if( level > g_the_level ) return g_the_nullstream;
+  else return g_the_ostream;
+}
 
-#if defined(VW_HAVE_PKG_FILEIO) && VW_HAVE_PKG_FILEIO==1
-#include <vw/FileIO.h>
-#endif
+void vw::set_debug_level( vw::MessageLevel level ) {
+  g_the_level = level;
+}
 
-#endif // __VW_VW_H__
+void vw::set_output_stream( std::ostream& stream ) {
+  g_the_ostream.rdbuf( stream.rdbuf() );
+}

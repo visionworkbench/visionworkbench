@@ -23,39 +23,23 @@
 # sources
 ########################################################################
 
-SUBDIRS = src
+if MAKE_MODULE_FILEIO
 
-EXTRA_DIST = config/rules.mak config/relicense thirdparty
+TESTS = TestDiskImageResource
 
-########################################################################
-# special top-level rules
-########################################################################
+nodist_TestDiskImageResource_SOURCES = TestDiskImageResource.cxx
 
-install-data-hook:
-	$(INSTALL) src/vw/config.h $(prefix)/include/vw/
-
-dist-hook:
-	rm -rf `find $(distdir) -name '.svn'`
-if DIST_LICENSE
-	cp $(DIST_LICENSE) $(distdir)/COPYING
 endif
-if DIST_LICENSE_SUMMARY
-	find $(distdir) -type f | config/relicense $(DIST_LICENSE_SUMMARY) -
-endif
-if DIST_CONFIG_OPTIONS_DEFAULT
-	cp $(DIST_CONFIG_OPTIONS_DEFAULT) $(distdir)/config/config.options.default
-endif
-
-check-local:
-	@echo ==============================
-	@echo All tests passed successfully!
-	@echo ==============================
-
-doxygen: 
-	cd src/vw; doxygen
 
 ########################################################################
 # general
 ########################################################################
+
+AM_CPPFLAGS = @MODULE_FILEIO_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
+AM_LDFLAGS  = @PKG_FILEIO_LDFLAGS@
+
+check_PROGRAMS = $(TESTS)
+EXTRA_DIST = $(patsubst %,%.h,$(TESTS))
+CLEANFILES = $(patsubst %,%.cxx,$(TESTS))
 
 include $(top_srcdir)/config/rules.mak

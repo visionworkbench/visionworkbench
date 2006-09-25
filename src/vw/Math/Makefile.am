@@ -25,20 +25,12 @@
 
 if MAKE_MODULE_MATH
 
-include_HEADERS = Vector.h Matrix.h BBox.h Functors.h
+include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h
 
-endif
+libvwMath_la_SOURCES = 
+libvwMath_la_LIBADD = @MODULE_MATH_LDFLAGS@
 
-########################################################################
-# tests
-########################################################################
-
-if MAKE_MODULE_VW
-
-TESTS_H = tests/TestVector.h tests/TestMatrix.h tests/TestBBox.h	\
-	tests/TestFunctions.h tests/TestFunctors.h
-
-TESTS_EXTRAS = 
+lib_LTLIBRARIES = libvwMath.la
 
 endif
 
@@ -46,10 +38,12 @@ endif
 # general
 ########################################################################
 
+SUBDIRS = . tests
+
 includedir = $(prefix)/include/vw/Math
 
 AM_CPPFLAGS = @MODULE_MATH_CPPFLAGS@
-AM_LDFLAGS  = @MODULE_MATH_LDFLAGS@
+AM_LDFLAGS  = 
 
 EXTRA_DIST = $(TESTS_H) $(TESTS_EXTRAS) 
 

@@ -23,8 +23,8 @@
 /// 
 /// Describes a run-type-specified image buffer.
 ///
-#ifndef __VW_IMAGE__GENERIC_IMAGE_BUFFER_H__
-#define __VW_IMAGE__GENERIC_IMAGE_BUFFER_H__
+#ifndef __VW_IMAGE_GENERIC_IMAGE_BUFFER_H__
+#define __VW_IMAGE_GENERIC_IMAGE_BUFFER_H__
 
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
@@ -84,7 +84,7 @@ namespace vw {
 
     /// Constructs a GenericImageBuffer pointing to an ImageView's data
     template <class PixelT>
-    GenericImageBuffer( ImageView<PixelT> const& image )
+    GenericImageBuffer( ImageView<PixelT>& image )
       : data( image.data() ),
         format( image ),
         cstride( sizeof(PixelT) ),
@@ -102,4 +102,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_IMAGE__GENERIC_IMAGE_BUFFER_H__
+#endif // __VW_IMAGE_GENERIC_IMAGE_BUFFER_H__

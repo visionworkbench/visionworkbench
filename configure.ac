@@ -180,6 +180,7 @@ fi
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_INSTALL
+AX_PROG_AR
 AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
 
@@ -220,12 +221,15 @@ AX_PKG(VXL, [VCL], [-lvgl_algo -lvil_algo -lvnl_algo -lvul -lvgl -lvnl -lvil -lv
 #	module definitions
 ##################################################
 
-AX_MODULE(VW, vw, yes, [M BOOST], [OPENEXR Z VXL PNG TIFF JPEG])
+AX_MODULE(CORE, [src/vw/Core/libvwCore.la], yes, [M BOOST])
+AX_MODULE(MATH, [src/vw/Math/libvwMath.la], yes, [CORE])
+AX_MODULE(IMAGE, [src/vw/Image/libvwImage.la], yes, [MATH], [VXL])
+AX_MODULE(FILEIO, [src/vw/FileIO/libvwFileIO.la], yes, [IMAGE], [OPENEXR Z PNG TIFF JPEG])
+AX_MODULE(VW, [src/vw/libvw.la], yes, [CORE MATH IMAGE], [FILEIO])
 if test ${MAKE_MODULE_VW} != "yes"; then
   AC_MSG_ERROR([cannot build the Vision Workbench core!])
 fi
 
-AX_MODULE(MATH, Math, yes, [VW])
 #AX_MODULE(INTERESTPOINT, InterestPoint, no, [VW])
 #AX_MODULE(PANORAMA, Panorama, no, [VW BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
 #AX_MODULE(HDR, HDR, no, [VW])
@@ -239,8 +243,12 @@ AX_MODULE(MATH, Math, yes, [VW])
 
 # These are here (instead of inside the MODULE macro where they belong)
 # for backwards compatability with older versions of automake.
-AM_CONDITIONAL(MAKE_MODULE_VW, [test "$MAKE_MODULE_VW" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_CORE, [test "$MAKE_MODULE_CORE" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_MATH, [test "$MAKE_MODULE_MATH" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_IMAGE, [test "$MAKE_MODULE_IMAGE" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_FILEIO, [test "$MAKE_MODULE_FILEIO" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_VW, [test "$MAKE_MODULE_VW" = "yes"])
+
 #AM_CONDITIONAL(MAKE_MODULE_INTERESTPOINT, [test "$MAKE_MODULE_INTERESTPOINT" = "yes"])
 #AM_CONDITIONAL(MAKE_MODULE_PANORAMA, [test "$MAKE_MODULE_PANORAMA" = "yes"])
 #AM_CONDITIONAL(MAKE_MODULE_HDR, [test "$MAKE_MODULE_HDR" = "yes"])
@@ -262,13 +270,13 @@ AC_CONFIG_FILES([                       \
   src/Makefile                          \
   src/vw/Makefile                       \
   src/vw/Core/Makefile                  \
-  src/vw/Image/Makefile                 \
-  src/vw/FileIO/Makefile                \
+  src/vw/Core/tests/Makefile            \
   src/vw/Math/Makefile                  \
+  src/vw/Math/tests/Makefile            \
+  src/vw/Image/Makefile                 \
+  src/vw/Image/tests/Makefile           \
+  src/vw/FileIO/Makefile                \
+  src/vw/FileIO/tests/Makefile          \
 ])
-
-# This hideous hack makes it possible to use GNU make's conditionals.
-ENDIF=endif
-AC_SUBST(ENDIF)
 
 AC_OUTPUT

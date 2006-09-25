@@ -44,6 +44,38 @@ AC_DEFUN([AX_CONFIG_HEADER_PREFIX],
   ])
 ])
 
+dnl Usage: AX_PROG_AR
+dnl Provides a workaround for Mac OS X's unusual ar behavior, so that 
+dnl it's possible to build static convenience libraries using libtool 
+dnl on that platform.  Basically, if we're on a Mac we introduce a 
+dnl wrapper shell script for ar that detects when we're creating an 
+dnl empty library and creates it by hand.  In all other cases it just 
+dnl relays the arguments to the user's AR.
+AC_DEFUN([AX_PROG_AR],
+[
+  AC_REQUIRE([AM_AUX_DIR_EXPAND])
+  AC_MSG_CHECKING([whether to use ar.sh wrapper script])
+  if test $host_vendor = "apple"; then
+    AC_MSG_RESULT([yes])
+    if test -z "$AR" ; then
+      ax_ar_prog=ar;
+    else
+      ax_ar_prog=$AR;
+    fi
+    AR=$am_aux_dir/ar.sh
+    cat > $AR <<_AX_EOF
+#!/bin/sh
+if test -z "[\${3}]" ; then
+  echo '!<arch>' > [\${2}]
+else
+  $ax_ar_prog [\${*}]
+fi
+_AX_EOF
+    chmod +x $am_aux_dir/ar.sh
+  else
+    AC_MSG_RESULT([no])
+  fi
+])
 
 dnl Usage: AX_FIND_FILES(<filenames>, <search paths>)
 dnl Looks to see if all the given filenames (relative paths) are accessible 
@@ -392,17 +424,17 @@ AC_DEFUN([AX_PKG_PTHREADS],
 ])
 
 
-# Usage: AX_MODULE(<name>, <directory>, <default>, <required dependencies>[, <optional dependencies>])
+# Usage: AX_MODULE(<name>, <libraries>, <default>, <required dependencies>[, <optional dependencies>])
 AC_DEFUN([AX_MODULE],
 [
 
   AC_ARG_ENABLE([module-]translit($1,`A-Z',`a-z'),
-    AC_HELP_STRING([--enable-module-]translit($1,`A-Z',`a-z'), [enable the $2 module @<:@$3@:>@]), 
+    AC_HELP_STRING([--enable-module-]translit($1,`A-Z',`a-z'), [enable the $1 module @<:@$3@:>@]), 
     [ ENABLE_MODULE_$1=$enableval ],
     [ if test x$ENABLE_MODULE_$1 = x; then ENABLE_MODULE_$1=$3 ; fi ]
   )
 
-  AC_MSG_CHECKING([whether to build module $2])
+  AC_MSG_CHECKING([whether to build module $1])
   ax_module_enable=$ENABLE_MODULE_$1
 
   if test $ax_module_enable != "yes" ; then
@@ -423,7 +455,7 @@ AC_DEFUN([AX_MODULE],
         ax_ldflags="${ax_ldflags} ${!ax_dep_ldflags}"
       else
         AC_MSG_RESULT([no])
-	AC_MSG_NOTICE([warning: unable to build requested module $2 (no ${ax_dependency})!])
+	AC_MSG_NOTICE([warning: unable to build requested module $1 (no ${ax_dependency})!])
         ax_module_enable=no;
         break;
       fi
@@ -444,9 +476,9 @@ AC_DEFUN([AX_MODULE],
 
     # Set up the variables
     MODULE_$1_CPPFLAGS=$ax_cppflags
-    MODULE_$1_LDFLAGS=#$ax_ldflags
+    MODULE_$1_LDFLAGS=$ax_ldflags
     PKG_$1_CPPFLAGS=$ax_cppflags
-    PKG_$1_LDFLAGS=$ax_ldflags
+    PKG_$1_LDFLAGS=`for x in $2 ; do echo '$(top_srcdir)/'$x ; done`
     AC_MSG_RESULT([yes])
   fi
     

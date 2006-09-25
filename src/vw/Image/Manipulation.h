@@ -692,7 +692,7 @@ namespace vw {
   /// A view that turns a multi-plane, single-channel view into a
   /// one-plane, multi-channel view.
   /// \see vw::planes_to_channels
-  template <class PixelT,class ImageT>
+  template <class PixelT, class ImageT>
   class PlanesToChannelsView : public ImageViewBase<PlanesToChannelsView<PixelT,ImageT> > {
     ImageT m_image;
   public:

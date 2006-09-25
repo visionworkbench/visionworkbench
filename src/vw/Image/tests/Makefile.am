@@ -23,39 +23,37 @@
 # sources
 ########################################################################
 
-SUBDIRS = src
+if MAKE_MODULE_IMAGE
 
-EXTRA_DIST = config/rules.mak config/relicense thirdparty
+TESTS = TestPixelMath TestPixelTypes TestImageView TestImageViewRef	\
+	TestManipulation TestPerPixelViews TestImageMath		\
+	TestEdgeExtend TestInterpolation TestConvolution TestFilter	\
+	TestTransform
 
-########################################################################
-# special top-level rules
-########################################################################
+nodist_TestPixelMath_SOURCES = TestPixelMath.cxx
+nodist_TestPixelTypes_SOURCES = TestPixelTypes.cxx
+nodist_TestImageView_SOURCES = TestImageView.cxx
+nodist_TestImageViewRef_SOURCES = TestImageViewRef.cxx
+nodist_TestManipulation_SOURCES = TestManipulation.cxx
+nodist_TestPerPixelViews_SOURCES = TestPerPixelViews.cxx
+nodist_TestImageMath_SOURCES = TestImageMath.cxx
+nodist_TestEdgeExtend_SOURCES = TestEdgeExtend.cxx
+nodist_TestInterpolation_SOURCES = TestInterpolation.cxx
+nodist_TestConvolution_SOURCES = TestConvolution.cxx
+nodist_TestFilter_SOURCES = TestFilter.cxx
+nodist_TestTransform_SOURCES = TestTransform.cxx
 
-install-data-hook:
-	$(INSTALL) src/vw/config.h $(prefix)/include/vw/
-
-dist-hook:
-	rm -rf `find $(distdir) -name '.svn'`
-if DIST_LICENSE
-	cp $(DIST_LICENSE) $(distdir)/COPYING
 endif
-if DIST_LICENSE_SUMMARY
-	find $(distdir) -type f | config/relicense $(DIST_LICENSE_SUMMARY) -
-endif
-if DIST_CONFIG_OPTIONS_DEFAULT
-	cp $(DIST_CONFIG_OPTIONS_DEFAULT) $(distdir)/config/config.options.default
-endif
-
-check-local:
-	@echo ==============================
-	@echo All tests passed successfully!
-	@echo ==============================
-
-doxygen: 
-	cd src/vw; doxygen
 
 ########################################################################
 # general
 ########################################################################
+
+AM_CPPFLAGS = @MODULE_IMAGE_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
+AM_LDFLAGS  = @PKG_IMAGE_LDFLAGS@
+
+check_PROGRAMS = $(TESTS)
+EXTRA_DIST = $(patsubst %,%.h,$(TESTS))
+CLEANFILES = $(patsubst %,%.cxx,$(TESTS))
 
 include $(top_srcdir)/config/rules.mak

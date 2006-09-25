@@ -23,36 +23,18 @@
 # sources
 ########################################################################
 
-if MAKE_MODULE_VW
+if MAKE_MODULE_IMAGE
 
 include_HEADERS = PixelIterator.h ImageViewBase.h PixelAccessors.h	\
 	ImageView.h ImageViewRef.h PixelTypeInfo.h PixelMath.h		\
 	PixelTypes.h GenericImageBuffer.h Manipulation.h		\
 	PerPixelViews.h ImageMath.h EdgeExtend.h Interpolation.h	\
-	Convolution.h Filter.h Filter.h Transform.h
+	Convolution.h Filter.h Filter.h Filter.tcc Transform.h
 
 libvwImage_la_SOURCES = GenericImageBuffer.cc Filter.cc
+libvwImage_la_LIBADD = @MODULE_IMAGE_LDFLAGS@
 
 lib_LTLIBRARIES = libvwImage.la
-
-endif
-
-########################################################################
-# tests
-########################################################################
-
-if MAKE_MODULE_VW
-
-TESTS_H = tests/TestPixelMath.h tests/TestPixelTypes.h		\
-	tests/TestImageView.h tests/TestImageViewRef.h		\
-	tests/TestManipulation.h tests/TestPerPixelViews.h	\
-	tests/TestImageMath.h tests/TestEdgeExtend.h		\
-	tests/TestInterpolation.h tests/TestConvolution.h	\
-	tests/TestFilter.h tests/TestTransform.h
-
-TESTS_EXTRAS = 
-
-TESTS_LIBS = @PKG_VW_LDFLAGS@ .libs/libvwImage.a
 
 endif
 
@@ -60,11 +42,11 @@ endif
 # general
 ########################################################################
 
+SUBDIRS = . tests
+
 includedir = $(prefix)/include/vw/Image
 
-AM_CPPFLAGS = @MODULE_VW_CPPFLAGS@
-AM_LDFLAGS  = @MODULE_VW_LDFLAGS@
-
-EXTRA_DIST = $(TESTS_H) $(TESTS_EXTRAS) 
+AM_CPPFLAGS = @MODULE_IMAGE_CPPFLAGS@
+AM_LDFLAGS  = 
 
 include $(top_srcdir)/config/rules.mak

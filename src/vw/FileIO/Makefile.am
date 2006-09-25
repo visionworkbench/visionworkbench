@@ -23,9 +23,16 @@
 # sources
 ########################################################################
 
-if MAKE_MODULE_VW
+if MAKE_MODULE_FILEIO
 
-#include_HEADERS = 
+include_HEADERS = DiskImageResource.h DiskImageResourcePNG.h
+
+libvwFileIO_la_SOURCES = DiskImageResource.cc DiskImageResourcePNG.cc
+
+libvwFileIO_la_CPPFLAGS = @MODULE_FILEIO_CPPFLAGS@
+libvwFileIO_la_LIBADD = @MODULE_FILEIO_LDFLAGS@
+
+lib_LTLIBRARIES = libvwFileIO.la
 
 endif
 
@@ -33,9 +40,11 @@ endif
 # general
 ########################################################################
 
+SUBDIRS = . tests
+
 includedir = $(prefix)/include/vw/FileIO
 
-AM_CPPFLAGS = @MODULE_VW_CPPFLAGS@
-AM_LDFLAGS  = @MODULE_VW_LDFLAGS@
+AM_CPPFLAGS =
+AM_LDFLAGS  =
 
 include $(top_srcdir)/config/rules.mak

@@ -23,22 +23,15 @@
 # sources
 ########################################################################
 
-if MAKE_MODULE_VW
+if MAKE_MODULE_CORE
 
 include_HEADERS = Exception.h FundamentalTypes.h TypeDeduction.h	\
-	Functors.h CompoundTypes.h
+	Functors.h CompoundTypes.h Debugging.h
 
-endif
+libvwCore_la_SOURCES = Debugging.cc
+libvwCore_la_LIBADD = @MODULE_CORE_LDFLAGS@
 
-########################################################################
-# tests
-########################################################################
-
-if MAKE_MODULE_VW
-
-TESTS_H = tests/TestCompoundTypes.h tests/TestFunctors.h
-
-TESTS_EXTRAS = 
+lib_LTLIBRARIES = libvwCore.la
 
 endif
 
@@ -46,11 +39,11 @@ endif
 # general
 ########################################################################
 
+SUBDIRS = . tests
+
 includedir = $(prefix)/include/vw/Core
 
-AM_CPPFLAGS = @MODULE_VW_CPPFLAGS@
-AM_LDFLAGS  = @MODULE_VW_LDFLAGS@
-
-EXTRA_DIST = $(TESTS_H) $(TESTS_EXTRAS) 
+AM_CPPFLAGS = @MODULE_CORE_CPPFLAGS@
+AM_LDFLAGS  =
 
 include $(top_srcdir)/config/rules.mak

@@ -23,39 +23,27 @@
 # sources
 ########################################################################
 
-SUBDIRS = src
+if MAKE_MODULE_MATH
 
-EXTRA_DIST = config/rules.mak config/relicense thirdparty
+TESTS = TestVector TestMatrix TestBBox TestFunctions TestFunctors
 
-########################################################################
-# special top-level rules
-########################################################################
+nodist_TestVector_SOURCES = TestVector.cxx
+nodist_TestMatrix_SOURCES = TestMatrix.cxx
+nodist_TestBBox_SOURCES = TestBBox.cxx
+nodist_TestFunctions_SOURCES = TestFunctions.cxx
+nodist_TestFunctors_SOURCES = TestFunctors.cxx
 
-install-data-hook:
-	$(INSTALL) src/vw/config.h $(prefix)/include/vw/
-
-dist-hook:
-	rm -rf `find $(distdir) -name '.svn'`
-if DIST_LICENSE
-	cp $(DIST_LICENSE) $(distdir)/COPYING
 endif
-if DIST_LICENSE_SUMMARY
-	find $(distdir) -type f | config/relicense $(DIST_LICENSE_SUMMARY) -
-endif
-if DIST_CONFIG_OPTIONS_DEFAULT
-	cp $(DIST_CONFIG_OPTIONS_DEFAULT) $(distdir)/config/config.options.default
-endif
-
-check-local:
-	@echo ==============================
-	@echo All tests passed successfully!
-	@echo ==============================
-
-doxygen: 
-	cd src/vw; doxygen
 
 ########################################################################
 # general
 ########################################################################
+
+AM_CPPFLAGS = @MODULE_MATH_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
+AM_LDFLAGS  = @PKG_MATH_LDFLAGS@
+
+check_PROGRAMS = $(TESTS)
+EXTRA_DIST = $(patsubst %,%.h,$(TESTS))
+CLEANFILES = $(patsubst %,%.cxx,$(TESTS))
 
 include $(top_srcdir)/config/rules.mak

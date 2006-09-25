@@ -19,31 +19,16 @@
 //
 // __END_LICENSE__
 
-/// \file vw.h
-/// 
-/// A convenience header that includes all the public Vision Workbench
-/// header files.  Careful: this is an awful lot of stuff, and you may
-/// want be more selective!
-/// 
-#ifndef __VW_VW_H__
-#define __VW_VW_H__
+// TestDiskImageResource.h
+#include <cxxtest/TestSuite.h>
+#include <vw/FileIO/DiskImageResource.h>
 
-#include <vw/config.h>
+using namespace vw;
 
-#if defined(VW_HAVE_PKG_CORE) && VW_HAVE_PKG_CORE==1
-#include <vw/Core.h>
-#endif
+class TestDiskImageResource : public CxxTest::TestSuite
+{
+public:
 
-#if defined(VW_HAVE_PKG_MATH) && VW_HAVE_PKG_MATH==1
-#include <vw/Math.h>
-#endif
+  void test_dummy() {}
 
-#if defined(VW_HAVE_PKG_IMAGE) && VW_HAVE_PKG_IMAGE==1
-#include <vw/Image.h>
-#endif
-
-#if defined(VW_HAVE_PKG_FILEIO) && VW_HAVE_PKG_FILEIO==1
-#include <vw/FileIO.h>
-#endif
-
-#endif // __VW_VW_H__
+}; // class TestDiskImageResource
