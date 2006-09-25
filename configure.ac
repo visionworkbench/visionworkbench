@@ -216,6 +216,12 @@ AX_PKG(VCL, [], [-lvcl], [vcl_algorithm.h], [vcl])
 AX_PKG(VXL, [VCL], [-lvgl_algo -lvil_algo -lvnl_algo -lvul -lvgl -lvnl -lvil -lvcl -lnetlib], 
             [vil/vil_image_view.h], [core])
 
+# These are here (instead of inside the PKG macro where they belong)
+# for backwards compatability with older versions of automake.
+AM_CONDITIONAL(HAVE_PKG_PNG, [test "$HAVE_PKG_PNG" = "yes"])
+AM_CONDITIONAL(HAVE_PKG_TIFF, [test "$HAVE_PKG_TIFF" = "yes"])
+AM_CONDITIONAL(HAVE_PKG_JPEG, [test "$HAVE_PKG_JPEG" = "yes"])
+AM_CONDITIONAL(HAVE_PKG_OPENEXR, [test "$HAVE_PKG_OPENEXR" = "yes"])
 
 ##################################################
 #	module definitions

@@ -35,9 +35,18 @@
 #include <boost/algorithm/string.hpp>
 
 #include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/DiskImageResourcePDS.h>
 
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
 #include <vw/FileIO/DiskImageResourcePNG.h>
+#endif
+
+#if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
+#include <vw/FileIO/DiskImageResourceTIFF.h>
+#endif
+
+#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
+#include <vw/FileIO/DiskImageResourceOpenEXR.h>
 #endif
 
 namespace {
@@ -72,8 +81,16 @@ static void register_default_file_types() {
   static bool already = false;
   if( already ) return;
   already = true;
+  vw::DiskImageResource::register_file_type( ".img", &vw::DiskImageResourcePDS::construct_open, &vw::DiskImageResourcePDS::construct_create );
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
   vw::DiskImageResource::register_file_type( ".png", &vw::DiskImageResourcePNG::construct_open, &vw::DiskImageResourcePNG::construct_create );
+#endif
+#if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
+  vw::DiskImageResource::register_file_type( ".tif", &vw::DiskImageResourceTIFF::construct_open, &vw::DiskImageResourceTIFF::construct_create );
+  vw::DiskImageResource::register_file_type( ".tif", &vw::DiskImageResourceTIFF::construct_open, &vw::DiskImageResourceTIFF::construct_create );
+#endif
+#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
+  vw::DiskImageResource::register_file_type( ".exr", &vw::DiskImageResourceOpenEXR::construct_open, &vw::DiskImageResourceOpenEXR::construct_create );
 #endif
 }
 

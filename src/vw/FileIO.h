@@ -26,4 +26,19 @@
 #ifndef __VW_FILEIO_H__
 #define __VW_FILEIO_H__
 
+#include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/DiskImageResourcePDS.h>
+
+#if defined(HAVE_PKG_PNG) && HAVE_PKG_PNG==1
+#include <vw/FileIO/DiskImageResourcePNG.h>
+#endif
+
+#if defined(HAVE_PKG_TIFF) && HAVE_PKG_TIFF==1
+#include <vw/FileIO/DiskImageResourceTIFF.h>
+#endif
+
+#if defined(HAVE_PKG_OPENEXR) && HAVE_PKG_OPENEXR==1
+#include <vw/FileIO/DiskImageResourceOpenEXR.h>
+#endif
+
 #endif // __VW_FILEIO_H__

@@ -181,6 +181,9 @@ namespace vw {
   /// Invalid type exception
   VW_DEFINE_EXCEPTION(TypeErr, Exception);
 
+  /// Not found exception
+  VW_DEFINE_EXCEPTION(NotFoundErr, Exception);
+
   /// Unimplemented functionality exception
   VW_DEFINE_EXCEPTION(NoImplErr, Exception);
 
