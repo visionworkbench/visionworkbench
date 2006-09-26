@@ -152,12 +152,12 @@ namespace vw {
     if( boost::find_last(filename,"*") )
       throw NoImplErr() << "File-per-plane reading is not yet supported.";
 
-    print(InfoMessage) << "\tLoading image: " << filename << "\t";
+    vw_out(InfoMessage) << "\tLoading image: " << filename << "\t";
 
     // Open the file for reading
     DiskImageResource *r = DiskImageResource::open( filename );
 
-    print(InfoMessage) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
+    vw_out(InfoMessage) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
 
     // Read it in and wrap up
     r->read( in_image );
@@ -189,9 +189,9 @@ namespace vw {
     for( int i=0; i<files; ++i ) {
       std::string name = filename;
       if( files > 1 ) boost::replace_last( name, "*",  str( boost::format("%1%") % i ) );
-      print(InfoMessage) << "\tSaving image: " << name << "\t";
+      vw_out(InfoMessage) << "\tSaving image: " << name << "\t";
       DiskImageResource *r = DiskImageResource::create( name, buf.format );
-      print(InfoMessage) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
+      vw_out(InfoMessage) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
       r->write( buf );
       delete r;
       buf.data = (uint8*)buf.data + buf.pstride;

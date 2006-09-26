@@ -41,7 +41,7 @@ namespace {
   static vw::MessageLevel g_the_level = vw::InfoMessage;
 }
 
-std::ostream& vw::print( vw::MessageLevel level ) {
+std::ostream& vw::vw_out( vw::MessageLevel level ) {
   if( level > g_the_level ) return g_the_nullstream;
   else return g_the_ostream;
 }

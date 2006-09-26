@@ -43,7 +43,7 @@ namespace vw {
     VerboseDebugMessage = 40
   };
 
-  std::ostream& print( MessageLevel level );
+  std::ostream& vw_out( MessageLevel level );
   void set_debug_level( MessageLevel level );
   void set_output_stream( std::ostream& stream );
 
@@ -67,7 +67,7 @@ namespace vw {
       gettimeofday( &end, 0 );
       double duration = end.tv_sec - m_begin.tv_sec;
       duration += (end.tv_usec - m_begin.tv_usec)/1.0e6;
-      print(m_level) << m_desc << ": " << duration << std::endl;
+      vw_out(m_level) << m_desc << ": " << duration << std::endl;
     }
   };
 
