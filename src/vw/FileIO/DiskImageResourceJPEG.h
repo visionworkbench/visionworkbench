@@ -38,11 +38,16 @@
 
 namespace vw {
 
+  static const int vw_jpeg_default_subsampilng_factor = 1;
+  static const float vw_jpeg_default_quality = 0.85;
+
   class DiskImageResourceJPEG : public DiskImageResource {
   public:
 
     DiskImageResourceJPEG( std::string const& filename )
     {
+      m_subsample_factor = vw_jpeg_default_subsampilng_factor;
+      m_quality = vw_jpeg_default_quality;
       m_file_ptr = NULL;
       m_jpg_compress_header = NULL;
       m_jpg_decompress_header = NULL;
@@ -52,7 +57,8 @@ namespace vw {
     DiskImageResourceJPEG( std::string const& filename, 
                            GenericImageFormat const& format )
     {
-      m_quality = 0.85;
+      m_subsample_factor = vw_jpeg_default_subsampilng_factor;
+      m_quality = vw_jpeg_default_quality;
       m_file_ptr = NULL;
       m_jpg_compress_header = NULL;
       m_jpg_decompress_header = NULL;
@@ -70,7 +76,26 @@ namespace vw {
     /// lossy the compression.
     void set_quality(float quality) { m_quality = quality; }
 
+    /// Set the subsample factor.  The default is no scaling.  Valid
+    /// values are 1, 2, 4, and 8.  Smaller scaling ratios permit
+    /// significantly faster decoding since fewer pixels need to be
+    /// processed and a simpler IDCT method can be used.
+    void set_subsample_factor(int subsample_factor) { 
+      // Cloes and reopen the file with the new subsampling factor
+      flush();
+      open(m_filename, subsample_factor);
+    }
+
     void open( std::string const& filename );
+    void open( std::string const& filename, int subsample_factor ) {
+      if (subsample_factor == 1 || subsample_factor == 2 ||
+          subsample_factor == 4 || subsample_factor == 8) {
+        m_subsample_factor = subsample_factor; 
+      } else {
+        throw ArgumentErr() << "DiskImageResourceJPEG: subsample_factor must be 1, 2, 4, or 8";
+      }
+      open(filename);
+    }
 
     void create( std::string const& filename,
                  GenericImageFormat const& format );
@@ -84,6 +109,7 @@ namespace vw {
     
     std::string m_filename;
     float m_quality;
+    int m_subsample_factor;
     void* m_jpg_decompress_header;
     void* m_jpg_compress_header;
     void* m_file_ptr;

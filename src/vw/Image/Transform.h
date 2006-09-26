@@ -209,7 +209,7 @@ namespace vw {
     PointLookupTransform(ImageView<Vector2> &lookup_image) : m_lookup_image(lookup_image) {}
     
     inline Vector2 reverse(const Vector2 &p) const {
-      VW_DEBUG_ASSERT(int(p.x()) >= 0  &&  int(p.y()) >= 0 && int(p.x()) < m_point.cols() && int(p.y()) < m_point.rows(),
+      VW_DEBUG_ASSERT(int(p.x()) >= 0  &&  int(p.y()) >= 0 && int(p.x()) < m_lookup_image.cols() && int(p.y()) < m_lookup_image.rows(),
                       LogicErr() << "Point lookup transform: exceeded lookup table dimensions.");
       return m_lookup_image(int(p.x()), int(p.y()));
     }
@@ -227,7 +227,7 @@ namespace vw {
     PointOffsetTransform(ImageView<Vector2> &offset_image) : m_offset_image(offset_image) {}
     
     inline Vector2 reverse(const Vector2 &p) const {
-      VW_DEBUG_ASSERT(int(p.x()) >= 0  &&  int(p.y()) >= 0 && int(p.x()) < m_point.cols() && int(p.y()) < m_point.rows(),
+      VW_DEBUG_ASSERT(int(p.x()) >= 0  &&  int(p.y()) >= 0 && int(p.x()) < m_offset_image.cols() && int(p.y()) < m_offset_image.rows(),
                       LogicErr() << "Point offest transform: exceeded lookup table dimensions.");
       return p + m_offset_image(int(p.x()), int(p.y()));
     }

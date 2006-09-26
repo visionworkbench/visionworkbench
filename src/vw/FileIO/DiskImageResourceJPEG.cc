@@ -99,6 +99,13 @@ void vw::DiskImageResourceJPEG::open( std::string const& filename )
 
   // Read the header information and parse it
 	jpeg_read_header(&cinfo, TRUE);
+
+  // If the user has requested a subsampled version of the original
+  // image, we pass this request along to the JPEG driver here.
+  cinfo.scale_num = 1; 
+  cinfo.scale_denom = m_subsample_factor;
+
+  // Start the decompression routine
   jpeg_start_decompress(&cinfo);
   
   m_format.cols = cinfo.output_width;
@@ -117,7 +124,7 @@ void vw::DiskImageResourceJPEG::open( std::string const& filename )
   jpeg_destroy_decompress(&cinfo);
   
   // Rewind the file so that we can restart the jpeg header reading
-  // process the second time.
+  // process when the user calls read().
   fseek(infile, 0, SEEK_SET);
 }
 
@@ -175,6 +182,19 @@ void vw::DiskImageResourceJPEG::read( GenericImageBuffer const& dest ) const
 
   // Read the header information and parse it
 	jpeg_read_header(&cinfo, TRUE);
+
+  // If the user has requested a grayscale image, we can speed up the
+  // decoding process by forcing the jpeg driver to decode the image
+  // in grayscale (since the color components need not be processed).
+  if (dest.format.pixel_format == VW_PIXEL_GRAY) 
+    cinfo.out_color_space = JCS_GRAYSCALE;
+
+  // If the user has requested a subsampled version of the original
+  // image, we pass this request along to the JPEG driver here.
+  cinfo.scale_num = 1; 
+  cinfo.scale_denom = m_subsample_factor;
+
+  // Start the decompression
   jpeg_start_decompress(&cinfo);
 
   int scanline_size = cinfo.output_width * cinfo.output_components;
@@ -200,6 +220,11 @@ void vw::DiskImageResourceJPEG::read( GenericImageBuffer const& dest ) const
   GenericImageBuffer src;
   src.data = (uint8*)buf;
   src.format = m_format;
+
+  // This is part of the grayscale optimization above.
+  if (dest.format.pixel_format == VW_PIXEL_GRAY) 
+    src.format.pixel_format = VW_PIXEL_GRAY;
+
   src.cstride = scanline_size / cinfo.output_width;
   src.rstride = scanline_size;
   src.pstride = scanline_size * cinfo.output_height;

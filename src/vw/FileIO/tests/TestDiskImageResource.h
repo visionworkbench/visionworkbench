@@ -122,4 +122,48 @@ public:
 #endif
   }
 
+  void test_read_image_rgb_jpeg_uint8() {
+#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
+    ImageView<PixelRGB<uint8> > image;
+    TS_ASSERT_THROWS_NOTHING( read_image( image, "rgb2x2.jpg" ) );
+    TS_ASSERT_EQUALS( image.cols(), 2 );
+    TS_ASSERT_EQUALS( image.rows(), 2 );
+    TS_ASSERT_EQUALS( image.planes(), 1 );
+    TS_ASSERT_EQUALS( image(0,0).r(), 128 );
+    TS_ASSERT_EQUALS( image(0,0).g(), 128 );
+    TS_ASSERT_EQUALS( image(0,0).b(), 128 );
+    TS_ASSERT_EQUALS( image(1,0).r(), 85 );
+    TS_ASSERT_EQUALS( image(1,0).g(), 0 );
+    TS_ASSERT_EQUALS( image(1,0).b(), 0 );
+    TS_ASSERT_EQUALS( image(0,1).r(), 0 );
+    TS_ASSERT_EQUALS( image(0,1).g(), 170 );
+    TS_ASSERT_DELTA( image(0,1).b(), 0, 1 );
+    TS_ASSERT_EQUALS( image(1,1).r(), 0 );
+    TS_ASSERT_EQUALS( image(1,1).g(), 0 );
+    TS_ASSERT_DELTA( image(1,1).b(), 255, 1 );
+#endif
+  }
+
+  void test_read_image_rgb_jpeg_float() {
+#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
+    ImageView<PixelRGB<float> > image;
+    TS_ASSERT_THROWS_NOTHING( read_image( image, "rgb2x2.jpg" ) );
+    TS_ASSERT_EQUALS( image.cols(), 2 );
+    TS_ASSERT_EQUALS( image.rows(), 2 );
+    TS_ASSERT_EQUALS( image.planes(), 1 );
+    TS_ASSERT_DELTA( image(0,0).r(), 0.50196, 1e-5 );
+    TS_ASSERT_DELTA( image(0,0).g(), 0.50196, 1e-5 );
+    TS_ASSERT_DELTA( image(0,0).b(), 0.50196, 1e-5 );
+    TS_ASSERT_DELTA( image(1,0).r(), 0.33333, 1e-5 );
+    TS_ASSERT_EQUALS( image(1,0).g(), 0 );
+    TS_ASSERT_EQUALS( image(1,0).b(), 0 );
+    TS_ASSERT_EQUALS( image(0,1).r(), 0 );
+    TS_ASSERT_DELTA( image(0,1).g(), 0.66667, 1e-5 );
+    TS_ASSERT_DELTA( image(0,1).b(), 0, 0.004 );
+    TS_ASSERT_EQUALS( image(1,1).r(), 0 );
+    TS_ASSERT_EQUALS( image(1,1).g(), 0 );
+    TS_ASSERT_DELTA( image(1,1).b(), 1.0, 0.004 );
+#endif
+  }
+
 }; // class TestDiskImageResource
