@@ -56,6 +56,34 @@ public:
 #endif
   }
 
+  void test_write_image_rgb_png_uint8() {
+#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
+    ImageView<PixelRGB<uint8> > image(2,2);
+    image(0,0) = PixelRGB<uint8>(120,240,180);
+    image(1,0) = PixelRGB<uint8>(36,89,79);
+    image(0,1) = PixelRGB<uint8>(190,25,34);
+    image(1,1) = PixelRGB<uint8>(23,13,189);
+    TS_ASSERT_THROWS_NOTHING( write_image( "tmp.png", image ) );
+    ImageView<PixelRGB<uint8> > image2;
+    TS_ASSERT_THROWS_NOTHING( read_image( image2, "tmp.png" ) );
+    TS_ASSERT_EQUALS( image2.cols(), image.cols() );
+    TS_ASSERT_EQUALS( image2.rows(), image.rows() );
+    TS_ASSERT_EQUALS( image2.planes(), image.planes() );
+    TS_ASSERT_EQUALS( image2(0,0).r(), image(0,0).r() );
+    TS_ASSERT_EQUALS( image2(0,0).g(), image(0,0).g() );
+    TS_ASSERT_EQUALS( image2(0,0).b(), image(0,0).b() );
+    TS_ASSERT_EQUALS( image2(1,0).r(), image(1,0).r() );
+    TS_ASSERT_EQUALS( image2(1,0).g(), image(1,0).g() );
+    TS_ASSERT_EQUALS( image2(1,0).b(), image(1,0).b() );
+    TS_ASSERT_EQUALS( image2(0,1).r(), image(0,1).r() );
+    TS_ASSERT_EQUALS( image2(0,1).g(), image(0,1).g() );
+    TS_ASSERT_EQUALS( image2(0,1).b(), image(0,1).b() );
+    TS_ASSERT_EQUALS( image2(1,1).r(), image(1,1).r() );
+    TS_ASSERT_EQUALS( image2(1,1).g(), image(1,1).g() );
+    TS_ASSERT_EQUALS( image2(1,1).b(), image(1,1).b() );
+#endif
+  }
+
   void test_read_image_rgb_png_float() {
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
     ImageView<PixelRGB<float> > image;
@@ -75,6 +103,35 @@ public:
     TS_ASSERT_EQUALS( image(1,1).r(), 0 );
     TS_ASSERT_EQUALS( image(1,1).g(), 0 );
     TS_ASSERT_DELTA( image(1,1).b(), 1.0, 1e-5 );
+#endif
+  }
+
+  void test_write_image_rgb_png_float() {
+#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
+    ImageView<PixelRGB<float> > image(2,2);
+    image(0,0) = PixelRGB<float>(0.7,0.3,0.2);
+    image(1,0) = PixelRGB<float>(0.8,0.1,0.2);
+    image(0,1) = PixelRGB<float>(0.2,0.7,0.4);
+    image(1,1) = PixelRGB<float>(0.3,0.4,0.5);
+    TS_ASSERT_THROWS_NOTHING( write_image( "tmp.png", image ) );
+    ImageView<PixelRGB<float> > image2;
+    TS_ASSERT_THROWS_NOTHING( read_image( image2, "tmp.png" ) );
+    TS_ASSERT_EQUALS( image2.cols(), image.cols() );
+    TS_ASSERT_EQUALS( image2.rows(), image.rows() );
+    TS_ASSERT_EQUALS( image2.planes(), image.planes() );
+    // PNG is an 8-bit format, so values may be corrupted
+    TS_ASSERT_DELTA( image2(0,0).r(), image(0,0).r(), 1e-2 );
+    TS_ASSERT_DELTA( image2(0,0).g(), image(0,0).g(), 1e-2 );
+    TS_ASSERT_DELTA( image2(0,0).b(), image(0,0).b(), 1e-2 );
+    TS_ASSERT_DELTA( image2(1,0).r(), image(1,0).r(), 1e-2 );
+    TS_ASSERT_DELTA( image2(1,0).g(), image(1,0).g(), 1e-2 );
+    TS_ASSERT_DELTA( image2(1,0).b(), image(1,0).b(), 1e-2 );
+    TS_ASSERT_DELTA( image2(0,1).r(), image(0,1).r(), 1e-2 );
+    TS_ASSERT_DELTA( image2(0,1).g(), image(0,1).g(), 1e-2 );
+    TS_ASSERT_DELTA( image2(0,1).b(), image(0,1).b(), 1e-2 );
+    TS_ASSERT_DELTA( image2(1,1).r(), image(1,1).r(), 1e-2 );
+    TS_ASSERT_DELTA( image2(1,1).g(), image(1,1).g(), 1e-2 );
+    TS_ASSERT_DELTA( image2(1,1).b(), image(1,1).b(), 1e-2 );
 #endif
   }
 
@@ -100,6 +157,34 @@ public:
 #endif
   }
 
+  void test_write_image_rgb_tif_uint8() {
+#if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
+    ImageView<PixelRGB<uint8> > image(2,2);
+    image(0,0) = PixelRGB<uint8>(120,240,180);
+    image(1,0) = PixelRGB<uint8>(36,89,79);
+    image(0,1) = PixelRGB<uint8>(190,25,34);
+    image(1,1) = PixelRGB<uint8>(23,13,189);
+    TS_ASSERT_THROWS_NOTHING( write_image( "tmp.tif", image ) );
+    ImageView<PixelRGB<uint8> > image2;
+    TS_ASSERT_THROWS_NOTHING( read_image( image2, "tmp.tif" ) );
+    TS_ASSERT_EQUALS( image2.cols(), image.cols() );
+    TS_ASSERT_EQUALS( image2.rows(), image.rows() );
+    TS_ASSERT_EQUALS( image2.planes(), image.planes() );
+    TS_ASSERT_EQUALS( image2(0,0).r(), image(0,0).r() );
+    TS_ASSERT_EQUALS( image2(0,0).g(), image(0,0).g() );
+    TS_ASSERT_EQUALS( image2(0,0).b(), image(0,0).b() );
+    TS_ASSERT_EQUALS( image2(1,0).r(), image(1,0).r() );
+    TS_ASSERT_EQUALS( image2(1,0).g(), image(1,0).g() );
+    TS_ASSERT_EQUALS( image2(1,0).b(), image(1,0).b() );
+    TS_ASSERT_EQUALS( image2(0,1).r(), image(0,1).r() );
+    TS_ASSERT_EQUALS( image2(0,1).g(), image(0,1).g() );
+    TS_ASSERT_EQUALS( image2(0,1).b(), image(0,1).b() );
+    TS_ASSERT_EQUALS( image2(1,1).r(), image(1,1).r() );
+    TS_ASSERT_EQUALS( image2(1,1).g(), image(1,1).g() );
+    TS_ASSERT_EQUALS( image2(1,1).b(), image(1,1).b() );
+#endif
+  }
+
   void test_read_image_rgb_tif_float() {
 #if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
     ImageView<PixelRGB<float> > image;
@@ -119,6 +204,36 @@ public:
     TS_ASSERT_EQUALS( image(1,1).r(), 0 );
     TS_ASSERT_EQUALS( image(1,1).g(), 0 );
     TS_ASSERT_DELTA( image(1,1).b(), 1.0, 1e-5 );
+#endif
+  }
+
+  void test_write_image_rgb_tif_float() {
+#if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
+    ImageView<PixelRGB<float> > image(2,2);
+    image(0,0) = PixelRGB<float>(0.7,0.3,0.2);
+    image(1,0) = PixelRGB<float>(0.8,0.1,0.2);
+    image(0,1) = PixelRGB<float>(0.2,0.7,0.4);
+    image(1,1) = PixelRGB<float>(0.3,0.4,0.5);
+    TS_ASSERT_THROWS_NOTHING( write_image( "tmp.tif", image ) );
+    ImageView<PixelRGB<float> > image2;
+    TS_ASSERT_THROWS_NOTHING( read_image( image2, "tmp.tif" ) );
+    TS_ASSERT_EQUALS( image2.cols(), image.cols() );
+    TS_ASSERT_EQUALS( image2.rows(), image.rows() );
+    TS_ASSERT_EQUALS( image2.planes(), image.planes() );
+    // TIFF supports floating-point data, so values should 
+    // be reasonably precise.
+    TS_ASSERT_DELTA( image2(0,0).r(), image(0,0).r(), 1e-8 );
+    TS_ASSERT_DELTA( image2(0,0).g(), image(0,0).g(), 1e-8 );
+    TS_ASSERT_DELTA( image2(0,0).b(), image(0,0).b(), 1e-8 );
+    TS_ASSERT_DELTA( image2(1,0).r(), image(1,0).r(), 1e-8 );
+    TS_ASSERT_DELTA( image2(1,0).g(), image(1,0).g(), 1e-8 );
+    TS_ASSERT_DELTA( image2(1,0).b(), image(1,0).b(), 1e-8 );
+    TS_ASSERT_DELTA( image2(0,1).r(), image(0,1).r(), 1e-8 );
+    TS_ASSERT_DELTA( image2(0,1).g(), image(0,1).g(), 1e-8 );
+    TS_ASSERT_DELTA( image2(0,1).b(), image(0,1).b(), 1e-8 );
+    TS_ASSERT_DELTA( image2(1,1).r(), image(1,1).r(), 1e-8 );
+    TS_ASSERT_DELTA( image2(1,1).g(), image(1,1).g(), 1e-8 );
+    TS_ASSERT_DELTA( image2(1,1).b(), image(1,1).b(), 1e-8 );
 #endif
   }
 

@@ -157,22 +157,25 @@ namespace vw {
     // rasterize ourself.
     typedef typename boost::mpl::if_< IsMultiplyAccessible<ImageT>, 
  				      ConvolutionView<typename ImageT::prerasterize_type, KernelT, EdgeT>,
- 				      ConvolutionView<ImageView<typename ImageT::pixel_type>, KernelT, EdgeT> >::type prerasterize_type;
-    inline prerasterize_type prerasterize() const {
+ 				      ConvolutionView<CropView<ImageView<typename ImageT::pixel_type> >, KernelT, EdgeT> >::type prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i bbox ) const {
       if (IsMultiplyAccessible<ImageT>::value) {
-	return prerasterize_type( m_image.child().prerasterize(), m_kernel.child(), m_ci, m_cj, m_image.func() );
+	return prerasterize_type( m_image.child().prerasterize(bbox), m_kernel.child(), m_ci, m_cj, m_image.func() );
       } else {
-	return prerasterize_type( copy(m_image.child()), m_kernel.child(), m_ci, m_cj, m_image.func() );
+        ImageView<pixel_type> buf( bbox.width(), bbox.height(), m_image.planes() );
+        m_image.rasterize( buf, bbox );
+	return prerasterize_type( CropView<ImageView<pixel_type> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),bbox.width(),bbox.height()) ),
+                                  m_kernel.child(), m_ci, m_cj, m_image.func() );
       }
     }
 
     template <class DestT>
-    void rasterize( DestT const& dest ) const {
-      prerasterize().rasterize_helper( dest );
+    void rasterize( DestT const& dest, BBox2i bbox ) const {
+      prerasterize(bbox).rasterize_helper( dest, bbox );
     }
 
     template <class DestT>
-    void rasterize_helper( DestT const& dest ) const {
+    void rasterize_helper( DestT const& dest, BBox2i bbox ) const {
       typedef typename ImageT::pixel_accessor SrcAccessT;
       typedef typename EdgeExtendView<ImageT,EdgeT>::pixel_accessor EdgeAccessT;
       typedef typename DestT::pixel_accessor DestAccessT;
@@ -185,11 +188,11 @@ namespace vw {
         SrcAccessT srow = splane;
         EdgeAccessT erow = eplane;
         DestAccessT drow = dplane;
-        for( int r=0; r<int(m_image.rows()); ++r ) {
+        for( int r=bbox.min().y(); r<bbox.max().y(); ++r ) {
           EdgeAccessT ecol = erow;
           DestAccessT dcol = drow;
           if( r<m_cj || r>int(m_image.rows())-int(m_kernel.rows())+m_cj ) {
-            for( int i=0; i<int(m_image.cols()); ++i ) {
+            for( int i=bbox.min().x(); i<bbox.max().x(); ++i ) {
               *dcol = correlate_2d_at_point( ecol, m_kernel.origin(), m_kernel.cols(), m_kernel.rows() );
               dcol.next_col();
               ecol.next_col();
@@ -197,19 +200,19 @@ namespace vw {
           }
           else {
             SrcAccessT scol = srow;
-            int i=0;
-            for( ; i<m_ci; ++i ) {
+            int i=bbox.min().x();
+            for( ; (i<m_ci)&&(i<bbox.max().x()); ++i ) {
               *dcol = DestPixelT( correlate_2d_at_point( ecol, m_kernel.origin(), m_kernel.cols(), m_kernel.rows() ) );
               ecol.next_col();
               dcol.next_col();
             }
-            for( ; i<=int(m_image.cols())-int(m_kernel.cols())+m_ci ; ++i ) {
+            for( ; (i<=int(m_image.cols())-int(m_kernel.cols())+m_ci)&&(i<bbox.max().x()); ++i ) {
               *dcol = DestPixelT( correlate_2d_at_point( scol, m_kernel.origin(), m_kernel.cols(), m_kernel.rows() ) );
               scol.next_col();
               dcol.next_col();
             }
             ecol.advance( m_image.cols()-m_kernel.cols()+1, 0 );
-            for( ; i<int(m_image.cols()); ++i ) {
+            for( ; i<bbox.max().x(); ++i ) {
               *dcol = DestPixelT( correlate_2d_at_point( ecol, m_kernel.origin(), m_kernel.cols(), m_kernel.rows() ) );
               ecol.next_col();
               dcol.next_col();
@@ -303,26 +306,38 @@ namespace vw {
 
     /// \cond INTERNAL
 
-    // The seperable convolution view knows that it is fastest to
+    // The separable convolution view knows that it is fastest to
     // fully rasterize itself if it is about to be part of a
-    // rasterization operation with nested views.
+    // rasterization operation with nested views.  This is actually 
+    // not the most efficient behavior: it need only rasterize one 
+    // of the two axes, and none at al if only one axis is active. 
+    // However, that is deterimined at run time and would impact 
+    // the prerasterize_type, so we cannot easily do that.
     typedef ImageView<pixel_type> prerasterize_type;
-    inline prerasterize_type prerasterize() const {
-      prerasterize_type dest( m_image.cols(), m_image.rows(), m_image.planes() );
-      rasterize( dest );
+    inline prerasterize_type prerasterize( BBox2i bbox ) const {
+      ImageView<pixel_type> dest( bbox.width(), bbox.height(), m_image.planes() );
+      rasterize( dest, bbox );
       return dest;
     }
     
-    // If the pixels in the child view can be repeatedly accessed without 
-    // incurring any additional overhead (e.g. a TransposeView of an 
-    // ImageView), we do not need to rasterize the child before we proceed 
-    // to rasterize ourself.
+    // If the pixels in the child view can be repeatedly accessed
+    // without incurring any additional overhead (e.g. a TransposeView
+    // of an ImageView) then we do not need to rasterize the child
+    // before we proceed to rasterize ourself.
     template <class DestT>
-    void rasterize( DestT const& dest ) const {
+    void rasterize( DestT const& dest, BBox2i bbox ) const {
+      BBox2i child_bbox = bbox;
+      child_bbox.min() -= Vector2i( m_i_kernel.size()-m_ci-1, m_j_kernel.size()-m_cj-1 );
+      child_bbox.max() += Vector2i( m_ci, m_cj );
+      // XXX This all has some tricky behavior if the child image is
+      // already edge-extended.  The following line solves some
+      // problems while creating others.  This requires some careful
+      // thought and testing....
+      // child_bbox.crop( BBox2i(0,0,m_image.cols(),m_image.rows()) );
       if( IsMultiplyAccessible<ImageT>::value ) {
-	rasterize_helper( m_image.prerasterize(), dest );
+	rasterize_helper( crop(m_image.prerasterize(child_bbox),bbox), dest );
       } else {
-	rasterize_helper( copy(m_image), dest );
+	rasterize_helper( crop(copy(crop(m_image,child_bbox)),bbox-child_bbox.min()), dest );
       }
     }
 
@@ -341,7 +356,7 @@ namespace vw {
         convolve_1d( transpose(src), transpose(dest), m_j_kernel, m_cj );
       }
       else {
-        src.rasterize( dest );
+        src.rasterize( dest, BBox2i(0,0,src.cols(),src.rows()) );
       }
     }
 

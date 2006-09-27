@@ -72,7 +72,7 @@ namespace vw {
     typedef typename ImageView<typename ImageT::pixel_type>::pixel_accessor pixel_accessor;
 
     CopyView( ImageT const& image ) : m_image(image.cols(),image.rows(),image.planes()) {
-      vw::rasterize( image, m_image );
+      image.rasterize( m_image, BBox2i(0,0,image.cols(),image.rows()) );
     }
 
     inline unsigned cols() const { return m_image.cols(); }
@@ -84,8 +84,8 @@ namespace vw {
     inline result_type operator()( int i, int j, int p ) const { return m_image(i,j,p); }
 
     typedef CopyView prerasterize_type;
-    inline prerasterize_type prerasterize() const { return *this; }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( m_image, dest ); }
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { return *this; }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { m_image.rasterize( dest, bbox ); }
   };
 
   template <class ImageT>
@@ -107,29 +107,29 @@ namespace vw {
 
   template <> struct AxisTraits<1> {
     template <class AccessT> static inline void iterate( AccessT& acc ) { acc.next_col(); }
-    static inline int advance( int dc, int dr, int dp ) { return dc; }
-    template <class ViewT> static inline int index( int c, int r, int p, ViewT const& view ) { return c; }
+    static inline int advance( int dc, int dr ) { return dc; }
+    template <class ViewT> static inline int index( int c, int r, ViewT const& view ) { return c; }
     template <class ViewT> static inline int size( ViewT const& view ) { return view.cols(); }
   };
 
   template <> struct AxisTraits<-1> {
     template <class AccessT> static inline void iterate( AccessT& acc ) { acc.prev_col(); }
-    static inline int advance( int dc, int dr, int dp ) { return -dc; }
-    template <class ViewT> static inline int index( int c, int r, int p, ViewT const& view ) { return view.cols()-1-c; }
+    static inline int advance( int dc, int dr ) { return -dc; }
+    template <class ViewT> static inline int index( int c, int r, ViewT const& view ) { return view.cols()-1-c; }
     template <class ViewT> static inline int size( ViewT const& view ) { return view.cols(); }
   };
 
   template <> struct AxisTraits<2> {
     template <class AccessT> static inline void iterate( AccessT& acc ) { acc.next_row(); }
-    static inline int advance( int dc, int dr, int dp ) { return dr; }
-    template <class ViewT> static inline int index( int c, int r, int p, ViewT const& view ) { return r; }
+    static inline int advance( int dc, int dr ) { return dr; }
+    template <class ViewT> static inline int index( int c, int r, ViewT const& view ) { return r; }
     template <class ViewT> static inline int size( ViewT const& view ) { return view.rows(); }
   };
 
   template <> struct AxisTraits<-2> {
     template <class AccessT> static inline void iterate( AccessT& acc ) { acc.prev_row(); }
-    static inline int advance( int dc, int dr, int dp ) { return -dr; }
-    template <class ViewT> static inline int index( int c, int r, int p, ViewT const& view ) { return view.rows()-1-r; }
+    static inline int advance( int dc, int dr ) { return -dr; }
+    template <class ViewT> static inline int index( int c, int r, ViewT const& view ) { return view.rows()-1-r; }
     template <class ViewT> static inline int size( ViewT const& view ) { return view.rows(); }
   };
 
@@ -171,18 +171,18 @@ namespace vw {
     inline unsigned planes() const { return m_child.planes(); }
 
     inline pixel_accessor origin() const {
-      return m_child.origin().advance( AxisTraits<RevColMode>::index(0,0,0,*this),
-                                       AxisTraits<RevRowMode>::index(0,0,0,*this) );
+      return m_child.origin().advance( AxisTraits<RevColMode>::index(0,0,*this),
+                                       AxisTraits<RevRowMode>::index(0,0,*this) );
     }
 
     inline result_type operator()( int c, int r, int p=0 ) const {
-      return m_child( AxisTraits<RevColMode>::index(c,r,p,*this),
-                      AxisTraits<RevRowMode>::index(c,r,p,*this), p );
+      return m_child( AxisTraits<RevColMode>::index(c,r,*this),
+                      AxisTraits<RevRowMode>::index(c,r,*this), p );
     }
 
     template <class ViewT>
     RemapView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this );
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
     }
 
@@ -192,8 +192,8 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef RemapView<typename ChildT::prerasterize_type,FwdColMode,FwdRowMode,RevColMode,RevRowMode> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_child.prerasterize() ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 
@@ -277,13 +277,13 @@ namespace vw {
     inline result_type operator()( offset_type i, offset_type j, int p=0 ) const { return m_image(m_ci + i, m_cj + j, p); }
 
     CropView& operator=( CropView const& view ) {
-      view.rasterize( *this );
+      view.rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
     }
 
     template <class ViewT>
     CropView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this );
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
     }
 
@@ -293,8 +293,8 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef CropView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize(), m_ci, m_cj, m_di, m_dj ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox), m_ci, m_cj, m_di, m_dj ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 
@@ -370,8 +370,8 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef SubsampleView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize(), m_xdelta, m_ydelta ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox), m_xdelta, m_ydelta ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 
@@ -419,14 +419,14 @@ namespace vw {
 
     template <class ViewT>
     SelectColView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this );
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
     }
 
     /// \cond INTERNAL
     typedef SelectColView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize(), m_col ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox), m_col ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 
@@ -472,13 +472,13 @@ namespace vw {
 
     template <class ViewT>
     SelectRowView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this );
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
     }
 
     typedef SelectRowView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize(), m_row ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox), m_row ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
   };
 
   // View type Traits
@@ -521,14 +521,14 @@ namespace vw {
 
     template <class ViewT>
     SelectPlaneView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this );
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
     }
 
     /// \cond INTERNAL
     typedef SelectPlaneView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize(), m_plane ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox), m_plane ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 
@@ -649,7 +649,7 @@ namespace vw {
 
     template <class ViewT>
     ChannelsToPlanesView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this );
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
     }
 
@@ -659,8 +659,8 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef ChannelsToPlanesView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize() ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox) ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 
@@ -726,8 +726,8 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef PlanesToChannelsView<PixelT, typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize() ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox) ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 

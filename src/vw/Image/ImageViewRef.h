@@ -40,6 +40,7 @@
 #include <boost/scoped_ptr.hpp>
 
 #include <vw/Image/ImageView.h>
+#include <vw/Image/Manipulation.h>
 
 namespace vw {
 
@@ -126,7 +127,7 @@ namespace vw {
     virtual pixel_type operator()( int i, int j, int p ) const = 0;
     virtual pixel_accessor origin() const = 0;
 
-    virtual void rasterize( ImageView<typename boost::remove_cv<pixel_type>::type> const& dest ) const = 0;
+    virtual void rasterize( ImageView<typename boost::remove_cv<pixel_type>::type> const& dest, BBox2i bbox ) const = 0;
   };
 
   // ImageViewRef class implementation
@@ -148,7 +149,7 @@ namespace vw {
     virtual pixel_type operator()( int i, int j, int p ) const { return m_view(i,j,p); }
     virtual pixel_accessor origin() const { return m_view.origin(); }
 
-    virtual void rasterize( ImageView<typename boost::remove_cv<pixel_type>::type> const& dest ) const { m_view.rasterize( dest ); }
+    virtual void rasterize( ImageView<typename boost::remove_cv<pixel_type>::type> const& dest, BBox2i bbox ) const { m_view.rasterize( dest, bbox ); }
   };
   /// \endcond
 
@@ -189,24 +190,24 @@ namespace vw {
     inline pixel_accessor origin() const { return m_view->origin(); }
 
     /// \cond INTERNAL
-    typedef ImageView<PixelT> prerasterize_type;
+    typedef CropView<ImageView<PixelT> > prerasterize_type;
 
-    inline prerasterize_type prerasterize() const { 
-      ImageView<PixelT> buf( cols(), rows(), planes() );
-      m_view->rasterize( buf );
-      return buf;
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { 
+      ImageView<PixelT> buf( bbox.width(), bbox.height(), planes() );
+      m_view->rasterize( buf, bbox );
+      return CropView<ImageView<PixelT> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),bbox.width(),bbox.height()) );
     }
 
-    template <class DestT> inline void rasterize( DestT const& dest ) const {
-      vw::rasterize( prerasterize(), dest );
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+      vw::rasterize( prerasterize(bbox), dest, bbox );
     }
 
     // A special performance-enhancing overload for rasterizing directly into 
     // an ImageView with the proper pixel type.  This cannot be templatized 
     // or otherwise generalized because it calls m_view's virtual rasterize 
     // method.
-    inline void rasterize( ImageView<PixelT> const& dest ) const {
-      m_view->rasterize( dest );
+    inline void rasterize( ImageView<PixelT> const& dest, BBox2i bbox ) const {
+      m_view->rasterize( dest, bbox );
     }
     /// \endcond
   };

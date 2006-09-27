@@ -28,8 +28,6 @@
 
 #include <vw/config.h>
 
-#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
-
 #include <string>
 #include <fstream>
 #include <boost/shared_ptr.hpp>
@@ -53,6 +51,8 @@ namespace vw {
     virtual ~DiskImageResourcePNG();
     
     virtual void read( GenericImageBuffer const& dest ) const;
+    virtual void read( GenericImageBuffer const& buf, BBox2i bbox ) const;
+
     virtual void write( GenericImageBuffer const& dest );
     virtual void flush() {}
 
@@ -71,7 +71,5 @@ namespace vw {
   };
 
 } // namespace vw
-
-#endif // HAVE_PKG_PNG
 
 #endif // __VW_FILEIO_DISK_IMAGE_RESOUCE_PNG_H__

@@ -32,6 +32,8 @@
 #include <boost/format.hpp>
 
 #include <vw/Core/Debugging.h>
+#include <vw/Math/BBox.h>
+#include <vw/Math/Vector.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/GenericImageBuffer.h>
@@ -69,6 +71,12 @@ namespace vw {
     /// Read the image on disk into the given buffer.
     virtual void read( GenericImageBuffer const& buf ) const = 0;
 
+    /// Read a block of the image on disk into the given buffer.
+    virtual void read( GenericImageBuffer const& buf, BBox2i bbox ) const {}
+
+    /// Returns the optimal block size/alignment for partial reads.
+    virtual Vector2i native_read_block_size() const { return Vector2i(cols(),rows()); }
+
     /// Write the given buffer to the image on disk.
     virtual void write( GenericImageBuffer const& buf ) = 0;
 
@@ -81,13 +89,19 @@ namespace vw {
       read( GenericImageBuffer(buf) );
     }
 
+    /// Read a block of the image on disk into the given image view.
+    template <class PixelT>
+    void read( ImageView<PixelT> const& buf, BBox2i bbox ) const {
+      read( GenericImageBuffer(buf), bbox );
+    }
+
     /// Read the image on disk into the given image view, resizing the
     /// view if needed.
     template <class PixelT>
     void read( ImageView<PixelT>& buf ) const {
 
       int im_planes = 1;
-      if( boost::is_same<PixelT, typename PixelChannelType<PixelT>::type>::value ) {
+      if( ! IsCompound<PixelT>::value ) {
         // The image has a fundamental pixel type
         if( planes()>1 && num_channels(pixel_format())>1 )
           throw ArgumentErr() << "Cannot read a multi-plane multi-channel image file into a single-channel buffer.";
@@ -96,6 +110,23 @@ namespace vw {
       buf.set_size( cols(), rows(), im_planes );
 
       read( GenericImageBuffer(buf) );
+    }
+
+    /// Read a block of the image on disk into the given image view,
+    /// resizing the view if needed.
+    template <class PixelT>
+    void read( ImageView<PixelT>& buf, BBox2i bbox ) const {
+
+      int im_planes = 1;
+      if( ! IsCompound<PixelT>::value ) {
+        // The image has a fundamental pixel type
+        if( planes()>1 && num_channels(pixel_format())>1 )
+          throw ArgumentErr() << "Cannot read a multi-plane multi-channel image file into a single-channel buffer.";
+        im_planes = std::max( planes(), num_channels(pixel_format()) );
+      }
+      buf.set_size( bbox.width(), bbox.height(), im_planes );
+
+      read( GenericImageBuffer(buf), bbox );
     }
 
     /// Write the given image view into the image on disk.

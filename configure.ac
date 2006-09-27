@@ -275,6 +275,7 @@ AC_CONFIG_FILES([                       \
   Makefile                              \
   src/Makefile                          \
   src/vw/Makefile                       \
+  src/vw/tests/Makefile                 \
   src/vw/Core/Makefile                  \
   src/vw/Core/tests/Makefile            \
   src/vw/Math/Makefile                  \

@@ -39,7 +39,9 @@ AM_CPPFLAGS = @MODULE_FILEIO_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
 AM_LDFLAGS  = @PKG_FILEIO_LDFLAGS@
 
 check_PROGRAMS = $(TESTS)
+
 EXTRA_DIST = $(patsubst %,%.h,$(TESTS)) rgb2x2.png rgb2x2.tif rgb2x2.jpg
-CLEANFILES = $(patsubst %,%.cxx,$(TESTS))
+
+CLEANFILES = $(patsubst %,%.cxx,$(TESTS)) tmp.png tmp.tif
 
 include $(top_srcdir)/config/rules.mak

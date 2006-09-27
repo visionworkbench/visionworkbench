@@ -176,8 +176,8 @@ namespace vw {
     EdgeExtendT const& func() const { return m_extend_func; }
 
     typedef EdgeExtendView<typename ImageT::prerasterize_type,EdgeExtendT> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize(), m_xoffset, m_yoffset, m_cols, m_rows ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox), m_xoffset, m_yoffset, m_cols, m_rows ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
   };
 
 

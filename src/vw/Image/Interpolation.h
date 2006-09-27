@@ -39,15 +39,16 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelAccessors.h>
 #include <vw/Image/EdgeExtend.h>
+#include <vw/Image/Manipulation.h>
 
 namespace vw {
 
-	/// \cond INTERNAL
-	// Functors for common interpolation modes.  You may define your own
-	// functor similar to those that appear below.  The functor must
-	// define the call operator, which takes a view and a set of
-	// (floating point) coordinates, and return the interpolated value
-	// at that sub-pixel location.
+  /// \cond INTERNAL
+  // Functors for common interpolation modes.  You may define your own
+  // functor similar to those that appear below.  The functor must
+  // define the call operator, which takes a view and a set of
+  // (floating point) coordinates, and return the interpolated value
+  // at that sub-pixel location.
 
   /// A base class for the interpolation types that provides the
   /// common return type deduction logic in case users want to use
@@ -142,25 +143,24 @@ namespace vw {
 
     /// \cond INTERNAL
     // We can make an optimization here.  If the pixels in the child
-    // view can be repeatedly accessed without incurring any
-    // additional overhead (e.g. a TransposeView of an ImageView), we
-    // do not need to rasterize the child before we proceed to
-    // rasterize ourself.
+    // view cannot be repeatedly accessed without incurring any
+    // additional overhead  then we should rasterize the child 
+    // before we proceed to rasterize ourself.
     typedef typename boost::mpl::if_< IsMultiplyAccessible<ImageT>, 
  				      InterpolationView<typename ImageT::prerasterize_type, InterpT>,
- 				      InterpolationView<ImageView<pixel_type>, InterpT> >::type prerasterize_type;
+ 				      InterpolationView<CropView<ImageView<pixel_type> >, InterpT> >::type prerasterize_type;
 
-    inline prerasterize_type prerasterize() const {
+    inline prerasterize_type prerasterize( BBox2i bbox ) const {
       if( IsMultiplyAccessible<ImageT>::value ) {
-        return prerasterize_type( m_image.prerasterize() );
+        return prerasterize_type( m_image.prerasterize(bbox) );
       } else {
-        ImageView<pixel_type> buf( m_image.cols(), m_image.rows() );
-        m_image.rasterize( buf );
-        return prerasterize_type( buf );
+        ImageView<pixel_type> buf( bbox.width(), bbox.height(), m_image.planes() );
+        m_image.rasterize( buf, bbox );
+        return prerasterize_type( CropView<ImageView<pixel_type> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),bbox.width(),bbox.height()) ) );
       }
     }
-
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+  
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
   
@@ -190,9 +190,9 @@ namespace vw {
     return InterpolationView<EdgeExtendView<ImageT, EdgeExtendT>, InterpT>( edge_extend(v, edge_extend_func) , interp_func );
   }
 
-	/// Use this free function to pass in an arbitrary interpolation
-	/// functor.  You can use of the predefined functors at the top of
-	/// this file or even one of your own devising.  
+  /// Use this free function to pass in an arbitrary interpolation
+  /// functor.  You can use of the predefined functors at the top of
+  /// this file or even one of your own devising.  
   /// 
   /// This version of the interpolation function uses Constant edge
   /// extension by default.

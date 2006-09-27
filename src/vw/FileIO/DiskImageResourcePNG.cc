@@ -213,17 +213,22 @@ namespace vw {
         throw IOErr() << "Unable to open output file \"" << m_filename << "\".";
     }
 
-    void read( GenericImageBuffer const& dest ) const {
+    void read( GenericImageBuffer const& dest, BBox2i bbox ) const {
       png_structp png_ptr;
       png_infop info_ptr, end_ptr;
       read_init( png_ptr, info_ptr, end_ptr );
-      VW_ASSERT( dest.format.cols==m_format.cols && dest.format.rows==m_format.rows, IOErr() << "Buffer has wrong dimensions in PNG read." );
+      VW_ASSERT( bbox.min().x()>=0 && bbox.min().y()>=0 && bbox.max().x()<=m_format.cols && bbox.max().y()<=m_format.rows,
+                 ArgumentErr() << "Requested bounding box extends beyond disk image boundaries in PNG read." );
+      VW_ASSERT( dest.format.cols==bbox.width() && dest.format.rows==bbox.height(),
+                 ArgumentErr() << "Destination buffer has wrong dimensions in PNG read." );
+
       GenericImageBuffer src;
       int Bpp = (m_format.channel_type==VW_CHANNEL_UINT16) ? 2 : 1;
       int channels = png_get_channels( png_ptr, info_ptr );
       std::vector<uint8> buffer(m_format.cols*m_format.rows*channels*Bpp);
-      src.data = &buffer[0];
+
       src.format = m_format;
+      src.data = &buffer[0];
       src.cstride = Bpp*channels;
       src.rstride = m_format.cols*Bpp*channels;
       src.pstride = m_format.rows*m_format.cols*Bpp*channels;
@@ -231,7 +236,11 @@ namespace vw {
       std::vector<png_bytep> row_pointers( m_format.rows );
       for( int i=0; i<m_format.rows; ++i )
         row_pointers[i] = (png_bytep)(src.data) + i*src.rstride;
-      
+
+      src.format.cols = bbox.width();
+      src.format.rows = bbox.height();
+      src.data = (uint8*)(src.data) + bbox.min().x()*src.cstride + bbox.min().y()*src.rstride;
+
       png_read_image( png_ptr, &row_pointers[0] );
       convert( dest, src );
       read_cleanup( png_ptr, info_ptr, end_ptr );
@@ -294,7 +303,11 @@ void vw::DiskImageResourcePNG::create( std::string const& filename,
 }
 
 void vw::DiskImageResourcePNG::read( GenericImageBuffer const& dest ) const {
-  m_info->read( dest );
+  m_info->read( dest, BBox2i(0,0,cols(),rows()) );
+}
+
+void vw::DiskImageResourcePNG::read( GenericImageBuffer const& dest, BBox2i bbox ) const {
+  m_info->read( dest, bbox );
 }
 
 void vw::DiskImageResourcePNG::write( GenericImageBuffer const& src ) {

@@ -31,8 +31,8 @@
 /// \ref vw::rasterize, which iterates over source and destination views 
 /// copying pixels from one into the other.
 ///
-#ifndef __VW_IMAGE__IMAGE_VIEW_BASE_H__
-#define __VW_IMAGE__IMAGE_VIEW_BASE_H__
+#ifndef __VW_IMAGE_IMAGE_VIEW_BASE_H__
+#define __VW_IMAGE_IMAGE_VIEW_BASE_H__
 
 #include <boost/type_traits.hpp>
 #include <boost/utility/enable_if.hpp>
@@ -40,7 +40,7 @@
 #include <vw/Core/Exception.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/CompoundTypes.h>
-
+#include <vw/Math/BBox.h>
 #include <vw/Image/PixelIterator.h>
 
 namespace vw {
@@ -74,7 +74,7 @@ namespace vw {
     iterator begin() const { return iterator(impl(),0,0,0); }
 
     /// Returns an iterator pointing one past the last pixel in the image.
-    iterator end() const { return iterator(impl(), 0, 0, impl().planes()); }
+    iterator end() const { return iterator(impl(),0,0,impl().planes()); }
 
     /// Returns the number of channels in the image's pixel type.
     inline int channels() const { return CompoundNumChannels<typename ImplT::pixel_type>::value; }
@@ -84,7 +84,7 @@ namespace vw {
     template <class ArgT> inline ImplT& operator*=( ArgT a ) { return *static_cast<ImplT*>(this) = (static_cast<ImplT const&>(*this) * a ); }
     template <class ArgT> inline ImplT& operator/=( ArgT a ) { return *static_cast<ImplT*>(this) = (static_cast<ImplT const&>(*this) / a ); }
 
-    /// \cond INTERNAL
+  /// \cond INTERNAL
     protected:
     // These are defined here to prevent the user from accidentally
     // copy constructing an ImageViewBase.
@@ -128,22 +128,22 @@ namespace vw {
   /// useful in some cases, such as when the views are heavily 
   /// subsampled.
   template <class SrcT, class DestT>
-  void rasterize( SrcT const& src, DestT const& dest ) {
+  void rasterize( SrcT const& src, DestT const& dest, BBox2i bbox ) {
     typedef typename DestT::pixel_type DestPixelT;
     typedef typename SrcT::pixel_accessor SrcAccT;
     typedef typename DestT::pixel_accessor DestAccT;
     unsigned cols=src.cols(), rows=src.rows(), planes=src.planes();
-    VW_ASSERT( dest.cols()==cols && dest.rows()==rows && dest.planes()==planes,
-               ArgumentErr() << "rasterize: Source and destination images must have same dimensions." );
-    SrcAccT splane = src.origin();
+    VW_ASSERT( dest.cols()==bbox.width() && dest.rows()==bbox.height() && dest.planes()==planes,
+               ArgumentErr() << "rasterize: Source and destination must have same dimensions." );
+    SrcAccT splane = src.origin().advance(bbox.min().x(),bbox.min().y());
     DestAccT dplane = dest.origin();
     for( unsigned plane=planes; plane; --plane ) {
       SrcAccT srow = splane;
       DestAccT drow = dplane;
-      for( unsigned row=rows; row; --row ) {
+      for( unsigned row=bbox.height(); row; --row ) {
         SrcAccT scol = srow;
         DestAccT dcol = drow;
-        for( unsigned col=cols; col; --col ) {
+        for( unsigned col=bbox.width(); col; --col ) {
           *dcol = DestPixelT(*scol);
           scol.next_col();
           dcol.next_col();
@@ -156,6 +156,12 @@ namespace vw {
     }
   }
 
+  /// A convenience overload to rasterize the entire source.
+  template <class SrcT, class DestT>
+  void rasterize( SrcT const& src, DestT const& dest ) {
+    rasterize( src, dest, BBox2i(0,0,src.cols(),src.rows()) );
+  }
+
   /// A specialization for resizable destination views.
   ///
   /// This function resizes the destination view prior to 
@@ -163,11 +169,18 @@ namespace vw {
   /// \see vw::rasterize
   template <class SrcT, class DestT>
   typename boost::enable_if<IsResizable<DestT>, void>::type
+  inline rasterize( SrcT const& src, DestT& dest, BBox2i bbox ) {
+    dest.set_size( bbox.width(), bbox.height(), src.planes() );
+    rasterize( src, const_cast<DestT const&>(dest), bbox );
+  }
+
+  /// A convenience overload to rasterize the entire source.
+  template <class SrcT, class DestT>
+  typename boost::enable_if<IsResizable<DestT>, void>::type
   inline rasterize( SrcT const& src, DestT& dest ) {
-    dest.set_size( src.cols(), src.rows(), src.planes() );
-    rasterize( src, const_cast<DestT const&>(dest) );
+    rasterize( src, const_cast<DestT const&>(dest), BBox2i(0,0,src.cols(),src.rows()) );
   }
 
 } // namespace vw
 
-#endif // __VW_IMAGE__IMAGE_VIEW_BASE_H__
+#endif // __VW_IMAGE_IMAGE_VIEW_BASE_H__

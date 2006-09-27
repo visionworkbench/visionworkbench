@@ -38,12 +38,6 @@
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/PixelAccessors.h>
 
-// support for conversion to and from vil_image_view
-#ifdef VW_HAVE_PKG_VXL
-#include <vil/vil_image_view.txx>
-#include <vil/vil_copy.h>
-#endif
-
 namespace vw {
 
   /// The standard image container for in-memory image data.
@@ -105,21 +99,21 @@ namespace vw {
     template <class ViewT>
     ImageView( ViewT const& view ) : m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0), m_rstride(0), m_pstride(0) {
       set_size( view.cols(), view.rows(), view.planes() );
-      view.rasterize( *this );
+      view.rasterize( *this, BBox2i(0,0,view.cols(),view.rows()) );
     }
 
     /// Rasterizes the given view into the image, adjusting the size if needed.
     template <class SrcT>
     ImageView& operator=( ImageViewBase<SrcT> const& view ) {
       set_size( view.impl().cols(), view.impl().rows(), view.impl().planes() );
-      view.impl().rasterize( *this );
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
     }
 
     /// Rasterizes the given view into the image.
     template <class SrcT>
     ImageView const& operator=( ImageViewBase<SrcT> const& view ) const {
-      view.impl().rasterize( *this );
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
     }
 
@@ -195,38 +189,10 @@ namespace vw {
       }
     }
 
-#ifdef VW_HAVE_PKG_VXL
-    /// Constructs an image from the given VIL image.
-    ImageView( vil_image_view<typename CompoundChannelType<PixelT>::type> const& src ) : 
-      m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0), m_rstride(0), m_pstride(0) {
-      operator=( src );
-    }
-
-    /// Copies the given VIL image into this image.
-    ImageView& operator=( vil_image_view<typename CompoundChannelType<PixelT>::type> const& src ) {
-      unsigned channels = CompoundNumChannels<PixelT>::value;
-      if( channels != 1 && src.nplanes() != channels ) throw ArgumentErr() << "incompatible number of planes (need " << channels << ", got " << src.nplanes() << ")";
-      set_size( src.ni(), src.nj(), (channels==1)?(src.nplanes()):(1) );
-      vil_image_view<typename CompoundChannelType<PixelT>::type> wrapper = vil_view();
-      vil_copy_reformat( src, wrapper );
-      return *this;
-    }
-    
-    /// Returns a VIL image view of this view's image data.
-    vil_image_view<typename CompoundChannelType<PixelT>::type> vil_view() const {
-      unsigned channels = CompoundNumChannels<PixelT>::value;
-      VW_ASSERT( m_planes==1 || channels== 1, ArgumentErr() <<
-                 "VIL does not support having both interleaved planes (i.e channels) and non-interleaved planes" );
-      return vil_image_view<typename CompoundChannelType<PixelT>::type>( reinterpret_cast<typename CompoundChannelType<PixelT>::type*>( m_origin ),
-                                                                         m_cols, m_rows, channels*m_planes, m_cstride*channels, m_rstride*channels, 
-                                                                         (channels==1)?(m_pstride):(1) );
-    }
-#endif // VW_HAVE_PKG_VXL
-
     /// \cond INTERNAL
     typedef ImageView prerasterize_type;
-    inline prerasterize_type prerasterize() const { return *this; }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { return *this; }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 

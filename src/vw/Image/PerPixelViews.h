@@ -82,9 +82,8 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef UnaryPerPixelView<typename ImageT::prerasterize_type, FuncT> prerasterize_type;
-    inline prerasterize_type prerasterize() const
-    { return prerasterize_type( m_image.prerasterize(), m_func ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox), m_func ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
   
@@ -166,12 +165,8 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef BinaryPerPixelView<typename Image1T::prerasterize_type, typename Image2T::prerasterize_type, FuncT> prerasterize_type;
-
-    inline prerasterize_type prerasterize() const
-    { return prerasterize_type( m_image1.prerasterize(), m_image2.prerasterize(), m_func ); }
-
-    template <class DestT> inline void rasterize( DestT const& dest )
-      const { vw::rasterize( prerasterize(), dest ); }
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image1.prerasterize(bbox), m_image2.prerasterize(bbox), m_func ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 

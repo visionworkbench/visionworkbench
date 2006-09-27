@@ -23,37 +23,25 @@
 # sources
 ########################################################################
 
-if MAKE_MODULE_CORE
-core_subdirs = Core
-core_headers = Core.h
-endif
-
-if MAKE_MODULE_MATH
-math_subdirs = Math
-math_headers = Math.h
-endif
-
-if MAKE_MODULE_IMAGE
-image_subdirs = Image
-image_headers = Image.h
-endif
-
 if MAKE_MODULE_FILEIO
-fileio_subdirs = FileIO
-fileio_headers = FileIO.h
+
+TESTS = TestBlockFileIO
+
+nodist_TestBlockFileIO_SOURCES = TestBlockFileIO.cxx
+
 endif
-
-include_HEADERS = $(core_headers) $(math_headers) $(image_headers) $(fileio_headers) vw.h
-SUBDIRS = $(core_subdirs) $(math_subdirs) $(image_subdirs) $(fileio_subdirs) . tests
-
-noinst_LTLIBRARIES = libvw.la
-libvw_la_SOURCES =
-libvw_la_LIBADD = Core/libvwCore.la Image/libvwImage.la FileIO/libvwFileIO.la
 
 ########################################################################
 # general
 ########################################################################
 
-includedir = $(prefix)/include/vw
+AM_CPPFLAGS = @MODULE_VW_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
+AM_LDFLAGS  = @PKG_VW_LDFLAGS@
+
+check_PROGRAMS = $(TESTS)
+
+EXTRA_DIST = $(patsubst %,%.h,$(TESTS)) mural.png
+
+CLEANFILES = $(patsubst %,%.cxx,$(TESTS))
 
 include $(top_srcdir)/config/rules.mak
