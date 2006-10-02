@@ -195,6 +195,8 @@ AX_PKG_BOOST_LIB(PROGRAM_OPTIONS, [-lboost_program_options], [boost/program_opti
 AX_PKG_BOOST_LIB(FILESYSTEM, [-lboost_filesystem], [boost/filesystem/path.hpp])
 AX_PKG_BOOST_LIB(THREAD, [-lboost_thread], [boost/thread/thread.hpp])
 
+AX_PKG_LAPACK
+
 AX_PKG(M, [], [-lm], [math.h])
 AX_PKG(Z, [], [-lz], [zlib.h])
 AX_PKG(PNG, [], [-lpng], [png.h])
@@ -228,7 +230,7 @@ AM_CONDITIONAL(HAVE_PKG_OPENEXR, [test "$HAVE_PKG_OPENEXR" = "yes"])
 ##################################################
 
 AX_MODULE(CORE, [src/vw/Core/libvwCore.la], yes, [M BOOST])
-AX_MODULE(MATH, [src/vw/Math/libvwMath.la], yes, [CORE])
+AX_MODULE(MATH, [src/vw/Math/libvwMath.la], yes, [CORE], [LAPACK])
 AX_MODULE(IMAGE, [src/vw/Image/libvwImage.la], yes, [MATH], [VXL])
 AX_MODULE(FILEIO, [src/vw/FileIO/libvwFileIO.la], yes, [IMAGE], [OPENEXR Z PNG TIFF JPEG])
 AX_MODULE(VW, [src/vw/libvw.la], yes, [CORE MATH IMAGE], [FILEIO])

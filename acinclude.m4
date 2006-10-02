@@ -272,6 +272,67 @@ AC_DEFUN([AX_PKG_BOOST],
   fi
 ])
 
+# Usage: AX_PKG_LAPACK
+#
+# TODO: Add support for other sources of LAPACK and BLAS, such as
+# ATLAS and the Intel math libraries.  For people who don't have any
+# of these third party libraries installed, we need to fall back to
+# compiling BLAS and LAPACK ourselves.
+AC_DEFUN([AX_PKG_LAPACK],
+[
+  AC_MSG_CHECKING(for package LAPACK)
+  if test "$ENABLE_VERBOSE" = "yes"; then
+    AC_MSG_RESULT([])
+  fi
+
+  PKG_LAPACK_CPPFLAGS=
+  PKG_LAPACK_LDFLAGS=
+  HAVE_PKG_LAPACK=no
+
+	# If we are running MacOS X, we can use Apple's vecLib framework to
+  # provide us with LAPACK and BLAS routines.
+  if test $host_vendor == apple; then
+		HAVE_PKG_LAPACK="yes"
+		
+		# This workaround sidesteps a bug in libtool that prevents the
+		# -framework directive on a mac from being used when it appears in
+		# the inherited_linker_flags of a *.la file.  Instead we force the
+		# framework to appear in linker lines throughout the Vision
+		# Workbench build system.  This allows binary apps to link when
+		# necessary, and it is a harmless extra option in all other cases.
+    #
+    # Someday when libtool gets its act together, we should go for the
+    # more conservative, commented out line that follows and remove
+    # the uncommented line below.
+    LDFLAGS="$LDFLAGS -framework vecLib"
+    #	  PKG_LAPACK_LDFLAGS="-framework vecLib"
+
+    if test "$ENABLE_VERBOSE" = "yes"; then
+      AC_MSG_RESULT([found])
+    fi
+	fi
+
+  if test ${HAVE_PKG_LAPACK} = "yes" ; then
+    ax_have_pkg_bool=1
+  else
+    ax_have_pkg_bool=0
+  fi
+  AC_DEFINE_UNQUOTED([HAVE_PKG_LAPACK],
+                     [$ax_have_pkg_bool],
+                     [Define to 1 if the LAPACK package is available.])
+
+  AC_SUBST(PKG_LAPACK_CPPFLAGS)
+  AC_SUBST(PKG_LAPACK_LDFLAGS)
+  AC_SUBST(HAVE_PKG_LAPACK)
+
+  if test "$ENABLE_VERBOSE" = "yes"; then
+    AC_MSG_NOTICE([PKG_LAPACK_CPPFLAGS = ${PKG_LAPACK_CPPFLAGS}])
+    AC_MSG_NOTICE([PKG_LAPACK_LDFLAGS = ${PKG_LAPACK_LDFLAGS}])
+    AC_MSG_NOTICE([HAVE_PKG_LAPACK = ${HAVE_PKG_LAPACK}])
+  else
+    AC_MSG_RESULT([${HAVE_PKG_LAPACK}])
+  fi
+])
 
 # Usage: AX_PKG_BOOST_LIB(<name>, <dependencies>, <libraries>)
 AC_DEFUN([AX_PKG_BOOST_LIB],

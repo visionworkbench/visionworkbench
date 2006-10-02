@@ -25,13 +25,14 @@
 
 if MAKE_MODULE_MATH
 
-TESTS = TestVector TestMatrix TestBBox TestFunctions TestFunctors
+TESTS = TestVector TestMatrix TestBBox TestFunctions TestFunctors TestLinearAlgebra
 
 nodist_TestVector_SOURCES = TestVector.cxx
 nodist_TestMatrix_SOURCES = TestMatrix.cxx
 nodist_TestBBox_SOURCES = TestBBox.cxx
 nodist_TestFunctions_SOURCES = TestFunctions.cxx
 nodist_TestFunctors_SOURCES = TestFunctors.cxx
+nodist_TestLinearAlgebra_SOURCES = TestLinearAlgebra.cxx
 
 endif
 

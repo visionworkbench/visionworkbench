@@ -25,7 +25,7 @@
 
 if MAKE_MODULE_MATH
 
-include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h
+include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h LinearAlgebra.h
 
 libvwMath_la_SOURCES = 
 libvwMath_la_LIBADD = @MODULE_MATH_LDFLAGS@
