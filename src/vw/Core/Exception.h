@@ -60,6 +60,8 @@
 #include <sstream>
 #include <ostream>
 
+#include <vw/Core/Debugging.h>
+
 namespace vw {
 
   /// The core exception class.  
@@ -192,16 +194,8 @@ namespace vw {
 /// The VW_ASSERT macro throws the given exception if the given 
 /// condition is not met.  The VW_DEBUG_ASSERT macro does the 
 /// same thing, but is disabled if __VW_DEBUG_LEVEL__ is zero.
-/// The default value for __VW_DEBUG_LEVEL__ is guessed based 
-/// on whether or not NDEBUG is defined.
-#ifndef __VW_DEBUG_LEVEL__
-#ifdef NDEBUG
-#define __VW_DEBUG_LEVEL__ 0
-#else
-#define __VW_DEBUG_LEVEL__ 1
-#endif
-#endif
-
+/// The default value for __VW_DEBUG_LEVEL__ is defined in 
+/// Debugging.h.
 #define VW_ASSERT(cond,excep) do { if(!(cond)) throw (excep); } while(0)
 #if __VW_DEBUG_LEVEL__ == 0
 #define VW_DEBUG_ASSERT(cond,excep) do {} while(0)

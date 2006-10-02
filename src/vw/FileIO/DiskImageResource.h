@@ -72,7 +72,10 @@ namespace vw {
     virtual void read( GenericImageBuffer const& buf ) const = 0;
 
     /// Read a block of the image on disk into the given buffer.
-    virtual void read( GenericImageBuffer const& buf, BBox2i bbox ) const {}
+    virtual void read( GenericImageBuffer const& buf, BBox2i bbox ) const {
+      if( bbox==BBox2i(0,0,cols(),rows()) ) return read( buf );
+      throw NoImplErr() << "This DiskImageResource does not support partial reads!";
+    }
 
     /// Returns the optimal block size/alignment for partial reads.
     virtual Vector2i native_read_block_size() const { return Vector2i(cols(),rows()); }

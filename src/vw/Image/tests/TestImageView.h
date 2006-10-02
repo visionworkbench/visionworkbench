@@ -134,6 +134,70 @@ public:
     TS_ASSERT_EQUALS(test_rgba.data(), (PixelRGBA<uint8>*)0);
   }
 
+  void testRasterization()
+  {
+    ImageView<double> im1(2,2); im1(0,0)=1; im1(1,0)=2; im1(0,1)=3; im1(1,1)=4;
+    ImageView<double> im2(2,2);
+    TS_ASSERT_THROWS_NOTHING( im1.rasterize( im2, BBox2i(0,0,2,2) ) );
+    TS_ASSERT_EQUALS( im1(0,0), im2(0,0) );
+    TS_ASSERT_EQUALS( im1(1,0), im2(1,0) );
+    TS_ASSERT_EQUALS( im1(0,1), im2(0,1) );
+    TS_ASSERT_EQUALS( im1(1,1), im2(1,1) );
+    TS_ASSERT_DIFFERS( &im1(0,0), &im2(0,0) );
+    TS_ASSERT_DIFFERS( &im1(1,0), &im2(1,0) );
+    TS_ASSERT_DIFFERS( &im1(0,1), &im2(0,1) );
+    TS_ASSERT_DIFFERS( &im1(1,1), &im2(1,1) );
+  }
+
+  void testDefaultRasterization()
+  {
+    ImageView<double> im1(2,2); im1(0,0)=1; im1(1,0)=2; im1(0,1)=3; im1(1,1)=4;
+    ImageView<double> im2(2,2);
+    TS_ASSERT_THROWS_NOTHING( vw::rasterize( im1, im2, BBox2i(0,0,2,2) ) );
+    TS_ASSERT_EQUALS( im1(0,0), im2(0,0) );
+    TS_ASSERT_EQUALS( im1(1,0), im2(1,0) );
+    TS_ASSERT_EQUALS( im1(0,1), im2(0,1) );
+    TS_ASSERT_EQUALS( im1(1,1), im2(1,1) );
+    TS_ASSERT_DIFFERS( &im1(0,0), &im2(0,0) );
+    TS_ASSERT_DIFFERS( &im1(1,0), &im2(1,0) );
+    TS_ASSERT_DIFFERS( &im1(0,1), &im2(0,1) );
+    TS_ASSERT_DIFFERS( &im1(1,1), &im2(1,1) );
+  }
+
+  void testPartialRasterization()
+  {
+    ImageView<double> im1(2,2); im1(0,0)=1; im1(1,0)=2; im1(0,1)=3; im1(1,1)=4;
+    ImageView<double> im2(1,2);
+    TS_ASSERT_THROWS_NOTHING( im1.rasterize( im2, BBox2i(1,0,1,2) ) );
+    TS_ASSERT_EQUALS( im1(1,0), im2(0,0) );
+    TS_ASSERT_EQUALS( im1(1,1), im2(0,1) );
+    TS_ASSERT_DIFFERS( &im1(1,0), &im2(0,0) );
+    TS_ASSERT_DIFFERS( &im1(1,1), &im2(0,1) );
+    ImageView<double> im3(2,1);
+    TS_ASSERT_THROWS_NOTHING( im1.rasterize( im3, BBox2i(0,1,2,1) ) );
+    TS_ASSERT_EQUALS( im1(0,1), im3(0,0) );
+    TS_ASSERT_EQUALS( im1(1,1), im3(1,0) );
+    TS_ASSERT_DIFFERS( &im1(0,1), &im3(0,0) );
+    TS_ASSERT_DIFFERS( &im1(1,1), &im3(1,0) );
+  }
+
+  void testIterator()
+  {
+    ImageView<double> im(2,2); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4;
+    ImageView<double>::iterator i = im.begin();
+    TS_ASSERT_DIFFERS( i, im.end() );
+    TS_ASSERT_EQUALS( &(*i), &(im(0,0)) );
+    ++i;
+    TS_ASSERT_DIFFERS( i, im.end() );
+    TS_ASSERT_EQUALS( &(*i), &(im(1,0)) );
+    ++i;
+    TS_ASSERT_DIFFERS( i, im.end() );
+    TS_ASSERT_EQUALS( &(*i), &(im(0,1)) );
+    ++i;
+    TS_ASSERT_DIFFERS( i, im.end() );
+    TS_ASSERT_EQUALS( &(*i), &(im(1,1)) );
+    ++i;
+    TS_ASSERT_EQUALS( i, im.end() );
+  }
+
 };
-
-

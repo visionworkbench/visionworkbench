@@ -34,8 +34,6 @@
 #include <vw/FileIO/DiskImageResourceJPEG.h>
 #include <vw/Core/Exception.h>
 
-#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
-
 extern "C" {
 #include <jpeglib.h>
 }
@@ -304,5 +302,3 @@ vw::DiskImageResource* vw::DiskImageResourceJPEG::construct_create( std::string 
                                                                     GenericImageFormat const& format ) {
   return new DiskImageResourceJPEG( filename, format );
 }
-
-#endif // HAVE_PKG_JPEG

@@ -125,6 +125,14 @@ namespace vw {
       return &(operator()(0,0));
     }
 
+    bool valid() const {
+      return m_data;
+    }
+
+    bool unique() const {
+      return (!m_data) || m_data.unique();
+    }
+
     /// Returns the number of columns in the image.
     inline unsigned cols() const { return m_cols; }
 

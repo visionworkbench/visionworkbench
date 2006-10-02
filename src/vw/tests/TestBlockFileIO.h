@@ -23,10 +23,11 @@
 #define CXXTEST_ABORT_TEST_ON_FAIL
 #include <cxxtest/TestSuite.h>
 #include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/DiskImageResourceTIFF.h>
 
 #include <vw/Image.h>
 #include <vw/FileIO.h>
-
+#include <vw/FileIO/DiskImageView.h>
 using namespace vw;
 
 class TestDiskImageResource : public CxxTest::TestSuite
@@ -34,14 +35,21 @@ class TestDiskImageResource : public CxxTest::TestSuite
 public:
 
   void test_read_image() {
+    set_debug_level(DebugMessage);
     std::cout << std::endl;
+
+    DiskImageResource *dir;
+    TS_ASSERT_THROWS_NOTHING( dir = DiskImageResource::open( "mural.png" ) );
+
     ImageView<PixelRGB<uint8> > image;
-    DiskImageResource *dim;
-    TS_ASSERT_THROWS_NOTHING( dim = DiskImageResource::open( "mural.png" ) );
-    std::cout << "Block size: " << dim->native_read_block_size() << std::endl;
-    TS_ASSERT_THROWS_NOTHING( dim->read(image, BBox2i(100,100,100,100) ) );
-    std::cout << "Image: " << image.cols() << "x" << image.rows() << std::endl;
-    TS_ASSERT_THROWS_NOTHING( write_image( "mural.tif", image ) );
+    TS_ASSERT_THROWS_NOTHING( dir->read(image, BBox2i(100,100,100,100) ) );
+    TS_ASSERT_THROWS_NOTHING( write_image( "mural.cropped.png", image ) );
+
+    TS_ASSERT_THROWS_NOTHING( dir->read(image) );
+    write_image( "mural.tif", image );
+    DiskImageView<PixelRGB<uint8> > div( "mural.tif" );
+    ImageView<PixelRGB<uint8> > result = crop(div,100,100,100,100);
+    write_image( "mural.cropped.tif", result );
   }
 
 }; // class TestBlockFileIO

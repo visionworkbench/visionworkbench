@@ -45,7 +45,7 @@ openexr_headers = DiskImageResourceOpenEXR.h
 openexr_sources = DiskImageResourceOpenEXR.cc
 endif
 
-include_HEADERS = DiskImageResource.h DiskImageResourcePDS.h	\
+include_HEADERS = DiskImageResource.h DiskImageView.h DiskImageResourcePDS.h	\
 	$(png_headers) $(tiff_headers) $(openexr_headers) $(jpeg_headers)
 
 libvwFileIO_la_SOURCES = DiskImageResource.cc DiskImageResourcePDS.cc	\

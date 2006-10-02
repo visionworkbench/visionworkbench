@@ -35,68 +35,89 @@
 #include <tiffio.h>
 
 #include <vw/Core/Exception.h>
+#include <vw/Core/Debugging.h>
 #include <vw/FileIO/DiskImageResourceTIFF.h>
 
-// Define the following macro if you want libtiff to show warning messages
-// #define VW_TIFF_SHOW_WARNINGS
-
-void tiff_warning_handler(const char* module, const char* frmt, va_list ap) {
-#ifdef VW_TIFF_SHOW_WARNINGS
-  std::cout << "Warning  ";
-  if (module) { printf(frmt, module); }
-  else { printf(frmt, ""); }
-  printf("\n");
+#ifndef VW_ERROR_BUFFER_SIZE
+#define VW_ERROR_BUFFER_SIZE 2048
 #endif
+
+/// Handle libTIFF warning conditions by outputting message text at the 
+/// DebugMessage verbosity level.
+static void tiff_warning_handler(const char* module, const char* frmt, va_list ap) {
+  char msg[VW_ERROR_BUFFER_SIZE];
+  vsnprintf( msg, VW_ERROR_BUFFER_SIZE, frmt, ap );
+  vw::vw_out(vw::DebugMessage) << "DiskImageResourceTIFF (" << (module?module:"none") << ") Warning: " << msg << std::endl;
 }
 
-void tiff_error_handler(const char* module, const char* frmt, va_list ap) {
-  char error_msg[2048];
-  if (module) { snprintf(error_msg, 2048, frmt, module); }
-  else { snprintf(error_msg, 2048, frmt, ""); }
-  throw vw::IOErr() << "DiskImageResourceTIFF: A libtiff error occured. " << std::string(error_msg);
+/// Handle libTIFF error conditions by throwing an IOErr with the 
+/// message text.
+static void tiff_error_handler(const char* module, const char* frmt, va_list ap) {
+  char msg[VW_ERROR_BUFFER_SIZE];
+  vsnprintf( msg, VW_ERROR_BUFFER_SIZE, frmt, ap );
+  throw vw::IOErr() << "DiskImageResourceTIFF (" << (module?module:"none") << ") Error: " << msg;
 }
 
-
-/// Close the TIFF file when the object is destroyed
+/// Destructor: flush and close the file.
 vw::DiskImageResourceTIFF::~DiskImageResourceTIFF() {
-  this->flush();
+  flush();
+  if( m_tif_ptr ) {
+    TIFFClose( (TIFF*)m_tif_ptr );
+  }
+  m_tif_ptr = 0;
 }
   
-/// Flush the buffered data to disk
+/// Flush any buffered data to disk.
 void vw::DiskImageResourceTIFF::flush() {
-  if (m_tif_ptr) {
+  if( m_tif_ptr ) {
     TIFFFlush((TIFF*) m_tif_ptr);
-    m_tif_ptr = NULL;
+  }
+}
+
+vw::Vector2i vw::DiskImageResourceTIFF::native_read_block_size() const {
+  TIFF *tif = (TIFF*)m_tif_ptr;
+  if( TIFFIsTiled(tif) ) {
+    vw_out(WarningMessage) << "DiskImageResourceTIFF Warning: Tile-based partial image reading is untested!" << std::cout;
+    uint32 tile_width, tile_length;
+    TIFFGetField( tif, TIFFTAG_TILEWIDTH, &tile_width );
+    TIFFGetField( tif, TIFFTAG_TILELENGTH, &tile_length );
+    return Vector2i(tile_width,tile_length);
+  }
+  else {
+    uint32 rows_per_strip;
+    TIFFGetField( tif, TIFFTAG_ROWSPERSTRIP, &rows_per_strip );
+    return Vector2i(cols(),rows_per_strip);
   }
 }
 
 /// Bind the resource to a file for reading.  Confirm that we can open
 /// the file and that it has a sane pixel format.  
-void vw::DiskImageResourceTIFF::open( std::string const& filename )
-{
-  TIFFSetWarningHandler(&tiff_warning_handler);
-  TIFFSetErrorHandler(&tiff_error_handler);
+void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
+  TIFFSetWarningHandler( &tiff_warning_handler );
+  TIFFSetErrorHandler( &tiff_error_handler );
 
-  TIFF* tif = TIFFOpen(filename.c_str(), "r");
-  if( !tif  ) throw vw::IOErr() << "Failed to open \"" << filename << "\" using libTIFF.";
-  m_tif_ptr = (void*) tif;
+  TIFF* tif = TIFFOpen( filename.c_str(), "r" );
+  if( !tif ) throw vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << filename << "\" for reading!";
   m_filename = filename;
+  m_tif_ptr = (void*) tif;
 
-  TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &(m_format.cols));
-  TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &(m_format.rows));
-  TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &(m_format.planes));
+  TIFFGetField( tif, TIFFTAG_IMAGEWIDTH, &(m_format.cols) );
+  TIFFGetField( tif, TIFFTAG_IMAGELENGTH, &(m_format.rows) );
+  TIFFGetField( tif, TIFFTAG_SAMPLESPERPIXEL, &(m_format.planes) );
 
   uint32 sample_format = 0, bits_per_sample = 0;
-  TIFFGetField(tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample);
-  TIFFGetField(tif, TIFFTAG_SAMPLEFORMAT, &sample_format);
+  TIFFGetField( tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample );
+  TIFFGetField( tif, TIFFTAG_SAMPLEFORMAT, &sample_format );
   // Some TIFF files don't actually specify the sample format, but in
   // this case the format is almost always UINT, so we force this
   // assumption here.
-  if (sample_format == 0) {
+  if( sample_format == 0 ) {
+    vw_out(DebugMessage) << "DiskImageResourceTIFF: " << m_filename << " does not specify sample format; assuming UINT!" << std::endl;
     sample_format = SAMPLEFORMAT_UINT;
   }
 
-  switch (sample_format) {
+  m_format.channel_type = VW_CHANNEL_UNKNOWN;
+  switch( sample_format ) {
   case SAMPLEFORMAT_UINT:
     if (bits_per_sample == 8)
       m_format.channel_type = VW_CHANNEL_UINT8;
@@ -106,8 +127,6 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename )
       m_format.channel_type = VW_CHANNEL_UINT32;
     else if (bits_per_sample == 64) 
       m_format.channel_type = VW_CHANNEL_UINT64;
-    else 
-      throw IOErr() << "DiskImageResourceTIFF: Unsupported pixel format.";
     break;
   case SAMPLEFORMAT_INT:
     if (bits_per_sample == 8)
@@ -118,8 +137,6 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename )
       m_format.channel_type = VW_CHANNEL_INT32;
     else if (bits_per_sample == 64) 
       m_format.channel_type = VW_CHANNEL_INT64;
-    else 
-      throw IOErr() << "DiskImageResourceTIFF: Unsupported pixel format.";
     break;
   case SAMPLEFORMAT_IEEEFP:
     if (bits_per_sample == 16) 
@@ -128,20 +145,20 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename )
       m_format.channel_type = VW_CHANNEL_FLOAT32;
     else if (bits_per_sample == 64) 
       m_format.channel_type = VW_CHANNEL_FLOAT64;    
-    else 
-      throw IOErr() << "DiskImageResourceTIFF: Unsupported pixel format.";
     break;
-  default:
-    throw IOErr() << "DiskImageResourceTIFF: Unsupported pixel format.";
   }
-  
+  if( ! m_format.channel_type ) {
+    throw IOErr() << "DiskImageResourceTIFF: " << m_filename << " has an unsupported channel type ("
+                  << sample_format << "," << bits_per_sample << ")!";
+  }
+
   uint32 plane_configuration = 0;
   TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &plane_configuration);
 
   // XXX TODO: Tiff might actually provide us with some info on
   // colorimetric interpretation of the channels, so maybe we should
   // try to use that here as well?
-  if (plane_configuration == PLANARCONFIG_CONTIG) {
+  if( plane_configuration == PLANARCONFIG_CONTIG ) {
     switch( m_format.planes ) {
     case 1:  m_format.pixel_format = VW_PIXEL_GRAY;   break;
     case 2:  m_format.pixel_format = VW_PIXEL_GRAYA;  m_format.planes=1; break;
@@ -175,41 +192,55 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
 }
 
 /// Read the disk image into the given buffer.
-void vw::DiskImageResourceTIFF::read( GenericImageBuffer const& dest ) const
+void vw::DiskImageResourceTIFF::read( GenericImageBuffer const& dest, BBox2i bbox ) const
 {
-  VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
-             IOErr() << "Buffer has wrong dimensions in TIFF read." );
+  VW_ASSERT( dest.format.cols==bbox.width() && dest.format.rows==bbox.height(),
+             ArgumentErr() << "DiskImageResourceTIFF (read) Error: Destination buffer has wrong dimensions!" );
 
   TIFF* tif = (TIFF*) m_tif_ptr;
-  uint32 image_length = 0, image_width = 0, config = 0;
 
-  TIFFGetField(tif, TIFFTAG_IMAGELENGTH, &image_length);
-  TIFFGetField(tif, TIFFTAG_IMAGEWIDTH, &image_width);
-  TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &config);
-  uint32 scanline_size = TIFFScanlineSize(tif);
-
-  // Allocate a buffer for reading in the data and read it, scanline
-  // by scanline from disk.
-  tdata_t buf = _TIFFmalloc(scanline_size * image_length * m_format.planes);
-  uint16 s, nsamples;
-  
-  for (uint32 p = 0; p < m_format.planes; p++) {
-    for (uint32 row = 0; row < image_length; row++) {
-      TIFFReadScanline(tif, (uint8*)buf + row*scanline_size+p*scanline_size*image_length, row, p);
-    }
+  if( TIFFIsTiled(tif) ) {
+    throw NoImplErr() << "DiskImageResourceTIFF (read) Error: Reading from tile-based TIFF files is not yet supported!";
   }
+  else {
+    tdata_t buf = _TIFFmalloc( TIFFStripSize(tif) );
+    
+    uint32 config = 0;
+    TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &config);
+    if( config==PLANARCONFIG_SEPARATE )
+      throw NoImplErr() << "DiskImageResourceTIFF (read) Error: Reading from separate-plane TIFF files is not yet supported!";
 
-  // Set up a generic image buffer around the tdata_t buf object that
-  // tiff used to copy it's data.
-  GenericImageBuffer src;
-  src.data = (uint8*)buf;
-  src.format = m_format;
-  src.cstride = scanline_size / image_width;
-  src.rstride = scanline_size;
-  src.pstride = scanline_size * image_length;
+    uint32 rows_per_strip;
+    uint32 scanline_size = TIFFScanlineSize(tif);    
+    TIFFGetField( tif, TIFFTAG_ROWSPERSTRIP, &rows_per_strip );
+
+    GenericImageBuffer strip_src, strip_dest=dest;
+    strip_src.format = m_format;
+    strip_src.format.cols = bbox.width();
+    strip_src.cstride = scanline_size / m_format.cols;
+    strip_src.rstride = scanline_size;
+    strip_src.pstride = scanline_size * m_format.rows;
+
+    int minstrip=bbox.min().y()/rows_per_strip, maxstrip=(bbox.max().y()-1)/rows_per_strip;
+    for( int strip=minstrip; strip<=maxstrip; ++strip ) {
+      int strip_top = std::max(strip*rows_per_strip,uint32(bbox.min().y()));
+      int strip_rows = std::min((strip+1)*rows_per_strip,uint32(bbox.max().y()))-strip_top;
+
+      VW_DEBUG( vw_out(DebugMessage) << "DiskImageResourceTIFF reading strip " << strip 
+                << " (rows " << strip_top << "-" << strip_top+strip_rows-1 << ") from " << m_filename << std::endl; )
+      TIFFReadEncodedStrip( tif, strip, buf, (tsize_t) -1 );
+
+      strip_src.data = ((uint8*)buf) + bbox.min().x()*strip_src.cstride + (strip_top-strip*rows_per_strip)*strip_src.rstride;
+      strip_src.format.rows = strip_rows;
+
+      strip_dest.data = ((uint8*)dest.data) + (strip_top-bbox.min().y())*strip_dest.rstride;
+      strip_dest.format.rows = strip_rows;
+
+      convert( strip_dest, strip_src );
+    }
   
-  convert( dest, src );
-  _TIFFfree(buf);
+    _TIFFfree(buf);
+  }
 }
 
 // Write the given buffer into the disk image.

@@ -284,6 +284,18 @@ namespace math {
     return result;
   }
 
+  /// Equality of two bounding boxes.
+  template <class Real1T, class Real2T, int DimN>
+  inline bool operator==( BBox<Real1T,DimN> const& bbox1, BBox<Real2T,DimN> const& bbox2 ) {
+    return bbox1.min()==bbox2.min() && bbox1.max()==bbox2.max();
+  }
+
+  /// Inequality of two bounding boxes.
+  template <class Real1T, class Real2T, int DimN>
+  inline bool operator!=( BBox<Real1T,DimN> const& bbox1, BBox<Real2T,DimN> const& bbox2 ) {
+    return bbox1.min()!=bbox2.min() || bbox1.max()!=bbox2.max();
+  }
+
   /// Writes a bounding box to an ostream.
   template <class RealT, int DimN>
   std::ostream& operator<<( std::ostream& os, BBox<RealT,DimN> const& bbox ) {

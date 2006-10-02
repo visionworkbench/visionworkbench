@@ -230,7 +230,7 @@ AM_CONDITIONAL(HAVE_PKG_OPENEXR, [test "$HAVE_PKG_OPENEXR" = "yes"])
 AX_MODULE(CORE, [src/vw/Core/libvwCore.la], yes, [M BOOST])
 AX_MODULE(MATH, [src/vw/Math/libvwMath.la], yes, [CORE])
 AX_MODULE(IMAGE, [src/vw/Image/libvwImage.la], yes, [MATH], [VXL])
-AX_MODULE(FILEIO, [src/vw/FileIO/libvwFileIO.la], yes, [IMAGE], [OPENEXR Z  PNG TIFF JPEG])
+AX_MODULE(FILEIO, [src/vw/FileIO/libvwFileIO.la], yes, [IMAGE], [OPENEXR Z PNG TIFF JPEG])
 AX_MODULE(VW, [src/vw/libvw.la], yes, [CORE MATH IMAGE], [FILEIO])
 if test ${MAKE_MODULE_VW} != "yes"; then
   AC_MSG_ERROR([cannot build the Vision Workbench core!])

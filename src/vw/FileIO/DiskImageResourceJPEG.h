@@ -26,10 +26,6 @@
 #ifndef __VW_FILEIO_DISK_IMAGE_RESOUCE_JPEG_H__
 #define __VW_FILEIO_DISK_IMAGE_RESOUCE_JPEG_H__
 
-#include <vw/config.h>
-
-#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
-
 #include <string>
 
 #include <vw/Image/PixelTypes.h>
@@ -116,7 +112,5 @@ namespace vw {
   };
 
 } // namespace vw
-
-#endif // HAVE_PGK_JPEG
 
 #endif // __VW_FILEIO_DISK_IMAGE_RESOUCE_JPEG_H__

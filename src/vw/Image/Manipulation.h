@@ -293,8 +293,12 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef CropView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox), m_ci, m_cj, m_di, m_dj ); }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    inline prerasterize_type prerasterize( BBox2i bbox ) const {
+      return prerasterize_type( m_image.prerasterize(bbox+Vector2i(m_ci,m_cj)), m_ci, m_cj, m_di, m_dj );
+    }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+      m_image.rasterize( dest, bbox+Vector2i(m_ci,m_cj) );
+    }
     /// \endcond
   };
 
