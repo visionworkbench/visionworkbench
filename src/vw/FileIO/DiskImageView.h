@@ -57,7 +57,7 @@ namespace vw {
       }
       
       boost::shared_ptr<ImageView<PixelT> > generate() const {
-        vw_out(DebugMessage) << "Reading block " << m_bbox << " from " << m_view_ptr->filename() << std::endl;
+        vw_out(DebugMessage) << "DiskImageView reading block " << m_bbox << " from " << m_view_ptr->filename() << std::endl;
         boost::shared_ptr<ImageView<PixelT> > ptr( new ImageView<PixelT>( m_bbox.width(), m_bbox.height(), m_view_ptr->planes() ) );
         m_view_ptr->r->read( GenericImageBuffer(*ptr), m_bbox );
         return ptr;
@@ -145,7 +145,8 @@ namespace vw {
     /// \cond INTERNAL
     typedef DiskImageView prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i bbox ) const { return *this; }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { 
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+      VW_DEBUG( vw_out(VerboseDebugMessage) << "DiskImageView rasterizing block " << bbox << " from " << m_filename << std::endl; )
       int ix0=bbox.min().x()/m_block_size.x(), iy=bbox.min().y()/m_block_size.y();
       int maxix=(bbox.max().x()-1)/m_block_size.x(), maxiy=(bbox.max().y()-1)/m_block_size.y();
       for( ; iy <= maxiy; ++iy ) {

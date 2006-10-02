@@ -202,4 +202,64 @@ public:
     TS_ASSERT( is_of_type<double>( *(separable_convolution_filter( src, krn, krn, ZeroEdgeExtend() ).origin()) ) );
   }
 
+  void test_2x2_conv_box_filter() {
+    ImageView<double> kernel(2,2); kernel(0,0)=0.25; kernel(1,0)=0.25; kernel(0,1)=0.25; kernel(1,1)=0.25;
+    {
+    ImageView<double> src(2,2); src(0,0)=1; src(1,0)=0; src(0,1)=0; src(1,1)=0;
+    ConvolutionView<ImageView<double>,ImageView<double>,ZeroEdgeExtend> cnv( src, kernel, 1, 1 );
+    TS_ASSERT_EQUALS( cnv.cols(), 2 );
+    TS_ASSERT_EQUALS( cnv.rows(), 2 );
+    TS_ASSERT_EQUALS( cnv.planes(), 1 );
+    TS_ASSERT_EQUALS( cnv(0,0), 0.25 );
+    TS_ASSERT_EQUALS( cnv(0,1), 0 );
+    TS_ASSERT_EQUALS( cnv(1,0), 0 );
+    TS_ASSERT_EQUALS( cnv(1,1), 0 );
+    ImageView<double> dst = cnv;
+    TS_ASSERT_EQUALS( dst.cols(), 2 );
+    TS_ASSERT_EQUALS( dst.rows(), 2 );
+    TS_ASSERT_EQUALS( dst.planes(), 1 );
+    TS_ASSERT_EQUALS( dst(0,0), 0.25 );
+    TS_ASSERT_EQUALS( dst(0,1), 0 );
+    TS_ASSERT_EQUALS( dst(1,0), 0 );
+    TS_ASSERT_EQUALS( dst(1,1), 0 );
+    }
+    {
+    ImageView<double> src(2,2); src(0,0)=1; src(1,0)=2; src(0,1)=3; src(1,1)=4;
+    ImageView<double> dst = convolution_filter( src, kernel, 1, 1, ZeroEdgeExtend() );
+    TS_ASSERT_EQUALS( dst.cols(), 2 );
+    TS_ASSERT_EQUALS( dst.rows(), 2 );
+    TS_ASSERT_EQUALS( dst.planes(), 1 );
+    TS_ASSERT_EQUALS( dst(0,0), 2.5 );
+    TS_ASSERT_EQUALS( dst(0,1), 1.75 );
+    TS_ASSERT_EQUALS( dst(1,0), 1.5 );
+    TS_ASSERT_EQUALS( dst(1,1), 1 );
+    }
+  }
+
+  void test_2x2_sepconv_box_filter() {
+    std::vector<float> kernel(2); kernel[0]=0.5; kernel[1]=0.5;
+    {
+    ImageView<double> src(2,2); src(0,0)=1; src(1,0)=0; src(0,1)=0; src(1,1)=0;
+    ImageView<double> dst = separable_convolution_filter( src, kernel, kernel, 1, 1, ZeroEdgeExtend() );
+    TS_ASSERT_EQUALS( dst.cols(), 2 );
+    TS_ASSERT_EQUALS( dst.rows(), 2 );
+    TS_ASSERT_EQUALS( dst.planes(), 1 );
+    TS_ASSERT_EQUALS( dst(0,0), 0.25 );
+    TS_ASSERT_EQUALS( dst(0,1), 0 );
+    TS_ASSERT_EQUALS( dst(1,0), 0 );
+    TS_ASSERT_EQUALS( dst(1,1), 0 );
+    }
+    {
+    ImageView<double> src(2,2); src(0,0)=1; src(1,0)=2; src(0,1)=3; src(1,1)=4;
+    ImageView<double> dst = separable_convolution_filter( src, kernel, kernel, 1, 1, ZeroEdgeExtend() );
+    TS_ASSERT_EQUALS( dst.cols(), 2 );
+    TS_ASSERT_EQUALS( dst.rows(), 2 );
+    TS_ASSERT_EQUALS( dst.planes(), 1 );
+    TS_ASSERT_EQUALS( dst(0,0), 2.5 );
+    TS_ASSERT_EQUALS( dst(0,1), 1.75 );
+    TS_ASSERT_EQUALS( dst(1,0), 1.5 );
+    TS_ASSERT_EQUALS( dst(1,1), 1 );
+    }
+  }
+
 }; // class TestFilter

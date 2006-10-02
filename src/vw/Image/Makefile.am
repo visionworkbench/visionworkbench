@@ -30,7 +30,7 @@ include_HEADERS = PixelIterator.h ImageViewBase.h PixelAccessors.h	\
 	PixelTypes.h GenericImageBuffer.h Manipulation.h		\
 	PerPixelViews.h ImageMath.h EdgeExtend.h Interpolation.h	\
 	Convolution.h Filter.h Filter.h Filter.tcc Transform.h		\
-	Statistics.h
+	Statistics.h Algorithms.h
 
 libvwImage_la_SOURCES = GenericImageBuffer.cc Filter.cc
 libvwImage_la_LIBADD = @MODULE_IMAGE_LDFLAGS@

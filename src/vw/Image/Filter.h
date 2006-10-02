@@ -104,11 +104,11 @@ namespace vw {
   }
 
   /// This is an overloaded function provided for convenience; see vw::convolution_filter.
-  /// It assumes that the origin of the kernel is at the point <B>(kernel.cols()/2,kernel.rows()/2)</B>.
+  /// It assumes that the origin of the kernel is at the point <B>((kernel.cols()-1)/2,(kernel.rows()-1)/2)</B>.
   template <class SrcT, class KernelT, class EdgeT>
   inline ConvolutionView<SrcT,KernelT,EdgeT>
   convolution_filter( ImageViewBase<SrcT> const& src, KernelT const& kernel, EdgeT edge ) {
-    return ConvolutionView<SrcT,KernelT,EdgeT>( src.impl(), kernel, kernel.cols()/2, kernel.rows()/2, edge );
+    return ConvolutionView<SrcT,KernelT,EdgeT>( src.impl(), kernel, edge );
   }
 
   /// This is an overloaded function provided for convenience; see vw::convolution_filter.
@@ -120,12 +120,12 @@ namespace vw {
   }
 
   /// This is an overloaded function provided for convenience; see vw::convolution_filter.
-  /// It assumes that the origin of the kernel is at the point <B>(kernel.cols()/2,kernel.rows()/2)</B>
+  /// It assumes that the origin of the kernel is at the point <B>((kernel.cols()-1)/2,(kernel.rows()-1)/2)</B>
   /// and uses the default vw::ConstantEdgeExtend mode.
   template <class SrcT, class KernelT>
   inline ConvolutionView<SrcT,KernelT,ConstantEdgeExtend>
   convolution_filter( ImageViewBase<SrcT> const& src, KernelT const& kernel ) {
-    return ConvolutionView<SrcT,KernelT,ConstantEdgeExtend>( src.impl(), kernel, kernel.cols()/2, kernel.rows()/2 );
+    return ConvolutionView<SrcT,KernelT,ConstantEdgeExtend>( src.impl(), kernel );
   }
 
 
@@ -149,7 +149,7 @@ namespace vw {
   template <class SrcT, class KRangeT, class EdgeT>
   inline SeparableConvolutionView<SrcT,typename KRangeT::value_type,EdgeT>
   separable_convolution_filter( ImageViewBase<SrcT> const& src, KRangeT const& x_kernel, KRangeT const& y_kernel, EdgeT edge ) {
-    return SeparableConvolutionView<SrcT,typename KRangeT::value_type,EdgeT>( src.impl(), x_kernel, y_kernel, x_kernel.size()/2, y_kernel.size()/2, edge );
+    return SeparableConvolutionView<SrcT,typename KRangeT::value_type,EdgeT>( src.impl(), x_kernel, y_kernel, edge );
   }
 
   /// This is an overloaded function provided for convenience; see vw::separable_convolution_filter.
@@ -161,7 +161,7 @@ namespace vw {
   }
 
   /// This is an overloaded function provided for convenience; see vw::separable_convolution_filter.
-  /// It assumes that the origin of the kernel is at the point <B>(x_kernel.size()/2,y_kernel.size()/2)</B>
+  /// It assumes that the origin of the kernel is at the point <B>((x_kernel.size()-1)/2,(y_kernel.size()-1)/2)</B>
   /// and uses the default vw::ConstantEdgeExtend mode.
   /// (Note that this requires that the kernel objects support the size() method.)
   template <class SrcT, class KRangeT>

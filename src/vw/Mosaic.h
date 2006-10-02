@@ -19,35 +19,12 @@
 //
 // __END_LICENSE__
 
-/// \file vw.h
+/// \file Mosaic.h
 /// 
-/// A convenience header that includes all the public Vision Workbench
-/// header files.  Careful: this is an awful lot of stuff, and you may
-/// want be more selective!
+/// A convenience header that includes the header files in vw/Mosaic.
 /// 
-#ifndef __VW_VW_H__
-#define __VW_VW_H__
+#ifndef __VW_MOSAIC_H__
+#define __VW_MOSAIC_H__
 
-#include <vw/config.h>
 
-#if defined(VW_HAVE_PKG_CORE) && VW_HAVE_PKG_CORE==1
-#include <vw/Core.h>
-#endif
-
-#if defined(VW_HAVE_PKG_MATH) && VW_HAVE_PKG_MATH==1
-#include <vw/Math.h>
-#endif
-
-#if defined(VW_HAVE_PKG_IMAGE) && VW_HAVE_PKG_IMAGE==1
-#include <vw/Image.h>
-#endif
-
-#if defined(VW_HAVE_PKG_FILEIO) && VW_HAVE_PKG_FILEIO==1
-#include <vw/FileIO.h>
-#endif
-
-#if defined(VW_HAVE_PKG_MOSAIC) && VW_HAVE_PKG_MOSAIC==1
-#include <vw/Mosaic.h>
-#endif
-
-#endif // __VW_VW_H__
+#endif // __VW_MOSAIC_H__
