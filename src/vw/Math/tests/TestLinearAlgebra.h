@@ -315,5 +315,50 @@ public:
   } 
 
 
+  // Test the svd(A,U,s,VT) routine with a float matrix
+  void test_pseudoinverse()
+  {
+    Matrix<float> A(4,4);
+    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25; A(0,3) = 98;
+    A(1,0) = 327;  A(1,1) = 2; A(1,2) = 76; A(1,3) = 66;
+    A(2,0) = 234;  A(2,1) = 26; A(2,2) = 76; A(2,3) = 662;
+    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323; A(3,3) = 23;
+
+    Matrix<float> pinv = pseudoinverse(A);
+
+    TS_ASSERT_DELTA(pinv(0,0), -0.0075, 0.0001);
+    TS_ASSERT_DELTA(pinv(0,1), 0.0030, 0.0001);
+    TS_ASSERT_DELTA(pinv(1,0),  -0.1657, 0.0001);
+    TS_ASSERT_DELTA(pinv(2,3),  0.0015, 0.0001);
+
+    A = Matrix<float>(3,4);
+    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25; A(0,3) = 98;
+    A(1,0) = 327;  A(1,1) = 2; A(1,2) = 76; A(1,3) = 66;
+    A(2,0) = 234;  A(2,1) = 26; A(2,2) = 76; A(2,3) = 662;
+
+    pinv = pseudoinverse(A);
+
+    TS_ASSERT_DELTA(pinv(0,0), -0.0134, 0.0001);
+    TS_ASSERT_DELTA(pinv(0,1), 0.0028, 0.0001);
+    TS_ASSERT_DELTA(pinv(1,0), -0.0110, 0.0001);
+    TS_ASSERT_DELTA(pinv(1,2), 0.0017, 0.0001);
+
+    TS_ASSERT_EQUALS(pinv.rows(), A.cols());
+    TS_ASSERT_EQUALS(pinv.cols(), A.rows());
+
+    A = Matrix<float>(4,3);
+    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25; 
+    A(1,0) = 327;  A(1,1) = 2; A(1,2) = 76;
+    A(2,0) = 234;  A(2,1) = 26; A(2,2) = 76;
+    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323; 
+
+    pinv = pseudoinverse(A);
+
+    TS_ASSERT_EQUALS(pinv.rows(), A.cols());
+    TS_ASSERT_EQUALS(pinv.cols(), A.rows());
+
+  } 
+
+
 
 }; // class TestVector

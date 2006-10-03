@@ -37,16 +37,51 @@ namespace vw {
 /// Numerical linear algebra and computational geometry.
 namespace math {
 
-//   /// Compute the eigenvalues of a Matrix A
-//   ///
-//   /// E must be a complex vector and will be resized if necessary to
-//   /// the appropriate output dimensions based on the dimensions of A.
-//   template <class MatrixT, class EigenvaluesT> 
-//   inline void eigen( MatrixT &A, EigenvaluesT &e ) {
-//     VW_ASSERT( A.cols()==A.rows(), ArgumentErr() << "Eigendecomposition can only be performed on square matrices." );
-//     e.set_size( A.cols() );
-//     lapack::geev(A,e,(MatrixT*)0,(MatrixT*)0,lapack::optimal_workspace());
-//   }
+  /// \cond INTERNAL
+  extern "C"  int sgeev_(char *jobvl, char *jobvr, int *n, float *a, 
+                         int *lda, float *wr, float *wi, float *vl, int *ldvl, float *vr, 
+                         int *ldvr, float *work, int *lwork, int *info);
+
+  extern "C"  int dgeev_(char *jobvl, char *jobvr, int *n, double *a, 
+                         int *lda, double *wr, double *wi, double *vl, int *ldvl, double *vr, 
+                         int *ldvr, double *work, int *lwork, int *info);
+
+
+  static inline void geev(char jobvl, char jobvr, int n, float *a, int lda, float *wr, float *wi, float *vl, int ldvl, float *vr, int ldvr, float *work, int lwork, int *info) {
+    sgeev_(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
+  }
+
+  static inline void geev(char jobvl, char jobvr, int n, double *a, int lda, double *wr, double *wi, double *vl, int ldvl, double *vr, int ldvr, double *work, int lwork, int *info) {
+    dgeev_(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
+  }
+  /// \endcond
+
+  /// Compute the eigenvalues of a Matrix A
+  ///
+  /// E must be a complex vector and will be resized if necessary to
+  /// the appropriate output dimensions based on the dimensions of A.
+  template <class MatrixT, class EigenvaluesT> 
+  inline void eigen( MatrixT const& A, EigenvaluesT &e ) {
+    VW_ASSERT( A.cols()==A.rows(), ArgumentErr() << "Eigendecomposition can only be performed on square matrices." );
+    typedef typename MatrixT::value_type real_type;
+    const int lda = A.rows();
+    Matrix<real_type> Abuf = transpose(A);
+    Vector<real_type> wr_buf( A.cols() );
+    Vector<real_type> wi_buf( A.cols() );
+    real_type work_size;
+    int lwork = -1, info;
+    geev('N','N',&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, &work_size, lwork, &info);
+    lwork = int(work_size);
+    real_type work[lwork];
+    geev('N','N',&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, &work, lwork, &info);
+    if (info < 0) 
+      throw ArgumentErr() << "eigen(): LAPACK driver geev reported an error with argument " << -info << ".";
+    if (info > 0) 
+      throw ArgumentErr() << "eigen(): LAPACK driver geev only converged for the first " << info << "eigenvectors.";
+    e.set_size( A.cols() );
+    for (int i = 0; i < wr_buf.size(); i++) 
+      e(i) = std::complex<real_type>(wr_buf(i), wi_buf(i));
+  }
 
 //   /// Compute the entire eigendecomposition of the matrix A.
 //   ///
@@ -177,21 +212,21 @@ namespace math {
   }
 
 
-//   /// Computes the pseudoinverse A* of a real matrix A.
-//   template <class AMatrixT>
-//   Matrix<typename AMatrixT::value_type> pseudoinverse( AMatrixT & A, double cond = 0 ) {
-//     Matrix<typename AMatrixT::value_type> u, vt;
-//     Vector<typename AMatrixT::value_type> s;
-//     svd( A, u, s, vt );
-//     Matrix<typename AMatrixT::value_type> si(s.size(),s.size());
-//     for( unsigned i=0; i<s.size(); ++i ) {
-//       for( unsigned j=0; j<s.size(); ++j ) {
-//         if( i==j ) si(i,j) = ( fabs(s(i)) <= cond*s(0) ) ? 0 : 1/s(i);
-//         else si(i,j) = 0;
-//       }
-//     }
-//     return vt*si*transpose(u);
-//   }
+  /// Computes the pseudoinverse A* of a real matrix A.
+  template <class AMatrixT>
+  Matrix<typename AMatrixT::value_type> pseudoinverse( AMatrixT & A, double cond = 0 ) {
+    Matrix<typename AMatrixT::value_type> u, vt;
+    Vector<typename AMatrixT::value_type> s;
+    svd( A, u, s, vt );
+    Matrix<typename AMatrixT::value_type> si(s.size(),s.size());
+    for( unsigned i=0; i<s.size(); ++i ) {
+      for( unsigned j=0; j<s.size(); ++j ) {
+        if( i==j ) si(i,j) = ( fabs(s(i)) <= cond*s(0) ) ? 0 : 1/s(i);
+        else si(i,j) = 0;
+      }
+    }
+    return transpose(vt)*si*transpose(u);
+  }
 
 
   /// \cond INTERNAL

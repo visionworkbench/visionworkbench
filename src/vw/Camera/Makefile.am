@@ -23,50 +23,27 @@
 # sources
 ########################################################################
 
-if MAKE_MODULE_CORE
-core_subdirs = Core
-core_headers = Core.h
-endif
-
-if MAKE_MODULE_MATH
-math_subdirs = Math
-math_headers = Math.h
-endif
-
-if MAKE_MODULE_IMAGE
-image_subdirs = Image
-image_headers = Image.h
-endif
-
-if MAKE_MODULE_FILEIO
-fileio_subdirs = FileIO
-fileio_headers = FileIO.h
-endif
-
 if MAKE_MODULE_CAMERA
-fileio_subdirs = Camera
-fileio_headers = Camera.h
+
+include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h	
+
+libvwCamera_la_SOURCES = CAHVModel.cc CAHVORModel.cc		
+libvwCamera_la_LIBADD = @MODULE_CAMERA_LDFLAGS@
+
+lib_LTLIBRARIES = libvwCamera.la
+
 endif
-
-if MAKE_MODULE_MOSAIC
-mosaic_subdirs = Mosaic
-mosaic_headers = Mosaic.h
-endif
-
-include_HEADERS = $(core_headers) $(math_headers) $(image_headers)	\
-	$(fileio_headers) $(camera_headers) $(mosaic_headers) vw.h
-
-SUBDIRS = $(core_subdirs) $(math_subdirs) $(image_subdirs)	\
-	$(fileio_subdirs) . $(camera_subdirs) $(mosaic_subdirs) tests
-
-noinst_LTLIBRARIES = libvw.la
-libvw_la_SOURCES =
-libvw_la_LIBADD = Core/libvwCore.la Math/libvwMath.la Image/libvwImage.la FileIO/libvwFileIO.la
 
 ########################################################################
 # general
 ########################################################################
 
-includedir = $(prefix)/include/vw
+SUBDIRS = . tests
+
+includedir = $(prefix)/include/vw/Camera
+
+AM_CPPFLAGS = @MODULE_CAMERA_CPPFLAGS@
+AM_LDFLAGS  = 
 
 include $(top_srcdir)/config/rules.mak
+
