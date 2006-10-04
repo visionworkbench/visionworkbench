@@ -30,6 +30,9 @@
 #ifndef __VW_FILEIO_DISK_IMAGE_VIEW_H__
 #define __VW_FILEIO_DISK_IMAGE_VIEW_H__
 
+#include <string>
+#include <map>
+
 #include <vw/Core/Cache.h>
 #include <vw/Core/Debugging.h>
 #include <vw/Image/ImageViewBase.h>

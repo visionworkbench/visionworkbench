@@ -264,7 +264,7 @@ namespace vw {
       std::vector<png_bytep> row_pointers( m_format.rows );
       for( int i=0; i<m_format.rows; ++i )
         row_pointers[i] = (png_bytep)(dst.data) + i*dst.rstride;
-      
+
       convert( dst, src );
       png_write_image( png_ptr, &row_pointers[0] );
       png_write_end( png_ptr, info_ptr );

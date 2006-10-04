@@ -64,7 +64,7 @@ include_HEADERS = $(core_headers) $(math_headers) $(image_headers)	\
 SUBDIRS = $(core_subdirs) $(math_subdirs) $(image_subdirs)	\
 	$(fileio_subdirs) . $(camera_subdirs) $(mosaic_subdirs) $(stereo_subdirs) tests
 
-noinst_LTLIBRARIES = libvw.la
+lib_LTLIBRARIES = libvw.la
 libvw_la_SOURCES =
 libvw_la_LIBADD = Core/libvwCore.la Math/libvwMath.la Image/libvwImage.la FileIO/libvwFileIO.la
 

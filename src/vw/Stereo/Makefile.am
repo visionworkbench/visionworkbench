@@ -26,13 +26,18 @@
 if MAKE_MODULE_STEREO
 
 include_HEADERS = SubpixelCorrelator.h DisparityMap.h StereoModel.h	\
-	                SoftwareRenderer.h
+	SoftwareRenderer.h
 
-libvwStereo_la_SOURCES = StereoModel.cc SubpixelCorrelator.cc SoftwareRenderer.cc
+libvwStereo_la_SOURCES = StereoModel.cc SubpixelCorrelator.cc	\
+	SoftwareRenderer.cc
 
 libvwStereo_la_LIBADD = @MODULE_STEREO_LDFLAGS@
 
 lib_LTLIBRARIES = libvwStereo.la
+
+bin_PROGRAMS = correlate
+correlate_SOURCES = correlate.cc
+correlate_LDFLAGS = @PKG_STEREO_LDFLAGS@ @PKG_BOOST_PROGRAM_OPTIONS_LDFLAGS@
 
 endif
 

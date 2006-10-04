@@ -38,6 +38,7 @@
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/GenericImageBuffer.h>
 #include <vw/Image/Manipulation.h>
+#include <vw/Image/Algorithms.h>
 #include <vw/Image/EdgeExtend.h>
 #include <vw/Image/Interpolation.h>
 #include <vw/Image/Convolution.h>

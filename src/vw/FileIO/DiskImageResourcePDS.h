@@ -76,9 +76,9 @@ namespace vw {
     /// value, so order does matter.  If no value is found for a
     /// matching key, a vw::NotFoundErr will be thrown.
     std::string query(std::vector<std::string> const& keys) {
-      for (int i = 0; i < keys.size(); i++) {
+      for( unsigned i = 0; i < keys.size(); ++i ) {
         std::map<std::string, std::string>::iterator query_object = m_header_entries.find(keys[i]);
-        if (query_object != m_header_entries.end()) 
+        if( query_object != m_header_entries.end() ) 
           return (*query_object).second;
       }
       throw NotFoundErr() << "DiskImageResourcePDS: no matching value found for the keys provided."; 

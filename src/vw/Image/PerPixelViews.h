@@ -47,7 +47,7 @@ namespace vw {
     FuncT const& m_func;
   public:
     typedef typename boost::result_of<FuncT(typename ImageIterT::pixel_type)>::type result_type;
-    typename boost::remove_reference<result_type>::type pixel_type;
+    typedef typename boost::remove_reference<result_type>::type pixel_type;
     UnaryPerPixelAccessor( ImageIterT const& iter, FuncT const& func ) : m_iter(iter), m_func(func) {}
     inline UnaryPerPixelAccessor& next_col() { m_iter.next_col(); return *this; }
     inline UnaryPerPixelAccessor& prev_col() { m_iter.prev_col(); return *this; }
@@ -79,6 +79,12 @@ namespace vw {
     inline pixel_accessor origin() const { return pixel_accessor(m_image.origin(),m_func); }
     inline result_type operator()( int i, int j ) const { return m_func(m_image(i,j)); }
     inline result_type operator()( int i, int j, int p ) const { return m_func(m_image(i,j,p)); }
+
+    template <class ViewT>
+    UnaryPerPixelView& operator=( ImageViewBase<ViewT> const& view ) {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
 
     /// \cond INTERNAL
     typedef UnaryPerPixelView<typename ImageT::prerasterize_type, FuncT> prerasterize_type;

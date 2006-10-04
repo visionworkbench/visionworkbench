@@ -77,7 +77,7 @@ namespace vw {
     iterator end() const { return iterator(impl(),0,0,impl().planes()); }
 
     /// Returns the number of channels in the image's pixel type.
-    inline int channels() const { return CompoundNumChannels<typename ImplT::pixel_type>::value; }
+    inline unsigned channels() const { return CompoundNumChannels<typename ImplT::pixel_type>::value; }
 
     template <class ArgT> inline ImplT& operator+=( ArgT a ) { return *static_cast<ImplT*>(this) = (static_cast<ImplT const&>(*this) + a ); }
     template <class ArgT> inline ImplT& operator-=( ArgT a ) { return *static_cast<ImplT*>(this) = (static_cast<ImplT const&>(*this) - a ); }
@@ -132,12 +132,11 @@ namespace vw {
     typedef typename DestT::pixel_type DestPixelT;
     typedef typename SrcT::pixel_accessor SrcAccT;
     typedef typename DestT::pixel_accessor DestAccT;
-    unsigned cols=src.cols(), rows=src.rows(), planes=src.planes();
-    VW_ASSERT( dest.cols()==bbox.width() && dest.rows()==bbox.height() && dest.planes()==planes,
+    VW_ASSERT( int(dest.cols())==bbox.width() && int(dest.rows())==bbox.height() && dest.planes()==src.planes(),
                ArgumentErr() << "rasterize: Source and destination must have same dimensions." );
     SrcAccT splane = src.origin().advance(bbox.min().x(),bbox.min().y());
     DestAccT dplane = dest.origin();
-    for( unsigned plane=planes; plane; --plane ) {
+    for( unsigned plane=src.planes(); plane; --plane ) {
       SrcAccT srow = splane;
       DestAccT drow = dplane;
       for( unsigned row=bbox.height(); row; --row ) {
