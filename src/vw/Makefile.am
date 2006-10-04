@@ -44,8 +44,8 @@ fileio_headers = FileIO.h
 endif
 
 if MAKE_MODULE_CAMERA
-fileio_subdirs = Camera
-fileio_headers = Camera.h
+camera_subdirs = Camera
+camera_headers = Camera.h
 endif
 
 if MAKE_MODULE_MOSAIC
