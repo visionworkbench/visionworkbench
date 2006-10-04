@@ -360,5 +360,40 @@ public:
   } 
 
 
+  // Test the svd(A,s) routine with a double matrix
+  void test_eigen()
+  {
+    Matrix<double> A(4,4);
+    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25; A(0,3) = 98;
+    A(1,0) = 327;  A(1,1) = 2; A(1,2) = 76; A(1,3) = 66;
+    A(2,0) = 234;  A(2,1) = 26; A(2,2) = 76; A(2,3) = 662;
+    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323; A(3,3) = 23;
+
+    Vector<std::complex<double> > e;
+    Matrix<std::complex<double> > V;
+    
+    // Find the least squares solution to the overconstrained problem Ax=b;
+    eigen(A,e);
+
+    TS_ASSERT_DELTA(e(0).real(), 554.90, 0.01);
+    TS_ASSERT_DELTA(e(0).imag(), 0, 0.01);
+    TS_ASSERT_DELTA(e(1).real(), -16.48, 0.01);
+    TS_ASSERT_DELTA(e(1).imag(), 38.30, 0.01);
+    TS_ASSERT_DELTA(e(2).real(), -16.48, 0.01);
+    TS_ASSERT_DELTA(e(2).imag(), -38.30, 0.01);
+    TS_ASSERT_DELTA(e(3).real(), -397.94, 0.01);
+    TS_ASSERT_DELTA(e(3).imag(), 0, 0.01);
+
+    // Find the least squares solution to the overconstrained problem Ax=b;
+    eigen(A,e,V);
+
+    TS_ASSERT_DELTA(V(0,0).real(), 0.134607, 0.0001);
+    TS_ASSERT_DELTA(V(0,0).imag(), 0, 0.0001);
+    TS_ASSERT_DELTA(V(0,1).real(), -0.0117482, 0.0001);
+    TS_ASSERT_DELTA(V(0,1).imag(), 0.126045, 0.0001);
+    TS_ASSERT_DELTA(V(1,0).real(), 0.252412, 0.0001);
+    TS_ASSERT_DELTA(V(1,0).imag(), 0, 0.0001);
+  }
+
 
 }; // class TestVector

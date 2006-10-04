@@ -19,19 +19,17 @@
 //
 // __END_LICENSE__
 
-/// \file Camera.h
+/// \file Stereo.h
 /// 
-/// A convenience header that includes the header files in vw/Camera.
+/// A convenience header that includes the header files in vw/Stereo.
 /// 
-#ifndef __VW_CAMERA_H__
-#define __VW_CAMERA_H__
+#ifndef __VW_STEREO_H__
+#define __VW_STEREO_H__
 
-#include <vw/Camera/CameraModel.h>
-#include <vw/Camera/CAHVModel.h>
-#include <vw/Camera/CAHVORModel.h>
-#include <vw/Camera/LinearPushbroomModel.h>
-#include <vw/Camera/OrbitingPushbroomModel.h>
-#include <vw/Camera/CameraTransform.h.h>
+#include <vw/Stereo/DisparityMap.h
+#include <vw/Stereo/SubpixelCorrelator.h>
+#include <vw/Stereo/StereoModel.h>
+#include <vw/Stereo/SoftwareRenderer.h>
 
-#endif // __VW_CAMERA_H__
+#endif // __VW_STEREO_H__
  

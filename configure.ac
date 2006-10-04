@@ -233,18 +233,18 @@ AX_MODULE(CORE, [src/vw/Core/libvwCore.la], yes, [M BOOST])
 AX_MODULE(MATH, [src/vw/Math/libvwMath.la], yes, [CORE], [LAPACK])
 AX_MODULE(IMAGE, [src/vw/Image/libvwImage.la], yes, [MATH], [VXL])
 AX_MODULE(FILEIO, [src/vw/FileIO/libvwFileIO.la], yes, [IMAGE], [OPENEXR Z PNG TIFF JPEG])
-AX_MODULE(CAMERA, [src/vw/Camera/libvwCamera.la], yes, [IMAGE MATH])
 AX_MODULE(VW, [src/vw/libvw.la], yes, [CORE MATH IMAGE], [FILEIO])
 if test ${MAKE_MODULE_VW} != "yes"; then
   AC_MSG_ERROR([cannot build the Vision Workbench core!])
 fi
 
+AX_MODULE(CAMERA, [src/vw/Camera/libvwCamera.la], yes, [IMAGE MATH])
 AX_MODULE(MOSAIC, [src/vw/Mosaic/libvwMosaic.la], yes, [VW BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
+AX_MODULE(STEREO, [src/vw/Stereo/libvwStereo.la], yes, [VW PTHREADS BOOST_THREAD])
 
 #AX_MODULE(INTERESTPOINT, InterestPoint, no, [VW])
 #AX_MODULE(HDR, HDR, no, [VW])
 #AX_MODULE(GPU, GPU, no, [GL GLU GLUT GLEW VW], [CG PTHREADS])
-#AX_MODULE(STEREO, Stereo, no, [VW PTHREADS BOOST_THREAD])
 #AX_MODULE(DISPLAY, Display, no, [BOOST_THREAD GL FREEGLUT VW])
 #AX_MODULE(CARTOGRAPHY, Cartography, no, [GDAL VW])
 #AX_MODULE(TEXTURE, Texture, no, [VW])
@@ -258,11 +258,11 @@ AM_CONDITIONAL(MAKE_MODULE_FILEIO, [test "$MAKE_MODULE_FILEIO" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_CAMERA, [test "$MAKE_MODULE_CAMERA" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_VW, [test "$MAKE_MODULE_VW" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_MOSAIC, [test "$MAKE_MODULE_MOSAIC" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_STEREO, [test "$MAKE_MODULE_STEREO" = "yes"])
 
 #AM_CONDITIONAL(MAKE_MODULE_INTERESTPOINT, [test "$MAKE_MODULE_INTERESTPOINT" = "yes"])
 #AM_CONDITIONAL(MAKE_MODULE_HDR, [test "$MAKE_MODULE_HDR" = "yes"])
 #AM_CONDITIONAL(MAKE_MODULE_GPU, [test "$MAKE_MODULE_GPU" = "yes"])
-#AM_CONDITIONAL(MAKE_MODULE_STEREO, [test "$MAKE_MODULE_STEREO" = "yes"])
 #AM_CONDITIONAL(MAKE_MODULE_DISPLAY, [test "$MAKE_MODULE_DISPLAY" = "yes"])
 #AM_CONDITIONAL(MAKE_MODULE_CARTOGRAPHY, [test "$MAKE_MODULE_CARTOGRAPHY" = "yes"])
 #AM_CONDITIONAL(MAKE_MODULE_CAMERA, [test "$MAKE_MODULE_CAMERA" = "yes"])
@@ -290,6 +290,8 @@ AC_CONFIG_FILES([                       \
   src/vw/Camera/tests/Makefile          \
   src/vw/Mosaic/Makefile                \
   src/vw/Mosaic/tests/Makefile          \
+  src/vw/Stereo/Makefile                \
+  src/vw/Stereo/tests/Makefile          \
 ])
 
 AC_OUTPUT

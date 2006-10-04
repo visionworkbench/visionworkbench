@@ -69,11 +69,12 @@ namespace math {
     Vector<real_type> wr_buf( A.cols() );
     Vector<real_type> wi_buf( A.cols() );
     real_type work_size;
+    int n = A.cols(); 
     int lwork = -1, info;
-    geev('N','N',&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, &work_size, lwork, &info);
+    geev('N','N',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, &work_size, lwork, &info);
     lwork = int(work_size);
     real_type work[lwork];
-    geev('N','N',&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, &work, lwork, &info);
+    geev('N','N',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, work, lwork, &info);
     if (info < 0) 
       throw ArgumentErr() << "eigen(): LAPACK driver geev reported an error with argument " << -info << ".";
     if (info > 0) 
@@ -83,24 +84,47 @@ namespace math {
       e(i) = std::complex<real_type>(wr_buf(i), wi_buf(i));
   }
 
-//   /// Compute the entire eigendecomposition of the matrix A.
-//   ///
-//   /// E and V will contain the resulting eigendecomposition.  E will
-//   /// contain the eigenvalues and must be a complex vector, while V
-//   /// will contain eigenvectors and may be either a real or complex
-//   /// matrix.  If it is real then the complex conjugate eigenvector
-//   /// pairs will be stored in the usual LAPACK packed format.  E and V
-//   /// will be resized based on the dimensions of A.
-//   template <class AMatrixT, class EigenvaluesT, class VMatrixT> 
-//   inline void eigen( AMatrixT &A, EigenvaluesT &e, VMatrixT &V ) {
-//     VW_ASSERT( A.cols()==A.rows(), ArgumentErr() << "Eigendecomposition can only be performed on square matrices." );
-//     Matrix<typename AMatrixT::value_type> Abuf = A;
-//     e.set_size( A.cols() );
-//     Matrix<typename VMatrixT::value_type> VT(A.cols(),A.cols());
-//     lapack::geev(Abuf,e,&VT,(VMatrixT*)0,lapack::optimal_workspace());
-//     V = transpose(VT);
-//   }
-
+  /// Compute the entire eigendecomposition of the matrix A.
+  ///
+  /// E and V will contain the resulting eigendecomposition.  E will
+  /// contain the eigenvalues and must be a complex vector, while V
+  /// will contain eigenvectors and must be a complex matrix. E and V
+  /// will be resized based on the dimensions of A.
+  template <class AMatrixT, class EigenvaluesT, class VMatrixT> 
+  inline void eigen( AMatrixT &A, EigenvaluesT &e, VMatrixT &V ) {
+    VW_ASSERT( A.cols()==A.rows(), ArgumentErr() << "Eigendecomposition can only be performed on square matrices." );
+    typedef typename AMatrixT::value_type real_type;
+    const int lda = A.rows();
+    const int ldvr = A.cols();
+    Matrix<real_type> Abuf = transpose(A);
+    Matrix<real_type> Vbuf( A.rows(), A.cols() );
+    Vector<real_type> wr_buf( A.cols() );
+    Vector<real_type> wi_buf( A.cols() );
+    real_type work_size;
+    int n = A.cols(), lwork = -1, info;
+    geev('N','V',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, &(Vbuf(0,0)), ldvr, &work_size, lwork, &info);
+    lwork = int(work_size);
+    real_type work[lwork];
+    geev('N','V',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, &(Vbuf(0,0)), ldvr, work, lwork, &info);
+    if (info < 0) 
+      throw ArgumentErr() << "eigen(): LAPACK driver geev reported an error with argument " << -info << ".";
+    if (info > 0) 
+      throw ArgumentErr() << "eigen(): LAPACK driver geev only converged for the first " << info << "eigenvectors.";
+    e.set_size( A.cols() );
+    V.set_size( Vbuf.cols(), Vbuf.rows() );
+    for (int i = 0; i < wr_buf.size(); i++) {
+      e(i) = std::complex<real_type>(wr_buf(i), wi_buf(i));
+      // If the eigenvalue is complex, we must tease the real and
+      // complex parts out of the Vbuf matrix.
+      for (int r = 0; r < V.rows(); r++)
+        if (wi_buf(i) == 0)
+          V(r,i) = Vbuf(i,r);
+        else if (wi_buf(i) > 0)
+          V(r,i) = std::complex<real_type>(Vbuf(i,r), Vbuf(i+1,r));
+        else
+          V(r,i) = std::complex<real_type>(Vbuf(i-1,r), -Vbuf(i,r));
+    }
+  }
 
   /// \cond INTERNAL
   extern "C"  int sgesdd_(char *jobz, int *m, int *n, float *a, 

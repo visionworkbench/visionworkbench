@@ -25,9 +25,12 @@
 
 if MAKE_MODULE_CAMERA
 
-include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h	
+include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h	LinearPushbroomModel.h \
+                  OrbitingPushbroomModel.h
 
-libvwCamera_la_SOURCES = CAHVModel.cc CAHVORModel.cc		
+libvwCamera_la_SOURCES = CAHVModel.cc CAHVORModel.cc LinearPushbroomModel.cc \
+                         OrbitingPushbroomModel.cc
+
 libvwCamera_la_LIBADD = @MODULE_CAMERA_LDFLAGS@
 
 lib_LTLIBRARIES = libvwCamera.la
