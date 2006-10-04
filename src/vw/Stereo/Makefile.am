@@ -25,11 +25,10 @@
 
 if MAKE_MODULE_STEREO
 
-include_HEADERS = SubpixelCorrelator.h DisparityMap.h StereoModel.h	\
+include_HEADERS = Correlate.h OptimizedCorrelator.h DisparityMap.h StereoModel.h	\
 	SoftwareRenderer.h
 
-libvwStereo_la_SOURCES = StereoModel.cc SubpixelCorrelator.cc	\
-	SoftwareRenderer.cc
+libvwStereo_la_SOURCES = StereoModel.cc OptimizedCorrelator.cc SoftwareRenderer.cc
 
 libvwStereo_la_LIBADD = @MODULE_STEREO_LDFLAGS@
 

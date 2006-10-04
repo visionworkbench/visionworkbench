@@ -9,7 +9,7 @@ namespace po = boost::program_options;
 
 #include <vw/Image.h>
 #include <vw/FileIO.h>
-#include <vw/Stereo/SubpixelCorrelator.h>
+#include <vw/Stereo/OptimizedCorrelator.h>
 
 using namespace vw;
 using namespace vw::stereo;
@@ -73,6 +73,7 @@ int main( int argc, char *argv[] ) {
       std::cout << "Error: Can only specify one of LOG and SLOG pre-filter!" << std::endl;
     }
 
+    bool bit_image = false;
     if( log > 0 ) {
       std::cout << "Applying SLOG filter..." << std::endl;
       left = laplacian_filter( gaussian_filter( left, slog ) );
@@ -80,6 +81,7 @@ int main( int argc, char *argv[] ) {
     }
 
     if( slog > 0.0 ) {
+      bit_image = true;
       std::cout << "Applying SLOG filter..." << std::endl;
       left = threshold( laplacian_filter( gaussian_filter( left, slog ) ) );
       right = threshold( laplacian_filter( gaussian_filter( right, slog ) ) );
@@ -91,7 +93,7 @@ int main( int argc, char *argv[] ) {
                                                true, lrthresh,
                                                (vm.count("hsubpix")>0),
                                                (vm.count("vsubpix")>0) );
-    ImageView<PixelDisparity<float> > disparity_map = correlator( left, right );
+    ImageView<PixelDisparity<float> > disparity_map = correlator( left, right, bit_image );
 
     double min_horz_disp, max_horz_disp, min_vert_disp, max_vert_disp;
     get_disparity_range( disparity_map, 

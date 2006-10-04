@@ -4,6 +4,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Stereo/DisparityMap.h>
+#include <vw/Stereo/Correlate.h>
 
 // Boost
 #include <boost/thread/mutex.hpp>
@@ -36,7 +37,8 @@ namespace stereo {
     
     template <class PixelT>
     ImageView<PixelDisparity<float> > operator()(vw::ImageView<PixelT>& image0,
-                                                 vw::ImageView<PixelT>& image1) {
+                                                 vw::ImageView<PixelT>& image1, 
+                                                 bool bit_image = false) {
         
       // Check to make sure that image0 and image1 have equal dimensions 
       if ((image0.cols() != image1.cols()) ||
@@ -52,8 +54,7 @@ namespace stereo {
         
       ImageView<float> l_img = channels_to_planes(image0);
       ImageView<float> r_img = channels_to_planes(image1);        
-      ImageView<PixelDisparity<float> > disparity_map(image0.cols(), image0.rows());
-      correlation_2D(l_img, r_img, disparity_map);
+      ImageView<PixelDisparity<float> > disparity_map = correlation_2D(l_img, r_img, bit_image);
       return disparity_map;
     }
       
@@ -101,22 +102,10 @@ namespace stereo {
     int m_useVertSubpixel;
     mutable boost::mutex m_mutex;
       
-    inline double compute_soad(const void *new_img0,
-                               const void *new_img1,
-                               int r,
-                               int c,
-                               int hdisp,
-                               int vdisp,
-                               int width,
-                               int height,
-                               bool bitimage);
-    void subpixel(ImageView<PixelDisparity<float> > disparity_map,
-                  const void *new_img0,
-                  const void *new_img1,
-                  bool bitimage);
-    void correlation_2D( ImageView<float> left_image,
-                         ImageView<float> right_image,
-                         ImageView<PixelDisparity<float> > &disparity_map);
+    template <class ChannelT>
+    ImageView<PixelDisparity<float> > correlation_2D( ImageView<ChannelT> &left_image,
+                                                      ImageView<ChannelT> &right_image, 
+                                                      bool bit_image = false);
   };
 
   /// Work thread class that does the actual correlation

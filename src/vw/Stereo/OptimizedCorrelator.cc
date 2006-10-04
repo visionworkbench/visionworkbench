@@ -3,16 +3,10 @@
 #include <vw/Image/Algorithms.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
-#include <vw/Stereo/SubpixelCorrelator.h>
+#include <vw/Stereo/OptimizedCorrelator.h>
 
 using namespace vw;
 
-// #include <math.h>
-// #include <stdio.h>
-// #include <algorithm>
-// #include <stdexcept>
-// #include <string>
-// #include <limits.h>
 #include <sys/time.h>
 
 // Boost
@@ -33,7 +27,7 @@ static inline double Time(void) {
   return ((double) tv.tv_sec + (double) tv.tv_usec / 1.0e6);
 }
 
-/* Some useful default values and constants */
+// Some useful default values and constants 
 #define DEFAULT_KERN_WIDTH 29
 #define DEFAULT_KERN_HEIGHT 21
 #define DEFAULT_MIN_H -50
@@ -46,11 +40,9 @@ static inline double Time(void) {
 
 /* For Eric's correlator */
 #define DEFAULT_DIFF 30000
-#define MISSING_PIXEL -32000
 
 /* Switches to turn on/off debugging */
 #define VW_DEBUG_CORRELATOR 0
-
 
 // Handy, platform independent utility function for putting boost
 // threads to sleep for a specific number of milliseconds.
@@ -225,7 +217,7 @@ void CorrelationWorkThread::operator() () {
   m_result.set_size(m_image_width, m_image_height);
   for (int i = 0; i < m_image_width; i++) {
     for (int j = 0; j < m_image_height; j++) {
-      if (result[j*m_image_width+i].hDisp == MISSING_PIXEL) {
+      if (result[j*m_image_width+i].hDisp == VW_STEREO_MISSING_PIXEL) {
         m_result(i,j) = PixelDisparity<float>();  // Default constructor creates a missing pixel
       } else {
         m_result(i,j) = PixelDisparity<float>(result[j*m_image_width+i].hDisp,
@@ -392,9 +384,9 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized(
     
     for(nn = 0; nn < height * width; nn++) {
       if (result_best[nn] == MAX_BEST) {
-        result[nn].best = MISSING_PIXEL;
-        result[nn].hDisp = MISSING_PIXEL;
-        result[nn].vDisp = MISSING_PIXEL;
+        result[nn].best = VW_STEREO_MISSING_PIXEL;
+        result[nn].hDisp = VW_STEREO_MISSING_PIXEL;
+        result[nn].vDisp = VW_STEREO_MISSING_PIXEL;
       } else {
         result[nn].best = result_best[nn];
       
@@ -416,16 +408,16 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized(
 /// the image, but it is also not optimized, and is about 2 or 3
 /// times slower than Randy's correlator.
 SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr(int minDisp,	/* left bound disparity search */
-                                        int maxDisp,	/* right bound disparity search */
-                                        int topDisp,	/* top bound disparity search window */
-                                        int btmDisp,	/* bottom bound disparity search window */ 
-                                        int height,	/* image height */
-                                        int width,	/* image width */
-                                        int vKern,  /* kernel height */
-                                        int hKern,  /* kernel width */
-                                        float *Rimg,	/* reference image fixed */
-                                        float *Simg	/* searched image sliding */
-                                        ) {
+                                                            int maxDisp,	/* right bound disparity search */
+                                                            int topDisp,	/* top bound disparity search window */
+                                                            int btmDisp,	/* bottom bound disparity search window */ 
+                                                            int height,	/* image height */
+                                                            int width,	/* image width */
+                                                            int vKern,  /* kernel height */
+                                                            int hKern,  /* kernel width */
+                                                            float *Rimg,	/* reference image fixed */
+                                                            float *Simg	/* searched image sliding */
+                                                            ) {
 
     int verbose = 1;
     int nn,xx,yy, index;	/* loops counters */
@@ -462,12 +454,12 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr(int minDisp,	/* left
     }
     
     for(nn=0; nn<height*width; nn++){
-      result[nn].best = MISSING_PIXEL;
-      result[nn].hDisp = MISSING_PIXEL;
-      result[nn].vDisp = MISSING_PIXEL;
+      result[nn].best = VW_STEREO_MISSING_PIXEL;
+      result[nn].hDisp = VW_STEREO_MISSING_PIXEL;
+      result[nn].vDisp = VW_STEREO_MISSING_PIXEL;
     }
     for(nn=0; nn<width; nn++){
-      next[nn] = MISSING_PIXEL;
+      next[nn] = VW_STEREO_MISSING_PIXEL;
       cSum[nn] = 0;
     }
     
@@ -527,7 +519,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr(int minDisp,	/* left
         /* update disparity results buffer */
         for(xx=xStart+hKern/2; xx<xEnd-hKern/2; xx++)
           if(result[(hKern/2)*width+xx].best > next[xx] ||
-             result[(hKern/2)*width+xx].best == MISSING_PIXEL) {
+             result[(hKern/2)*width+xx].best == VW_STEREO_MISSING_PIXEL) {
             result[(hKern/2)*width+xx].best = next[xx];
             result[(hKern/2)*width+xx].hDisp = ds;
             result[(hKern/2)*width+xx].vDisp = dsy;
@@ -553,7 +545,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr(int minDisp,	/* left
           /* update disparity results buffer */
           for(xx=xStart+hKern/2; xx<xEnd-hKern/2; xx++) {
             if(result[yy*width+xx].best > next[xx] ||
-               result[yy*width+xx].best == MISSING_PIXEL) {
+               result[yy*width+xx].best == VW_STEREO_MISSING_PIXEL) {
               result[yy*width+xx].best = next[xx];
               assert(ds > -1000 && ds < 1000);
               result[yy*width+xx].hDisp = ds;	  
@@ -664,7 +656,6 @@ SubpixelCorrelator::SubpixelCorrelator(int minH,	/* left bound disparity search 
  *                     Private Methods                              *
  *******************************************************************/
 
-
 void SubpixelCorrelator::register_worker_thread(int id, CorrelationWorkThread* child) {
   boost::mutex::scoped_lock lock(m_mutex);
   m_children[id] = child;
@@ -675,372 +666,36 @@ CorrelationWorkThread* SubpixelCorrelator::get_worker_thread(int id) {
   return m_children[id];
 }
 
-inline double SubpixelCorrelator::compute_soad(const void *img0,
-                                        const void *img1,
-                                        int r,
-                                        int c,
-                                        int hdisp,
-                                        int vdisp,
-                                        int width,        // Image Width
-                                        int height,       // Image height
-                                        bool bitimage) {
-  
-  r -= m_lKernHeight/2;
-  c -= m_lKernWidth/2;
-  if (r<0         || c<0       || r+m_lKernHeight>=height       || c+m_lKernWidth>=width ||
-      r+vdisp < 0 || c+hdisp<0 || r+vdisp+m_lKernHeight>=height || c+hdisp+m_lKernWidth>=width) {
-    return MISSING_PIXEL;
-  }
 
-  if (bitimage == true) {
-    unsigned char *new_img0 = (unsigned char*) img0;
-    unsigned char *new_img1 = (unsigned char*) img1;
+template <class ChannelT>
+ImageView<PixelDisparity<float> > SubpixelCorrelator::correlation_2D( ImageView<ChannelT> &left_image,
+                                                                      ImageView<ChannelT> &right_image, 
+                                                                      bool bit_image) {
 
-    new_img0 += c + r*width;
-    new_img1 += (c+hdisp) + (r+vdisp)*width;
-    
-    int ret = 0;
-    for (int rr= 0; rr< m_lKernHeight; rr++) {
-      for (int cc= 0; cc< m_lKernWidth; cc++) {
-        ret += (new_img0[cc]) ^ (new_img1[cc]);
-      }
-      new_img0 += width;
-      new_img1 += width;
-    }
-    return double(ret);
-
-  } else { // Non-bitimage
-    float *new_img0 = (float*) img0;
-    float *new_img1 = (float*) img1;
-    
-    new_img0 += c + r*width;
-    new_img1 += (c+hdisp) + (r+vdisp)*width;
-  
-    float ret = 0;
-    for (int rr= 0; rr< m_lKernHeight; rr++) {
-      for (int cc= 0; cc< m_lKernWidth; cc++) {
-        float diff = ((float*)new_img0)[cc] - ((float*)new_img1)[cc];
-        if (diff > 0) ret += diff; else ret -= diff;
-      }
-      new_img0 += width;
-      new_img1 += width;
-    }
-    return double(ret);
-  }
-}
-
-static double find_minimum(double lt, double mid, double rt) {
-
-  double a= (rt+lt)*0.5-mid;
-  if (a <= 0) {
-    //fprintf(stderr, "no minimum\n");
-    return 0;
-  }
-  double b=(rt-lt)*0.5;
-   double min= -b/(2.0*a);
-  
-   return min;
-}
-
-/* 
- * Find the minimun of a 2d hyperbolic surface that is fit to the nine points 
- * around and including the peak in the disparity map.  This gives better 
- * subpixel resolution when both horizontal and vertical subpixel is requested.
- * 
- * The equation of the surface we are fitting is:
- *    z = ax^2 + by^2 + cxy + dx + ey + f
- */
-template <class VectorT, class MatrixT>
-static vw::Vector2 find_minimum_2d(vw::VectorBase<VectorT> &points, vw::MatrixBase<MatrixT> &pinvA) {
-
-  vw::Vector2 offset;
-
-  /* 
-   * First, compute the parameters of the hyperbolic surface by fitting the nine points in 'points'
-   * using a linear least squares fit.  This process is fairly fast, since we have already pre-computed
-   * the inverse of the A matrix in Ax = b.
-   */
-  vw::Vector<double> x = pinvA * points;
-  
-  /* 
-   * With these parameters, we have a closed form expression for the surface.  We compute the 
-   * derivative, and find the point where the slope is zero.  This is our maximum.
-   *
-   * Max is at [x,y] where:
-   *
-   *   dz/dx = 2ax + cy + d = 0
-   *   dz/dy = 2by + cx + e = 0
-   * 
-   * Of course, we optimize this computation a bit by unrolling it by hand beforehand.
-   */
-  double denom = 4 * x(0) * x(1) - (x(2) * x(2));
-  
-  offset(0) = ( x(2) * x(4) - 2 * x(1) * x(3) ) / denom;
-  offset(1) = ( x(2) * x(3) - 2 * x(1) * x(4) ) / denom;
-
-  return offset;
-}
-
-void SubpixelCorrelator::subpixel(ImageView<PixelDisparity<float> > disparity_map,
-                                  const void *new_img0,
-                                  const void *new_img1,
-                                  bool bitimage) {
-
-  int height = disparity_map.rows();
-  int width = disparity_map.cols();
-  
-  /* Bail out if no subpixel computation has been requested */
-  if (!m_useHorizSubpixel && !m_useVertSubpixel) return;
+  VW_ASSERT(left_image.cols() == right_image.cols() &&
+            left_image.rows() == right_image.rows(),
+            ArgumentErr() << "subpixel_correlation: input image dimensions do not agree.\n");
 
 
-
-  /*
-   * We get a considerable speedup in our 2d subpixel correlation 
-   * if we go ahead and compute the pseudoinverse of the 
-   * A matrix (where each row in A is [ x^2 y^2 xy x y 1] (our 2d hyperbolic surface)
-   * for the range of x = [-1:1] and y = [-1:1].
-   */
-  double pinvA_data[] = { 1.0/6,  1.0/6,  1.0/6, -1.0/3, -1.0/3, -1.0/3,  1.0/6,  1.0/6,  1.0/6,
-                          1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,
-                          1.0/4,    0.0, -1.0/4,    0.0,    0.0,    0.0, -1.0/4,    0.0,  1.0/4,
-                          -1.0/6, -1.0/6, -1.0/6,    0.0,    0.0,   0.0,  1.0/6,  1.0/6,  1.0/6,
-                          -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0, 1.0/6, -1.0/6,    0.0,  1.0/6,
-                          -1.0/9,  2.0/9, -1.0/9,  2.0/9,  5.0/9, 2.0/9, -1.0/9,  2.0/9, -1.0/9 }; 
-  vw::MatrixProxy<double,6,9> pinvA(pinvA_data);
-  for (int r = 0; r < height; r++) {
-    printf("\tPerforming sub-pixel correlation... %0.2f%%\r", double(r)/height * 100);
-    fflush(stdout);
-
-    for (int c = 0; c < width; c++) {
-
-      if ( !disparity_map(c,r).missing() ) {
-        int hdisp= (int)disparity_map(c,r).h();
-        int vdisp= (int)disparity_map(c,r).v();
-	
-        double mid = compute_soad(new_img0, new_img1,
-                                  r, c,
-                                  hdisp,   vdisp,
-                                  width, height, bitimage);
-        
-        /* If only horizontal subpixel resolution is requested */
-        if (m_useHorizSubpixel && !m_useVertSubpixel) {
-          double lt= compute_soad(new_img0, new_img1,
-                                  r, c,
-                                  hdisp-1, vdisp,
-                                  width, height, bitimage);
-          double rt= compute_soad(new_img0, new_img1,
-                                  r, c,
-                                  hdisp+1, vdisp,
-                                  width, height, bitimage);
-          
-          if ((mid <= lt && mid < rt) ||
-              (mid <= rt && mid < lt)) {
-            disparity_map(c,r).h() += find_minimum(lt, mid, rt);
-          }
-        }
-        
-        /* If only vertical subpixel resolution is requested */
-        if (m_useVertSubpixel && !m_useHorizSubpixel) {
-          double up= compute_soad(new_img0, new_img1,
-                                  r, c,
-                                  hdisp, vdisp-1,
-                                  width, height, bitimage);
-          double dn= compute_soad(new_img0, new_img1,
-                                  r, c,
-                                  hdisp, vdisp+1,
-                                  width, height, bitimage);
-          
-          if ((mid <= up && mid < dn) ||
-              (mid <= dn && mid < up)) {
-            disparity_map(c,r).v() += find_minimum(up, mid, dn);
-          }
-        }
-        
-        
-        /*
-         * If both vertical and horizontal subpixel resolution is requested,
-         * we try to fit a 2d hyperbolic surface using the 9 points surrounding the
-         * peak SOAD value.  
-         *
-         * We place the soad values into a vector using the following indices
-         * (i.e. index 4 is the max disparity value)
-         * 
-         *     0  3  6
-         *     1  4  7
-         *     2  5  8
-         */
-        if (m_useVertSubpixel && m_useHorizSubpixel) {
-          vw::Vector<double,9> points;
-          
-          points(0) = (double)compute_soad(new_img0, new_img1,
-                                           r, c,
-                                           hdisp-1, vdisp-1,
-                                           width, height, bitimage);
-          points(1) = (double)compute_soad(new_img0, new_img1,
-                                           r, c,
-                                           hdisp-1, vdisp,
-                                           width, height, bitimage);
-          points(2) = (double)compute_soad(new_img0, new_img1,
-                                           r, c,
-                                           hdisp-1, vdisp+1,
-                                           width, height, bitimage);
-          points(3) = (double)compute_soad(new_img0, new_img1,
-                                           r, c,
-                                           hdisp, vdisp-1,
-                                           width, height, bitimage);
-          points(4) = (double)mid;
-          points(5) = (double)compute_soad(new_img0, new_img1,
-                                           r, c,
-                                           hdisp, vdisp+1,
-                                           width, height, bitimage);
-          points(6) = (double)compute_soad(new_img0, new_img1,
-                                           r, c,
-                                           hdisp+1, vdisp-1,
-                                           width, height, bitimage);
-          points(7) = (double)compute_soad(new_img0, new_img1,
-                                           r, c,
-                                           hdisp+1, vdisp,
-                                           width, height, bitimage);
-          points(8) = (double)compute_soad(new_img0, new_img1,
-                                           r, c,
-                                           hdisp+1, vdisp+1,
-                                           width, height, bitimage);
-          
-          if (mid < points(0) && mid < points(1) && mid < points(2) &&
-              mid < points(3) && mid < points(5) && 
-              mid < points(6) && mid < points(7) && mid < points(8)) {
-            
-            vw::Vector2 offset = find_minimum_2d(points, pinvA);
-
-            // This prevents us from adding in large offsets for
-            // poorly fit data.
-            if (fabs(offset(0)) < 2.0 && fabs(offset(1)) < 2.0) {
-              disparity_map(c,r).h() += offset(0);
-              disparity_map(c,r).v() += offset(1);
-            }
-            // For debugging:
-            //else {
-            //std::cout << "Bad offset: " << offset(0) << " " << offset(1) << "\n";
-            //}
-          } 
-        }
-      } 
-    }
-  }
-  printf("\tPerforming sub-pixel correlation... Done.           \n");
-
-}
-
-/// This routine cross checks L2R and R2L, placing the final version
-/// of the disparity map in L2R.
-static void cross_corr_consistency_check_2D(ImageView<PixelDisparity<float> > &L2R, 
-                                            ImageView<PixelDisparity<float> > &R2L,
-                                            double cross_corr_threshold) {
-
-  int xx,yy;
-  int xOffset, yOffset;
-  int count = 0, match_count = 0;
-
-  printf("\tCrosscorr threshold = %f\n", cross_corr_threshold);
-  if (cross_corr_threshold < 0) 
-    throw vw::ArgumentErr() << "CrossCorrConsistencyCheck2D: the crosscorr threshold was less than 0.";
-  
-  for(xx = 0; xx < L2R.cols(); xx++) {     
-    for(yy = 0; yy < L2R.rows(); yy++) {
+  int width = left_image.cols();
+  int height = left_image.rows();
       
-      int xOffset = (int)L2R(xx,yy).h();
-      int yOffset = (int)L2R(xx,yy).v();
-      
-      // Check to make sure we are within the image bounds
-      if(xx+xOffset < 0 || yy+yOffset < 0 ||
-         xx+xOffset >= R2L.cols() || yy+yOffset >= R2L.rows()) {
-        L2R(xx,yy) = PixelDisparity<float>();  // Default constructor is missing pixel.
-      }
-
-      // Check for missing pixels
-      else if ( L2R(xx,yy).missing() ||
-                R2L(xx+xOffset, yy+yOffset).missing() ) {
-        L2R(xx,yy) = PixelDisparity<float>();  // Default constructor is missing pixel.
-      }
-      
-      // Check for correlation consistency
-      //
-      // Since the hdisp for the R2L and L2R buffers will be opposite 
-      // in sign, we determine their similarity by *summing* them, rather
-      // than differencing them as you might expect.
-      else if (cross_corr_threshold >= fabs(L2R(xx,yy).h() + R2L(xx+xOffset,yy+yOffset).h()) &&
-               cross_corr_threshold >= fabs(L2R(xx,yy).v() + R2L(xx+xOffset,yy+yOffset).v())) {
-        count++;
-        match_count++;
-      }
-      
-      // Otherwise, the pixel is bad.
-      else {
-        match_count++;
-        L2R(xx,yy) = PixelDisparity<float>();  // Default constructor is missing pixel.
-      } 
-    }
-  }
-  printf("\tCross-correlation retained %i / %i matches (%i pixels total).\n", count, match_count, L2R.cols() * L2R.rows());
-}
-
-
-void SubpixelCorrelator::correlation_2D( ImageView<float> left_image,
-                                         ImageView<float> right_image,
-                                         ImageView<PixelDisparity<float> > &disparity_map) {
-    
-    float *pBuffer0 = &(left_image(0,0));
-    float *pBuffer1 = &(right_image(0,0));
-    int bitimage = true;
-
-    /*
-     * Enforce bit-imageness. go hyperactive!
-     *
-     * Check whether image consists of only 0 and a single non-zero value.
-     */  
-    int i;
-    unsigned width = left_image.cols(), height = left_image.rows();
-    unsigned char *bit_img0 = new unsigned char[width * height];
-    unsigned char *bit_img1 = new unsigned char[width * height];
-    
-    for (int j = 0; j < 2; j++) {
-      bool found_nonzero = false;
-      double nonzero_val = 0;
-      float *img = j ? pBuffer0 : pBuffer1;
-      unsigned char *bit_img = j ? bit_img0 : bit_img1;
-      
-      for (i = 0; i < width * height; i++) {
-        if (img[i] != 0) {
-          if (found_nonzero) {
-            if (img[i] == nonzero_val) {
-              bit_img[i] = 1;
-            } else {
-              bitimage = false;
-            }
-          } else {
-            found_nonzero = true;
-            nonzero_val = img[i];
-            bit_img[i] = 1;
-          }
-        } else {
-          bit_img[i] = 0;
-        }
-      }
-  }
-  
-  /* 
-   * Run the correlator and record how long it takes to run.
-   */
+  //Run the correlator and record how long it takes to run.
   double begin__ = Time();
+  
+  uint8* bit_img0 = (uint8*)&(left_image(0,0));
+  uint8* bit_img1 = (uint8*)&(right_image(0,0));
+  float* pBuffer0 = (float*)&(left_image(0,0));
+  float* pBuffer1 = (float*)&(right_image(0,0));
 
   try {
     boost::thread_group threads;
-    if (bitimage == true) {
-      std::cout << "\tUsing OPTIMIZED Correlator\n";
+    if (bit_image == true) {
+      std::cout << "\tUsing bit image optimized correlator\n";
       threads.create_thread(CorrelationWorkThread(this, 0, -m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, width, height, m_lKernWidth, m_lKernHeight, bit_img1, bit_img0));
       threads.create_thread(CorrelationWorkThread(this, 1, m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, width, height, m_lKernWidth, m_lKernHeight, bit_img0, bit_img1));
     } else {
-      std::cout << "\tUsing UN-OPTIMIZED Correlator\n";
+      std::cout << "\tUsing standard correlator\n";
       threads.create_thread(CorrelationWorkThread(this, 0, -m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, width, height, m_lKernWidth, m_lKernHeight, pBuffer1, pBuffer0));
       threads.create_thread(CorrelationWorkThread(this, 1,  m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, width, height, m_lKernWidth, m_lKernHeight, pBuffer0, pBuffer1));
     }
@@ -1077,15 +732,10 @@ void SubpixelCorrelator::correlation_2D( ImageView<float> left_image,
     threads.join_all(); 
   
     // Cross check the left and right disparity maps
-    cross_corr_consistency_check_2D(resultL2R, resultR2L,m_crossCorrThreshold);
+    cross_corr_consistency_check(resultL2R, resultR2L,m_crossCorrThreshold);
 
     // Do subpixel correlation
-    if (bitimage == true) {
-      subpixel(resultL2R, bit_img0, bit_img1, bitimage);
-    } else {
-      subpixel(resultL2R, pBuffer0, pBuffer1, bitimage);
-    }
-    disparity_map = resultL2R;
+    subpixel_correlation(resultL2R, left_image, right_image, m_lKernWidth, m_lKernHeight, bit_image);
 
     int matched = 0;
     int total = 0;
@@ -1110,15 +760,28 @@ void SubpixelCorrelator::correlation_2D( ImageView<float> left_image,
 
     double score = (100.0 * matched) / total;
     printf("\tCorrelation rate: %6.4f\n\n", score);
-    delete [] bit_img0;
-    delete [] bit_img1;
+
+    return resultL2R;
     
   } catch (boost::thread_resource_error &e) {
-    delete [] bit_img0;
-    delete [] bit_img1;
     throw LogicErr() << "SubpixelCorrelator: Could not create correlation threads.\n";
   }
   
 }
 
+// Explicit Intantiation
+namespace vw {
+namespace stereo {
+
+template
+ImageView<PixelDisparity<float> > SubpixelCorrelator::correlation_2D<float>( ImageView<float> &left_image,
+                                                                             ImageView<float> &right_image, 
+                                                                             bool bit_image);
+    
+template
+ImageView<PixelDisparity<float> > SubpixelCorrelator::correlation_2D<uint8>( ImageView<uint8> &left_image,
+                                                                             ImageView<uint8> &right_image, 
+                                                                             bool bit_image);
+
+}}
 
