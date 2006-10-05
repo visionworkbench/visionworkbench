@@ -19,14 +19,6 @@ using namespace std;
 using namespace vw;
 using namespace vw::stereo;
 
-
-// Timing (profiling) utilites
-static inline double Time(void) {
-  struct timeval tv;
-  gettimeofday(&tv, 0);
-  return ((double) tv.tv_sec + (double) tv.tv_usec / 1.0e6);
-}
-
 // Some useful default values and constants 
 #define DEFAULT_KERN_WIDTH 29
 #define DEFAULT_KERN_HEIGHT 21
@@ -735,7 +727,7 @@ ImageView<PixelDisparity<float> > SubpixelCorrelator::correlation_2D( ImageView<
     cross_corr_consistency_check(resultL2R, resultR2L,m_crossCorrThreshold);
 
     // Do subpixel correlation
-    subpixel_correlation(resultL2R, left_image, right_image, m_lKernWidth, m_lKernHeight, bit_image);
+    subpixel_correlation(resultL2R, left_image, right_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel);
 
     int matched = 0;
     int total = 0;

@@ -3,11 +3,19 @@
 
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Math/Matrix.h>
+#include <vw/Stereo/DisparityMap.h>
 
 #define VW_STEREO_MISSING_PIXEL -32000
 
 namespace vw {
 namespace stereo {
+
+// Timing (profiling) utilites
+static inline double Time(void) {
+  struct timeval tv;
+  gettimeofday(&tv, 0);
+  return ((double) tv.tv_sec + (double) tv.tv_usec / 1.0e6);
+}
 
 // Return absolute difference of two bit images
 inline unsigned char correlator_absolute_difference(unsigned char val1, unsigned char val2) {
@@ -67,11 +75,12 @@ inline PixelDisparity<float> compute_disparity(ImageView<ChannelT> &left_image,
                                                int kern_width, int kern_height,
                                                int min_h_disp, int max_h_disp,
                                                int min_v_disp, int max_v_disp) {
+
   const double default_soad = 1.0e10;     // Impossibly large value
   double min_soad = default_soad;
-  PixelDisparity<float> best_disparity(); // Starts as a missing pixel
-  for (int ii = min_h_disp; ii < max_h_disp; ++ii) {
-    for (int jj = min_v_disp; jj < max_v_disp; ++jj) {
+  PixelDisparity<float> best_disparity; // Starts as a missing pixel
+  for (int ii = min_h_disp; ii <= max_h_disp; ++ii) {
+    for (int jj = min_v_disp; jj <= max_v_disp; ++jj) {
       double soad = compute_soad(&(left_image(0,0)), &(right_image(0,0)),
                                  j, i, ii, jj,kern_width, kern_height, 
                                  left_image.cols(), left_image.rows());
@@ -81,6 +90,7 @@ inline PixelDisparity<float> compute_disparity(ImageView<ChannelT> &left_image,
       }
     }
   }
+  return best_disparity;
 }
 
 static double find_minimum(double lt, double mid, double rt) {
@@ -139,8 +149,8 @@ void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
                           bool do_horizontal_subpixel = true,
                           bool do_vertical_subpixel = true) {
   
-  VW_ASSERT(left_image.cols() == right_image.cols() == disparity_map.cols() &&
-            left_image.rows() == right_image.rows() == disparity_map.rows(),
+  VW_ASSERT(left_image.cols() == right_image.cols() && left_image.cols() == disparity_map.cols() &&
+            left_image.rows() == right_image.rows() && left_image.rows() == disparity_map.rows(),
             ArgumentErr() << "subpixel_correlation: input image dimensions do not agree.\n");
 
   int height = disparity_map.rows();

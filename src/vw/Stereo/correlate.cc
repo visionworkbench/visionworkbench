@@ -10,6 +10,7 @@ namespace po = boost::program_options;
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Stereo/OptimizedCorrelator.h>
+#include <vw/Stereo/ReferenceCorrelator.h>
 
 using namespace vw;
 using namespace vw::stereo;
@@ -41,6 +42,7 @@ int main( int argc, char *argv[] ) {
       ("lrthresh", po::value<int>(&lrthresh)->default_value(2), "Left/right correspondence threshold")
       ("hsubpix", "Enable horizontal sub-pixel correlation")
       ("vsubpix", "Enable horizontal sub-pixel correlation")
+      ("reference", "Use the slower, simpler reference correlator")
       ;
     po::positional_options_description p;
     p.add("left", 1);
@@ -87,13 +89,24 @@ int main( int argc, char *argv[] ) {
       right = threshold( laplacian_filter( gaussian_filter( right, slog ) ) );
     }
 
-    vw::stereo::SubpixelCorrelator correlator( xoffset-xrange, xoffset+xrange,
-                                               yoffset-yrange, yoffset+yrange,
-                                               xkernel, ykernel,
-                                               true, lrthresh,
-                                               (vm.count("hsubpix")>0),
-                                               (vm.count("vsubpix")>0) );
-    ImageView<PixelDisparity<float> > disparity_map = correlator( left, right, bit_image );
+    ImageView<PixelDisparity<float> > disparity_map;
+    if (vm.count("reference")>0) {
+      vw::stereo::ReferenceCorrelator correlator( xoffset-xrange, xoffset+xrange,
+                                                  yoffset-yrange, yoffset+yrange,
+                                                  xkernel, ykernel,
+                                                  true, lrthresh,
+                                                  (vm.count("hsubpix")>0),
+                                                  (vm.count("vsubpix")>0) );
+      disparity_map = correlator( left, right, bit_image );
+    } else {
+      vw::stereo::SubpixelCorrelator correlator( xoffset-xrange, xoffset+xrange,
+                                                 yoffset-yrange, yoffset+yrange,
+                                                 xkernel, ykernel,
+                                                 true, lrthresh,
+                                                 (vm.count("hsubpix")>0),
+                                                 (vm.count("vsubpix")>0) );
+      disparity_map = correlator( left, right, bit_image );
+    }
 
     double min_horz_disp, max_horz_disp, min_vert_disp, max_vert_disp;
     get_disparity_range( disparity_map, 

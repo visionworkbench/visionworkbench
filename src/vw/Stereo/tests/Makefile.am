@@ -25,9 +25,9 @@
 
 if MAKE_MODULE_STEREO
 
-TESTS = 
+TESTS = TestCorrelate
 
-#nodist_TestLinearPushbroomModel_SOURCES = TestLinearPushbroomModel.cxx
+nodist_TestCorrelate_SOURCES = TestCorrelate.cxx
 
 endif
 
