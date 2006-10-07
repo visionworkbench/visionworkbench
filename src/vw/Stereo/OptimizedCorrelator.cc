@@ -264,7 +264,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDi
   for( int dsy=topDisp; dsy<=btmDisp; ++dsy ) {
     for( int ds=minDisp; ds<=maxDisp; ++ds ) {
       set_progress_string(str(boost::format("H: [%1%,%2%] V: [%3%,%4%] processing %5% %6%")
-                              % topDisp % btmDisp % minDisp % maxDisp % dsy % ds));
+                              % minDisp % maxDisp % topDisp % btmDisp % dsy % ds));
       
       uint16 ds_combined = (ds-minDisp) + (dsy - topDisp) * (maxDisp - minDisp + 1);
 
@@ -329,7 +329,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDi
 
         // update the column sum
         csum_ptr = cSum + xStart;
-        uint8 *diff_tail = diff + xStart + (yStart+j)*width;
+        uint8 *diff_tail = diff + xStart + j*width;
         uint8 *diff_head = diff_tail + vKern*width;
         for( int i=xEnd-xStart+(hKern-1); i; --i ) {
           *(csum_ptr++) += *(diff_head++) - *(diff_tail++);
@@ -531,7 +531,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized(
         result[nn].vDisp = vDisp;
       }
     }
-  
+
     delete [] result_hvdisp;
     delete [] result_best;
   
@@ -575,11 +575,11 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr( int minDisp,       
   for( int dsy=topDisp; dsy<=btmDisp; ++dsy ) {
     for( int ds=minDisp; ds<=maxDisp; ++ds ) {
       set_progress_string(str(boost::format("H: [%1%,%2%] V: [%3%,%4%] processing %5% %6%")
-                              % topDisp % btmDisp % minDisp % maxDisp % dsy % ds));
+                              % minDisp % maxDisp % topDisp % btmDisp % dsy % ds));
       
       // compute the region of correlation
-      int yStart = - ((dsy<0)?dsy:0);
-      int xStart = - ((ds<0)?ds:0);
+      int yStart = (dsy<0) ? (-dsy) : 0;
+      int xStart = (ds<0) ? (-ds) : 0;
       int yEnd = yStart + height - abs(dsy) - (vKern-1);
       int xEnd = xStart + width - abs(ds) - (hKern-1);
 
@@ -639,7 +639,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr( int minDisp,       
 
         // update the column sum
         csum_ptr = cSum + xStart;
-        float *diff_tail = diff + xStart + (yStart+j)*width;
+        float *diff_tail = diff + xStart + j*width;
         float *diff_head = diff_tail + vKern*width;
         for( int i=xEnd-xStart+(hKern-1); i; --i ) {
           *(csum_ptr++) += *(diff_head++) - *(diff_tail++);
@@ -647,6 +647,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr( int minDisp,       
       }
     }
   }
+
   delete[] diff;
   delete[] cSum;
 
