@@ -160,8 +160,8 @@ namespace stereo {
                                           int width,	/* image width */
                                           int vKern,  /* kernel height */
                                           int hKern,  /* kernel width */
-                                          float *Rimg,	/* reference image fixed */
-                                          float *Simg	/* searched image sliding */
+                                          const float *Rimg,	/* reference image fixed */
+                                          const float *Simg	/* searched image sliding */
                                           );
 
     void set_correlation_rate_string(std::string str);
