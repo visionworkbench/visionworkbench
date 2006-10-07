@@ -52,10 +52,9 @@ namespace stereo {
         throw ArgumentErr() << "Both images must be single channel/single plane images\n";
       }
         
-      ImageView<float> l_img = channels_to_planes(image0);
-      ImageView<float> r_img = channels_to_planes(image1);        
-      ImageView<PixelDisparity<float> > disparity_map = correlation_2D(l_img, r_img, bit_image);
-      return disparity_map;
+      ImageView<typename PixelChannelType<PixelT>::type> l_img = channels_to_planes(image0);
+      ImageView<typename PixelChannelType<PixelT>::type> r_img = channels_to_planes(image1);        
+      return correlation_2D(l_img, r_img, bit_image);
     }
       
     void set_kernel(int lWidth, int lHeight) {
@@ -104,8 +103,8 @@ namespace stereo {
       
     template <class ChannelT>
     ImageView<PixelDisparity<float> > correlation_2D( ImageView<ChannelT> &left_image,
-                                                      ImageView<ChannelT> &right_image, 
-                                                      bool bit_image = false);
+                                                       ImageView<ChannelT> &right_image, 
+                                                       bool bit_image = false);
   };
 
   /// Work thread class that does the actual correlation

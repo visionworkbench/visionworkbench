@@ -816,7 +816,7 @@ ImageView<PixelDisparity<float> > SubpixelCorrelator::correlation_2D( ImageView<
     if (bit_image == true) {
       std::cout << "\tUsing bit image optimized correlator\n";
       threads.create_thread(CorrelationWorkThread(this, 0, -m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, width, height, m_lKernWidth, m_lKernHeight, bit_img1, bit_img0));
-      threads.create_thread(CorrelationWorkThread(this, 1, m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, width, height, m_lKernWidth, m_lKernHeight, bit_img0, bit_img1));
+      threads.create_thread(CorrelationWorkThread(this, 1,  m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, width, height, m_lKernWidth, m_lKernHeight, bit_img0, bit_img1));
     } else {
       std::cout << "\tUsing standard correlator\n";
       threads.create_thread(CorrelationWorkThread(this, 0, -m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, width, height, m_lKernWidth, m_lKernHeight, pBuffer1, pBuffer0));
@@ -900,7 +900,7 @@ template
 ImageView<PixelDisparity<float> > SubpixelCorrelator::correlation_2D<float>( ImageView<float> &left_image,
                                                                              ImageView<float> &right_image, 
                                                                              bool bit_image);
-    
+
 template
 ImageView<PixelDisparity<float> > SubpixelCorrelator::correlation_2D<uint8>( ImageView<uint8> &left_image,
                                                                              ImageView<uint8> &right_image, 

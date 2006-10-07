@@ -43,6 +43,8 @@ int main( int argc, char *argv[] ) {
       ("hsubpix", "Enable horizontal sub-pixel correlation")
       ("vsubpix", "Enable vertical sub-pixel correlation")
       ("reference", "Use the slower, simpler reference correlator")
+      ("bitimage", "Force the use of the optimized bit-image correlator")
+      ("nonbitimage", "Fore the use of the slower, non bit-image optimized correlator")
       ;
     po::positional_options_description p;
     p.add("left", 1);
@@ -56,7 +58,7 @@ int main( int argc, char *argv[] ) {
       std::cout << desc << std::endl;
       return 1;
     }
-
+    
     if( vm.count("left") != 1 || vm.count("right") != 1 ) {
       std::cout << "Error: Must specify one (and only one) left and right input file!" << std::endl;
       std::cout << desc << std::endl;
@@ -105,7 +107,21 @@ int main( int argc, char *argv[] ) {
                                                  true, lrthresh,
                                                  (vm.count("hsubpix")>0),
                                                  (vm.count("vsubpix")>0) );
-      disparity_map = correlator( left, right, bit_image );
+      if (vm.count("bitimage")) {
+        std::cout << "Forcing the use of the bit-image optimized correlator.\n";
+        bit_image = true;
+      } else if (vm.count("nonbitimage")) {
+        std::cout << "Forcing the use of the non bit-image optimized correlator.\n";
+        bit_image = false;
+      } 
+
+      if (bit_image) {
+        ImageView<PixelGray<uint8> > left_bitimage = channel_cast<uint8>(left);
+        ImageView<PixelGray<uint8> > right_bitimage = channel_cast<uint8>(right);
+        disparity_map = correlator( left_bitimage, right_bitimage, bit_image );
+      } else {
+        disparity_map = correlator( left, right, bit_image );
+      }
     }
 
     double min_horz_disp, max_horz_disp, min_vert_disp, max_vert_disp;
