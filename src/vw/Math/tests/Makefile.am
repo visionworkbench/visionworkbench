@@ -25,7 +25,8 @@
 
 if MAKE_MODULE_MATH
 
-TESTS = TestVector TestMatrix TestBBox TestFunctions TestFunctors TestLinearAlgebra
+TESTS = TestVector TestMatrix TestBBox TestFunctions TestFunctors \
+        TestLinearAlgebra #TestOptimization
 
 nodist_TestVector_SOURCES = TestVector.cxx
 nodist_TestMatrix_SOURCES = TestMatrix.cxx
@@ -33,6 +34,7 @@ nodist_TestBBox_SOURCES = TestBBox.cxx
 nodist_TestFunctions_SOURCES = TestFunctions.cxx
 nodist_TestFunctors_SOURCES = TestFunctors.cxx
 nodist_TestLinearAlgebra_SOURCES = TestLinearAlgebra.cxx
+#nodist_TestOptimization_SOURCES = TestOptimization.cxx
 
 endif
 

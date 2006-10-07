@@ -25,9 +25,11 @@
 
 if MAKE_MODULE_CAMERA
 
-TESTS = TestLinearPushbroomModel
+TESTS = 
+#TESTS = TestLinearPushbroomModel TestCameraTransform
 
-nodist_TestLinearPushbroomModel_SOURCES = TestLinearPushbroomModel.cxx
+#nodist_TestLinearPushbroomModel_SOURCES = TestLinearPushbroomModel.cxx
+#nodist_TestCameraTransform_SOURCES = TestCameraTransform.cxx
 
 endif
 

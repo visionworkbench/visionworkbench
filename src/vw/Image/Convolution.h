@@ -157,13 +157,13 @@ namespace vw {
     // we do not need to rasterize the child before we proceed to
     // rasterize ourself.
     typedef typename boost::mpl::if_< IsMultiplyAccessible<ImageT>, 
- 				      ConvolutionView<typename ImageT::prerasterize_type, KernelT, EdgeT>,
- 				      ConvolutionView<CropView<ImageView<typename ImageT::pixel_type> >, KernelT, EdgeT> >::type prerasterize_type;
-
+                                      ConvolutionView<typename ImageT::prerasterize_type, KernelT, EdgeT>,
+                                      ConvolutionView<CropView<ImageView<typename ImageT::pixel_type> >, KernelT, EdgeT> >::type prerasterize_type;
+    
     inline prerasterize_type prerasterize_helper( BBox2i bbox, boost::true_type ) const {
       return prerasterize_type( m_image.child().prerasterize(bbox), m_kernel.child(), m_ci, m_cj, m_image.func() );
     }
-
+    
     inline prerasterize_type prerasterize_helper( BBox2i bbox, boost::false_type ) const {
       ImageView<pixel_type> buf( bbox.width(), bbox.height(), m_image.planes() );
       m_image.rasterize( buf, bbox );

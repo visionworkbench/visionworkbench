@@ -120,12 +120,36 @@ namespace vw {
   // -------------------------------------------------------------------------------
   // Built-in transform functors
   // -------------------------------------------------------------------------------
+  template <class ImplT>
+  struct TransformBase {
+    /// The naive implementation.  Subclasses should override this
+    /// computation with a closed form bounding box computation if one
+    /// is available.
+    inline ImplT& impl() { return static_cast<ImplT&>(*this); }
+    inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
+
+    BBox2i compute_input_bbox(BBox2i const& output_bbox) const {
+      Vector2 pt;
+      BBox2i bbox;
+      for (pt[0] = floor(output_bbox.min().x()); pt[0] <= ceil(output_bbox.max().x()); (pt[0])++) {
+        for (pt[1] = floor(output_bbox.min().y()); pt[1] <= ceil(output_bbox.max().y()); (pt[1])++) {
+          Vector2 result = impl().reverse(pt);
+          Vector<uint32,2> grow_vec(uint32(round(result[0])), uint32(round(result[1])));
+          bbox.grow( grow_vec );
+        }
+      }
+      return bbox;
+    }
+
+    inline Vector2 reverse(const Vector2 &p) const { throw NoImplErr() << "TransformBase: reverse() is not implemented for this transform function."; }
+    inline Vector2 forward(const Vector2 &p) const { throw NoImplErr() << "TransformBase: forward() is not implemented for this transform function."; }
+  };
   
   /// Resample Image Transform Functor
   ///
   /// Transform points for image warping by applying a (possibly
   /// non-uniform) scaling in x and y.
-  class ResampleTransform {
+  class ResampleTransform : public TransformBase<ResampleTransform> {
     double m_xfactor, m_yfactor;
   public:    
     ResampleTransform(double x_scaling, double y_scaling) : 
@@ -144,7 +168,7 @@ namespace vw {
   /// Translate Image Transform Functor
   ///
   /// Reposition an image by applying a translation to x and y.
-  class TranslateTransform {
+  class TranslateTransform : public TransformBase<TranslateTransform> {
     double m_xtrans, m_ytrans;
   public:
     TranslateTransform(double x_translation, double y_translation) : 
@@ -164,14 +188,13 @@ namespace vw {
   ///
   /// Transform points for image warping by applying a linear operator
   /// (a 3x3 homography).
-  template <class TransformT>
-  class HomographyTransform {
+  class HomographyTransform : public TransformBase<HomographyTransform> {
   private:
-    Matrix<TransformT> m_H_inverse;
-    Matrix<TransformT> m_H;
+    Matrix<double> m_H_inverse;
+    Matrix<double> m_H;
   public:
 
-    HomographyTransform(Matrix<TransformT> &H) : m_H_inverse( inverse(H) ), m_H(H) {
+    HomographyTransform(Matrix<double> H) : m_H_inverse( inverse(H) ), m_H(H) {
       VW_ASSERT ( (m_H.rows() == 3) && (m_H.cols() == 3),
                   ArgumentErr() << "HomographyTransform: Invalid dimensions for homography. Matrix must be 3x3.");
     }
@@ -188,7 +211,7 @@ namespace vw {
     /// coordinates in the original image to coordinates in the
     /// transformed image.  This routine is not needed to compute the
     /// transformation, but it is used to determine the size of the
-    /// output image when a FreeTransfrom() is called.
+    /// output image when compute_transformed_bbox() is called.
     inline Vector2 forward(const Vector2 &p) const {
       double w = m_H(2,0) * p(0) + m_H(2,1) * p(1) + m_H(2,2);
       return Vector2( ( m_H(0,0) * p(0) + m_H(0,1) * p(1) + m_H(0,2) ) / w,
@@ -203,7 +226,7 @@ namespace vw {
   /// image.  The pixel location in the input image that corresponds
   /// to location (i,j) in the output image is at the position stored
   /// in lookup_image(i,j).
-  class PointLookupTransform {
+  class PointLookupTransform : public TransformBase<PointLookupTransform> {
     ImageView<Vector2> m_lookup_image;
   public:
     PointLookupTransform(ImageView<Vector2> &lookup_image) : m_lookup_image(lookup_image) {}
@@ -221,7 +244,7 @@ namespace vw {
   /// lookup-table image.  The pixel location in the input image that
   /// corresponds to location (i,j) in the output image is at the
   /// position stored in (i,j) + lookup_image(i,j).
-  class PointOffsetTransform {
+  class PointOffsetTransform : public TransformBase<PointOffsetTransform> {
     ImageView<Vector2> m_offset_image;
   public:
     PointOffsetTransform(ImageView<Vector2> &offset_image) : m_offset_image(offset_image) {}
@@ -244,7 +267,7 @@ namespace vw {
   /// of the right edge of the image (<TT>[image_width,
   /// image_height/2]</TT> in cartesian coordinates).
   template <class ImplT, class ImageT>
-  class RadialTransformAdaptor {
+  class RadialTransformAdaptor : public TransformBase< RadialTransformAdaptor<ImplT, ImageT> > {
   private:
     ImplT m_impl;
     double m_half_width;
@@ -333,8 +356,13 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef TransformView<typename ImageT::prerasterize_type, TransformT> prerasterize_type;
-    inline prerasterize_type prerasterize() const { return prerasterize_type( m_image.prerasterize(), m_mapper, m_width, m_height ); }
-    template <class DestT> inline void rasterize( DestT const& dest ) const { vw::rasterize( prerasterize(), dest ); }
+    inline prerasterize_type prerasterize( BBox2i bbox) const { 
+      BBox2i transformed_bbox = m_mapper.compute_input_bbox(bbox);
+      return prerasterize_type( m_image.prerasterize(transformed_bbox), m_mapper, m_width, m_height );
+    }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { 
+      vw::rasterize( prerasterize(bbox), dest, bbox );
+    }
     /// \endcond
   };
 
@@ -344,6 +372,15 @@ namespace vw {
   struct IsFloatingPointIndexable<TransformView<ImplT, TransformT> > : public boost::true_type {};
   /// \endcond
 
+
+
+  /// Compute the bounding box in the transformed image space that
+  /// contains all of the transformed pixels.  The bounding box is
+  /// computed by forward transforming all of the pixel coordinates
+  /// from the original image.  If you know your transformation to be
+  /// convex, you will probably want to use
+  /// compute_transformed_bbox_fast(), below.  If the bounding box
+  /// exceeds preset limits, a warning will be printed out.
   template <class ViewT, class TransformT>
   inline BBox2f compute_transformed_bbox(ImageViewBase<ViewT> const& image, 
                                          TransformT const& transform_func,
@@ -438,67 +475,218 @@ namespace vw {
   /// interpolation and edge extension modes.  It is also possible to
   /// write your own.  Again, see the above files for more information.
   template <class ImageT, class TransformT, class EdgeT, class InterpT>
-  TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT>
-  inline fixed_transform( ImageViewBase<ImageT> const& v, 
-                          TransformT const& transform_func, 
-                          EdgeT const& edge_func,
-                          InterpT const& interp_func) {
+  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT> >::type
+  inline transform( ImageViewBase<ImageT> const& v, TransformT const& transform_func, 
+                    EdgeT const& edge_func, InterpT const& interp_func) {
     return TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT>
       (interpolate(v, interp_func, edge_func), transform_func);
   }
   
-  /// Convenience function: transform with a default interpolation scheme of bilinear interpolation
+  /// Convenience function: transform with a default interpolation
+  /// scheme of bilinear interpolation.
   template <class ImageT, class TransformT, class EdgeT>
   TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
-  inline fixed_transform( ImageViewBase<ImageT> const& v, 
-                          TransformT const& transform_func, 
-                          EdgeT const& edge_func) {
+  inline transform( ImageViewBase<ImageT> const& v, TransformT const& transform_func, 
+                    EdgeT const& edge_func) {
     return TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT> 
       (interpolate(v, BilinearInterpolation(), edge_func), transform_func);
   }
-
-  /// Convenience function: transform with a default scheme of bilinear interpolation and zero edge extension
+  
+  /// Convenience function: transform with a default scheme of
+  /// bilinear interpolation and zero edge extension.
   template <class ImageT, class TransformT>
   TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT>
-  inline fixed_transform( ImageViewBase<ImageT> const& v, 
-                          TransformT const& transform_func) {
+  inline transform( ImageViewBase<ImageT> const& v, TransformT const& transform_func) {
     return TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT> 
       (interpolate(v, BilinearInterpolation(), ZeroEdgeExtend()), transform_func);
   }
-  
-  /// --------------
-  /// Free Transform
-  /// --------------
+
+
+
+
+
+  /// This variant of transform allows the user to specify the
+  /// dimensions of the transformed image.  The upper left hand point
+  /// (0,0) stays fixed.  For a more flexible method of cropping to an
+  /// arbitrary bounding box, use one of the transform methods defined
+  /// below.
   template <class ImageT, class TransformT, class EdgeT, class InterpT>
+  TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT>
+  inline transform( ImageViewBase<ImageT> const& v, TransformT const& transform_func, 
+                    int width, int height, EdgeT const& edge_func, InterpT const& interp_func) {
+    return TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT>
+      (interpolate(v, interp_func, edge_func), transform_func, width, height);
+  }
+  
+  /// Convenience function: transform with a default interpolation
+  /// scheme of bilinear interpolation. The user can specify the
+  /// dimensions of the output image.
+  template <class ImageT, class TransformT, class EdgeT>
+  TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
+  inline transform( ImageViewBase<ImageT> const& v, TransformT const& transform_func, 
+                    int width, int height, EdgeT const& edge_func) {
+    return TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT> 
+      (interpolate(v, BilinearInterpolation(), edge_func), transform_func, width, height);
+  }
+
+  /// Convenience function: transform with a default scheme of
+  /// bilinear interpolation and zero edge extension.  The user can
+  /// specify the dimensions of the output image.
+  template <class ImageT, class TransformT>
+  TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT>
+  inline transform( ImageViewBase<ImageT> const& v, TransformT const& transform_func,
+                    int width, int height) {
+    return TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT> 
+      (interpolate(v, BilinearInterpolation(), ZeroEdgeExtend()), transform_func, width, height);
+  }
+  
+
+
+
+
+
+  /// Transform an image and select the bounding box in the
+  /// transformed space from which to take the new image.  The
+  /// compute_transformed_bbox() method can be used to compute the
+  /// bounding box that will fit all of the transformed pixels.
+  template <class ImageT, class TransformT, class BBoxRealT, class EdgeT, class InterpT>
   CropView<TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT> >
-  inline free_transform( ImageViewBase<ImageT> const& v, 
-                         TransformT const& transform_func, 
-                         BBox2f const& bbox, 
-                         EdgeT const& edge_func,
-                         InterpT const& interp_func) {
+  inline transform( ImageViewBase<ImageT> const& v, 
+                    TransformT const& transform_func, 
+                    BBox<BBoxRealT,2> const& bbox, 
+                    EdgeT const& edge_func,
+                    InterpT const& interp_func) {
     return crop(TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT>
                 (interpolate(v, interp_func, edge_func), transform_func), bbox);
   }
 
-  /// Convenience function: free transform with a default scheme of bilinear interpolation.
-  template <class ImageT, class TransformT, class EdgeT>
+  /// Convenience function: free transform with a default scheme of
+  /// bilinear interpolation.  The user supplies a bounding box in the
+  /// transformed space from that determines what pixels will be
+  /// rasterized.
+  template <class ImageT, class TransformT, class BBoxRealT, class EdgeT>
   CropView<TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT> >
-  inline free_transform( ImageViewBase<ImageT> const& v, 
-                         TransformT const& transform_func, 
-                         BBox2f const& bbox, 
-                         EdgeT const& edge_func) {
+  inline transform( ImageViewBase<ImageT> const& v, 
+                    TransformT const& transform_func, 
+                    BBox<BBoxRealT,2> const& bbox, 
+                    EdgeT const& edge_func) {
     return crop(TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
                 (interpolate(v, BilinearInterpolation(), edge_func), transform_func), bbox);
   }
 
-  /// Convenience function: transform with a default scheme of bilinear interpolation and zero edge extension
-  template <class ImageT, class TransformT>
+  /// Convenience function: transform with a default scheme of
+  /// bilinear interpolation and zero edge extension. The user
+  /// supplies a bounding box in the transformed space from that
+  /// determines what pixels will be rasterized.
+  template <class ImageT, class TransformT, class BBoxRealT>
   CropView<TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT> >
-  inline free_transform( ImageViewBase<ImageT> const& v, 
-                         TransformT const& transform_func, 
-                         BBox2f const& bbox) {
+  inline transform( ImageViewBase<ImageT> const& v, 
+                    TransformT const& transform_func, 
+                    BBox<BBoxRealT,2> const& bbox) {
     return crop(TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT>
                 (interpolate(v, BilinearInterpolation(), ZeroEdgeExtend()), transform_func), bbox);
+  }
+
+
+
+  // -------------------------------------------------------------------------------
+  // Resample
+  // -------------------------------------------------------------------------------
+
+  /// Resample the image.  The user specifies the scaling factor in x
+  /// and y and the dimensions of the output image.
+  template <class ImageT, class EdgeT, class InterpT>
+  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, ResampleTransform> >::type
+  inline resample( ImageViewBase<ImageT> const& v, double x_scale_factor, double y_scale_factor, 
+                   EdgeT const& edge_func, InterpT const& interp_func) {
+    return transform(v, ResampleTransform(x_scale_factor, y_scale_factor), 
+                     int(round(v.impl().cols()*x_scale_factor)), int(round(v.impl().rows()*y_scale_factor)),
+                     edge_func, interp_func);
+  }
+
+  /// Resample the image.  The user specifies the scaling factor in x
+  /// and y and the dimensions of the output image.
+  template <class ImageT, class EdgeT>
+  TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, ResampleTransform> 
+  inline resample( ImageViewBase<ImageT> const& v, double x_scale_factor, double y_scale_factor, 
+                   EdgeT const& edge_func) {
+    return transform(v, ResampleTransform(x_scale_factor, y_scale_factor), 
+                     int(round(v.impl().cols()*x_scale_factor)), int(round(v.impl().rows()*y_scale_factor)),
+                     edge_func, vw::BilinearInterpolation());
+  }
+
+  /// Resample the image.  The user specifies the scaling factor in x
+  /// and y and the dimensions of the output image.
+  template <class ImageT>
+  TransformView<InterpolationView<EdgeExtendView<ImageT, ConstantEdgeExtend>, BilinearInterpolation>, ResampleTransform> 
+  inline resample( ImageViewBase<ImageT> const& v, 
+                   double x_scale_factor, double y_scale_factor) {
+    return transform(v, ResampleTransform(x_scale_factor, y_scale_factor), 
+                     int(round(v.impl().cols()*x_scale_factor)), int(round(v.impl().rows()*y_scale_factor)), 
+                     vw::ConstantEdgeExtend(), vw::BilinearInterpolation());
+  }
+
+  /// Resample the image.  The user specifies the scaling factor in x
+  /// and y and the dimensions of the output image.
+  template <class ImageT, class EdgeT, class InterpT>
+  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, ResampleTransform> >::type
+  inline resample( ImageViewBase<ImageT> const& v, double scale_factor, 
+                   EdgeT const& edge_func, InterpT const& interp_func) {
+    return transform(v, ResampleTransform(scale_factor, scale_factor), 
+                     int(round(v.impl().cols()/scale_factor)), int(round(v.impl().rows()*scale_factor)),
+                     edge_func, interp_func);
+  }
+
+  /// Resample the image.  The user specifies the scaling factor in x
+  /// and y and the dimensions of the output image.
+  template <class ImageT, class EdgeT>
+  typename boost::disable_if<IsScalar<EdgeT>, TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, ResampleTransform> >::type 
+  inline resample( ImageViewBase<ImageT> const& v, double scale_factor, EdgeT const& edge_func) {
+    return transform(v, ResampleTransform(scale_factor, scale_factor),
+                     int(round(v.impl().cols()*scale_factor)), int(round(v.impl().rows()*scale_factor)),
+                     edge_func, vw::BilinearInterpolation());
+  }
+
+  /// Resample the image.  The user specifies the scaling factor in x
+  /// and y and the dimensions of the output image.
+  template <class ImageT>
+  TransformView<InterpolationView<EdgeExtendView<ImageT, ConstantEdgeExtend>, BilinearInterpolation>, ResampleTransform> 
+  inline resample( ImageViewBase<ImageT> const& v, double scale_factor) {
+    return transform(v, ResampleTransform(scale_factor, scale_factor), 
+                     int(round(v.impl().cols()*scale_factor)), int(round(v.impl().rows()*scale_factor)),
+                     vw::ConstantEdgeExtend(), vw::BilinearInterpolation());
+  }
+
+
+  // -------------------------------------------------------------------------------
+  // Translate
+  // -------------------------------------------------------------------------------
+
+  /// Translate the image.  The user specifies the offset in x
+  /// and y and the dimensions of the output image.
+  template <class ImageT, class EdgeT, class InterpT>
+  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TranslateTransform> >::type
+  inline translate( ImageViewBase<ImageT> const& v, double x_offset, double y_offset,
+                   EdgeT const& edge_func, InterpT const& interp_func) {
+    return transform(v, TranslateTransform(x_offset, y_offset));
+  }
+
+  /// Translate the image.  The user specifies the offset in x
+  /// and y and the dimensions of the output image.
+  template <class ImageT, class EdgeT>
+  TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TranslateTransform> 
+  inline translate( ImageViewBase<ImageT> const& v, double x_offset, double y_offset, 
+                   EdgeT const& edge_func) {
+    return transform(v, TranslateTransform(x_offset, y_offset));
+  }
+
+  /// Translate the image.  The user specifies the offset in x
+  /// and y and the dimensions of the output image.
+  template <class ImageT>
+  TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TranslateTransform> 
+  inline translate( ImageViewBase<ImageT> const& v, 
+                   double x_offset, double y_offset) {
+    return transform(v, TranslateTransform(x_offset, y_offset));
   }
 
 } // namespace vw

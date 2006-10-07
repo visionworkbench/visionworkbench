@@ -35,6 +35,7 @@
 
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Image/PixelMath.h>
+#include <vw/Math/Vector.h>
 
 namespace vw {
 
@@ -344,6 +345,25 @@ namespace vw {
     }
   }
 
+  // *******************************************************************
+  // Vector Pixel Types
+  // *******************************************************************
+  template <class ElemT, int SizeN>                                  
+  struct CompoundChannelType<Vector<ElemT, SizeN> > {            
+    typedef ElemT type;                                   
+  };                                                         
+  template <class ElemT, int SizeN>                                  
+  struct CompoundNumChannels<Vector<ElemT, SizeN> > {           
+    static const unsigned value = SizeN;                 
+  };                                                         
+  template <class OldChT, class NewChT, int SizeN>                      
+  struct CompoundChannelCast<Vector<OldChT,SizeN>, NewChT> {       
+    typedef Vector<NewChT, SizeN> type;                             
+  };                                                         
+  template <class OldChT, class NewChT, int SizeN>                      
+  struct CompoundChannelCast<Vector<OldChT,SizeN>, const NewChT> {
+    typedef const Vector<NewChT, SizeN> type;                       
+  };
 }
 
 #endif // __VW_IMAGE__PIXEL_TYPES_H__

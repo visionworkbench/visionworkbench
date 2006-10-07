@@ -26,7 +26,7 @@
 if MAKE_MODULE_MATH
 
 include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h \
-                  Quaternion.h LinearAlgebra.h
+                  Quaternion.h LinearAlgebra.h Optimization.h
 
 libvwMath_la_SOURCES = 
 libvwMath_la_LIBADD = @MODULE_MATH_LDFLAGS@

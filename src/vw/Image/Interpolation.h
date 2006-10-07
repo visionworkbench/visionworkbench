@@ -53,7 +53,15 @@ namespace vw {
   /// A base class for the interpolation types that provides the
   /// common return type deduction logic in case users want to use
   /// these types in a more general manner.
+  ///
+  /// pixel_buffer is the number of additional pixels to prerasterize
+  /// along the edge of the child image (in case we do need to
+  /// rasterize the child when pre-rasterize is called). The subclass
+  /// of InterpolationBase _must_ override this value and set it to
+  /// the number of pixels that the interpolation algorithm will need
+  /// to search outside the boundaries of the image on each side.
   struct InterpolationBase {
+    static const int pixel_buffer = 0; 
     template <class ArgsT> struct result {};
     template <class FuncT, class ViewT, class IT, class JT, class PT>
     struct result<FuncT(ViewT,IT,JT,PT)> {
@@ -63,6 +71,7 @@ namespace vw {
 
   // Bilinear interpolation operator
   struct BilinearInterpolation : InterpolationBase {
+    static const int pixel_buffer = 1; 
     template <class ViewT>
     inline typename ViewT::pixel_type operator()(const ViewT &view, float i, float j, unsigned p ) const { 
       typedef typename ViewT::pixel_type pixel_type;
@@ -78,6 +87,7 @@ namespace vw {
 
   // Bicubic interpolation operator
   struct BicubicInterpolation : InterpolationBase {
+    static const int pixel_buffer = 2; 
     template <class ViewT>
     inline typename ViewT::pixel_type operator()( const ViewT &view, float i, float j, unsigned p ) const { 
       typedef typename ViewT::pixel_type pixel_type;
@@ -102,6 +112,7 @@ namespace vw {
 
   // NearestPixel interpolation operator.  
   struct NearestPixelInterpolation : InterpolationBase {
+    static const int pixel_buffer = 1; 
     template <class ViewT>
     inline typename ViewT::pixel_type operator()( const ViewT &view, float i, float j, unsigned p ) const {
       int x = int(lroundf(i));       int y = int(lroundf(j));
@@ -130,7 +141,8 @@ namespace vw {
     typedef pixel_type result_type;
     typedef ProceduralPixelAccessor<InterpolationView<ImageT, InterpT> > pixel_accessor;
     
-    InterpolationView( ImageT const& image, InterpT const& interp_func = InterpT() ) : 
+    InterpolationView( ImageT const& image, 
+                       InterpT const& interp_func = InterpT()) :
       m_image(image), m_interp_func(interp_func) {}
 
     inline unsigned cols() const { return m_image.cols(); }
@@ -150,14 +162,26 @@ namespace vw {
  				      InterpolationView<typename ImageT::prerasterize_type, InterpT>,
  				      InterpolationView<CropView<ImageView<pixel_type> >, InterpT> >::type prerasterize_type;
 
+    template <class PreRastImageT>
+    prerasterize_type prerasterize_helper( BBox2i bbox, PreRastImageT const& image, boost::true_type ) const { 
+      return prerasterize_type( image.prerasterize(bbox), m_interp_func ); 
+    }
+                            
+    template <class PreRastImageT>
+    prerasterize_type prerasterize_helper( BBox2i bbox, PreRastImageT const& image, boost::false_type ) const {
+      int padded_width = bbox.width() + 2 * m_interp_func.pixel_buffer;
+      int padded_height = bbox.height() + 2 * m_interp_func.pixel_buffer;
+      ImageView<pixel_type> buf( padded_width, padded_height, m_image.planes() );
+      BBox2i adjusted_bbox(bbox.min().x() - m_interp_func.pixel_buffer, 
+                           bbox.min().y() - m_interp_func.pixel_buffer,
+                           padded_width, padded_height);
+      image.rasterize( buf, adjusted_bbox );
+      return prerasterize_type( CropView<ImageView<pixel_type> >( buf, BBox2i(-adjusted_bbox.min().x(),-adjusted_bbox.min().y(),
+                                                                              bbox.width(), bbox.height())), m_interp_func);
+    }
+
     inline prerasterize_type prerasterize( BBox2i bbox ) const {
-      if( IsMultiplyAccessible<ImageT>::value ) {
-        return prerasterize_type( m_image.prerasterize(bbox) );
-      } else {
-        ImageView<pixel_type> buf( bbox.width(), bbox.height(), m_image.planes() );
-        m_image.rasterize( buf, bbox );
-        return prerasterize_type( CropView<ImageView<pixel_type> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),bbox.width(),bbox.height()) ) );
-      }
+      return prerasterize_helper(bbox, m_image, typename IsMultiplyAccessible<ImageT>::type() );
     }
   
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }

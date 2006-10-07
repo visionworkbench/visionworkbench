@@ -318,8 +318,8 @@ namespace vw {
   }
 
   /// Crop an image.
-  template <class ImageT>
-  inline CropView<ImageT> crop( ImageT const& v, BBox<int,2> const& bbox ) {
+  template <class ImageT, class BBoxRealT>
+  inline CropView<ImageT> crop( ImageT const& v, BBox<BBoxRealT,2> const& bbox ) {
     return CropView<ImageT>( v, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height() );
   }
 
