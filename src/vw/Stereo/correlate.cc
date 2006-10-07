@@ -41,7 +41,7 @@ int main( int argc, char *argv[] ) {
       ("ykernel", po::value<int>(&ykernel)->default_value(15), "Vertical correlation kernel size")
       ("lrthresh", po::value<int>(&lrthresh)->default_value(2), "Left/right correspondence threshold")
       ("hsubpix", "Enable horizontal sub-pixel correlation")
-      ("vsubpix", "Enable horizontal sub-pixel correlation")
+      ("vsubpix", "Enable vertical sub-pixel correlation")
       ("reference", "Use the slower, simpler reference correlator")
       ;
     po::positional_options_description p;
@@ -77,9 +77,9 @@ int main( int argc, char *argv[] ) {
 
     bool bit_image = false;
     if( log > 0 ) {
-      std::cout << "Applying SLOG filter..." << std::endl;
-      left = laplacian_filter( gaussian_filter( left, slog ) );
-      right = laplacian_filter( gaussian_filter( right, slog ) );
+      std::cout << "Applying LOG filter..." << std::endl;
+      left = laplacian_filter( gaussian_filter( left, log ) );
+      right = laplacian_filter( gaussian_filter( right, log ) );
     }
 
     if( slog > 0.0 ) {

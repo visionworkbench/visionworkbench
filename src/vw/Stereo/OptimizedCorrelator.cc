@@ -396,6 +396,136 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized(
     return result;
 }
 
+#if 1
+SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr(int minDisp, /* left bound disparity search */
+                                                            int maxDisp, /* right bound disparity search */
+                                                            int topDisp, /* top bound disparity search window */
+                                                            int btmDisp, /* bottom bound disparity search window */ 
+                                                            int height,    /* image height */
+                                                            int width,    /* image width */
+                                                            int vKern,   /* kernel height */
+                                                            int hKern,   /* kernel width */
+                                                            float *Rimg, /* reference image fixed */
+                                                            float *Simg  /* searched image sliding */
+                                                            )
+{
+  double before = Time();
+  int numCorrTries = (btmDisp - topDisp + 1) * (maxDisp - minDisp + 1);
+
+  float *diff;	/* buffer containing results of substraction of L/R images */
+  float *cSum;	/* sum per column (kernel hight) */
+  SubpixelCorrelator::soad *result;	/* soad buffer to be returned */
+  
+  /* initialization */
+  if ( !( diff = (float *)malloc (width*height*sizeof(float)))) {
+    printf("cannot allocate the correlator's difference buffer\n");
+    exit(1);
+  }
+  if ( !( cSum = (float *)malloc (width*sizeof(float)))) {
+    printf("cannot allocate the correlator's cSum buffer\n");
+    exit(1);
+  }
+  if ( !( result = (SubpixelCorrelator::soad *)malloc (width*height*sizeof(SubpixelCorrelator::soad)))) {
+    printf("cannot allocate the correlator's SOAD buffer\n");
+    exit(1);
+  }
+  
+  for( int nn=0; nn<height*width; nn++){
+    result[nn].best = VW_STEREO_MISSING_PIXEL;
+    result[nn].hDisp = VW_STEREO_MISSING_PIXEL;
+    result[nn].vDisp = VW_STEREO_MISSING_PIXEL;
+  }
+
+  for( int dsy=topDisp; dsy<=btmDisp; ++dsy ) {
+    for( int ds=minDisp; ds<=maxDisp; ++ds ) {
+      set_progress_string(str(boost::format("H: [%1%,%2%] V: [%3%,%4%] processing %5% %6%")
+                              % topDisp % btmDisp % minDisp % maxDisp % dsy % ds));
+      
+      /* initialize the cSum buffer */
+      for( int i=0; i<width; ++i )
+        cSum[i] = 0;
+      
+      int yStart = - ((dsy<0)?dsy:0);
+      int xStart = - ((ds<0)?ds:0);
+      int yEnd = yStart + height - abs(dsy) - (vKern-1);
+      int xEnd = xStart + width - abs(ds) - (hKern-1);
+
+      float *diff_row = diff + yStart*width + xStart;
+      float *rimg_row = Rimg + yStart*width + xStart;
+      float *simg_row = Simg + (yStart+dsy)*width + (xStart+ds);
+      for( int j=yEnd-yStart+(vKern-1); j; --j ) {
+        float *diff_ptr = diff_row;
+        float *rimg_ptr = rimg_row;
+        float *simg_ptr = simg_row;
+        for( int i=xEnd-xStart+(hKern-1); i; --i ) {
+          *diff_ptr = fabs((float)*rimg_ptr-(float)*simg_ptr);
+          ++diff_ptr;
+          ++rimg_ptr;
+          ++simg_ptr;
+        }
+        diff_row += width;
+        rimg_row += width;
+        simg_row += width;
+      }
+
+      diff_row = diff + yStart*width + xStart;
+      float *csum_row = cSum + xStart;
+      for( int j=vKern; j; --j ) {
+        float *diff_ptr = diff_row;
+        float *csum_ptr = csum_row;
+        for( int i=xEnd-xStart+(hKern-1); i; --i ) {
+          *csum_ptr += *diff_ptr;
+          ++diff_ptr;
+          ++csum_ptr;
+        }
+        diff_row += width;
+      }
+
+      SubpixelCorrelator::soad *result_row = result+(xStart+hKern/2)+(yStart+vKern/2)*width;
+      for( int j=yStart; j<yEnd; ++j, result_row+=width ) {
+        SubpixelCorrelator::soad *result_ptr = result_row;
+
+        float rsum=0;
+        float *csum_ptr = cSum + xStart;
+        for( int i=hKern; i; --i )
+          rsum += *(csum_ptr++);
+
+        float *csum_tail = cSum + xStart;
+        float *csum_head = csum_tail + hKern;
+        for( int i=xEnd-xStart; i; --i, ++result_ptr ) {
+
+          if( result_ptr->best==VW_STEREO_MISSING_PIXEL || rsum < result_ptr->best ) {
+            result_ptr->best = rsum;
+            result_ptr->hDisp = ds;
+            result_ptr->vDisp = dsy;
+          }
+
+          rsum += *(csum_head++) - *(csum_tail++);
+        }
+
+        csum_ptr = cSum + xStart;
+        float *diff_tail = diff + xStart + (yStart+j)*width;
+        float *diff_head = diff_tail + vKern*width;
+        for( int i=xEnd-xStart+(hKern-1); i; --i ) {
+          *(csum_ptr++) += *(diff_head++) - *(diff_tail++);
+        }
+      }
+    }
+  }
+  free(diff);
+  free(cSum);
+
+  set_progress_string(str(boost::format("H: [%1%,%2%] V: [%3%,%4%] processed succefully.")
+                          % topDisp % btmDisp % minDisp % maxDisp));
+  
+  double duration= Time()-before;
+  double mdisp_per_sec= ((double)numCorrTries * width * height)/duration/1e6;
+  set_correlation_rate_string(str(boost::format("%1% seconds (%2% M disparities/second)")
+                                  % (int)duration % mdisp_per_sec));
+
+  return(result);
+}
+#else
 /// Eric's 2D correlator does not assume anything about the type of
 /// the image, but it is also not optimized, and is about 2 or 3
 /// times slower than Randy's correlator.
@@ -560,6 +690,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr(int minDisp,	/* left
                                     % (int)duration % mdisp_per_sec));
     return(result);
 }
+#endif
 
 void CorrelationWorkThread::terminate() {
   boost::mutex::scoped_lock lock(m_mutex);
