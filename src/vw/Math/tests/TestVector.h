@@ -1,8 +1,10 @@
 // __BEGIN_LICENSE__
-//
+// 
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
 // 
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
@@ -16,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-//
+// 
 // __END_LICENSE__
 
 // TestVector.h
@@ -154,11 +156,11 @@ public:
     std::ostringstream oss;
     Vector<float,3> v1(1,2,3);
     oss << v1;
-    TS_ASSERT_EQUALS( oss.str(), "[3](1,2,3)" );
+    TS_ASSERT_EQUALS( oss.str(), "Vector3(1,2,3)" );
     oss.str("");
     Vector<float> v2=v1;
     oss << v2;
-    TS_ASSERT_EQUALS( oss.str(), "[3](1,2,3)" );
+    TS_ASSERT_EQUALS( oss.str(), "Vector3(1,2,3)" );
   }
 
   void test_vector_equality()

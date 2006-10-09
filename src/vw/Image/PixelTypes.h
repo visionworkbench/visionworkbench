@@ -1,8 +1,10 @@
 // __BEGIN_LICENSE__
-//
+// 
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
 // 
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
@@ -16,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-//
+// 
 // __END_LICENSE__
 
 /// \file PixelTypes.h
@@ -28,8 +30,8 @@
 /// arithmetic operators defined that assume the pixels 
 /// are represented in pre-multiplied form.
 ///
-#ifndef __VW_IMAGE__PIXEL_TYPES_H__
-#define __VW_IMAGE__PIXEL_TYPES_H__
+#ifndef __VW_IMAGE_PIXELTYPES_H__
+#define __VW_IMAGE_PIXELTYPES_H__
 
 #include <ostream>
 
@@ -51,12 +53,24 @@ namespace vw {
     ChannelT m_ch[1];
   public:
     PixelGray() { m_ch[0]=0; }
-    PixelGray( ChannelT const& v ) { m_ch[0]=v; }
+    PixelGray( ChannelT v ) { m_ch[0]=v; }
 
-    template <class OtherT> explicit PixelGray( PixelGray<OtherT> const& other ) { m_ch[0]=ChannelT(other[0]); }
-    template <class OtherT> explicit PixelGray( PixelGrayA<OtherT> const& other ) { m_ch[0]=ChannelT(other[0]); }
-    template <class OtherT> explicit PixelGray( PixelRGB<OtherT> const& other ) { m_ch[0]=ChannelT((other[0]+other[1]+other[2])/3); }
-    template <class OtherT> explicit PixelGray( PixelRGBA<OtherT> const& other ) { m_ch[0]=ChannelT((other[0]+other[1]+other[2])/3); }
+    template <class OtherT> explicit PixelGray( PixelGray<OtherT> other ) {
+      m_ch[0] = ChannelT(other[0]);
+    }
+    
+    template <class OtherT> explicit PixelGray( PixelGrayA<OtherT> other ) {
+      m_ch[0]=ChannelT(other[0]);
+    }
+
+    template <class OtherT> explicit PixelGray( PixelRGB<OtherT> other ) {
+      typedef typename AccumulatorType<ChannelT>::type a_t;
+      m_ch[0] = ChannelT( ( a_t(other[0]) + a_t(other[1]) + a_t(other[2]) ) / 3 );
+    }
+    template <class OtherT> explicit PixelGray( PixelRGBA<OtherT> other ) {
+      typedef typename AccumulatorType<ChannelT>::type a_t;
+      m_ch[0] = ChannelT( ( a_t(other[0]) + a_t(other[1]) + a_t(other[2]) ) / 3 );
+    }
 
     inline ChannelT& operator[](int i) { return m_ch[i]; }
     inline ChannelT const& operator[](int i) const { return m_ch[i]; }
@@ -70,6 +84,34 @@ namespace vw {
   /// \cond INTERNAL
   VW_DECLARE_PIXEL_TYPE(PixelGray,1);
   /// \endcond
+
+  // Promote scalars for addition on the left
+  template <class ScalarT, class ChannelT>
+  typename boost::enable_if< IsScalar<ScalarT>, PixelGray<typename SumType<ScalarT,ChannelT>::type> >::type
+  inline operator+( ScalarT scalar, PixelGray<ChannelT> pixel ) {
+    return PixelGray<ScalarT>(scalar) + pixel;
+  }
+
+  // Promote scalars for addition on the right
+  template <class ScalarT, class ChannelT>
+  typename boost::enable_if< IsScalar<ScalarT>, PixelGray<typename SumType<ChannelT,ScalarT>::type> >::type
+  inline operator+( PixelGray<ChannelT> pixel, ScalarT scalar ) {
+    return pixel + PixelGray<ScalarT>(scalar);
+  }
+
+  // Promote scalars for subtraction on the left
+  template <class ScalarT, class ChannelT>
+  typename boost::enable_if< IsScalar<ScalarT>, PixelGray<typename DifferenceType<ScalarT,ChannelT>::type> >::type
+  inline operator-( ScalarT scalar, PixelGray<ChannelT> pixel ) {
+    return PixelGray<ScalarT>(scalar) - pixel;
+  }
+
+  // Promote scalars for subtraction on the right
+  template <class ScalarT, class ChannelT>
+  typename boost::enable_if< IsScalar<ScalarT>, PixelGray<typename DifferenceType<ChannelT,ScalarT>::type> >::type
+  inline operator-( PixelGray<ChannelT> pixel, ScalarT scalar ) {
+    return pixel - PixelGray<ScalarT>(scalar);
+  }
 
   template <class ChannelT>
   std::ostream& operator<<( std::ostream& os, PixelGray<ChannelT> const& pix ) {
@@ -89,14 +131,30 @@ namespace vw {
     ChannelT m_ch[2];
   public:
     PixelGrayA() { m_ch[0]=m_ch[1]=0; }
-    PixelGrayA( ChannelT const& v ) { m_ch[0]=m_ch[1]=v; }
-    PixelGrayA( ChannelT const& v, ChannelT const& a ) { m_ch[0]=v; m_ch[1]=a; }
+    PixelGrayA( ChannelT v ) { m_ch[0]=m_ch[1]=v; }
+    PixelGrayA( ChannelT v, ChannelT a ) { m_ch[0]=v; m_ch[1]=a; }
 
-    // FIXME: 1.0 is only the top of the range for floating point types
-    template <class OtherT> explicit PixelGrayA( PixelGray<OtherT> const& other ) { m_ch[0]=ChannelT(other[0]); m_ch[1]=ChannelT(1); }  
-    template <class OtherT> explicit PixelGrayA( PixelGrayA<OtherT> const& other ) { m_ch[0]=ChannelT(other[0]); m_ch[1]=ChannelT(other[1]); }
-    template <class OtherT> explicit PixelGrayA( PixelRGB<OtherT> const& other ) { m_ch[0]=ChannelT((other[0]+other[1]+other[2])/3); m_ch[1]=ChannelT(1); }
-    template <class OtherT> explicit PixelGrayA( PixelRGBA<OtherT> const& other ) { m_ch[0]=ChannelT((other[0]+other[1]+other[2])/3); m_ch[1]=ChannelT(other[3]); }
+    template <class OtherT> explicit PixelGrayA( PixelGray<OtherT> other ) {
+      m_ch[0] = ChannelT(other[0]);
+      m_ch[1] = ChannelRange<ChannelT>::max();
+    }
+
+    template <class OtherT> explicit PixelGrayA( PixelGrayA<OtherT> other ) {
+      m_ch[0] = ChannelT(other[0]);
+      m_ch[1] = ChannelT(other[1]);
+    }
+
+    template <class OtherT> explicit PixelGrayA( PixelRGB<OtherT> other ) {
+      typedef typename AccumulatorType<ChannelT>::type a_t;
+      m_ch[0] = ChannelT( ( a_t(other[0]) + a_t(other[1]) + a_t(other[2]) ) / 3 );
+      m_ch[1] = ChannelRange<ChannelT>::max();
+    }
+
+    template <class OtherT> explicit PixelGrayA( PixelRGBA<OtherT> other ) {
+      typedef typename AccumulatorType<ChannelT>::type a_t;
+      m_ch[0] = ChannelT( ( a_t(other[0]) + a_t(other[1]) + a_t(other[2]) ) / 3 );
+      m_ch[1] = ChannelT(other[3]);
+    }
 
     inline ChannelT& operator[](int i) { return m_ch[i]; }
     inline ChannelT const& operator[](int i) const { return m_ch[i]; }
@@ -134,10 +192,26 @@ namespace vw {
     PixelRGB( ChannelT const& v ) { m_ch[0]=m_ch[1]=m_ch[2]=v; };
     PixelRGB( ChannelT const& r, ChannelT const& g, ChannelT const& b ) { m_ch[0]=r; m_ch[1]=g; m_ch[2]=b; }
 
-    template <class OtherT> explicit PixelRGB( PixelGray<OtherT> const& other ) { m_ch[0]=m_ch[1]=m_ch[2]=ChannelT(other[0]); }
-    template <class OtherT> explicit PixelRGB( PixelGrayA<OtherT> const& other ) { m_ch[0]=m_ch[1]=m_ch[2]=ChannelT(other[0]); }
-    template <class OtherT> explicit PixelRGB( PixelRGB<OtherT> const& other ) { m_ch[0]=ChannelT(other[0]); m_ch[1]=ChannelT(other[1]); m_ch[2]=ChannelT(other[2]); }
-    template <class OtherT> explicit PixelRGB( PixelRGBA<OtherT> const& other ) { m_ch[0]=ChannelT(other[0]); m_ch[1]=ChannelT(other[1]); m_ch[2]=ChannelT(other[2]); }
+    template <class OtherT> explicit PixelRGB( PixelGray<OtherT> const& other ) {
+      m_ch[0] = m_ch[1] = m_ch[2] = ChannelT(other[0]);
+    }
+    
+    template <class OtherT> explicit PixelRGB( PixelGrayA<OtherT> const& other ) {
+      m_ch[0] = m_ch[1] = m_ch[2] = ChannelT(other[0]);
+    }
+    
+    template <class OtherT> explicit PixelRGB( PixelRGB<OtherT> const& other ) {
+      m_ch[0] = ChannelT(other[0]);
+      m_ch[1] = ChannelT(other[1]);
+      m_ch[2] = ChannelT(other[2]);
+    }
+    
+    template <class OtherT> explicit PixelRGB( PixelRGBA<OtherT> const& other ) {
+      m_ch[0] = ChannelT(other[0]);
+      m_ch[1] = ChannelT(other[1]);
+      m_ch[2] = ChannelT(other[2]);
+    }
+    
     template <class OtherT> explicit PixelRGB( PixelHSV<OtherT> const& other );
 
     inline ChannelT& operator[](int i) { return m_ch[i]; }
@@ -178,10 +252,29 @@ namespace vw {
     PixelRGBA( ChannelT const& v ) { m_ch[0]=m_ch[1]=m_ch[2]=m_ch[3]=v; }
     PixelRGBA( ChannelT const& r, ChannelT const& g, ChannelT const& b, ChannelT const& a ) { m_ch[0]=r; m_ch[1]=g; m_ch[2]=b; m_ch[3]=a; }
 
-    template <class OtherT> explicit PixelRGBA( PixelGray<OtherT> const& other ) { m_ch[0]=m_ch[1]=m_ch[2]=ChannelT(other[0]); m_ch[3]=ChannelT(1); }
-    template <class OtherT> explicit PixelRGBA( PixelGrayA<OtherT> const& other ) { m_ch[0]=m_ch[1]=m_ch[2]=ChannelT(other[0]); m_ch[3]=ChannelT(other[1]); }
-    template <class OtherT> explicit PixelRGBA( PixelRGB<OtherT> const& other ) { m_ch[0]=ChannelT(other[0]); m_ch[1]=ChannelT(other[1]); m_ch[2]=ChannelT(other[2]); m_ch[3]=ChannelT(1); }
-    template <class OtherT> explicit PixelRGBA( PixelRGBA<OtherT> const& other ) { m_ch[0]=ChannelT(other[0]); m_ch[1]=ChannelT(other[1]); m_ch[2]=ChannelT(other[2]); m_ch[3]=ChannelT(other[3]); }
+    template <class OtherT> explicit PixelRGBA( PixelGray<OtherT> const& other ) {
+      m_ch[0] = m_ch[1] = m_ch[2] = ChannelT(other[0]);
+      m_ch[3]=ChannelRange<ChannelT>::max();
+    }
+    
+    template <class OtherT> explicit PixelRGBA( PixelGrayA<OtherT> const& other ) {
+      m_ch[0] = m_ch[1] = m_ch[2] = ChannelT(other[0]);
+      m_ch[3]=ChannelT(other[1]);
+    }
+    
+    template <class OtherT> explicit PixelRGBA( PixelRGB<OtherT> const& other ) {
+      m_ch[0] = ChannelT(other[0]);
+      m_ch[1] = ChannelT(other[1]);
+      m_ch[2] = ChannelT(other[2]);
+      m_ch[3] = ChannelRange<ChannelT>::max();
+    }
+    
+    template <class OtherT> explicit PixelRGBA( PixelRGBA<OtherT> const& other ) {
+      m_ch[0] = ChannelT(other[0]);
+      m_ch[1] = ChannelT(other[1]);
+      m_ch[2] = ChannelT(other[2]);
+      m_ch[3] = ChannelT(other[3]);
+    }
 
     inline ChannelT& operator[](int i) { return m_ch[i]; }
     inline ChannelT const& operator[](int i) const { return m_ch[i]; }
@@ -223,7 +316,12 @@ namespace vw {
     PixelHSV( ChannelT const& v ) { m_ch[0]=m_ch[1]=0; m_ch[2]=v; }
     PixelHSV( ChannelT const& h, ChannelT const& s, ChannelT const& v ) { m_ch[0]=h; m_ch[1]=s; m_ch[2]=v; }
 
-    template <class OtherT> explicit PixelHSV( PixelHSV<OtherT> const& other ) { m_ch[0]=ChannelT(other[0]); m_ch[1]=ChannelT(other[1]); m_ch[2]=ChannelT(other[2]); }
+    template <class OtherT> explicit PixelHSV( PixelHSV<OtherT> const& other ) {
+      m_ch[0] = ChannelT(other[0]);
+      m_ch[1] = ChannelT(other[1]);
+      m_ch[2] = ChannelT(other[2]);
+    }
+
     template <class OtherT> explicit PixelHSV( PixelRGB<OtherT> const& rgb );
 
     inline ChannelT& operator[](int i) { return m_ch[i]; }
@@ -345,25 +443,31 @@ namespace vw {
     }
   }
 
+
   // *******************************************************************
-  // Vector Pixel Types
+  // The Vector mathemaical vector pixel type.
   // *******************************************************************
+
   template <class ElemT, int SizeN>                                  
   struct CompoundChannelType<Vector<ElemT, SizeN> > {            
     typedef ElemT type;                                   
   };                                                         
+
   template <class ElemT, int SizeN>                                  
   struct CompoundNumChannels<Vector<ElemT, SizeN> > {           
     static const unsigned value = SizeN;                 
   };                                                         
+
   template <class OldChT, class NewChT, int SizeN>                      
   struct CompoundChannelCast<Vector<OldChT,SizeN>, NewChT> {       
     typedef Vector<NewChT, SizeN> type;                             
   };                                                         
+
   template <class OldChT, class NewChT, int SizeN>                      
   struct CompoundChannelCast<Vector<OldChT,SizeN>, const NewChT> {
     typedef const Vector<NewChT, SizeN> type;                       
   };
+
 }
 
-#endif // __VW_IMAGE__PIXEL_TYPES_H__
+#endif // __VW_IMAGE_PIXELTYPES_H__

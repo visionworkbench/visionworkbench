@@ -1,8 +1,10 @@
 // __BEGIN_LICENSE__
-//
+// 
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
 // 
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
@@ -16,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-//
+// 
 // __END_LICENSE__
 
 // TestPixelTypes.h
@@ -30,6 +32,19 @@ using namespace vw;
 class TestPixelTypes : public CxxTest::TestSuite
 {
 public:
+
+  void test_channel_types()
+  {
+    TS_ASSERT_EQUALS( ChannelRange<uint8>::max(), 255 );
+    TS_ASSERT_EQUALS( ChannelRange<uint16>::max(), 65535 );
+    TS_ASSERT_EQUALS( ChannelRange<float32>::max(), 1.0 );
+    TS_ASSERT_EQUALS( ChannelRange<float64>::max(), 1.0 );
+
+    TS_ASSERT_EQUALS( channel_cast<uint16>(uint8(255)), 255 );
+    TS_ASSERT_EQUALS( channel_cast_rescale<uint16>(uint8(255)), 65535 );
+    TS_ASSERT_EQUALS( channel_cast<uint8>(float32(17.0)), 17 );
+    TS_ASSERT_EQUALS( channel_cast_rescale<uint8>(float32(0.333334)), 85 );
+  }
 
   void test_pixel_gray()
   {

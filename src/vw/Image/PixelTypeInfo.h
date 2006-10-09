@@ -1,8 +1,10 @@
 // __BEGIN_LICENSE__
-//
+// 
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
 // 
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
@@ -16,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-//
+// 
 // __END_LICENSE__
 
 /// \file PixelTypeInfo.h
@@ -156,6 +158,100 @@ namespace vw {
 
 
   // *******************************************************************
+  // Pixel casting and rescaling logic.
+  //
+  // We implement pixel casting indirectly through this pixel_cast<> 
+  // template so that users can easily control the behavior of casts 
+  // between user-defined and standard pixel types.  When the source 
+  // and destination channel types differ, the channel conversion is 
+  // handled separately from the pixel format conversion.  The pixel 
+  // conversion itself takes place in whichever channel space has 
+  // greater precision, and occurs via a call to the corresponding 
+  // pixel_cast function.  Thus, if the user wishes to overload the 
+  // conversion behavior between two pixel formats, they need only 
+  // overload it for the case when the channel types are the same.
+  // The rescaling variant, pixel_cast_rescale<>, performs a scale 
+  // conversion when converting the channel type.
+  // *******************************************************************
+
+  // Default behavior, invoked when the source and destination channel
+  // type are the same.
+  template <bool SameN, bool SrcN, bool RescaleN>
+  struct PixelCastHelper {
+    template <class DestT, class SrcT>
+    static inline DestT convert( SrcT src ) {
+      return DestT( src );
+    }
+  };
+  
+  // Non-rescaling pixel cast free function
+  template <class DestT, class SrcT>
+  typename boost::disable_if< IsImageView<SrcT>, DestT >::type
+  inline pixel_cast( SrcT src ) {
+    typedef typename CompoundChannelType<SrcT>::type src_ch;
+    typedef typename CompoundChannelType<DestT>::type dest_ch;
+    typedef typename boost::is_same<src_ch,dest_ch>::type is_same;
+    typedef PixelCastHelper< is_same::value, (sizeof(src_ch)>sizeof(dest_ch)), false > helper;
+    return helper::template convert<DestT>( src );
+  }
+
+  // Rescaling pixel cast free function
+  template <class DestT, class SrcT>
+  typename boost::disable_if< IsImageView<SrcT>, DestT >::type
+  inline pixel_cast_rescale( SrcT src ) {
+    typedef typename CompoundChannelType<SrcT>::type src_ch;
+    typedef typename CompoundChannelType<DestT>::type dest_ch;
+    typedef typename boost::is_same<src_ch,dest_ch>::type is_same;
+    typedef PixelCastHelper< is_same::value, (sizeof(src_ch)>sizeof(dest_ch)), true > helper;
+    return helper::template convert<DestT>( src );
+  }
+
+  // Non-rescaling behavior when SrcT has less or same precision
+  template <>
+  struct PixelCastHelper<false, false, false> {
+    template <class DestT, class SrcT>
+    static inline DestT convert( SrcT src ) {
+      typedef typename CompoundChannelType<DestT>::type dest_ch;
+      return pixel_cast<DestT>( channel_cast<dest_ch>( src ) );
+    }
+  };
+
+  // Non-rescaling behavior when SrcT has greater precision
+  template <>
+  struct PixelCastHelper<false, true, false> {
+    template <class DestT, class SrcT>
+    static inline DestT convert( SrcT src ) {
+      typedef typename CompoundChannelType<SrcT>::type src_ch;
+      typedef typename CompoundChannelType<DestT>::type dest_ch;
+      typedef typename CompoundChannelCast<DestT,src_ch>::type dest_px;
+      return channel_cast<dest_ch>( pixel_cast<dest_px>( src ) );
+    }
+  };
+
+  // Rescaling behavior when SrcT has less or same precision
+  template <>
+  struct PixelCastHelper<false, false, true> {
+    template <class DestT, class SrcT>
+    static inline DestT convert( SrcT src ) {
+      typedef typename CompoundChannelType<DestT>::type dest_ch;
+      return pixel_cast<DestT>( channel_cast_rescale<dest_ch>( src ) );
+    }
+  };
+
+  // Rescaling behavior when SrcT has greater precision
+  template <>
+  struct PixelCastHelper<false, true, true> {
+    template <class DestT, class SrcT>
+    static inline DestT convert( SrcT src ) {
+      typedef typename CompoundChannelType<SrcT>::type src_ch;
+      typedef typename CompoundChannelType<DestT>::type dest_ch;
+      typedef typename CompoundChannelCast<DestT,src_ch>::type dest_px;
+      return channel_cast_rescale<dest_ch>( pixel_cast<dest_px>( src ) );
+    }
+  };
+
+
+  // *******************************************************************
   // A pixel type convenience macro and forward declrations.
   // *******************************************************************
 
@@ -229,8 +325,8 @@ namespace vw {
   template<> struct PixelFormatID<vw::uint32>  { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
   template<> struct PixelFormatID<vw::int64>   { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
   template<> struct PixelFormatID<vw::uint64>  { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
-  template<> struct PixelFormatID<float>       { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
-  template<> struct PixelFormatID<double>      { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
+  template<> struct PixelFormatID<vw::float32> { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
+  template<> struct PixelFormatID<vw::float64> { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
   template<> struct PixelFormatID<bool>        { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
   template <class ChT> struct PixelFormatID<PixelGray<ChT> >  { static const PixelFormatEnum value = VW_PIXEL_GRAY; };
   template <class ChT> struct PixelFormatID<PixelGrayA<ChT> > { static const PixelFormatEnum value = VW_PIXEL_GRAYA; };
@@ -247,8 +343,8 @@ namespace vw {
   template<> struct ChannelTypeID<vw::uint32>    { static const ChannelTypeEnum value = VW_CHANNEL_UINT32; };
   template<> struct ChannelTypeID<vw::int64>     { static const ChannelTypeEnum value = VW_CHANNEL_INT64; };
   template<> struct ChannelTypeID<vw::uint64>    { static const ChannelTypeEnum value = VW_CHANNEL_UINT64; };
-  template<> struct ChannelTypeID<float>         { static const ChannelTypeEnum value = VW_CHANNEL_FLOAT32; };
-  template<> struct ChannelTypeID<double>        { static const ChannelTypeEnum value = VW_CHANNEL_FLOAT64; };
+  template<> struct ChannelTypeID<vw::float32>   { static const ChannelTypeEnum value = VW_CHANNEL_FLOAT32; };
+  template<> struct ChannelTypeID<vw::float64>   { static const ChannelTypeEnum value = VW_CHANNEL_FLOAT64; };
   template<> struct ChannelTypeID<bool>          { static const ChannelTypeEnum value = VW_CHANNEL_BOOL; };
 
   inline int num_channels( PixelFormatEnum format ) {

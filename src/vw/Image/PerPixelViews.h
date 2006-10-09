@@ -1,8 +1,10 @@
 // __BEGIN_LICENSE__
-//
+// 
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
 // 
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
@@ -16,15 +18,15 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-//
+// 
 // __END_LICENSE__
 
 /// \file PerPixelViews.h
 /// 
 /// Per-pixel and per-pixel-channel image views, including pixel cast views.
 /// 
-#ifndef __VW_IMAGE_PER_PIXEL_VIEWS_H__
-#define __VW_IMAGE_PER_PIXEL_VIEWS_H__
+#ifndef __VW_IMAGE_PERPIXELVIEWS_H__
+#define __VW_IMAGE_PERPIXELVIEWS_H__
 
 #include <boost/type_traits.hpp>
 #include <boost/mpl/logical.hpp>
@@ -77,8 +79,7 @@ namespace vw {
     inline unsigned planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(m_image.origin(),m_func); }
-    inline result_type operator()( int i, int j ) const { return m_func(m_image(i,j)); }
-    inline result_type operator()( int i, int j, int p ) const { return m_func(m_image(i,j,p)); }
+    inline result_type operator()( int i, int j, int p=0 ) const { return m_func(m_image(i,j,p)); }
 
     template <class ViewT>
     UnaryPerPixelView& operator=( ImageViewBase<ViewT> const& view ) {
@@ -166,8 +167,7 @@ namespace vw {
     inline unsigned planes() const { return m_image1.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(m_image1.origin(),m_image2.origin(),m_func); }
-    inline result_type operator()( int i, int j ) const { return m_func(m_image1(i,j),m_image2(i,j)); }
-    inline result_type operator()( int i, int j, int p ) const { return m_func(m_image1(i,j,p),m_image2(i,j,p)); }
+    inline result_type operator()( int i, int j, int p=0 ) const { return m_func(m_image1(i,j,p),m_image2(i,j,p)); }
 
     /// \cond INTERNAL
     typedef BinaryPerPixelView<typename Image1T::prerasterize_type, typename Image2T::prerasterize_type, FuncT> prerasterize_type;
@@ -178,4 +178,4 @@ namespace vw {
 
 };
 
-#endif // __VW_IMAGE_PER_PIXEL_VIEWS_H__
+#endif // __VW_IMAGE_PERPIXELVIEWS_H__

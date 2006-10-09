@@ -1,8 +1,10 @@
 // __BEGIN_LICENSE__
-//
+// 
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
 // 
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
@@ -16,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-//
+// 
 // __END_LICENSE__
 
 /// \file Matrix.h
@@ -43,8 +45,8 @@
 /// for them to write an extra line of code to be explicit about what
 /// they want, using e.g. the SVD.
 ///
-#ifndef __VW_MATH__MATRIX_H__
-#define __VW_MATH__MATRIX_H__
+#ifndef __VW_MATH_MATRIX_H__
+#define __VW_MATH_MATRIX_H__
 
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/matrix_proxy.hpp>
@@ -1318,7 +1320,7 @@ namespace math {
   inline std::ostream& operator<<( std::ostream& os, MatrixBase<MatrixT> const& m ) {
     MatrixT const& mr = m.impl();
     unsigned rows = mr.rows(), cols = mr.cols();
-    os << '[' << rows << ',' << cols << "](";
+    os << "Matrix" << rows << 'x' << cols << '(';
     for( unsigned r=0; r<rows; ++r ) {
       os << '(' << mr(r,0);
       for( unsigned c=1; c<cols; ++c )
@@ -1965,4 +1967,4 @@ namespace math {
 
 } // namespace vw
 
-#endif // __VW_MATH__MATRIX_H__
+#endif // __VW_MATH_MATRIX_H__

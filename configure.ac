@@ -1,8 +1,10 @@
 # __BEGIN_LICENSE__
-#
+# 
 # Copyright (C) 2006 United States Government as represented by the
 # Administrator of the National Aeronautics and Space Administration
 # (NASA).  All Rights Reserved.
+# 
+# Copyright 2006 Carnegie Mellon University. All rights reserved.
 # 
 # This software is distributed under the NASA Open Source Agreement
 # (NOSA), version 1.3.  The NOSA has been approved by the Open Source
@@ -16,7 +18,7 @@
 # A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 # THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 # DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-#
+# 
 # __END_LICENSE__
 
 
@@ -172,6 +174,13 @@ if test ! -z "$DIST_CONFIG_OPTIONS_DEFAULT" ; then
   AC_MSG_NOTICE([using distribution config.options.default file: $DIST_CONFIG_OPTIONS_DEFAULT])
 fi
 
+AC_ARG_WITH(dist-remove-modules,
+  AC_HELP_STRING([--with-dist-remove-modules="RELPATH @<:@RELPATH...@:>@"], [remove certain modules from the distribution]),
+  [DIST_REMOVE_MODULES=$withval]
+)
+AC_SUBST(DIST_REMOVE_MODULES)
+AM_CONDITIONAL(DIST_REMOVE_MODULES, [test ! -z "$DIST_REMOVE_MODULES"])
+
 
 ##################################################
 #	package checks	    
@@ -229,6 +238,9 @@ AM_CONDITIONAL(HAVE_PKG_OPENEXR, [test "$HAVE_PKG_OPENEXR" = "yes"])
 #	module definitions
 ##################################################
 
+# These module source directories may or may not be provided.
+AX_MODULE_SRC(STEREO, [src/vw/Stereo])
+
 AX_MODULE(CORE, [src/vw/Core/libvwCore.la], yes, [M BOOST])
 AX_MODULE(MATH, [src/vw/Math/libvwMath.la], yes, [CORE], [LAPACK])
 AX_MODULE(IMAGE, [src/vw/Image/libvwImage.la], yes, [MATH], [VXL])
@@ -240,7 +252,7 @@ fi
 
 AX_MODULE(CAMERA, [src/vw/Camera/libvwCamera.la], yes, [IMAGE MATH])
 AX_MODULE(MOSAIC, [src/vw/Mosaic/libvwMosaic.la], yes, [VW BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
-AX_MODULE(STEREO, [src/vw/Stereo/libvwStereo.la], yes, [VW PTHREADS BOOST_THREAD])
+AX_MODULE(STEREO, [src/vw/Stereo/libvwStereo.la], $HAVE_PKG_STEREO_SRC, [STEREO_SRC VW PTHREADS BOOST_THREAD])
 
 #AX_MODULE(INTERESTPOINT, InterestPoint, no, [VW])
 #AX_MODULE(HDR, HDR, no, [VW])
@@ -278,6 +290,7 @@ AC_CONFIG_FILES([                       \
   src/Makefile                          \
   src/vw/Makefile                       \
   src/vw/tests/Makefile                 \
+  src/vw/tools/Makefile                 \
   src/vw/Core/Makefile                  \
   src/vw/Core/tests/Makefile            \
   src/vw/Math/Makefile                  \
@@ -290,8 +303,13 @@ AC_CONFIG_FILES([                       \
   src/vw/Camera/tests/Makefile          \
   src/vw/Mosaic/Makefile                \
   src/vw/Mosaic/tests/Makefile          \
-  src/vw/Stereo/Makefile                \
-  src/vw/Stereo/tests/Makefile          \
 ])
+
+if test $HAVE_PKG_STEREO_SRC = "yes"; then
+  AC_CONFIG_FILES([                       \
+    src/vw/Stereo/Makefile                \
+    src/vw/Stereo/tests/Makefile          \
+  ])
+fi
 
 AC_OUTPUT

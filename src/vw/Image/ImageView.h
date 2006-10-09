@@ -1,8 +1,10 @@
 // __BEGIN_LICENSE__
-//
+// 
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
 // 
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
@@ -16,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-//
+// 
 // __END_LICENSE__
 
 /// \file ImageView.h
@@ -117,18 +119,26 @@ namespace vw {
       return *this;
     }
 
+    /// Returns a pointer to the origin of the image in memory.
     pixel_type *data() {
-      return &(operator()(0,0));
+      return m_origin;
     }
 
+    /// Returns a pointer to the origin of the image in memory (const overload).
     const pixel_type *data() const {
-      return &(operator()(0,0));
+      return m_origin;
     }
 
+    /// Returns true if this ImageView points to a valid block of
+    /// memory.  (It is false if the object is default-constructed, 
+    /// or if reset() is called, or if set_size() is called with 
+    /// zero dimensions, for example.)
     bool valid() const {
       return m_data;
     }
 
+    /// Returns true if no other ImageView object is sharing 
+    /// this block of memory.
     bool unique() const {
       return (!m_data) || m_data.unique();
     }
@@ -147,13 +157,8 @@ namespace vw {
       return pixel_accessor( m_origin, m_cstride, m_rstride, m_pstride );
     }
 
-    /// Returns the pixel at the given position in the first plane.
-    inline result_type operator()( int col, int row ) const {
-      return *(m_origin + col*m_cstride + row*m_rstride);
-    }
-  
     /// Returns the pixel at the given position in the given plane.
-    inline result_type operator()( int col, int row, int plane ) const {
+    inline result_type operator()( int col, int row, int plane=0 ) const {
       return *(m_origin + col*m_cstride + row*m_rstride + plane*m_pstride);
     }
   

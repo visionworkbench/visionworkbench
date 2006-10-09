@@ -1,8 +1,10 @@
 // __BEGIN_LICENSE__
-//
+// 
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
 // 
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
@@ -16,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-//
+// 
 // __END_LICENSE__
 
 /// \file Vector.h
@@ -47,8 +49,8 @@
 ///   Dot/inner product via dot_prod(v1,v2) or transpose(v1)*v2
 ///   Cross product of 3-element vectors via cross_prod()
 ///
-#ifndef __VW_MATH__VECTOR_H__
-#define __VW_MATH__VECTOR_H__
+#ifndef __VW_MATH_VECTOR_H__
+#define __VW_MATH_VECTOR_H__
 
 #include <boost/utility/enable_if.hpp>
 #include <boost/type_traits.hpp>
@@ -1020,7 +1022,7 @@ namespace math {
   inline std::ostream& operator<<( std::ostream& os, VectorBase<VectorT> const& v ) {
     VectorT const& vr = v.impl();
     unsigned size = vr.size();
-    os << '[' << size << "](";
+    os << "Vector" << size << '(';
     if( size > 0 ) os << vr(0);
     for( unsigned i=1; i<size; ++i ) os << ',' << vr(i);
     return os << ')';
@@ -1031,10 +1033,10 @@ namespace math {
   inline std::ostream& operator<<( std::ostream& os, VectorTranspose<VectorT> const& v ) {
     VectorT const& vr = v.child();
     unsigned size = vr.size();
-    os << '[' << size << "'](";
+    os << "Vector" << size << '(';
     if( size > 0 ) os << vr(0);
     for( unsigned i=1; i<size; ++i ) os << ',' << vr(i);
-    return os << ')';
+    return os << ")'";
   }
 
 
@@ -1550,4 +1552,4 @@ namespace math {
 
 } // namespace vw
 
-#endif // __VW_MATH__VECTOR_H__
+#endif // __VW_MATH_VECTOR_H__

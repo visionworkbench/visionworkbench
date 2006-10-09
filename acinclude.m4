@@ -1,8 +1,10 @@
 dnl __BEGIN_LICENSE__
-dnl
+dnl 
 dnl Copyright (C) 2006 United States Government as represented by the
 dnl Administrator of the National Aeronautics and Space Administration
 dnl (NASA).  All Rights Reserved.
+dnl 
+dnl Copyright 2006 Carnegie Mellon University. All rights reserved.
 dnl 
 dnl This software is distributed under the NASA Open Source Agreement
 dnl (NOSA), version 1.3.  The NOSA has been approved by the Open Source
@@ -16,7 +18,7 @@ dnl SPECIFICATIONS, ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR
 dnl A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 dnl THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 dnl DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-dnl
+dnl 
 dnl __END_LICENSE__
 
 dnl Usage: AX_CONFIG_HEADER_PREFIX(<filename>, <prefix>)
@@ -481,6 +483,21 @@ AC_DEFUN([AX_PKG_PTHREADS],
     AC_MSG_NOTICE([HAVE_PKG_PTHREADS = ${HAVE_PKG_PTHREADS}])
   else
     AC_MSG_RESULT([${HAVE_PKG_PTHREADS}])
+  fi
+])
+
+
+# Usage: AX_MODULE_SRC(<name>, <directory>)
+#
+# Checks to see whether the given module source package is included in
+# the distribution, and sets HAVE_PKG_<name>_SRC accordingly.
+#
+AC_DEFUN([AX_MODULE_SRC],
+[
+  if test -d $2 ; then
+    HAVE_PKG_$1_SRC=yes
+  else
+    HAVE_PKG_$1_SRC=no
   fi
 ])
 

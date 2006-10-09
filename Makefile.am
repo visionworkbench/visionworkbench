@@ -1,8 +1,10 @@
 # __BEGIN_LICENSE__
-#
+# 
 # Copyright (C) 2006 United States Government as represented by the
 # Administrator of the National Aeronautics and Space Administration
 # (NASA).  All Rights Reserved.
+# 
+# Copyright 2006 Carnegie Mellon University. All rights reserved.
 # 
 # This software is distributed under the NASA Open Source Agreement
 # (NOSA), version 1.3.  The NOSA has been approved by the Open Source
@@ -16,7 +18,7 @@
 # A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 # THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 # DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-#
+# 
 # __END_LICENSE__
 
 ########################################################################
@@ -44,6 +46,9 @@ if DIST_LICENSE_SUMMARY
 endif
 if DIST_CONFIG_OPTIONS_DEFAULT
 	cp $(DIST_CONFIG_OPTIONS_DEFAULT) $(distdir)/config/config.options.default
+endif
+if DIST_REMOVE_MODULES
+	for dir in $(DIST_REMOVE_MODULES) ; do rm -rf $(distdir)/$$dir ; done
 endif
 
 check-local:

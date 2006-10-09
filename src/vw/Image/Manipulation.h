@@ -1,8 +1,10 @@
 // __BEGIN_LICENSE__
-//
+// 
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
 // 
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
@@ -16,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-//
+// 
 // __END_LICENSE__
 
 /// \file Manipulation.h
@@ -42,15 +44,17 @@
 /// - channels_to_planes() : reinterprets a multi-channel image as a multi-plane image
 /// - planes_to_channels() : reinterprets a multi-plane image as a multi-channel image
 /// - pixel_cast() : casts the pixels of an image to a new pixel type
+/// - pixel_cast_rescale() : same as above, but rescales pixel values appropriately
 /// - channel_cast() : casts the channels of an image while retaining the pixel format
+/// - channel_cast_rescale() : same as above, but rescales pixel values appropriately
 ///
 #ifndef __VW_IMAGE_MANIPULATION_H__
 #define __VW_IMAGE_MANIPULATION_H__
 
 #include <boost/mpl/logical.hpp>
 
-#include <vw/Core/CompoundTypes.h>
-#include <vw/Image/ImageViewBase.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/PixelTypeInfo.h>
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Math/BBox.h>
 
@@ -80,8 +84,7 @@ namespace vw {
     inline unsigned planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return m_image.origin(); }
-    inline result_type operator()( int i, int j ) const { return m_image(i,j); }
-    inline result_type operator()( int i, int j, int p ) const { return m_image(i,j,p); }
+    inline result_type operator()( int i, int j, int p=0 ) const { return m_image(i,j,p); }
 
     typedef CopyView prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i bbox ) const { return *this; }
@@ -367,8 +370,7 @@ namespace vw {
     inline unsigned planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(m_image.origin(), m_xdelta, m_ydelta); }
-    inline result_type operator()( int i, int j ) const { return m_image(m_xdelta*i,m_ydelta*j); }
-    inline result_type operator()( int i, int j, int p ) const { return m_image(m_xdelta*i,m_ydelta*j,p); }
+    inline result_type operator()( int i, int j, int p=0 ) const { return m_image(m_xdelta*i,m_ydelta*j,p); }
 
     ImageT const& child() const { return m_image; }
 
@@ -384,13 +386,21 @@ namespace vw {
   struct IsMultiplyAccessible<SubsampleView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
   /// \endcond
 
-  /// Subsample an image by an integer factor.
+  /// Subsample an image by an integer factor.  Note that this
+  /// function does not pre-smooth the image prior to subsampling: it
+  /// simply selects every Nth pixel.  You will typically want to
+  /// apply some sort of anti-aliasing filter prior to calling this
+  /// function.
   template <class ImageT>
   inline SubsampleView<ImageT> subsample( ImageT const& v, unsigned subsampling_factor ) {
     return SubsampleView<ImageT>( v, subsampling_factor );
   }
 
-  /// Subsample an image by integer factors in x and y.
+  /// Subsample an image by integer factors in x and y.  Note that
+  /// this function does not pre-smooth the image prior to
+  /// subsampling: it simply selects every Nth pixel.  You will
+  /// typically want to apply some sort of anti-aliasing filter prior
+  /// to calling this function.
   template <class ImageT>
   inline SubsampleView<ImageT> subsample( ImageT const& v, unsigned xfactor, unsigned yfactor ) {
     return SubsampleView<ImageT>( v, xfactor, yfactor );
@@ -520,8 +530,7 @@ namespace vw {
     inline unsigned planes() const { return 1; }
 
     inline pixel_accessor origin() const { return m_image.origin().advance(0,0,m_plane); }
-    inline result_type operator()( int i, int j ) const { return m_image(i,j,m_plane); }
-    inline result_type operator()( int i, int j, int p ) const { return m_image(i,j,m_plane+p); }
+    inline result_type operator()( int i, int j, int p=0 ) const { return m_image(i,j,m_plane+p); }
 
     template <class ViewT>
     SelectPlaneView& operator=( ImageViewBase<ViewT> const& view ) {
@@ -757,15 +766,37 @@ namespace vw {
   template <class PixelT>
   struct PixelCastFunctor : ReturnFixedType<PixelT> {
     template <class ArgT>
-    PixelT operator()( ArgT const& pixel ) const {
-      return (PixelT)(pixel);
+    inline PixelT operator()( ArgT pixel ) const {
+      return pixel_cast<PixelT>(pixel);
     }
   };
 
-  /// Create a new image view by statically casting the pixels to a new type.
+  /// Create a new image view by statically casting the pixels to a
+  /// new type.
   template <class PixelT, class ImageT>
   inline UnaryPerPixelView<ImageT,PixelCastFunctor<PixelT> > pixel_cast( ImageViewBase<ImageT> const& image ) {
     return UnaryPerPixelView<ImageT,PixelCastFunctor<PixelT> >( image.impl() );
+  }
+
+
+  // *******************************************************************
+  // pixel_cast_rescale()
+  // *******************************************************************
+
+  /// A pixel casting functor, used by \ref pixel_cast_rescale().
+  template <class PixelT>
+  struct PixelCastRescaleFunctor : ReturnFixedType<PixelT> {
+    template <class ArgT>
+    inline PixelT operator()( ArgT pixel ) const {
+      return pixel_cast_rescale<PixelT>(pixel);
+    }
+  };
+
+  /// Create a new image view by casting and rescaling the pixels to a
+  /// new type.
+  template <class PixelT, class ImageT>
+  inline UnaryPerPixelView<ImageT,PixelCastRescaleFunctor<PixelT> > pixel_cast_rescale( ImageViewBase<ImageT> const& image ) {
+    return UnaryPerPixelView<ImageT,PixelCastRescaleFunctor<PixelT> >( image.impl() );
   }
 
 
@@ -777,8 +808,8 @@ namespace vw {
   template <class ChannelT>
   struct PixelChannelCastFunctor : UnaryReturnBinaryTemplateBind2nd<CompoundChannelCast,ChannelT> {
     template <class ArgT>
-    typename CompoundChannelCast<ArgT,ChannelT>::type operator()( ArgT const& pixel ) const {
-      return compound_channel_cast<ChannelT>(pixel);
+    inline typename CompoundChannelCast<ArgT,ChannelT>::type operator()( ArgT const& pixel ) const {
+      return channel_cast<ChannelT>(pixel);
     }
   };
 
@@ -786,6 +817,28 @@ namespace vw {
   template <class ChannelT, class ImageT>
   inline UnaryPerPixelView<ImageT,PixelChannelCastFunctor<ChannelT> > channel_cast( ImageViewBase<ImageT> const& image ) {
     return UnaryPerPixelView<ImageT,PixelChannelCastFunctor<ChannelT> >( image.impl() );
+  }
+
+
+  // *******************************************************************
+  // channel_cast_rescale()
+  // *******************************************************************
+
+  /// A pixel channel casting and rescaling functor, used by 
+  /// \ref channel_cast_rescale().
+  template <class ChannelT>
+  struct PixelChannelCastRescaleFunctor : UnaryReturnBinaryTemplateBind2nd<CompoundChannelCast,ChannelT> {
+    template <class ArgT>
+    inline typename CompoundChannelCast<ArgT,ChannelT>::type operator()( ArgT const& pixel ) const {
+      return channel_cast_rescale<ChannelT>(pixel);
+    }
+  };
+
+  /// Create a new image view by casting and rescaling the channels of
+  /// the pixels to a new type.
+  template <class ChannelT, class ImageT>
+  inline UnaryPerPixelView<ImageT,PixelChannelCastRescaleFunctor<ChannelT> > channel_cast_rescale( ImageViewBase<ImageT> const& image ) {
+    return UnaryPerPixelView<ImageT,PixelChannelCastRescaleFunctor<ChannelT> >( image.impl() );
   }
 
 } // namespace vw

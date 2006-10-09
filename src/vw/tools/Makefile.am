@@ -25,25 +25,16 @@
 # sources
 ########################################################################
 
-if MAKE_MODULE_FILEIO
-
-TESTS = TestDiskImageResource
-
-nodist_TestDiskImageResource_SOURCES = TestDiskImageResource.cxx
-
-endif
+bin_PROGRAMS = image
+image_SOURCES = image.cc
+image_LDFLAGS = @PKG_VW_LDFLAGS@
 
 ########################################################################
 # general
 ########################################################################
 
-AM_CPPFLAGS = @MODULE_FILEIO_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
-AM_LDFLAGS  = @PKG_FILEIO_LDFLAGS@
+AM_LDFLAGS = @PKG_BOOST_PROGRAM_OPTIONS_LDFLAGS@
 
-check_PROGRAMS = $(TESTS)
-
-EXTRA_DIST = $(patsubst %,%.h,$(TESTS)) rgb2x2.png rgb2x2.tif rgb2x2.jpg
-
-CLEANFILES = $(patsubst %,%.cxx,$(TESTS)) tmp.png tmp.tif
+includedir = $(prefix)/include/vw
 
 include $(top_srcdir)/config/rules.mak

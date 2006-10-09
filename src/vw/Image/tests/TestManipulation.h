@@ -1,8 +1,10 @@
 // __BEGIN_LICENSE__
-//
+// 
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
 // 
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
@@ -16,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-//
+// 
 // __END_LICENSE__
 
 // TestManipulation.h
@@ -794,24 +796,6 @@ public:
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( planes_to_channels<PixelRGB<double> >(im) ) );
   }
 
-  void test_pixel_cast()
-  {
-    ImageView<PixelRGB<double> > im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
-    ImageView<PixelRGBA<double> > im2 = pixel_cast<PixelRGBA<double> >(im);
-    TS_ASSERT_EQUALS( im2.cols(), 1 );
-    TS_ASSERT_EQUALS( im2.rows(), 2 );
-    TS_ASSERT_EQUALS( im2.planes(), 1 );
-    TS_ASSERT_EQUALS( im2(0,0)[0], im(0,0)[0] );
-    TS_ASSERT_EQUALS( im2(0,0)[1], im(0,0)[1] );
-    TS_ASSERT_EQUALS( im2(0,0)[2], im(0,0)[2] );
-    TS_ASSERT_EQUALS( im2(0,1)[0], im(0,1)[0] );
-    TS_ASSERT_EQUALS( im2(0,1)[1], im(0,1)[1] );
-    TS_ASSERT_EQUALS( im2(0,1)[2], im(0,1)[2] );
-
-    // Test the traits
-    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( pixel_cast<PixelRGBA<double> >(im) ) );
-  }
-
   void test_channel_cast()
   {
     ImageView<PixelRGB<double> > im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
@@ -828,6 +812,64 @@ public:
 
     // Test the traits
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( channel_cast<float>(im) ) );
+  }
+
+  void test_channel_cast_rescale()
+  {
+    ImageView<PixelRGB<uint8> > im(1,2); im(0,0)=PixelRGB<uint8>(91,48,227); im(0,1)=PixelRGB<uint8>(53,189,98);
+    ImageView<PixelRGB<float> > im2 = channel_cast_rescale<float>(im);
+    TS_ASSERT_EQUALS( im2.cols(), 1 );
+    TS_ASSERT_EQUALS( im2.rows(), 2 );
+    TS_ASSERT_EQUALS( im2.planes(), 1 );
+    TS_ASSERT_DELTA( im2(0,0)[0], im(0,0)[0]/255.0, 1e-7 );
+    TS_ASSERT_DELTA( im2(0,0)[1], im(0,0)[1]/255.0, 1e-7 );
+    TS_ASSERT_DELTA( im2(0,0)[2], im(0,0)[2]/255.0, 1e-7 );
+    TS_ASSERT_DELTA( im2(0,1)[0], im(0,1)[0]/255.0, 1e-7 );
+    TS_ASSERT_DELTA( im2(0,1)[1], im(0,1)[1]/255.0, 1e-7 );
+    TS_ASSERT_DELTA( im2(0,1)[2], im(0,1)[2]/255.0, 1e-7 );
+
+    // Test the traits
+    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( channel_cast_rescale<float>(im) ) );
+  }
+
+  void test_pixel_cast()
+  {
+    ImageView<PixelRGB<double> > im(1,2); im(0,0)=PixelRGB<double>(1,2,3); im(0,1)=PixelRGB<double>(4,5,6);
+    ImageView<PixelRGBA<double> > im2 = pixel_cast<PixelRGBA<double> >(im);
+    TS_ASSERT_EQUALS( im2.cols(), 1 );
+    TS_ASSERT_EQUALS( im2.rows(), 2 );
+    TS_ASSERT_EQUALS( im2.planes(), 1 );
+    TS_ASSERT_EQUALS( im2(0,0)[0], im(0,0)[0] );
+    TS_ASSERT_EQUALS( im2(0,0)[1], im(0,0)[1] );
+    TS_ASSERT_EQUALS( im2(0,0)[2], im(0,0)[2] );
+    TS_ASSERT_EQUALS( im2(0,0)[3], 1.0 );
+    TS_ASSERT_EQUALS( im2(0,1)[0], im(0,1)[0] );
+    TS_ASSERT_EQUALS( im2(0,1)[1], im(0,1)[1] );
+    TS_ASSERT_EQUALS( im2(0,1)[2], im(0,1)[2] );
+    TS_ASSERT_EQUALS( im2(0,1)[3], 1.0 );
+
+    // Test the traits
+    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( pixel_cast<PixelRGBA<double> >(im) ) );
+  }
+
+  void test_pixel_rescale()
+  {
+    ImageView<PixelRGB<uint8> > im(1,2); im(0,0)=PixelRGB<uint8>(91,48,227); im(0,1)=PixelRGB<uint8>(53,189,98);
+    ImageView<PixelRGBA<float> > im2 = pixel_cast_rescale<PixelRGBA<float> >(im);
+    TS_ASSERT_EQUALS( im2.cols(), 1 );
+    TS_ASSERT_EQUALS( im2.rows(), 2 );
+    TS_ASSERT_EQUALS( im2.planes(), 1 );
+    TS_ASSERT_DELTA( im2(0,0)[0], im(0,0)[0]/255.0, 1e-7 );
+    TS_ASSERT_DELTA( im2(0,0)[1], im(0,0)[1]/255.0, 1e-7 );
+    TS_ASSERT_DELTA( im2(0,0)[2], im(0,0)[2]/255.0, 1e-7 );
+    TS_ASSERT_EQUALS( im2(0,0)[3], 1.0 );
+    TS_ASSERT_DELTA( im2(0,1)[0], im(0,1)[0]/255.0, 1e-7 );
+    TS_ASSERT_DELTA( im2(0,1)[1], im(0,1)[1]/255.0, 1e-7 );
+    TS_ASSERT_DELTA( im2(0,1)[2], im(0,1)[2]/255.0, 1e-7 );
+    TS_ASSERT_EQUALS( im2(0,1)[3], 1.0 );
+
+    // Test the traits
+    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( pixel_cast_rescale<PixelRGBA<double> >(im) ) );
   }
 
 };

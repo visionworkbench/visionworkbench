@@ -1,8 +1,10 @@
 // __BEGIN_LICENSE__
-//
+// 
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
 // 
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
@@ -16,15 +18,15 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-//
+// 
 // __END_LICENSE__
 
 /// \file CompoundTypes.h
 /// 
 /// Types and traits for compound (i.e. multi-channel) types.
 ///
-#ifndef __VW_CORE_COMPOUND_TYPES_H__
-#define __VW_CORE_COMPOUND_TYPES_H__
+#ifndef __VW_CORE_COMPOUNDTYPES_H__
+#define __VW_CORE_COMPOUNDTYPES_H__
 
 #include <boost/utility/result_of.hpp>
 #include <boost/utility/enable_if.hpp>
@@ -251,21 +253,6 @@ namespace vw {
     return UnaryCompoundFunctor<FuncT>(func)(arg);
   }
 
-  template <class T>
-  struct CastingFunctor {
-    typedef T result_type;
-    template <class ArgT>
-    T operator()( ArgT const& arg ) const {
-      return (T)(arg);
-    }
-  };
-
-  template <class ChannelT, class ArgT>
-  typename CompoundChannelCast<ArgT,ChannelT>::type
-  inline compound_channel_cast( ArgT const& arg ) {
-    return compound_apply( CastingFunctor<ChannelT>(), arg );
-  }
-
 } // namespace vw
 
-#endif // __VW_CORE_COMPOUND_TYPES_H__
+#endif // __VW_CORE_COMPOUNDTYPES_H__

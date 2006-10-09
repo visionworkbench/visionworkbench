@@ -1,8 +1,10 @@
 // __BEGIN_LICENSE__
-//
+// 
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
 // 
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
@@ -16,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-//
+// 
 // __END_LICENSE__
 
 /// \file ImageAlgorithms.h
@@ -112,7 +114,8 @@ namespace vw {
     channel_type m_low, m_high;
   public:
     ChannelClampFunctor( channel_type low, channel_type high ) :
-      m_low(low), m_high(high) {}
+      m_low(low), m_high(high) {
+    }
 
     channel_type operator()( channel_type value ) const {
       if      (value > m_high) { return m_high; }
@@ -121,47 +124,104 @@ namespace vw {
     }
   };
 
-  /// Clamp the values in an image to fall within the range [low,high).
-  template <class ImageT, class ArgT>
+  /// Clamp the values in an image to fall within the range [low,high].
+  template <class ImageT, class LowT, class HighT>
   UnaryPerPixelView<ImageT,UnaryCompoundFunctor<ChannelClampFunctor<typename ImageT::pixel_type> > >
-  inline clamp( ImageViewBase<ImageT> const& image, ArgT low, ArgT high ) {
+  inline clamp( ImageViewBase<ImageT> const& image, LowT low, HighT high ) {
     typedef UnaryCompoundFunctor<ChannelClampFunctor<typename ImageT::pixel_type> > func_type;
     func_type func( ChannelClampFunctor<typename ImageT::pixel_type>(low,high) );
     return UnaryPerPixelView<ImageT,func_type>( image.impl(), func );
   }
 
+  /// Clamp the values in an image to fall within the range [0,high].
+  /// The low end of the range is actually determined by the
+  /// ChannelRange type trait but is generally zero.
+  template <class ImageT, class HighT>
+  UnaryPerPixelView<ImageT,UnaryCompoundFunctor<ChannelClampFunctor<typename ImageT::pixel_type> > >
+  inline clamp( ImageViewBase<ImageT> const& image, HighT high ) {
+    typedef UnaryCompoundFunctor<ChannelClampFunctor<typename ImageT::pixel_type> > func_type;
+    typedef ChannelRange<typename CompoundChannelType<typename ImageT::pixel_type>::type> range_type;
+    func_type func( ChannelClampFunctor<typename ImageT::pixel_type>(range_type::min(),high) );
+    return UnaryPerPixelView<ImageT,func_type>( image.impl(), func );
+  }
+
+  /// Clamp the values in an image to fall within the range [min,max],
+  /// where min and max are determined by the ChannelRange type trait
+  /// and are generally equal to 0.0 and 1.0 for floating point types
+  /// and 0 and the largest positve value for integral types.
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,UnaryCompoundFunctor<ChannelClampFunctor<typename ImageT::pixel_type> > >
+  inline clamp( ImageViewBase<ImageT> const& image ) {
+    typedef UnaryCompoundFunctor<ChannelClampFunctor<typename ImageT::pixel_type> > func_type;
+    typedef ChannelRange<typename CompoundChannelType<typename ImageT::pixel_type>::type> range_type;
+    func_type func( ChannelClampFunctor<typename ImageT::pixel_type>(range_type::min(),range_type::max()) );
+    return UnaryPerPixelView<ImageT,func_type>( image.impl(), func );
+  }
 
   // *******************************************************************
   // normalize()
   // *******************************************************************
 
   /// \cond INTERNAL
+  template <class PixelT>
   class ChannelNormalizeFunctor: public UnaryReturnSameType {
-  private:
-    double m_old_min, m_new_min, m_old_to_new_ratio;
+    typedef typename CompoundChannelType<PixelT>::type channel_type;
+    channel_type m_old_min, m_new_min;
+    double m_old_to_new_ratio;
   public:
-    ChannelNormalizeFunctor( double old_min, double old_max, double new_min, double new_max )
+    ChannelNormalizeFunctor( channel_type old_min, channel_type old_max, 
+                             channel_type new_min, channel_type new_max )
       : m_old_min(old_min), m_new_min(new_min)
     {
       if( old_max == old_min ) { m_old_to_new_ratio = 0.0; }
-      else { m_old_to_new_ratio = (new_max - new_min)/(old_max - old_min); }
+      else { m_old_to_new_ratio = (new_max - new_min)/(double)(old_max - old_min); }
     }
 
     template <class ChannelT>
-    ChannelT operator() (ChannelT value) const {
+    ChannelT operator()( ChannelT value ) const {
       return (ChannelT)((value - m_old_min) * m_old_to_new_ratio + m_new_min);
     }
   };
   /// \endcond
 
   /// Renormalize the values in an image to fall within the range [low,high).
-  template <class ImageT>
-  UnaryPerPixelView<ImageT, UnaryCompoundFunctor<ChannelNormalizeFunctor> >
-  inline normalize( ImageViewBase<ImageT> const& image, double low = 0.0, double high = 1.0 ) {
-    typedef UnaryCompoundFunctor<ChannelNormalizeFunctor> func_type;
+  template <class ImageT, class LowT, class HighT>
+  UnaryPerPixelView<ImageT, UnaryCompoundFunctor<ChannelNormalizeFunctor<typename ImageT::pixel_type> > >
+  inline normalize( ImageViewBase<ImageT> const& image, LowT low, HighT high ) {
+    typedef UnaryCompoundFunctor<ChannelNormalizeFunctor<typename ImageT::pixel_type> > func_type;
     typename CompoundChannelType<typename ImageT::pixel_type>::type old_min, old_max;
     min_max_channel_values( image, old_min, old_max );
-    func_type func( ChannelNormalizeFunctor( old_min, old_max, low, high ) );
+    func_type func( ChannelNormalizeFunctor<typename ImageT::pixel_type>( old_min, old_max, low, high ) );
+    return UnaryPerPixelView<ImageT, func_type >( image.impl(), func );
+  }
+
+  /// Renormalize the values in an image to fall within the range
+  /// [0,high).  The low end of the range is actually determined by
+  /// the ChannelRange type trait but is generally zero.
+  template <class ImageT, class HighT>
+  UnaryPerPixelView<ImageT, UnaryCompoundFunctor<ChannelNormalizeFunctor<typename ImageT::pixel_type> > >
+  inline normalize( ImageViewBase<ImageT> const& image, HighT high ) {
+    typedef UnaryCompoundFunctor<ChannelNormalizeFunctor<typename ImageT::pixel_type> > func_type;
+    typedef ChannelRange<typename CompoundChannelType<typename ImageT::pixel_type>::type> range_type;
+    typename CompoundChannelType<typename ImageT::pixel_type>::type old_min, old_max;
+    min_max_channel_values( image, old_min, old_max );
+    func_type func( ChannelNormalizeFunctor<typename ImageT::pixel_type>( old_min, old_max, range_type::min(), high ) );
+    return UnaryPerPixelView<ImageT, func_type >( image.impl(), func );
+  }
+
+  /// Renormalize the values in an image to fall within the range
+  /// [min,max), where min and max are determined by the ChannelRange
+  /// type trait and are generally equal to 0.0 and 1.0 for floating
+  /// point types and 0 and the largest positve value for integral
+  /// types.
+  template <class ImageT>
+  UnaryPerPixelView<ImageT, UnaryCompoundFunctor<ChannelNormalizeFunctor<typename ImageT::pixel_type> > >
+  inline normalize( ImageViewBase<ImageT> const& image ) {
+    typedef UnaryCompoundFunctor<ChannelNormalizeFunctor<typename ImageT::pixel_type> > func_type;
+    typedef ChannelRange<typename CompoundChannelType<typename ImageT::pixel_type>::type> range_type;
+    typename CompoundChannelType<typename ImageT::pixel_type>::type old_min, old_max;
+    min_max_channel_values( image, old_min, old_max );
+    func_type func( ChannelNormalizeFunctor<typename ImageT::pixel_type>( old_min, old_max, range_type::min(), range_type::max() ) );
     return UnaryPerPixelView<ImageT, func_type >( image.impl(), func );
   }
 
@@ -190,38 +250,52 @@ namespace vw {
     }
   };
 
-  /// Threshold the values in the image and set the range to [low,high).
-  template <class ImageT>
-  UnaryPerPixelView<ImageT,UnaryCompoundFunctor<ChannelThresholdFunctor<typename ImageT::pixel_type> > >
-  inline threshold( ImageViewBase<ImageT> const& image ) {
+  /// Threshold the values in an image, generating a two-valued output
+  /// image with values low and high.
+  template <class ImageT, class ThreshT, class LowT, class HighT>
+  UnaryPerPixelView<ImageT, UnaryCompoundFunctor<ChannelThresholdFunctor<typename ImageT::pixel_type> > >
+  inline threshold( ImageViewBase<ImageT> const& image, ThreshT thresh, LowT low, HighT high ) {
     typedef UnaryCompoundFunctor<ChannelThresholdFunctor<typename ImageT::pixel_type> > func_type;
-    func_type func( ChannelThresholdFunctor<typename ImageT::pixel_type>(0,0,1) );
+    func_type func( ChannelThresholdFunctor<typename ImageT::pixel_type>(thresh,low,high) );
     return UnaryPerPixelView<ImageT,func_type>( image.impl(), func );
   }
 
-  template <class ImageT, class ThreshT>
-  UnaryPerPixelView<ImageT,UnaryCompoundFunctor<ChannelThresholdFunctor<typename ImageT::pixel_type> > >
-  inline threshold( ImageViewBase<ImageT> const& image, ThreshT thresh ) {
-    typedef UnaryCompoundFunctor<ChannelThresholdFunctor<typename ImageT::pixel_type> > func_type;
-    func_type func( ChannelThresholdFunctor<typename ImageT::pixel_type>(thresh,0,1) );
-    return UnaryPerPixelView<ImageT,func_type>( image.impl(), func );
-  }
-
-  /* This overload disagrees with the optional-argument semantics of clamp() and normalize()!
+  /// Threshold the values in an image, generating a two-valued output
+  /// image with values 0 and high.  The low value is actually
+  /// determined by the ChannelRange type trait but is generally zero.
   template <class ImageT, class ThreshT, class HighT>
   UnaryPerPixelView<ImageT,UnaryCompoundFunctor<ChannelThresholdFunctor<typename ImageT::pixel_type> > >
   inline threshold( ImageViewBase<ImageT> const& image, ThreshT thresh, HighT high ) {
     typedef UnaryCompoundFunctor<ChannelThresholdFunctor<typename ImageT::pixel_type> > func_type;
-    func_type func( ChannelThresholdFunctor<typename ImageT::pixel_type>(thresh,0,high) );
+    typedef ChannelRange<typename CompoundChannelType<typename ImageT::pixel_type>::type> range_type;
+    func_type func( ChannelThresholdFunctor<typename ImageT::pixel_type>(thresh,range_type::min(),high) );
     return UnaryPerPixelView<ImageT,func_type>( image.impl(), func );
   }
-  */
 
-  template <class ImageT, class ThreshT, class LowT, class HighT>
+  /// Threshold the values in an image, generating a two-valued output
+  /// where the values are determined by the ChannelRange type trait
+  /// and are generally equal to 0.0 and 1.0 for floating point types
+  /// and 0 and the largest positve value for integral types.
+  template <class ImageT, class ThreshT>
   UnaryPerPixelView<ImageT,UnaryCompoundFunctor<ChannelThresholdFunctor<typename ImageT::pixel_type> > >
-  inline threshold( ImageViewBase<ImageT> const& image, ThreshT thresh, LowT low, HighT high ) {
+  inline threshold( ImageViewBase<ImageT> const& image, ThreshT thresh ) {
     typedef UnaryCompoundFunctor<ChannelThresholdFunctor<typename ImageT::pixel_type> > func_type;
-    func_type func( ChannelThresholdFunctor<typename ImageT::pixel_type>(thresh,low,high) );
+    typedef ChannelRange<typename CompoundChannelType<typename ImageT::pixel_type>::type> range_type;
+    func_type func( ChannelThresholdFunctor<typename ImageT::pixel_type>(thresh,range_type::min(),range_type::max()) );
+    return UnaryPerPixelView<ImageT,func_type>( image.impl(), func );
+  }
+
+  /// Threshold the values in an image against zero, generating a
+  /// two-valued output where the values are determined by the
+  /// ChannelRange type trait and are generally equal to 0.0 and 1.0
+  /// for floating point types and 0 and the largest positve value for
+  /// integral types.
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,UnaryCompoundFunctor<ChannelThresholdFunctor<typename ImageT::pixel_type> > >
+  inline threshold( ImageViewBase<ImageT> const& image ) {
+    typedef UnaryCompoundFunctor<ChannelThresholdFunctor<typename ImageT::pixel_type> > func_type;
+    typedef ChannelRange<typename CompoundChannelType<typename ImageT::pixel_type>::type> range_type;
+    func_type func( ChannelThresholdFunctor<typename ImageT::pixel_type>(0,range_type::min(),range_type::max()) );
     return UnaryPerPixelView<ImageT,func_type>( image.impl(), func );
   }
 
