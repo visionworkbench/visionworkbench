@@ -25,10 +25,8 @@
 /// 
 /// Defines the core in-memory image view type.
 ///
-#ifndef __VW_IMAGE_IMAGE_VIEW_H__
-#define __VW_IMAGE_IMAGE_VIEW_H__
-
-#include <vw/config.h>
+#ifndef __VW_IMAGE_IMAGEVIEW_H__
+#define __VW_IMAGE_IMAGEVIEW_H__
 
 #include <string.h> // For memset()
 
@@ -65,41 +63,43 @@ namespace vw {
     unsigned m_cols, m_rows, m_planes;
     PixelT *m_origin;
     ptrdiff_t m_cstride, m_rstride, m_pstride;
-  public:
 
+  public:
     /// The pixel type of the image.
     typedef PixelT pixel_type;
 
-    /// The data type of the image, considered as a functor or container.
+    /// The data type returned when accessing the image.
     typedef PixelT& result_type;
 
     /// The image's %pixel_accessor type.
     typedef MemoryStridingPixelAccessor<PixelT> pixel_accessor;
 
     /// Constructs an empty image with zero size.
-    ImageView() : m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0), m_rstride(0), m_pstride(0) {
-    }
+    ImageView()
+      : m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0), 
+        m_rstride(0), m_pstride(0) {}
 
-    /// Copy-constructs a view pointing to the same data as the given ImageView.
-    ImageView( ImageView const& other ) : m_data(other.m_data), m_cols(other.m_cols), m_rows(other.m_rows), m_planes(other.m_planes),
-                                          m_origin(other.m_origin), m_cstride(other.m_cstride), m_rstride(other.m_rstride), m_pstride(other.m_pstride) {}
-
-    /// Resets to an empty image with zero size.
-    void reset() {
-      m_data.reset();
-      m_cols = m_rows = m_planes = 0;
-      m_origin = 0;
-      m_cstride = m_rstride = m_pstride = 0;
-    }
+    /// Copy-constructs a view pointing to the same data.
+    /// Provided explicitly to clarify its precedence over 
+    /// the templatized generalized copy constructor.
+    ImageView( ImageView const& other )
+      : m_data(other.m_data), m_cols(other.m_cols), 
+        m_rows(other.m_rows), m_planes(other.m_planes),
+        m_origin(other.m_origin), m_cstride(other.m_cstride), 
+        m_rstride(other.m_rstride), m_pstride(other.m_pstride) {}
 
     /// Constructs an empty image with the given dimensions.
-    ImageView( unsigned cols, unsigned rows, unsigned planes=1 ) : m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0), m_rstride(0), m_pstride(0) {
+    ImageView( unsigned cols, unsigned rows, unsigned planes=1 )
+      : m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0), 
+        m_rstride(0), m_pstride(0) {
       set_size( cols, rows, planes );
     }
 
     /// Constructs an image view and rasterizes the given view into it.
     template <class ViewT>
-    ImageView( ViewT const& view ) : m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0), m_rstride(0), m_pstride(0) {
+    ImageView( ViewT const& view )
+      : m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0),
+        m_rstride(0), m_pstride(0) {
       set_size( view.cols(), view.rows(), view.planes() );
       view.rasterize( *this, BBox2i(0,0,view.cols(),view.rows()) );
     }
@@ -117,30 +117,6 @@ namespace vw {
     ImageView const& operator=( ImageViewBase<SrcT> const& view ) const {
       view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
-    }
-
-    /// Returns a pointer to the origin of the image in memory.
-    pixel_type *data() {
-      return m_origin;
-    }
-
-    /// Returns a pointer to the origin of the image in memory (const overload).
-    const pixel_type *data() const {
-      return m_origin;
-    }
-
-    /// Returns true if this ImageView points to a valid block of
-    /// memory.  (It is false if the object is default-constructed, 
-    /// or if reset() is called, or if set_size() is called with 
-    /// zero dimensions, for example.)
-    bool valid() const {
-      return m_data;
-    }
-
-    /// Returns true if no other ImageView object is sharing 
-    /// this block of memory.
-    bool unique() const {
-      return (!m_data) || m_data.unique();
     }
 
     /// Returns the number of columns in the image.
@@ -162,12 +138,6 @@ namespace vw {
       return *(m_origin + col*m_cstride + row*m_rstride + plane*m_pstride);
     }
   
-    /// Adjusts the size of the image to match the dimensions of another image.
-    template <class ImageT>
-    void set_size( ImageViewBase<ImageT> &img ) {
-      this->set_size(img.impl().cols(), img.impl().rows(), img.impl().planes());
-    }
-
     /// Adjusts the size of the image, allocating a new buffer if the size has changed.
     void set_size( unsigned cols, unsigned rows, unsigned planes = 1 ) {
       if( cols==m_cols && rows==m_rows && planes==m_planes ) return;
@@ -202,22 +172,69 @@ namespace vw {
       }
     }
 
-    /// \cond INTERNAL
+    /// Adjusts the size of the image to match the dimensions of another image.
+    template <class ImageT>
+    void set_size( ImageViewBase<ImageT> &img ) {
+      this->set_size(img.impl().cols(), img.impl().rows(), img.impl().planes());
+    }
+
+    /// Resets to an empty image with zero size.
+    void reset() {
+      m_data.reset();
+      m_cols = m_rows = m_planes = 0;
+      m_origin = 0;
+      m_cstride = m_rstride = m_pstride = 0;
+    }
+
+    /// Returns a pointer to the origin of the image in memory.
+    pixel_type *data() {
+      return m_origin;
+    }
+
+    /// Returns a pointer to the origin of the image in memory (const overload).
+    const pixel_type *data() const {
+      return m_origin;
+    }
+
+    /// A safe bool conversion intermediate type.
+    typedef typename boost::shared_array<PixelT>::unspecified_bool_type unspecified_bool_type;
+    /// Evaluates to true in a bool context if this ImageView points
+    /// to a valid block of memory.  (It is false if e.g. the object is
+    /// default-constructed, or if reset() is called, or if set_size()
+    /// is called with zero dimensions.)
+    operator unspecified_bool_type() const {
+      return m_data;
+    }
+
+    /// Returns true if no other ImageView object is sharing 
+    /// this block of memory.
+    bool unique() const {
+      return (!m_data) || m_data.unique();
+    }
+
+    /// The return type of prerasterize().
     typedef ImageView prerasterize_type;
+
+    /// Prepare an ImageView to be rasterized.  Simply returns the 
+    /// original image view.
     inline prerasterize_type prerasterize( BBox2i bbox ) const { return *this; }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
-    /// \endcond
+
+    /// Rasterize the image view.  Simply invokes the default 
+    /// rasterization function.
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+      vw::rasterize( prerasterize(bbox), dest, bbox );
+    }
   };
 
   // Image view traits
-  /// \cond INTERNAL
+  /// Specifies that ImageView objects are resizable.
   template <class PixelT>
   struct IsResizable<ImageView<PixelT> > : public boost::true_type {};
 
+  /// Specifies that ImageView objects are fast to access.
   template <class PixelT>
   struct IsMultiplyAccessible<ImageView<PixelT> > : public boost::true_type {};
-  /// \endcond
 
 } // namespace vw
 
-#endif // __VW_IMAGE_IMAGE_VIEW_H__
+#endif // __VW_IMAGE_IMAGEVIEW_H__

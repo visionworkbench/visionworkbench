@@ -170,59 +170,207 @@ public:
 		     (test_rgb16.r() + test_rgb16.g() + test_rgb16.b())/3 );
   }
 
+  void test_weighted_rgb_to_gray()
+  {
+    PixelRGB<float> rgbf(0.8,0.4,0.7);
+    PixelGray<float> gf = weighted_rgb_to_gray(rgbf);
+    TS_ASSERT_DELTA( gf.v(), 0.5530, 1e-4 );
+
+    PixelRGB<uint8> rgbi(180,56,212);
+    PixelGray<uint8> gi = weighted_rgb_to_gray(rgbi);
+    TS_ASSERT_DELTA( gi.v(), 110, 1 );
+
+    PixelRGBA<float> rgbaf(0.8,0.4,0.7,1.0);
+    PixelGrayA<float> gaf = weighted_rgb_to_gray(rgbaf);
+    TS_ASSERT_DELTA( gaf.v(), 0.5530, 1e-4 );
+
+    PixelRGBA<uint8> rgbai(180,56,212,255);
+    PixelGrayA<uint8> gai = weighted_rgb_to_gray(rgbai);
+    TS_ASSERT_DELTA( gai.v(), 110, 1 );
+  }
+
+  void test_pixel_hsv()
+  {
+    // Test default-construction and size with all supported channel types
+    { PixelHSV<int8> p; TS_ASSERT( p.h()==0 && p.s()==0 && p.v()==0 ); TS_ASSERT( sizeof(p)==3 ); }
+    { PixelHSV<uint8> p; TS_ASSERT( p.h()==0 && p.s()==0 && p.v()==0 ); TS_ASSERT( sizeof(p)==3 ); }
+    { PixelHSV<int16> p; TS_ASSERT( p.h()==0 && p.s()==0 && p.v()==0 ); TS_ASSERT( sizeof(p)==6 ); }
+    { PixelHSV<uint16> p; TS_ASSERT( p.h()==0 && p.s()==0 && p.v()==0 ); TS_ASSERT( sizeof(p)==6 ); }
+    { PixelHSV<int32> p; TS_ASSERT( p.h()==0 && p.s()==0 && p.v()==0 ); TS_ASSERT( sizeof(p)==12 ); }
+    { PixelHSV<uint32> p; TS_ASSERT( p.h()==0 && p.s()==0 && p.v()==0 ); TS_ASSERT( sizeof(p)==12 ); }
+    { PixelHSV<int64> p; TS_ASSERT( p.h()==0 && p.s()==0 && p.v()==0 ); TS_ASSERT( sizeof(p)==24 ); }
+    { PixelHSV<uint64> p; TS_ASSERT( p.h()==0 && p.s()==0 && p.v()==0 ); TS_ASSERT( sizeof(p)==24 ); }
+    { PixelHSV<float32> p; TS_ASSERT( p.h()==0.0 && p.s()==0.0 && p.v()==0.0 ); TS_ASSERT( sizeof(p)==12 ); }
+    { PixelHSV<float64> p; TS_ASSERT( p.h()==0.0 && p.s()==0.0 && p.v()==0.0 ); TS_ASSERT( sizeof(p)==24 ); }
+    // Test channel-value-construction and accessors
+    { PixelHSV<int8> p(1,2,3); TS_ASSERT( p.h()==1 && p.s()==2 && p.v()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelHSV<uint8> p(1,2,3); TS_ASSERT( p.h()==1 && p.s()==2 && p.v()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelHSV<int16> p(1,2,3); TS_ASSERT( p.h()==1 && p.s()==2 && p.v()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelHSV<uint16> p(1,2,3); TS_ASSERT( p.h()==1 && p.s()==2 && p.v()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelHSV<int32> p(1,2,3); TS_ASSERT( p.h()==1 && p.s()==2 && p.v()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelHSV<uint32> p(1,2,3); TS_ASSERT( p.h()==1 && p.s()==2 && p.v()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelHSV<int64> p(1,2,3); TS_ASSERT( p.h()==1 && p.s()==2 && p.v()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelHSV<uint64> p(1,2,3); TS_ASSERT( p.h()==1 && p.s()==2 && p.v()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelHSV<float32> p(1.0,2.0,3.0); TS_ASSERT( p.h()==1.0 && p.s()==2.0 && p.v()==3.0 ); TS_ASSERT( p[0]==1.0 && p[1]==2.0 && p[2]==3.0 ); TS_ASSERT( p(0)==1.0 && p(1)==2.0 && p(2)==3.0 ); }
+    { PixelHSV<float64> p(1.0,2.0,3.0); TS_ASSERT( p.h()==1.0 && p.s()==2.0 && p.v()==3.0 ); TS_ASSERT( p[0]==1.0 && p[1]==2.0 && p[2]==3.0 ); TS_ASSERT( p(0)==1.0 && p(1)==2.0 && p(2)==3.0 ); }
+  }
+
   void test_rgb_to_hsv()
   {
-    // Standard case (change types and try?)
-    PixelRGB<float> input_rgb(100, 100, 100);
+    PixelRGB<float> input_rgb(1, 1, 1);
     PixelHSV<float> test_hsv(input_rgb);
-    TS_ASSERT_EQUALS(test_hsv.h(), 1.0);
-    TS_ASSERT_EQUALS(test_hsv.s(), 0);
-    TS_ASSERT_EQUALS(test_hsv.v(), 100);
+    TS_ASSERT_EQUALS(test_hsv.h(), 0.0);
+    TS_ASSERT_EQUALS(test_hsv.s(), 0.0);
+    TS_ASSERT_EQUALS(test_hsv.v(), 1.0);
     
-    //PixelRGB<uint8> input_rgb8(100, 100, 100);
-    //PixelHSV<uint8> test_hsv8(input_rgb8);
-    //TS_ASSERT_EQUALS(test_hsv8.h(), 0);
-    //TS_ASSERT_EQUALS(test_hsv8.s(), 0);
-    //TS_ASSERT_EQUALS(test_hsv8.v(), 100);
+    PixelRGB<uint8> input_rgb8(100, 100, 100);
+    PixelHSV<uint8> test_hsv8(input_rgb8);
+    TS_ASSERT_EQUALS(test_hsv8.h(), 0);
+    TS_ASSERT_EQUALS(test_hsv8.s(), 0);
+    TS_ASSERT_EQUALS(test_hsv8.v(), 100);
 
-    //PixelRGB<uint16> input_rgb16(100, 100, 100);
-    //PixelHSV<uint16> test_hsv16(input_rgb16);
-    //TS_ASSERT_EQUALS(test_hsv16.h(), 0);
-    //TS_ASSERT_EQUALS(test_hsv16.s(), 0);
-    //TS_ASSERT_EQUALS(test_hsv16.v(), 100);
+    PixelRGB<uint16> input_rgb16(100, 100, 100);
+    PixelHSV<uint16> test_hsv16(input_rgb16);
+    TS_ASSERT_EQUALS(test_hsv16.h(), 0);
+    TS_ASSERT_EQUALS(test_hsv16.s(), 0);
+    TS_ASSERT_EQUALS(test_hsv16.v(), 100);
   }
 
   void test_hsv_to_rgb()
   {
-    PixelHSV<float> input_hsv(0, 0, 100);
+    PixelHSV<float> input_hsv(0, 0, 1);
     PixelRGB<float> test_rgb(input_hsv);
-    TS_ASSERT_EQUALS(test_rgb.r(), 100);
-    TS_ASSERT_EQUALS(test_rgb.g(), 100);
-    TS_ASSERT_EQUALS(test_rgb.b(), 100);
+    TS_ASSERT_EQUALS(test_rgb.r(), 1);
+    TS_ASSERT_EQUALS(test_rgb.g(), 1);
+    TS_ASSERT_EQUALS(test_rgb.b(), 1);
 
-    PixelHSV<float> input_hsv_wrap_h(1, 0, 100);
+    PixelHSV<float> input_hsv_wrap_h(1, 0, 1);
     PixelRGB<float> test_rgb_wrap(input_hsv_wrap_h);
-    TS_ASSERT_EQUALS(test_rgb_wrap.r(), 100);
-    TS_ASSERT_EQUALS(test_rgb_wrap.g(), 100);
-    TS_ASSERT_EQUALS(test_rgb_wrap.b(), 100);
+    TS_ASSERT_EQUALS(test_rgb_wrap.r(), 1);
+    TS_ASSERT_EQUALS(test_rgb_wrap.g(), 1);
+    TS_ASSERT_EQUALS(test_rgb_wrap.b(), 1);
 
-    //PixelHSV<uint8> input_hsv8(0, 0, 100);
-    //PixelRGB<uint8> test_rgb8(input_hsv8);
-    //TS_ASSERT_EQUALS(test_rgb8.r(), 100);
-    //TS_ASSERT_EQUALS(test_rgb8.g(), 100);
-    //TS_ASSERT_EQUALS(test_rgb8.b(), 100);
+    PixelHSV<uint8> input_hsv8(0, 0, 100);
+    PixelRGB<uint8> test_rgb8(input_hsv8);
+    TS_ASSERT_EQUALS(test_rgb8.r(), 100);
+    TS_ASSERT_EQUALS(test_rgb8.g(), 100);
+    TS_ASSERT_EQUALS(test_rgb8.b(), 100);
 
-    //PixelHSV<uint16> input_hsv16(0, 0, 100);
-    //PixelRGB<uint16> test_rgb16(input_hsv16);
-    //TS_ASSERT_EQUALS(test_rgb16.r(), 100);
-    //TS_ASSERT_EQUALS(test_rgb16.g(), 100);
-    //TS_ASSERT_EQUALS(test_rgb16.b(), 100);
+    PixelHSV<uint16> input_hsv16(0, 0, 100);
+    PixelRGB<uint16> test_rgb16(input_hsv16);
+    TS_ASSERT_EQUALS(test_rgb16.r(), 100);
+    TS_ASSERT_EQUALS(test_rgb16.g(), 100);
+    TS_ASSERT_EQUALS(test_rgb16.b(), 100);
+  }
 
-    //PixelHSV<uint32> input_hsv32(0, 0, 100);
-    //PixelRGB<uint32> test_rgb32(input_hsv32);
-    //TS_ASSERT_EQUALS(test_rgb32.r(), 100);
-    //TS_ASSERT_EQUALS(test_rgb32.g(), 100);
-    //TS_ASSERT_EQUALS(test_rgb32.b(), 100);
+  void test_hsv_to_rgb_to_hsv()
+  {
+    for( double h=0; h<1; h+=0.15 ) {
+      for( double s=0.2; s<=1; s+=0.2 ) {
+        for( double v=0.2; v<=1; v+=0.2 ) {
+          PixelHSV<double> hsv( PixelRGB<double>( PixelHSV<double>(h,s,v) ) );
+          TS_ASSERT_DELTA( hsv.h(), h, 1e-4 );
+          TS_ASSERT_DELTA( hsv.s(), s, 1e-4 );
+          TS_ASSERT_DELTA( hsv.v(), v, 1e-4 );
+        }
+      }
+    }
+    // Rounding error can become significant for small numbers, so we  
+    // restrict this test to sufficiently bright and saturated pixels.
+    for( uint8 h=0; ; h+=5 ) {
+      for( uint8 s=60; ; s+=5 ) {
+        for( uint8 v=80; ; v+=5 ) {
+          PixelHSV<uint8> hsv( PixelRGB<uint8>( PixelHSV<uint8>(h,s,v) ) );
+          TS_ASSERT( abs(hsv.h()-h)<=2 || abs(abs(hsv.h()-h)-256)<=2 );
+          TS_ASSERT_DELTA( hsv.s(), s, 2 );
+          TS_ASSERT_EQUALS( hsv.v(), v );
+          if( v == 255 ) break;
+        }
+        if( s == 255 ) break;
+      }
+      if( h == 255 ) break;
+    }
+  }
+
+  void test_rgb_to_hsv_to_rgb()
+  {
+    for( double r=0; r<=1; r+=0.1 ) {
+      for( double g=0; g<=1; g+=0.1 ) {
+        for( double b=0; b<=1; b+=0.1 ) {
+          PixelRGB<double> rgb( PixelHSV<double>( PixelRGB<double>(r,g,b) ) );
+          TS_ASSERT_DELTA( rgb.r(), r, 1e-4 );
+          TS_ASSERT_DELTA( rgb.g(), g, 1e-4 );
+          TS_ASSERT_DELTA( rgb.b(), b, 1e-4 );
+        }
+      }
+    }
+    // Rounding error can become significant for small numbers, so 
+    // we restrict this test to sufficiently bright pixels.
+    for( uint8 r=70; ; r+=5 ) {
+      for( uint8 g=70; ; g+=5 ) {
+        for( uint8 b=70; ; b+=5 ) {
+          PixelRGB<uint8> rgb( PixelHSV<uint8>( PixelRGB<uint8>(r,g,b) ) );
+          TS_ASSERT_DELTA( rgb.r(), r, 2 );
+          TS_ASSERT_DELTA( rgb.g(), g, 2 );
+          TS_ASSERT_DELTA( rgb.b(), b, 2 );
+          if( b == 255 ) break;
+        }
+        if( g == 255 ) break;
+      }
+      if( r == 255 ) break;
+    }
+  }
+
+  void test_pixel_xyz()
+  {
+    // Test default-construction and size with all supported channel types
+    { PixelXYZ<int8> p; TS_ASSERT( p.x()==0 && p.y()==0 && p.z()==0 ); TS_ASSERT( sizeof(p)==3 ); }
+    { PixelXYZ<uint8> p; TS_ASSERT( p.x()==0 && p.y()==0 && p.z()==0 ); TS_ASSERT( sizeof(p)==3 ); }
+    { PixelXYZ<int16> p; TS_ASSERT( p.x()==0 && p.y()==0 && p.z()==0 ); TS_ASSERT( sizeof(p)==6 ); }
+    { PixelXYZ<uint16> p; TS_ASSERT( p.x()==0 && p.y()==0 && p.z()==0 ); TS_ASSERT( sizeof(p)==6 ); }
+    { PixelXYZ<int32> p; TS_ASSERT( p.x()==0 && p.y()==0 && p.z()==0 ); TS_ASSERT( sizeof(p)==12 ); }
+    { PixelXYZ<uint32> p; TS_ASSERT( p.x()==0 && p.y()==0 && p.z()==0 ); TS_ASSERT( sizeof(p)==12 ); }
+    { PixelXYZ<int64> p; TS_ASSERT( p.x()==0 && p.y()==0 && p.z()==0 ); TS_ASSERT( sizeof(p)==24 ); }
+    { PixelXYZ<uint64> p; TS_ASSERT( p.x()==0 && p.y()==0 && p.z()==0 ); TS_ASSERT( sizeof(p)==24 ); }
+    { PixelXYZ<float32> p; TS_ASSERT( p.x()==0.0 && p.y()==0.0 && p.z()==0.0 ); TS_ASSERT( sizeof(p)==12 ); }
+    { PixelXYZ<float64> p; TS_ASSERT( p.x()==0.0 && p.y()==0.0 && p.z()==0.0 ); TS_ASSERT( sizeof(p)==24 ); }
+    // Test channel-value-construction and accessors
+    { PixelXYZ<int8> p(1,2,3); TS_ASSERT( p.x()==1 && p.y()==2 && p.z()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelXYZ<uint8> p(1,2,3); TS_ASSERT( p.x()==1 && p.y()==2 && p.z()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelXYZ<int16> p(1,2,3); TS_ASSERT( p.x()==1 && p.y()==2 && p.z()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelXYZ<uint16> p(1,2,3); TS_ASSERT( p.x()==1 && p.y()==2 && p.z()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelXYZ<int32> p(1,2,3); TS_ASSERT( p.x()==1 && p.y()==2 && p.z()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelXYZ<uint32> p(1,2,3); TS_ASSERT( p.x()==1 && p.y()==2 && p.z()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelXYZ<int64> p(1,2,3); TS_ASSERT( p.x()==1 && p.y()==2 && p.z()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelXYZ<uint64> p(1,2,3); TS_ASSERT( p.x()==1 && p.y()==2 && p.z()==3 ); TS_ASSERT( p[0]==1 && p[1]==2 && p[2]==3 ); TS_ASSERT( p(0)==1 && p(1)==2 && p(2)==3 ); }
+    { PixelXYZ<float32> p(1.0,2.0,3.0); TS_ASSERT( p.x()==1.0 && p.y()==2.0 && p.z()==3.0 ); TS_ASSERT( p[0]==1.0 && p[1]==2.0 && p[2]==3.0 ); TS_ASSERT( p(0)==1.0 && p(1)==2.0 && p(2)==3.0 ); }
+    { PixelXYZ<float64> p(1.0,2.0,3.0); TS_ASSERT( p.x()==1.0 && p.y()==2.0 && p.z()==3.0 ); TS_ASSERT( p[0]==1.0 && p[1]==2.0 && p[2]==3.0 ); TS_ASSERT( p(0)==1.0 && p(1)==2.0 && p(2)==3.0 ); }
+  }
+
+  void test_pixel_rgb_to_xyz_to_rgb()
+  {
+    for( double r=0; r<=1; r+=0.1 ) {
+      for( double g=0; g<=1; g+=0.1 ) {
+        for( double b=0; b<=1; b+=0.1 ) {
+          PixelRGB<double> rgb( PixelXYZ<double>( PixelRGB<double>(r,g,b) ) );
+          TS_ASSERT_DELTA( rgb.r(), r, 1e-4 );
+          TS_ASSERT_DELTA( rgb.g(), g, 1e-4 );
+          TS_ASSERT_DELTA( rgb.b(), b, 1e-4 );
+        }
+      }
+    }
+    // Values near the top of the range can clamp in XYZ 
+    // space, so we stop at 235.
+    for( uint8 r=0; r<=235; r+=5 ) {
+      for( uint8 g=0; g<=235; g+=5 ) {
+        for( uint8 b=0; b<=235; b+=5 ) {
+          PixelRGB<uint8> rgb( PixelXYZ<uint8>( PixelRGB<uint8>(r,g,b) ) );
+          TS_ASSERT_DELTA( rgb.r(), r, 3 );
+          TS_ASSERT_DELTA( rgb.g(), g, 3 );
+          TS_ASSERT_DELTA( rgb.b(), b, 3 );
+        }
+      }
+    }
   }
 
 };

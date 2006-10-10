@@ -276,12 +276,34 @@ namespace vw {
     typedef const PIXELT<NewChT> type;                       \
   }
 
+  /// This macro provides the appropriate specializations of 
+  /// the compound type traits classes for a new pixel type 
+  /// with a variable number of channels.
+#define VW_DECLARE_PIXEL_TYPE_NCHANNELS(PIXELT)              \
+  template <class ChannelT, int SizeN>                       \
+  struct CompoundChannelType<PIXELT<ChannelT,SizeN> > {      \
+    typedef ChannelT type;                                   \
+  };                                                         \
+  template <class ChannelT, int SizeN>                       \
+  struct CompoundNumChannels<PIXELT<ChannelT,SizeN> > {      \
+    static const unsigned value = SizeN;                     \
+  };                                                         \
+  template <class OldChT, class NewChT, int SizeN>           \
+  struct CompoundChannelCast<PIXELT<OldChT,SizeN>, NewChT> { \
+    typedef PIXELT<NewChT,SizeN> type;                       \
+  };                                                         \
+  template <class OldChT, class NewChT, int SizeN>           \
+  struct CompoundChannelCast<PIXELT<OldChT,SizeN>, const NewChT> { \
+    typedef const PIXELT<NewChT,SizeN> type;                 \
+  }
+
   // Forward pixel type declarations for complex pixel types
   template <class ChannelT> class PixelGray;
   template <class ChannelT> class PixelGrayA;
   template <class ChannelT> class PixelRGB;
   template <class ChannelT> class PixelRGBA;
   template <class ChannelT> class PixelHSV;
+  template <class ChannelT> class PixelXYZ;
 
 
   // *******************************************************************
@@ -296,6 +318,7 @@ namespace vw {
     VW_PIXEL_RGB = 4,
     VW_PIXEL_RGBA = 5,
     VW_PIXEL_HSV = 6,
+    VW_PIXEL_XYZ = 7,
     VW_PIXEL_USER = 100
   };
 
@@ -333,6 +356,7 @@ namespace vw {
   template <class ChT> struct PixelFormatID<PixelRGB<ChT> >   { static const PixelFormatEnum value = VW_PIXEL_RGB; };
   template <class ChT> struct PixelFormatID<PixelRGBA<ChT> >  { static const PixelFormatEnum value = VW_PIXEL_RGBA; };
   template <class ChT> struct PixelFormatID<PixelHSV<ChT> >   { static const PixelFormatEnum value = VW_PIXEL_HSV; };
+  template <class ChT> struct PixelFormatID<PixelXYZ<ChT> >   { static const PixelFormatEnum value = VW_PIXEL_XYZ; };
 
   template <class ChannelT> struct ChannelTypeID { static const ChannelTypeEnum value = VW_CHANNEL_UNKNOWN; };
   template<> struct ChannelTypeID<vw::int8>      { static const ChannelTypeEnum value = VW_CHANNEL_INT8; };
@@ -356,6 +380,7 @@ namespace vw {
       return 2;
     case VW_PIXEL_RGB:
     case VW_PIXEL_HSV:
+    case VW_PIXEL_XYZ:
       return 3;
     case VW_PIXEL_RGBA:
       return 4;

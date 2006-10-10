@@ -37,12 +37,16 @@ public:
   void testDefaultConstructor()
   {
     ImageView<double> test_double;
+    TS_ASSERT_EQUALS( (bool)test_double, false );
+    TS_ASSERT_EQUALS( !test_double, true );
     TS_ASSERT_EQUALS(test_double.cols(), 0);
     TS_ASSERT_EQUALS(test_double.rows(), 0);
     TS_ASSERT_EQUALS(test_double.planes(), 0);
     TS_ASSERT_EQUALS(test_double.data(), (double*)0);
 
     ImageView<PixelRGBA<uint8> > test_rgba;
+    TS_ASSERT_EQUALS( (bool)test_rgba, false );
+    TS_ASSERT_EQUALS( !test_rgba, true );
     TS_ASSERT_EQUALS(test_rgba.cols(), 0);
     TS_ASSERT_EQUALS(test_rgba.rows(), 0);
     TS_ASSERT_EQUALS(test_rgba.planes(), 0);
@@ -52,12 +56,16 @@ public:
   void testColsRowsConstructor()
   {
     ImageView<double> test_double(3,4);
+    TS_ASSERT_EQUALS( (bool)test_double, true );
+    TS_ASSERT_EQUALS( !test_double, false );
     TS_ASSERT_EQUALS(test_double.cols(), 3);
     TS_ASSERT_EQUALS(test_double.rows(), 4);
     TS_ASSERT_EQUALS(test_double.planes(), 1);
     TS_ASSERT_DIFFERS(test_double.data(), (double*)0);
 
     ImageView<PixelRGBA<uint8> > test_rgba(3,4);
+    TS_ASSERT_EQUALS( (bool)test_rgba, true );
+    TS_ASSERT_EQUALS( !test_rgba, false );
     TS_ASSERT_EQUALS(test_rgba.cols(), 3);
     TS_ASSERT_EQUALS(test_rgba.rows(), 4);
     TS_ASSERT_EQUALS(test_rgba.planes(), 1);
@@ -67,12 +75,16 @@ public:
   void testColsRowsPlanesConstructor()
   {
     ImageView<double> test_double(4,3,2);
+    TS_ASSERT_EQUALS( (bool)test_double, true );
+    TS_ASSERT_EQUALS( !test_double, false );
     TS_ASSERT_EQUALS(test_double.cols(), 4);
     TS_ASSERT_EQUALS(test_double.rows(), 3);
     TS_ASSERT_EQUALS(test_double.planes(), 2);
     TS_ASSERT_DIFFERS(test_double.data(), (double*)0);
 
     ImageView<PixelRGBA<uint8> > test_rgba(4,3,2);
+    TS_ASSERT_EQUALS( (bool)test_rgba, true );
+    TS_ASSERT_EQUALS( !test_rgba, false );
     TS_ASSERT_EQUALS(test_rgba.cols(), 4);
     TS_ASSERT_EQUALS(test_rgba.rows(), 3);
     TS_ASSERT_EQUALS(test_rgba.planes(), 2);
@@ -83,6 +95,8 @@ public:
   {
     ImageView<double> test_double(3,4);
     ImageView<double> test2_double( test_double );
+    TS_ASSERT_EQUALS( (bool)test2_double, true );
+    TS_ASSERT_EQUALS( !test2_double, false );
     TS_ASSERT_EQUALS(test2_double.cols(), 3);
     TS_ASSERT_EQUALS(test2_double.rows(), 4);
     TS_ASSERT_EQUALS(test2_double.planes(), 1);
@@ -90,6 +104,8 @@ public:
 
     ImageView<PixelRGBA<uint8> > test_rgba(3,4);
     ImageView<PixelRGBA<uint8> > test2_rgba( test_rgba );
+    TS_ASSERT_EQUALS( (bool)test2_rgba, true );
+    TS_ASSERT_EQUALS( !test2_rgba, false );
     TS_ASSERT_EQUALS(test2_rgba.cols(), 3);
     TS_ASSERT_EQUALS(test2_rgba.rows(), 4);
     TS_ASSERT_EQUALS(test2_rgba.planes(), 1);
@@ -99,21 +115,27 @@ public:
   void testSetSize()
   {
     ImageView<double> test_double(3,4);
+    TS_ASSERT_EQUALS( (bool)test_double, true );
     test_double.set_size(2,3);
+    TS_ASSERT_EQUALS( (bool)test_double, true );
     TS_ASSERT_EQUALS(test_double.cols(), 2);
     TS_ASSERT_EQUALS(test_double.rows(), 3);
     TS_ASSERT_EQUALS(test_double.planes(), 1);
     test_double.set_size(0,0);
+    TS_ASSERT_EQUALS( (bool)test_double, false );
     TS_ASSERT_EQUALS(test_double.cols(), 0);
     TS_ASSERT_EQUALS(test_double.rows(), 0);
     TS_ASSERT_EQUALS(test_double.data(), (double*)0);
 
     ImageView<PixelRGBA<uint8> > test_rgba(3,4);
+    TS_ASSERT_EQUALS( (bool)test_rgba, true );
     test_rgba.set_size(2,3);
+    TS_ASSERT_EQUALS( (bool)test_rgba, true );
     TS_ASSERT_EQUALS(test_rgba.cols(), 2);
     TS_ASSERT_EQUALS(test_rgba.rows(), 3);
     TS_ASSERT_EQUALS(test_rgba.planes(), 1);
     test_rgba.set_size(0,0);
+    TS_ASSERT_EQUALS( (bool)test_rgba, false );
     TS_ASSERT_EQUALS(test_rgba.cols(), 0);
     TS_ASSERT_EQUALS(test_rgba.rows(), 0);
     TS_ASSERT_EQUALS(test_rgba.data(), (PixelRGBA<uint8>*)0);
@@ -122,14 +144,18 @@ public:
   void testReset()
   {
     ImageView<double> test_double(3,4);
+    TS_ASSERT_EQUALS( (bool)test_double, true );
     test_double.reset();
+    TS_ASSERT_EQUALS( (bool)test_double, false );
     TS_ASSERT_EQUALS(test_double.cols(), 0);
     TS_ASSERT_EQUALS(test_double.rows(), 0);
     TS_ASSERT_EQUALS(test_double.planes(), 0);
     TS_ASSERT_EQUALS(test_double.data(), (double*)0);
 
     ImageView<PixelRGBA<uint8> > test_rgba(3,4);
+    TS_ASSERT_EQUALS( (bool)test_rgba, true );
     test_rgba.reset();
+    TS_ASSERT_EQUALS( (bool)test_rgba, false );
     TS_ASSERT_EQUALS(test_rgba.cols(), 0);
     TS_ASSERT_EQUALS(test_rgba.rows(), 0);
     TS_ASSERT_EQUALS(test_rgba.planes(), 0);

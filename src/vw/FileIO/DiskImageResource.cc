@@ -32,6 +32,8 @@
 #pragma warning(disable:4996)
 #endif
 
+#include <vw/config.h>
+
 #include <iostream>
 #include <map>
 #include <boost/algorithm/string.hpp>

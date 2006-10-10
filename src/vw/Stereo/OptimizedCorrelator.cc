@@ -305,7 +305,8 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDi
 
       // perform the correlation
       local_result *result_row = result_buf+(xStart+hKern/2)+(yStart+vKern/2)*width;
-      for( int j=yStart; j<yEnd; ++j, result_row+=width ) {
+      int j = yStart;
+      while(true) {
         local_result *result_ptr = result_row;
 
         // seed the row sum (i.e. soad)
@@ -326,6 +327,10 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDi
           // update the row sum
           rsum += *(csum_head++) - *(csum_tail++);
         }
+
+        // stop if we're done, else go to next row
+        if( ++j == yEnd ) break;
+        result_row += width;
 
         // update the column sum
         csum_ptr = cSum + xStart;
@@ -614,7 +619,8 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr( int minDisp,       
 
       // perform the correlation
       SubpixelCorrelator::soad *result_row = result+(xStart+hKern/2)+(yStart+vKern/2)*width;
-      for( int j=yStart; j<yEnd; ++j, result_row+=width ) {
+      int j = yStart;
+      while(true) {
         SubpixelCorrelator::soad *result_ptr = result_row;
 
         // seed the row sum (i.e. soad)
@@ -636,6 +642,10 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr( int minDisp,       
           // update the row sum
           rsum += *(csum_head++) - *(csum_tail++);
         }
+
+        // stop if we're done, else go to the next row
+        if( ++j == yEnd ) break;
+        result_row += width;
 
         // update the column sum
         csum_ptr = cSum + xStart;
