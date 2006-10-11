@@ -232,6 +232,7 @@ void CorrelationWorkThread::operator() () {
     
 
 #if 1
+// Matt Hancher's version
 SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDisp,       // left bound disparity search
                                                                        int maxDisp,       // right bound disparity search
                                                                        int topDisp,       // top bound disparity search window
@@ -1001,7 +1002,7 @@ ImageView<PixelDisparity<float> > SubpixelCorrelator::correlation_2D( ImageView<
     threads.join_all(); 
   
     // Cross check the left and right disparity maps
-    cross_corr_consistency_check(resultL2R, resultR2L,m_crossCorrThreshold);
+    cross_corr_consistency_check(resultL2R, resultR2L, m_crossCorrThreshold);
 
     // Do subpixel correlation
     subpixel_correlation(resultL2R, left_image, right_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel);

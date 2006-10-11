@@ -417,7 +417,7 @@ AC_DEFUN([AX_PKG_PTHREADS],
   AC_LANG_C
   HAVE_PKG_PTHREADS=no
 
-  ax_pkg_pthreads_cppflags_options="-pthread none"
+  ax_pkg_pthreads_cppflags_options="none -pthread"
   ax_pkg_pthreads_ldflags_options="-lpthread none"
 
   for ax_pkg_pthreads_ldflags in $ax_pkg_pthreads_ldflags_options; do
