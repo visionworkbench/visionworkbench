@@ -20,7 +20,7 @@
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
 // 
 // __END_LICENSE__
-#include <vw/Camera/EXIF.h>
+#include <vw/Camera/Exif.h>
 #include <iostream>
 
 using namespace vw::camera;

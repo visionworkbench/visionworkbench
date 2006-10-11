@@ -33,6 +33,7 @@ image_LDFLAGS = @PKG_VW_LDFLAGS@
 # general
 ########################################################################
 
+AM_CPPFLAGS = @PKG_VW_CPPFLAGS@
 AM_LDFLAGS = @PKG_BOOST_PROGRAM_OPTIONS_LDFLAGS@
 
 includedir = $(prefix)/include/vw

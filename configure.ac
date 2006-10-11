@@ -250,8 +250,8 @@ if test ${MAKE_MODULE_VW} != "yes"; then
   AC_MSG_ERROR([cannot build the Vision Workbench core!])
 fi
 
-AX_MODULE(CAMERA, [src/vw/Camera/libvwCamera.la], yes, [IMAGE MATH])
-AX_MODULE(MOSAIC, [src/vw/Mosaic/libvwMosaic.la], yes, [VW BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
+AX_MODULE(CAMERA, [src/vw/Camera/libvwCamera.la], yes, [IMAGE MATH LAPACK])
+AX_MODULE(MOSAIC, [src/vw/Mosaic/libvwMosaic.la], yes, [VW PTHREADS BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
 AX_MODULE(STEREO, [src/vw/Stereo/libvwStereo.la], $HAVE_PKG_STEREO_SRC, [STEREO_SRC VW PTHREADS BOOST_THREAD])
 
 #AX_MODULE(INTERESTPOINT, InterestPoint, no, [VW])

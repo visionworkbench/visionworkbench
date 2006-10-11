@@ -282,18 +282,17 @@ AC_DEFUN([AX_PKG_BOOST],
 # compiling BLAS and LAPACK ourselves.
 AC_DEFUN([AX_PKG_LAPACK],
 [
-  AC_MSG_CHECKING(for package LAPACK)
-  if test "$ENABLE_VERBOSE" = "yes"; then
-    AC_MSG_RESULT([])
-  fi
-
-  PKG_LAPACK_CPPFLAGS=
-  PKG_LAPACK_LDFLAGS=
-  HAVE_PKG_LAPACK=no
 
 	# If we are running MacOS X, we can use Apple's vecLib framework to
   # provide us with LAPACK and BLAS routines.
   if test $host_vendor == apple; then
+	  AC_MSG_CHECKING(for package LAPACK)
+  	if test "$ENABLE_VERBOSE" = "yes"; then
+    	AC_MSG_RESULT([])
+	  fi
+
+	  PKG_LAPACK_CPPFLAGS=
+  	PKG_LAPACK_LDFLAGS=
 		HAVE_PKG_LAPACK="yes"
 		
 		# This workaround sidesteps a bug in libtool that prevents the
@@ -312,28 +311,33 @@ AC_DEFUN([AX_PKG_LAPACK],
     if test "$ENABLE_VERBOSE" = "yes"; then
       AC_MSG_RESULT([found])
     fi
+	  if test ${HAVE_PKG_LAPACK} = "yes" ; then
+  	  ax_have_pkg_bool=1
+	  else
+  	  ax_have_pkg_bool=0
+	  fi
+  	AC_DEFINE_UNQUOTED([HAVE_PKG_LAPACK],
+    	                 [$ax_have_pkg_bool],
+      	               [Define to 1 if the LAPACK package is available.])
+
+	  AC_SUBST(PKG_LAPACK_CPPFLAGS)
+  	AC_SUBST(PKG_LAPACK_LDFLAGS)
+	  AC_SUBST(HAVE_PKG_LAPACK)
+
+  	if test "$ENABLE_VERBOSE" = "yes"; then
+    	AC_MSG_NOTICE([PKG_LAPACK_CPPFLAGS = ${PKG_LAPACK_CPPFLAGS}])
+	    AC_MSG_NOTICE([PKG_LAPACK_LDFLAGS = ${PKG_LAPACK_LDFLAGS}])
+  	  AC_MSG_NOTICE([HAVE_PKG_LAPACK = ${HAVE_PKG_LAPACK}])
+	  else
+  	  AC_MSG_RESULT([${HAVE_PKG_LAPACK}])
+	  fi	
+
+	# For all other platforms, we search for static LAPACK libraries
+	# in the conventional manner
+  else
+		AX_PKG(LAPACK, [], [-lLAPACK -lBLAS -lF77], [])
 	fi
 
-  if test ${HAVE_PKG_LAPACK} = "yes" ; then
-    ax_have_pkg_bool=1
-  else
-    ax_have_pkg_bool=0
-  fi
-  AC_DEFINE_UNQUOTED([HAVE_PKG_LAPACK],
-                     [$ax_have_pkg_bool],
-                     [Define to 1 if the LAPACK package is available.])
-
-  AC_SUBST(PKG_LAPACK_CPPFLAGS)
-  AC_SUBST(PKG_LAPACK_LDFLAGS)
-  AC_SUBST(HAVE_PKG_LAPACK)
-
-  if test "$ENABLE_VERBOSE" = "yes"; then
-    AC_MSG_NOTICE([PKG_LAPACK_CPPFLAGS = ${PKG_LAPACK_CPPFLAGS}])
-    AC_MSG_NOTICE([PKG_LAPACK_LDFLAGS = ${PKG_LAPACK_LDFLAGS}])
-    AC_MSG_NOTICE([HAVE_PKG_LAPACK = ${HAVE_PKG_LAPACK}])
-  else
-    AC_MSG_RESULT([${HAVE_PKG_LAPACK}])
-  fi
 ])
 
 # Usage: AX_PKG_BOOST_LIB(<name>, <dependencies>, <libraries>)
@@ -360,8 +364,8 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
         PKG_BOOST_$1_LDFLAGS="$2"
       else
         # Check for required libraries with some suffix
-	ax_pkg_boost_lib=`echo $2 | awk '{print [$]1}' | sed 's/-l\([[^[:space:]-]]*\).*/lib\1/g'`
-	ax_pkg_boost_lib_ext=`ls ${PKG_BOOST_LIBDIR}/${ax_pkg_boost_lib}-* | head -n 1 | sed "s,^${PKG_BOOST_LIBDIR}/${ax_pkg_boost_lib}\(-[[^-.]]*\).*,\1,"`
+        ax_pkg_boost_lib=`echo $2 | awk '{print [$]1}' | sed 's/-l\([[^[:space:]-]]*\).*/lib\1/g'`
+        ax_pkg_boost_lib_ext=`ls ${PKG_BOOST_LIBDIR}/${ax_pkg_boost_lib}-* | head -n 1 | sed "s,^${PKG_BOOST_LIBDIR}/${ax_pkg_boost_lib}\(-[[^.]]*\).*,\1,"`
         if test ! -z "$ax_pkg_boost_lib_ext" ; then
           AX_FIND_FILES([`echo $2 | sed "s/-l\([[^[:space:]]]*\)/lib\1${ax_pkg_boost_lib_ext}.*/g"`],[$PKG_BOOST_LIBDIR])
           if test ! -z $ax_find_files_path ; then
@@ -413,8 +417,8 @@ AC_DEFUN([AX_PKG_PTHREADS],
   AC_LANG_C
   HAVE_PKG_PTHREADS=no
 
-  ax_pkg_pthreads_cppflags_options="none -pthread"
-  ax_pkg_pthreads_ldflags_options="none -lpthread"
+  ax_pkg_pthreads_cppflags_options="-pthread none"
+  ax_pkg_pthreads_ldflags_options="-lpthread none"
 
   for ax_pkg_pthreads_ldflags in $ax_pkg_pthreads_ldflags_options; do
     if test "$ax_pkg_pthreads_ldflags" == "none" ; then
@@ -435,7 +439,7 @@ AC_DEFUN([AX_PKG_PTHREADS],
       LDFLAGS="$PKG_PTHREADS_LDFLAGS $LDFLAGS"
 
       if test "$ENABLE_VERBOSE" = "yes" ; then
-        AC_MSG_CHECKING([whether pthreads work with flags: \"$CFLAGS $LDFLAGS\"])
+        AC_MSG_CHECKING([whether pthreads work with flags: \"$CFLAGS\" : \"$LDFLAGS\"])
       fi
 
       AC_TRY_LINK([#include <pthread.h>],

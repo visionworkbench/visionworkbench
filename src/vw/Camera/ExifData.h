@@ -182,4 +182,4 @@ namespace camera {
 
 }} // namespace vw::camera
 
-#endif __VW_CAMERA_EXIF_DATA_H__
+#endif // __VW_CAMERA_EXIF_DATA_H__
