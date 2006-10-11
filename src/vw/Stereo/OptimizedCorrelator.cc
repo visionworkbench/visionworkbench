@@ -232,7 +232,6 @@ void CorrelationWorkThread::operator() () {
     
 
 #if 1
-// Matt Hancher's version
 SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDisp,       // left bound disparity search
                                                                        int maxDisp,       // right bound disparity search
                                                                        int topDisp,       // top bound disparity search window
@@ -306,8 +305,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDi
 
       // perform the correlation
       local_result *result_row = result_buf+(xStart+hKern/2)+(yStart+vKern/2)*width;
-      int j = yStart;
-      while(true) {
+      for( int j=yStart; ; ++j, result_row+=width ) {
         local_result *result_ptr = result_row;
 
         // seed the row sum (i.e. soad)
@@ -329,9 +327,8 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDi
           rsum += *(csum_head++) - *(csum_tail++);
         }
 
-        // stop if we're done, else go to next row
-        if( ++j == yEnd ) break;
-        result_row += width;
+        // break if this is the last row
+        if( j+1 == yEnd ) break;
 
         // update the column sum
         csum_ptr = cSum + xStart;
@@ -620,8 +617,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr( int minDisp,       
 
       // perform the correlation
       SubpixelCorrelator::soad *result_row = result+(xStart+hKern/2)+(yStart+vKern/2)*width;
-      int j = yStart;
-      while(true) {
+      for( int j=yStart; ; ++j, result_row+=width ) {
         SubpixelCorrelator::soad *result_ptr = result_row;
 
         // seed the row sum (i.e. soad)
@@ -644,9 +640,8 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr( int minDisp,       
           rsum += *(csum_head++) - *(csum_tail++);
         }
 
-        // stop if we're done, else go to the next row
-        if( ++j == yEnd ) break;
-        result_row += width;
+        // break if this is the last row
+        if( j+1 == yEnd ) break;
 
         // update the column sum
         csum_ptr = cSum + xStart;
@@ -1002,7 +997,7 @@ ImageView<PixelDisparity<float> > SubpixelCorrelator::correlation_2D( ImageView<
     threads.join_all(); 
   
     // Cross check the left and right disparity maps
-    cross_corr_consistency_check(resultL2R, resultR2L, m_crossCorrThreshold);
+    cross_corr_consistency_check(resultL2R, resultR2L,m_crossCorrThreshold);
 
     // Do subpixel correlation
     subpixel_correlation(resultL2R, left_image, right_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel);
