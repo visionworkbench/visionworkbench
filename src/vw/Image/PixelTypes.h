@@ -445,7 +445,7 @@ namespace vw {
   // The PixelHSV hue/saturation/value pixel type.
   // *******************************************************************
 
-  /// An full-color HSV (hue, saturation, value) pixel type.
+  /// A full-color HSV (hue, saturation, value) pixel type.
   /// Note that this color space is non-linearly related to 
   /// the usual color spaces such as RGB, and has a different 
   /// topology as well.  Therefore many operations, such as 

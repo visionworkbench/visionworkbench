@@ -80,6 +80,15 @@ namespace {
 
 }
 
+
+// The destructor is here, despite being so brief, because deleting 
+// an object safely requires knowing its full type.
+vw::DiskImageResourceOpenEXR::~DiskImageResourceOpenEXR() {
+  if (m_file_ptr) 
+    delete m_file_ptr;
+}
+
+
 // Bind the resource to a file for reading.  Confirm that we can open
 // the file and that it has a sane pixel format.  In general VIL does 
 // not give us any useful information about the pixel format, so we 
@@ -133,7 +142,7 @@ void vw::DiskImageResourceOpenEXR::create( std::string const& filename,
 }
 
 // Read the disk image into the given buffer.
-void vw::DiskImageResourceOpenEXR::read( GenericImageBuffer const& dest ) const
+void vw::DiskImageResourceOpenEXR::read_generic( GenericImageBuffer const& dest ) const
 {
   VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in OpenEXR read." );
@@ -222,7 +231,7 @@ void vw::DiskImageResourceOpenEXR::read( GenericImageBuffer const& dest ) const
 }
 
 // Write the given buffer into the disk image.
-void vw::DiskImageResourceOpenEXR::write( GenericImageBuffer const& src )
+void vw::DiskImageResourceOpenEXR::write_generic( GenericImageBuffer const& src )
 {
   VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in OpenEXR write." );

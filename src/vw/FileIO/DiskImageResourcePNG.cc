@@ -51,9 +51,9 @@ namespace vw {
 
   class DiskImageResourceInfoPNG {
     std::string m_filename;
-    std::fstream *m_fs_ptr;
     bool m_readable;
     GenericImageFormat &m_format;
+    std::vector<DiskImageResourcePNG::Comment> comments;
 
     static void read_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
       std::fstream *fs = (std::fstream*) png_get_io_ptr(png_ptr);
@@ -70,10 +70,10 @@ namespace vw {
         fs->flush();
     }
     
-    void read_init( png_structp &png_ptr, png_infop &info_ptr, png_infop &end_ptr ) const {
+    void read_init( std::fstream &fs, png_structp &png_ptr, png_infop &info_ptr, png_infop &end_ptr ) {
       char header[8];
-      m_fs_ptr->read( header, 8 );
-      if( !*m_fs_ptr || png_sig_cmp((png_bytep)header,0,8) )
+      fs.read( header, 8 );
+      if( !fs || png_sig_cmp((png_bytep)header,0,8) )
         throw IOErr() << "Input file " << m_filename << " is not a valid PNG file.";
       
       png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING,0,0,0);
@@ -85,26 +85,64 @@ namespace vw {
       end_ptr = png_create_info_struct(png_ptr);
       if (!end_ptr) throw IOErr() << "Unable to initialize PNG reader.";
       
-      png_set_read_fn(png_ptr, (voidp)m_fs_ptr, read_data);
+      png_set_read_fn(png_ptr, (voidp)&fs, read_data);
       
       png_set_sig_bytes(png_ptr, 8);
   
       png_read_info(png_ptr, info_ptr);
     }
 
+    void read_comments( png_structp &png_ptr, png_infop &info_ptr ) {
+      png_text *text_ptr;
+      int num_comments = png_get_text(png_ptr, info_ptr, &text_ptr, 0);
+      comments.clear();
+      for( int i=0; i<num_comments; ++i ) {
+        DiskImageResourcePNG::Comment c;
+        c.key = text_ptr[i].key;
+        c.text = text_ptr[i].text;
+#ifdef PNG_iTXt_SUPPORTED
+        c.lang = text_ptr[i].lang;
+        c.lang_key = text_ptr[i].lang_key;
+#endif
+        switch( text_ptr[i].compression ) {
+        case PNG_TEXT_COMPRESSION_NONE:
+          c.utf8 = false;
+          c.compressed = false;
+          break;
+        case PNG_TEXT_COMPRESSION_zTXt:
+          c.utf8 = false;
+          c.compressed = true;
+          break;
+#ifdef PNG_iTXt_SUPPORTED
+        case PNG_ITXT_COMPRESSION_NONE:
+          c.utf8 = true;
+          c.compressed = false;
+          break;
+        case PNG_ITXT_COMPRESSION_zTXt:
+          c.utf8 = true;
+          c.compressed = true;
+          break;
+#endif
+        default:
+          vw_out(DebugMessage) << "Unsupported PNG comment type in PNG read!" << std::endl;
+          continue;
+        }
+        comments.push_back( c );
+      }
+    }
+
     void read_cleanup( png_structp &png_ptr, png_infop &info_ptr, png_infop &end_ptr ) const {
-      if( m_fs_ptr ) m_fs_ptr->seekg( 0 );
       if( png_ptr ) png_destroy_read_struct( &png_ptr, &info_ptr, &end_ptr );
     }
     
-    void write_init( png_structp &png_ptr, png_infop &info_ptr ) {
+    void write_init( std::fstream& fs, png_structp &png_ptr, png_infop &info_ptr ) {
       png_ptr = 0;
       info_ptr = 0;
       try {
         png_ptr = png_create_write_struct( PNG_LIBPNG_VER_STRING, 0, 0, 0 );
         if( !png_ptr ) throw IOErr() << "Unable to initialize PNG writer.";
         
-        png_set_write_fn( png_ptr, (voidp)m_fs_ptr, write_data, flush_data );
+        png_set_write_fn( png_ptr, (voidp)&fs, write_data, flush_data );
         
         info_ptr = png_create_info_struct(png_ptr);
         if( !info_ptr ) throw IOErr() << "Unable to initialize PNG reader.";
@@ -129,27 +167,24 @@ namespace vw {
     }
 
     void write_cleanup( png_structp &png_ptr, png_infop &info_ptr ) {
-      if( m_fs_ptr ) m_fs_ptr->seekg( 0 );
       if( png_ptr ) png_destroy_write_struct( &png_ptr, &info_ptr );
     }
 
   public:
     DiskImageResourceInfoPNG( GenericImageFormat &format )
-      : m_filename(), m_fs_ptr(0), m_readable(false), m_format(format) {}
+      : m_filename(), m_readable(false), m_format(format) {}
 
-    ~DiskImageResourceInfoPNG() {
-      delete m_fs_ptr;
-    }
+    ~DiskImageResourceInfoPNG() { }
 
     void open( std::string const& filename ) {
       m_readable = false;
       m_filename = filename;
-      m_fs_ptr = new std::fstream( m_filename.c_str(), std::ios_base::in | std::ios_base::binary );
-      if( !m_fs_ptr || !*m_fs_ptr )
-        throw IOErr() << "Unable to open input file " << m_filename << ".";
+      std::fstream fs( m_filename.c_str(), std::ios_base::in | std::ios_base::binary );
+      if( !fs ) throw IOErr() << "Unable to open input file " << m_filename << ".";
       png_structp png_ptr;
       png_infop info_ptr, end_ptr;
-      read_init( png_ptr, info_ptr, end_ptr );
+      read_init( fs, png_ptr, info_ptr, end_ptr );
+      read_comments( png_ptr, info_ptr );
       
       m_format.cols = png_get_image_width(png_ptr, info_ptr);
       m_format.rows = png_get_image_height(png_ptr, info_ptr);
@@ -210,15 +245,14 @@ namespace vw {
       if( m_format.channel_type!=VW_CHANNEL_UINT16 ) m_format.channel_type = VW_CHANNEL_UINT8;
       m_readable = false;
       m_filename = filename;
-      m_fs_ptr = new std::fstream( m_filename.c_str(), std::ios::out | std::ios_base::binary );
-      if( !m_fs_ptr || !*m_fs_ptr )
-        throw IOErr() << "Unable to open output file \"" << m_filename << "\".";
     }
 
-    void read( GenericImageBuffer const& dest, BBox2i bbox ) const {
+    void read( GenericImageBuffer const& dest, BBox2i bbox ) {
+      std::fstream fs( m_filename.c_str(), std::ios_base::in | std::ios_base::binary );
+      if( !fs ) throw IOErr() << "Unable to open input file " << m_filename << ".";
       png_structp png_ptr;
       png_infop info_ptr, end_ptr;
-      read_init( png_ptr, info_ptr, end_ptr );
+      read_init( fs, png_ptr, info_ptr, end_ptr );
       VW_ASSERT( bbox.min().x()>=0 && bbox.min().y()>=0 && bbox.max().x()<=m_format.cols && bbox.max().y()<=m_format.rows,
                  ArgumentErr() << "Requested bounding box extends beyond disk image boundaries in PNG read." );
       VW_ASSERT( dest.format.cols==bbox.width() && dest.format.rows==bbox.height(),
@@ -249,9 +283,11 @@ namespace vw {
     }
 
     void write( GenericImageBuffer const& src ) {
+      std::fstream fs( m_filename.c_str(), std::ios::out | std::ios_base::binary );
+      if( !fs )throw IOErr() << "Unable to open output file \"" << m_filename << "\".";
       png_structp png_ptr;
       png_infop info_ptr;
-      write_init( png_ptr, info_ptr );
+      write_init( fs, png_ptr, info_ptr );
       VW_ASSERT( src.format.cols==m_format.cols && src.format.rows==m_format.rows, IOErr() << "Buffer has wrong dimensions in PNG write." );
       GenericImageBuffer dst;
       int Bpp = (m_format.channel_type==VW_CHANNEL_UINT16) ? 2 : 1;
@@ -272,6 +308,15 @@ namespace vw {
       png_write_end( png_ptr, info_ptr );
       write_cleanup( png_ptr, info_ptr );
     }
+
+    int num_comments() const {
+      return comments.size();
+    }
+
+    DiskImageResourcePNG::Comment const& get_comment( int i ) const {
+      return comments[i];
+    }
+
   };
 
 } // namespace vw
@@ -282,13 +327,13 @@ namespace vw {
 // *********************************************************************
 
 vw::DiskImageResourcePNG::DiskImageResourcePNG( std::string const& filename )
-  : m_info( new DiskImageResourceInfoPNG(m_format) ) {
+  : DiskImageResource( filename ), m_info( new DiskImageResourceInfoPNG(m_format) ) {
   open( filename );
 }
 
 vw::DiskImageResourcePNG::DiskImageResourcePNG( std::string const& filename, 
                                                 GenericImageFormat const& format )
-  : m_info( new DiskImageResourceInfoPNG(m_format) ) {
+  : DiskImageResource( filename ), m_info( new DiskImageResourceInfoPNG(m_format) ) {
   create( filename, format );
 }
 
@@ -304,15 +349,15 @@ void vw::DiskImageResourcePNG::create( std::string const& filename,
   m_info->create( filename, format );
 }
 
-void vw::DiskImageResourcePNG::read( GenericImageBuffer const& dest ) const {
+void vw::DiskImageResourcePNG::read_generic( GenericImageBuffer const& dest ) const {
   m_info->read( dest, BBox2i(0,0,cols(),rows()) );
 }
 
-void vw::DiskImageResourcePNG::read( GenericImageBuffer const& dest, BBox2i bbox ) const {
+void vw::DiskImageResourcePNG::read_generic( GenericImageBuffer const& dest, BBox2i bbox ) const {
   m_info->read( dest, bbox );
 }
 
-void vw::DiskImageResourcePNG::write( GenericImageBuffer const& src ) {
+void vw::DiskImageResourcePNG::write_generic( GenericImageBuffer const& src ) {
   m_info->write( src );
 }
 
@@ -323,4 +368,12 @@ vw::DiskImageResource* vw::DiskImageResourcePNG::construct_open( std::string con
 vw::DiskImageResource* vw::DiskImageResourcePNG::construct_create( std::string const& filename,
                                                                    GenericImageFormat const& format ) {
   return new DiskImageResourcePNG( filename, format );
+}
+
+int vw::DiskImageResourcePNG::num_comments() const {
+  return m_info->num_comments();
+}
+
+vw::DiskImageResourcePNG::Comment const& vw::DiskImageResourcePNG::get_comment( int i ) const {
+  return m_info->get_comment(i);
 }

@@ -38,6 +38,7 @@
 
 #include <vw/Math/BBox.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Image/ImageViewRef.h>
 #include <vw/Image/EdgeExtend.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/Algorithms.h>
@@ -69,43 +70,31 @@ namespace mosaic {
   class ImageQuadTreeGenerator {
   public:
 
-    struct Settings {
-      std::string tree_name;
-      std::string output_image_type;
-      int patch_size;
-      int patch_overlap;
-      bool crop_images;
-    };
-
-    class PatchSource {
-    public:
-      virtual ~PatchSource() {}
-      virtual ImageView<PixelT> generate_patch( BBox2i const& bbox ) const = 0;
-      virtual int cols() const = 0;
-      virtual int rows() const = 0;
-      virtual bool intersects( BBox2i const& bbox ) const {
-        if( bbox.max().x()<=0 || bbox.max().y()<=0 || bbox.min().x() >= cols() || bbox.min().y() >= rows() ) return false;
-        else return true;
-      }
-    };
-
-    ImageQuadTreeGenerator( Settings const& settings, PatchSource const& source )
-      : settings( settings ), source( source ) {}
-    
+    template <class ImageT>
+    ImageQuadTreeGenerator( std::string const& tree_name, ImageViewBase<ImageT> const& source )
+      : m_tree_name( tree_name ),
+        m_source( source.impl() ),
+        m_bbox( 0, 0, m_source.cols(), m_source.rows() ),
+        m_output_image_type( "png" ),
+        m_patch_size( 256 ),
+        m_patch_overlap( 0 ),
+        m_crop_images( true )
+    {}
+    // /irg/data/missions/RMAX/MarsScape
     void generate() {
-      int maxdim = std::max( source.cols(), source.rows() );
-      int tree_levels = 1 + int( ceilf( log( maxdim/(float)(settings.patch_size-settings.patch_overlap) ) / log(2.0) ) );
-      patch_cache.resize( tree_levels );
-      filename_cache.resize( tree_levels );
+      int maxdim = std::max( m_bbox.width(), m_bbox.height() );
+      int tree_levels = 1 + int( ceilf( log( maxdim/(float)(m_patch_size-m_patch_overlap) ) / log(2.0) ) );
+      m_patch_cache.resize( tree_levels );
+      m_filename_cache.resize( tree_levels );
 
-      fs::path tree_path( settings.tree_name, fs::native );
+      fs::path tree_path( m_tree_name, fs::native );
       fs::path dir_path = tree_path.branch_path() / ( tree_path.leaf() + ".qtree" );
       fs::path top_branch_path = dir_path / tree_path.leaf();
 
-      std::cout << "Using patch size: " << settings.patch_size << " pixels" << std::endl;
-      std::cout << "Using patch overlap: " << settings.patch_overlap << " pixels" << std::endl;
-      std::cout << "Generating patch files of type: " << settings.output_image_type << std::endl;
-      std::cout << "Generating " << dir_path.native_file_string() << " quadtree with " << tree_levels << " levels." << std::endl;
+      vw_out(InfoMessage) << "Using patch size: " << m_patch_size << " pixels" << std::endl;
+      vw_out(InfoMessage) << "Using patch overlap: " << m_patch_overlap << " pixels" << std::endl;
+      vw_out(InfoMessage) << "Generating patch files of type: " << m_output_image_type << std::endl;
+      vw_out(InfoMessage) << "Generating " << dir_path.native_file_string() << " quadtree with " << tree_levels << " levels." << std::endl;
 
       if( fs::exists( dir_path ) )
         throw IOErr() << "Path " << dir_path.native_file_string() << " already exists!  Remove it first.";
@@ -113,53 +102,86 @@ namespace mosaic {
       generate_branch( top_branch_path, tree_levels-1, 0, 0 );
     }
 
+    void set_bbox( BBox2i const& bbox ) {
+      if( bbox.min().x() < 0 || bbox.min().y() < 0 ||
+          bbox.max().x() > m_source.cols() || bbox.max().y() > m_source.rows() )
+        throw ArgumentErr() << "Requested QuadTree bounding box exceeds source dimensions!";
+      m_bbox = bbox;
+    }
+
+    void set_output_image_file_type( std::string const& extension ) {
+      m_output_image_type = extension;
+    }
+
+    void set_patch_size( int size ) {
+      m_patch_size = size;
+    }
+
+    void set_patch_overlap( int overlap ) {
+      m_patch_overlap = overlap;
+    }
+
+    void set_crop_images( bool crop ) {
+      m_crop_images = crop;
+    }
     
   private:
-    Settings settings;
-    PatchSource const& source;
-    std::vector<std::map<std::pair<int,int>,ImageView<PixelT> > > patch_cache;
-    std::vector<std::map<std::pair<int,int>,std::string> > filename_cache;
+    ImageViewRef<PixelT> m_source;
+    std::string m_tree_name;
+    BBox2i m_bbox;
+    std::string m_output_image_type;
+    int m_patch_size;
+    int m_patch_overlap;
+    bool m_crop_images;
+    std::vector<std::map<std::pair<int,int>,ImageView<PixelT> > > m_patch_cache;
+    std::vector<std::map<std::pair<int,int>,std::string> > m_filename_cache;
     
     void write_patch( ImageView<PixelT> const& image, std::string const& name, int level, int x, int y ) const {
       int scale = 1 << level;
-      int interior_size = settings.patch_size - settings.patch_overlap;
-      Vector<int,2> position( x*interior_size-settings.patch_overlap/2, y*interior_size-settings.patch_overlap/2 );
+      int interior_size = m_patch_size - m_patch_overlap;
+      Vector<int,2> position( x*interior_size-m_patch_overlap/2, y*interior_size-m_patch_overlap/2 );
       BBox2i image_bbox( Vector<int,2>(0,0), Vector<int,2>(image.cols(), image.rows()) );
       BBox2i visible_bbox = image_bbox;
-      visible_bbox.contract( settings.patch_overlap/2 );
-      if( settings.crop_images ) {
+      visible_bbox.contract( m_patch_overlap/2 );
+      if( m_crop_images ) {
         image_bbox = bounding_box( image );
         if( image_bbox.empty() ) {
-          std::cout << "\tIgnoring empty image: " + name + ".png\n";
+          vw_out(InfoMessage) << "\tIgnoring empty image: " << name << std::endl;
           fs::remove( fs::path( name, fs::native ) );
           return;
         }
-        if( image_bbox.width() == int(settings.patch_size) && image_bbox.height() == int(settings.patch_size) )
-          write_image( name + "." + settings.output_image_type, image );
+        if( image_bbox.width() == int(m_patch_size) && image_bbox.height() == int(m_patch_size) )
+          write_image( name + "." + m_output_image_type, image );
         else
-          write_image( name + "." + settings.output_image_type, ImageView<PixelT>( crop( image, image_bbox.min().x(), image_bbox.min().y(), image_bbox.width(), image_bbox.height() ) ) );
+          write_image( name + "." + m_output_image_type, ImageView<PixelT>( crop( image, image_bbox.min().x(), image_bbox.min().y(), image_bbox.width(), image_bbox.height() ) ) );
         visible_bbox.crop( image_bbox );
       }
       else {
-        write_image( name + "." + settings.output_image_type, image );
+        write_image( name + "." + m_output_image_type, image );
       }
       image_bbox += position;
       visible_bbox += position;
-      write_bbox_file( name + ".bbx", scale, image_bbox*scale, visible_bbox*scale, source.cols(), source.rows() );
+      write_bbox_file( name + ".bbx", scale, image_bbox*scale, visible_bbox*scale, m_source.cols(), m_source.rows() );
     }
 
     ImageView<PixelT> generate_branch( fs::path const& path, int level, int x, int y ) {
       ImageView<PixelT> image;
       int scale = 1 << level;
-      int interior_size = settings.patch_size - settings.patch_overlap;
+      int interior_size = m_patch_size - m_patch_overlap;
       BBox2i patch_bbox = scale * BBox2i( Vector<int,2>(x, y), Vector<int,2>(x+1, y+1) ) * interior_size;
-      if( ! source.intersects( patch_bbox ) ) {
-        std::cout << "\tIgnoring empty image: " + path.native_file_string() + ".png\n";
+      if( ! patch_bbox.intersects( m_bbox ) ) {
+        vw_out(InfoMessage) << "\tIgnoring empty image: " << path.native_file_string() << std::endl;
         image.set_size( interior_size, interior_size );
         return image;
       }
       if( level == 0 ) {
-        image = source.generate_patch( patch_bbox );
+        vw_out(DebugMessage) << "ImageQuadTreeGenerator rasterizing region " << patch_bbox << std::endl;
+        BBox2i data_bbox = patch_bbox;
+        data_bbox.crop( m_bbox );
+        image = crop( m_source, data_bbox );
+        if( data_bbox != patch_bbox ) {
+          image = edge_extend( image, patch_bbox-data_bbox.min(), ZeroEdgeExtend() );
+        }
       }
       else {
         fs::create_directory( path );
@@ -169,117 +191,89 @@ namespace mosaic {
         crop( big_image, 0, interior_size, interior_size, interior_size ) = generate_branch( path / "2", level-1, 2*x, 2*y+1 );
         crop( big_image, interior_size, interior_size, interior_size, interior_size ) = generate_branch( path / "3", level-1, 2*x+1, 2*y+1 );
         std::vector<float> kernel(2); kernel[0]=0.5; kernel[1]=0.5;
-        image.set_size( settings.patch_size, settings.patch_size );
+        image.set_size( m_patch_size, m_patch_size );
         rasterize( subsample( separable_convolution_filter( big_image, kernel, kernel, 1, 1 ), 2 ), image );
       }
       // If there's no patch overlap, we're done and we can just write it out
-      if( settings.patch_overlap == 0 ) {
+      if( m_patch_overlap == 0 ) {
         write_patch( image, path.native_file_string(), level, x, y );
       }
       // Otherwise this interior affects up to nine patches, each of which 
       // requires some special consideration.  There may be a cleaner way 
       // to structure this, but this works for now.
       else {
-        int overlap = settings.patch_overlap / 2;
+        int overlap = m_patch_overlap / 2;
         if( x > 0 ) {
           if( y > 0 ) {
             // Top left
-            ImageView<PixelT> &top_left = patch_cache[level][std::make_pair(x-1,y-1)];
+            ImageView<PixelT> &top_left = m_patch_cache[level][std::make_pair(x-1,y-1)];
             crop( top_left, interior_size+overlap, interior_size+overlap, overlap, overlap ) = crop( image, 0, 0, overlap, overlap );
-            write_patch( top_left, filename_cache[level][std::make_pair(x-1,y-1)], level, x-1, y-1 );
-            patch_cache[level].erase(std::make_pair(x-1,y-1));
-            filename_cache[level].erase(std::make_pair(x-1,y-1));
+            write_patch( top_left, m_filename_cache[level][std::make_pair(x-1,y-1)], level, x-1, y-1 );
+            m_patch_cache[level].erase(std::make_pair(x-1,y-1));
+            m_filename_cache[level].erase(std::make_pair(x-1,y-1));
           }
           // Left
-          ImageView<PixelT> &left = patch_cache[level][std::make_pair(x-1,y)];
+          ImageView<PixelT> &left = m_patch_cache[level][std::make_pair(x-1,y)];
           crop( left, interior_size+overlap, overlap, overlap, interior_size ) = crop( image, 0, 0, overlap, interior_size );
-          if( scale*interior_size*(y+1) < source.rows() ) {
+          if( scale*interior_size*(y+1) < m_source.rows() ) {
             // Bottom left
-            ImageView<PixelT> &bot_left = patch_cache[level][std::make_pair(x-1,y+1)];
-            bot_left.set_size( settings.patch_size, settings.patch_size );
+            ImageView<PixelT> &bot_left = m_patch_cache[level][std::make_pair(x-1,y+1)];
+            bot_left.set_size( m_patch_size, m_patch_size );
             crop( bot_left, interior_size+overlap, 0, overlap, overlap ) = crop( image, 0, interior_size-overlap, overlap, overlap );
           }
           else {
-            write_patch( left, filename_cache[level][std::make_pair(x-1,y)], level, x-1, y );
-            patch_cache[level].erase(std::make_pair(x-1,y));
-            filename_cache[level].erase(std::make_pair(x-1,y));
+            write_patch( left, m_filename_cache[level][std::make_pair(x-1,y)], level, x-1, y );
+            m_patch_cache[level].erase(std::make_pair(x-1,y));
+            m_filename_cache[level].erase(std::make_pair(x-1,y));
           }
         }
         if( y > 0 ) {
           // Top
-          ImageView<PixelT> &top = patch_cache[level][std::make_pair(x,y-1)];
+          ImageView<PixelT> &top = m_patch_cache[level][std::make_pair(x,y-1)];
           crop( top, overlap, interior_size+overlap, interior_size, overlap ) = crop( image, 0, 0, interior_size, overlap );
-          if( !( scale*interior_size*(x+1) < source.cols() ) ) {
-            write_patch( top, filename_cache[level][std::make_pair(x,y-1)], level, x, y-1 );
-            patch_cache[level].erase(std::make_pair(x,y-1));
-            filename_cache[level].erase(std::make_pair(x,y-1));
+          if( !( scale*interior_size*(x+1) < m_source.cols() ) ) {
+            write_patch( top, m_filename_cache[level][std::make_pair(x,y-1)], level, x, y-1 );
+            m_patch_cache[level].erase(std::make_pair(x,y-1));
+            m_filename_cache[level].erase(std::make_pair(x,y-1));
           }
         }
         // Center
-        ImageView<PixelT> &center = patch_cache[level][std::make_pair(x,y)];
-        center.set_size( settings.patch_size, settings.patch_size );
+        ImageView<PixelT> &center = m_patch_cache[level][std::make_pair(x,y)];
+        center.set_size( m_patch_size, m_patch_size );
         crop( center, overlap, overlap, interior_size, interior_size ) = image;
-        if( scale*interior_size*(x+1) < source.cols() || scale*interior_size*(y+1) < source.rows() ) {
-          filename_cache[level][std::make_pair(x,y)] = path.native_file_string();
+        if( scale*interior_size*(x+1) < m_source.cols() || scale*interior_size*(y+1) < m_source.rows() ) {
+          m_filename_cache[level][std::make_pair(x,y)] = path.native_file_string();
         }
         else {
           write_patch( center, path.native_file_string(), level, x, y );
-          patch_cache[level].erase(std::make_pair(x,y-1));
+          m_patch_cache[level].erase(std::make_pair(x,y-1));
         }
-        if( scale*interior_size*(y+1) < source.rows() ) {
+        if( scale*interior_size*(y+1) < m_source.rows() ) {
           // Bottom
-          ImageView<PixelT> &bot = patch_cache[level][std::make_pair(x,y+1)];
-          bot.set_size( settings.patch_size, settings.patch_size );
+          ImageView<PixelT> &bot = m_patch_cache[level][std::make_pair(x,y+1)];
+          bot.set_size( m_patch_size, m_patch_size );
           crop( bot, overlap, 0, interior_size, overlap ) = crop( image, 0, interior_size-overlap, interior_size, overlap );
         }
-        if( scale*interior_size*(x+1) < source.cols() ) {
+        if( scale*interior_size*(x+1) < m_source.cols() ) {
           if( y > 0 ) {
             // Top right
-            ImageView<PixelT> &top_right = patch_cache[level][std::make_pair(x+1,y-1)];
-            top_right.set_size( settings.patch_size, settings.patch_size );
+            ImageView<PixelT> &top_right = m_patch_cache[level][std::make_pair(x+1,y-1)];
+            top_right.set_size( m_patch_size, m_patch_size );
             crop( top_right, 0, interior_size+overlap, overlap, overlap ) = crop( image, interior_size-overlap, 0, overlap, overlap );
           }
           // Right
-          ImageView<PixelT> &right = patch_cache[level][std::make_pair(x+1,y)];
-          right.set_size( settings.patch_size, settings.patch_size );
+          ImageView<PixelT> &right = m_patch_cache[level][std::make_pair(x+1,y)];
+          right.set_size( m_patch_size, m_patch_size );
           crop( right, 0, overlap, overlap, interior_size ) = crop( image, interior_size-overlap, 0, overlap, interior_size );
-          if( scale*interior_size*(y+1) < source.rows() ) {
+          if( scale*interior_size*(y+1) < m_source.rows() ) {
             // Bottom right
-            ImageView<PixelT> &bot_right = patch_cache[level][std::make_pair(x+1,y+1)];
-            bot_right.set_size( settings.patch_size, settings.patch_size );
+            ImageView<PixelT> &bot_right = m_patch_cache[level][std::make_pair(x+1,y+1)];
+            bot_right.set_size( m_patch_size, m_patch_size );
             crop( bot_right, 0, 0, overlap, overlap ) = crop( image, interior_size-overlap, interior_size-overlap, overlap, overlap );
           }
         }
       }
       return image;
-    }
-  };
-
-
-  template <class ImageT>
-  class ImageViewPatchSource : public ImageQuadTreeGenerator<typename ImageT::pixel_type>::PatchSource {
-    ImageT image;
-  public:
-    typedef typename ImageT::pixel_type pixel_type;
-    
-    ImageViewPatchSource( ImageT const& image ) : image( image ) {}
-    
-    virtual ~ImageViewPatchSource() {}
-
-    ImageView<pixel_type> generate_patch( BBox2i const& bbox ) const {
-      BBox2i image_bbox(0,0,image.cols(),image.rows());
-      image_bbox.crop( bbox );
-      ImageView<pixel_type> result( bbox.width(), bbox.height(), image.planes() );
-      crop( result, image_bbox-bbox.min() ) = crop( image, image_bbox );
-      return result;
-    }
-    
-    virtual int cols() const {
-      return image.cols();
-    }
-
-    virtual int rows() const {
-      return image.rows();
     }
   };
 

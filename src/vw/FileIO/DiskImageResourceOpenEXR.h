@@ -30,12 +30,12 @@
 
 #include <string>
 
-#include <ImfInputFile.h>
-#include <ImfOutputFile.h>
-
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/GenericImageBuffer.h>
 #include <vw/FileIO/DiskImageResource.h>
+
+// Forward-declare the Imf::InputFile class
+namespace Imf { class InputFile; }
 
 namespace vw {
 
@@ -43,25 +43,24 @@ namespace vw {
   public:
 
     DiskImageResourceOpenEXR( std::string const& filename )
+      : DiskImageResource( filename )
     {
-      m_file_ptr = NULL;
+      m_file_ptr = 0;
       open( filename );
     }
 
     DiskImageResourceOpenEXR( std::string const& filename, 
                               GenericImageFormat const& format )
+      : DiskImageResource( filename )
     {
-      m_file_ptr = NULL;
+      m_file_ptr = 0;
       create( filename, format );
     }
     
-    virtual ~DiskImageResourceOpenEXR() {
-      if (m_file_ptr) 
-        delete m_file_ptr;
-    }
+    virtual ~DiskImageResourceOpenEXR();
     
-    virtual void read( GenericImageBuffer const& dest ) const;
-    virtual void write( GenericImageBuffer const& dest );
+    virtual void read_generic( GenericImageBuffer const& dest ) const;
+    virtual void write_generic( GenericImageBuffer const& dest );
     virtual void flush() {}
 
     void open( std::string const& filename );

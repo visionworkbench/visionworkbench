@@ -336,8 +336,6 @@ void vw::convert( GenericImageBuffer const& dst, GenericImageBuffer const& src )
   VW_ASSERT( dst.format.cols==src.format.cols && dst.format.rows==src.format.rows,
              ArgumentErr() << "Destination buffer has wrong size." );
 
-  vw_out(DebugMessage) << "convert(): (" << src.format.pixel_format << "," << src.format.channel_type << ") -> (" << dst.format.pixel_format << "," << dst.format.channel_type << ")" << std::endl;
-
   // We only support a few special conversions, and the general case where 
   // the source and destination formats are the same.  Below we assume that 
   // we're doing a supported conversion, so we check first.

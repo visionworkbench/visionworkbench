@@ -163,7 +163,7 @@ void vw::DiskImageResourceJPEG::create( std::string const& filename,
 }
 
 /// Read the disk image into the given buffer.
-void vw::DiskImageResourceJPEG::read( GenericImageBuffer const& dest ) const
+void vw::DiskImageResourceJPEG::read_generic( GenericImageBuffer const& dest ) const
 {
   VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in JPEG read." );
@@ -232,7 +232,7 @@ void vw::DiskImageResourceJPEG::read( GenericImageBuffer const& dest ) const
 }
 
 // Write the given buffer into the disk image.
-void vw::DiskImageResourceJPEG::write( GenericImageBuffer const& src )
+void vw::DiskImageResourceJPEG::write_generic( GenericImageBuffer const& src )
 {
   VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in JPEG write." );

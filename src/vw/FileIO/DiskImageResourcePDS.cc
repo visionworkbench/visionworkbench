@@ -193,7 +193,7 @@ void vw::DiskImageResourcePDS::create( std::string const& filename,
 }
 
 /// Read the disk image into the given buffer.
-void vw::DiskImageResourcePDS::read( GenericImageBuffer const& dest ) const 
+void vw::DiskImageResourcePDS::read_generic( GenericImageBuffer const& dest ) const 
 {
   VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in PDS read." );
@@ -250,7 +250,7 @@ void vw::DiskImageResourcePDS::read( GenericImageBuffer const& dest ) const
 }
 
 // Write the given buffer into the disk image.
-void vw::DiskImageResourcePDS::write( GenericImageBuffer const& src ) 
+void vw::DiskImageResourcePDS::write_generic( GenericImageBuffer const& src ) 
 {
   throw NoImplErr() << "The PDS driver does not yet support creation of PDS files";
 }

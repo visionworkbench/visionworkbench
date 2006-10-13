@@ -187,12 +187,7 @@ namespace vw {
     }
 
     /// Returns a pointer to the origin of the image in memory.
-    pixel_type *data() {
-      return m_origin;
-    }
-
-    /// Returns a pointer to the origin of the image in memory (const overload).
-    const pixel_type *data() const {
+    pixel_type *data() const {
       return m_origin;
     }
 

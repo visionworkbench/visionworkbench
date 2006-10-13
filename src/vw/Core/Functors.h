@@ -261,6 +261,42 @@ namespace vw {
     inline typename QuotientType<ValT,ArgT>::type operator()( ArgT const& arg ) const { return m_val/arg; }
   };
 
+  // Safe binary quotient of two arguments
+  struct ArgArgSafeQuotientFunctor : BinaryReturnTemplateType<QuotientType> {
+    template <class Arg1T, class Arg2T>
+    inline typename QuotientType<Arg1T,Arg2T>::type operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { 
+      return (arg2==Arg2T()) ? (typename QuotientType<Arg1T,Arg2T>::type()) : (arg1/arg2);
+    }
+  };
+
+  // Safe unary quotient of an argument and a value
+  template <class ValT>
+  struct ArgValSafeQuotientFunctor : UnaryReturnBinaryTemplateBind2nd<QuotientType,ValT> {
+  private:
+    const ValT m_val;
+  public:
+    ArgValSafeQuotientFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline typename QuotientType<ArgT,ValT>::type operator()( ArgT const& arg ) const {
+      return (m_val==ValT()) ? (typename QuotientType<ArgT,ValT>::type()) : (arg/m_val);
+    }
+  };
+
+  // Safe unary quotient of a value and an argument
+  template <class ValT>
+  struct ValArgSafeQuotientFunctor : UnaryReturnBinaryTemplateBind1st<QuotientType,ValT> {
+  private:
+    const ValT m_val;
+  public:
+    ValArgSafeQuotientFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline typename QuotientType<ValT,ArgT>::type operator()( ArgT const& arg ) const {
+      return (arg==ArgT()) ? (typename QuotientType<ValT,ArgT>::type()) : (m_val/arg);
+    }
+  };
+
   // Binary equality operator of two arguments
   struct ArgArgEqualityFunctor : ReturnFixedType<bool> {
     template <class Arg1T, class Arg2T>

@@ -86,7 +86,7 @@ namespace vw {
 
     /// Constructs a GenericImageBuffer pointing to an ImageView's data
     template <class PixelT>
-    GenericImageBuffer( ImageView<PixelT>& image )
+    GenericImageBuffer( ImageView<PixelT> const& image )
       : data( image.data() ),
         format( image ),
         cstride( sizeof(PixelT) ),

@@ -34,4 +34,8 @@
 #include <vw/Math/Matrix.h>
 #include <vw/Math/BBox.h>
 
+#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
+#include <vw/Math/LinearAlgebra.h>
+#endif
+
 #endif // __VW_MATH_H__

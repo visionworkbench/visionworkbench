@@ -299,6 +299,77 @@ namespace vw {
     return UnaryPerPixelView<ImageT,func_type>( image.impl(), func );
   }
 
+
+  // *******************************************************************
+  // grassfire()
+  // *******************************************************************
+
+  // Computes the 4-connected grassfire image of an image.
+  // (Specifically, computes the Manhattan distance from each pixel to
+  // the nearest pixel with zero value, assuming the borders of the
+  // image are zero.)
+  template <class SourceT>
+  ImageView<int> grassfire( ImageViewBase<SourceT> const& src ) {
+    int cols = src.impl().cols(), rows = src.impl().rows();
+    ImageView<int> result( cols, rows );
+    typename SourceT::pixel_accessor srow = src.impl().origin();
+    typename ImageView<int>::pixel_accessor drow = result.origin();
+    const typename SourceT::pixel_type zero = typename SourceT::pixel_type();
+    { // First row
+      typename SourceT::pixel_accessor scol = srow;
+      typename ImageView<int>::pixel_accessor dcol = drow;
+      for( int col=cols; col; --col ) {
+        *dcol = ((*scol)==zero)?0:1;
+        scol.next_col();
+        dcol.next_col();
+      }
+      srow.next_row();
+      drow.next_row();
+    }
+    for( int row=rows-2; row; --row ) {
+      typename SourceT::pixel_accessor scol = srow;
+      typename ImageView<int>::pixel_accessor dcol = drow;
+      *dcol = ((*scol)==zero)?0:1;
+      scol.next_col();
+      dcol.next_col();
+      for( int col=cols-2; col; --col ) {
+        if( (*scol)==zero ) (*dcol)=0;
+        else {
+          typename ImageView<int>::pixel_accessor s1 = dcol, s2 = dcol;
+          (*dcol) = 1 + std::min( *(s1.prev_col()), *(s2.prev_row()) );
+        }
+        scol.next_col();
+        dcol.next_col();
+      }
+      *dcol = ((*scol)==zero)?0:1;
+      srow.next_row();
+      drow.next_row();
+    }
+    { // Last row
+      typename SourceT::pixel_accessor scol = srow;
+      typename ImageView<int>::pixel_accessor dcol = drow;
+      for( int col=cols; col; --col ) {
+        *dcol = ((*scol)==zero)?0:1;
+        scol.next_col();
+        dcol.next_col();
+      }
+    }
+    drow.advance(cols-2,-1);
+    for( int row=rows-2; row; --row ) {
+      typename ImageView<int>::pixel_accessor dcol = drow;
+      for( int col=cols-2; col; --col ) {
+        if( (*dcol)!=0 ) {
+          typename ImageView<int>::pixel_accessor s1 = dcol, s2 = dcol;
+          int m = std::min( *(s1.next_col()), *(s2.next_row()) );
+          if( m < *dcol ) *dcol = m + 1;
+        }
+        dcol.prev_col();
+      }
+      drow.prev_row();
+    }
+    return result;
+  }
+
 } // namespace vw
 
 #endif // __VW_IMAGE_ALGORITHMS_H__

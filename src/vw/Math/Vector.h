@@ -1063,7 +1063,9 @@ namespace math {
 
   /// Equality of two vectors measured to within epsilon.  Two vectors
   /// are considered equal if they have the same dimensions and their
-  /// elements are equal to within the specified tolerance.
+  /// elements are equal to within the specified tolerance.  Note that
+  /// if you have introduced std::equal into the global namespace then
+  /// you will have to explicitly request this one as vw::math::equal().
   template <class Vector1T, class Vector2T>
   inline bool equal( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2, double epsilon = 0 ) {
     if (v1.impl().size() != v2.impl().size()) { return false; }

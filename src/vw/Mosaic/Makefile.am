@@ -27,16 +27,18 @@
 
 if MAKE_MODULE_MOSAIC
 
-include_HEADERS = QuadTreeGenerator.h
+include_HEADERS = QuadTreeGenerator.h ImageComposite.h
 
-libvwMosaic_la_SOURCES =
+libvwMosaic_la_SOURCES = ImageComposite.cc
 libvwMosaic_la_LIBADD = @MODULE_MOSAIC_LDFLAGS@
 
 lib_LTLIBRARIES = libvwMosaic.la
 
-bin_PROGRAMS = qtree
+bin_PROGRAMS = qtree blend
 qtree_SOURCES = qtree.cc
 qtree_LDFLAGS = @PKG_MOSAIC_LDFLAGS@
+blend_SOURCES = blend.cc
+blend_LDFLAGS = @PKG_MOSAIC_LDFLAGS@
 
 endif
 

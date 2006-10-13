@@ -44,20 +44,22 @@ namespace vw {
   public:
 
     DiskImageResourcePDS( std::string const& filename )
+      : DiskImageResource( filename )
     {
       open( filename );
     }
     
     DiskImageResourcePDS( std::string const& filename, 
                           GenericImageFormat const& format )
+      : DiskImageResource( filename )
     {
       create( filename, format );
     }
     
     virtual ~DiskImageResourcePDS();
     
-    virtual void read( GenericImageBuffer const& dest ) const;
-    virtual void write( GenericImageBuffer const& dest );
+    virtual void read_generic( GenericImageBuffer const& dest ) const;
+    virtual void write_generic( GenericImageBuffer const& dest );
     virtual void flush();
 
     /// Query for a value in the PDS header.  The returned value will

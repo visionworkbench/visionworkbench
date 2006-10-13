@@ -45,6 +45,8 @@ namespace vw {
   class DiskImageResourcePNG : public DiskImageResource {
   public:
 
+    // The standard DiskImageResource interface:
+
     DiskImageResourcePNG( std::string const& filename );
 
     DiskImageResourcePNG( std::string const& filename, 
@@ -52,10 +54,10 @@ namespace vw {
     
     virtual ~DiskImageResourcePNG();
     
-    virtual void read( GenericImageBuffer const& dest ) const;
-    virtual void read( GenericImageBuffer const& buf, BBox2i bbox ) const;
+    virtual void read_generic( GenericImageBuffer const& dest ) const;
+    virtual void read_generic( GenericImageBuffer const& buf, BBox2i bbox ) const;
 
-    virtual void write( GenericImageBuffer const& dest );
+    virtual void write_generic( GenericImageBuffer const& dest );
     virtual void flush() {}
 
     void open( std::string const& filename );
@@ -67,6 +69,16 @@ namespace vw {
 
     static DiskImageResource* construct_create( std::string const& filename,
                                                 GenericImageFormat const& format );
+
+    // The PNG-specific interface:
+
+    struct Comment {
+      std::string key, text, lang, lang_key;
+      bool utf8, compressed;
+    };
+
+    int num_comments() const;
+    Comment const& get_comment( int i ) const;
 
   private:
     boost::shared_ptr<DiskImageResourceInfoPNG> m_info;

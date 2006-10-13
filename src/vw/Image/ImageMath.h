@@ -83,8 +83,7 @@ namespace vw {
 
 #define VW_IMAGE_MATH_BINARY_II_FUNCTION(func,ftor)                     \
   template <class Image1T, class Image2T>                               \
-  typename boost::enable_if< CompoundIsCompatible<typename Image1T::pixel_type,typename Image2T::pixel_type>, \
-                             BinaryPerPixelView<Image1T,Image2T,ftor> >::type \
+  BinaryPerPixelView<Image1T,Image2T,ftor>                              \
   inline func( ImageViewBase<Image1T> const& image1, ImageViewBase<Image2T> const& image2 ) { \
     return BinaryPerPixelView<Image1T,Image2T,ftor>( image1.impl(), image2.impl() );       \
   }
@@ -139,13 +138,13 @@ namespace vw {
   VW_IMAGE_MATH_BINARY_SI_FUNCTION(operator *, vw::ValArgProductFunctor)
 
   /// Quotient of two images.
-  VW_IMAGE_MATH_BINARY_II_FUNCTION(operator /, vw::ArgArgQuotientFunctor)
+  VW_IMAGE_MATH_BINARY_II_FUNCTION(operator /, vw::ArgArgSafeQuotientFunctor)
 
   /// Quotient of an image and a scalar.
-  VW_IMAGE_MATH_BINARY_IS_FUNCTION(operator /, vw::ArgValQuotientFunctor)
+  VW_IMAGE_MATH_BINARY_IS_FUNCTION(operator /, vw::ArgValSafeQuotientFunctor)
 
   /// Quotient of a scalar and an image.
-  VW_IMAGE_MATH_BINARY_SI_FUNCTION(operator /, vw::ValArgQuotientFunctor)
+  VW_IMAGE_MATH_BINARY_SI_FUNCTION(operator /, vw::ValArgSafeQuotientFunctor)
 
 
   // *******************************************************************

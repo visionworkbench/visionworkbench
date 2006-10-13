@@ -27,8 +27,12 @@
 
 if MAKE_MODULE_MATH
 
+if HAVE_PKG_LAPACK
+lapack_headers = LinearAlgebra.h Optimization.h
+endif
+
 include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h \
-                  Quaternion.h LinearAlgebra.h Optimization.h
+                  Quaternion.h $(lapack_headers)
 
 libvwMath_la_SOURCES = 
 libvwMath_la_LIBADD = @MODULE_MATH_LDFLAGS@

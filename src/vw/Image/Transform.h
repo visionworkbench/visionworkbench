@@ -133,11 +133,10 @@ namespace vw {
     BBox2i compute_input_bbox(BBox2i const& output_bbox) const {
       Vector2 pt;
       BBox2i bbox;
-      for (pt[0] = floor(output_bbox.min().x()); pt[0] <= ceil(output_bbox.max().x()); (pt[0])++) {
-        for (pt[1] = floor(output_bbox.min().y()); pt[1] <= ceil(output_bbox.max().y()); (pt[1])++) {
-          Vector2 result = impl().reverse(pt);
-          Vector<uint32,2> grow_vec(uint32(round(result[0])), uint32(round(result[1])));
-          bbox.grow( grow_vec );
+      for( int y=output_bbox.min().y(); y<output_bbox.max().y(); ++y ) {
+        for( int x=output_bbox.min().x(); x<output_bbox.max().x(); ++x ) {
+          Vector2 result = impl().reverse( Vector2(x,y) );
+          bbox.grow( BBox2i( floor(result.x()), floor(result.y()), 2, 2 ) );
         }
       }
       return bbox;
@@ -234,7 +233,7 @@ namespace vw {
     PointLookupTransform(ImageView<Vector2> &lookup_image) : m_lookup_image(lookup_image) {}
     
     inline Vector2 reverse(const Vector2 &p) const {
-      VW_DEBUG_ASSERT(int(p.x()) >= 0  &&  int(p.y()) >= 0 && int(p.x()) < m_lookup_image.cols() && int(p.y()) < m_lookup_image.rows(),
+      VW_DEBUG_ASSERT(int(p.x()) >= 0  &&  int(p.y()) >= 0 && unsigned(p.x()) < m_lookup_image.cols() && unsigned(p.y()) < m_lookup_image.rows(),
                       LogicErr() << "Point lookup transform: exceeded lookup table dimensions.");
       return m_lookup_image(int(p.x()), int(p.y()));
     }
@@ -252,7 +251,7 @@ namespace vw {
     PointOffsetTransform(ImageView<Vector2> &offset_image) : m_offset_image(offset_image) {}
     
     inline Vector2 reverse(const Vector2 &p) const {
-      VW_DEBUG_ASSERT(int(p.x()) >= 0  &&  int(p.y()) >= 0 && int(p.x()) < m_offset_image.cols() && int(p.y()) < m_offset_image.rows(),
+      VW_DEBUG_ASSERT(int(p.x()) >= 0  &&  int(p.y()) >= 0 && unsigned(p.x()) < m_offset_image.cols() && unsigned(p.y()) < m_offset_image.rows(),
                       LogicErr() << "Point offest transform: exceeded lookup table dimensions.");
       return p + m_offset_image(int(p.x()), int(p.y()));
     }

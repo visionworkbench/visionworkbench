@@ -29,7 +29,7 @@
 #include <vw/Core/Debugging.h>
 
 namespace {
-  vw::Cache g_system_cache( 64*1024*1024 );
+  vw::Cache g_system_cache( 512*1024*1024 );
 }
 
 vw::Cache& vw::Cache::system_cache() {
@@ -39,16 +39,18 @@ vw::Cache& vw::Cache::system_cache() {
 void vw::Cache::allocate( size_t size ) {
   while( m_size+size > m_max_size ) {
     if( ! m_last_valid ) {
-      vw_out(WarningMessage) << "Warning: Cached object larger than requested maximum cache size!";
+      vw_out(WarningMessage) << "Warning: Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << ")!";
       break;
     }
     m_last_valid->invalidate();
   }
   m_size += size;
+  VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache allocated " << size << " bytes (" << m_size << " total)" << std::endl; )
 }
 
 void vw::Cache::deallocate( size_t size ) {
   m_size -= size;
+  VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache deallocated " << size << " bytes (" << m_size << " total)" << std::endl; )
 }
 
 void vw::Cache::validate( CacheLineBase *line ) {
@@ -82,6 +84,17 @@ void vw::Cache::remove( CacheLineBase *line ) {
   if( line->m_next ) line->m_next->m_prev = line->m_prev;
   if( line->m_prev ) line->m_prev->m_next = line->m_next;
   line->m_next = line->m_prev = 0;
+}
+
+void vw::Cache::deprioritize( CacheLineBase *line ) {
+  if( line == m_last_valid ) return;
+  if( line == m_first_valid ) m_first_valid = line->m_next;
+  if( line->m_next ) line->m_next->m_prev = line->m_prev;
+  if( line->m_prev ) line->m_prev->m_next = line->m_next;
+  line->m_prev = m_last_valid;
+  line->m_next = 0;
+  m_last_valid->m_next = line;
+  m_last_valid = line;
 }
 
 void vw::Cache::resize( size_t size ) {

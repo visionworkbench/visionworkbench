@@ -43,6 +43,7 @@ namespace vw {
   public:
 
     DiskImageResourceJPEG( std::string const& filename )
+      : DiskImageResource( filename )
     {
       m_subsample_factor = vw_jpeg_default_subsampilng_factor;
       m_quality = vw_jpeg_default_quality;
@@ -54,6 +55,7 @@ namespace vw {
     
     DiskImageResourceJPEG( std::string const& filename, 
                            GenericImageFormat const& format )
+      : DiskImageResource( filename )
     {
       m_subsample_factor = vw_jpeg_default_subsampilng_factor;
       m_quality = vw_jpeg_default_quality;
@@ -65,8 +67,8 @@ namespace vw {
     
     virtual ~DiskImageResourceJPEG();
     
-    virtual void read( GenericImageBuffer const& dest ) const;
-    virtual void write( GenericImageBuffer const& dest );
+    virtual void read_generic( GenericImageBuffer const& dest ) const;
+    virtual void write_generic( GenericImageBuffer const& dest );
     virtual void flush();
 
     /// Set the compression quality of the jpeg image.  The quality is

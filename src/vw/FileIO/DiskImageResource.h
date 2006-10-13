@@ -70,12 +70,15 @@ namespace vw {
     /// Returns the channel type of an image on disk.
     ChannelTypeEnum channel_type() const { return m_format.channel_type; }
 
+    /// Return the filename of the disk image file.
+    std::string filename() const { return m_filename; }
+
     /// Read the image on disk into the given buffer.
-    virtual void read( GenericImageBuffer const& buf ) const = 0;
+    virtual void read_generic( GenericImageBuffer const& buf ) const = 0;
 
     /// Read a block of the image on disk into the given buffer.
-    virtual void read( GenericImageBuffer const& buf, BBox2i bbox ) const {
-      if( bbox==BBox2i(0,0,cols(),rows()) ) return read( buf );
+    virtual void read_generic( GenericImageBuffer const& buf, BBox2i bbox ) const {
+      if( bbox==BBox2i(0,0,cols(),rows()) ) return read_generic( buf );
       throw NoImplErr() << "This DiskImageResource does not support partial reads!";
     }
 
@@ -83,7 +86,7 @@ namespace vw {
     virtual Vector2i native_read_block_size() const { return Vector2i(cols(),rows()); }
 
     /// Write the given buffer to the image on disk.
-    virtual void write( GenericImageBuffer const& buf ) = 0;
+    virtual void write_generic( GenericImageBuffer const& buf ) = 0;
 
     /// Force any changes to disk.
     virtual void flush() = 0;
@@ -91,20 +94,41 @@ namespace vw {
     /// Read the image on disk into the given image view.
     template <class PixelT>
     void read( ImageView<PixelT> const& buf ) const {
-      read( GenericImageBuffer(buf) );
+      read_generic( GenericImageBuffer(buf) );
+    }
+
+    /// Read the image on disk into the given general view.  This is
+    /// purely a convenience method: it is no faster than constructing
+    /// an ImageView, reading into it, and copying the data into the
+    /// final destination view.
+    template <class ImageT>
+    void read( ImageViewBase<ImageT> const& buf ) const {
+      ImageView<typename ImageT::pixel_type> image(cols(),rows(),planes());
+      read_generic( GenericImageBuffer(image) );
+      buf = image;
     }
 
     /// Read a block of the image on disk into the given image view.
     template <class PixelT>
     void read( ImageView<PixelT> const& buf, BBox2i bbox ) const {
-      read( GenericImageBuffer(buf), bbox );
+      read_generic( GenericImageBuffer(buf), bbox );
+    }
+
+    /// Read a block of the image on disk into the given general view.
+    /// This is purely a convenience method: it is no faster than
+    /// constructing an ImageView, reading into it, and copying the
+    /// data into the final destination view.
+    template <class ImageT>
+    void read( ImageViewBase<ImageT> const& buf, BBox2i bbox ) const {
+      ImageView<typename ImageT::pixel_type> image(bbox.width(),bbox.height(),planes());
+      read_generic( GenericImageBuffer(image), bbox );
+      buf = image;
     }
 
     /// Read the image on disk into the given image view, resizing the
     /// view if needed.
     template <class PixelT>
     void read( ImageView<PixelT>& buf ) const {
-
       int im_planes = 1;
       if( ! IsCompound<PixelT>::value ) {
         // The image has a fundamental pixel type
@@ -114,7 +138,7 @@ namespace vw {
       }
       buf.set_size( cols(), rows(), im_planes );
 
-      read( GenericImageBuffer(buf) );
+      read_generic( GenericImageBuffer(buf) );
     }
 
     /// Read a block of the image on disk into the given image view,
@@ -131,13 +155,13 @@ namespace vw {
       }
       buf.set_size( bbox.width(), bbox.height(), im_planes );
 
-      read( GenericImageBuffer(buf), bbox );
+      read_generic( GenericImageBuffer(buf), bbox );
     }
 
     /// Write the given image view into the image on disk.
     template <class PixelT>
     void write( ImageView<PixelT> const& buf ) const {
-      write( GenericImageBuffer(buf) );
+      write_generic( GenericImageBuffer(buf) );
     }
 
     /// Create a new DiskImageResource of the appropriate type
@@ -169,7 +193,9 @@ namespace vw {
                                     construct_create_func create_func );
 
   protected:
+    DiskImageResource( std::string const& filename ) : m_filename(filename) {}
     GenericImageFormat m_format;
+    std::string m_filename;
   };
 
 
@@ -228,7 +254,7 @@ namespace vw {
       vw_out(InfoMessage) << "\tSaving image: " << name << "\t";
       DiskImageResource *r = DiskImageResource::create( name, buf.format );
       vw_out(InfoMessage) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
-      r->write( buf );
+      r->write_generic( buf );
       delete r;
       buf.data = (uint8*)buf.data + buf.pstride;
     }

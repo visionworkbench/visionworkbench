@@ -1375,6 +1375,9 @@ namespace math {
   /// Equality of two matrices measured to within epsilon.  Two
   /// matrices are considered equal if they have the same dimensions
   /// and their elements are equal to within the specified tolerance.
+  /// Note that if you have introduced std::equal into the global
+  /// namespace then you will have to explicitly request this one as
+  /// vw::math::equal().
   template <class Matrix1T, class Matrix2T>
   inline bool equal( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2, double epsilon = 0 ) {
     if (m1.impl().rows() != m2.impl().rows() || 

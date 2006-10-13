@@ -86,7 +86,7 @@ namespace vw {
   struct ZeroEdgeExtend : EdgeExtendBase {
     template <class ViewT>
     inline typename ViewT::pixel_type operator()( const ViewT &view, int i, int j, int p ) const { 
-      if( i>=0 && j>=0 && i<view.cols() && j<view.rows() )
+      if( i>=0 && j>=0 && unsigned(i)<view.cols() && unsigned(j)<view.rows() )
         return view(i,j,p);
       else
         return typename ViewT::pixel_type();
@@ -99,8 +99,8 @@ namespace vw {
   struct ConstantEdgeExtend : EdgeExtendBase {
     template <class ViewT>
     inline typename ViewT::pixel_type operator()( const ViewT &view, int i, int j, int p ) const { 
-      return view((i<0) ? 0 : (i>int(view.cols()-1)) ? (view.cols()-1) : i,
-                  (j<0) ? 0 : (j>=int(view.rows()-1)) ? (view.rows()-1) : j, p);
+      return view((i<0) ? 0 : (unsigned(i)>=view.cols()) ? (view.cols()-1) : i,
+                  (j<0) ? 0 : (unsigned(j)>=view.rows()) ? (view.rows()-1) : j, p);
     }
   };
 

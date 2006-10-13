@@ -40,14 +40,14 @@ namespace vw {
   public:
 
     DiskImageResourceTIFF( std::string const& filename )
-      : m_tif_ptr(0)
+      : DiskImageResource( filename ), m_tif_ptr(0)
     {
       open( filename );
     }
     
     DiskImageResourceTIFF( std::string const& filename, 
                            GenericImageFormat const& format )
-      : m_tif_ptr(0)
+      : DiskImageResource( filename ), m_tif_ptr(0)
     {
       create( filename, format );
     }
@@ -55,12 +55,12 @@ namespace vw {
     virtual ~DiskImageResourceTIFF();
     
     virtual Vector2i native_read_block_size() const;
-    virtual void read( GenericImageBuffer const& buf, BBox2i bbox ) const;
-    virtual void read( GenericImageBuffer const& dest ) const {
-      read( dest, BBox2i(0,0,cols(),rows()) );
+    virtual void read_generic( GenericImageBuffer const& buf, BBox2i bbox ) const;
+    virtual void read_generic( GenericImageBuffer const& dest ) const {
+      read_generic( dest, BBox2i(0,0,cols(),rows()) );
     }
 
-    virtual void write( GenericImageBuffer const& dest );
+    virtual void write_generic( GenericImageBuffer const& dest );
     virtual void flush();
 
     void open( std::string const& filename );
