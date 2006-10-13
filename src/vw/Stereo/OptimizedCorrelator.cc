@@ -231,7 +231,7 @@ void CorrelationWorkThread::operator() () {
 }
     
 
-#if 1
+#if 0
 SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDisp,       // left bound disparity search
                                                                        int maxDisp,       // right bound disparity search
                                                                        int topDisp,       // top bound disparity search window
@@ -263,8 +263,8 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDi
   // for each allowed disparity...
   for( int dsy=topDisp; dsy<=btmDisp; ++dsy ) {
     for( int ds=minDisp; ds<=maxDisp; ++ds ) {
-      set_progress_string(str(boost::format("H: [%1%,%2%] V: [%3%,%4%] processing %5% %6%")
-                              % minDisp % maxDisp % topDisp % btmDisp % dsy % ds));
+      set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processing %5% %6%")
+                              % topDisp % btmDisp % minDisp % maxDisp % dsy % ds));
       
       uint16 ds_combined = (ds-minDisp) + (dsy - topDisp) * (maxDisp - minDisp + 1);
 
@@ -364,7 +364,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDi
   }
   delete[] result_buf;
 
-  set_progress_string(str(boost::format("H: [%1%,%2%] V: [%3%,%4%] processed succefully.")
+  set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processed succefully.")
                           % topDisp % btmDisp % minDisp % maxDisp));
   
   double duration= Time()-before;
@@ -410,7 +410,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized(
     double before = Time();
     int numCorrTries = (btmDisp - topDisp + 1) * (maxDisp - minDisp + 1);
 
-    /* initialization */
+    // initialization 
     cSum          = new int[width];
     result        = new SubpixelCorrelator::soad[width * height];
     diff          = new unsigned short[width * height];
@@ -421,10 +421,10 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized(
     std::fill(result_hvdisp, result_hvdisp + height * width, MISSING_HVDISP);
     std::fill(cSum, cSum + width, 0);
 
-    /* subtract the two images with the desired disparity shift */
+    // subtract the two images with the desired disparity shift 
     for(dsy = topDisp; dsy <= btmDisp; dsy++) {
       for(ds = minDisp; ds <= maxDisp; ds++) {
-        set_progress_string(str(boost::format("H: [%1%,%2%] V: [%3%,%4%] processing %5% %6%")
+        set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processing %5% %6%")
                                 % topDisp % btmDisp % minDisp % maxDisp % dsy % ds));
         
         ds_combined= (ds-minDisp) + (dsy - topDisp) * (maxDisp - minDisp + 1);
@@ -511,7 +511,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized(
     delete [] diff;
     delete [] cSum;
 	
-    set_progress_string(str(boost::format("H: [%1%,%2%] V: [%3%,%4%] processed succefully.")
+    set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processed succefully.")
                             % topDisp % btmDisp % minDisp % maxDisp));
 	
     double duration = Time() - before;
@@ -577,8 +577,8 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr( int minDisp,       
   // for each allowed disparity...
   for( int dsy=topDisp; dsy<=btmDisp; ++dsy ) {
     for( int ds=minDisp; ds<=maxDisp; ++ds ) {
-      set_progress_string(str(boost::format("H: [%1%,%2%] V: [%3%,%4%] processing %5% %6%")
-                              % minDisp % maxDisp % topDisp % btmDisp % dsy % ds));
+      set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processing %5% %6%")
+                              % topDisp % btmDisp % minDisp % maxDisp % dsy % ds));
       
       // compute the region of correlation
       int yStart = (dsy<0) ? (-dsy) : 0;
@@ -657,9 +657,9 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr( int minDisp,       
   delete[] diff;
   delete[] cSum;
 
-  set_progress_string(str(boost::format("H: [%1%,%2%] V: [%3%,%4%] processed succefully.")
+  set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processed succefully.")
                           % topDisp % btmDisp % minDisp % maxDisp));
-  
+	
   double duration= Time()-before;
   double mdisp_per_sec= ((double)numCorrTries * width * height)/duration/1e6;
   set_correlation_rate_string(str(boost::format("%1% seconds (%2% M disparities/second)")
@@ -730,9 +730,8 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr(int minDisp,	/* left
     // subtract the two images with the desired disparity shift 
     for(dsy=topDisp; dsy<= btmDisp; dsy++) {
       for(ds=minDisp; ds<=maxDisp; ds++) {
-        set_progress_string(str(boost::format("H: [%1%,%2%] V: [%3%,%4%] processing %5% %6%")
+        set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processing %5% %6%")
                                 % topDisp % btmDisp % minDisp % maxDisp % dsy % ds));
-        progress_string();
 
         sumStart = (dsy*width+ds<0 ? -(dsy*width+ds) : 0);
         sumEnd = (dsy*width+ds<0 ? width : width-(dsy*width+ds));
@@ -822,10 +821,10 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr(int minDisp,	/* left
     free(diff);
     free(next);
     free(cSum);
-
-    set_progress_string(str(boost::format("H: [%1%,%2%] V: [%3%,%4%] processed succefully.")
+    
+    set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processed succefully.")
                             % topDisp % btmDisp % minDisp % maxDisp));
-
+  
     double duration= Time()-before;
     double mdisp_per_sec= ((double)numCorrTries * width * height)/duration/1e6;
     set_correlation_rate_string(str(boost::format("%1% seconds (%2% M disparities/second)")

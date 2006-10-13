@@ -222,6 +222,7 @@ AX_PKG(CG, [], [-lCg -lCgGL], [Cg/cg.h])
 
 AX_PKG(OPENEXR, [Z PTHREADS], [-lImath -lHalf -lIex -lIlmImf], [ImfOutputFile.h], [OpenEXR])
 AX_PKG(GDAL, [], [-lgdal], [gdal.h])
+AX_PKG(PROJ4, [], [-lproj], [projects.h])
 
 AX_PKG(VCL, [], [-lvcl], [vcl_algorithm.h], [vcl])
 AX_PKG(VXL, [VCL], [-lvgl_algo -lvil_algo -lvnl_algo -lvul -lvgl -lvnl -lvil -lvcl -lnetlib], 
@@ -253,12 +254,12 @@ fi
 AX_MODULE(CAMERA, [src/vw/Camera/libvwCamera.la], yes, [IMAGE MATH LAPACK])
 AX_MODULE(MOSAIC, [src/vw/Mosaic/libvwMosaic.la], yes, [VW PTHREADS BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
 AX_MODULE(STEREO, [src/vw/Stereo/libvwStereo.la], $HAVE_PKG_STEREO_SRC, [STEREO_SRC VW PTHREADS BOOST_THREAD])
+AX_MODULE(CARTOGRAPHY, [src/vw/Cartography/libvwCartography.la], yes, [VW GDAL PROJ4])
 
 #AX_MODULE(INTERESTPOINT, InterestPoint, no, [VW])
 #AX_MODULE(HDR, HDR, no, [VW])
 #AX_MODULE(GPU, GPU, no, [GL GLU GLUT GLEW VW], [CG PTHREADS])
 #AX_MODULE(DISPLAY, Display, no, [BOOST_THREAD GL FREEGLUT VW])
-#AX_MODULE(CARTOGRAPHY, Cartography, no, [GDAL VW])
 #AX_MODULE(TEXTURE, Texture, no, [VW])
 
 # These are here (instead of inside the MODULE macro where they belong)
@@ -271,12 +272,12 @@ AM_CONDITIONAL(MAKE_MODULE_CAMERA, [test "$MAKE_MODULE_CAMERA" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_VW, [test "$MAKE_MODULE_VW" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_MOSAIC, [test "$MAKE_MODULE_MOSAIC" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_STEREO, [test "$MAKE_MODULE_STEREO" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_CARTOGRAPHY, [test "$MAKE_MODULE_CARTOGRAPHY" = "yes"])
 
 #AM_CONDITIONAL(MAKE_MODULE_INTERESTPOINT, [test "$MAKE_MODULE_INTERESTPOINT" = "yes"])
 #AM_CONDITIONAL(MAKE_MODULE_HDR, [test "$MAKE_MODULE_HDR" = "yes"])
 #AM_CONDITIONAL(MAKE_MODULE_GPU, [test "$MAKE_MODULE_GPU" = "yes"])
 #AM_CONDITIONAL(MAKE_MODULE_DISPLAY, [test "$MAKE_MODULE_DISPLAY" = "yes"])
-#AM_CONDITIONAL(MAKE_MODULE_CARTOGRAPHY, [test "$MAKE_MODULE_CARTOGRAPHY" = "yes"])
 #AM_CONDITIONAL(MAKE_MODULE_CAMERA, [test "$MAKE_MODULE_CAMERA" = "yes"])
 #AM_CONDITIONAL(MAKE_MODULE_TEXTURE, [test "$MAKE_MODULE_TEXTURE" = "yes"])
 
@@ -303,6 +304,8 @@ AC_CONFIG_FILES([                       \
   src/vw/Camera/tests/Makefile          \
   src/vw/Mosaic/Makefile                \
   src/vw/Mosaic/tests/Makefile          \
+  src/vw/Cartography/Makefile           \
+  src/vw/Cartography/tests/Makefile     \
 ])
 
 if test $HAVE_PKG_STEREO_SRC = "yes"; then

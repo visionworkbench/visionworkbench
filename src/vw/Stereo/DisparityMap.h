@@ -5,6 +5,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/Filter.h>
 
 // For the PixelDisparity math.
 #include <boost/operators.hpp>
@@ -176,6 +177,7 @@ namespace disparity {
     remove_outliers(disparity_map, 1, 1, 75, 0.5, verbose);
   }
 
+
   template <class PixelT>
   inline void disparity_debug_images(ImageView<PixelDisparity<PixelT> > const& disparity_map,
                                      ImageView<PixelGray<float> > &horizontal,
@@ -256,6 +258,23 @@ namespace disparity {
              min_horz_disp, max_horz_disp, min_vert_disp, max_vert_disp, missing);
     }
   }
+
+  template <class ChannelT>
+  void sparse_disparity_filter(ImageView<PixelDisparity<ChannelT> > &disparity_map, float blur_stddev, float rejection_threshold) {
+    std::cout << "\tIsolating and rejecting large areas of very low confidence..." << std::flush;
+    
+    ImageView<PixelGray<float> > test_image = disparity::missing_pixel_image(disparity_map);
+    ImageView<float> blurred_image = gaussian_filter(select_channel(test_image,0), blur_stddev);
+    ImageView<float> threshold_image = threshold(blurred_image, rejection_threshold);
+    
+    for (int i = 0; i < disparity_map.cols(); i++) 
+      for (int j = 0; j < disparity_map.rows(); j++) 
+        if (threshold_image(i,j) == 0)
+          disparity_map(i,j) = PixelDisparity<ChannelT>(); // Set to missing pixel
+    
+    std::cout << " done.\n";
+  }
+  
   
 } // namespace disparity
   

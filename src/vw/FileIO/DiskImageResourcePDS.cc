@@ -42,15 +42,6 @@ using namespace boost;
 #include <vw/FileIO/DiskImageResourcePDS.h>
 
 
-// static String_value_mapping Compression_type_mapping[] = {
-//   {"HUFFMAN_FIRST_DIFFERENCE",	COMPRESSION_TYPE_HUFFMAN},
-//   {"CLEM-JPEG",					COMPRESSION_TYPE_JPEG},
-//   {"MOC-PRED-X-5",				COMPRESSION_TYPE_MOC},
-//   {"MOC-DCT-2",					COMPRESSION_TYPE_MOC},
-//   PPVL_STRING_VALUE_MAPPING_END
-// };
-
-
 /// Close the file when the object is destroyed
 vw::DiskImageResourcePDS::~DiskImageResourcePDS() {
   this->flush();
@@ -169,6 +160,12 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
     keys.push_back("/RECSIZE");
     keys.push_back("HEADER_RECORD_BYTES");
     m_image_data_offset = atol(query(keys).c_str());
+    
+    try {
+      keys.clear();
+      keys.push_back("LABEL_RECORDS");
+      m_image_data_offset *= atol(query(keys).c_str());
+    } catch (NotFoundErr &e) {}
         
   } catch (vw::NotFoundErr &e) {
     throw IOErr() << "DiskImageResourcePDS: could not find critical information in the image header.\n";
@@ -185,6 +182,7 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   // For debugging:
   //   std::cout << "\tImage Dimensions: " << m_format.cols << "x" << m_format.rows << "x" << m_format.planes << "\n";
   //   std::cout << "\tImage Format: " << m_format.channel_type << "   " << m_format.pixel_format << "\n";
+  fclose(input_file);
 }
 
 /// Bind the resource to a file for writing.
@@ -222,12 +220,21 @@ void vw::DiskImageResourcePDS::read( GenericImageBuffer const& dest ) const
     throw IOErr() << "DiskImageResourcePDS: An error occured while reading the image data.";
 
   // Convert the endian-ness of the data
-  for (int i = 0; i < total_pixels * bytes_per_pixel; i+=2) {
-    uint8 temp = image_data[i+1];
-    image_data[i+1] = image_data[i];
-    image_data[i] = temp;
+  if (m_format.channel_type == VW_CHANNEL_INT16 ||
+      m_format.channel_type == VW_CHANNEL_UINT16) {
+    for (int i = 0; i < total_pixels * bytes_per_pixel; i+=2) {
+      uint8 temp = image_data[i+1];
+      image_data[i+1] = image_data[i];
+      image_data[i] = temp;
+    }
   }
   
+  uint8 max = 0, min = 255;
+  for (int i = 0; i < total_pixels; i++) {
+    max = image_data[i] > max ? image_data[i] : max;
+    min = image_data[i] < min ? image_data[i] : min;
+  }
+
   // set up a generic image buffer around the PDS data.
   GenericImageBuffer src;
   src.data = image_data;
