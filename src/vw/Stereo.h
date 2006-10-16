@@ -28,8 +28,8 @@
 #ifndef __VW_STEREO_H__
 #define __VW_STEREO_H__
 
-#include <vw/Stereo/DisparityMap.h
-#include <vw/Stereo/SubpixelCorrelator.h>
+#include <vw/Stereo/DisparityMap.h>
+#include <vw/Stereo/OptimizedCorrelator.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Stereo/SoftwareRenderer.h>
 

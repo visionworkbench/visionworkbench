@@ -61,8 +61,8 @@ stereo_headers = Stereo.h
 endif
 
 if MAKE_MODULE_CARTOGRAPHY
-stereo_subdirs = Cartography
-stereo_headers = Cartography.h
+cartography_subdirs = Cartography
+cartography_headers = Cartography.h
 endif
 
 include_HEADERS = $(core_headers) $(math_headers) $(image_headers)	\
@@ -71,7 +71,7 @@ include_HEADERS = $(core_headers) $(math_headers) $(image_headers)	\
 
 SUBDIRS = $(core_subdirs) $(math_subdirs) $(image_subdirs)	\
 	$(fileio_subdirs) . $(camera_subdirs) $(mosaic_subdirs) $(stereo_subdirs) \
-  $(cartography_headers) tests tools
+  $(cartography_subdirs) tests tools
 
 lib_LTLIBRARIES = libvw.la
 libvw_la_SOURCES =

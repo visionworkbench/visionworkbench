@@ -46,7 +46,7 @@ namespace cartography {
                  semi_minor_axis(0),
                  meridian_offset(0) {}
 
-    double radius(double lat, double lon) {
+    double radius(double lat, double lon) const {
       // Optimize in the case of spherical datum
       if (semi_major_axis == semi_minor_axis) {
         return semi_major_axis;

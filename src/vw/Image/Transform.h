@@ -136,7 +136,7 @@ namespace vw {
       for( int y=output_bbox.min().y(); y<output_bbox.max().y(); ++y ) {
         for( int x=output_bbox.min().x(); x<output_bbox.max().x(); ++x ) {
           Vector2 result = impl().reverse( Vector2(x,y) );
-          bbox.grow( BBox2i( floor(result.x()), floor(result.y()), 2, 2 ) );
+          bbox.grow( BBox2i( (int)floor(result.x()), (int)floor(result.y()), 2, 2 ) );
         }
       }
       return bbox;

@@ -33,7 +33,7 @@
 #include <vw/Camera/CAHVORModel.h>
 #include <vw/Camera/LinearPushbroomModel.h>
 #include <vw/Camera/OrbitingPushbroomModel.h>
-#include <vw/Camera/CameraTransform.h.h>
+#include <vw/Camera/CameraTransform.h>
 
 #endif // __VW_CAMERA_H__
  

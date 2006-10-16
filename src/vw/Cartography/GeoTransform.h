@@ -73,6 +73,7 @@ namespace cartography {
     Vector2 forward(Vector2 const& v) const;
   };
 
+
 }} // namespace vw::cartography
 
 #endif // __GEO_TRANSFORM_H__

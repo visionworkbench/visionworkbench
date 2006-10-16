@@ -43,6 +43,7 @@ namespace cartography {
   public:
 
     DiskImageResourceGDAL( std::string const& filename )
+      : DiskImageResource( filename )
     {
       m_dataset = NULL;
       open( filename );
@@ -50,6 +51,7 @@ namespace cartography {
 
     DiskImageResourceGDAL( std::string const& filename, 
                            GenericImageFormat const& format )
+      : DiskImageResource( filename )
     {
       m_dataset = NULL;
       create( filename, format );
@@ -59,8 +61,8 @@ namespace cartography {
       flush();
     }
     
-    virtual void read( GenericImageBuffer const& dest ) const;
-    virtual void write( GenericImageBuffer const& dest );
+    virtual void read_generic( GenericImageBuffer const& dest ) const;
+    virtual void write_generic( GenericImageBuffer const& dest );
     virtual void flush();
 
     void read_georeference( GeoReference& georef );

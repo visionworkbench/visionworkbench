@@ -23,6 +23,8 @@
 #ifndef __VW_CARTOGRAPHY_GEOREFERENCE_H__
 #define __VW_CARTOGRAPHY_GEOREFERENCE_H__
 
+#include <vw/Image/PerPixelViews.h>
+#include <vw/Core/Functors.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Core/Exception.h>
 #include <vw/Cartography/Datum.h>
@@ -91,9 +93,6 @@ namespace cartography {
     void set_sinusoidal(double center_longitude, 
                         double false_easting = 0,
                         double false_northing = 0);
-    
-
-
   };
   
   static std::ostream& operator<<(std::ostream& os, const GeoReference& georef) {
@@ -104,6 +103,50 @@ namespace cartography {
     os << "\tProj.4: " << georef.proj4_str() << "\n";
     return os;
   }
+
+
+  template <class ElemT>
+  class XYZtoLatLonFunctor : public UnaryReturnSameType {
+    bool m_east_positive;
+  public:
+    XYZtoLatLonFunctor(bool east_positive = true) : m_east_positive(east_positive) {}
+
+    Vector<ElemT,3> operator()(Vector<ElemT,3> const& p) const {
+      if (p == Vector<ElemT,3>()) { return p; }
+
+      double radius = norm_2(p);
+      double sin_lat = p.z() / radius;
+      
+      double cos_lat = sqrt(1.0 - sin_lat * sin_lat);
+      double lat = asin(sin_lat);
+      double lon;
+      if (m_east_positive) 
+        lon = atan2(p.y(), p.x());
+      else // West positive longitude
+        lon = atan2(-p.y(), p.x());        
+
+      return Vector<ElemT,3> (lon * 180.0 / M_PI, lat * 180.0 / M_PI, radius);
+    }
+  };
+  
+
+  /// Takes an ImageView of Vector<ElemT,3> in cartesian 3 space and
+  /// returns a ImageView of vectors that contains the lat, lon, and
+  /// radius of that point.  For consistency with cartographic
+  /// convention, angular values are return in degrees rather than
+  /// radians.
+  ///
+  /// Note: The following assumes latitude is measured from the
+  /// equatorial plane with north positive. This is different than
+  /// normal spherical coordinate conversion where the equivalent
+  /// angle is measured from the positive z axis.
+  template <class ImageT>
+  UnaryPerPixelView<ImageT, XYZtoLatLonFunctor<typename ImageT::pixel_type::value_type> >
+  inline xyz_to_latlon( ImageViewBase<ImageT> const& image, bool east_positive = true ) {
+    typedef typename ImageT::pixel_type::value_type vector_value_type;
+    return UnaryPerPixelView<ImageT,XYZtoLatLonFunctor<vector_value_type> >( image.impl(), XYZtoLatLonFunctor<vector_value_type>(east_positive) );
+  }
+
 
 }} // namespace vw::cartography
 

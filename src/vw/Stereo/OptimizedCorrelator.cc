@@ -231,7 +231,7 @@ void CorrelationWorkThread::operator() () {
 }
     
 
-#if 0
+#if 1
 SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDisp,       // left bound disparity search
                                                                        int maxDisp,       // right bound disparity search
                                                                        int topDisp,       // top bound disparity search window

@@ -322,7 +322,7 @@ namespace cartography {
 
 
   /// Read the disk image into the given buffer.
-  void DiskImageResourceGDAL::read( GenericImageBuffer const& dest ) const
+  void DiskImageResourceGDAL::read_generic( GenericImageBuffer const& dest ) const
   {
     VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
                IOErr() << "Buffer has wrong dimensions in GDAL read." );
@@ -392,7 +392,7 @@ namespace cartography {
 
 
   // Write the given buffer into the disk image.
-  void DiskImageResourceGDAL::write( GenericImageBuffer const& src )
+  void DiskImageResourceGDAL::write_generic( GenericImageBuffer const& src )
   {
     VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
                IOErr() << "Buffer has wrong dimensions in GDAL write." );

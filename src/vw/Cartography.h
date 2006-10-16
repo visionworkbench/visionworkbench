@@ -28,7 +28,7 @@
 #ifndef __VW_CARTOGRAPHY_H__
 #define __VW_CARTOGRAPHY_H__
 
-#include <vw/Cartography/Datum.h
+#include <vw/Cartography/Datum.h>
 #include <vw/Cartography/Projection.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoTransform.h>

@@ -32,8 +32,8 @@
 #include <boost/format.hpp>
 
 #include <vw/config.h>
-#include <vw/ImageView.h>
-#include <vw/GenericImageBuffer.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/GenericImageBuffer.h>
 #include <vw/Cartography/DiskImageResourceGDAL.h>
 
 #include <iostream>
