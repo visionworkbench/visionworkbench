@@ -186,8 +186,10 @@ void vw::DiskImageResourceJPEG::read_generic( GenericImageBuffer const& dest ) c
   // If the user has requested a grayscale image, we can speed up the
   // decoding process by forcing the jpeg driver to decode the image
   // in grayscale (since the color components need not be processed).
-  if (dest.format.pixel_format == VW_PIXEL_GRAY) 
-    cinfo.out_color_space = JCS_GRAYSCALE;
+  // XXX This is commented out for now because it seems to be involved 
+  // in some screwey behavior on Linux.
+  // if (dest.format.pixel_format == VW_PIXEL_GRAY) 
+  //   cinfo.out_color_space = JCS_GRAYSCALE;
 
   // If the user has requested a subsampled version of the original
   // image, we pass this request along to the JPEG driver here.
@@ -222,8 +224,8 @@ void vw::DiskImageResourceJPEG::read_generic( GenericImageBuffer const& dest ) c
   src.format = m_format;
 
   // This is part of the grayscale optimization above.
-  if (dest.format.pixel_format == VW_PIXEL_GRAY) 
-    src.format.pixel_format = VW_PIXEL_GRAY;
+  // if (dest.format.pixel_format == VW_PIXEL_GRAY) 
+  //   src.format.pixel_format = VW_PIXEL_GRAY;
 
   src.cstride = scanline_size / cinfo.output_width;
   src.rstride = scanline_size;
