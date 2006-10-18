@@ -54,7 +54,7 @@
 #include <boost/mpl/logical.hpp>
 
 #include <vw/Image/ImageView.h>
-#include <vw/Image/PixelTypeInfo.h>
+#include <vw/Image/PixelTypes.h>
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Math/BBox.h>
 
@@ -840,6 +840,41 @@ namespace vw {
   template <class ChannelT, class ImageT>
   inline UnaryPerPixelView<ImageT,PixelChannelCastRescaleFunctor<ChannelT> > channel_cast_rescale( ImageViewBase<ImageT> const& image ) {
     return UnaryPerPixelView<ImageT,PixelChannelCastRescaleFunctor<ChannelT> >( image.impl() );
+  }
+
+
+  // *******************************************************************
+  // weighted_rgb_to_gray()
+  // *******************************************************************
+
+  /// A weighted rgb-to-gray pixel conversion functor.
+  class WeightedRGBToGrayFunctor {
+    double m_rw, m_gw, m_bw;
+  public:
+    template <class ArgsT> struct result {};
+    template <class FuncT, class ChannelT> struct result<FuncT(PixelRGB<ChannelT>)> { typedef PixelGray<ChannelT> type; };
+    template <class FuncT, class ChannelT> struct result<FuncT(PixelRGBA<ChannelT>)> { typedef PixelGrayA<ChannelT> type; };
+    WeightedRGBToGrayFunctor( double rw, double gw, double bw ) : m_rw(rw), m_gw(gw), m_bw(bw) {}
+    template <class ChannelT> inline PixelGrayA<ChannelT> operator()( PixelRGBA<ChannelT> const& rgb ) const {
+      return weighted_rgb_to_gray( rgb, m_rw, m_gw, m_bw );
+    }
+    template <class ChannelT> inline PixelGray<ChannelT> operator()( PixelRGB<ChannelT> const& rgb ) const {
+      return weighted_rgb_to_gray( rgb, m_rw, m_gw, m_bw );
+    }
+  };
+  
+
+  /// Weighted conversion from PixelRGBA to PixelGrayA using user-specified weights.
+  template <class ImageT>
+  inline UnaryPerPixelView<ImageT,WeightedRGBToGrayFunctor> weighted_rgb_to_gray( ImageViewBase<ImageT> const& image, double rw, double gw, double bw ) {
+    return UnaryPerPixelView<ImageT,WeightedRGBToGrayFunctor>( image.impl(), WeightedRGBToGrayFunctor(rw,gw,bw) );
+  }
+
+  /// Weighted conversion from PixelRGBA to PixelGrayA using the default weights.
+  template <class ImageT>
+  inline UnaryPerPixelView<ImageT,WeightedRGBToGrayFunctor> weighted_rgb_to_gray( ImageViewBase<ImageT> const& image ) {
+    WeightedRGBToGrayFunctor func( VW_RGB_TO_GRAY_R_WEIGHT, VW_RGB_TO_GRAY_G_WEIGHT, VW_RGB_TO_GRAY_B_WEIGHT );
+    return UnaryPerPixelView<ImageT,WeightedRGBToGrayFunctor>( image.impl(), func );
   }
 
 } // namespace vw
