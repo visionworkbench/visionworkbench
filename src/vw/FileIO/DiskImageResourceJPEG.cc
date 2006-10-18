@@ -33,6 +33,8 @@
 #endif
 
 #include <vector>
+#include <boost/scoped_array.hpp>
+
 #include <vw/FileIO/DiskImageResourceJPEG.h>
 #include <vw/Core/Exception.h>
 
@@ -202,7 +204,7 @@ void vw::DiskImageResourceJPEG::read_generic( GenericImageBuffer const& dest ) c
   int scanline_size = cinfo.output_width * cinfo.output_components;
   JSAMPARRAY scanline = (*cinfo.mem->alloc_sarray)
 		((j_common_ptr) &cinfo, JPOOL_IMAGE, scanline_size, 1);
-  uint8* buf = new uint8[scanline_size * cinfo.output_height];
+  boost::scoped_array<uint8> buf( new uint8[scanline_size * cinfo.output_height] );
   while (cinfo.output_scanline < cinfo.output_height) {
     jpeg_read_scanlines(&cinfo, scanline, 1);
     
@@ -220,7 +222,7 @@ void vw::DiskImageResourceJPEG::read_generic( GenericImageBuffer const& dest ) c
   // Set up a generic image buffer around the tdata_t buf object that
   // jpeg used to copy it's data.
   GenericImageBuffer src;
-  src.data = (uint8*)buf;
+  src.data = buf.get();
   src.format = m_format;
 
   // This is part of the grayscale optimization above.
@@ -274,7 +276,8 @@ void vw::DiskImageResourceJPEG::write_generic( GenericImageBuffer const& src )
 
   // Set up the generic image buffer and convert the data into this buffer
   GenericImageBuffer dst;
-  dst.data = new uint8[cinfo.image_width*cinfo.input_components*cinfo.image_height];
+  boost::scoped_array<uint8> buf( new uint8[cinfo.image_width*cinfo.input_components*cinfo.image_height] );
+  dst.data = buf.get();
   dst.format = m_format;
   dst.cstride = num_channels(m_format.pixel_format) * channel_size(m_format.channel_type);
   dst.rstride = dst.cstride * m_format.cols;
