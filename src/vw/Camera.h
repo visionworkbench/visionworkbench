@@ -28,12 +28,17 @@
 #ifndef __VW_CAMERA_H__
 #define __VW_CAMERA_H__
 
+#include <vw/config.h>
+
 #include <vw/Camera/CameraModel.h>
 #include <vw/Camera/CAHVModel.h>
 #include <vw/Camera/CAHVORModel.h>
 #include <vw/Camera/LinearPushbroomModel.h>
-#include <vw/Camera/OrbitingPushbroomModel.h>
 #include <vw/Camera/CameraTransform.h>
+
+#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
+#include <vw/Camera/OrbitingPushbroomModel.h>
+#endif
 
 #endif // __VW_CAMERA_H__
  
