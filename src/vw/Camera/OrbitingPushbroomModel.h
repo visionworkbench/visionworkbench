@@ -157,6 +157,9 @@ namespace camera {
     inline Vector3 const velocity_vector() const { return m_velocity_vectors[0]; }
     inline Quaternion<double> const camera_pose() const { return m_camera_poses[0]; }
     
+    Quaternion<double> camera_pose (double t) const;
+    Vector3 camera_position (double t) const;
+
 
     void set_camera_poses(std::vector<Quaternion<double> > const& val, double t0, double dt) {  
       m_t0_camera_pose = t0;

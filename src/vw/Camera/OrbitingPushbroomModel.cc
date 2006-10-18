@@ -234,27 +234,18 @@ namespace camera {
     // The position and veloctiy are not actually needed, since we are
     // purely interested in returning the direction of the ray at this
     // point and not its origin.
-    Matrix<double,3,3> rot = transpose(pose.rotation_matrix());
-    Matrix<double,4,4> view_matrix;
-    view_matrix.set_identity();
-    submatrix(view_matrix, 0, 0, 3, 3) = rot;
-
-    double pixel_size_u = m_across_scan_pixel_size;
-    double center_offset = m_sample_offset * m_across_scan_pixel_size;
+    Matrix<double,3,3> rotation_matrix = transpose(pose.rotation_matrix());
     
     // The viewplane is the y-z plane of the camera coordinate system.
     // Assuming the origin of the coordinate system is at the center
     // of projection, the image plane is z = +f, and the pixel
     // position in camera coordinates is:
-    //
-    // The following assumes u, v coords have origin at lower left hand
-    // corner of image...
-    double pixel_pos_y = (u * pixel_size_u) + center_offset;
+    double pixel_pos_y = (u + m_sample_offset) * m_across_scan_pixel_size;
     double f = m_focal_length;
-    Vector<double, 4> pixel_pos(0.0, pixel_pos_y, f, 1.0);
+    Vector<double, 3> pixel_pos(0.0, pixel_pos_y, f);
 
     // Transform to world coordinates using the rigid rotation
-    Vector<double, 4> direction_vec = view_matrix * pixel_pos;
+    Vector<double, 3> direction_vec = rotation_matrix * pixel_pos;
     return normalize(Vector3 ( direction_vec[0],
                                direction_vec[1], 
                                direction_vec[2] ));
@@ -265,6 +256,16 @@ namespace camera {
     double t = pix[1] / m_number_of_lines * m_scan_duration;
     return eval_curve_3d(m_position_coeff, t);
   }
+
+  Vector3 OrbitingPushbroomModel::camera_position (double t) const {
+    return eval_curve_3d(m_position_coeff, t);
+  }
+
+  Quaternion<double> OrbitingPushbroomModel::camera_pose (double t) const {
+    return eval_quat_3d(m_camera_poses, m_t0_camera_pose, 
+                        m_dt_camera_pose, t);
+  }
+  
   
 
   // ------------------------------------------------
