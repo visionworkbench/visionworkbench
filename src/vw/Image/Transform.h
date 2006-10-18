@@ -370,7 +370,7 @@ namespace vw {
   /// \cond INTERNAL
   // Type Traits
   template <class ImplT, class TransformT>
-  struct IsFloatingPointIndexable<TransformView<ImplT, TransformT> > : public boost::true_type {};
+  struct IsFloatingPointIndexable<TransformView<ImplT, TransformT> > : public true_type {};
   /// \endcond
 
 

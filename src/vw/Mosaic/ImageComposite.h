@@ -143,7 +143,7 @@ namespace mosaic {
       typedef Pyramid value_type;
       PyramidGenerator( ImageComposite& composite, int index ) : m_composite(composite), m_index(index) {}
       size_t size() const {
-        return m_composite.sources[m_index].size() * 1.66; // 1.66 = (5/4)*(4/3)
+        return size_t( m_composite.sources[m_index].size() * 1.66 ); // 1.66 = (5/4)*(4/3)
       }
       boost::shared_ptr<value_type> generate() const;
     };

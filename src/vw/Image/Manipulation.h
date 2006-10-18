@@ -92,7 +92,7 @@ namespace vw {
   };
 
   template <class ImageT>
-  struct IsMultiplyAccessible<CopyView<ImageT> > : public boost::true_type {};
+  struct IsMultiplyAccessible<CopyView<ImageT> > : public true_type {};
 
   /// Make a (deep) copy of an image.
   template <class ImageT>
@@ -300,7 +300,8 @@ namespace vw {
       return prerasterize_type( m_image.prerasterize(bbox+Vector2i(m_ci,m_cj)), m_ci, m_cj, m_di, m_dj );
     }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
-      m_image.rasterize( dest, bbox+Vector2i(m_ci,m_cj) );
+      // XXX Warning: This does not respect floating-point offsets!
+      m_image.rasterize( dest, bbox+Vector2i(int(m_ci),int(m_cj)) );
     }
     /// \endcond
   };

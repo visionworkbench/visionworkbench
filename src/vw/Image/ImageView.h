@@ -224,11 +224,11 @@ namespace vw {
   // Image view traits
   /// Specifies that ImageView objects are resizable.
   template <class PixelT>
-  struct IsResizable<ImageView<PixelT> > : public boost::true_type {};
+  struct IsResizable<ImageView<PixelT> > : public true_type {};
 
   /// Specifies that ImageView objects are fast to access.
   template <class PixelT>
-  struct IsMultiplyAccessible<ImageView<PixelT> > : public boost::true_type {};
+  struct IsMultiplyAccessible<ImageView<PixelT> > : public true_type {};
 
 } // namespace vw
 

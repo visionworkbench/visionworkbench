@@ -162,11 +162,11 @@ namespace vw {
                                       ConvolutionView<typename ImageT::prerasterize_type, KernelT, EdgeT>,
                                       ConvolutionView<CropView<ImageView<typename ImageT::pixel_type> >, KernelT, EdgeT> >::type prerasterize_type;
     
-    inline prerasterize_type prerasterize_helper( BBox2i bbox, boost::true_type ) const {
+    inline prerasterize_type prerasterize_helper( BBox2i bbox, true_type ) const {
       return prerasterize_type( m_image.child().prerasterize(bbox), m_kernel.child(), m_ci, m_cj, m_image.func() );
     }
     
-    inline prerasterize_type prerasterize_helper( BBox2i bbox, boost::false_type ) const {
+    inline prerasterize_type prerasterize_helper( BBox2i bbox, false_type ) const {
       ImageView<pixel_type> buf( bbox.width(), bbox.height(), m_image.planes() );
       m_image.rasterize( buf, bbox );
       return prerasterize_type( CropView<ImageView<pixel_type> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),bbox.width(),bbox.height()) ),

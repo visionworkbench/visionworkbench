@@ -165,12 +165,12 @@ namespace vw {
  				      InterpolationView<CropView<ImageView<pixel_type> >, InterpT> >::type prerasterize_type;
 
     template <class PreRastImageT>
-    prerasterize_type prerasterize_helper( BBox2i bbox, PreRastImageT const& image, boost::true_type ) const { 
+    prerasterize_type prerasterize_helper( BBox2i bbox, PreRastImageT const& image, true_type ) const { 
       return prerasterize_type( image.prerasterize(bbox), m_interp_func ); 
     }
                             
     template <class PreRastImageT>
-    prerasterize_type prerasterize_helper( BBox2i bbox, PreRastImageT const& image, boost::false_type ) const {
+    prerasterize_type prerasterize_helper( BBox2i bbox, PreRastImageT const& image, false_type ) const {
       int padded_width = bbox.width() + 2 * m_interp_func.pixel_buffer;
       int padded_height = bbox.height() + 2 * m_interp_func.pixel_buffer;
       ImageView<pixel_type> buf( padded_width, padded_height, m_image.planes() );
@@ -193,7 +193,7 @@ namespace vw {
   /// \cond INTERNAL
   // Type traits 
   template <class ImageT, class InterpT>
-  struct IsFloatingPointIndexable<InterpolationView<ImageT, InterpT> > : public boost::true_type {};
+  struct IsFloatingPointIndexable<InterpolationView<ImageT, InterpT> > : public true_type {};
   /// \endcond
 	
 

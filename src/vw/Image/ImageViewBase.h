@@ -103,11 +103,11 @@ namespace vw {
 
   /// Indicates whether a view can be resized via <B>set_size()</B>.
   template <class ImplT>
-  struct IsResizable : public boost::false_type {};
+  struct IsResizable : public false_type {};
 
   /// Indicates whether a view type can be accessed at floating-point positions.
   template <class ImplT>
-  struct IsFloatingPointIndexable : public boost::false_type {};
+  struct IsFloatingPointIndexable : public false_type {};
 
   /// Indicates whether or not a type is an image view type.
   template <class ImageT>
@@ -116,7 +116,7 @@ namespace vw {
   /// Indicates whether or not a view can be accessed multiple times 
   /// just as efficiently as a locally-cached version.  
   template <class ImplT>
-  struct IsMultiplyAccessible : public boost::false_type {};
+  struct IsMultiplyAccessible : public false_type {};
 
 
   // *******************************************************************

@@ -31,7 +31,16 @@
 #include <complex>
 #include <boost/cstdint.hpp>
 #include <boost/type_traits.hpp>
+#include <boost/mpl/integral_c.hpp>
 #include <boost/mpl/not.hpp>
+
+#include <boost/version.hpp>
+#if BOOST_VERSION==103200
+namespace boost {
+  template <class B, class D> struct is_base_of : public is_base_and_derived<B,D> {};
+  template <class T> struct is_floating_point : public is_float<T> {};
+}
+#endif
 
 namespace vw {
 
@@ -51,12 +60,16 @@ namespace vw {
   typedef float float32;
   typedef double float64;
 
+  /// Basic true and false types
+  typedef boost::mpl::integral_c<bool,true> true_type;
+  typedef boost::mpl::integral_c<bool,false> false_type;
+
   /// Given a type, these traits classes identify whether or not the
   /// type is a scalar (in the mathematical sense of the word.)  This
   /// includes the built-in arithmetic types as well as complex
   /// numbers.
   template <class T> struct IsScalar : public boost::is_arithmetic<T> {};
-  template <class T> struct IsScalar<std::complex<T> > : public boost::true_type {};
+  template <class T> struct IsScalar<std::complex<T> > : public true_type {};
   template <class T> struct IsScalar<const T> : public IsScalar<T> {};
 
 
