@@ -23,11 +23,7 @@
 
 /// \file DiskImageView.h
 ///
-/// This is a barely-functional first cut at on-disk image 
-/// support, currently used by the panorama blending code.
-/// It is read-only, supports only VIL-based file types, 
-/// doesn't support multi-plane images, doesn't support 
-/// random pixel access, etc.  Buyer beware.
+/// A read-only disk image view.
 ///
 #ifndef __VW_FILEIO_DISK_IMAGE_VIEW_H__
 #define __VW_FILEIO_DISK_IMAGE_VIEW_H__
@@ -79,7 +75,7 @@ namespace vw {
     mutable block_table_type m_block_table;
 
     void initialize() {
-      if( m_block_size.x()==cols() && m_block_size.y()==1 ) {
+      if( unsigned(m_block_size.x())==cols() && m_block_size.y()==1 ) {
         // Group scanlines into 16K chunks for efficiency
         const size_t blocksize = 16384;
         if( cols()*rows()*planes()*sizeof(PixelT) < blocksize ) {
@@ -141,8 +137,9 @@ namespace vw {
     inline unsigned planes() const { return 1; }
     
     /// Returns the pixel at the given position in the given plane.
-    result_type operator()( unsigned i, unsigned j, unsigned plane=1 ) const {
-      throw NoImplErr() << "DiskImageView does not currently support random pixel access";
+    result_type operator()( unsigned x, unsigned y, unsigned plane=1 ) const {
+      int ix = x/m_block_size.x(), iy = y/m_block_size.y();
+      return m_block_table[std::make_pair(ix,iy)]->operator()( x-ix*m_block_size.x(), y - iy*m_block_size.y() );
     }
     
     /// Returns a pixel_accessor pointing to the origin.
