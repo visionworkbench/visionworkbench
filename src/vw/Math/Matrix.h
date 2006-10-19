@@ -1796,19 +1796,19 @@ namespace math {
   template <class MatrixT, class VectorT, bool TransposeN>
   class MatrixVectorProduct : public VectorBase<MatrixVectorProduct<MatrixT,VectorT,TransposeN> > {
 
-    template <class VecT> struct VectorClosure { typedef Vector<typename VecT::value_type, VectorSize<VecT>::value> type; };
-    template <class ElemT, int SizeN> struct VectorClosure<Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN> const& type; };
-    template <class ElemT, int SizeN> struct VectorClosure<const Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN> const& type; };
-    template <class ElemT, int SizeN> struct VectorClosure<VectorProxy<ElemT,SizeN> > { typedef VectorProxy<ElemT,SizeN> const& type; };
-    template <class ElemT, int SizeN> struct VectorClosure<const VectorProxy<ElemT,SizeN> > { typedef VectorProxy<ElemT,SizeN> const& type; };
-    typename VectorClosure<VectorT>::type m_vector;
-
     template <class MatT> struct MatrixClosure { typedef Matrix<typename MatT::value_type> type; };
     template <class ElemT, int RowsN, int ColsN> struct MatrixClosure<Matrix<ElemT,RowsN,ColsN> > { typedef Matrix<ElemT,RowsN,ColsN> const& type; };
     template <class ElemT, int RowsN, int ColsN> struct MatrixClosure<const Matrix<ElemT,RowsN,ColsN> > { typedef Matrix<ElemT,RowsN,ColsN> const& type; };
     template <class ElemT, int RowsN, int ColsN> struct MatrixClosure<MatrixProxy<ElemT,RowsN,ColsN> > { typedef MatrixProxy<ElemT,RowsN,ColsN> const& type; };
     template <class ElemT, int RowsN, int ColsN> struct MatrixClosure<const MatrixProxy<ElemT,RowsN,ColsN> > { typedef MatrixProxy<ElemT,RowsN,ColsN> const& type; };
     typename MatrixClosure<MatrixT>::type m_matrix;
+
+    template <class VecT> struct VectorClosure { typedef Vector<typename VecT::value_type, VectorSize<VecT>::value> type; };
+    template <class ElemT, int SizeN> struct VectorClosure<Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN> const& type; };
+    template <class ElemT, int SizeN> struct VectorClosure<const Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN> const& type; };
+    template <class ElemT, int SizeN> struct VectorClosure<VectorProxy<ElemT,SizeN> > { typedef VectorProxy<ElemT,SizeN> const& type; };
+    template <class ElemT, int SizeN> struct VectorClosure<const VectorProxy<ElemT,SizeN> > { typedef VectorProxy<ElemT,SizeN> const& type; };
+    typename VectorClosure<VectorT>::type m_vector;
 
   public:
     typedef typename ProductType<typename MatrixT::value_type, typename VectorT::value_type>::type value_type;
@@ -1940,9 +1940,26 @@ namespace math {
       (VectorSize<Vector1T>::value==0)?(0):(VectorSize<Vector2T>::value)> result_type;
     result_type result;
     result.set_size( v1.impl().size(), v2.size() );
-    for( int i=0; i<v1.impl().size(); ++i )
-      for( int j=0; j<v2.size(); ++j )
+    for( unsigned i=0; i<v1.impl().size(); ++i )
+      for( unsigned j=0; j<v2.size(); ++j )
         result(i,j) = v1.impl()(i) * v2(j);
+    return result;
+  }
+
+  /// Outer product of two vectors.
+  template <class Vector1T, class Vector2T>
+  Matrix<typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type,
+         (VectorSize<Vector2T>::value==0)?(0):(VectorSize<Vector1T>::value),
+         (VectorSize<Vector1T>::value==0)?(0):(VectorSize<Vector2T>::value)>
+  inline outer_prod( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
+    typedef Matrix<typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type,
+      (VectorSize<Vector2T>::value==0)?(0):(VectorSize<Vector1T>::value),
+      (VectorSize<Vector1T>::value==0)?(0):(VectorSize<Vector2T>::value)> result_type;
+    result_type result;
+    result.set_size( v1.impl().size(), v2.impl().size() );
+    for( unsigned i=0; i<v1.impl().size(); ++i )
+      for( unsigned j=0; j<v2.impl().size(); ++j )
+        result(i,j) = v1.impl()(i) * v2.impl()(j);
     return result;
   }
 
