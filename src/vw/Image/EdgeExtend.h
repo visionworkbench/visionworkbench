@@ -172,7 +172,7 @@ namespace vw {
     inline unsigned planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this,m_xoffset,m_yoffset); }
-    inline result_type operator()( int i, int j, int p = 0 ) const { return m_extend_func(m_image,i,j,p); }
+    inline result_type operator()( int i, int j, int p = 0 ) const { return m_extend_func(m_image,i+m_xoffset,j+m_yoffset,p); }
 
     ImageT const& child() const { return m_image; }
     EdgeExtendT const& func() const { return m_extend_func; }
