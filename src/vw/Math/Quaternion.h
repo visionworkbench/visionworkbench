@@ -491,6 +491,8 @@ namespace math {
 
 } // namespace math
   using math::Quaternion;
+  typedef Quaternion<double> Quat;
+  typedef Quaternion<float> Quatf;
 } // namespace vw
 
 #endif // __VW_QUATERNION_H__
