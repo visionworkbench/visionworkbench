@@ -29,7 +29,7 @@ if MAKE_MODULE_CAMERA
 
 if HAVE_PKG_LAPACK
 opm_headers = OrbitingPushbroomModel.h
-opm_sources = OrbitingPushbroomSources.h
+opm_sources = OrbitingPushbroomModel.cc
 endif
 
 include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h LinearPushbroomModel.h \

@@ -56,8 +56,8 @@ namespace camera {
   // ------------------------------------------------
   //           Interface
   // ------------------------------------------------
-  Vector2 LinearPushbroomModel::vector_to_pixel(Vector3 const& vec) const {
-    throw vw::NoImplErr() << "LinearPushbroomModel::vector_to_pixel is not yet implemented.";
+  Vector2 LinearPushbroomModel::point_to_pixel(Vector3 const& vec) const {
+    throw vw::NoImplErr() << "LinearPushbroomModel::point_to_pixel is not yet implemented.";
   }
   
   Vector3 LinearPushbroomModel::pixel_to_vector(Vector2 const& pix) const {

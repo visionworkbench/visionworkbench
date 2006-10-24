@@ -23,7 +23,7 @@
 
 /// \file CAHV.h
 /// 
-/// A CAHV Camera Model.
+/// This file contains the CAHV pinhole camera model.
 /// 
 #ifndef __VW_CAMERAMODEL_CAHV_H__
 #define __VW_CAMERAMODEL_CAHV_H__
@@ -37,6 +37,25 @@
 namespace vw { 
 namespace camera {
 
+
+  /// The CAHV pinhole comera model has been widely used in NASA
+  /// planetary mission for rover navigation and scientific camera
+  /// systems.  In the CAHV model, camera intrinsics and extrincsics
+  /// are jointly parameterized by four 3-Vectors C,A,H, and V.  The
+  /// strength of this model is the mathematical ease with which 3D
+  /// points can be projected onto the image plane.  The CAHV model is
+  /// computationally efficient, however it does not model lens
+  /// distortion.  For this, its close relative the CAHVOR model
+  /// should be used.  Refer to \ref vw::camera::CAHVORModel for more
+  /// information.
+  ///
+  /// References: 
+  ///
+  /// Yakimovsky, Y. and Cunningham R., "A System for Extracting
+  /// Three-Dimensional Measurements from a Stereo Pair of TV
+  /// Cameras". Computer Graphics and Image Processing 7,
+  /// pp. 195-210. (1978)
+  ///
   class CAHVModel : public CameraModel {
   public:
     //------------------------------------------------------------------
@@ -52,30 +71,75 @@ namespace camera {
     /// pinhole camera parameters.
     CAHVModel(std::string const& filename);
     
-    /// Inialize the CAHV vectors directly.
-    CAHVModel(Vector3 C_init, Vector3 A_init,
-              Vector3 H_init, Vector3 V_init);
+    /// Initialize the CAHV vectors directly in the native CAHV format.
+    CAHVModel(Vector3 C_vec, Vector3 A_vec, Vector3 H_vec, Vector3 V_vec) : 
+      C(C_vec), A(A_vec), H(H_vec), V(V_vec) {}
     
     /// Initialize the CAHV vectors indirectly using pinhole camera
     /// parameters.  In this variant, the view matrix is supplied
     /// directly.
-    CAHVModel(double f, Vector2 pixelSize,
+    ///
+    /// f         - focal length in world units
+    /// pixel_size - (width, height) of a pixel on the image plane in world units
+    /// xMin, xMax, yMin, yMax - image plane boundaries in units of pixels
+    ///
+    /// View matrix transformation:
+    /// 
+    /// |R00 R01 R02 Tx|
+    /// |R10 R11 R12 Ty|
+    /// |R20 R21 R22 Tz|
+    /// | 0   0   0   1|
+    /// 
+    CAHVModel(double f, Vector2 pixel_size, 
               double xmin, double xmax, double ymin, double ymax,
-              Matrix<double, 4, 4> viewMatrix);
+              Matrix<double, 4, 4> view_matrix) {
+
+      double fH = f/pixel_size.x();
+      double fV = f/pixel_size.y();
+      double Hc = -xmin;
+      double Vc = -ymin;
+      
+      Vector3 Hvec(view_matrix[0][0], view_matrix[0][1], view_matrix[0][2]);
+      Vector3 Vvec(view_matrix[1][0], view_matrix[1][1], view_matrix[1][2]);
+      
+      C = Vector3(view_matrix[3][0], view_matrix[3][1], view_matrix[3][2]);
+      A = Vector3(view_matrix[2][0], view_matrix[2][1], view_matrix[2][2]);
+      H = fH*Hvec + Hc*A;
+      V = fV*Vvec + Vc*A;	
+
+    }
     
     /// Initialize the CAHV vectors indirectly using pinhole camera
-    /// parameters.
-    CAHVModel(double f, Vector2  pixelSize, double Hc, double Vc,
-              Vector3 Cinit, Vector3 Ainit,
-              Vector3 Hvec, Vector3 Vvec);
+    /// parameters:
+    ///
+    /// f         - focal length in world units
+    /// pixel_size - (width, height) of a pixel on the image plane in world units
+    /// Hc, Vc    - location of projection of C on the image plane in units of
+    ///             pixels from lower left hand corner
+    ///
+    /// C         - center of projection in world coordinates
+    /// A         - unit vector perpendicular to image plane in world coords
+    ///             pointing out the "front" of the camera
+    /// Hvec      - unit horizontal image plane vector in world coords
+    /// Vvec      - unit vertical image plane vector in world coords
+    /// 
+    CAHVModel(double f, Vector2 pixel_size, double Hc, double Vc,
+              Vector3 Cinit, Vector3 Ainit, Vector3 Hvec, Vector3 Vvec) {
+      double fH = f/pixel_size.x();
+      double fV = f/pixel_size.y();
+      C = Cinit;
+      A = Ainit;
+      H = fH*Hvec + Hc*A;
+      V = fV*Vvec + Hc*A;
+    }
 
     virtual ~CAHVModel() {}
     
     //------------------------------------------------------------------
     // Methods
     //------------------------------------------------------------------
-    virtual Vector3 pixel_to_vector(Vector2 const& pix) const;
-    virtual Vector2 vector_to_pixel(Vector3 const& vec) const;
+    virtual Vector2 point_to_pixel(Vector3 const& point) const;
+    virtual Vector3 pixel_to_vector (Vector2 const& pix) const;
     virtual Vector3 camera_center(Vector2 const& pix = Vector2() ) const { return C; };
    
     //------------------------------------------------------------------
@@ -91,7 +155,9 @@ namespace camera {
     void read_pinhole(std::string const& filename);
   };
 
-  void epipolar(CAHVModel &src_camera0, CAHVModel &src_camera1, 
+  /// Given two CAHV camera models, this method returns two new camera
+  /// models that have been epipolar rectified.
+  void epipolar(CAHVModel const& src_camera0, CAHVModel const& src_camera1, 
                 CAHVModel &dst_camera0, CAHVModel &dst_camera1);
 
   

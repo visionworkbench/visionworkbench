@@ -20,16 +20,13 @@
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
 // 
 // __END_LICENSE__
+//
 #include <vw/Camera/CAHVORModel.h>
 
 using namespace std;
 
 namespace vw {
 namespace camera {
-
-  /****************************************************
-   *            Constructors / Destructors            *
-   ****************************************************/
 
   // Overloaded constructor - this one reads in the file name
   // where the CAVHOR camera model is saved.
@@ -85,23 +82,21 @@ namespace camera {
     fclose(cahvorFP);
 
     // For debugging:
-//     cout << "CameraModel_CAHV: C vector:" << C << "\n";
-//     cout << "CameraModel_CAHV: A vector:" << A << "\n";
-//     cout << "CameraModel_CAHV: H vector:" << H << "\n";
-//     cout << "CameraModel_CAHV: V vector:" << V << "\n";
-//     cout << "CameraModel_CAHV: O vector:" << O << "\n";
-//     cout << "CameraModel_CAHV: R vector:" << R << "\n";
+    //     cout << "CameraModel_CAHV: C vector:" << C << "\n";
+    //     cout << "CameraModel_CAHV: A vector:" << A << "\n";
+    //     cout << "CameraModel_CAHV: H vector:" << H << "\n";
+    //     cout << "CameraModel_CAHV: V vector:" << V << "\n";
+    //     cout << "CameraModel_CAHV: O vector:" << O << "\n";
+    //     cout << "CameraModel_CAHV: R vector:" << R << "\n";
   }
 
   // Set iteration and convergence constants
-#define MAXITER  20     // maximum number of iterations allowed 
-#define CONV   1.0e-6   // covergence tolerance - check adequacy for application 
-
-  ////////////////////////////////////////////////////
-  // CAHVOR pixel_to_vector
-  // with partial_derivative output
-  /////////////////////////////////////////////////////
+#define VW_CAHVOR_MAXITER  20     // maximum number of iterations allowed 
+#define VW_CAHVOR_CONV   1.0e-6   // covergence tolerance - check adequacy for application 
+  
+  // CAHVOR pixel_to_vector with partial_derivative output
   Vector3 CAHVORModel::pixel_to_vector(Vector2 const& pix, Matrix<double> &partial_derivatives) const {
+
     // Note, vec is actually the output vector
     // Based on JPL_CMOD_CAHVOR_2D_TO_3D
     Vector3 vec;
@@ -188,7 +183,7 @@ namespace camera {
     mu = R(0) + k3 + k5;
     u = 1.0 - mu;	// initial approximation for iterations 
 
-    for (i=0; i<MAXITER; i++) {
+    for (i=0; i<VW_CAHVOR_MAXITER; i++) {
       u_2 = u*u;
       poly  =  ((k5*u_2  +  k3)*u_2 + k1)*u - 1;
       deriv = (5*k5*u_2 + 3*k3)*u_2 + k1;
@@ -199,12 +194,12 @@ namespace camera {
       } else {
         du = poly/deriv;
         u -= du;
-        if (fabs(du) < CONV)
+        if (fabs(du) < VW_CAHVOR_CONV)
           break;
       } 
     } 
     
-    if (i >= MAXITER) {
+    if (i >= VW_CAHVOR_MAXITER) {
       printf("CAHVORModel.pixel_to_vector(): Too many iterations (%d)\n", i);
     } 
 
@@ -276,11 +271,7 @@ namespace camera {
   } 
 
 
-  ////////////////////////////////////////////////////////
-  // CAHVOR
   // pixel_to_vector (no returned partial matrix)
-  ////////////////////////////////////////////////////////
-
   Vector3 CAHVORModel::pixel_to_vector(Vector2 const& pix) const {
 
     // vec is actually the output vector, vec is just the C vector of the camera
@@ -348,7 +339,7 @@ namespace camera {
     mu = R(0) + k3 + k5;
     u = 1.0 - mu;	// initial approximation for iterations 
     
-    for (i=0; i<MAXITER; i++) {
+    for (i=0; i<VW_CAHVOR_MAXITER; i++) {
 
       u_2 = u*u;
       poly  =  ((k5*u_2  +  k3)*u_2 + k1)*u - 1;
@@ -360,13 +351,13 @@ namespace camera {
       } else {
         du = poly/deriv;
         u -= du;
-        if (fabs(du) < CONV)
+        if (fabs(du) < VW_CAHVOR_CONV)
           break;
       } 
     } 
   
 
-    if (i >= MAXITER) {
+    if (i >= VW_CAHVOR_MAXITER) {
       printf("CAHVORModel.pixel_to_vector(): Too many iterations (%d)\n", i);
     } 
 
@@ -379,12 +370,10 @@ namespace camera {
   }
 
 
-  //////////////////////////////////////////////////////////////////
-  // CAHVOR 
   // vector_to_pixel with partial_derivatives 
-  //////////////////////////////////////////////////////////////////
-  Vector2 CAHVORModel::vector_to_pixel(Vector3 const& vec, Matrix<double> &partial_derivatives) const {
+  Vector2 CAHVORModel::point_to_pixel(Vector3 const& point, Matrix<double> &partial_derivatives) const {
 
+    Vector3 vec = point - C;
     // Based on JPL 3D to 2D POINT (not the 3D to 2D function alone).
     Vector2 pix;
     double alpha, beta, gamma, xh, yh;
@@ -458,13 +447,10 @@ namespace camera {
     return pix;
   } 
 
-  /////////////////////////////////////////////////////
-  // CAHVOR 
   // vector_to_pixel without partial_derivatives
-  /////////////////////////////////////////////////////
+  Vector2 CAHVORModel::point_to_pixel(Vector3 const& point) const {
 
-  Vector2 CAHVORModel::vector_to_pixel(Vector3 const& vec) const {
-
+    Vector3 vec = point - C;
     Vector2 pix;
     // cout << "Starting CAHVOR VectorToPixel w/o partial... " << endl;
     double alpha, beta, gamma, xh, yh;
@@ -494,24 +480,20 @@ namespace camera {
   }
 
 
-  /////////////////////////////////////////////////////////
   // linearize_camera 
   //
   // Takes CAHVOR camera --> CAHV camera 
   // Requires knowledge of size of image from CAHVOR camera
-  /////////////////////////////////////////////////////////
+  //
+  // This function warps a camera model so that it is purely
+  // linear. The parameter C will not change. The parameters O
+  // (identical to A) and R (all terms zero) will not be output. Note
+  // that image warping will be necessary in order to use the new
+  // models.
   CAHVModel linearize_camera(CAHVORModel &camera_model, 
-                             unsigned cahvor_image_width, 
-                             unsigned cahvor_image_height,
-                             unsigned cahv_image_width, 
-                             unsigned cahv_image_height) {
+                             unsigned cahvor_image_width, unsigned cahvor_image_height,
+                             unsigned cahv_image_width, unsigned cahv_image_height) {
     
-    
-    // This function warps a camera model so that it is purely
-    // linear. The parameter C will not change. The parameters O
-    // (identical to A) and R (all terms zero) will not be output. Note
-    // that image warping will be necessary in order to use the new
-    // models.
     unsigned int minfov = 1; // set to 0 if you do not want to minimize to a common field of view
     unsigned int i;
 

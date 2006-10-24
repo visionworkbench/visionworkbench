@@ -23,7 +23,9 @@
 
 /// \file CAHVOR.h
 /// 
-/// A CAHVOR Camera Model.
+/// This file contains the CAHVOR pinhole camera model.  This camera
+/// model is a refinement of the \ref CAHVModel: it adds extra terms
+/// to model basic radial camera distortion.
 /// 
 #ifndef __VW_CAMERAMODEL_CAHVOR_H__
 #define __VW_CAMERAMODEL_CAHVOR_H__
@@ -52,18 +54,23 @@ namespace camera {
     /// Read a CAHVOR file from disk.
     CAHVORModel(std::string const& filename);
 
+    /// Initialize the CAHVOR vectors directly in the native CAHVOR format.
+    CAHVORModel(Vector3 C_vec, Vector3 A_vec, Vector3 H_vec, Vector3 V_vec,
+                Vector3 O_vec, Vector3 R_vec) : 
+      C(C_vec), A(A_vec), H(H_vec), V(V_vec), O(O_vec), R(R_vec) {}
+
     virtual ~CAHVORModel() {}
 
     //------------------------------------------------------------------
     // Methods
     //------------------------------------------------------------------
+    virtual Vector2 point_to_pixel(Vector3 const& point) const;
     virtual Vector3 pixel_to_vector(Vector2 const& pix) const;
-    virtual Vector2 vector_to_pixel(Vector3 const& vec) const;
     virtual Vector3 camera_center(Vector2 const& pix = Vector2() ) const { return C; };
 
     // Overloaded versions also return partial derviatives in a Matrix.
+    Vector2 point_to_pixel(Vector3 const& point, Matrix<double> &partial_derivatives) const;
     Vector3 pixel_to_vector(Vector2 const& pix, Matrix<double> &partial_derivatives) const;
-    Vector2 vector_to_pixel(Vector3 const& vec, Matrix<double> &partial_derivatives) const;
       
     //------------------------------------------------------------------
     // Exposed Variables
@@ -87,7 +94,7 @@ namespace camera {
                              unsigned cahv_image_width,
                              unsigned cahv_image_height);
   
-}}	// namespace vw::stereo
+}}	// namespace vw::camera
 
 #endif	//__CAMERAMODEL_CAHVOR_H__
 

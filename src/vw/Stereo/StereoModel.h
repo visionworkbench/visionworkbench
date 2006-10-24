@@ -44,21 +44,6 @@ namespace stereo {
       
       Vector3 originB = m_camera2->camera_center(pix2);
       Vector3 vecFromB = m_camera2->pixel_to_vector(pix2);
-
-//       Vector3 originA = Vector3(0,0,0);
-//       Vector3 vecFromA = Vector3(1,1,0);
-      
-//       Vector3 originB = Vector3(4,0,0);
-//       Vector3 vecFromB = Vector3(-1,1,0);
-
-
-//       std::cout << "  A:   " << originA << " to " << vecFromA << "\n";
-//       std::cout << "  B:   " << originB << " to " << vecFromB << "\n";
-      
-      // Compute the closest point of intersection
-//       return ray_ray_closest_intersection(originA, vecFromA,
-//                                           originB, vecFromB,
-//                                           error);
       
       return triangulate_point(originA, vecFromA,
                                originB, vecFromB, 
@@ -74,20 +59,6 @@ namespace stereo {
     /// closest point of intersectio of A to the closest point of
     /// intersection of B ), or -1 if the rays are parallel or
     /// divergent.
-    Vector3 ray_ray_closest_intersection(Vector3 const& pointA,
-                                         Vector3 const& vecFromA,
-                                         Vector3 const& pointB,
-                                         Vector3 const& vecFromB,
-                                         double &error) const;
-    
-
-    Vector3 triangulate_point_test(Vector3 const& pointA,
-                                   Vector3 const& vecFromA,
-                                   Vector3 const& pointB,
-                                   Vector3 const& vecFromB,
-                                   double& error) const;
-
-    
     Vector3 triangulate_point(Vector3 const& pointA,
                               Vector3 const& vecFromA,
                               Vector3 const& pointB,

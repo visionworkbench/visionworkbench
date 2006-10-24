@@ -100,7 +100,7 @@ namespace camera {
     // Interface
     //------------------------------------------------------------------
 
-    virtual Vector2 vector_to_pixel(Vector3 const& vec) const;
+    virtual Vector2 point_to_pixel(Vector3 const& vec) const;
 
     /// Given a pixel in image coordinates, what is the pointing
     /// vector in 3-space if you apply the camera model.
@@ -159,7 +159,6 @@ namespace camera {
     
     Quaternion<double> camera_pose (double t) const;
     Vector3 camera_position (double t) const;
-
 
     void set_camera_poses(std::vector<Quaternion<double> > const& val, double t0, double dt) {  
       m_t0_camera_pose = t0;

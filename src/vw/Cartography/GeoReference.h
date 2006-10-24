@@ -123,9 +123,13 @@ namespace cartography {
       if (m_east_positive) 
         lon = atan2(p.y(), p.x());
       else // West positive longitude
-        lon = atan2(-p.y(), p.x());        
+        lon = atan2(-p.y(), p.x()); 
 
-      return Vector<ElemT,3> (lon * 180.0 / M_PI, lat * 180.0 / M_PI, radius);
+      // For consistency-sake, we always return a positive longitude.
+      if (lon < 0) 
+        lon = 2*M_PI + lon;
+
+      return Vector<ElemT,3> (lat * 180.0 / M_PI, lon * 180.0 / M_PI, radius);
     }
   };
   

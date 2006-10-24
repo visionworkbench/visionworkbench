@@ -209,8 +209,8 @@ namespace camera {
   // ------------------------------------------------
   //           interface
   // ------------------------------------------------
-  Vector2 OrbitingPushbroomModel::vector_to_pixel(Vector3 const& vec) const {
-    throw vw::NoImplErr() << "OrbitingPushbroomModel::vector_to_pixel is not yet implemented.";
+  Vector2 OrbitingPushbroomModel::point_to_pixel(Vector3 const& vec) const {
+    throw vw::NoImplErr() << "OrbitingPushbroomModel::point_to_pixel is not yet implemented.";
   }
   
   Vector3 OrbitingPushbroomModel::pixel_to_vector(Vector2 const& pix) const {

@@ -20,6 +20,7 @@
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
 // 
 // __END_LICENSE__
+// 
 #include <vw/Camera/CAHVModel.h>
 #include <boost/algorithm/string.hpp>
 
@@ -27,10 +28,6 @@ using namespace std;
 
 namespace vw {
 namespace camera {
-
-  // --------------------------------------------------
-  //                 Constructors / Destructors
-  // --------------------------------------------------
 
   /// This constructor takes a filename and reads in a camera model
   /// from the file.  The file may contain either CAHV parameters or
@@ -47,59 +44,12 @@ namespace camera {
       throw IOErr() << "CAHVModel: Unknown camera file suffix.";
   }
 
-  /// For existing CAHV parameters, this one takes the
-  /// C, A, H, and V vectors directly.
-  CAHVModel::CAHVModel(Vector3 C_init, Vector3 A_init, 
-                       Vector3 H_init, Vector3 V_init) : 
-    C(C_init), A(A_init), H(H_init), V(V_init) {}
-
-
-  /// For use with pinhole camera input parameters: This one takes the
-  /// focal lengths f, Hc, Vc, and initial C and A vectors and
-  /// generates C, A, H, and V
-  CAHVModel::CAHVModel(double f, Vector2 pixelSize, double Hc, double Vc, 
-                       Vector3 Cinit, Vector3 Ainit, 
-                       Vector3 Hvec, Vector3 Vvec) {
-    double fH = f/pixelSize.x();
-    double fV = f/pixelSize.y();
-    C = Cinit;
-    A = Ainit;
-    H = fH*Hvec + Hc*A;
-    V = fV*Vvec + Hc*A;
+  Vector2 CAHVModel::point_to_pixel(Vector3 const& point) const {
+    double dDot = dot_prod(point-C, A);
+    return Vector2( dot_prod(point-C, H) / dDot,
+                    dot_prod(point-C, V) / dDot );
   }
 
-  /// For use with pinhole camera model parameters.  Takes f,
-  /// pixelSize, xmin, xmax, ymin, ymax, and viewMatrix (4x4)
-  CAHVModel::CAHVModel(double f, Vector2 pixelSize,
-                       double xmin, double xmax, double ymin, double ymax,
-                       Matrix<double, 4, 4> viewMatrix) {
-    double fH = f/pixelSize.x();
-    double fV = f/pixelSize.y();
-    double Hc = -xmin;
-    double Vc = -ymin;
-    
-    Vector3 Hvec(viewMatrix[0][0],
-                 viewMatrix[0][1],
-                 viewMatrix[0][2]);
-    Vector3 Vvec(viewMatrix[1][0],
-                 viewMatrix[1][1],
-                 viewMatrix[1][2]);
-    
-    C[0] = viewMatrix[3][0];
-    C[1] = viewMatrix[3][1];
-    C[2] = viewMatrix[3][2];
-    
-    A[0] = viewMatrix[2][0];
-    A[1] = viewMatrix[2][1];
-    A[2] = viewMatrix[2][2];
-    
-    H = fH*Hvec + Hc*A;
-    V = fV*Vvec + Vc*A;	
-  }
-
-  // --------------------------------------------------
-  //                 Public Methods
-  // --------------------------------------------------
   Vector3 CAHVModel::pixel_to_vector(Vector2 const& pix) const {
     Vector3 va, vb;
     
@@ -126,13 +76,6 @@ namespace camera {
     return vec;
   }
 
-  Vector2 CAHVModel::vector_to_pixel(Vector3 const& vec) const {
-    double dDot = dot_prod(vec, A);
-    return Vector2( dot_prod(vec, H) / dDot,
-                    dot_prod(vec, V) / dDot );
-  }
-
- 
   // --------------------------------------------------
   //                 Private Methods
   // --------------------------------------------------
@@ -254,7 +197,7 @@ namespace camera {
   }
 
 
-  void epipolar(CAHVModel &src_camera0, CAHVModel &src_camera1, 
+  void epipolar(CAHVModel const& src_camera0, CAHVModel const& src_camera1, 
                 CAHVModel &dst_camera0, CAHVModel &dst_camera1) {
 
     double hs, hc, vs, vc, theta;
@@ -277,6 +220,7 @@ namespace camera {
     
     // Use common center and scale to construct common A, H, V 
     app  = src_camera0.A + src_camera1.A;
+
     // Note the directionality of f here, for consistency later
     f = src_camera1.C - src_camera0.C;
     g = cross_prod(app, f); // alter f (CxCy) to be         
