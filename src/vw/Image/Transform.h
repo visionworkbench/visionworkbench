@@ -96,8 +96,8 @@ namespace vw {
     template <class TransformT>
     struct TransformConcept {
       void constraints() {
-				Vector2 p(0,0);
-				Vector2 p_out = mapper.reverse(p);
+        Vector2 p(0,0);
+        Vector2 p_out = mapper.reverse(p);
       }
       TransformT mapper;
     };
@@ -111,9 +111,9 @@ namespace vw {
     template <class TransformT>
     struct InvertibleTransformConcept {
       void constraints() {
-				boost::function_requires< TransformConcept<TransformT> >();
-				Vector2 p(0,0);
-				Vector2 p_out = mapper.forward(p);
+        boost::function_requires< TransformConcept<TransformT> >();
+        Vector2 p(0,0);
+        Vector2 p_out = mapper.forward(p);
       }
       TransformT mapper;
     };

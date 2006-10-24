@@ -71,7 +71,11 @@ namespace camera {
     // Overloaded versions also return partial derviatives in a Matrix.
     Vector2 point_to_pixel(Vector3 const& point, Matrix<double> &partial_derivatives) const;
     Vector3 pixel_to_vector(Vector2 const& pix, Matrix<double> &partial_derivatives) const;
-      
+
+    void get_point_derivatives( Vector3 const& P, double& u, double& v,
+                                Vector3& grad_u, Vector3& grad_v,
+                                Matrix3x3& hess_u, Matrix3x3& hess_v ) const;
+
     //------------------------------------------------------------------
     // Exposed Variables
     //------------------------------------------------------------------

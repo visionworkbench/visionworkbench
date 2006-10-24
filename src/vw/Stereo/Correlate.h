@@ -314,7 +314,7 @@ void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
 static void cross_corr_consistency_check(ImageView<PixelDisparity<float> > &L2R, 
                                          ImageView<PixelDisparity<float> > &R2L,
                                          double cross_corr_threshold) {
-  int xx,yy;
+  unsigned xx,yy;
   int xOffset, yOffset;
   int count = 0, match_count = 0;
 

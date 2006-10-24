@@ -28,5 +28,7 @@
 #ifndef __VW_MOSAIC_H__
 #define __VW_MOSAIC_H__
 
+#include <vw/Mosaic/QuadTreeGenerator.h>
+#include <vw/Mosaic/ImageComposite.h>
 
 #endif // __VW_MOSAIC_H__

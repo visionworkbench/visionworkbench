@@ -1,0 +1,31 @@
+\chapter{Getting Started}
+
+\section{Obtaining the Vision Workbench}
+
+\section{Installing the Vision Workbench}
+
+\section{A Simple Example Program}
+
+Let's start off with a simple fully-functional example program, shown
+in Listing \ref{lst:vwconvert.cc}.  You should be able to obtain an
+electronic copy of this source file (as well as all the others listed
+in this book) from wherever you obtained this document.  For now don't
+worry about how this program works, though we hope it is fairly
+self-explanatory.  Instead, just make sure that you can build and run
+it successfully.  This will ensure that you have installed the Vision
+Workbench properly on your computer and that you have correctly
+configured your programming environment to use it.
+
+\sourcelst{vwconvert.cc}{A simple demonstration program that can
+copy image files and convert them from one file format to another.}
+
+The program reads in an image from a source file on disk and writes it 
+back out to a destination file, possibly using a different file format.  
+It takes the source and destination filenames as two command-line arguments.  
+For example, to convert a JPEG image called \verb#image.jpg# in the current 
+directory into a PNG image you might say:
+\begin{verbatim}
+  vwconvert image.jpg image.png
+\end{verbatim}
+The details of how you invoke a command-line tool like this will of 
+course vary from one operating system to another.

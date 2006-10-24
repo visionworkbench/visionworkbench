@@ -58,10 +58,10 @@ public:
   do {                                                                  \
     ToyType<double> a(arg);                                             \
     TS_ASSERT_DELTA( (op a)[0], (result), 0.00001 );                    \
-    TS_ASSERT( is_of_type<ToyType<float> >( (op ToyType<float>()) ) );  \
-    TS_ASSERT( is_of_type<ToyType<double> >( (op ToyType<double>()) ) ); \
-    TS_ASSERT( is_of_type<ToyType<long double> >( (op ToyType<long double>()) ) ); \
-    TS_ASSERT( is_of_type<ToyType<int> >( (op ToyType<int>()) ) );      \
+    TS_ASSERT( is_of_type<ToyType<float> >( (op ToyType<float>(1)) ) );  \
+    TS_ASSERT( is_of_type<ToyType<double> >( (op ToyType<double>(1)) ) ); \
+    TS_ASSERT( is_of_type<ToyType<long double> >( (op ToyType<long double>(1)) ) ); \
+    TS_ASSERT( is_of_type<ToyType<int> >( (op ToyType<int>(1)) ) );      \
   } while(false)
 
 #define TEST_BINARY_MATH_OPERATOR(op,arg1,arg2,result)                  \
@@ -70,27 +70,27 @@ public:
     TS_ASSERT_DELTA( (a op b)[0], (result), 0.00001 );                  \
     TS_ASSERT_DELTA( (a op double(arg2))[0], (result), 0.00001 );       \
     TS_ASSERT_DELTA( (double(arg1) op b)[0], (result), 0.00001 );       \
-    TS_ASSERT( is_of_type<ToyType<float> >( (ToyType<float>() op ToyType<float>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( (ToyType<double>() op ToyType<double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<long double> >( (ToyType<long double>() op ToyType<long double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( (ToyType<float>() op ToyType<double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<long double> >( (ToyType<long double>() op ToyType<double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<float> >( (ToyType<float>() op ToyType<int>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<int> >( (ToyType<int>() op ToyType<int>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<float> >( (ToyType<float>() op float() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( (ToyType<double>() op double() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<long double> >( (ToyType<long double>() op (long double)(0) ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( (ToyType<float>() op double() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<long double> >( (ToyType<long double>() op double() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<float> >( (ToyType<float>() op int() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<int> >( (ToyType<int>() op int() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<float> >( (float() op ToyType<float>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( (double() op ToyType<double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<long double> >( ((long double)(0) op ToyType<long double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( (float() op ToyType<double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<long double> >( ((long double)(0) op ToyType<double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<float> >( (float() op ToyType<int>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<int> >( (int() op ToyType<int>() ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<float> >( (ToyType<float>(1) op ToyType<float>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( (ToyType<double>(1) op ToyType<double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<long double> >( (ToyType<long double>(1) op ToyType<long double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( (ToyType<float>(1) op ToyType<double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<long double> >( (ToyType<long double>(1) op ToyType<double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<float> >( (ToyType<float>(1) op ToyType<int>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<int> >( (ToyType<int>(1) op ToyType<int>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<float> >( (ToyType<float>(1) op float(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( (ToyType<double>(1) op double(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<long double> >( (ToyType<long double>(1) op (long double)(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( (ToyType<float>(1) op double(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<long double> >( (ToyType<long double>(1) op double(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<float> >( (ToyType<float>(1) op int(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<int> >( (ToyType<int>(1) op int(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<float> >( (float(1) op ToyType<float>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( (double(1) op ToyType<double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<long double> >( ((long double)(1) op ToyType<long double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( (float(1) op ToyType<double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<long double> >( ((long double)(1) op ToyType<double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<float> >( (float(1) op ToyType<int>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<int> >( (int(1) op ToyType<int>(1) ) ) ); \
   } while(false)
 
   void test_netation() { TEST_UNARY_MATH_OPERATOR(-,1,-1); }
@@ -103,10 +103,10 @@ public:
   do {                                                                  \
     ToyType<double> a(arg);                                             \
     TS_ASSERT_DELTA( name(a)[0], (result), 0.00001 );                   \
-    TS_ASSERT( is_of_type<ToyType<float> >( name(ToyType<float>()) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<double>()) ) ); \
-    TS_ASSERT( is_of_type<ToyType<long double> >( name(ToyType<long double>()) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<int>()) ) );  \
+    TS_ASSERT( is_of_type<ToyType<float> >( name(ToyType<float>(1)) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<double>(1)) ) ); \
+    TS_ASSERT( is_of_type<ToyType<long double> >( name(ToyType<long double>(1)) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<int>(1)) ) );  \
   } while(false)
 
 #define TEST_BINARY_MATH_FUNCTION(name,arg1,arg2,result)                \
@@ -115,27 +115,27 @@ public:
     TS_ASSERT_DELTA( name(a,b)[0], (result), 0.00001 );                 \
     TS_ASSERT_DELTA( name(a,double(arg2))[0], (result), 0.00001 );      \
     TS_ASSERT_DELTA( name(double(arg1),b)[0], (result), 0.00001 );      \
-    TS_ASSERT( is_of_type<ToyType<float> >( name(ToyType<float>(),ToyType<float>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<double>(),ToyType<double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<long double> >( name(ToyType<long double>(),ToyType<long double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<float>(),ToyType<double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<long double> >( name(ToyType<long double>(),ToyType<double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<float> >( name(ToyType<float>(),ToyType<int>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<int>(),ToyType<int>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<float> >( name(ToyType<float>(),float() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<double>(),double() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<long double> >( name(ToyType<long double>(),(long double)(0) ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<float>(),double() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<long double> >( name(ToyType<long double>(),double() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<float> >( name(ToyType<float>(),int() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<int>(),int() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<float> >( name(float(),ToyType<float>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( name(double(),ToyType<double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<long double> >( name((long double)(0),ToyType<long double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( name(float(),ToyType<double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<long double> >( name((long double)(0),ToyType<double>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<float> >( name(float(),ToyType<int>() ) ) ); \
-    TS_ASSERT( is_of_type<ToyType<double> >( name(int(),ToyType<int>() ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<float> >( name(ToyType<float>(1),ToyType<float>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<double>(1),ToyType<double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<long double> >( name(ToyType<long double>(1),ToyType<long double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<float>(1),ToyType<double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<long double> >( name(ToyType<long double>(1),ToyType<double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<float> >( name(ToyType<float>(1),ToyType<int>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<int>(1),ToyType<int>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<float> >( name(ToyType<float>(1),float(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<double>(1),double(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<long double> >( name(ToyType<long double>(1),(long double)(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<float>(1),double(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<long double> >( name(ToyType<long double>(1),double(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<float> >( name(ToyType<float>(1),int(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( name(ToyType<int>(1),int(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<float> >( name(float(1),ToyType<float>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( name(double(1),ToyType<double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<long double> >( name((long double)(1),ToyType<long double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( name(float(1),ToyType<double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<long double> >( name((long double)(1),ToyType<double>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<float> >( name(float(1),ToyType<int>(1) ) ) ); \
+    TS_ASSERT( is_of_type<ToyType<double> >( name(int(1),ToyType<int>(1) ) ) ); \
   } while(false)
 
   void test_acos() { TEST_UNARY_MATH_FUNCTION(acos,0.5,1.0472); }
@@ -194,54 +194,54 @@ public:
     ToyType<std::complex<double> > ac(std::complex<double>(2,3));
     TS_ASSERT_EQUALS( real(ToyType<double>(1.0))[0], 1.0 );
     TS_ASSERT_EQUALS( real(ToyType<std::complex<double> >(std::complex<double>(2,3)))[0], 2.0 );
-    TS_ASSERT( is_of_type<ToyType<float> >( real(ToyType<float>()) ) );
-    TS_ASSERT( is_of_type<ToyType<double> >( real(ToyType<double>()) ) );
-    TS_ASSERT( is_of_type<ToyType<long double> >( real(ToyType<long double>()) ) );
-    TS_ASSERT( is_of_type<ToyType<int> >( real(ToyType<int>()) ) );
-    TS_ASSERT( is_of_type<ToyType<float> >( real(ToyType<std::complex<float> >()) ) );
-    TS_ASSERT( is_of_type<ToyType<double> >( real(ToyType<std::complex<double> >()) ) );
-    TS_ASSERT( is_of_type<ToyType<long double> >( real(ToyType<std::complex<long double> >()) ) );
-    TS_ASSERT( is_of_type<ToyType<int> >( real(ToyType<std::complex<int> >()) ) );
+    TS_ASSERT( is_of_type<ToyType<float> >( real(ToyType<float>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<double> >( real(ToyType<double>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<long double> >( real(ToyType<long double>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<int> >( real(ToyType<int>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<float> >( real(ToyType<std::complex<float> >(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<double> >( real(ToyType<std::complex<double> >(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<long double> >( real(ToyType<std::complex<long double> >(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<int> >( real(ToyType<std::complex<int> >(1)) ) );
   }
 
   void test_imag() {
     TS_ASSERT_EQUALS( imag(ToyType<double>(1.0))[0], 0.0 );
     TS_ASSERT_EQUALS( imag(ToyType<std::complex<double> >(std::complex<double>(2,3)))[0], 3.0 );
-    TS_ASSERT( is_of_type<ToyType<float> >( imag(ToyType<float>()) ) );
-    TS_ASSERT( is_of_type<ToyType<double> >( imag(ToyType<double>()) ) );
-    TS_ASSERT( is_of_type<ToyType<long double> >( imag(ToyType<long double>()) ) );
-    TS_ASSERT( is_of_type<ToyType<int> >( imag(ToyType<int>()) ) );
-    TS_ASSERT( is_of_type<ToyType<float> >( imag(ToyType<std::complex<float> >()) ) );
-    TS_ASSERT( is_of_type<ToyType<double> >( imag(ToyType<std::complex<double> >()) ) );
-    TS_ASSERT( is_of_type<ToyType<long double> >( imag(ToyType<std::complex<long double> >()) ) );
-    TS_ASSERT( is_of_type<ToyType<int> >( imag(ToyType<std::complex<int> >()) ) );
+    TS_ASSERT( is_of_type<ToyType<float> >( imag(ToyType<float>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<double> >( imag(ToyType<double>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<long double> >( imag(ToyType<long double>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<int> >( imag(ToyType<int>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<float> >( imag(ToyType<std::complex<float> >(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<double> >( imag(ToyType<std::complex<double> >(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<long double> >( imag(ToyType<std::complex<long double> >(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<int> >( imag(ToyType<std::complex<int> >(1)) ) );
   }
 
   void test_abs() {
     TS_ASSERT_EQUALS( abs(ToyType<double>(1.0))[0], 1.0 );
     TS_ASSERT_EQUALS( abs(ToyType<double>(-1.0))[0], 1.0 );
     TS_ASSERT_DELTA( abs(ToyType<std::complex<double> >(std::complex<double>(3,4)))[0], 5.0, 0.00001 );
-    TS_ASSERT( is_of_type<ToyType<float> >( abs(ToyType<float>()) ) );
-    TS_ASSERT( is_of_type<ToyType<double> >( abs(ToyType<double>()) ) );
-    TS_ASSERT( is_of_type<ToyType<long double> >( abs(ToyType<long double>()) ) );
-    TS_ASSERT( is_of_type<ToyType<int> >( abs(ToyType<int>()) ) );
-    TS_ASSERT( is_of_type<ToyType<float> >( abs(ToyType<std::complex<float> >()) ) );
-    TS_ASSERT( is_of_type<ToyType<double> >( abs(ToyType<std::complex<double> >()) ) );
-    TS_ASSERT( is_of_type<ToyType<long double> >( abs(ToyType<std::complex<long double> >()) ) );
+    TS_ASSERT( is_of_type<ToyType<float> >( abs(ToyType<float>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<double> >( abs(ToyType<double>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<long double> >( abs(ToyType<long double>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<int> >( abs(ToyType<int>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<float> >( abs(ToyType<std::complex<float> >(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<double> >( abs(ToyType<std::complex<double> >(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<long double> >( abs(ToyType<std::complex<long double> >(1)) ) );
   }
 
   void test_conj() {
     TS_ASSERT_EQUALS( conj(ToyType<double>(1.0))[0], 1.0 );
     TS_ASSERT_EQUALS( conj(ToyType<double>(-1.0))[0], -1.0 );
     TS_ASSERT_EQUALS( conj(ToyType<std::complex<double> >(std::complex<double>(3,4)))[0], std::complex<double>(3,-4) );
-    TS_ASSERT( is_of_type<ToyType<float> >( conj(ToyType<float>()) ) );
-    TS_ASSERT( is_of_type<ToyType<double> >( conj(ToyType<double>()) ) );
-    TS_ASSERT( is_of_type<ToyType<long double> >( conj(ToyType<long double>()) ) );
-    TS_ASSERT( is_of_type<ToyType<int> >( conj(ToyType<int>()) ) );
-    TS_ASSERT( is_of_type<ToyType<std::complex<float> > >( conj(ToyType<std::complex<float> >()) ) );
-    TS_ASSERT( is_of_type<ToyType<std::complex<double> > >( conj(ToyType<std::complex<double> >()) ) );
-    TS_ASSERT( is_of_type<ToyType<std::complex<long double> > >( conj(ToyType<std::complex<long double> >()) ) );
-    TS_ASSERT( is_of_type<ToyType<std::complex<int> > >( conj(ToyType<std::complex<int> >()) ) );
+    TS_ASSERT( is_of_type<ToyType<float> >( conj(ToyType<float>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<double> >( conj(ToyType<double>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<long double> >( conj(ToyType<long double>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<int> >( conj(ToyType<int>(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<std::complex<float> > >( conj(ToyType<std::complex<float> >(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<std::complex<double> > >( conj(ToyType<std::complex<double> >(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<std::complex<long double> > >( conj(ToyType<std::complex<long double> >(1)) ) );
+    TS_ASSERT( is_of_type<ToyType<std::complex<int> > >( conj(ToyType<std::complex<int> >(1)) ) );
   }
 
 };

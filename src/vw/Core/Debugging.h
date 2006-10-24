@@ -69,8 +69,8 @@ namespace vw {
     VerboseDebugMessage = 40
   };
 
-  std::ostream& vw_out( MessageLevel level );
-  void set_debug_level( MessageLevel level );
+  std::ostream& vw_out( int level );
+  void set_debug_level( int level );
   void set_output_stream( std::ostream& stream );
 
 

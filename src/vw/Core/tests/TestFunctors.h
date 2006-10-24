@@ -31,7 +31,6 @@ using namespace vw;
 class TestFunctors : public CxxTest::TestSuite
 {
 public:
-
   template <class T1, class T2>
   static bool is_of_type( T2 ) {
     return boost::is_same<T1,T2>::value;
@@ -40,30 +39,32 @@ public:
   void test_ArgNegationFunctor() {
     ArgNegationFunctor f;
     TS_ASSERT_EQUALS( f(1), -1 );
-    TS_ASSERT( is_of_type<int>( f(int()) ) );
-    TS_ASSERT( is_of_type<float>( f(float()) ) );
-    TS_ASSERT( is_of_type<double>( f(double()) ) );
+    TS_ASSERT( is_of_type<int>( f(int(1)) ) );
+    TS_ASSERT( is_of_type<float>( f(float(1)) ) );
+    TS_ASSERT( is_of_type<double>( f(double(1)) ) );
   }
 
+  // We use the value 1 instead of the default-constructed value here so 
+  // that division by zero doesn't bite us when optimization is disabled.
 #define TEST_BINARY_MATH_FUNCTOR(name,arg1,arg2,result)                 \
   do {                                                                  \
     ArgArg##name##Functor f1;                                           \
     TS_ASSERT_EQUALS( f1((arg1),(arg2)), (result) );                    \
-    TS_ASSERT( is_of_type<int>( f1(int(),int()) ) );                    \
-    TS_ASSERT( is_of_type<float>( f1(int(),float()) ) );                \
-    TS_ASSERT( is_of_type<double>( f1(double(),float()) ) );            \
+    TS_ASSERT( is_of_type<int>( f1(int(1),int(1)) ) );                    \
+    TS_ASSERT( is_of_type<float>( f1(int(1),float(1)) ) );                \
+    TS_ASSERT( is_of_type<double>( f1(double(1),float(1)) ) );            \
     TS_ASSERT_EQUALS( ValArg##name##Functor<double>(arg1)(arg2), (result) ); \
-    TS_ASSERT( is_of_type<int>( ValArg##name##Functor<int>(int())(int()) ) ); \
-    TS_ASSERT( is_of_type<float>( ValArg##name##Functor<float>(float())(int()) ) ); \
-    TS_ASSERT( is_of_type<float>( ValArg##name##Functor<int>(int())(float()) ) ); \
-    TS_ASSERT( is_of_type<double>( ValArg##name##Functor<float>(float())(double()) ) ); \
-    TS_ASSERT( is_of_type<double>( ValArg##name##Functor<double>(double())(float()) ) ); \
+    TS_ASSERT( is_of_type<int>( ValArg##name##Functor<int>(int(1))(int(1)) ) ); \
+    TS_ASSERT( is_of_type<float>( ValArg##name##Functor<float>(float(1))(int(1)) ) ); \
+    TS_ASSERT( is_of_type<float>( ValArg##name##Functor<int>(int(1))(float(1)) ) ); \
+    TS_ASSERT( is_of_type<double>( ValArg##name##Functor<float>(float(1))(double(1)) ) ); \
+    TS_ASSERT( is_of_type<double>( ValArg##name##Functor<double>(double(1))(float(1)) ) ); \
     TS_ASSERT_EQUALS( ArgVal##name##Functor<double>(arg2)(arg1), (result) ); \
-    TS_ASSERT( is_of_type<int>( ArgVal##name##Functor<int>(int())(int()) ) ); \
-    TS_ASSERT( is_of_type<float>( ArgVal##name##Functor<float>(float())(int()) ) ); \
-    TS_ASSERT( is_of_type<float>( ArgVal##name##Functor<int>(int())(float()) ) ); \
-    TS_ASSERT( is_of_type<double>( ArgVal##name##Functor<float>(float())(double()) ) ); \
-    TS_ASSERT( is_of_type<double>( ArgVal##name##Functor<double>(double())(float()) ) ); \
+    TS_ASSERT( is_of_type<int>( ArgVal##name##Functor<int>(int(1))(int(1)) ) ); \
+    TS_ASSERT( is_of_type<float>( ArgVal##name##Functor<float>(float(1))(int(1)) ) ); \
+    TS_ASSERT( is_of_type<float>( ArgVal##name##Functor<int>(int(1))(float(1)) ) ); \
+    TS_ASSERT( is_of_type<double>( ArgVal##name##Functor<float>(float(1))(double(1)) ) ); \
+    TS_ASSERT( is_of_type<double>( ArgVal##name##Functor<double>(double(1))(float(1)) ) ); \
   } while(false)
 
   void test_Sum() { TEST_BINARY_MATH_FUNCTOR(Sum,1,2,3); }

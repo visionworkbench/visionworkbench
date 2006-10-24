@@ -40,15 +40,15 @@ namespace {
   static NullStreamBuf g_the_nullbuf;
   static std::ostream g_the_nullstream( &g_the_nullbuf );
   static std::ostream g_the_ostream( std::clog.rdbuf() );
-  static vw::MessageLevel g_the_level = vw::InfoMessage;
+  static int g_the_level = vw::InfoMessage;
 }
 
-std::ostream& vw::vw_out( vw::MessageLevel level ) {
+std::ostream& vw::vw_out( int level ) {
   if( level > g_the_level ) return g_the_nullstream;
   else return g_the_ostream;
 }
 
-void vw::set_debug_level( vw::MessageLevel level ) {
+void vw::set_debug_level( int level ) {
   g_the_level = level;
 }
 

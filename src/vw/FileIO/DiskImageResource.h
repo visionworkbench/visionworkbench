@@ -214,12 +214,12 @@ namespace vw {
     if( boost::find_last(filename,"*") )
       throw NoImplErr() << "File-per-plane reading is not yet supported.";
 
-    vw_out(InfoMessage) << "\tLoading image: " << filename << "\t";
+    vw_out(InfoMessage+1) << "\tLoading image: " << filename << "\t";
 
     // Open the file for reading
     DiskImageResource *r = DiskImageResource::open( filename );
 
-    vw_out(InfoMessage) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
+    vw_out(InfoMessage+1) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
 
     // Read it in and wrap up
     r->read( in_image );
@@ -251,9 +251,9 @@ namespace vw {
     for( int i=0; i<files; ++i ) {
       std::string name = filename;
       if( files > 1 ) boost::replace_last( name, "*",  str( boost::format("%1%") % i ) );
-      vw_out(InfoMessage) << "\tSaving image: " << name << "\t";
+      vw_out(InfoMessage+1) << "\tSaving image: " << name << "\t";
       DiskImageResource *r = DiskImageResource::create( name, buf.format );
-      vw_out(InfoMessage) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
+      vw_out(InfoMessage+1) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
       r->write_generic( buf );
       delete r;
       buf.data = (uint8*)buf.data + buf.pstride;
@@ -265,7 +265,7 @@ namespace vw {
   /// a seperate file on disk and the asterisk will be replaced with
   /// the plane number.
   template <class ElemT>
-    void write_image( const std::string &filename, std::vector<ElemT> const& out_image_vector ) {
+  void write_image( const std::string &filename, std::vector<ElemT> const& out_image_vector ) {
 
     // If there's an asterisk, save one file per plane
     if( ! boost::find_last(filename,"*") ) {
