@@ -266,11 +266,11 @@ namespace disparity {
     std::cout << "\tIsolating and rejecting large areas of very low confidence..." << std::flush;
     
     ImageView<PixelGray<float> > test_image = disparity::missing_pixel_image(disparity_map);
-    write_image("test-a.png", test_image);
+    //    write_image("test-a.png", test_image);
     ImageView<float> blurred_image = gaussian_filter(select_channel(test_image,0), blur_stddev);
-    write_image("test-b.png", blurred_image);
+    //    write_image("test-b.png", blurred_image);
     ImageView<float> threshold_image = threshold(blurred_image, rejection_threshold);
-    write_image("test-c.png", threshold_image);
+    //    write_image("test-c.png", threshold_image);
     
     for (int i = 0; i < disparity_map.cols(); i++) 
       for (int j = 0; j < disparity_map.rows(); j++) 
