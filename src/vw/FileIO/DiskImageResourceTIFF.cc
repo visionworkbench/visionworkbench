@@ -206,9 +206,10 @@ void vw::DiskImageResourceTIFF::read_generic( GenericImageBuffer const& dest, BB
   else {
     tdata_t buf = _TIFFmalloc( TIFFStripSize(tif) );
     
-    uint32 config = 0;
+    uint32 config = 0, nsamples = 0;
     TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &config);
-    if( config==PLANARCONFIG_SEPARATE )
+    TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
+    if( config==PLANARCONFIG_SEPARATE && nsamples != 1 )
       throw NoImplErr() << "DiskImageResourceTIFF (read) Error: Reading from separate-plane TIFF files is not yet supported!";
 
     uint32 rows_per_strip;
