@@ -229,7 +229,7 @@ void CorrelationWorkThread::operator() () {
   while (!m_should_terminate) { millisecond_sleep(100); }
     
 }
-    
+   
 
 #if 1
 SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDisp,       // left bound disparity search

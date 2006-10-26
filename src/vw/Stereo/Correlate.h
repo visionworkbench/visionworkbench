@@ -94,12 +94,9 @@ inline PixelDisparity<float> compute_disparity(ImageView<ChannelT> &left_image,
 }
 
 static double find_minimum(double lt, double mid, double rt) {
-  double a= (rt+lt)*0.5-mid;
-  if (a <= 0) // No minimum
-     return 0;
-  double b=(rt-lt)*0.5;
-  double min= -b/(2.0*a);
-  return min;
+  double a = (rt+lt)*0.5-mid;
+  double b = (rt-lt)*0.5;
+  return -b/(2.0*a);
 }
 
 /* 
@@ -148,6 +145,9 @@ void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
                           int kern_width, int kern_height,
                           bool do_horizontal_subpixel = true,
                           bool do_vertical_subpixel = true) {
+
+  //    do_vertical_subpixel = false;
+  //    do_horizontal_subpixel = false;
   
   VW_ASSERT(left_image.cols() == right_image.cols() && left_image.cols() == disparity_map.cols() &&
             left_image.rows() == right_image.rows() && left_image.rows() == disparity_map.rows(),
@@ -166,23 +166,25 @@ void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
   // we go ahead and compute the pseudoinverse of the A matrix (where
   // each row in A is [ x^2 y^2 xy x y 1] (our 2d hyperbolic surface)
   // for the range of x = [-1:1] and y = [-1:1].
-  double pinvA_data[] = { 1.0/6,  1.0/6,  1.0/6, -1.0/3, -1.0/3, -1.0/3,  1.0/6,  1.0/6,  1.0/6,
-                          1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,
-                          1.0/4,    0.0, -1.0/4,    0.0,    0.0,    0.0, -1.0/4,    0.0,  1.0/4,
-                          -1.0/6, -1.0/6, -1.0/6,    0.0,    0.0,   0.0,  1.0/6,  1.0/6,  1.0/6,
-                          -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0, 1.0/6, -1.0/6,    0.0,  1.0/6,
-                          -1.0/9,  2.0/9, -1.0/9,  2.0/9,  5.0/9, 2.0/9, -1.0/9,  2.0/9, -1.0/9 }; 
+  static double pinvA_data[] = { 1.0/6,  1.0/6,  1.0/6, -1.0/3, -1.0/3, -1.0/3,  1.0/6,  1.0/6,  1.0/6,
+                                 1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,
+                                 1.0/4,    0.0, -1.0/4,    0.0,    0.0,    0.0, -1.0/4,    0.0,  1.0/4,
+                                 -1.0/6, -1.0/6, -1.0/6,    0.0,    0.0,   0.0,  1.0/6,  1.0/6,  1.0/6,
+                                 -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0, 1.0/6, -1.0/6,    0.0,  1.0/6,
+                                 -1.0/9,  2.0/9, -1.0/9,  2.0/9,  5.0/9, 2.0/9, -1.0/9,  2.0/9, -1.0/9 }; 
   vw::MatrixProxy<double,6,9> pinvA(pinvA_data);
   for (int r = 0; r < height; r++) {
-    printf("\tPerforming sub-pixel correlation... %0.2f%%\r", double(r)/height * 100);
-    fflush(stdout);
+    if (r%100 == 0) {
+      printf("\tPerforming sub-pixel correlation... %0.2f%%\r", double(r)/height * 100);
+      fflush(stdout);
+    }
     
     for (int c = 0; c < width; c++) {
       
       if ( !disparity_map(c,r).missing() ) {
         int hdisp= (int)disparity_map(c,r).h();
         int vdisp= (int)disparity_map(c,r).v();
-	
+        
         double mid = compute_soad(new_img0, new_img1,
                                   r, c,
                                   hdisp,   vdisp,
@@ -191,7 +193,7 @@ void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
         
         // If only horizontal subpixel resolution is requested 
         if (do_horizontal_subpixel && !do_vertical_subpixel) {
-          double lt= compute_soad(new_img0, new_img1,
+        double lt= compute_soad(new_img0, new_img1,
                                   r, c,
                                   hdisp-1, vdisp,
                                   kern_width, kern_height,
@@ -202,12 +204,13 @@ void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
                                   kern_width, kern_height,
                                   width, height);
           
-          if ((mid <= lt && mid < rt) ||
-              (mid <= rt && mid < lt)) {
+          if ((mid <= lt && mid < rt) || (mid <= rt && mid < lt)) {
             disparity_map(c,r).h() += find_minimum(lt, mid, rt);
+          } else {
+            disparity_map(c,r) = PixelDisparity<float>();
           }
         }
-        
+      
         // If only vertical subpixel resolution is requested 
         if (do_vertical_subpixel && !do_horizontal_subpixel) {
           double up= compute_soad(new_img0, new_img1,
@@ -221,9 +224,10 @@ void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
                                   kern_width, kern_height,
                                   width, height);
           
-          if ((mid <= up && mid < dn) ||
-              (mid <= dn && mid < up)) {
+          if ((mid <= up && mid < dn) || (mid <= dn && mid < up)) {
             disparity_map(c,r).v() += find_minimum(up, mid, dn);
+          } else {
+            disparity_map(c,r) = PixelDisparity<float>();
           }
         }
         
@@ -295,12 +299,13 @@ void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
             if (fabs(offset(0)) < 2.0 && fabs(offset(1)) < 2.0) {
               disparity_map(c,r).h() += offset(0);
               disparity_map(c,r).v() += offset(1);
+            } else {
+              disparity_map(c,r) = PixelDisparity<float>();
+              //              std::cout << "Bad offset: " << offset(0) << " " << offset(1) << "\n";
             }
-            // For debugging:
-            //else {
-            //std::cout << "Bad offset: " << offset(0) << " " << offset(1) << "\n";
-            //}
-          } 
+          } else {
+            disparity_map(c,r) = PixelDisparity<float>();
+          }
         }
       } 
     }
