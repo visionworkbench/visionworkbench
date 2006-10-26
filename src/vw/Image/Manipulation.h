@@ -601,6 +601,25 @@ namespace vw {
     return UnaryPerPixelView<ImageT,SelectChannelFunctor<const ImageT> >( image.impl(), SelectChannelFunctor<const ImageT>(channel) );
   }
 
+  /// A convenience function to select the alpha channel of an image.
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,SelectChannelFunctor<ImageT> >
+  inline select_alpha_channel( ImageViewBase<ImageT>& image ) {
+    if( ! PixelHasAlpha<typename ImageT::pixel_type>::value )
+      throw ArgumentErr() << "Image has no alpha channel in call to select_alpha_channel()";
+    return select_channel( image, PixelNumChannels<typename ImageT::pixel_type>::value - 1 );
+  }
+
+  /// A convenience function to select the alpha channel of an image
+  /// (const overload).
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,SelectChannelFunctor<const ImageT> >
+  inline select_alpha_channel( ImageViewBase<ImageT> const& image ) {
+    if( ! PixelHasAlpha<typename ImageT::pixel_type>::value )
+      throw ArgumentErr() << "Image has no alpha channel in call to select_alpha_channel()";
+    return select_channel( image, PixelNumChannels<typename ImageT::pixel_type>::value - 1 );
+  }
+
 
   // *******************************************************************
   // channels_to_planes()

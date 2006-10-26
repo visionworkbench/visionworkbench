@@ -180,10 +180,16 @@ namespace vw {
     /// is marked as explicit to prevent you from accidentially
     /// initializing a pixel to zero when what you really want is the
     /// default-constructed value.
-    explicit PixelGrayA( ChannelT v ) { m_ch[0]=m_ch[1]=v; }
+    explicit PixelGrayA( ChannelT v ) { 
+      m_ch[0]=v;
+      m_ch[1]=ChannelRange<ChannelT>::max();
+    }
 
     /// Constructs a pixel with the given channel values.
-    PixelGrayA( ChannelT v, ChannelT a ) { m_ch[0]=v; m_ch[1]=a; }
+    PixelGrayA( ChannelT v, ChannelT a ) {
+      m_ch[0]=v;
+      m_ch[1]=a;
+    }
 
     /// Explicit conversion from PixelGray types.
     template <class OtherT> explicit PixelGrayA( PixelGray<OtherT> other ) {
@@ -234,6 +240,7 @@ namespace vw {
 
   /// Declare the standard 2-channel pixel traits for PixelGrayA.
   VW_DECLARE_PIXEL_TYPE(PixelGrayA,2);
+  template <class T> struct PixelHasAlpha<PixelGrayA<T> > : true_type {};
 
   /// Print a PixelGrayA to a debugging stream.
   template <class ChannelT>
@@ -357,7 +364,10 @@ namespace vw {
     /// This is marked as explicit to prevent you from accidentially
     /// initializing a pixel to zero when what you really want is the
     /// default-constructed value.
-    explicit PixelRGBA( ChannelT const& v ) { m_ch[0]=m_ch[1]=m_ch[2]=m_ch[3]=v; }
+    explicit PixelRGBA( ChannelT const& v ) { 
+      m_ch[0]=m_ch[1]=m_ch[2]=v;
+      m_ch[3]=ChannelRange<ChannelT>::max();
+    }
 
     /// Constructs a pixel with the given channel values.
     PixelRGBA( ChannelT const& r, ChannelT const& g, ChannelT const& b, ChannelT const& a ) {
@@ -421,6 +431,7 @@ namespace vw {
 
   /// Declare the standard 2-channel pixel traits for PixelGrayA.
   VW_DECLARE_PIXEL_TYPE(PixelRGBA,4);
+  template <class T> struct PixelHasAlpha<PixelRGBA<T> > : true_type {};
 
   /// Print a PixelRGBA to a debugging stream.
   template <class ChannelT>

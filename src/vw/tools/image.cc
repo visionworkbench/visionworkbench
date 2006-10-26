@@ -29,6 +29,7 @@ int main( int argc, char *argv[] ) {
     ("output-file,o", po::value<std::string>(&output_file_name)->default_value("output.png"), "Specify the output file")
     ("rotate", po::value<float>(&rotate_angle), "Rotate by the given angle (degrees)")
     ("noise", po::value<float>(&noise_level), "Additive noise (percentage)")
+    ("normalize", "Normalize the output image")
     ("verbose", "Verbose output");
   po::positional_options_description p;
   p.add("input-file", 1);
@@ -74,6 +75,10 @@ int main( int argc, char *argv[] ) {
       while( i != end ) {
         *(i++) += PixelGray<float>( noise_level * ((random()%2000000)/1000000.0-1.0) );
       }
+    }
+
+    if( vm.count("normalize") ) {
+      image = normalize(image);
     }
 
     write_image( output_file_name, image );

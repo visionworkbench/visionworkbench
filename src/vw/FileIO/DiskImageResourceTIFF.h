@@ -36,23 +36,17 @@
 
 namespace vw {
 
+  struct DiskImageResourceInfoTIFF;
+
   class DiskImageResourceTIFF : public DiskImageResource {
   public:
 
-    DiskImageResourceTIFF( std::string const& filename )
-      : DiskImageResource( filename ), m_tif_ptr(0)
-    {
-      open( filename );
-    }
-    
+    DiskImageResourceTIFF( std::string const& filename );
+
     DiskImageResourceTIFF( std::string const& filename, 
-                           GenericImageFormat const& format )
-      : DiskImageResource( filename ), m_tif_ptr(0)
-    {
-      create( filename, format );
-    }
+                           GenericImageFormat const& format );
     
-    virtual ~DiskImageResourceTIFF();
+    virtual ~DiskImageResourceTIFF() {}
     
     virtual Vector2i native_read_block_size() const;
     virtual void read_generic( GenericImageBuffer const& buf, BBox2i bbox ) const;
@@ -61,7 +55,7 @@ namespace vw {
     }
 
     virtual void write_generic( GenericImageBuffer const& dest );
-    virtual void flush();
+    virtual void flush() {}
 
     void open( std::string const& filename );
 
@@ -74,10 +68,7 @@ namespace vw {
                                                 GenericImageFormat const& format );
 
   private:
-    
-    std::string m_filename;
-    void* m_tif_ptr;
-
+    boost::shared_ptr<DiskImageResourceInfoTIFF> m_info;
   };
 
 } // namespace vw

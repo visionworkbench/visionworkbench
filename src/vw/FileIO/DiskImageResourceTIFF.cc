@@ -44,6 +44,12 @@
 #define VW_ERROR_BUFFER_SIZE 2048
 #endif
 
+namespace vw {
+  struct DiskImageResourceInfoTIFF {
+    Vector2i block_size;
+  };
+}
+
 /// Handle libTIFF warning conditions by outputting message text at the 
 /// DebugMessage verbosity level.
 static void tiff_warning_handler(const char* module, const char* frmt, va_list ap) {
@@ -60,36 +66,21 @@ static void tiff_error_handler(const char* module, const char* frmt, va_list ap)
   throw vw::IOErr() << "DiskImageResourceTIFF (" << (module?module:"none") << ") Error: " << msg;
 }
 
-/// Destructor: flush and close the file.
-vw::DiskImageResourceTIFF::~DiskImageResourceTIFF() {
-  flush();
-  if( m_tif_ptr ) {
-    TIFFClose( (TIFF*)m_tif_ptr );
-  }
-  m_tif_ptr = 0;
+vw::DiskImageResourceTIFF::DiskImageResourceTIFF( std::string const& filename )
+  : DiskImageResource( filename ), m_info( new DiskImageResourceInfoTIFF() )
+{
+  open( filename );
 }
-  
-/// Flush any buffered data to disk.
-void vw::DiskImageResourceTIFF::flush() {
-  if( m_tif_ptr ) {
-    TIFFFlush((TIFF*) m_tif_ptr);
-  }
+    
+vw::DiskImageResourceTIFF::DiskImageResourceTIFF( std::string const& filename, 
+                                                  vw::GenericImageFormat const& format )
+  : DiskImageResource( filename ), m_info( new DiskImageResourceInfoTIFF() )
+{
+  create( filename, format );
 }
 
 vw::Vector2i vw::DiskImageResourceTIFF::native_read_block_size() const {
-  TIFF *tif = (TIFF*)m_tif_ptr;
-  if( TIFFIsTiled(tif) ) {
-    vw_out(WarningMessage) << "DiskImageResourceTIFF Warning: Tile-based partial image reading is untested!" << std::cout;
-    uint32 tile_width, tile_length;
-    TIFFGetField( tif, TIFFTAG_TILEWIDTH, &tile_width );
-    TIFFGetField( tif, TIFFTAG_TILELENGTH, &tile_length );
-    return Vector2i(tile_width,tile_length);
-  }
-  else {
-    uint32 rows_per_strip;
-    TIFFGetField( tif, TIFFTAG_ROWSPERSTRIP, &rows_per_strip );
-    return Vector2i(cols(),rows_per_strip);
-  }
+  return m_info->block_size;
 }
 
 /// Bind the resource to a file for reading.  Confirm that we can open
@@ -100,8 +91,6 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
 
   TIFF* tif = TIFFOpen( filename.c_str(), "r" );
   if( !tif ) throw vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << filename << "\" for reading!";
-  m_filename = filename;
-  m_tif_ptr = (void*) tif;
 
   TIFFGetField( tif, TIFFTAG_IMAGEWIDTH, &(m_format.cols) );
   TIFFGetField( tif, TIFFTAG_IMAGELENGTH, &(m_format.rows) );
@@ -171,6 +160,20 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
   } else { 
     m_format.pixel_format = VW_PIXEL_SCALAR;
   }
+
+  if( TIFFIsTiled(tif) ) {
+    uint32 tile_width, tile_length;
+    TIFFGetField( tif, TIFFTAG_TILEWIDTH, &tile_width );
+    TIFFGetField( tif, TIFFTAG_TILELENGTH, &tile_length );
+    m_info->block_size = Vector2i(tile_width,tile_length);
+  }
+  else {
+    uint32 rows_per_strip;
+    TIFFGetField( tif, TIFFTAG_ROWSPERSTRIP, &rows_per_strip );
+    m_info->block_size = Vector2i(cols(),rows_per_strip);
+  }
+
+  TIFFClose( tif );
 }
 
 /// Bind the resource to a file for writing.
@@ -185,11 +188,6 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
   TIFFSetWarningHandler(&tiff_warning_handler);
   TIFFSetErrorHandler(&tiff_error_handler);
 
-  TIFF* tif = TIFFOpen(filename.c_str(), "w");
-  if( !tif  ) throw vw::IOErr() << "Failed to create \"" << filename << "\" using libTIFF.";
-  m_tif_ptr = (void*) tif;
-
-  m_filename = filename;
   m_format = format;
 }
 
@@ -199,7 +197,8 @@ void vw::DiskImageResourceTIFF::read_generic( GenericImageBuffer const& dest, BB
   VW_ASSERT( dest.format.cols==bbox.width() && dest.format.rows==bbox.height(),
              ArgumentErr() << "DiskImageResourceTIFF (read) Error: Destination buffer has wrong dimensions!" );
 
-  TIFF* tif = (TIFF*) m_tif_ptr;
+  TIFF* tif = TIFFOpen( m_filename.c_str(), "r" );
+  if( !tif ) throw vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << m_filename << "\" for reading!";
 
   if( TIFFIsTiled(tif) ) {
     throw NoImplErr() << "DiskImageResourceTIFF (read) Error: Reading from tile-based TIFF files is not yet supported!";
@@ -243,6 +242,7 @@ void vw::DiskImageResourceTIFF::read_generic( GenericImageBuffer const& dest, BB
   
     _TIFFfree(buf);
   }
+  TIFFClose(tif);
 }
 
 // Write the given buffer into the disk image.
@@ -251,7 +251,8 @@ void vw::DiskImageResourceTIFF::write_generic( GenericImageBuffer const& src )
   VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in TIFF write." );
 
-  TIFF* tif = (TIFF*) m_tif_ptr;
+  TIFF* tif = TIFFOpen(m_filename.c_str(), "w");
+  if( !tif  ) throw vw::IOErr() << "Failed to create \"" << m_filename << "\" using libTIFF.";
 
   TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, m_format.cols);
   TIFFSetField(tif, TIFFTAG_IMAGELENGTH, m_format.rows);
@@ -319,6 +320,8 @@ void vw::DiskImageResourceTIFF::write_generic( GenericImageBuffer const& src )
 
   // Clean up
   _TIFFfree(buf);
+  TIFFFlush(tif);
+  TIFFClose(tif);
 }
 
 // A FileIO hook to open a file for reading

@@ -1,6 +1,7 @@
 #ifndef __VW_MOSAIC_IMAGECOMPOSITE_H__
 #define __VW_MOSAIC_IMAGECOMPOSITE_H__
 
+#include <iostream>
 #include <vector>
 #include <list>
 
@@ -13,6 +14,8 @@
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/Transform.h>
+#include <vw/Image/Algorithms.h>
+#include <vw/FileIO/DiskImageResource.h>
 
 namespace vw {
 namespace mosaic {
@@ -53,7 +56,7 @@ namespace mosaic {
     }
     
     void unpremultiply() {
-      image /= select_channel( image, 3 );
+      image /= select_alpha_channel( image );
     }
 
     void addto( ImageView<PixelT> const& dest ) const {
@@ -62,16 +65,19 @@ namespace mosaic {
 
     // Performs additive composition when overlay==false (the default).
     // When overlay==true, it overlays the image on top of the destination,
-    // respecting the alpha channel, but that currently only works for 
-    // floating-point RGBA pixels.
+    // respecting any alpha channel.
     void addto( ImageView<PixelT> const& dest, int ox, int oy, bool overlay = false ) {
       BBox<int,2> sum_bbox = bbox;
       sum_bbox.crop( BBox<int,2>( Vector<int,2>(ox,oy), Vector<int,2>(ox+dest.cols(),oy+dest.rows()) ) );
       if( sum_bbox.empty() ) return;
       if( overlay ) {
-        ImageView<float> alpha = select_channel(crop( image, sum_bbox-bbox.min() ),3);
-        crop( dest, sum_bbox-Vector<int,2>(ox,oy) ) *= 1.0-alpha;
-        crop( dest, sum_bbox-Vector<int,2>(ox,oy) ) += crop( image, sum_bbox-bbox.min() );
+        if( PixelHasAlpha<PixelT>::value ) {
+          crop( dest, sum_bbox-Vector<int,2>(ox,oy) ) *= 1.0 - select_alpha_channel( crop( image, sum_bbox-bbox.min() ) );
+          crop( dest, sum_bbox-Vector<int,2>(ox,oy) ) += crop( image, sum_bbox-bbox.min() );
+        }
+        else {
+          crop( dest, sum_bbox-Vector<int,2>(ox,oy) ) = crop( image, sum_bbox-bbox.min() );
+        }
       }
       else {
         crop( dest, sum_bbox-Vector<int,2>(ox,oy) ) += crop( image, sum_bbox-bbox.min() );
@@ -98,20 +104,25 @@ namespace mosaic {
   // ImageComposite
   // *******************************************************************
 
-  class ImageComposite : public ImageViewBase<ImageComposite> {
+  template <class PixelT>
+  class ImageComposite : public ImageViewBase<ImageComposite<PixelT> > {
+  public:
+    typedef PixelT pixel_type;
+    typedef typename PixelChannelType<PixelT>::type channel_type;
 
+  private:
     struct Pyramid {
-      std::vector<PositionedImage<PixelRGBA<float> > > images;
-      std::vector<PositionedImage<float> > masks;
+      std::vector<PositionedImage<pixel_type> > images;
+      std::vector<PositionedImage<channel_type> > masks;
     };
 
     class SourceGenerator {
-      ImageViewRef<PixelRGBA<float> > m_source;
+      ImageViewRef<pixel_type> m_source;
     public:
-      typedef ImageView<PixelRGBA<float> > value_type;
-      SourceGenerator( ImageViewRef<PixelRGBA<float> > const& source ) : m_source(source) {}
+      typedef ImageView<pixel_type> value_type;
+      SourceGenerator( ImageViewRef<pixel_type> const& source ) : m_source(source) {}
       size_t size() const {
-        return m_source.cols() * m_source.rows() * sizeof(PixelRGBA<float>);
+        return m_source.cols() * m_source.rows() * sizeof(pixel_type);
       }
       boost::shared_ptr<value_type> generate() const {
         return boost::shared_ptr<value_type>( new value_type(m_source) );
@@ -123,15 +134,15 @@ namespace mosaic {
       ImageComposite& m_composite;
       int m_index;
     public:
-      typedef ImageView<float> value_type;
+      typedef ImageView<channel_type> value_type;
       AlphaGenerator( ImageComposite& composite, int index ) : m_composite(composite), m_index(index) {}
       size_t size() const {
-        return m_composite.sources[m_index].size() / 4;
+        return m_composite.sources[m_index].size() / PixelNumChannels<pixel_type>::value;
       }
       boost::shared_ptr<value_type> generate() const { 
-        ImageView<PixelRGBA<float> > source = *m_composite.sources[m_index];
+        ImageView<pixel_type> source = *m_composite.sources[m_index];
         m_composite.sources[m_index].deprioritize();
-        return boost::shared_ptr<value_type>( new value_type( select_channel( source, 3 ) ) );
+        return boost::shared_ptr<value_type>( new value_type( select_alpha_channel( source ) ) );
       }
     };
 
@@ -161,20 +172,19 @@ namespace mosaic {
 
     void generate_masks() const;
 
-    ImageView<PixelRGBA<float> > blend_patch( BBox<int,2> const& patch_bbox ) const;
-    ImageView<PixelRGBA<float> > draft_patch( BBox<int,2> const& patch_bbox ) const;
+    ImageView<pixel_type> blend_patch( BBox<int,2> const& patch_bbox ) const;
+    ImageView<pixel_type> draft_patch( BBox<int,2> const& patch_bbox ) const;
 
   public:
-    typedef PixelRGBA<float> pixel_type;
-    typedef PixelRGBA<float> result_type;
+    typedef pixel_type result_type;
     
     ImageComposite() : m_draft_mode(false), m_cache(Cache::system_cache()) {}
 
-    void insert( ImageViewRef<PixelRGBA<float> > const& image, int x, int y );
+    void insert( ImageViewRef<pixel_type> const& image, int x, int y );
 
     void prepare();
 
-    ImageView<PixelRGBA<float> > generate_patch( BBox<int,2> const& patch_bbox ) const {
+    ImageView<pixel_type> generate_patch( BBox<int,2> const& patch_bbox ) const {
       if( m_draft_mode ) return draft_patch( patch_bbox );
       else return blend_patch( patch_bbox );
     }
@@ -193,7 +203,7 @@ namespace mosaic {
       return 1;
     }
 
-    PixelRGBA<float> operator()( int x, int y, int p=0 ) const {
+    pixel_type operator()( int x, int y, int p=0 ) const {
       throw NoImplErr() << "ImageComposite does not support individual pixel access!";
     }
 
@@ -208,5 +218,237 @@ namespace mosaic {
 
 } // namespace mosaic
 } // namespace vw
+
+template <class PixelT>
+void vw::mosaic::ImageComposite<PixelT>::generate_masks() const {
+  vw_out(InfoMessage) << "Generating masks..." << std::endl;
+  std::vector<boost::shared_ptr<ImageView<channel_type> > > grassfire_im( sources.size() );
+  for( unsigned p1=0; p1<sources.size(); ++p1 ) {
+    if( ! grassfire_im[p1] ) {
+      ImageView<pixel_type> image = *sources[p1];
+      grassfire_im[p1].reset( new ImageView<channel_type>( grassfire( select_alpha_channel( image ) ) ) );
+    }
+    ImageView<channel_type> mask = copy( *grassfire_im[p1] );
+    for( unsigned p2=0; p2<sources.size(); ++p2 ) {
+      if( p1 == p2 ) continue;
+      int ox = bboxes[p2].min().x() - bboxes[p1].min().x();
+      int oy = bboxes[p2].max().y() - bboxes[p1].max().y();
+      if( ox >= bboxes[p1].width() ||
+          oy >= bboxes[p1].height() ||
+          -ox >= bboxes[p2].width() ||
+          -oy >= bboxes[p2].height() ) {
+        grassfire_im[p2].reset();
+      }
+      else {
+        if( ! grassfire_im[p2] ) {
+          ImageView<pixel_type> image = *sources[p2];
+          grassfire_im[p2].reset( new ImageView<channel_type>( grassfire( select_alpha_channel( image ) ) ) );
+        }
+        int left = std::max( ox, 0 );
+        int top = std::max( oy, 0 );
+        int right = std::min( bboxes[p2].width()+ox, bboxes[p1].width() );
+        int bottom = std::min( bboxes[p2].height()+oy, bboxes[p1].height() );
+        for( int j=top; j<bottom; ++j ) {
+          for( int i=left; i<right; ++i ) {
+            if( ( (*grassfire_im[p2])(i-ox,j-oy) > mask(i,j) ) ||
+                ( (*grassfire_im[p2])(i-ox,j-oy) == mask(i,j) && p2 > p1 ) )
+              mask(i,j) = 0;
+          }
+        }
+      }
+    }
+    mask = threshold( mask );
+    std::ostringstream filename;
+    filename << "mask." << p1 << ".png";
+    write_image( filename.str(), mask );
+  }
+}
+
+
+template <class PixelT>
+boost::shared_ptr<typename vw::mosaic::ImageComposite<PixelT>::Pyramid> vw::mosaic::ImageComposite<PixelT>::PyramidGenerator::generate() const {
+  vw_out(DebugMessage) << "ImageComposite generating pyramid " << m_index << std::endl;
+  boost::shared_ptr<Pyramid> ptr( new Pyramid );
+  ImageView<pixel_type> source = copy(*m_composite.sources[m_index]);
+  m_composite.sources[m_index].deprioritize();
+  PositionedImage<pixel_type> image_high( m_composite.bbox.width(), m_composite.bbox.height(), source, m_composite.bboxes[m_index] );
+  PositionedImage<pixel_type> image_low = image_high.reduce();
+  ImageView<channel_type> mask_image;
+  
+  std::ostringstream mask_filename;
+  mask_filename << "mask." << m_index << ".png";
+  read_image( mask_image, mask_filename.str() );
+  PositionedImage<channel_type> mask( m_composite.bbox.width(), m_composite.bbox.height(), mask_image, m_composite.bboxes[m_index] );
+  
+  for( int l=0; l<m_composite.levels; ++l ) {
+    PositionedImage<pixel_type> diff = image_high;
+    if( l > 0 ) mask = mask.reduce();
+    if( l < m_composite.levels-1 ) {
+      PositionedImage<pixel_type> next_image_low = image_low.reduce();
+      image_low.unpremultiply();
+      diff.subtract_expanded( image_low );
+      image_high = image_low;
+      image_low = next_image_low;
+    }
+    diff *= mask;
+    ptr->images.push_back( diff );
+    ptr->masks.push_back( mask );
+  }
+  return ptr;
+}
+
+
+template <class PixelT>
+void vw::mosaic::ImageComposite<PixelT>::insert( ImageViewRef<pixel_type> const& image, int x, int y ) {
+  vw_out(VerboseDebugMessage) << "ImageComposite inserting image " << pyramids.size() << std::endl;
+  sources.push_back( m_cache.insert( SourceGenerator( image ) ) );
+  alphas.push_back( m_cache.insert( AlphaGenerator( *this, pyramids.size() ) ) );
+  pyramids.push_back( m_cache.insert( PyramidGenerator( *this, pyramids.size() ) ) );
+  int cols = image.cols(), rows = image.rows();
+  BBox<int,2> image_bbox( Vector<int,2>(x, y), Vector<int,2>(x+cols, y+rows) );
+  bboxes.push_back( image_bbox );
+  if( bboxes.size() == 1 ) {
+    bbox = bboxes.back();
+    mindim = std::min(cols,rows);
+  }
+  else {
+    bbox.grow( image_bbox );
+    mindim = std::min( mindim, std::min(cols,rows) );
+  }
+}
+
+
+template <class PixelT>
+void vw::mosaic::ImageComposite<PixelT>::prepare() {
+  // Translate bboxes to origin
+  for( unsigned i=0; i<sources.size(); ++i )
+    bboxes[i] -= bbox.min();
+
+  levels = (int) floorf( log( mindim/2.0 ) / log(2.0) ) - 1;
+
+  if( !m_draft_mode ) {
+    generate_masks();
+  }
+}
+
+
+// Suppose a destination image patch at a given level of the pyramid
+// has a bounding box that begins at offset x and has width w.  It
+// is affected by a range of pixels at the next level of the pyramid
+// starting at x/2 with width (x+w)/2-x/2+1 = (w+x%2)/2+1.  This in
+// turn is affected by source image pixels at the current level in
+// the range starting at 2*(x/2)-1 = x-x%2-1 with width
+// (2*(x+w)/2+1)-(2*(x/2)-1)+1 = w-(x+w)%2+x%2+3.
+
+// Generates a full-resolution patch of the mosaic corresponding
+// to the given bounding box.
+template <class PixelT>
+vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox<int,2> const& patch_bbox ) const {
+  vw_out(DebugMessage) << "ImageComposite compositing patch " << patch_bbox << "..." << std::endl;
+  // Compute bboxes and allocate the pyramids
+  std::vector<BBox<int,2> > bbox_pyr;
+  std::vector<ImageView<pixel_type> > sum_pyr(levels);
+  std::vector<ImageView<channel_type> > msum_pyr(levels);
+  for( int l=0; l<levels; ++l ) {
+    if( l==0 ) bbox_pyr.push_back( patch_bbox );
+    else bbox_pyr.push_back( BBox<int,2>( Vector<int,2>( bbox_pyr[l-1].min().x() / 2,
+                                                         bbox_pyr[l-1].min().y() / 2 ),
+                                          Vector<int,2>( bbox_pyr[l-1].min().x() / 2 + ( bbox_pyr[l-1].width() + bbox_pyr[l-1].min().x() % 2 ) / 2 + 1,
+                                                         bbox_pyr[l-1].min().y() / 2 + ( bbox_pyr[l-1].height() + bbox_pyr[l-1].min().y() % 2 ) / 2 + 1) ) );
+    sum_pyr[l] = ImageView<pixel_type>( bbox_pyr[l].width(), bbox_pyr[l].height() );
+    msum_pyr[l] = ImageView<channel_type>( bbox_pyr[l].width(), bbox_pyr[l].height() );
+  }
+  
+  // Compute the bounding box for source pixels that could 
+  // impact the patch.
+  BBox<int,2> padded_bbox = patch_bbox;
+  for( int l=0; l<levels-1; ++l ) {
+    padded_bbox.min().x() = padded_bbox.min().x()/2;
+    padded_bbox.min().y() = padded_bbox.min().y()/2;
+    padded_bbox.max().x() = padded_bbox.max().x()/2+1;
+    padded_bbox.max().y() = padded_bbox.max().y()/2+1;
+  }
+  for( int l=0; l<levels-1; ++l ) {
+    padded_bbox.min().x() = 2*padded_bbox.min().x()-1;
+    padded_bbox.min().y() = 2*padded_bbox.min().y()-1;
+    padded_bbox.max().x() = 2*padded_bbox.max().x();
+    padded_bbox.max().y() = 2*padded_bbox.max().y();
+  }
+  
+  // Make a list of the images whose bounding boxes permit them to
+  // impact the patch, prioritizing ones that are already in memory.
+  std::list<unsigned> image_list;
+  for( unsigned p=0; p<sources.size(); ++p ) {
+    if( ! padded_bbox.intersects( bboxes[p] ) ) continue;
+    if( ! pyramids[p].valid() ) image_list.push_back( p );
+    else image_list.push_front( p );
+  }
+
+  // Add each source image pyramid to the blend pyramid.
+  std::list<unsigned>::iterator ili=image_list.begin(), ilend=image_list.end();
+  for( ; ili!=ilend; ++ili ) {
+    unsigned p = *ili;
+    boost::shared_ptr<Pyramid> pyr = pyramids[p];
+    for( int l=0; l<levels; ++l ) {
+      pyr->images[l].addto( sum_pyr[l], bbox_pyr[l].min().x(), bbox_pyr[l].min().y() );
+      pyr->masks[l].addto( msum_pyr[l], bbox_pyr[l].min().x(), bbox_pyr[l].min().y() );
+    }
+  }
+
+  // Collapse the pyramid
+  ImageView<pixel_type> composite( sum_pyr[levels-1].cols(), sum_pyr[levels-1].rows() );
+  for( int l=levels; l; --l ) {
+    if( l < levels ) {
+      composite = ImageView<pixel_type>( crop( resample( composite, 2 ), 
+                                                      bbox_pyr[l-1].min().x()-2*bbox_pyr[l].min().x(), 
+                                                      bbox_pyr[l-1].min().y()-2*bbox_pyr[l].min().y(), 
+                                                      sum_pyr[l-1].cols(), sum_pyr[l-1].rows() ) );
+    }
+    composite += sum_pyr[l-1] / msum_pyr[l-1];
+    sum_pyr.pop_back();
+    msum_pyr.pop_back();
+  }
+
+  // Trim to the maximal source alpha, reloading images if needed
+  ImageView<channel_type> alpha( patch_bbox.width(), patch_bbox.height() );
+  for( unsigned p=0; p<sources.size(); ++p ) {
+    if( ! patch_bbox.intersects( bboxes[p] ) ) continue;
+    
+    ImageView<channel_type> source_alpha = *alphas[p];
+    
+    BBox<int,2> overlap = patch_bbox;
+    overlap.crop( bboxes[p] );
+    for( int j=0; j<overlap.height(); ++j ) {
+      for( int i=0; i<overlap.width(); ++i ) {
+        if( source_alpha( overlap.min().x()+i-bboxes[p].min().x(), overlap.min().y()+j-bboxes[p].min().y() ) > 
+            alpha( overlap.min().x()+i-patch_bbox.min().x(), overlap.min().y()+j-patch_bbox.min().y() ) ) {
+          alpha( overlap.min().x()+i-patch_bbox.min().x(), overlap.min().y()+j-patch_bbox.min().y() ) =
+            source_alpha( overlap.min().x()+i-bboxes[p].min().x(), overlap.min().y()+j-bboxes[p].min().y() );
+        }
+      }
+    }
+  }
+  composite *= alpha / select_alpha_channel( composite );
+
+  return composite;
+}
+
+
+// Generates a full-resolution patch of the mosaic corresponding
+// to the given bounding box WITHOUT blending.
+template <class PixelT>
+vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::draft_patch( BBox<int,2> const& patch_bbox ) const {
+  vw_out(DebugMessage) << "ImageComposite compositing patch " << patch_bbox << "..." << std::endl;
+  ImageView<pixel_type> composite(patch_bbox.width(),patch_bbox.height());
+
+  // Add each image to the composite.
+  for( unsigned p=0; p<sources.size(); ++p ) {
+    if( ! patch_bbox.intersects( bboxes[p] ) ) continue;
+    PositionedImage<pixel_type> image( bbox.width(), bbox.height(), *sources[p], bboxes[p] );
+    image.addto( composite, patch_bbox.min().x(), patch_bbox.min().y(), true );
+  }
+
+  return composite;
+}
 
 #endif // __VW_MOSAIC_IMAGECOMPOSITE_H__

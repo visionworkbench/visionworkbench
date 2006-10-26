@@ -24,21 +24,70 @@ namespace fs = boost::filesystem;
 #include <vw/Mosaic/QuadTreeGenerator.h>
 #include <vw/Mosaic/ImageComposite.h>
 
+template <class PixelT>
+void do_blend( std::string const& mosaic_name, std::string const& file_type, bool draft, bool qtree, int patch_size, int patch_overlap ) {
+  vw::mosaic::ImageComposite<PixelT> composite;
+    
+  if( draft ) composite.set_draft_mode( true );
+    
+  std::map<std::string,fs::path> image_files;
+  std::map<std::string,fs::path> offset_files;
+  fs::path source_dir_path( mosaic_name, fs::native );
+  fs::directory_iterator pi( source_dir_path ), pend;
+  for( ; pi != pend; ++pi ) {
+    if( extension(*pi) == ".offset" )
+      offset_files[basename(*pi)] = *pi;
+    else image_files[basename(*pi)] = *pi;
+  }
+  std::map<std::string,fs::path>::iterator ofi=offset_files.begin(), ofend=offset_files.end();
+  for( ; ofi != ofend; ++ofi ) {
+    std::map<std::string,fs::path>::iterator ifi = image_files.find( ofi->first );
+    if( ifi != image_files.end() ) {
+      fs::ifstream offset( ofi->second );
+      int x, y;
+      offset >> x >> y;
+      std::cout << "Importing image file " << ifi->second.string() << " at offet (" << x << "," << y << ")" << std::endl;
+      composite.insert( vw::DiskImageView<PixelT>( ifi->second.string(), false ), x, y );
+    }
+  }
+    
+  vw::vw_out(vw::InfoMessage) << "Preparing the composite..." << std::endl;
+  composite.prepare();
+  if( qtree ) {
+    vw::vw_out(vw::InfoMessage) << "Preparing the quadtree..." << std::endl;
+    vw::mosaic::ImageQuadTreeGenerator<PixelT > quadtree( mosaic_name, composite );
+    quadtree.set_output_image_file_type( file_type );
+    quadtree.set_patch_size( patch_size );
+    quadtree.set_patch_overlap( patch_overlap );
+    vw::vw_out(vw::InfoMessage) << "Generating..." << std::endl;
+    quadtree.generate();
+    vw::vw_out(vw::InfoMessage) << "Done!" << std::endl;
+  }
+  else {
+    vw::vw_out(vw::InfoMessage) << "Blending..." << std::endl;
+    vw::ImageView<PixelT> im = composite;
+    write_image( mosaic_name+".blend."+file_type, im );
+    vw::vw_out(vw::InfoMessage) << "Done!" << std::endl;
+  }
+}
+
 int main( int argc, char *argv[] ) {
   try {
+    std::string mosaic_name, file_type;
     int patch_size, patch_overlap;
-    std::string mosaic_name;
     unsigned cache_size;
     
     po::options_description desc("Options");
     desc.add_options()
       ("help", "Display this help message")
       ("input-dir", po::value<std::string>(&mosaic_name), "Explicitly specify the input directory")
+      ("file-type", po::value<std::string>(&file_type)->default_value("png"), "Output file type")
       ("size", po::value<int>(&patch_size)->default_value(256), "Patch size, in pixels")
       ("overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels (must be even)")
       ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
       ("draft", "Draft mode (no blending)")
       ("qtree", "Output in quadtree format")
+      ("grayscale", "Process in grayscale only")
       ("verbose", "Verbose output");
     po::positional_options_description p;
     p.add("input-dir", 1);
@@ -77,50 +126,13 @@ int main( int argc, char *argv[] ) {
     
     vw::Cache::system_cache().resize( cache_size*1024*1024 );
 
-    vw::mosaic::ImageComposite composite;
-    
-    if( vm.count("draft") > 0 ) {
-      composite.set_draft_mode( true );
-    }
-    
-    std::map<std::string,fs::path> image_files;
-    std::map<std::string,fs::path> offset_files;
-    fs::path source_dir_path( mosaic_name, fs::native );
-    fs::directory_iterator pi( source_dir_path ), pend;
-    for( ; pi != pend; ++pi ) {
-      if( extension(*pi) == ".offset" )
-        offset_files[basename(*pi)] = *pi;
-      else image_files[basename(*pi)] = *pi;
-    }
-    std::map<std::string,fs::path>::iterator ofi=offset_files.begin(), ofend=offset_files.end();
-    for( ; ofi != ofend; ++ofi ) {
-      std::map<std::string,fs::path>::iterator ifi = image_files.find( ofi->first );
-      if( ifi != image_files.end() ) {
-        fs::ifstream offset( ofi->second );
-        int x, y;
-        offset >> x >> y;
-        std::cout << "Importing image file " << ifi->second.string() << " at offet (" << x << "," << y << ")" << std::endl;
-        composite.insert( vw::DiskImageView<vw::PixelRGBA<float> >( ifi->second.string(), false ), x, y );
-      }
-    }
-    
-    vw::vw_out(vw::InfoMessage) << "Preparing the composite..." << std::endl;
-    composite.prepare();
-    if( vm.count("qtree") ) {
-      vw::vw_out(vw::InfoMessage) << "Preparing the quadtree..." << std::endl;
-      vw::mosaic::ImageQuadTreeGenerator<vw::PixelRGBA<float> > quadtree( mosaic_name, composite );
-      quadtree.set_patch_size( patch_size );
-      quadtree.set_patch_overlap( patch_overlap );
-      vw::vw_out(vw::InfoMessage) << "Generating..." << std::endl;
-      quadtree.generate();
-      vw::vw_out(vw::InfoMessage) << "Done!" << std::endl;
+    if( vm.count("grayscale") ) {
+      do_blend<vw::PixelGrayA<float> >( mosaic_name, file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap );
     }
     else {
-      vw::vw_out(vw::InfoMessage) << "Blending..." << std::endl;
-      vw::ImageView<vw::PixelRGBA<float> > im = composite;
-      write_image( mosaic_name+".blend.png", im );
-      vw::vw_out(vw::InfoMessage) << "Done!" << std::endl;
+      do_blend<vw::PixelRGBA<float> >( mosaic_name, file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap );
     }
+
   }
   catch( std::exception &err ) {
     vw::vw_out(vw::ErrorMessage) << "Error: " << err.what() << std::endl << "Aborting!" << std::endl;

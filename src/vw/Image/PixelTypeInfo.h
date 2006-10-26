@@ -52,6 +52,7 @@ namespace vw {
   template <class T> struct PixelChannelType : CompoundChannelType<T> {};
   template <class T> struct PixelNumChannels : CompoundNumChannels<T> {};
   template <class T, class ChannelT> struct PixelChannelCast : CompoundChannelCast<T,ChannelT> {};
+  template <class T> struct PixelHasAlpha : false_type {};
 
   template <class PixelT>
   struct PixelMakeComplex {

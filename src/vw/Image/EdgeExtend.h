@@ -171,7 +171,7 @@ namespace vw {
     inline unsigned rows() const { return m_rows; }
     inline unsigned planes() const { return m_image.planes(); }
 
-    inline pixel_accessor origin() const { return pixel_accessor(*this,m_xoffset,m_yoffset); }
+    inline pixel_accessor origin() const { return pixel_accessor(*this,0,0); }
     inline result_type operator()( int i, int j, int p = 0 ) const { return m_extend_func(m_image,i+m_xoffset,j+m_yoffset,p); }
 
     ImageT const& child() const { return m_image; }
