@@ -32,7 +32,7 @@ lapack_headers = LinearAlgebra.h Optimization.h
 endif
 
 include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h \
-                  Quaternion.h $(lapack_headers)
+                  Quaternion.h ConjugateGradient.h $(lapack_headers)
 
 libvwMath_la_SOURCES = 
 libvwMath_la_LIBADD = @MODULE_MATH_LDFLAGS@
