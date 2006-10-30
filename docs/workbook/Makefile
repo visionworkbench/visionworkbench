@@ -1,4 +1,4 @@
-INCPATH += -I../../src
+INCPATH += -I../../src -I/opt/local/include
 LIBS = ../../src/vw/FileIO/libvwFileIO.la
 CXXFLAGS = -O3 -g -Wall
 

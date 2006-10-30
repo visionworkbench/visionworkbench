@@ -78,6 +78,8 @@
 #ifndef __VW_MATH_CONJUGATEGRADIENT_H__
 #define __VW_MATH_CONJUGATEGRADIENT_H__
 
+#include <vw/Core/Debugging.h>
+
 #define VW_CONJGRAD_MAX_ITERS_BETWEEN_SPACER_STEPS 20
 
 namespace vw {
@@ -116,7 +118,7 @@ namespace math{
         typename FuncT::result_type new_val = func(new_pos);
         if( new_val - val <= thresh ) return new_pos;
         if( ( stepsize < 1e-20 && val-new_val > 0 ) || stepsize < 1e-40 ) {
-          std::cout << "ArmijoStepSize punting!  (slope=" << dot_prod(grad,dir) << ", delta=" << (new_val-val) << ", thresh=" << thresh << ")" << std::endl;
+          vw_out(DebugMessage) << "ArmijoStepSize punting!  (slope=" << dot_prod(grad,dir) << ", delta=" << (new_val-val) << ", thresh=" << thresh << ")" << std::endl;
           return new_pos;
         }
         stepsize *= beta;
@@ -204,13 +206,13 @@ namespace math{
                                                 int numiters ) {
     typename FuncT::domain_type pos = seed;
     typename FuncT::result_type val = func(pos);
-    std::cout << "Initial: " << val << std::endl;
+    vw_out(DebugMessage) << "Initial: " << val << std::endl;
     for( int i=0; i<numiters; ++i ) {
       typename FuncT::gradient_type grad = func.gradient( pos );
       pos = step( func, pos, val, grad, -grad );
       val = func(pos);
-      std::cout << "Step " << i << ": " << val << std::endl;
-      ++stage;
+      vw_out(DebugMessage) << "Step " << i << ": " << val << std::endl;
+      //      ++stage;
     }
     return pos;
   }
@@ -223,7 +225,7 @@ namespace math{
                                                   int numiters ) {
     typename FuncT::domain_type pos = seed;
     typename FuncT::result_type val = func(pos);
-    std::cout << "Initial: " << val << std::endl;
+    vw_out(DebugMessage) << "Initial: " << val << std::endl;
     double last_grad_norm2 = 0;
     typename FuncT::gradient_type last_dir;
     for( int i=0; i<numiters; ++i ) {
@@ -236,8 +238,8 @@ namespace math{
       last_grad_norm2 = grad_norm2;
       last_dir = dir;
       val = func(pos);
-      std::cout << "Step " << i << ": " << val << std::endl;
-      ++stage;
+      vw_out(DebugMessage) << "Step " << i << ": " << val << std::endl;
+      //      ++stage;
     }
     return pos;
   }
