@@ -21,7 +21,7 @@
 // 
 // __END_LICENSE__
 
-/// \file Stereo.h
+/// \file Cartography.h
 /// 
 /// A convenience header that includes the header files in vw/Cartography.
 /// 

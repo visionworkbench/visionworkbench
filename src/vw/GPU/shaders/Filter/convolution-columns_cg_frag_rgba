@@ -1,0 +1,17 @@
+
+void main(
+      in float2 texCoord0 : TEXCOORD0,
+      uniform samplerRECT image,
+      uniform samplerRECT kernel,
+      uniform float halfSize,
+      out float4 color : COLOR )
+  {
+     float2 startCoord = float2(texCoord0[0], texCoord0[1] + halfSize);
+     int size = $1;
+     color = float4(0.0, 0.0, 0.0, 0.0);
+     for(int kernelPos = 0; kernelPos < size; kernelPos++) {
+        float kernelValue = texRECT(kernel, float2(kernelPos, 0)).r;
+	color += kernelValue * texRECT(image, float2(startCoord[0], startCoord[1] - kernelPos));
+     }
+ }
+

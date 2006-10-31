@@ -1,0 +1,11 @@
+
+uniform sampler2DRect i1;
+uniform float f1;
+uniform float f2;
+uniform float f3;
+
+void main() {
+   vec4 color = texture2DRect(i1, gl_TexCoord[0].st);
+   gl_FragColor.rgba = acos(sqrt(pow(vec4(2.71828183), clamp(sin(pow(cos(color), vec4(f1))), vec4(f2), vec4(f3)))));
+}
+ 

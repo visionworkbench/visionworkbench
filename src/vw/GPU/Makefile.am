@@ -25,67 +25,37 @@
 # sources
 ########################################################################
 
-if MAKE_MODULE_CORE
-core_subdirs = Core
-core_headers = Core.h
-endif
-
-if MAKE_MODULE_MATH
-math_subdirs = Math
-math_headers = Math.h
-endif
-
-if MAKE_MODULE_IMAGE
-image_subdirs = Image
-image_headers = Image.h
-endif
-
-if MAKE_MODULE_FILEIO
-fileio_subdirs = FileIO
-fileio_headers = FileIO.h
-endif
-
-if MAKE_MODULE_CAMERA
-camera_subdirs = Camera
-camera_headers = Camera.h
-endif
-
-if MAKE_MODULE_MOSAIC
-mosaic_subdirs = Mosaic
-mosaic_headers = Mosaic.h
-endif
-
-if MAKE_MODULE_STEREO
-stereo_subdirs = Stereo
-stereo_headers = Stereo.h
-endif
-
-if MAKE_MODULE_CARTOGRAPHY
-cartography_subdirs = Cartography
-cartography_headers = Cartography.h
-endif
-
 if MAKE_MODULE_GPU
-gpu_subdirs = GPU
-gpu_headers = GPU.h
+
+include_HEADERS = OpenGLManager.h GPUProgram.h TexAlloc.h TexBlock.h	\
+  TexObj.h GPUImage.h TokenReplacer.h Filter.h ImageOperators.h				\
+  SimpleTransforms.h Transform.h Display.h GenericShaders.h						\
+  ImageMath.h ImageStatistics.h Fourier.h ImageAlgorithms.h						\
+  Interpolation.h EdgeExtend.h Expressions.h Timer.h
+
+libvwGPU_la_SOURCES = OpenGLManager.cc GPUProgram.cc TexAlloc.cc				\
+  TexBlock.cc TexObj.cc GPUImage.cc TokenReplacer.cc GenericShaders.cc	\
+  ImageOperators.cc ImageMath.cc SimpleTransforms.cc Transform.cc				\
+  Filter.cc ImageStatistics.cc Fourier.cc Display.cc										\
+  ImageAlgorithms.cc Expressions.cc UtilityTimer.cc
+
+libvwGPU_la_LIBADD = @MODULE_GPU_LDFLAGS@
+
+lib_LTLIBRARIES = libvwGPU.la
+
+bin_PROGRAMS = 
+
 endif
-
-include_HEADERS = $(core_headers) $(math_headers) $(image_headers)	\
-	$(fileio_headers) $(camera_headers) $(mosaic_headers) $(stereo_headers) \
-  $(cartography_headers) $(gpu_headers) vw.h
-
-SUBDIRS = $(core_subdirs) $(math_subdirs) $(image_subdirs)	\
-	$(fileio_subdirs) . $(camera_subdirs) $(mosaic_subdirs) $(stereo_subdirs) \
-  $(cartography_subdirs) $(gpu_subdirs) tests tools
-
-lib_LTLIBRARIES = libvw.la
-libvw_la_SOURCES =
-libvw_la_LIBADD = Core/libvwCore.la Math/libvwMath.la Image/libvwImage.la FileIO/libvwFileIO.la
 
 ########################################################################
 # general
 ########################################################################
 
-includedir = $(prefix)/include/vw
+SUBDIRS = . tests
+
+includedir = $(prefix)/include/vw/GPU
+
+AM_CPPFLAGS = @MODULE_GPU_CPPFLAGS@
+AM_LDFLAGS  = 
 
 include $(top_srcdir)/config/rules.mak
