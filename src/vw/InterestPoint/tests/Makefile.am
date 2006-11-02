@@ -25,25 +25,9 @@
 # sources
 ########################################################################
 
-if MAKE_MODULE_MATH
+if MAKE_MODULE_INTERESTPOINT
 
-nodist_TestVector_SOURCES = TestVector.cxx
-nodist_TestMatrix_SOURCES = TestMatrix.cxx
-nodist_TestBBox_SOURCES = TestBBox.cxx
-nodist_TestFunctions_SOURCES = TestFunctions.cxx
-nodist_TestFunctors_SOURCES = TestFunctors.cxx
-nodist_TestConjugateGradient_SOURCES = TestConjugateGradient.cxx
-
-if HAVE_PKG_LAPACK
-nodist_TestLinearAlgebra_SOURCES = TestLinearAlgebra.cxx
-nodist_TestGeometry_SOURCES = TestGeometry.cxx
-TestLinearAlgebra = TestLinearAlgebra TestGeometry
-endif
-
-#nodist_TestOptimization_SOURCES = TestOptimization.cxx
-
-TESTS = TestVector TestMatrix TestBBox TestFunctions TestFunctors			\
-        TestConjugateGradient $(TestLinearAlgebra) #TestOptimization
+TESTS = 
 
 endif
 
@@ -51,8 +35,8 @@ endif
 # general
 ########################################################################
 
-AM_CPPFLAGS = @MODULE_MATH_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
-AM_LDFLAGS  = @PKG_MATH_LDFLAGS@
+AM_CPPFLAGS = @MODULE_INTERESTPOINT_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
+AM_LDFLAGS  = @PKG_INTERESTPOINT_LDFLAGS@
 
 check_PROGRAMS = $(TESTS)
 EXTRA_DIST = $(patsubst %,%.h,$(TESTS))

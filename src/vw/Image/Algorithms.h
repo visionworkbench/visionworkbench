@@ -370,6 +370,39 @@ namespace vw {
     return result;
   }
 
+
+  // *******************************************************************
+  // image_blocks()
+  // *******************************************************************
+
+  /// A utility routine that, given an image, returns a vector of
+  /// bounding boxes for sub-regions of the image of the specified
+  /// size.  Note that bounding boxes along the right and bottom edges
+  /// of the image will not have the specified dimension unless the
+  /// image width and height are perfectly divisible by the bounding
+  /// box width and height, respectively. This routine is useful if you
+  /// want to apply an operation to a large image one region at a time.
+  template <class ViewT>
+  std::vector<BBox2i> image_blocks(ImageViewBase<ViewT> const& image, 
+                                   int block_width, int block_height) {
+    
+    std::vector<BBox2i> bboxes;
+
+    int j_offset = 0;
+    while ( j_offset < image.impl().rows() ) {
+      int j_dim = (image.impl().rows() - j_offset) < block_height ? (image.impl().rows() - j_offset) : block_height;
+      int i_offset = 0;
+      while ( i_offset < image.impl().cols() ) {
+        int i_dim = (image.impl().cols() - i_offset) < block_width ? (image.impl().cols() - i_offset) : block_width;      
+        bboxes.push_back(BBox2i(i_offset,j_offset,i_dim,j_dim));
+        i_offset += i_dim;
+      }
+      j_offset += j_dim;
+    }
+    return bboxes;
+  }
+
+
 } // namespace vw
 
 #endif // __VW_IMAGE_ALGORITHMS_H__

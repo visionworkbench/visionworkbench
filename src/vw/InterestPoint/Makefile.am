@@ -25,25 +25,16 @@
 # sources
 ########################################################################
 
-if MAKE_MODULE_MATH
+if MAKE_MODULE_INTERESTPOINT
 
-nodist_TestVector_SOURCES = TestVector.cxx
-nodist_TestMatrix_SOURCES = TestMatrix.cxx
-nodist_TestBBox_SOURCES = TestBBox.cxx
-nodist_TestFunctions_SOURCES = TestFunctions.cxx
-nodist_TestFunctors_SOURCES = TestFunctors.cxx
-nodist_TestConjugateGradient_SOURCES = TestConjugateGradient.cxx
+include_HEADERS = Detector.h Descriptor.h Matcher.h RANSAC.h
 
-if HAVE_PKG_LAPACK
-nodist_TestLinearAlgebra_SOURCES = TestLinearAlgebra.cxx
-nodist_TestGeometry_SOURCES = TestGeometry.cxx
-TestLinearAlgebra = TestLinearAlgebra TestGeometry
-endif
+libvwInterestPoint_la_SOURCES = 
+libvwInterestPoint_la_LIBADD = @MODULE_MOSAIC_LDFLAGS@
 
-#nodist_TestOptimization_SOURCES = TestOptimization.cxx
+lib_LTLIBRARIES = libvwInterestPoint.la
 
-TESTS = TestVector TestMatrix TestBBox TestFunctions TestFunctors			\
-        TestConjugateGradient $(TestLinearAlgebra) #TestOptimization
+bin_PROGRAMS = 
 
 endif
 
@@ -51,11 +42,11 @@ endif
 # general
 ########################################################################
 
-AM_CPPFLAGS = @MODULE_MATH_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
-AM_LDFLAGS  = @PKG_MATH_LDFLAGS@
+SUBDIRS = . tests
 
-check_PROGRAMS = $(TESTS)
-EXTRA_DIST = $(patsubst %,%.h,$(TESTS))
-CLEANFILES = $(patsubst %,%.cxx,$(TESTS))
+includedir = $(prefix)/include/vw/InterestPoint
+
+AM_CPPFLAGS = @MODULE_INTERESTPOINT_CPPFLAGS@
+AM_LDFLAGS  = 
 
 include $(top_srcdir)/config/rules.mak

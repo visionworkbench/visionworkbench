@@ -1787,6 +1787,16 @@ namespace math {
     return result;
   }
 
+  /// Fill the entire matrix with the specified value
+  template <class MatrixT, class ValT>
+  inline void fill( MatrixBase<MatrixT> &m, ValT const& val ) {
+    unsigned mindim = std::min( m.impl().rows(), m.impl().cols() );
+    unsigned rows = m.impl().rows(), cols = m.impl().cols();
+    for( unsigned i=0; i<rows; ++i )
+      for( unsigned j=0; j<cols; ++j )
+        m.impl()(i,j) = typename MatrixT::value_type(val);
+  }
+
 
   // *******************************************************************
   // Matrix vector product.
