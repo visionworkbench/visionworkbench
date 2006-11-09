@@ -38,7 +38,7 @@ namespace vw {
 namespace camera {
 
 
-  /// The CAHV pinhole comera model has been widely used in NASA
+  /// The CAHV pinhole camera model has been widely used in NASA
   /// planetary mission for rover navigation and scientific camera
   /// systems.  In the CAHV model, camera intrinsics and extrincsics
   /// are jointly parameterized by four 3-Vectors C,A,H, and V.  The

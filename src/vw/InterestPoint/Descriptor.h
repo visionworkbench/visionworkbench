@@ -92,7 +92,7 @@ namespace ip {
   std::vector<InterestPoint> crop(std::vector<InterestPoint> const& interest_points, BBox<RealT,2> const& bbox) {
     std::vector<InterestPoint> return_val;
     for (int i = 0; i < interest_points.size(); ++i) {
-      if (bbox.contains(Vector<RealT,2>(interest_points[i].x, interest_points[i].y)))
+      if (bbox.contains(Vector<RealT,2>(RealT(interest_points[i].x), RealT(interest_points[i].y))))
         return_val.push_back(interest_points[i]);
     }
     return return_val;

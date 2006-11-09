@@ -11,6 +11,7 @@ namespace po = boost::program_options;
 #include <vw/FileIO.h>
 #include <vw/Stereo/OptimizedCorrelator.h>
 #include <vw/Stereo/ReferenceCorrelator.h>
+#include <vw/Stereo/MultiresolutionCorrelator.h>
 
 using namespace vw;
 using namespace vw::stereo;
@@ -43,6 +44,7 @@ int main( int argc, char *argv[] ) {
       ("hsubpix", "Enable horizontal sub-pixel correlation")
       ("vsubpix", "Enable vertical sub-pixel correlation")
       ("reference", "Use the slower, simpler reference correlator")
+      ("multiresolution", "Use the slower, simpler reference correlator")
       ("bitimage", "Force the use of the optimized bit-image correlator")
       ("nonbitimage", "Fore the use of the slower, non bit-image optimized correlator")
       ;
@@ -100,6 +102,20 @@ int main( int argc, char *argv[] ) {
                                                   (vm.count("hsubpix")>0),
                                                   (vm.count("vsubpix")>0) );
       disparity_map = correlator( left, right, bit_image );
+    } if (vm.count("multiresolution")>0) {
+      read_image( left, left_file_name );
+      read_image( right, right_file_name );
+      int cols = std::max(left.cols(),right.cols());
+      int rows = std::max(left.rows(),right.rows());
+      left = edge_extend(left,0,0,cols,rows);
+      right = edge_extend(right,0,0,cols,rows);
+      vw::stereo::MultiresolutionCorrelator correlator( xoffset-xrange, xoffset+xrange,
+                                                        yoffset-yrange, yoffset+yrange,
+                                                        xkernel, ykernel,
+                                                        true, lrthresh, slog,
+                                                        (vm.count("hsubpix")>0),
+                                                        (vm.count("vsubpix")>0) );
+      disparity_map = correlator( left, right, bit_image );      
     } else {
       vw::stereo::SubpixelCorrelator correlator( xoffset-xrange, xoffset+xrange,
                                                  yoffset-yrange, yoffset+yrange,

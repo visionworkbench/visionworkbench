@@ -68,6 +68,8 @@
 namespace vw { 
 namespace ip {
 
+  VW_DEFINE_EXCEPTION(RANSACErr, Exception);
+
   /// This is a basic error metric can be used when the mathematical
   /// multiplication and subtraction operators are defined for p1, p2,
   /// and H.
@@ -146,9 +148,9 @@ namespace ip {
 
       // check consistency
       VW_ASSERT( p1.size() == p2.size(), 
-                 vw::ArgumentErr() << "RANSAC Error.  data vectors are not the same size." );
+                 RANSACErr() << "RANSAC Error.  data vectors are not the same size." );
       VW_ASSERT( p1.size() != 0,  
-                 vw::ArgumentErr() << "RANSAC Error.  Insufficient data.\n");
+                 RANSACErr() << "RANSAC Error.  Insufficient data.\n");
 
       int inliers_max = 0;
       typename FittingFuncT::result_type H;
@@ -196,7 +198,7 @@ namespace ip {
       }
       
       if (inliers_max < m_fitting_func.min_elements_needed_for_fit(p1[0])) {
-        throw vw::MathErr() << "RANSAC was unable to find a fit that matched the supplied data.";
+        throw RANSACErr() << "RANSAC was unable to find a fit that matched the supplied data.";
       }
 
       // For debugging
