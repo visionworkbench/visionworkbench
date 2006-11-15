@@ -40,6 +40,10 @@
 
 namespace vw {
 namespace math {
+  // These function implementations are defined in namespace impl 
+  // to avoid ambiguous collisions with system-defined implementations 
+  // on platforms that provide them.
+namespace impl {
 
   double erfc(double);
 
@@ -92,6 +96,7 @@ namespace math {
   //   and sqrt(2(x-1)) for small x (i.e. x near 1).
   // * The asymptotic behavior of asinh(x) is also ln(2x).
 
+} // namespace impl
 } // namespace math
 
   using ::fabs;
@@ -114,8 +119,8 @@ namespace math {
   using ::pow;
 
 #ifdef WIN32
-  using math::erf;
-  using math::erfc;
+  using math::impl::erf;
+  using math::impl::erfc;
 #else
   using ::acosh;
   using ::asinh;
