@@ -121,6 +121,49 @@ namespace vw {
     /// \endcond
   };
 
+  /// A mix-in specifying that a functor is a binary functor 
+  /// whose return type is determined by the given ternary 
+  /// type function with the given first argument.
+  template <template<class,class,class> class ResultT, class ValT>
+  struct BinaryReturnTernaryTemplateBind1st {
+    /// \cond INTERNAL
+    template <class Args> struct result { typedef void type; };
+    template <class FuncT, class Arg1T, class Arg2T>
+    struct result<FuncT(Arg1T,Arg2T)> {
+      typedef typename ResultT<ValT,Arg1T,Arg2T>::type type;
+    };
+    /// \endcond
+  };
+
+  /// A mix-in specifying that a functor is an unary functor 
+  /// whose return type is determined by the given ternary 
+  /// type function with the given first and second arguments.
+  template <template<class,class,class> class ResultT, class Val1T, class Val2T>
+  struct UnaryReturnTernaryTemplateBind1st2nd {
+    /// \cond INTERNAL
+    template <class Args> struct result { typedef void type; };
+    template <class FuncT, class ArgT>
+    struct result<FuncT(ArgT)> {
+      typedef typename ResultT<Val1T,Val2T,ArgT>::type type;
+    };
+    /// \endcond
+  };
+
+  /// A mix-in specifying that a functor is an unary functor 
+  /// whose return type is determined by the given ternary 
+  /// type function with the given first and third arguments.
+  template <template<class,class,class> class ResultT, class Val1T, class Val3T>
+  struct UnaryReturnTernaryTemplateBind1st3rd {
+    /// \cond INTERNAL
+    template <class Args> struct result { typedef void type; };
+    template <class FuncT, class ArgT>
+    struct result<FuncT(ArgT)> {
+      typedef typename ResultT<Val1T,ArgT,Val3T>::type type;
+    };
+    /// \endcond
+  };
+
+  // XXX What on earth is this for? :
   template <template<class,class> class FuncT, class ValT>
   struct BinaryBind1st {
     template <class ArgT>
