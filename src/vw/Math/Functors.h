@@ -49,108 +49,151 @@ namespace math {
     typedef typename StdMathType<typename PromoteType<T1,T2>::type>::type type;
   };
 
+  template <class FuncT, class ArgT, bool ArgIsCompound>
+  struct ArgUnaryFunctorTypeHelper : public StdMathType<ArgT> {};
+
+  template <class FuncT, class ArgT>
+  struct ArgUnaryFunctorTypeHelper<FuncT,ArgT,true> {
+    typedef typename CompoundChannelType<ArgT>::type channel_type;
+    typedef typename ArgUnaryFunctorTypeHelper<FuncT,channel_type,IsCompound<channel_type>::value>::type result_channel_type;
+    typedef typename CompoundChannelCast<ArgT,result_channel_type>::type type;
+  };
+
+  template <class F, class T>
+  struct ArgUnaryFunctorType : public ArgUnaryFunctorTypeHelper<F,T,IsCompound<T>::value> {};
+
+
+  template <class FuncT, class Arg1T, class Arg2T, bool Arg1IsCompound, bool Arg2IsCompound>
+  struct BinaryFunctorTypeHelper : public StdMathType2<Arg1T,Arg2T> {};
+
+  template <class FuncT, class Arg1T, class Arg2T>
+  struct BinaryFunctorTypeHelper<FuncT,Arg1T,Arg2T,true,false> {
+    typedef typename CompoundChannelType<Arg1T>::type channel_type;
+    typedef typename BinaryFunctorTypeHelper<FuncT,channel_type,Arg2T,IsCompound<channel_type>::value,false>::type result_channel_type;
+    typedef typename CompoundChannelCast<Arg1T,result_channel_type>::type type;
+  };
+
+  template <class FuncT, class Arg1T, class Arg2T>
+  struct BinaryFunctorTypeHelper<FuncT,Arg1T,Arg2T,false,true> {
+    typedef typename CompoundChannelType<Arg2T>::type channel_type;
+    typedef typename BinaryFunctorTypeHelper<FuncT,Arg1T,channel_type,false,IsCompound<channel_type>::value>::type result_channel_type;
+    typedef typename CompoundChannelCast<Arg2T,result_channel_type>::type type;
+  };
+
+  template <class FuncT, class Arg1T, class Arg2T>
+  struct BinaryFunctorTypeHelper<FuncT,Arg1T,Arg2T,true,true> {
+    typedef typename CompoundChannelType<Arg1T>::type channel1_type;
+    typedef typename CompoundChannelType<Arg2T>::type channel2_type;
+    typedef typename BinaryFunctorTypeHelper<FuncT,channel1_type,channel2_type,IsCompound<channel1_type>::value,IsCompound<channel2_type>::value>::type result_channel_type;
+    typedef typename boost::mpl::if_<CompoundIsCompatible<Arg1T,Arg2T>, typename CompoundChannelCast<Arg1T,result_channel_type>::type, TypeDeductionError<BinaryFunctorTypeHelper> >::type type;
+  };
+
+  template <class FuncT, class Arg1T, class Arg2T>
+  struct BinaryFunctorType : public BinaryFunctorTypeHelper<FuncT,Arg1T,Arg2T,IsCompound<Arg1T>::value,IsCompound<Arg2T>::value> {};
+
   // ********************************************************************
   // Standard Mathematical Functors
   // ********************************************************************
 
-#define __VW_UNARY_IMAGE_MATH_FUNCTOR(name,func)      \
-  struct Arg##name##Functor : UnaryReturnTemplateType<StdMathType> { \
-    template <class ValT>                             \
-    double operator()( ValT arg ) const {             \
-      return func(double(arg));                       \
-    }                                                 \
-    float operator()( float arg ) const {             \
-      return func##f(arg);                            \
-    }                                                 \
-    long double operator()( long double arg ) const { \
-      return func##l(arg);                            \
-    }                                                 \
-  };                                                  \
+#define __VW_UNARY_MATH_FUNCTOR(name,func)                              \
+  struct Arg##name##Functor                                             \
+    : UnaryReturnBinaryTemplateBind1st<ArgUnaryFunctorType,Arg##name##Functor> { \
+    template <class ValT>                                               \
+    typename ArgUnaryFunctorType<Arg##name##Functor,ValT>::type               \
+    operator()( ValT arg ) const {                                      \
+      return func(arg);                                                 \
+    }                                                                   \
+    float operator()( float arg ) const {                               \
+      return func##f(arg);                                              \
+    }                                                                   \
+    long double operator()( long double arg ) const {                   \
+      return func##l(arg);                                              \
+    }                                                                   \
+  };                                                                    \
   using ::func;
 
-#define __VW_BINARY_IMAGE_MATH_FUNCTOR(name,func)                       \
-  struct ArgArg##name##Functor : BinaryReturnTemplateType<StdMathType2> { \
-    double apply( double arg1, double arg2 ) const {                    \
-      return func(arg1,arg2);                                           \
-    }                                                                   \
-    float apply( float arg1, float arg2 ) const {                       \
+#define __VW_BINARY_MATH_FUNCTOR(name,func)                             \
+  struct ArgArg##name##Functor                                          \
+    : BinaryReturnTernaryTemplateBind1st<BinaryFunctorType,ArgArg##name##Functor> { \
+    float operator()( float arg1, float arg2 ) const {                  \
       return func##f(arg1,arg2);                                        \
     }                                                                   \
-    long double apply( long double arg1, long double arg2 ) const {     \
+    long double operator()( long double arg1, long double arg2 ) const { \
       return func##l(arg1,arg2);                                        \
     }                                                                   \
     template <class Arg1T, class Arg2T>                                 \
-    typename result<ArgArg##name##Functor(Arg1T,Arg2T)>::type           \
+    typename BinaryFunctorType<ArgArg##name##Functor,Arg1T,Arg2T>::type \
     inline operator()( Arg1T const& arg1, Arg2T const& arg2 ) const {   \
-      typedef typename result<ArgArg##name##Functor(Arg1T,Arg2T)>::type arg_type; \
-      return apply( (arg_type)arg1, (arg_type)arg2 );                   \
+      return func( arg1, arg2 );                                        \
     }                                                                   \
   };                                                                    \
   template <class ValT>                                                 \
-  struct ArgVal##name##Functor : UnaryReturnBinaryTemplateBind2nd<StdMathType2,ValT> { \
+  struct ArgVal##name##Functor                                          \
+    : UnaryReturnTernaryTemplateBind1st3rd<BinaryFunctorType,ArgArg##name##Functor,ValT> { \
     ValT m_val;                                                         \
     ArgVal##name##Functor(ValT val) : m_val(val) {}                     \
     template <class ArgT>                                               \
-    typename StdMathType2<ArgT,ValT>::type                              \
+    typename BinaryFunctorType<ArgArg##name##Functor,ArgT,ValT>::type   \
     inline operator()( ArgT const& arg ) const {                        \
       return ArgArg##name##Functor()( arg, m_val );                     \
     }                                                                   \
   };                                                                    \
   template <class ValT>                                                 \
-  struct ValArg##name##Functor : UnaryReturnBinaryTemplateBind1st<StdMathType2,ValT> { \
+  struct ValArg##name##Functor                                          \
+    : UnaryReturnTernaryTemplateBind1st2nd<BinaryFunctorType,ArgArg##name##Functor,ValT> { \
     ValT m_val;                                                         \
     ValArg##name##Functor(ValT val) : m_val(val) {}                     \
     template <class ArgT>                                               \
-    typename StdMathType2<ValT,ArgT>::type                              \
+    typename BinaryFunctorType<ArgArg##name##Functor,ValT,ArgT>::type   \
     inline operator()( ArgT const& arg ) const {                        \
       return ArgArg##name##Functor()( m_val, arg );                     \
     }                                                                   \
   };                                                                    \
   using ::func;
 
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Fabs, fabs )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Acos, acos )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Asin, asin )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Atan, atan )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Cos, cos )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Sin, sin )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Tan, tan )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Cosh, cosh )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Sinh, sinh )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Tanh, tanh )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Exp, exp )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Log, log )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Log10, log10 )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Sqrt, sqrt )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Ceil, ceil )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Floor, floor )
+  __VW_UNARY_MATH_FUNCTOR( Fabs, fabs )
+  __VW_UNARY_MATH_FUNCTOR( Acos, acos )
+  __VW_UNARY_MATH_FUNCTOR( Asin, asin )
+  __VW_UNARY_MATH_FUNCTOR( Atan, atan )
+  __VW_UNARY_MATH_FUNCTOR( Cos, cos )
+  __VW_UNARY_MATH_FUNCTOR( Sin, sin )
+  __VW_UNARY_MATH_FUNCTOR( Tan, tan )
+  __VW_UNARY_MATH_FUNCTOR( Cosh, cosh )
+  __VW_UNARY_MATH_FUNCTOR( Sinh, sinh )
+  __VW_UNARY_MATH_FUNCTOR( Tanh, tanh )
+  __VW_UNARY_MATH_FUNCTOR( Exp, exp )
+  __VW_UNARY_MATH_FUNCTOR( Log, log )
+  __VW_UNARY_MATH_FUNCTOR( Log10, log10 )
+  __VW_UNARY_MATH_FUNCTOR( Sqrt, sqrt )
+  __VW_UNARY_MATH_FUNCTOR( Ceil, ceil )
+  __VW_UNARY_MATH_FUNCTOR( Floor, floor )
 
-  __VW_BINARY_IMAGE_MATH_FUNCTOR( Atan2, atan2 )
-  __VW_BINARY_IMAGE_MATH_FUNCTOR( Pow, pow )
+  __VW_BINARY_MATH_FUNCTOR( Atan2, atan2 )
+  __VW_BINARY_MATH_FUNCTOR( Pow, pow )
 
 #ifndef WIN32
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Acosh, acosh )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Asinh, asinh )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Atanh, atanh )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Exp2, exp2 )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Expm1, expm1 )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Log2, log2 )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Log1p, log1p )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Cbrt, cbrt )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Erf, erf )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Erfc, erfc )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Tgamma, tgamma )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Lgamma, lgamma )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Round, round )
-  __VW_UNARY_IMAGE_MATH_FUNCTOR( Trunc, trunc )
+  __VW_UNARY_MATH_FUNCTOR( Acosh, acosh )
+  __VW_UNARY_MATH_FUNCTOR( Asinh, asinh )
+  __VW_UNARY_MATH_FUNCTOR( Atanh, atanh )
+  __VW_UNARY_MATH_FUNCTOR( Exp2, exp2 )
+  __VW_UNARY_MATH_FUNCTOR( Expm1, expm1 )
+  __VW_UNARY_MATH_FUNCTOR( Log2, log2 )
+  __VW_UNARY_MATH_FUNCTOR( Log1p, log1p )
+  __VW_UNARY_MATH_FUNCTOR( Cbrt, cbrt )
+  __VW_UNARY_MATH_FUNCTOR( Erf, erf )
+  __VW_UNARY_MATH_FUNCTOR( Erfc, erfc )
+  __VW_UNARY_MATH_FUNCTOR( Tgamma, tgamma )
+  __VW_UNARY_MATH_FUNCTOR( Lgamma, lgamma )
+  __VW_UNARY_MATH_FUNCTOR( Round, round )
+  __VW_UNARY_MATH_FUNCTOR( Trunc, trunc )
 
-  __VW_BINARY_IMAGE_MATH_FUNCTOR( Hypot, hypot )
-  __VW_BINARY_IMAGE_MATH_FUNCTOR( Copysign, copysign )
-  __VW_BINARY_IMAGE_MATH_FUNCTOR( Fdim, fdim )
+  __VW_BINARY_MATH_FUNCTOR( Hypot, hypot )
+  __VW_BINARY_MATH_FUNCTOR( Copysign, copysign )
+  __VW_BINARY_MATH_FUNCTOR( Fdim, fdim )
 #endif
 
-#undef __VW_UNARY_IMAGE_MATH_FUNCTOR
-#undef __VW_BINARY_IMAGE_MATH_FUNCTOR
+#undef __VW_UNARY_MATH_FUNCTOR
+#undef __VW_BINARY_MATH_FUNCTOR
 
 
   // Real part functor
