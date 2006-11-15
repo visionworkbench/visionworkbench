@@ -244,6 +244,29 @@ public:
     TS_ASSERT( is_of_type<ToyType<std::complex<int> > >( conj(ToyType<std::complex<int> >(1)) ) );
   }
 
+  void test_ArgAcosFunctor() {
+    ToyType<double> x(0.5);
+    TS_ASSERT( is_of_type<ToyType<double> >( vw::math::ArgAcosFunctor()(x) ) );
+    TS_ASSERT_DELTA( vw::math::ArgAcosFunctor()(x)[0], acos(x[0]), 1e-8 );
+  }
+
+  void test_ArgArgHypotFunctor() {
+    ToyType<double> x(3), y(4);
+    TS_ASSERT( is_of_type<ToyType<double> >( vw::math::ArgArgHypotFunctor()(x,y) ) );
+    TS_ASSERT_DELTA( vw::math::ArgArgHypotFunctor()(x,y)[0], hypot(x[0],y[0]), 1e-8 );
+  }
+
+  void test_ArgValHypotFunctor() {
+    ToyType<double> x(3), y(4);
+    TS_ASSERT( is_of_type<ToyType<double> >( vw::math::ArgValHypotFunctor<ToyType<double> >(y)(x) ) );
+    TS_ASSERT_DELTA( vw::math::ArgValHypotFunctor<ToyType<double> >(y)(x)[0], hypot(x[0],y[0]), 1e-8 );
+  }
+
+  void test_ValArgHypotFunctor() {
+    ToyType<double> x(3), y(4);
+    TS_ASSERT( ( boost::is_same< ToyType<double>, boost::result_of<vw::math::ValArgHypotFunctor<ToyType<double> >(ToyType<double>)>::type >::value ) );
+    TS_ASSERT( is_of_type<ToyType<double> >( vw::math::ValArgHypotFunctor<ToyType<double> >(x)(y) ) );
+    TS_ASSERT_DELTA( vw::math::ValArgHypotFunctor<ToyType<double> >(x)(y)[0], hypot(x[0],y[0]), 1e-8 );
+  }
+
 };
-
-
