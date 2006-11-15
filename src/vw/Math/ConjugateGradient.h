@@ -117,10 +117,10 @@ namespace math{
         typename FuncT::domain_type new_pos = pos + stepsize * dir;
         typename FuncT::result_type new_val = func(new_pos);
         if( new_val - val <= thresh ) return new_pos;
-        if( ( stepsize < 1e-20 && val-new_val > 0 ) || stepsize < 1e-40 ) {
-          vw_out(DebugMessage) << "ArmijoStepSize punting!  (slope=" << dot_prod(grad,dir) << ", delta=" << (new_val-val) << ", thresh=" << thresh << ")" << std::endl;
-          return new_pos;
-        }
+        //if( ( stepsize < 1e-20 && val-new_val > 0 ) || stepsize < 1e-40 ) {
+        //  vw_out(DebugMessage) << "ArmijoStepSize punting!  (slope=" << dot_prod(grad,dir) << ", delta=" << (new_val-val) << ", thresh=" << thresh << ")" << std::endl;
+        //  return new_pos;
+        //}
         stepsize *= beta;
         thresh *= beta;
       }
@@ -212,7 +212,6 @@ namespace math{
       pos = step( func, pos, val, grad, -grad );
       val = func(pos);
       vw_out(DebugMessage) << "Step " << i << ": " << val << std::endl;
-      //      ++stage;
     }
     return pos;
   }
@@ -239,7 +238,6 @@ namespace math{
       last_dir = dir;
       val = func(pos);
       vw_out(DebugMessage) << "Step " << i << ": " << val << std::endl;
-      //      ++stage;
     }
     return pos;
   }
