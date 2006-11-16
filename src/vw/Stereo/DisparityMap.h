@@ -6,6 +6,7 @@
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/Filter.h>
+#include <vw/Image/Statistics.h>
 
 #include <vw/FileIO.h>
 
@@ -71,7 +72,88 @@ namespace vw {
 namespace stereo {
 namespace disparity {
   
-  /// Apply a binary mask to the disparity map
+  /// Masks all of the black pixels along the edges of an image.  This
+  /// algorithm "eats away" at the pixels on all four sides of the
+  /// image; masking pixels until it encounters a non-black pixel.
+  /// 
+  /// You can supply an optional buffer argument that will mask some
+  /// of the good data bordering the image as well.  The width of this
+  /// border is set using the additional_border_width argument (in
+  /// units of pixels).
+  template <class ViewT>
+  vw::ImageView<bool> generate_mask(vw::ImageViewBase<ViewT> const& input_image,
+                                    unsigned int additional_border_width = 0) {
+
+    const double BLACK_PIXEL = 0;
+    vw::ImageView<bool> mask(input_image.impl().cols(), input_image.impl().rows(), 1);
+    unsigned int i, j;
+
+    vw::fill(mask, true);
+
+    for (i = 0; i < input_image.impl().cols(); i++) {
+      // Search from the left side of the image for black pixels 
+      j = 0;
+      while ( j < input_image.impl().rows() && input_image.impl()(i,j)[0] == BLACK_PIXEL ) {
+        mask(i,j) = false;
+        j++;
+      }
+
+      // Mask additional "buffer" pixels
+      int j_start = j;
+      while ( j < input_image.impl().rows() && j - j_start < additional_border_width ) {
+        mask(i,j) = false;
+        j++;
+      }
+    
+      // Search from the right side of the image for black pixels 
+      j = input_image.impl().rows() - 1;
+      while ( j > 0 && input_image.impl()(i,j)[0] == BLACK_PIXEL ) {
+        mask(i,j) = false;
+        j--;
+      }
+
+      // Mask additional "buffer" pixels
+      int j_end = j;
+      while ( j > 0 && j_end - j < additional_border_width) {
+        mask(i,j) = false;
+        j--;
+      }
+    }
+
+    for (j = 0; j < input_image.impl().rows(); j++) {
+      // Search from the top side of the image for black pixels 
+      i = 0;
+      while ( i < input_image.impl().cols() && input_image.impl()(i,j)[0] == BLACK_PIXEL ) {
+        mask(i,j) = false;
+        i++;
+      }
+
+      // Mask additional "buffer" pixels
+      int i_start = i;
+      while ( i < input_image.impl().cols() && i - i_start < additional_border_width) {
+        mask(i,j) = false;
+        i++;
+      }
+    
+      // Search from the bottom side of the image for black pixels 
+      i = input_image.impl().cols() - 1;
+      while ( i > 0 && input_image.impl()(i,j)[0] == BLACK_PIXEL) {
+        mask(i,j) = false;
+        i--;
+      }
+
+      // Mask additional "buffer" pixels
+      int i_end = i;
+      while ( i > 0 && i_end - i < additional_border_width) {
+        mask(i,j) = false;
+        i--;
+      }
+    }
+
+    return mask;
+  }
+
+  /// Apply a binary mask to the disparity map (see also \ref disparity::generate_mask())
   template <class PixelT>
   void mask(ImageView<PixelDisparity<PixelT> > &disparity_map, 
             ImageView<bool> const& left_mask,
@@ -277,6 +359,44 @@ namespace disparity {
         if (threshold_image(i,j) == 0)
           disparity_map(i,j) = PixelDisparity<ChannelT>(); // Set to missing pixel
     
+    std::cout << " done.\n";
+  }
+
+  template <class ChannelT, class ImagePixelT>
+  void low_contrast_filter(ImageView<PixelDisparity<ChannelT> > &disparity_map, 
+                           ImageView<ImagePixelT> const& left_image,
+                           ImageView<ImagePixelT> const& right_image,
+                           int kernel_width, int kernel_height,
+                           float rejection_threshold) {
+    std::cout << "\tIsolating and rejecting large areas of low contrast..." << std::flush;
+    
+    ImageView<float> left_contrast_image(left_image.cols(), left_image.rows());
+    ImageView<float> right_contrast_image(right_image.cols(), right_image.rows());
+
+    // First, compute the standard deviation in each image patch
+    for (int j = kernel_height/2; j < left_image.rows()-kernel_height/2; ++j) {
+      for (int i = kernel_width/2; i < left_image.cols()-kernel_width/2; ++i) {
+        typename CompoundChannelType<ImagePixelT>::type std_dev;
+        int crop_i = i - kernel_width/2;
+        int crop_j = j - kernel_height/2;
+        left_contrast_image(i,j) = stddev_channel_value(crop(channel_cast<float>(left_image), crop_i, crop_j, kernel_width, kernel_height));
+        right_contrast_image(i,j) = stddev_channel_value(crop(channel_cast<float>(right_image), crop_i, crop_j, kernel_width, kernel_height));
+      }
+    }
+
+    // For debugging
+    //     write_image("left-contrast.png", normalize(left_contrast_image));
+    //     write_image("right-contrast.png", normalize(right_contrast_image));
+    
+    // Reject pixels that have a standard deviation below the supplied threshold
+    for (int j = 0; j < disparity_map.rows(); ++j) {
+      for (int i = 0; i < disparity_map.cols(); ++i) {
+        if (left_contrast_image(i,j) < rejection_threshold ||
+            right_contrast_image(int(i+disparity_map(i,j).h()), int(j+disparity_map(i,j).v())) < rejection_threshold) {
+          disparity_map(i,j) = PixelDisparity<ChannelT>();
+        }
+      }
+    }
     std::cout << " done.\n";
   }
   

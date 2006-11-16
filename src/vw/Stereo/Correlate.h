@@ -10,6 +10,8 @@
 namespace vw {
 namespace stereo {
 
+VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
+
 // Timing (profiling) utilites
 static inline double Time(void) {
   struct timeval tv;

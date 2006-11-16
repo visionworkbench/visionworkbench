@@ -68,4 +68,7 @@ SUBDIRS = . tests
 
 includedir = $(prefix)/include/vw/FileIO
 
+AM_CPPFLAGS = @MODULE_FILEIO_CPPFLAGS@
+AM_LDFLAGS  = 
+
 include $(top_srcdir)/config/rules.mak

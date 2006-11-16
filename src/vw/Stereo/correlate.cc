@@ -117,7 +117,7 @@ int main( int argc, char *argv[] ) {
                                                         (vm.count("vsubpix")>0) );
       disparity_map = correlator( left, right, bit_image );      
     } else {
-      vw::stereo::SubpixelCorrelator correlator( xoffset-xrange, xoffset+xrange,
+      vw::stereo::OptimizedCorrelator correlator( xoffset-xrange, xoffset+xrange,
                                                  yoffset-yrange, yoffset+yrange,
                                                  xkernel, ykernel,
                                                  true, lrthresh,

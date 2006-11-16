@@ -138,7 +138,7 @@ CorrelationWorkThread::CorrelationWorkThread() {
     m_should_terminate = false;
   }
 
-CorrelationWorkThread::CorrelationWorkThread(SubpixelCorrelator* parent,
+CorrelationWorkThread::CorrelationWorkThread(OptimizedCorrelator* parent,
                                              int id,
                                              int min_h, int max_h,
                                              int min_v, int max_v,
@@ -165,7 +165,7 @@ CorrelationWorkThread::CorrelationWorkThread(SubpixelCorrelator* parent,
     m_progress_percent = 0.0;
 }
 
-CorrelationWorkThread::CorrelationWorkThread(SubpixelCorrelator* parent, 
+CorrelationWorkThread::CorrelationWorkThread(OptimizedCorrelator* parent, 
                                              int id,
                                              int min_h, int max_h,
                                              int min_v, int max_v,
@@ -196,7 +196,7 @@ void CorrelationWorkThread::operator() () {
   set_done(false);
   m_parent->register_worker_thread(m_id, this);
   
-  SubpixelCorrelator::soad* result;
+  OptimizedCorrelator::soad* result;
 
   if (m_bit_image_right && m_bit_image_left) {
     result = fast2Dcorr_optimized(m_min_h, m_max_h, m_min_v, m_max_v, m_image_height, m_image_width, m_kern_height, m_kern_width, m_bit_image_left, m_bit_image_right);    
@@ -207,8 +207,8 @@ void CorrelationWorkThread::operator() () {
   }
 
   m_result.set_size(m_image_width, m_image_height);
-  for (int i = 0; i < m_image_width; i++) {
-    for (int j = 0; j < m_image_height; j++) {
+  for (int j = 0; j < m_image_height; j++) {
+    for (int i = 0; i < m_image_width; i++) {
       if (result[j*m_image_width+i].hDisp == VW_STEREO_MISSING_PIXEL) {
         m_result(i,j) = PixelDisparity<float>();  // Default constructor creates a missing pixel
       } else {
@@ -218,8 +218,7 @@ void CorrelationWorkThread::operator() () {
     }
   }
 
-  delete [] result;
-  
+  delete [] result;  
   set_done(true);
   
   // After the thread has finished doing the work, it should hang
@@ -227,12 +226,11 @@ void CorrelationWorkThread::operator() () {
   // from the child.  When the parent is finished, it can dismiss the
   // child with the terminate() method.
   while (!m_should_terminate) { millisecond_sleep(100); }
-    
 }
    
 
 #if 1
-SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDisp,       // left bound disparity search
+OptimizedCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDisp,       // left bound disparity search
                                                                        int maxDisp,       // right bound disparity search
                                                                        int topDisp,       // top bound disparity search window
                                                                        int btmDisp,       // bottom bound disparity search window
@@ -343,8 +341,8 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDi
   delete[] diff;
   delete[] cSum;
 
-  SubpixelCorrelator::soad *result;      // soad buffer to be returned
-  result = (SubpixelCorrelator::soad *)malloc (width*height*sizeof(SubpixelCorrelator::soad));
+  OptimizedCorrelator::soad *result;      // soad buffer to be returned
+  result = (OptimizedCorrelator::soad *)malloc (width*height*sizeof(OptimizedCorrelator::soad));
   VW_ASSERT( result, NullPtrErr() << "cannot allocate the correlator's SOAD buffer!" );
   
   // convert from the local result buffer to the return format
@@ -364,7 +362,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDi
   }
   delete[] result_buf;
 
-  set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processed succefully.")
+  set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processed successfully.")
                           % topDisp % btmDisp % minDisp % maxDisp));
   
   double duration= Time()-before;
@@ -377,7 +375,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized( int minDi
 #else
 /// Randy's 2D correlator capitolizes on bit images (i.e. slog) that can be 
 /// efficiently differenced using an xor operation.
-SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized(
+OptimizedCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized(
                     int minDisp,	/* left bound disparity search */
                     int maxDisp,	/* right bound disparity search */
                     int topDisp,	/* top bound disparity search window */
@@ -396,7 +394,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized(
     int sumStart, sumEnd;	/* end of summing loop value */
     int ds, dsy;		      /* disparity shift between the two images */
     int *cSum;		        /* sum per column (kernel hight) */
-    SubpixelCorrelator::soad *result;		/* soad buffer to be returned */
+    OptimizedCorrelator::soad *result;		/* soad buffer to be returned */
     int ii;		            /* loop counter */
     unsigned short sum;	/* sum over the kernel */
     unsigned short *diff;	/* buffer containing results of subtraction of L/R images */
@@ -412,7 +410,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized(
 
     // initialization 
     cSum          = new int[width];
-    result        = new SubpixelCorrelator::soad[width * height];
+    result        = new OptimizedCorrelator::soad[width * height];
     diff          = new unsigned short[width * height];
     result_best   = new unsigned short[width * height];
     result_hvdisp = new unsigned short[width * height];
@@ -511,7 +509,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized(
     delete [] diff;
     delete [] cSum;
 	
-    set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processed succefully.")
+    set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processed successfully.")
                             % topDisp % btmDisp % minDisp % maxDisp));
 	
     double duration = Time() - before;
@@ -543,7 +541,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr_optimized(
 #endif
 
 #if 1
-SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr( int minDisp,       // left bound disparity search
+OptimizedCorrelator::soad *CorrelationWorkThread::fast2Dcorr( int minDisp,       // left bound disparity search
                                                              int maxDisp,       // right bound disparity search
                                                              int topDisp,       // top bound disparity search window
                                                              int btmDisp,       // bottom bound disparity search window
@@ -564,8 +562,8 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr( int minDisp,       
   float *cSum = new float[width];      // sum per column (kernel hight)
   VW_ASSERT( cSum, NullPtrErr() << "cannot allocate the correlator's column sum buffer!" );
   
-  SubpixelCorrelator::soad *result;      // soad buffer to be returned
-  result = (SubpixelCorrelator::soad *)malloc (width*height*sizeof(SubpixelCorrelator::soad));
+  OptimizedCorrelator::soad *result;      // soad buffer to be returned
+  result = (OptimizedCorrelator::soad *)malloc (width*height*sizeof(OptimizedCorrelator::soad));
   VW_ASSERT( result, NullPtrErr() << "cannot allocate the correlator's SOAD buffer!" );
   
   for( int nn=0; nn<height*width; nn++){
@@ -616,9 +614,9 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr( int minDisp,       
       }
 
       // perform the correlation
-      SubpixelCorrelator::soad *result_row = result+(xStart+hKern/2)+(yStart+vKern/2)*width;
+      OptimizedCorrelator::soad *result_row = result+(xStart+hKern/2)+(yStart+vKern/2)*width;
       for( int j=yStart; ; ++j, result_row+=width ) {
-        SubpixelCorrelator::soad *result_ptr = result_row;
+        OptimizedCorrelator::soad *result_ptr = result_row;
 
         // seed the row sum (i.e. soad)
         float rsum=0;
@@ -657,7 +655,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr( int minDisp,       
   delete[] diff;
   delete[] cSum;
 
-  set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processed succefully.")
+  set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processed successfully.")
                           % topDisp % btmDisp % minDisp % maxDisp));
 	
   double duration= Time()-before;
@@ -671,7 +669,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr( int minDisp,       
 /// Eric's 2D correlator does not assume anything about the type of
 /// the image, but it is also not optimized, and is about 2 or 3
 /// times slower than Randy's correlator.
-SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr(int minDisp,	/* left bound disparity search */
+OptimizedCorrelator::soad *CorrelationWorkThread::fast2Dcorr(int minDisp,	/* left bound disparity search */
                                                             int maxDisp,	/* right bound disparity search */
                                                             int topDisp,	/* top bound disparity search window */
                                                             int btmDisp,	/* bottom bound disparity search window */ 
@@ -692,7 +690,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr(int minDisp,	/* left
     float *diff;	/* buffer containing results of substraction of L/R images */
     float *cSum;	/* sum per column (kernel hight) */
     float *next;	/* work in buffer (soad results of current pass (ds) ) */
-    SubpixelCorrelator::soad *result;	/* soad buffer to be returned */
+    OptimizedCorrelator::soad *result;	/* soad buffer to be returned */
     int ii;	/* loop counter */
     float sum;	/* sum over the kernel */
 
@@ -712,7 +710,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr(int minDisp,	/* left
       printf("cannot allocate fast1Dcorr's next buffer\n");
       exit(1);
     }
-    if ( !( result = (SubpixelCorrelator::soad *)malloc (width*height*sizeof(SubpixelCorrelator::soad)))) {
+    if ( !( result = (OptimizedCorrelator::soad *)malloc (width*height*sizeof(OptimizedCorrelator::soad)))) {
       printf("cannot allocate fast1Dcorr's SOAD buffer\n");
       exit(1);
     }
@@ -822,7 +820,7 @@ SubpixelCorrelator::soad *CorrelationWorkThread::fast2Dcorr(int minDisp,	/* left
     free(next);
     free(cSum);
     
-    set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processed succefully.")
+    set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processed successfully.")
                             % topDisp % btmDisp % minDisp % maxDisp));
   
     double duration= Time()-before;
@@ -872,7 +870,7 @@ void CorrelationWorkThread::set_done(bool val) {
 /********************************************************************
  *                     Constructors                                 *
  *******************************************************************/
-SubpixelCorrelator::SubpixelCorrelator()
+OptimizedCorrelator::OptimizedCorrelator()
 {  
 
   m_lKernWidth = DEFAULT_KERN_WIDTH;
@@ -890,7 +888,7 @@ SubpixelCorrelator::SubpixelCorrelator()
   m_useVertSubpixel = DEFAULT_USE_SUBPIXEL_V;
 }
 
-SubpixelCorrelator::SubpixelCorrelator(int minH,	/* left bound disparity search window*/
+OptimizedCorrelator::OptimizedCorrelator(int minH,	/* left bound disparity search window*/
                                        int maxH,	/* right bound disparity search window*/
                                        int minV,	/* bottom bound disparity search window */ 
                                        int maxV,	/* top bound disparity search window */
@@ -920,19 +918,19 @@ SubpixelCorrelator::SubpixelCorrelator(int minH,	/* left bound disparity search 
  *                     Private Methods                              *
  *******************************************************************/
 
-void SubpixelCorrelator::register_worker_thread(int id, CorrelationWorkThread* child) {
+void OptimizedCorrelator::register_worker_thread(int id, CorrelationWorkThread* child) {
   boost::mutex::scoped_lock lock(m_mutex);
   m_children[id] = child;
 }
 
-CorrelationWorkThread* SubpixelCorrelator::get_worker_thread(int id) {
+CorrelationWorkThread* OptimizedCorrelator::get_worker_thread(int id) {
   boost::mutex::scoped_lock lock(m_mutex);
   return m_children[id];
 }
 
 
 template <class ChannelT>
-ImageView<PixelDisparity<float> > SubpixelCorrelator::correlation_2D( ImageView<ChannelT> &left_image,
+ImageView<PixelDisparity<float> > OptimizedCorrelator::correlation_2D( ImageView<ChannelT> &left_image,
                                                                       ImageView<ChannelT> &right_image, 
                                                                       bool bit_image) {
 
@@ -1028,7 +1026,7 @@ ImageView<PixelDisparity<float> > SubpixelCorrelator::correlation_2D( ImageView<
     return resultL2R;
     
   } catch (boost::thread_resource_error &e) {
-    throw LogicErr() << "SubpixelCorrelator: Could not create correlation threads.\n";
+    throw LogicErr() << "OptimizedCorrelator: Could not create correlation threads.\n";
   }
   
 }
@@ -1038,12 +1036,12 @@ namespace vw {
 namespace stereo {
 
 template
-ImageView<PixelDisparity<float> > SubpixelCorrelator::correlation_2D<float>( ImageView<float> &left_image,
+ImageView<PixelDisparity<float> > OptimizedCorrelator::correlation_2D<float>( ImageView<float> &left_image,
                                                                              ImageView<float> &right_image, 
                                                                              bool bit_image);
 
 template
-ImageView<PixelDisparity<float> > SubpixelCorrelator::correlation_2D<uint8>( ImageView<uint8> &left_image,
+ImageView<PixelDisparity<float> > OptimizedCorrelator::correlation_2D<uint8>( ImageView<uint8> &left_image,
                                                                              ImageView<uint8> &right_image, 
                                                                              bool bit_image);
 

@@ -1,5 +1,5 @@
-#ifndef __VW_STEREO_SUBPIXEL_CORRELATOR_H__
-#define __VW_STEREO_SUBPIXEL_CORRELATOR_H__
+#ifndef __VW_STEREO_OPTIMIZED_CORRELATOR_H__
+#define __VW_STEREO_OPTIMIZED_CORRELATOR_H__
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
@@ -11,29 +11,28 @@
 
 namespace vw { 
 namespace stereo {
-  VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
 
   // Forward Declarations
   class CorrelationWorkThread;
   
-  class SubpixelCorrelator {
+  class OptimizedCorrelator {
     
     int m_lKernWidth, m_lKernHeight;
     int m_lMinH, m_lMaxH, m_lMinV, m_lMaxV;
     int m_verbose;
 
   public:
-    SubpixelCorrelator();
-    SubpixelCorrelator(int minH,	/* left bound disparity search window*/
-                       int maxH,	/* right bound disparity search window*/
-                       int minV,	/* bottom bound disparity search window */ 
-                       int maxV,	/* top bound disparity search window */
-                       int kernWidth,	/* size of the kernel */
-                       int kernHeight,       
-                       int verbose,
-                       double crosscorrThreshold,
-                       int useSubpixelH,
-                       int useSubpixelV);
+    OptimizedCorrelator();
+    OptimizedCorrelator(int minH,	/* left bound disparity search window*/
+                        int maxH,	/* right bound disparity search window*/
+                        int minV,	/* bottom bound disparity search window */ 
+                        int maxV,	/* top bound disparity search window */
+                        int kernWidth,	/* size of the kernel */
+                        int kernHeight,       
+                        int verbose,
+                        double crosscorrThreshold,
+                        int useSubpixelH,
+                        int useSubpixelV);
     
     template <class PixelT>
     ImageView<PixelDisparity<float> > operator()(vw::ImageView<PixelT>& image0,
@@ -112,14 +111,14 @@ namespace stereo {
     CorrelationWorkThread();
     CorrelationWorkThread(const CorrelationWorkThread& other);
     const CorrelationWorkThread& operator=(const CorrelationWorkThread& other);
-    CorrelationWorkThread(SubpixelCorrelator* parent,
+    CorrelationWorkThread(OptimizedCorrelator* parent,
                           int id,
                           int min_h, int max_h,
                           int min_v, int max_v,
                           int image_width, int image_height,
                           int kern_width, int kern_height,
                           float* left_image, float* right_image);
-    CorrelationWorkThread(SubpixelCorrelator* parent, 
+    CorrelationWorkThread(OptimizedCorrelator* parent, 
                           int id,
                           int min_h, int max_h,
                           int min_v, int max_v,
@@ -139,7 +138,7 @@ namespace stereo {
     ImageView<PixelDisparity<float> > result() { return m_result; }
 
   private:
-    SubpixelCorrelator::soad *fast2Dcorr_optimized(
+    OptimizedCorrelator::soad *fast2Dcorr_optimized(
                                                    int minDisp,	/* left bound disparity search */
                                                    int maxDisp,	/* right bound disparity search */
                                                    int topDisp,	/* top bound disparity search window */
@@ -152,7 +151,7 @@ namespace stereo {
                                                    const unsigned char *Simg	/* searched image sliding */
                                                    );
       
-    SubpixelCorrelator::soad * fast2Dcorr(int minDisp,	/* left bound disparity search */
+    OptimizedCorrelator::soad * fast2Dcorr(int minDisp,	/* left bound disparity search */
                                           int maxDisp,	/* right bound disparity search */
                                           int topDisp,	/* top bound disparity search window */
                                           int btmDisp,	/* bottom bound disparity search window */ 
@@ -169,7 +168,7 @@ namespace stereo {
     void set_progress_string(std::string str);
     void set_done(bool val);
       
-    SubpixelCorrelator* m_parent;
+    OptimizedCorrelator* m_parent;
     int m_id;
     ImageView<PixelDisparity<float> > m_result;
       
@@ -193,4 +192,4 @@ namespace stereo {
 
 }}   // namespace vw::stereo
 
-#endif /* __SubpixelCorrelator_h__ */
+#endif /* __OptimizedCorrelator_h__ */

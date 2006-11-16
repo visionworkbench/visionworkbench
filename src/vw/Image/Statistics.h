@@ -161,6 +161,64 @@ namespace vw {
     return channel_type(accum / (view.planes() * view.rows() * view.cols() * view.channels()));
   }
 
+  /// Compute the standard deviation of the values stored in all of the channels of all of the planes of the image.
+  template <class ViewT>
+  typename CompoundChannelType<typename ViewT::pixel_type>::type
+  stddev_channel_value( const ImageViewBase<ViewT> &view_ ) {
+    const ViewT& view = view_.impl();
+
+    typedef typename ViewT::pixel_accessor pixel_accessor;
+    typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
+
+    double accum = 0;
+    double mean = mean_channel_value(view);
+
+    pixel_accessor plane_acc = view.origin();
+    for (unsigned p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
+      pixel_accessor col_acc = plane_acc;
+      for (unsigned i = 0; i < view.cols(); i++, col_acc.next_col()) {
+        pixel_accessor row_acc = col_acc;
+        for (unsigned j = 0; j < view.rows(); j++, row_acc.next_row()) {
+          typename ViewT::result_type pix = *row_acc;
+          for (unsigned channel = 0; channel < view.channels(); channel++) {
+            channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
+            accum += pow(channel_value - mean, 2);
+          }
+        }
+      }  
+    }
+    return channel_type(sqrt(accum) / ((view.planes() * view.rows() * view.cols() * view.channels()) - 1));
+  }
+
+  /// Compute the sum of the pixels of the channels of all of the planes of the image.
+  template <class ViewT>
+  typename AccumulatorType<typename PixelChannelType<typename ViewT::pixel_type>::type>::type
+  sum_of_channel_values( const ImageViewBase<ViewT> &view_ ) {
+    typedef typename AccumulatorType<typename CompoundChannelType<typename ViewT::pixel_type>::type>::type accum_type;
+    const ViewT& view = view_.impl();
+
+    typedef typename ViewT::pixel_accessor pixel_accessor;
+    typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
+
+    accum_type accum = 0;
+
+    pixel_accessor plane_acc = view.origin();
+    for (unsigned p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
+      pixel_accessor col_acc = plane_acc;
+      for (unsigned i = 0; i < view.cols(); i++, col_acc.next_col()) {
+        pixel_accessor row_acc = col_acc;
+        for (unsigned j = 0; j < view.rows(); j++, row_acc.next_row()) {
+          typename ViewT::result_type pix = *row_acc;
+          for (unsigned channel = 0; channel < view.channels(); channel++) {
+            channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
+            accum += channel_value;
+          }
+        }
+      }  
+    }
+    return accum;
+  }
+
 }  // namespace vw
 
 

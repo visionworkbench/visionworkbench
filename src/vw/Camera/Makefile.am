@@ -42,9 +42,11 @@ libvwCamera_la_LIBADD = @MODULE_CAMERA_LDFLAGS@
 
 lib_LTLIBRARIES = libvwCamera.la
 
-bin_PROGRAMS = print_exif
-print_exif_SOURCES = print_exif.cc
+bin_PROGRAMS = print_exif fisheye
+print_exif_SOURCES = print_exif.cc 
 print_exif_LDFLAGS = @PKG_CAMERA_LDFLAGS@
+fisheye_SOURCES = fisheye.cc 
+fisheye_LDFLAGS = @PKG_CAMERA_LDFLAGS@ 
 
 endif
 

@@ -189,7 +189,7 @@ public:
     int v_kern = m_lKernHeight;
     
     // Get things started with a full correlation.
-    SubpixelCorrelator correlator(h_min, h_max,
+    OptimizedCorrelator correlator(h_min, h_max,
                                   v_min, v_max,
                                   h_kern, v_kern,
                                   true,          // verbose
