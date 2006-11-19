@@ -37,17 +37,22 @@ namespace stereo {
     /// distance between the rays at their nearest point of
     /// intersection.
     inline Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2, double& error ) {
-
-      // determine range by triangulation
-      Vector3 originA = m_camera1->camera_center(pix1);
-      Vector3 vecFromA = m_camera1->pixel_to_vector(pix1);
       
-      Vector3 originB = m_camera2->camera_center(pix2);
-      Vector3 vecFromB = m_camera2->pixel_to_vector(pix2);
-      
-      return triangulate_point(originA, vecFromA,
-                               originB, vecFromB, 
-                               error);
+      try {
+        // determine range by triangulation
+        Vector3 originA = m_camera1->camera_center(pix1);
+        Vector3 vecFromA = m_camera1->pixel_to_vector(pix1);
+        
+        Vector3 originB = m_camera2->camera_center(pix2);
+        Vector3 vecFromB = m_camera2->pixel_to_vector(pix2);
+        
+        return triangulate_point(originA, vecFromA,
+                                 originB, vecFromB, 
+                                 error);
+      } catch (vw::camera::PixelToRayErr &e) {
+        error = 0;
+        return Vector3();
+      }
     }
   
   protected:

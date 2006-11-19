@@ -28,15 +28,13 @@
 if MAKE_MODULE_CAMERA
 
 if HAVE_PKG_LAPACK
-opm_headers = OrbitingPushbroomModel.h
-opm_sources = OrbitingPushbroomModel.cc
+lsm_headers = Extrinsics.h LinescanModel.h LinearPushbroomModel.h OrbitingPushbroomModel.h
 endif
 
-include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h LinearPushbroomModel.h \
-                  CameraTransform.h Exif.h ExifData.h $(opm_headers)
+include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h  \
+                  CameraTransform.h Exif.h ExifData.h $(lsm_headers)
 
-libvwCamera_la_SOURCES = CAHVModel.cc CAHVORModel.cc LinearPushbroomModel.cc \
-                         Exif.cc ExifData.cc $(opm_sources)
+libvwCamera_la_SOURCES = CAHVModel.cc CAHVORModel.cc Exif.cc ExifData.cc
 
 libvwCamera_la_LIBADD = @MODULE_CAMERA_LDFLAGS@
 

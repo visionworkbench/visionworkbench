@@ -28,13 +28,12 @@ namespace stereo {
       fflush(stdout);      
       for (unsigned int x = 0; x < disparity_map.cols(); x++) {
         if ( !disparity_map(x,y).missing() ) {
-          Vector3 closest_point = (*this)(Vector2( x, y ),
-                                          Vector2( x + disparity_map(x,y).h(),
-                                                   y + disparity_map(x,y).v() ), 
-                                          error(x,y) );
-          
-          xyz(x, y) = closest_point;
-          if (error(x,y) > 0) {
+          xyz(x,y) = (*this)(Vector2( x, y ),
+                             Vector2( x + disparity_map(x,y).h(),
+                                      y + disparity_map(x,y).v() ), 
+                             error(x,y) );          
+
+          if (error(x,y) >= 0) {
             // This can serve as a new form of outlier rejection
             if (error(x,y) > max_error)
               max_error = error(x,y);
@@ -42,6 +41,7 @@ namespace stereo {
             ++point_count;
           } else {	   
             // rays diverge or are parallel
+            xyz(x,y) = Vector3();
             divergent++;
           }
         } else {

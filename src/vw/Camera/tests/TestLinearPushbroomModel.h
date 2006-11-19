@@ -38,38 +38,35 @@ public:
 
   void testVectorToPixel()
   {
-    // create a simplistic orbiting pushbroom camera model
-    vw::camera::LinearPushbroomModel cam;
-    
-    cam.set_scan_duration(10.0);
-    cam.set_number_of_lines(1000);
-    cam.set_samples_per_line(1024);
-    cam.set_focal_length(1.0);
-    cam.set_across_scan_pixel_size(0.01);
-    cam.set_along_scan_pixel_size(0.01);
-    cam.set_sample_offset(-512); 
-    
-    Quaternion<double> quat(0,0,0,1);
+    Quaternion<double> pose(0,0,0,1);
     Vector3 position(0,0,1);
     Vector3 velocity(1,0,0);
 
-    cam.set_camera_pose(quat);
-    cam.set_initial_position(position);
-    cam.set_velocity_vector(velocity);
+    // create a simplistic orbiting pushbroom camera model
+    vw::camera::LinearPushbroomModel cam(10.0, // scan duration
+                                         1000, // number of lines
+                                         1024, // samples per line
+                                         -512, // sample offset
+                                         1.0,  // focal length
+                                         0.01, // along_scan_pixel_size
+                                         0.01, // across_scan_pixel_size
+                                         pose,
+                                         position,
+                                         velocity);
+    
+//     std::cout << "\n\n";
 
-    std::cout << "\n\n";
+//     std::cout << "[0,0]: " << cam.pixel_to_vector(Vector2(0,0)) << "\n";
+//     std::cout << "       " << cam.camera_center(Vector2(0,0)) << "\n\n";
 
-    std::cout << "[0,0]: " << cam.pixel_to_vector(Vector2(0,0)) << "\n";
-    std::cout << "       " << cam.camera_center(Vector2(0,0)) << "\n\n";
+//     std::cout << "[512,0]: " << cam.pixel_to_vector(Vector2(512,0)) << "\n";
+//     std::cout << "       " << cam.camera_center(Vector2(512,0)) << "\n\n";
 
-    std::cout << "[512,0]: " << cam.pixel_to_vector(Vector2(512,0)) << "\n";
-    std::cout << "       " << cam.camera_center(Vector2(512,0)) << "\n\n";
+//     std::cout << "[1024,0]: " << cam.pixel_to_vector(Vector2(1024,0)) << "\n";
+//     std::cout << "       " << cam.camera_center(Vector2(1024,0)) << "\n\n";
 
-    std::cout << "[1024,0]: " << cam.pixel_to_vector(Vector2(1024,0)) << "\n";
-    std::cout << "       " << cam.camera_center(Vector2(1024,0)) << "\n\n";
-
-    std::cout << "[0,500]: " << cam.pixel_to_vector(Vector2(0,512)) << "\n";
-    std::cout << "         " << cam.camera_center(Vector2(0,512)) << "\n\n";
+//     std::cout << "[0,500]: " << cam.pixel_to_vector(Vector2(0,512)) << "\n";
+//     std::cout << "         " << cam.camera_center(Vector2(0,512)) << "\n\n";
     
     Vector3 camera_center, pointing_vector;
     pointing_vector = cam.pixel_to_vector(Vector2(0,0));
@@ -92,7 +89,7 @@ public:
 
     pointing_vector = cam.pixel_to_vector(Vector2(0,512));
     camera_center = cam.camera_center(Vector2(0,512));
-    TS_ASSERT_EQUALS(camera_center[0], 5.12);
+    TS_ASSERT_DELTA(camera_center[0], 5.12, 0.001);
     TS_ASSERT_EQUALS(camera_center[1], 0);
     TS_ASSERT_EQUALS(camera_center[2], 1);
     TS_ASSERT_EQUALS(pointing_vector[0], 0);

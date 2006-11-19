@@ -72,7 +72,7 @@ namespace camera {
     /// point appears in the image.  It is possible that the selected
     /// point will not be imaged by the camera (e.g. if it lies behind
     /// the camera).  In this case the method should throw a
-    /// vw::camera::ForwardProjectionErr()
+    /// vw::camera::PointToPixelErr()
     virtual Vector2 point_to_pixel (Vector3 const& point) const = 0;
 
     /// Returns a pointing vector from the camera center through the
@@ -91,7 +91,11 @@ namespace camera {
   };  
 
   /// Error during projection of a 3D point onto the image plane.
-  VW_DEFINE_EXCEPTION(ForwardProjectionErr, vw::Exception);
+  VW_DEFINE_EXCEPTION(PointToPixelErr, vw::Exception);
+
+  /// Error during reverse projection of a pixel to a pointing vector
+  /// from the camera center.
+  VW_DEFINE_EXCEPTION(PixelToRayErr, vw::Exception);
 
 }}	// namespace vw::camera
 
