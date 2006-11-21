@@ -72,7 +72,7 @@ namespace stereo {
       ImageView<typename PixelChannelType<PixelT>::type> r_img = channels_to_planes(image1);        
       
       // First we hone in on the correct search range using a pyramid of images
-      pyramid_search( l_img, r_img);
+      this->pyramid_search( l_img, r_img);
       
       return BBox2i(Vector2i(m_min_h, m_min_v), Vector2i(m_max_h, m_max_v));
     }
@@ -130,8 +130,11 @@ namespace stereo {
         num_levels++;
       }
       std::cout << num_levels << " levels.\n";
-      if (num_levels == 0) 
-        throw CorrelatorErr() << "PyramidCorrelator failed.  Image pyramid contained zero levels.\n";
+      if (num_levels == 0) {
+        //        throw CorrelatorErr() << "PyramidCorrelator failed.  Image pyramid contained zero levels.\n";
+        std::cout <<"ZERO LEVELS!!!\n" << std::flush;
+        exit(0);
+      }
       
       // Now, run the correlator on each level
       for (int i = num_levels-1; i >= 0; --i) {
@@ -214,8 +217,10 @@ namespace stereo {
           std::cout << "\n\tNew disparity range  --  H: [" << m_min_h << ", " << m_max_h
                     << "]  V: [" << m_min_v << ", " << m_max_v << "]\n";
           
-        } catch (LogicErr &e) { // Couldn't adjust disparity range
-          throw CorrelatorErr() << "Pyramid Align Failed.  Correlation return insufficient results to compute a match.";
+        } catch (ArgumentErr &e) { // Couldn't adjust disparity range
+          std::cout << "INSUFFICIENT MATHCHES\n" << std::flush;
+          exit(0);
+          //          throw CorrelatorErr() << "Pyramid Align Failed.  Correlation return insufficient results to compute a match.";
         }
         
       }
