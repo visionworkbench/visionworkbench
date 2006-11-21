@@ -91,7 +91,7 @@ namespace cartography {
       DiskImageResource *r = DiskImageResourceGDAL::construct_create( name, buf.format );
       std::cout << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
       static_cast<DiskImageResourceGDAL*>(r)->write_georeference(georef);
-      r->write( buf );
+      r->write_generic( buf );
       delete r;
       buf.data += buf.pstride;
     }
