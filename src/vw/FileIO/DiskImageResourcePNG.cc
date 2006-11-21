@@ -277,6 +277,12 @@ namespace vw {
       src.format.rows = bbox.height();
       src.data = (uint8*)(src.data) + bbox.min().x()*src.cstride + bbox.min().y()*src.rstride;
 
+      // This is a terrible hack for detecting little-endian architectures.
+      if( m_format.channel_type==VW_CHANNEL_UINT16 ) {
+        uint16 x = 1;
+        if( *(uint8*)&x == 1 ) png_set_swap( png_ptr );
+      }
+
       png_read_image( png_ptr, &row_pointers[0] );
       convert( dest, src );
       read_cleanup( png_ptr, info_ptr, end_ptr );
@@ -302,6 +308,12 @@ namespace vw {
       std::vector<png_bytep> row_pointers( m_format.rows );
       for( int i=0; i<m_format.rows; ++i )
         row_pointers[i] = (png_bytep)(dst.data) + i*dst.rstride;
+
+      // This is a terrible hack for detecting little-endian architectures.
+      if( m_format.channel_type==VW_CHANNEL_UINT16 ) {
+        uint16 x = 1;
+        if( *(uint8*)&x == 1 ) png_set_swap( png_ptr );
+      }
 
       convert( dst, src );
       png_write_image( png_ptr, &row_pointers[0] );
