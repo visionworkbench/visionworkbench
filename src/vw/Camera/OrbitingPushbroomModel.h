@@ -74,6 +74,8 @@ namespace camera {
                             double dt_camera_pose,
                             double t0_position,
                             double dt_position,
+                            Vector3 pointing_vec,
+                            Vector3 u_vec,
                             std::vector<Quaternion<double> > const& camera_poses,
                             std::vector<Vector3> const& positions) : 
       LinescanModel<Curve3DPositionInterpolation,
@@ -84,6 +86,7 @@ namespace camera {
                                                            along_scan_pixel_size, 
                                                            across_scan_pixel_size,
                                                            line_integration_time,
+                                                           pointing_vec, u_vec,
                                                            Curve3DPositionInterpolation(positions, t0_position, dt_position),
                                                            SLERPPoseInterpolation(camera_poses, t0_camera_pose, dt_camera_pose)) {}
     
@@ -100,6 +103,8 @@ namespace camera {
                             double dt_camera_pose,
                             double t0_position,
                             double dt_position,
+                            Vector3 pointing_vec,
+                            Vector3 u_vec,
                             std::vector<Quaternion<double> > const& camera_poses,
                             std::vector<Vector3> const& positions) :
       LinescanModel<Curve3DPositionInterpolation,
@@ -110,6 +115,7 @@ namespace camera {
                                                            along_scan_pixel_size, 
                                                            across_scan_pixel_size,
                                                            line_times,
+                                                           pointing_vec, u_vec,
                                                            Curve3DPositionInterpolation(positions, t0_position, dt_position),
                                                            SLERPPoseInterpolation(camera_poses, t0_camera_pose, dt_camera_pose)) {}
 

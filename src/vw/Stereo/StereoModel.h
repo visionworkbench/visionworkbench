@@ -45,10 +45,19 @@ namespace stereo {
         
         Vector3 originB = m_camera2->camera_center(pix2);
         Vector3 vecFromB = m_camera2->pixel_to_vector(pix2);
-        
-        return triangulate_point(originA, vecFromA,
-                                 originB, vecFromB, 
-                                 error);
+
+        Vector3 result =  triangulate_point(originA, vecFromA,
+                                            originB, vecFromB, 
+                                            error);
+
+//         if (pix1.x() == 300 && pix1.y() == 4000) {
+//           std::cout << "Pix 1: " << pix1 << "    pix2: " << pix2 << "\n";
+//           std::cout << "A:  " << originA << "     " << (originA/norm_2(originA)) << "     " << vecFromA << "\n";
+//           std::cout << "B:  " << originB << "     " << (originB/norm_2(originB)) << "     " << vecFromB << "\n";
+//           std::cout << "Result:  " << result << "      " << (result/norm_2(result)) << "\n\n";
+//         }
+
+        return result;
       } catch (vw::camera::PixelToRayErr &e) {
         error = 0;
         return Vector3();

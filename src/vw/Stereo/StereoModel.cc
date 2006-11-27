@@ -9,8 +9,6 @@ namespace stereo {
   ImageView<Vector3> StereoModel::operator()(ImageView<PixelDisparity<double> > const& disparity_map,
                                              ImageView<double> &error) {
 
-    error.set_size(disparity_map.cols(), disparity_map.rows());
-    
     // Error analysis
     double mean_error = 0.0;
     double max_error = 0.0;
@@ -24,8 +22,10 @@ namespace stereo {
     // Compute 3D position for each pixel in the disparity map
     cout << "StereoModel: Applying camera models\n";
     for (unsigned int y = 0; y < disparity_map.rows(); y++) {
-      printf("\tStereoModel computing points: %0.2f%% complete.\r", 100.0f*float(y)/disparity_map.rows());
-      fflush(stdout);      
+      if (y % 100 == 0) {
+        printf("\tStereoModel computing points: %0.2f%% complete.\r", 100.0f*float(y)/disparity_map.rows());
+        fflush(stdout);      
+      }
       for (unsigned int x = 0; x < disparity_map.cols(); x++) {
         if ( !disparity_map(x,y).missing() ) {
           xyz(x,y) = (*this)(Vector2( x, y ),

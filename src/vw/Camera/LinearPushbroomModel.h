@@ -55,6 +55,8 @@ namespace camera {
                           double focal_length, 
                           double along_scan_pixel_size,
                           double across_scan_pixel_size,
+                          Vector3 pointing_vec,
+                          Vector3 u_vec,
                           Quaternion<double> const& camera_pose,
                           Vector3 const& initial_position,
                           Vector3 const& velocity_vector) : 
@@ -66,6 +68,7 @@ namespace camera {
                                                               along_scan_pixel_size, 
                                                               across_scan_pixel_size,
                                                               scan_duration / number_of_lines,
+                                                              pointing_vec, u_vec,
                                                               LinearPositionInterpolation(initial_position, velocity_vector),
                                                               ConstantPoseInterpolation(camera_pose)) {}
 

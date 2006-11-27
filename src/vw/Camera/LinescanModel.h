@@ -53,6 +53,8 @@ namespace camera {
     double m_across_scan_pixel_size;
     double m_along_scan_pixel_size;
     std::vector<double> m_line_times;
+    Vector3 m_pointing_vec;
+    Vector3 m_u_vec;
 
   public:
     //------------------------------------------------------------------
@@ -70,6 +72,8 @@ namespace camera {
                    double along_scan_pixel_size,
                    double across_scan_pixel_size,
                    std::vector<double> const& line_times,
+                   Vector3 pointing_vec,
+                   Vector3 u_vec,
                    PositionFuncT const& position_func,
                    PoseFuncT const& pose_func) : m_position_func(position_func),
                                                  m_pose_func(pose_func) {
@@ -86,6 +90,9 @@ namespace camera {
       m_across_scan_pixel_size = across_scan_pixel_size;
 
       m_line_times = line_times;
+
+      m_pointing_vec = normalize(pointing_vec);
+      m_u_vec = normalize(u_vec);
     }
 
     /// This version of the constructor assumes that the line
@@ -97,6 +104,8 @@ namespace camera {
                    double along_scan_pixel_size,
                    double across_scan_pixel_size,
                    double line_integration_time,
+                   Vector3 pointing_vec,
+                   Vector3 u_vec,
                    PositionFuncT const& position_func,
                    PoseFuncT const& pose_func) : m_position_func(position_func),
                                                  m_pose_func(pose_func) {
@@ -115,6 +124,9 @@ namespace camera {
         m_line_times[i] = sum;
         sum += line_integration_time;
       }
+
+      m_pointing_vec = normalize(pointing_vec);
+      m_u_vec = normalize(u_vec);
     }
     
     virtual ~LinescanModel() {}
@@ -151,18 +163,16 @@ namespace camera {
       Quaternion<double> pose = m_pose_func(m_line_times[int(round(v))]);
       Matrix<double,3,3> rotation_matrix = transpose(pose.rotation_matrix());
       
-      // The viewplane is the y-z plane of the camera coordinate system.
-      // Assuming the origin of the coordinate system is at the center
-      // of projection, the image plane is z = +f, and the pixel
-      // position in camera coordinates is:
-      double pixel_pos_y = (u + m_sample_offset) * m_across_scan_pixel_size;
-      Vector<double, 3> pixel_pos(0.0, pixel_pos_y, m_focal_length);
+      // The viewplane is the [pointing_vec cross u_vec] plane of the
+      // camera coordinate system.  Assuming the origin of the
+      // coordinate system is at the center of projection, the image
+      // plane is at pointing_vec = +f, and the pixel position in
+      // camera coordinates is:
+      double pixel_pos_u = (u + m_sample_offset) * m_across_scan_pixel_size;
+      Vector<double, 3> pixel_direction = pixel_pos_u * m_u_vec + m_focal_length * m_pointing_vec;
       
       // Transform to world coordinates using the rigid rotation
-      Vector<double, 3> direction_vec = rotation_matrix * pixel_pos;
-      return normalize(Vector3 ( direction_vec[0],
-                                 direction_vec[1], 
-                                 direction_vec[2] ));
+      return normalize(rotation_matrix * pixel_direction);
     }
     
     virtual Vector3 camera_center(Vector2 const& pix = Vector2() ) const {
