@@ -50,6 +50,8 @@ public:
                                          1.0,  // focal length
                                          0.01, // along_scan_pixel_size
                                          0.01, // across_scan_pixel_size
+                                         Vector3(0,0,1),  // looakat vector
+                                         Vector3(0,1,0),  // horizontal pixel vector
                                          pose,
                                          position,
                                          velocity);
