@@ -1,5 +1,5 @@
 #include <iostream>
-#include <vw/ImageView.h>
+#include <vw/Image.h>
 #include <vw/FileIO.h>
 
 int main( int argc, char *argv[] ) {

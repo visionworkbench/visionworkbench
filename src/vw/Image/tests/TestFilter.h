@@ -146,6 +146,9 @@ public:
     TS_ASSERT_EQUALS( dst(1,0), -3 );
     TS_ASSERT_EQUALS( dst(0,1), -7 );
     TS_ASSERT_EQUALS( dst(1,1), -11 );
+    ImageView<PixelGrayA<double> > src2(2,2);
+    ImageView<PixelGrayA<double> > dst2a = laplacian_filter( src, ZeroEdgeExtend() );
+    ImageView<PixelGrayA<double> > dst2b = laplacian_filter( src2, ZeroEdgeExtend() );
   }
 
   void test_per_pixel_filter() {

@@ -214,7 +214,7 @@ namespace vw {
           DestAccessT dcol = drow;
           if( r<cj || r>int(m_image.rows())-int(m_kernel.rows())+cj ) {
             for( int i=bbox.min().x(); i<bbox.max().x(); ++i ) {
-              *dcol = correlate_2d_at_point( ecol, m_kernel.origin(), m_kernel.cols(), m_kernel.rows() );
+              *dcol = DestPixelT( correlate_2d_at_point( ecol, m_kernel.origin(), m_kernel.cols(), m_kernel.rows() ) );
               dcol.next_col();
               ecol.next_col();
             }

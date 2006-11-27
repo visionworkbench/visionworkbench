@@ -37,7 +37,7 @@
 namespace vw {
 
   static const int vw_jpeg_default_subsampilng_factor = 1;
-  static const float vw_jpeg_default_quality = 0.85;
+  static const float vw_jpeg_default_quality = 0.85f;
 
   class DiskImageResourceJPEG : public DiskImageResource {
   public:

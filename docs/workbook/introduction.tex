@@ -2,10 +2,75 @@
 
 This document is designed to be a gentle introduction to programming
 with the NASA Vision Workbench, a C++ image processing and machine
-vision library.
-
-\section{History}
-The Vision Workbench was developed through a joint
-project of the Intelligent Robotics Group (IRG) and the Adaptive
+vision library.  The Vision Workbench was developed through a joint
+effort of the Intelligent Robotics Group (IRG) and the Adaptive
 Control and Evolvable Systems Group (ACES) within the Intelligent
-Systems Division at NASA's Ames Research Center.
+Systems Division at NASA's Ames Research Center.  It is distributed
+under the NASA Open Source Agreement (NOSA) version 1.3, which has
+been certified by the Open Source Initiative (OSI).  A copy of this
+agreement is included with every distribution of the Vision Workbench
+in a file called {\tt COPYING}.
+
+You can think of the Vision Workbench as a ``second-generation'' C/C++
+image processing library.  It draws on the authors' experiences over
+the past decade working with a number of ``first-generation''
+libraries, such as OpenCV and VXL, as well as direct implementations
+of image processing algorithms in C.  We have tried to select and
+improve upon the best features of each of these approaches to image
+processing, always with an eye toward our particular range of NASA
+research applications.
+
+The Vision Workbench was designed from the ground up to make it quick
+and easy to produce reasonably efficient implemenations of a wide
+range of image processing algorithms.  In many cases code written
+using the Vision Workbench is significantly smaller and more readable
+than code written using more traditional approaches.  We have found
+that users who begin using the Vision Workbench to solve their image
+processing problems never want to go back.  At its core is a rich set
+of template-based image processing data types representing pixels,
+images, and operations on those images, as well as mathematical
+entities like vectors and geometric transformations and image file
+I/O.  On top of this core it also provides a number of higher-level
+image processing and machine vision modules, providing features
+including camera geometry modelling, high-dynamic-range imaging,
+interest point detection and matching, image mosaicing and blending,
+and geospatial data management.
+
+That said, the Vision Workbench is not for everyone, and in particular
+it is not intended as a drop-in replacement for any existing image
+processing toolkit.  It is specifically designed for image processing
+in the context of machine vision, so it lacks support for things like
+indexed color palettes that are more common in other areas.  It also
+lacks a number of common features that the authors have simply not yet
+had a need for, such as morpological operations.  If you encounter one
+of these holes while using the Vision Workbench please let us know: if
+it is an easy hole to fill we may be able to do so quickly, though we
+cannot promise anything.  Finally, there are many application-level
+algorithms, such as face recognition, that have been implemented using
+other computer vision systems and are not currently provided by the
+Vision Workbench.  If one of these meets your needs there is no
+compelling reason to re-implement it using the Vision Workbench
+instead.  On the other hand, if no existing high-level tool solves
+your problem then you may well find that the Vision Workbench provides
+the most productive platform for developing something new.
+
+Since this is the first public release of the Vision Workbench, we
+thought we should also provide you with some sense of the direction
+the project is headed.  It is being actively developed by a small but
+growing team at the NASA Ames Research Center.  A number of features
+are currently being developed internally and may or may not be
+released in the future, including improved mathematical optimization
+capabilities, a set of Python bindings, and stereo image processing
+tools.  Due to peculiarities of the NASA open-source process we cannot
+provide snapshots of code that is under development and not yet
+approved for public release.  If you have a specific use for features
+that are under development, or in general if you have suggestions or
+feature requests, please let us know.  We cannot promise anything, but
+knowing our users' needs will help us prioritize our development and,
+in particular, our open-source release schedule.
+
+We hope that you enjoy using the Vision Workbench as much as we have
+enjoyed developing it!  If you have any questions, suggestions,
+compliments or concerns, please let us know.  Contact information is
+available at the bottom of the README file included with your
+distribution.

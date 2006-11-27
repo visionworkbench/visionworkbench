@@ -317,14 +317,14 @@ namespace vw {
 
   /// Crop an image.
   template <class ImageT>
-  inline CropView<ImageT> crop( ImageT const& v, int upper_left_x, int upper_left_y, int width, int height ) {
-    return CropView<ImageT>( v, upper_left_x, upper_left_y, width, height );
+  inline CropView<ImageT> crop( ImageViewBase<ImageT> const& v, int upper_left_x, int upper_left_y, int width, int height ) {
+    return CropView<ImageT>( v.impl(), upper_left_x, upper_left_y, width, height );
   }
 
   /// Crop an image.
   template <class ImageT, class BBoxRealT>
-  inline CropView<ImageT> crop( ImageT const& v, BBox<BBoxRealT,2> const& bbox ) {
-    return CropView<ImageT>( v, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height() );
+  inline CropView<ImageT> crop( ImageViewBase<ImageT> const& v, BBox<BBoxRealT,2> const& bbox ) {
+    return CropView<ImageT>( v.impl(), bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height() );
   }
 
 

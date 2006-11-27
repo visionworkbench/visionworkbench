@@ -1938,7 +1938,8 @@ namespace math {
   // *******************************************************************
   // Assorted mathematical matrix functions.
   // *******************************************************************
-
+  // XXX Something about this is confusing MSVC!
+#ifndef _MSC_VER
   /// Outer product of two vectors.
   template <class Vector1T, class Vector2T>
   Matrix<typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type,
@@ -1972,6 +1973,7 @@ namespace math {
         result(i,j) = v1.impl()(i) * v2.impl()(j);
     return result;
   }
+#endif
 
   /// Matrix inversion
   template <class MatrixT>

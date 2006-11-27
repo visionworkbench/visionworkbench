@@ -1,4 +1,10 @@
-\chapter{Working with Images}
+\chapter{Working with Images}\label{ch:workingwithimages}
+
+This chapter is designed to be a first introduction to programming 
+using the Vision Workbench.  It describes images, pixels, color 
+spaces, image file I/O, and basic image manipulation, setting the 
+stage for the fundamental image processing operations described in 
+Chapter~\ref{ch:imageprocessing}.
 
 \section{The {\tt ImageView} Class}
 
@@ -11,32 +17,33 @@ foreign here.
 
 \subsection{The Basics}
 An \verb#ImageView# represents a two-dimensional rectangular array of
-data, such as an image of pixels.  You specify the particular kind of
-data that you want to work with in each case.  For example, you can
+data, such as an image of pixels.  It is actually a class {\it template}, 
+and when you declare an \verb#ImageView# object you specify the
+particular kind of data that it should contain.  For example, you can
 make an \verb#ImageView# of RGB (red/green/blue) pixels to represent a
-full-color image, or an \verb#ImageView# of grayscale pixels, or an 
-\verb#ImageView# of vectors to represent a vector field.
-
-You specify the pixel type as a template parameter to the \verb#ImageView# 
-class.
+full-color image or an \verb#ImageView# of vectors to represent a vector 
+field.  You specify the pixel type as a template parameter to the 
+\verb#ImageView# class like this:
 \begin{verbatim}
-  ImageView<PixelRGB<float> > my_image;
+  ImageView<PixelRGB<float32> > my_image;
 \end{verbatim}
-In this case we've made a full-color RGB image.  Notice that PixelRGB
-is itself a template: here we've specified that we want each channel
-of each RGB pixel to be stored as a floating-point number.  All of the
-pixel types in the Vision Workbench are themselves templates like
-this.
+In this case we've made a full-color RGB image.  Notice that 
+\verb#PixelRGB# is itself a template: here we've specified that we
+want each channel of each RGB pixel to be stored as a 32-bit 
+floating-point number.  All of the core pixel types in the Vision 
+Workbench are themselves templates like this.
 
 The \verb#ImageView# class is defined in the C++ header file
-\verb#<vw/ImageView.h>#, and the standard pixel types are defined in
-the header \verb#<vw/PixelTypes.h>#.  Thus, for the above line of code 
-to compile you must include those two headers at the top of your 
-program.  Furthermore, all of the core classes and functions of the 
-Vision Workbench are defined in the C++ namespace \verb#vw#.  One way 
-to use them is to be fully specific:
+\verb#<vw/Image/ImageView.h>#, and the standard pixel types are
+defined in the header \verb#<vw/Image/PixelTypes.h>#.  Thus, for the
+above line of code to compile you must include those two headers at
+the top of your program.  (Alternatively, all of the header files
+relating to basic image manipulation are collected together in the
+convenience header \verb#<vw/Image.h>#.)  Furthermore, all of the core
+classes and functions of the Vision Workbench are defined in the C++
+namespace \verb#vw#.  One way to use them is to be fully specific:
 \begin{verbatim}
-  vw::ImageView<vw::PixelRGB<float> > my_image;
+  vw::ImageView<vw::PixelRGB<vw::float32> > my_image;
 \end{verbatim}
 The other way, which may be simpler for new users, is to bring the 
 entire \verb#vw# namespace into the global scope by saying 
@@ -44,26 +51,27 @@ entire \verb#vw# namespace into the global scope by saying
   using namespace vw;
 \end{verbatim}
 at the top of your program after you've included the necessary
-headers.  We will assume that you have done this throughout the book
-except in the complete programs, such as \verb#vwconvert.cc# (Listing
-\ref{lst:vwconvert.cc}, above), which are intended to be fully
+headers.  For brevity, in the examples in this book we will typically 
+assume we will assume that you have included the necessary headers 
+and we will omit explicit references to namespace \verb#vw#.  The 
+exception to this is the complete programs, such as \verb#vwconvert.cc# 
+(Listing~\ref{lst:vwconvert.cc}, above), which are intended to be fully
 self-contained.
 
-We have now created an \verb#ImageView# object, but we haven't yet 
-specified what the dimensions of the image are.  By default the 
-dimenions are zero, which may not be what you want.  One option 
-is to specify an image's dimensions when we construct it.
+By default the dimenions of an \verb#ImageView# are zero, which may not 
+be what you want.  One option is to specify an image's dimensions when 
+we construct it:
 \begin{verbatim}
   ImageView<PixelRGB<float> > my_image( 320, 240 );
 \end{verbatim}
-This time we've created an image with 320 columns and 240 rows.  If we
-ever want to set or change the size of an image later on in the code 
-we can use the \verb#set_size()# method.
+This creates an image with 320 columns and 240 rows.  If we ever want to 
+set or change the size of an image later on in the code we can use the 
+\verb#set_size()# method:
 \begin{verbatim}
   my_image.set_size( 640, 480 );
 \end{verbatim}
 You can also find out how many columns or rows an image has using the 
-\verb#cols()# and \verb#rows()# methods, respectively.
+\verb#cols()# and \verb#rows()# methods, respectively:
 \begin{verbatim}
   int width = my_image.cols();
   int height = my_image.rows();
@@ -82,15 +90,16 @@ particular pixel is by indexing directly into it:
 In this example we've assumed that \verb#x# and \verb#y# are integer
 variables with the desired pixel's coordinates.  For a less trivial
 example, one way to fill our image with the color red would be to loop
-over all the rows and columns, setting each pixel at a time.
+over all the rows and columns, setting each pixel at a time:
 \begin{verbatim}
-  PixelRGB<float> red(1.0,0.0,0.0);
-  for( int y=0; y<my_image.rows(); ++y )
-    for( int x=0; x<my_image.cols(); ++x )
+  PixelRGB<float> red(1.0, 0.0, 0.0);
+  for ( int y=0; y<my_image.rows(); ++y )
+    for ( int x=0; x<my_image.cols(); ++x )
       my_image(x,y) = red;
 \end{verbatim}
 This is not the fastest way to access the pixels of an image, but 
-it is arguably the most flexible.
+it is arguably the most flexible.  (Later we will learn about much 
+simpler ways to fill an image with a single color.)
 
 \subsection{The Standard Pixel Types}
 
@@ -99,8 +108,8 @@ you can use to manipulate the most common sorts of images.  We've
 already encountered \verb#PixelRGB#, the standard RGB pixel type.  As
 we mentioned earlier, this is a template class whose template
 parameter specifies the underlying numeric data type used to store
-each channel of the pixel.  This is called the pixel's ``channel
-type''.  The Vision Workbench defines convenient platform-independent
+each channel of the pixel.  This is called the pixel's {\it channel
+type}.  The Vision Workbench defines convenient platform-independent
 names for the standard channel types, so that you never have to worry
 about things like whether \verb#int# or \verb#short# is 16 bits wide
 on your platform.  These Vision Workbench channel types are listed in
@@ -112,14 +121,14 @@ these unless you have a compelling reason not to.
 \begin{tabular}{|c|l|l|} \hline
 Type & Description & Notes \\ \hline \hline
 \verb#int8# & Signed 8-bit integer & \\ \hline
-\verb#uint8# & Unsigned 8-bit integer & Most common for low-dynamic-range imaging \\ \hline
+\verb#uint8# & Unsigned 8-bit integer & Common for low-dynamic-range imaging \\ \hline
 \verb#int16# & Signed 16-bit integer & \\ \hline
 \verb#uint16# & Unsigned 16-bit integer & \\ \hline
 \verb#int32# & Signed 32-bit integer & \\ \hline
 \verb#uint32# & Unsigned 32-bit integer & \\ \hline
 \verb#int64# & Signed 64-bit integer & \\ \hline
 \verb#uint64# & Unsigned 64-bit integer & \\ \hline
-\verb#float32# & 32-bit floating point & Most common for high-dynamic-range imaging \\ \hline
+\verb#float32# & 32-bit floating point & Common for high-dynamic-range imaging \\ \hline
 \verb#float64# & 64-bit floating point & \\ \hline
 \end{tabular}
 \caption{The standard Vision Workbench channel types.}
@@ -134,6 +143,7 @@ Type & Description & Channels \\ \hline \hline
 \verb#PixelRGB<T># & RGB & Red (\verb#r#), green (\verb#g#), blue (\verb#b#) \\ \hline
 \verb#PixelRGBA<T># & RGB w/ alpha &  Red (\verb#r#), green (\verb#g#), blue (\verb#b#), alpha (\verb#a#) \\ \hline
 \verb#PixelHSV<T># & HSV & Hue (\verb#h#), saturation (\verb#s#), value (\verb#v#) \\ \hline
+\verb#PixelXYZ<T># & XYZ & CIE 1931 X (\verb#x#), Y (\verb#y#), and Z (\verb#z#) channels \\ \hline
 \verb#Vector<T,N># & An \verb#N#-dimensional vector & \verb#N# vector components \\ \hline
 \verb#T# & A unitless scalar & N/A \\ \hline
 \end{tabular}
@@ -145,37 +155,38 @@ type {\tt T} should generally be one of the types from Table~\ref{tbl:channel-ty
 The standard pixel types are listed in Table~\ref{tbl:pixel-types}.
 The first four, used for grayscale and RGB images with and without
 alpha channels, are the most common.  (For those of you who are 
-unfamiliar with the term, an ``alpha'' channel is used to represent 
+unfamiliar with the term, an {\it alpha} channel is used to represent 
 the opacity of a pixel.  For the rest of you, note that the Vision 
 Workbench generally stores alpha pixels in premultiplied form.)
 
 Each of the channels in a pixel can be accessed by indexing into it
-directly, as in \verb#my_pixel(i)#.  The order of the channels is the
-same as the order in which they appear in the name of the type.  If
-you know a particular pixel's type you can also access it's channels
-by name, so for example \verb#my_rgb_pixel.r()# access an RGB pixel's
-red channel.  (Note that grayscale values are accessed via \verb#v()#
-rather than \verb#g()# for consistency.)
+directly, as in \verb#my_pixel(i)# or \verb#my_pixel[i]#.  The order 
+of the channels is the same as the order in which they appear in the 
+name of the type.  If you know a particular pixel's type you can also 
+access it's channels by name, so for example \verb#my_rgb_pixel.r()# 
+access an RGB pixel's red channel.  (Note that grayscale values are 
+accessed via \verb#v()#, for ``value''.)
 
 When you are writing Vision Workbench programs you may often find 
 yourself working with only one pixel type at a time.  In this case 
 it can be convenient to place a \verb#typedef# near the top of your 
-file defining a convenient shorthand.
+file defining a convenient shorthand:
 \begin{verbatim}
-  typedef vw::ImageView<vw::PixelRGB<float> > Image;
+  typedef vw::ImageView<vw::PixelRGB<float32> > Image;
 \end{verbatim}
-Now you can refer to the RGB image type by the much shorter identifier 
-\verb#Image#.  In the remainder of this book when we say \verb#Image# 
-you may assume that you may substitute the \verb#ImageView# class type 
-that is most appropriate for your application.
+This way you can refer to your RGB image type by the much shorter
+identifier \verb#Image#.  In the remainder of this book when we say
+\verb#Image# you may assume that you may substitute the
+\verb#ImageView# class type that is most appropriate for your
+application.
 
 Standard conversions are provided among all the RGB and grayscale pixel 
-types, and also between \verb#PixelRGB# and \verb#PixelHSV#.  The 
-\verb#ImageView# class can take advantage of these pixel conversions 
-to perform color space conversion on entire images.  For example, 
-images are generally stored on disk in an RGB color space, but it is 
-often helpful to convert them to HSV for processing.  This is easy  
-with the Vision Workbench.
+types, and also between \verb#PixelRGB# and the special color types 
+\verb#PixelHSV# and \verb#PixelXYZ#.  The \verb#ImageView# class can 
+take advantage of these pixel conversions to perform color space 
+conversion on entire images.  For example, images are generally stored 
+on disk in an RGB color space but it is sometimes helpful to convert 
+them to HSV for processing.  This is easy with the Vision Workbench:
 \begin{verbatim}
   ImageView<PixelRGB<float> > rgb_image;
   read_image( rgb_image, filename );
@@ -198,10 +209,10 @@ underlying image data is reference-counted, and when the last
 \verb#ImageView# stops using a block of image data it is deallocated. 
 
 Though this behavior can be quite powerful, it may not always be 
-what you want.  If you ever want to make a duplicate of an 
+what you want.  If you ever need to make a duplicate of an 
 \verb#ImageView#, so that you can modify one without affecting the 
 other, you should use the \verb#copy()# function found in 
-\verb#<vw/ImageAlgorithms.h>#.
+\verb#<vw/Image/Algorithms.h>#.
 \begin{verbatim}
   // This makes a shallow copy, pointing to the same:
   Image new_image_1 = my_image;
@@ -229,9 +240,9 @@ use \verb#sort()# to sort all of the pixel values in an image.
   std::sort( my_image.begin(), my_image.end() );
 \end{verbatim}
 That particular example may be cuter than it is useful, but others
-occur more frequently.  For instance, you can use \verb#count()# to
-count the number of pixels with a particular value, or
-\verb#replace()# to replace all pixels that have one value with
+occur more frequently.  For instance, you can use \verb#std::count()# 
+to count the number of pixels with a particular value, or
+\verb#std::replace()# to replace all pixels that have one value with
 another.
 
 \subsection{Image Planes}
@@ -240,14 +251,14 @@ The \verb#ImageView# class also supports another feature found in many
 other image processing libraries: image planes.  Like duct tape,
 planes are the wrong solution to almost every problem, and we
 discourage their use.  Basically, planes allow you to store some
-number of two-dimensional pixel arrays (``planes'') together in a
-single object.  Planes are different from channels in that the number
-and meaning of an image's channels is specified at compile time as
-part of the image's type, whereas the number of planes is specified at
-run time.  (It may not be readily apparent, but the sample program
-shown in Listing~\ref{lst:vwconvert.cc} demonstrates one of the very
-few possibly-legitimate uses of planes; this will be discussed more in
-the following section on File I/O.)
+number of two-dimensional pixel arrays of the same size (``planes'')
+together in a single object.  Planes are different from channels in
+that the number and meaning of an image's channels is specified at
+compile time as part of the image's type, whereas the number of planes
+is specified at run time.  (It may not be readily apparent, but the
+sample program shown in Listing~\ref{lst:vwconvert.cc} demonstrates
+one of the very few possibly-legitimate uses of planes; this will be
+discussed more in the following section on File I/O.)
 
 To create a multi-plane image, pass the desired number of planes as a 
 third argument to the \verb#ImageView# constructor or to the 
@@ -277,9 +288,9 @@ completeness of implementation.
 \subsection{Reading and Writing Image Files}
 
 The simplest method for file I/O is to use the \verb#read_image()# and 
-\verb #write_image()# functions, passing them an \verb#ImageView# for 
-the image and the filename of the image file on disk that you would like 
-to read from or save to.
+\verb #write_image()# functions, passing them an \verb#ImageView# and 
+the filename of the image file on disk that you would like to read from 
+or write to.
 \begin{verbatim}
   read_image( image, filename );
   write_image( filename, image );
@@ -328,8 +339,6 @@ Attempting to save this image back as a JPEG file would reverse the
 conversion.  (Any transparency is composited onto a black background 
 whenever the alpha channel is removed.)
 
-\subsection{Working with Multiple Images}
-
 \subsection{More Sophisticated File I/O}
 
 We will only provide an overview of the more advanced file I/O 
@@ -339,9 +348,9 @@ learn more about them in Chapter~\ref{ch:advanced-topics}.
 
 Images on disk are handled via an abstract image resource
 class, called \verb#DiskImageResource# and defined in
-\verb#<vw/DiskImageResource.h>#.  You can create one directly using
-the same file-extension-based file type deduction mechanism discussed
-above.
+\verb#<vw/FileIO/DiskImageResource.h>#.  You can create one directly 
+using the same file-extension-based file type deduction mechanism 
+discussed above.
 \begin{verbatim}
   DiskImageResource *dir1 = DiskImageResource::open( filename );
   DiskImageResource *dir2 = DiskImageResource::create( filename, format );
@@ -377,11 +386,10 @@ then you can take advantage of any special services provided by the
 particular file format's resource type, such as the ability to read or 
 write special file header information.
 
-Finally, you can make an \verb#ImageView#-like object that corresponds 
-to an image on disk.  This is called a \verb#DiskImageView# and is 
-defined in the header of the same name.  This feature is currently 
-only minimally implemented; see the \verb#Panorama# module for an 
-example use case.
+Finally, you can make a read-only \verb#ImageView#-like object that 
+corresponds to an image on disk.  This is called a \verb#DiskImageView# 
+and is defined in the header of the same name.  This can be used to 
+process images that are too large to be loaded into memory all at once. 
 
 \section{Manipulating Images}
 
@@ -400,36 +408,77 @@ Function & Description \\ \hline \hline
 \verb#rotate_90_ccw(im)# & Rotate the image 90 degrees counter-clockwise \\ \hline
 \verb#flip_vertical(im)# & Flip the image vertically \\ \hline
 \verb#flip_horizontal(im)# & Flip the image horizontally \\ \hline
-\verb#transpose(im)# & Transpose \verb#x# and \verb#y# coordinates of the image \\ \hline
+\verb#transpose(im)# & Transpose the \verb#x# and \verb#y# coordinates of the image \\ \hline
 \verb#crop(im,x,y,c,r)# & Crop the image, specifying $(x,y)$ and $(cols,rows)$ \\ \hline
 \verb#crop(im,bbox)# & Crop the image, specifying a bounding box \\ \hline
 \verb#subsample(im,factor)# & Subsample the image by an integer factor \\ \hline
 \verb#subsample(im,xfac,yfac)# & Subsample the image by integer factors in $x$ and $y$ \\ \hline
-\verb#select_channel(im,channel)# & Refers to an individual channel of an image \\ \hline
+\verb#select_col(im,col)# & Refers to an individual column of an image \\ \hline
+\verb#select_row(im,row)# & Refers to an individual row of an image \\ \hline
 \verb#select_plane(im,plane)# & Refers to an individual plane of an image \\ \hline
+\verb#select_channel(im,channel)# & Refers to an individual channel of an image \\ \hline
 \verb#channels_to_planes(im)# & Interprets a multi-channel image as a multi-plane image \\ \hline
+\hline
+\verb#planes_to_channels<PixelT>(im)# & Interprets a multi-plane image as a multi-channel image \\ \hline
+\verb#pixel_cast<PixelT>(im)# & Casts an image to a new pixel type \\ \hline
+\verb#pixel_cast_rescale<PixelT>(im)# & Casts an image to a new pixel type, with rescaling \\ \hline
+\verb#channel_cast<ChanT>(im)# & Casts an image to a new channel type \\ \hline
+\verb#channel_cast_rescale<ChanT>(im)# & Casts an image to a new channel type, with rescaling \\ \hline
+\verb#weighted_rgb_to_gray(im)# & Converts RGB to grayscale with default weights \\ \hline
+\verb#weighted_rgb_to_gray(im,r,g,b)# & Converts RGB grayscale with the given weights \\ \hline
 \end{tabular}
 \caption{The simple image transform functions, all of which are defined in the header file 
-{\tt <vw/SimpleTransforms.h>}.  All return writable views of the image.}
-\label{tbl:simple-transforms}
+{\tt <vw/Image/Manipulation.h>}.  The functions in the top section return writable views of the image.}
+\label{tbl:image-manipulation}
 \end{centering}\end{table}
 
-We begin with the so-called simple image transforms, listed in
-Table~\ref{tbl:simple-transforms} and defined in the header file
-\verb#<vw/SimpleImageTransforms.h>#.  Most of these should be 
-self-explanatory.  Note that these functions do not modify the 
-image data in-place, but rather return a new view onto the same 
-data.  In general you store the result in a new \verb#ImageView#.
+We begin with the simple image manipulation functions listed in
+Table~\ref{tbl:image-manipulation} and defined in the header file 
+\verb#<vw/Image/Manipulation.h>#.  Many of these should be 
+self-explanatory.  Note that these functions do not modify 
+the image data in-place, but rather return a new view onto the same 
+data.  Most often you store the result in a new \verb#ImageView#:
 \begin{verbatim}
-  image1 = flip_vertical( image2 );
+  image2 = flip_vertical( image1 );
 \end{verbatim}
-These functions, like the \verb#copy()# function, cause an assignment
-operation like that one to create a new image buffer to store the
-transformed image.  The results of applying a number of these
-transforms to an image are shown in
-Figures~\ref{fig:simple.rotate180}--\ref{fig:simple.subsample}.
+The results of applying several of these transforms to an image 
+are shown in Figures~\ref{fig:simple.rotate180}--\ref{fig:simple.subsample}.
+The 90-degree rotation functions are one of the few places where the
+Vision Workbench makes any kind of assumption about the interpretation
+of the $x,y$ coordinate system.  When it is necessary to make a
+distinction we assume that the origin $(0,0)$ is the top-left corner
+of the image.  If you have been interpreting the origin as the
+top-right or bottom-left you will need to invert your notion of
+clockwise vs. counter-clockwise when calling these two functions.
 
-These functions all return {\it writable} views of the argument image.
+It's worth taking a moment to study exactly what goes on behind 
+the scenes when you perform an operation like this.  First the 
+Vision Workbench resizes the destination image (\verb#image2# 
+in the above example) if necessary so that its dimensions are 
+the same as those of the source image (a flipped version of 
+\verb#image1#).  Second it computes the result of the operation, 
+storing the result in the destination image as it goes.  The 
+important point is that if the destination image already has the 
+same dimensions as the source image then it is {\it not} resized 
+or reallocated.  This avoids unnecessary memory allocations in 
+common situations, such as when you are processing many 
+identically-sized images in a loop.  However, it also means that 
+you must be careful when processing an image and assigning it back 
+to itself:
+\begin{verbatim}
+  image = flip_vertical( image );   // Bad idea: self-assignment
+\end{verbatim}
+In this example, the destination image clearly has the same 
+dimensions as the source and so no new image buffer is allocated. 
+This means that the \verb#flip_vertical# operation will clobber 
+the source buffer with partial results, producing garbage.  One 
+solution to this problem is to force the creation of a temporary 
+buffer using the \verb#copy# function:
+\begin{verbatim}
+  image = copy( flip_vertical( image ) );   // Much better
+\end{verbatim}
+
+The functions all return {\it writable} views of the argument image.
 That is, if they appear on the {\it left} side of an equals sign you
 can use them to modify the argument's pixel data directly.  This is
 most useful in the case of \verb#crop()#.  For example, suppose you
@@ -440,24 +489,14 @@ image into the larger one at a particular postion.
   crop( large_image, x, y, cols, rows ) = small_image;
 \end{verbatim}
 Here we've cropped a region of the large image and used it for writing
-instead of reading.  This approach can also be used, for example, to
-replace one channel of a multi-channel image using
+instead of reading.  Note that the assignment proceeds just as before: 
+first the destination image dimensions are checked, and then the data 
+is copied.  However in this case the Vision Workbench will throw an 
+exception if the dimensions differ, since it is not meaningful to 
+``resize'' a cropped region in the same sense that you can freely 
+resize an \verb#ImageView#.  This approach can also be used, for example, 
+to replace one channel of a multi-channel image using
 \verb#select_channel()#.
-
-The 90-degree rotation functions are one of the few places where the
-Vision Workbench makes any kind of assumption about the interpretation
-of the $x,y$ coordinate system.  When it is necessary to make a
-distinction we assume that the origin $(0,0)$ is the top-left corner
-of the image.  If you have been interpreting the origin as the
-top-right or bottom-left you will need to invert your notion of
-clockwise vs. counter-clockwise when calling these two functions.
-
-In most cases the pixel type of the returned image is the same as that
-of the argument.  This only makes sense: if you flip an RGB image, it
-should still be an RGB image.  The two exceptions are the
-\verb#select_channel()# and \verb#channels_to_planes()# functions,
-which return scalar images whose pixel time is the same as the
-argument image's channel type.
 
 \subsection{Image Algorithms}
 
@@ -470,12 +509,12 @@ Function & Description \\ \hline \hline
 \verb#normalize(im,[low],[high])# & Normalize values to the given range \\ \hline
 \verb#threshold(im,[thresh],[low],[high])# & Threshold an image to two values \\ \hline
 \end{tabular}
-\caption{The simple image algorithms, defined in the header file {\tt <vw/ImageAlgorithms.h>}.}
+\caption{The simple image algorithms, defined in the header file {\tt <vw/Image/Algorithms.h>}.}
 \label{tbl:image-algorithms}
 \end{centering}\end{table}
 
 We will now introduce a number of additional simple image operations,
-which are defined in the header file \verb#<vw/ImageAlgorithms.h>#.
+which are defined in the header file \verb#<vw/Image/Algorithms.h>#.
 Unlike the simple image transforms, these operations do not return
 writable views; that would not be a meaningful concept for these
 operations.  You have already seen one of them, \verb#copy()#, which

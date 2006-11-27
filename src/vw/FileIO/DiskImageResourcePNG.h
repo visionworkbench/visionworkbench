@@ -40,7 +40,7 @@
 
 namespace vw {
 
-  struct DiskImageResourceInfoPNG;
+  class DiskImageResourceInfoPNG;
 
   class DiskImageResourcePNG : public DiskImageResource {
   public:

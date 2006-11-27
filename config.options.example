@@ -4,9 +4,8 @@
 #
 # These options allow you modify the basic behavior of the build environment.
 
-ENABLE_DEBUG=no
-ENABLE_OPTIMIZE=yes
-ENABLE_LIBTOOL=yes
+# ENABLE_DEBUG=no
+# ENABLE_OPTIMIZE=yes
 
 ### Module Configuration
 #
@@ -30,10 +29,7 @@ ENABLE_LIBTOOL=yes
 # Set these to the directories that contain lib/include directories
 # for packages in non-standard locations.  
 
-PKG_PATHS="  \
-  $IRGPKG_DIR/glew       \
-  $IRGPKG_DIR/cg         \
-"
+# PKG_PATHS="/foo/bar"
 
 
 

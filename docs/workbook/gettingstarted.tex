@@ -1,20 +1,117 @@
-\chapter{Getting Started}
+\chapter{Getting Started}\label{ch:gettingstarted}
+
+This chapter describes how to get started with actually using the
+Vision Workbench.  It describes how to obtain the Vision Workbench and
+its prerequisite libraries, how to build and install it, and how to
+build a simple example program.  This chapter does {\it not} discuss
+how to program using the Vision Workbench.  If that's what you're
+looking for then skip ahead to Chapter~\ref{ch:workingwithimages}.
 
 \section{Obtaining the Vision Workbench}
 
-\section{Installing the Vision Workbench}
+Most likely if you are reading this document then you already know 
+where to obtain a copy of the Vision Workbench sources, if you haven't 
+obtained them already.  However, if not, a link to the most up-to-date 
+distribution will always be available from the NASA Ames open-source 
+software website, at \verb#opensource.arc.nasa.gov#.
 
-\section{A Simple Example Program}
+In addition to obtaining the Vision Workbench, you will also need to 
+obtain and install whatever pre-requisite libraries you will need.  
+The only requirement is the Boost C++ Libraries, a set of extensions 
+to the standard C++ libraries that is available at \verb#www.boost.org#.
+These days many Linux systems come with some version of Boost already 
+installed, generally in the directory \verb#/usr/include/boost#.  The 
+Vision Workbench has been tested with Boost versions 1.32 and later.
 
-Let's start off with a simple fully-functional example program, shown
-in Listing \ref{lst:vwconvert.cc}.  You should be able to obtain an
-electronic copy of this source file (as well as all the others listed
-in this book) from wherever you obtained this document.  For now don't
-worry about how this program works, though we hope it is fairly
-self-explanatory.  Instead, just make sure that you can build and run
-it successfully.  This will ensure that you have installed the Vision
-Workbench properly on your computer and that you have correctly
-configured your programming environment to use it.
+\begin{table}[t]\begin{centering}
+\begin{tabular}{|l|l|l|} \hline
+Name    & Used By            & Source                                   \\ \hline \hline
+Boost   & All                & \verb#http://www.boost.org/#              \\ \hline
+PNG     & FileIO (opt.)      & \verb#http://www.libpng.org/#             \\ \hline
+JPEG    & FileIO (opt.)      & \verb#http://www.ijg.org/#                \\ \hline
+TIFF    & FileIO (opt.)      & \verb#http://www.libtiff.org/#            \\ \hline
+OpenEXR & FileIO (opt.)      & \verb#http://www.openexr.com/#            \\ \hline
+PROJ.4  & Cartography (req.) & \verb#http://www.remotesensing.org/proj/# \\ \hline
+GDAL    & Cartography (opt.) & \verb#http://www.remotesensing.org/gdal/# \\ \hline
+GLEW    & GPU (req.)         & \verb#http://glew.sourceforge.net/#       \\ \hline
+CG      & GPU (opt.)         & \verb#http://developer.nvidia.com/#       \\ \hline
+\end{tabular}
+\caption{A summary of Vision Workbench dependences.}
+\label{tbl:dependencies}
+\end{centering}\end{table}
+
+Other libraries are required only if you want to use particular
+features of the Vision Workbench.  A summary of the various libraries
+that the Vision Workbench will detect and use if present is given in
+Table~\ref{tbl:dependencies}.  It lists the particular Vision
+Workbench module that uses the library, whether it is required or
+optional for that module, and where the library can be obtained.
+Details of each of the modules and the features that are enabled by
+each dependency are given in the corresponding sections of this book.
+If you are just starting out with the Vision Workbench, it is
+generally fine to begin only with Boost.  You can always go back and 
+rebuild the Vision Workbench with support for additional features 
+later if you discover that you need them.
+
+\section{Building the Vision Workbench}
+
+If you are using a UNIX-like platform such as Linux or Mac OS it is
+generally straightforward to build the Vision Workbench once you have
+installed any necessary libraries.  First unpack the distribution, go
+to the distribution's root directory, and configure the build system
+by running ``\verb#./configure#''.  This script will examine your machine
+to determine what build tools to use and what libraries are installed
+as well as where they are located.  Near the end of its output it will
+list whether or not it was able to find each library and which Vision
+Workbench modules it is going to build.  You should examine this
+output to confirm that it was able to find all the libraries that you
+had expected it to.  If not then you may need to configure the build
+system to search in the right places, as discussed in
+Section~\ref{sec:config-build}.
+
+Assuming the output of the \verb#configure# script looks good, you can
+now proceed to build the Vision Workbench itself by running 
+``\verb#make#''.  Since most of the Vision Workbench is header-only,
+``building'' the Vision Workbench like that should be relatively
+quick.  Once that's done it's almost certainly a good idea to confirm
+that things are working properly by building and running the unit
+tests typing ``\verb#make check#''.  If there are no erros, the final
+step is to install the Vision Workbench headers, library, and sample
+programs using ``\verb#make install#''.  By default the installation
+location is the directory \verb#/usr/local#, so you will probably need
+to obtain the necessary priveleges to write to it using a command such
+as \verb#su# or \verb#sudo#.  If you do not have administrator
+priveleges on you computer then see Section~\ref{sec:config-build} for 
+information on how to specify an alternative installation directory.
+
+Building the Vision Workbench under Windows is possible, but it is not
+currently automatically supported.  The easiest thing to do is to
+simply include the \verb#.cc# files from the Vision Workbench modules
+that you want to use directly in your own project file.  You will of
+course still need to install the Boost libraries as well as any other
+libraries you want to use.  Pre-built Windows versions of a number of
+libraries, such as the JPEG, PNG, and TIFF libraries, are available
+online from the GnuWin32 project at \verb#gnuwin32.sourceforge.net#.  
+You will of course need to configure your project's include file and 
+library search paths appropriately.  Also be sure to configure your 
+project to define the preprocessor symbol NOMINMAX to disable the 
+non-portable Windows definitions of \verb#min()# and \verb#max()# 
+macros which interfere with the standard C++ library functions of 
+the same names.
+
+\section{A Trivial Example Program}
+
+Now that you've built and installed the Vision Workbench let's start
+off with a simple but fully-functional example program to test things
+out.  The full source code is shown in Listing \ref{lst:vwconvert.cc}.
+You should be able to obtain an electronic copy of this source file
+(as well as all the others listed in this book) from wherever you
+obtained this document.  For now don't worry about how this program
+works, though we hope it is fairly self-explanatory.  Instead, just
+make sure that you can build and run it successfully.  This will
+ensure that you have installed the Vision Workbench properly on your
+computer and that you have correctly configured your programming
+environment to use it.
 
 \sourcelst{vwconvert.cc}{A simple demonstration program that can
 copy image files and convert them from one file format to another.}
@@ -28,4 +125,58 @@ directory into a PNG image you might say:
   vwconvert image.jpg image.png
 \end{verbatim}
 The details of how you invoke a command-line tool like this will of 
-course vary from one operating system to another.
+course vary from one operating system to another.  Note that exactly 
+what image file formats are support will depend on what file format 
+libraries you have installed on your system.
+
+\section{Configuring the Build System}\label{sec:config-build}
+
+The Vision Workbench build system offers a variety of configuration
+options which you provide either as command-line flags to the 
+\verb#configure# script.  We'll discuss a few of the most important
+options here, but for a more complete list you can run ``\verb#./configure --help#''.  
+As an alternative to specifying command-line flags every time, you may
+instead create a file called \verb#config.options# with your preferences 
+in the base directory of the Vision Workbench repository.  A file
+called \verb#config.options.example# is provided that you can copy and
+edit to your liking.  Note that none of this has any impact on Visual
+Studio users, who must instead configure their projects by hand.
+
+The single most important option is probably the \verb#--with-paths=PATHS# 
+option, where you replace \verb#PATHS# with a whitespace-separated list of 
+paths that the build system should search when looking for installed 
+libraries.  For example if you specify the option \verb#--with-paths=/foo/bar# 
+then it will search for header files in \verb#/foo/bar/include#, library 
+files in \verb#/foo/bar/lib#, and so on.  The default search path includes 
+a number of common locations for user-installed libraries, such as 
+\verb#/usr/local#, \verb#$(HOME)/local#, and \verb#/sw#.  The \verb#PKG_PATHS# 
+configuration file variable has the same effect as this option.
+
+The next most important options have the form \verb#--enable-module-foo[=no]#, 
+where \verb#foo# is replaced by the lower-case name of a module such
+as \verb#mosaic# or \verb#gpu#.  Unsurprisingly, this allows you to
+control whether or not certain modules are built.  Disabling modules
+that you do not use can speed up compilation and testing time, which
+is especially useful if you are making changes to the Vision Workbench
+source and need to recompile often.  The corresponding configuration
+file variables have the form \verb#ENABLE_MODULE_FOO#, in all-caps,
+and are set to either \verb#yes# or \verb#no#.
+
+Two handy options, \verb#--enable-optimize# and \verb#--enable-debug#,
+determine the compiler options used when building the few library
+files.  You can again specify an optional argument of the form
+\verb#=no# to disable the corresponding feature, and you can also
+specify a particular optimization level in the same manner.  For
+example, if you want to make it as easy as possible to debug Vision 
+Workbench code using a debugger you might say 
+\verb#--enable-optimize=no --enable-debug# 
+to disable all optimizations and include debugging symbols.  The corresponding
+configuration file variables are \verb#ENABLE_OPTIMIZE# and
+\verb#ENABLE_DEUBG#.  Keep in mind that since most Vision Workbench
+code is header-only you should remember to configure your own project
+similarly or you may not notice any difference.
+
+Finally, to specify that the build system should install the Vision Workbench 
+someplace other than \verb#/usr/local#, specify the path using the 
+\verb#--prefix=PATH# option.   The corresponding configuration file 
+variable is, of course, called \verb#PREFIX#.

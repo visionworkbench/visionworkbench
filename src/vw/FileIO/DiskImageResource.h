@@ -203,10 +203,7 @@ namespace vw {
   // Free functions using the DiskImageResource interface
   // *******************************************************************
 
-  /// Read an image on disk into a vw::ImageView<T> object.  If you
-  /// supply a filename with an asterisk ('*'), each plane of the
-  /// image will be read from a seperate file on disk with the asterisk
-  /// replaced by the plane number.
+  /// Read an image on disk into a vw::ImageView<T> object.
   template <class PixelT>
   void read_image( ImageView<PixelT>& in_image, const std::string &filename ) {
 

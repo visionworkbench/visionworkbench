@@ -271,11 +271,10 @@ namespace vw {
 
   // Recursive behavior when both Arg1T and Arg2T are compound types.
   template <class Arg1T, class Arg2T>
-  class PromoteTypeSpecializationHelper<Arg1T,Arg2T,true,true> {
+  struct PromoteTypeSpecializationHelper<Arg1T,Arg2T,true,true> {
     typedef typename boost::is_same<Arg1T,typename CompoundChannelCast<Arg2T,typename CompoundChannelType<Arg1T>::type>::type>::type if_same_type;
     typedef typename CompoundChannelCast<Arg1T,typename PromoteTypeSpecialization<typename CompoundChannelType<Arg1T>::type,typename CompoundChannelType<Arg2T>::type>::type>::type is_same_type;
     typedef typename TypeDeductionHelper<Arg1T,Arg2T>::type not_same_type;
-  public:
     typedef typename boost::mpl::if_<if_same_type,is_same_type,not_same_type>::type type;
   };
 
