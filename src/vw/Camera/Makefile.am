@@ -31,8 +31,9 @@ if HAVE_PKG_LAPACK
 lsm_headers = Extrinsics.h LinescanModel.h LinearPushbroomModel.h OrbitingPushbroomModel.h
 endif
 
-include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h  \
-                  CameraTransform.h Exif.h ExifData.h $(lsm_headers)
+include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h		\
+                  CameraTransform.h Exif.h ExifData.h FisheyeModel.h	\
+                  $(lsm_headers)
 
 libvwCamera_la_SOURCES = CAHVModel.cc CAHVORModel.cc Exif.cc ExifData.cc
 

@@ -6,14 +6,13 @@ IRG_ARCH_RAW="`uname -m`_`uname -s`_gcc`gcc -dumpversion | cut -f-2 -d .`"
 IRG_ARCH=`echo $IRG_ARCH_RAW | awk '{ print tolower( $0 ) }'`
 IRGPKG_DIR=/irg/packages/$IRG_ARCH
 
-### Configure Options (Alternative to using command line syntax:  --enable-FEATURE=[val] )
+### Configure Options
 #
 # These options allow you modify the basic behavior of the build environment.
 
 ENABLE_DEBUG=no
 ENABLE_OPTIMIZE=yes
-ENABLE_LIBTOOL=yes
-ENABLE_CUSTOM_ARCH_NAME=$IRG_ARCH
+PREFIX=`pwd`/build/$IRG_ARCH
 
 ### Module Configuration
 #
@@ -24,11 +23,11 @@ ENABLE_CUSTOM_ARCH_NAME=$IRG_ARCH
 # cannot be found.  Look at the output from ./configure to see whether
 # the module will ultimately be built.
 
-# ENABLE_MODULE_MATH=yes
 # ENABLE_MODULE_MOSAIC=yes
 # ENABLE_MODULE_CAMERA=yes
-# ENABLE_MODULE_STEREO=yes
 # ENABLE_MODULE_CARTOGRAPHY=yes
+# ENABLE_MODULE_HDR=yes
+# ENABLE_MODULE_STEREO=yes
 # ENABLE_MODULE_GPU=yes
 
 ### Package Base Paths 

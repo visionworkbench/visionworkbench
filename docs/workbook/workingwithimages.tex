@@ -336,7 +336,7 @@ In this example we loaded in a JPEG image file (which has an RGB pixel
 format) and then converted the data grayscale and padded it with a
 constant alpha value of $1.0$, corresponding to fully opaque.  
 Attempting to save this image back as a JPEG file would reverse the 
-conversion.  (Any transparency is composited onto a black background 
+conversion.  (Any transparency is composited on to a black background 
 whenever the alpha channel is removed.)
 
 \subsection{More Sophisticated File I/O}
@@ -396,9 +396,59 @@ process images that are too large to be loaded into memory all at once.
 We have seen how images are represented via the \verb#ImageView#
 class, how to save and load them to and from disk, and how to
 manipulate their pixels individually.  Now it is time to begin 
-discussing slightly higher-level operations on images.
+discussing how to perform slightly higher-level operations on images.
 
-\subsection{The Simple Image Transforms}
+\subsection{Simple Image Manipulation}
+
+We begin with the simple image manipulation functions listed in
+Table~\ref{tbl:image-manipulation} and defined in the header file
+\verb#<vw/Image/Manipulation.h>#.  Many of these should be
+self-explanatory.  The results of applying several of these transforms
+to an image are shown in
+Figures~\ref{fig:simple.rotate180}--\ref{fig:simple.subsample}.  The
+90-degree rotation functions are one of the few places where the
+Vision Workbench makes any kind of assumption about the interpretation
+of the $x,y$ coordinate system.  When it is necessary to make a
+distinction we assume that the origin $(0,0)$ is the top-left corner
+of the image.  If you have been interpreting the origin as the
+top-right or bottom-left you will need to invert your notion of
+clockwise vs. counter-clockwise when calling these two functions.
+
+None of these functions, by themselves, modify image data or produce 
+new images.  Instead, each function returns a special {\it view} 
+on to the same image data.  In most cases you will assign the result 
+to another \verb#ImageView#, causing the data to be processed and 
+the resulting image to be stored in the new buffer:
+\begin{verbatim}
+  image2 = flip_vertical( image1 );
+\end{verbatim}
+It's worth taking a moment to study exactly what goes on behind 
+the scenes when you perform an operation like this.  First the 
+Vision Workbench resizes the destination image (\verb#image2# 
+in the above example) if necessary so that its dimensions are 
+the same as those of the source image (a flipped version of 
+\verb#image1#).  Second it computes the result of the operation, 
+storing the result in the destination image as it goes.  The 
+important point is that if the destination image already has the 
+same dimensions as the source image then it is {\it not} resized 
+or reallocated.  This avoids unnecessary memory allocations in 
+common situations, such as when you are processing many 
+identically-sized images in a loop.  However, it also means that 
+you must be careful when processing an image and assigning it back 
+to itself:
+\begin{verbatim}
+  image = flip_vertical( image );   // Bad idea: self-assignment
+\end{verbatim}
+In this example, the destination image clearly has the same 
+dimensions as the source (since they are the same image) and so 
+no new image buffer is allocated.  As a result the 
+\verb#flip_vertical# operation will clobber the source image with 
+partial results, producing garbage.  One solution to this problem 
+is to force the creation of a temporary buffer using the \verb#copy# 
+function:
+\begin{verbatim}
+  image = copy( flip_vertical( image ) );   // Much better
+\end{verbatim}
 
 \begin{table}[t]\begin{centering}
 \begin{tabular}{|c|l|l|} \hline
@@ -419,74 +469,30 @@ Function & Description \\ \hline \hline
 \verb#select_channel(im,channel)# & Refers to an individual channel of an image \\ \hline
 \verb#channels_to_planes(im)# & Interprets a multi-channel image as a multi-plane image \\ \hline
 \hline
-\verb#planes_to_channels<PixelT>(im)# & Interprets a multi-plane image as a multi-channel image \\ \hline
 \verb#pixel_cast<PixelT>(im)# & Casts an image to a new pixel type \\ \hline
 \verb#pixel_cast_rescale<PixelT>(im)# & Casts an image to a new pixel type, with rescaling \\ \hline
 \verb#channel_cast<ChanT>(im)# & Casts an image to a new channel type \\ \hline
 \verb#channel_cast_rescale<ChanT>(im)# & Casts an image to a new channel type, with rescaling \\ \hline
+\verb#planes_to_channels<PixelT>(im)# & Interprets a multi-plane image as a multi-channel image \\ \hline
 \verb#weighted_rgb_to_gray(im)# & Converts RGB to grayscale with default weights \\ \hline
 \verb#weighted_rgb_to_gray(im,r,g,b)# & Converts RGB grayscale with the given weights \\ \hline
 \end{tabular}
-\caption{The simple image transform functions, all of which are defined in the header file 
-{\tt <vw/Image/Manipulation.h>}.  The functions in the top section return writable views of the image.}
+\caption{The simple image manipulation functions, defined in the header file 
+{\tt <vw/Image/Manipulation.h>}.  The functions in the top section return writable views.}
 \label{tbl:image-manipulation}
 \end{centering}\end{table}
 
-We begin with the simple image manipulation functions listed in
-Table~\ref{tbl:image-manipulation} and defined in the header file 
-\verb#<vw/Image/Manipulation.h>#.  Many of these should be 
-self-explanatory.  Note that these functions do not modify 
-the image data in-place, but rather return a new view onto the same 
-data.  Most often you store the result in a new \verb#ImageView#:
-\begin{verbatim}
-  image2 = flip_vertical( image1 );
-\end{verbatim}
-The results of applying several of these transforms to an image 
-are shown in Figures~\ref{fig:simple.rotate180}--\ref{fig:simple.subsample}.
-The 90-degree rotation functions are one of the few places where the
-Vision Workbench makes any kind of assumption about the interpretation
-of the $x,y$ coordinate system.  When it is necessary to make a
-distinction we assume that the origin $(0,0)$ is the top-left corner
-of the image.  If you have been interpreting the origin as the
-top-right or bottom-left you will need to invert your notion of
-clockwise vs. counter-clockwise when calling these two functions.
-
-It's worth taking a moment to study exactly what goes on behind 
-the scenes when you perform an operation like this.  First the 
-Vision Workbench resizes the destination image (\verb#image2# 
-in the above example) if necessary so that its dimensions are 
-the same as those of the source image (a flipped version of 
-\verb#image1#).  Second it computes the result of the operation, 
-storing the result in the destination image as it goes.  The 
-important point is that if the destination image already has the 
-same dimensions as the source image then it is {\it not} resized 
-or reallocated.  This avoids unnecessary memory allocations in 
-common situations, such as when you are processing many 
-identically-sized images in a loop.  However, it also means that 
-you must be careful when processing an image and assigning it back 
-to itself:
-\begin{verbatim}
-  image = flip_vertical( image );   // Bad idea: self-assignment
-\end{verbatim}
-In this example, the destination image clearly has the same 
-dimensions as the source and so no new image buffer is allocated. 
-This means that the \verb#flip_vertical# operation will clobber 
-the source buffer with partial results, producing garbage.  One 
-solution to this problem is to force the creation of a temporary 
-buffer using the \verb#copy# function:
-\begin{verbatim}
-  image = copy( flip_vertical( image ) );   // Much better
-\end{verbatim}
-
-The functions all return {\it writable} views of the argument image.
-That is, if they appear on the {\it left} side of an equals sign you
-can use them to modify the argument's pixel data directly.  This is
-most useful in the case of \verb#crop()#.  For example, suppose you
-want to add a small inset to a larger image, by copying a small 
-image into the larger one at a particular postion.
+The functions listed in the upper section of Table~\ref{tbl:image-manipulation} 
+all provide new ways of accessing the same data without doing any additional 
+processing.  As a result, these functions are all able to return {\it writable} 
+views of their image argument.  That is, you can use them to modify an image by 
+placing them on the left side of an equals sign.  For example, suppose you want 
+to add a small inset to a larger image, by copying a small image into the larger 
+one at a particular postion.  One easy way is to specify the destination region 
+using the \verb#crop()# function:
 \begin{verbatim}
   int cols = small_image.cols(), rows = small_image.rows();
-  crop( large_image, x, y, cols, rows ) = small_image;
+  crop( large_image, xpos, ypos, cols, rows ) = small_image;
 \end{verbatim}
 Here we've cropped a region of the large image and used it for writing
 instead of reading.  Note that the assignment proceeds just as before: 
@@ -497,76 +503,6 @@ exception if the dimensions differ, since it is not meaningful to
 resize an \verb#ImageView#.  This approach can also be used, for example, 
 to replace one channel of a multi-channel image using
 \verb#select_channel()#.
-
-\subsection{Image Algorithms}
-
-\begin{table}[t]\begin{centering}
-\begin{tabular}{|c|l|l|} \hline
-Function & Description \\ \hline \hline
-\verb#copy(im)# & Produce a deep copy of an image \\ \hline
-\verb#fill(im,value)# & Fill an image with a pixel value {\it in-place} \\ \hline
-\verb#clamp(im,[low],[high])# & Clamp values to the given range \\ \hline
-\verb#normalize(im,[low],[high])# & Normalize values to the given range \\ \hline
-\verb#threshold(im,[thresh],[low],[high])# & Threshold an image to two values \\ \hline
-\end{tabular}
-\caption{The simple image algorithms, defined in the header file {\tt <vw/Image/Algorithms.h>}.}
-\label{tbl:image-algorithms}
-\end{centering}\end{table}
-
-We will now introduce a number of additional simple image operations,
-which are defined in the header file \verb#<vw/Image/Algorithms.h>#.
-Unlike the simple image transforms, these operations do not return
-writable views; that would not be a meaningful concept for these
-operations.  You have already seen one of them, \verb#copy()#, which
-forces the creation of a deep copy of an image in a new buffer.  The
-rest are listed in Table~\ref{tbl:image-algorithms}.  The result of
-two of these functions can be seen in
-Figures~\ref{fig:simple.threshold} and~\ref{fig:simple.clamp}.  We hope to
-implement a number of additional image algorithms, mirroring the STL
-container algorithms, at some point in the future.
-
-The \verb#fill()# function is noteworthy because it is currently the
-only core Vision Workbench function that modifies image data {\it
-  in-place}.  It is especially useful for filling a single channel of
-an image.  For example, you can use it to make an RGBA image fully
-opaque.
-\begin{verbatim}
-  fill( select_channel( rgba_image, 3 ), 1.0 );
-\end{verbatim}
-(Note that $1.0$ represents fully-opaque if the image has a 
-floating-point channel type.)
-
-The other functions return modified versions of their image argument.
-You can assign the result back to the original image, or you can 
-save it in a different image instead and keep the original.  The 
-default value for the \verb#low# and \verb#thresh# arguments 
-are zero, and the default value for the \verb#high# arguments is 
-one.
-\begin{verbatim}
-  image = threshold( image, 0.5 );
-\end{verbatim}
-Here we have taken a (presumably floating-point) image and converted 
-it to a purely two-value image by thresholding.
-
-It is important to be careful when writing a statement such as that
-one that processes an image and stores the result back in the original
-image.  It is safe when, as in this example, each pixel's value is
-being processed and stored back in the same location.  However, it can
-behave in unexpected ways in other cases.
-\begin{verbatim}
-  image2 = flip_vertical( image1 );          // Probably okay
-  image1 = flip_vertical( image1 );          // XXX Bad idea!
-\end{verbatim}
-This broken example will result in only part of the image being properly 
-flipped.  We need to introduce an extra buffer, which you can do using 
-the \verb#copy()# function.
-\begin{verbatim}
-  image1 = copy( flip_vertical( image1 ) );  // Much better
-\end{verbatim}
-Note that because it's possible to have two \verb#ImageView#s pointing 
-to the same data, the ``probably okay'' example above can also be 
-problematic.  If you are doing that sort of fancy image aliasing, be 
-very careful.
 
 \begin{figure}[p]
 \centering
@@ -594,3 +530,95 @@ very careful.
 \caption{Sample output from the simple image operations discussed in this section.}
 \label{fig:simple}
 \end{figure}
+
+The functions listed in the lower section of Table~\ref{tbl:image-manipulation}, 
+on the other hand, all do a small amount of processing of pixel values.  
+The \verb#pixel_cast()# function converts all the pixels in an image to the 
+given new pixel type.  The \verb#pixel_cast_rescale()# variants rescale the 
+values if the channel type has changed, e.g. mapping the 0--255 range of 
+\verb#uint8# on to the $0.0$--$1.0$ nominal range of \verb#float32#.  The 
+\verb#channel_*# variants cast the pixels to have the given new channel type, 
+leaving the overall pixel format unchanged.  The \verb#pixels_to_channels()# 
+function takes a multi-plane image and reinterprets it as a multi-channel 
+image with the given pixel type.  Finally, \verb#weighted_rgb_to_gray# converts 
+RGB pixels to the corresponding grayscale pixel type using an arbitrary 
+weighting of the red, green, and blue channels.  The default weights are 
+based on a human perceptual model that weights green most strongly, followed 
+by red and then blue.
+
+\subsection{Image Algorithms}
+
+\begin{table}[t]\begin{centering}
+\begin{tabular}{|c|l|l|} \hline
+Function & Description \\ \hline \hline
+\verb#copy(im)# & Produce a deep copy of an image \\ \hline
+\verb#fill(im,value)# & Fill an image with a pixel value {\it in-place} \\ \hline
+\verb#clamp(im,[low],[high])# & Clamp values to the given range \\ \hline
+\verb#normalize(im,[low],[high])# & Normalize values to the given range \\ \hline
+\verb#threshold(im,[thresh],[low],[high])# & Threshold an image to two values \\ \hline
+\verb#grassfire(im)# & Compute the grassfire image of an image \\ \hline
+\verb#bounding_box(im)# & Return the bounding box of an image \\ \hline
+\verb#nonzero_bounding_box(im)# & Compute the bounding box of nonzero data \\ \hline
+\verb#image_blocks(im,width,height)# & Tile an image with bounding boxes \\ \hline
+\end{tabular}
+\caption{The simple image algorithms defined in the header file {\tt <vw/Image/Algorithms.h>}.}
+\label{tbl:image-algorithms}
+\end{centering}\end{table}
+
+We will now introduce a number of additional simple image operations,
+which are defined in the header file \verb#<vw/Image/Algorithms.h>#.
+You have already seen one of them, \verb#copy()#, which forces the 
+creation of a deep copy of an image in a new buffer.  The rest are 
+listed in Table~\ref{tbl:image-algorithms}.  The result of two of 
+these functions can be seen in Figures~\ref{fig:simple.threshold} 
+and~\ref{fig:simple.clamp}.  We hope to implement a number of 
+additional image algorithms, mirroring the STL container algorithms 
+but optimized for images, at some point in the future.
+
+The \verb#fill()# function is noteworthy because it is currently the
+only core Vision Workbench function that modifies image data {\it
+  in-place}.  It is especially useful for filling a single channel of
+an image.  For example, you can use it to make an RGBA image fully
+opaque.
+\begin{verbatim}
+  fill( select_channel( rgba_image, 3 ), 1.0 );
+\end{verbatim}
+(Note that $1.0$ represents fully-opaque if the image has a 
+floating-point channel type.)
+
+The \verb#clamp()#, \verb#normalize()#, and \verb#threshold()#
+functions return modified versions of their image arguments.
+You can assign the result back to the original image, or you can 
+save it in a different image instead and keep the original.  
+The \verb#clamp()# function clamps the values in the image to 
+the given range.  The \verb#normalize# function scales and 
+shifts the values of an image so that the values span the 
+specified range.  The default range is from zero to the nominal 
+maximum value for the channel type, e.g. $1.0$ for floating-point 
+images.  This is particularly useful for saving intermediate 
+results of your algorithms to disk for debugging.  Finally, the 
+\verb#threshold# function returns a two-valued image based on  
+whether the pixels in the source image is greater than or less 
+than the given threshold value.  The default high and low output 
+values are the same as for \verb#norm#, and the default threshold 
+is zero.  For example, this line will convert a floating-point 
+greyscale image to pure black-and-white:
+\begin{verbatim}
+  image = threshold( image, 0.5 );
+\end{verbatim}
+
+The \verb#grassfire()# algorithm, named for the algorithm that 
+it implements, is more specialized.  It takes an image and 
+efficiently computes how far each pixel is from from a pixel 
+whose value is zero, assuming that pixels outside the image 
+boundaries all have zero value.  It measures distance in the 
+four-connected Manhattan sense, i.e. as the sum of the 
+horizontal and vertical distances.  This algorithm is used in 
+a variety of applications, such as avoiding obstacles and 
+unknown terrain in path planning.
+
+The final three functions in this section relate to bounding 
+boxes, which are the topic of the next section.
+
+\subsection{Bounding Boxes}
+

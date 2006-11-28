@@ -491,79 +491,77 @@ AC_DEFUN([AX_PKG_PTHREADS],
 ])
 
 
-# Usage: AX_MODULE_SRC(<name>, <directory>)
-#
-# Checks to see whether the given module source package is included in
-# the distribution, and sets HAVE_PKG_<name>_SRC accordingly.
-#
-AC_DEFUN([AX_MODULE_SRC],
-[
-  if test -d $2 ; then
-    HAVE_PKG_$1_SRC=yes
-  else
-    HAVE_PKG_$1_SRC=no
-  fi
-])
-
-
-# Usage: AX_MODULE(<name>, <libraries>, <default>, <required dependencies>[, <optional dependencies>])
+# Usage: AX_MODULE(<name>, <directory>, <library>, <default>, <required dependencies>[, <optional dependencies>])
 AC_DEFUN([AX_MODULE],
 [
 
-  AC_ARG_ENABLE([module-]translit($1,`A-Z',`a-z'),
-    AC_HELP_STRING([--enable-module-]translit($1,`A-Z',`a-z'), [enable the $1 module @<:@$3@:>@]), 
-    [ ENABLE_MODULE_$1=$enableval ],
-    [ if test x$ENABLE_MODULE_$1 = x; then ENABLE_MODULE_$1=$3 ; fi ]
-  )
+  if test -d $2 ; then
 
-  AC_MSG_CHECKING([whether to build module $1])
-  ax_module_enable=$ENABLE_MODULE_$1
+    HAVE_PKG_$1_SRC=yes
 
-  if test $ax_module_enable != "yes" ; then
-    AC_MSG_RESULT([no])
+    AC_ARG_ENABLE([module-]translit($1,`A-Z',`a-z'),
+      AC_HELP_STRING([--enable-module-]translit($1,`A-Z',`a-z'), [enable the $1 module @<:@$4@:>@]), 
+      [ ENABLE_MODULE_$1=$enableval ],
+      [ if test x$ENABLE_MODULE_$1 = x; then ENABLE_MODULE_$1=$4 ; fi ]
+    )
+
+    AC_MSG_CHECKING([whether to build module $1])
+    ax_module_enable=$ENABLE_MODULE_$1
+
+    if test $ax_module_enable != "yes" ; then
+      AC_MSG_RESULT([no])
+    fi
+
+    ax_cppflags=""
+    ax_ldflags=""
+
+    # Check for necessary dependencies
+    if test $ax_module_enable = "yes" ; then
+      for ax_dependency in $5 ; do
+        ax_dependency_have="HAVE_PKG_${ax_dependency}"
+        if test x${!ax_dependency_have} = "xyes"; then
+          ax_dep_cppflags="PKG_${ax_dependency}_CPPFLAGS"
+          ax_dep_ldflags="PKG_${ax_dependency}_LDFLAGS"
+          ax_cppflags="${ax_cppflags} ${!ax_dep_cppflags}"
+          ax_ldflags="${ax_ldflags} ${!ax_dep_ldflags}"
+        else
+          AC_MSG_RESULT([no])
+          AC_MSG_NOTICE([warning: unable to build requested module $1 (no ${ax_dependency})!])
+          ax_module_enable=no;
+          break;
+        fi
+      done
+    fi
+
+    if test $ax_module_enable = "yes" ; then
+      # Check for optional dependencies
+      for ax_dependency in $6 ; do
+        ax_dependency_have="HAVE_PKG_${ax_dependency}"
+        if test x${!ax_dependency_have} = "xyes"; then
+          ax_dep_cppflags="PKG_${ax_dependency}_CPPFLAGS"
+          ax_dep_ldflags="PKG_${ax_dependency}_LDFLAGS"
+          ax_cppflags="${ax_cppflags} ${!ax_dep_cppflags}"
+          ax_ldflags="${ax_ldflags} ${!ax_dep_ldflags}"
+        fi
+      done
+
+      # Set up the variables
+      MODULE_$1_CPPFLAGS=$ax_cppflags
+      MODULE_$1_LDFLAGS=$ax_ldflags
+      PKG_$1_CPPFLAGS=$ax_cppflags
+      PKG_$1_LDFLAGS=`for x in $2/$3 ; do echo '$(top_srcdir)/'$x ; done`
+      AC_MSG_RESULT([yes])
+    fi
+  
+  else
+    HAVE_PKG_$1_SRC=no
+    ax_module_enable=no
+    MODULE_$1_CPPFLAGS=
+    MODULE_$1_LDFLAGS=
+    PKG_$1_CPPFLAGS=
+    PKG_$1_LDFLAGS=
   fi
 
-  ax_cppflags=""
-  ax_ldflags=""
-
-  # Check for necessary dependencies
-  if test $ax_module_enable = "yes" ; then
-    for ax_dependency in $4 ; do
-      ax_dependency_have="HAVE_PKG_${ax_dependency}"
-      if test x${!ax_dependency_have} = "xyes"; then
-        ax_dep_cppflags="PKG_${ax_dependency}_CPPFLAGS"
-        ax_dep_ldflags="PKG_${ax_dependency}_LDFLAGS"
-        ax_cppflags="${ax_cppflags} ${!ax_dep_cppflags}"
-        ax_ldflags="${ax_ldflags} ${!ax_dep_ldflags}"
-      else
-        AC_MSG_RESULT([no])
-	AC_MSG_NOTICE([warning: unable to build requested module $1 (no ${ax_dependency})!])
-        ax_module_enable=no;
-        break;
-      fi
-    done
-  fi
-
-  if test $ax_module_enable = "yes" ; then
-    # Check for optional dependencies
-    for ax_dependency in $5 ; do
-      ax_dependency_have="HAVE_PKG_${ax_dependency}"
-      if test x${!ax_dependency_have} = "xyes"; then
-        ax_dep_cppflags="PKG_${ax_dependency}_CPPFLAGS"
-        ax_dep_ldflags="PKG_${ax_dependency}_LDFLAGS"
-        ax_cppflags="${ax_cppflags} ${!ax_dep_cppflags}"
-        ax_ldflags="${ax_ldflags} ${!ax_dep_ldflags}"
-      fi
-    done
-
-    # Set up the variables
-    MODULE_$1_CPPFLAGS=$ax_cppflags
-    MODULE_$1_LDFLAGS=$ax_ldflags
-    PKG_$1_CPPFLAGS=$ax_cppflags
-    PKG_$1_LDFLAGS=`for x in $2 ; do echo '$(top_srcdir)/'$x ; done`
-    AC_MSG_RESULT([yes])
-  fi
-    
   AC_SUBST(MODULE_$1_CPPFLAGS)
   AC_SUBST(MODULE_$1_LDFLAGS)
   AC_SUBST(PKG_$1_CPPFLAGS)
@@ -582,7 +580,7 @@ AC_DEFUN([AX_MODULE],
                      [$ax_have_pkg_bool],
                      [Define to 1 if the $1 module is available.])
 
-  if test "$ENABLE_VERBOSE" = "yes"; then
+  if test "$ENABLE_VERBOSE" = "yes" && test "$HAVE_PKG_$1_SRC" == "yes" ; then
     AC_MSG_NOTICE(MODULE_$1_CPPFLAGS = ${MODULE_$1_CPPFLAGS})
     AC_MSG_NOTICE(MODULE_$1_LDFLAGS = ${MODULE_$1_LDFLAGS})
     AC_MSG_NOTICE(MAKE_MODULE_$1 = ${MAKE_MODULE_$1})
@@ -591,7 +589,7 @@ AC_DEFUN([AX_MODULE],
     AC_MSG_NOTICE(HAVE_PKG_$1 = ${HAVE_PKG_$1})
   fi
 
-#  We're putting these in configure.ac manually by now, for 
-#  backwards compatability with older versions of automake.
-#  AM_CONDITIONAL([MAKE_MODULE_$1], [test "$MAKE_MODULE_$1" = "yes"])
+  #  We're putting these in configure.ac manually by now, for 
+  #  backwards compatability with older versions of automake.
+  #  AM_CONDITIONAL([MAKE_MODULE_$1], [test "$MAKE_MODULE_$1" = "yes"])
 ])

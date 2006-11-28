@@ -27,7 +27,7 @@
 
 SUBDIRS = src
 
-EXTRA_DIST = config/rules.mak config/relicense thirdparty
+EXTRA_DIST = config/rules.mak config/relicense docs thirdparty
 
 ########################################################################
 # special top-level rules
@@ -48,13 +48,26 @@ if DIST_CONFIG_OPTIONS_DEFAULT
 	cp $(DIST_CONFIG_OPTIONS_DEFAULT) $(distdir)/config/config.options.default
 endif
 if DIST_REMOVE_MODULES
-	for dir in $(DIST_REMOVE_MODULES) ; do rm -rf $(distdir)/$$dir ; done
+	for module in $(DIST_REMOVE_MODULES) ; do \
+	  rm -rf $(distdir)/src/vw/$${module} $(distdir)/src/vw/$${module}.h ; \
+	  grep -v "$${module}.*Makefile" $(distdir)/configure.ac > configure.new ; \
+	  mv configure.new $(distdir)/configure.ac ; \
+	  grep -v "= $${module}" $(distdir)/src/vw/Makefile.am > Makefile.new ; \
+	  mv Makefile.new $(distdir)/src/vw/Makefile.am ; \
+	done
+	( cd $(distdir) && aclocal && autoheader && automake && autoconf )
 endif
 
 check-local:
 	@echo ==============================
 	@echo All tests passed successfully!
 	@echo ==============================
+
+distclean-local:
+	cd docs/workbook && $(MAKE) $(AM_MAKEFLAGS) distclean
+
+workbook:
+	cd docs/workbook && $(MAKE) $(AM_MAKEFLAGS) workbook.pdf
 
 doxygen: 
 	cd src/vw; doxygen

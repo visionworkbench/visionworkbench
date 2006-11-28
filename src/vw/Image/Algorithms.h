@@ -36,50 +36,6 @@
 namespace vw {
 
   // *******************************************************************
-  // bounding_box()
-  // *******************************************************************
-
-  template <class ViewT>
-  BBox2i bounding_box( ImageViewBase<ViewT> const& image_ ) {
-    const typename ViewT::pixel_type zero = typename ViewT::pixel_type();
-    ViewT const& image = static_cast<ViewT const&>(image_);
-    int x=0, y=0, cols=0, rows=0;
-    int i, j, icols = image.cols(), irows = image.rows();
-    for( j=0; j<irows; ++j ) {
-      for( i=0; i<icols; ++i ) {
-        if( image(i,j) != zero ) break;
-      }
-      if( i != icols ) break;
-    }
-    if( j != irows ) {
-      y = j;
-      for( j=irows-1; j; --j ) {
-        for( i=0; i<icols; ++i ) {
-          if( image(i,j) != zero ) break;
-        }
-        if( i != icols ) break;
-      }
-      rows = j - y + 1;
-      for( i=0; i<icols; ++i ) {
-        for( j=y; j<y+rows; ++j ) {
-          if( image(i,j) != zero ) break;
-        }
-        if( j != y+rows ) break;
-      }
-      x = i;
-      for( i=icols-1; i; --i ) {
-        for( j=y; j<y+rows; ++j ) {
-          if( image(i,j) != zero ) break;
-        }
-        if( j != y+rows ) break;
-      }
-      cols = i - x + 1;
-    }
-    return BBox2i( x, y, cols, rows );
-  }
-
-
-  // *******************************************************************
   // fill()
   // *******************************************************************
 
@@ -372,6 +328,60 @@ namespace vw {
 
 
   // *******************************************************************
+  // bounding_box()
+  // *******************************************************************
+
+  template <class ViewT>
+  BBox2i bounding_box( ImageViewBase<ViewT> const& image_ ) {
+    return BBox2i( 0, 0, image_.impl().cols(), image_.impl().rows() );
+  }
+
+
+  // *******************************************************************
+  // nonzero_bounding_box()
+  // *******************************************************************
+
+  template <class ViewT>
+  BBox2i nonzero_bounding_box( ImageViewBase<ViewT> const& image_ ) {
+    const typename ViewT::pixel_type zero = typename ViewT::pixel_type();
+    ViewT const& image = static_cast<ViewT const&>(image_);
+    int x=0, y=0, cols=0, rows=0;
+    int i, j, icols = image.cols(), irows = image.rows();
+    for( j=0; j<irows; ++j ) {
+      for( i=0; i<icols; ++i ) {
+        if( image(i,j) != zero ) break;
+      }
+      if( i != icols ) break;
+    }
+    if( j != irows ) {
+      y = j;
+      for( j=irows-1; j; --j ) {
+        for( i=0; i<icols; ++i ) {
+          if( image(i,j) != zero ) break;
+        }
+        if( i != icols ) break;
+      }
+      rows = j - y + 1;
+      for( i=0; i<icols; ++i ) {
+        for( j=y; j<y+rows; ++j ) {
+          if( image(i,j) != zero ) break;
+        }
+        if( j != y+rows ) break;
+      }
+      x = i;
+      for( i=icols-1; i; --i ) {
+        for( j=y; j<y+rows; ++j ) {
+          if( image(i,j) != zero ) break;
+        }
+        if( j != y+rows ) break;
+      }
+      cols = i - x + 1;
+    }
+    return BBox2i( x, y, cols, rows );
+  }
+
+
+  // *******************************************************************
   // image_blocks()
   // *******************************************************************
 
@@ -384,8 +394,7 @@ namespace vw {
   /// want to apply an operation to a large image one region at a time.
   template <class ViewT>
   std::vector<BBox2i> image_blocks(ImageViewBase<ViewT> const& image, 
-                                   int block_width, int block_height) {
-    
+                                   int block_width, int block_height) {  
     std::vector<BBox2i> bboxes;
 
     int j_offset = 0;

@@ -22,7 +22,7 @@
 # __END_LICENSE__
 
 
-AC_INIT([NASA Vision Workbench], [0.2], [vwb@nx.arc.nasa.gov], [VisionWorkbench])
+AC_INIT([NASA Vision Workbench], [1.0], [vwb@nx.arc.nasa.gov], [VisionWorkbench])
 AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE
@@ -39,13 +39,6 @@ AC_ARG_ENABLE(verbose,
   [ ENABLE_VERBOSE=$enableval ],
   [ if test -z $"ENABLE_VERBOSE"; then ENABLE_VERBOSE=no; fi ]
 )
-
-if ! test -f config.options && test -f config/config.options.default; then
-  if test "yes" = "$ENABLE_VERBOSE" ; then
-    AC_MSG_NOTICE([creating default config.options file])
-  fi
-  cp config/config.options.default config.options
-fi
 
 if test -f config.options; then
   if test "yes" = "$ENABLE_VERBOSE" ; then
@@ -114,24 +107,17 @@ fi
 DEFAULT_INCLUDES=
 AC_SUBST(DEFAULT_INCLUDES)
 
+
 ##################################################
 #	installation options
 ##################################################
 
-AC_ARG_ENABLE(custom-arch-name,
-  AC_HELP_STRING([--enable-custom-arch-name=NAME], [custom architecture name, used for generating the default intallation prefix]),
-  [ENABLE_CUSTOM_ARCH_NAME=$enableval]
-)
-
 if test ${prefix} = NONE; then
-  if test ! -z ${ENABLE_CUSTOM_ARCH_NAME} ; then
-    prefix=`pwd`/build/${ENABLE_CUSTOM_ARCH_NAME}
-  else 
-    prefix=`pwd`/build/${host}
+  if test ! -z ${PREFIX} ; then
+    prefix=${PREFIX}
+    AC_MSG_NOTICE([using installation prefix ${prefix}])
   fi
 fi
-
-AC_MSG_NOTICE([using installation prefix ${prefix}])
 
 
 ##################################################
@@ -175,7 +161,7 @@ if test ! -z "$DIST_CONFIG_OPTIONS_DEFAULT" ; then
 fi
 
 AC_ARG_WITH(dist-remove-modules,
-  AC_HELP_STRING([--with-dist-remove-modules="RELPATH @<:@RELPATH...@:>@"], [remove certain modules from the distribution]),
+  AC_HELP_STRING([--with-dist-remove-modules="MODULE @<:@MODULE...@:>@"], [remove certain modules from the distribution]),
   [DIST_REMOVE_MODULES=$withval]
 )
 AC_SUBST(DIST_REMOVE_MODULES)
@@ -225,9 +211,9 @@ AX_PKG(OPENEXR, [Z PTHREADS], [-lImath -lHalf -lIex -lIlmImf], [ImfOutputFile.h]
 AX_PKG(GDAL, [], [-lgdal], [gdal.h])
 AX_PKG(PROJ4, [], [-lproj], [projects.h])
 
-AX_PKG(VCL, [], [-lvcl], [vcl_algorithm.h], [vcl])
-AX_PKG(VXL, [VCL], [-lvgl_algo -lvil_algo -lvnl_algo -lvul -lvgl -lvnl -lvil -lvcl -lnetlib], 
-            [vil/vil_image_view.h], [core])
+#AX_PKG(VCL, [], [-lvcl], [vcl_algorithm.h], [vcl])
+#AX_PKG(VXL, [VCL], [-lvgl_algo -lvil_algo -lvnl_algo -lvul -lvgl -lvnl -lvil -lvcl -lnetlib], 
+#            [vil/vil_image_view.h], [core])
 
 # These are here (instead of inside the PKG macro where they belong)
 # for backwards compatability with older versions of automake.
@@ -240,27 +226,22 @@ AM_CONDITIONAL(HAVE_PKG_OPENEXR, [test "$HAVE_PKG_OPENEXR" = "yes"])
 #	module definitions
 ##################################################
 
-# These module source directories may or may not be provided.
-AX_MODULE_SRC(STEREO, [src/vw/Stereo])
-
-AX_MODULE(CORE, [src/vw/Core/libvwCore.la], yes, [M BOOST])
-AX_MODULE(MATH, [src/vw/Math/libvwMath.la], yes, [CORE], [LAPACK])
-AX_MODULE(IMAGE, [src/vw/Image/libvwImage.la], yes, [MATH], [VXL])
-AX_MODULE(FILEIO, [src/vw/FileIO/libvwFileIO.la], yes, [IMAGE], [OPENEXR Z PNG TIFF JPEG])
-AX_MODULE(VW, [src/vw/libvw.la], yes, [CORE MATH IMAGE], [FILEIO])
+AX_MODULE(CORE, [src/vw/Core], [libvwCore.la], yes, [M BOOST])
+AX_MODULE(MATH, [src/vw/Math], [libvwMath.la], yes, [CORE], [LAPACK])
+AX_MODULE(IMAGE, [src/vw/Image], [libvwImage.la], yes, [MATH])
+AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [OPENEXR Z PNG TIFF JPEG])
+AX_MODULE(VW, [src/vw], [libvw.la], yes, [CORE MATH IMAGE], [FILEIO])
 if test ${MAKE_MODULE_VW} != "yes"; then
-  AC_MSG_ERROR([cannot build the Vision Workbench core!])
+  AC_MSG_ERROR([cannot build the Vision Workbench core modules!])
 fi
 
-AX_MODULE(CAMERA, [src/vw/Camera/libvwCamera.la], yes, [VW BOOST_PROGRAM_OPTIONS])
-AX_MODULE(MOSAIC, [src/vw/Mosaic/libvwMosaic.la], yes, [VW PTHREADS BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
-AX_MODULE(STEREO, [src/vw/Stereo/libvwStereo.la], $HAVE_PKG_STEREO_SRC, [STEREO_SRC VW PTHREADS BOOST_THREAD])
-AX_MODULE(CARTOGRAPHY, [src/vw/Cartography/libvwCartography.la], yes, [VW GDAL PROJ4])
-AX_MODULE(GPU, [src/vw/GPU/libvwGPU.la], no, [VW GL GLU GLUT], [CG PTHREADS])
-AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint/libvwInterestPoint.la], no, [VW])
-#AX_MODULE(HDR, HDR, no, [VW])
-#AX_MODULE(DISPLAY, Display, no, [BOOST_THREAD GL FREEGLUT VW])
-#AX_MODULE(TEXTURE, Texture, no, [VW])
+AX_MODULE(CAMERA, [src/vw/Camera], [libvwCamera.la], yes, [VW BOOST_PROGRAM_OPTIONS])
+AX_MODULE(MOSAIC, [src/vw/Mosaic], [libvwMosaic.la], yes, [VW PTHREADS BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
+AX_MODULE(CARTOGRAPHY, [src/vw/Cartography], [libvwCartography.la], yes, [VW GDAL PROJ4])
+AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], no, [VW])
+AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], $HAVE_PKG_STEREO_SRC, [STEREO_SRC VW PTHREADS BOOST_THREAD])
+AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW GL GLU GLUT], [CG PTHREADS])
+AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], no, [VW])
 
 # These are here (instead of inside the MODULE macro where they belong)
 # for backwards compatability with older versions of automake.
@@ -268,16 +249,14 @@ AM_CONDITIONAL(MAKE_MODULE_CORE, [test "$MAKE_MODULE_CORE" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_MATH, [test "$MAKE_MODULE_MATH" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_IMAGE, [test "$MAKE_MODULE_IMAGE" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_FILEIO, [test "$MAKE_MODULE_FILEIO" = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_CAMERA, [test "$MAKE_MODULE_CAMERA" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_VW, [test "$MAKE_MODULE_VW" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_CAMERA, [test "$MAKE_MODULE_CAMERA" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_MOSAIC, [test "$MAKE_MODULE_MOSAIC" = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_STEREO, [test "$MAKE_MODULE_STEREO" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_CARTOGRAPHY, [test "$MAKE_MODULE_CARTOGRAPHY" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_HDR, [test "$MAKE_MODULE_HDR" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_STEREO, [test "$MAKE_MODULE_STEREO" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GPU, [test "$MAKE_MODULE_GPU" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_INTERESTPOINT, [test "$MAKE_MODULE_INTERESTPOINT" = "yes"])
-#AM_CONDITIONAL(MAKE_MODULE_HDR, [test "$MAKE_MODULE_HDR" = "yes"])
-#AM_CONDITIONAL(MAKE_MODULE_DISPLAY, [test "$MAKE_MODULE_DISPLAY" = "yes"])
-#AM_CONDITIONAL(MAKE_MODULE_TEXTURE, [test "$MAKE_MODULE_TEXTURE" = "yes"])
 
 
 ##################################################
@@ -302,19 +281,14 @@ AC_CONFIG_FILES([                       \
   src/vw/Camera/tests/Makefile          \
   src/vw/Mosaic/Makefile                \
   src/vw/Mosaic/tests/Makefile          \
+  src/vw/Cartography/Makefile           \
+  src/vw/Cartography/tests/Makefile     \
+  src/vw/Stereo/Makefile                \
+  src/vw/Stereo/tests/Makefile          \
   src/vw/GPU/Makefile                   \
   src/vw/GPU/tests/Makefile             \
   src/vw/InterestPoint/Makefile         \
   src/vw/InterestPoint/tests/Makefile   \
-  src/vw/Cartography/Makefile           \
-  src/vw/Cartography/tests/Makefile     \
 ])
-
-if test $HAVE_PKG_STEREO_SRC = "yes"; then
-  AC_CONFIG_FILES([                       \
-    src/vw/Stereo/Makefile                \
-    src/vw/Stereo/tests/Makefile          \
-  ])
-fi
 
 AC_OUTPUT

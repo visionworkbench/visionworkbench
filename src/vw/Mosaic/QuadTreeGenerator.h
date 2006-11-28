@@ -144,7 +144,7 @@ namespace mosaic {
       BBox2i visible_bbox = image_bbox;
       visible_bbox.contract( m_patch_overlap/2 );
       if( m_crop_images ) {
-        image_bbox = bounding_box( image );
+        image_bbox = nonzero_bounding_box( image );
         if( image_bbox.empty() ) {
           vw_out(InfoMessage) << "\tIgnoring empty image: " << name << std::endl;
           fs::remove( fs::path( name, fs::native ) );
