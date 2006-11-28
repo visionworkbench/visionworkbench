@@ -33,6 +33,7 @@ nodist_TestBBox_SOURCES = TestBBox.cxx
 nodist_TestFunctions_SOURCES = TestFunctions.cxx
 nodist_TestFunctors_SOURCES = TestFunctors.cxx
 nodist_TestConjugateGradient_SOURCES = TestConjugateGradient.cxx
+nodist_TestOptimization_SOURCES = TestOptimization.cxx
 
 if HAVE_PKG_LAPACK
 nodist_TestLinearAlgebra_SOURCES = TestLinearAlgebra.cxx
@@ -40,10 +41,8 @@ nodist_TestGeometry_SOURCES = TestGeometry.cxx
 TestLinearAlgebra = TestLinearAlgebra TestGeometry
 endif
 
-#nodist_TestOptimization_SOURCES = TestOptimization.cxx
-
 TESTS = TestVector TestMatrix TestBBox TestFunctions TestFunctors			\
-        TestConjugateGradient $(TestLinearAlgebra) #TestOptimization
+        TestConjugateGradient TestOptimization $(TestLinearAlgebra) #TestOptimization
 
 endif
 

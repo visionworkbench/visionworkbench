@@ -1494,6 +1494,14 @@ namespace math {
     return result;
   }
 
+  /// Fill all elements with a given value
+  template <class VectorT, class ValT>
+  inline void fill( VectorBase<VectorT> &v, ValT const& val  ) {
+    typename VectorT::iterator i = v.impl().begin(), end = v.impl().end();
+    if( i == end ) return;
+    for( ; i != end ; ++i ) *i = val;
+  }
+
 
   // *******************************************************************
   // Assorted mathematical vector functions.
