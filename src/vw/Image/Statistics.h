@@ -219,6 +219,29 @@ namespace vw {
     return accum;
   }
 
+
+  /// Compute the median pixel value of an image.  This routine
+  /// computes the exact median by sorting the entire image, so there
+  /// must be a ordering defined for the pixel type in the image.
+  /// That is, you must have defined a operator<, operator> and
+  /// operator== for the pixel class you are using.  If you are using
+  /// a built-in numerical type for you pixel type, you get this for
+  /// free. Sorting the image is time consuming, so this operation is
+  /// not recommended if performance is important.
+  template <class ViewT>
+  typename ViewT::pixel_type median_pixel_value(const ImageViewBase<ViewT> &view_) {
+    const ViewT& view = copy(view_).impl();
+
+    typedef typename ViewT::iterator iterator;
+    typedef typename ViewT::pixel_type pixel_type;
+    typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
+    
+    sort(view.begin(), view.end());
+    
+    iterator median_pixel = view.begin() + (view.rows() * view.cols() / 2);
+    return *median_pixel;
+  }
+
 }  // namespace vw
 
 

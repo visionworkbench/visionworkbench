@@ -238,7 +238,7 @@ fi
 AX_MODULE(CAMERA, [src/vw/Camera], [libvwCamera.la], yes, [VW BOOST_PROGRAM_OPTIONS])
 AX_MODULE(MOSAIC, [src/vw/Mosaic], [libvwMosaic.la], yes, [VW PTHREADS BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
 AX_MODULE(CARTOGRAPHY, [src/vw/Cartography], [libvwCartography.la], yes, [VW GDAL PROJ4])
-AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], no, [VW])
+AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], no, [VW CAMERA BOOST_PROGRAM_OPTIONS])
 AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], $HAVE_PKG_STEREO_SRC, [STEREO_SRC VW PTHREADS BOOST_THREAD])
 AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW GL GLU GLUT], [CG PTHREADS])
 AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], no, [VW])
@@ -257,7 +257,6 @@ AM_CONDITIONAL(MAKE_MODULE_HDR, [test "$MAKE_MODULE_HDR" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_STEREO, [test "$MAKE_MODULE_STEREO" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GPU, [test "$MAKE_MODULE_GPU" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_INTERESTPOINT, [test "$MAKE_MODULE_INTERESTPOINT" = "yes"])
-
 
 ##################################################
 #	makefiles to process	    
@@ -289,6 +288,8 @@ AC_CONFIG_FILES([                       \
   src/vw/GPU/tests/Makefile             \
   src/vw/InterestPoint/Makefile         \
   src/vw/InterestPoint/tests/Makefile   \
+  src/vw/HDR/Makefile                   \
+  src/vw/HDR/tests/Makefile             \
 ])
 
 AC_OUTPUT

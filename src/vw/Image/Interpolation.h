@@ -81,8 +81,8 @@ namespace vw {
       int x = int(floor(i));       int y = int(floor(j));
       double normx = i-x;          double normy = j - y;
 
-      pixel_type i1( view(x,y,p)   + (view(x,y+1,p)   - view(x,y,p)  ) * normy );
-      pixel_type i2( view(x+1,y,p) + (view(x+1,y+1,p) - view(x+1,y,p)) * normy );
+      pixel_type i1 = pixel_type( view(x,y,p)   + (view(x,y+1,p)   - view(x,y,p)  ) * normy );
+      pixel_type i2 = pixel_type( view(x+1,y,p) + (view(x+1,y+1,p) - view(x+1,y,p)) * normy );
       return pixel_type(i1 + (i2 - i1) * normx); 
     }
   };
@@ -104,10 +104,10 @@ namespace vw {
       double s2 = ((4-3*normx)*normx+1)*normx;    double t2 = ((4-3*normy)*normy+1)*normy;
       double s3 = (normx-1)*normx*normx;          double t3 = (normy-1)*normy*normy;
 
-      pixel_type xi0( s0*view(x-1,y-1,p) + s1*view(x+0,y-1,p) + s2*view(x+1,y-1,p) + s3*view(x+2,y-1,p) );
-      pixel_type xi1( s0*view(x-1,y+0,p) + s1*view(x+0,y+0,p) + s2*view(x+1,y+0,p) + s3*view(x+2,y+0,p) );
-      pixel_type xi2( s0*view(x-1,y+1,p) + s1*view(x+0,y+1,p) + s2*view(x+1,y+1,p) + s3*view(x+2,y+1,p) );
-      pixel_type xi3( s0*view(x-1,y+2,p) + s1*view(x+0,y+2,p) + s2*view(x+1,y+2,p) + s3*view(x+2,y+2,p) );
+      pixel_type xi0 = pixel_type( s0*view(x-1,y-1,p) + s1*view(x+0,y-1,p) + s2*view(x+1,y-1,p) + s3*view(x+2,y-1,p) );
+      pixel_type xi1 = pixel_type( s0*view(x-1,y+0,p) + s1*view(x+0,y+0,p) + s2*view(x+1,y+0,p) + s3*view(x+2,y+0,p) );
+      pixel_type xi2 = pixel_type( s0*view(x-1,y+1,p) + s1*view(x+0,y+1,p) + s2*view(x+1,y+1,p) + s3*view(x+2,y+1,p) );
+      pixel_type xi3 = pixel_type( s0*view(x-1,y+2,p) + s1*view(x+0,y+2,p) + s2*view(x+1,y+2,p) + s3*view(x+2,y+2,p) );
       return pixel_type(0.25 * ( xi0*t0 + xi1*t1 + xi2*t2 + xi3*t3 ));
     }
   };
