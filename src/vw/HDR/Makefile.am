@@ -27,10 +27,11 @@
 
 if MAKE_MODULE_HDR
 
-include_HEADERS = CameraCurve.h GlobalToneMap.h LDRtoHDRExif.h				\
-	                LDRtoHDR.h LDRtoHDRPano.h LocalToneMap.h
+include_HEADERS = CameraCurve.h GlobalToneMap.h LDRtoHDRExif.h		\
+	LDRtoHDR.h LDRtoHDRPano.h LocalToneMap.h
 
-libvwHDR_la_SOURCES = GlobalToneMap.cc LocalToneMap.cc CameraCurve.cc
+libvwHDR_la_SOURCES = GlobalToneMap.cc LDRtoHDRExif.cc LocalToneMap.cc	\
+	CameraCurve.cc
 
 libvwHDR_la_LIBADD = @MODULE_HDR_LDFLAGS@
 

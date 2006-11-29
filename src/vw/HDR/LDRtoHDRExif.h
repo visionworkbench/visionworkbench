@@ -32,25 +32,8 @@ namespace hdr {
   /// Stitches the set of LDR images into one HDR image from images on
   /// disk that have embedded EXIF metadata.  This metadata is used to
   /// infer the exposure ratios between images.
-  ImageView<PixelRGB<double> > process_ldr_images_exif(std::vector<std::string> const& filenames, std::vector<Vector<double> > &ret_curves) {
-    typedef ImageView<PixelRGB<double> > Image;
-    
-    int num_images = filenames.size();
-    std::vector<Image> images(num_images);
-    std::vector<double> brightness_values(num_images);
-    vw::camera::ExifView exif;
-    
-    for (int i = 0; i < num_images; i++) {
-      read_image(images[i], filenames[i]);
-      VW_ASSERT(exif.load_exif(filenames[i].c_str()), vw::camera::ExifErr() << "File " << filenames[i] << " contains no Exif data.");
-      brightness_values[i] = exif.get_brightness_value();
-      //      std::cout << "Brightness_value = " << brightness_values[i] << "\n";
-    }
-    
-    Image hdr = process_ldr_images(images, ret_curves, brightness_values);
-    return hdr;
-  }
-  
+  ImageView<PixelRGB<double> > process_ldr_images_exif(std::vector<std::string> const& filenames,
+                                                       std::vector<Vector<double> > &ret_curves);  
   
 }} // namespace vw::hdr
 
