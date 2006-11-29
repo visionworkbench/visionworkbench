@@ -239,9 +239,9 @@ AX_MODULE(CAMERA, [src/vw/Camera], [libvwCamera.la], yes, [VW BOOST_PROGRAM_OPTI
 AX_MODULE(MOSAIC, [src/vw/Mosaic], [libvwMosaic.la], yes, [VW PTHREADS BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
 AX_MODULE(CARTOGRAPHY, [src/vw/Cartography], [libvwCartography.la], yes, [VW GDAL PROJ4])
 AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], yes, [VW CAMERA BOOST_PROGRAM_OPTIONS LAPACK])
-AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], no, [STEREO_SRC VW PTHREADS BOOST_THREAD])
-AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW GL GLU GLUT], [CG PTHREADS])
-AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], no, [VW])
+AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], yes, [STEREO_SRC VW PTHREADS BOOST_THREAD])
+AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], yes, [VW GL GLU GLUT], [CG PTHREADS])
+AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], yes, [VW])
 
 # These are here (instead of inside the MODULE macro where they belong)
 # for backwards compatability with older versions of automake.
