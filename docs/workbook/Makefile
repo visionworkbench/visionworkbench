@@ -12,6 +12,7 @@ all: workbook.pdf
 
 workbook.pdf: images
 	pdflatex workbook.tex
+	pdflatex workbook.tex
 
 images: generate
 	./generate

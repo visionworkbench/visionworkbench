@@ -22,7 +22,7 @@
 # __END_LICENSE__
 
 
-AC_INIT([NASA Vision Workbench], [1.0], [vwb@nx.arc.nasa.gov], [VisionWorkbench])
+AC_INIT([NASA Vision Workbench], [1.0.rc2], [vwb@nx.arc.nasa.gov], [VisionWorkbench])
 AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE
@@ -238,8 +238,8 @@ fi
 AX_MODULE(CAMERA, [src/vw/Camera], [libvwCamera.la], yes, [VW BOOST_PROGRAM_OPTIONS])
 AX_MODULE(MOSAIC, [src/vw/Mosaic], [libvwMosaic.la], yes, [VW PTHREADS BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
 AX_MODULE(CARTOGRAPHY, [src/vw/Cartography], [libvwCartography.la], yes, [VW GDAL PROJ4])
-AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], no, [VW CAMERA BOOST_PROGRAM_OPTIONS])
-AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], $HAVE_PKG_STEREO_SRC, [STEREO_SRC VW PTHREADS BOOST_THREAD])
+AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], yes, [VW CAMERA BOOST_PROGRAM_OPTIONS])
+AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], no, [STEREO_SRC VW PTHREADS BOOST_THREAD])
 AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW GL GLU GLUT], [CG PTHREADS])
 AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], no, [VW])
 
@@ -282,14 +282,14 @@ AC_CONFIG_FILES([                       \
   src/vw/Mosaic/tests/Makefile          \
   src/vw/Cartography/Makefile           \
   src/vw/Cartography/tests/Makefile     \
+  src/vw/HDR/Makefile                   \
+  src/vw/HDR/tests/Makefile             \
   src/vw/Stereo/Makefile                \
   src/vw/Stereo/tests/Makefile          \
   src/vw/GPU/Makefile                   \
   src/vw/GPU/tests/Makefile             \
   src/vw/InterestPoint/Makefile         \
   src/vw/InterestPoint/tests/Makefile   \
-  src/vw/HDR/Makefile                   \
-  src/vw/HDR/tests/Makefile             \
 ])
 
 AC_OUTPUT

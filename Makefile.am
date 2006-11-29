@@ -27,7 +27,7 @@
 
 SUBDIRS = src
 
-EXTRA_DIST = config/rules.mak config/relicense docs thirdparty
+EXTRA_DIST = config/rules.mak config/relicense docs thirdparty config.options.example
 
 ########################################################################
 # special top-level rules
@@ -55,7 +55,7 @@ if DIST_REMOVE_MODULES
 	  grep -v "= $${module}" $(distdir)/src/vw/Makefile.am > Makefile.new ; \
 	  mv Makefile.new $(distdir)/src/vw/Makefile.am ; \
 	done
-	( cd $(distdir) && aclocal && autoheader && automake && autoconf )
+	( cd $(distdir) && autoreconf && touch src/vw/config.h.pre.in && rm -rf autom4te.cache )
 endif
 
 check-local:
@@ -66,11 +66,11 @@ check-local:
 distclean-local:
 	cd docs/workbook && $(MAKE) $(AM_MAKEFLAGS) distclean
 
-workbook:
+workbook: all
 	cd docs/workbook && $(MAKE) $(AM_MAKEFLAGS) workbook.pdf
 
 doxygen: 
-	cd src/vw; doxygen
+	cd src/vw && doxygen
 
 ########################################################################
 # general
