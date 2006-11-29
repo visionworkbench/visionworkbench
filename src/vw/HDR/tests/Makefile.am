@@ -27,9 +27,9 @@
 
 if MAKE_MODULE_HDR
 
-TESTS = TestCameraCurve
+TESTS = #TestCameraCurve
 
-nodist_TestCameraCurve_SOURCES = TestCameraCurve.cxx
+#nodist_TestCameraCurve_SOURCES = TestCameraCurve.cxx
 
 endif
 
