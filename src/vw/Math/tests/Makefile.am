@@ -37,8 +37,8 @@ nodist_TestFunctors_SOURCES = TestFunctors.cxx
 if HAVE_PKG_LAPACK
 nodist_TestLinearAlgebra_SOURCES = TestLinearAlgebra.cxx
 nodist_TestGeometry_SOURCES = TestGeometry.cxx
-nodist_TestOptimization_SOURCES = TestOptimization.cxx
-TestLinearAlgebra = TestLinearAlgebra TestGeometry TestOptimization
+nodist_TestLevenbergMarquardt_SOURCES = TestLevenbergMarquardt.cxx
+TestLinearAlgebra = TestLinearAlgebra TestGeometry TestLevenbergMarquardt
 endif
 
 TESTS = TestVector TestMatrix TestBBox TestFunctions TestFunctors	\

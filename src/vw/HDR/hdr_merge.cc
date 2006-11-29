@@ -44,13 +44,10 @@ namespace po = boost::program_options;
 #include <vw/FileIO.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageMath.h>
-#include <vw/HDR/LDRtoHDRExif.h>
 #include <vw/HDR/LDRtoHDR.h>
 #include <vw/HDR/GlobalToneMap.h>
 
-#include <stdio.h>
 #include <vector>
-#include <fstream>
 
 #include <boost/algorithm/string.hpp>
 

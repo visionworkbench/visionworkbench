@@ -23,7 +23,7 @@
 #include <cxxtest/TestSuite.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
-#include <vw/Math/Optimization.h>
+#include <vw/Math/LevenbergMarquardt.h>
 
 using namespace vw;
 using namespace vw::math;

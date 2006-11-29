@@ -1,12 +1,12 @@
 // TestCameraCurve.h
 #include <cxxtest/TestSuite.h>
-#include "vw/vw.h"
-#include "vw/FileIO.h"
-#include "CameraCurve.h"
+#include <vw/Image/ImageView.h>
+#include <vw/FileIO.h>
+#include <vw/HDR/CameraCurve.h>
 
 using namespace std;
 using namespace vw;
-using namespace vw::HDR;
+using namespace vw::hdr;
 
 class TestCameraCurve : public CxxTest::TestSuite
 {
@@ -15,9 +15,9 @@ class TestCameraCurve : public CxxTest::TestSuite
   void test_curve_generation()
   {
     std::cout << "\n\n";
-
+    
     try
-    {
+      {
       vnl_matrix<double> pairs = read_matrix("pair_list.exr");
       int degree = 9;
 
@@ -32,11 +32,11 @@ class TestCameraCurve : public CxxTest::TestSuite
 
       for (unsigned int i = 0; i < 255; i++)
       {
-	graph(i,0) = poly.evaluate((double) i / 255.0);
+        graph(i,0) = poly.evaluate((double) i / 255.0);
       }
 
       write_matrix(graph, "graph.exr");
-    }
+      }
     catch (vw::Exception &e)
     {
       std::cout << e.what() << "\n";

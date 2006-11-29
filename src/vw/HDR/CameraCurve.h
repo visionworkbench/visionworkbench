@@ -34,7 +34,7 @@
 #include <vw/Image/PixelTypes.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
-#include <vw/Math/Optimization.h>
+#include <vw/Math/LevenbergMarquardt.h>
 
 #define VW_HDR_GET_RAND(max) int((max) * double(rand()) / (RAND_MAX + 1.0))
 

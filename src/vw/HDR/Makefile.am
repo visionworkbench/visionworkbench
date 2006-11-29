@@ -27,21 +27,20 @@
 
 if MAKE_MODULE_HDR
 
-include_HEADERS = CameraCurve.h GlobalToneMap.h LDRtoHDRExif.h		\
-	LDRtoHDR.h LDRtoHDRPano.h LocalToneMap.h
+include_HEADERS = CameraCurve.h GlobalToneMap.h LDRtoHDR.h	\
+	LocalToneMap.h
 
-libvwHDR_la_SOURCES = GlobalToneMap.cc LDRtoHDRExif.cc LocalToneMap.cc	\
-	CameraCurve.cc
+libvwHDR_la_SOURCES = GlobalToneMap.cc LocalToneMap.cc CameraCurve.cc LDRtoHDR.cc
 
 libvwHDR_la_LIBADD = @MODULE_HDR_LDFLAGS@
 
 lib_LTLIBRARIES = libvwHDR.la
 
-bin_PROGRAMS = tonemap_drago hdr_merge
+bin_PROGRAMS = hdr_tonemap hdr_merge
 hdr_merge_SOURCES = hdr_merge.cc 
 hdr_merge_LDFLAGS = @PKG_HDR_LDFLAGS@
-tonemap_drago_SOURCES = tonemap_drago.cc 
-tonemap_drago_LDFLAGS = @PKG_HDR_LDFLAGS@ 
+hdr_tonemap_SOURCES = hdr_tonemap.cc 
+hdr_tonemap_LDFLAGS = @PKG_HDR_LDFLAGS@ 
 
 endif
 

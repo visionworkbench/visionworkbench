@@ -20,21 +20,28 @@
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
 // 
 // __END_LICENSE__
-#ifndef __VW_HDR_LDRTOHDREXIF_H__
-#define __VW_HDR_LDRTOHDREXIF_H__
 
 #include <vw/HDR/LDRtoHDR.h>
-#include <vw/Camera/Exif.h>
 
-namespace vw { 
-namespace hdr {
-
-  /// Stitches the set of LDR images into one HDR image from images on
-  /// disk that have embedded EXIF metadata.  This metadata is used to
-  /// infer the exposure ratios between images.
-  ImageView<PixelRGB<double> > process_ldr_images_exif(std::vector<std::string> const& filenames,
-                                                       std::vector<Vector<double> > &ret_curves);  
+/// Combines the set of LDR images into one HDR image from images on
+/// disk that have embedded EXIF metadata.  This metadata is used to
+/// infer the exposure ratios between images.
+vw::ImageView<vw::PixelRGB<double> > vw::hdr::process_ldr_images_exif(std::vector<std::string> const& filenames,
+                                                                      std::vector<vw::Vector<double> > &ret_curves) {
+  typedef ImageView<PixelRGB<double> > Image;
   
-}} // namespace vw::hdr
-
-#endif  // __VW_HDR_LDRTOHDREXIF_H__
+  int num_images = filenames.size();
+  std::vector<Image> images(num_images);
+  std::vector<double> brightness_values(num_images);
+  vw::camera::ExifView exif;
+  
+  for (int i = 0; i < num_images; i++) {
+    read_image(images[i], filenames[i]);
+    VW_ASSERT(exif.load_exif(filenames[i].c_str()), vw::camera::ExifErr() << "File " << filenames[i] << " contains no Exif data.");
+    brightness_values[i] = exif.get_brightness_value();
+    //      std::cout << "Brightness_value = " << brightness_values[i] << "\n";
+  }
+  
+  Image hdr = process_ldr_images(images, ret_curves, brightness_values);
+  return hdr;
+}
