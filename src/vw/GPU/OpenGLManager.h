@@ -97,9 +97,9 @@ void ShaderInvocation_SetupGLState(const GPUImageBase& image);
 
 void ShaderInvocation_DrawRectOneTexture(const GPUImageBase& image,  int x = 0, int y = 0);
 
- void ShaderInvocation_DrawRectOneTexture(const GPUImageBase& image, int x, int y, int width, int height);
+void ShaderInvocation_DrawRectOneTexture(const GPUImageBase& image, int x, int y, int width, int height);
 
- void ShaderInvocation_DrawRectOneTexture(const GPUImageBase& image, const Rectangle2D<int>& rect, const Rectangle2D<int>& texCoord);
+void ShaderInvocation_DrawRectOneTexture(const GPUImageBase& image, const Rectangle2D<int>& rect, const Rectangle2D<int>& texCoord);
 
 void ShaderInvocation_CleanupGLState();
 

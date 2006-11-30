@@ -31,8 +31,6 @@
 #include <vw/HDR/CameraCurve.h>
 #include <vw/HDR/GlobalToneMap.h>
 #include <vw/HDR/LDRtoHDR.h>
-#include <vw/HDR/LDRtoHDRExif.h>
-//#include <vw/HDR/LDRtoHDRPano.h>
 #include <vw/HDR/LocalToneMap.h>
 
 #endif // __VW_HDR_H__
