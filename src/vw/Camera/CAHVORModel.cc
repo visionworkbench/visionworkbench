@@ -666,12 +666,12 @@ vw::camera::CAHVModel vw::camera::linearize_camera(vw::camera::CAHVORModel &came
   output_camera.V = v2;
 
   // For debugging:
-  //     cout << "CAHVOR linearize_camera completed: Converted to CAHV: " << endl;
-  //     cout << "CAHVORModel: Linearized C vector:" << output_camera.C << "\n";
-  //     cout << "CAHVORModel: Linearized A vector:" << output_camera.A << "\n";
-  //     cout << "CAHVORModel: Linearized H vector:" << output_camera.H << "\n";
-  //     cout << "CAHVORModel: Linearized V vector:" << output_camera.V << "\n";
-    
+  //       cout << "CAHVOR linearize_camera completed: Converted to CAHV: " << endl;
+  //       cout << "CAHVORModel: Linearized C vector:" << output_camera.C << "\n";
+  //       cout << "CAHVORModel: Linearized A vector:" << output_camera.A << "\n";
+  //       cout << "CAHVORModel: Linearized H vector:" << output_camera.H << "\n";
+  //       cout << "CAHVORModel: Linearized V vector:" << output_camera.V << "\n";
+  
   return output_camera;
 } 
   
