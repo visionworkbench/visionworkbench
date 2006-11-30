@@ -53,13 +53,13 @@ void vw::DiskImageResourcePDS::flush() {
 
 void vw::DiskImageResourcePDS::parse_pds_header(std::vector<std::string> const& header) {
 
-  for (int i = 0; i < header.size(); i++) {
+  for ( unsigned i=0; i<header.size(); ++i ) {
     string line = header[i];
 
     // Locate lines that have a key/value pair (with key = value syntax)
     vector<string> split_vector;
     split( split_vector, line, is_any_of("=") );
-    if (split_vector.size() == 2) {
+    if ( split_vector.size() == 2 ) {
       trim_left(split_vector[0]);
       trim_right(split_vector[0]);
       trim_left(split_vector[1]);
@@ -206,23 +206,24 @@ void vw::DiskImageResourcePDS::read_generic( GenericImageBuffer const& dest ) co
 
   // Grab the pixel data from the file.
   unsigned int total_pixels = m_format.cols * m_format.rows * m_format.planes;
-  unsigned int bytes_per_pixel;
-  if (m_format.channel_type == VW_CHANNEL_UINT8 ||
-      m_format.channel_type == VW_CHANNEL_INT8) {
-    bytes_per_pixel = 1;
-  } else if (m_format.channel_type == VW_CHANNEL_UINT16 ||
-             m_format.channel_type == VW_CHANNEL_INT16) {
+  unsigned int bytes_per_pixel = 1;
+  if ( m_format.channel_type == VW_CHANNEL_UINT16 ||
+       m_format.channel_type == VW_CHANNEL_INT16 ) {
     bytes_per_pixel = 2;
+  }
+  else if ( ! ( m_format.channel_type == VW_CHANNEL_UINT8 ||
+                m_format.channel_type == VW_CHANNEL_INT8 ) ) {
+    throw IOErr() << "DiskImageResourcePDS: Unsupported channel type";
   }
   uint8* image_data = new uint8[total_pixels * bytes_per_pixel];
   unsigned bytes_read = fread(image_data, bytes_per_pixel, total_pixels, input_file);
-  if (bytes_read != total_pixels) 
+  if ( bytes_read != total_pixels ) 
     throw IOErr() << "DiskImageResourcePDS: An error occured while reading the image data.";
 
   // Convert the endian-ness of the data
   if (m_format.channel_type == VW_CHANNEL_INT16 ||
       m_format.channel_type == VW_CHANNEL_UINT16) {
-    for (int i = 0; i < total_pixels * bytes_per_pixel; i+=2) {
+    for ( unsigned i=0; i<total_pixels*bytes_per_pixel; i+=2 ) {
       uint8 temp = image_data[i+1];
       image_data[i+1] = image_data[i];
       image_data[i] = temp;
@@ -230,7 +231,7 @@ void vw::DiskImageResourcePDS::read_generic( GenericImageBuffer const& dest ) co
   }
   
   uint8 max = 0, min = 255;
-  for (int i = 0; i < total_pixels; i++) {
+  for ( unsigned i=0; i<total_pixels; ++i ) {
     max = image_data[i] > max ? image_data[i] : max;
     min = image_data[i] < min ? image_data[i] : min;
   }

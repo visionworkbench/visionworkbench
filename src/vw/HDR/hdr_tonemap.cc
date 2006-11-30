@@ -130,7 +130,7 @@ int main( int argc, char *argv[] ) {
       
       // Invert the curves
       vector<Vector<double> > inverse_curves(curves.size());
-      for (int i = 0; i < curves.size(); i++) {
+      for ( unsigned i = 0; i < curves.size(); ++i ) {
         invert_curve(curves[i], inverse_curves[i], VW_HDR_RESPONSE_POLYNOMIAL_ORDER);
       }
       

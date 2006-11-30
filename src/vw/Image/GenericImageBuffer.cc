@@ -219,12 +219,12 @@ ChannelSetMaxMapEntry _setmax_u64( &channel_set_max_int<uint64> );
 ChannelSetMaxMapEntry _setmax_f32( &channel_set_max_float<float> );
 ChannelSetMaxMapEntry _setmax_f64( &channel_set_max_float<double> );
 
-typedef void (*channel_average_func)(void* src, void* dest, int len);
+typedef void (*channel_average_func)(void* src, void* dest, unsigned len);
 
 template <class T>
-void channel_average( T* src, T* dest, int len ) {
+void channel_average( T* src, T* dest, unsigned len ) {
   typename AccumulatorType<T>::type accum = typename AccumulatorType<T>::type();
-  for( int i=0; i<len; ++i ) accum += src[i];
+  for( unsigned i=0; i<len; ++i ) accum += src[i];
   *dest = accum / len;
 }
 
@@ -233,7 +233,7 @@ std::map<ChannelTypeEnum,channel_average_func> *channel_average_map = 0;
 class ChannelAverageMapEntry {
 public:
   template <class T>
-  ChannelAverageMapEntry( void (*func)(T*,T*,int) ) {
+  ChannelAverageMapEntry( void (*func)(T*,T*,unsigned) ) {
     if( !channel_average_map )
       channel_average_map = new std::map<ChannelTypeEnum,channel_average_func>();
     ChannelTypeEnum ctid = ChannelTypeID<T>::value;
@@ -252,19 +252,19 @@ ChannelAverageMapEntry _average_u64( &channel_average<uint64> );
 ChannelAverageMapEntry _average_f32( &channel_average<float> );
 ChannelAverageMapEntry _average_f64( &channel_average<double> );
 
-typedef void (*channel_premultiply_func)(void* src, void* dst, int len);
+typedef void (*channel_premultiply_func)(void* src, void* dst, unsigned len);
 
 template <class T>
-void channel_premultiply_int( T* src, T* dst, int len ) {
+void channel_premultiply_int( T* src, T* dst, unsigned len ) {
   double scale = src[len-1] / (double)(boost::integer_traits<T>::const_max);
-  for( int i=0; i<len-1; ++i ) dst[i] = T( src[i] * scale );
+  for( unsigned i=0; i<len-1; ++i ) dst[i] = T( src[i] * scale );
   dst[len-1] = src[len-1];
 }
 
 template <class T>
-void channel_premultiply_float( T* src, T* dst, int len ) {
+void channel_premultiply_float( T* src, T* dst, unsigned len ) {
   double scale = (double)(src[len-1]);
-  for( int i=0; i<len-1; ++i ) dst[i] = T( src[i] * scale );
+  for( unsigned i=0; i<len-1; ++i ) dst[i] = T( src[i] * scale );
   dst[len-1] = src[len-1];
 }
 
@@ -273,7 +273,7 @@ std::map<ChannelTypeEnum,channel_premultiply_func> *channel_premultiply_map = 0;
 class ChannelPremultiplyMapEntry {
 public:
   template <class T>
-  ChannelPremultiplyMapEntry( void (*func)(T*,T*,int) ) {
+  ChannelPremultiplyMapEntry( void (*func)(T*,T*,unsigned) ) {
     if( !channel_premultiply_map )
       channel_premultiply_map = new std::map<ChannelTypeEnum,channel_premultiply_func>();
     ChannelTypeEnum ctid = ChannelTypeID<T>::value;
@@ -292,19 +292,19 @@ ChannelPremultiplyMapEntry _premultiply_u64( &channel_premultiply_int<uint64> );
 ChannelPremultiplyMapEntry _premultiply_f32( &channel_premultiply_float<float> );
 ChannelPremultiplyMapEntry _premultiply_f64( &channel_premultiply_float<double> );
 
-typedef void (*channel_unpremultiply_func)(void* src, void* dst, int len);
+typedef void (*channel_unpremultiply_func)(void* src, void* dst, unsigned len);
 
 template <class T>
-void channel_unpremultiply_int( T* src, T* dst, int len ) {
+void channel_unpremultiply_int( T* src, T* dst, unsigned len ) {
   double scale = src[len-1] / (double)(boost::integer_traits<T>::const_max);
-  for( int i=0; i<len-1; ++i ) dst[i] = T( src[i] / scale );
+  for( unsigned i=0; i<len-1; ++i ) dst[i] = T( src[i] / scale );
   dst[len-1] = src[len-1];
 }
 
 template <class T>
-void channel_unpremultiply_float( T* src, T* dst, int len ) {
+void channel_unpremultiply_float( T* src, T* dst, unsigned len ) {
   double scale = (double)(src[len-1]);
-  for( int i=0; i<len-1; ++i ) dst[i] = T( src[i] / scale );
+  for( unsigned i=0; i<len-1; ++i ) dst[i] = T( src[i] / scale );
   dst[len-1] = src[len-1];
 }
 
@@ -313,7 +313,7 @@ std::map<ChannelTypeEnum,channel_unpremultiply_func> *channel_unpremultiply_map 
 class ChannelUnpremultiplyMapEntry {
 public:
   template <class T>
-  ChannelUnpremultiplyMapEntry( void (*func)(T*,T*,int) ) {
+  ChannelUnpremultiplyMapEntry( void (*func)(T*,T*,unsigned) ) {
     if( !channel_unpremultiply_map )
       channel_unpremultiply_map = new std::map<ChannelTypeEnum,channel_unpremultiply_func>();
     ChannelTypeEnum ctid = ChannelTypeID<T>::value;
@@ -368,12 +368,12 @@ void vw::convert( GenericImageBuffer const& dst, GenericImageBuffer const& src )
     }
   }
 
-  int src_channels = num_channels( src.format.pixel_format );
-  int dst_channels = num_channels( dst.format.pixel_format );
+  unsigned src_channels = num_channels( src.format.pixel_format );
+  unsigned dst_channels = num_channels( dst.format.pixel_format );
   ptrdiff_t src_chstride = channel_size( src.format.channel_type );
   ptrdiff_t dst_chstride = channel_size( dst.format.channel_type );
 
-  int copy_length = (src_channels==dst_channels) ? src_channels : (src_channels<3) ? 1 : (dst_channels>=3) ? 3 : 0;
+  unsigned copy_length = (src_channels==dst_channels) ? src_channels : (src_channels<3) ? 1 : (dst_channels>=3) ? 3 : 0;
 
   bool unpremultiply_src = (src.format.pixel_format==VW_PIXEL_GRAYA || src.format.pixel_format==VW_PIXEL_RGBA)
     && !src.unpremultiplied && dst.unpremultiplied;
@@ -401,7 +401,7 @@ void vw::convert( GenericImageBuffer const& dst, GenericImageBuffer const& src )
   channel_premultiply_func premultiply_dst_func = channel_premultiply_map->operator[](dst.format.channel_type);
   if( !premultiply_dst_func ) throw NoImplErr() << "Oh holy crap!";
 
-  int max_channels = std::max( src_channels, dst_channels );
+  unsigned max_channels = std::max( src_channels, dst_channels );
 
 #ifdef _MSC_VER
   std::vector<uint8> src_buf_vec(max_channels*src_chstride);
@@ -415,13 +415,13 @@ void vw::convert( GenericImageBuffer const& dst, GenericImageBuffer const& src )
 
   uint8 *src_ptr_p = (uint8*)src.data;
   uint8 *dst_ptr_p = (uint8*)dst.data;
-  for( int p=0; p<src.format.planes; ++p ) {
+  for( unsigned p=0; p<src.format.planes; ++p ) {
     uint8 *src_ptr_r = src_ptr_p;
     uint8 *dst_ptr_r = dst_ptr_p;
-    for( int r=0; r<src.format.rows; ++r ) {
+    for( unsigned r=0; r<src.format.rows; ++r ) {
       uint8 *src_ptr_c = src_ptr_r;
       uint8 *dst_ptr_c = dst_ptr_r;
-      for( int c=0; c<src.format.cols; ++c ) {
+      for( unsigned c=0; c<src.format.cols; ++c ) {
 
         // Setup the buffers, adjusting premultiplication if needed
         uint8 *src_ptr = src_ptr_c;
@@ -455,7 +455,7 @@ void vw::convert( GenericImageBuffer const& dst, GenericImageBuffer const& src )
           conv_func( src_ptr, dst_ptr );
         }
         else {
-          for( int ch=0; ch<copy_length; ++ch ) {
+          for( unsigned ch=0; ch<copy_length; ++ch ) {
             conv_func( src_ptr+ch*src_chstride, dst_ptr+ch*dst_chstride );
           }
         }
@@ -466,7 +466,7 @@ void vw::convert( GenericImageBuffer const& dst, GenericImageBuffer const& src )
           conv_func( src_ptr, dst_ptr+2*dst_chstride );
         }
         else if( average ) {
-          for( int ch=0; ch<3; ++ch ) {
+          for( unsigned ch=0; ch<3; ++ch ) {
             conv_func( src_ptr+ch*src_chstride, dst_buf+ch*dst_chstride );
           }
           avg_func( dst_buf, dst_ptr, 3 );

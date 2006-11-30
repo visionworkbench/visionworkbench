@@ -87,28 +87,28 @@ public:
     TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
     TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
     TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im2.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im2.cols(); ++c )
         TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
 
     // Test partial rasterization
     ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
     TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
-    for( int r=0; r<im3.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im3.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
 
     // Test the accessor / generic rasterization
     ImageView<double> im4(rmv.cols(),rmv.rows());
     vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
 
     // Test the iterator
     ImageView<double>::iterator im2i = im2.begin();
     RemapView<ImageView<double>,2,1,2,1>::iterator rmvi = rmv.begin();
-    for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
+    for ( unsigned i=0; i<im2.cols()*im2.rows(); ++i ) {
       TS_ASSERT_DIFFERS( rmvi, rmv.end() );
       TS_ASSERT_EQUALS( *im2i, *rmvi );
       TS_ASSERT_THROWS_NOTHING( ++rmvi );
@@ -166,28 +166,28 @@ public:
     TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
     TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
     TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im2.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im2.cols(); ++c )
         TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
 
     // Test partial rasterization
     ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
     TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
-    for( int r=0; r<im3.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im3.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
 
     // Test the accessor / generic rasterization
     ImageView<double> im4(rmv.cols(),rmv.rows());
     vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
 
     // Test the iterator
     ImageView<double>::iterator im2i = im2.begin();
     RemapView<ImageView<double>,-1,-2,-1,-2>::iterator rmvi = rmv.begin();
-    for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
+    for ( unsigned i=0; i<im2.cols()*im2.rows(); ++i ) {
       TS_ASSERT_DIFFERS( rmvi, rmv.end() );
       TS_ASSERT_EQUALS( *im2i, *rmvi );
       TS_ASSERT_THROWS_NOTHING( ++rmvi );
@@ -243,28 +243,28 @@ public:
     TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
     TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
     TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im2.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im2.cols(); ++c )
         TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
 
     // Test partial rasterization
     ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
     TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
-    for( int r=0; r<im3.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im3.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
 
     // Test the accessor / generic rasterization
     ImageView<double> im4(rmv.cols(),rmv.rows());
     vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
 
     // Test the iterator
     ImageView<double>::iterator im2i = im2.begin();
     RemapView<ImageView<double>,-2,1,2,-1>::iterator rmvi = rmv.begin();
-    for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
+    for ( unsigned i=0; i<im2.cols()*im2.rows(); ++i ) {
       TS_ASSERT_DIFFERS( rmvi, rmv.end() );
       TS_ASSERT_EQUALS( *im2i, *rmvi );
       TS_ASSERT_THROWS_NOTHING( ++rmvi );
@@ -320,28 +320,28 @@ public:
     TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
     TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
     TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im2.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im2.cols(); ++c )
         TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
 
     // Test partial rasterization
     ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
     TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
-    for( int r=0; r<im3.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im3.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
 
     // Test the accessor / generic rasterization
     ImageView<double> im4(rmv.cols(),rmv.rows());
     vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
 
     // Test the iterator
     ImageView<double>::iterator im2i = im2.begin();
     RemapView<ImageView<double>,2,-1,-2,1>::iterator rmvi = rmv.begin();
-    for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
+    for ( unsigned i=0; i<im2.cols()*im2.rows(); ++i ) {
       TS_ASSERT_DIFFERS( rmvi, rmv.end() );
       TS_ASSERT_EQUALS( *im2i, *rmvi );
       TS_ASSERT_THROWS_NOTHING( ++rmvi );
@@ -397,28 +397,28 @@ public:
     TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
     TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
     TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im2.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im2.cols(); ++c )
         TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
 
     // Test partial rasterization
     ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
     TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
-    for( int r=0; r<im3.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im3.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
 
     // Test the accessor / generic rasterization
     ImageView<double> im4(rmv.cols(),rmv.rows());
     vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
 
     // Test the iterator
     ImageView<double>::iterator im2i = im2.begin();
     RemapView<ImageView<double>,1,-2,1,-2>::iterator rmvi = rmv.begin();
-    for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
+    for ( unsigned i=0; i<im2.cols()*im2.rows(); ++i ) {
       TS_ASSERT_DIFFERS( rmvi, rmv.end() );
       TS_ASSERT_EQUALS( *im2i, *rmvi );
       TS_ASSERT_THROWS_NOTHING( ++rmvi );
@@ -474,28 +474,28 @@ public:
     TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
     TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
     TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im2.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im2.cols(); ++c )
         TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
 
     // Test partial rasterization
     ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
     TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
-    for( int r=0; r<im3.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im3.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
 
     // Test the accessor / generic rasterization
     ImageView<double> im4(rmv.cols(),rmv.rows());
     vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
 
     // Test the iterator
     ImageView<double>::iterator im2i = im2.begin();
     RemapView<ImageView<double>,-1,2,-1,2>::iterator rmvi = rmv.begin();
-    for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
+    for ( unsigned i=0; i<im2.cols()*im2.rows(); ++i ) {
       TS_ASSERT_DIFFERS( rmvi, rmv.end() );
       TS_ASSERT_EQUALS( *im2i, *rmvi );
       TS_ASSERT_THROWS_NOTHING( ++rmvi );
@@ -551,28 +551,28 @@ public:
     TS_ASSERT_EQUALS( im2.cols(), cv.cols() );
     TS_ASSERT_EQUALS( im2.rows(), cv.rows() );
     TS_ASSERT_EQUALS( im2.planes(), cv.planes() );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im2.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im2.cols(); ++c )
         TS_ASSERT_EQUALS( im2(c,r), cv(c,r) );
 
     // Test partial rasterization
     ImageView<double> im3(cv.cols()-1,cv.rows()-1);
     TS_ASSERT_THROWS_NOTHING( cv.rasterize( im3, BBox2i(1,1,cv.cols()-1,cv.rows()-1) ) );
-    for( int r=0; r<im3.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im3.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), cv(c+1,r+1) );
 
     // Test the accessor / generic rasterization
     ImageView<double> im4(cv.cols(),cv.rows());
     vw::rasterize( cv, im4, BBox2i(0,0,cv.cols(),cv.rows()) );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im4(c,r), cv(c,r) );
 
     // Test the iterator
     ImageView<double>::iterator im2i = im2.begin();
     CropView<ImageView<double> >::iterator cvi = cv.begin();
-    for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
+    for ( unsigned i=0; i<im2.cols()*im2.rows(); ++i ) {
       TS_ASSERT_DIFFERS( cvi, cv.end() );
       TS_ASSERT_EQUALS( *im2i, *cvi );
       TS_ASSERT_THROWS_NOTHING( ++cvi );
@@ -630,28 +630,28 @@ public:
     TS_ASSERT_EQUALS( im2.cols(), ssv.cols() );
     TS_ASSERT_EQUALS( im2.rows(), ssv.rows() );
     TS_ASSERT_EQUALS( im2.planes(), ssv.planes() );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im2.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im2.cols(); ++c )
         TS_ASSERT_EQUALS( im2(c,r), ssv(c,r) );
 
     // Test partial rasterization
     ImageView<double> im3(ssv.cols()-1,ssv.rows()-1);
     TS_ASSERT_THROWS_NOTHING( ssv.rasterize( im3, BBox2i(1,1,ssv.cols()-1,ssv.rows()-1) ) );
-    for( int r=0; r<im3.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im3.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), ssv(c+1,r+1) );
 
     // Test the accessor / generic rasterization
     ImageView<double> im4(ssv.cols(),ssv.rows());
     vw::rasterize( ssv, im4, BBox2i(0,0,ssv.cols(),ssv.rows()) );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
+    for ( unsigned r=0; r<im2.rows(); ++r )
+      for ( unsigned c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im4(c,r), ssv(c,r) );
 
     // Test the iterator
     ImageView<double>::iterator im2i = im2.begin();
     SubsampleView<ImageView<double> >::iterator ssvi = ssv.begin();
-    for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
+    for ( unsigned i=0; i<im2.cols()*im2.rows(); ++i ) {
       TS_ASSERT_DIFFERS( ssvi, ssv.end() );
       TS_ASSERT_EQUALS( *im2i, *ssvi );
       TS_ASSERT_THROWS_NOTHING( ++ssvi );

@@ -50,8 +50,8 @@ namespace mosaic {
 
   namespace fs = boost::filesystem;
 
-  void write_bbox_file( std::string const& name, int scale, BBox2i const& image_bbox, 
-                        BBox2i const& visible_bbox, int full_x_dim, int full_y_dim ) {
+  void write_bbox_file( std::string const& name, unsigned scale, BBox2i const& image_bbox, 
+                        BBox2i const& visible_bbox, unsigned full_x_dim, unsigned full_y_dim ) {
     std::ofstream outfile( name.c_str() );
     outfile << scale << "\n";
     outfile << image_bbox.min().x() << "\n";
@@ -80,10 +80,10 @@ namespace mosaic {
         m_patch_overlap( 0 ),
         m_crop_images( true )
     {}
-    // /irg/data/missions/RMAX/MarsScape
+
     void generate() {
-      int maxdim = std::max( m_bbox.width(), m_bbox.height() );
-      int tree_levels = 1 + int( ceilf( log( maxdim/(float)(m_patch_size-m_patch_overlap) ) / log(2.0) ) );
+      unsigned maxdim = std::max( m_bbox.width(), m_bbox.height() );
+      unsigned tree_levels = 1 + unsigned( ceilf( log( maxdim/(float)(m_patch_size-m_patch_overlap) ) / log(2.0) ) );
       m_patch_cache.resize( tree_levels );
       m_filename_cache.resize( tree_levels );
 
@@ -113,11 +113,11 @@ namespace mosaic {
       m_output_image_type = extension;
     }
 
-    void set_patch_size( int size ) {
+    void set_patch_size( unsigned size ) {
       m_patch_size = size;
     }
 
-    void set_patch_overlap( int overlap ) {
+    void set_patch_overlap( unsigned overlap ) {
       m_patch_overlap = overlap;
     }
 
@@ -126,21 +126,21 @@ namespace mosaic {
     }
     
   private:
-    ImageViewRef<PixelT> m_source;
     std::string m_tree_name;
+    ImageViewRef<PixelT> m_source;
     BBox2i m_bbox;
     std::string m_output_image_type;
-    int m_patch_size;
-    int m_patch_overlap;
+    unsigned m_patch_size;
+    unsigned m_patch_overlap;
     bool m_crop_images;
-    std::vector<std::map<std::pair<int,int>,ImageView<PixelT> > > m_patch_cache;
-    std::vector<std::map<std::pair<int,int>,std::string> > m_filename_cache;
+    std::vector<std::map<std::pair<unsigned,unsigned>,ImageView<PixelT> > > m_patch_cache;
+    std::vector<std::map<std::pair<unsigned,unsigned>,std::string> > m_filename_cache;
     
-    void write_patch( ImageView<PixelT> const& image, std::string const& name, int level, int x, int y ) const {
-      int scale = 1 << level;
-      int interior_size = m_patch_size - m_patch_overlap;
-      Vector<int,2> position( x*interior_size-m_patch_overlap/2, y*interior_size-m_patch_overlap/2 );
-      BBox2i image_bbox( Vector<int,2>(0,0), Vector<int,2>(image.cols(), image.rows()) );
+    void write_patch( ImageView<PixelT> const& image, std::string const& name, unsigned level, unsigned x, unsigned y ) const {
+      unsigned scale = 1 << level;
+      unsigned interior_size = m_patch_size - m_patch_overlap;
+      Vector2i position( x*interior_size-m_patch_overlap/2, y*interior_size-m_patch_overlap/2 );
+      BBox2i image_bbox( Vector2i(0,0), Vector2i(image.cols(), image.rows()) );
       BBox2i visible_bbox = image_bbox;
       visible_bbox.contract( m_patch_overlap/2 );
       if( m_crop_images ) {
@@ -164,11 +164,11 @@ namespace mosaic {
       write_bbox_file( name + ".bbx", scale, image_bbox*scale, visible_bbox*scale, m_source.cols(), m_source.rows() );
     }
 
-    ImageView<PixelT> generate_branch( fs::path const& path, int level, int x, int y ) {
+    ImageView<PixelT> generate_branch( fs::path const& path, unsigned level, unsigned x, unsigned y ) {
       ImageView<PixelT> image;
-      int scale = 1 << level;
-      int interior_size = m_patch_size - m_patch_overlap;
-      BBox2i patch_bbox = scale * BBox2i( Vector<int,2>(x, y), Vector<int,2>(x+1, y+1) ) * interior_size;
+      unsigned scale = 1 << level;
+      unsigned interior_size = m_patch_size - m_patch_overlap;
+      BBox2i patch_bbox = scale * BBox2i( Vector2i(x, y), Vector2i(x+1, y+1) ) * interior_size;
       if( ! patch_bbox.intersects( m_bbox ) ) {
         vw_out(InfoMessage) << "\tIgnoring empty image: " << path.native_file_string() << std::endl;
         image.set_size( interior_size, interior_size );

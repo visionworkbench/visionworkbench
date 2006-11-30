@@ -53,7 +53,7 @@ public:
 
     std::vector<Vector3> p1, p2;
     
-    for (int i = 0; i < A.cols(); ++i) {
+    for (unsigned i = 0; i < A.cols(); ++i) {
       p1.push_back(Vector3(A(0,i), A(1,i), A(2,i)));
       p2.push_back(Vector3(B(0,i), B(1,i), B(2,i)));
     }
@@ -92,7 +92,7 @@ public:
     vw::Matrix<double> B = H*A;
     
     std::vector<Vector3> p1, p2;    
-    for (int i = 0; i < A.cols(); ++i) {
+    for (unsigned i = 0; i < A.cols(); ++i) {
       p1.push_back(Vector3(A(0,i), A(1,i), A(2,i)));
       p2.push_back(Vector3(B(0,i), B(1,i), B(2,i)));
     }
@@ -144,7 +144,7 @@ public:
     vw::Matrix<double> B = H*A;
     
     std::vector<Vector3> p1, p2;    
-    for (int i = 0; i < A.cols(); ++i) {
+    for (unsigned i = 0; i < A.cols(); ++i) {
       p1.push_back(Vector3(A(0,i), A(1,i), A(2,i)));
       p2.push_back(Vector3(B(0,i), B(1,i), B(2,i)));
     }

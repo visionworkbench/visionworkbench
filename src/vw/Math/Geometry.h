@@ -47,7 +47,7 @@ namespace math {
     /// If you pass an example datum to this function, it will return
     /// the minimum number of putative matches needed to compute a fit.
     template <class ContainerT>
-    int min_elements_needed_for_fit(ContainerT const& example) const {
+    unsigned min_elements_needed_for_fit(ContainerT const& example) const {
       return example.size()*example.size();
     }
     
@@ -74,8 +74,8 @@ namespace math {
       VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
                  vw::ArgumentErr() << "Cannot compute homography.  Insufficient data.\n");
       
-      int num_points = p1.size();
-      int dimensions = p1[0].size();
+      unsigned num_points = p1.size();
+      unsigned dimensions = p1[0].size();
         
       vw::Matrix<double> A;
       vw::Matrix<double> B;
@@ -86,14 +86,14 @@ namespace math {
       } else {
         A.set_size(num_points, dimensions+1);
         B.set_size(num_points, dimensions+1);
-        for (int i = 0; i < A.rows(); ++i) {
+        for (unsigned i = 0; i < A.rows(); ++i) {
           A(i,dimensions) = 1.0;
           B(i,dimensions) = 1.0;
         }
       }
 
-      for (int r = 0; r < num_points; ++r) {
-        for (int c = 0; c < dimensions; ++c) {
+      for (unsigned r = 0; r < num_points; ++r) {
+        for (unsigned c = 0; c < dimensions; ++c) {
           A(r,c) = p1[r][c];
           B(r,c) = p2[r][c];
         }
@@ -120,7 +120,7 @@ namespace math {
     /// If you pass an example datum to this function, it will return
     /// the minimum number of putative matches needed to compute a fit.
     template <class ContainerT>
-    int min_elements_needed_for_fit(ContainerT const& example) const {
+    unsigned min_elements_needed_for_fit(ContainerT const& example) const {
       return example.size()*example.size();
     }
     /// If this functor is going to be applied to points in a
@@ -146,8 +146,8 @@ namespace math {
       VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
                  vw::ArgumentErr() << "Cannot compute homography.  Insufficient data.\n");
       
-      int num_points = p1.size();
-      int dimensions = p1[0].size();
+      unsigned num_points = p1.size();
+      unsigned dimensions = p1[0].size();
         
       vw::Matrix<double> A;
       vw::Matrix<double> B;
@@ -158,13 +158,13 @@ namespace math {
       } else {
         A.set_size(num_points, dimensions+1);
         B.set_size(num_points, dimensions);
-        for (int i = 0; i < A.rows(); ++i) {
+        for (unsigned i = 0; i < A.rows(); ++i) {
           A(i,dimensions) = 1.0; 
         }
       }
 
-      for (int r = 0; r < num_points; ++r) {
-        for (int c = 0; c < dimensions; ++c) {
+      for (unsigned r = 0; r < num_points; ++r) {
+        for (unsigned c = 0; c < dimensions; ++c) {
           A(r,c) = p1[r][c];
           if (c < B.cols())
             B(r,c) = p2[r][c];

@@ -40,7 +40,7 @@ public:
     set_debug_level(DebugMessage);
     std::cout << std::endl;
 
-    DiskImageResource *dir;
+    DiskImageResource *dir = 0;
     TS_ASSERT_THROWS_NOTHING( dir = DiskImageResource::open( "mural.png" ) );
 
     ImageView<PixelRGB<uint8> > image;

@@ -194,7 +194,7 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
 /// Read the disk image into the given buffer.
 void vw::DiskImageResourceTIFF::read_generic( GenericImageBuffer const& dest, BBox2i bbox ) const
 {
-  VW_ASSERT( dest.format.cols==bbox.width() && dest.format.rows==bbox.height(),
+  VW_ASSERT( int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
              ArgumentErr() << "DiskImageResourceTIFF (read) Error: Destination buffer has wrong dimensions!" );
 
   TIFF* tif = TIFFOpen( m_filename.c_str(), "r" );

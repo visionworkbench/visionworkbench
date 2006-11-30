@@ -53,16 +53,16 @@ namespace vw {
     virtual ~DiskImageResource() {};
 
     /// Returns the number of columns in an image on disk.
-    int cols() const { return m_format.cols; }
+    unsigned cols() const { return m_format.cols; }
 
     /// Returns the number of rows in an image on disk.
-    int rows() const { return m_format.rows; }
+    unsigned rows() const { return m_format.rows; }
 
     /// Returns the number of planes in an image on disk.
-    int planes() const { return m_format.planes; }
+    unsigned planes() const { return m_format.planes; }
 
     /// Returns the number of channels in a image on disk
-    int channels() const { return num_channels(m_format.pixel_format); }
+    unsigned channels() const { return num_channels(m_format.pixel_format); }
 
     /// Returns the pixel format of an image on disk.
     PixelFormatEnum pixel_format() const { return m_format.pixel_format; }
@@ -129,7 +129,7 @@ namespace vw {
     /// view if needed.
     template <class PixelT>
     void read( ImageView<PixelT>& buf ) const {
-      int im_planes = 1;
+      unsigned im_planes = 1;
       if( ! IsCompound<PixelT>::value ) {
         // The image has a fundamental pixel type
         if( planes()>1 && num_channels(pixel_format())>1 )
@@ -146,7 +146,7 @@ namespace vw {
     template <class PixelT>
     void read( ImageView<PixelT>& buf, BBox2i bbox ) const {
 
-      int im_planes = 1;
+      unsigned im_planes = 1;
       if( ! IsCompound<PixelT>::value ) {
         // The image has a fundamental pixel type
         if( planes()>1 && num_channels(pixel_format())>1 )
@@ -238,14 +238,14 @@ namespace vw {
     ImageView<typename ImageT::pixel_type> image( out_image.impl() );
     GenericImageBuffer buf(image);
 
-    int files = 1;
+    unsigned files = 1;
     // If there's an asterisk, save one file per plane
     if( boost::find_last(filename,"*") ) {
       files = buf.format.planes;
       buf.format.planes = 1;
     }
     
-    for( int i=0; i<files; ++i ) {
+    for( unsigned i=0; i<files; ++i ) {
       std::string name = filename;
       if( files > 1 ) boost::replace_last( name, "*",  str( boost::format("%1%") % i ) );
       vw_out(InfoMessage+1) << "\tSaving image: " << name << "\t";
@@ -269,7 +269,7 @@ namespace vw {
       throw vw::ArgumentErr() << "write_image: filename must contain * when writing a vector of image views\n";
     }
 
-    for (int i=0; i<out_image_vector.size(); i++){
+    for (unsigned i=0; i<out_image_vector.size(); i++){
       std::string name = filename;
       boost::replace_last( name, "*",  str( boost::format("%1%") % i ) );
       write_image( name, out_image_vector[i] );

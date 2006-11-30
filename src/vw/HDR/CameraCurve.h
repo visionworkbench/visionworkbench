@@ -95,13 +95,13 @@ namespace hdr {
       typedef typename PixelChannelType<PixelT>::type channel_type;
       
       int halfsize = kernel_size / 2;
-      if ((x - halfsize < 0) || (x + halfsize >= image.cols()) ||
-          (y - halfsize < 0) || (y + halfsize >= image.rows())) {
+      if ((x - halfsize < 0) || (x + halfsize >= int(image.cols())) ||
+          (y - halfsize < 0) || (y + halfsize >= int(image.rows()))) {
         return 0;
       }
       channel_type average = 0;
-      for (int col = x - halfsize; col <= x + halfsize; col++) {
-        for (int row = y - halfsize; row <= y + halfsize; row++) {
+      for ( int col = x - halfsize; col <= x + halfsize; ++col ) {
+        for ( int row = y - halfsize; row <= y + halfsize; ++row ) {
           average += select_channel(image, channel)(col, row);
         }
       }
@@ -165,7 +165,7 @@ namespace hdr {
   template <class PixelT>
   Matrix<typename PixelChannelType<PixelT>::type> generate_ldr_intensity_pairs(std::vector<ImageView<PixelT> > const &images, int num_pairs, int channel, double ev_ratio) {
     std::vector<double> brightness_values(images.size());
-    for (int i=0; i < brightness_values.size();++i) {
+    for ( unsigned i=0; i < brightness_values.size(); ++i ) {
       brightness_values[i] = pow(ev_ratio, i);
     }
     return generate_ldr_intensity_pairs(images, num_pairs, channel, brightness_values);
@@ -188,17 +188,17 @@ namespace hdr {
     std::vector<Vector<double> > camera_curves(std::vector<ImageView<PixelT> > const &images, double ratio = VW_HDR_DEFAULT_FSTOP_RATIO) {
       typedef typename PixelChannelType<PixelT>::type channel_type;
       
-      int n_channels = PixelNumChannels<PixelT>::value;
+      unsigned n_channels = PixelNumChannels<PixelT>::value;
       std::vector<Matrix<double> > pairs(n_channels);
       std::vector<Vector<double> > curves(n_channels);
       
       // Sample each image channel
-      for (int i = 0; i < n_channels; i++) {
+      for ( unsigned i = 0; i < n_channels; ++i ) {
         pairs[i] = generate_ldr_intensity_pairs(images, VW_HDR_NUM_PAIRS, i, ratio);
       }
       
       // Compute camera response curve for each channel. 
-      for (int i = 0; i < n_channels; i++) {
+      for ( unsigned i = 0; i < n_channels; ++i ) {
         estimate_camera_curve(pairs[i], curves[i], VW_HDR_RESPONSE_POLYNOMIAL_ORDER);
       }
       
@@ -212,19 +212,19 @@ namespace hdr {
      * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     template <class PixelT>
     void psi(ImageView<PixelT> &image, std::vector<Vector<double> > const &curves) {
-      int width = image.cols();
-      int height = image.rows();
-      int n_channels = PixelNumChannels<PixelT>::value;
+      unsigned width = image.cols();
+      unsigned height = image.rows();
+      unsigned n_channels = PixelNumChannels<PixelT>::value;
   
-      for (int channel = 0; channel < n_channels; channel++) {
+      for ( unsigned channel = 0; channel < n_channels; ++channel ) {
         Vector<double> theta = curves[channel];
-        for (int col = 0; col < width; col++) {
-          for (int row = 0; row < height; row++) {
+        for ( unsigned col = 0; col < width; ++col ) {
+          for ( unsigned row = 0; row < height; ++row ) {
             // Evaluate the polynomial
             double x = image(col,row)[channel];
             double f_x = 0.0;
             double pow_x = 1.0;
-            for (int e = 0; e < theta.size(); e++) {
+            for ( unsigned e = 0; e < theta.size(); ++e ) {
               f_x += theta(e) * pow_x;
               pow_x *= x;
             }

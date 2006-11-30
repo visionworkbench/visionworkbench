@@ -37,8 +37,8 @@ namespace hdr {
     
     FILE* output_file = fopen(generated_curves_file.c_str(), "w");
     if ( !output_file ) throw IOErr() << "write_curves_file: failed to open file for writing.\n";
-    for (int i = 0; i < curves.size(); i++) {
-      for (int j = 0; j < curves[i].size(); j++) {
+    for ( unsigned i = 0; i < curves.size(); ++i ) {
+      for ( unsigned j = 0; j < curves[i].size(); ++j ) {
         fprintf(output_file, "%f ", curves[i][j]);
       }
       fprintf(output_file, "\n");
@@ -55,7 +55,6 @@ namespace hdr {
     
     char c_line[2048];
     
-    int i = 0;
     curves.clear();
     while ( !feof(input_file) ) {
       if ( !fgets(c_line, 2048, input_file) )
@@ -67,7 +66,7 @@ namespace hdr {
       std::vector< std::string > split_vec; // #2: Search for individual values
       boost::split( split_vec, line, boost::is_any_of(" ") );
       Vector<double> curve(split_vec.size());
-      for (int i = 0; i < split_vec.size(); i++) {
+      for ( unsigned i = 0; i < split_vec.size(); ++i ) {
         curve[i] = atof(split_vec[i].c_str());
       }
       curves.push_back(curve);
@@ -130,7 +129,7 @@ namespace hdr {
      * The polynomial coefficients are from x^0 to x^N.
      */ 
     Vector<double> output_coeff(result.size() + 1);
-    for (int i = 0; i < result.size(); i++) {
+    for ( unsigned i = 0; i < result.size(); ++i ) {
       output_coeff(i) = result(i);
     }
     output_coeff(polynomial_order) = 1 - sum(result);
@@ -249,7 +248,7 @@ namespace hdr {
      * The polynomial coefficients are from x^0 to x^N.
      */
     Vector<double> output_coeff(result.size() + 1);
-    for (int i = 0; i < result.size(); i++) {
+    for ( unsigned i = 0; i < result.size(); ++i ) {
       output_coeff(i) = result(i);
     }
     output_coeff(polynomial_order) = 1 - sum(result);
@@ -259,7 +258,7 @@ namespace hdr {
   // Compute the value of the function f at x 
   InverseCostFn::result_type InverseCostFn::operator()( domain_type const& x ) const {
     Vector<double> fx(m_pairs.rows());
-    for (unsigned int i = 0; i < m_pairs.rows(); ++i) {
+    for ( unsigned i = 0; i < m_pairs.rows(); ++i ) {
       double x_i = m_pairs(i,0);
       double x_j = m_pairs(i,1);
     

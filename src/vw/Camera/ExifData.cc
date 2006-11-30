@@ -330,7 +330,6 @@ int vw::camera::ExifData::process_tiff_header(unsigned char * buffer) {
 }
 
 void vw::camera::ExifData::process_exif(unsigned char * ExifSection, unsigned int length) {
-  int FirstOffset;
 
   // Check the EXIF header component
   static uint8 ExifHeader[] = "Exif\0\0";
@@ -383,7 +382,7 @@ bool vw::camera::ExifData::read_jpeg_sections(FILE* infile) {
     // Read the length of the section.
     int lh = fgetc(infile);
     int ll = fgetc(infile);
-    unsigned int itemlen = (lh << 8) | ll;
+    int itemlen = (lh << 8) | ll;
     
     VW_ASSERT( itemlen >= 2, IOErr() << "Invalid JPEG marker." );
     
@@ -436,7 +435,7 @@ bool vw::camera::ExifData::import_data(const char* filename) {
   // Identify file type (using suffixes)
   char * suffix = strrchr(filename, '.');
   VW_ASSERT( suffix != NULL, IOErr() << "Cannot determine file type.");
-  bool ret;
+  bool ret = false;
   if ((strcmp(suffix, ".jpg") == 0) || (strcmp(suffix, ".jpeg") == 0)) {
     // Scan the JPEG headers
     ret = read_jpeg_sections(infile);

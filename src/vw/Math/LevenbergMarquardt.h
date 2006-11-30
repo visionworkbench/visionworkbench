@@ -117,7 +117,7 @@ namespace math {
       
       // For each param dimension, add epsilon and re-evaluate h() to
       // get numerical derivative w.r.t. that parameter
-      for (int i=0; i<x.size(); i++){
+      for ( unsigned i=0; i<x.size(); ++i ){
         DomainT xi = x;
 
         // Variable step size, depending on parameter value
@@ -241,7 +241,7 @@ namespace math {
         // Increase diagonal elements to dynamically mix gradient
         // descent and Gauss-Newton.
         Matrix<double> hessian_lm = hessian;
-        for (int i=0; i < hessian_lm.rows(); i++){
+        for ( unsigned i=0; i < hessian_lm.rows(); ++i ){
           hessian_lm(i,i) += hessian_lm(i,i)*lambda + lambda;
         }
         

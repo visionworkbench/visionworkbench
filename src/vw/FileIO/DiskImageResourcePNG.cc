@@ -73,14 +73,14 @@ namespace vw {
     void read_init( std::fstream &fs, png_structp &png_ptr, png_infop &info_ptr, png_infop &end_ptr ) {
       char header[8];
       fs.read( header, 8 );
-      if( !fs || png_sig_cmp((png_bytep)header,0,8) )
+      if ( !fs || png_sig_cmp((png_bytep)header,0,8) )
         throw IOErr() << "Input file " << m_filename << " is not a valid PNG file.";
       
       png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING,0,0,0);
-      if( !png_ptr ) throw IOErr() << "Unable to initialize PNG reader.";
+      if ( !png_ptr ) throw IOErr() << "Unable to initialize PNG reader.";
       
       info_ptr = png_create_info_struct(png_ptr);
-      if( !info_ptr ) throw IOErr() << "Unable to initialize PNG reader.";
+      if ( !info_ptr ) throw IOErr() << "Unable to initialize PNG reader.";
       
       end_ptr = png_create_info_struct(png_ptr);
       if (!end_ptr) throw IOErr() << "Unable to initialize PNG reader.";
@@ -96,7 +96,7 @@ namespace vw {
       png_text *text_ptr;
       int num_comments = png_get_text(png_ptr, info_ptr, &text_ptr, 0);
       comments.clear();
-      for( int i=0; i<num_comments; ++i ) {
+      for ( int i=0; i<num_comments; ++i ) {
         DiskImageResourcePNG::Comment c;
         c.key = text_ptr[i].key;
         c.text = text_ptr[i].text;
@@ -132,7 +132,7 @@ namespace vw {
     }
 
     void read_cleanup( png_structp &png_ptr, png_infop &info_ptr, png_infop &end_ptr ) const {
-      if( png_ptr ) png_destroy_read_struct( &png_ptr, &info_ptr, &end_ptr );
+      if ( png_ptr ) png_destroy_read_struct( &png_ptr, &info_ptr, &end_ptr );
     }
     
     void write_init( std::fstream& fs, png_structp &png_ptr, png_infop &info_ptr ) {
@@ -140,12 +140,12 @@ namespace vw {
       info_ptr = 0;
       try {
         png_ptr = png_create_write_struct( PNG_LIBPNG_VER_STRING, 0, 0, 0 );
-        if( !png_ptr ) throw IOErr() << "Unable to initialize PNG writer.";
+        if ( !png_ptr ) throw IOErr() << "Unable to initialize PNG writer.";
         
         png_set_write_fn( png_ptr, (voidp)&fs, write_data, flush_data );
         
         info_ptr = png_create_info_struct(png_ptr);
-        if( !info_ptr ) throw IOErr() << "Unable to initialize PNG reader.";
+        if ( !info_ptr ) throw IOErr() << "Unable to initialize PNG reader.";
         
         int color_type = 0;
         switch( m_format.pixel_format ) {
@@ -161,13 +161,13 @@ namespace vw {
         png_write_info( png_ptr, info_ptr );
       }
       catch(...) {
-        if( png_ptr ) png_destroy_write_struct(&png_ptr,&info_ptr);
+        if ( png_ptr ) png_destroy_write_struct(&png_ptr,&info_ptr);
         throw;
       }
     }
 
     void write_cleanup( png_structp &png_ptr, png_infop &info_ptr ) {
-      if( png_ptr ) png_destroy_write_struct( &png_ptr, &info_ptr );
+      if ( png_ptr ) png_destroy_write_struct( &png_ptr, &info_ptr );
     }
 
   public:
@@ -180,7 +180,7 @@ namespace vw {
       m_readable = false;
       m_filename = filename;
       std::fstream fs( m_filename.c_str(), std::ios_base::in | std::ios_base::binary );
-      if( !fs ) throw IOErr() << "Unable to open input file " << m_filename << ".";
+      if ( !fs ) throw IOErr() << "Unable to open input file " << m_filename << ".";
       png_structp png_ptr;
       png_infop info_ptr, end_ptr;
       read_init( fs, png_ptr, info_ptr, end_ptr );
@@ -228,7 +228,7 @@ namespace vw {
       m_format = format;
       // If we're asked for a multi-plane scalar format, pretend we've
       // been asked for the corresponding single-plane multi-channel format.
-      if( m_format.pixel_format == VW_PIXEL_SCALAR ) {
+      if ( m_format.pixel_format == VW_PIXEL_SCALAR ) {
         switch( m_format.planes ) {
         case 1: m_format.pixel_format = VW_PIXEL_GRAY;  break;
         case 2: m_format.pixel_format = VW_PIXEL_GRAYA; break;
@@ -238,29 +238,29 @@ namespace vw {
         }
         m_format.planes = 1;
       }
-      if( m_format.planes != 1 ) throw ArgumentErr() << "PNG files to not support multiple images.";
-      if( m_format.pixel_format!=VW_PIXEL_GRAY && m_format.pixel_format!=VW_PIXEL_GRAYA && 
+      if ( m_format.planes != 1 ) throw ArgumentErr() << "PNG files to not support multiple images.";
+      if ( m_format.pixel_format!=VW_PIXEL_GRAY && m_format.pixel_format!=VW_PIXEL_GRAYA && 
           m_format.pixel_format!=VW_PIXEL_RGB  && m_format.pixel_format!=VW_PIXEL_RGBA )
         throw ArgumentErr() << "Unrecognized pixel format for PNG image.";
-      if( m_format.channel_type!=VW_CHANNEL_UINT16 ) m_format.channel_type = VW_CHANNEL_UINT8;
+      if ( m_format.channel_type!=VW_CHANNEL_UINT16 ) m_format.channel_type = VW_CHANNEL_UINT8;
       m_readable = false;
       m_filename = filename;
     }
 
     void read( GenericImageBuffer const& dest, BBox2i bbox ) {
       std::fstream fs( m_filename.c_str(), std::ios_base::in | std::ios_base::binary );
-      if( !fs ) throw IOErr() << "Unable to open input file " << m_filename << ".";
+      if ( !fs ) throw IOErr() << "Unable to open input file " << m_filename << ".";
       png_structp png_ptr;
       png_infop info_ptr, end_ptr;
       read_init( fs, png_ptr, info_ptr, end_ptr );
-      VW_ASSERT( bbox.min().x()>=0 && bbox.min().y()>=0 && bbox.max().x()<=m_format.cols && bbox.max().y()<=m_format.rows,
+      VW_ASSERT( bbox.min().x()>=0 && bbox.min().y()>=0 && bbox.max().x()<=int(m_format.cols) && bbox.max().y()<=int(m_format.rows),
                  ArgumentErr() << "Requested bounding box extends beyond disk image boundaries in PNG read." );
-      VW_ASSERT( dest.format.cols==bbox.width() && dest.format.rows==bbox.height(),
+      VW_ASSERT( int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
                  ArgumentErr() << "Destination buffer has wrong dimensions in PNG read." );
 
       GenericImageBuffer src;
-      int Bpp = (m_format.channel_type==VW_CHANNEL_UINT16) ? 2 : 1;
-      int channels = png_get_channels( png_ptr, info_ptr );
+      unsigned Bpp = (m_format.channel_type==VW_CHANNEL_UINT16) ? 2 : 1;
+      unsigned channels = png_get_channels( png_ptr, info_ptr );
       std::vector<uint8> buffer(m_format.cols*m_format.rows*channels*Bpp);
 
       src.format = m_format;
@@ -270,7 +270,7 @@ namespace vw {
       src.pstride = m_format.rows*m_format.cols*Bpp*channels;
       
       std::vector<png_bytep> row_pointers( m_format.rows );
-      for( int i=0; i<m_format.rows; ++i )
+      for ( unsigned i=0; i<m_format.rows; ++i )
         row_pointers[i] = (png_bytep)(src.data) + i*src.rstride;
 
       src.format.cols = bbox.width();
@@ -278,9 +278,9 @@ namespace vw {
       src.data = (uint8*)(src.data) + bbox.min().x()*src.cstride + bbox.min().y()*src.rstride;
 
       // This is a terrible hack for detecting little-endian architectures.
-      if( m_format.channel_type==VW_CHANNEL_UINT16 ) {
+      if ( m_format.channel_type==VW_CHANNEL_UINT16 ) {
         uint16 x = 1;
-        if( *(uint8*)&x == 1 ) png_set_swap( png_ptr );
+        if ( *(uint8*)&x == 1 ) png_set_swap( png_ptr );
       }
 
       png_read_image( png_ptr, &row_pointers[0] );
@@ -288,24 +288,24 @@ namespace vw {
       // This is a terrible hack to work around a premultiplication
       // bug in libpng.  Pixels with alpha==0 may have garbage in the
       // non-alpha channels.  We clear such pixels to zero here.
-      if( m_format.pixel_format==VW_PIXEL_GRAYA || m_format.pixel_format==VW_PIXEL_RGBA ) {
-        if( m_format.channel_type==VW_CHANNEL_UINT16 ) {
-          for( int r=0; r<m_format.rows; ++r ) {
+      if ( m_format.pixel_format==VW_PIXEL_GRAYA || m_format.pixel_format==VW_PIXEL_RGBA ) {
+        if ( m_format.channel_type==VW_CHANNEL_UINT16 ) {
+          for ( unsigned r=0; r<m_format.rows; ++r ) {
             uint16 *data = (uint16*)(row_pointers[r]);
-            for( int c=0; c<m_format.cols; ++c ) {
-              if( data[channels-1] == 0 ) {
-                for( int i=0; i<channels; ++i ) data[i] = 0;
+            for ( unsigned c=0; c<m_format.cols; ++c ) {
+              if ( data[channels-1] == 0 ) {
+                for ( unsigned i=0; i<channels; ++i ) data[i] = 0;
               }
               data += channels;
             }
           }
         }
         else {
-          for( int r=0; r<m_format.rows; ++r ) {
+          for ( unsigned r=0; r<m_format.rows; ++r ) {
             uint8 *data = (uint8*)(row_pointers[r]);
-            for( int c=0; c<m_format.cols; ++c ) {
-              if( data[channels-1] == 0 ) {
-                for( int i=0; i<channels; ++i ) data[i] = 0;
+            for ( unsigned c=0; c<m_format.cols; ++c ) {
+              if ( data[channels-1] == 0 ) {
+                for ( unsigned i=0; i<channels; ++i ) data[i] = 0;
               }
               data += channels;
             }
@@ -319,14 +319,14 @@ namespace vw {
 
     void write( GenericImageBuffer const& src ) {
       std::fstream fs( m_filename.c_str(), std::ios::out | std::ios_base::binary );
-      if( !fs )throw IOErr() << "Unable to open output file \"" << m_filename << "\".";
+      if ( !fs )throw IOErr() << "Unable to open output file \"" << m_filename << "\".";
       png_structp png_ptr;
       png_infop info_ptr;
       write_init( fs, png_ptr, info_ptr );
       VW_ASSERT( src.format.cols==m_format.cols && src.format.rows==m_format.rows, IOErr() << "Buffer has wrong dimensions in PNG write." );
       GenericImageBuffer dst;
-      int Bpp = (m_format.channel_type==VW_CHANNEL_UINT16) ? 2 : 1;
-      int channels = png_get_channels( png_ptr, info_ptr );
+      unsigned Bpp = (m_format.channel_type==VW_CHANNEL_UINT16) ? 2 : 1;
+      unsigned channels = png_get_channels( png_ptr, info_ptr );
       std::vector<uint8> buffer(m_format.cols*m_format.rows*channels*Bpp);
       dst.data = &buffer[0];
       dst.format = m_format;
@@ -335,13 +335,13 @@ namespace vw {
       dst.pstride = m_format.rows*m_format.cols*Bpp*channels;
       
       std::vector<png_bytep> row_pointers( m_format.rows );
-      for( int i=0; i<m_format.rows; ++i )
+      for ( unsigned i=0; i<m_format.rows; ++i )
         row_pointers[i] = (png_bytep)(dst.data) + i*dst.rstride;
 
       // This is a terrible hack for detecting little-endian architectures.
-      if( m_format.channel_type==VW_CHANNEL_UINT16 ) {
+      if ( m_format.channel_type==VW_CHANNEL_UINT16 ) {
         uint16 x = 1;
-        if( *(uint8*)&x == 1 ) png_set_swap( png_ptr );
+        if ( *(uint8*)&x == 1 ) png_set_swap( png_ptr );
       }
 
       convert( dst, src );
@@ -350,11 +350,11 @@ namespace vw {
       write_cleanup( png_ptr, info_ptr );
     }
 
-    int num_comments() const {
+    unsigned num_comments() const {
       return comments.size();
     }
 
-    DiskImageResourcePNG::Comment const& get_comment( int i ) const {
+    DiskImageResourcePNG::Comment const& get_comment( unsigned i ) const {
       return comments[i];
     }
 
@@ -411,10 +411,10 @@ vw::DiskImageResource* vw::DiskImageResourcePNG::construct_create( std::string c
   return new DiskImageResourcePNG( filename, format );
 }
 
-int vw::DiskImageResourcePNG::num_comments() const {
+unsigned vw::DiskImageResourcePNG::num_comments() const {
   return m_info->num_comments();
 }
 
-vw::DiskImageResourcePNG::Comment const& vw::DiskImageResourcePNG::get_comment( int i ) const {
+vw::DiskImageResourcePNG::Comment const& vw::DiskImageResourcePNG::get_comment( unsigned i ) const {
   return m_info->get_comment(i);
 }

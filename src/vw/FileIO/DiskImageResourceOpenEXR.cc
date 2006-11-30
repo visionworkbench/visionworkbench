@@ -153,8 +153,8 @@ void vw::DiskImageResourceOpenEXR::read_generic( GenericImageBuffer const& dest 
   try {
     // Find the width and height of the image 
     Imath::Box2i dw = m_file_ptr->header().dataWindow();
-    int height = m_format.rows;
-    int width = m_format.cols;
+    unsigned height = m_format.rows;
+    unsigned width = m_format.cols;
     
     // Set up the OpenEXR data structures necessary to read all of
     // the channels out of the file and execute the call to readPixels().
@@ -192,7 +192,7 @@ void vw::DiskImageResourceOpenEXR::read_generic( GenericImageBuffer const& dest 
     }
     
     Imf::FrameBuffer frameBuffer;
-    for (int nn = 0; nn < m_format.planes; nn++) {
+    for ( unsigned nn = 0; nn < m_format.planes; ++nn ) {
       inputArrays[nn] = new Imf::Array2D<float>(height,width);
       //        std::cout << "Reading channel " << channel_names[nn] << "\n";
       frameBuffer.insert (channel_names[nn].c_str(), Imf::Slice (Imf::FLOAT, (char *) (&(*inputArrays[nn])[0][0]), 
@@ -206,9 +206,9 @@ void vw::DiskImageResourceOpenEXR::read_generic( GenericImageBuffer const& dest 
     // 
     // Recast to the templatized pixel type in the process.
     ImageView<float> src_image(m_format.cols, m_format.rows, m_format.planes);
-    for (int nn = 0; nn < m_format.planes; nn++) {
-      for (int i = 0; i < width; i++) {
-        for (int j = 0; j < height; j++) {
+    for ( unsigned nn=0; nn<m_format.planes; ++nn ) {
+      for ( unsigned i=0; i<width; ++i ) {
+        for ( unsigned j=0; j<height; ++j ) {
           src_image(i,j,nn) = (*inputArrays[nn])[j][i];
         }
       } 
@@ -221,7 +221,7 @@ void vw::DiskImageResourceOpenEXR::read_generic( GenericImageBuffer const& dest 
               << "\t" << m_format.planes << " x " << width << " x " << height << "\n";
     
     // Clean up
-    for (int nn = 0; nn < m_format.planes; nn++) {
+    for ( unsigned nn = 0; nn < m_format.planes; nn++) {
       delete inputArrays[nn];
     }
     
@@ -251,7 +251,7 @@ void vw::DiskImageResourceOpenEXR::write_generic( GenericImageBuffer const& src 
     // Create the file header with the appropriate number of
     // channels.  Label the channels in order starting with "Channel 0".
     Imf::Header header (dst.format.cols,dst.format.rows);
-    for (int nn = 0; nn < dst.format.planes; nn++) {
+    for ( unsigned nn = 0; nn < dst.format.planes; nn++) {
       labels[nn] = openexr_channel_string_of_pixel_type(m_format.pixel_format, nn);
       //        std::cout << "Writing channel " << nn << ": " << labels[nn] << "\n";
       header.channels().insert (labels[nn].c_str(), Imf::Channel (Imf::FLOAT));
@@ -264,16 +264,16 @@ void vw::DiskImageResourceOpenEXR::write_generic( GenericImageBuffer const& src 
     
     // Copy the actual data into temporary memory, which will
     // ultimately be written to the file.
-    for (unsigned int nn = 0; nn < dst.format.planes; nn++) 
-      for (unsigned int i = 0; i < dst.format.cols; i++) 
-        for (unsigned int j = 0; j < dst.format.rows; j++) 
+    for ( unsigned nn = 0; nn < dst.format.planes; nn++) 
+      for ( unsigned i = 0; i < dst.format.cols; i++) 
+        for ( unsigned j = 0; j < dst.format.rows; j++) 
           (*floatArrays[nn])[j][i] = openexr_image(i,j,nn);
     
     // Build the framebuffer out of the various image channels 
     for (unsigned int nn = 0; nn < dst.format.planes; nn++) {
       pixels[nn] = &((*floatArrays[nn])[0][0]);
       frameBuffer.insert (labels[nn].c_str(), 
-                          Imf::Slice (Imf::FLOAT, (char *) pixels[nn], 
+                          Imf::Slice (Imf::FLOAT, (char*) pixels[nn], 
                                       sizeof (*(pixels[nn])) * 1, 
                                       sizeof (*(pixels[nn])) * dst.format.cols));             
     } 
@@ -283,7 +283,7 @@ void vw::DiskImageResourceOpenEXR::write_generic( GenericImageBuffer const& src 
     file.writePixels (dst.format.rows);
     
     // Clean up 
-    for (unsigned int nn = 0; nn < dst.format.planes; nn++)
+    for ( unsigned nn = 0; nn < dst.format.planes; ++nn )
       delete floatArrays[nn];
     
   } catch (Iex::BaseExc e) {

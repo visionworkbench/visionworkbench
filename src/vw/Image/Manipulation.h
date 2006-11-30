@@ -748,7 +748,7 @@ namespace vw {
     inline result_type operator()( int i, int j, int p=0 ) const {
       result_type result;
       typedef typename CompoundChannelType<result_type>::type channel_type;
-      for( int c=0; c<CompoundNumChannels<PixelT>::value; ++c )
+      for ( unsigned c=0; c<CompoundNumChannels<PixelT>::value; ++c )
         compound_select_channel<channel_type&>(result,c) = m_image(i,j,c);
       return result;
     }

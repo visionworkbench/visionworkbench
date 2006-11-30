@@ -1,9 +1,9 @@
 INCPATH += -I../../src -I/opt/local/include
-LIBS = ../../src/vw/FileIO/libvwFileIO.la
+LIBS = ../../src/vw/FileIO/libvwFileIO.la ../../src/vw/Mosaic/libvwMosaic.la
 CXXFLAGS = -O3 -g -Wall
 
 GENERATED_IMAGES = images/mural_*.jpg images/hand.jpg images/lips.jpg	\
-	images/hand-lips-blend.jpg mask.*.png
+	images/hand-lips-blend.jpg mask.*.png images/Walker.qtree
 
 all: workbook.pdf
 
@@ -12,6 +12,7 @@ workbook.pdf: images
 	pdflatex workbook.tex
 
 images: generate
+	rm -rf images/Walker.qtree
 	./generate
 
 generate: generate.o
@@ -26,7 +27,7 @@ generate: generate.o
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o $@ $<
 
 clean:
-	rm -f *.o *~ \#* *.aux *.log $(GENERATED_IMAGES)
+	rm -rf *.o *~ \#* *.aux *.log $(GENERATED_IMAGES)
 
 distclean: clean
 	rm -rf generate workbook.pdf .libs

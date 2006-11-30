@@ -123,7 +123,7 @@ int main( int argc, char *argv[] ) {
         return 1;
       }
       vector<ImageView<PixelRGB<float> > > images(filenames.size());
-      for (int i=0; i < filenames.size(); i++)
+      for ( unsigned i=0; i < filenames.size(); ++i )
         read_image(images[i], filenames[i]);
 
       // If the user has supplied a camera curve file, read it in and

@@ -37,7 +37,7 @@ namespace vw {
   /// structure, and channel type.  Chiefly used by the
   /// GenericImageBuffer class.
   struct GenericImageFormat {
-    int cols, rows, planes;
+    unsigned cols, rows, planes;
     PixelFormatEnum pixel_format;
     ChannelTypeEnum channel_type;
     

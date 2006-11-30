@@ -82,7 +82,7 @@ namespace math {
     if (info > 0) 
       throw ArgumentErr() << "eigen(): LAPACK driver geev only converged for the first " << info << "eigenvectors.";
     e.set_size( A.cols() );
-    for (int i = 0; i < wr_buf.size(); i++) 
+    for ( unsigned i = 0; i < wr_buf.size(); ++i ) 
       e(i) = std::complex<real_type>(wr_buf(i), wi_buf(i));
   }
 
@@ -114,11 +114,11 @@ namespace math {
       throw ArgumentErr() << "eigen(): LAPACK driver geev only converged for the first " << info << "eigenvectors.";
     e.set_size( A.cols() );
     V.set_size( Vbuf.cols(), Vbuf.rows() );
-    for (int i = 0; i < wr_buf.size(); i++) {
+    for ( unsigned i = 0; i < wr_buf.size(); ++i ) {
       e(i) = std::complex<real_type>(wr_buf(i), wi_buf(i));
       // If the eigenvalue is complex, we must tease the real and
       // complex parts out of the Vbuf matrix.
-      for (int r = 0; r < V.rows(); r++)
+      for ( unsigned r = 0; r < V.rows(); ++r )
         if (wi_buf(i) == 0)
           V(r,i) = Vbuf(i,r);
         else if (wi_buf(i) > 0)
@@ -154,7 +154,7 @@ namespace math {
   inline void svd( AMatrixT const& A, SingularValuesT &s ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type real_type;
     const int m = A.rows(), n = A.cols();
-    const int minmn = std::min(m,n), maxmn = std::max(m,n);
+    const int minmn = std::min(m,n);
     const int lda = A.rows();
     Matrix<real_type> Abuf = transpose(A);
     Vector<real_type> sbuf( minmn );
@@ -181,7 +181,7 @@ namespace math {
     typedef typename PromoteType<temp_type1, typename UMatrixT::value_type>::type temp_type2;
     typedef typename PromoteType<temp_type2, typename VTMatrixT::value_type>::type real_type;
     const int m = A.rows(), n = A.cols();
-    const int minmn = std::min(m,n), maxmn = std::max(m,n);
+    const int minmn = std::min(m,n);
     const int lda = A.rows();
     Matrix<real_type> Abuf = transpose(A);
     Matrix<real_type> Ubuf( minmn, A.rows() );
@@ -215,7 +215,7 @@ namespace math {
     typedef typename PromoteType<temp_type1, typename UMatrixT::value_type>::type temp_type2;
     typedef typename PromoteType<temp_type2, typename VTMatrixT::value_type>::type real_type;
     const int m = A.rows(), n = A.cols();
-    const int minmn = std::min(m,n), maxmn = std::max(m,n);
+    const int minmn = std::min(m,n);
     const int lda = A.rows();
     Matrix<real_type> Abuf = transpose(A);
     Matrix<real_type> Ubuf( A.rows(), A.rows() );

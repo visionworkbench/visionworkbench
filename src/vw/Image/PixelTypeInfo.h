@@ -372,7 +372,7 @@ namespace vw {
   template<> struct ChannelTypeID<vw::float64>   { static const ChannelTypeEnum value = VW_CHANNEL_FLOAT64; };
   template<> struct ChannelTypeID<bool>          { static const ChannelTypeEnum value = VW_CHANNEL_BOOL; };
 
-  inline int num_channels( PixelFormatEnum format ) {
+  inline unsigned num_channels( PixelFormatEnum format ) {
     switch( format ) {
     case VW_PIXEL_SCALAR:
     case VW_PIXEL_GRAY:
@@ -390,7 +390,7 @@ namespace vw {
     }
   }
 
-  inline int channel_size( ChannelTypeEnum type ) {
+  inline unsigned channel_size( ChannelTypeEnum type ) {
     switch( type ) {
     case VW_CHANNEL_BOOL:
       return sizeof(bool);

@@ -78,7 +78,7 @@ namespace camera {
                    PoseFuncT const& pose_func) : m_position_func(position_func),
                                                  m_pose_func(pose_func) {
       
-      VW_ASSERT(line_times.size() == number_of_lines,
+      VW_ASSERT(int(line_times.size()) == number_of_lines,
                 ArgumentErr() << "LinescanModel: number of line integration times does not match the number of scanlines.\n");
       
       // Intrinsics
@@ -151,7 +151,7 @@ namespace camera {
       double u = pix[0], v = pix[1];
       
       // Check to make sure that this is a valid pixel
-      if (int(round(v)) < 0 || int(round(v)) >= m_line_times.size())
+      if (int(round(v)) < 0 || int(round(v)) >= int(m_line_times.size()))
         throw PixelToRayErr() << "LinescanModel: requested pixel " << pix << " is not on a valid scanline.\n";
 
       // The view_matrix takes vectors from the camera (extrinsic)
@@ -177,7 +177,7 @@ namespace camera {
     
     virtual Vector3 camera_center(Vector2 const& pix = Vector2() ) const {
       // Check to make sure that this is a valid pixel
-      if (int(round(pix[1])) < 0 || int(round(pix[1])) >= m_line_times.size())
+      if (int(round(pix[1])) < 0 || int(round(pix[1])) >= int(m_line_times.size()))
         throw PixelToRayErr() << "LinescanModel: requested pixel " << pix << " is not on a valid scanline.\n";
       return m_position_func(m_line_times[int(round(pix[1]))]);
     }
@@ -219,6 +219,7 @@ namespace camera {
     os << " Across Scan Pixel Size :   " << camera_model.across_scan_pixel_size() << "\n";
     os << " Along Scan Pixel Size  :   " << camera_model.along_scan_pixel_size() << "\n";
     os << "\n------------------------------------------------------------------------\n\n";
+    return os;
   }
 
 }}	// namespace vw::camera

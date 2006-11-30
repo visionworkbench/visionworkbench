@@ -16,7 +16,7 @@ using namespace vw::hdr;
 // ********************************************************************
 //  Ashikhmin operator
 // ********************************************************************
-const int ASH_MAX_KERNEL = 10;
+const unsigned ASH_MAX_KERNEL = 10;
 
 ImageView<double> ashikhmin_world_adaptation_luminance(ImageView<double> L_w, double threshold) {
   typedef ImageView<double> Map;
@@ -25,7 +25,7 @@ ImageView<double> ashikhmin_world_adaptation_luminance(ImageView<double> L_w, do
   vector<Map> V(ASH_MAX_KERNEL);
 
   cout << "Computing L_w_blur\n";
-  for (int s = 1; s <= ASH_MAX_KERNEL * 2; s++) {
+  for ( unsigned s = 1; s <= ASH_MAX_KERNEL * 2; ++s ) {
     if ((s < ASH_MAX_KERNEL) || (s % 2 == 0)) {
       cout << "L_w_blur[" << (s) << "]\n";
       L_w_blur[s-1] = gaussian_filter(L_w, 1.0, 1.0, s, s);
@@ -33,15 +33,15 @@ ImageView<double> ashikhmin_world_adaptation_luminance(ImageView<double> L_w, do
   }
 
   cout << "Computing Vs\n";
-  for (int s = 1; s <= ASH_MAX_KERNEL; s++) {
+  for ( unsigned s = 1; s <= ASH_MAX_KERNEL; ++s ) {
     V[s-1] = abs((L_w_blur[s-1] - L_w_blur[2*s - 1]) / (L_w_blur[s-1] + 0.0001));
   }
 
   cout << "Computing L_wa\n";
   Map L_wa(L_w.cols(), L_w.rows());
-  for (int x = 0; x < L_wa.cols(); x++) {
-    for (int y = 0; y < L_wa.rows(); y++) {
-      int s_t = 1;
+  for ( unsigned x = 0; x < L_wa.cols(); ++x ) {
+    for ( unsigned y = 0; y < L_wa.rows(); ++y ) {
+      unsigned s_t = 1;
       while ((s_t < ASH_MAX_KERNEL) && (V[s_t - 1](x,y) <= threshold)) {
         ++s_t;
       }

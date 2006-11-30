@@ -66,22 +66,22 @@ namespace hdr {
   ImageView<PixelT> ldr_to_hdr(std::vector<ImageView<PixelT> > images, 
                                std::vector<Vector<double> > const &curves, 
                                std::vector<double> const &brightness_values) {
-    int width = images[0].cols();
-    int height = images[0].rows();
-    int n_channels = PixelNumChannels<PixelT>::value;
+    unsigned width = images[0].cols();
+    unsigned height = images[0].rows();
+    unsigned n_channels = PixelNumChannels<PixelT>::value;
     ImageView<PixelT> hdr_image(width, height);
     ImageView<PixelT> image_sum(width, height);
     ImageView<double> weight_sum(width, height);
     
     // Convert all pixel values to scaled radiance values
-    for (int i = 0; i < images.size(); i++) {
+    for ( unsigned i = 0; i < images.size(); ++i ) {
       psi(images[i], curves);
     }
     
     // Bring all images into same domain and average pixels across images using
     // a weighting function that favors pixels in middle of dynamic range
     double min_bv = *(min_element(brightness_values.begin(), brightness_values.end()));
-    for (int i = 0; i < images.size(); i++) {
+    for ( unsigned i = 0; i < images.size(); ++i ) {
       ImageView<PixelGray<double> > gray = images[i];
       ImageView<double> weight = 1.0 - 2.0 * abs(0.5 - channels_to_planes(gray));
       double ratio = pow(2.0, (brightness_values[i] - min_bv) * 0.5);
@@ -92,8 +92,8 @@ namespace hdr {
     
     // Divide by sum of weights, compensating for very small weightings
     std::vector<Vector<int,2> > sat;
-    for (int col = 0; col < width; col++) {
-      for (int row = 0; row < height; row++) {
+    for ( unsigned col = 0; col < width; ++col ) {
+      for ( unsigned row = 0; row < height; ++row ) {
         if (weight_sum(col, row) < 0.2) {
           sat.push_back(Vector<int,2>(col, row));
           weight_sum(col, row) = 1.0;
@@ -109,7 +109,7 @@ namespace hdr {
     min_max_channel_values(gray, min, max);
     
     // Assign very bright/dark pixels
-    for (int i = 0; i < sat.size(); i++) {
+    for ( unsigned i = 0; i < sat.size(); ++i ) {
       int col = sat[i].x();
       int row = sat[i].y();
       double value;
@@ -118,7 +118,7 @@ namespace hdr {
       } else {
         value = min;
       }
-      for (int channel = 0; channel < n_channels; channel++) {
+      for ( unsigned channel = 0; channel < n_channels; ++channel ) {
         hdr_image(col, row)[channel] = value;
       }
     }
@@ -149,17 +149,17 @@ namespace hdr {
                                        std::vector<double> brightness_values) {
     typedef typename PixelChannelType<PixelT>::type channel_type;
     
-    int n_channels = PixelNumChannels<PixelT>::value;
+    unsigned n_channels = PixelNumChannels<PixelT>::value;
     std::vector<Matrix<double> > pairs(n_channels);
     std::vector<Vector<double> > curves(n_channels);
 
     // Sample each image channel
-    for (int i = 0; i < n_channels; i++) {
+    for ( unsigned i = 0; i < n_channels; ++i ) {
       pairs[i] = generate_ldr_intensity_pairs(images, VW_HDR_NUM_PAIRS, i, brightness_values);
     }
 
     // Compute camera response curve for each channel. See CameraCurve.h.
-    for (int i = 0; i < n_channels; i++) {
+    for ( unsigned i = 0; i < n_channels; ++i ) {
       estimate_camera_curve(pairs[i], curves[i], VW_HDR_RESPONSE_POLYNOMIAL_ORDER);
     }
 
@@ -179,7 +179,7 @@ namespace hdr {
                                        double ratio = VW_HDR_DEFAULT_FSTOP_RATIO) {
 
     std::vector<double> brightness_values(images.size());
-    for (int i=0; i < brightness_values.size();++i) {
+    for ( unsigned i=0; i < brightness_values.size(); ++i ) {
       brightness_values[i] = pow(ratio, i);
     }
     return process_ldr_images(images, ret_curves, brightness_values);      

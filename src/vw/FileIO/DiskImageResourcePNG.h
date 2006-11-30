@@ -77,8 +77,8 @@ namespace vw {
       bool utf8, compressed;
     };
 
-    int num_comments() const;
-    Comment const& get_comment( int i ) const;
+    unsigned num_comments() const;
+    Comment const& get_comment( unsigned i ) const;
 
   private:
     boost::shared_ptr<DiskImageResourceInfoPNG> m_info;
