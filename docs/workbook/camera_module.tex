@@ -336,33 +336,6 @@ if (view.load_exif(``img.jpg'')) {
 }
 \end{verbatim}
 
-\subsection{Using HDR Stacks}
-The HDR module has a set of free functions that make stitching a stack of LDR
-images into an HDR image as simple as one function call. process\_ldr\_images (in 
-LDRtoHDR.h) takes a std::vector of ImageViews (with grayscale or RGB pixels
-and a floating point channel type), sorted from darkest to brightest. This
-function assumes a constant exposure ratio between images; it can be specified
-or the default of $\sqrt{2}$ can be used for stacks with a ratio of 1 EV. An
-overloaded version also accepts a std::vector$<$vw::Vector$<$double$>$ $>$ by reference,
-to return the estimated response curves for each channel.
-
-\begin{verbatim}
-/* Generate HDR image from HDR stack. */
-typedef ImageView<PixelRGB<double> > Image;
-vector<Image> images(num_images);
-// ... Read input images ...
-// Assume default exposure ratio.
-Image hdr_image = process_ldr_images(images);
-\end{verbatim}
-
-LDRtoHDRExif.h further defines process\_ldr\_images\_exif, which generates an HDR
-image from an array of filenames of LDR images, computing brightness values
-from the files' Exif data. Example code usingthis function is in Appendix B. It
-also defines another overloaded version of process\_ldr\_images that takes a
-std::vector$<$double$>$ of brightness values (as defined by the APEX system \cite{apex})
-instead of a constant exposure ratio. These functions do not require the images
-to be in any particular order of have a constant exposure ratio.
-
 \begin{thebibliography}{1}
 
 \bibitem{exif} ``Exchangeable image file format for digital still cameras: Exif Version 2.2'',
