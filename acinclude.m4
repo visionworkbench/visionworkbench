@@ -335,7 +335,7 @@ AC_DEFUN([AX_PKG_LAPACK],
 	# For all other platforms, we search for static LAPACK libraries
 	# in the conventional manner
   else
-		AX_PKG(LAPACK, [], [-lclapack -lblas -lf77], [])
+		AX_PKG(LAPACK, [], [-lclapack -lblas -lf2c], [])
     if test "$HAVE_PKG_LAPACK" = "no"; then
 	    echo "CLAPACK not found, trying standard LAPACK."
 		  AX_PKG(LAPACK, [], [-llapack -lblas], [])
