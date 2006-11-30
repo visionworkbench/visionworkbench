@@ -247,13 +247,15 @@ public:
   void test_ArgAcosFunctor() {
     ToyType<double> x(0.5);
     TS_ASSERT( is_of_type<ToyType<double> >( vw::math::ArgAcosFunctor()(x) ) );
-    TS_ASSERT_DELTA( vw::math::ArgAcosFunctor()(x)[0], acos(x[0]), 1e-8 );
+    vw::math::ArgAcosFunctor f;  // Pulled out to workaround gcc 3.2 bug
+    TS_ASSERT_DELTA( f(x)[0], acos(x[0]), 1e-8 );
   }
 
   void test_ArgArgHypotFunctor() {
     ToyType<double> x(3), y(4);
     TS_ASSERT( is_of_type<ToyType<double> >( vw::math::ArgArgHypotFunctor()(x,y) ) );
-    TS_ASSERT_DELTA( vw::math::ArgArgHypotFunctor()(x,y)[0], hypot(x[0],y[0]), 1e-8 );
+    vw::math::ArgArgHypotFunctor f;  // Pulled out to workaround gcc 3.2 bug
+    TS_ASSERT_DELTA( f(x,y)[0], hypot(x[0],y[0]), 1e-8 );
   }
 
   void test_ArgValHypotFunctor() {

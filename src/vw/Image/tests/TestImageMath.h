@@ -215,7 +215,7 @@ public:
   }
 
   void test_real() {
-    ImageView<std::complex<double> > im(1,1); im(0,0).real()=1.0; im(0,0).imag()=2.0;
+    ImageView<std::complex<double> > im(1,1); im(0,0)=std::complex<double>(1.0,2.0);
     TS_ASSERT_EQUALS( real(im).cols(), im.cols()  );
     TS_ASSERT_EQUALS( real(im).rows(), im.rows()  );
     TS_ASSERT_EQUALS( real(im).planes(), im.planes()  );
@@ -231,7 +231,7 @@ public:
   }
 
   void test_imag() {
-    ImageView<std::complex<double> > im(1,1); im(0,0).real()=1.0; im(0,0).imag()=2.0;
+    ImageView<std::complex<double> > im(1,1); im(0,0)=std::complex<double>(1.0,2.0);
     TS_ASSERT_EQUALS( imag(im).cols(), im.cols()  );
     TS_ASSERT_EQUALS( imag(im).rows(), im.rows()  );
     TS_ASSERT_EQUALS( imag(im).planes(), im.planes()  );
@@ -247,7 +247,7 @@ public:
   }
 
   void test_abs() {
-    ImageView<std::complex<double> > im(1,1); im(0,0).real()=1.0; im(0,0).imag()=2.0;
+    ImageView<std::complex<double> > im(1,1); im(0,0)=std::complex<double>(1.0,2.0);
     TS_ASSERT_EQUALS( abs(im).cols(), im.cols()  );
     TS_ASSERT_EQUALS( abs(im).rows(), im.rows()  );
     TS_ASSERT_EQUALS( abs(im).planes(), im.planes()  );
@@ -262,7 +262,7 @@ public:
   }
 
   void test_conj() {
-    ImageView<std::complex<double> > im(1,1); im(0,0).real()=1.0; im(0,0).imag()=2.0;
+    ImageView<std::complex<double> > im(1,1); im(0,0)=std::complex<double>(1.0,2.0);
     TS_ASSERT_EQUALS( conj(im).cols(), im.cols()  );
     TS_ASSERT_EQUALS( conj(im).rows(), im.rows()  );
     TS_ASSERT_EQUALS( conj(im).planes(), im.planes()  );

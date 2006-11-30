@@ -304,11 +304,18 @@ namespace vw {
     inline typename QuotientType<ValT,ArgT>::type operator()( ArgT const& arg ) const { return m_val/arg; }
   };
 
+  // **** WARNING ****
+  // The syntax in all three SafeQuotient functors is carefully 
+  // crafted to work around an issue with RedHat's gcc 3.2.3-56.
+  // If you change this, be sure to test it on an RHEL3 box.
+  // **** WARNING ****
+
   // Safe binary quotient of two arguments
   struct ArgArgSafeQuotientFunctor : BinaryReturnTemplateType<QuotientType> {
     template <class Arg1T, class Arg2T>
     inline typename QuotientType<Arg1T,Arg2T>::type operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { 
-      return (arg2==Arg2T()) ? (typename QuotientType<Arg1T,Arg2T>::type()) : (arg1/arg2);
+      if( arg2==Arg2T() ) return typename QuotientType<Arg1T,Arg2T>::type();
+      else return (arg1/arg2);
     }
   };
 
@@ -322,7 +329,8 @@ namespace vw {
 
     template <class ArgT>
     inline typename QuotientType<ArgT,ValT>::type operator()( ArgT const& arg ) const {
-      return (m_val==ValT()) ? (typename QuotientType<ArgT,ValT>::type()) : (arg/m_val);
+      if ( m_val==ValT() ) return typename QuotientType<ArgT,ValT>::type();
+      else return (arg/m_val);
     }
   };
 
@@ -336,7 +344,8 @@ namespace vw {
 
     template <class ArgT>
     inline typename QuotientType<ValT,ArgT>::type operator()( ArgT const& arg ) const {
-      return (arg==ArgT()) ? (typename QuotientType<ValT,ArgT>::type()) : (m_val/arg);
+      if ( arg==ArgT() ) return typename QuotientType<ValT,ArgT>::type();
+      else return (m_val/arg);
     }
   };
 

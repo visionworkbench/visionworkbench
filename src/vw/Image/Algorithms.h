@@ -97,7 +97,8 @@ namespace vw {
   inline clamp( ImageViewBase<ImageT> const& image, HighT high ) {
     typedef UnaryCompoundFunctor<ChannelClampFunctor<typename ImageT::pixel_type> > func_type;
     typedef ChannelRange<typename CompoundChannelType<typename ImageT::pixel_type>::type> range_type;
-    func_type func( ChannelClampFunctor<typename ImageT::pixel_type>(range_type::min(),high) );
+    typename CompoundChannelType<typename ImageT::pixel_type>::type min_val = range_type::min();
+    func_type func( ChannelClampFunctor<typename ImageT::pixel_type>(min_val,high) );
     return UnaryPerPixelView<ImageT,func_type>( image.impl(), func );
   }
 
@@ -110,7 +111,9 @@ namespace vw {
   inline clamp( ImageViewBase<ImageT> const& image ) {
     typedef UnaryCompoundFunctor<ChannelClampFunctor<typename ImageT::pixel_type> > func_type;
     typedef ChannelRange<typename CompoundChannelType<typename ImageT::pixel_type>::type> range_type;
-    func_type func( ChannelClampFunctor<typename ImageT::pixel_type>(range_type::min(),range_type::max()) );
+    typename CompoundChannelType<typename ImageT::pixel_type>::type min_val = range_type::min();
+    typename CompoundChannelType<typename ImageT::pixel_type>::type max_val = range_type::max();
+    func_type func( ChannelClampFunctor<typename ImageT::pixel_type>(min_val,max_val) );
     return UnaryPerPixelView<ImageT,func_type>( image.impl(), func );
   }
 

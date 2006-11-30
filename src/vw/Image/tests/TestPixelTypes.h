@@ -268,7 +268,9 @@ public:
     for( double h=0; h<1; h+=0.15 ) {
       for( double s=0.2; s<=1; s+=0.2 ) {
         for( double v=0.2; v<=1; v+=0.2 ) {
-          PixelHSV<double> hsv( PixelRGB<double>( PixelHSV<double>(h,s,v) ) );
+	  PixelHSV<double> tmp1(h,s,v);
+	  PixelRGB<double> tmp2(tmp1);
+          PixelHSV<double> hsv(tmp2);
           TS_ASSERT_DELTA( hsv.h(), h, 1e-4 );
           TS_ASSERT_DELTA( hsv.s(), s, 1e-4 );
           TS_ASSERT_DELTA( hsv.v(), v, 1e-4 );
@@ -280,7 +282,9 @@ public:
     for( uint8 h=0; ; h+=5 ) {
       for( uint8 s=60; ; s+=5 ) {
         for( uint8 v=80; ; v+=5 ) {
-          PixelHSV<uint8> hsv( PixelRGB<uint8>( PixelHSV<uint8>(h,s,v) ) );
+	  PixelHSV<uint8> tmp1(h,s,v);
+	  PixelRGB<uint8> tmp2(tmp1);
+          PixelHSV<uint8> hsv(tmp2);
           TS_ASSERT( abs(hsv.h()-h)<=2 || abs(abs(hsv.h()-h)-256)<=2 );
           TS_ASSERT_DELTA( hsv.s(), s, 2 );
           TS_ASSERT_EQUALS( hsv.v(), v );
@@ -297,7 +301,9 @@ public:
     for( double r=0; r<=1; r+=0.1 ) {
       for( double g=0; g<=1; g+=0.1 ) {
         for( double b=0; b<=1; b+=0.1 ) {
-          PixelRGB<double> rgb( PixelHSV<double>( PixelRGB<double>(r,g,b) ) );
+	  PixelRGB<double> tmp1(r,g,b);
+	  PixelHSV<double> tmp2(tmp1);
+          PixelRGB<double> rgb(tmp2);
           TS_ASSERT_DELTA( rgb.r(), r, 1e-4 );
           TS_ASSERT_DELTA( rgb.g(), g, 1e-4 );
           TS_ASSERT_DELTA( rgb.b(), b, 1e-4 );
@@ -309,7 +315,9 @@ public:
     for( uint8 r=70; ; r+=5 ) {
       for( uint8 g=70; ; g+=5 ) {
         for( uint8 b=70; ; b+=5 ) {
-          PixelRGB<uint8> rgb( PixelHSV<uint8>( PixelRGB<uint8>(r,g,b) ) );
+	  PixelRGB<uint8> tmp1(r,g,b);
+	  PixelHSV<uint8> tmp2(tmp1);
+          PixelRGB<uint8> rgb(tmp2);
           TS_ASSERT_DELTA( rgb.r(), r, 2 );
           TS_ASSERT_DELTA( rgb.g(), g, 2 );
           TS_ASSERT_DELTA( rgb.b(), b, 2 );
@@ -352,7 +360,9 @@ public:
     for( double r=0; r<=1; r+=0.1 ) {
       for( double g=0; g<=1; g+=0.1 ) {
         for( double b=0; b<=1; b+=0.1 ) {
-          PixelRGB<double> rgb( PixelXYZ<double>( PixelRGB<double>(r,g,b) ) );
+	  PixelRGB<double> tmp1(r,g,b);
+	  PixelXYZ<double> tmp2(tmp1);
+          PixelRGB<double> rgb(tmp2);
           TS_ASSERT_DELTA( rgb.r(), r, 1e-4 );
           TS_ASSERT_DELTA( rgb.g(), g, 1e-4 );
           TS_ASSERT_DELTA( rgb.b(), b, 1e-4 );
@@ -364,7 +374,9 @@ public:
     for( uint8 r=0; r<=235; r+=5 ) {
       for( uint8 g=0; g<=235; g+=5 ) {
         for( uint8 b=0; b<=235; b+=5 ) {
-          PixelRGB<uint8> rgb( PixelXYZ<uint8>( PixelRGB<uint8>(r,g,b) ) );
+	  PixelRGB<uint8> tmp1(r,g,b);
+	  PixelXYZ<uint8> tmp2(tmp1);
+          PixelRGB<uint8> rgb(tmp2);
           TS_ASSERT_DELTA( rgb.r(), r, 3 );
           TS_ASSERT_DELTA( rgb.g(), g, 3 );
           TS_ASSERT_DELTA( rgb.b(), b, 3 );

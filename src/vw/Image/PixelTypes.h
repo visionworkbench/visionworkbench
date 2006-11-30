@@ -82,7 +82,7 @@ namespace vw {
     double vr = round(v);
     if( vr < ChannelRange<T>::min() ) return ChannelRange<T>::min();
     if( vr > ChannelRange<T>::max() ) return ChannelRange<T>::max();
-    return vr;
+    return (T)(vr);
   }
 
   /// \endcond
@@ -336,7 +336,7 @@ namespace vw {
   /// Weighted conversion from PixelRGB to PixelGray using user-specified weights.
   template <class ChannelT>
   PixelGray<ChannelT> weighted_rgb_to_gray( PixelRGB<ChannelT> const& rgb, double rw, double gw, double bw ) {
-    return PixelGray<ChannelT>( rgb.r()*rw + rgb.g()*gw + rgb.b()*bw );
+    return PixelGray<ChannelT>( (ChannelT)(rgb.r()*rw + rgb.g()*gw + rgb.b()*bw) );
   }
 
   /// Weighted conversion from PixelRGB to PixelGray using the default weights.
@@ -442,7 +442,7 @@ namespace vw {
   /// Weighted conversion from PixelRGBA to PixelGrayA using user-specified weights.
   template <class ChannelT>
   PixelGrayA<ChannelT> weighted_rgb_to_gray( PixelRGBA<ChannelT> const& rgba, double rw, double gw, double bw ) {
-    return PixelGrayA<ChannelT>( rgba.r()*rw + rgba.g()*gw + rgba.b()*bw, rgba.a() );
+    return PixelGrayA<ChannelT>( (ChannelT)(rgba.r()*rw + rgba.g()*gw + rgba.b()*bw), rgba.a() );
   }
 
   /// Weighted conversion from PixelRGBA to PixelGrayA using the default weights.
