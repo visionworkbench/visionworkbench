@@ -302,9 +302,9 @@ AC_DEFUN([AX_PKG_LAPACK],
 		# Workbench build system.  This allows binary apps to link when
 		# necessary, and it is a harmless extra option in all other cases.
     #
-    # Someday when libtool gets its act together, we should go for the
-    # more conservative, commented out line that follows and remove
-    # the uncommented line below.
+    # Someday when libtool fixes this, we should go for the more
+    # conservative, commented out line that follows and remove the
+    # uncommented line below.
     LDFLAGS="$LDFLAGS -framework vecLib"
     #	  PKG_LAPACK_LDFLAGS="-framework vecLib"
 
@@ -335,7 +335,8 @@ AC_DEFUN([AX_PKG_LAPACK],
 	# For all other platforms, we search for static LAPACK libraries
 	# in the conventional manner
   else
-		AX_PKG(LAPACK, [], [-lLAPACK -lBLAS -lF77], [])
+		AX_PKG(LAPACK, [], [-llapack -lblas], [])
+		AX_PKG(LAPACK, [], [-llapack -lblas -lf77], [])
 	fi
 
 ])
