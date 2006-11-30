@@ -1,9 +1,9 @@
 \chapter{High Dynamic Range Imaging}\label{ch:hdr-imaging}
 
-Photographers have long understood that the range brightness levels in
+Photographers have long understood that the range of brightness levels in
 a real-world scene is considerably larger than the range that can be
 captured by a camera's film or imaging sensor.  The luminance of a
-outdoor scene can easily span five orders of magnitdue, however
+outdoor scene can easily span five orders of magnitude, however
 typical digital cameras encode the brightness at a single pixel
 location using a modest 8-bits (2 orders of magnitude).  Pixels that
 fall outside the {\em dynamic range} of the camera sensor will either
@@ -18,10 +18,10 @@ with very high dynamic range you can generate an HDR image from a set
 of {\em bracketed} exposures: a group of low dynamic range images of
 the exact same scene taken with a set of different exposure settings
 that varies from under-exposed to over-exposed.  This technique is
-subject of section \ref{sec:hdr_merge}.  
+subject of section \ref{sec:hdr_merge}.
 
 The resulting HDR image is generally stored with a channel type of
-{\tt float} or {\t int16} to accomodate the expanded dynamic range.
+{\tt float} or {\tt int16} to accomodate the expanded dynamic range.
 To store HDR images on disk we recommend using the OpenEXR or TIFF
 file formats, both of which support 32-bit floating point channel
 types.
@@ -35,7 +35,7 @@ display range will cause it to look overly dark or washed-out. Section
 that reduces the dynamic range of an image while preserving as much as
 possible the visual contrasts of the original scene.
 
-\subsection{Merging Bracketed Exposures}
+\section{Merging Bracketed Exposures}
 \label{sec:hdr_merge}
 
 As discussed in the introduction to this chapter, the limited dynamic
@@ -46,15 +46,52 @@ the output image by adjusting the range of exposures in the bracket.
 If more dynamic range is needed, one can simply add additional
 exposures on either side of the bracket.
 
+\begin{figure}[tbp]
+\begin{center}
+  \includegraphics[width=5in]{images/hdr_merge.jpg}
+ \end{center}
+  \label{fig:hdrmerge}
+  \caption{A stack of 8-bit-per-channel LDR images separated by one
+    f-stop is merged a floating-point HDR image. The HDR image is
+    tone-mapped for display using the Drago operator.}
+\end{figure}
+
 For convenience, the exposure ratio between consecutive images is
 usually fixed {\em a priori} to guarantee a wide exposure range while
 maintaning even brightness overlap between adjacent images in the
 bracket. A factor of two is generally recommended.  The shutter speed
-in generally the preferred method of varying the exposure in a
+is generally the preferred method of varying the exposure in a
 bracket; changing the aperture or ISO setting can have the same effect
 on exposure but they may change the focus or increase noise.
 
-\subsubsection{Alignment}
+\subsection{Using HDR Stacks}
+The HDR module has a set of free functions that make stitching a stack of LDR
+images into an HDR image as simple as one function call. process\_ldr\_images (in 
+LDRtoHDR.h) takes a std::vector of ImageViews (with grayscale or RGB pixels
+and a floating point channel type), sorted from darkest to brightest. This
+function assumes a constant exposure ratio between images; it can be specified
+or the default of $\sqrt{2}$ can be used for stacks with a ratio of 1 EV. An
+overloaded version also accepts a std::vector$<$vw::Vector$<$double$>$ $>$ by reference,
+to return the estimated response curves for each channel.
+
+\begin{verbatim}
+/* Generate HDR image from HDR stack. */
+typedef ImageView<PixelRGB<double> > Image;
+vector<Image> images(num_images);
+// ... Read input images ...
+// Assume default exposure ratio.
+Image hdr_image = process_ldr_images(images);
+\end{verbatim}
+
+LDRtoHDRExif.h further defines process\_ldr\_images\_exif, which generates an HDR
+image from an array of filenames of LDR images, computing brightness values
+from the files' Exif data. Example code usingthis function is in Appendix B. It
+also defines another overloaded version of process\_ldr\_images that takes a
+std::vector$<$double$>$ of brightness values (as defined by the APEX system \cite{apex})
+instead of a constant exposure ratio. These functions do not require the images
+to be in any particular order of have a constant exposure ratio.
+
+\subsection{Alignment}
 It is crucial for the images in an HDR stack to be aligned, both so
 that the resulting HDR image is not blurry and so that the camera
 response curve can be estimated accurately.  The best solution is to
@@ -62,7 +99,7 @@ take the HDR stack on a tripod, ideally using remote capture.  {\em If
   you are able to take the images on a stationary platform, there is
   no need to perform image alignment in software.}  However, for
 handheld photographs, or if dynamic disturbances, such as wind, shake
-the camera on the tribpod, software alignment is then likely to be
+the camera on the tripod, software alignment is then likely to be
 necessary.
 
 For HDR stacks shot with a hand-held camera or otherwise unaligned,
@@ -91,12 +128,20 @@ int shift[2];       // Will hold (x,y) shift
 get_exp_shift(img1, img2, shift_bits, shift);
 \end{verbatim}
 
-\subsubsection{Camera Response Curves}
+\subsection{Camera Response Curves}
 The relation between light entering a camera sensor and the pixel
 value that is ultimately recorded is non-linear.  The function that
 maps the amount of light on the sensor (the luminance) to the pixel
 value is referred to as the camera response curve.  [TODO: Add camera
   response curve figure.]  
+
+\begin{figure}[tbp]
+\begin{center}
+  \includegraphics[width=5in]{images/hdr_response.pdf}
+ \end{center}
+  \label{fig:response}
+  \caption{Camera response curve estimated from an HDR stack.}
+\end{figure}
 
 To create an HDR image that truly represent the physical brightness
 levels in a scene, it is necessary to estimate the inverse of the
@@ -121,8 +166,28 @@ an HDR image after tone-mapping can improve the colors and overall
 visual appeal. See the code example in Appendix B for an example.
 
 \section{Tone Mapping}
+\label{sec:tonemapping}
+Since print media and most display technologies are inherently LDR,
+an the dynamic range of an HDR image must be compressed before it
+can be displayed. Simply scaling the pixel luminances linearly
+yields poor results because the human visual system's response to
+luminance is approximately logarithmic rather than linear. A linear
+scaling tends to lose small details and local contrast, and the
+image as a whole will appear under- or over-exposed.
 
-< need intro >
+A wide variety of tone-mapping operators have been proposed to
+compress the dynamic range of an HDR image while preserving
+details and local contrast as much as possible. Using an ideal
+tone-mapping operator, the observer of a tone-mapped LDR image
+would have a perceptual response matching that of the original
+HDR scene. Due to its greater realism, tone-mapping generally
+vastly improves the appearance of the displayed image.
+
+There are several broad classes of tone-mapping operators, including
+global operators, local operators, and operators that use the
+gradient or frequency domains. The HDR module currently includes
+one global operator and one local operator; they are described in
+the following sections.
 
 \subsection{Global Operators}
 Global tone-mapping operators apply the same compressive function to
@@ -142,6 +207,18 @@ luminance (usually about 100) can be specified.
 /* Apply Drago tone-mapping operator */
 ImageView<PixelRGB<float> > tone_mapped = drago_tone_map(hdr_image);
 \end{verbatim}
+
+\begin{figure}[tbp]
+\begin{center}
+  \includegraphics[height=3in]{images/hdr_original.jpg}
+  \includegraphics[height=3in]{images/hdr_drago.jpg}
+  \includegraphics[height=3in]{images/hdr_ashikhmin.jpg}
+ \end{center}
+  \label{fig:tonemapping}
+  \caption{Top: an image taken in 12-bit RAW format. Middle: after
+           tone-mapping with the Drago operator. Bottom: after
+           tone-mapping with the Ashikhmin operator.}
+\end{figure}
 
 \subsection{Local Operators}
 Local tone-mapping operators compress a pixel's dynamic range in a way
@@ -298,9 +375,12 @@ int main(int argc, char** argv) {
   typedef ImageView<PixelRGB<double> > Image;
 
   vector<Vector<double> > curves;
+  vector<string> files;
+  for(int i = 1; i < argc; i++)
+    files.push_back(argv[i]);
   // Process HDR stack using Exif tags
-  Image hdr_exif = process_ldr_images_exif(argc - 1,
-                                  argv + 1, curves);
+  Image hdr_exif = process_ldr_images_exif(files,
+                                          curves);
   write_image("hdr.exr", hdr_exif);
 
   // Apply Drago tone-mapping operator.
@@ -308,7 +388,7 @@ int main(int argc, char** argv) {
   write_image("tm.jpg", tone_mapped);
 
   // Apply gamma correction and save.
-  Image gamma = pow(copy(tone_mapped), 1.0/2.2);
+  Image gamma = pow(tone_mapped, 1.0/2.2);
   write_image("tm_gamma.jpg", gamma);
 
   // Re-apply camera response curves and save.
@@ -316,7 +396,7 @@ int main(int argc, char** argv) {
   vector<Vector<double> > inverse_curves(curves.size());
   for (int i = 0; i < curves.size(); i++) {
     invert_curve(curves[i], inverse_curves[i],
-                 RESPONSE_POLYNOMIAL_ORDER);
+                 VW_HDR_RESPONSE_POLYNOMIAL_ORDER);
   }
   psi(tone_mapped, inverse_curves);
   write_image("tm_curved.jpg", tone_mapped);
