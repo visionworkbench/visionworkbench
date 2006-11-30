@@ -1,0 +1,30 @@
+# The Vision Workbench installation prefix (/usr/local by default)
+VWPREFIX = /usr/local
+
+# If you don't have libtool installed, you can specify the full 
+# path to the libtool script in the base directory of your Vision 
+# Workbench source tree, e.g. $(HOME)/VisionWorkbench-1.0/libtool
+LIBTOOL = libtool
+
+# Compilation flags:
+# -O3   turns on optimization, which you should almost always do
+# -g    enables debugging support
+# -Wall turns on all compiler warnings
+CXXFLAGS = -I$(VWPREFIX)/include -O3 -g -Wall
+
+# Linking flags:
+# -lvw includes the Vision Workbench core libraries
+LDFLAGS = -L$(VWPREFIX)/lib -lvw
+
+# Object files:
+# List the object files needed to build your program here.
+SOURCES = vwconvert.o
+
+# Linking rule:
+# Duplicate and modify this rule to build multiple programs.
+vwconvert: $(OBJECTS)
+	$(LIBTOOL) --mode=link $(CXX) $(LDFLAGS) -o $@ $^ 
+
+# Clean-up rule:
+clean:
+	rm -f *.o *~ \#*

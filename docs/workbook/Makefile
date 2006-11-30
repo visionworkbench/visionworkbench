@@ -2,11 +2,8 @@ INCPATH += -I../../src -I/opt/local/include
 LIBS = ../../src/vw/FileIO/libvwFileIO.la
 CXXFLAGS = -O3 -g -Wall
 
-GENERATED_IMAGES = mural_clamp.jpg mural_crop.jpg			\
-	mural_flip_horizontal.jpg mural_flip_vertical.jpg		\
-	mural_rotate_180.jpg mural_rotate_90_ccw.jpg			\
-	mural_rotate_90_cw.jpg mural_subsample.jpg mural_threshold.jpg	\
-	mural_transpose.jpg
+GENERATED_IMAGES = images/mural_*.jpg images/hand.jpg images/lips.jpg	\
+	images/hand-lips-blend.jpg mask.*.png
 
 all: workbook.pdf
 

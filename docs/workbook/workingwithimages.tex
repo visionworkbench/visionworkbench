@@ -199,14 +199,14 @@ to an RGB image prior to saving it to disk.
 
 \subsection{Copying {\tt ImageView}s}
 
-In the Vision Workbench, \verb#ImageView# objects have {\it shallow 
-copy semantics}.  That is, when you copy an \verb#ImageView# you're 
-making a new \verb#ImageView# that points to the {\it same} data, 
-rather than a new copy of the data.  This is a relatively inexpensive 
-operation, which makes it perfectly reasonable to do things like 
-constructing a standard \verb#std::vector# of \verb#ImageView#s.  The 
-underlying image data is reference-counted, and when the last 
-\verb#ImageView# stops using a block of image data it is deallocated. 
+In the Vision Workbench, \verb#ImageView# objects have {\it shallow
+copy semantics}.  That is, when you copy an \verb#ImageView# you're
+making a new \verb#ImageView# that points to the {\it same} data,
+rather than a new copy of the data.  This is a relatively inexpensive
+operation, which makes it perfectly reasonable to do things like
+construct a \verb#std::vector# of \verb#ImageView#s.  The underlying
+image data is reference-counted, and when the last \verb#ImageView#
+stops using a block of image data it is deallocated.
 
 Though this behavior can be quite powerful, it may not always be 
 what you want.  If you ever need to make a duplicate of an 
@@ -239,7 +239,7 @@ use \verb#sort()# to sort all of the pixel values in an image.
 \begin{verbatim}
   std::sort( my_image.begin(), my_image.end() );
 \end{verbatim}
-That particular example may be cuter than it is useful, but others
+That particular example may be more cute than it is useful, but others
 occur more frequently.  For instance, you can use \verb#std::count()# 
 to count the number of pixels with a particular value, or
 \verb#std::replace()# to replace all pixels that have one value with
@@ -253,12 +253,15 @@ planes are the wrong solution to almost every problem, and we
 discourage their use.  Basically, planes allow you to store some
 number of two-dimensional pixel arrays of the same size (``planes'')
 together in a single object.  Planes are different from channels in
-that the number and meaning of an image's channels is specified at
-compile time as part of the image's type, whereas the number of planes
-is specified at run time.  (It may not be readily apparent, but the
-sample program shown in Listing~\ref{lst:vwconvert.cc} demonstrates
-one of the very few possibly-legitimate uses of planes; this will be
-discussed more in the following section on File I/O.)
+that the number and meaning the planes is not specified at compile
+time.  This means that the Vision Workbench can not take advantage of
+that information as readily: for example, it has no way to know
+whether a three-plane image is RGB, HSV, or something altogether
+different, and it cannot optimize operations by unrolling inner loops
+as it is able to with channels.  (It may not be readily apparent, but
+the sample program shown in Listing~\ref{lst:vwconvert.cc}
+demonstrates one of the very few possibly-legitimate uses of planes;
+this will be discussed more in the following section on File I/O.)
 
 To create a multi-plane image, pass the desired number of planes as a 
 third argument to the \verb#ImageView# constructor or to the 
@@ -312,13 +315,16 @@ are case-insensitive.
 Name & Extension(s) & Description \\ \hline \hline
 PNG & \verb#.png# & Standard for lossless compression \\ \hline
 JFIF/JPEG & \verb#.jpg#, \verb#.jpeg# & Standard for lossy compression, no alpha \\ \hline
-OpenEXR & \verb#.exr# & High dynamic range \\ \hline
 TIFF & \verb#.tif#, \verb#.tiff# & Highly flexible, complicated \\ \hline
-PBM & \verb#.pnm#, \verb#.ppm#, \verb#.pgm# & Highly portable, simplistic \\ \hline
-BMP & \verb#.bmp# & The old Windows format \\ \hline
+OpenEXR & \verb#.exr# & High dynamic range \\ \hline
+PDS & \verb#.img# & Planetary Data System images \\ \hline
+%PBM & \verb#.pnm#, \verb#.ppm#, \verb#.pgm# & Highly portable, simplistic \\ \hline
+%BMP & \verb#.bmp# & The old Windows format \\ \hline
 \end{tabular}
 \caption{The standard Vision Workbench image file formats.  Which formats 
-your installation supports depends on what supporting libraries you have installed.}
+your installation supports depends on what supporting libraries you have 
+installed.  Adding support for additional file formats is discussed in 
+Chapter~\ref{ch:advanced-topics}.}
 \label{tbl:file-formats}
 \end{centering}\end{table}
 
@@ -506,27 +512,27 @@ to replace one channel of a multi-channel image using
 
 \begin{figure}[p]
 \centering
-  \subfigure[{\tt mural} (Original)]{\includegraphics[width=2in]{mural.jpg}\label{fig:simple.original}}
+  \subfigure[{\tt mural} (Original)]{\includegraphics[width=2in]{images/mural.jpg}\label{fig:simple.original}}
   \hfil
-  \subfigure[{\tt rotate\char`\_180(mural)}]{\includegraphics[width=2in]{mural_rotate_180.jpg}\label{fig:simple.rotate180}}
+  \subfigure[{\tt rotate\char`\_180(mural)}]{\includegraphics[width=2in]{images/mural_rotate_180.jpg}\label{fig:simple.rotate180}}
   \\
-  \subfigure[{\tt rotate\char`\_90\char`\_cw(mural)}]{\hbox{\hspace{0.25in}\includegraphics[height=2in]{mural_rotate_90_cw.jpg}\hspace{0.25in}\ \label{fig:simple.rotate90cw}}}
+  \subfigure[{\tt rotate\char`\_90\char`\_cw(mural)}]{\hbox{\hspace{0.25in}\includegraphics[height=2in]{images/mural_rotate_90_cw.jpg}\hspace{0.25in}\ \label{fig:simple.rotate90cw}}}
   \hfil
-  \subfigure[{\tt rotate\char`\_90\char`\_ccw(mural)}]{\hbox{\hspace{0.25in}\includegraphics[height=2in]{mural_rotate_90_ccw.jpg}\hspace{0.25in}\ \label{fig:simple.rotate90ccw}}}
+  \subfigure[{\tt rotate\char`\_90\char`\_ccw(mural)}]{\hbox{\hspace{0.25in}\includegraphics[height=2in]{images/mural_rotate_90_ccw.jpg}\hspace{0.25in}\ \label{fig:simple.rotate90ccw}}}
   \hfil
-  \subfigure[{\tt transpose(mural)}]{\includegraphics[height=2in]{mural_transpose.jpg}\label{fig:simple.transpose}}
+  \subfigure[{\tt transpose(mural)}]{\includegraphics[height=2in]{images/mural_transpose.jpg}\label{fig:simple.transpose}}
   \\
-  \subfigure[{\tt flip\char`\_vertical(mural)}]{\includegraphics[width=2in]{mural_flip_vertical.jpg}\label{fig:simple.flipv}}
+  \subfigure[{\tt flip\char`\_vertical(mural)}]{\includegraphics[width=2in]{images/mural_flip_vertical.jpg}\label{fig:simple.flipv}}
   \hfil
-  \subfigure[{\tt flip\char`\_horizontal(mural)}]{\includegraphics[width=2in]{mural_flip_horizontal.jpg}\label{fig:simple.fliph}}
+  \subfigure[{\tt flip\char`\_horizontal(mural)}]{\includegraphics[width=2in]{images/mural_flip_horizontal.jpg}\label{fig:simple.fliph}}
   \\
-  \subfigure[{\tt crop(mural,80,60,160,120)}]{\hbox{\hspace{0.5in}\includegraphics[width=1in]{mural_crop.jpg}\hspace{0.5in}\ \label{fig:simple.crop}}}
+  \subfigure[{\tt crop(mural,80,60,160,120)}]{\hbox{\hspace{0.5in}\includegraphics[width=1in]{images/mural_crop.jpg}\hspace{0.5in}\ \label{fig:simple.crop}}}
   \hfil
-  \subfigure[{\tt subsample(mural,2)}]{\hbox{\hspace{0.5in}\includegraphics[width=1in]{mural_subsample.jpg}\hspace{0.5in}\ \label{fig:simple.subsample}}}
+  \subfigure[{\tt subsample(mural,2)}]{\hbox{\hspace{0.5in}\includegraphics[width=1in]{images/mural_subsample.jpg}\hspace{0.5in}\ \label{fig:simple.subsample}}}
   \\
-  \subfigure[{\tt threshold(mural,0.5)}]{\includegraphics[width=2in]{mural_threshold.jpg}\label{fig:simple.threshold}}
+  \subfigure[{\tt threshold(mural,0.5)}]{\includegraphics[width=2in]{images/mural_threshold.jpg}\label{fig:simple.threshold}}
   \hfil
-  \subfigure[{\tt clamp(mural,0.25,0.75)}]{\includegraphics[width=2in]{mural_clamp.jpg}\label{fig:simple.clamp}}
+  \subfigure[{\tt clamp(mural,0.25,0.75)}]{\includegraphics[width=2in]{images/mural_clamp.jpg}\label{fig:simple.clamp}}
 \caption{Sample output from the simple image operations discussed in this section.}
 \label{fig:simple}
 \end{figure}
