@@ -205,8 +205,14 @@ namespace vw {
       case PNG_COLOR_TYPE_RGB_ALPHA:
         m_format.pixel_format = VW_PIXEL_RGBA;
         break;
+      case PNG_COLOR_TYPE_PALETTE: {
+        if ( png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) )
+          m_format.pixel_format = VW_PIXEL_RGBA;
+        else m_format.pixel_format = VW_PIXEL_RGB;
+        break;
+      }
       default:
-        throw NoImplErr() << "Unsupported PNG pixel format.";
+        throw NoImplErr() << "Unsupported PNG pixel format (" << type << ").";
       }
       
       switch( depth ) {
@@ -217,7 +223,7 @@ namespace vw {
         m_format.channel_type = VW_CHANNEL_UINT16;
         break;
       default:
-        throw NoImplErr() << "Unsupported PNG pixel depth.";
+        throw NoImplErr() << "Unsupported PNG pixel depth (" << depth << ").";
       }
       
       read_cleanup( png_ptr, info_ptr, end_ptr );
@@ -261,6 +267,18 @@ namespace vw {
       GenericImageBuffer src;
       unsigned Bpp = (m_format.channel_type==VW_CHANNEL_UINT16) ? 2 : 1;
       unsigned channels = png_get_channels( png_ptr, info_ptr );
+
+      // Handle palette-based images
+      int type = png_get_color_type(png_ptr, info_ptr);
+      if ( type == PNG_COLOR_TYPE_PALETTE ) {
+        png_set_palette_to_rgb(png_ptr);
+        if ( png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) ) {
+          png_set_tRNS_to_alpha(png_ptr);
+          channels = 4;
+        }
+        else channels = 3;
+      }
+
       std::vector<uint8> buffer(m_format.cols*m_format.rows*channels*Bpp);
 
       src.format = m_format;
