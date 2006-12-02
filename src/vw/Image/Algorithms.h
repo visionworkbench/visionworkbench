@@ -341,11 +341,11 @@ namespace vw {
 
 
   // *******************************************************************
-  // nonzero_bounding_box()
+  // nonzero_data_bounding_box()
   // *******************************************************************
 
   template <class ViewT>
-  BBox2i nonzero_bounding_box( ImageViewBase<ViewT> const& image_ ) {
+  BBox2i nonzero_data_bounding_box( ImageViewBase<ViewT> const& image_ ) {
     const typename ViewT::pixel_type zero = typename ViewT::pixel_type();
     ViewT const& image = static_cast<ViewT const&>(image_);
     int x=0, y=0, cols=0, rows=0;
