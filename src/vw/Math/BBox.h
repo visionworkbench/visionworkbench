@@ -260,6 +260,14 @@ namespace math {
 
   /// Scales a bounding box relative to the origin.
   template <class RealT, int DimN, class ScalarT>
+  inline BBox<RealT,DimN> operator/( BBox<RealT,DimN> const& bbox, ScalarT s ) {
+    BBox<RealT,DimN> result = bbox;
+    result /= s;
+    return result;
+  }
+
+  /// Scales a bounding box relative to the origin.
+  template <class RealT, int DimN, class ScalarT>
   inline BBox<RealT,DimN> operator*( ScalarT s, BBox<RealT,DimN> const& bbox ) {
     return bbox * s;
   }

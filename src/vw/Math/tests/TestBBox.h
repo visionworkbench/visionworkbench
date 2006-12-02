@@ -177,6 +177,13 @@ public:
     TS_ASSERT_EQUALS( b2.max()[0], 12 );
     TS_ASSERT_EQUALS( b2.max()[1], 21 );
 
+    // Right quotient
+    b2 = b1/2;
+    TS_ASSERT_EQUALS( b2.min()[0], 0 );
+    TS_ASSERT_EQUALS( b2.min()[1], 1.5 );
+    TS_ASSERT_EQUALS( b2.max()[0], 2 );
+    TS_ASSERT_EQUALS( b2.max()[1], 3.5 );
+
     // Right vector sum
     b2 = b1 + Vector2(1,1);
     TS_ASSERT_EQUALS( b2.min()[0], 1 );
