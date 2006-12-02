@@ -50,22 +50,6 @@ namespace mosaic {
 
   namespace fs = boost::filesystem;
 
-  void write_bbox_file( std::string const& name, unsigned scale, BBox2i const& image_bbox, 
-                        BBox2i const& visible_bbox, unsigned full_x_dim, unsigned full_y_dim ) {
-    std::ofstream outfile( name.c_str() );
-    outfile << scale << "\n";
-    outfile << image_bbox.min().x() << "\n";
-    outfile << image_bbox.min().y() << "\n";
-    outfile << image_bbox.max().x()-image_bbox.min().x() << "\n";
-    outfile << image_bbox.max().y()-image_bbox.min().y() << "\n";
-    outfile << visible_bbox.min().x() << "\n";
-    outfile << visible_bbox.min().y() << "\n";
-    outfile << visible_bbox.max().x()-visible_bbox.min().x() << "\n";
-    outfile << visible_bbox.max().y()-visible_bbox.min().y() << "\n";
-    outfile << full_x_dim << "\n";
-    outfile << full_y_dim << "\n";
-  }
-
   template <class PixelT>
   class ImageQuadTreeGenerator {
   public:
@@ -80,6 +64,25 @@ namespace mosaic {
         m_patch_overlap( 0 ),
         m_crop_images( true )
     {}
+
+    virtual ~ImageQuadTreeGenerator() {}
+
+    virtual void write_meta_file( std::string const& name, unsigned scale, BBox2i const& image_bbox, 
+                                  BBox2i const& visible_bbox ) const {
+      std::ofstream outfile( (name+".bbx").c_str() );
+      outfile << scale << "\n";
+      outfile << image_bbox.min().x() << "\n";
+      outfile << image_bbox.min().y() << "\n";
+      outfile << image_bbox.max().x()-image_bbox.min().x() << "\n";
+      outfile << image_bbox.max().y()-image_bbox.min().y() << "\n";
+      outfile << visible_bbox.min().x() << "\n";
+      outfile << visible_bbox.min().y() << "\n";
+      outfile << visible_bbox.max().x()-visible_bbox.min().x() << "\n";
+      outfile << visible_bbox.max().y()-visible_bbox.min().y() << "\n";
+      outfile << m_source.cols() << "\n";
+      outfile << m_source.rows() << "\n";
+    }
+
 
     void generate() {
       unsigned maxdim = std::max( m_bbox.width(), m_bbox.height() );
@@ -104,7 +107,7 @@ namespace mosaic {
 
     void set_bbox( BBox2i const& bbox ) {
       if( bbox.min().x() < 0 || bbox.min().y() < 0 ||
-          bbox.max().x() > m_source.cols() || bbox.max().y() > m_source.rows() )
+          bbox.max().x() > int(m_source.cols()) || bbox.max().y() > int(m_source.rows()) )
         throw ArgumentErr() << "Requested QuadTree bounding box exceeds source dimensions!";
       m_bbox = bbox;
     }
@@ -125,7 +128,7 @@ namespace mosaic {
       m_crop_images = crop;
     }
     
-  private:
+  protected:
     std::string m_tree_name;
     ImageViewRef<PixelT> m_source;
     BBox2i m_bbox;
@@ -144,7 +147,7 @@ namespace mosaic {
       BBox2i visible_bbox = image_bbox;
       visible_bbox.contract( m_patch_overlap/2 );
       if( m_crop_images ) {
-        image_bbox = nonzero_bounding_box( image );
+        image_bbox = nonzero_data_bounding_box( image );
         if( image_bbox.empty() ) {
           vw_out(InfoMessage) << "\tIgnoring empty image: " << name << std::endl;
           fs::remove( fs::path( name, fs::native ) );
@@ -161,7 +164,7 @@ namespace mosaic {
       }
       image_bbox += position;
       visible_bbox += position;
-      write_bbox_file( name + ".bbx", scale, image_bbox*scale, visible_bbox*scale, m_source.cols(), m_source.rows() );
+      write_meta_file( name, scale, image_bbox*scale, visible_bbox*scale );
     }
 
     ImageView<PixelT> generate_branch( fs::path const& path, unsigned level, unsigned x, unsigned y ) {
@@ -170,7 +173,7 @@ namespace mosaic {
       unsigned interior_size = m_patch_size - m_patch_overlap;
       BBox2i patch_bbox = scale * BBox2i( Vector2i(x, y), Vector2i(x+1, y+1) ) * interior_size;
       if( ! patch_bbox.intersects( m_bbox ) ) {
-        vw_out(InfoMessage) << "\tIgnoring empty image: " << path.native_file_string() << std::endl;
+        vw_out(DebugMessage) << "\tIgnoring empty image: " << path.native_file_string() << std::endl;
         image.set_size( interior_size, interior_size );
         return image;
       }
