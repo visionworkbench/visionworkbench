@@ -347,8 +347,8 @@ namespace cartography {
     src.pstride = rows() * cols() * channels() * channel_size(src.format.channel_type);
 
     int b = 1;
-    for (int p = 0; p < planes(); p++) {
-      for (int c = 0; c < channels(); c++) {
+    for ( unsigned p = 0; p < planes(); ++p ) {
+      for ( unsigned c = 0; c < channels(); ++c ) {
         band = ((GDALDataset *)m_dataset)->GetRasterBand(b++);
 
         // <Test code>

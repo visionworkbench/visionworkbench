@@ -95,7 +95,7 @@ namespace cartography {
                         double false_northing = 0);
   };
   
-  static std::ostream& operator<<(std::ostream& os, const GeoReference& georef) {
+  inline std::ostream& operator<<(std::ostream& os, const GeoReference& georef) {
     os << "-- Geospatial Reference Object --\n";
     os << "\tTransform  : " << georef.transform() << "\n";
     os << "\t" << georef.datum() << "\n";

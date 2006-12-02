@@ -34,7 +34,7 @@ static char** split_proj4_string(std::string const& proj4_str, int &num_strings)
   boost::split( arg_strings, trimmed_proj4_str, boost::is_any_of(" ") ); 
       
   char** strings = new char*[arg_strings.size()]; 
-  for (int i = 0; i < arg_strings.size(); i++) {
+  for ( unsigned i = 0; i < arg_strings.size(); ++i ) {
     strings[i] = new char[2048];
     strncpy(strings[i], arg_strings[i].c_str(), 2048);
   }

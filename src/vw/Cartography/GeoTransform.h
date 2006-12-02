@@ -39,9 +39,6 @@ namespace cartography {
     
     void init_from_georefs(GeoReference const& src_georef, GeoReference const& dst_georef);
 
-    // Default constructor is disabled
-    GeoTransform() {}
-
   public:
     /// Normal constructor
     GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef) :
@@ -57,6 +54,14 @@ namespace cartography {
       m_src_georef = copy.m_src_georef;
       m_dst_georef = copy.m_dst_georef;
       init_from_georefs(copy.m_src_georef, copy.m_dst_georef);
+    }
+
+    /// Copy Assignment
+    GeoTransform& operator=(GeoTransform const& copy) {
+      m_src_georef = copy.m_src_georef;
+      m_dst_georef = copy.m_dst_georef;
+      init_from_georefs(copy.m_src_georef, copy.m_dst_georef);
+      return *this;
     }
 
     /// Destructor
