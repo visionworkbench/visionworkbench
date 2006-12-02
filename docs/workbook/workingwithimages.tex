@@ -51,12 +51,12 @@ entire \verb#vw# namespace into the global scope by saying
   using namespace vw;
 \end{verbatim}
 at the top of your program after you've included the necessary
-headers.  For brevity, in the examples in this book we will typically 
-assume we will assume that you have included the necessary headers 
-and we will omit explicit references to namespace \verb#vw#.  The 
-exception to this is the complete programs, such as \verb#vwconvert.cc# 
-(Listing~\ref{lst:vwconvert.cc}, above), which are intended to be fully
-self-contained.
+headers.  For brevity, in the examples in this book we will often
+assume that you have included the necessary headers and we will omit
+explicit references to namespace \verb#vw#.  The exception to this is
+the complete programs, such as \verb#vwconvert.cc#
+(Listing~\ref{lst:vwconvert.cc}, above), which are intended to be
+fully self-contained.
 
 By default the dimenions of an \verb#ImageView# are zero, which may not 
 be what you want.  One option is to specify an image's dimensions when 
@@ -109,10 +109,10 @@ already encountered \verb#PixelRGB#, the standard RGB pixel type.  As
 we mentioned earlier, this is a template class whose template
 parameter specifies the underlying numeric data type used to store
 each channel of the pixel.  This is called the pixel's {\it channel
-type}.  The Vision Workbench defines convenient platform-independent
+  type}.  The Vision Workbench defines convenient platform-independent
 names for the standard channel types, so that you never have to worry
-about things like whether \verb#int# or \verb#short# is 16 bits wide
-on your platform.  These Vision Workbench channel types are listed in
+about whether \verb#int# or \verb#short# is 16 bits wide on your
+platform.  These Vision Workbench channel types are listed in
 Table~\ref{tbl:channel-types}.  These are the only channel types with
 which the Vision Workbench has been tested, so it is best to stick to
 these unless you have a compelling reason not to.
@@ -275,11 +275,12 @@ into the image.
   int planes = my_image.planes(); // Now planes == 3
   Pixel pix = my_image(x,y,p);    // Access a pixel
 \end{verbatim}
-However, if you are thinking about using planes you probably have the 
-wrong idea.  If you want a way to store a collection of related images, 
-consider using a \verb#std::vector# of \verb#ImageView#s instead.  If 
-you just want to store a bunch of numbers at each pixel location, 
-consider using \verb#Vector<T,N># as a pixel type.
+Once again, if you are thinking about using planes we encourage you to
+first consider these alternatives.  If you want a way to store a
+collection of related images, consider using a \verb#std::vector# of
+\verb#ImageView#s instead.  If you just want to store a bunch of
+numbers at each pixel location, consider using \verb#Vector<T,N># as a
+pixel type.
 
 \section{Image File I/O}
 
@@ -291,7 +292,7 @@ completeness of implementation.
 \subsection{Reading and Writing Image Files}
 
 The simplest method for file I/O is to use the \verb#read_image()# and 
-\verb #write_image()# functions, passing them an \verb#ImageView# and 
+\verb#write_image()# functions, passing them an \verb#ImageView# and 
 the filename of the image file on disk that you would like to read from 
 or write to.
 \begin{verbatim}
@@ -405,6 +406,7 @@ manipulate their pixels individually.  Now it is time to begin
 discussing how to perform slightly higher-level operations on images.
 
 \subsection{Simple Image Manipulation}
+\label{sec:simple-image-manipulation}
 
 We begin with the simple image manipulation functions listed in
 Table~\ref{tbl:image-manipulation} and defined in the header file
@@ -571,14 +573,14 @@ Function & Description \\ \hline \hline
 \label{tbl:image-algorithms}
 \end{centering}\end{table}
 
-We will now introduce a number of additional simple image operations,
-which are defined in the header file \verb#<vw/Image/Algorithms.h>#.
-You have already seen one of them, \verb#copy()#, which forces the 
-creation of a deep copy of an image in a new buffer.  The rest are 
-listed in Table~\ref{tbl:image-algorithms}.  The result of two of 
-these functions can be seen in Figures~\ref{fig:simple.threshold} 
-and~\ref{fig:simple.clamp}.  We hope to implement a number of 
-additional image algorithms, mirroring the STL container algorithms 
+We will now introduce a number of additional simple image operations
+that are defined in the header file \verb#<vw/Image/Algorithms.h>#.
+You have already seen one of them, \verb#copy()#, which forces the
+creation of a deep copy of an image in a new buffer.  The rest are
+listed in Table~\ref{tbl:image-algorithms}.  The result of two of
+these functions can be seen in Figures~\ref{fig:simple.threshold}
+and~\ref{fig:simple.clamp}.  We hope to implement a number of
+additional image algorithms, mirroring the STL container algorithms
 but optimized for images, at some point in the future.
 
 The \verb#fill()# function is noteworthy because it is currently the

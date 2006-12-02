@@ -37,7 +37,7 @@ GDAL    & Cartography (opt.) & \verb#http://www.remotesensing.org/gdal/# \\ \hli
 %GLEW    & GPU (req.)         & \verb#http://glew.sourceforge.net/#       \\ \hline
 %CG      & GPU (opt.)         & \verb#http://developer.nvidia.com/#       \\ \hline
 \end{tabular}
-\caption{A summary of Vision Workbench dependences.}
+\caption{A summary of Vision Workbench dependencies.}
 \label{tbl:dependencies}
 \end{centering}\end{table}
 
@@ -196,8 +196,8 @@ instead.
 \\
 Users of Mac OS X should be aware that the {\tt libtool} command 
 available in this environment is different than the GNU {\tt libtool} 
-we are discussing here.  On these systems, you will need to download 
-and install GNU {\tt libtool} yourself or use the {\tt libtool} script 
+we are discussing here.  On these systems, you will need to use the 
+{\tt glibtool} command or use the {\tt libtool} script 
 in the root of the VisionWorkbench source distribution directory.}}
 \end{center}
 
@@ -236,12 +236,7 @@ corresponding configuration file variables have the form
 \verb#ENABLE_MODULE_FOO#, in all-caps, and are set to either
 \verb#yes# or \verb#no#.
 
-It is worth mentioning that the Vision Workbench has several
-inter-module dependencies that you should take into account when
-enabling and disabling modules.  These are shown in Figure
-\ref{fig:module-dependencies}.
-
-\begin{figure}[t]
+\begin{figure}[bt]
 \begin{center}
   \includegraphics[width=6in]{images/module_dependencies.pdf}
  \end{center}
@@ -253,6 +248,11 @@ enabling and disabling modules.  These are shown in Figure
     considered the ``foundation'' modules that are part of the most
     basic Vision Workbench distribution.}
 \end{figure}
+
+It is worth mentioning that the Vision Workbench has several
+inter-module dependencies that you should take into account when
+enabling and disabling modules.  These are shown in Figure
+\ref{fig:module-dependencies}.
 
 Two handy options, \verb#--enable-optimize# and \verb#--enable-debug#,
 determine the compiler options used when building the few library

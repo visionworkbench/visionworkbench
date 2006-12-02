@@ -595,7 +595,7 @@ namespace vw {
   // -------------------------------------------------------------------------------
 
   /// Resample the image.  The user specifies the scaling factor in x
-  /// and y and the dimensions of the output image.
+  /// and y.
   template <class ImageT, class EdgeT, class InterpT>
   typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, ResampleTransform> >::type
   inline resample( ImageViewBase<ImageT> const& v, double x_scale_factor, double y_scale_factor, 
@@ -606,7 +606,7 @@ namespace vw {
   }
 
   /// Resample the image.  The user specifies the scaling factor in x
-  /// and y and the dimensions of the output image.
+  /// and y.
   template <class ImageT, class EdgeT>
   TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, ResampleTransform> 
   inline resample( ImageViewBase<ImageT> const& v, double x_scale_factor, double y_scale_factor, 
@@ -617,7 +617,7 @@ namespace vw {
   }
 
   /// Resample the image.  The user specifies the scaling factor in x
-  /// and y and the dimensions of the output image.
+  /// and y.
   template <class ImageT>
   TransformView<InterpolationView<EdgeExtendView<ImageT, ConstantEdgeExtend>, BilinearInterpolation>, ResampleTransform> 
   inline resample( ImageViewBase<ImageT> const& v, 
@@ -676,30 +676,36 @@ namespace vw {
   // -------------------------------------------------------------------------------
 
   /// Translate the image.  The user specifies the offset in x
-  /// and y and the dimensions of the output image.
+  /// and y.
   template <class ImageT, class EdgeT, class InterpT>
   typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TranslateTransform> >::type
   inline translate( ImageViewBase<ImageT> const& v, double x_offset, double y_offset,
                    EdgeT const& edge_func, InterpT const& interp_func) {
-    return transform(v, TranslateTransform(x_offset, y_offset));
+    return transform(v, TranslateTransform(x_offset, y_offset),
+                     v.impl().cols(), v.impl().rows(),
+                     edge_func, interp_func);
   }
 
   /// Translate the image.  The user specifies the offset in x
-  /// and y and the dimensions of the output image.
+  /// and y.
   template <class ImageT, class EdgeT>
   TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TranslateTransform> 
   inline translate( ImageViewBase<ImageT> const& v, double x_offset, double y_offset, 
                    EdgeT const& edge_func) {
-    return transform(v, TranslateTransform(x_offset, y_offset));
+    return transform(v, TranslateTransform(x_offset, y_offset),
+                     v.impl().cols(), v.impl().rows(),
+                     edge_func, BilinearInterpolation());
   }
 
   /// Translate the image.  The user specifies the offset in x
-  /// and y and the dimensions of the output image.
+  /// and y.
   template <class ImageT>
   TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TranslateTransform> 
   inline translate( ImageViewBase<ImageT> const& v, 
                    double x_offset, double y_offset) {
-    return transform(v, TranslateTransform(x_offset, y_offset));
+    return transform(v, TranslateTransform(x_offset, y_offset),
+                     v.impl().cols(), v.impl().rows(),
+                     ZeroEdgeExtend(), BilinearInterpolation());
   }
 
 } // namespace vw

@@ -26,9 +26,9 @@
 /// Image views that can be accessed with real (floating point) pixel
 /// indices.  These image views will perform one of:
 /// 
-/// - bilinear interpolation       ( vw::interpolation::Bilinear()      )
-/// - bicubic interpolation        ( vw::interpolation::Bicubic()       )
-/// - nearest pixel interpolation  ( vw::interpolation::NearestPixel()  )
+/// - bilinear interpolation       ( BilinearInterpolation()      )
+/// - bicubic interpolation        ( BicubicInterpolation()       )
+/// - nearest pixel interpolation  ( NearestPixelInterpolaiton()  )
 ///   (unless the underlying image view can also be accessed using real pixel values)
 ///
 #ifndef __VW_IMAGE_INTERPOLATION_H__
