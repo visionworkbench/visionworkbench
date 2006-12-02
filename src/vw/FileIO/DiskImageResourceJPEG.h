@@ -36,17 +36,14 @@
 
 namespace vw {
 
-  static const int vw_jpeg_default_subsampilng_factor = 1;
-  static const float vw_jpeg_default_quality = 0.85f;
-
   class DiskImageResourceJPEG : public DiskImageResource {
   public:
 
     DiskImageResourceJPEG( std::string const& filename )
       : DiskImageResource( filename )
     {
-      m_subsample_factor = vw_jpeg_default_subsampilng_factor;
-      m_quality = vw_jpeg_default_quality;
+      m_subsample_factor = default_subsampilng_factor;
+      m_quality = default_quality;
       m_file_ptr = NULL;
       m_jpg_compress_header = NULL;
       m_jpg_decompress_header = NULL;
@@ -57,8 +54,8 @@ namespace vw {
                            GenericImageFormat const& format )
       : DiskImageResource( filename )
     {
-      m_subsample_factor = vw_jpeg_default_subsampilng_factor;
-      m_quality = vw_jpeg_default_quality;
+      m_subsample_factor = default_subsampilng_factor;
+      m_quality = default_quality;
       m_file_ptr = NULL;
       m_jpg_compress_header = NULL;
       m_jpg_decompress_header = NULL;
@@ -75,6 +72,9 @@ namespace vw {
     /// a value between 0.0 and 1.0.  The lower the quality, the more
     /// lossy the compression.
     void set_quality(float quality) { m_quality = quality; }
+
+    /// Set the default compression quality of jpeg images.
+    static void set_default_quality(float quality) { default_quality = quality; }
 
     /// Set the subsample factor.  The default is no scaling.  Valid
     /// values are 1, 2, 4, and 8.  Smaller scaling ratios permit
@@ -113,6 +113,10 @@ namespace vw {
     void* m_jpg_decompress_header;
     void* m_jpg_compress_header;
     void* m_file_ptr;
+
+    static int default_subsampilng_factor;
+    static float default_quality;
+
   };
 
 } // namespace vw

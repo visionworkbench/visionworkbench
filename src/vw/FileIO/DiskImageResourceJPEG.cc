@@ -42,6 +42,8 @@ extern "C" {
 #include <jpeglib.h>
 }
 
+int vw::DiskImageResourceJPEG::default_subsampilng_factor = 1;
+float vw::DiskImageResourceJPEG::default_quality = 0.95f;
 
 // This class and the following method are part of the structure for
 // taking control of error handling from the JPEG library.  Here we
@@ -157,10 +159,10 @@ void vw::DiskImageResourceJPEG::create( std::string const& filename,
   // warning message.
   if (format.pixel_format == VW_PIXEL_GRAYA) {
     m_format.pixel_format = VW_PIXEL_GRAY;
-    vw_out(WarningMessage) << "  Warning: alpha channel removed.  ";
+    vw_out(DebugMessage) << "  Warning: alpha channel removed.  ";
   } else if (format.pixel_format == VW_PIXEL_RGBA) {
     m_format.pixel_format = VW_PIXEL_RGB;
-    vw_out(WarningMessage) << "  Warning: alpha channel removed.  ";
+    vw_out(DebugMessage) << "  Warning: alpha channel removed.  ";
   }
 }
 
