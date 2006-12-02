@@ -36,9 +36,9 @@ namespace cartography {
     std::string name;
     std::string spheroid_name;
     std::string meridian_name;
-    double meridian_offset;       /// given in angular units
     double semi_major_axis;
     double semi_minor_axis;
+    double meridian_offset;       /// given in angular units
 
     GeoDatum() : name("Unknown Datum"),
                  spheroid_name("Unknown Spheroid"),

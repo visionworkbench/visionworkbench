@@ -23,14 +23,14 @@
 #ifndef __VW_CARTOGRAPHY_GEOTRANSFORM_H__
 #define __VW_CARTOGRAPHY_GEOTRANSFORM_H__
 
-#include <vw/Image/Transform.h>
 #include <vw/Math/Vector.h>
+#include <vw/Image/Transform.h>
 #include <vw/Cartography/GeoReference.h>
 
 namespace vw {
 namespace cartography {
 
-  class GeoTransform {
+  class GeoTransform : public TransformBase<GeoTransform> {
     
     GeoReference m_src_georef, m_dst_georef;
     Matrix<double,3,3> m_inv_src_transform, m_inv_dst_transform;; 

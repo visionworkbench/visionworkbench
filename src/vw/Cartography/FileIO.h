@@ -93,7 +93,7 @@ namespace cartography {
       static_cast<DiskImageResourceGDAL*>(r)->write_georeference(georef);
       r->write_generic( buf );
       delete r;
-      buf.data += buf.pstride;
+      buf.data = (uint8*)buf.data + buf.pstride;
     }
   }
 

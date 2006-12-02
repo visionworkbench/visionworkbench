@@ -324,7 +324,7 @@ namespace vw {
   /// Crop an image.
   template <class ImageT, class BBoxRealT>
   inline CropView<ImageT> crop( ImageViewBase<ImageT> const& v, BBox<BBoxRealT,2> const& bbox ) {
-    return CropView<ImageT>( v.impl(), bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height() );
+    return CropView<ImageT>( v.impl(), bbox.min().x(), bbox.min().y(), int(round(bbox.width())), int(round(bbox.height())) );
   }
 
 
