@@ -232,6 +232,14 @@ namespace math {
       return *this;
     }
 
+    /// Scales the bounding box relative to the origin.
+    template <class ScalarT>
+    BBox& operator/=( ScalarT s ) {
+      m_min /= s;
+      m_max /= s;
+      return *this;
+    }
+
     /// Offsets the bounding box by the given vector.
     BBox& operator+=( Vector<RealT,DimN> const& v ) {
       m_min += v;
