@@ -105,7 +105,7 @@ namespace vw {
   {
   private:
     EdgeExtendView<ImageT,EdgeT> m_image;
-    RemapView<KernelT,-1,-2,-1,-2> m_kernel;
+    Rotate180View<KernelT> m_kernel;
     int m_ci, m_cj;
 
   public:

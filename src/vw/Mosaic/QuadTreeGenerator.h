@@ -85,7 +85,7 @@ namespace mosaic {
 
 
     void generate() {
-      unsigned maxdim = std::max( m_bbox.width(), m_bbox.height() );
+      unsigned maxdim = std::max( m_source.cols(), m_source.rows() );
       unsigned tree_levels = 1 + unsigned( ceilf( log( maxdim/(float)(m_patch_size-m_patch_overlap) ) / log(2.0) ) );
       m_patch_cache.resize( tree_levels );
       m_filename_cache.resize( tree_levels );
