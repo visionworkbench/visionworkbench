@@ -30,6 +30,6 @@ clean:
 	rm -rf *.o *~ \#* *.aux *.log $(GENERATED_IMAGES)
 
 distclean: clean
-	rm -rf generate workbook.pdf .libs
+	rm -rf generate workbook.toc workbook.pdf .libs
 
 .PHONY: images
