@@ -160,7 +160,7 @@ namespace hdr {
 
     // Compute camera response curve for each channel. See CameraCurve.h.
     for ( unsigned i = 0; i < n_channels; ++i ) {
-      estimate_camera_curve(pairs[i], curves[i], VW_HDR_RESPONSE_POLYNOMIAL_ORDER);
+      estimate_inverse_camera_curve(pairs[i], curves[i], VW_HDR_RESPONSE_POLYNOMIAL_ORDER);
     }
 
     ret_curves = curves;
@@ -190,6 +190,7 @@ namespace hdr {
   /// infer the exposure ratios between images.
   vw::ImageView<vw::PixelRGB<double> > process_ldr_images_exif(std::vector<std::string> const& filenames,
                                                                std::vector<vw::Vector<double> > &ret_curves);
+
   
 }} // vw::HDR 
         

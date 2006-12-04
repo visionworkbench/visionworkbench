@@ -1,0 +1,160 @@
+\chapter{The Cartography Module}\label{ch:cartography-module}
+
+[{\em Note: The documentation for this chapter is not yet complete... ]}
+$$
+$$ 
+The earliest robots in space were not planetary rovers -- they were
+unmanned probes that studied the planetary bodies in our solar system
+from afar.  Today there are roughly twenty extraterrestrial spacecraft
+in active communication with earth (and only two planetary rovers), so
+the bulk of the extraterrestrial data that we receive consists of
+imagery that originated on round(ish) surfaces.  The natural thing to
+do with this data is to merge it together into a map, but when doing
+so we are faced with the same problem that has plagued cartographers
+for hundreds of years: how does one flatten the globe?  The is the job
+of the Vision Workbench Cartography module: to make maps.
+
+Before diving into an introduction on planetary cartography, we will
+point out another problem that is relatively new to Cartography.  The
+amount of map data that we have collected about Earth and the other
+bodies in our solar system is {\em immense}.  It is often impossible
+to store an entire mapping data set in memory all at once, so
+intelligent paging, caching, and storage strategies must be used in
+order to make working with this data tractable.  For this reason, the
+Cartography module is particularly powerful when used in conjunction
+with Mosaic module (see Chapter \ref{ch:mosaic-module}), which is
+designed to efficiently process and combine extremely large data sets.
+
+We will begin this chapter with a quick summary of the third party
+libraries that are needed to compile the Vision Workbench.  We will
+then describe the \verb#GeoRefence# class, which creates a
+relationship between pixel coordinates in an image and coordinates on
+a globe.  Next, we will discuss the \verb#GeoTransform# class, which
+provides a simple means of reprojecting map data.  We finish this
+section with methods for reading and writing image files with embedded
+geospatial metadata.
+
+\section{Software Dependencies}
+
+The Cartography module is currently built on top of two third party
+libraries:
+
+\begin{itemize}
+\item GDAL   [ {\tt http://www.remotesensing.org/gdal/ } ]
+\item Proj.4 [ {\tt http://proj.maptools.org/ }]
+\end{itemize}
+
+In order to enable the Cartography module, you must have these
+libraries installed on your system before you configure and build the
+Vision Workbench.  You may need to use the \verb#PKG_PATHS# directive
+in the \verb#config.options# file if you install them in a
+non-standard location as discussed in Chapter \ref{ch:gettingstarted}.
+
+Once the library for the Cartography module has been built, the header
+files for GDAL and Proj.4 are no longer needed, so you can rely solely
+on linking in libraries when building your own application.
+
+\section{The {\tt GeoReference} Class}
+
+When you point at a location on a map, you probably want to know where
+that location can be found in the real world.  This relationship
+depends first and foremost on the familiar notion of a map's scale.
+However, this relationship is also affected by a subtle, but extremely
+important dependence on how the map is {\em projected}.  That is, the
+image depicts a scene that sits on the surface of a spheroid.
+However, the image is flat, so at best it represents a very slightly
+distorted view of the surface.  
+
+One can image all sorts of different ways that the surface can be
+warped or projected onto a flat plane (or, at the very least,
+projecting onto a manifold that can be unfolded into a plane without
+distorting distances and areas -- a sphere cannot be unfolded in this
+way).  Generations of cartographers have struggled with this
+topological challenge, and as a result they have developed many
+different ways to ``un-fold'' the globe so that it can be represented
+as a flat image.  Rather than attempt a description of these many
+techniques here, we suggest you look at this excellent web site
+describing all aspects of map projections.
+
+\begin{verbatim}
+  http://www.progonos.com/furuti/MapProj/CartIndex/cartIndex.html
+\end{verbatim}
+
+The Proj.4 manual is also recommended as a reference for the specific
+map projections supported by the Vision Workbench.
+
+Now would be a good time to take a break from reading this section of
+the documentation to look over these references.  When you return, we
+will dive into some code examples.  
+
+\subsection{The Datum}
+
+A Vision Workbench \verb#GeoReference# object is composed of three items:
+
+\begin{itemize}
+\item {\bf The Projection}: As discussed above, this is the technique
+  used to represent the round globe in a flat image.
+\item {\bf The Affine Transform}: This is the geometric transformation
+  between pixel coordinates in the image to coordinates in the map
+  projection space.
+\item {\bf The Datum}: Describes the approximate shape of the
+  planetary body, as either a sphere or an ellipsoid.
+\end{itemize}
+
+\subsection{The Affine Transform}
+
+Let's start by being explicit about the coordinate systems we will be
+working with.  For images, we adopt the usual Vision Workbench
+coordinate system wherin the upper left corner of the image is the
+origin, the $u$ coordinate increases as you move right along the
+columns of the image, and the $v$ coordinate increases as you move
+down the rows.  
+
+For a planetary body, the coordinate of a point on the surface is
+typically measured in latitude, longitude, and radius ($\phi, \theta,
+r$).  Lines of latitude are perpindicular to the axis of rotation and
+are measured from the center line, the {\em equator} (+/-90 degrees).
+Lines of Longitude are vertical, passing through both the North and
+South poles of the planet.  It is measured from a vertical arc on the
+surface called the {\em meridian}.  We will generally adopt an East
+positive frame of reference (latitude increases to the east of the
+meridian 0-360 degrees).  Finally, the radius is measured from the
+point to the planet's center of mass.  Note that this coordinate
+system is similar but not identical to spherical coordinates in a
+mathematical sense, where ``latitude'' would be measured from the
+North pole rather than the equator.
+
+Under this set of assumptions, if we have a point $P_{img} = (u,v)$ in
+the image, and we want to relate it to some planetary coordinates
+
+\subsection{Putting Things Together}
+%% - The GeoReference Object
+%%   - Creating 
+%%     - proj4str
+%%     - datum and transform
+%%   - << streamings
+%%   - Setting projections
+
+\begin{table}[t]\begin{centering}
+\begin{tabular}{|l|l|l|} \hline
+Method & Description \\ \hline \hline
+\verb#set_sinusoidal()# & Sinusoidal Projection \\ \hline
+\verb#set_mercator()# & Mercator Projection \\ \hline
+\verb#set_orthographic()# & Orthographic Projection \\ \hline
+\verb#set_stereographic()# & Stereographic Projection \\ \hline
+\verb#set_UTM()# & Universal Transverse Mercator (UTM) Projection (Earth only) \\ \hline
+\end{tabular}
+\caption{Currently supported {\tt GeoReference} map projections.}
+\label{tbl:georeference-map-projections}
+\end{centering}\end{table}
+
+
+\section{Geospatial Image Processing}
+\subsection{The {\tt GeoTransform} Functor}
+%%     - Use to reproject maps 
+%%     - Formulate a source and destination \verb#GeoReference# object
+%%     - 
+%%   - \verb#xyz_to_latlon()#
+
+\section{Georeferenced File I/O}
+\subsection{{\tt DiskImageResourceGDAL}}

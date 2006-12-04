@@ -77,7 +77,7 @@ void process_ldr_images_pano(vector<PanoImage> &images, vector<double> const &br
 
   // Compute camera response curves
   for (int i = 0; i < 3; i++) {
-    estimate_camera_curve(pairs[i], curves[i], RESPONSE_POLYNOMIAL_ORDER);
+    estimate_inverse_camera_curve(pairs[i], curves[i], RESPONSE_POLYNOMIAL_ORDER);
   }
 
   ret_curves = curves;
@@ -203,7 +203,7 @@ void generate_intensity_pairs_pano(vector<PanoImage> &images, int pano_width, in
   }
 
   // Populate pairs matrices (for benefit of CameraCurve functions)
-  // We could write an overloaded version of estimate_camera_curves instead.
+  // We could write an overloaded version of estimate_inverse_camera_curves instead.
   pairs.clear();
   for (int channel = 0; channel < 3; channel++) {
     Matrix<double> pair_mat(i_pairs.size(), 3);

@@ -28,7 +28,6 @@
 #include <vw/Math/Matrix.h>
 #include <vw/Core/Exception.h>
 #include <vw/Cartography/Datum.h>
-#include <vw/Cartography/Projection.h>
 
 // Boost
 #include <boost/algorithm/string.hpp>
@@ -77,7 +76,7 @@ namespace cartography {
     const std::string   wkt_str()    const { return m_wkt_str; }
     const void*         spatial_ref_ptr() const;
     GeoDatum datum() const;
-    GeoProjection projection() const;
+    std::string projection_name() const;
     Matrix<double,3,3> transform() const {
       return m_transform;
     }
@@ -90,20 +89,25 @@ namespace cartography {
     void set_well_known_geogcs(std::string name);
 
     /// Set this georeference to use a sinusoidal projection
-    void set_sinusoidal(double center_longitude, 
-                        double false_easting = 0,
-                        double false_northing = 0);
+    void set_sinusoidal(double center_longitude, double false_easting = 0, double false_northing = 0);
+    /// Use mercator projection
+    void set_mercator(double center_latitude, double center_longitude, double scale, double false_easting = 0, double false_northing = 0);
+    /// Use orthographic projection
+    void set_orthographic(double center_latitude, double center_longitude, double false_easting = 0, double false_northing = 0);
+    /// Use steregraphic projection
+    void set_stereographic(double center_latitude, double center_longitude, double scale, double false_easting = 0, double false_northing = 0);
+    /// Use Universal Transverse Mercator (UTM) projection
+    void set_UTM(int zone, int north=true);
   };
   
   inline std::ostream& operator<<(std::ostream& os, const GeoReference& georef) {
     os << "-- Geospatial Reference Object --\n";
     os << "\tTransform  : " << georef.transform() << "\n";
     os << "\t" << georef.datum() << "\n";
-    os << "\t" << georef.projection() << "\n";
+    os << "\t" << georef.projection_name() << "\n";
     os << "\tProj.4: " << georef.proj4_str() << "\n";
     return os;
   }
-
 
   template <class ElemT>
   class XYZtoLatLonFunctor : public UnaryReturnSameType {

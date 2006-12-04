@@ -28,7 +28,7 @@
 if MAKE_MODULE_CARTOGRAPHY
 
 include_HEADERS = DiskImageResourceGDAL.h FileIO.h GeoReference.h    	\
-                  GeoTransform.h Datum.h Projection.h
+                  GeoTransform.h Datum.h
 
 
 libvwCartography_la_SOURCES = DiskImageResourceGDAL.cc GeoReference.cc \

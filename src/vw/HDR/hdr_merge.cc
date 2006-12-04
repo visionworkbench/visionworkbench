@@ -90,11 +90,6 @@ int main( int argc, char *argv[] ) {
       return 1;
     }
 
-    if( vm.count("exposure-ratio") != 0 ) {
-      std::cout << "RATIO!" << vm.count("exposure-ratio") << std::endl;
-      return 1;
-    }
-
     bool verbose = true;
     if ( vm.count("verbose") == 0 ) {
       verbose = false;
@@ -110,10 +105,9 @@ int main( int argc, char *argv[] ) {
     // Process HDR stack using Exif tags.
     if (verbose) { std::cout << "Merging images into a single HDR luminance map.\n"; }
     ImageView<PixelRGB<float> > hdr;
-    try {
-      hdr = process_ldr_images_exif(filenames, curves);
-    } catch (vw::camera::ExifErr &e) {
 
+    // User has provided an explicit exposure ratio
+    if( vm.count("exposure-ratio") != 0 ) {
       // In the absence of EXIF data, we must rely on the
       // user-provided exposure ratio and read in the images
       // ourselvelves.
@@ -136,8 +130,18 @@ int main( int argc, char *argv[] ) {
       
       // Using the images and the camera curves, assemble the HDR image.
       hdr = process_ldr_images(images, curves, ratio);
+
+
+    // No exposure ratio supplied.  
+    } else { 
+      try {
+        hdr = process_ldr_images_exif(filenames, curves);
+      } catch (vw::camera::ExifErr &e) {
+        std::cout << "Error: could not parse EXIF data from images and no exposure ratio was supplied.  \nExiting.\n\n";
+        exit(1);
+      }
     }
-    
+
     if( vm.count("generate-curves") != 0 ) {
       write_curves_file(generated_curves_file, curves);
     }
@@ -146,7 +150,7 @@ int main( int argc, char *argv[] ) {
     write_image(output_filename, hdr);
 
   } catch (vw::Exception &e) {
-    std::cout << "hdr_stack: a Vision Workbench error occurred: \n\t" << e.what() << "\nExiting.\n\n";  
+    std::cout << argv[0] << ": a Vision Workbench error occurred: \n\t" << e.what() << "\nExiting.\n\n";  
     return 1;
   }  
   return 0;

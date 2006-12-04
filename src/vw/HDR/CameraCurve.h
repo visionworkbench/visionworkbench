@@ -76,9 +76,9 @@ namespace hdr {
    * photos that are seperated by 1 f-stop, the ratios in the third 
    * column of pixel_pairs should be powers of sqrt(2).
    * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-  void estimate_camera_curve(vw::Matrix<double> &pixel_pairs,
-                             vw::Vector<double> &poly,
-                             unsigned int polynomial_order);
+  void estimate_inverse_camera_curve(vw::Matrix<double> &pixel_pairs,
+                                     vw::Vector<double> &poly,
+                                     unsigned int polynomial_order);
     
   void invert_curve(vw::Vector<double> &curve, vw::Vector<double> &inverse,
                       unsigned int polynomial_order,
@@ -199,7 +199,7 @@ namespace hdr {
       
       // Compute camera response curve for each channel. 
       for ( unsigned i = 0; i < n_channels; ++i ) {
-        estimate_camera_curve(pairs[i], curves[i], VW_HDR_RESPONSE_POLYNOMIAL_ORDER);
+        estimate_inverse_camera_curve(pairs[i], curves[i], VW_HDR_RESPONSE_POLYNOMIAL_ORDER);
       }
       
       return curves;

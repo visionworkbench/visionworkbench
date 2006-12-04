@@ -29,11 +29,12 @@ if MAKE_MODULE_CAMERA
 
 if HAVE_PKG_LAPACK
 lsm_headers = Extrinsics.h LinescanModel.h LinearPushbroomModel.h	\
-              OrbitingPushbroomModel.h
+              OrbitingPushbroomModel.h 
 endif
 
-include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h							\
-                  CameraTransform.h Exif.h ExifData.h $(lsm_headers)
+include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h						\
+                  CameraTransform.h Exif.h ExifData.h BayerFilter.h	\
+                  $(lsm_headers)
 
 libvwCamera_la_SOURCES = CAHVModel.cc CAHVORModel.cc Exif.cc ExifData.cc
 
@@ -41,9 +42,11 @@ libvwCamera_la_LIBADD = @MODULE_CAMERA_LDFLAGS@
 
 lib_LTLIBRARIES = libvwCamera.la
 
-bin_PROGRAMS = print_exif 
+bin_PROGRAMS = print_exif bayer
 print_exif_SOURCES = print_exif.cc 
+bayer_SOURCES = bayer.cc
 print_exif_LDFLAGS = @PKG_CAMERA_LDFLAGS@
+bayer_LDFLAGS = @PKG_CAMERA_LDFLAGS@
 
 endif
 

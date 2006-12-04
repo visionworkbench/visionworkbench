@@ -94,9 +94,9 @@ namespace hdr {
    * photos that are seperated by 1 f-stop, the ratios in the third 
    * column of pixel_pairs should be powers of sqrt(2).
    */
-  void estimate_camera_curve(Matrix<double> &pixel_pairs,
-                             Vector<double> &poly,
-                             unsigned int polynomial_order) {
+  void estimate_inverse_camera_curve(Matrix<double> &pixel_pairs,
+                                     Vector<double> &poly,
+                                     unsigned int polynomial_order) {
   
     /* 
      * Initialize the polynomial coefficients to 1.0

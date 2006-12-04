@@ -89,7 +89,7 @@ namespace cartography {
       (dst_transform(2,0) + dst_transform(2,1) + dst_transform(2,2));
     projected.v = v[0] * dst_transform(1,0) + v[1] * dst_transform(1,1) + dst_transform(1,2) /
       (dst_transform(2,0) + dst_transform(2,1) + dst_transform(2,2));
-    
+
     // Proj.4 expects the (lon,lat) pair to be in radians, so we
     // must make a conversion if the CS in geographic (lat/lon).
     if ( !m_dst_georef.is_projected() ) {
@@ -112,8 +112,10 @@ namespace cartography {
     // Return the point multiplied by the inverse of the source
     // affine transform.  This places the projected coordinate back
     // into pixel space.
-    return Vector2(projected.u * m_inv_src_transform(0,0) + projected.v * m_inv_src_transform(0,1) + m_inv_src_transform(0,2) / (m_inv_src_transform(2,0) + m_inv_src_transform(2,1) + m_inv_src_transform(2,2)), 
-                   projected.u * m_inv_src_transform(1,0) + projected.v * m_inv_src_transform(1,1) + m_inv_src_transform(1,2) / (m_inv_src_transform(2,0) + m_inv_src_transform(2,1) + m_inv_src_transform(2,2)));
+    return Vector2(projected.u * m_inv_src_transform(0,0) + projected.v * m_inv_src_transform(0,1) + m_inv_src_transform(0,2) / 
+                     (m_inv_src_transform(2,0) + m_inv_src_transform(2,1) + m_inv_src_transform(2,2)), 
+                   projected.u * m_inv_src_transform(1,0) + projected.v * m_inv_src_transform(1,1) + m_inv_src_transform(1,2) / 
+                     (m_inv_src_transform(2,0) + m_inv_src_transform(2,1) + m_inv_src_transform(2,2)));
   }
 
   Vector2 GeoTransform::forward(Vector2 const& v) const {
@@ -124,7 +126,7 @@ namespace cartography {
       (src_transform(2,0) + src_transform(2,1) + src_transform(2,2));
     projected.v = v[0] * src_transform(1,0) + v[1] * src_transform(1,1) + src_transform(1,2) /
       (src_transform(2,0) + src_transform(2,1) + src_transform(2,2));
-    
+
     if ( !m_src_georef.is_projected() ) {
       projected.u *= DEG_TO_RAD;
       projected.v *= DEG_TO_RAD;
@@ -137,7 +139,7 @@ namespace cartography {
       projected.u *= RAD_TO_DEG;
       projected.v *= RAD_TO_DEG;
     }
-    
+
     return Vector2(projected.u * m_inv_dst_transform(0,0) + projected.v * m_inv_dst_transform(0,1) + m_inv_dst_transform(0,2) / (m_inv_dst_transform(2,0) + m_inv_dst_transform(2,1) + m_inv_dst_transform(2,2)), 
                    projected.u * m_inv_dst_transform(1,0) + projected.v * m_inv_dst_transform(1,1) + m_inv_dst_transform(1,2) / (m_inv_dst_transform(2,0) + m_inv_dst_transform(2,1) + m_inv_dst_transform(2,2)));
   }

@@ -497,15 +497,15 @@ void vw::camera::ExifData::print_debug() {
   for (iterator tag = tags.begin(); tag != tags.end(); tag++) {
     printf("Tag %04x: ", (*tag).first);
     switch ((*tag).second.type) {
-      case IntType:
-	printf("%i\n", (*tag).second.value.i);
-	break;
-      case DoubleType:
-	printf("%f\n", (*tag).second.value.d);
-	break;
-      case StringType:
-	printf("%s\n", (*tag).second.value.s);
-	break;
+    case IntType:
+      printf("%i\n", (*tag).second.value.i);
+      break;
+    case DoubleType:
+      printf("%f\n", (*tag).second.value.d);
+      break;
+    case StringType:
+      printf("%s\n", (*tag).second.value.s);
+      break;
     }
   }
 }

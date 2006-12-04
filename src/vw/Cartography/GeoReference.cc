@@ -178,15 +178,13 @@ namespace cartography {
   }
 
   /// Returns a GeoProjection object.
-  GeoProjection GeoReference::projection() const {
+  std::string GeoReference::projection_name() const {
     OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
 
-    GeoProjection projection;
     // Set up the parameters for this mapping projection
     const char* projection_name = gdal_spatial_ref.GetAttrValue("PROJECTION");
-    if (projection_name) { projection.name = projection_name; }
-
-    return projection;
+    if (projection_name) { return projection_name; }
+    else { return "NONE"; }
   }
 
   void GeoReference::set_well_known_geogcs(std::string name) {
@@ -195,13 +193,34 @@ namespace cartography {
     set_spatial_ref(&gdal_spatial_ref);
   }
 
-  void GeoReference::set_sinusoidal(double center_longitude, 
-                                    double false_easting,
-                                    double false_northing) {
+  void GeoReference::set_sinusoidal(double center_longitude, double false_easting, double false_northing) {
     OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
     gdal_spatial_ref.SetSinusoidal(center_longitude, false_easting, false_northing);
     set_spatial_ref(&gdal_spatial_ref);
   }
-
   
+  void GeoReference::set_mercator(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
+    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
+    gdal_spatial_ref.SetMercator(center_latitude, center_longitude, scale, false_easting, false_northing);
+    set_spatial_ref(&gdal_spatial_ref);
+  }
+
+  void GeoReference::set_orthographic(double center_latitude, double center_longitude, double false_easting, double false_northing) {
+    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
+    gdal_spatial_ref.SetOrthographic(center_latitude, center_longitude, false_easting, false_northing);
+    set_spatial_ref(&gdal_spatial_ref);  
+  }
+
+  void GeoReference::set_stereographic(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
+    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
+    gdal_spatial_ref.SetStereographic(center_latitude, center_longitude, scale, false_easting, false_northing);
+    set_spatial_ref(&gdal_spatial_ref);
+  }
+  
+  void GeoReference::set_UTM(int zone, int north) {
+    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
+    gdal_spatial_ref.SetUTM(zone, north);
+    set_spatial_ref(&gdal_spatial_ref);    
+  }
+
 }} // vw::cartography
