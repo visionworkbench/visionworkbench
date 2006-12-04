@@ -1,7 +1,7 @@
 \chapter{Getting Started}\label{ch:gettingstarted}
 
 This chapter describes how to set up and start using the Vision
-Workbench.  It describes how to obtain the Vision Workbench and its
+Workbench.  It explains how to obtain the Vision Workbench and its
 prerequisite libraries, how to build and install it, and how to build
 a simple example program.  This chapter does {\it not} discuss how to
 program using the Vision Workbench.  If that's what you're looking for
@@ -10,7 +10,7 @@ then skip ahead to Chapter~\ref{ch:workingwithimages}.
 \section{Obtaining the Vision Workbench}
 
 Most likely if you are reading this document then you already know 
-where to obtain a copy of the Vision Workbench sources, if you haven't 
+where to obtain a copy of the Vision Workbench sources if you haven't 
 obtained them already.  However, if not, a link to the most up-to-date 
 distribution will always be available from the NASA Ames open-source 
 software website, at \verb#opensource.arc.nasa.gov#.
@@ -26,7 +26,7 @@ Boost versions 1.32 and later.
 
 \begin{table}[t]\begin{centering}
 \begin{tabular}{|l|l|l|} \hline
-Name    & Used By            & Source                                   \\ \hline \hline
+Name    & Used By            & Source                                    \\ \hline \hline
 Boost   & All                & \verb#http://www.boost.org/#              \\ \hline
 PNG     & FileIO (opt.)      & \verb#http://www.libpng.org/#             \\ \hline
 JPEG    & FileIO (opt.)      & \verb#http://www.ijg.org/#                \\ \hline
@@ -95,9 +95,10 @@ libraries, such as the JPEG, PNG, and TIFF libraries, are available
 online from the GnuWin32 project at \verb#gnuwin32.sourceforge.net#.
 You will need to configure your project's include file and library
 search paths appropriately.  Also be sure to configure your project to
-define the preprocessor symbol NOMINMAX to disable the non-portable
-Windows definitions of \verb#min()# and \verb#max()# macros which
-interfere with the standard C++ library functions of the same names.
+define the preprocessor symbol \verb#NOMINMAX# to disable the
+non-portable Windows definitions of \verb#min()# and \verb#max()#
+macros, which interfere with the standard C++ library functions of the
+same names.
 
 \section{A Trivial Example Program}
 

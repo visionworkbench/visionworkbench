@@ -27,14 +27,18 @@ Workbench images, an \verb#ImageComposite# is templatized on its pixel
 type.  In most cases you will want to use a pixel type that has an
 alpha channel, and if you want to perform image blending then the
 pixel type must be floating-point, so the most common pixel type is
-\verb#PixelRGBA<float32>#.  You can then configure whether you would 
-like to use multi-band blending to merge your images or if you would 
-simply like them overlayed by using the \verb#set_draft_mode()# 
-method.  It takes a single argument which sould be \verb#true# if 
-you simply want to overlay the images and \verb#fales# if you want 
-to use the blender.  Blending is a significantly more expensive 
-operation.  If your images do not overlap but are simply tiles then 
-draft mode is probably what you want. 
+\verb#PixelRGBA<float32>#.  You can then configure whether you would
+like to use multi-band blending to merge your images or if you would
+simply like them overlayed by using the \verb#set_draft_mode()#
+method.  It takes a single argument which sould be \verb#true# if you
+simply want to overlay the images and \verb#fales# if you want to use
+the blender.  Blending is a significantly more expensive operation.
+If your images are simply tiles and do not overlap then draft mode is
+probably what you want.  In blending mode you also have the option of
+asking the blender to attempt to fill in any missing
+(i.e. transparent) data in the composite using information from the
+neighboring pixels.  You can enable or disable this behavior by
+calling the the \verb#set_fill_holes()# method.
 
 Once you have created the composite object, you add source images to
 it using the \verb#insert()# method, which takes three arguments: the
@@ -48,18 +52,20 @@ objects.  Note that only integer pixel offsets are supported: if you
 want to shift an image by a fractional amount you will first need to
 transform it accordingly.  In most cases you will need to
 pre-transform your source images anyway, so this applies no extra
-cost.
+cost.  
 
-Once you have added all your images, be sure to call the 
-\verb#ImageComposite#'s \verb#prepare()# method.  This method takes 
-no arguments, but it does two things.  First, it computes the 
-overall bounding box of the images that you have supplied, and 
-shifts the coordinate system so that the minimum pixel location 
-is $(0,0)$ as usual.  Second, if multi-band blending is enabled, 
-it generates a series of mask images that are used by the blender. 
-Currently these are saved as files in the current working directory. 
-This is admittedly inconvenient behavior and will be changed in a 
-future release.
+Once you have added all your images, be sure to call the
+\verb#ImageComposite#'s \verb#prepare()# method.  This method takes no
+arguments, but it does two things.  First, it computes the overall
+bounding box of the images that you have supplied, and shifts the
+coordinate system so that the minimum pixel location is $(0,0)$ as
+usual.  (For advanced users, if you prefer to use a different overall
+bounding box you may compute it yourself and pass it as an optional
+\verb#BBox2i# argument to the \verb#prepare()# method.)  Second, if
+multi-band blending is enabled, it generates a series of mask images
+that are used by the blender.  Currently these are saved as files in
+the current working directory.  This is admittedly inconvenient
+behavior and will be changed in a future release.
 
 Now that you've assembled and prepared your composite you can use 
 it just like an ordinary image, except that per-pixel access is 
@@ -108,8 +114,8 @@ blender.\protect\footnotemark }
   \subfigure[Draft mode (simple overlay)]{\includegraphics[width=6.5in]{images/kiabab-draft.jpg}\label{fig:kiabab.draft}}
   \\
   \subfigure[Multi-band blending]{\includegraphics[width=6.5in]{images/kiabab-blend.jpg}\label{fig:kiabab.blend}}
-\caption{A twelve-image mosaic composited using an {\tt ImageMosaic} object, first in 
-draft mode (a) and then musing multi-band blending (b).}
+\caption{A twelve-image mosaic composited using an {\tt ImageMosaic} object, first (a) in 
+draft mode and then (b) using multi-band blending.}
 \label{fig:blend.kiabab}
 \end{figure}
 
@@ -135,7 +141,7 @@ at twice the resolution.  The resulting quad-tree of images is stored
 on disk in a hierarchical manner, making it easy to instantly access any 
 tile at any resolution.
 
-Like most everything else in the Vision Workbench, a \verb#ImageQuadTreeGenerator# 
+Like many things in the Vision Workbench, an \verb#ImageQuadTreeGenerator# 
 is templatized on its pixel type.  The constructor takes two arguments, 
 the pathname of the tree to be created on disk and the source image. 
 You can then use several member functions to configure the quad-tree 
@@ -210,10 +216,11 @@ In other words, taken together these second bounding boxes perfectly
 tile the entire image without overlap.  Finally, the last two values
 describe the width and height of the entire source image in pixels.
 
-This file format is obviously quite arbitrary.  In a future release 
-we hope to provide hooks to allow the user to specify their own 
-meta-data formats, and we may change the default format to something 
-more flexible.
+This file format is obviously quite arbitrary, and was designed to 
+make it easy to write scripts to manipulate the quadtree data later.  
+If you prefer, you can subclass the quadtree generator and overload 
+the \verb#write_meta_file()# function to generate metadata of a 
+different sort.
 
 \begin{figure}[t]
 \centering

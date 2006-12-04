@@ -293,6 +293,8 @@ to:
 
   vision-workbench-owner@lists.nasa.gov
 
+Please do NOT use this second list for technical inquiries, which 
+should all be sent to the main vision-workbench list above.
 
 B. Credits
 
@@ -306,16 +308,6 @@ collaboration with the Adaptive Control and Evolvable Systems (ACES)
 group, and draws on their experience developing computer vision 
 techniques for autonomous vehicle control systems.
 
-The lead developers are:
-Laurence Edwards (IRG, Project Manager): Core, Math, Mosaic
-Michael Broxton (IRG): Core, Math, GPU, HDR, Camera, Cartography
-Matthew Hancher (ACES): Core, Math, InterestPoint, Mosaic
-
-Additional development by:
-Kerri Cahoy (IRG): testing
-Matthew Deans (IRG): InterestPoint
-Patrick Mihelich (IRG): HDR
-Aaron Rolett (IRG): Mosaic
-Randy Sargent (CMU/IRG): Mosaic
-Ian Saxton (IRG): GPU
-
+The lead developers of the Vision Workbench are Laurence Edwards 
+(IRG, Project Manager), Michael Broxton (IRG), and Matthew Hancher 
+(ACES).  See the AUTHORS file for a complete list of developers.
