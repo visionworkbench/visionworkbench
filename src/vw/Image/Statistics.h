@@ -27,7 +27,7 @@
 /// mean value of an image on a per-channel basis.  
 ///
 
-// TODO: How do we deal with alpha channels here?
+// FIXME: How do we deal with alpha channels here?
 #ifndef __VW_IMAGE_STATISTICS_H__
 #define __VW_IMAGE_STATISTICS_H__
 

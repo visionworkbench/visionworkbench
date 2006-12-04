@@ -146,7 +146,7 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
   uint32 plane_configuration = 0;
   TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &plane_configuration);
 
-  // XXX TODO: Tiff might actually provide us with some info on
+  // FIXME: Tiff might actually provide us with some info on
   // colorimetric interpretation of the channels, so maybe we should
   // try to use that here as well?
   if( plane_configuration == PLANARCONFIG_CONTIG ) {

@@ -249,7 +249,7 @@ private:
   ///     otherwise, ip2[indx[i]] is best match to ip[i] AND ip[i] is best match to ip2[indx[i]].
 	std::vector<int> bimatch_index(std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2) const
 	{
-		std::vector<int> indx12 = match_index(ip1,ip2);		// TODO: use pthreads to create seperate thread for this, to run in
+		std::vector<int> indx12 = match_index(ip1,ip2);		// FIXME: use pthreads to create seperate thread for this, to run in
                                                     // parallel with computation of indx21 (both readonly access to ip1, ip2).
 		
 		//std::vector<int> indx21 = match_index(ip2, ip1);

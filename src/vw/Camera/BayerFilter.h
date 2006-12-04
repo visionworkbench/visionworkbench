@@ -45,8 +45,8 @@ namespace camera {
 
     ImageView<PixelRGB<channel_type> > output_image(view.cols(), view.rows());
 
-    for(int j=0;j<output_image.rows();++j) {
-      for(int i=0;i<output_image.cols();++i) {
+    for( unsigned j=0; j<output_image.rows(); ++j ) {
+      for( unsigned i=0; i<output_image.cols(); ++i ) {
         if((i%2)!=(j%2)) { //green
           g=view(i+1,j+1).v();
           if(i%2) {

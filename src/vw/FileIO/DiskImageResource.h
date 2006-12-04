@@ -207,10 +207,6 @@ namespace vw {
   template <class PixelT>
   void read_image( ImageView<PixelT>& in_image, const std::string &filename ) {
 
-    // XXX If there's an asterisk in the filename, handle it here.
-    if( boost::find_last(filename,"*") )
-      throw NoImplErr() << "File-per-plane reading is not yet supported.";
-
     vw_out(InfoMessage+1) << "\tLoading image: " << filename << "\t";
 
     // Open the file for reading

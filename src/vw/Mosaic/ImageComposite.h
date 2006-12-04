@@ -166,6 +166,7 @@ namespace mosaic {
     int mindim, levels;
     bool m_draft_mode;
     bool m_fill_holes;
+    bool m_reuse_masks;
     Cache& m_cache;
     std::vector<Cache::Handle<SourceGenerator> > sources;
     std::vector<Cache::Handle<AlphaGenerator> > alphas;
@@ -179,7 +180,7 @@ namespace mosaic {
   public:
     typedef pixel_type result_type;
     
-    ImageComposite() : m_draft_mode(false), m_fill_holes(false), m_cache(Cache::system_cache()) {}
+    ImageComposite() : m_draft_mode(false), m_fill_holes(false), m_reuse_masks(false), m_cache(Cache::system_cache()) {}
 
     void insert( ImageViewRef<pixel_type> const& image, int x, int y );
 
@@ -194,6 +195,8 @@ namespace mosaic {
     void set_draft_mode( bool draft_mode ) { m_draft_mode = draft_mode; }
 
     void set_fill_holes( bool fill_holes ) { m_fill_holes = fill_holes; }
+
+    void set_reuse_masks( bool reuse_masks ) { m_reuse_masks = reuse_masks; }
 
     int cols() const {
       return view_bbox.width();
@@ -342,7 +345,7 @@ void vw::mosaic::ImageComposite<PixelT>::prepare() {
 
   levels = (int) floorf( log( mindim/2.0 ) / log(2.0) ) - 1;
 
-  if( !m_draft_mode ) {
+  if( !m_draft_mode && !m_reuse_masks ) {
     generate_masks();
   }
 }

@@ -92,7 +92,7 @@ namespace cartography {
                    datum.spheroid_name.c_str(),
                    double(datum.semi_major_axis), double(datum.semi_minor_axis),
                    datum.meridian_name.c_str(), double(datum.meridian_offset),
-                   "degree", atof(SRS_UA_DEGREE_CONV) );  /// XXX Fixme!!
+                   "degree", atof(SRS_UA_DEGREE_CONV) );
     this->set_spatial_ref(&oSRS);
   }
   
@@ -105,7 +105,7 @@ namespace cartography {
                    datum.spheroid_name.c_str(),
                    double(datum.semi_major_axis), double(datum.semi_minor_axis),
                    datum.meridian_name.c_str(), double(datum.meridian_offset),
-                   "degree", atof(SRS_UA_DEGREE_CONV) );  /// XXX FIXME!!
+                   "degree", atof(SRS_UA_DEGREE_CONV) );
     this->set_spatial_ref(&oSRS);
   }
 

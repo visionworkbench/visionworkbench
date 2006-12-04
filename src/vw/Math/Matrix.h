@@ -1937,7 +1937,7 @@ namespace math {
   // *******************************************************************
   // Assorted mathematical matrix functions.
   // *******************************************************************
-  // XXX Something about this is confusing MSVC!
+  // FIXME Something about this is confusing MSVC!
 #ifndef _MSC_VER
   /// Outer product of two vectors.
   template <class Vector1T, class Vector2T>

@@ -621,7 +621,7 @@ namespace vw {
       return prerasterize_type( m_child.prerasterize(bbox+Vector2i(m_ci,m_cj)), m_ci, m_cj, m_di, m_dj );
     }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-      // XXX Warning: This does not respect floating-point offsets!
+      // FIXME Warning: This does not respect floating-point offsets!
       m_child.rasterize( dest, bbox+Vector2i(int(m_ci),int(m_cj)) );
     }
     /// \endcond

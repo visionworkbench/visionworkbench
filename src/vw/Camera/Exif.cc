@@ -72,7 +72,7 @@ int vw::camera::ExifView::get_iso() {
 }
 
 // APEX equivalents
-// TODO: report in some logical way when value doesn't exist
+// FIXME: report in some logical way when value doesn't exist
 double vw::camera::ExifView::get_aperture_value() {
   double value;
   if (data.get_tag_value(TAG_ApertureValue, value)) return value;

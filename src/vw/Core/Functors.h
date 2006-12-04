@@ -163,15 +163,6 @@ namespace vw {
     /// \endcond
   };
 
-  // XXX What on earth is this for? :
-  template <template<class,class> class FuncT, class ValT>
-  struct BinaryBind1st {
-    template <class ArgT>
-    struct bound_type {
-      typedef typename FuncT<ValT,ArgT>::type type;
-    };
-  };
-
 
   // ********************************************************************
   // PixelType Arithmetic Operator Functors
@@ -252,7 +243,7 @@ namespace vw {
 
   // Unary product of an argument and a value
   template <class ValT>
-  struct ArgValProductFunctor : UnaryReturnTemplateType<BinaryBind1st<ProductType,ValT>::template bound_type> {//UnaryReturnBinaryTemplateBind2nd<ProductType,ValT> {
+  struct ArgValProductFunctor : UnaryReturnBinaryTemplateBind2nd<ProductType,ValT> {
   private:
     const ValT m_val;
   public:

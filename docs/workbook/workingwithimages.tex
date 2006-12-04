@@ -220,6 +220,18 @@ other, you should use the \verb#copy()# function found in
   Image new_image_2 = copy( my_image );
 \end{verbatim}
 
+It is important to understand that this shallow copy behavior only
+applies when the source and destination image types---and in particular
+the source and destination pixel types---are {\it identical}.  If the
+pixel types are different then you are not actually making a copy in 
+the C++ sense of the word but are instead assigning one image view to 
+another.  In the above example involving RGB and HSV images, even 
+though the source and destination objects are both \verb#ImageView#s 
+they in fact have different types because they have different template 
+parameters.  Therefore the data is copied deeply while being converted 
+to the new pixel type.  This holds even if the source and destination 
+pixel types differ only in their underlying channel type.
+
 \subsection{{\tt ImageView} as a STL-Compatible Container}
 
 An \verb#ImageView# can be thought of as a container of pixels, and in

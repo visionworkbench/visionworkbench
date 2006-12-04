@@ -353,8 +353,8 @@ namespace vw {
       int cj = m_j_kernel.size() ? (m_j_kernel.size()-1-m_cj) : 0;
       child_bbox.min() -= Vector2i( m_i_kernel.size()-ci-1, m_j_kernel.size()-cj-1 );
       child_bbox.max() += Vector2i( ci, cj );
-      // XXX This all has some tricky behavior if the child image is
-      // already edge-extended.  The following line solves some
+      // FIXME: This all has some tricky behavior if the child image
+      // is already edge-extended.  The following line solves some
       // problems while creating others.  This requires some careful
       // thought and testing....
       // child_bbox.crop( BBox2i(0,0,m_image.cols(),m_image.rows()) );

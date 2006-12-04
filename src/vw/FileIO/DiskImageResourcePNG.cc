@@ -25,7 +25,7 @@
 /// 
 /// Provides support for the PNG file format.
 ///
-/// TODO Currently we do not support 1-bit images, though we could.
+/// FIXME Currently we do not support 1-bit images, though we could.
 ///
 
 #ifdef _MSC_VER

@@ -50,7 +50,7 @@ namespace camera {
     int get_iso();
     
     // APEX equivalents
-    // TODO: report in some logical way when value doesn't exist
+    // FIXME: report in some logical way when value doesn't exist
     double get_aperture_value();
     double get_shutter_speed_value();
     double get_film_sensitivity();
