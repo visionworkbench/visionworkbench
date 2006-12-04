@@ -125,6 +125,26 @@ namespace vw {
         m_block_size( r->native_read_block_size() )
     { initialize(); }
 
+    /// Constructs a DiskImageView of the given resource.  Takes
+    /// ownership of the resouqce object (i.e. deletes it when it's
+    /// done using it).
+    DiskImageView( DiskImageResource *resource, bool cache=true )
+      : r( resource ),
+        m_cache(Cache::system_cache()),
+        m_enable_cache(cache),
+        m_block_size( r->native_read_block_size() )
+    { if(cache) initialize(); }
+
+    /// Constructs a DiskImageView of the given resource using the
+    /// specified cache area.  Takes ownership of the resource object
+    /// (i.e. deletes it when it's done using it).
+    DiskImageView( DiskImageResource *resource, Cache& cache )
+      : r( resource ),
+        m_cache(cache),
+        m_enable_cache(true),
+        m_block_size( r->native_read_block_size() )
+    { initialize(); }
+
     ~DiskImageView() {}
     
     /// Returns the number of columns in the image.
