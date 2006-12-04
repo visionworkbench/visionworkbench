@@ -70,8 +70,8 @@
 // Boost 
 #include <boost/concept_check.hpp>
 
-static const unsigned VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE = 1;    
-static const unsigned VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE = 10000000; // Ten Gigapixels
+static const float VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE = 1;
+static const float VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE = 1e10; // Ten gigapixels
 
 namespace vw {
 
@@ -385,8 +385,8 @@ namespace vw {
   template <class ViewT, class TransformT>
   inline BBox2f compute_transformed_bbox(ImageViewBase<ViewT> const& image, 
                                          TransformT const& transform_func,
-                                         unsigned min_image_size = VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE,
-                                         unsigned max_image_size = VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE) {
+                                         float min_image_size = VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE,
+                                         float max_image_size = VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE) {
     Vector2 pt;
     BBox2f bbox;
     for (pt[0] = 0; pt[0] < image.impl().cols(); (pt[0])++)

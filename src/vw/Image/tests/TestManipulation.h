@@ -69,7 +69,7 @@ public:
   void test_TransposeView()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    RemapView<ImageView<double>,2,1,2,1> rmv(im);
+    TransposeView<ImageView<double> > rmv(im);
     TS_ASSERT_EQUALS( rmv.cols(), 3 );
     TS_ASSERT_EQUALS( rmv.rows(), 2 );
     TS_ASSERT_EQUALS( rmv.planes(), 1 );
@@ -107,7 +107,7 @@ public:
 
     // Test the iterator
     ImageView<double>::iterator im2i = im2.begin();
-    RemapView<ImageView<double>,2,1,2,1>::iterator rmvi = rmv.begin();
+    TransposeView<ImageView<double> >::iterator rmvi = rmv.begin();
     for ( unsigned i=0; i<im2.cols()*im2.rows(); ++i ) {
       TS_ASSERT_DIFFERS( rmvi, rmv.end() );
       TS_ASSERT_EQUALS( *im2i, *rmvi );
@@ -148,7 +148,7 @@ public:
   void test_Rotate180View()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    RemapView<ImageView<double>,-1,-2,-1,-2> rmv(im);
+    Rotate180View<ImageView<double> > rmv(im);
     TS_ASSERT_EQUALS( rmv.cols(), 2 );
     TS_ASSERT_EQUALS( rmv.rows(), 3 );
     TS_ASSERT_EQUALS( rmv.planes(), 1 );
@@ -186,7 +186,7 @@ public:
 
     // Test the iterator
     ImageView<double>::iterator im2i = im2.begin();
-    RemapView<ImageView<double>,-1,-2,-1,-2>::iterator rmvi = rmv.begin();
+    Rotate180View<ImageView<double> >::iterator rmvi = rmv.begin();
     for ( unsigned i=0; i<im2.cols()*im2.rows(); ++i ) {
       TS_ASSERT_DIFFERS( rmvi, rmv.end() );
       TS_ASSERT_EQUALS( *im2i, *rmvi );
@@ -225,7 +225,7 @@ public:
   void test_Rotate90CWView()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    RemapView<ImageView<double>,-2,1,2,-1> rmv(im);
+    Rotate90CWView<ImageView<double> > rmv(im);
     TS_ASSERT_EQUALS( rmv.cols(), 3 );
     TS_ASSERT_EQUALS( rmv.rows(), 2 );
     TS_ASSERT_EQUALS( rmv.planes(), 1 );
@@ -263,7 +263,7 @@ public:
 
     // Test the iterator
     ImageView<double>::iterator im2i = im2.begin();
-    RemapView<ImageView<double>,-2,1,2,-1>::iterator rmvi = rmv.begin();
+    Rotate90CWView<ImageView<double> >::iterator rmvi = rmv.begin();
     for ( unsigned i=0; i<im2.cols()*im2.rows(); ++i ) {
       TS_ASSERT_DIFFERS( rmvi, rmv.end() );
       TS_ASSERT_EQUALS( *im2i, *rmvi );
@@ -302,7 +302,7 @@ public:
   void test_Rotate90CCWView()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    RemapView<ImageView<double>,2,-1,-2,1> rmv(im);
+    Rotate90CCWView<ImageView<double> > rmv(im);
     TS_ASSERT_EQUALS( rmv.cols(), 3 );
     TS_ASSERT_EQUALS( rmv.rows(), 2 );
     TS_ASSERT_EQUALS( rmv.planes(), 1 );
@@ -340,7 +340,7 @@ public:
 
     // Test the iterator
     ImageView<double>::iterator im2i = im2.begin();
-    RemapView<ImageView<double>,2,-1,-2,1>::iterator rmvi = rmv.begin();
+    Rotate90CCWView<ImageView<double> >::iterator rmvi = rmv.begin();
     for ( unsigned i=0; i<im2.cols()*im2.rows(); ++i ) {
       TS_ASSERT_DIFFERS( rmvi, rmv.end() );
       TS_ASSERT_EQUALS( *im2i, *rmvi );
@@ -379,7 +379,7 @@ public:
   void test_FlipVerticalView()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    RemapView<ImageView<double>,1,-2,1,-2> rmv(im);
+    FlipVerticalView<ImageView<double> > rmv(im);
     TS_ASSERT_EQUALS( rmv.cols(), 2 );
     TS_ASSERT_EQUALS( rmv.rows(), 3 );
     TS_ASSERT_EQUALS( rmv.planes(), 1 );
@@ -417,7 +417,7 @@ public:
 
     // Test the iterator
     ImageView<double>::iterator im2i = im2.begin();
-    RemapView<ImageView<double>,1,-2,1,-2>::iterator rmvi = rmv.begin();
+    FlipVerticalView<ImageView<double> >::iterator rmvi = rmv.begin();
     for ( unsigned i=0; i<im2.cols()*im2.rows(); ++i ) {
       TS_ASSERT_DIFFERS( rmvi, rmv.end() );
       TS_ASSERT_EQUALS( *im2i, *rmvi );
@@ -456,7 +456,7 @@ public:
   void test_FlipHorizontalView()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    RemapView<ImageView<double>,-1,2,-1,2> rmv(im);
+    FlipHorizontalView<ImageView<double> > rmv(im);
     TS_ASSERT_EQUALS( rmv.cols(), 2 );
     TS_ASSERT_EQUALS( rmv.rows(), 3 );
     TS_ASSERT_EQUALS( rmv.planes(), 1 );
@@ -494,7 +494,7 @@ public:
 
     // Test the iterator
     ImageView<double>::iterator im2i = im2.begin();
-    RemapView<ImageView<double>,-1,2,-1,2>::iterator rmvi = rmv.begin();
+    FlipHorizontalView<ImageView<double> >::iterator rmvi = rmv.begin();
     for ( unsigned i=0; i<im2.cols()*im2.rows(); ++i ) {
       TS_ASSERT_DIFFERS( rmvi, rmv.end() );
       TS_ASSERT_EQUALS( *im2i, *rmvi );

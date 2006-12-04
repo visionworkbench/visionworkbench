@@ -69,26 +69,26 @@ namespace vw {
   class CopyView : public ImageViewBase<CopyView<ImageT> >
   {
   private:
-    ImageView<typename ImageT::pixel_type> m_image;
+    ImageView<typename ImageT::pixel_type> m_child;
   public:
     typedef typename ImageView<typename ImageT::pixel_type>::pixel_type pixel_type;
     typedef pixel_type const& result_type;
     typedef typename ImageView<typename ImageT::pixel_type>::pixel_accessor pixel_accessor;
 
-    CopyView( ImageT const& image ) : m_image(image.cols(),image.rows(),image.planes()) {
-      image.rasterize( m_image, BBox2i(0,0,image.cols(),image.rows()) );
+    CopyView( ImageT const& image ) : m_child(image.cols(),image.rows(),image.planes()) {
+      image.rasterize( m_child, BBox2i(0,0,image.cols(),image.rows()) );
     }
 
-    inline unsigned cols() const { return m_image.cols(); }
-    inline unsigned rows() const { return m_image.rows(); }
-    inline unsigned planes() const { return m_image.planes(); }
+    inline unsigned cols() const { return m_child.cols(); }
+    inline unsigned rows() const { return m_child.rows(); }
+    inline unsigned planes() const { return m_child.planes(); }
 
-    inline pixel_accessor origin() const { return m_image.origin(); }
-    inline result_type operator()( int i, int j, int p=0 ) const { return m_image(i,j,p); }
+    inline pixel_accessor origin() const { return m_child.origin(); }
+    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(i,j,p); }
 
     typedef CopyView prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const { return *this; }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { m_image.rasterize( dest, bbox ); }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return *this; }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { m_child.rasterize( dest, bbox ); }
   };
 
   template <class ImageT>
@@ -102,142 +102,463 @@ namespace vw {
 
 
   // *******************************************************************
-  // Axis remapping views: transpose, flipping and rotation.
+  // Transpose
   // *******************************************************************
 
-  template <int Mode>
-  struct AxisTraits {};
-
-  template <> struct AxisTraits<1> {
-    template <class AccessT> static inline void iterate( AccessT& acc ) { acc.next_col(); }
-    static inline int advance( int dc, int dr ) { return dc; }
-    template <class ViewT> static inline int index( int c, int r, ViewT const& view ) { return c; }
-    template <class ViewT> static inline int size( ViewT const& view ) { return view.cols(); }
-  };
-
-  template <> struct AxisTraits<-1> {
-    template <class AccessT> static inline void iterate( AccessT& acc ) { acc.prev_col(); }
-    static inline int advance( int dc, int dr ) { return -dc; }
-    template <class ViewT> static inline int index( int c, int r, ViewT const& view ) { return view.cols()-1-c; }
-    template <class ViewT> static inline int size( ViewT const& view ) { return view.cols(); }
-  };
-
-  template <> struct AxisTraits<2> {
-    template <class AccessT> static inline void iterate( AccessT& acc ) { acc.next_row(); }
-    static inline int advance( int dc, int dr ) { return dr; }
-    template <class ViewT> static inline int index( int c, int r, ViewT const& view ) { return r; }
-    template <class ViewT> static inline int size( ViewT const& view ) { return view.rows(); }
-  };
-
-  template <> struct AxisTraits<-2> {
-    template <class AccessT> static inline void iterate( AccessT& acc ) { acc.prev_row(); }
-    static inline int advance( int dc, int dr ) { return -dr; }
-    template <class ViewT> static inline int index( int c, int r, ViewT const& view ) { return view.rows()-1-r; }
-    template <class ViewT> static inline int size( ViewT const& view ) { return view.rows(); }
-  };
-
-  template <class ChildT, int FwdColMode, int FwdRowMode, int RevColMode, int RevRowMode>
-  class RemapPixelAccessor {
+  // Specialized pixel accessor
+  template <class ChildT>
+  class TransposePixelAccessor
+  {
+  private:
     ChildT m_child;
   public:
     typedef typename ChildT::pixel_type pixel_type;
     typedef typename ChildT::result_type result_type;
-    RemapPixelAccessor( ChildT const& child ) : m_child(child) {}
-    
-    inline RemapPixelAccessor& next_col() { AxisTraits<FwdColMode>::iterate(m_child); return *this; }
-    inline RemapPixelAccessor& prev_col() { AxisTraits<-FwdColMode>::iterate(m_child); return *this; }
-    inline RemapPixelAccessor& next_row() { AxisTraits<FwdRowMode>::iterate(m_child); return *this; }
-    inline RemapPixelAccessor& prev_row() { AxisTraits<-FwdRowMode>::iterate(m_child); return *this; }
-    inline RemapPixelAccessor& next_plane() { m_child.next_plane(); return *this; }
-    inline RemapPixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
-    inline RemapPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { 
-      m_child.advance( AxisTraits<RevColMode>::advance(di,dj), AxisTraits<RevRowMode>::advance(di,dj), dp );
-      return *this;
-    }
+    TransposePixelAccessor( ChildT const& acc ) : m_child(acc) {}
+
+    inline TransposePixelAccessor& next_col() { m_child.next_row(); return *this; }
+    inline TransposePixelAccessor& prev_col() { m_child.prev_row(); return *this; }
+    inline TransposePixelAccessor& next_row() { m_child.next_col(); return *this; }
+    inline TransposePixelAccessor& prev_row() { m_child.prev_col(); return *this; }
+    inline TransposePixelAccessor& next_plane() { m_child.next_plane(); return *this; }
+    inline TransposePixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
+    inline TransposePixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance(dj,di,dp); return *this; }
 
     inline result_type operator*() const { return *m_child; }
   };
 
-  template <class ChildT, int FwdColMode, int FwdRowMode, int RevColMode, int RevRowMode>
-  class RemapView : public ImageViewBase<RemapView<ChildT,FwdColMode,FwdRowMode,RevColMode,RevRowMode> > {
-    ChildT m_child;
+  // Class definition
+  template <class ImageT>
+  class TransposeView : public ImageViewBase<TransposeView<ImageT> >
+  {
+  private:
+    ImageT m_child;
   public:
 
-    typedef typename ChildT::pixel_type pixel_type;
-    typedef typename ChildT::result_type result_type;
-    typedef RemapPixelAccessor<typename ChildT::pixel_accessor,FwdColMode,FwdRowMode,RevColMode,RevRowMode> pixel_accessor;
+    typedef typename ImageT::pixel_type pixel_type;
+    typedef typename ImageT::result_type result_type;
+    typedef TransposePixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
 
-    RemapView( ChildT const& child ) : m_child(child) {}
+    TransposeView( ImageT const& image ) : m_child(image) {}
 
-    inline unsigned cols() const { return AxisTraits<FwdColMode>::size( m_child ); }
-    inline unsigned rows() const { return AxisTraits<FwdRowMode>::size( m_child ); }
+    inline unsigned cols() const { return m_child.rows(); }
+    inline unsigned rows() const { return m_child.cols(); }
     inline unsigned planes() const { return m_child.planes(); }
 
-    inline pixel_accessor origin() const {
-      return m_child.origin().advance( AxisTraits<RevColMode>::index(0,0,*this),
-                                       AxisTraits<RevRowMode>::index(0,0,*this) );
-    }
+    inline pixel_accessor origin() const { return m_child.origin(); }
 
-    inline result_type operator()( int c, int r, int p=0 ) const {
-      return m_child( AxisTraits<RevColMode>::index(c,r,*this),
-                      AxisTraits<RevRowMode>::index(c,r,*this), p );
-    }
+    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(j,i,p); }
 
     template <class ViewT>
-    RemapView& operator=( ImageViewBase<ViewT> const& view ) {
+    TransposeView& operator=( ImageViewBase<ViewT> const& view ) {
       view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
     }
 
-    ChildT const& child() const {
+    ImageT const& child() const {
       return m_child;
     }
 
     /// \cond INTERNAL
-    typedef RemapView<typename ChildT::prerasterize_type,FwdColMode,FwdRowMode,RevColMode,RevRowMode> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    typedef TransposeView<typename ImageT::prerasterize_type> prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 
-  // Type Traits
-  template <class ChildT, int FwdColMode, int FwdRowMode, int RevColMode, int RevRowMode>
-  struct IsMultiplyAccessible<RemapView<ChildT,FwdColMode,FwdRowMode,RevColMode,RevRowMode> > : public IsMultiplyAccessible<ChildT> {};
+  /// \cond INTERNAL
+  template <class ImageT>
+  struct IsMultiplyAccessible<TransposeView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
+  /// \endcond
 
   /// Transpose an image.
   template <class ImageT>
-  RemapView<ImageT,2,1,2,1> transpose( ImageViewBase<ImageT> const& v ) {
-    return RemapView<ImageT,2,1,2,1>( v.impl() );
+  TransposeView<ImageT> transpose( ImageViewBase<ImageT> const& v ) {
+    return TransposeView<ImageT>( v.impl() );
   }
 
+
+  // *******************************************************************
+  // Rotate180
+  // *******************************************************************
+
+  // Specialized pixel accessor
+  template <class ChildT>
+  class Rotate180PixelAccessor
+  {
+  private:
+    ChildT m_child;
+  public:
+    typedef typename ChildT::pixel_type pixel_type;
+    typedef typename ChildT::result_type result_type;
+    Rotate180PixelAccessor( ChildT const& image ) : m_child(image) {}
+
+    inline Rotate180PixelAccessor& next_col() { m_child.prev_col(); return *this; }
+    inline Rotate180PixelAccessor& prev_col() { m_child.next_col(); return *this; }
+    inline Rotate180PixelAccessor& next_row() { m_child.prev_row(); return *this; }
+    inline Rotate180PixelAccessor& prev_row() { m_child.next_row(); return *this; }
+    inline Rotate180PixelAccessor& next_plane() { m_child.prev_plane(); return *this; }
+    inline Rotate180PixelAccessor& prev_plane() { m_child.next_plane(); return *this; }
+    inline Rotate180PixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance(-di,-dj,dp); return *this; }
+
+    inline result_type operator*() const { return *m_child; }
+  };
+
+  // Image View Class
+  template <class ImageT>
+  class Rotate180View : public ImageViewBase<Rotate180View<ImageT> >
+  {
+  private:
+    ImageT m_child;
+  public:
+
+    typedef typename ImageT::pixel_type pixel_type;
+    typedef typename ImageT::result_type result_type;
+    typedef Rotate180PixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
+
+    Rotate180View( ImageT const& image ) : m_child(image) {}
+
+    inline unsigned cols() const { return m_child.cols(); }
+    inline unsigned rows() const { return m_child.rows(); }
+    inline unsigned planes() const { return m_child.planes(); }
+
+    inline pixel_accessor origin() const { return m_child.origin().advance(cols()-1,rows()-1); }
+
+    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(cols()-1-i,rows()-1-j,p); }
+
+    template <class ViewT>
+    Rotate180View& operator=( ImageViewBase<ViewT> const& view ) {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
+
+    ImageT const& child() const {
+      return m_child;
+    }
+
+    /// \cond INTERNAL
+    typedef Rotate180View<typename ImageT::prerasterize_type> prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    /// \endcond
+  };
+
+  /// \cond INTERNAL
+  template <class ImageT>
+  struct IsMultiplyAccessible<Rotate180View<ImageT> > : public IsMultiplyAccessible<ImageT> {};
+  /// \endcond
+  
   /// Rotate an image 180 degrees.
   template <class ImageT>
-  RemapView<ImageT,-1,-2,-1,-2> rotate_180( ImageViewBase<ImageT> const& v ) {
-    return RemapView<ImageT,-1,-2,-1,-2>( v.impl() );
+  Rotate180View<ImageT> rotate_180( ImageViewBase<ImageT> const& v ) {
+    return Rotate180View<ImageT>( v.impl() );
   }
+
+
+  // *******************************************************************
+  // Rotate90CW
+  // *******************************************************************
+
+  // Specialized pixel accessor
+  template <class ChildT>
+  class Rotate90CWPixelAccessor
+  {
+  private:
+    ChildT m_child;
+  public:
+    typedef typename ChildT::pixel_type pixel_type;
+    typedef typename ChildT::result_type result_type;
+    Rotate90CWPixelAccessor( ChildT const& acc ) : m_child(acc) {}
+    inline Rotate90CWPixelAccessor& next_col() { m_child.prev_row(); return *this; }
+    inline Rotate90CWPixelAccessor& prev_col() { m_child.next_row(); return *this; }
+    inline Rotate90CWPixelAccessor& next_row() { m_child.next_col(); return *this; }
+    inline Rotate90CWPixelAccessor& prev_row() { m_child.prev_col(); return *this; }
+    inline Rotate90CWPixelAccessor& next_plane() { m_child.next_plane(); return *this; }
+    inline Rotate90CWPixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
+    inline Rotate90CWPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance(dj,-di,dp); return *this; }
+
+    inline result_type operator*() const { return *m_child; }
+  };
+
+  // Class definition
+  template <class ImageT>
+  class Rotate90CWView : public ImageViewBase<Rotate90CWView<ImageT> >
+  {
+  private:
+    ImageT m_child;
+  public:
+
+    typedef typename ImageT::pixel_type pixel_type;
+    typedef typename ImageT::result_type result_type;
+    typedef Rotate90CWPixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
+
+    Rotate90CWView( ImageT const& image ) : m_child(image) {}
+
+    inline unsigned cols() const { return m_child.rows(); }
+    inline unsigned rows() const { return m_child.cols(); }
+    inline unsigned planes() const { return m_child.planes(); }
+
+    inline pixel_accessor origin() const { return m_child.origin().advance(0,cols()-1); }
+
+    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(j,cols()-1-i,p); }
+
+    template <class ViewT>
+    Rotate90CWView& operator=( ImageViewBase<ViewT> const& view ) {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
+
+    ImageT const& child() const {
+      return m_child;
+    }
+
+    /// \cond INTERNAL
+    typedef Rotate90CWView<typename ImageT::prerasterize_type> prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    /// \endcond
+  };
+
+  /// \cond INTERNAL
+  template <class ImageT>
+  struct IsMultiplyAccessible<Rotate90CWView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
+  /// \endcond
 
   /// Rotate an image 90 degrees clockwise.
   template <class ImageT>
-  RemapView<ImageT,-2,1,2,-1> rotate_90_cw( ImageViewBase<ImageT> const& v ) {
-    return RemapView<ImageT,-2,1,2,-1>( v.impl() );
+  Rotate90CWView<ImageT> rotate_90_cw( ImageViewBase<ImageT> const& v ) {
+    return Rotate90CWView<ImageT>( v.impl() );
   }
+
+
+  // *******************************************************************
+  // Rotate90CCW
+  // *******************************************************************
+
+  // Specialized pixel accessor
+  template <class ChildT>
+  class Rotate90CCWPixelAccessor
+  {
+  private:
+    ChildT m_child;
+  public:
+    typedef typename ChildT::pixel_type pixel_type;
+    typedef typename ChildT::result_type result_type;
+    Rotate90CCWPixelAccessor( ChildT const& acc ) : m_child(acc) {}
+
+    inline Rotate90CCWPixelAccessor& next_col() { m_child.next_row(); return *this; }
+    inline Rotate90CCWPixelAccessor& prev_col() { m_child.prev_row(); return *this; }
+    inline Rotate90CCWPixelAccessor& next_row() { m_child.prev_col(); return *this; }
+    inline Rotate90CCWPixelAccessor& prev_row() { m_child.next_col(); return *this; }
+    inline Rotate90CCWPixelAccessor& next_plane() { m_child.next_plane(); return *this; }
+    inline Rotate90CCWPixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
+    inline Rotate90CCWPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance(-dj,di,dp); return *this; }
+
+    inline result_type operator*() const { return *m_child; }
+  };
+
+  // Class definition
+  template <class ImageT>
+  class Rotate90CCWView : public ImageViewBase<Rotate90CCWView<ImageT> >
+  {
+  private:
+    ImageT m_child;
+  public:
+
+    typedef typename ImageT::pixel_type pixel_type;
+    typedef typename ImageT::result_type result_type;
+    typedef Rotate90CCWPixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
+
+    Rotate90CCWView( ImageT const& image ) : m_child(image) {}
+
+    inline unsigned cols() const { return m_child.rows(); }
+    inline unsigned rows() const { return m_child.cols(); }
+    inline unsigned planes() const { return m_child.planes(); }
+
+    inline pixel_accessor origin() const { return m_child.origin().advance(rows()-1,0); }
+
+    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(rows()-1-j,i,p); }
+
+    template <class ViewT>
+    Rotate90CCWView& operator=( ImageViewBase<ViewT> const& view ) {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
+
+    ImageT const& child() const {
+      return m_child;
+    }
+
+    /// \cond INTERNAL
+    typedef Rotate90CCWView<typename ImageT::prerasterize_type> prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    /// \endcond
+  };
+
+  /// \cond INTERNAL
+  template <class ImageT>
+  struct IsMultiplyAccessible<Rotate90CCWView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
+  /// \endcond
 
   /// Rotate an image 90 degrees counter-clockwise.
   template <class ImageT>
-  RemapView<ImageT,2,-1,-2,1> rotate_90_ccw( ImageViewBase<ImageT> const& v ) {
-    return RemapView<ImageT,2,-1,-2,1>( v.impl() );
+  Rotate90CCWView<ImageT> rotate_90_ccw( ImageViewBase<ImageT> const& v ) {
+    return Rotate90CCWView<ImageT>( v.impl() );
   }
+
+
+  // *******************************************************************
+  // FlipVertical
+  // *******************************************************************
+
+  // Specialized pixel accessor
+  template <class ChildT>
+  class FlipVerticalPixelAccessor
+  {
+  private:
+    ChildT m_child;
+  public:
+    typedef typename ChildT::pixel_type pixel_type;
+    typedef typename ChildT::result_type result_type;
+    FlipVerticalPixelAccessor( ChildT const& acc ) : m_child(acc) {}
+
+    inline FlipVerticalPixelAccessor& next_col() { m_child.next_col(); return *this; }
+    inline FlipVerticalPixelAccessor& prev_col() { m_child.prev_col(); return *this; }
+    inline FlipVerticalPixelAccessor& next_row() { m_child.prev_row(); return *this; }
+    inline FlipVerticalPixelAccessor& prev_row() { m_child.next_row(); return *this; }
+    inline FlipVerticalPixelAccessor& next_plane() { m_child.next_plane(); return *this; }
+    inline FlipVerticalPixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
+    inline FlipVerticalPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance(di,-dj,dp); return *this; }
+
+    inline result_type operator*() const { return *m_child; }
+  };
+
+  // Class definition
+  template <class ImageT>
+  class FlipVerticalView : public ImageViewBase<FlipVerticalView<ImageT> >
+  {
+  private:
+    ImageT m_child;
+  public:
+
+    typedef typename ImageT::pixel_type pixel_type;
+    typedef typename ImageT::result_type result_type;
+    typedef FlipVerticalPixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
+
+    FlipVerticalView( ImageT const& image ) : m_child(image) {}
+
+    inline unsigned cols() const { return m_child.cols(); }
+    inline unsigned rows() const { return m_child.rows(); }
+    inline unsigned planes() const { return m_child.planes(); }
+
+    inline pixel_accessor origin() const { return m_child.origin().advance(0,rows()-1); }
+
+    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(i,rows()-1-j,p); }
+
+    ImageT const& child() const {
+      return m_child;
+    }
+
+    template <class ViewT>
+    FlipVerticalView& operator=( ImageViewBase<ViewT> const& view ) {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
+
+    /// \cond INTERNAL
+    typedef FlipVerticalView<typename ImageT::prerasterize_type> prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    /// \endcond
+  };
+
+  /// \cond INTERNAL
+  template <class ImageT>
+  struct IsMultiplyAccessible<FlipVerticalView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
+  /// \endcond
 
   /// Flip an image vertically.
   template <class ImageT>
-  RemapView<ImageT,1,-2,1,-2> flip_vertical( ImageViewBase<ImageT> const& v ) {
-    return RemapView<ImageT,1,-2,1,-2>( v.impl() );
+  FlipVerticalView<ImageT> flip_vertical( ImageViewBase<ImageT> const& v ) {
+    return FlipVerticalView<ImageT>( v.impl() );
   }
+
+
+  // *******************************************************************
+  // FlipHorizontal
+  // *******************************************************************
+
+  // Specialized pixel accessor
+  template <class ChildT>
+  class FlipHorizontalPixelAccessor
+  {
+  private:
+    ChildT m_child;
+  public:
+    typedef typename ChildT::pixel_type pixel_type;
+    typedef typename ChildT::result_type result_type;
+    FlipHorizontalPixelAccessor( ChildT const& acc ) : m_child(acc) {}
+
+    inline FlipHorizontalPixelAccessor& next_col() { m_child.prev_col(); return *this; }
+    inline FlipHorizontalPixelAccessor& prev_col() { m_child.next_col(); return *this; }
+    inline FlipHorizontalPixelAccessor& next_row() { m_child.next_row(); return *this; }
+    inline FlipHorizontalPixelAccessor& prev_row() { m_child.prev_row(); return *this; }
+    inline FlipHorizontalPixelAccessor& next_plane() { m_child.next_plane(); return *this; }
+    inline FlipHorizontalPixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
+    inline FlipHorizontalPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance(-di,dj,dp); return *this; }
+
+    inline result_type operator*() const { return *m_child; }
+  };
+
+  // Class definition
+  template <class ImageT>
+  class FlipHorizontalView : public ImageViewBase<FlipHorizontalView<ImageT> >
+  {
+  private:
+    ImageT m_child;
+  public:
+
+    typedef typename ImageT::pixel_type pixel_type;
+    typedef typename ImageT::result_type result_type;
+    typedef FlipHorizontalPixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
+
+    FlipHorizontalView( ImageT const& image ) : m_child(image) {}
+
+    inline unsigned cols() const { return m_child.cols(); }
+    inline unsigned rows() const { return m_child.rows(); }
+    inline unsigned planes() const { return m_child.planes(); }
+
+    inline pixel_accessor origin() const { return m_child.origin().advance(cols()-1,0); }
+
+    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(cols()-1-i,j,p); }
+
+    ImageT const& child() const {
+      return m_child;
+    }
+
+    template <class ViewT>
+    FlipHorizontalView& operator=( ImageViewBase<ViewT> const& view ) {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
+
+    /// \cond INTERNAL
+    typedef FlipHorizontalView<typename ImageT::prerasterize_type> prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    /// \endcond
+  };
+
+  /// \cond INTERNAL
+  template <class ImageT>
+  struct IsMultiplyAccessible<FlipHorizontalView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
+  /// \endcond
 
   /// Flip an image horizontally.
   template <class ImageT>
-  RemapView<ImageT,-1,2,-1,2> flip_horizontal( ImageViewBase<ImageT> const& v ) {
-    return RemapView<ImageT,-1,2,-1,2>( v.impl() );
+  FlipHorizontalView<ImageT> flip_horizontal( ImageViewBase<ImageT> const& v ) {
+    return FlipHorizontalView<ImageT>( v.impl() );
   }
 
 
@@ -251,7 +572,7 @@ namespace vw {
   private:
     typedef typename boost::mpl::if_<IsFloatingPointIndexable<ImageT>, float, int>::type offset_type;
 
-    ImageT m_image;
+    ImageT m_child;
     offset_type m_ci, m_cj;
     unsigned m_di, m_dj;
 
@@ -261,11 +582,11 @@ namespace vw {
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
     CropView( ImageT const& image, offset_type const upper_left_i, offset_type const upper_left_j, unsigned const width, unsigned const height ) : 
-      m_image(image), m_ci(upper_left_i), m_cj(upper_left_j), m_di(width), m_dj(height) {}
+      m_child(image), m_ci(upper_left_i), m_cj(upper_left_j), m_di(width), m_dj(height) {}
 
     template<class RealT>
     CropView( ImageT const& image, BBox<RealT,2> const& bbox) :
-      m_image(image), 
+      m_child(image), 
       m_ci((offset_type)(bbox.min()[0])), 
       m_cj((offset_type)(bbox.min()[1])), 
       m_di((unsigned)round(bbox.width())), 
@@ -273,11 +594,11 @@ namespace vw {
 
     inline unsigned cols() const { return m_di; }
     inline unsigned rows() const { return m_dj; }
-    inline unsigned planes() const { return m_image.planes(); }
+    inline unsigned planes() const { return m_child.planes(); }
 
-    inline pixel_accessor origin() const { return m_image.origin().advance(m_ci, m_cj); }
+    inline pixel_accessor origin() const { return m_child.origin().advance(m_ci, m_cj); }
 
-    inline result_type operator()( offset_type i, offset_type j, int p=0 ) const { return m_image(m_ci + i, m_cj + j, p); }
+    inline result_type operator()( offset_type i, offset_type j, int p=0 ) const { return m_child(m_ci + i, m_cj + j, p); }
 
     CropView& operator=( CropView const& view ) {
       view.rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
@@ -291,17 +612,17 @@ namespace vw {
     }
 
     ImageT const& child() const {
-      return m_image;
+      return m_child;
     }
 
     /// \cond INTERNAL
     typedef CropView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const {
-      return prerasterize_type( m_image.prerasterize(bbox+Vector2i(m_ci,m_cj)), m_ci, m_cj, m_di, m_dj );
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+      return prerasterize_type( m_child.prerasterize(bbox+Vector2i(m_ci,m_cj)), m_ci, m_cj, m_di, m_dj );
     }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
       // XXX Warning: This does not respect floating-point offsets!
-      m_image.rasterize( dest, bbox+Vector2i(int(m_ci),int(m_cj)) );
+      m_child.rasterize( dest, bbox+Vector2i(int(m_ci),int(m_cj)) );
     }
     /// \endcond
   };
@@ -333,52 +654,52 @@ namespace vw {
   // *******************************************************************
 
   // Specialized image accessor
-  template <class ImageAccT>
+  template <class ChildT>
   class SubsamplePixelAccessor {
-    ImageAccT m_acc;
+    ChildT m_child;
     unsigned m_xdelta, m_ydelta;
   public:
-    typedef typename ImageAccT::pixel_type pixel_type;
-    typedef typename ImageAccT::result_type result_type;
-    SubsamplePixelAccessor( ImageAccT const& iter , unsigned xdelta, unsigned ydelta) : m_acc(iter), m_xdelta(xdelta), m_ydelta(ydelta) {}
+    typedef typename ChildT::pixel_type pixel_type;
+    typedef typename ChildT::result_type result_type;
+    SubsamplePixelAccessor( ChildT const& acc , unsigned xdelta, unsigned ydelta) : m_child(acc), m_xdelta(xdelta), m_ydelta(ydelta) {}
 
-    inline SubsamplePixelAccessor& next_col() { m_acc.advance(  m_xdelta, 0 ); return *this; }
-    inline SubsamplePixelAccessor& prev_col() { m_acc.advance( -m_xdelta, 0 ); return *this; }
-    inline SubsamplePixelAccessor& next_row() { m_acc.advance( 0,  m_ydelta ); return *this; }
-    inline SubsamplePixelAccessor& prev_row() { m_acc.advance( 0, -m_ydelta ); return *this; }
-    inline SubsamplePixelAccessor& next_plane() { m_acc.next_plane(); return *this; }
-    inline SubsamplePixelAccessor& prev_plane() { m_acc.prev_plane(); return *this; }
-    inline SubsamplePixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_acc.advance((ptrdiff_t)m_xdelta*di,(ptrdiff_t)m_ydelta*dj,dp); return *this; }
+    inline SubsamplePixelAccessor& next_col() { m_child.advance(  m_xdelta, 0 ); return *this; }
+    inline SubsamplePixelAccessor& prev_col() { m_child.advance( -m_xdelta, 0 ); return *this; }
+    inline SubsamplePixelAccessor& next_row() { m_child.advance( 0,  m_ydelta ); return *this; }
+    inline SubsamplePixelAccessor& prev_row() { m_child.advance( 0, -m_ydelta ); return *this; }
+    inline SubsamplePixelAccessor& next_plane() { m_child.next_plane(); return *this; }
+    inline SubsamplePixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
+    inline SubsamplePixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance((ptrdiff_t)m_xdelta*di,(ptrdiff_t)m_ydelta*dj,dp); return *this; }
 
-    inline result_type operator*() const { return *m_acc; }
+    inline result_type operator*() const { return *m_child; }
   };
 
   // Class definition
   template <class ImageT>
   class SubsampleView : public ImageViewBase<SubsampleView<ImageT> > {
-    ImageT m_image;
+    ImageT m_child;
     unsigned m_xdelta, m_ydelta;
   public:
     typedef typename ImageT::pixel_type pixel_type;
     typedef typename ImageT::result_type result_type;
     typedef SubsamplePixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
 
-    SubsampleView( ImageT const& image, unsigned subsampling_factor ) : m_image(image), m_xdelta(subsampling_factor), m_ydelta(subsampling_factor) {}
-    SubsampleView( ImageT const& image, unsigned xfactor, unsigned yfactor ) : m_image(image), m_xdelta(xfactor), m_ydelta(yfactor) {}
+    SubsampleView( ImageT const& image, unsigned subsampling_factor ) : m_child(image), m_xdelta(subsampling_factor), m_ydelta(subsampling_factor) {}
+    SubsampleView( ImageT const& image, unsigned xfactor, unsigned yfactor ) : m_child(image), m_xdelta(xfactor), m_ydelta(yfactor) {}
 
-    inline unsigned cols() const { return 1 + (m_image.cols()-1)/m_xdelta; }
-    inline unsigned rows() const { return 1 + (m_image.rows()-1)/m_ydelta; }
-    inline unsigned planes() const { return m_image.planes(); }
+    inline unsigned cols() const { return 1 + (m_child.cols()-1)/m_xdelta; }
+    inline unsigned rows() const { return 1 + (m_child.rows()-1)/m_ydelta; }
+    inline unsigned planes() const { return m_child.planes(); }
 
-    inline pixel_accessor origin() const { return pixel_accessor(m_image.origin(), m_xdelta, m_ydelta); }
-    inline result_type operator()( int i, int j, int p=0 ) const { return m_image(m_xdelta*i,m_ydelta*j,p); }
+    inline pixel_accessor origin() const { return pixel_accessor(m_child.origin(), m_xdelta, m_ydelta); }
+    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(m_xdelta*i,m_ydelta*j,p); }
 
-    ImageT const& child() const { return m_image; }
+    ImageT const& child() const { return m_child; }
 
     /// \cond INTERNAL
     typedef SubsampleView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox), m_xdelta, m_ydelta ); }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox), m_xdelta, m_ydelta ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 
@@ -416,21 +737,21 @@ namespace vw {
   /// \see vw::select_col
   template <class ImageT>
   class SelectColView : public ImageViewBase<SelectColView<ImageT> > {
-    ImageT m_image;
+    ImageT m_child;
     unsigned m_col;
   public:
     typedef typename ImageT::pixel_type pixel_type;
     typedef typename ImageT::result_type result_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
-    SelectColView( ImageT const& image, unsigned col ) : m_image(image), m_col(col) {}
+    SelectColView( ImageT const& image, unsigned col ) : m_child(image), m_col(col) {}
 
     inline unsigned cols() const { return 1; }
-    inline unsigned rows() const { return m_image.rows(); }
-    inline unsigned planes() const { return m_image.planes(); }
+    inline unsigned rows() const { return m_child.rows(); }
+    inline unsigned planes() const { return m_child.planes(); }
 
-    inline pixel_accessor origin() const { return m_image.origin().advance(m_col,0,0); }
-    inline result_type operator()( int i, int j, int p=0) const { return m_image(m_col,j,p); }
+    inline pixel_accessor origin() const { return m_child.origin().advance(m_col,0,0); }
+    inline result_type operator()( int i, int j, int p=0) const { return m_child(m_col,j,p); }
 
     template <class ViewT>
     SelectColView& operator=( ImageViewBase<ViewT> const& view ) {
@@ -440,8 +761,8 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef SelectColView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox), m_col ); }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox), m_col ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 
@@ -468,22 +789,22 @@ namespace vw {
   /// \see vw::select_row
   template <class ImageT>
   class SelectRowView : public ImageViewBase<SelectRowView<ImageT> > {
-    ImageT m_image;
+    ImageT m_child;
     unsigned m_row;
   public:
     typedef typename ImageT::pixel_type pixel_type;
     typedef typename ImageT::result_type result_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
-    SelectRowView( ImageT const& image, unsigned row ) : m_image(image), m_row(row) {}
+    SelectRowView( ImageT const& image, unsigned row ) : m_child(image), m_row(row) {}
 
-    inline unsigned cols() const { return m_image.cols(); }
+    inline unsigned cols() const { return m_child.cols(); }
     inline unsigned rows() const { return 1; }
-    inline unsigned planes() const { return m_image.planes(); }
+    inline unsigned planes() const { return m_child.planes(); }
 
-    inline pixel_accessor origin() const { return m_image.origin().advance(0,m_row,0); }
+    inline pixel_accessor origin() const { return m_child.origin().advance(0,m_row,0); }
 
-    inline result_type operator()( int i, int j, int p=0) const { return m_image(i,m_row,p); }
+    inline result_type operator()( int i, int j, int p=0) const { return m_child(i,m_row,p); }
 
     template <class ViewT>
     SelectRowView& operator=( ImageViewBase<ViewT> const& view ) {
@@ -492,8 +813,8 @@ namespace vw {
     }
 
     typedef SelectRowView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox), m_row ); }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox), m_row ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
   };
 
   // View type Traits
@@ -517,21 +838,21 @@ namespace vw {
   /// \see vw::select_plane
   template <class ImageT>
   class SelectPlaneView : public ImageViewBase<SelectPlaneView<ImageT> > {
-    ImageT m_image;
+    ImageT m_child;
     unsigned m_plane;
   public:
     typedef typename ImageT::pixel_type pixel_type;
     typedef typename ImageT::result_type result_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
-    SelectPlaneView( ImageT const& image, unsigned plane ) : m_image(image), m_plane(plane) {}
+    SelectPlaneView( ImageT const& image, unsigned plane ) : m_child(image), m_plane(plane) {}
 
-    inline unsigned cols() const { return m_image.cols(); }
-    inline unsigned rows() const { return m_image.rows(); }
+    inline unsigned cols() const { return m_child.cols(); }
+    inline unsigned rows() const { return m_child.rows(); }
     inline unsigned planes() const { return 1; }
 
-    inline pixel_accessor origin() const { return m_image.origin().advance(0,0,m_plane); }
-    inline result_type operator()( int i, int j, int p=0 ) const { return m_image(i,j,m_plane+p); }
+    inline pixel_accessor origin() const { return m_child.origin().advance(0,0,m_plane); }
+    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(i,j,m_plane+p); }
 
     template <class ViewT>
     SelectPlaneView& operator=( ImageViewBase<ViewT> const& view ) {
@@ -541,8 +862,8 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef SelectPlaneView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox), m_plane ); }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox), m_plane ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 
@@ -630,33 +951,33 @@ namespace vw {
   /// This is a special wrapper pixel accessor type, used by 
   /// \ref vw::ChannelsToPlanesView, that treats the channels in a
   /// multi-channel image as planes.
-  template <class ImageAccT>
+  template <class ChildT>
   class ChannelsToPlanesAccessor
   {
   private:
-    ImageAccT m_acc;
+    ChildT m_child;
     unsigned m_channel;
   public:
-    typedef typename CompoundChannelType<typename ImageAccT::pixel_type>::type pixel_type;
-    typedef typename CopyCVR<typename ImageAccT::result_type, pixel_type>::type result_type;
+    typedef typename CompoundChannelType<typename ChildT::pixel_type>::type pixel_type;
+    typedef typename CopyCVR<typename ChildT::result_type, pixel_type>::type result_type;
 
-    ChannelsToPlanesAccessor( ImageAccT const& iter ) : m_acc(iter), m_channel(0) {}
-    inline ChannelsToPlanesAccessor& next_col() { m_acc.next_col(); return *this; }
-    inline ChannelsToPlanesAccessor& prev_col() { m_acc.prev_col(); return *this; }
-    inline ChannelsToPlanesAccessor& next_row() { m_acc.next_row(); return *this; }
-    inline ChannelsToPlanesAccessor& prev_row() { m_acc.prev_row(); return *this; }
+    ChannelsToPlanesAccessor( ChildT const& acc ) : m_child(acc), m_channel(0) {}
+    inline ChannelsToPlanesAccessor& next_col() { m_child.next_col(); return *this; }
+    inline ChannelsToPlanesAccessor& prev_col() { m_child.prev_col(); return *this; }
+    inline ChannelsToPlanesAccessor& next_row() { m_child.next_row(); return *this; }
+    inline ChannelsToPlanesAccessor& prev_row() { m_child.prev_row(); return *this; }
     inline ChannelsToPlanesAccessor& next_plane() { ++m_channel; return *this; }
     inline ChannelsToPlanesAccessor& prev_plane() { --m_channel; return *this; }
-    inline ChannelsToPlanesAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_acc.advance(di,dj); m_channel+=dp; return *this; }
+    inline ChannelsToPlanesAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance(di,dj); m_channel+=dp; return *this; }
 
-    inline result_type operator*() const { return compound_select_channel<result_type>(*m_acc,m_channel); }
+    inline result_type operator*() const { return compound_select_channel<result_type>(*m_child,m_channel); }
   };
 
   /// A view that turns a one plane, multi-channel view into a mulit-plane, one channel view.
   /// \see vw::channels_to_planes
   template <class ImageT>
   class ChannelsToPlanesView : public ImageViewBase<ChannelsToPlanesView<ImageT> > {
-    ImageT m_image;
+    ImageT m_child;
   public:
 
     typedef typename CompoundChannelType<typename ImageT::pixel_type>::type pixel_type;
@@ -666,18 +987,18 @@ namespace vw {
                                       ChannelsToPlanesAccessor<typename ImageT::pixel_accessor>,
                                       typename ImageT::pixel_accessor >::type pixel_accessor;
     
-    ChannelsToPlanesView( ImageT const& image ) : m_image(image) {
-      VW_ASSERT( m_image.planes()==1 , ArgumentErr() << "ChannelsToPlanesView: The image must be single plane.");
+    ChannelsToPlanesView( ImageT const& image ) : m_child(image) {
+      VW_ASSERT( m_child.planes()==1 , ArgumentErr() << "ChannelsToPlanesView: The image must be single plane.");
     }
     
-    inline unsigned cols() const { return m_image.cols(); }
-    inline unsigned rows() const { return m_image.rows(); }
-    inline unsigned planes() const { return m_image.channels(); }
+    inline unsigned cols() const { return m_child.cols(); }
+    inline unsigned rows() const { return m_child.rows(); }
+    inline unsigned planes() const { return m_child.channels(); }
 
-    inline pixel_accessor origin() const { return pixel_accessor(m_image.origin()); }
+    inline pixel_accessor origin() const { return pixel_accessor(m_child.origin()); }
 
     inline result_type operator()( int i, int j, int p=0 ) const {
-      return compound_select_channel<result_type>(m_image(i,j),p);
+      return compound_select_channel<result_type>(m_child(i,j),p);
     }
 
     template <class ViewT>
@@ -687,13 +1008,13 @@ namespace vw {
     }
 
     ImageT const& child() const {
-      return m_image;
+      return m_child;
     }
 
     /// \cond INTERNAL
     typedef ChannelsToPlanesView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox) ); }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 
@@ -727,20 +1048,20 @@ namespace vw {
   /// \see vw::planes_to_channels
   template <class PixelT, class ImageT>
   class PlanesToChannelsView : public ImageViewBase<PlanesToChannelsView<PixelT,ImageT> > {
-    ImageT m_image;
+    ImageT m_child;
   public:
 
     typedef PixelT pixel_type;
     typedef PixelT result_type;
     typedef ProceduralPixelAccessor<PlanesToChannelsView> pixel_accessor;
     
-    PlanesToChannelsView( ImageT const& image ) : m_image(image) {
-      VW_ASSERT( m_image.channels()==1 && m_image.planes()==CompoundNumChannels<PixelT>::value, 
+    PlanesToChannelsView( ImageT const& image ) : m_child(image) {
+      VW_ASSERT( m_child.channels()==1 && m_child.planes()==CompoundNumChannels<PixelT>::value, 
                  ArgumentErr() << "PlanesToChannelsView: The image must be multi-plane, single-channel.");
     }
     
-    inline unsigned cols() const { return m_image.cols(); }
-    inline unsigned rows() const { return m_image.rows(); }
+    inline unsigned cols() const { return m_child.cols(); }
+    inline unsigned rows() const { return m_child.rows(); }
     inline unsigned planes() const { return 1; }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
@@ -749,18 +1070,18 @@ namespace vw {
       result_type result;
       typedef typename CompoundChannelType<result_type>::type channel_type;
       for ( unsigned c=0; c<CompoundNumChannels<PixelT>::value; ++c )
-        compound_select_channel<channel_type&>(result,c) = m_image(i,j,c);
+        compound_select_channel<channel_type&>(result,c) = m_child(i,j,c);
       return result;
     }
 
     ImageT const& child() const {
-      return m_image;
+      return m_child;
     }
 
     /// \cond INTERNAL
     typedef PlanesToChannelsView<PixelT, typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image.prerasterize(bbox) ); }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 
