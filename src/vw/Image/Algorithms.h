@@ -21,7 +21,7 @@
 // 
 // __END_LICENSE__
 
-/// \file ImageAlgorithms.h
+/// \file Algorithms.h
 /// 
 /// Basic algorithms operating on images.
 /// 

@@ -28,34 +28,6 @@
 /// 
 /// Two types of transformations are supported by these classes:
 ///
-/// \ref free_transform(): Transforms an image according to a mapping
-/// functor.  An attempt is made to automatically determine the size
-/// and to shift the origin of the output image so that the entire
-/// warped input image appears within the bounds of the output image.
-/// This transform is useful for retaining all of the transformed
-/// pixels without regord to output image size and absolute image
-/// postion in the pixel space.  However, this transform is not ideal
-/// for image registration, since the origin of the image may change
-/// by an amount that depends on the bounds of the output image.  In
-/// essence, this transform is not guaranteed to be invertible.
-///
-/// \ref fixed_transform(): Transforms an image according to a mapping
-/// functor, but does not shift the origin of new image or attempt to
-/// resize the output image automatically.  Instead, the user may
-/// specify the size of the output image.  If no size is specified,
-/// the output image is set to the size of the input image.  Use this
-/// transform when absolute position in the pixel space matters
-/// (e.g. image registration).  This transformation is invertible.
-///
-/// Under some circumstances, the free transform may not be able to
-/// resize the output image to fit all of the warped pixels.  For
-/// example, if a perspective warping causes pixels to move to
-/// infinity, the determine_size() operation will fail.  The
-/// determine_size() function will fail if (1) the output image exceeds
-/// hard limits placed on the size on any one dimension of the
-/// image.  When determine_size() fails, the size of the input image is
-/// used for the output image, and a warning message is printed to
-/// stdout.
 ///
 #ifndef __VW_IMAGE_TRANSFORM_H__
 #define __VW_IMAGE_TRANSFORM_H__

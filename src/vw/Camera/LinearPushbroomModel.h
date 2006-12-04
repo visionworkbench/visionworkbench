@@ -21,7 +21,7 @@
 // 
 // __END_LICENSE__
 
-/// \file LinearPusbroomModel.h
+/// \file LinearPushbroomModel.h
 /// 
 /// Linear pushbroom camera model object. 
 ///

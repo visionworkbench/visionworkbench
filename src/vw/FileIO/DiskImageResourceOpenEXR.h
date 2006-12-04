@@ -35,7 +35,10 @@
 #include <vw/FileIO/DiskImageResource.h>
 
 // Forward-declare the Imf::InputFile class
+
+/// \cond INTERNAL
 namespace Imf { class InputFile; }
+/// \endcond
 
 namespace vw {
 

@@ -218,6 +218,24 @@ documentation for details.
 | OpenEXR | FileIO (opt.)      | http://www.openexr.com/            |
 +---------+--------------------+------------------------------------+
 
+In addition, the some Vision Workbench modules require other, lower
+level modules to be built.  The internal Vision Workbench dependency
+table appears below.  
+
++------+--------+-------------+
+| HDR  | Mosaic | Cartography |   Application-specific Toolkits
++------+--------+-------------+
++---------------+-------------+
+|    FileIO     |    Camera   |   High-level Primatives
++---------------+-------------+
++---------------+-------------+
+|    Image      |    Math     |   Low-level image processing/Linear Algrebra
++---------------+-------------+
++-----------------------------+
+|             Core            |   Basic Programming Infrastructure
++-----------------------------+
+
+
 B. Building and Installing
 
 Once you have obtained and installed all of the prerequisite software
@@ -264,14 +282,20 @@ of the tools.
 ************************************************************************
 5. DOCUMENTATION
 
-The primary source of documentation is the Vision Workbook, which is 
-provided in source form along with this distribution.  It includes a 
-user's guide for each of the Vision Workbench modules, as well as 
-automatically-generated reference manuals.  A copy of this document 
-in PDF format should be available from wherever you obtained this 
-package.  Alternatively, you may build an up-to-date copy of the 
-book from the sources by running "make doc".  This requires a working 
-installation of both LaTeX and Doxygen.
+The primary source of documentation is the Vision Workbook, which is
+provided in source form along with this distribution.  It includes a
+gentle introduction to using the core image processing routines, as
+well as documentation for each of the high level Vision Workbench
+modules.  A copy of this document in PDF format should be available
+from wherever you obtained this package.  The original source for this
+document can be found in "docs/workbook" and it can be built by
+running "make doc".  This operation requires the latex typesetting
+package.
+
+Auto-generated API documentation is also available if you have a
+working installation of Doxygen and latex.  Running "make doxygen" at
+the top level of the source tree will generate documentation in the
+"docs/api" directory.
 
 ************************************************************************
 6. CONTACTS & CREDITS

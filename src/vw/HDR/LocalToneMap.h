@@ -21,7 +21,7 @@
 // 
 // __END_LICENSE__
 
-/// \file LocalTonemap.h
+/// \file LocalToneMap.h
 /// 
 /// Tonemapping operators that compute the tonemapping in one small
 /// image region at a time. 

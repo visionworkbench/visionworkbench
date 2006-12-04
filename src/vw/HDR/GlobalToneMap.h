@@ -21,7 +21,7 @@
 // 
 // __END_LICENSE__
 
-/// \file GlobalTonemap.h
+/// \file GlobalToneMap.h
 /// 
 /// Tonemapping operators that operate on the entire image.  That is,
 /// the tonemapped value of each pixel can be computed without knowing

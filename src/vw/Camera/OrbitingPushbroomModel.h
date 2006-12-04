@@ -21,7 +21,7 @@
 // 
 // __END_LICENSE__
 
-/// \file OrbitingPusbroomModel.h
+/// \file OrbitingPushbroomModel.h
 /// 
 /// Orbiting pushbroom camera model object. 
 ///

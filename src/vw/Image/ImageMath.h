@@ -21,7 +21,7 @@
 // 
 // __END_LICENSE__
 
-/// \file Math/ImageMath.h
+/// \file Image/ImageMath.h
 ///
 /// Standard mathematical functions operating on images.
 ///

@@ -8,6 +8,7 @@ program using the Vision Workbench.  If that's what you're looking for
 then skip ahead to Chapter~\ref{ch:workingwithimages}.
 
 \section{Obtaining the Vision Workbench}
+\label{sec:obtaining-vw}
 
 Most likely if you are reading this document then you already know 
 where to obtain a copy of the Vision Workbench sources if you haven't 
@@ -28,6 +29,7 @@ Boost versions 1.32 and later.
 \begin{tabular}{|l|l|l|} \hline
 Name    & Used By            & Source                                    \\ \hline \hline
 Boost   & All                & \verb#http://www.boost.org/#              \\ \hline
+Boost   & Portions of Math, HDR & See note in Section \ref{sec:obtaining-vw}              \\ \hline
 PNG     & FileIO (opt.)      & \verb#http://www.libpng.org/#             \\ \hline
 JPEG    & FileIO (opt.)      & \verb#http://www.ijg.org/#                \\ \hline
 TIFF    & FileIO (opt.)      & \verb#http://www.libtiff.org/#            \\ \hline
@@ -53,6 +55,28 @@ If you are just starting out with the Vision Workbench, it is
 generally fine to begin only with Boost.  You can always go back and 
 rebuild the Vision Workbench with support for additional features 
 later if you discover that you need them.
+
+One dependency that is worth discussing briefly is LAPACK, which
+provides Vision Workbench with a computational linear algebra back
+end.  LAPACK is a comprehensive and widely used linear algebra support
+library in the public domain.  LAPACK also require the Basic Linear
+Algebra Subroutines (BLAS) library, which is usually bundled with
+LAPACK.
+
+The basic matrix and vector algebra in the Math module does not depend
+on LAPACK and BLAS, however the routines in
+\verb#<vw/Math/LinearAlgebra.h># will only be built if LAPACK is
+detected by the build system.  For your convenience, we provide a
+stand-alone LAPACK and BLAS distribution on the Vision Workbench web
+page.  This distribution has been tested with the Vision Workbench, so
+we recommend its use if you are installing LAPACK for the first time.
+However, other versions of LAPACK and BLAS that come pre-installed on
+your system will probably work just as well.  In particular, Mac OS X
+users {\em do not} need to install LAPACK; machine optimized linear
+algebra support is provided by Apple's \verb#veclib# framework on Mac
+OS X.  Remember to add the \verb#-framework veclib# flag when linking
+your application against the Vision Workbench if you are using the
+functions in \verb#<vw/Math/LinearAlgebra.h># on the mac platform.
 
 \section{Building the Vision Workbench}
 

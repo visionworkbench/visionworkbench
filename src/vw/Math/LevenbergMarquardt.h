@@ -21,7 +21,7 @@
 // 
 // __END_LICENSE__
 
-/// \file Optimization.h
+/// \file LevenbergMarquardt.h
 /// 
 /// Optimization classes for carrying out nonlinear optimization.
 /// 

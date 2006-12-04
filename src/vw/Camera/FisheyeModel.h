@@ -21,7 +21,7 @@
 // 
 // __END_LICENSE__
 
-/// \file CAHV.h
+/// \file FisheyeModel.h
 /// 
 /// This file contains the fisheye camera model.
 ///

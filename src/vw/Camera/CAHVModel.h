@@ -21,7 +21,7 @@
 // 
 // __END_LICENSE__
 
-/// \file CAHV.h
+/// \file CAHVModel.h
 /// 
 /// This file contains the CAHV pinhole camera model.
 /// 

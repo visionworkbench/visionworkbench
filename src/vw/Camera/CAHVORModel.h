@@ -21,7 +21,7 @@
 // 
 // __END_LICENSE__
 
-/// \file CAHVOR.h
+/// \file CAHVORModel.h
 /// 
 /// This file contains the CAHVOR pinhole camera model.  This camera
 /// model is a refinement of the \ref CAHVModel: it adds extra terms

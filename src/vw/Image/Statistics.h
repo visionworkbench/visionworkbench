@@ -21,7 +21,7 @@
 // 
 // __END_LICENSE__
 
-/// \file ImageStatistics.h
+/// \file Statistics.h
 /// 
 /// These functions compute the min, max, minmax, and
 /// mean value of an image on a per-channel basis.  
