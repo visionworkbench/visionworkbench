@@ -12,6 +12,12 @@ LIBTOOL = libtool
 # -Wall turns on all compiler warnings
 CXXFLAGS = -I$(VWPREFIX)/include -O3 -g -Wall
 
+# Boost:
+# The Vision Workbench header files require the boost headers. If
+# boost is installed in a non-standord location, you may need
+# to uncomment this line and insert the path to the boost headers.
+# CXXFLAGS += -I<path to boost include dir>
+
 # Linking flags:
 # -lvw includes the Vision Workbench core libraries
 LDFLAGS = -L$(VWPREFIX)/lib -lvw

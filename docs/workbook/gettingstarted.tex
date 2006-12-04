@@ -135,6 +135,16 @@ compiler to find the Vision Workbench headers and then configure your
 linker to find not only the Vision Workbench libraries but also all of
 the libraries that the Vision Workbench in turn requires.  
 
+Some Vision Workbench header files include boost headers, and the
+compiler needs to be able to find these files when you build your
+application.  No additional configuration is necessary if boost is
+installed in a stardard system directory, however for non-standard
+installations, you will need to direct the compiler (usually using the
+\verb#-I# flag) to the right directory.  Note that the Vision
+Workbench's dependency on boost is unique in this regard; you do not
+normally need to configure the compiler to find header files for
+Vision Workbench third party library dependencies.
+
 Keeping track of nested library dependencies like this can be
 difficult.  The Vision Workbench addresses this problem using the GNU
 \verb#libtool# utility, and we suggest that you use it too.  All
