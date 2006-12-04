@@ -22,12 +22,17 @@
 # __END_LICENSE__
 
 
-AC_INIT([NASA Vision Workbench], [1.0.rc3], [vwb@nx.arc.nasa.gov], [VisionWorkbench])
+AC_INIT([NASA Vision Workbench], [1.0.rc5], [vwb@nx.arc.nasa.gov], [VisionWorkbench])
 AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE
 AX_CONFIG_HEADER_PREFIX([src/vw/config.h], [VW_])
 
+LIBTOOL_CURRENT=0
+LIBTOOL_REVISION=0
+LIBTOOL_AGE=0
+LIBTOOL_VERSION=$LIBTOOL_CURRENT:$LIBTOOL_REVISION:$LIBTOOL_AGE
+AC_SUBST(LIBTOOL_VERSION)
 
 ##################################################
 #	configuration options
