@@ -44,7 +44,9 @@ namespace vw {
   public:
 
     DiskImageResourcePDS( std::string const& filename )
-      : DiskImageResource( filename )
+      : DiskImageResource( filename ),
+        m_image_data_offset( 0 ),
+        m_invalid_as_alpha( false )
     {
       open( filename );
     }
@@ -53,22 +55,22 @@ namespace vw {
                           GenericImageFormat const& format )
       : DiskImageResource( filename )
     {
-      create( filename, format );
+      throw NoImplErr() << "The PDS driver does not yet support creation of PDS files";
     }
     
-    virtual ~DiskImageResourcePDS();
+    virtual ~DiskImageResourcePDS() {}
     
     virtual void read_generic( GenericImageBuffer const& dest ) const;
     virtual void write_generic( GenericImageBuffer const& dest );
-    virtual void flush();
+    virtual void flush() {}
 
     /// Query for a value in the PDS header.  The returned value will
     /// be a string regardless of whether or not the value is a
     /// numerical type (i.e. it's up to you to convert to numerical
     /// types from a string where appropriate).  If no value is found
     /// for a matching key, a vw::NotFoundErr will be thrown.
-    std::string query(std::string const& key) {
-      std::map<std::string, std::string>::iterator query_object = m_header_entries.find(key);
+    std::string query(std::string const& key) const {
+      std::map<std::string, std::string>::const_iterator query_object = m_header_entries.find(key);
       if (query_object != m_header_entries.end()) 
         return (*query_object).second;
       else 
@@ -79,14 +81,18 @@ namespace vw {
     /// key with a value in the table will be used to extract that
     /// value, so order does matter.  If no value is found for a
     /// matching key, a vw::NotFoundErr will be thrown.
-    std::string query(std::vector<std::string> const& keys) {
+    std::string query(std::vector<std::string> const& keys) const {
       for( unsigned i = 0; i < keys.size(); ++i ) {
-        std::map<std::string, std::string>::iterator query_object = m_header_entries.find(keys[i]);
+        std::map<std::string, std::string>::const_iterator query_object = m_header_entries.find(keys[i]);
         if( query_object != m_header_entries.end() ) 
           return (*query_object).second;
       }
       throw NotFoundErr() << "DiskImageResourcePDS: no matching value found for the keys provided."; 
     }
+
+    /// Configure the resource to convert data validity information 
+    /// to an alpha channel (i.e. make missing data transparent).
+    void treat_invalid_data_as_alpha();
 
 
     void open( std::string const& filename );
@@ -101,9 +107,9 @@ namespace vw {
 
   private:
     void parse_pds_header(std::vector<std::string> const& header);
-    std::string m_filename;
     std::map<std::string, std::string> m_header_entries;
     int m_image_data_offset;
+    bool m_invalid_as_alpha;
   };
 
 } // namespace vw

@@ -42,13 +42,20 @@ using namespace boost;
 #include <vw/FileIO/DiskImageResourcePDS.h>
 
 
-/// Close the file when the object is destroyed
-vw::DiskImageResourcePDS::~DiskImageResourcePDS() {
-  this->flush();
-}
- 
-/// Flush the buffered data to disk
-void vw::DiskImageResourcePDS::flush() {
+void vw::DiskImageResourcePDS::treat_invalid_data_as_alpha() {
+  // We currently only support this feature under very specific circumstances
+  string format_str, sample_bits_str, valid_minimum_str;
+  try {
+    format_str = query("SAMPLE_TYPE");
+    sample_bits_str = query("SAMPLE_BITS");
+    valid_minimum_str = query("VALID_MINIMUM");
+  }
+  catch ( vw::NotFoundErr &e ) {
+    throw vw::NoImplErr() << "Invalid data not supported for this PDS image.";
+  }
+  if( format_str != "MSB_INTEGER" || sample_bits_str != "16" || m_format.pixel_format != VW_PIXEL_GRAY )
+    throw vw::NoImplErr() << "Invalid data not supported for this PDS image format.";
+  m_invalid_as_alpha = true;
 }
 
 void vw::DiskImageResourcePDS::parse_pds_header(std::vector<std::string> const& header) {
@@ -75,7 +82,6 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
 
   FILE* input_file = fopen(filename.c_str(), "r");
   if( ! input_file ) throw vw::IOErr() << "Failed to open \"" << filename << "\".";
-  m_filename = filename;
 
   char c_line[2048];
   int i = 0;
@@ -200,8 +206,8 @@ void vw::DiskImageResourcePDS::read_generic( GenericImageBuffer const& dest ) co
   
   // Re-open the file, and shift the file offset to the position of
   // the first image byte (as indicated by the PDS header)
-  FILE* input_file = fopen(m_filename.c_str(), "r");
-  if( ! input_file ) throw vw::IOErr() << "Failed to open \"" << m_filename << "\".";
+  FILE* input_file = fopen(DiskImageResource::m_filename.c_str(), "r");
+  if( ! input_file ) throw vw::IOErr() << "Failed to open \"" << DiskImageResource::m_filename << "\".";
   fseek(input_file, m_image_data_offset, 0);
 
   // Grab the pixel data from the file.
@@ -245,6 +251,33 @@ void vw::DiskImageResourcePDS::read_generic( GenericImageBuffer const& dest ) co
   src.pstride = bytes_per_pixel * m_format.cols * m_format.rows;
   
   convert( dest, src );
+
+  if ( m_invalid_as_alpha ) {
+    // We checked earlier that the source format is as we 
+    // expect.  Now we sanity-check the destination.
+    if( dest.format.planes == 1 && 
+        ( dest.format.pixel_format == VW_PIXEL_GRAYA || 
+          dest.format.pixel_format == VW_PIXEL_RGBA ) ) {
+      int dst_bpp = num_channels(dest.format.pixel_format) * channel_size(dest.format.channel_type);
+      string valid_minimum_str = query("VALID_MINIMUM");
+      int16 valid_minimum = atoi(valid_minimum_str.c_str());
+      uint8* src_row = (uint8*)src.data;
+      uint8* dst_row = (uint8*)dest.data;
+      for( unsigned y=0; y<m_format.rows; ++y ) {
+        uint8* src_data = src_row;
+        uint8* dst_data = dst_row;
+        for( unsigned x=0; x<m_format.cols; ++x ) {
+          if( *((int16*)src_data) < valid_minimum ) {
+            memset( dst_data, 0, dst_bpp );
+          }
+          src_data += src.cstride;
+          dst_data += dest.cstride;
+        }
+        src_row += src.rstride;
+        dst_row += dest.rstride;
+      }
+    }
+  }
 
   delete[] image_data;
   fclose(input_file);
