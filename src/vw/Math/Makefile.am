@@ -35,6 +35,7 @@ include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h \
                   Quaternion.h ConjugateGradient.h $(lapack_headers)
 
 libvwMath_la_SOURCES = 
+libvwMath_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwMath_la_LIBADD = @MODULE_MATH_LDFLAGS@
 
 lib_LTLIBRARIES = libvwMath.la

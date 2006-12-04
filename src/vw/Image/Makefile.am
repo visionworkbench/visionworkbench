@@ -35,6 +35,7 @@ include_HEADERS = PixelIterator.h ImageViewBase.h PixelAccessors.h	\
 	Statistics.h Algorithms.h
 
 libvwImage_la_SOURCES = GenericImageBuffer.cc Filter.cc
+libvwImage_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwImage_la_LIBADD = @MODULE_IMAGE_LDFLAGS@
 
 lib_LTLIBRARIES = libvwImage.la

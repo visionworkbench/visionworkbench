@@ -30,8 +30,10 @@ if MAKE_MODULE_HDR
 include_HEADERS = CameraCurve.h GlobalToneMap.h LDRtoHDR.h	\
 	LocalToneMap.h
 
-libvwHDR_la_SOURCES = GlobalToneMap.cc LocalToneMap.cc CameraCurve.cc LDRtoHDR.cc
+libvwHDR_la_SOURCES = GlobalToneMap.cc LocalToneMap.cc CameraCurve.cc	\
+	LDRtoHDR.cc
 
+libvwHDR_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwHDR_la_LIBADD = @MODULE_HDR_LDFLAGS@
 
 lib_LTLIBRARIES = libvwHDR.la

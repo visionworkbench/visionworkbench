@@ -30,6 +30,7 @@ if MAKE_MODULE_INTERESTPOINT
 include_HEADERS = Detector.h Descriptor.h Matcher.h RANSAC.h
 
 libvwInterestPoint_la_SOURCES = 
+libvwInterestPoint_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwInterestPoint_la_LIBADD = @MODULE_MOSAIC_LDFLAGS@
 
 lib_LTLIBRARIES = libvwInterestPoint.la

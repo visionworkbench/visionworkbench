@@ -54,6 +54,7 @@ libvwFileIO_la_SOURCES = DiskImageResource.cc DiskImageResourcePDS.cc	\
 	$(png_sources) $(tiff_sources) $(openexr_sources) $(jpeg_sources)
 
 libvwFileIO_la_CPPFLAGS = @MODULE_FILEIO_CPPFLAGS@
+libvwFileIO_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwFileIO_la_LIBADD = @MODULE_FILEIO_LDFLAGS@
 
 lib_LTLIBRARIES = libvwFileIO.la

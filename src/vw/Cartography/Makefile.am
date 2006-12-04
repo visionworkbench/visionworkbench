@@ -34,6 +34,7 @@ include_HEADERS = DiskImageResourceGDAL.h FileIO.h GeoReference.h    	\
 libvwCartography_la_SOURCES = DiskImageResourceGDAL.cc GeoReference.cc \
                   GeoTransform.cc
 
+libvwCartography_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwCartography_la_LIBADD = @MODULE_CARTOGRAPHY_LDFLAGS@
 
 lib_LTLIBRARIES = libvwCartography.la

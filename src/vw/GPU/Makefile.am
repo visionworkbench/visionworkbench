@@ -28,17 +28,20 @@
 if MAKE_MODULE_GPU
 
 include_HEADERS = OpenGLManager.h GPUProgram.h TexAlloc.h TexBlock.h	\
-  TexObj.h GPUImage.h TokenReplacer.h Filter.h ImageOperators.h				\
-  SimpleTransforms.h Transform.h Display.h GenericShaders.h						\
-  ImageMath.h ImageStatistics.h Fourier.h ImageAlgorithms.h						\
-  Interpolation.h EdgeExtend.h Expressions.h Timer.h
+	  TexObj.h GPUImage.h TokenReplacer.h Filter.h			\
+	  ImageOperators.h SimpleTransforms.h Transform.h Display.h	\
+	  GenericShaders.h ImageMath.h ImageStatistics.h Fourier.h	\
+	  ImageAlgorithms.h Interpolation.h EdgeExtend.h Expressions.h	\
+	  Timer.h
 
-libvwGPU_la_SOURCES = OpenGLManager.cc GPUProgram.cc TexAlloc.cc				\
-  TexBlock.cc TexObj.cc GPUImage.cc TokenReplacer.cc GenericShaders.cc	\
-  ImageOperators.cc ImageMath.cc SimpleTransforms.cc Transform.cc				\
-  Filter.cc ImageStatistics.cc Fourier.cc Display.cc										\
-  ImageAlgorithms.cc Expressions.cc UtilityTimer.cc
+libvwGPU_la_SOURCES = OpenGLManager.cc GPUProgram.cc TexAlloc.cc	\
+	TexBlock.cc TexObj.cc GPUImage.cc TokenReplacer.cc		\
+	GenericShaders.cc ImageOperators.cc ImageMath.cc		\
+	SimpleTransforms.cc Transform.cc Filter.cc ImageStatistics.cc	\
+	Fourier.cc Display.cc ImageAlgorithms.cc Expressions.cc		\
+	UtilityTimer.cc
 
+libvwGPU_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwGPU_la_LIBADD = @MODULE_GPU_LDFLAGS@
 
 lib_LTLIBRARIES = libvwGPU.la
