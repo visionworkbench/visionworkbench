@@ -22,7 +22,7 @@
 # __END_LICENSE__
 
 
-AC_INIT([NASA Vision Workbench], [1.0.rc5], [vwb@nx.arc.nasa.gov], [VisionWorkbench])
+AC_INIT([NASA Vision Workbench], [1.0.0], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
 AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE

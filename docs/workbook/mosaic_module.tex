@@ -19,14 +19,14 @@ The \verb#ImageComposite# template class provides the ability to
 composite any number of source images together at arbitrary pixel
 offsets.  It was originally designed for assembling tiled panoramas or
 aerial/satellite images that have been transformed into a common
-coordinate system, though it could be used for many other things as
+coordinate system, though it can be used for many other things as
 well.
 
-The main interface is fairly simple.  Just like ordinary Vision
-Workbench images, an \verb#ImageComposite# is templatized on its pixel
-type.  In most cases you will want to use a pixel type that has an
-alpha channel, and if you want to perform image blending then the
-pixel type must be floating-point, so the most common pixel type is
+The interface is fairly simple.  Just like ordinary Vision Workbench
+images, an \verb#ImageComposite# is templatized on its pixel type.  In
+most cases you will want to use a pixel type that has an alpha
+channel, and if you want to perform image blending then the pixel type
+must be floating-point, so the most common pixel type is
 \verb#PixelRGBA<float32>#.  You can then configure whether you would
 like to use multi-band blending to merge your images or if you would
 simply like them overlayed by using the \verb#set_draft_mode()#

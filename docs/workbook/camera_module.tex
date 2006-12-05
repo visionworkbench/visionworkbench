@@ -17,14 +17,14 @@ be imported into your code by including {\tt <vw/Camera.h>}.
 
 Because you will likely encounter new camera geometries not supported
 by the built-in classes, the camera module is designed to be
-extensible: the user can provide their own camera model by inheriting
+extensible.  You can provide your own camera model by inheriting
 from and adopting the interface of the {\tt CameraModel} abstract base
-class in {\tt <vw/Camera/CameraModel.h>}.
+class, which is defined in the header file {\tt <vw/Camera/CameraModel.h>}.
 
 Finally, the camera module provides a basic set of tools for working
 with images from real-world camera systems: bayer pattern filtering
 and EXIF parsing.  We will cover all of these features in more detail,
-however we begin this chapter by establishing some terminology whilst
+but we begin this chapter by establishing some terminology while
 exploring the most common camera geometry in use today: the pinhole
 camera model.
 
@@ -284,11 +284,11 @@ Figure \ref{fig:linescan-geometry} when working with
 
 In the special case where the motion of the linescan sensor is linear
 and its orientation is fixed, the projection of the points onto the
-image in the along-track is orthographic.  These assumptions are the
-basis for the {\em Linear Pushbroom Model}, which can be found in
-\verb#<vw/Camera/LinearPushbroomModel.h>#.  If you are interested in
-understanding this model in detail, we recommend you read the
-excellent paper by Gupta and Hartly \cite{gupta97}.
+image in the along-track direction is orthographic.  These assumptions
+are the basis for the {\em Linear Pushbroom Model}, which can be found
+in the header file \verb#<vw/Camera/LinearPushbroomModel.h>#.  If you
+are interested in understanding this model in detail, we recommend you
+read the excellent paper by Gupta and Hartly \cite{gupta97}.
 
 If you must relax the assumption about a linear flight path somewhat
 to allow sensor pose to vary and the camera motion to lie along a
@@ -309,12 +309,12 @@ working with image captured by real cameras.
 
 Most imaging sensors are inherently grayscale capture devices.  In
 order to capture color, some imagers have a hardware color filter
-placed in front of the pixels on the CCD.  This is called a {\em Bayer
-  filter}.  The Vision Workbench provides the
-\verb#inverse_bayer_filter()# method in
-\verb#<vw/Camera/BayerFilter.h># converting the raw, grayscale pixel
-values from the sensor and producing a color image by interpreting the
-Bayer filter effect.
+placed in front of the pixels on the CCD.  This is called a 
+{\em Bayer filter}.  The Vision Workbench provides the
+\verb#inverse_bayer_filter()# function (found in the header file
+\verb#<vw/Camera/BayerFilter.h>#) which interprets the raw, grayscale
+pixel values from the sensor and produces a color image by
+interpreting the Bayer filter effect.
 
 \subsection{Exif Exposure Data}
 
