@@ -21,7 +21,7 @@ from under-exposed to over-exposed.  This technique is subject of
 section \ref{sec:hdr_merge}.
 
 The resulting HDR image is generally stored with a channel type of
-{\tt float} or {\tt int16} to accomodate the expanded dynamic range.
+{\tt float} or {\tt int16} to accommodate the expanded dynamic range.
 To store HDR images on disk we recommend using the OpenEXR or TIFF
 file formats, both of which support 32-bit floating point channel
 types.
@@ -40,7 +40,7 @@ possible the visual contrasts of the original scene.
 
 As discussed in the introduction to this chapter, the limited dynamic
 range of the sensors on modern cameras necessitates a different
-strategy for building true HDR images: exposure backeting.  This frees
+strategy for building true HDR images: exposure bracketing.  This frees
 us from hardware limitations and allows us to set the dynamic range of
 the output image arbitrarily by adjusting the number of exposures in
 the bracket.  The more exposures in the bracket, the higher the
@@ -58,7 +58,7 @@ dynamic range merged HDR image.
 
 For convenience, the exposure ratio between consecutive images is
 usually a fixed value to guarantee a wide exposure range while
-maintaning even brightness overlap between adjacent images in the
+maintaining even brightness overlap between adjacent images in the
 bracket. A factor of two is generally recommended.  The shutter speed
 is generally the preferred method of varying the exposure in a
 bracket; changing the aperture or ISO setting can have the same effect
@@ -89,7 +89,7 @@ system \cite{apex}) .
 
 Most modern digital cameras store exposure information as EXIF
 metadata in the headers of images.  The Vision Workbench supports
-reading this data fram TIFF and JPEG files via the Camera Module, and
+reading this data from TIFF and JPEG files via the Camera Module, and
 the routine \verb#process_ldr_images_exif()# capitalizes on this,
 generating an HDR image from an array of filenames of LDR images by
 computing brightness values from the files' EXIF data along the
@@ -339,10 +339,6 @@ OpenEXR images,'', 2004, http://scanline.ca/exrtools/.
 \bibitem{drago} Drago et al., ``Adaptive Logarithmic Mapping For Displaying High Contrast Scenes,''
 {\em Eurographics}, {\bf 22}(3), 2003.
 
-\bibitem{exif} ``Exchangeable image file format for digital still cameras: Exif Version 2.2'',
-(Japan Electronics and Information Technology Industries Assocation, 2002),
-http://www.exif.org/specifications.html.
-
 \bibitem{fattal} Fattal, Raanan, et. al, ``Gradient Domain High Dynamic Range Compression,''
 {\em ACM Transactions on Graphics}, 2002.
 
@@ -360,9 +356,6 @@ http://www.mpi-inf.mpg.de/resources/pfstools/.
 
 \bibitem{hdrbook} Reinhard, Erik, Greg Ward, Sumanta Pattanaik, and Paul Debevec,
 {\em High Dynamic Range Imaging}, (Boston: Elsevier, 2006).
-
-\bibitem{jhead} Wandel, Matthias, ``Exif Jpeg header and thumbnail manipulator program,'' 2006,
-http://www.sentex.net/~mwandel/jhead/.
 
 \bibitem{ward} Ward, Greg, et al., ``A Visibility Matching Tone Reproduction Operator for High Dynamic Range Scenes,''
 {\em IEEE Transactions on Visualization and Computer Graphics}, 1997.

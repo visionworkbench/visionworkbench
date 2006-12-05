@@ -1,7 +1,7 @@
 \chapter{The Core Vision Workbench Type System}
 
 The Vision Workbench is an example of what is often called a
-``multiparadigm'' C++ library.  That is, different components of the
+``multi-paradigm'' C++ library.  That is, different components of the
 library adopt different C++ programming models, such as the generic
 programming model or the object-oriented programming model, often in
 combination.  At the core, however, is a set of data types and related
@@ -42,7 +42,7 @@ Type & Description & Notes \\ \hline \hline
 
 The most fundamental data types of all are the built-in C++ integral
 and floating-point numeric types.  In scientific programming contexts 
-like image processing and machine vision it is generally imporant to 
+like image processing and machine vision it is generally important to 
 be able to specify the exact nature of the numeric data types that you 
 are working with.  Unfortunately the C++ language makes few promises 
 about the sizes of data types such as \verb#int# or even \verb#char#.  
@@ -207,7 +207,7 @@ This macro expands to the same set of template specializations shown
 above, describing a pixel type named \verb#PixelRGB# with three
 channels.
 
-Note that it is {\it not} necessary to decare a type using this macro,
+Note that it is {\it not} necessary to declare a type using this macro,
 or even to provide specializations for the traits templates described
 above, just to use that type as the pixel type for an image.  These
 specializations are only necessary if you want to declare a type with
@@ -234,11 +234,11 @@ function that you wish to call is itself generic and can accept
 any channel type.
 
 Sometimes it is desirable to apply a function to each channel
-of a pixel, or to corresponding channels from two pixels.  Rescaling a
+of a pixel, or to corresponding channels from two pixels.  Re-scaling a
 pixel or adding two pixels on a per-channel basis can be cast into
 this form, for example.  You can use the generic function
 \verb#apply_per_pixel_channel()# to do this.  Here is a trivial 
-example that demonstrates rescaling:
+example that demonstrates re-scaling:
 \begin{verbatim}
   float32 triple(float32 v) { return 3*v; }
   // Later, in some other function...
@@ -256,6 +256,6 @@ The binary form simply takes an extra pixel argument:
   PixelRGB<float> result = apply_per_pixel_channel(&sum,pixel1,pixel2);
 \end{verbatim}
 
-\subsection{Mathematical Operators}
-Virtually all image processing operations depend on pixel 
-arithmetic in one way or another.
+%% \subsection{Mathematical Operators}
+%% Virtually all image processing operations depend on pixel 
+%% arithmetic in one way or another.

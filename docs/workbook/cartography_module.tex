@@ -30,7 +30,7 @@ libraries that are needed to compile the Vision Workbench.  We will
 then describe the \verb#GeoRefence# class, which creates a
 relationship between pixel coordinates in an image and coordinates on
 a globe.  Next, we will discuss the \verb#GeoTransform# class, which
-provides a simple means of reprojecting map data.  We finish this
+provides a simple means of re-projecting map data.  We finish this
 section with methods for reading and writing image files with embedded
 geospatial metadata.
 
@@ -105,14 +105,14 @@ A Vision Workbench \verb#GeoReference# object is composed of three items:
 
 Let's start by being explicit about the coordinate systems we will be
 working with.  For images, we adopt the usual Vision Workbench
-coordinate system wherin the upper left corner of the image is the
+coordinate system wherein the upper left corner of the image is the
 origin, the $u$ coordinate increases as you move right along the
 columns of the image, and the $v$ coordinate increases as you move
 down the rows.  
 
 For a planetary body, the coordinate of a point on the surface is
 typically measured in latitude, longitude, and radius ($\phi, \theta,
-r$).  Lines of latitude are perpindicular to the axis of rotation and
+r$).  Lines of latitude are perpendicular to the axis of rotation and
 are measured from the center line, the {\em equator} (+/-90 degrees).
 Lines of Longitude are vertical, passing through both the North and
 South poles of the planet.  It is measured from a vertical arc on the
@@ -132,7 +132,7 @@ the image, and we want to relate it to some planetary coordinates
 %%   - Creating 
 %%     - proj4str
 %%     - datum and transform
-%%   - << streamings
+%%   - << streaming
 %%   - Setting projections
 
 \begin{table}[t]\begin{centering}

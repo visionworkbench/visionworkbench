@@ -42,3 +42,7 @@ Much of the code has not been properly tested under Windows/MSVC.
 The Matrix outer product functions are disabled on that platform 
 due to compiler issues.
 
+The Vision Workbench does not compile under Debian Linux with the
+Debian packages for boost and LAPACK.  We recommend installing boost
+from source and installing LAPACK from the pre-packaged distribution
+available on the Vision Workbench web site. 

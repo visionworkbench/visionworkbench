@@ -58,7 +58,7 @@ the complete programs, such as \verb#vwconvert.cc#
 (Listing~\ref{lst:vwconvert.cc}, above), which are intended to be
 fully self-contained.
 
-By default the dimenions of an \verb#ImageView# are zero, which may not 
+By default the dimensions of an \verb#ImageView# are zero, which may not 
 be what you want.  One option is to specify an image's dimensions when 
 we construct it:
 \begin{verbatim}
@@ -157,7 +157,7 @@ The first four, used for grayscale and RGB images with and without
 alpha channels, are the most common.  (For those of you who are 
 unfamiliar with the term, an {\it alpha} channel is used to represent 
 the opacity of a pixel.  For the rest of you, note that the Vision 
-Workbench generally stores alpha pixels in premultiplied form.)
+Workbench generally stores alpha pixels in pre-multiplied form.)
 
 Each of the channels in a pixel can be accessed by indexing into it
 directly, as in \verb#my_pixel(i)# or \verb#my_pixel[i]#.  The order 
@@ -240,7 +240,7 @@ type is, as expected, called \verb#ImageView<T>::iterator#, and it
 allows you to access each of the pixels of an image one at a time.
 The \verb#begin()# and \verb#end()# methods return iterators pointing
 to the first and one-past-the-last pixels, respectively.  The first
-pixel is located at postion $(0,0)$, and incrementing the iterator
+pixel is located at position $(0,0)$, and incrementing the iterator
 advances to the next column.  After it passes through the last column,
 the iterator wraps around to the beginning of the next row.
 
@@ -326,7 +326,7 @@ are case-insensitive.
 \begin{table}[t]\begin{centering}
 \begin{tabular}{|c|l|l|} \hline
 Name & Extension(s) & Description \\ \hline \hline
-PNG & \verb#.png# & Standard for lossless compression \\ \hline
+PNG & \verb#.png# & Standard for loss-less compression \\ \hline
 JFIF/JPEG & \verb#.jpg#, \verb#.jpeg# & Standard for lossy compression, no alpha \\ \hline
 TIFF & \verb#.tif#, \verb#.tiff# & Highly flexible, complicated \\ \hline
 OpenEXR & \verb#.exr# & High dynamic range \\ \hline
@@ -400,7 +400,7 @@ object of the appropriate type directly.
   DiskImageResourcePNG *dirp1 = new DiskImageResourcePNG( filename );
   DiskImageResourcePNG *dirp2 = new DiskImageResourcePNG( filename, format );
 \end{verbatim}
-In thise case we show how to create PNG image resources.  If you do this 
+In this case we show how to create PNG image resources.  If you do this 
 then you can take advantage of any special services provided by the 
 particular file format's resource type, such as the ability to read or 
 write special file header information.
@@ -508,7 +508,7 @@ processing.  As a result, these functions are all able to return {\it writable}
 views of their image argument.  That is, you can use them to modify an image by 
 placing them on the left side of an equals sign.  For example, suppose you want 
 to add a small inset to a larger image, by copying a small image into the larger 
-one at a particular postion.  One easy way is to specify the destination region 
+one at a particular position.  One easy way is to specify the destination region 
 using the \verb#crop()# function:
 \begin{verbatim}
   int cols = small_image.cols(), rows = small_image.rows();
@@ -622,7 +622,7 @@ whether the pixels in the source image is greater than or less
 than the given threshold value.  The default high and low output 
 values are the same as for \verb#norm#, and the default threshold 
 is zero.  For example, this line will convert a floating-point 
-greyscale image to pure black-and-white:
+grayscale image to pure black-and-white:
 \begin{verbatim}
   image = threshold( image, 0.5 );
 \end{verbatim}
@@ -637,8 +637,8 @@ horizontal and vertical distances.  This algorithm is used in
 a variety of applications, such as avoiding obstacles and 
 unknown terrain in path planning.
 
-The final three functions in this section relate to bounding 
-boxes, which are the topic of the next section.
+%% The final three functions in this section relate to bounding 
+%% boxes, which are the topic of the next section.
 
-\subsection{Bounding Boxes}
+%% \subsection{Bounding Boxes}
 

@@ -84,7 +84,7 @@ $\nabla^2=\frac{d^2}{dx^2}+\frac{d^2}{dy^2}$.
 This filter does not take any special parameters.  Note that if you 
 are accustomed to using a ``larger'' derivative or Laplacian filter 
 to reduce the effect of noise, you are probably better off applying 
-a smoothing operation (e.g. via \verb#gauusian_filter()#) first.
+a smoothing operation (e.g. via \verb#gaussian_filter()#) first.
 
 \subsection{Edge Extension Modes}
 \label{sec:filter-edge-extend}
@@ -107,7 +107,7 @@ extension''.  The default assumption made by the filters
 discussed in this section is that in each direction the 
 image is extended with a constant value equal to the value 
 of the nearest edge pixel.  However, you can specify an 
-alternative edge extension mode if you wich, by passing 
+alternative edge extension mode if you wish, by passing 
 an extra argument to the filters.  The C++ type of the 
 argument determines the edge extension mode used.  
 \begin{verbatim}
@@ -160,7 +160,7 @@ an image it is straightforward to use it to filter another image.
   result = convolution_filter( image, kernel );
 \end{verbatim}
 In this case the Vision Workbench assumes that the center pixel of the
-kernel is the kernels's origin.  If this is not what you want then you
+kernel is the kernel's origin.  If this is not what you want then you
 can specify the coordinates of the kernel's origin explicitly instead.
 \begin{verbatim}
   result = convolution_filter( image, kernel, ox, oy );
@@ -202,7 +202,7 @@ operation on every pixel of an image, or to corresponding pixels from
 several images.  For example gamma correction involves applying a 
 mathematical function to each pixel, and background subtraction involves
 subtracting the corresponding pixels from two images.  In the Vision 
-Workbench, these operaations and others like them fall under the rubric 
+Workbench, these operations and others like them fall under the rubric 
 of ``image math'', and the functions to support them are defined in the 
 header \verb#<vw/Image/ImageMath.h>#.
 
@@ -215,7 +215,7 @@ consider the background subtraction problem mentioned above.
 \begin{verbatim}
   result_image = input_image - background_image;
 \end{verbatim}
-That's all there is to it.  Setting up an IIR lowpass filter to 
+That's all there is to it.  Setting up an IIR low-pass filter to 
 estimate the background image is just as easy.
 \begin{verbatim}
   background_image = alpha*input_image + (1-alpha)*background_image;
@@ -339,7 +339,7 @@ name when you are working with \verb#float# image data than you would
 use to work with \verb#double# image data.  The function names listed
 in Table~\ref{tbl:math-functions} are correct for image math in all
 cases.  Those in turn use the proper underlying mathematical functions
-as apppropriate---for example, \verb#sin()# invokes \verb#sinf()# on 
+as appropriate---for example, \verb#sin()# invokes \verb#sinf()# on 
 each pixel if it is applied to a \verb#float#-based image.
 
 \section{Vectors and Matrices}
@@ -347,7 +347,7 @@ each pixel if it is applied to a \verb#float#-based image.
 Before introducing the next image processing topic, image transformation 
 and warping, we must first take a brief detour to introduce the Vision 
 Workbench vector and matrix classes.  We will assume in this chapter 
-that you have a good familiarity with the underlying mathemtatical 
+that you have a good familiarity with the underlying mathematical 
 entities that these classes represent.  Note that our mathematical usage 
 of the word ``vector'' here is somewhat different from the C++ standard 
 library's use of the word to mean a dynamically-resizable array.
@@ -489,7 +489,7 @@ A \verb#Vector# object is also a {\em container} in the C++ Standard Template
 Library sense of the word.  There is a \verb#Vector<...>::iterator# type 
 that serves as the vector's iterator, and there are \verb#begin()# and 
 \verb#end()# methods that return iterators to the first and one-past-the-last 
-elements, as usual.  This can be an extremely convienient way to load 
+elements, as usual.  This can be an extremely convenient way to load 
 data into and out of \verb#Vector#s.
 
 You can extract a portion of a vector using the \verb#subvector()#
@@ -546,12 +546,12 @@ dynamically-sized versions:
 Note that the arguments to matrix-related functions such 
 as these constructors are given in $i,j$ order, i.e. row 
 followed by column.  This is {\it different} from images, 
-where areguments are given in $x,y$ order, i.e. column 
+where arguments are given in $x,y$ order, i.e. column 
 followed by row.  You may find this confusing at first if 
 you are moving to the Vision Workbench from an environment 
 like Matlab where there is no distinction between images 
 and matrices.  However, it is in keeping with the standard 
-index ordering seen in the bulk of the image processsing 
+index ordering seen in the bulk of the image processing 
 and mathematics literatures, respectively.
 
 You can initialize the matrix with data already stored 
@@ -622,7 +622,7 @@ Function & Description \\ \hline \hline
 \verb#elem_diff(matrix,matrix)# & Elementwise matrix difference (same as \verb#-# operator) \\ \hline
 \verb#elem_diff(matrix,scalar)# & Elementwise difference of a matrix and a scalar \\ \hline
 \verb#elem_diff(scalar,matrix)# & Elementwise difference of a scalar and a matrix \\ \hline
-\verb#elem_prod(matrix,matrix)# & Elementwise product of two matrixs \\ \hline
+\verb#elem_prod(matrix,matrix)# & Elementwise product of two matrices \\ \hline
 \verb#elem_prod(matrix,scalar)# & Elementwise matrix product (same as \verb#*# operator) \\ \hline
 \verb#elem_prod(scalar,matrix)# & Elementwise matrix product (same as \verb#*# operator) \\ \hline
 \verb#elem_quot(matrix,matrix)# & Elementwise quotient of two matrixs \\ \hline
@@ -709,7 +709,7 @@ Let's start with a basic example of image transformation.  First,
 include the \verb#<vw/Image/Transform.h># header file.  Now, imagine
 you would like to translate all of the pixels in the image 100 pixel
 positions to to right.  This operation does nothing to the pixel
-values except to relocate them in th image.  The Vision Workbench
+values except to relocate them in the image.  The Vision Workbench
 provides a convenient method for performing this operation.
 
 \begin{verbatim}
@@ -952,7 +952,7 @@ Type & Function & Description \\ \hline \hline
 \verb#TranslateTransform# & \verb#translate()# & Translate an image \\ \hline
 \verb#HomographyTransform# & & Apply a linear homogeneous transformation (3x3 Matrix)  \\ \hline
 \verb#PointLookupTransform# & & Apply a transformation based on a lookup table image  \\ \hline
-\verb#PointOffsetTransform# & & Apply a transformaiton based on an offset table image \\ \hline
+\verb#PointOffsetTransform# & & Apply a transformation based on an offset table image \\ \hline
 \end{tabular}
 \caption{Built-in transform functors and (if available) their function interface.}
 \label{tbl:transform-functors}
@@ -997,7 +997,7 @@ coordinates $[r,\theta]$ instead of the usual cartesian coordinates
 $[u, v]$.
 
 To use \verb#RadialTransformAdaptor#, you write your transform functor
-as usual, but you iterpret the components in the input and output
+as usual, but you interpret the components in the input and output
 \verb#Vector2# to be $[r,\theta]$, in that order.  Assuming you have
 created a class \verb#MyRadialTransform# in this manner, you can apply
 it as follows:
@@ -1013,5 +1013,4 @@ wherein the center of the image is the origin, and a value of $r=1.0$ is
 equal to the distance from the center to the left edge of the image.
 
 
-
-\section{Where to Go from Here}
+%% \section{Where to Go from Here}

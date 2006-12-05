@@ -6,7 +6,7 @@ number of smaller images.  The applications of this module include
 panoramic imaging and aerial/satellite image processing.  There are 
 three major facilities provided at this time: compositing many images 
 together, using multi-band blending to seamlessly merge overlapping 
-images, and generating on-disk image quadtrees to efficiently store 
+images, and generating on-disk image quad-trees to efficiently store 
 very large images.
 
 Note that the facilities described in this chapter are currently under
@@ -30,7 +30,7 @@ pixel type must be floating-point, so the most common pixel type is
 \verb#PixelRGBA<float32>#.  You can then configure whether you would
 like to use multi-band blending to merge your images or if you would
 simply like them overlayed by using the \verb#set_draft_mode()#
-method.  It takes a single argument which sould be \verb#true# if you
+method.  It takes a single argument which should be \verb#true# if you
 simply want to overlay the images and \verb#fales# if you want to use
 the blender.  Blending is a significantly more expensive operation.
 If your images are simply tiles and do not overlap then draft mode is
@@ -80,7 +80,7 @@ expressed in the re-centered coordinate frame, as its only argument.
 
 Here's a simple example that illustrates how you might blend 
 together a number of images on-disk.  It assumes you already know 
-the image filenames and their offets within the composite, and 
+the image filenames and their offsets within the composite, and 
 that the total composite is small enough to sensible rasterize all 
 at once.
 \begin{verbatim}
@@ -105,7 +105,7 @@ see the example program \verb#blend.cc# included with the
   \subfigure[Blended result]{\includegraphics[width=2in]{images/hand-lips-blend.jpg}\label{fig:blend.result}}
 \caption{Example input and output images from the {\tt ImageComposite} multi-band 
 blender.\protect\footnotemark }
-\label{fig:blend.hand}
+\label{fig:blend.hand.maincaption}
 \end{figure}
 \footnotetext{Original hand and face source images by {\tt sheldonschwartz} and {\tt vidrio}, respectively, and released under the Creative Commons license.}
 
@@ -128,8 +128,8 @@ Only a small fraction of the image data will ever be on-screen at a time
 at full resolution.  However the entire data set may be visible at once at 
 lower resolutions, and computing such reduced images on the fly can be 
 prohibitively expensive.  The usual solution to this problem is to 
-pre-compute subsampled versions of the image at multiple levels of detail. 
-The subsampling factors are often chosen to be successive powers of two, 
+pre-compute sub-sampled versions of the image at multiple levels of detail. 
+The sub-sampling factors are often chosen to be successive powers of two, 
 and the data at each resolution is typically chopped up into tiles for 
 faster direct access.
 
@@ -146,7 +146,7 @@ is templatized on its pixel type.  The constructor takes two arguments,
 the pathname of the tree to be created on disk and the source image. 
 You can then use several member functions to configure the quad-tree 
 prior to generating it.  The \verb#set_bbox()# method, which takes a 
-single \verb#BBox2i# parameter, specifyies that a particular region of 
+single \verb#BBox2i# parameter, specifies that a particular region of 
 the source image to be processed instead of the entire thing.  The 
 \verb#set_output_image_file_type()# method sets the file type of the 
 generated image files; the default is ``\verb#png#''.  The 

@@ -1,7 +1,7 @@
 \chapter{The Camera Module}
 
 Cameras are the interface between images and the real world, and as
-such, their importance in computer vision cannot be understatetd.  In
+such, their importance in computer vision cannot be understated.  In
 fact, some would say that computer vision algorithms are distinguished
 by the fact that they endeavor to associate the processed pixel data
 with objects in the real world for the purposed of measurement,
@@ -51,7 +51,7 @@ the 3D coordinate system is the point $C$, which is the center of
 projection or {\em camera center} of the imager.  When a 3D point $O$
 is imaged by the camera, it appears at the pixel located where segment
 $\overline{OC}$ intersects the image plane at point $(u,v)$.  A line
-segment $\overline{OC}$ that is perpindicular to the image plane
+segment $\overline{OC}$ that is perpendicular to the image plane
 intersects this plane at the {\em principal point}, $(p_u, p_v)$.
 
 \begin{figure}[tbp]
@@ -80,7 +80,7 @@ image from the principal point to the upper left hand corner, which is
 the ``origin'' usually adopted when indexing images).  
 
 Equations \ref{eqn:forward-projection-1} and
-\ref{eqn:forward-projection-2} consitute the {\em forward projection}
+\ref{eqn:forward-projection-2} constitute the {\em forward projection}
 portion of the camera model; this is analogous to the process of
 ``capturing'' an image with a real camera.  Our model should tell us
 exactly what what pixel location to look at if you wanted to see the
@@ -97,13 +97,13 @@ origin and direction of the ray can be computed as follows:
 \begin{eqnarray}
 \label{eqn:reverse-projection-1}
 \overrightarrow{CP}_{origin} & = & C \\
-\label{eqn:forward-projection-2}
+\label{eqn:reverse-projection-2}
 \overrightarrow{CP}_{direction} & = & \frac{(u + p_u, -(v + p_v), f)} {||(u + p_u, -(v + p_v), f)||_2}
 \end{eqnarray}
 
 This operation, which we call {\em back projection}, can still
-provide useful inforamation that can be used in a full 3D
-reconstruction despite the ambiguity in the actual postion of $O$.
+provide useful information that can be used in a full 3D
+reconstruction despite the ambiguity in the actual position of $O$.
 Imagine that you have two cameras that have imaged the same point $O$
 from two different viewpoints at pixel locations $P_1$ and $P_2$ in
 their respective image planes.  Using simple geometry, you can
@@ -134,7 +134,7 @@ derived camera model class in order to ensure that the virtual
 inheritance mechanism calls the method from the derived class rather
 than the base class.
 
-The back projection operation is split into two seperate API calls.
+The back projection operation is split into two separate API calls.
 The \verb#camera_center()# method returns the origin of the ray, and
 the \verb#pixel_to_vector()# method returns its direction.  Remember
 that any of the points that lie along this ray would have been imaged
@@ -153,7 +153,7 @@ homogeneous scaling element before being passed to camera module
 routines (e.g. a 2D vector $(325, 206)$ in cartesian coordinates is
 often represented as $(325, 206, 1)$ in homogeneous coordinates).
 Homogeneous coordinates have certain advantages in projective geometry
-(e.g. they allow a tranlation of the coordinates to be encoded as a
+(e.g. they allow a translation of the coordinates to be encoded as a
 matrix multiplication), however we have chosen not to adopt this
 convention.}}
 \end{center}
@@ -196,9 +196,9 @@ The {\em CAHV camera model} has been widely used in NASA planetary
 mission for rover navigation and scientific camera systems
 \cite{yakimovsky78}.  It is a basic pinhole camera model that does not
 model lens distortion or other optical aberrations.  The CAHV model is
-so named because the camera intrinsic and extrincsic parameters are
+so named because the camera intrinsic and extrinsic parameters are
 jointly parameterized by four 3-dimensional vectors: C,A,H, and V.
-This compact represenation leads to a very efficient forward
+This compact representation leads to a very efficient forward
 projection operation, which is the strength of the CAHV model.
 Forward projection of a real world point $O$ can be computed using
 
@@ -290,7 +290,7 @@ basis for the {\em Linear Pushbroom Model}, which can be found in
 understanding this model in detail, we recommend you read the
 excellent paper by Gupta and Hartly \cite{gupta97}.
 
-If you must relax the assumption about a linear filght path somewhat
+If you must relax the assumption about a linear flight path somewhat
 to allow sensor pose to vary and the camera motion to lie along a
 curve (as is common with orbiting camera systems), the {\em Orbiting
   Pushbroom Model} is an appropriate choice.  In the Orbiting
@@ -326,13 +326,13 @@ TIFF 6.0 standard.  EXIF tags such as {\tt FNumber} and
 camera images.  Unfortunately the standard is redundant and often
 poorly supported by camera manufacturers (for example, many hide the
 ISO setting in the maker note instead of storing it in the
-ISOSpeedRatings tag), so we cannot gurantee support for every camera.
+ISOSpeedRatings tag), so we cannot guarantee support for every camera.
 
 The Camera module includes the {\tt ExifView} class (defined in
 \verb#<vw/Camera/Exif.h>#) for extracting this data from images.  To
 create this class, you supply the filename of an image on disk.
 Currently, JPEG and TIFF images are supported.  ExifData and ExifView
-were based on {\tt jhead}, an EXIF JPEG header and thumbnail manipular
+were based on {\tt jhead}, an EXIF JPEG header and thumbnail manipulator
 program in the public domain \cite{jhead}.
 
 \begin{verbatim}
@@ -347,7 +347,7 @@ program in the public domain \cite{jhead}.
 \begin{thebibliography}{1}
 
 \bibitem{exif} ``Exchangeable image file format for digital still cameras: Exif Version 2.2'',
-(Japan Electronics and Information Technology Industries Assocation, 2002),
+(Japan Electronics and Information Technology Industries Association, 2002),
 http://www.exif.org/specifications.html.
 
 \bibitem{gupta97} Gupta, Rajiv and Hartley, Richard. ``Linear Pushbroom Cameras''.  IEEE
