@@ -141,6 +141,16 @@ namespace impl {
   using ::fdim;
 #endif
 
+#if defined(__APPLE__) && defined(__POWERPC__)
+  inline long double erfl( long double arg ) {
+    return erf( (double)arg );
+  }
+
+  inline long double erfcl( long double arg ) {
+    return erfc( (double)arg );
+  }
+#endif
+
 } // namespace vw
 
 #endif  // __VW_MATH_FUNCTIONS_H__
