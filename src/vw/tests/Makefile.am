@@ -27,9 +27,13 @@
 
 if MAKE_MODULE_FILEIO
 
+if HAVE_PKG_TIFF
+
 TESTS = TestBlockFileIO
 
 nodist_TestBlockFileIO_SOURCES = TestBlockFileIO.cxx
+
+endif
 
 endif
 
