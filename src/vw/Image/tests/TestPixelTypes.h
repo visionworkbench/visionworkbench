@@ -265,7 +265,7 @@ public:
 
   void test_hsv_to_rgb_to_hsv()
   {
-    for( double h=0; h<1; h+=0.15 ) {
+    for( double h=0.05; h<1; h+=0.15 ) {
       for( double s=0.2; s<=1; s+=0.2 ) {
         for( double v=0.2; v<=1; v+=0.2 ) {
 	  PixelHSV<double> tmp1(h,s,v);
