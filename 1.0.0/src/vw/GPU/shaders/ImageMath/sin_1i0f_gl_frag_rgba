@@ -1,0 +1,7 @@
+
+uniform sampler2DRect image1;
+
+void main() {
+   gl_FragColor.rgba = sin(texture2DRect(image1, gl_TexCoord[0].st));
+}
+ 

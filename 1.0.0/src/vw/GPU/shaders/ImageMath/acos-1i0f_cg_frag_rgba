@@ -1,0 +1,7 @@
+
+void main(in float2 texCoord0 : TEXCOORD0,
+	uniform samplerRECT i1,
+	out float4 color : COLOR ) 
+{
+   color = acos(texRECT(i1, texCoord0)); 
+}

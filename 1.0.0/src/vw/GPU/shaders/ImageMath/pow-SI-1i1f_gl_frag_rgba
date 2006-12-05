@@ -1,0 +1,7 @@
+
+uniform sampler2DRect image1;
+uniform float float1;
+
+void main() {
+   gl_FragColor.rgba = pow(vec4(float1), texture2DRect(image1, gl_TexCoord[0].st));
+}

@@ -1,0 +1,261 @@
+\chapter{The Core Vision Workbench Type System}
+
+The Vision Workbench is an example of what is often called a
+``multi-paradigm'' C++ library.  That is, different components of the
+library adopt different C++ programming models, such as the generic
+programming model or the object-oriented programming model, often in
+combination.  At the core, however, is a set of data types and related
+tools that fall largely within the template-based generic programming
+paradigm.  The purpose of this chapter is to describe this core type
+system in some detail.  If your intention is simply to {\it use} the
+Vision Workbench for image processing tasks you can probably afford
+to skim or even skip this material.  The primary intended audience is
+programmers who wish to extend the Vision Workbench's core
+capabilities in one way or another.
+
+Data types in the Vision Workbench can be broadly divided into three
+categories: the fundamental data types, including the simple numeric
+types; the compound types, such as RGB pixel types and vectors; and
+the container types, such as images.  We shall discuss each of these
+in turn.  (Other C++ types, such as functors, do make an appearance in
+the Vision Workbench, but these are not {\it data} types {\it per se}.)
+
+\section{The Scalar Types}
+
+\begin{table}[t]\begin{centering}
+\begin{tabular}{|c|l|l|} \hline
+Type & Description & Notes \\ \hline \hline
+\verb#int8# & Signed 8-bit integer & \\ \hline
+\verb#uint8# & Unsigned 8-bit integer & Most common for low-dynamic-range imaging \\ \hline
+\verb#int16# & Signed 16-bit integer & \\ \hline
+\verb#uint16# & Unsigned 16-bit integer & \\ \hline
+\verb#int32# & Signed 32-bit integer & \\ \hline
+\verb#uint32# & Unsigned 32-bit integer & \\ \hline
+\verb#int64# & Signed 64-bit integer & \\ \hline
+\verb#uint64# & Unsigned 64-bit integer & \\ \hline
+\verb#float32# & 32-bit floating point & Most common for high-dynamic-range imaging \\ \hline
+\verb#float64# & 64-bit floating point & \\ \hline
+\end{tabular}
+\caption{The core Vision Workbench scalar {\tt typedef}s, defined in {\tt <vw/FundamentalTypes.h>}.}
+\label{tbl:scalar-types}
+\end{centering}\end{table}
+
+The most fundamental data types of all are the built-in C++ integral
+and floating-point numeric types.  In scientific programming contexts 
+like image processing and machine vision it is generally important to 
+be able to specify the exact nature of the numeric data types that you 
+are working with.  Unfortunately the C++ language makes few promises 
+about the sizes of data types such as \verb#int# or even \verb#char#.  
+To work around this limitation, the Vision Workbench provides a number 
+of portable \verb#typedef#s that you are encouraged to use instead.  
+These are listed in Table~\ref{tbl:scalar-types}.  (In fact most of 
+these data types are simple wrappers around similar types provided 
+by the Boost \verb#cstdint# library.)
+
+The Vision Workbench uses standard C++ complex numbers, as defined 
+in the standard header file \verb#<complex>#.  The \verb#std::complex<># 
+class takes a single template parameter, the underlying numeric type 
+to be used for the real and imaginary components, which should usually 
+be one of the scalar types listed in Table~\ref{tbl:scalar-types}. 
+In particular, it is almost always best to use one of the floating-point 
+types for complex numbers.  For example, \verb#std::complex<float64># 
+is a good choice for use in frequency-domain image processing 
+(discussed in Section~\ref{sec:advanced.frequency}).
+
+There is a special type trait template, \verb#IsScalar<>#, that you 
+can use in template code to determine whether or not a type is a 
+simple numeric type like we have described in this section.  It 
+inherits from either \verb#boost::true_type# or \verb#boost::false_type# 
+accordingly.  Its primary use is to prevent template functions such 
+as scalar multiplication from being too general:
+\begin{verbatim}
+  template <class ScalarT>
+  typename boost::enable_if< IsScalar<ScalarT>, MyClass >::type
+  operator*( MyClass const& m, ScalarT s ) {
+    /* compute result */
+  }
+\end{verbatim}
+In this example we use the Boost \verb#enable_if# library to restrict 
+the definition of the \verb#*# operator to cases where the second 
+argument really is a scalar.  Without this restriction this would 
+have been an overly-general function definition and would likely 
+have caused problems if we had attempted to defined any other  
+product for the \verb#MyClass# class later on.  If you decide to 
+extend the Vision Workbench to support additional scalar types, 
+such as bigints, you should specialize \verb#IsScalar<># accordingly 
+to ensure proper behavior.
+
+\section{Type Deduction}
+
+\begin{table}[t]\begin{centering}
+\begin{tabular}{|c|l|} \hline
+Class & Description \\ \hline \hline
+\verb#SumType<T1,T2># & Result type of a sum operation \\ \hline
+\verb#DifferenceType<T1,T2># & Result type of a difference operation \\ \hline
+\verb#ProductType<T1,T2># & Result type of a product operation \\ \hline
+\verb#QuotientType<T1,T2># & Result type of a quotient operation \\ \hline
+\end{tabular}
+\caption{The Vision Workbench type deduction classes, defined in {\tt <vw/TypeDeduction.h>}.}
+\label{tbl:type-deduction}
+\end{centering}\end{table}
+
+The C++ language has many intricate rules for type promotion and
+deduction in complex mathematical expressions.  Unfortunately it
+provides no built-in mechanism to extend this automatic type deduction
+system or query its behavior.  Consider adding two images with 
+compatible but different pixel types: what should the resulting 
+pixel type be?  The Vision Workbench provides a standard set of type 
+deduction traits classes, defined in \verb#<vw/TypeDeduction.h># and 
+listed in Table~\ref{tbl:type-deduction}, that allow you to both query 
+and specialize the type deduction behavior of Vision Workbench types.  
+Like all Vision Workbench type computation classes, they ``return'' 
+their result types in a member type named \verb#type#.
+
+As a trivial example, imagine writing a template function that simply 
+computes the sum of its two arguments.  What should its return type 
+be?  We can use \verb#SumType<># to compute it:
+\begin{verbatim}
+  template <class T1, class T2>
+  inline typename SumType<T1,T2>::type sum( T1 a, T2 b ) {
+    return a + b;
+  }
+\end{verbatim}
+Remember that the C++ language does not allow this to be fully
+automatic.  If you define a new type with an unusual addition
+operator, you will need to manually specialize \verb#SumType<># at the
+same time.  However, the most common default behaviors are provided.
+For example, any built-in type is assumed to be promoted to any
+user-defined type, and any user-defined type operating with itself is
+assumed to return itself.  These type deduction classes do also
+replicate the standard C++ promotion behavior when used with the
+built-in numeric types.
+
+\section{The Pixel Types}
+
+It is possible to use any of the fundamental scalar types described in
+the previous section as an \verb#ImageView#'s pixel type.  However in
+most circumstances a {\it compound} pixel type, consisting of one or
+more channels with associated semantics, is more appropriate.  The 
+Vision Workbench provides several compound pixel types corresponding 
+to the most common color spaces used in image processing.  These are 
+listed in Table~\ref{tbl:color-pixel-types}.  Each is a template 
+class taking one template parameter, the scalar type used to store 
+the channels.  For example, the native pixel type of a standard JPEG 
+image is represented by \verb#PixelRGB<uint8>#.
+
+\begin{table}[t]\begin{centering}
+\begin{tabular}{|c|l|l|} \hline
+Type & Description & Channels \\ \hline \hline
+\verb#PixelGray<T># & Grayscale & Grayscale value (\verb#v#) \\ \hline
+\verb#PixelGrayA<T># & Grayscale w/ alpha & Grayscale value (\verb#v#), alpha (\verb#a#) \\ \hline
+\verb#PixelRGB<T># & RGB & Red (\verb#r#), green (\verb#g#), blue (\verb#b#) \\ \hline
+\verb#PixelRGBA<T># & RGB w/ alpha &  Red (\verb#r#), green (\verb#g#), blue (\verb#b#), alpha (\verb#a#) \\ \hline
+\verb#PixelHSV<T># & HSV & Hue (\verb#h#), saturation (\verb#s#), value (\verb#v#) \\ \hline
+\end{tabular}
+\caption{The Vision Workbench color-space pixel types, defined in {\tt <vw/PixelTypes.h>}.}
+\label{tbl:color-pixel-types}
+\end{centering}\end{table}
+
+\begin{table}[t]\begin{centering}
+\begin{tabular}{|c|l|l|} \hline
+Syntax & Description \\ \hline \hline
+\verb#PixelChannelType<PixT>::type# & The pixel type's underlying channel type \\ \hline
+\verb#PixelNumChannels<PixT>::value# & The number of channels in the pixel type \\ \hline
+\verb#PixelChannelCast<PixT,ChT>::type# & The same pixel type with a new channel type \\ \hline
+\hline
+\verb#PixelIsCompound<PixT># & Is the pixel type a compound type? \\ \hline
+\verb#PixelMakeReal<Pixt>::type# & Converts to the corresponding real channel type \\ \hline
+\verb#PixelMakeComplex<Pixt>::type# & Converts to the corresponding complex channel type \\ \hline
+%\verb#apply_per_pixel_channel(func,pixel)# & The result of applying \verb#func(ch)# to each channel \\ \hline
+%\verb#apply_per_pixel_channel(func,pixel1,pixel2)# & The result of applying \verb#func(ch1,ch2)# to each channel \\ \hline
+\end{tabular}
+\caption{The pixel traits and pixel type computation classes.}
+\label{tbl:pixel-traits}
+\end{centering}\end{table}
+
+Several type trait classes are provided for use in writing generic 
+pixel manipulation code and are listed in Table~\ref{tbl:pixel-traits}.
+The first section of the table lists the classes that you must specialize 
+when you write a new compound pixel type.  The second section of 
+Table~\ref{tbl:pixel-traits} lists convenience types that are defined 
+in terms of the other, specialized types. For example, here is how 
+the types are specialized for the RGB pixel type:
+\begin{verbatim}
+  template <class ChannelT>
+  struct PixelChannelType<PixelRGB<ChannelT> > {
+    typedef ChannelT type;
+  };
+
+  template <class ChannelT>
+  struct PixelNumChannels<PixelRGB<ChannelT> > {
+    static const unsigned value = 3;
+  };
+
+  template <class OldChT, class NewChT>
+  struct PixelChannelCast<PixelRGB<OldChT>, NewChT> {
+    typedef PixelRGB<NewChT> type;
+  };
+\end{verbatim}
+When you define a new pixel type, you will usually want to define a 
+provide a similar set of template specializations.  To simplify 
+the process, a macro is provided that you can use to automatically 
+specialize the templates in the usual manner:
+\begin{verbatim}
+  VW_DECLARE_PIXEL_TYPE( PixelRGB, 3 );
+\end{verbatim}
+This macro expands to the same set of template specializations shown
+above, describing a pixel type named \verb#PixelRGB# with three
+channels.
+
+Note that it is {\it not} necessary to declare a type using this macro,
+or even to provide specializations for the traits templates described
+above, just to use that type as the pixel type for an image.  These
+specializations are only necessary if you want to declare a type with
+multi-channel semantics.  For any other type, the default Vision
+Workbench behavior is to treat the type as a single-channel pixel type
+whose channel type is equal to the type itself.
+
+Several convenience functions are also provided to simplify working
+with pixels in generic template functions.  The first is the
+\verb#pixel_channel_cast<>()# function, which casts a pixel to a pixel
+of the corresponding pixel type but with the specified channel type.
+The syntax mirrors the built-in C++ casting functions, except the
+template parameter is the new channel type instead of the new type as
+a whole.  In the following example we explicitly down-cast the channel
+type of a pixel from \verb#float64# to \verb#float32# in order to pass
+it to a function that happens to take a \verb#PixelRGB<float32>#
+argument:
+\begin{verbatim}
+  PixelRGB<float64> pixel;
+  some_function( pixel_channel_cast<float32>( pixel ) );
+\end{verbatim}
+Note that this is not needed in the more common case that the 
+function that you wish to call is itself generic and can accept 
+any channel type.
+
+Sometimes it is desirable to apply a function to each channel
+of a pixel, or to corresponding channels from two pixels.  Re-scaling a
+pixel or adding two pixels on a per-channel basis can be cast into
+this form, for example.  You can use the generic function
+\verb#apply_per_pixel_channel()# to do this.  Here is a trivial 
+example that demonstrates re-scaling:
+\begin{verbatim}
+  float32 triple(float32 v) { return 3*v; }
+  // Later, in some other function...
+  PixelRGB<float> pixel(.1,.2,.3);
+  PixelRGB<float> result = apply_per_pixel_channel(&triple,pixel);
+\end{verbatim}
+In this case it would have been simpler to multiply the pixel 
+by $3$ directly, but the point is that we could have performed 
+any arbitrarily complex operation on each channel instead.
+The binary form simply takes an extra pixel argument:
+\begin{verbatim}
+  float32 sum(float32 a, float32 b) { return a+b; }
+  // Later...
+  PixelRGB<float> pixel1(.1,.2,.3), pixel2(.2,.1,.4);
+  PixelRGB<float> result = apply_per_pixel_channel(&sum,pixel1,pixel2);
+\end{verbatim}
+
+%% \subsection{Mathematical Operators}
+%% Virtually all image processing operations depend on pixel 
+%% arithmetic in one way or another.

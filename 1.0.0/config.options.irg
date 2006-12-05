@@ -1,0 +1,53 @@
+#! /bin/sh
+
+### IRG Specific Convenience Paths
+
+IRG_ARCH_RAW="`uname -m`_`uname -s`_gcc`gcc -dumpversion | cut -f-2 -d .`"
+IRG_ARCH=`echo $IRG_ARCH_RAW | awk '{ print tolower( $0 ) }'`
+IRGPKG_DIR=/irg/packages/$IRG_ARCH
+
+### Configure Options
+#
+# These options allow you modify the basic behavior of the build environment.
+
+ENABLE_DEBUG=no
+ENABLE_OPTIMIZE=yes
+PREFIX=`pwd`/build/$IRG_ARCH
+
+### Module Configuration
+#
+# Uncomment the following lines to explicitly enable (or disable) the
+# default module building behavior of the build system.  These options
+# override the default behavior (which is to build most modules).
+# Note that the module may not be built if its software dependencies
+# cannot be found.  Look at the output from ./configure to see whether
+# the module will ultimately be built.
+
+# ENABLE_MODULE_MOSAIC=yes
+# ENABLE_MODULE_CAMERA=yes
+# ENABLE_MODULE_CARTOGRAPHY=yes
+# ENABLE_MODULE_HDR=yes
+# ENABLE_MODULE_STEREO=yes
+# ENABLE_MODULE_GPU=yes
+
+### Package Base Paths 
+#
+# Set these to the directories that contain lib/include directories
+# for packages in non-standard locations.  
+
+PKG_PATHS="  \
+  $IRGPKG_DIR/vxl-1.5.1        \
+  $IRGPKG_DIR/boost_1_33_1     \
+  $IRGPKG_DIR/openexr-1.4.0    \
+  $IRGPKG_DIR/openexr-1.3.0    \
+  $IRGPKG_DIR/gdal-1.3.1       \
+  $IRGPKG_DIR/proj-4.4.9       \
+  $IRGPKG_DIR/LAPACK           \
+  $IRGPKG_DIR/glew             \
+  $IRGPKG_DIR/glew             \
+  $IRGPKG_DIR/cg               \
+  /usr/X11R6                   \
+"
+
+
+

@@ -1,0 +1,48 @@
+*** RELEASE 1.0.0, 4 DECEMBER 2006 ***
+
+There are doubtless more issues than these, but these are the one's
+we're aware of at this time!
+
+Some parts of the code are more mature than others.  In particular 
+the Cartography module is likely to undergo a major overhaul in the 
+near future, so don't get to tied down to its current interface. 
+We are more hopeful that we will be able to maintain nearly complete 
+backwards compatability in the other modules.
+
+Only the Core, Image, and to a lesser extend Math modules have
+reasonably complete unit and regression testing in place.
+
+Support for alpha channels is vague in some places.  The current 
+pixel math schema makes linear interpolation of pixel data (e.g. 
+gaussian filtering or image transformations) easy while making 
+other image math (e.g. gamma correction) harder.  Other things, 
+such as the image statistics code, may be horribly confused by 
+images with alpha channels.
+
+ConvolutionView and SeparableConvolutionView, used internally by 
+many of the filter functions, may produce unexpected behavior when 
+used to filter views that are already edge-extended.  A workaround 
+is to rasterize your source image, including sufficient edge context, 
+into a temporary ImageView buffer prior to filtering.
+
+CropView, used internally by the crop() function among other places,
+does not properly support floating-point offsets in all cases 
+(notably when its rasterization function is in charge).
+
+The ExifView in the Camera module does not report when a requested 
+field is missing.
+
+Many features of individual image file formats are not supported.
+For example, PNG files with fewer than 8 bits per channel are not 
+supported.  The TIFF image reader does not take advantage of 
+colorimetric information included in the file when deducing the 
+file's pixel type.
+
+Much of the code has not been properly tested under Windows/MSVC.  
+The Matrix outer product functions are disabled on that platform 
+due to compiler issues.
+
+The Vision Workbench does not compile under Debian Linux with the
+Debian packages for boost and LAPACK.  We recommend installing boost
+from source and installing LAPACK from the pre-packaged distribution
+available on the Vision Workbench web site. 

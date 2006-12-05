@@ -1,0 +1,9 @@
+
+uniform sampler2DRect image1;
+uniform sampler2DRect image2;
+
+
+void main() {
+   gl_FragColor.rgba = pow(texture2DRect(image1, gl_TexCoord[0].st), texture2DRect(image2, gl_TexCoord[0].st));
+}
+ 

@@ -1,0 +1,43 @@
+
+void main(in float2 texCoord0 : TEXCOORD0,
+	uniform samplerRECT i1,
+	uniform float f1, // Period
+	uniform float f2, // Amplitude
+	out float4 color : COLOR ) 
+{
+   texCoord0 = float2(texCoord0.x, texCoord0.y + f2 * sin(6.28 * texCoord0.x / f1));
+
+   float2 ij = texCoord0;
+   float2 xy = floor(ij);
+   float2 normxy = ij - xy;
+   float2 st0 = ((2.0 - normxy) * normxy - 1.0) * normxy;
+   float2 st1 = (3.0 * normxy - 5.0) * normxy * normxy + 2.0;
+   float2 st2 = ((4.0 - 3.0 * normxy) * normxy + 1.0) * normxy;
+   float2 st3 = (normxy - 1.0) * normxy * normxy;
+
+   float4 row0 = 
+	st0.s * texRECT(i1, xy + float2(-1.0, -1.0)) + 
+	st1.s * texRECT(i1, xy + float2(0.0, -1.0)) + 
+	st2.s * texRECT(i1, xy + float2(1.0, -1.0)) + 
+	st3.s * texRECT(i1, xy + float2(2.0, -1.0));
+
+   float4 row1 = 
+	st0.s * texRECT(i1, xy + float2(-1.0, 0.0)) + 
+	st1.s * texRECT(i1, xy + float2(0.0, 0.0)) + 
+	st2.s * texRECT(i1, xy + float2(1.0, 0.0)) + 
+	st3.s * texRECT(i1, xy + float2(2.0, 0.0));
+
+   float4 row2 = 
+	st0.s * texRECT(i1, xy + float2(-1.0, 1.0)) + 
+	st1.s * texRECT(i1, xy + float2(0.0, 1.0)) + 
+	st2.s * texRECT(i1, xy + float2(1.0, 1.0)) + 
+	st3.s * texRECT(i1, xy + float2(2.0, 1.0));
+
+   float4 row3 = 
+	st0.s * texRECT(i1, xy + float2(-1.0, 2.0)) + 
+	st1.s * texRECT(i1, xy + float2(0.0, 2.0)) + 
+	st2.s * texRECT(i1, xy + float2(1.0, 2.0)) + 
+	st3.s * texRECT(i1, xy + float2(2.0, 2.0));
+
+   color = 0.25 * ((st0.t * row0) + (st1.t * row1) + (st2.t * row2) + (st3.t * row3));
+}
