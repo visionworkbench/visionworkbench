@@ -27,7 +27,8 @@
 
 SUBDIRS = src
 
-EXTRA_DIST = config/rules.mak config/relicense docs thirdparty config.options.example
+EXTRA_DIST = config/rules.mak config/relicense config.options.example \
+	NOTES docs thirdparty 
 
 ########################################################################
 # special top-level rules
