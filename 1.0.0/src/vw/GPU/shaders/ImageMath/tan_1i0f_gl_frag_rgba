@@ -1,7 +1,0 @@
-
-uniform sampler2DRect image1;
-
-void main() {
-   gl_FragColor.rgba = tan(texture2DRect(image1, gl_TexCoord[0].st));
-}
- 
