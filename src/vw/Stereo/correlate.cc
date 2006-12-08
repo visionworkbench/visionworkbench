@@ -44,7 +44,7 @@ int main( int argc, char *argv[] ) {
       ("hsubpix", "Enable horizontal sub-pixel correlation")
       ("vsubpix", "Enable vertical sub-pixel correlation")
       ("reference", "Use the slower, simpler reference correlator")
-      ("multiresolution", "Use the slower, simpler reference correlator")
+      ("multiresolution", "Use the prototype multiresolution correlator")
       ("bitimage", "Force the use of the optimized bit-image correlator")
       ("nonbitimage", "Fore the use of the slower, non bit-image optimized correlator")
       ;
