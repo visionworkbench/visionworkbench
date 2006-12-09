@@ -286,6 +286,7 @@ namespace vw {
       src.cstride = Bpp*channels;
       src.rstride = m_format.cols*Bpp*channels;
       src.pstride = m_format.rows*m_format.cols*Bpp*channels;
+      src.unpremultiplied = true;
       
       std::vector<png_bytep> row_pointers( m_format.rows );
       for ( unsigned i=0; i<m_format.rows; ++i )
@@ -351,7 +352,8 @@ namespace vw {
       dst.cstride = Bpp*channels;
       dst.rstride = m_format.cols*Bpp*channels;
       dst.pstride = m_format.rows*m_format.cols*Bpp*channels;
-      
+      dst.unpremultiplied = true;
+
       std::vector<png_bytep> row_pointers( m_format.rows );
       for ( unsigned i=0; i<m_format.rows; ++i )
         row_pointers[i] = (png_bytep)(dst.data) + i*dst.rstride;
