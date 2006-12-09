@@ -168,6 +168,7 @@ namespace mosaic {
     bool m_fill_holes;
     bool m_reuse_masks;
     Cache& m_cache;
+    std::vector<ImageViewRef<pixel_type> > sourcerefs;
     std::vector<Cache::Handle<SourceGenerator> > sources;
     std::vector<Cache::Handle<AlphaGenerator> > alphas;
     std::vector<Cache::Handle<PyramidGenerator> > pyramids;
@@ -317,6 +318,7 @@ boost::shared_ptr<typename vw::mosaic::ImageComposite<PixelT>::Pyramid> vw::mosa
 template <class PixelT>
 void vw::mosaic::ImageComposite<PixelT>::insert( ImageViewRef<pixel_type> const& image, int x, int y ) {
   vw_out(VerboseDebugMessage) << "ImageComposite inserting image " << pyramids.size() << std::endl;
+  sourcerefs.push_back( image );
   sources.push_back( m_cache.insert( SourceGenerator( image ) ) );
   alphas.push_back( m_cache.insert( AlphaGenerator( *this, pyramids.size() ) ) );
   pyramids.push_back( m_cache.insert( PyramidGenerator( *this, pyramids.size() ) ) );
@@ -475,7 +477,9 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::draft_patch( BBox<int,
   // Add each image to the composite.
   for( unsigned p=0; p<sources.size(); ++p ) {
     if( ! patch_bbox.intersects( bboxes[p] ) ) continue;
-    PositionedImage<pixel_type> image( view_bbox.width(), view_bbox.height(), *sources[p], bboxes[p] );
+    BBox2i bbox = patch_bbox;
+    bbox.crop( bboxes[p] );
+    PositionedImage<pixel_type> image( view_bbox.width(), view_bbox.height(), crop(sourcerefs[p],bbox-bboxes[p].min()), bbox );
     image.addto( composite, patch_bbox.min().x(), patch_bbox.min().y(), true );
   }
 

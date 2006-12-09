@@ -27,7 +27,8 @@
 
 if MAKE_MODULE_MOSAIC
 
-include_HEADERS = QuadTreeGenerator.h ImageComposite.h
+include_HEADERS = QuadTreeGenerator.h ImageComposite.h \
+	KMLQuadTreeGenerator.h
 
 libvwMosaic_la_SOURCES = 
 libvwMosaic_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
