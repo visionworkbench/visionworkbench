@@ -48,11 +48,9 @@ openexr_sources = DiskImageResourceOpenEXR.cc
 endif
 
 include_HEADERS = DiskImageResource.h DiskImageView.h DiskImageResourcePDS.h \
-	DiskImageResourceDDD.h \
 	$(png_headers) $(tiff_headers) $(openexr_headers) $(jpeg_headers)
 
 libvwFileIO_la_SOURCES = DiskImageResource.cc DiskImageResourcePDS.cc \
-	DiskImageResourceDDD.cc \
 	$(png_sources) $(tiff_sources) $(openexr_sources) $(jpeg_sources)
 
 libvwFileIO_la_CPPFLAGS = @MODULE_FILEIO_CPPFLAGS@

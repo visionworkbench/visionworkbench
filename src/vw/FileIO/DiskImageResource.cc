@@ -40,7 +40,6 @@
 
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
-#include <vw/FileIO/DiskImageResourceDDD.h>
 
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
 #include <vw/FileIO/DiskImageResourcePNG.h>
@@ -92,8 +91,6 @@ static void register_default_file_types() {
   if( already ) return;
   already = true;
   vw::DiskImageResource::register_file_type( ".img", &vw::DiskImageResourcePDS::construct_open, &vw::DiskImageResourcePDS::construct_create );
-
-  vw::DiskImageResource::register_file_type( ".ddd", &vw::DiskImageResourceDDD::construct_open, &vw::DiskImageResourceDDD::construct_create );
 
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
   vw::DiskImageResource::register_file_type( ".png", &vw::DiskImageResourcePNG::construct_open, &vw::DiskImageResourcePNG::construct_create );
