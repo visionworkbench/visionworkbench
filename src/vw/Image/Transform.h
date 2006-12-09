@@ -284,6 +284,64 @@ namespace vw {
     }
   };
 	
+
+  /// Transform Composition Transform Adapter 
+  /// 
+  /// This is a wrapper class that allows you to composte two transform 
+  /// functors.  The arguments to the constructor are in the usual 
+  /// function composition order.  That is, CompositionTransform(tx1,tx2)
+  /// yields a functor whose forward mapping is tx1.forward(tx2.forward(v)), 
+  /// and thus whose reverse mapping is tx2.reverse(tx1.reverse(v)).  
+  /// The usual way to construct a CompositionTransform is with the 
+  /// compose() free function, below.
+  template <class Tx1T, class Tx2T>
+  class CompositionTransform : public TransformBase<CompositionTransform<Tx1T,Tx2T> >
+  {
+    Tx1T tx1;
+    Tx2T tx2;
+  public:
+    CompositionTransform( Tx1T const& tx1, Tx2T const& tx2 ) : tx1(tx1), tx2(tx2) {}
+    
+    inline Vector2 forward( Vector2 const& p ) const {
+      return tx1.forward( tx2.forward( p ) );
+    }
+    
+    inline Vector2 reverse( Vector2 const& p ) const {
+      return tx2.reverse( tx1.reverse( p ) );
+    }
+  };
+
+  /// Composes two transform functors via a CompositionTransform object.
+  template <class Tx1T, class Tx2T>
+  CompositionTransform<Tx1T,Tx2T>
+  inline compose( TransformBase<Tx1T> const& tx1,
+                  TransformBase<Tx2T> const& tx2 ) {
+    typedef CompositionTransform<Tx1T,Tx2T> result_type;
+    return result_type( tx1.impl(), tx2.impl() );
+  }
+
+  /// Composes three transform functors via a CompositionTransform object.
+  template <class Tx1T, class Tx2T, class Tx3T>
+  CompositionTransform<Tx1T,CompositionTransform<Tx2T,Tx3T> > 
+  inline compose( TransformBase<Tx1T> const& tx1,
+                  TransformBase<Tx2T> const& tx2,
+                  TransformBase<Tx3T> const& tx3 ) {
+    typedef CompositionTransform<Tx1T,CompositionTransform<Tx2T,Tx3T> > result_type;
+    return result_type( tx1.impl(), compose( tx2, tx3 ) );
+  }
+
+  /// Composes three transform functors via a CompositionTransform object.
+  template <class Tx1T, class Tx2T, class Tx3T, class Tx4T>
+  CompositionTransform<Tx1T,CompositionTransform<Tx2T,CompositionTransform<Tx3T,Tx4T> > >
+  inline compose( TransformBase<Tx1T> const& tx1,
+                  TransformBase<Tx2T> const& tx2,
+                  TransformBase<Tx3T> const& tx3,
+                  TransformBase<Tx3T> const& tx4 ) {
+    typedef CompositionTransform<Tx1T,CompositionTransform<Tx2T,CompositionTransform<Tx3T,Tx4T> > > result_type;
+    return result_type( tx1.impl(), compose( tx2, tx3, tx4 ) );
+  }
+
+
   // ------------------------
   // class TransformView
   // ------------------------
