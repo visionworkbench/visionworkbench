@@ -304,34 +304,6 @@ namespace vw {
 
       png_read_image( png_ptr, &row_pointers[0] );
 
-      // This is a terrible hack to work around a premultiplication
-      // bug in libpng.  Pixels with alpha==0 may have garbage in the
-      // non-alpha channels.  We clear such pixels to zero here.
-      if ( m_format.pixel_format==VW_PIXEL_GRAYA || m_format.pixel_format==VW_PIXEL_RGBA ) {
-        if ( m_format.channel_type==VW_CHANNEL_UINT16 ) {
-          for ( unsigned r=0; r<m_format.rows; ++r ) {
-            uint16 *data = (uint16*)(row_pointers[r]);
-            for ( unsigned c=0; c<m_format.cols; ++c ) {
-              if ( data[channels-1] == 0 ) {
-                for ( unsigned i=0; i<channels; ++i ) data[i] = 0;
-              }
-              data += channels;
-            }
-          }
-        }
-        else {
-          for ( unsigned r=0; r<m_format.rows; ++r ) {
-            uint8 *data = (uint8*)(row_pointers[r]);
-            for ( unsigned c=0; c<m_format.cols; ++c ) {
-              if ( data[channels-1] == 0 ) {
-                for ( unsigned i=0; i<channels; ++i ) data[i] = 0;
-              }
-              data += channels;
-            }
-          }
-        }
-      }
-
       convert( dest, src );
       read_cleanup( png_ptr, info_ptr, end_ptr );
     }
