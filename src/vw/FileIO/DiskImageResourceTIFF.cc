@@ -94,18 +94,11 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
 
   TIFFGetField( tif, TIFFTAG_IMAGEWIDTH, &(m_format.cols) );
   TIFFGetField( tif, TIFFTAG_IMAGELENGTH, &(m_format.rows) );
-  TIFFGetField( tif, TIFFTAG_SAMPLESPERPIXEL, &(m_format.planes) );
+  TIFFGetFieldDefaulted( tif, TIFFTAG_SAMPLESPERPIXEL, &(m_format.planes) );
 
   uint32 sample_format = 0, bits_per_sample = 0;
-  TIFFGetField( tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample );
-  TIFFGetField( tif, TIFFTAG_SAMPLEFORMAT, &sample_format );
-  // Some TIFF files don't actually specify the sample format, but in
-  // this case the format is almost always UINT, so we force this
-  // assumption here.
-  if( sample_format == 0 ) {
-    vw_out(DebugMessage) << "DiskImageResourceTIFF: " << m_filename << " does not specify sample format; assuming UINT!" << std::endl;
-    sample_format = SAMPLEFORMAT_UINT;
-  }
+  TIFFGetFieldDefaulted( tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample );
+  TIFFGetFieldDefaulted( tif, TIFFTAG_SAMPLEFORMAT, &sample_format );
 
   m_format.channel_type = VW_CHANNEL_UNKNOWN;
   switch( sample_format ) {
@@ -149,18 +142,20 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
   // FIXME: Tiff might actually provide us with some info on
   // colorimetric interpretation of the channels, so maybe we should
   // try to use that here as well?
-  if( plane_configuration == PLANARCONFIG_CONTIG ) {
+  if( m_format.planes == 1 ) {
+    m_format.pixel_format = VW_PIXEL_GRAY;
+  }
+  else if( plane_configuration == PLANARCONFIG_CONTIG ) {
     switch( m_format.planes ) {
-    case 1:  m_format.pixel_format = VW_PIXEL_GRAY;   break;
     case 2:  m_format.pixel_format = VW_PIXEL_GRAYA;  m_format.planes=1; break;
     case 3:  m_format.pixel_format = VW_PIXEL_RGB;    m_format.planes=1; break;
     case 4:  m_format.pixel_format = VW_PIXEL_RGBA;   m_format.planes=1; break;
     default: m_format.pixel_format = VW_PIXEL_SCALAR; break;
     }
-  } else { 
+  } else {
     m_format.pixel_format = VW_PIXEL_SCALAR;
   }
-
+  
   if( TIFFIsTiled(tif) ) {
     uint32 tile_width, tile_length;
     TIFFGetField( tif, TIFFTAG_TILEWIDTH, &tile_width );
