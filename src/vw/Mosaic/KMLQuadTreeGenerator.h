@@ -138,7 +138,7 @@ namespace mosaic {
         BBox2 bbox = pixels_to_longlat( base_type::m_crop_bbox );
         double lon = (bbox.min().x()+bbox.max().x())/2;
         double lat = (bbox.min().y()+bbox.max().y())/2;
-        double range = 6e4 * (bbox.width()*cos(M_PI/180*lat)-bbox.height());
+        double range = 1e5 * (bbox.width()*cos(M_PI/180*lat)-bbox.height());
         kml << "  <LookAt><longitude>" << lon << "</longitude><latitude>" << lat << "</latitude><range>" << range << "</range></LookAt>\n";
       }
       kml << "</Folder>\n";
