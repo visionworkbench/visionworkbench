@@ -58,7 +58,7 @@ namespace mosaic {
     ImageQuadTreeGenerator( std::string const& tree_name, ImageViewBase<ImageT> const& source )
       : m_tree_name( tree_name ),
         m_source( source.impl() ),
-        m_bbox( 0, 0, m_source.cols(), m_source.rows() ),
+        m_crop_bbox( 0, 0, m_source.cols(), m_source.rows() ),
         m_output_image_type( "png" ),
         m_patch_size( 256 ),
         m_patch_overlap( 0 ),
@@ -86,9 +86,9 @@ namespace mosaic {
 
     void generate() {
       unsigned maxdim = std::max( m_source.cols(), m_source.rows() );
-      unsigned tree_levels = 1 + unsigned( ceilf( log( maxdim/(float)(m_patch_size-m_patch_overlap) ) / log(2.0) ) );
-      m_patch_cache.resize( tree_levels );
-      m_filename_cache.resize( tree_levels );
+      m_tree_levels = 1 + unsigned( ceilf( log( maxdim/(float)(m_patch_size-m_patch_overlap) ) / log(2.0) ) );
+      m_patch_cache.resize( m_tree_levels );
+      m_filename_cache.resize( m_tree_levels );
 
       fs::path tree_path( m_tree_name, fs::native );
       fs::path dir_path = tree_path.branch_path() / ( tree_path.leaf() + ".qtree" );
@@ -97,19 +97,19 @@ namespace mosaic {
       vw_out(InfoMessage) << "Using patch size: " << m_patch_size << " pixels" << std::endl;
       vw_out(InfoMessage) << "Using patch overlap: " << m_patch_overlap << " pixels" << std::endl;
       vw_out(InfoMessage) << "Generating patch files of type: " << m_output_image_type << std::endl;
-      vw_out(InfoMessage) << "Generating " << dir_path.native_file_string() << " quadtree with " << tree_levels << " levels." << std::endl;
+      vw_out(InfoMessage) << "Generating " << dir_path.native_file_string() << " quadtree with " << m_tree_levels << " levels." << std::endl;
 
       if( fs::exists( dir_path ) )
         throw IOErr() << "Path " << dir_path.native_file_string() << " already exists!  Remove it first.";
       fs::create_directory( dir_path );
-      generate_branch( top_branch_path, tree_levels-1, 0, 0 );
+      generate_branch( top_branch_path, m_tree_levels-1, 0, 0 );
     }
 
-    void set_bbox( BBox2i const& bbox ) {
+    void set_crop_bbox( BBox2i const& bbox ) {
       if( bbox.min().x() < 0 || bbox.min().y() < 0 ||
           bbox.max().x() > int(m_source.cols()) || bbox.max().y() > int(m_source.rows()) )
         throw ArgumentErr() << "Requested QuadTree bounding box exceeds source dimensions!";
-      m_bbox = bbox;
+      m_crop_bbox = bbox;
     }
 
     void set_output_image_file_type( std::string const& extension ) {
@@ -131,11 +131,12 @@ namespace mosaic {
   protected:
     std::string m_tree_name;
     ImageViewRef<PixelT> m_source;
-    BBox2i m_bbox;
+    BBox2i m_crop_bbox;
     std::string m_output_image_type;
     unsigned m_patch_size;
     unsigned m_patch_overlap;
     bool m_crop_images;
+    unsigned m_tree_levels;
     std::vector<std::map<std::pair<unsigned,unsigned>,ImageView<PixelT> > > m_patch_cache;
     std::vector<std::map<std::pair<unsigned,unsigned>,std::string> > m_filename_cache;
     
@@ -172,7 +173,7 @@ namespace mosaic {
       unsigned scale = 1 << level;
       unsigned interior_size = m_patch_size - m_patch_overlap;
       BBox2i patch_bbox = scale * BBox2i( Vector2i(x, y), Vector2i(x+1, y+1) ) * interior_size;
-      if( ! patch_bbox.intersects( m_bbox ) ) {
+      if( ! patch_bbox.intersects( m_crop_bbox ) ) {
         vw_out(DebugMessage) << "\tIgnoring empty image: " << path.native_file_string() << std::endl;
         image.set_size( interior_size, interior_size );
         return image;
@@ -180,7 +181,7 @@ namespace mosaic {
       if( level == 0 ) {
         vw_out(DebugMessage) << "ImageQuadTreeGenerator rasterizing region " << patch_bbox << std::endl;
         BBox2i data_bbox = patch_bbox;
-        data_bbox.crop( m_bbox );
+        data_bbox.crop( m_crop_bbox );
         image = crop( m_source, data_bbox );
         if( data_bbox != patch_bbox ) {
           image = edge_extend( image, patch_bbox-data_bbox.min(), ZeroEdgeExtend() );

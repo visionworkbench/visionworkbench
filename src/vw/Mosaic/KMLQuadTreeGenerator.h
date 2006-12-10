@@ -39,40 +39,52 @@ namespace mosaic {
   {
     typedef vw::mosaic::ImageQuadTreeGenerator<PixelT> base_type;
 
-    BBox2 bbox;
+    BBox2 total_longlat_bbox;
+    int max_lod_pixels;
     mutable unsigned draw_order;
 
-    static std::string kml_latlonaltbox( BBox2 const b ) {
+    std::string kml_latlonaltbox( BBox2 const& longlat_bbox ) const {
       std::ostringstream tag;
       tag << "<LatLonAltBox>"
-          << "<north>" << b.min().y() << "</north>"
-          << "<south>" << b.max().y() << "</south>"
-          << "<east>" << b.max().x() << "</east>"
-          << "<west>" << b.min().x() << "</west>"
+          << "<north>" << longlat_bbox.min().y() << "</north>"
+          << "<south>" << longlat_bbox.max().y() << "</south>"
+          << "<east>" << longlat_bbox.max().x() << "</east>"
+          << "<west>" << longlat_bbox.min().x() << "</west>"
           << "</LatLonAltBox>";
       return tag.str();
     }
 
-    static std::string kml_network_link( std::string const& name, std::string const& href, BBox2 const& bbox ) {
+    std::string kml_network_link( std::string const& name, std::string const& href, BBox2 const& longlat_bbox ) const {
       std::ostringstream tag;
       tag << "  <NetworkLink>\n"
           << "    <name>" + name + "</name>\n"
-          << "    <Region>" + kml_latlonaltbox(bbox) + "<Lod><minLodPixels>128</minLodPixels><maxLodPixels>-1</maxLodPixels></Lod></Region>\n"
+          << "    <Region>" + kml_latlonaltbox(longlat_bbox) + "<Lod><minLodPixels>128</minLodPixels><maxLodPixels>-1</maxLodPixels></Lod></Region>\n"
           << "    <Link><href>" + href + "</href><viewRefreshMode>onRegion</viewRefreshMode></Link>\n"
           << "  </NetworkLink>\n";
       return tag.str();
     }
 
-    static std::string kml_ground_overlay( std::string const& name, std::string const& href, BBox2 const& bbox, int draw_order ) {
+    std::string kml_ground_overlay( std::string const& name, std::string const& href, BBox2 const& bbox, int draw_order, int max_lod_pixels ) const {
       std::ostringstream tag;
       tag << "  <GroundOverlay>\n"
-          << "    <Region>" << kml_latlonaltbox(bbox) << "<Lod><minLodPixels>128</minLodPixels><maxLodPixels>-1</maxLodPixels></Lod></Region>\n"
+          << "    <Region>" << kml_latlonaltbox(bbox) << "<Lod><minLodPixels>128</minLodPixels><maxLodPixels>" << max_lod_pixels << "</maxLodPixels></Lod></Region>\n"
           << "    <name>" << name << "</name>\n"
           << "    <Icon><href>" << href << "</href></Icon>\n"
           << "    " << kml_latlonaltbox(bbox) << "\n"
           << "    <drawOrder>" << draw_order << "</drawOrder>\n"
           << "  </GroundOverlay>\n";
       return tag.str();
+    }
+
+    BBox2 pixels_to_longlat( BBox2i const& image_bbox ) const {
+      float width = base_type::m_source.cols(), height = base_type::m_source.rows();
+      // Fractional bounding-box
+      BBox2 fbb( image_bbox.min().x()/width, image_bbox.min().y()/height,
+                 image_bbox.width()/width, image_bbox.height()/height );
+      BBox2 bb( total_longlat_bbox.min().x()+fbb.min().x()*total_longlat_bbox.width(),
+                total_longlat_bbox.max().y()-fbb.min().y()*total_longlat_bbox.height(),
+                fbb.width()*total_longlat_bbox.width(), -fbb.height()*total_longlat_bbox.height() );
+      return bb;
     }
 
   public:
@@ -82,11 +94,16 @@ namespace mosaic {
     template <class ImageT>
     KMLQuadTreeGenerator( std::string const& tree_name,
                           ImageViewBase<ImageT> const& source,
-                          BBox2 bbox )
+                          BBox2 total_longlat_bbox )
       : vw::mosaic::ImageQuadTreeGenerator<PixelT>( tree_name, source ),
-        bbox( bbox ),
-        draw_order(10000) {}
+        total_longlat_bbox( total_longlat_bbox ),
+        max_lod_pixels( -1 ),
+        draw_order( 10000 ) {}
     
+    void set_max_lod_pixels( int pixels ) {
+      max_lod_pixels = pixels;
+    }
+
     virtual ~KMLQuadTreeGenerator() {}
     
     virtual void write_meta_file( std::string const& name,
@@ -97,15 +114,9 @@ namespace mosaic {
       boost::filesystem::path file_path( name );
       std::string leaf = file_path.leaf();
       std::ofstream kml( (name+".kml").c_str() );
-      float width = base_type::m_source.cols(), height = base_type::m_source.rows();
-      // Fractional bounding-box
-      BBox2 fbb( image_bbox.min().x()/width, image_bbox.min().y()/height,
-                 image_bbox.width()/width, image_bbox.height()/height );
-      BBox2 bb( bbox.min().x()+fbb.min().x()*bbox.width(),
-                bbox.max().y()-fbb.min().y()*bbox.height(),
-                fbb.width()*bbox.width(), -fbb.height()*bbox.height() );
-      int children = 0;
+      BBox2 bb = pixels_to_longlat( image_bbox );
       kml << "<Folder>\n";
+      int children = 0;
       if( exists( file_path/"0" ) ) {
         ++children;
         kml << kml_network_link( name+"/0", leaf+"/0.kml", (bb+Vector2(bb.min().x(),bb.min().y()))/2.0 );
@@ -122,11 +133,13 @@ namespace mosaic {
         ++children;
         kml << kml_network_link( name+"/3", leaf+"/3.kml", (bb+Vector2(bb.max().x(),bb.max().y()))/2.0 );
       }
-      if( children > 1 ) {
-        kml << kml_ground_overlay( name, leaf+"."+KMLQuadTreeGenerator::m_output_image_type, bb, draw_order-- );
-      }
-      else {
-        remove( boost::filesystem::path( name + "." + base_type::m_output_image_type ) );
+      kml << kml_ground_overlay( name, leaf+"."+KMLQuadTreeGenerator::m_output_image_type, bb, draw_order--, (children==0)?(-1):max_lod_pixels );
+      if( scale == unsigned(1<<(base_type::m_tree_levels-1)) ) {
+        BBox2 bbox = pixels_to_longlat( base_type::m_crop_bbox );
+        double lon = (bbox.min().x()+bbox.max().x())/2;
+        double lat = (bbox.min().y()+bbox.max().y())/2;
+        double range = 6e4 * (bbox.width()*cos(M_PI/180*lat)-bbox.height());
+        kml << "  <LookAt><longitude>" << lon << "</longitude><latitude>" << lat << "</latitude><range>" << range << "</range></LookAt>\n";
       }
       kml << "</Folder>\n";
     }
