@@ -41,7 +41,9 @@ namespace mosaic {
 
     BBox2 total_longlat_bbox;
     int max_lod_pixels;
-    mutable unsigned draw_order;
+    bool distributed_kml;
+    std::string kml_title;
+    mutable std::ostringstream root_node_tags;
 
     std::string kml_latlonaltbox( BBox2 const& longlat_bbox ) const {
       std::ostringstream tag;
@@ -98,50 +100,79 @@ namespace mosaic {
       : vw::mosaic::ImageQuadTreeGenerator<PixelT>( tree_name, source ),
         total_longlat_bbox( total_longlat_bbox ),
         max_lod_pixels( -1 ),
-        draw_order( 10000 ) {}
+        distributed_kml( true )
+    {}
     
     void set_max_lod_pixels( int pixels ) {
       max_lod_pixels = pixels;
     }
 
+    void set_kml_title( std::string const& name ) {
+      kml_title = name;
+    }
+
+    void set_distributed_kml( bool distributed ) {
+      distributed_kml = distributed;
+    }
+
     virtual ~KMLQuadTreeGenerator() {}
     
     virtual void write_meta_file( std::string const& name,
-                                  unsigned scale, 
+                                  unsigned level, 
                                   BBox2i const& image_bbox,
                                   BBox2i const& visible_bbox ) const
     {
-      boost::filesystem::path file_path( name );
-      std::string leaf = file_path.leaf();
-      std::ofstream kml( (name+".kml").c_str() );
-      BBox2 bb = pixels_to_longlat( image_bbox );
-      kml << "<Folder>\n";
-      int children = 0;
-      if( exists( file_path/"0" ) ) {
-        ++children;
-        kml << kml_network_link( name+"/0", leaf+"/0.kml", (bb+Vector2(bb.min().x(),bb.min().y()))/2.0 );
-      }
-      if( exists( file_path/"1" ) ) {
-        ++children;
-        kml << kml_network_link( name+"/1", leaf+"/1.kml", (bb+Vector2(bb.max().x(),bb.min().y()))/2.0 );
-      }
-      if( exists( file_path/"2" ) ) {
-        ++children;
-        kml << kml_network_link( name+"/2", leaf+"/2.kml", (bb+Vector2(bb.min().x(),bb.max().y()))/2.0 );
-      }
-      if( exists( file_path/"3" ) ) {
-        ++children;
-        kml << kml_network_link( name+"/3", leaf+"/3.kml", (bb+Vector2(bb.max().x(),bb.max().y()))/2.0 );
-      }
-      kml << kml_ground_overlay( name, leaf+"."+KMLQuadTreeGenerator::m_output_image_type, bb, draw_order--, (children==0)?(-1):max_lod_pixels );
-      if( scale == unsigned(1<<(base_type::m_tree_levels-1)) ) {
+      bool root_node = ( level == base_type::m_tree_levels-1 );
+
+      if( root_node ) {
+        if( ! kml_title.empty() )
+          root_node_tags << "  <name>" << kml_title << "</name>\n";
         BBox2 bbox = pixels_to_longlat( base_type::m_crop_bbox );
         double lon = (bbox.min().x()+bbox.max().x())/2;
         double lat = (bbox.min().y()+bbox.max().y())/2;
         double range = 1e5 * (bbox.width()*cos(M_PI/180*lat)-bbox.height());
-        kml << "  <LookAt><longitude>" << lon << "</longitude><latitude>" << lat << "</latitude><range>" << range << "</range></LookAt>\n";
+        if( range > 1.2e7 ) range = 1.2e7;
+        root_node_tags << "  <LookAt><longitude>" << lon << "</longitude><latitude>" << lat << "</latitude><range>" << range << "</range></LookAt>\n";
+        root_node_tags << "  <Style><ListStyle><listItemType>checkHideChildren</listItemType></ListStyle></Style>\n";
       }
-      kml << "</Folder>\n";
+
+      fs::path base_path( base_type::m_base_dir, fs::native );
+      fs::path file_path = base_path/name;
+      BBox2 bb = pixels_to_longlat( image_bbox );
+      if( distributed_kml ) {
+        fs::ofstream kml( base_path / (name+".kml") );
+        kml << "<Folder>\n";
+        std::string leaf = file_path.leaf();
+        int children = 0;
+        if( exists( file_path/"0" ) ) {
+          ++children;
+          kml << kml_network_link( name+"/0", leaf+"/0.kml", (bb+Vector2(bb.min().x(),bb.min().y()))/2.0 );
+        }
+        if( exists( file_path/"1" ) ) {
+          ++children;
+          kml << kml_network_link( name+"/1", leaf+"/1.kml", (bb+Vector2(bb.max().x(),bb.min().y()))/2.0 );
+        }
+        if( exists( file_path/"2" ) ) {
+          ++children;
+          kml << kml_network_link( name+"/2", leaf+"/2.kml", (bb+Vector2(bb.min().x(),bb.max().y()))/2.0 );
+        }
+        if( exists( file_path/"3" ) ) {
+          ++children;
+          kml << kml_network_link( name+"/3", leaf+"/3.kml", (bb+Vector2(bb.max().x(),bb.max().y()))/2.0 );
+        }
+        kml << kml_ground_overlay( name, leaf+"."+KMLQuadTreeGenerator::m_output_image_type, bb, base_type::m_tree_levels-level, (children==0)?(-1):max_lod_pixels );
+        if( root_node ) kml << root_node_tags.str();
+        kml << "</Folder>\n";
+      }
+      else {
+        int max_lod = -1;
+        if( exists( file_path/"0" ) || exists( file_path/"1" ) || exists( file_path/"2" ) || exists( file_path/"3" ) ) max_lod = max_lod_pixels;
+        root_node_tags << kml_ground_overlay( name, name+"."+KMLQuadTreeGenerator::m_output_image_type, bb, base_type::m_tree_levels-level, max_lod );
+        if( root_node ) {
+          fs::ofstream kml( base_path / (name+".kml") );
+          kml << "<Folder>\n" << root_node_tags.str() << "</Folder>\n";
+        }
+      }
     }
 
   };

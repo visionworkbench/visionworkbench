@@ -35,6 +35,7 @@
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/fstream.hpp>
 
 #include <vw/Math/BBox.h>
 #include <vw/Image/ImageView.h>
@@ -56,20 +57,26 @@ namespace mosaic {
 
     template <class ImageT>
     ImageQuadTreeGenerator( std::string const& tree_name, ImageViewBase<ImageT> const& source )
-      : m_tree_name( tree_name ),
-        m_source( source.impl() ),
+      : m_source( source.impl() ),
         m_crop_bbox( 0, 0, m_source.cols(), m_source.rows() ),
         m_output_image_type( "png" ),
         m_patch_size( 256 ),
         m_patch_overlap( 0 ),
         m_crop_images( true )
-    {}
+    {
+      fs::path tree_path( tree_name, fs::native );
+      m_tree_name = tree_path.leaf();
+      fs::path base_path = tree_path.branch_path() / ( tree_path.leaf() + ".qtree" );
+      m_base_dir = base_path.native_directory_string();
+    }
 
     virtual ~ImageQuadTreeGenerator() {}
 
-    virtual void write_meta_file( std::string const& name, unsigned scale, BBox2i const& image_bbox, 
+    virtual void write_meta_file( std::string const& name, unsigned level, BBox2i const& image_bbox, 
                                   BBox2i const& visible_bbox ) const {
-      std::ofstream outfile( (name+".bbx").c_str() );
+      unsigned scale = 1 << level;
+      fs::path base_path( m_base_dir, fs::native );
+      fs::ofstream outfile( base_path/(name+".bbx") );
       outfile << scale << "\n";
       outfile << image_bbox.min().x() << "\n";
       outfile << image_bbox.min().y() << "\n";
@@ -90,19 +97,22 @@ namespace mosaic {
       m_patch_cache.resize( m_tree_levels );
       m_filename_cache.resize( m_tree_levels );
 
-      fs::path tree_path( m_tree_name, fs::native );
-      fs::path dir_path = tree_path.branch_path() / ( tree_path.leaf() + ".qtree" );
-      fs::path top_branch_path = dir_path / tree_path.leaf();
+      fs::path dir_path( m_base_dir );
+      fs::path top_branch_path = dir_path / m_tree_name;
 
       vw_out(InfoMessage) << "Using patch size: " << m_patch_size << " pixels" << std::endl;
       vw_out(InfoMessage) << "Using patch overlap: " << m_patch_overlap << " pixels" << std::endl;
       vw_out(InfoMessage) << "Generating patch files of type: " << m_output_image_type << std::endl;
-      vw_out(InfoMessage) << "Generating " << dir_path.native_file_string() << " quadtree with " << m_tree_levels << " levels." << std::endl;
+      vw_out(InfoMessage) << "Generating " << top_branch_path.native_directory_string() << " quadtree with " << m_tree_levels << " levels." << std::endl;
 
-      if( fs::exists( dir_path ) )
-        throw IOErr() << "Path " << dir_path.native_file_string() << " already exists!  Remove it first.";
-      fs::create_directory( dir_path );
-      generate_branch( top_branch_path, m_tree_levels-1, 0, 0 );
+      if( fs::exists( dir_path ) ) {
+        if( ! fs::is_directory( dir_path ) )
+          throw IOErr() << "Path " << dir_path.native_directory_string() << " is not a directory!  Remove it first.";
+      }
+      else {
+        fs::create_directory( dir_path );
+      }
+      generate_branch( m_tree_name, m_tree_levels-1, 0, 0 );
     }
 
     void set_crop_bbox( BBox2i const& bbox ) {
@@ -127,9 +137,14 @@ namespace mosaic {
     void set_crop_images( bool crop ) {
       m_crop_images = crop;
     }
+
+    void set_base_dir( std::string const& base_dir ) {
+      m_base_dir = base_dir;
+    }
     
   protected:
     std::string m_tree_name;
+    std::string m_base_dir;
     ImageViewRef<PixelT> m_source;
     BBox2i m_crop_bbox;
     std::string m_output_image_type;
@@ -147,32 +162,36 @@ namespace mosaic {
       BBox2i image_bbox( Vector2i(0,0), Vector2i(image.cols(), image.rows()) );
       BBox2i visible_bbox = image_bbox;
       visible_bbox.contract( m_patch_overlap/2 );
+      fs::path base_path( m_base_dir, fs::native );
       if( m_crop_images ) {
         image_bbox = nonzero_data_bounding_box( image );
         if( image_bbox.empty() ) {
           vw_out(InfoMessage) << "\tIgnoring empty image: " << name << std::endl;
-          fs::remove( fs::path( name, fs::native ) );
+          fs::remove( base_path/name );
           return;
         }
         if( image_bbox.width() == int(m_patch_size) && image_bbox.height() == int(m_patch_size) )
-          write_image( name + "." + m_output_image_type, image );
+          write_image( (base_path/(name + "." + m_output_image_type)).native_file_string(), image );
         else
-          write_image( name + "." + m_output_image_type, ImageView<PixelT>( crop( image, image_bbox.min().x(), image_bbox.min().y(), image_bbox.width(), image_bbox.height() ) ) );
+          write_image( (base_path/(name + "." + m_output_image_type)).native_file_string(), 
+                       ImageView<PixelT>( crop( image, image_bbox.min().x(), image_bbox.min().y(), image_bbox.width(), image_bbox.height() ) ) );
         visible_bbox.crop( image_bbox );
       }
       else {
-        write_image( name + "." + m_output_image_type, image );
+        write_image( (base_path/(name + "." + m_output_image_type)).native_file_string(), image );
       }
       image_bbox += position;
       visible_bbox += position;
-      write_meta_file( name, scale, image_bbox*scale, visible_bbox*scale );
+      write_meta_file( name, level, image_bbox*scale, visible_bbox*scale );
     }
 
-    ImageView<PixelT> generate_branch( fs::path const& path, unsigned level, unsigned x, unsigned y ) {
+    ImageView<PixelT> generate_branch( std::string name, unsigned level, unsigned x, unsigned y ) {
       ImageView<PixelT> image;
       unsigned scale = 1 << level;
       unsigned interior_size = m_patch_size - m_patch_overlap;
       BBox2i patch_bbox = scale * BBox2i( Vector2i(x, y), Vector2i(x+1, y+1) ) * interior_size;
+      fs::path base_path( m_base_dir, fs::native );
+      fs::path path = base_path / name;
       if( ! patch_bbox.intersects( m_crop_bbox ) ) {
         vw_out(DebugMessage) << "\tIgnoring empty image: " << path.native_file_string() << std::endl;
         image.set_size( interior_size, interior_size );
@@ -190,17 +209,17 @@ namespace mosaic {
       else {
         fs::create_directory( path );
         ImageView<PixelT> big_image( 2*interior_size, 2*interior_size );
-        crop( big_image, 0, 0, interior_size, interior_size ) = generate_branch( path / "0", level-1, 2*x, 2*y );
-        crop( big_image, interior_size, 0, interior_size, interior_size ) = generate_branch( path / "1", level-1, 2*x+1, 2*y );
-        crop( big_image, 0, interior_size, interior_size, interior_size ) = generate_branch( path / "2", level-1, 2*x, 2*y+1 );
-        crop( big_image, interior_size, interior_size, interior_size, interior_size ) = generate_branch( path / "3", level-1, 2*x+1, 2*y+1 );
+        crop( big_image, 0, 0, interior_size, interior_size ) = generate_branch( name + "/0", level-1, 2*x, 2*y );
+        crop( big_image, interior_size, 0, interior_size, interior_size ) = generate_branch( name + "/1", level-1, 2*x+1, 2*y );
+        crop( big_image, 0, interior_size, interior_size, interior_size ) = generate_branch( name + "/2", level-1, 2*x, 2*y+1 );
+        crop( big_image, interior_size, interior_size, interior_size, interior_size ) = generate_branch( name + "/3", level-1, 2*x+1, 2*y+1 );
         std::vector<float> kernel(2); kernel[0]=0.5; kernel[1]=0.5;
         image.set_size( m_patch_size, m_patch_size );
         rasterize( subsample( separable_convolution_filter( big_image, kernel, kernel, 1, 1 ), 2 ), image );
       }
       // If there's no patch overlap, we're done and we can just write it out
       if( m_patch_overlap == 0 ) {
-        write_patch( image, path.native_file_string(), level, x, y );
+        write_patch( image, name, level, x, y );
       }
       // Otherwise this interior affects up to nine patches, each of which 
       // requires some special consideration.  There may be a cleaner way 
@@ -246,10 +265,10 @@ namespace mosaic {
         center.set_size( m_patch_size, m_patch_size );
         crop( center, overlap, overlap, interior_size, interior_size ) = image;
         if( scale*interior_size*(x+1) < m_source.cols() || scale*interior_size*(y+1) < m_source.rows() ) {
-          m_filename_cache[level][std::make_pair(x,y)] = path.native_file_string();
+          m_filename_cache[level][std::make_pair(x,y)] = name;
         }
         else {
-          write_patch( center, path.native_file_string(), level, x, y );
+          write_patch( center, name, level, x, y );
           m_patch_cache[level].erase(std::make_pair(x,y-1));
         }
         if( scale*interior_size*(y+1) < m_source.rows() ) {
