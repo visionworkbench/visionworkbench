@@ -96,9 +96,10 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
   TIFFGetField( tif, TIFFTAG_IMAGELENGTH, &(m_format.rows) );
   TIFFGetFieldDefaulted( tif, TIFFTAG_SAMPLESPERPIXEL, &(m_format.planes) );
 
-  uint32 sample_format = 0, bits_per_sample = 0;
+  uint32 sample_format = 0, bits_per_sample = 0, photometric = 0;
   TIFFGetFieldDefaulted( tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample );
   TIFFGetFieldDefaulted( tif, TIFFTAG_SAMPLEFORMAT, &sample_format );
+  TIFFGetField( tif, TIFFTAG_PHOTOMETRIC, &photometric );
 
   m_format.channel_type = VW_CHANNEL_UNKNOWN;
   switch( sample_format ) {
@@ -142,7 +143,11 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
   // FIXME: Tiff might actually provide us with some info on
   // colorimetric interpretation of the channels, so maybe we should
   // try to use that here as well?
-  if( m_format.planes == 1 ) {
+  if( photometric == PHOTOMETRIC_PALETTE ) {
+    m_format.channel_type = VW_CHANNEL_UINT16;
+    m_format.pixel_format = VW_PIXEL_RGB;
+  }
+  else if( m_format.planes == 1 ) {
     m_format.pixel_format = VW_PIXEL_GRAY;
   }
   else if( plane_configuration == PLANARCONFIG_CONTIG ) {
@@ -200,10 +205,12 @@ void vw::DiskImageResourceTIFF::read_generic( GenericImageBuffer const& dest, BB
   }
   else {
     tdata_t buf = _TIFFmalloc( TIFFStripSize(tif) );
+    uint16 *pbuf = 0;
     
-    uint32 config = 0, nsamples = 0;
+    uint32 config = 0, nsamples = 0, photometric = 0;
     TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &config);
     TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
+    TIFFGetField( tif, TIFFTAG_PHOTOMETRIC, &photometric );
     if( config==PLANARCONFIG_SEPARATE && nsamples != 1 )
       throw NoImplErr() << "DiskImageResourceTIFF (read) Error: Reading from separate-plane TIFF files is not yet supported!";
 
@@ -214,9 +221,20 @@ void vw::DiskImageResourceTIFF::read_generic( GenericImageBuffer const& dest, BB
     GenericImageBuffer strip_src, strip_dest=dest;
     strip_src.format = m_format;
     strip_src.format.cols = bbox.width();
-    strip_src.cstride = scanline_size / m_format.cols;
-    strip_src.rstride = scanline_size;
-    strip_src.pstride = scanline_size * m_format.rows;
+
+    uint16 *red_table, *green_table, *blue_table;
+    if( photometric == PHOTOMETRIC_PALETTE ) {
+      TIFFGetField( tif, TIFFTAG_COLORMAP, &red_table, &green_table, &blue_table );
+      pbuf = new uint16[rows_per_strip*m_format.cols*3];
+      strip_src.cstride = 6;
+      strip_src.rstride = m_format.cols*6;
+      strip_src.pstride = rows_per_strip*m_format.cols*6;
+    }
+    else {
+      strip_src.cstride = scanline_size / m_format.cols;
+      strip_src.rstride = scanline_size;
+      strip_src.pstride = scanline_size * m_format.rows;
+    }
 
     int minstrip=bbox.min().y()/rows_per_strip, maxstrip=(bbox.max().y()-1)/rows_per_strip;
     for( int strip=minstrip; strip<=maxstrip; ++strip ) {
@@ -227,7 +245,22 @@ void vw::DiskImageResourceTIFF::read_generic( GenericImageBuffer const& dest, BB
                 << " (rows " << strip_top << "-" << strip_top+strip_rows-1 << ") from " << m_filename << std::endl; )
       TIFFReadEncodedStrip( tif, strip, buf, (tsize_t) -1 );
 
-      strip_src.data = ((uint8*)buf) + bbox.min().x()*strip_src.cstride + (strip_top-strip*rows_per_strip)*strip_src.rstride;
+      // FIXME: This could stand some serious tidying up / optimizing
+      if( photometric == PHOTOMETRIC_PALETTE ) {
+        for( int y=0; y<strip_rows; ++y ) {
+          for( unsigned x=bbox.min().x(); x<bbox.max().x(); ++x ) {
+            int p = ((uint8*)buf)[ (strip_top-strip*rows_per_strip)*scanline_size + x*(scanline_size/m_format.cols) ];
+            pbuf[3*(m_format.cols*y+x)+0] = red_table[p];
+            pbuf[3*(m_format.cols*y+x)+1] = green_table[p];
+            pbuf[3*(m_format.cols*y+x)+2] = blue_table[p];
+          }
+        }
+        strip_src.data = ((uint8*)pbuf) + bbox.min().x()*strip_src.cstride + (strip_top-strip*rows_per_strip)*strip_src.rstride;
+      }
+      else {
+        strip_src.data = ((uint8*)buf) + bbox.min().x()*strip_src.cstride + (strip_top-strip*rows_per_strip)*strip_src.rstride;
+      }
+
       strip_src.format.rows = strip_rows;
 
       strip_dest.data = ((uint8*)dest.data) + (strip_top-bbox.min().y())*strip_dest.rstride;
@@ -236,6 +269,7 @@ void vw::DiskImageResourceTIFF::read_generic( GenericImageBuffer const& dest, BB
       convert( strip_dest, strip_src );
     }
   
+    delete[] pbuf;
     _TIFFfree(buf);
   }
   TIFFClose(tif);
