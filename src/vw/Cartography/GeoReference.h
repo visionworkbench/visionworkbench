@@ -48,7 +48,7 @@ namespace cartography {
   public:
     /// Construct a default georeference.  This georeference will use
     /// the identity matrix as the initial transformation matrix, and
-    /// select the default datum (???) and projection (geographic).
+    /// select the default datum (WGS84) and projection (geographic).
     GeoReference();
     
     /// Takes a string in proj.4 format. The affine transform defaults to the identity matrix.

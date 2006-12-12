@@ -42,11 +42,13 @@ namespace cartography {
   public:
     /// Normal constructor
     GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef) :
-      // For debugging:
-      //      std::cout << m_src_georef.proj4_str() << "\n";
-      //      std::cout << m_dst_georef.proj4_str() << "\n";
       m_src_georef(src_georef), m_dst_georef(dst_georef) {
       init_from_georefs(src_georef, dst_georef);
+      // For debugging:
+      //       std::cout << src_proj_str << "\n";
+      //       std::cout << dst_proj_str << "\n";
+      VW_ASSERT(src_proj_str.size() != 0, ArgumentErr() << "GeoTransform: source georeference not sufficiently well-defined.  Proj.4 string was empty.");
+      VW_ASSERT(dst_proj_str.size() != 0, ArgumentErr() << "GeoTransform: destination georeference not sufficiently well-defined.  Proj.4 string was empty.");
     }
 
     /// Copy Constructor

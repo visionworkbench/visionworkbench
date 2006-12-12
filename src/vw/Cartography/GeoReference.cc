@@ -47,11 +47,12 @@ namespace cartography {
 
   /// Construct a default georeference.  This georeference will use
   /// the identity matrix as the initial transformation matrix, and
-  /// select the default datum (???) and projection (geographic).
+  /// select the default datum (WGS84) and projection (geographic).
   GeoReference::GeoReference() {
     m_transform.set_identity();
     m_is_projected = false;
     OGRSpatialReference oSRS;
+    oSRS.SetWellKnownGeogCS("WGS84");
     this->set_spatial_ref(&oSRS);
   }
   
