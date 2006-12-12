@@ -5,6 +5,7 @@
 #include <vw/Image/Algorithms.h>
 #include <vw/Math/BBox.h>
 #include <vw/Stereo/Correlate.h>
+#include <vw/Stereo/BlockCorrelator.h>
 
 namespace vw { 
 namespace stereo {
@@ -145,7 +146,7 @@ namespace stereo {
         
         // Print out some useful feedback for the user
         if(m_verbose) {
-          std::cout << "\nPyramid search: level " << i << "\n";
+          std::cout << "\nPyramid search: level " << i << "  (" << left_pyramid[i].cols()<< " " << left_pyramid[i].rows() << ")\n";
           std::cout << "\tRange -- H [" << min_h << ", " << max_h 
                     << "   V [" << min_v << ", " << max_v << "]\n";
         }
@@ -154,9 +155,10 @@ namespace stereo {
         // correlator on one of the subsampled, slog'd image pairs and
         // the resulting disparity map is used to narrow down the
         // search range.
-        OptimizedCorrelator corr(min_h, max_h, min_v, max_v, 
-                                 m_kernel_width, m_kernel_height, 
-                                 true, m_cross_corr_threshold, false, false);
+        BlockCorrelator corr(min_h, max_h, min_v, max_v, 
+                             m_kernel_width, m_kernel_height, 
+                             true, m_cross_corr_threshold, 2048,  // 2048 is block size
+                             false, false);
         ImageView<PixelDisparity<float> > disparity_map = corr(left_pyramid[i], right_pyramid[i], true);
 
         // For debugging 

@@ -12,6 +12,7 @@ namespace po = boost::program_options;
 #include <vw/Stereo/OptimizedCorrelator.h>
 #include <vw/Stereo/ReferenceCorrelator.h>
 #include <vw/Stereo/MultiresolutionCorrelator.h>
+#include <vw/Stereo/BlockCorrelator.h>
 
 using namespace vw;
 using namespace vw::stereo;
@@ -26,6 +27,7 @@ int main( int argc, char *argv[] ) {
     int xrange, yrange;
     int xkernel, ykernel;
     int lrthresh;
+    int block_size = 0;
 
     po::options_description desc("Options");
     desc.add_options()
@@ -41,6 +43,7 @@ int main( int argc, char *argv[] ) {
       ("xkernel", po::value<int>(&xkernel)->default_value(15), "Horizontal correlation kernel size")
       ("ykernel", po::value<int>(&ykernel)->default_value(15), "Vertical correlation kernel size")
       ("lrthresh", po::value<int>(&lrthresh)->default_value(2), "Left/right correspondence threshold")
+      ("block", po::value<int>(&block_size), "Use the prototype block image correlator")
       ("hsubpix", "Enable horizontal sub-pixel correlation")
       ("vsubpix", "Enable vertical sub-pixel correlation")
       ("reference", "Use the slower, simpler reference correlator")
@@ -116,13 +119,36 @@ int main( int argc, char *argv[] ) {
                                                         (vm.count("hsubpix")>0),
                                                         (vm.count("vsubpix")>0) );
       disparity_map = correlator( left, right, bit_image );      
+    } else if (block_size != 0) {
+      vw::stereo::BlockCorrelator correlator( xoffset-xrange, xoffset+xrange,
+                                              yoffset-yrange, yoffset+yrange,
+                                              xkernel, ykernel,
+                                              true, lrthresh, block_size,
+                                              (vm.count("hsubpix")>0),
+                                              (vm.count("vsubpix")>0) );
+      if (vm.count("bitimage")) {
+        std::cout << "Forcing the use of the bit-image optimized correlator.\n";
+        bit_image = true;
+      } else if (vm.count("nonbitimage")) {
+        std::cout << "Forcing the use of the non bit-image optimized correlator.\n";
+        bit_image = false;
+      } 
+
+      if (bit_image) {
+        ImageView<PixelGray<uint8> > left_bitimage = channel_cast<uint8>(left);
+        ImageView<PixelGray<uint8> > right_bitimage = channel_cast<uint8>(right);
+        disparity_map = correlator( left_bitimage, right_bitimage, bit_image );
+      } else {
+        disparity_map = correlator( left, right, bit_image );
+      }
+
     } else {
       vw::stereo::OptimizedCorrelator correlator( xoffset-xrange, xoffset+xrange,
-                                                 yoffset-yrange, yoffset+yrange,
-                                                 xkernel, ykernel,
-                                                 true, lrthresh,
-                                                 (vm.count("hsubpix")>0),
-                                                 (vm.count("vsubpix")>0) );
+                                                  yoffset-yrange, yoffset+yrange,
+                                                  xkernel, ykernel,
+                                                  true, lrthresh,
+                                                  (vm.count("hsubpix")>0),
+                                                  (vm.count("vsubpix")>0) );
       if (vm.count("bitimage")) {
         std::cout << "Forcing the use of the bit-image optimized correlator.\n";
         bit_image = true;
@@ -158,3 +184,4 @@ int main( int argc, char *argv[] ) {
   }
   return 0;
 }
+
