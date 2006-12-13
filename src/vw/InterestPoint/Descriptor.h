@@ -30,6 +30,7 @@
 
 #include <vector>
 #include <vw/Math/Vector.h>
+#include <vw/Math/BBox.h>
 
 namespace vw { 
 namespace ip {
@@ -37,7 +38,7 @@ namespace ip {
   /// A class for storing information about an interest point.
   struct InterestPoint {
 
-    /// (col,row) location of point
+    /// subpixel (col,row) location of point
     float x,y;
 
     /// scale of point.  This may come from the pyramid level, from
@@ -70,6 +71,10 @@ namespace ip {
       if (index == 0) return x;
       else if (index == 1) return y;
       else throw vw::ArgumentErr() << "Interest Point: Invalid Index";
+    }
+
+    bool operator< (const InterestPoint& other) const {
+      return (other.interest < interest);
     }
   };
 
