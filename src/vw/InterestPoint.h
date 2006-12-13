@@ -30,6 +30,11 @@
 
 #include <vw/InterestPoint/Descriptor.h>
 #include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/Extrema.h>
+#include <vw/InterestPoint/ImageOctave.h>
+#include <vw/InterestPoint/Interest.h>
+#include <vw/InterestPoint/Localize.h>
 #include <vw/InterestPoint/Matcher.h>
+#include <vw/InterestPoint/WeightedHistogram.h>
 #endif // __VW_INTERESTPOINT_H__
  
