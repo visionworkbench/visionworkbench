@@ -31,7 +31,7 @@ vw::camera::CAHVORModel::CAHVORModel(std::string const& filename) {
     
   FILE *cahvorFP = fopen(filename.c_str(), "r");
   if (cahvorFP == 0)
-    throw IOErr() << "CAHVORModel: Could not open file.";
+    vw_throw( IOErr() << "CAHVORModel: Could not open file." );
 
   char line[4096];    
   printf("Reading CAHVOR file: %s\n", filename.c_str());
@@ -42,37 +42,37 @@ vw::camera::CAHVORModel::CAHVORModel(std::string const& filename) {
     fgets(line, sizeof(line), cahvorFP);
   
   if (sscanf(line,"C = %lf %lf %lf", &C(0), &C(1), &C(2)) != 3) {
-    throw IOErr() << "CAHVORModel: Could not read C vector\n";
+    vw_throw( IOErr() << "CAHVORModel: Could not read C vector\n" );
     fclose(cahvorFP);
   }
   
   fgets(line, sizeof(line), cahvorFP);
   if (sscanf(line,"A = %lf %lf %lf", &A(0),&A(1), &A(2)) != 3) {
-    throw IOErr() << "CAHVORModel: Could not read A vector\n";
+    vw_throw( IOErr() << "CAHVORModel: Could not read A vector\n" );
     fclose(cahvorFP);
   }
   
   fgets(line, sizeof(line), cahvorFP);
   if (sscanf(line,"H = %lf %lf %lf", &H(0), &H(1), &H(2)) != 3) {
-    throw IOErr() << "CAHVORModel: Could not read H vector\n";
+    vw_throw( IOErr() << "CAHVORModel: Could not read H vector\n" );
     fclose(cahvorFP);
   }
   
   fgets(line, sizeof(line), cahvorFP);
   if (sscanf(line,"V = %lf %lf %lf", &V(0), &V(1), &V(2)) != 3) {
-    throw IOErr() << "CAHVORModel: Could not read V vector\n";
+    vw_throw( IOErr() << "CAHVORModel: Could not read V vector\n" );
     fclose(cahvorFP);
   }
   
   fgets(line, sizeof(line), cahvorFP);
   if (sscanf(line,"O = %lf %lf %lf", &O(0), &O(1), &O(2)) != 3) {
-    throw IOErr() << "CAHVORModel: Could not read O vector\n";
+    vw_throw( IOErr() << "CAHVORModel: Could not read O vector\n" );
     fclose(cahvorFP);
   }
   
   fgets(line, sizeof(line), cahvorFP);
   if (sscanf(line,"R = %lf %lf %lf", &R(0), &R(1), &R(2)) != 3) {
-    throw IOErr() << "CAHVORModel: Could not read R vector\n";
+    vw_throw( IOErr() << "CAHVORModel: Could not read R vector\n" );
     fclose(cahvorFP);
   }
   

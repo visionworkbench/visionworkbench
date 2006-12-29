@@ -37,19 +37,13 @@ class TestExceptions : public CxxTest::TestSuite
 public:
   void test_exception_hierarchy()
   {
-    std::cout << "Preparing to throw exception...\n";
-    try {
-      throw ArgumentErr() << "test exception";
-    } catch (ArgumentErr &e) {
-      std::cout << "caught ArgumentErr\n";
-    }
-    std::cout << "Thrown!\n";
-  
+#if !( defined(VW_NO_EXCEPTIONS) && (VW_NO_EXCEPTIONS==1) )
     TS_ASSERT_THROWS(throw Level1Err(), vw::Exception);
     TS_ASSERT_THROWS(throw Level1Err(), Level1Err);
     TS_ASSERT_THROWS(throw Level2Err(), vw::Exception);
     TS_ASSERT_THROWS(throw Level2Err(), Level1Err);
     TS_ASSERT_THROWS(throw Level2Err(), Level2Err);
+#endif
   }
 
 };

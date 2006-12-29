@@ -386,7 +386,8 @@ namespace vw {
     case VW_PIXEL_RGBA:
       return 4;
     default:
-      throw ArgumentErr() << "Unrecognized or unsupported pixel format (" << format << ").";
+      vw_throw( ArgumentErr() << "Unrecognized or unsupported pixel format (" << format << ")." );
+      return 0; // never reached
     }
   }
 
@@ -409,7 +410,8 @@ namespace vw {
     case VW_CHANNEL_FLOAT64:
       return 8;
     default:
-      throw ArgumentErr() << "Unrecognized or unsupported channel type (" << type << ").";
+      vw_throw( ArgumentErr() << "Unrecognized or unsupported channel type (" << type << ")." );
+      return 0; // never reached
     }
   }
 

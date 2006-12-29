@@ -135,7 +135,8 @@ namespace camera {
     // Interface
     //------------------------------------------------------------------
     virtual Vector2 point_to_pixel(Vector3 const& vec) const {
-      throw vw::NoImplErr() << "LinescanModel::point_to_pixel is not yet implemented.";
+      vw_throw( vw::NoImplErr() << "LinescanModel::point_to_pixel is not yet implemented." );
+      return Vector2(); // never reached
     }
 
     /// Given a pixel in image coordinates, what is the pointing
@@ -152,7 +153,7 @@ namespace camera {
       
       // Check to make sure that this is a valid pixel
       if (int(round(v)) < 0 || int(round(v)) >= int(m_line_times.size()))
-        throw PixelToRayErr() << "LinescanModel: requested pixel " << pix << " is not on a valid scanline.\n";
+        vw_throw( PixelToRayErr() << "LinescanModel: requested pixel " << pix << " is not on a valid scanline." );
 
       // The view_matrix takes vectors from the camera (extrinsic)
       // coordinate system to the world frame
@@ -178,7 +179,7 @@ namespace camera {
     virtual Vector3 camera_center(Vector2 const& pix = Vector2() ) const {
       // Check to make sure that this is a valid pixel
       if (int(round(pix[1])) < 0 || int(round(pix[1])) >= int(m_line_times.size()))
-        throw PixelToRayErr() << "LinescanModel: requested pixel " << pix << " is not on a valid scanline.\n";
+        vw_throw( PixelToRayErr() << "LinescanModel: requested pixel " << pix << " is not on a valid scanline." );
       return m_position_func(m_line_times[int(round(pix[1]))]);
     }
     

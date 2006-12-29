@@ -79,7 +79,7 @@ namespace vw {
     /// Read a block of the image on disk into the given buffer.
     virtual void read_generic( GenericImageBuffer const& buf, BBox2i bbox ) const {
       if( bbox==BBox2i(0,0,cols(),rows()) ) return read_generic( buf );
-      throw NoImplErr() << "This DiskImageResource does not support partial reads!";
+      vw_throw( NoImplErr() << "This DiskImageResource does not support partial reads!" );
     }
 
     /// Returns the optimal block size/alignment for partial reads.
@@ -133,7 +133,7 @@ namespace vw {
       if( ! IsCompound<PixelT>::value ) {
         // The image has a fundamental pixel type
         if( planes()>1 && num_channels(pixel_format())>1 )
-          throw ArgumentErr() << "Cannot read a multi-plane multi-channel image file into a single-channel buffer.";
+          vw_throw( ArgumentErr() << "Cannot read a multi-plane multi-channel image file into a single-channel buffer." );
         im_planes = std::max( planes(), num_channels(pixel_format()) );
       }
       buf.set_size( cols(), rows(), im_planes );
@@ -150,7 +150,7 @@ namespace vw {
       if( ! IsCompound<PixelT>::value ) {
         // The image has a fundamental pixel type
         if( planes()>1 && num_channels(pixel_format())>1 )
-          throw ArgumentErr() << "Cannot read a multi-plane multi-channel image file into a single-channel buffer.";
+          vw_throw( ArgumentErr() << "Cannot read a multi-plane multi-channel image file into a single-channel buffer." );
         im_planes = std::max( planes(), num_channels(pixel_format()) );
       }
       buf.set_size( bbox.width(), bbox.height(), im_planes );
@@ -262,7 +262,7 @@ namespace vw {
 
     // If there's an asterisk, save one file per plane
     if( ! boost::find_last(filename,"*") ) {
-      throw vw::ArgumentErr() << "write_image: filename must contain * when writing a vector of image views\n";
+      vw_throw( vw::ArgumentErr() << "write_image: filename must contain * when writing a vector of image views\n" );
     }
 
     for (unsigned i=0; i<out_image_vector.size(); i++){

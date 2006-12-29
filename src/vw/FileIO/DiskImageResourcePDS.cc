@@ -45,16 +45,10 @@ using namespace boost;
 void vw::DiskImageResourcePDS::treat_invalid_data_as_alpha() {
   // We currently only support this feature under very specific circumstances
   string format_str, sample_bits_str, valid_minimum_str;
-  try {
-    format_str = query("SAMPLE_TYPE");
-    sample_bits_str = query("SAMPLE_BITS");
-    valid_minimum_str = query("VALID_MINIMUM");
-  }
-  catch ( vw::NotFoundErr &e ) {
-    throw vw::NoImplErr() << "Invalid data not supported for this PDS image.";
-  }
+  if( !( query("SAMPLE_TYPE",format_str) && query("SAMPLE_BITS",sample_bits_str) && query("VALID_MINIMUM",valid_minimum_str) ) )
+    vw_throw( vw::NoImplErr() << "Invalid data not supported for this PDS image." );
   if( format_str != "MSB_INTEGER" || sample_bits_str != "16" || m_format.pixel_format != VW_PIXEL_GRAY )
-    throw vw::NoImplErr() << "Invalid data not supported for this PDS image format.";
+    vw_throw( vw::NoImplErr() << "Invalid data not supported for this PDS image format." );
   m_invalid_as_alpha = true;
 }
 
@@ -81,7 +75,7 @@ void vw::DiskImageResourcePDS::parse_pds_header(std::vector<std::string> const& 
 void vw::DiskImageResourcePDS::open( std::string const& filename ) {
 
   FILE* input_file = fopen(filename.c_str(), "r");
-  if( ! input_file ) throw vw::IOErr() << "Failed to open \"" << filename << "\".";
+  if( ! input_file ) vw_throw( vw::IOErr() << "Failed to open \"" << filename << "\"." );
 
   char c_line[2048];
   int i = 0;
@@ -105,76 +99,83 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   // equals sign "=".
   parse_pds_header(header);
 
-  try {
-    vector<string> keys;
+  vector<string> keys;
+  std::string value;
+  bool valid = true;
 
-    // Query for the number of columns
-    keys.push_back("LINE_SAMPLES");
-    keys.push_back("NS");
-    keys.push_back("/IMAGE/LINE_SAMPLES");
-    m_format.cols = atol(query(keys).c_str());
+  // Query for the number of columns
+  keys.push_back("LINE_SAMPLES");
+  keys.push_back("NS");
+  keys.push_back("/IMAGE/LINE_SAMPLES");
+  valid = valid && query( keys, value );
+  m_format.cols = atol(value.c_str());
 
-    // Query for the number of rows
-    keys.clear();
-    keys.push_back("NL");
-    keys.push_back("IMAGE_LINES");
-    keys.push_back("LINES");
-    keys.push_back("/IMAGE/LINES");
-    m_format.rows = atol(query(keys).c_str());
+  // Query for the number of rows
+  keys.clear();
+  keys.push_back("NL");
+  keys.push_back("IMAGE_LINES");
+  keys.push_back("LINES");
+  keys.push_back("/IMAGE/LINES");
+  valid = valid && query( keys, value );
+  m_format.rows = atol(value.c_str());
 
-    // Image planes (if there is no tag in the PDS for bands, we
-    // assume one image plane)
-    try {
-      keys.clear();
-      keys.push_back("BANDS");
-      keys.push_back("/IMAGE/BANDS");
-      m_format.planes = atol(query(keys).c_str());
-    } catch (NotFoundErr &e) {
-      m_format.planes = 1;
-    }
-
-    // pixel type
-    keys.clear();
-    keys.push_back("SAMPLE_TYPE");
-    string format_str = query(keys);
-    keys.clear();
-    keys.push_back("SAMPLE_BITS");
-    string sample_bits_str = query(keys);
+  // Image planes (if there is no tag in the PDS for bands, we
+  // assume one image plane)
+  keys.clear();
+  keys.push_back("BANDS");
+  keys.push_back("/IMAGE/BANDS");
+  if( query( keys, value ) ) {
+    m_format.planes = atol(value.c_str());
+  }
+  else {
+    m_format.planes = 1;
+  }
+  
+  // pixel type
+  keys.clear();
+  keys.push_back("SAMPLE_TYPE");
+  std::string format_str;
+  valid = valid && query( keys, format_str );
+  keys.clear();
+  keys.push_back("SAMPLE_BITS");
+  std::string sample_bits_str;
+  valid = valid && query( keys, sample_bits_str );
+  
+  // Number of bytes in the PDS header (essentially the offset
+  // before the image data begins.
+  keys.clear();
+  keys.push_back("RECORD_BYTES");
+  keys.push_back("/RECSIZE");
+  keys.push_back("HEADER_RECORD_BYTES");
+  valid = valid && query( keys, value );
+  m_image_data_offset = atol(value.c_str());
     
-    if (format_str == "UNSIGNED_INTEGER") {
-     
-      if (sample_bits_str == "8") 
-        m_format.channel_type = VW_CHANNEL_UINT8; 
-      else if (sample_bits_str == "16") 
-        m_format.channel_type = VW_CHANNEL_UINT16; 
+  keys.clear();
+  keys.push_back("LABEL_RECORDS");
+  if( query( keys, value ) ) {
+    m_image_data_offset *= atol(value.c_str());
+  }
 
-    } else if (format_str == "MSB_INTEGER") {
+  if( ! valid ) {
+    vw_throw( IOErr() << "DiskImageResourcePDS: could not find critical information in the image header." );
+  }
 
-      if (sample_bits_str == "8") 
-        m_format.channel_type = VW_CHANNEL_INT8; 
-      else if (sample_bits_str == "16") 
-        m_format.channel_type = VW_CHANNEL_INT16; 
-
-    } else {
-     throw IOErr() << "DiskImageResourcePDS: Unsupported pixel type in \"" << filename << "\".";
-    }
-
-    // Number of bytes in the PDS header (essentially the offset
-    // before the image data begins.
-    keys.clear();
-    keys.push_back("RECORD_BYTES");
-    keys.push_back("/RECSIZE");
-    keys.push_back("HEADER_RECORD_BYTES");
-    m_image_data_offset = atol(query(keys).c_str());
+  if (format_str == "UNSIGNED_INTEGER") {
     
-    try {
-      keys.clear();
-      keys.push_back("LABEL_RECORDS");
-      m_image_data_offset *= atol(query(keys).c_str());
-    } catch (NotFoundErr &e) {}
-        
-  } catch (vw::NotFoundErr &e) {
-    throw IOErr() << "DiskImageResourcePDS: could not find critical information in the image header.\n";
+    if (sample_bits_str == "8") 
+      m_format.channel_type = VW_CHANNEL_UINT8; 
+    else if (sample_bits_str == "16") 
+      m_format.channel_type = VW_CHANNEL_UINT16; 
+    
+  } else if (format_str == "MSB_INTEGER") {
+    
+    if (sample_bits_str == "8") 
+      m_format.channel_type = VW_CHANNEL_INT8; 
+    else if (sample_bits_str == "16") 
+      m_format.channel_type = VW_CHANNEL_INT16; 
+    
+  } else {
+    vw_throw( IOErr() << "DiskImageResourcePDS: Unsupported pixel type in \"" << filename << "\"." );
   }
   
   switch( m_format.planes ) {
@@ -185,17 +186,16 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   default: m_format.pixel_format = VW_PIXEL_SCALAR; break;
   }
 
-  // For debugging:
-  //   std::cout << "\tImage Dimensions: " << m_format.cols << "x" << m_format.rows << "x" << m_format.planes << "\n";
-  //   std::cout << "\tImage Format: " << m_format.channel_type << "   " << m_format.pixel_format << "\n";
-  fclose(input_file);
+  vw_out(VerboseDebugMessage)
+    << "\tImage Dimensions: " << m_format.cols << "x" << m_format.rows << "x" << m_format.planes << "\n"
+    << "\tImage Format: " << m_format.channel_type << "   " << m_format.pixel_format << "\n";
 }
 
 /// Bind the resource to a file for writing.
 void vw::DiskImageResourcePDS::create( std::string const& filename, 
                                        GenericImageFormat const& format )
 {
-  throw NoImplErr() << "The PDS driver does not yet support creation of PDS files";
+  vw_throw( NoImplErr() << "The PDS driver does not yet support creation of PDS files." );
 }
 
 /// Read the disk image into the given buffer.
@@ -207,7 +207,7 @@ void vw::DiskImageResourcePDS::read_generic( GenericImageBuffer const& dest ) co
   // Re-open the file, and shift the file offset to the position of
   // the first image byte (as indicated by the PDS header)
   FILE* input_file = fopen(DiskImageResource::m_filename.c_str(), "r");
-  if( ! input_file ) throw vw::IOErr() << "Failed to open \"" << DiskImageResource::m_filename << "\".";
+  if( ! input_file ) vw_throw( vw::IOErr() << "Failed to open \"" << DiskImageResource::m_filename << "\"." );
   fseek(input_file, m_image_data_offset, 0);
 
   // Grab the pixel data from the file.
@@ -219,12 +219,12 @@ void vw::DiskImageResourcePDS::read_generic( GenericImageBuffer const& dest ) co
   }
   else if ( ! ( m_format.channel_type == VW_CHANNEL_UINT8 ||
                 m_format.channel_type == VW_CHANNEL_INT8 ) ) {
-    throw IOErr() << "DiskImageResourcePDS: Unsupported channel type";
+    vw_throw( IOErr() << "DiskImageResourcePDS: Unsupported channel type (" << m_format.channel_type << ")." );
   }
   uint8* image_data = new uint8[total_pixels * bytes_per_pixel];
   unsigned bytes_read = fread(image_data, bytes_per_pixel, total_pixels, input_file);
   if ( bytes_read != total_pixels ) 
-    throw IOErr() << "DiskImageResourcePDS: An error occured while reading the image data.";
+    vw_throw( IOErr() << "DiskImageResourcePDS: An error occured while reading the image data." );
 
   // Convert the endian-ness of the data
   if (m_format.channel_type == VW_CHANNEL_INT16 ||
@@ -259,7 +259,8 @@ void vw::DiskImageResourcePDS::read_generic( GenericImageBuffer const& dest ) co
         ( dest.format.pixel_format == VW_PIXEL_GRAYA || 
           dest.format.pixel_format == VW_PIXEL_RGBA ) ) {
       int dst_bpp = num_channels(dest.format.pixel_format) * channel_size(dest.format.channel_type);
-      string valid_minimum_str = query("VALID_MINIMUM");
+      std::string valid_minimum_str;
+      query( "VALID_MINIMUM", valid_minimum_str );
       int16 valid_minimum = atoi(valid_minimum_str.c_str());
       uint8* src_row = (uint8*)src.data;
       uint8* dst_row = (uint8*)dest.data;
@@ -286,7 +287,7 @@ void vw::DiskImageResourcePDS::read_generic( GenericImageBuffer const& dest ) co
 // Write the given buffer into the disk image.
 void vw::DiskImageResourcePDS::write_generic( GenericImageBuffer const& src ) 
 {
-  throw NoImplErr() << "The PDS driver does not yet support creation of PDS files";
+  vw_throw( NoImplErr() << "The PDS driver does not yet support creation of PDS files." );
 }
 
 // A FileIO hook to open a file for reading

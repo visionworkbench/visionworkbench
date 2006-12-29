@@ -926,8 +926,9 @@ namespace vw {
   template <class ImageT>
   UnaryPerPixelView<ImageT,SelectChannelFunctor<ImageT> >
   inline select_alpha_channel( ImageViewBase<ImageT>& image ) {
+    // FIXME: This should be a static assertion
     if( ! PixelHasAlpha<typename ImageT::pixel_type>::value )
-      throw ArgumentErr() << "Image has no alpha channel in call to select_alpha_channel()";
+      vw_throw( ArgumentErr() << "Image has no alpha channel in call to select_alpha_channel()" );
     return select_channel( image, PixelNumChannels<typename ImageT::pixel_type>::value - 1 );
   }
 
@@ -936,8 +937,9 @@ namespace vw {
   template <class ImageT>
   UnaryPerPixelView<ImageT,SelectChannelFunctor<const ImageT> >
   inline select_alpha_channel( ImageViewBase<ImageT> const& image ) {
+    // FIXME: This should be a static assertion
     if( ! PixelHasAlpha<typename ImageT::pixel_type>::value )
-      throw ArgumentErr() << "Image has no alpha channel in call to select_alpha_channel()";
+      vw_throw( ArgumentErr() << "Image has no alpha channel in call to select_alpha_channel()" );
     return select_channel( image, PixelNumChannels<typename ImageT::pixel_type>::value - 1 );
   }
 

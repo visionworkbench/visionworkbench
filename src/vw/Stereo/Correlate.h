@@ -327,7 +327,7 @@ static void cross_corr_consistency_check(ImageView<PixelDisparity<float> > &L2R,
 
   printf("\tCrosscorr threshold = %f\n", cross_corr_threshold);
   if (cross_corr_threshold < 0) 
-    throw vw::ArgumentErr() << "CrossCorrConsistencyCheck2D: the crosscorr threshold was less than 0.";
+    vw_throw( vw::ArgumentErr() << "CrossCorrConsistencyCheck2D: the crosscorr threshold was less than 0." );
   
   for(xx = 0; xx < L2R.cols(); xx++) {     
     for(yy = 0; yy < L2R.rows(); yy++) {

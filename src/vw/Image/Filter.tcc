@@ -109,8 +109,8 @@ void vw::generate_derivative_kernel( std::vector<KernelT>& kernel, int deriv, in
   // Check and configure kernel size
   int minsize = deriv + (deriv%2) + 1;
   if( size == 0 ) size = minsize;
-  else if( size < minsize ) throw ArgumentErr( "Derivative kernel too small for requested differentiation operator!" );
-  else if( size%2 == 0 ) throw ArgumentErr( "Kernel must have odd dimensions!" );
+  else if( size < minsize ) vw_throw( ArgumentErr() << "Derivative kernel too small for requested differentiation operator!" );
+  else if( size%2 == 0 ) vw_throw( ArgumentErr() << "Kernel must have odd dimensions!" );
   kernel.resize( size );
 
   // Test for most common cases

@@ -60,13 +60,13 @@ namespace stereo {
       // Check to make sure that image0 and image1 have equal dimensions 
       if ((image0.cols() != image1.cols()) ||
           (image0.rows() != image1.rows())) {
-        throw ArgumentErr() << "Primary and secondary image dimensions do not agree\n";
+        vw_throw( ArgumentErr() << "Primary and secondary image dimensions do not agree!" );
       }
         
       // Check to make sure that the images are single channel/single plane
       if (!(image0.channels() == 1 && image0.planes() == 1 &&
             image1.channels() == 1 && image1.planes() == 1)) {
-        throw ArgumentErr() << "Both images must be single channel/single plane images\n";
+        vw_throw( ArgumentErr() << "Both images must be single channel/single plane images!" );
       }
 
       ImageView<typename PixelChannelType<PixelT>::type> l_img = channels_to_planes(image0);
@@ -132,7 +132,7 @@ namespace stereo {
       }
       std::cout << num_levels << " levels.\n";
       if (num_levels == 0) {
-        //        throw CorrelatorErr() << "PyramidCorrelator failed.  Image pyramid contained zero levels.\n";
+        // vw_throw( CorrelatorErr() << "PyramidCorrelator failed.  Image pyramid contained zero levels.!" );
         std::cout <<"ZERO LEVELS!!!\n" << std::flush;
         exit(0);
       }
@@ -222,7 +222,7 @@ namespace stereo {
         } catch (ArgumentErr &e) { // Couldn't adjust disparity range
           std::cout << "INSUFFICIENT MATHCHES\n" << std::flush;
           exit(0);
-          //          throw CorrelatorErr() << "Pyramid Align Failed.  Correlation return insufficient results to compute a match.";
+          // vw_throw( CorrelatorErr() << "Pyramid Align Failed.  Correlation return insufficient results to compute a match." );
         }
         
       }

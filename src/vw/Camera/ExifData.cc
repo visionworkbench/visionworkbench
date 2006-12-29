@@ -197,8 +197,7 @@ void vw::camera::ExifData::process_exif_dir(unsigned char * DirStart, unsigned c
     int Format = Get16u(DirEntry+2);
     int Components = Get32u(DirEntry+4);
 
-    if ((Format-1) >= ExifData::NUM_FORMATS) {
-      // (-1) catches illegal zero case as unsigned underflows to positive large.
+    if ( (Format > ExifData::NUM_FORMATS) || (Format <= 0) ) {
       printf("Warning: illegal number format %d for tag %04x\n", Format, Tag);
       continue;
     }

@@ -25,9 +25,11 @@
 # sources
 ########################################################################
 
+if ENABLE_EXCEPTIONS
 bin_PROGRAMS = image
 image_SOURCES = image.cc
 image_LDFLAGS = @PKG_VW_LDFLAGS@
+endif
 
 ########################################################################
 # general

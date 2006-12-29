@@ -98,7 +98,7 @@ TexObj::TexObj(int w, int h, Tex_Format internalFormat, Tex_Type internalType) {
   if(glGetError()) {
     _width = 0;
     _height = 0;
-    throw(Exception("[vw::GPU::TexObj()] Error allocating texture."));
+    vw_throw( vw::Exception("[vw::GPU::TexObj()] Error allocating texture.") );
   }
 }
 
@@ -169,7 +169,7 @@ TexObj::write(int x, int y, int w, int h, Tex_Format inputFormat, Tex_Type input
 		glGetError();
 		glTexSubImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, x, y, w, h, inputFormat_gl, type_gl, data);
 		if(glGetError())
-		  throw(Exception("[vw::GPU::TexObj::write()] gl error from glTexSubImage2D."));
+		  vw_throw( vw::Exception("[vw::GPU::TexObj::write()] gl error from glTexSubImage2D.") );
 	}
 }
 
@@ -201,7 +201,7 @@ TexObj::read(int x, int y, int w, int h, Tex_Format outputFormat, Tex_Type outpu
   glGetError();
   glReadPixels(x, y, w, h, outFormat_gl, outType_gl, data);
   if(glGetError())
-    throw(Exception("[vw::GPU::TexObj::read()] gl error from glReadPixels."));
+    vw_throw( vw::Exception("[vw::GPU::TexObj::read()] gl error from glReadPixels.") );
 
   glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 }

@@ -58,12 +58,12 @@ static void tiff_warning_handler(const char* module, const char* frmt, va_list a
   vw::vw_out(vw::DebugMessage) << "DiskImageResourceTIFF (" << (module?module:"none") << ") Warning: " << msg << std::endl;
 }
 
-/// Handle libTIFF error conditions by throwing an IOErr with the 
+/// Handle libTIFF error conditions by vw_throwing an IOErr with the 
 /// message text.
 static void tiff_error_handler(const char* module, const char* frmt, va_list ap) {
   char msg[VW_ERROR_BUFFER_SIZE];
   vsnprintf( msg, VW_ERROR_BUFFER_SIZE, frmt, ap );
-  throw vw::IOErr() << "DiskImageResourceTIFF (" << (module?module:"none") << ") Error: " << msg;
+  vw_throw( vw::IOErr() << "DiskImageResourceTIFF (" << (module?module:"none") << ") Error: " << msg );
 }
 
 vw::DiskImageResourceTIFF::DiskImageResourceTIFF( std::string const& filename )
@@ -90,7 +90,7 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
   TIFFSetErrorHandler( &tiff_error_handler );
 
   TIFF* tif = TIFFOpen( filename.c_str(), "r" );
-  if( !tif ) throw vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << filename << "\" for reading!";
+  if( !tif ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << filename << "\" for reading!" );
 
   TIFFGetField( tif, TIFFTAG_IMAGEWIDTH, &(m_format.cols) );
   TIFFGetField( tif, TIFFTAG_IMAGELENGTH, &(m_format.rows) );
@@ -133,8 +133,8 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
     break;
   }
   if( ! m_format.channel_type ) {
-    throw IOErr() << "DiskImageResourceTIFF: " << m_filename << " has an unsupported channel type ("
-                  << sample_format << "," << bits_per_sample << ")!";
+    vw_throw( IOErr() << "DiskImageResourceTIFF: " << m_filename << " has an unsupported channel type ("
+              << sample_format << "," << bits_per_sample << ")!" );
   }
 
   uint32 plane_configuration = 0;
@@ -181,7 +181,7 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
                                         GenericImageFormat const& format )
 {
   if( format.planes!=1 && format.pixel_format!=VW_PIXEL_SCALAR )
-    throw NoImplErr() << "TIFF doesn't support multi-plane images with compound pixel types.";
+    vw_throw( NoImplErr() << "TIFF doesn't support multi-plane images with compound pixel types." );
 
   // Set the TIFF warning and error handlers to Vision Workbench
   // functions, so that we can handle them ourselves.
@@ -198,10 +198,10 @@ void vw::DiskImageResourceTIFF::read_generic( GenericImageBuffer const& dest, BB
              ArgumentErr() << "DiskImageResourceTIFF (read) Error: Destination buffer has wrong dimensions!" );
 
   TIFF* tif = TIFFOpen( m_filename.c_str(), "r" );
-  if( !tif ) throw vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << m_filename << "\" for reading!";
+  if( !tif ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << m_filename << "\" for reading!" );
 
   if( TIFFIsTiled(tif) ) {
-    throw NoImplErr() << "DiskImageResourceTIFF (read) Error: Reading from tile-based TIFF files is not yet supported!";
+    vw_throw( NoImplErr() << "DiskImageResourceTIFF (read) Error: Reading from tile-based TIFF files is not yet supported!" );
   }
   else {
     tdata_t buf = _TIFFmalloc( TIFFStripSize(tif) );
@@ -212,7 +212,7 @@ void vw::DiskImageResourceTIFF::read_generic( GenericImageBuffer const& dest, BB
     TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
     TIFFGetField( tif, TIFFTAG_PHOTOMETRIC, &photometric );
     if( config==PLANARCONFIG_SEPARATE && nsamples != 1 )
-      throw NoImplErr() << "DiskImageResourceTIFF (read) Error: Reading from separate-plane TIFF files is not yet supported!";
+      vw_throw( NoImplErr() << "DiskImageResourceTIFF (read) Error: Reading from separate-plane TIFF files is not yet supported!" );
 
     uint32 rows_per_strip;
     uint32 scanline_size = TIFFScanlineSize(tif);    
@@ -248,7 +248,7 @@ void vw::DiskImageResourceTIFF::read_generic( GenericImageBuffer const& dest, BB
       // FIXME: This could stand some serious tidying up / optimizing
       if( photometric == PHOTOMETRIC_PALETTE ) {
         for( int y=0; y<strip_rows; ++y ) {
-          for( unsigned x=bbox.min().x(); x<bbox.max().x(); ++x ) {
+          for( int x=bbox.min().x(); x<bbox.max().x(); ++x ) {
             int p = ((uint8*)buf)[ (strip_top-strip*rows_per_strip)*scanline_size + x*(scanline_size/m_format.cols) ];
             pbuf[3*(m_format.cols*y+x)+0] = red_table[p];
             pbuf[3*(m_format.cols*y+x)+1] = green_table[p];
@@ -282,7 +282,7 @@ void vw::DiskImageResourceTIFF::write_generic( GenericImageBuffer const& src )
              IOErr() << "Buffer has wrong dimensions in TIFF write." );
 
   TIFF* tif = TIFFOpen(m_filename.c_str(), "w");
-  if( !tif  ) throw vw::IOErr() << "Failed to create \"" << m_filename << "\" using libTIFF.";
+  if( !tif  ) vw_throw( vw::IOErr() << "Failed to create \"" << m_filename << "\" using libTIFF." );
 
   TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, m_format.cols);
   TIFFSetField(tif, TIFFTAG_IMAGELENGTH, m_format.rows);
@@ -314,7 +314,7 @@ void vw::DiskImageResourceTIFF::write_generic( GenericImageBuffer const& src )
     TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
     break;
   default:
-    throw IOErr() << "DiskImageResourceTIFF: Unsupported VW channel type.";
+    vw_throw( IOErr() << "DiskImageResourceTIFF: Unsupported VW channel type." );
   }
 
   // Allocate some buffer memory for the output data

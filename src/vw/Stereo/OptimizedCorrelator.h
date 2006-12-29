@@ -42,13 +42,13 @@ namespace stereo {
       // Check to make sure that image0 and image1 have equal dimensions 
       if ((image0.cols() != image1.cols()) ||
           (image0.rows() != image1.rows())) {
-        throw ArgumentErr() << "Primary and secondary image dimensions do not agree\n";
+        vw_throw( ArgumentErr() << "Primary and secondary image dimensions do not agree!" );
       }
         
       // Check to make sure that the images are single channel/single plane
       if (!(image0.channels() == 1 && image0.planes() == 1 &&
             image1.channels() == 1 && image1.planes() == 1)) {
-        throw ArgumentErr() << "Both images must be single channel/single plane images\n";
+        vw_throw( ArgumentErr() << "Both images must be single channel/single plane images!" );
       }
         
       ImageView<typename PixelChannelType<PixelT>::type> l_img = channels_to_planes(image0);

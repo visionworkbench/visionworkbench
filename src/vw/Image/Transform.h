@@ -114,8 +114,9 @@ namespace vw {
       return bbox;
     }
 
-    inline Vector2 reverse(const Vector2 &p) const { throw NoImplErr() << "TransformBase: reverse() is not implemented for this transform function."; }
-    inline Vector2 forward(const Vector2 &p) const { throw NoImplErr() << "TransformBase: forward() is not implemented for this transform function."; }
+    // FIXME: Should these simply be omitted?  Would that DTRT at compile time?
+    inline Vector2 reverse(const Vector2 &p) const { vw_throw( NoImplErr() << "TransformBase: reverse() is not implemented for this transform function." ); return Vector2(); }
+    inline Vector2 forward(const Vector2 &p) const { vw_throw( NoImplErr() << "TransformBase: forward() is not implemented for this transform function." ); return Vector2(); }
   };
   
   /// Resample Image Transform Functor

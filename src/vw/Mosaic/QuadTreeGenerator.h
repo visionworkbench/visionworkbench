@@ -107,7 +107,7 @@ namespace mosaic {
 
       if( fs::exists( dir_path ) ) {
         if( ! fs::is_directory( dir_path ) )
-          throw IOErr() << "Path " << dir_path.native_directory_string() << " is not a directory!  Remove it first.";
+          vw_throw( IOErr() << "Path " << dir_path.native_directory_string() << " is not a directory!  Remove it first." );
       }
       else {
         fs::create_directory( dir_path );
@@ -118,7 +118,7 @@ namespace mosaic {
     void set_crop_bbox( BBox2i const& bbox ) {
       if( bbox.min().x() < 0 || bbox.min().y() < 0 ||
           bbox.max().x() > int(m_source.cols()) || bbox.max().y() > int(m_source.rows()) )
-        throw ArgumentErr() << "Requested QuadTree bounding box exceeds source dimensions!";
+        vw_throw( ArgumentErr() << "Requested QuadTree bounding box exceeds source dimensions!" );
       m_crop_bbox = bbox;
     }
 

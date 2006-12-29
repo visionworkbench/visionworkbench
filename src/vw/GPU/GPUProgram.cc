@@ -103,7 +103,7 @@ GPUProgram* GPUProgramSet::get_program(const vector<int>& vertexAttributes,
   }
   else {
     WriteToGPULog("NOT FOUND!!!\n");
-    throw(Exception("[vw::GPU::GPUProgramSet::GetProgram] Program creation failed."));
+    vw_throw( vw::Exception("[vw::GPU::GPUProgramSet::GetProgram] Program creation failed.") );
   }
 
   return program;

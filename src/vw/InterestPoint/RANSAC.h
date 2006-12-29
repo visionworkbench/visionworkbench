@@ -198,7 +198,7 @@ namespace ip {
       }
       
       if (inliers_max < m_fitting_func.min_elements_needed_for_fit(p1[0])) {
-        throw RANSACErr() << "RANSAC was unable to find a fit that matched the supplied data.";
+        vw_throw( RANSACErr() << "RANSAC was unable to find a fit that matched the supplied data." );
       }
 
       // For debugging

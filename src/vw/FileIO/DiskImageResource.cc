@@ -54,7 +54,9 @@
 #endif
 
 #if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
+#if ! ( defined(VW_NO_EXCEPTIONS) && VW_NO_EXCEPTIONS==1 )
 #include <vw/FileIO/DiskImageResourceOpenEXR.h>
+#endif
 #endif
 
 
@@ -77,13 +79,11 @@ void vw::DiskImageResource::register_file_type( std::string const& extension,
 
 static std::string file_extension( std::string const& filename ) {
   std::string::size_type dot = filename.find_last_of('.');
-  if (dot != std::string::npos) {
-    std::string extension = filename.substr( dot );
-    boost::to_lower( extension );
-    return extension;
-  } else { 
-    throw vw::IOErr() << "DiskImageResource: Cannot infer file format from filename with no file extension.";
-  }
+  if (dot == std::string::npos)
+    vw_throw( vw::IOErr() << "DiskImageResource: Cannot infer file format from filename with no file extension." );
+  std::string extension = filename.substr( dot );
+  boost::to_lower( extension );
+  return extension;
 }
 
 static void register_default_file_types() {
@@ -114,7 +114,8 @@ vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename 
     OpenMapType::const_iterator i = open_map->find( file_extension( filename ) );
     if( i != open_map->end() ) return i->second( filename );
   }
-  throw NoImplErr() << "Unsuppported file format: " << filename;
+  vw_throw( NoImplErr() << "Unsuppported file format: " << filename );
+  return 0; // never reached
 }
 
 vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, GenericImageFormat const& format ) {
@@ -123,5 +124,6 @@ vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filenam
     CreateMapType::const_iterator i = create_map->find( file_extension( filename ) );
     if( i != create_map->end() ) return i->second( filename, format );
   }
-  throw NoImplErr() << "Unsuppported file format: " << filename;
+  vw_throw( NoImplErr() << "Unsuppported file format: " << filename );
+  return 0; // never reached
 }

@@ -72,9 +72,6 @@ int main( int argc, char *argv[] ) {
     ImageView<PixelRGB<float> > image;
     read_image( image, input_file_name );
 
-    
-
-
     if( vm.count("normalize") ) {
       image = normalize(image);
     }

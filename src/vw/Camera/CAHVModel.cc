@@ -34,14 +34,14 @@ namespace camera {
   /// pinhole camera parameters.
   CAHVModel::CAHVModel(std::string const& filename) {
     if (filename.size() == 0)
-      throw IOErr() << "CAHVModel: null file name passed to constructor.";
+      vw_throw( IOErr() << "CAHVModel: null file name passed to constructor." );
     
     if (boost::ends_with(filename, ".cahv"))
       read_cahv(filename);
     else if (boost::ends_with(filename, ".pin"))
       read_pinhole(filename);
     else 
-      throw IOErr() << "CAHVModel: Unknown camera file suffix.";
+      vw_throw( IOErr() << "CAHVModel: Unknown camera file suffix." );
   }
 
   Vector2 CAHVModel::point_to_pixel(Vector3 const& point) const {
@@ -83,7 +83,7 @@ namespace camera {
 
     FILE *cahvFP = fopen(filename.c_str(), "r");
     if (cahvFP == 0)
-      throw IOErr() << "CAHVModel::read_cahv: Could not open file\n";
+      vw_throw( IOErr() << "CAHVModel::read_cahv: Could not open file\n" );
     
     char line[4096];
     
@@ -93,25 +93,25 @@ namespace camera {
       fgets(line, sizeof(line), cahvFP);
     
     if (sscanf(line,"C = %lf %lf %lf", &C(0), &C(1), &C(2)) != 3) {
-      throw IOErr() << "CAHVModel::read_CAHV: Could not read C vector\n";
+      vw_throw( IOErr() << "CAHVModel::read_CAHV: Could not read C vector\n" );
       fclose(cahvFP);
     }
 
     fgets(line, sizeof(line), cahvFP);
     if (sscanf(line,"A = %lf %lf %lf", &A(0),&A(1), &A(2)) != 3) {
-      throw IOErr() << "CAHVModel::read_CAHV: Could not read A vector\n";
+      vw_throw( IOErr() << "CAHVModel::read_CAHV: Could not read A vector\n" );
       fclose(cahvFP);
     }
 
     fgets(line, sizeof(line), cahvFP);
     if (sscanf(line,"H = %lf %lf %lf", &H(0), &H(1), &H(2)) != 3) {
-      throw IOErr() << "CAHVModel::read_CAHV: Could not read H vector\n";
+      vw_throw( IOErr() << "CAHVModel::read_CAHV: Could not read H vector\n" );
       fclose(cahvFP);
     }
 
     fgets(line, sizeof(line), cahvFP);
     if (sscanf(line,"V = %lf %lf %lf", &V(0), &V(1), &V(2)) != 3) {
-      throw IOErr() << "CAHVModel::read_CAHV: Could not read V vector\n";
+      vw_throw( IOErr() << "CAHVModel::read_CAHV: Could not read V vector\n" );
       fclose(cahvFP);
     }
     
@@ -122,7 +122,7 @@ namespace camera {
     FILE *camFP = fopen(filename.c_str(), "r");
     
     if (camFP == 0)
-      throw IOErr() << "CAHVModel::read_pinhole: Could not open file\n";
+      vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not open file\n" );
 
     char line[2048];
     double f, fH, fV, Hc, Vc;
@@ -132,44 +132,44 @@ namespace camera {
     // Read intrinsic parameters
     fgets(line, sizeof(line), camFP);
     if (sscanf(line,"f = %lf", &f) != 1) {
-      throw IOErr() << "CAHVModel::read_pinhole: Could not read focal length\n";
+      vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not read focal length\n" );
       fclose(camFP);
     }
 
     fgets(line, sizeof(line), camFP);
     if (sscanf(line,"SP = %lf %lf", &pixelSize.x(), &pixelSize.y()) != 2) {
-      throw IOErr() << "CAHVModel::read_pinhole: Could not read pixel size\n";
+      vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not read pixel size\n" );
       fclose(camFP);
     }
 
     fgets(line, sizeof(line), camFP);
     if (sscanf(line,"IC = %lf %lf", &Hc, &Vc) != 2) {
-      throw IOErr() << "CAHVModel::ReadPinhole: Could not read image center pos\n";
+      vw_throw( IOErr() << "CAHVModel::ReadPinhole: Could not read image center pos\n" );
       fclose(camFP);
     }
 
     // Read extrinsic parameters
     fgets(line, sizeof(line), camFP);
     if (sscanf(line,"C = %lf %lf %lf", &C(0), &C(1), &C(2)) != 3) {
-      throw IOErr() << "CAHVModel::read_pinhole: Could not read C vector\n";
+      vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not read C vector\n" );
       fclose(camFP);
     }
 
     fgets(line, sizeof(line), camFP);
     if (sscanf(line,"A = %lf %lf %lf", &A(0), &A(1), &A(2)) != 3) {
-      throw IOErr() << "CAHVModel::read_pinhole: Could not read A vector\n";
+      vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not read A vector\n" );
       fclose(camFP);
     }
 
     fgets(line, sizeof(line), camFP);
     if (sscanf(line,"Hv = %lf %lf %lf", &Hvec(0), &Hvec(1), &Hvec(2)) != 3) {
-      throw IOErr() << "CAHVModel::read_pinhole: Could not read Hvec\n";
+      vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not read Hvec\n" );
       fclose(camFP);
     }
 
     fgets(line, sizeof(line), camFP);
     if (sscanf(line,"Vv = %lf %lf %lf", &Vvec(0), &Vvec(1), &Vvec(2)) != 3) {
-      throw IOErr() << "CAHVModel::read_pinhole: Could not read Vvec\n";
+      vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not read Vvec\n" );
       fclose(camFP);
     }
 
@@ -182,8 +182,8 @@ namespace camera {
     // 	       &A(0), &A(1), &A(2), &dummy,
     // 	       &C(0), &C(1), &C(2), &dummy) != 16)
     //     {
-    //       throw IOErr()
-    // 	<< "CAHVModel::ReadPinhole: Could not read view matrix\n";
+    //       vw_throw( IOErr()
+    // 	<< "CAHVModel::ReadPinhole: Could not read view matrix\n" );
     //       fclose(camFP);
     //     }
 

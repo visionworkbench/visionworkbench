@@ -78,9 +78,9 @@ namespace math {
     real_type work[lwork];
     geev('N','N',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, work, lwork, &info);
     if (info < 0) 
-      throw ArgumentErr() << "eigen(): LAPACK driver geev reported an error with argument " << -info << ".";
+      vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev reported an error with argument " << -info << "." );
     if (info > 0) 
-      throw ArgumentErr() << "eigen(): LAPACK driver geev only converged for the first " << info << "eigenvectors.";
+      vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev only converged for the first " << info << " eigenvectors." );
     e.set_size( A.cols() );
     for ( unsigned i = 0; i < wr_buf.size(); ++i ) 
       e(i) = std::complex<real_type>(wr_buf(i), wi_buf(i));
@@ -109,9 +109,9 @@ namespace math {
     real_type work[lwork];
     geev('N','V',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, &(Vbuf(0,0)), ldvr, work, lwork, &info);
     if (info < 0) 
-      throw ArgumentErr() << "eigen(): LAPACK driver geev reported an error with argument " << -info << ".";
+      vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev reported an error with argument " << -info << "." );
     if (info > 0) 
-      throw ArgumentErr() << "eigen(): LAPACK driver geev only converged for the first " << info << "eigenvectors.";
+      vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev only converged for the first " << info << " eigenvectors." );
     e.set_size( A.cols() );
     V.set_size( Vbuf.cols(), Vbuf.rows() );
     for ( unsigned i = 0; i < wr_buf.size(); ++i ) {
@@ -165,9 +165,9 @@ namespace math {
     real_type work[lwork];
     gesdd('N', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), NULL, 1, NULL, 1, work, lwork, iwork, &info);
     if (info < 0) 
-      throw ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << ".";
+      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << "." );
     if (info > 0) 
-      throw ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed.";
+      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed." );
     s = sbuf;
   }
   
@@ -195,9 +195,9 @@ namespace math {
     real_type work[lwork];
     gesdd('S', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, work, lwork, iwork, &info);
     if (info < 0) 
-      throw ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << ".";
+      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << "." );
     if (info > 0) 
-      throw ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed.";
+      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed." );
     U = transpose(Ubuf);
     VT = transpose(VTbuf);
     s = sbuf;
@@ -229,9 +229,9 @@ namespace math {
     real_type work[lwork];
     gesdd('A', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, work, lwork, iwork, &info);
     if (info < 0) 
-      throw ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << ".";
+      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << "." );
     if (info > 0) 
-      throw ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed.";
+      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed." );
     U = transpose(Ubuf);
     VT = transpose(VTbuf);
     s = sbuf;

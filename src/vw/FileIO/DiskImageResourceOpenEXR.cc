@@ -59,7 +59,7 @@ namespace {
       case 0 : return "R"; break;
       case 1 : return "G"; break;
       case 2 : return "B"; break;
-      default: throw vw::ArgumentErr() << "ChannelStringOfPixelType: Invalid Channel Number";
+      default: vw_throw( vw::ArgumentErr() << "ChannelStringOfPixelType: Invalid channel number (" << channel << ")" );
       }
 
     } else if (pixel_format == vw::VW_PIXEL_RGBA) {
@@ -68,14 +68,15 @@ namespace {
       case 1 : return "G"; break;
       case 2 : return "B"; break;
       case 3 : return "A"; break;
-      default: throw vw::ArgumentErr() << "ChannelStringOfPixelType: Invalid Channel Number";
+      default: vw_throw( vw::ArgumentErr() << "ChannelStringOfPixelType: Invalid channel number (" << channel << ")" );
       }
     
-    } else {
-      std::ostringstream m_stream;
-      m_stream << "Channel" << channel; 
-      return m_stream.str();
     }
+    // Default case:
+    std::ostringstream m_stream;
+    m_stream << "Channel" << channel; 
+    return m_stream.str();
+
   }
 
 }
@@ -101,7 +102,7 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
     
     // Check to make sure that the file_ptr is not already in use.
     if (m_file_ptr) 
-      throw IOErr() << "Disk image resources do not yet support reuse.";
+      vw_throw( IOErr() << "Disk image resources do not yet support reuse." );
     
     m_file_ptr = new Imf::InputFile(filename.c_str());
     Imf::FrameBuffer frameBuffer;
@@ -123,7 +124,7 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
     m_format.pixel_format = VW_PIXEL_SCALAR;
     
   } catch (Iex::BaseExc e) {
-    throw vw::IOErr() << "DiskImageResourceOpenEXR: could not open " << filename << ":\n\t" << e.what(); 
+    vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: could not open " << filename << ":\n\t" << e.what() ); 
   } 
 }
 
@@ -148,7 +149,7 @@ void vw::DiskImageResourceOpenEXR::read_generic( GenericImageBuffer const& dest 
              IOErr() << "Buffer has wrong dimensions in OpenEXR read." );
   
   if (!m_file_ptr) 
-    throw LogicErr() << "DiskImageResourceOpenEXR: Could not read file. No file has been opened.";
+    vw_throw( LogicErr() << "DiskImageResourceOpenEXR: Could not read file. No file has been opened." );
   
   try {
     // Find the width and height of the image 
@@ -226,7 +227,7 @@ void vw::DiskImageResourceOpenEXR::read_generic( GenericImageBuffer const& dest 
     }
     
   } catch (Iex::BaseExc e) {
-    throw vw::IOErr() << "Failed to open " << m_filename << " using the OpenEXR image reader.\n\t" << e.what();
+    vw_throw( vw::IOErr() << "Failed to open " << m_filename << " using the OpenEXR image reader.\n\t" << e.what() );
   } 
 }
 
@@ -287,7 +288,7 @@ void vw::DiskImageResourceOpenEXR::write_generic( GenericImageBuffer const& src 
       delete floatArrays[nn];
     
   } catch (Iex::BaseExc e) {
-    throw vw::IOErr() << "DiskImageResourceOpenEXR: Failed to write " << m_filename << ".\n\t" << e.what();
+    vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: Failed to write " << m_filename << ".\n\t" << e.what() );
   }
   
 }

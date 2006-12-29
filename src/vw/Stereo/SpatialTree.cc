@@ -15,7 +15,7 @@ using namespace stereo;
 // 2) split (bbox set, quads (some may be leaves), possibly polygons)
 // 3) unset (no bbox, no quads, no polygons)
 
-// FIX ME!!! To do this incrementally, if the polygon we're adding is
+// FIXME!!! To do this incrementally, if the polygon we're adding is
 // too big for the top level square, we should add three sibling
 // squares to the level and create a parent square that's as big as
 // that level (need to pick a direction to grow that best matches new
@@ -254,26 +254,12 @@ SpatialTree::AddGeomPrimitive(GeomPrimitive *newPrim, BBox2D &newBBox)
 
     // If the newPrim bbox wouldn't fit in any child quad we add it to
     // this Quad
-    // This exception doesn't seem to work...
-    try
-    {
-      PrimitiveListElem *newListElem = new PrimitiveListElem;
+    PrimitiveListElem *newListElem = new PrimitiveListElem;
 
-      newListElem->geomPrimitive = newPrim;
-      newListElem->next = m_primitiveList;
-      m_primitiveList = newListElem;
-      m_numPrimitives++;
-    }
-    catch (std::exception &e)
-    {
-      fprintf(stderr,"FATAL ERROR in WriteENVIDEM: cannot allocate DEM "
-	      "buffer. Aborting.\n");
-      exit(EXIT_FAILURE);
-    }
-    catch (...)
-    {
-      cerr << "caught ... exception" << endl;
-    }
+    newListElem->geomPrimitive = newPrim;
+    newListElem->next = m_primitiveList;
+    m_primitiveList = newListElem;
+    m_numPrimitives++;
 
     return true;
   }

@@ -39,9 +39,11 @@ libvwStereo_la_LIBADD = @MODULE_STEREO_LDFLAGS@
 
 lib_LTLIBRARIES = libvwStereo.la
 
+if ENABLE_EXCEPTIONS
 bin_PROGRAMS = correlate
 correlate_SOURCES = correlate.cc
 correlate_LDFLAGS = @PKG_STEREO_LDFLAGS@ @PKG_BOOST_PROGRAM_OPTIONS_LDFLAGS@
+endif
 
 endif
 

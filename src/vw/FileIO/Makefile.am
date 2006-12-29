@@ -43,8 +43,10 @@ tiff_sources = DiskImageResourceTIFF.cc
 endif
 
 if HAVE_PKG_OPENEXR
+if ENABLE_EXCEPTIONS
 openexr_headers = DiskImageResourceOpenEXR.h
 openexr_sources = DiskImageResourceOpenEXR.cc
+endif
 endif
 
 include_HEADERS = DiskImageResource.h DiskImageView.h DiskImageResourcePDS.h \

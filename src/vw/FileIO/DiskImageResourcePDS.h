@@ -55,7 +55,7 @@ namespace vw {
                           GenericImageFormat const& format )
       : DiskImageResource( filename )
     {
-      throw NoImplErr() << "The PDS driver does not yet support creation of PDS files";
+      vw_throw( NoImplErr() << "The PDS driver does not yet support creation of PDS files." );
     }
     
     virtual ~DiskImageResourcePDS() {}
@@ -64,30 +64,36 @@ namespace vw {
     virtual void write_generic( GenericImageBuffer const& dest );
     virtual void flush() {}
 
-    /// Query for a value in the PDS header.  The returned value will
-    /// be a string regardless of whether or not the value is a
-    /// numerical type (i.e. it's up to you to convert to numerical
-    /// types from a string where appropriate).  If no value is found
-    /// for a matching key, a vw::NotFoundErr will be thrown.
-    std::string query(std::string const& key) const {
+    /// Query for a value in the PDS header.  Places the value in the 
+    /// result field and returns true if the value is found, otherwise 
+    /// returns false.  The result is a string regardless of whether or 
+    /// not the value is a numerical type (i.e. it's up to you to convert
+    /// to numerical types from strings where appropriate).
+    bool query( std::string const& key, std::string& result ) const {
       std::map<std::string, std::string>::const_iterator query_object = m_header_entries.find(key);
-      if (query_object != m_header_entries.end()) 
-        return (*query_object).second;
-      else 
-        throw NotFoundErr() << "DiskImageResourcePDS: no matching value found for \"" << key << "\""; 
+      if (query_object != m_header_entries.end()) {
+        result = (*query_object).second;
+        return true;
+      }
+      return false;
     }
 
     /// Search for a value that might match several keys.  The first
     /// key with a value in the table will be used to extract that
-    /// value, so order does matter.  If no value is found for a
-    /// matching key, a vw::NotFoundErr will be thrown.
-    std::string query(std::vector<std::string> const& keys) const {
+    /// value, so order does matter.  Places the value in the result
+    /// field and returns true if a matching field is found, otherwise
+    /// returns false.  The result is a string regardless of whether
+    /// or not the value is a numerical type (i.e. it's up to you to
+    /// convert to numerical types from strings where appropriate).
+    bool query( std::vector<std::string> const& keys, std::string& result ) const {
       for( unsigned i = 0; i < keys.size(); ++i ) {
         std::map<std::string, std::string>::const_iterator query_object = m_header_entries.find(keys[i]);
-        if( query_object != m_header_entries.end() ) 
-          return (*query_object).second;
+        if( query_object != m_header_entries.end() ) {
+          result = (*query_object).second;
+          return true;
+        }
       }
-      throw NotFoundErr() << "DiskImageResourcePDS: no matching value found for the keys provided."; 
+      return false;
     }
 
     /// Configure the resource to convert data validity information 

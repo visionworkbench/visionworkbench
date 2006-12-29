@@ -216,7 +216,10 @@ namespace mosaic {
     }
 
     pixel_type operator()( int x, int y, int p=0 ) const {
-      throw NoImplErr() << "ImageComposite does not support individual pixel access!";
+      // FIXME: This would be easy to add, though expensive. 
+      // What about cacheing output blocks?
+      vw_throw( NoImplErr() << "ImageComposite does not support individual pixel access!" );
+      return pixel_type(); // never reached
     }
 
     typedef ProceduralPixelAccessor<ImageComposite> pixel_accessor;

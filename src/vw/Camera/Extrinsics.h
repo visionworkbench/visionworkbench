@@ -204,7 +204,7 @@ namespace camera {
       // Make sure that t lies within the range [t0, t0+dt*length(points)] 
       if ((t < m_t0) || (t > m_t0+m_dt*m_pose_samples.size())) {
         std::cout << "Time: " << t << "   min: " << m_t0 << "   max: " << (m_t0+m_dt*m_pose_samples.size()) <<"\n";
-        throw ArgumentErr() << "Cannot extrapolate point for time " << t << ". Out of valid range.";
+        vw_throw( ArgumentErr() << "Cannot extrapolate point for time " << t << ". Out of valid range." );
       }
 
       unsigned int low_ind = (unsigned int)floor( (t-m_t0) / m_dt );
@@ -213,7 +213,7 @@ namespace camera {
       // If there are not enough points to interpolate at the end, we
       // will limit the high_ind here.
       if (high_ind > m_pose_samples.size()) {
-        throw ArgumentErr() << "Attempted to interpolate a quaternion past the last available control point.";
+        vw_throw( ArgumentErr() << "Attempted to interpolate a quaternion past the last available control point." );
       } else if (high_ind == m_pose_samples.size()) {
         high_ind = m_pose_samples.size() - 1;
       }

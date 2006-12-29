@@ -363,8 +363,8 @@ void vw::convert( GenericImageBuffer const& dst, GenericImageBuffer const& src )
           src.format.pixel_format!=VW_PIXEL_RGB && src.format.pixel_format!=VW_PIXEL_RGBA ) ||
         ( dst.format.pixel_format!=VW_PIXEL_GRAY && dst.format.pixel_format!=VW_PIXEL_GRAYA && 
           dst.format.pixel_format!=VW_PIXEL_RGB && dst.format.pixel_format!=VW_PIXEL_RGBA ) ) {
-    throw ArgumentErr() << "Source and destination buffers have incompatibile pixel formats ("
-                        << dst.format.pixel_format << " vs. " << src.format.pixel_format << ").";
+      vw_throw( ArgumentErr() << "Source and destination buffers have incompatibile pixel formats ("
+                << dst.format.pixel_format << " vs. " << src.format.pixel_format << ")." );
     }
   }
 
@@ -389,17 +389,13 @@ void vw::convert( GenericImageBuffer const& dst, GenericImageBuffer const& src )
   bool copy_alpha = src_channels!=dst_channels && src_channels%2==0 && dst_channels%2==0;
 
   channel_convert_func conv_func = channel_convert_map->operator[](std::make_pair(src.format.channel_type,dst.format.channel_type));
-  if( !conv_func ) throw NoImplErr() << "Oh holy crap!";
   channel_set_max_func max_func = channel_set_max_map->operator[](dst.format.channel_type);
-  if( !max_func ) throw NoImplErr() << "Oh holy crap!";
   channel_average_func avg_func = channel_average_map->operator[](dst.format.channel_type);
-  if( !avg_func ) throw NoImplErr() << "Oh holy crap!";
   channel_unpremultiply_func unpremultiply_src_func = channel_unpremultiply_map->operator[](src.format.channel_type);
-  if( !unpremultiply_src_func ) throw NoImplErr() << "Oh holy crap!";
   channel_premultiply_func premultiply_src_func = channel_premultiply_map->operator[](src.format.channel_type);
-  if( !premultiply_src_func ) throw NoImplErr() << "Oh holy crap!";
   channel_premultiply_func premultiply_dst_func = channel_premultiply_map->operator[](dst.format.channel_type);
-  if( !premultiply_dst_func ) throw NoImplErr() << "Oh holy crap!";
+  if( !conv_func || !max_func || !avg_func || !unpremultiply_src_func || !premultiply_dst_func || !premultiply_src_func ) 
+    vw_throw( NoImplErr() << "Unsupported channel type combination in convert (" << src.format.channel_type << ", " << dst.format.channel_type << ")!" );
 
   unsigned max_channels = std::max( src_channels, dst_channels );
 

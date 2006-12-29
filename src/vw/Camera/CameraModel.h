@@ -38,7 +38,7 @@ namespace camera {
   /// This is the abstract base class for a camera model object.  You
   /// should create a child that adheres to the interface set forth
   /// below.  If your camera model subclass does not implement one of
-  /// these methods, it should throw a vw::NotImplErr() exception.
+  /// these methods, it should vw_throw a vw::NotImplErr() exception.
   ///
   /// The most fundamental camera model operation is the forward
   /// projection method ( point_to_pixel() ) that "images" a point in 3D
@@ -71,7 +71,7 @@ namespace camera {
     /// image plane.  Returns a pixel location (col, row) where the
     /// point appears in the image.  It is possible that the selected
     /// point will not be imaged by the camera (e.g. if it lies behind
-    /// the camera).  In this case the method should throw a
+    /// the camera).  In this case the method should vw_throw a
     /// vw::camera::PointToPixelErr()
     virtual Vector2 point_to_pixel (Vector3 const& point) const = 0;
 

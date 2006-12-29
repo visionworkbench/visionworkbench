@@ -30,7 +30,7 @@ if MAKE_MODULE_CORE
 include_HEADERS = Exception.h FundamentalTypes.h TypeDeduction.h	\
 	Functors.h CompoundTypes.h Debugging.h Cache.h
 
-libvwCore_la_SOURCES = Debugging.cc Cache.cc
+libvwCore_la_SOURCES = Debugging.cc Exception.cc Cache.cc
 libvwCore_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwCore_la_LIBADD = @MODULE_CORE_LDFLAGS@
 

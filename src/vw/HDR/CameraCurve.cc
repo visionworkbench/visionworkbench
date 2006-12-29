@@ -36,7 +36,7 @@ namespace hdr {
                          std::vector<vw::Vector<double> > const &curves) {
     
     FILE* output_file = fopen(generated_curves_file.c_str(), "w");
-    if ( !output_file ) throw IOErr() << "write_curves_file: failed to open file for writing.\n";
+    if ( !output_file ) vw_throw( IOErr() << "write_curves_file: failed to open file for writing." );
     for ( unsigned i = 0; i < curves.size(); ++i ) {
       for ( unsigned j = 0; j < curves[i].size(); ++j ) {
         fprintf(output_file, "%f ", curves[i][j]);
@@ -51,7 +51,7 @@ namespace hdr {
                         std::string const& curves_input_file) {
     
     FILE* input_file = fopen(curves_input_file.c_str(), "r");
-    if ( !input_file ) throw IOErr() << "read_curves_file: failed to open file for reading.\n";
+    if ( !input_file ) vw_throw( IOErr() << "read_curves_file: failed to open file for reading." );
     
     char c_line[2048];
     
@@ -117,7 +117,7 @@ namespace hdr {
 
     Vector<double> result = vw::math::levenberg_marquardt(cost_fn, theta, target, status, 0.1, 1e-16, 1000);
     if (status == vw::math::optimization::eDidNotConverge) 
-      throw LogicErr() << "Levenberg Marquardt did not converge when computing the camera curve.";
+      vw_throw( LogicErr() << "Levenberg Marquardt did not converge when computing the camera curve." );
 
     /* Copy the result into poly 
      * 
@@ -236,7 +236,7 @@ namespace hdr {
 
     Vector<double> result = vw::math::levenberg_marquardt(cost_fn, theta, target, status, 0.1, 1e-16, 1000);
     if (status == vw::math::optimization::eDidNotConverge) 
-      throw LogicErr() << "Levenberg Marquardt did not converge when computing the inverse camera curve.";
+      vw_throw( LogicErr() << "Levenberg Marquardt did not converge when computing the inverse camera curve." );
     
     /* Copy the result into inverse
      * 

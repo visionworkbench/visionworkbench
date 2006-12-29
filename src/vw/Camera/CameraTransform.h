@@ -42,7 +42,7 @@ namespace camera{
   /// 
   /// NOTE: The pixel_to_vector/vector_to_pixel calling sequence only 
   /// works if both cameras have the some camera center (focal point).
-  /// If the camera centers do not match, an exception will be thrown.
+  /// If the camera centers do not match it will vw_throw an exception.
   ///
   template <class SrcCameraT, class DstCameraT> 
   struct CameraTransform : public TransformBase<CameraTransform<SrcCameraT, DstCameraT> > {

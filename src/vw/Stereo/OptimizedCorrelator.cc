@@ -203,7 +203,7 @@ void CorrelationWorkThread::operator() () {
   } else if (m_image_left && m_image_right) {
     result = fast2Dcorr(m_min_h, m_max_h, m_min_v, m_max_v, m_image_height, m_image_width, m_kern_height, m_kern_width, m_image_left, m_image_right);    
   } else {
-    throw vw::LogicErr() << "CorrelationWorkThread: Has not been properly initialized.";
+    vw_throw( vw::LogicErr() << "CorrelationWorkThread: Has not been properly initialized." );
   }
 
   m_result.set_size(m_image_width, m_image_height);
@@ -1026,7 +1026,7 @@ ImageView<PixelDisparity<float> > OptimizedCorrelator::correlation_2D( ImageView
     return resultL2R;
     
   } catch (boost::thread_resource_error &e) {
-    throw LogicErr() << "OptimizedCorrelator: Could not create correlation threads.\n";
+    vw_throw( LogicErr() << "OptimizedCorrelator: Could not create correlation threads." );
   }
   
 }

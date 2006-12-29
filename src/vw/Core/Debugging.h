@@ -40,18 +40,18 @@
 namespace vw {
 
 /// The master compile-time debugging level flag.  The default value
-/// for __VW_DEBUG_LEVEL__ is guessed based on whether or not NDEBUG
+/// for VW_DEBUG_LEVEL is guessed based on whether or not NDEBUG
 /// is defined if the user has not specified it explicitly.
-#ifndef __VW_DEBUG_LEVEL__
+#ifndef VW_DEBUG_LEVEL
 #ifdef NDEBUG
-#define __VW_DEBUG_LEVEL__ 0
+#define VW_DEBUG_LEVEL 0
 #else
-#define __VW_DEBUG_LEVEL__ 1
+#define VW_DEBUG_LEVEL 1
 #endif
 #endif
 
 /// A quick macro for selectively disabling code in non-debug builds.
-#if __VW_DEBUG_LEVEL__ == 0
+#if VW_DEBUG_LEVEL == 0
 #define VW_DEBUG(x)
 #else
 #define VW_DEBUG(x) x

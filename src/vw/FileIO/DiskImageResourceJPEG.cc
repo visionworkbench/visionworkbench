@@ -48,7 +48,7 @@ float vw::DiskImageResourceJPEG::default_quality = 0.95f;
 // This class and the following method are part of the structure for
 // taking control of error handling from the JPEG library.  Here we
 // are overriding the default error handling method with one of our
-// own that throws an exception.
+// own that vw_throws an exception.
 METHODDEF(void) vw_jpeg_error_handler (j_common_ptr cinfo) {
 
   // cinfo->err really points to a my_error_mgr struct, so coerce
@@ -56,7 +56,7 @@ METHODDEF(void) vw_jpeg_error_handler (j_common_ptr cinfo) {
   // calledq.
   char error_msg[2048];
   (*cinfo->err->format_message) (cinfo, error_msg);
-  throw vw::IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << error_msg;
+  vw_throw( vw::IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << error_msg );
 }
 
 
@@ -80,24 +80,24 @@ void vw::DiskImageResourceJPEG::flush() {
 void vw::DiskImageResourceJPEG::open( std::string const& filename )
 {
   if(m_file_ptr)
-    throw IOErr() << "DiskImageResourceJPEG: A file is already open.";
+    vw_throw( IOErr() << "DiskImageResourceJPEG: A file is already open." );
 
   // Set up the JPEG data structures
   jpeg_decompress_struct cinfo;
 
   // Set up error handling.  If the JPEG library encounters an error,
-  // it will return here and throw an exception.
+  // it will return here and vw_throw an exception.
   jpeg_error_mgr jerr;
   cinfo.err = jpeg_std_error(&jerr);
   jerr.error_exit = vw_jpeg_error_handler;
   jpeg_create_decompress(&cinfo);
 
   // Open the file on disk
-	FILE * infile;
-	if ((infile = fopen(filename.c_str(), "rb")) == NULL) {
-    throw vw::IOErr() << "Failed to open \"" << filename << "\" using libJPEG.";
-	}
-	jpeg_stdio_src(&cinfo, infile);
+  FILE * infile;
+  if ((infile = fopen(filename.c_str(), "rb")) == NULL) {
+    vw_throw( vw::IOErr() << "Failed to open \"" << filename << "\" using libJPEG." );
+  }
+  jpeg_stdio_src(&cinfo, infile);
   m_filename = filename;
   m_file_ptr = infile;
 
@@ -137,15 +137,15 @@ void vw::DiskImageResourceJPEG::create( std::string const& filename,
                                         GenericImageFormat const& format )
 {
   if( format.planes!=1 && format.pixel_format!=VW_PIXEL_SCALAR )
-    throw NoImplErr() << "JPEG doesn't support multi-plane images with compound pixel types.";
+    vw_throw( NoImplErr() << "JPEG doesn't support multi-plane images with compound pixel types." );
   if(m_file_ptr)
-    throw IOErr() << "DiskImageResourceJPEG: A file is already open.";
+    vw_throw( IOErr() << "DiskImageResourceJPEG: A file is already open." );
 
   // Open the file on disk
-	FILE * outfile;
-	if ((outfile = fopen(filename.c_str(), "wb")) == NULL) {
-    throw vw::IOErr() << "Failed to open \"" << filename << "\" using libJPEG.";
-	}
+  FILE * outfile;
+  if ((outfile = fopen(filename.c_str(), "wb")) == NULL) {
+    vw_throw( vw::IOErr() << "Failed to open \"" << filename << "\" using libJPEG." );
+  }
   m_filename = filename;
   m_format = format;
   m_file_ptr = outfile;
@@ -176,7 +176,7 @@ void vw::DiskImageResourceJPEG::read_generic( GenericImageBuffer const& dest ) c
   jpeg_decompress_struct cinfo;
 
   // Set up error handling.  If the JPEG library encounters an error,
-  // it will return here and throw an exception.
+  // it will return here and vw_throw an exception.
   jpeg_error_mgr jerr;
   cinfo.err = jpeg_std_error(&jerr);
   jerr.error_exit = vw_jpeg_error_handler;
@@ -247,7 +247,7 @@ void vw::DiskImageResourceJPEG::write_generic( GenericImageBuffer const& src )
   jpeg_compress_struct cinfo;
 
   // Set up error handling.  If the JPEG library encounters an error,
-  // it will return here and throw an exception.
+  // it will return here and vw_throw an exception.
   jpeg_error_mgr jerr;
   cinfo.err = jpeg_std_error(&jerr);
   jerr.error_exit = vw_jpeg_error_handler;
@@ -268,7 +268,7 @@ void vw::DiskImageResourceJPEG::write_generic( GenericImageBuffer const& src )
     cinfo.input_components = 3;
     cinfo.in_color_space = JCS_RGB;
   } else {
-    throw IOErr() << "DiskImageResourceJPEG: Unsupported pixel type.";
+    vw_throw( IOErr() << "DiskImageResourceJPEG: Unsupported pixel type (" << m_format.pixel_format << ")." );
   }
 
   // Set up the default values for the header and set the compression

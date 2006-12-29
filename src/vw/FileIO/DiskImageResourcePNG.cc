@@ -74,16 +74,16 @@ namespace vw {
       char header[8];
       fs.read( header, 8 );
       if ( !fs || png_sig_cmp((png_bytep)header,0,8) )
-        throw IOErr() << "Input file " << m_filename << " is not a valid PNG file.";
+        vw_throw( IOErr() << "Input file " << m_filename << " is not a valid PNG file." );
       
       png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING,0,0,0);
-      if ( !png_ptr ) throw IOErr() << "Unable to initialize PNG reader.";
+      if ( !png_ptr ) vw_throw( IOErr() << "Unable to initialize PNG reader." );
       
       info_ptr = png_create_info_struct(png_ptr);
-      if ( !info_ptr ) throw IOErr() << "Unable to initialize PNG reader.";
+      if ( !info_ptr ) vw_throw( IOErr() << "Unable to initialize PNG reader." );
       
       end_ptr = png_create_info_struct(png_ptr);
-      if (!end_ptr) throw IOErr() << "Unable to initialize PNG reader.";
+      if (!end_ptr) vw_throw( IOErr() << "Unable to initialize PNG reader." );
       
       png_set_read_fn(png_ptr, (voidp)&fs, read_data);
       
@@ -138,32 +138,31 @@ namespace vw {
     void write_init( std::fstream& fs, png_structp &png_ptr, png_infop &info_ptr ) {
       png_ptr = 0;
       info_ptr = 0;
-      try {
-        png_ptr = png_create_write_struct( PNG_LIBPNG_VER_STRING, 0, 0, 0 );
-        if ( !png_ptr ) throw IOErr() << "Unable to initialize PNG writer.";
+      png_ptr = png_create_write_struct( PNG_LIBPNG_VER_STRING, 0, 0, 0 );
+      if ( !png_ptr ) vw_throw( IOErr() << "Unable to initialize PNG writer." );
         
-        png_set_write_fn( png_ptr, (voidp)&fs, write_data, flush_data );
+      png_set_write_fn( png_ptr, (voidp)&fs, write_data, flush_data );
         
-        info_ptr = png_create_info_struct(png_ptr);
-        if ( !info_ptr ) throw IOErr() << "Unable to initialize PNG reader.";
-        
-        int color_type = 0;
-        switch( m_format.pixel_format ) {
-        case VW_PIXEL_GRAY:  color_type = PNG_COLOR_TYPE_GRAY;       break;
-        case VW_PIXEL_GRAYA: color_type = PNG_COLOR_TYPE_GRAY_ALPHA; break;
-        case VW_PIXEL_RGB:   color_type = PNG_COLOR_TYPE_RGB;        break;
-        case VW_PIXEL_RGBA:  color_type = PNG_COLOR_TYPE_RGB_ALPHA;  break;
-        default: throw LogicErr() << "Unexpected pixel format in PNG write.";
-        }
-        
-        png_set_IHDR( png_ptr, info_ptr, m_format.cols, m_format.rows, (m_format.channel_type==VW_CHANNEL_UINT8) ? 8 : 16,
-                      color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT );
-        png_write_info( png_ptr, info_ptr );
+      info_ptr = png_create_info_struct(png_ptr);
+      if ( !info_ptr ) {
+        png_destroy_write_struct(&png_ptr,&info_ptr);
+        vw_throw( IOErr() << "Unable to initialize PNG writer." );
       }
-      catch(...) {
-        if ( png_ptr ) png_destroy_write_struct(&png_ptr,&info_ptr);
-        throw;
+
+      int color_type = 0;
+      switch( m_format.pixel_format ) {
+      case VW_PIXEL_GRAY:  color_type = PNG_COLOR_TYPE_GRAY;       break;
+      case VW_PIXEL_GRAYA: color_type = PNG_COLOR_TYPE_GRAY_ALPHA; break;
+      case VW_PIXEL_RGB:   color_type = PNG_COLOR_TYPE_RGB;        break;
+      case VW_PIXEL_RGBA:  color_type = PNG_COLOR_TYPE_RGB_ALPHA;  break;
+      default:
+        png_destroy_write_struct(&png_ptr,&info_ptr);
+        vw_throw( LogicErr() << "Unexpected pixel format (" << m_format.pixel_format << ") in PNG write." );
       }
+        
+      png_set_IHDR( png_ptr, info_ptr, m_format.cols, m_format.rows, (m_format.channel_type==VW_CHANNEL_UINT8) ? 8 : 16,
+                    color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT );
+      png_write_info( png_ptr, info_ptr );
     }
 
     void write_cleanup( png_structp &png_ptr, png_infop &info_ptr ) {
@@ -180,7 +179,7 @@ namespace vw {
       m_readable = false;
       m_filename = filename;
       std::fstream fs( m_filename.c_str(), std::ios_base::in | std::ios_base::binary );
-      if ( !fs ) throw IOErr() << "Unable to open input file " << m_filename << ".";
+      if ( !fs ) vw_throw( IOErr() << "Unable to open input file " << m_filename << "." );
       png_structp png_ptr;
       png_infop info_ptr, end_ptr;
       read_init( fs, png_ptr, info_ptr, end_ptr );
@@ -212,7 +211,7 @@ namespace vw {
         break;
       }
       default:
-        throw NoImplErr() << "Unsupported PNG pixel format (" << type << ").";
+        vw_throw( NoImplErr() << "Unsupported PNG pixel format (" << type << ")." );
       }
       
       switch( depth ) {
@@ -223,7 +222,7 @@ namespace vw {
         m_format.channel_type = VW_CHANNEL_UINT16;
         break;
       default:
-        throw NoImplErr() << "Unsupported PNG pixel depth (" << depth << ").";
+        vw_throw( NoImplErr() << "Unsupported PNG pixel depth (" << depth << ")." );
       }
       
       read_cleanup( png_ptr, info_ptr, end_ptr );
@@ -240,14 +239,14 @@ namespace vw {
         case 2: m_format.pixel_format = VW_PIXEL_GRAYA; break;
         case 3: m_format.pixel_format = VW_PIXEL_RGB;   break;
         case 4: m_format.pixel_format = VW_PIXEL_RGBA;  break;
-        default: throw ArgumentErr() << "PNG files do not support more than four planes.";
+        default: vw_throw( ArgumentErr() << "PNG files do not support more than four planes." );
         }
         m_format.planes = 1;
       }
-      if ( m_format.planes != 1 ) throw ArgumentErr() << "PNG files to not support multiple images.";
+      if ( m_format.planes != 1 ) vw_throw( ArgumentErr() << "PNG files to not support multiple images." );
       if ( m_format.pixel_format!=VW_PIXEL_GRAY && m_format.pixel_format!=VW_PIXEL_GRAYA && 
           m_format.pixel_format!=VW_PIXEL_RGB  && m_format.pixel_format!=VW_PIXEL_RGBA )
-        throw ArgumentErr() << "Unrecognized pixel format for PNG image.";
+        vw_throw( ArgumentErr() << "Unrecognized pixel format (" << m_format.pixel_format << ") for PNG image." );
       if ( m_format.channel_type!=VW_CHANNEL_UINT16 ) m_format.channel_type = VW_CHANNEL_UINT8;
       m_readable = false;
       m_filename = filename;
@@ -255,7 +254,7 @@ namespace vw {
 
     void read( GenericImageBuffer const& dest, BBox2i bbox ) {
       std::fstream fs( m_filename.c_str(), std::ios_base::in | std::ios_base::binary );
-      if ( !fs ) throw IOErr() << "Unable to open input file " << m_filename << ".";
+      if ( !fs ) vw_throw( IOErr() << "Unable to open input file " << m_filename << "." );
       png_structp png_ptr;
       png_infop info_ptr, end_ptr;
       read_init( fs, png_ptr, info_ptr, end_ptr );
@@ -310,7 +309,7 @@ namespace vw {
 
     void write( GenericImageBuffer const& src ) {
       std::fstream fs( m_filename.c_str(), std::ios::out | std::ios_base::binary );
-      if ( !fs )throw IOErr() << "Unable to open output file \"" << m_filename << "\".";
+      if ( !fs ) vw_throw( IOErr() << "Unable to open output file \"" << m_filename << "\"." );
       png_structp png_ptr;
       png_infop info_ptr;
       write_init( fs, png_ptr, info_ptr );

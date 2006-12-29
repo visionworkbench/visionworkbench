@@ -92,7 +92,7 @@ namespace vw {
           subsample_factor == 4 || subsample_factor == 8) {
         m_subsample_factor = subsample_factor; 
       } else {
-        throw ArgumentErr() << "DiskImageResourceJPEG: subsample_factor must be 1, 2, 4, or 8";
+        vw_throw( ArgumentErr() << "DiskImageResourceJPEG: subsample_factor must be 1, 2, 4, or 8" );
       }
       open(filename);
     }

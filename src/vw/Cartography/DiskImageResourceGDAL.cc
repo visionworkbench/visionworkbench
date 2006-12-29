@@ -66,7 +66,9 @@ namespace cartography {
       case VW_CHANNEL_UINT32:  return GDT_UInt32;
       case VW_CHANNEL_FLOAT32: return GDT_Float32;
       case VW_CHANNEL_FLOAT64: return GDT_Float64;
-      default:  throw IOErr() << "DiskImageResourceGDAL: Unsupported channel type.";
+      default: 
+        vw_throw( IOErr() << "DiskImageResourceGDAL: Unsupported channel type (" << vw_type << ")." );
+        return (GDALDataType)0; // never reached
       }
     }
   };
@@ -84,7 +86,9 @@ namespace cartography {
       case GDT_UInt32:  return VW_CHANNEL_UINT32;
       case GDT_Float32: return VW_CHANNEL_FLOAT32; 
       case GDT_Float64: return VW_CHANNEL_FLOAT64; 
-      default:  throw IOErr() << "DiskImageResourceGDAL: Unsupported channel type.";
+      default:
+        vw_throw( IOErr() << "DiskImageResourceGDAL: Unsupported channel type (" << gdal_type << ")." );
+        return (ChannelTypeEnum)0; // never reached
       }
     }
   };
@@ -94,20 +98,20 @@ namespace cartography {
       if (vw_pixel_type == VW_PIXEL_GRAY) {
         switch (band) {
         case 0: return GCI_GrayIndex;
-        default: throw LogicErr() << "DiskImageResourceGDAL: requested band does not exist for selected color table.";
+        default: vw_throw( LogicErr() << "DiskImageResourceGDAL: requested band does not exist for selected color table." );
         }
       } else if (vw_pixel_type == VW_PIXEL_GRAYA) {
         switch (band) {
         case 0: return GCI_GrayIndex;
         case 1: return GCI_AlphaBand;
-        default: throw LogicErr() << "DiskImageResourceGDAL: requested band does not exist for selected color table.";
+        default: vw_throw( LogicErr() << "DiskImageResourceGDAL: requested band does not exist for selected color table." );
         }
       } else if (vw_pixel_type == VW_PIXEL_RGB) {
         switch (band) {
         case 0: return GCI_RedBand;
         case 1: return GCI_GreenBand;
         case 2: return GCI_BlueBand;
-        default: throw LogicErr() << "DiskImageResourceGDAL: requested band does not exist for selected color table.";
+        default: vw_throw( LogicErr() << "DiskImageResourceGDAL: requested band does not exist for selected color table." );
         }
       } else if (vw_pixel_type == VW_PIXEL_RGBA) {
         switch (band) {
@@ -115,14 +119,14 @@ namespace cartography {
         case 1: return GCI_GreenBand;
         case 2: return GCI_BlueBand;
         case 3: return GCI_AlphaBand;
-        default: throw LogicErr() << "DiskImageResourceGDAL: requested band does not exist for selected color table.";
+        default: vw_throw( LogicErr() << "DiskImageResourceGDAL: requested band does not exist for selected color table." );
         }
       } else if (vw_pixel_type == VW_PIXEL_HSV) {
         switch (band) {
         case 0: return GCI_HueBand;
         case 1: return GCI_SaturationBand;
         case 2: return GCI_LightnessBand;
-        default: throw LogicErr() << "DiskImageResourceGDAL: requested band does not exist for selected color table.";
+        default: vw_throw( LogicErr() << "DiskImageResourceGDAL: requested band does not exist for selected color table." );
         }
       } else {
         return GCI_GrayIndex;
@@ -165,8 +169,10 @@ namespace cartography {
       else if (file_extension(filename) == ".png") // PNG
         return "PNG";     
 
-      else 
-        throw IOErr() << "DiskImageResourceGDAL: \"" << file_extension(filename) << "\" is an unsupported file extension.";
+      else {
+        vw_throw( IOErr() << "DiskImageResourceGDAL: \"" << file_extension(filename) << "\" is an unsupported file extension." );
+        return std::string(); // never reached
+      }
     }
   };
   /// \endcond
@@ -174,7 +180,7 @@ namespace cartography {
   void DiskImageResourceGDAL::write_georeference( GeoReference const& georef ) {
 
     if (!m_dataset) 
-      throw LogicErr() << "DiskImageResourceGDAL: Could not write georeference. No file has been opened.";
+      vw_throw( LogicErr() << "DiskImageResourceGDAL: Could not write georeference. No file has been opened." );
     GDALDataset* dataset = (GDALDataset*)m_dataset;
 
     // Store the transform matrix
@@ -187,7 +193,7 @@ namespace cartography {
 
   void DiskImageResourceGDAL::read_georeference( GeoReference& georef ) {
     if (!m_dataset) 
-      throw LogicErr() << "DiskImageResourceGDAL: Could not read georeference. No file has been opened.";
+      vw_throw( LogicErr() << "DiskImageResourceGDAL: Could not read georeference. No file has been opened." );
     GDALDataset* dataset = (GDALDataset*)m_dataset;
     
     if( dataset->GetProjectionRef()  != NULL ) {
@@ -216,7 +222,7 @@ namespace cartography {
     GDALAllRegister();
     GDALDataset *dataset = (GDALDataset *) GDALOpen( filename.c_str(), GA_ReadOnly );
     if( dataset == NULL ) {
-      throw IOErr() << "DiskImageResourceGDAL: Failed to read " << filename << ".";
+      vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read " << filename << "." );
     }      
 
     m_filename = filename;
@@ -307,11 +313,11 @@ namespace cartography {
     std::cout << "Creating a new file with the following type: " << gdal_format_string << "   ";
     GDALDriver *driver = GetGDALDriverManager()->GetDriverByName(gdal_format_string.c_str());  
     if( driver == NULL )
-      throw vw::IOErr() << "Error opening selected GDAL file I/O driver.";
+      vw_throw( vw::IOErr() << "Error opening selected GDAL file I/O driver." );
     
     char** metadata = driver->GetMetadata();
     if( !CSLFetchBoolean( metadata, GDAL_DCAP_CREATE, FALSE ) )
-      throw vw::IOErr() << "Selected GDAL driver not supported.\n";
+      vw_throw( vw::IOErr() << "Selected GDAL driver not supported." );
     
     char **options = NULL;
     GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(format.channel_type);
@@ -331,7 +337,7 @@ namespace cartography {
                LogicErr() << "DiskImageResourceGDAL: cannot read an image that has both multiple channels and multiple planes." );
  
     if (!m_dataset) 
-      throw LogicErr() << "DiskImageResourceGDAL: Could not read file. No file has been opened.";
+      vw_throw( LogicErr() << "DiskImageResourceGDAL: Could not read file. No file has been opened." );
 
     GDALRasterBand  *band;
     int             blocksize_x, blocksize_y;

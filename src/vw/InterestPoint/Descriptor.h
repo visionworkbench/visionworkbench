@@ -70,7 +70,7 @@ namespace ip {
     double operator[] (int index) const { 
       if (index == 0) return x;
       else if (index == 1) return y;
-      else throw vw::ArgumentErr() << "Interest Point: Invalid Index";
+      else vw_throw( vw::ArgumentErr() << "Interest Point: Invalid index" );
     }
 
     bool operator< (const InterestPoint& other) const {

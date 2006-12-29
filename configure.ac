@@ -101,10 +101,29 @@ fi
 CFLAGS="$CFLAGS $AX_CFLAGS"
 CXXFLAGS="$CXXFLAGS $AX_CFLAGS"
 
+AC_ARG_ENABLE(exceptions,
+  AC_HELP_STRING([--enable-exceptions@<:@=yes@:>@], [enable the C++ exception mechanism]), 
+  [ ENABLE_EXCEPTIONS=$enableval ],
+  [ if test -z "$ENABLE_EXCEPTIONS"; then ENABLE_EXCEPTIONS=yes; fi ]
+)
+
+if test "$ENABLE_EXCEPTIONS" = "yes"; then
+   no_exceptions=0
+else
+   no_exceptions=1
+fi
+
+AM_CONDITIONAL(ENABLE_EXCEPTIONS, [test "$ENABLE_EXCEPTIONS" = "yes"])
+
+AC_DEFINE_UNQUOTED(NO_EXCEPTIONS,
+                   [$no_exceptions],
+                   [Define to 1 to disable C++ exceptions.])
+
 if test "yes" = "$ENABLE_VERBOSE" ; then
   AC_MSG_NOTICE([using CPPFLAGS=$CPPFLAGS])
   AC_MSG_NOTICE([using CFLAGS=$CFLAGS])
   AC_MSG_NOTICE([using CXXFLAGS=$CXXFLAGS])
+  AC_MSG_NOTICE([using VW_NO_EXCEPTIONS=$no_exceptions])
 fi
 
 # We set up the include paths ourselves, so 

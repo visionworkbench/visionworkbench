@@ -134,7 +134,7 @@ class GPUImageBase : public ShaderNode_Base {
   template <class InterpT, class EdgeT>
   void apply_homography(Matrix<float>& homography, InterpT intepolation, EdgeT edge, unsigned int new_width = 0, unsigned int new_height = 0) {
     if(homography.cols() != 3 || homography.rows() != 3) {
-      throw(Exception("[vw::GPU::GPUImage<PixelT>::apply_homography] Input Error: Homography Matrix must be 3x3"));
+      vw_throw( vw::Exception("[vw::GPU::GPUImage<PixelT>::apply_homography] Input Error: Homography Matrix must be 3x3") );
     }
     if(_isHomography) {
       _homography = homography * _homography;

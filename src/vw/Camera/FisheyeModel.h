@@ -111,7 +111,7 @@ namespace camera {
     // Methods
     //------------------------------------------------------------------
     virtual Vector2 point_to_pixel(Vector3 const& point) const {
-      throw vw::NoImplErr() << "FisheyeModel: PointToPixel not yet implemented.\n";
+      vw_throw( vw::NoImplErr() << "FisheyeModel: PointToPixel not yet implemented." );
     }
 
     virtual Vector3 pixel_to_vector (Vector2 const& pix) const {

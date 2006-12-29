@@ -337,7 +337,7 @@ namespace disparity {
     }
 
     if (missing == disparity_map.cols() * disparity_map.rows()) 
-      throw ArgumentErr() << "Disparity map had zero good pixels.";
+      vw_throw( ArgumentErr() << "Disparity map had zero good pixels." );
     
     if (verbose) {
       printf("Disparity range -- Horizontal: [%f, %f]   Vertical: [%f, %f]  (%d missing)\n", 
