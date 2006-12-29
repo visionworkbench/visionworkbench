@@ -61,7 +61,7 @@ namespace vw {
       boost::shared_ptr<ImageView<PixelT> > generate() const {
         vw_out(DebugMessage) << "DiskImageView reading block " << m_bbox << " from " << m_res_ptr->filename() << std::endl;
         boost::shared_ptr<ImageView<PixelT> > ptr( new ImageView<PixelT>( m_bbox.width(), m_bbox.height(), m_res_ptr->planes() ) );
-        m_res_ptr->read_generic( GenericImageBuffer(*ptr), m_bbox );
+        m_res_ptr->read_generic( ptr->generic_buffer(), m_bbox );
         return ptr;
       }
     };

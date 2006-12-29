@@ -214,7 +214,7 @@ void vw::DiskImageResourceOpenEXR::read_generic( GenericImageBuffer const& dest 
         }
       } 
     }
-    GenericImageBuffer src(src_image);
+    GenericImageBuffer src = src_image.generic_buffer();
     convert( dest, src );
     
     // Print out the image size and number of channels
@@ -241,7 +241,7 @@ void vw::DiskImageResourceOpenEXR::write_generic( GenericImageBuffer const& src 
   // Note that we handle multi-channel images with interleaved planes. 
   // We've already ensured that either planes==1 or channels==1.
   ImageView<float> openexr_image( m_format.cols, m_format.rows, m_format.planes );
-  GenericImageBuffer dst(openexr_image);
+  GenericImageBuffer dst = openexr_image.generic_buffer();
   convert( dst, src );
   
   float* pixels[dst.format.planes];

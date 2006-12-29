@@ -25,11 +25,10 @@
 /// 
 /// Describes a run-type-specified image buffer.
 ///
-#ifndef __VW_IMAGE_GENERIC_IMAGE_BUFFER_H__
-#define __VW_IMAGE_GENERIC_IMAGE_BUFFER_H__
+#ifndef __VW_IMAGE_GENERICIMAGEBUFFER_H__
+#define __VW_IMAGE_GENERICIMAGEBUFFER_H__
 
-#include <vw/Image/PixelTypes.h>
-#include <vw/Image/ImageView.h>
+#include <vw/Image/PixelTypeInfo.h>
 
 namespace vw {
 
@@ -47,14 +46,6 @@ namespace vw {
         channel_type(VW_CHANNEL_UNKNOWN)
     {}
 
-    template <class ImageT>
-    GenericImageFormat( ImageViewBase<ImageT> const& image )
-      : cols( image.impl().cols() ),
-        rows( image.impl().rows() ),
-        planes( image.impl().planes() ),
-        pixel_format( PixelFormatID<typename ImageT::pixel_type>::value ),
-        channel_type( ChannelTypeID<typename CompoundChannelType<typename ImageT::pixel_type>::type>::value )
-    {}
   };
 
 
@@ -73,7 +64,6 @@ namespace vw {
     
     /// Return a pointer to the pixel at (u,v,p)
     void* operator()( unsigned i, unsigned j, unsigned p = 0 ) const {
-      // Cast 
       return ((uint8*)data) + (i*cstride + j*rstride + p*pstride);
     }
     
@@ -82,17 +72,6 @@ namespace vw {
       : data(0), format(),
         cstride(0), rstride(0), pstride(0),
         unpremultiplied(false)
-    {}
-
-    /// Constructs a GenericImageBuffer pointing to an ImageView's data
-    template <class PixelT>
-    GenericImageBuffer( ImageView<PixelT> const& image )
-      : data( image.data() ),
-        format( image ),
-        cstride( sizeof(PixelT) ),
-        rstride( sizeof(PixelT)*format.cols ),
-        pstride( sizeof(PixelT)*format.cols*format.rows ),
-        unpremultiplied( false )
     {}
 
   };
@@ -104,4 +83,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_IMAGE_GENERIC_IMAGE_BUFFER_H__
+#endif // __VW_IMAGE_GENERICIMAGEBUFFER_H__

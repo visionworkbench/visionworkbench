@@ -43,6 +43,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/CompoundTypes.h>
 #include <vw/Math/BBox.h>
+#include <vw/Image/GenericImageBuffer.h>
 #include <vw/Image/PixelIterator.h>
 
 namespace vw {
@@ -80,6 +81,23 @@ namespace vw {
 
     /// Returns the number of channels in the image's pixel type.
     inline unsigned channels() const { return CompoundNumChannels<typename ImplT::pixel_type>::value; }
+
+    /// Returns the format ID of the image's pixel type.
+    inline PixelFormatEnum pixel_format() const { return PixelFormatID<typename ImplT::pixel_type>::value; }
+
+    /// Returns the channel type ID of the image's pixel type.
+    inline ChannelTypeEnum channel_type() const { return ChannelTypeID<typename CompoundChannelType<typename ImplT::pixel_type>::type>::value; }
+
+    /// Returns a GenericImageFormat describing the image format.
+    GenericImageFormat generic_format() const {
+      GenericImageFormat format;
+      format.cols = impl().cols();
+      format.rows = impl().rows();
+      format.planes = impl().planes();
+      format.pixel_format = pixel_format();
+      format.channel_type = channel_type();
+      return format;
+    }
 
     template <class ArgT> inline ImplT& operator+=( ArgT a ) { return *static_cast<ImplT*>(this) = (static_cast<ImplT const&>(*this) + a ); }
     template <class ArgT> inline ImplT& operator-=( ArgT a ) { return *static_cast<ImplT*>(this) = (static_cast<ImplT const&>(*this) - a ); }

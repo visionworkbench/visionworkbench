@@ -65,6 +65,9 @@ namespace vw {
     ptrdiff_t m_cstride, m_rstride, m_pstride;
 
   public:
+    /// The base type of the image.
+    typedef ImageViewBase<ImageView<PixelT> > base_type;
+
     /// The pixel type of the image.
     typedef PixelT pixel_type;
 
@@ -205,6 +208,18 @@ namespace vw {
     /// this block of memory.
     bool unique() const {
       return (!m_data) || m_data.unique();
+    }
+
+    /// Returns a GenericImageBuffer describing the image data.
+    GenericImageBuffer generic_buffer() const {
+      GenericImageBuffer buffer;
+      buffer.data = data();
+      buffer.format = base_type::generic_format();
+      buffer.cstride = sizeof(PixelT);
+      buffer.rstride = sizeof(PixelT)*cols();
+      buffer.pstride = sizeof(PixelT)*cols()*rows();
+      buffer.unpremultiplied = false;
+      return buffer;
     }
 
     /// The return type of prerasterize().

@@ -94,7 +94,7 @@ namespace vw {
     /// Read the image on disk into the given image view.
     template <class PixelT>
     void read( ImageView<PixelT> const& buf ) const {
-      read_generic( GenericImageBuffer(buf) );
+      read_generic( buf.generic_buffer() );
     }
 
     /// Read the image on disk into the given general view.  This is
@@ -104,14 +104,14 @@ namespace vw {
     template <class ImageT>
     void read( ImageViewBase<ImageT> const& buf ) const {
       ImageView<typename ImageT::pixel_type> image(cols(),rows(),planes());
-      read_generic( GenericImageBuffer(image) );
+      read_generic( image.generic_buffer() );
       buf = image;
     }
 
     /// Read a block of the image on disk into the given image view.
     template <class PixelT>
     void read( ImageView<PixelT> const& buf, BBox2i bbox ) const {
-      read_generic( GenericImageBuffer(buf), bbox );
+      read_generic( buf.generic_buffer(), bbox );
     }
 
     /// Read a block of the image on disk into the given general view.
@@ -121,7 +121,7 @@ namespace vw {
     template <class ImageT>
     void read( ImageViewBase<ImageT> const& buf, BBox2i bbox ) const {
       ImageView<typename ImageT::pixel_type> image(bbox.width(),bbox.height(),planes());
-      read_generic( GenericImageBuffer(image), bbox );
+      read_generic( image.generic_buffer(), bbox );
       buf = image;
     }
 
@@ -138,7 +138,7 @@ namespace vw {
       }
       buf.set_size( cols(), rows(), im_planes );
 
-      read_generic( GenericImageBuffer(buf) );
+      read_generic( buf.generic_buffer() );
     }
 
     /// Read a block of the image on disk into the given image view,
@@ -155,13 +155,13 @@ namespace vw {
       }
       buf.set_size( bbox.width(), bbox.height(), im_planes );
 
-      read_generic( GenericImageBuffer(buf), bbox );
+      read_generic( buf.generic_buffer(), bbox );
     }
 
     /// Write the given image view into the image on disk.
     template <class PixelT>
     void write( ImageView<PixelT> const& buf ) const {
-      write_generic( GenericImageBuffer(buf) );
+      write_generic( buf.generic_buffer() );
     }
 
     /// Create a new DiskImageResource of the appropriate type
@@ -232,7 +232,7 @@ namespace vw {
 
     // Rasterize the image if needed
     ImageView<typename ImageT::pixel_type> image( out_image.impl() );
-    GenericImageBuffer buf(image);
+    GenericImageBuffer buf = image.generic_buffer();
 
     unsigned files = 1;
     // If there's an asterisk, save one file per plane
