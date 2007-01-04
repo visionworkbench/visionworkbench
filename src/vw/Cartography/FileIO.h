@@ -68,7 +68,7 @@ namespace cartography {
 
     // Rasterize the image if needed
     ImageView<typename ImageT::pixel_type> image( out_image.impl() );
-    GenericImageBuffer buf(image);
+    GenericImageBuffer buf = image.generic_buffer();
 
     int files = 1;
     // If there's an asterisk, save one file per plane
