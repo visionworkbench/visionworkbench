@@ -131,18 +131,19 @@ int SmoothWeightedHistogram( std::vector<T>& histo,
 
 // Finds the max bin in a histogram.  Mode is a vector in case there
 // is a second equal or nearly equal bin in which case both are returned.
-void FindWeightedHistogramMode( const std::vector<double>& hist_in,
-				std::vector<int>& mode) {
+template <class T>
+void FindWeightedHistogramMode( const std::vector<T>& hist_in,
+                                std::vector<int>& mode) {
   mode.clear();
-
+  
   // Make a copy so we can destroy it in non_max_suppression as we go
   // along
-  std::vector<double> hist = hist_in;
-
+  std::vector<T> hist = hist_in;
+  
   // Suppress points other than local maxima
   bool wrap=true;
   non_max_suppression( hist, wrap );
-
+  
   // Find max value & location.
   double max_val=0.0;
   int max_bin=0;
@@ -152,10 +153,10 @@ void FindWeightedHistogramMode( const std::vector<double>& hist_in,
       max_bin = i;
     }
   }
-
+  
   // Put max into the mode vector
   mode.push_back( max_bin );
-
+  
   // Zero the max.
   hist[max_bin] = 0;
 
@@ -172,8 +173,8 @@ void FindWeightedHistogramMode( const std::vector<double>& hist_in,
     max_bin=0;
     for (unsigned int i=0; i<hist.size(); i++){
       if (hist[i]>max_val){
-	max_val = hist[i];
-	max_bin = i;
+        max_val = hist[i];
+        max_bin = i;
       }
     }
     // If next largest bin is within a threshold of the first, add it

@@ -58,9 +58,9 @@ namespace ip {
   // borders may be lost.  A good max dimension depends on the amount
   // of RAM needed by the detector (and the total RAM available).  A
   // value of 2048 seems to work well in most cases.
-  template <class T, class DetectorT>
-  std::vector<InterestPoint> interest_points(vw::ImageView<T> const& image, 
-                                             DetectorT& detector,
+  template <class ViewT, class DetectorT>
+  std::vector<InterestPoint> interest_points(vw::ImageViewBase<ViewT> const& image, 
+                                             DetectorT const& detector,
                                              unsigned int max_keypoint_image_dimension = 0) {
 
     std::vector<InterestPoint> interest_points;
@@ -71,18 +71,18 @@ namespace ip {
     // entire image in one shot.
     if (!max_keypoint_image_dimension) {
       vw_out(InfoMessage) << "..." << std::flush;
-      interest_points = detector(image);
+      interest_points = detector(image.impl());
 
     // Otherwise we segment the image and process each sub-image
     // individually.
     } else {
       
-      std::vector<BBox2i> bboxes = image_blocks(image, max_keypoint_image_dimension, max_keypoint_image_dimension);
+      std::vector<BBox2i> bboxes = image_blocks(image.impl(), max_keypoint_image_dimension, max_keypoint_image_dimension);
       for (int i = 0; i < bboxes.size(); ++i) {
         vw_out(InfoMessage) << "." << std::flush;
         
         std::vector<InterestPoint> new_interest_points;
-        new_interest_points = detector(crop(image, bboxes[i]));
+        new_interest_points = detector(crop(image.impl(), bboxes[i]));
         for (int n = 0; n < new_interest_points.size(); ++n) {
           new_interest_points[n].x += bboxes[i].min().x();
           new_interest_points[n].y += bboxes[i].min().y();
