@@ -44,6 +44,8 @@ namespace camera {
 
   class CAHVORModel : public CameraModel {
   public:
+    typedef CAHVModel linearized_type;
+
     //------------------------------------------------------------------
     // Constructors / Destructors
     //------------------------------------------------------------------
@@ -92,11 +94,11 @@ namespace camera {
   /// same) You must supply the dimensions of the CAHVOR image that
   /// you are dewarping, as well as the dimensions of the dewarped
   /// cahv image (if they differ).
-  CAHVModel linearize_camera(CAHVORModel &camera_model, 
-                             unsigned cahvor_image_width, 
-                             unsigned cahvor_image_height,
-                             unsigned cahv_image_width,
-                             unsigned cahv_image_height);
+  CAHVModel linearize_camera( CAHVORModel const& camera_model, 
+                              unsigned cahvor_image_width, 
+                              unsigned cahvor_image_height,
+                              unsigned cahv_image_width,
+                              unsigned cahv_image_height );
   
 }}	// namespace vw::camera
 
