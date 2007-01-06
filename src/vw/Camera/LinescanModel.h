@@ -180,7 +180,32 @@ namespace camera {
       // Check to make sure that this is a valid pixel
       if (int(round(pix[1])) < 0 || int(round(pix[1])) >= int(m_line_times.size()))
         vw_throw( PixelToRayErr() << "LinescanModel: requested pixel " << pix << " is not on a valid scanline." );
-      return m_position_func(m_line_times[int(round(pix[1]))]);
+
+      // The v pixel need not be an integer in every case, therefore
+      // we need to linearly interpolate line times that fall in
+      // between pixels.
+      int y = int(floor(pix[1]));
+      double normy = pix[1] - y;
+      double approx_line_time = double( m_line_times[y] + (m_line_times[y+1] - m_line_times[y]) * normy );
+
+      return m_position_func(approx_line_time);
+    }
+
+    /// Returns the pose (as a quaternion) of the camera for a given
+    /// pixel.
+    virtual Quaternion<double> camera_pose(Vector2 const& pix) const {
+      // Check to make sure that this is a valid pixel
+      if (int(round(pix[1])) < 0 || int(round(pix[1])) >= int(m_line_times.size()))
+        throw PixelToRayErr() << "LinescanModel::camera_pose(): requested pixel " << pix << " is not on a valid scanline.\n";
+
+      // The v pixel need not be an integer in every case, therefore
+      // we need to linearly interpolate line times that fall in
+      // between pixels.
+      int y = int(floor(pix[1]));
+      double normy = pix[1] - y;
+      double approx_line_time = double( m_line_times[y] + (m_line_times[y+1] - m_line_times[y]) * normy );
+
+      return m_pose_func(approx_line_time);
     }
     
     //------------------------------------------------------------------

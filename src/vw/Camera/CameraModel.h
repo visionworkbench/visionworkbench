@@ -31,6 +31,7 @@
 
 #include <vw/Core/Exception.h>
 #include <vw/Math/Vector.h>
+#include <vw/Math/Quaternion.h>
 
 namespace vw { 
 namespace camera {
@@ -87,6 +88,12 @@ namespace camera {
     /// pixel on the image plane (e.g. for computing ray-ray
     /// intersection in a stereo vision algorithm).
     virtual Vector3 camera_center(Vector2 const& pix) const = 0;
+
+    /// Returns the pose (as a quaternion) of the camera for a given
+    /// pixel.
+    virtual Quaternion<double> camera_pose(Vector2 const& pix) const {
+      throw NoImplErr() << "CameraModel: this camera model has not implemented camera_pose()";
+    }
 
   };  
 
