@@ -38,6 +38,7 @@
 ///   Matrix norms via norm_1(), norm_inf(), and norm_frobenius()
 ///   Scalar addition and subtraction via elem_sum() and elem_dif()
 ///   Elementwise multiplication and division via elem_prod() and elem_quot()
+///   One-line creation of identity matrices using identity_matrix()
 ///
 /// We intentionally do *not* define matrix division using inverse(),
 /// since users should probably avoid using inverse() anyway unless
@@ -1931,6 +1932,27 @@ namespace math {
   MatrixMatrixProduct<Matrix1T,Matrix2T,false,false>
   inline operator*( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
     return MatrixMatrixProduct<Matrix1T,Matrix2T,false,false>( m1.impl(), m2.impl() );
+  }
+
+
+  // *******************************************************************
+  // Convenience functions for returning a pre-made identity matrix in
+  // one line of code.
+  // *******************************************************************
+
+  /// Create a square dynamic identity matrix.
+  inline Matrix<double> identity_matrix(int size) {
+    Matrix<double> id(size,size);
+    id.set_identity();
+    return id;
+  }
+
+  /// Create a square static identity matrix.
+  template <int SizeT>
+  inline Matrix<double,SizeT,SizeT> identity_matrix() {
+    Matrix<double,SizeT,SizeT> id;
+    id.set_identity();
+    return id;
   }
 
 
