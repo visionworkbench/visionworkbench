@@ -34,7 +34,7 @@ namespace stereo {
                              error(x,y) );          
 
           if (error(x,y) >= 0) {
-            // This can serve as a new form of outlier rejection
+            // Keep track of error statistics
             if (error(x,y) > max_error)
               max_error = error(x,y);
             mean_error += error(x,y);

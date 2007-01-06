@@ -686,35 +686,37 @@ MapToWindow(Coords &coords,
 // Class Member Functions
 // ===========================================================================
 
-SoftwareRenderer::SoftwareRenderer()
-{
-  m_numVertexComponents = 0;
-  m_vertexPointer = 0;
-  m_triangleVertexStep = 0;
+// Commented this out because I don't think this code would work if
+// this constructor was used... -mbroxton
 
-  m_numColorComponents = 0;
-  m_colorPointer = 0;
-  m_triangleColorStep = 0;
+// SoftwareRenderer::SoftwareRenderer()
+// {
+//   m_numVertexComponents = 0;
+//   m_vertexPointer = 0;
+//   m_triangleVertexStep = 0;
 
-  m_bufferWidth = 0;
-  m_bufferHeight = 0;
-  m_buffer = 0;
+//   m_numColorComponents = 0;
+//   m_colorPointer = 0;
+//   m_triangleColorStep = 0;
 
-  m_shadeMode = eShadeSmooth;
-  m_currentFlatColor[0] = m_currentFlatColor[1] = m_currentFlatColor[2] = 0.0;
+//   m_bufferWidth = 0;
+//   m_bufferHeight = 0;
+//   m_buffer = 0;
 
-  m_transformNDC[0][0] = m_transformNDC[0][1] = 0.0;
-  m_transformNDC[1][0] = m_transformNDC[1][1] = 0.0;
-  m_transformNDC[2][0] = m_transformNDC[2][1] = 0.0;
-  m_transformViewport[0][0] = m_transformViewport[0][1] = 0.0;
-  m_transformViewport[1][0] = m_transformViewport[1][1] = 0.0;
-  m_transformViewport[2][0] = m_transformViewport[2][1] = 0.0;
+//   m_shadeMode = eShadeSmooth;
+//   m_currentFlatColor[0] = m_currentFlatColor[1] = m_currentFlatColor[2] = 0.0;
 
-  m_graphicsState = 0;
-}
+//   m_transformNDC[0][0] = m_transformNDC[0][1] = 0.0;
+//   m_transformNDC[1][0] = m_transformNDC[1][1] = 0.0;
+//   m_transformNDC[2][0] = m_transformNDC[2][1] = 0.0;
+//   m_transformViewport[0][0] = m_transformViewport[0][1] = 0.0;
+//   m_transformViewport[1][0] = m_transformViewport[1][1] = 0.0;
+//   m_transformViewport[2][0] = m_transformViewport[2][1] = 0.0;
 
-SoftwareRenderer::SoftwareRenderer(const int width, const int height,
-				   float *buffer)
+//   m_graphicsState = 0;
+// }
+
+SoftwareRenderer::SoftwareRenderer(const int width, const int height, float *buffer)
 {
   m_numVertexComponents = 0;
   m_vertexPointer = 0;
@@ -726,10 +728,7 @@ SoftwareRenderer::SoftwareRenderer(const int width, const int height,
 
   m_bufferWidth = width;
   m_bufferHeight = height;
-  if (buffer != 0)
-    m_buffer = buffer;
-  else
-    m_buffer = new float[m_bufferWidth * m_bufferHeight];
+  m_buffer = buffer;
 
   double deltaX = double(m_bufferWidth);
   double deltaY = double(m_bufferHeight);
@@ -769,8 +768,15 @@ SoftwareRenderer::SoftwareRenderer(const int width, const int height,
   m_graphicsState = graphicsState;
 }
 
+// Free up resources that are allocated in the constructor
+SoftwareRenderer::~SoftwareRenderer() {
 
-void
+  if (m_graphicsState)
+    delete static_cast<GraphicsState*>(m_graphicsState);
+
+}
+
+void 
 SoftwareRenderer::Buffer(float *buffer)
 {
   // NOTE: buffer must be at least as big as m_buffer

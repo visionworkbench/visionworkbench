@@ -118,7 +118,7 @@ int main( int argc, char *argv[] ) {
                                                         true, lrthresh, slog,
                                                         (vm.count("hsubpix")>0),
                                                         (vm.count("vsubpix")>0) );
-      disparity_map = correlator( left, right, bit_image );      
+      disparity_map = correlator( left, right );      
     } else if (block_size != 0) {
       vw::stereo::BlockCorrelator correlator( xoffset-xrange, xoffset+xrange,
                                               yoffset-yrange, yoffset+yrange,

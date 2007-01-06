@@ -10,8 +10,8 @@ namespace stereo {
     class SoftwareRenderer
     {
     public:
-      SoftwareRenderer();
       SoftwareRenderer(int bufferWidth, int bufferHeight, float *buffer = 0);
+      ~SoftwareRenderer();
       float *Buffer() const { return m_buffer; }
       // NOTE: buffer must be at least as big as m_buffer!
       void Buffer(float *buffer);
