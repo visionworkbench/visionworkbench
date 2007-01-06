@@ -89,10 +89,10 @@ namespace cartography {
     m_transform.set_identity();
     OGRSpatialReference oSRS;
     oSRS.SetGeogCS("Vision Workbench GeoReference", 
-                   datum.name.c_str(),
-                   datum.spheroid_name.c_str(),
-                   double(datum.semi_major_axis), double(datum.semi_minor_axis),
-                   datum.meridian_name.c_str(), double(datum.meridian_offset),
+                   datum.name().c_str(),
+                   datum.spheroid_name().c_str(),
+                   double(datum.semi_major_axis()), double(datum.semi_minor_axis()),
+                   datum.meridian_name().c_str(), double(datum.meridian_offset()),
                    "degree", atof(SRS_UA_DEGREE_CONV) );
     this->set_spatial_ref(&oSRS);
   }
@@ -102,10 +102,10 @@ namespace cartography {
     m_transform = transform;
     OGRSpatialReference oSRS;
     oSRS.SetGeogCS("Vision Workbench GeoReference", 
-                   datum.name.c_str(),
-                   datum.spheroid_name.c_str(),
-                   double(datum.semi_major_axis), double(datum.semi_minor_axis),
-                   datum.meridian_name.c_str(), double(datum.meridian_offset),
+                   datum.name().c_str(),
+                   datum.spheroid_name().c_str(),
+                   double(datum.semi_major_axis()), double(datum.semi_minor_axis()),
+                   datum.meridian_name().c_str(), double(datum.meridian_offset()),
                    "degree", atof(SRS_UA_DEGREE_CONV) );
     this->set_spatial_ref(&oSRS);
   }
@@ -156,28 +156,47 @@ namespace cartography {
     GeoDatum datum;
     // Set up the parameters in the geodetic datum.
     const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
-    if (datum_name) { datum.name = datum_name; }
+    if (datum_name) { datum.name() = datum_name; }
     const char* spheroid_name = gdal_spatial_ref.GetAttrValue("SPHEROID");
-    if (spheroid_name) { datum.spheroid_name = spheroid_name; }
+    if (spheroid_name) { datum.spheroid_name() = spheroid_name; }
     const char* meridian_name = gdal_spatial_ref.GetAttrValue("PRIMEM");
-    if (meridian_name) { datum.meridian_name = meridian_name; }
+    if (meridian_name) { datum.meridian_name() = meridian_name; }
     OGRErr e1, e2;
     double semi_major = gdal_spatial_ref.GetSemiMajor(&e1);
     double semi_minor = gdal_spatial_ref.GetSemiMinor(&e2);
     if (e1 != OGRERR_FAILURE && e2 != OGRERR_FAILURE) { 
-      datum.semi_major_axis = semi_major;
-      datum.semi_minor_axis = semi_minor;
+      datum.semi_major_axis() = semi_major;
+      datum.semi_minor_axis() = semi_minor;
     }
-    datum.meridian_offset = gdal_spatial_ref.GetPrimeMeridian();
+    datum.meridian_offset() = gdal_spatial_ref.GetPrimeMeridian();
     return datum;
   }
 
-  /// Returns true or false depending on whether the spatial reference
-  /// is projected.
-  bool GeoReference::is_projected() const {
-    return m_is_projected;
-  }
+  /// Return the box that bounds the area represented by the
+  /// geotransform for an image of the given dimensions.
+  BBox2 GeoReference::bounding_box(int width, int height) const {
+    
+    Vector3 upper_left = m_transform * Vector3(0,0,1);
+    Vector3 lower_right = m_transform * Vector3(width,height,1);
+    Vector3 upper_right = m_transform * Vector3(width,0,1);
+    Vector3 lower_left = m_transform * Vector3(0,height,1);
 
+    // Renormalize in case these transforms are not homgeneous.  This
+    // would be very unusual but it's better to be rigorous, I think.
+    upper_left /= upper_left(2);
+    lower_right /= lower_right(2);
+    upper_right /= upper_right(2);
+    lower_left /= lower_left(2);
+
+    BBox2 final_result;
+    final_result.grow(subvector(upper_left,0,2));
+    final_result.grow(subvector(lower_left,0,2));
+    final_result.grow(subvector(upper_right,0,2));
+    final_result.grow(subvector(lower_right,0,2));
+
+    return final_result;
+  }
+  
   /// Returns a GeoProjection object.
   std::string GeoReference::projection_name() const {
     OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);

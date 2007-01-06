@@ -68,7 +68,7 @@ namespace cartography {
 
     /// Takes a void pointer to an OGRSpatialReference
     void set_spatial_ref(void* spatial_ref_ptr);
-    void set_transform(Matrix<double,3,3>& transform) { m_transform = transform; }
+    void set_transform(Matrix<double,3,3> transform) { m_transform = transform; }
     void set_proj4_str(std::string const& proj4_str);
     void set_wkt_str(std::string const& wkt_str);
     
@@ -77,10 +77,12 @@ namespace cartography {
     const void*         spatial_ref_ptr() const;
     GeoDatum datum() const;
     std::string projection_name() const;
-    Matrix<double,3,3> transform() const {
-      return m_transform;
-    }
-    bool is_projected() const;
+    Matrix<double,3,3> transform() const { return m_transform; }
+    bool is_projected() const { return m_is_projected; }
+
+    /// Return the box that bounds the area represented by the
+    /// geotransform for an image of the given dimensions.
+    BBox2 bounding_box(int width, int height) const;    
 
     /// Options include: WGS84, WGS72, NAD27, NAD83, or EPSG:n where n
     /// is the four digit EPSG code number.  Note: you must call this
@@ -104,18 +106,19 @@ namespace cartography {
     os << "-- Geospatial Reference Object --\n";
     os << "\tTransform  : " << georef.transform() << "\n";
     os << "\t" << georef.datum() << "\n";
-    os << "\t" << georef.projection_name() << "\n";
-    os << "\tProj.4: " << georef.proj4_str() << "\n";
+    os << "\tProjection: " << georef.projection_name() << "\n";
+    os << "\tProj.4 String: " << georef.proj4_str() << "\n";
     return os;
   }
 
   template <class ElemT>
-  class XYZtoLatLonFunctor : public UnaryReturnSameType {
+  class XYZtoLonLatFunctor : public UnaryReturnSameType {
     bool m_east_positive;
   public:
-    XYZtoLatLonFunctor(bool east_positive = true) : m_east_positive(east_positive) {}
+    XYZtoLonLatFunctor(bool east_positive = true) : m_east_positive(east_positive) {}
 
     Vector<ElemT,3> operator()(Vector<ElemT,3> const& p) const {
+      // Deal with "missing pixels"
       if (p == Vector<ElemT,3>()) { return p; }
 
       double radius = norm_2(p);
@@ -133,7 +136,7 @@ namespace cartography {
       if (lon < 0) 
         lon = 2*M_PI + lon;
 
-      return Vector<ElemT,3> (lat * 180.0 / M_PI, lon * 180.0 / M_PI, radius);
+      return Vector<ElemT,3> (lon * 180.0 / M_PI, lat * 180.0 / M_PI, radius);
     }
   };
   
@@ -148,11 +151,16 @@ namespace cartography {
   /// equatorial plane with north positive. This is different than
   /// normal spherical coordinate conversion where the equivalent
   /// angle is measured from the positive z axis.
+  ///
+  /// Note: notice that the order of the returned triple is longitude,
+  /// latitude, radius.  This ordering of lon/lat is consistent with
+  /// the notion of horizontal (x) and vertical (y) coordinates in an
+  /// image.
   template <class ImageT>
-  UnaryPerPixelView<ImageT, XYZtoLatLonFunctor<typename ImageT::pixel_type::value_type> >
-  inline xyz_to_latlon( ImageViewBase<ImageT> const& image, bool east_positive = true ) {
+  UnaryPerPixelView<ImageT, XYZtoLonLatFunctor<typename ImageT::pixel_type::value_type> >
+  inline xyz_to_lon_lat_radius( ImageViewBase<ImageT> const& image, bool east_positive = true ) {
     typedef typename ImageT::pixel_type::value_type vector_value_type;
-    return UnaryPerPixelView<ImageT,XYZtoLatLonFunctor<vector_value_type> >( image.impl(), XYZtoLatLonFunctor<vector_value_type>(east_positive) );
+    return UnaryPerPixelView<ImageT,XYZtoLonLatFunctor<vector_value_type> >( image.impl(), XYZtoLonLatFunctor<vector_value_type>(east_positive) );
   }
 
 

@@ -32,29 +32,61 @@ namespace cartography {
   ///
   /// To express a spherical datum, set the semi-major axis equal to
   /// the semi-minor axis.
-  struct GeoDatum {
-    std::string name;
-    std::string spheroid_name;
-    std::string meridian_name;
-    double semi_major_axis;
-    double semi_minor_axis;
-    double meridian_offset;       /// given in angular units
+  class GeoDatum {
+    std::string m_name;
+    std::string m_spheroid_name;
+    std::string m_meridian_name;
+    double m_semi_major_axis;
+    double m_semi_minor_axis;
+    double m_meridian_offset;       /// given in angular units
 
-    GeoDatum() : name("Unknown Datum"),
-                 spheroid_name("Unknown Spheroid"),
-                 semi_major_axis(0),
-                 semi_minor_axis(0),
-                 meridian_offset(0) {}
+  public:
+    GeoDatum() : m_name("Unknown Datum"),
+                 m_spheroid_name("Unknown Spheroid"),
+                 m_meridian_name("Unknown Meridian"),
+                 m_semi_major_axis(0),
+                 m_semi_minor_axis(0),
+                 m_meridian_offset(0) {}
+
+    GeoDatum(std::string const& name,
+             std::string const& spheroid_name,
+             std::string const& meridian_name,
+             double semi_major_axis,
+             double semi_minor_axis,
+             double meridian_offset) : m_name(name),
+                                       m_spheroid_name(spheroid_name),
+                                       m_meridian_name(spheroid_name),
+                                       m_semi_major_axis(semi_major_axis),
+                                       m_semi_minor_axis(semi_minor_axis),
+                                       m_meridian_offset(meridian_offset) {}
+
+    std::string &name() { return m_name; }
+    std::string const& name() const { return m_name; }
+
+    std::string &spheroid_name() { return m_spheroid_name; }
+    std::string const& spheroid_name() const { return m_spheroid_name; }
+
+    std::string &meridian_name() { return m_meridian_name; }
+    std::string const& meridian_name() const { return m_meridian_name; }
+
+    double &semi_major_axis() { return m_semi_major_axis; }
+    double const& semi_major_axis() const { return m_semi_major_axis; }
+
+    double &semi_minor_axis() { return m_semi_minor_axis; }
+    double const &semi_minor_axis() const { return m_semi_minor_axis; }
+
+    double &meridian_offset() { return m_meridian_offset; }
+    double const& meridian_offset() const { return m_meridian_offset; }
 
     double radius(double lat, double lon) const {
       // Optimize in the case of spherical datum
-      if (semi_major_axis == semi_minor_axis) {
-        return semi_major_axis;
+      if (m_semi_major_axis == m_semi_minor_axis) {
+        return m_semi_major_axis;
       } 
       
       // Bi-axial Ellpisoid datum
-      double a = semi_major_axis;
-      double b = semi_minor_axis;
+      double a = m_semi_major_axis;
+      double b = m_semi_minor_axis;
       double t = atan((a/b) * tan(lat * M_PI / 180.0));
       double x = a * cos(t);
       double y = b * sin(t);
@@ -62,16 +94,18 @@ namespace cartography {
     }
 
     inline double inverse_flattening() const {
-      return 1.0 / (1.0 - semi_minor_axis / semi_major_axis);
+      return 1.0 / (1.0 - m_semi_minor_axis / m_semi_major_axis);
     }
+
+    
   };
 
   static std::ostream& operator<<(std::ostream& os, const GeoDatum& datum) {
-    os << "Geodeditic Datum --> Name: " << datum.name << "  Spheroid: " << datum.spheroid_name 
-       << "  Semi-major: " << datum.semi_major_axis 
-       << "  Semi-minor: " << datum.semi_minor_axis
-       << "  Meridian: " << datum.meridian_name
-       << "  at " << datum.meridian_offset;
+    os << "Geodeditic Datum --> Name: " << datum.name() << "  Spheroid: " << datum.spheroid_name() 
+       << "  Semi-major: " << datum.semi_major_axis()
+       << "  Semi-minor: " << datum.semi_minor_axis()
+       << "  Meridian: " << datum.meridian_name()
+       << "  at " << datum.meridian_offset();
     return os;
   }
 

@@ -28,6 +28,9 @@
 // Boost
 #include <boost/algorithm/string.hpp>
 
+// Vision Workbench
+#include <vw/Image/ImageView.h>
+
 static char** split_proj4_string(std::string const& proj4_str, int &num_strings) {
   std::vector<std::string> arg_strings;
   std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
@@ -144,6 +147,64 @@ namespace cartography {
                    projected.u * m_inv_dst_transform(1,0) + projected.v * m_inv_dst_transform(1,1) + m_inv_dst_transform(1,2) / (m_inv_dst_transform(2,0) + m_inv_dst_transform(2,1) + m_inv_dst_transform(2,2)));
   }
     
+
+  void reproject_point_image(ImageView<Vector3> const& point_image,
+                             GeoReference const& src_georef,
+                             GeoReference const& dst_georef) {
+
+    PJ *src_proj, *dst_proj;
+
+    std::string src_proj_str = src_georef.proj4_str();
+    std::string dst_proj_str = dst_georef.proj4_str();
+
+    // proj.4 is expecting the parameters to be split up into seperate
+    // c-style strings.  
+    int src_n, dst_n;
+    char** src_strings = split_proj4_string(src_proj_str, src_n);
+    char** dst_strings = split_proj4_string(dst_proj_str, dst_n);
+    
+    src_proj = pj_init(src_n, src_strings);
+    dst_proj = pj_init(dst_n, dst_strings);
+
+    // Delete the split up strings allocated in split_proj4_string()
+    for (int i = 0; i < src_n; i++) 
+      delete [] src_strings[i];
+    for (int i = 0; i < dst_n; i++) 
+      delete [] dst_strings[i];
+    delete [] src_strings;
+    delete [] dst_strings;
+
+    XY projected;  
+    LP unprojected;
+
+    // Iterate over the image, transforming the first two coordinates
+    // in the Vector one at a time.  The third coordinate is taken to
+    // be the altitude value, and this value is not touched.
+    for (int j=0; j < point_image.rows(); ++j) {
+      for (int i=0; i < point_image.cols(); ++i) {
+        if (point_image(i,j) != Vector3()) {
+          
+          if ( !src_georef.is_projected() ) {
+            projected.u = point_image(i,j).x() * DEG_TO_RAD;
+            projected.v = point_image(i,j).y() * DEG_TO_RAD;
+          } else {
+            projected.u = point_image(i,j).x();
+            projected.v = point_image(i,j).y();
+          }
+
+          unprojected = pj_inv(projected, src_proj);
+          projected = pj_fwd(unprojected, dst_proj);
+          
+          point_image(i,j).x() = projected.u;
+          point_image(i,j).y() = projected.v;
+        }
+      }
+    }
+
+    pj_free(src_proj);
+    pj_free(dst_proj);
+  }
+
   
 }} // namespace vw::cartography
 

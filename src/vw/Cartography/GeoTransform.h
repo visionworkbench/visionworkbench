@@ -80,6 +80,20 @@ namespace cartography {
     Vector2 forward(Vector2 const& v) const;
   };
 
+  /// Reproject an image whose pixels contain 3D points (usually in
+  /// some spherical coordinate system).  Important note: we assume
+  /// that the 3D points already have the affine transform applied to
+  /// them (they correspond to real 3D coordinates and not pixel
+  /// coordinates in an image), therefor the affine transform portion
+  /// of the georeference is completely ignored by the function.  It
+  /// does not matter what affine transform you are using in the
+  /// src_georef or dst_georef.
+  ///
+  /// Important Note: The convention here is that the Vector3 contains
+  /// the ordered triple: (longitude, latitude, altitude). 
+  void reproject_point_image(ImageView<Vector3> const& point_image,
+                             GeoReference const& src_georef,
+                             GeoReference const& dst_georef); 
 
 }} // namespace vw::cartography
 
