@@ -71,7 +71,9 @@ workbook: all
 	cd docs/workbook && $(MAKE) $(AM_MAKEFLAGS) workbook.pdf
 
 doxygen: 
-	cd src/vw && doxygen
+	cd src && doxygen
+
+doc: workbook doxygen
 
 ########################################################################
 # general
