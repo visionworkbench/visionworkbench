@@ -41,7 +41,7 @@ public:
   void testBilinearInterpolation()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    InterpolationView<EdgeExtendView<ImageView<double>, ConstantEdgeExtend>, BilinearInterpolation> im2 = interpolate(im, BilinearInterpolation());
+    InterpolationView<EdgeExtensionView<ImageView<double>, ConstantEdgeExtension>, BilinearInterpolation> im2 = interpolate(im, BilinearInterpolation());
     TS_ASSERT_EQUALS( im2.cols(), 2 );
     TS_ASSERT_EQUALS( im2.rows(), 3 );
     TS_ASSERT_EQUALS( im2(1,1), 4 );
@@ -63,7 +63,7 @@ public:
   void testBicubicInterpolation()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    InterpolationView<EdgeExtendView<ImageView<double>, ZeroEdgeExtend>, BicubicInterpolation> im2 = interpolate(im, BicubicInterpolation(), ZeroEdgeExtend());
+    InterpolationView<EdgeExtensionView<ImageView<double>, ZeroEdgeExtension>, BicubicInterpolation> im2 = interpolate(im, BicubicInterpolation(), ZeroEdgeExtension());
     TS_ASSERT_EQUALS( im2.cols(), 2 );
     TS_ASSERT_EQUALS( im2.rows(), 3 );
     TS_ASSERT_EQUALS( im2(1,1), 4 );
@@ -84,7 +84,7 @@ public:
   void testNearestPixelInterpolation()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    InterpolationView<EdgeExtendView<ImageView<double>, ConstantEdgeExtend>, NearestPixelInterpolation> im2 = interpolate(im, NearestPixelInterpolation());
+    InterpolationView<EdgeExtensionView<ImageView<double>, ConstantEdgeExtension>, NearestPixelInterpolation> im2 = interpolate(im, NearestPixelInterpolation());
     TS_ASSERT_EQUALS( im2.cols(), 2 );
     TS_ASSERT_EQUALS( im2.rows(), 3 );
     TS_ASSERT_EQUALS( im2(1,1), 4 );

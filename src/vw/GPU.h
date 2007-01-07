@@ -29,7 +29,7 @@
 #define __VW_GPU_H__
 
 #include <vw/GPU/Display.h>
-#include <vw/GPU/EdgeExtend.h>
+#include <vw/GPU/EdgeExtension.h>
 #include <vw/GPU/Expressions.h>
 #include <vw/GPU/Filter.h>
 #include <vw/GPU/Fourier.h>

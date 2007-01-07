@@ -67,7 +67,7 @@ int main( int argc, char *argv[] ) {
       T.set_identity();
       T(0,2) = 0.5*image.cols();
       T(1,2) = 0.5*image.rows();
-      image = transform( image, HomographyTransform(T*R*inverse(T)), ConstantEdgeExtend() );
+      image = transform( image, HomographyTransform(T*R*inverse(T)), ConstantEdgeExtension() );
     }
 
     if( vm.count("noise") ) {

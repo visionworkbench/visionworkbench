@@ -234,7 +234,7 @@ namespace stereo {
         // reach the next level of detail.
         disparity_pyramid[n] = 2 * resample(disparity_pyramid[n+1], 2,
                                             (int)left_pyramid[n].cols(), (int)left_pyramid[n].rows(), 
-                                            ZeroEdgeExtend(), NearestPixelInterpolation());
+                                            ZeroEdgeExtension(), NearestPixelInterpolation());
       
         // Save a copy of the pre-refinement horiz. disparity for later comparison
         ImageView<double> orig = select_channel(disparity_pyramid[n],0);

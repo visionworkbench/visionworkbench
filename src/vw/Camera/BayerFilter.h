@@ -31,7 +31,7 @@
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>
-#include <vw/Image/EdgeExtend.h>
+#include <vw/Image/EdgeExtension.h>
 
 namespace vw {
 namespace camera {
@@ -40,7 +40,7 @@ namespace camera {
   ImageView<PixelRGB<typename CompoundChannelType<typename ViewT::pixel_type>::type > > 
   inverse_bayer_filter(ImageViewBase<ViewT > const& view_) {
     typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
-    const EdgeExtendView<ViewT, ZeroEdgeExtend> view = edge_extend(view_.impl(), ZeroEdgeExtend());
+    const EdgeExtensionView<ViewT, ZeroEdgeExtension> view = edge_extend(view_.impl(), ZeroEdgeExtension());
     channel_type r,g,b;
 
     ImageView<PixelRGB<channel_type> > output_image(view.cols(), view.rows());

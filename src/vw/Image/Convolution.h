@@ -37,7 +37,7 @@
 #include <vw/Core/TypeDeduction.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
-#include <vw/Image/EdgeExtend.h>
+#include <vw/Image/EdgeExtension.h>
 
 namespace vw {
 
@@ -104,7 +104,7 @@ namespace vw {
   class ConvolutionView : public ImageViewBase<ConvolutionView<ImageT,KernelT,EdgeT> >
   {
   private:
-    EdgeExtendView<ImageT,EdgeT> m_image;
+    EdgeExtensionView<ImageT,EdgeT> m_image;
     Rotate180View<KernelT> m_kernel;
     int m_ci, m_cj;
 
@@ -197,7 +197,7 @@ namespace vw {
     template <class DestT>
     void rasterize_helper( DestT const& dest, BBox2i bbox ) const {
       typedef typename ImageT::pixel_accessor SrcAccessT;
-      typedef typename EdgeExtendView<ImageT,EdgeT>::pixel_accessor EdgeAccessT;
+      typedef typename EdgeExtensionView<ImageT,EdgeT>::pixel_accessor EdgeAccessT;
       typedef typename DestT::pixel_accessor DestAccessT;
       typedef typename DestT::pixel_type DestPixelT;
       int ci = (m_kernel.cols()-1-m_ci), cj = (m_kernel.rows()-1-m_cj);
@@ -389,8 +389,8 @@ namespace vw {
     template <class SrcT, class DestT>
     void convolve_1d( SrcT const& src, DestT const& dest, std::vector<KernelT> const& kernel, unsigned c ) const {
       typedef typename SrcT::pixel_accessor SrcAccessT;
-      EdgeExtendView<SrcT,EdgeT> edge_view( src, m_edge );
-      typedef typename EdgeExtendView<SrcT,EdgeT>::pixel_accessor EdgeAccessT;
+      EdgeExtensionView<SrcT,EdgeT> edge_view( src, m_edge );
+      typedef typename EdgeExtensionView<SrcT,EdgeT>::pixel_accessor EdgeAccessT;
       typedef typename DestT::pixel_accessor DestAccessT;
       typedef typename DestT::pixel_type DestPixelT;
       typedef typename ProductType<typename SrcT::pixel_type, KernelT>::type AccumT;

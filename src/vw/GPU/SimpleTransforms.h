@@ -97,7 +97,7 @@ namespace vw {
       float x_resample_ratio = 1.0 / xfactor;
       float y_resample_ratio = 1.0 / yfactor;
       // return resample(image, x_resample_ratio, y_resample_ratio, (int) ceilf(image.width() * x_resample_ratio), 
-      //	      (int) ceilf(image.height() * y_resample_ratio), interpolation::NearestPixel(), ConstantEdgeExtend()); 
+      //	      (int) ceilf(image.height() * y_resample_ratio), interpolation::NearestPixel(), ConstantEdgeExtension()); 
     }
     
     inline GPUImageBase subsample(const GPUImageBase& image, unsigned subsampling_factor) {

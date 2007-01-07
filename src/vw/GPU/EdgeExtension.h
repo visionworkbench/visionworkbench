@@ -1,9 +1,9 @@
  
-#ifndef GPU_EdgeExtend_H
-#define GPU_EdgeExtend_H
+#ifndef GPU_EdgeExtension_H
+#define GPU_EdgeExtension_H
 
 
-#include <vw/Image/EdgeExtend.h>
+#include <vw/Image/EdgeExtension.h>
 
 namespace vw { namespace GPU {
 
@@ -16,17 +16,17 @@ namespace vw { namespace GPU {
      struct TraitsForEdgeT { };
 
    template <> 
-     struct TraitsForEdgeT<ZeroEdgeExtend> {
+     struct TraitsForEdgeT<ZeroEdgeExtension> {
        static const EdgeExtensionType type = ZERO_EDGE_EXTEND;
      };
 
    template <> 
-     struct TraitsForEdgeT<ConstantEdgeExtend> {
+     struct TraitsForEdgeT<ConstantEdgeExtension> {
        static const EdgeExtensionType type = CONSTANT_EDGE_EXTEND;
      };
 
 
-   inline void EdgeExtend_SetupTexture(EdgeExtensionType type) {
+   inline void EdgeExtension_SetupTexture(EdgeExtensionType type) {
      GLuint gl_wrap_type;
      if(type == ZERO_EDGE_EXTEND) {
        gl_wrap_type = GL_CLAMP_TO_BORDER_ARB;
@@ -40,12 +40,12 @@ namespace vw { namespace GPU {
 
    }
 
-   inline void EdgeExtend_RestoreTexture(EdgeExtensionType type) {
+   inline void EdgeExtension_RestoreTexture(EdgeExtensionType type) {
      glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER_ARB);
      glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER_ARB);
    }
 
-   typedef ZeroEdgeExtend DefaultEdgeExtend;
+   typedef ZeroEdgeExtension DefaultEdgeExtension;
 
 } } // namespaces GPU, vw
 

@@ -40,7 +40,7 @@ namespace vw { namespace GPU {
 	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
 // INPUT
 	program->set_uniform_texture("image", 0, *this);
-	EdgeExtend_SetupTexture(_edge_extension_type);
+	EdgeExtension_SetupTexture(_edge_extension_type);
 // DRAW
 	//Matrix<float> h = inverse(_homography);	
 	HomographyTransform<float> h_functor(_homography);

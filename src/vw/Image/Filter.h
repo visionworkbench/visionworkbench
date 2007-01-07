@@ -114,20 +114,20 @@ namespace vw {
   }
 
   /// This is an overloaded function provided for convenience; see vw::convolution_filter.
-  /// It uses the default vw::ConstantEdgeExtend mode.
+  /// It uses the default vw::ConstantEdgeExtension mode.
   template <class SrcT, class KernelT>
-  inline ConvolutionView<SrcT,KernelT,ConstantEdgeExtend>
+  inline ConvolutionView<SrcT,KernelT,ConstantEdgeExtension>
   convolution_filter( ImageViewBase<SrcT> const& src, KernelT const& kernel, int cx, int cy ) {
-    return ConvolutionView<SrcT,KernelT,ConstantEdgeExtend>( src.impl(), kernel, cx, cy );
+    return ConvolutionView<SrcT,KernelT,ConstantEdgeExtension>( src.impl(), kernel, cx, cy );
   }
 
   /// This is an overloaded function provided for convenience; see vw::convolution_filter.
   /// It assumes that the origin of the kernel is at the point <B>((kernel.cols()-1)/2,(kernel.rows()-1)/2)</B>
-  /// and uses the default vw::ConstantEdgeExtend mode.
+  /// and uses the default vw::ConstantEdgeExtension mode.
   template <class SrcT, class KernelT>
-  inline ConvolutionView<SrcT,KernelT,ConstantEdgeExtend>
+  inline ConvolutionView<SrcT,KernelT,ConstantEdgeExtension>
   convolution_filter( ImageViewBase<SrcT> const& src, KernelT const& kernel ) {
-    return ConvolutionView<SrcT,KernelT,ConstantEdgeExtend>( src.impl(), kernel );
+    return ConvolutionView<SrcT,KernelT,ConstantEdgeExtension>( src.impl(), kernel );
   }
 
 
@@ -155,21 +155,21 @@ namespace vw {
   }
 
   /// This is an overloaded function provided for convenience; see vw::separable_convolution_filter.
-  /// It uses the default vw::ConstantEdgeExtend mode.
+  /// It uses the default vw::ConstantEdgeExtension mode.
   template <class SrcT, class KRangeT>
-  inline SeparableConvolutionView<SrcT,typename KRangeT::value_type,ConstantEdgeExtend>
+  inline SeparableConvolutionView<SrcT,typename KRangeT::value_type,ConstantEdgeExtension>
   separable_convolution_filter( ImageViewBase<SrcT> const& src, KRangeT const& x_kernel, KRangeT const& y_kernel, int cx, int cy ) {
-    return SeparableConvolutionView<SrcT,typename KRangeT::value_type,ConstantEdgeExtend>( src.impl(), x_kernel, y_kernel, cx, cy );
+    return SeparableConvolutionView<SrcT,typename KRangeT::value_type,ConstantEdgeExtension>( src.impl(), x_kernel, y_kernel, cx, cy );
   }
 
   /// This is an overloaded function provided for convenience; see vw::separable_convolution_filter.
   /// It assumes that the origin of the kernel is at the point <B>((x_kernel.size()-1)/2,(y_kernel.size()-1)/2)</B>
-  /// and uses the default vw::ConstantEdgeExtend mode.
+  /// and uses the default vw::ConstantEdgeExtension mode.
   /// (Note that this requires that the kernel objects support the size() method.)
   template <class SrcT, class KRangeT>
-  inline SeparableConvolutionView<SrcT,typename KRangeT::value_type,ConstantEdgeExtend>
+  inline SeparableConvolutionView<SrcT,typename KRangeT::value_type,ConstantEdgeExtension>
   separable_convolution_filter( ImageViewBase<SrcT> const& src, KRangeT const& x_kernel, KRangeT const& y_kernel ) {
-    return SeparableConvolutionView<SrcT,typename KRangeT::value_type,ConstantEdgeExtend>( src.impl(), x_kernel, y_kernel );
+    return SeparableConvolutionView<SrcT,typename KRangeT::value_type,ConstantEdgeExtension>( src.impl(), x_kernel, y_kernel );
   }
 
 
@@ -192,11 +192,11 @@ namespace vw {
   }
 
   /// This is an overloaded function provided for convenience; see vw::gaussian_filter.
-  /// It uses the default vw::ConstantEdgeExtend mode.
+  /// It uses the default vw::ConstantEdgeExtension mode.
   template <class SrcT>
-  SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, ConstantEdgeExtend>
+  SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, ConstantEdgeExtension>
   inline gaussian_filter( ImageViewBase<SrcT> const& src, double x_sigma, double y_sigma, int x_dim, int y_dim ) {
-    return gaussian_filter( src, x_sigma, y_sigma, x_dim, y_dim, ConstantEdgeExtend() );
+    return gaussian_filter( src, x_sigma, y_sigma, x_dim, y_dim, ConstantEdgeExtension() );
   }
 
   /// This is an overloaded function provided for convenience; see vw::gaussian_filter.
@@ -209,11 +209,11 @@ namespace vw {
 
   /// This is an overloaded function provided for convenience; see vw::gaussian_filter.
   /// It chooses default kernel dimensions appropriate for the requested standard deviations
-  /// and uses the default vw::ConstantEdgeExtend mode.
+  /// and uses the default vw::ConstantEdgeExtension mode.
   template <class SrcT>
-  SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, ConstantEdgeExtend>
+  SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, ConstantEdgeExtension>
   inline gaussian_filter( ImageViewBase<SrcT> const& src, double x_sigma, double y_sigma ) {
-    return gaussian_filter( src, x_sigma, y_sigma, 0, 0, ConstantEdgeExtend() );
+    return gaussian_filter( src, x_sigma, y_sigma, 0, 0, ConstantEdgeExtension() );
   }
 
   /// This is an overloaded function provided for convenience; see vw::gaussian_filter.
@@ -228,11 +228,11 @@ namespace vw {
   /// This is an overloaded function provided for convenience; see vw::gaussian_filter.
   /// It uses the same standard deviation in both directions, chooses default kernel 
   /// dimensions appropriate for the requested standard deviations,
-  /// and uses the default vw::ConstantEdgeExtend mode.
+  /// and uses the default vw::ConstantEdgeExtension mode.
   template <class SrcT>
-  SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, ConstantEdgeExtend>
+  SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, ConstantEdgeExtension>
   inline gaussian_filter( ImageViewBase<SrcT> const& src, double sigma ) {
-    return gaussian_filter( src, sigma, sigma, 0, 0, ConstantEdgeExtend() );
+    return gaussian_filter( src, sigma, sigma, 0, 0, ConstantEdgeExtension() );
   }
 
 
@@ -265,20 +265,20 @@ namespace vw {
   }
 
   /// This is an overloaded function provided for convenience; see vw::derivative_filter.
-  /// It uses the default vw::ConstantEdgeExtend mode.
+  /// It uses the default vw::ConstantEdgeExtension mode.
   template <class SrcT>
-  SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, ConstantEdgeExtend>
+  SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, ConstantEdgeExtension>
   inline derivative_filter( ImageViewBase<SrcT> const& src, int x_deriv, int y_deriv, int x_dim, int y_dim ) {
-    return derivative_filter( src, x_deriv, y_deriv, x_dim, y_dim, ConstantEdgeExtend() );
+    return derivative_filter( src, x_deriv, y_deriv, x_dim, y_dim, ConstantEdgeExtension() );
   }
 
   /// This is an overloaded function provided for convenience; see vw::derivative_filter.
   /// It uses a kernel with the default dimensions for the requested differentiation operation
-  /// and the default vw::ConstantEdgeExtend mode.
+  /// and the default vw::ConstantEdgeExtension mode.
   template <class SrcT>
-  SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, ConstantEdgeExtend>
+  SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, ConstantEdgeExtension>
   inline derivative_filter( ImageViewBase<SrcT> const& src, int x_deriv, int y_deriv ) {
-    return derivative_filter( src, x_deriv, y_deriv, 0, 0, ConstantEdgeExtend() );
+    return derivative_filter( src, x_deriv, y_deriv, 0, 0, ConstantEdgeExtension() );
   }
 
 
@@ -300,11 +300,11 @@ namespace vw {
   }
 
   /// This is an overloaded function provided for convenience; see vw::laplacian_filter.
-  /// It uses the default vw::ConstantEdgeExtend mode.
+  /// It uses the default vw::ConstantEdgeExtension mode.
   template <class SrcT>
-  ConvolutionView<SrcT, ImageView<typename DefaultKernelT<typename SrcT::pixel_type>::type>, ConstantEdgeExtend>
+  ConvolutionView<SrcT, ImageView<typename DefaultKernelT<typename SrcT::pixel_type>::type>, ConstantEdgeExtension>
   inline laplacian_filter( ImageViewBase<SrcT> const& src ) {
-    return laplacian_filter( src, ConstantEdgeExtend() );
+    return laplacian_filter( src, ConstantEdgeExtension() );
   }
 
 

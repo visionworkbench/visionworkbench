@@ -152,8 +152,8 @@ namespace stereo {
       for (int i = 0; i < left_blocks.size();++i) {
         std::cout << i+1 << " / " << left_blocks.size() << ".        \r";
         ImageView<PixelDisparity<float> > disparity_subregion;
-        ImageView<PixelT> left_subimage = crop(edge_extend(l_image, ReflectEdgeExtend()), left_blocks[i]);
-        ImageView<PixelT> right_subimage = crop(edge_extend(r_image, ReflectEdgeExtend()), right_blocks[i]);
+        ImageView<PixelT> left_subimage = crop(edge_extend(l_image, ReflectEdgeExtension()), left_blocks[i]);
+        ImageView<PixelT> right_subimage = crop(edge_extend(r_image, ReflectEdgeExtension()), right_blocks[i]);
         
         disparity_subregion = correlator( left_subimage, right_subimage, bit_image );
         

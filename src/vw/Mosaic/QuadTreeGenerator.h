@@ -40,7 +40,7 @@
 #include <vw/Math/BBox.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
-#include <vw/Image/EdgeExtend.h>
+#include <vw/Image/EdgeExtension.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/Filter.h>
@@ -203,7 +203,7 @@ namespace mosaic {
         data_bbox.crop( m_crop_bbox );
         image = crop( m_source, data_bbox );
         if( data_bbox != patch_bbox ) {
-          image = edge_extend( image, patch_bbox-data_bbox.min(), ZeroEdgeExtend() );
+          image = edge_extend( image, patch_bbox-data_bbox.min(), ZeroEdgeExtension() );
         }
       }
       else {

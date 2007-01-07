@@ -132,7 +132,7 @@ public:
 
   void test_gaussian_filter() {
     ImageView<double> src(2,2); src(0,0)=1; src(1,0)=2; src(0,1)=3; src(1,1)=4;
-    ImageView<double> dst = gaussian_filter( src, 1.0, 0, 5, 0, ZeroEdgeExtend() );
+    ImageView<double> dst = gaussian_filter( src, 1.0, 0, 5, 0, ZeroEdgeExtension() );
     TS_ASSERT_DELTA( dst(0,0), 0.3877403988*1+0.2447702197*2, 1e-7 );
     TS_ASSERT_DELTA( dst(1,0), 0.3877403988*2+0.2447702197*1, 1e-7 );
     TS_ASSERT_DELTA( dst(0,1), 0.3877403988*3+0.2447702197*4, 1e-7 );
@@ -141,14 +141,14 @@ public:
 
   void test_laplacian_filter() {
     ImageView<double> src(2,2); src(0,0)=1; src(1,0)=2; src(0,1)=3; src(1,1)=4;
-    ImageView<double> dst = laplacian_filter( src, ZeroEdgeExtend() );
+    ImageView<double> dst = laplacian_filter( src, ZeroEdgeExtension() );
     TS_ASSERT_EQUALS( dst(0,0), 1 );
     TS_ASSERT_EQUALS( dst(1,0), -3 );
     TS_ASSERT_EQUALS( dst(0,1), -7 );
     TS_ASSERT_EQUALS( dst(1,1), -11 );
     ImageView<PixelGrayA<double> > src2(2,2);
-    ImageView<PixelGrayA<double> > dst2a = laplacian_filter( src, ZeroEdgeExtend() );
-    ImageView<PixelGrayA<double> > dst2b = laplacian_filter( src2, ZeroEdgeExtend() );
+    ImageView<PixelGrayA<double> > dst2a = laplacian_filter( src, ZeroEdgeExtension() );
+    ImageView<PixelGrayA<double> > dst2b = laplacian_filter( src2, ZeroEdgeExtension() );
   }
 
   void test_per_pixel_filter() {
@@ -174,7 +174,7 @@ public:
     ImageView<double> krn(2,2); krn(0,0)=2; krn(1,0)=-1; krn(0,1)=0; krn(1,1)=3;
 
     // Test rasterization
-    ImageView<double> dst = convolution_filter( src, krn, ZeroEdgeExtend() );
+    ImageView<double> dst = convolution_filter( src, krn, ZeroEdgeExtension() );
     TS_ASSERT_EQUALS( dst.cols(), 2 );
     TS_ASSERT_EQUALS( dst.rows(), 2 );
     TS_ASSERT_EQUALS( dst(0,0), 2 );
@@ -190,10 +190,10 @@ public:
   void test_separable_convolution_filter() {
     ImageView<double> src(2,2); src(0,0)=1; src(1,0)=2; src(0,1)=3; src(1,1)=4;
     vector<double> krn; krn.push_back(1); krn.push_back(-1);
-    SeparableConvolutionView<ImageView<double>,double,ZeroEdgeExtend> cnv( src, krn, krn );
+    SeparableConvolutionView<ImageView<double>,double,ZeroEdgeExtension> cnv( src, krn, krn );
 
     // Test rasterization
-    ImageView<double> dst = separable_convolution_filter( src, krn, krn, ZeroEdgeExtend() );
+    ImageView<double> dst = separable_convolution_filter( src, krn, krn, ZeroEdgeExtension() );
     TS_ASSERT_EQUALS( dst.cols(), 2 );
     TS_ASSERT_EQUALS( dst.rows(), 2 );
     TS_ASSERT_EQUALS( dst.planes(), 1 );
@@ -203,15 +203,15 @@ public:
     TS_ASSERT_EQUALS( dst(1,1), 0 );
 
     // Test the traits
-    TS_ASSERT( is_of_type<double>( separable_convolution_filter( src, krn, krn, ZeroEdgeExtend() )(0,0) ) );
-    TS_ASSERT( is_of_type<double>( *(separable_convolution_filter( src, krn, krn, ZeroEdgeExtend() ).origin()) ) );
+    TS_ASSERT( is_of_type<double>( separable_convolution_filter( src, krn, krn, ZeroEdgeExtension() )(0,0) ) );
+    TS_ASSERT( is_of_type<double>( *(separable_convolution_filter( src, krn, krn, ZeroEdgeExtension() ).origin()) ) );
   }
 
   void test_2x2_conv_box_filter() {
     ImageView<double> kernel(2,2); kernel(0,0)=0.25; kernel(1,0)=0.25; kernel(0,1)=0.25; kernel(1,1)=0.25;
     {
     ImageView<double> src(2,2); src(0,0)=1; src(1,0)=0; src(0,1)=0; src(1,1)=0;
-    ConvolutionView<ImageView<double>,ImageView<double>,ZeroEdgeExtend> cnv( src, kernel, 1, 1 );
+    ConvolutionView<ImageView<double>,ImageView<double>,ZeroEdgeExtension> cnv( src, kernel, 1, 1 );
     TS_ASSERT_EQUALS( cnv.cols(), 2 );
     TS_ASSERT_EQUALS( cnv.rows(), 2 );
     TS_ASSERT_EQUALS( cnv.planes(), 1 );
@@ -230,7 +230,7 @@ public:
     }
     {
     ImageView<double> src(2,2); src(0,0)=1; src(1,0)=2; src(0,1)=3; src(1,1)=4;
-    ImageView<double> dst = convolution_filter( src, kernel, 1, 1, ZeroEdgeExtend() );
+    ImageView<double> dst = convolution_filter( src, kernel, 1, 1, ZeroEdgeExtension() );
     TS_ASSERT_EQUALS( dst.cols(), 2 );
     TS_ASSERT_EQUALS( dst.rows(), 2 );
     TS_ASSERT_EQUALS( dst.planes(), 1 );
@@ -245,7 +245,7 @@ public:
     std::vector<float> kernel(2); kernel[0]=0.5; kernel[1]=0.5;
     {
     ImageView<double> src(2,2); src(0,0)=1; src(1,0)=0; src(0,1)=0; src(1,1)=0;
-    ImageView<double> dst = separable_convolution_filter( src, kernel, kernel, 1, 1, ZeroEdgeExtend() );
+    ImageView<double> dst = separable_convolution_filter( src, kernel, kernel, 1, 1, ZeroEdgeExtension() );
     TS_ASSERT_EQUALS( dst.cols(), 2 );
     TS_ASSERT_EQUALS( dst.rows(), 2 );
     TS_ASSERT_EQUALS( dst.planes(), 1 );
@@ -256,7 +256,7 @@ public:
     }
     {
     ImageView<double> src(2,2); src(0,0)=1; src(1,0)=2; src(0,1)=3; src(1,1)=4;
-    ImageView<double> dst = separable_convolution_filter( src, kernel, kernel, 1, 1, ZeroEdgeExtend() );
+    ImageView<double> dst = separable_convolution_filter( src, kernel, kernel, 1, 1, ZeroEdgeExtension() );
     TS_ASSERT_EQUALS( dst.cols(), 2 );
     TS_ASSERT_EQUALS( dst.rows(), 2 );
     TS_ASSERT_EQUALS( dst.planes(), 1 );

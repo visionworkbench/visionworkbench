@@ -71,7 +71,7 @@ public:
   void test_ConvolutionView() {
     ImageView<double> src(2,2); src(0,0)=1; src(1,0)=2; src(0,1)=3; src(1,1)=4;
     ImageView<double> krn(2,2); krn(0,0)=2; krn(1,0)=-1; krn(0,1)=0; krn(1,1)=3;
-    ConvolutionView<ImageView<double>,ImageView<double>,ZeroEdgeExtend> cnv( src, krn );
+    ConvolutionView<ImageView<double>,ImageView<double>,ZeroEdgeExtension> cnv( src, krn );
 
     // Test individual pixel access
     TS_ASSERT_EQUALS( cnv.cols(), 2 );
@@ -103,7 +103,7 @@ public:
   void test_SeparableConvolutionView() {
     ImageView<double> src(2,2); src(0,0)=1; src(1,0)=2; src(0,1)=3; src(1,1)=4;
     vector<double> krn; krn.push_back(1); krn.push_back(-1);
-    SeparableConvolutionView<ImageView<double>,double,ZeroEdgeExtend> cnv( src, krn, krn );
+    SeparableConvolutionView<ImageView<double>,double,ZeroEdgeExtension> cnv( src, krn, krn );
 
     // Test individual pixel access
     TS_ASSERT_EQUALS( cnv.cols(), 2 );
@@ -137,7 +137,7 @@ public:
     ImageView<double> src(2,2); src(0,0)=1; src(1,0)=2; src(0,1)=4; src(1,1)=6;
     vector<double> krnx;
     vector<double> krny; krny.push_back(1); krny.push_back(-1);
-    SeparableConvolutionView<ImageView<double>,double,ZeroEdgeExtend> cnv( src, krnx, krny );
+    SeparableConvolutionView<ImageView<double>,double,ZeroEdgeExtension> cnv( src, krnx, krny );
 
     // Test individual pixel access
     TS_ASSERT_EQUALS( cnv.cols(), 2 );
@@ -171,7 +171,7 @@ public:
     ImageView<double> src(2,2); src(0,0)=1; src(1,0)=2; src(0,1)=3; src(1,1)=4;
     vector<double> krnx; krnx.push_back(1); krnx.push_back(-1);
     vector<double> krny;
-    SeparableConvolutionView<ImageView<double>,double,ZeroEdgeExtend> cnv( src, krnx, krny );
+    SeparableConvolutionView<ImageView<double>,double,ZeroEdgeExtension> cnv( src, krnx, krny );
 
     // Test individual pixel access
     TS_ASSERT_EQUALS( cnv.cols(), 2 );

@@ -29,7 +29,7 @@ if MAKE_MODULE_IMAGE
 
 TESTS = TestPixelMath TestPixelTypes TestImageView TestImageViewRef	\
 	TestManipulation TestPerPixelViews TestImageMath		\
-	TestEdgeExtend TestInterpolation TestConvolution TestFilter	\
+	TestEdgeExtension TestInterpolation TestConvolution TestFilter	\
 	TestTransform TestAlgorithms TestStatistics
 
 nodist_TestPixelMath_SOURCES = TestPixelMath.cxx
@@ -39,7 +39,7 @@ nodist_TestImageViewRef_SOURCES = TestImageViewRef.cxx
 nodist_TestManipulation_SOURCES = TestManipulation.cxx
 nodist_TestPerPixelViews_SOURCES = TestPerPixelViews.cxx
 nodist_TestImageMath_SOURCES = TestImageMath.cxx
-nodist_TestEdgeExtend_SOURCES = TestEdgeExtend.cxx
+nodist_TestEdgeExtension_SOURCES = TestEdgeExtension.cxx
 nodist_TestInterpolation_SOURCES = TestInterpolation.cxx
 nodist_TestConvolution_SOURCES = TestConvolution.cxx
 nodist_TestFilter_SOURCES = TestFilter.cxx

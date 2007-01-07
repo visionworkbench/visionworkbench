@@ -15,7 +15,7 @@
 #include <vw/GPU/TexObj.h>
 #include <vw/GPU/Expressions.h>
 #include <vw/GPU/Interpolation.h>
-#include <vw/GPU/EdgeExtend.h>
+#include <vw/GPU/EdgeExtension.h>
 
 
 namespace vw { namespace GPU {

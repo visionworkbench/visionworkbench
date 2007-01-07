@@ -41,7 +41,7 @@ public:
   void testBBoxComputation()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    TransformView<InterpolationView<EdgeExtendView<ImageView<double>, ZeroEdgeExtend>, BilinearInterpolation>, TranslateTransform> im2 = transform(im, TranslateTransform(1,1));
+    TransformView<InterpolationView<EdgeExtensionView<ImageView<double>, ZeroEdgeExtension>, BilinearInterpolation>, TranslateTransform> im2 = transform(im, TranslateTransform(1,1));
 
 //     std::cout << compute_transformed_bbox(im, TranslateTransform(1,1)) << "\n";
 //     std::cout << compute_transformed_bbox_fast(im, TranslateTransform(1,1)) << "\n";
@@ -53,7 +53,7 @@ public:
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
     ImageView<double> im3 = transform(im, TranslateTransform(1,1));
-    TransformView<InterpolationView<EdgeExtendView<ImageView<double>, ZeroEdgeExtend>, BilinearInterpolation>, TranslateTransform> im2 = transform(im, TranslateTransform(1,1));
+    TransformView<InterpolationView<EdgeExtensionView<ImageView<double>, ZeroEdgeExtension>, BilinearInterpolation>, TranslateTransform> im2 = transform(im, TranslateTransform(1,1));
     TS_ASSERT_EQUALS( im2.cols(), 2 );
     TS_ASSERT_EQUALS( im2.rows(), 3 );
     TS_ASSERT_EQUALS( im2(1,1), 1 );
@@ -85,7 +85,7 @@ public:
   void testResample()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    TransformView<InterpolationView<EdgeExtendView<ImageView<double>, ConstantEdgeExtend>, BilinearInterpolation>, ResampleTransform> im2 = resample(im, 2, 2);
+    TransformView<InterpolationView<EdgeExtensionView<ImageView<double>, ConstantEdgeExtension>, BilinearInterpolation>, ResampleTransform> im2 = resample(im, 2, 2);
     TS_ASSERT_EQUALS( im2.cols(), 4 );
     TS_ASSERT_EQUALS( im2.rows(), 6 );
     TS_ASSERT_EQUALS( im2(0,0), 1 );

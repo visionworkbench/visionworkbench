@@ -12,7 +12,7 @@
 #include <vw/GPU/GPUImage.h>
 #include <vw/GPU/GPUProgram.h>
 #include <vw/GPU/Interpolation.h>
-#include <vw/GPU/EdgeExtend.h>
+#include <vw/GPU/EdgeExtension.h>
 
 
 namespace vw { namespace GPU {
@@ -29,13 +29,13 @@ namespace vw { namespace GPU {
   template <class InterpT>
   inline GPUImageBase fixed_homography_transform(GPUImageBase const& image, Matrix<float>& homography, InterpT) {
     GPUImageBase temp = image;
-    temp.apply_homography(homography, InterpT(), DefaultEdgeExtend());
+    temp.apply_homography(homography, InterpT(), DefaultEdgeExtension());
     return temp;
   }
 
   inline GPUImageBase fixed_homography_transform(GPUImageBase const& image, Matrix<float>& homography) {
     GPUImageBase temp = image;
-    temp.apply_homography(homography, interpolation::Default(), DefaultEdgeExtend());
+    temp.apply_homography(homography, interpolation::Default(), DefaultEdgeExtension());
     return temp;
   }
 
@@ -49,14 +49,14 @@ namespace vw { namespace GPU {
   template <class PixelT, class InterpT>
   inline GPUImage<PixelT> fixed_homography_transform(GPUImage<PixelT> const& image, Matrix<float>& homography, InterpT) {
     GPUImage<PixelT> temp = image;
-    image.apply_homography(homography, interpolation::Default(), DefaultEdgeExtend());
+    image.apply_homography(homography, interpolation::Default(), DefaultEdgeExtension());
     return temp;
   }
 
   template <class PixelT>
   inline GPUImage<PixelT> fixed_homography_transform(GPUImage<PixelT> const& image, Matrix<float>& homography) {
     GPUImage<PixelT> temp = image;
-    image.apply_homography(homography, interpolation::Default(), DefaultEdgeExtend());
+    image.apply_homography(homography, interpolation::Default(), DefaultEdgeExtension());
     return temp;
   }
 
@@ -90,11 +90,11 @@ namespace vw { namespace GPU {
 
   template <class InterpT>
   inline GPUImageBase fixed_rotate(GPUImageBase const& image, float theta, InterpT) {
-    return fixed_rotate(image, theta, InterpT(), DefaultEdgeExtend());
+    return fixed_rotate(image, theta, InterpT(), DefaultEdgeExtension());
   }
 
   inline GPUImageBase fixed_rotate(GPUImageBase const& image, float theta) {
-    return fixed_rotate(image, theta, interpolation::Default(), DefaultEdgeExtend());
+    return fixed_rotate(image, theta, interpolation::Default(), DefaultEdgeExtension());
   }
 
  template <class PixelT, class InterpT, class EdgeT>
@@ -104,12 +104,12 @@ namespace vw { namespace GPU {
 
   template <class PixelT, class InterpT>
   inline GPUImage<PixelT> fixed_rotate(GPUImage<PixelT> const& image, float theta, InterpT) {
-    return fixed_rotate((GPUImageBase&) image, theta, InterpT(), DefaultEdgeExtend());
+    return fixed_rotate((GPUImageBase&) image, theta, InterpT(), DefaultEdgeExtension());
   }
 
   template <class PixelT>
   inline GPUImage<PixelT> fixed_rotate(GPUImage<PixelT> const& image, float theta) {
-    return fixed_rotate((GPUImageBase&) image, theta, interpolation::Default(), DefaultEdgeExtend());
+    return fixed_rotate((GPUImageBase&) image, theta, interpolation::Default(), DefaultEdgeExtension());
   }
 
 
@@ -130,11 +130,11 @@ namespace vw { namespace GPU {
 
   template <class InterpT>
   inline GPUImageBase resample(GPUImageBase const& image, float x_scale_factor, float y_scale_factor, int new_width, int new_height, InterpT) {
-    return resample(image, x_scale_factor, y_scale_factor, new_width, new_height, InterpT(), DefaultEdgeExtend());
+    return resample(image, x_scale_factor, y_scale_factor, new_width, new_height, InterpT(), DefaultEdgeExtension());
   }
 
   inline GPUImageBase resample(GPUImageBase const& image, float x_scale_factor, float y_scale_factor, int new_width, int new_height) {
-    return resample(image, x_scale_factor, y_scale_factor, new_width, new_height, interpolation::Default(), DefaultEdgeExtend());
+    return resample(image, x_scale_factor, y_scale_factor, new_width, new_height, interpolation::Default(), DefaultEdgeExtension());
   }
 
  template <class PixelT, class InterpT, class EdgeT>
@@ -144,12 +144,12 @@ namespace vw { namespace GPU {
 
   template <class PixelT, class InterpT>
   inline GPUImage<PixelT> resample(GPUImage<PixelT> const& image, float x_scale_factor, float y_scale_factor, int new_width, int new_height, InterpT) {
-    return resample((GPUImageBase&) image, x_scale_factor, y_scale_factor, new_width, new_height, InterpT(), DefaultEdgeExtend());
+    return resample((GPUImageBase&) image, x_scale_factor, y_scale_factor, new_width, new_height, InterpT(), DefaultEdgeExtension());
   }
 
   template <class PixelT>
   inline GPUImage<PixelT> resample(GPUImage<PixelT> const& image, float x_scale_factor, float y_scale_factor, int new_width, int new_height) {
-    return resample((GPUImageBase&) image, x_scale_factor, y_scale_factor, new_width, new_height, interpolation::Default(), DefaultEdgeExtend());
+    return resample((GPUImageBase&) image, x_scale_factor, y_scale_factor, new_width, new_height, interpolation::Default(), DefaultEdgeExtension());
   }
 
   /*
@@ -157,20 +157,20 @@ namespace vw { namespace GPU {
   GPUImageBase resample(GPUImageBase const& image, float x_scale_factor, float y_scale_factor, InterpT, EdgeT) {
     int new_width = (int) floor(x_scale_factor * image.cols());
     int new_height = (int) floor(y_scale_factor * image.rows());		
-    return resample(image, x_scale_factor, y_scale_factor, new_width, new_height, InterpT(), DefaultEdgeExtend());
+    return resample(image, x_scale_factor, y_scale_factor, new_width, new_height, InterpT(), DefaultEdgeExtension());
   }
 
   template <class InterpT>
   GPUImageBase resample(GPUImageBase const& image, float x_scale_factor, float y_scale_factor, InterpT) {
     int new_width = (int) floor(x_scale_factor * image.cols());
     int new_height = (int) floor(y_scale_factor * image.rows());		
-    return resample(image, x_scale_factor, y_scale_factor, new_width, new_height, InterpT(), DefaultEdgeExtend());
+    return resample(image, x_scale_factor, y_scale_factor, new_width, new_height, InterpT(), DefaultEdgeExtension());
   }
 
   GPUImageBase resample(GPUImageBase const& image, float x_scale_factor, float y_scale_factor) {
     int new_width = (int) floor(x_scale_factor * image.cols());
     int new_height = (int) floor(y_scale_factor * image.rows());
-    return resample(image, x_scale_factor, y_scale_factor, new_width, new_height, interpolation::Default(), DefaultEdgeExtend());
+    return resample(image, x_scale_factor, y_scale_factor, new_width, new_height, interpolation::Default(), DefaultEdgeExtension());
   }
 
  template <class PixelT, class InterpT, class EdgeT>
@@ -184,14 +184,14 @@ namespace vw { namespace GPU {
   inline GPUImage<PixelT> resample(GPUImage<PixelT> const& image, float x_scale_factor, float y_scale_factor, InterpT) {
     int new_width = (int) floor(x_scale_factor * image.cols());
     int new_height = (int) floor(y_scale_factor * image.rows());
-    return resample((GPUImageBase&) image, x_scale_factor, y_scale_factor, new_width, new_height, InterpT(), DefaultEdgeExtend());
+    return resample((GPUImageBase&) image, x_scale_factor, y_scale_factor, new_width, new_height, InterpT(), DefaultEdgeExtension());
   }
 
   template <class PixelT>
   inline GPUImage<PixelT> resample(GPUImage<PixelT> const& image, float x_scale_factor, float y_scale_factor) {
     int new_width = (int) floor(x_scale_factor * image.cols());
     int new_height = (int) floor(y_scale_factor * image.rows());
-    return resample((GPUImageBase&) image, x_scale_factor, y_scale_factor, new_width, new_height, interpolation::Default(), DefaultEdgeExtend());
+    return resample((GPUImageBase&) image, x_scale_factor, y_scale_factor, new_width, new_height, interpolation::Default(), DefaultEdgeExtension());
   }
   */
 
@@ -210,11 +210,11 @@ namespace vw { namespace GPU {
 
   template <class InterpT>
   inline GPUImageBase translate(GPUImageBase const& image, float x_translation, float y_translation, InterpT) {
-    return translate(image, x_translation, y_translation, InterpT(), DefaultEdgeExtend());
+    return translate(image, x_translation, y_translation, InterpT(), DefaultEdgeExtension());
   }
 
   inline GPUImageBase translate(GPUImageBase const& image, float x_translation, float y_translation) {
-    return translate(image, x_translation, y_translation, interpolation::Default(), DefaultEdgeExtend());
+    return translate(image, x_translation, y_translation, interpolation::Default(), DefaultEdgeExtension());
   }
 
  template <class PixelT, class InterpT, class EdgeT>
@@ -224,12 +224,12 @@ namespace vw { namespace GPU {
 
   template <class PixelT, class InterpT>
   inline GPUImage<PixelT> translate(GPUImage<PixelT> const& image, float x_translation, float y_translation, InterpT) {
-    return translate((GPUImageBase&) image, x_translation, y_translation, InterpT(), DefaultEdgeExtend());
+    return translate((GPUImageBase&) image, x_translation, y_translation, InterpT(), DefaultEdgeExtension());
   }
 
   template <class PixelT>
   inline GPUImage<PixelT> translate(GPUImage<PixelT> const& image, float x_translation, float y_translation) {
-    return translate((GPUImageBase&) image, x_translation, y_translation, interpolation::Default(), DefaultEdgeExtend());
+    return translate((GPUImageBase&) image, x_translation, y_translation, interpolation::Default(), DefaultEdgeExtension());
   }
 
 
@@ -266,11 +266,11 @@ namespace vw { namespace GPU {
 
   template <class InterpT>
   inline GPUImageBase free_homography_transform(GPUImageBase const& image, Matrix<float>& homography, InterpT) {
-    return free_homography_transform(image, homography, InterpT(), DefaultEdgeExtend());
+    return free_homography_transform(image, homography, InterpT(), DefaultEdgeExtension());
   }
 
   inline GPUImageBase free_homography_transform(GPUImageBase const& image, Matrix<float>& homography) {
-    return free_homography_transform(image, homography, interpolation::Default(), DefaultEdgeExtend());
+    return free_homography_transform(image, homography, interpolation::Default(), DefaultEdgeExtension());
   }
 
   template <class PixelT, class InterpT, class EdgeT>
@@ -280,12 +280,12 @@ namespace vw { namespace GPU {
 
   template <class PixelT, class InterpT>
   inline GPUImage<PixelT> free_homography_transform(GPUImage<PixelT> const& image, Matrix<float>& homography, InterpT) {
-    return free_homography_transform((GPUImageBase&) image, homography, InterpT(), DefaultEdgeExtend());
+    return free_homography_transform((GPUImageBase&) image, homography, InterpT(), DefaultEdgeExtension());
   }
 
   template <class PixelT>
   inline GPUImage<PixelT> free_homography_transform(GPUImage<PixelT> const& image, Matrix<float>& homography) {
-    return free_homography_transform((GPUImageBase&) image, homography, interpolation::Default(), DefaultEdgeExtend());
+    return free_homography_transform((GPUImageBase&) image, homography, interpolation::Default(), DefaultEdgeExtension());
   }
 
   // free_rotate
@@ -316,11 +316,11 @@ namespace vw { namespace GPU {
 
   template <class InterpT>
   inline GPUImageBase free_rotate(GPUImageBase const& image, float theta, InterpT) {
-    return free_rotate(image, theta, InterpT(), DefaultEdgeExtend());
+    return free_rotate(image, theta, InterpT(), DefaultEdgeExtension());
   }
 
   inline GPUImageBase free_rotate(GPUImageBase const& image, float theta) {
-    return free_rotate(image, theta, interpolation::Default(), DefaultEdgeExtend());
+    return free_rotate(image, theta, interpolation::Default(), DefaultEdgeExtension());
   }
 
  template <class PixelT, class InterpT, class EdgeT>
@@ -330,12 +330,12 @@ namespace vw { namespace GPU {
 
   template <class PixelT, class InterpT>
   inline GPUImage<PixelT> free_rotate(GPUImage<PixelT> const& image, float theta, InterpT) {
-    return free_rotate((GPUImageBase&) image, theta, InterpT(), DefaultEdgeExtend());
+    return free_rotate((GPUImageBase&) image, theta, InterpT(), DefaultEdgeExtension());
   }
 
   template <class PixelT>
   inline GPUImage<PixelT> free_rotate(GPUImage<PixelT> const& image, float theta) {
-    return free_rotate((GPUImageBase&) image, theta, interpolation::Default(), DefaultEdgeExtend());
+    return free_rotate((GPUImageBase&) image, theta, interpolation::Default(), DefaultEdgeExtension());
   }
 
 

@@ -31,8 +31,8 @@ include_HEADERS = OpenGLManager.h GPUProgram.h TexAlloc.h TexBlock.h	\
 	  TexObj.h GPUImage.h TokenReplacer.h Filter.h			\
 	  ImageOperators.h SimpleTransforms.h Transform.h Display.h	\
 	  GenericShaders.h ImageMath.h ImageStatistics.h Fourier.h	\
-	  ImageAlgorithms.h Interpolation.h EdgeExtend.h Expressions.h	\
-	  Timer.h
+	  ImageAlgorithms.h Interpolation.h EdgeExtension.h		\
+	  Expressions.h Timer.h
 
 libvwGPU_la_SOURCES = OpenGLManager.cc GPUProgram.cc TexAlloc.cc	\
 	TexBlock.cc TexObj.cc GPUImage.cc TokenReplacer.cc		\

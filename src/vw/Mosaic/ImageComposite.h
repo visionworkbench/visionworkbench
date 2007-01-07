@@ -10,7 +10,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Filter.h>
-#include <vw/Image/EdgeExtend.h>
+#include <vw/Image/EdgeExtension.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/Transform.h>
@@ -49,8 +49,8 @@ namespace mosaic {
       // We use vw::rasterize() here rather than ordinary assignment because it is 
       // faster for this particular combination of filtering and subsampling.
       ImageView<PixelT> new_image( new_bbox.width(), new_bbox.height() );
-      rasterize( edge_extend( subsample( separable_convolution_filter( edge_extend( image, -left, -top, image.cols()+left+right, image.rows()+top+bottom, ZeroEdgeExtend() ),
-                                                                     kernel, kernel, ZeroEdgeExtend() ), 2 ), 0, 0, new_bbox.width(), new_bbox.height(), vw::ConstantEdgeExtend() ),
+      rasterize( edge_extend( subsample( separable_convolution_filter( edge_extend( image, -left, -top, image.cols()+left+right, image.rows()+top+bottom, ZeroEdgeExtension() ),
+                                                                     kernel, kernel, ZeroEdgeExtension() ), 2 ), 0, 0, new_bbox.width(), new_bbox.height(), vw::ConstantEdgeExtension() ),
                  new_image );
       return PositionedImage( (cols_+1)/2, (rows_+1)/2, new_image, new_bbox );
     }
@@ -85,12 +85,12 @@ namespace mosaic {
     }
 
     void subtract_expanded( PositionedImage const& other ) {
-      rasterize( image - edge_extend( resample( other.image, 2 ), bbox-2*other.bbox.min(), ZeroEdgeExtend() ), image );
+      rasterize( image - edge_extend( resample( other.image, 2 ), bbox-2*other.bbox.min(), ZeroEdgeExtension() ), image );
     }
 
     template <class OtherPixT>
     PositionedImage& operator*=( PositionedImage<OtherPixT> const& other ) {
-      image *= edge_extend( other.image, bbox-other.bbox.min(), ZeroEdgeExtend() );
+      image *= edge_extend( other.image, bbox-other.bbox.min(), ZeroEdgeExtension() );
       return *this;
     }
     

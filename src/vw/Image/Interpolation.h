@@ -40,7 +40,7 @@
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelAccessors.h>
-#include <vw/Image/EdgeExtend.h>
+#include <vw/Image/EdgeExtension.h>
 #include <vw/Image/Manipulation.h>
 
 namespace vw {
@@ -207,13 +207,13 @@ namespace vw {
   /// 
   /// This version of interpolate takes an extra argument, the edge
   /// extension functor, and it automatically edge extends the image
-  /// before interpolating.  See EdgeExtend.h for a list of built-in
+  /// before interpolating.  See EdgeExtension.h for a list of built-in
   /// functors.
-  template <class ImageT, class InterpT, class EdgeExtendT>
-  InterpolationView<EdgeExtendView<ImageT,EdgeExtendT>, InterpT> interpolate( ImageViewBase<ImageT> const& v, 
-                                                                              InterpT const& interp_func,
-                                                                              EdgeExtendT const& edge_extend_func) {
-    return InterpolationView<EdgeExtendView<ImageT, EdgeExtendT>, InterpT>( edge_extend(v, edge_extend_func) , interp_func );
+  template <class ImageT, class InterpT, class EdgeExtensionT>
+  InterpolationView<EdgeExtensionView<ImageT,EdgeExtensionT>, InterpT> interpolate( ImageViewBase<ImageT> const& v, 
+                                                                                    InterpT const& interp_func,
+                                                                                    EdgeExtensionT const& edge_extend_func) {
+    return InterpolationView<EdgeExtensionView<ImageT, EdgeExtensionT>, InterpT>( edge_extend(v, edge_extend_func) , interp_func );
   }
 
   /// Use this free function to pass in an arbitrary interpolation
@@ -222,9 +222,9 @@ namespace vw {
   /// 
   /// This version of the interpolation function uses Constant edge
   /// extension by default.
-  template <class ImageT, class InterpT> InterpolationView<EdgeExtendView<ImageT, ConstantEdgeExtend>, InterpT> 
+  template <class ImageT, class InterpT> InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, InterpT> 
   interpolate( ImageViewBase<ImageT> const& v, InterpT const& interp_func) {
-    return InterpolationView<EdgeExtendView<ImageT, ConstantEdgeExtend>, InterpT>( edge_extend(v, ConstantEdgeExtend()), interp_func );
+    return InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, InterpT>( edge_extend(v, ConstantEdgeExtension()), interp_func );
   }
 
 } // namespace vw

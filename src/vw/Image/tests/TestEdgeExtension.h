@@ -21,18 +21,18 @@
 // 
 // __END_LICENSE__
 
-// TestEdgeExtend.h
+// TestEdgeExtension.h
 #include <cxxtest/TestSuite.h>
 
 #include <vw/Image/ImageView.h>
-#include <vw/Image/EdgeExtend.h>
+#include <vw/Image/EdgeExtension.h>
 
 #include <boost/utility/result_of.hpp>
 #include <boost/type_traits.hpp>
 
 using namespace vw;
 
-class TestEdgeExtend : public CxxTest::TestSuite
+class TestEdgeExtension : public CxxTest::TestSuite
 {
 public:
 
@@ -43,10 +43,10 @@ public:
 
   class SomeType {};
 
-  void testNoEdgeExtend()
+  void testNoEdgeExtension()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    EdgeExtendView<ImageView<double>, NoEdgeExtend> im2 = edge_extend(im, NoEdgeExtend() );
+    EdgeExtensionView<ImageView<double>, NoEdgeExtension> im2 = edge_extend(im, NoEdgeExtension() );
     TS_ASSERT_EQUALS( im2.cols(), 2 );
     TS_ASSERT_EQUALS( im2.rows(), 3 );
     TS_ASSERT_EQUALS( im2(1,1), 4 );
@@ -55,15 +55,15 @@ public:
     TS_ASSERT_EQUALS( *(im2.origin().advance(1,1)), 4 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ZeroEdgeExtend() ) ) );
-    TS_ASSERT( (boost::is_same<boost::result_of<NoEdgeExtend(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
+    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ZeroEdgeExtension() ) ) );
+    TS_ASSERT( (boost::is_same<boost::result_of<NoEdgeExtension(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
   }
 
 
-  void testZeroEdgeExtend()
+  void testZeroEdgeExtension()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    EdgeExtendView<ImageView<double>, ZeroEdgeExtend> im2 = edge_extend(im, ZeroEdgeExtend() );
+    EdgeExtensionView<ImageView<double>, ZeroEdgeExtension> im2 = edge_extend(im, ZeroEdgeExtension() );
     TS_ASSERT_EQUALS( im2.cols(), 2 );
     TS_ASSERT_EQUALS( im2.rows(), 3 );
 
@@ -84,14 +84,14 @@ public:
     TS_ASSERT_EQUALS( *(im2.origin().advance(1,1)), 4 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ZeroEdgeExtend() ) ) );
-    TS_ASSERT( (boost::is_same<boost::result_of<ZeroEdgeExtend(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
+    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ZeroEdgeExtension() ) ) );
+    TS_ASSERT( (boost::is_same<boost::result_of<ZeroEdgeExtension(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
   }
 
-  void testConstantEdgeExtend()
+  void testConstantEdgeExtension()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    EdgeExtendView<ImageView<double>, ConstantEdgeExtend> im2 = edge_extend(im, ConstantEdgeExtend() );
+    EdgeExtensionView<ImageView<double>, ConstantEdgeExtension> im2 = edge_extend(im, ConstantEdgeExtension() );
     TS_ASSERT_EQUALS( im2.cols(), 2 );
     TS_ASSERT_EQUALS( im2.rows(), 3 );
 
@@ -112,14 +112,14 @@ public:
     TS_ASSERT_EQUALS( *(im2.origin().advance(1,1)), 4 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ZeroEdgeExtend() ) ) );
-    TS_ASSERT( (boost::is_same<boost::result_of<ConstantEdgeExtend(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
+    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ZeroEdgeExtension() ) ) );
+    TS_ASSERT( (boost::is_same<boost::result_of<ConstantEdgeExtension(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
   }
 
-  void testPeriodicEdgeExtend()
+  void testPeriodicEdgeExtension()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    EdgeExtendView<ImageView<double>, PeriodicEdgeExtend> im2 = edge_extend(im, PeriodicEdgeExtend() );
+    EdgeExtensionView<ImageView<double>, PeriodicEdgeExtension> im2 = edge_extend(im, PeriodicEdgeExtension() );
     TS_ASSERT_EQUALS( im2.cols(), 2 );
     TS_ASSERT_EQUALS( im2.rows(), 3 );
 
@@ -151,14 +151,14 @@ public:
     TS_ASSERT_EQUALS( *(im2.origin().advance(1,1)), 4 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, PeriodicEdgeExtend() ) ) );
-    TS_ASSERT( (boost::is_same<boost::result_of<PeriodicEdgeExtend(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
+    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, PeriodicEdgeExtension() ) ) );
+    TS_ASSERT( (boost::is_same<boost::result_of<PeriodicEdgeExtension(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
   }
 
-  void testReflectEdgeExtend()
+  void testReflectEdgeExtension()
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    EdgeExtendView<ImageView<double>, ReflectEdgeExtend> im2 = edge_extend(im, ReflectEdgeExtend() );
+    EdgeExtensionView<ImageView<double>, ReflectEdgeExtension> im2 = edge_extend(im, ReflectEdgeExtension() );
     TS_ASSERT_EQUALS( im2.cols(), 2 );
     TS_ASSERT_EQUALS( im2.rows(), 3 );
 
@@ -190,8 +190,8 @@ public:
     TS_ASSERT_EQUALS( *(im2.origin().advance(1,1)), 4 );
 
     // Test the traits
-    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ReflectEdgeExtend() ) ) );
-    TS_ASSERT( (boost::is_same<boost::result_of<ReflectEdgeExtend(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
+    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ReflectEdgeExtension() ) ) );
+    TS_ASSERT( (boost::is_same<boost::result_of<ReflectEdgeExtension(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
   }
 
 };

@@ -501,36 +501,36 @@ namespace vw {
   /// of interpolation and edge extension to be done by supplying the
   /// appropriate functors in the last two arguments.  For example:
   /// 
-  /// <TT>transform(input, transform_functor, BicubicInterpolation(), ZeroEdgeExtend());</TT>
+  /// <TT>transform(input, transform_functor, BicubicInterpolation(), ZeroEdgeExtension());</TT>
   ///
-  /// See Interpolation.h and EdegExtend.h for a list of built-in
+  /// See Interpolation.h and EdegExtension.h for a list of built-in
   /// interpolation and edge extension modes.  It is also possible to
   /// write your own.  Again, see the above files for more information.
   template <class ImageT, class TransformT, class EdgeT, class InterpT>
-  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT> >::type
+  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT> >::type
   inline transform( ImageViewBase<ImageT> const& v, TransformT const& transform_func, 
                     EdgeT const& edge_func, InterpT const& interp_func) {
-    return TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT>
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT>
       (interpolate(v, interp_func, edge_func), transform_func);
   }
   
   /// Convenience function: transform with a default interpolation
   /// scheme of bilinear interpolation.
   template <class ImageT, class TransformT, class EdgeT>
-  TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
   inline transform( ImageViewBase<ImageT> const& v, TransformT const& transform_func, 
                     EdgeT const& edge_func) {
-    return TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT> 
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT> 
       (interpolate(v, BilinearInterpolation(), edge_func), transform_func);
   }
   
   /// Convenience function: transform with a default scheme of
   /// bilinear interpolation and zero edge extension.
   template <class ImageT, class TransformT>
-  TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT>
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT>
   inline transform( ImageViewBase<ImageT> const& v, TransformT const& transform_func) {
-    return TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT> 
-      (interpolate(v, BilinearInterpolation(), ZeroEdgeExtend()), transform_func);
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT> 
+      (interpolate(v, BilinearInterpolation(), ZeroEdgeExtension()), transform_func);
   }
 
 
@@ -543,10 +543,10 @@ namespace vw {
   /// arbitrary bounding box, use one of the transform methods defined
   /// below.
   template <class ImageT, class TransformT, class EdgeT, class InterpT>
-  TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT>
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT>
   inline transform( ImageViewBase<ImageT> const& v, TransformT const& transform_func, 
                     int width, int height, EdgeT const& edge_func, InterpT const& interp_func) {
-    return TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT>
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT>
       (interpolate(v, interp_func, edge_func), transform_func, width, height);
   }
   
@@ -554,10 +554,10 @@ namespace vw {
   /// scheme of bilinear interpolation. The user can specify the
   /// dimensions of the output image.
   template <class ImageT, class TransformT, class EdgeT>
-  TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
   inline transform( ImageViewBase<ImageT> const& v, TransformT const& transform_func, 
                     int width, int height, EdgeT const& edge_func) {
-    return TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT> 
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT> 
       (interpolate(v, BilinearInterpolation(), edge_func), transform_func, width, height);
   }
 
@@ -565,11 +565,11 @@ namespace vw {
   /// bilinear interpolation and zero edge extension.  The user can
   /// specify the dimensions of the output image.
   template <class ImageT, class TransformT>
-  TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT>
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT>
   inline transform( ImageViewBase<ImageT> const& v, TransformT const& transform_func,
                     int width, int height) {
-    return TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT> 
-      (interpolate(v, BilinearInterpolation(), ZeroEdgeExtend()), transform_func, width, height);
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT> 
+      (interpolate(v, BilinearInterpolation(), ZeroEdgeExtension()), transform_func, width, height);
   }
   
 
@@ -582,13 +582,13 @@ namespace vw {
   /// compute_transformed_bbox() method can be used to compute the
   /// bounding box that will fit all of the transformed pixels.
   template <class ImageT, class TransformT, class BBoxRealT, class EdgeT, class InterpT>
-  CropView<TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT> >
+  CropView<TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT> >
   inline transform( ImageViewBase<ImageT> const& v, 
                     TransformT const& transform_func, 
                     BBox<BBoxRealT,2> const& bbox, 
                     EdgeT const& edge_func,
                     InterpT const& interp_func) {
-    return crop(TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TransformT>
+    return crop(TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT>
                 (interpolate(v, interp_func, edge_func), transform_func), bbox);
   }
 
@@ -597,12 +597,12 @@ namespace vw {
   /// transformed space from that determines what pixels will be
   /// rasterized.
   template <class ImageT, class TransformT, class BBoxRealT, class EdgeT>
-  CropView<TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT> >
+  CropView<TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT> >
   inline transform( ImageViewBase<ImageT> const& v, 
                     TransformT const& transform_func, 
                     BBox<BBoxRealT,2> const& bbox, 
                     EdgeT const& edge_func) {
-    return crop(TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
+    return crop(TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
                 (interpolate(v, BilinearInterpolation(), edge_func), transform_func), bbox);
   }
 
@@ -611,12 +611,12 @@ namespace vw {
   /// supplies a bounding box in the transformed space from that
   /// determines what pixels will be rasterized.
   template <class ImageT, class TransformT, class BBoxRealT>
-  CropView<TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT> >
+  CropView<TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT> >
   inline transform( ImageViewBase<ImageT> const& v, 
                     TransformT const& transform_func, 
                     BBox<BBoxRealT,2> const& bbox) {
-    return crop(TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TransformT>
-                (interpolate(v, BilinearInterpolation(), ZeroEdgeExtend()), transform_func), bbox);
+    return crop(TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT>
+                (interpolate(v, BilinearInterpolation(), ZeroEdgeExtension()), transform_func), bbox);
   }
 
 
@@ -628,7 +628,7 @@ namespace vw {
   /// Resample the image.  The user specifies the scaling factor in x
   /// and y.
   template <class ImageT, class EdgeT, class InterpT>
-  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, ResampleTransform> >::type
+  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, ResampleTransform> >::type
   inline resample( ImageViewBase<ImageT> const& v, double x_scale_factor, double y_scale_factor, 
                    EdgeT const& edge_func, InterpT const& interp_func) {
     return transform(v, ResampleTransform(x_scale_factor, y_scale_factor), 
@@ -639,7 +639,7 @@ namespace vw {
   /// Resample the image.  The user specifies the scaling factor in x
   /// and y.
   template <class ImageT, class EdgeT>
-  TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, ResampleTransform> 
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, ResampleTransform> 
   inline resample( ImageViewBase<ImageT> const& v, double x_scale_factor, double y_scale_factor, 
                    EdgeT const& edge_func) {
     return transform(v, ResampleTransform(x_scale_factor, y_scale_factor), 
@@ -650,18 +650,18 @@ namespace vw {
   /// Resample the image.  The user specifies the scaling factor in x
   /// and y.
   template <class ImageT>
-  TransformView<InterpolationView<EdgeExtendView<ImageT, ConstantEdgeExtend>, BilinearInterpolation>, ResampleTransform> 
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, BilinearInterpolation>, ResampleTransform> 
   inline resample( ImageViewBase<ImageT> const& v, 
                    double x_scale_factor, double y_scale_factor) {
     return transform(v, ResampleTransform(x_scale_factor, y_scale_factor), 
                      int(round(v.impl().cols()*x_scale_factor)), int(round(v.impl().rows()*y_scale_factor)), 
-                     vw::ConstantEdgeExtend(), vw::BilinearInterpolation());
+                     vw::ConstantEdgeExtension(), vw::BilinearInterpolation());
   }
 
   /// Resample the image.  The user specifies the scaling factor in x
   /// and y and the dimensions of the output image.
   template <class ImageT, class EdgeT, class InterpT>
-  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, ResampleTransform> >::type
+  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, ResampleTransform> >::type
   inline resample( ImageViewBase<ImageT> const& v, double scale_factor, 
                    int output_width, int output_height,
                    EdgeT const& edge_func, InterpT const& interp_func) {
@@ -673,7 +673,7 @@ namespace vw {
   /// Resample the image.  The user specifies the scaling factor in x
   /// and y and the dimensions of the output image.
   template <class ImageT, class EdgeT, class InterpT>
-  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, ResampleTransform> >::type
+  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, ResampleTransform> >::type
   inline resample( ImageViewBase<ImageT> const& v, double scale_factor, 
                    EdgeT const& edge_func, InterpT const& interp_func) {
     return transform(v, ResampleTransform(scale_factor, scale_factor), 
@@ -684,7 +684,7 @@ namespace vw {
   /// Resample the image.  The user specifies the scaling factor in x
   /// and y and the dimensions of the output image.
   template <class ImageT, class EdgeT>
-  typename boost::disable_if<IsScalar<EdgeT>, TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, ResampleTransform> >::type 
+  typename boost::disable_if<IsScalar<EdgeT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, ResampleTransform> >::type 
   inline resample( ImageViewBase<ImageT> const& v, double scale_factor, EdgeT const& edge_func) {
     return transform(v, ResampleTransform(scale_factor, scale_factor),
                      int(round(v.impl().cols()*scale_factor)), int(round(v.impl().rows()*scale_factor)),
@@ -694,11 +694,11 @@ namespace vw {
   /// Resample the image.  The user specifies the scaling factor in x
   /// and y and the dimensions of the output image.
   template <class ImageT>
-  TransformView<InterpolationView<EdgeExtendView<ImageT, ConstantEdgeExtend>, BilinearInterpolation>, ResampleTransform> 
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, BilinearInterpolation>, ResampleTransform> 
   inline resample( ImageViewBase<ImageT> const& v, double scale_factor) {
     return transform(v, ResampleTransform(scale_factor, scale_factor), 
                      int(round(v.impl().cols()*scale_factor)), int(round(v.impl().rows()*scale_factor)),
-                     vw::ConstantEdgeExtend(), vw::BilinearInterpolation());
+                     vw::ConstantEdgeExtension(), vw::BilinearInterpolation());
   }
 
 
@@ -709,7 +709,7 @@ namespace vw {
   /// Translate the image.  The user specifies the offset in x
   /// and y.
   template <class ImageT, class EdgeT, class InterpT>
-  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, InterpT>, TranslateTransform> >::type
+  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TranslateTransform> >::type
   inline translate( ImageViewBase<ImageT> const& v, double x_offset, double y_offset,
                    EdgeT const& edge_func, InterpT const& interp_func) {
     return transform(v, TranslateTransform(x_offset, y_offset),
@@ -720,7 +720,7 @@ namespace vw {
   /// Translate the image.  The user specifies the offset in x
   /// and y.
   template <class ImageT, class EdgeT>
-  TransformView<InterpolationView<EdgeExtendView<ImageT, EdgeT>, BilinearInterpolation>, TranslateTransform> 
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TranslateTransform> 
   inline translate( ImageViewBase<ImageT> const& v, double x_offset, double y_offset, 
                    EdgeT const& edge_func) {
     return transform(v, TranslateTransform(x_offset, y_offset),
@@ -731,12 +731,12 @@ namespace vw {
   /// Translate the image.  The user specifies the offset in x
   /// and y.
   template <class ImageT>
-  TransformView<InterpolationView<EdgeExtendView<ImageT, ZeroEdgeExtend>, BilinearInterpolation>, TranslateTransform> 
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TranslateTransform> 
   inline translate( ImageViewBase<ImageT> const& v, 
                    double x_offset, double y_offset) {
     return transform(v, TranslateTransform(x_offset, y_offset),
                      v.impl().cols(), v.impl().rows(),
-                     ZeroEdgeExtend(), BilinearInterpolation());
+                     ZeroEdgeExtension(), BilinearInterpolation());
   }
 
 } // namespace vw
