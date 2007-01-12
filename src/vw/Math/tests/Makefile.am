@@ -32,6 +32,7 @@ nodist_TestMatrix_SOURCES = TestMatrix.cxx
 nodist_TestBBox_SOURCES = TestBBox.cxx
 nodist_TestFunctions_SOURCES = TestFunctions.cxx
 nodist_TestFunctors_SOURCES = TestFunctors.cxx
+nodist_TestNelderMead_SOURCES = TestNelderMead.cxx
 #nodist_TestConjugateGradient_SOURCES = TestConjugateGradient.cxx
 
 if HAVE_PKG_LAPACK
@@ -41,7 +42,7 @@ nodist_TestLevenbergMarquardt_SOURCES = TestLevenbergMarquardt.cxx
 TestLinearAlgebra = TestLinearAlgebra TestGeometry TestLevenbergMarquardt
 endif
 
-TESTS = TestVector TestMatrix TestBBox TestFunctions TestFunctors	\
+TESTS = TestVector TestMatrix TestBBox TestFunctions TestFunctors	TestNelderMead \
         $(TestLinearAlgebra) #TestConjugateGradient
 
 endif

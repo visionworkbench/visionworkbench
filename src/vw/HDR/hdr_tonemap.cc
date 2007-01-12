@@ -135,7 +135,7 @@ int main( int argc, char *argv[] ) {
       }
       
       // Apply the curves
-      psi(tone_mapped, inverse_curves);
+      psi(tone_mapped, curves);
     }
     
     // Write out the result to disk.
