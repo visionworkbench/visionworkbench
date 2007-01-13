@@ -344,7 +344,7 @@ namespace math {
     }
 
     template <class VectorT>
-    VectorT rotate( VectorBase<VectorT> const& v_ ) {
+    VectorT rotate( VectorBase<VectorT> const& v_ ) const {
       VectorT const& v = v_.impl();
       return imag( *this * Quaternion(0,v[0],v[1],v[2]) / *this );
     }

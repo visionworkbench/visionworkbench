@@ -168,6 +168,21 @@ namespace disparity {
         if ( disparity_map(i,j).missing() || !left_mask(i,j) || !right_mask((int)(i+disparity_map(i,j).h()), (int)(j+disparity_map(i,j).v())) ) 
           disparity_map(i,j) = PixelDisparity<PixelT>();  // Set to missing pixel value
   }
+
+  /// Apply a binary mask to the disparity map (see also \ref disparity::generate_mask())
+  template <class PixelT>
+  void remove_invalid_pixels(ImageView<PixelDisparity<PixelT> > &disparity_map, 
+                             int right_image_width, int right_image_height) {
+    
+    for (unsigned i = 0; i < disparity_map.cols() ; i++) 
+      for (unsigned j = 0; j < disparity_map.rows() ; j++)
+        if ( !disparity_map(i,j).missing() ) {
+          if ( i+disparity_map(i,j).h() < 0 || i+disparity_map(i,j).h() >= right_image_width-1 ||
+               j+disparity_map(i,j).v() < 0 || j+disparity_map(i,j).v() >= right_image_height-1) {
+            disparity_map(i,j) = PixelDisparity<PixelT>(); // Set to missing pixel
+          }
+        }
+  }
   
   /// Remove outliers from a disparity map image
   template <class PixelT>

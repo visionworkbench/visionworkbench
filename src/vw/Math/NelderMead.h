@@ -190,53 +190,60 @@ namespace math {
       // Finally, add in the moved vertex back into the simplex.
       insert_vertex( vertex_type(new_loc, new_val) );
 
-      // ... and return the lowest vertex in the simplex.
+      // ... and return the amount of improvement.
       return highest_vtx.second - new_val;
     }
   };
 
   template <class FuncT, class DomainT, class ScaleT>
   DomainT nelder_mead( FuncT const& func, DomainT const& seed, ScaleT const& scale, 
-                       int &status, int restarts = 1, double tolerance = 1e-16, int max_iterations = 1000) {
+                       int &status, bool verbose = false, int restarts = 1, 
+                       double tolerance = 1e-16, int max_iterations = 1000) {
     DomainT result = seed;
+    status = optimization::eNelderMeadConvergedRelTolerance;
+
+    if (verbose) {
+      std::cout << "Nelder Mead Optimizer:\n";
+      std::cout << "\tTol: " << tolerance << "   MaxIter: " << max_iterations << "   Restarts: " << restarts << "\n";
+    }
 
     // Restart the simplex several times -- this prevents false
     // termination, which can happend from time to time if the simplex
     // gets stuck.
-    int iterations = 0;
+    int iterations;
     for (int i=0; i < restarts; ++i) {
+      iterations = 0;
       Simplex<FuncT, DomainT> simplex(func, result, scale);
-
+      
       // Perform simplex updates until tolerance in reached or
       // max_iterations is reached
       double delta = simplex.update();
       while (fabs(delta) > tolerance && iterations <= max_iterations) {
         delta = simplex.update();
         ++iterations;
+        if (verbose && iterations % 100 == 0)
+          std::cout << "\t" << iterations << ": " << simplex.location() << "[" << simplex.value() << "]\n";
       }
 
-      // Bail if max iterations have been reached.
-      if (iterations >= max_iterations) {
-        status = optimization::eNelderMeadDidNotConverge;
-        return simplex.location();
-      }
-      
+      if (verbose)
+        std::cout << "\t" << iterations << ": " << simplex.location() << "[" << simplex.value() << "]\n";
+
       // Store the best result so far.
       result = simplex.location();
     }
 
-    // At this point we have converged to the result so we report the
-    // result.
-    status = optimization::eNelderMeadConvergedRelTolerance;
+    if (iterations >= max_iterations)
+      status = optimization::eNelderMeadDidNotConverge;
+
     return result;
   }
 
   template <class FuncT, class DomainT>
-  DomainT nelder_mead( FuncT const& func, DomainT const& seed, int &status,
+    DomainT nelder_mead( FuncT const& func, DomainT const& seed, int &status, bool verbose = false,
                        int restarts = 1, double tolerance = 1e-16, int max_iterations = 1000) {
     vw::Vector<double> scale(seed.size());
     fill(scale,1.0);
-    return nelder_mead(func, seed, scale, status, restarts, tolerance, max_iterations);
+    return nelder_mead(func, seed, scale, status, verbose, restarts, tolerance, max_iterations);
   }
   
 }} // namespace vw::math
