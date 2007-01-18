@@ -109,7 +109,7 @@ namespace vw {
 
     /// Rasterizes the given view into the image, adjusting the size if needed.
     template <class SrcT>
-    ImageView& operator=( ImageViewBase<SrcT> const& view ) {
+    inline ImageView& operator=( ImageViewBase<SrcT> const& view ) {
       set_size( view.impl().cols(), view.impl().rows(), view.impl().planes() );
       view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
@@ -117,7 +117,7 @@ namespace vw {
 
     /// Rasterizes the given view into the image.
     template <class SrcT>
-    ImageView const& operator=( ImageViewBase<SrcT> const& view ) const {
+    inline ImageView const& operator=( ImageViewBase<SrcT> const& view ) const {
       view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
     }

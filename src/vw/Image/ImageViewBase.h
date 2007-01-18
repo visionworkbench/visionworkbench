@@ -148,7 +148,7 @@ namespace vw {
   /// useful in some cases, such as when the views are heavily 
   /// subsampled.
   template <class SrcT, class DestT>
-  void rasterize( SrcT const& src, DestT const& dest, BBox2i bbox ) {
+  inline void rasterize( SrcT const& src, DestT const& dest, BBox2i bbox ) {
     typedef typename DestT::pixel_type DestPixelT;
     typedef typename SrcT::pixel_accessor SrcAccT;
     typedef typename DestT::pixel_accessor DestAccT;
@@ -177,7 +177,7 @@ namespace vw {
 
   /// A convenience overload to rasterize the entire source.
   template <class SrcT, class DestT>
-  void rasterize( SrcT const& src, DestT const& dest ) {
+  inline void rasterize( SrcT const& src, DestT const& dest ) {
     rasterize( src, dest, BBox2i(0,0,src.cols(),src.rows()) );
   }
 
