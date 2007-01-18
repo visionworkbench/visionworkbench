@@ -739,6 +739,24 @@ namespace vw {
                      ZeroEdgeExtension(), BilinearInterpolation());
   }
 
+  /// Translate the image.  The user specifies the offset in x
+  /// and y.  This is a special optimized overload for integer 
+  /// offsets.
+  template <class ImageT, class EdgeT>
+  EdgeExtensionView<ImageT,EdgeT>
+  inline translate( ImageViewBase<ImageT> const& im, int x_offset, int y_offset, EdgeT const& edge_func ) {
+    return EdgeExtensionView<ImageT,EdgeT>( im.impl(), -x_offset, -y_offset, im.impl().cols(), im.impl().rows(), edge_func );
+  }
+
+  /// Translate the image.  The user specifies the offset in x
+  /// and y.  This is a special optimized overload for integer 
+  /// offsets.
+  template <class ImageT>
+  EdgeExtensionView<ImageT,ZeroEdgeExtension>
+  inline translate( ImageViewBase<ImageT> const& im, int x_offset, int y_offset ) {
+    return EdgeExtensionView<ImageT,ZeroEdgeExtension>( im.impl(), -x_offset, -y_offset, im.impl().cols(), im.impl().rows(), ZeroEdgeExtension() );
+  }
+
 } // namespace vw
 
 #endif // __VW_IMAGE_TRANSFORM_H__ 

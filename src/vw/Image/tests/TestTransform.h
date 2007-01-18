@@ -72,6 +72,24 @@ public:
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( transform(im, TranslateTransform(1,1)) ) );
   }
 
+  void testTranslateFunction()
+  {
+    ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
+    ImageView<double> im2;
+    im2 = translate(im,1.0,1.0);
+    TS_ASSERT_EQUALS( im2.cols(), 2 );
+    TS_ASSERT_EQUALS( im2.rows(), 3 );
+    TS_ASSERT_EQUALS( im2(1,1), 1 );
+    TS_ASSERT_EQUALS( im2(0,0), 0 );
+    TS_ASSERT_EQUALS( im2(1,2), 3 );
+    im2 = translate(im,1,1);
+    TS_ASSERT_EQUALS( im2.cols(), 2 );
+    TS_ASSERT_EQUALS( im2.rows(), 3 );
+    TS_ASSERT_EQUALS( im2(1,1), 1 );
+    TS_ASSERT_EQUALS( im2(0,0), 0 );
+    TS_ASSERT_EQUALS( im2(1,2), 3 );
+  }
+
   template <class ImageT>
   void print_image(ImageT & image) {
     for (int i = 0; i < image.cols(); i++) {
