@@ -260,6 +260,7 @@ namespace camera {
     Vector4 distortion_parameters() { return m_distortion; }
 
     virtual Vector2 get_distorted_coordinates(Vector2 const& p) const {
+      
       double du = p[0] - this->camera_model().intrinsic_matrix()(0, 2);
       double dv = p[1] - this->camera_model().intrinsic_matrix()(1, 2);
       
@@ -278,8 +279,14 @@ namespace camera {
       double by = bx + r2 * y1;
       bx += r2 * x1;
       
-      return Vector2( p[0] + bx * du,
-                      p[1] + by * dv);
+      // Prevent divide by zero at the origin or along the x and y axis
+      Vector2 result(p[0] + bx * du, p[1] + by * dv);
+      if (p[0] == this->camera_model().intrinsic_matrix()(0, 2))
+        result[0] =  p[0];
+      if (p[1] == this->camera_model().intrinsic_matrix()(1, 2))
+        result[1] =  p[1];
+      
+      return result;
     }
   };
 

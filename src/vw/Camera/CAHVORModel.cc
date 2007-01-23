@@ -38,13 +38,17 @@ vw::camera::CAHVORModel::CAHVORModel(std::string const& filename) {
     
   // Scan through comments 
   fgets(line, sizeof(line), cahvorFP);
-  while(line[0] == '#') 
+  while( !feof(cahvorFP) &&
+         sscanf(line,"C = %lf %lf %lf", &C(0), &C(1), &C(2)) != 3 ) 
     fgets(line, sizeof(line), cahvorFP);
-  
-  if (sscanf(line,"C = %lf %lf %lf", &C(0), &C(1), &C(2)) != 3) {
-    vw_throw( IOErr() << "CAHVORModel: Could not read C vector\n" );
-    fclose(cahvorFP);
-  }
+
+  if (feof(cahvorFP))
+    vw_throw( IOErr() << "CAHVORModel: Could not read file\n" );
+    
+//   if (sscanf(line,"C = %lf %lf %lf", &C(0), &C(1), &C(2)) != 3) {
+//     vw_throw( IOErr() << "CAHVORModel: Could not read C vector\n" );
+//     fclose(cahvorFP);
+//   }
   
   fgets(line, sizeof(line), cahvorFP);
   if (sscanf(line,"A = %lf %lf %lf", &A(0),&A(1), &A(2)) != 3) {

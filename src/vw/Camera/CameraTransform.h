@@ -30,6 +30,7 @@
 #define __VW_CAMERA_TRANSFORM_H__
 
 #include <vw/Image/Transform.h>
+#include <vw/Image/EdgeExtension.h>
 
 namespace vw {
 namespace camera{
@@ -60,7 +61,7 @@ namespace camera{
       // (1) Call src PixelToVector to find the vector emanating from
       //     the camera center.
       Vector3 vec = m_dst_camera.pixel_to_vector(p);
-      
+
       // (2) take resulting vector and call dest camera's
       //     VectorToPixel on it
       return m_src_camera.point_to_pixel(vec+m_src_camera.camera_center(p));
@@ -75,7 +76,7 @@ namespace camera{
       // (1) Call src PixelToVector to find the vector emanating from
       //     the camera center.
       Vector3 vec = m_src_camera.pixel_to_vector(p);
-      
+
       // (2) take resulting vector and call dest camera's
       //     VectorToPixel on it.
       return m_dst_camera.vector_to_pixel(vec+m_dst_camera.camera_center(p));

@@ -27,6 +27,9 @@
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Math/Vector.h>
 
+#include <vw/FileIO.h>
+#include <vw/Camera/CameraTransform.h>
+
 using namespace std;
 using namespace vw;
 using namespace vw::camera;
@@ -77,5 +80,30 @@ public:
     TS_ASSERT_DELTA(undistorted_pix[0], 200, 0.001); 
     TS_ASSERT_DELTA(undistorted_pix[1], 200, 0.001); 
   }
+
+//   void test_foo_distortion()
+//   {
+//         // Create an imaginary 1000x1000 pixel imager
+//     PinholeModel distorted_pinhole_camera( Vector3(0,0,0),                 // camera center
+//                                     math::identity_matrix<3>(),     // camera pose
+//                                     500,500,                        // fx, fy
+//                                     500,500,                        // cx, cy
+//                                     TsaiLensDistortion(Vector4(-0.2805362343788147,
+//                                                                0.1062035113573074,
+//                                                                -0.0001422458299202845,
+//                                                                0.00116333004552871))); 
+
+//     ImageView<PixelRGB<float> > src_image;
+//     read_image(src_image, "DSC_0264.jpg");
+
+//     PinholeModel undistorted_pinhole_camera = linearize_camera(distorted_pinhole_camera);
+// //     ImageView<PixelRGB<uint8> > dst_image = transform(src_image,
+// //                                                       CameraTransform<PinholeModel,PinholeModel>(distorted_pinhole_camera,
+// //                                                                                                  undistorted_pinhole_camera));
+//     ImageView<PixelRGB<float> > dst_image = camera_transform(src_image,distorted_pinhole_camera,undistorted_pinhole_camera);
+//     write_image("test.jpg", dst_image);
+
+//   }
+
 
 };

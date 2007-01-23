@@ -50,14 +50,21 @@ namespace stereo {
                                             originB, vecFromB, 
                                             error);
 
-        if (pix1.y() >= 5643 && pix1.y() <= 5650) {
-          std::cout << "Pix 1: " << pix1 << "    pix2: " << pix2 << "\n";
-          std::cout << "\tA:  " << originA << "     " << vecFromA << "\n";
-          std::cout << "\tB:  " << originB << "     " << vecFromB << "\n";
-          std::cout << "\tResult:  " << result << "    " << error << "\n\n";
+//         if (pix1.y() >= 5643 && pix1.y() <= 5650) {
+//           std::cout << "Pix 1: " << pix1 << "    pix2: " << pix2 << "\n";
+//           std::cout << "\tA:  " << originA << "     " << vecFromA << "\n";
+//           std::cout << "\tB:  " << originB << "     " << vecFromB << "\n";
+//           std::cout << "\tResult:  " << result << "    " << error << "\n\n";
+//         }
+           
+        // Eliminate points that fall behind one of the two cameras
+        if ( dot_prod(result - originA, vecFromA) < 0 || 
+             dot_prod(result - originB, vecFromB) < 0 ) {
+          error = 0;
+          return Vector3();
+        } else {
+          return result;
         }
-
-        return result;
       } catch (vw::camera::PixelToRayErr &e) {
         error = 0;
         return Vector3();
