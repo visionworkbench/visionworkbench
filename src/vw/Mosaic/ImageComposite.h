@@ -260,7 +260,7 @@ void vw::mosaic::ImageComposite<PixelT>::generate_masks() const {
     for( unsigned p2=0; p2<sources.size(); ++p2 ) {
       if( p1 == p2 ) continue;
       int ox = bboxes[p2].min().x() - bboxes[p1].min().x();
-      int oy = bboxes[p2].max().y() - bboxes[p1].max().y();
+      int oy = bboxes[p2].min().y() - bboxes[p1].min().y();
       if( ! ( ox >= bboxes[p1].width() ||
               oy >= bboxes[p1].height() ||
               -ox >= bboxes[p2].width() ||
