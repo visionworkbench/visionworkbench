@@ -38,6 +38,7 @@
 #include <boost/mpl/logical.hpp>
 #include <boost/utility/enable_if.hpp>
 
+#include <vw/Core/CompoundTypes.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelAccessors.h>
 #include <vw/Image/EdgeExtension.h>
@@ -75,15 +76,12 @@ namespace vw {
   struct BilinearInterpolation : InterpolationBase {
     static const int pixel_buffer = 1; 
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()(const ViewT &view, float i, float j, unsigned p ) const { 
-      typedef typename ViewT::pixel_type pixel_type;
+    inline typename ViewT::pixel_type operator()(const ViewT &view, double i, double j, unsigned p ) const { 
+      int x = int(floor(i)), y = int(floor(j));
+      double normx = i-x, normy = j-y;
 
-      int x = int(floor(i));       int y = int(floor(j));
-      double normx = i-x;          double normy = j - y;
-
-      pixel_type i1 = pixel_type( view(x,y,p)   + (view(x,y+1,p)   - view(x,y,p)  ) * normy );
-      pixel_type i2 = pixel_type( view(x+1,y,p) + (view(x+1,y+1,p) - view(x+1,y,p)) * normy );
-      return pixel_type(i1 + (i2 - i1) * normx); 
+      return typename ViewT::pixel_type( (view(x,y,p)   * (1.0-normy) + view(x,y+1,p)   * normy) * (1.0-normx) +
+                                         (view(x+1,y,p) * (1.0-normy) + view(x+1,y+1,p) * normy) * normx );
     }
   };
 
@@ -91,24 +89,20 @@ namespace vw {
   struct BicubicInterpolation : InterpolationBase {
     static const int pixel_buffer = 2; 
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, float i, float j, unsigned p ) const { 
-      typedef typename ViewT::pixel_type pixel_type;
-      
-      int x = int(floor(i));       int y = int(floor(j));
-      double normx = i-x;          double normy = j - y;
+    inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, unsigned p ) const { 
+      int x = int(floor(i)), y = int(floor(j));
+      double normx = i-x, normy = j-y;
   
-      // This code was taken almost verbatim from vil_bicub_interp.txx
-      // in the VXL source tree.
       double s0 = ((2-normx)*normx-1)*normx;      double t0 = ((2-normy)*normy-1)*normy;
       double s1 = (3*normx-5)*normx*normx+2;      double t1 = (3*normy-5)*normy*normy+2;
       double s2 = ((4-3*normx)*normx+1)*normx;    double t2 = ((4-3*normy)*normy+1)*normy;
       double s3 = (normx-1)*normx*normx;          double t3 = (normy-1)*normy*normy;
-
-      pixel_type xi0 = pixel_type( s0*view(x-1,y-1,p) + s1*view(x+0,y-1,p) + s2*view(x+1,y-1,p) + s3*view(x+2,y-1,p) );
-      pixel_type xi1 = pixel_type( s0*view(x-1,y+0,p) + s1*view(x+0,y+0,p) + s2*view(x+1,y+0,p) + s3*view(x+2,y+0,p) );
-      pixel_type xi2 = pixel_type( s0*view(x-1,y+1,p) + s1*view(x+0,y+1,p) + s2*view(x+1,y+1,p) + s3*view(x+2,y+1,p) );
-      pixel_type xi3 = pixel_type( s0*view(x-1,y+2,p) + s1*view(x+0,y+2,p) + s2*view(x+1,y+2,p) + s3*view(x+2,y+2,p) );
-      return pixel_type(0.25 * ( xi0*t0 + xi1*t1 + xi2*t2 + xi3*t3 ));
+      
+      typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
+      return channel_cast_clamp<channel_type>( ( ( s0*view(x-1,y-1,p) + s1*view(x+0,y-1,p) + s2*view(x+1,y-1,p) + s3*view(x+2,y-1,p) ) * t0 +
+                                                 ( s0*view(x-1,y+0,p) + s1*view(x+0,y+0,p) + s2*view(x+1,y+0,p) + s3*view(x+2,y+0,p) ) * t1 +
+                                                 ( s0*view(x-1,y+1,p) + s1*view(x+0,y+1,p) + s2*view(x+1,y+1,p) + s3*view(x+2,y+1,p) ) * t2 +
+                                                 ( s0*view(x-1,y+2,p) + s1*view(x+0,y+2,p) + s2*view(x+1,y+2,p) + s3*view(x+2,y+2,p) ) * t3 ) * 0.25 );
     }
   };
 
@@ -116,7 +110,7 @@ namespace vw {
   struct NearestPixelInterpolation : InterpolationBase {
     static const int pixel_buffer = 1; 
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, float i, float j, unsigned p ) const {
+    inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, unsigned p ) const {
       int x = int(lroundf(i));       int y = int(lroundf(j));
       return view(x,y,p);
     }
@@ -153,7 +147,7 @@ namespace vw {
 
     inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
 
-    inline result_type operator() (float i, float j, int p = 0) const { return m_interp_func(m_image,i,j,p); }
+    inline result_type operator() (double i, double j, int p = 0) const { return m_interp_func(m_image,i,j,p); }
 
     /// \cond INTERNAL
     // We can make an optimization here.  If the pixels in the child
