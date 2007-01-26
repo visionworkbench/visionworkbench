@@ -317,19 +317,6 @@ void vw::DiskImageResourceTIFF::write_generic( GenericImageBuffer const& src )
     vw_throw( IOErr() << "DiskImageResourceTIFF: Unsupported VW channel type." );
   }
 
-  // Allocate some buffer memory for the output data
-  uint32 scanline_size = num_channels(m_format.pixel_format) * channel_size(m_format.channel_type) * m_format.cols;
-  tdata_t buf = _TIFFmalloc(scanline_size * m_format.rows * m_format.planes);
-
-  // Set up the generic image buffer and convert the data into this buffer.
-  GenericImageBuffer dst;
-  dst.data = (uint8*)buf;
-  dst.format = m_format;
-  dst.cstride = num_channels(m_format.pixel_format) * channel_size(m_format.channel_type);
-  dst.rstride = dst.cstride * m_format.cols;
-  dst.pstride = dst.rstride * m_format.rows;
-  convert( dst, src );
-
   if (m_format.pixel_format == VW_PIXEL_SCALAR) {
     // Multi-plane images with simple pixel types are stored in seperate
     // planes in the TIFF image.
@@ -341,11 +328,33 @@ void vw::DiskImageResourceTIFF::write_generic( GenericImageBuffer const& src )
     TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, num_channels(m_format.pixel_format));
   }
 
+  // Allocate some buffer memory for the output data
+  uint32 scanline_size = num_channels(m_format.pixel_format) * channel_size(m_format.channel_type) * m_format.cols;
+  tdata_t buf = _TIFFmalloc(scanline_size);
+
+  // Set up the generic image buffer and convert the data into this buffer.
+  GenericImageBuffer dst;
+  dst.data = (uint8*)buf;
+  dst.format = m_format;
+  dst.cstride = num_channels(m_format.pixel_format) * channel_size(m_format.channel_type);
+  dst.rstride = dst.cstride * m_format.cols;
+  dst.pstride = dst.rstride * m_format.rows;
+
+  GenericImageBuffer src_plane = src;
+  src_plane.format.rows = 1;
+  src_plane.format.planes = 1;
+  dst.format.rows = 1;
+  dst.format.planes = 1;
+
   // Write the image data to disk.
   for (uint32 p = 0; p < m_format.planes; p++) {
+    GenericImageBuffer src_row = src_plane;
     for (uint32 row = 0; row < m_format.rows; row++) {
-      TIFFWriteScanline(tif, (uint8*)buf + row*scanline_size + p * scanline_size * m_format.rows, row);
+      convert( dst, src_row );
+      TIFFWriteScanline(tif, (uint8*)buf, row);
+      src_row.data = (uint8*)src_row.data + src_row.rstride;
     }
+    src_plane.data = (uint8*)src_plane.data + src_plane.pstride;
   }
 
   // Clean up
