@@ -64,11 +64,9 @@ namespace vw {
     virtual void write_generic( GenericImageBuffer const& dest );
     virtual void flush() {}
 
-    /// Query for a value in the PDS header.  Places the value in the 
-    /// result field and returns true if the value is found, otherwise 
-    /// returns false.  The result is a string regardless of whether or 
-    /// not the value is a numerical type (i.e. it's up to you to convert
-    /// to numerical types from strings where appropriate).
+    /// Query for a string value in the PDS header.  Places the value
+    /// in the result field and returns true if the value is found,
+    /// otherwise returns false.
     bool query( std::string const& key, std::string& result ) const {
       std::map<std::string, std::string>::const_iterator query_object = m_header_entries.find(key);
       if (query_object != m_header_entries.end()) {
@@ -78,13 +76,23 @@ namespace vw {
       return false;
     }
 
-    /// Search for a value that might match several keys.  The first
-    /// key with a value in the table will be used to extract that
-    /// value, so order does matter.  Places the value in the result
-    /// field and returns true if a matching field is found, otherwise
-    /// returns false.  The result is a string regardless of whether
-    /// or not the value is a numerical type (i.e. it's up to you to
-    /// convert to numerical types from strings where appropriate).
+    /// Query for a floating-point value in the PDS header.  Places
+    /// the value in the result field and returns true if the value is
+    /// found, otherwise returns false.
+    bool query( std::string const& key, float& result ) const {
+      std::string result_str;
+      if( query( key, result_str ) ) {
+        result = atof( result_str.c_str() );
+        return true;
+      }
+      return false;
+    }
+
+    /// Search for a string value that might match several keys.  The
+    /// first key with a value in the table will be used to extract
+    /// that value, so order does matter.  Places the value in the
+    /// result field and returns true if a matching field is found,
+    /// otherwise returns false.
     bool query( std::vector<std::string> const& keys, std::string& result ) const {
       for( unsigned i = 0; i < keys.size(); ++i ) {
         std::map<std::string, std::string>::const_iterator query_object = m_header_entries.find(keys[i]);
@@ -92,6 +100,20 @@ namespace vw {
           result = (*query_object).second;
           return true;
         }
+      }
+      return false;
+    }
+
+    /// Search for a floating-point value that might match several
+    /// keys.  The first key with a value in the table will be used to
+    /// extract that value, so order does matter.  Places the value in
+    /// the result field and returns true if a matching field is
+    /// found, otherwise returns false.
+    bool query( std::vector<std::string> const& keys, float& result ) const {
+      std::string result_str;
+      if( query( keys, result_str ) ) {
+        result = atof( result_str.c_str() );
+        return true;
       }
       return false;
     }
