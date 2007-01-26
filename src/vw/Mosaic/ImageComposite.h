@@ -241,7 +241,7 @@ namespace mosaic {
 
     typedef ImageComposite prerasterize_type;
     inline prerasterize_type const& prerasterize( BBox2i const& bbox ) const { return *this; }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { dest = generate_patch(bbox); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { generate_patch(bbox).rasterize(dest, bbox-bbox.min()); }
 
   };
 
