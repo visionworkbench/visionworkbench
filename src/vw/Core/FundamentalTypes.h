@@ -78,13 +78,13 @@ namespace vw {
   /// results that require computational headroom.
   template <class T> struct AccumulatorType {};
   template <> struct AccumulatorType<bool>        { typedef int         type; };
-  template <> struct AccumulatorType<vw::uint8>   { typedef vw::uint32  type; };
+  template <> struct AccumulatorType<vw::uint8>   { typedef vw::int32   type; };
   template <> struct AccumulatorType<vw::int8>    { typedef vw::int32   type; };
-  template <> struct AccumulatorType<vw::uint16>  { typedef vw::uint32  type; };
+  template <> struct AccumulatorType<vw::uint16>  { typedef vw::int32   type; };
   template <> struct AccumulatorType<vw::int16>   { typedef vw::int32   type; };
-  template <> struct AccumulatorType<vw::uint32>  { typedef vw::uint64  type; };
+  template <> struct AccumulatorType<vw::uint32>  { typedef vw::int64   type; };
   template <> struct AccumulatorType<vw::int32>   { typedef vw::int64   type; };
-  template <> struct AccumulatorType<vw::uint64>  { typedef vw::uint64  type; };
+  template <> struct AccumulatorType<vw::uint64>  { typedef vw::int64   type; };
   template <> struct AccumulatorType<vw::int64>   { typedef vw::int64   type; };
   template <> struct AccumulatorType<vw::float32> { typedef vw::float64 type; };
   template <> struct AccumulatorType<vw::float64> { typedef vw::float64 type; };
