@@ -360,12 +360,27 @@ public:
 
   void test_matrix_inverse()
   {
-    Matrix<float,2,2> m(1,2,3,4);
-    Matrix<float> i=inverse(m);
-    TS_ASSERT_DELTA( i(0,0), -2, .0001 );
-    TS_ASSERT_DELTA( i(0,1), 1, .0001 );
-    TS_ASSERT_DELTA( i(1,0), 1.5, .0001 );
-    TS_ASSERT_DELTA( i(1,1), -0.5, .0001 );
+    Matrix<float,2,2> m1(1,2,3,4);
+    Matrix<float> i1=inverse(m1);
+    TS_ASSERT_DELTA( i1(0,0), -2,   .0001 );
+    TS_ASSERT_DELTA( i1(0,1),  1,   .0001 );
+    TS_ASSERT_DELTA( i1(1,0),  1.5, .0001 );
+    TS_ASSERT_DELTA( i1(1,1), -0.5, .0001 );
+
+    Matrix<float,3,3> m2;
+    m2(0,0)=5; m2(0,1)=4; m2(0,2)=3;
+    m2(1,0)=2; m2(1,1)=1; m2(1,2)=0;
+    m2(2,0)=9; m2(2,1)=6; m2(2,2)=8;
+    Matrix<float> i2=inverse(m2);
+    TS_ASSERT_DELTA( i2(0,0), -0.53333, .0001 );
+    TS_ASSERT_DELTA( i2(0,1),  0.93333, .0001 );
+    TS_ASSERT_DELTA( i2(0,2),  0.2,     .0001 );
+    TS_ASSERT_DELTA( i2(1,0),  1.06666, .0001 );
+    TS_ASSERT_DELTA( i2(1,1), -0.86666, .0001 );
+    TS_ASSERT_DELTA( i2(1,2), -0.4,     .0001 );
+    TS_ASSERT_DELTA( i2(2,0), -0.2,     .0001 );
+    TS_ASSERT_DELTA( i2(2,1), -0.4,     .0001 );
+    TS_ASSERT_DELTA( i2(2,2),  0.2,     .0001 );
   }
 
 }; // class TestMatrix

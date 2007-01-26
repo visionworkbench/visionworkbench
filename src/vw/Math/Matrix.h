@@ -49,13 +49,6 @@
 #ifndef __VW_MATH_MATRIX_H__
 #define __VW_MATH_MATRIX_H__
 
-#include <boost/numeric/ublas/matrix.hpp>
-#include <boost/numeric/ublas/matrix_proxy.hpp>
-#include <boost/numeric/ublas/io.hpp>
-#include <boost/numeric/ublas/vector_proxy.hpp>
-#include <boost/numeric/ublas/triangular.hpp>
-#include <boost/numeric/ublas/operation.hpp> // Needed explicitly for BOOST 1.32
-#include <boost/numeric/ublas/lu.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/mpl/if.hpp>
 #include <boost/utility/result_of.hpp>
@@ -65,8 +58,6 @@
 
 namespace vw {
 namespace math {
-
-  namespace bnu = boost::numeric::ublas;
 
   /// A type function to compute the number of rows of a matrix
   /// expression at compile time (or zero for dynamically-sized
@@ -84,6 +75,9 @@ namespace math {
     const static int value = 0;
   };
 
+
+  template <class MatrixT> class MatrixRow;
+  template <class MatrixT> class MatrixCol;
 
   // *******************************************************************
   // class MatrixBase<MatrixT>
@@ -127,6 +121,16 @@ namespace math {
       return impl() = impl() / s;
     }
 
+    /// Access an individual matrix row, for further access using a second operator[].
+    MatrixRow<MatrixT> operator[]( unsigned row ) {
+      return MatrixRow<MatrixT>( impl(), row );
+    }
+
+    /// Access an individual matrix row, for further access using a second operator[].
+    MatrixRow<const MatrixT> operator[]( unsigned row ) const {
+      return MatrixRow<const MatrixT>( impl(), row );
+    }
+
     /// Set the matrix to the identity matrix with the same dimensions.
     void set_identity() {
       VW_ASSERT( impl().rows()==impl().cols(), LogicErr() << "Only square matrices can be identity matrices." );
@@ -142,20 +146,6 @@ namespace math {
       set_identity();
     }
 
-  protected:
-    /// Okay, this is pretty clearly the wrong place for this, but
-    /// here it is for now.
-    template<class MT>
-    static inline bnu::matrix<typename MT::value_type> bnu_matrix_inverse( bnu::matrix_expression<MT> const& m ) {
-      typedef typename MT::value_type value_type;
-      unsigned size = m().size1();
-      bnu::matrix<value_type> buf( m() );
-      bnu::permutation_matrix<unsigned> pm(size);
-      lu_factorize(buf,pm);
-      bnu::matrix<value_type> inverse = bnu::identity_matrix<value_type>(size);
-      lu_substitute(buf, pm, inverse);
-      return inverse;
-    }
   };
 
 
@@ -239,7 +229,7 @@ namespace math {
   template <class ElemT, int RowsN=0, int ColsN=0>
   class Matrix : public MatrixBase<Matrix<ElemT,RowsN,ColsN> >
   {
-    typedef bnu::matrix<ElemT,bnu::row_major,FixedArray<ElemT,RowsN*ColsN> > core_type;
+    typedef boost::array<ElemT,RowsN*ColsN> core_type;
     core_type core_;
   public:
     typedef ElemT value_type;
@@ -247,16 +237,16 @@ namespace math {
     typedef ElemT& reference_type;
     typedef ElemT const& const_reference_type;
 
-    typedef ElemT* iterator;
-    typedef ElemT const* const_iterator;
+    typedef typename core_type::iterator iterator;
+    typedef typename core_type::const_iterator const_iterator;
 
     /// Constructs a matrix of zeroes.
-    Matrix() : core_(RowsN,ColsN) {
-      core_.clear();
+    Matrix() {
+      memset( core_.c_array(), 0, RowsN*ColsN*sizeof(ElemT) );
     }
 
     /// Constructs a matrix whose first element is as given.
-    Matrix( ElemT e1 ) : core_(RowsN,ColsN) {
+    Matrix( ElemT e1 ) {
       BOOST_STATIC_ASSERT( RowsN*ColsN >= 1 );
       iterator i=begin();
       *(i++)=e1;
@@ -264,7 +254,7 @@ namespace math {
     }
 
     /// Constructs a matrix whose first two elements are as given.
-    Matrix( ElemT e1, ElemT e2 ) : core_(RowsN,ColsN) {
+    Matrix( ElemT e1, ElemT e2 ) {
       BOOST_STATIC_ASSERT( RowsN*ColsN >= 2 );
       iterator i=begin();
       *(i++)=e1; *(i++)=e2;
@@ -272,7 +262,7 @@ namespace math {
     }
 
     /// Constructs a matrix whose first three elements are as given.
-    Matrix( ElemT e1, ElemT e2, ElemT e3 ) : core_(RowsN,ColsN) {
+    Matrix( ElemT e1, ElemT e2, ElemT e3 ) {
       BOOST_STATIC_ASSERT( RowsN*ColsN >= 3 );
       iterator i=begin();
       *(i++)=e1; *(i++)=e2; *(i++)=e3;
@@ -280,7 +270,7 @@ namespace math {
     }
 
     /// Constructs a matrix whose first four elements are as given.
-    Matrix( ElemT e1, ElemT e2, ElemT e3, ElemT e4 ) : core_(RowsN,ColsN) {
+    Matrix( ElemT e1, ElemT e2, ElemT e3, ElemT e4 ) {
       BOOST_STATIC_ASSERT( RowsN*ColsN >= 4 );
       iterator i=begin();
       *(i++)=e1; *(i++)=e2; *(i++)=e3; *(i++)=e4;
@@ -290,8 +280,8 @@ namespace math {
     /// Constructs a matrix from given densely-packed row-mjor data.
     /// This constructor copies the data.  If you wish to make a
     /// shallow proxy object instead, see vw::MatrixProxy.
-    Matrix( const ElemT data[RowsN*ColsN] ) : core_(RowsN,ColsN) {
-      std::copy( data, data+RowsN*ColsN, core_.data().begin() );
+    Matrix( const ElemT data[RowsN*ColsN] ) {
+      std::copy( data, data+RowsN*ColsN, core_.begin() );
     }
 
     /// Standard copy constructor.
@@ -299,16 +289,9 @@ namespace math {
 
     /// Generalized copy constructor, from arbitrary VW matrix expressions.
     template <class T>
-    Matrix( MatrixBase<T> const& m ) : core_(RowsN,ColsN) {
+    Matrix( MatrixBase<T> const& m ) {
       VW_ASSERT( m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
       std::copy( m.impl().begin(), m.impl().end(), begin() );
-    }
-
-    /// Generalized copy constructor, from arbitrary uBLAS matrix expressions.
-    template <class T>
-    Matrix( bnu::matrix_expression<T> const& m ) : core_(RowsN,ColsN) {
-      VW_ASSERT( m().size1()==RowsN && m().size2()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
-      core_.assign(m);
     }
 
     /// Standard copy assignment operator.
@@ -322,14 +305,6 @@ namespace math {
     Matrix& operator=( MatrixBase<T> const& m ) { 
       VW_ASSERT( m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
       std::copy( m.impl().begin(), m.impl().end(), begin() );
-      return *this;
-    }
-
-    /// Generalized assignment operator, from arbitrary uBLAS matrix expressions.
-    template <class T>
-    Matrix& operator=( bnu::matrix_expression<T> const& m ) { 
-      VW_ASSERT( m().size1()==RowsN && m().size2()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
-      core_.assign( m );
       return *this;
     }
 
@@ -347,22 +322,12 @@ namespace math {
 
     /// Access an element
     value_type& operator()( unsigned row, unsigned col ) {
-      return core_(row,col);
+      return core_[row*ColsN+col];
     }
 
     /// Access an element
     value_type const& operator()( unsigned row, unsigned col ) const {
-      return core_(row,col);
-    }
-
-    /// Access an individual matrix row, for further access using a second operator[].
-    bnu::matrix_row<core_type> operator[]( unsigned row ) {
-      return bnu::matrix_row<core_type>( core_, row );
-    }
-
-    /// Access an individual matrix row, for further access using a second operator[].
-    bnu::matrix_row<const core_type> operator[]( unsigned row ) const {
-      return bnu::matrix_row<const core_type>( core_, row );
+      return core_[row*ColsN+col];
     }
 
     value_type *data() {
@@ -374,24 +339,21 @@ namespace math {
     }
 
     iterator begin() { 
-      return &(core_(0,0));
+      return core_.begin();
     }
 
     const_iterator begin() const { 
-      return &(core_(0,0));
+      return core_.begin();
     }
 
     iterator end() {
-      return &(core_(0,0)) + RowsN*ColsN;
+      return core_.end();
     }
 
     const_iterator end() const {
-      return &(core_(0,0)) + RowsN*ColsN;
+      return core_.end();
     }
 
-    Matrix inverse() const {
-      return bnu_matrix_inverse( core_ );
-    }
   };
 
   template <class ElemT, int RowsN, int ColsN>
@@ -413,49 +375,47 @@ namespace math {
   /// An arbitrary-dimension mathematical matrix class.
   template <class ElemT>
   class Matrix<ElemT,0,0> : public MatrixBase<Matrix<ElemT> > {
-    typedef bnu::matrix<ElemT> core_type;
+    typedef std::vector<ElemT> core_type;
     core_type core_;
-    friend class MatrixImplementation;
+    size_t m_rows, m_cols;
   public:
     typedef ElemT value_type;
 
     typedef ElemT& reference_type;
     typedef ElemT const& const_reference_type;
 
-    typedef ElemT* iterator;
-    typedef ElemT const* const_iterator;
+    typedef typename core_type::iterator iterator;
+    typedef typename core_type::const_iterator const_iterator;
 
     /// Constructs a matrix with zero size.
-    Matrix() {}
+    Matrix() : m_rows(0), m_cols(0) {}
 
     /// Constructs a zero matrix of the given size.
-    Matrix( unsigned rows, unsigned cols ) : core_(rows,cols) {
-      core_.clear();
-    }
+    Matrix( unsigned rows, unsigned cols )
+      : core_(rows*cols), m_rows(rows), m_cols(cols) {}
 
     /// Constructs a matrix of the given size from given
     /// densely-packed row-mjor data.  This constructor copies the
     /// data.  If you wish to make a shallow proxy object instead, 
     /// see vw::MatrixProxy.
-    Matrix( unsigned rows, unsigned cols, const ElemT *data ) : core_(rows,cols) {
-      std::copy( data, data+rows*cols, core_.data().begin() );
-    }
+    Matrix( unsigned rows, unsigned cols, const ElemT *data )
+      : core_(data,data+rows*cols), m_rows(rows), m_cols(cols) {}
 
     /// Standard copy constructor.
-    Matrix( Matrix const& m ) : core_( m.core_ ) {}
+    // FIXME Do we really need this?
+    Matrix( Matrix const& m )
+      : core_(m.core_), m_rows(m.m_rows), m_cols(m.m_cols) {}
 
     /// Generalized copy constructor, from arbitrary VW matrix expressions.
     template <class T>
-    Matrix( MatrixBase<T> const& m ) : core_(m.impl().rows(),m.impl().cols()) {
-      std::copy( m.impl().begin(), m.impl().end(), begin() );
-    }
-
-    /// Generalized copy constructor, from arbitrary uBLAS matrix expressions.
-    template <class T>
-    Matrix( bnu::matrix_expression<T> const& m ) : core_(m) {}
+    Matrix( MatrixBase<T> const& m )
+      : core_(m.impl().begin(),m.impl().end()), m_rows(m.impl().rows()), m_cols(m.impl().cols()) {}
 
     /// Standard copy assignment operator.
     Matrix& operator=( Matrix const& m ) {
+      // FIXME Is this function really explicitly needed?
+      m_rows = m.m_rows;
+      m_cols = m.m_cols;
       core_ = m.core_;
       return *this;
     }
@@ -468,42 +428,41 @@ namespace math {
       return *this;
     }
 
-    /// Generalized assignment operator, from arbitrary uBLAS matrix expressions.
-    template <class T>
-    Matrix& operator=( bnu::matrix_expression<T> const& m ) {
-      core_ = m;
-      return *this;
-    } 
-
     /// Returns the number of rows in the matrix.
-    unsigned rows() const { return core_.size1(); }
+    unsigned rows() const { return m_rows; }
 
     /// Returns the number of columns in the matrix.
-    unsigned cols() const { return core_.size2(); }
+    unsigned cols() const { return m_cols; }
 
     /// Change the size of the matrix.  Elements in memory are preserved when specified.
-    void set_size( unsigned new_rows, unsigned new_cols, bool preserve = false ) {
-      core_.resize(new_rows, new_cols, preserve);
+    void set_size( size_t rows, size_t cols, bool preserve = false ) {
+      if( preserve ) {
+        std::vector<ElemT> other(rows*cols);
+        size_t mr = (std::min)(rows,m_rows);
+        size_t mc = (std::min)(cols,m_cols);
+        for( size_t r=0; r<mr; ++r )
+          for( size_t c=0; c<mc; ++c )
+            other[r*cols+c] = core_[r*m_cols+c];
+        core_.swap( other );
+      }
+      else {
+        // FIXME This neither zeroes the matrix nor leaves it alone: 
+        // it zeroes the top part of memory, which is not terribly 
+        // useful behavior.  What should we do here?
+        core_.resize(rows*cols);
+      }
+      m_rows = rows;
+      m_cols = cols;
     }
 
     /// Access an element
     value_type& operator()( unsigned row, unsigned col ) {
-      return core_(row,col);
+      return core_[row*m_cols+col];
     }
 
     /// Access an element
     value_type const& operator()( unsigned row, unsigned col ) const {
-      return core_(row,col);
-    }
-
-    /// Access an individual matrix row, for further access using a second operator[].
-    bnu::matrix_row<core_type> operator[]( unsigned row ) {
-      return bnu::matrix_row<core_type>( core_, row );
-    }
-
-    /// Access an individual matrix row, for further access using a second operator[].
-    bnu::matrix_row<const core_type> operator[]( unsigned row ) const {
-      return bnu::matrix_row<const core_type>( core_, row );
+      return core_[row*m_cols+col];
     }
 
     value_type *data() {
@@ -515,24 +474,21 @@ namespace math {
     }
 
     iterator begin() { 
-      return &(core_(0,0));
+      return core_.begin();
     }
 
     const_iterator begin() const { 
-      return &(core_(0,0));
+      return core_.begin();
     }
 
     iterator end() {
-      return &(core_(0,0)) + rows()*cols();
+      return core_.end();
     }
 
     const_iterator end() const {
-      return &(core_(0,0)) + rows()*cols();
+      return core_.end();
     }
 
-    Matrix inverse() const {
-      return bnu_matrix_inverse( core_ );
-    }
   };
 
 
@@ -547,7 +503,6 @@ namespace math {
   class MatrixProxy : public MatrixBase<MatrixProxy<ElemT,RowsN,ColsN> >
   {
     ElemT *m_ptr;
-    friend class MatrixImplementation;
   public:
     typedef ElemT value_type;
 
@@ -578,16 +533,6 @@ namespace math {
       std::copy( m.impl().begin(), m.impl().end(), begin() );
       return *this;
     }
-
-    /// Generalized assignment operator, from arbitrary uBLAS matrix expressions.
-    template <class T>
-    MatrixProxy& operator=( bnu::matrix_expression<T> const& m ) {
-      VW_ASSERT( m.impl().size1()==rows() && m.impl().size2()==cols(),
-                 ArgumentErr() << "Matrix must have dimensions " << rows() 
-                 << "x" << cols() << " in matrix proxy assignment." );
-      std::copy( m.begin(), m.end(), begin() );
-      return *this;
-    } 
 
     /// Returns the number of rows in the matrix.
     unsigned rows() const { return RowsN; }
@@ -660,7 +605,6 @@ namespace math {
   class MatrixProxy<ElemT,0,0> : public MatrixBase<MatrixProxy<ElemT> > {
     ElemT *m_ptr;
     unsigned m_rows, m_cols;
-    friend class MatrixImplementation;
   public:
     typedef ElemT value_type;
 
@@ -696,16 +640,6 @@ namespace math {
       std::copy( m.impl().begin(), m.impl().end(), begin() );
       return *this;
     }
-
-    /// Generalized assignment operator, from arbitrary uBLAS matrix expressions.
-    template <class T>
-    MatrixProxy& operator=( bnu::matrix_expression<T> const& m ) {
-      VW_ASSERT( m.impl().size1()==rows() && m.impl().size2()==cols(),
-                 ArgumentErr() << "Matrix must have dimensions " << rows() 
-                 << "x" << cols() << " in matrix proxy assignment." );
-      std::copy( m.begin(), m.end(), begin() );
-      return *this;
-    } 
 
     /// Returns the number of rows in the matrix.
     unsigned rows() const { return m_rows; }
@@ -784,7 +718,6 @@ namespace math {
   template <class MatrixT>
   class MatrixTranspose : public MatrixBase<MatrixTranspose<MatrixT> > {
     MatrixT &m_matrix;
-    friend class MatrixImplementation;
 
   public:
     typedef typename MatrixT::value_type value_type;
@@ -940,6 +873,14 @@ namespace math {
       return m(row,i);
     }
 
+    reference_type operator[]( int i ) {
+      return m(row,i);
+    }
+
+    const_reference_type operator[]( int i ) const {
+      return m(row,i);
+    }
+
     iterator begin() {
       return m.begin() + row*m.cols();
     }
@@ -976,7 +917,7 @@ namespace math {
 
 
   // *******************************************************************
-  // class MatrixRow<MatrixT>
+  // class MatrixCol<MatrixT>
   // A matrix column class with vector semantics.
   // *******************************************************************
 
@@ -1999,8 +1940,66 @@ namespace math {
   /// Matrix inversion
   template <class MatrixT>
   inline Matrix<typename MatrixT::value_type> inverse( MatrixBase<MatrixT> const& m ) {
-    return eval(m.impl()).inverse();
+
+    typedef typename MatrixT::value_type value_type;
+    value_type zero = value_type();
+    unsigned size = m.impl().cols();
+    Matrix<value_type> buf = m;
+
+    // Initialize the permutation
+    Vector<unsigned> pm( size );
+    for ( unsigned i=0; i<size; ++i ) pm(i) = i;
+
+    // Perform LU decomposition with partial pivoting
+    for ( unsigned i=0; i<size; ++i) {
+      MatrixCol<Matrix<value_type> > mci(buf,i);
+      MatrixRow<Matrix<value_type> > mri(buf,i);
+      unsigned i_norm_inf = i + index_norm_inf( subvector(mci,i,size-i) );
+      if ( buf(i_norm_inf,i) == zero ) 
+        vw_throw( MathErr() << "Matrix is singular in inverse()" );
+      if ( i_norm_inf != i ) {
+        unsigned pbuf = pm(i);
+        pm(i) = pm(i_norm_inf);
+        pm(i_norm_inf) = pbuf;
+        Vector<value_type> rowbuf = mri;
+        mri = select_row(buf,i_norm_inf);
+        select_row(buf,i_norm_inf) = rowbuf;
+      }
+      subvector(mci,i+1,size-i-1) /= buf(i,i);
+      submatrix(buf, i+1, i+1, size-i-1, size-i-1) -= outer_prod( subvector(mci, i+1, size-i-1), subvector(mri,i+1,size-i-1) );
+    }
+
+    // Build up a permuted identity matrix
+    Matrix<value_type> inverse(size,size);
+    for ( unsigned i=0; i<size; ++i )
+      inverse(i,pm(i)) = value_type(1);
+
+    // Divide by the lower-triangular term
+    for ( unsigned i=0; i<size; ++i ) {
+      for ( unsigned j=0; j<size; ++j ) {
+        value_type t = inverse(i,j);
+        if ( t != zero ) {
+          for ( unsigned k=i+1; k<size; ++k ) {
+            inverse(k,j) -= buf(k,i) * t;
+          }
+        }
+      }
+    }
+
+    // Divide by the upper-triangular term
+    for ( int i=size-1; i>=0; --i ) {
+      for ( int j=size-1; j>=0; --j ) {
+        value_type t = inverse(i,j) /= buf(i,i);
+        if ( t != zero ) {
+          for ( int k=i-1; k>=0; --k )
+            inverse(k,j) -= buf(k,i) * t;
+        }
+      }
+    }
+
+    return inverse;
   }
+
 
 } // namespace math
 

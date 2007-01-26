@@ -249,6 +249,7 @@ public:
     TS_ASSERT_DELTA(norm_2(v), 2.44948, .0001);
     TS_ASSERT_EQUALS(norm_2_sqr(v), 6);
     TS_ASSERT_EQUALS(norm_inf(v), 2);
+    TS_ASSERT_EQUALS(index_norm_inf(v), 1);
 
     TS_ASSERT_EQUALS(sum(v),2);
     TS_ASSERT_EQUALS(prod(v),-2);

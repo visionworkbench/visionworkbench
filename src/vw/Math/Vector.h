@@ -52,14 +52,14 @@
 #ifndef __VW_MATH_VECTOR_H__
 #define __VW_MATH_VECTOR_H__
 
+#include <vector>
+
 #include <boost/utility/enable_if.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/mpl/if.hpp>
 #include <boost/static_assert.hpp>
 #include <boost/array.hpp>
 #include <boost/iterator/iterator_facade.hpp>
-#include <boost/numeric/ublas/vector.hpp>
-#include <boost/numeric/ublas/io.hpp>
 #include <boost/utility/result_of.hpp>
 
 #include <vw/Core/Exception.h>
@@ -68,23 +68,6 @@
 
 namespace vw {
 namespace math {
-
-  namespace bnu = boost::numeric::ublas;
-
-  /// \cond INTERNAL
-  // A wrapper around boost::array that provides a constructor taking 
-  // a size parameter, which the BOOST uBLAS containers expect to be 
-  // available.  With debugging disabled this whole thing should be 
-  // optimized out of existence.
-  template <class ElemT, int SizeN>
-  class FixedArray : public boost::array<ElemT,SizeN> {
-  public:
-    FixedArray() {}
-    FixedArray( unsigned size ) {
-      VW_ASSERT( size==SizeN, LogicErr() << "Internal size mismatch in FixedArray." );
-    }
-  };
-  /// \endcond
 
   /// A type function to compute the dimension of a vector expression 
   /// at compile time (or zero for dynamically-sized vectors).
@@ -148,7 +131,7 @@ namespace math {
   template <class ElemT, int SizeN = 0>
   class Vector : public VectorBase<Vector<ElemT,SizeN> >
   {
-    typedef bnu::vector<ElemT,FixedArray<ElemT,SizeN> > core_type;
+    typedef boost::array<ElemT,SizeN> core_type;
     core_type core_;
   public:
     typedef ElemT value_type;
@@ -156,37 +139,37 @@ namespace math {
     typedef ElemT& reference_type;
     typedef ElemT const& const_reference_type;
 
-    typedef ElemT* iterator;
-    typedef const ElemT* const_iterator;
+    typedef typename core_type::iterator iterator;
+    typedef typename core_type::const_iterator const_iterator;
 
     /// Constructs a vector of zeroes.
-    Vector() : core_(SizeN) {
-      core_.clear();
+    Vector() {
+      memset( core_.c_array(), 0, SizeN*sizeof(ElemT) );
     }
 
     /// Constructs a vector whose first element is as given.
-    Vector( ElemT e1 ) : core_(SizeN) {
+    Vector( ElemT e1 ) {
       BOOST_STATIC_ASSERT( SizeN >= 1 );
       (*this)[0] = e1;
       for( unsigned i=1; i<SizeN; ++i ) (*this)[i] = ElemT();
     }
 
     /// Constructs a vector whose first two elements are as given.
-    Vector( ElemT e1, ElemT e2 ) : core_(SizeN) {
+    Vector( ElemT e1, ElemT e2 ) {
       BOOST_STATIC_ASSERT( SizeN >= 2 );
       (*this)[0] = e1; (*this)[1] = e2;
       for( unsigned i=2; i<SizeN; ++i ) (*this)[i] = ElemT();
     }
 
     /// Constructs a vector whose first three elements are as given.
-    Vector( ElemT e1, ElemT e2, ElemT e3 ) : core_(SizeN) {
+    Vector( ElemT e1, ElemT e2, ElemT e3 ) {
       BOOST_STATIC_ASSERT( SizeN >= 3 );
       (*this)[0] = e1; (*this)[1] = e2; (*this)[2] = e3;
       for( unsigned i=3; i<SizeN; ++i ) (*this)[i] = ElemT();
     }
 
     /// Constructs a vector whose first four elements are as given.
-    Vector( ElemT e1, ElemT e2, ElemT e3, ElemT e4 ) : core_(SizeN) {
+    Vector( ElemT e1, ElemT e2, ElemT e3, ElemT e4 ) {
       BOOST_STATIC_ASSERT( SizeN >= 4 );
       (*this)[0] = e1; (*this)[1] = e2; (*this)[2] = e3; (*this)[3] = e4;
       for( unsigned i=4; i<SizeN; ++i ) (*this)[i] = ElemT();
@@ -195,7 +178,7 @@ namespace math {
     /// Constructs a vector from given densely-packed data.  This
     /// constructor copies the data.  If you wish to make a shallow
     /// proxy object instead, see vw::VectorProxy.
-    Vector( const ElemT data[SizeN] ) : core_(SizeN) {
+    Vector( const ElemT data[SizeN] ) {
       std::copy( data, data+SizeN, begin() );
     }
 
@@ -204,16 +187,9 @@ namespace math {
 
     /// Generalized copy constructor, from arbitrary VW vector expressions.
     template <class T>
-    Vector( VectorBase<T> const& v ) : core_(SizeN) { 
+    Vector( VectorBase<T> const& v ) { 
       VW_ASSERT( v.impl().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << "." );
       std::copy( v.impl().begin(), v.impl().end(), begin() );
-    }
-
-    /// Generalized copy constructor, from arbitrary uBLAS vector expressions.
-    template <class T>
-    Vector( bnu::vector_expression<T> const& v ) : core_(SizeN) {
-      VW_ASSERT( v().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << "." );
-      core_.assign(v);
     }
 
     /// Standard copy assignment operator.
@@ -227,14 +203,6 @@ namespace math {
     Vector& operator=( VectorBase<T> const& v ) { 
       VW_ASSERT( v.impl().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << "." );
       std::copy( v.impl().begin(), v.impl().end(), begin() );
-      return *this;
-    }
-
-    /// Generalized assignment operator, from arbitrary uBLAS vector expressions.
-    template <class T>
-    Vector& operator=( bnu::vector_expression<T> const& v ) {
-      VW_ASSERT( v().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << "." );
-      core_.assign(v);
       return *this;
     }
 
@@ -295,19 +263,19 @@ namespace math {
     }
 
     iterator begin() { 
-      return &(core_(0));
+      return core_.begin();
     }
 
     const_iterator begin() const { 
-      return &(core_(0));
+      return core_.begin();
     }
 
     iterator end() {
-      return &(core_(0)) + SizeN;
+      return core_.end();
     }
 
     const_iterator end() const {
-      return &(core_(0)) + SizeN;
+      return core_.end();
     }
 
   };
@@ -326,7 +294,7 @@ namespace math {
   /// An arbitrary-dimension mathematical vector class.
   template <class ElemT>
   class Vector<ElemT,0> : public VectorBase<Vector<ElemT> > {
-    typedef bnu::vector<ElemT> core_type;
+    typedef std::vector<ElemT> core_type;
     core_type core_;
   public:
     typedef ElemT value_type;
@@ -334,24 +302,20 @@ namespace math {
     typedef ElemT& reference_type;
     typedef ElemT const& const_reference_type;
 
-    typedef ElemT* iterator;
-    typedef const ElemT* const_iterator;
+    typedef typename core_type::iterator iterator;
+    typedef typename core_type::const_iterator const_iterator;
 
     /// Constructs a vector with zero size.
     Vector() {}
 
     /// Constructs a zero vector of the given size.
-    Vector( unsigned size ) : core_(size) {
-      core_.clear();
-    }
+    Vector( unsigned size ) : core_(size) {}
 
     /// Constructs a vector of the given size from given
     /// densely- packed data.  This constructor copies the data.
     /// If you wish to make a shallow proxy object instead, see
     /// vw::VectorProxy.
-    Vector( unsigned size, const ElemT *data ) : core_(size) {
-      std::copy( data, data+size, begin() );
-    }
+    Vector( unsigned size, const ElemT *data ) : core_(data, data+size) {}
 
     /// Standard copy constructor.
     Vector( Vector const& v ) : core_( v.core_ ) {}
@@ -361,13 +325,6 @@ namespace math {
     Vector( VectorBase<T> const& v ) {
       set_size( v.impl().size() );
       std::copy( v.impl().begin(), v.impl().end(), begin() );
-    }
-
-    /// Generalized copy constructor, from arbitrary uBLAS vector expressions.
-    template <class T>
-    Vector( bnu::vector_expression<T> const& v ) {
-      set_size( v().size() );
-      core_.assign(v);
     }
 
     /// Standard copy assignment operator.
@@ -384,14 +341,6 @@ namespace math {
       return *this;
     }
 
-    /// Generalized assignment operator, from arbitrary uBLAS vector expressions.
-    template <class T>
-    Vector& operator=( bnu::vector_expression<T> const& v ) {
-      set_size( v().size() );
-      core_.assign(v);
-      return *this;
-    }
-
     /// Returns the size of the vector.
     unsigned size() const { 
       return core_.size();
@@ -399,7 +348,8 @@ namespace math {
 
     /// Change the size of the vector. Elements in memory are preserved when specified.
     void set_size( unsigned new_size, bool preserve = false ) {
-      core_.resize(new_size, preserve);
+      // FIXME Actually this always preserves existing elements
+      core_.resize(new_size);
     }
 
     reference_type operator()( unsigned i ) {
@@ -419,19 +369,19 @@ namespace math {
     }
 
     iterator begin() { 
-      return &(core_(0));
+      return core_.begin();
     }
 
     const_iterator begin() const { 
-      return &(core_(0));
+      return core_.begin();
     }
 
     iterator end() {
-      return &(core_(0)) + size();
+      return core_.end();
     }
 
     const_iterator end() const {
-      return &(core_(0)) + size();
+      return core_.end();
     }
 
   };
@@ -476,16 +426,6 @@ namespace math {
                  ArgumentErr() << "Vector must have dimension " 
                  << size() << " in vector proxy assignment." );
       std::copy( v.impl().begin(), v.impl().end(), begin() );
-      return *this;
-    }
-
-    /// Generalized assignment operator, from arbitrary uBLAS vector expressions.
-    template <class T>
-    VectorProxy& operator=( bnu::vector_expression<T> const& v ) {
-      VW_ASSERT( v().size()==size(), 
-                 ArgumentErr() << "Vector must have dimension " 
-                 << size() << " in vector proxy assignment." );
-      std::copy( v().begin(), v().end(), begin() );
       return *this;
     }
 
@@ -607,16 +547,6 @@ namespace math {
                  ArgumentErr() << "Vector must have dimension " 
                  << size() << " in vector proxy assignment." );
       std::copy( v.impl().begin(), v.impl().end(), begin() );
-      return *this;
-    }
-
-    /// Generalized assignment operator, from arbitrary uBLAS vector expressions.
-    template <class T>
-    VectorProxy& operator=( bnu::vector_expression<T> const& v ) {
-      VW_ASSERT( v().size()==size(), 
-                 ArgumentErr() << "Vector must have dimension " 
-                 << size() << " in vector proxy assignment." );
-      std::copy( v().begin(), v().end(), begin() );
       return *this;
     }
 
@@ -838,7 +768,7 @@ namespace math {
     }
 
     const_iterator begin() const {
-      return m_vector.begin() + m_pos;
+      return const_cast<VectorT const&>(m_vector).begin() + m_pos;
     }
 
     iterator end() {
@@ -846,7 +776,7 @@ namespace math {
     }
 
     const_iterator end() const {
-      return m_vector.begin() + m_pos + m_size;
+      return const_cast<VectorT const&>(m_vector).begin() + m_pos + m_size;
     }
 
   };
@@ -1470,6 +1400,22 @@ namespace math {
     for( ; i != end ; ++i ) {
       double a = fabs( *i );
       if( a > result ) result = a;
+    }
+    return result;
+  }
+
+  /// Index of the element with the largest magnitude
+  template <class VectorT>
+  inline unsigned index_norm_inf( VectorBase<VectorT> const& v ) {
+    double maxval = -1;
+    unsigned index=0, result=0;
+    typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
+    for( ; i != end ; ++i, ++index ) {
+      double a = fabs( *i );
+      if( a > maxval ) {
+        maxval = a;
+        result = index;
+      }
     }
     return result;
   }
