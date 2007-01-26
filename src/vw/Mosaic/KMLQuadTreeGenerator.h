@@ -41,6 +41,7 @@ namespace mosaic {
 
     BBox2 total_longlat_bbox;
     int max_lod_pixels;
+    int draw_order_offset;
     bool distributed_kml;
     std::string kml_title;
     mutable std::ostringstream root_node_tags;
@@ -73,7 +74,7 @@ namespace mosaic {
           << "    <name>" << name << "</name>\n"
           << "    <Icon><href>" << href << "</href></Icon>\n"
           << "    " << kml_latlonaltbox(bbox) << "\n"
-          << "    <drawOrder>" << draw_order << "</drawOrder>\n"
+          << "    <drawOrder>" << draw_order+draw_order_offset << "</drawOrder>\n"
           << "  </GroundOverlay>\n";
       return tag.str();
     }
@@ -100,11 +101,16 @@ namespace mosaic {
       : vw::mosaic::ImageQuadTreeGenerator<PixelT>( tree_name, source ),
         total_longlat_bbox( total_longlat_bbox ),
         max_lod_pixels( -1 ),
+        draw_order_offset( 0 ),
         distributed_kml( true )
     {}
     
     void set_max_lod_pixels( int pixels ) {
       max_lod_pixels = pixels;
+    }
+
+    void set_draw_order_offset( int offset ) {
+      draw_order_offset = offset;
     }
 
     void set_kml_title( std::string const& name ) {
