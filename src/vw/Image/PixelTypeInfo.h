@@ -126,6 +126,15 @@ namespace vw {
   // Core/CompoundTypes.h instead, but it's only used in the context
   // of pixel casting and mirrors channel_cast_rescale nicely, so we
   // leave it here.
+  //
+  // FIXME The _clamp version clamps to the min/max integer values of 
+  // the destination.  This function does not work at all for floating-
+  // point destination types, and the user might expect it to clamp to 
+  // the ChannelRange instead.  Probably the _clamp behavior should be 
+  // promoted to the default behavior for integer destination types. 
+  // Anyone who is relying on channel_cast's overvlow behavior probably 
+  // deserves to lose anyway.  At the moment the only thing using this 
+  // code is BicubicInterpolation.
   // *******************************************************************
 
   template <class DestT>
@@ -159,6 +168,26 @@ namespace vw {
   typename boost::disable_if< typename boost::is_base_of<ImageViewBase<PixelT>,PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
   inline channel_cast_rescale( PixelT pixel ) {
     return compound_apply( ChannelCastRescaleFunctor<ChannelT>(), pixel );
+  }
+
+  template <class DestT>
+  class ChannelCastClampFunctor : public ReturnFixedType<DestT> {
+  public:
+    template <class SourceT>
+    inline DestT operator()( SourceT source ) const {
+      if( source > boost::integer_traits<DestT>::max() ) return boost::integer_traits<DestT>::max();
+      else if( source < boost::integer_traits<DestT>::min() ) return boost::integer_traits<DestT>::min();
+      else return DestT( source );
+    }
+    inline DestT operator()( DestT source ) const {
+      return source;
+    }
+  };
+
+  template <class ChannelT, class PixelT>
+  typename boost::disable_if< typename boost::is_base_of<ImageViewBase<PixelT>,PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
+  inline channel_cast_clamp( PixelT pixel ) {
+    return compound_apply( ChannelCastClampFunctor<ChannelT>(), pixel );
   }
 
 
