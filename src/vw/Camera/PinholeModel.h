@@ -82,9 +82,9 @@ namespace camera {
     Matrix<double,3,4> m_camera_matrix;
 
     // Stored for easy access.
-    Matrix<double,3,3> m_intrinsics;
-    Matrix<double,3,3> m_rotation;
     Vector3 m_camera_center;
+    Matrix<double,3,3> m_rotation;
+    Matrix<double,3,3> m_intrinsics;
     
     // Cached values for pixel_to_vector
     Vector3 m_camera_matrix_rightmost_row;
@@ -310,6 +310,7 @@ namespace camera {
     str << "\tCamera Center: " << model.camera_center() << "\n";
     str << "\tRotation Matrix: " << model.camera_pose() << "\n";
     str << "\tIntrinsic Matrix: " << model.intrinsic_matrix() << "\n";
+    return str;
   }
 
 }}	// namespace vw::camera
