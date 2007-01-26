@@ -106,7 +106,7 @@ namespace math {
       // Note -- this is probably not the most memory efficient way to
       // generate vectors from the identity matrix...
       vw::Matrix<double> identity = identity_matrix(seed.size());
-      for (int i= 1; i < seed.size()+1; ++i) {
+      for (unsigned i= 1; i < seed.size()+1; ++i) {
         DomainT vertex = seed + scales[i-1] * select_col(identity, i-1);
         insert_vertex( vertex_type(vertex, m_func(vertex)) ); 
       }
@@ -210,7 +210,7 @@ namespace math {
     // Restart the simplex several times -- this prevents false
     // termination, which can happend from time to time if the simplex
     // gets stuck.
-    int iterations;
+    int iterations = 0;
     for (int i=0; i < restarts; ++i) {
       iterations = 0;
       Simplex<FuncT, DomainT> simplex(func, result, scale);
