@@ -1,0 +1,66 @@
+\chapter{A Vision Workbench Cookbook}\label{ch:cookbook}
+
+This chapter provides simple bite-sized examples of how to use the 
+Vision Workbench to perform a range of common tasks.
+
+\vfill\eject
+\section{Removing Camera Lens Distortion}\label{sec:cookbook.distortion}
+All digital camera systems introduce some amount of distortion in the 
+image.  In some high-precision cameras this distortion may be very small, 
+while in other such as those with fisheye lenses it may be very large.  
+In either case removing camera lens distortion is the first step in many 
+image processing algorithms.  The idea is to transform the image so that 
+it looks as if it were taken with a perfect pinhole camera.  The resulting 
+image is usually called either ``linearized'', ``undistorted'', or ``rectified''.
+
+First you must create a camera model object, such as a \verb#PinholeModel# or 
+\verb#CAHVORModel#, containing a reasonably accurate model of your camera.
+(Computing one if you don't have one already is another topic altogether.) 
+Then you can simply compute the linearized image like this.
+\begin{verbatim}
+  result = linearize_camera_transform( image, camera_model );
+\end{verbatim}
+This function is declared in the header \verb#<vw/Camera/CameraTransform.h># 
+and located in the \verb#vw::camera# namespace.  By default it uses 
+the usual default edge extension and interpolation modes, which may not 
+be best depending on your needs.  Often you will get better linearization 
+results by overriding those defaults using the optional arguments.
+\begin{verbatim}
+  result = linearize_camera_transform( image, camera_model,
+                                ConstantEdgeExtension(), BicubicInterpolation() );
+\end{verbatim}
+
+In many cases you would also like to know the linearized camera model that the 
+linearized image corresponds to.  You can compute it directly using the 
+\verb#linearize_camera# function.
+\begin{verbatim}
+  linearized_model = linearize_camera( camera_model, image.cols(), image.rows() );
+\end{verbatim}
+The linearization function needs to know the image dimensions so that
+it can select the linearized model that best fits the distorted model
+over the given range.  If you do use that function to compute the
+linearized model in advance, or if you want to specify an alternate
+linearized camera model of your own, then you should use the more general 
+camera transformation function.
+\begin{verbatim}
+  result = camera_transform( image, camera_model, linearized_model );
+\end{verbatim}
+This function allows you to transform images between any two concentric 
+camera models; undistorting an image is just a special case.  You can again 
+override the default edge extension and interpolation settings if you wish.
+
+Finally, if you require an even greater degree of control you can
+achieve it by manually creating a \verb#CameraTransform# object and
+appying it to the source image directly using the regular
+\verb#transform# function.  This is in fact exactly what happens inside 
+the convenience functions described above.  Here is a simple example, 
+assuming the CARHVOR camera model.
+\begin{verbatim}
+  CAHVORModel cahvor( "my_camera_model.cahvor" );
+  CAHVModel cahv = linearize_camera( cahvor, image.cols(), image.rows() );
+  CameraTransform<CAHVORModel,CAHVModel> ctx( cahvor, cahv );
+  result = transform( image, ctx );
+\end{verbatim}
+You might choose to do it this way if you want to compose the camera
+transform with another transform in a single step for efficiency, 
+for example.

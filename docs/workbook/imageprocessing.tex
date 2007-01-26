@@ -92,8 +92,10 @@ a smoothing operation (e.g. via \verb#gaussian_filter()#) first.
 \begin{table}[t]\begin{centering}
 \begin{tabular}{|c|l|l|} \hline
 Type & Description \\ \hline \hline
-\verb#ConstantEdgeExtend# & Assume constant (i.e. nearest-neighbor) edge extension \\ \hline
-\verb#ZeroEdgeExtend# & Assume zero-value edge extension \\ \hline
+\verb#ConstantEdgeExtension# & Extends an image with constant (i.e. nearest-neighbor) values \\ \hline
+\verb#ZeroEdgeExtension# & Extends an image with a zero value in all directions \\ \hline
+\verb#ReflectEdgeExtension# & Extends an image by reflecting across its edges \\ \hline
+\verb#PeriodicEdgeExtension# & Extends an image by repeating it periodically \\ \hline
 \end{tabular}
 \caption{The edge extension modes.}
 \label{tbl:edge-extension-modes}
@@ -111,8 +113,8 @@ alternative edge extension mode if you wish, by passing
 an extra argument to the filters.  The C++ type of the 
 argument determines the edge extension mode used.  
 \begin{verbatim}
-  result = gaussian_filter( image, 3.0, ConstantEdgeExtend() );
-  result = gaussian_filter( image, 3.0, ZeroEdgeExtend() );
+  result = gaussian_filter( image, 3.0, ConstantEdgeExtension() );
+  result = gaussian_filter( image, 3.0, ZeroEdgeExtension() );
 \end{verbatim}
 Both of these examples filter the source image using a 
 standard deviation of three pixels and an automatically-chosen 
@@ -786,14 +788,14 @@ identical fashion.
 \begin{verbatim} 
   result_image = translate(input_image, 
                            u_translation, v_translation, 
-                           ConstantEdgeExtend());
+                           ConstantEdgeExtension());
 \end{verbatim}
 
 In this example, the left 100x240 block of \verb#result_image# will contain
 the ``smeared out'' pixels from the left side of the input image.  Of
 course, this is probably not what you wanted, so the default behavior
 edge extension behavior for \verb#translate()# is set to
-\verb#ZeroEdgeExtend()#.
+\verb#ZeroEdgeExtension()#.
 
 One final point before we move on to talking about image
 transformations more generally.  Consider this block of code:
@@ -802,7 +804,7 @@ transformations more generally.  Consider this block of code:
   double u_transformations = 100.5;
   double v_transformation = 30.7;
   result_image = translate(input_image, u_translation, v_translation, 
-                           ConstantEdgeExtend(), BicubicInterpolation());
+                           ConstantEdgeExtension(), BicubicInterpolation());
 \end{verbatim}
 
 Here, the image is translated by a non-integer number of pixels.  This
