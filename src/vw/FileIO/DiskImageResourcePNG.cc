@@ -278,32 +278,51 @@ namespace vw {
         else channels = 3;
       }
 
-      std::vector<uint8> buffer(m_format.cols*m_format.rows*channels*Bpp);
-
-      src.format = m_format;
-      src.data = &buffer[0];
-      src.cstride = Bpp*channels;
-      src.rstride = m_format.cols*Bpp*channels;
-      src.pstride = m_format.rows*m_format.cols*Bpp*channels;
-      src.unpremultiplied = true;
-      
-      std::vector<png_bytep> row_pointers( m_format.rows );
-      for ( unsigned i=0; i<m_format.rows; ++i )
-        row_pointers[i] = (png_bytep)(src.data) + i*src.rstride;
-
-      src.format.cols = bbox.width();
-      src.format.rows = bbox.height();
-      src.data = (uint8*)(src.data) + bbox.min().x()*src.cstride + bbox.min().y()*src.rstride;
-
       // This is a terrible hack for detecting little-endian architectures.
       if ( m_format.channel_type==VW_CHANNEL_UINT16 ) {
         uint16 x = 1;
         if ( *(uint8*)&x == 1 ) png_set_swap( png_ptr );
       }
 
-      png_read_image( png_ptr, &row_pointers[0] );
+      src.format = m_format;
+      src.cstride = Bpp*channels;
+      src.rstride = m_format.cols*Bpp*channels;
+      src.pstride = m_format.rows*m_format.cols*Bpp*channels;
+      src.unpremultiplied = true;
+      src.format.cols = bbox.width();
 
-      convert( dest, src );
+      if( png_get_interlace_type( png_ptr, info_ptr ) != PNG_INTERLACE_NONE || 
+          m_format.cols * m_format.rows * channels * Bpp < (2<<20) ) {
+        // Handle interlaced and small images all at once.
+        std::vector<uint8> buffer(m_format.cols*m_format.rows*channels*Bpp);
+        src.data = &buffer[0] + bbox.min().x()*src.cstride + bbox.min().y()*src.rstride;
+        src.format.rows = bbox.height();
+        std::vector<png_bytep> row_pointers( m_format.rows );
+        for ( unsigned i=0; i<m_format.rows; ++i )
+          row_pointers[i] = (png_bytep)(&buffer[0]) + i*src.rstride;
+        png_read_image( png_ptr, &row_pointers[0] );
+        convert( dest, src );
+      }
+      else {
+        // Handle large non-interlaced images one row at a time.
+        // FIXME We should really do multiple rows at a time if 
+        // there are few columns, to avoid overhead in convert().
+        std::vector<uint8> buffer(m_format.cols*channels*Bpp);
+        src.data = &buffer[0] + bbox.min().x()*src.cstride;
+        src.format.rows = 1;
+        GenericImageBuffer dest_row = dest;
+        dest_row.format.rows = 1;
+        for( int row=0; row<bbox.min().y(); ++row ) {
+          // Skip un-needed rows...
+          png_read_row( png_ptr, &buffer[0], 0 );
+        }
+        for( int row=0; row<bbox.height(); ++row ) {
+          png_read_row( png_ptr, &buffer[0], 0 );
+          convert( dest_row, src );
+          dest_row.data = (uint8*)dest_row.data + dest_row.rstride;
+        }
+      }
+
       read_cleanup( png_ptr, info_ptr, end_ptr );
     }
 
