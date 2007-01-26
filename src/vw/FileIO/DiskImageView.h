@@ -158,6 +158,8 @@ namespace vw {
     
     /// Returns the pixel at the given position in the given plane.
     result_type operator()( unsigned x, unsigned y, unsigned plane=1 ) const {
+      if( ! m_enable_cache )
+        vw_throw( LogicErr() << "Non-cacheing DiskImageViews do not support per-pixel access" );
       int ix = x/m_block_size.x(), iy = y/m_block_size.y();
       return m_block_table[std::make_pair(ix,iy)]->operator()( x-ix*m_block_size.x(), y - iy*m_block_size.y() );
     }
