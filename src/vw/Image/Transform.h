@@ -33,6 +33,7 @@
 #define __VW_IMAGE_TRANSFORM_H__
 
 // Vision Workbench
+#include <vw/Core/Debugging.h>
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/Interpolation.h>
 #include <vw/Image/Manipulation.h>
@@ -427,12 +428,12 @@ namespace vw {
     // If the image bounding box is too large or too small, print a
     // warning message.
     if ( (bbox.width() * bbox.height()) < min_image_size ) {
-      std::cout << "Warning: The transformed image exceeds the minimum (" << min_image_size << ") \n"
-                << "         recommended image dimension in compute_transformed_bbox().\n";
+      vw_out(WarningMessage) << "Warning: The transformed image exceeds the minimum (" << min_image_size << ") \n"
+                             << "         recommended image dimension in compute_transformed_bbox().\n";
     }
     if ( (bbox.width() * bbox.height()) > max_image_size ) {
-      std::cout << "Warning: The transformed image exceeds the maximum (" << max_image_size << ") \n"
-                << "         recommended image dimension in compute_transformed_bbox().\n";
+      vw_out(WarningMessage) << "Warning: The transformed image exceeds the maximum (" << max_image_size << ") \n"
+                             << "         recommended image dimension in compute_transformed_bbox().\n";
     }
     return bbox;
   }
@@ -481,12 +482,12 @@ namespace vw {
     // back and set the size of the output image to the size of the
     // input image and print a warning message.
     if ( (bbox.width() * bbox.height()) < min_image_size ) {
-      std::cout << "Warning: The transformed image exceeds the minimum (" << min_image_size << ") \n"
-                << "         recommended image dimension in compute_transformed_bbox_fast().\n";
+      vw_out(WarningMessage) << "Warning: The transformed image exceeds the minimum (" << min_image_size << ") \n"
+                             << "         recommended image dimension in compute_transformed_bbox_fast().\n";
     }
     if ( (bbox.width() * bbox.height()) > max_image_size ) {
-      std::cout << "Warning: The transformed image exceeds the maximum (" << max_image_size << ") \n"
-                << "         recommended image dimension in compute_transformed_bbox_fast().\n";
+      vw_out(WarningMessage) << "Warning: The transformed image exceeds the maximum (" << max_image_size << ") \n"
+                             << "         recommended image dimension in compute_transformed_bbox_fast().\n";
     }
     return bbox;
   }
@@ -677,7 +678,7 @@ namespace vw {
   inline resample( ImageViewBase<ImageT> const& v, double scale_factor, 
                    EdgeT const& edge_func, InterpT const& interp_func) {
     return transform(v, ResampleTransform(scale_factor, scale_factor), 
-                     int(round(v.impl().cols()/scale_factor)), int(round(v.impl().rows()*scale_factor)),
+                     int(round(v.impl().cols()*scale_factor)), int(round(v.impl().rows()*scale_factor)),
                      edge_func, interp_func);
   }
 
