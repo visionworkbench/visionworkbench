@@ -129,6 +129,20 @@ namespace mosaic {
       }
     };
     
+    class GrassfireGenerator {
+      ImageViewRef<pixel_type> m_source;
+    public:
+      typedef ImageView<float32> value_type;
+      GrassfireGenerator( ImageViewRef<pixel_type> const& source ) : m_source(source) {}
+      size_t size() const {
+        return m_source.cols() * m_source.rows() * sizeof(float32);
+      }
+      boost::shared_ptr<value_type> generate() const {
+        ImageView<float32> alpha = channel_cast<float32>( select_alpha_channel( copy( m_source ) ) );
+        return boost::shared_ptr<value_type>( new value_type( grassfire( alpha ) ) );
+      }
+    };
+
     class AlphaGenerator {
     public:
       ImageComposite& m_composite;
@@ -234,39 +248,33 @@ namespace mosaic {
 } // namespace mosaic
 } // namespace vw
 
+
 template <class PixelT>
 void vw::mosaic::ImageComposite<PixelT>::generate_masks() const {
   vw_out(InfoMessage) << "Generating masks..." << std::endl;
-  std::vector<boost::shared_ptr<ImageView<channel_type> > > grassfire_im( sources.size() );
+  std::vector<Cache::Handle<GrassfireGenerator> > grassfires;
+  for( unsigned i=0; i<sources.size(); ++i )
+    grassfires.push_back( m_cache.insert( GrassfireGenerator( sourcerefs[i] ) ) );
   for( unsigned p1=0; p1<sources.size(); ++p1 ) {
-    if( ! grassfire_im[p1] ) {
-      ImageView<pixel_type> image = *sources[p1];
-      grassfire_im[p1].reset( new ImageView<channel_type>( grassfire( select_alpha_channel( image ) ) ) );
-    }
-    ImageView<channel_type> mask = copy( *grassfire_im[p1] );
+    ImageView<float> mask = copy( *(grassfires[p1]) );
     for( unsigned p2=0; p2<sources.size(); ++p2 ) {
       if( p1 == p2 ) continue;
       int ox = bboxes[p2].min().x() - bboxes[p1].min().x();
       int oy = bboxes[p2].max().y() - bboxes[p1].max().y();
-      if( ox >= bboxes[p1].width() ||
-          oy >= bboxes[p1].height() ||
-          -ox >= bboxes[p2].width() ||
-          -oy >= bboxes[p2].height() ) {
-        grassfire_im[p2].reset();
-      }
-      else {
-        if( ! grassfire_im[p2] ) {
-          ImageView<pixel_type> image = *sources[p2];
-          grassfire_im[p2].reset( new ImageView<channel_type>( grassfire( select_alpha_channel( image ) ) ) );
-        }
+      if( ! ( ox >= bboxes[p1].width() ||
+              oy >= bboxes[p1].height() ||
+              -ox >= bboxes[p2].width() ||
+              -oy >= bboxes[p2].height() ) )
+      {
+        ImageView<float> other = *grassfires[p2];
         int left = std::max( ox, 0 );
         int top = std::max( oy, 0 );
         int right = std::min( bboxes[p2].width()+ox, bboxes[p1].width() );
         int bottom = std::min( bboxes[p2].height()+oy, bboxes[p1].height() );
         for( int j=top; j<bottom; ++j ) {
           for( int i=left; i<right; ++i ) {
-            if( ( (*grassfire_im[p2])(i-ox,j-oy) > mask(i,j) ) ||
-                ( (*grassfire_im[p2])(i-ox,j-oy) == mask(i,j) && p2 > p1 ) )
+            if( ( other(i-ox,j-oy) > mask(i,j) ) ||
+                ( other(i-ox,j-oy) == mask(i,j) && p2 > p1 ) )
               mask(i,j) = 0;
           }
         }
