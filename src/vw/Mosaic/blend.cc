@@ -42,6 +42,7 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
 #include <vw/Core/Debugging.h>
+#include <vw/Image/BlockRasterize.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Mosaic/QuadTreeGenerator.h>
 #include <vw/Mosaic/ImageComposite.h>
@@ -87,7 +88,7 @@ void do_blend( std::string const& mosaic_name, std::string const& file_type, boo
   }
   else {
     vw::vw_out(vw::InfoMessage) << "Blending..." << std::endl;
-    vw::ImageView<PixelT> im = composite;
+    vw::ImageView<PixelT> im = block_rasterize( composite );
     write_image( mosaic_name+".blend."+file_type, im );
     vw::vw_out(vw::InfoMessage) << "Done!" << std::endl;
   }
