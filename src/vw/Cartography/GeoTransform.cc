@@ -180,8 +180,8 @@ namespace cartography {
     // Iterate over the image, transforming the first two coordinates
     // in the Vector one at a time.  The third coordinate is taken to
     // be the altitude value, and this value is not touched.
-    for (int j=0; j < point_image.rows(); ++j) {
-      for (int i=0; i < point_image.cols(); ++i) {
+    for (unsigned j=0; j < point_image.rows(); ++j) {
+      for (unsigned i=0; i < point_image.cols(); ++i) {
         if (point_image(i,j) != Vector3()) {
           
           if ( !src_georef.is_projected() ) {

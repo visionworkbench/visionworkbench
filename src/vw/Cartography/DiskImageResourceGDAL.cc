@@ -232,21 +232,21 @@ namespace cartography {
     double geo_transform[6];
    
    // <test code> 
-    printf( "\n\tMetadata description: %s\n", dataset->GetDescription() );
+    vw_out(DebugMessage) << "\n\tMetadata description: " << dataset->GetDescription() << std::endl;
     char** metadata = dataset->GetMetadata();
-    std::cout << "\tCount: " << CSLCount(metadata) << "\n";
+    vw_out(DebugMessage) << "\tCount: " << CSLCount(metadata) << std::endl;
     for (int i = 0; i < CSLCount(metadata); i++) {
-      printf( "\t\t%s\n", CSLGetField(metadata,i) );
+      vw_out(DebugMessage) << "\t\t" << CSLGetField(metadata,i) << std::endl;
     }
 
-   printf( "\n\tDriver: %s/%s\n",
-           dataset->GetDriver()->GetDescription(), 
-           dataset->GetDriver()->GetMetadataItem( GDAL_DMD_LONGNAME ) );
+    vw_out(DebugMessage) << "\tDriver: " << 
+      dataset->GetDriver()->GetDescription() <<
+      dataset->GetDriver()->GetMetadataItem( GDAL_DMD_LONGNAME ) << std::endl;
    
-   printf( "\tSize is %dx%dx%d\n", 
-           dataset->GetRasterXSize(), 
-           dataset->GetRasterYSize(),
-           dataset->GetRasterCount() );
+    vw_out(DebugMessage) << "\tSize is " <<
+      dataset->GetRasterXSize() << "x" <<
+      dataset->GetRasterYSize() << "x" <<
+      dataset->GetRasterCount() << std::endl;
       
    if( dataset->GetGeoTransform( geo_transform ) == CE_None ) {
      m_geo_transform.set_identity();
@@ -256,7 +256,7 @@ namespace cartography {
      m_geo_transform(1,0) = geo_transform[4];
      m_geo_transform(1,1) = geo_transform[5];
      m_geo_transform(1,2) = geo_transform[3];
-     std::cout << "\tAffine transform: " << m_geo_transform << "\n";
+     vw_out(DebugMessage) << "\tAffine transform: " << m_geo_transform << std::endl;
    }
    // <test code> 
    
@@ -310,7 +310,7 @@ namespace cartography {
     // Open the appropriate GDAL I/O driver, depending on the fileFormat
     // argument specified by the user.
     std::string gdal_format_string = gdal_file_format_from_filename::format(filename);
-    std::cout << "Creating a new file with the following type: " << gdal_format_string << "   ";
+    vw_out(DebugMessage) << "Creating a new file with the following type: " << gdal_format_string << "   ";
     GDALDriver *driver = GetGDALDriverManager()->GetDriverByName(gdal_format_string.c_str());  
     if( driver == NULL )
       vw_throw( vw::IOErr() << "Error opening selected GDAL file I/O driver." );
@@ -358,24 +358,26 @@ namespace cartography {
         band = ((GDALDataset *)m_dataset)->GetRasterBand(b++);
 
         // <Test code>
-        printf( "\n\tMetadata description: %s\n", band->GetDescription() );
+        vw_out(DebugMessage) << "\n\tMetadata description: " << band->GetDescription() << std::endl;
         char** metadata = band->GetMetadata();
-        std::cout << "\tCount: " << CSLCount(metadata) << "\n";
+        vw_out(DebugMessage) << "\tCount: " << CSLCount(metadata) << std::endl;
         for (int i = 0; i < CSLCount(metadata); i++) {
-          printf( "\t\t%s\n", CSLGetField(metadata,i) );
+          vw_out(DebugMessage) << "\t\t" << CSLGetField(metadata,i) << std::endl;
         }
         
         band->GetBlockSize( &blocksize_x, &blocksize_y );
-        printf( "\tBlock=%dx%d Type=%s, ColorInterp=%s\n",
-                blocksize_x, blocksize_y,
-                GDALGetDataTypeName(band->GetRasterDataType()),
-                GDALGetColorInterpretationName(band->GetColorInterpretation()) );
+        vw_out(DebugMessage)
+          << "\tBlock=" << blocksize_x << "x" << blocksize_y
+          << " Type=" << GDALGetDataTypeName(band->GetRasterDataType())
+          << " ColorInterp=" << GDALGetColorInterpretationName(band->GetColorInterpretation())
+          << std::endl;
         
         adfMinMax[0] = band->GetMinimum( &bGotMin );
         adfMinMax[1] = band->GetMaximum( &bGotMax );
         if( ! (bGotMin && bGotMax) )
           GDALComputeRasterMinMax((GDALRasterBandH)band, TRUE, adfMinMax);   
-        printf( "\tMin=%.3fd, Max=%.3f\n", adfMinMax[0], adfMinMax[1] );
+        vw_out(DebugMessage)
+          << "\tMin=" << adfMinMax[0] << ", Max=" << adfMinMax[1] << std::endl;
         
         //       if( band->GetOverviewCount() > 0 )
         //         printf( "\tBand has %d overviews.\n", band->GetOverviewCount() );
@@ -417,8 +419,9 @@ namespace cartography {
 
     // Write the data to the selected raster band. 
     int num_bands = std::max(planes(), num_channels(pixel_format()));
-    printf("\tWriting geo-referenced file %s (%d x %d) with %d band(s).\n",
-           m_filename.c_str(), cols(), rows(), num_bands);
+    vw_out(DebugMessage)
+      << "\tWriting geo-referenced file " << m_filename.c_str()
+      << " (" << cols() << " x " << rows() << ") with " << num_bands << " band(s)." << std::endl;
     
     int b = 1;
     for (unsigned int p = 0; p < dst.format.planes; p++) {
