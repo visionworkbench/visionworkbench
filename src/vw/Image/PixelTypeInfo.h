@@ -120,12 +120,12 @@ namespace vw {
   // Pixel channel casting and rescaling logic.
   //
   // Here we defined channel_cast and channel_cast_rescale to operate
-  // on pixels.  We've included ImageViewBase.h so that we can disable
-  // these functions for images, allowing other whole-image overloads
-  // to work in that case.  The simple channel_cast could be put into
-  // Core/CompoundTypes.h instead, but it's only used in the context
-  // of pixel casting and mirrors channel_cast_rescale nicely, so we
-  // leave it here.
+  // on pixels.  We've forward-declared ImageViewBase so that we can
+  // disable these functions for images, allowing other whole-image
+  // overloads to work in that case.  The simple channel_cast could be
+  // put into Core/CompoundTypes.h instead, but it's only used in the
+  // context of pixel casting and mirrors channel_cast_rescale nicely,
+  // so we leave it here.
   //
   // FIXME The _clamp version clamps to the min/max integer values of 
   // the destination.  This function does not work at all for floating-
