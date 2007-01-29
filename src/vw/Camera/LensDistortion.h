@@ -142,8 +142,8 @@ namespace camera {
       UndistortOptimizeFunctor model(*this);
       int status;
       Vector2 solution = levenberg_marquardt( model, p, p, status, 0.1, 0.1 ); // tol = 0.1 pixels
-      VW_DEBUG_ASSERT(status == vw::math::optimization::eConvergedRelTolerance,
-                      vw_throw(PixelToRayErr() << "get_undistorted_coordinates: failed to converge."));
+      VW_DEBUG_ASSERT( status == vw::math::optimization::eConvergedRelTolerance,
+                       PixelToRayErr() << "get_undistorted_coordinates: failed to converge." );
       return solution;
     }
 
