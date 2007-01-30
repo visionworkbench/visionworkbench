@@ -60,7 +60,7 @@ namespace ip {
   // value of 2048 seems to work well in most cases.
   template <class ViewT, class DetectorT>
   std::vector<InterestPoint> interest_points(vw::ImageViewBase<ViewT> const& image, 
-                                             DetectorT const& detector,
+                                             DetectorT& detector,
                                              unsigned int max_keypoint_image_dimension = 0) {
 
     std::vector<InterestPoint> interest_points;

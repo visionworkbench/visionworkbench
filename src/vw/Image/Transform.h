@@ -43,6 +43,8 @@
 // Boost 
 #include <boost/concept_check.hpp>
 
+#include <math.h>
+
 static const float VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE = 1;
 static const float VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE = 1e10; // Ten gigapixels
 
@@ -158,6 +160,22 @@ namespace vw {
     }
   };
 
+  /// Rotate Image Transform Functor
+  class RotateTransform : public TransformBase<RotateTransform> {
+    double cos_theta, sin_theta;
+  public:
+    RotateTransform(double theta) : cos_theta(cos(theta)) , sin_theta(sin(theta)) {}
+
+    inline Vector2 reverse(const Vector2 &p) const {
+      return Vector2( p(0) * cos_theta + p(1) * sin_theta,
+		      p(1) * cos_theta - p(0) * sin_theta);
+    }
+
+    inline Vector2 forward(const Vector2 &p) const {
+      return Vector2( p(0) * cos_theta - p(1) * sin_theta,
+		      p(1) * cos_theta + p(0) * sin_theta);
+    }
+  };
 
   /// Homography Image Mapping Functor
   ///
@@ -175,7 +193,7 @@ namespace vw {
     }
 
     /// This defines the transformation from coordinates in our target
-    /// image back to coordinatess in the original image.
+    /// image back to coordinates in the original image.
     inline Vector2 reverse(const Vector2 &p) const {
       double w = m_H_inverse(2,0) * p(0) + m_H_inverse(2,1) * p(1) + m_H_inverse(2,2);
       return Vector2( ( m_H_inverse(0,0) * p(0) + m_H_inverse(0,1) * p(1) + m_H_inverse(0,2) ) / w,
@@ -289,7 +307,7 @@ namespace vw {
 
   /// Transform Composition Transform Adapter 
   /// 
-  /// This is a wrapper class that allows you to composte two transform 
+  /// This is a wrapper class that allows you to composite two transform 
   /// functors.  The arguments to the constructor are in the usual 
   /// function composition order.  That is, CompositionTransform(tx1,tx2)
   /// yields a functor whose forward mapping is tx1.forward(tx2.forward(v)), 
@@ -332,7 +350,7 @@ namespace vw {
     return result_type( tx1.impl(), compose( tx2, tx3 ) );
   }
 
-  /// Composes three transform functors via a CompositionTransform object.
+  /// Composes four transform functors via a CompositionTransform object.
   template <class Tx1T, class Tx2T, class Tx3T, class Tx4T>
   CompositionTransform<Tx1T,CompositionTransform<Tx2T,CompositionTransform<Tx3T,Tx4T> > >
   inline compose( TransformBase<Tx1T> const& tx1,
@@ -756,6 +774,38 @@ namespace vw {
   EdgeExtensionView<ImageT,ZeroEdgeExtension>
   inline translate( ImageViewBase<ImageT> const& im, int x_offset, int y_offset ) {
     return EdgeExtensionView<ImageT,ZeroEdgeExtension>( im.impl(), -x_offset, -y_offset, im.impl().cols(), im.impl().rows(), ZeroEdgeExtension() );
+  }
+
+  // -------------------------------------------------------------------------------
+  // Rotate
+  // -------------------------------------------------------------------------------
+  /// TODO: Dimensions of destination image.
+
+  /// Rotate the image.  The user specifies the angle.
+  template <class ImageT, class EdgeT, class InterpT>
+  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, RotateTransform> >::type
+  inline rotate( ImageViewBase<ImageT> const& v, double theta,
+		 EdgeT const& edge_func, InterpT const& interp_func) {
+    return transform(v, RotateTransform(theta), /* dims */
+		     edge_func, interp_func);
+  }
+
+  /// Rotate the image.  The user specifies the angle.
+  template <class ImageT, class EdgeT>
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, RotateTransform> 
+  inline rotate( ImageViewBase<ImageT> const& v, double theta,
+		 EdgeT const& edge_func) {
+    return transform(v, RotateTransform(theta),
+                     edge_func, BilinearInterpolation());
+  }
+
+  /// Rotate the image.  The user specifies the angle.
+  template <class ImageT>
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, RotateTransform> 
+  inline rotate( ImageViewBase<ImageT> const& v, 
+		 double theta) {
+    return transform(v, RotateTransform(theta), /* dims */
+                     ZeroEdgeExtension(), BilinearInterpolation());
   }
 
 } // namespace vw

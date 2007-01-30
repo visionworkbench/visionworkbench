@@ -34,10 +34,9 @@ void WeightedHistogram(const ImageView<T1>& val_image,
   typename ImageView<T1>::iterator weight_iter = weight_image.begin();
   for (typename ImageView<T1>::iterator iter = val_image.begin(); iter != val_image.end(); ++iter, ++weight_iter) {
     int index = int(0.5+s*(double(*iter) - x0));
-    //printf( "%d %d %f %f %d\n", i, j, 
-    //	weight_image(i,j), *weight, index );
     
     if (index>=0 && (unsigned)index<n_bins) histo[index] += *weight_iter;
+    // Interpolate here?
   }
 }
 
