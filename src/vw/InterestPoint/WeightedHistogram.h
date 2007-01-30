@@ -3,22 +3,24 @@
 //:
 // \file
 // \brief Construct histogram from pixels in given image.
-// \author Matthew Deans (after vil_histogram)
+// \author Matthew Deans (after vil_histogram) and Patrick Mihelich
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Filter.h>
+#include <vw/Image/Manipulation.h>
 #include <vector>
 #include <algorithm>
+#include <math.h>
 
 // TODO: learn this threshold
 #define INTEREST_POINT_MODE_THRESHOLD (0.8)
 
 namespace vw { namespace ip {
 
-//: Construct histogram from pixels in given image
-template<class T1>
+/// Construct histogram from pixels in given image
+template <class T1>
 inline
-void WeightedHistogram(const ImageView<T1>& val_image,
+void weighted_histogram(const ImageView<T1>& val_image,
 		       const ImageView<T1>& weight_image,
 		       std::vector<double>& histo,
 		       double min, double max, unsigned n_bins) {
@@ -40,7 +42,75 @@ void WeightedHistogram(const ImageView<T1>& val_image,
   }
 }
 
-// Suppresses non-maxima in a vector
+/// Construct a 2D Gaussian kernel. This is templatized so that kernel
+/// could be any 2D array that provides the appropriate accessors and
+/// resize method.  Note that for Gaussian filtering of images, the
+/// seperable method is preferred with two 1D kernels.
+template <class KernelT>
+int make_gaussian_kernel_2d( KernelT& kernel, float sigma, int usewidth=0 ) {
+  // Kernel size may be specified, or if it is not then the default
+  // value of zero indicates the kernel size should be computed
+  // from sigma.
+  std::vector<float> kernel_1d;
+  generate_gaussian_kernel(kernel_1d, (double)sigma, usewidth);
+  int kerwidth = kernel_1d.size();
+  kernel.set_size(kerwidth,kerwidth);
+  int halfwidth = (kerwidth-1)/2;
+  
+  // Put in Gaussian values
+  for (int j=0; j<kerwidth; j++)
+    for (int i=0; i<kerwidth; i++)
+      kernel(i,j) = kernel_1d[i] * kernel_1d[j];
+
+  return 0;
+}
+
+/// Compute (gaussian weight) * (edge magnitude) kernel.
+template <class T>
+void weighted_magnitude(ImageView<T>& weight, const ImageView<T>&
+                        mag_image, int x, int y, T sigma,
+                        int usewidth=0) {
+  ImageView<T> kernel;
+  make_gaussian_kernel_2d(kernel, sigma, usewidth);
+  int width = kernel.rows();
+  int halfwidth = (width - 1) / 2;
+
+  weight = crop(mag_image, x - halfwidth, y - halfwidth, width,
+                width) * kernel;
+}
+
+/// Adds a sample to the orientation histogram using linear
+/// interpolation.
+template <class T>
+void orientation_interpolate(std::vector<T>& histo,
+                             unsigned n_bins, T ori, T mag) {
+  T bin_size = (T)2 * M_PI / (T)n_bins;
+  T ratio = (ori - bin_size) / bin_size;
+  int n = (int)floor((ori + M_PI) / bin_size);
+  histo[n] += ((T)1 - ratio) * mag;
+  histo[(n+1) % n_bins] += ratio * mag;
+}
+
+/// Construct orientation histogram for a region
+template <class T>
+void orientation_histogram(const ImageView<T>& ori_image,
+                           const ImageView<T>& mag_image,
+                           std::vector<T>& histo, int x, int y,
+                           T sigma, unsigned n_bins) {
+  ImageView<T> weight;
+  weighted_magnitude(weight, mag_image, x, y, sigma);
+  int width = weight.rows();
+  int halfwidth = (width - 1) / 2;
+  histo.resize(n_bins);
+  std::fill(histo.begin(),histo.end(),0.0);
+
+  for (int j = x - halfwidth; j <= x + halfwidth; j++)
+    for (int i = y - halfwidth; i <= y + halfwidth; i++)
+      orientation_interpolate(histo, n_bins, ori_image(x,y),
+                              mag_image(x,y));
+}
+
+/// Suppresses non-maxima in a vector
 template <class T>
 void non_max_suppression( std::vector<T>& hist,
 			  bool wrap=false ) {
@@ -70,9 +140,9 @@ void non_max_suppression( std::vector<T>& hist,
 
 }
 
-// Correlate a 1D vector with a 1D kernel, wrapping the signal.  This
-// is useful for kernel density estimates on histograms of angles,
-// where the first and last histogram bin are adjacent in angle space.
+/// Correlate a 1D vector with a 1D kernel, wrapping the signal.  This
+/// is useful for kernel density estimates on histograms of angles,
+/// where the first and last histogram bin are adjacent in angle space.
 template <class T1, class T2>
 int filter_1d( std::vector<T1>& vec,
 	       std::vector<T2>& kernel,
@@ -114,10 +184,10 @@ int filter_1d( std::vector<T1>& vec,
   return 0;
 }
 
-// Smooth a histogram with a Gaussian kernel
+/// Smooth a histogram with a Gaussian kernel
 template <class T>
-int SmoothWeightedHistogram( std::vector<T>& histo,
-			     float sigma) {
+int smooth_weighted_histogram( std::vector<T>& histo,
+			       float sigma) {
   std::vector<float> kernel;
   vw::generate_gaussian_kernel( kernel, sigma );
   bool wrap = true;
@@ -125,14 +195,12 @@ int SmoothWeightedHistogram( std::vector<T>& histo,
   
   return 0;
 }
- 
 
-
-// Finds the max bin in a histogram.  Mode is a vector in case there
-// is a second equal or nearly equal bin in which case both are returned.
+/// Finds the max bin in a histogram.  Mode is a vector in case there
+/// is a second equal or nearly equal bin in which case both are returned.
 template <class T>
-void FindWeightedHistogramMode( const std::vector<T>& hist_in,
-                                std::vector<int>& mode) {
+void find_weighted_histogram_mode( const std::vector<T>& hist_in,
+                                   std::vector<int>& mode) {
   mode.clear();
   
   // Make a copy so we can destroy it in non_max_suppression as we go
@@ -159,11 +227,6 @@ void FindWeightedHistogramMode( const std::vector<T>& hist_in,
   // Zero the max.
   hist[max_bin] = 0;
 
-  // Show histogram
-  //for (int i=0; i<hist.size(); i++)
-  //  printf( "%f ", hist[i] );
-  //printf( "\n" );
-    
   // Find other local maxima (modes) within a specified threshold of
   // the global maximum.  Don't include too many...
   while ( ( max_val > INTEREST_POINT_MODE_THRESHOLD*mode[0] ) &&

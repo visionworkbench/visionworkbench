@@ -45,7 +45,7 @@ namespace vw {
 namespace ip {
 
 // TODO: learn these parameters
-#define FEATURE_ORI_NBINS (360)
+#define FEATURE_ORI_NBINS (36)
 
   // Find the keypoints in an image using the provided detector.  
   // 
@@ -122,46 +122,6 @@ struct ImageInterestData {
   }
 };
 
-// TODO: there must be an existing way to do this easily
-// Construct a 2D Gaussian kernel.  This is templatized so that kernel
-// could be any 2D array that provides the appropriate accessors and
-// resize method.  Note that for Gaussian filtering of images, the
-// seperable method is preferred with two 1D kernels.
-template <class KernelT>
-int make_gaussian_kernel_2d( KernelT& kernel, float sigma, int usewidth=0 ) {
-  int kerwidth;
-  // Kernel size may be specified, or if it is not then the default
-  // value of zero indicates that we should compute the kernel size
-  // from sigma.
-  if (usewidth!=0)
-    kerwidth = usewidth;
-  else
-    // Make kerwidth to hold +/- 3*sigma
-    kerwidth = (int)ceil(2*sigma*3);
-  // Ensure that it is odd
-  if (!(kerwidth%2)) kerwidth++;
-  kernel.set_size(kerwidth,kerwidth);
-  int halfwidth = (kerwidth-1)/2;
-  
-  // Put in Gaussian values
-  float x,y,w,normconst=0.0;
-  for (int j=0; j<kerwidth; j++){
-    for (int i=0; i<kerwidth; i++){
-      x = i-halfwidth;
-      y = j-halfwidth;
-      w = exp(-(x*x+y*y)/(2*sigma*sigma));
-      kernel(i,j) = w;
-      normconst += w;
-    }
-  }
-  for (int j=0; j<kerwidth; j++){
-    for (int i=0; i<kerwidth; i++){
-      kernel(i,j) /= normconst;
-    }
-  }
-  return 0;
-}
-
 //Get the orientation of the point at (i0,j0,k0).  This is done by
 //computing a weighted histogram of edge orientations in a region
 //around the detected point.  The weights for the weighted histogram
@@ -174,8 +134,9 @@ int get_orientation( std::vector<float>& orientation,
 		     const ImageInterestData<T>& data,
 		     int i0, int j0, float sigma_ratio = 1.0) {
   orientation.clear();
-  // Nominal feature support patch is 40x40 at the base scale, and
+  // Nominal feature support patch is 41x41 at the base scale, and
   // we multiply by sigma[k]/sigma[1] for other planes.
+  
   
   // Get bounds for scaled 41x41 window centered at (i,j) in plane k
   int halfwidth = (int)(20*sigma_ratio + 0.5);
@@ -204,24 +165,24 @@ int get_orientation( std::vector<float>& orientation,
     
     // Compute weighted histogram of edge orientations
     std::vector<double> histo;
-    WeightedHistogram( region_ori, weight, histo, 
-		       -M_PI, M_PI, FEATURE_ORI_NBINS );
+    weighted_histogram( region_ori, weight, histo, 
+		        -M_PI, M_PI, FEATURE_ORI_NBINS );
     
     // Smooth histogram
-    SmoothWeightedHistogram( histo, 5.0 );
-    
+    smooth_weighted_histogram( histo, 5.0 );
+
+    /*
+    // This seems to be less effective than the above.
+    std::vector<float> histo;
+    orientation_histogram(data.ori, data.mag, histo,
+                          i0, j0, sigma_ratio, FEATURE_ORI_NBINS);
+    */
+
     // Find modes
     std::vector<int> mode;
-    FindWeightedHistogramMode( histo, mode );
+    find_weighted_histogram_mode( histo, mode );
     for (unsigned m=0; m<mode.size(); ++m)
       orientation.push_back( mode[m]*(2*M_PI/FEATURE_ORI_NBINS)-M_PI );
-    
-    // Debugging output
-    /*
-      for (unsigned m=0; m<orientation.size(); ++m)
-      cout << "Mode " << m << " at " << mode[m]
-      << " is " << orientation[m] << endl;
-    */
   }
   
   return 0;
@@ -259,8 +220,6 @@ class InterestPointDetector {
     // Assign orientations
     assign_orientations(points);
     printf("Points found: %i\n", points.size());
-
-    //create descriptors?
 
     //return vector of interest points
     return points;
@@ -326,21 +285,6 @@ class InterestPointDetector {
     ImageView<float> interest_image = normalize(img_data.interest);
     vw::write_image("interest.jpg", interest_image);
 
-    /*
-    FILE *fp = fopen("ori.dat","wb");
-    for (unsigned int j=0; j<ori[k].rows(); j++){
-      for (unsigned int i=0; i<ori[k].cols(); i++){
-	float val = ori[k](i,j);
-	fprintf( fp, "%f ", val );
-	// Tried to write raw binary but Matlab wouldn't read it in
-	// properly
-	//fwrite(&val,sizeof(float),1,fp);
-      }
-      fprintf( fp, "\n" );
-    }
-    fclose(fp);
-    */
-
     return 0;
   }
 };
@@ -357,7 +301,7 @@ class ScaledInterestPointDetector {
  public:
   ScaledInterestPointDetector(InterestBase<T> *interest_in) : interest(interest_in) {
     num_scales = 3;
-    num_octaves = 3;
+    num_octaves = 2;
   }
 
   // Detect interest points in the source image.

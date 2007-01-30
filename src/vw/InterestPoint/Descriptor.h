@@ -110,65 +110,26 @@ namespace ip {
     return return_val;
   }
   
-  // Get the support region around an interest point.  Right now all
-  // the functionality is in this function except for the bilinear
-  // interpolation.  This is because I could not find a flexible
-  // enough transformation function in VIL.  However, this stuff
-  // should probably either be replaced by transformation functions
-  // being written in some parallel development that is going on, or
-  // be ripped out of here and made into a more generic, useful
-  // function for applying arbitrary linear transformations on images.
+  /// Get the size x size support region around an interest point.
+  /// transform takes care of interpolation and edge extension.
   int get_support( ImageView<float>& support,
 		   float x, float y, float scale, float ori,
 		   const ImageOctave<float>& octave, int size=41 ) {
-    /*
-    Matrix<double,3,3> H;
-
-    // Construct a transformation matrix from the parameters provided.
-    H(0,0) = scale*cos(ori); H(0,1) = -scale*sin(ori); H(0,2) = x;
-    H(1,0) = scale*sin(ori); H(1,1) = scale*cos(ori);  H(1,2) = y;
-    H(2,0) = 0.0;            H(2,1) = 0.0;             H(2,2) = 1.0;
-    */
-
     int p = (int)octave.scale_to_plane_index(scale);
+    float half_size = ((float)(size - 1)) / 2.0f;
     float scaling = 1.0f / scale;
+    // This is mystifying - why won't the four-arg compose work?
     support = transform(octave.scales[p],
-			TranslateTransform(size/2, size/2),
-			/*
-			compose(TranslateTransform(size/2, size/2),
-				ResampleTransform(scaling, scaling),
+			compose(TranslateTransform(half_size, half_size),
+			compose(ResampleTransform(scaling, scaling),
 				RotateTransform(-ori),
-				TranslateTransform(-x, -y)),
-			*/
+				TranslateTransform(-x, -y))),
 			size, size);
 
-    // Iterate over feature support region coordinates and compute
-    // resample pixel location.  The rest of the stuff below could be
-    // ripped out to make a more generic resampling function, or
-    // replaced by some more generic resampling function.
-    /*
-    support.set_size(41,41);
-    for (int r=0; r<41; r++){
-      for (int c=0; c<41; c++){
-	// (x,y) is a coordinate frame centered in the support region
-	double x = c-20;
-	double y = r-20;
-	// Apply transform to go from dest. coords to source coords.
-	double u = H(0,0)*x + H(0,1)*y + H(0,2);
-	double v = H(1,0)*x + H(1,1)*y + H(1,2);
-	// bounds check
-	if ( (u>0) && (v>0) &&
-	     (u<octave.plane[p].cols()-1) &&
-	     (v<octave.plane[p].rows()-1) )
-	  support(c,r) = bilinear_interpolation(octave.plane[p])(u, v, 0);
-	else
-	  support(c,r) = 0;
-      }
-    }
-    */
     return 0;
   }
 
+  /// Get the support region around an interest point.
   int inline get_support( ImageView<float>& support,
 			  InterestPoint pt,
 			  const ImageOctave<float>& octave, int size=41 ) {
