@@ -21,7 +21,7 @@
 // 
 // __END_LICENSE__
 
-/// \file GenericImageBuffer.cc
+/// \file ImageResource.cc
 /// 
 /// Defines a run-type-typed image buffer.
 ///
@@ -38,7 +38,7 @@
 
 #include <vw/Core/Debugging.h>
 #include <vw/Image/PixelTypes.h>
-#include <vw/Image/GenericImageBuffer.h>
+#include <vw/Image/ImageResource.h>
 using namespace vw;
 
 typedef void (*channel_convert_func)(void* src, void* dest);
@@ -332,7 +332,7 @@ ChannelUnpremultiplyMapEntry _unpremultiply_u64( &channel_unpremultiply_int<uint
 ChannelUnpremultiplyMapEntry _unpremultiply_f32( &channel_unpremultiply_float<float> );
 ChannelUnpremultiplyMapEntry _unpremultiply_f64( &channel_unpremultiply_float<double> );
 
-void vw::convert( GenericImageBuffer const& dst, GenericImageBuffer const& src ) {
+void vw::convert( ImageBuffer const& dst, ImageBuffer const& src ) {
   VW_ASSERT( dst.format.cols==src.format.cols && dst.format.rows==src.format.rows,
              ArgumentErr() << "Destination buffer has wrong size." );
 
@@ -344,7 +344,7 @@ void vw::convert( GenericImageBuffer const& dst, GenericImageBuffer const& src )
     // by aliasing the multi-channel buffer as a multi-plane buffer.
     if( src.format.pixel_format==VW_PIXEL_SCALAR && dst.format.planes==1
         && src.format.planes==num_channels( dst.format.pixel_format ) ) {
-      GenericImageBuffer new_dst = dst;
+      ImageBuffer new_dst = dst;
       new_dst.format.pixel_format = VW_PIXEL_SCALAR;
       new_dst.format.planes = src.format.planes;
       new_dst.pstride = channel_size( dst.format.channel_type );
@@ -352,7 +352,7 @@ void vw::convert( GenericImageBuffer const& dst, GenericImageBuffer const& src )
     }
     else if( dst.format.pixel_format==VW_PIXEL_SCALAR && src.format.planes==1
              && dst.format.planes==num_channels( src.format.pixel_format ) ) {
-      GenericImageBuffer new_src = src;
+      ImageBuffer new_src = src;
       new_src.format.pixel_format = VW_PIXEL_SCALAR;
       new_src.format.planes = dst.format.planes;
       new_src.pstride = channel_size( src.format.channel_type );

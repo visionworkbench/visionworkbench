@@ -25,13 +25,12 @@
 /// 
 /// Provides support for the OpenEXR file format.
 ///
-#ifndef __VW_FILEIO_DISK_IMAGE_RESOUCE_OPEN_EXR_H__
-#define __VW_FILEIO_DISK_IMAGE_RESOUCE_OPEN_EXR_H__
+#ifndef __VW_FILEIO_DISKIMAGERESOUCEOPENEXR_H__
+#define __VW_FILEIO_DISKIMAGERESOUCEOPENEXR_H__
 
 #include <string>
 
 #include <vw/Image/PixelTypes.h>
-#include <vw/Image/GenericImageBuffer.h>
 #include <vw/FileIO/DiskImageResource.h>
 
 // Forward-declare the Imf::InputFile class
@@ -53,7 +52,7 @@ namespace vw {
     }
 
     DiskImageResourceOpenEXR( std::string const& filename, 
-                              GenericImageFormat const& format )
+                              ImageFormat const& format )
       : DiskImageResource( filename )
     {
       m_file_ptr = 0;
@@ -62,19 +61,19 @@ namespace vw {
     
     virtual ~DiskImageResourceOpenEXR();
     
-    virtual void read_generic( GenericImageBuffer const& dest ) const;
-    virtual void write_generic( GenericImageBuffer const& dest );
-    virtual void flush() {}
+    virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
+
+    virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
 
     void open( std::string const& filename );
 
     void create( std::string const& filename,
-                 GenericImageFormat const& format );
+                 ImageFormat const& format );
 
     static DiskImageResource* construct_open( std::string const& filename );
 
     static DiskImageResource* construct_create( std::string const& filename,
-                                                GenericImageFormat const& format );
+                                                ImageFormat const& format );
 
   private:
     std::string m_filename;
@@ -83,4 +82,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_FILEIO_DISK_IMAGE_RESOUCE_OPEN_EXR_H__
+#endif // __VW_FILEIO_DISKIMAGERESOUCEOPENEXR_H__

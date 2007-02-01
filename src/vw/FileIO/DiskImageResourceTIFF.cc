@@ -73,13 +73,13 @@ vw::DiskImageResourceTIFF::DiskImageResourceTIFF( std::string const& filename )
 }
     
 vw::DiskImageResourceTIFF::DiskImageResourceTIFF( std::string const& filename, 
-                                                  vw::GenericImageFormat const& format )
+                                                  vw::ImageFormat const& format )
   : DiskImageResource( filename ), m_info( new DiskImageResourceInfoTIFF() )
 {
   create( filename, format );
 }
 
-vw::Vector2i vw::DiskImageResourceTIFF::native_read_block_size() const {
+vw::Vector2i vw::DiskImageResourceTIFF::native_block_size() const {
   return m_info->block_size;
 }
 
@@ -178,7 +178,7 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
 
 /// Bind the resource to a file for writing.
 void vw::DiskImageResourceTIFF::create( std::string const& filename, 
-                                        GenericImageFormat const& format )
+                                        ImageFormat const& format )
 {
   if( format.planes!=1 && format.pixel_format!=VW_PIXEL_SCALAR )
     vw_throw( NoImplErr() << "TIFF doesn't support multi-plane images with compound pixel types." );
@@ -192,7 +192,7 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
 }
 
 /// Read the disk image into the given buffer.
-void vw::DiskImageResourceTIFF::read_generic( GenericImageBuffer const& dest, BBox2i bbox ) const
+void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbox ) const
 {
   VW_ASSERT( int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
              ArgumentErr() << "DiskImageResourceTIFF (read) Error: Destination buffer has wrong dimensions!" );
@@ -218,7 +218,7 @@ void vw::DiskImageResourceTIFF::read_generic( GenericImageBuffer const& dest, BB
     uint32 scanline_size = TIFFScanlineSize(tif);    
     TIFFGetField( tif, TIFFTAG_ROWSPERSTRIP, &rows_per_strip );
 
-    GenericImageBuffer strip_src, strip_dest=dest;
+    ImageBuffer strip_src, strip_dest=dest;
     strip_src.format = m_format;
     strip_src.format.cols = bbox.width();
 
@@ -276,8 +276,10 @@ void vw::DiskImageResourceTIFF::read_generic( GenericImageBuffer const& dest, BB
 }
 
 // Write the given buffer into the disk image.
-void vw::DiskImageResourceTIFF::write_generic( GenericImageBuffer const& src )
+void vw::DiskImageResourceTIFF::write( ImageBuffer const& src, BBox2i const& bbox )
 {
+  VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
+             NoImplErr() << "DiskImageResourceTIFF does not support partial writes." );
   VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in TIFF write." );
 
@@ -332,15 +334,15 @@ void vw::DiskImageResourceTIFF::write_generic( GenericImageBuffer const& src )
   uint32 scanline_size = num_channels(m_format.pixel_format) * channel_size(m_format.channel_type) * m_format.cols;
   tdata_t buf = _TIFFmalloc(scanline_size);
 
-  // Set up the generic image buffer and convert the data into this buffer.
-  GenericImageBuffer dst;
+  // Set up the image buffer and convert the data into this buffer.
+  ImageBuffer dst;
   dst.data = (uint8*)buf;
   dst.format = m_format;
   dst.cstride = num_channels(m_format.pixel_format) * channel_size(m_format.channel_type);
   dst.rstride = dst.cstride * m_format.cols;
   dst.pstride = dst.rstride * m_format.rows;
 
-  GenericImageBuffer src_plane = src;
+  ImageBuffer src_plane = src;
   src_plane.format.rows = 1;
   src_plane.format.planes = 1;
   dst.format.rows = 1;
@@ -348,7 +350,7 @@ void vw::DiskImageResourceTIFF::write_generic( GenericImageBuffer const& src )
 
   // Write the image data to disk.
   for (uint32 p = 0; p < m_format.planes; p++) {
-    GenericImageBuffer src_row = src_plane;
+    ImageBuffer src_row = src_plane;
     for (uint32 row = 0; row < m_format.rows; row++) {
       convert( dst, src_row );
       TIFFWriteScanline(tif, (uint8*)buf, row);
@@ -370,6 +372,6 @@ vw::DiskImageResource* vw::DiskImageResourceTIFF::construct_open( std::string co
 
 // A FileIO hook to open a file for writing
 vw::DiskImageResource* vw::DiskImageResourceTIFF::construct_create( std::string const& filename,
-                                                                    GenericImageFormat const& format ) {
+                                                                    ImageFormat const& format ) {
   return new DiskImageResourceTIFF( filename, format );
 }

@@ -36,9 +36,9 @@
 #include <vw/Core/Debugging.h>
 #include <vw/Math/BBox.h>
 #include <vw/Math/Vector.h>
+#include <vw/Image/ImageResource.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>
-#include <vw/Image/GenericImageBuffer.h>
 
 namespace vw {
 
@@ -47,7 +47,7 @@ namespace vw {
   // *******************************************************************
 
   /// Base class from which specific file handlers derive.
-  class DiskImageResource { 
+  class DiskImageResource : public ImageResource {
   public:
 
     virtual ~DiskImageResource() {};
@@ -61,9 +61,6 @@ namespace vw {
     /// Returns the number of planes in an image on disk.
     unsigned planes() const { return m_format.planes; }
 
-    /// Returns the number of channels in a image on disk
-    unsigned channels() const { return num_channels(m_format.pixel_format); }
-
     /// Returns the pixel format of an image on disk.
     PixelFormatEnum pixel_format() const { return m_format.pixel_format; }
 
@@ -72,97 +69,6 @@ namespace vw {
 
     /// Return the filename of the disk image file.
     std::string filename() const { return m_filename; }
-
-    /// Read the image on disk into the given buffer.
-    virtual void read_generic( GenericImageBuffer const& buf ) const = 0;
-
-    /// Read a block of the image on disk into the given buffer.
-    virtual void read_generic( GenericImageBuffer const& buf, BBox2i bbox ) const {
-      if( bbox==BBox2i(0,0,cols(),rows()) ) return read_generic( buf );
-      vw_throw( NoImplErr() << "This DiskImageResource does not support partial reads!" );
-    }
-
-    /// Returns the optimal block size/alignment for partial reads.
-    virtual Vector2i native_read_block_size() const { return Vector2i(cols(),rows()); }
-
-    /// Write the given buffer to the image on disk.
-    virtual void write_generic( GenericImageBuffer const& buf ) = 0;
-
-    /// Force any changes to disk.
-    virtual void flush() = 0;
-
-    /// Read the image on disk into the given image view.
-    template <class PixelT>
-    void read( ImageView<PixelT> const& buf ) const {
-      read_generic( buf.generic_buffer() );
-    }
-
-    /// Read the image on disk into the given general view.  This is
-    /// purely a convenience method: it is no faster than constructing
-    /// an ImageView, reading into it, and copying the data into the
-    /// final destination view.
-    template <class ImageT>
-    void read( ImageViewBase<ImageT> const& buf ) const {
-      ImageView<typename ImageT::pixel_type> image(cols(),rows(),planes());
-      read_generic( image.generic_buffer() );
-      buf = image;
-    }
-
-    /// Read a block of the image on disk into the given image view.
-    template <class PixelT>
-    void read( ImageView<PixelT> const& buf, BBox2i bbox ) const {
-      read_generic( buf.generic_buffer(), bbox );
-    }
-
-    /// Read a block of the image on disk into the given general view.
-    /// This is purely a convenience method: it is no faster than
-    /// constructing an ImageView, reading into it, and copying the
-    /// data into the final destination view.
-    template <class ImageT>
-    void read( ImageViewBase<ImageT> const& buf, BBox2i bbox ) const {
-      ImageView<typename ImageT::pixel_type> image(bbox.width(),bbox.height(),planes());
-      read_generic( image.generic_buffer(), bbox );
-      buf = image;
-    }
-
-    /// Read the image on disk into the given image view, resizing the
-    /// view if needed.
-    template <class PixelT>
-    void read( ImageView<PixelT>& buf ) const {
-      unsigned im_planes = 1;
-      if( ! IsCompound<PixelT>::value ) {
-        // The image has a fundamental pixel type
-        if( planes()>1 && num_channels(pixel_format())>1 )
-          vw_throw( ArgumentErr() << "Cannot read a multi-plane multi-channel image file into a single-channel buffer." );
-        im_planes = std::max( planes(), num_channels(pixel_format()) );
-      }
-      buf.set_size( cols(), rows(), im_planes );
-
-      read_generic( buf.generic_buffer() );
-    }
-
-    /// Read a block of the image on disk into the given image view,
-    /// resizing the view if needed.
-    template <class PixelT>
-    void read( ImageView<PixelT>& buf, BBox2i bbox ) const {
-
-      unsigned im_planes = 1;
-      if( ! IsCompound<PixelT>::value ) {
-        // The image has a fundamental pixel type
-        if( planes()>1 && num_channels(pixel_format())>1 )
-          vw_throw( ArgumentErr() << "Cannot read a multi-plane multi-channel image file into a single-channel buffer." );
-        im_planes = std::max( planes(), num_channels(pixel_format()) );
-      }
-      buf.set_size( bbox.width(), bbox.height(), im_planes );
-
-      read_generic( buf.generic_buffer(), bbox );
-    }
-
-    /// Write the given image view into the image on disk.
-    template <class PixelT>
-    void write( ImageView<PixelT> const& buf ) const {
-      write_generic( buf.generic_buffer() );
-    }
 
     /// Create a new DiskImageResource of the appropriate type
     /// pointing to an existing file on disk.
@@ -181,12 +87,12 @@ namespace vw {
     /// control you must manually create a resource of the appropraite
     /// type.  Don't forget to delete this DiskImageResource object
     /// when you're finished with it!
-    static DiskImageResource* create( std::string const& filename, GenericImageFormat const& format );
+    static DiskImageResource* create( std::string const& filename, ImageFormat const& format );
 
     typedef DiskImageResource* (*construct_open_func)( std::string const& filename );
     
     typedef DiskImageResource* (*construct_create_func)( std::string const& filename,
-                                                         GenericImageFormat const& format );
+                                                         ImageFormat const& format );
 
     static void register_file_type( std::string const& extension,
                                     construct_open_func open_func,
@@ -194,7 +100,7 @@ namespace vw {
 
   protected:
     DiskImageResource( std::string const& filename ) : m_filename(filename) {}
-    GenericImageFormat m_format;
+    ImageFormat m_format;
     std::string m_filename;
   };
 
@@ -215,7 +121,7 @@ namespace vw {
     vw_out(InfoMessage+1) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
 
     // Read it in and wrap up
-    r->read( in_image );
+    read_image( in_image, *r );
     delete r;
   }
 
@@ -232,7 +138,7 @@ namespace vw {
 
     // Rasterize the image if needed
     ImageView<typename ImageT::pixel_type> image( out_image.impl() );
-    GenericImageBuffer buf = image.generic_buffer();
+    ImageBuffer buf = image.buffer();
 
     unsigned files = 1;
     // If there's an asterisk, save one file per plane
@@ -247,7 +153,7 @@ namespace vw {
       vw_out(InfoMessage+1) << "\tSaving image: " << name << "\t";
       DiskImageResource *r = DiskImageResource::create( name, buf.format );
       vw_out(InfoMessage+1) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
-      r->write_generic( buf );
+      r->write( buf, BBox2i(0,0,r->cols(),r->rows()) );
       delete r;
       buf.data = (uint8*)buf.data + buf.pstride;
     }

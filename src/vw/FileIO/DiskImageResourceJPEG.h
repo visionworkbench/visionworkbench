@@ -31,7 +31,6 @@
 #include <string>
 
 #include <vw/Image/PixelTypes.h>
-#include <vw/Image/GenericImageBuffer.h>
 #include <vw/FileIO/DiskImageResource.h>
 
 namespace vw {
@@ -51,7 +50,7 @@ namespace vw {
     }
     
     DiskImageResourceJPEG( std::string const& filename, 
-                           GenericImageFormat const& format )
+                           ImageFormat const& format )
       : DiskImageResource( filename )
     {
       m_subsample_factor = default_subsampilng_factor;
@@ -64,8 +63,10 @@ namespace vw {
     
     virtual ~DiskImageResourceJPEG();
     
-    virtual void read_generic( GenericImageBuffer const& dest ) const;
-    virtual void write_generic( GenericImageBuffer const& dest );
+    virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
+
+    virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
+
     virtual void flush();
 
     /// Set the compression quality of the jpeg image.  The quality is
@@ -98,12 +99,12 @@ namespace vw {
     }
 
     void create( std::string const& filename,
-                 GenericImageFormat const& format );
+                 ImageFormat const& format );
 
     static DiskImageResource* construct_open( std::string const& filename );
 
     static DiskImageResource* construct_create( std::string const& filename,
-                                                GenericImageFormat const& format );
+                                                ImageFormat const& format );
 
   private:
     

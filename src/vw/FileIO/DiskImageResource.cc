@@ -118,7 +118,7 @@ vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename 
   return 0; // never reached
 }
 
-vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, GenericImageFormat const& format ) {
+vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, ImageFormat const& format ) {
   register_default_file_types();
   if( create_map ) {
     CreateMapType::const_iterator i = create_map->find( file_extension( filename ) );

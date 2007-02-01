@@ -26,8 +26,8 @@
 /// Provides support for some NASA mission data from the Planetary
 /// Data System (PDS).
 ///
-#ifndef __VW_FILEIO_DISK_IMAGE_RESOUCE_PDS_H__
-#define __VW_FILEIO_DISK_IMAGE_RESOUCE_PDS_H__
+#ifndef __VW_FILEIO_DISKIMAGERESOUCEPDS_H__
+#define __VW_FILEIO_DISKIMAGERESOUCEPDS_H__
 
 #include <map>
 #include <string>
@@ -35,7 +35,6 @@
 
 #include <vw/Core/Exception.h>
 #include <vw/Image/PixelTypes.h>
-#include <vw/Image/GenericImageBuffer.h>
 #include <vw/FileIO/DiskImageResource.h>
 
 namespace vw {
@@ -52,7 +51,7 @@ namespace vw {
     }
     
     DiskImageResourcePDS( std::string const& filename, 
-                          GenericImageFormat const& format )
+                          ImageFormat const& format )
       : DiskImageResource( filename )
     {
       vw_throw( NoImplErr() << "The PDS driver does not yet support creation of PDS files." );
@@ -60,8 +59,8 @@ namespace vw {
     
     virtual ~DiskImageResourcePDS() {}
     
-    virtual void read_generic( GenericImageBuffer const& dest ) const;
-    virtual void write_generic( GenericImageBuffer const& dest );
+    virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
+    virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
     virtual void flush() {}
 
     /// Query for a string value in the PDS header.  Places the value
@@ -126,12 +125,12 @@ namespace vw {
     void open( std::string const& filename );
 
     void create( std::string const& filename,
-                 GenericImageFormat const& format );
+                 ImageFormat const& format );
 
     static DiskImageResource* construct_open( std::string const& filename );
 
     static DiskImageResource* construct_create( std::string const& filename,
-                                                GenericImageFormat const& format );
+                                                ImageFormat const& format );
 
   private:
     void parse_pds_header(std::vector<std::string> const& header);
@@ -142,4 +141,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_FILEIO_DISK_IMAGE_RESOUCE_PDS_H__
+#endif // __VW_FILEIO_DISKIMAGERESOUCEPDS_H__

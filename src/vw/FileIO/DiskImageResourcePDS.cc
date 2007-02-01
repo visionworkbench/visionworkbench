@@ -193,14 +193,16 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
 
 /// Bind the resource to a file for writing.
 void vw::DiskImageResourcePDS::create( std::string const& filename, 
-                                       GenericImageFormat const& format )
+                                       ImageFormat const& format )
 {
   vw_throw( NoImplErr() << "The PDS driver does not yet support creation of PDS files." );
 }
 
 /// Read the disk image into the given buffer.
-void vw::DiskImageResourcePDS::read_generic( GenericImageBuffer const& dest ) const 
+void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox ) const 
 {
+  VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
+             NoImplErr() << "DiskImageResourcePDS does not support partial reads." );
   VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in PDS read." );
   
@@ -242,8 +244,8 @@ void vw::DiskImageResourcePDS::read_generic( GenericImageBuffer const& dest ) co
     min = image_data[i] < min ? image_data[i] : min;
   }
 
-  // set up a generic image buffer around the PDS data.
-  GenericImageBuffer src;
+  // set up an image buffer around the PDS data.
+  ImageBuffer src;
   src.data = image_data;
   src.format = m_format;
   src.cstride = bytes_per_pixel;
@@ -285,7 +287,7 @@ void vw::DiskImageResourcePDS::read_generic( GenericImageBuffer const& dest ) co
 }
 
 // Write the given buffer into the disk image.
-void vw::DiskImageResourcePDS::write_generic( GenericImageBuffer const& src ) 
+void vw::DiskImageResourcePDS::write( ImageBuffer const& src, BBox2i const& bbox ) 
 {
   vw_throw( NoImplErr() << "The PDS driver does not yet support creation of PDS files." );
 }
@@ -297,6 +299,6 @@ vw::DiskImageResource* vw::DiskImageResourcePDS::construct_open( std::string con
 
 // A FileIO hook to open a file for writing
 vw::DiskImageResource* vw::DiskImageResourcePDS::construct_create( std::string const& filename,
-                                                                    GenericImageFormat const& format ) {
+                                                                   ImageFormat const& format ) {
   return new DiskImageResourcePDS( filename, format );
 }

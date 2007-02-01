@@ -43,7 +43,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/CompoundTypes.h>
 #include <vw/Math/BBox.h>
-#include <vw/Image/GenericImageBuffer.h>
+#include <vw/Image/ImageResource.h>
 #include <vw/Image/PixelIterator.h>
 
 namespace vw {
@@ -88,9 +88,9 @@ namespace vw {
     /// Returns the channel type ID of the image's pixel type.
     inline ChannelTypeEnum channel_type() const { return ChannelTypeID<typename CompoundChannelType<typename ImplT::pixel_type>::type>::value; }
 
-    /// Returns a GenericImageFormat describing the image format.
-    GenericImageFormat generic_format() const {
-      GenericImageFormat format;
+    /// Returns an ImageFormat object describing the image format.
+    ImageFormat format() const {
+      ImageFormat format;
       format.cols = impl().cols();
       format.rows = impl().rows();
       format.planes = impl().planes();

@@ -130,7 +130,7 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
 
 // Bind the resource to a file for writing.  
 void vw::DiskImageResourceOpenEXR::create( std::string const& filename, 
-                                           GenericImageFormat const& format )
+                                           ImageFormat const& format )
 {
   VW_ASSERT(format.planes == 1 || format.pixel_format==VW_PIXEL_SCALAR,
             NoImplErr() << "DiskImageResourceOpenEXR: Cannot create " << filename << "\n\t"
@@ -143,8 +143,10 @@ void vw::DiskImageResourceOpenEXR::create( std::string const& filename,
 }
 
 // Read the disk image into the given buffer.
-void vw::DiskImageResourceOpenEXR::read_generic( GenericImageBuffer const& dest ) const
+void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& bbox ) const
 {
+  VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
+             NoImplErr() << "DiskImageResourceOpenEXR does not support partial reads." );
   VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in OpenEXR read." );
   
@@ -214,7 +216,7 @@ void vw::DiskImageResourceOpenEXR::read_generic( GenericImageBuffer const& dest 
         }
       } 
     }
-    GenericImageBuffer src = src_image.generic_buffer();
+    ImageBuffer src = src_image.buffer();
     convert( dest, src );
     
     // Print out the image size and number of channels
@@ -232,8 +234,10 @@ void vw::DiskImageResourceOpenEXR::read_generic( GenericImageBuffer const& dest 
 }
 
 // Write the given buffer into the disk image.
-void vw::DiskImageResourceOpenEXR::write_generic( GenericImageBuffer const& src )
+void vw::DiskImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const& bbox )
 {
+  VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
+             NoImplErr() << "DiskImageResourceOpenEXR does not support partial writes." );
   VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in OpenEXR write." );
   
@@ -241,7 +245,7 @@ void vw::DiskImageResourceOpenEXR::write_generic( GenericImageBuffer const& src 
   // Note that we handle multi-channel images with interleaved planes. 
   // We've already ensured that either planes==1 or channels==1.
   ImageView<float> openexr_image( m_format.cols, m_format.rows, m_format.planes );
-  GenericImageBuffer dst = openexr_image.generic_buffer();
+  ImageBuffer dst = openexr_image.buffer();
   convert( dst, src );
   
   float* pixels[dst.format.planes];
@@ -300,6 +304,6 @@ vw::DiskImageResource* vw::DiskImageResourceOpenEXR::construct_open( std::string
 
 // A FileIO hook to open a file for writing
 vw::DiskImageResource* vw::DiskImageResourceOpenEXR::construct_create( std::string const& filename,
-                                                                       GenericImageFormat const& format ) {
+                                                                       ImageFormat const& format ) {
   return new DiskImageResourceOpenEXR( filename, format );
 }

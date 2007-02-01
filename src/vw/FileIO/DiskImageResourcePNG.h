@@ -25,8 +25,8 @@
 /// 
 /// Provides support for the PNG file format.
 ///
-#ifndef __VW_FILEIO_DISK_IMAGE_RESOUCE_PNG_H__
-#define __VW_FILEIO_DISK_IMAGE_RESOUCE_PNG_H__
+#ifndef __VW_FILEIO_DISKIMAGERESOUCEPNG_H__
+#define __VW_FILEIO_DISKIMAGERESOUCEPNG_H__
 
 #include <vw/config.h>
 
@@ -35,7 +35,6 @@
 #include <boost/shared_ptr.hpp>
 
 #include <vw/Image/PixelTypes.h>
-#include <vw/Image/GenericImageBuffer.h>
 #include <vw/FileIO/DiskImageResource.h>
 
 namespace vw {
@@ -50,25 +49,23 @@ namespace vw {
     DiskImageResourcePNG( std::string const& filename );
 
     DiskImageResourcePNG( std::string const& filename, 
-                          GenericImageFormat const& format );
+                          ImageFormat const& format );
     
     virtual ~DiskImageResourcePNG();
     
-    virtual void read_generic( GenericImageBuffer const& dest ) const;
-    virtual void read_generic( GenericImageBuffer const& buf, BBox2i bbox ) const;
+    virtual void read(ImageBuffer const& buf, BBox2i const& bbox ) const;
 
-    virtual void write_generic( GenericImageBuffer const& dest );
-    virtual void flush() {}
+    virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
 
     void open( std::string const& filename );
 
     void create( std::string const& filename,
-                 GenericImageFormat const& format );
+                 ImageFormat const& format );
 
     static DiskImageResource* construct_open( std::string const& filename );
 
     static DiskImageResource* construct_create( std::string const& filename,
-                                                GenericImageFormat const& format );
+                                                ImageFormat const& format );
 
     // The PNG-specific interface:
 
@@ -86,4 +83,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_FILEIO_DISK_IMAGE_RESOUCE_PNG_H__
+#endif // __VW_FILEIO_DISKIMAGERESOUCEPNG_H__

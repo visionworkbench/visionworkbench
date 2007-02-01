@@ -32,7 +32,7 @@
 #endif
 
 #include <vw/config.h>
-
+#include <iostream>
 #ifdef VW_HAVE_PKG_GDAL
 
 #include <vw/Cartography/DiskImageResourceGDAL.h>
@@ -196,7 +196,7 @@ namespace cartography {
       vw_throw( LogicErr() << "DiskImageResourceGDAL: Could not read georeference. No file has been opened." );
     GDALDataset* dataset = (GDALDataset*)m_dataset;
     
-    if( dataset->GetProjectionRef()  != NULL ) {
+    if( dataset->GetProjectionRef() != NULL ) {
       georef.set_wkt_str(dataset->GetProjectionRef());
     }
     
@@ -292,7 +292,7 @@ namespace cartography {
 
   /// Bind the resource to a file for writing.  
   void DiskImageResourceGDAL::create( std::string const& filename, 
-                                      GenericImageFormat const& format )
+                                      ImageFormat const& format )
   {
     VW_ASSERT(format.planes == 1 || format.pixel_format==VW_PIXEL_SCALAR,
               NoImplErr() << "DiskImageResourceGDAL: Cannot create " << filename << "\n\t"
@@ -328,8 +328,10 @@ namespace cartography {
 
 
   /// Read the disk image into the given buffer.
-  void DiskImageResourceGDAL::read_generic( GenericImageBuffer const& dest ) const
+  void DiskImageResourceGDAL::read( ImageBuffer const& dest, BBox2i const& bbox ) const
   {
+    VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
+             NoImplErr() << "DiskImageResourceGDAL does not support partial reads." );
     VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
                IOErr() << "Buffer has wrong dimensions in GDAL read." );
 
@@ -345,7 +347,7 @@ namespace cartography {
     double          adfMinMax[2];
     
     uint8 *data = new uint8[channel_size(channel_type()) * rows() * cols() * planes() * channels()];
-    GenericImageBuffer src;
+    ImageBuffer src;
     src.data = data;
     src.format = m_format;
     src.cstride = channels() * channel_size(src.format.channel_type);
@@ -400,8 +402,10 @@ namespace cartography {
 
 
   // Write the given buffer into the disk image.
-  void DiskImageResourceGDAL::write_generic( GenericImageBuffer const& src )
+  void DiskImageResourceGDAL::write( ImageBuffer const& src, BBox2i const& bbox )
   {
+    VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
+             NoImplErr() << "DiskImageResourceGDAL does not support partial writes." );
     VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
                IOErr() << "Buffer has wrong dimensions in GDAL write." );
 
@@ -409,7 +413,7 @@ namespace cartography {
     // Note that we handle multi-channel images with interleaved planes. 
     // We've already ensured that either planes==1 or channels==1.
     uint8 *data = new uint8[channel_size(channel_type()) * rows() * cols() * planes() * channels()];
-    GenericImageBuffer dst;
+    ImageBuffer dst;
     dst.data = data;
     dst.format = m_format;
     dst.cstride = channels() * channel_size(dst.format.channel_type);
@@ -451,7 +455,7 @@ namespace cartography {
 
   // A FileIO hook to open a file for writing
   vw::DiskImageResource* DiskImageResourceGDAL::construct_create( std::string const& filename,
-                                                                  GenericImageFormat const& format ) {
+                                                                  ImageFormat const& format ) {
     return new DiskImageResourceGDAL( filename, format );
   }
   

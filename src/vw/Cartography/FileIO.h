@@ -33,7 +33,6 @@
 
 #include <vw/config.h>
 #include <vw/Image/ImageView.h>
-#include <vw/Image/GenericImageBuffer.h>
 #include <vw/Cartography/DiskImageResourceGDAL.h>
 
 #include <iostream>
@@ -54,7 +53,7 @@ namespace cartography {
 
     // Read it in and wrap up
     static_cast<DiskImageResourceGDAL*>(r)->read_georeference(georef);
-    r->read( in_image );
+    read_image( in_image, *r );
     delete r;
   }
 
@@ -68,7 +67,7 @@ namespace cartography {
 
     // Rasterize the image if needed
     ImageView<typename ImageT::pixel_type> image( out_image.impl() );
-    GenericImageBuffer buf = image.generic_buffer();
+    ImageBuffer buf = image.buffer();
 
     int files = 1;
     // If there's an asterisk, save one file per plane
@@ -84,7 +83,7 @@ namespace cartography {
       DiskImageResource *r = DiskImageResourceGDAL::construct_create( name, buf.format );
       std::cout << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
       static_cast<DiskImageResourceGDAL*>(r)->write_georeference(georef);
-      r->write_generic( buf );
+      r->write( buf );
       delete r;
       buf.data = (uint8*)buf.data + buf.pstride;
     }

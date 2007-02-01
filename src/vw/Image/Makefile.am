@@ -29,12 +29,12 @@ if MAKE_MODULE_IMAGE
 
 include_HEADERS = PixelIterator.h ImageViewBase.h PixelAccessors.h	\
 	ImageView.h ImageViewRef.h PixelTypeInfo.h PixelMath.h		\
-	PixelTypes.h GenericImageBuffer.h Manipulation.h		\
+	PixelTypes.h ImageResource.h ImageResourceView.h Manipulation.h \
 	PerPixelViews.h ImageMath.h EdgeExtension.h Interpolation.h	\
 	Convolution.h Filter.h Filter.h Filter.tcc Transform.h		\
 	Statistics.h Algorithms.h EdgeExtend.h BlockRasterize.h
 
-libvwImage_la_SOURCES = GenericImageBuffer.cc Filter.cc
+libvwImage_la_SOURCES = ImageResource.cc Filter.cc
 libvwImage_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwImage_la_LIBADD = @MODULE_IMAGE_LDFLAGS@
 

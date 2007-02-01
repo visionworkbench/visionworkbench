@@ -102,7 +102,7 @@ void vw::DiskImageResourceJPEG::open( std::string const& filename )
   m_file_ptr = infile;
 
   // Read the header information and parse it
-	jpeg_read_header(&cinfo, TRUE);
+  jpeg_read_header(&cinfo, TRUE);
 
   // If the user has requested a subsampled version of the original
   // image, we pass this request along to the JPEG driver here.
@@ -134,7 +134,7 @@ void vw::DiskImageResourceJPEG::open( std::string const& filename )
 
 /// Bind the resource to a file for writing.
 void vw::DiskImageResourceJPEG::create( std::string const& filename, 
-                                        GenericImageFormat const& format )
+                                        ImageFormat const& format )
 {
   if( format.planes!=1 && format.pixel_format!=VW_PIXEL_SCALAR )
     vw_throw( NoImplErr() << "JPEG doesn't support multi-plane images with compound pixel types." );
@@ -167,8 +167,10 @@ void vw::DiskImageResourceJPEG::create( std::string const& filename,
 }
 
 /// Read the disk image into the given buffer.
-void vw::DiskImageResourceJPEG::read_generic( GenericImageBuffer const& dest ) const
+void vw::DiskImageResourceJPEG::read( ImageBuffer const& dest, BBox2i const& bbox ) const
 {
+  VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
+             NoImplErr() << "DiskImageResourceJPEG does not support partial reads." );
   VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in JPEG read." );
 
@@ -221,9 +223,9 @@ void vw::DiskImageResourceJPEG::read_generic( GenericImageBuffer const& dest ) c
   jpeg_finish_decompress(&cinfo);
   jpeg_destroy_decompress(&cinfo);
   
-  // Set up a generic image buffer around the tdata_t buf object that
+  // Set up an image buffer around the tdata_t buf object that
   // jpeg used to copy it's data.
-  GenericImageBuffer src;
+  ImageBuffer src;
   src.data = buf.get();
   src.format = m_format;
 
@@ -238,8 +240,10 @@ void vw::DiskImageResourceJPEG::read_generic( GenericImageBuffer const& dest ) c
 }
 
 // Write the given buffer into the disk image.
-void vw::DiskImageResourceJPEG::write_generic( GenericImageBuffer const& src )
+void vw::DiskImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbox )
 {
+  VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
+             NoImplErr() << "DiskImageResourceJPEG does not support partial writes." );
   VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in JPEG write." );
 
@@ -276,8 +280,8 @@ void vw::DiskImageResourceJPEG::write_generic( GenericImageBuffer const& src )
   jpeg_set_defaults(&cinfo);
   jpeg_set_quality(&cinfo, (int)(100*m_quality), TRUE); // limit to baseline-JPEG values 
 
-  // Set up the generic image buffer and convert the data into this buffer
-  GenericImageBuffer dst;
+  // Set up the image buffer and convert the data into this buffer
+  ImageBuffer dst;
   boost::scoped_array<uint8> buf( new uint8[cinfo.image_width*cinfo.input_components*cinfo.image_height] );
   dst.data = buf.get();
   dst.format = m_format;
@@ -308,6 +312,6 @@ vw::DiskImageResource* vw::DiskImageResourceJPEG::construct_open( std::string co
 
 // A FileIO hook to open a file for writing
 vw::DiskImageResource* vw::DiskImageResourceJPEG::construct_create( std::string const& filename,
-                                                                    GenericImageFormat const& format ) {
+                                                                    ImageFormat const& format ) {
   return new DiskImageResourceJPEG( filename, format );
 }

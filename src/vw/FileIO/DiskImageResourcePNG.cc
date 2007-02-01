@@ -40,7 +40,6 @@
 #include <png.h>
 
 #include <vw/Core/Exception.h>
-#include <vw/Image/GenericImageBuffer.h>
 #include <vw/FileIO/DiskImageResourcePNG.h>
 
 namespace vw {
@@ -52,7 +51,7 @@ namespace vw {
   class DiskImageResourceInfoPNG {
     std::string m_filename;
     bool m_readable;
-    GenericImageFormat &m_format;
+    ImageFormat &m_format;
     std::vector<DiskImageResourcePNG::Comment> comments;
 
     static void read_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
@@ -170,7 +169,7 @@ namespace vw {
     }
 
   public:
-    DiskImageResourceInfoPNG( GenericImageFormat &format )
+    DiskImageResourceInfoPNG( ImageFormat &format )
       : m_filename(), m_readable(false), m_format(format) {}
 
     ~DiskImageResourceInfoPNG() { }
@@ -229,7 +228,7 @@ namespace vw {
       m_readable = true;
     }
 
-    void create( std::string const& filename, GenericImageFormat const& format ) {
+    void create( std::string const& filename, ImageFormat const& format ) {
       m_format = format;
       // If we're asked for a multi-plane scalar format, pretend we've
       // been asked for the corresponding single-plane multi-channel format.
@@ -252,7 +251,7 @@ namespace vw {
       m_filename = filename;
     }
 
-    void read( GenericImageBuffer const& dest, BBox2i bbox ) {
+    void read( ImageBuffer const& dest, BBox2i bbox ) {
       std::fstream fs( m_filename.c_str(), std::ios_base::in | std::ios_base::binary );
       if ( !fs ) vw_throw( IOErr() << "Unable to open input file " << m_filename << "." );
       png_structp png_ptr;
@@ -263,7 +262,7 @@ namespace vw {
       VW_ASSERT( int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
                  ArgumentErr() << "Destination buffer has wrong dimensions in PNG read." );
 
-      GenericImageBuffer src;
+      ImageBuffer src;
       unsigned Bpp = (m_format.channel_type==VW_CHANNEL_UINT16) ? 2 : 1;
       unsigned channels = png_get_channels( png_ptr, info_ptr );
 
@@ -310,7 +309,7 @@ namespace vw {
         std::vector<uint8> buffer(m_format.cols*channels*Bpp);
         src.data = &buffer[0] + bbox.min().x()*src.cstride;
         src.format.rows = 1;
-        GenericImageBuffer dest_row = dest;
+        ImageBuffer dest_row = dest;
         dest_row.format.rows = 1;
         for( int row=0; row<bbox.min().y(); ++row ) {
           // Skip un-needed rows...
@@ -326,14 +325,14 @@ namespace vw {
       read_cleanup( png_ptr, info_ptr, end_ptr );
     }
 
-    void write( GenericImageBuffer const& src ) {
+    void write( ImageBuffer const& src ) {
       std::fstream fs( m_filename.c_str(), std::ios::out | std::ios_base::binary );
       if ( !fs ) vw_throw( IOErr() << "Unable to open output file \"" << m_filename << "\"." );
       png_structp png_ptr;
       png_infop info_ptr;
       write_init( fs, png_ptr, info_ptr );
       VW_ASSERT( src.format.cols==m_format.cols && src.format.rows==m_format.rows, IOErr() << "Buffer has wrong dimensions in PNG write." );
-      GenericImageBuffer dst;
+      ImageBuffer dst;
       unsigned Bpp = (m_format.channel_type==VW_CHANNEL_UINT16) ? 2 : 1;
       unsigned channels = png_get_channels( png_ptr, info_ptr );
       std::vector<uint8> buffer(m_format.cols*m_format.rows*channels*Bpp);
@@ -383,7 +382,7 @@ vw::DiskImageResourcePNG::DiskImageResourcePNG( std::string const& filename )
 }
 
 vw::DiskImageResourcePNG::DiskImageResourcePNG( std::string const& filename, 
-                                                GenericImageFormat const& format )
+                                                ImageFormat const& format )
   : DiskImageResource( filename ), m_info( new DiskImageResourceInfoPNG(m_format) ) {
   create( filename, format );
 }
@@ -396,19 +395,17 @@ void vw::DiskImageResourcePNG::open( std::string const& filename ) {
 }
 
 void vw::DiskImageResourcePNG::create( std::string const& filename, 
-                                       GenericImageFormat const& format ) {
+                                       ImageFormat const& format ) {
   m_info->create( filename, format );
 }
 
-void vw::DiskImageResourcePNG::read_generic( GenericImageBuffer const& dest ) const {
-  m_info->read( dest, BBox2i(0,0,cols(),rows()) );
-}
-
-void vw::DiskImageResourcePNG::read_generic( GenericImageBuffer const& dest, BBox2i bbox ) const {
+void vw::DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) const {
   m_info->read( dest, bbox );
 }
 
-void vw::DiskImageResourcePNG::write_generic( GenericImageBuffer const& src ) {
+void vw::DiskImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox ) {
+  VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
+             NoImplErr() << "DiskImageResourcePNG does not support partial writes." );
   m_info->write( src );
 }
 
@@ -417,7 +414,7 @@ vw::DiskImageResource* vw::DiskImageResourcePNG::construct_open( std::string con
 }
 
 vw::DiskImageResource* vw::DiskImageResourcePNG::construct_create( std::string const& filename,
-                                                                   GenericImageFormat const& format ) {
+                                                                   ImageFormat const& format ) {
   return new DiskImageResourcePNG( filename, format );
 }
 

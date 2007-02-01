@@ -25,13 +25,12 @@
 /// 
 /// Provides support for TIFF image files.
 ///
-#ifndef __VW_FILEIO_DISK_IMAGE_RESOUCE_TIFF_H__
-#define __VW_FILEIO_DISK_IMAGE_RESOUCE_TIFF_H__
+#ifndef __VW_FILEIO_DISKIMAGERESOUCETIFF_H__
+#define __VW_FILEIO_DISKIMAGERESOUCETIFF_H__
 
 #include <string>
 
 #include <vw/Image/PixelTypes.h>
-#include <vw/Image/GenericImageBuffer.h>
 #include <vw/FileIO/DiskImageResource.h>
 
 namespace vw {
@@ -44,28 +43,25 @@ namespace vw {
     DiskImageResourceTIFF( std::string const& filename );
 
     DiskImageResourceTIFF( std::string const& filename, 
-                           GenericImageFormat const& format );
+                           ImageFormat const& format );
     
     virtual ~DiskImageResourceTIFF() {}
     
-    virtual Vector2i native_read_block_size() const;
-    virtual void read_generic( GenericImageBuffer const& buf, BBox2i bbox ) const;
-    virtual void read_generic( GenericImageBuffer const& dest ) const {
-      read_generic( dest, BBox2i(0,0,cols(),rows()) );
-    }
+    virtual Vector2i native_block_size() const;
 
-    virtual void write_generic( GenericImageBuffer const& dest );
-    virtual void flush() {}
+    virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const;
+
+    virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
 
     void open( std::string const& filename );
 
     void create( std::string const& filename,
-                 GenericImageFormat const& format );
+                 ImageFormat const& format );
 
     static DiskImageResource* construct_open( std::string const& filename );
 
     static DiskImageResource* construct_create( std::string const& filename,
-                                                GenericImageFormat const& format );
+                                                ImageFormat const& format );
 
   private:
     boost::shared_ptr<DiskImageResourceInfoTIFF> m_info;
