@@ -44,10 +44,10 @@ public:
     TS_ASSERT_THROWS_NOTHING( dir = DiskImageResource::open( "mural.png" ) );
 
     ImageView<PixelRGB<uint8> > image;
-    TS_ASSERT_THROWS_NOTHING( dir->read(image, BBox2i(100,100,100,100) ) );
+    TS_ASSERT_THROWS_NOTHING( read_image( image, *dir, BBox2i(100,100,100,100) ) );
     TS_ASSERT_THROWS_NOTHING( write_image( "mural.cropped.png", image ) );
 
-    TS_ASSERT_THROWS_NOTHING( dir->read(image) );
+    TS_ASSERT_THROWS_NOTHING( read_image( image, *dir ) );
     write_image( "mural.tif", image );
     DiskImageView<PixelRGB<uint8> > div( "mural.tif" );
     ImageView<PixelRGB<uint8> > result = crop(div,100,100,100,100);
