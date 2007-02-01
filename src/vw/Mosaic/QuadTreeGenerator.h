@@ -73,7 +73,7 @@ namespace mosaic {
     virtual ~ImageQuadTreeGenerator() {}
 
     virtual void write_meta_file( std::string const& name, unsigned level, BBox2i const& image_bbox, 
-                                  BBox2i const& visible_bbox ) const {
+                                  BBox2i const& visible_bbox, BBox2i const& region_bbox ) const {
       unsigned scale = 1 << level;
       fs::path base_path( m_base_dir, fs::native );
       fs::ofstream outfile( base_path/(name+".bbx") );
@@ -160,7 +160,7 @@ namespace mosaic {
       unsigned interior_size = m_patch_size - m_patch_overlap;
       Vector2i position( x*interior_size-m_patch_overlap/2, y*interior_size-m_patch_overlap/2 );
       BBox2i image_bbox( Vector2i(0,0), Vector2i(image.cols(), image.rows()) );
-      BBox2i visible_bbox = image_bbox;
+      BBox2i visible_bbox = image_bbox, region_bbox = image_bbox;
       visible_bbox.contract( m_patch_overlap/2 );
       fs::path base_path( m_base_dir, fs::native );
       if( m_crop_images ) {
@@ -182,7 +182,8 @@ namespace mosaic {
       }
       image_bbox += position;
       visible_bbox += position;
-      write_meta_file( name, level, image_bbox*scale, visible_bbox*scale );
+      region_bbox += position;
+      write_meta_file( name, level, image_bbox*scale, visible_bbox*scale, region_bbox*scale );
     }
 
     ImageView<PixelT> generate_branch( std::string name, unsigned level, unsigned x, unsigned y ) {

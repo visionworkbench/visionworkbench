@@ -31,6 +31,9 @@ namespace mosaic {
     ImageView<PixelT> image;
     BBox<int,2> bbox;
 
+    typedef PixelT pixel_type;
+    typedef PixelT result_type;
+
     template <class ImageT>
     PositionedImage( int cols, int rows, ImageT const& image, BBox<int,2> const& bbox ) : cols_(cols), rows_(rows), image(image), bbox(bbox) {}
 
@@ -49,9 +52,9 @@ namespace mosaic {
       // We use vw::rasterize() here rather than ordinary assignment because it is 
       // faster for this particular combination of filtering and subsampling.
       ImageView<PixelT> new_image( new_bbox.width(), new_bbox.height() );
-      rasterize( edge_extend( subsample( separable_convolution_filter( edge_extend( image, -left, -top, image.cols()+left+right, image.rows()+top+bottom, ZeroEdgeExtension() ),
-                                                                     kernel, kernel, ZeroEdgeExtension() ), 2 ), 0, 0, new_bbox.width(), new_bbox.height(), vw::ConstantEdgeExtension() ),
-                 new_image );
+      vw::rasterize( edge_extend( subsample( separable_convolution_filter( edge_extend( image, -left, -top, image.cols()+left+right, image.rows()+top+bottom, ZeroEdgeExtension() ),
+                                                                           kernel, kernel, ZeroEdgeExtension() ), 2 ), 0, 0, new_bbox.width(), new_bbox.height(), vw::ConstantEdgeExtension() ),
+                     new_image );
       return PositionedImage( (cols_+1)/2, (rows_+1)/2, new_image, new_bbox );
     }
     
@@ -85,7 +88,7 @@ namespace mosaic {
     }
 
     void subtract_expanded( PositionedImage const& other ) {
-      rasterize( image - edge_extend( resample( other.image, 2 ), bbox-2*other.bbox.min(), ZeroEdgeExtension() ), image );
+      vw::rasterize( image - edge_extend( resample( other.image, 2 ), bbox-2*other.bbox.min(), ZeroEdgeExtension() ), image );
     }
 
     template <class OtherPixT>
@@ -94,9 +97,13 @@ namespace mosaic {
       return *this;
     }
     
-    int cols() const { return cols_; }
-    int rows() const { return rows_; }
-    int planes() const { return 1; }
+    unsigned cols() const { return cols_; }
+    unsigned rows() const { return rows_; }
+    unsigned planes() const { return 1; }
+
+    typedef PositionedImage prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return *this; }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw_throw( NoImplErr() << "PositionedImage does not support rasterize!" ); }
   };
 
 
@@ -213,11 +220,11 @@ namespace mosaic {
 
     void set_reuse_masks( bool reuse_masks ) { m_reuse_masks = reuse_masks; }
 
-    int cols() const {
+    unsigned cols() const {
       return view_bbox.width();
     }
 
-    int rows() const {
+    unsigned rows() const {
       return view_bbox.height();
     }
 
@@ -225,7 +232,7 @@ namespace mosaic {
       return data_bbox;
     }
 
-    int planes() const {
+    unsigned planes() const {
       return 1;
     }
 

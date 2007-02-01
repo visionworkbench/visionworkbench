@@ -42,7 +42,6 @@ namespace mosaic {
     BBox2 total_longlat_bbox;
     int max_lod_pixels;
     int draw_order_offset;
-    bool distributed_kml;
     std::string kml_title;
     mutable std::ostringstream root_node_tags;
 
@@ -67,10 +66,10 @@ namespace mosaic {
       return tag.str();
     }
 
-    std::string kml_ground_overlay( std::string const& name, std::string const& href, BBox2 const& bbox, int draw_order, int max_lod_pixels ) const {
+    std::string kml_ground_overlay( std::string const& name, std::string const& href, BBox2 const& bbox, BBox2 const& rbbox, int draw_order, int max_lod_pixels ) const {
       std::ostringstream tag;
       tag << "  <GroundOverlay>\n"
-          << "    <Region>" << kml_latlonaltbox(bbox) << "<Lod><minLodPixels>128</minLodPixels><maxLodPixels>" << max_lod_pixels << "</maxLodPixels></Lod></Region>\n"
+          << "    <Region>" << kml_latlonaltbox(rbbox) << "<Lod><minLodPixels>128</minLodPixels><maxLodPixels>" << max_lod_pixels << "</maxLodPixels></Lod></Region>\n"
           << "    <name>" << name << "</name>\n"
           << "    <Icon><href>" << href << "</href></Icon>\n"
           << "    " << kml_latlonaltbox(bbox) << "\n"
@@ -101,8 +100,7 @@ namespace mosaic {
       : vw::mosaic::ImageQuadTreeGenerator<PixelT>( tree_name, source ),
         total_longlat_bbox( total_longlat_bbox ),
         max_lod_pixels( -1 ),
-        draw_order_offset( 0 ),
-        distributed_kml( true )
+        draw_order_offset( 0 )
     {}
     
     void set_max_lod_pixels( int pixels ) {
@@ -117,16 +115,13 @@ namespace mosaic {
       kml_title = name;
     }
 
-    void set_distributed_kml( bool distributed ) {
-      distributed_kml = distributed;
-    }
-
     virtual ~KMLQuadTreeGenerator() {}
     
     virtual void write_meta_file( std::string const& name,
                                   unsigned level, 
                                   BBox2i const& image_bbox,
-                                  BBox2i const& visible_bbox ) const
+                                  BBox2i const& visible_bbox,
+                                  BBox2i const& region_bbox ) const
     {
       bool root_node = ( level == base_type::m_tree_levels-1 );
 
@@ -145,42 +140,65 @@ namespace mosaic {
       fs::path base_path( base_type::m_base_dir, fs::native );
       fs::path file_path = base_path/name;
       BBox2 bb = pixels_to_longlat( image_bbox );
-      if( distributed_kml ) {
-        fs::ofstream kml( base_path / (name+".kml") );
-        kml << "<Folder>\n";
-        std::string leaf = file_path.leaf();
-        int children = 0;
-        if( exists( file_path/"0" ) ) {
-          ++children;
-          kml << kml_network_link( name+"/0", leaf+"/0.kml", (bb+Vector2(bb.min().x(),bb.min().y()))/2.0 );
-        }
-        if( exists( file_path/"1" ) ) {
-          ++children;
-          kml << kml_network_link( name+"/1", leaf+"/1.kml", (bb+Vector2(bb.max().x(),bb.min().y()))/2.0 );
-        }
-        if( exists( file_path/"2" ) ) {
-          ++children;
-          kml << kml_network_link( name+"/2", leaf+"/2.kml", (bb+Vector2(bb.min().x(),bb.max().y()))/2.0 );
-        }
-        if( exists( file_path/"3" ) ) {
-          ++children;
-          kml << kml_network_link( name+"/3", leaf+"/3.kml", (bb+Vector2(bb.max().x(),bb.max().y()))/2.0 );
-        }
-        kml << kml_ground_overlay( name, leaf+"."+KMLQuadTreeGenerator::m_output_image_type, bb, base_type::m_tree_levels-level, (children==0)?(-1):max_lod_pixels );
-        if( root_node ) kml << root_node_tags.str();
-        kml << "</Folder>\n";
+      BBox2 rbb = pixels_to_longlat( region_bbox );
+      fs::ofstream kml( base_path / (name+".kml") );
+      kml << "<Folder>\n";
+      std::string leaf = file_path.leaf();
+      int children = 0;
+      if( exists( file_path/"0" ) ) {
+        ++children;
+        kml << kml_network_link( name+"/0", leaf+"/0.kml", (rbb+Vector2(rbb.min().x(),rbb.min().y()))/2.0 );
       }
-      else {
-        int max_lod = -1;
-        if( exists( file_path/"0" ) || exists( file_path/"1" ) || exists( file_path/"2" ) || exists( file_path/"3" ) ) max_lod = max_lod_pixels;
-        root_node_tags << kml_ground_overlay( name, name+"."+KMLQuadTreeGenerator::m_output_image_type, bb, base_type::m_tree_levels-level, max_lod );
-        if( root_node ) {
-          fs::ofstream kml( base_path / (name+".kml") );
-          kml << "<Folder>\n" << root_node_tags.str() << "</Folder>\n";
-        }
+      if( exists( file_path/"1" ) ) {
+        ++children;
+        kml << kml_network_link( name+"/1", leaf+"/1.kml", (rbb+Vector2(rbb.max().x(),rbb.min().y()))/2.0 );
       }
+      if( exists( file_path/"2" ) ) {
+        ++children;
+        kml << kml_network_link( name+"/2", leaf+"/2.kml", (rbb+Vector2(rbb.min().x(),rbb.max().y()))/2.0 );
+      }
+      if( exists( file_path/"3" ) ) {
+        ++children;
+        kml << kml_network_link( name+"/3", leaf+"/3.kml", (rbb+Vector2(rbb.max().x(),rbb.max().y()))/2.0 );
+      }
+      kml << kml_ground_overlay( name, leaf+"."+KMLQuadTreeGenerator::m_output_image_type, bb, rbb, base_type::m_tree_levels-level, (children==0)?(-1):max_lod_pixels );
+      if( root_node ) kml << root_node_tags.str();
+      kml << "</Folder>\n";
     }
 
+  };
+
+
+  /// A transform functor that relates unprojected lon/lat 
+  /// coordinates in degrees to an unprojected pixel space 
+  /// cooresponding to a standard global KML image quad-tree.
+  class GlobalKMLTransform : public TransformBase<GlobalKMLTransform>
+  {
+    int resolution;
+  public:
+    GlobalKMLTransform( int resolution ) : resolution(resolution) {}
+    
+    // Convert degrees lat/lon to pixel location
+    inline Vector2 forward( Vector2 const& p ) const {
+      return resolution*Vector2( p.x()+180.0, 180.0-p.y() )/360.0 - Vector2(0.5,0.5);
+    }
+    
+    // Convert pixel location to degrees lat/lon
+    inline Vector2 reverse( Vector2 const& p ) const {
+      return Vector2( 360.0*(p.x()+0.5)/resolution-180.0, 180.0-360.0*(p.y()+0.5)/resolution );
+    }
+
+    template <class TransformT>
+    static inline int compute_resolution( TransformT const& tx, Vector2 const& pixel ) {
+      Vector2 pos = tx.forward( pixel );
+      Vector2 x_vector = tx.forward( pixel+Vector2(1,0) ) - pos;
+      Vector2 y_vector = tx.forward( pixel+Vector2(0,1) ) - pos;
+      double degrees_per_pixel = (std::min)( norm_2(x_vector), norm_2(y_vector) );
+      double pixels_per_circumference = 360.0 / degrees_per_pixel;
+      int scale_exponent = ceil( log(pixels_per_circumference)/log(2) );
+      int resolution = 1 << scale_exponent;
+      return resolution;
+    }
   };
 
 
