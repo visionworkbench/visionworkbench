@@ -510,6 +510,20 @@ namespace vw {
     return bbox;
   }
 
+  /// A variant of compute_transformed_bbox_fast() that rounds the 
+  /// resulting bounding box out to the nearest integer bounding 
+  /// box containing the entire transformed image.  
+  template <class ImageT, class TransformT>
+  inline BBox2i compute_transformed_bbox_fast_int( ImageT const& image, TransformT const& tx ) {
+    BBox2f fbbox = compute_transformed_bbox_fast( image, tx );
+    BBox2i bbox;
+    bbox.min().x() = floor(fbbox.min().x());
+    bbox.max().x() = ceil(fbbox.max().x());
+    bbox.min().y() = floor(fbbox.min().y());
+    bbox.max().y() = ceil(fbbox.max().y());
+    return bbox;
+  }
+
   // -------------------------------------------------------------------------------
   // Functional API
   // -------------------------------------------------------------------------------
