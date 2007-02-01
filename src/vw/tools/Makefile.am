@@ -26,9 +26,15 @@
 ########################################################################
 
 if ENABLE_EXCEPTIONS
-bin_PROGRAMS = image
+
+bin_PROGRAMS = image image2kml
+
 image_SOURCES = image.cc
 image_LDFLAGS = @PKG_VW_LDFLAGS@
+
+image2kml_SOURCES = image2kml.cc
+image2kml_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_MOSAIC_LDFLAGS@
+
 endif
 
 ########################################################################
