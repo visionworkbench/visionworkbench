@@ -27,16 +27,13 @@
 #pragma warning(disable:4996)
 #endif
 
-#ifdef NDEBUG
-#undef NDEBUG
-#endif
-
-#include <stdlib.h>
+#include <iostream>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include <vw/vw.h>
+#include <vw/Image/ImageView.h>
+#include <vw/FileIO/DiskImageResource.h>
 #include <vw/Camera/BayerFilter.h>
 using namespace vw;
 
