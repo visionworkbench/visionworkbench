@@ -34,7 +34,7 @@
 
 #include <vw/Core/Cache.h>
 #include <vw/Core/Debugging.h>
-#include <Vw/Image/ImageResourceView.h>
+#include <vw/Image/ImageResourceView.h>
 #include <vw/FileIO/DiskImageResource.h>
 
 namespace vw {
