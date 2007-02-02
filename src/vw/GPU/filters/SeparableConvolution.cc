@@ -1,5 +1,5 @@
 /*
- *  SeperableConvolution.cpp
+ *  SeparableConvolution.cpp
  *  VWGPU
  *
  *  Created by Ian Saxton on 5/17/06.
@@ -7,7 +7,7 @@
  *
  */
 
-#include "SeperableConvolution.h"
+#include "SeparableConvolution.h"
 
 
 
@@ -22,17 +22,17 @@
 
 
 //########################################################################
-//#    SeperableConvolution                         
+//#    SeparableConvolution                         
 //########################################################################
 
 
 #include "OpenGLManager.h"
 #include "TexRef.h"
-#include "SeperableConvolution.h"
+#include "SeparableConvolution.h"
 #include "Timer.h"
 
 
-TexRef SeperableConvolution(TexRef& image, 
+TexRef SeparableConvolution(TexRef& image, 
 							TexRef& hVector, 
 							TexRef& vVector, 
 							float factor, 

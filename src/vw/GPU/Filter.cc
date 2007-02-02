@@ -51,11 +51,11 @@ GPUImageBase convolution_filter(const GPUImageBase& image,
 
 
 //########################################################################
-//#    seperable_convolution_filter                    
+//#    separable_convolution_filter                    
 //########################################################################
 
 
-GPUImageBase seperable_convolution_filter(const GPUImageBase& image, 
+GPUImageBase separable_convolution_filter(const GPUImageBase& image, 
 					       const GPUImageBase& hKernel, 
 					       const GPUImageBase& vKernel)
 {

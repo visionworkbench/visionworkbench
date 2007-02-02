@@ -45,7 +45,7 @@ void weighted_histogram(const ImageView<T1>& val_image,
 /// Construct a 2D Gaussian kernel. This is templatized so that kernel
 /// could be any 2D array that provides the appropriate accessors and
 /// resize method.  Note that for Gaussian filtering of images, the
-/// seperable method is preferred with two 1D kernels.
+/// separable method is preferred with two 1D kernels.
 template <class KernelT>
 int make_gaussian_kernel_2d( KernelT& kernel, float sigma, int usewidth=0 ) {
   // Kernel size may be specified, or if it is not then the default

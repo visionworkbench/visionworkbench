@@ -33,15 +33,15 @@ namespace vw { namespace GPU {
     return convolution_filter((GPUImageBase&) image, kernel);
   }
 
-  GPUImageBase seperable_convolution_filter(const GPUImageBase& src, 
+  GPUImageBase separable_convolution_filter(const GPUImageBase& src, 
 					   const GPUImageBase& hKernel, 
 					   const GPUImageBase& vKernel);
 
 
   template <class PixelT>
   GPUImage<PixelT> 
-  inline seperable_convolution_filter(const GPUImage<PixelT>& image, const GPUImageBase& hKernel, const GPUImageBase& vKernel) {
-    return  seperable_convolution_filter((GPUImageBase&) image, hKernel, vKernel);
+  inline separable_convolution_filter(const GPUImage<PixelT>& image, const GPUImageBase& hKernel, const GPUImageBase& vKernel) {
+    return  separable_convolution_filter((GPUImageBase&) image, hKernel, vKernel);
   }
 
   template <class PixelT>
@@ -52,7 +52,7 @@ namespace vw { namespace GPU {
     generate_gaussian_kernel(y_kernel, y_sigma, y_dim);
     GPUImageBase x_kernel_tex(x_kernel.size(), 1, TEX_R, TEX_FLOAT32, TEX_R, TEX_FLOAT32, &(x_kernel[0]));
     GPUImageBase y_kernel_tex(y_kernel.size(), 1, TEX_R, TEX_FLOAT32, TEX_R, TEX_FLOAT32, &(y_kernel[0]));
-    return seperable_convolution_filter((GPUImageBase&) image, x_kernel_tex, y_kernel_tex);
+    return separable_convolution_filter((GPUImageBase&) image, x_kernel_tex, y_kernel_tex);
   }
 
   template <class PixelT>
@@ -63,7 +63,7 @@ namespace vw { namespace GPU {
     generate_derivative_kernel(y_kernel, y_deriv, y_dim);
     GPUImageBase x_kernel_tex(x_kernel.size(), 1, TEX_R, TEX_FLOAT32, TEX_R, TEX_FLOAT32, &(x_kernel[0]));
     GPUImageBase y_kernel_tex(y_kernel.size(), 1, TEX_R, TEX_FLOAT32, TEX_R, TEX_FLOAT32, &(y_kernel[0]));
-    return seperable_convolution_filter((GPUImageBase&) image, x_kernel_tex, y_kernel_tex);
+    return separable_convolution_filter((GPUImageBase&) image, x_kernel_tex, y_kernel_tex);
   }
 
   template <class PixelT>
