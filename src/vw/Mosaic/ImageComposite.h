@@ -364,6 +364,7 @@ void vw::mosaic::ImageComposite<PixelT>::prepare() {
   data_bbox -= view_bbox.min();
 
   levels = (int) floorf( log( mindim/2.0 ) / log(2.0) ) - 1;
+  if( levels < 1 ) levels = 1;
 
   if( !m_draft_mode && !m_reuse_masks ) {
     generate_masks();
