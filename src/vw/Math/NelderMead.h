@@ -60,9 +60,13 @@ namespace math {
     void insert_vertex(vertex_type vertex) {
       vertex_iterator iter = m_vertices.begin();
 
-      while (vertex.second < (*iter).second)
+      while (vertex.second < (*iter).second && iter != m_vertices.end() )
         iter++;
-      m_vertices.insert(iter, vertex);
+
+      if (iter == m_vertices.end())
+        m_vertices.push_back(vertex);
+      else
+        m_vertices.insert(iter, vertex);
     }
     
     // Search for the vertex in the list that had the highest function
@@ -88,7 +92,7 @@ namespace math {
 
   public:
     template <class ScaleT>
-    Simplex(FuncT const& func, DomainT const& seed, ScaleT const& scales) : m_func(func) {
+    Simplex(FuncT const& func, DomainT const seed, ScaleT const& scales) : m_func(func) {
 
       VW_ASSERT(scales.size() == seed.size(), 
                 ArgumentErr() << "NelderMeadMinimizer: the number of scales does not match the dimensionality of the data in the seed vector.");
@@ -129,6 +133,8 @@ namespace math {
     // optimization surface.  Returns the size of the step that was
     // ultimately made.
     double update() {
+      //      print_vertices();
+      // std::cout << "Starting update...\n";
       vertex_type highest_vtx = pop_highest_vertex();
       DomainT mean_vtx_loc = mean_vertex_location();
       vertex_type& lowest_vtx = lowest_vertex();
@@ -137,7 +143,7 @@ namespace math {
       // mean_vtx. (reflect)
       DomainT new_loc = 2*mean_vtx_loc - highest_vtx.first;
       double new_val = m_func(new_loc); 
-
+ 
       // If this is now the lowest point, we should move another step
       // in this direction because this direction is a good
       // one. (reflect & extend)
