@@ -53,6 +53,7 @@ void vw::Cache::deallocate( size_t size ) {
   VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache deallocated " << size << " bytes (" << m_size << " total)" << std::endl; )
 }
 
+// Move the cache line to the top of the valid list.
 void vw::Cache::validate( CacheLineBase *line ) {
   if( line == m_first_valid ) return;
   if( line == m_last_valid ) m_last_valid = line->m_prev;
@@ -66,6 +67,7 @@ void vw::Cache::validate( CacheLineBase *line ) {
   if( ! m_last_valid ) m_last_valid = line;
 }
 
+// Move the cache line to the top of the invalid list.
 void vw::Cache::invalidate( CacheLineBase *line ) {
   if( line == m_first_valid ) m_first_valid = line->m_next;
   if( line == m_last_valid ) m_last_valid = line->m_prev;
@@ -77,6 +79,7 @@ void vw::Cache::invalidate( CacheLineBase *line ) {
   m_first_invalid = line;
 }
 
+// Remove the cache line from the cache lists.
 void vw::Cache::remove( CacheLineBase *line ) {
   if( line == m_first_valid ) m_first_valid = line->m_next;
   if( line == m_last_valid ) m_last_valid = line->m_prev;
@@ -86,6 +89,7 @@ void vw::Cache::remove( CacheLineBase *line ) {
   line->m_next = line->m_prev = 0;
 }
 
+// Move the cache line to the bottom of the valid list.
 void vw::Cache::deprioritize( CacheLineBase *line ) {
   if( line == m_last_valid ) return;
   if( line == m_first_valid ) m_first_valid = line->m_next;
