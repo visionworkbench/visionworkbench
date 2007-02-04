@@ -467,8 +467,8 @@ namespace vw {
   template <class ViewT, class TransformT>
   inline BBox2f compute_transformed_bbox_fast(ImageViewBase<ViewT> const& image, 
                                               TransformT const& transform_func,
-                                              unsigned min_image_size = VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE,
-                                              unsigned max_image_size = VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE) {
+                                              float min_image_size = VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE,
+                                              float max_image_size = VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE) {
     Vector2 pt;
     BBox2f bbox;
     
