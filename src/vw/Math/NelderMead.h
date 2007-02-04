@@ -35,7 +35,6 @@
 // Vision workbench
 #include <vw/Core/Debugging.h>
 #include <vw/Math/Vector.h>
-#include <vw/Math/Matrix.h>
 
 namespace vw {
 namespace math {
@@ -60,13 +59,10 @@ namespace math {
     void insert_vertex(vertex_type vertex) {
       vertex_iterator iter = m_vertices.begin();
 
-      while (vertex.second < (*iter).second && iter != m_vertices.end() )
+      while ( vertex.second < (*iter).second && iter != m_vertices.end() )
         iter++;
 
-      if (iter == m_vertices.end())
-        m_vertices.push_back(vertex);
-      else
-        m_vertices.insert(iter, vertex);
+      m_vertices.insert(iter, vertex);
     }
     
     // Search for the vertex in the list that had the highest function
@@ -97,21 +93,15 @@ namespace math {
       VW_ASSERT(scales.size() == seed.size(), 
                 ArgumentErr() << "NelderMeadMinimizer: the number of scales does not match the dimensionality of the data in the seed vector.");
 
-      // Create an N+1 vertex simplex where N is the dimensionality of
-      // the domain.  
-      m_vertices.clear();
-      
       // The seed vector sets the center vertex of the simplex and the
       // other vertices are chosen by picking points in each of the
       // standard unit vector directions.  The distance in each
       // direction is determined by the scale variable.
       m_vertices.push_front( vertex_type(seed, m_func(seed)) );
 
-      // Note -- this is probably not the most memory efficient way to
-      // generate vectors from the identity matrix...
-      vw::Matrix<double> identity = identity_matrix(seed.size());
-      for (unsigned i= 1; i < seed.size()+1; ++i) {
-        DomainT vertex = seed + scales[i-1] * select_col(identity, i-1);
+      for (unsigned i=0; i < seed.size(); ++i) {
+        DomainT vertex = seed;
+        vertex[i] += scales[i];
         insert_vertex( vertex_type(vertex, m_func(vertex)) ); 
       }
     }
