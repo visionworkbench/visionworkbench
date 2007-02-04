@@ -31,9 +31,11 @@ image_SOURCES = image.cc
 image_LDFLAGS = @PKG_VW_LDFLAGS@
 
 if MAKE_MODULE_CARTOGRAPHY
+if HAVE_PKG_JPEG
 image2kml_prog = image2kml
 image2kml_SOURCES = image2kml.cc
 image2kml_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_MOSAIC_LDFLAGS@
+endif
 endif
 
 bin_PROGRAMS = image $(image2kml_prog)
