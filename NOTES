@@ -1,3 +1,55 @@
+*** RELEASE 1.0.1, 2 FEBRUARY 2006 ***
+
+Renamed the *EdgeExtend classes and header files to *EdgeExtension,
+for grammatical consistency.
+
+Minor bugfixes and improvements to PNG, TIFF, and PDS file I/O,
+georeferencing, image compositing and quad-tree generation, the CAHVOR
+camera model, image transformations, the interpolation views, and the
+Vision Workbook.
+
+Added the ImageResource base class to support generalized image I/O.
+Renamed GenericImageFormat and GenericImageBuffer to ImageFormat and
+ImageBuffer.  Added ImageResourceView to support view-based operations
+on general resources.  Reworked the DiskImageResource and
+DiskImageView subsystem accordingly.
+
+Added support for user-supplied error handlers to be called in place
+of the usual exception-throwing.  If the Vision Workbench is
+configured with exceptions disabled, the default handler prints the
+error text and calls abort().
+
+Added the ability to generate KML "super-overlays" to the quad- tree
+generator in the Mosaic module, and added an example command-line tool
+called "image2kml".  (Depends on the Cartography module, and therefore 
+requires PROJ.4 and GDAL.  See the README file for more info.)
+
+Added the Nelder-Mead optimization algorithm.
+
+Removed dependence of the Math code on Boost's uBLAS, whose excessive
+template complexity was causing problems on some platforms.
+
+Added camera_transform(), camera_linearize_transform(), and
+identiy_matrix() convenience functions, as well as overloads to
+translate() for fast integer-offset translations.
+
+Added a generic pinhole camera model including Tsai lens distortion
+support to the Camera module.
+
+Some versions of LAPACK appear to return eigenvalues/vectors in a 
+different order than others, which confuses the unit test fo eigen() 
+right now.  If you see this error, do not worry about it.
+
+On some platforms the Vision Workbench appears to behave strangely
+when compiled with optimization turned off.  This is probably a bad
+idea anyway, since the Vision Workbench relies on function inlining
+for reasonable performance.
+
+Under some unknown circumstances the Cache system appears to get
+confused about how many resources are in use and may produce
+unexpected warning messages or exhibit suboptimal cacheing behavior,
+though it does not appear to leak memory or resources.
+
 *** RELEASE 1.0.0, 4 DECEMBER 2006 ***
 
 There are doubtless more issues than these, but these are the one's
