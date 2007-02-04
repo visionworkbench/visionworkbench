@@ -195,7 +195,7 @@ namespace mosaic {
       Vector2 y_vector = tx.forward( pixel+Vector2(0,1) ) - pos;
       double degrees_per_pixel = (std::min)( norm_2(x_vector), norm_2(y_vector) );
       double pixels_per_circumference = 360.0 / degrees_per_pixel;
-      int scale_exponent = ceil( log(pixels_per_circumference)/log(2) );
+      int scale_exponent = (int) ceil( log(pixels_per_circumference)/log(2) );
       int resolution = 1 << scale_exponent;
       return resolution;
     }

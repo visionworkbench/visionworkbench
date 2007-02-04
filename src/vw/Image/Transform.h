@@ -517,10 +517,10 @@ namespace vw {
   inline BBox2i compute_transformed_bbox_fast_int( ImageT const& image, TransformT const& tx ) {
     BBox2f fbbox = compute_transformed_bbox_fast( image, tx );
     BBox2i bbox;
-    bbox.min().x() = floor(fbbox.min().x());
-    bbox.max().x() = ceil(fbbox.max().x());
-    bbox.min().y() = floor(fbbox.min().y());
-    bbox.max().y() = ceil(fbbox.max().y());
+    bbox.min().x() = (int) floor(fbbox.min().x());
+    bbox.max().x() = (int) ceil(fbbox.max().x());
+    bbox.min().y() = (int) floor(fbbox.min().y());
+    bbox.max().y() = (int) ceil(fbbox.max().y());
     return bbox;
   }
 
