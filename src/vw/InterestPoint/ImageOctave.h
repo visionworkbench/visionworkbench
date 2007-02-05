@@ -11,7 +11,6 @@
 // STL 
 #include <vector>
 #include <iostream>
-using namespace std;
 
 // A magic number, this value used by Lowe.  Learn this parameter?
 #define INITIAL_SIGMA (1.6)
@@ -37,8 +36,8 @@ public:
   int num_planes;        // Number of planes (P+2) for ratio of 2^(1/P)
   float init_sigma;      // Initial sigma to apply to base level image
   float sigma_ratio;     // Ratio of sigmas between levels:
-  vector<float> sigma;   // sigmas corresponding to scales
-  vector< ImageView<PixelT> > scales; // Scaled images in the octave
+  std::vector<float> sigma;   // sigmas corresponding to scales
+  std::vector< ImageView<PixelT> > scales; // Scaled images in the octave
 
   // This constructor is intended for building the first octave from a
   // source image.
@@ -102,7 +101,8 @@ public:
     
     // Blur images.  Assume some sigma for the first one.
     vw::vw_out(DebugMessage) << "assuming camera_sigma " << CAMERA_SIGMA 
-			     << ", can we devise a way to find it?" << endl;
+			     << ", can we devise a way to find it?"
+			     << std::endl;
     float camera_sigma = CAMERA_SIGMA;
 
     // Sigma to use for blurring step to achieve a final sigma in each
@@ -113,7 +113,8 @@ public:
     if (sigma[0]>camera_sigma){
       use_sigma = sqrt( sigma[0]*sigma[0] - camera_sigma*camera_sigma );
       vw::vw_out(DebugMessage) << "making plane " << 0 << " using sigma "
-	        << use_sigma << " so final sigma is " << sigma[0] << endl;
+			       << use_sigma << " so final sigma is "
+			       << sigma[0] << std::endl;
       scales[0] = vw::gaussian_filter(scales[0], use_sigma);
     }
 
@@ -121,7 +122,8 @@ public:
     for (int i=1; i<num_planes; i++){
       use_sigma = sqrt( sigma[i]*sigma[i] - sigma[i-1]*sigma[i-1] );
       vw::vw_out(DebugMessage) << "making plane " << i << " using sigma "
-		<< use_sigma << " so final sigma is " << sigma[i] << endl;
+			       << use_sigma << " so final sigma is "
+			       << sigma[i] << std::endl;
       scales[i] = vw::gaussian_filter(scales[i-1], use_sigma);
     }
     
@@ -161,7 +163,8 @@ public:
     for (int k=2; k<num_planes; k++){
       use_sigma = sqrt( sigma[k]*sigma[k] - sigma[k-1]*sigma[k-1] );
       vw::vw_out(DebugMessage) << "making plane " << k << " using sigma "
-                << use_sigma << " so final sigma is " << sigma[k] << endl;
+			       << use_sigma << " so final sigma is "
+			       << sigma[k] << std::endl;
       scales[k] = vw::gaussian_filter(scales[k-1], use_sigma);
     }
     
