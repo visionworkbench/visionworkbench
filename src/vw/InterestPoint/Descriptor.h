@@ -112,7 +112,7 @@ namespace ip {
   
   /// Get the size x size support region around an interest point.
   /// transform takes care of interpolation and edge extension.
-  int get_support( ImageView<float>& support,
+  int inline get_support( ImageView<float>& support,
 		   float x, float y, float scale, float ori,
 		   const ImageOctave<float>& octave, int size=41 ) {
     int p = (int)octave.scale_to_plane_index(scale);
