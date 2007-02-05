@@ -35,6 +35,8 @@
 #include <vw/Math/Quaternion.h>
 #include <vw/Math/LinearAlgebra.h>
 
+#include <iostream>
+
 namespace vw { 
 namespace camera {
 
