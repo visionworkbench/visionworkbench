@@ -39,6 +39,7 @@
 #include <vw/FileIO.h>
 
 #include <vector>
+#include <iostream>
 #include <stdio.h>
 
 namespace vw {
@@ -148,7 +149,7 @@ int get_orientation( std::vector<float>& orientation,
        (top+width<(int)(data.ori.rows()))) {
     vw::vw_out(DebugMessage) << "Computing histogram on " << width
 			     << " " << width << " starting at "
-			     << left << " " << top << endl;
+			     << left << " " << top << std::endl;
     // Get cropped view of interest point support region
     ImageView<T> region_ori = vw::crop(data.ori,left,top,width,width);
     ImageView<T> region_mag = vw::crop(data.mag,left,top,width,width);
