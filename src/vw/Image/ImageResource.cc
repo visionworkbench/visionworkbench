@@ -364,7 +364,7 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src ) {
         ( dst.format.pixel_format!=VW_PIXEL_GRAY && dst.format.pixel_format!=VW_PIXEL_GRAYA && 
           dst.format.pixel_format!=VW_PIXEL_RGB && dst.format.pixel_format!=VW_PIXEL_RGBA ) ) {
       vw_throw( ArgumentErr() << "Source and destination buffers have incompatibile pixel formats ("
-                << dst.format.pixel_format << " vs. " << src.format.pixel_format << ")." );
+                << src.format.pixel_format << " vs. " << dst.format.pixel_format << ")." );
     }
   }
 
