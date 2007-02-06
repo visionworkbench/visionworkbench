@@ -109,17 +109,18 @@ namespace ip {
     }
     return return_val;
   }
+
+#define SUPPORT_SIZE 41
   
   /// Get the size x size support region around an interest point.
   /// transform takes care of interpolation and edge extension.
   int inline get_support( ImageView<float>& support,
 		   float x, float y, float scale, float ori,
-		   const ImageOctave<float>& octave, int size=41 ) {
-    int p = (int)octave.scale_to_plane_index(scale);
+		   const ImageView<float>& source, int size=SUPPORT_SIZE ) {
     float half_size = ((float)(size - 1)) / 2.0f;
     float scaling = 1.0f / scale;
     // This is mystifying - why won't the four-arg compose work?
-    support = transform(octave.scales[p],
+    support = transform(source,
 			compose(TranslateTransform(half_size, half_size),
 			compose(ResampleTransform(scaling, scaling),
 				RotateTransform(-ori),
@@ -131,11 +132,99 @@ namespace ip {
 
   /// Get the support region around an interest point.
   int inline get_support( ImageView<float>& support,
-			  InterestPoint pt,
-			  const ImageOctave<float>& octave, int size=41 ) {
+			  const InterestPoint& pt,
+			  const ImageView<float>& source,
+			  int size=SUPPORT_SIZE ) {
     return get_support(support, pt.x, pt.y, pt.scale, pt.orientation,
-		       octave, size);
+		       source, size);
   }
+
+  template <class ImplT>
+  struct DescriptorBase {
+    /// Returns the derived implementation type.
+    ImplT& impl() { return *static_cast<ImplT*>(this); }
+
+    /// Returns the derived implementation type.
+    ImplT const& impl() const { return *static_cast<ImplT const*>(this); }
+
+    /*
+    int compute_descriptors( std::vector<InterestPoint>& points,
+			     const ImageView<typename ImplT::real_type>& source ) {
+      ImageView<typename ImplT::real_type> feature_support;
+
+      impl().set_source(source);
+      for (unsigned i = 0; i <points.size(); i++){
+	impl().get_support(feature_support, points[i], source );
+	
+	// This function is specialized for different descriptors.
+	impl().compute_descriptor_from_support( points[i], feature_support );
+      }
+      return 0;
+    }
+
+    /// Certain implementations may require support to be an array of images.
+    int get_support(ImageView<typename ImplT::real_type>& support,
+		    const InterestPoint& pt,
+		    const ImageView<ImplT::real_type>& source) {
+      vw::ip::get_support(support, pt, source); // 41x41
+    }
+    */
+  };
+
+  template <class DescriptorT>
+  int generate_descriptors(std::vector<InterestPoint>& points,
+			   const ImageView<typename DescriptorT::real_type> source,
+			   DescriptorBase<DescriptorT>& desc_gen) {
+    desc_gen.impl().compute_descriptors(points, source);
+    return 0;
+  }
+
+  template <class T>
+  class PatchDescriptor : public DescriptorBase<PatchDescriptor<T> >
+  {
+    ImageView<T> source;
+
+  public:
+    typedef T real_type;
+
+    void set_source(const ImageView<T>& src) {
+      source = src;
+    }
+
+    int compute_descriptor_from_support(InterestPoint& pt,
+					const ImageView<T>& support) {
+      pt.descriptor.set_size(SUPPORT_SIZE * SUPPORT_SIZE);
+      for (int i = 0; i < SUPPORT_SIZE; i++)
+	for (int j = 0; j < SUPPORT_SIZE; j++)
+	  pt.descriptor(i*SUPPORT_SIZE + j) = support(i,j);
+      pt.descriptor = normalize(pt.descriptor);
+
+      return 0;
+    }
+
+    int compute_descriptors( std::vector<InterestPoint>& points,
+			     const ImageView<T>& source ) {
+      ImageView<T> feature_support;
+
+      set_source(source);
+      for (unsigned i = 0; i <points.size(); i++){
+	get_support(feature_support, points[i], source );
+	
+	// This function is specialized for different descriptors.
+	compute_descriptor_from_support( points[i], feature_support );
+      }
+      return 0;
+    }
+
+    /// Certain implementations may require support to be an array of images.
+    int get_support(ImageView<T>& support,
+		    const InterestPoint& pt,
+		    const ImageView<T>& source) {
+      vw::ip::get_support(support, pt, source); // 41x41
+    }
+  };
+
+  // SaveFeatureDescriptor?
 
 }} // namespace vw::ip
 
