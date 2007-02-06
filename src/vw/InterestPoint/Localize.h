@@ -28,8 +28,7 @@
 #ifndef __INTERESTPOINT_LOCALIZE_H__
 #define __INTERESTPOINT_LOCALIZE_H__
 
-#include <vw/InterestPoint/Descriptor.h>
-#include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/ImageOctave.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
@@ -70,13 +69,6 @@ namespace ip {
     //cout << "b = " << abc(1) << endl;
     //cout << "c = " << abc(2) << endl;
   
-    // Evaluate the quadratic fit to double check:
-    //Vector<ElmtT,3> y_est;
-    //y_est(0) = abc(0)-abc(1)+abc(2);
-    //y_est(1) = abc(2);
-    //y_est(2) = abc(0)+abc(1)+abc(2);
-    //cout << "y_est = " << y_est << endl;
-
     // Solve for subpixel shift:
     x_sub = -abc(1) / (2*abc(0));
     //cout << "x_sub = " << x_sub << endl;
@@ -92,18 +84,16 @@ namespace ip {
 		 T* x2coef=NULL, T* y2coef=NULL) {
     Vector<T,3> f_vals;
     T di, dj;
-    int i0 = (int)(pt.x);
-    int j0 = (int)(pt.y);
 
     // Fit x location
-    f_vals(0) = interest(i0-1,j0);
-    f_vals(1) = interest(i0,j0);
-    f_vals(2) = interest(i0+1,j0);
+    f_vals(0) = interest(pt.ix-1,pt.iy);
+    f_vals(1) = interest(pt.ix,pt.iy);
+    f_vals(2) = interest(pt.ix+1,pt.iy);
     fit_peak_1D( f_vals, di, x2coef );
     // Fit y location
-    f_vals(0) = interest(i0,j0-1);
-    f_vals(1) = interest(i0,j0);
-    f_vals(2) = interest(i0,j0+1);
+    f_vals(0) = interest(pt.ix,pt.iy-1);
+    f_vals(1) = interest(pt.ix,pt.iy);
+    f_vals(2) = interest(pt.ix,pt.iy+1);
     fit_peak_1D( f_vals, dj, y2coef );
 
     if ( (fabs(di)>1) || (fabs(dj)>1)) {
@@ -141,11 +131,9 @@ namespace ip {
       return false;
 
     // Fit scale plane location
-    int i0 = (int)(pt.x);
-    int j0 = (int)(pt.y);
-    f_vals(0) = data[k0-1].interest(i0,j0);
-    f_vals(1) = data[k0].interest(i0,j0);
-    f_vals(2) = data[k0+1].interest(i0,j0);
+    f_vals(0) = data[k0-1].interest(pt.ix,pt.iy);
+    f_vals(1) = data[k0].interest(pt.ix,pt.iy);
+    f_vals(2) = data[k0+1].interest(pt.ix,pt.iy);
     fit_peak_1D( f_vals, dp, s2coef );
 
     if ( fabs(dp)>1) {

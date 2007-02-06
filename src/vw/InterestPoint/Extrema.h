@@ -28,7 +28,7 @@
 #ifndef __INTERESTPOINT_EXTREMA_H__
 #define __INTERESTPOINT_EXTREMA_H__
 
-#include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/ImageOctave.h>
 
 #include <vw/FileIO.h>
@@ -38,12 +38,10 @@ namespace ip {
 
 #define IP_BORDER_WIDTH (20)
 
-  enum PeakType { IP_MAX, IP_MIN, IP_MINMAX };
-
   template <class T>
   struct ImageInterestData;
 
-  /* Local min/max functions. This is a bit verbose. */
+  /// Local min/max functions.
 
   // Search for spatial extrema only
   template <class T>
@@ -87,9 +85,18 @@ namespace ip {
     return (is_local_max(interest, i, j) || is_local_min(interest, i, j));
   }
 
+  template <class T>
+  inline bool is_extremum(const ImageView<T>& interest,
+                          int i, int j, PeakType type) {
+    if (type == IP_MAX) return is_local_max(interest, i, j);
+    if (type == IP_MIN) return is_local_min(interest, i, j);
+    return is_local_minmax(interest, i, j);
+  }
+
   // Search for spacial and scale space extrema
   template <class T>
-  inline bool is_local_max(std::vector<ImageInterestData<T> >& data, int i, int j, int k) {
+  inline bool is_local_max(const std::vector<ImageInterestData<T> >& data,
+                           int i, int j, int k) {
     // These checks are in order such that hopefully the average
     // number of checks done is small.
 
@@ -116,7 +123,8 @@ namespace ip {
   }
 
   template <class T>
-  inline bool is_local_min(std::vector<ImageInterestData<T> >& data, int i, int j, int k) {
+  inline bool is_local_min(const std::vector<ImageInterestData<T> >& data,
+                           int i, int j, int k) {
     // These checks are in order such that hopefully the average
     // number of checks done is small.
 
@@ -143,16 +151,23 @@ namespace ip {
   }
 
   template <class T>
-  inline bool is_local_minmax(std::vector<ImageInterestData<T> >& data,
+  inline bool is_local_minmax(const std::vector<ImageInterestData<T> >& data,
 			      int i, int j, int k) {
     return (is_local_max(data, i, j, k) || is_local_min(data, i, j, k));
+  }
+
+  template <class T>
+  inline bool is_extremum(const std::vector<ImageInterestData<T> >&data,
+                          int i, int j, int k, PeakType type) {
+    if (type == IP_MAX) return is_local_max(data, i, j, k);
+    if (type == IP_MIN) return is_local_min(data, i, j, k);
+    return is_local_minmax(data, i, j, k);
   }
 
   // Find peaks in the image
   template <class T>
   int find_peaks( std::vector<InterestPoint>& interest_points,
-		  const ImageView<T>& interest, T min_interest = 0,
-		  PeakType type = IP_MAX) {
+		  const ImageView<T>& interest, PeakType type = IP_MAX) {
     unsigned ncols = interest.cols();
     unsigned nrows = interest.rows();
 
@@ -160,21 +175,17 @@ namespace ip {
     // TODO: this really needs to be sped up
     for (unsigned j=IP_BORDER_WIDTH; j<nrows-IP_BORDER_WIDTH; j++) {   // row j
       for (unsigned i=IP_BORDER_WIDTH; i<ncols-IP_BORDER_WIDTH; i++) { // col i
-	// check if it is a local extremum
-	if (interest(i,j)>min_interest) {
-	  if (((type == IP_MAX) && is_local_max(interest, i, j)) ||
-	      ((type == IP_MIN) && is_local_min(interest, i, j)) ||
-	      ((type == IP_MINMAX) && is_local_minmax(interest, i, j))) {
-	    vw::vw_out(DebugMessage) << "Found a local max at [" << i << ", " << j
-				     << "]" << "    Interest: " << interest(i,j) << "\n";
-	  
-	    InterestPoint pt;
-	    pt.x = i;
-	    pt.y = j;
-	    pt.scale = 1.0;
-	    pt.interest = interest(i,j);
-	    interest_points.push_back( pt );
-	  }
+        // check if it is a local extremum
+        if (is_extremum(interest, i, j, type)) {
+          vw::vw_out(DebugMessage) << "Found a local max at [" << i << ", " << j
+                                   << "]" << "    Interest: " << interest(i,j) << "\n";
+          
+          InterestPoint pt;
+          pt.x = pt.ix = i;
+          pt.y = pt.iy = j;
+          pt.scale = 1.0;
+          pt.interest = interest(i,j);
+          interest_points.push_back( pt );
 	}
       } // col j
     } // row i
@@ -182,13 +193,12 @@ namespace ip {
     return 0;
   }
 
-
   // Find peaks in the image octave
   template <class T>
   int find_peaks( std::vector<InterestPoint>& interest_points, 
-		  std::vector<ImageInterestData<T> >& data,
-		  const ImageOctave<T>& octave,
-		  T min_interest = 0, PeakType type = IP_MAX) {
+                  std::vector<ImageInterestData<T> >& data,
+                  const ImageOctave<T>& octave,
+                  PeakType type = IP_MAX) {
     // Check that we have a few planes of corner response function
     // (interest) and that all planes are the same size.
     assert( data.size() > 0 );
@@ -215,22 +225,18 @@ namespace ip {
     for (unsigned k=1; k<nplanes-1; k++) {     // plane k
       for (unsigned j=IP_BORDER_WIDTH; j<nrows-IP_BORDER_WIDTH; j++) {   // row j
 	for (unsigned i=IP_BORDER_WIDTH; i<ncols-IP_BORDER_WIDTH; i++) { // col i
-	  // check if it is a local max
-	  if (data[k].interest(i,j)>min_interest) {
-	    if (((type == IP_MAX) && is_local_max(data, i, j, k)) ||
-		((type == IP_MIN) && is_local_min(data, i, j, k)) ||
-		((type == IP_MINMAX) && is_local_minmax(data, i, j, k))) {
-	      vw::vw_out(DebugMessage) << "Found a local max at [" << i << ", " << j << ", "
-				       << k << "]" << "    Interest: "
-				       << data[k].interest(i,j) << "\n";
-	      //printf("Found one at (%i, %i, %i)\n", i, j, k);
-	      InterestPoint pt;
-	      pt.x = i;
-	      pt.y = j;
-	      pt.scale = octave.plane_index_to_scale(k);
-	      pt.interest = data[k].interest(i,j);
-	      interest_points.push_back( pt );
-	    }
+	  // check if it is a local extremum
+          if (is_extremum(data, i, j, k, type)) {
+            vw::vw_out(DebugMessage) << "Found a local max at [" << i << ", " << j << ", "
+                                     << k << "]" << "    Interest: "
+                                     << data[k].interest(i,j) << "\n";
+            //printf("Found one at (%i, %i, %i)\n", i, j, k);
+	    InterestPoint pt;
+	    pt.x = pt.ix = i;
+	    pt.y = pt.iy = j;
+	    pt.scale = octave.plane_index_to_scale(k);
+	    pt.interest = data[k].interest(i,j);
+	    interest_points.push_back( pt );
 	  }
 	} // col j
       } // row i

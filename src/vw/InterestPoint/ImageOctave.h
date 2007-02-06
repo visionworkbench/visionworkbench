@@ -54,9 +54,12 @@ public:
     return s;
   }
 
+  static int scale_to_plane_index( int base, int scales, float scale) {
+    return (int)(scales * (log(scale) - log((float)base))/M_LN2 + 0.00001);
+  }
+
   int scale_to_plane_index( float scale ) const {
-    return (int)(scales_per_octave * (log(scale) -
-		 log((float)base_scale))/log(2.0f) + 0.00001);
+    return ImageOctave::scale_to_plane_index(base_scale, scales_per_octave, scale);
   }
 
   // Sets the number of scales, the initial sigma, the ratio of

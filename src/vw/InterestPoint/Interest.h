@@ -4,15 +4,12 @@
 #include <vector>
 #include <stdio.h>
 
-#include <vw/Image/Filter.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/Algorithms.h>
-#include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/InterestData.h>
 #include <vw/FileIO.h>
 
 namespace vw { namespace ip {
-
-  // TODO: Implement without virtual functions
 
   /// Returns "cornerness" image, where the local maxima correspond to corners.
   /// By default uses Noble measure of corner strength (requires no tuning).
@@ -70,9 +67,7 @@ namespace vw { namespace ip {
 
   template <class T>
   class InterestBase {
-  private:
-    T max_threshold;
-    T min_threshold;
+  protected:
     PeakType type;
 
   public:
@@ -80,37 +75,71 @@ namespace vw { namespace ip {
       return 0;
     }
 
-    void set_max_threshold(T thresh) { max_threshold = thresh; }
-    T get_max_threshold() { return max_threshold; }
+    PeakType peak_type() { return type; }
+  };
 
-    void set_min_threshold(T thresh) { min_threshold = thresh; }
-    T get_min_threshold() { return min_threshold; }
+  template <class T>
+  class HarrisInterest : public InterestBase<T> {
+  protected:
+    T k;
+    T v2; // Relative integration scale parameter (squared)
 
-    void set_peak_type(PeakType pt) { type = pt; }
-    PeakType get_peak_type() { return type; }
+  public:
+    HarrisInterest(T k_in = -1.0, T v2_in = 2.0) : k(k_in), v2(v2_in) { this->type = IP_MAX; }
 
-    virtual int threshold(std::vector<InterestPoint>& points,
-			  ImageInterestData<T> const& data) {
-      return 0;
-    }
-
-    virtual int threshold(std::vector<InterestPoint>& points,
-			  std::vector<ImageInterestData<T> > const& data) {
+    virtual int compute_interest(ImageInterestData<T> const& data, T scale = -1.0) {
+      if (scale < 0)
+	harris_interest(data, k);
+      else
+	harris_interest(data, k, scale / v2);
       return 0;
     }
   };
 
   template <class T>
-  class HarrisInterest : public InterestBase<T> {
+  class LoGInterest : public InterestBase<T> {
+  public:
+    LoGInterest() { this->type = IP_MINMAX; }
+
+    virtual int compute_interest(ImageInterestData<T> const& data, T scale = 1.0) {
+      log_interest(data, scale);
+      return 0;
+    }
+  };
+
+
+/* // Code graveyard - CRTP experiment
+  template <class ImplT>
+  struct InterestBase {
+    typedef typename ImplT::value_type valT;
+
+    /// Returns the derived implementation type.
+    ImplT& impl() { return *static_cast<ImplT*>(this); }
+
+    /// Returns the derived implementation type.
+    ImplT const& impl() const { return *static_cast<ImplT const*>(this); }
+
+    int compute_interest(const ImageInterestData<valT>& data,
+                         valT scale = 1.0) {
+        return impl().compute_interest(data, scale);
+    }
+
+    inline PeakType get_peak_type() {
+        return ImplT::peak_type;
+    }
+  };
+
+  template <class T>
+  class HarrisInterest : public InterestBase<HarrisInterest<T> > {
   private:
     T k;
     T v2; // Relative integration scale parameter (squared)
 
   public:
-    HarrisInterest(T k_in = -1.0, T v2_in = 2.0) : k(k_in), v2(v2_in) {
-      set_max_threshold((T)0);
-      InterestBase<T>::set_peak_type(IP_MAX);
-    }
+    typedef T value_type;
+    static const PeakType peak_type = IP_MAX;
+
+    HarrisInterest(T k_in = -1.0, T v2_in = 2.0) : k(k_in), v2(v2_in) {}
 
     int compute_interest(ImageInterestData<T> const& data, T scale = -1.0) {
       if (scale < 0)
@@ -119,24 +148,8 @@ namespace vw { namespace ip {
 	harris_interest(data, k, scale / v2);
       return 0;
     }
-
   };
-
-  template <class T>
-  class LoGInterest : public InterestBase<T> {
-  public:
-    LoGInterest() {
-      set_max_threshold((T)0.005);
-      InterestBase<T>::set_peak_type(IP_MINMAX);
-      //InterestBase<T>::set_peak_type(IP_MAX);
-    }
-
-    int compute_interest(ImageInterestData<T> const& data, T scale = 1.0) {
-      log_interest(data, scale);
-      return 0;
-    }
-  };
-
+*/
 } } //namespace vw::ip
 
 #endif
