@@ -279,7 +279,7 @@ namespace camera {
       double by = bx + r2 * y1;
       bx += r2 * x1;
       
-      // Prevent divide by zero at the origin or along the x and y axis
+      // Prevent divide by zero at the origin or along the x and y center line
       Vector2 result(p[0] + bx * du, p[1] + by * dv);
       if (p[0] == this->camera_model().intrinsic_matrix()(0, 2))
         result[0] =  p[0];

@@ -93,14 +93,13 @@ public:
 //                                                                -0.0001422458299202845,
 //                                                                0.00116333004552871))); 
 
-//     ImageView<PixelRGB<float> > src_image;
+//     ImageView<PixelRGB<uint8> > src_image;
 //     read_image(src_image, "DSC_0264.jpg");
 
 //     PinholeModel undistorted_pinhole_camera = linearize_camera(distorted_pinhole_camera);
-// //     ImageView<PixelRGB<uint8> > dst_image = transform(src_image,
-// //                                                       CameraTransform<PinholeModel,PinholeModel>(distorted_pinhole_camera,
-// //                                                                                                  undistorted_pinhole_camera));
-//     ImageView<PixelRGB<float> > dst_image = camera_transform(src_image,distorted_pinhole_camera,undistorted_pinhole_camera);
+//     ImageView<PixelRGB<uint8> > dst_image = transform(src_image,
+//                                                       CameraTransform<PinholeModel,PinholeModel>(distorted_pinhole_camera,
+//                                                                                                  undistorted_pinhole_camera));
 //     write_image("test.jpg", dst_image);
 
 //   }
