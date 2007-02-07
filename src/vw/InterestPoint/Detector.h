@@ -46,7 +46,7 @@
 namespace vw {
 namespace ip {
 
-// TODO: learn these parameters
+// Lowe recommends 36 bins, but this could also be learned.
 #define FEATURE_ORI_NBINS (36)
 
 template <class T, class ThreshT = InterestThreshold<T> >
@@ -125,6 +125,46 @@ std::vector<InterestPoint> interest_points(vw::ImageView<T> const& image,
 
 }
 
+template <class ViewT, class DetectorT>
+std::vector<InterestPoint> interest_points(vw::ImageViewBase<ViewT> const& image, 
+                                           DetectorT const& detector,
+                                           unsigned int max_keypoint_image_dimension = 0) {
+
+  std::vector<InterestPoint> interest_points;
+
+  vw_out(InfoMessage) << "\tFinding interest points" << std::flush;
+
+  // If the user has not specified a chunk size, we process the
+  // entire image in one shot.
+  if (!max_keypoint_image_dimension) {
+    vw_out(InfoMessage) << "..." << std::flush;
+    interest_points = detector(image.impl());
+
+  // Otherwise we segment the image and process each sub-image
+  // individually.
+  } else {
+    
+    std::vector<BBox2i> bboxes = image_blocks(image.impl(), max_keypoint_image_dimension, max_keypoint_image_dimension);
+    for (int i = 0; i < bboxes.size(); ++i) {
+      vw_out(InfoMessage) << "." << std::flush;
+      
+      std::vector<InterestPoint> new_interest_points;
+      new_interest_points = detector(crop(image.impl(), bboxes[i]));
+      for (int n = 0; n < new_interest_points.size(); ++n) {
+        new_interest_points[n].x += bboxes[i].min().x();
+        new_interest_points[n].y += bboxes[i].min().y();
+        interest_points.push_back(new_interest_points[n]);
+      }
+    }
+
+  }
+  vw_out(InfoMessage) << " done.";
+  vw_out(InfoMessage) << "     (" << interest_points.size() << " keypoints found)\n";
+  return interest_points;
+
+}
+
+
 //Get the orientation of the point at (i0,j0,k0).  This is done by
 //computing a weighted histogram of edge orientations in a region
 //around the detected point.  The weights for the weighted histogram
@@ -158,7 +198,6 @@ int get_orientation( std::vector<float>& orientation,
     
     // Compute (gaussian weight)*(edge magnitude) kernel
     ImageView<float> weight(width,width);
-    //float weightsigma = 6*sigma[k0]/sigma[1];
     make_gaussian_kernel_2d( weight, 6 * sigma_ratio, width );
     for (unsigned j=0; j<region_mag.rows(); j++){
       for (unsigned i=0; i<region_mag.cols(); i++){
@@ -173,13 +212,6 @@ int get_orientation( std::vector<float>& orientation,
     
     // Smooth histogram
     smooth_weighted_histogram( histo, 5.0 );
-
-    /*
-    // This seems to be less effective than the above.
-    std::vector<float> histo;
-    orientation_histogram(data.ori, data.mag, histo,
-                          i0, j0, sigma_ratio, FEATURE_ORI_NBINS);
-    */
 
     // Find modes
     std::vector<int> mode;
