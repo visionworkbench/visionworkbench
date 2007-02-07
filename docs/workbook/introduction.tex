@@ -43,13 +43,27 @@ base map generated from the Clementine data set. }
 
 The Vision Workbench was designed from the ground up to make it quick
 and easy to produce efficient implementations of a wide range of image
-processing algorithms.  In many cases code written using the Vision
-Workbench is significantly smaller and more readable than code written
-using more traditional approaches.  At its core is a rich set of
-template-based image processing data types representing pixels,
-images, and operations on those images, as well as mathematical
-entities like vectors and geometric transformations and image file
-I/O.  On top of this core it also provides a number of higher-level
+processing algorithms.  Consider this example:
+\begin{verbatim}
+  background_image += 0.1 * ( source_image - background_image );
+\end{verbatim}
+Hopefully it is reasonably clear what this line of code does, even 
+if you don't know what an IIR filter like this is good for.  Higher 
+level functions have similarly simple interfaces.  For example, to 
+apply a Gaussian filter to an image with a sigma of 3 pixels you 
+can simply say:
+\begin{verbatim}
+  image = gaussian_filter( image, 3 );
+\end{verbatim}
+In many cases like these, code written using the Vision Workbench is
+significantly smaller and more readable than code written using more
+traditional approaches.
+
+At the core of the Vision Workbench is a rich set of template-based
+image processing data types representing pixels, images, and
+operations on those images, as well as mathematical entities (like
+vectors and geometric transformations) and image file I/O.  On top of
+this core the Vision Workbench also provides a number of higher-level
 image processing and machine vision modules, providing features
 including camera geometry modeling, high-dynamic-range imaging,
 interest point detection and matching, image mosaicing and blending,
