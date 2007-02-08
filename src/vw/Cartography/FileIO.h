@@ -44,17 +44,26 @@ namespace cartography {
   template <class PixelT>
   void read_georeferenced_image( ImageView<PixelT>& in_image, GeoReference& georef, const std::string &filename ) {
 
-    std::cout << "\tLoading georeferenced image: " << filename << "\t";
+    vw_out(DebugMessage) << "\tLoading georeferenced image: " << filename << "\t";
 
     // Open the file for reading
     DiskImageResource *r = DiskImageResourceGDAL::construct_open( filename );
 
-    std::cout << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
+    vw_out(DebugMessage) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
 
     // Read it in and wrap up
     static_cast<DiskImageResourceGDAL*>(r)->read_georeference(georef);
     read_image( in_image, *r );
     delete r;
+  }
+
+
+  /// Read in only the georeference object.  Later this will have to dispatch 
+  /// on file type, but for now we only support GDAL anyway.
+  inline void read_georeference( GeoReference& georef, const std::string &filename ) {
+    vw_out(DebugMessage) << "\tLoading georeference from image: " << filename << "\t";
+    DiskImageResourceGDAL r( filename );
+    r.read_georeference(georef);
   }
 
 
