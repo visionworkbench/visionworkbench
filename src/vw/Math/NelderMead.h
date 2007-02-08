@@ -32,6 +32,8 @@
 #ifndef __VW_MATH_NELDER_MEAD_H__
 #define __VW_MATH_NELDER_MEAD_H__
 
+#include <list>
+
 // Vision workbench
 #include <vw/Core/Debugging.h>
 #include <vw/Math/Vector.h>
@@ -111,9 +113,9 @@ namespace math {
     void print_vertices() {
       for ( vertex_iterator iter = m_vertices.begin();
             iter != m_vertices.end(); ++iter) {
-        std::cout << "\tSIMPLEX: " << (*iter).first << "[" << (*iter).second << "]   ";
+        vw_out(InfoMessage) << "\tSIMPLEX: " << (*iter).first << "[" << (*iter).second << "]   ";
       }
-      std::cout << "\n";
+      vw_out(InfoMessage) << std::endl;
     }
 
     DomainT location() { return lowest_vertex().first; }
@@ -123,8 +125,6 @@ namespace math {
     // optimization surface.  Returns the size of the step that was
     // ultimately made.
     double update() {
-      //      print_vertices();
-      // std::cout << "Starting update...\n";
       vertex_type highest_vtx = pop_highest_vertex();
       DomainT mean_vtx_loc = mean_vertex_location();
       vertex_type& lowest_vtx = lowest_vertex();
@@ -199,8 +199,8 @@ namespace math {
     status = optimization::eNelderMeadConvergedRelTolerance;
 
     if (verbose) {
-      std::cout << "Nelder Mead Optimizer:\n";
-      std::cout << "\tTol: " << tolerance << "   MaxIter: " << max_iterations << "   Restarts: " << restarts << "\n";
+      vw_out(DebugMessage) << "Nelder Mead Optimizer:\n";
+      vw_out(DebugMessage) << "\tTol: " << tolerance << "   MaxIter: " << max_iterations << "   Restarts: " << restarts << "\n";
     }
 
     // Restart the simplex several times -- this prevents false
@@ -218,11 +218,11 @@ namespace math {
         delta = simplex.update();
         ++iterations;
         if (verbose && iterations % 100 == 0)
-          std::cout << "\t" << iterations << ": " << simplex.location() << "[" << simplex.value() << "]\n";
+          vw_out(DebugMessage) << "\t" << iterations << ": " << simplex.location() << "[" << simplex.value() << "]\n";
       }
 
       if (verbose)
-        std::cout << "\t" << iterations << ": " << simplex.location() << "[" << simplex.value() << "]\n";
+        vw_out(DebugMessage) << "\t" << iterations << ": " << simplex.location() << "[" << simplex.value() << "]\n";
 
       // Store the best result so far.
       result = simplex.location();
