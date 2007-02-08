@@ -33,10 +33,17 @@
 #include <vw/Camera/CameraModel.h>
 #include <vw/Camera/CAHVModel.h>
 #include <vw/Camera/CAHVORModel.h>
-#include <vw/Camera/LinearPushbroomModel.h>
+#include <vw/Camera/LensDistortion.h>
+#include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/CameraTransform.h>
+#include <vw/Camera/BayerFilter.h>
+#include <vw/Camera/Exif.h>
+#include <vw/Camera/ExifData.h>
 
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
+#include <vw/Camera/Extrinsics.h>
+#include <vw/Camera/LinescanModel.h>
+#include <vw/Camera/LinearPushbroomModel.h>
 #include <vw/Camera/OrbitingPushbroomModel.h>
 #endif
 

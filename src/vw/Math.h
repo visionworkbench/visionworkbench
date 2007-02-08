@@ -34,9 +34,13 @@
 #include <vw/Math/Matrix.h>
 #include <vw/Math/BBox.h>
 #include <vw/Math/Quaternion.h>
+#include <vw/Math/ConjugateGradient.h>
+#include <vw/Math/NelderMead.h>
 
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
 #include <vw/Math/LinearAlgebra.h>
+#include <vw/Math/LevenbergMarquardt.h>
+#include <vw/Math/Geometry.h>
 #endif
 
 #endif // __VW_MATH_H__

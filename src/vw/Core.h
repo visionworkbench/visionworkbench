@@ -29,9 +29,11 @@
 #define __VW_CORE_H__
 
 #include <vw/Core/Exception.h>
+#include <vw/Core/Debugging.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/TypeDeduction.h>
 #include <vw/Core/CompoundTypes.h>
 #include <vw/Core/Functors.h>
+#include <vw/Core/Cache.h>
 
 #endif // __VW_CORE_H__

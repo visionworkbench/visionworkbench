@@ -47,5 +47,7 @@
 #include <vw/Image/Convolution.h>
 #include <vw/Image/Filter.h>
 #include <vw/Image/Transform.h>
+#include <vw/Image/BlockRasterize.h>
+#include <vw/Image/Statistics.h>
 
 #endif // __VW_IMAGE_H__
