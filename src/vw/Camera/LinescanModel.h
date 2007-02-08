@@ -196,7 +196,7 @@ namespace camera {
     virtual Quaternion<double> camera_pose(Vector2 const& pix) const {
       // Check to make sure that this is a valid pixel
       if (int(round(pix[1])) < 0 || int(round(pix[1])) >= int(m_line_times.size()))
-        throw PixelToRayErr() << "LinescanModel::camera_pose(): requested pixel " << pix << " is not on a valid scanline.\n";
+        vw_throw( PixelToRayErr() << "LinescanModel::camera_pose(): requested pixel " << pix << " is not on a valid scanline." );
 
       // The v pixel need not be an integer in every case, therefore
       // we need to linearly interpolate line times that fall in

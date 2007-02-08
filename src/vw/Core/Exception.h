@@ -225,7 +225,7 @@ namespace vw {
                                                                       \
     name& reset() { m_desc.str("");  return *this; }                  \
                                                                       \
-    VW_IF_EXCEPTIONS(virtual void _throw() const { throw *this; })    \
+    VW_IF_EXCEPTIONS(virtual void default_throw() const { throw *this; }) \
   }
 
   /// Invalid function argument exception
@@ -284,12 +284,12 @@ namespace vw {
 /// condition is not met.  The VW_DEBUG_ASSERT macro does the same
 /// thing, but is disabled if VW_DEBUG_LEVEL is zero.  The default
 /// value for VW_DEBUG_LEVEL is defined in Debugging.h.
-#define VW_ASSERT(cond,excep) do { if(!(cond)) throw (excep); } while(0)
+#define VW_ASSERT(cond,excep) do { if(!(cond)) vw_throw( excep ); } while(0)
 #if VW_DEBUG_LEVEL == 0
 #define VW_DEBUG_ASSERT(cond,excep) do {} while(0)
 #else
 // Duplicate the definition to avoid extra macro expansion in recusion
-#define VW_DEBUG_ASSERT(cond,excep) do { if(!(cond)) throw (excep); } while(0)
+#define VW_DEBUG_ASSERT(cond,excep) do { if(!(cond)) vw_throw( excep ); } while(0)
 #endif
 
 #endif // __VW_CORE_EXCEPTION_H__

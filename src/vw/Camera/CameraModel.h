@@ -92,7 +92,8 @@ namespace camera {
     /// Returns the pose (as a quaternion) of the camera for a given
     /// pixel.
     virtual Quaternion<double> camera_pose(Vector2 const& pix) const {
-      throw NoImplErr() << "CameraModel: this camera model has not implemented camera_pose()";
+      vw_throw( NoImplErr() << "CameraModel: this camera model has not implemented camera_pose()" );
+      return Quaternion<double>();
     }
 
   };  
