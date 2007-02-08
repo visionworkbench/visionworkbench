@@ -258,7 +258,7 @@ namespace mosaic {
 
 template <class PixelT>
 void vw::mosaic::ImageComposite<PixelT>::generate_masks() const {
-  vw_out(InfoMessage) << "Generating masks..." << std::endl;
+  vw_out(DebugMessage) << "Generating masks..." << std::endl;
   std::vector<Cache::Handle<GrassfireGenerator> > grassfires;
   for( unsigned i=0; i<sources.size(); ++i )
     grassfires.push_back( m_cache.insert( GrassfireGenerator( sourcerefs[i] ) ) );

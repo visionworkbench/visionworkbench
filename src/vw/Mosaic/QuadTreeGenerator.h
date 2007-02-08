@@ -100,10 +100,10 @@ namespace mosaic {
       fs::path dir_path( m_base_dir );
       fs::path top_branch_path = dir_path / m_tree_name;
 
-      vw_out(InfoMessage) << "Using patch size: " << m_patch_size << " pixels" << std::endl;
-      vw_out(InfoMessage) << "Using patch overlap: " << m_patch_overlap << " pixels" << std::endl;
-      vw_out(InfoMessage) << "Generating patch files of type: " << m_output_image_type << std::endl;
-      vw_out(InfoMessage) << "Generating " << top_branch_path.native_directory_string() << " quadtree with " << m_tree_levels << " levels." << std::endl;
+      vw_out(DebugMessage) << "Using patch size: " << m_patch_size << " pixels" << std::endl;
+      vw_out(DebugMessage) << "Using patch overlap: " << m_patch_overlap << " pixels" << std::endl;
+      vw_out(DebugMessage) << "Generating patch files of type: " << m_output_image_type << std::endl;
+      vw_out(DebugMessage) << "Generating " << top_branch_path.native_directory_string() << " quadtree with " << m_tree_levels << " levels." << std::endl;
 
       if( fs::exists( dir_path ) ) {
         if( ! fs::is_directory( dir_path ) )
@@ -166,7 +166,7 @@ namespace mosaic {
       if( m_crop_images ) {
         image_bbox = nonzero_data_bounding_box( image );
         if( image_bbox.empty() ) {
-          vw_out(InfoMessage) << "\tIgnoring empty image: " << name << std::endl;
+          vw_out(DebugMessage) << "\tIgnoring empty image: " << name << std::endl;
           fs::remove( base_path/name );
           return;
         }
