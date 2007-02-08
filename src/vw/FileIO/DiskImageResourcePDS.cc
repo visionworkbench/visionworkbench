@@ -30,21 +30,19 @@
 #endif
 
 #include <vector>
-#include <iostream>
-#include <iomanip>
-#include <fstream>   
-using namespace std;
+#include <string>
 
 #include <boost/algorithm/string.hpp>
 using namespace boost;
 
 #include <vw/Core/Exception.h>
+#include <vw/Core/Debugging.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
 
 
 void vw::DiskImageResourcePDS::treat_invalid_data_as_alpha() {
   // We currently only support this feature under very specific circumstances
-  string format_str, sample_bits_str, valid_minimum_str;
+  std::string format_str, sample_bits_str, valid_minimum_str;
   if( !( query("SAMPLE_TYPE",format_str) && query("SAMPLE_BITS",sample_bits_str) && query("VALID_MINIMUM",valid_minimum_str) ) )
     vw_throw( vw::NoImplErr() << "Invalid data not supported for this PDS image." );
   if( format_str != "MSB_INTEGER" || sample_bits_str != "16" || m_format.pixel_format != VW_PIXEL_GRAY )
@@ -55,10 +53,10 @@ void vw::DiskImageResourcePDS::treat_invalid_data_as_alpha() {
 void vw::DiskImageResourcePDS::parse_pds_header(std::vector<std::string> const& header) {
 
   for ( unsigned i=0; i<header.size(); ++i ) {
-    string line = header[i];
+    std::string line = header[i];
 
     // Locate lines that have a key/value pair (with key = value syntax)
-    vector<string> split_vector;
+    std::vector<std::string> split_vector;
     split( split_vector, line, is_any_of("=") );
     if ( split_vector.size() == 2 ) {
       trim_left(split_vector[0]);
@@ -99,7 +97,7 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   // equals sign "=".
   parse_pds_header(header);
 
-  vector<string> keys;
+  std::vector<std::string> keys;
   std::string value;
   bool valid = true;
 
