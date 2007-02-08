@@ -94,7 +94,7 @@ namespace vw {
     virtual Vector2i native_block_size() const { return Vector2i(cols(),rows()); }
 
     /// Force any changes to be written to the resource.
-    virtual void flush() const {}
+    virtual void flush() {}
 
   };
 
