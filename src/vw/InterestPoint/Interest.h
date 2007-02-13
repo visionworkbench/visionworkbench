@@ -1,3 +1,30 @@
+// __BEGIN_LICENSE__
+// 
+// Copyright (C) 2006 United States Government as represented by the
+// Administrator of the National Aeronautics and Space Administration
+// (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
+// 
+// This software is distributed under the NASA Open Source Agreement
+// (NOSA), version 1.3.  The NOSA has been approved by the Open Source
+// Initiative.  See the file COPYING at the top of the distribution
+// directory tree for the complete NOSA document.
+// 
+// THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
+// KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
+// LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
+// SPECIFICATIONS, ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+// A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
+// THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
+// DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
+// 
+// __END_LICENSE__
+
+/// \file Interest.h
+/// 
+/// Basic classes and functions for calculating interest images.
+/// 
 #ifndef _INTEREST_POINT_INTEREST_H_
 #define _INTEREST_POINT_INTEREST_H_
 
@@ -22,8 +49,6 @@ namespace vw { namespace ip {
     // Calculate elements of Harris matrix
     std::vector<T> kernel;
     generate_gaussian_kernel(kernel, scale, 0);
-    printf("Rows=%i, Cols=%i\n", data.grad_x.rows(), data.grad_x.cols());
-    printf("scale=%f, kernel size=%i... ", scale, kernel.size());
     Image Ix2 = separable_convolution_filter(data.grad_x * data.grad_x,
 					     kernel, kernel);
     Image Iy2 = separable_convolution_filter(data.grad_y * data.grad_y,
@@ -32,7 +57,6 @@ namespace vw { namespace ip {
 					     kernel, kernel);
 
     // Estimate "cornerness"
-    printf("Estimating cornerness... ");
     Image trace = Ix2 + Iy2;
     Image det = Ix2 * Iy2 - Ixy * Ixy;
     if (k < 0) {
@@ -42,9 +66,10 @@ namespace vw { namespace ip {
       // Standard Harris corner measure
       data.interest = det - k * trace * trace;
     }
-    printf("Leaving\n");
   }
 
+  /// Returns Harris "cornerness" image for a source image without the
+  /// gradients precalculated.
   template <class T>
   ImageView<T> harris_interest(ImageView<T> const& image, T k = -1.0, T scale = 1.0) {
     ImageInterestData<T> data(image);
@@ -52,12 +77,14 @@ namespace vw { namespace ip {
     return data.interest;
   }
 
-  // Scale-normalized Laplacian of Gaussian interest measure
+  /// Scale-normalized Laplacian of Gaussian interest measure.
   template <class T>
   void log_interest(ImageInterestData<T> const& data, T scale = 1.0) {
     data.interest = scale * laplacian_filter(data.src);
   }
 
+  /// Scale-normalized Laplacian of Gaussian interest measure without
+  /// the gradients precalculated.
   template <class T>
   ImageView<T> log_interest(ImageView<T> const& image, T scale = 1.0) {
     ImageInterestData<T> data(image);
@@ -65,12 +92,16 @@ namespace vw { namespace ip {
     return data.interest;
   }
 
+  /// Abstract base class for interest measures. An interest class should
+  /// implement compute_interest and set its peak type in its constructor.
   template <class T>
   class InterestBase {
   protected:
     PeakType type;
 
   public:
+    /// Store the interest image for data.src in data.interest, using the
+    /// specified scale (if applicable).
     virtual int compute_interest(ImageInterestData<T> const& data, T scale = 1.0) {
       return 0;
     }
@@ -78,6 +109,7 @@ namespace vw { namespace ip {
     PeakType peak_type() { return type; }
   };
 
+  /// Class for computing Harris interest images.
   template <class T>
   class HarrisInterest : public InterestBase<T> {
   protected:
@@ -96,6 +128,7 @@ namespace vw { namespace ip {
     }
   };
 
+  /// Class for computing Laplacian of Gaussian interest images.
   template <class T>
   class LoGInterest : public InterestBase<T> {
   public:
@@ -107,49 +140,6 @@ namespace vw { namespace ip {
     }
   };
 
-
-/* // Code graveyard - CRTP experiment
-  template <class ImplT>
-  struct InterestBase {
-    typedef typename ImplT::value_type valT;
-
-    /// Returns the derived implementation type.
-    ImplT& impl() { return *static_cast<ImplT*>(this); }
-
-    /// Returns the derived implementation type.
-    ImplT const& impl() const { return *static_cast<ImplT const*>(this); }
-
-    int compute_interest(const ImageInterestData<valT>& data,
-                         valT scale = 1.0) {
-        return impl().compute_interest(data, scale);
-    }
-
-    inline PeakType get_peak_type() {
-        return ImplT::peak_type;
-    }
-  };
-
-  template <class T>
-  class HarrisInterest : public InterestBase<HarrisInterest<T> > {
-  private:
-    T k;
-    T v2; // Relative integration scale parameter (squared)
-
-  public:
-    typedef T value_type;
-    static const PeakType peak_type = IP_MAX;
-
-    HarrisInterest(T k_in = -1.0, T v2_in = 2.0) : k(k_in), v2(v2_in) {}
-
-    int compute_interest(ImageInterestData<T> const& data, T scale = -1.0) {
-      if (scale < 0)
-	harris_interest(data, k);
-      else
-	harris_interest(data, k, scale / v2);
-      return 0;
-    }
-  };
-*/
 } } //namespace vw::ip
 
 #endif

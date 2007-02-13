@@ -36,7 +36,8 @@
 namespace vw {
 namespace ip {
 
-  // Fit a quadratic to three samples.
+  /// Fits a quadratic curve to three samples to compute the
+  /// subpixel shift to the fitted peak.
   template <class ElmtT>
   int fit_peak_1D( const Vector<ElmtT,3>& y, ElmtT& x_sub,
 		   ElmtT* coef = NULL ) {
@@ -62,23 +63,16 @@ namespace ip {
     // Solve for polynomial coefficients (a,b,c)
     abc = invX * y;
 
-    // Estimated parameters
-    //cout << "fit_peak_1D:" << endl;
-    //cout << "y = " << y << endl;
-    //cout << "a = " << abc(0) << endl;
-    //cout << "b = " << abc(1) << endl;
-    //cout << "c = " << abc(2) << endl;
-  
     // Solve for subpixel shift:
     x_sub = -abc(1) / (2*abc(0));
-    //cout << "x_sub = " << x_sub << endl;
+
     if (NULL!=coef)
       *coef = abc(0);
 
     return 0;
   }
 
-  // Fit the subpixel location of the peak in the plane.
+  /// Fit the subpixel location of the peak in the plane.
   template <class T>
   bool fit_peak( const ImageView<T>& interest, InterestPoint& pt,
 		 T* x2coef=NULL, T* y2coef=NULL) {
@@ -107,9 +101,9 @@ namespace ip {
     return true;
   }
 
-  // Fit the subpixel location of the peak.  Stuff it into the
-  // InterestPoint object provided and return "true" if the peak is a
-  // strong one.  Return "false" if it is not.
+  /// Fit the subpixel location of the peak.  Stuff it into the
+  /// InterestPoint object provided and return "true" if the peak is a
+  /// strong one.  Return "false" if it is not.
   template <class T>
   bool fit_peak( std::vector<ImageInterestData<T> >& data,
 		 InterestPoint& pt,
@@ -146,7 +140,6 @@ namespace ip {
     // Return value indicates the peak is good enough to keep
     return true;
   }
-
 
 }} // namspace vw::ip 
 

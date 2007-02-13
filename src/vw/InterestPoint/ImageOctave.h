@@ -1,3 +1,30 @@
+// __BEGIN_LICENSE__
+// 
+// Copyright (C) 2006 United States Government as represented by the
+// Administrator of the National Aeronautics and Space Administration
+// (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
+// 
+// This software is distributed under the NASA Open Source Agreement
+// (NOSA), version 1.3.  The NOSA has been approved by the Open Source
+// Initiative.  See the file COPYING at the top of the distribution
+// directory tree for the complete NOSA document.
+// 
+// THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
+// KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
+// LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
+// SPECIFICATIONS, ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+// A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
+// THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
+// DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
+// 
+// __END_LICENSE__
+
+/// \file ImageOctave.h
+/// 
+/// ImageOctave class for constructing the scale space of a source image.
+/// 
 #ifndef _IMAGE_OCTAVE_H_
 #define _IMAGE_OCTAVE_H_
 
@@ -12,22 +39,23 @@
 #include <vector>
 #include <iostream>
 
-// A magic number, this value used by Lowe.  Learn this parameter?
+// Magic numbers used by Lowe.  Learn these parameters?
 #define INITIAL_SIGMA (1.6)
 #define CAMERA_SIGMA (0.5)
 
 namespace vw { namespace ip {
 
-// This class provides functionality to construct an octave of images
-// from one image, or to recursively (and destructively) construct the
-// next octave from an existing octave.  This octave makes up one part
-// of a scale space pyramid.  Specifically, it makes up the part of
-// scale space that covers one doubling in scale, where the number of
-// planes is dictated by the scale ratio between planes (or vice
-// versa).  In addition, since we want to bound peaks in all three
-// (x,y,s) directions, it constructs one plane above and one plane
-// below the octave. If the scale ratio is 2^(1/P), the octave
-// contains P+2 planes.
+/// This class provides functionality to construct an octave of images
+/// from one image, or to recursively (and destructively - use also
+/// ImageOctaveHistory to keep the entire pyramid) construct the
+/// next octave from an existing octave.  This octave makes up one part
+/// of a scale space pyramid.  Specifically, it makes up the part of
+/// scale space that covers one doubling in scale, where the number of
+/// planes is dictated by the scale ratio between planes (or vice
+/// versa).  In addition, since we want to bound peaks in all three
+/// (x,y,s) directions, it constructs one plane above and one plane
+/// below the octave. If the scale ratio is 2^(1/P), the octave
+/// contains P+2 planes.
 template <class PixelT>
 class ImageOctave {
 public:
@@ -39,8 +67,8 @@ public:
   std::vector<float> sigma;   // sigmas corresponding to scales
   std::vector< ImageView<PixelT> > scales; // Scaled images in the octave
 
-  // This constructor is intended for building the first octave from a
-  // source image.
+  /// This constructor is intended for building the first octave from a
+  /// source image.
   template <class Tin>
   ImageOctave( const ImageView<Tin>& src_im, int numscales) {
     base_scale = 1;
@@ -49,21 +77,24 @@ public:
     build_using( src_im );
   }
 
+  /// Calculate the scale corresponding to a plane index.
   float plane_index_to_scale( float plane_index ) const {
     float s = base_scale*pow(2.0f, plane_index / ((float)scales_per_octave) );
     return s;
   }
 
+  /// Static function for calculating plane index from scale.
   static int scale_to_plane_index( int base, int scales, float scale) {
     return (int)(scales * (log(scale) - log((float)base))/M_LN2 + 0.00001);
   }
 
+  /// Calculate the plane index most closely matching a scale.
   int scale_to_plane_index( float scale ) const {
     return ImageOctave::scale_to_plane_index(base_scale, scales_per_octave, scale);
   }
 
-  // Sets the number of scales, the initial sigma, the ratio of
-  // sigmas, and the vector of sigmas.
+  /// Sets the number of scales, the initial sigma, the ratio of
+  /// sigmas, and the vector of sigmas.
   int set_scales( int scalesperoctave ) {
     // Set number of scales per octave
     scales_per_octave = scalesperoctave;
@@ -86,9 +117,9 @@ public:
     return 0;
   }
 
-  // Build image octave using designated source image.  The number of
-  // scales and the sigmas should already be computed.
-  // TODO: this can be done a little more efficiently
+  /// Build image octave using designated source image.  The number of
+  /// scales and the sigmas should already be computed.
+  // TODO: no big deal, but this could be done a little more efficiently
   template <class Tin>
   int build_using( const ImageView<Tin>& src_im )
   {
@@ -104,7 +135,6 @@ public:
     
     // Blur images.  Assume some sigma for the first one.
     vw::vw_out(DebugMessage) << "assuming camera_sigma " << CAMERA_SIGMA 
-			     << ", can we devise a way to find it?"
 			     << std::endl;
     float camera_sigma = CAMERA_SIGMA;
 
@@ -133,8 +163,8 @@ public:
     return 0;
   }
 
-  // Build the next octave using the current one.  The number of
-  // scales and the sigmas should already be computed.
+  /// Build the next octave using the current one.  The number of
+  /// scales and the sigmas should already be computed.
   int build_next()
   {
     // Keep track of base scale.  For the first octave, it is 1.  Each
@@ -175,7 +205,7 @@ public:
   }
 
 
-  // Save image octave to a set of image files
+  /// Save image octave to a set of image files.
   void write_images() const
   {
     char fname[256]; // output filename

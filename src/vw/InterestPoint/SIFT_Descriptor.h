@@ -1,3 +1,30 @@
+// __BEGIN_LICENSE__
+// 
+// Copyright (C) 2006 United States Government as represented by the
+// Administrator of the National Aeronautics and Space Administration
+// (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
+// 
+// This software is distributed under the NASA Open Source Agreement
+// (NOSA), version 1.3.  The NOSA has been approved by the Open Source
+// Initiative.  See the file COPYING at the top of the distribution
+// directory tree for the complete NOSA document.
+// 
+// THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
+// KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
+// LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
+// SPECIFICATIONS, ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+// A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
+// THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
+// DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
+// 
+// __END_LICENSE__
+
+/// \file SIFT_Descriptor.h
+/// 
+/// Class for generating SIFT descriptors.
+/// 
 #ifndef __INTERESTPOINT_SIFTDESCRIPTOR_H__
 #define __INTERESTPOINT_SIFTDESCRIPTOR_H__
 
@@ -9,8 +36,16 @@
 namespace vw { 
 namespace ip {
 
+// Magic number defined by Lowe.
 #define SIFT_MAGNITUDE_THRESHOLD 0.2
 
+/// A SIFT descriptor is formed by taking a 16x16 support region
+/// around the interest point, dividing it into a 4x4 grid, and
+/// creating an 8-bin orientation histogram for each cell of the
+/// grid. The descriptor is a vector of length 4x4x8 = 128.
+///
+/// The source data is the ImageOctaveHistory, which can be
+/// recorded using ScaledInterestPointDetector::record_history.
   template <class T>
   class SIFT_Descriptor : public DescriptorBase<SIFT_Descriptor<T>, ImageOctaveHistory<ImageInterestData<T> > >
   {
@@ -31,9 +66,11 @@ namespace ip {
 
     inline int cache_support(InterestPoint& pt,
 		             const source_type& source) {
+      // Select level of Gaussian blur from scale.
       ImageInterestData<T> data = source.image_at_scale(pt.scale);
-      get_support(mag_region, pt, data.mag, 16);
-      get_support(ori_region, pt, data.ori, 16);
+      // Get support regions, without performing any further rescaling.
+      get_support(mag_region, pt.x, pt.y, 1.0, pt.orientation, data.mag, 16);
+      get_support(ori_region, pt.x, pt.y, 1.0, pt.orientation, data.ori, 16);
       // Rotate gradient orientations by point orientation
       ori_region += (-pt.orientation);
     }

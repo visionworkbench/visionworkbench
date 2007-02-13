@@ -37,6 +37,7 @@
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/Localize.h>
 #include <vw/InterestPoint/Matcher.h>
+#include <vw/InterestPoint/RANSAC.h>
 #include <vw/InterestPoint/SIFT_Descriptor.h>
 #include <vw/InterestPoint/Threshold.h>
 #include <vw/InterestPoint/WeightedHistogram.h>

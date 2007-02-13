@@ -33,6 +33,9 @@
 namespace vw {
 namespace ip {
 
+  /// CRTP base class for thresholding interest points. Implementations
+  /// must define keep, which determines whether to keep or reject
+  /// an interest point.
   template <class ImplT>
   struct KeypointThresholdBase {
     /// Returns the derived implementation type.
@@ -48,6 +51,8 @@ namespace ip {
     }
   };
 
+  /// Simple thresholding class which keeps interest points above some
+  /// minimum interest.
   template <class T>
   class InterestThreshold : public KeypointThresholdBase<InterestThreshold<T> > {
   public:
@@ -60,7 +65,13 @@ namespace ip {
     }
   };
 
-  // TODO: BrownLoweThreshold
+  // TODO: Better default thresholding options, like the Brown/Lowe approach?
+  // This is tricky to decouple completely, as thresholding techniques can
+  // require data not directly encapsulated by ImageInterestData, like
+  // curvatures (from localization) and the Hessian matrix (which would be
+  // inefficient to recompute every time).
+  // Could change interface to operate on a vector of InterestPoints, but
+  // then the thresholder needs to understand scale spaces.
 
 }} // namespace vw::ip
 

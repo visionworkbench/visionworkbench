@@ -1,9 +1,32 @@
+// __BEGIN_LICENSE__
+// 
+// Copyright (C) 2006 United States Government as represented by the
+// Administrator of the National Aeronautics and Space Administration
+// (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
+// 
+// This software is distributed under the NASA Open Source Agreement
+// (NOSA), version 1.3.  The NOSA has been approved by the Open Source
+// Initiative.  See the file COPYING at the top of the distribution
+// directory tree for the complete NOSA document.
+// 
+// THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
+// KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
+// LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
+// SPECIFICATIONS, ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+// A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
+// THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
+// DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
+// 
+// __END_LICENSE__
+
+/// \file WeightedHistogram.h
+/// 
+/// Functions for constructing histograms from pixels in a given image.
+/// 
 #ifndef _WEIGHTED_HISTOGRAM_H_
 #define _WEIGHTED_HISTOGRAM_H_
-//:
-// \file
-// \brief Construct histogram from pixels in given image.
-// \author Matthew Deans (after vil_histogram) and Patrick Mihelich
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Filter.h>
@@ -12,7 +35,7 @@
 #include <algorithm>
 #include <math.h>
 
-// TODO: learn this threshold
+// Yet another magic number from Lowe.
 #define INTEREST_POINT_MODE_THRESHOLD (0.8)
 
 namespace vw { namespace ip {
@@ -38,7 +61,6 @@ void weighted_histogram(const ImageView<T1>& val_image,
     int index = int(0.5+s*(double(*iter) - x0));
     
     if (index>=0 && (unsigned)index<n_bins) histo[index] += *weight_iter;
-    // Interpolate here?
   }
 }
 
@@ -46,11 +68,11 @@ void weighted_histogram(const ImageView<T1>& val_image,
 /// could be any 2D array that provides the appropriate accessors and
 /// resize method.  Note that for Gaussian filtering of images, the
 /// separable method is preferred with two 1D kernels.
+/// The kernel size may be specified; if it is not then the default
+/// value of zero indicates the kernel size should be computed from
+/// sigma.
 template <class KernelT>
 int make_gaussian_kernel_2d( KernelT& kernel, float sigma, int usewidth=0 ) {
-  // Kernel size may be specified, or if it is not then the default
-  // value of zero indicates the kernel size should be computed
-  // from sigma.
   std::vector<float> kernel_1d;
   generate_gaussian_kernel(kernel_1d, (double)sigma, usewidth);
   int kerwidth = kernel_1d.size();

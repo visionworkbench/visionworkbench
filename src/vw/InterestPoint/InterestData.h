@@ -58,6 +58,7 @@ namespace ip {
     /// for a given orientation anyway.
     float orientation;
 
+    /// The interest measure (could be Harris, LoG, etc.).
     float interest;
 
     /// And finally the descriptor for the interest point.  SIFT points
@@ -72,11 +73,19 @@ namespace ip {
       else vw_throw( vw::ArgumentErr() << "Interest Point: Invalid index" );
     }
 
+    /// std::sort can be used to sort InterestPoints in descending
+    /// order of interest.
     bool operator< (const InterestPoint& other) const {
       return (other.interest < interest);
     }
   };
 
+  /// This struct encapsulates some basic and widely useful processed
+  /// versions of a source image: the horizontal and vertical gradients,
+  /// the orientation image, the gradient magnitude image, and the
+  /// interest image. This is useful to ensure that these images are
+  /// not redundantly calculated by different steps of the feature
+  /// detection algorithm.
   template <class PixelT>
   struct ImageInterestData {
     ImageView<PixelT> src;
@@ -88,10 +97,13 @@ namespace ip {
 
     ImageInterestData() { }
 
+    /// Constructor which sets the source image.
     ImageInterestData(const ImageView<PixelT>& img) {
       set_source(img);
     }
 
+    /// Set the source image and calculate the processed versions
+    /// (excepting the interest image).
     void set_source(const ImageView<PixelT>& img) {
       src = img;
       grad_x = derivative_filter(src, 1, 0);
@@ -102,6 +114,7 @@ namespace ip {
     }
   };
 
+  /// Type(s) of peak in the interest image that indicate a feature.
   enum PeakType { IP_MAX, IP_MIN, IP_MINMAX };
 
 }} // namespace vw::ip

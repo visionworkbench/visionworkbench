@@ -1,0 +1,157 @@
+\chapter{The Interest Point Module}
+
+Intro (importance/usefulness of interest points)...
+
+The interest point module includes a complete set of classes and functions
+for each step of interest point detection. They can be imported into
+your code by including {\tt <vw/InterestPoint.h>}. The built-in classes
+ScaledInterestPointDetector and SimpleInterestPointDetector (defined
+in {\tt <vw/InterestPoint/Detector.h>}) provide out-of-the-box
+support for detecting interest points, with or without scale space
+methods.
+
+The interest point module is designed to be as flexible as possible in that
+it decouples each step in the process of interest point detection. Different
+interest measures and thresholding methods, built-in or user-defined, can
+be used with the InterestPointDetector classes. ScaledInterestPointDetector
+and SimpleInterestPointDetector can both easily be subclassed to further
+customize their operation, for example by implementing an alternative
+method for finding peaks in the interest image.
+
+The interest point module also provides tools for generating descriptors
+to compactly describe the properties of an interest point, including
+the well-known SIFT method.
+
+\section{Scale Space Methods}
+When detecting interest points, we want them to be invariant to changes in
+view perspective. The scale space is a standard tool for making a
+detection algorithm scale invariant \cite{lindeberg98}.
+
+The interest point module provides support for scale space detection methods
+based on the ImageOctave class. An octave is a subset of the scale space.
+It is a set of images (scales) formed by convolving the source image
+with Gaussian kernels having progressively larger
+standard deviations; the sigma used for the last scale in the octave is
+twice that used for the first scale. Given a source image and a number of
+scales per octave, ImageOctave will construct the first octave of the
+scale space of the source image. Successive octaves can be constructed
+with the \verb#build_next()# method.
+
+\begin{verbatim}
+  ImageView<double> source;
+  int scales_per_octave;
+  ImageOctave octave(source, scales_per_octave);
+  // Process first octave...
+  // Then build the second octave
+  octave.build_next();
+\end{verbatim}
+
+Building the next octave is a destructive operation, as the previously
+computed octave data is not saved. If you need to retain all of the
+scaled images generated, e.g. for use in generating descriptors,
+ImageOctaveHistory can be used to store this data.
+
+\section{Measuring Interest}
+The interest point module includes both classes and free functions
+for computing interest images from source images using the
+standard Harris \cite{harris88} and LoG (Laplacian of Gaussian)
+interest measures. They can be imported by including the file
+{\tt vw/InterestPoint/Interest.h}.
+
+The HarrisInterest and LoGInterest classes are intended for use
+in conjunction with the InterestPointDetector classes (next
+section). Creating your own interest measure classes 
+for use with the Detector classes is straightforward.
+Subclass the \verb#InterestBase# abstract base type. In the
+constructor, set \verb#InterestBase<T>::type# to IP_MIN,
+IP_MAX or IP_MINMAX, depending on what type of peaks in the
+generated interest image represent interest points. Then
+overload the abstract virtual method \verb#compute_interest#
+with your implementation of the interest measure.
+
+\section{The Interest Point Detector Classes}
+The InterestPointDetector classes in
+{\tt <vw/InterestPoint/Detector.h>} form the heart of the interest
+point module. They integrate the various components of the module
+into an easy all-in-one interface for detecting interest points.
+
+The InterestPointDetector class itself is an abstract base class.
+Two implementations of its interface are supplied,
+ScaledInterestPointDetector and SimpleInterestPointDetector.
+The Scaled version uses scale space methods, while the Simple version
+does not; otherwise they are identical. When constructing either
+type of detector, you specify an interest measure class and a
+thresholding class. Built-in thresholding classes are defined in
+{\tt <vw/InterestPoint/Threshold.h>}.
+
+\begin{verbatim}
+  LoGInterest<float> log;
+  InterestThreshold<float> thresholder(0.0001);
+  ScaledInterestPointDetector<float> detector(&log, &thresholder);
+  std::vector<InterestPoint> points = interest_points(src, &detector);
+\end{verbatim}
+
+\section{Flow of Data}
+Although designed primarily for flexibility, the interest point
+module takes care not to sacrifice efficiency by unnecessarily
+recomputing internal images such as gradients. If you take
+advantage of the module's flexibility by customizing its
+framework (for example, by implementing a new interest measure
+class), you will probably make use of ImageInterestData, a
+struct which holds a source image and several interesting
+related images, such as gradients and interest.
+
+\section{Generating Descriptors}
+A descriptor of an interest point represents the local image region
+around the point. It should be distinctive as well as invariant to
+factors such as illumination and viewpoint. The interest module
+contains basic functions and classes for generating descriptors
+in {\tt <vw/InterestPoint/Descriptor.h>}, and implements the
+more advanced SIFT descriptor \cite{lowe04}
+in {\tt <vw/InterestPoint/SIFT_Descriptor.h>}.
+
+Generating a descriptor for an interest point requires knowledge
+of the point's source image. Different descriptor classes may
+require different source data. The trivial PatchDescriptor
+uses only the source ImageView as its source data.
+
+\begin{verbatim}
+  SimpleInterestPointDetector<float> detector(&harris, &thresholder);
+  std::vector<InterestPoint> points = interest_points(source_image,
+                                                      &detector);
+  PatchDescriptor<float> pd;
+  generate_descriptors(points, source_image, pd);
+\end{verbatim}
+
+Properly generating descriptors for interest points found with
+ScaledInterestPointDetector is more involved, as various
+blurred versions of the source image may be required to provide
+local image regions for interest points at different scales.
+The SIFT descriptor requires the entire scale space, including
+internal images, used by the detector, but this can easily
+be saved in an ImageOctaveHistory object.
+
+\begin{verbatim}
+  ScaledInterestPointDetector<float> detector(&log, &thresholder);
+  ImageOctaveHistory<ImageInterestData<float> > history;
+  detector.record_history(&history);
+  SIFT_Descriptor<float> sd;
+  generate_descriptors(points, history, sd);
+\end{verbatim}
+
+\section{Matching}
+Someone else should write about Matcher.h and RANSAC.h.
+
+\begin{thebibliography}{1}
+\bibitem{harris88} Harris, Chris, and Mike Stephens, ``A Combined
+  Corner and Edge Detector,'' Proc. 4th Alvey Vision Conf., Manchester,
+  pp. 147-151, 1988.
+
+\bibitem{lindeberg98} Lindeberg, Tony, ``Feature Detection with Automatic
+  Scale Selection,''  Int. J. of Computer Vision, Vol. 30, number 2,
+  1998.
+
+\bibitem{lowe04} Lowe, David G., ``Distinctive Image Features from
+  Scale-Invariant Keypoints,'' Int. J. of Computer Vision, 2004.
+
+\end{thebibliography}

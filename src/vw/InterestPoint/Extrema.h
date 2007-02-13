@@ -36,14 +36,13 @@
 namespace vw {
 namespace ip {
 
+// Do not search too close to image boundary.
 #define IP_BORDER_WIDTH (20)
 
-  template <class T>
-  struct ImageInterestData;
+  // Local min/max functions.
 
-  /// Local min/max functions.
-
-  // Search for spatial extrema only
+  // Functions to search for spatial extrema
+  /// Find spatial local max.
   template <class T>
   inline bool is_local_max(const ImageView<T>& interest, int i, int j) {
     // 4-connected neighborhood in the plane
@@ -62,6 +61,7 @@ namespace ip {
     return true;
   }
 
+  /// Find spatial local min.
   template <class T>
   inline bool is_local_min(const ImageView<T>& interest, int i, int j) {
     // 4-connected neighborhood in the plane
@@ -80,11 +80,13 @@ namespace ip {
     return true;
   }
 
+  /// Find spatial local extremum.
   template <class T>
   inline bool is_local_minmax(const ImageView<T>& interest, int i, int j) {
     return (is_local_max(interest, i, j) || is_local_min(interest, i, j));
   }
 
+  /// Find spatial local extremum of the specified type.
   template <class T>
   inline bool is_extremum(const ImageView<T>& interest,
                           int i, int j, PeakType type) {
@@ -93,7 +95,8 @@ namespace ip {
     return is_local_minmax(interest, i, j);
   }
 
-  // Search for spacial and scale space extrema
+  // Functions to search for spacial and scale space extrema
+  /// Find local max in space and scale.
   template <class T>
   inline bool is_local_max(const std::vector<ImageInterestData<T> >& data,
                            int i, int j, int k) {
@@ -122,6 +125,7 @@ namespace ip {
     return true;
   }
 
+  /// Find local min in space and scale.
   template <class T>
   inline bool is_local_min(const std::vector<ImageInterestData<T> >& data,
                            int i, int j, int k) {
@@ -150,12 +154,14 @@ namespace ip {
     return true;
   }
 
+  /// Find local extremum in space and scale.
   template <class T>
   inline bool is_local_minmax(const std::vector<ImageInterestData<T> >& data,
 			      int i, int j, int k) {
     return (is_local_max(data, i, j, k) || is_local_min(data, i, j, k));
   }
 
+  /// Find local extremum of the specified type in space and scale.
   template <class T>
   inline bool is_extremum(const std::vector<ImageInterestData<T> >&data,
                           int i, int j, int k, PeakType type) {
@@ -164,7 +170,7 @@ namespace ip {
     return is_local_minmax(data, i, j, k);
   }
 
-  // Find peaks in the image
+  /// Find spatial peaks of a certain type in the image.
   template <class T>
   int find_peaks( std::vector<InterestPoint>& interest_points,
 		  const ImageView<T>& interest, PeakType type = IP_MAX) {
@@ -193,7 +199,7 @@ namespace ip {
     return 0;
   }
 
-  // Find peaks in the image octave
+  /// Find spatial/scale peaks of some type in the image octave.
   template <class T>
   int find_peaks( std::vector<InterestPoint>& interest_points, 
                   std::vector<ImageInterestData<T> >& data,
@@ -205,7 +211,6 @@ namespace ip {
     unsigned ncols = data[0].interest.cols();
     unsigned nrows = data[0].interest.rows();
     unsigned nplanes = data.size();
-    //printf( "interest is %d by %d by %d\n", ncols, nrows, nplanes );
 
     // Make sure all planes are the same size
     for (unsigned k=0; k<nplanes; k++){
@@ -217,10 +222,10 @@ namespace ip {
     // plane 1, or compare plane N to plane N-1.  Each of these has a
     // scale space plane only on one side, so we cannot bound the
     // scale from both sides.  Below, search all of the internal
-    // pixels on all of the internal planes for local maxima in
+    // pixels on all of the internal planes for local extrema in
     // (x,y,scale)
 
-    // Find local maxima
+    // Find local extrema
     // TODO: this really needs to be sped up
     for (unsigned k=1; k<nplanes-1; k++) {     // plane k
       for (unsigned j=IP_BORDER_WIDTH; j<nrows-IP_BORDER_WIDTH; j++) {   // row j
@@ -230,7 +235,6 @@ namespace ip {
             vw::vw_out(DebugMessage) << "Found a local max at [" << i << ", " << j << ", "
                                      << k << "]" << "    Interest: "
                                      << data[k].interest(i,j) << "\n";
-            //printf("Found one at (%i, %i, %i)\n", i, j, k);
 	    InterestPoint pt;
 	    pt.x = pt.ix = i;
 	    pt.y = pt.iy = j;

@@ -21,9 +21,9 @@
 // 
 // __END_LICENSE__
 
-/// \file Image.h
+/// \file Descriptor.h
 /// 
-/// Basic classes and structures for storing image interest points.
+/// Basic classes and functions for generating interest point descriptors.
 /// 
 #ifndef __INTERESTPOINT_DESCRIPTOR_H__
 #define __INTERESTPOINT_DESCRIPTOR_H__
@@ -65,7 +65,9 @@ namespace ip {
 
 #define SUPPORT_SIZE 41
   
-  /// Get the size x size support region around an interest point.
+  /// Get the size x size support region around an interest point,
+  /// rescaled by the scale factor and rotated by the specified
+  /// angle.
   /// transform takes care of interpolation and edge extension.
   template <class T>
   int inline get_support( ImageView<T>& support,
@@ -84,7 +86,8 @@ namespace ip {
     return 0;
   }
 
-  /// Get the support region around an interest point.
+  /// Get the support region around an interest point, scaled and
+  /// rotated appropriately.
   template <class T>
   int inline get_support( ImageView<T>& support,
 			  const InterestPoint& pt,
@@ -94,6 +97,10 @@ namespace ip {
 		       source, size);
   }
 
+  /// CRTP base class for descriptor generating methods.
+  /// A descriptor generator subclass can easily be created by
+  /// implementing cache_support and compute_descriptor_from_support,
+  /// or compute_descriptors can be reimplemented entirely.
   template <class ImplT, class SourceT>
   struct DescriptorBase {
     /// Returns the derived implementation type.
@@ -102,6 +109,8 @@ namespace ip {
     /// Returns the derived implementation type.
     ImplT const& impl() const { return *static_cast<ImplT const*>(this); }
 
+    /// Compute descriptors for a set of interest points from the given
+    /// source (an image or set of images).
     int compute_descriptors( std::vector<InterestPoint>& points,
 			    const SourceT& source ) {
       for (int i = 0; i < points.size(); i++) {
@@ -112,6 +121,8 @@ namespace ip {
     }
   };
 
+  /// Generate descriptors for the set of interest points using the
+  /// given source data and descriptor generator.
   template <class DescriptorT, class SourceT>
   int generate_descriptors(std::vector<InterestPoint>& points,
 			   const SourceT& source,
@@ -119,6 +130,9 @@ namespace ip {
     return desc_gen.impl().compute_descriptors(points, source);
   }
 
+  /// A basic example descriptor class. The descriptor for an interest
+  /// point is the support region around the point. It is normalized
+  /// to provide some tolerance to changes in illumination.
   template <class T>
   class PatchDescriptor : public DescriptorBase<PatchDescriptor<T>, ImageView<T> >
   {
@@ -129,7 +143,7 @@ namespace ip {
 
     inline int cache_support(InterestPoint& pt,
 		             const ImageView<T>& source) {
-      vw::ip::get_support(support, pt, source); // 41x41
+      return vw::ip::get_support(support, pt, source); // 41x41
     }
 
     int compute_descriptor_from_support(InterestPoint& pt) {
@@ -142,8 +156,6 @@ namespace ip {
       return 0;
     }
   };
-
-  // SaveFeatureDescriptor?
 
 }} // namespace vw::ip
 

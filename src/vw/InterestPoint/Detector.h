@@ -21,9 +21,9 @@
 // 
 // __END_LICENSE__
 
-/// \file Image.h
+/// \file Detector.h
 /// 
-/// Basic classes and structures for storing image interest points.
+/// Built-in classes and functions for performing interest point detection.
 /// 
 #ifndef __INTERESTPOINT_DETECTOR_H__
 #define __INTERESTPOINT_DETECTOR_H__
@@ -49,6 +49,10 @@ namespace ip {
 // Lowe recommends 36 bins, but this could also be learned.
 #define FEATURE_ORI_NBINS (36)
 
+/// Abstract base class for all-in-one interest point detection
+/// classes. The interest measure and thresholding method used
+/// are passed in as parameters. Detection classes must
+/// implement detect_points.
 template <class T, class ThreshT = InterestThreshold<T> >
 class InterestPointDetector {
 public:
@@ -56,14 +60,21 @@ public:
     interest(i), thresh(t) {}
   virtual ~InterestPointDetector() {}
 
+  /// Set the interest measure used.
   void set_interest_measure(InterestBase<T> *i) { interest = i; }
 
+  /// Detect interest points in the source image.
   virtual std::vector<InterestPoint> detect_points(const ImageView<T>& src) = 0;
+
+  /// Write the intermediate images out to files.
+  virtual int write_images() const = 0;
 
 protected:
   InterestBase<T> *interest;
   KeypointThresholdBase<ThreshT> *thresh;
 
+  //TODO: These abstract virtual functions are defined here to enforce
+  // the decoupling of each step, but this may be too restrictive
   virtual int find_extrema(std::vector<InterestPoint>& points) = 0;
 
   virtual int localize(std::vector<InterestPoint>& points) = 0;
@@ -71,21 +82,24 @@ protected:
   virtual int threshold(std::vector<InterestPoint>& points) = 0;
 
   virtual int assign_orientations(std::vector<InterestPoint>& points) = 0;
-
-  virtual int write_images() const = 0;
 };
 
-// Find the keypoints in an image using the provided detector.  
-// 
-// Some images are too large to be processed for interest points all
-// at once.  If the user specifies a max_keypoint_image_dimension,
-// this value is used to segment the image into smaller images which
-// are passed individually to the keypoint detector.  This routine
-// combines the keypoints from the sub-images once detection is
-// complete.  Be aware that a few keypoints along the segment
-// borders may be lost.  A good max dimension depends on the amount
-// of RAM needed by the detector (and the total RAM available).  A
-// value of 2048 seems to work well in most cases.
+//TODO: the interface for this free function needs to be standardized one
+// way or another. The second version was added for compatibility with
+// the Stereo Pipeline, but it breaks the first version due to
+// templating ambiguities.
+
+/// Find the keypoints in an image using the provided detector.  
+/// 
+/// Some images are too large to be processed for interest points all
+/// at once.  If the user specifies a max_keypoint_image_dimension,
+/// this value is used to segment the image into smaller images which
+/// are passed individually to the keypoint detector.  This routine
+/// combines the keypoints from the sub-images once detection is
+/// complete.  Be aware that a few keypoints along the segment
+/// borders may be lost.  A good max dimension depends on the amount
+/// of RAM needed by the detector (and the total RAM available).  A
+/// value of 2048 seems to work well in most cases.
 template <class T, class ThreshT>
 std::vector<InterestPoint> interest_points(vw::ImageView<T> const& image, 
                                            InterestPointDetector<T, ThreshT>* detector,
@@ -125,6 +139,7 @@ std::vector<InterestPoint> interest_points(vw::ImageView<T> const& image,
 
 }
 
+/// Stereo Pipeline compatibility version.
 template <class ViewT, class DetectorT>
 std::vector<InterestPoint> interest_points(vw::ImageViewBase<ViewT> const& image, 
                                            DetectorT const& detector,
@@ -165,13 +180,13 @@ std::vector<InterestPoint> interest_points(vw::ImageViewBase<ViewT> const& image
 }
 
 
-//Get the orientation of the point at (i0,j0,k0).  This is done by
-//computing a weighted histogram of edge orientations in a region
-//around the detected point.  The weights for the weighted histogram
-//are computed by multiplying the edge magnitude at each point by a
-//gaussian weight.  The edge orientation histogram is then smoothed,
-//effectively computing a kernel density estimate.  This density
-//function is then searched for local peaks.
+/// Get the orientation of the point at (i0,j0,k0).  This is done by
+/// computing a weighted histogram of edge orientations in a region
+/// around the detected point.  The weights for the weighted histogram
+/// are computed by multiplying the edge magnitude at each point by a
+/// gaussian weight.  The edge orientation histogram is then smoothed,
+/// effectively computing a kernel density estimate.  This density
+/// function is then searched for local peaks.
 template <class T>
 int get_orientation( std::vector<float>& orientation,
 		     const ImageInterestData<T>& data,
@@ -179,7 +194,6 @@ int get_orientation( std::vector<float>& orientation,
   orientation.clear();
   // Nominal feature support patch is 41x41 at the base scale, and
   // we multiply by sigma[k]/sigma[1] for other planes.
-  
   
   // Get bounds for scaled 41x41 window centered at (i,j) in plane k
   int halfwidth = (int)(20*sigma_ratio + 0.5);
@@ -206,7 +220,7 @@ int get_orientation( std::vector<float>& orientation,
     }
     
     // Compute weighted histogram of edge orientations
-    std::vector<double> histo;
+    std::vector<float> histo;
     weighted_histogram( region_ori, weight, histo, 
 		        -M_PI, M_PI, FEATURE_ORI_NBINS );
     
@@ -223,6 +237,8 @@ int get_orientation( std::vector<float>& orientation,
   return 0;
 }
 
+/// This class performs interest point detection on a source image
+/// without using scale space methods.
 template <class T, class ThreshT = InterestThreshold<T> >
 class SimpleInterestPointDetector : public InterestPointDetector<T> {
  public:
@@ -240,28 +256,53 @@ class SimpleInterestPointDetector : public InterestPointDetector<T> {
     // Find extrema in interest image
     std::vector<InterestPoint> points;
     find_extrema(points);
-    printf("Extrema found: %i\n", points.size());
 
     // Subpixel localization
     localize(points);
 
-    // TODO: Threshold (after localization)
+    // Threshold (after localization)
     threshold(points);
 
     // Assign orientations
     assign_orientations(points);
-    printf("Points found: %i\n", points.size());
 
     // Return vector of interest points
     return points;
   }
 
+  /// This method dumps the various images internal to the detector out
+  /// to files for visualization and debugging.  The images written out
+  /// are the x and y gradients, edge orientation and magnitude, and
+  /// interest function values for the source image.
+  virtual int write_images() const {
+    // Save the X gradient
+    ImageView<float> grad_x_image = normalize(img_data.grad_x);
+    vw::write_image("grad_x.jpg", grad_x_image);
+
+    // Save the Y gradient      
+    ImageView<float> grad_y_image = normalize(img_data.grad_y);
+    vw::write_image("grad_y.jpg", grad_y_image);
+
+    // Save the edge orientation image
+    ImageView<float> ori_image = normalize(img_data.ori);
+    vw::write_image("ori.jpg", ori_image);
+
+    // Save the edge magnitude image
+    ImageView<float> mag_image = normalize(img_data.mag);
+    vw::write_image("mag.jpg", mag_image);
+
+    // Save the interest function image
+    ImageView<float> interest_image = normalize(img_data.interest);
+    vw::write_image("interest.jpg", interest_image);
+
+    return 0;
+  }
+
  protected:
   ImageInterestData<T> img_data;
 
-  /// By default, uses find_peaks in Extrema.h
+  // By default, uses find_peaks in Extrema.h
   virtual int find_extrema(std::vector<InterestPoint>& points) {
-    //vw::write_image("interest_f.jpg", img.interest);
     return find_peaks(points, img_data.interest,
 		      this->interest->peak_type());
   }
@@ -300,35 +341,12 @@ class SimpleInterestPointDetector : public InterestPointDetector<T> {
     points = tmp;
   }
 
-  // This method dumps the various images internal to the detector out
-  // to files for visualization and debugging.  The images written out
-  // are the x and y gradients, edge orientation and magnitude, and
-  // interest function values for all planes in the octave processed.
-  virtual int write_images() const {
-    // Save the X gradient
-    ImageView<float> grad_x_image = normalize(img_data.grad_x);
-    vw::write_image("grad_x.jpg", grad_x_image);
-
-    // Save the Y gradient      
-    ImageView<float> grad_y_image = normalize(img_data.grad_y);
-    vw::write_image("grad_y.jpg", grad_y_image);
-
-    // Save the edge orientation image
-    ImageView<float> ori_image = normalize(img_data.ori);
-    vw::write_image("ori.jpg", ori_image);
-
-    // Save the edge magnitude image
-    ImageView<float> mag_image = normalize(img_data.mag);
-    vw::write_image("mag.jpg", mag_image);
-
-    // Save the interest function image
-    ImageView<float> interest_image = normalize(img_data.interest);
-    vw::write_image("interest.jpg", interest_image);
-
-    return 0;
-  }
 };
 
+/// This class performs interest point detection on a source image
+/// making use of scale space methods to achieve scale invariance.
+/// This assumes that the detector works properly over different
+/// choices of scale.
 template <class T, class ThreshT = InterestThreshold<T> >
 class ScaledInterestPointDetector : public InterestPointDetector<T, ThreshT> {
  public:
@@ -339,7 +357,7 @@ class ScaledInterestPointDetector : public InterestPointDetector<T, ThreshT> {
                               int scales, int octaves) :
     InterestPointDetector<T>(i, t), num_scales(scales), num_octaves(octaves), octave(NULL) {}
 
-  // Detect interest points in the source image.
+  /// Detect interest points in the source image.
   virtual std::vector<InterestPoint> detect_points(const ImageView<T>& src) {
     //create scale space
     octave = new ImageOctave<T>(src, num_scales);
@@ -355,30 +373,24 @@ class ScaledInterestPointDetector : public InterestPointDetector<T, ThreshT> {
       }
 
       // Compute interest images
-      //printf("Computing interest images\n");
       for (int k = 0; k < octave->num_planes; k++) {
 	this->interest->compute_interest(img_data[k], octave->plane_index_to_scale(k));
       }
       
-      if (history != NULL) history->add_octave(img_data);
+      if (history) history->add_octave(img_data);
 
       // Find extrema in interest image
-      //printf("Finding extrema\n");
       find_extrema(points);
 
       // Subpixel localization
-      //printf("Localizing\n");
       localize(points);
 
       // Threshold
-      //printf("Thresholding\n");
       threshold(points);
 
       // Assign orientations
-      //printf("Assigning orientations\n");
       assign_orientations(points);
 
-      printf("%i interest points found\n", points.size() - next_point);
       // Scale subpixel location to move back to original coords
       for (; next_point < points.size(); next_point++) {
 	points[next_point].x *= octave->base_scale;
@@ -396,8 +408,53 @@ class ScaledInterestPointDetector : public InterestPointDetector<T, ThreshT> {
     return points;
   }
 
+  /// Record data over the entire scale space pyramid.
   void record_history(ImageOctaveHistory<ImageInterestData<T> > *h) {
     history = h;
+  }
+
+  /// This method dumps the various images internal to the detector out
+  /// to files for visualization and debugging.  The images written out
+  /// are the x and y gradients, edge orientation and magnitude, and
+  /// interest function values for all planes in the octave processed.
+  virtual int write_images() const
+  {
+    for (int k=0; k<img_data.size(); k++){
+      //int imagenum = (int)(log((float)base_scale)/log(2.0)) * num_planes + k;
+      int imagenum = k;
+      char fname[256];
+
+      // Save the scale
+      sprintf( fname, "scale_%02d.jpg", imagenum );
+      ImageView<float> scale_image = normalize(img_data[k].src);
+      vw::write_image(fname, scale_image);
+      
+      // Save the X gradient
+      sprintf( fname, "grad_x_%02d.jpg", imagenum );
+      ImageView<float> grad_x_image = normalize(img_data[k].grad_x);
+      vw::write_image(fname, grad_x_image);
+
+      // Save the Y gradient      
+      sprintf( fname, "grad_y_%02d.jpg", imagenum );
+      ImageView<float> grad_y_image = normalize(img_data[k].grad_y);
+      vw::write_image(fname, grad_y_image);
+
+      // Save the edge orientation image
+      sprintf( fname, "ori_%02d.jpg", imagenum );
+      ImageView<float> ori_image = normalize(img_data[k].ori);
+      vw::write_image(fname, ori_image);
+
+      // Save the edge magnitude image
+      sprintf( fname, "mag_%02d.jpg", imagenum );
+      ImageView<float> mag_image = normalize(img_data[k].mag);
+      vw::write_image(fname, mag_image);
+
+      // Save the interest function image
+      sprintf( fname, "interest_%02d.jpg", imagenum );
+      ImageView<float> interest_image = normalize(img_data[k].interest);
+      vw::write_image(fname, interest_image);
+    }
+    return 0;
   }
 
  protected:
@@ -454,49 +511,6 @@ class ScaledInterestPointDetector : public InterestPointDetector<T, ThreshT> {
     }
   }
 
-  // This method dumps the various images internal to the detector out
-  // to files for visualization and debugging.  The images written out
-  // are the x and y gradients, edge orientation and magnitude, and
-  // interest function values for all planes in the octave processed.
-  virtual int write_images() const
-  {
-    for (int k=0; k<img_data.size(); k++){
-      //int imagenum = (int)(log((float)base_scale)/log(2.0)) * num_planes + k;
-      int imagenum = k;
-      char fname[256];
-
-      // Save the scale
-      sprintf( fname, "scale_%02d.jpg", imagenum );
-      ImageView<float> scale_image = normalize(img_data[k].src);
-      vw::write_image(fname, scale_image);
-      
-      // Save the X gradient
-      sprintf( fname, "grad_x_%02d.jpg", imagenum );
-      ImageView<float> grad_x_image = normalize(img_data[k].grad_x);
-      vw::write_image(fname, grad_x_image);
-
-      // Save the Y gradient      
-      sprintf( fname, "grad_y_%02d.jpg", imagenum );
-      ImageView<float> grad_y_image = normalize(img_data[k].grad_y);
-      vw::write_image(fname, grad_y_image);
-
-      // Save the edge orientation image
-      sprintf( fname, "ori_%02d.jpg", imagenum );
-      ImageView<float> ori_image = normalize(img_data[k].ori);
-      vw::write_image(fname, ori_image);
-
-      // Save the edge magnitude image
-      sprintf( fname, "mag_%02d.jpg", imagenum );
-      ImageView<float> mag_image = normalize(img_data[k].mag);
-      vw::write_image(fname, mag_image);
-
-      // Save the interest function image
-      sprintf( fname, "interest_%02d.jpg", imagenum );
-      ImageView<float> interest_image = normalize(img_data[k].interest);
-      vw::write_image(fname, interest_image);
-    }
-    return 0;
-  }
 };
 
 
