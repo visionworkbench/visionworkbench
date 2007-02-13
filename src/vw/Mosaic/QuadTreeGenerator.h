@@ -215,7 +215,7 @@ namespace mosaic {
         crop( big_image, 0, interior_size, interior_size, interior_size ) = generate_branch( name + "/2", level-1, 2*x, 2*y+1 );
         crop( big_image, interior_size, interior_size, interior_size, interior_size ) = generate_branch( name + "/3", level-1, 2*x+1, 2*y+1 );
         std::vector<float> kernel(2); kernel[0]=0.5; kernel[1]=0.5;
-        image.set_size( m_patch_size, m_patch_size );
+        image.set_size( interior_size, interior_size );
         rasterize( subsample( separable_convolution_filter( big_image, kernel, kernel, 1, 1 ), 2 ), image );
       }
       // If there's no patch overlap, we're done and we can just write it out

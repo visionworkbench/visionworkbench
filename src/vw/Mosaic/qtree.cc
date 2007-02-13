@@ -21,6 +21,7 @@ using namespace vw::mosaic;
 int main( int argc, char *argv[] ) {
 
   std::string input_file_name;
+  std::string output_image_file_type;
   int patch_size;
   int patch_overlap;
 
@@ -30,6 +31,8 @@ int main( int argc, char *argv[] ) {
     ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
     ("size", po::value<int>(&patch_size)->default_value(256), "Patch size, in pixels")
     ("overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels (must be even)")
+    ("file-type", po::value<std::string>(&output_image_file_type)->default_value("png"), "Output image file type")
+    ("pad", "Do not crop output images to available data;  pad images to full quadtree size")
     ("verbose", "Verbose output");
   po::positional_options_description p;
   p.add("input-file", 1);
@@ -68,16 +71,23 @@ int main( int argc, char *argv[] ) {
 
   std::string tree_name = input_file_name.substr( 0, input_file_name.rfind( '.' ) );
 
-  try {
+  // try {
     DiskImageView<PixelRGBA<uint8> > input( input_file_name );
     ImageQuadTreeGenerator<PixelRGBA<uint8> > quadtree( tree_name, input );
     quadtree.set_patch_size( patch_size );
     quadtree.set_patch_overlap( patch_overlap );
+    quadtree.set_output_image_file_type( output_image_file_type );
+    if( vm.count("pad") ) {
+      quadtree.set_crop_images( false );
+    }
+
+
+    
     quadtree.generate();
-  }
-  catch( Exception& e ) {
-    std::cerr << "Error: " << e.what() << std::endl;
-  }
+//  }
+//  catch( Exception& e ) {
+//    std::cerr << "Error: " << e.what() << std::endl;
+//  }
 
   return 0;
 }
