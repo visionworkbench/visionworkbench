@@ -145,19 +145,19 @@ namespace mosaic {
       kml << "<Folder>\n";
       std::string leaf = file_path.leaf();
       int children = 0;
-      if( exists( file_path/"0" ) ) {
+      if( exists( file_path/"0.kml" ) ) {
         ++children;
         kml << kml_network_link( name+"/0", leaf+"/0.kml", (rbb+Vector2(rbb.min().x(),rbb.min().y()))/2.0 );
       }
-      if( exists( file_path/"1" ) ) {
+      if( exists( file_path/"1.kml" ) ) {
         ++children;
         kml << kml_network_link( name+"/1", leaf+"/1.kml", (rbb+Vector2(rbb.max().x(),rbb.min().y()))/2.0 );
       }
-      if( exists( file_path/"2" ) ) {
+      if( exists( file_path/"2.kml" ) ) {
         ++children;
         kml << kml_network_link( name+"/2", leaf+"/2.kml", (rbb+Vector2(rbb.min().x(),rbb.max().y()))/2.0 );
       }
-      if( exists( file_path/"3" ) ) {
+      if( exists( file_path/"3.kml" ) ) {
         ++children;
         kml << kml_network_link( name+"/3", leaf+"/3.kml", (rbb+Vector2(rbb.max().x(),rbb.max().y()))/2.0 );
       }
