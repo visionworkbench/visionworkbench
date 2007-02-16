@@ -61,6 +61,7 @@ int main( int argc, char *argv[] ) {
   int patch_size, patch_overlap;
   float jpeg_quality;
   unsigned cache_size;
+  int max_lod_pixels;
 
   po::options_description desc("Options");
   desc.add_options()
@@ -77,6 +78,7 @@ int main( int argc, char *argv[] ) {
     ("overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels (must be even)")
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
+    ("max-lod-pixels", po::value<int>(&max_lod_pixels)->default_value(-1), "Max LoD in pixels, or -1 for none")
     ("verbose", "Verbose output");
   po::positional_options_description p;
   p.add("input-file", -1);
@@ -198,7 +200,7 @@ int main( int argc, char *argv[] ) {
   
   // Prepare the quadtree
   KMLQuadTreeGenerator<PixelRGBA<uint8> > quadtree( output_file_name, composite, BBox2(-180,-180,360,360) );
-  quadtree.set_max_lod_pixels(512);
+  quadtree.set_max_lod_pixels(max_lod_pixels);
   quadtree.set_crop_bbox( data_bbox );
   quadtree.set_crop_images( true );
   quadtree.set_output_image_file_type( output_file_type );
