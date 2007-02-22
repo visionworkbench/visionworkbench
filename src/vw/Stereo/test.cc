@@ -1,6 +1,7 @@
 //!===========================================================================
-//! $Id: $
-//! $Header: $
+//! $Id$
+//! $Header$
+//! $Author$ $Date$ $Revision$
 //!
 //! PROJECT: darknav
 //! MODULE: travmap
