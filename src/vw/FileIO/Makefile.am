@@ -42,6 +42,11 @@ tiff_headers = DiskImageResourceTIFF.h
 tiff_sources = DiskImageResourceTIFF.cc
 endif
 
+if HAVE_PKG_JPEG2K
+jpeg2k_headers = DiskImageResourceJP2.h
+jpeg2k_sources = DiskImageResourceJP2.cc
+endif
+
 if HAVE_PKG_OPENEXR
 if ENABLE_EXCEPTIONS
 openexr_headers = DiskImageResourceOpenEXR.h
@@ -49,11 +54,14 @@ openexr_sources = DiskImageResourceOpenEXR.cc
 endif
 endif
 
+
 include_HEADERS = DiskImageResource.h DiskImageView.h DiskImageResourcePDS.h \
-	$(png_headers) $(tiff_headers) $(openexr_headers) $(jpeg_headers)
+	$(png_headers) $(tiff_headers) $(openexr_headers) $(jpeg_headers) \
+	$(jpeg2k_headers)
 
 libvwFileIO_la_SOURCES = DiskImageResource.cc DiskImageResourcePDS.cc \
-	$(png_sources) $(tiff_sources) $(openexr_sources) $(jpeg_sources)
+	$(png_sources) $(tiff_sources) $(openexr_sources) $(jpeg_sources) \
+	$(jpeg2k_sources)
 
 libvwFileIO_la_CPPFLAGS = @MODULE_FILEIO_CPPFLAGS@
 libvwFileIO_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
