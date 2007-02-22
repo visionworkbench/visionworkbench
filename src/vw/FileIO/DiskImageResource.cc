@@ -49,6 +49,10 @@
 #include <vw/FileIO/DiskImageResourceJPEG.h>
 #endif
 
+#if defined(VW_HAVE_PKG_JPEG2K) && VW_HAVE_PKG_JPEG2K==1
+#include <vw/FileIO/DiskImageResourceJP2.h>
+#endif
+
 #if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
 #include <vw/FileIO/DiskImageResourceTIFF.h>
 #endif
@@ -99,6 +103,19 @@ static void register_default_file_types() {
   vw::DiskImageResource::register_file_type( ".jpg", &vw::DiskImageResourceJPEG::construct_open, &vw::DiskImageResourceJPEG::construct_create );
   vw::DiskImageResource::register_file_type( ".jpeg", &vw::DiskImageResourceJPEG::construct_open, &vw::DiskImageResourceJPEG::construct_create );
 #endif
+
+#if defined(VW_HAVE_PKG_JPEG2K) && VW_HAVE_PKG_JPEG2K==1
+  // A file with a .jp2 extension is a full fledged JPEG2000 image
+  // with acquisition metadata. A file with a .j2k extension has only
+  // the "raw" encoded image, with image encoding and size specified
+  // in a small header.
+  std::cout << "------------- REGISTERING JP2 -----------------" << std::endl;
+  vw::DiskImageResource::register_file_type(".jp2", &vw::DiskImageResourceJP2::construct_open, &vw::DiskImageResourceJP2::construct_create);
+
+  vw::DiskImageResource::register_file_type(".j2k", &vw::DiskImageResourceJP2::construct_open, &vw::DiskImageResourceJP2::construct_create);
+
+#endif
+
 #if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
   vw::DiskImageResource::register_file_type( ".tif", &vw::DiskImageResourceTIFF::construct_open, &vw::DiskImageResourceTIFF::construct_create );
   vw::DiskImageResource::register_file_type( ".tiff", &vw::DiskImageResourceTIFF::construct_open, &vw::DiskImageResourceTIFF::construct_create );
