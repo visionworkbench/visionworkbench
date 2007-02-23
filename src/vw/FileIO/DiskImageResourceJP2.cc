@@ -531,11 +531,11 @@ namespace vw
       coding_parameters.cp_disto_alloc = 1;
     }
     // experiment with tiles -- LJE
-    coding_parameters.cp_tdx = 128;
-    coding_parameters.cp_tdy = 128;
-    coding_parameters.cp_tx0 = 0;
-    coding_parameters.cp_ty0 = 0;
-    coding_parameters.tile_size_on = true;
+//     coding_parameters.cp_tdx = 128;
+//     coding_parameters.cp_tdy = 128;
+//     coding_parameters.cp_tx0 = 0;
+//     coding_parameters.cp_ty0 = 0;
+//     coding_parameters.tile_size_on = true;
 
     opj_image_t *jpeg2k_image = init_jpeg2k_image(coding_parameters,
 						  cols(), rows(),
