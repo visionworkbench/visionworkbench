@@ -156,7 +156,7 @@ namespace vw
 	opj_image_comp_t *component = &new_image->comps[i];
 
 	component->dx = dx;
-	component->dy = dx;
+	component->dy = dy;
 	component->w = width;
 	component->h = height;
 	component->x0 = 0;
