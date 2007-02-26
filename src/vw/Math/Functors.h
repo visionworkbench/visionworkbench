@@ -39,6 +39,13 @@
 #include <vw/Core/Functors.h>
 #include <vw/Math/Functions.h>
 
+// The math.h header in FreeBSD (and possibly other platforms) does
+// include routines for manipulating long doubles.  We disable long
+// double VW math routines here for certain platforms.
+#if defined(__FreeBSD__)
+#define __VW_MATH_DISABLE_LONG_DOUBLE_ARITHMETIC 
+#endif
+
 namespace vw {
 namespace math {
 
@@ -95,20 +102,34 @@ namespace math {
   // Standard Mathematical Functors
   // ********************************************************************
 
+#if !defined(__VW_MATH_DISABLE_LONG_DOUBLE_ARITHMETIC)
+  // This will actually create a specialization for long doubles
+  #define __VW_MATH_UNARY_LONG_DOUBLE_IMPL(func)                         \
+      long double operator()( long double arg ) const {                  \
+        return func##l(arg);                                             \
+      }                                                                   
+  #define __VW_MATH_BINARY_LONG_DOUBLE_IMPL(func)                        \
+    long double operator()( long double arg1, long double arg2 ) const { \
+      return func##l(arg1,arg2);                                         \
+    }                                                                    
+#else 
+  // This is basically a no-op
+  #define __VW_MATH_UNARY_LONG_DOUBLE_IMPL(func) 
+  #define __VW_MATH_BINARY_LONG_DOUBLE_IMPL(func) 
+#endif
+
 #define __VW_UNARY_MATH_FUNCTOR(name,func)                              \
   struct Arg##name##Functor                                             \
     : UnaryReturnBinaryTemplateBind1st<ArgUnaryFunctorType,Arg##name##Functor> { \
     template <class ValT>                                               \
-    typename ArgUnaryFunctorType<Arg##name##Functor,ValT>::type               \
+    typename ArgUnaryFunctorType<Arg##name##Functor,ValT>::type         \
     operator()( ValT arg ) const {                                      \
       return func(arg);                                                 \
     }                                                                   \
     float operator()( float arg ) const {                               \
       return func##f(arg);                                              \
     }                                                                   \
-    long double operator()( long double arg ) const {                   \
-      return func##l(arg);                                              \
-    }                                                                   \
+    __VW_MATH_UNARY_LONG_DOUBLE_IMPL(func)                              \
   };                                                                    \
   using ::func;
 
@@ -117,10 +138,8 @@ namespace math {
     : BinaryReturnTernaryTemplateBind1st<BinaryFunctorType,ArgArg##name##Functor> { \
     float operator()( float arg1, float arg2 ) const {                  \
       return func##f(arg1,arg2);                                        \
-    }                                                                   \
-    long double operator()( long double arg1, long double arg2 ) const { \
-      return func##l(arg1,arg2);                                        \
-    }                                                                   \
+   }                                                                    \
+    __VW_MATH_BINARY_LONG_DOUBLE_IMPL(func)                             \
     template <class Arg1T, class Arg2T>                                 \
     typename BinaryFunctorType<ArgArg##name##Functor,Arg1T,Arg2T>::type \
     inline operator()( Arg1T const& arg1, Arg2T const& arg2 ) const {   \
@@ -175,15 +194,17 @@ namespace math {
   __VW_UNARY_MATH_FUNCTOR( Acosh, acosh )
   __VW_UNARY_MATH_FUNCTOR( Asinh, asinh )
   __VW_UNARY_MATH_FUNCTOR( Atanh, atanh )
+#ifndef __FreeBSD__
   __VW_UNARY_MATH_FUNCTOR( Exp2, exp2 )
-  __VW_UNARY_MATH_FUNCTOR( Expm1, expm1 )
   __VW_UNARY_MATH_FUNCTOR( Log2, log2 )
+  __VW_UNARY_MATH_FUNCTOR( Tgamma, tgamma )
+#endif
+  __VW_UNARY_MATH_FUNCTOR( Lgamma, lgamma )
+  __VW_UNARY_MATH_FUNCTOR( Expm1, expm1 )
   __VW_UNARY_MATH_FUNCTOR( Log1p, log1p )
   __VW_UNARY_MATH_FUNCTOR( Cbrt, cbrt )
   __VW_UNARY_MATH_FUNCTOR( Erf, erf )
   __VW_UNARY_MATH_FUNCTOR( Erfc, erfc )
-  __VW_UNARY_MATH_FUNCTOR( Tgamma, tgamma )
-  __VW_UNARY_MATH_FUNCTOR( Lgamma, lgamma )
   __VW_UNARY_MATH_FUNCTOR( Round, round )
   __VW_UNARY_MATH_FUNCTOR( Trunc, trunc )
 
@@ -254,7 +275,9 @@ namespace math {
     }
 
     inline float operator()( float val ) const { return fabsf(val); }
+#ifndef __FreeBSD__
     inline long double operator()( long double val ) const { return fabsl(val); }
+#endif
     inline long operator()( long val ) const { return std::labs(val); }
 #ifndef WIN32
     inline long long operator()( long long val ) const { return std::llabs(val); }

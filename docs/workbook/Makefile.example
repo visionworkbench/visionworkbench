@@ -24,7 +24,7 @@ LDFLAGS = -L$(VWPREFIX)/lib -lvw
 
 # Object files:
 # List the object files needed to build your program here.
-SOURCES = vwconvert.o
+OBJECTS = vwconvert.o
 
 # Linking rule:
 # Duplicate and modify this rule to build multiple programs.

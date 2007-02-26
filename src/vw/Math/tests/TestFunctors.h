@@ -166,14 +166,26 @@ public:
   void testAcoshFunctor() { TEST_UNARY_MATH_FUNCTOR(Acosh,1.5,0.962424); }
   void testAsinhFunctor() { TEST_UNARY_MATH_FUNCTOR(Asinh,1.0,0.881374); }
   void testAtanhFunctor() { TEST_UNARY_MATH_FUNCTOR(Atanh,0.5,0.549306); }
-  void testExp2Functor() { TEST_UNARY_MATH_FUNCTOR(Exp2,1.0,2.0); }
+  void testExp2Functor() { 
+#ifndef __FreeBSD__ 
+    TEST_UNARY_MATH_FUNCTOR(Exp2,1.0,2.0); 
+#endif 
+  }
+  void testLog2Functor() { 
+#ifndef __FreeBSD__ 
+    TEST_UNARY_MATH_FUNCTOR(Log2,2.0,1.0); 
+#endif 
+  }
+  void testTgammaFunctor() { 
+#ifndef __FreeBSD__ 
+    TEST_UNARY_MATH_FUNCTOR(Tgamma,1.5,0.886227); 
+#endif 
+  }
   void testExpm1Functor() { TEST_UNARY_MATH_FUNCTOR(Expm1,1.0,1.718281); }
-  void testLog2Functor() { TEST_UNARY_MATH_FUNCTOR(Log2,2.0,1.0); }
   void testLog1pFunctor() { TEST_UNARY_MATH_FUNCTOR(Log1p,1.0,0.693147); }
   void testCbrtFunctor() { TEST_UNARY_MATH_FUNCTOR(Cbrt,2.0,1.25992); }
   void testErfFunctor() { TEST_UNARY_MATH_FUNCTOR(Erf,1.0,0.842701); }
   void testErfcFunctor() { TEST_UNARY_MATH_FUNCTOR(Erfc,1.0,0.157299); }
-  void testTgammaFunctor() { TEST_UNARY_MATH_FUNCTOR(Tgamma,1.5,0.886227); }
   void testLgammaFunctor() { TEST_UNARY_MATH_FUNCTOR(Lgamma,2.5,0.284683); }
   void testRoundFunctor() { TEST_UNARY_MATH_FUNCTOR(Round,1.4,1.0);
                             TEST_UNARY_MATH_FUNCTOR(Round,1.5,2.0); }
