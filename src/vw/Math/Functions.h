@@ -125,14 +125,16 @@ namespace impl {
   using ::acosh;
   using ::asinh;
   using ::atanh;
+#ifndef __FreeBSD__
   using ::exp2;
-  using ::expm1;
   using ::log2;
+  using ::tgamma;
+#endif
+  using ::expm1;
   using ::log1p;
   using ::cbrt;
   using ::erf;
   using ::erfc;
-  using ::tgamma;
   using ::lgamma;
   using ::round;
   using ::trunc;

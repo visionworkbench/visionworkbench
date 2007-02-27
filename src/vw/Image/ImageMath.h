@@ -224,15 +224,18 @@ namespace vw {
 
   /// Computes the hyperbolic arctangent, \f$\tanh^{-1} x\f$, of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(atanh, vw::math::ArgAtanhFunctor)
-
+#ifndef __FreeBSD__
   /// Computes the base-2 exponential, \f$2^x\f$, of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(exp2, vw::math::ArgExp2Functor)
 
-  /// Computes the base-e exponential minus one, \f$e^x-1\f$, of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(expm1, vw::math::ArgExpm1Functor)
-
   /// Computes the base-2 logarithm, \f$\log_{2} x\f$, of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(log2, vw::math::ArgLog2Functor)
+
+  /// Computes the gamma function of each pixel in an image.
+  VW_IMAGE_MATH_UNARY_FUNCTION(tgamma, vw::math::ArgTgammaFunctor)
+#endif
+  /// Computes the base-e exponential minus one, \f$e^x-1\f$, of each pixel in an image.
+  VW_IMAGE_MATH_UNARY_FUNCTION(expm1, vw::math::ArgExpm1Functor)
 
   /// Computes the natural logarithm of one plus each pixel in an image, \f$\ln(1+x)\f$.
   VW_IMAGE_MATH_UNARY_FUNCTION(log1p, vw::math::ArgLog1pFunctor)
@@ -245,9 +248,6 @@ namespace vw {
 
   /// Computes the complementary error function of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(erfc, vw::math::ArgErfcFunctor)
-
-  /// Computes the gamma function of each pixel in an image.
-  VW_IMAGE_MATH_UNARY_FUNCTION(tgamma, vw::math::ArgTgammaFunctor)
 
   /// Computes the natural lograithm of the absolute value of the gamma function of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(lgamma, vw::math::ArgLgammaFunctor)

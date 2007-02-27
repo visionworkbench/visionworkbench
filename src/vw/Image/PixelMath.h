@@ -165,14 +165,16 @@ namespace vw {
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(acosh, vw::math::ArgAcoshFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(asinh, vw::math::ArgAsinhFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(atanh, vw::math::ArgAtanhFunctor)
+#ifndef __FreeBSD__
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(exp2, vw::math::ArgExp2Functor)
-  VW_PIXEL_MATH_STD_UNARY_FUNCTION(expm1, vw::math::ArgExpm1Functor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(log2, vw::math::ArgLog2Functor)
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(tgamma,vw::math::ArgTgammaFunctor)
+#endif
+  VW_PIXEL_MATH_STD_UNARY_FUNCTION(expm1, vw::math::ArgExpm1Functor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(log1p, vw::math::ArgLog1pFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(cbrt, vw::math::ArgCbrtFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(erf, vw::math::ArgErfFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(erfc, vw::math::ArgErfcFunctor)
-  VW_PIXEL_MATH_STD_UNARY_FUNCTION(tgamma,vw::math::ArgTgammaFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(lgamma,vw::math::ArgLgammaFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(round, vw::math::ArgRoundFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(trunc, vw::math::ArgTruncFunctor)
