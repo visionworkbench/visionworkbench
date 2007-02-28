@@ -35,7 +35,7 @@
 namespace vw {
 
   // Forward-declaration.
-  template <class ViewT> class IsFloatingPointIndexable;
+  template <class ViewT> struct IsFloatingPointIndexable;
 
   /// A memory striding pixel accessor for traversing an image stored
   /// in memory.

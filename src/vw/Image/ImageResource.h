@@ -36,7 +36,7 @@
 namespace vw {
 
   // Forward declaration
-  class ImageBuffer;
+  struct ImageBuffer;
 
 
   /// Copies image pixel data from the source buffer to the destination 

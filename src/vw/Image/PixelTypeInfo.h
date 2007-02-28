@@ -42,7 +42,7 @@ namespace vw {
 
   // Forward declaration, used to disable certain pixel functions when 
   // the arguments are actually images.
-  template <class ImageT> class ImageViewBase;
+  template <class ImageT> struct ImageViewBase;
 
   // *******************************************************************
   // Basic pixel type manipulation logic
