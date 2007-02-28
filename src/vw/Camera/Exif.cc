@@ -77,7 +77,7 @@ double vw::camera::ExifView::get_aperture_value() {
   double value;
   if (data.get_tag_value(TAG_ApertureValue, value)) return value;
   if (data.get_tag_value(TAG_FNumber, value))
-    return 2 * log2(value);
+    return 2 * log(value)/log(2.);  // log2(value) = log(value)/log(2)
   return -1;
 }
 
@@ -85,14 +85,14 @@ double vw::camera::ExifView::get_shutter_speed_value() {
   double value;
   if (data.get_tag_value(TAG_ShutterSpeedValue, value)) return value;
   if (data.get_tag_value(TAG_ExposureTime, value))
-    return -log2(value);
+    return -log(value)/log(2.); // log2(value) = log(value)/log(2)
   return -1;
 }
 
 double vw::camera::ExifView::get_film_sensitivity() {
   double iso = (double)get_iso();
   if (iso < 0) return -1;
-  return log2(iso / 3.125);
+  return log(iso / 3.125)/log(2.); // log2(value) = log(value)/log(2)
 }
 
 double vw::camera::ExifView::get_brightness_value() {
