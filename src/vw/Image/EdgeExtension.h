@@ -201,9 +201,9 @@ namespace vw {
   }
 
   /// This is an overloaded function provided for convenience; see vw::edge_extend.
-  /// It takes a bounding box object (BBox<int,2>) as an argument.
+  /// It takes a bounding box object (BBox2i) as an argument.
   template <class ImageT, class ExtensionT>
-  EdgeExtensionView<ImageT,ExtensionT> edge_extend( ImageViewBase<ImageT> const& v, BBox<int,2> const& bbox, ExtensionT const& extension ) {
+  EdgeExtensionView<ImageT,ExtensionT> edge_extend( ImageViewBase<ImageT> const& v, BBox2i const& bbox, ExtensionT const& extension ) {
     return EdgeExtensionView<ImageT,ExtensionT>( v.impl(), bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(), extension );
   }
 
@@ -215,10 +215,10 @@ namespace vw {
   }
   
   /// This is an overloaded function provided for convenience; see vw::edge_extend.
-  /// It takes a bounding box object (BBox<int,2>) as an argument and uses the default 
+  /// It takes a bounding box object (BBox2i) as an argument and uses the default 
   /// vw::ConstantEdgeExtension mode.
   template <class ImageT>
-  EdgeExtensionView<ImageT,ConstantEdgeExtension> edge_extend( ImageViewBase<ImageT> const& v, BBox<int,2> const& bbox ) {
+  EdgeExtensionView<ImageT,ConstantEdgeExtension> edge_extend( ImageViewBase<ImageT> const& v, BBox2i const& bbox ) {
     return EdgeExtensionView<ImageT,ConstantEdgeExtension>( v.impl(), bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height() );
   }
   
