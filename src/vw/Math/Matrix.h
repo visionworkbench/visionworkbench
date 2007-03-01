@@ -1900,17 +1900,14 @@ namespace math {
   // *******************************************************************
   // Assorted mathematical matrix functions.
   // *******************************************************************
-  // FIXME Something about this is confusing MSVC!
-#ifndef _MSC_VER
-  /// Outer product of two vectors.
   template <class Vector1T, class Vector2T>
   Matrix<typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type,
-         (VectorSize<Vector2T>::value==0)?(0):(VectorSize<Vector1T>::value),
-         (VectorSize<Vector1T>::value==0)?(0):(VectorSize<Vector2T>::value)>
+         (VectorSize<Vector2T>::value?(VectorSize<Vector1T>::value):0),
+         (VectorSize<Vector1T>::value?(VectorSize<Vector2T>::value):0)>
   inline operator*( VectorBase<Vector1T> const& v1, VectorTranspose<Vector2T> const& v2 ) {
     typedef Matrix<typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type,
-      (VectorSize<Vector2T>::value==0)?(0):(VectorSize<Vector1T>::value),
-      (VectorSize<Vector1T>::value==0)?(0):(VectorSize<Vector2T>::value)> result_type;
+                   (VectorSize<Vector2T>::value?(VectorSize<Vector1T>::value):0),
+                   (VectorSize<Vector1T>::value?(VectorSize<Vector2T>::value):0)> result_type;
     result_type result;
     result.set_size( v1.impl().size(), v2.size() );
     for( unsigned i=0; i<v1.impl().size(); ++i )
@@ -1919,15 +1916,17 @@ namespace math {
     return result;
   }
 
+
+
   /// Outer product of two vectors.
   template <class Vector1T, class Vector2T>
   Matrix<typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type,
-         (VectorSize<Vector2T>::value==0)?(0):(VectorSize<Vector1T>::value),
-         (VectorSize<Vector1T>::value==0)?(0):(VectorSize<Vector2T>::value)>
+                              (VectorSize<Vector2T>::value?(VectorSize<Vector1T>::value):0),
+                              (VectorSize<Vector1T>::value?(VectorSize<Vector2T>::value):0)>
   inline outer_prod( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
     typedef Matrix<typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type,
-      (VectorSize<Vector2T>::value==0)?(0):(VectorSize<Vector1T>::value),
-      (VectorSize<Vector1T>::value==0)?(0):(VectorSize<Vector2T>::value)> result_type;
+                   (VectorSize<Vector2T>::value?(VectorSize<Vector1T>::value):0),
+                   (VectorSize<Vector1T>::value?(VectorSize<Vector2T>::value):0)> result_type;
     result_type result;
     result.set_size( v1.impl().size(), v2.impl().size() );
     for( unsigned i=0; i<v1.impl().size(); ++i )
@@ -1935,7 +1934,6 @@ namespace math {
         result(i,j) = v1.impl()(i) * v2.impl()(j);
     return result;
   }
-#endif
 
   /// Matrix inversion
   template <class MatrixT>
