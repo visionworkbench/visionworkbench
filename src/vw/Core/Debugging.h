@@ -28,9 +28,7 @@
 #ifndef __VW_CORE_DEBUGGING_H__
 #define __VW_CORE_DEBUGGING_H__
 
-#ifdef WIN32
-#include <windows.h>
-#else
+#ifndef WIN32
 #include <sys/time.h>
 #endif
 
@@ -82,34 +80,14 @@ namespace vw {
     std::string m_desc;
     MessageLevel m_level;
 #ifdef WIN32
-    LARGE_INTEGER m_begin;
+    __int64 m_begin;
 #else
     timeval m_begin;
 #endif
   public:
-    Timer( std::string const& desc, MessageLevel level=InfoMessage )
-      : m_desc(desc), m_level(level) {
-#ifdef WIN32
-      QueryPerformanceCounter( &m_begin );
-#else
-      gettimeofday( &m_begin, 0 );
-#endif
-    }
+    Timer( std::string const& desc, MessageLevel level=InfoMessage );
 
-    ~Timer() {
-#ifdef WIN32
-      LARGE_INTEGER end, freq;
-      QueryPerformanceCounter( &end );
-      QueryPerformanceFrequency( &freq );
-      double duration = (end.QuadPart - m_begin.QuadPart)/(double)freq.QuadPart;
-#else
-      timeval end;
-      gettimeofday( &end, 0 );
-      double duration = end.tv_sec - m_begin.tv_sec;
-      duration += (end.tv_usec - m_begin.tv_usec)/1.0e6;
-#endif
-      vw_out(m_level) << m_desc << ": " << duration << std::endl;
-    }
+    ~Timer();
   };
 
 
