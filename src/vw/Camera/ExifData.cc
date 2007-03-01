@@ -432,7 +432,7 @@ bool vw::camera::ExifData::import_data(const char* filename) {
   VW_ASSERT( infile != NULL, IOErr() << "Cannot open file.");
 
   // Identify file type (using suffixes)
-  char * suffix = strrchr(filename, '.');
+  const char * suffix = strrchr(filename, '.');
   VW_ASSERT( suffix != NULL, IOErr() << "Cannot determine file type.");
   bool ret = false;
   if ((strcmp(suffix, ".jpg") == 0) || (strcmp(suffix, ".jpeg") == 0)) {
