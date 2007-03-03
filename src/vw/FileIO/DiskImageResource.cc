@@ -108,11 +108,14 @@ static void register_default_file_types() {
   // A file with a .jp2 extension is a full fledged JPEG2000 image
   // with acquisition metadata. A file with a .j2k extension has only
   // the "raw" encoded image, with image encoding and size specified
-  // in a small header.
+  // in a small header. A file with a .jpf extension is a full fledged
+  // JPEG2000 image with acquisition and (possibly) GML metadata.
   std::cout << "------------- REGISTERING JP2 -----------------" << std::endl;
   vw::DiskImageResource::register_file_type(".jp2", &vw::DiskImageResourceJP2::construct_open, &vw::DiskImageResourceJP2::construct_create);
 
   vw::DiskImageResource::register_file_type(".j2k", &vw::DiskImageResourceJP2::construct_open, &vw::DiskImageResourceJP2::construct_create);
+  
+  vw::DiskImageResource::register_file_type(".jpf", &vw::DiskImageResourceJP2::construct_open, &vw::DiskImageResourceJP2::construct_create);
 
 #endif
 

@@ -29,6 +29,7 @@
 #pragma warning(disable:4996)
 #endif
 
+#include <list>
 #include <vector>
 #include <iostream>
 #include <iomanip>
@@ -37,6 +38,8 @@
 
 #include <values.h>			   // for BITSPERBYTE
 #include <strings.h>			   // for strncasecmp
+#include <arpa/inet.h>			   // ntohl, htonl
+#include <endian.h>			   // __BYTE_ORDER
 
 #include <boost/algorithm/string.hpp>
 
@@ -44,6 +47,31 @@
 
 #include <vw/Core/Exception.h>
 #include <vw/FileIO/DiskImageResourceJP2.h>
+
+#if __BYTE_ORDER == __BIG_ENDIAN
+#define ntohll(a) (a)
+#define htonll(a) (a)
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
+//NOTE: "ULL" is for gcc; apparently msvc does not like it (in case this gets ported to Win32)
+#define ntohll(a) ((((uint64)(a) & 0xff00000000000000ULL) >> 56) | \
+                   (((uint64)(a) & 0x00ff000000000000ULL) >> 40) | \
+                   (((uint64)(a) & 0x0000ff0000000000ULL) >> 24) | \
+                   (((uint64)(a) & 0x000000ff00000000ULL) >>  8) | \
+                   (((uint64)(a) & 0x00000000ff000000ULL) <<  8) | \
+                   (((uint64)(a) & 0x0000000000ff0000ULL) << 24) | \
+                   (((uint64)(a) & 0x000000000000ff00ULL) << 40) | \
+                   (((uint64)(a) & 0x00000000000000ffULL) << 56))
+#define htonll(a) ((((uint64)(a) & 0xff00000000000000ULL) >> 56) | \
+                   (((uint64)(a) & 0x00ff000000000000ULL) >> 40) | \
+                   (((uint64)(a) & 0x0000ff0000000000ULL) >> 24) | \
+                   (((uint64)(a) & 0x000000ff00000000ULL) >>  8) | \
+                   (((uint64)(a) & 0x00000000ff000000ULL) <<  8) | \
+                   (((uint64)(a) & 0x0000000000ff0000ULL) << 24) | \
+                   (((uint64)(a) & 0x000000000000ff00ULL) << 40) | \
+                   (((uint64)(a) & 0x00000000000000ffULL) << 56))
+#else
+#error "__BYTE_ORDER must be either __LITTLE_ENDIAN or __BIG_ENDIAN."
+#endif
 
 using namespace std;
 using namespace boost;
@@ -54,6 +82,713 @@ int cio_numbytesleft(opj_cio_t *cio);
 
 namespace vw
 {
+
+  // These classes parse jp2 and jpx files, upgrade jp2 -> jp2-compatible jpx,
+  // and insert GML geospatial data into jpx files.
+  // References: jp2 file format: http://www.jpeg.org/public/15444-1annexi.pdf
+  //             jpx file format: http://www.jpeg.org/public/15444-2annexm.pdf
+  //             GML in jpx: http://www.opengeospatial.org/standards/gmljp2
+
+  // Generic jp2/jpx box
+  class JP2Box
+  {
+  protected:
+    uint32 TBox;
+  
+  public:
+    // Get box type
+    uint32 box_type(void)
+    {
+      return TBox;
+    }
+    
+    // Get number of bytes in the body of the box (DBox)
+    virtual uint64 bytes_dbox(void) = 0;
+    
+    // Get number of bytes including the header
+    virtual uint64 bytes(void) = 0;
+
+    // Print with d intentations
+    virtual void print(int d = 0) = 0;
+    
+    // Serialize into buffer d, which must be large enough
+    // (call bytes() and allocate buffer first)
+    virtual void serialize(uint8* d) = 0;
+
+    // Constructor
+    JP2Box()
+    {
+    }
+
+    // Destructor
+    ~JP2Box()
+    {
+    }
+  
+  protected:
+    // Determine whether box with type 'type' is a superbox
+    bool is_superbox(uint32 type)
+    {
+      bool retval = false;
+    
+      switch(type)
+      {
+      case 0x6A703268: // "jp2h"
+      case 0x6A706368: // "jpch"
+      case 0x6A706C68: // "jplh"
+      case 0x63677270: // "cgrp"
+      case 0x6674626C: // "ftbl"
+      case 0x636F6D70: // "comp"
+      case 0x61736F63: // "asoc"
+      case 0x64726570: // "drep"
+      case 0x00000000: // fake box type for root JP2File "box"
+        retval = true;
+        break;
+      default:
+        break;
+      }
+      
+      return retval;
+    }
+
+    // Retrieve type from box data d (d includes the box header)
+    uint32 interp_type(uint8* d)
+    {
+      return ntohl(*((uint32*)&d[4]));
+    }
+
+    // Reverse the bytes in TBox_ if necessary
+    uint32 interp_type(uint32 TBox_, bool byte_order_converted)
+    {
+      return byte_order_converted ? TBox_ : ntohl(TBox_);
+    }
+
+    // Determine how many bytes (including the header) are in a box with the given LBox_, XLBox_,
+    // and number of bytes remaining in the file. If necessary, reverses the bytes of LBox_ and XLBox_.
+    //NOTE: nbytes is assumed to always have had its byte order coverted
+    uint64 interp_bytes(uint32 LBox_, uint64 XLBox_, uint64 nbytes, bool byte_order_converted = true)
+    {
+      uint32 LBox = byte_order_converted ? LBox_ : ntohl(LBox_);
+      uint64 retval = 0;
+
+      switch(LBox)
+      {
+      case 0:
+        retval = nbytes;
+        break;
+      case 1:
+        retval = byte_order_converted ? XLBox_ : ntohll(XLBox_);
+        break;
+      default:
+        retval = LBox;
+        break;
+      }
+
+      return retval;
+    }
+
+    // Determine how many bytes (including the header) are in the box d with nbytes remaining in the file
+    // (d includes the box header)
+    //NOTE: nbytes is assumed to always have had its byte order coverted
+    uint64 interp_bytes(uint8* d, uint64 nbytes)
+    {
+      uint32 LBox = ntohl(*((uint32*)d));
+      uint64 retval = 0;
+
+      switch(LBox)
+      {
+      case 0:
+        retval = nbytes;
+        break;
+      case 1:
+        retval = ntohll(*((uint64*)&d[8]));
+        break;
+      default:
+        retval = LBox;
+        break;
+      }
+
+      return retval;
+    }
+
+    // Determine how many header bytes to add to a box with b bytes of payload
+    uint64 header_bytes_to_add(uint64 b)
+    {
+      return ((b + 8) > 0x00000000ffffffffULL ? 16 : 8);
+    }
+
+    // Add the appropriate number of header bytes to a box with b bytes of payload
+    uint64 add_header_bytes(uint64 b)
+    {
+      return b + header_bytes_to_add(b);
+    }
+
+    // Determine how many header bytes to remove from a box with b total bytes (b includes the header)
+    uint64 header_bytes_to_remove(uint64 b)
+    {
+      return (b > 0x00000000ffffffffULL ? 16 : 8);
+    }
+
+    // Remove the appropriate number of header bytes from a box with b total bytes (b includes the header)
+    uint64 remove_header_bytes(uint64 b)
+    {
+      return b - header_bytes_to_remove(b);
+    }
+
+    // Print the box type string corresponding to numeric box type t
+    void print_type(uint32 t)
+    {
+      uint8* c;
+      int j;
+      
+      t = htonl(t);
+      c = (uint8*)&t;
+      for(j = 0; j < 4; j++)
+        std::cout << (char)c[j];
+    }
+    
+    // Basic common print functionality for print()
+    void print_basic(void)
+    {
+      print_type(TBox);
+      std::cout << ": " << this->bytes() << "/" << this->bytes_dbox() << " bytes";
+    }
+    
+    // Basic serialization functionality for serialize()
+    void serialize_basic(uint8** d_)
+    {
+      uint64 s = this->bytes();
+      uint8* d = *d_;
+    
+      if(s > 0x00000000ffffffffULL)
+      {
+        *((uint32*)d) = htonl(1); d += sizeof(uint32);
+        *((uint32*)d) = htonl(TBox); d += sizeof(uint32);
+        *((uint32*)d) = htonll(s); d += sizeof(uint64);
+      }
+      else
+      {
+        *((uint32*)d) = htonl(s); d += sizeof(uint32);
+        *((uint32*)d) = htonl(TBox); d += sizeof(uint32);
+      }
+      
+      *d_ = d;
+    }
+  };
+
+  // Generic jp2/jpx data box (non-superbox)
+  class JP2DataBox : public JP2Box
+  {
+    friend class JP2File;
+    
+  protected:
+    uint8* DBox;
+    bool dbox_allocated;
+    uint64 dbox_bytes;
+    uint8* dbox_addon;
+    bool dbox_addon_allocated;
+    uint64 dbox_addon_bytes;
+    
+  public:
+    
+    // Get number of bytes in the body of the box (DBox)
+    uint64 bytes_dbox(void)
+    {
+      return dbox_bytes + dbox_addon_bytes;
+    }
+    
+    // Get number of bytes including the header
+    uint64 bytes(void)
+    {
+      return add_header_bytes(bytes_dbox());
+    }
+
+    // Print with d intentations
+    void print(int d = 0)
+    {
+      int j;
+      
+      for(j = 0; j < d; j++)
+        std::cout << "  ";
+      print_basic();
+      if(TBox == 0x6C626C20) // "lbl\040"
+      {
+        std::cout << " (label is \"";
+        for(j = 0; j < dbox_bytes; j++)
+          std::cout << (char)DBox[j];
+        std::cout << "\")";
+      }
+      std::cout << std::endl;
+    }
+    
+    // Serialize into buffer d, which must be large enough
+    // (call bytes() and allocate buffer first)
+    void serialize(uint8* d)
+    {
+      serialize_basic(&d);
+     
+      if(dbox_bytes > 0)
+      {
+        memcpy(d, DBox, dbox_bytes);
+        d += dbox_bytes;
+      }
+      if(dbox_addon_bytes > 0)
+      {
+        memcpy(d, dbox_addon, dbox_addon_bytes);
+        d += dbox_addon_bytes;
+      }
+    }
+
+    // Get DBox data
+    //NOTE: this does NOT include any dbox_addon that might have been added
+    uint8* data(void)
+    {
+      return DBox;
+    }
+    
+    // Add some data on to the payload
+    // 'allocated' is whether to delete the buffer when this box is destroyed
+    void addon_dbox(uint8* d, uint64 nbytes, bool allocated)
+    {
+      if(dbox_addon_bytes > 0 && dbox_addon_allocated)
+        delete[] dbox_addon;
+      dbox_addon = d;
+      dbox_addon_bytes = nbytes;
+      dbox_addon_allocated = allocated;
+    }
+    
+    // Create JP2DataBox from buffer d containing a serialized box (d includes the header)
+    // Buffer d is not deleted when this box is destroyed
+    JP2DataBox(uint8* d, uint64 nbytes) : dbox_addon(0), dbox_addon_allocated(false), dbox_addon_bytes(0)
+    {
+      uint64 s, r;
+
+      TBox = interp_type(d);
+
+      s = interp_bytes(d, nbytes);
+      r = header_bytes_to_remove(s);
+      DBox = &d[r];
+      dbox_allocated = false;
+      dbox_bytes = s - r;
+    }
+
+    // Create JP2DataBox from box type, DBox_ payload buffer, and number of payload bytes
+    // 'dbox_allocated' is whether to delete the buffer when this box is destroyed
+    JP2DataBox(uint32 type, uint8* DBox_, uint64 nbytes, bool dbox_allocated_ = false) : dbox_addon(0), dbox_addon_allocated(false), dbox_addon_bytes(0)
+    {
+      TBox = type;
+
+      DBox = DBox_;
+      dbox_allocated = dbox_allocated_;
+      dbox_bytes = nbytes;
+    }
+
+    // Create JP2DataBox from box size {LBox_, XLBox_}, box type TBox_, payload buffer TBox_, and number
+    // of bytes remaining in file nbytes
+    // 'dbox_allocated' is whether to delete the buffer when this box is destroyed
+    // 'byte_order_converted' is whether the byte order of LBox_, TBox_, and XLBox_ have already been converted
+    JP2DataBox(uint32 LBox_, uint32 TBox_, uint64 XLBox_, uint8* DBox_, uint64 nbytes, bool dbox_allocated_ = false, bool byte_order_converted = true) : dbox_addon(0), dbox_addon_allocated(false), dbox_addon_bytes(0)
+    {
+      uint64 s, r;
+
+      TBox = interp_type(TBox_, byte_order_converted);
+
+      s = interp_bytes(LBox_, XLBox_, nbytes, byte_order_converted);
+      r = header_bytes_to_remove(s);
+      DBox = DBox_;
+      dbox_allocated = dbox_allocated_;
+      dbox_bytes = s - r;
+    }
+    
+    // Destructor
+    ~JP2DataBox()
+    {
+      if(DBox && dbox_allocated)
+        delete[] DBox;
+      if(dbox_addon && dbox_addon_allocated)
+        delete[] dbox_addon;
+    }
+  };
+  
+  // Generic jp2/jpx superbox
+  class JP2SuperBox : public JP2Box
+  {
+    friend class JP2File;
+    
+  protected:
+    std::list<JP2Box*> sub_boxes;
+    
+  public:
+    // Get number of bytes in the body of the box (DBox)
+    uint64 bytes_dbox(void)
+    {
+      std::list<JP2Box*>::iterator i;
+      uint64 retval = 0;
+      
+      for(i = sub_boxes.begin(); i != sub_boxes.end(); i++)
+        retval += (*i)->bytes();
+        
+      return retval;
+    }
+    
+    // Get number of bytes including the header
+    uint64 bytes(void)
+    {
+      return add_header_bytes(bytes_dbox());
+    }
+
+    // Print with d intentations
+    void print(int d = 0)
+    {
+      std::list<JP2Box*>::iterator i;
+      int j;
+      
+      for(j = 0; j < d; j++)
+        std::cout << "  ";
+      print_basic();
+      std::cout << std::endl;
+      for(i = sub_boxes.begin(); i != sub_boxes.end(); i++)
+        (*i)->print(d + 1);
+    }
+    
+    // Serialize into buffer d, which must be large enough
+    // (call bytes() and allocate buffer first)
+    void serialize(uint8* d)
+    {
+      JP2Box* b;
+      std::list<JP2Box*>::iterator i;
+      
+      serialize_basic(&d);
+      
+      for(i = sub_boxes.begin(); i != sub_boxes.end(); i++)
+      {
+        b = *i;
+        b->serialize(d);
+        d += b->bytes();
+      }
+    }
+
+    // Non-initializing constructor
+    //NOTE: this should not be used except by the JP2File constructor
+    JP2SuperBox()
+    {
+    }
+
+    // Create JP2SuperBox from buffer d containing a serialized box (d includes the header)
+    // Buffer d is not deleted when this box is destroyed
+    JP2SuperBox(uint8* d, uint64 nbytes)
+    {
+      uint64 s, r;
+      JP2Box* b;
+
+      TBox = interp_type(d);
+
+      s = interp_bytes(d, nbytes);
+      r = header_bytes_to_remove(s);
+      find_child_boxes(&d[r], s - r);
+    }
+
+    // Construct a JP2SuperBox with only a box type
+    JP2SuperBox(uint32 type)
+    {
+      TBox = type;
+    }
+    
+    // Destructor
+    ~JP2SuperBox()
+    {
+      std::list<JP2Box*>::iterator i;
+      
+      for(i = sub_boxes.begin(); i != sub_boxes.end(); i++)
+        delete (*i);
+      sub_boxes.clear();
+    }
+
+  protected:
+    // Find child boxes of this superbox; d is the beginning of the payload, and there are nbytes
+    // bytes remaining in the file
+    void find_child_boxes(uint8* d, uint64 nbytes)
+    {
+      JP2Box* b;
+      uint64 p;
+    
+      for(p = 0; p < nbytes; p += b->bytes())
+      {
+        if(is_superbox(interp_type(&d[p])))
+          b = new JP2SuperBox(&d[p], nbytes - p);
+        else
+          b = new JP2DataBox(&d[p], nbytes - p);
+        sub_boxes.push_back(b);
+      }
+    }
+  };
+  
+  // Reader Requirements box
+  template <class MaskT>
+  class JP2ReaderRequirements
+  {
+  protected:
+    uint8* ML;
+    uint16* NSF;
+    uint16* NVF;
+  
+  public:
+    MaskT* FUAM;
+    MaskT* DCM;
+    uint16** SF;
+    MaskT** SM;
+    uint16** VF;
+    MaskT** VM;
+    uint8* dat;
+    uint64 bytes;
+    bool free_dat;
+    
+    // Construct an empty Reader Requirements box with NSF_ standard features and NVF_ vendor features
+    // 'free_dat_' is whether to free the data buffer when this object is destroyed
+    JP2ReaderRequirements(uint8 NSF_, uint8 NVF_, bool free_dat_ = true) : free_dat(free_dat_)
+    {
+      uint8* d;
+      uint8 i;
+      
+      bytes = sizeof(uint8) + (2 + NSF_ + NVF_) * sizeof(uint16) + (2 + NSF_ + NVF_) * sizeof(MaskT);
+      dat = new uint8[bytes];
+      if(NSF_ > 0)
+      {
+        SF = new uint16*[NSF_];
+        SM = new MaskT*[NSF_];
+      }
+      else
+      {
+        SF = 0;
+        SM = 0;
+      }
+      if(NVF_ > 0)
+      {
+        VF = new uint16*[NVF_];
+        VM = new MaskT*[NVF_];
+      }
+      else
+      {
+        VF = 0;
+        VM = 0;
+      }
+      d = dat;
+      ML = d; *ML = sizeof(MaskT); d++;
+      FUAM = (MaskT*)d; *FUAM = 0; d += sizeof(MaskT);
+      DCM = (MaskT*)d; *DCM = 0; d += sizeof(MaskT);
+      NSF = (uint16*)d; *NSF = NSF_; d += sizeof(uint16);
+      for(i = 0; i < NSF_; i++)
+      {
+        SF[i] = (uint16*)d; *(SF[i]) = 0; d += sizeof(uint16);
+        SM[i] = (MaskT*)d; *(SM[i]) = 0; d += sizeof(MaskT);
+      }
+      NVF = (uint16*)d; *NVF = NVF_; d += sizeof(uint16);
+      for(i = 0; i < NVF_; i++)
+      {
+        VF[i] = (uint16*)d; *(VF[i]) = 0; d += sizeof(uint16);
+        VM[i] = (MaskT*)d; *(VM[i]) = 0; d += sizeof(MaskT);
+      }
+    }
+    
+    // Destructor
+    ~JP2ReaderRequirements()
+    {
+      if(SF)
+        delete[] SF;
+      if(SM)
+        delete[] SM;
+      if(VF)
+        delete[] VF;
+      if(VM)
+        delete[] VM;
+      if(free_dat)
+        delete[] dat;
+    }
+  };
+  
+  // jp2/jpx file
+  class JP2File : public JP2SuperBox
+  {
+  public:
+    // Get number of bytes including the header
+    uint64 bytes(void)
+    {
+      return bytes_dbox();
+    }
+
+    // Print with d intentations
+    void print(int d = 0)
+    {
+      std::list<JP2Box*>::iterator i;
+      int j;
+    
+      for(j = 0; j < d; j++)
+        std::cout << "  ";
+      std::cout << "Boxes:" << std::endl;
+      for(i = sub_boxes.begin(); i != sub_boxes.end(); i++)
+        (*i)->print(d + 1);
+        
+      for(j = 0; j < d; j++)
+        std::cout << "  ";
+      std::cout << "Total " << this->bytes() << " bytes" << std::endl;
+    }
+    
+    // Serialize into buffer d, which must be large enough
+    // (call bytes() and allocate buffer first)
+    void serialize(uint8* d)
+    {
+      JP2Box* b;
+      std::list<JP2Box*>::iterator i;
+    
+      for(i = sub_boxes.begin(); i != sub_boxes.end(); i++)
+      {
+        b = *i;
+        b->serialize(d);
+        d += b->bytes();
+      }
+    }
+    
+    // Convert a jp2 file into a jp2-compatible jpx file
+    // 'contains_gml' is whether the jpx file will contain GML
+    int convert_to_jpx(bool contains_gml)
+    {
+      JP2Box* b;
+      JP2Box* b2;
+      uint32* d32;
+      char* tmpstr;
+      std::list<JP2Box*>::iterator i;
+      int j;
+      bool foundit;
+      
+      // find File Type box
+      foundit = false;
+      for(b = 0, i = sub_boxes.begin(); i != sub_boxes.end(); i++)
+      {
+        b = *i;
+        if(b->box_type() == 0x66747970) // "ftyp"
+        {
+          foundit = true;
+          break;
+        }
+      }
+      if(!foundit)
+        return -1;
+      // BR field of File Type box should be "jpx\040"
+      d32 = (uint32*)(((JP2DataBox*)b)->data());
+      d32[0] = htonl(0x6A707820); // "jpx\040"
+      // both "jpx\040" and "jp2\040" must be in compatibility list; this is also "jpxb"-compatible
+      foundit = false;
+      for(j = 2; 4 * j < b->bytes_dbox(); j++)
+      {
+        if(d32[j] == htonl(0x6A703220)) // "jp2\040"
+        {
+          foundit = true;
+          break;
+        }
+      }
+      if(foundit)
+      {
+        tmpstr = new char[9];
+        strcpy(tmpstr, "jpx jpxb");
+        ((JP2DataBox*)b)->addon_dbox((uint8*)tmpstr, 8, true);
+        //NOTE: tmpstr will be deleted by JP2Box
+      }
+      else
+      {
+        tmpstr = new char[13];
+        strcpy(tmpstr, "jpx jpxbjp2 ");
+        ((JP2DataBox*)b)->addon_dbox((uint8*)tmpstr, 12, true);
+        //NOTE: tmpstr will be deleted by JP2Box
+      }
+        
+      // add Reader Requirements box
+      // Fully Understood Aspects: 1 & 5 & 8 & 12 & 18 & 24 & 31 (& 67)
+      // Decode Completely (Display): 1 & 5 & 8 & 12 & 18 & 24 & 31
+      JP2ReaderRequirements<uint8> rr(contains_gml ? 8 : 7, 0, false);
+      //NOTE: if we have to upgrade these masks to uint16, we need some htons()
+      *(rr.FUAM) = (uint8)0xFF;
+      *(rr.DCM)  = (uint8)0xFE;
+      *(rr.SF[0]) = htons(1); // codestream contains no extensions
+      *(rr.SM[0]) = (uint8)0x80;
+      *(rr.SF[1]) = htons(5); // codestream is JPEG 2000 as defined by ITU-T Rec. T.800 | ISO/IEC 15444-1
+      *(rr.SM[1]) = (uint8)0x40;
+      //FIXME: if have opacity, want to take 8 out and replace it with 9 or 10
+      *(rr.SF[2]) = htons(8); // no opacity
+      *(rr.SM[2]) = (uint8)0x20;
+      *(rr.SF[3]) = htons(12); // contiguous codestream
+      *(rr.SM[3]) = (uint8)0x10;
+      *(rr.SF[4]) = htons(18); // no compositing layers
+      *(rr.SM[4]) = (uint8)0x08;
+      *(rr.SF[5]) = htons(24); // no animation
+      *(rr.SM[5]) = (uint8)0x04;
+      *(rr.SF[6]) = htons(31); // no scaling
+      *(rr.SM[6]) = (uint8)0x02;
+      if(contains_gml)
+      {
+        *(rr.SF[7]) = htons(67); // GML
+        *(rr.SM[7]) = (uint8)0x01;
+      }
+      // find File Type box (Reader Requirements box will go immediately after File Type box)
+      foundit = false;
+      for(b = 0, i = sub_boxes.begin(); i != sub_boxes.end(); i++)
+      {
+        b = *i;
+        if(b->box_type() == 0x66747970) // "ftyp"
+        {
+          foundit = true;
+          break;
+        }
+      }
+      if(!foundit)
+        return -1;
+      i++;
+      // create Reader Requirements box
+      b = new JP2DataBox(0x72726571 /*"rreq"*/, rr.dat, rr.bytes, true);
+      //NOTE: rr.dat will be deleted by JP2Box
+      // insert Reader Requirements box immediately after File Type box
+      sub_boxes.insert(i, b);
+      //NOTE: b will be deleted from sub_boxes list
+      
+      // find JP2 Header box
+      foundit = false;
+      for(b = 0, i = sub_boxes.begin(); i != sub_boxes.end(); i++)
+      {
+        b = *i;
+        if(b->box_type() == 0x6A703268) // "jp2h"
+        {
+          foundit = true;
+          break;
+        }
+      }
+      if(!foundit)
+        return -1;
+      // JP2 Header box must contain a Label box (label for the codestream)
+      tmpstr = new char[4];
+      strcpy(tmpstr, "img");
+      b2 = new JP2DataBox(0x6C626C20 /*"lbl\040"*/, (uint8*)tmpstr, 3, true);
+      //NOTE: tmpstr will be deleted by JP2Box
+      ((JP2SuperBox*)b)->sub_boxes.push_front(b2);
+      //NOTE: b2 will be deleted by JP2Box
+      
+      return 0;
+    }
+  
+    // Create JP2DataBox from buffer d containing a serialized file
+    // Buffer d is not deleted when this object is destroyed
+    JP2File(uint8* d, uint64 nbytes) : JP2SuperBox()
+    {
+      TBox = 0x00000000; // fake box type for root JP2File "box"
+      find_child_boxes(d, nbytes);
+    }
+    
+    // Destructor
+    ~JP2File()
+    {
+     // everything that needs to be done is done in the JP2SuperBlock destructor
+    }
+  };
+  
+  
 
   /// Close the file when the object is destroyed
   DiskImageResourceJP2::~DiskImageResourceJP2()
@@ -616,6 +1351,24 @@ namespace vw
 
     int codestream_length = cio_tell(cio);
     int bytes_to_end =  cio_numbytesleft(cio);
+    
+    bool convert_to_jpx = true;
+    uint8* output_buffer = 0;
+    if(convert_to_jpx)
+    { // Convert to jpx, and add GML if desired
+      JP2File jp2f(cio->buffer, codestream_length);
+      //jp2f.print();
+      if(jp2f.convert_to_jpx(true /*will contain GML*/) != 0)
+        vw_throw(IOErr() << "DiskImageResourceJP2::write(): "
+	       "failed to convert jp2 to backward-compatible jpx");
+      //jp2f.add_gml();
+      //jp2f.print();
+      codestream_length = jp2f.bytes();
+      output_buffer = new uint8[codestream_length];
+      jp2f.serialize(output_buffer);
+    }
+    else
+      output_buffer = cio->buffer;
 
     cout << "DiskImageResourceJP2::write(): "
 	 << "writing encoded image: " << m_filename << endl;
@@ -631,7 +1384,7 @@ namespace vw
       vw_throw(IOErr() << "DiskImageResourceJP2::write(): "
 	       "failed to open " << m_filename);
 
-    fwrite(cio->buffer, 1, codestream_length, output_fp);
+    fwrite(output_buffer, 1, codestream_length, output_fp);
 
     cout << "DiskImageResourceJP2::write(): "
 	 << "closing streams and files" << endl;
@@ -647,6 +1400,9 @@ namespace vw
     cout << "DiskImageResourceJP2::write(): "
 	 << "cleaning up" << endl;
 
+    // if allocated output_buffer ourselves, free it here
+    if(convert_to_jpx)
+      delete[] output_buffer;
     // delete image structures
 //     delete [] jpeg2k_image->comps;
 //     delete jpeg2k_image;
