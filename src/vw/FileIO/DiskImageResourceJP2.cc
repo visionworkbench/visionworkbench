@@ -691,14 +691,14 @@ namespace vw
         tmpstr = new char[9];
         strcpy(tmpstr, "jpx jpxb");
         ((JP2DataBox*)b)->addon_dbox((uint8*)tmpstr, 8, true);
-        //NOTE: tmpstr will be deleted by JP2Box
+        //NOTE: tmpstr will be deleted by JP2DataBox
       }
       else
       {
         tmpstr = new char[13];
         strcpy(tmpstr, "jpx jpxbjp2 ");
         ((JP2DataBox*)b)->addon_dbox((uint8*)tmpstr, 12, true);
-        //NOTE: tmpstr will be deleted by JP2Box
+        //NOTE: tmpstr will be deleted by JP2DataBox
       }
         
       // add Reader Requirements box
@@ -744,7 +744,7 @@ namespace vw
       i++;
       // create Reader Requirements box
       b = new JP2DataBox(0x72726571 /*"rreq"*/, rr.dat, rr.bytes, true);
-      //NOTE: rr.dat will be deleted by JP2Box
+      //NOTE: rr.dat will be deleted by JP2DataBox
       // insert Reader Requirements box immediately after File Type box
       sub_boxes.insert(i, b);
       //NOTE: b will be deleted from sub_boxes list
@@ -766,10 +766,70 @@ namespace vw
       tmpstr = new char[4];
       strcpy(tmpstr, "img");
       b2 = new JP2DataBox(0x6C626C20 /*"lbl\040"*/, (uint8*)tmpstr, 3, true);
-      //NOTE: tmpstr will be deleted by JP2Box
+      //NOTE: tmpstr will be deleted by JP2DataBox
       ((JP2SuperBox*)b)->sub_boxes.push_front(b2);
-      //NOTE: b2 will be deleted by JP2Box
+      //NOTE: b2 will be deleted by JP2SuperBox
       
+      return 0;
+    }
+
+    int add_gml(uint8* d, uint64 nbytes, bool allocated)
+    {
+      JP2DataBox* b;
+      JP2SuperBox* a;
+      JP2SuperBox* a2;
+      //JP2Box* b2;
+      //uint32* d32;
+      char* tmpstr;
+      std::list<JP2Box*>::iterator i;
+      //int j;
+      bool foundit;
+      
+      // find Contiguous Codestream box
+      foundit = false;
+      for(i = sub_boxes.begin(); i != sub_boxes.end(); i++)
+      {
+        if((*i)->box_type() == 0x6A703263) // "jp2c"
+        {
+          foundit = true;
+          break;
+        }
+      }
+      if(!foundit)
+        return -1;
+
+      // add outer Association box before Contiguous Codestream box
+      a = new JP2SuperBox(0x61736F63 /*"asoc"*/);
+      sub_boxes.insert(i, a);
+      //NOTE: a will be deleted from sub_boxes list
+
+      // add Label box with "gml.data" to outer Association box
+      tmpstr = new char[9];
+      strcpy(tmpstr, "gml.data");
+      b = new JP2DataBox(0x6C626C20 /*"lbl\040"*/, (uint8*)tmpstr, 8, true);
+      //NOTE: tmpstr will be deleted by JP2DataBox
+      a->sub_boxes.push_back(b);
+      //NOTE: b will be deleted by JP2SuperBox
+
+      // add inner Association box to outer Association box
+      a2 = new JP2SuperBox(0x61736F63 /*"asoc"*/);
+      a->sub_boxes.push_back(a2);
+      //NOTE: a2 will be deleted by JP2SuperBox
+
+      // add Label box with "gml.root-instance" to inner Association box
+      tmpstr = new char[18];
+      strcpy(tmpstr, "gml.root-instance");
+      b = new JP2DataBox(0x6C626C20 /*"lbl\040"*/, (uint8*)tmpstr, 17, true);
+      //NOTE: tmpstr will be deleted by JP2DataBox
+      a2->sub_boxes.push_back(b);
+      //NOTE: b will be deleted by JP2SuperBox
+
+      // add XML box with GML root-instance data to inner Association box
+      b = new JP2DataBox(0x786D6C20 /*"xml\040"*/, d, nbytes, allocated);
+      //NOTE: d will be deleted by JP2DataBox iff allocated
+      a2->sub_boxes.push_back(b);
+      //NOTE: b will be deleted by JP2SuperBox
+
       return 0;
     }
   
@@ -1361,7 +1421,12 @@ namespace vw
       if(jp2f.convert_to_jpx(true /*will contain GML*/) != 0)
         vw_throw(IOErr() << "DiskImageResourceJP2::write(): "
 	       "failed to convert jp2 to backward-compatible jpx");
-      //jp2f.add_gml();
+      #if 0
+      char test_gml[] = "testgml";
+      if(jp2f.add_gml((uint8*)test_gml, 7, false) != 0)
+        vw_throw(IOErr() << "DiskImageResourceJP2::write(): "
+	       "failed to add GML to jpx");
+      #endif
       //jp2f.print();
       codestream_length = jp2f.bytes();
       output_buffer = new uint8[codestream_length];
