@@ -56,15 +56,31 @@ namespace stereo {
 //           std::cout << "\tB:  " << originB << "     " << vecFromB << "\n";
 //           std::cout << "\tResult:  " << result << "    " << error << "\n\n";
 //         }
-           
-        // Eliminate points that fall behind one of the two cameras
+
+        // If vecFromA and vecFromB are nearly parallel, there will be
+        // very large numerical uncertainty about where to place the
+        // point.  We set a threshold here to reject points that are
+        // on nearly parallel rays.  The threshold of 1e-4 corresponds
+        // to a convergence of less than theta = 0.81 degrees, so if
+        // the two rays are within 0.81 degrees of being parallel, we
+        // reject this point.  
+        //
+        // This threshold was chosen empirically for now, but should
+        // probably be revisited once a more rigorous analysis has
+        // been completed. -mbroxton (11-MAR-07)
+        if ( 1-dot_prod(vecFromA, vecFromB) < 1e-4) {
+          error = 0;
+          result = Vector3();
+        }
+                   
+        // Reflect points that fall behind one of the two cameras
         if ( dot_prod(result - originA, vecFromA) < 0 || 
              dot_prod(result - originB, vecFromB) < 0 ) {
-          error = 0;
-          return Vector3();
-        } else {
-          return result;
+          result = -result + 2*originA;
         }
+
+        return result;
+
       } catch (vw::camera::PixelToRayErr &e) {
         error = 0;
         return Vector3();
