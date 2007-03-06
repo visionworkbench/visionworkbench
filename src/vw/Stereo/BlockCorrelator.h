@@ -53,6 +53,7 @@ namespace stereo {
       int max_x = std::min(width, width-m_lMaxH);
       int min_y = std::max(0, -m_lMinV);
       int max_y = std::min(height, height-m_lMaxV);
+
       BBox2i workspace( Vector2i(min_x, min_y), Vector2i(max_x, max_y) );
 
       // Check for bounding boxes that con be removed entirely
@@ -135,50 +136,65 @@ namespace stereo {
       // boxes in the left and right image given the disparity range
       // that this object was initialized with.
       std::vector<BBox2i> nominal_left_blocks = image_blocks(l_image, m_block_size, m_block_size);
-      constrain_to_search_range(nominal_left_blocks, l_image.cols(), l_image.rows());
       std::vector<BBox2i> left_blocks, right_blocks;
       compute_blocks(nominal_left_blocks, left_blocks, right_blocks);
 
-      // Create an optimized correlator to run on each block.
-      vw::stereo::OptimizedCorrelator correlator( 0, m_lMaxH-m_lMinH, 
-                                                  0, m_lMaxV-m_lMinV,
-                                                  m_lKernWidth, m_lKernHeight,
-                                                  true, m_crossCorrThreshold,
-                                                  m_useHorizSubpixel,
-                                                  m_useVertSubpixel );
-
-      // Run the image blocks through the correlator.  Fill the disparity map as you go.
-      std::cout << "Processing Blocks: \n";
-      for (int i = 0; i < left_blocks.size();++i) {
-        std::cout << i+1 << " / " << left_blocks.size() << ".        \r";
-        ImageView<PixelDisparity<float> > disparity_subregion;
-        ImageView<PixelT> left_subimage = crop(edge_extend(l_image, ReflectEdgeExtension()), left_blocks[i]);
-        ImageView<PixelT> right_subimage = crop(edge_extend(r_image, ReflectEdgeExtension()), right_blocks[i]);
+      // If we only plan to process a single block, we do it here.
+      if (left_blocks.size() == 1) {
+        // Create an optimized correlator to run on a single block.
+        vw::stereo::OptimizedCorrelator correlator( m_lMinH, m_lMaxH, 
+                                                    m_lMinV, m_lMaxV,
+                                                    m_lKernWidth, m_lKernHeight,
+                                                    true, m_crossCorrThreshold,
+                                                    m_useHorizSubpixel,
+                                                    m_useVertSubpixel );
         
-        disparity_subregion = correlator( left_subimage, right_subimage, bit_image );
-        
-        // Debugging:
-        //         std::ostringstream ostream;
-        //         ostream << i;
-        //         double min_h_disp, min_v_disp, max_h_disp, max_v_disp;
-        //         disparity::get_disparity_range(disparity_subregion, min_h_disp, max_h_disp, min_v_disp, max_v_disp,true);
-        //         write_image( "disparityblock-" + ostream.str() + "-H.jpg", normalize(clamp(select_channel(disparity_subregion,0), min_h_disp, max_h_disp)));
-        //         write_image( "disparityblock-" + ostream.str() + "-V.jpg", normalize(clamp(select_channel(disparity_subregion,1), min_v_disp, max_v_disp)));
+        disparity_map = correlator( l_image, r_image, bit_image );
 
-        // Adjust the disparity range in the sub-region and place it in the overall disparity map.
-        for (int v = 0; v < disparity_subregion.rows(); ++v) {
-          for (int u = 0; u < disparity_subregion.cols(); ++u) {
-            if (!disparity_subregion(u,v).missing()) {
-              disparity_subregion(u,v).h() += m_lMinH;
-              disparity_subregion(u,v).v() += m_lMinV;
+      // Otherwise, we process the blocks individually
+      } else {
+
+        // Create an optimized correlator to run on each block.
+        vw::stereo::OptimizedCorrelator correlator( 0, m_lMaxH-m_lMinH, 
+                                                    0, m_lMaxV-m_lMinV,
+                                                    m_lKernWidth, m_lKernHeight,
+                                                    true, m_crossCorrThreshold,
+                                                    m_useHorizSubpixel,
+                                                    m_useVertSubpixel );
+
+
+        // Run the image blocks through the correlator.  Fill the disparity map as you go.
+        std::cout << "Processing Blocks: \n";
+        for (int i = 0; i < left_blocks.size();++i) {
+          std::cout << i+1 << " / " << left_blocks.size() << ".        \r";
+          ImageView<PixelDisparity<float> > disparity_subregion;
+          ImageView<PixelT> left_subimage = crop(edge_extend(l_image, ReflectEdgeExtension()), left_blocks[i]);
+          ImageView<PixelT> right_subimage = crop(edge_extend(r_image, ReflectEdgeExtension()), right_blocks[i]);
+          
+          disparity_subregion = correlator( left_subimage, right_subimage, bit_image );
+          
+          // Debugging:
+          //         std::ostringstream ostream;
+          //         ostream << i;
+          //         double min_h_disp, min_v_disp, max_h_disp, max_v_disp;
+          //         disparity::get_disparity_range(disparity_subregion, min_h_disp, max_h_disp, min_v_disp, max_v_disp,true);
+          //         write_image( "disparityblock-" + ostream.str() + "-H.jpg", normalize(clamp(select_channel(disparity_subregion,0), min_h_disp, max_h_disp)));
+          //         write_image( "disparityblock-" + ostream.str() + "-V.jpg", normalize(clamp(select_channel(disparity_subregion,1), min_v_disp, max_v_disp)));
+          
+          // Adjust the disparity range in the sub-region and place it in the overall disparity map.
+          for (int v = 0; v < disparity_subregion.rows(); ++v) {
+            for (int u = 0; u < disparity_subregion.cols(); ++u) {
+              if (!disparity_subregion(u,v).missing()) {
+                disparity_subregion(u,v).h() += m_lMinH;
+                disparity_subregion(u,v).v() += m_lMinV;
+              }
             }
           }
+          crop(disparity_map, nominal_left_blocks[i]) = crop(disparity_subregion, m_lKernWidth,m_lKernHeight, 
+                                                             nominal_left_blocks[i].width(),
+                                                             nominal_left_blocks[i].height());
         }
-        crop(disparity_map, nominal_left_blocks[i]) = crop(disparity_subregion, m_lKernWidth,m_lKernHeight, 
-                                                           nominal_left_blocks[i].width(),
-                                                           nominal_left_blocks[i].height());
       }
-      //      std::cout << "done.                 \n";
      
       double lapse__ = Time() - begin__;
       std::cout << "\tTotal block correlation took " << lapse__ << " seconds.\n";
