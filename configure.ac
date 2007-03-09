@@ -235,7 +235,8 @@ AX_PKG(CG, [], [-lCg -lCgGL], [Cg/cg.h])
 AX_PKG(OPENEXR, [Z PTHREADS], [-lImath -lHalf -lIex -lIlmImf], [ImfOutputFile.h], [OpenEXR])
 AX_PKG(GDAL, [], [-lgdal], [gdal.h])
 AX_PKG(PROJ4, [], [-lproj], [projects.h])
-AX_PKG(JPEG2K, [], [-lopenjpeg], [openjpeg.h])
+AX_PKG(XMLPARSER, [], [-lxmlparser], [xmlParser.h])
+AX_PKG(JPEG2K, [XMLPARSER], [-lopenjpeg], [openjpeg.h])
 
 #AX_PKG(VCL, [], [-lvcl], [vcl_algorithm.h], [vcl])
 #AX_PKG(VXL, [VCL], [-lvgl_algo -lvil_algo -lvnl_algo -lvul -lvgl -lvnl -lvil -lvcl -lnetlib], 

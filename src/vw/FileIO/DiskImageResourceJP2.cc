@@ -44,8 +44,10 @@
 #include <boost/algorithm/string.hpp>
 
 #include <openjpeg.h>
+#include <xmlParser.h>
 
 #include <vw/Core/Exception.h>
+#include <vw/Cartography/GeoReference.h> //FIXME: should this whole thing go in Cartography?
 #include <vw/FileIO/DiskImageResourceJP2.h>
 
 #if __BYTE_ORDER == __BIG_ENDIAN
@@ -849,6 +851,136 @@ namespace vw
   };
   
   
+  // Make GML from a GeoReference
+  //NOTE: caller must free returned string
+  //FIXME: needs to take a GeoReference instead of just making boilerplate GML
+  char* make_gml(/*cartography::GeoReference const& georef*/void)
+  {
+    char* s;
+    XMLNode t, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10;
+    
+    t = XMLNode::createXMLTopNode("xml", TRUE);
+    t.addAttribute("version", "1.0");
+    t.addAttribute("encoding", "UTF-8");
+    
+    //NOTE: this was initially generated from a sample gml file using gml_print_code()
+    
+    n1 = t.addChild("gml:FeatureCollection");
+    n1.addAttribute("xmlns", "http://www.opengis.net/gml");
+    n1.addAttribute("xmlns:gml", "http://www.opengis.net/gml");
+    n1.addAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+    n1.addAttribute("xsi:schemaLocation", "http://www.opengis.net/gml gmlJP2Profile.xsd"); //FIXME: see p. 41 of GMLJP2 standard, which appears to say that gmlJP2Profile.xsd must be included in the jp2 file and cannot be linked like in the commented-out line below
+    //n1.addAttribute("xsi:schemaLocation", "http://www.opengis.net/gml http://schemas.opengis.net/gml/3.1.1/profiles/gmlJP2Profile/1.0.0/gmlJP2Profile.xsd");
+    
+    n2 = n1.addChild("gml:boundedBy");
+    n3 = n2.addChild("gml:Envelope");
+    n4 = n3.addChild("gml:lowerCorner");
+    n4.addText("270379.500 3942462.000");
+    n4 = n3.addChild("gml:upperCorner");
+    n4.addText("518842.500 3942462.000");
+    
+    n2 = n1.addChild("gml:featureMember");
+    n3 = n2.addChild("gml:FeatureCollection");
+    
+    n4 = n3.addChild("gml:boundedBy");
+    n5 = n4.addChild("gml:Envelope");
+    n6 = n5.addChild("gml:lowerCorner");
+    n6.addText("270379.500 3942462.000");
+    n6 = n5.addChild("gml:upperCorner");
+    n6.addText("518842.500 3942462.000");
+    
+    n4 = n3.addChild("gml:featureMember");
+    n5 = n4.addChild("gml:RectifiedGridCoverage");
+    n5.addAttribute("dimension", "2");
+    n5.addAttribute("gml:id", "RGC0001");
+    n6 = n5.addChild("gml:description");
+    n6.addText("This GMLJP2 Minimal Root Instance contains a GML Rectified Grid. The rectified grid is embedded in a RectifiedGridCoverage with generic range parameters (to be ignored).");
+    n6 = n5.addChild("gml:rectifiedGridDomain");
+    n7 = n6.addChild("gml:RectifiedGrid");
+    n7.addAttribute("dimension", "2");
+    
+    n8 = n7.addChild("gml:limits");
+    n9 = n8.addChild("gml:GridEnvelope");
+    n10 = n9.addChild("gml:low");
+    n10.addText("0 0");
+    n10 = n9.addChild("gml:high");
+    n10.addText("8718 7812");
+    
+    n8 = n7.addChild("gml:axisName");
+    n8.addText("x");
+    n8 = n7.addChild("gml:axisName");
+    n8.addText("y");
+    
+    n8 = n7.addChild("gml:origin");
+    n9 = n8.addChild("gml:Point");
+    n9.addAttribute("gml:id", "Pt001");
+    n9.addAttribute("srsName", "urn:ogc:def:crs:EPSG:6.6:32612");
+    n10 = n9.addChild("gml:description");
+    n10.addText("\"Upper-left\" image origin");
+    n10 = n9.addChild("gml:coordinates");
+    n10.addText("270379.500000, 3942462.000000");
+    
+    n8 = n7.addChild("gml:offsetVector");
+    n8.addAttribute("srsName", "urn:ogc:def:crs:EPSG:6.6:32612");
+    n8.addText("28.5 0");
+    n8 = n7.addChild("gml:offsetVector");
+    n8.addAttribute("srsName", "urn:ogc:def:crs:EPSG:6.6:32612");
+    n8.addText("0 28.5");
+    
+    n6 = n5.addChild("gml:rangeSet");
+    n7 = n6.addChild("gml:File");
+    n8 = n7.addChild("gml:rangeParameters");
+    n9 = n8.addChild("gml:QuantityList");
+    n9.addAttribute("uom", "urn:ogc:def:crs:EPSG:6.6:32612");
+    n9.addText("inapplicable");
+    n8 = n7.addChild("gml:fileName");
+    n8.addText("Not Applicable");
+    n8 = n7.addChild("gml:fileStructure");
+    n8.addText("Record Interleaved");
+    
+    n6 = n5.addChild("gml:coverageFunction");
+    n7 = n6.addChild("gml:GridFunction");
+    n8 = n7.addChild("gml:sequenceRule");
+    n8.addAttribute("order", "+x+y");
+    n8.addText("Linear");
+    n8 = n7.addChild("gml:startPoint");
+    n8.addText("0 0");
+    
+    s = t.createXMLString(false);
+    return s;
+  }
+  
+  // Recursive implementation of gml_print_code()
+  void gml_print_code_recursive(XMLNode const& n, int d)
+  {
+    int num_attributes, num_text, num_children;
+    int i;
+    
+    std::cout << "n" << d << " = n" << (d - 1) << ".addChild(\"" << (strchr(n.getName(), ':') ? "" : "gml:") << n.getName() << "\");" << std::endl;
+    
+    num_attributes = n.nAttribute();
+    for(i = 0; i < num_attributes; i++)
+      std::cout << "n" << d << ".addAttribute(\"" << n.getAttributeName(i) << "\", \"" << n.getAttributeValue(i) << "\");" << std::endl;
+      
+    num_text = n.nText();
+    for(i = 0; i < num_text; i++)
+      std::cout << "n" << d << ".addText(\"" << n.getText(i) << "\");" << std::endl;
+  
+    num_children = n.nChildNode();
+    for(i = 0; i < num_children; i++)
+      gml_print_code_recursive(n.getChildNode(i), d + 1);
+  }
+  
+  // Print C++ code to create the XML file fn
+  void gml_print_code(const char* fn)
+  {
+    XMLNode t;
+     
+    t = XMLNode::openFileHelper(fn, "FeatureCollection");
+    gml_print_code_recursive(t, 1);
+  }
+  
+  
 
   /// Close the file when the object is destroyed
   DiskImageResourceJP2::~DiskImageResourceJP2()
@@ -1421,12 +1553,12 @@ namespace vw
       if(jp2f.convert_to_jpx(true /*will contain GML*/) != 0)
         vw_throw(IOErr() << "DiskImageResourceJP2::write(): "
 	       "failed to convert jp2 to backward-compatible jpx");
-      #if 0
-      char test_gml[] = "testgml";
-      if(jp2f.add_gml((uint8*)test_gml, 7, false) != 0)
+      //gml_print_code("/home/ttemplet/gmljp2/gmlsamples/minimalgml.xml");
+      //cartography::GeoReference georef; //FIXME: libvwFileIO does not include GeoReference.cc, so this causes a linker error
+      char* gml = make_gml(/*georef*/);
+      if(jp2f.add_gml((uint8*)gml, strlen(gml), false) != 0)
         vw_throw(IOErr() << "DiskImageResourceJP2::write(): "
 	       "failed to add GML to jpx");
-      #endif
       //jp2f.print();
       codestream_length = jp2f.bytes();
       output_buffer = new uint8[codestream_length];

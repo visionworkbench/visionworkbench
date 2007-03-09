@@ -1,0 +1,374 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><!-- InstanceBegin template="/Templates/standardPage.dwt" codeOutsideHTMLIsLocked="true" -->
+<head>
+
+<!-- InstanceBeginEditable name="doctitle" -->
+<title>Small, simple, cross-platform, free and fast C++ XML Parser</title>
+<!-- InstanceEndEditable -->
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<!-- InstanceBeginEditable name="head" -->
+<!-- InstanceEndEditable -->
+</head>
+
+<BODY LEFTMARGIN=15 MARGINWIDTH=15 >
+
+<H1>
+  <div align="center"><!-- InstanceBeginEditable name="titre" -->Small, simple,
+    cross-platform, free and<em><font face="Arial, Helvetica, sans-serif">&nbsp;fast</font></em>
+    &nbsp;C++ XML Parser<!-- InstanceEndEditable -->
+  </div>
+</H1>
+<!-- InstanceBeginEditable name="content" --> 
+<p>This project started from my frustration that I could not find any simple, 
+  portable XML Parser to use inside my tools (see <a href="http://www.applied-mathematics.net/CONDORManual/CONDORManual.html">CONDOR</a> 
+  for example). Let's look at the well-known Xerces C++ library: the complete 
+  library is 53 MB! (12.1 MB compressed in a zipfile). I am currently developping 
+  many small tools. I am using XML as standard for all my input /ouput configuration 
+  and data files. The source code of my small tools is usually around 600KB. In 
+  these conditions, don't you think that 53MB to be able to read an XML file is 
+  a little bit &quot;too much&quot;? So I created my own XML parser. My XML parser 
+  &quot;library&quot; is composed of only 2 files: a .cpp file and a .h file. 
+  The total size is 104 KB.<br>
+  <br>
+  Here is how it works: The XML parser loads a full XML file in memory, it parses 
+  the file and it generates a tree structure representing the XML file. Of course, 
+  you can also parse XML data that you have already stored yourself into a memory 
+  buffer. Thereafter, you can easily &quot;explore&quot; the tree to get your 
+  data. You can also modify the tree using &quot;add&quot; and &quot;delete&quot; 
+  functions and regenerate a formatted XML string from a subtree. Memory management 
+  is totally transparent through the use of smart pointers (in other words, you 
+  will never have to do any new, delete, malloc or free)(&quot;Smart pointers&quot; 
+  are a primitive version of the garbage collector in Java).<br>
+  <br>
+  Here are the characteristics of the XMLparser library: 
+<ul>
+  <li>Non-validating XML parser written in standard C++ (DTD's or XSD's informations 
+    are ignored). </li>
+  <li>Cross-plateform: the library is currently used every day on Solaris, Linux 
+    (32bit and 64bit) and Windows to manipulate &quot;small&quot; <a href="http://www.dmg.org/pmml-v3-0.html" target="_top">PMML 
+    documents</a> (10 MB).<br>
+    The library has been tested and is working flawlessly using the following 
+    compilers: gcc (under linux, Mac OS X Tiger and under many unix flavours), 
+    Visual Studio 6.0, Visual Studio .NET (under Windows 9x,NT,2000,XP,Vista,CE,mobile), 
+    Intel C/C++ compiler, SUN CC compiler, C++ Borland Compiler. The library is 
+    also used under QNX.</li>
+  <li>The parser builds a tree structure that you can &quot;explore&quot; easily 
+    (DOM-type parser).</li>
+  <li>The parser can be used to generate XML strings from subtrees (it's called 
+    rendering). You can also save subtrees directly to files (automatic &quot;Byte 
+    Order Mark&quot;-BOM support).</li>
+  <li> Modification or &quot;from scratch creation&quot; of large XML tree structures 
+    in memory using funtions like <font face="Courier New, Courier, mono">addChild</font>, 
+    <font face="Courier New, Courier, mono">addAttribute</font>,<font face="Courier New, Courier, mono">updateAttribute</font>,<font face="Courier New, Courier, mono">deleteAttribute</font>,...</li>
+  <li>It's <strong>SIMPLE</strong>: no need to learn how to use dozens of classes: 
+    there is only one simple class: the 'XMLNode' class (that represents one node 
+    of the XML tree).</li>
+  <li>Very efficient (Efficiency is required to be able to handle <strong>BIG</strong> 
+    files): 
+    <ul>
+      <li><font size="-1">The string parser is very efficient: It does only one 
+        pass over the XML string to create the tree. It does the minimal amount 
+        of memory allocations. For example: it does NOT use slow STL::String class 
+        but plain, simple and fast C malloc 's. It also allocates large chunk 
+        of memory instead of many small chunks. Inside Visual C++, the &quot;debug 
+        versions&quot; of the memory allocation functions are very slow: Do not 
+        forget to compile in &quot;release mode&quot; to get maximum speed.</font></li>
+      <li><font size="-1">The &quot;tree exploration&quot; is very efficient because 
+        all operations on the 'XMLNode' class are handled through references: 
+        there are no memory copy, no memory allocation, never. </font></li>
+      <li><font size="-1">The XML string rendering is very efficient: It does 
+        one pass to compute the total memory size of the XML string and a second 
+        pass to actually create the string. There is thus only one memory allocation 
+        and no extra memory copy. Other libraries are slower because they are 
+        using the string concatenation operator that requires many memory (re-)allocations 
+        and memory copy.</font></li>
+    </ul>
+  </li>
+  <li>In-memory parsing</li>
+  <li>Supports XML namespaces</li>
+  <li>Very small and totally stand-alone (not built on top of something else). 
+    Uses only standard &lt;stdio.h&gt; library (and only for the 'fopen' and the 
+    'fread' functions to load the XML file).</li>
+  <li>Easy to integrate into you own projects: it's only 2 files! The .h file 
+    does not contain any implementation code. Compilation is thus very fast.</li>
+  <li>Robust (I used it every day at work since 2004). <br>
+    Optionnally, if you define the C++ prepocessor directives STRICT_PARSING and/or 
+    APPROXIMATE_PARSING, the library can be &quot;forgiving&quot; in case of errors 
+    inside the XML. <br>
+    I have tried to respect the XML-specs given at: <a href="http://www.w3.org/TR/REC-xml/" target="_top">http://www.w3.org/TR/REC-xml/</a> 
+  <li>Fully integrated error handling : 
+    <ul>
+      <li><font size="-1">The string parser gives you the precise position and 
+        type of the error inside the XML string (if an error is detected).</font></li>
+      <li><font size="-1">The library allows you to &quot;explore&quot; a part 
+        of the tree that is missing. However data extracted from &quot;missing 
+        subtrees&quot; will be NULL. This way, it's really easy to code &quot;error 
+        handling&quot; procedures.</font></li>
+    </ul>
+  <li>Thread-safe (however the global parameters &quot;guessUnicodeChar&quot; 
+    and&quot;strictUTF8Parsing&quot; must be unique because they are shared by 
+    all threads).</li>
+  <li>Full Supports for all character sets: ANSI / UTF-8 / Unicode 16bit / Unicode 
+    32bit characters support (Windows, Linux, Linux 64 bits &amp; Solaris version 
+    only) 
+    <ul>
+      <li><font size="-1">For the unicode version of the library: Automatic conversion 
+        to Unicode before parsing (if the input XML file is standard ansi 8bit 
+        characters).</font></li>
+      <li><font size="-1"> For the ascii version of the library: Automatic conversion 
+        to ascii before parsing (if the input XML file is unicode 16 or 32bit 
+        wide characters). </font> </li>
+    </ul>
+    The library is now able to handle successfuly chinese, cyrilic and other extended 
+    characters thanks to an extended UTF-8 support (see this <a href="http://www.applied-mathematics.net/tools/UTF-8-demo.txt">UTF-8-demo</a> 
+    to show the characters available). If you are still experiencing character 
+    encoding problems, I suggest you to convert your XML files to UTF-8 using 
+    a tool like <a href="http://www.gnu.org/software/libiconv/" target="_top">iconv</a> 
+    (precompiled <a href="http://www.applied-mathematics.net/tools/iconv.zip"> 
+    win32 binary</a>).</li>
+  <li>Transparent memory management through the use of smart pointers.</li>
+  <li> Limited Support for character entities. The current known character entities 
+    are:<BR>
+    <div align="center"> 
+      <TABLE
+                        style="BORDER-RIGHT: #666666 1px solid; BORDER-TOP: #666666 1px solid; BORDER-LEFT: #666666 1px solid; BORDER-BOTTOM: #666666 1px solid"
+                        cellSpacing=2 cellPadding=4 width="434" border=0>
+        <TR bgColor=#cccccc> 
+          <TD width="86" vAlign=top class=tabletext>&amp;lt;</TD>
+          <TD width="33" vAlign=top class=tabletext>&lt; </TD>
+          <TD width="281" vAlign=top class=tabletext>less than</TD>
+        </TR>
+        <TR bgColor=#ffffcc> 
+          <TD class=tabletext vAlign=top>&amp;gt;</TD>
+          <TD class=tabletext vAlign=top>&gt; </TD>
+          <TD class=tabletext vAlign=top>greater than</TD>
+        </TR>
+        <TR bgColor=#cccccc> 
+          <TD class=tabletext vAlign=top>&amp;amp; </TD>
+          <TD class=tabletext vAlign=top>&amp;</TD>
+          <TD class=tabletext vAlign=top>ampersand </TD>
+        </TR>
+        <TR bgColor=#ffffcc> 
+          <TD class=tabletext vAlign=top>&amp;apos;</TD>
+          <TD class=tabletext vAlign=top>' </TD>
+          <TD class=tabletext vAlign=top>apostrophe</TD>
+        </TR>
+        <TR bgColor=#cccccc> 
+          <TD class=tabletext vAlign=top>&amp;quot;</TD>
+          <TD class=tabletext vAlign=top>"</TD>
+          <TD class=tabletext vAlign=top>quotation mark</TD>
+        </TR>
+        <TR bgColor=#ffffcc> 
+          <TD vAlign=middle class=tabletext>&amp;#x04B;</TD>
+          <TD vAlign=middle class=tabletext>K</TD>
+          <TD vAlign=top class=tabletext>direct access to the ascii code of any 
+            character<br>
+            (in hexadecimal) </TD>
+        </TR>
+        <TR bgColor=#cccccc> 
+          <TD class=tabletext vAlign=middle>&amp;#75;</TD>
+          <TD class=tabletext vAlign=middle>K</TD>
+          <TD class=tabletext vAlign=top>direct access to the ascii code of any 
+            character<br>
+            (in standard decimal)</TD>
+        </TR>
+      </TABLE>
+    </div>
+  </li>
+  <li>Support for a wide range of clearTags that are containing unformatted text:<br>
+    <font size="2" face="Courier New, Courier, mono">&lt;![CDATA[ ... ]]&gt;, 
+    &lt;!-- ... --&gt;, &lt;PRE&gt; ... &lt;/PRE&gt;, &lt;Script&gt; ... &lt;/Script&gt;, 
+    &lt;!DOCTYPE ... &gt; </font><br>
+    Unformatted texts are not parsed by the library and can contain items that 
+    are usually 'forbidden' in XML (for example: html code)</li>
+  <li>Support for inclusion of pure binary data (images, sounds,...) into the 
+    XML document using the four provided ultrafast Base64 conversion functions.</li>
+  <li>The library is under the BSD LICENSE. It means that you can use it freely 
+    in all your applications, even the commercial ones, without any restriction.</li>
+  <li>Easy to customize: The code is small, commented and written in a plain and 
+    simple way. Thus, if you really need to change something (but I doubt of it), 
+    it's easy.</li>
+</ul>
+<h1>Download</h1>
+If you like this library, you can either <a target="_top" href="http://www.applied-mathematics.net/livre_dor/livre_signer.php">add 
+a message</a> in the <a target="_top" href="http://www.applied-mathematics.net/livre_dor/livre_lire.php">guestbook</a> 
+or create a URL-Link towards this page from your website (use this URL: <a href="http://www.applied-mathematics.net/tools/xmlParser.html" target="_top">http://www.applied-mathematics.net/tools/xmlParser.html</a>). 
+If you want to help other people to produce better softwares using XML technology, 
+you can increase the visibility of this library by adding a URL-link toward this 
+page (so that its google-ranking increases ;-) ).<br>
+<br>
+Download here: <a href="http://www.applied-mathematics.net/download.php?id=43">small, 
+simple, multi-Plateform XMLParser library with examples (zipfile)</a>. <br>
+Inside the zip file, you will find 5 examples: 
+<ul>
+  <li><em>ansi</em> unix/solaris project example (makefile based)</li>
+  <li><em>wide char</em> unix/solaris project example (makefile based)</li>
+  <li><em>ansi</em> windows project example (for Visual Studio 6 and .NET)</li>
+  <li><em>wide char</em> windows project example (for Visual Studio 6 and .NET)</li>
+  <li><em>ansi </em>windows .dll project with a small test project to check the 
+    generated .dll</li>
+</ul>
+<h1>Log</h1>
+Version changes: 
+<ul>
+  <li><font size="-1">V1.00: February 20, 2002: initial version.</font></li>
+  <li><font size="-1">V1.20: July 22, 2006: After 13 minor changes, 2 major changes, 
+    8 bug fixes and 23 functionality additions(at user's request), I decided to 
+    switch to V2.01.</font></li>
+  <li><font size="-1">V2.01: July 24, 2006: 1 major change, 2 minor change, 3 
+    additions</font> 
+    <ul>
+      <li><font size="-1">M</font><font size="-1">ajor Change: no more &quot;stringDup&quot; 
+        required for functions like &quot;addText&quot;, &quot;addAttribute&quot;,... 
+        <br>
+        The old behavior is still accessible through functions like &quot;addText_WOSD&quot;, 
+        &quot;addAttribute_WOSD&quot;,... (&quot;_WSOD&quot; stands for &quot;WithOut 
+        StringDup&quot;).<br>
+        This change greatly simplifies the user's code. Unfortunately, old user's 
+        code must be updated to work with the new version. <br>
+        Fortunately, all the user's code used to READ the content of an XML file 
+        is left unchanged: Only the &quot;creation of XML&quot; and the &quot;update 
+        of XML&quot; user's code require a little updating work.</font></li>
+    </ul>
+  </li>
+  <li><font size="-1">V2.02: July 25, 2006: 1 minor change</font></li>
+  <li><font size="-1">V2.03: July 28, 2006: 1 minor change </font></li>
+  <li><font size="-1">V2.04: August 6, 2006: 1 addition</font></li>
+  <li><font size="-1">V2.05: August 15, 2006: 1 addition</font></li>
+  <li><font size="-1">V2.06: August 16, 2006: 2 additions</font></li>
+  <li><font size="-1">V2.07: August 22, 2006: 1 addition</font></li>
+  <li><font size="-1">V2.08: August 22, 2006: 1 bug fix</font> </li>
+  <li><font size="-1">V2.09: August 31, 2006: 1 bug fix</font> </li>
+  <li><font size="-1"> V2.10: September 21, 2006: 1 bug fix</font> </li>
+  <li> <font size="-1">V2.11: October 24, 2006: 3 additions, 1 bug fix. </font> 
+    <ul>
+      <li><font size="-1"> added the function getParentNode(). Thanks to Jakub 
+        Siudzinski for notifying me a good way to do it easily.</font> </li>
+    </ul>
+  </li>
+  <li><font size="-1">V2.12: October 25, 2006: 2 addition</font>s </li>
+  <li><font size="-1">V2.13: October 31, 2006: 1 minor change, 1 bug fix</font></li>
+  <li> <font size="-1">V2.14: November 13, 2006: 1 minor change, 1 bug fix</font></li>
+  <li><font size="-1"> V2.15: December 22, 2006: 2 additions</font></li>
+  <li><font size="-1">V2.16: December 27, 2006: 1 minor change</font> </li>
+  <li><font size="-1"> V2.17: January 9, 2007: 1 addition, 1 minor change</font> 
+  </li>
+  <li><font size="-1">V2.18: January 15, 2007: 1 bug fix</font></li>
+  <li><font size="-1">V2.19: January 30, 2007: 1 bug fix, 3 additions</font></li>
+  <li><font size="-1">V2.20: February 17, 2007: 1 addition</font> 
+    <ul>
+      <li><font size="-1"> added a Visual Studio projet file to build a DLL version 
+        of the library.<br>
+        Under Windows, when I have to debug a software that is using the XMLParser 
+        Library, it's usually a nightmare because the library is sooOOOoooo slow 
+        in debug mode. To solve this problem, during all the debugging session, 
+        I use a very fast DLL version of the XMLParser Library (the DLL is compiled 
+        in release mode). Using the DLL version of the XMLParser Library allows 
+        me to have lightening XML parsing speed, even in debug mode! Other than 
+        that, the DLL version is useless: In the release version of my tool, I 
+        always use the normal, &quot;.cpp&quot;-based, XMLParser Library.</font></li>
+    </ul>
+  </li>
+  <li><font size="-1">V2.21: Mars 1, 2007: 1 minor change, 1 bug fix</font> </li>
+  <li> <font size="-1">V2.22: Mars 6, 2007: 1 bug fix </font> 
+    <ul>
+      <li><font size="-1">FIX: the 'tag' parameter was not always working properly 
+        in parseString</font></li>
+    </ul>
+  </li>
+</ul>
+<h1>A small tutorial</h1>
+Let's assume that you want to parse the XML file &quot;<font size="2" face="Courier New, Courier, mono">PMMLModel.xml</font>&quot; 
+that contains: </p> 
+<pre><font color="#0033FF">&lt;?xml version=&quot;<strong>1.0</strong>&quot; encoding=&quot;<strong>ISO-8859-1</strong>&quot;?&gt;</font><br><font color="#7F0000"><font color="#0033FF">&lt;</font>PMML version<font color="#0033FF">=&quot;</font><strong><font color="#000000"><font color="#000000">3.0</font></font></strong><font color="#0033FF">&quot;</font><br>  xmlns<font color="#0033FF">=&quot;</font><strong><font color="#000000">http://www.dmg.org/PMML-3-0</font></strong><font color="#0033FF">&quot;</font><br>  xmlns:xsi<font color="#0033FF">=&quot;</font><strong><font color="#000000">http://www.w3.org/2001/XMLSchema_instance</font></strong><font color="#0033FF">&quot;</font> <font color="#0033FF">&gt;</font><br>  <font color="#0033FF">&lt;</font>Header copyright<font color="#0033FF">=&quot;</font><strong><font color="#000000">Frank Vanden Berghen</font></strong><font color="#0033FF">&quot;&gt;</font>
+     <font color="#000000"><strong>Hello World!</strong></font><br>     <font color="#0033FF">&lt;</font>Application name<font color="#0033FF">=&quot;</font><strong><font color="#000000">&amp;lt;Condor&gt;</font></strong><font color="#0033FF">&quot;</font> version<font color="#0033FF">=&quot;</font><strong><font color="#000000">1.99beta</font></strong><font color="#0033FF">&quot;</font> <font color="#0033FF">/&gt;</font><br>  <font color="#0033FF">&lt;/</font>Header<font color="#0033FF">&gt;</font>
+  <font color="#0033FF">&lt;</font>Extension name<font color="#0033FF">=&quot;</font><strong><font color="#000000">keys</font></strong><font color="#0033FF">&quot;</font><font color="#0033FF">&gt;</font> <font color="#0033FF">&lt;</font>Key name<font color="#0033FF">=&quot;</font><strong><font color="#000000">urn</font></strong><font color="#0033FF">&quot;</font><font color="#0033FF">&gt; </font><font color="#0033FF">&lt;/</font>Key<font color="#0033FF">&gt;</font> <font color="#0033FF">&lt;/</font>Extension<font color="#0033FF">&gt;</font><br>  <font color="#0033FF">&lt;</font>DataDictionary<font color="#0033FF">&gt;</font><br>    <font color="#0033FF">&lt;</font>DataField name<font color="#0033FF">=&quot;</font><strong><font color="#000000">persfam</font></strong><font color="#0033FF">&quot;</font> optype<font color="#0033FF">=&quot;</font><strong><font color="#000000">continuous</font></strong><font color="#0033FF">&quot;</font> dataType<font color="#0033FF">=&quot;</font><strong><font color="#000000">double</font></strong><font color="#0033FF">&quot;</font><font color="#0033FF">&gt;</font><br>       <font color="#0033FF">&lt;</font>Value value<font color="#0033FF">=&quot;</font><strong><font color="#000000">9.900000e+001</font></strong><font color="#0033FF">&quot;</font> property<font color="#0033FF">=&quot;</font><strong><font color="#000000">missing</font></strong><font color="#0033FF">&quot;</font> <font color="#0033FF">/&gt;</font><br>    <font color="#0033FF">&lt;/</font>DataField<font color="#0033FF">&gt;</font><br>    <font color="#0033FF">&lt;</font>DataField name<font color="#0033FF">=&quot;</font><strong><font color="#000000">prov</font></strong><font color="#0033FF">&quot;</font> optype<font color="#0033FF">=&quot;</font><font color="#7F0000"><strong><font color="#000000">continuous</font></strong><font color="#0033FF"></font></font><font color="#0033FF">&quot;</font> dataType<font color="#0033FF">=&quot;</font><strong><font color="#000000">double</font></strong><font color="#0033FF">&quot;</font> <font color="#0033FF">/&gt;</font><br>    <font color="#0033FF">&lt;</font>DataField name<font color="#0033FF">=&quot;</font><strong><font color="#000000">urb</font></strong><font color="#0033FF">&quot;</font> optype<font color="#0033FF">=&quot;</font><font color="#7F0000"><strong><font color="#000000">continuous</font></strong><font color="#0033FF"></font></font><font color="#0033FF">&quot;</font> dataType<font color="#0033FF">=&quot;</font><strong><font color="#000000">double</font></strong><font color="#0033FF">&quot;</font> <font color="#0033FF">/&gt;</font><br>    <font color="#0033FF">&lt;</font>DataField name<font color="#0033FF">=&quot;</font><strong><font color="#000000">ses</font></strong><font color="#0033FF">&quot;</font> optype<font color="#0033FF">=&quot;</font><font color="#7F0000"><strong><font color="#000000">continuous</font></strong><font color="#0033FF"></font></font><font color="#0033FF">&quot;</font> dataType<font color="#0033FF">=&quot;</font><strong><font color="#000000">double</font></strong><font color="#0033FF">&quot;</font> <font color="#0033FF">/&gt;</font><br>  <font color="#0033FF">&lt;/</font>DataDictionary<font color="#0033FF">&gt;</font><br>  <font color="#0033FF">&lt;</font>RegressionModel functionName<font color="#0033FF">=&quot;</font><strong><font color="#000000">regression</font></strong><font color="#0033FF">&quot;</font> modelType<font color="#0033FF">=&quot;</font><strong><font color="#000000">linearRegression</font></strong><font color="#0033FF">&quot;</font><font color="#0033FF">&gt;</font><br>    <font color="#0033FF">&lt;</font>RegressionTable intercept<font color="#0033FF">=&quot;</font><strong><font color="#000000">0.00796037</font></strong><font color="#0033FF">&quot;</font><font color="#0033FF">&gt;</font><br>      <font color="#0033FF">&lt;</font>NumericPredictor name<font color="#0033FF">=&quot;</font><strong><font color="#000000">persfam</font></strong><font color="#0033FF">&quot;</font> coefficient<font color="#0033FF">=&quot;</font><strong><font color="#000000">-0.00275951</font></strong><font color="#0033FF">&quot;</font> <font color="#0033FF">/&gt;</font><br>      <font color="#0033FF">&lt;</font>NumericPredictor name<font color="#0033FF">=&quot;</font><strong><font color="#000000">prov</font></strong><font color="#0033FF">&quot;</font> coefficient<font color="#0033FF">=&quot;</font><strong><font color="#000000">0.000319433</font></strong><font color="#0033FF">&quot;</font> <font color="#0033FF">/&gt;</font><br>      <font color="#0033FF">&lt;</font>NumericPredictor name<font color="#0033FF">=&quot;</font><strong><font color="#000000">ses</font></strong><font color="#0033FF">&quot;</font> coefficient<font color="#0033FF">=&quot;</font><strong><font color="#000000">-0.000454307</font></strong><font color="#0033FF">&quot;</font> <font color="#0033FF">/&gt;</font>
+      <font color="#0033FF">&lt;</font>NONNumericPredictor name<font color="#0033FF">=&quot;</font><strong><font color="#000000">testXmlExample</font></strong><font color="#0033FF">&quot;</font> <font color="#0033FF">/&gt;</font><br>    <font color="#0033FF">&lt;/</font>RegressionTable<font color="#0033FF">&gt;</font><br>  <font color="#0033FF">&lt;/</font>RegressionModel<font color="#0033FF">&gt;</font><br><font color="#0033FF">&lt;/</font>PMML<font color="#0033FF">&gt;</font></font></pre>
+<p>Let's analyse line by line the following small example program: 
+<pre><font color="#0000FF">#include</font> &lt;stdio.h&gt;    <font color="#008000">// to get &quot;printf&quot; function</font>
+<font color="#0033FF">#include</font> &lt;stdlib.h&gt;   <font color="#008000">// to get &quot;free&quot; function</font>
+<font color="#0033FF">#include</font> &quot;<font color="#990000">xmlParser.h</font>&quot;
+
+<font color="#0033FF">int</font> main(<font color="#0033FF">int</font> argc, <font color="#0033FF">char</font> **argv)
+{
+  <font color="#008000">// this open and parse the XML file:</font><br>  XMLNode xMainNode=XMLNode::openFileHelper(&quot;<font color="#990000">PMMLModel.xml</font>&quot;,&quot;<font color="#990000">PMML</font>&quot;);<br>
+  <font color="#008000">// this prints &quot;&lt;Condor&gt;&quot;:</font>
+  XMLNode xNode=xMainNode.getChildNode(&quot;<font color="#990000">Header</font>&quot;);
+  printf(&quot;<font color="#990000">Application Name is: '%s'\n</font>&quot;, xNode.getChildNode(&quot;<font color="#990000">Application</font>&quot;).getAttribute(&quot;<font color="#990000">name</font>&quot;));<br>  <font color="#008000">
+  // this prints &quot;Hello world!&quot;:</font>
+  printf(&quot;<font color="#990000">Text inside Header tag is :'%s'\n</font>&quot;, xNode.getText());<br>
+  <font color="#008000">// this gets the number of &quot;NumericPredictor&quot; tags:</font><br>  xNode=xMainNode.getChildNode(&quot;<font color="#990000">RegressionModel</font>&quot;).getChildNode(&quot;<font color="#990000">RegressionTable</font>&quot;);
+  <font color="#0033FF">int</font> n=xNode.nChildNode(&quot;<font color="#990000">NumericPredictor</font>&quot;);
+
+  <font color="#008000">// this prints the &quot;coefficient&quot; value for all the &quot;NumericPredictor&quot; tags:</font><br>  for (<font color="#0033FF">int</font> i=0; i&lt;n; i++)
+    printf(&quot;<font color="#990000">coeff %i=%f\n</font>&quot;,i+1,atof(xNode.getChildNode(&quot;<font color="#990000">NumericPredictor</font>&quot;,i).getAttribute(&quot;<font color="#990000">coefficient</font>&quot;)));
+
+  <font color="#008000">// this prints a formatted ouput based on the content of the first &quot;Extension&quot; tag of the XML file:</font><br>  <font color="#0033FF">char</font> *t=xMainNode.getChildNode(&quot;<font color="#990000">Extension</font>&quot;).createXMLString(<font color="#0033FF">true</font>);<br>  printf(&quot;<font color="#990000">%s\n</font>&quot;,t);<br>  free(t);
+  <font color="#0033FF">return</font> 0;<br>}</pre>
+<p>To manipulate the data contained inside the XML file, the first operation is 
+  to get an instance of the class XMLNode that is representing the XML file in 
+  memory. You can use: 
+<pre>XMLNode xMainNode=XMLNode::openFileHelper(&quot;<font color="#990000">PMMLModel.xml</font>&quot;,&quot;<font color="#990000">PMML</font>&quot;);</pre>
+or, if you use the UNICODE windows version of the library: 
+<pre>XMLNode xMainNode=XMLNode::openFileHelper(&quot;<font color="#990000">PMMLModel.xml</font>&quot;,_T(&quot;<font color="#990000">PMML</font>&quot;));</pre>
+or, if the XML document is already in a memory buffer pointed by variable &quot;<font size="2" face="Courier New, Courier, mono">char 
+*xmlDoc</font>&quot; : 
+<pre>XMLNode xMainNode=XMLNode::parseString(xmlDoc,&quot;<font color="#990000">PMML</font>&quot;);</pre>
+This will create an object called <font size="2" face="Courier New, Courier, mono">xMainNode</font> 
+that represents the first tag named <font size="2" face="Courier New, Courier, mono">PMML</font> 
+found inside the XML document. This object is the top of tree structure representing 
+the XML file in memory. The following command creates a new object called <font size="2" face="Courier New, Courier, mono">xNode</font> 
+that represents the &quot;<font size="2" face="Courier New, Courier, mono">Header</font>&quot; 
+tag inside the &quot;<font size="2" face="Courier New, Courier, mono">PMML</font>&quot; 
+tag. </p> 
+<pre>XMLNode xNode=xMainNode.getChildNode(&quot;<font color="#990000">Header</font>&quot;);</pre>
+The following command prints on the screen &quot;<font size="2" face="Courier New, Courier, mono">&lt;Condor&gt;</font>&quot; 
+(note that the &quot;<font size="2" face="Courier New, Courier, mono">&amp;lt;</font>&quot; 
+character entity has been replaced by &quot;&lt;&quot;): 
+<pre>printf(&quot;<font color="#990000">Application Name is: '%S'\n</font>&quot;, xNode.getChildNode(&quot;<font color="#990000">Application</font>&quot;).getAttribute(&quot;<font color="#990000">name</font>&quot;));</pre>
+The following command prints on the screen &quot;<font size="2" face="Courier New, Courier, mono">Hello 
+World!</font>&quot;: 
+<pre>printf(&quot;<font color="#990000">Text inside Header tag is :'%s'\n</font>&quot;, xNode.getText());</pre>
+Let's assume you want to &quot;go to&quot; the tag named &quot;<font size="2" face="Courier New, Courier, mono">RegressionTable</font>&quot;: </p> 
+<pre>xNode=xMainNode.getChildNode(&quot;<font color="#990000">RegressionModel</font>&quot;).getChildNode(&quot;<font color="#990000">RegressionTable</font>&quot;);</pre>
+<p>Note that the previous value of the object named <font size="2" face="Courier New, Courier, mono">xNode</font> 
+  has been &quot;garbage collected&quot; so that no memory leak occurs. If you 
+  want to know how many tags named &quot;<font size="2" face="Courier New, Courier, mono">NumericPredictor</font>&quot; 
+  are contained inside the tag named &quot;<font size="2" face="Courier New, Courier, mono">RegressionTable</font>&quot;:</p>
+<pre><font color="#0033FF">int</font> n=xNode.nChildNode(&quot;<font color="#990000">NumericPredictor</font>&quot;);</pre>
+<p>The variable <font size="2" face="Courier New, Courier, mono">n</font> now 
+  contains the value 3. If you want to print the value of the <font size="2" face="Courier New, Courier, mono">coefficient</font> 
+  attribute for all the <font size="2" face="Courier New, Courier, mono">NumericPredictor</font> 
+  tags: 
+<pre>for (<font color="#0033FF">int</font> i=0; i&lt;n; i++)
+  printf(&quot;<font color="#990000">coeff %i=%f\n</font>&quot;,i+1,atof(xNode.getChildNode(&quot;<font color="#990000">NumericPredictor</font>&quot;,i).getAttribute(&quot;<font color="#990000">coefficient</font>&quot;)));</pre>
+Or equivalently, but faster at runtime:<br>
+<pre>
+<font color="#0033FF">int</font> iterator=0;
+for (<font color="#0033FF">int</font> i=0; i&lt;n; i++)
+  printf(&quot;<font color="#990000">coeff %i=%f\n</font>&quot;,i+1,atof(xNode.getChildNode(&quot;<font color="#990000">NumericPredictor</font>&quot;,&amp;iterator).getAttribute(&quot;<font color="#990000">coefficient</font>&quot;)));</pre>
+<p>If you want to generate and print on the screen the following XML formatted 
+  text: </p>
+<pre><font color="#7F0000"><font color="#0033FF">&lt;</font>Extension name<font color="#0033FF">=&quot;</font><strong><font color="#000000">keys</font></strong><font color="#0033FF">&quot;</font><font color="#0033FF">&gt;</font>
+  <font color="#0033FF">&lt;</font>Key name<font color="#0033FF">=&quot;</font><strong><font color="#000000">urn</font></strong><font color="#0033FF">&quot; /&gt;
+&lt;/</font>Extension<font color="#0033FF">&gt;</font></font>
+</pre>
+<p>You can use: 
+<pre><font color="#0033FF">char</font> *t=xMainNode.getChildNode(&quot;<font color="#990000">Extension</font>&quot;).createXMLString(<font color="#0033FF">true</font>);<br>printf(&quot;<font color="#990000">%s\n</font>&quot;,t);<br>free(t);</pre>
+<p>Note that you must free the memory yourself (using the <font size="2" face="Courier New, Courier, mono">&quot;free(t);</font>&quot; 
+  function) : only the XMLNode objects and their contents are &quot;garbage collected&quot;. 
+  The parameter <font size="2" face="Courier New, Courier, mono">true</font> to 
+  the function <font size="2" face="Courier New, Courier, mono">createXMLString</font> 
+  means that we want formatted output. <br>
+  <br>
+  The XML Parser library contains many more other small usefull methods that are 
+  not described here (The zip file contains some additional examples to explain 
+  other functionalities). These methods allows you to: 
+<ul>
+  <li>navigate easily inside the structure of the XML document</li>
+  <li>create, update &amp; save your own XML structure of <font face="Courier New, Courier, mono">XMLNode</font>'s.</li>
+</ul>
+That's all folks! With this basic knowledge, you should be able to retreive easily 
+any data from any XML file!</p> <!-- InstanceEndEditable --> <br>
+</BODY>
+<!-- InstanceEnd -->

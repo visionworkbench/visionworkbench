@@ -36,6 +36,7 @@ PREFIX=`pwd`/build/$IRG_ARCH
 # for packages in non-standard locations.  
 
 PKG_PATHS="  \
+  `pwd`/thirdparty/xmlParser_2.22_bsd \
   $IRGPKG_DIR/vxl-1.5.1        \
   $IRGPKG_DIR/boost_1_33_1     \
   $IRGPKG_DIR/openexr-1.4.0    \
