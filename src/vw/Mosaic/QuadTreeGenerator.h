@@ -36,6 +36,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/convenience.hpp>
 
 #include <vw/Math/BBox.h>
 #include <vw/Image/ImageView.h>
@@ -72,24 +73,37 @@ namespace mosaic {
 
     virtual ~ImageQuadTreeGenerator() {}
 
-    virtual void write_meta_file( std::string const& name, unsigned level, BBox2i const& image_bbox, 
-                                  BBox2i const& visible_bbox, BBox2i const& region_bbox ) const {
-      unsigned scale = 1 << level;
-      fs::path base_path( m_base_dir, fs::native );
-      fs::ofstream outfile( base_path/(name+".bbx") );
+    struct PatchInfo {
+      std::string filename;
+      unsigned level;
+      BBox2i image_bbox;
+      BBox2i visible_bbox;
+      BBox2i region_bbox;
+    };
+
+    virtual void write_image( PatchInfo const& info, ImageView<PixelT> const& image ) const {
+      ImageBuffer buf = image.buffer();
+      DiskImageResource *r = DiskImageResource::create( info.filename, buf.format );
+      r->write( buf, BBox2i(0,0,buf.format.cols,buf.format.rows) );
+      delete r;
+    }
+
+    virtual void write_meta_file( PatchInfo const& info ) const {
+      unsigned scale = 1 << info.level;
+      fs::path filepath( info.filename, fs::native );
+      fs::ofstream outfile( change_extension( filepath, ".bbx" ) );
       outfile << scale << "\n";
-      outfile << image_bbox.min().x() << "\n";
-      outfile << image_bbox.min().y() << "\n";
-      outfile << image_bbox.max().x()-image_bbox.min().x() << "\n";
-      outfile << image_bbox.max().y()-image_bbox.min().y() << "\n";
-      outfile << visible_bbox.min().x() << "\n";
-      outfile << visible_bbox.min().y() << "\n";
-      outfile << visible_bbox.max().x()-visible_bbox.min().x() << "\n";
-      outfile << visible_bbox.max().y()-visible_bbox.min().y() << "\n";
+      outfile << info.image_bbox.min().x() << "\n";
+      outfile << info.image_bbox.min().y() << "\n";
+      outfile << info.image_bbox.width() << "\n";
+      outfile << info.image_bbox.height() << "\n";
+      outfile << info.visible_bbox.min().x() << "\n";
+      outfile << info.visible_bbox.min().y() << "\n";
+      outfile << info.visible_bbox.width() << "\n";
+      outfile << info.visible_bbox.height() << "\n";
       outfile << m_source.cols() << "\n";
       outfile << m_source.rows() << "\n";
     }
-
 
     void generate() {
       unsigned maxdim = std::max( m_source.cols(), m_source.rows() );
@@ -155,35 +169,51 @@ namespace mosaic {
     std::vector<std::map<std::pair<unsigned,unsigned>,ImageView<PixelT> > > m_patch_cache;
     std::vector<std::map<std::pair<unsigned,unsigned>,std::string> > m_filename_cache;
     
+    bool is_opaque( ImageView<PixelT> const& image ) const {
+      if( ! PixelHasAlpha<PixelT>::value ) return true;
+      typename PixelChannelType<PixelT>::type maxval = ChannelRange<PixelT>::max();
+      for( int y=0; y<(int)image.rows(); ++y )
+        for( int x=0; x<(int)image.cols(); ++x )
+          // FIXME: This breaks quad-trees with scalar channel types!
+          if( image(x,y)[PixelNumChannels<PixelT>::value-1] < maxval ) return false;
+      return true;
+    }
+
     void write_patch( ImageView<PixelT> const& image, std::string const& name, unsigned level, unsigned x, unsigned y ) const {
+      PatchInfo info;
+      info.level = level;
       unsigned scale = 1 << level;
       unsigned interior_size = m_patch_size - m_patch_overlap;
       Vector2i position( x*interior_size-m_patch_overlap/2, y*interior_size-m_patch_overlap/2 );
-      BBox2i image_bbox( Vector2i(0,0), Vector2i(image.cols(), image.rows()) );
-      BBox2i visible_bbox = image_bbox, region_bbox = image_bbox;
-      visible_bbox.contract( m_patch_overlap/2 );
+      info.image_bbox = BBox2i( Vector2i(0,0), Vector2i(image.cols(), image.rows()) );
+      info.visible_bbox = info.region_bbox = info.image_bbox;
+      info.visible_bbox.contract( m_patch_overlap/2 );
       fs::path base_path( m_base_dir, fs::native );
+      ImageView<PixelT> patch_image = image;
       if( m_crop_images ) {
-        image_bbox = nonzero_data_bounding_box( image );
-        if( image_bbox.empty() ) {
+        info.image_bbox = nonzero_data_bounding_box( image );
+        if( info.image_bbox.empty() ) {
           vw_out(DebugMessage) << "\tIgnoring empty image: " << name << std::endl;
           fs::remove( base_path/name );
           return;
         }
-        if( image_bbox.width() == int(m_patch_size) && image_bbox.height() == int(m_patch_size) )
-          write_image( (base_path/(name + "." + m_output_image_type)).native_file_string(), image );
-        else
-          write_image( (base_path/(name + "." + m_output_image_type)).native_file_string(), 
-                       ImageView<PixelT>( crop( image, image_bbox.min().x(), image_bbox.min().y(), image_bbox.width(), image_bbox.height() ) ) );
-        visible_bbox.crop( image_bbox );
+        if( info.image_bbox.width() != int(m_patch_size) || info.image_bbox.height() != int(m_patch_size) )
+          patch_image = crop( image, info.image_bbox );
+        info.visible_bbox.crop( info.image_bbox );
       }
-      else {
-        write_image( (base_path/(name + "." + m_output_image_type)).native_file_string(), image );
+      info.image_bbox = scale * (info.image_bbox + position);
+      info.visible_bbox = scale * (info.visible_bbox + position);
+      info.region_bbox = scale * (info.region_bbox + position);
+      std::string output_image_type = m_output_image_type;
+      if( output_image_type == "auto" ) {
+        if( is_opaque( patch_image ) ) output_image_type = "jpg";
+        else output_image_type = "png";
       }
-      image_bbox += position;
-      visible_bbox += position;
-      region_bbox += position;
-      write_meta_file( name, level, image_bbox*scale, visible_bbox*scale, region_bbox*scale );
+      info.filename = (base_path/(name + "." + output_image_type)).native_file_string();
+
+      vw_out(InfoMessage+1) << "\tSaving image: " << info.filename << "\t" << patch_image.cols() << "x" << patch_image.rows() << std::endl;
+      write_image( info, patch_image );
+      write_meta_file( info );
     }
 
     ImageView<PixelT> generate_branch( std::string name, unsigned level, unsigned x, unsigned y ) {
