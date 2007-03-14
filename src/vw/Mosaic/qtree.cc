@@ -71,7 +71,7 @@ int main( int argc, char *argv[] ) {
 
   std::string tree_name = input_file_name.substr( 0, input_file_name.rfind( '.' ) );
 
-  // try {
+  try {
     DiskImageView<PixelRGBA<uint8> > input( input_file_name );
     ImageQuadTreeGenerator<PixelRGBA<uint8> > quadtree( tree_name, input );
     quadtree.set_patch_size( patch_size );
@@ -84,10 +84,10 @@ int main( int argc, char *argv[] ) {
 
     
     quadtree.generate();
-//  }
-//  catch( Exception& e ) {
-//    std::cerr << "Error: " << e.what() << std::endl;
-//  }
+  }
+  catch( Exception& e ) {
+    std::cerr << "Error: " << e.what() << std::endl;
+  }
 
   return 0;
 }
