@@ -63,10 +63,10 @@ namespace mosaic {
         m_output_image_type( "png" ),
         m_patch_size( 256 ),
         m_patch_overlap( 0 ),
+        m_levels_per_directory( 3 ),
         m_crop_images( true )
     {
       fs::path tree_path( tree_name, fs::native );
-      m_tree_name = tree_path.leaf();
       fs::path base_path = tree_path.branch_path() / ( tree_path.leaf() + ".qtree" );
       m_base_dir = base_path.native_directory_string();
     }
@@ -111,22 +111,20 @@ namespace mosaic {
       m_patch_cache.resize( m_tree_levels );
       m_filename_cache.resize( m_tree_levels );
 
-      fs::path dir_path( m_base_dir );
-      fs::path top_branch_path = dir_path / m_tree_name;
-
       vw_out(DebugMessage) << "Using patch size: " << m_patch_size << " pixels" << std::endl;
       vw_out(DebugMessage) << "Using patch overlap: " << m_patch_overlap << " pixels" << std::endl;
       vw_out(DebugMessage) << "Generating patch files of type: " << m_output_image_type << std::endl;
-      vw_out(DebugMessage) << "Generating " << top_branch_path.native_directory_string() << " quadtree with " << m_tree_levels << " levels." << std::endl;
+      vw_out(DebugMessage) << "Generating " << m_base_dir << " quadtree with " << m_tree_levels << " levels." << std::endl;
 
+      fs::path dir_path( m_base_dir );
+      
       if( fs::exists( dir_path ) ) {
-        if( ! fs::is_directory( dir_path ) )
-          vw_throw( IOErr() << "Path " << dir_path.native_directory_string() << " is not a directory!  Remove it first." );
+        vw_throw( IOErr() << "Path " << dir_path.native_directory_string() << " already exists!  Please remove it first." );
       }
       else {
         fs::create_directory( dir_path );
       }
-      generate_branch( m_tree_name, m_tree_levels-1, 0, 0 );
+      generate_branch( "r", m_tree_levels-1, 0, 0 );
     }
 
     void set_crop_bbox( BBox2i const& bbox ) {
@@ -148,6 +146,10 @@ namespace mosaic {
       m_patch_overlap = overlap;
     }
 
+    void set_levels_per_directory( unsigned levels_per_directory ) {
+      m_levels_per_directory = levels_per_directory;
+    }
+
     void set_crop_images( bool crop ) {
       m_crop_images = crop;
     }
@@ -157,13 +159,13 @@ namespace mosaic {
     }
     
   protected:
-    std::string m_tree_name;
     std::string m_base_dir;
     ImageViewRef<PixelT> m_source;
     BBox2i m_crop_bbox;
     std::string m_output_image_type;
     unsigned m_patch_size;
     unsigned m_patch_overlap;
+    unsigned m_levels_per_directory;
     bool m_crop_images;
     unsigned m_tree_levels;
     std::vector<std::map<std::pair<unsigned,unsigned>,ImageView<PixelT> > > m_patch_cache;
@@ -179,6 +181,23 @@ namespace mosaic {
       return true;
     }
 
+    // Compute the directory containing name
+    fs::path compute_directory( std::string const& name ) const {
+      fs::path ret( m_base_dir, fs::native );
+      
+      for (int i= 0; i< (int)name.length() - (int)m_levels_per_directory; i += m_levels_per_directory) {
+        ret= ret / name.substr( i, m_levels_per_directory );
+      }
+      return ret;
+    }
+
+    void ensure_directory_and_parents_exist( fs::path const& directory ) const {
+      if (!fs::exists( directory )) {
+        ensure_directory_and_parents_exist( directory.branch_path() );
+        fs::create_directory( directory );
+      }
+    }
+    
     void write_patch( ImageView<PixelT> const& image, std::string const& name, unsigned level, unsigned x, unsigned y ) const {
       PatchInfo info;
       info.level = level;
@@ -188,13 +207,11 @@ namespace mosaic {
       info.image_bbox = BBox2i( Vector2i(0,0), Vector2i(image.cols(), image.rows()) );
       info.visible_bbox = info.region_bbox = info.image_bbox;
       info.visible_bbox.contract( m_patch_overlap/2 );
-      fs::path base_path( m_base_dir, fs::native );
       ImageView<PixelT> patch_image = image;
       if( m_crop_images ) {
         info.image_bbox = nonzero_data_bounding_box( image );
         if( info.image_bbox.empty() ) {
           vw_out(DebugMessage) << "\tIgnoring empty image: " << name << std::endl;
-          fs::remove( base_path/name );
           return;
         }
         if( info.image_bbox.width() != int(m_patch_size) || info.image_bbox.height() != int(m_patch_size) )
@@ -209,7 +226,9 @@ namespace mosaic {
         if( is_opaque( patch_image ) ) output_image_type = "jpg";
         else output_image_type = "png";
       }
-      info.filename = (base_path/(name + "." + output_image_type)).native_file_string();
+      fs::path directory= compute_directory( name );
+      ensure_directory_and_parents_exist( directory );
+      info.filename = (directory/(name + "." + output_image_type)).native_file_string();
 
       vw_out(InfoMessage+1) << "\tSaving image: " << info.filename << "\t" << patch_image.cols() << "x" << patch_image.rows() << std::endl;
       write_image( info, patch_image );
@@ -221,10 +240,8 @@ namespace mosaic {
       unsigned scale = 1 << level;
       unsigned interior_size = m_patch_size - m_patch_overlap;
       BBox2i patch_bbox = scale * BBox2i( Vector2i(x, y), Vector2i(x+1, y+1) ) * interior_size;
-      fs::path base_path( m_base_dir, fs::native );
-      fs::path path = base_path / name;
       if( ! patch_bbox.intersects( m_crop_bbox ) ) {
-        vw_out(DebugMessage) << "\tIgnoring empty image: " << path.native_file_string() << std::endl;
+        vw_out(DebugMessage) << "\tIgnoring empty image: " << name << std::endl;
         image.set_size( interior_size, interior_size );
         return image;
       }
@@ -238,12 +255,11 @@ namespace mosaic {
         }
       }
       else {
-        fs::create_directory( path );
         ImageView<PixelT> big_image( 2*interior_size, 2*interior_size );
-        crop( big_image, 0, 0, interior_size, interior_size ) = generate_branch( name + "/0", level-1, 2*x, 2*y );
-        crop( big_image, interior_size, 0, interior_size, interior_size ) = generate_branch( name + "/1", level-1, 2*x+1, 2*y );
-        crop( big_image, 0, interior_size, interior_size, interior_size ) = generate_branch( name + "/2", level-1, 2*x, 2*y+1 );
-        crop( big_image, interior_size, interior_size, interior_size, interior_size ) = generate_branch( name + "/3", level-1, 2*x+1, 2*y+1 );
+        crop( big_image, 0, 0, interior_size, interior_size ) = generate_branch( name + "0", level-1, 2*x, 2*y );
+        crop( big_image, interior_size, 0, interior_size, interior_size ) = generate_branch( name + "1", level-1, 2*x+1, 2*y );
+        crop( big_image, 0, interior_size, interior_size, interior_size ) = generate_branch( name + "2", level-1, 2*x, 2*y+1 );
+        crop( big_image, interior_size, interior_size, interior_size, interior_size ) = generate_branch( name + "3", level-1, 2*x+1, 2*y+1 );
         std::vector<float> kernel(2); kernel[0]=0.5; kernel[1]=0.5;
         image.set_size( interior_size, interior_size );
         rasterize( subsample( separable_convolution_filter( big_image, kernel, kernel, 1, 1 ), 2 ), image );
