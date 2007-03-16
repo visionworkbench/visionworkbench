@@ -38,6 +38,8 @@
 #include <limits>
 #include <complex>
 
+#include <vw/Core/FundamentalTypes.h>
+
 namespace vw {
 namespace math {
   // These function implementations are defined in namespace impl 
