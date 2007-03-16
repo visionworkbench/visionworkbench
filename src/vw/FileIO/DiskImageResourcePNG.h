@@ -77,6 +77,24 @@ namespace vw {
     unsigned num_comments() const;
     Comment const& get_comment( unsigned i ) const;
 
+    bool is_palette_based() const;
+    void set_use_palette_indices();
+
+    ImageView<PixelRGBA<uint8> > get_palette() const;
+    void set_palette( ImageView<PixelRGBA<uint8> > const& palette );
+
+    // Convenience functions:
+
+    static void write_palette_file( std::string const& filename,
+                                    ImageView<uint8> const& image,
+                                    ImageView<PixelRGBA<uint8> > const& palette )
+    {
+      DiskImageResourcePNG png( filename, image.format() );
+      png.set_palette( palette );
+      png.set_use_palette_indices();
+      png.write( image.buffer(), BBox2i(0,0,image.cols(),image.rows()) );
+    }
+
   private:
     boost::shared_ptr<DiskImageResourceInfoPNG> m_info;
   };

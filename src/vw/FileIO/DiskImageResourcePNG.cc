@@ -40,6 +40,7 @@
 #include <png.h>
 
 #include <vw/Core/Exception.h>
+#include <vw/Image/Manipulation.h>
 #include <vw/FileIO/DiskImageResourcePNG.h>
 
 namespace vw {
@@ -51,8 +52,11 @@ namespace vw {
   class DiskImageResourceInfoPNG {
     std::string m_filename;
     bool m_readable;
+    bool m_palette_based;
+    bool m_use_palette_indices;
     ImageFormat &m_format;
     std::vector<DiskImageResourcePNG::Comment> comments;
+    ImageView<PixelRGBA<uint8> > m_palette;
 
     static void read_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
       std::fstream *fs = (std::fstream*) png_get_io_ptr(png_ptr);
@@ -149,14 +153,31 @@ namespace vw {
       }
 
       int color_type = 0;
-      switch( m_format.pixel_format ) {
-      case VW_PIXEL_GRAY:  color_type = PNG_COLOR_TYPE_GRAY;       break;
-      case VW_PIXEL_GRAYA: color_type = PNG_COLOR_TYPE_GRAY_ALPHA; break;
-      case VW_PIXEL_RGB:   color_type = PNG_COLOR_TYPE_RGB;        break;
-      case VW_PIXEL_RGBA:  color_type = PNG_COLOR_TYPE_RGB_ALPHA;  break;
-      default:
-        png_destroy_write_struct(&png_ptr,&info_ptr);
-        vw_throw( LogicErr() << "Unexpected pixel format (" << m_format.pixel_format << ") in PNG write." );
+      if( m_palette_based ) {
+        color_type = PNG_COLOR_TYPE_PALETTE;
+        if ( m_use_palette_indices ) {
+          png_colorp palette = (png_colorp) png_malloc( png_ptr, m_palette.cols() * sizeof(png_color) );
+          png_bytep alpha = (png_bytep) png_malloc( png_ptr, m_palette.cols() * sizeof(png_byte) );
+          for ( int i=0; i<(int)m_palette.cols(); ++i ) {
+            palette[i].red = m_palette(i,0).r();
+            palette[i].green = m_palette(i,0).g();
+            palette[i].blue = m_palette(i,0).b();
+            alpha[i] = m_palette(i,0).a();
+          }
+          png_set_PLTE( png_ptr, info_ptr, palette, m_palette.cols() );
+          png_set_tRNS( png_ptr, info_ptr, alpha, m_palette.cols(), 0 );
+        }
+      }
+      else {
+        switch( m_format.pixel_format ) {
+        case VW_PIXEL_GRAY:  color_type = PNG_COLOR_TYPE_GRAY;       break;
+        case VW_PIXEL_GRAYA: color_type = PNG_COLOR_TYPE_GRAY_ALPHA; break;
+        case VW_PIXEL_RGB:   color_type = PNG_COLOR_TYPE_RGB;        break;
+        case VW_PIXEL_RGBA:  color_type = PNG_COLOR_TYPE_RGB_ALPHA;  break;
+        default:
+          png_destroy_write_struct(&png_ptr,&info_ptr);
+          vw_throw( LogicErr() << "Unexpected pixel format (" << m_format.pixel_format << ") in PNG write." );
+        }
       }
         
       png_set_IHDR( png_ptr, info_ptr, m_format.cols, m_format.rows, (m_format.channel_type==VW_CHANNEL_UINT8) ? 8 : 16,
@@ -165,12 +186,19 @@ namespace vw {
     }
 
     void write_cleanup( png_structp &png_ptr, png_infop &info_ptr ) {
-      if ( png_ptr ) png_destroy_write_struct( &png_ptr, &info_ptr );
+      if ( ! png_ptr ) return;
+      if( m_palette_based && m_use_palette_indices ) {
+        png_colorp palette;
+        png_bytep alpha;
+        int tmp;
+        png_get_PLTE( png_ptr, info_ptr, &palette, &tmp );
+      }
+      png_destroy_write_struct( &png_ptr, &info_ptr );
     }
 
   public:
     DiskImageResourceInfoPNG( ImageFormat &format )
-      : m_filename(), m_readable(false), m_format(format) {}
+      : m_filename(), m_readable(false), m_palette_based(false), m_use_palette_indices(false), m_format(format) {}
 
     ~DiskImageResourceInfoPNG() { }
 
@@ -204,6 +232,7 @@ namespace vw {
         m_format.pixel_format = VW_PIXEL_RGBA;
         break;
       case PNG_COLOR_TYPE_PALETTE: {
+        m_palette_based = true;
         if ( png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) )
           m_format.pixel_format = VW_PIXEL_RGBA;
         else m_format.pixel_format = VW_PIXEL_RGB;
@@ -242,7 +271,7 @@ namespace vw {
         }
         m_format.planes = 1;
       }
-      if ( m_format.planes != 1 ) vw_throw( ArgumentErr() << "PNG files to not support multiple images." );
+      if ( m_format.planes != 1 ) vw_throw( ArgumentErr() << "PNG files do not support multiple images." );
       if ( m_format.pixel_format!=VW_PIXEL_GRAY && m_format.pixel_format!=VW_PIXEL_GRAYA && 
           m_format.pixel_format!=VW_PIXEL_RGB  && m_format.pixel_format!=VW_PIXEL_RGBA )
         vw_throw( ArgumentErr() << "Unrecognized pixel format (" << m_format.pixel_format << ") for PNG image." );
@@ -267,14 +296,16 @@ namespace vw {
       unsigned channels = png_get_channels( png_ptr, info_ptr );
 
       // Handle palette-based images
-      int type = png_get_color_type(png_ptr, info_ptr);
-      if ( type == PNG_COLOR_TYPE_PALETTE ) {
-        png_set_palette_to_rgb(png_ptr);
-        if ( png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) ) {
-          png_set_tRNS_to_alpha(png_ptr);
-          channels = 4;
+      if( ! m_use_palette_indices ) {
+        int type = png_get_color_type(png_ptr, info_ptr);
+        if ( type == PNG_COLOR_TYPE_PALETTE ) {
+          png_set_palette_to_rgb(png_ptr);
+          if ( png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) ) {
+            png_set_tRNS_to_alpha(png_ptr);
+            channels = 4;
+          }
+          else channels = 3;
         }
-        else channels = 3;
       }
 
       // This is a terrible hack for detecting little-endian architectures.
@@ -367,6 +398,26 @@ namespace vw {
       return comments[i];
     }
 
+    bool is_palette_based() const {
+      return m_palette_based;
+    }
+
+    ImageView<PixelRGBA<uint8> > get_palette() const {
+      return copy( m_palette );
+    }
+
+    void set_palette( ImageView<PixelRGBA<uint8> > const& palette ) {
+      m_palette = copy( palette );
+      m_palette_based = true;
+    }
+
+    void set_use_palette_indices() {
+      if( ! m_palette_based )
+        vw_throw( IOErr() << "PNG file is not palette-based!" );
+      m_use_palette_indices = true;
+      m_format.pixel_format = VW_PIXEL_SCALAR;
+      m_format.channel_type = VW_CHANNEL_UINT8;
+    }
   };
 
 } // namespace vw
@@ -425,3 +476,20 @@ unsigned vw::DiskImageResourcePNG::num_comments() const {
 vw::DiskImageResourcePNG::Comment const& vw::DiskImageResourcePNG::get_comment( unsigned i ) const {
   return m_info->get_comment(i);
 }
+
+bool vw::DiskImageResourcePNG::is_palette_based() const {
+  return m_info->is_palette_based();
+}
+
+vw::ImageView<vw::PixelRGBA<vw::uint8> > vw::DiskImageResourcePNG::get_palette() const {
+  return m_info->get_palette();
+}
+
+void vw::DiskImageResourcePNG::set_palette( ImageView<PixelRGBA<uint8> > const& palette ) {
+  m_info->set_palette( palette );
+}
+
+void vw::DiskImageResourcePNG::set_use_palette_indices() {
+  m_info->set_use_palette_indices();
+}
+
