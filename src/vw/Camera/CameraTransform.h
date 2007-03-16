@@ -79,7 +79,7 @@ namespace camera{
 
       // (2) take resulting vector and call dest camera's
       //     VectorToPixel on it.
-      return m_dst_camera.vector_to_pixel(vec+m_dst_camera.camera_center(p));
+      return m_dst_camera.point_to_pixel(vec+m_dst_camera.camera_center(p));
     }
        
   private:
