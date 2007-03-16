@@ -45,6 +45,24 @@ namespace math {
   // on platforms that provide them.
 namespace impl {
 
+  /// A special inlinable implementation of round() 
+  /// for the common case of double->int32.
+  inline int32 _round( double val ) {
+    if( val < 0 ) return int32(val-0.5);
+    else return int32(val+0.5);
+  }
+
+  /// A special inlinable implementation of floor() 
+  /// for the common case of double->int32.
+  inline int32 _floor( double val ) {
+    if( val < 0 ) {
+      int32 ival = int32(val);
+      if( double(ival)==val ) return ival;
+      else return ival - 1;
+    }
+    else return int32(val);
+  }
+
   double erfc(double);
 
   /// The error function, i.e. the integral of the normal 
