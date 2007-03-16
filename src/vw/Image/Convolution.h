@@ -154,11 +154,10 @@ namespace vw {
 
     /// \cond INTERNAL
 
-    // If the pixels in the child view can be repeatedly accessed
-    // without incurring any additional overhead (e.g. an ImageView)
-    // we do not need to rasterize the child before we proceed to
-    // rasterize ourself.
-    typedef typename boost::mpl::if_< IsMultiplyAccessible<ImageT>, 
+    // If the pixels in the child view's prerasterization type can be repeatedly 
+    // accessed without incurring any additional overhead (e.g. an ImageView)
+    // we do not need to rasterize the child before we proceed to rasterize ourself.
+    typedef typename boost::mpl::if_< IsMultiplyAccessible<typename ImageT::prerasterize_type>, 
                                       ConvolutionView<typename ImageT::prerasterize_type, KernelT, EdgeT>,
                                       ConvolutionView<CropView<ImageView<typename ImageT::pixel_type> >, KernelT, EdgeT> >::type prerasterize_type;
     
@@ -169,25 +168,13 @@ namespace vw {
     inline prerasterize_type prerasterize_helper( BBox2i bbox, false_type ) const {
       ImageView<pixel_type> buf( bbox.width(), bbox.height(), m_image.planes() );
       m_image.rasterize( buf, bbox );
-      return prerasterize_type( CropView<ImageView<pixel_type> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),bbox.width(),bbox.height()) ),
+      return prerasterize_type( CropView<ImageView<typename ImageT::pixel_type> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),bbox.width(),bbox.height()) ),
                                 m_kernel.child(), m_ci, m_cj, m_image.func() );
     }
 
     inline prerasterize_type prerasterize( BBox2i bbox ) const {
-      return prerasterize_helper( bbox, typename IsMultiplyAccessible<ImageT>::type() );
+      return prerasterize_helper( bbox, typename IsMultiplyAccessible<typename ImageT::prerasterize_type>::type() );
     }
-    /*
-    inline prerasterize_type prerasterize( BBox2i bbox ) const {
-      if (IsMultiplyAccessible<ImageT>::value) {
-	return prerasterize_type( m_image.child().prerasterize(bbox), m_kernel.child(), m_ci, m_cj, m_image.func() );
-      } else {
-        ImageView<pixel_type> buf( bbox.width(), bbox.height(), m_image.planes() );
-        m_image.rasterize( buf, bbox );
-	return prerasterize_type( CropView<ImageView<pixel_type> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),bbox.width(),bbox.height()) ),
-                                  m_kernel.child(), m_ci, m_cj, m_image.func() );
-      }
-    }
-    */
 
     template <class DestT>
     void rasterize( DestT const& dest, BBox2i bbox ) const {
