@@ -79,14 +79,14 @@ namespace vw {
 
 #define VW_PIXEL_MATH_BINARY_PS_FUNCTION(func,ftor)                     \
   template <class PixelT, class ScalarT>                                \
-  typename boost::disable_if< IsCompound<ScalarT>, typename CompoundResult<ftor<ScalarT>,PixelT>::type >::type \
+  typename boost::enable_if< IsScalar<ScalarT>, typename CompoundResult<ftor<ScalarT>,PixelT>::type >::type \
   inline func( PixelMathBase<PixelT> const& pixel, ScalarT scalar ) {   \
     return compound_apply(ftor<ScalarT>(scalar), pixel.impl() );        \
   }
 
 #define VW_PIXEL_MATH_BINARY_SP_FUNCTION(func,ftor)                     \
   template <class PixelT, class ScalarT>                                \
-  typename boost::disable_if< IsCompound<ScalarT>, typename CompoundResult<ftor<ScalarT>,PixelT>::type >::type \
+  typename boost::enable_if< IsScalar<ScalarT>, typename CompoundResult<ftor<ScalarT>,PixelT>::type >::type \
   inline func( ScalarT scalar, PixelMathBase<PixelT> const& pixel ) {   \
     return compound_apply(ftor<ScalarT>(scalar), pixel.impl() );        \
   }
