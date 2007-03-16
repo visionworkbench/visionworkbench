@@ -39,6 +39,7 @@
 #include <boost/utility/enable_if.hpp>
 
 #include <vw/Core/CompoundTypes.h>
+#include <vw/Math/Functions.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelAccessors.h>
 #include <vw/Image/EdgeExtension.h>
@@ -77,7 +78,7 @@ namespace vw {
     static const int pixel_buffer = 1; 
     template <class ViewT>
     inline typename ViewT::pixel_type operator()(const ViewT &view, double i, double j, unsigned p ) const { 
-      int x = int(floor(i)), y = int(floor(j));
+      int x = math::impl::_floor(i), y = math::impl::_floor(j);
       double normx = i-x, normy = j-y;
 
       return typename ViewT::pixel_type( (view(x,y,p)   * (1.0-normy) + view(x,y+1,p)   * normy) * (1.0-normx) +
@@ -90,7 +91,7 @@ namespace vw {
     static const int pixel_buffer = 2; 
     template <class ViewT>
     inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, unsigned p ) const { 
-      int x = int(floor(i)), y = int(floor(j));
+      int x = math::impl::_floor(i), y = math::impl::_floor(j);
       double normx = i-x, normy = j-y;
   
       double s0 = ((2-normx)*normx-1)*normx;      double t0 = ((2-normy)*normy-1)*normy;
@@ -111,11 +112,10 @@ namespace vw {
     static const int pixel_buffer = 1; 
     template <class ViewT>
     inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, unsigned p ) const {
-      int x = int(lroundf(i));       int y = int(lroundf(j));
+      int x = math::impl::_round(i), y = math::impl::_round(j);
       return view(x,y,p);
     }
   };
-  /// \endcond
 
 
   /// Interpolation View Class
