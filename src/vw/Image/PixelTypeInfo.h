@@ -113,7 +113,7 @@ namespace vw {
   /// of min() is generally zero, *not* some negative number.  If you 
   /// really just want to know the range of values you can store in a 
   /// given type, use std::numeric_limits instead.
-  template <class T> struct ChannelRange : public ChannelRangeHelper<typename CompoundChannelType<T>::type, boost::integer_traits<T>::is_integer> {};
+  template <class T> struct ChannelRange : public ChannelRangeHelper<typename CompoundChannelType<T>::type, boost::integer_traits<typename CompoundChannelType<T>::type>::is_integer> {};
 
 
   // *******************************************************************
@@ -370,6 +370,7 @@ namespace vw {
     VW_CHANNEL_FLOAT32 = 10,
     VW_CHANNEL_FLOAT64 = 11,
     VW_CHANNEL_BOOL = 12,
+    VW_CHANNEL_CHAR = 13, // A tag to identify e.g. string medadata
     VW_CHANNEL_USER = 100
   };
   
