@@ -59,15 +59,15 @@ namespace vw {
     virtual void next_plane() = 0;
     virtual void prev_plane() = 0;
     virtual void advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) = 0;
-    virtual typename boost::add_const<PixelT>::type operator*() const = 0;
+    virtual PixelT operator*() const = 0;
   };
 
   template <class IterT>
-  class ImageViewRefAccessorImpl : public ImageViewRefAccessorBase<typename boost::add_const<typename IterT::pixel_type>::type> {
+  class ImageViewRefAccessorImpl : public ImageViewRefAccessorBase<typename IterT::pixel_type> {
   private:
     IterT m_iter;
   public:
-    typedef typename boost::add_const<typename IterT::pixel_type>::type pixel_type;
+    typedef typename IterT::pixel_type pixel_type;
 
     ImageViewRefAccessorImpl( IterT const& iter ) : m_iter(iter) {}
     virtual ~ImageViewRefAccessorImpl() {}
@@ -81,7 +81,7 @@ namespace vw {
     virtual void next_plane() { m_iter.next_plane(); }
     virtual void prev_plane() { m_iter.prev_plane(); }
     virtual void advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_iter.advance(di,dj,dp); }
-    virtual typename boost::add_const<pixel_type>::type operator*() const { return *m_iter; }
+    virtual pixel_type operator*() const { return *m_iter; }
   };
   /// \endcond
 
@@ -94,6 +94,7 @@ namespace vw {
     boost::scoped_ptr< ImageViewRefAccessorBase<PixelT> > m_iter;
   public:
     typedef PixelT pixel_type;
+    typedef PixelT result_type;
 
     template <class IterT> ImageViewRefAccessor( IterT const& iter ) : m_iter( new ImageViewRefAccessorImpl<IterT>(iter) ) {}
     ~ImageViewRefAccessor() {}
@@ -108,7 +109,7 @@ namespace vw {
     inline ImageViewRefAccessor& next_plane() { m_iter->next_plane(); return *this; }
     inline ImageViewRefAccessor& prev_plane() { m_iter->prev_plane(); return *this; }
     inline ImageViewRefAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_iter->advance(di,dj,dp=0); return *this; }
-    inline typename boost::add_const<pixel_type>::type operator*() const { return *(*m_iter); }
+    inline pixel_type operator*() const { return *(*m_iter); }
   };
 
 
@@ -117,8 +118,8 @@ namespace vw {
   template <class PixelT>
   class ImageViewRefBase {
   public:
-    typedef typename boost::add_const<PixelT>::type pixel_type;
-    typedef ImageViewRefAccessor<typename boost::add_const<PixelT>::type > pixel_accessor;
+    typedef PixelT pixel_type;
+    typedef ImageViewRefAccessor<PixelT> pixel_accessor;
 
     virtual ~ImageViewRefBase() {}
     
@@ -129,17 +130,17 @@ namespace vw {
     virtual pixel_type operator()( int i, int j, int p ) const = 0;
     virtual pixel_accessor origin() const = 0;
 
-    virtual void rasterize( ImageView<typename boost::remove_cv<pixel_type>::type> const& dest, BBox2i bbox ) const = 0;
+    virtual void rasterize( ImageView<pixel_type> const& dest, BBox2i bbox ) const = 0;
   };
 
   // ImageViewRef class implementation
   template <class ViewT>
-  class ImageViewRefImpl : public ImageViewRefBase<typename boost::add_const<typename ViewT::pixel_type>::type> {
+  class ImageViewRefImpl : public ImageViewRefBase<typename ViewT::pixel_type> {
   private:
     ViewT m_view;
   public:
-    typedef typename boost::add_const<typename ViewT::pixel_type>::type pixel_type;
-    typedef ImageViewRefAccessor<typename boost::add_const<typename ViewT::pixel_type>::type > pixel_accessor;
+    typedef typename ViewT::pixel_type pixel_type;
+    typedef ImageViewRefAccessor<typename ViewT::pixel_type> pixel_accessor;
 
     ImageViewRefImpl( ImageViewBase<ViewT> const& view ) : m_view(view.impl()) {}
     virtual ~ImageViewRefImpl() {}
@@ -151,7 +152,9 @@ namespace vw {
     virtual pixel_type operator()( int i, int j, int p ) const { return m_view(i,j,p); }
     virtual pixel_accessor origin() const { return m_view.origin(); }
 
-    virtual void rasterize( ImageView<typename boost::remove_cv<pixel_type>::type> const& dest, BBox2i bbox ) const { m_view.rasterize( dest, bbox ); }
+    virtual void rasterize( ImageView<pixel_type> const& dest, BBox2i bbox ) const { m_view.rasterize( dest, bbox ); }
+
+    ViewT const& child() const { return m_view; }
   };
   /// \endcond
 
@@ -175,11 +178,11 @@ namespace vw {
   template <class PixelT>
   class ImageViewRef : public ImageViewBase<ImageViewRef<PixelT> > {
   private:
-    boost::shared_ptr< ImageViewRefBase<typename boost::add_const<PixelT>::type > > m_view;
+    boost::shared_ptr< ImageViewRefBase<PixelT> > m_view;
   public:
     typedef PixelT pixel_type;
-    typedef pixel_type result_type;
-    typedef ImageViewRefAccessor<typename boost::add_const<PixelT>::type > pixel_accessor;
+    typedef PixelT result_type;
+    typedef ImageViewRefAccessor<PixelT> pixel_accessor;
 
     template <class ViewT> ImageViewRef( ImageViewBase<ViewT> const& view ) : m_view( new ImageViewRefImpl<ViewT>(view) ) {}
     ~ImageViewRef() {}
@@ -194,7 +197,11 @@ namespace vw {
     /// \cond INTERNAL
     typedef CropView<ImageView<PixelT> > prerasterize_type;
 
-    inline prerasterize_type prerasterize( BBox2i bbox ) const { 
+    inline prerasterize_type prerasterize( BBox2i bbox ) const {
+      // If we're wrapping a plain ImageView, we can avoid copying the data.
+      ImageViewRefImpl<ImageView<PixelT> > *image_ptr = dynamic_cast<ImageViewRefImpl<ImageView<PixelT> >*>( m_view.get() );
+      if( image_ptr ) return CropView<ImageView<PixelT> >( image_ptr->child(), 0, 0, cols(), rows() );
+      // Otherwise, we must rasterize ourselves....
       ImageView<PixelT> buf( bbox.width(), bbox.height(), planes() );
       m_view->rasterize( buf, bbox );
       return CropView<ImageView<PixelT> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),bbox.width(),bbox.height()) );
