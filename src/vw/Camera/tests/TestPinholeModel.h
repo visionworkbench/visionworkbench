@@ -79,7 +79,7 @@ public:
                           500,500,
                           NullLensDistortion());       // cx, cy
 
-    Matrix<double,3,3> rot = vw::math::euler_to_quaternion(1.15, 0.0, -1.57, "xyz", "").rotation_matrix();
+    Matrix<double,3,3> rot = vw::math::euler_to_quaternion(1.15, 0.0, -1.57, "xyz").rotation_matrix();
     PinholeModel pinhole3(Vector3(-0.329, 0.065, -0.82),
                          rot, 
                          605.320556640625,
