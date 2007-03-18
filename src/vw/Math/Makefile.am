@@ -32,8 +32,8 @@ lapack_headers = LinearAlgebra.h LevenbergMarquardt.h Geometry.h
 endif
 
 include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h	\
-                  Quaternion.h ConjugateGradient.h NelderMead.h		\
-                  $(lapack_headers)
+                  Quaternion.h EulerAngles.h ConjugateGradient.h	\
+                  NelderMead.h $(lapack_headers)
 
 libvwMath_la_SOURCES = 
 libvwMath_la_LDFLAGS= -version-info @LIBTOOL_VERSION@

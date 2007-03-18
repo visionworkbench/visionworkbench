@@ -89,6 +89,9 @@ vw::DiskImageResourceOpenEXR::~DiskImageResourceOpenEXR() {
     delete m_file_ptr;
 }
 
+vw::Vector2i vw::DiskImageResourceOpenEXR::native_block_size() const {
+  return m_block_size;
+}
 
 // Bind the resource to a file for reading.  Confirm that we can open
 // the file and that it has a sane pixel format.  In general VIL does 
@@ -122,6 +125,9 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
     // For now, we only support reading in multi-plane, single channel
     // images.
     m_format.pixel_format = VW_PIXEL_SCALAR;
+
+    const int openexr_rows_per_block = 10;
+    m_block_size = Vector2i(m_format.cols,openexr_rows_per_block);
     
   } catch (Iex::BaseExc e) {
     vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: could not open " << filename << ":\n\t" << e.what() ); 
@@ -145,20 +151,18 @@ void vw::DiskImageResourceOpenEXR::create( std::string const& filename,
 // Read the disk image into the given buffer.
 void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& bbox ) const
 {
-  VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
-             NoImplErr() << "DiskImageResourceOpenEXR does not support partial reads." );
-  VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
-             IOErr() << "Buffer has wrong dimensions in OpenEXR read." );
   
   if (!m_file_ptr) 
     vw_throw( LogicErr() << "DiskImageResourceOpenEXR: Could not read file. No file has been opened." );
   
   try {
-    // Find the width and height of the image 
+    // Find the width and height of the image and set the data window
+    // to the beginning of the requesed block.
     Imath::Box2i dw = m_file_ptr->header().dataWindow();
-    unsigned height = m_format.rows;
-    unsigned width = m_format.cols;
-    
+    dw.min.y += bbox.min().y();
+    unsigned height = bbox.height();
+    unsigned width = bbox.width();
+
     // Set up the OpenEXR data structures necessary to read all of
     // the channels out of the file and execute the call to readPixels().
     Imf::Array2D<float> *inputArrays[m_format.planes];
@@ -198,17 +202,17 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
     for ( unsigned nn = 0; nn < m_format.planes; ++nn ) {
       inputArrays[nn] = new Imf::Array2D<float>(height,width);
       //        std::cout << "Reading channel " << channel_names[nn] << "\n";
-      frameBuffer.insert (channel_names[nn].c_str(), Imf::Slice (Imf::FLOAT, (char *) (&(*inputArrays[nn])[0][0]), 
+      frameBuffer.insert (channel_names[nn].c_str(), Imf::Slice (Imf::FLOAT, (char *) (&(*inputArrays[nn])[-dw.min.y][-dw.min.x]),
                                                                  sizeof ((*inputArrays[nn])[0][0]) * 1, 
                                                                  sizeof ((*inputArrays[nn])[0][0]) * width, 1, 1, 0.0)); 
     }
     m_file_ptr->setFrameBuffer (frameBuffer);
-    m_file_ptr->readPixels (dw.min.y, dw.max.y);
+    m_file_ptr->readPixels (dw.min.y, std::min(int(dw.min.y + (height-1)), dw.max.y));
     
     // Copy the pixels over into a ImageView object.
     // 
     // Recast to the templatized pixel type in the process.
-    ImageView<float> src_image(m_format.cols, m_format.rows, m_format.planes);
+    ImageView<float> src_image(width, height, m_format.planes);
     for ( unsigned nn=0; nn<m_format.planes; ++nn ) {
       for ( unsigned i=0; i<width; ++i ) {
         for ( unsigned j=0; j<height; ++j ) {
@@ -216,13 +220,10 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
         }
       } 
     }
+
     ImageBuffer src = src_image.buffer();
     convert( dest, src );
-    
-    // Print out the image size and number of channels
-    std::cout << "OpenEXR file " << m_filename
-              << "\t" << m_format.planes << " x " << width << " x " << height << "\n";
-    
+        
     // Clean up
     for ( unsigned nn = 0; nn < m_format.planes; nn++) {
       delete inputArrays[nn];

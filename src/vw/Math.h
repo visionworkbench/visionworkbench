@@ -36,6 +36,7 @@
 #include <vw/Math/Quaternion.h>
 #include <vw/Math/ConjugateGradient.h>
 #include <vw/Math/NelderMead.h>
+#include <vw/Math/EulerAngles.h>
 
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
 #include <vw/Math/LinearAlgebra.h>

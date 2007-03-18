@@ -61,6 +61,8 @@ namespace vw {
     
     virtual ~DiskImageResourceOpenEXR();
     
+    virtual Vector2i native_block_size() const;
+
     virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
 
     virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
@@ -77,6 +79,7 @@ namespace vw {
 
   private:
     std::string m_filename;
+    Vector2i m_block_size;
     Imf::InputFile* m_file_ptr;
   };
 
