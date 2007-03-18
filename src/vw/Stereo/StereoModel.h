@@ -4,8 +4,6 @@
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/DisparityMap.h>
 
-#include <vector>
-
 namespace vw { 
 namespace stereo {
 
@@ -36,7 +34,7 @@ namespace stereo {
     /// parallel or divergent, otherwise it returns the 2-norm of the
     /// distance between the rays at their nearest point of
     /// intersection.
-    inline Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2, double& error ) {
+    inline Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2, double& error ) const {
       
       try {
         // determine range by triangulation
@@ -49,13 +47,6 @@ namespace stereo {
         Vector3 result =  triangulate_point(originA, vecFromA,
                                             originB, vecFromB, 
                                             error);
-
-//         if (pix1.y() >= 5643 && pix1.y() <= 5650) {
-//           std::cout << "Pix 1: " << pix1 << "    pix2: " << pix2 << "\n";
-//           std::cout << "\tA:  " << originA << "     " << vecFromA << "\n";
-//           std::cout << "\tB:  " << originB << "     " << vecFromB << "\n";
-//           std::cout << "\tResult:  " << result << "    " << error << "\n\n";
-//         }
 
         // If vecFromA and vecFromB are nearly parallel, there will be
         // very large numerical uncertainty about where to place the
@@ -126,5 +117,5 @@ namespace stereo {
 
 }}	// namespace vw::stereo
 
-#endif	// __VW_ORBITINGPUSHBROOM_STEREOMODEL_H__
+#endif	// __VW_STEREO_STEREOMODEL_H__
 

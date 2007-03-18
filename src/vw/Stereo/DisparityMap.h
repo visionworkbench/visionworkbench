@@ -154,18 +154,18 @@ namespace disparity {
   }
 
   /// Apply a binary mask to the disparity map (see also \ref disparity::generate_mask())
-  template <class PixelT>
+  template <class PixelT, class MaskViewT>
   void mask(ImageView<PixelDisparity<PixelT> > &disparity_map, 
-            ImageView<bool> const& left_mask,
-            ImageView<bool> const& right_mask) {
+            ImageViewBase<MaskViewT> const& left_mask,
+            ImageViewBase<MaskViewT> const& right_mask) {
     
-    VW_ASSERT(disparity_map.cols() == left_mask.cols() && disparity_map.rows() == left_mask.rows() &&
-              disparity_map.cols() == right_mask.cols() && disparity_map.rows() == right_mask.rows(),
+    VW_ASSERT(disparity_map.cols() == left_mask.impl().cols() && disparity_map.rows() == left_mask.impl().rows() &&
+              disparity_map.cols() == right_mask.impl().cols() && disparity_map.rows() == right_mask.impl().rows(),
               ArgumentErr() << "disparity::mask() : Mask images and disparity map image are not the same size.\n");
     
     for (unsigned i = 0; i < disparity_map.cols() ; i++) 
       for (unsigned j = 0; j < disparity_map.rows() ; j++)
-        if ( disparity_map(i,j).missing() || !left_mask(i,j) || !right_mask((int)(i+disparity_map(i,j).h()), (int)(j+disparity_map(i,j).v())) ) 
+        if ( disparity_map(i,j).missing() || !(left_mask.impl()(i,j)) || !(right_mask.impl()((int)(i+disparity_map(i,j).h()), (int)(j+disparity_map(i,j).v()))) ) 
           disparity_map(i,j) = PixelDisparity<PixelT>();  // Set to missing pixel value
   }
 
