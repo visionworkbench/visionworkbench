@@ -895,7 +895,8 @@ namespace vw {
 
     // Computes an appropriate reference-to-channel type.
     typedef typename CompoundChannelType<typename ImageT::pixel_type>::type channel_type;
-    typedef typename boost::mpl::if_<boost::is_reference<typename ImageT::result_type>,channel_type&,channel_type>::type result_type;
+    typedef typename boost::mpl::if_<boost::is_reference<typename ImageT::result_type>,channel_type&,channel_type>::type base_result_type;
+    typedef typename boost::mpl::if_<boost::is_const<typename ImageT::result_type>,const base_result_type,base_result_type>::type result_type;
 
     template <class ArgT>
     result_type operator()( ArgT& pixel ) const {

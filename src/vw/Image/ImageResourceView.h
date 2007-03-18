@@ -58,7 +58,17 @@ namespace vw {
       }
       
       boost::shared_ptr<ImageView<PixelT> > generate() const {
-        boost::shared_ptr<ImageView<PixelT> > ptr( new ImageView<PixelT>( m_bbox.width(), m_bbox.height(), m_res_ptr->planes() ) );
+
+        // If the user has requested a single-plane, compound pixel
+        // type, but the file is a multi-plane, scalr pixel file
+        // without any pixel semantics, we force the resource to a
+        // single plane so that convert() can convert from a
+        // multiplane file to compound pixel type image.
+        int planes = m_res_ptr->planes();
+        if (PixelNumChannels<PixelT>::value != 1)
+          planes = 1;
+        
+        boost::shared_ptr<ImageView<PixelT> > ptr( new ImageView<PixelT>( m_bbox.width(), m_bbox.height(), planes ) );
         m_res_ptr->read( ptr->buffer(), m_bbox );
         return ptr;
       }
