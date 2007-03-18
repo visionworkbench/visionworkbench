@@ -29,6 +29,7 @@
 #define __VW_CAMERAMODEL_CAHV_H__
 
 #include <vw/Camera/CameraModel.h>
+#include <vw/Camera/PinholeModel.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Math/Vector.h>
@@ -74,6 +75,45 @@ namespace camera {
     /// Initialize the CAHV vectors directly in the native CAHV format.
     CAHVModel(Vector3 C_vec, Vector3 A_vec, Vector3 H_vec, Vector3 V_vec) : 
       C(C_vec), A(A_vec), H(H_vec), V(V_vec) {}
+
+    /// Initialize the CAHV vectors directly in the native CAHV format.
+    CAHVModel(PinholeModel const& pin_model) {
+      
+      double fH = pin_model.intrinsic_matrix()(0,0);
+      double fV = -pin_model.intrinsic_matrix()(1,1);
+      double Hc = pin_model.intrinsic_matrix()(0,2);
+      double Vc = pin_model.intrinsic_matrix()(1,2);
+      
+      Matrix<double,3,3> rot_matrix = pin_model.camera_pose();
+      
+      Vector3 Hvec(rot_matrix[0][0], rot_matrix[0][1], rot_matrix[0][2]);
+      Vector3 Vvec(rot_matrix[1][0], rot_matrix[1][1], rot_matrix[1][2]);
+      
+      C = pin_model.camera_center();
+      A = Vector3(rot_matrix[2][0], rot_matrix[2][1], rot_matrix[2][2]);
+      H = fH*Hvec + Hc*A;
+      V = fV*Vvec + Vc*A;	      
+      
+    }
+    
+    CAHVModel operator= (PinholeModel const& pin_model) {
+      double fH = pin_model.intrinsic_matrix()(0,0);
+      double fV = pin_model.intrinsic_matrix()(1,1);
+      double Hc = pin_model.intrinsic_matrix()(0,2);
+      double Vc = pin_model.intrinsic_matrix()(1,2);
+      
+      Matrix<double,3,3> rot_matrix = pin_model.camera_pose();
+      
+      Vector3 Hvec(rot_matrix[0][0], rot_matrix[0][1], rot_matrix[0][2]);
+      Vector3 Vvec(rot_matrix[1][0], rot_matrix[1][1], rot_matrix[1][2]);
+      
+      C = pin_model.camera_center();
+      A = Vector3(rot_matrix[2][0], rot_matrix[2][1], rot_matrix[2][2]);
+      H = fH*Hvec + Hc*A;
+      V = fV*Vvec + Vc*A;	      
+
+      return *this;
+    }
     
     /// Initialize the CAHV vectors indirectly using pinhole camera
     /// parameters.  In this variant, the view matrix is supplied
@@ -157,8 +197,17 @@ namespace camera {
 
   /// Given two CAHV camera models, this method returns two new camera
   /// models that have been epipolar rectified.
-  void epipolar(CAHVModel const& src_camera0, CAHVModel const& src_camera1, 
+  void epipolar(CAHVModel const src_camera0, CAHVModel const src_camera1, 
                 CAHVModel &dst_camera0, CAHVModel &dst_camera1);
+
+  inline std::ostream& operator<<(std::ostream& str, CAHVModel const& model) {
+    str << "CAHV camera: \n";
+    str << "\tC: " << model.C << "\n";
+    str << "\tA: " << model.A << "\n";
+    str << "\tH: " << model.H << "\n";
+    str << "\tV: " << model.V << "\n";
+    return str;
+  }
 
   
 }}	// namespace vw::camera

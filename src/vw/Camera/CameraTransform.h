@@ -64,11 +64,11 @@ namespace camera{
 
       // (2) take resulting vector and call dest camera's
       //     VectorToPixel on it
-      return m_src_camera.point_to_pixel(vec+m_src_camera.camera_center(p));
+      return m_src_camera.point_to_pixel(vec+m_dst_camera.camera_center(p));
     }
     
-    /// This defines the transformation from coordinates in our target
-    /// image back to coordinatess in the original image.
+    /// This defines the transformation from coordinates in our source
+    /// image to coordinatess in the target image.
     inline Vector2 forward(const Vector2 &p) const {
       VW_ASSERT(m_src_camera.camera_center(p) == m_dst_camera.camera_center(p),
                 LogicErr() << "CameraTransformFunctor: Camera transformation require that the camera center is always the same for both cameras.");
@@ -79,7 +79,7 @@ namespace camera{
 
       // (2) take resulting vector and call dest camera's
       //     VectorToPixel on it.
-      return m_dst_camera.point_to_pixel(vec+m_dst_camera.camera_center(p));
+      return m_dst_camera.point_to_pixel(vec+m_src_camera.camera_center(p));
     }
        
   private:

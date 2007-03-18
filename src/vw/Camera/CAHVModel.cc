@@ -197,7 +197,7 @@ namespace camera {
   }
 
 
-  void epipolar(CAHVModel const& src_camera0, CAHVModel const& src_camera1, 
+  void epipolar(CAHVModel const src_camera0, CAHVModel const src_camera1, 
                 CAHVModel &dst_camera0, CAHVModel &dst_camera1) {
 
     double hs, hc, vs, vc, theta;

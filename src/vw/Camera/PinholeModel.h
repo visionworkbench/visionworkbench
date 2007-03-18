@@ -87,8 +87,7 @@ namespace camera {
     Matrix<double,3,3> m_intrinsics;
     
     // Cached values for pixel_to_vector
-    Vector3 m_camera_matrix_rightmost_row;
-    Matrix<double,3,3> m_inv_camera_matrix_block;
+    Matrix<double,3,3> m_inv_camera_transform;
 
   public:
     //------------------------------------------------------------------
@@ -206,7 +205,7 @@ namespace camera {
       // Compute the direction of the ray emanating from the camera center.
       Vector3 p(0,0,1);
       subvector(p,0,2) = undistorted_pix;
-      return normalize(m_inv_camera_matrix_block * (p-m_camera_matrix_rightmost_row));
+      return normalize( m_inv_camera_transform * p);
     }
 
     virtual Vector3 camera_center(Vector2 const& pix = Vector2() ) const { return m_camera_center; };
@@ -228,8 +227,7 @@ namespace camera {
       select_col(extrinsics,3) = -m_rotation * m_camera_center;
       m_camera_matrix = m_intrinsics * extrinsics;
       
-      m_inv_camera_matrix_block = inverse(submatrix(m_camera_matrix,0,0,3,3));
-      m_camera_matrix_rightmost_row = select_col(m_camera_matrix,3);
+      m_inv_camera_transform = inverse(m_rotation) * inverse(m_intrinsics);
     }
 
   };
@@ -305,7 +303,7 @@ namespace camera {
                         camera_model.intrinsic_matrix());
   }
 
-  std::ostream& operator<<(std::ostream& str, PinholeModel const& model) {
+  inline std::ostream& operator<<(std::ostream& str, PinholeModel const& model) {
     str << "Pinhole camera: \n";
     str << "\tCamera Center: " << model.camera_center() << "\n";
     str << "\tRotation Matrix: " << model.camera_pose() << "\n";
