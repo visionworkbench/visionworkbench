@@ -111,4 +111,4 @@ namespace math {
 
 }} // namespace vw::math
 
-#endif __VW_MATH_EULER_ANGLES_H__
+#endif // __VW_MATH_EULER_ANGLES_H__
