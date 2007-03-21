@@ -29,6 +29,26 @@ using namespace std;
 namespace vw {
 namespace camera {
 
+  CAHVModel CAHVModel::operator= (PinholeModel const& pin_model) {
+      double fH = pin_model.intrinsic_matrix()(0,0);
+      double fV = pin_model.intrinsic_matrix()(1,1);
+      double Hc = pin_model.intrinsic_matrix()(0,2);
+      double Vc = pin_model.intrinsic_matrix()(1,2);
+      
+      Matrix<double,3,3> rot_matrix = pin_model.camera_pose();
+
+      Vector3 Hvec = select_row(rot_matrix,0);
+      Vector3 Vvec = select_row(rot_matrix,1);
+      
+      C = pin_model.camera_center();
+      A = select_col(transpose(rot_matrix), 2);
+      H = fH*Hvec + Hc*A;
+      V = fV*Vvec + Vc*A;	      
+
+      return *this;
+    }
+
+
   /// This constructor takes a filename and reads in a camera model
   /// from the file.  The file may contain either CAHV parameters or
   /// pinhole camera parameters.
@@ -197,10 +217,66 @@ namespace camera {
   }
 
 
+  // This is a re-implementation of the Epipolar math that is easier
+  // to read, however it disagrees with the other epipolar code below
+  // slightly.  It needs another look to clean up this discrepancy,
+  // which is due to the direction chosen for Hvec. -mbroxton
+
+//   void epipolar(CAHVModel const src_camera0, CAHVModel const src_camera1, 
+//                 CAHVModel &dst_camera0, CAHVModel &dst_camera1) {
+
+//     double fh, fv, hc, vc;
+//     Vector3 f, g;
+//     Vector3 A, H, V;
+
+//     // Compute a common image center and scale for the two models
+//     hc = dot_prod(src_camera0.H, src_camera0.A) / 2.0 + dot_prod(src_camera1.H, src_camera1.A) / 2.0;
+//     vc = dot_prod(src_camera0.V, src_camera0.A) / 2.0 + dot_prod(src_camera1.V, src_camera1.A) / 2.0;
+
+//     // Find the magnitude of the new H and V vectors (this will be the
+//     // average of the focal lengths of these cameras).
+//     f = cross_prod(src_camera0.A, src_camera0.H);
+//     g = cross_prod(src_camera1.A, src_camera1.H); 
+//     fh = (norm_2(f) + norm_2(g)) / 2.0;
+    
+//     f = cross_prod(src_camera0.A, src_camera0.V);
+//     g = cross_prod(src_camera1.A, src_camera1.V);
+//     fv = (norm_2(f) + norm_2(g)) / 2.0;
+
+//     // Use common center and scale to construct an average A vector
+//     Vector3 A_avg  = 0.5 * (src_camera0.A + src_camera1.A);
+
+//     // Then adjust A to be perpindicular to the baseline between the
+//     // two imagers.  This will move the epipoles to infinity.
+//     Vector3 Hvec = normalize(src_camera1.C - src_camera0.C);
+//     Vector3 Vvec = normalize(cross_prod(Hvec,A_avg));
+//     A = normalize(cross_prod(Vvec,Hvec));       
+
+//     std::cout << "Fh: " << fh << "   Fv: " << fv << "\n";
+//     std::cout << "Ch: " << hc << "   Cv: " << vc << "\n";
+//     std::cout << "Hvec: " << Hvec << "   Vvec: " << Vvec << "\n";
+
+//     // Use the standard equations for the epipolar camera model to
+//     // determine H and V given the camera intristics and the
+//     // horizontal and vertical vectors.
+//     H = fh*Hvec + hc*A;
+//     V = fv*Vvec + vc*A;	      
+
+//     dst_camera0.C = src_camera0.C;
+//     dst_camera0.A = A;
+//     dst_camera0.H = H;
+//     dst_camera0.V = V;
+    
+//     dst_camera1.C = src_camera1.C;
+//     dst_camera1.A = A;
+//     dst_camera1.H = H;
+//     dst_camera1.V = V;
+//   }
+
   void epipolar(CAHVModel const src_camera0, CAHVModel const src_camera1, 
                 CAHVModel &dst_camera0, CAHVModel &dst_camera1) {
 
-    double hs, hc, vs, vc, theta;
+    double hs, hc, vs, vc;
     Vector3 f, g, hp, ap, app, vp;
     Vector3 a, h, v;
 
@@ -215,8 +291,8 @@ namespace camera {
     f = cross_prod(src_camera0.A, src_camera0.V);
     g = cross_prod(src_camera1.A, src_camera1.V);
     vs = (norm_2(f) + norm_2(g)) / 2.0;
-    
-    theta = M_PI / 2.0;
+
+    std::cout << "Hs: " << hs << "   Vs: " << vs << "\n";
     
     // Use common center and scale to construct common A, H, V 
     app  = src_camera0.A + src_camera1.A;
@@ -224,9 +300,11 @@ namespace camera {
     // Note the directionality of f here, for consistency later
     f = src_camera1.C - src_camera0.C;
     g = cross_prod(app, f); // alter f (CxCy) to be         
-    f = cross_prod(g, app); //   perpendicular to average A 
+    f = cross_prod(g, app); // perpendicular to average A 
     
+    std::cout << "f1: " << f << "   g1: " << g << "\n";
     
+
     if (dot_prod(f, src_camera0.H) > 0)
       hp = f * hs / (norm_2(f));
     else
@@ -243,6 +321,8 @@ namespace camera {
     
     f = vc * a;
     v = vp + f;
+
+    std::cout << "Hp: " << hp << "   Vp: " << vp << "\n";
     
     dst_camera0.C = src_camera0.C;
     dst_camera0.A = a;
