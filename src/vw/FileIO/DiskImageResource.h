@@ -38,6 +38,7 @@
 #include <vw/Math/Vector.h>
 #include <vw/Image/ImageResource.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Image/Manipulation.h>
 #include <vw/Image/PixelTypes.h>
 
 namespace vw {
@@ -136,26 +137,41 @@ namespace vw {
     VW_ASSERT( out_image.impl().cols() != 0 && out_image.impl().rows() != 0 && out_image.impl().planes() != 0,
                ArgumentErr() << "write_image: cannot write empty image to disk" );
 
-    // Rasterize the image if needed
-    ImageView<typename ImageT::pixel_type> image( out_image.impl() );
-    ImageBuffer buf = image.buffer();
+    ImageFormat out_image_format = out_image.format();
 
     unsigned files = 1;
     // If there's an asterisk, save one file per plane
     if( boost::find_last(filename,"*") ) {
-      files = buf.format.planes;
-      buf.format.planes = 1;
+      files = out_image_format.planes;
+      out_image_format.planes = 1;
     }
-    
-    for( unsigned i=0; i<files; ++i ) {
+
+    for( unsigned p=0; p<files; ++p ) {
+
       std::string name = filename;
-      if( files > 1 ) boost::replace_last( name, "*",  str( boost::format("%1%") % i ) );
+      if( files > 1 ) boost::replace_last( name, "*",  str( boost::format("%1%") % p ) );
       vw_out(InfoMessage+1) << "\tSaving image: " << name << "\t";
-      DiskImageResource *r = DiskImageResource::create( name, buf.format );
+      DiskImageResource *r = DiskImageResource::create( name, out_image_format );
       vw_out(InfoMessage+1) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
-      r->write( buf, BBox2i(0,0,r->cols(),r->rows()) );
+
+      // Write the image to disk in blocks.  We may need to revisit
+      // the order in which these blocks are rasterized, but for now
+      // it rasterizes blocks from left to right, then top to bottom.
+      Vector2i block_size = r->native_block_size();
+      for (unsigned int j = 0; j < r->rows(); j+= block_size[1]) {
+        for (unsigned int i = 0; i < r->cols(); i+= block_size[0]) {
+          BBox2i current_bbox(Vector2(i,j),
+                              Vector2(std::min(i+block_size[0],r->cols()),
+                                      std::min(j+block_size[1],r->rows())));
+          // Rasterize the current image block into a region of memory
+          // and send it off to the FileIO driver to be written to the file.
+          ImageView<typename ImageT::pixel_type> image_block( crop(select_plane(out_image.impl(),p), current_bbox) );
+          ImageBuffer buf = image_block.buffer();
+          r->write( buf, current_bbox );
+        }
+      }
+
       delete r;
-      buf.data = (uint8*)buf.data + buf.pstride;
     }
   }
 

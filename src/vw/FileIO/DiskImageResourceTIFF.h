@@ -65,6 +65,7 @@ namespace vw {
 
   private:
     boost::shared_ptr<DiskImageResourceInfoTIFF> m_info;
+    void* m_tif_ptr;
   };
 
 } // namespace vw

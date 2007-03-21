@@ -189,6 +189,60 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
   TIFFSetErrorHandler(&tiff_error_handler);
 
   m_format = format;
+
+  TIFF* tif = TIFFOpen(m_filename.c_str(), "w");
+  if( !tif  ) vw_throw( vw::IOErr() << "Failed to create \"" << m_filename << "\" using libTIFF." );
+
+  TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, m_format.cols);
+  TIFFSetField(tif, TIFFTAG_IMAGELENGTH, m_format.rows);
+  TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, 8*channel_size(m_format.channel_type));
+
+  if (m_format.pixel_format == VW_PIXEL_RGB ||
+      m_format.pixel_format == VW_PIXEL_RGBA) {
+    TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+  } else {
+    TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+  }
+
+  switch (m_format.channel_type) {
+  case VW_CHANNEL_INT8:
+  case VW_CHANNEL_INT16:
+  case VW_CHANNEL_INT32:
+  case VW_CHANNEL_INT64:
+    TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_INT);
+    break;
+  case VW_CHANNEL_UINT8:
+  case VW_CHANNEL_UINT16:
+  case VW_CHANNEL_UINT32:
+  case VW_CHANNEL_UINT64:
+    TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
+    break;
+  case VW_CHANNEL_FLOAT16:
+  case VW_CHANNEL_FLOAT32:
+  case VW_CHANNEL_FLOAT64:
+    TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
+    break;
+  default:
+    vw_throw( IOErr() << "DiskImageResourceTIFF: Unsupported VW channel type." );
+  }
+
+  if (m_format.pixel_format == VW_PIXEL_SCALAR) {
+    // Multi-plane images with simple pixel types are stored in seperate
+    // planes in the TIFF image.
+    TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_SEPARATE);
+    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, m_format.planes);
+  } else {  
+    // Compound pixel types are stored contiguously in TIFF files
+    TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, num_channels(m_format.pixel_format));
+  }
+
+  // For now the block size for write is the entire image.  This can
+  // and should be changed to a one scanline blocksize when we have
+  // time to update the rest of the code to support
+  // sconline-by-scanline block access.
+  m_info->block_size = Vector2i(cols(),rows());
+  m_tif_ptr = tif;
 }
 
 /// Read the disk image into the given buffer.
@@ -278,57 +332,8 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
 // Write the given buffer into the disk image.
 void vw::DiskImageResourceTIFF::write( ImageBuffer const& src, BBox2i const& bbox )
 {
-  VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
-             NoImplErr() << "DiskImageResourceTIFF does not support partial writes." );
-  VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
-             IOErr() << "Buffer has wrong dimensions in TIFF write." );
-
-  TIFF* tif = TIFFOpen(m_filename.c_str(), "w");
-  if( !tif  ) vw_throw( vw::IOErr() << "Failed to create \"" << m_filename << "\" using libTIFF." );
-
-  TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, m_format.cols);
-  TIFFSetField(tif, TIFFTAG_IMAGELENGTH, m_format.rows);
-  TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, 8*channel_size(m_format.channel_type));
-
-  if (m_format.pixel_format == VW_PIXEL_RGB ||
-      m_format.pixel_format == VW_PIXEL_RGBA) {
-    TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
-  } else {
-    TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
-  }
-
-  switch (m_format.channel_type) {
-  case VW_CHANNEL_INT8:
-  case VW_CHANNEL_INT16:
-  case VW_CHANNEL_INT32:
-  case VW_CHANNEL_INT64:
-    TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_INT);
-    break;
-  case VW_CHANNEL_UINT8:
-  case VW_CHANNEL_UINT16:
-  case VW_CHANNEL_UINT32:
-  case VW_CHANNEL_UINT64:
-    TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
-    break;
-  case VW_CHANNEL_FLOAT16:
-  case VW_CHANNEL_FLOAT32:
-  case VW_CHANNEL_FLOAT64:
-    TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
-    break;
-  default:
-    vw_throw( IOErr() << "DiskImageResourceTIFF: Unsupported VW channel type." );
-  }
-
-  if (m_format.pixel_format == VW_PIXEL_SCALAR) {
-    // Multi-plane images with simple pixel types are stored in seperate
-    // planes in the TIFF image.
-    TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_SEPARATE);
-    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, m_format.planes);
-  } else {  
-    // Compound pixel types are stored contiguously in TIFF files
-    TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, num_channels(m_format.pixel_format));
-  }
+  VW_ASSERT(bbox.width() == m_format.cols, 
+            ArgumentErr() << "DiskImageResourceTIFF: bounding box must be the same width as image.\n");
 
   // Allocate some buffer memory for the output data
   uint32 scanline_size = num_channels(m_format.pixel_format) * channel_size(m_format.channel_type) * m_format.cols;
@@ -351,9 +356,9 @@ void vw::DiskImageResourceTIFF::write( ImageBuffer const& src, BBox2i const& bbo
   // Write the image data to disk.
   for (uint32 p = 0; p < m_format.planes; p++) {
     ImageBuffer src_row = src_plane;
-    for (uint32 row = 0; row < m_format.rows; row++) {
+    for (uint32 row = 0; row < bbox.height(); row++) {
       convert( dst, src_row );
-      TIFFWriteScanline(tif, (uint8*)buf, row);
+      TIFFWriteScanline(static_cast<TIFF*>(m_tif_ptr), (uint8*)buf, bbox.min()[1]+row, p);
       src_row.data = (uint8*)src_row.data + src_row.rstride;
     }
     src_plane.data = (uint8*)src_plane.data + src_plane.pstride;
@@ -361,8 +366,8 @@ void vw::DiskImageResourceTIFF::write( ImageBuffer const& src, BBox2i const& bbo
 
   // Clean up
   _TIFFfree(buf);
-  TIFFFlush(tif);
-  TIFFClose(tif);
+  TIFFFlush(static_cast<TIFF*>(m_tif_ptr));
+  TIFFClose(static_cast<TIFF*>(m_tif_ptr));
 }
 
 // A FileIO hook to open a file for reading

@@ -37,6 +37,7 @@
 
 /// \cond INTERNAL
 namespace Imf { class InputFile; }
+namespace Imf { class OutputFile; }
 /// \endcond
 
 namespace vw {
@@ -47,7 +48,8 @@ namespace vw {
     DiskImageResourceOpenEXR( std::string const& filename )
       : DiskImageResource( filename )
     {
-      m_file_ptr = 0;
+      m_input_file_ptr = 0;
+      m_output_file_ptr = 0;
       open( filename );
     }
 
@@ -55,7 +57,8 @@ namespace vw {
                               ImageFormat const& format )
       : DiskImageResource( filename )
     {
-      m_file_ptr = 0;
+      m_input_file_ptr = 0;
+      m_output_file_ptr = 0;
       create( filename, format );
     }
     
@@ -78,9 +81,13 @@ namespace vw {
                                                 ImageFormat const& format );
 
   private:
+    const static int m_openexr_rows_per_block = 10;
+
     std::string m_filename;
     Vector2i m_block_size;
-    Imf::InputFile* m_file_ptr;
+    std::vector<std::string> m_labels;
+    Imf::InputFile* m_input_file_ptr;
+    Imf::OutputFile* m_output_file_ptr;
   };
 
 } // namespace vw
