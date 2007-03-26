@@ -286,15 +286,19 @@ namespace math {
     Vector<real_type> Bbuf(maxmn);
     subvector(Bbuf,0,m) = B;
     const int nrhs = 1, lda = A.rows(), ldb = maxmn;
-    real_type s[minmn];
+    real_type *s = new real_type[minmn];
     real_type const rcond = cond;
-    int rank, lwork = -1, info, iwork[ (3*int(log2(minmn+1))+11)*minmn ];
+    int rank, lwork = -1, info;
+    int *iwork = new int[ (3*int(log(minmn+1.)/log(2.))+11)*minmn ]; // log2(x) = log(x)/log(2)
     real_type work_size;
     gelsd( m, n, nrhs, &(Abuf(0,0)), lda, &(Bbuf(0)), ldb, s, rcond, &rank, &work_size, lwork, iwork, &info );
     lwork = int(work_size);
-    real_type work[lwork];
+    real_type *work= new real_type[lwork];
     gelsd( m, n, nrhs, &(Abuf(0,0)), lda, &(Bbuf(0)), ldb, s, rcond, &rank, work, lwork, iwork, &info );
     Bbuf.set_size(n,true);
+    delete[] s;
+    delete[] iwork;
+    delete[] work;
     return Bbuf;
   }
 
