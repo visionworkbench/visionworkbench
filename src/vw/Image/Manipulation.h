@@ -897,9 +897,7 @@ namespace vw {
     typedef typename CompoundChannelType<typename ImageT::pixel_type>::type channel_type;
     typedef typename CopyCVR<typename ImageT::result_type,channel_type>::type result_type;
 
-
-    template <class ArgT>
-    result_type operator()( ArgT& pixel ) const {
+    result_type operator()( typename ImageT::result_type pixel ) const {
       return compound_select_channel<result_type>(pixel,m_channel);
     }
   };
