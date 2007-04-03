@@ -204,7 +204,7 @@ namespace vw {
       // Otherwise, we must rasterize ourselves....
       ImageView<PixelT> buf( bbox.width(), bbox.height(), planes() );
       m_view->rasterize( buf, bbox );
-      return CropView<ImageView<PixelT> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),bbox.width(),bbox.height()) );
+      return CropView<ImageView<PixelT> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),cols(),rows()) );
     }
 
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
