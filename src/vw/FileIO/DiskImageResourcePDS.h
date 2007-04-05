@@ -51,7 +51,7 @@ namespace vw {
     }
     
     DiskImageResourcePDS( std::string const& filename, 
-                          ImageFormat const& format )
+                          ImageFormat const& /*format*/ )
       : DiskImageResource( filename )
     {
       vw_throw( NoImplErr() << "The PDS driver does not yet support creation of PDS files." );
@@ -81,7 +81,7 @@ namespace vw {
     bool query( std::string const& key, float& result ) const {
       std::string result_str;
       if( query( key, result_str ) ) {
-        result = atof( result_str.c_str() );
+        result = (float)atof( result_str.c_str() );
         return true;
       }
       return false;
@@ -111,7 +111,7 @@ namespace vw {
     bool query( std::vector<std::string> const& keys, float& result ) const {
       std::string result_str;
       if( query( keys, result_str ) ) {
-        result = atof( result_str.c_str() );
+        result = (float)atof( result_str.c_str() );
         return true;
       }
       return false;

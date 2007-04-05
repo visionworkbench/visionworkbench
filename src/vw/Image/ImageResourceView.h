@@ -148,7 +148,7 @@ namespace vw {
     inline unsigned planes() const { return 1; }
     
     /// Returns the pixel at the given position in the given plane.
-    result_type operator()( unsigned x, unsigned y, unsigned plane=1 ) const {
+    result_type operator()( unsigned x, unsigned y, unsigned /*plane*/=1 ) const {
       if( ! m_enable_cache )
         vw_throw( LogicErr() << "Non-cacheing ImageResourceViews do not support per-pixel access" );
       int ix = x/m_block_size.x(), iy = y/m_block_size.y();

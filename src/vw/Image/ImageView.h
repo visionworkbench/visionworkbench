@@ -228,7 +228,7 @@ namespace vw {
 
     /// Prepare an ImageView to be rasterized.  Simply returns the 
     /// original image view.
-    inline prerasterize_type prerasterize( BBox2i bbox ) const { return *this; }
+    inline prerasterize_type prerasterize( BBox2i /*bbox*/ ) const { return *this; }
 
     /// Rasterize the image view.  Simply invokes the default 
     /// rasterization function.

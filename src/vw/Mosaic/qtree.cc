@@ -81,8 +81,6 @@ int main( int argc, char *argv[] ) {
       quadtree.set_crop_images( false );
     }
 
-
-    
     quadtree.generate();
   }
   catch( Exception& e ) {

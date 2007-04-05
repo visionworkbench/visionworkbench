@@ -383,7 +383,7 @@ namespace vw {
       typedef typename ProductType<typename SrcT::pixel_type, KernelT>::type AccumT;
 
       SrcAccessT splane = src.origin();
-      EdgeAccessT eplane = edge_view.origin().advance(-c,0);
+      EdgeAccessT eplane = edge_view.origin().advance(-(int)c,0);
       DestAccessT dplane = dest.origin();
       for( unsigned p=0; p<src.planes(); ++p ) {
         SrcAccessT srow = splane;

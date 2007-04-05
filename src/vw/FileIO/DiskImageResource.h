@@ -158,11 +158,11 @@ namespace vw {
       // the order in which these blocks are rasterized, but for now
       // it rasterizes blocks from left to right, then top to bottom.
       Vector2i block_size = r->native_block_size();
-      for (unsigned int j = 0; j < r->rows(); j+= block_size[1]) {
-        for (unsigned int i = 0; i < r->cols(); i+= block_size[0]) {
-          BBox2i current_bbox(Vector2(i,j),
-                              Vector2(std::min(i+block_size[0],r->cols()),
-                                      std::min(j+block_size[1],r->rows())));
+      for (int32 j = 0; j < (int32)r->rows(); j+= block_size[1]) {
+        for (int32 i = 0; i < (int32)r->cols(); i+= block_size[0]) {
+          BBox2i current_bbox(Vector2i(i,j),
+                              Vector2i(std::min(i+block_size[0],(int32)(r->cols())),
+                                       std::min(j+block_size[1],(int32)(r->rows()))));
           // Rasterize the current image block into a region of memory
           // and send it off to the FileIO driver to be written to the file.
           ImageView<typename ImageT::pixel_type> image_block( crop(select_plane(out_image.impl(),p), current_bbox) );

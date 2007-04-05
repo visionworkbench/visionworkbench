@@ -46,6 +46,7 @@
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/Filter.h>
 #include <vw/FileIO/DiskImageResource.h>
+#include <vw/Core/ProgressCallback.h>
 
 namespace vw {
 namespace mosaic {
@@ -105,7 +106,7 @@ namespace mosaic {
       outfile << m_source.rows() << "\n";
     }
 
-    void generate() {
+    void generate( const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
       unsigned maxdim = std::max( m_source.cols(), m_source.rows() );
       m_tree_levels = 1 + unsigned( ceilf( log( maxdim/(float)(m_patch_size-m_patch_overlap) ) / log(2.0) ) );
       m_patch_cache.resize( m_tree_levels );
@@ -124,7 +125,12 @@ namespace mosaic {
       else {
         fs::create_directory( dir_path );
       }
-      generate_branch( "r", m_tree_levels-1, 0, 0 );
+      try {
+        generate_branch( "r", m_tree_levels-1, 0, 0, progress_callback );
+        progress_callback.report_finished();
+      } catch (Aborted) {
+        progress_callback.report_aborted();
+      }
     }
 
     void set_crop_bbox( BBox2i const& bbox ) {
@@ -235,7 +241,13 @@ namespace mosaic {
       write_meta_file( info );
     }
 
-    ImageView<PixelT> generate_branch( std::string name, unsigned level, unsigned x, unsigned y ) {
+    ImageView<PixelT> generate_branch( std::string name, unsigned level, unsigned x, unsigned y, 
+                                       const ProgressCallback &progress_callback ) 
+    {
+      progress_callback.report_progress(0);
+      if (progress_callback.abort_requested()) {
+        vw_throw( Aborted() << "Aborted by ProgressCallback" );
+      }
       ImageView<PixelT> image;
       unsigned scale = 1 << level;
       unsigned interior_size = m_patch_size - m_patch_overlap;
@@ -256,10 +268,15 @@ namespace mosaic {
       }
       else {
         ImageView<PixelT> big_image( 2*interior_size, 2*interior_size );
-        crop( big_image, 0, 0, interior_size, interior_size ) = generate_branch( name + "0", level-1, 2*x, 2*y );
-        crop( big_image, interior_size, 0, interior_size, interior_size ) = generate_branch( name + "1", level-1, 2*x+1, 2*y );
-        crop( big_image, 0, interior_size, interior_size, interior_size ) = generate_branch( name + "2", level-1, 2*x, 2*y+1 );
-        crop( big_image, interior_size, interior_size, interior_size, interior_size ) = generate_branch( name + "3", level-1, 2*x+1, 2*y+1 );
+        SubProgressCallback spcb0( progress_callback,  0., .25 );
+        SubProgressCallback spcb1( progress_callback, .25, .5 );
+        SubProgressCallback spcb2( progress_callback, .5 , .75 );
+        SubProgressCallback spcb3( progress_callback, .75, 1.);
+
+        crop( big_image, 0, 0, interior_size, interior_size ) = generate_branch( name + "0", level-1, 2*x, 2*y, spcb0 );
+        crop( big_image, interior_size, 0, interior_size, interior_size ) = generate_branch( name + "1", level-1, 2*x+1, 2*y, spcb1 );
+        crop( big_image, 0, interior_size, interior_size, interior_size ) = generate_branch( name + "2", level-1, 2*x, 2*y+1, spcb2 );
+        crop( big_image, interior_size, interior_size, interior_size, interior_size ) = generate_branch( name + "3", level-1, 2*x+1, 2*y+1, spcb3 );
         std::vector<float> kernel(2); kernel[0]=0.5; kernel[1]=0.5;
         image.set_size( interior_size, interior_size );
         rasterize( subsample( separable_convolution_filter( big_image, kernel, kernel, 1, 1 ), 2 ), image );
@@ -343,6 +360,8 @@ namespace mosaic {
           }
         }
       }
+
+      progress_callback.report_progress(1);
       return image;
     }
   };

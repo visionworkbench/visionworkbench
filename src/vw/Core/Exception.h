@@ -255,6 +255,9 @@ namespace vw {
   /// Unimplemented functionality exception
   VW_DEFINE_EXCEPTION(NoImplErr, Exception);
 
+  /// Operation aborted partway through (e.g. with ProgressCallback returning Abort)
+  VW_DEFINE_EXCEPTION(Aborted, Exception);
+
 
   /// The abstract exception handler base class, which users  
   /// can subclass to install an alternative exception handler.

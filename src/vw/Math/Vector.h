@@ -347,7 +347,7 @@ namespace math {
     }
 
     /// Change the size of the vector. Elements in memory are preserved when specified.
-    void set_size( unsigned new_size, bool preserve = false ) {
+    void set_size( unsigned new_size, bool /*preserve*/ = false ) {
       // FIXME Actually this always preserves existing elements
       core_.resize(new_size);
     }
