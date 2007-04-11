@@ -84,7 +84,7 @@ namespace stereo {
     ImageView<PixelT> subsample_and_average(ImageView<PixelT> const& img) {
   
       ImageView<PixelT> outImg(img.cols()/2, img.rows()/2,img.planes());		
-      int32 int i, j, p;
+      int32 i, j, p;
       
       for (p = 0; p < outImg.planes() ; p++) {
         for (i = 0; i < outImg.cols(); i++) {
