@@ -39,13 +39,21 @@ vw::Cache& vw::Cache::system_cache() {
 void vw::Cache::allocate( size_t size ) {
   while( m_size+size > m_max_size ) {
     if( ! m_last_valid ) {
-      vw_out(WarningMessage) << "Warning: Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << ")!";
+      vw_out(WarningMessage) << "Warning: Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << "). Current Size = " << m_size << "\n";
       break;
     }
     m_last_valid->invalidate();
   }
   m_size += size;
   VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache allocated " << size << " bytes (" << m_size << " total)" << std::endl; )
+}
+
+void vw::Cache::resize( size_t size ) {
+  m_max_size = size;
+  while( m_size > m_max_size ) {
+    VW_ASSERT( m_last_valid, LogicErr() << "Cache is empty but has nonzero size!" );
+    m_last_valid->invalidate();
+  }
 }
 
 void vw::Cache::deallocate( size_t size ) {
@@ -101,10 +109,3 @@ void vw::Cache::deprioritize( CacheLineBase *line ) {
   m_last_valid = line;
 }
 
-void vw::Cache::resize( size_t size ) {
-  m_max_size = size;
-  while( m_size > m_max_size ) {
-    VW_ASSERT( m_last_valid, LogicErr() << "Cache is empty but has nonzero size!" );
-    m_last_valid->invalidate();
-  }
-}

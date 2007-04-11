@@ -27,11 +27,12 @@
 
 if MAKE_MODULE_CORE
 
-TESTS = TestCompoundTypes TestFunctors TestExceptions
+TESTS = TestCompoundTypes TestFunctors TestExceptions TestCache
 
 nodist_TestCompoundTypes_SOURCES = TestCompoundTypes.cxx
 nodist_TestFunctors_SOURCES = TestFunctors.cxx
 nodist_TestExceptions_SOURCES = TestExceptions.cxx
+nodist_TestCache_SOURCES = TestCache.cxx
 
 endif
 
