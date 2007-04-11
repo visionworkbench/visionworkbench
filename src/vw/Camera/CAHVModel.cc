@@ -292,8 +292,6 @@ namespace camera {
     g = cross_prod(src_camera1.A, src_camera1.V);
     vs = (norm_2(f) + norm_2(g)) / 2.0;
 
-    std::cout << "Hs: " << hs << "   Vs: " << vs << "\n";
-    
     // Use common center and scale to construct common A, H, V 
     app  = src_camera0.A + src_camera1.A;
 
@@ -302,9 +300,6 @@ namespace camera {
     g = cross_prod(app, f); // alter f (CxCy) to be         
     f = cross_prod(g, app); // perpendicular to average A 
     
-    std::cout << "f1: " << f << "   g1: " << g << "\n";
-    
-
     if (dot_prod(f, src_camera0.H) > 0)
       hp = f * hs / (norm_2(f));
     else
@@ -321,8 +316,6 @@ namespace camera {
     
     f = vc * a;
     v = vp + f;
-
-    std::cout << "Hp: " << hp << "   Vp: " << vp << "\n";
     
     dst_camera0.C = src_camera0.C;
     dst_camera0.A = a;
