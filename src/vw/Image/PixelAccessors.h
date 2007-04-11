@@ -37,6 +37,15 @@ namespace vw {
   // Forward-declaration.
   template <class ViewT> struct IsFloatingPointIndexable;
 
+  /// This type computation routine is handy when you are writing a
+  /// functor and you need a template class that returns a
+  /// PixelAccessor's pixel_type as the ::type keyword.  This is handy
+  /// when writing functors for a PerPixelAccessorView, for example.
+  template <class PixelAccessorT> 
+  struct PixelTypeFromPixelAccessor {
+    typedef typename PixelAccessorT::pixel_type type;
+  };
+
   /// A memory striding pixel accessor for traversing an image stored
   /// in memory.
   ///

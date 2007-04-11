@@ -173,7 +173,7 @@ namespace vw {
                            padded_width, padded_height);
       image.rasterize( buf, adjusted_bbox );
       return prerasterize_type( CropView<ImageView<pixel_type> >( buf, BBox2i(-adjusted_bbox.min().x(),-adjusted_bbox.min().y(),
-                                                                              bbox.width(), bbox.height())), m_interp_func);
+                                                                              image.cols(), image.rows())), m_interp_func);
     }
 
     inline prerasterize_type prerasterize( BBox2i bbox ) const {

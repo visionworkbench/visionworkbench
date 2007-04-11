@@ -82,6 +82,15 @@ namespace vw {
     /// Returns the number of channels in the image's pixel type.
     inline unsigned channels() const { return CompoundNumChannels<typename ImplT::pixel_type>::value; }
 
+    /// Returns the number of rows in the image
+    inline int rows() const { return this->impl().rows(); }
+
+    /// Returns the number of cols in the image
+    inline int cols() const { return this->impl().cols(); }
+    
+    /// Returns the number of planes in the image
+    inline int planes() const { return this->impl().planes(); }
+
     /// Returns the format ID of the image's pixel type.
     inline PixelFormatEnum pixel_format() const { return PixelFormatID<typename ImplT::pixel_type>::value; }
 

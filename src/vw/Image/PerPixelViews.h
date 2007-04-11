@@ -35,6 +35,8 @@
 
 #include <vw/Core/Functors.h>
 #include <vw/Image/ImageViewBase.h>
+#include <vw/Image/PixelAccessors.h>
+#include <vw/Math/Vector.h>
 
 namespace vw {
 
@@ -175,6 +177,56 @@ namespace vw {
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
+
+
+
+
+
+
+  /// PixelIndexView
+  ///
+  /// This is a procedurally generated utility view whose pixels are
+  /// Vector3's that contain the column, row, and plane of the image
+  /// at that index (i,j,p).
+  class PixelIndexView : public ImageViewBase<PixelIndexView>
+  {
+    int m_rows, m_cols, m_planes;
+
+  public:
+    typedef Vector3 pixel_type;
+    typedef const pixel_type result_type;
+    typedef ProceduralPixelAccessor<PixelIndexView> pixel_accessor;
+
+    /// Initialize from another view
+    template <class ViewT>
+    PixelIndexView( ViewT const& view ) : 
+      m_rows(view.impl().rows()), m_cols(view.impl().cols()), m_planes(view.impl().planes()) {}
+    
+    /// Initialize explicitly
+    PixelIndexView( int rows, int cols, int planes ) : 
+      m_rows(rows), m_cols(cols), m_planes(planes) {}
+
+    inline unsigned cols() const { return m_cols; }
+    inline unsigned rows() const { return m_rows; }
+    inline unsigned planes() const { return m_planes; }
+    
+    inline pixel_accessor origin() const { return pixel_accessor(*this); }
+
+    inline result_type operator()( int i, int j, int p=0 ) const { 
+      return Vector3(i,j,p);
+    } 
+
+    /// \cond INTERNAL
+    typedef PixelIndexView prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( rows(), cols(), planes() ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    /// \endcond
+  };
+
+  /// Specifies that PixelIndexView objects are fast to access.
+  template<>
+  struct IsMultiplyAccessible<PixelIndexView> : public true_type {};
+
 
 };
 
