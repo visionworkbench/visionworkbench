@@ -79,6 +79,13 @@ vw::DiskImageResourceTIFF::DiskImageResourceTIFF( std::string const& filename,
   create( filename, format );
 }
 
+vw::DiskImageResourceTIFF::~DiskImageResourceTIFF() {
+  if (m_tif_ptr) {
+    TIFFFlush(static_cast<TIFF*>(m_tif_ptr));
+    TIFFClose(static_cast<TIFF*>(m_tif_ptr));
+  }
+}
+
 vw::Vector2i vw::DiskImageResourceTIFF::native_block_size() const {
   return m_info->block_size;
 }
@@ -173,7 +180,7 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
     m_info->block_size = Vector2i(cols(),rows_per_strip);
   }
 
-  TIFFClose( tif );
+  m_tif_ptr = tif;
 }
 
 /// Bind the resource to a file for writing.
@@ -203,6 +210,13 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
   } else {
     TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
   }
+
+  TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, 1);
+  TIFFSetField(tif, TIFFTAG_RESOLUTIONUNIT, RESUNIT_INCH);
+  TIFFSetField(tif, TIFFTAG_XRESOLUTION, 70.0);
+  TIFFSetField(tif, TIFFTAG_YRESOLUTION, 70.0);
+
+  TIFFSetField(tif, TIFFTAG_COMPRESSION,COMPRESSION_LZW);
 
   switch (m_format.channel_type) {
   case VW_CHANNEL_INT8:
@@ -241,7 +255,7 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
   // and should be changed to a one scanline blocksize when we have
   // time to update the rest of the code to support
   // sconline-by-scanline block access.
-  m_info->block_size = Vector2i(cols(),rows());
+  m_info->block_size = Vector2i(cols(),1);
   m_tif_ptr = tif;
 }
 
@@ -251,7 +265,7 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
   VW_ASSERT( int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
              ArgumentErr() << "DiskImageResourceTIFF (read) Error: Destination buffer has wrong dimensions!" );
 
-  TIFF* tif = TIFFOpen( m_filename.c_str(), "r" );
+  TIFF* tif = static_cast<TIFF*>(m_tif_ptr);
   if( !tif ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << m_filename << "\" for reading!" );
 
   if( TIFFIsTiled(tif) ) {
@@ -326,7 +340,6 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
     delete[] pbuf;
     _TIFFfree(buf);
   }
-  TIFFClose(tif);
 }
 
 // Write the given buffer into the disk image.
@@ -366,8 +379,6 @@ void vw::DiskImageResourceTIFF::write( ImageBuffer const& src, BBox2i const& bbo
 
   // Clean up
   _TIFFfree(buf);
-  TIFFFlush(static_cast<TIFF*>(m_tif_ptr));
-  TIFFClose(static_cast<TIFF*>(m_tif_ptr));
 }
 
 // A FileIO hook to open a file for reading
