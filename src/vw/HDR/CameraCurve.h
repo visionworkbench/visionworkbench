@@ -188,17 +188,17 @@ namespace hdr {
     std::vector<Vector<double> > camera_curves(std::vector<ImageView<PixelT> > const &images, double ratio = VW_HDR_DEFAULT_FSTOP_RATIO) {
       typedef typename PixelChannelType<PixelT>::type channel_type;
       
-      unsigned n_channels = PixelNumChannels<PixelT>::value;
+      int32 n_channels = PixelNumChannels<PixelT>::value;
       std::vector<Matrix<double> > pairs(n_channels);
       std::vector<Vector<double> > curves(n_channels);
       
       // Sample each image channel
-      for ( unsigned i = 0; i < n_channels; ++i ) {
+      for ( int32 i = 0; i < n_channels; ++i ) {
         pairs[i] = generate_ldr_intensity_pairs(images, VW_HDR_NUM_PAIRS, i, ratio);
       }
       
       // Compute camera response curve for each channel. 
-      for ( unsigned i = 0; i < n_channels; ++i ) {
+      for ( int32 i = 0; i < n_channels; ++i ) {
         estimate_inverse_camera_curve(pairs[i], curves[i], VW_HDR_RESPONSE_POLYNOMIAL_ORDER);
       }
       
@@ -212,14 +212,14 @@ namespace hdr {
      * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
     template <class PixelT>
     void psi(ImageView<PixelT> &image, std::vector<Vector<double> > const &curves) {
-      unsigned width = image.cols();
-      unsigned height = image.rows();
-      unsigned n_channels = PixelNumChannels<PixelT>::value;
+      int32 width = image.cols();
+      int32 height = image.rows();
+      int32 n_channels = PixelNumChannels<PixelT>::value;
   
-      for ( unsigned channel = 0; channel < n_channels; ++channel ) {
+      for ( int32 channel = 0; channel < n_channels; ++channel ) {
         Vector<double> theta = curves[channel];
-        for ( unsigned col = 0; col < width; ++col ) {
-          for ( unsigned row = 0; row < height; ++row ) {
+        for ( int32 col = 0; col < width; ++col ) {
+          for ( int32 row = 0; row < height; ++row ) {
             // Evaluate the polynomial
             double x = image(col,row)[channel];
             double f_x = 0.0;

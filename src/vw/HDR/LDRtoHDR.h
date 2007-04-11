@@ -66,9 +66,9 @@ namespace hdr {
   ImageView<PixelT> ldr_to_hdr(std::vector<ImageView<PixelT> > images, 
                                std::vector<Vector<double> > const &curves, 
                                std::vector<double> const &brightness_values) {
-    unsigned width = images[0].cols();
-    unsigned height = images[0].rows();
-    unsigned n_channels = PixelNumChannels<PixelT>::value;
+    int32 width = images[0].cols();
+    int32 height = images[0].rows();
+    int32 n_channels = PixelNumChannels<PixelT>::value;
     ImageView<PixelT> hdr_image(width, height);
     ImageView<PixelT> image_sum(width, height);
     ImageView<double> weight_sum(width, height);
@@ -92,8 +92,8 @@ namespace hdr {
     
     // Divide by sum of weights, compensating for very small weightings
     std::vector<Vector<int,2> > sat;
-    for ( unsigned col = 0; col < width; ++col ) {
-      for ( unsigned row = 0; row < height; ++row ) {
+    for ( int32 col = 0; col < width; ++col ) {
+      for ( int32 row = 0; row < height; ++row ) {
         if (weight_sum(col, row) < 0.2) {
           sat.push_back(Vector<int,2>(col, row));
           weight_sum(col, row) = 1.0;
@@ -118,7 +118,7 @@ namespace hdr {
       } else {
         value = min;
       }
-      for ( unsigned channel = 0; channel < n_channels; ++channel ) {
+      for ( int32 channel = 0; channel < n_channels; ++channel ) {
         hdr_image(col, row)[channel] = value;
       }
     }
@@ -149,17 +149,17 @@ namespace hdr {
                                        std::vector<double> brightness_values) {
     typedef typename PixelChannelType<PixelT>::type channel_type;
     
-    unsigned n_channels = PixelNumChannels<PixelT>::value;
+    int32 n_channels = PixelNumChannels<PixelT>::value;
     std::vector<Matrix<double> > pairs(n_channels);
     std::vector<Vector<double> > curves(n_channels);
 
     // Sample each image channel
-    for ( unsigned i = 0; i < n_channels; ++i ) {
+    for ( int32 i = 0; i < n_channels; ++i ) {
       pairs[i] = generate_ldr_intensity_pairs(images, VW_HDR_NUM_PAIRS, i, brightness_values);
     }
 
     // Compute camera response curve for each channel. See CameraCurve.h.
-    for ( unsigned i = 0; i < n_channels; ++i ) {
+    for ( int32 i = 0; i < n_channels; ++i ) {
       estimate_inverse_camera_curve(pairs[i], curves[i], VW_HDR_RESPONSE_POLYNOMIAL_ORDER);
     }
 

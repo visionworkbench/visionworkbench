@@ -61,7 +61,7 @@ namespace vw {
   class ImageView : public ImageViewBase<ImageView<PixelT> >
   {
     boost::shared_array<PixelT> m_data;
-    unsigned m_cols, m_rows, m_planes;
+    int32 m_cols, m_rows, m_planes;
     PixelT *m_origin;
     ptrdiff_t m_cstride, m_rstride, m_pstride;
 
@@ -93,7 +93,7 @@ namespace vw {
         m_rstride(other.m_rstride), m_pstride(other.m_pstride) {}
 
     /// Constructs an empty image with the given dimensions.
-    ImageView( unsigned cols, unsigned rows, unsigned planes=1 )
+    ImageView( int32 cols, int32 rows, int32 planes=1 )
       : m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0), 
         m_rstride(0), m_pstride(0) {
       set_size( cols, rows, planes );
@@ -124,13 +124,13 @@ namespace vw {
     }
 
     /// Returns the number of columns in the image.
-    inline unsigned cols() const { return m_cols; }
+    inline int32 cols() const { return m_cols; }
 
     /// Returns the number of rows in the image.
-    inline unsigned rows() const { return m_rows; }
+    inline int32 rows() const { return m_rows; }
 
     /// Returns the number of planes in the image.
-    inline unsigned planes() const { return m_planes; }
+    inline int32 planes() const { return m_planes; }
 
     /// Returns a pixel_accessor pointing to the top-left corner of the first plane.
     inline pixel_accessor origin() const {
@@ -138,15 +138,16 @@ namespace vw {
     }
 
     /// Returns the pixel at the given position in the given plane.
-    inline result_type operator()( int col, int row, int plane=0 ) const {
+    inline result_type operator()( int32 col, int32 row, int32 plane=0 ) const {
       return *(m_origin + col*m_cstride + row*m_rstride + plane*m_pstride);
     }
   
     /// Adjusts the size of the image, allocating a new buffer if the size has changed.
-    void set_size( unsigned cols, unsigned rows, unsigned planes = 1 ) {
+    void set_size( int32 cols, int32 rows, int32 planes = 1 ) {
       if( cols==m_cols && rows==m_rows && planes==m_planes ) return;
         
-      unsigned size = cols*rows*planes;
+      // FIXME: We can do better than this on 64-bit machines.
+      int32 size = cols*rows*planes;
       if( size==0 ) {
         m_data.reset();
       }
@@ -253,7 +254,7 @@ namespace vw {
 
   template <class PixelT>
   inline void read_image( ImageView<PixelT>& dst, ImageResource const& src, BBox2i const& bbox ) {
-    unsigned planes = 1;
+    int32 planes = 1;
     if( ! IsCompound<PixelT>::value ) {
       // The image has a fundamental pixel type
       if( src.planes()>1 && src.channels()>1 )
@@ -283,7 +284,7 @@ namespace vw {
   inline void read_image( ImageViewBase<ImageT> const& dst, ImageResource const& src, BBox2i const& bbox ) {
     ImageView<typename ImageT::pixel_type> intermediate;
     read_image( intermediate, src, bbox );
-    dst = intermediate;
+    dst.impl() = intermediate;
   }
 
   template <class ImageT>

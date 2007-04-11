@@ -25,10 +25,11 @@
 /// 
 /// Standard pixel accessor types for general image views.
 /// 
-#ifndef __VW_IMAGE_PIXEL_ACCESSORS_H__
-#define __VW_IMAGE_PIXEL_ACCESSORS_H__
+#ifndef __VW_IMAGE_PIXELACCESSORS_H__
+#define __VW_IMAGE_PIXELACCESSORS_H__
 
 #include <boost/type_traits.hpp>
+#include <boost/mpl/if.hpp>
 
 #include <vw/Core/FundamentalTypes.h>
 
@@ -88,16 +89,16 @@ namespace vw {
   /// invokes the view's function operator when dereferenced.
   template <class ViewT>
   class ProceduralPixelAccessor {
-    typedef typename boost::mpl::if_<IsFloatingPointIndexable<ViewT>, float, int>::type offset_type;
+    typedef typename boost::mpl::if_<IsFloatingPointIndexable<ViewT>, double, int32>::type offset_type;
     ViewT const& m_view;
     offset_type m_c, m_r;
-    int m_p;
+    int32 m_p;
   public:
     typedef typename ViewT::pixel_type pixel_type;
     typedef typename ViewT::result_type result_type;
 
     ProceduralPixelAccessor( ViewT const& view ) : m_view(view), m_c(), m_r(), m_p() {}
-    ProceduralPixelAccessor( ViewT const& view, offset_type c, offset_type r, int p=0 ) : m_view(view), m_c(c), m_r(r), m_p(p) {}
+    ProceduralPixelAccessor( ViewT const& view, offset_type c, offset_type r, int32 p=0 ) : m_view(view), m_c(c), m_r(r), m_p(p) {}
 
     inline ProceduralPixelAccessor& next_col() { ++m_c; return *this; }
     inline ProceduralPixelAccessor& prev_col() { --m_c; return *this; }
@@ -105,11 +106,11 @@ namespace vw {
     inline ProceduralPixelAccessor& prev_row() { --m_r; return *this; }
     inline ProceduralPixelAccessor& next_plane() { ++m_p; return *this; }
     inline ProceduralPixelAccessor& prev_plane() { --m_p; return *this; }
-    inline ProceduralPixelAccessor& advance( offset_type dc, offset_type dr, int dp=0 ) { m_c+=dc; m_r+=dr; m_p+=dp; return *this; }
+    inline ProceduralPixelAccessor& advance( offset_type dc, offset_type dr, int32 dp=0 ) { m_c+=dc; m_r+=dr; m_p+=dp; return *this; }
 
     inline result_type operator*() const { return m_view(m_c,m_r,m_p); }
   };
 
 } // namespace vw
 
-#endif // __VW_IMAGE_PIXEL_ACCESSORS_H__
+#endif // __VW_IMAGE_PIXELACCESSORS_H__

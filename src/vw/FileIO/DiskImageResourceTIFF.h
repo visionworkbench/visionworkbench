@@ -35,7 +35,7 @@
 
 namespace vw {
 
-  struct DiskImageResourceInfoTIFF;
+  class DiskImageResourceInfoTIFF;
 
   class DiskImageResourceTIFF : public DiskImageResource {
   public:
@@ -45,7 +45,7 @@ namespace vw {
     DiskImageResourceTIFF( std::string const& filename, 
                            ImageFormat const& format );
     
-    virtual ~DiskImageResourceTIFF();
+    virtual ~DiskImageResourceTIFF() {}
     
     virtual Vector2i native_block_size() const;
 
@@ -66,7 +66,6 @@ namespace vw {
   private:
     boost::shared_ptr<DiskImageResourceInfoTIFF> m_info;
     bool m_use_compression;
-    void* m_tif_ptr;
   };
 
 } // namespace vw

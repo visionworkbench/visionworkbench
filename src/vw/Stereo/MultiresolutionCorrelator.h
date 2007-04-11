@@ -14,7 +14,7 @@ namespace stereo {
   ImageView<PixelT> subsample_by_two(ImageView<PixelT> &img) {
     
     ImageView<PixelT> outImg(img.cols()/2, img.rows()/2,img.planes());		
-    unsigned int i, j, p;
+    int32 i, j, p;
     
     for (p = 0; p < outImg.planes() ; p++) {
       for (i = 0; i < outImg.cols(); i++) {
@@ -40,18 +40,18 @@ namespace stereo {
 //     typedef typename ViewT::pixel_type pixel_type;
 //     typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
 
-//     unsigned num_channels = PixelNumChannels<typename ViewT::pixel_type>::value;
+//     int32 num_channels = PixelNumChannels<typename ViewT::pixel_type>::value;
 
 //     double accum = 0;
 
 //     pixel_accessor plane_iter = m_view.origin();
-//     for (unsigned p = 0; p < m_view.planes(); p++, plane_iter.next_plane()) { 
+//     for (int32 p = 0; p < m_view.planes(); p++, plane_iter.next_plane()) { 
 //       pixel_accessor col_iter = plane_iter;
-//       for (unsigned i = 0; i < m_view.cols(); i++, col_iter.next_col()) {
+//       for (int32 i = 0; i < m_view.cols(); i++, col_iter.next_col()) {
 //         pixel_accessor row_iter = col_iter;
-//         for (unsigned j = 0; j < m_view.rows(); j++, row_iter.next_row()) {
+//         for (int32 j = 0; j < m_view.rows(); j++, row_iter.next_row()) {
 // 					pixel_type pix = *row_iter;
-//           for (unsigned channel = 0; channel < num_channels; channel++) {
+//           for (int32 channel = 0; channel < num_channels; channel++) {
 //             channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
 //             accum += *row_iter;
 //           }
@@ -194,8 +194,8 @@ namespace stereo {
       }
 
       //     // Now, clean up the disparity map by rejecting outliers 
-      //     unsigned rm_half_kernel = 5 / (int)powf(2,levels) + 1;
-      //     unsigned rm_min_matches_percent = 60 / levels;
+      //     int32 rm_half_kernel = 5 / (int32)powf(2,levels) + 1;
+      //     int32 rm_min_matches_percent = 60 / levels;
       //     double rm_threshold = 3;
       //     for(int nn=0; nn < 1; nn++) {  // Run the clean up routine three times
       //       disparity::clean_up(disparity_pyramid[levels-1],

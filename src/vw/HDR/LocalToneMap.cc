@@ -39,8 +39,8 @@ ImageView<double> ashikhmin_world_adaptation_luminance(ImageView<double> L_w, do
 
   cout << "Computing L_wa\n";
   Map L_wa(L_w.cols(), L_w.rows());
-  for ( unsigned x = 0; x < L_wa.cols(); ++x ) {
-    for ( unsigned y = 0; y < L_wa.rows(); ++y ) {
+  for ( int32 x = 0; x < L_wa.cols(); ++x ) {
+    for ( int32 y = 0; y < L_wa.rows(); ++y ) {
       unsigned s_t = 1;
       while ((s_t < ASH_MAX_KERNEL) && (V[s_t - 1](x,y) <= threshold)) {
         ++s_t;

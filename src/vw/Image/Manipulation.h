@@ -79,12 +79,12 @@ namespace vw {
       image.rasterize( m_child, BBox2i(0,0,image.cols(),image.rows()) );
     }
 
-    inline unsigned cols() const { return m_child.cols(); }
-    inline unsigned rows() const { return m_child.rows(); }
-    inline unsigned planes() const { return m_child.planes(); }
+    inline int32 cols() const { return m_child.cols(); }
+    inline int32 rows() const { return m_child.rows(); }
+    inline int32 planes() const { return m_child.planes(); }
 
     inline pixel_accessor origin() const { return m_child.origin(); }
-    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(i,j,p); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_child(i,j,p); }
 
     typedef CopyView prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return *this; }
@@ -141,17 +141,23 @@ namespace vw {
 
     TransposeView( ImageT const& image ) : m_child(image) {}
 
-    inline unsigned cols() const { return m_child.rows(); }
-    inline unsigned rows() const { return m_child.cols(); }
-    inline unsigned planes() const { return m_child.planes(); }
+    inline int32 cols() const { return m_child.rows(); }
+    inline int32 rows() const { return m_child.cols(); }
+    inline int32 planes() const { return m_child.planes(); }
 
     inline pixel_accessor origin() const { return m_child.origin(); }
 
-    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(j,i,p); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_child(j,i,p); }
+
+    template <class ViewT>
+    TransposeView const& operator=( ImageViewBase<ViewT> const& view ) const {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
 
     template <class ViewT>
     TransposeView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      *const_cast<const TransposeView*>(this) = view.impl();
       return *this;
     }
 
@@ -218,17 +224,23 @@ namespace vw {
 
     Rotate180View( ImageT const& image ) : m_child(image) {}
 
-    inline unsigned cols() const { return m_child.cols(); }
-    inline unsigned rows() const { return m_child.rows(); }
-    inline unsigned planes() const { return m_child.planes(); }
+    inline int32 cols() const { return m_child.cols(); }
+    inline int32 rows() const { return m_child.rows(); }
+    inline int32 planes() const { return m_child.planes(); }
 
     inline pixel_accessor origin() const { return m_child.origin().advance(cols()-1,rows()-1); }
 
-    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(cols()-1-i,rows()-1-j,p); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_child(cols()-1-i,rows()-1-j,p); }
+
+    template <class ViewT>
+    Rotate180View const& operator=( ImageViewBase<ViewT> const& view ) const {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
 
     template <class ViewT>
     Rotate180View& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      *const_cast<const Rotate180View*>(this) = view.impl();
       return *this;
     }
 
@@ -294,17 +306,23 @@ namespace vw {
 
     Rotate90CWView( ImageT const& image ) : m_child(image) {}
 
-    inline unsigned cols() const { return m_child.rows(); }
-    inline unsigned rows() const { return m_child.cols(); }
-    inline unsigned planes() const { return m_child.planes(); }
+    inline int32 cols() const { return m_child.rows(); }
+    inline int32 rows() const { return m_child.cols(); }
+    inline int32 planes() const { return m_child.planes(); }
 
     inline pixel_accessor origin() const { return m_child.origin().advance(0,cols()-1); }
 
-    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(j,cols()-1-i,p); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_child(j,cols()-1-i,p); }
+
+    template <class ViewT>
+    Rotate90CWView const& operator=( ImageViewBase<ViewT> const& view ) const {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
 
     template <class ViewT>
     Rotate90CWView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      *const_cast<const Rotate90CWView*>(this) = view.impl();
       return *this;
     }
 
@@ -371,17 +389,23 @@ namespace vw {
 
     Rotate90CCWView( ImageT const& image ) : m_child(image) {}
 
-    inline unsigned cols() const { return m_child.rows(); }
-    inline unsigned rows() const { return m_child.cols(); }
-    inline unsigned planes() const { return m_child.planes(); }
+    inline int32 cols() const { return m_child.rows(); }
+    inline int32 rows() const { return m_child.cols(); }
+    inline int32 planes() const { return m_child.planes(); }
 
     inline pixel_accessor origin() const { return m_child.origin().advance(rows()-1,0); }
 
-    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(rows()-1-j,i,p); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_child(rows()-1-j,i,p); }
+
+    template <class ViewT>
+    Rotate90CCWView const& operator=( ImageViewBase<ViewT> const& view ) const {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
 
     template <class ViewT>
     Rotate90CCWView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      *const_cast<const Rotate90CCWView*>(this) = view.impl();
       return *this;
     }
 
@@ -448,21 +472,27 @@ namespace vw {
 
     FlipVerticalView( ImageT const& image ) : m_child(image) {}
 
-    inline unsigned cols() const { return m_child.cols(); }
-    inline unsigned rows() const { return m_child.rows(); }
-    inline unsigned planes() const { return m_child.planes(); }
+    inline int32 cols() const { return m_child.cols(); }
+    inline int32 rows() const { return m_child.rows(); }
+    inline int32 planes() const { return m_child.planes(); }
 
     inline pixel_accessor origin() const { return m_child.origin().advance(0,rows()-1); }
 
-    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(i,rows()-1-j,p); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_child(i,rows()-1-j,p); }
 
     ImageT const& child() const {
       return m_child;
     }
 
     template <class ViewT>
-    FlipVerticalView& operator=( ImageViewBase<ViewT> const& view ) {
+    FlipVerticalView const& operator=( ImageViewBase<ViewT> const& view ) const {
       view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
+
+    template <class ViewT>
+    FlipVerticalView& operator=( ImageViewBase<ViewT> const& view ) {
+      *const_cast<const FlipVerticalView*>(this) = view.impl();
       return *this;
     }
 
@@ -525,21 +555,27 @@ namespace vw {
 
     FlipHorizontalView( ImageT const& image ) : m_child(image) {}
 
-    inline unsigned cols() const { return m_child.cols(); }
-    inline unsigned rows() const { return m_child.rows(); }
-    inline unsigned planes() const { return m_child.planes(); }
+    inline int32 cols() const { return m_child.cols(); }
+    inline int32 rows() const { return m_child.rows(); }
+    inline int32 planes() const { return m_child.planes(); }
 
     inline pixel_accessor origin() const { return m_child.origin().advance(cols()-1,0); }
 
-    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(cols()-1-i,j,p); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_child(cols()-1-i,j,p); }
 
     ImageT const& child() const {
       return m_child;
     }
 
     template <class ViewT>
-    FlipHorizontalView& operator=( ImageViewBase<ViewT> const& view ) {
+    FlipHorizontalView const& operator=( ImageViewBase<ViewT> const& view ) const {
       view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
+
+    template <class ViewT>
+    FlipHorizontalView& operator=( ImageViewBase<ViewT> const& view ) {
+      *const_cast<const FlipHorizontalView*>(this) = view.impl();
       return *this;
     }
 
@@ -570,18 +606,18 @@ namespace vw {
   template <class ImageT>
   class CropView : public ImageViewBase< CropView<ImageT> > {
   private:
-    typedef typename boost::mpl::if_<IsFloatingPointIndexable<ImageT>, float, int>::type offset_type;
+    typedef typename boost::mpl::if_<IsFloatingPointIndexable<ImageT>, double, int32>::type offset_type;
 
     ImageT m_child;
     offset_type m_ci, m_cj;
-    unsigned m_di, m_dj;
+    int32 m_di, m_dj;
 
   public:
     typedef typename ImageT::pixel_type pixel_type;
     typedef typename ImageT::result_type result_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
-    CropView( ImageT const& image, offset_type const upper_left_i, offset_type const upper_left_j, unsigned const width, unsigned const height ) : 
+    CropView( ImageT const& image, offset_type const upper_left_i, offset_type const upper_left_j, int32 const width, int32 const height ) : 
       m_child(image), m_ci(upper_left_i), m_cj(upper_left_j), m_di(width), m_dj(height) {}
 
     template<class RealT>
@@ -589,25 +625,36 @@ namespace vw {
       m_child(image), 
       m_ci((offset_type)(bbox.min()[0])), 
       m_cj((offset_type)(bbox.min()[1])), 
-      m_di((unsigned)round(bbox.width())), 
-      m_dj((unsigned)round(bbox.height())) {}
+      m_di((int32)round(bbox.width())), 
+      m_dj((int32)round(bbox.height())) {}
 
-    inline unsigned cols() const { return m_di; }
-    inline unsigned rows() const { return m_dj; }
-    inline unsigned planes() const { return m_child.planes(); }
+    inline int32 cols() const { return m_di; }
+    inline int32 rows() const { return m_dj; }
+    inline int32 planes() const { return m_child.planes(); }
 
     inline pixel_accessor origin() const { return m_child.origin().advance(m_ci, m_cj); }
 
-    inline result_type operator()( offset_type i, offset_type j, int p=0 ) const { return m_child(m_ci + i, m_cj + j, p); }
+    inline result_type operator()( offset_type i, offset_type j, int32 p=0 ) const { return m_child(m_ci + i, m_cj + j, p); }
+
+    CropView const& operator=( CropView const& view ) const {
+      view.rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
 
     CropView& operator=( CropView const& view ) {
-      view.rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      *const_cast<const CropView*>(this) = view;
+      return *this;
+    }
+
+    template <class ViewT>
+    CropView const& operator=( ImageViewBase<ViewT> const& view ) const {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
     }
 
     template <class ViewT>
     CropView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      *const_cast<const CropView*>(this) = view;
       return *this;
     }
 
@@ -638,7 +685,7 @@ namespace vw {
 
   /// Crop an image.
   template <class ImageT>
-  inline CropView<ImageT> crop( ImageViewBase<ImageT> const& v, int upper_left_x, int upper_left_y, int width, int height ) {
+  inline CropView<ImageT> crop( ImageViewBase<ImageT> const& v, int32 upper_left_x, int32 upper_left_y, int32 width, int32 height ) {
     return CropView<ImageT>( v.impl(), upper_left_x, upper_left_y, width, height );
   }
 
@@ -657,11 +704,11 @@ namespace vw {
   template <class ChildT>
   class SubsamplePixelAccessor {
     ChildT m_child;
-    unsigned m_xdelta, m_ydelta;
+    int32 m_xdelta, m_ydelta;
   public:
     typedef typename ChildT::pixel_type pixel_type;
     typedef typename ChildT::result_type result_type;
-    SubsamplePixelAccessor( ChildT const& acc , unsigned xdelta, unsigned ydelta) : m_child(acc), m_xdelta(xdelta), m_ydelta(ydelta) {}
+    SubsamplePixelAccessor( ChildT const& acc , int32 xdelta, int32 ydelta) : m_child(acc), m_xdelta(xdelta), m_ydelta(ydelta) {}
 
     inline SubsamplePixelAccessor& next_col() { m_child.advance(  m_xdelta, 0 ); return *this; }
     inline SubsamplePixelAccessor& prev_col() { m_child.advance( -m_xdelta, 0 ); return *this; }
@@ -678,21 +725,21 @@ namespace vw {
   template <class ImageT>
   class SubsampleView : public ImageViewBase<SubsampleView<ImageT> > {
     ImageT m_child;
-    unsigned m_xdelta, m_ydelta;
+    int32 m_xdelta, m_ydelta;
   public:
     typedef typename ImageT::pixel_type pixel_type;
     typedef typename ImageT::result_type result_type;
     typedef SubsamplePixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
 
-    SubsampleView( ImageT const& image, unsigned subsampling_factor ) : m_child(image), m_xdelta(subsampling_factor), m_ydelta(subsampling_factor) {}
-    SubsampleView( ImageT const& image, unsigned xfactor, unsigned yfactor ) : m_child(image), m_xdelta(xfactor), m_ydelta(yfactor) {}
+    SubsampleView( ImageT const& image, int32 subsampling_factor ) : m_child(image), m_xdelta(subsampling_factor), m_ydelta(subsampling_factor) {}
+    SubsampleView( ImageT const& image, int32 xfactor, int32 yfactor ) : m_child(image), m_xdelta(xfactor), m_ydelta(yfactor) {}
 
-    inline unsigned cols() const { return 1 + (m_child.cols()-1)/m_xdelta; }
-    inline unsigned rows() const { return 1 + (m_child.rows()-1)/m_ydelta; }
-    inline unsigned planes() const { return m_child.planes(); }
+    inline int32 cols() const { return 1 + (m_child.cols()-1)/m_xdelta; }
+    inline int32 rows() const { return 1 + (m_child.rows()-1)/m_ydelta; }
+    inline int32 planes() const { return m_child.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(m_child.origin(), m_xdelta, m_ydelta); }
-    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(m_xdelta*i,m_ydelta*j,p); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_child(m_xdelta*i,m_ydelta*j,p); }
 
     ImageT const& child() const { return m_child; }
 
@@ -714,7 +761,7 @@ namespace vw {
   /// apply some sort of anti-aliasing filter prior to calling this
   /// function.
   template <class ImageT>
-  inline SubsampleView<ImageT> subsample( ImageT const& v, unsigned subsampling_factor ) {
+  inline SubsampleView<ImageT> subsample( ImageT const& v, int32 subsampling_factor ) {
     return SubsampleView<ImageT>( v, subsampling_factor );
   }
 
@@ -724,7 +771,7 @@ namespace vw {
   /// typically want to apply some sort of anti-aliasing filter prior
   /// to calling this function.
   template <class ImageT>
-  inline SubsampleView<ImageT> subsample( ImageT const& v, unsigned xfactor, unsigned yfactor ) {
+  inline SubsampleView<ImageT> subsample( ImageT const& v, int32 xfactor, int32 yfactor ) {
     return SubsampleView<ImageT>( v, xfactor, yfactor );
   }
 
@@ -738,24 +785,30 @@ namespace vw {
   template <class ImageT>
   class SelectColView : public ImageViewBase<SelectColView<ImageT> > {
     ImageT m_child;
-    unsigned m_col;
+    int32 m_col;
   public:
     typedef typename ImageT::pixel_type pixel_type;
     typedef typename ImageT::result_type result_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
-    SelectColView( ImageT const& image, unsigned col ) : m_child(image), m_col(col) {}
+    SelectColView( ImageT const& image, int32 col ) : m_child(image), m_col(col) {}
 
-    inline unsigned cols() const { return 1; }
-    inline unsigned rows() const { return m_child.rows(); }
-    inline unsigned planes() const { return m_child.planes(); }
+    inline int32 cols() const { return 1; }
+    inline int32 rows() const { return m_child.rows(); }
+    inline int32 planes() const { return m_child.planes(); }
 
     inline pixel_accessor origin() const { return m_child.origin().advance(m_col,0,0); }
-    inline result_type operator()( int i, int j, int p=0) const { return m_child(m_col,j,p); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0) const { return m_child(m_col,j,p); }
+
+    template <class ViewT>
+    SelectColView const& operator=( ImageViewBase<ViewT> const& view ) const {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
 
     template <class ViewT>
     SelectColView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      *const_cast<const SelectColView*>(this) = view.impl();
       return *this;
     }
 
@@ -776,7 +829,7 @@ namespace vw {
   /// writeable view of a single column of a multi-column image.  
   /// \see vw::SelectColView
   template <class ImageT>
-  SelectColView<ImageT> select_col( ImageViewBase<ImageT> const& v, unsigned col ) {
+  SelectColView<ImageT> select_col( ImageViewBase<ImageT> const& v, int32 col ) {
     return SelectColView<ImageT>( v.impl(), col );
   }
 
@@ -790,25 +843,31 @@ namespace vw {
   template <class ImageT>
   class SelectRowView : public ImageViewBase<SelectRowView<ImageT> > {
     ImageT m_child;
-    unsigned m_row;
+    int32 m_row;
   public:
     typedef typename ImageT::pixel_type pixel_type;
     typedef typename ImageT::result_type result_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
-    SelectRowView( ImageT const& image, unsigned row ) : m_child(image), m_row(row) {}
+    SelectRowView( ImageT const& image, int32 row ) : m_child(image), m_row(row) {}
 
-    inline unsigned cols() const { return m_child.cols(); }
-    inline unsigned rows() const { return 1; }
-    inline unsigned planes() const { return m_child.planes(); }
+    inline int32 cols() const { return m_child.cols(); }
+    inline int32 rows() const { return 1; }
+    inline int32 planes() const { return m_child.planes(); }
 
     inline pixel_accessor origin() const { return m_child.origin().advance(0,m_row,0); }
 
-    inline result_type operator()( int i, int j, int p=0) const { return m_child(i,m_row,p); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0) const { return m_child(i,m_row,p); }
+
+    template <class ViewT>
+    SelectRowView const& operator=( ImageViewBase<ViewT> const& view ) const {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
 
     template <class ViewT>
     SelectRowView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      *const_cast<const SelectRowView*>(this) = view.impl();
       return *this;
     }
 
@@ -825,7 +884,7 @@ namespace vw {
   /// writeable view of a single row of a multi-row image.  
   /// \see vw::SelectRowView
   template <class ImageT>
-  SelectRowView<ImageT> select_row( ImageViewBase<ImageT> const& v, unsigned row ) {
+  SelectRowView<ImageT> select_row( ImageViewBase<ImageT> const& v, int32 row ) {
     return SelectRowView<ImageT>( v.impl(), row );
   }
 
@@ -839,24 +898,30 @@ namespace vw {
   template <class ImageT>
   class SelectPlaneView : public ImageViewBase<SelectPlaneView<ImageT> > {
     ImageT m_child;
-    unsigned m_plane;
+    int32 m_plane;
   public:
     typedef typename ImageT::pixel_type pixel_type;
     typedef typename ImageT::result_type result_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
-    SelectPlaneView( ImageT const& image, unsigned plane ) : m_child(image), m_plane(plane) {}
+    SelectPlaneView( ImageT const& image, int32 plane ) : m_child(image), m_plane(plane) {}
 
-    inline unsigned cols() const { return m_child.cols(); }
-    inline unsigned rows() const { return m_child.rows(); }
-    inline unsigned planes() const { return 1; }
+    inline int32 cols() const { return m_child.cols(); }
+    inline int32 rows() const { return m_child.rows(); }
+    inline int32 planes() const { return 1; }
 
     inline pixel_accessor origin() const { return m_child.origin().advance(0,0,m_plane); }
-    inline result_type operator()( int i, int j, int p=0 ) const { return m_child(i,j,m_plane+p); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_child(i,j,m_plane+p); }
+
+    template <class ViewT>
+    SelectPlaneView const& operator=( ImageViewBase<ViewT> const& view ) const {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
 
     template <class ViewT>
     SelectPlaneView& operator=( ImageViewBase<ViewT> const& view ) {
-      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      *const_cast<const SelectPlaneView*>(this) = view.impl();
       return *this;
     }
 
@@ -877,7 +942,7 @@ namespace vw {
   /// returns a writeable view of a single plane of a multi-plane
   /// image.  \see vw::SelectPlaneView
   template <class ImageT>
-  SelectPlaneView<ImageT> select_plane( ImageViewBase<ImageT> const& v, unsigned plane ) {
+  SelectPlaneView<ImageT> select_plane( ImageViewBase<ImageT> const& v, int32 plane ) {
     return SelectPlaneView<ImageT>( v.impl(), plane );
   }
 
@@ -889,9 +954,9 @@ namespace vw {
   /// A channel selecting functor, used by \ref select_channel().
   template <class ImageT>
   struct SelectChannelFunctor {
-    int m_channel;
+    int32 m_channel;
   public:
-    SelectChannelFunctor( int channel ) : m_channel(channel) {}
+    SelectChannelFunctor( int32 channel ) : m_channel(channel) {}
 
     // Computes an appropriate reference-to-channel type.
     typedef typename CompoundChannelType<typename ImageT::pixel_type>::type channel_type;
@@ -907,7 +972,7 @@ namespace vw {
   /// image.
   template <class ImageT>
   UnaryPerPixelView<ImageT,SelectChannelFunctor<ImageT> >
-  inline select_channel( ImageViewBase<ImageT>& image, int channel ) {
+  inline select_channel( ImageViewBase<ImageT>& image, int32 channel ) {
     return UnaryPerPixelView<ImageT,SelectChannelFunctor<ImageT> >( image.impl(), SelectChannelFunctor<ImageT>(channel) );
   }
 
@@ -916,7 +981,7 @@ namespace vw {
   /// multi-channel image.
   template <class ImageT>
   UnaryPerPixelView<ImageT,SelectChannelFunctor<const ImageT> >
-  inline select_channel( ImageViewBase<ImageT> const& image, int channel ) {
+  inline select_channel( ImageViewBase<ImageT> const& image, int32 channel ) {
     return UnaryPerPixelView<ImageT,SelectChannelFunctor<const ImageT> >( image.impl(), SelectChannelFunctor<const ImageT>(channel) );
   }
 
@@ -956,7 +1021,7 @@ namespace vw {
   {
   private:
     ChildT m_child;
-    unsigned m_channel;
+    int32 m_channel;
   public:
     typedef typename CompoundChannelType<typename ChildT::pixel_type>::type pixel_type;
     typedef typename CopyCVR<typename ChildT::result_type, pixel_type>::type result_type;
@@ -991,19 +1056,25 @@ namespace vw {
       VW_ASSERT( m_child.planes()==1 , ArgumentErr() << "ChannelsToPlanesView: The image must be single plane.");
     }
     
-    inline unsigned cols() const { return m_child.cols(); }
-    inline unsigned rows() const { return m_child.rows(); }
-    inline unsigned planes() const { return m_child.channels(); }
+    inline int32 cols() const { return m_child.cols(); }
+    inline int32 rows() const { return m_child.rows(); }
+    inline int32 planes() const { return m_child.channels(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(m_child.origin()); }
 
-    inline result_type operator()( int i, int j, int p=0 ) const {
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const {
       return compound_select_channel<result_type>(m_child(i,j),p);
     }
 
     template <class ViewT>
-    ChannelsToPlanesView& operator=( ImageViewBase<ViewT> const& view ) {
+    ChannelsToPlanesView const& operator=( ImageViewBase<ViewT> const& view ) const {
       view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
+
+    template <class ViewT>
+    ChannelsToPlanesView& operator=( ImageViewBase<ViewT> const& view ) {
+      *const_cast<const ChannelsToPlanesView*>(this) = view.impl();
       return *this;
     }
 
@@ -1060,16 +1131,16 @@ namespace vw {
                  ArgumentErr() << "PlanesToChannelsView: The image must be multi-plane, single-channel.");
     }
     
-    inline unsigned cols() const { return m_child.cols(); }
-    inline unsigned rows() const { return m_child.rows(); }
-    inline unsigned planes() const { return 1; }
+    inline int32 cols() const { return m_child.cols(); }
+    inline int32 rows() const { return m_child.rows(); }
+    inline int32 planes() const { return 1; }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
-    inline result_type operator()( int i, int j, int p=0 ) const {
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const {
       result_type result;
       typedef typename CompoundChannelType<result_type>::type channel_type;
-      for ( unsigned c=0; c<CompoundNumChannels<PixelT>::value; ++c )
+      for ( int32 c=0; c<CompoundNumChannels<PixelT>::value; ++c )
         compound_select_channel<channel_type&>(result,c) = m_child(i,j,c);
       return result;
     }

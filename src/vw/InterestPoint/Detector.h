@@ -103,7 +103,7 @@ protected:
 template <class T, class ThreshT>
 std::vector<InterestPoint> interest_points(vw::ImageView<T> const& image, 
                                            InterestPointDetector<T, ThreshT>* detector,
-                                           unsigned int max_keypoint_image_dimension = 0) {
+                                           int32 max_keypoint_image_dimension = 0) {
 
   std::vector<InterestPoint> interest_points;
 
@@ -143,7 +143,7 @@ std::vector<InterestPoint> interest_points(vw::ImageView<T> const& image,
 template <class ViewT, class DetectorT>
 std::vector<InterestPoint> interest_points(vw::ImageViewBase<ViewT> const& image, 
                                            DetectorT const& detector,
-                                           unsigned int max_keypoint_image_dimension = 0) {
+                                           int32 max_keypoint_image_dimension = 0) {
 
   std::vector<InterestPoint> interest_points;
 
@@ -213,8 +213,8 @@ int get_orientation( std::vector<float>& orientation,
     // Compute (gaussian weight)*(edge magnitude) kernel
     ImageView<float> weight(width,width);
     make_gaussian_kernel_2d( weight, 6 * sigma_ratio, width );
-    for (unsigned j=0; j<region_mag.rows(); j++){
-      for (unsigned i=0; i<region_mag.cols(); i++){
+    for (int32 j=0; j<region_mag.rows(); j++){
+      for (int32 i=0; i<region_mag.cols(); i++){
 	weight(i,j) *= region_mag(i,j);
       }
     }

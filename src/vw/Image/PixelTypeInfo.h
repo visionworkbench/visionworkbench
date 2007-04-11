@@ -299,7 +299,7 @@ namespace vw {
   };                                                         \
   template <class ChannelT>                                  \
   struct CompoundNumChannels<PIXELT<ChannelT> > {            \
-    static const unsigned value = NCHANNELS;                 \
+    static const int32 value = NCHANNELS;                 \
   };                                                         \
   template <class OldChT, class NewChT>                      \
   struct CompoundChannelCast<PIXELT<OldChT>, NewChT> {       \
@@ -320,7 +320,7 @@ namespace vw {
   };                                                         \
   template <class ChannelT, int SizeN>                       \
   struct CompoundNumChannels<PIXELT<ChannelT,SizeN> > {      \
-    static const unsigned value = SizeN;                     \
+    static const int32 value = SizeN;                     \
   };                                                         \
   template <class OldChT, class NewChT, int SizeN>           \
   struct CompoundChannelCast<PIXELT<OldChT,SizeN>, NewChT> { \
@@ -406,7 +406,7 @@ namespace vw {
   template<> struct ChannelTypeID<vw::float64>   { static const ChannelTypeEnum value = VW_CHANNEL_FLOAT64; };
   template<> struct ChannelTypeID<bool>          { static const ChannelTypeEnum value = VW_CHANNEL_BOOL; };
 
-  inline unsigned num_channels( PixelFormatEnum format ) {
+  inline int32 num_channels( PixelFormatEnum format ) {
     switch( format ) {
     case VW_PIXEL_SCALAR:
     case VW_PIXEL_GRAY:
@@ -425,7 +425,7 @@ namespace vw {
     }
   }
 
-  inline unsigned channel_size( ChannelTypeEnum type ) {
+  inline int32 channel_size( ChannelTypeEnum type ) {
     switch( type ) {
     case VW_CHANNEL_BOOL:
       return sizeof(bool);

@@ -76,12 +76,12 @@ namespace vw {
     UnaryPerPixelView( ImageT const& image ) : m_image(image), m_func() {}
     UnaryPerPixelView( ImageT const& image, FuncT const& func ) : m_image(image), m_func(func) {}
 
-    inline unsigned cols() const { return m_image.cols(); }
-    inline unsigned rows() const { return m_image.rows(); }
-    inline unsigned planes() const { return m_image.planes(); }
+    inline int32 cols() const { return m_image.cols(); }
+    inline int32 rows() const { return m_image.rows(); }
+    inline int32 planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(m_image.origin(),m_func); }
-    inline result_type operator()( int i, int j, int p=0 ) const { return m_func(m_image(i,j,p)); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_func(m_image(i,j,p)); }
 
     template <class ViewT>
     UnaryPerPixelView& operator=( ImageViewBase<ViewT> const& view ) {
@@ -164,12 +164,12 @@ namespace vw {
                  ArgumentErr() << "BinaryPerPixelView: Images must have same dimensions in binary image operation." );
     }
 
-    inline unsigned cols() const { return m_image1.cols(); }
-    inline unsigned rows() const { return m_image1.rows(); }
-    inline unsigned planes() const { return m_image1.planes(); }
+    inline int32 cols() const { return m_image1.cols(); }
+    inline int32 rows() const { return m_image1.rows(); }
+    inline int32 planes() const { return m_image1.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(m_image1.origin(),m_image2.origin(),m_func); }
-    inline result_type operator()( int i, int j, int p=0 ) const { return m_func(m_image1(i,j,p),m_image2(i,j,p)); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_func(m_image1(i,j,p),m_image2(i,j,p)); }
 
     /// \cond INTERNAL
     typedef BinaryPerPixelView<typename Image1T::prerasterize_type, typename Image2T::prerasterize_type, FuncT> prerasterize_type;
@@ -177,56 +177,6 @@ namespace vw {
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
-
-
-
-
-
-
-  /// PixelIndexView
-  ///
-  /// This is a procedurally generated utility view whose pixels are
-  /// Vector3's that contain the column, row, and plane of the image
-  /// at that index (i,j,p).
-  class PixelIndexView : public ImageViewBase<PixelIndexView>
-  {
-    int m_rows, m_cols, m_planes;
-
-  public:
-    typedef Vector3 pixel_type;
-    typedef const pixel_type result_type;
-    typedef ProceduralPixelAccessor<PixelIndexView> pixel_accessor;
-
-    /// Initialize from another view
-    template <class ViewT>
-    PixelIndexView( ViewT const& view ) : 
-      m_rows(view.impl().rows()), m_cols(view.impl().cols()), m_planes(view.impl().planes()) {}
-    
-    /// Initialize explicitly
-    PixelIndexView( int rows, int cols, int planes ) : 
-      m_rows(rows), m_cols(cols), m_planes(planes) {}
-
-    inline unsigned cols() const { return m_cols; }
-    inline unsigned rows() const { return m_rows; }
-    inline unsigned planes() const { return m_planes; }
-    
-    inline pixel_accessor origin() const { return pixel_accessor(*this); }
-
-    inline result_type operator()( int i, int j, int p=0 ) const { 
-      return Vector3(i,j,p);
-    } 
-
-    /// \cond INTERNAL
-    typedef PixelIndexView prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( rows(), cols(), planes() ); }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
-    /// \endcond
-  };
-
-  /// Specifies that PixelIndexView objects are fast to access.
-  template<>
-  struct IsMultiplyAccessible<PixelIndexView> : public true_type {};
-
 
 };
 

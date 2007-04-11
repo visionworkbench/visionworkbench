@@ -52,13 +52,13 @@ namespace vw {
     channel_type min = compound_select_channel<channel_type>(pix,0);
 
     pixel_accessor plane_acc = view.origin();
-    for (unsigned p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
+    for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
       pixel_accessor col_acc = plane_acc;
-      for (unsigned i = 0; i < view.cols(); i++, col_acc.next_col()) {
+      for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
         pixel_accessor row_acc = col_acc;
-        for (unsigned j = 0; j < view.rows(); j++, row_acc.next_row()) {
+        for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
           typename ViewT::result_type pix = *row_acc;
-          for (unsigned channel = 0; channel < view.channels(); channel++) {
+          for (int32 channel = 0; channel < view.channels(); channel++) {
             channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
             if( channel_value < min ) min = channel_value;
           }
@@ -83,13 +83,13 @@ namespace vw {
     channel_type max = compound_select_channel<channel_type>(pix,0);
 
     pixel_accessor plane_acc = view.origin();
-    for (unsigned p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
+    for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
       pixel_accessor col_acc = plane_acc;
-      for (unsigned i = 0; i < view.cols(); i++, col_acc.next_col()) {
+      for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
         pixel_accessor row_acc = col_acc;
-        for (unsigned j = 0; j < view.rows(); j++, row_acc.next_row()) {
+        for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
           typename ViewT::result_type pix = *row_acc;
-          for (unsigned channel = 0; channel < view.channels(); channel++) {
+          for (int32 channel = 0; channel < view.channels(); channel++) {
             channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
             if( channel_value > max ) max = channel_value;
           }
@@ -117,13 +117,13 @@ namespace vw {
     max = compound_select_channel<channel_type>(pix,0);
 
     pixel_accessor plane_acc = view.origin();
-    for (unsigned p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
+    for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
       pixel_accessor col_acc = plane_acc;
-      for (unsigned i = 0; i < view.cols(); i++, col_acc.next_col()) {
+      for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
         pixel_accessor row_acc = col_acc;
-        for (unsigned j = 0; j < view.rows(); j++, row_acc.next_row()) {
+        for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
           typename ViewT::result_type pix = *row_acc;
-          for (unsigned channel = 0; channel < view.channels(); channel++) {
+          for (int32 channel = 0; channel < view.channels(); channel++) {
             channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
             if( channel_value < min ) min = channel_value;
             if( channel_value > max ) max = channel_value;
@@ -145,13 +145,13 @@ namespace vw {
     double accum = 0;
 
     pixel_accessor plane_acc = view.origin();
-    for (unsigned p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
+    for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
       pixel_accessor col_acc = plane_acc;
-      for (unsigned i = 0; i < view.cols(); i++, col_acc.next_col()) {
+      for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
         pixel_accessor row_acc = col_acc;
-        for (unsigned j = 0; j < view.rows(); j++, row_acc.next_row()) {
+        for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
           typename ViewT::result_type pix = *row_acc;
-          for (unsigned channel = 0; channel < view.channels(); channel++) {
+          for (int32 channel = 0; channel < view.channels(); channel++) {
             channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
             accum += channel_value;
           }
@@ -174,13 +174,13 @@ namespace vw {
     double mean = mean_channel_value(view);
 
     pixel_accessor plane_acc = view.origin();
-    for (unsigned p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
+    for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
       pixel_accessor col_acc = plane_acc;
-      for (unsigned i = 0; i < view.cols(); i++, col_acc.next_col()) {
+      for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
         pixel_accessor row_acc = col_acc;
-        for (unsigned j = 0; j < view.rows(); j++, row_acc.next_row()) {
+        for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
           typename ViewT::result_type pix = *row_acc;
-          for (unsigned channel = 0; channel < view.channels(); channel++) {
+          for (int32 channel = 0; channel < view.channels(); channel++) {
             channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
             accum += pow(channel_value - mean, 2);
           }
@@ -203,13 +203,13 @@ namespace vw {
     accum_type accum = 0;
 
     pixel_accessor plane_acc = view.origin();
-    for (unsigned p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
+    for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
       pixel_accessor col_acc = plane_acc;
-      for (unsigned i = 0; i < view.cols(); i++, col_acc.next_col()) {
+      for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
         pixel_accessor row_acc = col_acc;
-        for (unsigned j = 0; j < view.rows(); j++, row_acc.next_row()) {
+        for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
           typename ViewT::result_type pix = *row_acc;
-          for (unsigned channel = 0; channel < view.channels(); channel++) {
+          for (int32 channel = 0; channel < view.channels(); channel++) {
             channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
             accum += channel_value;
           }

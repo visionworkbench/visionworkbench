@@ -123,11 +123,11 @@ namespace vw {
 
     virtual ~ImageViewRefBase() {}
     
-    virtual unsigned cols() const = 0;
-    virtual unsigned rows() const = 0;
-    virtual unsigned planes() const = 0;
-    virtual pixel_type operator()( int i, int j ) const = 0;
-    virtual pixel_type operator()( int i, int j, int p ) const = 0;
+    virtual int32 cols() const = 0;
+    virtual int32 rows() const = 0;
+    virtual int32 planes() const = 0;
+    virtual pixel_type operator()( int32 i, int32 j ) const = 0;
+    virtual pixel_type operator()( int32 i, int32 j, int32 p ) const = 0;
     virtual pixel_accessor origin() const = 0;
 
     virtual void rasterize( ImageView<pixel_type> const& dest, BBox2i bbox ) const = 0;
@@ -145,11 +145,11 @@ namespace vw {
     ImageViewRefImpl( ImageViewBase<ViewT> const& view ) : m_view(view.impl()) {}
     virtual ~ImageViewRefImpl() {}
 
-    virtual unsigned cols() const { return m_view.cols(); }
-    virtual unsigned rows() const { return m_view.rows(); }
-    virtual unsigned planes() const { return m_view.planes(); }
-    virtual pixel_type operator()( int i, int j ) const { return m_view(i,j); }
-    virtual pixel_type operator()( int i, int j, int p ) const { return m_view(i,j,p); }
+    virtual int32 cols() const { return m_view.cols(); }
+    virtual int32 rows() const { return m_view.rows(); }
+    virtual int32 planes() const { return m_view.planes(); }
+    virtual pixel_type operator()( int32 i, int32 j ) const { return m_view(i,j); }
+    virtual pixel_type operator()( int32 i, int32 j, int32 p ) const { return m_view(i,j,p); }
     virtual pixel_accessor origin() const { return m_view.origin(); }
 
     virtual void rasterize( ImageView<pixel_type> const& dest, BBox2i bbox ) const { m_view.rasterize( dest, bbox ); }
@@ -187,11 +187,11 @@ namespace vw {
     template <class ViewT> ImageViewRef( ImageViewBase<ViewT> const& view ) : m_view( new ImageViewRefImpl<ViewT>(view) ) {}
     ~ImageViewRef() {}
 
-    inline unsigned cols() const { return m_view->cols(); }
-    inline unsigned rows() const { return m_view->rows(); }
-    inline unsigned planes() const { return m_view->planes(); }
-    inline pixel_type operator()( int i, int j ) const { return m_view->operator()(i,j); }
-    inline pixel_type operator()( int i, int j, int p ) const { return m_view->operator()(i,j,p); }
+    inline int32 cols() const { return m_view->cols(); }
+    inline int32 rows() const { return m_view->rows(); }
+    inline int32 planes() const { return m_view->planes(); }
+    inline pixel_type operator()( int32 i, int32 j ) const { return m_view->operator()(i,j); }
+    inline pixel_type operator()( int32 i, int32 j, int32 p ) const { return m_view->operator()(i,j,p); }
     inline pixel_accessor origin() const { return m_view->origin(); }
 
     /// \cond INTERNAL

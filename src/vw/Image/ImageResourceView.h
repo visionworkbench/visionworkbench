@@ -64,7 +64,7 @@ namespace vw {
         // without any pixel semantics, we force the resource to a
         // single plane so that convert() can convert from a
         // multiplane file to compound pixel type image.
-        int planes = m_res_ptr->planes();
+        int32 planes = m_res_ptr->planes();
         if (PixelNumChannels<PixelT>::value != 1)
           planes = 1;
         
@@ -79,11 +79,11 @@ namespace vw {
     Cache& m_cache;
     bool m_enable_cache;
     Vector2i m_block_size;
-    typedef std::map<std::pair<int,int>, Cache::Handle<BlockGenerator> > block_table_type;
+    typedef std::map<std::pair<int32,int32>, Cache::Handle<BlockGenerator> > block_table_type;
     mutable block_table_type m_block_table;
 
     void initialize() {
-      if( unsigned(m_block_size.x())==cols() && m_block_size.y()==1 ) {
+      if( m_block_size.x()==cols() && m_block_size.y()==1 ) {
         // Group scanlines into 16K chunks for efficiency
         const size_t blocksize = 16384;
         if( cols()*rows()*planes()*sizeof(PixelT) < blocksize ) {
@@ -95,11 +95,11 @@ namespace vw {
           if( m_block_size.y() == 0 ) m_block_size.y() = 1;
         }
       }
-      int maxx=(cols()-1)/m_block_size.x();
-      int maxy=(rows()-1)/m_block_size.y();
+      int32 maxx=(cols()-1)/m_block_size.x();
+      int32 maxy=(rows()-1)/m_block_size.y();
       BBox2i view_bbox(0,0,cols(),rows());
-      for( int y=0; y<=maxy; ++y ) {
-        for( int x=0; x<=maxx; ++x ) {
+      for( int32 y=0; y<=maxy; ++y ) {
+        for( int32 x=0; x<=maxx; ++x ) {
           BBox2i bbox( x*m_block_size.x(), y*m_block_size.y(), m_block_size.x(), m_block_size.y() );
           bbox.crop( view_bbox );
           Cache::Handle<BlockGenerator> handle = m_cache.insert( BlockGenerator( r, bbox ) );
@@ -139,19 +139,19 @@ namespace vw {
     ~ImageResourceView() {}
     
     /// Returns the number of columns in the image.
-    inline unsigned cols() const { return r->cols(); }
+    inline int32 cols() const { return r->cols(); }
 
     /// Returns the number of rows in the image.
-    inline unsigned rows() const { return r->rows(); }
+    inline int32 rows() const { return r->rows(); }
 
     /// Returns the number of planes in the image.
-    inline unsigned planes() const { return 1; }
+    inline int32 planes() const { return 1; }
     
     /// Returns the pixel at the given position in the given plane.
-    result_type operator()( unsigned x, unsigned y, unsigned /*plane*/=1 ) const {
+    result_type operator()( int32 x, int32 y, int32 /*plane*/=1 ) const {
       if( ! m_enable_cache )
         vw_throw( LogicErr() << "Non-cacheing ImageResourceViews do not support per-pixel access" );
-      int ix = x/m_block_size.x(), iy = y/m_block_size.y();
+      int32 ix = x/m_block_size.x(), iy = y/m_block_size.y();
       return m_block_table[std::make_pair(ix,iy)]->operator()( x-ix*m_block_size.x(), y - iy*m_block_size.y() );
     }
     
@@ -164,13 +164,19 @@ namespace vw {
     typedef ImageResourceView prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i bbox ) const { return *this; }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+#if VW_DEBUG_LEVEL > 1
+      vw_out(VerboseDebugMessage) << "ImageResourceView rasterizing bbox " << bbox << std::endl;
+#endif
       if( !m_enable_cache ) return read_image( dest, *r, bbox );
-      int ix0=bbox.min().x()/m_block_size.x(), iy=bbox.min().y()/m_block_size.y();
-      int maxix=(bbox.max().x()-1)/m_block_size.x(), maxiy=(bbox.max().y()-1)/m_block_size.y();
+      int32 ix0=bbox.min().x()/m_block_size.x(), iy=bbox.min().y()/m_block_size.y();
+      int32 maxix=(bbox.max().x()-1)/m_block_size.x(), maxiy=(bbox.max().y()-1)/m_block_size.y();
       for( ; iy <= maxiy; ++iy ) {
-        for( int ix = ix0; ix <= maxix; ++ix ) {
+        for( int32 ix = ix0; ix <= maxix; ++ix ) {
           BBox2i block_bbox( ix*m_block_size.x(), iy*m_block_size.y(), m_block_size.x(), m_block_size.y() );
           block_bbox.crop( bbox );
+#if VW_DEBUG_LEVEL > 1
+          vw_out(VerboseDebugMessage) << "ImageResourceView rasterizing block (" << ix << "," << iy << "), block_bbox " << block_bbox << std::endl;
+#endif
           m_block_table[std::make_pair(ix,iy)]->rasterize( crop( dest, block_bbox-bbox.min() ),
                                                            block_bbox-Vector2i(ix*m_block_size.x(),iy*m_block_size.y()) );
         }

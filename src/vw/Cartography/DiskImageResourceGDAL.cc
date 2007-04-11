@@ -355,8 +355,8 @@ namespace cartography {
     src.pstride = rows() * cols() * channels() * channel_size(src.format.channel_type);
 
     int b = 1;
-    for ( unsigned p = 0; p < planes(); ++p ) {
-      for ( unsigned c = 0; c < channels(); ++c ) {
+    for ( int32 p = 0; p < planes(); ++p ) {
+      for ( int32 c = 0; c < channels(); ++c ) {
         band = ((GDALDataset *)m_dataset)->GetRasterBand(b++);
 
         // <Test code>
@@ -428,8 +428,8 @@ namespace cartography {
       << " (" << cols() << " x " << rows() << ") with " << num_bands << " band(s)." << std::endl;
     
     int b = 1;
-    for (unsigned int p = 0; p < dst.format.planes; p++) {
-      for (unsigned int c = 0; c < num_channels(dst.format.pixel_format); c++) {
+    for (int32 p = 0; p < dst.format.planes; p++) {
+      for (int32 c = 0; c < num_channels(dst.format.pixel_format); c++) {
         GDALRasterBand *band = ((GDALDataset*)m_dataset)->GetRasterBand(b++);
 	//        band->SetColorInterpretation(gdal_color_interp_for_vw_pixel_format::value(p, dst.format.pixel_format));
         GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());

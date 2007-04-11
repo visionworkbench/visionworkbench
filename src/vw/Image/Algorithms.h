@@ -42,14 +42,14 @@ namespace vw {
   /// Fill an image with a constant pixel value
   template <class ImageT, class ValueT>
   void fill( ImageViewBase<ImageT> const& image, ValueT value_ ) {
-    unsigned planes=image.impl().planes(), rows=image.impl().rows(), cols=image.impl().cols();
+    int32 planes=image.impl().planes(), rows=image.impl().rows(), cols=image.impl().cols();
     typename ImageT::pixel_type value( value_ );
     typename ImageT::pixel_accessor plane = image.impl().origin();
-    for( unsigned p=planes; p; --p ) {
+    for( int32 p=planes; p; --p ) {
       typename ImageT::pixel_accessor row = plane;
-      for( unsigned r=rows; r; --r ) {
+      for( int32 r=rows; r; --r ) {
         typename ImageT::pixel_accessor col = row;
-        for( unsigned c=cols; c; --c ) {
+        for( int32 c=cols; c; --c ) {
           *col = value;
           col.next_col();
         }
@@ -268,16 +268,16 @@ namespace vw {
   // the nearest pixel with zero value, assuming the borders of the
   // image are zero.)
   template <class SourceT>
-  ImageView<int> grassfire( ImageViewBase<SourceT> const& src ) {
-    int cols = src.impl().cols(), rows = src.impl().rows();
-    ImageView<int> result( cols, rows );
+  ImageView<int32> grassfire( ImageViewBase<SourceT> const& src ) {
+    int32 cols = src.impl().cols(), rows = src.impl().rows();
+    ImageView<int32> result( cols, rows );
     typename SourceT::pixel_accessor srow = src.impl().origin();
-    typename ImageView<int>::pixel_accessor drow = result.origin();
+    typename ImageView<int32>::pixel_accessor drow = result.origin();
     const typename SourceT::pixel_type zero = typename SourceT::pixel_type();
     { // First row
       typename SourceT::pixel_accessor scol = srow;
-      typename ImageView<int>::pixel_accessor dcol = drow;
-      for( int col=cols; col; --col ) {
+      typename ImageView<int32>::pixel_accessor dcol = drow;
+      for( int32 col=cols; col; --col ) {
         *dcol = ((*scol)==zero)?0:1;
         scol.next_col();
         dcol.next_col();
@@ -285,16 +285,16 @@ namespace vw {
       srow.next_row();
       drow.next_row();
     }
-    for( int row=rows-2; row; --row ) {
+    for( int32 row=rows-2; row; --row ) {
       typename SourceT::pixel_accessor scol = srow;
-      typename ImageView<int>::pixel_accessor dcol = drow;
+      typename ImageView<int32>::pixel_accessor dcol = drow;
       *dcol = ((*scol)==zero)?0:1;
       scol.next_col();
       dcol.next_col();
-      for( int col=cols-2; col; --col ) {
+      for( int32 col=cols-2; col; --col ) {
         if( (*scol)==zero ) (*dcol)=0;
         else {
-          typename ImageView<int>::pixel_accessor s1 = dcol, s2 = dcol;
+          typename ImageView<int32>::pixel_accessor s1 = dcol, s2 = dcol;
           (*dcol) = 1 + std::min( *(s1.prev_col()), *(s2.prev_row()) );
         }
         scol.next_col();
@@ -306,20 +306,20 @@ namespace vw {
     }
     { // Last row
       typename SourceT::pixel_accessor scol = srow;
-      typename ImageView<int>::pixel_accessor dcol = drow;
-      for( int col=cols; col; --col ) {
+      typename ImageView<int32>::pixel_accessor dcol = drow;
+      for( int32 col=cols; col; --col ) {
         *dcol = ((*scol)==zero)?0:1;
         scol.next_col();
         dcol.next_col();
       }
     }
     drow.advance(cols-2,-1);
-    for( int row=rows-2; row; --row ) {
-      typename ImageView<int>::pixel_accessor dcol = drow;
-      for( int col=cols-2; col; --col ) {
+    for( int32 row=rows-2; row; --row ) {
+      typename ImageView<int32>::pixel_accessor dcol = drow;
+      for( int32 col=cols-2; col; --col ) {
         if( (*dcol)!=0 ) {
-          typename ImageView<int>::pixel_accessor s1 = dcol, s2 = dcol;
-          int m = std::min( *(s1.next_col()), *(s2.next_row()) );
+          typename ImageView<int32>::pixel_accessor s1 = dcol, s2 = dcol;
+          int32 m = std::min( *(s1.next_col()), *(s2.next_row()) );
           if( m < *dcol ) *dcol = m + 1;
         }
         dcol.prev_col();
@@ -348,8 +348,8 @@ namespace vw {
   BBox2i nonzero_data_bounding_box( ImageViewBase<ViewT> const& image_ ) {
     const typename ViewT::pixel_type zero = typename ViewT::pixel_type();
     ViewT const& image = static_cast<ViewT const&>(image_);
-    int x=0, y=0, cols=0, rows=0;
-    int i, j, icols = image.cols(), irows = image.rows();
+    int32 x=0, y=0, cols=0, rows=0;
+    int32 i, j, icols = image.cols(), irows = image.rows();
     for( j=0; j<irows; ++j ) {
       for( i=0; i<icols; ++i ) {
         if( image(i,j) != zero ) break;
@@ -385,6 +385,32 @@ namespace vw {
 
 
   // *******************************************************************
+  // is_opaque()
+  // *******************************************************************
+
+  template <class ImageT>
+  bool is_opaque_helper( ImageT const& image, true_type ) {
+    typename PixelChannelType<typename ImageT::pixel_type>::type maxval = ChannelRange<typename ImageT::pixel_type>::max();
+    for( int32 y=0; y<image.rows(); ++y )
+      for( int32 x=0; x<image.cols(); ++x )
+        if( image(x,y)[PixelNumChannels<typename ImageT::pixel_type>::value-1] < maxval ) return false;
+    return true;
+  }
+  
+  template <class ImageT>
+  bool is_opaque_helper( ImageT const& image, false_type ) {
+    return true;
+  }
+
+  /// Returns true if the given image is entirely opaque, or false if 
+  /// it is at least partially transparent.
+  template <class ImageT>
+  bool is_opaque( ImageViewBase<ImageT> const& image ) {
+    return is_opaque_helper( image.impl(), typename PixelHasAlpha<typename ImageT::pixel_type>::type() );
+  }
+
+
+  // *******************************************************************
   // image_blocks()
   // *******************************************************************
 
@@ -397,15 +423,15 @@ namespace vw {
   /// want to apply an operation to a large image one region at a time.
   template <class ViewT>
   std::vector<BBox2i> image_blocks(ImageViewBase<ViewT> const& image, 
-                                   int block_width, int block_height) {  
+                                   int32 block_width, int32 block_height) {  
     std::vector<BBox2i> bboxes;
 
-    int j_offset = 0;
+    int32 j_offset = 0;
     while ( j_offset < image.impl().rows() ) {
-      int j_dim = (image.impl().rows() - j_offset) < block_height ? (image.impl().rows() - j_offset) : block_height;
-      int i_offset = 0;
+      int32 j_dim = (image.impl().rows() - j_offset) < block_height ? (image.impl().rows() - j_offset) : block_height;
+      int32 i_offset = 0;
       while ( i_offset < image.impl().cols() ) {
-        int i_dim = (image.impl().cols() - i_offset) < block_width ? (image.impl().cols() - i_offset) : block_width;      
+        int32 i_dim = (image.impl().cols() - i_offset) < block_width ? (image.impl().cols() - i_offset) : block_width;      
         bboxes.push_back(BBox2i(i_offset,j_offset,i_dim,j_dim));
         i_offset += i_dim;
       }

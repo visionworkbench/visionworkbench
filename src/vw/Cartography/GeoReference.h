@@ -94,6 +94,8 @@ namespace cartography {
     void set_sinusoidal(double center_longitude, double false_easting = 0, double false_northing = 0);
     /// Use mercator projection
     void set_mercator(double center_latitude, double center_longitude, double scale, double false_easting = 0, double false_northing = 0);
+    /// Use transverse mercator projection
+    void set_transverse_mercator(double center_latitude, double center_longitude, double scale, double false_easting = 0, double false_northing = 0);
     /// Use orthographic projection
     void set_orthographic(double center_latitude, double center_longitude, double false_easting = 0, double false_northing = 0);
     /// Use steregraphic projection

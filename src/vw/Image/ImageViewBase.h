@@ -33,8 +33,8 @@
 /// \ref vw::rasterize, which iterates over source and destination views 
 /// copying pixels from one into the other.
 ///
-#ifndef __VW_IMAGE_IMAGE_VIEW_BASE_H__
-#define __VW_IMAGE_IMAGE_VIEW_BASE_H__
+#ifndef __VW_IMAGE_IMAGEVIEWBASE_H__
+#define __VW_IMAGE_IMAGEVIEWBASE_H__
 
 #include <boost/type_traits.hpp>
 #include <boost/utility/enable_if.hpp>
@@ -80,7 +80,7 @@ namespace vw {
     iterator end() const { return iterator(impl(),0,0,impl().planes()); }
 
     /// Returns the number of channels in the image's pixel type.
-    inline unsigned channels() const { return CompoundNumChannels<typename ImplT::pixel_type>::value; }
+    inline int32 channels() const { return CompoundNumChannels<typename ImplT::pixel_type>::value; }
 
     /// Returns the number of rows in the image
     inline int rows() const { return this->impl().rows(); }
@@ -169,13 +169,13 @@ namespace vw {
                ArgumentErr() << "rasterize: Source and destination must have same dimensions." );
     SrcAccT splane = src.origin().advance(bbox.min().x(),bbox.min().y());
     DestAccT dplane = dest.origin();
-    for( unsigned plane=src.planes(); plane; --plane ) {
+    for( int32 plane=src.planes(); plane; --plane ) {
       SrcAccT srow = splane;
       DestAccT drow = dplane;
-      for( unsigned row=bbox.height(); row; --row ) {
+      for( int32 row=bbox.height(); row; --row ) {
         SrcAccT scol = srow;
         DestAccT dcol = drow;
-        for( unsigned col=bbox.width(); col; --col ) {
+        for( int32 col=bbox.width(); col; --col ) {
           *dcol = DestPixelT(*scol);
           scol.next_col();
           dcol.next_col();
@@ -215,4 +215,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_IMAGE_IMAGE_VIEW_BASE_H__
+#endif // __VW_IMAGE_IMAGEVIEWBASE_H__

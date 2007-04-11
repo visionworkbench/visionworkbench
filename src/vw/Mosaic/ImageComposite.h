@@ -1,3 +1,30 @@
+// __BEGIN_LICENSE__
+// 
+// Copyright (C) 2006 United States Government as represented by the
+// Administrator of the National Aeronautics and Space Administration
+// (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
+// 
+// This software is distributed under the NASA Open Source Agreement
+// (NOSA), version 1.3.  The NOSA has been approved by the Open Source
+// Initiative.  See the file COPYING at the top of the distribution
+// directory tree for the complete NOSA document.
+// 
+// THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
+// KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
+// LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
+// SPECIFICATIONS, ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+// A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
+// THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
+// DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
+// 
+// __END_LICENSE__
+
+/// \file ImageComposte.h
+/// 
+/// A view class that represents a composite mosaic of images.
+/// 
 #ifndef __VW_MOSAIC_IMAGECOMPOSITE_H__
 #define __VW_MOSAIC_IMAGECOMPOSITE_H__
 
@@ -6,6 +33,7 @@
 #include <list>
 
 #include <vw/Core/Cache.h>
+#include <vw/Core/ProgressCallback.h>
 #include <vw/Math/BBox.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
@@ -75,6 +103,7 @@ namespace mosaic {
       if( sum_bbox.empty() ) return;
       if( overlay ) {
         if( PixelHasAlpha<PixelT>::value ) {
+          // FIXME This doesn't work for integer pixel types!
           crop( dest, sum_bbox-Vector<int,2>(ox,oy) ) *= 1.0 - select_alpha_channel( crop( image, sum_bbox-bbox.min() ) );
           crop( dest, sum_bbox-Vector<int,2>(ox,oy) ) += crop( image, sum_bbox-bbox.min() );
         }
@@ -97,9 +126,9 @@ namespace mosaic {
       return *this;
     }
     
-    unsigned cols() const { return cols_; }
-    unsigned rows() const { return rows_; }
-    unsigned planes() const { return 1; }
+    int32 cols() const { return cols_; }
+    int32 rows() const { return rows_; }
+    int32 planes() const { return 1; }
 
     typedef PositionedImage prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return *this; }
@@ -194,7 +223,7 @@ namespace mosaic {
     std::vector<Cache::Handle<AlphaGenerator> > alphas;
     std::vector<Cache::Handle<PyramidGenerator> > pyramids;
 
-    void generate_masks() const;
+    void generate_masks( ProgressCallback const& progress_callback ) const;
 
     ImageView<pixel_type> blend_patch( BBox<int,2> const& patch_bbox ) const;
     ImageView<pixel_type> draft_patch( BBox<int,2> const& patch_bbox ) const;
@@ -206,8 +235,8 @@ namespace mosaic {
 
     void insert( ImageViewRef<pixel_type> const& image, int x, int y );
 
-    void prepare();
-    void prepare(BBox2i const& total_bbox);
+    void prepare( const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() );
+    void prepare( BBox2i const& total_bbox, const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() );
 
     ImageView<pixel_type> generate_patch( BBox<int,2> const& patch_bbox ) const {
       if( m_draft_mode ) return draft_patch( patch_bbox );
@@ -220,11 +249,11 @@ namespace mosaic {
 
     void set_reuse_masks( bool reuse_masks ) { m_reuse_masks = reuse_masks; }
 
-    unsigned cols() const {
+    int32 cols() const {
       return view_bbox.width();
     }
 
-    unsigned rows() const {
+    int32 rows() const {
       return view_bbox.height();
     }
 
@@ -232,7 +261,7 @@ namespace mosaic {
       return data_bbox;
     }
 
-    unsigned planes() const {
+    int32 planes() const {
       return 1;
     }
 
@@ -246,9 +275,16 @@ namespace mosaic {
     typedef ProceduralPixelAccessor<ImageComposite> pixel_accessor;
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }    
 
-    typedef ImageComposite prerasterize_type;
-    inline prerasterize_type const& prerasterize( BBox2i const& bbox ) const { return *this; }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { generate_patch(bbox).rasterize(dest, bbox-bbox.min()); }
+    typedef CropView<ImageView<PixelT> > prerasterize_type;
+
+    inline prerasterize_type prerasterize( BBox2i bbox ) const {
+      ImageView<PixelT> buf = generate_patch(bbox);
+      return CropView<ImageView<PixelT> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),cols(),rows()) );
+    }
+
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+      vw::rasterize( prerasterize(bbox), dest, bbox );
+    }
 
   };
 
@@ -257,7 +293,7 @@ namespace mosaic {
 
 
 template <class PixelT>
-void vw::mosaic::ImageComposite<PixelT>::generate_masks() const {
+void vw::mosaic::ImageComposite<PixelT>::generate_masks( vw::ProgressCallback const& progress_callback ) const {
   vw_out(DebugMessage) << "Generating masks..." << std::endl;
   std::vector<Cache::Handle<GrassfireGenerator> > grassfires;
   for( unsigned i=0; i<sources.size(); ++i )
@@ -286,12 +322,15 @@ void vw::mosaic::ImageComposite<PixelT>::generate_masks() const {
           }
         }
       }
+      progress_callback.report_fractional_progress( p1*(sources.size()+1)+p2+1, (sources.size()+1)*sources.size() );
     }
     mask = threshold( mask );
     std::ostringstream filename;
     filename << "mask." << p1 << ".png";
     write_image( filename.str(), mask );
+    progress_callback.report_fractional_progress( (p1+1)*(sources.size()+1), (sources.size()+1)*sources.size() );
   }
+  // report_finished() called by prepare(), so don't call it here
 }
 
 
@@ -357,7 +396,7 @@ void vw::mosaic::ImageComposite<PixelT>::insert( ImageViewRef<pixel_type> const&
 
 
 template <class PixelT>
-void vw::mosaic::ImageComposite<PixelT>::prepare() {
+void vw::mosaic::ImageComposite<PixelT>::prepare( vw::ProgressCallback const& progress_callback ) {
   // Translate bboxes to origin
   for( unsigned i=0; i<sources.size(); ++i )
     bboxes[i] -= view_bbox.min();
@@ -367,14 +406,16 @@ void vw::mosaic::ImageComposite<PixelT>::prepare() {
   if( levels < 1 ) levels = 1;
 
   if( !m_draft_mode && !m_reuse_masks ) {
-    generate_masks();
+    generate_masks( progress_callback );
   }
+  progress_callback.report_finished();
 }
 
 template <class PixelT>
-void vw::mosaic::ImageComposite<PixelT>::prepare( BBox2i const& total_bbox ) {
+void vw::mosaic::ImageComposite<PixelT>::prepare( BBox2i const& total_bbox,
+                                                  vw::ProgressCallback const& progress_callback ) {
   view_bbox = total_bbox;
-  prepare();
+  prepare( progress_callback );
 }
 
 // Suppose a destination image patch at a given level of the pyramid

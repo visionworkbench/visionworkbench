@@ -82,11 +82,11 @@ namespace disparity {
   /// units of pixels).
   template <class ViewT>
   vw::ImageView<bool> generate_mask(vw::ImageViewBase<ViewT> const& input_image,
-                                    unsigned int additional_border_width = 0) {
+                                    int32 additional_border_width = 0) {
 
     const double BLACK_PIXEL = 0;
     vw::ImageView<bool> mask(input_image.impl().cols(), input_image.impl().rows(), 1);
-    unsigned int i, j;
+    int32 i, j;
 
     vw::fill(mask, true);
 
@@ -163,8 +163,8 @@ namespace disparity {
               disparity_map.cols() == right_mask.impl().cols() && disparity_map.rows() == right_mask.impl().rows(),
               ArgumentErr() << "disparity::mask() : Mask images and disparity map image are not the same size.\n");
     
-    for (unsigned i = 0; i < disparity_map.cols() ; i++) 
-      for (unsigned j = 0; j < disparity_map.rows() ; j++)
+    for (int32 i = 0; i < disparity_map.cols() ; i++) 
+      for (int32 j = 0; j < disparity_map.rows() ; j++)
         if ( disparity_map(i,j).missing() || !(left_mask.impl()(i,j)) || !(right_mask.impl()((int)(i+disparity_map(i,j).h()), (int)(j+disparity_map(i,j).v()))) ) 
           disparity_map(i,j) = PixelDisparity<PixelT>();  // Set to missing pixel value
   }
@@ -174,8 +174,8 @@ namespace disparity {
   void remove_invalid_pixels(ImageView<PixelDisparity<PixelT> > &disparity_map, 
                              int right_image_width, int right_image_height) {
     
-    for (unsigned i = 0; i < disparity_map.cols() ; i++) 
-      for (unsigned j = 0; j < disparity_map.rows() ; j++)
+    for (int32 i = 0; i < disparity_map.cols() ; i++) 
+      for (int32 j = 0; j < disparity_map.rows() ; j++)
         if ( !disparity_map(i,j).missing() ) {
           if ( i+disparity_map(i,j).h() < 0 || i+disparity_map(i,j).h() >= right_image_width-1 ||
                j+disparity_map(i,j).v() < 0 || j+disparity_map(i,j).v() >= right_image_height-1) {
@@ -190,11 +190,11 @@ namespace disparity {
                        int half_h_kernel, int half_v_kernel,
                        int min_matches, double threshold, bool verbose = false) {
     
-    unsigned int width = disparity_map.cols();
-    unsigned int height = disparity_map.rows();
+    int32 width = disparity_map.cols();
+    int32 height = disparity_map.rows();
     int	matched;
     int	total;
-    unsigned int	x, y, xk, yk;
+    int32 x, y, xk, yk;
     ImageView<bool> disparity_mask(width, height);
     fill(disparity_mask, false);  
     double rejection_threshold = (double)min_matches/100.0;
@@ -292,8 +292,8 @@ namespace disparity {
   inline ImageView<PixelRGB<float> > rgb_missing_pixel_image(ImageView<PixelDisparity<PixelT> > const& disparity_map) {
     ImageView<PixelRGB<float> > mask(disparity_map.cols(), disparity_map.rows());
 
-    for (unsigned i = 0; i < mask.cols(); i++) {
-      for (unsigned j = 0; j < mask.rows(); j++) {
+    for (int32 i = 0; i < mask.cols(); i++) {
+      for (int32 j = 0; j < mask.rows(); j++) {
         if ( !disparity_map(i,j).missing() ) {
           mask(i,j).r() = 0.8;
           mask(i,j).g() = 0.8;
@@ -312,8 +312,8 @@ namespace disparity {
   inline ImageView<PixelGray<float> > missing_pixel_image(ImageView<PixelDisparity<PixelT> > const& disparity_map) {
     ImageView<PixelGray<float> > mask(disparity_map.cols(), disparity_map.rows());
 
-    for (unsigned i = 0; i < mask.cols(); i++) {
-      for (unsigned j = 0; j < mask.rows(); j++) {
+    for (int32 i = 0; i < mask.cols(); i++) {
+      for (int32 j = 0; j < mask.rows(); j++) {
         if ( !disparity_map(i,j).missing() ) {
           mask(i,j).v() = 1.0;
         } else {
@@ -338,8 +338,8 @@ namespace disparity {
 
     // Find the max/min disparity values
     int missing = 0;
-    for (unsigned i = 0; i < disparity_map.cols(); i++) {
-      for (unsigned j = 0; j < disparity_map.rows(); j++) {
+    for (int32 i = 0; i < disparity_map.cols(); i++) {
+      for (int32 j = 0; j < disparity_map.rows(); j++) {
         if ( !disparity_map(i,j).missing() ) {
           max_horz_disp = disparity_map(i,j).h() > max_horz_disp ? disparity_map(i,j).h() : max_horz_disp;
           min_horz_disp = disparity_map(i,j).h() < min_horz_disp ? disparity_map(i,j).h() : min_horz_disp;

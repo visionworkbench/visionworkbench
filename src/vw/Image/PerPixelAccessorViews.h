@@ -82,12 +82,12 @@ namespace vw {
     UnaryPerPixelAccessorView( ImageT const& image ) : m_image(image), m_func() {}
     UnaryPerPixelAccessorView( ImageT const& image, FuncT const& func ) : m_image(image), m_func(func) {}
 
-    inline unsigned cols() const { return m_image.cols(); }
-    inline unsigned rows() const { return m_image.rows(); }
-    inline unsigned planes() const { return m_image.planes(); }
+    inline int32 cols() const { return m_image.cols(); }
+    inline int32 rows() const { return m_image.rows(); }
+    inline int32 planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
-    inline result_type operator()( int i, int j, int p=0 ) const { return m_func(m_image.origin().advance(i,j,p)); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_func(m_image.origin().advance(i,j,p)); }
 
     /// \cond INTERNAL
     // We can make an optimization here.  If the pixels in the child
@@ -95,8 +95,8 @@ namespace vw {
     // additional overhead  then we should rasterize the child 
     // before we proceed to rasterize ourself.
     BBox2i pad_bbox(BBox2i const& bbox) const {
-      int padded_width = bbox.width() + m_func.work_area().width();
-      int padded_height = bbox.height() + m_func.work_area().height();
+      int32 padded_width = bbox.width() + m_func.work_area().width();
+      int32 padded_height = bbox.height() + m_func.work_area().height();
       return BBox2i (bbox.min().x() + m_func.work_area().min().x(),
                      bbox.min().y() + m_func.work_area().min().y(),
                      padded_width, padded_height);

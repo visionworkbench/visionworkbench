@@ -173,7 +173,7 @@ namespace hdr {
   CameraCurveCostFn::result_type CameraCurveCostFn::operator()( domain_type const& x ) const {
   
     Vector<double> fx(m_pairs.rows());
-    for (unsigned int i = 0; i < m_pairs.rows(); ++i) {
+    for (int32 i = 0; i < m_pairs.rows(); ++i) {
       double x_i = m_pairs(i,0);
       double x_j = m_pairs(i,1);
       double R_ij =  m_pairs(i,2);
@@ -190,7 +190,7 @@ namespace hdr {
     Matrix<double> J(m_pairs.rows(), x.size());
     unsigned int N = x.size();
 
-    for (unsigned int i = 0; i < m_pairs.rows(); i++) {
+    for (int32 i = 0; i < m_pairs.rows(); i++) {
       double x_i = m_pairs(i,0);
       double x_j = m_pairs(i,1);
       double R_ij = m_pairs(i,2);
@@ -258,7 +258,7 @@ namespace hdr {
   // Compute the value of the function f at x 
   InverseCostFn::result_type InverseCostFn::operator()( domain_type const& x ) const {
     Vector<double> fx(m_pairs.rows());
-    for ( unsigned i = 0; i < m_pairs.rows(); ++i ) {
+    for ( int32 i = 0; i < m_pairs.rows(); ++i ) {
       double x_i = m_pairs(i,0);
       double x_j = m_pairs(i,1);
     

@@ -30,7 +30,7 @@
 namespace vw {
 namespace cartography {
 
-  class GeoTransform : public TransformBase<GeoTransform> {
+  class GeoTransform : public TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction> {
     
     GeoReference m_src_georef, m_dst_georef;
     Matrix<double,3,3> m_inv_src_transform, m_inv_dst_transform;; 
@@ -79,6 +79,7 @@ namespace cartography {
     /// pixel the destination (transformed) image.
     Vector2 forward(Vector2 const& v) const;
   };
+
 
   /// Reproject an image whose pixels contain 3D points (usually in
   /// some spherical coordinate system).  Important note: we assume

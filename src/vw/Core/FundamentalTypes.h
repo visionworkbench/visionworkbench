@@ -25,14 +25,14 @@
 /// 
 /// Types and traits for fundamental floating point and integral types.
 ///
-#ifndef __VW_CORE_FUNDAMENTAL_TYPES_H__
-#define __VW_CORE_FUNDAMENTAL_TYPES_H__
+#ifndef __VW_CORE_FUNDAMENTALTYPES_H__
+#define __VW_CORE_FUNDAMENTALTYPES_H__
 
 #include <complex>
 #include <boost/cstdint.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/mpl/integral_c.hpp>
-#include <boost/mpl/not.hpp>
+#include <boost/mpl/if.hpp>
 
 #include <boost/version.hpp>
 #if BOOST_VERSION==103200
@@ -125,4 +125,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_CORE_FUNDAMENTAL_TYPES_H__
+#endif // __VW_CORE_FUNDAMENTALTYPES_H__

@@ -65,7 +65,7 @@ namespace vw {
   /// the number of pixels that the interpolation algorithm will need
   /// to search outside the boundaries of the image on each side.
   struct InterpolationBase {
-    static const int pixel_buffer = 0; 
+    static const int32 pixel_buffer = 0; 
     template <class ArgsT> struct result {};
     template <class FuncT, class ViewT, class IT, class JT, class PT>
     struct result<FuncT(ViewT,IT,JT,PT)> {
@@ -75,10 +75,10 @@ namespace vw {
 
   // Bilinear interpolation operator
   struct BilinearInterpolation : InterpolationBase {
-    static const int pixel_buffer = 1; 
+    static const int32 pixel_buffer = 1; 
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()(const ViewT &view, double i, double j, unsigned p ) const { 
-      int x = math::impl::_floor(i), y = math::impl::_floor(j);
+    inline typename ViewT::pixel_type operator()(const ViewT &view, double i, double j, int32 p ) const { 
+      int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
       double normx = i-x, normy = j-y;
 
       return typename ViewT::pixel_type( (view(x,y,p)   * (1.0-normy) + view(x,y+1,p)   * normy) * (1.0-normx) +
@@ -88,10 +88,10 @@ namespace vw {
 
   // Bicubic interpolation operator
   struct BicubicInterpolation : InterpolationBase {
-    static const int pixel_buffer = 2; 
+    static const int32 pixel_buffer = 2; 
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, unsigned p ) const { 
-      int x = math::impl::_floor(i), y = math::impl::_floor(j);
+    inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, int32 p ) const { 
+      int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
       double normx = i-x, normy = j-y;
   
       double s0 = ((2-normx)*normx-1)*normx;      double t0 = ((2-normy)*normy-1)*normy;
@@ -109,10 +109,10 @@ namespace vw {
 
   // NearestPixel interpolation operator.  
   struct NearestPixelInterpolation : InterpolationBase {
-    static const int pixel_buffer = 1; 
+    static const int32 pixel_buffer = 1; 
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, unsigned p ) const {
-      int x = math::impl::_round(i), y = math::impl::_round(j);
+    inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, int32 p ) const {
+      int32 x = math::impl::_round(i), y = math::impl::_round(j);
       return view(x,y,p);
     }
   };
@@ -141,13 +141,13 @@ namespace vw {
                        InterpT const& interp_func = InterpT()) :
       m_image(image), m_interp_func(interp_func) {}
 
-    inline unsigned cols() const { return m_image.cols(); }
-    inline unsigned rows() const { return m_image.rows(); }
-    inline unsigned planes() const { return m_image.planes(); }
+    inline int32 cols() const { return m_image.cols(); }
+    inline int32 rows() const { return m_image.rows(); }
+    inline int32 planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this, 0, 0); }
 
-    inline result_type operator() (double i, double j, int p = 0) const { return m_interp_func(m_image,i,j,p); }
+    inline result_type operator() (double i, double j, int32 p = 0) const { return m_interp_func(m_image,i,j,p); }
 
     /// \cond INTERNAL
     // We can make an optimization here.  If the pixels in the child
@@ -165,8 +165,8 @@ namespace vw {
                             
     template <class PreRastImageT>
     prerasterize_type prerasterize_helper( BBox2i bbox, PreRastImageT const& image, false_type ) const {
-      int padded_width = bbox.width() + 2 * m_interp_func.pixel_buffer;
-      int padded_height = bbox.height() + 2 * m_interp_func.pixel_buffer;
+      int32 padded_width = bbox.width() + 2 * m_interp_func.pixel_buffer;
+      int32 padded_height = bbox.height() + 2 * m_interp_func.pixel_buffer;
       ImageView<pixel_type> buf( padded_width, padded_height, m_image.planes() );
       BBox2i adjusted_bbox(bbox.min().x() - m_interp_func.pixel_buffer, 
                            bbox.min().y() - m_interp_func.pixel_buffer,

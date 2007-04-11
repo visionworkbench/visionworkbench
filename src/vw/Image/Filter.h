@@ -59,20 +59,20 @@ namespace vw {
   /// Computes a Gaussian kernel.
   /// Instantiated by default only for float and double kernels.
   template <class KernelT>
-  void generate_gaussian_kernel( std::vector<KernelT>& kernel, double sigma, int size=0 );
+  void generate_gaussian_kernel( std::vector<KernelT>& kernel, double sigma, int32 size=0 );
 
   /// Computes a differentiation kernel.
   /// Instantiated by default only for float and double kernels.
   template <class KernelT>
-  void generate_derivative_kernel( std::vector<KernelT>& kernel, int deriv, int size=0 );
+  void generate_derivative_kernel( std::vector<KernelT>& kernel, int32 deriv, int32 size=0 );
 
   /// Computes an oriented Gaussian derivative kernel.
   /// Instantiated by default only for float and double kernels.
   template <class KernelT>
-  void generate_gaussian_derivative_kernel( ImageView<KernelT>& kernel, double x_sigma, int x_deriv, double y_sigma, int y_deriv, double angle, int size );
+  void generate_gaussian_derivative_kernel( ImageView<KernelT>& kernel, double x_sigma, int32 x_deriv, double y_sigma, int32 y_deriv, double angle, int32 size );
 
   /// Computes an oriented Gaussian derivative kernel.
-  inline ImageView<double> generate_gaussian_derivative_kernel( double x_sigma, int x_deriv, double y_sigma, int y_deriv, double angle, int size ) {
+  inline ImageView<double> generate_gaussian_derivative_kernel( double x_sigma, int32 x_deriv, double y_sigma, int32 y_deriv, double angle, int32 size ) {
     ImageView<double> result;
     generate_gaussian_derivative_kernel( result, x_sigma, x_deriv, y_sigma, y_deriv, angle, size );
     return result;
@@ -81,10 +81,10 @@ namespace vw {
   /// Computes a Laplacian of Gaussian kernel.
   /// Instantiated by default only for float and double kernels.
   template <class KernelT>
-  void generate_laplacian_of_gaussian_kernel( ImageView<KernelT>& kernel, double sigma, int size );
+  void generate_laplacian_of_gaussian_kernel( ImageView<KernelT>& kernel, double sigma, int32 size );
 
   /// Computes a Laplacian of Gaussian kernel.
-  inline ImageView<double> generate_laplacian_of_gaussian_kernel( double sigma, int size ) {
+  inline ImageView<double> generate_laplacian_of_gaussian_kernel( double sigma, int32 size ) {
     ImageView<double> result;
     generate_laplacian_of_gaussian_kernel( result, sigma, size );
     return result;
@@ -101,7 +101,7 @@ namespace vw {
   /// \see FFTConvolutionFilter
   template <class SrcT, class KernelT, class EdgeT>
   inline ConvolutionView<SrcT,KernelT,EdgeT>
-  convolution_filter( ImageViewBase<SrcT> const& src, KernelT const& kernel, int cx, int cy, EdgeT edge ) {
+  convolution_filter( ImageViewBase<SrcT> const& src, KernelT const& kernel, int32 cx, int32 cy, EdgeT edge ) {
     return ConvolutionView<SrcT,KernelT,EdgeT>( src.impl(), kernel, cx, cy, edge );
   }
 
@@ -117,7 +117,7 @@ namespace vw {
   /// It uses the default vw::ConstantEdgeExtension mode.
   template <class SrcT, class KernelT>
   inline ConvolutionView<SrcT,KernelT,ConstantEdgeExtension>
-  convolution_filter( ImageViewBase<SrcT> const& src, KernelT const& kernel, int cx, int cy ) {
+  convolution_filter( ImageViewBase<SrcT> const& src, KernelT const& kernel, int32 cx, int32 cy ) {
     return ConvolutionView<SrcT,KernelT,ConstantEdgeExtension>( src.impl(), kernel, cx, cy );
   }
 
@@ -141,7 +141,7 @@ namespace vw {
   /// edge extension mode to extend the source image as needed.
   template <class SrcT, class KRangeT, class EdgeT>
   inline SeparableConvolutionView<SrcT,typename KRangeT::value_type,EdgeT>
-  separable_convolution_filter( ImageViewBase<SrcT> const& src, KRangeT const& x_kernel, KRangeT const& y_kernel, int cx, int cy, EdgeT edge ) {
+  separable_convolution_filter( ImageViewBase<SrcT> const& src, KRangeT const& x_kernel, KRangeT const& y_kernel, int32 cx, int32 cy, EdgeT edge ) {
     return SeparableConvolutionView<SrcT,typename KRangeT::value_type,EdgeT>( src.impl(), x_kernel, y_kernel, cx, cy, edge );
   }
 
@@ -158,7 +158,7 @@ namespace vw {
   /// It uses the default vw::ConstantEdgeExtension mode.
   template <class SrcT, class KRangeT>
   inline SeparableConvolutionView<SrcT,typename KRangeT::value_type,ConstantEdgeExtension>
-  separable_convolution_filter( ImageViewBase<SrcT> const& src, KRangeT const& x_kernel, KRangeT const& y_kernel, int cx, int cy ) {
+  separable_convolution_filter( ImageViewBase<SrcT> const& src, KRangeT const& x_kernel, KRangeT const& y_kernel, int32 cx, int32 cy ) {
     return SeparableConvolutionView<SrcT,typename KRangeT::value_type,ConstantEdgeExtension>( src.impl(), x_kernel, y_kernel, cx, cy );
   }
 
@@ -184,7 +184,7 @@ namespace vw {
   /// for the requested standard deviation.
   template <class SrcT, class EdgeT>
   SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, EdgeT>
-  inline gaussian_filter( ImageViewBase<SrcT> const& src, double x_sigma, double y_sigma, int x_dim, int y_dim, EdgeT edge ) {
+  inline gaussian_filter( ImageViewBase<SrcT> const& src, double x_sigma, double y_sigma, int32 x_dim, int32 y_dim, EdgeT edge ) {
     std::vector<typename DefaultKernelT<typename SrcT::pixel_type>::type> x_kernel, y_kernel;
     generate_gaussian_kernel( x_kernel, x_sigma, x_dim );
     generate_gaussian_kernel( y_kernel, y_sigma, y_dim );
@@ -195,7 +195,7 @@ namespace vw {
   /// It uses the default vw::ConstantEdgeExtension mode.
   template <class SrcT>
   SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, ConstantEdgeExtension>
-  inline gaussian_filter( ImageViewBase<SrcT> const& src, double x_sigma, double y_sigma, int x_dim, int y_dim ) {
+  inline gaussian_filter( ImageViewBase<SrcT> const& src, double x_sigma, double y_sigma, int32 x_dim, int32 y_dim ) {
     return gaussian_filter( src, x_sigma, y_sigma, x_dim, y_dim, ConstantEdgeExtension() );
   }
 
@@ -249,7 +249,7 @@ namespace vw {
   /// given edge extension mode as needed.
   template <class SrcT, class EdgeT>
   SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, EdgeT>
-  inline derivative_filter( ImageViewBase<SrcT> const& src, int x_deriv, int y_deriv, int x_dim, int y_dim, EdgeT edge ) {
+  inline derivative_filter( ImageViewBase<SrcT> const& src, int32 x_deriv, int32 y_deriv, int32 x_dim, int32 y_dim, EdgeT edge ) {
     std::vector<typename DefaultKernelT<typename SrcT::pixel_type>::type> x_kernel, y_kernel;
     generate_derivative_kernel( x_kernel, x_deriv, x_dim );
     generate_derivative_kernel( y_kernel, y_deriv, y_dim );
@@ -260,7 +260,7 @@ namespace vw {
   /// It uses a kernel with the default dimensions for the requested differentiation operation.
   template <class SrcT, class EdgeT>
   SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, EdgeT>
-  inline derivative_filter( ImageViewBase<SrcT> const& src, int x_deriv, int y_deriv, EdgeT edge ) {
+  inline derivative_filter( ImageViewBase<SrcT> const& src, int32 x_deriv, int32 y_deriv, EdgeT edge ) {
     return derivative_filter( src, x_deriv, y_deriv, 0, 0, edge );
   }
 
@@ -268,7 +268,7 @@ namespace vw {
   /// It uses the default vw::ConstantEdgeExtension mode.
   template <class SrcT>
   SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, ConstantEdgeExtension>
-  inline derivative_filter( ImageViewBase<SrcT> const& src, int x_deriv, int y_deriv, int x_dim, int y_dim ) {
+  inline derivative_filter( ImageViewBase<SrcT> const& src, int32 x_deriv, int32 y_deriv, int32 x_dim, int32 y_dim ) {
     return derivative_filter( src, x_deriv, y_deriv, x_dim, y_dim, ConstantEdgeExtension() );
   }
 
@@ -277,7 +277,7 @@ namespace vw {
   /// and the default vw::ConstantEdgeExtension mode.
   template <class SrcT>
   SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, ConstantEdgeExtension>
-  inline derivative_filter( ImageViewBase<SrcT> const& src, int x_deriv, int y_deriv ) {
+  inline derivative_filter( ImageViewBase<SrcT> const& src, int32 x_deriv, int32 y_deriv ) {
     return derivative_filter( src, x_deriv, y_deriv, 0, 0, ConstantEdgeExtension() );
   }
 

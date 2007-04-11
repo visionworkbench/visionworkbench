@@ -155,7 +155,7 @@ void vw::DiskImageResourceOpenEXR::create( std::string const& filename,
     // Create the file header with the appropriate number of
     // channels.  Label the channels in order starting with "Channel 0".
     Imf::Header header (m_format.cols,m_format.rows);
-    for ( unsigned nn = 0; nn < m_format.planes; nn++) {
+    for ( int32 nn = 0; nn < m_format.planes; nn++) {
       m_labels[nn] = openexr_channel_string_of_pixel_type(m_format.pixel_format, nn);
       //      std::cout << "Writing channel " << nn << ": " << labels[nn] << "\n";
       header.channels().insert (m_labels[nn].c_str(), Imf::Channel (Imf::FLOAT));
@@ -181,8 +181,8 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
     // to the beginning of the requesed block.
     Imath::Box2i dw = m_input_file_ptr->header().dataWindow();
     dw.min.y += bbox.min().y();
-    unsigned height = bbox.height();
-    unsigned width = bbox.width();
+    int32 height = bbox.height();
+    int32 width = bbox.width();
 
     // Set up the OpenEXR data structures necessary to read all of
     // the channels out of the file and execute the call to readPixels().
@@ -220,7 +220,7 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
     }
     
     Imf::FrameBuffer frameBuffer;
-    for ( unsigned nn = 0; nn < m_format.planes; ++nn ) {
+    for ( int32 nn = 0; nn < m_format.planes; ++nn ) {
       inputArrays[nn] = new Imf::Array2D<float>(height,width);
       //        std::cout << "Reading channel " << channel_names[nn] << "\n";
       frameBuffer.insert (channel_names[nn].c_str(), Imf::Slice (Imf::FLOAT, (char *) (&(*inputArrays[nn])[-dw.min.y][-dw.min.x]),
@@ -234,9 +234,9 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
     // 
     // Recast to the templatized pixel type in the process.
     ImageView<float> src_image(width, height, m_format.planes);
-    for ( unsigned nn=0; nn<m_format.planes; ++nn ) {
-      for ( unsigned i=0; i<width; ++i ) {
-        for ( unsigned j=0; j<height; ++j ) {
+    for ( int32 nn=0; nn<m_format.planes; ++nn ) {
+      for ( int32 i=0; i<width; ++i ) {
+        for ( int32 j=0; j<height; ++j ) {
           src_image(i,j,nn) = (*inputArrays[nn])[j][i];
         }
       } 
@@ -246,7 +246,7 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
     convert( dest, src );
         
     // Clean up
-    for ( unsigned nn = 0; nn < m_format.planes; nn++) {
+    for ( int32 nn = 0; nn < m_format.planes; nn++) {
       delete inputArrays[nn];
     }
     
@@ -273,7 +273,7 @@ void vw::DiskImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const& 
     Imf::FrameBuffer frameBuffer;
         
     // Build the framebuffer out of the various image channels 
-    for (unsigned int nn = 0; nn < dst.format.planes; nn++) {
+    for (int32 nn = 0; nn < dst.format.planes; nn++) {
       frameBuffer.insert (m_labels[nn].c_str(), 
                           Imf::Slice (Imf::FLOAT, (char*) (&(openexr_image_block(-bbox.min()[0],-bbox.min()[1],nn))), 
                                       sizeof (openexr_image_block(0,0,nn)) * 1, 

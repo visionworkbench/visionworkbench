@@ -54,12 +54,12 @@ namespace vw {
 
   template <class SrcAccessT, class KernelIterT>
   typename ProductType<typename SrcAccessT::pixel_type, typename std::iterator_traits<KernelIterT>::value_type>::type
-  inline correlate_1d_at_point( SrcAccessT const& src, KernelIterT const& kernel, unsigned n ) {
+  inline correlate_1d_at_point( SrcAccessT const& src, KernelIterT const& kernel, int32 n ) {
     typedef typename ProductType<typename SrcAccessT::pixel_type, typename std::iterator_traits<KernelIterT>::value_type>::type result_type;
     result_type result = result_type();
     SrcAccessT s = src;
     KernelIterT k = kernel;
-    for( unsigned i=n; i; --i ) {
+    for( int32 i=n; i; --i ) {
       result += (*k)*(*s);
       s.next_col();
       ++k;
@@ -69,15 +69,15 @@ namespace vw {
 
   template <class SrcAccessT, class KernelAccessT>
   typename ProductType<typename SrcAccessT::pixel_type, typename KernelAccessT::pixel_type>::type
-  inline correlate_2d_at_point( SrcAccessT const& src, KernelAccessT const& kernel, unsigned cols, unsigned rows ) {
+  inline correlate_2d_at_point( SrcAccessT const& src, KernelAccessT const& kernel, int32 cols, int32 rows ) {
     typedef typename ProductType<typename SrcAccessT::pixel_type, typename KernelAccessT::pixel_type>::type result_type;
     result_type result = result_type();
     SrcAccessT srow = src;
     KernelAccessT krow = kernel;
-    for( unsigned j=rows; j; --j ) {
+    for( int32 j=rows; j; --j ) {
       SrcAccessT scol = srow;
       KernelAccessT kcol = krow;
-      for( unsigned i=cols; i; --i ) {
+      for( int32 i=cols; i; --i ) {
         result += (*kcol)*(*scol);
         scol.next_col();
         kcol.next_col();
@@ -104,138 +104,70 @@ namespace vw {
   class ConvolutionView : public ImageViewBase<ConvolutionView<ImageT,KernelT,EdgeT> >
   {
   private:
-    EdgeExtensionView<ImageT,EdgeT> m_image;
+    ImageT m_image;
+    EdgeT m_edge;
     Rotate180View<KernelT> m_kernel;
-    int m_ci, m_cj;
+    int32 m_ci, m_cj;
 
   public:
     /// The pixel type of the image view.
     typedef typename ProductType<typename ImageT::pixel_type, typename KernelT::pixel_type>::type pixel_type;
 
+    /// We compute the result, so we return by value.
     typedef pixel_type result_type;
 
     /// The view's %pixel_accessor type.
     typedef ProceduralPixelAccessor<ConvolutionView<ImageT, KernelT, EdgeT> > pixel_accessor;
 
     /// Constructs a ConvolutionView with the given image and kernel and with the origin of the kernel located at the point (ci,cj).
-    ConvolutionView( ImageT const& image, KernelT const& kernel, unsigned ci, unsigned cj, EdgeT const& edge = EdgeT() )
-      : m_image(image,edge), m_kernel(kernel), m_ci(ci), m_cj(cj) {}
+    ConvolutionView( ImageT const& image, KernelT const& kernel, int32 ci, int32 cj, EdgeT const& edge = EdgeT() )
+      : m_image(image), m_edge(edge), m_kernel(kernel), m_ci(ci), m_cj(cj) {}
 
     /// Constructs a ConvolutionView with the given image and kernel and with the origin of the kernel located at the center.
     ConvolutionView( ImageT const& image, KernelT const& kernel, EdgeT const& edge = EdgeT() )
-      : m_image(image,edge), m_kernel(kernel), m_ci((kernel.cols()-1)/2), m_cj((kernel.rows()-1)/2) {}
+      : m_image(image), m_edge(edge), m_kernel(kernel), m_ci((kernel.cols()-1)/2), m_cj((kernel.rows()-1)/2) {}
 
     /// Returns the number of columns in the image.
-    inline unsigned cols() const { return m_image.cols(); }
+    inline int32 cols() const { return m_image.cols(); }
 
     /// Returns the number of rows in the image.
-    inline unsigned rows() const { return m_image.rows(); }
+    inline int32 rows() const { return m_image.rows(); }
 
     /// Returns the number of planes in the image.
-    inline unsigned planes() const { return m_image.planes(); }
+    inline int32 planes() const { return m_image.planes(); }
 
     /// Returns a pixel_accessor pointing to the origin.
     inline pixel_accessor origin() const { return pixel_accessor( *this ); }
 
     /// Returns the pixel at the given position in the given plane.
-    inline result_type operator()( int x, int y, int p=0 ) const {
-      int ci = (m_kernel.cols()-1-m_ci), cj = (m_kernel.rows()-1-m_cj);
+    inline result_type operator()( int32 x, int32 y, int32 p=0 ) const {
+      int32 ci = (m_kernel.cols()-1-m_ci), cj = (m_kernel.rows()-1-m_cj);
       if( (x >= ci) && (y >= cj) &&
 	  (x <= int(m_image.cols())-int(m_kernel.cols())+ci) &&
 	  (y <= int(m_image.rows())-int(m_kernel.rows())+cj) ) {
-        return correlate_2d_at_point( m_image.child().origin().advance(x-ci,y-cj,p),
+        return correlate_2d_at_point( m_image.origin().advance(x-ci,y-cj,p),
                                       m_kernel.origin(), m_kernel.cols(), m_kernel.rows() );
       }
       else {
-	return correlate_2d_at_point( m_image.origin().advance(x-ci,y-cj,p),
+	return correlate_2d_at_point( edge_extend(m_image,m_edge).origin().advance(x-ci,y-cj,p),
                                       m_kernel.origin(), m_kernel.cols(), m_kernel.rows() );
       }
     }
 
-    /// \cond INTERNAL
-
-    // If the pixels in the child view's prerasterization type can be repeatedly 
-    // accessed without incurring any additional overhead (e.g. an ImageView)
-    // we do not need to rasterize the child before we proceed to rasterize ourself.
-    typedef typename boost::mpl::if_< IsMultiplyAccessible<typename ImageT::prerasterize_type>, 
-                                      ConvolutionView<typename ImageT::prerasterize_type, KernelT, EdgeT>,
-                                      ConvolutionView<CropView<ImageView<typename ImageT::pixel_type> >, KernelT, EdgeT> >::type prerasterize_type;
+    typedef ConvolutionView<CropView<ImageView<typename ImageT::pixel_type> >, KernelT, NoEdgeExtension> prerasterize_type;
     
-    inline prerasterize_type prerasterize_helper( BBox2i bbox, true_type ) const {
-      return prerasterize_type( m_image.child().prerasterize(bbox), m_kernel.child(), m_ci, m_cj, m_image.func() );
-    }
-    
-    inline prerasterize_type prerasterize_helper( BBox2i bbox, false_type ) const {
-      ImageView<pixel_type> buf( bbox.width(), bbox.height(), m_image.planes() );
-      m_image.rasterize( buf, bbox );
-      return prerasterize_type( CropView<ImageView<typename ImageT::pixel_type> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),bbox.width(),bbox.height()) ),
-                                m_kernel.child(), m_ci, m_cj, m_image.func() );
-    }
-
     inline prerasterize_type prerasterize( BBox2i bbox ) const {
-      return prerasterize_helper( bbox, typename IsMultiplyAccessible<typename ImageT::prerasterize_type>::type() );
+      int32 ci = (m_kernel.cols()-1-m_ci), cj = (m_kernel.rows()-1-m_cj);
+      BBox2i src_bbox( bbox.min().x() - ci, bbox.min().y() - cj,
+                       bbox.width() + (m_kernel.cols()-1), bbox.height() + (m_kernel.rows()-1) );
+      ImageView<pixel_type> src = edge_extend( m_image, src_bbox, m_edge );
+      return prerasterize_type( crop( src, -src_bbox.min().x(), -src_bbox.min().y(), m_image.cols(), m_image.rows() ),
+                                m_kernel.child(), m_ci, m_cj, NoEdgeExtension() );
     }
 
-    template <class DestT>
-    void rasterize( DestT const& dest, BBox2i bbox ) const {
-      prerasterize(bbox).rasterize_helper( dest, bbox );
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+      vw::rasterize( prerasterize(bbox), dest, bbox );
     }
-
-    template <class DestT>
-    void rasterize_helper( DestT const& dest, BBox2i bbox ) const {
-      typedef typename ImageT::pixel_accessor SrcAccessT;
-      typedef typename EdgeExtensionView<ImageT,EdgeT>::pixel_accessor EdgeAccessT;
-      typedef typename DestT::pixel_accessor DestAccessT;
-      typedef typename DestT::pixel_type DestPixelT;
-      int ci = (m_kernel.cols()-1-m_ci), cj = (m_kernel.rows()-1-m_cj);
-      SrcAccessT splane = m_image.child().origin();
-      EdgeAccessT eplane = m_image.origin().advance(-int(ci),-int(cj));
-      DestAccessT dplane = dest.origin();
-
-      for( int p=0; p<int(m_image.planes()); ++p ) {
-        SrcAccessT srow = splane;
-        EdgeAccessT erow = eplane;
-        DestAccessT drow = dplane;
-        for( int r=bbox.min().y(); r<bbox.max().y(); ++r ) {
-          EdgeAccessT ecol = erow;
-          DestAccessT dcol = drow;
-          if( r<cj || r>int(m_image.rows())-int(m_kernel.rows())+cj ) {
-            for( int i=bbox.min().x(); i<bbox.max().x(); ++i ) {
-              *dcol = DestPixelT( correlate_2d_at_point( ecol, m_kernel.origin(), m_kernel.cols(), m_kernel.rows() ) );
-              dcol.next_col();
-              ecol.next_col();
-            }
-          }
-          else {
-            SrcAccessT scol = srow;
-            int i=bbox.min().x();
-            for( ; (i<ci)&&(i<bbox.max().x()); ++i ) {
-              *dcol = DestPixelT( correlate_2d_at_point( ecol, m_kernel.origin(), m_kernel.cols(), m_kernel.rows() ) );
-              ecol.next_col();
-              dcol.next_col();
-            }
-            for( ; (i<=int(m_image.cols())-int(m_kernel.cols())+ci)&&(i<bbox.max().x()); ++i ) {
-              *dcol = DestPixelT( correlate_2d_at_point( scol, m_kernel.origin(), m_kernel.cols(), m_kernel.rows() ) );
-              scol.next_col();
-              dcol.next_col();
-            }
-            ecol.advance( m_image.cols()-m_kernel.cols()+1, 0 );
-            for( ; i<bbox.max().x(); ++i ) {
-              *dcol = DestPixelT( correlate_2d_at_point( ecol, m_kernel.origin(), m_kernel.cols(), m_kernel.rows() ) );
-              ecol.next_col();
-              dcol.next_col();
-            }
-            srow.next_row();
-          }
-          erow.next_row();
-          drow.next_row();
-        }
-        splane.next_plane();
-        eplane.next_plane();
-        dplane.next_plane();
-      }
-    }
-    /// \endcond
   };
 
 
@@ -253,16 +185,16 @@ namespace vw {
   private:
     ImageT m_image;
     std::vector<KernelT> m_i_kernel, m_j_kernel;
-    unsigned m_ci, m_cj;
+    int32 m_ci, m_cj;
     EdgeT m_edge;
     mutable ImageView<KernelT> m_kernel2d;
 
     void generate2DKernel() const {
-      unsigned ni = m_i_kernel.size() ? m_i_kernel.size() : 1;
-      unsigned nj = m_j_kernel.size() ? m_j_kernel.size() : 1;
+      int32 ni = m_i_kernel.size() ? m_i_kernel.size() : 1;
+      int32 nj = m_j_kernel.size() ? m_j_kernel.size() : 1;
       m_kernel2d.set_size( ni, nj );
-      for( unsigned i=0; i<ni; ++i )
-        for( unsigned j=0; j<nj; ++j )
+      for( int32 i=0; i<ni; ++i )
+        for( int32 j=0; j<nj; ++j )
           m_kernel2d(ni-1-i,nj-1-j) = (m_i_kernel.size()?m_i_kernel[i]:1)*(m_j_kernel.size()?m_j_kernel[j]:1);
     }
 
@@ -276,7 +208,7 @@ namespace vw {
 
     /// Constructs a SeparableConvolutionView with the given image and kernels and with the origin of the kernel located at the center.
     template <class KRangeT>
-    SeparableConvolutionView( ImageT const& image, KRangeT const& ik, KRangeT const& jk, unsigned ci, unsigned cj, EdgeT const& edge = EdgeT() ) : 
+    SeparableConvolutionView( ImageT const& image, KRangeT const& ik, KRangeT const& jk, int32 ci, int32 cj, EdgeT const& edge = EdgeT() ) : 
       m_image(image), m_i_kernel(ik.begin(),ik.end()), m_j_kernel(jk.begin(),jk.end()), m_ci(ci), m_cj(cj), m_edge(edge) {}
 
     /// Constructs a SeparableConvolutionView with the given image and kernels and with the origin of the kernel located at the point (ci,cj).
@@ -285,22 +217,22 @@ namespace vw {
       m_image(image), m_i_kernel(ik.begin(),ik.end()), m_j_kernel(jk.begin(),jk.end()), m_ci((m_i_kernel.size()-1)/2), m_cj((m_j_kernel.size()-1)/2), m_edge(edge) {}
 
     /// Returns the number of columns in the image.
-    inline unsigned cols() const { return m_image.cols(); }
+    inline int32 cols() const { return m_image.cols(); }
 
     /// Returns the number of rows in the image.
-    inline unsigned rows() const { return m_image.rows(); }
+    inline int32 rows() const { return m_image.rows(); }
 
     /// Returns the number of planes in the image.
-    inline unsigned planes() const { return m_image.planes(); }
+    inline int32 planes() const { return m_image.planes(); }
 
     /// Returns a pixel_accessor pointing to the top-left corner of the first plane.
     inline pixel_accessor origin() const { return pixel_accessor( *this ); }
 
     /// Returns the pixel at the given position in the given plane.
-    inline result_type operator()( int x, int y, int p=0 ) const {
+    inline result_type operator()( int32 x, int32 y, int32 p=0 ) const {
       if( m_kernel2d.cols()==0 ) generate2DKernel();
-      int ci = m_i_kernel.size() ? (m_i_kernel.size()-1-m_ci) : 0;
-      int cj = m_j_kernel.size() ? (m_j_kernel.size()-1-m_cj) : 0;
+      int32 ci = m_i_kernel.size() ? (m_i_kernel.size()-1-m_ci) : 0;
+      int32 cj = m_j_kernel.size() ? (m_j_kernel.size()-1-m_cj) : 0;
       if( (x >= int(ci)) && (y >= int(cj)) &&
 	  (x <= int(m_image.cols())-int(m_kernel2d.cols())+int(ci)) &&
 	  (y <= int(m_image.rows())-int(m_kernel2d.rows())+int(cj)) ) {
@@ -336,8 +268,8 @@ namespace vw {
     template <class DestT>
     void rasterize( DestT const& dest, BBox2i bbox ) const {
       BBox2i child_bbox = bbox;
-      int ci = m_i_kernel.size() ? (m_i_kernel.size()-1-m_ci) : 0;
-      int cj = m_j_kernel.size() ? (m_j_kernel.size()-1-m_cj) : 0;
+      int32 ci = m_i_kernel.size() ? (m_i_kernel.size()-1-m_ci) : 0;
+      int32 cj = m_j_kernel.size() ? (m_j_kernel.size()-1-m_cj) : 0;
       child_bbox.min() -= Vector2i( m_i_kernel.size()-ci-1, m_j_kernel.size()-cj-1 );
       child_bbox.max() += Vector2i( ci, cj );
       // FIXME: This all has some tricky behavior if the child image
@@ -354,9 +286,9 @@ namespace vw {
 
     template <class SrcT, class DestT>
     void rasterize_helper( SrcT const& src, DestT const& dest ) const {	
-      int ci = m_i_kernel.size() ? (m_i_kernel.size()-1-m_ci) : 0;
-      int cj = m_j_kernel.size() ? (m_j_kernel.size()-1-m_cj) : 0;
-      unsigned ni=m_i_kernel.size(), nj=m_j_kernel.size();
+      int32 ci = m_i_kernel.size() ? (m_i_kernel.size()-1-m_ci) : 0;
+      int32 cj = m_j_kernel.size() ? (m_j_kernel.size()-1-m_cj) : 0;
+      int32 ni=m_i_kernel.size(), nj=m_j_kernel.size();
       if( ni>0 && nj>0 ) {
         ImageView<pixel_type> work( src.cols(), src.rows(), src.planes() );
         convolve_1d( src, work, m_i_kernel, ci );
@@ -374,7 +306,7 @@ namespace vw {
     }
 
     template <class SrcT, class DestT>
-    void convolve_1d( SrcT const& src, DestT const& dest, std::vector<KernelT> const& kernel, unsigned c ) const {
+    void convolve_1d( SrcT const& src, DestT const& dest, std::vector<KernelT> const& kernel, int32 c ) const {
       typedef typename SrcT::pixel_accessor SrcAccessT;
       EdgeExtensionView<SrcT,EdgeT> edge_view( src, m_edge );
       typedef typename EdgeExtensionView<SrcT,EdgeT>::pixel_accessor EdgeAccessT;
@@ -383,17 +315,17 @@ namespace vw {
       typedef typename ProductType<typename SrcT::pixel_type, KernelT>::type AccumT;
 
       SrcAccessT splane = src.origin();
-      EdgeAccessT eplane = edge_view.origin().advance(-(int)c,0);
+      EdgeAccessT eplane = edge_view.origin().advance(-c,0);
       DestAccessT dplane = dest.origin();
-      for( unsigned p=0; p<src.planes(); ++p ) {
+      for( int32 p=0; p<src.planes(); ++p ) {
         SrcAccessT srow = splane;
         EdgeAccessT erow = eplane;
         DestAccessT drow = dplane;
-        for( unsigned j=0; j<src.rows(); ++j ) {
+        for( int32 j=0; j<src.rows(); ++j ) {
           SrcAccessT scol = srow;
           EdgeAccessT ecol = erow;
           DestAccessT dcol = drow;
-          unsigned i=0;
+          int32 i=0;
           if( kernel.size() <= src.cols() ) {
             for( ; i<c; ++i ) {
               *dcol = DestPixelT( correlate_1d_at_point( ecol, kernel.rbegin(), kernel.size() ) );

@@ -31,15 +31,15 @@ namespace vw { namespace HDR {
 			// approximately 1-pi^2/N^2 for a square NxN grid.  (This was
 			// pulled from "The Nature of Mathematical Modeling" by Neil
 			// Gershenfeld.
-			unsigned x_max = RHS.rows();
-			unsigned y_max = RHS.cols(); 
+			int32 x_max = RHS.rows();
+			int32 y_max = RHS.cols(); 
 			float rho_gs = 1.0 - 6.28/((x_max<y_max) ? x_max : y_max);
 			
 			// Compute initial norm of residual and terminate iteration when
 			// norm has been reduced by a factor EPSILON.
 			fill(U,0.0);
-			for (unsigned i = 0; i < RHS.cols(); i++) {
-				for (unsigned j = 0; j < RHS.rows(); j++) {
+			for (int32 i = 0; i < RHS.cols(); i++) {
+				for (int32 j = 0; j < RHS.rows(); j++) {
 					anormf += fabs( RHS(i,j) );
 				}
 			}
@@ -50,8 +50,8 @@ namespace vw { namespace HDR {
 				int jsw = 0;
 				for (unsigned ipass = 0; ipass < 2; ipass++, jsw=1-jsw) {
 					int isw = jsw;
-					for (unsigned j = 0; j < RHS.rows(); j++, isw = 1-isw) {
-						for (unsigned i = isw; i < RHS.cols(); i += 2) {
+					for (int32 j = 0; j < RHS.rows(); j++, isw = 1-isw) {
+						for (int32 i = isw; i < RHS.cols(); i += 2) {
 							int w, n, e, s;
 							w = (i == 0 ? 0 : i-1);
 							n = (j == 0 ? 0 : j-1);
@@ -86,8 +86,8 @@ namespace vw { namespace HDR {
 			double h = 1.0 / (RHS.rows() - 1);
 			double h2 = h*h;
 			
-			for( unsigned i=0 ; i<RHS.cols() ; i++ ) {
-				for( unsigned j=0 ; j<RHS.rows() ; j++) {
+			for( int32 i=0 ; i<RHS.cols() ; i++ ) {
+				for( int32 j=0 ; j<RHS.rows() ; j++) {
 					int w, n, e, s;
 					w = (i == 0 ? 0 : i-1);
 					n = (j == 0 ? 0 : j-1);
@@ -116,8 +116,8 @@ namespace vw { namespace HDR {
 
 			for ( unsigned ipass = 0; ipass < 2; ipass++, jsw=1-jsw ) {
 				isw = jsw;
-				for( unsigned j=0 ; j<RHS.rows() ; j++, isw = 1-isw) {
-					for( unsigned i=isw ; i<RHS.cols() ; i+=2 ) {
+				for( int32 j=0 ; j<RHS.rows() ; j++, isw = 1-isw) {
+					for( int32 i=isw ; i<RHS.cols() ; i+=2 ) {
 						int w, n, e, s;
 						w = (i == 0 ? 0 : i-1);
 						n = (j == 0 ? 0 : j-1);
@@ -138,8 +138,8 @@ namespace vw { namespace HDR {
 			double h = 1.0 / (n - 1);
 			double h2i = 1 / (h*h);
 
-			for (unsigned i = 0;i < RHS.cols();i++) {
-				for (unsigned j = 0;j < RHS.rows();j++) {
+			for (int32 i = 0;i < RHS.cols();i++) {
+				for (int32 j = 0;j < RHS.rows();j++) {
 					int w, n, e, s;
 					w = (i == 0 ? 0 : i-1);
 					n = (j == 0 ? 0 : j-1);
@@ -330,8 +330,8 @@ namespace vw { namespace HDR {
 				// Compute the divergence of the gradient, div G = dG/dx + dG/dy
 				//  using a backward difference approximation.
 				ImageView<double> divG(_x_gradient.cols(), _x_gradient.rows());
-				for( unsigned i = 0 ; i < _x_gradient.cols() ; i++ ) {
-					for( unsigned j = 0 ; j < _y_gradient.rows() ; j++ ) {
+				for( int32 i = 0 ; i < _x_gradient.cols() ; i++ ) {
+					for( int32 j = 0 ; j < _y_gradient.rows() ; j++ ) {
 						divG(i,j) = _x_gradient(i,j) + _y_gradient(i,j);
 						if( i > 0 ) divG(i,j) -= _x_gradient(i-1,j  );
 						if( j > 0 ) divG(i,j) -= _y_gradient(i,  j-1);

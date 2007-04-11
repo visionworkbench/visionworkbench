@@ -122,6 +122,22 @@ namespace mosaic {
 
     virtual ~KMLQuadTreeGenerator() {}
     
+    virtual std::string compute_image_path( std::string const& name ) const {
+      fs::path path( base_type::m_base_dir, fs::native );
+
+      if( name.length() == 1 ) {
+        path /= change_extension( path, "" ).leaf();
+      }
+      else {
+        for ( int i=1; i<(int)name.length() - (int)base_type::m_levels_per_directory; i+=base_type::m_levels_per_directory ) {
+          path /= name.substr( i, base_type::m_levels_per_directory );
+        }
+        path /= name.substr( 1, name.length()-1 );
+      }
+
+      return path.native_file_string();
+    }
+
     virtual void write_meta_file( typename base_type::PatchInfo const& info ) const
     {
       bool root_node = ( info.level == base_type::m_tree_levels-1 );
@@ -138,33 +154,37 @@ namespace mosaic {
         root_node_tags << "  <Style><ListStyle><listItemType>checkHideChildren</listItemType></ListStyle></Style>\n";
       }
 
-      fs::path file_path = info.filename;
-      fs::path dir_path = change_extension(file_path,"");
-      fs::path kml_path = change_extension(file_path,".kml");
-
       BBox2 bb = pixels_to_longlat( info.image_bbox );
       BBox2 rbb = pixels_to_longlat( info.region_bbox );
 
+      fs::path file_path( info.filepath, fs::native );
+      int base_len = file_path.branch_path().native_file_string().size() + 1;
+
+      fs::path kml_path = change_extension(file_path,".kml");
       fs::ofstream kml( kml_path );
       kml << std::setprecision(10);
+
       kml << "<Folder>\n";
-      std::string dir_leaf = dir_path.leaf();
       int children = 0;
-      if( exists( dir_path/"0.kml" ) ) {
+      std::string kml0 = compute_image_path( info.name+"0" ) + ".kml";
+      if( exists( fs::path( kml0, fs::native ) ) ) {
         ++children;
-        kml << kml_network_link( "0", dir_leaf+"/0.kml", (rbb+Vector2(rbb.min().x(),rbb.min().y()))/2.0 );
+        kml << kml_network_link( "0", kml0.substr(base_len), (rbb+Vector2(rbb.min().x(),rbb.min().y()))/2.0 );
       }
-      if( exists( dir_path/"1.kml" ) ) {
+      std::string kml1 = compute_image_path( info.name+"1" ) + ".kml";
+      if( exists( fs::path( kml1, fs::native ) ) ) {
         ++children;
-        kml << kml_network_link( "1", dir_leaf+"/1.kml", (rbb+Vector2(rbb.max().x(),rbb.min().y()))/2.0 );
+        kml << kml_network_link( "1", kml1.substr(base_len), (rbb+Vector2(rbb.max().x(),rbb.min().y()))/2.0 );
       }
-      if( exists( dir_path/"2.kml" ) ) {
+      std::string kml2 = compute_image_path( info.name+"2" ) + ".kml";
+      if( exists( fs::path( kml2, fs::native ) ) ) {
         ++children;
-        kml << kml_network_link( "2", dir_leaf+"/2.kml", (rbb+Vector2(rbb.min().x(),rbb.max().y()))/2.0 );
+        kml << kml_network_link( "2", kml2.substr(base_len), (rbb+Vector2(rbb.min().x(),rbb.max().y()))/2.0 );
       }
-      if( exists( dir_path/"3.kml" ) ) {
+      std::string kml3 = compute_image_path( info.name+"3" ) + ".kml";
+      if( exists( fs::path( kml3, fs::native ) ) ) {
         ++children;
-        kml << kml_network_link( "3", dir_leaf+"/3.kml", (rbb+Vector2(rbb.max().x(),rbb.max().y()))/2.0 );
+        kml << kml_network_link( "3", kml3.substr(base_len), (rbb+Vector2(rbb.max().x(),rbb.max().y()))/2.0 );
       }
       int max_lod = max_lod_pixels;
       if( ! children ) max_lod = -1;
@@ -180,7 +200,7 @@ namespace mosaic {
   /// A transform functor that relates unprojected lon/lat 
   /// coordinates in degrees to an unprojected pixel space 
   /// cooresponding to a standard global KML image quad-tree.
-  class GlobalKMLTransform : public TransformBase<GlobalKMLTransform>
+  class GlobalKMLTransform : public TransformHelper<GlobalKMLTransform,ConvexFunction,ConvexFunction>
   {
     int resolution;
   public:
@@ -208,7 +228,6 @@ namespace mosaic {
       return resolution;
     }
   };
-
 
 } // namespace mosaic
 } // namespace vw

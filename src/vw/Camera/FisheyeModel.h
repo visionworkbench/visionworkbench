@@ -85,7 +85,7 @@ namespace camera {
     /// Here, field of view is measured from the top left corner of
     /// the image to the bottom right corner.
     FisheyeModel(double focal_length, double field_of_view,
-                 unsigned image_width, unsigned image_height,
+                 int32 image_width, int32 image_height,
                  Vector2 principal_point, ProjectionT projection = ProjectionT()) :
       m_focal_length(focal_length), m_field_of_view(field_of_view), 
       m_width(image_width), m_height(image_height),

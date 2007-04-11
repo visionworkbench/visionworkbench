@@ -174,13 +174,13 @@ namespace ip {
   template <class T>
   int find_peaks( std::vector<InterestPoint>& interest_points,
 		  const ImageView<T>& interest, PeakType type = IP_MAX) {
-    unsigned ncols = interest.cols();
-    unsigned nrows = interest.rows();
+    int32 ncols = interest.cols();
+    int32 nrows = interest.rows();
 
     // Find local extrema
     // TODO: this really needs to be sped up
-    for (unsigned j=IP_BORDER_WIDTH; j<nrows-IP_BORDER_WIDTH; j++) {   // row j
-      for (unsigned i=IP_BORDER_WIDTH; i<ncols-IP_BORDER_WIDTH; i++) { // col i
+    for (int32 j=IP_BORDER_WIDTH; j<nrows-IP_BORDER_WIDTH; j++) {   // row j
+      for (int32 i=IP_BORDER_WIDTH; i<ncols-IP_BORDER_WIDTH; i++) { // col i
         // check if it is a local extremum
         if (is_extremum(interest, i, j, type)) {
           vw::vw_out(DebugMessage) << "Found a local max at [" << i << ", " << j
@@ -208,8 +208,8 @@ namespace ip {
     // Check that we have a few planes of corner response function
     // (interest) and that all planes are the same size.
     assert( data.size() > 0 );
-    unsigned ncols = data[0].interest.cols();
-    unsigned nrows = data[0].interest.rows();
+    int32 ncols = data[0].interest.cols();
+    int32 nrows = data[0].interest.rows();
     unsigned nplanes = data.size();
 
     // Make sure all planes are the same size
@@ -228,8 +228,8 @@ namespace ip {
     // Find local extrema
     // TODO: this really needs to be sped up
     for (unsigned k=1; k<nplanes-1; k++) {     // plane k
-      for (unsigned j=IP_BORDER_WIDTH; j<nrows-IP_BORDER_WIDTH; j++) {   // row j
-	for (unsigned i=IP_BORDER_WIDTH; i<ncols-IP_BORDER_WIDTH; i++) { // col i
+      for (int32 j=IP_BORDER_WIDTH; j<nrows-IP_BORDER_WIDTH; j++) {   // row j
+	for (int32 i=IP_BORDER_WIDTH; i<ncols-IP_BORDER_WIDTH; i++) { // col i
 	  // check if it is a local extremum
           if (is_extremum(data, i, j, k, type)) {
             vw::vw_out(DebugMessage) << "Found a local max at [" << i << ", " << j << ", "

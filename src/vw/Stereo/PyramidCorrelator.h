@@ -84,7 +84,7 @@ namespace stereo {
     ImageView<PixelT> subsample_and_average(ImageView<PixelT> const& img) {
   
       ImageView<PixelT> outImg(img.cols()/2, img.rows()/2,img.planes());		
-      unsigned int i, j, p;
+      int32 int i, j, p;
       
       for (p = 0; p < outImg.planes() ; p++) {
         for (i = 0; i < outImg.cols(); i++) {
@@ -172,8 +172,8 @@ namespace stereo {
         }
 
         // Now, clean up the disparity map by rejecting outliers 
-        unsigned rm_half_kernel = 5 / (int)pow(2,i+1);
-        unsigned rm_min_matches_percent = 60 / (i+1);
+        int32 rm_half_kernel = 5 / (int32)pow(2,i+1);
+        int32 rm_min_matches_percent = 60 / (i+1);
         double rm_threshold = 3;
   
         for(int nn=0; nn < 1; nn++) {  // Run the clean up routine three times

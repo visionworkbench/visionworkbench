@@ -54,13 +54,13 @@ namespace vw {
     virtual ~DiskImageResource() {};
 
     /// Returns the number of columns in an image on disk.
-    unsigned cols() const { return m_format.cols; }
+    int32 cols() const { return m_format.cols; }
 
     /// Returns the number of rows in an image on disk.
-    unsigned rows() const { return m_format.rows; }
+    int32 rows() const { return m_format.rows; }
 
     /// Returns the number of planes in an image on disk.
-    unsigned planes() const { return m_format.planes; }
+    int32 planes() const { return m_format.planes; }
 
     /// Returns the pixel format of an image on disk.
     PixelFormatEnum pixel_format() const { return m_format.pixel_format; }

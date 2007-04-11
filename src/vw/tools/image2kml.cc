@@ -35,6 +35,7 @@
 namespace po = boost::program_options;
 
 #include <vw/Core/Cache.h>
+#include <vw/Core/ProgressCallback.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Image/Transform.h>
 #include <vw/FileIO/DiskImageResource.h>
@@ -50,69 +51,108 @@ using namespace vw::math;
 using namespace vw::cartography;
 using namespace vw::mosaic;
 
+
 int main( int argc, char *argv[] ) {
 
   std::vector<std::string> image_files;
   std::string output_file_name;
   std::string output_file_type;
-  float north_lat, south_lat;
-  float east_lon, west_lon;
+  double north_lat=90.0, south_lat=-90.0;
+  double east_lon=180.0, west_lon=-180.0;
+  double proj_lat=0, proj_lon=0, proj_scale=1;
   unsigned utm_zone;
   int patch_size, patch_overlap;
   float jpeg_quality;
   unsigned cache_size;
   int max_lod_pixels;
+  double nudge_x=0, nudge_y=0;
 
-  po::options_description desc("Options");
-  desc.add_options()
-    ("help", "Display this help message")
-    ("input-file", po::value<std::vector<std::string> >(&image_files), "Explicitly specify the input file")
+  po::options_description general_options("General Options");
+  general_options.add_options()
     ("output-name,o", po::value<std::string>(&output_file_name)->default_value("output"), "Specify the base output filename")
-    ("file-type", po::value<std::string>(&output_file_type)->default_value("jpg"), "Output file type")
-    ("north", po::value<float>(&north_lat)->default_value(90.0), "The northernmost latitude in degrees")
-    ("south", po::value<float>(&south_lat)->default_value(-90.0), "The southernmost latitude in degrees")
-    ("east", po::value<float>(&east_lon)->default_value(180.0), "The easternmost latitude in degrees")
-    ("west", po::value<float>(&west_lon)->default_value(-180.0), "The westernmost latitude in degrees")
-    ("utm", po::value<unsigned>(&utm_zone), "Specify a UTM zone")
-    ("size", po::value<int>(&patch_size)->default_value(256), "Patch size, in pixels")
-    ("overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels (must be even)")
-    ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
+    ("quiet,q", "Quiet output")
+    ("verbose,v", "Verbose output")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
+    ("help", "Display this help message");
+
+  po::options_description projection_options("Projection Options");
+  projection_options.add_options()
+    ("north", po::value<double>(&north_lat), "The northernmost latitude in degrees")
+    ("south", po::value<double>(&south_lat), "The southernmost latitude in degrees")
+    ("east", po::value<double>(&east_lon), "The easternmost latitude in degrees")
+    ("west", po::value<double>(&west_lon), "The westernmost latitude in degrees")
+    ("sinusoidal", "Assume a sinusoidal projection")
+    ("mercator", "Assume a Mercator projection")
+    ("transverse-mercator", "Assume a transverse Mercator projection")
+    ("orthographic", "Assume an orthographic projection")
+    ("stereographic", "Assume a stereographic projection")
+    ("utm", po::value<unsigned>(&utm_zone), "Assume UTM projection with the given zone")
+    ("proj-lat", po::value<double>(&proj_lat), "The center of projection latitude (if applicable)")
+    ("proj-lon", po::value<double>(&proj_lon), "The center of projection longitude (if applicable)")
+    ("proj-scale", po::value<double>(&proj_scale), "The projection scale (if applicable)")
+    ("nudge-x", po::value<double>(&nudge_x), "Nudge the image, in projected coordinates")
+    ("nudge-y", po::value<double>(&nudge_y), "Nudge the image, in projected coordinates");
+    
+  po::options_description output_options("Output Options");
+  output_options.add_options()
+    ("file-type", po::value<std::string>(&output_file_type)->default_value("auto"), "Output file type")
+    ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
+    ("patch-size", po::value<int>(&patch_size)->default_value(256), "Patch size, in pixels")
+    ("patch-overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels (must be even)")
+    ("patch-crop", "Crop output patches")
     ("max-lod-pixels", po::value<int>(&max_lod_pixels)->default_value(-1), "Max LoD in pixels, or -1 for none")
-    ("verbose", "Verbose output");
+    ("composite-overlay", "Composite images using direct overlaying (default)")
+    ("composite-multiband", "Composite images using multi-band blending");
+
+  po::options_description hidden_options("");
+  hidden_options.add_options()
+    ("input-file", po::value<std::vector<std::string> >(&image_files));
+
+  po::options_description options("Allowed Options");
+  options.add(general_options).add(projection_options).add(output_options).add(hidden_options);
+
   po::positional_options_description p;
   p.add("input-file", -1);
 
   po::variables_map vm;
-  po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
+  po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
   po::notify( vm );
 
+  std::ostringstream usage;
+  usage << "Usage: image2kml [options] <filename>..." << std::endl << std::endl;
+  usage << general_options << std::endl;
+  usage << output_options << std::endl;
+  usage << projection_options << std::endl;
+
   if( vm.count("help") ) {
-    std::cout << desc << std::endl;
+    std::cout << usage.str();
     return 1;
   }
 
   if( vm.count("input-file") < 1 ) {
-    std::cout << "Error: Must specify exactly one input file!" << std::endl;
-    std::cout << desc << std::endl;
+    std::cout << "Error: Must specify at least one input file!" << std::endl << std::endl;
+    std::cout << usage.str();
     return 1;
   }
 
   if( patch_size <= 0 ) {
-    std::cerr << "Error: The patch size must be a positive number!  (You specified " << patch_size << ".)" << std::endl;
-    std::cout << desc << std::endl;
+    std::cerr << "Error: The patch size must be a positive number!  (You specified " << patch_size << ".)" << std::endl << std::endl;
+    std::cout << usage.str();
     return 1;
   }
     
   if( patch_overlap<0 || patch_overlap>=patch_size || patch_overlap%2==1 ) {
-    std::cerr << "Error: The patch overlap must be an even number nonnegative number" << std::endl;
-    std::cerr << "smaller than the patch size!  (You specified " << patch_overlap << ".)" << std::endl;
-    std::cout << desc << std::endl;
+    std::cerr << "Error: The patch overlap must be an even nonnegative number" << std::endl;
+    std::cerr << "smaller than the patch size!  (You specified " << patch_overlap << ".)" << std::endl << std::endl;
+    std::cout << usage.str();
     return 1;
   }
     
   if( vm.count("verbose") ) {
     set_debug_level(VerboseDebugMessage);
+  }
+  else if( vm.count("quiet") ) {
+    set_debug_level(WarningMessage);
   }
 
   DiskImageResourceJPEG::set_default_quality( jpeg_quality );
@@ -123,17 +163,19 @@ int main( int argc, char *argv[] ) {
   int total_resolution = 1024;
 
   // Read in georeference info and compute total resolution
-  bool manual = false;
+  bool manual = vm.count("north") || vm.count("south") || vm.count("east") || vm.count("west");
   std::vector<GeoReference> georeferences;
   for( unsigned i=0; i<image_files.size(); ++i ) {
+    std::cout << "Adding file " << image_files[i] << std::endl;
     DiskImageResourceGDAL file_resource( image_files[i] );
     GeoReference input_georef;
     file_resource.read_georeference( input_georef );
-    // This is sort of a klugey way to check for a georef
-    if( input_georef.proj4_str() == "" && input_georef.transform() == identity_matrix<3>() ) {
+    if ( input_georef.proj4_str() == "" ) input_georef.set_well_known_geogcs("WGS84");
+    if( manual || input_georef.transform() == identity_matrix<3>() ) {
       if( image_files.size() == 1 ) {
         vw_out(InfoMessage) << "No georeferencing info found.  Assuming Plate Carree WGS84: " 
                             << east_lon << " to " << west_lon << " E, " << south_lat << " to " << north_lat << " N." << std::endl;
+        input_georef = GeoReference();
         input_georef.set_well_known_geogcs("WGS84");
         Matrix3x3 m;
         m(0,0) = (east_lon - west_lon) / file_resource.cols();
@@ -150,9 +192,22 @@ int main( int argc, char *argv[] ) {
         exit(1);
       }
     }
+    else if( vm.count("sinusoidal") ) input_georef.set_sinusoidal(proj_lon);
+    else if( vm.count("mercator") ) input_georef.set_mercator(proj_lat,proj_lon,proj_scale);
+    else if( vm.count("transverse-mercator") ) input_georef.set_transverse_mercator(proj_lat,proj_lon,proj_scale);
+    else if( vm.count("orthographic") ) input_georef.set_orthographic(proj_lat,proj_lon);
+    else if( vm.count("stereographic") ) input_georef.set_stereographic(proj_lat,proj_lon,proj_scale);
     else if( vm.count("utm") ) input_georef.set_UTM( utm_zone );
-    georeferences.push_back( input_georef );
+
+    if( vm.count("nudge-x") || vm.count("nudge-y") ) {
+      Matrix3x3 m = input_georef.transform();
+      m(0,2) += nudge_x;
+      m(1,2) += nudge_y;
+      input_georef.set_transform( m );
+    }
     
+    georeferences.push_back( input_georef );
+
     GeoTransform geotx( input_georef, output_georef );
     Vector2 center_pixel( file_resource.cols()/2, file_resource.rows()/2 );
     int resolution = GlobalKMLTransform::compute_resolution( geotx, center_pixel );
@@ -161,15 +216,13 @@ int main( int argc, char *argv[] ) {
 
   // Configure the composite
   ImageComposite<PixelRGBA<uint8> > composite;
-  composite.set_draft_mode( true );
   GlobalKMLTransform kmltx( total_resolution );
 
   // Add the transformed input files to the composite
   for( unsigned i=0; i<image_files.size(); ++i ) {
-    std::cout << "Adding file " << image_files[i] << std::endl;
     GeoTransform geotx( georeferences[i], output_georef );
     DiskImageView<PixelRGBA<uint8> > source( image_files[i] );
-    BBox2i bbox = compute_transformed_bbox_fast_int( source, compose(kmltx,geotx) );
+    BBox2i bbox = compose(kmltx,geotx).forward_bbox( BBox2i(0,0,source.cols(),source.rows()) );
     // Constant edge extension is better for transformations that 
     // preserve the rectangularity of the image.  At the moment we 
     // only do this for manual transforms, alas.
@@ -191,23 +244,45 @@ int main( int argc, char *argv[] ) {
     }
   }
 
+  // Compute a tighter Google Earth coordinate system aligned bounding box
+  BBox2i bbox = composite.bbox();
+  bbox.crop( BBox2i(0,0,total_resolution,total_resolution) );
+  int dim = 2 << (int)(log( (std::max)(bbox.width(),bbox.height()) )/log(2));
+  if ( dim > total_resolution ) dim = total_resolution;
+  BBox2i total_bbox( (bbox.min().x()/dim)*dim, (bbox.min().y()/dim)*dim, dim, dim );
+  if ( ! total_bbox.contains( bbox ) ) {
+    if( total_bbox.max().x() == total_resolution ) total_bbox.min().x() -= dim;
+    else total_bbox.max().x() += dim;
+    if( total_bbox.max().y() == total_resolution ) total_bbox.min().y() -= dim;
+    else total_bbox.max().y() += dim;
+  }
+
   // Prepare the composite
-  std::cout << "Preparing composite..." << std::endl;
-  BBox2i total_bbox(0,0,total_resolution,total_resolution);
-  composite.prepare( total_bbox );
+  if( vm.count("composite-multiband") ) {
+    std::cout << "Preparing composite..." << std::endl;
+    composite.prepare( total_bbox, TerminalProgressCallback() );
+  }
+  else {
+    composite.set_draft_mode( true );
+    composite.prepare( total_bbox );
+  }
   BBox2i data_bbox = composite.bbox();
-  data_bbox.crop( total_bbox );
-  
+  data_bbox.crop( BBox2i(0,0,total_bbox.width(),total_bbox.height()) );
+
   // Prepare the quadtree
-  KMLQuadTreeGenerator<PixelRGBA<uint8> > quadtree( output_file_name, composite, BBox2(-180,-180,360,360) );
+  BBox2 ll_bbox( -180.0 + (360.0*total_bbox.min().x())/total_resolution, 
+                 180.0 - (360.0*total_bbox.max().y())/total_resolution,
+                 (360.0*total_bbox.width())/total_resolution,
+                 (360.0*total_bbox.height())/total_resolution );
+  KMLQuadTreeGenerator<PixelRGBA<uint8> > quadtree( output_file_name, composite, ll_bbox );
   quadtree.set_max_lod_pixels(max_lod_pixels);
   quadtree.set_crop_bbox( data_bbox );
-  quadtree.set_crop_images( true );
+  if( vm.count("crop") ) quadtree.set_crop_images( true );
   quadtree.set_output_image_file_type( output_file_type );
 
   // Generate the composite
-  std::cout << "Compositing..." << std::endl;
-  quadtree.generate();
+  vw_out(InfoMessage) << "Generating KML Overlay..." << std::endl;
+  quadtree.generate( TerminalProgressCallback() );
 
   return 0;
 }

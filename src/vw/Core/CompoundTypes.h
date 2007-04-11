@@ -30,6 +30,7 @@
 
 #include <boost/utility/result_of.hpp>
 #include <boost/utility/enable_if.hpp>
+#include <boost/mpl/not.hpp>
 
 #include <vw/Core/FundamentalTypes.h>
 
@@ -43,7 +44,7 @@ namespace vw {
   // as pixel types, but the type traits machinery is defined here in more 
   // general terms to avoid undesirable dependencies. 
   template <class T> struct CompoundChannelType { typedef T type; };
-  template <class T> struct CompoundNumChannels { static const unsigned value = 1; };
+  template <class T> struct CompoundNumChannels { static const int32 value = 1; };
   template <class T, class ChannelT> struct CompoundChannelCast { typedef ChannelT type; };
   template <class T> struct IsCompound
     : public boost::mpl::not_< boost::is_same< typename CompoundChannelType<T>::type, T > >::type {};
@@ -61,12 +62,12 @@ namespace vw {
   // can specify whether to return by value or by reference.  This is somewhat 
   // annoying.  Is there a better way?
   template <class ResultT, class PixelT>
-  inline ResultT compound_select_channel( PixelT& pixel, typename boost::disable_if<IsCompound<PixelT>, unsigned>::type channel ) {
+  inline ResultT compound_select_channel( PixelT& pixel, typename boost::disable_if<IsCompound<PixelT>, int32>::type channel ) {
     return pixel;
   }
 
   template <class ResultT, class PixelT>
-  inline ResultT compound_select_channel( PixelT& pixel, typename boost::enable_if<IsCompound<PixelT>, unsigned>::type channel ) {
+  inline ResultT compound_select_channel( PixelT& pixel, typename boost::enable_if<IsCompound<PixelT>, int32>::type channel ) {
     return pixel[channel];
   }
 

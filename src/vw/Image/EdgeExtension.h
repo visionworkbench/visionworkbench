@@ -76,7 +76,7 @@ namespace vw {
   /// different behavior.
   struct NoEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int i, int j, int p ) const { 
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
       return view(i,j,p);
     }
   };
@@ -85,8 +85,8 @@ namespace vw {
   /// all directions.
   struct ZeroEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int i, int j, int p ) const { 
-      if( i>=0 && j>=0 && unsigned(i)<view.cols() && unsigned(j)<view.rows() )
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
+      if( i>=0 && j>=0 && i<view.cols() && j<view.rows() )
         return view(i,j,p);
       else
         return typename ViewT::pixel_type();
@@ -98,17 +98,17 @@ namespace vw {
   /// nearest valid pixel.
   struct ConstantEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int i, int j, int p ) const { 
-      return view((i<0) ? 0 : (unsigned(i)>=view.cols()) ? (view.cols()-1) : i,
-                  (j<0) ? 0 : (unsigned(j)>=view.rows()) ? (view.rows()-1) : j, p);
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
+      return view((i<0) ? 0 : (i>=view.cols()) ? (view.cols()-1) : i,
+                  (j<0) ? 0 : (j>=view.rows()) ? (view.rows()-1) : j, p);
     }
   };
 
   /// A periodic edge extension type.
   struct PeriodicEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int i, int j, int p ) const { 
-      int d_i=i, d_j=j;
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
+      int32 d_i=i, d_j=j;
       d_i %= int(view.cols());
       if( d_i < 0 ) d_i += view.cols();
       d_j %= int(view.rows());
@@ -120,20 +120,43 @@ namespace vw {
   /// A reflection edge extension type.
   struct ReflectEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int i, int j, int p ) const { 
-      int d_i=i, d_j=j;
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
+      int32 d_i=i, d_j=j;
       if( d_i < 0 ) d_i = -d_i;
-      int vcm1 = view.cols() - 1;
+      int32 vcm1 = view.cols() - 1;
       d_i %= 2*vcm1;
       if( d_i > vcm1 ) d_i = 2*vcm1 - d_i;
       if( d_j<0 ) d_j=-d_j;
-      int vrm1 = view.rows() - 1;
+      int32 vrm1 = view.rows() - 1;
       d_j %= 2*vrm1;
       if( d_j > vrm1 ) d_j = 2*vrm1 - d_j;
       return view(d_i,d_j,p);
     }
   };
 
+  /// A linear extrapolationedge extension type.
+  struct LinearEdgeExtension : EdgeExtensionBase {
+    template <class ViewT>
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
+      int32 vcm1 = view.cols() - 1;
+      int32 vrm1 = view.rows() - 1;
+      if( i < 0 ) {
+        if( j < 0 ) return view(0,0,p) - i*(view(0,0,p)-view(1,0,p)) - j*(view(0,0,p)-view(0,1,p));
+        else if( j > vrm1 ) return view(0,vrm1,p) - i*(view(0,vrm1,p)-view(1,vrm1,p)) + (j-vrm1)*(view(0,vrm1,p)-view(0,vrm1-1,p));
+        else return view(0,j,p) - i*(view(0,j,p)-view(1,j,p));
+      }
+      else if( i > vcm1 ) {
+        if( j < 0 ) return view(vcm1,0,p) + (i-vcm1)*(view(vcm1,0,p)-view(vcm1-1,0,p)) - j*(view(vcm1,0,p)-view(vcm1,1,p));
+        else if( j > vrm1 ) return view(vcm1,vrm1,p) + (i-vcm1)*(view(vcm1,vrm1,p)-view(vcm1-1,vrm1,p)) + (j-vrm1)*(view(vcm1,vrm1,p)-view(vcm1,vrm1-1,p));
+        else return view(vcm1,j,p) + (i-vcm1)*(view(vcm1,j,p)-view(vcm1-1,j,p));
+      }
+      else {
+        if( j < 0 ) return view(i,0,p) - j*(view(i,0,p)-view(i,1,p));
+        else if( j > vrm1 ) return view(i,vrm1,p) + (j-vrm1)*(view(i,vrm1,p)-view(i,vrm1-1,p));
+        else return view(i,j,p);
+      }
+    }
+  };
 
   // *******************************************************************
   // The edge extension view
@@ -147,7 +170,7 @@ namespace vw {
   private:
     ImageT m_image;
     ptrdiff_t m_xoffset, m_yoffset;
-    unsigned m_cols, m_rows;
+    int32 m_cols, m_rows;
     ExtensionT m_extension_func;
   public:
 
@@ -161,18 +184,18 @@ namespace vw {
     EdgeExtensionView( ImageT const& image, ExtensionT const& extension )
       : m_image(image), m_xoffset(0), m_yoffset(0), m_cols(image.cols()), m_rows(image.rows()), m_extension_func(extension) {}
     
-    EdgeExtensionView( ImageT const& image, ptrdiff_t xoffset, ptrdiff_t yoffset, unsigned cols, unsigned rows )
+    EdgeExtensionView( ImageT const& image, ptrdiff_t xoffset, ptrdiff_t yoffset, int32 cols, int32 rows )
       : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), m_cols(cols), m_rows(rows), m_extension_func() {}
     
-    EdgeExtensionView( ImageT const& image, ptrdiff_t xoffset, ptrdiff_t yoffset, unsigned cols, unsigned rows, ExtensionT const& extension )
+    EdgeExtensionView( ImageT const& image, ptrdiff_t xoffset, ptrdiff_t yoffset, int32 cols, int32 rows, ExtensionT const& extension )
       : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), m_cols(cols), m_rows(rows), m_extension_func(extension) {}
 
-    inline unsigned cols() const { return m_cols; }
-    inline unsigned rows() const { return m_rows; }
-    inline unsigned planes() const { return m_image.planes(); }
+    inline int32 cols() const { return m_cols; }
+    inline int32 rows() const { return m_rows; }
+    inline int32 planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this,0,0); }
-    inline result_type operator()( int i, int j, int p = 0 ) const { return m_extension_func(m_image,i+m_xoffset,j+m_yoffset,p); }
+    inline result_type operator()( int32 i, int32 j, int32 p = 0 ) const { return m_extension_func(m_image,i+m_xoffset,j+m_yoffset,p); }
 
     ImageT const& child() const { return m_image; }
     ExtensionT const& func() const { return m_extension_func; }
@@ -200,7 +223,7 @@ namespace vw {
   /// consistent with \ref vw::crop, so if you wish to expand the image 
   /// you must specify a negative offset!
   template <class ImageT, class ExtensionT>
-  EdgeExtensionView<ImageT,ExtensionT> edge_extend( ImageViewBase<ImageT> const& v, ptrdiff_t x_offset, ptrdiff_t y_offset, unsigned cols, unsigned rows, ExtensionT const& extension ) {
+  EdgeExtensionView<ImageT,ExtensionT> edge_extend( ImageViewBase<ImageT> const& v, ptrdiff_t x_offset, ptrdiff_t y_offset, int32 cols, int32 rows, ExtensionT const& extension ) {
     return EdgeExtensionView<ImageT,ExtensionT>( v.impl(), x_offset, y_offset, cols, rows, extension );
   }
 
@@ -214,7 +237,7 @@ namespace vw {
   /// This is an overloaded function provided for convenience; see vw::edge_extend.
   /// It uses the default vw::ConstantEdgeExtension mode.
   template <class ImageT>
-  EdgeExtensionView<ImageT,ConstantEdgeExtension> edge_extend( ImageViewBase<ImageT> const& v, ptrdiff_t x_offset, ptrdiff_t y_offset, unsigned cols, unsigned rows ) {
+  EdgeExtensionView<ImageT,ConstantEdgeExtension> edge_extend( ImageViewBase<ImageT> const& v, ptrdiff_t x_offset, ptrdiff_t y_offset, int32 cols, int32 rows ) {
     return EdgeExtensionView<ImageT,ConstantEdgeExtension>( v.impl(), x_offset, y_offset, cols, rows );
   }
   

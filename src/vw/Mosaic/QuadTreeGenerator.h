@@ -75,23 +75,34 @@ namespace mosaic {
     virtual ~ImageQuadTreeGenerator() {}
 
     struct PatchInfo {
-      std::string filename;
-      unsigned level;
+      std::string name, filepath;
+      int32 level;
       BBox2i image_bbox;
       BBox2i visible_bbox;
       BBox2i region_bbox;
     };
 
+    virtual std::string compute_image_path( std::string const& name ) const {
+      fs::path path( m_base_dir, fs::native );
+      
+      for (int i= 0; i< (int)name.length() - (int)m_levels_per_directory; i += m_levels_per_directory) {
+        path /= name.substr( i, m_levels_per_directory );
+      }
+      path /= name;
+
+      return path.native_file_string();
+    }
+
     virtual void write_image( PatchInfo const& info, ImageView<PixelT> const& image ) const {
       ImageBuffer buf = image.buffer();
-      DiskImageResource *r = DiskImageResource::create( info.filename, buf.format );
+      DiskImageResource *r = DiskImageResource::create( info.filepath, buf.format );
       r->write( buf, BBox2i(0,0,buf.format.cols,buf.format.rows) );
       delete r;
     }
 
     virtual void write_meta_file( PatchInfo const& info ) const {
-      unsigned scale = 1 << info.level;
-      fs::path filepath( info.filename, fs::native );
+      int32 scale = 1 << info.level;
+      fs::path filepath( info.filepath, fs::native );
       fs::ofstream outfile( change_extension( filepath, ".bbx" ) );
       outfile << scale << "\n";
       outfile << info.image_bbox.min().x() << "\n";
@@ -107,8 +118,8 @@ namespace mosaic {
     }
 
     void generate( const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
-      unsigned maxdim = std::max( m_source.cols(), m_source.rows() );
-      m_tree_levels = 1 + unsigned( ceilf( log( maxdim/(float)(m_patch_size-m_patch_overlap) ) / log(2.0) ) );
+      int32 maxdim = std::max( m_source.cols(), m_source.rows() );
+      m_tree_levels = 1 + int32( ceilf( log( maxdim/(float)(m_patch_size-m_patch_overlap) ) / log(2.0) ) );
       m_patch_cache.resize( m_tree_levels );
       m_filename_cache.resize( m_tree_levels );
 
@@ -117,14 +128,6 @@ namespace mosaic {
       vw_out(DebugMessage) << "Generating patch files of type: " << m_output_image_type << std::endl;
       vw_out(DebugMessage) << "Generating " << m_base_dir << " quadtree with " << m_tree_levels << " levels." << std::endl;
 
-      fs::path dir_path( m_base_dir );
-      
-      if( fs::exists( dir_path ) ) {
-        vw_throw( IOErr() << "Path " << dir_path.native_directory_string() << " already exists!  Please remove it first." );
-      }
-      else {
-        fs::create_directory( dir_path );
-      }
       try {
         generate_branch( "r", m_tree_levels-1, 0, 0, progress_callback );
         progress_callback.report_finished();
@@ -144,15 +147,15 @@ namespace mosaic {
       m_output_image_type = extension;
     }
 
-    void set_patch_size( unsigned size ) {
+    void set_patch_size( int32 size ) {
       m_patch_size = size;
     }
 
-    void set_patch_overlap( unsigned overlap ) {
+    void set_patch_overlap( int32 overlap ) {
       m_patch_overlap = overlap;
     }
 
-    void set_levels_per_directory( unsigned levels_per_directory ) {
+    void set_levels_per_directory( int32 levels_per_directory ) {
       m_levels_per_directory = levels_per_directory;
     }
 
@@ -169,13 +172,13 @@ namespace mosaic {
     ImageViewRef<PixelT> m_source;
     BBox2i m_crop_bbox;
     std::string m_output_image_type;
-    unsigned m_patch_size;
-    unsigned m_patch_overlap;
-    unsigned m_levels_per_directory;
+    int32 m_patch_size;
+    int32 m_patch_overlap;
+    int32 m_levels_per_directory;
     bool m_crop_images;
-    unsigned m_tree_levels;
-    std::vector<std::map<std::pair<unsigned,unsigned>,ImageView<PixelT> > > m_patch_cache;
-    std::vector<std::map<std::pair<unsigned,unsigned>,std::string> > m_filename_cache;
+    int32 m_tree_levels;
+    std::vector<std::map<std::pair<int32,int32>,ImageView<PixelT> > > m_patch_cache;
+    std::vector<std::map<std::pair<int32,int32>,std::string> > m_filename_cache;
     
     bool is_opaque( ImageView<PixelT> const& image ) const {
       if( ! PixelHasAlpha<PixelT>::value ) return true;
@@ -186,29 +189,14 @@ namespace mosaic {
           if( image(x,y)[PixelNumChannels<PixelT>::value-1] < maxval ) return false;
       return true;
     }
-
-    // Compute the directory containing name
-    fs::path compute_directory( std::string const& name ) const {
-      fs::path ret( m_base_dir, fs::native );
-      
-      for (int i= 0; i< (int)name.length() - (int)m_levels_per_directory; i += m_levels_per_directory) {
-        ret= ret / name.substr( i, m_levels_per_directory );
-      }
-      return ret;
-    }
-
-    void ensure_directory_and_parents_exist( fs::path const& directory ) const {
-      if (!fs::exists( directory )) {
-        ensure_directory_and_parents_exist( directory.branch_path() );
-        fs::create_directory( directory );
-      }
-    }
     
-    void write_patch( ImageView<PixelT> const& image, std::string const& name, unsigned level, unsigned x, unsigned y ) const {
+    void write_patch( ImageView<PixelT> const& image, std::string const& name, int32 level, int32 x, int32 y ) const {
       PatchInfo info;
+      info.name = name;
+      info.filepath = compute_image_path( name );
       info.level = level;
-      unsigned scale = 1 << level;
-      unsigned interior_size = m_patch_size - m_patch_overlap;
+      int32 scale = 1 << level;
+      int32 interior_size = m_patch_size - m_patch_overlap;
       Vector2i position( x*interior_size-m_patch_overlap/2, y*interior_size-m_patch_overlap/2 );
       info.image_bbox = BBox2i( Vector2i(0,0), Vector2i(image.cols(), image.rows()) );
       info.visible_bbox = info.region_bbox = info.image_bbox;
@@ -232,16 +220,16 @@ namespace mosaic {
         if( is_opaque( patch_image ) ) output_image_type = "jpg";
         else output_image_type = "png";
       }
-      fs::path directory= compute_directory( name );
-      ensure_directory_and_parents_exist( directory );
-      info.filename = (directory/(name + "." + output_image_type)).native_file_string();
+      info.filepath += "." + output_image_type;
 
-      vw_out(InfoMessage+1) << "\tSaving image: " << info.filename << "\t" << patch_image.cols() << "x" << patch_image.rows() << std::endl;
+      create_directories( fs::path( info.filepath, fs::native ).branch_path() );
+
+      vw_out(InfoMessage+1) << "\tSaving image: " << info.filepath << "\t" << patch_image.cols() << "x" << patch_image.rows() << std::endl;
       write_image( info, patch_image );
       write_meta_file( info );
     }
 
-    ImageView<PixelT> generate_branch( std::string name, unsigned level, unsigned x, unsigned y, 
+    ImageView<PixelT> generate_branch( std::string name, int32 level, int32 x, int32 y, 
                                        const ProgressCallback &progress_callback ) 
     {
       progress_callback.report_progress(0);
@@ -249,8 +237,8 @@ namespace mosaic {
         vw_throw( Aborted() << "Aborted by ProgressCallback" );
       }
       ImageView<PixelT> image;
-      unsigned scale = 1 << level;
-      unsigned interior_size = m_patch_size - m_patch_overlap;
+      int32 scale = 1 << level;
+      int32 interior_size = m_patch_size - m_patch_overlap;
       BBox2i patch_bbox = scale * BBox2i( Vector2i(x, y), Vector2i(x+1, y+1) ) * interior_size;
       if( ! patch_bbox.intersects( m_crop_bbox ) ) {
         vw_out(DebugMessage) << "\tIgnoring empty image: " << name << std::endl;

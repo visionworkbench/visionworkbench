@@ -21,12 +21,12 @@ namespace stereo {
         
     // Compute 3D position for each pixel in the disparity map
     cout << "StereoModel: Applying camera models\n";
-    for (unsigned int y = 0; y < disparity_map.rows(); y++) {
+    for (int32 y = 0; y < disparity_map.rows(); y++) {
       if (y % 100 == 0) {
         printf("\tStereoModel computing points: %0.2f%% complete.\r", 100.0f*float(y)/disparity_map.rows());
         fflush(stdout);      
       }
-      for (unsigned int x = 0; x < disparity_map.cols(); x++) {
+      for (int32 x = 0; x < disparity_map.cols(); x++) {
         if ( !disparity_map(x,y).missing() ) {
           xyz(x,y) = (*this)(Vector2( x, y ),
                              Vector2( x + disparity_map(x,y).h(),

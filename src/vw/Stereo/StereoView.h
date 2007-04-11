@@ -36,9 +36,9 @@ namespace stereo {
       m_disparity_map(disparity_map),
       m_stereo_model(stereo_model) {}
 
-    inline unsigned cols() const { return m_disparity_map.cols(); }
-    inline unsigned rows() const { return m_disparity_map.rows(); }
-    inline unsigned planes() const { return 1; }
+    inline int32 cols() const { return m_disparity_map.cols(); }
+    inline int32 rows() const { return m_disparity_map.rows(); }
+    inline int32 planes() const { return 1; }
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
 

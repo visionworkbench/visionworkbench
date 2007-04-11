@@ -47,7 +47,7 @@ namespace vw {
   /// Describes the format of an image, i.e. its dimensions, pixel
   /// structure, and channel type.
   struct ImageFormat {
-    unsigned cols, rows, planes;
+    int32 cols, rows, planes;
     PixelFormatEnum pixel_format;
     ChannelTypeEnum channel_type;
     
@@ -67,16 +67,16 @@ namespace vw {
     virtual ~ImageResource() {};
 
     /// Returns the number of columns in an image resource.
-    virtual unsigned cols() const = 0;
+    virtual int32 cols() const = 0;
 
     /// Returns the number of rows in an image resource.
-    virtual unsigned rows() const = 0;
+    virtual int32 rows() const = 0;
 
     /// Returns the number of planes in an image resource.
-    virtual unsigned planes() const = 0;
+    virtual int32 planes() const = 0;
 
     /// Returns the number of channels in a image resource.
-    unsigned channels() const { return num_channels( pixel_format() ); }
+    int32 channels() const { return num_channels( pixel_format() ); }
 
     /// Returns the native pixel format of the resource.
     virtual PixelFormatEnum pixel_format() const = 0;
@@ -122,13 +122,13 @@ namespace vw {
     virtual ~ImageBuffer() {}
 
     /// Returns the number of columns in the bufffer.
-    inline unsigned cols() const { return format.cols; }
+    inline int32 cols() const { return format.cols; }
 
     /// Returns the number of rows in the bufffer.
-    inline unsigned rows() const { return format.rows; }
+    inline int32 rows() const { return format.rows; }
 
     /// Returns the number of planes in the bufffer.
-    inline unsigned planes() const { return format.planes; }
+    inline int32 planes() const { return format.planes; }
 
     /// Returns the native pixel format of the bufffer.
     inline PixelFormatEnum pixel_format() const { return format.pixel_format; }
@@ -156,7 +156,7 @@ namespace vw {
     }
 
     /// Return a pointer to the pixel at (u,v,p)
-    inline void* operator()( unsigned i, unsigned j, unsigned p = 0 ) const {
+    inline void* operator()( int32 i, int32 j, int32 p = 0 ) const {
       return ((uint8*)data) + (i*cstride + j*rstride + p*pstride);
     }
     

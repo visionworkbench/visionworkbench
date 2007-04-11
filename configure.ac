@@ -220,9 +220,12 @@ AM_CONDITIONAL(HAVE_PKG_LAPACK, [test "$HAVE_PKG_LAPACK" = "yes"])
 
 AX_PKG(M, [], [-lm], [math.h])
 AX_PKG(Z, [], [-lz], [zlib.h])
+
 AX_PKG(PNG, [], [-lpng], [png.h])
-AX_PKG(TIFF, [], [-ltiff], [tiff.h])
 AX_PKG(JPEG, [], [-ljpeg], [jpeglib.h])
+AX_PKG(TIFF, [], [-ltiff], [tiff.h])
+AX_PKG(OPENEXR, [Z PTHREADS], [-lImath -lHalf -lIex -lIlmImf], [ImfOutputFile.h], [OpenEXR])
+AX_PKG(HDF, [], [-ldf -lmfhdf], [mfhdf.h])
 
 AX_PKG(X11, [], [-lXext -lX11 -lXmu -lXi -lXt], [])
 AX_PKG(GL, [X11], [-lGL], [GL/gl.h])
@@ -232,7 +235,6 @@ AX_PKG(FREEGLUT, [GL GLU], [-lglut], [GL/glut.h GL/freeglut_ext.h])
 AX_PKG(GLEW, [X11 GL GLU M], [-lGLEW -lSM -lICE], [GL/glew.h])
 AX_PKG(CG, [], [-lCg -lCgGL], [Cg/cg.h])
 
-AX_PKG(OPENEXR, [Z PTHREADS], [-lImath -lHalf -lIex -lIlmImf], [ImfOutputFile.h], [OpenEXR])
 AX_PKG(GDAL, [], [-lgdal], [gdal.h])
 AX_PKG(PROJ4, [], [-lproj], [projects.h])
 AX_PKG(XMLPARSER, [], [-lxmlparser], [xmlParser.h])
@@ -245,9 +247,10 @@ AX_PKG(JPEG2K, [XMLPARSER], [-lopenjpeg], [openjpeg.h])
 # These are here (instead of inside the PKG macro where they belong)
 # for backwards compatability with older versions of automake.
 AM_CONDITIONAL(HAVE_PKG_PNG, [test "$HAVE_PKG_PNG" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_TIFF, [test "$HAVE_PKG_TIFF" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_JPEG, [test "$HAVE_PKG_JPEG" = "yes"])
+AM_CONDITIONAL(HAVE_PKG_TIFF, [test "$HAVE_PKG_TIFF" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_OPENEXR, [test "$HAVE_PKG_OPENEXR" = "yes"])
+AM_CONDITIONAL(HAVE_PKG_HDF, [test "$HAVE_PKG_HDF" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_JPEG2K, [test "$HAVE_PKG_JPEG2K" = "yes"])
 
 ##################################################
@@ -257,7 +260,7 @@ AM_CONDITIONAL(HAVE_PKG_JPEG2K, [test "$HAVE_PKG_JPEG2K" = "yes"])
 AX_MODULE(CORE, [src/vw/Core], [libvwCore.la], yes, [M BOOST])
 AX_MODULE(MATH, [src/vw/Math], [libvwMath.la], yes, [CORE], [LAPACK])
 AX_MODULE(IMAGE, [src/vw/Image], [libvwImage.la], yes, [MATH])
-AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [OPENEXR Z PNG TIFF JPEG JPEG2K])
+AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [Z PNG JPEG TIFF OPENEXR JPEG2K HDF])
 AX_MODULE(VW, [src/vw], [libvw.la], yes, [CORE MATH IMAGE], [FILEIO])
 if test ${MAKE_MODULE_VW} != "yes"; then
   AC_MSG_ERROR([cannot build the Vision Workbench core modules!])
@@ -318,6 +321,7 @@ AC_CONFIG_FILES([                       \
   src/vw/GPU/tests/Makefile             \
   src/vw/InterestPoint/Makefile         \
   src/vw/InterestPoint/tests/Makefile   \
+  Python/Makefile
 ])
 
 AC_OUTPUT

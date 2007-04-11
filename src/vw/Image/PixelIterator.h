@@ -25,12 +25,12 @@
 /// 
 /// An STL-compliant iterator for general image views.
 ///
-#ifndef __VW_IMAGE_PIXEL_ITERATOR_H__
-#define __VW_IMAGE_PIXEL_ITERATOR_H__
+#ifndef __VW_IMAGE_PIXELITERATOR_H__
+#define __VW_IMAGE_PIXELITERATOR_H__
 
-#include <boost/type_traits.hpp>
-#include <boost/mpl/if.hpp>
 #include <boost/iterator/iterator_facade.hpp>
+
+#include <vw/Core/FundamentalTypes.h>
 
 namespace vw {
 
@@ -48,7 +48,8 @@ namespace vw {
   class PixelIterator : public boost::iterator_facade<PixelIterator<ViewT>,
                                                       typename ViewT::pixel_type,
                                                       boost::random_access_traversal_tag,
-                                                      typename ViewT::result_type> {
+                                                      typename ViewT::result_type,
+                                                      int64> {
       
     // This is required for boost::iterator_facade
     friend class boost::iterator_core_access;
@@ -56,47 +57,42 @@ namespace vw {
 
     // Private variables
     ViewT const* m_view_ptr;
-    int m_width, m_height, m_index;
-    int m_pixels_per_plane;
+    int32 m_width, m_height;
+    int64 m_index, m_pixels_per_plane;
 
     // Testing equality and distance
-    bool equal       (PixelIterator<ViewT> const& iter) const { return (m_index == iter.m_index); }
-    int  distance_to (PixelIterator<ViewT> const &iter) const { return iter.m_index - m_index;    }
+    bool equal        (PixelIterator<ViewT> const& iter) const { return (m_index == iter.m_index); }
+    int64 distance_to (PixelIterator<ViewT> const &iter) const { return iter.m_index - m_index;    }
 
     // Forward, backward, and random access movement
-    void increment()    {  ++m_index;    }
-    void decrement()    {  --m_index;    }
-    void advance(int n) {  m_index += n; }
+    void increment()      {  ++m_index;    }
+    void decrement()      {  --m_index;    }
+    void advance(int64 n) {  m_index += n; }
 
     // Dereferencing
     typename PixelIterator::reference dereference() const { 
       // Modulus arithmetic for random access iteratation
-      int p = m_index / m_pixels_per_plane;
-      int r = (m_index % m_pixels_per_plane) / m_width;
-      int c = (m_index % m_pixels_per_plane) % m_width;
+      int32 p = (int32)(m_index / m_pixels_per_plane);
+      int32 r = (int32)(m_index % m_pixels_per_plane) / m_width;
+      int32 c = (int32)(m_index % m_pixels_per_plane) % m_width;
 
       return (*m_view_ptr)(c,r,p);
     }
 
   public:
     // Constructors
-    PixelIterator( ViewT const& view, int c, int r, int p=0 ) : 
-      m_view_ptr(&view), m_width(view.cols()), m_height(view.rows()) {
-      m_index = p*(m_width*m_height) + r*m_width + c;
-      m_pixels_per_plane = m_width * m_height;
+    PixelIterator( ViewT const& view, int32 c, int32 r, int32 p=0 ) 
+      : m_view_ptr(&view), m_width(view.cols()), m_height(view.rows()) {
+      m_index = p*((int64) m_width*m_height) + r*m_width + c;
+      m_pixels_per_plane = (int64) m_width * m_height;
     }
         
-    explicit PixelIterator(ViewT const& view)
+    explicit PixelIterator( ViewT const& view )
       :  m_view_ptr(&view), m_width(view.cols()), m_height(view.rows()), m_index(0) {
-      m_pixels_per_plane = m_width * m_height;
+      m_pixels_per_plane = (int64) m_width * m_height;
     }
-
-    PixelIterator( PixelIterator<ViewT> const &iter )
-      :  m_view_ptr(iter.m_view_ptr), m_width(iter.m_width), m_height(iter.m_height), 
-	 m_index(iter.m_index), m_pixels_per_plane(iter.m_pixels_per_plane) {
-    }  
   };
 
 } // namespace vw
 
-#endif // __VW_IMAGE_PIXEL_ITERATOR_H__
+#endif // __VW_IMAGE_PIXELITERATOR_H__

@@ -211,8 +211,8 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
   fseek(input_file, m_image_data_offset, 0);
 
   // Grab the pixel data from the file.
-  unsigned int total_pixels = m_format.cols * m_format.rows * m_format.planes;
-  unsigned int bytes_per_pixel = 1;
+  unsigned total_pixels = (unsigned)( m_format.cols * m_format.rows * m_format.planes );
+  unsigned bytes_per_pixel = 1;
   if ( m_format.channel_type == VW_CHANNEL_UINT16 ||
        m_format.channel_type == VW_CHANNEL_INT16 ) {
     bytes_per_pixel = 2;
@@ -264,10 +264,10 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
       int16 valid_minimum = atoi(valid_minimum_str.c_str());
       uint8* src_row = (uint8*)src.data;
       uint8* dst_row = (uint8*)dest.data;
-      for( unsigned y=0; y<m_format.rows; ++y ) {
+      for( int32 y=0; y<m_format.rows; ++y ) {
         uint8* src_data = src_row;
         uint8* dst_data = dst_row;
-        for( unsigned x=0; x<m_format.cols; ++x ) {
+        for( int32 x=0; x<m_format.cols; ++x ) {
           if( *((int16*)src_data) < valid_minimum ) {
             memset( dst_data, 0, dst_bpp );
           }
