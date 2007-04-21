@@ -50,15 +50,16 @@ namespace vw {
       Cache& m_cache;
       CacheLineBase *m_prev, *m_next;
       size_t m_size;
+      bool valid;
       friend class Cache;
     protected:
       inline void allocate() { m_cache.allocate(m_size); }
       inline void deallocate() { m_cache.deallocate(m_size); }
-      inline void validate() { m_cache.validate(this); }
+      inline void validate() { m_cache.validate(this); valid=true; }
     public:
-      CacheLineBase( Cache& cache, size_t size ) : m_cache(cache), m_prev(0), m_next(0), m_size(size) { m_cache.invalidate( this ); }
-      virtual ~CacheLineBase() { m_cache.deallocate(m_size); m_cache.remove( this ); }
-      virtual inline void invalidate() { m_cache.invalidate(this); }
+      CacheLineBase( Cache& cache, size_t size ) : m_cache(cache), m_prev(0), m_next(0), m_size(size), valid(false) { m_cache.invalidate( this ); }
+      virtual ~CacheLineBase() { invalidate(); m_cache.remove( this ); }
+      virtual inline void invalidate() { if(valid) m_cache.invalidate(this); valid=false; }
       virtual size_t size() const { return m_size; }
       void deprioritize() { m_cache.deprioritize(this); }
     };
