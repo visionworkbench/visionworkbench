@@ -275,7 +275,7 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
     TIFFGetField( tif, TIFFTAG_PHOTOMETRIC, &photometric );
 
     tdata_t buf=0, plane_buf=0;
-    if( config==PLANARCONFIG_SEPARATE && nsamples != 1 ) {
+    if( config==PLANARCONFIG_SEPARATE && m_format.pixel_format != VW_PIXEL_SCALAR ) {
       plane_buf = _TIFFmalloc( TIFFStripSize(tif) );
       buf = _TIFFmalloc( TIFFStripSize(tif) * nsamples );
     }
