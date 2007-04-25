@@ -215,7 +215,7 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
         channel_names[0] = "R";
         channel_names[1] = "G";
         channel_names[2] = "B";
-        channel_names[2] = "A";
+        channel_names[3] = "A";
       }
     }
     
