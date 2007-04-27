@@ -31,6 +31,7 @@
 #include <boost/utility/result_of.hpp>
 #include <boost/utility/enable_if.hpp>
 #include <boost/mpl/not.hpp>
+#include <boost/mpl/or.hpp>
 
 #include <vw/Core/FundamentalTypes.h>
 
@@ -48,6 +49,8 @@ namespace vw {
   template <class T, class ChannelT> struct CompoundChannelCast { typedef ChannelT type; };
   template <class T> struct IsCompound
     : public boost::mpl::not_< boost::is_same< typename CompoundChannelType<T>::type, T > >::type {};
+  template <class T> struct IsScalarOrCompound
+    : public boost::mpl::or_< typename IsScalar<T>::type, typename IsCompound<T>::type >::type {};
   template <class T1, class T2> struct CompoundIsCompatible
     : public boost::is_same< typename CompoundChannelCast<T1, typename CompoundChannelType<T2>::type>::type, T2 >::type {};
 
