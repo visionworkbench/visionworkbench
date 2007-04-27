@@ -34,8 +34,8 @@
 /// a virtualized reference to an arbitrary image view with a given 
 /// pixel type.
 ///
-#ifndef __VW_IMAGE_IMAGE_VIEW_REF_H__
-#define __VW_IMAGE_IMAGE_VIEW_REF_H__
+#ifndef __VW_IMAGE_IMAGEVIEWREF_H__
+#define __VW_IMAGE_IMAGEVIEWREF_H__
 
 #include <boost/type_traits.hpp>
 #include <boost/shared_ptr.hpp>
@@ -187,6 +187,8 @@ namespace vw {
     template <class ViewT> ImageViewRef( ImageViewBase<ViewT> const& view ) : m_view( new ImageViewRefImpl<ViewT>(view) ) {}
     ~ImageViewRef() {}
 
+    template <class ViewT> void reset( ImageViewBase<ViewT> const& view ) { m_view.reset( new ImageViewRefImpl<ViewT>(view) ); }
+
     inline int32 cols() const { return m_view->cols(); }
     inline int32 rows() const { return m_view->rows(); }
     inline int32 planes() const { return m_view->planes(); }
@@ -223,4 +225,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_IMAGE_IMAGE_VIEW_REF_H__
+#endif // __VW_IMAGE_IMAGEVIEWREF_H__
