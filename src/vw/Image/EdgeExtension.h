@@ -204,6 +204,8 @@ namespace vw {
     inline prerasterize_type prerasterize( BBox2i bbox ) const {
       bbox += Vector2i( m_xoffset, m_yoffset );
       bbox.crop( BBox2i( 0, 0, m_image.cols(), m_image.rows() ) );
+      // Make degenerate bboxes sane
+      if( bbox.empty() ) bbox = BBox2i(0,0,0,0);
       return prerasterize_type(m_image.prerasterize(bbox), m_xoffset, m_yoffset, m_cols, m_rows, m_extension_func );
     }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
