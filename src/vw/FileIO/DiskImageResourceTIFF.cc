@@ -322,12 +322,34 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
 
       if( config==PLANARCONFIG_SEPARATE && m_format.pixel_format != VW_PIXEL_SCALAR ) {
         // At the moment we make an extra copy here to spoof plane contiguity
+        int bpp = scanline_size / m_format.cols;
         for( int i=0; i<nsamples; ++i ) {
           TIFFReadEncodedStrip( tif, strip+i*nstrips, plane_buf, (tsize_t) -1 );
-          for( int y=0; y<rows_per_strip; ++y ) {
-            for( int x=bbox.min().x(); x<bbox.max().x(); ++x ) {
-              ((uint8*)buf)[(y*m_format.cols+x)*nsamples+i] = ((uint8*)plane_buf)[y*m_format.cols+x];
+          // Oh man, this is horrible!
+          switch(bpp) {
+          case 1:
+            for( int y=0; y<rows_per_strip; ++y ) {
+              for( int x=bbox.min().x(); x<bbox.max().x(); ++x ) {
+                ((uint8*)buf)[(y*m_format.cols+x)*nsamples+i] = ((uint8*)plane_buf)[y*m_format.cols+x];
+              }
             }
+            break;
+          case 2:
+            for( int y=0; y<rows_per_strip; ++y ) {
+              for( int x=bbox.min().x(); x<bbox.max().x(); ++x ) {
+                ((uint16*)buf)[(y*m_format.cols+x)*nsamples+i] = ((uint16*)plane_buf)[y*m_format.cols+x];
+              }
+            }
+            break;
+          case 4:
+            for( int y=0; y<rows_per_strip; ++y ) {
+              for( int x=bbox.min().x(); x<bbox.max().x(); ++x ) {
+                ((uint32*)buf)[(y*m_format.cols+x)*nsamples+i] = ((uint32*)plane_buf)[y*m_format.cols+x];
+              }
+            }
+            break;
+          default:
+            vw_throw( NoImplErr() << "Unsupported bit depth in separate-plane TIFF!" );
           }
         }
         strip_src.data = ((uint8*)buf) + bbox.min().x()*strip_src.cstride + (strip_top-strip*rows_per_strip)*strip_src.rstride;
