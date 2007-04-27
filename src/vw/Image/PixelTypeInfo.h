@@ -147,7 +147,7 @@ namespace vw {
   };
 
   template <class ChannelT, class PixelT>
-  typename boost::disable_if< typename boost::is_base_of<ImageViewBase<PixelT>,PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
+  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
   inline channel_cast( PixelT pixel ) {
     return compound_apply( ChannelCastFunctor<ChannelT>(), pixel );
   }
@@ -165,7 +165,7 @@ namespace vw {
   };
 
   template <class ChannelT, class PixelT>
-  typename boost::disable_if< typename boost::is_base_of<ImageViewBase<PixelT>,PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
+  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
   inline channel_cast_rescale( PixelT pixel ) {
     return compound_apply( ChannelCastRescaleFunctor<ChannelT>(), pixel );
   }
@@ -185,7 +185,7 @@ namespace vw {
   };
 
   template <class ChannelT, class PixelT>
-  typename boost::disable_if< typename boost::is_base_of<ImageViewBase<PixelT>,PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
+  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
   inline channel_cast_clamp( PixelT pixel ) {
     return compound_apply( ChannelCastClampFunctor<ChannelT>(), pixel );
   }
@@ -220,7 +220,7 @@ namespace vw {
   
   // Non-rescaling pixel cast free function
   template <class DestT, class SrcT>
-  typename boost::disable_if< typename boost::is_base_of<ImageViewBase<SrcT>,SrcT>::type, DestT >::type
+  typename boost::enable_if< typename IsScalarOrCompound<SrcT>::type, DestT >::type
   inline pixel_cast( SrcT src ) {
     typedef typename CompoundChannelType<SrcT>::type src_ch;
     typedef typename CompoundChannelType<DestT>::type dest_ch;
@@ -231,7 +231,7 @@ namespace vw {
 
   // Rescaling pixel cast free function
   template <class DestT, class SrcT>
-  typename boost::disable_if< typename boost::is_base_of<ImageViewBase<SrcT>,SrcT>::type, DestT >::type
+  typename boost::enable_if< typename IsScalarOrCompound<SrcT>::type, DestT >::type
   inline pixel_cast_rescale( SrcT src ) {
     typedef typename CompoundChannelType<SrcT>::type src_ch;
     typedef typename CompoundChannelType<DestT>::type dest_ch;
