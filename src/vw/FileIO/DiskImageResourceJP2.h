@@ -46,21 +46,35 @@ namespace vw
     DiskImageResourceJP2(std::string const& filename)
       : DiskImageResource(filename)
     {
+      m_additional_boxes = NULL;
+      m_additional_requirements = NULL;
       open(filename);
     }
     DiskImageResourceJP2(std::string const& filename, 
 			 ImageFormat const& format)
       : DiskImageResource(filename)
     {
+      m_additional_boxes = NULL;
+      m_additional_requirements = NULL;
       std::cout << "DiskImageResourceJP2::DiskImageResourceJP2(): enter" << std::endl;
       create(filename, format);
       std::cout << "DiskImageResourceJP2::DiskImageResourceJP2(): return" << std::endl;
     }
     virtual ~DiskImageResourceJP2();
     
+    /// Returns the type of disk image resource.
+    static std::string type_static() { return "JP2"; }
+
+    /// Returns the type of disk image resource.
+    virtual std::string type() { return type_static(); }
+    
     virtual void read(ImageBuffer const& dest, BBox2i const& bbox) const;
     virtual void write(ImageBuffer const& dest, BBox2i const& bbox);
     virtual void flush();
+    
+    void* additional_boxes() { return m_additional_boxes; }
+    void* additional_requirements() { return m_additional_requirements; }
+    
     std::string get_comment() const;
     void set_comment(std::string comment);
     void open(std::string const& filename);
@@ -72,6 +86,8 @@ namespace vw
   private:
 
     std::string m_filename;
+    void* m_additional_boxes;
+    void* m_additional_requirements;
     std::string m_comment;
     int m_image_data_offset;
     bool m_is_other_endian;

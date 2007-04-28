@@ -32,7 +32,6 @@
 //#include <vw/Cartography/Projection.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoTransform.h>
-#include <vw/Cartography/DiskImageResourceGDAL.h>
 #include <vw/Cartography/FileIO.h>
 
 #endif // __VW_CARTOGRAPHY_H__

@@ -28,6 +28,8 @@
 #include <vw/Math/Matrix.h>
 #include <vw/Core/Exception.h>
 #include <vw/Cartography/Datum.h>
+#include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/FileMetadata.h>
 
 // Boost
 #include <boost/algorithm/string.hpp>
@@ -39,10 +41,10 @@ namespace cartography {
   /// The georeference class contains the mapping from image coordinates
   /// (u,v) to geospatial coordinates (typically lat/lon, or possibly
   /// meters in a UTM grid cell, etc.)
-  class GeoReference {
+  class GeoReference : public FileMetadata {
     std::string m_name;
     Matrix<double,3,3> m_transform;
-    std::string m_proj4_str, m_wkt_str;
+    std::string m_proj4_str, m_wkt_str, m_gml_str;
     bool m_is_projected;
 
   public:
@@ -65,6 +67,18 @@ namespace cartography {
     GeoReference(GeoDatum const& datum);
     /// Takes a geodetic datum and an affine transformation matrix
     GeoReference(GeoDatum const& datum, Matrix<double,3,3> const& transform);
+    
+    /// Destructor.
+    virtual ~GeoReference() {}
+    
+    /// Implementation of FileMetadata interface.
+    static std::string metadata_type_static(void) { return "GeoReference"; };
+    virtual std::string metadata_type(void) const { return metadata_type_static(); };
+    virtual void read_file_metadata(DiskImageResource* r);
+    virtual void write_file_metadata(DiskImageResource* r) const;
+    static void register_disk_image_resource(std::string const& disk_image_resource_type,
+                                             read_metadata_func read_func,
+                                             write_metadata_func write_func);
 
     /// Takes a void pointer to an OGRSpatialReference
     void set_spatial_ref(void* spatial_ref_ptr);
@@ -74,6 +88,7 @@ namespace cartography {
     
     const std::string   proj4_str()  const { return m_proj4_str; }
     const std::string   wkt_str()    const { return m_wkt_str; }
+    const std::string   gml_str()    const { return m_gml_str; }
     const void*         spatial_ref_ptr() const;
     GeoDatum datum() const;
     std::string projection_name() const;

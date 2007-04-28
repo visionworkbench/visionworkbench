@@ -63,6 +63,12 @@ namespace vw {
     
     virtual ~DiskImageResourceJPEG();
     
+    /// Returns the type of disk image resource.
+    static std::string type_static() { return "JPEG"; }
+
+    /// Returns the type of disk image resource.
+    virtual std::string type() { return type_static(); }
+    
     virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
 
     virtual void write( ImageBuffer const& dest, BBox2i const& bbox );

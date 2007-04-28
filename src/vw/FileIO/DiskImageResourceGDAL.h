@@ -23,8 +23,8 @@
 /// 
 /// Provides support for georeferenced files via the GDAL library.
 ///
-#ifndef __VW_CARTOGRAPHY_DISKIMAGERESOUCEGDAL_H__
-#define __VW_CARTOGRAPHY_DISKIMAGERESOUCEGDAL_H__
+#ifndef __VW_FILEIO_DISKIMAGERESOUCEGDAL_H__
+#define __VW_FILEIO_DISKIMAGERESOUCEGDAL_H__
 
 #include <vw/config.h>
 #include <string>
@@ -33,10 +33,8 @@
 #include <vw/Image/PixelTypes.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Math/Matrix.h>
-#include <vw/Cartography/GeoReference.h>
 
 namespace vw {
-namespace cartography {
 
   class DiskImageResourceGDAL : public DiskImageResource {
   public:
@@ -45,6 +43,7 @@ namespace cartography {
       : DiskImageResource( filename )
     {
       m_dataset = NULL;
+      m_convert_jp2 = false;
       open( filename );
     }
 
@@ -53,19 +52,25 @@ namespace cartography {
       : DiskImageResource( filename )
     {
       m_dataset = NULL;
+      m_convert_jp2 = false;
       create( filename, format );
     }
     
     virtual ~DiskImageResourceGDAL() {
       flush();
     }
+
+    /// Returns the type of disk image resource.
+    static std::string type_static() { return "GDAL"; }
+    
+    /// Returns the type of disk image resource.
+    virtual std::string type() { return type_static(); }
     
     virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
     virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
     virtual void flush();
 
-    void read_georeference( GeoReference& georef );
-    void write_georeference( GeoReference const& georef );
+    void* dataset() { return m_dataset; }
 
     void open( std::string const& filename );    
     void create( std::string const& filename,
@@ -80,8 +85,9 @@ namespace cartography {
     std::string m_filename;
     void* m_dataset;
     Matrix<double,3,3> m_geo_transform;
+    bool m_convert_jp2;
   };
 
-}} // namespace vw::cartography
+} // namespace vw
 
-#endif // __VW_CARTOGRAPHY_DISKIMAGERESOUCEGDAL_H__
+#endif // __VW_FILEIO_DISKIMAGERESOUCEGDAL_H__

@@ -27,12 +27,24 @@
 
 if MAKE_MODULE_CARTOGRAPHY
 
-include_HEADERS = DiskImageResourceGDAL.h FileIO.h GeoReference.h    	\
-                  GeoTransform.h Datum.h
+if HAVE_PKG_GDAL
+gdal_headers = DiskImageResourceGeoReferenceHelperGDAL.h
+gdal_sources = DiskImageResourceGeoReferenceHelperGDAL.cc
+endif
+
+if HAVE_PKG_JPEG2K
+jpeg2k_headers = DiskImageResourceGeoReferenceHelperJP2.h
+jpeg2k_sources = DiskImageResourceGeoReferenceHelperJP2.cc
+endif
+
+include_HEADERS = FileIO.h GeoReference.h    	\
+                  GeoTransform.h Datum.h        \
+                  $(gdal_headers) $(jpeg2k_headers)
 
 
-libvwCartography_la_SOURCES = DiskImageResourceGDAL.cc GeoReference.cc \
-                  GeoTransform.cc
+libvwCartography_la_SOURCES = GeoReference.cc \
+                  GeoTransform.cc             \
+                  $(gdal_sources) $(jpeg2k_sources)
 
 libvwCartography_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwCartography_la_LIBADD = @MODULE_CARTOGRAPHY_LDFLAGS@

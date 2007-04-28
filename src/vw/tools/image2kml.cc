@@ -40,6 +40,7 @@ namespace po = boost::program_options;
 #include <vw/Image/Transform.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageResourceJPEG.h>
+#include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoTransform.h>
@@ -169,7 +170,7 @@ int main( int argc, char *argv[] ) {
     std::cout << "Adding file " << image_files[i] << std::endl;
     DiskImageResourceGDAL file_resource( image_files[i] );
     GeoReference input_georef;
-    file_resource.read_georeference( input_georef );
+    input_georef.read_file_metadata( &file_resource );
     if ( input_georef.proj4_str() == "" ) input_georef.set_well_known_geogcs("WGS84");
     if( manual || input_georef.transform() == identity_matrix<3>() ) {
       if( image_files.size() == 1 ) {

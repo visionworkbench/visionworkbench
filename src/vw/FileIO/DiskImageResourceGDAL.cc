@@ -35,8 +35,8 @@
 #include <iostream>
 #ifdef VW_HAVE_PKG_GDAL
 
-#include <vw/Cartography/DiskImageResourceGDAL.h>
-#include <vw/Cartography/GeoReference.h>
+#include <vw/FileIO/DiskImageResourceGDAL.h>
+#include <vw/FileIO/JP2.h>
 
 // GDAL Headers
 #include "gdal.h"
@@ -46,12 +46,38 @@
 #include "ogr_api.h"
 
 #include <vector>
+#include <list>
 #include <vw/Core/Exception.h>
 #include <vw/Image/PixelTypes.h>
 #include <boost/algorithm/string.hpp>
 
+namespace {
+
+  bool has_gmljp2(vw::JP2File* f)
+  {
+    vw::JP2Box* b;
+    vw::JP2Box* b2;
+    vw::JP2SuperBox::JP2BoxIterator pos;
+    bool retval = false;
+
+    while(b = f->find_box(0x61736F63 /*"asoc"*/, &pos))
+    {
+      // GMLJP2 outer Association box must contain a Label box (with label "gml.data")
+      // as its first sub-box
+      b2 = ((vw::JP2SuperBox*)b)->find_box(0);
+      if(b2 && b2->box_type() == 0x6C626C20 /*"lbl\040"*/ && strncmp((char*)(((vw::JP2DataBox*)b2)->data()), "gml.data", ((vw::JP2DataBox*)b2)->bytes_dbox()) == 0)
+      {
+        retval = true;
+        break;
+      }
+    }
+
+    return retval;
+  }
+
+}
+
 namespace vw {
-namespace cartography {
 
   /// \cond INTERNAL
   // Type conversion class for selecting the GDAL data type for
@@ -140,79 +166,125 @@ namespace cartography {
     boost::to_lower( extension );
     return extension;
   }
+
+  static bool is_jp2( std::string const& filename ) {
+    std::string extension = file_extension( filename );
+    return (extension == ".jp2" || extension == ".j2k");
+  }
   
   // GDAL Support many file formats not specifically enabled here.
   // Consult http://www.remotesensing.org/gdal/formats_list.html for a
   // list of available formats.
   struct gdal_file_format_from_filename {
-    static std::string format(std::string const& filename) {
+    static std::list<std::string> format(std::string const& filename) {
+      std::list<std::string> retval;
 
-      if (file_extension(filename) == ".tif")      // GeoTiff
-        return "GTiff";  
+      if (file_extension(filename) == ".tif" ||
+          file_extension(filename) == ".tiff") {     // GeoTiff
+        retval.push_back("GTiff");
+        return retval;
+      }  
 
-      if (file_extension(filename) == ".grd")      // GMT compatible netcdf
-        return "GMT";  
+      if (file_extension(filename) == ".grd") {      // GMT compatible netcdf
+        retval.push_back("GMT");
+        return retval;  
+      }
 
-      else if (file_extension(filename) == ".dem") // ENVI Labelled raster
-        return  "ENVI" ; 
+      else if (file_extension(filename) == ".dem") { // ENVI Labelled raster
+        retval.push_back("ENVI");
+        return  retval ; 
+      }
 
-      else if (file_extension(filename) == ".bil") // ESRI .hdr labelled
-        return "EHdr" ;
+      else if (file_extension(filename) == ".bil") { // ESRI .hdr labelled
+        retval.push_back("EHdr");
+        return retval ;
+      }
 
-      else if (file_extension(filename) == ".jpg") // JPEG JFIF
-        return "JPEG" ;  
+      else if (file_extension(filename) == ".jpg" ||
+               file_extension(filename) == ".jpeg") { // JPEG JFIF
+        retval.push_back("JPEG");
+        return retval ;  
+      }
 
-      else if (file_extension(filename) == ".jp2" || 
-               file_extension(filename) == ".j2k") // JPEG 2000
-        return "JPEG2000"; 
+      else if (is_jp2(filename)) {                    // JPEG 2000
+        retval.push_back("JP2ECW");
+        retval.push_back("JPEG2000");
+        return retval; 
+      }
 
-      else if (file_extension(filename) == ".png") // PNG
-        return "PNG";     
+      else if (file_extension(filename) == ".png") { // PNG
+        retval.push_back("PNG");
+        return retval;     
+      }
 
       else {
         vw_throw( IOErr() << "DiskImageResourceGDAL: \"" << file_extension(filename) << "\" is an unsupported file extension." );
-        return std::string(); // never reached
+        return retval; // never reached
       }
     }
   };
-  /// \endcond
 
-  void DiskImageResourceGDAL::write_georeference( GeoReference const& georef ) {
+  static void convert_jp2(std::string const& filename) {
+    uint8* d_original = 0;
+    uint8* d_converted = 0;
+    FILE* fp;
+    uint64 nbytes_read, nbytes_converted, nbytes_written;
+    uint64 i;
+    int c;
+    bool has_gml;
+    int retval;
+  
+    if (!(fp = fopen(filename.c_str(), "r")))
+      vw_throw( IOErr() << "convert_jp2: Failed to read " << filename << "." );
+  
+    for (nbytes_read = 0; fgetc(fp) != EOF; nbytes_read++);
+    rewind(fp);
+  
+    d_original = new uint8[nbytes_read];
+  
+    for (i = 0; i < nbytes_read && (c = fgetc(fp)) != EOF; d_original[i] = (uint8)c, i++);
 
-    if (!m_dataset) 
-      vw_throw( LogicErr() << "DiskImageResourceGDAL: Could not write georeference. No file has been opened." );
-    GDALDataset* dataset = (GDALDataset*)m_dataset;
+    if (!(i == nbytes_read  && fgetc(fp) == EOF))
+      vw_throw( IOErr() << "convert_jp2: Size of " << filename << " has changed." );
 
-    // Store the transform matrix
-    double geo_transform[6] = { georef.transform()(0,2), georef.transform()(0,0), georef.transform()(0,1), 
-                                georef.transform()(1,2), georef.transform()(1,0), georef.transform()(1,1) };
-    dataset->SetGeoTransform( geo_transform );
-    dataset->SetProjection( georef.wkt_str().c_str() );
-    
+    fclose(fp);
+  
+    JP2File f(d_original, nbytes_read);
+    //f.print();
+    has_gml = has_gmljp2(&f);
+    retval = f.convert_to_jpx();
+    if (retval != 0)
+      vw_throw( IOErr() << "convert_jp2: Failed to convert " << filename << " to jp2-compatible jpx." );
+    if (has_gml) {
+      JP2ReaderRequirementsList req;
+      // 67 is the (standard) requirement number for GMLJP2
+      req.push_back(std::make_pair(67, false));
+      retval = f.add_requirements(req);
+      if (retval != 0)
+        vw_throw( IOErr() << "convert_jp2: Failed to add GMLJP2 requirement to jp2-compatible jpx " << filename << "." );
+    }
+    //f.print();
+
+    nbytes_converted = f.bytes();
+    d_converted = new uint8[nbytes_converted];
+    f.serialize(d_converted);
+
+    if (!(fp = fopen(filename.c_str(), "w")))
+      vw_throw( IOErr() << "convert_jp2: Failed to open " << filename << " for writing." );
+
+    nbytes_written = fwrite(d_converted, 1, nbytes_converted, fp);
+
+    fclose(fp);
+
+    if (nbytes_written != nbytes_converted)
+      vw_throw( IOErr() << "convert_jp2: Failed to write " << filename << "." );
+  
+    if (d_original)
+      delete[] d_original;
+    if (d_converted)
+      delete[] d_converted;
   }
-
-  void DiskImageResourceGDAL::read_georeference( GeoReference& georef ) {
-    if (!m_dataset) 
-      vw_throw( LogicErr() << "DiskImageResourceGDAL: Could not read georeference. No file has been opened." );
-    GDALDataset* dataset = (GDALDataset*)m_dataset;
-    
-    if( dataset->GetProjectionRef() != NULL ) {
-      georef.set_wkt_str(dataset->GetProjectionRef());
-    }
-    
-    double geo_transform[6];
-    Matrix<double,3,3> transform;
-    if( dataset->GetGeoTransform( geo_transform ) == CE_None ) {
-      transform.set_identity();
-      transform(0,0) = geo_transform[1];
-      transform(0,1) = geo_transform[2];
-      transform(0,2) = geo_transform[0];
-      transform(1,0) = geo_transform[4];
-      transform(1,1) = geo_transform[5];
-      transform(1,2) = geo_transform[3];
-      georef.set_transform(transform);
-    }
-  }  
+  /// \endcond
   
   /// Bind the resource to a file for reading.  Confirm that we can
   /// open the file and that it has a sane pixel format.
@@ -309,15 +381,29 @@ namespace cartography {
     
     // Open the appropriate GDAL I/O driver, depending on the fileFormat
     // argument specified by the user.
-    std::string gdal_format_string = gdal_file_format_from_filename::format(filename);
-    vw_out(DebugMessage) << "Creating a new file with the following type: " << gdal_format_string << "   ";
-    GDALDriver *driver = GetGDALDriverManager()->GetDriverByName(gdal_format_string.c_str());  
-    if( driver == NULL )
-      vw_throw( vw::IOErr() << "Error opening selected GDAL file I/O driver." );
-    
-    char** metadata = driver->GetMetadata();
-    if( !CSLFetchBoolean( metadata, GDAL_DCAP_CREATE, FALSE ) )
-      vw_throw( vw::IOErr() << "Selected GDAL driver not supported." );
+    std::list<std::string> gdal_format_string = gdal_file_format_from_filename::format(filename);
+    GDALDriver *driver = NULL;
+    std::list<std::string>::iterator i;
+    bool unsupported_driver = false;
+    for( i = gdal_format_string.begin(); i != gdal_format_string.end() && driver == NULL; i++ ) {
+      vw_out(DebugMessage) << "Attempting to creating a new file with the following type: " << (*i) << std::endl;
+      driver = GetGDALDriverManager()->GetDriverByName((*i).c_str());
+      if( driver == NULL )
+        continue;
+        
+      char** metadata = driver->GetMetadata();
+      if( !CSLFetchBoolean( metadata, GDAL_DCAP_CREATE, FALSE ) ) {
+        vw_out(DebugMessage) << "GDAL driver " << (*i) << " does not support create." << std::endl;
+        driver = NULL;
+        unsupported_driver = true;
+      }
+    }
+    if( driver == NULL ) {
+      if( unsupported_driver )
+        vw_throw( vw::IOErr() << "Selected GDAL driver not supported." );
+      else
+        vw_throw( vw::IOErr() << "Error opening selected GDAL file I/O driver." );
+    }
     
     char **options = NULL;
     GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(format.channel_type);
@@ -438,14 +524,20 @@ namespace cartography {
                         dst.format.cols, dst.format.rows, gdal_pix_fmt, 
                         channel_size(dst.format.channel_type)*channels(), channel_size(dst.format.channel_type)*channels()*cols() );
       }  
+      //FIXME: if we allow partial writes, m_convert_jp2 should probably only be set on complete writes
+      if (is_jp2(m_filename))
+        m_convert_jp2 = true;
     }
     
     delete [] data;
   }
 
   void DiskImageResourceGDAL::flush() { 
-    if (m_dataset) 
+    if (m_dataset) {
       delete (GDALDataset*)m_dataset;
+      if (m_convert_jp2)
+        convert_jp2(m_filename);
+    }
   }
 
   // A FileIO hook to open a file for reading
@@ -460,6 +552,6 @@ namespace cartography {
   }
   
 
-}} // namespace vw::cartography
+} // namespace vw
 
 #endif // HAVE_PKG_GDAL

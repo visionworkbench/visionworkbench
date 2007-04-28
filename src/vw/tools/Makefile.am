@@ -38,7 +38,10 @@ image2kml_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_MOSAIC_LDFLA
 endif
 endif
 
-bin_PROGRAMS = image $(image2kml_prog)
+jp2dump_SOURCES = jp2dump.cc
+jp2dump_LDFLAGS = @PKG_VW_LDFLAGS@
+
+bin_PROGRAMS = image $(image2kml_prog) jp2dump
 
 endif
 

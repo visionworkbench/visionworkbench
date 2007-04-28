@@ -59,13 +59,18 @@ hdf_headers = DiskImageResourceHDF.h
 hdf_sources = DiskImageResourceHDF.cc
 endif
 
-include_HEADERS = DiskImageResource.h DiskImageView.h DiskImageResourcePDS.h \
-	$(png_headers) $(jpeg_headers) $(tiff_headers) $(openexr_headers) \
-	$(jpeg2k_headers) $(hdf_headers)
+if HAVE_PKG_GDAL
+gdal_headers = DiskImageResourceGDAL.h
+gdal_sources = DiskImageResourceGDAL.cc
+endif
 
-libvwFileIO_la_SOURCES = DiskImageResource.cc DiskImageResourcePDS.cc \
-	$(png_sources) $(jpeg_sources) $(tiff_sources) $(openexr_sources) \
-	$(jpeg2k_sources) $(hdf_sources)
+include_HEADERS = DiskImageResource.h DiskImageView.h PropertyMultiMap.h PropertySetManager.h \
+	FileMetadata.h JP2.h DiskImageResourcePDS.h $(png_headers) $(jpeg_headers) $(tiff_headers) \
+	$(openexr_headers) $(jpeg2k_headers) $(hdf_headers) $(gdal_headers)
+
+libvwFileIO_la_SOURCES = DiskImageResource.cc FileMetadata.cc \
+	DiskImageResourcePDS.cc $(png_sources) $(jpeg_sources) $(tiff_sources) $(openexr_sources) \
+	$(jpeg2k_sources) $(hdf_sources) $(gdal_sources)
 
 libvwFileIO_la_CPPFLAGS = @MODULE_FILEIO_CPPFLAGS@
 libvwFileIO_la_LDFLAGS= -version-info @LIBTOOL_VERSION@

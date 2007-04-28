@@ -28,6 +28,7 @@
 #ifndef __VW_FILEIO_DISK_IMAGE_RESOURCE_H__
 #define __VW_FILEIO_DISK_IMAGE_RESOURCE_H__
 
+#include <set>
 #include <string>
 #include <boost/type_traits.hpp>
 #include <boost/algorithm/string.hpp>
@@ -40,6 +41,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/PixelTypes.h>
+#include <vw/FileIO/FileMetadata.h>
 
 namespace vw {
 
@@ -51,7 +53,22 @@ namespace vw {
   class DiskImageResource : public ImageResource {
   public:
 
+    typedef std::set<std::string> MetadataProperties;
+
     virtual ~DiskImageResource() {};
+    
+    /// Returns the type of disk image resource. Subclasses should
+    /// implement this by calling a static function type_static().
+    virtual std::string type() = 0;
+
+    /// Register a metadata type.
+    static void register_metadata_type( std::string const& disk_image_resource_type, std::string const& metadata_type );
+
+    /// Query whether a metadata type is supported.
+    static bool supports_metadata_type( std::string const& disk_image_resource_type, std::string const& metadata_type );
+
+    /// Returns information about what types of metadata can be handled.
+    static MetadataProperties const* metadata_properties( std::string const& disk_image_resource_type );
 
     /// Returns the number of columns in an image on disk.
     int32 cols() const { return m_format.cols; }
@@ -76,7 +93,8 @@ namespace vw {
     ///
     /// Don't forget to delete the DiskImageResource object when
     /// you're finished with it!
-    static DiskImageResource* open( std::string const& filename );
+    static DiskImageResource* open( std::string const& filename,
+                                    FileMetadataCollection const& fmeta = FileMetadataCollection::create() );
 
     /// Create a new DiskImageResource of the appropriate type 
     /// pointing to a newly-created empty file on disk.
@@ -88,7 +106,7 @@ namespace vw {
     /// control you must manually create a resource of the appropraite
     /// type.  Don't forget to delete this DiskImageResource object
     /// when you're finished with it!
-    static DiskImageResource* create( std::string const& filename, ImageFormat const& format );
+    static DiskImageResource* create( std::string const& filename, ImageFormat const& format, FileMetadataCollection const& fmeta = FileMetadataCollection::create() );
 
     typedef DiskImageResource* (*construct_open_func)( std::string const& filename );
     
@@ -96,6 +114,7 @@ namespace vw {
                                                          ImageFormat const& format );
 
     static void register_file_type( std::string const& extension,
+                                    std::string const& disk_image_resource_type,
                                     construct_open_func open_func,
                                     construct_create_func create_func );
 
@@ -112,17 +131,35 @@ namespace vw {
 
   /// Read an image on disk into a vw::ImageView<T> object.
   template <class PixelT>
-  void read_image( ImageView<PixelT>& in_image, const std::string &filename ) {
+  void read_image( ImageView<PixelT>& in_image, FileMetadataCollection& fmeta, const std::string &filename ) {
 
     vw_out(InfoMessage+1) << "\tLoading image: " << filename << "\t";
 
     // Open the file for reading
-    DiskImageResource *r = DiskImageResource::open( filename );
+    DiskImageResource *r = DiskImageResource::open( filename, fmeta );
 
     vw_out(InfoMessage+1) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
 
     // Read it in and wrap up
+    fmeta.read_file_metadata( r );
     read_image( in_image, *r );
+    delete r;
+  }
+  
+  
+  /// Read an image on disk into a vw::ImageView<T> object.
+  template <class PixelT>
+  void read_image( ImageView<PixelT>& in_image, const std::string &filename ) {
+    FileMetadataCollection fmeta;
+    read_image( in_image, fmeta, filename );
+  }
+  
+  
+  /// Read in only the metadata.
+  inline void read_metadata( FileMetadataCollection& fmeta, const std::string &filename ) {
+    vw_out(DebugMessage) << "\tLoading metadata from image: " << filename << "\t";
+    DiskImageResource *r = DiskImageResource::open( filename, fmeta );
+    fmeta.read_file_metadata( r );
     delete r;
   }
 
@@ -132,7 +169,7 @@ namespace vw {
   /// a seperate file on disk and the asterisk will be replaced with
   /// the plane number.
   template <class ImageT>
-  void write_image( const std::string &filename, ImageViewBase<ImageT> const& out_image ) {
+  void write_image( const std::string &filename, ImageViewBase<ImageT> const& out_image, FileMetadataCollection const& fmeta = FileMetadataCollection::create() ) {
 
     VW_ASSERT( out_image.impl().cols() != 0 && out_image.impl().rows() != 0 && out_image.impl().planes() != 0,
                ArgumentErr() << "write_image: cannot write empty image to disk" );
@@ -151,9 +188,9 @@ namespace vw {
       std::string name = filename;
       if( files > 1 ) boost::replace_last( name, "*",  str( boost::format("%1%") % p ) );
       vw_out(InfoMessage+1) << "\tSaving image: " << name << "\t";
-      DiskImageResource *r = DiskImageResource::create( name, out_image_format );
+      DiskImageResource *r = DiskImageResource::create( name, out_image_format, fmeta );
       vw_out(InfoMessage+1) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
-
+      fmeta.write_file_metadata( r );
       // Write the image to disk in blocks.  We may need to revisit
       // the order in which these blocks are rasterized, but for now
       // it rasterizes blocks from left to right, then top to bottom.
@@ -180,7 +217,7 @@ namespace vw {
   /// a seperate file on disk and the asterisk will be replaced with
   /// the plane number.
   template <class ElemT>
-  void write_image( const std::string &filename, std::vector<ElemT> const& out_image_vector ) {
+  void write_image( const std::string &filename, std::vector<ElemT> const& out_image_vector, FileMetadataCollection const& fmeta = FileMetadataCollection::create() ) {
 
     // If there's an asterisk, save one file per plane
     if( ! boost::find_last(filename,"*") ) {
@@ -190,7 +227,7 @@ namespace vw {
     for (unsigned i=0; i<out_image_vector.size(); i++){
       std::string name = filename;
       boost::replace_last( name, "*",  str( boost::format("%1%") % i ) );
-      write_image( name, out_image_vector[i] );
+      write_image( name, out_image_vector[i], fmeta );
     }
   }
 

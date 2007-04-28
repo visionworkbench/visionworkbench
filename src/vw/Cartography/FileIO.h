@@ -33,7 +33,8 @@
 
 #include <vw/config.h>
 #include <vw/Image/ImageView.h>
-#include <vw/Cartography/DiskImageResourceGDAL.h>
+#include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/FileMetadata.h>
 
 #include <iostream>
 
@@ -44,26 +45,17 @@ namespace cartography {
   template <class PixelT>
   void read_georeferenced_image( ImageView<PixelT>& in_image, GeoReference& georef, const std::string &filename ) {
 
-    vw_out(DebugMessage) << "\tLoading georeferenced image: " << filename << "\t";
-
-    // Open the file for reading
-    DiskImageResource *r = DiskImageResourceGDAL::construct_open( filename );
-
-    vw_out(DebugMessage) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
-
-    // Read it in and wrap up
-    static_cast<DiskImageResourceGDAL*>(r)->read_georeference(georef);
-    read_image( in_image, *r );
-    delete r;
+    FileMetadataCollection fmeta;
+    fmeta.associate_file_metadata( &georef );
+    read_image( in_image, fmeta, filename );
   }
 
 
-  /// Read in only the georeference object.  Later this will have to dispatch 
-  /// on file type, but for now we only support GDAL anyway.
+  /// Read in only the georeference object.
   inline void read_georeference( GeoReference& georef, const std::string &filename ) {
-    vw_out(DebugMessage) << "\tLoading georeference from image: " << filename << "\t";
-    DiskImageResourceGDAL r( filename );
-    r.read_georeference(georef);
+    FileMetadataCollection fmeta;
+    fmeta.associate_file_metadata( &georef );
+    read_metadata( fmeta, filename );
   }
 
 
@@ -74,28 +66,9 @@ namespace cartography {
   template <class ImageT>
   void write_georeferenced_image(const std::string &filename, ImageViewBase<ImageT> const& out_image, GeoReference const& georef) {
 
-    // Rasterize the image if needed
-    ImageView<typename ImageT::pixel_type> image( out_image.impl() );
-    ImageBuffer buf = image.buffer();
-
-    int files = 1;
-    // If there's an asterisk, save one file per plane
-    if( boost::find_last(filename,"*") ) {
-      files = buf.format.planes;
-      buf.format.planes = 1;
-    }
-    
-    for( int i=0; i<files; ++i ) {
-      std::string name = filename;
-      if( files > 1 ) boost::replace_last( name, "*",  str( boost::format("%1%") % i ) );
-      std::cout << "\tSaving image: " << name << "\t";
-      DiskImageResource *r = DiskImageResourceGDAL::construct_create( name, buf.format );
-      std::cout << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
-      static_cast<DiskImageResourceGDAL*>(r)->write_georeference(georef);
-      r->write( buf, BBox2i(0,0,r->cols(),r->rows()) );
-      delete r;
-      buf.data = (uint8*)buf.data + buf.pstride;
-    }
+    FileMetadataCollection fmeta;
+    fmeta.associate_file_metadata_const( &georef );
+    write_image( filename, out_image, fmeta );
   }
 
 }} // namespace vw::cartography

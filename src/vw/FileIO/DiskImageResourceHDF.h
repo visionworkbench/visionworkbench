@@ -53,6 +53,12 @@ namespace vw {
 
     virtual ~DiskImageResourceHDF();
     
+    /// Returns the type of disk image resource.
+    static std::string type_static() { return "HDF"; }
+
+    /// Returns the type of disk image resource.
+    virtual std::string type() { return type_static(); }
+    
     virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const;
 
     virtual void write( ImageBuffer const& dest, BBox2i const& bbox ) {

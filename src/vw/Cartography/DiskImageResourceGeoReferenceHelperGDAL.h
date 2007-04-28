@@ -20,37 +20,23 @@
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
 // 
 // __END_LICENSE__
+#ifndef __VW_CARTOGRAPHY_DISKIMAGERESOURCEGEOREFERENCEHELPERGDAL_H__
+#define __VW_CARTOGRAPHY_DISKIMAGERESOURCEGEOREFERENCEHELPERGDAL_H__
 
-/// \file FileIO.h
-/// 
-/// A convenience header that includes the header files in vw/FileIO.
-/// 
-#ifndef __VW_FILEIO_H__
-#define __VW_FILEIO_H__
-
-#include <vw/FileIO/DiskImageResource.h>
-#include <vw/FileIO/DiskImageView.h>
 #include <vw/FileIO/FileMetadata.h>
-#include <vw/FileIO/DiskImageResourcePDS.h>
+#include <vw/FileIO/DiskImageResource.h>
 
-#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
-#include <vw/FileIO/DiskImageResourcePNG.h>
-#endif
+// Boost
+#include <boost/algorithm/string.hpp>
 
-#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
-#include <vw/FileIO/DiskImageResourceJPEG.h>
-#endif
+namespace vw {
+namespace cartography {
 
-#if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
-#include <vw/FileIO/DiskImageResourceTIFF.h>
-#endif
+  struct DiskImageResourceGeoReferenceHelperGDAL {
+    static void read_georeference( FileMetadata* georef_, DiskImageResource* r_ );
+    static void write_georeference( DiskImageResource* r_, FileMetadata const* georef_ );
+  };
 
-#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
-#include <vw/FileIO/DiskImageResourceOpenEXR.h>
-#endif
+}} // namespace vw::cartography
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-#include <vw/FileIO/DiskImageResourceGDAL.h>
-#endif
-
-#endif // __VW_FILEIO_H__
+#endif // __VW_CARTOGRAPHY_DISKIMAGERESOURCEGEOREFERENCEHELPERGDAL_H__

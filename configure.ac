@@ -238,7 +238,7 @@ AX_PKG(CG, [], [-lCg -lCgGL], [Cg/cg.h])
 AX_PKG(GDAL, [], [-lgdal], [gdal.h])
 AX_PKG(PROJ4, [], [-lproj], [projects.h])
 AX_PKG(XMLPARSER, [], [-lxmlparser], [xmlParser.h])
-AX_PKG(JPEG2K, [XMLPARSER], [-lopenjpeg], [openjpeg.h])
+AX_PKG(JPEG2K, [], [-lopenjpeg], [openjpeg.h])
 
 #AX_PKG(VCL, [], [-lvcl], [vcl_algorithm.h], [vcl])
 #AX_PKG(VXL, [VCL], [-lvgl_algo -lvil_algo -lvnl_algo -lvul -lvgl -lvnl -lvil -lvcl -lnetlib], 
@@ -252,6 +252,7 @@ AM_CONDITIONAL(HAVE_PKG_TIFF, [test "$HAVE_PKG_TIFF" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_OPENEXR, [test "$HAVE_PKG_OPENEXR" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_HDF, [test "$HAVE_PKG_HDF" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_JPEG2K, [test "$HAVE_PKG_JPEG2K" = "yes"])
+AM_CONDITIONAL(HAVE_PKG_GDAL, [test "$HAVE_PKG_GDAL" = "yes"])
 
 ##################################################
 #	module definitions
@@ -260,7 +261,7 @@ AM_CONDITIONAL(HAVE_PKG_JPEG2K, [test "$HAVE_PKG_JPEG2K" = "yes"])
 AX_MODULE(CORE, [src/vw/Core], [libvwCore.la], yes, [M BOOST])
 AX_MODULE(MATH, [src/vw/Math], [libvwMath.la], yes, [CORE], [LAPACK])
 AX_MODULE(IMAGE, [src/vw/Image], [libvwImage.la], yes, [MATH])
-AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [Z PNG JPEG TIFF OPENEXR JPEG2K HDF])
+AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [Z PNG JPEG TIFF OPENEXR JPEG2K HDF GDAL])
 AX_MODULE(VW, [src/vw], [libvw.la], yes, [CORE MATH IMAGE], [FILEIO])
 if test ${MAKE_MODULE_VW} != "yes"; then
   AC_MSG_ERROR([cannot build the Vision Workbench core modules!])
@@ -268,7 +269,7 @@ fi
 
 AX_MODULE(CAMERA, [src/vw/Camera], [libvwCamera.la], yes, [VW BOOST_PROGRAM_OPTIONS])
 AX_MODULE(MOSAIC, [src/vw/Mosaic], [libvwMosaic.la], yes, [VW PTHREADS BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
-AX_MODULE(CARTOGRAPHY, [src/vw/Cartography], [libvwCartography.la], yes, [VW GDAL PROJ4])
+AX_MODULE(CARTOGRAPHY, [src/vw/Cartography], [libvwCartography.la], yes, [VW GDAL PROJ4 XMLPARSER])
 AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], yes, [VW CAMERA BOOST_PROGRAM_OPTIONS LAPACK])
 AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], yes, [STEREO_SRC VW PTHREADS BOOST_THREAD])
 AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW GL GLU GLUT], [CG PTHREADS])
