@@ -333,9 +333,10 @@ namespace vw {
     PointOffsetTransform(ImageView<Vector2> &offset_image) : m_offset_image(offset_image) {}
     
     inline Vector2 reverse(const Vector2 &p) const {
-      VW_DEBUG_ASSERT(p.x() >= 0  &&  p.y() >= 0 && p.x() < m_offset_image.cols() && p.y() < m_offset_image.rows(),
+      int32 x = (int32) p.x(), y = (int32) p.y();
+      VW_DEBUG_ASSERT(x>=0 && y>=0 && x<m_offset_image.cols() && y<m_offset_image.rows(),
                       LogicErr() << "Point offest transform: exceeded lookup table dimensions.");
-      return p + m_offset_image(p.x(), p.y());
+      return p + m_offset_image(x,y);
     }
   };
 
