@@ -34,6 +34,24 @@
 #include <boost/mpl/integral_c.hpp>
 #include <boost/mpl/if.hpp>
 
+#ifdef _MSC_VER
+// FIXME: We're blindly assuming that any MSC box is little-endian!
+#define VW_BIG_ENDIAN 4321
+#define VW_LITTLE_ENDIAN 1234
+#define VW_BYTE_ORDER VW_LITTLE_ENDIAN
+#else
+#include <sys/types.h>
+#ifdef BYTE_ORDER
+#define VW_BIG_ENDIAN BIG_ENDIAN
+#define VW_LITTLE_ENDIAN LITTLE_ENDIAN
+#define VW_BYTE_ORDER BYTE_ORDER
+#else
+#define VW_BIG_ENDIAN __BIG_ENDIAN
+#define VW_LITTLE_ENDIAN __LITTLE_ENDIAN
+#define VW_BYTE_ORDER __BYTE_ORDER
+#endif
+#endif
+
 #include <boost/version.hpp>
 #if BOOST_VERSION==103200
 namespace boost {
