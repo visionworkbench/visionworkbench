@@ -32,6 +32,7 @@
 #include <vw/Stereo/OptimizedCorrelator.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Stereo/StereoView.h>
+#include <vw/Stereo/CorrelatorView.h>
 #include <vw/Stereo/SoftwareRenderer.h>
 
 #endif // __VW_STEREO_H__

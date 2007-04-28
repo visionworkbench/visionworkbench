@@ -184,7 +184,7 @@ namespace stereo {
       // Print Out the range of disparity values
       double min_h_disp, min_v_disp, max_h_disp, max_v_disp;
       std::cout << "\t";
-      disparity::get_disparity_range(disparity_pyramid[levels-1], min_h_disp, max_h_disp, min_v_disp, max_v_disp,true);
+      disparity::get_disparity_range(disparity_pyramid[levels-1], min_h_disp, max_h_disp, min_v_disp, max_v_disp);
       std::cout << "\n";
 
       // Print out the disparity map at the lowest resolution
@@ -211,7 +211,11 @@ namespace stereo {
       // Clear out any regions with a large number of outliers
       // 
       // These settings should move from being hard coded to being user configurable
-      disparity::sparse_disparity_filter(disparity_pyramid[levels-1], 100, 0.1);
+      //
+      // FIXME: This should be reenbled to use the newer disparity map
+      //      filtering architecture that uses PerPixelAccessorViews.
+      //      disparity::sparse_disparity_filter(disparity_pyramid[levels-1],
+      //      100, 0.1);
 
       // If the user has supplied a hole-filling functor, we use it
       // here to fill in the holes in the low res disparity map to
@@ -221,7 +225,7 @@ namespace stereo {
 
       // Print out the disparity map at the lowest resolution
       if (m_debug_prefix.size() > 0) {
-        disparity::get_disparity_range(disparity_pyramid[levels-1], min_h_disp, max_h_disp, min_v_disp, max_v_disp,true);
+        disparity::get_disparity_range(disparity_pyramid[levels-1], min_h_disp, max_h_disp, min_v_disp, max_v_disp);
         write_image( m_debug_prefix+"-DH-0-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[levels-1],0), min_h_disp, max_h_disp)));
         write_image( m_debug_prefix+"-DV-0-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[levels-1],1), min_v_disp, max_v_disp)));
       }
@@ -295,7 +299,7 @@ namespace stereo {
         if (m_debug_prefix.size() > 0) {
           std::ostringstream current_level;
           current_level << n;
-          disparity::get_disparity_range(disparity_pyramid[n], min_h_disp, max_h_disp, min_v_disp, max_v_disp,true);
+          disparity::get_disparity_range(disparity_pyramid[n], min_h_disp, max_h_disp, min_v_disp, max_v_disp);
           write_image( m_debug_prefix+"-refined-H-" + current_level.str() + "-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[n],0), min_h_disp, max_h_disp)));
           write_image( m_debug_prefix+"-refined-V-" + current_level.str() + "-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[n],1), min_v_disp, max_v_disp)));
 

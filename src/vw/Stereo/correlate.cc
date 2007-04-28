@@ -169,15 +169,15 @@ int main( int argc, char *argv[] ) {
     double min_horz_disp, max_horz_disp, min_vert_disp, max_vert_disp;
     get_disparity_range( disparity_map, 
                          min_horz_disp, max_horz_disp, 
-                         min_vert_disp, max_vert_disp,
-                         true);
+                         min_vert_disp, max_vert_disp);
 
     remove_outliers( disparity_map, 5, 5, 60, 3 );
 
-    ImageView<PixelGray<float> > x_disparity, y_disparity;
-    disparity_debug_images( disparity_map, x_disparity, y_disparity );
-    write_image( "x_disparity.png", normalize(x_disparity) );
-    write_image( "y_disparity.png", normalize(y_disparity) );
+    // Write disparity debug images
+    double min_h_disp, min_v_disp, max_h_disp, max_v_disp;
+    disparity::get_disparity_range(disparity_map, min_h_disp, max_h_disp, min_v_disp, max_v_disp);
+    write_image( "x_disparity.png", normalize(clamp(select_channel(disparity_map,0), min_h_disp, max_h_disp)));
+    write_image( "y_disparity.png", normalize(clamp(select_channel(disparity_map,1), min_v_disp, max_v_disp)));
   }
   catch( vw::Exception& e ) {
     std::cerr << "Error: " << e.what() << std::endl;

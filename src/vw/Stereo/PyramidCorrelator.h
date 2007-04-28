@@ -50,16 +50,13 @@ namespace stereo {
 
     // Run the correlator
     template <class PixelT>
-    vw::BBox2i operator()(vw::ImageView<PixelT>& image0,
-                          vw::ImageView<PixelT>& image1, 
-                          bool do_horizontal_search = true,
-                          bool do_vertical_search = true) {
+    vw::BBox2i operator()(vw::ImageView<PixelT>& image0, vw::ImageView<PixelT>& image1, 
+                          bool do_horizontal_search = true, bool do_vertical_search = true) {
       m_do_horizontal_calibration = do_horizontal_search;
       m_do_vertical_calibration = do_vertical_search;
 
       // Check to make sure that image0 and image1 have equal dimensions 
-      if ((image0.cols() != image1.cols()) ||
-          (image0.rows() != image1.rows())) {
+      if ((image0.cols() != image1.cols()) || (image0.rows() != image1.rows())) {
         vw_throw( ArgumentErr() << "Primary and secondary image dimensions do not agree!" );
       }
         
@@ -166,7 +163,7 @@ namespace stereo {
         current_level << i;
         double min_h_disp, min_v_disp, max_h_disp, max_v_disp;
         if (m_debug_mode) {
-          disparity::get_disparity_range(disparity_map, min_h_disp, max_h_disp, min_v_disp, max_v_disp,true);
+          disparity::get_disparity_range(disparity_map, min_h_disp, max_h_disp, min_v_disp, max_v_disp);
           write_image( m_debug_prefix+"-H-raw-"+current_level.str()+".jpg", normalize(clamp(select_channel(disparity_map,0), min_h_disp, max_h_disp)));
           write_image( m_debug_prefix+"-V-raw-"+current_level.str()+".jpg", normalize(clamp(select_channel(disparity_map,1), min_v_disp, max_v_disp)));
         }
@@ -176,27 +173,25 @@ namespace stereo {
         int32 rm_min_matches_percent = 60 / (i+1);
         double rm_threshold = 3;
   
-        for(int nn=0; nn < 1; nn++) {  // Run the clean up routine three times
-          disparity::clean_up(disparity_map,
-                              rm_half_kernel, 
-                              rm_half_kernel,
-                              rm_min_matches_percent,
-                              rm_threshold,
-                              true);
-        }
-        std::cout << "\tRemoving solitary pixels [20x20 window, 20% threshold]\n";
-        disparity::remove_outliers(disparity_map, 20, 20, 20, 200, true);
+        ImageViewRef<PixelDisparity<float> > processed_disparity_map_ref = disparity::clean_up(disparity_map,
+                                                                                               rm_half_kernel, 
+                                                                                               rm_half_kernel,
+                                                                                               rm_threshold,
+                                                                                               rm_min_matches_percent/100.0);
+        processed_disparity_map_ref = disparity::remove_outliers(processed_disparity_map_ref, 20, 20, 2, 0.2);
 
         int mask_buffer = std::max(m_kernel_width, m_kernel_height);
-        disparity::mask(disparity_map,
-                        disparity::generate_mask(left_pyramid[i], mask_buffer),
-                        disparity::generate_mask(right_pyramid[i], mask_buffer));
-
+        processed_disparity_map_ref = disparity::mask(processed_disparity_map_ref,
+                                                      disparity::generate_mask(left_pyramid[i], mask_buffer),
+                                                      disparity::generate_mask(right_pyramid[i], mask_buffer));
+        
+        ImageView<PixelDisparity<float> > processed_disparity_map = processed_disparity_map_ref;
+        
         // For debugging
         if (m_debug_mode) {
-          disparity::get_disparity_range(disparity_map, min_h_disp, max_h_disp, min_v_disp, max_v_disp,true);
-          write_image( m_debug_prefix+"-H-"+current_level.str()+".jpg", normalize(clamp(select_channel(disparity_map,0), min_h_disp, max_h_disp)));
-          write_image( m_debug_prefix+"-V-"+current_level.str()+".jpg", normalize(clamp(select_channel(disparity_map,1), min_v_disp, max_v_disp)));
+          disparity::get_disparity_range(processed_disparity_map, min_h_disp, max_h_disp, min_v_disp, max_v_disp);
+          write_image( m_debug_prefix+"-H-"+current_level.str()+".jpg", normalize(clamp(select_channel(processed_disparity_map,0), min_h_disp, max_h_disp)));
+          write_image( m_debug_prefix+"-V-"+current_level.str()+".jpg", normalize(clamp(select_channel(processed_disparity_map,1), min_v_disp, max_v_disp)));
         } 
 
         // The disparity map of the subsampled problem is used to
@@ -204,7 +199,7 @@ namespace stereo {
         // level.
         try {
           double new_h_min, new_v_min, new_h_max, new_v_max;
-          disparity::get_disparity_range(disparity_map, new_h_min, new_h_max, new_v_min, new_v_max,true);
+          disparity::get_disparity_range(processed_disparity_map, new_h_min, new_h_max, new_v_min, new_v_max);
           
           if (m_do_horizontal_calibration) {
             m_min_h = int(floor( new_h_min * pow(2,i+1))) - 4;

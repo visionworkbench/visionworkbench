@@ -142,7 +142,7 @@ namespace vw {
     /// Initialize from another view
     template <class ImageT>
     PixelIndex3View( ImageViewBase<ImageT> const& view ) : 
-      m_rows(view.rows()), m_cols(view.cols()), m_planes(view.planes()) {}
+      m_rows(view.impl().rows()), m_cols(view.impl().cols()), m_planes(view.impl().planes()) {}
     
     /// Initialize explicitly
     PixelIndex3View( int rows, int cols, int planes = 1 ) : 

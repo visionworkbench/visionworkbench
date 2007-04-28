@@ -35,6 +35,7 @@
 #include <boost/format.hpp>
 
 #include <vw/Core/Debugging.h>
+#include <vw/Core/ProgressCallback.h>
 #include <vw/Math/BBox.h>
 #include <vw/Math/Vector.h>
 #include <vw/Image/ImageResource.h>
@@ -182,7 +183,9 @@ namespace vw {
   /// a seperate file on disk and the asterisk will be replaced with
   /// the plane number.
   template <class ImageT>
-  void write_image( const std::string &filename, ImageViewBase<ImageT> const& out_image, FileMetadataCollection const& fmeta = FileMetadataCollection::create() ) {
+  void write_image( const std::string &filename, ImageViewBase<ImageT> const& out_image, 
+                    FileMetadataCollection const& fmeta = FileMetadataCollection::create(), 
+                    const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
 
     VW_ASSERT( out_image.impl().cols() != 0 && out_image.impl().rows() != 0 && out_image.impl().planes() != 0,
                ArgumentErr() << "write_image: cannot write empty image to disk" );
@@ -204,10 +207,14 @@ namespace vw {
       DiskImageResource *r = DiskImageResource::create( name, out_image_format, fmeta );
       vw_out(InfoMessage+1) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
       fmeta.write_file_metadata( r );
+      // Initialize the progress callback
+      progress_callback.report_progress(0);
+
       // Write the image to disk in blocks.  We may need to revisit
       // the order in which these blocks are rasterized, but for now
       // it rasterizes blocks from left to right, then top to bottom.
       Vector2i block_size = r->native_block_size();
+      int total_num_blocks = ceil((float)r->rows() / block_size[1]) * ceil((float)r->cols() / block_size[0]);
       for (int32 j = 0; j < (int32)r->rows(); j+= block_size[1]) {
         for (int32 i = 0; i < (int32)r->cols(); i+= block_size[0]) {
           BBox2i current_bbox(Vector2i(i,j),
@@ -218,11 +225,29 @@ namespace vw {
           ImageView<typename ImageT::pixel_type> image_block( crop(select_plane(out_image.impl(),p), current_bbox) );
           ImageBuffer buf = image_block.buffer();
           r->write( buf, current_bbox );
+
+          // Update the progress callback.
+          if (progress_callback.abort_requested()) {
+            vw_throw( Aborted() << "Aborted by ProgressCallback" );
+          }
+          float processed_row_blocks = j/block_size[1]*r->cols()/block_size[0];
+          float processed_col_blocks = i/block_size[0];
+          progress_callback.report_progress((processed_row_blocks + processed_col_blocks)/total_num_blocks);
         }
       }
+      progress_callback.report_finished();
 
       delete r;
     }
+  }
+
+  /// Write a vw::ImageView<T> to disk.  This overload is for users
+  /// who omit the FileMetadataCollection, but still want to specify
+  /// the progress callback.
+  template <class ImageT>
+  void write_image( const std::string &filename, ImageViewBase<ImageT> const& out_image, 
+                    const ProgressCallback &progress_callback) {
+    write_image(filename, out_image, FileMetadataCollection::create(), progress_callback);
   }
 
   /// Write an vw::ImageView<T> to disk.  If you supply a filename

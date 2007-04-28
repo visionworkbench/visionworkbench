@@ -27,56 +27,13 @@ namespace stereo {
     /// in zero vector pixels in the point image.
     ImageView<Vector3> operator()(ImageView<PixelDisparity<double> > const& disparity_map,
                                   ImageView<double> &error );
-    //    ImageView<Vector3> operator()(ImageView<PixelDisparity<double> > const& disparity_map);
 
     /// Apply a stereo model to a single pair of image coordinates.
     /// Returns an xyz point.  The error is set to -1 if the rays were
     /// parallel or divergent, otherwise it returns the 2-norm of the
     /// distance between the rays at their nearest point of
     /// intersection.
-    inline Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2, double& error ) const {
-      
-      try {
-        // determine range by triangulation
-        Vector3 originA = m_camera1->camera_center(pix1);
-        Vector3 vecFromA = m_camera1->pixel_to_vector(pix1);
-        
-        Vector3 originB = m_camera2->camera_center(pix2);
-        Vector3 vecFromB = m_camera2->pixel_to_vector(pix2);
-
-        Vector3 result =  triangulate_point(originA, vecFromA,
-                                            originB, vecFromB, 
-                                            error);
-
-        // If vecFromA and vecFromB are nearly parallel, there will be
-        // very large numerical uncertainty about where to place the
-        // point.  We set a threshold here to reject points that are
-        // on nearly parallel rays.  The threshold of 1e-4 corresponds
-        // to a convergence of less than theta = 0.81 degrees, so if
-        // the two rays are within 0.81 degrees of being parallel, we
-        // reject this point.  
-        //
-        // This threshold was chosen empirically for now, but should
-        // probably be revisited once a more rigorous analysis has
-        // been completed. -mbroxton (11-MAR-07)
-        if ( 1-dot_prod(vecFromA, vecFromB) < 1e-4) {
-          error = 0;
-          result = Vector3();
-        }
-                   
-        // Reflect points that fall behind one of the two cameras
-        if ( dot_prod(result - originA, vecFromA) < 0 || 
-             dot_prod(result - originB, vecFromB) < 0 ) {
-          result = -result + 2*originA;
-        }
-
-        return result;
-
-      } catch (vw::camera::PixelToRayErr &e) {
-        error = 0;
-        return Vector3();
-      }
-    }
+    Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2, double& error ) const;
   
   protected:
     //------------------------------------------------------------------

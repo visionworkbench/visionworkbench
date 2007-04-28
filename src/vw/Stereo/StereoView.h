@@ -7,6 +7,12 @@
 #include <vw/Camera/CameraModel.h>
 #include <vw/Math/Vector.h>
 
+#ifdef __APPLE__
+#include <float.h>                         // for DBL_MAX
+#else
+#include <values.h>                        // for DBL_MAX
+#endif
+
 namespace vw { 
 namespace stereo {
 
@@ -16,7 +22,6 @@ namespace stereo {
   {
   private:
     DisparityImageT m_disparity_map;
-    
     StereoModel m_stereo_model;
     
   public:
@@ -49,10 +54,9 @@ namespace stereo {
                               Vector2( i + m_disparity_map(i,j).h(),
                                        j + m_disparity_map(i,j).v() ), 
                               error );
-      } else {
-        // For missing pixels in the disparity map, we return a null 3D position.
-        return Vector3();
-      }
+      } 
+      // For missing pixels in the disparity map, we return a null 3D position.
+      return Vector3();
     }
 
     // Returns the distance between the two stereo rays at their
@@ -84,6 +88,72 @@ namespace stereo {
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
+
+  // This per pixel functor applies a universe radius to a point
+  // image.  Points that fall outside of the annulus specified with
+  // the near and far radii are set to the "missing" pixel value
+  // of (0,0,0).
+  //
+  // You can disable either the near or far universe radius
+  // computation by setting either near_radius or far_radius to 0.0.
+  class UniverseRadiusFunc: public vw::UnaryReturnSameType {
+  private:
+
+    // This small subclass gives us the wiggle room we need to update
+    // the state of this object from within the PerPixelView, where
+    // the UniverseRadius object itself is treated as a const copy of
+    // the original functor. By maintaining a smart pointer to this
+    // small status class, we can change state that is shared between
+    // any copies of the UniverseRadius object and the original.
+    struct UniverseRadiusState {
+      int rejected_points, total_points;
+    };
+    
+    Vector3 m_origin;
+    double m_near_radius, m_far_radius;
+    boost::shared_ptr<UniverseRadiusState> m_state;
+
+  public:
+    UniverseRadiusFunc(Vector3 universe_origin, double near_radius = 0, double far_radius = DBL_MAX): 
+      m_origin(universe_origin), m_near_radius(near_radius), m_far_radius(far_radius),
+      m_state( new UniverseRadiusState() ) {
+      VW_ASSERT(m_far_radius != 0 && m_near_radius <= m_far_radius, 
+                vw::ArgumentErr() << "UniverseRadius: near radius must be <= to far radius.");
+      m_state->rejected_points = m_state->total_points = 0;
+    }
+
+    double near_radius() const { return m_near_radius; }
+    double far_radius() const { return m_far_radius; }
+    int rejected_points() const { return m_state->rejected_points; }
+    int total_points() const { return m_state->total_points; }
+
+    Vector3 operator() (Vector3 const& pix) const {
+      m_state->total_points++;
+      if (pix != Vector3() ) {
+        double dist = norm_2(pix - m_origin);
+        if ((m_near_radius != 0 && dist < m_near_radius) || 
+            (m_far_radius != 0 && dist > m_far_radius)) {
+          m_state->rejected_points++;
+          return Vector3();
+        } else {
+          return pix;
+        }
+      }
+      return Vector3();
+    }
+  };
+
+  // Useful routine for printing how many points have been rejected
+  // using a particular UniverseRadius funtor.
+  inline std::ostream& operator<<(std::ostream& os, UniverseRadiusFunc const& u) {
+    std::cout << "Universe Radius Limits: [ " << u.near_radius() << ", ";
+    if (u.far_radius() == 0)
+      std::cout << "Inf ]\n" ;
+    else 
+      std::cout << u.far_radius() << "]\n";
+    std::cout << "\tRejected " << u.rejected_points() << "/" << u.total_points() << " vertices (" << double(u.rejected_points())/u.total_points()*100 << "%).\n";
+  }
+
 
 }} // namespace vw::stereo
 

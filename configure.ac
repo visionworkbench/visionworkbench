@@ -57,7 +57,7 @@ AC_ARG_WITH(paths,
   AC_HELP_STRING([--with-paths=PATHS], [additional search path(s) for packages]), 
   [ PKG_PATHS="$withval $PKG_PATHS" ]
 )
-PKG_PATHS="${PKG_PATHS} ${HOME} ${HOME}/local /sw /opt /opt/local /usr/local /usr/X11R6 /usr"
+PKG_PATHS="${PKG_PATHS} ${HOME} ${HOME}/local /sw /opt /opt/local /usr/local /usr/X11R6 /usr `pwd`/thirdparty/xmlParser_2.22_bsd"
 
 
 ##################################################

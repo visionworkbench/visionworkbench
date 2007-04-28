@@ -4,9 +4,13 @@
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
+#include <vw/Image/PerPixelViews.h>
+#include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/Filter.h>
 #include <vw/Image/Statistics.h>
+#include <vw/Image/EdgeExtension.h>
+#include <vw/Image/UtilityViews.h>
 
 #include <vw/FileIO.h>
 
@@ -66,12 +70,74 @@ namespace vw {
     else 
       return os << "Disparity(" << pix.h() << "," << pix.v() << ")";
   }
+
 } // namespace vw
 
 namespace vw {
 namespace stereo {
 namespace disparity {
-  
+
+  //  get_disparity_range()
+  //
+  // Determine the range of disparity values present in the disparity map.
+  template <class ViewT>
+  void get_disparity_range(ImageViewBase<ViewT> const& disparity_map, 
+                           double &min_horz_disp, double& max_horz_disp, 
+                           double &min_vert_disp, double& max_vert_disp) {
+
+    const ViewT& disparity_map_impl = disparity_map.impl();
+
+    max_horz_disp = -1e100;
+    min_horz_disp = 1e100;
+    max_vert_disp = -1e100;
+    min_vert_disp = 1e100;
+
+    // Find the max/min disparity values
+    int missing = 0;
+    for (unsigned i = 0; i < disparity_map_impl.cols(); i++) {
+      for (unsigned j = 0; j < disparity_map_impl.rows(); j++) {
+        if ( !disparity_map_impl(i,j).missing() ) {
+          max_horz_disp = disparity_map_impl(i,j).h() > max_horz_disp ? disparity_map_impl(i,j).h() : max_horz_disp;
+          min_horz_disp = disparity_map_impl(i,j).h() < min_horz_disp ? disparity_map_impl(i,j).h() : min_horz_disp;
+          max_vert_disp = disparity_map_impl(i,j).v() > max_vert_disp ? disparity_map_impl(i,j).v() : max_vert_disp;
+          min_vert_disp = disparity_map_impl(i,j).v() < min_vert_disp ? disparity_map_impl(i,j).v() : min_vert_disp;
+        } else {
+          missing++;
+        }
+      }
+    }
+
+    if (missing == disparity_map_impl.cols() * disparity_map_impl.rows()) 
+      vw_out(ErrorMessage) << "Disparity range -- disparity map had zero good pixels.";
+    
+    vw_out(InfoMessage) << "Disparity range -- Horizontal: [" << min_horz_disp << ", " << max_horz_disp 
+                        << "]   Vertical: [" << min_vert_disp << ", " << max_vert_disp << "]  ("<< missing << " missing)\n"; 
+  }
+
+
+  //  missing_pixel_image()
+  //
+  /// Produce a colorized image depicting which pixels in the disparity
+  /// map are good pixels, and which are missing (i.e. where no
+  /// correlation was found).
+  struct MissingPixelImageFunc: public vw::ReturnFixedType<PixelRGB<uint8> > {
+    PixelRGB<uint8> operator() (PixelDisparity<float> const& pix) const {
+      if ( !pix.missing() ) 
+        return PixelRGB<uint8>(200,200,200);
+      else
+        return PixelRGB<uint8>(255,0,0);
+    }
+  };
+    
+  template <class ViewT>
+  UnaryPerPixelView<ViewT, MissingPixelImageFunc> 
+  missing_pixel_image(ImageViewBase<ViewT> &disparity_map) {
+    return per_pixel_filter(disparity_map.impl(), MissingPixelImageFunc());
+  }
+
+
+  //  generate_mask()
+  // 
   /// Masks all of the black pixels along the edges of an image.  This
   /// algorithm "eats away" at the pixels on all four sides of the
   /// image; masking pixels until it encounters a non-black pixel.
@@ -153,99 +219,221 @@ namespace disparity {
     return mask;
   }
 
-  /// Apply a binary mask to the disparity map (see also \ref disparity::generate_mask())
-  template <class PixelT, class MaskViewT>
-  void mask(ImageView<PixelDisparity<PixelT> > &disparity_map, 
-            ImageViewBase<MaskViewT> const& left_mask,
-            ImageViewBase<MaskViewT> const& right_mask) {
-    
-    VW_ASSERT(disparity_map.cols() == left_mask.impl().cols() && disparity_map.rows() == left_mask.impl().rows() &&
-              disparity_map.cols() == right_mask.impl().cols() && disparity_map.rows() == right_mask.impl().rows(),
-              ArgumentErr() << "disparity::mask() : Mask images and disparity map image are not the same size.\n");
-    
-    for (int32 i = 0; i < disparity_map.cols() ; i++) 
-      for (int32 j = 0; j < disparity_map.rows() ; j++)
-        if ( disparity_map(i,j).missing() || !(left_mask.impl()(i,j)) || !(right_mask.impl()((int)(i+disparity_map(i,j).h()), (int)(j+disparity_map(i,j).v()))) ) 
-          disparity_map(i,j) = PixelDisparity<PixelT>();  // Set to missing pixel value
+  //  mask()
+  //
+  /// Given a pair of masks for the left and right images and a
+  /// disparity map to be masked, this view will eliminate any pixels
+  /// in the disparity map that correspond to locations in the mask
+  /// that contain a value of zero.
+  template <class MaskViewT>
+  struct DisparityMaskFunc: public vw::ReturnFixedType<PixelDisparity<float> >  {
+
+    MaskViewT m_left_mask, m_right_mask;
+
+    DisparityMaskFunc( MaskViewT const& left_mask, MaskViewT const& right_mask) :
+      m_left_mask(left_mask), m_right_mask(right_mask) {
+    }
+
+    PixelDisparity<float> operator() (PixelDisparity<float> const& pix, Vector3 const& loc) const {
+      if ( pix.missing() ||                                               // If already a missing pixel
+           loc[0] < 0 || loc[0] >= m_left_mask.cols() ||                  //
+           loc[1] < 0 || loc[1] >= m_left_mask.rows() ||                  // or outside of bounds of 
+           loc[0]+pix.h() < 0 || loc[0]+pix.h() >= m_right_mask.cols() || // the left or right image
+           loc[1]+pix.v() < 0 || loc[1]+pix.v() >= m_right_mask.rows() || //
+           !(m_left_mask(loc[0],loc[1])) ||                               // or the pixel is masked
+           !(m_right_mask((int)(loc[0]+pix.h()), (int)(loc[1]+pix.v()))) ) {
+        return PixelDisparity<float>();                                   // then set to missing pixel value
+      } else {
+        return pix;
+      } 
+
+    }
+  };
+
+  /// Remove pixels in the disparity map that correspond to locations
+  /// where the left or right image mask contains zeros.  This
+  /// function also removes any pixels that fall outside the bounds of
+  /// the left or right mask image.
+  template <class ViewT, class MaskViewT>
+  BinaryPerPixelView<ViewT, PixelIndex3View, DisparityMaskFunc<MaskViewT> > mask(ImageViewBase<ViewT> const& disparity_map, 
+                                                                                ImageViewBase<MaskViewT> const& left_mask, 
+                                                                                ImageViewBase<MaskViewT> const& right_mask) {
+    // Note: We use the PixelIndexView and Binary per pixel filter
+    // idiom her to pass the location (in pixel coordinates) into the
+    // functor along with the pixel value at that location.
+    return BinaryPerPixelView<ViewT, PixelIndex3View, DisparityMaskFunc<MaskViewT> >(disparity_map.impl(), 
+                                                                                    PixelIndex3View(disparity_map),
+                                                                                    DisparityMaskFunc<MaskViewT>(left_mask.impl(),
+                                                                                                                 right_mask.impl()));
   }
 
-  /// Apply a binary mask to the disparity map (see also \ref disparity::generate_mask())
-  template <class PixelT>
-  void remove_invalid_pixels(ImageView<PixelDisparity<PixelT> > &disparity_map, 
-                             int right_image_width, int right_image_height) {
+
+
+  //  remove_invalid_pixels()
+  //
+  /// Remove pixels from the disparity map that are outside of the
+  /// bounds of the original input images.  This happens sometimes
+  /// when subpixel interpolation is applied, and this will cause
+  /// problems with some camera models (i.e. linear pushbroom) that
+  /// are not well defined outside of the bounds of the image.
+  struct InvalidPixelsFunc: public vw::ReturnFixedType<PixelDisparity<float> >  {
+
+    int m_width, m_height;
+
+    InvalidPixelsFunc(int right_image_width, int right_image_height) : 
+      m_width(right_image_width), m_height(right_image_height) {}
+
+    PixelDisparity<float> operator() (PixelDisparity<float> const& pix, Vector3 const& loc) const {
+      if ( !pix.missing() ) {
+        if ( loc[0]+pix.h() < 0 || loc[0]+pix.h() >= m_width-1 || 
+             loc[1]+pix.v() < 0 || loc[1]+pix.v() >= m_height-1) {
+          return PixelDisparity<float>(); // Set to missing pixel
+        } 
+      }
+      return pix;
+    }
+  };
     
-    for (int32 i = 0; i < disparity_map.cols() ; i++) 
-      for (int32 j = 0; j < disparity_map.rows() ; j++)
-        if ( !disparity_map(i,j).missing() ) {
-          if ( i+disparity_map(i,j).h() < 0 || i+disparity_map(i,j).h() >= right_image_width-1 ||
-               j+disparity_map(i,j).v() < 0 || j+disparity_map(i,j).v() >= right_image_height-1) {
-            disparity_map(i,j) = PixelDisparity<PixelT>(); // Set to missing pixel
-          }
-        }
+  template <class ViewT>
+  BinaryPerPixelView<ViewT, PixelIndex3View, InvalidPixelsFunc> 
+  remove_invalid_pixels(ImageViewBase<ViewT> &disparity_map, int right_image_width, int right_image_height) {
+
+    // Note: We use the PixelIndexView and Binary per pixel filter
+    // idiom her to pass the location (in pixel coordinates) into the
+    // functor along with the pixel value at that location.
+    return BinaryPerPixelView<ViewT, PixelIndex3View, InvalidPixelsFunc>(disparity_map.impl(), 
+                                                                        PixelIndex3View(disparity_map),
+                                                                        InvalidPixelsFunc(right_image_width,
+                                                                                          right_image_height) );
   }
   
-  /// Remove outliers from a disparity map image
-  template <class PixelT>
-  void remove_outliers(ImageView<PixelDisparity<PixelT> > &disparity_map,
-                       int half_h_kernel, int half_v_kernel,
-                       int min_matches, double threshold, bool verbose = false) {
-    
-    int32 width = disparity_map.cols();
-    int32 height = disparity_map.rows();
-    int	matched;
-    int	total;
-    int32 x, y, xk, yk;
-    ImageView<bool> disparity_mask(width, height);
-    fill(disparity_mask, false);  
-    double rejection_threshold = (double)min_matches/100.0;
-    
-    if(verbose) {
-      printf("Removing low confidence pixels");
-      fflush(stdout);
-    }
-      
-    for(y = 0; y < height; y++){
-      for(x = 0; x < width; x++){
-        // if valid pixel 
-        if ( !disparity_map(x,y).missing() ) {
-          // walk the kernel 
-          matched = 0;
-          total = 0;
-          for(yk = y - half_v_kernel; yk <= y + half_v_kernel; yk++){
-            if(yk >= 0 && yk < height){
-              for(xk = x - half_h_kernel; xk <= x + half_h_kernel; xk++){
-                if(xk >=0 && xk < width){
-                  if(fabs(disparity_map(x,y).h()-disparity_map(xk, yk).h()) <= threshold &&
-                     fabs(disparity_map(x,y).v()-disparity_map(xk, yk).v()) <= threshold) {
-                    matched++;
-                  }
-                  total++;
-                }
-              }
-            }
-          } // end walk kernel 
 
-          if(total != 0){
-            if( ((double)matched/(double)total) >= rejection_threshold){
-              disparity_mask(x,y) = true;
+
+
+  //  remove_border_pixels()
+  //
+  /// Remove pixels from the disparity map that lie along the borders.
+  struct BorderPixelsFunc: public vw::ReturnFixedType<PixelDisparity<float> >  {
+
+    int m_border_size, m_image_width, m_image_height;
+
+    BorderPixelsFunc(int border_size, int image_width, int image_height) : 
+      m_border_size(border_size), m_image_width(image_width), m_image_height(image_height) {}
+
+    PixelDisparity<float> operator() (PixelDisparity<float> const& pix, Vector3 const& loc) const {
+      if ( loc[0] < m_border_size || loc[1] < m_border_size ||
+           loc[0] > m_image_width-m_border_size ||
+           loc[1] > m_image_height-m_border_size) {
+        return PixelDisparity<float>(); // Set to missing pixel
+      } 
+      return pix;
+    }
+  };
+    
+  template <class ViewT>
+  BinaryPerPixelView<ViewT, PixelIndex3View, BorderPixelsFunc> 
+  remove_border_pixels(ImageViewBase<ViewT> const& disparity_map, int border_size) {
+
+    // Note: We use the PixelIndexView and Binary per pixel filter
+    // idiom her to pass the location (in pixel coordinates) into the
+    // functor along with the pixel value at that location.
+    return BinaryPerPixelView<ViewT, PixelIndex3View, BorderPixelsFunc>(disparity_map.impl(), 
+                                                                       PixelIndex3View(disparity_map),
+                                                                       BorderPixelsFunc(border_size,
+                                                                                         disparity_map.cols(),
+                                                                                         disparity_map.rows()) );
+  }
+  
+  //  remove_outliers()
+  // 
+  /// Remove outliers from a disparity map image using a morpholical
+  /// approach. 
+  class RemoveOutliersFunc : public ReturnFixedType<PixelDisparity<float> > 
+  {
+
+    // This small subclass gives us the wiggle room we need to update
+    // the state of this object from within the PerPixelAccessorView.
+    // By maintaining a smart pointer to this small status class, we
+    // can change state that is shared between any copies of the
+    // RemoveOutliersFunc object and the original.
+    struct RemoveOutliersState {
+      int rejected_points, total_points;
+    };
+
+    int m_half_h_kernel, m_half_v_kernel;
+    float m_pixel_threshold;
+    float m_rejection_threshold;
+    boost::shared_ptr<RemoveOutliersState> m_state;
+
+  public:
+    RemoveOutliersFunc(int half_h_kernel, int half_v_kernel, float pixel_threshold, float rejection_threshold) :
+      m_half_h_kernel(half_h_kernel), m_half_v_kernel(half_v_kernel), 
+      m_pixel_threshold(pixel_threshold), m_rejection_threshold(rejection_threshold),
+      m_state( new RemoveOutliersState() ) {
+      m_state->rejected_points = m_state->total_points = 0;
+
+      VW_ASSERT(half_h_kernel > 0 && half_v_kernel > 0,
+                ArgumentErr() << "RemoveOutliersFunc: half kernel sizes must be non-zero.");
+    }
+
+    int half_h_kernel() const { return m_half_h_kernel; }
+    int half_v_kernel() const { return m_half_v_kernel; }
+    float rejection_threshold() const { return m_rejection_threshold; }
+    float pixel_threshold() const { return m_pixel_threshold; }
+    int rejected_points() const { return m_state->rejected_points; }
+    int total_points() const { return m_state->total_points; }
+
+    BBox2i work_area() const { return BBox2i(Vector2(-m_half_h_kernel, -m_half_v_kernel),
+                                             Vector2(m_half_h_kernel, m_half_v_kernel)); }
+    
+    template <class PixelAccessorT>
+    typename PixelAccessorT::pixel_type operator() (PixelAccessorT const& acc) const {
+      m_state->total_points++;
+
+      if (!(*acc).missing()) {        
+        int matched = 0, total = 0; 
+        PixelAccessorT row_acc = acc;
+        row_acc.advance(-m_half_h_kernel,-m_half_v_kernel); 
+        for(int yk = -m_half_v_kernel; yk <= m_half_v_kernel; ++yk) {
+          PixelAccessorT col_acc = row_acc;
+          for(int xk = -m_half_h_kernel; xk <= m_half_h_kernel; ++xk) {
+
+            if( !(*col_acc).missing() &&
+                fabs((*acc).h()-(*col_acc).h()) <= m_pixel_threshold &&
+                fabs((*acc).v()-(*col_acc).v()) <= m_pixel_threshold) {
+              matched++;
             }
+            col_acc.next_col();
+            total++;
           }
-        } // end if valid pixel 
-      }
-    }
-    total = 0;
-    for(y = 0; y < height; y++){
-      for(x = 0; x < width; x++){
-        if( !disparity_mask(x,y) ) {
-          disparity_map(x,y) = PixelDisparity<PixelT>(); // Reset to missing pixel 
-          total++;
+          row_acc.next_row();
         }
-      }
+        if( ((float)matched/(float)total) < m_rejection_threshold){
+          m_state->rejected_points++;
+          return typename PixelAccessorT::pixel_type();
+        }
+      } 
+      return *acc;
     }
-    if(verbose) {
-      printf("\r        %d/%d low confidence pixels removed (%0.2f%%)\n", total, width*height, (double)total/(width*height));
-      fflush(stdout);
-    }
+  };
+
+  // Useful routine for printing how many points have been rejected
+  // using a particular RemoveOutliersFunc.
+  inline std::ostream& operator<<(std::ostream& os, RemoveOutliersFunc const& u) {
+    std::cout << "\tKernel: [ " << u.half_h_kernel()*2 << ", " << u.half_v_kernel()*2 << "]\n";
+    std::cout << "   Rejected " << u.rejected_points() << "/" << u.total_points() << " vertices (" << double(u.rejected_points())/u.total_points()*100 << "%).\n";
+  }
+
+  template <class ViewT>
+  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ZeroEdgeExtension>, RemoveOutliersFunc> remove_outliers(ImageViewBase<ViewT> const& disparity_map,
+                                                                                                      int half_h_kernel, int half_v_kernel,
+                                                                                                      double pixel_threshold,
+                                                                                                      double rejection_threshold) {
+    return UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ZeroEdgeExtension>, RemoveOutliersFunc>(edge_extend(disparity_map.impl(), ZeroEdgeExtension()),
+                                                                                               RemoveOutliersFunc (half_h_kernel, 
+                                                                                                                   half_v_kernel, 
+                                                                                                                   pixel_threshold, 
+                                                                                                                   rejection_threshold));
   }
 
 
@@ -253,170 +441,137 @@ namespace disparity {
   ///
   /// You supply the half dimensions of the kernel window.  
   ///
-  /// Next, you supply the percentage of the pixels within the kernel
-  /// that must "match" the center pixel if that pixel is to be
-  /// considered an inlier. (given in units of percent [0..100]).
-  ///
-  /// Finally, you supply the threshold that determines whether a
+  /// Next, you supply the threshold that determines whether a
   /// pixel is considered "close" to its neightbors (in units of
   /// pixels).
-  template <class PixelT>
-  inline void clean_up(ImageView<PixelDisparity<PixelT> > &disparity_map,
-                       int v_half_kernel, int h_half_kernel,
-                       int min_matches, double threshold,
-                       bool verbose = false) {
+  ///
+  /// Finally, you supply the percentage of the pixels within the kernel
+  /// that must "match" the center pixel if that pixel is to be
+  /// considered an inlier. ([0..1.0]).
+  template <class ViewT>
+  inline UnaryPerPixelAccessorView<EdgeExtensionView<UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ZeroEdgeExtension>, 
+                                                                               RemoveOutliersFunc>, 
+                                                     ZeroEdgeExtension>, RemoveOutliersFunc>  
+  clean_up(ImageViewBase<ViewT> const& disparity_map,
+           int h_half_kernel, int v_half_kernel, 
+           double pixel_threshold, double rejection_threshold) {
     
-    // Remove outliers using user specified parameters
-    remove_outliers(disparity_map, 
-                    v_half_kernel, h_half_kernel, 
-                    min_matches, threshold, verbose);
-    
-    // Remove outliers using a heuristic that isolates single pixel
-    // outliers.
-    remove_outliers(disparity_map, 1, 1, 75, 0.5, verbose);
+    // Remove outliers first using user specified parameters, and then
+    // using a heuristic that isolates single pixel outliers.
+    return remove_outliers(remove_outliers(disparity_map.impl(), 
+                                           h_half_kernel, v_half_kernel, 
+                                           pixel_threshold, rejection_threshold),
+                           1, 1, 1.0, 0.75);
   }
 
 
-  template <class PixelT>
-  inline void disparity_debug_images(ImageView<PixelDisparity<PixelT> > const& disparity_map,
-                                     ImageView<PixelGray<float> > &horizontal,
-                                     ImageView<PixelGray<float> > &vertical) {
-    double min_h_disp, min_v_disp, max_h_disp, max_v_disp;
-    get_disparity_range(disparity_map, min_h_disp, max_h_disp, min_v_disp, max_v_disp);
-    horizontal = clamp(select_channel(disparity_map,0), min_h_disp, max_h_disp);
-    vertical = clamp(select_channel(disparity_map,1), min_v_disp, max_v_disp);
-  }
 
 
-  template <class PixelT>
-  inline ImageView<PixelRGB<float> > rgb_missing_pixel_image(ImageView<PixelDisparity<PixelT> > const& disparity_map) {
-    ImageView<PixelRGB<float> > mask(disparity_map.cols(), disparity_map.rows());
 
-    for (int32 i = 0; i < mask.cols(); i++) {
-      for (int32 j = 0; j < mask.rows(); j++) {
-        if ( !disparity_map(i,j).missing() ) {
-          mask(i,j).r() = 0.8;
-          mask(i,j).g() = 0.8;
-          mask(i,j).b() = 0.8;
-        } else {
-          mask(i,j).r() = 1.0;
-          mask(i,j).g() = 0.0;
-          mask(i,j).b() = 0.0;
+  //  low_contrast_filter()
+  // 
+  /// Remove pixels from the disparity map that correspond to low
+  /// contrast pixels in the original image.
+  class StdDevImageFunc : public UnaryReturnTemplateType<PixelTypeFromPixelAccessor> 
+  {
+    int m_kernel_width, m_kernel_height;
+
+  public:
+    StdDevImageFunc(int kernel_width, int kernel_height) :
+      m_kernel_width(kernel_width), m_kernel_height(kernel_height) {
+      VW_ASSERT(m_kernel_width > 0 && m_kernel_height > 0,
+                ArgumentErr() << "StdDevImageFunc: kernel sizes must be non-zero.");
+    }
+
+    BBox2i work_area() const { return BBox2i(Vector2(-m_kernel_width/2, -m_kernel_height/2),
+                                             Vector2(m_kernel_width, m_kernel_height)); }
+    
+    template <class PixelAccessorT>
+    typename PixelAccessorT::pixel_type operator() (PixelAccessorT const& acc) const {
+      typedef typename PixelAccessorT::pixel_type pixel_type;
+
+      // First pass, compute the mean.
+      pixel_type sum = 0;
+      PixelAccessorT row_acc = acc;
+      row_acc.advance(-m_kernel_width/2,-m_kernel_height/2); 
+      for(int yk = -m_kernel_height/2; yk <= m_kernel_height/2; ++yk) {
+        PixelAccessorT col_acc = row_acc;
+        for(int xk = -m_kernel_width/2; xk <= m_kernel_width/2; ++xk) {
+          sum += *col_acc;
+          col_acc.next_col();
         }
+        row_acc.next_row();
       }
-    }
-    return mask;
-  }
+      pixel_type mean = sum / (m_kernel_width*m_kernel_height);
 
-  template <class PixelT>
-  inline ImageView<PixelGray<float> > missing_pixel_image(ImageView<PixelDisparity<PixelT> > const& disparity_map) {
-    ImageView<PixelGray<float> > mask(disparity_map.cols(), disparity_map.rows());
-
-    for (int32 i = 0; i < mask.cols(); i++) {
-      for (int32 j = 0; j < mask.rows(); j++) {
-        if ( !disparity_map(i,j).missing() ) {
-          mask(i,j).v() = 1.0;
-        } else {
-          mask(i,j).v() = 0.0;
+      // Second pass, compute the standard deviation using the unbiased
+      // estimator.
+      sum = 0;
+      row_acc = acc;
+      row_acc.advance(-m_kernel_width/2,-m_kernel_height/2); 
+      for(int yk = -m_kernel_height/2; yk <= m_kernel_height/2; ++yk) {
+        PixelAccessorT col_acc = row_acc;
+        for(int xk = -m_kernel_width/2; xk <= m_kernel_width/2; ++xk) {
+          pixel_type diff = *col_acc-mean;
+          sum += diff*diff;
+          col_acc.next_col();
         }
+        row_acc.next_row();
       }
+      return sum / (m_kernel_width*m_kernel_height-1);
     }
-    return mask;
+  };
+
+  template <class ViewT, class EdgeT>
+  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,EdgeT>, StdDevImageFunc> std_dev_image(ImageViewBase<ViewT> const& image,
+                                                                                                          int kernel_width, int kernel_height, 
+                                                                                                          EdgeT edge) {
+    return UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,EdgeT>, StdDevImageFunc>(edge_extend(image.impl(), edge),
+                                                                                                     StdDevImageFunc (kernel_width, kernel_height));
+  }
+  template <class ViewT>
+  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ZeroEdgeExtension>, StdDevImageFunc> std_dev_image(ImageViewBase<ViewT> const& image,
+                                                                                                          int kernel_width, int kernel_height) {
+    return UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ZeroEdgeExtension>, StdDevImageFunc>(edge_extend(image.impl(), ZeroEdgeExtension()),
+                                                                                                     StdDevImageFunc (kernel_width, kernel_height));
+  }
+
+  class LessThanThresholdFunc: public vw::ReturnFixedType<bool> {
+    double m_threshold;
+  public:
+    LessThanThresholdFunc(double threshold) : m_threshold(threshold) {}
+
+    template <class PixelT>
+    bool operator() (PixelT const& pix) const {
+      return pix < m_threshold;
+    }
+  };
+    
+  template <class ViewT> UnaryPerPixelView<ViewT, LessThanThresholdFunc> 
+  less_than_threshold(ImageViewBase<ViewT> const& image, double threshold) {
+    return per_pixel_filter(image.impl(), LessThanThresholdFunc(threshold));
   }
 
 
-  template <class PixelT>
-  void get_disparity_range(ImageView<PixelDisparity<PixelT> > const& disparity_map, 
-                           double &min_horz_disp, double& max_horz_disp, 
-                           double &min_vert_disp, double& max_vert_disp,
-                           bool verbose = false) {
-    
-    max_horz_disp = -1e100;
-    min_horz_disp = 1e100;
-    max_vert_disp = -1e100;
-    min_vert_disp = 1e100;
 
-    // Find the max/min disparity values
-    int missing = 0;
-    for (int32 i = 0; i < disparity_map.cols(); i++) {
-      for (int32 j = 0; j < disparity_map.rows(); j++) {
-        if ( !disparity_map(i,j).missing() ) {
-          max_horz_disp = disparity_map(i,j).h() > max_horz_disp ? disparity_map(i,j).h() : max_horz_disp;
-          min_horz_disp = disparity_map(i,j).h() < min_horz_disp ? disparity_map(i,j).h() : min_horz_disp;
-          max_vert_disp = disparity_map(i,j).v() > max_vert_disp ? disparity_map(i,j).v() : max_vert_disp;
-          min_vert_disp = disparity_map(i,j).v() < min_vert_disp ? disparity_map(i,j).v() : min_vert_disp;
-        } else {
-          missing++;
-        }
-      }
-    }
 
-    if (missing == disparity_map.cols() * disparity_map.rows()) 
-      vw_throw( ArgumentErr() << "Disparity map had zero good pixels." );
+//   template <class ViewT>
+//   void sparse_disparity_filter(ImageViewBase<ViewT> const& disparity_map, 
+//                                float blur_stddev, float rejection_threshold) {
+//     ImageViewRef<PixelGray<float> > test_image = disparity::missing_pixel_image(disparity_map);
+//     //    write_image("test-a.png", test_image);
+//     ImageView<float> blurred_image = gaussian_filter(select_channel(test_image,0), blur_stddev);
+//     //    write_image("test-b.png", blurred_image);
+//     ImageView<float> threshold_image = threshold(blurred_image, rejection_threshold);
+//     //    write_image("test-c.png", threshold_image);
     
-    if (verbose) {
-      printf("Disparity range -- Horizontal: [%f, %f]   Vertical: [%f, %f]  (%d missing)\n", 
-             min_horz_disp, max_horz_disp, min_vert_disp, max_vert_disp, missing);
-    }
-  }
-
-  template <class ChannelT>
-  void sparse_disparity_filter(ImageView<PixelDisparity<ChannelT> > &disparity_map, float blur_stddev, float rejection_threshold) {
-    std::cout << "\tIsolating and rejecting large areas of very low confidence..." << std::flush;
+//     for (int i = 0; i < disparity_map.cols(); i++) 
+//       for (int j = 0; j < disparity_map.rows(); j++) 
+//         if (threshold_image(i,j) == 0)
+//           disparity_map(i,j) = PixelDisparity<ChannelT>(); // Set to missing pixel
     
-    ImageView<PixelGray<float> > test_image = disparity::missing_pixel_image(disparity_map);
-    //    write_image("test-a.png", test_image);
-    ImageView<float> blurred_image = gaussian_filter(select_channel(test_image,0), blur_stddev);
-    //    write_image("test-b.png", blurred_image);
-    ImageView<float> threshold_image = threshold(blurred_image, rejection_threshold);
-    //    write_image("test-c.png", threshold_image);
-    
-    for (int i = 0; i < disparity_map.cols(); i++) 
-      for (int j = 0; j < disparity_map.rows(); j++) 
-        if (threshold_image(i,j) == 0)
-          disparity_map(i,j) = PixelDisparity<ChannelT>(); // Set to missing pixel
-    
-    std::cout << " done.\n";
-  }
-
-  template <class ChannelT, class ImagePixelT>
-  void low_contrast_filter(ImageView<PixelDisparity<ChannelT> > &disparity_map, 
-                           ImageView<ImagePixelT> const& left_image,
-                           ImageView<ImagePixelT> const& right_image,
-                           int kernel_width, int kernel_height,
-                           float rejection_threshold) {
-    std::cout << "\tIsolating and rejecting large areas of low contrast..." << std::flush;
-    
-    ImageView<float> left_contrast_image(left_image.cols(), left_image.rows());
-    ImageView<float> right_contrast_image(right_image.cols(), right_image.rows());
-
-    // First, compute the standard deviation in each image patch
-    for (int j = kernel_height/2; j < left_image.rows()-kernel_height/2; ++j) {
-      for (int i = kernel_width/2; i < left_image.cols()-kernel_width/2; ++i) {
-        typename CompoundChannelType<ImagePixelT>::type std_dev;
-        int crop_i = i - kernel_width/2;
-        int crop_j = j - kernel_height/2;
-        left_contrast_image(i,j) = stddev_channel_value(crop(channel_cast<float>(left_image), crop_i, crop_j, kernel_width, kernel_height));
-        right_contrast_image(i,j) = stddev_channel_value(crop(channel_cast<float>(right_image), crop_i, crop_j, kernel_width, kernel_height));
-      }
-    }
-
-    // For debugging
-    //     write_image("left-contrast.png", normalize(left_contrast_image));
-    //     write_image("right-contrast.png", normalize(right_contrast_image));
-    
-    // Reject pixels that have a standard deviation below the supplied threshold
-    for (int j = 0; j < disparity_map.rows(); ++j) {
-      for (int i = 0; i < disparity_map.cols(); ++i) {
-        if (left_contrast_image(i,j) < rejection_threshold ||
-            right_contrast_image(int(i+disparity_map(i,j).h()), int(j+disparity_map(i,j).v())) < rejection_threshold) {
-          disparity_map(i,j) = PixelDisparity<ChannelT>();
-        }
-      }
-    }
-    std::cout << " done.\n";
-  }
-  
+//     std::cout << " done.\n";
+//   }  
   
 } // namespace disparity
   

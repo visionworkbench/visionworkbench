@@ -234,13 +234,13 @@ namespace vw {
       int32 ci = m_i_kernel.size() ? (m_i_kernel.size()-1-m_ci) : 0;
       int32 cj = m_j_kernel.size() ? (m_j_kernel.size()-1-m_cj) : 0;
       if( (x >= int(ci)) && (y >= int(cj)) &&
-	  (x <= int(m_image.cols())-int(m_kernel2d.cols())+int(ci)) &&
-	  (y <= int(m_image.rows())-int(m_kernel2d.rows())+int(cj)) ) {
+          (x <= int(m_image.cols())-int(m_kernel2d.cols())+int(ci)) &&
+          (y <= int(m_image.rows())-int(m_kernel2d.rows())+int(cj)) ) {
         return correlate_2d_at_point( m_image.origin().advance(x-ci,y-cj,p),
                                       m_kernel2d.origin(), m_kernel2d.cols(), m_kernel2d.rows() );
       }
       else {
-	return correlate_2d_at_point( edge_extend(m_image,m_edge).origin().advance(x-ci,y-cj,p),
+        return correlate_2d_at_point( edge_extend(m_image,m_edge).origin().advance(x-ci,y-cj,p),
                                       m_kernel2d.origin(), m_kernel2d.cols(), m_kernel2d.rows() );
       }
     }
@@ -251,7 +251,7 @@ namespace vw {
     // fully rasterize itself if it is about to be part of a
     // rasterization operation with nested views.  This is actually 
     // not the most efficient behavior: it need only rasterize one 
-    // of the two axes, and none at al if only one axis is active. 
+    // of the two axes, and none at all if only one axis is active. 
     // However, that is deterimined at run time and would impact 
     // the prerasterize_type, so we cannot easily do that.
     typedef ImageView<pixel_type> prerasterize_type;
@@ -278,9 +278,9 @@ namespace vw {
       // thought and testing....
       // child_bbox.crop( BBox2i(0,0,m_image.cols(),m_image.rows()) );
       if( IsMultiplyAccessible<ImageT>::value ) {
-	rasterize_helper( crop(m_image.prerasterize(child_bbox),bbox), dest );
+        rasterize_helper( crop(edge_extend(m_image,m_edge).prerasterize(child_bbox),bbox), dest );
       } else {
-	rasterize_helper( crop(copy(crop(m_image,child_bbox)),bbox-child_bbox.min()), dest );
+        rasterize_helper( crop(copy(crop(edge_extend(m_image,m_edge),child_bbox)),bbox-child_bbox.min()), dest );
       }
     }
 
@@ -326,18 +326,18 @@ namespace vw {
           EdgeAccessT ecol = erow;
           DestAccessT dcol = drow;
           int32 i=0;
-          if( kernel.size() <= src.cols() ) {
+          if( (int32)kernel.size() <= src.cols() ) {
             for( ; i<c; ++i ) {
               *dcol = DestPixelT( correlate_1d_at_point( ecol, kernel.rbegin(), kernel.size() ) );
               ecol.next_col();
               dcol.next_col();
             }
-            for( ; i<=src.cols()-kernel.size()+c ; ++i ) {
+            for( ; i<=src.cols()-(int32)kernel.size()+c ; ++i ) {
               *dcol = DestPixelT( correlate_1d_at_point( scol, kernel.rbegin(), kernel.size() ) );
               scol.next_col();
               dcol.next_col();
             }
-            ecol.advance( src.cols()-kernel.size()+1, 0 );
+            ecol.advance( src.cols()-(int32)kernel.size()+1, 0 );
           }
           for( ; i<src.cols(); ++i ) {
             *dcol = DestPixelT( correlate_1d_at_point( ecol, kernel.rbegin(), kernel.size() ) );

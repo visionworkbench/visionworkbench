@@ -76,6 +76,7 @@ static void tiff_error_handler(const char* module, const char* frmt, va_list ap)
 vw::DiskImageResourceTIFF::DiskImageResourceTIFF( std::string const& filename )
   : DiskImageResource( filename ), m_info( new DiskImageResourceInfoTIFF() )
 {
+  m_use_compression = false;
   open( filename );
 }
     
@@ -83,6 +84,7 @@ vw::DiskImageResourceTIFF::DiskImageResourceTIFF( std::string const& filename,
                                                   vw::ImageFormat const& format )
   : DiskImageResource( filename ), m_info( new DiskImageResourceInfoTIFF() )
 {
+  m_use_compression = false;
   create( filename, format );
 }
 
@@ -214,7 +216,8 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
   TIFFSetField(tif, TIFFTAG_XRESOLUTION, 70.0);
   TIFFSetField(tif, TIFFTAG_YRESOLUTION, 70.0);
 
-  TIFFSetField(tif, TIFFTAG_COMPRESSION,COMPRESSION_LZW);
+  if (m_use_compression)
+    TIFFSetField(tif, TIFFTAG_COMPRESSION,COMPRESSION_LZW);
 
   switch (m_format.channel_type) {
   case VW_CHANNEL_INT8:
