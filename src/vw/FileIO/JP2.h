@@ -32,19 +32,18 @@
 #include <iostream>
 
 #include <arpa/inet.h>			   // ntohl, htonl
-#include <endian.h>			   // __BYTE_ORDER
 
 #include <boost/algorithm/string.hpp>
 
 #include <vw/config.h>
-//FIXME: probably need to include something so that vw::uint8, etc are defined
+#include <vw/Core/FundamentalTypes.h>
 //#include <vw/FileIO/FileMetadata.h>
 #include <vw/Math/Matrix.h>
 
-#if __BYTE_ORDER == __BIG_ENDIAN
+#if VW_BYTE_ORDER == VW_BIG_ENDIAN
 #define ntohll(a) (a)
 #define htonll(a) (a)
-#elif __BYTE_ORDER == __LITTLE_ENDIAN
+#elif VW_BYTE_ORDER == VW_LITTLE_ENDIAN
 //NOTE: "ULL" is for gcc; apparently msvc does not like it (in case this gets ported to Win32)
 #define ntohll(a) ((((uint64)(a) & 0xff00000000000000ULL) >> 56) | \
                    (((uint64)(a) & 0x00ff000000000000ULL) >> 40) | \
@@ -63,7 +62,7 @@
                    (((uint64)(a) & 0x000000000000ff00ULL) << 40) | \
                    (((uint64)(a) & 0x00000000000000ffULL) << 56))
 #else
-#error "__BYTE_ORDER must be either __LITTLE_ENDIAN or __BIG_ENDIAN."
+#error "VW_BYTE_ORDER must be either VW_LITTLE_ENDIAN or VW_BIG_ENDIAN."
 #endif
 
 
@@ -80,7 +79,7 @@ namespace vw
   typedef std::list<JP2Box*> JP2BoxList;
   typedef std::list<std::pair<uint16,bool> > JP2ReaderRequirementsList;
   
-  #if 0
+#if 0
   template <class MaskT>
   class JP2ReaderRequirements
   {
@@ -251,7 +250,7 @@ namespace vw
         delete[] dat;
     }
   };
-  #endif
+#endif
 
   // Generic jp2/jpx box
   class JP2Box
