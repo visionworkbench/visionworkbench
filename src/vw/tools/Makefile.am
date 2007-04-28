@@ -31,17 +31,24 @@ image_SOURCES = image.cc
 image_LDFLAGS = @PKG_VW_LDFLAGS@
 
 if MAKE_MODULE_CARTOGRAPHY
-if HAVE_PKG_JPEG
+if MAKE_MODULE_MOSAIC
 image2kml_prog = image2kml
 image2kml_SOURCES = image2kml.cc
 image2kml_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_MOSAIC_LDFLAGS@
 endif
+
+georef_prog = georef
+georef_SOURCES = georef.cc
+georef_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@
 endif
 
+if HAVE_PKG_JPEG2K
+jp2dump_prog = jp2dump
 jp2dump_SOURCES = jp2dump.cc
 jp2dump_LDFLAGS = @PKG_VW_LDFLAGS@
+endif
 
-bin_PROGRAMS = image $(image2kml_prog) jp2dump
+bin_PROGRAMS = image $(image2kml_prog) $(georef_prog) $(jp2dump_prog)
 
 endif
 
