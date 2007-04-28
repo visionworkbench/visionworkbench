@@ -38,6 +38,7 @@ namespace po = boost::program_options;
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Image/Transform.h>
+#include <vw/Image/Palette.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageResourceJPEG.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
@@ -67,6 +68,8 @@ int main( int argc, char *argv[] ) {
   unsigned cache_size;
   int max_lod_pixels;
   double nudge_x=0, nudge_y=0;
+  std::string palette_file;
+  float palette_scale=1.0, palette_offset=0.0;
 
   po::options_description general_options("General Options");
   general_options.add_options()
@@ -87,6 +90,7 @@ int main( int argc, char *argv[] ) {
     ("transverse-mercator", "Assume a transverse Mercator projection")
     ("orthographic", "Assume an orthographic projection")
     ("stereographic", "Assume a stereographic projection")
+    ("lambert-azimuthal", "Assume a Lambert azimuthal projection")
     ("utm", po::value<unsigned>(&utm_zone), "Assume UTM projection with the given zone")
     ("proj-lat", po::value<double>(&proj_lat), "The center of projection latitude (if applicable)")
     ("proj-lon", po::value<double>(&proj_lon), "The center of projection longitude (if applicable)")
@@ -98,10 +102,13 @@ int main( int argc, char *argv[] ) {
   output_options.add_options()
     ("file-type", po::value<std::string>(&output_file_type)->default_value("auto"), "Output file type")
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
+    ("palette-file", po::value<std::string>(&palette_file), "Apply a palette from the given file")
+    ("palette-scale", po::value<float>(&palette_scale), "Apply a scale factor before applying the palette")
+    ("palette-offset", po::value<float>(&palette_offset), "Apply an offset before applying the palette")
     ("patch-size", po::value<int>(&patch_size)->default_value(256), "Patch size, in pixels")
     ("patch-overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels (must be even)")
     ("patch-crop", "Crop output patches")
-    ("max-lod-pixels", po::value<int>(&max_lod_pixels)->default_value(-1), "Max LoD in pixels, or -1 for none")
+    ("max-lod-pixels", po::value<int>(&max_lod_pixels)->default_value(1024), "Max LoD in pixels, or -1 for none")
     ("composite-overlay", "Composite images using direct overlaying (default)")
     ("composite-multiband", "Composite images using multi-band blending");
 
@@ -148,9 +155,12 @@ int main( int argc, char *argv[] ) {
     std::cout << usage.str();
     return 1;
   }
-    
+  
+  TerminalProgressCallback tpc;
+  const ProgressCallback *progress = &tpc;
   if( vm.count("verbose") ) {
     set_debug_level(VerboseDebugMessage);
+    progress = &ProgressCallback::dummy_instance();
   }
   else if( vm.count("quiet") ) {
     set_debug_level(WarningMessage);
@@ -198,6 +208,7 @@ int main( int argc, char *argv[] ) {
     else if( vm.count("transverse-mercator") ) input_georef.set_transverse_mercator(proj_lat,proj_lon,proj_scale);
     else if( vm.count("orthographic") ) input_georef.set_orthographic(proj_lat,proj_lon);
     else if( vm.count("stereographic") ) input_georef.set_stereographic(proj_lat,proj_lon,proj_scale);
+    else if( vm.count("lambert-azimuthal") ) input_georef.set_lambert_azimuthal(proj_lat,proj_lon);
     else if( vm.count("utm") ) input_georef.set_UTM( utm_zone );
 
     if( vm.count("nudge-x") || vm.count("nudge-y") ) {
@@ -222,7 +233,16 @@ int main( int argc, char *argv[] ) {
   // Add the transformed input files to the composite
   for( unsigned i=0; i<image_files.size(); ++i ) {
     GeoTransform geotx( georeferences[i], output_georef );
-    DiskImageView<PixelRGBA<uint8> > source( image_files[i] );
+    ImageViewRef<PixelRGBA<uint8> > source = DiskImageView<PixelRGBA<uint8> >( image_files[i] );
+    if( vm.count("palette-file") ) {
+      DiskImageView<float> disk_image( image_files[i] );
+      if( vm.count("palette-scale") || vm.count("palette-offset") ) {
+        source.reset( per_pixel_filter( disk_image*palette_scale+palette_offset, PaletteFilter<PixelRGBA<uint8> >(palette_file) ) );
+      }
+      else {
+        source.reset( per_pixel_filter( disk_image, PaletteFilter<PixelRGBA<uint8> >(palette_file) ) );
+      }
+    }
     BBox2i bbox = compose(kmltx,geotx).forward_bbox( BBox2i(0,0,source.cols(),source.rows()) );
     // Constant edge extension is better for transformations that 
     // preserve the rectangularity of the image.  At the moment we 
@@ -261,7 +281,7 @@ int main( int argc, char *argv[] ) {
   // Prepare the composite
   if( vm.count("composite-multiband") ) {
     std::cout << "Preparing composite..." << std::endl;
-    composite.prepare( total_bbox, TerminalProgressCallback() );
+    composite.prepare( total_bbox, *progress );
   }
   else {
     composite.set_draft_mode( true );
@@ -283,7 +303,7 @@ int main( int argc, char *argv[] ) {
 
   // Generate the composite
   vw_out(InfoMessage) << "Generating KML Overlay..." << std::endl;
-  quadtree.generate( TerminalProgressCallback() );
+  quadtree.generate( *progress );
 
   return 0;
 }
