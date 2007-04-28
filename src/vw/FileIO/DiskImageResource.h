@@ -25,8 +25,8 @@
 /// 
 /// An abstract base class referring to an image on disk.
 /// 
-#ifndef __VW_FILEIO_DISK_IMAGE_RESOURCE_H__
-#define __VW_FILEIO_DISK_IMAGE_RESOURCE_H__
+#ifndef __VW_FILEIO_DISKIMAGERESOURCE_H__
+#define __VW_FILEIO_DISKIMAGERESOURCE_H__
 
 #include <set>
 #include <string>
@@ -107,6 +107,19 @@ namespace vw {
     /// type.  Don't forget to delete this DiskImageResource object
     /// when you're finished with it!
     static DiskImageResource* create( std::string const& filename, ImageFormat const& format, FileMetadataCollection const& fmeta = FileMetadataCollection::create() );
+
+    /// Write a metadata collection to the file.
+    void read_metadata( FileMetadataCollection& fmeta ) {
+      fmeta.read_file_metadata( this );
+    }
+
+    /// Write a metadata object to the file.
+    template <class MetaT>
+    void read_metadata( MetaT& meta ) {
+      FileMetadataCollection fmeta;
+      fmeta.associate_file_metadata( &meta );
+      read_metadata( fmeta );
+    }
 
     typedef DiskImageResource* (*construct_open_func)( std::string const& filename );
     
@@ -233,4 +246,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_FILEIO_DISK_IMAGE_RESOURCE_H__
+#endif // __VW_FILEIO_DISKIMAGERESOURCE_H__
