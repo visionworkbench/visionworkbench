@@ -59,4 +59,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif __VW_IMAGE_PALETTE_H__
+#endif // __VW_IMAGE_PALETTE_H__
