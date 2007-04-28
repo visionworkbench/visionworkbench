@@ -68,6 +68,7 @@ namespace vw {
     
     virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
     virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
+    virtual Vector2i native_block_size() const;
     virtual void flush();
 
     void* dataset() { return m_dataset; }

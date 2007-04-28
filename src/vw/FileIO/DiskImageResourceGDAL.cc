@@ -416,11 +416,6 @@ namespace vw {
   /// Read the disk image into the given buffer.
   void DiskImageResourceGDAL::read( ImageBuffer const& dest, BBox2i const& bbox ) const
   {
-    VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
-             NoImplErr() << "DiskImageResourceGDAL does not support partial reads." );
-    VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
-               IOErr() << "Buffer has wrong dimensions in GDAL read." );
-
     VW_ASSERT( channels() == 1 || planes()==1,
                LogicErr() << "DiskImageResourceGDAL: cannot read an image that has both multiple channels and multiple planes." );
  
@@ -436,9 +431,11 @@ namespace vw {
     ImageBuffer src;
     src.data = data;
     src.format = m_format;
+    src.format.cols = bbox.width();
+    src.format.rows = bbox.height();
     src.cstride = channels() * channel_size(src.format.channel_type);
-    src.rstride = cols() * channels() * channel_size(src.format.channel_type);
-    src.pstride = rows() * cols() * channels() * channel_size(src.format.channel_type);
+    src.rstride = src.cstride * src.format.cols;
+    src.pstride = src.rstride * src.format.rows;
 
     int b = 1;
     for ( int32 p = 0; p < planes(); ++p ) {
@@ -477,9 +474,9 @@ namespace vw {
         
         // Read in the data one scanline at a time and copy that data into an ImageView
         GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
-        band->RasterIO( GF_Read, 0, 0, m_format.cols, m_format.rows, 
-                        (uint8*)src(0,0,p) + channel_size(channel_type())*c, m_format.cols, m_format.rows, gdal_pix_fmt, 
-                        channel_size(channel_type())*channels(), channel_size(channel_type())*channels()*cols() );
+        band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
+                        (uint8*)src(0,0,p) + channel_size(src.format.channel_type)*c, 
+                        src.format.cols, src.format.rows, gdal_pix_fmt, src.cstride, src.rstride );
       }
     }
     convert( dest, src );
@@ -490,39 +487,29 @@ namespace vw {
   // Write the given buffer into the disk image.
   void DiskImageResourceGDAL::write( ImageBuffer const& src, BBox2i const& bbox )
   {
-    VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
-             NoImplErr() << "DiskImageResourceGDAL does not support partial writes." );
-    VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
-               IOErr() << "Buffer has wrong dimensions in GDAL write." );
-
     // This is pretty simple since we always write 8-bit integer files.
     // Note that we handle multi-channel images with interleaved planes. 
     // We've already ensured that either planes==1 or channels==1.
-    uint8 *data = new uint8[channel_size(channel_type()) * rows() * cols() * planes() * channels()];
+    uint8 *data = new uint8[channel_size(channel_type()) * bbox.width() * bbox.height() * planes() * channels()];
     ImageBuffer dst;
     dst.data = data;
     dst.format = m_format;
+    dst.format.cols = bbox.width();
+    dst.format.rows = bbox.height();
     dst.cstride = channels() * channel_size(dst.format.channel_type);
-    dst.rstride = cols() * channels() * channel_size(dst.format.channel_type);
-    dst.pstride = rows() * cols() * channels() * channel_size(dst.format.channel_type);
+    dst.rstride = dst.format.cols * dst.cstride;
+    dst.pstride = dst.format.rows * dst.rstride;
     convert( dst, src );
 
-    // Write the data to the selected raster band. 
-    int num_bands = std::max(planes(), num_channels(pixel_format()));
-    vw_out(DebugMessage)
-      << "\tWriting geo-referenced file " << m_filename.c_str()
-      << " (" << cols() << " x " << rows() << ") with " << num_bands << " band(s)." << std::endl;
-    
     int b = 1;
     for (int32 p = 0; p < dst.format.planes; p++) {
       for (int32 c = 0; c < num_channels(dst.format.pixel_format); c++) {
         GDALRasterBand *band = ((GDALDataset*)m_dataset)->GetRasterBand(b++);
 	//        band->SetColorInterpretation(gdal_color_interp_for_vw_pixel_format::value(p, dst.format.pixel_format));
         GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
-        band->RasterIO( GF_Write, 0, 0, dst.format.cols, dst.format.rows, 
+        band->RasterIO( GF_Write, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
                         (uint8*)dst(0,0,p) + channel_size(dst.format.channel_type)*c, 
-                        dst.format.cols, dst.format.rows, gdal_pix_fmt, 
-                        channel_size(dst.format.channel_type)*channels(), channel_size(dst.format.channel_type)*channels()*cols() );
+                        dst.format.cols, dst.format.rows, gdal_pix_fmt, dst.cstride, dst.rstride );
       }  
       //FIXME: if we allow partial writes, m_convert_jp2 should probably only be set on complete writes
       if (is_jp2(m_filename))
@@ -530,6 +517,23 @@ namespace vw {
     }
     
     delete [] data;
+  }
+
+  Vector2i DiskImageResourceGDAL::native_block_size() const {
+    // GDAL assumes a single-row stripsize even for file formats 
+    // like PNG for which it does not support true strip access.
+    // Thus, we check the file driver type before accepting GDAL's 
+    // block size as our own.
+    GDALDataset *dataset = (GDALDataset*)m_dataset;
+    if ( dataset->GetDriver() != GetGDALDriverManager()->GetDriverByName("GTiff") ) {
+      return Vector2i(cols(),rows());
+    }
+    else {
+      GDALRasterBand *band = dataset->GetRasterBand(1);
+      int xsize, ysize;
+      band->GetBlockSize(&xsize,&ysize);
+      return Vector2(xsize,ysize);
+    }
   }
 
   void DiskImageResourceGDAL::flush() { 
