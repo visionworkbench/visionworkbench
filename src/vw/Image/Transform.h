@@ -47,8 +47,8 @@ namespace vw {
   /// A helper function to grow a floating-point bounding box 
   /// to the smallest enclosing integer bounding box.
   inline BBox2i grow_bbox_to_int( BBox2 const bbox ) {
-    return BBox2i( Vector2i( floor(bbox.min().x())-10, floor(bbox.min().y())-10 ),
-                   Vector2i( floor(bbox.max().x())+1+10, floor(bbox.max().y())+1+10 ) );
+    return BBox2i( Vector2i( (int32)floor(bbox.min().x())-10, (int32)floor(bbox.min().y())-10 ),
+                   Vector2i( (int32)floor(bbox.max().x())+1+10, (int32)floor(bbox.max().y())+1+10 ) );
   }
 
   enum FunctionType {

@@ -532,7 +532,7 @@ namespace vw {
       GDALRasterBand *band = dataset->GetRasterBand(1);
       int xsize, ysize;
       band->GetBlockSize(&xsize,&ysize);
-      return Vector2(xsize,ysize);
+      return Vector2i(xsize,ysize);
     }
   }
 
