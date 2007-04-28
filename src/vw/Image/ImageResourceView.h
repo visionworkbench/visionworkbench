@@ -136,6 +136,23 @@ namespace vw {
         m_block_size( r->native_block_size() )
     { initialize(); }
 
+    /// Constructs an ImageResourceView of the given resource.
+    ImageResourceView( boost::shared_ptr<ImageResource> resource, bool cache=true )
+      : r( resource ),
+        m_cache(Cache::system_cache()),
+        m_enable_cache(cache),
+        m_block_size( r->native_block_size() )
+    { if(cache) initialize(); }
+
+    /// Constructs an ImageResourceView of the given resource using the
+    /// specified cache area.
+    ImageResourceView( boost::shared_ptr<ImageResource> resource, Cache& cache )
+      : r( resource ),
+        m_cache(cache),
+        m_enable_cache(true),
+        m_block_size( r->native_block_size() )
+    { initialize(); }
+
     ~ImageResourceView() {}
     
     /// Returns the number of columns in the image.
