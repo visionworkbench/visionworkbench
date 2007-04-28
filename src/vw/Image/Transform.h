@@ -313,9 +313,10 @@ namespace vw {
     PointLookupTransform(ImageView<Vector2> &lookup_image) : m_lookup_image(lookup_image) {}
     
     inline Vector2 reverse(const Vector2 &p) const {
-      VW_DEBUG_ASSERT(p.x() >= 0  &&  p.y() >= 0 && p.x() < m_lookup_image.cols() && p.y() < m_lookup_image.rows(),
+      int32 x = (int32) p.x(), y = (int32) p.y();
+      VW_DEBUG_ASSERT(x>=0 && y>=0 && x<m_lookup_image.cols() && y<m_lookup_image.rows(),
                       LogicErr() << "Point lookup transform: exceeded lookup table dimensions.");
-      return m_lookup_image(p.x(), p.y());
+      return m_lookup_image(x,y);
     }
   };
 
