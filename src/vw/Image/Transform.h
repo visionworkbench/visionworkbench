@@ -395,6 +395,33 @@ namespace vw {
   };
 	
 
+  /// InverseTransform inverts a transform functor
+  template <class TxT>
+  class InverseTransform : public TransformBase<InverseTransform<TxT> >
+  {
+    TxT tx;
+  public:
+    InverseTransform( TxT const& tx ) : tx(tx) {}
+
+    inline Vector2 forward( Vector2 const& p ) const {
+      return tx.reverse( p );
+    }
+
+    inline Vector2 reverse( Vector2 const& p ) const {
+      return tx.forward( p );
+    }
+
+    virtual FunctionType forward_type() const { return tx.reverse_type(); }
+    virtual FunctionType reverse_type() const { return tx.forward_type(); }
+  };
+
+  /// Inverts a transform functor via an InverseTransform object.
+  template <class TxT>
+  inline InverseTransform<TxT> inverse( TransformBase<TxT> const& tx ) {
+    return InverseTransform<TxT>( tx.impl() );
+  }
+
+
   /// CompositionTransform image transform functor adaptor 
   /// 
   /// This is a wrapper class that allows you to composite two transform 
