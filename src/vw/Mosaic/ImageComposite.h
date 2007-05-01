@@ -103,8 +103,7 @@ namespace mosaic {
       if( sum_bbox.empty() ) return;
       if( overlay ) {
         if( PixelHasAlpha<PixelT>::value ) {
-          // FIXME This doesn't work for integer pixel types!
-          crop( dest, sum_bbox-Vector<int,2>(ox,oy) ) *= 1.0 - select_alpha_channel( crop( image, sum_bbox-bbox.min() ) );
+          crop( dest, sum_bbox-Vector<int,2>(ox,oy) ) *= 1.0 - select_alpha_channel( crop( image, sum_bbox-bbox.min() ) ) / (double)ChannelRange<PixelT>::max();
           crop( dest, sum_bbox-Vector<int,2>(ox,oy) ) += crop( image, sum_bbox-bbox.min() );
         }
         else {
