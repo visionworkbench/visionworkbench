@@ -90,6 +90,41 @@ namespace vw {
   template <class T> struct IsScalar<std::complex<T> > : public true_type {};
   template <class T> struct IsScalar<const T> : public IsScalar<T> {};
 
+  /// Give default min and max values for various integral data types.
+  template <class T> struct ChannelLimits {};
+  template <> struct ChannelLimits<vw::uint8> { 
+    static const vw::uint8 min = 0x00;     
+    static const vw::uint8 max = 0xFF; 
+  };
+  template <> struct ChannelLimits<vw::uint16> { 
+    static const vw::uint16 min = 0x0000;     
+    static const vw::uint16 max = 0xFFFF; 
+  };
+  template <> struct ChannelLimits<vw::uint32> { 
+    static const vw::uint32 min = 0x00000000;     
+    static const vw::uint32 max = 0xFFFFFFFF; 
+  };
+  template <> struct ChannelLimits<vw::int8> { 
+    static const vw::int8 min = 0x80;     
+    static const vw::int8 max = 0x7F; 
+  };
+  template <> struct ChannelLimits<vw::int16> { 
+    static const vw::int16 min = 0x8000;     
+    static const vw::int16 max = 0x7FFF; 
+  };
+  template <> struct ChannelLimits<vw::int32> { 
+    static const vw::int32 min = 0x80000000;     
+    static const vw::int32 max = 0x7FFFFFFF; 
+  };
+
+  template <> struct ChannelLimits<vw::float32> { 
+    static const vw::int32 min = -3.40282347e+38F;     
+    static const vw::int32 max = 3.40282347e+38F; 
+  };
+  template <> struct ChannelLimits<vw::float64> { 
+    static const vw::int32 min = -1.7976931348623157e+308;     
+    static const vw::int32 max = 1.7976931348623157e+308;
+  };
 
   /// Given a type, these traits classes help to determine a suitable
   /// working type for accumulation operations or other intermediate 

@@ -70,6 +70,23 @@ namespace vw {
 
 
   // *******************************************************************
+  // Basic pixel alpha channel logic
+  //
+  // Here we provide basic pixel type manipulation classes for
+  // determining whether a pixel is transparent (i.e. its alpha is
+  // zero).  For pixel types without alpha, the pixel is always
+  // considered to be non-transparent.
+  // *******************************************************************
+  template <class PixelT>
+  inline typename boost::enable_if<typename PixelHasAlpha<PixelT>::type, bool>::type
+  is_transparent(PixelT const& pixel) { return !(pixel.a()); }
+
+  template <class PixelT>
+  inline typename boost::disable_if<typename PixelHasAlpha<PixelT>::type, bool>::type
+  is_transparent(PixelT const& pixel) { return false; }
+
+
+  // *******************************************************************
   // Pixel channel standard range computation logic
   //
   // In some functions it is necessary to assume that the values in a 

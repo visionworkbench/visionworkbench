@@ -64,7 +64,7 @@ public:
   void set_interest_measure(InterestBase<T> *i) { interest = i; }
 
   /// Detect interest points in the source image.
-  virtual std::vector<InterestPoint> detect_points(const ImageView<T>& src) = 0;
+  virtual std::vector<InterestPoint> detect_points(const ImageView<T> src) = 0;
 
   /// Write the intermediate images out to files.
   virtual int write_images() const = 0;
@@ -100,51 +100,10 @@ protected:
 /// borders may be lost.  A good max dimension depends on the amount
 /// of RAM needed by the detector (and the total RAM available).  A
 /// value of 2048 seems to work well in most cases.
-template <class T, class ThreshT>
-std::vector<InterestPoint> interest_points(vw::ImageView<T> const& image, 
-                                           InterestPointDetector<T, ThreshT>* detector,
-                                           int32 max_keypoint_image_dimension = 0) {
-
-  std::vector<InterestPoint> interest_points;
-
-  vw_out(InfoMessage) << "\tFinding interest points" << std::flush;
-
-  // If the user has not specified a chunk size, we process the
-  // entire image in one shot.
-  if (!max_keypoint_image_dimension) {
-    vw_out(InfoMessage) << "..." << std::flush;
-    interest_points = detector->detect_points(image.impl());
-
-  // Otherwise we segment the image and process each sub-image
-  // individually.
-  } else {
-    
-    std::vector<BBox2i> bboxes = image_blocks(image.impl(), max_keypoint_image_dimension, max_keypoint_image_dimension);
-    for (int i = 0; i < bboxes.size(); ++i) {
-      vw_out(InfoMessage) << "." << std::flush;
-      
-      std::vector<InterestPoint> new_interest_points;
-      new_interest_points = detector->detect_points(crop(image.impl(), bboxes[i]));
-      for (int n = 0; n < new_interest_points.size(); ++n) {
-        new_interest_points[n].x += bboxes[i].min().x();
-        new_interest_points[n].y += bboxes[i].min().y();
-        interest_points.push_back(new_interest_points[n]);
-      }
-    }
-
-  }
-  vw_out(InfoMessage) << " done.";
-  vw_out(InfoMessage) << "     (" << interest_points.size() << " keypoints found)\n";
-  return interest_points;
-
-}
-
-/// Stereo Pipeline compatibility version.
 template <class ViewT, class DetectorT>
 std::vector<InterestPoint> interest_points(vw::ImageViewBase<ViewT> const& image, 
-                                           DetectorT const& detector,
-                                           int32 max_keypoint_image_dimension = 0) {
-
+                                           DetectorT& detector,
+                                           const int32 max_keypoint_image_dimension = 0) {
   std::vector<InterestPoint> interest_points;
 
   vw_out(InfoMessage) << "\tFinding interest points" << std::flush;
@@ -153,7 +112,7 @@ std::vector<InterestPoint> interest_points(vw::ImageViewBase<ViewT> const& image
   // entire image in one shot.
   if (!max_keypoint_image_dimension) {
     vw_out(InfoMessage) << "..." << std::flush;
-    interest_points = detector(image.impl());
+    interest_points = detector.detect_points(image.impl());
 
   // Otherwise we segment the image and process each sub-image
   // individually.
@@ -164,7 +123,7 @@ std::vector<InterestPoint> interest_points(vw::ImageViewBase<ViewT> const& image
       vw_out(InfoMessage) << "." << std::flush;
       
       std::vector<InterestPoint> new_interest_points;
-      new_interest_points = detector(crop(image.impl(), bboxes[i]));
+      new_interest_points = detector.detect_points(crop(image.impl(), bboxes[i]));
       for (int n = 0; n < new_interest_points.size(); ++n) {
         new_interest_points[n].x += bboxes[i].min().x();
         new_interest_points[n].y += bboxes[i].min().y();
@@ -178,6 +137,46 @@ std::vector<InterestPoint> interest_points(vw::ImageViewBase<ViewT> const& image
   return interest_points;
 
 }
+
+// /// Stereo Pipeline compatibility version.
+// template <class ViewT, class DetectorT>
+// std::vector<InterestPoint> interest_points(vw::ImageViewBase<ViewT> const& image, 
+//                                            DetectorT const& detector,
+//                                            int32 max_keypoint_image_dimension = 0) {
+
+//   std::vector<InterestPoint> interest_points;
+
+//   vw_out(InfoMessage) << "\tFinding interest points" << std::flush;
+
+//   // If the user has not specified a chunk size, we process the
+//   // entire image in one shot.
+//   if (!max_keypoint_image_dimension) {
+//     vw_out(InfoMessage) << "..." << std::flush;
+//     interest_points = detector(image.impl());
+
+//   // Otherwise we segment the image and process each sub-image
+//   // individually.
+//   } else {
+    
+//     std::vector<BBox2i> bboxes = image_blocks(image.impl(), max_keypoint_image_dimension, max_keypoint_image_dimension);
+//     for (int i = 0; i < bboxes.size(); ++i) {
+//       vw_out(InfoMessage) << "." << std::flush;
+      
+//       std::vector<InterestPoint> new_interest_points;
+//       new_interest_points = detector(crop(image.impl(), bboxes[i]));
+//       for (int n = 0; n < new_interest_points.size(); ++n) {
+//         new_interest_points[n].x += bboxes[i].min().x();
+//         new_interest_points[n].y += bboxes[i].min().y();
+//         interest_points.push_back(new_interest_points[n]);
+//       }
+//     }
+
+//   }
+//   vw_out(InfoMessage) << " done.";
+//   vw_out(InfoMessage) << "     (" << interest_points.size() << " keypoints found)\n";
+//   return interest_points;
+
+// }
 
 
 /// Get the orientation of the point at (i0,j0,k0).  This is done by
@@ -215,14 +214,14 @@ int get_orientation( std::vector<float>& orientation,
     make_gaussian_kernel_2d( weight, 6 * sigma_ratio, width );
     for (int32 j=0; j<region_mag.rows(); j++){
       for (int32 i=0; i<region_mag.cols(); i++){
-	weight(i,j) *= region_mag(i,j);
+        weight(i,j) *= region_mag(i,j);
       }
     }
     
     // Compute weighted histogram of edge orientations
-    std::vector<float> histo;
+    std::vector<double> histo;
     weighted_histogram( region_ori, weight, histo, 
-		        -M_PI, M_PI, FEATURE_ORI_NBINS );
+                        -M_PI, M_PI, FEATURE_ORI_NBINS );
     
     // Smooth histogram
     smooth_weighted_histogram( histo, 5.0 );
@@ -246,7 +245,7 @@ class SimpleInterestPointDetector : public InterestPointDetector<T> {
     InterestPointDetector<T>(i, t) { }
 
   /// Detect interest points in the source image.
-  virtual std::vector<InterestPoint> detect_points(const ImageView<T>& src) {
+  virtual std::vector<InterestPoint> detect_points(const ImageView<T> src) {
     // Calculate gradients, orientations and magnitudes
     img_data.set_source(src);
 
@@ -357,8 +356,10 @@ class ScaledInterestPointDetector : public InterestPointDetector<T, ThreshT> {
                               int scales, int octaves) :
     InterestPointDetector<T>(i, t), num_scales(scales), num_octaves(octaves), octave(NULL) {}
 
+  virtual ~ScaledInterestPointDetector() {}
+
   /// Detect interest points in the source image.
-  virtual std::vector<InterestPoint> detect_points(const ImageView<T>& src) {
+  virtual std::vector<InterestPoint> detect_points(const ImageView<T> src) {
     //create scale space
     octave = new ImageOctave<T>(src, num_scales);
     std::vector<InterestPoint> points;
@@ -369,12 +370,12 @@ class ScaledInterestPointDetector : public InterestPointDetector<T, ThreshT> {
       // Calculate gradients, orientations and magnitudes
       //printf("Calculating image data\n");
       for (int k = 0; k < octave->num_planes; k++) {
-	img_data[k].set_source(octave->scales[k]);
+        img_data[k].set_source(octave->scales[k]);
       }
 
       // Compute interest images
       for (int k = 0; k < octave->num_planes; k++) {
-	this->interest->compute_interest(img_data[k], octave->plane_index_to_scale(k));
+        this->interest->compute_interest(img_data[k], octave->plane_index_to_scale(k));
       }
       
       if (history) history->add_octave(img_data);
@@ -393,12 +394,12 @@ class ScaledInterestPointDetector : public InterestPointDetector<T, ThreshT> {
 
       // Scale subpixel location to move back to original coords
       for (; next_point < points.size(); next_point++) {
-	points[next_point].x *= octave->base_scale;
-	points[next_point].y *= octave->base_scale;
+        points[next_point].x *= octave->base_scale;
+        points[next_point].y *= octave->base_scale;
       }
-
+      
       if (o != num_octaves - 1) {
-	octave->build_next();
+        octave->build_next();
       }
     }
 
@@ -499,13 +500,13 @@ class ScaledInterestPointDetector : public InterestPointDetector<T, ThreshT> {
       get_orientation(orientation, img_data[k], (int)(points[i].x + 0.5),
 		      (int)(points[i].y + 0.5), octave->sigma[k]/octave->sigma[1]);
       if (orientation.size() == 0) {
-	vw::vw_out(DebugMessage) << "Cannot find orientation of interest point\n";
+        vw::vw_out(DebugMessage) << "Cannot find orientation of interest point\n";
       } else {
         points[i].orientation = orientation[0];
         for (int j = 1; j < orientation.size(); j++) {
-	  InterestPoint pt = points[i];
-	  pt.orientation = orientation[j];
-	  points.push_back(pt);
+          InterestPoint pt = points[i];
+          pt.orientation = orientation[j];
+          points.push_back(pt);
         }
       }
     }

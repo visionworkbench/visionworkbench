@@ -430,6 +430,12 @@ namespace cartography {
     set_spatial_ref(&gdal_spatial_ref);
   }
 
+  void GeoReference::set_polar_stereographic(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
+    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
+    gdal_spatial_ref.SetPS(center_latitude, center_longitude, scale, false_easting, false_northing);
+    set_spatial_ref(&gdal_spatial_ref);
+  }
+
   void GeoReference::set_lambert_azimuthal(double center_latitude, double center_longitude, double false_easting, double false_northing) {
     OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
     gdal_spatial_ref.SetLAEA(center_latitude, center_longitude, false_easting, false_northing);

@@ -48,8 +48,12 @@ namespace vw {
     typedef typename ViewT::pixel_type pixel_type;
     typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
 
-    pixel_type pix = view(0,0);
-    channel_type min = compound_select_channel<channel_type>(pix,0);
+    channel_type min = ChannelLimits<channel_type>::max;
+    bool valid = false;
+
+    int num_channels = view.channels();
+    if (PixelHasAlpha<pixel_type>::value)
+      num_channels = view.channels() - 1;
 
     pixel_accessor plane_acc = view.origin();
     for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
@@ -58,13 +62,18 @@ namespace vw {
         pixel_accessor row_acc = col_acc;
         for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
           typename ViewT::result_type pix = *row_acc;
-          for (int32 channel = 0; channel < view.channels(); channel++) {
-            channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
-            if( channel_value < min ) min = channel_value;
+          for (int32 channel = 0; channel < num_channels; channel++) {
+            if (!is_transparent(pix)) {
+              valid = true;
+              channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
+              if( channel_value < min ) min = channel_value;
+            }
           }
         }
       }  
     }
+    if (!valid) 
+      vw_throw(ArgumentErr() << "min_channel_value(): the image contained zero valid pixels.");
     return min;
   }
 
@@ -79,8 +88,12 @@ namespace vw {
     typedef typename ViewT::pixel_type pixel_type;
     typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
 
-    pixel_type pix = view(0,0);
-    channel_type max = compound_select_channel<channel_type>(pix,0);
+    channel_type max = ChannelLimits<channel_type>::min;
+    bool valid = false;
+
+    int num_channels = view.channels();
+    if (PixelHasAlpha<pixel_type>::value)
+      num_channels = view.channels() - 1;
 
     pixel_accessor plane_acc = view.origin();
     for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
@@ -89,13 +102,18 @@ namespace vw {
         pixel_accessor row_acc = col_acc;
         for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
           typename ViewT::result_type pix = *row_acc;
-          for (int32 channel = 0; channel < view.channels(); channel++) {
-            channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
-            if( channel_value > max ) max = channel_value;
+          for (int32 channel = 0; channel < num_channels; channel++) {
+            if (!is_transparent(pix)) {
+              valid = true;
+              channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
+              if( channel_value > max ) max = channel_value;
+            }
           }
         }
       } 
     }
+    if (!valid) 
+      vw_throw(ArgumentErr() << "max_channel_value(): the image contained zero valid pixels.");
     return max;
   }
 
@@ -112,9 +130,12 @@ namespace vw {
     typedef typename ViewT::pixel_type pixel_type;
     typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
 
-    pixel_type pix = view(0,0);
-    min = compound_select_channel<channel_type>(pix,0);
-    max = compound_select_channel<channel_type>(pix,0);
+    min = ChannelLimits<channel_type>::max;
+    max = ChannelLimits<channel_type>::min;
+    
+    int num_channels = view.channels();
+    if (PixelHasAlpha<pixel_type>::value)
+      num_channels = view.channels() - 1;
 
     pixel_accessor plane_acc = view.origin();
     for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
@@ -123,16 +144,24 @@ namespace vw {
         pixel_accessor row_acc = col_acc;
         for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
           typename ViewT::result_type pix = *row_acc;
-          for (int32 channel = 0; channel < view.channels(); channel++) {
-            channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
-            if( channel_value < min ) min = channel_value;
-            if( channel_value > max ) max = channel_value;
+          for (int32 channel = 0; channel < num_channels; channel++) {
+            if (!is_transparent(pix)) {
+              channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
+              if( channel_value < min ) min = channel_value;
+              if( channel_value > max ) max = channel_value;
+            }
           }
         }
       }  
     }
+
+    // Before we allow this function to return, we check to make sure
+    // that there was at least one valid pixel in the image.
+    if (min > max) 
+      vw_throw(ArgumentErr() << "min_max_channel_values(): the image contained zero valid pixels.");
   }
-	
+
+
   /// Compute the mean value stored in all of the channels of all of the planes of the image.
   template <class ViewT>
   typename CompoundChannelType<typename ViewT::pixel_type>::type
@@ -143,6 +172,11 @@ namespace vw {
     typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
 
     double accum = 0;
+    bool valid = false;
+
+    int num_channels = view.channels();
+    if (PixelHasAlpha<typename ViewT::pixel_type>::value)
+      num_channels = view.channels() - 1;
 
     pixel_accessor plane_acc = view.origin();
     for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
@@ -151,13 +185,18 @@ namespace vw {
         pixel_accessor row_acc = col_acc;
         for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
           typename ViewT::result_type pix = *row_acc;
-          for (int32 channel = 0; channel < view.channels(); channel++) {
-            channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
-            accum += channel_value;
+          for (int32 channel = 0; channel < num_channels; channel++) {
+            if (!is_transparent(pix)) {
+              valid = true;
+              channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
+              accum += channel_value;
+            }
           }
         }
       }  
     }
+    if (!valid) 
+      vw_throw(ArgumentErr() << "mean_channel_value(): the image contained zero valid pixels.");
     return channel_type(accum / (view.planes() * view.rows() * view.cols() * view.channels()));
   }
 
@@ -172,6 +211,11 @@ namespace vw {
 
     double accum = 0;
     double mean = mean_channel_value(view);
+    bool valid = false;
+
+    int num_channels = view.channels();
+    if (PixelHasAlpha<typename ViewT::pixel_type>::value)
+      num_channels = view.channels() - 1;
 
     pixel_accessor plane_acc = view.origin();
     for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
@@ -180,13 +224,18 @@ namespace vw {
         pixel_accessor row_acc = col_acc;
         for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
           typename ViewT::result_type pix = *row_acc;
-          for (int32 channel = 0; channel < view.channels(); channel++) {
-            channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
-            accum += pow(channel_value - mean, 2);
+          for (int32 channel = 0; channel < num_channels; channel++) {
+            if (!is_transparent(pix)) {
+              valid = true;
+              channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
+              accum += pow(channel_value - mean, 2);
+            }
           }
         }
       }  
     }
+    if (!valid) 
+      vw_throw(ArgumentErr() << "stddev_channel_value(): the image contained zero valid pixels.");
     return channel_type(sqrt(accum) / ((view.planes() * view.rows() * view.cols() * view.channels()) - 1));
   }
 
@@ -201,6 +250,11 @@ namespace vw {
     typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
 
     accum_type accum = 0;
+    bool valid = false;
+
+    int num_channels = view.channels();
+    if (PixelHasAlpha<typename ViewT::pixel_type>::value)
+      num_channels = view.channels() - 1;
 
     pixel_accessor plane_acc = view.origin();
     for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
@@ -209,13 +263,18 @@ namespace vw {
         pixel_accessor row_acc = col_acc;
         for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
           typename ViewT::result_type pix = *row_acc;
-          for (int32 channel = 0; channel < view.channels(); channel++) {
-            channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
-            accum += channel_value;
+          for (int32 channel = 0; channel < num_channels; channel++) {
+            if (!is_transparent(pix)) {
+              valid = true;
+              channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
+              accum += channel_value;
+            }
           }
         }
       }  
     }
+    if (!valid) 
+      vw_throw(ArgumentErr() << "sum_of_channel_values(): the image contained zero valid pixels.");
     return accum;
   }
 
@@ -235,7 +294,7 @@ namespace vw {
     typedef typename ViewT::iterator iterator;
     typedef typename ViewT::pixel_type pixel_type;
     typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
-    
+
     sort(view.begin(), view.end());
     
     iterator median_pixel = view.begin() + (view.rows() * view.cols() / 2);

@@ -44,9 +44,9 @@ namespace vw { namespace ip {
 template <class T1>
 inline
 void weighted_histogram(const ImageView<T1>& val_image,
-		       const ImageView<T1>& weight_image,
-		       std::vector<double>& histo,
-		       double min, double max, unsigned n_bins) {
+                        const ImageView<T1>& weight_image,
+                        std::vector<double>& histo,
+                        double min, double max, unsigned n_bins) {
   // Make sure images are same size
   assert( val_image.cols() == weight_image.cols() );
   assert( val_image.rows() == weight_image.rows() );

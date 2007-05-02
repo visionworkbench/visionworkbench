@@ -108,7 +108,7 @@ int main( int argc, char *argv[] ) {
   po::notify( vm );
 
   std::ostringstream usage;
-  usage << "Usage: image2kml [options] <filename>..." << std::endl << std::endl;
+  usage << "Usage: " << argv[0] << " [options] <filename>..." << std::endl << std::endl;
   usage << general_options << std::endl;
   usage << projection_options << std::endl;
 
