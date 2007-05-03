@@ -80,6 +80,7 @@ namespace {
 }
 
 void vw::DiskImageResource::register_metadata_type( std::string const& disk_image_resource_type, std::string const& metadata_type ) {
+  //std::cout << "DiskImageResource " << disk_image_resource_type << " supports metadata " << metadata_type << std::endl;
   metadata_property_manager.set_property( disk_image_resource_type, metadata_type );
 }
 
@@ -98,6 +99,7 @@ void vw::DiskImageResource::register_file_type( std::string const& extension,
 {
   if( ! open_map ) open_map = new OpenMapType();
   if( ! create_map ) create_map = new CreateMapType();
+  //std::cout << "REGISTERING DiskImageResource " << disk_image_resource_type << " for extension " << extension << std::endl;
   vw::DiskImageResource::MetadataProperties const* prop = metadata_property_manager.property_set( disk_image_resource_type, true );
   open_map->insert( std::make_pair( extension, open_func ), prop );
   create_map->insert( std::make_pair( extension, create_func ), prop );
