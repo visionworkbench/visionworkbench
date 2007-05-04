@@ -66,7 +66,7 @@ namespace vw {
     /// Return property set key, creating it if desired and required.
     const SetT* property_set(const KeyT& key, bool create = false)
     {
-      return property_set_private(key);
+      return property_set_private(key, create);
     }
 
     /// Constructor.

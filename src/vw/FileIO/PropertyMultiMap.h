@@ -76,16 +76,19 @@ namespace vw {
       typename MapValueType::const_iterator vi;
 #if 0
       std::cout << "PropertyMultiMap::find() with key = " << key << std::endl;
-      std::cout << "Looking for item with properties {";
+      std::cout << "Looking for item with properties ";
       if(prop_list) {
         typename std::list<PropertyT>::const_iterator j;
         bool first = true;
+        std::cout << "{";
         for(j = prop_list->begin(); j != prop_list->end(); j++) {
           std::cout << (first ? "" : ", ") << *j;
           first = false;
         }
+        std::cout << "}" << std::endl;
       }
-      std::cout << "}" << std::endl;
+      else
+        std::cout << "NULL" << std::endl;
 #endif
       i = property_map.find(key);
       if(i == property_map.end())
@@ -101,16 +104,19 @@ namespace vw {
       for(vi = (*i).second.begin(); vi != (*i).second.end(); vi++) {
         score = scoring_strategy((*vi).second, prop_list);
 #if 0
-        std::cout << "Considering (score = " << score << ") item with properties {";
+        std::cout << "Considering (score = " << score << ") item with properties ";
         if((*vi).second) {
           typename std::set<PropertyT>::const_iterator j;
           bool first = true;
+          std::cout << "{";
           for(j = (*vi).second->begin(); j != (*vi).second->end(); j++) {
             std::cout << (first ? "" : ", ") << *j;
             first = false;
           }
+          std::cout << "}" << std::endl;
         }
-        std::cout << "}" << std::endl;
+        else
+          std::cout << "NULL" << std::endl;
 #endif
         if(score > best_score) {
           best_score = score;
