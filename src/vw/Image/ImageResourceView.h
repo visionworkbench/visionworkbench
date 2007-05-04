@@ -34,6 +34,7 @@
 #include <vw/Core/Cache.h>
 #include <vw/Core/Debugging.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Image/Manipulation.h>
 
 namespace vw {
 
@@ -79,8 +80,16 @@ namespace vw {
     Cache& m_cache;
     bool m_enable_cache;
     Vector2i m_block_size;
-    typedef std::map<std::pair<int32,int32>, Cache::Handle<BlockGenerator> > block_table_type;
-    mutable block_table_type m_block_table;
+    int m_table_width, m_table_height;
+    typedef std::vector<Cache::Handle<BlockGenerator> > block_table_type;
+    boost::shared_ptr<block_table_type> m_block_table;
+
+    Cache::Handle<BlockGenerator>& block( int ix, int iy ) const {
+      if( ix<0 || ix>=m_table_width || iy<0 || iy>=m_table_height )
+        vw_throw( ArgumentErr() << "ImageResourceView: Block indices out of bounds, (" << ix 
+                  << "," << iy << ") of (" << m_table_width << "," << m_table_height << ")" );
+      return (*m_block_table)[ix+iy*m_table_width];
+    }
 
     void initialize() {
       if( m_block_size.x()==cols() && m_block_size.y()==1 ) {
@@ -95,15 +104,16 @@ namespace vw {
           if( m_block_size.y() == 0 ) m_block_size.y() = 1;
         }
       }
-      int32 maxx=(cols()-1)/m_block_size.x();
-      int32 maxy=(rows()-1)/m_block_size.y();
+      m_table_width=(cols()-1)/m_block_size.x()+1;
+      m_table_height=(rows()-1)/m_block_size.y()+1;
+      if( ! m_block_table ) m_block_table.reset( new block_table_type() );
+      m_block_table->resize( m_table_width * m_table_height );
       BBox2i view_bbox(0,0,cols(),rows());
-      for( int32 y=0; y<=maxy; ++y ) {
-        for( int32 x=0; x<=maxx; ++x ) {
-          BBox2i bbox( x*m_block_size.x(), y*m_block_size.y(), m_block_size.x(), m_block_size.y() );
+      for( int32 iy=0; iy<m_table_height; ++iy ) {
+        for( int32 ix=0; ix<m_table_width; ++ix ) {
+          BBox2i bbox( ix*m_block_size.x(), iy*m_block_size.y(), m_block_size.x(), m_block_size.y() );
           bbox.crop( view_bbox );
-          Cache::Handle<BlockGenerator> handle = m_cache.insert( BlockGenerator( r, bbox ) );
-          m_block_table[std::make_pair(x,y)] = handle;
+          block(ix,iy) = m_cache.insert( BlockGenerator( r, bbox ) );
         }
       }
     }
@@ -166,10 +176,13 @@ namespace vw {
     
     /// Returns the pixel at the given position in the given plane.
     result_type operator()( int32 x, int32 y, int32 /*plane*/=1 ) const {
+#if VW_DEBUG_LEVEL > 1
+      vw_out(VerboseDebugMessage) << "ImageResourceView rasterizing pixel (" << x << "," << y << ")" << std::endl;
+#endif
       if( ! m_enable_cache )
         vw_throw( LogicErr() << "Non-cacheing ImageResourceViews do not support per-pixel access" );
       int32 ix = x/m_block_size.x(), iy = y/m_block_size.y();
-      return m_block_table[std::make_pair(ix,iy)]->operator()( x-ix*m_block_size.x(), y - iy*m_block_size.y() );
+      return block(ix,iy)->operator()( x-ix*m_block_size.x(), y - iy*m_block_size.y() );
     }
     
     /// Returns a pixel_accessor pointing to the origin.
@@ -178,8 +191,12 @@ namespace vw {
     ImageResource const* resource() const { return r.get(); }
 
     /// \cond INTERNAL
-    typedef ImageResourceView prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const { return *this; }
+    typedef CropView<ImageView<pixel_type> > prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { 
+      ImageView<PixelT> buf( bbox.width(), bbox.height() );
+      rasterize( buf, bbox );
+      return CropView<ImageView<PixelT> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),cols(),rows()) );
+    }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
 #if VW_DEBUG_LEVEL > 1
       vw_out(VerboseDebugMessage) << "ImageResourceView rasterizing bbox " << bbox << std::endl;
@@ -194,8 +211,8 @@ namespace vw {
 #if VW_DEBUG_LEVEL > 1
           vw_out(VerboseDebugMessage) << "ImageResourceView rasterizing block (" << ix << "," << iy << "), block_bbox " << block_bbox << std::endl;
 #endif
-          m_block_table[std::make_pair(ix,iy)]->rasterize( crop( dest, block_bbox-bbox.min() ),
-                                                           block_bbox-Vector2i(ix*m_block_size.x(),iy*m_block_size.y()) );
+          block(ix,iy)->rasterize( crop( dest, block_bbox-bbox.min() ),
+                                   block_bbox-Vector2i(ix*m_block_size.x(),iy*m_block_size.y()) );
         }
       }
     }
