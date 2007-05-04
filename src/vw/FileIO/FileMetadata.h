@@ -141,7 +141,7 @@ namespace vw {
     bool is_readable = true;
     vw::FileMetadataCollection::FileMetadataCollectionIterator i;
     os << "-- File Metadata Collection Object --\n";
-    while(m = fmeta.file_metadata_const(&is_readable, &i))
+    while( (m = fmeta.file_metadata_const(&is_readable, &i)) != 0 )
       os << "\tContains " <<  m->metadata_type() << (is_readable ? "" : " (write-only)") << " Metadata\n";
     return os;
   }
