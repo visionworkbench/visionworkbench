@@ -160,7 +160,7 @@ namespace vw {
       int32 ci = (m_kernel.cols()-1-m_ci), cj = (m_kernel.rows()-1-m_cj);
       BBox2i src_bbox( bbox.min().x() - ci, bbox.min().y() - cj,
                        bbox.width() + (m_kernel.cols()-1), bbox.height() + (m_kernel.rows()-1) );
-      ImageView<pixel_type> src = edge_extend( m_image, src_bbox, m_edge );
+      ImageView<typename ImageT::pixel_type> src = edge_extend( m_image, src_bbox, m_edge );
       return prerasterize_type( crop( src, -src_bbox.min().x(), -src_bbox.min().y(), m_image.cols(), m_image.rows() ),
                                 m_kernel.child(), m_ci, m_cj, NoEdgeExtension() );
     }
