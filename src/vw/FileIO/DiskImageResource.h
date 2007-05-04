@@ -214,7 +214,7 @@ namespace vw {
       // the order in which these blocks are rasterized, but for now
       // it rasterizes blocks from left to right, then top to bottom.
       Vector2i block_size = r->native_block_size();
-      int total_num_blocks = ceil((float)r->rows() / block_size[1]) * ceil((float)r->cols() / block_size[0]);
+      int total_num_blocks = ((r->rows()-1)/block_size[1]+1) * ((r->cols()-1)/block_size[0]+1);
       for (int32 j = 0; j < (int32)r->rows(); j+= block_size[1]) {
         for (int32 i = 0; i < (int32)r->cols(); i+= block_size[0]) {
           BBox2i current_bbox(Vector2i(i,j),
