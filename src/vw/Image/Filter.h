@@ -326,6 +326,11 @@ namespace vw {
     return UnaryPerPixelView<SrcT,FuncT>( src.impl(), func );
   }
 
+  template <class Src1T, class Src2T, class FuncT>
+  BinaryPerPixelView<Src1T,Src2T,FuncT>
+  inline per_pixel_filter( ImageViewBase<Src1T> const& src1, ImageViewBase<Src2T> const& src2, FuncT const& func ) {
+    return BinaryPerPixelView<Src1T,Src2T,FuncT>( src1.impl(), src2.impl(), func );
+  }
 
   // Per-pixel-channel filter functions
 
