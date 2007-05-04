@@ -93,6 +93,8 @@ namespace vw {
 
     std::vector<AttrInfo> get_sds_attrs( std::string const& sds_name ) const;
 
+    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<uint16>& result ) const;
+    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, uint16& result ) const;
     void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<float32>& result ) const;
     void get_sds_attr( std::string const& sds_name, std::string const& attr_name, float32& result ) const;
     void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<float64>& result ) const;

@@ -306,6 +306,32 @@ public:
     return attrs;
   }
 
+  void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<uint16>& result ) const {
+    int32 sds_index = SDnametoindex( sd_id, sds_name.c_str() );
+    if( sds_index == FAIL ) vw_throw( NotFoundErr() << "SDS not found!" );
+    int32 sds_id = SDselect( sd_id, sds_index );
+    if( sds_id == FAIL ) vw_throw( IOErr() << "Unable to select SDS in HDF file \"" << resource.filename() << "\"!" );
+    int32 attr_index = SDfindattr( sds_id, attr_name.c_str() );
+    if( attr_index == FAIL ) vw_throw( NotFoundErr() << "SDS attribute not found!" );
+    char name[65];
+    int32 data_type, count;
+    int32 status = SDattrinfo( sds_id, attr_index, name, &data_type, &count );
+    if( status == FAIL ) vw_throw( IOErr() << "Unable to get SDS attribute info in HDF file \"" << resource.filename() << "\"!" );
+    if( data_type != DFNT_UINT16 ) vw_throw( NotFoundErr() << "SDS attribute with requested type not found! (expected " << DFNT_UINT16 << ", found " << data_type << ")" );
+    result.resize( count );
+    status = SDreadattr( sds_id, attr_index, &result[0] );
+    if( status == FAIL ) vw_throw( IOErr() << "Unable to read SDS attribute in HDF file \"" << resource.filename() << "\"!" );
+    vw_out(VerboseDebugMessage) << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
+    SDendaccess( sds_id );
+  }
+
+  void get_sds_attr( std::string const& sds_name, std::string const& attr_name, uint16& result ) const {
+    std::vector<uint16> result_vec;
+    get_sds_attr( sds_name, attr_name, result_vec );
+    if( result_vec.size() != 1 ) vw_throw( NotFoundErr() << "SDS attribute with requested size not found!" );
+    result = result_vec[0];
+  }
+
   void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<float32>& result ) const {
     int32 sds_index = SDnametoindex( sd_id, sds_name.c_str() );
     if( sds_index == FAIL ) vw_throw( NotFoundErr() << "SDS not found!" );
@@ -415,6 +441,14 @@ void vw::DiskImageResourceHDF::get_sds_fillvalue( std::string const& sds_name, f
 
 std::vector<vw::DiskImageResourceHDF::AttrInfo> vw::DiskImageResourceHDF::get_sds_attrs( std::string const& sds_name ) const {
   return m_info->get_sds_attrs( sds_name );
+}
+
+void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<uint16>& result ) const {
+  m_info->get_sds_attr( sds_name, attr_name, result );
+}
+
+void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, uint16& result ) const {
+  m_info->get_sds_attr( sds_name, attr_name, result );
 }
 
 void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<float32>& result ) const {
