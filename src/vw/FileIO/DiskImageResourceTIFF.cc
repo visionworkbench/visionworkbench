@@ -49,6 +49,7 @@ namespace vw {
   public:
     TIFF *tif;
     Vector2i block_size;
+    std::string filename;
 
     DiskImageResourceInfoTIFF() : tif(0), block_size() {}
     ~DiskImageResourceInfoTIFF() { 
@@ -95,6 +96,8 @@ vw::Vector2i vw::DiskImageResourceTIFF::native_block_size() const {
 /// Bind the resource to a file for reading.  Confirm that we can open
 /// the file and that it has a sane pixel format.  
 void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
+  m_info->filename = filename;
+
   TIFFSetWarningHandler( &tiff_warning_handler );
   TIFFSetErrorHandler( &tiff_error_handler );
 
@@ -180,7 +183,7 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
     m_info->block_size = Vector2i(cols(),rows_per_strip);
   }
 
-  m_info->tif = tif;
+  TIFFClose(tif);
 }
 
 /// Bind the resource to a file for writing.
@@ -255,7 +258,7 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
   uint32 rows_per_strip = TIFFDefaultStripSize( tif, 0 );
   TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, rows_per_strip);
   m_info->block_size = Vector2i(cols(),rows_per_strip);
-  
+    
   m_info->tif = tif;
 }
 
@@ -265,7 +268,7 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
   VW_ASSERT( int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
              ArgumentErr() << "DiskImageResourceTIFF (read) Error: Destination buffer has wrong dimensions!" );
 
-  TIFF* tif = m_info->tif;
+  TIFF* tif = TIFFOpen( m_info->filename.c_str(), "r" );
   if( !tif ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << m_filename << "\" for reading!" );
 
   if( TIFFIsTiled(tif) ) {
@@ -388,7 +391,10 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
   
     delete[] palette_buf;
     _TIFFfree(buf);
+    if( config==PLANARCONFIG_SEPARATE && m_format.pixel_format != VW_PIXEL_SCALAR ) 
+      _TIFFfree(plane_buf);
   }
+  TIFFClose(tif);
 }
 
 // Write the given buffer into the disk image.
