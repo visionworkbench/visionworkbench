@@ -209,16 +209,10 @@ namespace cartography {
   // from a vw GeoReference object.
   OGRSpatialReference gdal_spatial_ref_from_georef(GeoReference const* georef) {
     OGRSpatialReference gdal_spatial_ref;
-    char* wkt_copy = new char[2048];
+    char wkt_copy[2048];
     strncpy(wkt_copy, georef->wkt_str().c_str(), 2048);
-    gdal_spatial_ref.importFromWkt(&wkt_copy);
-
-    // This causes the c runtime to complain about freeing an object
-    // that wasn't malloc'd, but it seems like this is a potential
-    // (small) memory leak.
-    //
-    //    delete [] wkt_copy;
-
+    char* wkt_ptr = &(wkt_copy[0]);
+    gdal_spatial_ref.importFromWkt(&wkt_ptr);
     return gdal_spatial_ref;
   }
 
@@ -298,9 +292,10 @@ namespace cartography {
   /// Well-Known Text (WKT) format.
   void GeoReference::set_wkt_str(std::string const& wkt_str) {
     OGRSpatialReference gdal_spatial_ref;
-    char* wkt_copy = new char[2048];
+    char wkt_copy[2048];
     strncpy(wkt_copy, wkt_str.c_str(), 2048);
-    gdal_spatial_ref.importFromWkt(&wkt_copy);
+    char* wkt_ptr = &(wkt_copy[0]);
+    gdal_spatial_ref.importFromWkt(&wkt_ptr);
     this->set_spatial_ref(&gdal_spatial_ref);
   }
 
@@ -325,7 +320,7 @@ namespace cartography {
     m_gml_str = gml_str;
     delete proj4_str;
     delete wkt_str;
-    delete gml_str;
+    free(gml_str);
 
     const char* georef_name = gdal_spatial_ref_ptr->GetAttrValue("GEOGCS");
     if (georef_name) { 
