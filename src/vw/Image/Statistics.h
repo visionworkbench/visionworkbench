@@ -57,11 +57,11 @@ namespace vw {
 
     pixel_accessor plane_acc = view.origin();
     for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
-      pixel_accessor col_acc = plane_acc;
-      for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
-        pixel_accessor row_acc = col_acc;
-        for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
-          typename ViewT::result_type pix = *row_acc;
+      pixel_accessor row_acc = plane_acc;
+      for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
+        pixel_accessor col_acc = row_acc;
+        for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
+          typename ViewT::result_type pix = *col_acc;
           for (int32 channel = 0; channel < num_channels; channel++) {
             if (!is_transparent(pix)) {
               valid = true;
@@ -97,11 +97,11 @@ namespace vw {
 
     pixel_accessor plane_acc = view.origin();
     for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
-      pixel_accessor col_acc = plane_acc;
-      for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
-        pixel_accessor row_acc = col_acc;
-        for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
-          typename ViewT::result_type pix = *row_acc;
+      pixel_accessor row_acc = plane_acc;
+      for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
+        pixel_accessor col_acc = row_acc;
+        for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
+          typename ViewT::result_type pix = *col_acc;
           for (int32 channel = 0; channel < num_channels; channel++) {
             if (!is_transparent(pix)) {
               valid = true;
@@ -139,11 +139,11 @@ namespace vw {
 
     pixel_accessor plane_acc = view.origin();
     for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
-      pixel_accessor col_acc = plane_acc;
-      for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
-        pixel_accessor row_acc = col_acc;
-        for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
-          typename ViewT::result_type pix = *row_acc;
+      pixel_accessor row_acc = plane_acc;
+      for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
+        pixel_accessor col_acc = row_acc;
+        for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
+          typename ViewT::result_type pix = *col_acc;
           for (int32 channel = 0; channel < num_channels; channel++) {
             if (!is_transparent(pix)) {
               channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
@@ -180,11 +180,11 @@ namespace vw {
 
     pixel_accessor plane_acc = view.origin();
     for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
-      pixel_accessor col_acc = plane_acc;
-      for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
-        pixel_accessor row_acc = col_acc;
-        for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
-          typename ViewT::result_type pix = *row_acc;
+      pixel_accessor row_acc = plane_acc;
+      for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
+        pixel_accessor col_acc = row_acc;
+        for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
+          typename ViewT::result_type pix = *col_acc;
           for (int32 channel = 0; channel < num_channels; channel++) {
             if (!is_transparent(pix)) {
               valid = true;
@@ -219,11 +219,11 @@ namespace vw {
 
     pixel_accessor plane_acc = view.origin();
     for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
-      pixel_accessor col_acc = plane_acc;
-      for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
-        pixel_accessor row_acc = col_acc;
-        for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
-          typename ViewT::result_type pix = *row_acc;
+      pixel_accessor row_acc = plane_acc;
+      for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
+        pixel_accessor col_acc = row_acc;
+        for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
+          typename ViewT::result_type pix = *col_acc;
           for (int32 channel = 0; channel < num_channels; channel++) {
             if (!is_transparent(pix)) {
               valid = true;
@@ -258,11 +258,11 @@ namespace vw {
 
     pixel_accessor plane_acc = view.origin();
     for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
-      pixel_accessor col_acc = plane_acc;
-      for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
-        pixel_accessor row_acc = col_acc;
-        for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
-          typename ViewT::result_type pix = *row_acc;
+      pixel_accessor row_acc = plane_acc;
+      for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
+        pixel_accessor col_acc = row_acc;
+        for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
+          typename ViewT::result_type pix = *col_acc;
           for (int32 channel = 0; channel < num_channels; channel++) {
             if (!is_transparent(pix)) {
               valid = true;
