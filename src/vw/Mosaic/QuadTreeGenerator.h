@@ -68,7 +68,7 @@ namespace mosaic {
         m_crop_images( true )
     {
       fs::path tree_path( tree_name, fs::native );
-      fs::path base_path = tree_path.branch_path() / ( tree_path.leaf() + ".qtree" );
+      fs::path base_path = tree_path.branch_path() / tree_path.leaf();
       m_base_dir = base_path.native_directory_string();
     }
 
@@ -136,6 +136,10 @@ namespace mosaic {
       }
     }
 
+    BBox2i const& get_crop_bbox() const {
+      return m_crop_bbox;
+    }
+
     void set_crop_bbox( BBox2i const& bbox ) {
       if( bbox.min().x() < 0 || bbox.min().y() < 0 ||
           bbox.max().x() > int(m_source.cols()) || bbox.max().y() > int(m_source.rows()) )
@@ -143,24 +147,48 @@ namespace mosaic {
       m_crop_bbox = bbox;
     }
 
+    std::string const& get_output_image_file_type() const {
+      return m_output_image_type;
+    }
+
     void set_output_image_file_type( std::string const& extension ) {
       m_output_image_type = extension;
+    }
+
+    int32 get_patch_size() const {
+      return m_patch_size;
     }
 
     void set_patch_size( int32 size ) {
       m_patch_size = size;
     }
 
+    int32 get_patch_overlap() const {
+      return m_patch_overlap;
+    }
+
     void set_patch_overlap( int32 overlap ) {
       m_patch_overlap = overlap;
+    }
+
+    int32 get_levels_per_directory() const {
+      return m_levels_per_directory;
     }
 
     void set_levels_per_directory( int32 levels_per_directory ) {
       m_levels_per_directory = levels_per_directory;
     }
 
+    bool get_crop_images() const {
+      return m_crop_images;
+    }
+
     void set_crop_images( bool crop ) {
       m_crop_images = crop;
+    }
+
+    std::string const& get_base_dir() const {
+      return m_base_dir;
     }
 
     void set_base_dir( std::string const& base_dir ) {
@@ -179,16 +207,6 @@ namespace mosaic {
     int32 m_tree_levels;
     std::vector<std::map<std::pair<int32,int32>,ImageView<PixelT> > > m_patch_cache;
     std::vector<std::map<std::pair<int32,int32>,std::string> > m_filename_cache;
-    
-    bool is_opaque( ImageView<PixelT> const& image ) const {
-      if( ! PixelHasAlpha<PixelT>::value ) return true;
-      typename PixelChannelType<PixelT>::type maxval = ChannelRange<PixelT>::max();
-      for( int y=0; y<(int)image.rows(); ++y )
-        for( int x=0; x<(int)image.cols(); ++x )
-          // FIXME: This breaks quad-trees with scalar channel types!
-          if( image(x,y)[PixelNumChannels<PixelT>::value-1] < maxval ) return false;
-      return true;
-    }
     
     void write_patch( ImageView<PixelT> const& image, std::string const& name, int32 level, int32 x, int32 y ) const {
       PatchInfo info;
