@@ -322,7 +322,7 @@ AC_CONFIG_FILES([                       \
   src/vw/GPU/tests/Makefile             \
   src/vw/InterestPoint/Makefile         \
   src/vw/InterestPoint/tests/Makefile   \
-  src/vw/Python/Makefile                \
+  Python/Makefile                       \
 ])
 
 AC_OUTPUT
