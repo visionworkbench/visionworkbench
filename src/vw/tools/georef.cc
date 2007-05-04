@@ -157,9 +157,9 @@ int main( int argc, char *argv[] ) {
     georef.set_well_known_geogcs("WGS84");
     Matrix3x3 m;
     m(0,0) = (east_lon - west_lon) / file_resource.cols();
-    m(0,2) = west_lon + 0.5*m(0,0);
+    m(0,2) = west_lon;// + 0.5*m(0,0);
     m(1,1) = (south_lat - north_lat) / file_resource.rows();
-    m(1,2) = north_lat + 0.5*m(1,1);
+    m(1,2) = north_lat;// + 0.5*m(1,1);
     m(2,2) = 1;
     georef.set_transform( m );
     manual = true;
