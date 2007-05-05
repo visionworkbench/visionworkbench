@@ -33,6 +33,8 @@
 #include <boost/type_traits.hpp>
 #include <boost/mpl/integral_c.hpp>
 #include <boost/mpl/if.hpp>
+#include <boost/integer_traits.hpp>
+#include <boost/utility/enable_if.hpp>
 
 #ifdef _MSC_VER
 // FIXME: We're blindly assuming that any MSC box is little-endian!
@@ -90,40 +92,42 @@ namespace vw {
   template <class T> struct IsScalar<std::complex<T> > : public true_type {};
   template <class T> struct IsScalar<const T> : public IsScalar<T> {};
 
-  /// Give default min and max values for various integral data types.
-  template <class T> struct ChannelLimits {};
-  template <> struct ChannelLimits<vw::uint8> { 
-    static const vw::uint8 min = 0x00;     
-    static const vw::uint8 max = 0xFF; 
-  };
-  template <> struct ChannelLimits<vw::uint16> { 
-    static const vw::uint16 min = 0x0000;     
-    static const vw::uint16 max = 0xFFFF; 
-  };
-  template <> struct ChannelLimits<vw::uint32> { 
-    static const vw::uint32 min = 0x00000000;     
-    static const vw::uint32 max = 0xFFFFFFFF; 
-  };
-  template <> struct ChannelLimits<vw::int8> { 
-    static const vw::int8 min = 0x80;     
-    static const vw::int8 max = 0x7F; 
-  };
-  template <> struct ChannelLimits<vw::int16> { 
-    static const vw::int16 min = 0x8000;     
-    static const vw::int16 max = 0x7FFF; 
-  };
-  template <> struct ChannelLimits<vw::int32> { 
-    static const vw::int32 min = 0x80000000;     
-    static const vw::int32 max = 0x7FFFFFFF; 
-  };
 
-  template <> struct ChannelLimits<vw::float32> { 
-    static const vw::int32 min = -3.40282347e+38F;     
-    static const vw::int32 max = 3.40282347e+38F; 
+// Bring in min and max values for integral and floating point types.
+#if defined(__APPLE__)
+#include <limits.h>
+#include <float.h>
+#define VW_FLOAT_MIN __FLT_MIN__
+#define VW_FLOAT_MAX __FLT_MAX__
+#define VW_DOUBLE_MIN __DBL_MIN__
+#define VW_DOUBLE_MAX __DBL_MAX__
+
+#elif defined (_MSC_VER)
+// Put any relevent include files and definitions from MSVC here
+
+#else // Linux
+#include <values.h>
+#define VW_FLOAT_MIN MINFLOAT
+#define VW_FLOAT_MAX MAXFLOAT
+#define VW_DOUBLE_MIN MINDOUBLE
+#define VW_DOUBLE_MAX MAXDOUBLE
+#endif 
+
+  /// Give default min and max values for various integral data types.
+  template <class T> struct ScalarTypeLimits {
+    static T min() { return boost::integer_traits<T>::min(); }   
+    static T max() { return  boost::integer_traits<T>::max(); }
   };
-  template <> struct ChannelLimits<vw::float64> { 
-    static const vw::int32 min = -1.7976931348623157e+308;     
-    static const vw::int32 max = 1.7976931348623157e+308;
+  
+  // Here are the special cases for min and max values for floating
+  // point types.
+  template <> struct ScalarTypeLimits<vw::float32> {
+    static float32 min() { return VW_FLOAT_MIN; }
+    static float32 max() { return VW_FLOAT_MAX; }
+  };
+  template <> struct ScalarTypeLimits<vw::float64> { 
+    static float64 min() { return VW_DOUBLE_MIN; }
+    static float64 max() { return VW_DOUBLE_MAX; }
   };
 
   /// Given a type, these traits classes help to determine a suitable

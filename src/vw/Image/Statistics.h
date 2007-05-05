@@ -33,6 +33,7 @@
 
 #include <boost/type_traits.hpp>
 
+#include <vw/Core/FundamentalTypes.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
 
@@ -48,7 +49,7 @@ namespace vw {
     typedef typename ViewT::pixel_type pixel_type;
     typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
 
-    channel_type min = ChannelLimits<channel_type>::max;
+    channel_type min = ScalarTypeLimits<channel_type>::max();
     bool valid = false;
 
     int num_channels = view.channels();
@@ -88,7 +89,7 @@ namespace vw {
     typedef typename ViewT::pixel_type pixel_type;
     typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
 
-    channel_type max = ChannelLimits<channel_type>::min;
+    channel_type max = ScalarTypeLimits<channel_type>::min();
     bool valid = false;
 
     int num_channels = view.channels();
@@ -130,8 +131,8 @@ namespace vw {
     typedef typename ViewT::pixel_type pixel_type;
     typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
 
-    min = ChannelLimits<channel_type>::max;
-    max = ChannelLimits<channel_type>::min;
+    min = ScalarTypeLimits<channel_type>::max();
+    max = ScalarTypeLimits<channel_type>::min();
     
     int num_channels = view.channels();
     if (PixelHasAlpha<pixel_type>::value)
