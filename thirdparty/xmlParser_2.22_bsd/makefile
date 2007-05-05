@@ -40,7 +40,7 @@
 #
 #makefile for the xmlParser library
 #
-all : xmlEasyTest xmlTest xmlTestUnicode
+all : lib xmlEasyTest xmlTest xmlTestUnicode
 
 #GPP=/opt/intel/cc/9.1.039/bin/icpc
 GPP=g++
