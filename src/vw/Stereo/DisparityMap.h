@@ -240,8 +240,8 @@ namespace disparity {
            loc[1] < 0 || loc[1] >= m_left_mask.rows() ||                  // or outside of bounds of 
            loc[0]+pix.h() < 0 || loc[0]+pix.h() >= m_right_mask.cols() || // the left or right image
            loc[1]+pix.v() < 0 || loc[1]+pix.v() >= m_right_mask.rows() || //
-           !(m_left_mask(loc[0],loc[1])) ||                               // or the pixel is masked
-           !(m_right_mask((int)(loc[0]+pix.h()), (int)(loc[1]+pix.v()))) ) {
+           !(m_left_mask(int(loc[0]), int(loc[1]))) || // or the pixel is masked
+           !(m_right_mask(int(loc[0]+pix.h()), int(loc[1]+pix.v()))) ) {
         return PixelDisparity<float>();                                   // then set to missing pixel value
       } else {
         return pix;
@@ -383,8 +383,8 @@ namespace disparity {
     int rejected_points() const { return m_state->rejected_points; }
     int total_points() const { return m_state->total_points; }
 
-    BBox2i work_area() const { return BBox2i(Vector2(-m_half_h_kernel, -m_half_v_kernel),
-                                             Vector2(m_half_h_kernel, m_half_v_kernel)); }
+    BBox2i work_area() const { return BBox2i(Vector2i(-m_half_h_kernel, -m_half_v_kernel),
+                                             Vector2i(m_half_h_kernel, m_half_v_kernel)); }
     
     template <class PixelAccessorT>
     typename PixelAccessorT::pixel_type operator() (PixelAccessorT const& acc) const {
@@ -483,8 +483,8 @@ namespace disparity {
                 ArgumentErr() << "StdDevImageFunc: kernel sizes must be non-zero.");
     }
 
-    BBox2i work_area() const { return BBox2i(Vector2(-m_kernel_width/2, -m_kernel_height/2),
-                                             Vector2(m_kernel_width, m_kernel_height)); }
+    BBox2i work_area() const { return BBox2i(Vector2i(-m_kernel_width/2, -m_kernel_height/2),
+                                             Vector2i(m_kernel_width, m_kernel_height)); }
     
     template <class PixelAccessorT>
     typename PixelAccessorT::pixel_type operator() (PixelAccessorT const& acc) const {
