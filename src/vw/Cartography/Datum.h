@@ -23,6 +23,10 @@
 #ifndef __VW_CARTOGRAPHY_DATUM_H__
 #define __VW_CARTOGRAPHY_DATUM_H__
 
+#include <string>
+#include <ostream>
+#include <math.h>
+
 namespace vw {
 namespace cartography {
 
