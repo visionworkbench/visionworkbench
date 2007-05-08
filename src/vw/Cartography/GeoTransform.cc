@@ -68,9 +68,9 @@ namespace cartography {
       delete [] dst_strings[i];
     delete [] src_strings;
     delete [] dst_strings;
-      
-    m_inv_src_transform = inverse(src_georef.transform());
-    m_inv_dst_transform = inverse(dst_georef.transform());
+
+    m_inv_src_transform = inverse(src_georef.vw_native_transform());
+    m_inv_dst_transform = inverse(dst_georef.vw_native_transform());
   }
 
   GeoTransform::~GeoTransform() {

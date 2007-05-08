@@ -46,8 +46,10 @@ namespace cartography {
     Matrix<double,3,3> m_transform;
     std::string m_proj4_str, m_wkt_str, m_gml_str;
     bool m_is_projected;
+    int m_pixel_interpretation;
 
   public:
+
     /// Construct a default georeference.  This georeference will use
     /// the identity matrix as the initial transformation matrix, and
     /// select the default datum (WGS84) and projection (geographic).
@@ -94,6 +96,49 @@ namespace cartography {
     std::string projection_name() const;
     Matrix<double,3,3> transform() const { return m_transform; }
     bool is_projected() const { return m_is_projected; }
+
+
+
+    /// The affine transform converts from pixel space to geographic
+    /// or projected space and vice versa.  Most often, this process
+    /// entails interpolating based on floating point pixel
+    /// coordinates in the image.  However, images are discrete
+    /// samples of pixel space, so you must adopt a convention
+    /// regarding how floating point pixel coordinates in your
+    /// georeferenced image are to be interpreted.
+    ///
+    /// You have one of two choices: If you assume PixelAsArea, the
+    /// upper left hand corner of the top left pixel is considered as
+    /// the origin (0,0), and the center of the top left pixel is
+    /// (0.5, 0.5).  This assumption is common when dealing with
+    /// satellite imagery or maps.
+    ///
+    /// On the other hand, if you assume the PixelAsPoint, then the
+    /// center of the upper left hand pixel is the origin (0,0), and
+    /// the top left corner of that pixel is at (-0.5,-0.5) in pixel
+    /// coordinates.  This mode is common when working with elevation
+    /// data, etc.
+    ///
+    /// Note: The Vision Workbench *always* interprets floating point
+    /// pixel location (0,0) as being at the _center_ of the upper
+    /// left hand pixel.  If you choose the PixelAsArea option for
+    /// this flag, the GeoTransform class will automatically adjust
+    /// your affine transform my (0.5,0.5) to bring the coordinate
+    /// system in line with the Vision Workbench internal
+    /// representation.
+    ///
+    /// The default pixel interpretation for GeoReference is PixelAsPoint
+    enum PixelInterpretation { PixelAsArea, PixelAsPoint };
+
+    PixelInterpretation pixel_interpretation() const { return (PixelInterpretation)(m_pixel_interpretation); }
+    void set_pixel_interpretation(PixelInterpretation const& p) { m_pixel_interpretation = p; }
+
+    /// This method returns a version of the affine transform
+    /// compatible with the VW standard notion that (0,0) is the
+    /// center of the top left pixel.  If pixel_interpretation() is
+    /// set to PixelAsArea, this method will adjust the affine
+    /// transform my 0.5 pixels right and down.
+    Matrix<double,3,3> vw_native_transform() const;
 
     /// Return the box that bounds the area represented by the
     /// geotransform for an image of the given dimensions.

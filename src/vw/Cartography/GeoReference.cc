@@ -222,6 +222,7 @@ namespace cartography {
   GeoReference::GeoReference() {
     m_transform.set_identity();
     m_is_projected = false;
+    m_pixel_interpretation = GeoReference::PixelAsPoint;
     OGRSpatialReference oSRS;
     oSRS.SetWellKnownGeogCS("WGS84");
     this->set_spatial_ref(&oSRS);
@@ -231,6 +232,7 @@ namespace cartography {
   /// Takes a void pointer to an OGRSpatialReference. The affine transform defaults to the identity matrix.
   GeoReference::GeoReference(void* spatial_ref_ptr) {
     m_transform.set_identity();
+    m_pixel_interpretation = GeoReference::PixelAsPoint;
     this->set_spatial_ref(spatial_ref_ptr);
     register_default_disk_image_resources();
   }
@@ -238,6 +240,7 @@ namespace cartography {
   /// Takes a void pointer to an OGRSpatialReference and an affine transformation matrix.
   GeoReference::GeoReference(void* spatial_ref_ptr, Matrix<double,3,3> const& transform) {
     m_transform = transform;
+    m_pixel_interpretation = GeoReference::PixelAsPoint;
     this->set_spatial_ref(spatial_ref_ptr);
     register_default_disk_image_resources();
   }
@@ -245,6 +248,7 @@ namespace cartography {
   /// Takes a string in proj.4 format. The affine transform defaults to the identity matrix.
   GeoReference::GeoReference(std::string const proj4_str) {
     m_transform.set_identity();
+    m_pixel_interpretation = GeoReference::PixelAsPoint;
     OGRSpatialReference oSRS;
     oSRS.importFromProj4(proj4_str.c_str());
     this->set_spatial_ref(&oSRS);
@@ -254,6 +258,7 @@ namespace cartography {
   /// Takes a string in proj.4 format and an affine transformation matrix.
   GeoReference::GeoReference(std::string const proj4_str, Matrix<double,3,3> const& transform) {
     m_transform = transform;
+    m_pixel_interpretation = GeoReference::PixelAsPoint;
     OGRSpatialReference oSRS;
     oSRS.importFromProj4(proj4_str.c_str());
     this->set_spatial_ref(&oSRS);
@@ -263,6 +268,7 @@ namespace cartography {
   /// Takes a geodetic datum.  The affine transform defaults to the identity matrix.
   GeoReference::GeoReference(GeoDatum const& datum) {
     m_transform.set_identity();
+    m_pixel_interpretation = GeoReference::PixelAsPoint;
     OGRSpatialReference oSRS;
     oSRS.SetGeogCS("Vision Workbench GeoReference", 
                    datum.name().c_str(),
@@ -277,6 +283,7 @@ namespace cartography {
   /// Takes a geodetic datum and an affine transformation matrix
   GeoReference::GeoReference(GeoDatum const& datum, Matrix<double,3,3> const& transform) {
     m_transform = transform;
+    m_pixel_interpretation = GeoReference::PixelAsPoint;
     OGRSpatialReference oSRS;
     oSRS.SetGeogCS("Vision Workbench GeoReference", 
                    datum.name().c_str(),
@@ -379,6 +386,22 @@ namespace cartography {
     return final_result;
   }
   
+  // Adjust the affine transform to the VW convention ( [0,0] is at
+  // the center of upper left pixel) if file is georeferenced
+  // according to the convention that [0,0] is the upper left hand
+  // corner of the upper left pixel.
+  Matrix<double,3,3> GeoReference::vw_native_transform() const {
+    if (m_pixel_interpretation == GeoReference::PixelAsArea) {
+      Matrix<double,3,3> result = m_transform;
+      result(0,2) += 0.5*m_transform(0,0);
+      result(1,2) += 0.5*m_transform(1,1);
+      return result;
+    } else {
+      return m_transform;
+    }
+  }
+
+
   /// Returns a GeoProjection object.
   std::string GeoReference::projection_name() const {
     OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);

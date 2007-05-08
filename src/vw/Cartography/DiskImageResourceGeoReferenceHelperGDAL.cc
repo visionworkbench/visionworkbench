@@ -34,6 +34,8 @@
 #include "ogr_spatialref.h"
 #include "ogr_api.h"
 
+// For boost::split
+#include <boost/algorithm/string.hpp>
 
 namespace vw {
 namespace cartography {
@@ -61,6 +63,23 @@ namespace cartography {
       transform(1,1) = geo_transform[5];
       transform(1,2) = geo_transform[3];
       georef->set_transform(transform);
+
+      // Determine the pixel interpretation for the image.  See the
+      // comments in GeoReference for more information.  If nothing is
+      // encoded in the file, the default is to assume PixelAsArea.
+      georef->set_pixel_interpretation(GeoReference::PixelAsArea);
+      char **metadata = dataset->GetMetadata();
+      if( CSLCount(metadata) > 0 ) {
+        for( int i = 0; metadata[i] != NULL; i++ ) {
+          std::vector<std::string> split_vec;
+          boost::split(split_vec, metadata[i], boost::is_any_of("=") );
+          if (split_vec[0] == GDALMD_AREA_OR_POINT && split_vec.size() >= 2)  
+            if (boost::trim_copy(split_vec[1]) == GDALMD_AOP_POINT)
+              georef->set_pixel_interpretation(GeoReference::PixelAsPoint);
+        }
+      }
+
+
     }
   }
   
@@ -77,6 +96,13 @@ namespace cartography {
                                 georef->transform()(1,2), georef->transform()(1,0), georef->transform()(1,1) };
     dataset->SetGeoTransform( geo_transform );
     dataset->SetProjection( georef->wkt_str().c_str() );
+
+    // Set the pixel interpretation for the image.  See the comments
+    // in GeoReference for more information.
+    if (georef->pixel_interpretation() == GeoReference::PixelAsArea) 
+      dataset->SetMetadataItem(GDALMD_AREA_OR_POINT, GDALMD_AOP_AREA);
+    else // PixelAsPoint
+      dataset->SetMetadataItem(GDALMD_AREA_OR_POINT, GDALMD_AOP_POINT);
   }
 
 }} // namespace vw::cartography

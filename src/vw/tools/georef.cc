@@ -91,7 +91,8 @@ int main( int argc, char *argv[] ) {
     ("proj-lon", po::value<double>(&proj_lon), "The center of projection longitude (if applicable)")
     ("proj-scale", po::value<double>(&proj_scale), "The projection scale (if applicable)")
     ("nudge-x", po::value<double>(&nudge_x), "Nudge the image, in projected coordinates")
-    ("nudge-y", po::value<double>(&nudge_y), "Nudge the image, in projected coordinates");
+    ("nudge-y", po::value<double>(&nudge_y), "Nudge the image, in projected coordinates")
+    ("pixel-as-point", "Encode that the pixel location (0,0) is the center of the upper left hand pixel (the default, if you specify nothing, is to set the upper left hand corner of the upper left pixel as (0,0) (i.e. PixelAsArea).");
   
   po::options_description hidden_options("");
   hidden_options.add_options()
@@ -157,9 +158,9 @@ int main( int argc, char *argv[] ) {
     georef.set_well_known_geogcs("WGS84");
     Matrix3x3 m;
     m(0,0) = (east_lon - west_lon) / file_resource.cols();
-    m(0,2) = west_lon;// + 0.5*m(0,0);
+    m(0,2) = west_lon;
     m(1,1) = (south_lat - north_lat) / file_resource.rows();
-    m(1,2) = north_lat;// + 0.5*m(1,1);
+    m(1,2) = north_lat;
     m(2,2) = 1;
     georef.set_transform( m );
     manual = true;
@@ -171,6 +172,11 @@ int main( int argc, char *argv[] ) {
   else if( vm.count("stereographic") ) georef.set_stereographic(proj_lat,proj_lon,proj_scale);
   else if( vm.count("lambert-azimuthal") ) georef.set_lambert_azimuthal(proj_lat,proj_lon);
   else if( vm.count("utm") ) georef.set_UTM( utm_zone );
+
+  if (vm.count("pixel-as-point")) 
+    georef.set_pixel_interpretation(GeoReference::PixelAsPoint);
+  else // Default: PixelAsArea
+    georef.set_pixel_interpretation(GeoReference::PixelAsArea);
 
   if( vm.count("nudge-x") || vm.count("nudge-y") ) {
     Matrix3x3 m = georef.transform();
