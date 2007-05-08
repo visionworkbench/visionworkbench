@@ -157,7 +157,7 @@ namespace ip {
   /// Find local extremum in space and scale.
   template <class T>
   inline bool is_local_minmax(const std::vector<ImageInterestData<T> >& data,
-			      int i, int j, int k) {
+                              int i, int j, int k) {
     return (is_local_max(data, i, j, k) || is_local_min(data, i, j, k));
   }
 
@@ -173,7 +173,7 @@ namespace ip {
   /// Find spatial peaks of a certain type in the image.
   template <class T>
   int find_peaks( std::vector<InterestPoint>& interest_points,
-		  const ImageView<T>& interest, PeakType type = IP_MAX) {
+                  const ImageView<T>& interest, PeakType type = IP_MAX) {
     int32 ncols = interest.cols();
     int32 nrows = interest.rows();
 
@@ -183,8 +183,8 @@ namespace ip {
       for (int32 i=IP_BORDER_WIDTH; i<ncols-IP_BORDER_WIDTH; i++) { // col i
         // check if it is a local extremum
         if (is_extremum(interest, i, j, type)) {
-          vw::vw_out(DebugMessage) << "Found a local max at [" << i << ", " << j
-                                   << "]" << "    Interest: " << interest(i,j) << "\n";
+          vw::vw_out(VerboseDebugMessage) << "Found a local max at [" << i << ", " << j
+                                          << "]" << "    Interest: " << interest(i,j) << "\n";
           
           InterestPoint pt;
           pt.x = pt.ix = i;
@@ -192,7 +192,7 @@ namespace ip {
           pt.scale = 1.0;
           pt.interest = interest(i,j);
           interest_points.push_back( pt );
-	}
+        }
       } // col j
     } // row i
     
@@ -229,20 +229,20 @@ namespace ip {
     // TODO: this really needs to be sped up
     for (unsigned k=1; k<nplanes-1; k++) {     // plane k
       for (int32 j=IP_BORDER_WIDTH; j<nrows-IP_BORDER_WIDTH; j++) {   // row j
-	for (int32 i=IP_BORDER_WIDTH; i<ncols-IP_BORDER_WIDTH; i++) { // col i
-	  // check if it is a local extremum
+        for (int32 i=IP_BORDER_WIDTH; i<ncols-IP_BORDER_WIDTH; i++) { // col i
+          // check if it is a local extremum
           if (is_extremum(data, i, j, k, type)) {
-            vw::vw_out(DebugMessage) << "Found a local max at [" << i << ", " << j << ", "
-                                     << k << "]" << "    Interest: "
-                                     << data[k].interest(i,j) << "\n";
-	    InterestPoint pt;
-	    pt.x = pt.ix = i;
-	    pt.y = pt.iy = j;
-	    pt.scale = octave.plane_index_to_scale(k);
-	    pt.interest = data[k].interest(i,j);
-	    interest_points.push_back( pt );
-	  }
-	} // col j
+            vw::vw_out(VerboseDebugMessage) << "Found a local max at [" << i << ", " << j
+                                            << ", " << k << "]" << "    Interest: "
+                                            << data[k].interest(i,j) << "\n";
+            InterestPoint pt;
+            pt.x = pt.ix = i;
+            pt.y = pt.iy = j;
+            pt.scale = octave.plane_index_to_scale(k);
+            pt.interest = data[k].interest(i,j);
+            interest_points.push_back( pt );
+          }
+        } // col j
       } // row i
     } // plane k
     

@@ -188,8 +188,8 @@ std::vector<InterestPoint> interest_points(vw::ImageViewBase<ViewT> const& image
 /// function is then searched for local peaks.
 template <class T>
 int get_orientation( std::vector<float>& orientation,
-		     const ImageInterestData<T>& data,
-		     int i0, int j0, float sigma_ratio = 1.0) {
+                     ImageInterestData<T> const& data,
+                     int i0, int j0, float sigma_ratio = 1.0) {
   orientation.clear();
   // Nominal feature support patch is 41x41 at the base scale, and
   // we multiply by sigma[k]/sigma[1] for other planes.
@@ -202,9 +202,9 @@ int get_orientation( std::vector<float>& orientation,
   if ( (left>=0) && (top>=0) &&
        (left+width<(int)(data.ori.cols())) &&
        (top+width<(int)(data.ori.rows()))) {
-    vw::vw_out(DebugMessage) << "Computing histogram on " << width
-			     << " " << width << " starting at "
-			     << left << " " << top << std::endl;
+    vw::vw_out(VerboseDebugMessage) << "Computing histogram on " << width
+                                    << " " << width << " starting at "
+                                    << left << " " << top << std::endl;
     // Get cropped view of interest point support region
     ImageView<T> region_ori = vw::crop(data.ori,left,top,width,width);
     ImageView<T> region_mag = vw::crop(data.mag,left,top,width,width);
@@ -303,7 +303,7 @@ class SimpleInterestPointDetector : public InterestPointDetector<T> {
   // By default, uses find_peaks in Extrema.h
   virtual int find_extrema(std::vector<InterestPoint>& points) {
     return find_peaks(points, img_data.interest,
-		      this->interest->peak_type());
+          this->interest->peak_type());
   }
 
   // Use fit_peak in Localize.h
@@ -330,11 +330,11 @@ class SimpleInterestPointDetector : public InterestPointDetector<T> {
     std::vector<InterestPoint> tmp;
     for (int i = 0; i < points.size(); i++) {
       get_orientation(orientation, img_data, (int)(points[i].x + 0.5),
-		      (int)(points[i].y + 0.5));
+                      (int)(points[i].y + 0.5));
       for (int j = 0; j < orientation.size(); j++) {
-	InterestPoint pt = points[i];
-	pt.orientation = orientation[j];
-	tmp.push_back(pt);
+        InterestPoint pt = points[i];
+        pt.orientation = orientation[j];
+        tmp.push_back(pt);
       }
     }
     points = tmp;
@@ -350,11 +350,11 @@ template <class T, class ThreshT = InterestThreshold<T> >
 class ScaledInterestPointDetector : public InterestPointDetector<T, ThreshT> {
  public:
   ScaledInterestPointDetector(InterestBase<T> *i, KeypointThresholdBase<ThreshT> *t) :
-    InterestPointDetector<T>(i, t), num_scales(5), num_octaves(3), octave(NULL) {}
+    InterestPointDetector<T>(i, t), num_scales(5), num_octaves(3), octave(NULL), history(NULL) {}
 
   ScaledInterestPointDetector(InterestBase<T> *i, KeypointThresholdBase<ThreshT> *t,
                               int scales, int octaves) :
-    InterestPointDetector<T>(i, t), num_scales(scales), num_octaves(octaves), octave(NULL) {}
+    InterestPointDetector<T>(i, t), num_scales(scales), num_octaves(octaves), octave(NULL), history(NULL) {}
 
   virtual ~ScaledInterestPointDetector() {}
 
@@ -468,7 +468,7 @@ class ScaledInterestPointDetector : public InterestPointDetector<T, ThreshT> {
   // By default, uses find_peaks in Extrema.h
   virtual int find_extrema(std::vector<InterestPoint>& points) {
     return find_peaks(points, img_data, *octave,
-		      this->interest->peak_type());
+          this->interest->peak_type());
   }
 
   // By default, uses fit_peak in Localize.h
@@ -498,9 +498,9 @@ class ScaledInterestPointDetector : public InterestPointDetector<T, ThreshT> {
     for (int i = next_point; i < size; i++) {
       int k = octave->scale_to_plane_index(points[i].scale);
       get_orientation(orientation, img_data[k], (int)(points[i].x + 0.5),
-		      (int)(points[i].y + 0.5), octave->sigma[k]/octave->sigma[1]);
+          (int)(points[i].y + 0.5), octave->sigma[k]/octave->sigma[1]);
       if (orientation.size() == 0) {
-        vw::vw_out(DebugMessage) << "Cannot find orientation of interest point\n";
+        vw::vw_out(VerboseDebugMessage) << "Cannot find orientation of interest point\n";
       } else {
         points[i].orientation = orientation[0];
         for (int j = 1; j < orientation.size(); j++) {

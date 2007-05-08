@@ -65,7 +65,7 @@ namespace ip {
     }
 
     inline int cache_support(InterestPoint& pt,
-		             const source_type& source) {
+                 const source_type& source) {
       // Select level of Gaussian blur from scale.
       ImageInterestData<T> data = source.image_at_scale(pt.scale);
       // Get support regions, without performing any further rescaling.
@@ -82,13 +82,13 @@ namespace ip {
       ImageView<T> weight_region = mag_region * kernel;
 
       for (int i = 0; i < 16; i++) {
-	for (int j = 0; j < 16; j++) {
+        for (int j = 0; j < 16; j++) {
           // Get orientation between 0 and 2*pi
-	  T ori = ori_region(i, j);
+          T ori = ori_region(i, j);
           while (ori < 0) ori += two_pi;
           while (ori >= two_pi) ori -= two_pi;
 
-	  T weight = weight_region(i, j);
+          T weight = weight_region(i, j);
           int bin = (int)(ori / bin_size);
 
           // Tri-linear interpolation
@@ -109,7 +109,7 @@ namespace ip {
               }
             }
           }
-	}
+        }
       }
 
       // Normalize to reduce the effects of illumination change

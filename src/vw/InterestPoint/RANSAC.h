@@ -122,6 +122,7 @@ namespace ip {
     /// \cond INTERNAL  
     // Utility Function: Pick N UNIQUE, random integers in the range [0, size] 
     inline void _vw_get_n_unique_integers(unsigned int size, unsigned int n, int* samples) {
+      VW_ASSERT(size >= n, ArgumentErr() << "Not enough samples\n");
       int i,j;
       
       for (i=0; i<n; ++i) {

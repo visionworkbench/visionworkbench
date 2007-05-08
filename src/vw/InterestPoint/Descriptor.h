@@ -71,17 +71,17 @@ namespace ip {
   /// transform takes care of interpolation and edge extension.
   template <class T>
   int inline get_support( ImageView<T>& support,
-		   float x, float y, float scale, float ori,
-		   const ImageView<T>& source, int size=SUPPORT_SIZE ) {
+                          float x, float y, float scale, float ori,
+                          const ImageView<T>& source, int size=SUPPORT_SIZE ) {
     float half_size = ((float)(size - 1)) / 2.0f;
     float scaling = 1.0f / scale;
     // This is mystifying - why won't the four-arg compose work?
     support = transform(source,
-			compose(TranslateTransform(half_size, half_size),
-			compose(ResampleTransform(scaling, scaling),
-				RotateTransform(-ori),
-				TranslateTransform(-x, -y))),
-			size, size);
+                        compose(TranslateTransform(half_size, half_size),
+                        compose(ResampleTransform(scaling, scaling),
+                                RotateTransform(-ori),
+                                TranslateTransform(-x, -y))),
+                        size, size);
 
     return 0;
   }
@@ -90,11 +90,11 @@ namespace ip {
   /// rotated appropriately.
   template <class T>
   int inline get_support( ImageView<T>& support,
-			  const InterestPoint& pt,
-			  const ImageView<T>& source,
-			  int size=SUPPORT_SIZE ) {
-    return get_support(support, pt.x, pt.y, pt.scale, pt.orientation,
-		       source, size);
+                          const InterestPoint& pt,
+                          const ImageView<T>& source,
+                          int size=SUPPORT_SIZE ) {
+    return get_support(support, pt.x, pt.y, pt.scale,
+                       pt.orientation, source, size);
   }
 
   /// CRTP base class for descriptor generating methods.
@@ -112,7 +112,7 @@ namespace ip {
     /// Compute descriptors for a set of interest points from the given
     /// source (an image or set of images).
     int compute_descriptors( std::vector<InterestPoint>& points,
-			    const SourceT& source ) {
+                             SourceT const& source ) const {
       for (int i = 0; i < points.size(); i++) {
         impl().cache_support(points[i], source );
         impl().compute_descriptor_from_support(points[i]);
@@ -125,8 +125,8 @@ namespace ip {
   /// given source data and descriptor generator.
   template <class DescriptorT, class SourceT>
   int generate_descriptors(std::vector<InterestPoint>& points,
-			   const SourceT& source,
-			   DescriptorBase<DescriptorT, SourceT>& desc_gen) {
+                           SourceT const& source,
+                           DescriptorBase<DescriptorT, SourceT> const& desc_gen) {
     return desc_gen.impl().compute_descriptors(points, source);
   }
 
@@ -136,21 +136,22 @@ namespace ip {
   template <class T>
   class PatchDescriptor : public DescriptorBase<PatchDescriptor<T>, ImageView<T> >
   {
-    ImageView<T> support;
+    mutable ImageView<T> support;
 
   public:
     typedef T real_type;
+    typedef ImageView<T> source_type;
 
     inline int cache_support(InterestPoint& pt,
-		             const ImageView<T>& source) {
+                             const ImageView<T>& source) const {
       return vw::ip::get_support(support, pt, source); // 41x41
     }
 
-    int compute_descriptor_from_support(InterestPoint& pt) {
+    int compute_descriptor_from_support(InterestPoint& pt) const {
       pt.descriptor.set_size(SUPPORT_SIZE * SUPPORT_SIZE);
       for (int i = 0; i < SUPPORT_SIZE; i++)
-	for (int j = 0; j < SUPPORT_SIZE; j++)
-	  pt.descriptor(i*SUPPORT_SIZE + j) = support(i,j);
+        for (int j = 0; j < SUPPORT_SIZE; j++)
+          pt.descriptor(i*SUPPORT_SIZE + j) = support(i,j);
       pt.descriptor = normalize(pt.descriptor);
 
       return 0;

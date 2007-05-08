@@ -30,6 +30,8 @@
 
 #include <vw/Math/Vector.h>
 #include <vw/Image/Filter.h>
+#include <vector>
+#include <algorithm>
 
 namespace vw { 
 namespace ip {
@@ -79,6 +81,13 @@ namespace ip {
       return (other.interest < interest);
     }
   };
+
+  int cull_interest_points(std::vector<InterestPoint> &points, int num_points = -1) {
+    std::sort(points.begin(), points.end());
+    if ((num_points >= 0) && (num_points < points.size()))
+      points.erase(points.begin() + num_points, points.end());
+    return points.size();
+  }
 
   /// This struct encapsulates some basic and widely useful processed
   /// versions of a source image: the horizontal and vertical gradients,
