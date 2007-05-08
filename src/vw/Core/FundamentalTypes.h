@@ -33,8 +33,7 @@
 #include <boost/type_traits.hpp>
 #include <boost/mpl/integral_c.hpp>
 #include <boost/mpl/if.hpp>
-#include <boost/integer_traits.hpp>
-#include <boost/utility/enable_if.hpp>
+#include <boost/numeric/conversion/bounds.hpp>
 
 #ifdef _MSC_VER
 // FIXME: We're blindly assuming that any MSC box is little-endian!
@@ -93,43 +92,15 @@ namespace vw {
   template <class T> struct IsScalar<const T> : public IsScalar<T> {};
 
 
-// Bring in min and max values for integral and floating point types.
-#if defined(__APPLE__)
-#include <limits.h>
-#include <float.h>
-#define VW_FLOAT_MIN __FLT_MIN__
-#define VW_FLOAT_MAX __FLT_MAX__
-#define VW_DOUBLE_MIN __DBL_MIN__
-#define VW_DOUBLE_MAX __DBL_MAX__
-
-#elif defined (_MSC_VER)
-// Put any relevent include files and definitions from MSVC here
-
-#else // Linux
-#include <values.h>
-#define VW_FLOAT_MIN MINFLOAT
-#define VW_FLOAT_MAX MAXFLOAT
-#define VW_DOUBLE_MIN MINDOUBLE
-#define VW_DOUBLE_MAX MAXDOUBLE
-#endif 
-
-  /// Give default min and max values for various integral data types.
+  /// It is often useful to know what the lowest, highest, and
+  /// smallest possible value is for various scalar types (both
+  /// integers and floating point types).  
   template <class T> struct ScalarTypeLimits {
-    static T min() { return boost::integer_traits<T>::min(); }   
-    static T max() { return  boost::integer_traits<T>::max(); }
+    static T lowest() { return boost::numeric::bounds<T>::lowest(); }   
+    static T highest() { return  boost::numeric::bounds<T>::highest(); }
+    static T smallest() { return boost::numeric::bounds<T>::smallest(); }   
   };
   
-  // Here are the special cases for min and max values for floating
-  // point types.
-  template <> struct ScalarTypeLimits<vw::float32> {
-    static float32 min() { return VW_FLOAT_MIN; }
-    static float32 max() { return VW_FLOAT_MAX; }
-  };
-  template <> struct ScalarTypeLimits<vw::float64> { 
-    static float64 min() { return VW_DOUBLE_MIN; }
-    static float64 max() { return VW_DOUBLE_MAX; }
-  };
-
   /// Given a type, these traits classes help to determine a suitable
   /// working type for accumulation operations or other intermediate 
   /// results that require computational headroom.
