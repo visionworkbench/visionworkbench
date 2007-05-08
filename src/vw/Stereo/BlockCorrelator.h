@@ -109,38 +109,37 @@ namespace stereo {
       }
     }
 
-    template <class PixelT>
-    ImageView<PixelDisparity<float> > operator()(vw::ImageView<PixelT>& left_image, 
-                                                 vw::ImageView<PixelT>& right_image,
+    template <class ViewT>
+    ImageView<PixelDisparity<float> > operator()(vw::ImageViewBase<ViewT> const& left_image, 
+                                                 vw::ImageViewBase<ViewT> const& right_image,
                                                  bool bit_image) {
       
-      VW_ASSERT(left_image.cols() == right_image.cols() &&
-                left_image.rows() == right_image.rows(),
+      VW_ASSERT(left_image.impl().cols() == right_image.impl().cols() &&
+                left_image.impl().rows() == right_image.impl().rows(),
                 ArgumentErr() << "block_correlator: input image dimensions do not agree.\n");
       
-      VW_ASSERT(left_image.channels() == 1 && left_image.planes()==1 &&
-                right_image.channels() == 1 && right_image.planes()==1,
+      VW_ASSERT(left_image.impl().channels() == 1 && left_image.impl().planes()==1 &&
+                right_image.impl().channels() == 1 && right_image.impl().planes()==1,
                 ArgumentErr() << "block_correlator: does not support multi-channel, multi-plane images.\n");
       
       //Run the correlator and record how long it takes to run.
       double begin__ = Time();
       
-      // Ask the worker threads for the actual results of the disparity correlation
-      ImageView<typename PixelChannelType<PixelT>::type> l_image = channels_to_planes(left_image);
-      ImageView<typename PixelChannelType<PixelT>::type> r_image = channels_to_planes(right_image);        
-
       // Allocate memory for the resulting disparity image.
-      ImageView<PixelDisparity<float> > disparity_map(left_image.cols(), left_image.rows());
+      ImageView<PixelDisparity<float> > disparity_map(left_image.impl().cols(), left_image.impl().rows());
 
       // Divide the left image into blocks and compute the bounding
       // boxes in the left and right image given the disparity range
       // that this object was initialized with.
-      std::vector<BBox2i> nominal_left_blocks = image_blocks(l_image, m_block_size, m_block_size);
+      std::vector<BBox2i> nominal_left_blocks = image_blocks(left_image.impl(), m_block_size, m_block_size);
       std::vector<BBox2i> left_blocks, right_blocks;
       compute_blocks(nominal_left_blocks, left_blocks, right_blocks);
 
       // If we only plan to process a single block, we do it here.
       if (left_blocks.size() == 1) {
+        ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type> l_image = channels_to_planes(left_image);
+        ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type> r_image = channels_to_planes(right_image);        
+
         // Create an optimized correlator to run on a single block.
         vw::stereo::OptimizedCorrelator correlator( m_lMinH, m_lMaxH, 
                                                     m_lMinV, m_lMaxV,
@@ -168,8 +167,8 @@ namespace stereo {
         for (int i = 0; i < left_blocks.size();++i) {
           std::cout << i+1 << " / " << left_blocks.size() << ".        \r";
           ImageView<PixelDisparity<float> > disparity_subregion;
-          ImageView<PixelT> left_subimage = crop(edge_extend(l_image, ReflectEdgeExtension()), left_blocks[i]);
-          ImageView<PixelT> right_subimage = crop(edge_extend(r_image, ReflectEdgeExtension()), right_blocks[i]);
+          ImageView<typename ViewT::pixel_type> left_subimage = crop(edge_extend(channels_to_planes(left_image), ReflectEdgeExtension()), left_blocks[i]);
+          ImageView<typename ViewT::pixel_type> right_subimage = crop(edge_extend(channels_to_planes(right_image), ReflectEdgeExtension()), right_blocks[i]);
           
           disparity_subregion = correlator( left_subimage, right_subimage, bit_image );
           

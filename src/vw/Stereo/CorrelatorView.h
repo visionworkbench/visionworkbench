@@ -87,12 +87,12 @@ namespace vw {
         // The area in the right image that we'll be searching is
         // determined by the bbox of the left image plus the search
         // range.
-	BBox2i right_crop_bbox(bbox.min().x() + search_bbox.min().x(),
-			       bbox.min().y() + search_bbox.min().y(),
-			       bbox.width() + search_bbox.width(),
-			       bbox.height() + search_bbox.height());
+        BBox2i right_crop_bbox(bbox.min().x() + search_bbox.min().x(),
+                               bbox.min().y() + search_bbox.min().y(),
+                               bbox.width() + search_bbox.width(),
+                               bbox.height() + search_bbox.height());
         BBox2i left_crop_bbox(bbox);
-
+        
         //  To crop the right image we also have to account for the
         //  kernel width. Half the kernel should be enough of a
         //  margin, but it isn't... causes a segv.
@@ -106,9 +106,9 @@ namespace vw {
         left_crop_bbox.max() = left_crop_bbox.min() +
           Vector2i(right_crop_bbox.width(), right_crop_bbox.height());
 
-	std::cout << "\nCorrelatorView::prerasterize(): search_bbox: " << search_bbox << std::endl;
-	std::cout << "\nCorrelatorView::prerasterize(): left_crop_bbox: " << left_crop_bbox << std::endl;
-	std::cout << "\nCorrelatorView::prerasterize(): right_crop_bbox: " << right_crop_bbox << std::endl;
+// 	std::cout << "\nCorrelatorView::prerasterize(): search_bbox: " << search_bbox << std::endl;
+// 	std::cout << "\nCorrelatorView::prerasterize(): left_crop_bbox: " << left_crop_bbox << std::endl;
+// 	std::cout << "\nCorrelatorView::prerasterize(): right_crop_bbox: " << right_crop_bbox << std::endl;
 
         vw::stereo::OptimizedCorrelator correlator(m_settings.m_lKernWidth, search_bbox.width() + m_settings.m_lKernWidth,
                                                    m_settings.m_lKernHeight, search_bbox.height() + m_settings.m_lKernHeight,

@@ -49,25 +49,25 @@ namespace stereo {
     void disable_debug_mode() { m_debug_mode = false; }
 
     // Run the correlator
-    template <class PixelT>
-    vw::BBox2i operator()(vw::ImageView<PixelT>& image0, vw::ImageView<PixelT>& image1, 
+    template <class ViewT>
+    vw::BBox2i operator()(vw::ImageViewBase<ViewT>& image0, vw::ImageViewBase<ViewT>& image1, 
                           bool do_horizontal_search = true, bool do_vertical_search = true) {
       m_do_horizontal_calibration = do_horizontal_search;
       m_do_vertical_calibration = do_vertical_search;
 
       // Check to make sure that image0 and image1 have equal dimensions 
-      if ((image0.cols() != image1.cols()) || (image0.rows() != image1.rows())) {
+      if ((image0.impl().cols() != image1.impl().cols()) || (image0.impl().rows() != image1.impl().rows())) {
         vw_throw( ArgumentErr() << "Primary and secondary image dimensions do not agree!" );
       }
         
       // Check to make sure that the images are single channel/single plane
-      if (!(image0.channels() == 1 && image0.planes() == 1 &&
-            image1.channels() == 1 && image1.planes() == 1)) {
+      if (!(image0.impl().channels() == 1 && image0.impl().planes() == 1 &&
+            image1.impl().channels() == 1 && image1.impl().planes() == 1)) {
         vw_throw( ArgumentErr() << "Both images must be single channel/single plane images!" );
       }
 
-      ImageView<typename PixelChannelType<PixelT>::type> l_img = channels_to_planes(image0);
-      ImageView<typename PixelChannelType<PixelT>::type> r_img = channels_to_planes(image1);        
+      ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type> l_img = channels_to_planes(image0.impl());
+      ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type> r_img = channels_to_planes(image1.impl());        
       
       // First we hone in on the correct search range using a pyramid of images
       this->pyramid_search( l_img, r_img);
@@ -77,20 +77,20 @@ namespace stereo {
     
   private:
     // Reduce the image size by a factor of two by averaging the pixels
-    template <class PixelT>
-    ImageView<PixelT> subsample_and_average(ImageView<PixelT> const& img) {
+    template <class ViewT>
+    ImageView<typename ViewT::pixel_type> subsample_and_average(ImageViewBase<ViewT> const& img) {
   
-      ImageView<PixelT> outImg(img.cols()/2, img.rows()/2,img.planes());		
+      ImageView<typename ViewT::pixel_type> outImg(img.impl().cols()/2, img.impl().rows()/2, img.impl().planes());		
       int32 i, j, p;
       
       for (p = 0; p < outImg.planes() ; p++) {
         for (i = 0; i < outImg.cols(); i++) {
           for (j = 0; j < outImg.rows(); j++) {  
             outImg(i,j,p) = 0.0f;
-            outImg(i,j,p) += img(2*i     , 2*j    ,p);
-            outImg(i,j,p) += img(2*i + 1 , 2*j    ,p);
-            outImg(i,j,p) += img(2*i     , 2*j + 1,p);
-            outImg(i,j,p) += img(2*i + 1 , 2*j + 1,p);
+            outImg(i,j,p) += img.impl()(2*i     , 2*j    ,p);
+            outImg(i,j,p) += img.impl()(2*i + 1 , 2*j    ,p);
+            outImg(i,j,p) += img.impl()(2*i     , 2*j + 1,p);
+            outImg(i,j,p) += img.impl()(2*i + 1 , 2*j + 1,p);
             outImg(i,j,p) /= 4;
           }
         }
@@ -105,17 +105,17 @@ namespace stereo {
     // to form a guess about the search range at the next level.  We
     // then pop up a level and refine our estimate of the search
     // range.
-    template <class PixelT>
-    void pyramid_search(ImageView<PixelT> const& left_image, ImageView<PixelT> const& right_image) {
+    template <class ViewT>
+    void pyramid_search(ImageViewBase<ViewT> const& left_image, ImageViewBase<ViewT> const& right_image) {
       const int max_dimension = 256;
-      int width = left_image.cols();
-      int height = left_image.rows();
+      int width = left_image.impl().cols();
+      int height = left_image.impl().rows();
 
       std::vector<ImageView<PixelGray<uint8> > > left_pyramid;
       std::vector<ImageView<PixelGray<uint8> > > right_pyramid;
 
-      ImageView<PixelT> current_left = subsample_and_average(left_image);
-      ImageView<PixelT> current_right = subsample_and_average(right_image);
+      ImageView<typename ViewT::pixel_type> current_left = subsample_and_average(left_image);
+      ImageView<typename ViewT::pixel_type> current_right = subsample_and_average(right_image);
 
       // Create a pyramid of SLOG images for us to run through the correlator
       std::cout << "Creating image pyramid... " << std::flush;
@@ -169,8 +169,8 @@ namespace stereo {
         }
 
         // Now, clean up the disparity map by rejecting outliers 
-        int32 rm_half_kernel = 5 / (int32)pow(2,i+1);
-        int32 rm_min_matches_percent = 60 / (i+1);
+        int32 rm_half_kernel = 5;
+        int32 rm_min_matches_percent = 60;
         double rm_threshold = 3;
   
         ImageViewRef<PixelDisparity<float> > processed_disparity_map_ref = disparity::clean_up(disparity_map,
@@ -178,7 +178,7 @@ namespace stereo {
                                                                                                rm_half_kernel,
                                                                                                rm_threshold,
                                                                                                rm_min_matches_percent/100.0);
-        processed_disparity_map_ref = disparity::remove_outliers(processed_disparity_map_ref, 20, 20, 2, 0.2);
+        //        processed_disparity_map_ref = disparity::remove_outliers(processed_disparity_map_ref, 20, 20, 2, 0.2);
 
         int mask_buffer = std::max(m_kernel_width, m_kernel_height);
         processed_disparity_map_ref = disparity::mask(processed_disparity_map_ref,
