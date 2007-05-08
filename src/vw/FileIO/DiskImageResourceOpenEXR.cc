@@ -35,7 +35,9 @@
 #include <vector>
 
 #include <ImfInputFile.h>
+#include <ImfTiledInputFile.h>
 #include <ImfOutputFile.h>
+#include <ImfTiledOutputFile.h>
 #include <ImfChannelList.h>
 #include <ImfStringAttribute.h>
 #include <ImfMatrixAttribute.h>
@@ -86,9 +88,16 @@ namespace {
 // an object safely requires knowing its full type.
 vw::DiskImageResourceOpenEXR::~DiskImageResourceOpenEXR() {
   if (m_input_file_ptr) 
-    delete m_input_file_ptr;
-  if (m_output_file_ptr) 
-    delete m_output_file_ptr;
+    if (m_tiled)
+      delete static_cast<Imf::TiledInputFile*>(m_input_file_ptr);
+    else 
+      delete static_cast<Imf::InputFile*>(m_input_file_ptr);
+  if (m_output_file_ptr) {
+    if (m_tiled)
+      delete static_cast<Imf::TiledOutputFile*>(m_output_file_ptr);
+    else 
+      delete static_cast<Imf::OutputFile*>(m_output_file_ptr);
+  }
 }
 
 vw::Vector2i vw::DiskImageResourceOpenEXR::native_block_size() const {
@@ -110,28 +119,99 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
       vw_throw( IOErr() << "Disk image resources do not yet support reuse." );
     
     m_input_file_ptr = new Imf::InputFile(filename.c_str());
-    Imf::FrameBuffer frameBuffer;
-    
+
+    // Check to see if the file is tiled.  If it does, close the descriptor and reopen as a tiled file.
+    if (static_cast<Imf::InputFile*>(m_input_file_ptr)->header().hasTileDescription()) {
+      delete static_cast<Imf::InputFile*>(m_input_file_ptr);
+      m_input_file_ptr = new Imf::TiledInputFile(filename.c_str());
+      m_tiled = true;
+    }
+      
     // Find the width and height of the image 
-    Imath::Box2i dw = m_input_file_ptr->header().dataWindow();
+    Imath::Box2i dw = static_cast<Imf::InputFile*>(m_input_file_ptr)->header().dataWindow();
     m_format.cols  = int(dw.max.x - dw.min.x + 1);
     m_format.rows  = int(dw.max.y - dw.min.y + 1);
     
     // Determine the number of image channels 
-    Imf::ChannelList::ConstIterator iter = m_input_file_ptr->header().channels().begin();
+    Imf::ChannelList::ConstIterator iter = static_cast<Imf::InputFile*>(m_input_file_ptr)->header().channels().begin();
     int num_channels = 0;
-    while( iter++ != m_input_file_ptr->header().channels().end() )
+    while( iter++ != static_cast<Imf::InputFile*>(m_input_file_ptr)->header().channels().end() )
       num_channels++;
     m_format.planes = num_channels;
     
     // For now, we only support reading in multi-plane, single channel
     // images.
     m_format.pixel_format = VW_PIXEL_SCALAR;
-    m_block_size = Vector2i(m_format.cols,m_openexr_rows_per_block);
-    
+
+    if (m_tiled) {
+      Imf::TileDescription desc = static_cast<Imf::InputFile*>(m_input_file_ptr)->header().tileDescription();
+      m_block_size = Vector2i(desc.xSize, desc.ySize);
+    } else {
+      m_block_size = Vector2i(m_format.cols,m_openexr_rows_per_block);
+    }
+
   } catch (Iex::BaseExc e) {
     vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: could not open " << filename << ":\n\t" << e.what() ); 
   } 
+}
+
+
+void vw::DiskImageResourceOpenEXR::set_tiled_write(int32 tile_width, int32 tile_height) {
+  m_tiled = true;
+  m_block_size = Vector2i(tile_width, tile_height);
+  
+  // Close and reopen the file
+  if (m_output_file_ptr) {
+    if (m_tiled)
+      delete static_cast<Imf::TiledOutputFile*>(m_output_file_ptr);
+    else 
+      delete static_cast<Imf::OutputFile*>(m_output_file_ptr);
+  }
+
+  try {      
+    // Create the file header with the appropriate number of
+    // channels.  Label the channels in order starting with "Channel 0".
+    Imf::Header header (m_format.cols,m_format.rows);
+    for ( int32 nn = 0; nn < m_format.planes; nn++) {
+      m_labels[nn] = openexr_channel_string_of_pixel_type(m_format.pixel_format, nn);
+      header.channels().insert (m_labels[nn].c_str(), Imf::Channel (Imf::FLOAT));
+    }
+
+    header.setTileDescription(Imf::TileDescription (m_block_size[0], m_block_size[1], Imf::ONE_LEVEL)); 
+    m_output_file_ptr = new Imf::TiledOutputFile(m_filename.c_str(), header);
+  } catch (Iex::BaseExc e) {
+    vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: Failed to create " << m_filename << ".\n\t" << e.what() );
+  }
+
+}
+
+void vw::DiskImageResourceOpenEXR::set_scanline_write(int32 scanlines_per_block) {
+  m_tiled = false;
+  m_block_size = Vector2i(m_format.cols,scanlines_per_block);
+  
+  // Close and reopen the file
+  if (m_output_file_ptr) {
+    if (m_tiled)
+      delete static_cast<Imf::TiledOutputFile*>(m_output_file_ptr);
+    else 
+      delete static_cast<Imf::OutputFile*>(m_output_file_ptr);
+  }
+
+  try {      
+    // Create the file header with the appropriate number of
+    // channels.  Label the channels in order starting with "Channel 0".
+    Imf::Header header (m_format.cols,m_format.rows);
+    for ( int32 nn = 0; nn < m_format.planes; nn++) {
+      m_labels[nn] = openexr_channel_string_of_pixel_type(m_format.pixel_format, nn);
+      header.channels().insert (m_labels[nn].c_str(), Imf::Channel (Imf::FLOAT));
+    }
+
+    m_block_size = Vector2i(m_format.cols,m_openexr_rows_per_block);
+    m_output_file_ptr = new Imf::OutputFile(m_filename.c_str(), header);
+
+  } catch (Iex::BaseExc e) {
+    vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: Failed to create " << m_filename << ".\n\t" << e.what() );
+  }
 }
 
 // Bind the resource to a file for writing.  
@@ -146,59 +226,48 @@ void vw::DiskImageResourceOpenEXR::create( std::string const& filename,
   m_format = format;
   m_format.channel_type = VW_CHANNEL_FLOAT32;
   m_format.planes = std::max( format.planes, num_channels( format.pixel_format ) );
-  m_block_size = Vector2i(m_format.cols,m_openexr_rows_per_block);
 
   // Open the EXR file and set up the header information
   m_labels.resize(m_format.planes);
   
-  try {      
-    // Create the file header with the appropriate number of
-    // channels.  Label the channels in order starting with "Channel 0".
-    Imf::Header header (m_format.cols,m_format.rows);
-    for ( int32 nn = 0; nn < m_format.planes; nn++) {
-      m_labels[nn] = openexr_channel_string_of_pixel_type(m_format.pixel_format, nn);
-      //      std::cout << "Writing channel " << nn << ": " << labels[nn] << "\n";
-      header.channels().insert (m_labels[nn].c_str(), Imf::Channel (Imf::FLOAT));
-    }
-    
-    // Open the file handle and create an empty framebuffer object. 
-    m_output_file_ptr = new Imf::OutputFile(m_filename.c_str(), header);
-
-  } catch (Iex::BaseExc e) {
-    vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: Failed to create " << m_filename << ".\n\t" << e.what() );
-  }
+  // By default, write out the image is a tiled image.
+  this->set_tiled_write();
 }
 
 // Read the disk image into the given buffer.
 void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& bbox ) const
 {
+
+  Imf::InputFile* input_file_ptr = static_cast<Imf::InputFile*>(m_input_file_ptr);
   
   if (!m_input_file_ptr) 
     vw_throw( LogicErr() << "DiskImageResourceOpenEXR: Could not read file. No file has been opened." );
   
   try {
+    Imf::Header header;
+    if (m_tiled) 
+      header = static_cast<Imf::TiledInputFile*>(m_input_file_ptr)->header();
+    else 
+      header = static_cast<Imf::InputFile*>(m_input_file_ptr)->header();
+
     // Find the width and height of the image and set the data window
     // to the beginning of the requesed block.
-    Imath::Box2i dw = m_input_file_ptr->header().dataWindow();
-    dw.min.y += bbox.min().y();
     int32 height = bbox.height();
     int32 width = bbox.width();
 
     // Set up the OpenEXR data structures necessary to read all of
     // the channels out of the file and execute the call to readPixels().
-    Imf::Array2D<float> *inputArrays[m_format.planes];
-    Imf::ChannelList::ConstIterator channel = m_input_file_ptr->header().channels().begin();
+    Imf::ChannelList::ConstIterator channel = header.channels().begin();
     std::vector<std::string> channel_names(m_format.planes);
-    for (int i=0; channel != m_input_file_ptr->header().channels().end(); ++channel, ++i) {
+    for (int i=0; channel != header.channels().end(); ++channel, ++i) {
       channel_names[i] = channel.name();
     }
     
-    // OpenEXR seems to order channels in the file alphabetically
-    // (dumb!), rather than in the order in which they were saved.
-    // This means that we need to reorder the channel names when
-    // they are labelled as RGB or RGBA.  For other channel naming
-    // schemes, we just go with alphabetical, since that's all we've
-    // got.
+    // OpenEXR seems to order channels in the file alphabetically,
+    // rather than in the order in which they were saved.  This means
+    // that we need to reorder the channel names when they are
+    // labelled as RGB or RGBA.  For other channel naming schemes, we
+    // just go with alphabetical, since that's all we've got.
     if ( m_format.planes == 3 ) {
       if (find(channel_names.begin(), channel_names.end(), "R") != channel_names.end() &&
           find(channel_names.begin(), channel_names.end(), "G") != channel_names.end() &&
@@ -219,37 +288,34 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
       }
     }
     
+    // Copy the pixels over into a ImageView object.
+    ImageView<float> src_image(width, height, m_format.planes);
     Imf::FrameBuffer frameBuffer;
     for ( int32 nn = 0; nn < m_format.planes; ++nn ) {
-      inputArrays[nn] = new Imf::Array2D<float>(height,width);
-      //        std::cout << "Reading channel " << channel_names[nn] << "\n";
-      frameBuffer.insert (channel_names[nn].c_str(), Imf::Slice (Imf::FLOAT, (char *) (&(*inputArrays[nn])[-dw.min.y][-dw.min.x]),
-                                                                 sizeof ((*inputArrays[nn])[0][0]) * 1, 
-                                                                 sizeof ((*inputArrays[nn])[0][0]) * width, 1, 1, 0.0)); 
+      frameBuffer.insert (channel_names[nn].c_str(), Imf::Slice (Imf::FLOAT, (char *) (&(src_image(-bbox.min().x(),-bbox.min().y(),nn))),
+                                                                 sizeof (src_image(0,0,nn)) * 1, 
+                                                                 sizeof (src_image(0,0,nn)) * width, 1, 1, 0.0)); 
     }
-    m_input_file_ptr->setFrameBuffer (frameBuffer);
-    m_input_file_ptr->readPixels (dw.min.y, std::min(int(dw.min.y + (height-1)), dw.max.y));
-    
-    // Copy the pixels over into a ImageView object.
-    // 
-    // Recast to the templatized pixel type in the process.
-    ImageView<float> src_image(width, height, m_format.planes);
-    for ( int32 nn=0; nn<m_format.planes; ++nn ) {
-      for ( int32 i=0; i<width; ++i ) {
-        for ( int32 j=0; j<height; ++j ) {
-          src_image(i,j,nn) = (*inputArrays[nn])[j][i];
-        }
-      } 
+    if (m_tiled) {
+      VW_ASSERT(bbox.min().x() % m_block_size[0] == 0 && bbox.min().y() % m_block_size[1] == 0,
+                ArgumentErr() << "DiskImageResourceOpenEXR: bbox corner must fall on tile boundary for read of tiled images.");
+      VW_ASSERT((bbox.width() == m_format.cols && bbox.height() == m_format.rows) ||
+                (bbox.width() == m_block_size[0] && bbox.height() == m_block_size[1]),
+                ArgumentErr() << "DiskImageResourceOpenEXR: for reading tiled EXR files, bbox must either be either the size of the whole image, or the size of one tile.");
+                
+      static_cast<Imf::TiledInputFile*>(m_input_file_ptr)->setFrameBuffer (frameBuffer);
+      int first_tile_x = bbox.min().x() / m_block_size[0];
+      int first_tile_y = bbox.min().y() / m_block_size[1];
+      int last_tile_x = (bbox.max().x()-1) / m_block_size[0];
+      int last_tile_y = (bbox.max().y()-1) / m_block_size[1];
+      static_cast<Imf::TiledInputFile*>(m_input_file_ptr)->readTiles(first_tile_x, last_tile_x, first_tile_y, last_tile_y);
+    } else {
+      static_cast<Imf::InputFile*>(m_input_file_ptr)->setFrameBuffer (frameBuffer);
+      static_cast<Imf::InputFile*>(m_input_file_ptr)->readPixels (bbox.min().y(), std::min(int(bbox.min().y() + (height-1)), m_format.rows));
     }
 
-    ImageBuffer src = src_image.buffer();
-    convert( dest, src );
+    convert( dest, src_image.buffer() );
         
-    // Clean up
-    for ( int32 nn = 0; nn < m_format.planes; nn++) {
-      delete inputArrays[nn];
-    }
-    
   } catch (Iex::BaseExc e) {
     vw_throw( vw::IOErr() << "Failed to open " << m_filename << " using the OpenEXR image reader.\n\t" << e.what() );
   } 
@@ -271,7 +337,7 @@ void vw::DiskImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const& 
   
   try {      
     Imf::FrameBuffer frameBuffer;
-        
+    
     // Build the framebuffer out of the various image channels 
     for (int32 nn = 0; nn < dst.format.planes; nn++) {
       frameBuffer.insert (m_labels[nn].c_str(), 
@@ -280,11 +346,27 @@ void vw::DiskImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const& 
                                       sizeof (openexr_image_block(0,0,nn)) * dst.format.cols));             
     } 
     
-    // Write the data to disk 
-    m_output_file_ptr->setFrameBuffer (frameBuffer);
-    //    std::cout << "Writing --> " << m_output_file_ptr->currentScanLine() << "\n";
-    m_output_file_ptr->writePixels (bbox.height());
-    
+    // Write the data to disk.
+    if (m_tiled) {
+      VW_ASSERT(bbox.min().x() % m_block_size[0] == 0 && bbox.min().y() % m_block_size[1] == 0,
+                ArgumentErr() << "DiskImageResourceOpenEXR: bbox corner must fall on tile boundary for writing of tiled images.");
+      VW_ASSERT((bbox.width() == m_format.cols && bbox.height() == m_format.rows) ||
+                (bbox.width() == m_block_size[0] && bbox.height() == m_block_size[1]),
+                ArgumentErr() << "DiskImageResourceOpenEXR: for writing tiled EXR files, bbox must either be either the size of the whole image, or the size of one tile.");
+
+      Imf::TiledOutputFile* out = static_cast<Imf::TiledOutputFile*>(m_output_file_ptr);
+      out->setFrameBuffer (frameBuffer);
+      int first_tile_x = bbox.min().x() / m_block_size[0];
+      int first_tile_y = bbox.min().y() / m_block_size[1];
+      int last_tile_x = (bbox.max().x()-1) / m_block_size[0];
+      int last_tile_y = (bbox.max().y()-1) / m_block_size[1];
+      out->writeTiles(first_tile_x, last_tile_x, first_tile_y, last_tile_y);
+    } else {
+      Imf::OutputFile* out = static_cast<Imf::OutputFile*>(m_output_file_ptr);
+      out->setFrameBuffer (frameBuffer);
+      out->writePixels (bbox.height());
+    }
+
   } catch (Iex::BaseExc e) {
     vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: Failed to write " << m_filename << ".\n\t" << e.what() );
   }

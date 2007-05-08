@@ -33,13 +33,6 @@
 #include <vw/Image/PixelTypes.h>
 #include <vw/FileIO/DiskImageResource.h>
 
-// Forward-declare the Imf::InputFile class
-
-/// \cond INTERNAL
-namespace Imf { class InputFile; }
-namespace Imf { class OutputFile; }
-/// \endcond
-
 namespace vw {
 
   class DiskImageResourceOpenEXR : public DiskImageResource {
@@ -50,6 +43,7 @@ namespace vw {
     {
       m_input_file_ptr = 0;
       m_output_file_ptr = 0;
+      m_tiled = false;
       open( filename );
     }
 
@@ -59,6 +53,7 @@ namespace vw {
     {
       m_input_file_ptr = 0;
       m_output_file_ptr = 0;
+      m_tiled = false;
       create( filename, format );
     }
     
@@ -71,6 +66,9 @@ namespace vw {
     virtual std::string type() { return type_static(); }
     
     virtual Vector2i native_block_size() const;
+
+    void set_tiled_write(int32 tile_width = 512, int32 tile_height = 512);
+    void set_scanline_write(int32 scanlines_per_block = 20);
 
     virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
 
@@ -92,8 +90,9 @@ namespace vw {
     std::string m_filename;
     Vector2i m_block_size;
     std::vector<std::string> m_labels;
-    Imf::InputFile* m_input_file_ptr;
-    Imf::OutputFile* m_output_file_ptr;
+    void* m_input_file_ptr;
+    void* m_output_file_ptr;
+    bool m_tiled;
   };
 
 } // namespace vw
