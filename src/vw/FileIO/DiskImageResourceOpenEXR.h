@@ -67,8 +67,8 @@ namespace vw {
     
     virtual Vector2i native_block_size() const;
 
-    void set_tiled_write(int32 tile_width = 512, int32 tile_height = 512);
-    void set_scanline_write(int32 scanlines_per_block = 20);
+    void set_tiled_write(int32 tile_width, int32 tile_height);
+    void set_scanline_write(int32 scanlines_per_block);
 
     virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
 

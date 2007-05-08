@@ -217,6 +217,16 @@ namespace vw {
       int total_num_blocks = ((r->rows()-1)/block_size[1]+1) * ((r->cols()-1)/block_size[0]+1);
       for (int32 j = 0; j < (int32)r->rows(); j+= block_size[1]) {
         for (int32 i = 0; i < (int32)r->cols(); i+= block_size[0]) {
+
+          // Update the progress callback.
+          if (progress_callback.abort_requested()) 
+            vw_throw( Aborted() << "Aborted by ProgressCallback" );
+
+          float processed_row_blocks = j/block_size[1]*((r->cols()-1)/block_size[0]+1);
+          float processed_col_blocks = i/block_size[0];
+          progress_callback.report_progress((processed_row_blocks + processed_col_blocks)/total_num_blocks);
+
+          // Rasterize and save this image block
           BBox2i current_bbox(Vector2i(i,j),
                               Vector2i(std::min(i+block_size[0],(int32)(r->cols())),
                                        std::min(j+block_size[1],(int32)(r->rows()))));
@@ -226,13 +236,6 @@ namespace vw {
           ImageBuffer buf = image_block.buffer();
           r->write( buf, current_bbox );
 
-          // Update the progress callback.
-          if (progress_callback.abort_requested()) {
-            vw_throw( Aborted() << "Aborted by ProgressCallback" );
-          }
-          float processed_row_blocks = j/block_size[1]*r->cols()/block_size[0];
-          float processed_col_blocks = i/block_size[0];
-          progress_callback.report_progress((processed_row_blocks + processed_col_blocks)/total_num_blocks);
         }
       }
       progress_callback.report_finished();

@@ -24,17 +24,17 @@ namespace vw {
 			  int useSubpixelH, int useSubpixelV,
 			  bool bit_image)
       {
-	m_lKernWidth = kernWidth;
-	m_lKernHeight = kernHeight;
-	m_lMinH = minH;
-	m_lMaxH = maxH;
-	m_lMinV = minV;
-	m_lMaxV = maxV;  
-	m_verbose = verbose;
-	m_crossCorrThreshold = crosscorrThreshold;
-	m_useHorizSubpixel = useSubpixelH;
-	m_useVertSubpixel = useSubpixelV;
-	m_bit_image = bit_image;
+        m_lKernWidth = kernWidth;
+        m_lKernHeight = kernHeight;
+        m_lMinH = minH;
+        m_lMaxH = maxH;
+        m_lMinV = minV;
+        m_lMaxV = maxV;  
+        m_verbose = verbose;
+        m_crossCorrThreshold = crosscorrThreshold;
+        m_useHorizSubpixel = useSubpixelH;
+        m_useVertSubpixel = useSubpixelV;
+        m_bit_image = bit_image;
       }
       int m_lKernWidth, m_lKernHeight;
       int m_lMinH, m_lMaxH, m_lMinV, m_lMaxV;
@@ -54,7 +54,7 @@ namespace vw {
       typedef ProceduralPixelAccessor<CorrelatorView> pixel_accessor;
 
       template <class ImageT>
-      CorrelatorView(ImageViewBase<ImageT> & left_image, ImageViewBase<ImageT> & right_image, const CorrelationSettings &settings) :
+      CorrelatorView(ImageViewBase<ImageT> const& left_image, ImageViewBase<ImageT> const& right_image, const CorrelationSettings &settings) :
         m_left_image(left_image.impl()), m_right_image(right_image.impl()), m_settings(settings)
       {
         VW_ASSERT((left_image.impl().cols() == right_image.impl().cols()) &&
@@ -78,27 +78,19 @@ namespace vw {
       }
 
       /// \cond INTERNAL
-      typedef ImageView<pixel_type> prerasterize_type;
+      typedef CropView<ImageView<pixel_type> > prerasterize_type;
       inline prerasterize_type prerasterize(BBox2i bbox) const
       {
-        BBox2i search_bbox(m_settings.m_lMinH, m_settings.m_lMinV,
-			   m_settings.m_lMaxH - m_settings.m_lMinH + 1,
-			   m_settings.m_lMaxV - m_settings.m_lMinV + 1);
+        BBox2i search_bbox(Vector2i(m_settings.m_lMinH, m_settings.m_lMinV),
+                           Vector2i(m_settings.m_lMaxH, m_settings.m_lMaxV));
+
         // The area in the right image that we'll be searching is
         // determined by the bbox of the left image plus the search
         // range.
-        BBox2i right_crop_bbox(bbox.min().x() + search_bbox.min().x(),
-                               bbox.min().y() + search_bbox.min().y(),
-                               bbox.width() + search_bbox.width(),
-                               bbox.height() + search_bbox.height());
         BBox2i left_crop_bbox(bbox);
+        BBox2i right_crop_bbox(bbox.min() + search_bbox.min(),
+                               bbox.max() + search_bbox.max());
         
-        //  To crop the right image we also have to account for the
-        //  kernel width. Half the kernel should be enough of a
-        //  margin, but it isn't... causes a segv.
-        right_crop_bbox -= Vector2i(m_settings.m_lKernWidth, m_settings.m_lKernHeight);
-        right_crop_bbox.max() += Vector2i(2*m_settings.m_lKernWidth, 2*m_settings.m_lKernHeight);
-
         // The correlator requires the images to be the same size. The
         // search bbox will always be larger than the given left image
         // bbox, so we just make the left bbox the same size as the
@@ -106,43 +98,50 @@ namespace vw {
         left_crop_bbox.max() = left_crop_bbox.min() +
           Vector2i(right_crop_bbox.width(), right_crop_bbox.height());
 
-// 	std::cout << "\nCorrelatorView::prerasterize(): search_bbox: " << search_bbox << std::endl;
-// 	std::cout << "\nCorrelatorView::prerasterize(): left_crop_bbox: " << left_crop_bbox << std::endl;
-// 	std::cout << "\nCorrelatorView::prerasterize(): right_crop_bbox: " << right_crop_bbox << std::endl;
+        // Finally, we must adjust both bounding boxes to account for
+        // the size of the kernel itself.
+        right_crop_bbox.min() -= Vector2i(m_settings.m_lKernWidth, m_settings.m_lKernHeight);
+        right_crop_bbox.max() += Vector2i(m_settings.m_lKernWidth, m_settings.m_lKernHeight);
+        left_crop_bbox.min() -= Vector2i(m_settings.m_lKernWidth, m_settings.m_lKernHeight);
+        left_crop_bbox.max() += Vector2i(m_settings.m_lKernWidth, m_settings.m_lKernHeight);
 
-        vw::stereo::OptimizedCorrelator correlator(m_settings.m_lKernWidth, search_bbox.width() + m_settings.m_lKernWidth,
-                                                   m_settings.m_lKernHeight, search_bbox.height() + m_settings.m_lKernHeight,
+//         std::cout << "\nCorrelatorView::prerasterize(): search_bbox: " << search_bbox << std::endl;
+//         std::cout << "\n                             left_crop_bbox: " << left_crop_bbox << std::endl;
+//         std::cout << "\n                            right_crop_bbox: " << right_crop_bbox << std::endl;
+
+        vw::stereo::OptimizedCorrelator correlator(0, search_bbox.width(),
+                                                   0, search_bbox.height(),
                                                    m_settings.m_lKernWidth, m_settings.m_lKernHeight,
                                                    true, m_settings.m_crossCorrThreshold,
                                                    m_settings.m_useHorizSubpixel,
                                                    m_settings.m_useVertSubpixel);
 
-	// We crop the images to the expanded bounding box and edge
-	// extend in case the new bbox extends past the image bounds.
+        // We crop the images to the expanded bounding box and edge
+        // extend in case the new bbox extends past the image bounds.
         ImageView<PixelGray<uint8> > cropped_left_image = crop(edge_extend(m_left_image, ReflectEdgeExtension()), left_crop_bbox);
         ImageView<PixelGray<uint8> > cropped_right_image = crop(edge_extend(m_right_image, ReflectEdgeExtension()), right_crop_bbox);
-        ImageView<pixel_type> disparity_map = correlator(cropped_left_image, cropped_right_image,
-                                                         m_settings.m_bit_image);
+        ImageView<pixel_type> disparity_map = correlator(cropped_left_image, cropped_right_image, m_settings.m_bit_image);
 
-	// Adjust the disparities to be relative to the uncropped
-	// image pixel locations
-	for (int v = 0; v < disparity_map.rows(); ++v)
-	{
-	  for (int u = 0; u < disparity_map.cols(); ++u)
-	  {
-	    if (!disparity_map(u,v).missing())
-	    {
-	      disparity_map(u,v).h() += (m_settings.m_lMinH - m_settings.m_lKernWidth);
-	      disparity_map(u,v).v() += (m_settings.m_lMinV - m_settings.m_lKernHeight);
-	    }
-	  }
-	}
+        // Adjust the disparities to be relative to the uncropped
+        // image pixel locations
+        for (int v = 0; v < disparity_map.rows(); ++v)
+          for (int u = 0; u < disparity_map.cols(); ++u)
+            if (!disparity_map(u,v).missing())  {
+              disparity_map(u,v).h() += m_settings.m_lMinH;
+              disparity_map(u,v).v() += m_settings.m_lMinV;
+            }
 
-        return crop(disparity_map, BBox2i(0, 0, bbox.width(), bbox.height()));
+        // This may seem confusing, but we must crop here so that the
+        // good pixel data is placed into the coordinates specified by
+        // the bbox.  This allows rasterize to touch those pixels
+        // using the coordinates inside the bbox.  The pixels outside
+        // those coordinates are invalid, but they never get accessed.
+        return CropView<ImageView<pixel_type> > (disparity_map, BBox2i(m_settings.m_lKernWidth-bbox.min().x(), 
+                                                                       m_settings.m_lKernHeight-bbox.min().y(), 
+                                                                       bbox.width(), bbox.height()));
       }
 
-      template <class DestT> inline void rasterize(DestT const& dest, BBox2i bbox) const
-      {
+      template <class DestT> inline void rasterize(DestT const& dest, BBox2i bbox) const {
         vw::rasterize(prerasterize(bbox), dest, bbox);
       }
       /// \endcond

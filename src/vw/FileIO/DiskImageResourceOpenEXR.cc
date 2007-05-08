@@ -231,7 +231,7 @@ void vw::DiskImageResourceOpenEXR::create( std::string const& filename,
   m_labels.resize(m_format.planes);
   
   // By default, write out the image is a tiled image.
-  this->set_tiled_write();
+  this->set_tiled_write(2048,2048);
 }
 
 // Read the disk image into the given buffer.
@@ -299,9 +299,6 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
     if (m_tiled) {
       VW_ASSERT(bbox.min().x() % m_block_size[0] == 0 && bbox.min().y() % m_block_size[1] == 0,
                 ArgumentErr() << "DiskImageResourceOpenEXR: bbox corner must fall on tile boundary for read of tiled images.");
-      VW_ASSERT((bbox.width() == m_format.cols && bbox.height() == m_format.rows) ||
-                (bbox.width() == m_block_size[0] && bbox.height() == m_block_size[1]),
-                ArgumentErr() << "DiskImageResourceOpenEXR: for reading tiled EXR files, bbox must either be either the size of the whole image, or the size of one tile.");
                 
       static_cast<Imf::TiledInputFile*>(m_input_file_ptr)->setFrameBuffer (frameBuffer);
       int first_tile_x = bbox.min().x() / m_block_size[0];
@@ -350,9 +347,6 @@ void vw::DiskImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const& 
     if (m_tiled) {
       VW_ASSERT(bbox.min().x() % m_block_size[0] == 0 && bbox.min().y() % m_block_size[1] == 0,
                 ArgumentErr() << "DiskImageResourceOpenEXR: bbox corner must fall on tile boundary for writing of tiled images.");
-      VW_ASSERT((bbox.width() == m_format.cols && bbox.height() == m_format.rows) ||
-                (bbox.width() == m_block_size[0] && bbox.height() == m_block_size[1]),
-                ArgumentErr() << "DiskImageResourceOpenEXR: for writing tiled EXR files, bbox must either be either the size of the whole image, or the size of one tile.");
 
       Imf::TiledOutputFile* out = static_cast<Imf::TiledOutputFile*>(m_output_file_ptr);
       out->setFrameBuffer (frameBuffer);

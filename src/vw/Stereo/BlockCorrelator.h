@@ -189,7 +189,8 @@ namespace stereo {
               }
             }
           }
-          crop(disparity_map, nominal_left_blocks[i]) = crop(disparity_subregion, m_lKernWidth,m_lKernHeight, 
+          crop(disparity_map, nominal_left_blocks[i]) = crop(disparity_subregion, 
+                                                             m_lKernWidth,m_lKernHeight, 
                                                              nominal_left_blocks[i].width(),
                                                              nominal_left_blocks[i].height());
         }
