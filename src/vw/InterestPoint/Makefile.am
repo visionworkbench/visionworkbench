@@ -32,7 +32,7 @@ include_HEADERS = Detector.h Descriptor.h Matcher.h RANSAC.h Extrema.h \
                   InterestData.h Threshold.h ImageOctaveHistory.h \
                   SIFT_Descriptor.h
 
-libvwInterestPoint_la_SOURCES = 
+libvwInterestPoint_la_SOURCES = InterestData.cc
 libvwInterestPoint_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwInterestPoint_la_LIBADD = @MODULE_MOSAIC_LDFLAGS@
 
