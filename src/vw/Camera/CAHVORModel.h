@@ -78,6 +78,9 @@ namespace camera {
                                 Vector3& grad_u, Vector3& grad_v,
                                 Matrix3x3& hess_u, Matrix3x3& hess_v ) const;
 
+    /// Write CAHVOR model to file.
+    void write(std::string const& filename);
+
     //------------------------------------------------------------------
     // Exposed Variables
     //------------------------------------------------------------------

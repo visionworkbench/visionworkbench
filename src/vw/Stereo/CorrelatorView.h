@@ -3,6 +3,7 @@
 #include <vw/Stereo/Correlate.h>
 #include <vw/Stereo/OptimizedCorrelator.h>
 #include <vw/Stereo/DisparityMap.h>
+#include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Math/BBox.h>
 #include <vw/Core/Debugging.h>

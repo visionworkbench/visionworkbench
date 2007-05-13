@@ -91,6 +91,48 @@ vw::camera::CAHVORModel::CAHVORModel(std::string const& filename) {
   //     cout << "CameraModel_CAHV: R vector:" << R << "\n";
 }
 
+// Write CAHVOR model to file.
+void vw::camera::CAHVORModel::write(std::string const& filename) {
+    
+  FILE *cahvorFP = fopen(filename.c_str(), "w");
+  if (cahvorFP == 0)
+    vw_throw( IOErr() << "CAHVORModel::write: Could not open file." );
+
+  printf("Writing CAHVOR file: %s\n", filename.c_str());
+
+  if (fprintf(cahvorFP,"C = %lf %lf %lf\n", C(0), C(1), C(2)) < 3) {
+    vw_throw( IOErr() << "CAHVORModel::write: Could not write C vector\n" );
+    fclose(cahvorFP);
+  }
+
+  if (fprintf(cahvorFP,"A = %lf %lf %lf\n", A(0), A(1), A(2)) < 3) {
+    vw_throw( IOErr() << "CAHVORModel::write: Could not write A vector\n" );
+    fclose(cahvorFP);
+  }
+
+  if (fprintf(cahvorFP,"H = %lf %lf %lf\n", H(0), H(1), H(2)) < 3) {
+    vw_throw( IOErr() << "CAHVORModel::write: Could not write H vector\n" );
+    fclose(cahvorFP);
+  }
+
+  if (fprintf(cahvorFP,"V = %lf %lf %lf\n", V(0), V(1), V(2)) < 3) {
+    vw_throw( IOErr() << "CAHVORModel::write: Could not write V vector\n" );
+    fclose(cahvorFP);
+  }
+
+  if (fprintf(cahvorFP,"O = %lf %lf %lf\n", O(0), O(1), O(2)) < 3) {
+    vw_throw( IOErr() << "CAHVORModel::write: Could not write O vector\n" );
+    fclose(cahvorFP);
+  }
+
+  if (fprintf(cahvorFP,"R = %lf %lf %lf\n", R(0), R(1), R(2)) < 3) {
+    vw_throw( IOErr() << "CAHVORModel::write: Could not write R vector\n" );
+    fclose(cahvorFP);
+  }
+  
+  fclose(cahvorFP);
+}
+
 // Set iteration and convergence constants
 #define VW_CAHVOR_MAXITER  20     // maximum number of iterations allowed 
 #define VW_CAHVOR_CONV   1.0e-6   // covergence tolerance - check adequacy for application 
