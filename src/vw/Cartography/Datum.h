@@ -30,41 +30,77 @@
 namespace vw {
 namespace cartography {
 
-  /// Abstract base class for a geodetic datum.  Subclasses of this class 
-  /// must implement the radius() method for computing the radius of the 
-  /// geoid at a given lat/lon.
+  /// Class for a bi-axial ellipsoid geodetic datum.
   ///
   /// To express a spherical datum, set the semi-major axis equal to
   /// the semi-minor axis.
-  class GeoDatum {
+  class Datum {
     std::string m_name;
     std::string m_spheroid_name;
     std::string m_meridian_name;
     double m_semi_major_axis;
     double m_semi_minor_axis;
     double m_meridian_offset;       /// given in angular units
+    std::string m_proj_str;
 
   public:
-    GeoDatum() : m_name("Unknown Datum"),
-                 m_spheroid_name("Unknown Spheroid"),
-                 m_meridian_name("Unknown Meridian"),
-                 m_semi_major_axis(0),
-                 m_semi_minor_axis(0),
-                 m_meridian_offset(0) {}
+    /// The default constructor creates a WGS84 datum.
+    Datum() {
+      set_well_known_datum("WGS84");
+    }
 
-    GeoDatum(std::string const& name,
-             std::string const& spheroid_name,
-             std::string const& meridian_name,
-             double semi_major_axis,
-             double semi_minor_axis,
-             double meridian_offset) : m_name(name),
-                                       m_spheroid_name(spheroid_name),
-                                       m_meridian_name(spheroid_name),
-                                       m_semi_major_axis(semi_major_axis),
-                                       m_semi_minor_axis(semi_minor_axis),
-                                       m_meridian_offset(meridian_offset) {}
+    /// This constructor allows the user to create a custom datum.
+    Datum(std::string const& name,
+          std::string const& spheroid_name,
+          std::string const& meridian_name,
+          double semi_major_axis,
+          double semi_minor_axis,
+          double meridian_offset) : m_name(name),
+                                    m_spheroid_name(spheroid_name),
+                                    m_meridian_name(spheroid_name),
+                                    m_semi_major_axis(semi_major_axis),
+                                    m_semi_minor_axis(semi_minor_axis),
+                                    m_meridian_offset(meridian_offset) {
+      std::ostringstream strm;
+      strm << "+a=" << semi_major_axis << " +b=" << semi_minor_axis;
+      m_proj_str = strm.str();
+    }
 
-    std::string &name() { return m_name; }
+    /// Options include: WGS84, WGS72, NAD27, or NAD83. 
+    void set_well_known_datum(std::string const& name) {
+      m_meridian_name = "Grenwich";
+      m_meridian_offset = 0;
+      if (name == "WGS84") {        
+        m_name = "WGS_1984";
+        m_spheroid_name="WGS 84";
+        m_semi_major_axis = 6378137.0;
+        m_semi_minor_axis = 6356752.3;
+        m_proj_str = "+ellps=WGS84 +datum=WGS84";
+
+      } else if (name == "WGS72") {
+        m_name="WGS_1972";
+        m_spheroid_name="WGS 72";
+        m_semi_major_axis = 6378135.0;
+        m_semi_minor_axis = 6356750.5;
+        m_proj_str = "+ellps=WGS72 +towgs84=0,0,4.5,0,0,0.554,0.2263";
+
+      } else if (name == "NAD83") {
+        m_name="North_American_Datum_1983";
+        m_spheroid_name="GRS 1980";
+        m_semi_major_axis = 6378137;
+        m_semi_minor_axis = 6356752.3;
+        m_proj_str = "+ellps=GRS80 +datum=NAD83";
+
+      } else if (name == "NAD27") {
+        m_name="North_American_Datum_1927";
+        m_spheroid_name="Clarke 1866";
+        m_semi_major_axis = 6378206.4;
+        m_semi_minor_axis = 6356583.8;
+        m_proj_str = "+ellps=clrk66 +datum=NAD27";
+      }
+    }
+    
+    std::string name() { return m_name; }
     std::string const& name() const { return m_name; }
 
     std::string &spheroid_name() { return m_spheroid_name; }
@@ -73,14 +109,26 @@ namespace cartography {
     std::string &meridian_name() { return m_meridian_name; }
     std::string const& meridian_name() const { return m_meridian_name; }
 
-    double &semi_major_axis() { return m_semi_major_axis; }
+    void set_semi_major_axis(double val) { 
+      m_semi_major_axis = val;  
+      std::ostringstream strm;
+      strm << "+a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
+      m_proj_str = strm.str();
+    }
     double const& semi_major_axis() const { return m_semi_major_axis; }
 
-    double &semi_minor_axis() { return m_semi_minor_axis; }
+    void set_semi_minor_axis(double val) { 
+      m_semi_minor_axis = val;  
+      std::ostringstream strm;
+      strm << "+a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
+      m_proj_str = strm.str();
+    }
     double const &semi_minor_axis() const { return m_semi_minor_axis; }
 
     double &meridian_offset() { return m_meridian_offset; }
     double const& meridian_offset() const { return m_meridian_offset; }
+
+    std::string proj4_str() const { return m_proj_str; }
 
     double radius(double lat, double lon) const {
       // Optimize in the case of spherical datum
@@ -104,7 +152,7 @@ namespace cartography {
     
   };
 
-  static std::ostream& operator<<(std::ostream& os, const GeoDatum& datum) {
+  static std::ostream& operator<<(std::ostream& os, const Datum& datum) {
     os << "Geodeditic Datum --> Name: " << datum.name() << "  Spheroid: " << datum.spheroid_name() 
        << "  Semi-major: " << datum.semi_major_axis()
        << "  Semi-minor: " << datum.semi_minor_axis()

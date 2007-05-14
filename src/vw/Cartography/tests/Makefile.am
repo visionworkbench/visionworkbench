@@ -27,11 +27,10 @@
 
 if MAKE_MODULE_CARTOGRAPHY
 
-TESTS = 
-#TESTS = TestLinearPushbroomModel TestCameraTransform
+TESTS = TestGeoReference TestGeoTransform
 
-#nodist_TestLinearPushbroomModel_SOURCES = TestLinearPushbroomModel.cxx
-#nodist_TestCameraTransform_SOURCES = TestCameraTransform.cxx
+nodist_TestGeoReference_SOURCES = TestGeoReference.cxx
+nodist_TestGeoTransform_SOURCES = TestGeoTransform.cxx
 
 endif
 

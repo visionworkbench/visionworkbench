@@ -95,7 +95,7 @@ int main( int argc, char *argv[] ) {
     ("pixel-as-point", "Encode that the pixel location (0,0) is the center of the upper left hand pixel (the default, if you specify nothing, is to set the upper left hand corner of the upper left pixel as (0,0) (i.e. PixelAsArea).");
   
   po::options_description hidden_options("");
-  hidden_options.add_options()
+  hidden_options.add_options() 
     ("input-file", po::value<std::string>(&input_filename));
 
   po::options_description options("Allowed Options");
@@ -184,6 +184,8 @@ int main( int argc, char *argv[] ) {
     m(1,2) += nudge_y;
     georef.set_transform( m );
   }
+
+  vw_out(0) << "Writing file with Proj4 String: " << georef.proj4_str() << "\n";
 
   // Our file readers do a better job that GDAL's of coping with large 
   // image files in some cases, so we make a fresh DiskImageView rather 

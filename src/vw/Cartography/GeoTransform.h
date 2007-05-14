@@ -32,52 +32,28 @@ namespace cartography {
 
   class GeoTransform : public TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction> {
     
-    GeoReference m_src_georef, m_dst_georef;
-    Matrix<double,3,3> m_inv_src_transform, m_inv_dst_transform;; 
-    std::string src_proj_str, dst_proj_str;
-    void *src_proj, *dst_proj;
-    
-    void init_from_georefs(GeoReference const& src_georef, GeoReference const& dst_georef);
+    GeoReferenceBase const& m_src_georef;
+    GeoReferenceBase const& m_dst_georef;
 
   public:
     /// Normal constructor
-    GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef) :
-      m_src_georef(src_georef), m_dst_georef(dst_georef) {
-      init_from_georefs(src_georef, dst_georef);
-      // For debugging:
-      //       std::cout << src_proj_str << "\n";
-      //       std::cout << dst_proj_str << "\n";
-      VW_ASSERT(src_proj_str.size() != 0, ArgumentErr() << "GeoTransform: source georeference not sufficiently well-defined.  Proj.4 string was empty.");
-      VW_ASSERT(dst_proj_str.size() != 0, ArgumentErr() << "GeoTransform: destination georeference not sufficiently well-defined.  Proj.4 string was empty.");
-    }
+    GeoTransform(GeoReferenceBase const& src_georef, GeoReferenceBase const& dst_georef) :
+      m_src_georef(src_georef), m_dst_georef(dst_georef) {}
 
-    /// Copy Constructor
-    GeoTransform(GeoTransform const& copy) {
-      m_src_georef = copy.m_src_georef;
-      m_dst_georef = copy.m_dst_georef;
-      init_from_georefs(copy.m_src_georef, copy.m_dst_georef);
-    }
-
-    /// Copy Assignment
-    GeoTransform& operator=(GeoTransform const& copy) {
-      m_src_georef = copy.m_src_georef;
-      m_dst_georef = copy.m_dst_georef;
-      init_from_georefs(copy.m_src_georef, copy.m_dst_georef);
-      return *this;
-    }
-
-    /// Destructor
-    ~GeoTransform();
-    
     /// Given a pixel coordinate of an image in a destination
     /// georeference frame, this routine computes the corresponding
     /// pixel from an image in the source georeference frame.
-    Vector2 reverse(Vector2 const& v) const;
+    Vector2 reverse(Vector2 const& v) const {
+      return m_src_georef.lonlat_to_pixel(m_dst_georef.pixel_to_lonlat(v));
+    }
 
     /// Given a pixel coordinate of an image in a source
     /// georeference frame, this routine computes the corresponding
     /// pixel the destination (transformed) image.
-    Vector2 forward(Vector2 const& v) const;
+    Vector2 forward(Vector2 const& v) const {
+      return m_dst_georef.lonlat_to_pixel(m_src_georef.pixel_to_lonlat(v));
+    }
+
   };
 
 
@@ -93,8 +69,8 @@ namespace cartography {
   /// Important Note: The convention here is that the Vector3 contains
   /// the ordered triple: (longitude, latitude, altitude). 
   void reproject_point_image(ImageView<Vector3> const& point_image,
-                             GeoReference const& src_georef,
-                             GeoReference const& dst_georef); 
+                             GeoReferenceBase const& src_georef,
+                             GeoReferenceBase const& dst_georef); 
 
 }} // namespace vw::cartography
 

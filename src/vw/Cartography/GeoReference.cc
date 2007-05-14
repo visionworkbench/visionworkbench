@@ -37,8 +37,13 @@
 // xmlParser
 #include <xmlParser.h>
 
-// GDAL
-#include "ogr_spatialref.h"
+// libProj.4
+#include <projects.h>
+
+// Boost
+#include <boost/algorithm/string.hpp>
+
+
 
 namespace {
   vw::FileMetadata::ReadMetadataMapType *read_map = 0;
@@ -199,271 +204,206 @@ namespace {
     gml_print_code_recursive(t, 1);
   }
   #endif
-  
 }
+
 
 namespace vw {
 namespace cartography {
 
-  // Utility function for creating a gdal spatial reference object
-  // from a vw GeoReference object.
-  OGRSpatialReference gdal_spatial_ref_from_georef(GeoReference const* georef) {
-    OGRSpatialReference gdal_spatial_ref;
-    char wkt_copy[2048];
-    strncpy(wkt_copy, georef->wkt_str().c_str(), 2048);
-    char* wkt_ptr = &(wkt_copy[0]);
-    gdal_spatial_ref.importFromWkt(&wkt_ptr);
-    return gdal_spatial_ref;
+  // Here is some machinery to keep track of an initialized proj.4
+  // projection context using a smart pointer.  Using a smart pointer
+  // here simplies the rest of the GeoReference class considerably, and
+  // reduces the possibility of a memory related bug.
+  class ProjContext {
+    PJ* m_proj_ptr;
+
+    char** split_proj4_string(std::string const& proj4_str, int &num_strings) {
+      std::vector<std::string> arg_strings;
+      std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
+      boost::split( arg_strings, trimmed_proj4_str, boost::is_any_of(" ") ); 
+    
+      char** strings = new char*[arg_strings.size()]; 
+      for ( unsigned i = 0; i < arg_strings.size(); ++i ) {
+        strings[i] = new char[2048];
+        strncpy(strings[i], arg_strings[i].c_str(), 2048);
+      }
+      num_strings = arg_strings.size();
+      return strings;
+    }
+
+    // These are private so that we don't accidentally call them.
+    // Copying a ProjContext is bad.
+    ProjContext(ProjContext const& ctx) {}
+    ProjContext& operator=(ProjContext const& ctx) {}
+
+  public:
+    ProjContext(std::string const& proj4_str) {
+
+      // proj.4 is expecting the parameters to be split up into seperate
+      // c-style strings.
+      int num;
+      char** proj_strings = split_proj4_string(proj4_str, num);
+      m_proj_ptr = pj_init(num, proj_strings);
+                                                
+      if (!m_proj_ptr) 
+        vw::vw_throw(vw::LogicErr() << "GeoReference: an error occured while initializing proj.4 with string: " << proj4_str);
+      
+      for (int i = 0; i < num; i++) 
+        delete [] proj_strings[i];
+      delete [] proj_strings;
+    }
+
+    ~ProjContext() { pj_free(m_proj_ptr); }
+    inline PJ* proj_ptr() { return m_proj_ptr; }
+  };
+
+
+
+  std::string GeoReference::proj4_str() const { 
+    std::string proj4_str = m_proj_projection_str + " " + m_datum.proj4_str() + " +no_defs";
+    return proj4_str;
+  }
+  
+  void GeoReference::init_proj() {
+    m_proj_context = boost::shared_ptr<ProjContext>(new ProjContext(proj4_str()));
   }
 
   /// Construct a default georeference.  This georeference will use
   /// the identity matrix as the initial transformation matrix, and
   /// select the default datum (WGS84) and projection (geographic).
   GeoReference::GeoReference() {
-    m_transform.set_identity();
-    m_is_projected = false;
-    m_pixel_interpretation = GeoReference::PixelAsPoint;
-    OGRSpatialReference oSRS;
-    oSRS.SetWellKnownGeogCS("WGS84");
-    this->set_spatial_ref(&oSRS);
+    set_transform(vw::math::identity_matrix<3>());
     register_default_disk_image_resources();
-  }
-  
-  /// Takes a void pointer to an OGRSpatialReference. The affine transform defaults to the identity matrix.
-  GeoReference::GeoReference(void* spatial_ref_ptr) {
-    m_transform.set_identity();
-    m_pixel_interpretation = GeoReference::PixelAsPoint;
-    this->set_spatial_ref(spatial_ref_ptr);
-    register_default_disk_image_resources();
+    set_geographic();
+    init_proj();
   }
 
-  /// Takes a void pointer to an OGRSpatialReference and an affine transformation matrix.
-  GeoReference::GeoReference(void* spatial_ref_ptr, Matrix<double,3,3> const& transform) {
-    m_transform = transform;
-    m_pixel_interpretation = GeoReference::PixelAsPoint;
-    this->set_spatial_ref(spatial_ref_ptr);
-    register_default_disk_image_resources();
-  }
-  
-  /// Takes a string in proj.4 format. The affine transform defaults to the identity matrix.
-  GeoReference::GeoReference(std::string const proj4_str) {
-    m_transform.set_identity();
-    m_pixel_interpretation = GeoReference::PixelAsPoint;
-    OGRSpatialReference oSRS;
-    oSRS.importFromProj4(proj4_str.c_str());
-    this->set_spatial_ref(&oSRS);
-    register_default_disk_image_resources();
-  }
-
-  /// Takes a string in proj.4 format and an affine transformation matrix.
-  GeoReference::GeoReference(std::string const proj4_str, Matrix<double,3,3> const& transform) {
-    m_transform = transform;
-    m_pixel_interpretation = GeoReference::PixelAsPoint;
-    OGRSpatialReference oSRS;
-    oSRS.importFromProj4(proj4_str.c_str());
-    this->set_spatial_ref(&oSRS);
-    register_default_disk_image_resources();
-  }    
-  
   /// Takes a geodetic datum.  The affine transform defaults to the identity matrix.
-  GeoReference::GeoReference(GeoDatum const& datum) {
-    m_transform.set_identity();
-    m_pixel_interpretation = GeoReference::PixelAsPoint;
-    OGRSpatialReference oSRS;
-    oSRS.SetGeogCS("Vision Workbench GeoReference", 
-                   datum.name().c_str(),
-                   datum.spheroid_name().c_str(),
-                   double(datum.semi_major_axis()), double(datum.semi_minor_axis()),
-                   datum.meridian_name().c_str(), double(datum.meridian_offset()),
-                   "degree", atof(SRS_UA_DEGREE_CONV) );
-    this->set_spatial_ref(&oSRS);
+  GeoReference::GeoReference(Datum const& datum) : GeoReferenceBase(datum){
+    set_transform(vw::math::identity_matrix<3>());
     register_default_disk_image_resources();
+    set_geographic();
+    init_proj();
   }
   
   /// Takes a geodetic datum and an affine transformation matrix
-  GeoReference::GeoReference(GeoDatum const& datum, Matrix<double,3,3> const& transform) {
-    m_transform = transform;
-    m_pixel_interpretation = GeoReference::PixelAsPoint;
-    OGRSpatialReference oSRS;
-    oSRS.SetGeogCS("Vision Workbench GeoReference", 
-                   datum.name().c_str(),
-                   datum.spheroid_name().c_str(),
-                   double(datum.semi_major_axis()), double(datum.semi_minor_axis()),
-                   datum.meridian_name().c_str(), double(datum.meridian_offset()),
-                   "degree", atof(SRS_UA_DEGREE_CONV) );
-    this->set_spatial_ref(&oSRS);
+  GeoReference::GeoReference(Datum const& datum, Matrix<double,3,3> const& transform) : GeoReferenceBase(datum) {
+    set_transform(transform);
     register_default_disk_image_resources();
+    set_geographic();
+    init_proj();
   }
 
-  /// Re-initialize this spatial reference using a string in
-  /// Well-Known Text (WKT) format.
-  void GeoReference::set_wkt_str(std::string const& wkt_str) {
-    OGRSpatialReference gdal_spatial_ref;
-    char wkt_copy[2048];
-    strncpy(wkt_copy, wkt_str.c_str(), 2048);
-    char* wkt_ptr = &(wkt_copy[0]);
-    gdal_spatial_ref.importFromWkt(&wkt_ptr);
-    this->set_spatial_ref(&gdal_spatial_ref);
+  void GeoReference::set_transform(Matrix3x3 transform) {
+    m_transform = transform;
+    m_shifted_transform = m_transform;
+    m_shifted_transform(0,2) += 0.5*m_transform(0,0);
+    m_shifted_transform(1,2) += 0.5*m_transform(1,1);
+    m_inv_transform = vw::math::inverse(m_transform);
+    m_inv_shifted_transform = vw::math::inverse(m_shifted_transform);
   }
 
-  /// Re-initialize this spatial reference using a string in Proj.4 format.
-  void GeoReference::set_proj4_str(std::string const& proj4_str) {
-    OGRSpatialReference gdal_spatial_ref;
-    gdal_spatial_ref.importFromProj4(proj4_str.c_str());
-    this->set_spatial_ref(&gdal_spatial_ref);
-  }
-  
-  void GeoReference::set_spatial_ref(void* spatial_ref_ptr) { 
-
-    OGRSpatialReference* gdal_spatial_ref_ptr = (OGRSpatialReference*) spatial_ref_ptr;
-    
-    // Grab the parameters for the georeference itself.
-    char *proj4_str = NULL , *wkt_str = NULL , *gml_str = NULL;
-    gdal_spatial_ref_ptr->exportToProj4( &proj4_str );
-    gdal_spatial_ref_ptr->exportToWkt( &wkt_str );
-    gml_str = make_gml( *this );
-    m_proj4_str = proj4_str;
-    m_wkt_str = wkt_str;
-    m_gml_str = gml_str;
-    delete proj4_str;
-    delete wkt_str;
-    free(gml_str);
-
-    const char* georef_name = gdal_spatial_ref_ptr->GetAttrValue("GEOGCS");
-    if (georef_name) { 
-      m_name = georef_name; 
-    } else { 
-      m_name = "Unknown Geospatial Reference Frame"; 
-    }
-    m_is_projected = gdal_spatial_ref_ptr->IsProjected();
-  }
-
-  /// Returns a datum object for the current spatial reference
-  GeoDatum GeoReference::datum() const {
-    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
-
-    GeoDatum datum;
-    // Set up the parameters in the geodetic datum.
-    const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
-    if (datum_name) { datum.name() = datum_name; }
-    const char* spheroid_name = gdal_spatial_ref.GetAttrValue("SPHEROID");
-    if (spheroid_name) { datum.spheroid_name() = spheroid_name; }
-    const char* meridian_name = gdal_spatial_ref.GetAttrValue("PRIMEM");
-    if (meridian_name) { datum.meridian_name() = meridian_name; }
-    OGRErr e1, e2;
-    double semi_major = gdal_spatial_ref.GetSemiMajor(&e1);
-    double semi_minor = gdal_spatial_ref.GetSemiMinor(&e2);
-    if (e1 != OGRERR_FAILURE && e2 != OGRERR_FAILURE) { 
-      datum.semi_major_axis() = semi_major;
-      datum.semi_minor_axis() = semi_minor;
-    }
-    datum.meridian_offset() = gdal_spatial_ref.GetPrimeMeridian();
-    return datum;
-  }
-
-  /// Return the box that bounds the area represented by the
-  /// geotransform for an image of the given dimensions.
-  BBox2 GeoReference::bounding_box(int width, int height) const {
-    
-    Vector3 upper_left = m_transform * Vector3(0,0,1);
-    Vector3 lower_right = m_transform * Vector3(width,height,1);
-    Vector3 upper_right = m_transform * Vector3(width,0,1);
-    Vector3 lower_left = m_transform * Vector3(0,height,1);
-
-    // Renormalize in case these transforms are not homgeneous.  This
-    // would be very unusual but it's better to be rigorous, I think.
-    upper_left /= upper_left(2);
-    lower_right /= lower_right(2);
-    upper_right /= upper_right(2);
-    lower_left /= lower_left(2);
-
-    BBox2 final_result;
-    final_result.grow(subvector(upper_left,0,2));
-    final_result.grow(subvector(lower_left,0,2));
-    final_result.grow(subvector(upper_right,0,2));
-    final_result.grow(subvector(lower_right,0,2));
-
-    return final_result;
+  // We override the base classes method here so that we have the
+  // opportunity to call init_proj()
+  void GeoReference::set_datum(Datum const& datum) {
+    m_datum = datum;
+    init_proj();
   }
   
   // Adjust the affine transform to the VW convention ( [0,0] is at
   // the center of upper left pixel) if file is georeferenced
   // according to the convention that [0,0] is the upper left hand
   // corner of the upper left pixel.
-  Matrix<double,3,3> GeoReference::vw_native_transform() const {
-    if (m_pixel_interpretation == GeoReference::PixelAsArea) {
-      Matrix<double,3,3> result = m_transform;
-      result(0,2) += 0.5*m_transform(0,0);
-      result(1,2) += 0.5*m_transform(1,1);
-      return result;
-    } else {
+  inline Matrix<double,3,3> GeoReference::vw_native_transform() const {
+    if (pixel_interpretation() == GeoReference::PixelAsArea)
+      return m_shifted_transform;
+    else
       return m_transform;
-    }
   }
 
-
-  /// Returns a GeoProjection object.
-  std::string GeoReference::projection_name() const {
-    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
-
-    // Set up the parameters for this mapping projection
-    const char* projection_name = gdal_spatial_ref.GetAttrValue("PROJECTION");
-    if (projection_name) { return projection_name; }
-    else { return "NONE"; }
+  inline Matrix<double,3,3> GeoReference::vw_native_inverse_transform() const {
+    if (pixel_interpretation() == GeoReference::PixelAsArea) 
+      return m_inv_shifted_transform;
+    else
+      return m_inv_transform;
   }
 
   void GeoReference::set_well_known_geogcs(std::string name) {
-    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
-    gdal_spatial_ref.SetWellKnownGeogCS(name.c_str());
-    set_spatial_ref(&gdal_spatial_ref);
+    m_datum.set_well_known_datum(name);
+    init_proj();
+  }
+
+  void GeoReference::set_geographic() {
+    m_is_projected = false;
+    m_proj_projection_str = "+proj=longlat";
+    init_proj();
   }
 
   void GeoReference::set_sinusoidal(double center_longitude, double false_easting, double false_northing) {
-    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
-    gdal_spatial_ref.SetSinusoidal(center_longitude, false_easting, false_northing);
-    set_spatial_ref(&gdal_spatial_ref);
+    std::ostringstream strm;
+    strm << "+proj=sinu +lon_0=" << center_longitude << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    m_proj_projection_str = strm.str();
+    m_is_projected = true;
+    init_proj();
   }
   
-  void GeoReference::set_mercator(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
-    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
-    gdal_spatial_ref.SetMercator(center_latitude, center_longitude, scale, false_easting, false_northing);
-    set_spatial_ref(&gdal_spatial_ref);
+  void GeoReference::set_mercator(double center_latitude, double center_longitude, double latitude_of_true_scale, double false_easting, double false_northing) {
+    std::ostringstream strm;
+    strm << "+proj=merc +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +lat_ts=" << latitude_of_true_scale << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    m_proj_projection_str = strm.str();
+    m_is_projected = true;
+    init_proj();
   }
 
   void GeoReference::set_transverse_mercator(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
-    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
-    gdal_spatial_ref.SetTM(center_latitude, center_longitude, scale, false_easting, false_northing);
-    set_spatial_ref(&gdal_spatial_ref);
+    std::ostringstream strm;
+    strm << "+proj=tmerc +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +k=" << scale << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    m_proj_projection_str = strm.str();
+    m_is_projected = true;
+    init_proj();
   }
 
   void GeoReference::set_orthographic(double center_latitude, double center_longitude, double false_easting, double false_northing) {
-    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
-    gdal_spatial_ref.SetOrthographic(center_latitude, center_longitude, false_easting, false_northing);
-    set_spatial_ref(&gdal_spatial_ref);  
+    std::ostringstream strm;
+    strm << "+proj=ortho +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    m_proj_projection_str = strm.str();
+    m_is_projected = true;
+    init_proj();
   }
 
   void GeoReference::set_stereographic(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
-    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
-    gdal_spatial_ref.SetStereographic(center_latitude, center_longitude, scale, false_easting, false_northing);
-    set_spatial_ref(&gdal_spatial_ref);
-  }
-
-  void GeoReference::set_polar_stereographic(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
-    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
-    gdal_spatial_ref.SetPS(center_latitude, center_longitude, scale, false_easting, false_northing);
-    set_spatial_ref(&gdal_spatial_ref);
+    std::ostringstream strm;
+    strm << "+proj=stere +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +k=" << scale << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    m_proj_projection_str = strm.str();
+    m_is_projected = true;
+    init_proj();
   }
 
   void GeoReference::set_lambert_azimuthal(double center_latitude, double center_longitude, double false_easting, double false_northing) {
-    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
-    gdal_spatial_ref.SetLAEA(center_latitude, center_longitude, false_easting, false_northing);
-    set_spatial_ref(&gdal_spatial_ref);
+    std::ostringstream strm;
+    strm << "+proj=laea +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    m_proj_projection_str = strm.str();
+    m_is_projected = true;
+    init_proj();
   }
   
   void GeoReference::set_UTM(int zone, int north) {
-    OGRSpatialReference gdal_spatial_ref = gdal_spatial_ref_from_georef(this);
-    gdal_spatial_ref.SetUTM(zone, north);
-    set_spatial_ref(&gdal_spatial_ref);    
+    std::ostringstream strm;
+    strm << "+proj=utm +zone=" << zone;
+    if (!north) strm << " +south";
+    strm << " +units=m";
+    m_proj_projection_str = strm.str();
+    m_is_projected = true;
+    init_proj();
+  }
+
+  void GeoReference::set_proj4_projection_str(std::string const& s) { 
+    m_proj_projection_str = s; 
+    if (s.find("+proj=longlat") == 0)
+      m_is_projected = false;
+    else
+      m_is_projected = true;
+    init_proj();
   }
   
   /*virtual*/ void GeoReference::read_file_metadata(DiskImageResource* r) {
@@ -488,6 +428,68 @@ namespace cartography {
       }
     }
     vw_throw(NoImplErr() << "Unsuppported DiskImageResource: " << r->type());
+  }
+
+
+  /// For a given pixel coordinate, compute the position of that
+  /// pixel in this georeferenced space.
+  Vector2 GeoReference::pixel_to_point(Vector2 pix) const {
+    Vector2 loc;
+    Matrix<double,3,3> M = this->vw_native_transform();
+    loc[0] = pix[0] * M(0,0) + pix[1] * M(0,1) + M(0,2) / (M(2,0) + M(2,1) + M(2,2));
+    loc[1] = pix[0] * M(1,0) + pix[1] * M(1,1) + M(1,2) / (M(2,0) + M(2,1) + M(2,2));
+    return loc;
+  }
+  
+  /// For a given location 'loc' in projected space, compute the
+  /// corresponding pixel coordinates in the image.
+  Vector2 GeoReference::point_to_pixel(Vector2 loc) const {
+    Vector2 pix;
+    Matrix<double,3,3> M = this->vw_native_inverse_transform();
+    pix[0] = loc[0] * M(0,0) + loc[1] * M(0,1) + M(0,2) / (M(2,0) + M(2,1) + M(2,2));
+    pix[1] = loc[0] * M(1,0) + loc[1] * M(1,1) + M(1,2) / (M(2,0) + M(2,1) + M(2,2));
+    return pix;
+  }
+
+  
+  /// For a point in the projected space, compute the position of
+  /// that point in unprojected (Geographic) coordinates (lat,lon).
+  Vector2 GeoReference::point_to_lonlat(Vector2 loc) const {
+    XY projected;  
+    LP unprojected;
+
+    projected.u = loc[0];
+    projected.v = loc[1];
+
+    // Proj.4 expects the (lon,lat) pair to be in radians, so we
+    // must make a conversion if the CS in geographic (lat/lon).
+    if ( !m_is_projected ) {
+      projected.u *= DEG_TO_RAD;
+      projected.v *= DEG_TO_RAD;
+    }
+    unprojected = pj_inv(projected, m_proj_context->proj_ptr());
+
+    // Convert from radians to degrees.
+    return Vector2(unprojected.u * RAD_TO_DEG, unprojected.v * RAD_TO_DEG);
+  }
+  
+  /// Given a position in geographic coordinates (lat,lon), compute
+  /// the location in the projected coordinate system.
+  Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
+    XY projected;  
+    LP unprojected;
+
+    // Proj.4 expects the (lon,lat) pair to be in radians, so we
+    // must make a conversion if the CS in geographic (lat/lon).
+    unprojected.u = lon_lat[0] * DEG_TO_RAD;
+    unprojected.v = lon_lat[1] * DEG_TO_RAD;
+
+    projected = pj_fwd(unprojected, m_proj_context->proj_ptr());
+
+    if ( !m_is_projected ) 
+      return Vector2(projected.u * RAD_TO_DEG, projected.v * RAD_TO_DEG);
+    else 
+      return Vector2(projected.u, projected.v);
   }
 
 }} // vw::cartography

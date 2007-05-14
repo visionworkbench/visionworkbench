@@ -82,6 +82,8 @@ namespace vw {
       typedef CropView<ImageView<pixel_type> > prerasterize_type;
       inline prerasterize_type prerasterize(BBox2i bbox) const
       {
+        vw_out(InfoMessage) << "\n\tBlock: " << bbox << "\n";
+        
         BBox2i search_bbox(Vector2i(m_settings.m_lMinH, m_settings.m_lMinV),
                            Vector2i(m_settings.m_lMaxH, m_settings.m_lMaxV));
 

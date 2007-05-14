@@ -70,6 +70,7 @@ int main( int argc, char *argv[] ) {
   double nudge_x=0, nudge_y=0;
   std::string palette_file;
   float palette_scale=1.0, palette_offset=0.0;
+  int draw_order_offset;
 
   po::options_description general_options("General Options");
   general_options.add_options()
@@ -109,6 +110,7 @@ int main( int argc, char *argv[] ) {
     ("patch-overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels (must be even)")
     ("patch-crop", "Crop output patches")
     ("max-lod-pixels", po::value<int>(&max_lod_pixels)->default_value(1024), "Max LoD in pixels, or -1 for none")
+    ("draw-order-offset", po::value<int>(&draw_order_offset)->default_value(0), "Set an offset for the KML <drawOrder> tag for this overlay")
     ("composite-overlay", "Composite images using direct overlaying (default)")
     ("composite-multiband", "Composite images using multi-band blending");
 
@@ -181,6 +183,7 @@ int main( int argc, char *argv[] ) {
     DiskImageResourceGDAL file_resource( image_files[i] );
     GeoReference input_georef;
     input_georef.read_file_metadata( &file_resource );
+
     if ( input_georef.proj4_str() == "" ) input_georef.set_well_known_geogcs("WGS84");
     if( manual || input_georef.transform() == identity_matrix<3>() ) {
       if( image_files.size() == 1 ) {
@@ -298,6 +301,7 @@ int main( int argc, char *argv[] ) {
   KMLQuadTreeGenerator<PixelRGBA<uint8> > quadtree( output_file_name, composite, ll_bbox );
   quadtree.set_max_lod_pixels(max_lod_pixels);
   quadtree.set_crop_bbox( data_bbox );
+  quadtree.set_draw_order_offset( draw_order_offset );
   if( vm.count("crop") ) quadtree.set_crop_images( true );
   quadtree.set_output_image_file_type( output_file_type );
 
