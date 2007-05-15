@@ -29,7 +29,7 @@
 #define __VW_CORE_CACHE_H__
 
 // Uncomment one of these to enable or disable cache debug messages
-// #define VW_CACHE_DEBUG(x) x
+//#define VW_CACHE_DEBUG(x) x
 #define VW_CACHE_DEBUG(x)
 
 #include <boost/smart_ptr.hpp>
@@ -78,6 +78,7 @@ namespace vw {
       }
       
       virtual ~CacheLine() {
+        if ( valid() ) this->invalidate();
         VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache destroying CacheLine " << this << std::endl; )
       }
       
@@ -89,7 +90,7 @@ namespace vw {
       }
       
       typename boost::shared_ptr<typename GeneratorT::value_type> value() {
-        VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache accessing CacheLine " << this << std::endl; )
+        //        VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache accessing CacheLine " << this << std::endl; )
         if( !m_value ) {
           CacheLineBase::allocate();
           m_value = m_generator.generate();
