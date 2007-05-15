@@ -554,6 +554,48 @@ namespace disparity {
 
 
 
+  
+  // disparity_linear_transform()
+  //
+  // This Per pixel filter applies a homography to the pixel coordinates
+  // in the secondary image that are encoded by the disparity map.  This
+  // is useful for removing the effect of any linear warping for
+  // pre-alignment that was performed on the source images prior to
+  // correlation.
+  class DisparityLinearTransformFunc: public ReturnFixedType<PixelDisparity<float> > {
+    Matrix3x3 m_transform_matrix;
+
+  public:
+    DisparityLinearTransformFunc(Matrix3x3 transform_matrix) : m_transform_matrix(transform_matrix) {}
+    
+    PixelDisparity<float> operator() (PixelDisparity<float> const& pix, Vector3 const& loc) const {
+      if ( !pix.missing() ) {
+        Vector3 old_point(loc[0] + pix.h(),
+                          loc[1] + pix.v(),
+                          1);
+        Vector3 new_point = m_transform_matrix * old_point;   // apply the transform
+        new_point = new_point / new_point(2);                 // and re-normalize
+        return PixelDisparity<float>(new_point(0) - loc[0],
+                                     new_point(1) - loc[1]);    
+      } else {
+        return pix;
+      }
+    }
+  };
+  
+  template <class ViewT, class MatrixT>
+  BinaryPerPixelView<ViewT, PixelIndex3View, DisparityLinearTransformFunc> 
+  disparity_linear_transform(ImageViewBase<ViewT> const& disparity_map, MatrixT const& transform_matrix) {
+    
+    // Note: We use the PixelIndexView and Binary per pixel filter
+    // idiom her to pass the location (in pixel coordinates) into the
+    // functor along with the pixel value at that location.
+    return BinaryPerPixelView<ViewT, PixelIndex3View, DisparityLinearTransformFunc>(disparity_map.impl(), 
+                                                                                    PixelIndex3View(disparity_map),
+                                                                                    DisparityLinearTransformFunc(transform_matrix));
+  }
+
+  
 
 //   template <class ViewT>
 //   void sparse_disparity_filter(ImageViewBase<ViewT> const& disparity_map, 

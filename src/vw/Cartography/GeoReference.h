@@ -110,6 +110,8 @@ namespace cartography {
     void set_orthographic(double center_latitude, double center_longitude, double false_easting = 0, double false_northing = 0);
     /// Use steregraphic projection
     void set_stereographic(double center_latitude, double center_longitude, double scale, double false_easting = 0, double false_northing = 0);
+    /// Use oblique steregraphic projection
+    void set_oblique_stereographic(double center_latitude, double center_longitude, double scale, double false_easting = 0, double false_northing = 0);
     /// Use Lambert Azimuthal projection
     void set_lambert_azimuthal(double center_latitude, double center_longitude, double false_easting = 0, double false_northing = 0);
     /// Use Universal Transverse Mercator (UTM) projection

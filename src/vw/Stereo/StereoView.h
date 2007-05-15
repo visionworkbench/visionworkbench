@@ -117,7 +117,9 @@ namespace stereo {
     UniverseRadiusFunc(Vector3 universe_origin, double near_radius = 0, double far_radius = DBL_MAX): 
       m_origin(universe_origin), m_near_radius(near_radius), m_far_radius(far_radius),
       m_state( new UniverseRadiusState() ) {
-      VW_ASSERT(m_far_radius != 0 && m_near_radius <= m_far_radius, 
+      VW_ASSERT(m_near_radius >= 0 && m_far_radius >= 0,
+                vw::ArgumentErr() << "UniverseRadius: radii must be >= to zero.");
+      VW_ASSERT(m_near_radius <= m_far_radius, 
                 vw::ArgumentErr() << "UniverseRadius: near radius must be <= to far radius.");
       m_state->rejected_points = m_state->total_points = 0;
     }

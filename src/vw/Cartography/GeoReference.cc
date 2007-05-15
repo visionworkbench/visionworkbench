@@ -371,6 +371,14 @@ namespace cartography {
     init_proj();
   }
 
+  void GeoReference::set_oblique_stereographic(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
+    std::ostringstream strm;
+    strm << "+proj=sterea +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +k=" << scale << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    m_proj_projection_str = strm.str();
+    m_is_projected = true;
+    init_proj();
+  }
+
   void GeoReference::set_stereographic(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
     std::ostringstream strm;
     strm << "+proj=stere +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +k=" << scale << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
