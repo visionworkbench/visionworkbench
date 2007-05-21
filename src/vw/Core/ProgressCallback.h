@@ -29,6 +29,8 @@
 #define __VW_CORE_PROGRESSCALLBACK_H__
 
 #include <math.h>
+#include <string>
+
 #include <vw/Core/Debugging.h>
 
 namespace vw {
@@ -46,7 +48,7 @@ namespace vw {
     // progress is from 0 (not done) to 1 (finished)
     // 
     virtual void report_progress(double /*progress*/) const {}
-    virtual void report_aborted() const {}
+    virtual void report_aborted(std::string why="") const {}
     virtual void report_finished() const {}
 
     // Helper method which computes progress and calls report_progress
@@ -79,6 +81,9 @@ namespace vw {
       double parent_progress = m_from + (m_to - m_from)*progress;
       m_parent.report_progress(parent_progress);
     }
+    virtual void report_aborted(std::string why="") const {
+      m_parent.report_aborted(why);
+    }
     virtual bool abort_requested() const { return m_parent.abort_requested(); }
     virtual ~SubProgressCallback() {}
   };
@@ -92,7 +97,7 @@ namespace vw {
     virtual ~TerminalProgressCallback() {}
 
     virtual void report_progress(double progress) const;
-    virtual void report_aborted() const;
+    virtual void report_aborted(std::string why="") const;
     virtual void report_finished() const;
   };
 

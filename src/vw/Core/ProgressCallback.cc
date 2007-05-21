@@ -32,15 +32,15 @@ const vw::ProgressCallback &vw::ProgressCallback::dummy_instance() {
 }
 
 void vw::TerminalProgressCallback::report_progress(double progress) const {
-  int pi = progress * 60;
+  int pi = static_cast<int>(progress * 60);
   vw_out(m_level) << "\r[";
   for( int i=0; i<pi; ++i ) vw_out(m_level) << "*";
   for( int i=60; i>pi; --i ) vw_out(m_level) << ".";
   vw_out(m_level) << "] " << (int)(progress*100) << "%" << std::flush;
 }
 
-void vw::TerminalProgressCallback::report_aborted() const {
-  vw_out(m_level) << " Aborted!" << std::endl;
+void vw::TerminalProgressCallback::report_aborted(std::string why) const {
+  vw_out(m_level) << " Aborted: " << why << std::endl;
 }
 
 void vw::TerminalProgressCallback::report_finished() const {
