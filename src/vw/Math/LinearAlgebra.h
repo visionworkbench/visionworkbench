@@ -163,7 +163,7 @@ namespace math {
     Vector<real_type> sbuf( minmn );
     real_type work_size;
     int lwork = -1, info;
-    std::vector iwork( 8*minmn );
+    std::vector<int> iwork( 8*minmn );
     gesdd('N', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), NULL, 1, NULL, 1, &work_size, lwork, &iwork[0], &info);
     lwork = int(work_size);
     std::vector<real_type> work( lwork );
