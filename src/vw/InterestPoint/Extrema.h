@@ -31,8 +31,6 @@
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/ImageOctave.h>
 
-#include <vw/FileIO.h>
-
 namespace vw {
 namespace ip {
 
@@ -41,84 +39,122 @@ namespace ip {
 
   // Local min/max functions.
 
-  // Functions to search for spatial extrema
-  /// Find spatial local max.
-  template <class T>
-  inline bool is_local_max(const ImageView<T>& interest, int i, int j) {
-    // 4-connected neighborhood in the plane
-    if (interest(i,j) <= interest(i,j-1)) return false;// up
-    if (interest(i,j) <= interest(i,j+1)) return false;// down
+  /* Functions to search for spatial extrema */
 
-    if (interest(i,j) <= interest(i-1,j)) return false;// left
-    if (interest(i,j) <= interest(i+1,j)) return false;// right
+  /// Find spatial local max.
+  template <class ViewT>
+  inline bool is_local_max(ImageViewBase<ViewT> const& _interest, int i, int j) {
+    ViewT const& interest = _interest.impl();
+    typename ViewT::result_type interest_ij = interest(i,j);
+
+    // 4-connected neighborhood in the plane
+    if (interest_ij <= interest(i,j-1)) return false;// up
+    if (interest_ij <= interest(i,j+1)) return false;// down
+
+    if (interest_ij <= interest(i-1,j)) return false;// left
+    if (interest_ij <= interest(i+1,j)) return false;// right
 
     // The rest of the 8-connected neighborhood in the plane
-    if (interest(i,j) <= interest(i-1,j-1)) return false;
-    if (interest(i,j) <= interest(i-1,j+1)) return false;
-    if (interest(i,j) <= interest(i+1,j-1)) return false;
-    if (interest(i,j) <= interest(i+1,j+1)) return false;
+    if (interest_ij <= interest(i-1,j-1)) return false;
+    if (interest_ij <= interest(i-1,j+1)) return false;
+    if (interest_ij <= interest(i+1,j-1)) return false;
+    if (interest_ij <= interest(i+1,j+1)) return false;
 
     return true;
   }
 
   /// Find spatial local min.
-  template <class T>
-  inline bool is_local_min(const ImageView<T>& interest, int i, int j) {
-    // 4-connected neighborhood in the plane
-    if (interest(i,j) >= interest(i,j-1)) return false;// up
-    if (interest(i,j) >= interest(i,j+1)) return false;// down
+  template <class ViewT>
+  inline bool is_local_min(ImageViewBase<ViewT> const& _interest, int i, int j) {
+    ViewT const& interest = _interest.impl();
+    typename ViewT::result_type interest_ij = interest(i,j);
 
-    if (interest(i,j) >= interest(i-1,j)) return false;// left
-    if (interest(i,j) >= interest(i+1,j)) return false;// right
+    // 4-connected neighborhood in the plane
+    if (interest_ij >= interest(i,j-1)) return false;// up
+    if (interest_ij >= interest(i,j+1)) return false;// down
+
+    if (interest_ij >= interest(i-1,j)) return false;// left
+    if (interest_ij >= interest(i+1,j)) return false;// right
 
     // The rest of the 8-connected neighborhood in the plane
-    if (interest(i,j) >= interest(i-1,j-1)) return false;
-    if (interest(i,j) >= interest(i-1,j+1)) return false;
-    if (interest(i,j) >= interest(i+1,j-1)) return false;
-    if (interest(i,j) >= interest(i+1,j+1)) return false;
+    if (interest_ij >= interest(i-1,j-1)) return false;
+    if (interest_ij >= interest(i-1,j+1)) return false;
+    if (interest_ij >= interest(i+1,j-1)) return false;
+    if (interest_ij >= interest(i+1,j+1)) return false;
 
     return true;
   }
 
   /// Find spatial local extremum.
-  template <class T>
-  inline bool is_local_minmax(const ImageView<T>& interest, int i, int j) {
+  template <class ViewT>
+  inline bool is_local_minmax(ImageViewBase<ViewT> const& interest, int i, int j) {
     return (is_local_max(interest, i, j) || is_local_min(interest, i, j));
   }
 
   /// Find spatial local extremum of the specified type.
-  template <class T>
-  inline bool is_extremum(const ImageView<T>& interest,
-                          int i, int j, PeakType type) {
+  template <class ViewT>
+  inline bool is_extremum(ImageViewBase<ViewT> const& interest,
+                          int i, int j, int type) {
     if (type == IP_MAX) return is_local_max(interest, i, j);
     if (type == IP_MIN) return is_local_min(interest, i, j);
     return is_local_minmax(interest, i, j);
   }
 
-  // Functions to search for spacial and scale space extrema
+  /// Compile-time equivalent of spatial is_extremum
+  template <int PeakT> struct IsSpatialExtremum {};
+
+  template <> struct IsSpatialExtremum <IP_MAX> {
+    template <class ViewT>
+    static inline bool check(ImageViewBase<ViewT> const& interest, int i, int j) {
+      return is_local_max(interest, i, j);
+    }
+  };
+
+  template <> struct IsSpatialExtremum <IP_MIN> {
+    template <class ViewT>
+    static inline bool check(ImageViewBase<ViewT> const& interest, int i, int j) {
+      return is_local_min(interest, i, j);
+    }
+  };
+
+  template <> struct IsSpatialExtremum <IP_MINMAX> {
+    template <class ViewT>
+    static inline bool check(ImageViewBase<ViewT> const& interest, int i, int j) {
+      return is_local_minmax(interest, i, j);
+    }
+  };
+
+  /* Functions to search for scale space extrema */
+
   /// Find local max in space and scale.
-  template <class T>
-  inline bool is_local_max(const std::vector<ImageInterestData<T> >& data,
+  template <class DataT>
+  inline bool is_local_max(std::vector<DataT> const& data,
                            int i, int j, int k) {
+    typedef typename DataT::interest_type interest_type;
+    interest_type const& interest_k = data[k].interest();
+    interest_type const& interest_k_p = data[k+1].interest();
+    interest_type const& interest_k_m = data[k-1].interest();
+    typename interest_type::pixel_type interest_ijk = interest_k(i,j);
+
     // These checks are in order such that hopefully the average
     // number of checks done is small.
 
     // 4-connected neighborhood in the plane
-    if (data[k].interest(i,j) <= data[k].interest(i,j-1)) return false;// up
-    if (data[k].interest(i,j) <= data[k].interest(i,j+1)) return false;// down
+    if (interest_ijk <= interest_k(i,j-1)) return false;// up
+    if (interest_ijk <= interest_k(i,j+1)) return false;// down
 
-    if (data[k].interest(i,j) <= data[k].interest(i-1,j)) return false;// left
-    if (data[k].interest(i,j) <= data[k].interest(i+1,j)) return false;// right
+    if (interest_ijk <= interest_k(i-1,j)) return false;// left
+    if (interest_ijk <= interest_k(i+1,j)) return false;// right
 
     // Same pixel location in planes above and below
-    if (data[k].interest(i,j) <= data[k-1].interest(i,j)) return false;// below
-    if (data[k].interest(i,j) <= data[k+1].interest(i,j)) return false;// above
+    if (interest_ijk <= interest_k_m(i,j)) return false;// below
+    if (interest_ijk <= interest_k_p(i,j)) return false;// above
 
     // The rest of the 8-connected neighborhood in the plane
-    if (data[k].interest(i,j) <= data[k].interest(i-1,j-1)) return false;
-    if (data[k].interest(i,j) <= data[k].interest(i-1,j+1)) return false;
-    if (data[k].interest(i,j) <= data[k].interest(i+1,j-1)) return false;
-    if (data[k].interest(i,j) <= data[k].interest(i+1,j+1)) return false;
+    if (interest_ijk <= interest_k(i-1,j-1)) return false;
+    if (interest_ijk <= interest_k(i-1,j+1)) return false;
+    if (interest_ijk <= interest_k(i+1,j-1)) return false;
+    if (interest_ijk <= interest_k(i+1,j+1)) return false;
 
     // TODO: Add 8-connected check in adjacent planes?
 
@@ -126,28 +162,34 @@ namespace ip {
   }
 
   /// Find local min in space and scale.
-  template <class T>
-  inline bool is_local_min(const std::vector<ImageInterestData<T> >& data,
+  template <class DataT>
+  inline bool is_local_min(std::vector<DataT> const& data,
                            int i, int j, int k) {
+    typedef typename DataT::interest_type interest_type;
+    interest_type const& interest_k = data[k].interest();
+    interest_type const& interest_k_p = data[k+1].interest();
+    interest_type const& interest_k_m = data[k-1].interest();
+    typename interest_type::pixel_type interest_ijk = interest_k(i,j);
+
     // These checks are in order such that hopefully the average
     // number of checks done is small.
 
     // 4-connected neighborhood in the plane
-    if (data[k].interest(i,j) >= data[k].interest(i,j-1)) return false;// up
-    if (data[k].interest(i,j) >= data[k].interest(i,j+1)) return false;// down
+    if (interest_ijk >= interest_k(i,j-1)) return false;// up
+    if (interest_ijk >= interest_k(i,j+1)) return false;// down
 
-    if (data[k].interest(i,j) >= data[k].interest(i-1,j)) return false;// left
-    if (data[k].interest(i,j) >= data[k].interest(i+1,j)) return false;// right
+    if (interest_ijk >= interest_k(i-1,j)) return false;// left
+    if (interest_ijk >= interest_k(i+1,j)) return false;// right
 
     // Same pixel location in planes above and below
-    if (data[k].interest(i,j) >= data[k-1].interest(i,j)) return false;// below
-    if (data[k].interest(i,j) >= data[k+1].interest(i,j)) return false;// above
+    if (interest_ijk >= interest_k_m(i,j)) return false;// below
+    if (interest_ijk >= interest_k_p(i,j)) return false;// above
 
     // The rest of the 8-connected neighborhood in the plane
-    if (data[k].interest(i,j) >= data[k].interest(i-1,j-1)) return false;
-    if (data[k].interest(i,j) >= data[k].interest(i-1,j+1)) return false;
-    if (data[k].interest(i,j) >= data[k].interest(i+1,j-1)) return false;
-    if (data[k].interest(i,j) >= data[k].interest(i+1,j+1)) return false;
+    if (interest_ijk >= interest_k(i-1,j-1)) return false;
+    if (interest_ijk >= interest_k(i-1,j+1)) return false;
+    if (interest_ijk >= interest_k(i+1,j-1)) return false;
+    if (interest_ijk >= interest_k(i+1,j+1)) return false;
 
     // TODO: Add 8-connected check in adjacent planes?
 
@@ -155,43 +197,59 @@ namespace ip {
   }
 
   /// Find local extremum in space and scale.
-  template <class T>
-  inline bool is_local_minmax(const std::vector<ImageInterestData<T> >& data,
+  template <class DataT>
+  inline bool is_local_minmax(std::vector<DataT> const& data,
                               int i, int j, int k) {
     return (is_local_max(data, i, j, k) || is_local_min(data, i, j, k));
   }
 
   /// Find local extremum of the specified type in space and scale.
-  template <class T>
-  inline bool is_extremum(const std::vector<ImageInterestData<T> >&data,
-                          int i, int j, int k, PeakType type) {
+  template <class DataT>
+  inline bool is_extremum(std::vector<DataT> const& data,
+                          int i, int j, int k, int type) {
     if (type == IP_MAX) return is_local_max(data, i, j, k);
     if (type == IP_MIN) return is_local_min(data, i, j, k);
     return is_local_minmax(data, i, j, k);
   }
 
-  /// Find spatial peaks of a certain type in the image.
-  template <class T>
-  int find_peaks( std::vector<InterestPoint>& interest_points,
-                  const ImageView<T>& interest, PeakType type = IP_MAX) {
+  /// Compile-time equivalent of scale-space is_extremum
+  template <int PeakT> struct IsScaleExtremum {};
+
+  template <> struct IsScaleExtremum <IP_MAX> {
+    template <class DataT>
+    static inline bool check(std::vector<DataT> const& data, int i, int j, int k) {
+      return is_local_max(data, i, j, k);
+    }
+  };
+
+  template <> struct IsScaleExtremum <IP_MIN> {
+    template <class DataT>
+    static inline bool check(std::vector<DataT> const& data, int i, int j, int k) {
+      return is_local_min(data, i, j, k);
+    }
+  };
+
+  template <> struct IsScaleExtremum <IP_MINMAX> {
+    template <class DataT>
+    static inline bool check(std::vector<DataT> const& data, int i, int j, int k) {
+      return is_local_minmax(data, i, j, k);
+    }
+  };
+
+  /// Find spatial peaks of a certain type in the interest image.
+  template <class DataT>
+  int find_peaks(KeypointList& interest_points, DataT const& data) {
+    typename DataT::interest_type const& interest = data.interest();
     int32 ncols = interest.cols();
     int32 nrows = interest.rows();
 
     // Find local extrema
-    // TODO: this really needs to be sped up
+    // TODO: speed up further?
     for (int32 j=IP_BORDER_WIDTH; j<nrows-IP_BORDER_WIDTH; j++) {   // row j
       for (int32 i=IP_BORDER_WIDTH; i<ncols-IP_BORDER_WIDTH; i++) { // col i
         // check if it is a local extremum
-        if (is_extremum(interest, i, j, type)) {
-          vw::vw_out(VerboseDebugMessage) << "Found a local max at [" << i << ", " << j
-                                          << "]" << "    Interest: " << interest(i,j) << "\n";
-          
-          InterestPoint pt;
-          pt.x = pt.ix = i;
-          pt.y = pt.iy = j;
-          pt.scale = 1.0;
-          pt.interest = interest(i,j);
-          interest_points.push_back( pt );
+        if (IsSpatialExtremum<DataT::peak_type>::check(interest, i, j)) {
+          interest_points.push_back(InterestPoint(i, j, 1.0, interest(i,j)));
         }
       } // col j
     } // row i
@@ -200,22 +258,23 @@ namespace ip {
   }
 
   /// Find spatial/scale peaks of some type in the image octave.
-  template <class T>
-  int find_peaks( std::vector<InterestPoint>& interest_points, 
-                  std::vector<ImageInterestData<T> >& data,
-                  const ImageOctave<T>& octave,
-                  PeakType type = IP_MAX) {
+  template <class DataT, class ViewT>
+  int find_peaks( KeypointList& interest_points, 
+                  std::vector<DataT> const& data,
+                  ImageOctave<ViewT> const& octave) {
     // Check that we have a few planes of corner response function
     // (interest) and that all planes are the same size.
-    assert( data.size() > 0 );
-    int32 ncols = data[0].interest.cols();
-    int32 nrows = data[0].interest.rows();
+    VW_ASSERT( !data.empty(), ArgumentErr() << "Data vector is empty.\n" );
+    int32 ncols = data[0].interest().cols();
+    int32 nrows = data[0].interest().rows();
     unsigned nplanes = data.size();
 
     // Make sure all planes are the same size
-    for (unsigned k=0; k<nplanes; k++){
-      assert( ncols == data[k].interest.cols() );
-      assert( nrows == data[k].interest.rows() );
+    for (unsigned k=0; k < nplanes; k++){
+      VW_ASSERT( ncols == data[k].interest().cols(),
+                 ArgumentErr() << "Planes must be the same size.\n" );
+      VW_ASSERT( nrows == data[k].interest().rows(),
+                 ArgumentErr() << "Planes must be the same size.\n" );
     }
     
     // In this implementation, we don't want to compare plane 0 to
@@ -226,21 +285,14 @@ namespace ip {
     // (x,y,scale)
 
     // Find local extrema
-    // TODO: this really needs to be sped up
-    for (unsigned k=1; k<nplanes-1; k++) {     // plane k
-      for (int32 j=IP_BORDER_WIDTH; j<nrows-IP_BORDER_WIDTH; j++) {   // row j
-        for (int32 i=IP_BORDER_WIDTH; i<ncols-IP_BORDER_WIDTH; i++) { // col i
+    // TODO: speed up further?
+    for (unsigned k = 1; k < nplanes-1; k++) {     // plane k
+      for (int32 j = IP_BORDER_WIDTH; j < nrows-IP_BORDER_WIDTH; j++) {   // row j
+        for (int32 i = IP_BORDER_WIDTH; i < ncols-IP_BORDER_WIDTH; i++) { // col i
           // check if it is a local extremum
-          if (is_extremum(data, i, j, k, type)) {
-            vw::vw_out(VerboseDebugMessage) << "Found a local max at [" << i << ", " << j
-                                            << ", " << k << "]" << "    Interest: "
-                                            << data[k].interest(i,j) << "\n";
-            InterestPoint pt;
-            pt.x = pt.ix = i;
-            pt.y = pt.iy = j;
-            pt.scale = octave.plane_index_to_scale(k);
-            pt.interest = data[k].interest(i,j);
-            interest_points.push_back( pt );
+          if (IsScaleExtremum<DataT::peak_type>::check(data, i, j, k)) {
+            interest_points.push_back(InterestPoint(i, j, octave.plane_index_to_scale(k),
+                                                    data[k].interest()(i,j)));
           }
         } // col j
       } // row i

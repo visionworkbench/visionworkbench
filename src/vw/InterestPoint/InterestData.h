@@ -28,9 +28,13 @@
 #ifndef __INTEREST_DATA_H__
 #define __INTEREST_DATA_H__
 
+#include <vw/InterestPoint/InterestTraits.h>
 #include <vw/Math/Vector.h>
-#include <vw/Image/Filter.h>
+#include <vw/Image.h>
+
 #include <vector>
+#include <list>
+#include <algorithm>
 
 namespace vw { 
 namespace ip {
@@ -38,10 +42,15 @@ namespace ip {
   /// A class for storing information about an interest point.
   struct InterestPoint {
 
-    /// subpixel (col,row) location of point
+    InterestPoint() {}
+
+    InterestPoint(int x, int y, float scale=1.0, float interest=0.0, float ori=0.0)
+      : x(x), y(y), ix(x), iy(y), scale(scale), interest(interest), orientation(ori) {}
+
+    /// Subpixel (col,row) location of point
     float x,y;
 
-    /// scale of point.  This may come from the pyramid level, from
+    /// Scale of point.  This may come from the pyramid level, from
     /// interpolating the interest function between levels, or from some
     /// other scale detector like the Laplace scale used by Mikolajczyk
     /// & Schmid
@@ -81,44 +90,93 @@ namespace ip {
     }
   };
 
-  int cull_interest_points(std::vector<InterestPoint> &points, int num_points = -1);
+  // Need to use list instead of vector for efficient thresholding.
+  typedef std::list<InterestPoint> KeypointList;
 
+  /// Sort points by interest, and optionally cull them beyond some number.
+  inline int cull_interest_points(KeypointList &points, int num_points = -1) {
+    points.sort();
+    if ((num_points >= 0) && (num_points < points.size()))
+      points.resize(num_points);
+    return points.size();
+  }
+
+  /// ImageInterestData
+  ///
   /// This struct encapsulates some basic and widely useful processed
-  /// versions of a source image: the horizontal and vertical gradients,
+  /// views of a source image: the horizontal and vertical gradients,
   /// the orientation image, the gradient magnitude image, and the
   /// interest image. This is useful to ensure that these images are
   /// not redundantly calculated by different steps of the feature
   /// detection algorithm.
-  template <class PixelT>
-  struct ImageInterestData {
-    ImageView<PixelT> src;
-    ImageView<PixelT> grad_x;
-    ImageView<PixelT> grad_y;
-    ImageView<PixelT> ori;
-    ImageView<PixelT> mag;
-    ImageView<PixelT> interest;
+  ///
+  /// The interest type is used to determine at compile-time which processed
+  /// views should be fully rasterized. For speed in feature detection, the
+  /// source type should be ImageView<T> or a simple manipulation of it. 
+  /// For memory efficiency, the source type should be ImageViewRef<T>.
+  ///
+  /// If some other sort of shared data is needed or any of the temporaries
+  /// should be calculated in a different fashion, ImageInterestData can be
+  /// partially specialized on InterestT.
+  // TODO: may be simpler to inherit from InterestTraits
+  template <class SrcT, class InterestT>
+  class ImageInterestData {
+  public:
+    /// The image types defined by InterestTraits control whether each processed
+    /// view is fully rasterized or not. Only those used in calculating each
+    /// pixel's interest measure should be fully rasterized. Later operations
+    /// (thresholding, orientation assignment, etc.) require at most support
+    /// regions around the interest points.
+    typedef SrcT source_type;
+    typedef InterestT interest_measure_type;
+    typedef typename SrcT::pixel_type pixel_type;
 
-    ImageInterestData() { }
+    typedef typename InterestTraits<SrcT, InterestT>::rasterize_type rasterize_type;
+    typedef typename InterestTraits<SrcT, InterestT>::gradient_type gradient_type;
+    typedef typename InterestTraits<SrcT, InterestT>::mag_type mag_type;
+    typedef typename InterestTraits<SrcT, InterestT>::ori_type ori_type;
+    typedef typename InterestTraits<SrcT, InterestT>::interest_type interest_type;
 
-    /// Constructor which sets the source image.
-    ImageInterestData(const ImageView<PixelT>& img) {
-      set_source(img);
+    static const int peak_type = InterestPeakType<InterestT>::peak_type;
+
+    /// Constructor which sets the source image and creates the processed views.
+    template <class ViewT>
+    ImageInterestData(ImageViewBase<ViewT> const& img) :
+      m_src(img.impl()),
+      m_grad_x(derivative_filter(m_src, 1, 0).impl()),
+      m_grad_y(derivative_filter(m_src, 0, 1).impl()),
+      m_mag(hypot(m_grad_x, m_grad_y).impl()),
+      m_ori(atan2(m_grad_y, m_grad_x).impl()),
+      m_interest(NULL) {}
+
+    ~ImageInterestData() { if (m_interest) delete m_interest; }
+
+    /// Accessors to immutable processed views.
+    inline source_type const& source() const { return m_src; }
+    inline gradient_type const& gradient_x() const { return m_grad_x; }
+    inline gradient_type const& gradient_y() const { return m_grad_y; }
+    inline mag_type const& magnitude() const { return m_mag; }
+    inline ori_type const& orientation() const { return m_ori; }
+
+    /// Accessors to mutable interest image.
+    inline interest_type& interest() { return *m_interest; }
+    inline interest_type const& interest() const { return *m_interest; }
+
+    template <class ViewT>
+    inline void set_interest(ImageViewBase<ViewT> const& interest) {
+      if (m_interest) delete m_interest;
+      m_interest = new interest_type(interest.impl());
     }
 
-    /// Set the source image and calculate the processed versions
-    /// (excepting the interest image).
-    void set_source(const ImageView<PixelT>& img) {
-      src = img;
-      grad_x = derivative_filter(src, 1, 0);
-      grad_y = derivative_filter(src, 0, 1);
-      ori = atan2(grad_y, grad_x);
-      mag = hypot(grad_x, grad_y);
-      interest.set_size(img.cols(), img.rows());
-    }
+  protected:
+    /// Cached processed data
+    source_type m_src;
+    gradient_type m_grad_x, m_grad_y;
+    mag_type m_mag;
+    ori_type m_ori;
+    interest_type *m_interest;
   };
 
-  /// Type(s) of peak in the interest image that indicate a feature.
-  enum PeakType { IP_MAX, IP_MIN, IP_MINMAX };
 
 }} // namespace vw::ip
 

@@ -65,7 +65,7 @@ namespace ip {
     }
 
     inline int cache_support(InterestPoint& pt,
-                 const source_type& source) {
+                             const source_type& source) {
       // Select level of Gaussian blur from scale.
       ImageInterestData<T> data = source.image_at_scale(pt.scale);
       // Get support regions, without performing any further rescaling.

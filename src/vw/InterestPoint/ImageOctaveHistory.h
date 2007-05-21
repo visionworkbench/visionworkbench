@@ -69,12 +69,13 @@ class ImageOctaveHistory : std::vector<std::vector<ImageT> > {
 
   /// Retrieve image data most closely matching a given scale.
   // TODO: the interface could be changed to be more forgiving.
-  const ImageT& image_at_scale(float scale) const {
+  ImageT const& image_at_scale(float scale) const {
     int octave = (int)(log(scale) / M_LN2);
     if (octave == octaves()) octave = octaves() - 1;
     VW_ASSERT( (octave >= 0) && (octave < octaves()) , ArgumentErr()
                << "ImageOctaveHistory::image_at_scale: No image matching scale.");
-    int plane = ImageOctave<float>::scale_to_plane_index(1 << octave, num_scales, scale);
+    // TODO: move this outside ImageOctave
+    int plane = ImageOctave<ImageT>::scale_to_plane_index(1 << octave, num_scales, scale);
     VW_ASSERT( (plane >= 0) && (plane < scales() + 2) , ArgumentErr()
                << "ImageOctaveHistory::image_at_scale: No image matching scale.");
     return (*this)[octave][plane];

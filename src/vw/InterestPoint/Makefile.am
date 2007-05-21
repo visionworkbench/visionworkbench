@@ -28,17 +28,19 @@
 if MAKE_MODULE_INTERESTPOINT
 
 include_HEADERS = Detector.h Descriptor.h Matcher.h RANSAC.h Extrema.h \
-                  Localize.h Interest.h WeightedHistogram.h ImageOctave.h \
+                  Localize.h InterestView.h WeightedHistogram.h ImageOctave.h \
                   InterestData.h Threshold.h ImageOctaveHistory.h \
-                  SIFT_Descriptor.h
+                  InterestTraits.h SIFT_Descriptor.h
 
-libvwInterestPoint_la_SOURCES = InterestData.cc
+libvwInterestPoint_la_SOURCES = 
 libvwInterestPoint_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
-libvwInterestPoint_la_LIBADD = @MODULE_MOSAIC_LDFLAGS@
+libvwInterestPoint_la_LIBADD = @MODULE_INTERESTPOINT_LDFLAGS@
 
 lib_LTLIBRARIES = libvwInterestPoint.la
 
-bin_PROGRAMS = 
+bin_PROGRAMS = match_pair
+match_pair_SOURCES = match_pair.cc
+match_pair_LDFLAGS = @PKG_INTERESTPOINT_LDFLAGS@
 
 endif
 

@@ -30,48 +30,78 @@
 
 #include <vw/InterestPoint/InterestData.h>
 
+// Lowe recommends 0.3, I'm having better luck with 0.03.
+#define DEFAULT_INTEREST_THRESHOLD (0.03)
+
 namespace vw {
 namespace ip {
 
   /// CRTP base class for thresholding interest points. Implementations
-  /// must define keep, which determines whether to keep or reject
+  /// must define operator(), which determines whether to keep or reject
   /// an interest point.
   template <class ImplT>
-  struct KeypointThresholdBase {
+  struct InterestThresholdBase {
     /// Returns the derived implementation type.
     ImplT& impl() { return *static_cast<ImplT*>(this); }
 
     /// Returns the derived implementation type.
     ImplT const& impl() const { return *static_cast<ImplT const*>(this); }
 
-    template <class T>
-    bool keep(const InterestPoint& pt,
-              const ImageInterestData<T>& data) {
-      return impl().keep(pt, data);
-    }
+    // To be defined by the implementation.
+    // template <class DataT>
+    // inline bool operator() (InterestPoint const& pt, DataT const& data) const;
   };
 
   /// Simple thresholding class which keeps interest points above some
   /// minimum interest.
-  template <class T>
-  class InterestThreshold : public KeypointThresholdBase<InterestThreshold<T> > {
+  template <int PeakT> struct InterestThreshold {};
+
+  /// Specialization for thresholding maxima.
+  template <> class InterestThreshold <IP_MAX> : public InterestThresholdBase<InterestThreshold<IP_MAX> > {
+  private:
+    float m_threshold;
+
   public:
-    T min_interest;
+    InterestThreshold(float min = DEFAULT_INTEREST_THRESHOLD) : m_threshold(min) {}
 
-    InterestThreshold(T min = 0) : min_interest(min) {}
+    template <class DataT>
+    inline bool operator() (InterestPoint const& pt, DataT const& data) const {
+      return (pt.interest > m_threshold);
+    }
+  };
 
-    bool keep(const InterestPoint& pt, const ImageInterestData<T>& data) {
-      return (pt.interest > min_interest);
+  /// Specialization for thresholding minima.
+  template <> class InterestThreshold <IP_MIN> : public InterestThresholdBase<InterestThreshold<IP_MIN> > {
+  private:
+    float m_threshold;
+
+  public:
+    InterestThreshold(float max = -DEFAULT_INTEREST_THRESHOLD) : m_threshold(max) {}
+
+    template <class DataT>
+    inline bool operator() (InterestPoint const& pt, DataT const& data) const {
+      return (pt.interest < m_threshold);
+    }
+  };
+
+  /// Specialization for thresholding both maxima and minima.
+  template <> class InterestThreshold <IP_MINMAX> : public InterestThresholdBase<InterestThreshold<IP_MINMAX> > {
+  private:
+    float m_threshold;
+
+  public:
+    InterestThreshold(float threshold = DEFAULT_INTEREST_THRESHOLD) : m_threshold(threshold) {}
+
+    template <class DataT>
+    inline bool operator() (InterestPoint const& pt, DataT const& data) const {
+      return (fabs(pt.interest) > m_threshold);
     }
   };
 
   // TODO: Better default thresholding options, like the Brown/Lowe approach?
   // This is tricky to decouple completely, as thresholding techniques can
-  // require data not directly encapsulated by ImageInterestData, like
-  // curvatures (from localization) and the Hessian matrix (which would be
-  // inefficient to recompute every time).
-  // Could change interface to operate on a vector of InterestPoints, but
-  // then the thresholder needs to understand scale spaces.
+  // require data not currently encapsulated by ImageInterestData, like
+  // curvatures (from localization) and the Hessian matrix.
 
 }} // namespace vw::ip
 

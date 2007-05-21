@@ -45,7 +45,7 @@ namespace ip {
 /// argument "maxdist" to provide early termination of computation if result will exceed maxdist.
 class L2NormMetric {
 public:
-  float operator() (const InterestPoint& ip1, const InterestPoint& ip2, float maxdist = DBL_MAX) const {
+  float operator() (InterestPoint const& ip1, InterestPoint const& ip2, float maxdist = DBL_MAX) const {
     float dist = 0.0;
     for (unsigned int i = 0; i < ip1.descriptor.size(); i++) {
       dist += pow((ip1.descriptor[i] - ip2.descriptor[i]),2);
@@ -59,7 +59,7 @@ public:
 /// argument "maxdist" to provide early termination of computation if result will exceed maxdist.
 class RelativeEntropyMetric {
 public:
-  float operator() (const InterestPoint& ip1, const InterestPoint& ip2, float maxdist = DBL_MAX) const {
+  float operator() (InterestPoint const& ip1, InterestPoint const& ip2, float maxdist = DBL_MAX) const {
     float dist = 0.0;
     for (unsigned int i = 0; i < ip1.descriptor.size(); i++) {
       //dist += ip1.descriptor[i] * log2f(ip1.descriptor[i]/ip2.descriptor[i]) ;
@@ -93,11 +93,14 @@ public:
 /// opposed to an empty vector, which indicates overly tight constraints.
 class NullConstraint {
 public:
-  std::vector<int> operator()( const InterestPoint& ip, const std::vector<InterestPoint>& candidates) const {
-    return std::vector<int>(1,-1);  // signals no constraint.
+  template <class ListT>
+  std::vector<typename ListT::const_iterator> operator()(InterestPoint const& ip, ListT const& candidates) const {
+    return std::vector<typename ListT::const_iterator>(1, candidates.end());  // signals no constraint.
   }
-  std::vector<int> inverse( const InterestPoint& ip, const std::vector<InterestPoint>& candidates) const {
-    return std::vector<int>(1,-1);  // signals no constraint.
+
+  template <class ListT>
+  std::vector<typename ListT::const_iterator> inverse(InterestPoint const& ip, ListT const& candidates) const {
+    return std::vector<typename ListT::const_iterator>(1, candidates.end());  // signals no constraint.
   }
 };
 
@@ -110,41 +113,46 @@ public:
   double ori_diff_max;
   
   ScaleOrientationConstraint(double srmin = 0.9, double srmax = 1.1, 
-                               double odmin = -0.1, double odmax = 0.1) {
+                             double odmin = -0.1, double odmax = 0.1) {
     scale_ratio_min = srmin;
     scale_ratio_max = srmax;
     ori_diff_min = odmin;
     ori_diff_max = odmax;
   }
   
-  std::vector<int> operator()(const InterestPoint& ip, const std::vector<InterestPoint>& candidates ) const {
+  template <class ListT>
+  std::vector<typename ListT::const_iterator> operator()(InterestPoint const& ip, ListT const& candidates ) const {
+    typedef typename ListT::const_iterator IterT;
 
-    std::vector<int> result;
+    std::vector<IterT> result;
     double sr, od;
-    for (unsigned int i = 0; i < candidates.size(); i++) {
-      sr = candidates[i].scale/ip.scale;
-      od = candidates[i].orientation - ip.orientation;
+    for (IterT i = candidates.begin(); i != candidates.end(); ++i) {
+      sr = (*i).scale / ip.scale;
+      od = (*i).orientation - ip.orientation;
       // Bring orientation delta (od) into range -M_PI to M_PI
       if (od < -M_PI) od += M_PI*2;
       else if (od > M_PI) od -= M_PI*2;
       
       if (sr >= scale_ratio_min && sr <= scale_ratio_max &&
-        od >= ori_diff_min && od <= ori_diff_max) {
+          od >= ori_diff_min && od <= ori_diff_max) {
         result.push_back(i);
       }
     }
     return result;
   }
 
-  std::vector<int> inverse(const InterestPoint& ip, const std::vector<InterestPoint>& candidates ) const {
-    std::vector<int> result;
+  template <class ListT>
+  std::vector<typename ListT::const_iterator> inverse(InterestPoint const& ip, ListT const& candidates ) const {
+    typedef typename ListT::const_iterator IterT;
+
+    std::vector<IterT> result;
     double sr, od;
-    for (unsigned int i = 0; i < candidates.size(); i++) {
-      sr = ip.scale/candidates[i].scale;
-      od = ip.orientation - candidates[i].orientation;      
+    for (IterT i = candidates.begin(); i != candidates.end(); ++i) {
+      sr = ip.scale / (*i).scale;
+      od = ip.orientation - (*i).orientation;      
       
-      if (sr >= scale_ratio_min && sr < scale_ratio_max &&
-        od >= ori_diff_min && od < ori_diff_max) {
+      if (sr >= scale_ratio_min && sr <= scale_ratio_max &&
+          od >= ori_diff_min && od <= ori_diff_max) {
         result.push_back(i);
       }
     }
@@ -167,25 +175,31 @@ public:
     min_x = _min_x; max_x = _max_x; min_y = _min_y; max_y = _max_y;
   }
   
-  std::vector<int> operator()(const InterestPoint& ip, const std::vector<InterestPoint>& candidates ) const {
-    std::vector<int> result;
+  template <class ListT>
+  std::vector<typename ListT::const_iterator> operator()(InterestPoint const& ip, ListT const& candidates ) const {
+    typedef typename ListT::const_iterator IterT;
+
+    std::vector<IterT> result;
     double dx, dy;
-    for (unsigned int i = 0; i < candidates.size(); i++) {
-      dx = candidates[i].x - ip.x;
-      dx = candidates[i].y - ip.y;
+    for (IterT i = candidates.begin(); i != candidates.end(); ++i) {
+      dx = (*i).x - ip.x;
+      dy = (*i).y - ip.y;
       if (dx >= min_x && dx < max_x && dy >= min_y && dy < max_y) {
         result.push_back(i);
       }
     }
     return result;
   }
-  
-  std::vector<int> inverse(const InterestPoint& ip, const std::vector<InterestPoint>& candidates ) const {
-    std::vector<int> result;
+
+  template <class ListT>
+  std::vector<typename ListT::const_iterator> inverse(InterestPoint const& ip, ListT const& candidates ) const {
+    typedef typename ListT::const_iterator IterT;
+
+    std::vector<IterT> result;
     double dx, dy;
-    for (unsigned int i = 0; i < candidates.size(); i++) {
-      dx = ip.x - candidates[i].x;
-      dx = ip.y - candidates[i].y;
+    for (IterT i = candidates.begin(); i != candidates.end(); ++i) {
+      dx = ip.x - (*i).x;
+      dy = ip.y - (*i).y;
       if (dx >= min_x && dx < max_x && dy >= min_y && dy < max_y) {
         result.push_back(i);
       }
@@ -211,23 +225,24 @@ public:
   /// Given two lists of keypoints, this routine returns the two lists
   /// of matching keypoints based on the Metric and Constraints
   /// provided by the user.
-  void match( std::vector<InterestPoint> const& ip1,
-              std::vector<InterestPoint> const& ip2,
-              std::vector<InterestPoint>& matched_ip1,
-              std::vector<InterestPoint>& matched_ip2,
+  template <class ListT, class MatchListT>
+  void match( ListT const& ip1, ListT const& ip2,
+              MatchListT& matched_ip1, MatchListT& matched_ip2,
               bool bidirectional = false) const {
+    typedef typename ListT::const_iterator IterT;
 
-    std::vector<int> index;
+    std::vector<IterT> index;
     if (bidirectional) 
       index = bimatch_index(ip1,ip2);
     else 
       index = match_index(ip1,ip2);
     
-    matched_ip1.resize(0); matched_ip2.resize(0);
-    for (unsigned int i = 0; i < index.size(); i++) {
-      if (index[i] >= 0) {
-        matched_ip1.push_back(ip1[i]);
-        matched_ip2.push_back(ip2[index[i]]);
+    matched_ip1.clear(); matched_ip2.clear();
+    IterT ip1_iter = ip1.begin();
+    for (unsigned int i = 0; i < index.size(); ++i, ++ip1_iter) {
+      if ( index[i] != ip2.end() ) {
+        matched_ip1.push_back(*ip1_iter);
+        matched_ip2.push_back(*(index[i]));
       }
     }
   }
@@ -237,16 +252,19 @@ private:
   /// Usage: indx = matchindx(ip1,ip2) means that 
   ///     ip1[i] has no match in ip2  indx v[i] == -1
   ///     otherwise, ip2[indx[i]] is best match to ip[i]. 
-  std::vector<int> match_index(std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2) const
-  {
-    std::vector<int> indx(ip1.size(),-1);
+  template <class ListT>
+  std::vector<typename ListT::const_iterator> match_index(ListT const& ip1, ListT const& ip2) const {
+    typedef typename ListT::const_iterator IterT;
+
+    std::vector<IterT> indx(ip1.size(), ip2.end());
     int progress_inc = ip1.size() / 10;
     vw_out(InfoMessage) << "\tFinding keypoint matches" << std::flush;
-    for (unsigned int i=0; i<ip1.size(); i++) {
-      if (i % progress_inc == 0)
+    int n = 0;
+    for (IterT ip1_i = ip1.begin(); ip1_i != ip1.end(); ++ip1_i, ++n) {
+      if (n % progress_inc == 0)
         vw_out(InfoMessage) << "." << std::flush;
-      std::vector<int> candidates = constraint(ip1[i], ip2);
-      indx[i] = best_match(ip1[i], ip2, candidates);
+      std::vector<IterT> candidates = constraint(*ip1_i, ip2);
+      indx[n] = best_match(*ip1_i, ip2, candidates);
     }
     vw_out(InfoMessage) << " done.\n";
     
@@ -258,23 +276,29 @@ private:
   /// Usage: indx = matchindx(ip1,ip2) means that 
   ///     ip1[i] has no match in ip2  indx v[i] == -1
   ///     otherwise, ip2[indx[i]] is best match to ip[i] AND ip[i] is best match to ip2[indx[i]].
-  std::vector<int> bimatch_index(std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2) const
-  {
-    std::vector<int> indx12 = match_index(ip1,ip2);   // FIXME: use pthreads to create seperate thread for this, to run in
-                                                    // parallel with computation of indx21 (both readonly access to ip1, ip2).
+  template <class ListT>
+  std::vector<typename ListT::const_iterator> bimatch_index(ListT const& ip1, ListT const& ip2) const {
+    typedef typename ListT::const_iterator IterT;
+
+    std::vector<IterT> indx12 = match_index(ip1,ip2);
+    // FIXME: use pthreads to create separate thread for this, to run in
+    // parallel with computation of indx21 (both readonly access to ip1, ip2).
     
     //std::vector<int> indx21 = match_index(ip2, ip1);
-    std::vector<int> indx21(ip2.size(),-1);       // Cannot repeat call to matchindx, since need to use inverse constraints.
-    for (unsigned int i=0; i<ip2.size(); i++) 
-    {
-      std::vector<int> candidates = constraint.inverse(ip2[i], ip1);
-      indx21[i] = best_match(ip2[i], ip1, candidates);
+    std::vector<IterT> indx21(ip2.size(), ip1.end());       // Cannot repeat call to matchindx, since need to use inverse constraints.
+    int n = 0;
+    for (IterT ip2_i = ip2.begin(); ip2_i != ip2.end(); ++ip2_i, ++n) {
+      std::vector<IterT> candidates = constraint.inverse(*ip2_i, ip1);
+      indx21[n] = best_match(*ip2_i, ip1, candidates);
     }
-    
-    for (unsigned int i=0; i<indx12.size(); i++) 
-      if ( indx12[i] < 0 || indx21[indx12[i]] < 0 || indx21[indx12[i]] != i)
-        indx12[i] = -1; 
-    
+
+    // TODO: Well, I broke this. Save n's in 2nd loop above? (PM)
+    /*
+    for (unsigned int i = 0; i < indx12.size(); ++i)
+      if ( indx12[i] == ip2.end() || indx21[indx12[i]] == ip1.end() || indx21[indx12[i]] != i )
+        indx12[i] = ip2.end();
+    */
+
     return indx12;
   };
 
@@ -282,31 +306,35 @@ private:
   // If candidate_indices is provided, only the subset of candidates will 
   // be compared.  Returns the index of the best match or -1 if no suitable 
   // match can be found.
-  int best_match(InterestPoint const& query, std::vector<InterestPoint> const& interest_points, 
-                 std::vector<int> const& candidate_indices = std::vector<int>()) const {
+  template <class ListT>
+  typename ListT::const_iterator
+  best_match(InterestPoint const& query, ListT const& interest_points, 
+             std::vector<typename ListT::const_iterator> const&
+             candidate_indices = std::vector<typename ListT::const_iterator>()) const {
+    typedef typename ListT::const_iterator IterT;
     float dist = 0.0, dist0 = FLT_MAX, dist1 = FLT_MAX;
-    int best_match = 0;
+    IterT best_match = interest_points.end();
     
     // An empty candidates vector indicates that we should search all of interest_points.
-    if (candidate_indices.empty()) return -1;
-    if (candidate_indices[0] == -1) {
+    if (candidate_indices.empty()) return interest_points.end();
+    if (candidate_indices[0] == interest_points.end()) {
 
       // find closest in FULL SET of interest_points
-      for (unsigned int i = 0; i < interest_points.size(); i++) {
-        dist = distance_metric(query, interest_points[i], dist1);
+      for (IterT i = interest_points.begin(); i != interest_points.end(); ++i) {
+        dist = distance_metric(query, *i, dist1);
         if (dist < dist0) {
           dist1 = dist0;
           dist0 = dist;
           best_match = i;
         }
         else if (dist < dist1) dist1 = dist;
-      }     
+      }
 
     } else {
 
       // find closest in entire SUBSET of ip2
       for (unsigned int i = 0; i < candidate_indices.size(); i++) {
-        dist = distance_metric(query, interest_points[candidate_indices[i]], dist1);
+        dist = distance_metric(query, *(candidate_indices[i]), dist1);
         if (dist < dist0) {
           dist1 = dist0;
           dist0 = dist;
@@ -320,13 +348,13 @@ private:
     if (dist0 < threshold * dist1)
       return best_match;
     else
-      return -1;
+      return interest_points.end();
   }
 
 };
   
 //////////////////////////////////////////////////////////////////////////////
-// Convencience Typedefs
+// Convenience Typedefs
 typedef InterestPointMatcher< L2NormMetric, NullConstraint > DefaultMatcher;
 typedef InterestPointMatcher< L2NormMetric, ScaleOrientationConstraint > ConstraintedMatcher;
 

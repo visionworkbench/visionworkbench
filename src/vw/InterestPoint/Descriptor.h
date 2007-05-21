@@ -32,6 +32,7 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/BBox.h>
 #include <vw/Image/Transform.h>
+#include <vw/Image/ImageViewRef.h>
 #include <vw/InterestPoint/ImageOctave.h>
 #include <vw/InterestPoint/InterestData.h>
 
@@ -54,11 +55,11 @@ namespace ip {
 
   /// Select only the interest points that fall within the specified bounding box.
   template <class RealT>
-  std::vector<InterestPoint> crop(std::vector<InterestPoint> const& interest_points, BBox<RealT,2> const& bbox) {
-    std::vector<InterestPoint> return_val;
-    for (int i = 0; i < interest_points.size(); ++i) {
-      if (bbox.contains(Vector<RealT,2>(RealT(interest_points[i].x), RealT(interest_points[i].y))))
-        return_val.push_back(interest_points[i]);
+  KeypointList crop(KeypointList const& interest_points, BBox<RealT,2> const& bbox) {
+    KeypointList return_val;
+    for (KeypointList::iterator i = interest_points.begin(); i != interest_points.end(); ++i) {
+      if (bbox.contains(Vector<RealT,2>(RealT((*i).x), RealT((*i).y))))
+        return_val.push_back(*i);
     }
     return return_val;
   }
@@ -69,39 +70,35 @@ namespace ip {
   /// rescaled by the scale factor and rotated by the specified
   /// angle.
   /// transform takes care of interpolation and edge extension.
-  template <class T>
-  int inline get_support( ImageView<T>& support,
-                          float x, float y, float scale, float ori,
-                          const ImageView<T>& source, int size=SUPPORT_SIZE ) {
+  template <class ViewT>
+  inline ImageView<typename ViewT::pixel_type>
+  get_support( float x, float y, float scale, float ori,
+               ImageViewBase<ViewT> const& source, int size=SUPPORT_SIZE ) {
     float half_size = ((float)(size - 1)) / 2.0f;
     float scaling = 1.0f / scale;
     // This is mystifying - why won't the four-arg compose work?
-    support = transform(source,
-                        compose(TranslateTransform(half_size, half_size),
-                        compose(ResampleTransform(scaling, scaling),
-                                RotateTransform(-ori),
-                                TranslateTransform(-x, -y))),
-                        size, size);
-
-    return 0;
+    return transform(source.impl(),
+                     compose(TranslateTransform(half_size, half_size),
+                     compose(ResampleTransform(scaling, scaling),
+                             RotateTransform(-ori),
+                             TranslateTransform(-x, -y))),
+                     size, size);
   }
 
   /// Get the support region around an interest point, scaled and
   /// rotated appropriately.
-  template <class T>
-  int inline get_support( ImageView<T>& support,
-                          const InterestPoint& pt,
-                          const ImageView<T>& source,
-                          int size=SUPPORT_SIZE ) {
-    return get_support(support, pt.x, pt.y, pt.scale,
-                       pt.orientation, source, size);
+  template <class ViewT>
+  inline ImageView<typename ViewT::pixel_type>
+  get_support( InterestPoint const& pt, ImageViewBase<ViewT> const& source,
+               int size=SUPPORT_SIZE ) {
+    return get_support(pt.x, pt.y, pt.scale, pt.orientation, source.impl(), size);
   }
 
   /// CRTP base class for descriptor generating methods.
   /// A descriptor generator subclass can easily be created by
   /// implementing cache_support and compute_descriptor_from_support,
   /// or compute_descriptors can be reimplemented entirely.
-  template <class ImplT, class SourceT>
+  template <class ImplT>
   struct DescriptorBase {
     /// Returns the derived implementation type.
     ImplT& impl() { return *static_cast<ImplT*>(this); }
@@ -111,52 +108,37 @@ namespace ip {
 
     /// Compute descriptors for a set of interest points from the given
     /// source (an image or set of images).
-    int compute_descriptors( std::vector<InterestPoint>& points,
-                             SourceT const& source ) const {
-      for (int i = 0; i < points.size(); i++) {
-        impl().cache_support(points[i], source );
-        impl().compute_descriptor_from_support(points[i]);
+    inline void compute_descriptors( KeypointList& points ) const {
+      for (KeypointList::iterator i = points.begin(); i != points.end(); ++i) {
+        impl()(*i);
       }
-      return 0;
     }
   };
-
-  /// Generate descriptors for the set of interest points using the
-  /// given source data and descriptor generator.
-  template <class DescriptorT, class SourceT>
-  int generate_descriptors(std::vector<InterestPoint>& points,
-                           SourceT const& source,
-                           DescriptorBase<DescriptorT, SourceT> const& desc_gen) {
-    return desc_gen.impl().compute_descriptors(points, source);
-  }
 
   /// A basic example descriptor class. The descriptor for an interest
   /// point is the support region around the point. It is normalized
   /// to provide some tolerance to changes in illumination.
-  template <class T>
-  class PatchDescriptor : public DescriptorBase<PatchDescriptor<T>, ImageView<T> >
+  template <class PixelT = float>
+  class PatchDescriptor : public DescriptorBase<PatchDescriptor<PixelT> >
   {
-    mutable ImageView<T> support;
+    ImageViewRef<PixelT> m_source;
 
   public:
-    typedef T real_type;
-    typedef ImageView<T> source_type;
+    template <class ViewT>
+    PatchDescriptor(ImageViewBase<ViewT> const& source) : m_source(source.impl()) {}
 
-    inline int cache_support(InterestPoint& pt,
-                             const ImageView<T>& source) const {
-      return vw::ip::get_support(support, pt, source); // 41x41
-    }
+    void operator() (InterestPoint& pt) const {
+      ImageView<PixelT> support = get_support(pt, m_source);
 
-    int compute_descriptor_from_support(InterestPoint& pt) const {
       pt.descriptor.set_size(SUPPORT_SIZE * SUPPORT_SIZE);
       for (int i = 0; i < SUPPORT_SIZE; i++)
         for (int j = 0; j < SUPPORT_SIZE; j++)
           pt.descriptor(i*SUPPORT_SIZE + j) = support(i,j);
       pt.descriptor = normalize(pt.descriptor);
-
-      return 0;
     }
   };
+
+  // TODO: assign_patch_descriptors convenience
 
 }} // namespace vw::ip
 

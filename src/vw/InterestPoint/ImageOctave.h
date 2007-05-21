@@ -39,6 +39,9 @@
 #include <vector>
 #include <iostream>
 
+// Boost
+#include <boost/static_assert.hpp>
+
 // Magic numbers used by Lowe.  Learn these parameters?
 #define INITIAL_SIGMA (1.6)
 #define CAMERA_SIGMA (0.5)
@@ -56,21 +59,25 @@ namespace vw { namespace ip {
 /// (x,y,s) directions, it constructs one plane above and one plane
 /// below the octave. If the scale ratio is 2^(1/P), the octave
 /// contains P+2 planes.
-template <class PixelT>
+template <class ViewT = ImageView<float> >
 class ImageOctave {
+  BOOST_STATIC_ASSERT(IsImageView<ViewT>::value);
+
 public:
-  int base_scale;        // initially = 1, then doubles every build_next()
-  int scales_per_octave; // P, where scale ratio = 2^(1/P)
-  int num_planes;        // Number of planes (P+2) for ratio of 2^(1/P)
-  float init_sigma;      // Initial sigma to apply to base level image
-  float sigma_ratio;     // Ratio of sigmas between levels:
-  std::vector<float> sigma;   // sigmas corresponding to scales
-  std::vector< ImageView<PixelT> > scales; // Scaled images in the octave
+  typedef ViewT scale_type;
+
+  int base_scale;            // initially = 1, then doubles every build_next()
+  int scales_per_octave;     // P, where scale ratio = 2^(1/P)
+  int num_planes;            // Number of planes (P+2) for ratio of 2^(1/P)
+  float init_sigma;          // Initial sigma to apply to base level image
+  float sigma_ratio;         // Ratio of sigmas between levels:
+  std::vector<float> sigma;  // Sigmas corresponding to scales
+  std::vector<ViewT> scales; // Scaled images in the octave
 
   /// This constructor is intended for building the first octave from a
   /// source image.
-  template <class Tin>
-  ImageOctave( const ImageView<Tin>& src_im, int numscales) {
+  template <class ViewT_in>
+  ImageOctave( ImageViewBase<ViewT_in> const& src_im, int numscales) {
     base_scale = 1;
     set_scales( numscales );
     
@@ -119,22 +126,17 @@ public:
 
   /// Build image octave using designated source image.  The number of
   /// scales and the sigmas should already be computed.
-  // TODO: no big deal, but this could be done a little more efficiently
-  template <class Tin>
-  int build_using( const ImageView<Tin>& src_im )
-  {
+  // TODO: Use supersampled view as the first scale
+  // TODO: this could be done a little more efficiently
+  template <class ViewT_in>
+  int build_using(ImageViewBase<ViewT_in> const& src_im ) {
     // Construct enough image plane containers for the number of
     // scales in the octave
-    scales.resize(num_planes);
-    for (int p=0; p<num_planes; p++){
-      scales[p].set_size( src_im.cols(), src_im.rows(), 1 );
-    }
+    scales.clear();
+    scales.reserve(num_planes);
     
-    // First plane is the source image
-    scales[0] = pixel_cast<PixelT>(src_im);
-    
-    // Blur images.  Assume some sigma for the first one.
-    vw::vw_out(VerboseDebugMessage) << "assuming camera_sigma " << CAMERA_SIGMA 
+    // Scales constructed by blurring.  Assume some sigma for the first one.
+    vw::vw_out(VerboseDebugMessage) << "\tAssuming camera_sigma " << CAMERA_SIGMA 
                                     << std::endl;
     float camera_sigma = CAMERA_SIGMA;
 
@@ -142,22 +144,23 @@ public:
     // plane.  With repeated Gaussian blurring, the sigmas add in
     // quadrature, so a few smaller kernels in succession can produce
     // the output of a larger kernel with fewer operations.
-    float use_sigma;
     if (sigma[0]>camera_sigma){
-      use_sigma = sqrt( sigma[0]*sigma[0] - camera_sigma*camera_sigma );
-      vw::vw_out(VerboseDebugMessage) << "making plane " << 0 << " using sigma "
+      float use_sigma = sqrt( sigma[0]*sigma[0] - camera_sigma*camera_sigma );
+      vw::vw_out(VerboseDebugMessage) << "\tMaking plane " << 0 << " using sigma "
                                       << use_sigma << " so final sigma is "
                                       << sigma[0] << std::endl;
-      scales[0] = vw::gaussian_filter(scales[0], use_sigma);
+      scales.push_back(ViewT(vw::gaussian_filter(src_im, use_sigma)));
+    } else {
+      scales.push_back(ViewT(src_im.impl()));
     }
 
     // Each next plane is blurred version of the previous
     for (int i=1; i<num_planes; i++){
-      use_sigma = sqrt( sigma[i]*sigma[i] - sigma[i-1]*sigma[i-1] );
-      vw::vw_out(VerboseDebugMessage) << "making plane " << i << " using sigma "
+      float use_sigma = sqrt( sigma[i]*sigma[i] - sigma[i-1]*sigma[i-1] );
+      vw::vw_out(VerboseDebugMessage) << "\tMaking plane " << i << " using sigma "
                                       << use_sigma << " so final sigma is "
                                       << sigma[i] << std::endl;
-      scales[i] = vw::gaussian_filter(scales[i-1], use_sigma);
+      scales.push_back(ViewT(vw::gaussian_filter(scales[i-1], use_sigma)));
     }
     
     return 0;
@@ -165,8 +168,7 @@ public:
 
   /// Build the next octave using the current one.  The number of
   /// scales and the sigmas should already be computed.
-  int build_next()
-  {
+  int build_next() {
     // Keep track of base scale.  For the first octave, it is 1.  Each
     // build_next() call multiplies it by two.  This number multiplied
     // by the sigma for each plane is the scale relative to the
@@ -185,20 +187,20 @@ public:
     // the new octave, and the rest are built by successive blurring
     // operations.
     int source_for_new_0 = num_planes-2;
-    scales[0] = vw::subsample(scales[source_for_new_0], 2);
+    scales[0] = ViewT(vw::subsample(scales[source_for_new_0], 2));
 
     // Plane 1 is also the subsampled plane #(N-1)
     int source_for_new_1 = num_planes-1;
-    scales[1] = vw::subsample(scales[source_for_new_1], 2);
+    scales[1] = ViewT(vw::subsample(scales[source_for_new_1], 2));
 
     // Now the rest (#2 and up) are blurred versions as before
     float use_sigma;
     for (int k=2; k<num_planes; k++){
       use_sigma = sqrt( sigma[k]*sigma[k] - sigma[k-1]*sigma[k-1] );
-      vw::vw_out(VerboseDebugMessage) << "making plane " << k << " using sigma "
+      vw::vw_out(VerboseDebugMessage) << "\tMaking plane " << k << " using sigma "
                                       << use_sigma << " so final sigma is "
                                       << sigma[k] << std::endl;
-      scales[k] = vw::gaussian_filter(scales[k-1], use_sigma);
+      scales[k] = ViewT(vw::gaussian_filter(scales[k-1], use_sigma));
     }
     
     return 0;
