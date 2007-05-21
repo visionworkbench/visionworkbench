@@ -62,7 +62,9 @@ public:
   float operator() (const InterestPoint& ip1, const InterestPoint& ip2, float maxdist = DBL_MAX) const {
     float dist = 0.0;
     for (unsigned int i = 0; i < ip1.descriptor.size(); i++) {
-      dist += ip1.descriptor[i] * log2f(ip1.descriptor[i]/ip2.descriptor[i]) ;
+      //dist += ip1.descriptor[i] * log2f(ip1.descriptor[i]/ip2.descriptor[i]) ;
+      // log2(x) = log(x)/log(2);  MSVC 8 does not have log2
+      dist += ip1.descriptor[i] * logf(ip1.descriptor[i]/ip2.descriptor[i])/logf(2.) ;
       if (dist > maxdist) break;  // abort calculation if distance exceeds upper bound
     }
     return dist;
@@ -122,9 +124,12 @@ public:
     for (unsigned int i = 0; i < candidates.size(); i++) {
       sr = candidates[i].scale/ip.scale;
       od = candidates[i].orientation - ip.orientation;
+      // Bring orientation delta (od) into range -M_PI to M_PI
+      if (od < -M_PI) od += M_PI*2;
+      else if (od > M_PI) od -= M_PI*2;
       
-      if (sr >= scale_ratio_min && sr < scale_ratio_max &&
-        od >= ori_diff_min && od < ori_diff_max) {
+      if (sr >= scale_ratio_min && sr <= scale_ratio_max &&
+        od >= ori_diff_min && od <= ori_diff_max) {
         result.push_back(i);
       }
     }
@@ -279,8 +284,7 @@ private:
   // match can be found.
   int best_match(InterestPoint const& query, std::vector<InterestPoint> const& interest_points, 
                  std::vector<int> const& candidate_indices = std::vector<int>()) const {
-    
-    float dist = 0.0, dist0 = DBL_MAX, dist1 = DBL_MAX;
+    float dist = 0.0, dist0 = FLT_MAX, dist1 = FLT_MAX;
     int best_match = 0;
     
     // An empty candidates vector indicates that we should search all of interest_points.
