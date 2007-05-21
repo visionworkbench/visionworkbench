@@ -32,8 +32,11 @@
 #ifndef __VW_MATH_LINEAR_ALGEBRA_H__
 #define __VW_MATH_LINEAR_ALGEBRA_H__
 
+#include <vector>
+
 #include <vw/config.h>
 #include <vw/Core/Exception.h>
+#include <vw/Math/Matrix.h>
 
 namespace vw {
 /// Numerical linear algebra and computational geometry.
@@ -75,8 +78,8 @@ namespace math {
     int lwork = -1, info;
     geev('N','N',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, &work_size, lwork, &info);
     lwork = int(work_size);
-    real_type work[lwork];
-    geev('N','N',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, work, lwork, &info);
+    std::vector<real_type> work( lwork );
+    geev('N','N',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, &work[0], lwork, &info);
     if (info < 0) 
       vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev reported an error with argument " << -info << "." );
     if (info > 0) 
@@ -106,8 +109,8 @@ namespace math {
     int n = A.cols(), lwork = -1, info;
     geev('N','V',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, &(Vbuf(0,0)), ldvr, &work_size, lwork, &info);
     lwork = int(work_size);
-    real_type work[lwork];
-    geev('N','V',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, &(Vbuf(0,0)), ldvr, work, lwork, &info);
+    std::vector<real_type> work( lwork );
+    geev('N','V',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, &(Vbuf(0,0)), ldvr, &work[0], lwork, &info);
     if (info < 0) 
       vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev reported an error with argument " << -info << "." );
     if (info > 0) 
@@ -159,11 +162,12 @@ namespace math {
     Matrix<real_type> Abuf = transpose(A);
     Vector<real_type> sbuf( minmn );
     real_type work_size;
-    int lwork = -1, iwork[ 8*minmn ], info;
-    gesdd('N', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), NULL, 1, NULL, 1, &work_size, lwork, iwork, &info);
+    int lwork = -1, info;
+    std::vector iwork( 8*minmn );
+    gesdd('N', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), NULL, 1, NULL, 1, &work_size, lwork, &iwork[0], &info);
     lwork = int(work_size);
-    real_type work[lwork];
-    gesdd('N', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), NULL, 1, NULL, 1, work, lwork, iwork, &info);
+    std::vector<real_type> work( lwork );
+    gesdd('N', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), NULL, 1, NULL, 1, &work[0], lwork, &iwork[0], &info);
     if (info < 0) 
       vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << "." );
     if (info > 0) 
@@ -188,12 +192,13 @@ namespace math {
     Matrix<real_type> VTbuf( A.cols(), minmn );
     Vector<real_type> sbuf( minmn );
     real_type work_size;
-    int lwork = -1, iwork[ 8*minmn ], info;
+    int lwork = -1, info;
+    std::vector<int> iwork( 8*minmn );
     int ldu = m, ldvt = minmn;
-    gesdd('S', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work_size, lwork, iwork, &info);
+    gesdd('S', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work_size, lwork, &iwork[0], &info);
     lwork = int(work_size);
-    real_type work[lwork];
-    gesdd('S', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, work, lwork, iwork, &info);
+    std::vector<real_type> work( lwork );
+    gesdd('S', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work[0], lwork, &iwork[0], &info);
     if (info < 0) 
       vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << "." );
     if (info > 0) 
@@ -222,12 +227,13 @@ namespace math {
     Matrix<real_type> VTbuf( A.cols(), A.cols() );
     Vector<real_type> sbuf( minmn );
     real_type work_size;
-    int lwork = -1, iwork[ 8*minmn ], info;
+    int lwork = -1, info;
+    std::vector<int> iwork( 8*minmn ); 
     int ldu = m, ldvt = n;
-    gesdd('A', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work_size, lwork, iwork, &info);
+    gesdd('A', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work_size, lwork, &iwork[0], &info);
     lwork = int(work_size);
-    real_type work[lwork];
-    gesdd('A', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, work, lwork, iwork, &info);
+    std::vector<real_type> work( lwork );
+    gesdd('A', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work[0], lwork, &iwork[0], &info);
     if (info < 0) 
       vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << "." );
     if (info > 0) 
@@ -286,19 +292,16 @@ namespace math {
     Vector<real_type> Bbuf(maxmn);
     subvector(Bbuf,0,m) = B;
     const int nrhs = 1, lda = A.rows(), ldb = maxmn;
-    real_type *s = new real_type[minmn];
+    std::vector<real_type> s( minmn );
     real_type const rcond = cond;
     int rank, lwork = -1, info;
-    int *iwork = new int[ (3*int(log(minmn+1.)/log(2.))+11)*minmn ]; // log2(x) = log(x)/log(2)
+    std::vector<int> iwork( (3*int(log(minmn+1.)/log(2.))+11)*minmn ); // log2(x) = log(x)/log(2)
     real_type work_size;
-    gelsd( m, n, nrhs, &(Abuf(0,0)), lda, &(Bbuf(0)), ldb, s, rcond, &rank, &work_size, lwork, iwork, &info );
+    gelsd( m, n, nrhs, &(Abuf(0,0)), lda, &(Bbuf(0)), ldb, &s[0], rcond, &rank, &work_size, lwork, &iwork[0], &info );
     lwork = int(work_size);
-    real_type *work= new real_type[lwork];
-    gelsd( m, n, nrhs, &(Abuf(0,0)), lda, &(Bbuf(0)), ldb, s, rcond, &rank, work, lwork, iwork, &info );
+    std::vector<real_type> work( lwork );
+    gelsd( m, n, nrhs, &(Abuf(0,0)), lda, &(Bbuf(0)), ldb, &s[0], rcond, &rank, &work[0], lwork, &iwork[0], &info );
     Bbuf.set_size(n,true);
-    delete[] s;
-    delete[] iwork;
-    delete[] work;
     return Bbuf;
   }
 
