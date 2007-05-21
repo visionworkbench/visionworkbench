@@ -37,7 +37,7 @@
 //!   Conjugation and inverse via conj() and inverse()
 //!   exp, sin, cos, tan, sinh, cosh, tanh, and pow with integer powers
 //!   Norms via norm_1(), norm_2(), and norm_inf()
-//!   Extration of real and imaginary-vector parts via real() and imag()
+//!   Extraction of real and imaginary-vector parts via real() and imag()
 //!
 #ifndef __VW_QUATERNION_H__
 #define __VW_QUATERNION_H__
