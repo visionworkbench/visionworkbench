@@ -140,9 +140,11 @@ namespace vw {
 
   private:
     void parse_pds_header(std::vector<std::string> const& header);
+    PixelFormatEnum planes_to_pixel_format(int32 planes) const;
     std::map<std::string, std::string> m_header_entries;
     int m_image_data_offset;
     bool m_invalid_as_alpha;
+    enum { BAND_SEQUENTIAL, SAMPLE_INTERLEAVED, LINE_INTERLEAVED } m_band_storage;
   };
 
 } // namespace vw

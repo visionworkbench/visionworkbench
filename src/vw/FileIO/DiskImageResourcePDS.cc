@@ -68,6 +68,16 @@ void vw::DiskImageResourcePDS::parse_pds_header(std::vector<std::string> const& 
   }
 }
 
+vw::PixelFormatEnum vw::DiskImageResourcePDS::planes_to_pixel_format(int32 planes) const {
+  switch( planes ) {
+  case 1:  return VW_PIXEL_GRAY;   break;
+  case 2:  return VW_PIXEL_GRAYA;  break;
+  case 3:  return VW_PIXEL_RGB;    break;
+  case 4:  return VW_PIXEL_RGBA;   break;
+  }
+  return VW_PIXEL_SCALAR; 
+}
+
 /// Bind the resource to a file for reading.  Confirm that we can open
 /// the file and that it has a sane pixel format.  
 void vw::DiskImageResourcePDS::open( std::string const& filename ) {
@@ -124,12 +134,26 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   keys.push_back("/IMAGE/BANDS");
   if( query( keys, value ) ) {
     m_format.planes = atol(value.c_str());
-  }
-  else {
+  } else {
     m_format.planes = 1;
   }
   
-  // pixel type
+  // Band storage type (if not specified, we assume interleaved samples)
+  keys.clear();
+  keys.push_back("BAND_STORAGE_TYPE");
+  if ( query( keys, value ) ) {
+    if ( value == "SAMPLE_INTERLEAVED" ) {
+      m_band_storage = SAMPLE_INTERLEAVED;
+    } else if ( value == "BAND_SEQUENTIAL" ) {
+      m_band_storage = BAND_SEQUENTIAL;
+    } else {
+      vw_throw( NoImplErr() << "DiskImageResourcePDS: unsupported band storage type " << value );
+    }
+  } else {
+    m_band_storage = SAMPLE_INTERLEAVED;
+  }
+
+  // Channel type
   keys.clear();
   keys.push_back("SAMPLE_TYPE");
   std::string format_str;
@@ -149,23 +173,31 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   m_image_data_offset = atol(value.c_str());
     
   keys.clear();
-  keys.push_back("LABEL_RECORDS");
-  if( query( keys, value ) ) {
-    m_image_data_offset *= atol(value.c_str());
+  keys.push_back("^IMAGE");
+  if ( query( keys, value ) ) {
+    m_image_data_offset *= atol(value.c_str()) - 1;
+  } else {
+    keys.clear();
+    keys.push_back("LABEL_RECORDS");
+    if( query( keys, value ) ) {
+      m_image_data_offset *= atol(value.c_str());
+    }
   }
 
   if( ! valid ) {
     vw_throw( IOErr() << "DiskImageResourcePDS: could not find critical information in the image header." );
   }
 
-  if (format_str == "UNSIGNED_INTEGER") {
+  if (format_str == "UNSIGNED_INTEGER" ||
+      format_str == "MSB_UNSIGNED_INTEGER") {
     
     if (sample_bits_str == "8") 
       m_format.channel_type = VW_CHANNEL_UINT8; 
     else if (sample_bits_str == "16") 
       m_format.channel_type = VW_CHANNEL_UINT16; 
     
-  } else if (format_str == "MSB_INTEGER") {
+  } else if (format_str == "INTEGER" ||
+             format_str == "MSB_INTEGER") {
     
     if (sample_bits_str == "8") 
       m_format.channel_type = VW_CHANNEL_INT8; 
@@ -176,12 +208,12 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
     vw_throw( IOErr() << "DiskImageResourcePDS: Unsupported pixel type in \"" << filename << "\"." );
   }
   
-  switch( m_format.planes ) {
-  case 1:  m_format.pixel_format = VW_PIXEL_GRAY;   break;
-  case 2:  m_format.pixel_format = VW_PIXEL_GRAYA;  m_format.planes=1; break;
-  case 3:  m_format.pixel_format = VW_PIXEL_RGB;    m_format.planes=1; break;
-  case 4:  m_format.pixel_format = VW_PIXEL_RGBA;   m_format.planes=1; break;
-  default: m_format.pixel_format = VW_PIXEL_SCALAR; break;
+  // Match buffer format to band storage type
+  if (m_band_storage == SAMPLE_INTERLEAVED) {
+    m_format.pixel_format = planes_to_pixel_format(m_format.planes);
+    if (m_format.pixel_format != VW_PIXEL_SCALAR) m_format.planes = 1;
+  } else if (m_band_storage == BAND_SEQUENTIAL) {
+    m_format.pixel_format = VW_PIXEL_SCALAR;
   }
 
   vw_out(VerboseDebugMessage)
@@ -221,6 +253,7 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
                 m_format.channel_type == VW_CHANNEL_INT8 ) ) {
     vw_throw( IOErr() << "DiskImageResourcePDS: Unsupported channel type (" << m_format.channel_type << ")." );
   }
+  bytes_per_pixel *= num_channels(m_format.pixel_format);
   uint8* image_data = new uint8[total_pixels * bytes_per_pixel];
   unsigned bytes_read = fread(image_data, bytes_per_pixel, total_pixels, input_file);
   if ( bytes_read != total_pixels ) 
@@ -249,8 +282,26 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
   src.cstride = bytes_per_pixel;
   src.rstride = bytes_per_pixel * m_format.cols;
   src.pstride = bytes_per_pixel * m_format.cols * m_format.rows;
-  
-  convert( dest, src );
+
+  if ( m_band_storage == BAND_SEQUENTIAL ) {
+    // Create intermediate multi-channel buffer
+    ImageBuffer new_src;
+    uint8* intermediate_data = new uint8[total_pixels * bytes_per_pixel];
+    new_src.data = intermediate_data;
+    new_src.format = m_format;
+    new_src.format.planes = 1;
+    new_src.format.pixel_format = planes_to_pixel_format(m_format.planes);
+    int32 pixel_size = num_channels(new_src.format.pixel_format) * channel_size(m_format.channel_type);
+    new_src.cstride = pixel_size;
+    new_src.rstride = new_src.cstride * new_src.format.cols;
+    new_src.pstride = new_src.rstride * new_src.format.rows;
+
+    convert( new_src, src );
+    convert( dest, new_src );
+    delete[] intermediate_data;
+  } else {
+    convert( dest, src );
+  }
 
   if ( m_invalid_as_alpha ) {
     // We checked earlier that the source format is as we 
