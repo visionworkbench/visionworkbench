@@ -65,6 +65,7 @@
 # Alternative command-line syntax:  --with-paths=val
 #
 # Set these to the directories that contain lib/include directories
-# for packages in non-standard locations.  
+# for packages in non-standard locations.  List multiple search 
+# directories by seperating them with whitespace.  
 
 # PKG_PATHS="/foo/bar"
