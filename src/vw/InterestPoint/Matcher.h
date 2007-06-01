@@ -214,12 +214,12 @@ public:
 template < class MetricT, class ConstraintT >
 class InterestPointMatcher {
 public:
-  
+ 
   ConstraintT constraint;
   MetricT distance_metric;
   double threshold;
   
-  InterestPointMatcher(MetricT metric = MetricT(), ConstraintT constraint = ConstraintT(), double threshold = 0.4) 
+  InterestPointMatcher(double threshold = 0.5, MetricT metric = MetricT(), ConstraintT constraint = ConstraintT()) 
     : distance_metric(metric), constraint(constraint), threshold(threshold) { }
   
   /// Given two lists of keypoints, this routine returns the two lists

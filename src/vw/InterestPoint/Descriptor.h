@@ -94,47 +94,54 @@ namespace ip {
     return get_support(pt.x, pt.y, pt.scale, pt.orientation, source.impl(), size);
   }
 
-  /// CRTP base class for descriptor generating methods.
-  /// A descriptor generator subclass can easily be created by
-  /// implementing cache_support and compute_descriptor_from_support,
-  /// or compute_descriptors can be reimplemented entirely.
-  template <class ImplT>
-  struct DescriptorBase {
-    /// Returns the derived implementation type.
-    ImplT& impl() { return *static_cast<ImplT*>(this); }
+//   /// CRTP base class for descriptor generating methods.
+//   /// A descriptor generator subclass can easily be created by
+//   /// implementing cache_support and compute_descriptor_from_support,
+//   /// or compute_descriptors can be reimplemented entirely.
+//   template <class ImplT>
+//   struct DescriptorBase {
+//     /// Returns the derived implementation type.
+//     ImplT& impl() { return *static_cast<ImplT*>(this); }
 
-    /// Returns the derived implementation type.
-    ImplT const& impl() const { return *static_cast<ImplT const*>(this); }
+//     /// Returns the derived implementation type.
+//     ImplT const& impl() const { return *static_cast<ImplT const*>(this); }
 
-    /// Compute descriptors for a set of interest points from the given
-    /// source (an image or set of images).
-    inline void compute_descriptors( KeypointList& points ) const {
-      for (KeypointList::iterator i = points.begin(); i != points.end(); ++i) {
-        impl()(*i);
-      }
+//     /// Compute descriptors for a set of interest points from the given
+//     /// source (an image or set of images).
+//     inline void compute_descriptors( KeypointList& points ) const {
+//       for (KeypointList::iterator i = points.begin(); i != points.end(); ++i) {
+//         impl()(*i);
+//       }
+//     }
+//   };
+
+
+  template <class ViewT, class DescriptorT> 
+  void compute_descriptors( ImageViewBase<ViewT> const& image, KeypointList& points, DescriptorT const& descriptor ) {
+    for (KeypointList::iterator i = points.begin(); i != points.end(); ++i) {
+      // First we ompute the support region based on the keypoint 
+      ImageView<typename ViewT::pixel_type> support = get_support(*i, image.impl());
+
+      // Next, we pass the support region and the keypoint to the
+      // descriptor generator.
+      i->descriptor = descriptor(support);
     }
-  };
+  }
+
 
   /// A basic example descriptor class. The descriptor for an interest
   /// point is the support region around the point. It is normalized
   /// to provide some tolerance to changes in illumination.
-  template <class PixelT = float>
-  class PatchDescriptor : public DescriptorBase<PatchDescriptor<PixelT> >
-  {
-    ImageViewRef<PixelT> m_source;
-
+  class PatchDescriptor {
   public:
     template <class ViewT>
-    PatchDescriptor(ImageViewBase<ViewT> const& source) : m_source(source.impl()) {}
-
-    void operator() (InterestPoint& pt) const {
-      ImageView<PixelT> support = get_support(pt, m_source);
-
-      pt.descriptor.set_size(SUPPORT_SIZE * SUPPORT_SIZE);
-      for (int i = 0; i < SUPPORT_SIZE; i++)
-        for (int j = 0; j < SUPPORT_SIZE; j++)
-          pt.descriptor(i*SUPPORT_SIZE + j) = support(i,j);
-      pt.descriptor = normalize(pt.descriptor);
+    Vector<float> operator() (ImageViewBase<ViewT> const& support) const {
+      Vector<float> result;
+      result.set_size(SUPPORT_SIZE * SUPPORT_SIZE);
+      for (int j = 0; j < SUPPORT_SIZE; j++)
+        for (int i = 0; i < SUPPORT_SIZE; i++)
+          result(i*SUPPORT_SIZE + j) = support.impl()(i,j);
+      return normalize(result);
     }
   };
 
