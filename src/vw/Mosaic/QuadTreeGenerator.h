@@ -47,6 +47,7 @@
 #include <vw/Image/Filter.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Core/ProgressCallback.h>
+#include <vw/Mosaic/SparseTileCheck.h>
 
 namespace vw {
 namespace mosaic {
@@ -70,6 +71,7 @@ namespace mosaic {
       fs::path tree_path( tree_name, fs::native );
       fs::path base_path = tree_path.branch_path() / tree_path.leaf();
       m_base_dir = base_path.native_directory_string();
+      m_sparse_tile_check = boost::shared_ptr<SparseTileCheckBase>(new SparseTileCheck<ImageT>(source.impl()));
     }
 
     virtual ~ImageQuadTreeGenerator() {}
@@ -207,6 +209,7 @@ namespace mosaic {
     int32 m_tree_levels;
     std::vector<std::map<std::pair<int32,int32>,ImageView<PixelT> > > m_patch_cache;
     std::vector<std::map<std::pair<int32,int32>,std::string> > m_filename_cache;
+    boost::shared_ptr<SparseTileCheckBase> m_sparse_tile_check;
     
     void write_patch( ImageView<PixelT> const& image, std::string const& name, int32 level, int32 x, int32 y ) const {
       PatchInfo info;
@@ -258,11 +261,24 @@ namespace mosaic {
       int32 scale = 1 << level;
       int32 interior_size = m_patch_size - m_patch_overlap;
       BBox2i patch_bbox = scale * BBox2i( Vector2i(x, y), Vector2i(x+1, y+1) ) * interior_size;
+
+      // Reject patches that fall outside the crop region
       if( ! patch_bbox.intersects( m_crop_bbox ) ) {
         vw_out(DebugMessage) << "\tIgnoring empty image: " << name << std::endl;
         image.set_size( interior_size, interior_size );
         return image;
       }
+
+      // Reject patches that fail the interior intersection check.
+      // This effectively prunes branches of the tree with no source
+      // data.
+      if( ! (*m_sparse_tile_check)(patch_bbox) ) {
+        vw_out(DebugMessage) << "\tIgnoring empty branch: " << name << std::endl;
+        image.set_size( interior_size, interior_size );
+        return image;
+      }
+
+      // Base case: rasterize the highest resolution tile.
       if( level == 0 ) {
         vw_out(DebugMessage) << "ImageQuadTreeGenerator rasterizing region " << patch_bbox << std::endl;
         BBox2i data_bbox = patch_bbox;
