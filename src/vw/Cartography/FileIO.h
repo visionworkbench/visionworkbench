@@ -64,11 +64,11 @@ namespace cartography {
   /// a seperate file on disk and the asterisk will be replaced with
   /// the plane number.
   template <class ImageT>
-  void write_georeferenced_image(const std::string &filename, ImageViewBase<ImageT> const& out_image, GeoReference const& georef) {
+  void write_georeferenced_image(const std::string &filename, ImageViewBase<ImageT> const& out_image, GeoReference const& georef, const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
 
     FileMetadataCollection fmeta;
     fmeta.associate_file_metadata_const( &georef );
-    write_image( filename, out_image, fmeta );
+    write_image( filename, out_image, fmeta, progress_callback);
   }
 
 }} // namespace vw::cartography
