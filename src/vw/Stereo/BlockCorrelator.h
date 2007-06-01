@@ -1,5 +1,6 @@
 #ifndef __VW_STEREO_BLOCK_CORRELATOR__
 #define __VW_STEREO_BLOCK_CORRELATOR__
+
 #include <vw/Stereo/Correlate.h>
 #include <vw/Stereo/OptimizedCorrelator.h>
 #include <vw/Stereo/DisparityMap.h>
@@ -12,13 +13,13 @@ namespace stereo {
 
   class BlockCorrelator {
     
-    int m_lKernWidth, m_lKernHeight;
-    int m_lMinH, m_lMaxH, m_lMinV, m_lMaxV;
+    int m_kernel_width, m_kernel_height;
+    int m_min_h, m_max_h, m_min_v, m_max_v;
     int m_block_size;
     int m_verbose;
-    double m_crossCorrThreshold;
-    int m_useHorizSubpixel;
-    int m_useVertSubpixel;
+    double m_cross_corr_threshold;
+    int m_use_horiz_subpixel;
+    int m_use_vert_subpixel;
     
   public:
     BlockCorrelator(int minH,	/* left bound disparity search window*/
@@ -28,31 +29,31 @@ namespace stereo {
                     int kernWidth,	/* size of the kernel */
                     int kernHeight,       
                     int verbose,
-                    double crosscorrThreshold,
+                    double cross_corr_threshold,
                     int block_size,
                     int useSubpixelH, int useSubpixelV) {
 
-      m_lKernWidth = kernWidth;
-      m_lKernHeight = kernHeight;
-      m_lMinH = minH;
-      m_lMaxH = maxH;
-      m_lMinV = minV;
-      m_lMaxV = maxV;  
+      m_kernel_width = kernWidth;
+      m_kernel_height = kernHeight;
+      m_min_h = minH;
+      m_max_h = maxH;
+      m_min_v = minV;
+      m_max_v = maxV;  
       m_verbose = verbose;
       m_block_size = block_size;
       
-      m_crossCorrThreshold = crosscorrThreshold;
-      m_useHorizSubpixel = useSubpixelH;
-      m_useVertSubpixel = useSubpixelV;
+      m_cross_corr_threshold = cross_corr_threshold;
+      m_use_horiz_subpixel = useSubpixelH;
+      m_use_vert_subpixel = useSubpixelV;
     }
 
     // Constrain a set of nominal image blocks to the specified
     // disparity search range.
     void constrain_to_search_range(std::vector<BBox2i> &nominal_blocks, int width, int height) {      
-      int min_x = std::max(0, -m_lMinH);
-      int max_x = std::min(width, width-m_lMaxH);
-      int min_y = std::max(0, -m_lMinV);
-      int max_y = std::min(height, height-m_lMaxV);
+      int min_x = std::max(0, -m_min_h);
+      int max_x = std::min(width, width-m_max_h);
+      int min_y = std::max(0, -m_min_v);
+      int max_y = std::min(height, height-m_max_v);
 
       BBox2i workspace( Vector2i(min_x, min_y), Vector2i(max_x, max_y) );
 
@@ -96,16 +97,16 @@ namespace stereo {
 
       for (int i = 0; i < nominal_blocks.size(); ++i) {
         left_blocks[i] = nominal_blocks[i];
-        right_blocks[i] = BBox2i(Vector2i(nominal_blocks[i].min().x()+m_lMinH,
-                                          nominal_blocks[i].min().y()+m_lMinV),
-                                 Vector2i(nominal_blocks[i].max().x()+m_lMaxH,
-                                          nominal_blocks[i].max().y()+m_lMaxV));
+        right_blocks[i] = BBox2i(Vector2i(nominal_blocks[i].min().x()+m_min_h,
+                                          nominal_blocks[i].min().y()+m_min_v),
+                                 Vector2i(nominal_blocks[i].max().x()+m_max_h,
+                                          nominal_blocks[i].max().y()+m_max_v));
         left_blocks[i].max() = Vector2i(nominal_blocks[i].min().x() + right_blocks[i].width(),
                                         nominal_blocks[i].min().y() + right_blocks[i].height());
-        right_blocks[i].min() -= Vector2i(m_lKernWidth, m_lKernHeight);
-        right_blocks[i].max() += Vector2i(m_lKernWidth, m_lKernHeight);
-        left_blocks[i].min() -= Vector2i(m_lKernWidth, m_lKernHeight);
-        left_blocks[i].max() += Vector2i(m_lKernWidth, m_lKernHeight);
+        right_blocks[i].min() -= Vector2i(m_kernel_width, m_kernel_height);
+        right_blocks[i].max() += Vector2i(m_kernel_width, m_kernel_height);
+        left_blocks[i].min() -= Vector2i(m_kernel_width, m_kernel_height);
+        left_blocks[i].max() += Vector2i(m_kernel_width, m_kernel_height);
       }
     }
 
@@ -141,12 +142,12 @@ namespace stereo {
         ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type> r_image = channels_to_planes(right_image);        
 
         // Create an optimized correlator to run on a single block.
-        vw::stereo::OptimizedCorrelator correlator( m_lMinH, m_lMaxH, 
-                                                    m_lMinV, m_lMaxV,
-                                                    m_lKernWidth, m_lKernHeight,
-                                                    true, m_crossCorrThreshold,
-                                                    m_useHorizSubpixel,
-                                                    m_useVertSubpixel );
+        vw::stereo::OptimizedCorrelator correlator( m_min_h, m_max_h, 
+                                                    m_min_v, m_max_v,
+                                                    m_kernel_width, m_kernel_height,
+                                                    true, m_cross_corr_threshold,
+                                                    m_use_horiz_subpixel,
+                                                    m_use_vert_subpixel );
         
         disparity_map = correlator( l_image, r_image, bit_image );
 
@@ -154,12 +155,12 @@ namespace stereo {
       } else {
 
         // Create an optimized correlator to run on each block.
-        vw::stereo::OptimizedCorrelator correlator( 0, m_lMaxH-m_lMinH, 
-                                                    0, m_lMaxV-m_lMinV,
-                                                    m_lKernWidth, m_lKernHeight,
-                                                    true, m_crossCorrThreshold,
-                                                    m_useHorizSubpixel,
-                                                    m_useVertSubpixel );
+        vw::stereo::OptimizedCorrelator correlator( 0, m_max_h-m_min_h, 
+                                                    0, m_max_v-m_min_v,
+                                                    m_kernel_width, m_kernel_height,
+                                                    true, m_cross_corr_threshold,
+                                                    m_use_horiz_subpixel,
+                                                    m_use_vert_subpixel );
 
 
         // Run the image blocks through the correlator.  Fill the disparity map as you go.
@@ -184,13 +185,13 @@ namespace stereo {
           for (int v = 0; v < disparity_subregion.rows(); ++v) {
             for (int u = 0; u < disparity_subregion.cols(); ++u) {
               if (!disparity_subregion(u,v).missing()) {
-                disparity_subregion(u,v).h() += m_lMinH;
-                disparity_subregion(u,v).v() += m_lMinV;
+                disparity_subregion(u,v).h() += m_min_h;
+                disparity_subregion(u,v).v() += m_min_v;
               }
             }
           }
           crop(disparity_map, nominal_left_blocks[i]) = crop(disparity_subregion, 
-                                                             m_lKernWidth,m_lKernHeight, 
+                                                             m_kernel_width,m_kernel_height, 
                                                              nominal_left_blocks[i].width(),
                                                              nominal_left_blocks[i].height());
         }

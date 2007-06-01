@@ -12,6 +12,7 @@ namespace po = boost::program_options;
 #include <vw/Stereo/OptimizedCorrelator.h>
 #include <vw/Stereo/ReferenceCorrelator.h>
 #include <vw/Stereo/MultiresolutionCorrelator.h>
+#include <vw/Stereo/Correlator.h>
 #include <vw/Stereo/BlockCorrelator.h>
 
 using namespace vw;
@@ -47,6 +48,7 @@ int main( int argc, char *argv[] ) {
       ("hsubpix", "Enable horizontal sub-pixel correlation")
       ("vsubpix", "Enable vertical sub-pixel correlation")
       ("reference", "Use the slower, simpler reference correlator")
+      ("test", "Use the test correlator")
       ("multiresolution", "Use the prototype multiresolution correlator")
       ("bitimage", "Force the use of the optimized bit-image correlator")
       ("nonbitimage", "Fore the use of the slower, non bit-image optimized correlator")
@@ -83,13 +85,13 @@ int main( int argc, char *argv[] ) {
     }
 
     bool bit_image = false;
-    if( log > 0 ) {
+    if( log > 0 && !vm.count("test") ) {
       std::cout << "Applying LOG filter..." << std::endl;
       left = laplacian_filter( gaussian_filter( left, log ) );
       right = laplacian_filter( gaussian_filter( right, log ) );
     }
 
-    if( slog > 0.0 ) {
+    if( slog > 0.0 && !vm.count("test") ) {
       bit_image = true;
       std::cout << "Applying SLOG filter..." << std::endl;
       left = threshold( laplacian_filter( gaussian_filter( left, slog ) ) );
@@ -105,7 +107,15 @@ int main( int argc, char *argv[] ) {
                                                   (vm.count("hsubpix")>0),
                                                   (vm.count("vsubpix")>0) );
       disparity_map = correlator( left, right, bit_image );
-    } if (vm.count("multiresolution")>0) {
+    } else if (vm.count("test")>0) {
+      vw::stereo::Correlator correlator( BBox2i(Vector2(xoffset-xrange, yoffset-yrange),
+                                                Vector2(xoffset+xrange, yoffset+yrange)),
+                                         Vector2i(xkernel, ykernel),
+                                         slog, lrthresh);
+      correlator.set_debug_mode("debug");
+      vw::Timer corr_timer("Correlation Time");
+      disparity_map = correlator( left, right );      
+    } else if (vm.count("multiresolution")>0) {
       read_image( left, left_file_name );
       read_image( right, right_file_name );
       int cols = std::max(left.cols(),right.cols());
@@ -118,6 +128,7 @@ int main( int argc, char *argv[] ) {
                                                         true, lrthresh, slog,
                                                         (vm.count("hsubpix")>0),
                                                         (vm.count("vsubpix")>0) );
+      vw::Timer corr_timer("Correlation Time");
       disparity_map = correlator( left, right );      
     } else if (block_size != 0) {
       vw::stereo::BlockCorrelator correlator( xoffset-xrange, xoffset+xrange,
@@ -137,8 +148,10 @@ int main( int argc, char *argv[] ) {
       if (bit_image) {
         ImageView<PixelGray<uint8> > left_bitimage = channel_cast<uint8>(left);
         ImageView<PixelGray<uint8> > right_bitimage = channel_cast<uint8>(right);
+        vw::Timer corr_timer("Correlation Time");
         disparity_map = correlator( left_bitimage, right_bitimage, bit_image );
       } else {
+        vw::Timer corr_timer("Correlation Time");
         disparity_map = correlator( left, right, bit_image );
       }
 
@@ -160,24 +173,20 @@ int main( int argc, char *argv[] ) {
       if (bit_image) {
         ImageView<PixelGray<uint8> > left_bitimage = channel_cast<uint8>(left);
         ImageView<PixelGray<uint8> > right_bitimage = channel_cast<uint8>(right);
+        vw::Timer corr_timer("Correlation Time");
         disparity_map = correlator( left_bitimage, right_bitimage, bit_image );
       } else {
+        vw::Timer corr_timer("Correlation Time");
         disparity_map = correlator( left, right, bit_image );
       }
     }
 
-    double min_horz_disp, max_horz_disp, min_vert_disp, max_vert_disp;
-    get_disparity_range( disparity_map, 
-                         min_horz_disp, max_horz_disp, 
-                         min_vert_disp, max_vert_disp);
-
-    remove_outliers( disparity_map, 5, 5, 60, 3 );
+    remove_outliers( disparity_map, 5, 5, 3, 0.6 );
 
     // Write disparity debug images
-    double min_h_disp, min_v_disp, max_h_disp, max_v_disp;
-    disparity::get_disparity_range(disparity_map, min_h_disp, max_h_disp, min_v_disp, max_v_disp);
-    write_image( "x_disparity.png", normalize(clamp(select_channel(disparity_map,0), min_h_disp, max_h_disp)));
-    write_image( "y_disparity.png", normalize(clamp(select_channel(disparity_map,1), min_v_disp, max_v_disp)));
+    BBox2i disp_range = disparity::get_disparity_range(disparity_map);
+    write_image( "x_disparity.png", normalize(clamp(select_channel(disparity_map,0), disp_range.min().x(), disp_range.max().x() )));
+    write_image( "y_disparity.png", normalize(clamp(select_channel(disparity_map,1), disp_range.min().y(), disp_range.max().y() )));
   }
   catch( vw::Exception& e ) {
     std::cerr << "Error: " << e.what() << std::endl;

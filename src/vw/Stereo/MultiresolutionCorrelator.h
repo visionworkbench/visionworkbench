@@ -32,46 +32,6 @@ namespace stereo {
     return outImg;
   }
   
-//   template <class ViewT>
-//   double sum_of_pixels(const ImageViewBase<ViewT> &view) { 
-//     const ViewT& m_view = view.impl();
-
-//     typedef typename ViewT::pixel_accessor pixel_accessor;
-//     typedef typename ViewT::pixel_type pixel_type;
-//     typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
-
-//     int32 num_channels = PixelNumChannels<typename ViewT::pixel_type>::value;
-
-//     double accum = 0;
-
-//     pixel_accessor plane_iter = m_view.origin();
-//     for (int32 p = 0; p < m_view.planes(); p++, plane_iter.next_plane()) { 
-//       pixel_accessor col_iter = plane_iter;
-//       for (int32 i = 0; i < m_view.cols(); i++, col_iter.next_col()) {
-//         pixel_accessor row_iter = col_iter;
-//         for (int32 j = 0; j < m_view.rows(); j++, row_iter.next_row()) {
-// 					pixel_type pix = *row_iter;
-//           for (int32 channel = 0; channel < num_channels; channel++) {
-//             channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
-//             accum += *row_iter;
-//           }
-//         }
-//       }  
-//     }
-//     return accum;
-//   }
-
-  // This in an experiment to see if we can pass in a hole filling
-  // algorithm of the user's choosing to fill the holes at the lowest
-  // level of resolution.  This is helpful for catching regions of
-  // missing pixels that might get amplified at higher levels of
-  // resolution.
-  struct MultiresCorrelatorHoleFiller {
-    MultiresCorrelatorHoleFiller() {}
-    virtual ~MultiresCorrelatorHoleFiller() {} 
-    virtual void operator() (vw::ImageView<vw::PixelDisparity<float> > &disparity_map) = 0;
-  };
-
   class MultiresolutionCorrelator {
     
     int m_lKernWidth, m_lKernHeight;
@@ -84,9 +44,6 @@ namespace stereo {
     int m_min_dimension;
     std::string m_debug_prefix;
 
-    // Experimental
-    MultiresCorrelatorHoleFiller* m_hole_filler;
-    
   public:
     MultiresolutionCorrelator(int minH,	/* left bound disparity search window*/
                               int maxH,	/* right bound disparity search window*/
@@ -114,13 +71,9 @@ namespace stereo {
       m_min_dimension = 512;
 
       m_debug_prefix = "";
-
-      // Experimental
-      m_hole_filler = NULL;
     }
 
     void set_min_dimension(int value) { m_min_dimension = value; }
-    void set_hole_filler(MultiresCorrelatorHoleFiller* hole_filler) { m_hole_filler = hole_filler; }
     void set_debug_mode(std::string const& debug_file_prefix) { m_debug_prefix = debug_file_prefix; }
 
     template <class PixelT>
@@ -153,7 +106,6 @@ namespace stereo {
         right_slog_pyramid[n] = vw::channel_cast<uint8>(vw::threshold(vw::laplacian_filter(vw::gaussian_filter(right_pyramid[n],m_slog_width)), 0.0));
       }
 
-
       int h_min, h_max, v_min, v_max;
       if (swap) {
         h_min = int(-m_lMaxH / pow(2,levels-1));
@@ -182,15 +134,12 @@ namespace stereo {
                                                true);
 
       // Print Out the range of disparity values
-      double min_h_disp, min_v_disp, max_h_disp, max_v_disp;
-      std::cout << "\t";
-      disparity::get_disparity_range(disparity_pyramid[levels-1], min_h_disp, max_h_disp, min_v_disp, max_v_disp);
-      std::cout << "\n";
+      BBox2i disp_range = disparity::get_disparity_range(disparity_pyramid[levels-1], true);
 
       // Print out the disparity map at the lowest resolution
       if (m_debug_prefix.size() > 0) {
-        write_image( m_debug_prefix + "-DH-0.jpg", normalize(clamp(select_channel(disparity_pyramid[levels-1],0), min_h_disp, max_h_disp)));
-        write_image( m_debug_prefix + "-DV-0.jpg", normalize(clamp(select_channel(disparity_pyramid[levels-1],1), min_v_disp, max_v_disp)));
+        write_image( m_debug_prefix + "-DH-0.jpg", normalize(clamp(select_channel(disparity_pyramid[levels-1],0), disp_range.min().x(), disp_range.max().x() )));
+        write_image( m_debug_prefix + "-DV-0.jpg", normalize(clamp(select_channel(disparity_pyramid[levels-1],1), disp_range.min().y(), disp_range.max().y() )));
       }
 
       //     // Now, clean up the disparity map by rejecting outliers 
@@ -212,22 +161,16 @@ namespace stereo {
       // 
       // These settings should move from being hard coded to being user configurable
       //
-      // FIXME: This should be reenbled to use the newer disparity map
+      // FIXME: This should be re-enabled to use the newer disparity map
       //      filtering architecture that uses PerPixelAccessorViews.
       //      disparity::sparse_disparity_filter(disparity_pyramid[levels-1],
       //      100, 0.1);
 
-      // If the user has supplied a hole-filling functor, we use it
-      // here to fill in the holes in the low res disparity map to
-      // cover places we might have missed.
-      if (m_hole_filler)
-        (*m_hole_filler)(disparity_pyramid[levels-1]);
-
       // Print out the disparity map at the lowest resolution
       if (m_debug_prefix.size() > 0) {
-        disparity::get_disparity_range(disparity_pyramid[levels-1], min_h_disp, max_h_disp, min_v_disp, max_v_disp);
-        write_image( m_debug_prefix+"-DH-0-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[levels-1],0), min_h_disp, max_h_disp)));
-        write_image( m_debug_prefix+"-DV-0-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[levels-1],1), min_v_disp, max_v_disp)));
+        BBox2i disp_range = disparity::get_disparity_range(disparity_pyramid[levels-1]);
+        write_image( m_debug_prefix+"-DH-0-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[levels-1],0), disp_range.min().x(), disp_range.max().x() )));
+        write_image( m_debug_prefix+"-DV-0-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[levels-1],1), disp_range.min().y(), disp_range.max().y() )));
       }
 
       // Refined the disparity map by searching in the local region where the last good disparity value was found
@@ -241,7 +184,10 @@ namespace stereo {
                                             ZeroEdgeExtension(), NearestPixelInterpolation());
       
         // Save a copy of the pre-refinement horiz. disparity for later comparison
-        ImageView<double> orig = select_channel(disparity_pyramid[n],0);
+        
+        ImageView<double> orig;
+        if (m_debug_prefix.size() > 0) 
+          orig = select_channel(disparity_pyramid[n],0);
 
         int min_i_search_range, max_i_search_range;
         int min_j_search_range, max_j_search_range;
@@ -299,9 +245,9 @@ namespace stereo {
         if (m_debug_prefix.size() > 0) {
           std::ostringstream current_level;
           current_level << n;
-          disparity::get_disparity_range(disparity_pyramid[n], min_h_disp, max_h_disp, min_v_disp, max_v_disp);
-          write_image( m_debug_prefix+"-refined-H-" + current_level.str() + "-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[n],0), min_h_disp, max_h_disp)));
-          write_image( m_debug_prefix+"-refined-V-" + current_level.str() + "-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[n],1), min_v_disp, max_v_disp)));
+          BBox2i disp_range = disparity::get_disparity_range(disparity_pyramid[n]);
+          write_image( m_debug_prefix+"-refined-H-" + current_level.str() + "-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[n],0), disp_range.min().x(), disp_range.max().x() )));
+          write_image( m_debug_prefix+"-refined-V-" + current_level.str() + "-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[n],1), disp_range.min().y(), disp_range.max().y() )));
 
           std::ostringstream ostream3;
           ostream3 << m_debug_prefix << "-error-" << n << ".jpg";
@@ -312,28 +258,27 @@ namespace stereo {
       return disparity_pyramid[0];
     }
 
-    template <class PixelT>
-    ImageView<PixelDisparity<float> > operator()(vw::ImageView<PixelT>& left_image,
-                                                 vw::ImageView<PixelT>& right_image) {
+    template <class ViewT>
+    ImageView<PixelDisparity<float> > operator()(vw::ImageViewBase<ViewT>& left_image,
+                                                 vw::ImageViewBase<ViewT>& right_image) {
 
-      VW_ASSERT(left_image.cols() == right_image.cols() &&
-                left_image.rows() == right_image.rows(),
+      VW_ASSERT(left_image.impl().cols() == right_image.impl().cols() &&
+                left_image.impl().rows() == right_image.impl().rows(),
                 ArgumentErr() << "multiresolution_correlator: input image dimensions do not agree.\n");
 
-      VW_ASSERT(left_image.channels() == 1 && left_image.planes()==1 &&
-                right_image.channels() == 1 && right_image.planes()==1,
+      VW_ASSERT(left_image.impl().channels() == 1 && left_image.impl().planes()==1 &&
+                right_image.impl().channels() == 1 && right_image.impl().planes()==1,
                 ArgumentErr() << "multiresolution_correlator: does not support multi-channel, multi-plane images.\n");
 
-      int width = left_image.cols();
-      int height = left_image.rows();
+      int width = left_image.impl().cols();
+      int height = left_image.impl().rows();
 
       //Run the correlator and record how long it takes to run.
       double begin__ = Time();
 
-      // Ask the worker threads for the actual results of the disparity correlation
       std::cout << "Multiresolution Correlator\n";
-      ImageView<typename PixelChannelType<PixelT>::type> l_image = channels_to_planes(left_image);
-      ImageView<typename PixelChannelType<PixelT>::type> r_image = channels_to_planes(right_image);        
+      ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type> l_image = channels_to_planes(left_image);
+      ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type> r_image = channels_to_planes(right_image);        
 
       std::cout << "\nRunning left-to-right correlation... \n";
       ImageView<PixelDisparity<float> > resultL2R = this->correlate(l_image, r_image, false);

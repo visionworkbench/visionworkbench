@@ -81,39 +81,47 @@ namespace disparity {
   //
   // Determine the range of disparity values present in the disparity map.
   template <class ViewT>
-  void get_disparity_range(ImageViewBase<ViewT> const& disparity_map, 
-                           double &min_horz_disp, double& max_horz_disp, 
-                           double &min_vert_disp, double& max_vert_disp) {
+  BBox2i get_disparity_range(ImageViewBase<ViewT> const& disparity_map, int& num_good, bool verbose = false) {
 
     const ViewT& disparity_map_impl = disparity_map.impl();
 
-    max_horz_disp = -1e100;
-    min_horz_disp = 1e100;
-    max_vert_disp = -1e100;
-    min_vert_disp = 1e100;
+    float max_horz_disp = ScalarTypeLimits<float>::lowest();
+    float min_horz_disp = ScalarTypeLimits<float>::highest();
+    float max_vert_disp = ScalarTypeLimits<float>::lowest();
+    float min_vert_disp = ScalarTypeLimits<float>::highest();
 
     // Find the max/min disparity values
-    int missing = 0;
-    for (unsigned i = 0; i < disparity_map_impl.cols(); i++) {
-      for (unsigned j = 0; j < disparity_map_impl.rows(); j++) {
+    num_good = 0;
+    for (unsigned j = 0; j < disparity_map_impl.rows(); j++) {
+      for (unsigned i = 0; i < disparity_map_impl.cols(); i++) {
         if ( !disparity_map_impl(i,j).missing() ) {
           max_horz_disp = disparity_map_impl(i,j).h() > max_horz_disp ? disparity_map_impl(i,j).h() : max_horz_disp;
           min_horz_disp = disparity_map_impl(i,j).h() < min_horz_disp ? disparity_map_impl(i,j).h() : min_horz_disp;
           max_vert_disp = disparity_map_impl(i,j).v() > max_vert_disp ? disparity_map_impl(i,j).v() : max_vert_disp;
           min_vert_disp = disparity_map_impl(i,j).v() < min_vert_disp ? disparity_map_impl(i,j).v() : min_vert_disp;
-        } else {
-          missing++;
+          num_good++;
         }
       }
     }
 
-    if (missing == disparity_map_impl.cols() * disparity_map_impl.rows()) 
-      vw_out(ErrorMessage) << "Disparity range -- disparity map had zero good pixels.";
+    if (num_good == 0) {
+      if (verbose)
+        vw_out(WarningMessage) << "Disparity range -- disparity map had zero good pixels.";
+      return BBox2i(0,0,0,0);
+    }
     
-    vw_out(InfoMessage) << "Disparity range -- Horizontal: [" << min_horz_disp << ", " << max_horz_disp 
-                        << "]   Vertical: [" << min_vert_disp << ", " << max_vert_disp << "]  ("<< missing << " missing)\n"; 
+    if (verbose) 
+      vw_out(InfoMessage) << "Disparity range -- Horizontal: [" << min_horz_disp << ", " << max_horz_disp 
+                          << "]   Vertical: [" << min_vert_disp << ", " << max_vert_disp << "]  ("<< num_good << " good)\n"; 
+    return BBox2i(Vector2i(min_horz_disp, min_vert_disp),Vector2i(max_horz_disp, max_vert_disp));
   }
 
+
+  template <class ViewT>
+  BBox2i get_disparity_range(ImageViewBase<ViewT> const& disparity_map, bool verbose = false) {
+    int num_good = 0;
+    return get_disparity_range(disparity_map.impl(), num_good, verbose);
+  }
 
   //  missing_pixel_image()
   //
@@ -150,7 +158,7 @@ namespace disparity {
   vw::ImageView<bool> generate_mask(vw::ImageViewBase<ViewT> const& input_image,
                                     int32 additional_border_width = 0) {
 
-    const double BLACK_PIXEL = 0;
+    typedef typename ViewT::pixel_type pixel_type;
     vw::ImageView<bool> mask(input_image.impl().cols(), input_image.impl().rows(), 1);
     int32 i, j;
 
@@ -159,7 +167,7 @@ namespace disparity {
     for (i = 0; i < input_image.impl().cols(); i++) {
       // Search from the left side of the image for black pixels 
       j = 0;
-      while ( j < input_image.impl().rows() && input_image.impl()(i,j)[0] == BLACK_PIXEL ) {
+      while ( j < input_image.impl().rows() && input_image.impl()(i,j) == pixel_type() ) {
         mask(i,j) = false;
         j++;
       }
@@ -173,7 +181,7 @@ namespace disparity {
     
       // Search from the right side of the image for black pixels 
       j = input_image.impl().rows() - 1;
-      while ( j > 0 && input_image.impl()(i,j)[0] == BLACK_PIXEL ) {
+      while ( j > 0 && input_image.impl()(i,j) == pixel_type() ) {
         mask(i,j) = false;
         j--;
       }
@@ -189,7 +197,7 @@ namespace disparity {
     for (j = 0; j < input_image.impl().rows(); j++) {
       // Search from the top side of the image for black pixels 
       i = 0;
-      while ( i < input_image.impl().cols() && input_image.impl()(i,j)[0] == BLACK_PIXEL ) {
+      while ( i < input_image.impl().cols() && input_image.impl()(i,j) == pixel_type() ) {
         mask(i,j) = false;
         i++;
       }
@@ -203,7 +211,7 @@ namespace disparity {
     
       // Search from the bottom side of the image for black pixels 
       i = input_image.impl().cols() - 1;
-      while ( i > 0 && input_image.impl()(i,j)[0] == BLACK_PIXEL) {
+      while ( i > 0 && input_image.impl()(i,j) == pixel_type()) {
         mask(i,j) = false;
         i--;
       }

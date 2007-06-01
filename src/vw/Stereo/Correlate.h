@@ -1,5 +1,5 @@
-#ifndef __VW_STEREO_CORRELATOR_H__
-#define __VW_STEREO_CORRELATOR_H__
+#ifndef __VW_STEREO_CORRELATE_H__
+#define __VW_STEREO_CORRELATE_H__
 
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Math/Matrix.h>
@@ -320,12 +320,13 @@ void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
 /// of the disparity map in L2R.
 static void cross_corr_consistency_check(ImageView<PixelDisparity<float> > &L2R, 
                                          ImageView<PixelDisparity<float> > &R2L,
-                                         double cross_corr_threshold) {
+                                         double cross_corr_threshold, bool verbose = false) {
   int32 xx,yy;
   int xOffset, yOffset;
   int count = 0, match_count = 0;
-
-  printf("\tCrosscorr threshold = %f\n", cross_corr_threshold);
+  
+  if (verbose)
+    vw_out(InfoMessage) << "\tCrosscorr threshold: " << cross_corr_threshold << "\n";
   if (cross_corr_threshold < 0) 
     vw_throw( vw::ArgumentErr() << "CrossCorrConsistencyCheck2D: the crosscorr threshold was less than 0." );
   
@@ -364,8 +365,9 @@ static void cross_corr_consistency_check(ImageView<PixelDisparity<float> > &L2R,
         L2R(xx,yy) = PixelDisparity<float>();  // Default constructor is missing pixel.
       } 
     }
-  }
-  printf("\tCross-correlation retained %i / %i matches (%i pixels total).\n", count, match_count, L2R.cols() * L2R.rows());
+  } 
+  if (verbose) 
+    vw_out(InfoMessage) << "\tCross-correlation retained " << count << " / " << match_count << " matches (" << ((float)count/match_count*100) <<" percent).\n";
 }
 
 }} // namespace vw::stereo
