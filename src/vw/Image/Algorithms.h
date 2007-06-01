@@ -144,6 +144,15 @@ namespace vw {
   /// \endcond
 
   /// Renormalize the values in an image to fall within the range [low,high).
+  template <class ImageT, class OldLowT, class OldHighT, class NewLowT, class NewHighT>
+  UnaryPerPixelView<ImageT, UnaryCompoundFunctor<ChannelNormalizeFunctor<typename ImageT::pixel_type> > >
+  inline normalize( ImageViewBase<ImageT> const& image, OldLowT old_low, OldHighT old_high, NewLowT new_low, NewHighT new_high  ) {
+    typedef UnaryCompoundFunctor<ChannelNormalizeFunctor<typename ImageT::pixel_type> > func_type;
+    func_type func( ChannelNormalizeFunctor<typename ImageT::pixel_type>( old_low, old_high, new_low, new_high ) );
+    return UnaryPerPixelView<ImageT, func_type >( image.impl(), func );
+  }
+
+  /// Renormalize the values in an image to fall within the range [low,high).
   template <class ImageT, class LowT, class HighT>
   UnaryPerPixelView<ImageT, UnaryCompoundFunctor<ChannelNormalizeFunctor<typename ImageT::pixel_type> > >
   inline normalize( ImageViewBase<ImageT> const& image, LowT low, HighT high ) {

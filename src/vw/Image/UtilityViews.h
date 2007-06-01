@@ -44,7 +44,7 @@ namespace vw {
   // A view that returns a fixed constant value.
 
   template <class PixelT>
-  class ConstantView : ImageViewBase<ConstantView<PixelT> > {
+  class ConstantView : public ImageViewBase<ConstantView<PixelT> > {
     PixelT m_value;
     int32 m_cols, m_rows, m_planes;
   public:
@@ -82,7 +82,7 @@ namespace vw {
   /// PixelIndexView
   ///
   /// A view that returns a Vector2 representing the pixel location.
-  class PixelIndexView : ImageViewBase<PixelIndexView> {
+  class PixelIndexView : public ImageViewBase<PixelIndexView> {
     int32 m_cols, m_rows, m_planes;
   public:
     typedef Vector2 pixel_type;
