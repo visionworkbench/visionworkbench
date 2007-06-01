@@ -138,9 +138,16 @@ namespace math {
     void crop( BBox const& bbox ) {
       for( int i=0; i<DimN; ++i ) {
         if( m_min[i] < bbox.m_min[i] )
-          m_min[i] = bbox.m_min[i];
+          if( m_max[i] < bbox.m_min[i] )
+            m_min[i] = m_max[i]; 
+          else
+            m_min[i] = bbox.m_min[i];
+
         if( m_max[i] > bbox.m_max[i] )
-          m_max[i] = bbox.m_max[i];
+          if ( m_min[i] > bbox.m_max[i] )
+            m_max[i] = m_min[i];
+          else
+            m_max[i] = bbox.m_max[i];
       }
     }
 
