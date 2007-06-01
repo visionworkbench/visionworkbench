@@ -273,7 +273,7 @@ AX_MODULE(CARTOGRAPHY, [src/vw/Cartography], [libvwCartography.la], yes, [VW PRO
 AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], yes, [VW CAMERA BOOST_PROGRAM_OPTIONS LAPACK])
 AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], yes, [STEREO_SRC VW PTHREADS BOOST_THREAD])
 AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW GL GLU GLUT], [CG PTHREADS])
-AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], yes, [VW])
+AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], yes, [VW BOOST_PROGRAM_OPTIONS])
 
 # These are here (instead of inside the MODULE macro where they belong)
 # for backwards compatability with older versions of automake.
