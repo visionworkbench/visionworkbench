@@ -125,7 +125,7 @@ namespace vw {
         // run the correlator.
         ImageView<pixel_type> disparity_map;
 
-        vw::stereo::Correlator correlator(BBox2i(0,0,search_bbox.width(),search_bbox.height()),
+        vw::stereo::Correlator correlator(BBox2(0,0,search_bbox.width(),search_bbox.height()),
                                           Vector2i(m_settings.m_lKernWidth, m_settings.m_lKernHeight),
                                           m_settings.m_slog_width,
                                           m_settings.m_crossCorrThreshold,
