@@ -134,7 +134,7 @@ namespace stereo {
                                                true);
 
       // Print Out the range of disparity values
-      BBox2i disp_range = disparity::get_disparity_range(disparity_pyramid[levels-1], true);
+      BBox2 disp_range = disparity::get_disparity_range(disparity_pyramid[levels-1], true);
 
       // Print out the disparity map at the lowest resolution
       if (m_debug_prefix.size() > 0) {
@@ -168,7 +168,7 @@ namespace stereo {
 
       // Print out the disparity map at the lowest resolution
       if (m_debug_prefix.size() > 0) {
-        BBox2i disp_range = disparity::get_disparity_range(disparity_pyramid[levels-1]);
+        BBox2 disp_range = disparity::get_disparity_range(disparity_pyramid[levels-1]);
         write_image( m_debug_prefix+"-DH-0-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[levels-1],0), disp_range.min().x(), disp_range.max().x() )));
         write_image( m_debug_prefix+"-DV-0-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[levels-1],1), disp_range.min().y(), disp_range.max().y() )));
       }
@@ -245,7 +245,7 @@ namespace stereo {
         if (m_debug_prefix.size() > 0) {
           std::ostringstream current_level;
           current_level << n;
-          BBox2i disp_range = disparity::get_disparity_range(disparity_pyramid[n]);
+          BBox2 disp_range = disparity::get_disparity_range(disparity_pyramid[n]);
           write_image( m_debug_prefix+"-refined-H-" + current_level.str() + "-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[n],0), disp_range.min().x(), disp_range.max().x() )));
           write_image( m_debug_prefix+"-refined-V-" + current_level.str() + "-filt.jpg", normalize(clamp(select_channel(disparity_pyramid[n],1), disp_range.min().y(), disp_range.max().y() )));
 

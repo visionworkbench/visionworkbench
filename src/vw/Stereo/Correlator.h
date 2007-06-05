@@ -10,10 +10,11 @@ namespace stereo {
 
   class Correlator {
 
-    BBox2i m_initial_search_range;
+    BBox2 m_initial_search_range;
     Vector2i m_kernel_size;
     float m_slog_width;
     float m_cross_correlation_threshold;
+    bool m_do_h_subpixel,m_do_v_subpixel;
     int m_pyramid_min_image_dimension;
 
     std::string m_debug_prefix;
@@ -41,10 +42,10 @@ namespace stereo {
     }
 
     // Iterate over the nominal blocks, creating output blocks for correlation
-    BBox2i compute_matching_blocks(BBox2i const& nominal_block, BBox2i search_range, 
-                                   BBox2i &left_block, BBox2i &right_block);
+    BBox2 compute_matching_blocks(BBox2i const& nominal_block, BBox2 search_range, 
+                                  BBox2i &left_block, BBox2i &right_block);
 
-    std::vector<BBox2i> compute_search_ranges(ImageView<PixelDisparity<float> > const& prev_disparity_map, 
+    std::vector<BBox2> compute_search_ranges(ImageView<PixelDisparity<float> > const& prev_disparity_map, 
                                               std::vector<BBox2i> nominal_blocks);
 
     ImageView<PixelDisparity<float> > do_correlation(std::vector<ImageView<uint8> > left_slog_pyramid, 
@@ -53,7 +54,7 @@ namespace stereo {
                                                      std::vector<ImageView<bool> > right_masks);
 
     ImageView<PixelDisparity<float> > correlate(ImageView<uint8> left_image, ImageView<uint8> right_image, 
-                                                BBox2i search_range, Vector2i offset);
+                                                BBox2 search_range, Vector2 offset);
                                                 
 
   public:
@@ -61,8 +62,8 @@ namespace stereo {
     /// Correlator Constructor
     ///
     /// Set pyramid_levels to 0 to force the use of a single pyramid level (essentially disabling pyramid correlation).
-    Correlator(BBox2i initial_search_range, Vector2i kernel_size, int slog_width = 1.5, float cross_correlation_threshold, int pyramid_min_image_dimension = 256) :
-      m_initial_search_range(initial_search_range), m_kernel_size(kernel_size), m_slog_width(slog_width), m_cross_correlation_threshold(cross_correlation_threshold), m_pyramid_min_image_dimension(pyramid_min_image_dimension) {
+    Correlator(BBox2 initial_search_range, Vector2i kernel_size, int slog_width = 1.5, float cross_correlation_threshold = 1, bool do_h_subpixel = true, bool do_v_subpixel = true, int pyramid_min_image_dimension = 256) :
+      m_initial_search_range(initial_search_range), m_kernel_size(kernel_size), m_slog_width(slog_width), m_cross_correlation_threshold(cross_correlation_threshold), m_do_h_subpixel(do_h_subpixel), m_do_v_subpixel(do_v_subpixel), m_pyramid_min_image_dimension(pyramid_min_image_dimension) {
       m_debug_prefix = "";
     }
 

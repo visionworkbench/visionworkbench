@@ -35,7 +35,7 @@ int main( int argc, char *argv[] ) {
       ("help", "Display this help message")
       ("left", po::value<std::string>(&left_file_name), "Explicitly specify the \"left\" input file")
       ("right", po::value<std::string>(&right_file_name), "Explicitly specify the \"right\" input file")
-      ("slog", po::value<float>(&slog)->default_value(0.0), "Apply SLOG filter with the given sigma, or 0 to disable")
+      ("slog", po::value<float>(&slog)->default_value(1.0), "Apply SLOG filter with the given sigma, or 0 to disable")
       ("log", po::value<float>(&log)->default_value(0.0), "Apply LOG filter with the given sigma, or 0 to disable")
       ("xoffset", po::value<int>(&xoffset)->default_value(0), "Overall horizontal offset between images")
       ("yoffset", po::value<int>(&yoffset)->default_value(0), "Overall vertical offset between images")
@@ -48,7 +48,7 @@ int main( int argc, char *argv[] ) {
       ("hsubpix", "Enable horizontal sub-pixel correlation")
       ("vsubpix", "Enable vertical sub-pixel correlation")
       ("reference", "Use the slower, simpler reference correlator")
-      ("test", "Use the test correlator")
+      ("pyramid", "Use the pyramid based correlator")
       ("multiresolution", "Use the prototype multiresolution correlator")
       ("bitimage", "Force the use of the optimized bit-image correlator")
       ("nonbitimage", "Fore the use of the slower, non bit-image optimized correlator")
@@ -85,13 +85,13 @@ int main( int argc, char *argv[] ) {
     }
 
     bool bit_image = false;
-    if( log > 0 && !vm.count("test") ) {
+    if( log > 0 && !vm.count("pyramid") ) {
       std::cout << "Applying LOG filter..." << std::endl;
       left = laplacian_filter( gaussian_filter( left, log ) );
       right = laplacian_filter( gaussian_filter( right, log ) );
     }
 
-    if( slog > 0.0 && !vm.count("test") ) {
+    if( slog > 0.0 && !vm.count("pyramid") ) {
       bit_image = true;
       std::cout << "Applying SLOG filter..." << std::endl;
       left = threshold( laplacian_filter( gaussian_filter( left, slog ) ) );
@@ -107,11 +107,17 @@ int main( int argc, char *argv[] ) {
                                                   (vm.count("hsubpix")>0),
                                                   (vm.count("vsubpix")>0) );
       disparity_map = correlator( left, right, bit_image );
-    } else if (vm.count("test")>0) {
-      vw::stereo::Correlator correlator( BBox2i(Vector2(xoffset-xrange, yoffset-yrange),
-                                                Vector2(xoffset+xrange, yoffset+yrange)),
+    } else if (vm.count("pyramid")>0) {
+      if (slog == 0) {
+        std::cout << "Pyramid correlator cannot operate with an slog of 0.   Please choose a postive value.\n";
+        exit(0);
+      }
+      vw::stereo::Correlator correlator( BBox2(Vector2(xoffset-xrange, yoffset-yrange),
+                                               Vector2(xoffset+xrange, yoffset+yrange)),
                                          Vector2i(xkernel, ykernel),
-                                         slog, lrthresh);
+                                         slog, lrthresh,
+                                         (vm.count("hsubpix")>0),
+                                         (vm.count("vsubpix")>0) );
       correlator.set_debug_mode("debug");
       vw::Timer corr_timer("Correlation Time");
       disparity_map = correlator( left, right );      
@@ -184,7 +190,7 @@ int main( int argc, char *argv[] ) {
     remove_outliers( disparity_map, 5, 5, 3, 0.6 );
 
     // Write disparity debug images
-    BBox2i disp_range = disparity::get_disparity_range(disparity_map);
+    BBox2 disp_range = disparity::get_disparity_range(disparity_map);
     write_image( "x_disparity.png", normalize(clamp(select_channel(disparity_map,0), disp_range.min().x(), disp_range.max().x() )));
     write_image( "y_disparity.png", normalize(clamp(select_channel(disparity_map,1), disp_range.min().y(), disp_range.max().y() )));
   }

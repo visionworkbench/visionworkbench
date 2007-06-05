@@ -163,9 +163,9 @@ namespace stereo {
         current_level << i;
         double min_h_disp, min_v_disp, max_h_disp, max_v_disp;
         if (m_debug_mode) {
-          disparity::get_disparity_range(disparity_map, min_h_disp, max_h_disp, min_v_disp, max_v_disp);
-          write_image( m_debug_prefix+"-H-raw-"+current_level.str()+".jpg", normalize(clamp(select_channel(disparity_map,0), min_h_disp, max_h_disp)));
-          write_image( m_debug_prefix+"-V-raw-"+current_level.str()+".jpg", normalize(clamp(select_channel(disparity_map,1), min_v_disp, max_v_disp)));
+          BBox2i disp_range = disparity::get_disparity_range(disparity_map);
+          write_image( m_debug_prefix+"-H-raw-"+current_level.str()+".jpg", normalize(clamp(select_channel(disparity_map,0), disp_range.min().x(), disp_range.max().x())));
+          write_image( m_debug_prefix+"-V-raw-"+current_level.str()+".jpg", normalize(clamp(select_channel(disparity_map,1), disp_range.min().y(), disp_range.max().y())));
         }
 
         // Now, clean up the disparity map by rejecting outliers 
@@ -189,30 +189,30 @@ namespace stereo {
         
         // For debugging
         if (m_debug_mode) {
-          disparity::get_disparity_range(processed_disparity_map, min_h_disp, max_h_disp, min_v_disp, max_v_disp);
-          write_image( m_debug_prefix+"-H-"+current_level.str()+".jpg", normalize(clamp(select_channel(processed_disparity_map,0), min_h_disp, max_h_disp)));
-          write_image( m_debug_prefix+"-V-"+current_level.str()+".jpg", normalize(clamp(select_channel(processed_disparity_map,1), min_v_disp, max_v_disp)));
+          BBox2i disp_range = disparity::get_disparity_range(processed_disparity_map);
+          write_image( m_debug_prefix+"-H-"+current_level.str()+".jpg", normalize(clamp(select_channel(processed_disparity_map,0), disp_range.min().x(), disp_range.max().x())));
+          write_image( m_debug_prefix+"-V-"+current_level.str()+".jpg", normalize(clamp(select_channel(processed_disparity_map,1), disp_range.min().y(), disp_range.max().y())));
         } 
 
         // The disparity map of the subsampled problem is used to
         // determine the best guess for search range at the next
         // level.
         try {
-          double new_h_min, new_v_min, new_h_max, new_v_max;
-          disparity::get_disparity_range(processed_disparity_map, new_h_min, new_h_max, new_v_min, new_v_max);
+
+          BBox2i disp_range = disparity::get_disparity_range(processed_disparity_map);
           
           if (m_do_horizontal_calibration) {
-            m_min_h = int(floor( new_h_min * pow(2,i+1))) - 4;
-            m_max_h = int(ceil(  new_h_max * pow(2,i+1))) + 4;
+            m_min_h = int(floor( disp_range.min().x() * pow(2,i+1))) - 4;
+            m_max_h = int(ceil(  disp_range.max().x() * pow(2,i+1))) + 4;
           }
           
           if (m_do_vertical_calibration) {
-            m_min_v = int(floor( new_v_min * pow(2,i+1))) - 4;
-            m_max_v = int(ceil(  new_v_max * pow(2,i+1))) + 4;
+            m_min_v = int(floor( disp_range.min().y() * pow(2,i+1))) - 4;
+            m_max_v = int(ceil(  disp_range.max().y() * pow(2,i+1))) + 4;
           }
           
-          std::cout << "\n\tNew disparity range  --  H: [" << m_min_h << ", " << m_max_h
-                    << "]  V: [" << m_min_v << ", " << m_max_v << "]\n";
+          std::cout << "\n\tNew disparity range  --  H: [" << disp_range.min().x() << ", " << disp_range.max().x()
+                    << "]  V: [" << disp_range.min().y() << ", " << disp_range.max().y() << "]\n";
           
         } catch (ArgumentErr &e) { // Couldn't adjust disparity range
           std::cout << "INSUFFICIENT MATHCHES\n" << std::flush;

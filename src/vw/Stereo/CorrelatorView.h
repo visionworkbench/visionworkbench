@@ -1,8 +1,7 @@
 #ifndef __VW_STEREO_CORRELATOR_VIEW__
 #define __VW_STEREO_CORRELATOR_VIEW__
 #include <vw/Stereo/Correlate.h>
-#include <vw/Stereo/OptimizedCorrelator.h>
-#include <vw/Stereo/MultiresolutionCorrelator.h>
+#include <vw/Stereo/Correlator.h>
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Manipulation.h>
@@ -24,7 +23,6 @@ namespace vw {
 			  int verbose,
 			  double crosscorrThreshold,
         double slog_width,
-        bool use_multiresolution_correlator,
 			  int useSubpixelH, int useSubpixelV,
 			  bool bit_image)
       {
@@ -37,7 +35,6 @@ namespace vw {
         m_verbose = verbose;
         m_crossCorrThreshold = crosscorrThreshold;
         m_slog_width = slog_width;
-        m_use_multiresolution_correlator = use_multiresolution_correlator;
         m_useHorizSubpixel = useSubpixelH;
         m_useVertSubpixel = useSubpixelV;
         m_bit_image = bit_image;
@@ -47,7 +44,6 @@ namespace vw {
       int m_verbose;
       double m_crossCorrThreshold;
       double m_slog_width;
-      bool m_use_multiresolution_correlator;
       int m_useHorizSubpixel;
       int m_useVertSubpixel;
       bool m_bit_image;
@@ -128,27 +124,16 @@ namespace vw {
         // We have all of the settings adjusted.  Now we just have to
         // run the correlator.
         ImageView<pixel_type> disparity_map;
-        if (m_settings.m_use_multiresolution_correlator) {
-          vw::stereo::MultiresolutionCorrelator correlator(0, search_bbox.width(),
-                                                           0, search_bbox.height(),
-                                                           m_settings.m_lKernWidth, m_settings.m_lKernHeight,
-                                                           true, m_settings.m_crossCorrThreshold,
-                                                           m_settings.m_slog_width,
-                                                           m_settings.m_useHorizSubpixel,
-                                                           m_settings.m_useVertSubpixel);
-          correlator.set_debug_mode("multires");
-          disparity_map = correlator(cropped_left_image, cropped_right_image);
-        } else {
-          ImageView<PixelGray<uint8> > slog_left_image = channel_cast<uint8>(threshold(laplacian_filter(gaussian_filter(channel_cast<float>(cropped_left_image),m_settings.m_slog_width)), 0.0)); 
-          ImageView<PixelGray<uint8> > slog_right_image = channel_cast<uint8>(threshold(laplacian_filter(gaussian_filter(channel_cast<float>(cropped_right_image),m_settings.m_slog_width)), 0.0));
-          vw::stereo::OptimizedCorrelator correlator(0, search_bbox.width(),
-                                                     0, search_bbox.height(),
-                                                     m_settings.m_lKernWidth, m_settings.m_lKernHeight,
-                                                     true, m_settings.m_crossCorrThreshold,
-                                                     m_settings.m_useHorizSubpixel,
-                                                     m_settings.m_useVertSubpixel);
-          disparity_map = correlator(slog_left_image, slog_right_image, true);
-        }
+
+        vw::stereo::Correlator correlator(BBox2i(0,0,search_bbox.width(),search_bbox.height()),
+                                          Vector2i(m_settings.m_lKernWidth, m_settings.m_lKernHeight),
+                                          m_settings.m_slog_width,
+                                          m_settings.m_crossCorrThreshold,
+                                          m_settings.m_useHorizSubpixel,
+                                          m_settings.m_useVertSubpixel);
+        // For debugging: this saves the disparity map at various pyramid levels to disk.
+        correlator.set_debug_mode("debug");
+        disparity_map = correlator(cropped_left_image, cropped_right_image);
 
         // Adjust the disparities to be relative to the uncropped
         // image pixel locations

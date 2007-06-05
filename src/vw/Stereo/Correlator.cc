@@ -2,58 +2,35 @@
 #include <vw/Stereo/Correlator.h>
 #include <vw/Stereo/OptimizedCorrelator.h>
 #include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/ProgressCallback.h>
 #include <vw/Image/Transform.h>
 
-/// Compute the sum for the given bbox for a given image.
-template <class ViewT>
-static inline typename vw::AccumulatorType<typename vw::PixelChannelType<typename ViewT::pixel_type>::type >::type compute_sum(ViewT const& image, vw::BBox2i const& bbox) {
-  typedef typename vw::AccumulatorType<typename vw::PixelChannelType<typename ViewT::pixel_type>::type >::type result_type; 
-  VW_DEBUG_ASSERT(bbox.min().x()>=0         || bbox.min().y()>=0       || bbox.max().x()<image.cols()       || bbox.max().y()<image.rows(),
-                  LogicErr() << "Correlator::compute_sum: bbox falls outside of image range");
-
-  result_type sum = 0;
-  typename ViewT::pixel_accessor col_acc = image.origin().advance(bbox.min().x(), bbox.min().y());
-  for (int j = bbox.min().y(); j<bbox.max().y(); ++j) {
-    typename ViewT::pixel_accessor row_acc = col_acc;
-    for (int i = bbox.min().x(); i<bbox.max().x(); ++i) {
-      sum += *row_acc;
-      row_acc.next_row();
+/// A progress monitor that prints a progress bar on STDOUT.
+namespace vw {
+  class PyramidCorrelatorProgressCallback : public vw::ProgressCallback {
+    MessageLevel m_level;
+    std::string m_prefix;
+  public:
+    PyramidCorrelatorProgressCallback( std::string prefix, MessageLevel level = InfoMessage ) : m_level(level), m_prefix(prefix) {}
+    virtual ~PyramidCorrelatorProgressCallback() {}
+    
+    virtual void report_progress(double progress) const {
+      int pi = static_cast<int>(progress * 60);
+      vw_out(m_level) << "\r" << m_prefix << " [";
+      for( int i=0; i<pi; ++i ) vw_out(m_level) << "*";
+      for( int i=60; i>pi; --i ) vw_out(m_level) << ".";
+      vw_out(m_level) << "] " << (int)(progress*100) << "%" << std::flush;
     }
-    col_acc.next_col();
-  }
-  return sum;
-}
-
-/// Update the sum of the image by stepping over one column to the
-/// right.  The values on what was previously the left-hand column are
-/// subtracted off, and the values on the new right-hand column are
-/// added on.
-template <class ViewT>
-static inline typename vw::AccumulatorType<typename vw::PixelChannelType<typename ViewT::pixel_type>::type >::type update_sum(ViewT const& image, 
-                                                                                                                              typename vw::AccumulatorType<typename vw::PixelChannelType<typename ViewT::pixel_type>::type >::type old_sum,
-                                                                                                                              vw::BBox2i const& bbox) {
-  typedef typename vw::AccumulatorType<typename vw::PixelChannelType<typename ViewT::pixel_type>::type >::type result_type; 
-  VW_DEBUG_ASSERT(bbox.min().x()-1>=0         || bbox.min().y()>=0       || bbox.max().x()<image.cols()       || bbox.max().y()<image.rows(),
-                  LogicErr() << "Correlator::update_sum: new bbox falls outside of image range");
-
-  result_type sum = old_sum;
-
-  // Subtract off old left-hand column.
-  typename ViewT::pixel_accessor row_acc = image.origin().advance(bbox.min().x()-1, bbox.min().y());
-  for (int j = bbox.min().y(); j<bbox.max().y(); ++j) {
-    sum -= *row_acc;
-    row_acc.next_row();
-  }
-
-  // Add on new right-hand column.
-  typename ViewT::pixel_accessor row_acc2 = image.origin().advance(bbox.max().x()-1, bbox.min().y());
-  for (int j = bbox.min().y(); j<bbox.max().y(); ++j) {
-    sum += *row_acc2;
-    row_acc2.next_row();
-  }
-
-  return sum;
-}
+    
+    virtual void report_aborted(std::string why="") const {
+      vw_out(m_level) << " Aborted: " << why << std::endl;
+    }
+    
+    virtual void report_finished() const {
+      vw_out(m_level) << "\r" << m_prefix << " [************************************************************] Complete!" << std::endl;
+    }
+  };
+} // namespace vw
 
 // Iterate over the nominal blocks, creating output blocks for correlation
 //
@@ -65,16 +42,16 @@ static inline typename vw::AccumulatorType<typename vw::PixelChannelType<typenam
 //
 // Returns an updated search range that has been recentered for use in
 // comparing the left_blocks and right_blocks.
-vw::BBox2i vw::stereo::Correlator::compute_matching_blocks(BBox2i const& nominal_block, BBox2i search_range,
+vw::BBox2 vw::stereo::Correlator::compute_matching_blocks(BBox2i const& nominal_block, BBox2 search_range,
                                                            BBox2i &left_block, BBox2i &right_block) {
   
   left_block = nominal_block;
     
   // The bounds of the right box depend on the size of the requested search range.
-  right_block = BBox2i(Vector2i(nominal_block.min().x()+search_range.min().x(),
-                                nominal_block.min().y()+search_range.min().y()),
-                       Vector2i(nominal_block.max().x()+search_range.max().x(),
-                                nominal_block.max().y()+search_range.max().y()));
+  right_block = BBox2i(Vector2i(nominal_block.min().x()+int(floor(search_range.min().x())),
+                                nominal_block.min().y()+int(floor(search_range.min().y()))),
+                       Vector2i(nominal_block.max().x()+int(ceil(search_range.max().x())),
+                                nominal_block.max().y()+int(ceil(search_range.max().y()))));
   
   // Ensure that the left and right blocks are the same size.
   left_block.max() = Vector2i(nominal_block.min().x() + right_block.width(),
@@ -86,16 +63,16 @@ vw::BBox2i vw::stereo::Correlator::compute_matching_blocks(BBox2i const& nominal
   left_block.min() -= Vector2i(m_kernel_size[0], m_kernel_size[1]);
   left_block.max() += Vector2i(m_kernel_size[0], m_kernel_size[1]);
   
-  return BBox2i(0,0,search_range.width(),search_range.height());
+  return BBox2(0,0,int(ceil(search_range.width())),int(ceil(search_range.height())));
 }
 
 //  Use the previous level's disparity map to narrow the search range
 //  for each nominal block. At each new level, we buffer the search
 //  range slightly so that we cover all feasible disparity levels at
 //  the higher level of resolution.
-std::vector<vw::BBox2i> vw::stereo::Correlator::compute_search_ranges(ImageView<PixelDisparity<float> > const& prev_disparity_map, 
+std::vector<vw::BBox2> vw::stereo::Correlator::compute_search_ranges(ImageView<PixelDisparity<float> > const& prev_disparity_map, 
                                                                       std::vector<BBox2i> nominal_blocks) {
-  std::vector<BBox2i> search_ranges(nominal_blocks.size());
+  std::vector<BBox2> search_ranges(nominal_blocks.size());
   std::vector<int> good_pixel_vec(nominal_blocks.size());
   std::vector<int> fixed_blocks;
 
@@ -153,9 +130,9 @@ std::vector<vw::BBox2i> vw::stereo::Correlator::compute_search_ranges(ImageView<
 }
 
 vw::ImageView<vw::PixelDisparity<float> > vw::stereo::Correlator::correlate(ImageView<uint8> left_image, ImageView<uint8> right_image, 
-                                                                            BBox2i search_range, Vector2i offset) {
-  vw::stereo::OptimizedCorrelator correlator( search_range.min().x(), search_range.max().x(),
-                                              search_range.min().y(), search_range.max().y(),
+                                                                            BBox2 search_range, Vector2 offset) {
+  vw::stereo::OptimizedCorrelator correlator( int(floor(search_range.min().x())), int(ceil(search_range.max().x())),
+                                              int(floor(search_range.min().y())), int(ceil(search_range.max().y())),
                                               m_kernel_size[0], m_kernel_size[1],
                                               false, m_cross_correlation_threshold,
                                               false, false );
@@ -194,9 +171,12 @@ vw::ImageView<vw::PixelDisparity<float> > vw::stereo::Correlator::do_correlation
   // Run the full correlation complete with left-right/right-left
   // checks.  This produces a rough, low res version of the disparity
   // map.
-  BBox2i initial_search_range = m_initial_search_range / pow(2, pyramid_levels-1);
-  vw_out(InfoMessage) << "\tLevel " << pyramid_levels-1 << " -- block: " << BBox2i(0,0,left_slog_pyramid[pyramid_levels-1].cols(),left_slog_pyramid[pyramid_levels-1].rows()) << "         \tsearch range: " << initial_search_range << "             \r";
-  ImageView<PixelDisparity<float> > disparity_map = disparity::clean_up(this->correlate(left_slog_pyramid[pyramid_levels-1], right_slog_pyramid[pyramid_levels-1], initial_search_range, Vector2i(0,0)),
+  BBox2 initial_search_range = m_initial_search_range / pow(2, pyramid_levels-1);
+  std::ostringstream current_level0;
+  current_level0 << (pyramid_levels-1);
+  PyramidCorrelatorProgressCallback prog0("\tLevel " + current_level0.str());
+  prog0.report_finished();
+  ImageView<PixelDisparity<float> > disparity_map = disparity::clean_up(this->correlate(left_slog_pyramid[pyramid_levels-1], right_slog_pyramid[pyramid_levels-1], initial_search_range, Vector2(0,0)),
                                                                         rm_half_kernel, 
                                                                         rm_half_kernel,
                                                                         rm_threshold,
@@ -207,13 +187,16 @@ vw::ImageView<vw::PixelDisparity<float> > vw::stereo::Correlator::do_correlation
   if (m_debug_prefix.size() > 0) {
     std::ostringstream current_level;
     current_level << pyramid_levels-1;
-    BBox2i disp_range = disparity::get_disparity_range(disparity_map);
+    BBox2 disp_range = disparity::get_disparity_range(disparity_map);
     write_image( m_debug_prefix + "-H-" + current_level.str() + ".jpg", normalize(clamp(select_channel(disparity_map,0), disp_range.min().x(), disp_range.max().x() )));
     write_image( m_debug_prefix + "-V-" + current_level.str() + ".jpg", normalize(clamp(select_channel(disparity_map,1), disp_range.min().y(), disp_range.max().y() )));
   }
   
   // Refined the disparity map by searching in the local region where the last good disparity value was found
   for (int n = pyramid_levels - 2; n >=0; --n) {
+    std::ostringstream current_level;
+    current_level << n;
+    PyramidCorrelatorProgressCallback prog("\tLevel " + current_level.str() );
     
     // 1. Subdivide disparity map into subregions.  We build up the
     //    disparity map for the level, one subregion at a time.
@@ -222,11 +205,11 @@ vw::ImageView<vw::PixelDisparity<float> > vw::stereo::Correlator::do_correlation
     
     // First we build a list of search ranges from the previous
     // level's disparity map.
-    std::vector<BBox2i> search_ranges = compute_search_ranges(disparity_map, nominal_blocks);
+    std::vector<BBox2> search_ranges = compute_search_ranges(disparity_map, nominal_blocks);
 
     for (int r = 0; r < nominal_blocks.size(); ++r) {
-      vw_out(InfoMessage) << "\tLevel " << n << " --   block: " << nominal_blocks[r] << "       \tsearch range: " << search_ranges[r] << "             \r";
-
+      prog.report_progress((float)r/nominal_blocks.size());
+      
       // Given a block from the left image, compute the bounding
       // box of pixels we will be searching in the right image
       // given the disparity range for the current left image
@@ -236,37 +219,39 @@ vw::ImageView<vw::PixelDisparity<float> > vw::stereo::Correlator::do_correlation
       // image has no data, so we adjust the block sizes here to avoid
       // doing unnecessary work.
       BBox2i left_block, right_block;
-      BBox2i right_image_workarea = BBox2i(-search_ranges[r].min().x(),
-                                           -search_ranges[r].min().y(),
-                                           right_slog_pyramid[n].cols() - search_ranges[r].max().x(),
-                                           right_slog_pyramid[n].rows() - search_ranges[r].max().y());
+      BBox2i right_image_workarea = BBox2i(-int(floor(search_ranges[r].min().x())),
+                                           -int(floor(search_ranges[r].min().y())),
+                                           right_slog_pyramid[n].cols() - int(ceil(search_ranges[r].max().x())),
+                                           right_slog_pyramid[n].rows() - int(ceil(search_ranges[r].max().y())));
       BBox2i right_image_bounds = BBox2i(0,0,
                                          right_slog_pyramid[n].cols(),
                                          right_slog_pyramid[n].rows());
       right_image_workarea.crop(right_image_bounds);
       nominal_blocks[r].crop(right_image_workarea);
       if (nominal_blocks[r].width() == 0 || nominal_blocks[r].height() == 0) { continue; }
-      BBox2i adjusted_search_range = compute_matching_blocks(nominal_blocks[r], search_ranges[r], left_block, right_block);
+      BBox2 adjusted_search_range = compute_matching_blocks(nominal_blocks[r], search_ranges[r], left_block, right_block);
       
       //   2. Run the correlation for this level.  We pass in the
       //      offset (difference) between the adjusted_search_range
       //      and original search_ranges[r] so that this can be added
       //      back in when setting the final disparity.
-      int h_disp_offset = search_ranges[r].min().x() - adjusted_search_range.min().x();
-      int v_disp_offset = search_ranges[r].min().y() - adjusted_search_range.min().y();
+      float h_disp_offset = search_ranges[r].min().x() - adjusted_search_range.min().x();
+      float v_disp_offset = search_ranges[r].min().y() - adjusted_search_range.min().y();
       
       // Place this block in the proper place in the complete
       // disparity map.
       ImageView<PixelDisparity<float> > disparity_block = this->correlate( crop(edge_extend(left_slog_pyramid[n],ReflectEdgeExtension()),left_block),
                                                                            crop(edge_extend(right_slog_pyramid[n],ReflectEdgeExtension()),right_block),
                                                                            adjusted_search_range, 
-                                                                           Vector2i(h_disp_offset, v_disp_offset) );
+                                                                           Vector2(h_disp_offset, v_disp_offset) );
       crop(new_disparity_map, nominal_blocks[r]) = crop(disparity_block, 
                                                         m_kernel_size[0], 
                                                         m_kernel_size[1],
                                                         nominal_blocks[r].width(),
                                                         nominal_blocks[r].height());
     }
+    prog.report_finished();
+
     
     // At the lower levels, we want to do a little bit of
     // disparity map clean-up to prevent spurious matches from
@@ -288,13 +273,14 @@ vw::ImageView<vw::PixelDisparity<float> > vw::stereo::Correlator::do_correlation
       std::ostringstream current_level;
       current_level << n;
       double min_h_disp, min_v_disp, max_h_disp, max_v_disp;
-      BBox2i disp_range = disparity::get_disparity_range(disparity_map);
+      BBox2 disp_range = disparity::get_disparity_range(disparity_map);
       write_image( m_debug_prefix+"-H-" + current_level.str() + ".jpg", normalize(clamp(select_channel(disparity_map,0), disp_range.min().x(), disp_range.max().x() )));
       write_image( m_debug_prefix+"-V-" + current_level.str() + ".jpg", normalize(clamp(select_channel(disparity_map,1), disp_range.min().y(), disp_range.max().y() )));
     }
     
   }
-  vw_out(InfoMessage) << "\tDone.                                                                                                                           \n";
+  // Do subpixel correlation
+  subpixel_correlation(disparity_map, left_slog_pyramid[0], right_slog_pyramid[0], m_kernel_size[0], m_kernel_size[1], m_do_h_subpixel, m_do_v_subpixel);
   return disparity_map;
 
 }

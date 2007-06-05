@@ -81,7 +81,7 @@ namespace disparity {
   //
   // Determine the range of disparity values present in the disparity map.
   template <class ViewT>
-  BBox2i get_disparity_range(ImageViewBase<ViewT> const& disparity_map, int& num_good, bool verbose = false) {
+  BBox2 get_disparity_range(ImageViewBase<ViewT> const& disparity_map, int& num_good, bool verbose = false) {
 
     const ViewT& disparity_map_impl = disparity_map.impl();
 
@@ -107,18 +107,18 @@ namespace disparity {
     if (num_good == 0) {
       if (verbose)
         vw_out(WarningMessage) << "Disparity range -- disparity map had zero good pixels.";
-      return BBox2i(0,0,0,0);
+      return BBox2(0,0,0,0);
     }
     
     if (verbose) 
       vw_out(InfoMessage) << "Disparity range -- Horizontal: [" << min_horz_disp << ", " << max_horz_disp 
                           << "]   Vertical: [" << min_vert_disp << ", " << max_vert_disp << "]  ("<< num_good << " good)\n"; 
-    return BBox2i(Vector2i(min_horz_disp, min_vert_disp),Vector2i(max_horz_disp, max_vert_disp));
+    return BBox2(Vector2(min_horz_disp, min_vert_disp),Vector2(max_horz_disp, max_vert_disp));
   }
 
 
   template <class ViewT>
-  BBox2i get_disparity_range(ImageViewBase<ViewT> const& disparity_map, bool verbose = false) {
+  BBox2 get_disparity_range(ImageViewBase<ViewT> const& disparity_map, bool verbose = false) {
     int num_good = 0;
     return get_disparity_range(disparity_map.impl(), num_good, verbose);
   }

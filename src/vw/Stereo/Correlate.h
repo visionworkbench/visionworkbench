@@ -148,9 +148,6 @@ void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
                           bool do_horizontal_subpixel = true,
                           bool do_vertical_subpixel = true) {
 
-  //    do_vertical_subpixel = false;
-  //    do_horizontal_subpixel = false;
-  
   VW_ASSERT(left_image.cols() == right_image.cols() && left_image.cols() == disparity_map.cols() &&
             left_image.rows() == right_image.rows() && left_image.rows() == disparity_map.rows(),
             ArgumentErr() << "subpixel_correlation: input image dimensions do not agree.\n");
@@ -289,24 +286,17 @@ void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
                                            hdisp+1, vdisp+1,
                                            kern_width, kern_height,
                                            width, height);
-          
-          if (mid < points(0) && mid < points(1) && mid < points(2) &&
-              mid < points(3) && mid < points(5) && 
-              mid < points(6) && mid < points(7) && mid < points(8)) {
             
-            vw::Vector2 offset = find_minimum_2d(points, pinvA);
-
-            // This prevents us from adding in large offsets for
-            // poorly fit data.
-            if (fabs(offset(0)) < 2.0 && fabs(offset(1)) < 2.0) {
-              disparity_map(c,r).h() += offset(0);
-              disparity_map(c,r).v() += offset(1);
-            } else {
-              disparity_map(c,r) = PixelDisparity<float>();
-              //              std::cout << "Bad offset: " << offset(0) << " " << offset(1) << "\n";
-            }
+          vw::Vector2 offset = find_minimum_2d(points, pinvA);
+          
+          // This prevents us from adding in large offsets for
+          // poorly fit data.
+          if (fabs(offset(0)) < 3.0 && fabs(offset(1)) < 3.0) {
+            disparity_map(c,r).h() += offset(0);
+            disparity_map(c,r).v() += offset(1);
           } else {
             disparity_map(c,r) = PixelDisparity<float>();
+            //            std::cout << "Bad offset: " << offset(0) << " " << offset(1) << "\n";
           }
         }
       } 
