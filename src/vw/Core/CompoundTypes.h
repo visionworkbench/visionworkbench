@@ -65,7 +65,7 @@ namespace vw {
   // can specify whether to return by value or by reference.  This is somewhat 
   // annoying.  Is there a better way?
   template <class ResultT, class PixelT>
-  inline ResultT compound_select_channel( PixelT& pixel, typename boost::disable_if<IsCompound<PixelT>, int32>::type channel ) {
+  inline ResultT compound_select_channel( PixelT& pixel, typename boost::disable_if<IsCompound<PixelT>, int32>::type /*channel*/ ) {
     return pixel;
   }
 

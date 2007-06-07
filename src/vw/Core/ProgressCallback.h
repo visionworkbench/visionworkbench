@@ -48,7 +48,7 @@ namespace vw {
     // progress is from 0 (not done) to 1 (finished)
     // 
     virtual void report_progress(double /*progress*/) const {}
-    virtual void report_aborted(std::string why="") const {}
+    virtual void report_aborted(std::string /*why*/="") const {}
     virtual void report_finished() const {}
 
     // Helper method which computes progress and calls report_progress
