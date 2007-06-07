@@ -117,68 +117,86 @@ AC_DEFUN([AX_FIND_FILES],
 dnl Usage: AX_PKG(<name>, <dependencies>, <libraries>, <headers>[, <relative include path>])
 AC_DEFUN([AX_PKG],
 [
+  AC_ARG_WITH(translit($1,`A-Z',`a-z'),
+    AC_HELP_STRING([--with-]translit($1,`A-Z',`a-z'), [enable searching for the $1 package @<:@yes@:>@]),
+    [ HAVE_PKG_$1=$withval ]
+  )
+
   AC_MSG_CHECKING(for package $1)
   if test "$ENABLE_VERBOSE" = "yes"; then
     AC_MSG_RESULT([])
   fi
 
-  HAVE_PKG_$1=yes
-
-  # Test for and inherit flags from dependencies
-  for x in $2; do
-    ax_pkg_have_dep=HAVE_PKG_${x}
-    if test "${!ax_pkg_have_dep}" == "yes"; then
-      ax_pkg_dep_cppflags=PKG_${x}_CPPFLAGS
-      ax_pkg_dep_ldflags=PKG_${x}_LDFLAGS
-      PKG_$1_CPPFLAGS="${PKG_$1_CPPFLAGS} ${!ax_pkg_dep_cppflags}"
-      PKG_$1_LDFLAGS="${PKG_$1_LDFLAGS} ${!ax_pkg_dep_ldflags}"
-      unset ax_pkg_dep_cppflags ax_pkg_dep_ldflags
-    else
-      unset PKG_$1_CPPFLAGS
-      unset PKG_$1_LDFLAGS
-      HAVE_PKG_$1=no
-      break
+  # We can skip searching if we're already at "no"
+  if test "no" = "$HAVE_PKG_$1"; then
+    if test "$ENABLE_VERBOSE" = "yes"; then
+      AC_MSG_NOTICE([skipping per user request])
     fi
-  done
-
-  # Test for and configure flags for header and library files
-  if test "$HAVE_PKG_$1" = "yes" ; then
-    unset ax_pkg_headers ax_pkg_libs
-    if test ! -z "$3"; then
-      ax_pkg_libs=`echo $3 | sed 's/-l\([[^[:space:]]]*\)/lib\/lib\1.*/g'`
+  
+  # We skip the search if the user has been explicit about "yes"
+  elif test "yes" = "$HAVE_PKG_$1"; then
+    if test "$ENABLE_VERBOSE" = "yes"; then
+      AC_MSG_NOTICE([yes (using user-supplied flags)])
     fi
-    if test ! -z "$4"; then
-      if test ! -z "$5"; then
-        ax_pkg_headers=`for x in $4; do echo -n "include/$5/${x} "; done`
+
+  # Otherwise we start with yes but look for reasons to say no
+  else
+    HAVE_PKG_$1=yes
+
+    # Test for and inherit flags from dependencies
+    for x in $2; do
+      ax_pkg_have_dep=HAVE_PKG_${x}
+      if test "${!ax_pkg_have_dep}" = "yes"; then
+        ax_pkg_dep_cppflags=PKG_${x}_CPPFLAGS
+        ax_pkg_dep_ldflags=PKG_${x}_LDFLAGS
+        PKG_$1_CPPFLAGS="${PKG_$1_CPPFLAGS} ${!ax_pkg_dep_cppflags}"
+        PKG_$1_LDFLAGS="${PKG_$1_LDFLAGS} ${!ax_pkg_dep_ldflags}"
+        unset ax_pkg_dep_cppflags ax_pkg_dep_ldflags
       else
-        ax_pkg_headers=`for x in $4; do echo -n "include/${x} "; done`
-      fi
-    fi
-    ax_pkg_files="$ax_pkg_headers $ax_pkg_libs"
-    if test ! -z "$3" || test ! -z "$4" ; then
-      AX_FIND_FILES([$ax_pkg_files], [$PKG_PATHS])
-      if test -z "$ax_find_files_path"; then
+        unset PKG_$1_CPPFLAGS
+        unset PKG_$1_LDFLAGS
         HAVE_PKG_$1=no
-      else
-        PKG_$1_LDFLAGS="${PKG_$1_LDFLAGS} -L$ax_find_files_path/lib $3"
-        if test -z "$5"; then
-          PKG_$1_CPPFLAGS="${PKG_$1_CPPFLAGS} -I$ax_find_files_path/include"
+        break
+      fi
+    done
+
+    # Test for and configure flags for header and library files
+    if test "$HAVE_PKG_$1" = "yes" ; then
+      unset ax_pkg_headers ax_pkg_libs
+      if test ! -z "$3"; then
+        ax_pkg_libs=`echo $3 | sed 's/-l\([[^[:space:]]]*\)/lib\/lib\1.*/g'`
+      fi
+      if test ! -z "$4"; then
+        if test ! -z "$5"; then
+          ax_pkg_headers=`for x in $4; do echo -n "include/$5/${x} "; done`
         else
-          PKG_$1_CPPFLAGS="${PKG_$1_CPPFLAGS} -I${ax_find_files_path}/include/$5"
+          ax_pkg_headers=`for x in $4; do echo -n "include/${x} "; done`
+        fi
+      fi
+      ax_pkg_files="$ax_pkg_headers $ax_pkg_libs"
+      if test ! -z "$3" || test ! -z "$4" ; then
+        AX_FIND_FILES([$ax_pkg_files], [$PKG_PATHS])
+        if test -z "$ax_find_files_path"; then
+          HAVE_PKG_$1=no
+        else
+          PKG_$1_LDFLAGS="${PKG_$1_LDFLAGS} -L$ax_find_files_path/lib $3"
+          if test -z "$5"; then
+            PKG_$1_CPPFLAGS="${PKG_$1_CPPFLAGS} -I$ax_find_files_path/include"
+          else
+            PKG_$1_CPPFLAGS="${PKG_$1_CPPFLAGS} -I${ax_find_files_path}/include/$5"
+          fi
         fi
       fi
     fi
-  fi
 
-  if test "$HAVE_PKG_$1" != "yes" ; then
-    PKG_$1_CPPFLAGS=
-    PKG_$1_LDFLAGS=
   fi
 
   if test ${HAVE_PKG_$1} = "yes" ; then
     ax_have_pkg_bool=1
   else
     ax_have_pkg_bool=0
+    PKG_$1_CPPFLAGS=
+    PKG_$1_LDFLAGS=
   fi
   AC_DEFINE_UNQUOTED([HAVE_PKG_$1],
                      [$ax_have_pkg_bool],
@@ -285,7 +303,7 @@ AC_DEFUN([AX_PKG_LAPACK],
 
 	# If we are running MacOS X, we can use Apple's vecLib framework to
   # provide us with LAPACK and BLAS routines.
-  if test $host_vendor == apple; then
+  if test $host_vendor = apple; then
 	  AC_MSG_CHECKING(for package LAPACK)
   	if test "$ENABLE_VERBOSE" = "yes"; then
     	AC_MSG_RESULT([])
@@ -425,13 +443,13 @@ AC_DEFUN([AX_PKG_PTHREADS],
   ax_pkg_pthreads_ldflags_options="-lpthread none"
 
   for ax_pkg_pthreads_ldflags in $ax_pkg_pthreads_ldflags_options; do
-    if test "$ax_pkg_pthreads_ldflags" == "none" ; then
+    if test "$ax_pkg_pthreads_ldflags" = "none" ; then
       PKG_PTHREADS_LDFLAGS=""
     else
       PKG_PTHREADS_LDFLAGS=$ax_pkg_pthreads_ldflags
     fi
     for ax_pkg_pthreads_cppflags in $ax_pkg_pthreads_cppflags_options; do
-      if test "$ax_pkg_pthreads_cppflags" == "none" ; then
+      if test "$ax_pkg_pthreads_cppflags" = "none" ; then
         PKG_PTHREADS_CPPFLAGS=""
       else
         PKG_PTHREADS_CPPFLAGS=$ax_pkg_pthreads_cppflags
@@ -584,7 +602,7 @@ AC_DEFUN([AX_MODULE],
                      [$ax_have_pkg_bool],
                      [Define to 1 if the $1 module is available.])
 
-  if test "$ENABLE_VERBOSE" = "yes" && test "$HAVE_PKG_$1_SRC" == "yes" ; then
+  if test "$ENABLE_VERBOSE" = "yes" && test "$HAVE_PKG_$1_SRC" = "yes" ; then
     AC_MSG_NOTICE(MODULE_$1_CPPFLAGS = ${MODULE_$1_CPPFLAGS})
     AC_MSG_NOTICE(MODULE_$1_LDFLAGS = ${MODULE_$1_LDFLAGS})
     AC_MSG_NOTICE(MAKE_MODULE_$1 = ${MAKE_MODULE_$1})
