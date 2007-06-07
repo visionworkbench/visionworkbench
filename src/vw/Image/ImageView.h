@@ -87,7 +87,8 @@ namespace vw {
     /// Provided explicitly to clarify its precedence over 
     /// the templatized generalized copy constructor.
     ImageView( ImageView const& other )
-      : m_data(other.m_data), m_cols(other.m_cols), 
+      : ImageViewBase<ImageView<PixelT> >(other),
+        m_data(other.m_data), m_cols(other.m_cols), 
         m_rows(other.m_rows), m_planes(other.m_planes),
         m_origin(other.m_origin), m_cstride(other.m_cstride), 
         m_rstride(other.m_rstride), m_pstride(other.m_pstride) {}

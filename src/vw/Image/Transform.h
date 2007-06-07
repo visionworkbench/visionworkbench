@@ -72,11 +72,11 @@ namespace vw {
     /// not actually needed to perform  the transformation itself, but 
     /// it can be used to determine the appropriate dimensions for the 
     /// output.
-    virtual Vector2 forward( Vector2 const& point ) const { vw_throw( NoImplErr() << "forward() is not implemented for this transform." ); return Vector2(); }
+    virtual Vector2 forward( Vector2 const& /*point*/ ) const { vw_throw( NoImplErr() << "forward() is not implemented for this transform." ); return Vector2(); }
 
     /// This defines the transformation from coordinates in our target
     /// image back to coordinates in the original image.
-    virtual Vector2 reverse( Vector2 const& point ) const { vw_throw( NoImplErr() << "reverse() is not implemented for this transform." ); return Vector2(); }
+    virtual Vector2 reverse( Vector2 const& /*point*/ ) const { vw_throw( NoImplErr() << "reverse() is not implemented for this transform." ); return Vector2(); }
 
     /// Specifies the properties of the forward mapping function.
     virtual FunctionType forward_type() const { return DiscontinuousFunction; }
@@ -85,10 +85,10 @@ namespace vw {
     virtual FunctionType reverse_type() const { return DiscontinuousFunction; }
 
     /// This applies the forward transformation to an entire bounding box of pixels.
-    virtual BBox2i forward_bbox( BBox2i const& output_bbox ) const { vw_throw( NoImplErr() << "forward_bbox() is not implemented for this transform." ); return BBox2i(); }
+    virtual BBox2i forward_bbox( BBox2i const& /*output_bbox*/ ) const { vw_throw( NoImplErr() << "forward_bbox() is not implemented for this transform." ); return BBox2i(); }
 
     /// This applies the reverse transformation to an entire bounding box of pixels.
-    virtual BBox2i reverse_bbox( BBox2i const& input_bbox ) const { vw_throw( NoImplErr() << "reverse_bbox() is not implemented for this transform." ); return BBox2i(); }
+    virtual BBox2i reverse_bbox( BBox2i const& /*input_bbox*/ ) const { vw_throw( NoImplErr() << "reverse_bbox() is not implemented for this transform." ); return BBox2i(); }
 
   };
 

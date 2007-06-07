@@ -103,7 +103,7 @@ namespace vw {
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
-    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { 
+    inline result_type operator()( int32 i, int32 j, int32 /*p*/=0 ) const { 
       return Vector2(i,j);
     }
 
@@ -159,7 +159,7 @@ namespace vw {
     } 
 
     typedef PixelIndex3View prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return *this; }
+    inline prerasterize_type prerasterize( BBox2i const& /*bbox*/ ) const { return *this; }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
       vw::rasterize( prerasterize(bbox), dest, bbox );
     }

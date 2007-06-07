@@ -83,7 +83,7 @@ namespace vw {
 
   template <class PixelT>
   inline typename boost::disable_if<typename PixelHasAlpha<PixelT>::type, bool>::type
-  is_transparent(PixelT const& pixel) { return false; }
+  is_transparent(PixelT const& /*pixel*/) { return false; }
 
 
   // *******************************************************************
