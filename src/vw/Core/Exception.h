@@ -140,7 +140,8 @@ namespace vw {
     virtual ~Exception() VW_IF_EXCEPTIONS(throw()) {}
 
     /// Copy Constructor
-    Exception( Exception const& e ) VW_IF_EXCEPTIONS(throw()) {
+    Exception( Exception const& e ) VW_IF_EXCEPTIONS(throw())
+      VW_IF_EXCEPTIONS( : std::exception(e) ) {
       m_desc << e.m_desc.str();
     }
 
