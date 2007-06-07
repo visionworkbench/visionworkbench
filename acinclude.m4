@@ -96,11 +96,11 @@ AC_DEFUN([AX_FIND_FILES],
       ax_find_files_paths=`ls $pathname 2>/dev/null`
       if test ! -z "$ax_find_files_paths" ; then
         if test "$ENABLE_VERBOSE" = "yes"; then
-	  AC_MSG_RESULT([found])
+          AC_MSG_RESULT([found])
         fi
       else
         if test "$ENABLE_VERBOSE" = "yes"; then
-	  AC_MSG_RESULT([not found])
+          AC_MSG_RESULT([not found])
         fi
         ax_find_files_passed=no
         break
@@ -224,51 +224,55 @@ AC_DEFUN([AX_PKG_BOOST],
     AC_MSG_RESULT([])
   fi
 
-  PKG_BOOST_CPPFLAGS=
-  PKG_BOOST_LDFLAGS=
-  HAVE_PKG_BOOST=no
+  # Skip testing if the user has overridden
+  if test -z ${HAVE_PKG_BOOST}; then
 
-  for ax_boost_base_path in $PKG_PATHS; do
-    # First look for a system-style installation
-    if test "$ENABLE_VERBOSE" = "yes"; then
-      AC_MSG_CHECKING([for system-style boost in ${ax_boost_base_path}])
-    fi
-    if test -d "${ax_boost_base_path}/include/boost" ; then
-      PKG_BOOST_INCDIR="${ax_boost_base_path}/include"
-      PKG_BOOST_LIBDIR="${ax_boost_base_path}/lib"
-      HAVE_PKG_BOOST="yes"
+    PKG_BOOST_CPPFLAGS=
+    PKG_BOOST_LDFLAGS=
+    HAVE_PKG_BOOST=no
+
+    for ax_boost_base_path in $PKG_PATHS; do
+      # First look for a system-style installation
       if test "$ENABLE_VERBOSE" = "yes"; then
-        AC_MSG_RESULT([found])
+        AC_MSG_CHECKING([for system-style boost in ${ax_boost_base_path}])
       fi
-      break
-    else
+      if test -d "${ax_boost_base_path}/include/boost" ; then
+        PKG_BOOST_INCDIR="${ax_boost_base_path}/include"
+        PKG_BOOST_LIBDIR="${ax_boost_base_path}/lib"
+        HAVE_PKG_BOOST="yes"
+        if test "$ENABLE_VERBOSE" = "yes"; then
+          AC_MSG_RESULT([found])
+        fi
+        break
+      else
+        if test "$ENABLE_VERBOSE" = "yes"; then
+          AC_MSG_RESULT([not found])
+        fi
+      fi
+      # Next look for a default-style installation
+      if test "$ENABLE_VERBOSE" = "yes"; then
+        AC_MSG_CHECKING([for default-style boost in ${ax_boost_base_path}])
+      fi
+      for ax_boost_inc_path in `ls -d ${ax_boost_base_path}/include/boost-* 2> /dev/null` ; do
+        # At the moment we greedily accept the first one we find, regardless of version
+        PKG_BOOST_INCDIR="${ax_boost_inc_path}"
+        PKG_BOOST_LIBDIR="${ax_boost_base_path}/lib"
+        HAVE_PKG_BOOST="yes"
+        if test "$ENABLE_VERBOSE" = "yes"; then
+          AC_MSG_RESULT([found])
+        fi
+        break 2
+      done
       if test "$ENABLE_VERBOSE" = "yes"; then
         AC_MSG_RESULT([not found])
       fi
-    fi
-    # Next look for a default-style installation
-    if test "$ENABLE_VERBOSE" = "yes"; then
-      AC_MSG_CHECKING([for default-style boost in ${ax_boost_base_path}])
-    fi
-    for ax_boost_inc_path in `ls -d ${ax_boost_base_path}/include/boost-* 2> /dev/null` ; do
-      # At the moment we greedily accept the first one we find, regardless of version
-      PKG_BOOST_INCDIR="${ax_boost_inc_path}"
-      PKG_BOOST_LIBDIR="${ax_boost_base_path}/lib"
-      HAVE_PKG_BOOST="yes"
-      if test "$ENABLE_VERBOSE" = "yes"; then
-        AC_MSG_RESULT([found])
-      fi
-      break 2
     done
-    if test "$ENABLE_VERBOSE" = "yes"; then
-      AC_MSG_RESULT([not found])
-    fi
-  done
 
-  if test "$HAVE_PKG_BOOST" = "yes" ; then
-    PKG_BOOST_CPPFLAGS="-I${PKG_BOOST_INCDIR}"
-    PKG_BOOST_LDFLAGS="-L${PKG_BOOST_LIBDIR}"
-  fi 
+    if test "$HAVE_PKG_BOOST" = "yes" ; then
+      PKG_BOOST_CPPFLAGS="-I${PKG_BOOST_INCDIR}"
+      PKG_BOOST_LDFLAGS="-L${PKG_BOOST_LIBDIR}"
+    fi 
+  fi
 
   if test ${HAVE_PKG_BOOST} = "yes" ; then
     ax_have_pkg_bool=1
@@ -292,6 +296,7 @@ AC_DEFUN([AX_PKG_BOOST],
   fi
 ])
 
+
 # Usage: AX_PKG_LAPACK
 #
 # TODO: Add support for other sources of LAPACK and BLAS, such as
@@ -301,66 +306,67 @@ AC_DEFUN([AX_PKG_BOOST],
 AC_DEFUN([AX_PKG_LAPACK],
 [
 
-	# If we are running MacOS X, we can use Apple's vecLib framework to
+  # If we are running MacOS X, we can use Apple's vecLib framework to
   # provide us with LAPACK and BLAS routines.
   if test $host_vendor = apple; then
-	  AC_MSG_CHECKING(for package LAPACK)
-  	if test "$ENABLE_VERBOSE" = "yes"; then
-    	AC_MSG_RESULT([])
-	  fi
+    AC_MSG_CHECKING(for package LAPACK)
+    if test "$ENABLE_VERBOSE" = "yes"; then
+      AC_MSG_RESULT([])
+    fi
 
-	  PKG_LAPACK_CPPFLAGS=
-  	PKG_LAPACK_LDFLAGS=
-		HAVE_PKG_LAPACK="yes"
-		
-		# This workaround sidesteps a bug in libtool that prevents the
-		# -framework directive on a mac from being used when it appears in
-		# the inherited_linker_flags of a *.la file.  Instead we force the
-		# framework to appear in linker lines throughout the Vision
-		# Workbench build system.  This allows binary apps to link when
-		# necessary, and it is a harmless extra option in all other cases.
+    PKG_LAPACK_CPPFLAGS=
+    PKG_LAPACK_LDFLAGS=
+    HAVE_PKG_LAPACK="yes"
+    
+    # This workaround sidesteps a bug in libtool that prevents the
+    # -framework directive on a mac from being used when it appears in
+    # the inherited_linker_flags of a *.la file.  Instead we force the
+    # framework to appear in linker lines throughout the Vision
+    # Workbench build system.  This allows binary apps to link when
+    # necessary, and it is a harmless extra option in all other cases.
     #
     # Someday when libtool fixes this, we should go for the more
     # conservative, commented out line that follows and remove the
     # uncommented line below.
     LDFLAGS="$LDFLAGS -framework vecLib"
-    #	  PKG_LAPACK_LDFLAGS="-framework vecLib"
+    #  PKG_LAPACK_LDFLAGS="-framework vecLib"
 
     if test "$ENABLE_VERBOSE" = "yes"; then
       AC_MSG_RESULT([found])
     fi
-	  if test ${HAVE_PKG_LAPACK} = "yes" ; then
-  	  ax_have_pkg_bool=1
-	  else
-  	  ax_have_pkg_bool=0
-	  fi
-  	AC_DEFINE_UNQUOTED([HAVE_PKG_LAPACK],
-    	                 [$ax_have_pkg_bool],
-      	               [Define to 1 if the LAPACK package is available.])
+    if test ${HAVE_PKG_LAPACK} = "yes" ; then
+      ax_have_pkg_bool=1
+    else
+      ax_have_pkg_bool=0
+    fi
+    AC_DEFINE_UNQUOTED([HAVE_PKG_LAPACK],
+                       [$ax_have_pkg_bool],
+                       [Define to 1 if the LAPACK package is available.])
 
-	  AC_SUBST(PKG_LAPACK_CPPFLAGS)
-  	AC_SUBST(PKG_LAPACK_LDFLAGS)
-	  AC_SUBST(HAVE_PKG_LAPACK)
+    AC_SUBST(PKG_LAPACK_CPPFLAGS)
+    AC_SUBST(PKG_LAPACK_LDFLAGS)
+    AC_SUBST(HAVE_PKG_LAPACK)
 
-  	if test "$ENABLE_VERBOSE" = "yes"; then
-    	AC_MSG_NOTICE([PKG_LAPACK_CPPFLAGS = ${PKG_LAPACK_CPPFLAGS}])
-	    AC_MSG_NOTICE([PKG_LAPACK_LDFLAGS = ${PKG_LAPACK_LDFLAGS}])
-  	  AC_MSG_NOTICE([HAVE_PKG_LAPACK = ${HAVE_PKG_LAPACK}])
-	  else
-  	  AC_MSG_RESULT([${HAVE_PKG_LAPACK}])
-	  fi	
+    if test "$ENABLE_VERBOSE" = "yes"; then
+      AC_MSG_NOTICE([PKG_LAPACK_CPPFLAGS = ${PKG_LAPACK_CPPFLAGS}])
+      AC_MSG_NOTICE([PKG_LAPACK_LDFLAGS = ${PKG_LAPACK_LDFLAGS}])
+      AC_MSG_NOTICE([HAVE_PKG_LAPACK = ${HAVE_PKG_LAPACK}])
+    else
+      AC_MSG_RESULT([${HAVE_PKG_LAPACK}])
+    fi  
 
-	# For all other platforms, we search for static LAPACK libraries
-	# in the conventional manner
+  # For all other platforms, we search for static LAPACK libraries
+  # in the conventional manner
   else
-		AX_PKG(LAPACK, [], [-lclapack -lblas -lf2c], [])
+    AX_PKG(LAPACK, [], [-lclapack -lblas -lf2c], [])
     if test "$HAVE_PKG_LAPACK" = "no"; then
-	    echo "CLAPACK not found, trying standard LAPACK."
-		  AX_PKG(LAPACK, [], [-llapack -lblas], [])
-		fi
-	fi
+      echo "CLAPACK not found, trying standard LAPACK."
+      AX_PKG(LAPACK, [], [-llapack -lblas], [])
+    fi
+  fi
 
 ])
+
 
 # Usage: AX_PKG_BOOST_LIB(<name>, <dependencies>, <libraries>)
 AC_DEFUN([AX_PKG_BOOST_LIB],
@@ -370,29 +376,33 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
     AC_MSG_RESULT([])
   fi
 
-  PKG_BOOST_$1_CPPFLAGS=
-  PKG_BOOST_$1_LDFLAGS=
-  HAVE_PKG_BOOST_$1=no
+  # Skip testing if the user has overridden
+  if test -z ${HAVE_PKG_BOOST_$1}; then
 
-  # Check for general Boost presence
-  if test "x${HAVE_PKG_BOOST}" = "xyes" ; then
-    # Check for required headers
-    AX_FIND_FILES([$3],[${PKG_BOOST_INCDIR}])
-    if test ! -z "$ax_find_files_path" ; then
-      # Check for required libraries with no suffix
-      AX_FIND_FILES([`echo $2 | sed 's/-l\([[^[:space:]]]*\)/lib\1.*/g'`],[$PKG_BOOST_LIBDIR])
+    PKG_BOOST_$1_CPPFLAGS=
+    PKG_BOOST_$1_LDFLAGS=
+    HAVE_PKG_BOOST_$1=no
+
+    # Check for general Boost presence
+    if test "x${HAVE_PKG_BOOST}" = "xyes" ; then
+      # Check for required headers
+      AX_FIND_FILES([$3],[${PKG_BOOST_INCDIR}])
       if test ! -z "$ax_find_files_path" ; then
-        HAVE_PKG_BOOST_$1="yes"
-        PKG_BOOST_$1_LDFLAGS="$2"
-      else
-        # Check for required libraries with some suffix
-        ax_pkg_boost_lib=`echo $2 | awk '{print [$]1}' | sed 's/-l\([[^[:space:]-]]*\).*/lib\1/g'`
-        ax_pkg_boost_lib_ext=`ls ${PKG_BOOST_LIBDIR}/${ax_pkg_boost_lib}-* | head -n 1 | sed "s,^${PKG_BOOST_LIBDIR}/${ax_pkg_boost_lib}\(-[[^.]]*\).*,\1,"`
-        if test ! -z "$ax_pkg_boost_lib_ext" ; then
-          AX_FIND_FILES([`echo $2 | sed "s/-l\([[^[:space:]]]*\)/lib\1${ax_pkg_boost_lib_ext}.*/g"`],[$PKG_BOOST_LIBDIR])
-          if test ! -z $ax_find_files_path ; then
-            HAVE_PKG_BOOST_$1="yes"
-            PKG_BOOST_$1_LDFLAGS=`echo $2 | sed "s/[[^ ]]*/&${ax_pkg_boost_lib_ext}/g"`
+        # Check for required libraries with no suffix
+        AX_FIND_FILES([`echo $2 | sed 's/-l\([[^[:space:]]]*\)/lib\1.*/g'`],[$PKG_BOOST_LIBDIR])
+        if test ! -z "$ax_find_files_path" ; then
+          HAVE_PKG_BOOST_$1="yes"
+          PKG_BOOST_$1_LDFLAGS="$2"
+        else
+          # Check for required libraries with some suffix
+          ax_pkg_boost_lib=`echo $2 | awk '{print [$]1}' | sed 's/-l\([[^[:space:]-]]*\).*/lib\1/g'`
+          ax_pkg_boost_lib_ext=`ls ${PKG_BOOST_LIBDIR}/${ax_pkg_boost_lib}-* | head -n 1 | sed "s,^${PKG_BOOST_LIBDIR}/${ax_pkg_boost_lib}\(-[[^.]]*\).*,\1,"`
+          if test ! -z "$ax_pkg_boost_lib_ext" ; then
+            AX_FIND_FILES([`echo $2 | sed "s/-l\([[^[:space:]]]*\)/lib\1${ax_pkg_boost_lib_ext}.*/g"`],[$PKG_BOOST_LIBDIR])
+            if test ! -z $ax_find_files_path ; then
+              HAVE_PKG_BOOST_$1="yes"
+              PKG_BOOST_$1_LDFLAGS=`echo $2 | sed "s/[[^ ]]*/&${ax_pkg_boost_lib_ext}/g"`
+            fi
           fi
         fi
       fi
@@ -400,7 +410,7 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
   fi
 
   if test ${HAVE_PKG_BOOST_$1} = "yes" ; then
-    PKG_BOOST_$1_CPPFLAGS=$PKG_BOOST_CPPFLAGS
+    PKG_BOOST_$1_CPPFLAGS="$PKG_BOOST_CPPFLAGS $PKG_BOOST_$1_CPPFLAGS"
     PKG_BOOST_$1_LDFLAGS="$PKG_BOOST_LDFLAGS $PKG_BOOST_$1_LDFLAGS"
   fi
 
