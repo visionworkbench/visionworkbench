@@ -198,9 +198,9 @@ namespace math {
     typename ImplT::result_type error = model.difference(observation, h);
     double norm_start = norm_2(error);
     
-    //    std::cout << "LM: initial guess for the model is " << seed << std::endl;
-    //    std::cout << "LM: starting error " << error << std::endl;
-    //    std::cout << "LM: starting norm is: " << norm_start << std::endl;
+    vw_out(DebugMessage) << "LM: initial guess for the model is " << seed << std::endl;
+    vw_out(VerboseDebugMessage) << "LM: starting error " << error << std::endl;
+    vw_out(DebugMessage) << "LM: starting norm is: " << norm_start << std::endl;
     
     // Solution may already be good enough
     if (norm_start < abs_tolerance)
@@ -211,7 +211,7 @@ namespace math {
       
       bool shortCircuit = false;
       
-      //      std::cout << "LM: outer iteration " << ++outer_iter << "   x = " << x << std::endl;
+      vw_out(DebugMessage) << "LM: outer iteration " << ++outer_iter << "   x = " << x << std::endl;
       
       // Compute the value, derivative, and hessian of the cost function
       // at the current point.  These remain valid until the parameter
@@ -223,13 +223,13 @@ namespace math {
       // Difference between observed and predicted and error (2-norm of difference)
       error = model.difference(observation, h);
       norm_start = norm_2(error);
-      //      std::cout << "LM: outer iteration starting robust norm: " << norm_start << std::endl;
+      vw_out(DebugMessage) << "LM: outer iteration starting robust norm: " << norm_start << std::endl;
 
       // Measurement Jacobian
       typename ImplT::jacobian_type J = model.jacobian(x);
       
       Vector<double> del_J = -1.0 * transpose(J) * Rinv * error;
-      //      std::cout << "LM: del_J is " << std::endl << del_J << std::endl;
+      //vw_out(DebugMessage) << "LM: del_J is " << std::endl << del_J << std::endl;
       
       // Hessian of cost function (using Gauss-Newton approximation)
       Matrix<double> hessian = transpose(J) * Rinv * J;
@@ -244,24 +244,38 @@ namespace math {
         for ( unsigned i=0; i < hessian_lm.rows(); ++i ){
           hessian_lm(i,i) += hessian_lm(i,i)*lambda + lambda;
         }
-        
+
+        // Randy's debug...
+        if (0) {
+          printf("Hessian %d x %d: ", hessian_lm.rows(), hessian_lm.cols());
+          for (unsigned int i = 0; i < hessian_lm.rows(); i++) {
+            for (unsigned int j = 0; j < hessian_lm.cols(); j++) {
+              printf("%.30g, ", hessian_lm(i,j));
+            }
+          }
+          printf("\ndel_J %d: ", del_J.size());
+          for (unsigned int i = 0; i < del_J.size(); i++) {
+            printf("%.30g, ", del_J[i]);
+          }
+          printf("\n");
+        }
+          
         // Solve for update
         typename ImplT::domain_type delta_x = least_squares(hessian_lm, del_J);
         
         // update parameter vector
         x_try = x - delta_x;
-        //         std::cout << "x is " << x << std::endl;
-        //         std::cout << "delta x is " << delta_x << std::endl;
-        //        std::cout << "\tx try is " << x_try << std::endl;
+        //vw_out(DebugMessage) << "x is " << x << std::endl;
+        //vw_out(DebugMessage) << "delta x is " << delta_x << std::endl;
+        //vw_out(DebugMessage) << "\tx try is " << x_try << std::endl;
         
         typename ImplT::result_type h_try = model(x_try);
         
         typename ImplT::result_type error_try = model.difference(observation, h_try);
         norm_try = norm_2(error_try);
 	
-        //std::cout << "LM: inner iteration " << iterations << " error is " 
-        //   << errortry << std::endl;
-        //        std::cout << "\tLM: inner iteration " << iterations << " norm is " << norm_try << std::endl;
+        vw_out(VerboseDebugMessage) << "LM: inner iteration " << iterations << " error is " << error_try << std::endl;
+        vw_out(DebugMessage) << "\tLM: inner iteration " << iterations << " norm is " << norm_try << std::endl;
         
         if (norm_try > norm_start)
           // Increase lambda and try again
@@ -269,30 +283,30 @@ namespace math {
         
         ++iterations; // Sanity check on iterations in this loop
         if (iterations > 5) {
-          //std::cerr << "\n****LM: too many inner iterations - short circuiting\n" << std::endl;
+          vw_out(DebugMessage) << "\n****LM: too many inner iterations - short circuiting\n" << std::endl;
           shortCircuit = true;
           norm_try = norm_start;
         }
-        //        std::cout << "\tlambda = " << lambda << std::endl;
+        vw_out(DebugMessage) << "\tlambda = " << lambda << std::endl;
       }
       
       // Percentage change convergence criterion
       if (((norm_start-norm_try)/norm_start) < rel_tolerance) {
         status = optimization::eConvergedRelTolerance;
-        //        std::cout << "CONVERGED TO RELATIVE TOLERANCE\n";
+        vw_out(DebugMessage) << "CONVERGED TO RELATIVE TOLERANCE\n";
         done = true;
       }
 
       // Absolute error convergence criterion
       if (norm_try < abs_tolerance) {
         status = optimization::eConvergedAbsTolerance;
-        //        std::cout << "CONVERGED TO ABSOLUTE TOLERANCE\n";
+        vw_out(DebugMessage) << "CONVERGED TO ABSOLUTE TOLERANCE\n";
         done = true;
       }
 
       // Max iterations convergence criterion
       if (outer_iter >= max_iterations) {
-        //        std::cout << "REACHED MAX ITERATIONS!";
+        vw_out(DebugMessage) << "REACHED MAX ITERATIONS!";
         done = true;
       }
       
@@ -307,8 +321,8 @@ namespace math {
 
       // Decrease lambda
       lambda /= 10;
-      //       std::cout << "lambda = " << lambda << std::endl;
-      //       std::cout << "LM: end of outer iteration " << outer_iter << " with error " << norm_try << std::endl;
+      vw_out(DebugMessage) << "lambda = " << lambda << std::endl;
+      vw_out(DebugMessage) << "LM: end of outer iteration " << outer_iter << " with error " << norm_try << std::endl;
     }
     return x;
   }
