@@ -45,7 +45,7 @@ namespace ip {
     InterestPoint() {}
 
     InterestPoint(int x, int y, float scale=1.0, float interest=0.0, float ori=0.0)
-      : x(x), y(y), ix(x), iy(y), scale(scale), interest(interest), orientation(ori) {}
+      : x(x), y(y), scale(scale), ix(x), iy(y), orientation(ori), interest(interest) {}
 
     /// Subpixel (col,row) location of point
     float x,y;
@@ -96,7 +96,7 @@ namespace ip {
   /// Sort points by interest, and optionally cull them beyond some number.
   inline int cull_interest_points(KeypointList &points, int num_points = -1) {
     points.sort();
-    if ((num_points >= 0) && (num_points < points.size()))
+    if ((num_points >= 0) && (num_points < (int)points.size()))
       points.resize(num_points);
     return points.size();
   }

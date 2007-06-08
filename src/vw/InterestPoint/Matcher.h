@@ -28,6 +28,8 @@
 #ifndef _INTERESTPOINT_MATCHER_H_
 #define _INTERESTPOINT_MATCHER_H_
 
+#include <algorithm>
+
 #include <vw/InterestPoint/Descriptor.h>
 #include <vector>
 #include <math.h>
@@ -94,12 +96,12 @@ public:
 class NullConstraint {
 public:
   template <class ListT>
-  std::vector<typename ListT::const_iterator> operator()(InterestPoint const& ip, ListT const& candidates) const {
+  std::vector<typename ListT::const_iterator> operator()(InterestPoint const& /*ip*/, ListT const& candidates) const {
     return std::vector<typename ListT::const_iterator>(1, candidates.end());  // signals no constraint.
   }
 
   template <class ListT>
-  std::vector<typename ListT::const_iterator> inverse(InterestPoint const& ip, ListT const& candidates) const {
+  std::vector<typename ListT::const_iterator> inverse(InterestPoint const& /*ip*/, ListT const& candidates) const {
     return std::vector<typename ListT::const_iterator>(1, candidates.end());  // signals no constraint.
   }
 };
@@ -220,7 +222,7 @@ public:
   double threshold;
   
   InterestPointMatcher(double threshold = 0.5, MetricT metric = MetricT(), ConstraintT constraint = ConstraintT()) 
-    : distance_metric(metric), constraint(constraint), threshold(threshold) { }
+    : constraint(constraint), distance_metric(metric), threshold(threshold) { }
   
   /// Given two lists of keypoints, this routine returns the two lists
   /// of matching keypoints based on the Metric and Constraints
@@ -257,7 +259,7 @@ private:
     typedef typename ListT::const_iterator IterT;
 
     std::vector<IterT> indx(ip1.size(), ip2.end());
-    int progress_inc = ip1.size() / 10;
+    int progress_inc = std::max((int)(ip1.size() / 10), 1);
     vw_out(InfoMessage) << "\tFinding keypoint matches" << std::flush;
     int n = 0;
     for (IterT ip1_i = ip1.begin(); ip1_i != ip1.end(); ++ip1_i, ++n) {
