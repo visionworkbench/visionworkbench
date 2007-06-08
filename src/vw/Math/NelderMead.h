@@ -26,7 +26,7 @@
 /// Non-linear optimization using a simplex method.  
 ///
 /// Based on Chapter 13, Section 13.1 of "The Nature of Mathematical
-/// Modelling" by Neal Gershenfeld with some insprication from
+/// Modelling" by Neal Gershenfeld with some inspiration from
 /// Numerical Recipes.
 
 #ifndef __VW_MATH_NELDER_MEAD_H__
@@ -204,7 +204,7 @@ namespace math {
     }
 
     // Restart the simplex several times -- this prevents false
-    // termination, which can happend from time to time if the simplex
+    // termination, which can happen from time to time if the simplex
     // gets stuck.
     int iterations = 0;
     for (int i=0; i < restarts; ++i) {
