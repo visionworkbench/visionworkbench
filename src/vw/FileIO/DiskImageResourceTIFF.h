@@ -69,7 +69,7 @@ namespace vw {
     static DiskImageResource* construct_create( std::string const& filename,
                                                 ImageFormat const& format );
 
-    void use_lzw_compression(bool state) { m_use_compression = true; }
+    void use_lzw_compression(bool state) { m_use_compression = state; }
 
   private:
     boost::shared_ptr<DiskImageResourceInfoTIFF> m_info;
