@@ -1,6 +1,8 @@
 #ifndef __VW_STEREO_DISPARITY_MAP_H__
 #define __VW_STEREO_DISPARITY_MAP_H__
 
+#include <vw/Math/Matrix.h>
+
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
