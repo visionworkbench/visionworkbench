@@ -29,6 +29,7 @@ if MAKE_MODULE_MATH
 
 nodist_TestVector_SOURCES = TestVector.cxx
 nodist_TestMatrix_SOURCES = TestMatrix.cxx
+nodist_TestQuaternion_SOURCES = TestQuaternion.cxx
 nodist_TestBBox_SOURCES = TestBBox.cxx
 nodist_TestFunctions_SOURCES = TestFunctions.cxx
 nodist_TestFunctors_SOURCES = TestFunctors.cxx
@@ -42,7 +43,7 @@ nodist_TestLevenbergMarquardt_SOURCES = TestLevenbergMarquardt.cxx
 TestLinearAlgebra = TestLinearAlgebra TestGeometry TestLevenbergMarquardt
 endif
 
-TESTS = TestVector TestMatrix TestBBox TestFunctions TestFunctors	TestNelderMead \
+TESTS = TestVector TestMatrix TestQuaternion TestBBox TestFunctions TestFunctors	TestNelderMead \
         $(TestLinearAlgebra) #TestConjugateGradient
 
 endif

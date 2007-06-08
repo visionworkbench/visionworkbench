@@ -313,6 +313,22 @@ namespace math {
         operator[](i+1) = s * axis.impl()[i];
     }
 
+    template <class VectorT>
+    void axis_angle( VectorBase<VectorT> &axis_, ElemT &angle ) {
+      VectorT & axis = axis_.impl();
+
+      Vector<ElemT,3> imag_part = imag(*this);
+      ElemT imag_norm_2 = norm_2(imag_part);
+      angle = 2 * atan2(imag_norm_2, real(*this));
+      // What's the better way to do this?
+      // For rotation of 0 or 180, axis does not matter
+      if (fabs(imag_norm_2) < 1e-10) {
+        axis = Vector<ElemT,3>(1,0,0);
+      } else {
+        axis = imag_part / norm_2(imag_part);
+      }
+    }
+
     template <class MatrixT>
     void rotation_matrix( MatrixBase<MatrixT>& rot_ ) const {
       MatrixT& rot = rot_.impl();
