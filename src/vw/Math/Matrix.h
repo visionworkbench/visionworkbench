@@ -375,7 +375,7 @@ namespace math {
   /// An arbitrary-dimension mathematical matrix class.
   template <class ElemT>
   class Matrix<ElemT,0,0> : public MatrixBase<Matrix<ElemT> > {
-    typedef std::vector<ElemT> core_type;
+    typedef VarArray<ElemT> core_type;
     core_type core_;
     size_t m_rows, m_cols;
   public:
@@ -437,7 +437,7 @@ namespace math {
     /// Change the size of the matrix.  Elements in memory are preserved when specified.
     void set_size( size_t rows, size_t cols, bool preserve = false ) {
       if( preserve ) {
-        std::vector<ElemT> other(rows*cols);
+        VarArray<ElemT> other(rows*cols);
         size_t mr = (std::min)(rows,m_rows);
         size_t mc = (std::min)(cols,m_cols);
         for( size_t r=0; r<mr; ++r )
@@ -446,10 +446,7 @@ namespace math {
         core_.swap( other );
       }
       else {
-        // FIXME This neither zeroes the matrix nor leaves it alone: 
-        // it zeroes the top part of memory, which is not terribly 
-        // useful behavior.  What should we do here?
-        core_.resize(rows*cols);
+        core_.resize(rows*cols,false);
       }
       m_rows = rows;
       m_cols = cols;

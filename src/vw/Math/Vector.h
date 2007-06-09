@@ -62,6 +62,7 @@
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/utility/result_of.hpp>
 
+#include <vw/Core/VarArray.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/TypeDeduction.h>
 #include <vw/Core/Functors.h>
@@ -294,7 +295,7 @@ namespace math {
   /// An arbitrary-dimension mathematical vector class.
   template <class ElemT>
   class Vector<ElemT,0> : public VectorBase<Vector<ElemT> > {
-    typedef std::vector<ElemT> core_type;
+    typedef VarArray<ElemT> core_type;
     core_type core_;
   public:
     typedef ElemT value_type;
@@ -347,9 +348,8 @@ namespace math {
     }
 
     /// Change the size of the vector. Elements in memory are preserved when specified.
-    void set_size( unsigned new_size, bool /*preserve*/ = false ) {
-      // FIXME Actually this always preserves existing elements
-      core_.resize(new_size);
+    void set_size( unsigned new_size, bool preserve = false ) {
+      core_.resize(new_size, preserve);
     }
 
     reference_type operator()( unsigned i ) {
