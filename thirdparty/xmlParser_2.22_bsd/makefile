@@ -60,7 +60,7 @@ lib : xmlParser.cpp xmlParser.h
 	mkdir include
 	cp xmlParser.h include
 	mkdir lib
-	$(GPP) -c -Wall -DXML_NO_WIDE_CHAR -o xmlParser.o \
+	$(GPP) -fPIC -c -Wall -DXML_NO_WIDE_CHAR -o xmlParser.o \
                  xmlParser.cpp
 	ar rcs lib/libxmlparser.a xmlParser.o
 
