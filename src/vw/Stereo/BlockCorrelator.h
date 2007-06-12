@@ -18,6 +18,7 @@ namespace stereo {
     int m_block_size;
     int m_verbose;
     double m_cross_corr_threshold;
+    float m_corrscore_rejection_threshold;
     int m_use_horiz_subpixel;
     int m_use_vert_subpixel;
     
@@ -30,6 +31,7 @@ namespace stereo {
                     int kernHeight,       
                     int verbose,
                     double cross_corr_threshold,
+                    float corrscore_rejection_threshold,
                     int block_size,
                     int useSubpixelH, int useSubpixelV) {
 
@@ -43,6 +45,7 @@ namespace stereo {
       m_block_size = block_size;
       
       m_cross_corr_threshold = cross_corr_threshold;
+      m_corrscore_rejection_threshold = corrscore_rejection_threshold;
       m_use_horiz_subpixel = useSubpixelH;
       m_use_vert_subpixel = useSubpixelV;
     }
@@ -146,6 +149,7 @@ namespace stereo {
                                                     m_min_v, m_max_v,
                                                     m_kernel_width, m_kernel_height,
                                                     true, m_cross_corr_threshold,
+                                                    m_corrscore_rejection_threshold,
                                                     m_use_horiz_subpixel,
                                                     m_use_vert_subpixel );
         
@@ -159,6 +163,7 @@ namespace stereo {
                                                     0, m_max_v-m_min_v,
                                                     m_kernel_width, m_kernel_height,
                                                     true, m_cross_corr_threshold,
+                                                    m_corrscore_rejection_threshold,
                                                     m_use_horiz_subpixel,
                                                     m_use_vert_subpixel );
 

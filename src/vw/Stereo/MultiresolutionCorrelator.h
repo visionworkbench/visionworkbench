@@ -38,6 +38,7 @@ namespace stereo {
     int m_lMinH, m_lMaxH, m_lMinV, m_lMaxV;
     int m_verbose;
     double m_crossCorrThreshold;
+    float m_corrscore_rejection_threshold;
     int m_useHorizSubpixel;
     int m_useVertSubpixel;
     double m_slog_width;
@@ -53,6 +54,7 @@ namespace stereo {
                               int kernHeight,       
                               int verbose,
                               double crosscorrThreshold,
+                              float corrscore_rejection_threshold,
                               double slog_width,
                               int useSubpixelH,
                               int useSubpixelV) {
@@ -66,6 +68,7 @@ namespace stereo {
       m_slog_width = slog_width;
     
       m_crossCorrThreshold = crosscorrThreshold;
+      m_corrscore_rejection_threshold = corrscore_rejection_threshold;
       m_useHorizSubpixel = useSubpixelH;
       m_useVertSubpixel = useSubpixelV;
       m_min_dimension = 512;
@@ -128,6 +131,7 @@ namespace stereo {
                                      h_kern, v_kern,
                                      true,          // verbose
                                      m_crossCorrThreshold,
+                                     m_corrscore_rejection_threshold,
                                      false, false); // no subpixel for now
       disparity_pyramid[levels-1] = correlator(left_slog_pyramid[levels-1], 
                                                right_slog_pyramid[levels-1], 

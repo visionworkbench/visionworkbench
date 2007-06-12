@@ -83,6 +83,7 @@ namespace stereo {
       m_image_right = other.m_image_right;
       m_done = other.m_done;
       m_should_terminate = other.m_should_terminate;
+      m_corrscore_rejection_threshold = other.m_corrscore_rejection_threshold;
     }
 
     // For assignment we need to synchronize both objects!
@@ -108,6 +109,7 @@ namespace stereo {
       m_image_right = other.m_image_right;
       m_done = other.m_done;
       m_should_terminate = other.m_should_terminate;
+      m_corrscore_rejection_threshold = other.m_corrscore_rejection_threshold;
       return *this;
     }
 
@@ -117,6 +119,7 @@ namespace stereo {
                           int min_v, int max_v,
                           int image_width, int image_height,
                           int kern_width, int kern_height,
+                          float corrscore_rejection_threshold,
                           float* left_image, float* right_image) {
       m_parent = parent;
       m_id = id;
@@ -132,6 +135,7 @@ namespace stereo {
       m_bit_image_right = NULL;
       m_image_left = left_image;
       m_image_right = right_image;
+      m_corrscore_rejection_threshold = corrscore_rejection_threshold;
 
       m_done = false;
       m_should_terminate = false;
@@ -144,6 +148,7 @@ namespace stereo {
                           int min_v, int max_v,
                           int image_width, int image_height,
                           int kern_width, int kern_height,
+                          float corrscore_rejection_threshold,
                           unsigned char* left_bit_image, unsigned char* right_bit_image) {
       m_parent = parent;
       m_id = id;
@@ -159,6 +164,7 @@ namespace stereo {
       m_bit_image_right = right_bit_image;
       m_image_left = NULL;
       m_image_right = NULL;
+      m_corrscore_rejection_threshold = corrscore_rejection_threshold;
 
       m_done = false;
       m_should_terminate = false;
@@ -173,8 +179,10 @@ namespace stereo {
       soad* result;
     
       if (m_bit_image_right && m_bit_image_left) {
-        result = fast2Dcorr_optimized(m_min_h, m_max_h, m_min_v, m_max_v, m_image_height, m_image_width, m_kern_height, m_kern_width, m_bit_image_left, m_bit_image_right);    
+        result = fast2Dcorr_optimized(m_min_h, m_max_h, m_min_v, m_max_v, m_image_height, m_image_width, m_kern_height, m_kern_width, m_corrscore_rejection_threshold, m_bit_image_left, m_bit_image_right);    
       } else if (m_image_left && m_image_right) {
+        if (m_corrscore_rejection_threshold != 1.0) 
+          vw_out(WarningMessage) << "Unoptimized correlator does not support corrscore_rejection_threshold != 1.0\n";
         result = fast2Dcorr(m_min_h, m_max_h, m_min_v, m_max_v, m_image_height, m_image_width, m_kern_height, m_kern_width, m_image_left, m_image_right);    
       } else {
         vw_throw( vw::LogicErr() << "CorrelationWorkThread: Has not been properly initialized." );
@@ -258,6 +266,7 @@ namespace stereo {
                                int width,	/* image width */
                                int vKern,  /* kernel height */
                                int hKern,  /* kernel width */
+                               float corrscore_rejection_threshold, /* correlation score fitness score (1.0 disables, 1.5-2.0 is a good value) */
                                const unsigned char *Rimg,	/* reference image fixed */
                                const unsigned char *Simg	/* searched image sliding */
                                ) {
@@ -272,11 +281,17 @@ namespace stereo {
       VW_ASSERT( cSum, NullPtrErr() << "cannot allocate the correlator's column sum buffer!" );
 
       struct local_result {
-        uint16 best, hvdsp;
+        uint16 best, worst, hvdsp;
       };
       local_result *result_buf = new local_result[width * height]; // correlation result buffer
       VW_ASSERT( result_buf, NullPtrErr() << "cannot allocate the correlator's local result buffer!" );
-      std::fill((uint16*)result_buf, (uint16*)(result_buf + height * width), uint16(USHRT_MAX));
+
+      // fill the result_buf with default values
+      for (int nn = 0; nn < (width*height); ++nn) {
+        result_buf[nn].worst = 0;
+        result_buf[nn].best = uint16(USHRT_MAX);
+        result_buf[nn].hvdsp = uint16(USHRT_MAX);
+      }
 
       // for each allowed disparity...
       for( int dsy=topDisp; dsy<=btmDisp; ++dsy ) {
@@ -341,6 +356,10 @@ namespace stereo {
                 result_ptr->best = rsum;
                 result_ptr->hvdsp = ds_combined;
               }
+
+              if( rsum > result_ptr->worst ) 
+                result_ptr->worst = rsum;
+
               // update the row sum
               rsum += *(csum_head++) - *(csum_tail++);
             }
@@ -365,19 +384,25 @@ namespace stereo {
       result = (soad *)malloc (width*height*sizeof(soad));
       VW_ASSERT( result, NullPtrErr() << "cannot allocate the correlator's SOAD buffer!" );
   
-      // convert from the local result buffer to the return format
-      for( int nn = 0; nn < height * width; nn++) {
-        if( result_buf[nn].best == USHRT_MAX ) {
-          result[nn].best = VW_STEREO_MISSING_PIXEL;
-          result[nn].hDisp = VW_STEREO_MISSING_PIXEL;
-          result[nn].vDisp = VW_STEREO_MISSING_PIXEL;
-        } else {
-          result[nn].best = result_buf[nn].best;
-          int hvDisp = result_buf[nn].hvdsp;
-          int hDisp = hvDisp % (maxDisp-minDisp+1) + minDisp;
-          int vDisp = hvDisp / (maxDisp-minDisp+1) + topDisp;
-          result[nn].hDisp = hDisp;
-          result[nn].vDisp = vDisp;
+      // convert from the local result buffer to the return format and
+      // reject any pixels that do not have a sufficiently distincive
+      // peak in the correlation space.
+      for( int j = 0; j < height; ++j) {
+        for( int i = 0; i < width; ++i) {
+          float ratio = float(result_buf[j*width+i].worst+1) / float(result_buf[j*width+i].best+1);
+          int nn = width*j+i;
+          if( result_buf[nn].best == USHRT_MAX || ratio <= m_corrscore_rejection_threshold ) {
+            result[nn].best = VW_STEREO_MISSING_PIXEL;
+            result[nn].hDisp = VW_STEREO_MISSING_PIXEL;
+            result[nn].vDisp = VW_STEREO_MISSING_PIXEL;
+          } else {
+            result[nn].best = result_buf[nn].best;
+            int hvDisp = result_buf[nn].hvdsp;
+            int hDisp = hvDisp % (maxDisp-minDisp+1) + minDisp;
+            int vDisp = hvDisp / (maxDisp-minDisp+1) + topDisp;
+            result[nn].hDisp = hDisp;
+            result[nn].vDisp = vDisp;
+          }
         }
       }
       delete[] result_buf;
@@ -531,6 +556,7 @@ namespace stereo {
     unsigned char* m_bit_image_right;
     float* m_image_left;
     float* m_image_right;
+    float m_corrscore_rejection_threshold;
   
     std::string m_correlation_rate_string;
     double m_progress_percent;
@@ -560,20 +586,22 @@ OptimizedCorrelator::OptimizedCorrelator()
   m_verbose = true;
 
   m_crossCorrThreshold = DEFAULT_CROSSCORR_THRESHOLD;
+  m_corrscore_rejection_threshold = 1.0; // 1.0 turns of this type of blunder rejection 
   m_useHorizSubpixel = DEFAULT_USE_SUBPIXEL_H;
   m_useVertSubpixel = DEFAULT_USE_SUBPIXEL_V;
 }
 
 OptimizedCorrelator::OptimizedCorrelator(int minH,	/* left bound disparity search window*/
-                                       int maxH,	/* right bound disparity search window*/
-                                       int minV,	/* bottom bound disparity search window */ 
-                                       int maxV,	/* top bound disparity search window */
-                                       int kernWidth,	/* size of the kernel */
-                                       int kernHeight,       
-                                       int verbose,
-                                       double crosscorrThreshold,
-                                       int useSubpixelH,
-                                       int useSubpixelV)
+                                         int maxH,	/* right bound disparity search window*/
+                                         int minV,	/* bottom bound disparity search window */ 
+                                         int maxV,	/* top bound disparity search window */
+                                         int kernWidth,	/* size of the kernel */
+                                         int kernHeight,       
+                                         int verbose,
+                                         double crosscorrThreshold,
+                                         float corrscore_rejection_threshold,
+                                         int useSubpixelH,
+                                         int useSubpixelV)
 {
   m_lKernWidth = kernWidth;
   m_lKernHeight = kernHeight;
@@ -584,6 +612,7 @@ OptimizedCorrelator::OptimizedCorrelator(int minH,	/* left bound disparity searc
   m_verbose = verbose;
 
   m_crossCorrThreshold = crosscorrThreshold;
+  m_corrscore_rejection_threshold = corrscore_rejection_threshold;
   m_useHorizSubpixel = useSubpixelH;
   m_useVertSubpixel = useSubpixelV;
   m_children = std::vector<CorrelationWorkThread*>(2);
@@ -628,15 +657,15 @@ ImageView<PixelDisparity<float> > OptimizedCorrelator::correlation_2D(ImageView<
         std::cout << "\tUsing bit image optimized correlator\n";
       uint8* bit_img0 = (uint8*)&(left_image(0,0));
       uint8* bit_img1 = (uint8*)&(right_image(0,0));
-      threads.create_thread(CorrelationWorkThread(this, 0, -m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, width, height, m_lKernWidth, m_lKernHeight, bit_img1, bit_img0));
-      threads.create_thread(CorrelationWorkThread(this, 1,  m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, width, height, m_lKernWidth, m_lKernHeight, bit_img0, bit_img1));
+      threads.create_thread(CorrelationWorkThread(this, 0, -m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, width, height, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, bit_img1, bit_img0));
+      threads.create_thread(CorrelationWorkThread(this, 1,  m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, width, height, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, bit_img0, bit_img1));
     } else {
       if (m_verbose)
         std::cout << "\tUsing standard correlator\n";
       float* pBuffer0 = (float*)&(left_image(0,0));
       float* pBuffer1 = (float*)&(right_image(0,0));
-      threads.create_thread(CorrelationWorkThread(this, 0, -m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, width, height, m_lKernWidth, m_lKernHeight, pBuffer1, pBuffer0));
-      threads.create_thread(CorrelationWorkThread(this, 1,  m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, width, height, m_lKernWidth, m_lKernHeight, pBuffer0, pBuffer1));
+      threads.create_thread(CorrelationWorkThread(this, 0, -m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, width, height, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, pBuffer1, pBuffer0));
+      threads.create_thread(CorrelationWorkThread(this, 1,  m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, width, height, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, pBuffer0, pBuffer1));
     }
     
     // Wait until the child threads register with their parent, then begin to query them 

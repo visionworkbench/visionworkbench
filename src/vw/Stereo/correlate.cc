@@ -28,6 +28,7 @@ int main( int argc, char *argv[] ) {
     int xrange, yrange;
     int xkernel, ykernel;
     int lrthresh;
+    float corrscore_thresh;
     int block_size = 0;
 
     po::options_description desc("Options");
@@ -44,6 +45,7 @@ int main( int argc, char *argv[] ) {
       ("xkernel", po::value<int>(&xkernel)->default_value(15), "Horizontal correlation kernel size")
       ("ykernel", po::value<int>(&ykernel)->default_value(15), "Vertical correlation kernel size")
       ("lrthresh", po::value<int>(&lrthresh)->default_value(2), "Left/right correspondence threshold")
+      ("csthresh", po::value<float>(&corrscore_thresh)->default_value(1.0), "Correlation score rejection threshold (1.0 is Off <--> 2.0 is Aggressive outlier rejection")
       ("block", po::value<int>(&block_size), "Use the prototype block image correlator")
       ("hsubpix", "Enable horizontal sub-pixel correlation")
       ("vsubpix", "Enable vertical sub-pixel correlation")
@@ -116,6 +118,7 @@ int main( int argc, char *argv[] ) {
                                                Vector2(xoffset+xrange, yoffset+yrange)),
                                          Vector2i(xkernel, ykernel),
                                          slog, lrthresh,
+                                         corrscore_thresh,
                                          (vm.count("hsubpix")>0),
                                          (vm.count("vsubpix")>0) );
       correlator.set_debug_mode("debug");
@@ -131,7 +134,9 @@ int main( int argc, char *argv[] ) {
       vw::stereo::MultiresolutionCorrelator correlator( xoffset-xrange, xoffset+xrange,
                                                         yoffset-yrange, yoffset+yrange,
                                                         xkernel, ykernel,
-                                                        true, lrthresh, slog,
+                                                        true, lrthresh, 
+                                                        corrscore_thresh,
+                                                        slog,
                                                         (vm.count("hsubpix")>0),
                                                         (vm.count("vsubpix")>0) );
       vw::Timer corr_timer("Correlation Time");
@@ -140,7 +145,8 @@ int main( int argc, char *argv[] ) {
       vw::stereo::BlockCorrelator correlator( xoffset-xrange, xoffset+xrange,
                                               yoffset-yrange, yoffset+yrange,
                                               xkernel, ykernel,
-                                              true, lrthresh, block_size,
+                                              true, lrthresh, corrscore_thresh, 
+                                              block_size,
                                               (vm.count("hsubpix")>0),
                                               (vm.count("vsubpix")>0) );
       if (vm.count("bitimage")) {
@@ -165,7 +171,7 @@ int main( int argc, char *argv[] ) {
       vw::stereo::OptimizedCorrelator correlator( xoffset-xrange, xoffset+xrange,
                                                   yoffset-yrange, yoffset+yrange,
                                                   xkernel, ykernel,
-                                                  true, lrthresh,
+                                                  true, lrthresh, corrscore_thresh,
                                                   (vm.count("hsubpix")>0),
                                                   (vm.count("vsubpix")>0) );
       if (vm.count("bitimage")) {

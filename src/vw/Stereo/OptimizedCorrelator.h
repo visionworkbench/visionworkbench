@@ -31,6 +31,7 @@ namespace stereo {
                         int kernHeight,       
                         int verbose,
                         double crosscorrThreshold,
+                        float corrscore_rejection_threshold,
                         int useSubpixelH,
                         int useSubpixelV);
     
@@ -90,6 +91,7 @@ namespace stereo {
       
     std::vector<CorrelationWorkThread*> m_children;
     double m_crossCorrThreshold;
+    float m_corrscore_rejection_threshold;
     int m_useHorizSubpixel;
     int m_useVertSubpixel;
     mutable boost::mutex m_mutex;

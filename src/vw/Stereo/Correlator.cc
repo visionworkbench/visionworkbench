@@ -131,10 +131,12 @@ std::vector<vw::BBox2> vw::stereo::Correlator::compute_search_ranges(ImageView<P
 
 vw::ImageView<vw::PixelDisparity<float> > vw::stereo::Correlator::correlate(ImageView<uint8> left_image, ImageView<uint8> right_image, 
                                                                             BBox2 search_range, Vector2 offset) {
+
   vw::stereo::OptimizedCorrelator correlator( int(floor(search_range.min().x())), int(ceil(search_range.max().x())),
                                               int(floor(search_range.min().y())), int(ceil(search_range.max().y())),
                                               m_kernel_size[0], m_kernel_size[1],
                                               false, m_cross_correlation_threshold,
+                                              m_corrscore_rejection_threshold,
                                               false, false );
   ImageView<PixelDisparity<float> > result = correlator( left_image, right_image, true);
   

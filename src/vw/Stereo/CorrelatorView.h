@@ -22,6 +22,7 @@ namespace vw {
 			  int kernHeight,       
 			  int verbose,
 			  double crosscorrThreshold,
+        float corrscore_rejection_threshold,
         double slog_width,
 			  int useSubpixelH, int useSubpixelV,
 			  bool bit_image)
@@ -34,6 +35,7 @@ namespace vw {
         m_lMaxV = maxV;  
         m_verbose = verbose;
         m_crossCorrThreshold = crosscorrThreshold;
+        m_corrscore_rejection_threshold = corrscore_rejection_threshold;
         m_slog_width = slog_width;
         m_useHorizSubpixel = useSubpixelH;
         m_useVertSubpixel = useSubpixelV;
@@ -43,6 +45,7 @@ namespace vw {
       int m_lMinH, m_lMaxH, m_lMinV, m_lMaxV;
       int m_verbose;
       double m_crossCorrThreshold;
+      float m_corrscore_rejection_threshold;
       double m_slog_width;
       int m_useHorizSubpixel;
       int m_useVertSubpixel;
@@ -129,10 +132,11 @@ namespace vw {
                                           Vector2i(m_settings.m_lKernWidth, m_settings.m_lKernHeight),
                                           m_settings.m_slog_width,
                                           m_settings.m_crossCorrThreshold,
+                                          m_settings.m_corrscore_rejection_threshold,
                                           m_settings.m_useHorizSubpixel,
                                           m_settings.m_useVertSubpixel);
         // For debugging: this saves the disparity map at various pyramid levels to disk.
-        correlator.set_debug_mode("debug");
+        //        correlator.set_debug_mode("debug");
         disparity_map = correlator(cropped_left_image, cropped_right_image);
 
         // Adjust the disparities to be relative to the uncropped
