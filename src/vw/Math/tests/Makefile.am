@@ -43,9 +43,9 @@ nodist_TestLevenbergMarquardt_SOURCES = TestLevenbergMarquardt.cxx
 TestLinearAlgebra = TestLinearAlgebra TestGeometry TestLevenbergMarquardt
 endif
 
-TESTS = TestVector TestMatrix TestQuaternion TestBBox TestFunctions TestFunctors	TestNelderMead \
-        $(TestLinearAlgebra) #TestConjugateGradient
-
+TESTS = TestVector TestMatrix TestQuaternion TestBBox TestFunctions	\
+        TestFunctors TestNelderMead $(TestLinearAlgebra)						\
+        #TestConjugateGradient
 endif
 
 ########################################################################
