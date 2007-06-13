@@ -13,6 +13,7 @@
 #include <vw/Image/Statistics.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/UtilityViews.h>
+#include <vw/Core/ProgressCallback.h>
 
 #include <vw/FileIO.h>
 
@@ -83,7 +84,11 @@ namespace disparity {
   //
   // Determine the range of disparity values present in the disparity map.
   template <class ViewT>
-  BBox2 get_disparity_range(ImageViewBase<ViewT> const& disparity_map, int& num_good, bool verbose = false) {
+  BBox2 get_disparity_range(ImageViewBase<ViewT> const& disparity_map, int& num_good, bool verbose = false,
+                            const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
+
+    // Initialize the progress callback
+    progress_callback.report_progress(0);
 
     const ViewT& disparity_map_impl = disparity_map.impl();
 
@@ -95,6 +100,12 @@ namespace disparity {
     // Find the max/min disparity values
     num_good = 0;
     for (unsigned j = 0; j < disparity_map_impl.rows(); j++) {
+
+      // Update the progress callback.
+      if (progress_callback.abort_requested()) 
+        vw_throw( Aborted() << "Aborted by ProgressCallback" );
+      progress_callback.report_progress((float)j/disparity_map_impl.rows());
+
       for (unsigned i = 0; i < disparity_map_impl.cols(); i++) {
         if ( !disparity_map_impl(i,j).missing() ) {
           max_horz_disp = disparity_map_impl(i,j).h() > max_horz_disp ? disparity_map_impl(i,j).h() : max_horz_disp;
@@ -105,6 +116,7 @@ namespace disparity {
         }
       }
     }
+    progress_callback.report_finished();
 
     if (num_good == 0) {
       if (verbose)
