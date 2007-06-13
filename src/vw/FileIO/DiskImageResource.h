@@ -145,6 +145,16 @@ namespace vw {
 
   /// Read an image on disk into a vw::ImageView<T> object.
   template <class PixelT>
+  void read_image( ImageView<PixelT>& in_image, FileMetadataCollection& fmeta, DiskImageResource* disk_rsrc ) {
+
+    // Read it in and wrap up
+    fmeta.read_file_metadata( disk_rsrc );
+    read_image( in_image, *disk_rsrc );
+
+  }
+
+  /// Read an image on disk into a vw::ImageView<T> object.
+  template <class PixelT>
   void read_image( ImageView<PixelT>& in_image, FileMetadataCollection& fmeta, const std::string &filename ) {
 
     vw_out(InfoMessage+1) << "\tLoading image: " << filename << "\t";
@@ -154,9 +164,9 @@ namespace vw {
 
     vw_out(InfoMessage+1) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
 
-    // Read it in and wrap up
-    fmeta.read_file_metadata( r );
-    read_image( in_image, *r );
+    // Read the data 
+    read_image(in_image, fmeta, r);
+
     delete r;
   }
   
@@ -177,6 +187,58 @@ namespace vw {
     delete r;
   }
 
+  /// Write an vw::ImageView<T> to disk.  If you supply a filename
+  /// with an asterisk ('*'), each plane of the image will be saved as
+  /// a seperate file on disk and the asterisk will be replaced with
+  /// the plane number.
+  template <class ImageT>
+  void write_image( DiskImageResource *disk_rsrc, ImageViewBase<ImageT> const& out_image, 
+                    FileMetadataCollection const& fmeta = FileMetadataCollection::create(), 
+                    const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
+
+    VW_ASSERT( out_image.impl().cols() != 0 && out_image.impl().rows() != 0 && out_image.impl().planes() != 0,
+               ArgumentErr() << "write_image: cannot write empty image to disk" );
+
+    fmeta.write_file_metadata( disk_rsrc );
+
+    // Initialize the progress callback
+    progress_callback.report_progress(0);
+
+    // Write the image to disk in blocks.  We may need to revisit
+    // the order in which these blocks are rasterized, but for now
+    // it rasterizes blocks from left to right, then top to bottom.
+    Vector2i block_size = disk_rsrc->native_block_size();
+    int total_num_blocks = ((disk_rsrc->rows()-1)/block_size[1]+1) * ((disk_rsrc->cols()-1)/block_size[0]+1);
+    for (int32 j = 0; j < (int32)disk_rsrc->rows(); j+= block_size[1]) {
+      for (int32 i = 0; i < (int32)disk_rsrc->cols(); i+= block_size[0]) {
+        
+        // Update the progress callback.
+        if (progress_callback.abort_requested()) 
+          vw_throw( Aborted() << "Aborted by ProgressCallback" );
+
+        float processed_row_blocks = j/block_size[1]*((disk_rsrc->cols()-1)/block_size[0]+1);
+        float processed_col_blocks = i/block_size[0];
+        progress_callback.report_progress((processed_row_blocks + processed_col_blocks)/total_num_blocks);
+
+        // Rasterize and save this image block
+        BBox2i current_bbox(Vector2i(i,j),
+                            Vector2i(std::min(i+block_size[0],(int32)(disk_rsrc->cols())),
+                                     std::min(j+block_size[1],(int32)(disk_rsrc->rows()))));
+
+        // for debugging:
+        //        vw_out(0) << "CURRENT BBOX: " << current_bbox << "\n";
+
+        // Rasterize the current image block into a region of memory
+        // and send it off to the FileIO driver to be written to the file.
+        ImageView<typename ImageT::pixel_type> image_block( crop(out_image.impl(), current_bbox) );
+        ImageBuffer buf = image_block.buffer();
+        disk_rsrc->write( buf, current_bbox );
+
+      }
+    }
+    progress_callback.report_finished();
+
+  }
 
   /// Write an vw::ImageView<T> to disk.  If you supply a filename
   /// with an asterisk ('*'), each plane of the image will be saved as
@@ -186,9 +248,6 @@ namespace vw {
   void write_image( const std::string &filename, ImageViewBase<ImageT> const& out_image, 
                     FileMetadataCollection const& fmeta = FileMetadataCollection::create(), 
                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
-
-    VW_ASSERT( out_image.impl().cols() != 0 && out_image.impl().rows() != 0 && out_image.impl().planes() != 0,
-               ArgumentErr() << "write_image: cannot write empty image to disk" );
 
     ImageFormat out_image_format = out_image.format();
 
@@ -200,45 +259,13 @@ namespace vw {
     }
 
     for( unsigned p=0; p<files; ++p ) {
-
       std::string name = filename;
       if( files > 1 ) boost::replace_last( name, "*",  str( boost::format("%1%") % p ) );
       vw_out(InfoMessage+1) << "\tSaving image: " << name << "\t";
       DiskImageResource *r = DiskImageResource::create( name, out_image_format, fmeta );
       vw_out(InfoMessage+1) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
-      fmeta.write_file_metadata( r );
-      // Initialize the progress callback
-      progress_callback.report_progress(0);
 
-      // Write the image to disk in blocks.  We may need to revisit
-      // the order in which these blocks are rasterized, but for now
-      // it rasterizes blocks from left to right, then top to bottom.
-      Vector2i block_size = r->native_block_size();
-      int total_num_blocks = ((r->rows()-1)/block_size[1]+1) * ((r->cols()-1)/block_size[0]+1);
-      for (int32 j = 0; j < (int32)r->rows(); j+= block_size[1]) {
-        for (int32 i = 0; i < (int32)r->cols(); i+= block_size[0]) {
-
-          // Update the progress callback.
-          if (progress_callback.abort_requested()) 
-            vw_throw( Aborted() << "Aborted by ProgressCallback" );
-
-          float processed_row_blocks = j/block_size[1]*((r->cols()-1)/block_size[0]+1);
-          float processed_col_blocks = i/block_size[0];
-          progress_callback.report_progress((processed_row_blocks + processed_col_blocks)/total_num_blocks);
-
-          // Rasterize and save this image block
-          BBox2i current_bbox(Vector2i(i,j),
-                              Vector2i(std::min(i+block_size[0],(int32)(r->cols())),
-                                       std::min(j+block_size[1],(int32)(r->rows()))));
-          // Rasterize the current image block into a region of memory
-          // and send it off to the FileIO driver to be written to the file.
-          ImageView<typename ImageT::pixel_type> image_block( crop(select_plane(out_image.impl(),p), current_bbox) );
-          ImageBuffer buf = image_block.buffer();
-          r->write( buf, current_bbox );
-
-        }
-      }
-      progress_callback.report_finished();
+      write_image(r, select_plane(out_image.impl(),p), fmeta, progress_callback);
 
       delete r;
     }
