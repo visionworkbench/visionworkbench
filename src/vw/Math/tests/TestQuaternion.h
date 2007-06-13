@@ -82,4 +82,27 @@ public:
     }
   }
 
+  void test_rotation_matrix()
+  {
+    // Create a test vector to rotate
+    Vector3 test_vec(0.1, 0.84, 0.23);
+    
+    double theta = 32*M_PI/180;  // 32 degree rotation
+    Matrix3x3 rotation = math::identity_matrix<3>();
+    rotation(0,0) = cos(theta);
+    rotation(0,1) = -sin(theta);
+    rotation(1,0) = sin(theta);
+    rotation(1,1) = cos(theta);
+
+    Quaternion<double> quat(rotation);
+    Matrix3x3 rotation2 = quat.rotation_matrix();
+
+    Vector3 sol1 = rotation * test_vec;
+    Vector3 sol2 = rotation2 * test_vec;
+
+    TS_ASSERT_DELTA(sol1(0),sol2(0),1e-9);
+    TS_ASSERT_DELTA(sol1(1),sol2(1),1e-9);
+    TS_ASSERT_DELTA(sol1(2),sol2(2),1e-9);
+  }
+
 }; // class TestQuaternion
