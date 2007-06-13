@@ -84,7 +84,7 @@ namespace camera {
       double Hc = pin_model.intrinsic_matrix()(0,2);
       double Vc = pin_model.intrinsic_matrix()(1,2);
       
-      Matrix<double,3,3> rot_matrix = pin_model.camera_pose();
+      Matrix<double,3,3> rot_matrix = pin_model.camera_pose().rotation_matrix();
       
       Vector3 Hvec(rot_matrix[0][0], rot_matrix[0][1], rot_matrix[0][2]);
       Vector3 Vvec(rot_matrix[1][0], rot_matrix[1][1], rot_matrix[1][2]);

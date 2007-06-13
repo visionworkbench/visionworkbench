@@ -103,6 +103,12 @@ namespace camera {
 
       m_distortion_model_ptr = boost::shared_ptr<LensDistortion>(new NullLensDistortion());
     }
+
+    /// Initialize from a file on disk.
+    PinholeModel(std::string const& filename) {
+      read_file(filename);
+      m_distortion_model_ptr = boost::shared_ptr<LensDistortion>(new NullLensDistortion());
+    }
     
     /// Initialize the pinhole model with explicit parameters.
     /// 
@@ -182,6 +188,9 @@ namespace camera {
     }
 
     virtual ~PinholeModel() {}
+
+    /// Read a pinhole model from a file on disk.
+    void read_file(std::string const& filename);
     
     //------------------------------------------------------------------
     // Methods
@@ -211,7 +220,8 @@ namespace camera {
     virtual Vector3 camera_center(Vector2 const& pix = Vector2() ) const { return m_camera_center; };
     void set_camera_center(Vector3 const& position) { m_camera_center = position; rebuild_camera_matrix(); }
     
-    Matrix<double,3,3> camera_pose() const { return m_rotation; };
+    virtual Quaternion<double> camera_pose(Vector2 const& pix = Vector2() ) const { return Quaternion<double>(m_rotation); }
+    void set_camera_pose(Quaternion<double> const& pose) { m_rotation = pose.rotation_matrix(); rebuild_camera_matrix(); }
     void set_camera_pose(Matrix<double,3,3> const& pose) { m_rotation = pose; rebuild_camera_matrix(); }
 
     Matrix<double,3,3> intrinsic_matrix() const { return m_intrinsics; };
@@ -299,7 +309,7 @@ namespace camera {
   /// Function to remove lens distortion from a pinhole camera model.
   inline PinholeModel linearize_camera(PinholeModel const& camera_model) {
     return PinholeModel(camera_model.camera_center(),
-                        camera_model.camera_pose(),
+                        camera_model.camera_pose().rotation_matrix(),
                         camera_model.intrinsic_matrix());
   }
 
