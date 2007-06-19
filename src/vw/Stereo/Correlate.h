@@ -189,8 +189,11 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
      */
     double denom = 4 * x(0) * x(1) - (x(2) * x(2));
   
+//     offset(0) = ( x(2) * x(4) - 2 * x(1) * x(3) ) / denom;
+//     offset(1) = ( x(2) * x(3) - 2 * x(1) * x(4) ) / denom;
+  
     offset(0) = ( x(2) * x(4) - 2 * x(1) * x(3) ) / denom;
-    offset(1) = ( x(2) * x(3) - 2 * x(1) * x(4) ) / denom;
+    offset(1) = ( x(2) * x(3) - 2 * x(0) * x(4) ) / denom;
 
     return offset;
   }
