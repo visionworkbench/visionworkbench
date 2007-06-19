@@ -92,8 +92,9 @@ namespace vw {
   /// A progress monitor that prints a progress bar on STDOUT.
   class TerminalProgressCallback : public ProgressCallback {
     MessageLevel m_level;
+    std::string m_pre_progress_text;
   public:
-    TerminalProgressCallback( MessageLevel level = InfoMessage ) : m_level(level) {}
+    TerminalProgressCallback( MessageLevel level = InfoMessage, std::string pre_progress_text = "" ) : m_level(level), m_pre_progress_text(pre_progress_text) {}
     virtual ~TerminalProgressCallback() {}
 
     virtual void report_progress(double progress) const;
