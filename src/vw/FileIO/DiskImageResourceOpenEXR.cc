@@ -237,6 +237,7 @@ void vw::DiskImageResourceOpenEXR::create( std::string const& filename,
 // Read the disk image into the given buffer.
 void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& bbox ) const
 {
+  vw_out(VerboseDebugMessage+5) << "Reading OpenEXR Block: " << bbox << "\n";
 
   Imf::InputFile* input_file_ptr = static_cast<Imf::InputFile*>(m_input_file_ptr);
   
@@ -321,6 +322,8 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
 // Write the given buffer into the disk image.
 void vw::DiskImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const& bbox )
 {
+  vw_out(VerboseDebugMessage+5) << "Writing OpenEXR Block: " << bbox << "\n";
+
   if (!m_output_file_ptr) 
     vw_throw( LogicErr() << "DiskImageResourceOpenEXR: Could not write file. No file has been opened." );
 
