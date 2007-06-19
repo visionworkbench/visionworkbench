@@ -11,7 +11,7 @@ namespace po = boost::program_options;
 #include <vw/FileIO.h>
 #include <vw/Stereo/OptimizedCorrelator.h>
 #include <vw/Stereo/ReferenceCorrelator.h>
-#include <vw/Stereo/Correlator.h>
+#include <vw/Stereo/PyramidCorrelator.h>
 
 using namespace vw;
 using namespace vw::stereo;
@@ -89,13 +89,13 @@ int main( int argc, char *argv[] ) {
       else 
         disparity_map = correlator( left, right, stereo::SlogStereoPreprocessingFilter(slog));
     } else if (vm.count("pyramid")>0) {
-      vw::stereo::Correlator correlator( BBox2(Vector2(xoffset-xrange, yoffset-yrange),
-                                               Vector2(xoffset+xrange, yoffset+yrange)),
-                                         Vector2i(xkernel, ykernel),
-                                         slog, lrthresh,
-                                         corrscore_thresh,
-                                         (vm.count("hsubpix")>0),
-                                         (vm.count("vsubpix")>0) );
+      vw::stereo::PyramidCorrelator correlator( BBox2(Vector2(xoffset-xrange, yoffset-yrange),
+                                                      Vector2(xoffset+xrange, yoffset+yrange)),
+                                                Vector2i(xkernel, ykernel),
+                                                slog, lrthresh,
+                                                corrscore_thresh,
+                                                (vm.count("hsubpix")>0),
+                                                (vm.count("vsubpix")>0) );
       //      correlator.set_debug_mode("debug");
       if (1) {
         vw::Timer corr_timer("Correlation Time");

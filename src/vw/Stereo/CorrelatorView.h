@@ -1,19 +1,19 @@
 #ifndef __VW_STEREO_CORRELATOR_VIEW__
 #define __VW_STEREO_CORRELATOR_VIEW__
-#include <vw/Stereo/Correlate.h>
-#include <vw/Stereo/Correlator.h>
-#include <vw/Stereo/DisparityMap.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Math/BBox.h>
 #include <vw/Core/Debugging.h>
 #include <vw/Core/ProgressCallback.h>
+#include <vw/Stereo/Correlate.h>
+#include <vw/Stereo/PyramidCorrelator.h>
+#include <vw/Stereo/DisparityMap.h>
 
 namespace vw {
-  namespace stereo {
+namespace stereo {
 
-    struct CorrelationSettings
-    {
+  struct CorrelationSettings
+  {
       CorrelationSettings() {}
       CorrelationSettings(int minH,	// left bound disparity search window
 			  int maxH,	// right bound disparity search window
@@ -136,13 +136,13 @@ namespace vw {
         // run the correlator.
         ImageView<pixel_type> disparity_map;
 
-        vw::stereo::Correlator correlator(BBox2(0,0,search_bbox.width(),search_bbox.height()),
-                                          Vector2i(m_settings.m_lKernWidth, m_settings.m_lKernHeight),
-                                          m_settings.m_slog_width,
-                                          m_settings.m_crossCorrThreshold,
-                                          m_settings.m_corrscore_rejection_threshold,
-                                          m_settings.m_useHorizSubpixel,
-                                          m_settings.m_useVertSubpixel);
+        vw::stereo::PyramidCorrelator correlator(BBox2(0,0,search_bbox.width(),search_bbox.height()),
+                                                 Vector2i(m_settings.m_lKernWidth, m_settings.m_lKernHeight),
+                                                 m_settings.m_slog_width,
+                                                 m_settings.m_crossCorrThreshold,
+                                                 m_settings.m_corrscore_rejection_threshold,
+                                                 m_settings.m_useHorizSubpixel,
+                                                 m_settings.m_useVertSubpixel);
         // For debugging: this saves the disparity map at various pyramid levels to disk.
         correlator.set_debug_mode(m_settings.m_debug_prefix);
         disparity_map = correlator(cropped_left_image, cropped_right_image, stereo::SlogStereoPreprocessingFilter(m_settings.m_slog_width));

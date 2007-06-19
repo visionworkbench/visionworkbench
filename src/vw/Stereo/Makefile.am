@@ -27,12 +27,12 @@
 
 if MAKE_MODULE_STEREO
 
-include_HEADERS = Correlate.h ReferenceCorrelator.h								\
-	OptimizedCorrelator.h DisparityMap.h StereoModel.h							\
-	PyramidCorrelator.h StereoView.h CorrelatorView.h Correlator.h
+include_HEADERS = Correlate.h ReferenceCorrelator.h		\
+	OptimizedCorrelator.h DisparityMap.h StereoModel.h	\
+	PyramidCorrelator.h StereoView.h CorrelatorView.h
 
 libvwStereo_la_SOURCES = StereoModel.cc OptimizedCorrelator.cc	\
-	 Correlator.cc
+	 PyramidCorrelator.cc
 
 libvwStereo_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwStereo_la_LIBADD = @MODULE_STEREO_LDFLAGS@

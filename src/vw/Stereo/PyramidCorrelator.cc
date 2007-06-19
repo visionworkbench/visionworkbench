@@ -1,5 +1,4 @@
-
-#include <vw/Stereo/Correlator.h>
+#include <vw/Stereo/PyramidCorrelator.h>
 #include <vw/Stereo/OptimizedCorrelator.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/ProgressCallback.h>
@@ -15,7 +14,7 @@
 //
 // Returns an updated search range that has been recentered for use in
 // comparing the left_blocks and right_blocks.
-vw::BBox2 vw::stereo::Correlator::compute_matching_blocks(BBox2i const& nominal_block, BBox2 search_range,
+vw::BBox2 vw::stereo::PyramidCorrelator::compute_matching_blocks(BBox2i const& nominal_block, BBox2 search_range,
                                                            BBox2i &left_block, BBox2i &right_block) {
   
   left_block = nominal_block;
@@ -43,7 +42,7 @@ vw::BBox2 vw::stereo::Correlator::compute_matching_blocks(BBox2i const& nominal_
 //  for each nominal block. At each new level, we buffer the search
 //  range slightly so that we cover all feasible disparity levels at
 //  the higher level of resolution.
-std::vector<vw::BBox2> vw::stereo::Correlator::compute_search_ranges(ImageView<PixelDisparity<float> > const& prev_disparity_map, 
+std::vector<vw::BBox2> vw::stereo::PyramidCorrelator::compute_search_ranges(ImageView<PixelDisparity<float> > const& prev_disparity_map, 
                                                                       std::vector<BBox2i> nominal_blocks) {
   std::vector<BBox2> search_ranges(nominal_blocks.size());
   std::vector<int> good_pixel_vec(nominal_blocks.size());

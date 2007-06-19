@@ -8,7 +8,7 @@
 
 namespace vw {
 namespace stereo {
-  class Correlator {
+  class PyramidCorrelator {
 
     BBox2 m_initial_search_range;
     Vector2i m_kernel_size;
@@ -205,10 +205,10 @@ namespace stereo {
 
 
     template <class ViewT, class PreProcFilterT>
-    vw::ImageView<vw::PixelDisparity<float> > vw::stereo::Correlator::correlate(ImageViewBase<ViewT> const& left_image, ImageViewBase<ViewT> const& right_image, 
-                                                                                BBox2 search_range, Vector2 offset, bool do_h_subpix, bool do_v_subpix,
-                                                                                PreProcFilterT const& preproc_filter) {
-
+    vw::ImageView<vw::PixelDisparity<float> > correlate(ImageViewBase<ViewT> const& left_image, ImageViewBase<ViewT> const& right_image, 
+                                                        BBox2 search_range, Vector2 offset, bool do_h_subpix, bool do_v_subpix,
+                                                        PreProcFilterT const& preproc_filter) {
+      
       vw::stereo::OptimizedCorrelator correlator( int(floor(search_range.min().x())), int(ceil(search_range.max().x())),
                                                   int(floor(search_range.min().y())), int(ceil(search_range.max().y())),
                                                   m_kernel_size[0], m_kernel_size[1],
@@ -232,7 +232,7 @@ namespace stereo {
     /// Correlator Constructor
     ///
     /// Set pyramid_levels to 0 to force the use of a single pyramid level (essentially disabling pyramid correlation).
-    Correlator(BBox2 initial_search_range, Vector2i kernel_size, int slog_width = 1.5, float cross_correlation_threshold = 1, float corrscore_rejection_threshold = 1.0, bool do_h_subpixel = true, bool do_v_subpixel = true, int pyramid_min_image_dimension = 256) :
+    PyramidCorrelator(BBox2 initial_search_range, Vector2i kernel_size, int slog_width = 1.5, float cross_correlation_threshold = 1, float corrscore_rejection_threshold = 1.0, bool do_h_subpixel = true, bool do_v_subpixel = true, int pyramid_min_image_dimension = 256) :
       m_initial_search_range(initial_search_range), m_kernel_size(kernel_size), m_slog_width(slog_width), m_cross_correlation_threshold(cross_correlation_threshold), m_corrscore_rejection_threshold(corrscore_rejection_threshold), m_do_h_subpixel(do_h_subpixel), m_do_v_subpixel(do_v_subpixel), m_pyramid_min_image_dimension(pyramid_min_image_dimension) {
       m_debug_prefix = "";
     }
