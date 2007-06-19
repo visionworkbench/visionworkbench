@@ -33,6 +33,7 @@
 ///   Matrix*matrix, matrix*vector, and vector*matrix products
 ///   Sum of elements via sum()
 ///   Trace via trace()
+///   Determinant via det()
 ///   Transpose via transpose()
 ///   Inverse via inverse(), not particularly robust to singularity
 ///   Matrix norms via norm_1(), norm_inf(), and norm_frobenius()
@@ -52,6 +53,8 @@
 #include <boost/type_traits.hpp>
 #include <boost/mpl/if.hpp>
 #include <boost/utility/result_of.hpp>
+
+#include <stack>
 
 #include <vw/Core/Exception.h>
 #include <vw/Math/Vector.h>
@@ -1723,6 +1726,51 @@ namespace math {
     unsigned mindim = std::min( m.impl().rows(), m.impl().cols() );
     for( unsigned i=0; i<mindim; ++i )
       result += m.impl()(i,i);
+    return result;
+  }
+
+  /// Matrix determinant
+  template <class MatrixT>
+  typename MatrixT::value_type det( MatrixBase<MatrixT> const& m ) {
+    typename MatrixT::value_type result = typename MatrixT::value_type();
+    VW_ASSERT( m.impl().rows() == m.impl().cols(), vw::ArgumentErr() << "Can only compute determinant of a square matrix." );
+    std::stack<std::pair<Matrix<typename MatrixT::value_type>,typename MatrixT::value_type> > s;
+    s.push( std::make_pair( m.impl(), 1 ) );
+    while( !s.empty() ) {
+      Matrix<typename MatrixT::value_type> a = s.top().first;
+      typename MatrixT::value_type scale = s.top().second;
+      s.pop();
+      VW_ASSERT( a.rows() == a.cols(), vw::LogicErr() << "Matrix has become non-square." );
+      unsigned dim = a.rows();
+      Matrix<typename MatrixT::value_type> sub;
+      switch( dim ) {
+      case 0:
+        break;
+      case 1:
+        result += scale*a(0,0);
+        break;
+      case 2:
+        result += scale*(a(0,0)*a(1,1)-a(0,1)*a(1,0));
+        break;
+      default:
+        {
+          sub = submatrix( a, 1, 1, dim-1, dim-1 );
+          s.push( std::make_pair( sub, scale*a(0,0) ) );
+          scale *= -1;
+        }
+        for( unsigned i=1; i<(dim-1); ++i ) {
+          submatrix( sub, 0, 0, dim-1, i ) = submatrix( a, 1, 0, dim-1, i );
+          submatrix( sub, 0, i, dim-1, dim-i-1 ) = submatrix( a, 1, i+1, dim-1, dim-i-1 );
+          s.push( std::make_pair( sub, scale*a(0,i) ) );
+          scale *= -1;
+        }
+        {
+          sub = submatrix( a, 1, 0, dim-1, dim-1 );
+          s.push( std::make_pair( sub, scale*a(0,dim-1) ) );
+        }
+        break;
+      }
+    }
     return result;
   }
 

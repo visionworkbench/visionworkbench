@@ -46,6 +46,7 @@
 ///   Norms via norm_1(), norm_2(), norm_2_sqr(), and norm_inf()
 ///   Sum and product of elements via sum() and prod()
 ///   Vector normalization via normalize()
+///   Vector homogenization and dehomogenization via hom() and dehom()
 ///   Dot/inner product via dot_prod(v1,v2) or transpose(v1)*v2
 ///   Cross product of 3-element vectors via cross_prod()
 ///
@@ -1458,6 +1459,24 @@ namespace math {
   VectorUnaryFunc<VectorT, ArgValQuotientFunctor<double> >
   inline normalize( VectorBase<VectorT> const& v ) {
     return VectorUnaryFunc<VectorT, ArgValQuotientFunctor<double> >( v.impl(), norm_2(v) );
+  }
+
+  /// Returns a homogenized vector.
+  template <class VectorT>
+  Vector<typename VectorT::value_type>
+  inline hom( VectorBase<VectorT> const& v ) {
+    Vector<typename VectorT::value_type> r;
+    r.set_size( v.impl().size()+1 );
+    subvector( r, 0, v.impl().size() ) = subvector( v, 0, v.impl().size() );
+    r(v.impl().size()) = 1;
+    return r;
+  }
+
+  /// Returns a dehomogenized (projected) vector.
+  template <class VectorT>
+  Vector<typename VectorT::value_type>
+  inline dehom( VectorBase<VectorT> const& v ) {
+    return subvector( VectorUnaryFunc<VectorT, ArgValQuotientFunctor<typename VectorT::value_type> >( v.impl(), v.impl()(v.impl().size()-1) ), 0, v.impl().size()-1 );
   }
 
   /// Vector dot product
