@@ -31,8 +31,9 @@ include_HEADERS = PixelIterator.h ImageViewBase.h PixelAccessors.h		\
 	ImageView.h ImageViewRef.h PixelTypeInfo.h PixelMath.h PixelTypes.h	\
 	ImageResource.h ImageResourceView.h Manipulation.h PerPixelViews.h	\
 	PerPixelAccessorViews.h ImageMath.h EdgeExtension.h Interpolation.h	\
-	Convolution.h Filter.h Filter.tcc Transform.h Statistics.h 		\
-	Algorithms.h EdgeExtend.h BlockRasterize.h UtilityViews.h Palette.h
+	Convolution.h Filter.h Filter.tcc Transform.h Statistics.h					\
+	Algorithms.h EdgeExtend.h BlockRasterize.h BlockCacheView.h					\
+	UtilityViews.h Palette.h
 
 libvwImage_la_SOURCES = ImageResource.cc Filter.cc
 libvwImage_la_LDFLAGS= -version-info @LIBTOOL_VERSION@

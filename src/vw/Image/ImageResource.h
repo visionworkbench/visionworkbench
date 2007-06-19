@@ -163,6 +163,9 @@ namespace vw {
   };
 
 
+
+
+
 } // namespace vw
 
 #endif // __VW_IMAGE_IMAGERESOURCE_H__
