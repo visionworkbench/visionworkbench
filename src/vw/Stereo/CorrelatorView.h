@@ -7,6 +7,7 @@
 #include <vw/Image/Manipulation.h>
 #include <vw/Math/BBox.h>
 #include <vw/Core/Debugging.h>
+#include <vw/Core/ProgressCallback.h>
 
 namespace vw {
   namespace stereo {
@@ -40,7 +41,13 @@ namespace vw {
         m_useHorizSubpixel = useSubpixelH;
         m_useVertSubpixel = useSubpixelV;
         m_bit_image = bit_image;
+        m_debug_prefix = "";
       }
+
+      /// Turn on debugging output.  The debug_file_prefix string is
+      /// used as a prefix for all debug image files.
+      void set_debug_mode(std::string const& debug_file_prefix) { m_debug_prefix = debug_file_prefix; }
+
       int m_lKernWidth, m_lKernHeight;
       int m_lMinH, m_lMaxH, m_lMinV, m_lMaxV;
       int m_verbose;
@@ -50,6 +57,7 @@ namespace vw {
       int m_useHorizSubpixel;
       int m_useVertSubpixel;
       bool m_bit_image;
+      std::string m_debug_prefix;
     };
 
     /// An image view for performing image correlation
@@ -136,8 +144,8 @@ namespace vw {
                                           m_settings.m_useHorizSubpixel,
                                           m_settings.m_useVertSubpixel);
         // For debugging: this saves the disparity map at various pyramid levels to disk.
-        //        correlator.set_debug_mode("debug");
-        disparity_map = correlator(cropped_left_image, cropped_right_image);
+        correlator.set_debug_mode(m_settings.m_debug_prefix);
+        disparity_map = correlator(cropped_left_image, cropped_right_image, stereo::SlogStereoPreprocessingFilter(m_settings.m_slog_width));
 
         // Adjust the disparities to be relative to the uncropped
         // image pixel locations

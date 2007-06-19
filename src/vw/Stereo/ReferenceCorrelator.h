@@ -41,10 +41,10 @@ public:
   template <class PixelT>
   ImageView<PixelDisparity<float> > correlate(vw::ImageView<PixelT>& left_image,
                                               vw::ImageView<PixelT>& right_image,
-                                              bool swap) {  
-    
-    ImageView<PixelDisparity<float> > result(left_image.cols(), left_image.rows());
+                                              bool swap, bool use_bit_image) {
 
+    ImageView<PixelDisparity<float> > result(left_image.cols(), left_image.rows());
+      
     for (int i = 0; i < left_image.cols(); i++) {
       for (int j = 0; j < left_image.rows(); j++) {
         if (swap) {
@@ -60,31 +60,40 @@ public:
     }
     return result;
   }
+  
+  template <class ViewT, class PreProcFilterT>
+  ImageView<PixelDisparity<float> > operator()(vw::ImageViewBase<ViewT> const& image0,
+                                               vw::ImageViewBase<ViewT> const& image1, 
+                                               PreProcFilterT const& preproc_filter) {
 
-  template <class PixelT>
-  ImageView<PixelDisparity<float> > operator()(vw::ImageView<PixelT>& left_image,
-                                               vw::ImageView<PixelT>& right_image, 
-                                               bool bit_image = false) {
+    
+    // Check to make sure that image0 and image1 have equal dimensions 
+    if ((image0.impl().cols() != image1.impl().cols()) ||
+        (image0.impl().rows() != image1.impl().rows())) {
+      vw_throw( ArgumentErr() << "Primary and secondary image dimensions do not agree!" );
+    }
 
-    VW_ASSERT(left_image.cols() == right_image.cols() &&
-              left_image.rows() == right_image.rows(),
-              ArgumentErr() << "subpixel_correlation: input image dimensions do not agree.\n");
+    // Check to make sure that the images are single channel/single plane
+    if (!(image0.channels() == 1 && image0.impl().planes() == 1 &&
+          image1.channels() == 1 && image1.impl().planes() == 1)) {
+      vw_throw( ArgumentErr() << "Both images must be single channel/single plane images!" );
+    }
+        
+    // Rasterize the views and pass them along to be correlated.
+    std::cout << "Reference Correlator\n";
+    typename PreProcFilterT::result_type l_image = preproc_filter(channels_to_planes(image0));
+    typename PreProcFilterT::result_type r_image = preproc_filter(channels_to_planes(image1));
 
-    int width = left_image.cols();
-    int height = left_image.rows();
+    int width = image0.impl().cols();
+    int height = image0.impl().rows();
 
     //Run the correlator and record how long it takes to run.
     double begin__ = Time();
 
-    // Ask the worker threads for the actual results of the disparity correlation
-    std::cout << "Reference Correlator\n";
-    ImageView<typename PixelChannelType<PixelT>::type> l_image = channels_to_planes(left_image);
-    ImageView<typename PixelChannelType<PixelT>::type> r_image = channels_to_planes(right_image);        
-
     std::cout << "\tRunning left-to-right correlation... " << std::flush;
-    ImageView<PixelDisparity<float> > resultL2R = this->correlate(l_image, r_image,false);
+    ImageView<PixelDisparity<float> > resultL2R = this->correlate(l_image, r_image,false,PreProcFilterT::use_bit_image());
     std::cout << "done.\n\tRunning right-to-left correlation... " << std::flush;
-    ImageView<PixelDisparity<float> > resultR2L = this->correlate(r_image, l_image,true);
+    ImageView<PixelDisparity<float> > resultR2L = this->correlate(r_image, l_image,true,PreProcFilterT::use_bit_image());
     std::cout << "done.\n";
 
     // Cross check the left and right disparity maps

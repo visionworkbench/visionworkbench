@@ -153,7 +153,7 @@ namespace stereo {
                                                     m_use_horiz_subpixel,
                                                     m_use_vert_subpixel );
         
-        disparity_map = correlator( l_image, r_image, bit_image );
+        disparity_map = correlator( l_image, r_image );
 
       // Otherwise, we process the blocks individually
       } else {
@@ -176,7 +176,7 @@ namespace stereo {
           ImageView<typename ViewT::pixel_type> left_subimage = crop(edge_extend(channels_to_planes(left_image), ReflectEdgeExtension()), left_blocks[i]);
           ImageView<typename ViewT::pixel_type> right_subimage = crop(edge_extend(channels_to_planes(right_image), ReflectEdgeExtension()), right_blocks[i]);
           
-          disparity_subregion = correlator( left_subimage, right_subimage, bit_image );
+          disparity_subregion = correlator( left_subimage, right_subimage );
           
           // Debugging:
           //         std::ostringstream ostream;
