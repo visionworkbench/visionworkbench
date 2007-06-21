@@ -23,12 +23,12 @@
 
 /// \file BBox.h
 ///
-/// Provides a generic bounding-box type based on vectors pointing 
-/// to the minimal and maximal (e.g. upper-left and lower-right) corners.
+/// Provides generic bounding shapes.
 #ifndef __VW_MATH__BBOX_H__
 #define __VW_MATH__BBOX_H__
 
 #include <limits>
+#include <math.h>
 
 #include <boost/static_assert.hpp>
 
@@ -72,6 +72,167 @@ namespace math {
 
 
   // *******************************************************************
+  // class BShape
+  // *******************************************************************
+
+  /// A CRTP base class for general n-dimensional bounding shapes.  
+  /// Provides a mechanism for restricting function arguments to 
+  /// bounding shapes, provides general bounding-shape operations,
+  /// and provides the various arithmetic assignment operators.
+  template <class BShapeT>
+  class BShapeBase {
+  public:
+
+    /// Returns the derived implementation type.
+    BShapeT& impl() { return *static_cast<BShapeT*>(this); }
+    
+    /// Returns the derived implementation type.
+    BShapeT const& impl() const { return *static_cast<BShapeT const*>(this); }
+
+    /// Grows a bounding shape to include the given point.
+    template <class VectorT>
+    void grow( VectorBase<VectorT> const& point ) {
+      impl().grow(point);
+    }
+    
+    /// Grows a bounding shape to include the given bounding shape.
+    void grow( BShapeT const& bshape ) {
+      impl().grow(bshape);
+    }
+    
+    /// Crops (intersects) this bounding shape to the given bounding shape.
+    void crop( BShapeT const& bshape ) {
+      impl().crop(bshape);
+    }
+
+    /// Expands this bounding shape by the given offset in every direction.
+    template <class ScalarT>
+    void expand( ScalarT offset ) {
+      impl().expand(offset);
+    }
+
+    /// Contracts this bounding shape by the given offset in every direction.
+    template <class ScalarT>
+    void contract( ScalarT offset ) {
+      impl().contract(offset);
+    }
+
+    /// Returns true if the given point is contained in the bounding shape.
+    template <class VectorT>
+    bool contains( VectorBase<VectorT> const& point ) const {
+      return impl().contains(point);
+    }
+    
+    /// Returns true if the given bounding shape is entirely contained
+    /// in this bounding shape.
+    bool contains( const BShapeT &bshape ) const {
+      return impl().contains(bshape);
+    }
+    
+    /// Returns true if the given bounding shape intersects this
+    /// bounding shape.
+    bool intersects( const BShapeT& bshape ) const {
+      return impl().intersects(bshape);
+    }
+
+    /// Returns the center point of the bounding shape.
+    Vector<double> center() const {
+      return impl().center();
+    }
+
+    /// Returns true if the bounding shape is empty (i.e. degenerate).
+    bool empty() const {
+      return impl().empty();
+    }
+
+    /// Scales the bounding shape relative to the origin.
+    template <class ScalarT>
+    BShapeT& operator*=( ScalarT s ) {
+      return impl() = impl() * s;
+    }
+
+    /// Scales the bounding shape relative to the origin.
+    template <class ScalarT>
+    BShapeT& operator/=( ScalarT s ) {
+      return impl() = impl() / s;
+    }
+
+    /// Offsets the bounding shape by the given vector.
+    template <class VectorT>
+    BShapeT& operator+=( VectorBase<VectorT> const& v ) {
+      return impl() = impl() + v;
+    }
+
+    /// Offsets the bounding shape by the negation of the given vector.
+    template <class VectorT>
+    BShapeT& operator-=( VectorBase<VectorT> const& v ) {
+      return impl() = impl() - v;
+    }
+  };
+  
+  /// Scales a bounding shape relative to the origin.
+  template <class BShapeT, class ScalarT>
+  inline BShapeT operator*( BShapeBase<BShapeT> const& bshape, ScalarT s ) {
+    BShapeT result = bshape.impl();
+    result *= s;
+    return result;
+  }
+
+  /// Scales a bounding shape relative to the origin.
+  template <class BShapeT, class ScalarT>
+  inline BShapeT operator/( BShapeBase<BShapeT> const& bshape, ScalarT s ) {
+    BShapeT result = bshape.impl();
+    result /= s;
+    return result;
+  }
+
+  /// Scales a bounding shape relative to the origin.
+  template <class BShapeT, class ScalarT>
+  inline BShapeT operator*( ScalarT s, BShapeBase<BShapeT> const& bshape ) {
+    return bshape * s;
+  }
+  
+  /// Offsets a bounding shape by the given vector.
+  template <class BShapeT, class VectorT>
+  inline BShapeT operator+( BShapeBase<BShapeT> const& bshape, VectorBase<VectorT> const& v ) {
+    BShapeT result = bshape.impl();
+    result += v.impl();
+    return result;
+  }
+
+  /// Offsets a bounding shape by the given vector.
+  template <class BShapeT, class VectorT>
+  inline BShapeT operator+( VectorBase<VectorT> const& v, BShapeBase<BShapeT> const& bshape ) {
+    return bshape + v;
+  }
+
+  /// Offsets a bounding shape by the negation of the given vector.
+  template <class BShapeT, class VectorT>
+  inline BShapeT operator-( BShapeBase<BShapeT> const& bshape, VectorBase<VectorT> const& v ) {
+    BShapeT result = bshape.impl();
+    result -= v.impl();
+    return result;
+  }
+  
+  /// Equality of two bounding shapes.
+  template <class BShapeT>
+  inline bool operator==( BShapeBase<BShapeT> const& bshape1, BShapeBase<BShapeT> const& bshape2 ) {
+    return bshape1.impl() == bshape2.impl();
+  }
+  
+  /// Inequality of two bounding shapes.
+  template <class BShapeT>
+  inline bool operator!=( BShapeBase<BShapeT> const& bshape1, BShapeBase<BShapeT> const& bshape2 ) {
+    return bshape1.impl() != bshape2.impl();
+  }
+
+  /// Writes a bounding shape to an ostream.
+  template <class BShapeT>
+  std::ostream& operator<<( std::ostream& os, BShapeBase<BShapeT> const& bshape ) {
+    return os << bshape.impl();
+  }
+
+  // *******************************************************************
   // class BBox
   // *******************************************************************
 
@@ -79,7 +240,7 @@ namespace math {
   /// represented by vectors pointing to the minimal and maximal
   /// corners.
   template <class RealT, int DimN>
-  class BBox {
+  class BBox : public BShapeBase<BBox<RealT, DimN> > {
   public:
 
     /// Default constructor.  Constructs the ultimate empty bounding 
@@ -118,13 +279,25 @@ namespace math {
       BOOST_STATIC_ASSERT( DimN==2 );
     }
 
+    /// Standard copy constructor.
+    BBox( BBox const& bbox ) : m_min( bbox.m_min ), m_max( bbox.m_max ) {}
+    
+    /// Standard copy assignment operator.
+    BBox& operator=( BBox const& bbox ) {
+      m_min = bbox.m_min;
+      m_max = bbox.m_max;
+      return *this;
+    }
+
     /// Grows a bounding box to include the given point.
-    void grow( Vector<RealT, DimN> const& point ) {
+    template <class VectorT>
+    void grow( VectorBase<VectorT> const& point ) {
+      VW_ASSERT(point.impl().size() == DimN, ArgumentErr() << "Vector must have dimension " << DimN << ".");
       for (int i = 0; i < DimN; i++) {
-	if (point[i] > m_max[i])
-	  m_max[i] = point[i];
-	if (point[i] < m_min[i])
-	  m_min[i] = point[i];
+	if (point.impl()[i] > m_max[i])
+	  m_max[i] = point.impl()[i];
+	if (point.impl()[i] < m_min[i])
+	  m_min[i] = point.impl()[i];
       }
     }
     
@@ -152,7 +325,8 @@ namespace math {
     }
 
     /// Expands this bounding box by the given offset in every direction.
-    void expand( RealT offset ) {
+    template <class ScalarT>
+    void expand( ScalarT offset ) {
       for( int i=0; i<DimN; ++i ) {
         m_min[i] -= offset;
         m_max[i] += offset;
@@ -160,7 +334,8 @@ namespace math {
     }
 
     /// Contracts this bounding box by the given offset in every direction.
-    void contract( RealT offset ) {
+    template <class ScalarT>
+    void contract( ScalarT offset ) {
       for( int i=0; i<DimN; ++i ) {
         m_min[i] += offset;
         m_max[i] -= offset;
@@ -168,9 +343,12 @@ namespace math {
     }
 
     /// Returns true if the given point is contained in the bounding box.
-    bool contains( const Vector<RealT, DimN> &point ) const {
+    template <class VectorT>
+    bool contains( const VectorBase<VectorT> &point ) const {
       using namespace vector_containment_comparison;
-      return ((point >= m_min) && (point < m_max));
+      VW_ASSERT(point.impl().size() == DimN, ArgumentErr() << "Vector must have dimension " << DimN << ".");
+      Vector<RealT,DimN> point_ = point;
+      return ((point_ >= m_min) && (point_ < m_max));
     }
 
     /// Returns true if the given bounding box is entirely contained
@@ -195,7 +373,7 @@ namespace math {
     Vector<RealT, DimN> size() const { return (m_max - m_min); }
 
     /// Returns the center point of the bounding box.
-    Vector<RealT, DimN> center() const { return 0.5 * (m_min + m_max); }
+    Vector<double> center() const { return 0.5 * (m_min + m_max); }
 
     /// Returns the minimal point of the bounding box.
     Vector<RealT, DimN> const& min() const { return m_min; }
@@ -248,14 +426,16 @@ namespace math {
     }
 
     /// Offsets the bounding box by the given vector.
-    BBox& operator+=( Vector<RealT,DimN> const& v ) {
+    template <class VectorT>
+    BBox& operator+=( VectorBase<VectorT> const& v ) {
       m_min += v;
       m_max += v;
       return *this;
     }
 
     /// Offsets the bounding box by the negation of the given vector.
-    BBox& operator-=( Vector<RealT,DimN> const& v ) {
+    template <class VectorT>
+    BBox& operator-=( VectorBase<VectorT> const& v ) {
       m_min -= v;
       m_max -= v;
       return *this;
@@ -264,50 +444,6 @@ namespace math {
   private:
     Vector<RealT, DimN> m_min, m_max;
   };
-
-  /// Scales a bounding box relative to the origin.
-  template <class RealT, int DimN, class ScalarT>
-  inline BBox<RealT,DimN> operator*( BBox<RealT,DimN> const& bbox, ScalarT s ) {
-    BBox<RealT,DimN> result = bbox;
-    result *= s;
-    return result;
-  }
-
-  /// Scales a bounding box relative to the origin.
-  template <class RealT, int DimN, class ScalarT>
-  inline BBox<RealT,DimN> operator/( BBox<RealT,DimN> const& bbox, ScalarT s ) {
-    BBox<RealT,DimN> result = bbox;
-    result /= s;
-    return result;
-  }
-
-  /// Scales a bounding box relative to the origin.
-  template <class RealT, int DimN, class ScalarT>
-  inline BBox<RealT,DimN> operator*( ScalarT s, BBox<RealT,DimN> const& bbox ) {
-    return bbox * s;
-  }
-  
-  /// Offsets a bounding box by the given vector.
-  template <class RealT, int DimN, class VectorT>
-  inline BBox<RealT,DimN> operator+( BBox<RealT,DimN> const& bbox, VectorBase<VectorT> const& v ) {
-    BBox<RealT,DimN> result = bbox;
-    result += v.impl();
-    return result;
-  }
-
-  /// Offsets a bounding box by the given vector.
-  template <class RealT, int DimN, class VectorT>
-  inline BBox<RealT,DimN> operator+( VectorBase<VectorT> const& v, BBox<RealT,DimN> const& bbox ) {
-    return bbox + v;
-  }
-
-  /// Offsets a bounding box by the negation of the given vector.
-  template <class RealT, int DimN, class VectorT>
-  inline BBox<RealT,DimN> operator-( BBox<RealT,DimN> const& bbox, VectorBase<VectorT> const& v ) {
-    BBox<RealT,DimN> result = bbox;
-    result -= v.impl();
-    return result;
-  }
 
   /// Equality of two bounding boxes.
   template <class Real1T, class Real2T, int DimN>
@@ -320,11 +456,201 @@ namespace math {
   inline bool operator!=( BBox<Real1T,DimN> const& bbox1, BBox<Real2T,DimN> const& bbox2 ) {
     return bbox1.min()!=bbox2.min() || bbox1.max()!=bbox2.max();
   }
-
+  
   /// Writes a bounding box to an ostream.
   template <class RealT, int DimN>
   std::ostream& operator<<( std::ostream& os, BBox<RealT,DimN> const& bbox ) {
     return os << "(" << bbox.min() << "-" << bbox.max() << ")";
+  }
+
+  // *******************************************************************
+  // class BBall
+  // *******************************************************************
+
+  /// A general n-dimensional bounding ball class,
+  /// represented by a vector pointing to the center, and a radius.
+  template <class RealT, int DimN>
+  class BBall : public BShapeBase<BBall<RealT, DimN> > {
+  public:
+
+    /// Default constructor. Constructs an empty bounding ball.
+    BBall() : m_radius( 0 ) {}
+
+    /// Constructs a bounding ball with the given center and radius.
+    BBall( Vector<RealT, DimN> const& center, RealT radius ) :
+      m_center( center ), m_radius( radius ) {}
+
+    /// Constructs a 2D bounding ball with the given center point
+    /// coordinates and radius.  (Only valid for 2D bouding
+    /// balls.)
+    BBall( RealT centerx, RealT centery, RealT radius )
+      : m_center( Vector<RealT,2>(centerx,centery) ), 
+        m_radius( radius )
+    {
+      BOOST_STATIC_ASSERT( DimN==2 );
+    }
+
+    /// Standard copy constructor.
+    BBall( BBall const& bball ) : m_center( bball.m_center ), m_radius( bball.m_radius ) {}
+    
+    /// Standard copy assignment operator.
+    BBall& operator=( BBall const& bball ) {
+      m_center = bball.m_center;
+      m_radius = bball.m_radius;
+      return *this;
+    }
+
+    /// Grows a bounding ball to include the given point.
+    template <class VectorT>
+    void grow( VectorBase<VectorT> const& point ) {
+      VW_ASSERT(point.impl().size() == DimN, ArgumentErr() << "Vector must have dimension " << DimN << ".");
+      Vector<RealT, DimN> v = point - m_center;
+      RealT dist = norm_2(v);
+      RealT radius_d;
+      if (dist > m_radius) {
+        radius_d = (dist - m_radius)/2;
+        m_center += v/dist*radius_d;
+        m_radius += radius_d;
+      }
+    }
+    
+    /// Grows a bounding ball to include the given bounding ball.
+    void grow( BBall const& bball ) {
+      Vector<RealT, DimN> v = bball.m_center - m_center;
+      grow(bball.m_center + normalize(v)*bball.m_radius);
+    }
+
+    /// Crops (intersects) this bounding ball to the given bounding ball.
+    void crop( BBall const& bball ) {
+      Vector<RealT, DimN> v = bball.m_center - m_center;
+      RealT dist = norm_2(v);
+      if (dist > (m_radius + bball.m_radius)) {
+        // intersects(bball) == false
+        m_radius = 0;
+      }
+      else if (dist <= (m_radius - bball.m_radius)) {
+        // contains(bball) == true
+        m_center = bball.m_center;
+        m_radius = bball.m_radius;
+      }
+      else if (dist <= (bball.m_radius - m_radius)) {
+        // bball.contains(*this) == true
+        // smallest BBall is *this
+        return;
+      }
+      else if (m_radius >= dist) {
+        // smallest BBall is bball
+        m_center = bball.m_center;
+        m_radius = bball.m_radius;
+      }
+      else if (bball.m_radius >= dist) {
+        // smallest BBall is *this
+        return;
+      }
+      else {
+        // normal intersection
+        RealT x = (dist + (m_radius*m_radius - bball.m_radius*bball.m_radius)/dist)/2;
+        m_center += v/dist*x;
+        m_radius = std::sqrt(m_radius*m_radius - x*x);
+      }
+    }
+
+    /// Expands this bounding ball by the given offset in every direction.
+    template <class ScalarT>
+    void expand( ScalarT offset ) {
+      m_radius += offset;
+    }
+
+    /// Contracts this bounding ball by the given offset in every direction.
+    template <class ScalarT>
+    void contract( ScalarT offset ) {
+      m_radius -= offset;
+    }
+
+    /// Returns true if the given point is contained in the bounding ball.
+    template <class VectorT>
+    bool contains( const VectorBase<VectorT> &point ) const {
+      VW_ASSERT(point.impl().size() == DimN, ArgumentErr() << "Vector must have dimension " << DimN << ".");
+      return (norm_2(m_center - point) <= m_radius);
+    }
+
+    /// Returns true if the given bounding ball is entirely contained
+    /// in this bounding ball.
+    bool contains( const BBall &bball ) const {
+      return (norm_2(m_center - bball.m_center) <= (m_radius - bball.m_radius));
+    }
+
+    /// Returns true if the given bounding ball intersects this
+    /// bounding ball.
+    bool intersects( const BBall& bball ) const {
+      return (norm_2(m_center - bball.m_center) <= (m_radius + bball.m_radius));
+    }
+
+    /// Returns the size (i.e. the diameter) of the bounding ball.
+    RealT size() const { return 2*m_radius; }
+
+    /// Returns the center point of the bounding ball.
+    Vector<double> center() const { return m_center; }
+
+    /// Returns the radius of the bounding ball.
+    Vector<RealT, DimN> radius() const { return m_radius; }
+
+    /// Returns true if the bounding ball is empty (i.e. degenerate).
+    bool empty() const {
+      return (m_radius <= 0);
+    }
+
+    /// Scales the bounding ball relative to the origin.
+    template <class ScalarT>
+    BBall& operator*=( ScalarT s ) {
+      m_center *= s;
+      m_radius *= s;
+      return *this;
+    }
+
+    /// Scales the bounding ball relative to the origin.
+    template <class ScalarT>
+    BBall& operator/=( ScalarT s ) {
+      m_center /= s;
+      m_radius /= s;
+      return *this;
+    }
+
+    /// Offsets the bounding ball by the given vector.
+    template <class VectorT>
+    BBall& operator+=( VectorBase<VectorT> const& v ) {
+      m_center += v;
+      return *this;
+    }
+
+    /// Offsets the bounding ball by the negation of the given vector.
+    template <class VectorT>
+    BBall& operator-=( VectorBase<VectorT> const& v ) {
+      m_center -= v;
+      return *this;
+    }
+
+  private:
+    Vector<RealT, DimN> m_center;
+    RealT m_radius;
+  };
+  
+  /// Equality of two bounding balls.
+  template <class Real1T, class Real2T, int DimN>
+  inline bool operator==( BBall<Real1T,DimN> const& bball1, BBall<Real2T,DimN> const& bball2 ) {
+    return bball1.center()==bball2.center() && bball1.radius()==bball2.radius();
+  }
+  
+  /// Inequality of two bounding balls.
+  template <class Real1T, class Real2T, int DimN>
+  inline bool operator!=( BBall<Real1T,DimN> const& bball1, BBall<Real2T,DimN> const& bball2 ) {
+    return bball1.center()!=bball2.center() || bball1.radius()!=bball2.radius();
+  }
+  
+  /// Writes a bounding ball to an ostream.
+  template <class RealT, int DimN>
+  std::ostream& operator<<( std::ostream& os, BBall<RealT,DimN> const& bball ) {
+    return os << "(" << bball.center() << "-" << bball.radius() << ")";
   }
 
 } // namespace math
@@ -341,6 +667,16 @@ namespace math {
   typedef BBox<int32, 3> BBox3i;
   typedef BBox<int32, 4> BBox4i;
 
+  using math::BBall;
+  typedef BBall<float64, 2> BBall2;
+  typedef BBall<float64, 3> BBall3;
+  typedef BBall<float64, 4> BBall4;
+  typedef BBall<float32, 2> BBall2f;
+  typedef BBall<float32, 3> BBall3f;
+  typedef BBall<float32, 4> BBall4f;
+  typedef BBall<int32, 2> BBall2i;
+  typedef BBall<int32, 3> BBall3i;
+  typedef BBall<int32, 4> BBall4i;
 } // namespace vw
 
 #endif // __VW_MATH__BBOX_H__
