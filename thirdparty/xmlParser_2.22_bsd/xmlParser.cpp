@@ -90,6 +90,13 @@
 #include <string.h>
 #include <stdlib.h>
 
+#ifdef __APPLE__
+// These headers are for implementation of case insensitive wide
+// string comparisons that GCC under Mac OS X lacks
+#include <string> 
+#include <cwchar>
+#endif
+
 XMLCSTR XMLNode::getVersion() { return _T("v2.22"); }
 void free_XMLDLL(void *t){free(t);}
 
@@ -291,8 +298,25 @@ char myIsTextUnicode(const void *b, int len) { return FALSE; }
            int _tcsicmp(XMLCSTR c1, XMLCSTR c2) { return wscasecmp(c1,c2); }
         #else
         // for gcc
-           int _tcsnicmp(XMLCSTR c1, XMLCSTR c2, int l) { return wcsncasecmp(c1,c2,l);}
-           int _tcsicmp(XMLCSTR c1, XMLCSTR c2) { return wcscasecmp(c1,c2); }
+	   #ifdef __APPLE__
+             // GCC under Mac OS X doesn't have wcsncase*
+             // functions... fake it by first mapping to lowercase.
+             int _tcsnicmp(XMLCSTR c1, XMLCSTR c2, int l) {
+	       std::wstring ws1(c1), ws2(c2);
+	       transform(ws1.begin(), ws1.end(), ws1.begin(), ::towlower);
+	       transform(ws2.begin(), ws2.end(), ws2.begin(), ::towlower);
+	       return wcsncmp(ws1.c_str(), ws2.c_str(), l);
+	     }
+             int _tcsicmp(XMLCSTR c1, XMLCSTR c2) {
+	       std::wstring ws1(c1), ws2(c2);
+	       transform(ws1.begin(), ws1.end(), ws1.begin(), ::towlower);
+	       transform(ws2.begin(), ws2.end(), ws2.begin(), ::towlower);
+	       return wcscmp(ws1.c_str(), ws2.c_str());
+	     }
+	   #else
+             int _tcsnicmp(XMLCSTR c1, XMLCSTR c2, int l) { return wcsncasecmp(c1,c2,l);}
+             int _tcsicmp(XMLCSTR c1, XMLCSTR c2) { return wcscasecmp(c1,c2); }
+	   #endif
         #endif
         XMLSTR _tcsstr(XMLCSTR c1, XMLCSTR c2) { return (XMLSTR)wcsstr(c1,c2); }
         XMLSTR _tcscpy(XMLSTR c1, XMLCSTR c2) { return (XMLSTR)wcscpy(c1,c2); }
