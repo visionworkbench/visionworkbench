@@ -57,9 +57,9 @@ xmlTestUnicode : xmlParser.cpp xmlParser.h xmlTestUnicode.cpp
 
 #added by Todd R. Templeton <ttemplet@email.arc.nasa.gov>, 03/08/2007
 lib : xmlParser.cpp xmlParser.h
-	mkdir include
+	@[ -d include ] || (set -x; mkdir include)
 	cp xmlParser.h include
-	mkdir lib
+	@[ -d lib ] || (set -x; mkdir lib)
 	$(GPP) -fPIC -c -Wall -DXML_NO_WIDE_CHAR -o xmlParser.o \
                  xmlParser.cpp
 	ar rcs lib/libxmlparser.a xmlParser.o
