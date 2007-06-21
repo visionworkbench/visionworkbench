@@ -29,6 +29,8 @@
 #define __MATH_GEOMETRY_H__
 
 #include <vector>
+#include <boost/shared_ptr.hpp>
+
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/LinearAlgebra.h>
@@ -52,20 +54,19 @@ namespace math {
     /// vw::Vector<>, but you could substitute other classes here as
     /// well.
     template <class ContainerT>
-    ContainerT operator() (std::vector<ContainerT> const& points)
-    {
+    ContainerT operator() (std::vector<ContainerT> const& points) const {
       ContainerT result;
       unsigned num_points = points.size();
       unsigned dimensions = points[0].size();
-      if( m_homogeneous )
+      if (m_homogeneous)
         dimensions--;
     
       for (unsigned int i = 0; i < dimensions; ++i)
         result[i] = 0;
-      if( m_homogeneous )
+      if (m_homogeneous)
         result[dimensions] = 1;
     
-      if( m_homogeneous ) {
+      if (m_homogeneous) {
         for (unsigned i = 0; i < num_points; ++i)
           for (unsigned int j = 0; j < dimensions; ++j)
             result[j] += points[i][j] / points[i][dimensions];
