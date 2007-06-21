@@ -1,5 +1,5 @@
-#ifndef __VW_STEREO_SPATIAL_TREE_H__
-#define __VW_STEREO_SPATIAL_TREE_H__
+#ifndef __VW_MATH_SPATIAL_TREE_H__
+#define __VW_MATH_SPATIAL_TREE_H__
 
 // NOTE: the SpatialTree class is intended to be an N-Dimensional
 // heirarchical geometry representation. Right now it only deals with
@@ -22,7 +22,7 @@ using namespace std;
 
 namespace vw
 {
-  namespace stereo
+  namespace math
   {
     class BBox2D;
 

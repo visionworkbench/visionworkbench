@@ -1,11 +1,11 @@
-#include <vw/Stereo/SpatialTree.h>
+#include <vw/Math/SpatialTree.h>
 
 #include <iostream>			   // debugging
 #include <stdexcept>
 using namespace std;
 
 using namespace vw;
-using namespace stereo;
+using namespace math;
 
 // A spatial tree is a hierarchical subdivision of n-dimensional space
 
