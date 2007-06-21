@@ -36,19 +36,19 @@ int main() {
   // Generate the walker quadtree
   vw::ImageView<vw::PixelRGBA<vw::float32> > walker;
   read_image( walker, "images/Walker.jpg" );
-  vw::mosaic::ImageQuadTreeGenerator<vw::PixelRGBA<vw::float32> > qtree( "images/Walker", walker );
+  vw::mosaic::ImageQuadTreeGenerator<vw::PixelRGBA<vw::float32> > qtree( "images/Walker.qtree", walker );
   qtree.generate();
   // Composite three patches onto white for printing
   vw::ImageView<vw::PixelRGBA<vw::float32> > patch;
-  read_image( patch, "images/Walker.qtree/Walker.png" );
+  read_image( patch, "images/Walker.qtree/r.png" );
   patch += 1.0 - select_channel(patch,3);
-  write_image( "images/Walker.qtree/Walker.jpg", patch );
-  read_image( patch, "images/Walker.qtree/Walker/1.png" );
+  write_image( "images/Walker.qtree/r.jpg", patch );
+  read_image( patch, "images/Walker.qtree/r1.png" );
   patch += 1.0 - select_channel(patch,3);
-  write_image( "images/Walker.qtree/Walker/1.jpg", patch );
-  read_image( patch, "images/Walker.qtree/Walker/1/2.png" );
+  write_image( "images/Walker.qtree/r1.jpg", patch );
+  read_image( patch, "images/Walker.qtree/r12.png" );
   patch += 1.0 - select_channel(patch,3);
-  write_image( "images/Walker.qtree/Walker/1/2.jpg", patch );
+  write_image( "images/Walker.qtree/r12.jpg", patch );
 
   return 0;
 }
