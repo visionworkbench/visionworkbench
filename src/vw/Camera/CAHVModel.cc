@@ -29,24 +29,25 @@ using namespace std;
 namespace vw {
 namespace camera {
 
-  CAHVModel CAHVModel::operator= (PinholeModel const& pin_model) {
-      double fH = pin_model.intrinsic_matrix()(0,0);
-      double fV = pin_model.intrinsic_matrix()(1,1);
-      double Hc = pin_model.intrinsic_matrix()(0,2);
-      double Vc = pin_model.intrinsic_matrix()(1,2);
+    // FIXME -- Disabled for now until Pinhole API stabilizes. -mbroxton
+//   CAHVModel CAHVModel::operator= (PinholeModel const& pin_model) {
+//       double fH = pin_model.intrinsic_matrix()(0,0);
+//       double fV = pin_model.intrinsic_matrix()(1,1);
+//       double Hc = pin_model.intrinsic_matrix()(0,2);
+//       double Vc = pin_model.intrinsic_matrix()(1,2);
       
-      Matrix<double,3,3> rot_matrix = pin_model.camera_pose().rotation_matrix();
+//       Matrix<double,3,3> rot_matrix = pin_model.camera_pose().rotation_matrix();
 
-      Vector3 Hvec = select_row(rot_matrix,0);
-      Vector3 Vvec = select_row(rot_matrix,1);
+//       Vector3 Hvec = select_row(rot_matrix,0);
+//       Vector3 Vvec = select_row(rot_matrix,1);
       
-      C = pin_model.camera_center();
-      A = select_col(transpose(rot_matrix), 2);
-      H = fH*Hvec + Hc*A;
-      V = fV*Vvec + Vc*A;	      
+//       C = pin_model.camera_center();
+//       A = select_col(transpose(rot_matrix), 2);
+//       H = fH*Hvec + Hc*A;
+//       V = fV*Vvec + Vc*A;	      
 
-      return *this;
-    }
+//       return *this;
+//     }
 
 
   /// This constructor takes a filename and reads in a camera model

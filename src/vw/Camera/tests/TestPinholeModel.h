@@ -60,6 +60,41 @@ public:
 
   }
 
+
+  void test_coordinate_frames()
+  {
+    Matrix<double,3,3> pose;
+    pose.set_identity();
+
+    // Create an imaginary 1000x1000 pixel imager, where the camera
+    // coordinate system is mapped as follows:
+    //
+    // +u : along the camera +Y axis
+    // +v : along the camera +X axis
+    // +w : along the camera -Z axis
+    PinholeModel pinhole( Vector3(0,0,0), // camera center
+                          pose,           // camera pose
+                          500,500,        // fx, fy
+                          500,500,
+                          Vector3(0, 1, 0),
+                          Vector3(1, 0, 0),
+                          Vector3(0, 0, -1),
+                          
+                          NullLensDistortion());       // cx, cy
+
+    //    std::cout << "\n" << pinhole << "\n";
+    TS_ASSERT_EQUALS(pinhole.point_to_pixel(Vector3(0,0,-10)),Vector2(500,500));
+    TS_ASSERT_EQUALS(pinhole.point_to_pixel(Vector3(-10,0,-10)),Vector2(500,0));
+    TS_ASSERT_EQUALS(pinhole.point_to_pixel(Vector3(10,0,-10)),Vector2(500,1000));
+    TS_ASSERT_EQUALS(pinhole.point_to_pixel(Vector3(0,-10,-10)),Vector2(0,500));
+    TS_ASSERT_EQUALS(pinhole.point_to_pixel(Vector3(0,10,-10)),Vector2(1000,500));
+
+    std::cout << pinhole.point_to_pixel(Vector3(-10,0,-10)) << "\n";
+    std::cout << pinhole.point_to_pixel(Vector3(10,0,-10)) << "\n";
+    std::cout << pinhole.point_to_pixel(Vector3(0,-10,-10)) << "\n";
+    std::cout << pinhole.point_to_pixel(Vector3(0,10,-10)) << "\n";
+  }
+
   void test_pixel_to_vector()
   {
     Matrix<double,3,3> pose;
@@ -98,26 +133,6 @@ public:
                                                      -0.0007824968779459596,
                                                      0.0009675505571067333)));
     
-    //    std::cout << "\n" << pinhole << "\n";
-//     std::cout << "\n\nPinhole 1\n";
-//     std::cout << "Pixel to vector: " << pinhole.pixel_to_vector(Vector2(0,0)) << "\n";
-//     std::cout << "Camera center: " << pinhole.camera_center(Vector2(0,0)) << "\n";
-//     std::cout << "Point to pixel: " << pinhole.point_to_pixel(pinhole.pixel_to_vector(Vector2(0,0))+pinhole.camera_center(Vector2(0,0))) << "\n";
-
-//     std::cout << "\n\nPinhole 2\n";
-//     std::cout << "Pixel to vector: " << pinhole2.pixel_to_vector(Vector2(0,0)) << "\n";
-//     std::cout << "Camera center: " << pinhole2.camera_center(Vector2(0,0)) << "\n";
-//     std::cout << "Point to pixel: " << pinhole2.point_to_pixel(pinhole2.pixel_to_vector(Vector2(0,0))+pinhole2.camera_center(Vector2(0,0))) << "\n";
-
-//     std::cout << "\n\nPinhole 3\n";
-//     std::cout << "Pixel to vector: " << pinhole3.pixel_to_vector(Vector2(0,0)) << "\n";
-//     std::cout << "Camera center: " << pinhole3.camera_center(Vector2(0,0)) << "\n";
-//     std::cout << "Point to pixel: " << pinhole3.point_to_pixel(pinhole3.pixel_to_vector(Vector2(0,0))+pinhole3.camera_center(Vector2(0,0))) << "\n";
-
-//     std::cout << "\n\nPinhole 4\n";
-//     std::cout << "Pixel to vector: " << pinhole4.pixel_to_vector(Vector2(0,0)) << "\n";
-//     std::cout << "Camera center: " << pinhole4.camera_center(Vector2(0,0)) << "\n";
-//     std::cout << "Point to pixel: " << pinhole4.point_to_pixel(pinhole4.pixel_to_vector(Vector2(0,0))+pinhole4.camera_center(Vector2(0,0))) << "\n";
 
     Vector2 result1 = pinhole.point_to_pixel(pinhole.pixel_to_vector(Vector2(0,0))+pinhole.camera_center(Vector2(0,0)));
     Vector2 result2 = pinhole2.point_to_pixel(pinhole2.pixel_to_vector(Vector2(0,0))+pinhole2.camera_center(Vector2(0,0)));
@@ -149,34 +164,10 @@ public:
     Vector2 distorted_pix = distortion->get_distorted_coordinates(Vector2(200,200));
     Vector2 undistorted_pix = distortion->get_undistorted_coordinates(distorted_pix);
     
-    TS_ASSERT_DELTA(distorted_pix[0], 244.968, 0.001);
-    TS_ASSERT_DELTA(distorted_pix[1], 244.600, 0.001);
-    TS_ASSERT_DELTA(undistorted_pix[0], 200, 0.001); 
-    TS_ASSERT_DELTA(undistorted_pix[1], 200, 0.001); 
+    TS_ASSERT_DELTA(distorted_pix[0], 244.865, 0.1);
+    TS_ASSERT_DELTA(distorted_pix[1], 244.395, 0.1);
+    TS_ASSERT_DELTA(undistorted_pix[0], 200, 0.1); 
+    TS_ASSERT_DELTA(undistorted_pix[1], 200, 0.1); 
   }
-
-//   void test_foo_distortion()
-//   {
-//         // Create an imaginary 1000x1000 pixel imager
-//     PinholeModel distorted_pinhole_camera( Vector3(0,0,0),                 // camera center
-//                                     math::identity_matrix<3>(),     // camera pose
-//                                     500,500,                        // fx, fy
-//                                     500,500,                        // cx, cy
-//                                     TsaiLensDistortion(Vector4(-0.2805362343788147,
-//                                                                0.1062035113573074,
-//                                                                -0.0001422458299202845,
-//                                                                0.00116333004552871))); 
-
-//     ImageView<PixelRGB<uint8> > src_image;
-//     read_image(src_image, "DSC_0264.jpg");
-
-//     PinholeModel undistorted_pinhole_camera = linearize_camera(distorted_pinhole_camera);
-//     ImageView<PixelRGB<uint8> > dst_image = transform(src_image,
-//                                                       CameraTransform<PinholeModel,PinholeModel>(distorted_pinhole_camera,
-//                                                                                                  undistorted_pinhole_camera));
-//     write_image("test.jpg", dst_image);
-
-//   }
-
 
 };

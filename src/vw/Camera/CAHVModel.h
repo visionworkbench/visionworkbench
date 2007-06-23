@@ -29,7 +29,6 @@
 #define __VW_CAMERAMODEL_CAHV_H__
 
 #include <vw/Camera/CameraModel.h>
-#include <vw/Camera/PinholeModel.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Math/Vector.h>
@@ -76,27 +75,22 @@ namespace camera {
     CAHVModel(Vector3 C_vec, Vector3 A_vec, Vector3 H_vec, Vector3 V_vec) : 
       C(C_vec), A(A_vec), H(H_vec), V(V_vec) {}
 
-    /// Initialize the CAHV vectors directly in the native CAHV format.
-    CAHVModel(PinholeModel const& pin_model) {
-      
-      double fH = pin_model.intrinsic_matrix()(0,0);
-      double fV = -pin_model.intrinsic_matrix()(1,1);
-      double Hc = pin_model.intrinsic_matrix()(0,2);
-      double Vc = pin_model.intrinsic_matrix()(1,2);
-      
-      Matrix<double,3,3> rot_matrix = pin_model.camera_pose().rotation_matrix();
-      
-      Vector3 Hvec(rot_matrix[0][0], rot_matrix[0][1], rot_matrix[0][2]);
-      Vector3 Vvec(rot_matrix[1][0], rot_matrix[1][1], rot_matrix[1][2]);
-      
-      C = pin_model.camera_center();
-      A = Vector3(rot_matrix[2][0], rot_matrix[2][1], rot_matrix[2][2]);
-      H = fH*Hvec + Hc*A;
-      V = fV*Vvec + Vc*A;	      
-      
-    }
+    // FIXME -- Disabled for now until Pinhole API stabilizes. -mbroxton
+    //     CAHVModel(PinholeModel const& pin_model) {
+    //       double fH, fV, Hc, Vc;
+    //       model.intrinsic_parameters(fH, fV, Hc, Vc);
     
-    CAHVModel operator= (PinholeModel const& pin_model);
+    //       Matrix<double,3,3> rot_matrix = pin_model.camera_pose().rotation_matrix();
+    
+    //       Vector3 Hvec(rot_matrix[0][0], rot_matrix[0][1], rot_matrix[0][2]);
+    //       Vector3 Vvec(rot_matrix[1][0], rot_matrix[1][1], rot_matrix[1][2]);
+    
+    //       C = pin_model.camera_center();
+    //       A = Vector3(rot_matrix[2][0], rot_matrix[2][1], rot_matrix[2][2]);
+    //       H = fH*Hvec + Hc*A;
+    //       V = fV*Vvec + Vc*A;	      
+    //     }
+    //    CAHVModel operator= (PinholeModel const& pin_model);
     
     /// Initialize the CAHV vectors indirectly using pinhole camera
     /// parameters.  In this variant, the view matrix is supplied

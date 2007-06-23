@@ -28,7 +28,8 @@
 void vw::camera::PinholeModel::read_file(std::string const& filename) {
 
   char line[2048];
-  double fx, fy, cx, cy;
+  double fu, fv, cu, cv;
+  Vector3 u_direction, v_direction, w_direction;
   Vector3 C;
   Matrix3x3 R;
 
@@ -37,27 +38,45 @@ void vw::camera::PinholeModel::read_file(std::string const& filename) {
     
   // Read intrinsic parameters
   fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"fx = %lf", &fx) != 1) {
+  if (sscanf(line,"fu = %lf", &fu) != 1) {
     fclose(cam_file);
     vw_throw( IOErr() << "read_pinhole(): Could not read x focal length\n" );
   }
 
   fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"fy = %lf", &fy) != 1) {
+  if (sscanf(line,"fv = %lf", &fv) != 1) {
     fclose(cam_file);
     vw_throw( IOErr() << "read_pinhole(): Could not read y focal length\n" );
   }
 
   fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"cx = %lf", &cx) != 1) {
+  if (sscanf(line,"cu = %lf", &cu) != 1) {
     fclose(cam_file);
     vw_throw( IOErr() << "read_pinhole(): Could not read x principal point\n" );
   }
 
   fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"cy = %lf", &cy) != 1) {
+  if (sscanf(line,"cv = %lf", &cv) != 1) {
     fclose(cam_file);
     vw_throw( IOErr() << "read_pinhole(): Could not read y principal point\n" );
+  }
+
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"u_direction = %lf %lf %lf", &u_direction(0), &u_direction(1), &u_direction(2)) != 3) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "read_pinhole(): Could not read u direction vector\n" );
+  }
+
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"v_direction = %lf %lf %lf", &v_direction(0), &v_direction(1), &v_direction(2)) != 3) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "read_pinhole(): Could not read v direction vector\n" );
+  }
+
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"w_direction = %lf %lf %lf", &w_direction(0), &w_direction(1), &w_direction(2)) != 3) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "read_pinhole(): Could not read w direction vector\n" );
   }
 
   // Read extrinsic parameters
@@ -77,17 +96,16 @@ void vw::camera::PinholeModel::read_file(std::string const& filename) {
   }
   fclose(cam_file);
   
-  m_intrinsics.set_identity();
-  m_intrinsics(0,0) = fx;
-  m_intrinsics(1,1) = -fy;
-  m_intrinsics(0,2) = cx;
-  m_intrinsics(1,2) = cy;
+  m_u_direction = u_direction;
+  m_v_direction = v_direction;
+  m_w_direction = w_direction;
+
+  m_fu = fu;
+  m_fv = fv;
+  m_cu = cu;
+  m_cv = cv;
   m_camera_center = C;
   
-//   Matrix3x3 test = math::euler_to_quaternion(M_PI,M_PI/2,0,"xzy").rotation_matrix();
-//   std::cout << R << "    " << test << "    " << (R*test) << "\n\n";
-//   m_rotation = transpose(R)*test;
-
   m_rotation = R;
   this->rebuild_camera_matrix();
 }
