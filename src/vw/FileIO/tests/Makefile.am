@@ -27,9 +27,10 @@
 
 if MAKE_MODULE_FILEIO
 
-TESTS = TestDiskImageResource
+TESTS = TestDiskImageResource TestDiskImageView
 
 nodist_TestDiskImageResource_SOURCES = TestDiskImageResource.cxx
+nodist_TestDiskImageView_SOURCES = TestDiskImageView.cxx
 
 endif
 
