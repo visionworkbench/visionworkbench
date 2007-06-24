@@ -32,6 +32,7 @@
 #include <boost/utility/enable_if.hpp>
 #include <boost/mpl/not.hpp>
 #include <boost/mpl/or.hpp>
+#include <boost/mpl/and.hpp>
 
 #include <vw/Core/FundamentalTypes.h>
 
@@ -62,15 +63,30 @@ namespace vw {
   template <class T1, class T2> struct CompoundIsCompatible<T1, const T2> : public CompoundIsCompatible<T1,T2> {};
 
   // These functions take a required ResultT template parameter so the caller 
-  // can specify whether to return by value or by reference.  This is somewhat 
-  // annoying.  Is there a better way?
+  // can specify whether to return by value or by reference, and likewise 
+  // whether to accept the first argument by value or reference.  This is all 
+  // rather annoying, and results in four totally incomprehensible versions of 
+  // a function to do one simple thing.  Is there a better way?  This would all 
+  // be somewhat cleaner if we could do the function enabling in the return type 
+  // rather than the second argument, but that still breaks on some not-so-old 
+  // compilers.
   template <class ResultT, class PixelT>
-  inline ResultT compound_select_channel( PixelT& pixel, typename boost::disable_if<IsCompound<PixelT>, int32>::type /*channel*/ ) {
+  inline ResultT compound_select_channel( PixelT& pixel, typename boost::enable_if<typename boost::mpl::and_<typename boost::mpl::not_< IsCompound<PixelT> >::type, typename boost::is_reference<ResultT>::type>, int32>::type /*channel*/ ) {
     return pixel;
   }
 
   template <class ResultT, class PixelT>
-  inline ResultT compound_select_channel( PixelT& pixel, typename boost::enable_if<IsCompound<PixelT>, int32>::type channel ) {
+  inline ResultT compound_select_channel( PixelT pixel, typename boost::enable_if<typename boost::mpl::and_<typename boost::mpl::not_< IsCompound<PixelT> >::type, typename boost::mpl::not_<typename boost::is_reference<ResultT>::type>::type >, int32>::type /*channel*/ ) {
+    return pixel;
+  }
+
+  template <class ResultT, class PixelT>
+  inline ResultT compound_select_channel( PixelT& pixel, typename boost::enable_if<typename boost::mpl::and_<IsCompound<PixelT>, typename boost::is_reference<ResultT>::type>, int32>::type channel ) {
+    return pixel[channel];
+  }
+
+  template <class ResultT, class PixelT>
+  inline ResultT compound_select_channel( PixelT pixel, typename boost::enable_if<typename boost::mpl::and_<IsCompound<PixelT>, typename boost::mpl::not_<typename boost::is_reference<ResultT>::type>::type >, int32>::type channel ) {
     return pixel[channel];
   }
 
