@@ -104,11 +104,18 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
   TIFF* tif = TIFFOpen( filename.c_str(), "r" );
   if( !tif ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << filename << "\" for reading!" );
 
-  TIFFGetField( tif, TIFFTAG_IMAGEWIDTH, &(m_format.cols) );
-  TIFFGetField( tif, TIFFTAG_IMAGELENGTH, &(m_format.rows) );
-  TIFFGetFieldDefaulted( tif, TIFFTAG_SAMPLESPERPIXEL, &(m_format.planes) );
+  // Read into temp variables first to ensure we are using the right integer type.
+  // Otherwise we can run into endianness problems.
+  uint32 cols_tmp, rows_tmp;
+  uint16 planes_tmp;
+  TIFFGetField( tif, TIFFTAG_IMAGEWIDTH, &cols_tmp );
+  TIFFGetField( tif, TIFFTAG_IMAGELENGTH, &rows_tmp );
+  TIFFGetFieldDefaulted( tif, TIFFTAG_SAMPLESPERPIXEL, &planes_tmp );
+  m_format.cols = cols_tmp;
+  m_format.rows = rows_tmp;
+  m_format.planes = planes_tmp;
 
-  uint32 sample_format = 0, bits_per_sample = 0, photometric = 0;
+  uint16 sample_format = 0, bits_per_sample = 0, photometric = 0;
   TIFFGetFieldDefaulted( tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample );
   TIFFGetFieldDefaulted( tif, TIFFTAG_SAMPLEFORMAT, &sample_format );
   TIFFGetField( tif, TIFFTAG_PHOTOMETRIC, &photometric );
@@ -149,7 +156,7 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
               << sample_format << "," << bits_per_sample << ")!" );
   }
 
-  uint32 plane_configuration = 0;
+  uint16 plane_configuration = 0;
   TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &plane_configuration);
 
   // FIXME: Tiff might actually provide us with some info on
@@ -203,9 +210,9 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
   TIFF* tif = TIFFOpen(m_filename.c_str(), "w");
   if( !tif  ) vw_throw( vw::IOErr() << "Failed to create \"" << m_filename << "\" using libTIFF." );
 
-  TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, m_format.cols);
-  TIFFSetField(tif, TIFFTAG_IMAGELENGTH, m_format.rows);
-  TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, 8*channel_size(m_format.channel_type));
+  TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, (uint32)m_format.cols);
+  TIFFSetField(tif, TIFFTAG_IMAGELENGTH, (uint32)m_format.rows);
+  TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, (uint16)(8*channel_size(m_format.channel_type)));
 
   if (m_format.pixel_format == VW_PIXEL_RGB ||
       m_format.pixel_format == VW_PIXEL_RGBA) {
@@ -248,11 +255,11 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
     // Multi-plane images with simple pixel types are stored in seperate
     // planes in the TIFF image.
     TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_SEPARATE);
-    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, m_format.planes);
+    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, (uint16)m_format.planes);
   } else {
     // Compound pixel types are stored contiguously in TIFF files
     TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, num_channels(m_format.pixel_format));
+    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, (uint16)num_channels(m_format.pixel_format));
   }
 
   uint32 rows_per_strip = TIFFDefaultStripSize( tif, 0 );
@@ -275,7 +282,7 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
     vw_throw( NoImplErr() << "DiskImageResourceTIFF (read) Error: Reading from tile-based TIFF files is not yet supported!" );
   }
   else {
-    uint32 config = 0, nsamples = 0, photometric = 0;
+    uint16 config = 0, nsamples = 0, photometric = 0;
     TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &config);
     TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
     TIFFGetField( tif, TIFFTAG_PHOTOMETRIC, &photometric );
