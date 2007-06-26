@@ -143,6 +143,7 @@ namespace vw {
     PixelFormatEnum planes_to_pixel_format(int32 planes) const;
     std::map<std::string, std::string> m_header_entries;
     int m_image_data_offset;
+    int m_native_num_planes;
     bool m_invalid_as_alpha;
     enum { BAND_SEQUENTIAL, SAMPLE_INTERLEAVED, LINE_INTERLEAVED } m_band_storage;
   };

@@ -209,13 +209,9 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   }
   
   // Match buffer format to band storage type
-  if (m_band_storage == SAMPLE_INTERLEAVED) {
-    m_format.pixel_format = planes_to_pixel_format(m_format.planes);
-    if (m_format.pixel_format != VW_PIXEL_SCALAR) m_format.planes = 1;
-  } else if (m_band_storage == BAND_SEQUENTIAL) {
-    m_format.pixel_format = VW_PIXEL_SCALAR;
-  }
-
+  m_format.pixel_format = planes_to_pixel_format(m_format.planes);
+  if (m_format.pixel_format != VW_PIXEL_SCALAR) m_format.planes = 1;
+  
   vw_out(VerboseDebugMessage)
     << "\tImage Dimensions: " << m_format.cols << "x" << m_format.rows << "x" << m_format.planes << "\n"
     << "\tImage Format: " << m_format.channel_type << "   " << m_format.pixel_format << "\n";
@@ -268,13 +264,24 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
       image_data[i] = temp;
     }
   }
-  
-  uint8 max = 0, min = 255;
-  for ( unsigned i=0; i<total_pixels; ++i ) {
-    max = image_data[i] > max ? image_data[i] : max;
-    min = image_data[i] < min ? image_data[i] : min;
-  }
 
+  // For band sequential images, we must copy the data over into
+  // interleaved format.
+  if ( m_band_storage == BAND_SEQUENTIAL && m_format.pixel_format != VW_PIXEL_SCALAR) {
+    uint8* intermediate_data = new uint8[total_pixels * bytes_per_pixel];
+    int n_channels = num_channels(m_format.pixel_format);
+    int n_pixels = m_format.cols * m_format.rows;
+    for (int n = 0; n < n_channels; ++n) {
+      for (int p = 0; p < n_pixels; ++p) {
+        intermediate_data[n_channels*p+n] = image_data[n_pixels*n+p];
+      }
+    }
+    // Swap over to the new image buffer
+    uint8* temporary_ptr = image_data;
+    image_data = intermediate_data;
+    delete[] temporary_ptr;
+  }
+  
   // set up an image buffer around the PDS data.
   ImageBuffer src;
   src.data = image_data;
@@ -282,26 +289,7 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
   src.cstride = bytes_per_pixel;
   src.rstride = bytes_per_pixel * m_format.cols;
   src.pstride = bytes_per_pixel * m_format.cols * m_format.rows;
-
-  if ( m_band_storage == BAND_SEQUENTIAL ) {
-    // Create intermediate multi-channel buffer
-    ImageBuffer new_src;
-    uint8* intermediate_data = new uint8[total_pixels * bytes_per_pixel];
-    new_src.data = intermediate_data;
-    new_src.format = m_format;
-    new_src.format.planes = 1;
-    new_src.format.pixel_format = planes_to_pixel_format(m_format.planes);
-    int32 pixel_size = num_channels(new_src.format.pixel_format) * channel_size(m_format.channel_type);
-    new_src.cstride = pixel_size;
-    new_src.rstride = new_src.cstride * new_src.format.cols;
-    new_src.pstride = new_src.rstride * new_src.format.rows;
-
-    convert( new_src, src );
-    convert( dest, new_src );
-    delete[] intermediate_data;
-  } else {
-    convert( dest, src );
-  }
+  convert( dest, src );
 
   if ( m_invalid_as_alpha ) {
     // We checked earlier that the source format is as we 
@@ -311,22 +299,23 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
           dest.format.pixel_format == VW_PIXEL_RGBA ) ) {
       int dst_bpp = num_channels(dest.format.pixel_format) * channel_size(dest.format.channel_type);
       std::string valid_minimum_str;
-      query( "VALID_MINIMUM", valid_minimum_str );
-      int16 valid_minimum = atoi(valid_minimum_str.c_str());
-      uint8* src_row = (uint8*)src.data;
-      uint8* dst_row = (uint8*)dest.data;
-      for( int32 y=0; y<m_format.rows; ++y ) {
-        uint8* src_data = src_row;
-        uint8* dst_data = dst_row;
-        for( int32 x=0; x<m_format.cols; ++x ) {
-          if( *((int16*)src_data) < valid_minimum ) {
-            memset( dst_data, 0, dst_bpp );
+      if ( query( "VALID_MINIMUM", valid_minimum_str ) ) {
+        int16 valid_minimum = atoi(valid_minimum_str.c_str());
+        uint8* src_row = (uint8*)src.data;
+        uint8* dst_row = (uint8*)dest.data;
+        for( int32 y=0; y<m_format.rows; ++y ) {
+          uint8* src_data = src_row;
+          uint8* dst_data = dst_row;
+          for( int32 x=0; x<m_format.cols; ++x ) {
+            if( *((int16*)src_data) < valid_minimum ) {
+              memset( dst_data, 0, dst_bpp );
+            }
+            src_data += src.cstride;
+            dst_data += dest.cstride;
           }
-          src_data += src.cstride;
-          dst_data += dest.cstride;
+          src_row += src.rstride;
+          dst_row += dest.rstride;
         }
-        src_row += src.rstride;
-        dst_row += dest.rstride;
       }
     }
   }
