@@ -20,175 +20,57 @@
 #include <iostream>			   // debugging
 using namespace std;
 
+#include <vw/Math/Vector.h>
+#include <vw/Math/BBox.h>
+
 namespace vw
 {
   namespace math
   {
-    class BBox2D;
-
     class GeomPrimitive
     {
     public:
-      virtual bool Contains(const class Point2D &point) const = 0;
-      virtual const BBox2D &BoundingBox() const = 0;
-    };
-
-    class Point2D
-    {
-    public:
-      Point2D() { m_x = m_y = 0.0; }
-      Point2D(const double x, const double y = 0.0) { m_x = x; m_y = y; }
-      Point2D(const Point2D &point) { m_x = point.m_x; m_y = point.m_y; }
-      void X(const double x) { m_x = x; }
-      void Y(const double y) { m_y = y; }
-      double X() const { return m_x; }
-      double Y() const { return m_y; }
-      void AssignMax(const Point2D &point1, const Point2D &point2)
-      {
-	m_x = (point1.m_x > point2.m_x) ? point1.m_x : point2.m_x;
-	m_y = (point1.m_y > point2.m_y) ? point1.m_y : point2.m_y;
-      }
-      void AssignMin(const Point2D &point1, const Point2D &point2)
-      {
-	m_x = (point1.m_x < point2.m_x) ? point1.m_x : point2.m_x;
-	m_y = (point1.m_y < point2.m_y) ? point1.m_y : point2.m_y;
-      }
-
-      Point2D operator+(const Point2D &point) const
-      {
-	return Point2D(m_x + point.m_x, m_y + point.m_y);
-      }
-
-      Point2D operator-(const Point2D &point) const
-      {
-	return Point2D(m_x - point.m_x, m_y - point.m_y);
-      }
-
-      Point2D operator*(const double scalar) const
-      {
-	return Point2D(m_x*scalar, m_y * scalar);
-      }
-
-      bool operator==(const Point2D &point) const
-      {
-	return ((m_x == point.m_x) && (m_y == point.m_y));
-      }
-
-      bool operator<(const Point2D &point) const
-      {
-	return ((m_x < point.m_x) && (m_y < point.m_y));
-      }
-
-      bool operator<=(const Point2D &point) const
-      {
-	return ((m_x <= point.m_x) && (m_y <= point.m_y));
-      }
-
-      bool operator>(const Point2D &point) const
-      {
-	return ((m_x > point.m_x) && (m_y > point.m_y));
-      }
-
-      bool operator>=(const Point2D &point) const
-      {
-	return ((m_x >= point.m_x) && (m_y >= point.m_y));
-      }
-
-    private:
-      double m_x, m_y;
-    };
-
-    class BBox2D
-    {
-    public:
-      BBox2D() : m_min(DBL_MAX, DBL_MAX), m_max(-DBL_MAX, -DBL_MAX) {}
-      BBox2D(const BBox2D &bbox) { m_min = bbox.Min(); m_max = bbox.Max(); }
-      BBox2D(Point2D &min, Point2D &max) { m_min = min, m_max = max; }
-      void Grow(const Point2D &point)
-      {
-	if (point.X() > m_max.X())
-	  m_max.X(point.X());
-	if (point.X() < m_min.X())
-	  m_min.X(point.X());
-
-	if (point.Y() > m_max.Y())
-	  m_max.Y(point.Y());
-	if (point.Y() < m_min.Y())
-	  m_min.Y(point.Y());
-      }
-      void Grow(const BBox2D bbox)
-      {
-	Grow(bbox.Min());
- 	Grow(bbox.Max());
-      }
-      bool Contains(const Point2D &point) const
-      {
-	return ((point >= m_min) && (point <= m_max));
-      }
-      bool Contains(const BBox2D &bbox) const
-      {
-	return ((bbox.m_min >= m_min) && (bbox.m_max <= m_max));
-      }
-      const Point2D &Min() const { return m_min; }
-      const Point2D &Max() const { return m_max; }
-      void Min(Point2D min) { m_min = min; }
-      void Max(Point2D max) { m_max = max; }
-      void QuadSplit(BBox2D quadrantBBoxes[])
-      {
-	Point2D center = (m_min + m_max) * 0.5;
-	Point2D diagonalVec = (m_max - m_min) * 0.5;
-	Point2D xVec(diagonalVec.X(), 0.0);
-	Point2D yVec(0.0, diagonalVec.Y());
-
-	// We arbitrarily start in lower left and go clockwise
-	quadrantBBoxes[0].Min(m_min);
-	quadrantBBoxes[0].Max(center);
-
-	quadrantBBoxes[1].Min(m_min + yVec);
-	quadrantBBoxes[1].Max(center + yVec);
-
-	quadrantBBoxes[2].Min(center);
-	quadrantBBoxes[2].Max(m_max);
-
-	quadrantBBoxes[3].Min(m_min + xVec);
-	quadrantBBoxes[3].Max(center + xVec);
-
-// Debugging:
-	assert(quadrantBBoxes[0].Max() >= quadrantBBoxes[0].Min());
-	assert(quadrantBBoxes[1].Max() >= quadrantBBoxes[1].Min());
-	assert(quadrantBBoxes[2].Max() >= quadrantBBoxes[2].Min());
-	assert(quadrantBBoxes[3].Max() >= quadrantBBoxes[3].Min());
-	assert(quadrantBBoxes[2].Min() >= quadrantBBoxes[0].Min());
-	assert(quadrantBBoxes[2].Max() >= quadrantBBoxes[0].Max());
-	assert(quadrantBBoxes[0].Max() == quadrantBBoxes[2].Min());
-      }
-    private:
-      Point2D m_min, m_max;
-    };
-
-    struct PrimitiveListElem
-    {
-      PrimitiveListElem()
-      {
-	next = 0;
-	geomPrimitive = 0;
-      }
-      PrimitiveListElem *next;
-      GeomPrimitive *geomPrimitive;
+      virtual bool contains(const Vector<double> &point) const = 0;
+      virtual const BBox<double> &bounding_box() const = 0;
     };
 
     class BBoxFunctor
     {
     public:
-      virtual void operator()(const BBox2D &bbox, int level = -1) const {}
+      virtual void operator()(const BBox<double> &bbox, int level = -1) const {}
     };
 
     class SpatialTree
     {
     public:
-      SpatialTree()
+      typedef BBox<double> BBoxT;
+      typedef Vector<double> VectorT;
+
+      struct PrimitiveListElem
       {
-	for (int i = 0; i < 4; i++)
+	PrimitiveListElem()
+	{
+	  next = 0;
+	  geomPrimitive = 0;
+	}
+	PrimitiveListElem *next;
+	GeomPrimitive *geomPrimitive;
+      };
+
+      enum SizeType
+      {
+	SIZE_DIMENSION,
+	SIZE_DIMENSION_SQUARED
+      };
+
+      SpatialTree(int size, SizeType size_type = SIZE_DIMENSION)
+      {
+	if (size_type == SIZE_DIMENSION_SQUARED)
+	  m_numQuadrants = size;
+	else
+	  m_numQuadrants = (int)((unsigned)1 << (unsigned)size);
+	m_quadrant = new SpatialTree*[m_numQuadrants];
+	for (int i = 0; i < m_numQuadrants; i++)
 	  m_quadrant[i] = 0;
 	m_primitiveList = 0;
 	m_numPrimitives = 0;		   // mostly for debugging
@@ -196,7 +78,11 @@ namespace vw
       }
       SpatialTree(int numPrimitives, GeomPrimitive **geomPrimitives)
       {
-	for (int i = 0; i < 4; i++)
+	VW_ASSERT( geomPrimitives != 0 && geomPrimitives[0] != 0, ArgumentErr() << "No GeomPrimitives provided." );
+	unsigned size = geomPrimitives[0]->bounding_box().min().size();
+	m_numQuadrants = (int)((unsigned)1 << size);
+	m_quadrant = new SpatialTree*[m_numQuadrants];
+	for (int i = 0; i < m_numQuadrants; i++)
 	  m_quadrant[i] = 0;
 	m_primitiveList = 0;
 	m_numPrimitives = 0;		   // mostly for debugging
@@ -204,8 +90,8 @@ namespace vw
 	GrowBBox(numPrimitives, geomPrimitives);
 
 	cout << "Bounding Box of Total mesh ="
-	     << " Min[" << m_BBox.Min().X() << "," << m_BBox.Min().Y() << "]"
-	     << " Max[" << m_BBox.Max().X() << "," << m_BBox.Max().Y() << "]"
+	     << " Min[" << m_BBox.min() << "]"
+	     << " Max[" << m_BBox.max() << "]"
 	     << endl;
 
 	for (int i = 0; i < numPrimitives; i++)
@@ -213,11 +99,13 @@ namespace vw
       }
       ~SpatialTree()
       {
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < m_numQuadrants; i++)
 	{
 	  delete m_quadrant[i];
 	  m_quadrant[i] = 0;
 	}
+	delete[] m_quadrant;
+	m_quadrant = 0;
 	while (m_primitiveList != 0)
 	{
 	  PrimitiveListElem *next = m_primitiveList->next;
@@ -228,39 +116,83 @@ namespace vw
 	m_numPrimitives = 0;		   // mostly for debugging
 	m_isSplit = false;
       }
-      BBox2D &BoundingBox() { return m_BBox; }
-      GeomPrimitive *Contains(const Point2D &point);
+      BBoxT &BoundingBox() { return m_BBox; }
+      GeomPrimitive *Contains(const VectorT &point);
       void Print();
+      //NOTE: this can only write a 2D projection (because VRML is 3D)
       void WriteVRML(char *fileName, int level = -1);
     private:
       void Apply(const BBoxFunctor &bboxFunctor);
       void WriteVRMLHead(FILE *outFP);
       void WriteVRMLTail(FILE *outFP);
-      void WriteVRMLBox(FILE *outFP, const BBox2D &bbox);
+      void WriteVRMLBox(FILE *outFP, const BBoxT &bbox);
 
       bool AddGeomPrimitive(GeomPrimitive *newPrim);
-      bool AddGeomPrimitive(GeomPrimitive *newPrim, BBox2D &newBBox);
+      bool AddGeomPrimitive(GeomPrimitive *newPrim, BBoxT &newBBox);
       bool IsSplit() { return m_isSplit; }
-      void Split(BBox2D quadrantBBoxes[])
+      void Split(BBoxT quadrantBBoxes[])
       {
 	m_isSplit = true;
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < m_numQuadrants; i++)
 	{
-	  m_quadrant[i] = new SpatialTree;
+	  m_quadrant[i] = new SpatialTree(m_numQuadrants, SIZE_DIMENSION_SQUARED);
 	  m_quadrant[i]->m_BBox = quadrantBBoxes[i];
+	}
+      }
+      void QuadSplit(BBoxT quadrantBBoxes[])
+      {
+	using namespace vw::math::vector_containment_comparison;
+	VectorT center = m_BBox.center();
+	VectorT diagonalVec = m_BBox.size() * 0.5;
+	VectorT axisVec;
+	int size = center.size();
+
+	for (int i = 0; i < m_numQuadrants; i++)
+	  quadrantBBoxes[i].min() = center;
+	fill(axisVec, 0.0);
+	for (int d = 0, width = m_numQuadrants, halfWidth = m_numQuadrants / 2; d < size; d++, width = halfWidth, halfWidth /= 2)
+	{
+	  assert(d < size - 1 || width > 1);
+	  axisVec[d] = diagonalVec[d];
+	  for (int i = 0; i < size;)
+	  {
+	    for (; i < halfWidth; i++)
+	      quadrantBBoxes[i].min() -= axisVec;
+	    for (; i < width; i++)
+	      quadrantBBoxes[i].min() += axisVec;
+	  }
+	  axisVec[d] = 0.0;
+	}
+	for (int i = 0; i < m_numQuadrants; i++)
+	{
+	  quadrantBBoxes[i].max() = max(center, quadrantBBoxes[i].min());
+	  quadrantBBoxes[i].min() = min(center, quadrantBBoxes[i].min()); //NOTE: make sure that this is ok
+	}
+
+// Debugging:
+	if (m_numQuadrants == 4)
+	{
+	  assert(quadrantBBoxes[0].max() >= quadrantBBoxes[0].min());
+	  assert(quadrantBBoxes[1].max() >= quadrantBBoxes[1].min());
+	  assert(quadrantBBoxes[2].max() >= quadrantBBoxes[2].min());
+	  assert(quadrantBBoxes[3].max() >= quadrantBBoxes[3].min());
+	  assert(quadrantBBoxes[3].min() >= quadrantBBoxes[0].min());
+	  assert(quadrantBBoxes[3].max() >= quadrantBBoxes[0].max());
+	  assert(quadrantBBoxes[0].max() == quadrantBBoxes[3].min());
 	}
       }
       void GrowBBox(int numPrimitives, GeomPrimitive *geomPrimitives[])
       {
 	cout << "SpatialTree: growing BBox..." << flush;
 	for (int i = 0; i < numPrimitives; i++)
-	  m_BBox.Grow(geomPrimitives[i]->BoundingBox());
+	  m_BBox.grow(geomPrimitives[i]->bounding_box());
 	cout << "done." << endl;
       }
-      BBox2D m_BBox;
+      int m_numQuadrants;
+      BBoxT m_BBox;
       PrimitiveListElem *m_primitiveList;
       int m_numPrimitives;		   // mostly for debugging
-      SpatialTree *m_quadrant[4];
+      SpatialTree **m_quadrant;
       bool m_isSplit;
     };
   }

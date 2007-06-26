@@ -71,6 +71,26 @@ namespace math {
       return true;
     }
 
+    template <class VectorT1, class VectorT2>
+    inline VectorBase<VectorT1> max( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
+      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute max of vectors of different length." );
+      VectorBase<VectorT1> v3;
+      v3.impl().set_size(v1.impl().size());
+      for( int i=0; i<v1.impl().size(); ++i)
+        v3.impl()[i] = std::max(v1.impl()[i], v2.impl()[i]);
+      return v3;
+    }
+
+    template <class VectorT1, class VectorT2>
+    inline VectorBase<VectorT1> min( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
+      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute min of vectors of different length." );
+      VectorBase<VectorT1> v3;
+      v3.impl().set_size(v1.impl().size());
+      for( int i=0; i<v1.impl().size(); ++i)
+        v3.impl()[i] = std::min(v1.impl()[i], v2.impl()[i]);
+      return v3;
+    }
+
   } // namespace vector_containment_comparison
   /// \endcond
 

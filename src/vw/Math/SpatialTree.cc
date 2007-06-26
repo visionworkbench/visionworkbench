@@ -26,14 +26,15 @@ class PrintFunctor : public BBoxFunctor
 {
  public:
   PrintFunctor() {}
-  virtual void operator()(const BBox2D &bbox, int level = -1) const
+  virtual void operator()(const SpatialTree::BBoxT &bbox, int level = -1) const
   {
-    cout << " Min[" << bbox.Min().X() << "," << bbox.Min().Y() << "]"
-	 << " Max[" << bbox.Max().X() << "," << bbox.Max().Y() << "]"
+    cout << " Min[" << bbox.min() << "]"
+	 << " Max[" << bbox.max() << "]"
 	 << endl;
   }
 };
 
+//NOTE: this can only write a 2D projection (because VRML is 3D)
 class VRMLFunctor : public BBoxFunctor
 {
  public:
@@ -57,7 +58,7 @@ class VRMLFunctor : public BBoxFunctor
   {
     m_color[0] = red; m_color[1] = green; m_color[2] = blue;
   }
-  virtual void operator()(const BBox2D &bbox, int level = -1) const
+  virtual void operator()(const SpatialTree::BBoxT &bbox, int level = -1) const
   {
     if (m_outFP != 0)
     {
@@ -89,13 +90,13 @@ class VRMLFunctor : public BBoxFunctor
       fprintf(m_outFP, "     vertexProperty VertexProperty {\n");
       fprintf(m_outFP, "	vertex [\n");
       fprintf(m_outFP, "		%f %f %f,\n",
-	      bbox.Min().X(), bbox.Min().Y(), z);
+	      bbox.min()[0], bbox.min()[1], z);
       fprintf(m_outFP, "		%f %f %f,\n",
-	      bbox.Max().X(), bbox.Min().Y(), z);
+	      bbox.max()[0], bbox.min()[1], z);
       fprintf(m_outFP, "		%f %f %f,\n",
-	      bbox.Max().X(), bbox.Max().Y(), z);
+	      bbox.max()[0], bbox.max()[1], z);
       fprintf(m_outFP, "		%f %f %f,\n",
-	      bbox.Min().X(), bbox.Max().Y(), z);
+	      bbox.min()[0], bbox.max()[1], z);
       fprintf(m_outFP, "	       ]\n");
       fprintf(m_outFP, "     }\n");
       fprintf(m_outFP, "     numVertices [ 4 ]\n");
@@ -114,17 +115,17 @@ class VRMLFunctor : public BBoxFunctor
 };
 
 GeomPrimitive *
-SpatialTree::Contains(const Point2D &point)
+SpatialTree::Contains(const VectorT &point)
 {
   // Check quadrant BBox to see if it contains the point... 
-  if (m_BBox.Contains(point))
+  if (m_BBox.contains(point))
   {
     if (IsSplit())
     {
       // No primitives at this level contained the point so recurse down
       // into the quadrant that contains the point
       // This is inneficient... we should do a breadth-first search
-      for (int i = 0; i < 4; i++)
+      for (int i = 0; i < m_numQuadrants; i++)
       {
 	GeomPrimitive *geomPrimitive = m_quadrant[i]->Contains(point);
 
@@ -140,8 +141,8 @@ SpatialTree::Contains(const Point2D &point)
       PrimitiveListElem *listElem = m_primitiveList;
       while (listElem != 0)
       {
-	if (listElem->geomPrimitive->BoundingBox().Contains(point))
-	  if (listElem->geomPrimitive->Contains(point))
+	if (listElem->geomPrimitive->bounding_box().contains(point))
+	  if (listElem->geomPrimitive->contains(point))
 	    return listElem->geomPrimitive;
 	listElem = listElem->next;
       }
@@ -161,6 +162,8 @@ void
 SpatialTree::WriteVRML(char *fileName, int level)
 {
   FILE *outFP = 0;
+
+  assert(m_numQuadrants >= 4);
 
   if ((outFP = fopen(fileName, "w" )) == 0)
   {
@@ -190,7 +193,7 @@ SpatialTree::Apply(const BBoxFunctor &bboxFunctor)
     PrimitiveListElem *listElem = m_primitiveList;
     while (listElem != 0)
     {
-      BBox2D bbox = listElem->geomPrimitive->BoundingBox();
+      BBoxT bbox = listElem->geomPrimitive->bounding_box();
       bboxFunctor(bbox, level);
       listElem = listElem->next;
     }
@@ -199,7 +202,7 @@ SpatialTree::Apply(const BBoxFunctor &bboxFunctor)
   if (IsSplit())
   {
     level++;
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < m_numQuadrants; i++)
       m_quadrant[i]->Apply(bboxFunctor);
     level--;
   }
@@ -222,28 +225,28 @@ SpatialTree::WriteVRMLTail(FILE *outFP)
 
 
 bool
-SpatialTree::AddGeomPrimitive(GeomPrimitive *newPrim, BBox2D &newBBox)
+SpatialTree::AddGeomPrimitive(GeomPrimitive *newPrim, BBoxT &newBBox)
 {
   // Only add if it fits inside this levels bounding box...
-  if (m_BBox.Contains(newBBox))
+  if (m_BBox.contains(newBBox))
   {
     if (IsSplit())
     {
       // Try to add the GeomPrimitive to a child quad:
-      for (int i = 0; i < 4; i++)
+      for (int i = 0; i < m_numQuadrants; i++)
 	if (m_quadrant[i]->AddGeomPrimitive(newPrim, newBBox))
 	  return true;
     }
     else					   // no quads
     {
-      BBox2D quadrantBBoxes[4];
+      BBoxT quadrantBBoxes[m_numQuadrants];
 
-      m_BBox.QuadSplit(quadrantBBoxes);
+      QuadSplit(quadrantBBoxes);
       // Check to see if new bbox would fit in a child quad... if so create
       // the quadrants
-      for (int i = 0; i < 4; i++)
+      for (int i = 0; i < m_numQuadrants; i++)
       {
-	if (quadrantBBoxes[i].Contains(newBBox)) // we need to make quads...
+	if (quadrantBBoxes[i].contains(newBBox)) // we need to make quads...
 	{
 	  Split(quadrantBBoxes);
 	  // Add the GeomPrimitive to this child quad (we know it fits):
@@ -270,7 +273,7 @@ SpatialTree::AddGeomPrimitive(GeomPrimitive *newPrim, BBox2D &newBBox)
 bool
 SpatialTree::AddGeomPrimitive(GeomPrimitive *newPrim)
 {
-  BBox2D newBBox(newPrim->BoundingBox()); // make copy of bbox for speed...
+  BBoxT newBBox(newPrim->bounding_box()); // make copy of bbox for speed...
 
   return AddGeomPrimitive(newPrim, newBBox);
 }
