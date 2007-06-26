@@ -96,7 +96,7 @@ int main( int argc, char *argv[] ) {
                                                 corrscore_thresh,
                                                 (vm.count("hsubpix")>0),
                                                 (vm.count("vsubpix")>0) );
-      //      correlator.set_debug_mode("debug");
+      correlator.set_debug_mode("debug");
       if (1) {
         vw::Timer corr_timer("Correlation Time");
         if (log > 0) 

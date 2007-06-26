@@ -25,6 +25,7 @@
 #include <cxxtest/TestSuite.h>
 
 #include <vw/Image/ImageView.h>
+#include <vw/Image/ImageViewRef.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/Manipulation.h>
 
@@ -754,6 +755,11 @@ public:
 
     // Test the traits
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( select_channel(im,1) ) );
+
+    // Test a non-writable view
+    ImageViewRef<PixelRGB<double> > im3 = im;
+    ImageView<double> im4 = select_channel(im3,1);
+
   }
 
   void test_channels_to_planes()

@@ -170,7 +170,10 @@ namespace cartography {
   public:
     SubtractDatumFunctor(Datum const& datum) : m_datum(datum) {}    
     Vector<ElemT,3> operator()(Vector<ElemT,3> const& p) const {
-      return Vector<ElemT,3>(p[0], p[1], p[2]-m_datum.radius(p[0], p[1]));
+      if (p != Vector<ElemT,3>()) 
+        return Vector<ElemT,3>(p[0], p[1], p[2]-m_datum.radius(p[0], p[1]));
+      else 
+        return p;
     }
   };
   
