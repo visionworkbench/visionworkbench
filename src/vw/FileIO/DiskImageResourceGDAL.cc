@@ -217,6 +217,11 @@ namespace vw {
         return retval;     
       }
 
+      else if (file_extension(filename) == ".img") { // Imagine
+        retval.push_back("HFA");
+        return retval;     
+      }
+
       else {
         vw_throw( IOErr() << "DiskImageResourceGDAL: \"" << file_extension(filename) << "\" is an unsupported file extension." );
         return retval; // never reached
