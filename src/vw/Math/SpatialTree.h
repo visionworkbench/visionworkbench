@@ -18,6 +18,7 @@
 
 // STL includes:
 #include <iostream>			   // debugging
+#include <list>
 using namespace std;
 
 #include <vw/Math/Vector.h>
@@ -34,10 +35,13 @@ namespace vw
       virtual const BBox<double> &bounding_box() const = 0;
     };
 
-    class BBoxFunctor
+    class ApplyFunctor
     {
     public:
-      virtual void operator()(const BBox<double> &bbox, int level = -1) const {}
+      virtual ~ApplyFunctor() {}
+      virtual bool process_children_first() const {return false; }
+      virtual bool should_process(const BBox<double> &bbox, int level = -1) const {return true;}
+      virtual bool operator()(GeomPrimitive *prim, int level = -1) {return true;}
     };
 
     class SpatialTree
@@ -118,11 +122,12 @@ namespace vw
       }
       BBoxT &BoundingBox() { return m_BBox; }
       GeomPrimitive *Contains(const VectorT &point);
+      void ContainsAll(const VectorT &point, list<GeomPrimitive*> &prims);
       void Print();
       //NOTE: this can only write a 2D projection (because VRML is 3D)
       void WriteVRML(char *fileName, int level = -1);
     private:
-      void Apply(const BBoxFunctor &bboxFunctor);
+      bool Apply(ApplyFunctor &func, unsigned int level = 0);
       void WriteVRMLHead(FILE *outFP);
       void WriteVRMLTail(FILE *outFP);
       void WriteVRMLBox(FILE *outFP, const BBoxT &bbox);

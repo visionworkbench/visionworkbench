@@ -22,20 +22,21 @@ using namespace math;
 // polygon). Need to do this until the top level square contains the
 // polygon. Should add a parent pointer to facilitate things.
 
-class PrintFunctor : public BBoxFunctor
+class PrintFunctor : public ApplyFunctor
 {
  public:
   PrintFunctor() {}
-  virtual void operator()(const SpatialTree::BBoxT &bbox, int level = -1) const
+  virtual bool operator()(GeomPrimitive *prim, int level = -1)
   {
-    cout << " Min[" << bbox.min() << "]"
-	 << " Max[" << bbox.max() << "]"
+    cout << " Min[" << prim->bounding_box().min() << "]"
+	 << " Max[" << prim->bounding_box().max() << "]"
 	 << endl;
+    return true; // continue processing         
   }
 };
 
 //NOTE: this can only write a 2D projection (because VRML is 3D)
-class VRMLFunctor : public BBoxFunctor
+class VRMLFunctor : public ApplyFunctor
 {
  public:
   VRMLFunctor()
@@ -58,7 +59,18 @@ class VRMLFunctor : public BBoxFunctor
   {
     m_color[0] = red; m_color[1] = green; m_color[2] = blue;
   }
-  virtual void operator()(const SpatialTree::BBoxT &bbox, int level = -1) const
+  virtual bool should_process(const SpatialTree::BBoxT &bbox, int level = -1) const
+  {
+    ProcessBBox(bbox, level);
+    return true; // process box
+  }
+  virtual bool operator()(GeomPrimitive *prim, int level = -1)
+  {
+    ProcessBBox(prim->bounding_box(), level);
+    return true; // continue processing
+  }
+ private:
+  void ProcessBBox(const SpatialTree::BBoxT &bbox, int level = -1) const
   {
     if (m_outFP != 0)
     {
@@ -114,6 +126,117 @@ class VRMLFunctor : public BBoxFunctor
   float m_color[3];
 };
 
+class ContainsOneFunctor : public ApplyFunctor
+{
+ public:
+  ContainsOneFunctor(const SpatialTree::VectorT *point) : m_point(point), m_prim(0) {}
+  virtual bool process_children_first() const {return true;}
+  virtual bool should_process(const BBox<double> &bbox, int level = -1) const
+  {
+    return bbox.contains(*m_point);
+  }
+  virtual bool operator()(GeomPrimitive *prim, int level = -1)
+  {
+    if (prim->bounding_box().contains(*m_point) && prim->contains(*m_point))
+    {
+      m_prim = prim;
+      return false; // stop processing
+    }
+    return true; // continue processing
+  }
+  GeomPrimitive *get_primitive() {return m_prim;}
+ private:
+  const SpatialTree::VectorT *m_point;
+  GeomPrimitive *m_prim;
+};
+
+GeomPrimitive *
+SpatialTree::Contains(const VectorT &point) {
+  ContainsOneFunctor func(&point);
+  Apply(func);
+  return func.get_primitive();
+}
+
+class ContainsAllFunctor : public ApplyFunctor
+{
+ public:
+  ContainsAllFunctor(const SpatialTree::VectorT *point) : m_point(point), m_alloc(true)
+  {
+    m_prims = new list<GeomPrimitive*>;
+  }
+  ContainsAllFunctor(const SpatialTree::VectorT *point, list<GeomPrimitive*> *prims)
+    : m_point(point), m_alloc(false), m_prims(prims) {}
+  virtual ~ContainsAllFunctor()
+  {
+    if (m_alloc)
+      delete m_prims;
+  }
+  virtual bool process_children_first() const {return true;}
+  virtual bool should_process(const BBox<double> &bbox, int level = -1) const
+  {
+    return bbox.contains(*m_point);
+  }
+  virtual bool operator()(GeomPrimitive *prim, int level = -1)
+  {
+    if (prim->bounding_box().contains(*m_point) && prim->contains(*m_point))
+      m_prims->push_back(prim);
+    return true; // continue processing
+  }
+  list<GeomPrimitive*> *get_primitives() {return m_prims;}
+ private:
+  const SpatialTree::VectorT *m_point;
+  bool m_alloc;
+  list<GeomPrimitive*> *m_prims;
+};
+
+void
+SpatialTree::ContainsAll(const VectorT &point, list<GeomPrimitive*> &prims) {
+  ContainsAllFunctor func(&point, &prims);
+  Apply(func);
+}
+
+#if 0
+class AllOverlapsFunctor : public ApplyFunctor
+{
+ public:
+  AllOverlapsFunctor(GeomPrimitive *overlapPrim) : m_overlapPrim(overlapPrim), m_alloc(true)
+  {
+    m_overlaps = new list<pair<GeomPrimitive*, GeomPrimitive*> >;
+  }
+  AllOverlapsFunctor(GeomPrimitive *overlapPrim,
+                     list<pair<GeomPrimitive*, GeomPrimitive*> > *overlaps)
+                       : m_overlapPrim(overlapPrim), m_alloc(false), m_overlaps(overlaps) {}                    
+  virtual ~AllOverlapsFunctor()
+  {
+    if (m_alloc)
+      delete m_overlaps;
+  }
+  virtual bool process_children_first() const {return true;}
+  virtual bool should_process(const BBox<double> &bbox, int level = -1) const
+  {
+    return bbox.contains(*m_point);
+  }
+  virtual bool operator()(GeomPrimitive *prim, int level = -1)
+  {
+    if (prim != m_overlapPrim && prim->bounding_box().intersects(m_overlapPrim->bounding_box()))
+      overlaps->push_back(make_pair(m_overlapPrim, prim));
+    return true; // continue processing
+  }
+  list<pair<GeomPrimitive*, GeomPrimitive*> > *get_overlaps() {returm m_overlaps;}
+ private:
+  GeomPrimitive *m_overlapPrim;
+  bool m_alloc;
+  list<pair<GeomPrimitive*, GeomPrimitive*> > *m_overlaps;
+};
+
+void
+SpatialTree::AllOverlaps(const VectorT &point, list<pair<GeomPrimitive*, GeomPrimitive*> > &overlaps) {
+  ContainsAllFunctor func(&point, &overlaps);
+  ContainsHelper(func);
+}
+#endif
+
+#if 0
 GeomPrimitive *
 SpatialTree::Contains(const VectorT &point)
 {
@@ -151,11 +274,13 @@ SpatialTree::Contains(const VectorT &point)
 
   return 0;
 }
+#endif
 
 void
 SpatialTree::Print()
 {
-  Apply(PrintFunctor());
+  PrintFunctor func;
+  Apply(func);
 }
 
 void
@@ -181,31 +306,44 @@ SpatialTree::WriteVRML(char *fileName, int level)
   fclose(outFP);
 }
 
-void
-SpatialTree::Apply(const BBoxFunctor &bboxFunctor)
+bool
+SpatialTree::Apply(ApplyFunctor &func, unsigned int level /* = 0 */)
 {
-  static unsigned int level = 0;
-
-  bboxFunctor(m_BBox, level);
-
+  if (!func.should_process(m_BBox, level))
+    return true; // continue processing one level above
+    
+  if (func.process_children_first() && IsSplit())
+  {
+    unsigned int next_level = level + 1;
+    for (int i = 0; i < m_numQuadrants; i++)
+    {
+      if (!m_quadrant[i]->Apply(func, next_level))
+        return false; // do not continue processing one level above
+    }
+  }
+  
   if (m_primitiveList != 0)
   {
     PrimitiveListElem *listElem = m_primitiveList;
     while (listElem != 0)
     {
-      BBoxT bbox = listElem->geomPrimitive->bounding_box();
-      bboxFunctor(bbox, level);
+      if (!func(listElem->geomPrimitive, level))
+        return false; // do not continue processing one level above
       listElem = listElem->next;
     }
   }
 
-  if (IsSplit())
+  if (!func.process_children_first() && IsSplit())
   {
-    level++;
+    unsigned int next_level = level + 1;
     for (int i = 0; i < m_numQuadrants; i++)
-      m_quadrant[i]->Apply(bboxFunctor);
-    level--;
+    {
+      if (!m_quadrant[i]->Apply(func, next_level))
+        return false; // do not continue processing one level above
+    }
   }
+  
+  return true; // continue processing one level above
 }
 
 void
