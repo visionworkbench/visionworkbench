@@ -36,6 +36,10 @@ if MAKE_MODULE_MOSAIC
 image2kml_prog = image2kml
 image2kml_SOURCES = image2kml.cc
 image2kml_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_MOSAIC_LDFLAGS@
+
+geoblend_prog = geoblend
+geoblend_SOURCES = geoblend.cc
+geoblend_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_MOSAIC_LDFLAGS@
 endif
 
 georef_prog = georef
@@ -50,7 +54,7 @@ jp2dump_SOURCES = jp2dump.cc
 jp2dump_LDFLAGS = @PKG_VW_LDFLAGS@
 endif
 
-bin_PROGRAMS = image $(image2kml_prog) $(georef_prog) $(jp2dump_prog)
+bin_PROGRAMS = image $(image2kml_prog) $(geoblend_prog) $(georef_prog) $(jp2dump_prog)
 
 endif
 
