@@ -72,22 +72,22 @@ namespace math {
     }
 
     template <class VectorT1, class VectorT2>
-    inline VectorBase<VectorT1> max( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
+    inline VectorT1 max( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
       VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute max of vectors of different length." );
-      VectorBase<VectorT1> v3;
-      v3.impl().set_size(v1.impl().size());
+      VectorT1 v3;
+      v3.set_size(v1.impl().size());
       for( int i=0; i<v1.impl().size(); ++i)
-        v3.impl()[i] = std::max(v1.impl()[i], v2.impl()[i]);
+        v3[i] = std::max(v1.impl()[i], v2.impl()[i]);
       return v3;
     }
 
     template <class VectorT1, class VectorT2>
-    inline VectorBase<VectorT1> min( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
+    inline VectorT1 min( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
       VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute min of vectors of different length." );
-      VectorBase<VectorT1> v3;
-      v3.impl().set_size(v1.impl().size());
+      VectorT1 v3;
+      v3.set_size(v1.impl().size());
       for( int i=0; i<v1.impl().size(); ++i)
-        v3.impl()[i] = std::min(v1.impl()[i], v2.impl()[i]);
+        v3[i] = std::min(v1.impl()[i], v2.impl()[i]);
       return v3;
     }
 
@@ -538,8 +538,7 @@ namespace math {
     BBox( RealT minx, RealT miny, RealT width, RealT height )
       : BBoxBase<BBox<RealT, DimN>, RealT, DimN>( 
           Vector<RealT,2>(minx,miny), 
-          Vector<RealT,2>(minx+width,miny+height) )
-    {
+          Vector<RealT,2>(minx+width,miny+height) ) {
       BOOST_STATIC_ASSERT( DimN==2 );
     }
 
@@ -549,8 +548,7 @@ namespace math {
     BBox( RealT minx, RealT miny, RealT minz, RealT width, RealT height, RealT depth )
       : BBoxBase<BBox<RealT, DimN>, RealT, DimN>( 
           Vector<RealT,3>(minx,miny,minz), 
-          Vector<RealT,3>(minx+width,miny+height,minz+depth) )
-    {
+          Vector<RealT,3>(minx+width,miny+height,minz+depth) ) {
       BOOST_STATIC_ASSERT( DimN==3 );
     }
 
@@ -615,9 +613,7 @@ namespace math {
     BBox( RealT minx, RealT miny, RealT width, RealT height )
       : BBoxBase<BBox<RealT, 0>, RealT, 0>( 
           Vector<RealT,2>(minx,miny), 
-          Vector<RealT,2>(minx+width,miny+height) )
-    {
-    }
+          Vector<RealT,2>(minx+width,miny+height) ) {}
 
     /// Constructs a 3D bounding box with the given minimal point
     /// coordinates and dimensions.  (Only valid for 3D bouding
@@ -625,9 +621,7 @@ namespace math {
     BBox( RealT minx, RealT miny, RealT minz, RealT width, RealT height, RealT depth )
       : BBoxBase<BBox<RealT, 0>, RealT, 0>( 
           Vector<RealT,3>(minx,miny,minz), 
-          Vector<RealT,3>(minx+width,miny+height,minz+depth) )
-    {
-    }
+          Vector<RealT,3>(minx+width,miny+height,minz+depth) ) {}
 
     /// Copy constructor.
     template <class BBoxT1, class RealT1, int DimN1>
@@ -934,8 +928,7 @@ namespace math {
     /// coordinates and radius.  (Only valid for 2D bouding
     /// balls.)
     BBall( RealT centerx, RealT centery, RealT radius )
-      : BBallBase<BBall<RealT, DimN>, RealT, DimN>( centerx, centery, radius )
-    {
+      : BBallBase<BBall<RealT, DimN>, RealT, DimN>( centerx, centery, radius ) {
       BOOST_STATIC_ASSERT( DimN==2 );
     }
 
@@ -943,8 +936,7 @@ namespace math {
     /// coordinates and radius.  (Only valid for 3D bouding
     /// balls.)
     BBall( RealT centerx, RealT centery, RealT centerz, RealT radius )
-      : BBallBase<BBall<RealT, DimN>, RealT, DimN>( centerx, centery, centerz, radius )
-    {
+      : BBallBase<BBall<RealT, DimN>, RealT, DimN>( centerx, centery, centerz, radius ) {
       BOOST_STATIC_ASSERT( DimN==3 );
     }
 
@@ -980,17 +972,13 @@ namespace math {
     /// coordinates and radius.  (Only valid for 2D bouding
     /// balls.)
     BBall( RealT centerx, RealT centery, RealT radius )
-      : BBallBase<BBall<RealT, 0>, RealT, 0>( centerx, centery, radius )
-    {
-    }
+      : BBallBase<BBall<RealT, 0>, RealT, 0>( centerx, centery, radius ) {}
 
     /// Constructs a 3D bounding ball with the given center point
     /// coordinates and radius.  (Only valid for 3D bouding
     /// balls.)
     BBall( RealT centerx, RealT centery, RealT centerz, RealT radius )
-      : BBallBase<BBall<RealT, 0>, RealT, 0>( centerx, centery, centerz, radius )
-    {
-    }
+      : BBallBase<BBall<RealT, 0>, RealT, 0>( centerx, centery, centerz, radius ) {}
 
     /// Copy constructor.
     template <class BBallT1, class RealT1, int DimN1>
