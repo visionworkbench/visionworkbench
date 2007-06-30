@@ -63,6 +63,7 @@ namespace math {
     BBoxT &bounding_box() { return m_root_node->m_bbox; }
     GeomPrimitive *contains(const VectorT &point);
     void contains(const VectorT &point, std::list<GeomPrimitive*> &prims);
+    void overlap_pairs(std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > &overlaps);
     void print(std::ostream &os = std::cout);
     //NOTE: this can only write a 2D projection (because VRML is 3D)
     void write_vrml(char *fn, int level = -1);

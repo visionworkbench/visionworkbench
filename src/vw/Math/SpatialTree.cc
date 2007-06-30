@@ -417,7 +417,6 @@ namespace {
     list<GeomPrimitive*> *m_prims;
   };
   
-  #if 0
   class AllOverlapsFunctor : public ApplyFunctor {
   public:
     AllOverlapsFunctor(GeomPrimitive *overlap_prim) : m_overlap_prim(overlap_prim), m_alloc(true) {
@@ -425,28 +424,54 @@ namespace {
     }
     AllOverlapsFunctor(GeomPrimitive *overlap_prim,
                       list<pair<GeomPrimitive*, GeomPrimitive*> > *overlaps)
-                        : m_overlap_prim(overlap_prim), m_alloc(false), m_overlaps(overlaps) {}                    
+                        : m_overlap_prim(overlap_prim), m_alloc(false), m_overlaps(overlaps) {}
     virtual ~AllOverlapsFunctor() {
       if (m_alloc)
         delete m_overlaps;
     }
-    virtual ApplyProcessOrder process_order() const {return PROCESS_CHILDREN_BEFORE_CURRENT_NODE;}
+    virtual ApplyProcessOrder process_order() const {return PROCESS_CURRENT_NODE_BEFORE_CHILDREN;}
     virtual bool should_process(const ApplyState &state) {
-      return state.tree_node->bounding_box().contains(*m_point);
+      return state.tree_node->bounding_box().intersects(m_overlap_prim->bounding_box());
     }
     virtual bool operator()(const ApplyState &state) {
       GeomPrimitive *prim = state.list_elem->prim;
       if (prim != m_overlap_prim && prim->bounding_box().intersects(m_overlap_prim->bounding_box()))
-        overlaps->push_back(make_pair(m_overlap_prim, prim));
+        m_overlaps->push_back(make_pair(m_overlap_prim, prim));
       return true; // continue processing
     }
-    list<pair<GeomPrimitive*, GeomPrimitive*> > *get_overlaps() {returm m_overlaps;}
+    list<pair<GeomPrimitive*, GeomPrimitive*> > *overlaps() {return m_overlaps;}
   private:
     GeomPrimitive *m_overlap_prim;
     bool m_alloc;
     list<pair<GeomPrimitive*, GeomPrimitive*> > *m_overlaps;
   };
-  #endif
+  
+  class OverlapPairsFunctor : public ApplyFunctor {
+  public:
+    OverlapPairsFunctor() : m_alloc(true) {
+      m_overlaps = new list<pair<GeomPrimitive*, GeomPrimitive*> >;
+    }
+    OverlapPairsFunctor(list<pair<GeomPrimitive*, GeomPrimitive*> > *overlaps)
+                        : m_alloc(false), m_overlaps(overlaps) {}
+    virtual ~OverlapPairsFunctor() {
+      if (m_alloc)
+        delete m_overlaps;
+    }
+    virtual ApplyProcessOrder process_order() const {return PROCESS_CURRENT_NODE_BEFORE_CHILDREN;}
+    virtual bool operator()(const ApplyState &state) {
+      AllOverlapsFunctor func(state.list_elem->prim, m_overlaps);
+      //NOTE: we do not want to create a new state s with s.list_elem = state.list_elem->next
+      //  because then, if s.list_elem == 0, apply() will go through the entire primitive list
+      //  for the current node; instead, we rely on AllOverlapsFunctor to not add pairs where
+      //  the two prims are the same (by pointer value)
+      apply(func, state);
+      return true; // continue processing
+    }
+    list<pair<GeomPrimitive*, GeomPrimitive*> > *overlaps() {return m_overlaps;}
+  private:
+    bool m_alloc;
+    list<pair<GeomPrimitive*, GeomPrimitive*> > *m_overlaps;
+  };
   
   class NodeContainsBBoxFunctor : public ApplyFunctor {
   public:
@@ -519,13 +544,11 @@ namespace math {
     apply(func, m_num_quadrants, m_root_node);
   }
   
-  #if 0
   void
-  SpatialTree::AllOverlaps(const VectorT &point, list<pair<GeomPrimitive*, GeomPrimitive*> > &overlaps) {
-    ContainsAllFunctor func(&point, &overlaps);
-    ContainsHelper(func);
+  SpatialTree::overlap_pairs(list<pair<GeomPrimitive*, GeomPrimitive*> > &overlaps) {
+    OverlapPairsFunctor func(&overlaps);
+    apply(func, m_num_quadrants, m_root_node);
   }
-  #endif
   
   void
   SpatialTree::print(ostream &os /*= cout*/) {

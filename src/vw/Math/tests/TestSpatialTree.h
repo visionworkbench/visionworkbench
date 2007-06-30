@@ -43,6 +43,17 @@ class TestGeomPrimitive : public BBoxN, public GeomPrimitive
   const BBox<double> &bounding_box() const {return *this;}
 };
 
+int which_one(GeomPrimitive *p, GeomPrimitive *ps[])
+{
+  int i;
+  for (i = 0; ps[i] != 0; i++)
+  {
+    if (ps[i] == p)
+      break;
+  }
+  return i;
+}
+
 class TestSpatialTree : public CxxTest::TestSuite
 {
 public:
@@ -53,6 +64,8 @@ public:
     SpatialTree t(b);
     std::list<GeomPrimitive*> l;
     std::list<GeomPrimitive*>::iterator i;
+    std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > overlaps;
+    std::list<std::pair<GeomPrimitive*, GeomPrimitive*> >::iterator i2;
 
     Vector<double,2> p0(0.1, 0.1);
     TestGeomPrimitive g0;
@@ -117,6 +130,13 @@ public:
     g3.grow(p10);
     t.add(&g3);
 
+    overlaps.clear();
+    t.overlap_pairs(overlaps);
+    TS_ASSERT_EQUALS( overlaps.size(), 1 );
+    i2 = overlaps.begin(); gt1 = (*i2).first; gt2 = (*i2).second;
+    TS_ASSERT_EQUALS( gt1, &g2 );
+    TS_ASSERT_EQUALS( gt2, &g1 );
+
     ostringstream os;
     std::string printstr(TEST_SPATIAL_TREE_PRINT_RESULT);
     t.print(os);
@@ -126,6 +146,31 @@ public:
     std::string vrmlstr(TEST_SPATIAL_TREE_VRML_RESULT);
     t.write_vrml(os2);
     TS_ASSERT_EQUALS( os2.str(), vrmlstr );
+
+    Vector<double,2> p11(0.01, 0.01), p12(6, 6);
+    TestGeomPrimitive g4;
+    g4.grow(p11);
+    g4.grow(p12);
+    t.add(&g4);
+
+    overlaps.clear();
+    t.overlap_pairs(overlaps);
+    //GeomPrimitive *prims[6] = {&g0, &g1, &g2, &g3, &g4, 0};
+    //for (i2 = overlaps.begin(); i2 != overlaps.end(); i2++)
+    //  std::cout << which_one((*i2).first, prims) << " overlaps " << which_one((*i2).second, prims) << std::endl;
+    TS_ASSERT_EQUALS( overlaps.size(), 4 );
+    i2 = overlaps.begin(); gt1 = (*i2).first; gt2 = (*i2).second;
+    TS_ASSERT_EQUALS( gt1, &g4 );
+    TS_ASSERT_EQUALS( gt2, &g2 );
+    i2++; gt1 = (*i2).first; gt2 = (*i2).second;
+    TS_ASSERT_EQUALS( gt1, &g4 );
+    TS_ASSERT_EQUALS( gt2, &g1 );
+    i2++; gt1 = (*i2).first; gt2 = (*i2).second;
+    TS_ASSERT_EQUALS( gt1, &g4 );
+    TS_ASSERT_EQUALS( gt2, &g0 );
+    i2++; gt1 = (*i2).first; gt2 = (*i2).second;
+    TS_ASSERT_EQUALS( gt1, &g2 );
+    TS_ASSERT_EQUALS( gt2, &g1 );
   }
 
 }; // class TestSpatialTree
