@@ -33,25 +33,21 @@ namespace {
     using namespace ::vw::math::vector_containment_comparison;
     SpatialTree::VectorT center = bbox.center();
     SpatialTree::VectorT diagonal_vec = bbox.size() * 0.5;
-    SpatialTree::VectorT axis_vec;
     int dim = center.size();
+    int i, j;
   
-    for (int i = 0; i < num_quadrants; i++)
+    for (i = 0; i < num_quadrants; i++)
       quadrant_bboxes[i].min() = center;
-    axis_vec.set_size(dim);
-    fill(axis_vec, 0.0);
     for (int d = 0, width = num_quadrants, half_width = num_quadrants / 2; d < dim; d++, width = half_width, half_width /= 2) {
       assert(d < dim - 1 || width > 1);
-      axis_vec[d] = diagonal_vec[d];
-      for (int i = 0; i < dim;) {
-        for (; i < half_width; i++)
-          quadrant_bboxes[i].min() -= axis_vec;
-        for (; i < width; i++)
-          quadrant_bboxes[i].min() += axis_vec;
+      for (i = 0; i < num_quadrants;) {
+        for (j = 0; j < half_width; j++, i++)
+          quadrant_bboxes[i].min()[d] -= diagonal_vec[d];
+        for (; j < width; j++, i++)
+          quadrant_bboxes[i].min()[d] += diagonal_vec[d];
       }
-      axis_vec[d] = 0.0;
     }
-    for (int i = 0; i < num_quadrants; i++) {
+    for (i = 0; i < num_quadrants; i++) {
       quadrant_bboxes[i].max() = ::vw::math::vector_containment_comparison::max(center, quadrant_bboxes[i].min());
       quadrant_bboxes[i].min() = ::vw::math::vector_containment_comparison::min(center, quadrant_bboxes[i].min());
     }
@@ -311,51 +307,44 @@ namespace {
       m_color[0] = red; m_color[1] = green; m_color[2] = blue;
     }
     virtual bool should_process(const ApplyState &state) {
-      process_bbox(state.tree_node->bounding_box(), state.level);
+      process_bbox(state.tree_node->bounding_box(), state.level, 0.5);
       return true; // process box
     }
     virtual bool operator()(const ApplyState &state) {
-      process_bbox(state.list_elem->prim->bounding_box(), state.level);
+      process_bbox(state.list_elem->prim->bounding_box(), state.level, 1.0);
       return true; // continue processing
     }
   private:
-    void process_bbox(const SpatialTree::BBoxT &bbox, int level) const {
+    void process_bbox(const SpatialTree::BBoxT &bbox, int level, float color_scale) const {
       if (!m_os.fail()) {
         if ((m_selected_level != -1) && (level != m_selected_level))
           return;
       
-        if (level > -1) {
-          float colors[8][3] = {{ 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 },
-                                { 0.0, 0.0, 1.0 }, { 1.0, 0.0, 1.0 },
-                                { 0.0, 1.0, 1.0 }, { 1.0, 1.0, 0.0 },
-                                { 0.0, 0.0, 0.0 }, { 1.0, 1.0, 1.0 }};
-          static const int num_colors = 8; // r,g,b, m,c,y, b,w
-          int index = (level % num_colors);
-          m_os << "  BaseColor { rgb [ " << colors[index][0] << " "
-               << colors[index][1] << " " << colors[index][2] << " ] }"
-               << endl;
-        }
-        else {
-          m_os << "  BaseColor { rgb [ " << m_color[0] << " "
-               << m_color[1] << " " << m_color[2] << " ] }"
-               << endl;
-        }
-        float z;
-        if (level > -1)
-          z = -level * m_z_spacing;
-        else
-          z = 0.0;
-        m_os << "  FaceSet {" << endl;
-        m_os << "    vertexProperty VertexProperty {" << endl;
-        m_os << "      vertex [" << endl;
-        m_os << "         " << bbox.min()[0] << " " << bbox.min()[1] << " " << z << "," << endl;
-        m_os << "         " << bbox.max()[0] << " " << bbox.min()[1] << " " << z << "," << endl;
-        m_os << "         " << bbox.max()[0] << " " << bbox.max()[1] << " " << z << "," << endl;
-        m_os << "         " << bbox.min()[0] << " " << bbox.max()[1] << " " << z << "," << endl;
-        m_os << "      ]" << endl;
+        float colors[7][3] = {{ 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 },
+                              { 0.0, 0.0, 1.0 }, { 1.0, 0.0, 1.0 },
+                              { 0.0, 1.0, 1.0 }, { 1.0, 1.0, 0.0 },
+                              { 1.0, 1.0, 1.0 }};
+        static const int num_colors = 7; // r,g,b, m,c,y, w
+        int index = (level % num_colors);
+        float z = -level * m_z_spacing;
+        m_os << "    Shape {" << endl;
+        m_os << "      appearance Appearance {" << endl;
+        m_os << "        material Material {" << endl;
+        m_os << "          emissiveColor " << (colors[index][0] * color_scale) << " " << (colors[index][1] * color_scale) << " " << (colors[index][2] * color_scale) << endl;
+        m_os << "        }" << endl;
+        m_os << "      }" << endl;
+        m_os << "      geometry IndexedLineSet {" << endl;
+        m_os << "        coord Coordinate {" << endl;
+        m_os << "          point [" << endl;
+        m_os << "            " << bbox.min()[0] << " " << bbox.min()[1] << " " << z << "," << endl;
+        m_os << "            " << bbox.min()[0] << " " << bbox.max()[1] << " " << z << "," << endl;
+        m_os << "            " << bbox.max()[0] << " " << bbox.max()[1] << " " << z << "," << endl;
+        m_os << "            " << bbox.max()[0] << " " << bbox.min()[1] << " " << z << "," << endl;
+        m_os << "          ]" << endl;
+        m_os << "        }" << endl;
+        m_os << "        coordIndex [ 0, 1, 2, 3, 0, -1, ]" << endl;
+        m_os << "      }" << endl;
         m_os << "    }" << endl;
-        m_os << "    numVertices [ 4 ]" << endl;
-        m_os << "  }" << endl;
       }
       else {
         cout << "ERROR in VRMLFunctor: unable to write to output stream!" << endl;
@@ -573,15 +562,18 @@ namespace math {
   void
   SpatialTree::write_vrml(ostream &os, int level) {
     assert(m_num_quadrants >= 4);
+    VectorT center = bounding_box().center();
   
-    os << "#VRML V1.0 ascii" << endl << "#" << endl;
-    os << "Separator {" << endl;
-    os << "  DrawStyle { style   LINES lineWidth 1 }" << endl;
+    os << "#VRML V2.0 utf8" << endl << "#" << endl;
+    os << "Transform {" << endl;
+    os << "  translation " << -center[0] << " " << -center[1] << " 0" << endl;
+    os << "  children [" << endl;
   
     VRMLFunctor func(os);
     func.select_level(level);
     apply(func, m_num_quadrants, m_root_node);
   
+    os << "  ]" << endl;
     os << "}" << endl;
   }
   
