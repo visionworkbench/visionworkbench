@@ -599,7 +599,7 @@ namespace math {
       // at this point we either have the node that is equivalent to the
       //   old root node, or its parent (due to numerical issues)
       double f = prod(tree_node->bounding_box().size()) / prod(m_root_node->bounding_box().size());
-      if (f > (m_num_quadrants - 1) / 2) {
+      if (f > (double)(m_num_quadrants + 1) / 2) {
         // we have the parent (volume is m_num_quadrants times greater)
         BBoxT quadrant_bboxes[m_num_quadrants];
         split_bbox(tree_node->bounding_box(), m_num_quadrants, quadrant_bboxes);

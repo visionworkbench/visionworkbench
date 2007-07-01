@@ -670,6 +670,14 @@ namespace math {
       return m_vector(i);
     }
 
+    reference_type operator[]( int i ) {
+      return m_vector[i];
+    }
+
+    const_reference_type operator[]( int i ) const {
+      return m_vector[i];
+    }
+
     iterator begin() {
       return m_vector.begin();
     }
@@ -764,6 +772,14 @@ namespace math {
       return m_vector(m_pos+i);
     }
 
+    reference_type operator[]( int i ) {
+      return m_vector[m_pos+i];
+    }
+
+    const_reference_type operator[]( int i ) const {
+      return m_vector[m_pos+i];
+    }
+
     iterator begin() {
       return m_vector.begin() + m_pos;
     }
@@ -846,6 +862,10 @@ namespace math {
       return func(v(i));
     }
 
+    reference_type operator[]( int i ) const {
+      return func(v[i]);
+    }
+
     iterator begin() const { return iterator(v.begin(),func); }
     iterator end() const { return iterator(v.end(),func); }
   };
@@ -913,6 +933,10 @@ namespace math {
 
     reference_type operator()( int i ) const {
       return func(v1(i),v2(i));
+    }
+
+    reference_type operator[]( int i ) const {
+      return func(v1[i],v2[i]);
     }
 
     iterator begin() const { return iterator(v1.begin(),v2.begin(),func); }
