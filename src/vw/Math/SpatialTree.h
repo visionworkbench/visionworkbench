@@ -68,6 +68,7 @@ namespace math {
     //NOTE: this can only write a 2D projection (because VRML is 3D)
     void write_vrml(char *fn, int level = -1);
     void write_vrml(std::ostream &os = std::cout, int level = -1);
+    bool check();
   private:
     int m_dim;
     int m_num_quadrants;

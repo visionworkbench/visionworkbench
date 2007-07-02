@@ -503,7 +503,7 @@ namespace {
     virtual ApplyProcessOrder process_order() const {return PROCESS_CHILDREN_BEFORE_CURRENT_NODE;}
     virtual bool operator()(const ApplyState &state) {
       delete state.list_elem;
-      return true;
+      return true; // continue processing
     }
     virtual void finished_processing(const ApplyState &state) {
       for (int i = 0; i < state.num_quadrants; i++)
@@ -513,6 +513,70 @@ namespace {
       state.tree_node->m_is_split = false;
       delete state.tree_node;
     }
+  };
+  
+  class CheckFunctor : public ApplyFunctor {
+  public:
+    CheckFunctor() : m_success(true) {}
+    virtual ApplyProcessOrder process_order() const {return PROCESS_CURRENT_NODE_BEFORE_CHILDREN;}
+    virtual bool should_process(const ApplyState &state) {
+      double v, v2;
+      SpatialTree::BBoxT b, b2;
+      double f;
+      int i, j;
+      if (!state.tree_node->is_split())
+        return true; // process node
+      v = prod(state.tree_node->bounding_box().size());
+      for (i = 0; i < state.num_quadrants; i++) {
+        b.grow(state.tree_node->m_quadrant[i]->bounding_box());
+        if (!state.tree_node->bounding_box().contains(state.tree_node->m_quadrant[i]->bounding_box())) {
+          cerr << "SpatialTree::check(): Child node with bbox " << state.tree_node->m_quadrant[i]->bounding_box() << " is not contained in its parent node with bbox " << state.tree_node->bounding_box() << "!" << endl;
+          m_success = false;
+        }
+        v2 = prod(state.tree_node->m_quadrant[i]->bounding_box().size());
+        f = state.num_quadrants * v2 / v;
+        if (f < 0.95 || f > 1.05) {
+          cerr << "SpatialTree::check(): Child node with bbox " << state.tree_node->m_quadrant[i]->bounding_box() << " has volume " << v2 << ", but its parent with bbox " << state.tree_node->bounding_box() << " has volume " << v << " (" << state.num_quadrants << " * " << v2 << " / " << v << " = " << f << " != 1)!" << endl;
+          m_success = false;
+        }
+        for (j = i + 1; j < state.num_quadrants; j++) {
+          b2 = state.tree_node->m_quadrant[i]->bounding_box();
+          b2.crop(state.tree_node->m_quadrant[j]->bounding_box());
+          v2 = prod(b2.size());
+          f = state.num_quadrants * v2 / v;
+          if (f > 0.05) {
+            cerr << "SpatialTree::check(): Children nodes with bboxes " << state.tree_node->m_quadrant[i]->bounding_box() << " and " << state.tree_node->m_quadrant[j]->bounding_box() << " of parent node with bbox " << state.tree_node->bounding_box() << " have non-trivial intersection!" << endl;
+            m_success = false;
+          }
+        }
+      }
+      v2 = prod(b.size());
+      f = v2 / v;
+      if (f < 0.95 || f > 1.05) {
+        cerr << "SpatialTree::check(): Union of children nodes of parent node with bbox " << state.tree_node->bounding_box() << " has volume " << v2 << ", but parent node has volume " << v << "!" << endl;
+        m_success = false;
+      }
+      return true; // process node
+    }
+    virtual bool operator()(const ApplyState &state) {
+      int i;
+      if (!state.tree_node->bounding_box().contains(state.list_elem->prim->bounding_box())) {
+        cerr << "SpatialTree::check(): Primitive with bbox " << state.list_elem->prim->bounding_box() << " is not contained in tree node with bbox " << state.tree_node->bounding_box() << "!" << endl;
+        m_success = false;
+      }
+      if (!state.tree_node->is_split())
+        return true; // continue processing
+      for (i = 0; i < state.num_quadrants; i++) {
+        if (state.tree_node->m_quadrant[i]->bounding_box().contains(state.list_elem->prim->bounding_box())) {
+          cerr << "SpatialTree::check(): Primitive with bbox " << state.list_elem->prim->bounding_box() << " is in tree node with bbox " << state.tree_node->bounding_box() << ", but it is contained in this node's child with bbox " << state.tree_node->m_quadrant[i]->bounding_box() << "!" << endl;
+          m_success = false;
+        }
+      }
+      return true; // continue processing
+    }
+    bool success() {return m_success;}
+  private:
+    bool m_success;
   };
 
 } // namespace
@@ -575,6 +639,13 @@ namespace math {
   
     os << "  ]" << endl;
     os << "}" << endl;
+  }
+
+  bool
+  SpatialTree::check() {
+    CheckFunctor func;
+    apply(func, m_num_quadrants, m_root_node);
+    return func.success();
   }
   
   void
