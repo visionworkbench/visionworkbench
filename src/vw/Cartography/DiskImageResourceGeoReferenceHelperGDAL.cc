@@ -175,8 +175,27 @@ namespace cartography {
     // without a string of Well Known Text (WKT), so we must conjure
     // up an OGRSpatialReference here and use it to convert from
     // proj.4 to WKT.
+    // 
+    // However, we first set the datum parameters in the
+    // ORGSpatialReference object directly.
     OGRSpatialReference gdal_spatial_ref;
+//     gdal_spatial_ref.SetGeogCS( "Geographic Coordinate System",
+//                                 georef->datum().name().c_str(),
+//                                 georef->datum().spheroid_name().c_str(),
+//                                 georef->datum().semi_major_axis(),
+//                                 georef->datum().inverse_flattening(),
+//                                 georef->datum().meridian_name().c_str(),
+//                                 georef->datum().meridian_offset() );
     gdal_spatial_ref.importFromProj4(georef->proj4_str().c_str());
+    vw_out(0) << "Creating GeoCS!\n";
+    gdal_spatial_ref.SetGeogCS( "Geographic Coordinate System",
+                                georef->datum().name().c_str(),
+                                georef->datum().spheroid_name().c_str(),
+                                georef->datum().semi_major_axis(),
+                                georef->datum().inverse_flattening(),
+                                georef->datum().meridian_name().c_str(),
+                                georef->datum().meridian_offset() );
+
     char* wkt_str_tmp;
     gdal_spatial_ref.exportToWkt(&wkt_str_tmp);
     std::string wkt_str = wkt_str_tmp;
