@@ -659,7 +659,7 @@ namespace vw {
   /// 
   /// <TT>transform(input, transform_functor, BicubicInterpolation(), ZeroEdgeExtension());</TT>
   ///
-  /// See Interpolation.h and EdegExtension.h for a list of built-in
+  /// See Interpolation.h and EdgeExtension.h for a list of built-in
   /// interpolation and edge extension modes.  It is also possible to
   /// write your own.  Again, see the above files for more information.
   template <class ImageT, class TransformT, class EdgeT, class InterpT>
