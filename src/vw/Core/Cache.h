@@ -29,13 +29,17 @@
 #define __VW_CORE_CACHE_H__
 
 // Uncomment one of these to enable or disable cache debug messages
-//#define VW_CACHE_DEBUG(x) x
-#define VW_CACHE_DEBUG(x)
+#define VW_CACHE_DEBUG(x) x
+//#define VW_CACHE_DEBUG(x)
 
+#include <typeinfo>
 #include <boost/smart_ptr.hpp>
 
 #include <vw/Core/Exception.h>
+#include <vw/Core/Stopwatch.h>
+
 #include <iostream>
+
 namespace vw {
 
   // Cache contains a list of pointers to CacheLine
@@ -70,29 +74,42 @@ namespace vw {
     class CacheLine : public CacheLineBase {
       GeneratorT m_generator;
       typename boost::shared_ptr<typename GeneratorT::value_type> m_value;
+      unsigned m_generation_count;
     public:
       CacheLine( Cache& cache, GeneratorT const& generator )
-        : CacheLineBase(cache,generator.size()), m_generator(generator)
+        : CacheLineBase(cache,generator.size()), m_generator(generator), m_generation_count(0)
       {
-        VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache creating CacheLine " << this << std::endl; )
+        VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache creating CacheLine " << info() << std::endl; )
       }
       
       virtual ~CacheLine() {
         if ( valid() ) this->invalidate();
-        VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache destroying CacheLine " << this << std::endl; )
+        VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache destroying CacheLine " << info() << std::endl; )
       }
       
       virtual void invalidate() {
-        VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache invalidating CacheLine " << this << std::endl; )
+        VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache invalidating CacheLine " << info() << std::endl; )
         CacheLineBase::invalidate();
         m_value.reset();
         CacheLineBase::deallocate();
+      }
+
+      std::string info() {
+        std::ostringstream oss;
+        oss << typeid(this).name() << " " << this
+            << " (size " << (int)size() << ", gen count " << m_generation_count << ")";
+        return oss.str();
       }
       
       typename boost::shared_ptr<typename GeneratorT::value_type> value() {
         //        VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache accessing CacheLine " << this << std::endl; )
         if( !m_value ) {
+          m_generation_count++;
+          VW_CACHE_DEBUG( vw_out(DebugMessage) << "Cache generating CacheLine " << info() << std::endl );
           CacheLineBase::allocate();
+          ScopedWatch sw((std::string("Cache ")
+                          + (m_generation_count == 1 ? "generating " : "regenerating ")
+                          + typeid(this).name()).c_str());
           m_value = m_generator.generate();
         }
         CacheLineBase::validate();
