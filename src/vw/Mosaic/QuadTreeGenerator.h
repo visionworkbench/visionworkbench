@@ -47,6 +47,7 @@
 #include <vw/Image/Filter.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Core/ProgressCallback.h>
+#include <vw/Core/Stopwatch.h>
 #include <vw/Mosaic/SparseTileCheck.h>
 
 namespace vw {
@@ -120,6 +121,7 @@ namespace mosaic {
     }
 
     void generate( const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
+      ScopedWatch sw("QuadTreeGenerator::generate");
       int32 maxdim = std::max( m_source.cols(), m_source.rows() );
       m_tree_levels = 1 + int32( ceilf( log( maxdim/(float)(m_patch_size-m_patch_overlap) ) / log(2.0) ) );
       m_patch_cache.resize( m_tree_levels );
@@ -196,7 +198,11 @@ namespace mosaic {
     void set_base_dir( std::string const& base_dir ) {
       m_base_dir = base_dir;
     }
-    
+
+    int get_tree_levels() const {
+      return m_tree_levels;
+    }
+
   protected:
     std::string m_base_dir;
     ImageViewRef<PixelT> m_source;
@@ -280,11 +286,14 @@ namespace mosaic {
 
       // Base case: rasterize the highest resolution tile.
       if( level == 0 ) {
+        ScopedWatch sw("QuadTreeGenerator::generate_branch: rasterize leaf");
         vw_out(DebugMessage) << "ImageQuadTreeGenerator rasterizing region " << patch_bbox << std::endl;
         BBox2i data_bbox = patch_bbox;
         data_bbox.crop( m_crop_bbox );
         image = crop( m_source, data_bbox );
+        
         if( data_bbox != patch_bbox ) {
+          ScopedWatch sw("QuadTreeGenerator::generate_branch: rasterize leaf edge extend");
           image = edge_extend( image, patch_bbox-data_bbox.min(), ZeroEdgeExtension() );
         }
       }
@@ -301,16 +310,19 @@ namespace mosaic {
         crop( big_image, interior_size, interior_size, interior_size, interior_size ) = generate_branch( name + "3", level-1, 2*x+1, 2*y+1, spcb3 );
         std::vector<float> kernel(2); kernel[0]=0.5; kernel[1]=0.5;
         image.set_size( interior_size, interior_size );
+        ScopedWatch sw("QuadTreeGenerator::generate_branch: rasterize subsampled");
         rasterize( subsample( separable_convolution_filter( big_image, kernel, kernel, 1, 1 ), 2 ), image );
       }
       // If there's no patch overlap, we're done and we can just write it out
       if( m_patch_overlap == 0 ) {
+        ScopedWatch sw("QuadTreeGenerator::generate_branch: write patch");
         write_patch( image, name, level, x, y );
       }
       // Otherwise this interior affects up to nine patches, each of which 
       // requires some special consideration.  There may be a cleaner way 
       // to structure this, but this works for now.
       else {
+        ScopedWatch sw("QuadTreeGenerator::generate_branch: overlapping patches");
         int overlap = m_patch_overlap / 2;
         if( x > 0 ) {
           if( y > 0 ) {
