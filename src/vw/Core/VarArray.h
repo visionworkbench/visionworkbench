@@ -71,6 +71,7 @@ namespace vw {
       std::copy( other.begin(), other.end(), new_data.get() );
       m_data = new_data;
       m_size = other.size();
+      return *this;
     }
 
     inline T& operator[]( int i ) {
