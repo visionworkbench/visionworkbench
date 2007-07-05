@@ -252,13 +252,13 @@ namespace math {
       // Make sure we have a type for which we know limits
       BOOST_STATIC_ASSERT(std::numeric_limits<RealT>::is_specialized);
       if (std::numeric_limits<RealT>::is_integer) {
-        for (int i = 0; i < m_min.size(); i++) {
+        for (unsigned i = 0; i < m_min.size(); ++i) {
           m_min[i] = std::numeric_limits<RealT>::max();
           m_max[i] = std::numeric_limits<RealT>::min();
         }
       }
       else {
-        for (int i = 0; i < m_min.size(); i++) {
+        for (unsigned i = 0; i < m_min.size(); ++i) {
           m_min[i] = std::numeric_limits<RealT>::max();
           m_max[i] = -std::numeric_limits<RealT>::max();
         }
@@ -286,7 +286,7 @@ namespace math {
         m_max = point;
       }
       else {
-        for (int i = 0; i < m_min.size(); i++) {
+        for (unsigned i = 0; i < m_min.size(); ++i) {
           if (point.impl()[i] > m_max[i])
             m_max[i] = point.impl()[i];
           if (point.impl()[i] < m_min[i])
