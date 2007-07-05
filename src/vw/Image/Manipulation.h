@@ -87,7 +87,7 @@ namespace vw {
     inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_child(i,j,p); }
 
     typedef CopyView prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return *this; }
+    inline prerasterize_type prerasterize( BBox2i const& /*bbox*/ ) const { return *this; }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { m_child.rasterize( dest, bbox ); }
   };
 

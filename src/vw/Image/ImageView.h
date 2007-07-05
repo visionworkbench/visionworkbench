@@ -295,7 +295,7 @@ namespace vw {
     }
 
     /// Write the given buffer to the image resource at the given location.
-    virtual void write( ImageBuffer const& buf, BBox2i const& bbox ) { 
+    virtual void write( ImageBuffer const& /*buf*/, BBox2i const& /*bbox*/ ) { 
       vw_throw(NoImplErr() << "ViewImageResource::write() failed.  ViewImageResource is read-only."); 
     }
 
