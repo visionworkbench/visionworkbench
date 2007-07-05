@@ -330,7 +330,7 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
       int strip_top = std::max(strip*rows_per_strip,uint32(bbox.min().y()));
       int strip_rows = std::min((strip+1)*rows_per_strip,uint32(bbox.max().y()))-strip_top;
 
-      VW_DEBUG( vw_out(DebugMessage) << "DiskImageResourceTIFF reading strip " << strip 
+      VW_DEBUG( vw_out(VerboseDebugMessage) << "DiskImageResourceTIFF reading strip " << strip 
                 << " (rows " << strip_top << "-" << strip_top+strip_rows-1 << ") from " << m_filename << std::endl; );
 
       if( config==PLANARCONFIG_SEPARATE && m_format.pixel_format != VW_PIXEL_SCALAR ) {
