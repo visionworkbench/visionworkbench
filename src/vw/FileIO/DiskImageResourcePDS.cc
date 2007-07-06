@@ -166,34 +166,26 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   
   // Number of bytes in the PDS header (essentially the offset
   // before the image data begins.
+  int record_size = 1;
   keys.clear();
   keys.push_back("RECORD_BYTES");
   keys.push_back("/RECSIZE");
   keys.push_back("HEADER_RECORD_BYTES");
-  keys.push_back("^IMAGE");
-  valid = valid && query( keys, value );
-  m_image_data_offset = atol(value.c_str());
-  
+  if( query( keys, value ) ) {
+    record_size = atol(value.c_str());
+  }  
 
-	//SO This is weird;
-	//  In the data from the clementine lunar data set the header 
-	//  uses ^IMAGE to say how bytes long the header is.
-	//  This code block was copies from XV where for some reason
-	//  they kept track of the REECORD_BYTES and LABLE_RECORDS in a different way
-	//  I don't know but these two styles may be conflicting
-	//  The second part of this conditional has been left in because of the Clementine moasics 
-	//  using LABLE_RECORDS, but nobody really knows whats going on with .pds headers 
-	//  at this point.
   keys.clear();
   keys.push_back("^IMAGE");
   if ( query( keys, value ) ) {
-    //m_image_data_offset *= atol(value.c_str()) - 1;
+    m_image_data_offset = record_size * atol(value.c_str()) - 1;
   } else {
     keys.clear();
     keys.push_back("LABEL_RECORDS");
     if( query( keys, value ) ) {
-      m_image_data_offset *= atol(value.c_str());
+      m_image_data_offset = record_size * atol(value.c_str());
     }
+    else m_image_data_offset = record_size;
   }
 
   if( ! valid ) {
@@ -266,7 +258,7 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
   unsigned bytes_read = fread(image_data, bytes_per_pixel, total_pixels, input_file);
   if ( bytes_read != total_pixels ){
     vw_throw( IOErr() << "DiskImageResourcePDS: An error occured while reading the image data (read " << bytes_read << ", expected " << total_pixels << ").");
-	}
+  }
 
   // Convert the endian-ness of the data
   if (m_format.channel_type == VW_CHANNEL_INT16 ||
