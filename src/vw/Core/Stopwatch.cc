@@ -18,7 +18,7 @@
 #include <vw/Core/Debugging.h>
 
 // Self
-#include "stopwatch.h"
+#include <vw/Core/Stopwatch.h>
 
 using std::endl;
 using std::map;
