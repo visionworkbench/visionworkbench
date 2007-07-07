@@ -216,8 +216,8 @@ namespace vw {
         if (progress_callback.abort_requested()) 
           vw_throw( Aborted() << "Aborted by ProgressCallback" );
 
-        float processed_row_blocks = j/block_size[1]*((disk_rsrc->cols()-1)/block_size[0]+1);
-        float processed_col_blocks = i/block_size[0];
+        float processed_row_blocks = float(j/block_size[1]*((disk_rsrc->cols()-1)/block_size[0]+1));
+        float processed_col_blocks = float(i/block_size[0]);
         progress_callback.report_progress((processed_row_blocks + processed_col_blocks)/total_num_blocks);
 
         // Rasterize and save this image block
