@@ -710,7 +710,7 @@ namespace vw {
     return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT>
       (interpolate(v, interp_func, edge_func), transform_func, width, height);
   }
-  
+
   /// Convenience function: transform with a default interpolation
   /// scheme of bilinear interpolation. The user can specify the
   /// dimensions of the output image.
@@ -796,7 +796,7 @@ namespace vw {
                    EdgeT const& edge_func,
                    InterpT const& interp_func ) {
     return transform(v, ResampleTransform(x_scale_factor, y_scale_factor), 
-                     int(round(v.impl().cols()*x_scale_factor)), int(round(v.impl().rows()*y_scale_factor)),
+                     int(.5+(v.impl().cols()*x_scale_factor)), int(.5+(v.impl().rows()*y_scale_factor)),
                      edge_func, interp_func);
   }
 
@@ -809,7 +809,7 @@ namespace vw {
                    double y_scale_factor, 
                    EdgeT const& edge_func ) {
     return transform(v, ResampleTransform(x_scale_factor, y_scale_factor), 
-                     int(round(v.impl().cols()*x_scale_factor)), int(round(v.impl().rows()*y_scale_factor)),
+                     int(.5+(v.impl().cols()*x_scale_factor)), int(.5+(v.impl().rows()*y_scale_factor)),
                      edge_func, vw::BilinearInterpolation());
   }
 
@@ -821,7 +821,7 @@ namespace vw {
                    double x_scale_factor,
                    double y_scale_factor ) {
     return transform(v, ResampleTransform(x_scale_factor, y_scale_factor), 
-                     int(round(v.impl().cols()*x_scale_factor)), int(round(v.impl().rows()*y_scale_factor)), 
+                     int(.5+(v.impl().cols()*x_scale_factor)), int(.5+(v.impl().rows()*y_scale_factor)), 
                      vw::ConstantEdgeExtension(), vw::BilinearInterpolation());
   }
 
@@ -849,7 +849,7 @@ namespace vw {
                    EdgeT const& edge_func,
                    InterpT const& interp_func ) {
     return transform(v, ResampleTransform(scale_factor, scale_factor), 
-                     int(round(v.impl().cols()*scale_factor)), int(round(v.impl().rows()*scale_factor)),
+                     int(.5+(v.impl().cols()*scale_factor)), int(.5+(v.impl().rows()*scale_factor)),
                      edge_func, interp_func);
   }
 
@@ -861,7 +861,7 @@ namespace vw {
                    double scale_factor,
                    EdgeT const& edge_func ) {
     return transform(v, ResampleTransform(scale_factor, scale_factor),
-                     int(round(v.impl().cols()*scale_factor)), int(round(v.impl().rows()*scale_factor)),
+                     int(.5+(v.impl().cols()*scale_factor)), int(.5+(v.impl().rows()*scale_factor)),
                      edge_func, vw::BilinearInterpolation());
   }
 
@@ -872,7 +872,7 @@ namespace vw {
   inline resample( ImageViewBase<ImageT> const& v,
                    double scale_factor ) {
     return transform(v, ResampleTransform(scale_factor, scale_factor), 
-                     int(round(v.impl().cols()*scale_factor)), int(round(v.impl().rows()*scale_factor)),
+                     int(.5+(v.impl().cols()*scale_factor)), int(.5+(v.impl().rows()*scale_factor)),
                      vw::ConstantEdgeExtension(), vw::BilinearInterpolation());
   }
 
