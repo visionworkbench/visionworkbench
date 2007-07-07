@@ -45,7 +45,7 @@ namespace ip {
     InterestPoint() {}
 
     InterestPoint(int x, int y, float scale=1.0, float interest=0.0, float ori=0.0)
-      : x(x), y(y), scale(scale), ix(x), iy(y), orientation(ori), interest(interest) {}
+      : x((float)x), y((float)y), scale(scale), ix(x), iy(y), orientation(ori), interest(interest) {}
 
     /// Subpixel (col,row) location of point
     float x,y;
