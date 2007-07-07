@@ -105,7 +105,7 @@ void weighted_magnitude(ImageViewBase<ViewT1>& weight,
 inline
 void orientation_interpolate(std::vector<float>& histo,
                              unsigned n_bins, float ori, float mag) {
-  float bin_size = (float)2 * M_PI / (float)n_bins;
+  float bin_size = (float)(2 * M_PI / n_bins);
   float ratio = (ori - bin_size) / bin_size;
   int n = (int)floor((ori + M_PI) / bin_size);
   histo[n] += ((float)1 - ratio) * mag;
