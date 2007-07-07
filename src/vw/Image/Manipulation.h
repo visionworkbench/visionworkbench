@@ -625,8 +625,8 @@ namespace vw {
       m_child(image), 
       m_ci((offset_type)(bbox.min()[0])), 
       m_cj((offset_type)(bbox.min()[1])), 
-      m_di((int32)round(bbox.width())), 
-      m_dj((int32)round(bbox.height())) {}
+      m_di(int32(.5+(bbox.width()))), 
+      m_dj(int32(.5+(bbox.height()))) {}
 
     inline int32 cols() const { return m_di; }
     inline int32 rows() const { return m_dj; }
