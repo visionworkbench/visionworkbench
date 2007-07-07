@@ -123,7 +123,7 @@ namespace mosaic {
     void generate( const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
       ScopedWatch sw("QuadTreeGenerator::generate");
       int32 maxdim = std::max( m_source.cols(), m_source.rows() );
-      m_tree_levels = 1 + int32( ceilf( log( maxdim/(float)(m_patch_size-m_patch_overlap) ) / log(2.0) ) );
+      m_tree_levels = 1 + int32( ceil( log( maxdim/(double)(m_patch_size-m_patch_overlap) ) / log(2.0) ) );
       m_patch_cache.resize( m_tree_levels );
       m_filename_cache.resize( m_tree_levels );
 
