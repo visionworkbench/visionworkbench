@@ -31,9 +31,14 @@ if HAVE_PKG_LAPACK
 lapack_headers = LinearAlgebra.h LevenbergMarquardt.h Geometry.h
 endif
 
-include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h	\
-                  Quaternion.h EulerAngles.h ConjugateGradient.h	\
-                  NelderMead.h SpatialTree.h $(lapack_headers)
+if HAVE_PKG_PPL
+ppl_headers = BConvex.h
+endif
+
+include_HEADERS = Vector.h Matrix.h BShape.h BBox.h BBall.h	\
+                  Functions.h Functors.h Quaternion.h EulerAngles.h	\
+                  ConjugateGradient.h NelderMead.h SpatialTree.h	\
+                  $(lapack_headers) $(ppl_headers)
 
 libvwMath_la_SOURCES = SpatialTree.cc
 libvwMath_la_LDFLAGS= -version-info @LIBTOOL_VERSION@

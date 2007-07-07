@@ -424,7 +424,7 @@ namespace {
     }
     virtual bool operator()(const ApplyState &state) {
       GeomPrimitive *prim = state.list_elem->prim;
-      if (prim != m_overlap_prim && prim->bounding_box().intersects(m_overlap_prim->bounding_box()))
+      if (prim != m_overlap_prim && prim->bounding_box().intersects(m_overlap_prim->bounding_box()) && prim->intersects(m_overlap_prim))
         m_overlaps->push_back(make_pair(m_overlap_prim, prim));
       return true; // continue processing
     }

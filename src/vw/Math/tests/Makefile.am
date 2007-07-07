@@ -44,9 +44,14 @@ nodist_TestLevenbergMarquardt_SOURCES = TestLevenbergMarquardt.cxx
 TestLinearAlgebra = TestLinearAlgebra TestGeometry TestLevenbergMarquardt
 endif
 
+if HAVE_PKG_PPL
+nodist_TestBConvex_SOURCES = TestBConvex.cxx
+TestPPL = TestBConvex
+endif
+
 TESTS = TestVector TestMatrix TestQuaternion TestBBox TestFunctions	 \
         TestFunctors TestNelderMead TestSpatialTree $(TestLinearAlgebra) \
-        #TestConjugateGradient
+        $(TestPPL) #TestConjugateGradient
 endif
 
 ########################################################################

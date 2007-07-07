@@ -21,13 +21,15 @@
 // 
 // __END_LICENSE__
 
-// TestVector.h
+// TestBBox.h
+
 #include <cxxtest/TestSuite.h>
+#include <vw/Math/Vector.h>
 #include <vw/Math/BBox.h>
 
 using namespace vw;
 
-class TestVector : public CxxTest::TestSuite
+class TestBBox : public CxxTest::TestSuite
 {
 public:
 
@@ -401,4 +403,4 @@ public:
     TS_ASSERT_EQUALS( b2.max()[1], 6 );
   }
 
-}; // class TestVector
+}; // class TestBBox

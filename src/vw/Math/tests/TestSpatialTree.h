@@ -41,8 +41,9 @@ using namespace vw::math;
 
 class TestGeomPrimitive : public BBoxN, public GeomPrimitive
 {
-  bool contains(const Vector<double> &point) const {return BBoxN::contains(point);}
-  const BBox<double> &bounding_box() const {return *this;}
+  virtual bool contains(const Vector<double> &point) const {return BBoxN::contains(point);}
+  virtual bool intersects(const GeomPrimitive *prim) const {return BBoxN::intersects(prim->bounding_box());}
+  virtual const BBox<double> &bounding_box() const {return *this;}
 };
 
 int which_one(GeomPrimitive *p, GeomPrimitive *ps[])

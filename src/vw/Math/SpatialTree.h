@@ -17,6 +17,7 @@ namespace math {
   class GeomPrimitive {
   public:
     virtual bool contains(const Vector<double> &point) const = 0;
+    virtual bool intersects(const GeomPrimitive *prim) const = 0;
     virtual const BBox<double> &bounding_box() const = 0;
   };
 
