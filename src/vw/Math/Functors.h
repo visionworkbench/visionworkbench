@@ -189,7 +189,8 @@ namespace math {
 
   __VW_BINARY_MATH_FUNCTOR( Atan2, atan2 )
   __VW_BINARY_MATH_FUNCTOR( Pow, pow )
-
+  __VW_BINARY_MATH_FUNCTOR( Hypot, hypot )
+  
 #ifndef WIN32
   __VW_UNARY_MATH_FUNCTOR( Acosh, acosh )
   __VW_UNARY_MATH_FUNCTOR( Asinh, asinh )
@@ -208,7 +209,6 @@ namespace math {
   __VW_UNARY_MATH_FUNCTOR( Round, round )
   __VW_UNARY_MATH_FUNCTOR( Trunc, trunc )
 
-  __VW_BINARY_MATH_FUNCTOR( Hypot, hypot )
   __VW_BINARY_MATH_FUNCTOR( Copysign, copysign )
   __VW_BINARY_MATH_FUNCTOR( Fdim, fdim )
 #endif

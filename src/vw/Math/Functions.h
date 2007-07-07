@@ -116,6 +116,15 @@ namespace impl {
   //   and sqrt(2(x-1)) for small x (i.e. x near 1).
   // * The asymptotic behavior of asinh(x) is also ln(2x).
 
+  inline float hypotf (float x, float y) {
+    return sqrtf(x*x + y*y);
+  }
+  inline double hypot (double x, double y) {
+    return sqrt(x*x + y*y);
+  }
+  inline long double hypotl (long double x, long double y) {
+    return sqrtl(x*x + y*y);
+  }
 } // namespace impl
 } // namespace math
 
@@ -141,6 +150,9 @@ namespace impl {
 #ifdef WIN32
   using math::impl::erf;
   using math::impl::erfc;
+  using math::impl::hypot;
+  using math::impl::hypotl;
+  using math::impl::hypotf;
 #else
   using ::acosh;
   using ::asinh;
