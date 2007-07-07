@@ -161,6 +161,10 @@ namespace vw {
   VW_PIXEL_MATH_BINARY_PS_FUNCTION(pow, vw::math::ArgValPowFunctor)
   VW_PIXEL_MATH_BINARY_SP_FUNCTION(pow, vw::math::ValArgPowFunctor)
 
+  VW_PIXEL_MATH_STD_BINARY_PP_FUNCTION(hypot, vw::math::ArgArgHypotFunctor)
+  VW_PIXEL_MATH_BINARY_PS_FUNCTION(hypot, vw::math::ArgValHypotFunctor)
+  VW_PIXEL_MATH_BINARY_SP_FUNCTION(hypot, vw::math::ValArgHypotFunctor)
+
 #ifndef WIN32
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(acosh, vw::math::ArgAcoshFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(asinh, vw::math::ArgAsinhFunctor)
@@ -179,9 +183,6 @@ namespace vw {
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(round, vw::math::ArgRoundFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(trunc, vw::math::ArgTruncFunctor)
 
-  VW_PIXEL_MATH_STD_BINARY_PP_FUNCTION(hypot, vw::math::ArgArgHypotFunctor)
-  VW_PIXEL_MATH_BINARY_PS_FUNCTION(hypot, vw::math::ArgValHypotFunctor)
-  VW_PIXEL_MATH_BINARY_SP_FUNCTION(hypot, vw::math::ValArgHypotFunctor)
   VW_PIXEL_MATH_STD_BINARY_PP_FUNCTION(copysign, vw::math::ArgArgCopysignFunctor)
   VW_PIXEL_MATH_BINARY_PS_FUNCTION(copysign, vw::math::ArgValCopysignFunctor)
   VW_PIXEL_MATH_BINARY_SP_FUNCTION(copysign, vw::math::ValArgCopysignFunctor)

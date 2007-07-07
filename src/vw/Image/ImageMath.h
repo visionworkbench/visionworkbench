@@ -214,6 +214,15 @@ namespace vw {
   /// Raises a scalar to the power of each pixel of an image.
   VW_IMAGE_MATH_BINARY_SI_FUNCTION(pow, vw::math::ValArgPowFunctor)
 
+  /// Computes the hypotenuse, \f$\sqrt{x^2+y^2}\f$,  of each pixel from two images.
+  VW_IMAGE_MATH_BINARY_II_FUNCTION(hypot, vw::math::ArgArgHypotFunctor)
+
+  /// Computes the hypotenuse, \f$\sqrt{x^2+y^2}\f$, of each pixel of an image with a scalar.
+  VW_IMAGE_MATH_BINARY_IS_FUNCTION(hypot, vw::math::ArgValHypotFunctor)
+
+  /// Computes the hypotenuse, \f$\sqrt{x^2+y^2}\f$, of a scalar with each pixel of an image.
+  VW_IMAGE_MATH_BINARY_SI_FUNCTION(hypot, vw::math::ValArgHypotFunctor)
+
 #ifndef WIN32
 
   /// Computes the hyperbolic arccosine, \f$\cosh^{-1} x\f$, of each pixel in an image.
@@ -257,15 +266,6 @@ namespace vw {
 
   /// Takes the integer part of each pixel in an image by simple truncation.
   VW_IMAGE_MATH_UNARY_FUNCTION(trunc, vw::math::ArgTruncFunctor)
-
-  /// Computes the hypotenuse, \f$\sqrt{x^2+y^2}\f$,  of each pixel from two images.
-  VW_IMAGE_MATH_BINARY_II_FUNCTION(hypot, vw::math::ArgArgHypotFunctor)
-
-  /// Computes the hypotenuse, \f$\sqrt{x^2+y^2}\f$, of each pixel of an image with a scalar.
-  VW_IMAGE_MATH_BINARY_IS_FUNCTION(hypot, vw::math::ArgValHypotFunctor)
-
-  /// Computes the hypotenuse, \f$\sqrt{x^2+y^2}\f$, of a scalar with each pixel of an image.
-  VW_IMAGE_MATH_BINARY_SI_FUNCTION(hypot, vw::math::ValArgHypotFunctor)
 
   /// Returns an image equal to first argument but with the sign of each pixel adjusted to match the corresponding sign in the second argument.
   VW_IMAGE_MATH_BINARY_II_FUNCTION(copysign, vw::math::ArgArgCopysignFunctor)
