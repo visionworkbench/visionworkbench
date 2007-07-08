@@ -360,9 +360,11 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src ) {
     }
     // Other than that, we only support conversion between the core pixel formats
     if( ( src.format.pixel_format!=VW_PIXEL_GRAY && src.format.pixel_format!=VW_PIXEL_GRAYA && 
-          src.format.pixel_format!=VW_PIXEL_RGB && src.format.pixel_format!=VW_PIXEL_RGBA ) ||
+          src.format.pixel_format!=VW_PIXEL_RGB && src.format.pixel_format!=VW_PIXEL_RGBA &&
+          src.format.pixel_format!=VW_PIXEL_XYZ) ||
         ( dst.format.pixel_format!=VW_PIXEL_GRAY && dst.format.pixel_format!=VW_PIXEL_GRAYA && 
-          dst.format.pixel_format!=VW_PIXEL_RGB && dst.format.pixel_format!=VW_PIXEL_RGBA ) ) {
+          dst.format.pixel_format!=VW_PIXEL_RGB && dst.format.pixel_format!=VW_PIXEL_RGBA &&
+          dst.format.pixel_format!=VW_PIXEL_XYZ) ) {
       vw_throw( ArgumentErr() << "Source and destination buffers have incompatible pixel formats ("
                 << src.format.pixel_format << " vs. " << dst.format.pixel_format << ")." );
     }
