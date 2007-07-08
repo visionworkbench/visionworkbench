@@ -176,6 +176,20 @@ namespace cartography {
         return p;
     }
   };
+
+  template <class ElemT>
+  class AddDatumFunctor : public UnaryReturnSameType {
+    Datum m_datum;
+
+  public:
+    AddDatumFunctor(Datum const& datum) : m_datum(datum) {}    
+    Vector<ElemT,3> operator()(Vector<ElemT,3> const& p) const {
+      if (p != Vector<ElemT,3>()) 
+        return Vector<ElemT,3>(p[0], p[1], p[2]+m_datum.radius(p[0], p[1]));
+      else 
+        return p;
+    }
+  };
   
 
   /// Takes an ImageView of Vector<ElemT,3> in lon/lat/radius and
@@ -198,6 +212,13 @@ namespace cartography {
   inline subtract_datum( ImageViewBase<ImageT> const& image, Datum const& datum) {
     typedef typename ImageT::pixel_type::value_type vector_value_type;
     return UnaryPerPixelView<ImageT,SubtractDatumFunctor<vector_value_type> >( image.impl(), SubtractDatumFunctor<vector_value_type>(datum) );
+  }
+
+  template <class ImageT>
+  UnaryPerPixelView<ImageT, AddDatumFunctor<typename ImageT::pixel_type::value_type> >
+  inline add_datum( ImageViewBase<ImageT> const& image, Datum const& datum) {
+    typedef typename ImageT::pixel_type::value_type vector_value_type;
+    return UnaryPerPixelView<ImageT,AddDatumFunctor<vector_value_type> >( image.impl(), AddDatumFunctor<vector_value_type>(datum) );
   }
   
 

@@ -179,15 +179,7 @@ namespace cartography {
     // However, we first set the datum parameters in the
     // ORGSpatialReference object directly.
     OGRSpatialReference gdal_spatial_ref;
-//     gdal_spatial_ref.SetGeogCS( "Geographic Coordinate System",
-//                                 georef->datum().name().c_str(),
-//                                 georef->datum().spheroid_name().c_str(),
-//                                 georef->datum().semi_major_axis(),
-//                                 georef->datum().inverse_flattening(),
-//                                 georef->datum().meridian_name().c_str(),
-//                                 georef->datum().meridian_offset() );
     gdal_spatial_ref.importFromProj4(georef->proj4_str().c_str());
-    vw_out(0) << "Creating GeoCS!\n";
     gdal_spatial_ref.SetGeogCS( "Geographic Coordinate System",
                                 georef->datum().name().c_str(),
                                 georef->datum().spheroid_name().c_str(),

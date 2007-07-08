@@ -45,8 +45,8 @@ public:
 
     GeoTransform geotx(src_georef,dst_georef);
     
-    std::cout << geotx.forward(Vector2(0,0)) << "\n";
-    std::cout << geotx.reverse(Vector2(0,0)) << "\n";
+//     std::cout << geotx.forward(Vector2(0,0)) << "\n";
+//     std::cout << geotx.reverse(Vector2(0,0)) << "\n";
    }
 
 
