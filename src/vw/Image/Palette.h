@@ -45,11 +45,10 @@ namespace vw {
   public:
     PaletteFilter( std::string const& palette_file ) {
       read_image( palette, palette_file );
-      entries = palette.cols()-1;
+      entries = palette.cols();
     }
     
     PixelT operator()( float val ) const {
-      if( val < 0.0 ) return PixelRGBA<uint8>(0,0,0,0);
       int index = lround( val * entries );
       if( index >= entries ) index = entries-1;
       else if( index < 0 ) index = 0;
