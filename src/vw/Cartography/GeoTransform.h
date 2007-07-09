@@ -57,6 +57,97 @@ namespace cartography {
   };
 
 
+  // -------------------------------------------------------------------------------
+  // Functional API
+  // -------------------------------------------------------------------------------
+
+  /// Returns a transformed image view.  The user can specify the type
+  /// of interpolation and edge extension to be done by supplying the
+  /// appropriate functors in the last two arguments.  For example:
+  /// See the transform() function in Transform.h for more details.
+  template <class ImageT, class EdgeT, class InterpT>
+  typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, GeoTransform> >::type
+  inline geo_transform( ImageViewBase<ImageT> const& v,
+                    GeoReference const& src_georef,
+                    GeoReference const& dst_georef,
+                    EdgeT const& edge_func,
+                    InterpT const& interp_func ) {
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, GeoTransform>
+      (interpolate(v, interp_func, edge_func), GeoTransform(src_georef,dst_georef));
+  }
+  
+  /// Convenience function: transform with a default interpolation
+  /// scheme of bilinear interpolation.
+  template <class ImageT, class EdgeT>
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, GeoTransform>
+  inline geo_transform( ImageViewBase<ImageT> const& v,
+                    GeoReference const& src_georef,
+                    GeoReference const& dst_georef,
+                    EdgeT const& edge_func ) {
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, GeoTransform> 
+      (interpolate(v, BilinearInterpolation(), edge_func), GeoTransform(src_georef,dst_georef));
+  }
+  
+  /// Convenience function: transform with a default scheme of
+  /// bilinear interpolation and zero edge extension.
+  template <class ImageT>
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, GeoTransform>
+  inline geo_transform( ImageViewBase<ImageT> const& v,
+                    GeoReference const& src_georef,
+                    GeoReference const& dst_georef ) {
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, GeoTransform> 
+      (interpolate(v, BilinearInterpolation(), ZeroEdgeExtension()), GeoTransform(src_georef,dst_georef));
+  }
+
+
+  /// This variant of transform allows the user to specify the
+  /// dimensions of the transformed image.  The upper left hand point
+  /// (0,0) stays fixed.  For a more flexible method of cropping to an
+  /// arbitrary bounding box, use one of the transform methods defined
+  /// below.
+  template <class ImageT, class EdgeT, class InterpT>
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, GeoTransform>
+  inline geo_transform( ImageViewBase<ImageT> const& v,
+                    GeoReference const& src_georef,
+                    GeoReference const& dst_georef,
+                    int32 width,
+                    int32 height,
+                    EdgeT const& edge_func,
+                    InterpT const& interp_func ) {
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, GeoTransform>
+      (interpolate(v, interp_func, edge_func), GeoTransform(src_georef,dst_georef), width, height);
+  }
+
+  /// Convenience function: transform with a default interpolation
+  /// scheme of bilinear interpolation. The user can specify the
+  /// dimensions of the output image.
+  template <class ImageT, class EdgeT>
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, GeoTransform>
+  inline geo_transform( ImageViewBase<ImageT> const& v,
+                    GeoReference const& src_georef,
+                    GeoReference const& dst_georef,
+                    int32 width,
+                    int32 height,
+                    EdgeT const& edge_func ) {
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, GeoTransform> 
+      (interpolate(v, BilinearInterpolation(), edge_func), GeoTransform(src_georef,dst_georef), width, height);
+  }
+
+  /// Convenience function: transform with a default scheme of
+  /// bilinear interpolation and zero edge extension.  The user can
+  /// specify the dimensions of the output image.
+  template <class ImageT>
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, GeoTransform>
+  inline geo_transform( ImageViewBase<ImageT> const& v,
+                    GeoReference const& src_georef,
+                    GeoReference const& dst_georef,
+                    int32 width,
+                    int32 height ) {
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, GeoTransform> 
+      (interpolate(v, BilinearInterpolation(), ZeroEdgeExtension()), GeoTransform(src_georef,dst_georef), width, height);
+  }
+
+
   /// Reproject an image whose pixels contain 3D points (usually in
   /// some spherical coordinate system).  Important note: we assume
   /// that the 3D points already have the affine transform applied to
