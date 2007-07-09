@@ -1,0 +1,13 @@
+
+void main(in float2 texCoord0 : TEXCOORD0,
+	uniform samplerRECT image,
+	out float4 color : COLOR ) 
+{
+   float4 cPixel = texRECT(image, texCoord0);
+   float cMin = cPixel.r;
+   cMin = min(cMin, cPixel.g);
+   cMin = min(cMin, cPixel.b);
+   cMin = min(cMin, cPixel.a);
+
+   color = cMin;
+}
