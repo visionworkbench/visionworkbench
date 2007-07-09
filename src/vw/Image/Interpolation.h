@@ -221,6 +221,17 @@ namespace vw {
     return InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, InterpT>( edge_extend(v, ConstantEdgeExtension()), interp_func );
   }
 
+  /// Use this free function to pass in an arbitrary interpolation
+  /// functor.  You can use of the predefined functors at the top of
+  /// this file or even one of your own devising.  
+  /// 
+  /// This version of the interpolation function uses Constant edge
+  /// extension by default.
+  template <class ImageT> InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, BilinearInterpolation> 
+  interpolate( ImageViewBase<ImageT> const& v ) {
+    return InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, BilinearInterpolation>( edge_extend(v, ConstantEdgeExtension()), BilinearInterpolation() );
+  }
+
 } // namespace vw
 
 #endif // __VW_IMAGE_INTERPOLATION_H__
