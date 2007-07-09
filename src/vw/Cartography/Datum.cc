@@ -1,0 +1,210 @@
+// __BEGIN_LICENSE__
+// 
+// Copyright (C) 2006 United States Government as represented by the
+// Administrator of the National Aeronautics and Space Administration
+// (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
+// 
+// This software is distributed under the NASA Open Source Agreement
+// (NOSA), version 1.3.  The NOSA has been approved by the Open Source
+// Initiative.  See the file COPYING at the top of the distribution
+// directory tree for the complete NOSA document.
+// 
+// THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
+// KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
+// LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
+// SPECIFICATIONS, ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+// A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
+// THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
+// DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
+// 
+// __END_LICENSE__
+
+#include <vw/Cartography/Datum.h>
+#include <vw/Math/Functions.h>
+
+// GDAL
+#include "ogr_spatialref.h"
+
+vw::cartography::Datum::Datum(std::string const& name,
+                              std::string const& spheroid_name,
+                              std::string const& meridian_name,
+                              double semi_major_axis,
+                              double semi_minor_axis,
+                              double meridian_offset)
+  : m_name(name),
+    m_spheroid_name(spheroid_name),
+    m_meridian_name(spheroid_name),
+    m_semi_major_axis(semi_major_axis),
+    m_semi_minor_axis(semi_minor_axis),
+    m_meridian_offset(meridian_offset)
+{
+  std::ostringstream strm;
+  strm << "+a=" << semi_major_axis << " +b=" << semi_minor_axis;
+  m_proj_str = strm.str();
+}
+
+void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
+  m_meridian_name = "Grenwich";
+  m_meridian_offset = 0;
+  if (name == "WGS84") {        
+    m_name = "WGS_1984";
+    m_spheroid_name="WGS 84";
+    m_semi_major_axis = 6378137.0;
+    m_semi_minor_axis = 6356752.3;
+    m_proj_str = "+ellps=WGS84 +datum=WGS84";
+    
+  } else if (name == "WGS72") {
+    m_name="WGS_1972";
+    m_spheroid_name="WGS 72";
+    m_semi_major_axis = 6378135.0;
+    m_semi_minor_axis = 6356750.5;
+    m_proj_str = "+ellps=WGS72 +towgs84=0,0,4.5,0,0,0.554,0.2263";
+    
+  } else if (name == "NAD83") {
+    m_name="North_American_Datum_1983";
+    m_spheroid_name="GRS 1980";
+    m_semi_major_axis = 6378137;
+    m_semi_minor_axis = 6356752.3;
+    m_proj_str = "+ellps=GRS80 +datum=NAD83";
+    
+  } else if (name == "NAD27") {
+    m_name="North_American_Datum_1927";
+    m_spheroid_name="Clarke 1866";
+    m_semi_major_axis = 6378206.4;
+    m_semi_minor_axis = 6356583.8;
+    m_proj_str = "+ellps=clrk66 +datum=NAD27";
+  }
+}
+
+void vw::cartography::Datum::set_semi_major_axis(double val) { 
+  m_semi_major_axis = val;  
+  std::ostringstream strm;
+  strm << "+a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
+  m_proj_str = strm.str();
+}
+
+void vw::cartography::Datum::set_semi_minor_axis(double val) { 
+  m_semi_minor_axis = val;  
+  std::ostringstream strm;
+  strm << "+a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
+  m_proj_str = strm.str();
+}
+
+double vw::cartography::Datum::radius(double lat, double lon) const {
+  // Optimize in the case of spherical datum
+  if (m_semi_major_axis == m_semi_minor_axis) {
+    return m_semi_major_axis;
+  } 
+      
+  // Bi-axial Ellpisoid datum
+  double a = m_semi_major_axis;
+  double b = m_semi_minor_axis;
+  double t = atan((a/b) * tan(lat * M_PI / 180.0));
+  double x = a * cos(t);
+  double y = b * sin(t);
+  return sqrt(x*x + y*y);
+}
+
+double vw::cartography::Datum::inverse_flattening() const {
+  return 1.0 / (1.0 - m_semi_minor_axis / m_semi_major_axis);
+}
+
+
+vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian( vw::Vector3 const& p ) const {
+  double a = m_semi_major_axis;
+  double b = m_semi_minor_axis;
+  double a2 = a * a;
+  double b2 = b * b;
+  double e2 = (a2 - b2) / a2;
+  double ep2 = (a2 - b2) / b2;
+  
+  double lat = p.y();
+  if ( lat < -90 ) lat = -90;
+  if ( lat > 90 ) lat = 90;
+
+  double rlon = p.x() * (M_PI/180);
+  double rlat = lat * (M_PI/180);
+  double slat = sin( rlat );
+  double clat = cos( rlat );
+  double slon = sin( rlon );
+  double clon = cos( rlon );
+  double radius = a / sqrt(1.0-e2*slat*slat);
+
+  return Vector3( (radius+p.z()) * clat * clon,
+                  (radius+p.z()) * clat * slon,
+                  (radius*(1-e2)+p.z()) * slat );
+}
+
+
+// This function is based heavily on the similar 
+// Proj.4 function pj_Convert_Geocentric_To_Geodetic.
+vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& p ) const {
+  double a = m_semi_major_axis;
+  double b = m_semi_minor_axis;
+  double a2 = a * a;
+  double b2 = b * b;
+  double e2 = (a2 - b2) / a2;
+  double ep2 = (a2 - b2) / b2;
+
+  static const double epsilon = 1.0e-12;
+  static const double epsilon2 = epsilon*epsilon;
+  static const int maxiter = 30;
+  
+  double X = p.x();
+  double Y = p.y();
+  double Z = p.z();
+
+  double normxy = sqrt(p.x()*p.x()+p.y()*p.y()); // distance between semi-minor axis and location
+  double normp = norm_2(p);                      // distance between center and location
+  
+  double lon=0.0, alt=0.0;
+
+  // compute the longitude
+  if ( normxy/a < epsilon ) {
+    // special case for the origin
+    if ( normp/a < epsilon ) {
+      return Vector3(0,90,-b);
+    }
+  }
+  else {
+    lon = atan2(p.y(),p.x()) / (M_PI/180);
+  }
+  
+  // The following iterative algorithm was developped by
+  // "Institut fur Erdmessung", University of Hannover, July 1988.
+  // Internet: www.ife.uni-hannover.de
+  double cgcl = normxy/normp;     // cos of geocentric latitude
+  double sgcl = p.z()/normp;      // sin of geocentric latitude
+  double rx = 1.0/sqrt(1.0-e2*(2.0-e2)*cgcl*cgcl);
+  double clat = cgcl*(1.0-e2)*rx; // cos of geodetic latitude estimate
+  double slat = sgcl*rx;          // sin of geodetic latitude estimate
+  
+  // loop to find lat (in quadrature) until |lat[i]-lat[i-1]|<epsilon, roughly
+  for( int i=0; i<maxiter; ++i ) {
+    double ri = a/sqrt(1.0-e2*slat*slat); // radius at estimated location
+    alt = normxy*clat+Z*slat-ri*(1.0-e2*slat*slat);
+    double rk = e2*ri/(ri+alt);
+    rx = 1.0/sqrt(1.0-rk*(2.0-rk)*cgcl*cgcl);
+    double new_clat = cgcl*(1.0-rk)*rx;
+    double new_slat = sgcl*rx;
+    // sin(lat[i]-lat[i-1]) ~= lat[i]-lat[i-1]
+    double sdlat = new_slat*clat-new_clat*slat;
+    clat = new_clat;
+    slat = new_slat;
+    if( sdlat*sdlat < epsilon2 ) break;
+  }
+  
+  return Vector3( lon, atan(slat/fabs(clat))/(M_PI/180), alt );
+}
+
+std::ostream& vw::cartography::operator<<( std::ostream& os, vw::cartography::Datum const& datum ) {
+  os << "Geodeditic Datum --> Name: " << datum.name() << "  Spheroid: " << datum.spheroid_name() 
+     << "  Semi-major: " << datum.semi_major_axis()
+     << "  Semi-minor: " << datum.semi_minor_axis()
+     << "  Meridian: " << datum.meridian_name()
+     << "  at " << datum.meridian_offset();
+  return os;
+}
+
