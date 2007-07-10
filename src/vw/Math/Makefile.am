@@ -33,6 +33,7 @@ endif
 
 if HAVE_PKG_PPL
 ppl_headers = BConvex.h
+ppl_sources = BConvex.cc
 endif
 
 include_HEADERS = Vector.h Matrix.h BShape.h BBox.h BBall.h	\
@@ -40,7 +41,7 @@ include_HEADERS = Vector.h Matrix.h BShape.h BBox.h BBall.h	\
                   ConjugateGradient.h NelderMead.h SpatialTree.h	\
                   $(lapack_headers) $(ppl_headers)
 
-libvwMath_la_SOURCES = SpatialTree.cc
+libvwMath_la_SOURCES = SpatialTree.cc $(ppl_sources)
 libvwMath_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwMath_la_LIBADD = @MODULE_MATH_LDFLAGS@
 

@@ -28,6 +28,7 @@
 #define __VW_MATH__BCONVEX_H__
 
 #include <iostream>
+#include <limits>
 #include <math.h>
 #include <vector>
 
@@ -35,309 +36,387 @@
 
 #include <vw/Math/BShape.h>
 #include <vw/Math/Vector.h>
-
-#include <ppl.hh> // Parma Polyhedra Library
+#include <vw/Math/Functors.h>
 
 namespace vw {
 namespace math {
+
+  /// \cond INTERNAL
+  namespace bconvex_rational {
+    struct Rational {
+      //NOTE: we use these types because they are the longest input types supported by GMP
+      typedef long int SignedT;
+      typedef long unsigned int UnsignedT;
+      Rational() : signed_num( 0 ), unsigned_num( 0 ), den( 1 ), is_signed( false ) {}
+      SignedT signed_num;
+      UnsignedT unsigned_num;
+      UnsignedT den;
+      bool is_signed;
+    };
+
+    std::ostream& operator<<( std::ostream& os, Rational const& r ) {
+      if (r.is_signed)
+        return os << r.signed_num << "/" << r.den;
+      return os << r.unsigned_num << "/" << r.den;
+    }
+
+    template <class ValT, bool IntegralN=true, bool SignedN=true>
+    struct RationalBehavior {
+      static inline void set( ValT val, ValT max_abs, Rational &r ) {
+        ArgAbsFunctor abs_func;
+        if (abs_func(val) > max_abs)
+          std::cout << val << "->" << abs_func(val) << " > " << max_abs << std::endl;
+        VW_ASSERT( abs_func(val) <= max_abs, ArgumentErr() << "Trying to convert val to rational where abs(val) > max_abs." );
+        r.is_signed = true;
+        r.den = 1;
+        r.signed_num = (Rational::SignedT)val;
+      }
+      static inline ValT get( Rational const& r ) {
+        return (ValT)(r.signed_num);
+      }
+    };
+
+    template <class ValT>
+    struct RationalBehavior<ValT,true,false> {
+      static inline void set( ValT val, ValT max_abs, Rational &r ) {
+        VW_ASSERT( val <= max_abs, ArgumentErr() << "Trying to convert val to rational where abs(val) > max_abs." );
+        r.is_signed = false;
+        r.den = 1;
+        r.unsigned_num = (Rational::UnsignedT)val;
+      }
+      static inline ValT get( Rational const& r ) {
+        return (ValT)(r.unsigned_num);
+      }
+    };
+
+    template <class ValT>
+    struct RationalBehavior<ValT,false,true> {
+      static inline void set( ValT val, ValT max_abs, Rational &r ) {
+        ArgAbsFunctor abs_func;
+        VW_ASSERT( abs_func(val) <= max_abs, ArgumentErr() << "Trying to convert val to rational where abs(val) > max_abs." );
+        r.is_signed = true;
+        ArgCeilFunctor ceil_func;
+        Rational::SignedT den = std::numeric_limits<Rational::SignedT>::max() / (Rational::SignedT)ceil_func(max_abs);
+        r.den = (Rational::UnsignedT)den;
+        r.signed_num = (Rational::SignedT)(val * den);
+      }
+      static inline ValT get( Rational const& r ) {
+        return (ValT)(r.signed_num) / (ValT)(r.den);
+      }
+    };
+
+    template <class ValT>
+    struct RationalBehavior<ValT,false,false> {
+      static inline void set( ValT val, ValT max_abs, Rational &r ) {
+        VW_ASSERT( val <= max_abs, ArgumentErr() << "Trying to convert val to rational where abs(val) > max_abs." );
+        r.is_signed = false;
+        ArgCeilFunctor ceil_func;
+        r.den = std::numeric_limits<Rational::UnsignedT>::max() / (Rational::UnsignedT)ceil_func(max_abs);
+        r.unsigned_num = (Rational::UnsignedT)(val * r.den);
+      }
+      static inline ValT get( Rational const& r ) {
+        return (ValT)(r.unsigned_num) / (ValT)(r.den);
+      }
+    };
+
+    template <class ValT>
+    struct RationalFuncs {
+      static void set( ValT val, ValT max_abs, Rational &r ) {
+        // Make sure we have a type for which we know limits
+        BOOST_STATIC_ASSERT(std::numeric_limits<ValT>::is_specialized);
+        RationalBehavior<ValT,std::numeric_limits<ValT>::is_integer,std::numeric_limits<ValT>::is_signed>::set(val, max_abs, r);
+      }
+      static ValT get( Rational const& r ) {
+        // Make sure we have a type for which we know limits
+        BOOST_STATIC_ASSERT(std::numeric_limits<ValT>::is_specialized);
+        return RationalBehavior<ValT,std::numeric_limits<ValT>::is_integer,std::numeric_limits<ValT>::is_signed>::get(r);
+      }
+    };
+    
+    template <class ValT, bool IntegralN=true>
+    struct EpsilonBehavior {
+      static ValT epsilon() {
+        return 1;
+      }
+    };
+    
+    template <class ValT>
+    struct EpsilonBehavior<ValT,false> {
+      static ValT epsilon() {
+        return std::numeric_limits<ValT>::epsilon();
+      }
+    };
+    
+    template <class ValT>
+    struct EpsilonFunctor {
+      static ValT epsilon() {
+        // Make sure we have a type for which we know limits
+        BOOST_STATIC_ASSERT(std::numeric_limits<ValT>::is_specialized);
+        return EpsilonBehavior<ValT,std::numeric_limits<ValT>::is_integer>::epsilon();
+      }
+    };
+
+  } // namespace bconvex_rational
+  /// \endcond
   
   // *******************************************************************
   // class BConvex
   // *******************************************************************
   
   /// A general arbitrary-dimensional convex shape class.
-  template <class RealT>
-  class BConvex : public BShapeBase<BConvex<RealT>, RealT, 0> {
+  class BConvex : public BShapeBase<BConvex, double, 0> {
   public:
     /// Dimension-only constructor.
-    BConvex( unsigned dim ) : m_poly( dim, Parma_Polyhedra_Library::EMPTY ) {}
+    BConvex( unsigned dim ) {
+      m_poly = new_poly(dim);
+    }
+
+    /// Polyhedron-only constructor.
+    BConvex( const void *poly ) {
+      m_poly = new_poly(poly);
+    }
     
     /// Vector-of-points constructor.
     template <class ContainerT>
-    BConvex( std::vector<ContainerT> const& points ) : m_poly( points[0].size(), Parma_Polyhedra_Library::EMPTY ) {
+    BConvex( std::vector<ContainerT> const& points ) {
+      m_poly = new_poly(points[0].size());
       unsigned num_points = points.size();
       for (unsigned i = 0; i < num_points; i++)
         grow(points[i]);
     }
 
     /// Destructor.
-    ~BConvex() {}
+    ~BConvex() {
+      delete_poly(m_poly);
+      m_poly = 0;
+    }
     
     /// Copy constructor.
-    template <class RealT1>
-    BConvex( BConvex<RealT1> const& bconv )
-      : m_poly( bconv.poly() ) {}
+    BConvex( BConvex const& bconv ) {
+      m_poly = new_poly(bconv.poly());
+    }
     
     /// Copy assignment operator.
-    template <class RealT1>
-    BConvex& operator=( BConvex<RealT1> const& bconv ) {
-      m_poly = bconv.poly();
+    BConvex& operator=( BConvex const& bconv ) {
+      copy_poly(bconv.poly(), m_poly);
       return *this;
     }
     
     /// Returns the internal polyhedron.
-    Parma_Polyhedra_Library::C_Polyhedron &poly() {return m_poly;}
+    void *poly() {return m_poly;}
     
     /// Returns the internal polyhedron.
-    Parma_Polyhedra_Library::C_Polyhedron const& poly() const {return m_poly;}
+    const void *poly() const {return m_poly;}
     
     /// Grows a convex shape to include the given point.
     template <class VectorT>
     void grow( VectorBase<VectorT> const& point ) {
-      m_poly.add_generator(point_generator(point));
+      Vector<bconvex_rational::Rational> p;
+      grow_(convert_vector(point, p));
     }
     
     /// Grows a convex shape to include the given convex shape.
-    template <class RealT1>
-    void grow( BConvex<RealT1> const& bconv ) {
-      m_poly.poly_hull_assign(bconv.poly());
-    }
+    void grow( BConvex const& bconv );
     
     /// Crops (intersects) this convex shape to the given convex shape.
-    template <class RealT1>
-    void crop( BConvex<RealT1> const& bconv ) {
-      m_poly.intersection_assign(bconv.poly());
-    }
+    void crop( BConvex const& bconv );
     
     /// Expands this convex shape by the given offset in every direction.
-    void expand( RealT offset ) { //FIXME
+    void expand( double offset ) { //FIXME
       VW_ASSERT(0, LogicErr() << "expand() is not implemented for BConvex!");
     }
 
     /// Contracts this convex shape by the given offset in every direction.
-    void contract( RealT offset ) { //FIXME
+    void contract( double offset ) { //FIXME
       VW_ASSERT(0, LogicErr() << "contract() is not implemented for BConvex!");
     }
     
     /// Returns true if the given point is contained in the convex shape.
     template <class VectorT>
     bool contains( VectorBase<VectorT> const& point ) const {
-      return (m_poly.relation_with(point_generator(point)) == Parma_Polyhedra_Library::Poly_Gen_Relation::subsumes());
+      Vector<bconvex_rational::Rational> p;
+      return contains_(convert_vector(point, p));
     }
     
     /// Returns true if the given convex shape is entirely contained
     /// in this convex shape.
-    bool contains( BConvex const& bconv ) const {
-      return m_poly.contains(bconv.poly());
-    }
+    bool contains( BConvex const& bconv ) const;
     
     /// Returns true if the given convex shape intersects this
     /// convex shape.
-    bool intersects( BConvex const& bconv ) const {
-      return !m_poly.is_disjoint_from(bconv.poly());
-    }
+    bool intersects( BConvex const& bconv ) const;
     
     /// Returns the size (i.e. twice the largest distance between
     /// the center and a vertex) of the convex shape.
-    RealT size() const {
-      using namespace Parma_Polyhedra_Library;
-      unsigned dim = m_poly.space_dimension();
-      double result = 0;
-      double d;
-      Vector<double> v(dim);
-      Vector<double> c = center_();
-      const Generator_System &gs = m_poly.minimized_generators();
-      for (Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
-        const Generator &g = *i;
-        VW_ASSERT(g.is_point(), LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
-        for (unsigned j = dim - 1; 1; j--) {
-          v(j) = (RealT)(g.coefficient(Variable(j)).get_d());
-          if (j == 0)
-            break;
-        }
-        d = norm_2_sqr(v - c);
-        result = std::max(result, d);
-      }
-      result = 2*std::sqrt(result);
-      return (RealT)result;
-    }
+    double size() const;
 
     /// Returns the center point of the convex shape.
-    Vector<RealT> center() const {
-      Vector<double> c = center_();
-      Vector<RealT> result(c.size());
-      for (unsigned i = 0; i < c.size(); i++)
-        result(i) = (RealT)c(i);
-      return result;
-    }
+    Vector<double> center() const;
 
     /// Returns true if the convex shape is empty (i.e. degenerate).
-    bool empty() const {
-      return m_poly.is_empty();
-    }
+    bool empty() const;
+
+    /// Returns true if the given convex shape is equal to this
+    /// convex shape.
+    bool equal( BConvex const& bconv ) const;
+
+    /// Prints the convex shape.
+    void print( std::ostream& os ) const;
 
     /// Scales the convex shape relative to the origin.
     template <class ScalarT>
     BConvex& operator*=( ScalarT s ) {
-      using namespace Parma_Polyhedra_Library;
-      unsigned dim = m_poly.space_dimension();
-      for (unsigned i = dim - 1; 1; i--) {
-        Linear_Expression e;
-        e += Variable(i) * (s * 10000);
-        m_poly.affine_image(Variable(i), e, 10000);
-        if (i == 0)
-          break;
-      }
+      using namespace bconvex_rational;
+      Rational r;
+      operator_mult_eq_(convert_scalar(s, r));
       return *this;
     }
 
     /// Scales the convex shape relative to the origin.
     template <class ScalarT>
     BConvex& operator/=( ScalarT s ) {
-      using namespace Parma_Polyhedra_Library;
-      unsigned dim = m_poly.space_dimension();
-      for (unsigned i = dim - 1; 1; i--) {
-        Linear_Expression e;
-        e += Variable(i) * 10000;
-        m_poly.affine_image(Variable(i), e, s * 10000);
-        if (i == 0)
-          break;
-      }
+      using namespace bconvex_rational;
+      Rational r;
+      operator_div_eq_(convert_scalar(s, r));
       return *this;
     }
 
     /// Offsets the convex shape by the given vector.
     template <class VectorT>
     BConvex& operator+=( VectorBase<VectorT> const& v ) {
-      using namespace Parma_Polyhedra_Library;
-      unsigned dim = m_poly.space_dimension();
-      for (unsigned i = dim - 1; 1; i--) {
-        Linear_Expression e;
-        e += (Variable(i) * 10000) + (v.impl()(i) * 10000);
-        m_poly.affine_image(Variable(i), e, 10000);
-        if (i == 0)
-          break;
-      }
+      Vector<bconvex_rational::Rational> p;
+      operator_plus_eq_(convert_vector(v, p));
       return *this;
     }
 
     /// Offsets the convex shape by the negation of the given vector.
     template <class VectorT>
     BConvex& operator-=( VectorBase<VectorT> const& v ) {
-      using namespace Parma_Polyhedra_Library;
-      unsigned dim = m_poly.space_dimension();
-      for (unsigned i = dim - 1; 1; i--) {
-        Linear_Expression e;
-        e += (Variable(i) * 10000) + ((-v.impl()(i)) * 10000);
-        m_poly.affine_image(Variable(i), e, 10000);
-        if (i == 0)
-          break;
-      }
+      Vector<bconvex_rational::Rational> p;
+      operator_minus_eq_(convert_vector(v, p));
       return *this;
     }
 
   protected:
-    /// Returns the center point of the convex shape.
-    Vector<double> center_() const {
-      using namespace Parma_Polyhedra_Library;
-      unsigned dim = m_poly.space_dimension();
-      Vector<double> c(dim);
-      unsigned n = 0;
-      const Generator_System &gs = m_poly.minimized_generators();
-      fill(c, 0);
-      for (Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
-        const Generator &g = *i;
-        VW_ASSERT(g.is_point(), LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
-        for (unsigned j = dim - 1; 1; j--) {
-          c(j) += g.coefficient(Variable(j)).get_d();
-          if (j == 0)
-            break;
-        }
-        n++;
-      }
-      c /= n;
-      return c;
-    }
-  
-    /// Creates a PPL point.
+    /// Creates a polyhedron with the given dimension.
+    static void *new_poly( unsigned dim );
+
+    /// Creates a polyhedron that is a copy of the given polyhedron.
+    static void *new_poly( const void *poly );
+    
+    /// Deletes the given polyhedron.
+    static void delete_poly( void *poly );
+    
+    /// Copies polyhedron from_poly to polyhedron to_poly. 
+    static void copy_poly( const void *from_poly, void *to_poly );
+    
+    /// Converts a Vector to a Rational Vector.
     template <class VectorT>
-    Parma_Polyhedra_Library::Generator point_generator( VectorBase<VectorT> const& point ) const { //FIXME: non-constant precision
-      using namespace Parma_Polyhedra_Library;
-      //using namespace ::Parma_Polyhedra_Library::IO_Operators; // for debugging
-      Linear_Expression e;
-      for (unsigned i = point.impl().size() - 1; 1; i--) {
-        e += (point.impl()(i) * 10000) * Variable(i);
-        if (i == 0)
-          break;
-      }
-      Generator g = ::Parma_Polyhedra_Library::point(e, 10000);
-      //std::cout << e << std::endl;
-      return g;
+    static Vector<bconvex_rational::Rational> const& convert_vector( VectorBase<VectorT> const& point, Vector<bconvex_rational::Rational> &p ) {
+      using namespace bconvex_rational;
+      unsigned dim = point.impl().size();
+      p.set_size(dim);
+      typename VectorT::value_type max_abs = norm_inf(point);
+      typename VectorT::value_type eps = EpsilonFunctor<typename VectorT::value_type>::epsilon();
+      max_abs = std::max(max_abs, eps);
+      for (unsigned i = 0; i < dim; i++)
+        RationalFuncs<typename VectorT::value_type>::set(point.impl()(i), max_abs, p(i));
+      return p;
     }
     
-    Parma_Polyhedra_Library::C_Polyhedron m_poly;
+    /// Converts a scalar to a Rational.
+    template <class ScalarT>
+    static bconvex_rational::Rational const& convert_scalar( ScalarT s, bconvex_rational::Rational &r ) {
+      using namespace bconvex_rational;
+      RationalFuncs<ScalarT>::set(s, s, r);
+      return r;
+    }
+
+    /// Grows a convex shape to include the given point.
+    void grow_( Vector<bconvex_rational::Rational> const& point );
+
+    /// Returns true if the given point is contained in the convex shape.
+    bool contains_( Vector<bconvex_rational::Rational> const& point ) const;
+
+    /// Scales the convex shape relative to the origin.
+    void operator_mult_eq_( bconvex_rational::Rational const& s );
+
+    /// Scales the convex shape relative to the origin.
+    void operator_div_eq_( bconvex_rational::Rational const& s );
+
+    /// Offsets the convex shape by the given vector.
+    void operator_plus_eq_( Vector<bconvex_rational::Rational> const& v );
+
+    /// Offsets the convex shape by the negation of the given vector.
+    void operator_minus_eq_( Vector<bconvex_rational::Rational> const& v );
+    
+    void *m_poly;
   };
   
   /// Scales a convex shape relative to the origin.
-  template <class RealT, class ScalarT>
-  inline BConvex<RealT> operator*( BConvex<RealT> const& bconv, ScalarT s ) {
-    BConvex<RealT> result = bconv;
+  template <class ScalarT>
+  inline BConvex operator*( BConvex const& bconv, ScalarT s ) {
+    BConvex result = bconv;
     result *= s;
     return result;
   }
 
   /// Scales a convex shape relative to the origin.
-  template <class RealT, class ScalarT>
-  inline BConvex<RealT> operator/( BConvex<RealT> const& bconv, ScalarT s ) {
-    BConvex<RealT> result = bconv;
+  template <class ScalarT>
+  inline BConvex operator/( BConvex const& bconv, ScalarT s ) {
+    BConvex result = bconv;
     result /= s;
     return result;
   }
 
   /// Scales a convex shape relative to the origin.
-  template <class RealT, class ScalarT>
-  inline BConvex<RealT> operator*( ScalarT s, BConvex<RealT> const& bconv ) {
+  template <class ScalarT>
+  inline BConvex operator*( ScalarT s, BConvex const& bconv ) {
     return bconv * s;
   }
   
   /// Offsets a convex shape by the given vector.
-  template <class RealT, class VectorT>
-  inline BConvex<RealT> operator+( BConvex<RealT> const& bconv, VectorBase<VectorT> const& v ) {
-    BConvex<RealT> result = bconv;
+  template <class VectorT>
+  inline BConvex operator+( BConvex const& bconv, VectorBase<VectorT> const& v ) {
+    BConvex result = bconv;
     result += v.impl();
     return result;
   }
 
   /// Offsets a convex shape by the given vector.
-  template <class RealT, class VectorT>
-  inline BConvex<RealT> operator+( VectorBase<VectorT> const& v, BConvex<RealT> const& bconv ) {
+  template <class VectorT>
+  inline BConvex operator+( VectorBase<VectorT> const& v, BConvex const& bconv ) {
     return bconv + v;
   }
 
   /// Offsets a convex shape by the negation of the given vector.
-  template <class RealT, class VectorT>
-  inline BConvex<RealT> operator-( BConvex<RealT> const& bconv, VectorBase<VectorT> const& v ) {
-    BConvex<RealT> result = bconv;
+  template <class VectorT>
+  inline BConvex operator-( BConvex const& bconv, VectorBase<VectorT> const& v ) {
+    BConvex result = bconv;
     result -= v.impl();
     return result;
   }
 
   /// Equality of two convex shapes.
-  template <class RealT1, class RealT2>
-  inline bool operator==( BConvex<RealT1> const& bconv1, BConvex<RealT2> const& bconv2 ) {
-    return bconv1.poly() == bconv2.poly();
+  inline bool operator==( BConvex const& bconv1, BConvex const& bconv2 ) {
+    return bconv1.equal(bconv2);
   }
 
   /// Inequality of two convex shapes.
-  template <class RealT1, class RealT2>
-  inline bool operator!=( BConvex<RealT1> const& bconv1, BConvex<RealT2> const& bconv2 ) {
-    return bconv1.poly() != bconv2.poly();
+  inline bool operator!=( BConvex const& bconv1, BConvex const& bconv2 ) {
+    return !bconv1.equal(bconv2);
   }
   
   /// Writes a convex shape to an ostream.
-  template <class RealT>
-  std::ostream& operator<<( std::ostream& os, BConvex<RealT> const& bconv ) {
-    using ::Parma_Polyhedra_Library::IO_Operators::operator<<;
-    return os << bconv.poly();
+  std::ostream& operator<<( std::ostream& os, BConvex const& bconv ) {
+    bconv.print(os);
+    return os;
   }
 
 } // namespace math
 
-  // Convenience typedefs
+  // Include BConvex in vw namespace.
   using math::BConvex;
-  typedef BConvex<float64> BConvexN;
-  typedef BConvex<float32> BConvexNf;
-  typedef BConvex<int32> BConvexNi;
 } // namespace vw
 
 #endif // __VW_MATH__BCONVEX_H__
