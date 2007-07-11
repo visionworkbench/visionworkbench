@@ -40,7 +40,7 @@ namespace camera {
 
     //  Unit vectors defining camera coordinate frame
     Vector3 u,v,w;
-    pin_model.get_coordinate_frame(u,v,w);
+    pin_model.coordinate_frame(u,v,w);
 
     //  The true rotation between world and camera coordinate
     //  frames includes the rotation R --AND-- a rotation from

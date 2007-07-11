@@ -86,7 +86,7 @@ namespace camera {
       pin_model.intrinsic_parameters(fH, fV, Hc, Vc);    
 
       Vector3 u,v,w;
-      pin_model.get_coordinate_frame(u,v,w);
+      pin_model.coordinate_frame(u,v,w);
 
       Matrix<double,3,3> R = pin_model.camera_pose().rotation_matrix();
       Matrix<double,3,3> R_uvw;

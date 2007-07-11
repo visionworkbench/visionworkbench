@@ -302,19 +302,20 @@ namespace camera {
      *
      *  All three vectors must be of unit length.
      */
-    void coordinate_frame(Vector3 u_vec, Vector3 v_vec, Vector3 w_vec) {
+    void coordinate_frame(Vector3 &u_vec, Vector3 &v_vec, Vector3 &w_vec) const {
+      u_vec = m_u_direction;
+      v_vec = m_v_direction;
+      w_vec = m_w_direction;
+    }
+
+    void set_coordinate_frame(Vector3 u_vec, Vector3 v_vec, Vector3 w_vec) {
       m_u_direction = u_vec;
       m_v_direction = v_vec;
       m_w_direction = w_vec;
 
       rebuild_camera_matrix();
     }
-    void get_coordinate_frame(Vector3 &u_vec, Vector3 &v_vec, Vector3 &w_vec) const {
-      u_vec = m_u_direction;
-      v_vec = m_v_direction;
-      w_vec = m_w_direction;
-    }
-
+    
     // Redudant...
     Vector3 coordinate_frame_u_direction() const { return m_u_direction; }
     Vector3 coordinate_frame_v_direction() const { return m_v_direction; }
