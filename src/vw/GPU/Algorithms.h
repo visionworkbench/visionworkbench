@@ -70,14 +70,14 @@ namespace vw {
   // *******************************************************************
   
     /// Create a deep copy of an image. 
-    GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(copy, "Algorithmscopy-1i0f")
+    GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(copy, "Algorithms/copy-1i0f")
     
   // *******************************************************************
   // clamp()
   // *******************************************************************
 
   /// Clamp the values in an image to fall within the range [low,high].
-    GENERIC_FRAGMENT_SHADER_FUNCTION_1i2f(clamp, low, high, "Algorithmsclamp-1i2f")
+    GENERIC_FRAGMENT_SHADER_FUNCTION_1i2f(clamp, low, high, "Algorithms/clamp-1i2f")
 
   /// \cond internal
     inline GPUImageBase clamp(const GPUImageBase& image, float high) {

@@ -28,26 +28,15 @@
 #ifndef __VW_GPU_H__
 #define __VW_GPU_H__
 
-#include <vw/GPU/Display.h>
-#include <vw/GPU/EdgeExtension.h>
-#include <vw/GPU/Expressions.h>
-#include <vw/GPU/Filter.h>
-#include <vw/GPU/Fourier.h>
-#include <vw/GPU/GPUImage.h>
-#include <vw/GPU/GPUProgram.h>
-#include <vw/GPU/GenericShaders.h>
-#include <vw/GPU/ImageAlgorithms.h>
+#include <vw/GPU/Setup.h>
+#include <vw/GPU/Utilities.h>
+#include <vw/GPU/GPUImage.h> 
+#include <vw/GPU/Algorithms.h>
 #include <vw/GPU/ImageMath.h>
-#include <vw/GPU/ImageOperators.h>
-#include <vw/GPU/ImageStatistics.h>
-#include <vw/GPU/Interpolation.h>
-#include <vw/GPU/OpenGLManager.h>
-#include <vw/GPU/SimpleTransforms.h>
-#include <vw/GPU/TexAlloc.h>
-#include <vw/GPU/TexBlock.h>
-#include <vw/GPU/TexObj.h>
-#include <vw/GPU/Timer.h>
-#include <vw/GPU/TokenReplacer.h>
+#include <vw/GPU/Filter.h>
+#include <vw/GPU/Manipulation.h>
+#include <vw/GPU/Statistics.h>
 #include <vw/GPU/Transform.h>
+
 
 #endif // __VW_IMAGE_H__

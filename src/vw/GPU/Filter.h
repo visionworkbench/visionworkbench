@@ -78,7 +78,6 @@ namespace vw { namespace GPU {
     generate_gaussian_kernel(y_kernel, y_sigma, y_dim);
     GPUImageBase x_kernel_tex(x_kernel.size(), 1, TEX_R, TEX_FLOAT32, TEX_R, TEX_FLOAT32, &(x_kernel[0]));
     GPUImageBase y_kernel_tex(y_kernel.size(), 1, TEX_R, TEX_FLOAT32, TEX_R, TEX_FLOAT32, &(y_kernel[0]));
-	printf("xkernal size: %i, ykernal size %i\n", x_kernel.size(), y_kernel.size());
     return seperable_convolution_filter((GPUImageBase&) image, x_kernel_tex, y_kernel_tex);
   }
 

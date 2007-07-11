@@ -20,7 +20,10 @@
 
 namespace vw { namespace GPU {
 
-  class float16 { }; // Type is only for use as a template parameter to GPUImage.
+  class float16 {  // Type is a dummy type, and is only for use as a template parameter to GPUImage.
+  private:
+    float16() { }
+  }; 
 
 //#################################################################################################################
 //                                               Class: GPUImageBase
@@ -246,7 +249,7 @@ class GPUImageBase : public ShaderNode_Base {
 //#################################################################################################################
 //                                      Template Traits: TexTraitsForPixelT
 //   (This abstraction is required in order to consider a GPUImage<PixelRGBA<float16> > to be convertable to
-//    ImageView<RGBA<float> >. This is proper behavior since float16 is not a real C++ type, but a stand in to
+//    ImageView<PixelRGBA<float> >. This is proper behavior since float16 is not a real C++ type, but a stand in to
 //    represent the 16-bit precision floating point texture format that can be used by the GPU.)
 //#################################################################################################################
 

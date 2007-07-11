@@ -239,7 +239,7 @@ AX_PKG(GL, [X11], [-lGL], [GL/gl.h])
 AX_PKG(GLU, [GL], [-lGLU], [GL/glu.h])
 AX_PKG(GLUT, [GL GLU], [-lglut], [GL/glut.h])
 AX_PKG(FREEGLUT, [GL GLU], [-lglut], [GL/glut.h GL/freeglut_ext.h])
-AX_PKG(GLEW, [X11 GL GLU M], [-lGLEW -lSM -lICE], [GL/glew.h])
+AX_PKG(GLEW, [X11 GL GLU M], [-lGLEW], [GL/glew.h])
 AX_PKG(CG, [], [-lCg -lCgGL], [Cg/cg.h])
 
 AX_PKG(GDAL, [], [-lgdal], [gdal.h])
@@ -280,7 +280,7 @@ AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], yes, [
 AX_MODULE(CARTOGRAPHY, [src/vw/Cartography], [libvwCartography.la], yes, [VW PROJ4 XMLPARSER],[GDAL])
 AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], yes, [VW CAMERA BOOST_PROGRAM_OPTIONS LAPACK])
 AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], yes, [STEREO_SRC VW PTHREADS BOOST_THREAD])
-AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW GL GLU GLUT], [CG PTHREADS])
+AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW GL GLU GLUT GLEW], [CG PTHREADS])
 
 # These are here (instead of inside the MODULE macro where they belong)
 # for backwards compatability with older versions of automake.

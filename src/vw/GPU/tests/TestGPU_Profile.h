@@ -5,15 +5,7 @@
 #include <vw/Image.h>
 #include <vw/Math.h>
 
-#include <vw/GPU/Setup.h>
-#include <vw/GPU/GPUImage.h> 
-#include <vw/GPU/Filter.h>
-#include <vw/GPU/ImageOperators.h> 
-#include <vw/GPU/Algorithms.h>
-#include <vw/GPU/Statistics.h>
-#include <vw/GPU/ImageMath.h> 
-#include <vw/GPU/Manipulation.h>
-#include <vw/GPU/Transform.h>
+#include <vw/GPU.h>
 
 using namespace std;
 using namespace vw;  
@@ -343,10 +335,10 @@ GENERIC_FRAGMENT_SHADER_FUNCTION_1i2f(transform_sine_wave, period, amplitude, "U
     PROFILE_FUNCTION(result_tex = flip_horizontal(tex), result_img = flip_horizontal(img), "flip_horizontal(img)");
     PROFILE_FUNCTION(result_tex = flip_vertical(tex), result_img = flip_vertical(img), "flip_vertical(img)");
     PROFILE_FUNCTION(result_tex = rotate_180(tex), result_img = rotate_180(img), "rotate_180(img)");
-    PROFILE_FUNCTION(result_tex = rotate_90_ccw(tex), result_img = rotate_90_ccw(img), "rotate_90_ccw(img)");
-    PROFILE_FUNCTION(result_tex = rotate_90_cw(tex), result_img = rotate_90_cw(img), "rotate_90_cw(img)");
-    PROFILE_FUNCTION(result_tex = subsample(tex, 2, 2), result_img = subsample(img, 2, 2), "subsample(img, 2, 2)");
-    PROFILE_FUNCTION(result_tex = transpose(tex), result_img = transpose(img), "transpose(img)");
+    //  PROFILE_FUNCTION(result_tex = rotate_90_ccw(tex), result_img = rotate_90_ccw(img), "rotate_90_ccw(img)");
+    // PROFILE_FUNCTION(result_tex = rotate_90_cw(tex), result_img = rotate_90_cw(img), "rotate_90_cw(img)");
+    // PROFILE_FUNCTION(result_tex = subsample(tex, 2, 2), result_img = subsample(img, 2, 2), "subsample(img, 2, 2)");
+    // PROFILE_FUNCTION(result_tex = transpose(tex), result_img = transpose(img), "transpose(img)");
  // Transform
 	/*
     printf(" *** Transform:\n");
