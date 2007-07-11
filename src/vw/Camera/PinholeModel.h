@@ -42,17 +42,25 @@ namespace camera {
 
   /// This is a simple "generic" pinhole camera model.
   ///
-  /// The extrinsic parameters are the camera center (translation) and
+  /// The EXTRINSIC parameters are the camera center (translation) and
   /// rotation matrix (pose) of the camera. This transforms from world
-  /// frame to the frame of reference of the camera.  In the frame of
-  /// the camera, the camera's pointing vector is the +z unit vector,
-  /// and the image plane is aligned such that the positive x-pixel
-  /// direction (increasing image columns) is the camera frame's +x
+  /// frame to the frame of reference of the camera.  In the default 
+  /// Vision Workbench camera frame, the camera's pointing vector is the
+  /// +z unit vector, and the image plane is aligned such that the positive
+  /// x-pixel direction (increasing image columns) is the camera frame's +x
   /// vector, and the positive y-pixel direction (increasing image
   /// rows) is the frame's -y vector.  Note that this discrepancy in y
   /// frames is due to the fact that images stored in memory are most
-  /// naturally indexed starting in the upper left hand corner.  The
-  /// intrinsic portion of the camera matrix is nominally stored as
+  /// naturally indexed starting in the upper left hand corner.
+  ///
+  /// --->The user can re-define the direction of increasing x-pixel,
+  ///     increasing y-pixel, and pointing vector by specifying
+  ///     orthonormal vectors u,v,w. These are intended to simplify 
+  ///     movement between different camera coordinate conventions,
+  ///     rather than encoding the complete rotation between world
+  ///     and camera coordinate frames.
+  ///
+  /// The INTRINSIC portion of the camera matrix is nominally stored as
   ///
   ///    [  fx   0   cx  ]
   /// K= [  0   -fy  cy  ]
@@ -61,13 +69,17 @@ namespace camera {
   /// with fx, fy the focal length of the system (in horizontal and
   /// vertical pixels), and (cx, cy) the pixel coordinates of the
   /// central pixel (the principal point on the image
-  /// plane). Combining both the intrinsic camera matrix K with the
-  /// extrinsic matrices, R and C, we see that a real-world point (x,
+  /// plane). --Note that the default v direction is <0,-1,0>, so
+  /// K will be create with a POSITIVE fy term in the center; it
+  /// becomes negative when multiplied with the v_direction vector).
+  ///
+  /// Combining both the intrinsic camera matrix K with the
+  /// extrinsic matrices, (u,v,w rotation, R and C) we see that a real-world point (x,
   /// y, z), to pixel p in an image by:
   ///
-  ///     [  row  ]                     [ x ]
-  /// p = [  col  ]  =  K * [R | -R C]  [ y ]
-  ///     [   w   ]                     [ z ]
+  ///     [  row  ]         [ -u- ]               [ x ]
+  /// p = [  col  ]  =  K * [ -v- ] * [R | -R C]  [ y ]
+  ///     [   w   ]         [ -w- ]               [ z ]
   ///
   /// p is then in homogenous coordinates, so the w has to be divided
   /// out so that w=1. Here R and C are the extrinsic parameters
@@ -85,13 +97,12 @@ namespace camera {
     Matrix<double,3,3> m_rotation;
     Matrix<double,3,3> m_intrinsics;
 
-    // Intrinsic parameters
+    // Intrinsic parameters, in pixel units
     double m_fu, m_fv, m_cu, m_cv;
 
     // Vectors that define how the coordinate system of the camera
     // relate to the directions: +u (increasing image columns), +v
-    // (increasing image rows), and +w (complete the RH
-    /// coordinate system with u and v -- points into the image)
+    // (increasing image rows), and +w (out along optical axis)
     Vector3 m_u_direction;
     Vector3 m_v_direction;
     Vector3 m_w_direction;
@@ -150,6 +161,7 @@ namespace camera {
     /// (0,0) is the upper left hand corner of the image and the v
     /// coordinates increase as you move down the image.
     ///
+
     PinholeModel(Vector3 camera_center, 
                  Matrix<double,3,3> rotation,
                  double f_u, double f_v, 
@@ -225,27 +237,43 @@ namespace camera {
 
       rebuild_camera_matrix();
       m_distortion_model_ptr = boost::shared_ptr<LensDistortion>(new NullLensDistortion());
+      m_distortion_model_ptr->set_parent_camera_model(this);
     }
 
     virtual ~PinholeModel() {}
 
     /// Read a pinhole model from a file on disk.
+    /// Document the format of such files ?
     void read_file(std::string const& filename);
     
+
+
+
+
     //------------------------------------------------------------------
     // Methods
     //------------------------------------------------------------------
+
+
+    /** Computes the image of the point 'point' in 3D space on the
+     *  image plane.  Returns a pixel location (col, row) where the
+     *  point appears in the image. 
+     */
     virtual Vector2 point_to_pixel(Vector3 const& point) const {
 
-      // Multiply the pixel location by the camera matrix.
+      //  Multiply the pixel location by the camera matrix.
       double denominator = m_camera_matrix(2,0)*point(0) + m_camera_matrix(2,1)*point(1) + m_camera_matrix(2,2)*point(2) + m_camera_matrix(2,3);
       Vector2 pixel = Vector2( (m_camera_matrix(0,0)*point(0) + m_camera_matrix(0,1)*point(1) + m_camera_matrix(0,2)*point(2) + m_camera_matrix(0,3)) / denominator,
                                (m_camera_matrix(1,0)*point(0) + m_camera_matrix(1,1)*point(1) + m_camera_matrix(1,2)*point(2) + m_camera_matrix(1,3)) / denominator);
 
-      // Apply the lens distortion model
+      //  Apply the lens distortion model
       return m_distortion_model_ptr->get_distorted_coordinates(pixel);
     }
+    
 
+    /** Returns a (normalized) pointing vector from the camera center
+     *  through the position of the pixel 'pix' on the image plane.
+     */ 
     virtual Vector3 pixel_to_vector (Vector2 const& pix) const {
 
       // Apply the inverse lens distortion model
@@ -257,6 +285,7 @@ namespace camera {
       return normalize( m_inv_camera_transform * p);
     }
 
+    
     virtual Vector3 camera_center(Vector2 const& pix = Vector2() ) const { return m_camera_center; };
     void set_camera_center(Vector3 const& position) { m_camera_center = position; rebuild_camera_matrix(); }
     
@@ -264,34 +293,68 @@ namespace camera {
     void set_camera_pose(Quaternion<double> const& pose) { m_rotation = pose.rotation_matrix(); rebuild_camera_matrix(); }
     void set_camera_pose(Matrix<double,3,3> const& pose) { m_rotation = pose; rebuild_camera_matrix(); }
 
-    // Use this function to define how the coordinate system of the
-    // camera relate to the directions in the image: +u (increasing
-    // image columns), +v (increasing image rows), and +w (pointing
-    // away from the focal point in the direction of the imaged
-    // object).
-    void set_coordinate_frame(Vector3 u_vec, Vector3 v_vec, Vector3 w_vec) {
+
+    /*  u_direction, v_direction, and w_direction define how the coordinate
+     *  system of the camera relate to the directions in the image:
+     *  +u (increasing image columns),
+     *  +v (increasing image rows), and
+     *  +w (pointing away from the focal point in the direction of the imaged object).
+     *
+     *  All three vectors must be of unit length.
+     */
+    void coordinate_frame(Vector3 u_vec, Vector3 v_vec, Vector3 w_vec) {
       m_u_direction = u_vec;
       m_v_direction = v_vec;
       m_w_direction = w_vec;
 
       rebuild_camera_matrix();
     }
+    void get_coordinate_frame(Vector3 &u_vec, Vector3 &v_vec, Vector3 &w_vec) const {
+      u_vec = m_u_direction;
+      v_vec = m_v_direction;
+      w_vec = m_w_direction;
+    }
+
+    // Redudant...
     Vector3 coordinate_frame_u_direction() const { return m_u_direction; }
     Vector3 coordinate_frame_v_direction() const { return m_v_direction; }
     Vector3 coordinate_frame_w_direction() const { return m_w_direction; }
-    
+
+
 
     boost::shared_ptr<LensDistortion> lens_distortion() const { return m_distortion_model_ptr; };
-    void set_lens_distortion(LensDistortion const& distortion) { m_distortion_model_ptr = distortion.copy(); }
+    void set_lens_distortion(LensDistortion const& distortion) {
+      m_distortion_model_ptr = distortion.copy();
+      m_distortion_model_ptr->set_parent_camera_model(this);
+    }
 
+
+    //API change: renamed to include "get" in the name --mf 07-11-07
+    /**
+     *  f_u and f_v :  focal length in horiz and vert. pixel units
+     *  c_u and c_v :  principal point in pixel units
+     */
     void intrinsic_parameters(double& f_u, double& f_v, double& c_u, double& c_v) const { 
       f_u = m_fu;  f_v = m_fv;  c_u = m_cu;  c_v = m_cv;
     }
+
+    void set_intrinsic_parameters(double f_u, double f_v, double c_u, double c_v){
+      m_fu = f_u;  m_fv = f_v;  m_cu = c_u;  m_cv = c_v;
+      
+    }
+
     
   private:
     void rebuild_camera_matrix() {
+      // OLD WAY:
       // Set up the intrinsics matrix.  This process takes into
-      // account the coordinate frame defined by the user.
+      // account the coordinate frame defined by the user by
+      // re-defining the intrinsic matrix K as:
+      //
+      //            | fx   0   cx  |   | u_0  u_1  u_2  |  
+      //     K' =   | 0    fy  cy  | * | v_0  v_1  v_2  |
+      //            | 0    0   1   |   | w_0  w_1  w_2  |
+      /*
       m_intrinsics(0,0) = m_fu*m_u_direction(0)+m_cu*m_w_direction(0);
       m_intrinsics(0,1) = m_fu*m_u_direction(1)+m_cu*m_w_direction(1);
       m_intrinsics(0,2) = m_fu*m_u_direction(2)+m_cu*m_w_direction(2);
@@ -301,14 +364,76 @@ namespace camera {
       m_intrinsics(2,0) = m_w_direction(0);
       m_intrinsics(2,1) = m_w_direction(1);
       m_intrinsics(2,2) = m_w_direction(2);
+      */
 
-      // The extrinsics are built as the matrix:  [ R | -R*C ]
-      Matrix<double,3,4> extrinsics;
-      submatrix(extrinsics,0,0,3,3) = m_rotation;
-      select_col(extrinsics,3) = -m_rotation * m_camera_center;
-      m_camera_matrix = m_intrinsics * extrinsics;
+      /// NEW WAY:
+      /// The intrinsic portion of the camera matrix is stored as
+      ///
+      ///    [  fx   0   cx  ]
+      /// K= [  0    fy  cy  ]
+      ///    [  0    0   1   ]
+      ///
+      /// with fx, fy the focal length of the system (in horizontal and
+      /// vertical pixels), and (cx, cy) the pixel coordinates of the
+      /// central pixel (the principal point on the image plane).
       
-      m_inv_camera_transform = inverse(m_rotation) * inverse(m_intrinsics);
+      m_intrinsics(0,0) = m_fu;
+      m_intrinsics(0,1) = 0;
+      m_intrinsics(0,2) = m_cu;
+      m_intrinsics(1,0) = 0;
+      m_intrinsics(1,1) = m_fv;
+      m_intrinsics(1,2) = m_cv;
+      m_intrinsics(2,0) = 0;
+      m_intrinsics(2,1) = 0;
+      m_intrinsics(2,2) = 1;
+      
+      // The extrinsics are normally built as the matrix:  [ R | -R*C ].
+      // To allow for user-specified coordinate frames, the
+      // extrinsics are now build to include the u,v,w rotation
+      //
+      //               | u_0  u_1  u_2  |  
+      //     Extr. =   | v_0  v_1  v_2  | * [ R | -R*C]
+      //               | w_0  w_1  w_2  |
+      //
+      // The vectors u,v, and w must be orthonormal.
+      
+      /*   check for orthonormality of u,v,w              */
+      /*   maybe exceptions would be better to use here?  */
+      assert( dot_prod(m_u_direction, m_v_direction) == 0 );
+      assert( dot_prod(m_u_direction, m_w_direction) == 0 );
+      assert( dot_prod(m_v_direction, m_w_direction) == 0 );
+      assert( fabs( norm_2(m_u_direction) - 1 ) < 0.001 );
+      assert( fabs( norm_2(m_v_direction) - 1 ) < 0.001 );
+      assert( fabs( norm_2(m_w_direction) - 1 ) < 0.001 );
+      
+      /*
+      Matrix<double,3,4> extrinsics;
+      Matrix<double,3,4> standardExtrinsics;
+      Matrix<double,3,3> uvwRotation;
+
+      submatrix(standardExtrinsics,0,0,3,3) = m_rotation;
+      select_col(standardExtrinsics,3) = -m_rotation * m_camera_center;
+      
+      select_row(uvwRotation,0) = m_u_direction;
+      select_row(uvwRotation,1) = m_v_direction;
+      select_row(uvwRotation,2) = m_w_direction;
+
+      extrinsics = uvwRotation * standardExtrinsics;
+      */
+
+      //perhaps a more concise implementation:
+      Matrix<double,3,4> extrinsics;
+      Matrix<double,3,3> uvwRotation;
+
+      select_row(uvwRotation,0) = m_u_direction;
+      select_row(uvwRotation,1) = m_v_direction;
+      select_row(uvwRotation,2) = m_w_direction;
+
+      submatrix(extrinsics,0,0,3,3) = uvwRotation * m_rotation;
+      select_col(extrinsics,3) = uvwRotation * -m_rotation * m_camera_center;
+      
+      m_camera_matrix = m_intrinsics * extrinsics;
+      m_inv_camera_transform = inverse(uvwRotation*m_rotation) * inverse(m_intrinsics);
     }
 
   };

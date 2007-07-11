@@ -29,25 +29,40 @@ using namespace std;
 namespace vw {
 namespace camera {
 
-    // FIXME -- Disabled for now until Pinhole API stabilizes. -mbroxton
-//   CAHVModel CAHVModel::operator= (PinholeModel const& pin_model) {
-//       double fH = pin_model.intrinsic_matrix()(0,0);
-//       double fV = pin_model.intrinsic_matrix()(1,1);
-//       double Hc = pin_model.intrinsic_matrix()(0,2);
-//       double Vc = pin_model.intrinsic_matrix()(1,2);
-      
-//       Matrix<double,3,3> rot_matrix = pin_model.camera_pose().rotation_matrix();
+  // FIXME -- Disabled for now until Pinhole API stabilizes. -mbroxton
+  // Pinhole may have stabilized... make sure to incorporate the u,v,w
+  // camera frame vectors.
+  CAHVModel CAHVModel::operator= (PinholeModel const& pin_model) {
 
-//       Vector3 Hvec = select_row(rot_matrix,0);
-//       Vector3 Vvec = select_row(rot_matrix,1);
-      
-//       C = pin_model.camera_center();
-//       A = select_col(transpose(rot_matrix), 2);
-//       H = fH*Hvec + Hc*A;
-//       V = fV*Vvec + Vc*A;	      
+    //  Pinhole model parameters (in pixel units)
+    double fH, fV, Hc, Vc;
+    pin_model.intrinsic_parameters(fH, fV, Hc, Vc);
 
-//       return *this;
-//     }
+    //  Unit vectors defining camera coordinate frame
+    Vector3 u,v,w;
+    pin_model.get_coordinate_frame(u,v,w);
+
+    //  The true rotation between world and camera coordinate
+    //  frames includes the rotation R --AND-- a rotation from
+    //  specifying the directions of increasing u,v,w pixels
+    Matrix<double,3,3> R = pin_model.camera_pose().rotation_matrix();
+    Matrix<double,3,3> R_uvw;
+    select_row(R_uvw,0) = u;
+    select_row(R_uvw,1) = v;
+    select_row(R_uvw,2) = w;
+    Matrix<double,3,3> rot_matrix = R_uvw * R;
+
+    //  Now create the components of the CAHV model...
+    Vector3 Hvec = select_row(rot_matrix,0);
+    Vector3 Vvec = select_row(rot_matrix,1);
+      
+    C = pin_model.camera_center();
+    A = select_col(transpose(rot_matrix), 2);
+    H = fH*Hvec + Hc*A;
+    V = fV*Vvec + Vc*A;	      
+
+    return *this;
+  }
 
 
   /// This constructor takes a filename and reads in a camera model
