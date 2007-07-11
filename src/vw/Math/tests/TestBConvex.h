@@ -28,12 +28,30 @@
 #include <string>
 #include <vector>
 #include <math.h>
+#include <algorithm> // std::sort
+
+#include <boost/algorithm/string.hpp>
 
 #include <cxxtest/TestSuite.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/BConvex.h>
 
 using namespace vw;
+
+bool check_bconvex_print(std::string a, std::string b)
+{
+  std::vector<std::string> split_a, split_b;
+  std::vector<std::string>::iterator i;
+  boost::split(split_a, a, boost::is_any_of(","));
+  for (i = split_a.begin(); i != split_a.end(); i++)
+    boost::trim(*i);
+  std::sort(split_a.begin(), split_a.end());
+  boost::split(split_b, b, boost::is_any_of(","));
+  for (i = split_b.begin(); i != split_b.end(); i++)
+    boost::trim(*i);
+  std::sort(split_b.begin(), split_b.end());
+  return (split_a == split_b);
+}
 
 class TestBConvex : public CxxTest::TestSuite
 {
@@ -264,22 +282,22 @@ public:
     c1.grow(Vector3(0.5, 0.5, 0.5));
     std::ostringstream os1;
     os1 << c1;
-    TS_ASSERT_EQUALS( os1.str(), std::string("-C >= -1, -B >= -1, -A >= -1, A >= 0, C >= 0, B >= 0") );
+    TS_ASSERT( check_bconvex_print(os1.str(), std::string("-C >= -1, -B >= -1, -A >= -1, A >= 0, C >= 0, B >= 0")) );
     std::ostringstream os2;
     os2 << (c1 * 4);
-    TS_ASSERT_EQUALS( os2.str(), std::string("-C >= -4, -B >= -4, -A >= -4, A >= 0, C >= 0, B >= 0") );
+    TS_ASSERT( check_bconvex_print(os2.str(), std::string("-C >= -4, -B >= -4, -A >= -4, A >= 0, C >= 0, B >= 0")) );
     std::ostringstream os3;
     os3 << (4 * c1);
-    TS_ASSERT_EQUALS( os3.str(), std::string("-C >= -4, -B >= -4, -A >= -4, A >= 0, C >= 0, B >= 0") );
+    TS_ASSERT( check_bconvex_print(os3.str(), std::string("-C >= -4, -B >= -4, -A >= -4, A >= 0, C >= 0, B >= 0")) );
     std::ostringstream os4;
     os4 << ((c1 * 4) / 4);
-    TS_ASSERT_EQUALS( os4.str(), std::string("-C >= -1, -B >= -1, -A >= -1, A >= 0, C >= 0, B >= 0") );
+    TS_ASSERT( check_bconvex_print(os4.str(), std::string("-C >= -1, -B >= -1, -A >= -1, A >= 0, C >= 0, B >= 0")) );
     std::ostringstream os5;
     os5 << (c1 + Vector3(1, -2, 3));
-    TS_ASSERT_EQUALS( os5.str(), std::string("-C >= -4, -B >= 1, -A >= -2, A >= 1, C >= 3, B >= -2") );
+    TS_ASSERT( check_bconvex_print(os5.str(), std::string("-C >= -4, -B >= 1, -A >= -2, A >= 1, C >= 3, B >= -2")) );
     std::ostringstream os6;
     os6 << ((c1 + Vector3(1, -2, 3)) - Vector3(1, -2, 3));
-    TS_ASSERT_EQUALS( os6.str(), std::string("-C >= -1, -B >= -1, -A >= -1, A >= 0, C >= 0, B >= 0") );
+    TS_ASSERT( check_bconvex_print(os6.str(), std::string("-C >= -1, -B >= -1, -A >= -1, A >= 0, C >= 0, B >= 0")) );
 
     v.clear();
     // box with min (-2,-2,-2) and max (2,2,2)

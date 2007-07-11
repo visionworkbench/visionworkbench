@@ -32,6 +32,12 @@ using namespace vw::math::bconvex_rational;
 #include <ppl.hh> // Parma Polyhedra Library
 using namespace Parma_Polyhedra_Library;
 
+#if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
+extern "C" {
+#include <qhull/qhull.h>
+}
+#endif
+
 namespace {
   /// Creates a PPL point.
   Generator point_generator( vw::math::Vector<Rational> const& point ) {
@@ -56,19 +62,19 @@ namespace {
   
   /// Multiplies a PPL Variable by a scalar.
   template <class ScalarT>
-  Linear_Expression mult_variable(Variable v, ScalarT s) {
+  inline Linear_Expression mult_variable(Variable v, ScalarT s) {
     return v * s;
   }
   
   /// Adds a scalar to a PPL Linear_Expression.
   template <class ScalarT>
-  Linear_Expression add_scalar(Linear_Expression e, ScalarT s) {
+  inline Linear_Expression add_scalar(Linear_Expression e, ScalarT s) {
     return e + s;
   }
   
   /// Subtracts a scalar from a PPL Linear_Expression.
   template <class ScalarT>
-  Linear_Expression sub_scalar(Linear_Expression e, ScalarT s) {
+  inline Linear_Expression sub_scalar(Linear_Expression e, ScalarT s) {
     return e - s;
   }
 
@@ -95,7 +101,85 @@ namespace math {
   /*static*/ void BConvex::copy_poly( const void *from_poly, void *to_poly ) {
     *((C_Polyhedron*)to_poly) = *((const C_Polyhedron*)from_poly);
   }
+  
+  /*static*/ bool BConvex::have_qhull() {
+#if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
+    return true;
+#else
+    return false;
+#endif
+  }
 
+  void BConvex::init_with_qhull( unsigned dim, unsigned num_points, double *p ) {
+#if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
+    int retval;
+    int curlong, totlong;
+    facetT *facet;
+    Vector<double> facetv(dim + 1);
+    Vector<Rational> facetvr(dim + 1);
+    FILE *fake_stdout;
+    FILE *fake_stderr;
+    unsigned i;
+    
+    //FIXME: test that no other instance is active (qhull is not thread-safe)--wait on (global) lock
+  
+    fake_stdout = tmpfile();
+    if (!fake_stdout)
+      fake_stdout = stdout;
+    fake_stderr = tmpfile();
+    if (!fake_stderr)
+      fake_stderr = stderr;
+    retval = qh_new_qhull((int)dim, (int)num_points,
+                          p, False, "qhull s Tcv", fake_stdout, fake_stderr);
+    if (retval != 0 && fake_stderr != stderr) {
+      std::string qhull_error;
+      int c;
+      rewind(fake_stderr);
+      while ((c = fgetc(fake_stderr)) != EOF)
+        qhull_error.append(1, (char)c);
+      VW_ASSERT(retval == 0, vw::LogicErr() << "qhull returned with error: " << qhull_error);
+    }
+    VW_ASSERT(retval == 0, vw::LogicErr() << "qhull returned with error.");
+    if (fake_stdout != stdout)
+      fclose(fake_stdout);
+    if (fake_stderr != stderr)
+      fclose(fake_stderr);
+    
+    m_poly = (void*)(new C_Polyhedron( dim, UNIVERSE ));
+    FORALLfacets {
+      Linear_Expression e;
+      for (i = 0; i < dim; i++)
+        facetv[i] = facet->normal[i];
+      facetv[i] = facet->offset;
+      convert_vector(facetv, facetvr);
+      for (i = dim - 1; 1; i--) {
+        if (facetvr[0].is_signed)
+          e += mult_variable(Variable(i), facetvr[i].signed_num);
+        else
+          e += mult_variable(Variable(i), facetvr[i].unsigned_num);
+        if (i == 0)
+          break;
+      }
+      if (facetvr[0].is_signed)
+        e += facetvr[dim].signed_num;
+      else
+        e += facetvr[dim].unsigned_num;
+      //NOTE: Printing facet->toporient here for the [0,1]^3 unit cube test case (see TestBConvex.h) demonstrates that facet->toporient is meaningless in the qhull output.
+      Constraint c = (e <= 0);
+      ((C_Polyhedron*)m_poly)->add_constraint(c);
+    }
+    
+    VW_ASSERT(!this->empty(), LogicErr() << "Convex hull is empty!");
+    VW_ASSERT(!((const C_Polyhedron*)m_poly)->is_universe(), LogicErr() << "Convex hull is universe!");
+    
+    qh_freeqhull(!qh_ALL);
+    qh_memfreeshort(&curlong, &totlong);
+    VW_ASSERT(curlong == 0 && totlong == 0, vw::LogicErr() << "qhull did not free all of its memory");
+#else // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
+    return;
+#endif // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
+  }
+  
   void BConvex::grow_( Vector<Rational> const& point ) {
     ((C_Polyhedron*)m_poly)->add_generator(point_generator(point));
   }

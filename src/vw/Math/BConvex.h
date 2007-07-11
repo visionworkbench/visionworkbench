@@ -27,6 +27,17 @@
 #ifndef __VW_MATH__BCONVEX_H__
 #define __VW_MATH__BCONVEX_H__
 
+// In addition to the standard incremental grow() method, BConvex provides a
+// constructor that takes a std::vector of vw::Vectors. If qhull is available,
+// this constructor uses it to construct the initial convex hull, which is much
+// better than using the incremental grow() method for a large number of
+// points. Otherwise, this constructor is just like calling the incremental
+// grow() method for each point yourself. Note that you will probably not
+// notice the difference immediately--because of lazy evaluation in the Parma
+// Polyhedra Library (PPL), the std::vector constructor will be a bit faster
+// without qhull installed, but, if qhull is not installed, the first operation
+// that requires the hull can take a very long time while the hull is computed.
+
 #include <iostream>
 #include <limits>
 #include <math.h>
@@ -179,10 +190,22 @@ namespace math {
     /// Vector-of-points constructor.
     template <class ContainerT>
     BConvex( std::vector<ContainerT> const& points ) {
-      m_poly = new_poly(points[0].size());
       unsigned num_points = points.size();
-      for (unsigned i = 0; i < num_points; i++)
-        grow(points[i]);
+      VW_ASSERT( num_points > 0, ArgumentErr() << "No points provided to BConvex vector-of-points constructor!" );
+      unsigned dim = points[0].size();
+      if (have_qhull()) {
+        double *p = new double[num_points*dim];
+        for (unsigned i = 0, k = 0; i < num_points; i++)
+          for (unsigned int j = 0; j < dim; j++, k++)
+            p[k] = points[i][j];
+        init_with_qhull(dim, num_points, p);
+        delete[] p;
+      }
+      else {
+        m_poly = new_poly(dim);
+        for (unsigned i = 0; i < num_points; i++)
+          grow(points[i]);
+      }
     }
 
     /// Destructor.
@@ -223,12 +246,12 @@ namespace math {
     
     /// Expands this convex shape by the given offset in every direction.
     void expand( double offset ) { //FIXME
-      VW_ASSERT(0, LogicErr() << "expand() is not implemented for BConvex!");
+      VW_ASSERT( 0, LogicErr() << "expand() is not implemented for BConvex!" );
     }
 
     /// Contracts this convex shape by the given offset in every direction.
     void contract( double offset ) { //FIXME
-      VW_ASSERT(0, LogicErr() << "contract() is not implemented for BConvex!");
+      VW_ASSERT( 0, LogicErr() << "contract() is not implemented for BConvex!" );
     }
     
     /// Returns true if the given point is contained in the convex shape.
@@ -261,7 +284,7 @@ namespace math {
     bool equal( BConvex const& bconv ) const;
 
     /// Prints the convex shape.
-    void print( std::ostream& os ) const;
+    void print( std::ostream& os = std::cout ) const;
 
     /// Scales the convex shape relative to the origin.
     template <class ScalarT>
@@ -326,11 +349,17 @@ namespace math {
     
     /// Converts a scalar to a Rational.
     template <class ScalarT>
-    static bconvex_rational::Rational const& convert_scalar( ScalarT s, bconvex_rational::Rational &r ) {
+    static inline bconvex_rational::Rational const& convert_scalar( ScalarT s, bconvex_rational::Rational &r ) {
       using namespace bconvex_rational;
       RationalFuncs<ScalarT>::set(s, s, r);
       return r;
     }
+    
+    /// Returns whether qhull is available.
+    static bool have_qhull();
+    
+    /// Initialize polyhedron using qhull.
+    void init_with_qhull( unsigned dim, unsigned num_points, double *p );
 
     /// Grows a convex shape to include the given point.
     void grow_( Vector<bconvex_rational::Rational> const& point );
