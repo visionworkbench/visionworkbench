@@ -9,7 +9,7 @@
 
 namespace vw { namespace GPU {
 
-extern std::map<std::string, char*> standard_shader_map;
+extern std::map<std::string, char*> standard_shaders_map;
 
 void init_standard_shaders();
 

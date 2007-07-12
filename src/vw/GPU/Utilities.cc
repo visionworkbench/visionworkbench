@@ -131,7 +131,7 @@ bool CheckFramebuffer(bool enablePrint) {
 
 // File I/O
 
-bool ReadFileAsString(string& path, string& outString) {
+bool ReadFileAsString(const string& path, string& outString) {
 	ifstream file(path.c_str());
 	if(!file)
 		return false;

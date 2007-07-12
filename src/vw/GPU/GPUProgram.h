@@ -121,16 +121,16 @@ public:
 	GPUProgramSet_GLSL();
 	~GPUProgramSet_GLSL();
 	
-	GPUProgram_GLSL* get_program(const vector<int>& vertexAttributes, 
-				    const vector<int>& fragmentAttributes, 
+	GPUProgram_GLSL* get_program(const vector<int>& fragmentAttributes = vector<int>(), 
+				    const vector<int>& vertexAttributes = vector<int>(), 
 				    bool verbose = false );
 	  
 // Inline
-	void set_base_paths(const string& inVertexBasePath, const string& inFragmentBasePath) {
+	void set_base_paths(const string& inFragmentBasePath, const string& inVertexBasePath = "") {
 		vertexBasePath = inVertexBasePath;
 		fragmentBasePath = inFragmentBasePath;
 	}
-	void set_base_paths(const char* inVertexBasePath, const char* inFragmentBasePath) {
+	void set_base_paths(const char* inFragmentBasePath, const char* inVertexBasePath = "") {
 		vertexBasePath = inVertexBasePath;
 		fragmentBasePath = inFragmentBasePath;
 	}
@@ -214,16 +214,16 @@ public:
 	GPUProgramSet_CG();
 	~GPUProgramSet_CG();
 	
-	GPUProgram_CG* get_program(const vector<int>& vertexAttributes, 
-				    const vector<int>& fragmentAttributes, 
+	GPUProgram_CG* get_program(const vector<int>& fragmentAttributes = vector<int>(), 
+				    const vector<int>& vertexAttributes = vector<int>(), 
 				    bool verbose = false );
 	  
 // Inline
-	void set_base_paths(const string& inVertexBasePath, const string& inFragmentBasePath) {
+	void set_base_paths(const string& inFragmentBasePath, const string& inVertexBasePath = "") {
 		vertexBasePath = inVertexBasePath;
 		fragmentBasePath = inFragmentBasePath;
 	}
-	void set_base_paths(const char* inVertexBasePath, const char* inFragmentBasePath) {
+	void set_base_paths(const char* inFragmentBasePath, const char* inVertexBasePath = "") {
 		vertexBasePath = inVertexBasePath;
 		fragmentBasePath = inFragmentBasePath;
 	}
@@ -248,33 +248,33 @@ class GPUProgramSet {
 
   static bool get_use_assembly_caching() { return useAssemblyCaching; }
 
-  GPUProgram* get_program(const vector<int>& vertexAttributes, 
-			 const vector<int>& fragmentAttributes, 
+  GPUProgram* get_program(const vector<int>& vertexAttributes = vector<int>(), 
+			 const vector<int>& fragmentAttributes = vector<int>(), 
 			 bool verbose = false );
 	  
 // Inline
   GPUProgramSet();
 
-  GPUProgramSet(const char* inVertexBasePath, const char* inFragmentBasePath) {
-    set_base_paths(inVertexBasePath, inFragmentBasePath);
+  GPUProgramSet(const char* inFragmentBasePath, const char* inVertexBasePath = "") {
+    set_base_paths(inFragmentBasePath, inVertexBasePath);
   }
 
   ~GPUProgramSet();
-  void set_base_paths(const string& inVertexBasePath, const string& inFragmentBasePath) {
+  void set_base_paths(const string& inFragmentBasePath, const string& inVertexBasePath = "") {
     vertexBasePath = inVertexBasePath;
     fragmentBasePath = inFragmentBasePath;
-    programSet_GLSL.set_base_paths(inVertexBasePath, inFragmentBasePath);
+    programSet_GLSL.set_base_paths(inFragmentBasePath, inVertexBasePath);
 #ifdef HAVE_PKG_CG
-    programSet_CG.set_base_paths(inVertexBasePath, inFragmentBasePath);
+    programSet_CG.set_base_paths(inFragmentBasePath, inVertexBasePath);
 #endif  	
   }
 
   void set_base_paths(const char* inVertexBasePath, const char* inFragmentBasePath) {
     vertexBasePath = inVertexBasePath;
     fragmentBasePath = inFragmentBasePath;
-    programSet_GLSL.set_base_paths(inVertexBasePath, inFragmentBasePath);
+    programSet_GLSL.set_base_paths(inFragmentBasePath, inVertexBasePath);
 #ifdef HAVE_PKG_CG
-    programSet_CG.set_base_paths(inVertexBasePath, inFragmentBasePath);
+    programSet_CG.set_base_paths(inFragmentBasePath, inVertexBasePath);
 #endif  	
   }
 

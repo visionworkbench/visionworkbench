@@ -48,8 +48,8 @@ GPUProgramSet::~GPUProgramSet() {
 
 }
 
-GPUProgram* GPUProgramSet::get_program(const vector<int>& vertexAttributes, 
-				      const vector<int>& fragmentAttributes, 
+GPUProgram* GPUProgramSet::get_program(const vector<int>& fragmentAttributes, 
+				      const vector<int>& vertexAttributes, 
 				      bool verbose)
 {
   // LOGGING
@@ -125,8 +125,8 @@ GPUProgramSet_GLSL::~GPUProgramSet_GLSL() {
 }
 
 
-GPUProgram_GLSL* GPUProgramSet_GLSL::get_program(const vector<int>& vertexAttributes, 
-						const vector<int>& fragmentAttributes, 
+GPUProgram_GLSL* GPUProgramSet_GLSL::get_program(const vector<int>& fragmentAttributes, 
+						const vector<int>& vertexAttributes, 
 						bool verbose /* = false */)
  {
 
@@ -154,16 +154,14 @@ GPUProgram_GLSL* GPUProgramSet_GLSL::get_program(const vector<int>& vertexAttrib
 			vertexShader = new GPUVertexShader_GLSL;
 			vertexMap[vertexAttributes] = vertexShader;
 			if(vertexBasePath.size()) {
-				if(vertexAttributes.size() == 0 || vertexAttributes[0] == 4) 
-				  typeString = "_rgba";
-				else if(vertexAttributes[0] == 3)
-				  typeString = "_rgb";		  
-				else	
-				  typeString = "_r";
-				string vertFilePath = GPUShaderDirectory + vertexBasePath + "_gl_vert" + typeString;
 				string vertRawString;
 				string vertReplacedString;
-				if(!ReadFileAsString(vertFilePath, vertRawString)) {
+
+				std::map<std::string, char*>::iterator iter_map = standard_shaders_map.find((vertexBasePath + ".cg").c_str());
+				if(iter_map != standard_shaders_map.end()) {
+				  vertRawString = (*iter_map).second;
+				}
+				else if(!ReadFileAsString(GPUShaderDirectory + vertexBasePath + ".cg", vertRawString)) {
 					if(verbose) printf("Vertex file read error.\n");
 					shaderCompilationStatus = SHADER_COMPILATION_STATUS_FILE_ERROR;
 					return NULL;
@@ -181,7 +179,6 @@ GPUProgram_GLSL* GPUProgramSet_GLSL::get_program(const vector<int>& vertexAttrib
 					sourceString = vertReplacedString;
 				}
 				if(verbose) { 
-				  printf("\n*** %s:\n", vertFilePath.c_str());
 				  printf("Specialization: < ");
 				  for(int i=0; i < vertexAttributes.size(); i++) {
 				    printf("%i ", vertexAttributes[i]);
@@ -207,18 +204,15 @@ GPUProgram_GLSL* GPUProgramSet_GLSL::get_program(const vector<int>& vertexAttrib
 	else {
 		fragmentShader = new GPUFragmentShader_GLSL;
 		if(fragmentBasePath.size()) {
-			if(fragmentAttributes.size() == 0 || fragmentAttributes[0] == 4) 
-			  typeString = "_rgba";
-			else if(fragmentAttributes[0] == 3)
-			  typeString = "_rgb";		  
-
-			else	
-			  typeString = "_r";
-			string fragFilePath = GPUShaderDirectory + fragmentBasePath + "_gl_frag" + typeString;
 			string fragRawString;
 			string fragReplacedString;
-			if(!ReadFileAsString(fragFilePath, fragRawString)) {
-				if(verbose) printf("Fragment file read error. (%s)\n", fragFilePath.c_str());
+
+			std::map<std::string, char*>::iterator iter_map = standard_shaders_map.find((fragmentBasePath + ".glsl").c_str());
+			if(iter_map != standard_shaders_map.end()) {
+			  fragRawString = (*iter_map).second;
+			}
+			else if(!ReadFileAsString(GPUShaderDirectory + fragmentBasePath + ".cg", fragRawString)) {
+			  // if(verbose) printf("Fragment file read error. (%s)\n", fragFilePath.c_str());
 				shaderCompilationStatus = SHADER_COMPILATION_STATUS_FILE_ERROR;
 				return NULL;
 			}
@@ -237,7 +231,6 @@ GPUProgram_GLSL* GPUProgramSet_GLSL::get_program(const vector<int>& vertexAttrib
 			}
 
 			if(verbose) { 
-			  printf("\n*** %s:\n", fragFilePath.c_str());
 			  printf("Specialization: < ");
 			  for(int i=0; i < fragmentAttributes.size(); i++) {
 			    printf("%i ", fragmentAttributes[i]);
@@ -502,8 +495,8 @@ GPUProgramSet_CG::~GPUProgramSet_CG() {
 }
 
 
-  GPUProgram_CG* GPUProgramSet_CG::get_program(const vector<int>& vertexAttributes, 
-					      const vector<int>& fragmentAttributes, 
+  GPUProgram_CG* GPUProgramSet_CG::get_program(const vector<int>& fragmentAttributes, 
+					      const vector<int>& vertexAttributes, 
 					      bool verbose)
   {
     bool useAssemblyCaching = GPUProgramSet::get_use_assembly_caching();
@@ -520,21 +513,18 @@ GPUProgramSet_CG::~GPUProgramSet_CG() {
     //
     auto_ptr<GPUShader_CG> vertexShader(NULL);
     auto_ptr<GPUShader_CG> fragmentShader(NULL);									    
- // Get Source Strings
+ // Get Source Strings - Try to find in STD virtual directory, then try the real path
     string vertRawString;
     string fragRawString;
     string fragAssemblyFilePath;
     bool fragComplete = false;
     // VERTEX
     if(!vertexBasePath.empty()) {
-      string typeString;
-      if(vertexAttributes.size() == 0 || vertexAttributes[0] > 1) 
-	typeString = "_rgba";
-      else	
-	typeString = "_r";
-      string vertFilePath = GPUShaderDirectory + vertexBasePath + "_cg_vert" + typeString;
-      
-      if(!ReadFileAsString(vertFilePath, vertRawString)) {
+      std::map<std::string, char*>::iterator iter_map = standard_shaders_map.find((vertexBasePath + ".cg").c_str());
+      if(iter_map != standard_shaders_map.end()) {
+	vertRawString = (*iter_map).second;
+      }
+      else if(!ReadFileAsString(GPUShaderDirectory + vertexBasePath + ".cg", vertRawString)) {
 	if(verbose) printf("[GPUProgramSet_CG::GetProgram] Error: Vertex File Not Found.\n");
 	shaderCompilationStatus = SHADER_COMPILATION_STATUS_FILE_ERROR;
 	return NULL;
@@ -544,13 +534,6 @@ GPUProgramSet_CG::~GPUProgramSet_CG() {
      if(!fragmentBasePath.empty()) {
        // Create new shader
       fragmentShader.reset(new GPUShader_CG);
-      // Make Base Path
-      string typeString;
-      if(fragmentAttributes.size() == 0 || fragmentAttributes[0] > 1) 
-	typeString = "_rgba";
-      else     
-	typeString = "_r";
-      string fragFilePath = GPUShaderDirectory + fragmentBasePath + "_cg_frag" + typeString;
       // If using assembly caching, create assembly path and attempt to load it.
       if(useAssemblyCaching) {
 	string modifiedFragmentBasePath = fragmentBasePath;
@@ -570,9 +553,13 @@ GPUProgramSet_CG::~GPUProgramSet_CG() {
 	  if(verbose) printf("[GPUProgramSet_CG::GetProgram] Assembly Fragment file not compiled.\n");
 	}
       }
-      // If necessary, read source string		      
+      // If necessary, read source string	      
       if(!fragComplete) {
-	if(!ReadFileAsString(fragFilePath, fragRawString)) {
+	std::map<std::string, char*>::iterator iter_map = standard_shaders_map.find((fragmentBasePath + ".cg").c_str());
+	if(iter_map != standard_shaders_map.end()) {
+	  fragRawString = (*iter_map).second;
+	}
+	else if(!ReadFileAsString(GPUShaderDirectory + fragmentBasePath + ".cg", fragRawString)) {
 	  if(verbose) printf("[GPUProgramSet_CG::GetProgram] Error: Fragment File Not Found.\n");
 	  shaderCompilationStatus = SHADER_COMPILATION_STATUS_FILE_ERROR;
 	  return NULL;

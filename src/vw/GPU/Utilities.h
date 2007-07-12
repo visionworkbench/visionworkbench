@@ -91,7 +91,7 @@ public:
 
 // File I/O
 
-bool ReadFileAsString(string& path, string& outString);
+bool ReadFileAsString(const string& path, string& outString);
 
 // OpenGL
 

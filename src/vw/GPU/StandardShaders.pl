@@ -21,6 +21,8 @@ print OUT "void init_standard_shaders() {\n";
 #Iterate Through Input Files, printing map insert functions
 foreach $filename (@files) {
   chomp($filename);
+  $filename =~ /\.\/shaders/(.*)/;
+  $mapname = $1;
   open(IN, $filename);
   print OUT "standard_shaders_map[\"", $filename, "\"] = \" \\\n";
   while ($line = <IN>) {
