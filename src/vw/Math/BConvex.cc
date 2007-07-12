@@ -25,6 +25,7 @@
 #include <math.h>
 #include <vector>
 
+#include <vw/config.h> // VW_HAVE_PKG_QHULL
 #include <vw/Math/Vector.h>
 #include <vw/Math/BConvex.h>
 using namespace vw::math::bconvex_rational;
