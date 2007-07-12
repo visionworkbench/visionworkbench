@@ -1,0 +1,31 @@
+
+void main(in float2 texCoord0 : TEXCOORD0,
+	uniform samplerRECT i1,
+	uniform float f1,  // threshold
+	uniform float f2,  // low
+	uniform float f3,  // high
+	out float4 color : COLOR ) 
+{
+   float4 value = texRECT(i1, texCoord0);
+
+   if(value.r > f1)
+      color.r = f3;
+   else
+      color.r = f2;
+
+   if(value.g > f1)
+      color.g = f3;
+   else
+      color.g = f2;
+
+   if(value.b > f1)
+      color.b = f3;
+   else
+      color.b = f2;
+
+   if(value.a > f1)
+      color.a = f3;
+   else
+      color.a = f2;
+
+}
