@@ -47,6 +47,8 @@ PKG_PATHS="  \
   $IRGPKG_DIR/LAPACK           \
   $IRGPKG_DIR/glew             \
   $IRGPKG_DIR/cg               \
+  $IRGPKG_DIR/qhull-2003.1     \
+  $IRGPKG_DIR/ppl-0.9          \
   /usr/X11R6                   \
 "
 
