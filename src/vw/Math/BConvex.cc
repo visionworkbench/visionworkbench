@@ -25,6 +25,8 @@
 #include <math.h>
 #include <vector>
 
+#include <boost/thread/mutex.hpp>
+
 #include <vw/config.h> // VW_HAVE_PKG_QHULL
 #include <vw/Math/Vector.h>
 #include <vw/Math/BConvex.h>
@@ -40,6 +42,9 @@ extern "C" {
 #endif
 
 namespace {
+  /// Mutex for qhull, which is not thread-safe.
+  boost::mutex bconvex_qhull_mutex;
+
   /// Creates a PPL point.
   Generator point_generator( vw::math::Vector<Rational> const& point ) {
     Linear_Expression e;
@@ -113,6 +118,7 @@ namespace math {
 
   void BConvex::init_with_qhull( unsigned dim, unsigned num_points, double *p ) {
 #if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
+    boost::mutex::scoped_lock lock(bconvex_qhull_mutex);
     int retval;
     int curlong, totlong;
     facetT *facet;
@@ -121,8 +127,6 @@ namespace math {
     FILE *fake_stdout;
     FILE *fake_stderr;
     unsigned i;
-    
-    //FIXME: test that no other instance is active (qhull is not thread-safe)--wait on (global) lock
   
     fake_stdout = tmpfile();
     if (!fake_stdout)
