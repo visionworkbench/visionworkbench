@@ -131,12 +131,14 @@ namespace camera {
       this->rebuild_camera_matrix();
 
       m_distortion_model_ptr = boost::shared_ptr<LensDistortion>(new NullLensDistortion());
+      m_distortion_model_ptr->set_parent_camera_model(this); // I think this line should be here?
     }
 
     /// Initialize from a file on disk.
     PinholeModel(std::string const& filename) {
       read_file(filename);
       m_distortion_model_ptr = boost::shared_ptr<LensDistortion>(new NullLensDistortion());
+      m_distortion_model_ptr->set_parent_camera_model(this); //I think this line should be here?
     }
     
     /// Initialize the pinhole model with explicit parameters.
@@ -315,7 +317,8 @@ namespace camera {
 
       rebuild_camera_matrix();
     }
-    
+
+
     // Redudant...
     Vector3 coordinate_frame_u_direction() const { return m_u_direction; }
     Vector3 coordinate_frame_v_direction() const { return m_v_direction; }
@@ -326,11 +329,11 @@ namespace camera {
     boost::shared_ptr<LensDistortion> lens_distortion() const { return m_distortion_model_ptr; };
     void set_lens_distortion(LensDistortion const& distortion) {
       m_distortion_model_ptr = distortion.copy();
-      m_distortion_model_ptr->set_parent_camera_model(this);
+      m_distortion_model_ptr->set_parent_camera_model(this); //Not sure if this is necessary?
     }
 
 
-    //API change: renamed to include "get" in the name --mf 07-11-07
+
     /**
      *  f_u and f_v :  focal length in horiz and vert. pixel units
      *  c_u and c_v :  principal point in pixel units
@@ -341,33 +344,13 @@ namespace camera {
 
     void set_intrinsic_parameters(double f_u, double f_v, double c_u, double c_v){
       m_fu = f_u;  m_fv = f_v;  m_cu = c_u;  m_cv = c_v;
-      
+      rebuild_camera_matrix();
     }
 
     
   private:
     void rebuild_camera_matrix() {
-      // OLD WAY:
-      // Set up the intrinsics matrix.  This process takes into
-      // account the coordinate frame defined by the user by
-      // re-defining the intrinsic matrix K as:
-      //
-      //            | fx   0   cx  |   | u_0  u_1  u_2  |  
-      //     K' =   | 0    fy  cy  | * | v_0  v_1  v_2  |
-      //            | 0    0   1   |   | w_0  w_1  w_2  |
-      /*
-      m_intrinsics(0,0) = m_fu*m_u_direction(0)+m_cu*m_w_direction(0);
-      m_intrinsics(0,1) = m_fu*m_u_direction(1)+m_cu*m_w_direction(1);
-      m_intrinsics(0,2) = m_fu*m_u_direction(2)+m_cu*m_w_direction(2);
-      m_intrinsics(1,0) = m_fv*m_v_direction(0)+m_cv*m_w_direction(0);
-      m_intrinsics(1,1) = m_fv*m_v_direction(1)+m_cv*m_w_direction(1);
-      m_intrinsics(1,2) = m_fv*m_v_direction(2)+m_cv*m_w_direction(2);
-      m_intrinsics(2,0) = m_w_direction(0);
-      m_intrinsics(2,1) = m_w_direction(1);
-      m_intrinsics(2,2) = m_w_direction(2);
-      */
 
-      /// NEW WAY:
       /// The intrinsic portion of the camera matrix is stored as
       ///
       ///    [  fx   0   cx  ]
@@ -406,23 +389,7 @@ namespace camera {
       assert( fabs( norm_2(m_u_direction) - 1 ) < 0.001 );
       assert( fabs( norm_2(m_v_direction) - 1 ) < 0.001 );
       assert( fabs( norm_2(m_w_direction) - 1 ) < 0.001 );
-      
-      /*
-      Matrix<double,3,4> extrinsics;
-      Matrix<double,3,4> standardExtrinsics;
-      Matrix<double,3,3> uvwRotation;
 
-      submatrix(standardExtrinsics,0,0,3,3) = m_rotation;
-      select_col(standardExtrinsics,3) = -m_rotation * m_camera_center;
-      
-      select_row(uvwRotation,0) = m_u_direction;
-      select_row(uvwRotation,1) = m_v_direction;
-      select_row(uvwRotation,2) = m_w_direction;
-
-      extrinsics = uvwRotation * standardExtrinsics;
-      */
-
-      //perhaps a more concise implementation:
       Matrix<double,3,4> extrinsics;
       Matrix<double,3,3> uvwRotation;
 
