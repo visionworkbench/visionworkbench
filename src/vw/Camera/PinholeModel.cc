@@ -25,6 +25,7 @@
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Math/EulerAngles.h>
 
+
 void vw::camera::PinholeModel::read_file(std::string const& filename) {
 
   char line[2048];
@@ -33,57 +34,61 @@ void vw::camera::PinholeModel::read_file(std::string const& filename) {
   Vector3 C;
   Matrix3x3 R;
 
+  /// k1 is distortion_params[0], k2 is distortion_params[1],
+  /// p1 is distortion_params[2], p2 is distortion_params[3]
+  Vector4 distortion_params;
+
   FILE *cam_file = fopen(filename.c_str(), "r");
-  if (cam_file == 0) vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not open file\n" );
+  if (cam_file == 0) vw_throw( IOErr() << "PinholeModel::read_file: Could not open file\n" );
     
   // Read intrinsic parameters
   fgets(line, sizeof(line), cam_file);
   if (sscanf(line,"fu = %lf", &fu) != 1) {
     fclose(cam_file);
-    vw_throw( IOErr() << "read_pinhole(): Could not read x focal length\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read x focal length\n" );
   }
 
   fgets(line, sizeof(line), cam_file);
   if (sscanf(line,"fv = %lf", &fv) != 1) {
     fclose(cam_file);
-    vw_throw( IOErr() << "read_pinhole(): Could not read y focal length\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read y focal length\n" );
   }
 
   fgets(line, sizeof(line), cam_file);
   if (sscanf(line,"cu = %lf", &cu) != 1) {
     fclose(cam_file);
-    vw_throw( IOErr() << "read_pinhole(): Could not read x principal point\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read x principal point\n" );
   }
 
   fgets(line, sizeof(line), cam_file);
   if (sscanf(line,"cv = %lf", &cv) != 1) {
     fclose(cam_file);
-    vw_throw( IOErr() << "read_pinhole(): Could not read y principal point\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read y principal point\n" );
   }
 
   fgets(line, sizeof(line), cam_file);
   if (sscanf(line,"u_direction = %lf %lf %lf", &u_direction(0), &u_direction(1), &u_direction(2)) != 3) {
     fclose(cam_file);
-    vw_throw( IOErr() << "read_pinhole(): Could not read u direction vector\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read u direction vector\n" );
   }
 
   fgets(line, sizeof(line), cam_file);
   if (sscanf(line,"v_direction = %lf %lf %lf", &v_direction(0), &v_direction(1), &v_direction(2)) != 3) {
     fclose(cam_file);
-    vw_throw( IOErr() << "read_pinhole(): Could not read v direction vector\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read v direction vector\n" );
   }
 
   fgets(line, sizeof(line), cam_file);
   if (sscanf(line,"w_direction = %lf %lf %lf", &w_direction(0), &w_direction(1), &w_direction(2)) != 3) {
     fclose(cam_file);
-    vw_throw( IOErr() << "read_pinhole(): Could not read w direction vector\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read w direction vector\n" );
   }
 
   // Read extrinsic parameters
   fgets(line, sizeof(line), cam_file);
   if (sscanf(line,"C = %lf %lf %lf", &C(0), &C(1), &C(2)) != 3) {
     fclose(cam_file);
-    vw_throw( IOErr() << "read_pinhole: Could not read C (camera center) vector\n" );
+    vw_throw( IOErr() << "PinholeModel::read_file: Could not read C (camera center) vector\n" );
   }
   
   fgets(line, sizeof(line), cam_file);
@@ -92,8 +97,36 @@ void vw::camera::PinholeModel::read_file(std::string const& filename) {
               &R(1,0), &R(1,1), &R(1,2),
               &R(2,0), &R(2,1), &R(2,2)) != 9 ) {
       fclose(cam_file);
-      vw_throw( IOErr() << "read_pinhole(): Could not read rotation matrix\n" );
+      vw_throw( IOErr() << "PinholeModel::read_file(): Could not read rotation matrix\n" );
   }
+  // Read distortion parameters (NOTE: the constructor PinholeModel(filename) should
+  //be changed when this is done to create a distortion model using these params,
+  // rather than creating a null dist model
+  
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"k1 = %lf", &distortion_params[0] ) != 1) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read tsai distortion parameter k1\n" );
+  }
+  
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"k2 = %lf", &distortion_params[1] ) != 1) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read tsai distortion parameter k2\n" );
+  }
+
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"p1 = %lf", &distortion_params[2] ) != 1) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read tsai distortion parameter p1\n" );
+  }
+
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"p2 = %lf", &distortion_params[3] ) != 1) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read tsai distortion parameter p2\n" );
+  }
+  
   fclose(cam_file);
   
   m_u_direction = u_direction;
@@ -108,4 +141,41 @@ void vw::camera::PinholeModel::read_file(std::string const& filename) {
   
   m_rotation = R;
   this->rebuild_camera_matrix();
+
+
+  m_distortion_model_ptr = boost::shared_ptr<LensDistortion>(new TsaiLensDistortion(distortion_params));
+  m_distortion_model_ptr->set_parent_camera_model(this);
 }
+
+/**
+ *  Write parameters of an exiting PinholeModel into a .tsai file for later use.
+ *  WARNING: right now this does not output distortion parameters, since I don't
+ * know a correct way to access those parameters
+ */
+void vw::camera::PinholeModel::write_file(std::string const& filename) const {
+  std::ofstream cam_file(filename.c_str());
+  if( !cam_file.is_open() ) vw_throw( IOErr() << "PinholeModel::write_file: Could not open file\n" );
+  
+  cam_file << "fu = " << m_fu << "\n";
+  cam_file << "fv = " << m_fv << "\n";
+  cam_file << "cu = " << m_cu << "\n";
+  cam_file << "cv = " << m_cv << "\n";
+  cam_file << "u_direction = " << m_u_direction[0] << " " << m_u_direction[1] << " " << m_u_direction[2] << "\n";
+  cam_file << "v_direction = " << m_v_direction[0] << " " << m_v_direction[1] << " " << m_v_direction[2] << "\n";
+  cam_file << "w_direction = " << m_w_direction[0] << " " << m_w_direction[1] << " " << m_w_direction[2] << "\n";
+  cam_file << "C = " << m_camera_center[0] << " " << m_camera_center[1] << " " << m_camera_center[2] << "\n";
+  cam_file << "R = " << m_rotation(0,0) << " " << m_rotation(0,1) << " " << m_rotation(0,2) << " " << m_rotation(1,0) << " " << m_rotation(1,1) << " " << m_rotation(1,2) << " " << m_rotation(2,0) << " " << m_rotation(2,1) << " " << m_rotation(2,2) << "\n";
+  if (typeid(TsaiLensDistortion) == typeid(lens_distortion())){
+    //this Pinhole model uses a tsai lens distortion model, but not sure how to query it for parameters...
+  }
+  cam_file << "k1 = " << 0 << "\n";
+  cam_file << "k2 = " << 0 << "\n";
+  cam_file << "p1 = " << 0 << "\n";
+  cam_file << "p2 = " << 0 << "\n";    
+
+  cam_file << "\n" << "\n" << " Parameters for a Pinhole camera model with tsai lens distortion model." << "\n";
+  
+  cam_file.close();
+  
+}
+

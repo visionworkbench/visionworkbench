@@ -36,6 +36,7 @@
 #include <vw/Camera/LensDistortion.h>
 
 #include <iostream>
+#include <fstream>
 
 namespace vw { 
 namespace camera {
@@ -137,8 +138,9 @@ namespace camera {
     /// Initialize from a file on disk.
     PinholeModel(std::string const& filename) {
       read_file(filename);
-      m_distortion_model_ptr = boost::shared_ptr<LensDistortion>(new NullLensDistortion());
-      m_distortion_model_ptr->set_parent_camera_model(this); //I think this line should be here?
+      // Distortion model is created by read_file
+      //      m_distortion_model_ptr = boost::shared_ptr<LensDistortion>(new NullLensDistortion());
+      //      m_distortion_model_ptr->set_parent_camera_model(this);
     }
     
     /// Initialize the pinhole model with explicit parameters.
@@ -248,7 +250,7 @@ namespace camera {
     /// Document the format of such files ?
     void read_file(std::string const& filename);
     
-
+    void write_file(std::string const& filename) const;
 
 
 
@@ -290,10 +292,14 @@ namespace camera {
     
     virtual Vector3 camera_center(Vector2 const& pix = Vector2() ) const { return m_camera_center; };
     void set_camera_center(Vector3 const& position) { m_camera_center = position; rebuild_camera_matrix(); }
-    
-    virtual Quaternion<double> camera_pose(Vector2 const& pix = Vector2() ) const { return Quaternion<double>(m_rotation); }
-    void set_camera_pose(Quaternion<double> const& pose) { m_rotation = pose.rotation_matrix(); rebuild_camera_matrix(); }
-    void set_camera_pose(Matrix<double,3,3> const& pose) { m_rotation = pose; rebuild_camera_matrix(); }
+
+    /** Pose is a rotation which moves a vector in camera coordinates into world coordinates.
+     *  NOTE: this is the INVERSE of the rotation used in the extrinsic parameters;
+     *  the rotation in the intrinsic parameters takes a vector in world coordinates into camera coordinates.
+     */
+    virtual Quaternion<double> camera_pose(Vector2 const& pix = Vector2() ) const { return Quaternion<double>(transpose(m_rotation)); }
+    void set_camera_pose(Quaternion<double> const& pose) { m_rotation = transpose(pose.rotation_matrix()); rebuild_camera_matrix(); }
+    void set_camera_pose(Matrix<double,3,3> const& pose) { m_rotation = transpose(pose); rebuild_camera_matrix(); }
 
 
     /*  u_direction, v_direction, and w_direction define how the coordinate
@@ -431,6 +437,8 @@ namespace camera {
 
     Vector4 distortion_parameters() { return m_distortion; }
 
+    //  Location where the given pixel would have appeared if there
+    //  were no lens distortion.
     virtual Vector2 get_distorted_coordinates(Vector2 const& p) const {
 
       double fu, fv, cu, cv;
@@ -499,6 +507,7 @@ namespace camera {
     str << "\tIntrinsics:\n";
     str << "\t  f_u: " << fu << "    f_v: " << fv << "\n";
     str << "\t  c_u: " << cu << "    c_v: " << cv << "\n";
+
     return str;
   }
 
