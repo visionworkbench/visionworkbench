@@ -46,6 +46,7 @@
 #include <boost/static_assert.hpp>
 
 #include <vw/Math/BShape.h>
+#include <vw/Math/BBox.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Functors.h>
 
@@ -65,11 +66,7 @@ namespace math {
       bool is_signed;
     };
 
-    std::ostream& operator<<( std::ostream& os, Rational const& r ) {
-      if (r.is_signed)
-        return os << r.signed_num << "/" << r.den;
-      return os << r.unsigned_num << "/" << r.den;
-    }
+    std::ostream& operator<<( std::ostream& os, Rational const& r );
 
     template <class ValT, bool IntegralN=true, bool SignedN=true>
     struct RationalBehavior {
@@ -278,6 +275,12 @@ namespace math {
 
     /// Returns true if the convex shape is empty (i.e. degenerate).
     bool empty() const;
+    
+    /// Returns the number of facets.
+    unsigned num_facets() const;
+    
+    /// Returns a bounding box that contains this convex shape.
+    BBoxN bounding_box() const;
 
     /// Returns true if the given convex shape is equal to this
     /// convex shape.
@@ -437,10 +440,7 @@ namespace math {
   }
   
   /// Writes a convex shape to an ostream.
-  std::ostream& operator<<( std::ostream& os, BConvex const& bconv ) {
-    bconv.print(os);
-    return os;
-  }
+  std::ostream& operator<<( std::ostream& os, BConvex const& bconv );
 
 } // namespace math
 

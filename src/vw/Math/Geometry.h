@@ -78,7 +78,7 @@ namespace math {
       }
     
       for (unsigned int i = 0; i < dimensions; ++i)
-        result[i] /= double(num_points);
+        result[i] /= num_points;
     
       return result;
     }

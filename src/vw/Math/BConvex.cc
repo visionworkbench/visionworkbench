@@ -89,6 +89,16 @@ namespace {
 namespace vw {
 namespace math {
 
+  namespace bconvex_rational {
+
+    std::ostream& operator<<( std::ostream& os, Rational const& r ) {
+      if (r.is_signed)
+        return os << r.signed_num << "/" << r.den;
+      return os << r.unsigned_num << "/" << r.den;
+    }
+
+  } // namespace bconvex_rational
+
   /*static*/ void *BConvex::new_poly( unsigned dim ) {
     C_Polyhedron *p = new C_Polyhedron( dim, EMPTY );
     return (void*)p;
@@ -220,7 +230,7 @@ namespace math {
       const Generator &g = *i;
       VW_ASSERT(g.is_point(), LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
       for (unsigned j = dim - 1; 1; j--) {
-        v(j) = g.coefficient(Variable(j)).get_d();
+        v(j) = g.coefficient(Variable(j)).get_d() / g.divisor().get_d();
         if (j == 0)
           break;
       }
@@ -241,7 +251,7 @@ namespace math {
       const Generator &g = *i;
       VW_ASSERT(g.is_point(), LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
       for (unsigned j = dim - 1; 1; j--) {
-        c(j) += g.coefficient(Variable(j)).get_d();
+        c(j) += g.coefficient(Variable(j)).get_d() / g.divisor().get_d();
         if (j == 0)
           break;
       }
@@ -262,6 +272,33 @@ namespace math {
   void BConvex::print( std::ostream& os ) const {
     using ::Parma_Polyhedra_Library::IO_Operators::operator<<;
     os << *((const C_Polyhedron*)m_poly);
+  }
+  
+  unsigned BConvex::num_facets() const {
+    unsigned n = 0;
+    const Constraint_System &cs = ((const C_Polyhedron*)m_poly)->minimized_constraints();
+    Constraint_System::const_iterator i;
+    for (i = cs.begin(); i != cs.end(); i++)
+      n++;
+    return n;
+  }
+  
+  BBoxN BConvex::bounding_box() const {
+    BBoxN bbox;
+    unsigned dim = ((const C_Polyhedron*)m_poly)->space_dimension();
+    Vector<double> v(dim);
+    const Generator_System &gs = ((const C_Polyhedron*)m_poly)->minimized_generators();
+    for (Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
+      const Generator &g = *i;
+      VW_ASSERT(g.is_point(), LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
+      for (unsigned j = dim - 1; 1; j--) {
+        v(j) = g.coefficient(Variable(j)).get_d() / g.divisor().get_d();
+        if (j == 0)
+          break;
+      }
+      bbox.grow(v);
+    }
+    return bbox;
   }
 
   void BConvex::operator_mult_eq_( Rational const& s ) {
@@ -318,6 +355,11 @@ namespace math {
       if (i == 0)
         break;
     }
+  }
+
+  std::ostream& operator<<( std::ostream& os, BConvex const& bconv ) {
+    bconv.print(os);
+    return os;
   }
 
 }} // namespace vw::math

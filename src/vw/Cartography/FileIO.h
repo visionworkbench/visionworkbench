@@ -35,6 +35,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/FileMetadata.h>
+#include <vw/Cartography/GeoReference.h>
 
 #include <iostream>
 

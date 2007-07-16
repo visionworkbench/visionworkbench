@@ -41,6 +41,7 @@ using namespace vw::math;
 
 class TestGeomPrimitive : public BBoxN, public GeomPrimitive
 {
+  //NOTE: do not yet implement distance() because do not yet test SpatialTree::closest()
   virtual bool contains(const Vector<double> &point) const {return BBoxN::contains(point);}
   virtual bool intersects(const GeomPrimitive *prim) const {return BBoxN::intersects(prim->bounding_box());}
   virtual const BBox<double> &bounding_box() const {return *this;}
@@ -73,6 +74,15 @@ public:
     int j;
 
     Vector<double,4> p0(0.1, 0.1, 0.1, 0.1), p0_(0.2, 0.2, 0.2, 0.2);
+    SpatialTree t0(b);
+    TestGeomPrimitive g0_, g0__;
+    g0_.grow(subvector(p0, 0, dim));
+    t0.add(&g0_, 1);
+    TS_ASSERT( t0.check() );
+    g0__.grow(subvector(p0_, 0, dim));
+    t0.add(&g0__, 5);
+    TS_ASSERT( t0.check() );
+
     TestGeomPrimitive g0;
     g0.grow(subvector(p0, 0, dim));
     g0.grow(subvector(p0_, 0, dim));

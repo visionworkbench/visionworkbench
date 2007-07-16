@@ -16,8 +16,12 @@ namespace math {
 
   class GeomPrimitive {
   public:
-    virtual bool contains(const Vector<double> &point) const = 0;
-    virtual bool intersects(const GeomPrimitive *prim) const = 0;
+    // distance() must be implemented to call SpatialTree::closest()
+    virtual double distance(const Vector<double> &point) const;
+    // contains() must be implemented to call SpatialTree::contains()
+    virtual bool contains(const Vector<double> &point) const;
+    // intersects() must be implemented to call SpatialTree::overlap_pairs()
+    virtual bool intersects(const GeomPrimitive *prim) const;
     virtual const BBox<double> &bounding_box() const = 0;
   };
 
@@ -30,9 +34,11 @@ namespace math {
       PrimitiveListElem() {
         next = 0;
         prim = 0;
+        forced_this_level = false;
       }
       PrimitiveListElem *next;
       GeomPrimitive *prim;
+      bool forced_this_level;
     };
     
     struct SpatialTreeNode {
@@ -58,10 +64,11 @@ namespace math {
     };
 
     SpatialTree(BBoxT bbox);
-    SpatialTree(int num_primitives, GeomPrimitive **prims);
+    SpatialTree(int num_primitives, GeomPrimitive **prims, int max_create_level = -1);
     ~SpatialTree();
-    void add(GeomPrimitive *prim);
-    BBoxT &bounding_box() { return m_root_node->m_bbox; }
+    void add(GeomPrimitive *prim, int max_create_level = -1);
+    const BBoxT &bounding_box() const { return m_root_node->m_bbox; }
+    GeomPrimitive *closest(const VectorT &point, double distance_threshold = -1);
     GeomPrimitive *contains(const VectorT &point);
     void contains(const VectorT &point, std::list<GeomPrimitive*> &prims);
     void overlap_pairs(std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > &overlaps);
@@ -69,7 +76,7 @@ namespace math {
     //NOTE: this can only write a 2D projection (because VRML is 3D)
     void write_vrml(char *fn, int level = -1);
     void write_vrml(std::ostream &os = std::cout, int level = -1);
-    bool check();
+    bool check(std::ostream &os = std::cerr);
   private:
     int m_dim;
     int m_num_quadrants;

@@ -4,7 +4,9 @@
 #include <iostream> // debugging
 #include <fstream>
 #include <stdexcept>
+#include <limits>
 #include <deque>
+#include <queue>
 using namespace std;
 
 #define LOG_2 0.693147181
@@ -16,6 +18,26 @@ using namespace std;
 // 1) leaf (bbox set, no quads, possibly polygons)
 // 2) split (bbox set, quads (some may be leaves), possibly polygons)
 // 3) unset (no bbox, no quads, no polygons)
+
+namespace vw {
+namespace math {
+
+  /*virtual*/ double GeomPrimitive::distance(const Vector<double> &point) const {
+    VW_ASSERT( 0, LogicErr() << "Child class of GeomPrimitive does not implement distance()!" );
+    return 0;
+  }
+
+  /*virtual*/ bool GeomPrimitive::contains(const Vector<double> &point) const {
+    VW_ASSERT( 0, LogicErr() << "Child class of GeomPrimitive does not implement contains()!" );
+    return 0;
+  }
+
+  /*virtual*/ bool GeomPrimitive::intersects(const GeomPrimitive *prim) const {
+    VW_ASSERT( 0, LogicErr() << "Child class of GeomPrimitive does not implement intersects()!" );
+    return 0;
+  }
+
+}} // namespace vw::math
 
 namespace {
 
@@ -119,29 +141,31 @@ namespace {
   
   struct ApplyState {
     ApplyState(int num_quadrants_)
-      : num_quadrants(num_quadrants_), tree_node(0), list_elem(0), queued_children(false), level(0) {}
+      : num_quadrants(num_quadrants_), tree_node(0), list_elem(0), queued_children(false), level(0), priority(0) {}
     ApplyState(int num_quadrants_, SpatialTree::SpatialTreeNode *tree_node_)
-      : num_quadrants(num_quadrants_), tree_node(tree_node_), list_elem(0), queued_children(false), level(0) {}
+      : num_quadrants(num_quadrants_), tree_node(tree_node_), list_elem(0), queued_children(false), level(0), priority(0) {}
     ApplyState(const ApplyState &state)
-      : num_quadrants(state.num_quadrants), tree_node(state.tree_node), list_elem(state.list_elem), queued_children(state.queued_children), level(state.level) {}
+      : num_quadrants(state.num_quadrants), tree_node(state.tree_node), list_elem(state.list_elem), queued_children(state.queued_children), level(state.level), priority(state.priority) {}
+    bool operator<(const ApplyState &state) const {return (priority < state.priority);}
     int num_quadrants;
     SpatialTree::SpatialTreeNode *tree_node;
     SpatialTree::PrimitiveListElem *list_elem;
     bool queued_children;
     unsigned int level;
+    double priority; // for SEARCH_BESTFS
   };
   
   enum ApplySearchType {
     SEARCH_DFS,
-    SEARCH_BFS
+    SEARCH_BFS,
+    SEARCH_BESTFS
   };
   
   enum ApplyProcessOrder {
     PROCESS_CHILDREN_BEFORE_CURRENT_NODE,
     PROCESS_CURRENT_NODE_BEFORE_CHILDREN,
     PROCESS_CHILDREN_ONLY,
-    PROCESS_CURRENT_NODE_ONLY,
-    PROCESS_ONE_CHILD_ONLY
+    PROCESS_CURRENT_NODE_ONLY
   };
   
   class ApplyFunctor {
@@ -151,12 +175,75 @@ namespace {
     virtual ApplyProcessOrder process_order() const {return PROCESS_CURRENT_NODE_BEFORE_CHILDREN;}
     virtual bool should_process(const ApplyState &state) {return true;}
     virtual bool operator()(const ApplyState &state) {return true;}
+    virtual bool should_process_child(const ApplyState &state, double &priority) {return true;}
     virtual void finished_processing(const ApplyState &state) {}
+  };
+
+  class ApplyQueue {
+  public:
+    ApplyQueue(ApplySearchType type) : m_type(type) {}
+    void push(const ApplyState &state) {
+      switch(m_type) {
+      case SEARCH_DFS:
+      case SEARCH_BFS:
+         m_q.push_back(state);
+         break;
+      case SEARCH_BESTFS:
+         m_pq.push(state);
+         break;
+      }
+    }
+    const ApplyState &top() const {
+      const ApplyState *retval = 0;
+      switch(m_type) {
+      case SEARCH_DFS:
+         retval = &m_q.back();
+         break;
+      case SEARCH_BFS:
+         retval = &m_q.front();
+         break;
+      case SEARCH_BESTFS:
+         retval = &m_pq.top();
+         break;
+      }
+      return *retval;
+    }
+    void pop() {
+      switch(m_type) {
+      case SEARCH_DFS:
+         m_q.pop_back();
+         break;
+      case SEARCH_BFS:
+         m_q.pop_front();
+         break;
+      case SEARCH_BESTFS:
+         m_pq.pop();
+         break;
+      }
+    }
+    bool empty() const {
+      bool retval = false;
+      switch(m_type) {
+      case SEARCH_DFS:
+      case SEARCH_BFS:
+         retval = m_q.empty();
+         break;
+      case SEARCH_BESTFS:
+         retval = m_pq.empty();
+         break;
+      }
+      return retval;
+    }
+  private:
+    deque<ApplyState> m_q;
+    priority_queue<ApplyState,vector<ApplyState>,less<ApplyState> > m_pq;
+    ApplySearchType m_type;
   };
   
   void
-  apply_children(ApplyState &s, deque<ApplyState> &q) {
+  apply_children(ApplyFunctor &func, ApplyState &s, ApplyQueue &q) {
     ApplyState s2(s.num_quadrants);
+    double priority = 0;
     int i;
     
     if (s.tree_node->is_split()) {
@@ -166,25 +253,10 @@ namespace {
       s2.level = s.level + 1;
       for (i = 0; i < s.num_quadrants; i++) {
         s2.tree_node = s.tree_node->m_quadrant[i];
-        q.push_back(s2);
-      }
-    }
-  }
-  
-  void
-  apply_one_child(ApplyFunctor &func, ApplyState &s, deque<ApplyState> &q) {
-    ApplyState s2(s.num_quadrants);
-    int i;
-    
-    if (s.tree_node->is_split()) {
-      //s2.tree_node set below
-      s2.list_elem = 0;
-      s2.queued_children = false;
-      s2.level = s.level + 1;
-      for (i = 0; i < s.num_quadrants; i++) {
-        s2.tree_node = s.tree_node->m_quadrant[i];
-        if (func.should_process(s2))
-          q.push_back(s2);
+        if (func.should_process_child(s2, priority)) {
+          s2.priority = priority;
+          q.push(s2);
+        }
       }
     }
   }
@@ -206,17 +278,14 @@ namespace {
   
   void
   apply(ApplyFunctor &func, const ApplyState &state) {
-    deque<ApplyState> q;
+    ApplyQueue q(func.search_type());
     ApplyState s(state.num_quadrants);
     
-    q.push_back(state);
+    q.push(state);
     
     while (!q.empty()) {
-      s = func.search_type() == SEARCH_DFS ? q.back() : q.front();
-      if (func.search_type() == SEARCH_DFS)
-        q.pop_back();
-      else
-        q.pop_front();
+      s = q.top();
+      q.pop();
     
       if (func.should_process(s)) {
         switch (func.process_order()) {
@@ -224,10 +293,10 @@ namespace {
           if (!s.queued_children) {
             s.queued_children = true;
             if (func.search_type() == SEARCH_DFS)
-              q.push_back(s);
-            apply_children(s, q);
+              q.push(s);
+            apply_children(func, s, q);
             if (func.search_type() != SEARCH_DFS)
-              q.push_back(s);
+              q.push(s);
           }
           else {
             if (!apply_current_node(func, s))
@@ -239,22 +308,17 @@ namespace {
           if (!apply_current_node(func, s))
             return; // do not continue processing
           s.queued_children = true;
-          apply_children(s, q);
+          apply_children(func, s, q);
           func.finished_processing(s);
           break;
         case PROCESS_CHILDREN_ONLY:
           s.queued_children = true;
-          apply_children(s, q);
+          apply_children(func, s, q);
           func.finished_processing(s);
           break;
         case PROCESS_CURRENT_NODE_ONLY:
           if (!apply_current_node(func, s))
             return; // do not continue processing
-          func.finished_processing(s);
-          break;
-        case PROCESS_ONE_CHILD_ONLY:
-          s.queued_children = true;
-          apply_one_child(func, s, q);
           func.finished_processing(s);
           break;
         default:
@@ -355,6 +419,61 @@ namespace {
     int m_selected_level;
     float m_z_spacing;
     float m_color[3];
+  };
+  
+  class ClosestFunctor : public ApplyFunctor {
+  public:
+    ClosestFunctor(const SpatialTree::VectorT *point, double distance_threshold = -1) : m_point(point), m_distance_threshold(distance_threshold), m_continue(true), m_prim(0), m_distance(-1) {}
+    virtual ApplySearchType search_type() const {return SEARCH_BESTFS;}
+    virtual bool should_process(const ApplyState &state) {
+      bool test = false;
+      if (m_continue) {
+        double distance = -state.priority;
+        test = test_distance(distance);
+        if (!test)
+          m_continue = false; // stop as soon as possible
+      }
+      return test;
+    }
+    virtual bool should_process_child(const ApplyState &state, double &priority) {
+      double distance = point_to_bbox_distance_heuristic(*m_point, state.tree_node->bounding_box());
+      priority = -distance;
+      return test_distance(distance);
+    }
+    virtual bool operator()(const ApplyState &state) {
+      if (m_continue) {
+        GeomPrimitive *prim = state.list_elem->prim;
+        double distance = point_to_bbox_distance_heuristic(*m_point, prim->bounding_box());
+        if (test_distance(distance)) {
+          distance = prim->distance(*m_point);
+          if (test_distance(distance)) {
+            m_prim = prim;
+            m_distance = distance;
+          }
+        }
+      }
+      return m_continue;
+    }
+    GeomPrimitive *get_primitive() {return m_prim;}
+    double get_distance() {return m_distance;}
+  private:
+    static double point_to_bbox_distance_heuristic(const SpatialTree::VectorT &point, const SpatialTree::BBoxT &bbox) {
+      double distance = 0;
+      if (!bbox.contains(point)) {
+        // the heuristic (which never over-estimates) is to circumscribe a ball around the bbox, and to calculate the distance between the point and the ball
+        distance = norm_2(point - bbox.center()) - norm_2(bbox.size())/2;
+        distance = ::std::max(distance, ::std::numeric_limits<double>::epsilon());
+      }
+      return distance;
+    }
+    inline bool test_distance(double distance) {
+      return (m_distance_threshold < 0 || distance <= m_distance_threshold) && (!m_prim || distance < m_distance);
+    }
+    const SpatialTree::VectorT *m_point;
+    double m_distance_threshold;
+    bool m_continue;
+    GeomPrimitive *m_prim;
+    double m_distance;
   };
   
   class ContainsOneFunctor : public ApplyFunctor {
@@ -464,37 +583,53 @@ namespace {
   
   class NodeContainsBBoxFunctor : public ApplyFunctor {
   public:
-    NodeContainsBBoxFunctor(const SpatialTree::BBoxT &bbox, int num_quadrants, bool create_children = false)
-      : m_bbox(bbox), m_create_children(create_children), m_tree_node(0) {}
-    virtual ApplyProcessOrder process_order() const {return PROCESS_ONE_CHILD_ONLY;}
+    NodeContainsBBoxFunctor(const SpatialTree::BBoxT &bbox, int num_quadrants, bool create_children = false, int max_create_level = -1)
+      : m_bbox(bbox), m_create_children(create_children), m_max_create_level(max_create_level), m_tree_node(0), m_first_split_tree_node(0), m_forced_this_level(false) {}
+    virtual ApplyProcessOrder process_order() const {return PROCESS_CHILDREN_ONLY;}
     virtual bool should_process(const ApplyState &state) {
       if (!state.tree_node->bounding_box().contains(m_bbox))
         return false; // do not process
       
       if (m_create_children && !state.tree_node->is_split()) {
-        SpatialTree::BBoxT quadrant_bboxes[state.num_quadrants];
-  
-        split_bbox(state.tree_node->bounding_box(), state.num_quadrants, quadrant_bboxes);
-        // Check to see if new bbox would fit in a child quad... if so create
-        // the quadrants
-        for (int i = 0; i < state.num_quadrants; i++) {
-          if (quadrant_bboxes[i].contains(m_bbox)) {
-            // we need to make quads...
-            split_node(state.tree_node, state.num_quadrants, quadrant_bboxes);
-            break;
+        if (m_max_create_level < 0 || state.level < (unsigned int)m_max_create_level) {
+          SpatialTree::BBoxT quadrant_bboxes[state.num_quadrants];
+    
+          split_bbox(state.tree_node->bounding_box(), state.num_quadrants, quadrant_bboxes);
+          // Check to see if new bbox would fit in a child quad... if so create
+          // the quadrants
+          for (int i = 0; i < state.num_quadrants; i++) {
+            if (quadrant_bboxes[i].contains(m_bbox)) {
+              // we need to make quads...
+              split_node(state.tree_node, state.num_quadrants, quadrant_bboxes);
+              break;
+            }
           }
+
+          if (!m_first_split_tree_node)
+            m_first_split_tree_node = state.tree_node;
         }
+        else
+          m_forced_this_level = true;
       }
   
       m_tree_node = state.tree_node;
   
       return true; // process node
     }
+    virtual bool should_process_child(const ApplyState &state, double &priority) {
+      priority = 0;
+      return state.tree_node->bounding_box().contains(m_bbox);
+    }
     SpatialTree::SpatialTreeNode *tree_node() {return m_tree_node;}
+    SpatialTree::SpatialTreeNode *first_split_tree_node() {return m_first_split_tree_node;}
+    bool forced_this_level() {return m_forced_this_level;}
   private:
     SpatialTree::BBoxT m_bbox;
     bool m_create_children;
+    int m_max_create_level;
     SpatialTree::SpatialTreeNode *m_tree_node;
+    SpatialTree::SpatialTreeNode *m_first_split_tree_node;
+    bool m_forced_this_level;
   };
   
   class CleanupFunctor : public ApplyFunctor {
@@ -517,7 +652,7 @@ namespace {
   
   class CheckFunctor : public ApplyFunctor {
   public:
-    CheckFunctor() : m_success(true) {}
+    CheckFunctor(std::ostream &os) : m_os(os), m_success(true) {}
     virtual ApplyProcessOrder process_order() const {return PROCESS_CURRENT_NODE_BEFORE_CHILDREN;}
     virtual bool should_process(const ApplyState &state) {
       double v, v2;
@@ -530,13 +665,13 @@ namespace {
       for (i = 0; i < state.num_quadrants; i++) {
         b.grow(state.tree_node->m_quadrant[i]->bounding_box());
         if (!state.tree_node->bounding_box().contains(state.tree_node->m_quadrant[i]->bounding_box())) {
-          cerr << "SpatialTree::check(): Child node with bbox " << state.tree_node->m_quadrant[i]->bounding_box() << " is not contained in its parent node with bbox " << state.tree_node->bounding_box() << "!" << endl;
+          m_os << "SpatialTree::check(): Child node with bbox " << state.tree_node->m_quadrant[i]->bounding_box() << " is not contained in its parent node with bbox " << state.tree_node->bounding_box() << "!" << endl;
           m_success = false;
         }
         v2 = prod(state.tree_node->m_quadrant[i]->bounding_box().size());
         f = state.num_quadrants * v2 / v;
         if (f < 0.95 || f > 1.05) {
-          cerr << "SpatialTree::check(): Child node with bbox " << state.tree_node->m_quadrant[i]->bounding_box() << " has volume " << v2 << ", but its parent with bbox " << state.tree_node->bounding_box() << " has volume " << v << " (" << state.num_quadrants << " * " << v2 << " / " << v << " = " << f << " != 1)!" << endl;
+          m_os << "SpatialTree::check(): Child node with bbox " << state.tree_node->m_quadrant[i]->bounding_box() << " has volume " << v2 << ", but its parent with bbox " << state.tree_node->bounding_box() << " has volume " << v << " (" << state.num_quadrants << " * " << v2 << " / " << v << " = " << f << " != 1)!" << endl;
           m_success = false;
         }
         for (j = i + 1; j < state.num_quadrants; j++) {
@@ -545,7 +680,7 @@ namespace {
           v2 = prod(b2.size());
           f = state.num_quadrants * v2 / v;
           if (f > 0.05) {
-            cerr << "SpatialTree::check(): Children nodes with bboxes " << state.tree_node->m_quadrant[i]->bounding_box() << " and " << state.tree_node->m_quadrant[j]->bounding_box() << " of parent node with bbox " << state.tree_node->bounding_box() << " have non-trivial intersection!" << endl;
+            m_os << "SpatialTree::check(): Children nodes with bboxes " << state.tree_node->m_quadrant[i]->bounding_box() << " and " << state.tree_node->m_quadrant[j]->bounding_box() << " of parent node with bbox " << state.tree_node->bounding_box() << " have non-trivial intersection!" << endl;
             m_success = false;
           }
         }
@@ -553,7 +688,7 @@ namespace {
       v2 = prod(b.size());
       f = v2 / v;
       if (f < 0.95 || f > 1.05) {
-        cerr << "SpatialTree::check(): Union of children nodes of parent node with bbox " << state.tree_node->bounding_box() << " has volume " << v2 << ", but parent node has volume " << v << "!" << endl;
+        m_os << "SpatialTree::check(): Union of children nodes of parent node with bbox " << state.tree_node->bounding_box() << " has volume " << v2 << ", but parent node has volume " << v << "!" << endl;
         m_success = false;
       }
       return true; // process node
@@ -561,21 +696,32 @@ namespace {
     virtual bool operator()(const ApplyState &state) {
       int i;
       if (!state.tree_node->bounding_box().contains(state.list_elem->prim->bounding_box())) {
-        cerr << "SpatialTree::check(): Primitive with bbox " << state.list_elem->prim->bounding_box() << " is not contained in tree node with bbox " << state.tree_node->bounding_box() << "!" << endl;
+        m_os << "SpatialTree::check(): Primitive with bbox " << state.list_elem->prim->bounding_box() << " is not contained in tree node with bbox " << state.tree_node->bounding_box() << "!" << endl;
         m_success = false;
       }
-      if (!state.tree_node->is_split())
-        return true; // continue processing
-      for (i = 0; i < state.num_quadrants; i++) {
-        if (state.tree_node->m_quadrant[i]->bounding_box().contains(state.list_elem->prim->bounding_box())) {
-          cerr << "SpatialTree::check(): Primitive with bbox " << state.list_elem->prim->bounding_box() << " is in tree node with bbox " << state.tree_node->bounding_box() << ", but it is contained in this node's child with bbox " << state.tree_node->m_quadrant[i]->bounding_box() << "!" << endl;
-          m_success = false;
+      if (state.tree_node->is_split()) {
+        for (i = 0; i < state.num_quadrants; i++) {
+          if (state.tree_node->m_quadrant[i]->bounding_box().contains(state.list_elem->prim->bounding_box())) {
+            m_os << "SpatialTree::check(): Primitive with bbox " << state.list_elem->prim->bounding_box() << " is in tree node with bbox " << state.tree_node->bounding_box() << ", but it is contained in this node's child with bbox " << state.tree_node->m_quadrant[i]->bounding_box() << "!" << endl;
+            m_success = false;
+          }
+        }
+      }
+      else if (!state.list_elem->forced_this_level) {
+        SpatialTree::BBoxT quadrant_bboxes[state.num_quadrants];
+        split_bbox(state.tree_node->bounding_box(), state.num_quadrants, quadrant_bboxes);
+        for (i = 0; i < state.num_quadrants; i++) {
+          if (quadrant_bboxes[i].contains(state.list_elem->prim->bounding_box())) {
+            m_os << "SpatialTree::check(): Primitive with bbox " << state.list_elem->prim->bounding_box() << " is in tree node with bbox " << state.tree_node->bounding_box() << " at level " << state.level << ", but it could be contained in this node's child with bbox " << quadrant_bboxes[i] << " except that that child does not exist!" << endl;
+            m_success = false;
+          }
         }
       }
       return true; // continue processing
     }
     bool success() {return m_success;}
   private:
+    ostream &m_os;
     bool m_success;
   };
 
@@ -583,6 +729,13 @@ namespace {
 
 namespace vw {
 namespace math {
+
+  GeomPrimitive *
+  SpatialTree::closest(const VectorT &point, double distance_threshold /*= -1*/) {
+    ClosestFunctor func(&point, distance_threshold);
+    apply(func, m_num_quadrants, m_root_node);
+    return func.get_primitive();
+  }
 
   GeomPrimitive *
   SpatialTree::contains(const VectorT &point) {
@@ -642,16 +795,19 @@ namespace math {
   }
 
   bool
-  SpatialTree::check() {
-    CheckFunctor func;
+  SpatialTree::check(std::ostream &os /*= std::cerr*/) {
+    CheckFunctor func(os);
     apply(func, m_num_quadrants, m_root_node);
     return func.success();
   }
   
   void
-  SpatialTree::add(GeomPrimitive *prim) {
+  SpatialTree::add(GeomPrimitive *prim, int max_create_level /*= -1*/) {
     SpatialTreeNode *tree_node;
+    SpatialTreeNode *first_split_tree_node;
     PrimitiveListElem *new_list_elem;
+    PrimitiveListElem *prev_list_elem;
+    PrimitiveListElem *list_elem;
   
     // expand size of entire spatial tree, if necessary
     if (!m_root_node->bounding_box().contains(prim->bounding_box())) {
@@ -663,8 +819,7 @@ namespace math {
       NodeContainsBBoxFunctor func2(bbox, m_num_quadrants, true);
       SpatialTreeNode *root_node = new SpatialTreeNode(m_num_quadrants);
       root_node->m_bbox = super_bbox;
-      ApplyState state(m_num_quadrants, root_node);
-      apply(func2, state);
+      apply(func2, m_num_quadrants, root_node);
       tree_node = func2.tree_node();
   
       // at this point we either have the node that is equivalent to the
@@ -703,7 +858,7 @@ namespace math {
     }
   
     // find the smallest spatial tree node containing the primitive's bbox
-    NodeContainsBBoxFunctor func(prim->bounding_box(), m_num_quadrants, true);
+    NodeContainsBBoxFunctor func(prim->bounding_box(), m_num_quadrants, true, max_create_level);
     apply(func, m_num_quadrants, m_root_node);
     tree_node = func.tree_node();
     assert(tree_node);
@@ -711,9 +866,46 @@ namespace math {
     // add primitive to this spatial tree node
     new_list_elem = new PrimitiveListElem;
     new_list_elem->prim = prim;
+    new_list_elem->forced_this_level = func.forced_this_level();
     new_list_elem->next = tree_node->m_primitive_list;
     tree_node->m_primitive_list = new_list_elem;
     tree_node->m_num_primitives++;
+
+    // if we split any tree nodes, check for primitives in the
+    // first split node that have forced_this_level set
+    first_split_tree_node = func.first_split_tree_node();
+    if (first_split_tree_node) {
+      for (prev_list_elem = 0, list_elem = first_split_tree_node->m_primitive_list; list_elem; prev_list_elem = list_elem, list_elem = list_elem->next) {
+        if (list_elem->forced_this_level) {
+          NodeContainsBBoxFunctor func3(list_elem->prim->bounding_box(), m_num_quadrants, false);
+          apply(func3, m_num_quadrants, first_split_tree_node);
+          tree_node = func3.tree_node();
+          if (tree_node != first_split_tree_node) {
+            // determine whether the primitive should have forced_this_level set
+            list_elem->forced_this_level = false;
+            if (!tree_node->is_split()) {
+              BBoxT quadrant_bboxes[m_num_quadrants];
+              split_bbox(tree_node->bounding_box(), m_num_quadrants, quadrant_bboxes);
+              for (int i = 0; i < m_num_quadrants; i++) {
+                if (quadrant_bboxes[i].contains(list_elem->prim->bounding_box())) {
+                  list_elem->forced_this_level = true;
+                  break;
+                }
+              }
+            }
+            // remove the primitive from its current tree node, and add it to the new one
+            if (prev_list_elem)
+              prev_list_elem->next = list_elem->next;
+            else
+              first_split_tree_node->m_primitive_list = list_elem->next;
+            first_split_tree_node->m_num_primitives--;
+            list_elem->next = tree_node->m_primitive_list;
+            tree_node->m_primitive_list = list_elem;
+            tree_node->m_num_primitives++;
+          }
+        }
+      }
+    }
   }
   
   SpatialTree::SpatialTree(BBoxT bbox) {
@@ -723,7 +915,7 @@ namespace math {
     m_root_node->m_bbox = bbox;
   }
   
-  SpatialTree::SpatialTree(int num_primitives, GeomPrimitive **prims) {
+  SpatialTree::SpatialTree(int num_primitives, GeomPrimitive **prims, int max_create_level /*= -1*/) {
     VW_ASSERT( prims != 0 && prims[0] != 0, ArgumentErr() << "No GeomPrimitives provided." );
     m_dim = prims[0]->bounding_box().min().size();
     m_num_quadrants = (int)((unsigned)1 << (unsigned)m_dim);
@@ -736,7 +928,7 @@ namespace math {
           << endl;
   
     for (int i = 0; i < num_primitives; i++)
-      add(prims[i]);
+      add(prims[i], max_create_level);
   }
   
   SpatialTree::~SpatialTree() {
