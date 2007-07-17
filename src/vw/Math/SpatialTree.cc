@@ -731,9 +731,11 @@ namespace vw {
 namespace math {
 
   GeomPrimitive *
-  SpatialTree::closest(const VectorT &point, double distance_threshold /*= -1*/) {
+  SpatialTree::closest(const VectorT &point, double distance_threshold /*= -1*/, double *distance /*= 0*/) {
     ClosestFunctor func(&point, distance_threshold);
     apply(func, m_num_quadrants, m_root_node);
+    if (distance)
+      *distance = func.get_distance();
     return func.get_primitive();
   }
 

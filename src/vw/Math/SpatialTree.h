@@ -68,7 +68,7 @@ namespace math {
     ~SpatialTree();
     void add(GeomPrimitive *prim, int max_create_level = -1);
     const BBoxT &bounding_box() const { return m_root_node->m_bbox; }
-    GeomPrimitive *closest(const VectorT &point, double distance_threshold = -1);
+    GeomPrimitive *closest(const VectorT &point, double distance_threshold = -1, double *distance = 0);
     GeomPrimitive *contains(const VectorT &point);
     void contains(const VectorT &point, std::list<GeomPrimitive*> &prims);
     void overlap_pairs(std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > &overlaps);
