@@ -108,6 +108,8 @@ void ShaderInvocation_SetupGLState(int width, int height);
 
 void ShaderInvocation_SetupGLState(const GPUImageBase& image);
 
+void ShaderInvocation_SetOutputImage(const GPUImageBase& image);
+
 void ShaderInvocation_DrawRectOneTexture(const GPUImageBase& image,  int x = 0, int y = 0);
 
 void ShaderInvocation_DrawRectOneTexture(const GPUImageBase& image, int x, int y, int width, int height);

@@ -13,7 +13,7 @@ using namespace GPU;
 
 inline void Nothing() { }
 
-#undef HAVE_PKG_CG
+//#undef VW_HAVE_PKG_CG
   
 //#################################################################################################################
 //                                 Free Functions: PrintProfileResult & PrintProfileHeader
@@ -52,8 +52,8 @@ static void PrintProfileResult(const char* name, float time_cpu,
 
   cout << " | ";
   // GPU - cg
-#ifdef HAVE_PKG_CG
-  if(comp_status_cg == SHADER_COMPILATION_STATUS_SUCCESS) {
+#ifdef VW_HAVE_PKG_CG
+  if(comp_status_cg == SHADER_COMPILATION_STATUS_SUCCESS_FILE || comp_status_cg == SHADER_COMPILATION_STATUS_SUCCESS_CACHE) {
     cout.precision(format_time_precision);
     cout.width(format_time_precision + format_time_int_digits + format_column_space); cout << time_gpu2_cg;
 
@@ -64,18 +64,21 @@ static void PrintProfileResult(const char* name, float time_cpu,
     cout.width(format_time_precision + format_time_int_digits + format_column_space); cout << time_gpu1_cg - time_gpu2_cg;
   }
   else {
-    int total_width = 2*format_time_precision + format_time_precision + 2*format_time_int_digits + format_factor_int_digits + 3*format_column_space;
-    if(comp_status_cg == SHADER_COMPILATION_STATUS_FILE_ERROR) {
+    int total_width = 2*format_time_precision + format_time_precision + 2*format_time_int_digits + format_factor_int_digits + 3*format_column_space - 2;
+    if(comp_status_cg == SHADER_COMPILATION_STATUS_ERROR_FILE) {
       cout.width(total_width); cout << "  << File Error >>";
     }
-    else if(comp_status_cg == SHADER_COMPILATION_STATUS_COMPILE_ERROR) {
+    if(comp_status_cg == SHADER_COMPILATION_STATUS_ERROR_COMPILE) {
       cout.width(total_width); cout << "  << Compile Error >>";
+    }
+    else if(comp_status_cg == SHADER_COMPILATION_STATUS_ERROR_LINK) {
+      cout.width(total_width); cout << "<< Link Error >>";
     }
   }
   cout << " | ";
 #endif
   // GPU - glsl
-  if(comp_status_glsl == SHADER_COMPILATION_STATUS_SUCCESS) {
+  if(comp_status_glsl == SHADER_COMPILATION_STATUS_SUCCESS_FILE || comp_status_glsl == SHADER_COMPILATION_STATUS_SUCCESS_CACHE) {
     cout.precision(format_time_precision);
     cout.width(format_time_precision + format_time_int_digits + format_column_space); cout << time_gpu2_glsl;
 
@@ -86,13 +89,17 @@ static void PrintProfileResult(const char* name, float time_cpu,
     cout.width(format_time_precision + format_time_int_digits + format_column_space); cout << time_gpu1_glsl - time_gpu2_glsl;
   }
   else {
-    int total_width = 2*format_time_precision + format_time_precision + 2*format_time_int_digits + format_factor_int_digits + 3*format_column_space;
-    if(comp_status_glsl == SHADER_COMPILATION_STATUS_FILE_ERROR) {
+    int total_width = 2*format_time_precision + format_time_precision + 2*format_time_int_digits + format_factor_int_digits + 3*format_column_space - 2;
+    if(comp_status_glsl == SHADER_COMPILATION_STATUS_ERROR_FILE) {
       cout.width(total_width); cout << "  << File Error >>";
     }
-    else if(comp_status_glsl == SHADER_COMPILATION_STATUS_COMPILE_ERROR) {
+    if(comp_status_glsl == SHADER_COMPILATION_STATUS_ERROR_COMPILE) {
       cout.width(total_width); cout << "  << Compile Error >>";
     }
+    else if(comp_status_glsl == SHADER_COMPILATION_STATUS_ERROR_LINK) {
+      cout.width(total_width); cout << "  << Link Error >>";
+    }
+
   }
   cout << " | ";
   // Difs
@@ -114,7 +121,7 @@ static void PrintProfileHeader() {
   cout.width(format_time_precision + format_time_int_digits + format_column_space); cout << "CPU";
   cout << " | ";
   // GPU - cg
-#ifdef HAVE_PKG_CG
+#ifdef VW_HAVE_PKG_CG
   cout.precision(format_time_precision);
   cout.width(format_time_precision + format_time_int_digits + format_column_space); cout << "GPU: cg";
 
@@ -141,7 +148,7 @@ static void PrintProfileHeader() {
   cout.width(format_time_precision + format_time_int_digits + format_column_space); cout << "Exec";
   cout << " | ";
   // GPU - cg
-#ifdef HAVE_PKG_CG
+#ifdef VW_HAVE_PKG_CG
   cout.precision(format_time_precision);
   cout.width(format_time_precision + format_time_int_digits + format_column_space); cout << "Exec";
 
@@ -165,7 +172,7 @@ static void PrintProfileHeader() {
   cout << endl;   
 } 
 
-#ifdef HAVE_PKG_CG
+#ifdef VW_HAVE_PKG_CG
 static bool have_pkg_cg = true;
 #else
 static bool have_pkg_cg = false;

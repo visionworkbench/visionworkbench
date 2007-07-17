@@ -1,4 +1,3 @@
-
 uniform sampler2DRect i1;
 uniform float f1;
 
@@ -10,7 +9,7 @@ void main() {
    vec4 x = texture2DRect(i1, gl_TexCoord[0].st);
    vec4 result;
 	 vec4 atan_value = atan(y/x);
-// channel-r
+/* channel-r */
    if(x.r > 0.0) {
       result.r = atan_value.r;
    }
@@ -23,7 +22,7 @@ void main() {
    else {
       result.r = half_pi * sign(y.r);	
    }
-// channel-g
+/* channel-g */
    if(x.g > 0.0) {
       result.g = atan_value.g;
    }
@@ -36,7 +35,7 @@ void main() {
    else {
       result.g = half_pi * sign(y.g);	
    }
-// channel-b
+/* channel-b */
    if(x.b > 0.0) {
       result.b = atan_value.b;
    }
@@ -49,7 +48,7 @@ void main() {
    else {
       result.b = half_pi * sign(y.b);	
    }
-// channel-a
+/* channel-a */
    if(x.a > 0.0) {
       result.a = atan_value.a;
    }

@@ -11,7 +11,7 @@
 #include <vw/GPU/GPUImage.h>
 
 
-#ifdef HAVE_PKG_CG
+#ifdef VW_HAVE_PKG_CG
   #include "Cg/cg.h"
   #include "Cg/cgGL.h"
 #endif
@@ -29,7 +29,13 @@ namespace vw { namespace GPU {
   enum ShaderCompilationStatusEnum  {
     SHADER_COMPILATION_STATUS_SUCCESS = 0,
     SHADER_COMPILATION_STATUS_FILE_ERROR,
-    SHADER_COMPILATION_STATUS_COMPILE_ERROR
+    SHADER_COMPILATION_STATUS_COMPILE_ERROR,
+    SHADER_COMPILATION_STATUS_SUCCESS_FILE,
+    SHADER_COMPILATION_STATUS_SUCCESS_CACHE,
+    SHADER_COMPILATION_STATUS_ERROR_FILE,
+    SHADER_COMPILATION_STATUS_ERROR_COMPILE,
+    SHADER_COMPILATION_STATUS_ERROR_LINK
+
   };
 
   extern ShaderCompilationStatusEnum shaderCompilationStatus;
@@ -142,7 +148,7 @@ public:
 //#############################################################################################
 
 
-#ifdef HAVE_PKG_CG
+#ifdef VW_HAVE_PKG_CG
 
 class GPUShader_CG {
   // Variables - Member
@@ -229,7 +235,7 @@ public:
 	}
 };
 
-#endif // ifdef HAVE_PKG_CG___
+#endif // ifdef VW_HAVE_PKG_CG___
 
 //#############################################################################################
 //#    Class:  GPUProgramSet   
@@ -240,7 +246,7 @@ class GPUProgramSet {
   string fragmentBasePath;
   static bool useAssemblyCaching;
   GPUProgramSet_GLSL programSet_GLSL;
-#ifdef HAVE_PKG_CG
+#ifdef VW_HAVE_PKG_CG
   GPUProgramSet_CG programSet_CG;
 #endif  	
  public:
@@ -264,7 +270,7 @@ class GPUProgramSet {
     vertexBasePath = inVertexBasePath;
     fragmentBasePath = inFragmentBasePath;
     programSet_GLSL.set_base_paths(inFragmentBasePath, inVertexBasePath);
-#ifdef HAVE_PKG_CG
+#ifdef VW_HAVE_PKG_CG
     programSet_CG.set_base_paths(inFragmentBasePath, inVertexBasePath);
 #endif  	
   }
@@ -273,12 +279,23 @@ class GPUProgramSet {
     vertexBasePath = inVertexBasePath;
     fragmentBasePath = inFragmentBasePath;
     programSet_GLSL.set_base_paths(inFragmentBasePath, inVertexBasePath);
-#ifdef HAVE_PKG_CG
+#ifdef VW_HAVE_PKG_CG
     programSet_CG.set_base_paths(inFragmentBasePath, inVertexBasePath);
 #endif  	
   }
 
 };
+
+//#############################################################################################
+//#    Free Functions - get_gpu_program   
+//#############################################################################################
+
+
+
+ GPUProgram* create_gpu_program(const string& fragmentPath, const vector<int>& fragmentAttributes = vector<int>(),
+		      const string& vertexPath = "", const vector<int>& vertexAttributes = vector<int>());
+
+
 
 } } // namespaces GPU, vw
 

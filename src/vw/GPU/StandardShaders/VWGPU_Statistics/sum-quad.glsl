@@ -1,8 +1,9 @@
 
+
 uniform sampler2DRect image;
 
 void main() {
-   vec2 coord = gl_TexCoord[0].st; // - vec2(1.0, 1.0);
+   vec2 coord = gl_TexCoord[0].st; 
 
    vec4 cPixel = texture2DRect(image, coord);
    float sum = cPixel.r;
@@ -18,3 +19,4 @@ void main() {
 		
    gl_FragColor.r = sum;
 }
+

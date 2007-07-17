@@ -10,15 +10,11 @@ namespace vw {
 			unsigned int width, 
 			unsigned int height)
       {
-      GPUProgramSet programSet("", "Identity");
-	static vector<int> fAttributes(1);
-	static vector<int> emptyVector;
 // GLState - Setup
 	((GPUImageBase&) image).rasterize_homography();	
 	ShaderInvocation_SetupGLState(image.width(), image.height());
 // Program - Install
-	fAttributes[0] = 4;
-	GPUProgram* program = programSet.get_program(emptyVector, fAttributes, false);
+	GPUProgram* program = create_gpu_program("VWGPU_Interpolation/identity");
 	program->install();
 // OUTPUT
 	GPUImageBase temp(image.width(), image.height(), image.format(), image.type());
@@ -45,16 +41,11 @@ namespace vw {
 
 
     GPUImageBase flip_horizontal(const GPUImageBase& image) {
-// Static
-      GPUProgramSet programSet("", "Identity");
-	static vector<int> fAttributes(1);
-	static vector<int> emptyVector;
 // GLState - Setup
 	((GPUImageBase&) image).rasterize_homography();	
 	ShaderInvocation_SetupGLState(image.width(), image.height());
 // Program - Install
-	fAttributes[0] = 4;
-	GPUProgram* program = programSet.get_program(emptyVector, fAttributes, false);
+	GPUProgram* program = create_gpu_program("VWGPU_Interpolation/identity");
 	program->install();
 // OUTPUT
 	GPUImageBase temp(image.width(), image.height(), image.format(), image.type());
@@ -87,16 +78,11 @@ namespace vw {
 
 
     GPUImageBase flip_vertical(const GPUImageBase& image) {
-// Static
-      GPUProgramSet programSet("", "Identity");
-	static vector<int> fAttributes(1);
-	static vector<int> emptyVector;
 // GLState - Setup
 	((GPUImageBase&) image).rasterize_homography();	
 	ShaderInvocation_SetupGLState(image.width(), image.height());
 // Program - Install
-	fAttributes[0] = 4;
-	GPUProgram* program = programSet.get_program(emptyVector, fAttributes, false);
+	GPUProgram* program = create_gpu_program("VWGPU_Interpolation/identity");
 	program->install();
 // OUTPUT
 	GPUImageBase temp(image.width(), image.height(), image.format(), image.type());
@@ -220,17 +206,13 @@ GPUImageBase rotate_90_ccw(const GPUImageBase& image)
   }
 
 GPUImageBase transpose(const GPUImageBase& image) {
-// Static
-      GPUProgramSet programSet("", "Manipulation/transpose-1i0f");
-	static vector<int> fAttributes(1);
 // GLState - Setup
 	((GPUImageBase&) image).rasterize_homography();	
 	int out_width = image.height();
 	int out_height = image.width();
 	ShaderInvocation_SetupGLState(out_width, out_height);
 // Program - Install
-	fAttributes[0] = 4;
-	GPUProgram* program = programSet.get_program(vector<int>(), fAttributes, false);
+	GPUProgram* program = create_gpu_program("VWGPU_Interpolation/identity");
 	program->install();
 // OUTPUT
 	GPUImageBase temp(out_width, out_height, image.format(), image.type());
@@ -248,9 +230,6 @@ GPUImageBase transpose(const GPUImageBase& image) {
     }
 
     void inset(GPUImageBase& image1, const GPUImageBase& image2, int x, int y, int width, int height) {
-// Static
-      GPUProgramSet programSet("", "identity-1i0f");
-      static vector<int> fAttributes(1);
 // Copy tex if necessary
       GPUImageBase inputTex;
       if(image1.same_real_object(image2))
@@ -260,8 +239,7 @@ GPUImageBase transpose(const GPUImageBase& image) {
 // Setup
       ShaderInvocation_SetupGLState(image1);
 // Program - Install
-      fAttributes[0] = 4;
-      GPUProgram* program = programSet.get_program(vector<int>(), fAttributes, false);
+      GPUProgram* program = create_gpu_program("VWGPU_Interpolation/identity");
       program->install();
 // OUTPUT
       glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, image1.target(), image1.name(), 0);	

@@ -10,7 +10,7 @@ namespace vw { namespace GPU {
   
   class GenericFragmentShader_1i0f {
   protected:
-    GPUProgramSet programSet;
+    std::string path;
   public:
     GenericFragmentShader_1i0f(const char* fragmentShaderBaseName);
  
@@ -24,7 +24,7 @@ namespace vw { namespace GPU {
 
   class GenericFragmentShader_2i0f {
   protected:
-    GPUProgramSet programSet;
+    std::string path;
   public:
     GenericFragmentShader_2i0f(const char* fragmentShaderBaseName);
 
@@ -39,7 +39,7 @@ namespace vw { namespace GPU {
   
   class GenericFragmentShader_1i1f {
   protected:
-    GPUProgramSet programSet;
+    std::string path;
   public:
     GenericFragmentShader_1i1f(const char* fragmentShaderBaseName);
     
@@ -53,7 +53,7 @@ namespace vw { namespace GPU {
 
   class GenericFragmentShader_1i2f {
   protected:
-    GPUProgramSet programSet;
+    std::string path;
   public:
     GenericFragmentShader_1i2f(const char* fragmentShaderBaseName);
     
@@ -67,7 +67,7 @@ namespace vw { namespace GPU {
 
   class GenericFragmentShader_1i3f {
   protected:
-    GPUProgramSet programSet;
+    std::string path;
   public:
     GenericFragmentShader_1i3f(const char* fragmentShaderBaseName);
     
@@ -81,7 +81,7 @@ namespace vw { namespace GPU {
 
   class GenericFragmentShader_1i4f {
   protected:
-    GPUProgramSet programSet;
+    std::string path;
   public:
     GenericFragmentShader_1i4f(const char* fragmentShaderBaseName);
     

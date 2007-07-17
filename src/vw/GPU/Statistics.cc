@@ -31,18 +31,20 @@ void print_image(GPUImageBase& im, char* text = 0) {
 
 float min_channel_value(const GPUImageBase& image)			     
 {
-// Static
-  static GPUProgramSet programSet_Level1("", "Statistics/min-channels");
-  static GPUProgramSet programSet_OtherLevels("", "Statistics/min-quad");
-  static vector<int> fAttributes(1);
 // Output Image Size
   int POT_Level = MAX((int) ceilf(log2f(image.width())), (int) ceilf(log2f(image.height())));
   int POT_Dimension = (int) powf(2.0, POT_Level);
 // Reduce to 1 Channell; pad to POT dimensions; fill padded area with high value
   GPUImageBase tex_StartLevel(MAX(1, POT_Dimension), MAX(1, POT_Dimension), TEX_R, image.type());
-  fAttributes[0] = image.num_channels();
-  GPUProgram* program_Level1 = programSet_Level1.get_program(vector<int>(), fAttributes, false);
+  GPUProgram* program_Level1;
+  if(image.num_channels() == 4)
+    program_Level1 = create_gpu_program("VWGPU_Statistics/min-channels-rgba");
+  else if(image.num_channels() == 3)
+    program_Level1 = create_gpu_program("VWGPU_Statistics/min-channels-rgb");
+  if(image.num_channels() == 1)
+    program_Level1 = create_gpu_program("VWGPU_Statistics/min-channels-r");
   program_Level1->install();
+
   ((GPUImageBase&) image).rasterize_homography();		
   ShaderInvocation_SetupGLState(tex_StartLevel);
   glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, tex_StartLevel.target(), tex_StartLevel.name(), 0);	
@@ -66,10 +68,8 @@ float min_channel_value(const GPUImageBase& image)
   }
 // ITERATIONS: 1 to n
   GPUImageBase tex_PreviousLevel = tex_StartLevel;
-
   float output;
-  fAttributes[0] = 4;
-  GPUProgram* program = programSet_OtherLevels.get_program(vector<int>(), fAttributes, false);
+  GPUProgram* program = create_gpu_program("VWGPU_Statistics/max-quad");
   program->install();
 
   for(int iLevel = 1; iLevel <= POT_Level; iLevel++) {
@@ -97,10 +97,6 @@ float min_channel_value(const GPUImageBase& image)
 
 float max_channel_value(const GPUImageBase& image)			     
 {
-// Static
-  static GPUProgramSet programSet_Level1("", "Statistics/max-channels");
-  static GPUProgramSet programSet_OtherLevels("", "Statistics/max-quad");
-  static vector<int> fAttributes(1);
 // Output Image Size
   int POT_Level = MAX((int) ceilf(log2f(image.width())), (int) ceilf(log2f(image.height())));
   int POT_Dimension = (int) powf(2.0, POT_Level);
@@ -108,9 +104,15 @@ float max_channel_value(const GPUImageBase& image)
   ((GPUImageBase&) image).rasterize_homography();	
   ShaderInvocation_SetupGLState(POT_Dimension, POT_Dimension);
 // Reduce to 1 Channell; pad to POT dimensions; fill padded area with high value
-  fAttributes[0] = image.num_channels();
-  GPUProgram* program_Level1 = programSet_Level1.get_program(vector<int>(), fAttributes, false);
+  GPUProgram* program_Level1;
+  if(image.num_channels() == 4)
+    program_Level1 = create_gpu_program("VWGPU_Statistics/max-channels-rgba");
+  else if(image.num_channels() == 3)
+    program_Level1 = create_gpu_program("VWGPU_Statistics/max-channels-rgb");
+  if(image.num_channels() == 1)
+    program_Level1 = create_gpu_program("VWGPU_Statistics/max-channels-r");
   program_Level1->install();
+
   GPUImageBase tex_StartLevel(MAX(1, POT_Dimension), MAX(1, POT_Dimension), TEX_R, image.type());
   glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, tex_StartLevel.target(), tex_StartLevel.name(), 0);	
   program_Level1->set_uniform_texture("image", 0, image);
@@ -130,8 +132,7 @@ float max_channel_value(const GPUImageBase& image)
   }
 // ITERATIONS: 1 to n
   GPUImageBase tex_PreviousLevel = tex_StartLevel;
-  fAttributes[0] = 4;
-  GPUProgram* program = programSet_OtherLevels.get_program(vector<int>(), fAttributes, false);
+  GPUProgram* program = create_gpu_program("VWGPU_Statistics/max-quad");
   program->install();
 
   for(int iLevel = 1; iLevel <= POT_Level; iLevel++) {
@@ -160,10 +161,6 @@ float max_channel_value(const GPUImageBase& image)
 
 float sum_channel_value(const GPUImageBase& image)			     
 {
-// Static
-  static GPUProgramSet programSet_Level1("", "Statistics/sum-channels");
-  static GPUProgramSet programSet_OtherLevels("", "Statistics/sum-quad");
-  static vector<int> fAttributes(1);
 // Output Image Size
   int POT_Level = MAX((int) ceilf(log2f(image.width())), (int) ceilf(log2f(image.height())));
   int POT_Dimension = (int) powf(2.0, POT_Level);
@@ -171,9 +168,15 @@ float sum_channel_value(const GPUImageBase& image)
 	((GPUImageBase&) image).rasterize_homography();	
   ShaderInvocation_SetupGLState(POT_Dimension, POT_Dimension);
 // Reduce to 1 Channell; pad to POT dimensions; fill padded area with high value
-  fAttributes[0] = image.num_channels();
-  GPUProgram* program_Level1 = programSet_Level1.get_program(vector<int>(), fAttributes, false);
+  GPUProgram* program_Level1;
+  if(image.num_channels() == 4)
+    program_Level1 = create_gpu_program("VWGPU_Statistics/sum-channels-rgba");
+  else if(image.num_channels() == 3)
+    program_Level1 = create_gpu_program("VWGPU_Statistics/sum-channels-rgb");
+  if(image.num_channels() == 1)
+    program_Level1 = create_gpu_program("VWGPU_Statistics/sum-channels-r");
   program_Level1->install();
+
   GPUImageBase tex_StartLevel(MAX(1, POT_Dimension), MAX(1, POT_Dimension), TEX_R, image.type());
   glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, tex_StartLevel.target(), tex_StartLevel.name(), 0);	
   program_Level1->set_uniform_texture("image", 0, image);
@@ -193,8 +196,7 @@ float sum_channel_value(const GPUImageBase& image)
   }
 // ITERATIONS: 1 to n
   GPUImageBase tex_PreviousLevel = tex_StartLevel;
-  fAttributes[0] = 4;
-  GPUProgram* program = programSet_OtherLevels.get_program(vector<int>(), fAttributes, false);
+  GPUProgram* program = create_gpu_program("VWGPU_Statistics/sum-quad");
   program->install();
 
   for(int iLevel = 1; iLevel <= POT_Level; iLevel++) {

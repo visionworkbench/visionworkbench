@@ -186,6 +186,12 @@ bool ReadFileAsString(const string& path, string& outString) {
    
   }
 
+  void ShaderInvocation_SetOutputImage(const GPUImageBase& image) {
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, g_framebuffer);
+	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, image.target(), image.name(), 0);	
+  }
+
+
 
   void ShaderInvocation_DrawRectOneTexture(const GPUImageBase& image, int x, int y) { // New Name? DrawRectAligned_OneTexture
 	float width = image.width();

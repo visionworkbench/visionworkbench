@@ -7,6 +7,10 @@
 #include <vw/GPU/Utilities.h>
 #include <vw/GPU/StandardShaders.h>
 
+#ifdef HAVE_CONFIG_H
+#include <vw/config.h>
+#endif
+
 
 using namespace std;
 

@@ -1,8 +1,8 @@
 
 uniform sampler2DRect i1;
-uniform float f1;  // old_min
-uniform float f2;  // new_min
-uniform float f3;  // new_to_old_ratio
+uniform float f1;  /* old_min */
+uniform float f2;  /* new_min */
+uniform float f3;  /* new_to_old_ratio */
 
 void main() {
    vec4 value = texture2DRect(i1, gl_TexCoord[0].st);

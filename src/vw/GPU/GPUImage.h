@@ -90,6 +90,7 @@ class GPUImageBase : public ShaderNode_Base {
     if(_texBlock) _texBlock->release(); 
   }
 
+
   GPUImageBase(const GPUImageBase& cpyTex) {
     _width = cpyTex._width;
     _height  = cpyTex._height;
@@ -104,6 +105,17 @@ class GPUImageBase : public ShaderNode_Base {
     _edge_extension_type = cpyTex._edge_extension_type;
 
   }
+
+  void copy_attributes(const GPUImageBase& cpyTex) {
+    _xOffset = 0;
+    _yOffset = 0;
+    _texBlock = TexAlloc::alloc(cpyTex.width(), cpyTex.height(), cpyTex.format(), cpyTex.type());
+    _texBlock->retain();
+    _width = _texBlock->width();
+    _height = _texBlock->height();
+    _isHomography = false;
+  }
+
 // Instance Functions - Operators
   GPUImageBase& operator=(const GPUImageBase& cpyTex) {
     if(_texBlock)
@@ -168,7 +180,7 @@ class GPUImageBase : public ShaderNode_Base {
     _edge_extension_type = TraitsForEdgeT<EdgeT>::type;
   }
 
-  void rasterize_homography() const;
+  void rasterize_homography() const; 
 
   int width() const { return _width; }
   int height() const { return _height; }
@@ -435,14 +447,14 @@ class GPUImage :  public GPUImageBase { // public ImageViewBase<GPUImage<PixelT>
 		throw(Exception("[vw::GPU::GPUImage<PixelT>::apply_homography] Input Error: Homography Matrix must be 3x3"));
     }
 	*this = (GPUImage<PixelT>&) cpyTex;
-    /*
-    _width = cpyTex.width();
-    _height  = cpyTex.height();
-    _xOffset = cpyTex.OffsetX();
-    _yOffset = cpyTex.OffsetY();
-    _texBlock = cpyTex.GetTexBlock();
-    _texBlock->retain();
-    */
+  }
+
+  GPUImage& operator=(const GPUImageBase& cpyTex) {
+	if(cpyTex.format() != get_format_for_pixelt() || cpyTex.type() != get_gpu_type_for_pixelt()) {
+		_width = _height = 0;
+		throw(Exception("[vw::GPU::GPUImage<PixelT>::apply_homography] Input Error: Homography Matrix must be 3x3"));
+    }
+	*this = (GPUImage<PixelT>&) cpyTex;
   }
   
   GPUImage& operator=(const ImageView<typename TexTraitsForPixelT<PixelT>::imageview_t>& image) {

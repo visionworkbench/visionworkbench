@@ -136,7 +136,7 @@ namespace vw {
     template <class ChannelT>
     GPUImage<PixelRGBA<ChannelT> > pack_gray_into_rgba(const GPUImage<PixelGray<ChannelT> >& image, int overlap) {
       // Static
-      static GPUProgramSet programSet("", "Manipulation/PackGrayIntoRGBA");
+      static GPUProgramSet programSet("", "VWGPU_Manipulation/PackGrayIntoRGBA");
       static vector<int> fAttributes(1);
       // GLState - Setup
 	  ((GPUImageBase&) image).rasterize_homography();	
@@ -167,10 +167,10 @@ namespace vw {
     template <class ChannelT>
     GPUImage<PixelGray<ChannelT> > unpack_gray_from_rgba(const GPUImage<PixelRGBA<ChannelT> >& image, int overlap) {
       // Static
-      static GPUProgramSet programSet_R("", "Manipulation/SelectChannel-R");
-      static GPUProgramSet programSet_G("", "Manipulation/SelectChannel-G");
-      static GPUProgramSet programSet_B("", "Manipulation/SelectChannel-B");
-      static GPUProgramSet programSet_A("", "Manipulation/SelectChannel-A");
+      static GPUProgramSet programSet_R("", "VWGPU_Manipulation/SelectChannel-R");
+      static GPUProgramSet programSet_G("", "VWGPU_Manipulation/SelectChannel-G");
+      static GPUProgramSet programSet_B("", "VWGPU_Manipulation/SelectChannel-B");
+      static GPUProgramSet programSet_A("", "VWGPU_Manipulation/SelectChannel-A");
       static vector<int> fAttributes(1);
       fAttributes[0] = 4;
       // GLState - Setup

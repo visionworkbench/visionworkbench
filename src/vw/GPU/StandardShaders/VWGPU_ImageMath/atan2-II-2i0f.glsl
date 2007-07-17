@@ -10,12 +10,12 @@ void main() {
    vec4 x = texture2DRect(i2, gl_TexCoord[0].st);
    vec4 result = vec4(0.0);
    vec4 atan_value = atan(y/x);
-// Per-Channel Variables
+/* Per-Channel Variables */
    float ch_x;
    float ch_y;
    float ch_atan;
    float ch_output;
-// channel-r
+/* channel-r */
    ch_x = x.r;
    ch_y = y.r;
    ch_atan = atan_value.r;
@@ -27,7 +27,7 @@ void main() {
       ch_output = ch_atan + sign(ch_y) * pi;
    }	
 	result.r = ch_output;
-// channel-g
+/* channel-g */
    ch_x = x.g;
    ch_y = y.g;
    ch_atan = atan_value.g;
@@ -39,7 +39,7 @@ void main() {
       ch_output = ch_atan + sign(ch_y) * pi;
    }	
 	result.g = ch_output;
-// channel-b
+/* channel-b */
    ch_x = x.b;
    ch_y = y.b;
    ch_atan = atan_value.b;
@@ -51,7 +51,7 @@ void main() {
       ch_output = ch_atan + sign(ch_y) * pi;
    }	
 	result.b = ch_output;
-// channel-a
+/* channel-a */
    ch_x = x.a;
    ch_y = y.a;
    ch_atan = atan_value.a;

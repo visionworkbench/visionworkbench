@@ -21,5 +21,4 @@ void main(in float2 texCoord0 : TEXCOORD0,
    } 
 
    color = value;
-   color = vec4(111);
 }

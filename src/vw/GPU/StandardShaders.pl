@@ -21,10 +21,10 @@ print OUT "void init_standard_shaders() {\n";
 #Iterate Through Input Files, printing map insert functions
 foreach $filename (@files) {
   chomp($filename);
-  $filename =~ /\.\/shaders/(.*)/;
+  $filename =~ /\.\/StandardShaders\/(.*)/;
   $mapname = $1;
   open(IN, $filename);
-  print OUT "standard_shaders_map[\"", $filename, "\"] = \" \\\n";
+  print OUT "standard_shaders_map[\"", $mapname, "\"] = \" \\\n";
   while ($line = <IN>) {
     chomp($line);
     print OUT $line, " \\\n";
@@ -34,4 +34,4 @@ foreach $filename (@files) {
 
 # Print End Code
 print OUT "}\n";
-print OUT "} } // namespace GPU, namespace vw"
+print OUT "} } // namespace GPU, namespace vw\n"

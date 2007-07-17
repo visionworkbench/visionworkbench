@@ -118,7 +118,7 @@ namespace vw { namespace GPU {
   template <class PixelT>
   GPUImage<PixelT> 
     inline gaussian_derivative_filter(const GPUImage<PixelT>& image, float x_sigma, int x_deriv, float y_sigma, int y_deriv, float angle, int size) {
-    ImageView<float> kernel;
+     ImageView<float> kernel;
     generate_gaussian_derivative_kernel( kernel, x_sigma, x_deriv, y_sigma, y_deriv, angle, size );
     GPUImageBase kernel_tex(kernel.cols(), kernel.rows(), TEX_R, TEX_FLOAT32, TEX_R, TEX_FLOAT32, &(kernel(0, 0)));
     return convolution_filter((GPUImageBase&) image, kernel_tex);
