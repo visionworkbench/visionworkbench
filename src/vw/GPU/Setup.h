@@ -24,6 +24,8 @@ extern GLuint g_framebuffer;
 
 void gpu_init(bool dummyWindow = true, bool isLoggingEnabled = false);
 
+ void gpu_cleanup();
+
 // Settings
 
 
@@ -53,6 +55,10 @@ void gpu_init(bool dummyWindow = true, bool isLoggingEnabled = false);
  void set_shader_language_choice(ShaderLanguageChoiceEnum choice);
 
  void set_gpu_memory_recycling(bool value);
+
+ void set_shader_base_path(const string& path);
+
+ void set_shader_assembly_cache_path(const string& path);
 
 // Logging
 

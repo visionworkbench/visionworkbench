@@ -21,6 +21,12 @@ using namespace std;
 namespace vw { namespace GPU {
 
 
+  extern string shader_base_path = "";
+
+  extern bool use_assembly_cache = false;
+
+  extern string assembly_cache_path = "";
+
 
 //########################################################################
 //#                  
@@ -117,32 +123,6 @@ public:
 };
 
 
-class GPUProgramSet_GLSL {
-	map<pair<vector<int>, vector<int> >, GPUProgram_GLSL*> programMap;
-	map<vector<int>, GPUVertexShader_GLSL*> vertexMap;
-	map<vector<int>, GPUFragmentShader_GLSL*> fragmentMap;
-	string vertexBasePath;
-	string fragmentBasePath;
-public:
-	GPUProgramSet_GLSL();
-	~GPUProgramSet_GLSL();
-	
-	GPUProgram_GLSL* get_program(const vector<int>& fragmentAttributes = vector<int>(), 
-				    const vector<int>& vertexAttributes = vector<int>(), 
-				    bool verbose = false );
-	  
-// Inline
-	void set_base_paths(const string& inFragmentBasePath, const string& inVertexBasePath = "") {
-		vertexBasePath = inVertexBasePath;
-		fragmentBasePath = inFragmentBasePath;
-	}
-	void set_base_paths(const char* inFragmentBasePath, const char* inVertexBasePath = "") {
-		vertexBasePath = inVertexBasePath;
-		fragmentBasePath = inFragmentBasePath;
-	}
-};
-
-
 //#############################################################################################
 //#    CG Classes:  GPUShader_CG, GPUProgram_CG (subclass), GPUProgramSet_CG (subclass)         
 //#############################################################################################
@@ -179,7 +159,10 @@ public:
 // INLINE
   GPUProgram_CG(GPUShader_CG* inVertexShader, GPUShader_CG* inFragmentShader) 
     : vertexShader(inVertexShader), fragmentShader(inFragmentShader) { }
-  ~GPUProgram_CG() { if(vertexShader) delete vertexShader; if(fragmentShader) delete fragmentShader; }
+  ~GPUProgram_CG() { 
+    if(vertexShader) delete vertexShader;
+    if(fragmentShader) delete fragmentShader; 
+  }
 // Over-Riden
   void install() { 
     if(vertexShader)
@@ -211,91 +194,36 @@ public:
   }
 };
 
-
-class GPUProgramSet_CG {
-	map<pair<vector<int>, vector<int> >, GPUProgram_CG*> programMap;
-	string vertexBasePath;
-	string fragmentBasePath;
-public:
-	GPUProgramSet_CG();
-	~GPUProgramSet_CG();
-	
-	GPUProgram_CG* get_program(const vector<int>& fragmentAttributes = vector<int>(), 
-				    const vector<int>& vertexAttributes = vector<int>(), 
-				    bool verbose = false );
-	  
-// Inline
-	void set_base_paths(const string& inFragmentBasePath, const string& inVertexBasePath = "") {
-		vertexBasePath = inVertexBasePath;
-		fragmentBasePath = inFragmentBasePath;
-	}
-	void set_base_paths(const char* inFragmentBasePath, const char* inVertexBasePath = "") {
-		vertexBasePath = inVertexBasePath;
-		fragmentBasePath = inFragmentBasePath;
-	}
-};
-
 #endif // ifdef VW_HAVE_PKG_CG___
 
-//#############################################################################################
-//#    Class:  GPUProgramSet   
-//#############################################################################################
 
-class GPUProgramSet {
-  string vertexBasePath;
-  string fragmentBasePath;
-  static bool useAssemblyCaching;
-  GPUProgramSet_GLSL programSet_GLSL;
-#ifdef VW_HAVE_PKG_CG
-  GPUProgramSet_CG programSet_CG;
-#endif  	
- public:
-  static void set_use_assembly_caching(bool value) { useAssemblyCaching = value; }
-
-  static bool get_use_assembly_caching() { return useAssemblyCaching; }
-
-  GPUProgram* get_program(const vector<int>& vertexAttributes = vector<int>(), 
-			 const vector<int>& fragmentAttributes = vector<int>(), 
-			 bool verbose = false );
-	  
-// Inline
-  GPUProgramSet();
-
-  GPUProgramSet(const char* inFragmentBasePath, const char* inVertexBasePath = "") {
-    set_base_paths(inFragmentBasePath, inVertexBasePath);
-  }
-
-  ~GPUProgramSet();
-  void set_base_paths(const string& inFragmentBasePath, const string& inVertexBasePath = "") {
-    vertexBasePath = inVertexBasePath;
-    fragmentBasePath = inFragmentBasePath;
-    programSet_GLSL.set_base_paths(inFragmentBasePath, inVertexBasePath);
-#ifdef VW_HAVE_PKG_CG
-    programSet_CG.set_base_paths(inFragmentBasePath, inVertexBasePath);
-#endif  	
-  }
-
-  void set_base_paths(const char* inVertexBasePath, const char* inFragmentBasePath) {
-    vertexBasePath = inVertexBasePath;
-    fragmentBasePath = inFragmentBasePath;
-    programSet_GLSL.set_base_paths(inFragmentBasePath, inVertexBasePath);
-#ifdef VW_HAVE_PKG_CG
-    programSet_CG.set_base_paths(inFragmentBasePath, inVertexBasePath);
-#endif  	
-  }
-
-};
 
 //#############################################################################################
-//#    Free Functions - get_gpu_program   
+//#    Creation Free Functions   
 //#############################################################################################
 
 
 
  GPUProgram* create_gpu_program(const string& fragmentPath, const vector<int>& fragmentAttributes = vector<int>(),
-		      const string& vertexPath = "", const vector<int>& vertexAttributes = vector<int>());
+				const string& vertexPath = "", const vector<int>& vertexAttributes = vector<int>());
 
+ GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, const vector<int>& fragmentAttributes = vector<int>(),
+					       const string& vertexString = "", const vector<int>& vertexAttributes = vector<int>());
 
+ GPUProgram_GLSL* create_gpu_program_glsl(const string& fragmentPath, const vector<int>& fragmentAttributes = vector<int>(),
+					const string& vertexPath = "", const vector<int>& vertexAttributes = vector<int>());
+
+#ifdef VW_HAVE_PKG_CG
+
+ GPUProgram_CG* create_gpu_program_cg_string(const string& fragmentString, const vector<int>& fragmentAttributes = vector<int>(),
+					     const string& vertexString = "", const vector<int>& vertexAttributes = vector<int>());
+
+ GPUProgram_CG* create_gpu_program_cg(const string& fragmentPath, const vector<int>& fragmentAttributes = vector<int>(),
+				      const string& vertexPath = "", const vector<int>& vertexAttributes = vector<int>());
+
+#endif
+
+ void clear_gpu_program_cache();
 
 } } // namespaces GPU, vw
 
