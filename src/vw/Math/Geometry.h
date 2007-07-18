@@ -300,17 +300,21 @@ namespace math {
       
       vw::Matrix<double> U, VT;
       vw::Vector<double> S;
+      vw::Matrix<double> correction = identity_matrix(dimensions);
       vw::Matrix<double> H = B*transpose(A);
       vw::Matrix<double> E(dimensions+1, dimensions+1);
       vw::Matrix<double> rotation;
       vw::Vector<double> translation;
       svd(H, U, S, VT);
-      rotation = transpose(VT)*transpose(U);
+      correction(dimensions-1,dimensions-1) = det(U) * det(VT);
+      rotation = transpose(VT)*correction*transpose(U);
       translation = subvector(centroid1, 0, dimensions) - rotation*subvector(centroid2, 0, dimensions);
       submatrix(E, 0, 0, dimensions, dimensions) = rotation;
       //NOTE: the following does not work: subvector(select_col(E, dimensions), 0, dimensions) = translation;
       for (unsigned int row = 0; row < dimensions; ++row)
         E(row,dimensions) = translation(row);
+      for (unsigned int col = 0; col < dimensions; ++col)
+        E(dimensions,col) = 0;
       E(dimensions,dimensions) = 1;
 
       // check that det(R) > 0
