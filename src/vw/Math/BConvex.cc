@@ -238,20 +238,12 @@ namespace math {
     const Constraint_System &cs = ((const C_Polyhedron*)m_poly)->minimized_constraints();
     Constraint_System::const_iterator i;
     for (i = cs.begin(); i != cs.end(); i++) {
-      {
-        using ::Parma_Polyhedra_Library::IO_Operators::operator<<;
-        ::std::cout << "Original: " << *i << std::endl;
-      }
       coefficients(*i, coef);
       norm = norm_2(subvector(coef, 0, dim));
       coef /= norm;
       VW_ASSERT(coef[dim] >= 0, LogicErr() << "Center is outside of polyhedron!");
       coef[dim] += offset;
       Constraint c = constraint_generator(coef);
-      {
-        using ::Parma_Polyhedra_Library::IO_Operators::operator<<;
-        ::std::cout << "Modified: " << c << std::endl;
-      }
       poly->add_constraint(c);
     }
     delete (C_Polyhedron*)m_poly;
