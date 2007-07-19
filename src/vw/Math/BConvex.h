@@ -242,13 +242,11 @@ namespace math {
     void crop( BConvex const& bconv );
     
     /// Expands this convex shape by the given offset in every direction.
-    void expand( double offset ) { //FIXME
-      VW_ASSERT( 0, LogicErr() << "expand() is not implemented for BConvex!" );
-    }
+    void expand( double offset );
 
     /// Contracts this convex shape by the given offset in every direction.
-    void contract( double offset ) { //FIXME
-      VW_ASSERT( 0, LogicErr() << "contract() is not implemented for BConvex!" );
+    void contract( double offset ) {
+      expand(-offset);
     }
     
     /// Returns true if the given point is contained in the convex shape.
@@ -323,19 +321,6 @@ namespace math {
       return *this;
     }
 
-  protected:
-    /// Creates a polyhedron with the given dimension.
-    static void *new_poly( unsigned dim );
-
-    /// Creates a polyhedron that is a copy of the given polyhedron.
-    static void *new_poly( const void *poly );
-    
-    /// Deletes the given polyhedron.
-    static void delete_poly( void *poly );
-    
-    /// Copies polyhedron from_poly to polyhedron to_poly. 
-    static void copy_poly( const void *from_poly, void *to_poly );
-    
     /// Converts a Vector to a Rational Vector.
     template <class VectorT>
     static Vector<bconvex_rational::Rational> const& convert_vector( VectorBase<VectorT> const& point, Vector<bconvex_rational::Rational> &p ) {
@@ -357,6 +342,19 @@ namespace math {
       RationalFuncs<ScalarT>::set(s, s, r);
       return r;
     }
+
+  protected:
+    /// Creates a polyhedron with the given dimension.
+    static void *new_poly( unsigned dim );
+
+    /// Creates a polyhedron that is a copy of the given polyhedron.
+    static void *new_poly( const void *poly );
+    
+    /// Deletes the given polyhedron.
+    static void delete_poly( void *poly );
+    
+    /// Copies polyhedron from_poly to polyhedron to_poly. 
+    static void copy_poly( const void *from_poly, void *to_poly );
     
     /// Returns whether qhull is available.
     static bool have_qhull();

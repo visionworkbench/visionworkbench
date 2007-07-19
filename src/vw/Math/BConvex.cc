@@ -84,6 +84,42 @@ namespace {
     return e - s;
   }
 
+  /// Creates a PPL Constraint from a Vector.
+  Constraint constraint_generator( vw::math::Vector<double> const& coef ) {
+    unsigned dim = coef.size() - 1;
+    vw::math::Vector<Rational> coefr( coef.size() );
+    Linear_Expression e;
+    unsigned i;
+    vw::math::BConvex::convert_vector(coef, coefr);
+    for (i = dim - 1; 1; i--) {
+      if (coefr[0].is_signed)
+        e += mult_variable(Variable(i), coefr[i].signed_num);
+      else
+        e += mult_variable(Variable(i), coefr[i].unsigned_num);
+      if (i == 0)
+        break;
+    }
+    if (coefr[0].is_signed)
+      e += coefr[dim].signed_num;
+    else
+      e += coefr[dim].unsigned_num;
+    Constraint c = (e >= 0);
+    return c;
+  }
+
+  /// Finds the coefficients of a PPL Constraint.
+  void coefficients( Constraint const& c, vw::math::Vector<double> &coef ) {
+    unsigned dim = c.space_dimension();
+    unsigned i;
+    coef.set_size(dim + 1);
+    for (i = dim - 1; 1; i--) {
+      coef[i] = c.coefficient(Variable(i)).get_d();
+      if (i == 0)
+        break;
+    }
+    coef[dim] = c.inhomogeneous_term().get_d();
+  }
+
 } // namespace
 
 namespace vw {
@@ -133,7 +169,6 @@ namespace math {
     int curlong, totlong;
     facetT *facet;
     Vector<double> facetv(dim + 1);
-    Vector<Rational> facetvr(dim + 1);
     FILE *fake_stdout;
     FILE *fake_stderr;
     unsigned i;
@@ -162,25 +197,11 @@ namespace math {
     
     m_poly = (void*)(new C_Polyhedron( dim, UNIVERSE ));
     FORALLfacets {
-      Linear_Expression e;
       for (i = 0; i < dim; i++)
-        facetv[i] = facet->normal[i];
-      facetv[i] = facet->offset;
-      convert_vector(facetv, facetvr);
-      for (i = dim - 1; 1; i--) {
-        if (facetvr[0].is_signed)
-          e += mult_variable(Variable(i), facetvr[i].signed_num);
-        else
-          e += mult_variable(Variable(i), facetvr[i].unsigned_num);
-        if (i == 0)
-          break;
-      }
-      if (facetvr[0].is_signed)
-        e += facetvr[dim].signed_num;
-      else
-        e += facetvr[dim].unsigned_num;
+        facetv[i] = -facet->normal[i];
+      facetv[i] = -facet->offset;
       //NOTE: Printing facet->toporient here for the [0,1]^3 unit cube test case (see TestBConvex.h) demonstrates that facet->toporient is meaningless in the qhull output.
-      Constraint c = (e <= 0);
+      Constraint c = constraint_generator(facetv);
       ((C_Polyhedron*)m_poly)->add_constraint(c);
     }
     
@@ -205,6 +226,37 @@ namespace math {
 
   void BConvex::crop( BConvex const& bconv ) {
     ((C_Polyhedron*)m_poly)->intersection_assign(*((const C_Polyhedron*)(bconv.poly())));
+  }
+
+  void BConvex::expand( double offset ) {
+    unsigned dim = ((const C_Polyhedron*)m_poly)->space_dimension();
+    Vector<double> center_ = center();
+    C_Polyhedron *poly = new C_Polyhedron( dim, UNIVERSE );
+    Vector<double> coef( dim + 1 );
+    double norm;
+    *this -= center_;
+    const Constraint_System &cs = ((const C_Polyhedron*)m_poly)->minimized_constraints();
+    Constraint_System::const_iterator i;
+    for (i = cs.begin(); i != cs.end(); i++) {
+      {
+        using ::Parma_Polyhedra_Library::IO_Operators::operator<<;
+        ::std::cout << "Original: " << *i << std::endl;
+      }
+      coefficients(*i, coef);
+      norm = norm_2(subvector(coef, 0, dim));
+      coef /= norm;
+      VW_ASSERT(coef[dim] >= 0, LogicErr() << "Center is outside of polyhedron!");
+      coef[dim] += offset;
+      Constraint c = constraint_generator(coef);
+      {
+        using ::Parma_Polyhedra_Library::IO_Operators::operator<<;
+        ::std::cout << "Modified: " << c << std::endl;
+      }
+      poly->add_constraint(c);
+    }
+    delete (C_Polyhedron*)m_poly;
+    m_poly = (void*)poly;
+    *this += center_;
   }
 
   bool BConvex::contains_( Vector<Rational> const& point ) const {
