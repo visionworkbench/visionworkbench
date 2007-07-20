@@ -149,13 +149,13 @@ namespace cartography {
 
 
   /// Reproject an image whose pixels contain 3D points (usually in
-  /// some spherical coordinate system).  Important note: we assume
-  /// that the 3D points already have the affine transform applied to
-  /// them (they correspond to real 3D coordinates and not pixel
-  /// coordinates in an image), therefor the affine transform portion
-  /// of the georeference is completely ignored by the function.  It
-  /// does not matter what affine transform you are using in the
-  /// src_georef or dst_georef.
+  /// some spherical coordinate system).  Important note: it is
+  /// assumed here that the 3D points already have the affine
+  /// transform applied to them (they correspond to real 3D
+  /// coordinates and not pixel coordinates in an image), therefore
+  /// the affine transform portion of the georeference is completely
+  /// ignored by the function.  It does not matter what affine
+  /// transform you are using in the src_georef or dst_georef.
   ///
   /// Important Note: The convention here is that the Vector3 contains
   /// the ordered triple: (longitude, latitude, altitude). 

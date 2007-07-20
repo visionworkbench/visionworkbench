@@ -126,8 +126,6 @@ namespace cartography {
       return point_to_pixel(lonlat_to_point(lat_lon));
     }
 
-
-
     /// Return the box that bounds the area represented by the
     /// geotransform for the dimensions of the given image.
     template <class ViewT> 
@@ -144,130 +142,6 @@ namespace cartography {
                     pixel_to_lonlat(Vector2(view.cols(), view.rows())));
     }
   };
-  
-  template <class ElemT>
-  class XYZtoLonLatFunctor : public UnaryReturnSameType {
-    bool m_east_positive;
-  public:
-    XYZtoLonLatFunctor(bool east_positive = true) : m_east_positive(east_positive) {}
-    
-    Vector<ElemT,3> operator()(Vector<ElemT,3> const& p) const {
-      return this->apply(p, m_east_positive);
-    } 
-
-    static inline Vector<ElemT,3> apply(Vector<ElemT,3> const& p, bool east_positive = true)  {
-
-      // Deal with "missing pixels"
-      if (p == Vector<ElemT,3>()) { return p; }
-      
-      double radius = norm_2(p);
-      double sin_lat = p.z() / radius;
-      double lat = asin(sin_lat);
-
-      double lon;
-      if (east_positive) 
-        lon = atan2(p.y(), p.x());
-      else // West positive longitude
-        lon = atan2(-p.y(), p.x()); 
-
-      // For consistency-sake, we always return a longitude in the range +/-180.
-      if (lon > M_PI)
-        lon -= 2*M_PI;
-      if (lon < -M_PI)
-        lon += 2*M_PI;
-
-      return Vector<ElemT,3> (lon * 180.0 / M_PI, lat * 180.0 / M_PI, radius);
-    }
-  };
-
-  template <class ElemT>
-  class LonLatToXYZFunctor : public UnaryReturnSameType {
-    bool m_east_positive;
-  public:
-    LonLatToXYZFunctor(bool east_positive = true) : m_east_positive(east_positive) {}
-
-    // Convert from lon, lat, radius to x,y,z:
-    //
-    // x = r * cos(longitude)
-    // y = r * sin(longitude)
-    // z = r * sin(latitude)
-    //
-    Vector<ElemT,3> operator()(Vector<ElemT,3> const& p) const {
-      return this->apply(p, m_east_positive);
-    }
-
-    static inline Vector<ElemT,3> apply(Vector<ElemT,3> const& p, bool east_positive = true)  {
-      ElemT z = p(2) * sin(p(1)*M_PI/180.0);
-      ElemT sqrt_x_sqr_plus_y_sqr = p(2) * cos(p(1)*M_PI/180.0);
-
-      if (east_positive) {
-        return Vector3( sqrt_x_sqr_plus_y_sqr * cos(p(0)*M_PI/180.0),
-                        sqrt_x_sqr_plus_y_sqr * sin(p(0)*M_PI/180.0),
-                        z);
-      } else {
-        return Vector3( sqrt_x_sqr_plus_y_sqr * cos(-p(0)*M_PI/180.0),
-                        sqrt_x_sqr_plus_y_sqr * sin(-p(0)*M_PI/180.0),
-                        z );
-      }
-    }
-  };
-  
-
-  /// Takes an ImageView of Vector<ElemT,3> in cartesian 3 space and
-  /// returns a ImageView of vectors that contains the lat, lon, and
-  /// radius of that point.  For consistency with cartographic
-  /// convention, angular values are return in degrees rather than
-  /// radians.
-  ///
-  /// Note: The following assumes latitude is measured from the
-  /// equatorial plane with north positive. This is different than
-  /// normal spherical coordinate conversion where the equivalent
-  /// angle is measured from the positive z axis.
-  ///
-  /// Note: notice that the order of the returned triple is longitude,
-  /// latitude, radius.  This ordering of lon/lat is consistent with
-  /// the notion of horizontal (x) and vertical (y) coordinates in an
-  /// image.
-  template <class ImageT>
-  UnaryPerPixelView<ImageT, XYZtoLonLatFunctor<typename ImageT::pixel_type::value_type> >
-  inline xyz_to_lon_lat_radius( ImageViewBase<ImageT> const& image, bool east_positive = true ) {
-    typedef typename ImageT::pixel_type::value_type vector_value_type;
-    return UnaryPerPixelView<ImageT,XYZtoLonLatFunctor<vector_value_type> >( image.impl(), XYZtoLonLatFunctor<vector_value_type>(east_positive) );
-  }
-
-  template <class ElemT>
-  inline Vector<ElemT,3> xyz_to_lon_lat_radius( Vector<ElemT,3> const& xyz, bool east_positive = true ) {
-    return XYZtoLonLatFunctor<double>::apply(xyz, east_positive);
-  }
-    
-
-  /// Takes an ImageView of Vector<ElemT,3> that contains longitude,
-  /// latitude, and radius, and an ImageView of vectors that are in
-  /// cartesian 3-space.  For consistency with cartographic
-  /// convention, angular values are expected to be in degrees rather
-  /// than radians.
-  ///
-  /// Note: The following assumes latitude is measured from the
-  /// equatorial plane with north positive. This is different than
-  /// normal spherical coordinate conversion where the equivalent
-  /// angle is measured from the positive z axis.
-  ///
-  /// Note: notice that the order of the returned triple is longitude,
-  /// latitude, radius.  This ordering of lon/lat is consistent with
-  /// the notion of horizontal (x) and vertical (y) coordinates in an
-  /// image.
-  template <class ImageT>
-  UnaryPerPixelView<ImageT, LonLatToXYZFunctor<typename ImageT::pixel_type::value_type> >
-  inline lon_lat_radius_to_xyz( ImageViewBase<ImageT> const& image, bool east_positive = true ) {
-    typedef typename ImageT::pixel_type::value_type vector_value_type;
-    return UnaryPerPixelView<ImageT,LonLatToXYZFunctor<vector_value_type> >( image.impl(), LonLatToXYZFunctor<vector_value_type>(east_positive) );
-  }
-
-  template <class ElemT>
-  inline Vector<ElemT,3> lon_lat_radius_to_xyz( Vector<ElemT,3> const& xyz, bool east_positive = true ) {
-    return LonLatToXYZFunctor<ElemT>::apply(xyz, east_positive);
-  }
-
 
 }} // namespace vw::cartography
 

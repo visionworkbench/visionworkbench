@@ -39,7 +39,6 @@ namespace cartography {
 
   // Forward declaration
   class ProjContext;
-
   
   /// The georeference class contains the mapping from image coordinates
   /// (u,v) to geospatial coordinates (typically lat/lon, or possibly
@@ -91,6 +90,11 @@ namespace cartography {
     std::string proj4_str() const;
     const std::string gml_str()    const { return m_gml_str; }
     Matrix<double,3,3> transform() const { return m_transform; }
+    
+    /// True if the georeference is using a projected coordinate
+    /// system.  False if no projection is used (ie. we are only using
+    /// lon, lat).
+    bool is_projected() { return m_is_projected; }
 
     /// Options include: WGS84, WGS72, NAD27, NAD83.  Note: you must
     /// call this routine before calling any of the routines below

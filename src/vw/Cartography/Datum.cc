@@ -92,7 +92,7 @@ void vw::cartography::Datum::set_semi_minor_axis(double val) {
   m_proj_str = strm.str();
 }
 
-double vw::cartography::Datum::radius(double lat, double lon) const {
+double vw::cartography::Datum::radius(double lon, double lat) const {
   // Optimize in the case of spherical datum
   if (m_semi_major_axis == m_semi_minor_axis) {
     return m_semi_major_axis;

@@ -20,20 +20,26 @@
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
 // 
 // __END_LICENSE__
+#ifndef __VW_CARTOGRAPHY_DISKIMAGERESOURCEGEOREFERENCEHELPERPDS_H__
+#define __VW_CARTOGRAPHY_DISKIMAGERESOURCEGEOREFERENCEHELPERPDS_H__
 
-/// \file Cartography.h
-/// 
-/// A convenience header that includes the header files in vw/Cartography.
-/// 
-#ifndef __VW_CARTOGRAPHY_H__
-#define __VW_CARTOGRAPHY_H__
+#include <vw/FileIO/FileMetadata.h>
+#include <vw/FileIO/DiskImageResource.h>
 
-#include <vw/Cartography/Datum.h>
-#include <vw/Cartography/GeoReference.h>
-#include <vw/Cartography/GeoTransform.h>
-#include <vw/Cartography/FileIO.h>
-#include <vw/Cartography/OrthoImageView.h>
-#include <vw/Cartography/PointImageManipulation.h>
+// Boost
+#include <boost/algorithm/string.hpp>
 
-#endif // __VW_CARTOGRAPHY_H__
- 
+namespace vw {
+namespace cartography {
+
+  // This implements some very preliminary support for reading
+  // georeferencing info from a PDS image.  So far, this is only
+  // guranteed to work on the MOLA MEGDR data products.
+  struct DiskImageResourceGeoReferenceHelperPDS {
+    static void read_georeference( FileMetadata* georef_, DiskImageResource* r_ );
+    static void write_georeference( DiskImageResource* r_, FileMetadata const* georef_ );
+  };
+
+}} // namespace vw::cartography
+
+#endif // __VW_CARTOGRAPHY_DISKIMAGERESOURCEGEOREFERENCEHELPERPDS_H__

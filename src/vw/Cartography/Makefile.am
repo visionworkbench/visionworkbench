@@ -37,18 +37,26 @@ jpeg2k_headers = DiskImageResourceGeoReferenceHelperJP2.h
 jpeg2k_sources = DiskImageResourceGeoReferenceHelperJP2.cc
 endif
 
-include_HEADERS = FileIO.h GeoReferenceBase.h GeoReference.h	\
-                  GeoTransform.h Datum.h OrthoImageView.h       \
-	          $(gdal_headers) $(jpeg2k_headers)
+include_HEADERS = FileIO.h GeoReferenceBase.h GeoReference.h			\
+                  GeoTransform.h Datum.h PointImageManipulation.h	\
+                  OrthoImageView.h																\
+                  DiskImageResourceGeoReferenceHelperPDS.h				\
+                  $(gdal_headers) $(jpeg2k_headers)
 
-
-libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc \
-	$(gdal_sources) $(jpeg2k_sources)
+libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc	\
+                  DiskImageResourceGeoReferenceHelperPDS.cc		\
+                  $(gdal_sources) $(jpeg2k_sources)
 
 libvwCartography_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwCartography_la_LIBADD = @MODULE_CARTOGRAPHY_LDFLAGS@
 
 lib_LTLIBRARIES = libvwCartography.la
+
+if ENABLE_EXCEPTIONS
+bin_PROGRAMS = shaded_relief
+shaded_relief_SOURCES = shaded_relief.cc
+shaded_relief_LDFLAGS = @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_BOOST_PROGRAM_OPTIONS_LDFLAGS@
+endif
 
 endif
 

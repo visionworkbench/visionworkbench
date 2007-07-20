@@ -34,6 +34,9 @@
 #include <vw/FileIO/DiskImageResourceJP2.h>
 #endif
 
+#include <vw/Cartography/DiskImageResourceGeoReferenceHelperPDS.h>
+#include <vw/FileIO/DiskImageResourcePDS.h>
+
 // xmlParser
 #include <xmlParser.h>
 
@@ -72,6 +75,7 @@ static void register_default_disk_image_resources() {
 #if defined(VW_HAVE_PKG_JPEG2K) && VW_HAVE_PKG_JPEG2K==1
   vw::cartography::GeoReference::register_disk_image_resource(vw::DiskImageResourceJP2::type_static(), &vw::cartography::DiskImageResourceGeoReferenceHelperJP2::read_georeference, &vw::cartography::DiskImageResourceGeoReferenceHelperJP2::write_georeference);
 #endif
+  vw::cartography::GeoReference::register_disk_image_resource(vw::DiskImageResourcePDS::type_static(), &vw::cartography::DiskImageResourceGeoReferenceHelperPDS::read_georeference, &vw::cartography::DiskImageResourceGeoReferenceHelperPDS::write_georeference);
 }
 
 namespace {

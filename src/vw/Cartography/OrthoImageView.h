@@ -28,6 +28,7 @@
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/Datum.h>
+#include <vw/Cartography/PointImageManipulation.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Core/CompoundTypes.h>
 

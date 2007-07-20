@@ -99,7 +99,7 @@ namespace cartography {
 
     std::string proj4_str() const { return m_proj_str; }
 
-    double radius(double lat, double lon) const;
+    double radius(double lon, double lat) const;
 
     double inverse_flattening() const;
 
@@ -109,65 +109,6 @@ namespace cartography {
 
   std::ostream& operator<<(std::ostream& os, const Datum& datum);
 
-
-  template <class ElemT>
-  class SubtractDatumFunctor : public UnaryReturnSameType {
-    Datum m_datum;
-
-  public:
-    SubtractDatumFunctor(Datum const& datum) : m_datum(datum) {}    
-    Vector<ElemT,3> operator()(Vector<ElemT,3> const& p) const {
-      if (p != Vector<ElemT,3>()) 
-        return Vector<ElemT,3>(p[0], p[1], p[2]-m_datum.radius(p[0], p[1]));
-      else 
-        return p;
-    }
-  };
-
-  template <class ElemT>
-  class AddDatumFunctor : public UnaryReturnSameType {
-    Datum m_datum;
-
-  public:
-    AddDatumFunctor(Datum const& datum) : m_datum(datum) {}    
-    Vector<ElemT,3> operator()(Vector<ElemT,3> const& p) const {
-      if (p != Vector<ElemT,3>()) 
-        return Vector<ElemT,3>(p[0], p[1], p[2]+m_datum.radius(p[0], p[1]));
-      else 
-        return p;
-    }
-  };
-  
-
-  /// Takes an ImageView of Vector<ElemT,3> in lon/lat/radius and
-  /// returns an ImageView of vectors that contains the lol, lat, and
-  /// altitude of that point referenced to the given datum.  For
-  /// consistency with cartographic convention, angular values must be
-  /// given in degrees rather than radians.
-  ///
-  /// Note: The following assumes latitude is measured from the
-  /// equatorial plane with north positive. This is different than
-  /// normal spherical coordinate conversion where the equivalent
-  /// angle is measured from the positive z axis.
-  //
-  /// Note: notice that the order of the returned triple is longitude,
-  /// latitude, radius.  This ordering of lon/lat is consistent with
-  /// the notion of horizontal (x) and vertical (y) coordinates in an
-  /// image.
-  template <class ImageT>
-  UnaryPerPixelView<ImageT, SubtractDatumFunctor<typename ImageT::pixel_type::value_type> >
-  inline subtract_datum( ImageViewBase<ImageT> const& image, Datum const& datum) {
-    typedef typename ImageT::pixel_type::value_type vector_value_type;
-    return UnaryPerPixelView<ImageT,SubtractDatumFunctor<vector_value_type> >( image.impl(), SubtractDatumFunctor<vector_value_type>(datum) );
-  }
-  
-  /// The inverse of subtract_datum(), above.
-  template <class ImageT>
-  UnaryPerPixelView<ImageT, AddDatumFunctor<typename ImageT::pixel_type::value_type> >
-  inline add_datum( ImageViewBase<ImageT> const& image, Datum const& datum) {
-    typedef typename ImageT::pixel_type::value_type vector_value_type;
-    return UnaryPerPixelView<ImageT,AddDatumFunctor<vector_value_type> >( image.impl(), AddDatumFunctor<vector_value_type>(datum) );
-  }
 
 }} // namespace vw::cartography
 
