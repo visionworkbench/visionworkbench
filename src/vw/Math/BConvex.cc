@@ -193,6 +193,68 @@ namespace {
     VW_ASSERT(curlong == 0 && totlong == 0, vw::LogicErr() << "qhull did not free all of its memory");
   }
 
+  /// Undo projection to plane.
+  void write_vrml_unproject( unsigned dim, vertexT *vertex, vw::Matrix<double> const& basis, vw::Vector<double> const& plane_origin, vw::Vector<double> &p ) {
+    unsigned i;
+    if (dim == 2) {
+      p.set_size(2);
+      for (i = 0; i < dim; i++)
+        p[i] = vertex->point[i];
+    }
+    else {
+      p = plane_origin;
+      for (i = 0; i < dim - 1; i++)
+        p += elem_prod(vertex->point[i], select_col(basis, i + 1));
+    }
+  }
+
+  /// Write a point in VRML.
+  void write_vrml_point( std::ostream& os, vw::Vector<double> const& p ) {
+    unsigned i;
+    os << "   Separator {\n";
+    os << "      Coordinate3 {\n";
+    os << "         point [\n";
+    os << "          ";
+    for (i = 0; i < p.size(); i++)
+      os << " " << p[i];
+    for (; i < 3; i++)
+      os << " 0";
+    os << ",\n";
+    os << "         ]\n";
+    os << "      }\n";
+    os << "      PointSet {\n";
+    os << "         startIndex 0\n";
+    os << "         numPoints 1\n";
+    os << "      }\n";
+    os << "   }\n";
+  }
+
+  /// Write a line in VRML.
+  void write_vrml_line( std::ostream& os, vw::Vector<double> const& p1, vw::Vector<double> const& p2 ) {
+    unsigned i;
+    os << "   Separator {\n";
+    os << "      Coordinate3 {\n";
+    os << "         point [\n";
+    os << "          ";
+    for (i = 0; i < p1.size(); i++)
+      os << " " << p1[i];
+    for (; i < 3; i++)
+      os << " 0";
+    os << ",\n";
+    os << "          ";
+    for (i = 0; i < p2.size(); i++)
+      os << " " << p2[i];
+    for (; i < 3; i++)
+      os << " 0";
+    os << ",\n";
+    os << "         ]\n";
+    os << "      }\n";
+    os << "      IndexedLineSet {\n";
+    os << "         coordIndex [ 0, 1 ]\n";
+    os << "      }\n";
+    os << "   }\n";
+  }
+
 #endif // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
 
   /// Find an orthonormal basis using a given Vector.
@@ -221,65 +283,6 @@ namespace {
       //  VW_ASSERT(dot_prod(select_col(b, col), select_col(b, col2)) == 0, LogicErr() << "gram_schmidt failed!");
       //}
     }
-  }
-
-  void write_vrml_unproject( unsigned dim, vertexT *vertex, vw::Matrix<double> const& basis, vw::Vector<double> const& plane_origin, vw::Vector<double> &p ) {
-    unsigned i;
-    if (dim == 2) {
-      p.set_size(2);
-      for (i = 0; i < dim; i++)
-        p[i] = vertex->point[i];
-    }
-    else {
-      p = plane_origin;
-      for (i = 0; i < dim - 1; i++)
-        p += elem_prod(vertex->point[i], select_col(basis, i + 1));
-    }
-  }
-
-  void write_vrml_point( std::ostream& os, vw::Vector<double> const& p ) {
-    unsigned i;
-    os << "   Separator {\n";
-    os << "      Coordinate3 {\n";
-    os << "         point [\n";
-    os << "          ";
-    for (i = 0; i < p.size(); i++)
-      os << " " << p[i];
-    for (; i < 3; i++)
-      os << " 0";
-    os << ",\n";
-    os << "         ]\n";
-    os << "      }\n";
-    os << "      PointSet {\n";
-    os << "         startIndex 0\n";
-    os << "         numPoints 1\n";
-    os << "      }\n";
-    os << "   }\n";
-  }
-
-  void write_vrml_line( std::ostream& os, vw::Vector<double> const& p1, vw::Vector<double> const& p2 ) {
-    unsigned i;
-    os << "   Separator {\n";
-    os << "      Coordinate3 {\n";
-    os << "         point [\n";
-    os << "          ";
-    for (i = 0; i < p1.size(); i++)
-      os << " " << p1[i];
-    for (; i < 3; i++)
-      os << " 0";
-    os << ",\n";
-    os << "          ";
-    for (i = 0; i < p2.size(); i++)
-      os << " " << p2[i];
-    for (; i < 3; i++)
-      os << " 0";
-    os << ",\n";
-    os << "         ]\n";
-    os << "      }\n";
-    os << "      IndexedLineSet {\n";
-    os << "         coordIndex [ 0, 1 ]\n";
-    os << "      }\n";
-    os << "   }\n";
   }
 
 } // namespace
