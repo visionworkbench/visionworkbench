@@ -287,6 +287,9 @@ namespace math {
     /// Prints the convex shape.
     void print( std::ostream& os = std::cout ) const;
 
+    /// Prints the convex shape in vrml.
+    void write_vrml( std::ostream& os = std::cout ) const;
+
     /// Scales the convex shape relative to the origin.
     template <class ScalarT>
     BConvex& operator*=( ScalarT s ) {

@@ -29,6 +29,7 @@
 
 #include <vw/config.h> // VW_HAVE_PKG_QHULL
 #include <vw/Math/Vector.h>
+#include <vw/Math/Matrix.h>
 #include <vw/Math/BConvex.h>
 using namespace vw::math::bconvex_rational;
 
@@ -38,6 +39,7 @@ using namespace Parma_Polyhedra_Library;
 #if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
 extern "C" {
 #include <qhull/qhull.h>
+#include <qhull/qset.h>
 }
 #endif
 
@@ -120,6 +122,166 @@ namespace {
     coef[dim] = c.inhomogeneous_term().get_d();
   }
 
+  /// Returns the PPL Generator (point) as a Vector.
+  void convert_point( Generator const& g, vw::Vector<double> &p ) {
+    VW_ASSERT(g.is_point(), vw::LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
+    unsigned dim = g.space_dimension();
+    unsigned i;
+    p.set_size(dim);
+    for (i = dim - 1; 1; i--) {
+      p(i) = g.coefficient(Variable(i)).get_d() / g.divisor().get_d();
+      if (i == 0)
+        break;
+    }
+  }
+
+  /// Finds the number of constraints in a constraint system.
+  inline unsigned num_constraints( Constraint_System const& cs ) {
+    unsigned n = 0;
+    Constraint_System::const_iterator i;
+    for (i = cs.begin(); i != cs.end(); i++)
+      n++;
+    return n;
+  }
+
+  /// Finds the number of generators in a generator system.
+  inline unsigned num_generators( Generator_System const& gs ) {
+    unsigned n = 0;
+    Generator_System::const_iterator i;
+    for (i = gs.begin(); i != gs.end(); i++)
+      n++;
+    return n;
+  }
+
+#if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
+
+  /// Runs qhull.
+  void qhull_run( unsigned dim, unsigned num_points, double *p ) {
+    int retval;
+    FILE *fake_stdout;
+    FILE *fake_stderr;
+    unsigned i;
+  
+    fake_stdout = tmpfile();
+    if (!fake_stdout)
+      fake_stdout = stdout;
+    fake_stderr = tmpfile();
+    if (!fake_stderr)
+      fake_stderr = stderr;
+    retval = qh_new_qhull((int)dim, (int)num_points,
+                          p, False, "qhull s Tcv", fake_stdout, fake_stderr);
+    if (retval != 0 && fake_stderr != stderr) {
+      std::string qhull_error;
+      int c;
+      rewind(fake_stderr);
+      while ((c = fgetc(fake_stderr)) != EOF)
+        qhull_error.append(1, (char)c);
+      VW_ASSERT(retval == 0, vw::LogicErr() << "qhull returned with error: " << qhull_error);
+    }
+    VW_ASSERT(retval == 0, vw::LogicErr() << "qhull returned with error.");
+    if (fake_stdout != stdout)
+      fclose(fake_stdout);
+    if (fake_stderr != stderr)
+      fclose(fake_stderr);
+  }
+
+  /// Frees qhull memory.
+  void qhull_free() {
+    int curlong, totlong;
+    qh_freeqhull(!qh_ALL);
+    qh_memfreeshort(&curlong, &totlong);
+    VW_ASSERT(curlong == 0 && totlong == 0, vw::LogicErr() << "qhull did not free all of its memory");
+  }
+
+#endif // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
+
+  /// Find an orthonormal basis using a given Vector.
+  void gram_schmidt( vw::Vector<double> const& v, vw::Matrix<double> &b ) {
+    using namespace vw;
+    using namespace ::vw::math;
+    unsigned dim = v.size();
+    unsigned largest;
+    unsigned row, col, col2;
+    double d;
+    b.set_size(dim, dim);
+    select_col(b, 0) = v;
+    normalize(select_col(b, 0));
+    largest = index_norm_inf(select_col(b, 0));
+    for (row = 0, col = 1; col < dim; row++, col++) {
+      if (row == largest)
+        row++;
+      select_col(b, col) = select_col(b, 0);
+      b(row, col) += 1.0;
+      for (col2 = 0; col2 < col; col2++) {
+        d = dot_prod(select_col(b, col), select_col(b, col2));
+        select_col(b, col) -= elem_prod(d, select_col(b, col2));
+      }
+      normalize(select_col(b, col));
+      //for (col2 = 0; col2 < col; col2++) {
+      //  VW_ASSERT(dot_prod(select_col(b, col), select_col(b, col2)) == 0, LogicErr() << "gram_schmidt failed!");
+      //}
+    }
+  }
+
+  void write_vrml_unproject( unsigned dim, vertexT *vertex, vw::Matrix<double> const& basis, vw::Vector<double> const& plane_origin, vw::Vector<double> &p ) {
+    unsigned i;
+    if (dim == 2) {
+      p.set_size(2);
+      for (i = 0; i < dim; i++)
+        p[i] = vertex->point[i];
+    }
+    else {
+      p = plane_origin;
+      for (i = 0; i < dim - 1; i++)
+        p += elem_prod(vertex->point[i], select_col(basis, i + 1));
+    }
+  }
+
+  void write_vrml_point( std::ostream& os, vw::Vector<double> const& p ) {
+    unsigned i;
+    os << "   Separator {\n";
+    os << "      Coordinate3 {\n";
+    os << "         point [\n";
+    os << "          ";
+    for (i = 0; i < p.size(); i++)
+      os << " " << p[i];
+    for (; i < 3; i++)
+      os << " 0";
+    os << ",\n";
+    os << "         ]\n";
+    os << "      }\n";
+    os << "      PointSet {\n";
+    os << "         startIndex 0\n";
+    os << "         numPoints 1\n";
+    os << "      }\n";
+    os << "   }\n";
+  }
+
+  void write_vrml_line( std::ostream& os, vw::Vector<double> const& p1, vw::Vector<double> const& p2 ) {
+    unsigned i;
+    os << "   Separator {\n";
+    os << "      Coordinate3 {\n";
+    os << "         point [\n";
+    os << "          ";
+    for (i = 0; i < p1.size(); i++)
+      os << " " << p1[i];
+    for (; i < 3; i++)
+      os << " 0";
+    os << ",\n";
+    os << "          ";
+    for (i = 0; i < p2.size(); i++)
+      os << " " << p2[i];
+    for (; i < 3; i++)
+      os << " 0";
+    os << ",\n";
+    os << "         ]\n";
+    os << "      }\n";
+    os << "      IndexedLineSet {\n";
+    os << "         coordIndex [ 0, 1 ]\n";
+    os << "      }\n";
+    os << "   }\n";
+  }
+
 } // namespace
 
 namespace vw {
@@ -165,35 +327,11 @@ namespace math {
   void BConvex::init_with_qhull( unsigned dim, unsigned num_points, double *p ) {
 #if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
     boost::mutex::scoped_lock lock(bconvex_qhull_mutex);
-    int retval;
-    int curlong, totlong;
     facetT *facet;
     Vector<double> facetv(dim + 1);
-    FILE *fake_stdout;
-    FILE *fake_stderr;
     unsigned i;
-  
-    fake_stdout = tmpfile();
-    if (!fake_stdout)
-      fake_stdout = stdout;
-    fake_stderr = tmpfile();
-    if (!fake_stderr)
-      fake_stderr = stderr;
-    retval = qh_new_qhull((int)dim, (int)num_points,
-                          p, False, "qhull s Tcv", fake_stdout, fake_stderr);
-    if (retval != 0 && fake_stderr != stderr) {
-      std::string qhull_error;
-      int c;
-      rewind(fake_stderr);
-      while ((c = fgetc(fake_stderr)) != EOF)
-        qhull_error.append(1, (char)c);
-      VW_ASSERT(retval == 0, vw::LogicErr() << "qhull returned with error: " << qhull_error);
-    }
-    VW_ASSERT(retval == 0, vw::LogicErr() << "qhull returned with error.");
-    if (fake_stdout != stdout)
-      fclose(fake_stdout);
-    if (fake_stderr != stderr)
-      fclose(fake_stderr);
+
+    qhull_run(dim, num_points, p);
     
     m_poly = (void*)(new C_Polyhedron( dim, UNIVERSE ));
     FORALLfacets {
@@ -208,9 +346,7 @@ namespace math {
     VW_ASSERT(!this->empty(), LogicErr() << "Convex hull is empty!");
     VW_ASSERT(!((const C_Polyhedron*)m_poly)->is_universe(), LogicErr() << "Convex hull is universe!");
     
-    qh_freeqhull(!qh_ALL);
-    qh_memfreeshort(&curlong, &totlong);
-    VW_ASSERT(curlong == 0 && totlong == 0, vw::LogicErr() << "qhull did not free all of its memory");
+    qhull_free();
 #else // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
     return;
 #endif // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
@@ -271,13 +407,7 @@ namespace math {
     Vector<double> c = center();
     const Generator_System &gs = ((const C_Polyhedron*)m_poly)->minimized_generators();
     for (Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
-      const Generator &g = *i;
-      VW_ASSERT(g.is_point(), LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
-      for (unsigned j = dim - 1; 1; j--) {
-        v(j) = g.coefficient(Variable(j)).get_d() / g.divisor().get_d();
-        if (j == 0)
-          break;
-      }
+      convert_point(*i, v);
       d = norm_2_sqr(v - c);
       result = std::max(result, d);
     }
@@ -287,18 +417,13 @@ namespace math {
 
   Vector<double> BConvex::center() const {
     unsigned dim = ((const C_Polyhedron*)m_poly)->space_dimension();
-    Vector<double> c(dim);
+    Vector<double> c(dim), v(dim);
     unsigned n = 0;
     const Generator_System &gs = ((const C_Polyhedron*)m_poly)->minimized_generators();
     fill(c, 0);
     for (Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
-      const Generator &g = *i;
-      VW_ASSERT(g.is_point(), LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
-      for (unsigned j = dim - 1; 1; j--) {
-        c(j) += g.coefficient(Variable(j)).get_d() / g.divisor().get_d();
-        if (j == 0)
-          break;
-      }
+      convert_point(*i, v);
+      c += v;
       n++;
     }
     c /= n;
@@ -317,14 +442,170 @@ namespace math {
     using ::Parma_Polyhedra_Library::IO_Operators::operator<<;
     os << *((const C_Polyhedron*)m_poly);
   }
+
+  void BConvex::write_vrml( std::ostream& os ) const {
+#if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
+    
+    unsigned dim = ((const C_Polyhedron*)m_poly)->space_dimension();
+    const Generator_System &gs = ((const C_Polyhedron*)m_poly)->minimized_generators();
+    unsigned num_points = num_generators(gs);
+    Vector<double> vertexv( dim ), vertexv2( dim );
+
+    VW_ASSERT(dim > 0 && dim <= 3, ArgumentErr() << "Cannot write vrml of dimension <= 0 or > 3!");
+
+    os << "#VRML V1.0 ascii\n\n";
+    os << "# Created by the Intelligent Robotics Group,\n";
+    os << "# NASA Ames Research Center\n";
+    os << "# File generated by the NASA Ames Vision Workbench.\n\n";
+    os << "Separator {\n";
+    os << "   Material {\n";
+    os << "      ambientColor 1.00 1.00 1.00\n";
+    os << "      diffuseColor 1.00 1.00 1.00\n";
+    os << "      specularColor 0.00 0.00 0.00\n";
+    os << "      emissiveColor 0.00 0.00 0.00\n";
+    os << "      shininess 0.00\n";
+    os << "      transparency 0.00\n";
+    os << "   }\n";
+
+    if (dim == 1) {
+      VW_ASSERT(num_points <= 2, LogicErr() << "Found line with more than 2 vertices!");
+      if (num_points == 1) {
+        convert_point(*(gs.begin()), vertexv);
+        write_vrml_point(os, vertexv);
+      }
+      else {
+        convert_point(*(gs.begin()), vertexv);
+        convert_point(*(++(gs.begin())), vertexv2);
+        write_vrml_line(os, vertexv, vertexv2);
+      }
+    }
+    else if (dim == 2 || dim == 3){
+      double *p = new double[dim * num_points];
+      double **ps = 0;
+      facetT *facet;
+      Vector<double> facetv( dim + 1 );
+      unsigned num_facets;
+      vertexT *vertex;
+      vertexT **vertexp;
+      unsigned *num_vertices = 0;
+      unsigned num_vertices_;
+      Matrix<double> *basis = 0;
+      Vector<double> *plane_origin = 0;
+      Vector<double> proj;
+      unsigned j, k, l;
+  
+      k = 0;
+      for (Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
+        convert_point(*i, vertexv);
+        for (unsigned j = 0; j < dim; j++, k++)
+          p[k] = vertexv[j];
+      }
+      VW_ASSERT(k == dim * num_points, LogicErr() << "k != dim * num_points!");
+  
+      qhull_run(dim, num_points, p);
+      if (dim == 2) {
+        num_facets = 1;
+        ps = new double*[num_facets];
+        num_vertices = new unsigned[num_facets];
+        basis = new Matrix<double>[num_facets];
+        plane_origin = new Vector<double>[num_facets];
+        j = 0;
+        num_vertices[j] = 0;
+        FORALLvertices {
+          num_vertices[j]++;
+        }
+        ps[j] = new double[dim * num_vertices[j]];
+        k = 0;
+        FORALLvertices {
+          for (l = 0; l < dim; l++)
+            vertexv[l] = vertex->point[l];
+          for (l = 0; l < dim; l++, k++)
+            ps[j][k] = proj[l];
+        }
+      }
+      else {
+        num_facets = 0;
+        FORALLfacets {
+          num_facets++;
+        }
+        ps = new double*[num_facets];
+        num_vertices = new unsigned[num_facets];
+        basis = new Matrix<double>[num_facets];
+        plane_origin = new Vector<double>[num_facets];
+        j = 0;
+        FORALLfacets {
+          num_vertices[j] = 0;
+          FOREACHvertex_(facet->vertices) {
+            num_vertices[j]++;
+          }
+          ps[j] = new double[(dim - 1) * num_vertices[j]];
+          for (l = 0; l < dim; l++)
+            facetv[l] = -facet->normal[l];
+          facetv[l] = -facet->offset;
+          gram_schmidt(subvector(facetv, 0, dim), basis[j]);
+          facetv /= norm_2(subvector(facetv, 0, dim));
+          plane_origin[j] = elem_prod(-facetv[dim], subvector(facetv, 0, dim));
+          k = 0;
+          FOREACHvertex_(facet->vertices) {
+            for (l = 0; l < dim; l++)
+              vertexv[l] = vertex->point[l];
+            proj = transpose(basis[j]) * vertexv;
+            //VW_ASSERT(proj[0] == -facetv[dim], LogicErr() << "Projection to plane failed!");
+            for (l = 1; l < dim; l++, k++)
+              ps[j][k] = proj[l];
+          }
+          j++;
+        }
+      }
+      qhull_free();
+  
+      for (j = 0; j < num_facets; j++) {
+        qhull_run(2, num_vertices[j], ps[j]);
+        FORALLfacets {
+          num_vertices_ = 0;
+          FOREACHvertex_(facet->vertices) {
+            num_vertices_++;
+          }
+          VW_ASSERT(num_vertices_ <= 2, LogicErr() << "Found facet with more than 2 vertices!");
+          if (num_vertices_ == 1) {
+            vertex = SETfirstt_(facet->vertices, vertexT);
+            write_vrml_unproject(dim, vertex, basis[j], plane_origin[j], vertexv);
+            write_vrml_point(os, vertexv);
+          }
+          else if (num_vertices_ == 2) {
+            vertex = SETfirstt_(facet->vertices, vertexT);
+            write_vrml_unproject(dim, vertex, basis[j], plane_origin[j], vertexv);
+            vertex = SETsecondt_(facet->vertices, vertexT);
+            write_vrml_unproject(dim, vertex, basis[j], plane_origin[j], vertexv2);
+            write_vrml_line(os, vertexv, vertexv2);
+          }
+        }
+        qhull_free();
+      }
+  
+      delete[] p;
+      p = 0;
+      for (j = 0; j < num_facets; j++)
+        delete[] ps[j];
+      delete[] ps;
+      ps = 0;
+      delete[] num_vertices;
+      num_vertices = 0;
+      delete[] basis;
+      basis = 0;
+      delete[] plane_origin;
+      plane_origin = 0;
+    }
+
+    os << "}\n";
+
+#else // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
+    VW_ASSERT(0, ArgumentErr() << "Must have qhull to print vrml!");
+#endif // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
+  }
   
   unsigned BConvex::num_facets() const {
-    unsigned n = 0;
-    const Constraint_System &cs = ((const C_Polyhedron*)m_poly)->minimized_constraints();
-    Constraint_System::const_iterator i;
-    for (i = cs.begin(); i != cs.end(); i++)
-      n++;
-    return n;
+    return num_constraints(((const C_Polyhedron*)m_poly)->minimized_constraints());
   }
   
   BBoxN BConvex::bounding_box() const {
@@ -333,13 +614,7 @@ namespace math {
     Vector<double> v(dim);
     const Generator_System &gs = ((const C_Polyhedron*)m_poly)->minimized_generators();
     for (Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
-      const Generator &g = *i;
-      VW_ASSERT(g.is_point(), LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
-      for (unsigned j = dim - 1; 1; j--) {
-        v(j) = g.coefficient(Variable(j)).get_d() / g.divisor().get_d();
-        if (j == 0)
-          break;
-      }
+      convert_point(*i, v);
       bbox.grow(v);
     }
     return bbox;
