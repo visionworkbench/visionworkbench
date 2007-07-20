@@ -22,6 +22,7 @@
 // __END_LICENSE__
 
 #include <iostream>
+#include <fstream>
 #include <math.h>
 #include <vector>
 
@@ -605,6 +606,11 @@ namespace math {
 #else // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
     VW_ASSERT(0, ArgumentErr() << "Must have qhull to print vrml!");
 #endif // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
+  }
+
+  void BConvex::write_vrml( const char *fn ) const {
+    std::ofstream of(fn);
+    write_vrml(of);
   }
   
   unsigned BConvex::num_facets() const {
