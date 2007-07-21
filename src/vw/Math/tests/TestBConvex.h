@@ -259,7 +259,7 @@ public:
   {
     std::vector<Vector3> v;
    
-    BConvex c0(3); 
+    BConvex c0; 
     TS_ASSERT( c0.empty() );
     c0.grow(Vector3(0, 0, 0));
     TS_ASSERT( !c0.empty() );
@@ -362,7 +362,7 @@ public:
     TS_ASSERT( c5.contains(Vector3(0.9, 0.9, 0.5)) );
     TS_ASSERT( !c5.contains(Vector3(0.9, 0.9, 1.5)) );
     
-    BConvex c6(3);
+    BConvex c6;
     c6.grow(Vector3i(-2, 0, 0));
     c6.grow(Vector3i(-2, 0, 2));
     c6.grow(Vector3i(-2, 2, 0));
@@ -373,6 +373,12 @@ public:
     c6.grow(Vector3i(2, 2, 2));
     TS_ASSERT_EQUALS( c6.center(), Vector3i(0, 1, 1) );
     TS_ASSERT_EQUALS( c6.size(), 2*std::sqrt(6) );
+
+    BConvex c7;
+    c7.grow(c6);
+    TS_ASSERT( c7 == c6 );
+
+    BConvex c8;
   }
 
 }; // class TestBConvex

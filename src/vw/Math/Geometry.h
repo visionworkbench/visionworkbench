@@ -34,55 +34,10 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/LinearAlgebra.h>
+#include <vw/Math/Statistics.h>
 
 namespace vw { 
 namespace math {
-
-  /// Finds the centroid of a set of points.
-  class CentroidFunctor {
-    bool m_homogeneous;
-  public:
-    /// If this functor is going to be applied to points in a
-    /// projective space (i.e. homogeneous coordinates), you should
-    /// set this flag to to true. The resulting centroid will be in
-    /// the same coordinates.
-    CentroidFunctor(bool homogeneous_points = false) 
-      : m_homogeneous(homogeneous_points) {}
-
-    /// This function can use points in any container that supports
-    /// the size() and operator[] methods.  The container is usually a
-    /// vw::Vector<>, but you could substitute other classes here as
-    /// well.
-    template <class ContainerT>
-    ContainerT operator() (std::vector<ContainerT> const& points) const {
-      ContainerT result;
-      unsigned num_points = points.size();
-      unsigned dimensions = points[0].size();
-      if (m_homogeneous)
-        dimensions--;
-    
-      for (unsigned int i = 0; i < dimensions; ++i)
-        result[i] = 0;
-      if (m_homogeneous)
-        result[dimensions] = 1;
-    
-      if (m_homogeneous) {
-        for (unsigned i = 0; i < num_points; ++i)
-          for (unsigned int j = 0; j < dimensions; ++j)
-            result[j] += points[i][j] / points[i][dimensions];
-      }
-      else {
-        for (unsigned i = 0; i < num_points; ++i)
-          for (unsigned int j = 0; j < dimensions; ++j)
-            result[j] += points[i][j];
-      }
-    
-      for (unsigned int i = 0; i < dimensions; ++i)
-        result[i] /= num_points;
-    
-      return result;
-    }
-  };
 
   /// This fitting functor attempts to find a homography (8 degrees of
   /// freedom) that transforms point p1 to match points p2.  This fit
@@ -287,7 +242,7 @@ namespace math {
 
       ContainerT centroid1;
       ContainerT centroid2;
-      CentroidFunctor cf(m_homogeneous);
+      MeanFunctor cf(m_homogeneous);
       centroid1 = cf(p1);
       centroid2 = cf(p2);
 

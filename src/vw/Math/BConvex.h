@@ -174,9 +174,9 @@ namespace math {
   /// A general arbitrary-dimensional convex shape class.
   class BConvex : public BShapeBase<BConvex, double, 0> {
   public:
-    /// Dimension-only constructor.
-    BConvex( unsigned dim ) {
-      m_poly = new_poly(dim);
+    /// Default constructor.
+    BConvex() {
+      m_poly = 0;
     }
 
     /// Polyhedron-only constructor.
@@ -232,6 +232,7 @@ namespace math {
     template <class VectorT>
     void grow( VectorBase<VectorT> const& point ) {
       Vector<bconvex_rational::Rational> p;
+      new_poly_if_needed(point.impl().size(), m_poly);
       grow_(convert_vector(point, p));
     }
     
@@ -253,6 +254,8 @@ namespace math {
     template <class VectorT>
     bool contains( VectorBase<VectorT> const& point ) const {
       Vector<bconvex_rational::Rational> p;
+      if (!m_poly)
+        return false;
       return contains_(convert_vector(point, p));
     }
     
@@ -297,6 +300,7 @@ namespace math {
     template <class ScalarT>
     BConvex& operator*=( ScalarT s ) {
       using namespace bconvex_rational;
+      VW_ASSERT( !empty(), LogicErr() << "Cannot multiply an empty polyhedron by a scalar!" );
       Rational r;
       operator_mult_eq_(convert_scalar(s, r));
       return *this;
@@ -306,6 +310,7 @@ namespace math {
     template <class ScalarT>
     BConvex& operator/=( ScalarT s ) {
       using namespace bconvex_rational;
+      VW_ASSERT( !empty(), LogicErr() << "Cannot divide an empty polyhedron by a scalar!" );
       Rational r;
       operator_div_eq_(convert_scalar(s, r));
       return *this;
@@ -314,6 +319,7 @@ namespace math {
     /// Offsets the convex shape by the given vector.
     template <class VectorT>
     BConvex& operator+=( VectorBase<VectorT> const& v ) {
+      VW_ASSERT( !empty(), LogicErr() << "Cannot add a vector to an empty polyhedron!" );
       Vector<bconvex_rational::Rational> p;
       operator_plus_eq_(convert_vector(v, p));
       return *this;
@@ -322,6 +328,7 @@ namespace math {
     /// Offsets the convex shape by the negation of the given vector.
     template <class VectorT>
     BConvex& operator-=( VectorBase<VectorT> const& v ) {
+      VW_ASSERT( !empty(), LogicErr() << "Cannot subtract a vector from an empty polyhedron!" );
       Vector<bconvex_rational::Rational> p;
       operator_minus_eq_(convert_vector(v, p));
       return *this;
@@ -355,12 +362,16 @@ namespace math {
 
     /// Creates a polyhedron that is a copy of the given polyhedron.
     static void *new_poly( const void *poly );
+
+    /// Creates a polyhedron with the given dimension, if it has
+    /// not already been created.
+    static void new_poly_if_needed( unsigned dim, void *&poly );
     
     /// Deletes the given polyhedron.
     static void delete_poly( void *poly );
     
     /// Copies polyhedron from_poly to polyhedron to_poly. 
-    static void copy_poly( const void *from_poly, void *to_poly );
+    static void copy_poly( const void *from_poly, void *&to_poly );
     
     /// Returns whether qhull is available.
     static bool have_qhull();
