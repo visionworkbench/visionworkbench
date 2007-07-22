@@ -278,86 +278,92 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
   TIFF* tif = TIFFOpen( m_info->filename.c_str(), "r" );
   if( !tif ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << m_filename << "\" for reading!" );
 
-  if( TIFFIsTiled(tif) ) {
-    vw_throw( NoImplErr() << "DiskImageResourceTIFF (read) Error: Reading from tile-based TIFF files is not yet supported!" );
+  uint16 config = 0, bpsample = 0, nsamples = 0, photometric = 0;
+  TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &config);
+  TIFFGetField(tif, TIFFTAG_BITSPERSAMPLE, &bpsample);
+  TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
+  TIFFGetField(tif, TIFFTAG_PHOTOMETRIC, &photometric);
+
+  bool is_planar = (config == PLANARCONFIG_SEPARATE) && (m_format.pixel_format != VW_PIXEL_SCALAR);
+  bool is_tiled = TIFFIsTiled(tif);
+
+  // Compute the tile or strip geometry
+  uint32 block_cols, block_rows, block_size, blocks_per_row, blocks_per_plane;
+  if( is_tiled ) {
+    TIFFGetField(tif, TIFFTAG_TILEWIDTH, &block_cols);
+    TIFFGetField(tif, TIFFTAG_TILELENGTH, &block_rows);
+    block_size = TIFFTileSize(tif);
+    blocks_per_row = (cols()-1) / block_cols + 1;
+    blocks_per_plane = blocks_per_row * ( (rows()-1) / block_rows + 1 );
   }
   else {
-    uint16 config = 0, nsamples = 0, photometric = 0;
-    TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &config);
-    TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
-    TIFFGetField( tif, TIFFTAG_PHOTOMETRIC, &photometric );
+    block_cols = cols();
+    TIFFGetField( tif, TIFFTAG_ROWSPERSTRIP, &block_rows );
+    block_size = TIFFScanlineSize(tif);
+    blocks_per_row = 1;
+    blocks_per_plane = (rows()-1) / block_rows + 1;
+  }
 
-    tdata_t buf=0, plane_buf=0;
-    if( config==PLANARCONFIG_SEPARATE && m_format.pixel_format != VW_PIXEL_SCALAR ) {
-      plane_buf = _TIFFmalloc( TIFFStripSize(tif) );
-      buf = _TIFFmalloc( TIFFStripSize(tif) * nsamples );
-    }
-    else {
-      buf = _TIFFmalloc( TIFFStripSize(tif) );
-    }
+  tdata_t buf = _TIFFmalloc( block_size );
 
-    uint32 rows_per_strip;
-    uint32 scanline_size = TIFFScanlineSize(tif);    
-    TIFFGetField( tif, TIFFTAG_ROWSPERSTRIP, &rows_per_strip );
+  // Allocate a buffer interleave planar data
+  tdata_t plane_buf = 0;
+  if( is_planar ) {
+    plane_buf = buf;
+    buf = _TIFFmalloc( block_size * nsamples );
+  }
 
-    ImageBuffer strip_src, strip_dest=dest;
-    strip_src.format = m_format;
-    strip_src.format.cols = bbox.width();
+  // Palettized TIFFs are always uint16 RGB
+  tdata_t palette_buf = 0;
+  uint16 *red_table, *green_table, *blue_table;
+  if( photometric == PHOTOMETRIC_PALETTE ) {
+    palette_buf = buf;
+    buf = _TIFFmalloc( block_cols*block_rows*6 );
+    TIFFGetField( tif, TIFFTAG_COLORMAP, &red_table, &green_table, &blue_table );
+  }
 
-    uint16 *red_table, *green_table, *blue_table;
-    uint16 *palette_buf = 0;
-    if( photometric == PHOTOMETRIC_PALETTE ) {
-      TIFFGetField( tif, TIFFTAG_COLORMAP, &red_table, &green_table, &blue_table );
-      palette_buf = new uint16[rows_per_strip*m_format.cols*3];
-      strip_src.cstride = 6;
-      strip_src.rstride = m_format.cols*6;
-      strip_src.pstride = rows_per_strip*m_format.cols*6;
-    }
-    else if( config==PLANARCONFIG_SEPARATE && m_format.pixel_format != VW_PIXEL_SCALAR ) {
-      strip_src.cstride = nsamples * scanline_size / m_format.cols;
-      strip_src.rstride = nsamples * scanline_size;
-      strip_src.pstride = nsamples * scanline_size * m_format.rows;
-    }
-    else {
-      strip_src.cstride = scanline_size / m_format.cols;
-      strip_src.rstride = scanline_size;
-      strip_src.pstride = scanline_size * m_format.rows;
-    }
+  // Set up the source and destination image buffers
+  ImageBuffer src_buf, dest_buf=dest;
+  src_buf.format = m_format;
+  if( photometric == PHOTOMETRIC_PALETTE ) src_buf.cstride = 6;
+  else src_buf.cstride = bpsample * nsamples / 8;
+  src_buf.rstride = block_cols*src_buf.cstride;
+  src_buf.pstride = block_rows*src_buf.rstride;
+    
+  for( int block_y = bbox.min().y()/block_rows; block_y <= (bbox.max().y()-1)/block_rows; ++block_y ) {
+    for( int block_x = bbox.min().x()/block_cols; block_x <= (bbox.max().x()-1)/block_cols; ++block_x ) {
+      int block_id = block_y * blocks_per_row + block_x;
+      int data_left = (std::max)(block_x*block_cols,uint32(bbox.min().x()))-block_x*block_cols;
+      int data_top  = (std::max)(block_y*block_rows,uint32(bbox.min().y()))-block_y*block_rows;
+      int data_right = (std::min)((block_x+1)*block_cols,uint32(bbox.max().x()))-block_x*block_cols;
+      int data_bottom = (std::min)((block_y+1)*block_rows,uint32(bbox.max().y()))-block_y*block_rows;
 
-    int minstrip=bbox.min().y()/rows_per_strip, maxstrip=(bbox.max().y()-1)/rows_per_strip;
-    int nstrips = (rows()-1)/rows_per_strip + 1;
-    for( int strip=minstrip; strip<=maxstrip; ++strip ) {
-      int strip_top = std::max(strip*rows_per_strip,uint32(bbox.min().y()));
-      int strip_rows = std::min((strip+1)*rows_per_strip,uint32(bbox.max().y()))-strip_top;
-
-      VW_DEBUG( vw_out(VerboseDebugMessage) << "DiskImageResourceTIFF reading strip " << strip 
-                << " (rows " << strip_top << "-" << strip_top+strip_rows-1 << ") from " << m_filename << std::endl; );
-
-      if( config==PLANARCONFIG_SEPARATE && m_format.pixel_format != VW_PIXEL_SCALAR ) {
+      // Read the block into the buffer, converting planar or palettized data as needed.
+      if( is_planar ) {
         // At the moment we make an extra copy here to spoof plane contiguity
-        int bpp = scanline_size / m_format.cols;
         for( int i=0; i<nsamples; ++i ) {
-          TIFFReadEncodedStrip( tif, strip+i*nstrips, plane_buf, (tsize_t) -1 );
+          if( is_tiled ) TIFFReadEncodedTile( tif, block_id+nsamples*blocks_per_plane, plane_buf, (tsize_t) -1 );
+          else TIFFReadEncodedStrip( tif, block_id+nsamples*blocks_per_plane, plane_buf, (tsize_t) -1 );
           // Oh man, this is horrible!
-          switch(bpp) {
+          switch(bpsample/8) {
           case 1:
-            for( int y=0; y<rows_per_strip; ++y ) {
-              for( int x=bbox.min().x(); x<bbox.max().x(); ++x ) {
-                ((uint8*)buf)[(y*m_format.cols+x)*nsamples+i] = ((uint8*)plane_buf)[y*m_format.cols+x];
+            for( int y=data_top; y<data_bottom; ++y ) {
+              for( int x=data_left; x<data_right; ++x ) {
+                ((uint8*)buf)[(y*block_cols+x)*nsamples+i] = ((uint8*)plane_buf)[y*block_cols+x];
               }
             }
             break;
           case 2:
-            for( int y=0; y<rows_per_strip; ++y ) {
-              for( int x=bbox.min().x(); x<bbox.max().x(); ++x ) {
-                ((uint16*)buf)[(y*m_format.cols+x)*nsamples+i] = ((uint16*)plane_buf)[y*m_format.cols+x];
+            for( int y=data_top; y<data_bottom; ++y ) {
+              for( int x=data_left; x<data_right; ++x ) {
+                ((uint16*)buf)[(y*block_cols+x)*nsamples+i] = ((uint16*)plane_buf)[y*block_cols+x];
               }
             }
             break;
           case 4:
-            for( int y=0; y<rows_per_strip; ++y ) {
-              for( int x=bbox.min().x(); x<bbox.max().x(); ++x ) {
-                ((uint32*)buf)[(y*m_format.cols+x)*nsamples+i] = ((uint32*)plane_buf)[y*m_format.cols+x];
+            for( int y=data_top; y<data_bottom; ++y ) {
+              for( int x=data_left; x<data_right; ++x ) {
+                ((uint32*)buf)[(y*block_cols+x)*nsamples+i] = ((uint32*)plane_buf)[y*block_cols+x];
               }
             }
             break;
@@ -365,42 +371,40 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
             vw_throw( NoImplErr() << "Unsupported bit depth in separate-plane TIFF!" );
           }
         }
-        strip_src.data = ((uint8*)buf) + bbox.min().x()*strip_src.cstride + (strip_top-strip*rows_per_strip)*strip_src.rstride;
       }
-      else {
-
-        TIFFReadEncodedStrip( tif, strip, buf, (tsize_t) -1 );
-
-        // FIXME: This could stand some serious tidying up / optimizing
+      else if( photometric == PHOTOMETRIC_PALETTE ) {
+        if( is_tiled ) TIFFReadEncodedTile( tif, block_id, palette_buf, (tsize_t) -1 );
+        else TIFFReadEncodedStrip( tif, block_id, palette_buf, (tsize_t) -1 );
         if( photometric == PHOTOMETRIC_PALETTE ) {
-          for( int y=0; y<strip_rows; ++y ) {
-            for( int x=bbox.min().x(); x<bbox.max().x(); ++x ) {
-              int p = ((uint8*)buf)[ (strip_top-strip*rows_per_strip)*scanline_size + x*(scanline_size/m_format.cols) ];
-              palette_buf[3*(m_format.cols*y+x)+0] = red_table[p];
-              palette_buf[3*(m_format.cols*y+x)+1] = green_table[p];
-            palette_buf[3*(m_format.cols*y+x)+2] = blue_table[p];
+          for( int y=data_top; y<data_bottom; ++y ) {
+            for( int x=data_left; x<data_right; ++x ) {
+              int i = y*block_cols + x;
+              int p = ((uint8*)palette_buf)[i];
+              ((uint16*)buf)[3*i+0] = red_table[p];
+              ((uint16*)buf)[3*i+1] = green_table[p];
+              ((uint16*)buf)[3*i+2] = blue_table[p];
             }
           }
-          strip_src.data = ((uint8*)palette_buf) + bbox.min().x()*strip_src.cstride + (strip_top-strip*rows_per_strip)*strip_src.rstride;
         }
-        else {
-          strip_src.data = ((uint8*)buf) + bbox.min().x()*strip_src.cstride + (strip_top-strip*rows_per_strip)*strip_src.rstride;
-        }
-
       }
-      strip_src.format.rows = strip_rows;
-        
-      strip_dest.data = ((uint8*)dest.data) + (strip_top-bbox.min().y())*strip_dest.rstride;
-      strip_dest.format.rows = strip_rows;
-        
-      convert( strip_dest, strip_src );
+      else {
+        if( is_tiled ) TIFFReadEncodedTile( tif, block_id, buf, (tsize_t) -1 );
+        else TIFFReadEncodedStrip( tif, block_id, buf, (tsize_t) -1 );
+      }
+      
+      src_buf.data = (uint8*)buf + data_left*src_buf.cstride + data_top*src_buf.rstride;
+      dest_buf.data = (uint8*)dest.data + (data_left+block_x*block_cols-bbox.min().x())*dest.cstride + (data_top+block_y*block_rows-bbox.min().y())*dest.rstride;
+      src_buf.format.cols = dest_buf.format.cols = data_right-data_left;
+      src_buf.format.rows = dest_buf.format.rows = data_bottom-data_top;
+      
+      convert( dest_buf, src_buf );
     }
   
-    delete[] palette_buf;
-    _TIFFfree(buf);
-    if( config==PLANARCONFIG_SEPARATE && m_format.pixel_format != VW_PIXEL_SCALAR ) 
-      _TIFFfree(plane_buf);
   }
+
+  _TIFFfree(buf);
+  if( plane_buf ) _TIFFfree(plane_buf);
+  if( palette_buf ) _TIFFfree(palette_buf);
   TIFFClose(tif);
 }
 
