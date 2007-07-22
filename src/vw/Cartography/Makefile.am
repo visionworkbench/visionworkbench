@@ -37,10 +37,10 @@ jpeg2k_headers = DiskImageResourceGeoReferenceHelperJP2.h
 jpeg2k_sources = DiskImageResourceGeoReferenceHelperJP2.cc
 endif
 
-include_HEADERS = FileIO.h GeoReferenceBase.h GeoReference.h			\
+include_HEADERS = FileIO.h GeoReferenceBase.h GeoReference.h		\
                   GeoTransform.h Datum.h PointImageManipulation.h	\
-                  OrthoImageView.h																\
-                  DiskImageResourceGeoReferenceHelperPDS.h				\
+                  OrthoImageView.h CameraBBox.h				\
+                  DiskImageResourceGeoReferenceHelperPDS.h		\
                   $(gdal_headers) $(jpeg2k_headers)
 
 libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc	\

@@ -20,8 +20,8 @@
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
 // 
 // __END_LICENSE__
-#ifndef __VW_CARTOGRAPHY_POINTIMAGE_MANIPLULATION_H__
-#define __VW_CARTOGRAPHY_POINTIMAGE_MANIPLULATION_H__
+#ifndef __VW_CARTOGRAPHY_POINTIMAGEMANIPLULATION_H__
+#define __VW_CARTOGRAPHY_POINTIMAGEMANIPLULATION_H__
 
 #include <string>
 #include <ostream>
@@ -43,20 +43,21 @@ namespace cartography {
   // ---------------- XYZ to LON LAT ALT CONVERSION ------------------
 
   
-  template <class ElemT>
-  class XYZtoLonLatFunctor : public UnaryReturnSameType {
+  class XYZtoLonLatRadFunctor : public UnaryReturnSameType {
     bool m_east_positive;
   public:
-    XYZtoLonLatFunctor(bool east_positive = true) : m_east_positive(east_positive) {}
+    XYZtoLonLatRadFunctor(bool east_positive = true) : m_east_positive(east_positive) {}
     
-    Vector<ElemT,3> operator()(Vector<ElemT,3> const& p) const {
+    template <class T>
+    T operator()(T const& p) const {
       return this->apply(p, m_east_positive);
     } 
 
-    static inline Vector<ElemT,3> apply(Vector<ElemT,3> const& p, bool east_positive = true)  {
+    template <class T>
+    static inline T apply(T const& p, bool east_positive = true)  {
 
       // Deal with "missing pixels"
-      if (p == Vector<ElemT,3>()) { return p; }
+      if (p == T()) { return p; }
       
       double radius = norm_2(p);
       double sin_lat = p.z() / radius;
@@ -74,15 +75,14 @@ namespace cartography {
       if (lon < -M_PI)
         lon += 2*M_PI;
 
-      return Vector<ElemT,3> (lon * 180.0 / M_PI, lat * 180.0 / M_PI, radius);
+      return T (lon * 180.0 / M_PI, lat * 180.0 / M_PI, radius);
     }
   };
 
-  template <class ElemT>
-  class LonLatToXYZFunctor : public UnaryReturnSameType {
+  class LonLatRadToXYZFunctor : public UnaryReturnSameType {
     bool m_east_positive;
   public:
-    LonLatToXYZFunctor(bool east_positive = true) : m_east_positive(east_positive) {}
+    LonLatRadToXYZFunctor(bool east_positive = true) : m_east_positive(east_positive) {}
 
     // Convert from lon, lat, radius to x,y,z:
     //
@@ -90,13 +90,15 @@ namespace cartography {
     // y = r * sin(longitude)
     // z = r * sin(latitude)
     //
-    Vector<ElemT,3> operator()(Vector<ElemT,3> const& p) const {
+    template <class T>
+    T operator()(T const& p) const {
       return this->apply(p, m_east_positive);
     }
 
-    static inline Vector<ElemT,3> apply(Vector<ElemT,3> const& p, bool east_positive = true)  {
-      ElemT z = p(2) * sin(p(1)*M_PI/180.0);
-      ElemT sqrt_x_sqr_plus_y_sqr = p(2) * cos(p(1)*M_PI/180.0);
+    template <class T>
+    static inline T apply(T const& p, bool east_positive = true)  {
+      typename T::value_type z = p(2) * sin(p(1)*M_PI/180.0);
+      typename T::value_type sqrt_x_sqr_plus_y_sqr = p(2) * cos(p(1)*M_PI/180.0);
 
       if (east_positive) {
         return Vector3( sqrt_x_sqr_plus_y_sqr * cos(p(0)*M_PI/180.0),
@@ -127,15 +129,14 @@ namespace cartography {
   /// the notion of horizontal (x) and vertical (y) coordinates in an
   /// image.
   template <class ImageT>
-  UnaryPerPixelView<ImageT, XYZtoLonLatFunctor<typename ImageT::pixel_type::value_type> >
+  UnaryPerPixelView<ImageT, XYZtoLonLatRadFunctor>
   inline xyz_to_lon_lat_radius( ImageViewBase<ImageT> const& image, bool east_positive = true ) {
-    typedef typename ImageT::pixel_type::value_type vector_value_type;
-    return UnaryPerPixelView<ImageT,XYZtoLonLatFunctor<vector_value_type> >( image.impl(), XYZtoLonLatFunctor<vector_value_type>(east_positive) );
+    return UnaryPerPixelView<ImageT,XYZtoLonLatRadFunctor>( image.impl(), XYZtoLonLatRadFunctor(east_positive) );
   }
 
   template <class ElemT>
   inline Vector<ElemT,3> xyz_to_lon_lat_radius( Vector<ElemT,3> const& xyz, bool east_positive = true ) {
-    return XYZtoLonLatFunctor<double>::apply(xyz, east_positive);
+    return XYZtoLonLatRadFunctor::apply(xyz, east_positive);
   }
     
 
@@ -155,15 +156,14 @@ namespace cartography {
   /// the notion of horizontal (x) and vertical (y) coordinates in an
   /// image.
   template <class ImageT>
-  UnaryPerPixelView<ImageT, LonLatToXYZFunctor<typename ImageT::pixel_type::value_type> >
+  UnaryPerPixelView<ImageT, LonLatRadToXYZFunctor>
   inline lon_lat_radius_to_xyz( ImageViewBase<ImageT> const& image, bool east_positive = true ) {
-    typedef typename ImageT::pixel_type::value_type vector_value_type;
-    return UnaryPerPixelView<ImageT,LonLatToXYZFunctor<vector_value_type> >( image.impl(), LonLatToXYZFunctor<vector_value_type>(east_positive) );
+    return UnaryPerPixelView<ImageT,LonLatRadToXYZFunctor>( image.impl(), LonLatRadToXYZFunctor(east_positive) );
   }
 
   template <class ElemT>
   inline Vector<ElemT,3> lon_lat_radius_to_xyz( Vector<ElemT,3> const& xyz, bool east_positive = true ) {
-    return LonLatToXYZFunctor<ElemT>::apply(xyz, east_positive);
+    return LonLatRadToXYZFunctor::apply(xyz, east_positive);
   }
 
   // --------------------- CHANGE OF PROJECTION ----------------------
@@ -171,33 +171,34 @@ namespace cartography {
   /// Move from a source projection to a destination projection.  The
   /// altitude value (that is, the third value in the vector) is left
   /// untouched.
-  template <class ElemT>
   class ReprojectPointFunctor : public UnaryReturnSameType {
     GeoReference m_src, m_dst;
 
   public:
     ReprojectPointFunctor(GeoReference const& src, GeoReference const& dst) : m_src(src), m_dst(dst) {}    
-    Vector<ElemT,3> operator()(Vector<ElemT,3> const& p) const {
-      Vector<ElemT,2> lon_lat = m_dst.lonlat_to_point(m_src.point_to_lonlat(subvector(p,0,2)));
-      return Vector<ElemT,3>(lon_lat(0), lon_lat(1), 
-                             p(2)+m_src.datum().radius(lon_lat(0), lon_lat(1))-m_dst.datum().radius(lon_lat(0), lon_lat(1)));
+
+    template <class T>
+    T operator()(T const& p) const {
+      Vector<typename T::value_type,2> lon_lat = m_dst.lonlat_to_point(m_src.point_to_lonlat(subvector(p,0,2)));
+      return T(lon_lat(0), lon_lat(1), 
+               p(2)+m_src.datum().radius(lon_lat(0), lon_lat(1))-m_dst.datum().radius(lon_lat(0), lon_lat(1)));
     }
   };
 
   // This version of the functor assumes that the point inputs are
   // unprojected (lon, lat, radius)
-  template <class ElemT>
   class ProjectPointFunctor : public UnaryReturnSameType {
     GeoReference m_dst;
 
   public:
     ProjectPointFunctor(GeoReference const& dst) : m_dst(dst) {}    
-    Vector<ElemT,3> operator()(Vector<ElemT,3> const& p) const {
-      if (p == Vector3()) 
-        return p;
-      Vector<ElemT,2> lon_lat = m_dst.lonlat_to_point(subvector(p,0,2));
-      return Vector<ElemT,3>(lon_lat(0), lon_lat(1), 
-                             p(2)-m_dst.datum().radius(lon_lat(0), lon_lat(1)));
+
+    template <class T>
+    T operator()(T const& p) const {
+      if (p == T()) return p;
+      Vector<typename T::value_type,2> lon_lat = m_dst.lonlat_to_point(subvector(p,0,2));
+      return T(lon_lat(0), lon_lat(1), 
+               p(2)-m_dst.datum().radius(lon_lat(0), lon_lat(1)));
     }
   };
 
@@ -216,22 +217,20 @@ namespace cartography {
   /// the notion of horizontal (x) and vertical (y) coordinates in an
   /// image.
   template <class ImageT>
-  UnaryPerPixelView<ImageT, ReprojectPointFunctor<typename ImageT::pixel_type::value_type> >
+  UnaryPerPixelView<ImageT, ReprojectPointFunctor>
   inline reproject_point_image( ImageViewBase<ImageT> const& image, GeoReference const& src_georef, GeoReference const& dst_georef) {
-    typedef typename ImageT::pixel_type::value_type vector_value_type;
-    return UnaryPerPixelView<ImageT,ReprojectPointFunctor<vector_value_type> >( image.impl(), ReprojectPointFunctor<vector_value_type>(src_georef, dst_georef) );
+    return UnaryPerPixelView<ImageT,ReprojectPointFunctor>( image.impl(), ReprojectPointFunctor(src_georef, dst_georef) );
   }
 
   // This variant, which only accepts a destination projection,
   // assumes that the source points are [lon, lat, radius] values.
   template <class ImageT>
-  UnaryPerPixelView<ImageT, ProjectPointFunctor<typename ImageT::pixel_type::value_type> >
+  UnaryPerPixelView<ImageT, ProjectPointFunctor>
   inline project_point_image( ImageViewBase<ImageT> const& image, GeoReference const& dst_georef) {
-    typedef typename ImageT::pixel_type::value_type vector_value_type;
-    return UnaryPerPixelView<ImageT,ProjectPointFunctor<vector_value_type> >( image.impl(), ProjectPointFunctor<vector_value_type>(dst_georef) );
+    return UnaryPerPixelView<ImageT,ProjectPointFunctor>( image.impl(), ProjectPointFunctor(dst_georef) );
   }
 
 }} // namespace vw::cartography
 
-#endif // __VW_CARTOGRAPHY_POINTIMAGE_MANIPLULATION_H__
+#endif // __VW_CARTOGRAPHY_POINTIMAGEMANIPLULATION_H__
 

@@ -21,8 +21,8 @@
 // 
 // __END_LICENSE__
 
-#ifndef __VW_CARTOGRAPHY_ORTHOIMAGE_VIEW_H__
-#define __VW_CARTOGRAPHY_ORTHOIMAGE_VIEW_H__
+#ifndef __VW_CARTOGRAPHY_ORTHOIMAGEVIEW_H__
+#define __VW_CARTOGRAPHY_ORTHOIMAGEVIEW_H__
 
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/EdgeExtension.h>
@@ -96,7 +96,7 @@ namespace cartography {
       subvector(lon_lat_radius,0,2) = m_georef.pixel_to_lonlat(Vector2(i,j));
       lon_lat_radius(2) = m_terrain(i,j) + m_georef.datum().radius(lon_lat_radius(0), 
                                                                    lon_lat_radius(1));
-      Vector3 xyz = LonLatToXYZFunctor<double>::apply(lon_lat_radius);
+      Vector3 xyz = lon_lat_radius_to_xyz( lon_lat_radius );
 
       // Now we can image the point using the camera model and return
       // the resulting pixel from the camera image.
@@ -130,8 +130,6 @@ namespace cartography {
                                                                             EdgeT const& edge_extend_func) {
     return OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT>( terrain_image.impl(), georef, camera_image.impl(), camera_model, interp_func, edge_extend_func);
   }
-
-  
   
 } // namespace cartography
   
@@ -143,4 +141,4 @@ namespace cartography {
 
 } // namespace vw
 
-#endif // __VW_CARTOGRAPHY_ORTHOIMAGE_VIEW_H__
+#endif // __VW_CARTOGRAPHY_ORTHOIMAGEVIEW_H__
