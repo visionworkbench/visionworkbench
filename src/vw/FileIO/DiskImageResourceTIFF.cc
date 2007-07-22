@@ -299,7 +299,7 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
   else {
     block_cols = cols();
     TIFFGetField( tif, TIFFTAG_ROWSPERSTRIP, &block_rows );
-    block_size = TIFFScanlineSize(tif);
+    block_size = TIFFStripSize(tif);
     blocks_per_row = 1;
     blocks_per_plane = (rows()-1) / block_rows + 1;
   }
