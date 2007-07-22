@@ -32,8 +32,9 @@
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoTransform.h>
 #include <vw/Cartography/FileIO.h>
-#include <vw/Cartography/OrthoImageView.h>
 #include <vw/Cartography/PointImageManipulation.h>
+#include <vw/Cartography/OrthoImageView.h>
+#include <vw/Cartography/CameraBBox.h>
 
 #endif // __VW_CARTOGRAPHY_H__
  
