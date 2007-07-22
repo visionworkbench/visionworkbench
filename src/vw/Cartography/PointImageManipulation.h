@@ -29,8 +29,7 @@
 
 #include <vw/Math/Vector.h>
 #include <vw/Image/PerPixelViews.h>
-#include <vw/Cartography/Datum.h>
-#include <vw/Cartography/GeoReferenceBase.h>
+#include <vw/Cartography/GeoReference.h>
 
 /// \file PointImageManipulation.h
 /// 

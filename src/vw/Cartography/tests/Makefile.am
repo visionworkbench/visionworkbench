@@ -27,10 +27,11 @@
 
 if MAKE_MODULE_CARTOGRAPHY
 
-TESTS = TestGeoReference TestGeoTransform
+TESTS = TestGeoReference TestGeoTransform TestPointImageManipulation
 
 nodist_TestGeoReference_SOURCES = TestGeoReference.cxx
 nodist_TestGeoTransform_SOURCES = TestGeoTransform.cxx
+nodist_TestPointImageManipulation_SOURCES = TestPointImageManipulation.cxx
 
 endif
 
