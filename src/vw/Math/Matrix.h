@@ -153,6 +153,31 @@ namespace math {
 
 
   // *******************************************************************
+  // class MatrixNoTmp<MatrixT>
+  // A matrix wrapper class that disables temporaries on assignment.
+  // *******************************************************************
+
+  /// A wrapper template class for matrices and matrix expressions.  
+  /// Provides a mechanism for disabling the use of temporary objects 
+  /// during matrix assignment in cases where the user deems it safe.
+  template <class MatrixT>
+  class MatrixNoTmp {
+    MatrixT const& m_val;
+  public:
+    MatrixNoTmp( MatrixT const& val ) : m_val( val ) {}
+    MatrixT const& impl() const { return m_val; }
+  };
+
+  /// A helper function that provides a mechanism for disabling the use 
+  /// of temporary objects during matrix assignment in cases where the 
+  /// user deems it safe.  Use with care.
+  template <class MatrixT>
+  MatrixNoTmp<MatrixT> no_tmp( MatrixBase<MatrixT> const& val ) {
+    return MatrixNoTmp<MatrixT>( val.impl() );
+  }
+
+
+  // *******************************************************************
   // class IndexingMatrixIterator<MatrixT>
   // A general-purpose matrix iterator type.
   // *******************************************************************
@@ -298,14 +323,25 @@ namespace math {
     }
 
     /// Standard copy assignment operator.
-    Matrix& operator=( Matrix const& m ) {
-      core_ = m.core_;
+    Matrix& operator=( Matrix const& m ) { 
+      Matrix tmp( m );
+      core_ = tmp.core_;
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
     Matrix& operator=( MatrixBase<T> const& m ) { 
+      VW_ASSERT( m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
+      Matrix tmp( m );
+      core_ = tmp.core_;
+      return *this;
+    }
+
+    /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
+    /// This is a performance-optimizing function to be used with caution!
+    template <class T>
+    Matrix& operator=( MatrixNoTmp<T> const& m ) { 
       VW_ASSERT( m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
       std::copy( m.impl().begin(), m.impl().end(), begin() );
       return *this;
@@ -416,19 +452,32 @@ namespace math {
 
     /// Standard copy assignment operator.
     Matrix& operator=( Matrix const& m ) {
-      // FIXME Is this function really explicitly needed?
-      m_rows = m.m_rows;
-      m_cols = m.m_cols;
-      core_ = m.core_;
+      Matrix tmp( m );
+      m_rows = tmp.m_rows;
+      m_cols = tmp.m_cols;
+      core_ = tmp.core_;
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
     Matrix& operator=( MatrixBase<T> const& m ) {
-      set_size( m.impl().rows(), m.impl().cols() );
-      std::copy( m.impl().begin(), m.impl().end(), begin() );
+      Matrix tmp( m );
+      m_rows = tmp.m_rows;
+      m_cols = tmp.m_cols;
+      core_ = tmp.core_;
       return *this;
+    }
+
+    /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
+    /// This is a performance-optimizing function to be used with caution!
+    template <class T>
+    Matrix& operator=( MatrixNoTmp<T> const& m ) {
+      if( m.impl().rows()==rows() && m.impl().cols()==cols() ) {
+        std::copy( m.impl().begin(), m.impl().end(), begin() );
+        return *this;
+      }
+      else return *this = m.impl();
     }
 
     /// Returns the number of rows in the matrix.
@@ -516,20 +565,27 @@ namespace math {
     MatrixProxy( ElemT* ptr ) : m_ptr(ptr) {}
 
     /// Standard copy assignment operator.
-    MatrixProxy& operator=( MatrixProxy const& m ) {
-      VW_ASSERT( m.rows()==rows() && m.cols()==cols(),
-                 ArgumentErr() << "Matrix must have dimensions " << rows() 
-                 << "x" << cols() << " in matrix proxy assignment." );
-      std::copy( m.begin(), m.end(), begin() );
+    MatrixProxy& operator=( MatrixProxy const& m ) { 
+      VW_ASSERT( m.rows()==RowsN && m.cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
+      Matrix<ElemT,RowsN,ColsN> tmp( m );
+      std::copy( tmp.begin(), tmp.end(), begin() );
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
     MatrixProxy& operator=( MatrixBase<T> const& m ) { 
-      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(),
-                 ArgumentErr() << "Matrix must have dimensions " << rows() 
-                 << "x" << cols() << " in matrix proxy assignment." );
+      VW_ASSERT( m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
+      Matrix<ElemT,RowsN,ColsN> tmp( m );
+      std::copy( tmp.begin(), tmp.end(), begin() );
+      return *this;
+    }
+
+    /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
+    /// This is a performance-optimizing function to be used with caution!
+    template <class T>
+    MatrixProxy& operator=( MatrixNoTmp<T> const& m ) { 
+      VW_ASSERT( m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
       std::copy( m.impl().begin(), m.impl().end(), begin() );
       return *this;
     }
@@ -623,20 +679,27 @@ namespace math {
       : m_ptr(container.data()), m_rows(container.rows()), m_cols(container.cols()) {}
 
     /// Standard copy assignment operator.
-    MatrixProxy& operator=( MatrixProxy const& m ) {
-      VW_ASSERT( m.rows()==rows() && m.cols()==cols(),
-                 ArgumentErr() << "Matrix must have dimensions " << rows() 
-                 << "x" << cols() << " in matrix proxy assignment." );
-      std::copy( m.m_ptr, m.m_ptr+m_rows*m_cols, m_ptr );
+    MatrixProxy& operator=( MatrixProxy const& m ) { 
+      VW_ASSERT( m.rows()==rows() && m.cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
+      Matrix<ElemT> tmp( m );
+      std::copy( tmp.begin(), tmp.end(), begin() );
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
     MatrixProxy& operator=( MatrixBase<T> const& m ) { 
-      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(),
-                 ArgumentErr() << "Matrix must have dimensions " << rows() 
-                 << "x" << cols() << " in matrix proxy assignment." );
+      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
+      Matrix<ElemT> tmp( m );
+      std::copy( tmp.begin(), tmp.end(), begin() );
+      return *this;
+    }
+
+    /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
+    /// This is a performance-optimizing function to be used with caution!
+    template <class T>
+    MatrixProxy& operator=( MatrixNoTmp<T> const& m ) { 
+      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
       std::copy( m.impl().begin(), m.impl().end(), begin() );
       return *this;
     }
@@ -731,21 +794,28 @@ namespace math {
     /// Constructs a matrix transpose.
     MatrixTranspose( MatrixT& matrix ) : m_matrix(matrix) {}
 
-    /// Standard assignment operator.
-    MatrixTranspose& operator=( MatrixTranspose const& m ) {
-      VW_ASSERT( m.rows()==rows() && m.cols()==cols(),
-                 ArgumentErr() << "Matrix must have dimensions " << rows() 
-                 << "x" << cols() << " in matrix transpose assignment." );
-      std::copy( m.m_matrix.begin(), m.m_matrix.end(), m_matrix.begin() );
+    /// Standard copy assignment operator.
+    MatrixTranspose& operator=( MatrixTranspose const& m ) { 
+      VW_ASSERT( m.rows()==rows() && m.cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
+      Matrix<value_type> tmp( m );
+      std::copy( tmp.begin(), tmp.end(), begin() );
       return *this;
     }
 
-    /// Generalized assignment operator.
+    /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
     MatrixTranspose& operator=( MatrixBase<T> const& m ) { 
-      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(),
-                 ArgumentErr() << "Matrix must have dimensions " << rows() 
-                 << "x" << cols() << " in matrix transpose assignment." );
+      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
+      Matrix<value_type> tmp( m );
+      std::copy( tmp.begin(), tmp.end(), begin() );
+      return *this;
+    }
+
+    /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
+    /// This is a performance-optimizing function to be used with caution!
+    template <class T>
+    MatrixTranspose& operator=( MatrixNoTmp<T> const& m ) { 
+      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
       std::copy( m.impl().begin(), m.impl().end(), begin() );
       return *this;
     }
@@ -846,17 +916,28 @@ namespace math {
 
     MatrixRow( MatrixT& m, unsigned row ) : m(m), row(row) {}
     
+    /// Standard copy assignment operator.
     MatrixRow& operator=( MatrixRow const& v ) {
-      VW_ASSERT( v.size()==size(), 
-                 ArgumentErr() << "Vectors must have same size in matrix row assignment" );
-      std::copy( v.begin(), v.end(), begin() );
+      VW_ASSERT( v.size()==size(), ArgumentErr() << "Vectors must have same size in matrix row assignment." );
+      Vector<value_type> tmp( v );
+      std::copy( tmp.begin(), tmp.end(), begin() );
       return *this;
     }
 
+    /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class OtherT>
     MatrixRow& operator=( VectorBase<OtherT> const& v ) {
-      VW_ASSERT( v.impl().size()==size(),
-                 ArgumentErr() << "Vectors must have same size in matrix row assignment" );
+      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vectors must have same size in matrix row assignment." );
+      Vector<value_type> tmp( v );
+      std::copy( tmp.begin(), tmp.end(), begin() );
+      return *this;
+    }
+
+    /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
+    /// This is a performance-optimizing function to be used with caution!
+    template <class OtherT>
+    MatrixRow& operator=( VectorNoTmp<OtherT> const& v ) { 
+      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vectors must have same size in matrix row assignment." );
       std::copy( v.impl().begin(), v.impl().end(), begin() );
       return *this;
     }
@@ -965,17 +1046,28 @@ namespace math {
 
     MatrixCol( MatrixT& m, unsigned col ) : m(m), col(col) {}
     
+    /// Standard copy assignment operator.
     MatrixCol& operator=( MatrixCol const& v ) {
-      VW_ASSERT( v.size()==size(), 
-                 ArgumentErr() << "Vectors must have same size in matrix column assignment" );
-      std::copy( v.begin(), v.end(), begin() );
+      VW_ASSERT( v.size()==size(), ArgumentErr() << "Vectors must have same size in matrix column assignment." );
+      Vector<value_type> tmp( v );
+      std::copy( tmp.begin(), tmp.end(), begin() );
       return *this;
     }
 
+    /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class OtherT>
     MatrixCol& operator=( VectorBase<OtherT> const& v ) {
-      VW_ASSERT( v.impl().size()==size(),
-                 ArgumentErr() << "Vectors must have same size in matrix column assignment" );
+      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vectors must have same size in matrix column assignment." );
+      Vector<value_type> tmp( v );
+      std::copy( tmp.begin(), tmp.end(), begin() );
+      return *this;
+    }
+
+    /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
+    /// This is a performance-optimizing function to be used with caution!
+    template <class OtherT>
+    MatrixCol& operator=( VectorNoTmp<OtherT> const& v ) { 
+      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vectors must have same size in matrix column assignment." );
       std::copy( v.impl().begin(), v.impl().end(), begin() );
       return *this;
     }
@@ -1055,17 +1147,28 @@ namespace math {
     SubMatrix( MatrixT& m, unsigned row, unsigned col, unsigned rows, unsigned cols ) : 
       m_matrix(m), m_row(row), m_col(col), m_rows(rows), m_cols(cols) {}
     
-    SubMatrix& operator=( SubMatrix const& m ) {
-      VW_ASSERT( m.rows()==rows() && m.cols()==cols(),
-                 ArgumentErr() << "Matrices must have same size in submatrix assignment" );
-      std::copy( m.begin(), m.end(), begin() );
+    /// Standard copy assignment operator.
+    SubMatrix& operator=( SubMatrix const& m ) { 
+      VW_ASSERT( m.rows()==rows() && m.cols()==cols(), ArgumentErr() << "Matrices must have same size in submatrix assignment." );
+      Matrix<value_type> tmp( m );
+      std::copy( tmp.begin(), tmp.end(), begin() );
       return *this;
     }
 
-    template <class OtherT>
-    SubMatrix& operator=( MatrixBase<OtherT> const& m ) {
-      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), 
-                 ArgumentErr() << "Matrices must have same size in submatrix assignment" );
+    /// Generalized assignment operator, from arbitrary VW matrix expressions.
+    template <class T>
+    SubMatrix& operator=( MatrixBase<T> const& m ) { 
+      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrices must have same size in submatrix assignment." );
+      Matrix<value_type> tmp( m );
+      std::copy( tmp.begin(), tmp.end(), begin() );
+      return *this;
+    }
+
+    /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
+    /// This is a performance-optimizing function to be used with caution!
+    template <class T>
+    SubMatrix& operator=( MatrixNoTmp<T> const& m ) { 
+      VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrices must have same size in submatrix assignment." );
       std::copy( m.impl().begin(), m.impl().end(), begin() );
       return *this;
     }

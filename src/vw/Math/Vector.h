@@ -125,6 +125,31 @@ namespace math {
 
 
   // *******************************************************************
+  // class VectorNoTmp<VectorT>
+  // A vector wrapper class that disables temporaries on assignment.
+  // *******************************************************************
+
+  /// A wrapper template class for vectors and vector expressions.  
+  /// Provides a mechanism for disabling the use of temporary objects 
+  /// during vector assignment in cases where the user deems it safe.
+  template <class VectorT>
+  class VectorNoTmp {
+    VectorT const& m_val;
+  public:
+    VectorNoTmp( VectorT const& val ) : m_val( val ) {}
+    VectorT const& impl() const { return m_val; }
+  };
+
+  /// A helper function that provides a mechanism for disabling the use 
+  /// of temporary objects during vector assignment in cases where the 
+  /// user deems it safe.  Use with care.
+  template <class VectorT>
+  VectorNoTmp<VectorT> no_tmp( VectorBase<VectorT> const& val ) {
+    return VectorNoTmp<VectorT>( val.impl() );
+  }
+
+
+  // *******************************************************************
   // class Vector<ElemT,SizeN>
   // A statically-allocated fixed-dimension vector class.
   // *******************************************************************
@@ -195,14 +220,25 @@ namespace math {
     }
 
     /// Standard copy assignment operator.
-    Vector& operator=( Vector const& v ) {
-      core_ = v.core_;
+    Vector& operator=( Vector const& v ) { 
+      Vector tmp( v );
+      core_ = tmp.core_;
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW vector expressions.
     template <class T>
     Vector& operator=( VectorBase<T> const& v ) { 
+      VW_ASSERT( v.impl().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << "." );
+      Vector tmp( v );
+      core_ = tmp.core_;
+      return *this;
+    }
+
+    /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
+    /// This is a performance-optimizing function to be used with caution!
+    template <class T>
+    Vector& operator=( VectorNoTmp<T> const& v ) { 
       VW_ASSERT( v.impl().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << "." );
       std::copy( v.impl().begin(), v.impl().end(), begin() );
       return *this;
@@ -331,16 +367,28 @@ namespace math {
 
     /// Standard copy assignment operator.
     Vector& operator=( Vector const& v ) {
-      core_ = v.core_;
+      Vector tmp( v );
+      core_ = tmp.core_;
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW vector expressions.
     template <class T>
     Vector& operator=( VectorBase<T> const& v ) {
-      set_size( v.impl().size() );
-      std::copy( v.impl().begin(), v.impl().end(), begin() );
+      Vector tmp( v );
+      core_ = tmp.core_;
       return *this;
+    }
+
+    /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
+    /// This is a performance-optimizing function to be used with caution!
+    template <class T>
+    Vector& operator=( VectorNoTmp<T> const& v ) {
+      if( v.impl().size()==size() ) {
+        std::copy( v.impl().begin(), v.impl().end(), begin() );
+        return *this;
+      }
+      else return *this = v.impl();
     }
 
     /// Returns the size of the vector.
@@ -413,19 +461,26 @@ namespace math {
 
     /// Standard copy assignment operator.
     VectorProxy& operator=( VectorProxy const& v ) {
-      VW_ASSERT( v.size()==size(), 
-                 ArgumentErr() << "Vector must have dimension " 
-                 << size() << " in vector proxy assignment." );
-      std::copy( v.begin(), v.end(), begin() );
+      VW_ASSERT( v.size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
+      Vector<value_type> tmp( v );
+      std::copy( tmp.begin(), tmp.end(), begin() );
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW vector expressions.
     template <class T>
     VectorProxy& operator=( VectorBase<T> const& v ) { 
-      VW_ASSERT( v.impl().size()==size(), 
-                 ArgumentErr() << "Vector must have dimension " 
-                 << size() << " in vector proxy assignment." );
+      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
+      Vector<value_type> tmp( v );
+      std::copy( tmp.begin(), tmp.end(), begin() );
+      return *this;
+    }
+
+    /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
+    /// This is a performance-optimizing function to be used with caution!
+    template <class T>
+    VectorProxy& operator=( VectorNoTmp<T> const& v ) { 
+      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
       std::copy( v.impl().begin(), v.impl().end(), begin() );
       return *this;
     }
@@ -533,20 +588,28 @@ namespace math {
     /// Constructs a vector with zero size.
     VectorProxy( unsigned size, ElemT *ptr ) : m_ptr(ptr), m_size(size) {}
 
+    /// Standard copy assignment operator.
     VectorProxy& operator=( VectorProxy const& v ) {
-      VW_ASSERT( v.size()==size(), 
-                 ArgumentErr() << "Vector must have dimension " 
-                 << size() << " in vector proxy assignment." );
-      std::copy( v.begin(), v.end(), begin() );
+      VW_ASSERT( v.size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
+      Vector<value_type> tmp( v );
+      std::copy( tmp.begin(), tmp.end(), begin() );
       return *this;
     }
 
     /// Generalized assignment operator, from arbitrary VW vector expressions.
     template <class T>
     VectorProxy& operator=( VectorBase<T> const& v ) { 
-      VW_ASSERT( v.impl().size()==size(), 
-                 ArgumentErr() << "Vector must have dimension " 
-                 << size() << " in vector proxy assignment." );
+      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
+      Vector<value_type> tmp( v );
+      std::copy( tmp.begin(), tmp.end(), begin() );
+      return *this;
+    }
+
+    /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
+    /// This is a performance-optimizing function to be used with caution!
+    template <class T>
+    VectorProxy& operator=( VectorNoTmp<T> const& v ) { 
+      VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
       std::copy( v.impl().begin(), v.impl().end(), begin() );
       return *this;
     }
@@ -644,8 +707,7 @@ namespace math {
     
     template <class OtherT>
     VectorTranspose& operator=( VectorTranspose<OtherT> const& v ) {
-      VW_ASSERT( v.size()==size(), 
-                 ArgumentErr() << "Vectors must have same size in transposed vector assignment" );
+      VW_ASSERT( v.size()==size(), ArgumentErr() << "Vectors must have same size in transposed vector assignment" );
       m_vector = v.child();
       return *this;
     }
@@ -746,15 +808,27 @@ namespace math {
 
     SubVector( VectorT& v, unsigned pos, unsigned size ) : m_vector(v), m_pos(pos), m_size(size) {}
     
+    /// Standard copy assignment operator.
     SubVector& operator=( SubVector const& v ) {
-      VW_ASSERT( v.size()==size(), 
-                 ArgumentErr() << "Vectors must have same size in subvector assignment" );
-      std::copy( v.begin(), v.end(), begin() );
+      VW_ASSERT( v.size()==size(), ArgumentErr() << "Vectors must have same size in subvector assignment" );
+      Vector<value_type> tmp( v );
+      std::copy( tmp.begin(), tmp.end(), begin() );
       return *this;
     }
 
+    /// Generalized assignment operator, from arbitrary VW vector expressions.
     template <class OtherT>
     SubVector& operator=( VectorBase<OtherT> const& v ) {
+      VW_ASSERT( v.impl().size()==m_size, ArgumentErr() << "Vectors must have same size in subvector assignment" );
+      Vector<value_type> tmp( v );
+      std::copy( tmp.begin(), tmp.end(), begin() );
+      return *this;
+    }
+
+    /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
+    /// This is a performance-optimizing function to be used with caution!
+    template <class OtherT>
+    SubVector& operator=( VectorNoTmp<OtherT> const& v ) {
       VW_ASSERT( v.impl().size()==m_size, ArgumentErr() << "Vectors must have same size in subvector assignment" );
       std::copy( v.impl().begin(), v.impl().end(), begin() );
       return *this;

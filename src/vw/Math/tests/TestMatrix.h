@@ -343,6 +343,47 @@ public:
     TS_ASSERT_EQUALS( r4(0,1), 3 );
     TS_ASSERT_EQUALS( r4(1,0), 4 );
     TS_ASSERT_EQUALS( r4(1,1), 6 );
+
+    // Matrix*Matrix self-assignment
+    Matrix<float> r5 = m;
+    r5 = r5*r5;
+    TS_ASSERT_EQUALS( r5.rows(), 2 );
+    TS_ASSERT_EQUALS( r5.cols(), 2 );
+    TS_ASSERT_EQUALS( r5(0,0), 7 );
+    TS_ASSERT_EQUALS( r5(0,1), 10 );
+    TS_ASSERT_EQUALS( r5(1,0), 15 );
+    TS_ASSERT_EQUALS( r5(1,1), 22 );
+    /*
+    // Matrix*Matrix self-assignment (no temporary)
+    Matrix<float> r6 = m;
+    r6 = no_tmp( r6*r6 );
+    TS_ASSERT_EQUALS( r6.rows(), 2 );
+    TS_ASSERT_EQUALS( r6.cols(), 2 );
+    TS_ASSERT_EQUALS( r6(0,0), 7 );
+    TS_ASSERT_EQUALS( r6(0,1), 22 );
+    TS_ASSERT_EQUALS( r6(1,0), 33 );
+    TS_ASSERT_EQUALS( r6(1,1), 742 );
+    */
+    // Matrix*Matrix self-assignment
+    Matrix<float,2,2> r7 = m;
+    r7 = r7*r7;
+    TS_ASSERT_EQUALS( r7.rows(), 2 );
+    TS_ASSERT_EQUALS( r7.cols(), 2 );
+    TS_ASSERT_EQUALS( r7(0,0), 7 );
+    TS_ASSERT_EQUALS( r7(0,1), 10 );
+    TS_ASSERT_EQUALS( r7(1,0), 15 );
+    TS_ASSERT_EQUALS( r7(1,1), 22 );
+    /*
+    // Matrix*Matrix self-assignment (no temporary)
+    Matrix<float,2,2> r8 = m;
+    r8 = no_tmp( r8*r8 );
+    TS_ASSERT_EQUALS( r8.rows(), 2 );
+    TS_ASSERT_EQUALS( r8.cols(), 2 );
+    TS_ASSERT_EQUALS( r8(0,0), 7 );
+    TS_ASSERT_EQUALS( r8(0,1), 22 );
+    TS_ASSERT_EQUALS( r8(1,0), 33 );
+    TS_ASSERT_EQUALS( r8(1,1), 742 );
+    */
   }
 
   void test_matrix_transpose()
