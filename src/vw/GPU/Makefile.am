@@ -25,10 +25,10 @@
 # sources
 ########################################################################
 
-if MAKE_MODULE_GPU
-
 StandardShaders.cc:
 	perl StandardShaders.pl
+
+if MAKE_MODULE_GPU
 
 include_HEADERS = Setup.h Utilities.h StandardShaders.h   \
   GPUProgram.h TexAlloc.h TexBlock.h	\
