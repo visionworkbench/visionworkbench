@@ -27,24 +27,25 @@
 
 if ENABLE_EXCEPTIONS
 
-image_SOURCES = image.cc
-image_LDFLAGS = @PKG_VW_LDFLAGS@
-
 if MAKE_MODULE_CARTOGRAPHY
 if HAVE_PKG_GDAL
 if MAKE_MODULE_MOSAIC
 image2kml_prog = image2kml
 image2kml_SOURCES = image2kml.cc
-image2kml_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_MOSAIC_LDFLAGS@
+image2kml_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_MOSAIC_LDFLAGS@ @PKG_BOOST_THREAD_LDFLAGS@ -lboost_thread-1_33_1
+
+image2tms_prog = image2tms
+image2tms_SOURCES = image2tms.cc
+image2tms_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_MOSAIC_LDFLAGS@ @PKG_BOOST_THREAD_LDFLAGS@ -lboost_thread
 
 geoblend_prog = geoblend
 geoblend_SOURCES = geoblend.cc
-geoblend_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_MOSAIC_LDFLAGS@
+geoblend_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_MOSAIC_LDFLAGS@ @PKG_BOOST_THREAD_LDFLAGS@ -lboost_thread
 endif
 
 georef_prog = georef
 georef_SOURCES = georef.cc
-georef_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@
+georef_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_BOOST_THREAD_LDFLAGS@ -lboost_thread
 endif
 endif
 
@@ -54,7 +55,7 @@ jp2dump_SOURCES = jp2dump.cc
 jp2dump_LDFLAGS = @PKG_VW_LDFLAGS@
 endif
 
-bin_PROGRAMS = image $(image2kml_prog) $(geoblend_prog) $(georef_prog) $(jp2dump_prog)
+bin_PROGRAMS = $(image2kml_prog) $(image2tms_prog) $(geoblend_prog) $(georef_prog) $(jp2dump_prog)
 
 endif
 
