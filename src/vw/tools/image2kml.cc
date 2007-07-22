@@ -71,6 +71,7 @@ int main( int argc, char *argv[] ) {
   std::string palette_file;
   float palette_scale=1.0, palette_offset=0.0;
   int draw_order_offset;
+  float pixel_scale=1.0, pixel_offset=0.0;
 
   po::options_description general_options("General Options");
   general_options.add_options()
@@ -99,6 +100,11 @@ int main( int argc, char *argv[] ) {
     ("nudge-x", po::value<double>(&nudge_x), "Nudge the image, in projected coordinates")
     ("nudge-y", po::value<double>(&nudge_y), "Nudge the image, in projected coordinates");
     
+  po::options_description input_options("Input Options");
+  input_options.add_options()
+    ("pixel-scale", po::value<float>(&pixel_scale)->default_value(1.0), "Scale factor to apply to pixels")
+    ("pixel-offset", po::value<float>(&pixel_offset)->default_value(0.0), "Offset to apply to pixels");
+
   po::options_description output_options("Output Options");
   output_options.add_options()
     ("file-type", po::value<std::string>(&output_file_type)->default_value("auto"), "Output file type")
@@ -119,7 +125,7 @@ int main( int argc, char *argv[] ) {
     ("input-file", po::value<std::vector<std::string> >(&image_files));
 
   po::options_description options("Allowed Options");
-  options.add(general_options).add(projection_options).add(output_options).add(hidden_options);
+  options.add(general_options).add(projection_options).add(input_options).add(output_options).add(hidden_options);
 
   po::positional_options_description p;
   p.add("input-file", -1);
@@ -237,6 +243,9 @@ int main( int argc, char *argv[] ) {
   for( unsigned i=0; i<image_files.size(); ++i ) {
     GeoTransform geotx( georeferences[i], output_georef );
     ImageViewRef<PixelRGBA<uint8> > source = DiskImageView<PixelRGBA<uint8> >( image_files[i] );
+    if( pixel_scale != 1.0 || pixel_offset != 0.0 ) {
+      source.reset( channel_cast_rescale<uint8>( DiskImageView<PixelRGBA<float> >( image_files[i] ) * pixel_scale + pixel_offset ) );
+    }
     if( vm.count("palette-file") ) {
       DiskImageView<float> disk_image( image_files[i] );
       if( vm.count("palette-scale") || vm.count("palette-offset") ) {
