@@ -114,10 +114,10 @@ namespace vw {
     template <class PreRastImageT>
     prerasterize_type prerasterize_helper( BBox2i bbox, PreRastImageT const& image, false_type ) const {
       BBox2i adjusted_bbox = this->pad_bbox(bbox);
-      ImageView<pixel_type> buf( adjusted_bbox.width(), adjusted_bbox.height(), m_image.planes() );
+      ImageView<typename ImageT::pixel_type> buf( adjusted_bbox.width(), adjusted_bbox.height(), m_image.planes() );
       m_image.rasterize( buf, adjusted_bbox );
-      return prerasterize_type( CropView<ImageView<pixel_type> >( buf, BBox2i(-adjusted_bbox.min().x(), -adjusted_bbox.min().y(),
-                                                                              image.cols(), image.rows())), m_func);
+      return prerasterize_type( CropView<ImageView<typename ImageT::pixel_type> >( buf, BBox2i(-adjusted_bbox.min().x(), -adjusted_bbox.min().y(),
+                                                                                               image.cols(), image.rows())), m_func);
     }
 
     inline prerasterize_type prerasterize( BBox2i bbox ) const {
