@@ -43,7 +43,7 @@ from transform import resample, resize, translate, rotate, homography
 
 # File IO
 import fileio
-from fileio import DiskImageView
+from fileio import DiskImageResource, DiskImageResourceJPEG, DiskImageView
 
 # Mosaic
 import mosaic

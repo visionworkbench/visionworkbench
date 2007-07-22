@@ -27,6 +27,12 @@ namespace vw {
         return pixel._channel_type_table[ self._channel_type() ]
     }
   };
+
+  class DiskImageResourceJPEG : public DiskImageResource {
+  public:
+    virtual ~DiskImageResource();
+    DiskImageResourceJPEG( std::string const& filename );
+  };
 }
 
 %inline %{
@@ -45,6 +51,7 @@ namespace vw {
     typedef PixelT pixel_type;
 
     DiskImageView( std::string const& filename );
+    DiskImageView( DiskImageResource *resource );
 
     virtual ~DiskImageView();
     
@@ -88,10 +95,12 @@ namespace vw {
 
     _pixel_type_table = dict()
 
-    def __init__(self,filename,ptype=None,pformat=None,ctype=None):
-      r = DiskImageResource(filename)
-      self.pixel_type = _compute_pixel_type(r,ptype,pformat,ctype)
-      self.impl = self._pixel_type_table[self.pixel_type](filename)
+    def __init__(self,resource,ptype=None,pformat=None,ctype=None):
+      if resource.__class__ is str:
+        resource = DiskImageResource(filename)
+      resource.thisown = 0
+      self.pixel_type = _compute_pixel_type(resource,ptype,pformat,ctype)
+      self.impl = self._pixel_type_table[self.pixel_type](resource)
     
     def _get_cols(self):
       return self.impl.cols()

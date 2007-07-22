@@ -25,20 +25,20 @@ namespace cartography {
     
     //void set_spatial_ref(void* spatial_ref_ptr);
     //void set_transform(Matrix<double,3,3> transform) { m_transform = transform; }
-    void set_proj4_str( std::string const& proj4_str );
-    void set_wkt_str( std::string const& wkt_str );
+    //void set_proj4_str( std::string const& proj4_str );
+    //void set_wkt_str( std::string const& wkt_str );
     
-    std::string proj4_str() const;
-    std::string wkt_str() const;
+    //std::string proj4_str() const;
+    //std::string wkt_str() const;
 
     //const void*         spatial_ref_ptr() const;
     //GeoDatum datum() const;
 
-    std::string projection_name() const;
+    //std::string projection_name() const;
 
     //Matrix<double,3,3> transform() const { return m_transform; }
 
-    bool is_projected() const;
+    //bool is_projected() const;
 
     //BBox2 bounding_box(int width, int height) const;    
 
