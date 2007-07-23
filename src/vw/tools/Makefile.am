@@ -32,7 +32,7 @@ if HAVE_PKG_GDAL
 if MAKE_MODULE_MOSAIC
 image2kml_prog = image2kml
 image2kml_SOURCES = image2kml.cc
-image2kml_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_MOSAIC_LDFLAGS@ @PKG_BOOST_THREAD_LDFLAGS@ -lboost_thread-1_33_1
+image2kml_LDFLAGS = @PKG_VW_LDFLAGS@ @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_MOSAIC_LDFLAGS@ @PKG_BOOST_THREAD_LDFLAGS@ -lboost_thread
 
 image2tms_prog = image2tms
 image2tms_SOURCES = image2tms.cc
