@@ -442,8 +442,9 @@ namespace disparity {
   // Useful routine for printing how many points have been rejected
   // using a particular RemoveOutliersFunc.
   inline std::ostream& operator<<(std::ostream& os, RemoveOutliersFunc const& u) {
-    std::cout << "\tKernel: [ " << u.half_h_kernel()*2 << ", " << u.half_v_kernel()*2 << "]\n";
-    std::cout << "   Rejected " << u.rejected_points() << "/" << u.total_points() << " vertices (" << double(u.rejected_points())/u.total_points()*100 << "%).\n";
+    os << "\tKernel: [ " << u.half_h_kernel()*2 << ", " << u.half_v_kernel()*2 << "]\n";
+    os << "   Rejected " << u.rejected_points() << "/" << u.total_points() << " vertices (" << double(u.rejected_points())/u.total_points()*100 << "%).\n";
+    return os;
   }
 
   template <class ViewT>
