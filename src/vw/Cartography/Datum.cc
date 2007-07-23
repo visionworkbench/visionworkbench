@@ -24,9 +24,6 @@
 #include <vw/Cartography/Datum.h>
 #include <vw/Math/Functions.h>
 
-// GDAL
-#include "ogr_spatialref.h"
-
 vw::cartography::Datum::Datum(std::string const& name,
                               std::string const& spheroid_name,
                               std::string const& meridian_name,
