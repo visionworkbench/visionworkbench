@@ -37,6 +37,7 @@
 #include <vw/Image/PixelMath.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/PerPixelViews.h>
+#include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/Image/UtilityViews.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/ImageResource.h>
