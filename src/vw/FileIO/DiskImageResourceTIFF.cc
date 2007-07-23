@@ -342,8 +342,8 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
       if( is_planar ) {
         // At the moment we make an extra copy here to spoof plane contiguity
         for( int i=0; i<nsamples; ++i ) {
-          if( is_tiled ) TIFFReadEncodedTile( tif, block_id+nsamples*blocks_per_plane, plane_buf, (tsize_t) -1 );
-          else TIFFReadEncodedStrip( tif, block_id+nsamples*blocks_per_plane, plane_buf, (tsize_t) -1 );
+          if( is_tiled ) TIFFReadEncodedTile( tif, block_id+i*blocks_per_plane, plane_buf, (tsize_t) -1 );
+          else TIFFReadEncodedStrip( tif, block_id+i*blocks_per_plane, plane_buf, (tsize_t) -1 );
           // Oh man, this is horrible!
           switch(bpsample/8) {
           case 1:
