@@ -93,6 +93,13 @@ namespace vw {
     inline const DiskImageView<PixelT>& view() const { return m_disk_image_view; }
   };
 
+  // Unlike most views in the Vision Workbench, DiskImageView is not a
+  // direct descendant of ImageViewBase.  This can cause a number of
+  // problems -- one is that the IsImageView<> type trait no longer
+  // works.  We define it here explicitly as a temporary workaround
+  // until we address this problem on a larger scale. -- mbroxton
+  template <class PixelT> struct IsImageView<DiskImageView<PixelT> > : public boost::true_type {};
+
   /// This is an assignable image view that stores the assigned data
   /// to a temporary file on disk, and then provides a cached
   /// interface (a la DiskImageView) to that data.  The temporary file
