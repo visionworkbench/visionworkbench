@@ -40,6 +40,12 @@ using namespace boost;
 #include <vw/FileIO/DiskImageResourcePDS.h>
 
 
+static bool cpu_is_big_endian() {
+  union { vw::uint16 number; vw::uint8 bytes[2]; } short_endian_check;
+  short_endian_check.number = 1;
+  return (vw::uint8(short_endian_check.number) == short_endian_check.bytes[1]);
+}
+
 void vw::DiskImageResourcePDS::treat_invalid_data_as_alpha() {
   // We currently only support this feature under very specific circumstances
   std::string format_str, sample_bits_str, valid_minimum_str;
@@ -178,7 +184,20 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   keys.clear();
   keys.push_back("^IMAGE");
   if ( query( keys, value ) ) {
-    m_image_data_offset = record_size * atol(value.c_str()) - 1;
+    // Check to see if the label contained a quoted string.  If so,
+    // then we take this to mean that the actual image data is in a
+    // seperate file, and the filename is contained in this key.
+    // Otherwise, we set the data filename to be the same as the
+    // filename that contains the image header.
+    if (value[0] == '\"' && value[value.size()-1] == '\"') {
+      vw_out(InfoMessage) << "PDS header points to a seperate data file: " << value << ".\n";
+      m_pds_data_filename = value.substr(1,value.size()-2); 
+      m_image_data_offset = 0;
+    } else {
+      m_pds_data_filename = DiskImageResource::m_filename;
+      m_image_data_offset = record_size * atol(value.c_str()) - 1;
+      // m_image_data_offset = record_size * (atol(value.c_str()) - 1);  // ????
+    }
   } else {
     keys.clear();
     keys.push_back("LABEL_RECORDS");
@@ -192,21 +211,30 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
     vw_throw( IOErr() << "DiskImageResourcePDS: could not find critical information in the image header." );
   }
 
+  m_file_is_msb_first = true;
   if (format_str == "UNSIGNED_INTEGER" ||
-      format_str == "MSB_UNSIGNED_INTEGER") {
+      format_str == "MSB_UNSIGNED_INTEGER" || 
+      format_str == "LSB_UNSIGNED_INTEGER") {
     
     if (sample_bits_str == "8") 
       m_format.channel_type = VW_CHANNEL_UINT8; 
     else if (sample_bits_str == "16") 
       m_format.channel_type = VW_CHANNEL_UINT16; 
     
+    if (format_str == "LSB_UNSIGNED_INTEGER") 
+      m_file_is_msb_first = false;
+    
   } else if (format_str == "INTEGER" ||
-             format_str == "MSB_INTEGER") {
+             format_str == "MSB_INTEGER" || 
+             format_str == "LSB_INTEGER") {
     
     if (sample_bits_str == "8") 
       m_format.channel_type = VW_CHANNEL_INT8; 
     else if (sample_bits_str == "16") 
       m_format.channel_type = VW_CHANNEL_INT16; 
+
+    if (format_str == "LSB_INTEGER") 
+      m_file_is_msb_first = false;
     
   } else {
     vw_throw( IOErr() << "DiskImageResourcePDS: Unsupported pixel type in \"" << filename << "\"." );
@@ -237,10 +265,26 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
              IOErr() << "Buffer has wrong dimensions in PDS read." );
   
   // Re-open the file, and shift the file offset to the position of
-  // the first image byte (as indicated by the PDS header)
-  FILE* input_file = fopen(DiskImageResource::m_filename.c_str(), "r");
-  if( ! input_file ) vw_throw( vw::IOErr() << "Failed to open \"" << DiskImageResource::m_filename << "\"." );
-  fseek(input_file, m_image_data_offset, 0);
+  // the first image byte (as indicated by the PDS header).  Some PDS
+  // files will have the actual data in a seperate file that is
+  // pointed to by the PDS image header, so we may actually be opening
+  // that file here instead of the original file that the user
+  // specified.  
+  //
+  // NOTE: The filename encoded in the ^IMAGE tag seems to sometimes
+  // differ in case from the actual data file, so we try a few
+  // different combinations here.  
+  std::ifstream image_file(m_pds_data_filename.c_str(), std::ios::in | std::ios::binary);
+  if (image_file.bad()) {
+    image_file.open(boost::to_lower_copy(m_pds_data_filename).c_str(), std::ios::in | std::ios::binary);
+    if (image_file.bad()) {
+      image_file.open(boost::to_upper_copy(m_pds_data_filename).c_str(), std::ios::in | std::ios::binary); 
+      if (image_file.bad()) {
+        vw_throw( vw::IOErr() << "Failed to open \"" << DiskImageResource::m_filename << "\"." );
+      } 
+    }
+  }
+  image_file.seekg(m_image_data_offset, std::ios::beg);
 
   // Grab the pixel data from the file.
   unsigned total_pixels = (unsigned)( m_format.cols * m_format.rows * m_format.planes );
@@ -255,18 +299,22 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
   }
   bytes_per_pixel *= num_channels(m_format.pixel_format);
   uint8* image_data = new uint8[total_pixels * bytes_per_pixel];
-  unsigned bytes_read = fread(image_data, bytes_per_pixel, total_pixels, input_file);
-  if ( bytes_read != total_pixels ){
-    vw_throw( IOErr() << "DiskImageResourcePDS: An error occured while reading the image data (read " << bytes_read << ", expected " << total_pixels << ").");
-  }
+  image_file.read((char*)image_data, bytes_per_pixel*total_pixels);
+    
+  if (image_file.bad())
+    throw IOErr() << "DiskImageResourcePDS: an unrecoverable error occured while reading the image data.";
 
-  // Convert the endian-ness of the data
+  // Convert the endian-ness of the data if the architecture of the
+  // machine and the endianness of the file do not match.
   if (m_format.channel_type == VW_CHANNEL_INT16 ||
       m_format.channel_type == VW_CHANNEL_UINT16) {
-    for ( unsigned i=0; i<total_pixels*bytes_per_pixel; i+=2 ) {
-      uint8 temp = image_data[i+1];
-      image_data[i+1] = image_data[i];
-      image_data[i] = temp;
+    if ((cpu_is_big_endian() && !m_file_is_msb_first) || 
+        (!cpu_is_big_endian() && m_file_is_msb_first) ) {
+      for ( unsigned i=0; i<total_pixels*bytes_per_pixel; i+=2 ) {
+        uint8 temp = image_data[i+1];
+        image_data[i+1] = image_data[i];
+        image_data[i] = temp;
+      }
     }
   }
 
@@ -326,7 +374,7 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
   }
 
   delete[] image_data;
-  fclose(input_file);
+  image_file.close();
 }
 
 // Write the given buffer into the disk image.

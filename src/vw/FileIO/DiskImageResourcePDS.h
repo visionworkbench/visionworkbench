@@ -47,6 +47,7 @@ namespace vw {
         m_image_data_offset( 0 ),
         m_invalid_as_alpha( false )
     {
+      m_pds_data_filename = ""; // For PDS images that have a seperate file with image data.
       open( filename );
     }
     
@@ -145,6 +146,8 @@ namespace vw {
     int m_image_data_offset;
     int m_native_num_planes;
     bool m_invalid_as_alpha;
+    bool m_file_is_msb_first;
+    std::string m_pds_data_filename;
     enum { BAND_SEQUENTIAL, SAMPLE_INTERLEAVED, LINE_INTERLEAVED } m_band_storage;
   };
 
