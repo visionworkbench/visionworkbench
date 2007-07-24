@@ -29,9 +29,7 @@ using namespace std;
 namespace vw {
 namespace camera {
 
-  // FIXME -- Disabled for now until Pinhole API stabilizes. -mbroxton
-  // Pinhole may have stabilized... make sure to incorporate the u,v,w
-  // camera frame vectors.
+  // FIXME -- Double check anything related to PinholeModel
   CAHVModel CAHVModel::operator= (PinholeModel const& pin_model) {
 
     //  Pinhole model parameters (in pixel units)

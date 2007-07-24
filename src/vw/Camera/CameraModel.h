@@ -1,4 +1,4 @@
-// __BEGIN_LICENSE__
+// __BEGN_LICENSE__
 // 
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration

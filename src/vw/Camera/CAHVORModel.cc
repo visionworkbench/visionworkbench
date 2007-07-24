@@ -298,7 +298,7 @@ vw::Vector3 vw::camera::CAHVORModel::pixel_to_vector(vw::Vector2 const& pix, vw:
   drpdr = m33 + drpdr;
   drpdr = magv * drpdr;
     
-  // Apply these partials to get the final result 
+  // Apply these partials to get the final result
   drpdri = inverse(drpdr);
   drdx = drpdri * drpdx;
   drdy = drpdri * drpdy;

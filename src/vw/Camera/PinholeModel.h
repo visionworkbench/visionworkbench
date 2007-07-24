@@ -83,12 +83,13 @@ namespace camera {
   ///     [   w   ]         [ -w- ]               [ z ]
   ///
   /// p is then in homogenous coordinates, so the w has to be divided
-  /// out so that w=1. Here R and C are the extrinsic parameters
-  /// (rotation and position of the camera center in world
-  /// coordinates, respectively).
-  /// 
-  /// XXX: Add some comments here about the distortion model...
+  /// out so that w=1. Here R and C are the extrinsic parameters; R and -R*C
+  /// rotate and translate a vector in world coordinates into camera coordinates.
   ///
+  ///
+  ///  The Tsai distortion model describes radial and tangential lens distortion. See below.
+  ///
+
   class PinholeModel : public CameraModel {
     boost::shared_ptr<LensDistortion> m_distortion_model_ptr;
     Matrix<double,3,4> m_camera_matrix;
@@ -132,15 +133,12 @@ namespace camera {
       this->rebuild_camera_matrix();
 
       m_distortion_model_ptr = boost::shared_ptr<LensDistortion>(new NullLensDistortion());
-      m_distortion_model_ptr->set_parent_camera_model(this); // I think this line should be here?
+      m_distortion_model_ptr->set_parent_camera_model(this); 
     }
 
     /// Initialize from a file on disk.
     PinholeModel(std::string const& filename) {
       read_file(filename);
-      // Distortion model is created by read_file
-      //      m_distortion_model_ptr = boost::shared_ptr<LensDistortion>(new NullLensDistortion());
-      //      m_distortion_model_ptr->set_parent_camera_model(this);
     }
     
     /// Initialize the pinhole model with explicit parameters.
@@ -163,7 +161,8 @@ namespace camera {
     ///
     /// Remember that the VW standard frame of reference is such that
     /// (0,0) is the upper left hand corner of the image and the v
-    /// coordinates increase as you move down the image.
+    /// coordinates increase as you move down the image. There is an
+    /// illustration in the VisionWorkbook.
     ///
 
     PinholeModel(Vector3 camera_center, 
@@ -228,6 +227,7 @@ namespace camera {
       m_distortion_model_ptr->set_parent_camera_model(this);
     }
 
+
     /// Construct a basic pinhole model with no lens distortion
     PinholeModel(Vector3 camera_center, 
                  Matrix<double,3,3> rotation,
@@ -247,9 +247,11 @@ namespace camera {
     virtual ~PinholeModel() {}
 
     /// Read a pinhole model from a file on disk.
-    /// Document the format of such files ?
     void read_file(std::string const& filename);
-    
+
+    /// Write the parameters of a PinholeModel to disk.
+    /// By convention, filename should end with ".tsai"
+    /// FIXME: does not write distortion parameters
     void write_file(std::string const& filename) const;
 
 
@@ -259,25 +261,23 @@ namespace camera {
     //------------------------------------------------------------------
 
 
-    /** Computes the image of the point 'point' in 3D space on the
-     *  image plane.  Returns a pixel location (col, row) where the
-     *  point appears in the image. 
-     */
+    //  Computes the image of the point 'point' in 3D space on the
+    //  image plane.  Returns a pixel location (col, row) where the
+    //  point appears in the image. 
     virtual Vector2 point_to_pixel(Vector3 const& point) const {
-
+      
       //  Multiply the pixel location by the camera matrix.
       double denominator = m_camera_matrix(2,0)*point(0) + m_camera_matrix(2,1)*point(1) + m_camera_matrix(2,2)*point(2) + m_camera_matrix(2,3);
       Vector2 pixel = Vector2( (m_camera_matrix(0,0)*point(0) + m_camera_matrix(0,1)*point(1) + m_camera_matrix(0,2)*point(2) + m_camera_matrix(0,3)) / denominator,
                                (m_camera_matrix(1,0)*point(0) + m_camera_matrix(1,1)*point(1) + m_camera_matrix(1,2)*point(2) + m_camera_matrix(1,3)) / denominator);
-
+      
       //  Apply the lens distortion model
       return m_distortion_model_ptr->get_distorted_coordinates(pixel);
     }
     
 
-    /** Returns a (normalized) pointing vector from the camera center
-     *  through the position of the pixel 'pix' on the image plane.
-     */ 
+    // Returns a (normalized) pointing vector from the camera center
+    //  through the position of the pixel 'pix' on the image plane.
     virtual Vector3 pixel_to_vector (Vector2 const& pix) const {
 
       // Apply the inverse lens distortion model
@@ -293,23 +293,24 @@ namespace camera {
     virtual Vector3 camera_center(Vector2 const& pix = Vector2() ) const { return m_camera_center; };
     void set_camera_center(Vector3 const& position) { m_camera_center = position; rebuild_camera_matrix(); }
 
-    /** Pose is a rotation which moves a vector in camera coordinates into world coordinates.
-     *  NOTE: this is the INVERSE of the rotation used in the extrinsic parameters;
-     *  the rotation in the intrinsic parameters takes a vector in world coordinates into camera coordinates.
-     */
+    //  Pose is a rotation which moves a vector in camera coordinates into world coordinates.
+    //  NOTE: this is the INVERSE of the rotation used in the extrinsic parameters;
+    //  the rotation in the intrinsic parameters takes a vector in world coordinates into camera coordinates.
+    //
     virtual Quaternion<double> camera_pose(Vector2 const& pix = Vector2() ) const { return Quaternion<double>(transpose(m_rotation)); }
+    Quaternion<double> camera_extrinsic_rotation(Vector2 const& pix = Vector2() ) const { return Quaternion<double>(m_rotation); }
     void set_camera_pose(Quaternion<double> const& pose) { m_rotation = transpose(pose.rotation_matrix()); rebuild_camera_matrix(); }
     void set_camera_pose(Matrix<double,3,3> const& pose) { m_rotation = transpose(pose); rebuild_camera_matrix(); }
 
 
-    /*  u_direction, v_direction, and w_direction define how the coordinate
-     *  system of the camera relate to the directions in the image:
-     *  +u (increasing image columns),
-     *  +v (increasing image rows), and
-     *  +w (pointing away from the focal point in the direction of the imaged object).
-     *
-     *  All three vectors must be of unit length.
-     */
+    //  u_direction, v_direction, and w_direction define how the coordinate
+    //  system of the camera relate to the directions in the image:
+    //  +u (increasing image columns),
+    //  +v (increasing image rows), and
+    //  +w (pointing away from the focal point in the direction of the imaged object).
+    //
+    //  All three vectors must be of unit length.
+    
     void coordinate_frame(Vector3 &u_vec, Vector3 &v_vec, Vector3 &w_vec) const {
       u_vec = m_u_direction;
       v_vec = m_v_direction;
@@ -331,19 +332,15 @@ namespace camera {
     Vector3 coordinate_frame_w_direction() const { return m_w_direction; }
 
 
-
     boost::shared_ptr<LensDistortion> lens_distortion() const { return m_distortion_model_ptr; };
     void set_lens_distortion(LensDistortion const& distortion) {
       m_distortion_model_ptr = distortion.copy();
-      m_distortion_model_ptr->set_parent_camera_model(this); //Not sure if this is necessary?
+      m_distortion_model_ptr->set_parent_camera_model(this);
     }
 
 
-
-    /**
-     *  f_u and f_v :  focal length in horiz and vert. pixel units
-     *  c_u and c_v :  principal point in pixel units
-     */
+    //  f_u and f_v :  focal length in horiz and vert. pixel units
+    //  c_u and c_v :  principal point in pixel units
     void intrinsic_parameters(double& f_u, double& f_v, double& c_u, double& c_v) const { 
       f_u = m_fu;  f_v = m_fv;  c_u = m_cu;  c_v = m_cv;
     }
@@ -353,10 +350,10 @@ namespace camera {
       rebuild_camera_matrix();
     }
 
-    
+    /// This must be caled whenever camera parameters are modified.
   private:
     void rebuild_camera_matrix() {
-
+      
       /// The intrinsic portion of the camera matrix is stored as
       ///
       ///    [  fx   0   cx  ]
@@ -429,10 +426,22 @@ namespace camera {
   /// v' = v + (v - cy) * (k1 * r2 + k2 * r4 + 2 * p2 * x + p1 * (r2/y + 2y))
   ///
   /// k1 is distortion[0], k2 is distortion[1],  p1 is distortion[2], p2 is distortion[3]
+  ///
+  /// References: Roger Tsai, A Versatile Camera Calibration Technique for a High-Accuracy 3D
+  /// Machine Vision Metrology Using Off-the-shelf TV Cameras and Lenses
+
   class TsaiLensDistortion : public LensDistortionBase<TsaiLensDistortion, PinholeModel> {
     Vector4 m_distortion;
   public:
-    TsaiLensDistortion(Vector4 params) : m_distortion(params) {}
+    TsaiLensDistortion(Vector4 params) : m_distortion(params) {
+      // for debugging:
+
+      std::cout << "k1 = " << m_distortion[0] << "\n";
+      std::cout << "k2 = " << m_distortion[1] << "\n";
+      std::cout << "p1 = " << m_distortion[2] << "\n";
+      std::cout << "p2 = " << m_distortion[3] << "\n";
+
+    }
     virtual ~TsaiLensDistortion() {}
 
     Vector4 distortion_parameters() { return m_distortion; }
@@ -471,6 +480,15 @@ namespace camera {
       
       return result;
     }
+
+    virtual std::ostream& operator<<(std::ostream& str) const{
+      str << "k1 = " << m_distortion[0] << "\n";
+      str << "k2 = " << m_distortion[1] << "\n";
+      str << "p1 = " << m_distortion[2] << "\n";
+      str << "p2 = " << m_distortion[3] << "\n";
+      return str;
+    }
+
   };
 
 //   /// Given two pinhole camera models, this method returns two new camera
@@ -481,22 +499,21 @@ namespace camera {
 //                 PinholeModel<NoLensDistortion> &dst_camera0, 
 //                 PinholeModel<NoLensDistortion> &dst_camera1);
 
-  /// Function to remove lens distortion from a pinhole camera model.
   inline PinholeModel linearize_camera(PinholeModel const& camera_model) {
+    std::cout << "PinholeModel::linearize_camera \n"; 
     double fu, fv, cu, cv;
     camera_model.intrinsic_parameters(fu, fv, cu, cv);
     NullLensDistortion distortion;
-
     return PinholeModel(camera_model.camera_center(),
                         camera_model.camera_pose().rotation_matrix(),
                         fu, fv, cu, cv,
                         camera_model.coordinate_frame_u_direction(),
-                        camera_model.coordinate_frame_u_direction(),
-                        camera_model.coordinate_frame_u_direction(),
+                        camera_model.coordinate_frame_v_direction(),
+                        camera_model.coordinate_frame_w_direction(),
                         distortion);
-
   }
 
+  // FIXME: also output the distortion parameters
   inline std::ostream& operator<<(std::ostream& str, PinholeModel const& model) {
     double fu, fv, cu, cv;
     model.intrinsic_parameters(fu, fv, cu, cv);

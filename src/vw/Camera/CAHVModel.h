@@ -77,9 +77,7 @@ namespace camera {
     CAHVModel(Vector3 C_vec, Vector3 A_vec, Vector3 H_vec, Vector3 V_vec) : 
       C(C_vec), A(A_vec), H(H_vec), V(V_vec) {}
 
-    /*  This may still be up in th air while the PinholeModel
-     *  API settles down...
-     */
+    /// Initialize a CAHV model from a pinhole model 
     CAHVModel(PinholeModel const& pin_model) {
       //  Intrinsic parametes (in pixel units)
       double fH, fV, Hc, Vc;

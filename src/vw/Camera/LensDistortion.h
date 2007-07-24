@@ -76,6 +76,10 @@ namespace camera {
     // get_undistorted_coordinates() which will perform faster than
     // the generic implementation based on iterative methods.
     virtual Vector2 get_undistorted_coordinates(Vector2 const& v) const = 0;
+    
+    
+    virtual std::ostream& operator <<(std::ostream& os) const  =0;
+    
   };
 
   /// \cond INTERNAL
@@ -107,6 +111,7 @@ namespace camera {
   public:
     LensDistortionBase() { m_camera_model_ptr = NULL; }
     virtual ~LensDistortionBase() {}
+    virtual std::ostream& operator <<(std::ostream& os) const = 0;
 
   protected:
     // Subclasses can call this method to gain access to the parent
@@ -155,7 +160,13 @@ namespace camera {
   struct NullLensDistortion : public LensDistortionBase<NullLensDistortion, CameraModel> {
     virtual ~NullLensDistortion() {}
     virtual Vector2 get_distorted_coordinates(Vector2 const& v) const { return v; }
-    virtual Vector2 get_undistorted_coordinates(Vector2 const& v) const { return v; }      
+    virtual Vector2 get_undistorted_coordinates(Vector2 const& v) const { return v; }
+
+    virtual std::ostream& operator <<(std::ostream& os) const {
+      os << "Null Lens Distortion, no parameters. ";
+      return os;
+    }
+
   };
 
 }} // namespace vw::camera

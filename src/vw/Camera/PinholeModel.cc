@@ -26,6 +26,8 @@
 #include <vw/Math/EulerAngles.h>
 
 
+// Reads in a file containing parameters of a pinhole model with
+// a tsai lens distortion model. An example is provided at the end of this file.
 void vw::camera::PinholeModel::read_file(std::string const& filename) {
 
   char line[2048];
@@ -33,10 +35,8 @@ void vw::camera::PinholeModel::read_file(std::string const& filename) {
   Vector3 u_direction, v_direction, w_direction;
   Vector3 C;
   Matrix3x3 R;
+  Vector4 distortion_params(0,0,0,0);
 
-  /// k1 is distortion_params[0], k2 is distortion_params[1],
-  /// p1 is distortion_params[2], p2 is distortion_params[3]
-  Vector4 distortion_params;
 
   FILE *cam_file = fopen(filename.c_str(), "r");
   if (cam_file == 0) vw_throw( IOErr() << "PinholeModel::read_file: Could not open file\n" );
@@ -99,11 +99,9 @@ void vw::camera::PinholeModel::read_file(std::string const& filename) {
       fclose(cam_file);
       vw_throw( IOErr() << "PinholeModel::read_file(): Could not read rotation matrix\n" );
   }
-  // Read distortion parameters (NOTE: the constructor PinholeModel(filename) should
-  //be changed when this is done to create a distortion model using these params,
-  // rather than creating a null dist model
-  
-  fgets(line, sizeof(line), cam_file);
+
+  // Read distortion parameters.
+   fgets(line, sizeof(line), cam_file);
   if (sscanf(line,"k1 = %lf", &distortion_params[0] ) != 1) {
     fclose(cam_file);
     vw_throw( IOErr() << "PinholeModel::read_file(): Could not read tsai distortion parameter k1\n" );
@@ -142,16 +140,25 @@ void vw::camera::PinholeModel::read_file(std::string const& filename) {
   m_rotation = R;
   this->rebuild_camera_matrix();
 
-
-  m_distortion_model_ptr = boost::shared_ptr<LensDistortion>(new TsaiLensDistortion(distortion_params));
-  m_distortion_model_ptr->set_parent_camera_model(this);
+  if( (distortion_params(0) == 0)
+      && (distortion_params(1) == 0)
+      && (distortion_params(2) == 0)
+      && (distortion_params(3) == 0))
+    {
+      // Distortion model is null
+      m_distortion_model_ptr = boost::shared_ptr<LensDistortion>(new NullLensDistortion());
+      m_distortion_model_ptr->set_parent_camera_model(this);
+    } else{
+      // Create a Tsai distortion model 
+      m_distortion_model_ptr = boost::shared_ptr<LensDistortion>(new TsaiLensDistortion(distortion_params));
+      m_distortion_model_ptr->set_parent_camera_model(this);
+    }
 }
 
-/**
- *  Write parameters of an exiting PinholeModel into a .tsai file for later use.
- *  WARNING: right now this does not output distortion parameters, since I don't
- * know a correct way to access those parameters
- */
+
+//   Write parameters of an exiting PinholeModel into a .tsai file for later use.
+//   FIXME: does not output distortion parameters
+
 void vw::camera::PinholeModel::write_file(std::string const& filename) const {
   std::ofstream cam_file(filename.c_str());
   if( !cam_file.is_open() ) vw_throw( IOErr() << "PinholeModel::write_file: Could not open file\n" );
@@ -165,17 +172,38 @@ void vw::camera::PinholeModel::write_file(std::string const& filename) const {
   cam_file << "w_direction = " << m_w_direction[0] << " " << m_w_direction[1] << " " << m_w_direction[2] << "\n";
   cam_file << "C = " << m_camera_center[0] << " " << m_camera_center[1] << " " << m_camera_center[2] << "\n";
   cam_file << "R = " << m_rotation(0,0) << " " << m_rotation(0,1) << " " << m_rotation(0,2) << " " << m_rotation(1,0) << " " << m_rotation(1,1) << " " << m_rotation(1,2) << " " << m_rotation(2,0) << " " << m_rotation(2,1) << " " << m_rotation(2,2) << "\n";
-  if (typeid(TsaiLensDistortion) == typeid(lens_distortion())){
-    //this Pinhole model uses a tsai lens distortion model, but not sure how to query it for parameters...
-  }
+
+  //  Distortion Parameters. This should be implemented by overloading the
+  //  << operator for distortion models  
   cam_file << "k1 = " << 0 << "\n";
   cam_file << "k2 = " << 0 << "\n";
   cam_file << "p1 = " << 0 << "\n";
   cam_file << "p2 = " << 0 << "\n";    
-
+  
   cam_file << "\n" << "\n" << " Parameters for a Pinhole camera model with tsai lens distortion model." << "\n";
-  
   cam_file.close();
-  
 }
 
+
+
+/* Contents of a sample .tsai file:
+
+fu = 611.651
+fv = 610.216
+cu = 500.829
+cv = 396.22
+u_direction = 1 0 0
+v_direction = 0 1 0
+w_direction = 0 0 1
+C = -0.328711 -0.0637059 -0.828905
+R = 0.000412095 -0.99998 0.00624732 0.409245 0.00586886 0.912405 -0.912424 0.00218069 0.40924
+k1 = 0
+k2 = 0
+p1 = 0
+p2 = 0
+
+
+ Parameters for a Pinhole camera model with tsai lens distortion model.
+
+
+*/
