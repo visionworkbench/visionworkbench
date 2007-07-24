@@ -46,6 +46,12 @@ namespace po = boost::program_options;
 
 using namespace vw;
 
+// Allows FileIO to correctly read/write these pixel types
+namespace vw {
+  template<> struct PixelFormatID<Vector3>   { static const PixelFormatEnum value = VW_PIXEL_XYZ; };
+}
+
+
 //  compute_normals()
 //
 // Compute a vector normal to the surface of a DEM for each given
@@ -92,12 +98,55 @@ UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, Comput
                                                                                                        ComputeNormalsFunc (u_scale, v_scale)); 
 }
 
+template <class PixelT>
+class RemapPixelFunc : public ReturnFixedType<PixelT> {
+
+  PixelT m_src_pix, m_dst_pix;
+
+public:
+  RemapPixelFunc(PixelT const& src_pix, PixelT const& dst_pix) : 
+    m_src_pix(src_pix), m_dst_pix(dst_pix) {}
+  
+  PixelT operator() (PixelT const& pix) const {
+    if (pix == m_src_pix) 
+      return m_dst_pix;
+    else 
+      return pix;
+  }
+};
+  
+template <class ViewT> 
+UnaryPerPixelView<ViewT, RemapPixelFunc<typename ViewT::pixel_type> > remap_pixel(ImageViewBase<ViewT> const& view, typename ViewT::pixel_type src_value, typename ViewT::pixel_type dst_value) {
+  return UnaryPerPixelView<ViewT, RemapPixelFunc<typename ViewT::pixel_type> >(view.impl(), RemapPixelFunc<typename ViewT::pixel_type>(src_value, dst_value));
+}
+
+
+class DotProdFunc : public ReturnFixedType<float> {
+
+  Vector3 m_vec;
+
+public:
+  DotProdFunc(Vector3 const& vec) : m_vec(vec) {}
+  
+  float operator() (Vector3 const& pix) const {
+    return dot_prod(pix,m_vec);
+  }
+};
+  
+template <class ViewT> 
+UnaryPerPixelView<ViewT, DotProdFunc> dot_prod(ImageViewBase<ViewT> const& view, Vector3 const& vec) {
+  return UnaryPerPixelView<ViewT, DotProdFunc>(view.impl(), DotProdFunc(vec));
+}
+
+
 int main( int argc, char *argv[] ) {
 
   set_debug_level(InfoMessage);
 
   std::string input_file_name, output_file_name;
   float azimuth, elevation, scale, clamp_range;
+  float dem_default_value;
+  float clamp_low, clamp_high;
 
   po::options_description desc("Options");
   desc.add_options()
@@ -108,6 +157,9 @@ int main( int argc, char *argv[] ) {
     ("elevation,e", po::value<float>(&elevation)->default_value(0), "Set the elevation of the light source.")
     ("scale,s", po::value<float>(&scale)->default_value(0), "Set the scale of a pixel (in the same units as the DTM height values.")
     ("clamp-range", po::value<float>(&clamp_range)->default_value(4), "Set the range of floating point values to clamp to prior to normalizing.  You can normally leave this setting untouched.")
+    ("clamp-low", po::value<float>(&clamp_low), "Clamp the DEM to the specified range.  Must be used in conjunction with clamp-high")
+    ("clamp-high", po::value<float>(&clamp_high), "Clamp the DEM to the specified range.  Must be used in conjunction with clamp-low")
+    ("dem-default-value", po::value<float>(&dem_default_value), "Remap the DEM default value to the min altitude value.")
     ("no-normalize", "Don't normalize the result -- save the original values as a floating point file (if possible).  This is most often used for debugging.");
   po::positional_options_description p;
   p.add("input-file", 1);
@@ -152,18 +204,25 @@ int main( int argc, char *argv[] ) {
     Vector3 light = math::euler_to_rotation_matrix(azimuth*M_PI/180, elevation*M_PI/180, 0, "zyx") * light_0;  
 
     // Compute the surface normals
-    std::cout << "Computing normals..." << std::flush;
     DiskImageView<float> disk_dem_file(input_file_name);
-    ImageView<Vector3> normals = compute_normals(disk_dem_file, u_scale, v_scale);
+    ImageViewRef<float> dem = channel_cast<float>(disk_dem_file);
+
+    if (vm.count("clamp-low") && vm.count("clamp-high")) {
+      std::cout << "Clamping DEM pixel values to range [" << clamp_low << ", " << clamp_high << "].\n";
+      dem = clamp(dem, clamp_low, clamp_high);
+    }
+
+    if (vm.count("dem-default-value")) {
+      std::cout << "Remapping default pixel value " << dem_default_value << " to 0.\n";
+      dem = remap_pixel(dem, dem_default_value, 0);
+    }
 
     // The final result is the dot product of the light source with the normals
-    ImageView<float> result(normals.cols(), normals.rows());
-    for (int j = 0; j < result.rows(); ++j) 
-      for (int i = 0; i < result.cols(); ++i) 
-        result(i,j) = dot_prod(light, normals(i,j));
+    std::cout << "Computing normals..." << std::flush;
+    DiskCacheImageView<float> result = dot_prod(compute_normals(dem, u_scale, v_scale), light);
 
     // Save the result
-    std::cout << " done.\nWriting shaded relief image.\n";
+    std::cout << "Writing shaded relief image.\n";
     if (vm.count("no-normalize"))
       write_image(output_file_name, result, TerminalProgressCallback());
     else

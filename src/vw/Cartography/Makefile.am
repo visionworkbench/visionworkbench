@@ -53,9 +53,11 @@ libvwCartography_la_LIBADD = @MODULE_CARTOGRAPHY_LDFLAGS@
 lib_LTLIBRARIES = libvwCartography.la
 
 if ENABLE_EXCEPTIONS
-bin_PROGRAMS = shaded_relief
+bin_PROGRAMS = shaded_relief colorize_dem
 shaded_relief_SOURCES = shaded_relief.cc
 shaded_relief_LDFLAGS = @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_BOOST_PROGRAM_OPTIONS_LDFLAGS@
+colorize_dem_SOURCES = colorize_dem.cc
+colorize_dem_LDFLAGS = @PKG_CARTOGRAPHY_LDFLAGS@ @PKG_BOOST_PROGRAM_OPTIONS_LDFLAGS@
 endif
 
 endif
