@@ -195,8 +195,8 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
       m_image_data_offset = 0;
     } else {
       m_pds_data_filename = DiskImageResource::m_filename;
-      m_image_data_offset = record_size * atol(value.c_str()) - 1;
-      // m_image_data_offset = record_size * (atol(value.c_str()) - 1);  // ????
+      // m_image_data_offset = record_size * atol(value.c_str()) - 1;  // ????
+      m_image_data_offset = record_size * (atol(value.c_str()) - 1);
     }
   } else {
     keys.clear();
