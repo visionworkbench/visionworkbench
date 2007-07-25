@@ -124,7 +124,9 @@ namespace camera {
     LensDistortionBase() { m_camera_model_ptr = NULL; }
     virtual ~LensDistortionBase() {}
     //    virtual std::ostream& operator <<(std::ostream& os) const = 0;
-    virtual void write(std::ostream & os) const =0;
+    virtual void write(std::ostream & os) const {
+      vw_throw( NoImplErr() << "LensDistortionBase: write has not been implemented." );
+    }
 
   protected:
     // Subclasses can call this method to gain access to the parent
