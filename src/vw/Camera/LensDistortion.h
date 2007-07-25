@@ -78,9 +78,21 @@ namespace camera {
     virtual Vector2 get_undistorted_coordinates(Vector2 const& v) const = 0;
     
     
-    virtual std::ostream& operator <<(std::ostream& os) const  =0;
-    
+    // This is used in conjuction with a non-member function overloading
+    // the << operator
+    virtual void write(std::ostream & os) const =0;
+
   };
+
+  // Why does removing "inline" cause compilation problems?    
+  inline std::ostream & operator<<(std::ostream & os, const LensDistortion * ld){
+    ld->write(os);
+    return os;
+  }
+  
+
+
+
 
   /// \cond INTERNAL
   // Optimization functor for computing the undistorted coordinates
@@ -111,7 +123,8 @@ namespace camera {
   public:
     LensDistortionBase() { m_camera_model_ptr = NULL; }
     virtual ~LensDistortionBase() {}
-    virtual std::ostream& operator <<(std::ostream& os) const = 0;
+    //    virtual std::ostream& operator <<(std::ostream& os) const = 0;
+    virtual void write(std::ostream & os) const =0;
 
   protected:
     // Subclasses can call this method to gain access to the parent
@@ -162,8 +175,15 @@ namespace camera {
     virtual Vector2 get_distorted_coordinates(Vector2 const& v) const { return v; }
     virtual Vector2 get_undistorted_coordinates(Vector2 const& v) const { return v; }
 
-    virtual std::ostream& operator <<(std::ostream& os) const {
-      os << "Null Lens Distortion, no parameters. ";
+    virtual void write(std::ostream & os) const {
+      os << "k1 = " << 0 << "\n";
+      os << "k2 = " << 0 << "\n";
+      os << "p1 = " << 0 << "\n";
+      os << "p2 = " << 0 << "\n";
+    }
+
+    friend std::ostream & operator<<(std::ostream & os, const NullLensDistortion nld) {
+      nld.write(os);
       return os;
     }
 

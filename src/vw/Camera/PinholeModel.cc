@@ -174,12 +174,9 @@ void vw::camera::PinholeModel::write_file(std::string const& filename) const {
   cam_file << "R = " << m_rotation(0,0) << " " << m_rotation(0,1) << " " << m_rotation(0,2) << " " << m_rotation(1,0) << " " << m_rotation(1,1) << " " << m_rotation(1,2) << " " << m_rotation(2,0) << " " << m_rotation(2,1) << " " << m_rotation(2,2) << "\n";
 
   //  Distortion Parameters. This should be implemented by overloading the
-  //  << operator for distortion models  
-  cam_file << "k1 = " << 0 << "\n";
-  cam_file << "k2 = " << 0 << "\n";
-  cam_file << "p1 = " << 0 << "\n";
-  cam_file << "p2 = " << 0 << "\n";    
-  
+  //  << operator for distortion models
+
+  cam_file << m_distortion_model_ptr << "\n";
   cam_file << "\n" << "\n" << " Parameters for a Pinhole camera model with tsai lens distortion model." << "\n";
   cam_file.close();
 }

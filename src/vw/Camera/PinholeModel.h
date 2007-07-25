@@ -435,12 +435,12 @@ namespace camera {
   public:
     TsaiLensDistortion(Vector4 params) : m_distortion(params) {
       // for debugging:
-
+      /*
       std::cout << "k1 = " << m_distortion[0] << "\n";
       std::cout << "k2 = " << m_distortion[1] << "\n";
       std::cout << "p1 = " << m_distortion[2] << "\n";
       std::cout << "p2 = " << m_distortion[3] << "\n";
-
+      */
     }
     virtual ~TsaiLensDistortion() {}
 
@@ -480,13 +480,18 @@ namespace camera {
       
       return result;
     }
+   
+ 
+    virtual void write(std::ostream & os) const {
+      os << "k1 = " << m_distortion[0] << "\n";
+      os << "k2 = " << m_distortion[1] << "\n";
+      os << "p1 = " << m_distortion[2] << "\n";
+      os << "p2 = " << m_distortion[3] << "\n";
+    }
 
-    virtual std::ostream& operator<<(std::ostream& str) const{
-      str << "k1 = " << m_distortion[0] << "\n";
-      str << "k2 = " << m_distortion[1] << "\n";
-      str << "p1 = " << m_distortion[2] << "\n";
-      str << "p2 = " << m_distortion[3] << "\n";
-      return str;
+    friend std::ostream & operator<<(std::ostream & os, const TsaiLensDistortion tld){
+      tld.write(os);
+      return os;
     }
 
   };
@@ -524,6 +529,7 @@ namespace camera {
     str << "\tIntrinsics:\n";
     str << "\t  f_u: " << fu << "    f_v: " << fv << "\n";
     str << "\t  c_u: " << cu << "    c_v: " << cv << "\n";
+    str << model.lens_distortion() << "\n";
 
     return str;
   }
