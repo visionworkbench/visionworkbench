@@ -121,7 +121,7 @@ namespace math {
         DomainT xi = x;
 
         // Variable step size, depending on parameter value
-        double epsilon = 1e-7 + xi(i)*1e-7;
+        double epsilon = 1e-7 + fabs(xi(i)*1e-7);
         xi(i) += epsilon;
 
         // Evaluate function with this step and compute the derivative w.r.t. parameter i
@@ -228,11 +228,11 @@ namespace math {
       // Measurement Jacobian
       typename ImplT::jacobian_type J = model.jacobian(x);
       
-      Vector<double> del_J = -1.0 * transpose(J) * Rinv * error;
+      Vector<double> del_J = -1.0 * Rinv * (transpose(J) * error);
       //vw_out(DebugMessage) << "LM: del_J is " << std::endl << del_J << std::endl;
       
       // Hessian of cost function (using Gauss-Newton approximation)
-      Matrix<double> hessian = transpose(J) * Rinv * J;
+      Matrix<double> hessian = Rinv * (transpose(J) * J);
             
       int iterations = 0;
       double norm_try = norm_start+1.0;
