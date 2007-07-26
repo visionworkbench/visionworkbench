@@ -564,10 +564,8 @@ namespace math {
         ps[j] = new double[dim * num_vertices[j]];
         k = 0;
         FORALLvertices {
-          for (l = 0; l < dim; l++)
-            vertexv[l] = vertex->point[l];
           for (l = 0; l < dim; l++, k++)
-            ps[j][k] = proj[l];
+            ps[j][k] = vertex->point[l];
         }
       }
       else {
