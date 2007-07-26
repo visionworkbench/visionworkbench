@@ -290,7 +290,7 @@ namespace {
     double d;
     b.set_size(dim, dim);
     select_col(b, 0) = v;
-    normalize(select_col(b, 0));
+    select_col(b, 0) /= norm_2(select_col(b, 0));
     largest = index_norm_inf(select_col(b, 0));
     for (row = 0, col = 1; col < dim; row++, col++) {
       if (row == largest)
@@ -301,7 +301,7 @@ namespace {
         d = dot_prod(select_col(b, col), select_col(b, col2));
         select_col(b, col) -= elem_prod(d, select_col(b, col2));
       }
-      normalize(select_col(b, col));
+      select_col(b, col) /= norm_2(select_col(b, col));
       //for (col2 = 0; col2 < col; col2++) {
       //  VW_ASSERT(dot_prod(select_col(b, col), select_col(b, col2)) == 0, LogicErr() << "gram_schmidt failed!");
       //}
@@ -526,7 +526,7 @@ namespace math {
         write_vrml_line(os, vertexv, vertexv2);
       }
     }
-    else if (dim == 2 || dim == 3){
+    else if (dim == 2 || dim == 3) {
       double *p = new double[dim * num_points];
       double **ps = 0;
       facetT *facet;
