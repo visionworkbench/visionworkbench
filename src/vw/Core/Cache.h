@@ -105,7 +105,7 @@ namespace vw {
         //        VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache accessing CacheLine " << this << std::endl; )
         if( !m_value ) {
           m_generation_count++;
-          VW_CACHE_DEBUG( vw_out(DebugMessage) << "Cache generating CacheLine " << info() << std::endl );
+          VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache generating CacheLine " << info() << std::endl );
           CacheLineBase::allocate();
           ScopedWatch sw((std::string("Cache ")
                           + (m_generation_count == 1 ? "generating " : "regenerating ")
