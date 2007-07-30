@@ -178,8 +178,10 @@ namespace {
   inline unsigned num_generators( Generator_System const& gs ) {
     unsigned n = 0;
     Generator_System::const_iterator i;
-    for (i = gs.begin(); i != gs.end(); i++)
+    for (i = gs.begin(); i != gs.end(); i++) {
+      VW_ASSERT((*i).is_point(), vw::LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
       n++;
+    }
     return n;
   }
 
@@ -819,6 +821,12 @@ namespace math {
     if (!m_poly)
       return 0;
     return num_constraints(((const C_Polyhedron*)m_poly)->minimized_constraints());
+  }
+
+  unsigned BConvex::num_vertices() const {
+    if (!m_poly)
+      return 0;
+    return num_generators(((const C_Polyhedron*)m_poly)->minimized_generators());
   }
   
   BBoxN BConvex::bounding_box() const {

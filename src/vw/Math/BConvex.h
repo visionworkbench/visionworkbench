@@ -280,6 +280,9 @@ namespace math {
     /// Returns the number of facets.
     unsigned num_facets() const;
     
+    /// Returns the number of vertices.
+    unsigned num_vertices() const;
+    
     /// Returns a bounding box that contains this convex shape.
     BBoxN bounding_box() const;
 
