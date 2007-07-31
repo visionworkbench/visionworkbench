@@ -32,8 +32,10 @@ lapack_headers = LinearAlgebra.h LevenbergMarquardt.h Geometry.h
 endif
 
 if HAVE_PKG_PPL
+if HAVE_PKG_GMP
 ppl_headers = BConvex.h
 ppl_sources = BConvex.cc
+endif
 endif
 
 include_HEADERS = Vector.h Matrix.h BShape.h BBox.h BBall.h	\

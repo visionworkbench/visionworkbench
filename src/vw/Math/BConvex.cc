@@ -36,6 +36,7 @@
 #include <vw/Math/BConvex.h>
 using namespace vw::math::bconvex_promote;
 
+#include <gmpxx.h> // GNU Multiple Precision Arithmetic Library
 #include <ppl.hh> // Parma Polyhedra Library
 using namespace Parma_Polyhedra_Library;
 
@@ -357,6 +358,8 @@ namespace {
     qh_memfreeshort(&curlong, &totlong);
     VW_ASSERT(curlong == 0 && totlong == 0, vw::LogicErr() << "qhull did not free all of its memory");
   }
+  
+#endif // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
 
   /// Find the center of a polyhedron.
   void poly_center( const C_Polyhedron *poly, vw::Vector<mpq_class> &c ) {
@@ -376,17 +379,17 @@ namespace {
   }
 
   /// Undo projection to plane.
-  void write_vrml_unproject( unsigned dim, vertexT *vertex, vw::Matrix<double> const& basis, vw::Vector<double> const& plane_origin, vw::Vector<double> &p ) {
+  void write_vrml_unproject( unsigned dim, vw::Vector<double> const& v, vw::Matrix<double> const& basis, vw::Vector<double> const& plane_origin, vw::Vector<double> &p ) {
     unsigned i;
     if (dim == 2) {
       p.set_size(2);
       for (i = 0; i < dim; i++)
-        p[i] = vertex->point[i];
+        p[i] = v[i];
     }
     else {
       p = plane_origin;
       for (i = 0; i < dim - 1; i++)
-        p += elem_prod(vertex->point[i], select_col(basis, i + 1));
+        p += elem_prod(v[i], select_col(basis, i + 1));
     }
   }
 
@@ -512,8 +515,6 @@ namespace {
     os << "   }\n";
   }
 
-#endif // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
-
   /// Find an orthonormal basis using a given Vector.
   void gram_schmidt( vw::Vector<double> const& v, vw::Matrix<double> &b ) {
     using namespace vw;
@@ -625,9 +626,14 @@ namespace math {
     Vector<double> facetv(dim + 1);
     Vector<mpq_class> facetq(dim + 1);
     unsigned i;
+    unsigned num_facets = 0, num_vertices = 0;
+    vertexT *vertex;
+    Vector<double> vertexv(dim);
+    Vector<mpq_class> vertexq(dim);
 
     qhull_run(dim, num_points, p);
     
+#if 0
     m_poly = (void*)(new C_Polyhedron( dim, UNIVERSE ));
     FORALLfacets {
       for (i = 0; i < dim; i++)
@@ -636,7 +642,26 @@ namespace math {
       //NOTE: Printing facet->toporient here for the [0,1]^3 unit cube test case (see TestBConvex.h) demonstrates that facet->toporient is meaningless in the qhull output.
       Constraint c = constraint_generator(convert_vector(facetv, facetq));
       ((C_Polyhedron*)m_poly)->add_constraint(c);
+      num_facets++;
     }
+    FORALLvertices {
+      num_vertices++;
+    }
+#else
+    m_poly = new_poly(dim);
+    FORALLfacets {
+      num_facets++;
+    }
+    FORALLvertices {
+      for (i = 0; i < dim; i++)
+        vertexv[i] = vertex->point[i];
+      Generator g = point_generator(convert_vector(vertexv, vertexq));
+      ((C_Polyhedron*)m_poly)->add_generator(g);
+      num_vertices++;
+    }
+#endif
+    //std::cout << "Qhull: " << num_facets << " facets and " << num_vertices << " vertices" << std::endl;
+    //std::cout << "PPL: " << this->num_facets() << " facets and " << this->num_vertices() << " vertices" << std::endl;
     
     VW_ASSERT(!this->empty(), LogicErr() << "Convex hull is empty!");
     VW_ASSERT(!((const C_Polyhedron*)m_poly)->is_universe(), LogicErr() << "Convex hull is universe!");
@@ -790,6 +815,7 @@ namespace math {
         write_vrml_line(os, 0, 1);
     }
     else if (dim == 2 || dim == 3) {
+      boost::mutex::scoped_lock lock(bconvex_qhull_mutex);
       double *p = new double[dim * num_points];
       double **ps = 0;
       facetT *facet;
@@ -797,6 +823,7 @@ namespace math {
       unsigned num_facets;
       vertexT *vertex;
       vertexT **vertexp;
+      Vector<double> vertexv2( 2 );
       unsigned *num_vertices = 0;
       unsigned num_vertices_;
       Matrix<double> *basis = 0;
@@ -899,19 +926,25 @@ namespace math {
           VW_ASSERT(num_vertices_ <= 2, LogicErr() << "Found facet with more than 2 vertices!");
           if (num_vertices_ == 1) {
             vertex = SETfirstt_(facet->vertices, vertexT);
-            write_vrml_unproject(dim, vertex, basis[j], plane_origin[j], vertexv);
+            for (l = 0; l < 2; l++)
+              vertexv2[l] = vertex->point[l];
+            write_vrml_unproject(dim, vertexv2, basis[j], plane_origin[j], vertexv);
             prim = (PointPrimitive*)st.closest(vertexv);
             VW_ASSERT(prim, LogicErr() << "No closest vertex found!");
             write_vrml_point(points_os, prim->index);
           }
           else if (num_vertices_ == 2) {
             vertex = SETfirstt_(facet->vertices, vertexT);
-            write_vrml_unproject(dim, vertex, basis[j], plane_origin[j], vertexv);
+            for (l = 0; l < 2; l++)
+              vertexv2[l] = vertex->point[l];
+            write_vrml_unproject(dim, vertexv2, basis[j], plane_origin[j], vertexv);
             prim = (PointPrimitive*)st.closest(vertexv);
             VW_ASSERT(prim, LogicErr() << "No closest vertex found!");
             edge.index[0] = prim->index;
             vertex = SETsecondt_(facet->vertices, vertexT);
-            write_vrml_unproject(dim, vertex, basis[j], plane_origin[j], vertexv);
+            for (l = 0; l < 2; l++)
+              vertexv2[l] = vertex->point[l];
+            write_vrml_unproject(dim, vertexv2, basis[j], plane_origin[j], vertexv);
             prim = (PointPrimitive*)st.closest(vertexv);
             VW_ASSERT(prim, LogicErr() << "No closest vertex found!");
             edge.index[1] = prim->index;

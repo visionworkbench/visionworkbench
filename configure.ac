@@ -221,8 +221,9 @@ AM_CONDITIONAL(HAVE_PKG_LAPACK, [test "$HAVE_PKG_LAPACK" = "yes"])
 AX_PKG(QHULL, [], [-lqhull], [qhull/qhull.h])
 AM_CONDITIONAL(HAVE_PKG_QHULL, [test "$HAVE_PKG_QHULL" = "yes"])
 
-AX_PKG(GMP, [], [-lgmpxx -lgmp], [])
+AX_PKG(GMP, [], [-lgmpxx -lgmp], [gmpxx.h gmp.h])
 AX_PKG(PPL, [GMP], [-lppl], [ppl.hh])
+AM_CONDITIONAL(HAVE_PKG_GMP, [test "$HAVE_PKG_GMP" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_PPL, [test "$HAVE_PKG_PPL" = "yes"])
 
 AX_PKG(M, [], [-lm], [math.h])
@@ -266,7 +267,7 @@ AM_CONDITIONAL(HAVE_PKG_GDAL, [test "$HAVE_PKG_GDAL" = "yes"])
 ##################################################
 
 AX_MODULE(CORE, [src/vw/Core], [libvwCore.la], yes, [M BOOST PTHREADS BOOST_THREAD])
-AX_MODULE(MATH, [src/vw/Math], [libvwMath.la], yes, [CORE], [LAPACK PPL QHULL])
+AX_MODULE(MATH, [src/vw/Math], [libvwMath.la], yes, [CORE], [LAPACK GMP PPL QHULL])
 AX_MODULE(IMAGE, [src/vw/Image], [libvwImage.la], yes, [MATH])
 AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [Z PNG JPEG TIFF OPENEXR JPEG2K HDF GDAL])
 AX_MODULE(VW, [src/vw], [libvw.la], yes, [CORE MATH IMAGE], [FILEIO])
