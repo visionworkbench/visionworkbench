@@ -34,7 +34,7 @@
 #include <vw/Math/Matrix.h>
 #include <vw/Math/SpatialTree.h>
 #include <vw/Math/BConvex.h>
-using namespace vw::math::bconvex_rational;
+using namespace vw::math::bconvex_promote;
 
 #include <ppl.hh> // Parma Polyhedra Library
 using namespace Parma_Polyhedra_Library;
@@ -45,6 +45,26 @@ extern "C" {
 #include <qhull/qset.h>
 }
 #endif
+
+namespace vw {
+namespace math {
+
+  /// Square of vector 2-norm (with gmp elements).
+  template <class VectorT>
+  inline double norm_2_sqr_gmp( VectorBase<VectorT> const& v ) {
+    double result = 0.0;
+    typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
+    for( ; i != end ; ++i ) result += (*i).get_d() * (*i).get_d();
+    return result;
+  }
+
+  /// Vector 2-norm (with gmp elements).
+  template <class VectorT>
+  inline double norm_2_gmp( VectorBase<VectorT> const& v ) {
+    return sqrt( norm_2_sqr_gmp(v) );
+  }
+
+}} // namespace vw::math
 
 namespace {
   /// Mutex for qhull, which is not thread-safe.
@@ -77,24 +97,125 @@ namespace {
     bool used;
   };
 
-  /// Creates a PPL point.
-  Generator point_generator( vw::math::Vector<Rational> const& point ) {
-    Linear_Expression e;
-    if (point(0).is_signed) {
-      for (unsigned i = point.size() - 1; 1; i--) {
-        e += point(i).signed_num * Variable(i);
-        if (i == 0)
-          break;
+  /// Find the least common denominator.
+  mpz_class least_common_denominator( vw::math::Vector<mpq_class> const& v ) {
+    unsigned dim = v.size();
+    VW_ASSERT(dim > 0, vw::LogicErr() << "Cannot find least common denominator of 0 points!");
+    mpz_class den = v(0).get_den();
+    for (unsigned i = 1; i < dim; i++) {
+      mpq_class q(v(i).get_den(), den);
+      q.canonicalize();
+      den = q.get_den() * v(i).get_den();
+    }
+    return den;
+  }
+
+  /// Convert all rationals in Vector so that they have a common denominator.
+  //NOTE: The resulting rationals may not be canonical, and arithmetic expressions
+  //  involving them may not work properly. This is desired behavior, as we want
+  //  all rationals in the Vector to have the same denominator.
+  vw::math::Vector<mpq_class> const& common_denominator( vw::math::Vector<mpq_class> const& point, vw::math::Vector<mpq_class> &p ) {
+    unsigned dim = point.size();
+    p.set_size(dim);
+    if (dim > 0) {
+      mpz_class lcd = least_common_denominator(point);
+      for (unsigned i = 0; i < dim; i++) {
+        p(i).get_num() = point(i).get_num() * (lcd / point(i).get_den());
+        p(i).get_den() = lcd;
       }
+    }
+    return p;
+  }
+
+  /// Convert all rationals in Vector so that they have no denominator
+  /// (so that linear expression with rationals as coefficients is equivalent).
+  vw::math::Vector<mpz_class> const& no_denominator( vw::math::Vector<mpq_class> const& point, vw::math::Vector<mpz_class> &p ) {
+    unsigned dim = point.size();
+    p.set_size(dim);
+    if (dim > 0) {
+      mpz_class lcd = least_common_denominator(point);
+      for (unsigned i = 0; i < dim; i++) {
+        p(i) = point(i).get_num() * (lcd / point(i).get_den());
+      }
+    }
+    return p;
+  }
+
+  /// Converts a Promoted Vector to an mpq_class Vector.
+  vw::math::Vector<mpq_class> const& convert_vector( vw::math::Vector<Promoted> const& point, vw::math::Vector<mpq_class> &p ) {
+    unsigned dim = point.size();
+    p.set_size(dim);
+    if (!point(0).is_integral) {
+      for (unsigned i = 0; i < dim; i++)
+        p(i) = mpq_class(point(i).val.f);
+    }
+    else if (point(0).is_signed) {
+      for (unsigned i = 0; i < dim; i++)
+        p(i) = mpq_class(point(i).val.s);
     }
     else {
-      for (unsigned i = point.size() - 1; 1; i--) {
-        e += point(i).unsigned_num * Variable(i);
-        if (i == 0)
-          break;
-      }
+      for (unsigned i = 0; i < dim; i++)
+        p(i) = mpq_class(point(i).val.u);
     }
-    Generator g = ::Parma_Polyhedra_Library::point(e, point(0).den);
+    return p;
+  }
+
+  /// Converts a double Vector to an mpq_class Vector.
+  vw::math::Vector<mpq_class> const& convert_vector( vw::math::Vector<double> const& point, vw::math::Vector<mpq_class> &p ) {
+    unsigned dim = point.size();
+    p.set_size(dim);
+    for (unsigned i = 0; i < dim; i++)
+      p(i) = mpq_class(point(i));
+    return p;
+  }
+
+  /// Converts an mpq_class Vector to a double Vector.
+  vw::math::Vector<double> const& unconvert_vector( vw::math::Vector<mpq_class> const& point, vw::math::Vector<double> &p ) {
+    unsigned dim = point.size();
+    p.set_size(dim);
+    for (unsigned i = 0; i < dim; i++)
+      p(i) = point(i).get_d();
+    return p;
+  }
+
+  /// Converts a Promoted to an mpq_class.
+  mpq_class const& convert_scalar( Promoted const& scalar, mpq_class &s ) {
+    if (!scalar.is_integral) {
+      s = mpq_class(scalar.val.f);
+    }
+    else if (scalar.is_signed) {
+      s = mpq_class(scalar.val.s);
+    }
+    else {
+      s = mpq_class(scalar.val.u);
+    }
+    return s;
+  }
+
+  /// Converts a double to an mpq_class.
+  mpq_class const& convert_scalar( double const& scalar, mpq_class &s ) {
+    s = mpq_class(scalar);
+    return s;
+  }
+
+  /// Converts an mpq_class to a double.
+  double const& unconvert_scalar( mpq_class const& scalar, double &s ) {
+    s = scalar.get_d();
+    return s;
+  }
+
+  /// Creates a PPL point.
+  Generator point_generator( vw::math::Vector<mpq_class> const& point ) {
+    Linear_Expression e;
+    unsigned dim = point.size();
+    vw::math::Vector<mpq_class> pointc( dim );
+    common_denominator(point, pointc);
+    for (unsigned i = point.size() - 1; 1; i--) {
+      e += pointc(i).get_num() * Variable(i);
+      if (i == 0)
+        break;
+    }
+    Generator g = ::Parma_Polyhedra_Library::point(e, pointc(0).get_den());
     return g;
   }
   
@@ -116,50 +237,62 @@ namespace {
     return e - s;
   }
 
-  /// Creates a PPL Constraint from a Vector.
-  Constraint constraint_generator( vw::math::Vector<double> const& coef ) {
+  /// Creates a PPL Constraint from an mpz_class Vector.
+  Constraint constraint_generator( vw::math::Vector<mpz_class> const& coef ) {
     unsigned dim = coef.size() - 1;
-    vw::math::Vector<Rational> coefr( coef.size() );
     Linear_Expression e;
     unsigned i;
-    vw::math::BConvex::convert_vector(coef, coefr);
     for (i = dim - 1; 1; i--) {
-      if (coefr[0].is_signed)
-        e += mult_variable(Variable(i), coefr[i].signed_num);
-      else
-        e += mult_variable(Variable(i), coefr[i].unsigned_num);
+      e += mult_variable(Variable(i), coef[i]);
       if (i == 0)
         break;
     }
-    if (coefr[0].is_signed)
-      e += coefr[dim].signed_num;
-    else
-      e += coefr[dim].unsigned_num;
+    e += coef[dim];
     Constraint c = (e >= 0);
     return c;
   }
 
+  /// Creates a PPL Constraint from an mpq_class Vector.
+  Constraint constraint_generator( vw::math::Vector<mpq_class> const& coef ) {
+    vw::math::Vector<mpz_class> coefz( coef.size() );
+    no_denominator(coef, coefz);
+    return constraint_generator(coefz);
+  }
+
   /// Finds the coefficients of a PPL Constraint.
-  void coefficients( Constraint const& c, vw::math::Vector<double> &coef ) {
+  void coefficients( Constraint const& c, vw::math::Vector<mpz_class> &coef ) {
     unsigned dim = c.space_dimension();
     unsigned i;
     coef.set_size(dim + 1);
     for (i = dim - 1; 1; i--) {
-      coef[i] = c.coefficient(Variable(i)).get_d();
+      coef[i] = c.coefficient(Variable(i));
       if (i == 0)
         break;
     }
-    coef[dim] = c.inhomogeneous_term().get_d();
+    coef[dim] = c.inhomogeneous_term();
+  }
+
+  /// Finds the coefficients of a PPL Constraint.
+  void coefficients( Constraint const& c, vw::math::Vector<mpq_class> &coef ) {
+    unsigned dim = c.space_dimension();
+    unsigned i;
+    coef.set_size(dim + 1);
+    for (i = dim - 1; 1; i--) {
+      coef[i] = mpq_class(c.coefficient(Variable(i)), 1);
+      if (i == 0)
+        break;
+    }
+    coef[dim] = mpq_class(c.inhomogeneous_term(), 1);
   }
 
   /// Returns the PPL Generator (point) as a Vector.
-  void convert_point( Generator const& g, vw::Vector<double> &p ) {
+  void convert_point( Generator const& g, vw::Vector<mpq_class> &p ) {
     VW_ASSERT(g.is_point(), vw::LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
     unsigned dim = g.space_dimension();
     unsigned i;
     p.set_size(dim);
     for (i = dim - 1; 1; i--) {
-      p(i) = g.coefficient(Variable(i)).get_d() / g.divisor().get_d();
+      p(i) = mpq_class(g.coefficient(Variable(i)), g.divisor());
       if (i == 0)
         break;
     }
@@ -223,6 +356,23 @@ namespace {
     qh_freeqhull(!qh_ALL);
     qh_memfreeshort(&curlong, &totlong);
     VW_ASSERT(curlong == 0 && totlong == 0, vw::LogicErr() << "qhull did not free all of its memory");
+  }
+
+  /// Find the center of a polyhedron.
+  void poly_center( const C_Polyhedron *poly, vw::Vector<mpq_class> &c ) {
+    VW_ASSERT(poly, vw::LogicErr() << "Polyhedron pointer is null!");
+    unsigned dim = poly->space_dimension();
+    vw::Vector<mpq_class> v(dim);
+    unsigned n = 0;
+    const Generator_System &gs = poly->minimized_generators();
+    c.set_size(dim);
+    fill(c, 0);
+    for (Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
+      convert_point(*i, v);
+      c += v;
+      n++;
+    }
+    c /= n;
   }
 
   /// Undo projection to plane.
@@ -392,20 +542,46 @@ namespace {
     }
   }
 
+  /// Offsets the polyhedron by the given vector.
+  void offset_poly( vw::Vector<mpq_class> const& v, C_Polyhedron *poly ) {
+    unsigned dim = poly->space_dimension();
+    for (unsigned i = dim - 1; 1; i--) {
+      Linear_Expression e;
+      e += add_scalar(mult_variable(Variable(i), v(i).get_den()), v(i).get_num());
+      poly->affine_image(Variable(i), e, v(i).get_den());
+      if (i == 0)
+        break;
+    }
+  }
+
+  /// Scales the polyhedron relative to the origin.
+  void scale_poly( mpq_class const& s, C_Polyhedron *poly ) {
+    unsigned dim = poly->space_dimension();
+    for (unsigned i = dim - 1; 1; i--) {
+      Linear_Expression e;
+      e += mult_variable(Variable(i), s.get_num());
+      poly->affine_image(Variable(i), e, s.get_den());
+      if (i == 0)
+        break;
+    }
+  }
+
 } // namespace
 
 namespace vw {
 namespace math {
 
-  namespace bconvex_rational {
+  namespace bconvex_promote {
 
-    std::ostream& operator<<( std::ostream& os, Rational const& r ) {
+    std::ostream& operator<<( std::ostream& os, Promoted const& r ) {
+      if (!r.is_integral)
+        return os << r.val.f;
       if (r.is_signed)
-        return os << r.signed_num << "/" << r.den;
-      return os << r.unsigned_num << "/" << r.den;
+        return os << r.val.s;
+      return os << r.val.u;
     }
 
-  } // namespace bconvex_rational
+  } // namespace bconvex_promote
 
   /*static*/ void *BConvex::new_poly( unsigned dim ) {
     C_Polyhedron *p = new C_Polyhedron( dim, EMPTY );
@@ -447,6 +623,7 @@ namespace math {
     boost::mutex::scoped_lock lock(bconvex_qhull_mutex);
     facetT *facet;
     Vector<double> facetv(dim + 1);
+    Vector<mpq_class> facetq(dim + 1);
     unsigned i;
 
     qhull_run(dim, num_points, p);
@@ -457,7 +634,7 @@ namespace math {
         facetv[i] = -facet->normal[i];
       facetv[i] = -facet->offset;
       //NOTE: Printing facet->toporient here for the [0,1]^3 unit cube test case (see TestBConvex.h) demonstrates that facet->toporient is meaningless in the qhull output.
-      Constraint c = constraint_generator(facetv);
+      Constraint c = constraint_generator(convert_vector(facetv, facetq));
       ((C_Polyhedron*)m_poly)->add_constraint(c);
     }
     
@@ -470,8 +647,9 @@ namespace math {
 #endif // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
   }
   
-  void BConvex::grow_( Vector<Rational> const& point ) {
-    ((C_Polyhedron*)m_poly)->add_generator(point_generator(point));
+  void BConvex::grow_( Vector<Promoted> const& point ) {
+    Vector<mpq_class> pointq;
+    ((C_Polyhedron*)m_poly)->add_generator(point_generator(convert_vector(point, pointq)));
   }
 
   void BConvex::grow( BConvex const& bconv ) {
@@ -488,16 +666,17 @@ namespace math {
   void BConvex::expand( double offset ) {
     VW_ASSERT(!empty(), LogicErr() << "Cannot expand an empty polyhedron!");
     unsigned dim = ((const C_Polyhedron*)m_poly)->space_dimension();
-    Vector<double> center_ = center();
+    Vector<mpq_class> center_( dim );
+    poly_center((const C_Polyhedron*)m_poly, center_);
     C_Polyhedron *poly = new C_Polyhedron( dim, UNIVERSE );
-    Vector<double> coef( dim + 1 );
+    Vector<mpq_class> coef( dim + 1 );
     double norm;
-    *this -= center_;
+    offset_poly(-center_, (C_Polyhedron*)m_poly);
     const Constraint_System &cs = ((const C_Polyhedron*)m_poly)->minimized_constraints();
     Constraint_System::const_iterator i;
     for (i = cs.begin(); i != cs.end(); i++) {
       coefficients(*i, coef);
-      norm = norm_2(subvector(coef, 0, dim));
+      norm = norm_2_gmp(subvector(coef, 0, dim)); //NOTE: ideally, norm shouldn't be double, but gmp does not include rational sqrt
       coef /= norm;
       VW_ASSERT(coef[dim] >= 0, LogicErr() << "Center is outside of polyhedron!");
       coef[dim] += offset;
@@ -506,11 +685,12 @@ namespace math {
     }
     delete (C_Polyhedron*)m_poly;
     m_poly = (void*)poly;
-    *this += center_;
+    offset_poly(center_, (C_Polyhedron*)m_poly);
   }
 
-  bool BConvex::contains_( Vector<Rational> const& point ) const {
-    return (((const C_Polyhedron*)m_poly)->relation_with(point_generator(point)) == Poly_Gen_Relation::subsumes());
+  bool BConvex::contains_( Vector<Promoted> const& point ) const {
+    Vector<mpq_class> pointq;
+    return (((const C_Polyhedron*)m_poly)->relation_with(point_generator(convert_vector(point, pointq))) == Poly_Gen_Relation::subsumes());
   }
 
   bool BConvex::contains( BConvex const& bconv ) const {
@@ -531,12 +711,13 @@ namespace math {
     unsigned dim = ((const C_Polyhedron*)m_poly)->space_dimension();
     double result = 0;
     double d;
-    Vector<double> v(dim);
-    Vector<double> c = center();
+    Vector<mpq_class> v(dim);
+    Vector<mpq_class> c;
+    poly_center((const C_Polyhedron*)m_poly, c);
     const Generator_System &gs = ((const C_Polyhedron*)m_poly)->minimized_generators();
     for (Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
       convert_point(*i, v);
-      d = norm_2_sqr(v - c);
+      d = norm_2_sqr_gmp(v - c);
       result = std::max(result, d);
     }
     result = 2*std::sqrt(result);
@@ -546,17 +727,11 @@ namespace math {
   Vector<double> BConvex::center() const {
     VW_ASSERT(!empty(), LogicErr() << "Cannot find the center of an empty polyhedron!");
     unsigned dim = ((const C_Polyhedron*)m_poly)->space_dimension();
-    Vector<double> c(dim), v(dim);
-    unsigned n = 0;
-    const Generator_System &gs = ((const C_Polyhedron*)m_poly)->minimized_generators();
-    fill(c, 0);
-    for (Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
-      convert_point(*i, v);
-      c += v;
-      n++;
-    }
-    c /= n;
-    return c;
+    Vector<mpq_class> c(dim);
+    Vector<double> cd(dim);
+    poly_center((const C_Polyhedron*)m_poly, c);
+    unconvert_vector(c, cd);
+    return cd;
   }
 
   bool BConvex::equal( BConvex const& bconv ) const {
@@ -593,6 +768,7 @@ namespace math {
     const Generator_System &gs = ((const C_Polyhedron*)m_poly)->minimized_generators();
     unsigned num_points = num_generators(gs);
     Vector<double> vertexv( dim );
+    Vector<mpq_class> vertexq( dim );
 
     VW_ASSERT(dim > 0 && dim <= 3, ArgumentErr() << "Cannot write vrml of dimension <= 0 or > 3!");
 
@@ -602,7 +778,8 @@ namespace math {
       VW_ASSERT(num_points <= 2, LogicErr() << "Found line with more than 2 vertices!");
       write_vrml_coordinates_begin(os);
       for (Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
-        convert_point(*i, vertexv);
+        convert_point(*i, vertexq);
+        unconvert_vector(vertexq, vertexv);
         write_vrml_coordinates_point(os, vertexv);
       }
       write_vrml_coordinates_end(os);
@@ -642,7 +819,8 @@ namespace math {
       for (Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++, l++) {
         prim = new PointPrimitive;
         prim->index = l;
-        convert_point(*i, prim->point);
+        convert_point(*i, vertexq);
+        unconvert_vector(vertexq, prim->point);
         prim->bbox.grow(prim->point);
         for (j = 0; j < dim; j++, k++)
           p[k] = prim->point[j];
@@ -834,69 +1012,41 @@ namespace math {
     if (!m_poly)
       return bbox;
     unsigned dim = ((const C_Polyhedron*)m_poly)->space_dimension();
-    Vector<double> v(dim);
+    Vector<mpq_class> v(dim);
+    Vector<double> vd(dim);
     const Generator_System &gs = ((const C_Polyhedron*)m_poly)->minimized_generators();
     for (Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
       convert_point(*i, v);
-      bbox.grow(v);
+      unconvert_vector(v, vd);
+      bbox.grow(vd);
     }
     return bbox;
   }
 
-  void BConvex::operator_mult_eq_( Rational const& s ) {
-    unsigned dim = ((const C_Polyhedron*)m_poly)->space_dimension();
-    for (unsigned i = dim - 1; 1; i--) {
-      Linear_Expression e;
-      if (s.is_signed)
-        e += mult_variable(Variable(i), s.signed_num);
-      else
-        e += mult_variable(Variable(i), s.unsigned_num);
-      ((C_Polyhedron*)m_poly)->affine_image(Variable(i), e, s.den);
-      if (i == 0)
-        break;
-    }
+  void BConvex::operator_mult_eq_( Promoted const& s ) {
+    mpq_class q;
+    convert_scalar(s, q);
+    scale_poly(q, (C_Polyhedron*)m_poly);
   }
 
-  void BConvex::operator_div_eq_( Rational const& s ) {
-    unsigned dim = ((const C_Polyhedron*)m_poly)->space_dimension();
-    for (unsigned i = dim - 1; 1; i--) {
-      Linear_Expression e;
-      e += mult_variable(Variable(i), s.den);
-      if (s.is_signed)
-        ((C_Polyhedron*)m_poly)->affine_image(Variable(i), e, s.signed_num);
-      else
-        ((C_Polyhedron*)m_poly)->affine_image(Variable(i), e, s.unsigned_num);
-      if (i == 0)
-        break;
-    }
+  void BConvex::operator_div_eq_( Promoted const& s ) {
+    mpq_class q;
+    convert_scalar(s, q);
+    scale_poly(mpq_class(q.get_den(), q.get_num()), (C_Polyhedron*)m_poly);
   }
 
-  void BConvex::operator_plus_eq_( Vector<Rational> const& v ) {
+  void BConvex::operator_plus_eq_( Vector<Promoted> const& v ) {
     unsigned dim = ((const C_Polyhedron*)m_poly)->space_dimension();
-    for (unsigned i = dim - 1; 1; i--) {
-      Linear_Expression e;
-      if (v(0).is_signed)
-        e += add_scalar(mult_variable(Variable(i), v(i).den), v(i).signed_num);
-      else
-        e += add_scalar(mult_variable(Variable(i), v(i).den), v(i).unsigned_num);
-      ((C_Polyhedron*)m_poly)->affine_image(Variable(i), e, v(0).den);
-      if (i == 0)
-        break;
-    }
+    Vector<mpq_class> vq( dim );
+    convert_vector(v, vq);
+    offset_poly(vq, (C_Polyhedron*)m_poly);
   }
 
-  void BConvex::operator_minus_eq_( Vector<Rational> const& v ) {
+  void BConvex::operator_minus_eq_( Vector<Promoted> const& v ) {
     unsigned dim = ((const C_Polyhedron*)m_poly)->space_dimension();
-    for (unsigned i = dim - 1; 1; i--) {
-      Linear_Expression e;
-      if (v(0).is_signed)
-        e += sub_scalar(mult_variable(Variable(i), v(i).den), v(i).signed_num);
-      else
-        e += sub_scalar(mult_variable(Variable(i), v(i).den), v(i).unsigned_num);
-      ((C_Polyhedron*)m_poly)->affine_image(Variable(i), e, v(0).den);
-      if (i == 0)
-        break;
-    }
+    Vector<mpq_class> vq( dim );
+    convert_vector(v, vq);
+    offset_poly(-vq, (C_Polyhedron*)m_poly);
   }
 
   std::ostream& operator<<( std::ostream& os, BConvex const& bconv ) {

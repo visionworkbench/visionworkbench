@@ -54,90 +54,86 @@ namespace vw {
 namespace math {
 
   /// \cond INTERNAL
-  namespace bconvex_rational {
-    struct Rational {
+  namespace bconvex_promote {
+    struct Promoted {
       //NOTE: we use these types because they are the longest input types supported by GMP
       typedef long int SignedT;
       typedef long unsigned int UnsignedT;
-      Rational() : signed_num( 0 ), unsigned_num( 0 ), den( 1 ), is_signed( false ) {}
-      SignedT signed_num;
-      UnsignedT unsigned_num;
-      UnsignedT den;
+      typedef double FloatT;
+      union Val {
+        SignedT s;
+        UnsignedT u;
+        FloatT f;
+      };
+      Promoted() : is_signed( false ), is_integral( true ) {
+        val.u = 0;
+      }
+      Val val;
       bool is_signed;
+      bool is_integral;
     };
 
-    std::ostream& operator<<( std::ostream& os, Rational const& r );
+    std::ostream& operator<<( std::ostream& os, Promoted const& r );
 
     template <class ValT, bool IntegralN=true, bool SignedN=true>
-    struct RationalBehavior {
-      static inline void set( ValT val, ValT max_abs, Rational &r ) {
-        ArgAbsFunctor abs_func;
-        if (abs_func(val) > max_abs)
-          std::cout << val << "->" << abs_func(val) << " > " << max_abs << std::endl;
-        VW_ASSERT( abs_func(val) <= max_abs, ArgumentErr() << "Trying to convert val to rational where abs(val) > max_abs." );
+    struct PromoteBehavior {
+      static inline void set( ValT val, Promoted &r ) {
         r.is_signed = true;
-        r.den = 1;
-        r.signed_num = (Rational::SignedT)val;
+        r.is_integral = true;
+        r.val.s = (Promoted::SignedT)val;
       }
-      static inline ValT get( Rational const& r ) {
-        return (ValT)(r.signed_num);
+      static inline ValT get( Promoted const& r ) {
+        return (ValT)(r.val.s);
       }
     };
 
     template <class ValT>
-    struct RationalBehavior<ValT,true,false> {
-      static inline void set( ValT val, ValT max_abs, Rational &r ) {
-        VW_ASSERT( val <= max_abs, ArgumentErr() << "Trying to convert val to rational where abs(val) > max_abs." );
+    struct PromoteBehavior<ValT,true,false> {
+      static inline void set( ValT val, Promoted &r ) {
         r.is_signed = false;
-        r.den = 1;
-        r.unsigned_num = (Rational::UnsignedT)val;
+        r.is_integral = true;
+        r.val.u = (Promoted::UnsignedT)val;
       }
-      static inline ValT get( Rational const& r ) {
-        return (ValT)(r.unsigned_num);
+      static inline ValT get( Promoted const& r ) {
+        return (ValT)(r.val.u);
       }
     };
 
     template <class ValT>
-    struct RationalBehavior<ValT,false,true> {
-      static inline void set( ValT val, ValT max_abs, Rational &r ) {
-        ArgAbsFunctor abs_func;
-        VW_ASSERT( abs_func(val) <= max_abs, ArgumentErr() << "Trying to convert val to rational where abs(val) > max_abs." );
+    struct PromoteBehavior<ValT,false,true> {
+      static inline void set( ValT val, Promoted &r ) {
         r.is_signed = true;
-        ArgCeilFunctor ceil_func;
-        Rational::SignedT den = std::numeric_limits<Rational::SignedT>::max() / (Rational::SignedT)ceil_func(max_abs);
-        r.den = (Rational::UnsignedT)den;
-        r.signed_num = (Rational::SignedT)(val * den);
+        r.is_integral = false;
+        r.val.f = (Promoted::FloatT)val;
       }
-      static inline ValT get( Rational const& r ) {
-        return (ValT)(r.signed_num) / (ValT)(r.den);
+      static inline ValT get( Promoted const& r ) {
+        return (ValT)(r.val.f);
       }
     };
 
     template <class ValT>
-    struct RationalBehavior<ValT,false,false> {
-      static inline void set( ValT val, ValT max_abs, Rational &r ) {
-        VW_ASSERT( val <= max_abs, ArgumentErr() << "Trying to convert val to rational where abs(val) > max_abs." );
+    struct PromoteBehavior<ValT,false,false> {
+      static inline void set( ValT val, Promoted &r ) {
         r.is_signed = false;
-        ArgCeilFunctor ceil_func;
-        r.den = std::numeric_limits<Rational::UnsignedT>::max() / (Rational::UnsignedT)ceil_func(max_abs);
-        r.unsigned_num = (Rational::UnsignedT)(val * r.den);
+        r.is_integral = false;
+        r.val.f = (Promoted::FloatT)val;
       }
-      static inline ValT get( Rational const& r ) {
-        return (ValT)(r.unsigned_num) / (ValT)(r.den);
+      static inline ValT get( Promoted const& r ) {
+        return (ValT)(r.val.f);
       }
     };
 
     template <class ValT>
-    struct RationalFuncs {
-      static void set( ValT val, ValT max_abs, Rational &r ) {
+    struct PromoteFuncs {
+      static void set( ValT val, Promoted &r ) {
         // Make sure we have a type for which we know limits
         BOOST_STATIC_ASSERT(std::numeric_limits<ValT>::is_specialized);
-        RationalBehavior<ValT,std::numeric_limits<ValT>::is_integer,std::numeric_limits<ValT>::is_signed>::set(val, max_abs, r);
+        PromoteBehavior<ValT,std::numeric_limits<ValT>::is_integer,std::numeric_limits<ValT>::is_signed>::set(val, r);
       }
-      static ValT get( Rational const& r ) {
+      static ValT get( Promoted const& r ) {
         // Make sure we have a type for which we know limits
         BOOST_STATIC_ASSERT(std::numeric_limits<ValT>::is_specialized);
-        return RationalBehavior<ValT,std::numeric_limits<ValT>::is_integer,std::numeric_limits<ValT>::is_signed>::get(r);
+        return PromoteBehavior<ValT,std::numeric_limits<ValT>::is_integer,std::numeric_limits<ValT>::is_signed>::get(r);
       }
     };
     
@@ -164,7 +160,7 @@ namespace math {
       }
     };
 
-  } // namespace bconvex_rational
+  } // namespace bconvex_promote
   /// \endcond
   
   // *******************************************************************
@@ -231,9 +227,9 @@ namespace math {
     /// Grows a convex shape to include the given point.
     template <class VectorT>
     void grow( VectorBase<VectorT> const& point ) {
-      Vector<bconvex_rational::Rational> p;
+      Vector<bconvex_promote::Promoted> p;
       new_poly_if_needed(point.impl().size(), m_poly);
-      grow_(convert_vector(point, p));
+      grow_(promote_vector(point, p));
     }
     
     /// Grows a convex shape to include the given convex shape.
@@ -253,10 +249,10 @@ namespace math {
     /// Returns true if the given point is contained in the convex shape.
     template <class VectorT>
     bool contains( VectorBase<VectorT> const& point ) const {
-      Vector<bconvex_rational::Rational> p;
+      Vector<bconvex_promote::Promoted> p;
       if (!m_poly)
         return false;
-      return contains_(convert_vector(point, p));
+      return contains_(promote_vector(point, p));
     }
     
     /// Returns true if the given convex shape is entirely contained
@@ -302,20 +298,20 @@ namespace math {
     /// Scales the convex shape relative to the origin.
     template <class ScalarT>
     BConvex& operator*=( ScalarT s ) {
-      using namespace bconvex_rational;
+      using namespace bconvex_promote;
       VW_ASSERT( !empty(), LogicErr() << "Cannot multiply an empty polyhedron by a scalar!" );
-      Rational r;
-      operator_mult_eq_(convert_scalar(s, r));
+      Promoted r;
+      operator_mult_eq_(promote_scalar(s, r));
       return *this;
     }
 
     /// Scales the convex shape relative to the origin.
     template <class ScalarT>
     BConvex& operator/=( ScalarT s ) {
-      using namespace bconvex_rational;
+      using namespace bconvex_promote;
       VW_ASSERT( !empty(), LogicErr() << "Cannot divide an empty polyhedron by a scalar!" );
-      Rational r;
-      operator_div_eq_(convert_scalar(s, r));
+      Promoted r;
+      operator_div_eq_(promote_scalar(s, r));
       return *this;
     }
 
@@ -323,8 +319,8 @@ namespace math {
     template <class VectorT>
     BConvex& operator+=( VectorBase<VectorT> const& v ) {
       VW_ASSERT( !empty(), LogicErr() << "Cannot add a vector to an empty polyhedron!" );
-      Vector<bconvex_rational::Rational> p;
-      operator_plus_eq_(convert_vector(v, p));
+      Vector<bconvex_promote::Promoted> p;
+      operator_plus_eq_(promote_vector(v, p));
       return *this;
     }
 
@@ -332,30 +328,27 @@ namespace math {
     template <class VectorT>
     BConvex& operator-=( VectorBase<VectorT> const& v ) {
       VW_ASSERT( !empty(), LogicErr() << "Cannot subtract a vector from an empty polyhedron!" );
-      Vector<bconvex_rational::Rational> p;
-      operator_minus_eq_(convert_vector(v, p));
+      Vector<bconvex_promote::Promoted> p;
+      operator_minus_eq_(promote_vector(v, p));
       return *this;
     }
 
-    /// Converts a Vector to a Rational Vector.
+    /// Converts a Vector to a Promoted Vector.
     template <class VectorT>
-    static Vector<bconvex_rational::Rational> const& convert_vector( VectorBase<VectorT> const& point, Vector<bconvex_rational::Rational> &p ) {
-      using namespace bconvex_rational;
+    static Vector<bconvex_promote::Promoted> const& promote_vector( VectorBase<VectorT> const& point, Vector<bconvex_promote::Promoted> &p ) {
+      using namespace bconvex_promote;
       unsigned dim = point.impl().size();
       p.set_size(dim);
-      typename VectorT::value_type max_abs = norm_inf(point);
-      typename VectorT::value_type eps = EpsilonFunctor<typename VectorT::value_type>::epsilon();
-      max_abs = std::max(max_abs, eps);
       for (unsigned i = 0; i < dim; i++)
-        RationalFuncs<typename VectorT::value_type>::set(point.impl()(i), max_abs, p(i));
+        PromoteFuncs<typename VectorT::value_type>::set(point.impl()(i), p(i));
       return p;
     }
     
-    /// Converts a scalar to a Rational.
+    /// Converts a scalar to a Promoted.
     template <class ScalarT>
-    static inline bconvex_rational::Rational const& convert_scalar( ScalarT s, bconvex_rational::Rational &r ) {
-      using namespace bconvex_rational;
-      RationalFuncs<ScalarT>::set(s, s, r);
+    static inline bconvex_promote::Promoted const& promote_scalar( ScalarT s, bconvex_promote::Promoted &r ) {
+      using namespace bconvex_promote;
+      PromoteFuncs<ScalarT>::set(s, r);
       return r;
     }
 
@@ -383,22 +376,22 @@ namespace math {
     void init_with_qhull( unsigned dim, unsigned num_points, double *p );
 
     /// Grows a convex shape to include the given point.
-    void grow_( Vector<bconvex_rational::Rational> const& point );
+    void grow_( Vector<bconvex_promote::Promoted> const& point );
 
     /// Returns true if the given point is contained in the convex shape.
-    bool contains_( Vector<bconvex_rational::Rational> const& point ) const;
+    bool contains_( Vector<bconvex_promote::Promoted> const& point ) const;
 
     /// Scales the convex shape relative to the origin.
-    void operator_mult_eq_( bconvex_rational::Rational const& s );
+    void operator_mult_eq_( bconvex_promote::Promoted const& s );
 
     /// Scales the convex shape relative to the origin.
-    void operator_div_eq_( bconvex_rational::Rational const& s );
+    void operator_div_eq_( bconvex_promote::Promoted const& s );
 
     /// Offsets the convex shape by the given vector.
-    void operator_plus_eq_( Vector<bconvex_rational::Rational> const& v );
+    void operator_plus_eq_( Vector<bconvex_promote::Promoted> const& v );
 
     /// Offsets the convex shape by the negation of the given vector.
-    void operator_minus_eq_( Vector<bconvex_rational::Rational> const& v );
+    void operator_minus_eq_( Vector<bconvex_promote::Promoted> const& v );
     
     void *m_poly;
   };
