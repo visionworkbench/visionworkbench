@@ -295,6 +295,12 @@ namespace math {
     /// Prints the convex shape in vrml.
     void write_vrml( const char *fn ) const;
 
+    /// Prints the convex shape in oogl.
+    void write_oogl( std::ostream& os = std::cout ) const;
+
+    /// Prints the convex shape in oogl.
+    void write_oogl( const char *fn ) const;
+
     /// Scales the convex shape relative to the origin.
     template <class ScalarT>
     BConvex& operator*=( ScalarT s ) {

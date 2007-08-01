@@ -87,10 +87,8 @@ namespace {
   }
   
   void grow_bbox(SpatialTree::BBoxT &bbox, int num_primitives, GeomPrimitive *prims[]) {
-    cout << "SpatialTree: growing BBox..." << flush;
     for (int i = 0; i < num_primitives; i++)
       bbox.grow(prims[i]->bounding_box());
-    cout << "done." << endl;
   }
   
   void grow_bbox_on_grid(SpatialTree::BBoxT &bbox, const SpatialTree::BBoxT &new_bbox) {
@@ -923,12 +921,6 @@ namespace math {
     m_num_quadrants = (int)((unsigned)1 << (unsigned)m_dim);
     m_root_node = new SpatialTreeNode(m_num_quadrants);
     grow_bbox(m_root_node->m_bbox, num_primitives, prims);
-  
-    cout << "Bounding Box of Total mesh ="
-          << " Min[" << m_root_node->m_bbox.min() << "]"
-          << " Max[" << m_root_node->m_bbox.max() << "]"
-          << endl;
-  
     for (int i = 0; i < num_primitives; i++)
       add(prims[i], max_create_level);
   }
