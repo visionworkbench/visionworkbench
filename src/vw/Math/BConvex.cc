@@ -796,24 +796,24 @@ namespace math {
     unsigned dim = ((const C_Polyhedron*)m_poly)->space_dimension();
     Vector<mpq_class> center_( dim );
     poly_center((const C_Polyhedron*)m_poly, center_);
-    C_Polyhedron *poly = new C_Polyhedron( dim, UNIVERSE );
-    Vector<mpq_class> coef( dim + 1 );
+    void *poly = new_poly(dim);
+    Vector<mpq_class> p( dim ), d;
     double norm;
-    offset_poly(-center_, (C_Polyhedron*)m_poly);
-    const Constraint_System &cs = ((const C_Polyhedron*)m_poly)->minimized_constraints();
-    Constraint_System::const_iterator i;
-    for (i = cs.begin(); i != cs.end(); i++) {
-      coefficients(*i, coef);
-      norm = norm_2_gmp(subvector(coef, 0, dim)); //NOTE: ideally, norm shouldn't be double, but gmp does not include rational sqrt
-      coef /= norm;
-      VW_ASSERT(coef[dim] >= 0, LogicErr() << "Center is outside of polyhedron!");
-      coef[dim] += offset;
-      Constraint c = constraint_generator(coef);
-      poly->add_constraint(c);
+    const Generator_System &gs = ((const C_Polyhedron*)m_poly)->minimized_generators();
+    Generator_System::const_iterator i;
+    for (i = gs.begin(); i != gs.end(); i++) {
+      convert_point(*i, p);
+      d = p - center_;
+      norm = norm_2_gmp(d);
+      if (offset < 0.0 && -offset >= norm)
+        p = center_;
+      else
+        p = center_ + (1.0 + offset / norm) * d;
+      Generator g = point_generator(p);
+      ((C_Polyhedron*)poly)->add_generator(g);
     }
     delete (C_Polyhedron*)m_poly;
-    m_poly = (void*)poly;
-    offset_poly(center_, (C_Polyhedron*)m_poly);
+    m_poly = poly;
   }
 
   bool BConvex::contains_( Vector<Promoted> const& point ) const {
