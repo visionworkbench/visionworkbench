@@ -50,7 +50,7 @@ namespace vw {
       i = metas.begin();
       
     for(; i != metas.end(); i++) {
-      if(m = (*i).first) {
+      if((m = (*i).first)) {
         if(is_readable)
           *is_readable = true;
         i++;
@@ -77,7 +77,7 @@ namespace vw {
       i = metas.begin();
       
     for(; i != metas.end(); i++) {
-      if(m = (*i).second) {
+      if((m = (*i).second)) {
         if(is_readable)
           *is_readable = ((*i).first != 0);
         i++;

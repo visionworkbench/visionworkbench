@@ -344,7 +344,7 @@ namespace {
       return true; // continue processing
     }
   private:
-    void process_bbox(const SpatialTree::BBoxT &bbox, int level, string prefix) const {
+    void process_bbox(const SpatialTree::BBoxT &bbox, int level, std::string prefix) const {
       for (int i = 0; i < level; i++)
         m_os << "  ";
       m_os << prefix;

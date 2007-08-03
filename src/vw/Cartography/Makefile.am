@@ -44,7 +44,7 @@ include_HEADERS = FileIO.h GeoReferenceBase.h GeoReference.h		\
                   $(gdal_headers) $(jpeg2k_headers)
 
 libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc	\
-                  DiskImageResourceGeoReferenceHelperPDS.cc		\
+                  DiskImageResourceGeoReferenceHelperPDS.cc	CameraBBox.cc	\
                   $(gdal_sources) $(jpeg2k_sources)
 
 libvwCartography_la_LDFLAGS= -version-info @LIBTOOL_VERSION@

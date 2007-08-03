@@ -81,7 +81,7 @@ namespace cartography {
     /// compute a 3D point corresponding to this location in the DTM.
     /// This point is then "imaged" by the camera model and the
     /// resulting pixel location is returned from the camera image.
-    inline result_type operator()( double i, double j, int p=0 ) const { 
+    inline result_type operator()( int32 i, int32 j, int p=0 ) const { 
 
       // We need to convert the georefernced positions into a
       // cartesian coordinate system so that they can be imaged by the

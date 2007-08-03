@@ -238,8 +238,6 @@ void vw::DiskImageResourceOpenEXR::create( std::string const& filename,
 void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& bbox ) const
 {
   vw_out(VerboseDebugMessage+5) << "Reading OpenEXR Block: " << bbox << "\n";
-
-  Imf::InputFile* input_file_ptr = static_cast<Imf::InputFile*>(m_input_file_ptr);
   
   if (!m_input_file_ptr) 
     vw_throw( LogicErr() << "DiskImageResourceOpenEXR: Could not read file. No file has been opened." );

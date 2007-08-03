@@ -35,7 +35,6 @@
 #include <fstream>   
 #include <sstream>   
 
-#include <values.h>			   // for BITSPERBYTE
 #include <strings.h>			   // for strncasecmp
 
 #include <boost/algorithm/string.hpp>
@@ -402,6 +401,9 @@ namespace vw
     {
     case VW_CHANNEL_UNKNOWN:
       cout << "VW_CHANNEL_UNKNOWN" << endl;
+      break;
+    case VW_CHANNEL_CHAR:
+      cout << "VW_CHANNEL_CHAR" << endl;
       break;
     case VW_CHANNEL_INT8:
       cout << "VW_CHANNEL_INT8" << endl;

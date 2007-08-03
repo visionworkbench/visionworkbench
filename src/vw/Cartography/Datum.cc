@@ -115,7 +115,6 @@ vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian( vw::Vector3 const& p 
   double a2 = a * a;
   double b2 = b * b;
   double e2 = (a2 - b2) / a2;
-  double ep2 = (a2 - b2) / b2;
   
   double lat = p.y();
   if ( lat < -90 ) lat = -90;
@@ -143,16 +142,11 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& p 
   double a2 = a * a;
   double b2 = b * b;
   double e2 = (a2 - b2) / a2;
-  double ep2 = (a2 - b2) / b2;
 
   static const double epsilon = 1.0e-12;
   static const double epsilon2 = epsilon*epsilon;
   static const int maxiter = 30;
   
-  double X = p.x();
-  double Y = p.y();
-  double Z = p.z();
-
   double normxy = sqrt(p.x()*p.x()+p.y()*p.y()); // distance between semi-minor axis and location
   double normp = norm_2(p);                      // distance between center and location
   
@@ -181,7 +175,7 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& p 
   // loop to find lat (in quadrature) until |lat[i]-lat[i-1]|<epsilon, roughly
   for( int i=0; i<maxiter; ++i ) {
     double ri = a/sqrt(1.0-e2*slat*slat); // radius at estimated location
-    alt = normxy*clat+Z*slat-ri*(1.0-e2*slat*slat);
+    alt = normxy*clat+p.z()*slat-ri*(1.0-e2*slat*slat);
     double rk = e2*ri/(ri+alt);
     rx = 1.0/sqrt(1.0-rk*(2.0-rk)*cgcl*cgcl);
     double new_clat = cgcl*(1.0-rk)*rx;

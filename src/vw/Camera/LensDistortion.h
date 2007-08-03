@@ -132,7 +132,10 @@ namespace camera {
     // Subclasses can call this method to gain access to the parent
     // camera model object.
     ParentCameraT& camera_model() const {
-      if (!m_camera_model_ptr) { throw LogicErr() << "LensDistortionBase: parent camera model has not yet been specified."; }
+      if (!m_camera_model_ptr) { 
+        vw_throw( LogicErr() << "LensDistortionBase: parent camera model has not yet been specified." ); 
+        return *m_camera_model_ptr; // Never reaches this point
+      }
       else { return *m_camera_model_ptr; }
     }
 

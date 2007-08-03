@@ -189,7 +189,7 @@ namespace vw {
       if ( ! png_ptr ) return;
       if( m_palette_based && m_use_palette_indices ) {
         png_colorp palette;
-        png_bytep alpha;
+        //        png_bytep alpha;
         int tmp;
         png_get_PLTE( png_ptr, info_ptr, &palette, &tmp );
       }

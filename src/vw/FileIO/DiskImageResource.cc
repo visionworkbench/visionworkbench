@@ -186,7 +186,7 @@ vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename,
     const FileMetadata* m;
     bool is_readable = true;
     FileMetadataCollection::FileMetadataCollectionIterator i;
-    while( m = fmeta.file_metadata_const( &is_readable, &i ) ) {
+    while( (m = fmeta.file_metadata_const( &is_readable, &i ) ) ) {
       if( is_readable )
         metadata_types.push_back( m->metadata_type() );
     }
@@ -207,7 +207,7 @@ vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filenam
     const FileMetadata* m;
     bool is_readable = true;
     FileMetadataCollection::FileMetadataCollectionIterator i;
-    while( m = fmeta.file_metadata_const( &is_readable, &i ) )
+    while( (m = fmeta.file_metadata_const( &is_readable, &i ) ) )
       metadata_types.push_back( m->metadata_type() );
     found_func = create_map->find( item, file_extension( filename ), &metadata_types, &CreateMapType::score_priority );
     if( found_func )

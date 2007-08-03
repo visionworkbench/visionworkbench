@@ -16,6 +16,7 @@ namespace math {
 
   class GeomPrimitive {
   public:
+    virtual ~GeomPrimitive() {}
     // distance() must be implemented to call SpatialTree::closest()
     virtual double distance(const Vector<double> &point) const;
     // contains() must be implemented to call SpatialTree::contains()

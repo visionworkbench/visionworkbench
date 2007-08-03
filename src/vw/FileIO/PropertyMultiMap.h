@@ -70,7 +70,7 @@ namespace vw {
     /// a list of requested properties, and a scoring strategy.
     bool find(ValueT& item, const KeyT& key, const std::list<PropertyT>* prop_list = 0, ScoringStrategy scoring_strategy = &score_all_required) const {
       int score;
-      DataT best_data;
+      DataT best_data = DataT();
       int best_score = 0;
       typename MapType::const_iterator i;
       typename MapValueType::const_iterator vi;

@@ -29,8 +29,8 @@
 #define __VW_CORE_CACHE_H__
 
 // Uncomment one of these to enable or disable cache debug messages
-#define VW_CACHE_DEBUG(x) x
-//#define VW_CACHE_DEBUG(x)
+//#define VW_CACHE_DEBUG(x) x
+#define VW_CACHE_DEBUG(x)
 
 #include <typeinfo>
 #include <boost/smart_ptr.hpp>

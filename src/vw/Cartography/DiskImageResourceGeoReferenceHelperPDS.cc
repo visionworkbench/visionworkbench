@@ -83,9 +83,6 @@ namespace cartography {
   }
   
   /*static*/ void DiskImageResourceGeoReferenceHelperPDS::write_georeference( DiskImageResource* r_, FileMetadata const* georef_ ) {
-    DiskImageResourcePDS* r = (DiskImageResourcePDS*)r_;
-    GeoReference const* georef = (GeoReference const*)georef_;
-
     vw_throw(IOErr() << "DiskImageResourcePDS: does not support writing of georeferncing information");
   }
 

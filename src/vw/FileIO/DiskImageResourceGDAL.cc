@@ -60,7 +60,7 @@ namespace {
     vw::JP2SuperBox::JP2BoxIterator pos;
     bool retval = false;
 
-    while(b = f->find_box(0x61736F63 /*"asoc"*/, &pos))
+    while((b = f->find_box(0x61736F63 /*"asoc"*/, &pos)))
     {
       // GMLJP2 outer Association box must contain a Label box (with label "gml.data")
       // as its first sub-box

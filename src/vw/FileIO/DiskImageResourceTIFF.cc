@@ -330,8 +330,8 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
   src_buf.rstride = block_cols*src_buf.cstride;
   src_buf.pstride = block_rows*src_buf.rstride;
     
-  for( int block_y = bbox.min().y()/block_rows; block_y <= (bbox.max().y()-1)/block_rows; ++block_y ) {
-    for( int block_x = bbox.min().x()/block_cols; block_x <= (bbox.max().x()-1)/block_cols; ++block_x ) {
+  for( int block_y = bbox.min().y()/block_rows; block_y <= int((bbox.max().y()-1)/block_rows); ++block_y ) {
+    for( int block_x = bbox.min().x()/block_cols; block_x <= int((bbox.max().x()-1)/block_cols); ++block_x ) {
       int block_id = block_y * blocks_per_row + block_x;
       int data_left = (std::max)(block_x*block_cols,uint32(bbox.min().x()))-block_x*block_cols;
       int data_top  = (std::max)(block_y*block_rows,uint32(bbox.min().y()))-block_y*block_rows;
@@ -433,9 +433,9 @@ void vw::DiskImageResourceTIFF::write( ImageBuffer const& src, BBox2i const& bbo
   dst.format.planes = 1;
 
   // Write the image data to disk.
-  for (uint32 p = 0; p < m_format.planes; p++) {
+  for (int32 p = 0; p < m_format.planes; p++) {
     ImageBuffer src_row = src_plane;
-    for (uint32 row = 0; row < bbox.height(); row++) {
+    for (int32 row = 0; row < bbox.height(); row++) {
       convert( dst, src_row );
       TIFFWriteScanline(m_info->tif, (uint8*)buf, bbox.min()[1]+row, p);
       src_row.data = (uint8*)src_row.data + src_row.rstride;

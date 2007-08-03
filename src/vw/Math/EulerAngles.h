@@ -76,7 +76,7 @@ namespace math {
     else if (axis == 'Z' || axis == 'z') 
       return rotation_z_axis(theta);
     else 
-      throw vw::ArgumentErr() << "euler_to_quaternion(): unknown axis \"" << axis << "\"\n";
+      vw_throw(vw::ArgumentErr() << "euler_to_quaternion(): unknown axis \"" << axis << "\"\n");
   }
   /// \endcond
 

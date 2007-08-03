@@ -134,7 +134,7 @@ namespace camera {
     //------------------------------------------------------------------
     // Interface
     //------------------------------------------------------------------
-    virtual Vector2 point_to_pixel(Vector3 const& vec) const {
+    virtual Vector2 point_to_pixel(Vector3 const& point) const {
       vw_throw( vw::NoImplErr() << "LinescanModel::point_to_pixel is not yet implemented." );
       return Vector2(); // never reached
     }
@@ -161,7 +161,15 @@ namespace camera {
       // The position and veloctiy are not actually needed, since we are
       // purely interested in returning the direction of the ray at this
       // point and not its origin.
-      Quaternion<double> pose = m_pose_func(m_line_times[int(round(v))]);
+      //
+      // The v pixel need not be an integer in every case, therefore
+      // we need to linearly interpolate line times that fall in
+      // between pixels.
+      int y = int(floor(pix[1]));
+      double normy = pix[1] - y;
+      double approx_line_time = double( m_line_times[y] + (m_line_times[y+1] - m_line_times[y]) * normy );
+
+      Quaternion<double> pose = m_pose_func(approx_line_time);
       Matrix<double,3,3> rotation_matrix = transpose(pose.rotation_matrix());
       
       // The viewplane is the [pointing_vec cross u_vec] plane of the

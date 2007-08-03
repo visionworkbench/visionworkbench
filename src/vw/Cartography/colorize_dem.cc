@@ -143,7 +143,7 @@ int main( int argc, char *argv[] ) {
 
     std::cout << georef << "\n";
 
-    DiskImageView<int16> disk_dem_file(input_file_name);
+    DiskImageView<float> disk_dem_file(input_file_name);
     ImageViewRef<float> dem = channel_cast<float>(disk_dem_file) + offset;
 
     if (vm.count("clamp-low") && vm.count("clamp-high")) {
