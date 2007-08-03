@@ -41,9 +41,10 @@ endif
 include_HEADERS = Vector.h Matrix.h BShape.h BBox.h BBall.h	\
                   Functions.h Functors.h Quaternion.h EulerAngles.h	\
                   ConjugateGradient.h NelderMead.h SpatialTree.h	\
-                  Statistics.h $(lapack_headers) $(ppl_headers)
+                  Statistics.h DisjointSet.h MinimumSpanningTree.h	\
+                  $(lapack_headers) $(ppl_headers)
 
-libvwMath_la_SOURCES = SpatialTree.cc $(ppl_sources)
+libvwMath_la_SOURCES = SpatialTree.cc MinimumSpanningTree.cc $(ppl_sources)
 libvwMath_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwMath_la_LIBADD = @MODULE_MATH_LDFLAGS@
 
