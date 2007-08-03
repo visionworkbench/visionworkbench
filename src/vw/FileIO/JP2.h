@@ -463,11 +463,12 @@ namespace vw
     // Print with d intentations
     virtual void print(int d = 0)
     {
-      int terms;
+      unsigned terms;
       bool first, firstfirst;
-      int i, j, k;
+      unsigned i, j, k;
+      int l;
 
-      for(j = 0; j < d; j++)
+      for(l = 0; l < d; l++)
         std::cout << "  ";
       print_basic();
 
@@ -479,18 +480,18 @@ namespace vw
         else
           std::cout << ", display:";
         firstfirst = true;
-        for(j = 2; j < int(requirements.cols()); j++)
+        for(j = 2; j < requirements.cols(); j++)
         {
           if(!requirements(k, j))
             continue;
           terms = 0;
-          for(i = 2; i < int(requirements.rows()); i++)
+          for(i = 2; i < requirements.rows(); i++)
           {
             if(requirements(i, j))
               terms++;
           }
           first = true;
-          for(i = 2; i < int(requirements.rows()); i++)
+          for(i = 2; i < requirements.rows(); i++)
           {
             if(!requirements(i, j))
               continue;
@@ -777,19 +778,19 @@ namespace vw
 
     void set_requirements_row_(int row, uint64 mask)
     {
-      int j;
+      unsigned j;
       uint64 m;
 
-      for(j = 2, m = 1; j < int(requirements.cols()); j++, m <<= 1)
+      for(j = 2, m = 1; j < requirements.cols(); j++, m <<= 1)
         requirements(row, j) = ((mask & m) ? 1 : 0);
     }
 
     uint64 requirements_row_(int row)
     {
-      int j;
+      unsigned j;
       uint64 mask = 0;
 
-      for(j = 2; j < int(requirements.cols()); j++)
+      for(j = 2; j < requirements.cols(); j++)
         mask |= ((uint64)requirements(row, j) << (j - 2));
 
       return mask;
@@ -797,19 +798,19 @@ namespace vw
 
     void set_requirements_col_(int col, uint64 mask)
     {
-      int i;
+      unsigned i;
       uint64 m;
 
-      for(i = 2, m = 1; i < int(requirements.rows()); i++, m <<= 1)
+      for(i = 2, m = 1; i < requirements.rows(); i++, m <<= 1)
         requirements(i, col) = ((mask & m) ? 1 : 0);
     }
 
     uint64 requirements_col_(int col)
     {
-      int i;
+      unsigned i;
       uint64 mask = 0;
 
-      for(i = 2; i < int(requirements.rows()); i++)
+      for(i = 2; i < requirements.rows(); i++)
         mask |= ((uint64)requirements(i, col) << (i - 2));
 
       return mask;
@@ -846,16 +847,17 @@ namespace vw
     // Print with d intentations
     virtual void print(int d = 0)
     {
-      int j;
+      int i;
+      uint64 j;
       
-      for(j = 0; j < d; j++)
+      for(i = 0; i < d; i++)
         std::cout << "  ";
       print_basic();
       switch(TBox)
       {
       case 0x6C626C20: // "lbl\040"
         std::cout << " (label is \"";
-        for(j = 0; j < int(dbox_bytes); j++)
+        for(j = 0; j < dbox_bytes; j++)
           std::cout << (char)DBox[j];
         std::cout << "\")";
         break;
@@ -865,7 +867,7 @@ namespace vw
           std::cout << (char)DBox[j];
         std::cout << "\"";
         std::cout << ", compatibility list is \"";
-        for(j = 8; j < int(dbox_bytes); j++)
+        for(j = 8; j < dbox_bytes; j++)
           std::cout << (char)DBox[j];
         std::cout << "\")";
         break;
@@ -1108,7 +1110,6 @@ namespace vw
     JP2SuperBox(uint8* d, uint64 nbytes) : JP2Box(interp_type(d))
     {
       uint64 s, r;
-      //      JP2Box* b;
 
       s = interp_bytes(d, nbytes);
       r = header_bytes_to_remove(s);
@@ -1218,7 +1219,7 @@ namespace vw
       int tmpstr_len;
       JP2BoxIterator pos;
       bool found_jp2, found_jpx, found_jpxb;
-      int i;
+      uint64 i;
       
       // find File Type box
       b = find_box(0x66747970); // "ftyp"
@@ -1231,7 +1232,7 @@ namespace vw
       found_jp2 = false;
       found_jpx = false;
       found_jpxb = false;
-      for(i = 2; 4 * i < int(b->bytes_dbox()); i++)
+      for(i = 2; 4 * i < b->bytes_dbox(); i++)
       {
         if(d32[i] == htonl(0x6A703220)) // "jp2\040"
         {
