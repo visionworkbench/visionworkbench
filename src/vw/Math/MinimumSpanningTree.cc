@@ -141,8 +141,15 @@ namespace math {
   void MinimumSpanningTree::apply(EdgePrimitiveFunctor &func, int start_node) {
     bool *visited;
     int i, j;
+    if (num_nodes <= 0)
+      return;
     j = start_node - min_node;
-    VW_ASSERT(node_used[j], ArgumentErr() << "Start node is invalid!");
+    if (j < 0 || j >= num_nodes)
+      j = 0;
+    for (; j < num_nodes && !node_used[j]; j++);
+    if (j >= num_nodes)
+      for (j = 0; j < num_nodes && !node_used[j]; j++);
+    VW_ASSERT(j >= 0 && j < num_nodes && node_used[j], LogicErr() << "Unable to find a used node!");
     visited = new bool[num_nodes];
     for (i = 0; i < num_nodes; i++)
       visited[i] = false;
@@ -162,7 +169,7 @@ namespace math {
     int next_node;
     int i, j;
     j = node - min_node;
-    VW_ASSERT(node_used[j], LogicErr() << "Node is invalid!");
+    VW_ASSERT(j >= 0 && j < num_nodes && node_used[j], LogicErr() << "Node is invalid!");
     VW_ASSERT(!visited[j], LogicErr() << "Node has already been visited!");
     visited[j] = true;
     for (i = 0; i < num_edges[j]; i++) {

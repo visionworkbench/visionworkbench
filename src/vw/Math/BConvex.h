@@ -289,6 +289,12 @@ namespace math {
     /// Prints the convex shape.
     void print( std::ostream& os = std::cout ) const;
 
+    /// Writes the convex shape.
+    void write( std::ostream& os = std::cout ) const;
+
+    /// Writes the convex shape.
+    void write( const char *fn ) const;
+
     /// Prints the convex shape in vrml.
     void write_vrml( std::ostream& os = std::cout ) const;
 
@@ -458,6 +464,12 @@ namespace math {
   
   /// Writes a convex shape to an ostream.
   std::ostream& operator<<( std::ostream& os, BConvex const& bconv );
+
+  /// Writes a convex shape to a file.
+  void write_bconvex( std::string const& filename, BConvex const& bconv );
+
+  /// Reads a convex shape from a file.
+  void read_bconvex( std::string const& filename, BConvex& bconv );
 
 } // namespace math
 

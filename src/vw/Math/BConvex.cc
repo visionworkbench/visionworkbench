@@ -32,6 +32,7 @@
 #include <vw/config.h> // VW_HAVE_PKG_QHULL
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
+#include <vw/Math/PointListIO.h>
 #include <vw/Math/SpatialTree.h>
 #include <vw/Math/BConvex.h>
 using namespace vw::math::bconvex_promote;
@@ -883,6 +884,27 @@ namespace math {
     os << *((const C_Polyhedron*)m_poly);
   }
 
+  void BConvex::write( std::ostream& os ) const {
+    if (!empty()) {
+      unsigned dim = ((const C_Polyhedron*)m_poly)->space_dimension();
+      std::vector<Vector<double> > points;
+      Vector<mpq_class> v(dim);
+      Vector<double> vd(dim);
+      const Generator_System &gs = ((const C_Polyhedron*)m_poly)->minimized_generators();
+      for (Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
+        convert_point(*i, v);
+        unconvert_vector(v, vd);
+        points.push_back(vd);
+      }
+      write_point_list(os, points);
+    }
+  }
+
+  void BConvex::write( const char *fn ) const {
+    std::ofstream of(fn);
+    write(of);
+  }
+
   void BConvex::write_vrml( std::ostream& os ) const {
     os << "#VRML V1.0 ascii\n\n";
     os << "# Created by the Intelligent Robotics Group,\n";
@@ -1083,6 +1105,16 @@ namespace math {
   std::ostream& operator<<( std::ostream& os, BConvex const& bconv ) {
     bconv.print(os);
     return os;
+  }
+
+  void write_bconvex( std::string const& filename, BConvex const& bconv ) {
+    bconv.write(filename.c_str());
+  }
+
+  void read_bconvex( std::string const& filename, BConvex& bconv ) {
+    std::vector<Vector<double> > points;
+    read_point_list(filename, points);
+    bconv = BConvex(points);
   }
 
 }} // namespace vw::math

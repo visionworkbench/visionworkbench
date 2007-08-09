@@ -29,12 +29,14 @@
 
 #include <iostream>
 #include <limits>
+#include <vector>
 #include <math.h>
 
 #include <boost/static_assert.hpp>
 
 #include <vw/Math/BShape.h>
 #include <vw/Math/Vector.h>
+#include <vw/Math/PointListIO.h>
 
 namespace vw {
 namespace math {
@@ -276,6 +278,20 @@ namespace math {
       return (m_min.size() <= 0);
     }
 
+    /// Writes the bounding box.
+    void write( std::ostream& os = std::cout ) const {
+      std::vector<Vector<RealT, DimN> > points;
+      points.push_back(m_min);
+      points.push_back(m_max);
+      write_point_list(os, points);
+    }
+
+    /// Writes the bounding box.
+    void write( const char *fn ) const {
+      std::ofstream of( fn );
+      write(of);
+    }
+
     /// Scales the bounding box relative to the origin.
     template <class ScalarT>
     BBoxBase& operator*=( ScalarT s ) {
@@ -372,6 +388,21 @@ namespace math {
   template <class BBoxT, class RealT, int DimN>
   std::ostream& operator<<( std::ostream& os, BBoxBase<BBoxT,RealT,DimN> const& bbox ) {
     return os << "(" << bbox.min() << "-" << bbox.max() << ")";
+  }
+
+  /// Writes a bounding box to a file.
+  template <class BBoxT, class RealT, int DimN>
+  void write_bbox( std::string const& filename, BBoxBase<BBoxT,RealT,DimN> const& bbox ) {
+    bbox.write(filename.c_str());
+  }
+
+  /// Reads a bounding box from a file.
+  template <class BBoxT, class RealT, int DimN>
+  void read_bbox( std::string const& filename, BBoxBase<BBoxT,RealT,DimN>& bbox ) {
+    std::vector<Vector<RealT,DimN> > points;
+    read_point_list(filename, points);
+    VW_ASSERT( points.size() == 2, IOErr() << "Incorrect number of points in bbox file!" );
+    bbox = BBoxBase<BBoxT,RealT,DimN>(points[0], points[1]);
   }
 
   // *******************************************************************

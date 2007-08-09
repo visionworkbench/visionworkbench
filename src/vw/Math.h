@@ -41,6 +41,7 @@
 #include <vw/Math/EulerAngles.h>
 #include <vw/Math/Statistics.h>
 #include <vw/Math/SpatialTree.h>
+#include <vw/Math/PointListIO.h>
 
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
 #include <vw/Math/LinearAlgebra.h>
