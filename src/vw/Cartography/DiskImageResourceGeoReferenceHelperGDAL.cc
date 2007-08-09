@@ -191,7 +191,7 @@ namespace cartography {
     char* wkt_str_tmp;
     gdal_spatial_ref.exportToWkt(&wkt_str_tmp);
     std::string wkt_str = wkt_str_tmp;
-    delete wkt_str_tmp;
+    OGRFree(wkt_str_tmp);
 
     dataset->SetProjection( wkt_str.c_str() );
 
