@@ -41,7 +41,6 @@ namespace mosaic {
     typedef vw::mosaic::ImageQuadTreeGenerator<PixelT> base_type;
 
   protected:
-    BBox2 total_longlat_bbox;
     int max_lod_pixels;
     int draw_order_offset;
     std::string kml_title;
@@ -53,10 +52,8 @@ namespace mosaic {
     // nothing in particular to do with the source image or pixels.
     template <class ImageT>
     TMSQuadTreeGenerator( std::string const& tree_name,
-                          ImageViewBase<ImageT> const& source,
-                          BBox2 total_longlat_bbox )
-      : vw::mosaic::ImageQuadTreeGenerator<PixelT>( tree_name, source ),
-        total_longlat_bbox( total_longlat_bbox )
+                          ImageViewBase<ImageT> const& source )
+      : vw::mosaic::ImageQuadTreeGenerator<PixelT>( tree_name, source )
     {
       base_type::set_crop_images( false );
     }
@@ -66,21 +63,16 @@ namespace mosaic {
     virtual std::string compute_image_path( std::string const& name ) const {
       fs::path path( base_type::m_base_dir, fs::native );
 
-      if( name.length() == 1 ) {
-        path /= change_extension( path, "" ).leaf();
+      Vector2i pos(0,0);
+      for ( int i=1; i<(int)name.length(); ++i ) {
+        pos *= 2;
+        if( name[i]=='0' ) pos += Vector2i(0,1);
+        else if( name[i]=='1' ) pos += Vector2i(1,1);
+        else if( name[i]=='3' ) pos += Vector2i(1,0);
       }
-      else {
-        Vector2i pos(0,0);
-        for ( int i=1; i<(int)name.length(); ++i ) {
-          pos *= 2;
-          if( name[i]=='0' ) pos += Vector2i(0,1);
-          else if( name[i]=='1' ) pos += Vector2i(1,1);
-          else if( name[i]=='3' ) pos += Vector2i(1,0);
-        }
-        std::ostringstream oss;
-        oss << name.length()-2 << "/" << pos.x() << "/" << pos.y();
-        path /= oss.str();
-      }
+      std::ostringstream oss;
+      oss << name.length()-1 << "/" << pos.x() << "/" << pos.y();
+      path /= oss.str();
 
       return path.native_file_string();
     }

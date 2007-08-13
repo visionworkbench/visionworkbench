@@ -288,8 +288,7 @@ int main( int argc, char *argv[] ) {
     270.0 - data_bbox.min().y() * 360.0 / total_resolution << std::endl;
 
   // Prepare the quadtree
-  BBox2 ll_bbox( -180.0, -90, 360, 360 );
-  TMSQuadTreeGenerator<PixelRGBA<uint8> > quadtree( output_file_name, composite, ll_bbox );
+  TMSQuadTreeGenerator<PixelRGBA<uint8> > quadtree( output_file_name, composite );
   quadtree.set_crop_bbox( data_bbox );
   if( vm.count("crop") ) quadtree.set_crop_images( true );
   quadtree.set_output_image_file_type( output_file_type );
