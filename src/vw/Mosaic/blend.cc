@@ -88,8 +88,7 @@ void do_blend( std::string const& mosaic_name, std::string const& file_type, boo
   }
   else {
     vw::vw_out(vw::InfoMessage) << "Blending..." << std::endl;
-    vw::ImageView<PixelT> im = block_rasterize( composite );
-    write_image( mosaic_name+".blend."+file_type, im );
+    write_image( mosaic_name+".blend."+file_type, composite );
     vw::vw_out(vw::InfoMessage) << "Done!" << std::endl;
   }
 }
