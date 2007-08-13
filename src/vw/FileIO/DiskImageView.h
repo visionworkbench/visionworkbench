@@ -55,6 +55,15 @@ namespace vw {
     DiskImageView( std::string const& filename, Cache& cache )
       : base_type( DiskImageResource::open( filename ), cache ) {}
 
+    /// Constructs a DiskImageView of the given resource.
+    DiskImageView( boost::shared_ptr<DiskImageResource> resource, bool cache=true )
+      : base_type( resource, cache ) {}
+
+    /// Constructs a DiskImageView of the given resource using the
+    /// specified cache area.
+    DiskImageView( boost::shared_ptr<DiskImageResource> resource, Cache& cache )
+      : base_type( resource, cache ) {}
+
     /// Constructs a DiskImageView of the given resource.  Takes
     /// ownership of the resouqce object (i.e. deletes it when it's
     /// done using it).
