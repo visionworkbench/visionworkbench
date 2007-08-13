@@ -41,7 +41,7 @@ lib_LTLIBRARIES = libvwInterestPoint.la
 if ENABLE_EXCEPTIONS
 bin_PROGRAMS = match_pair
 match_pair_SOURCES = match_pair.cc
-match_pair_LDFLAGS = @PKG_INTERESTPOINT_LDFLAGS@ -lboost_program_options @PKG_BOOST_THREAD_LDFLAGS@ -lboost_thread
+match_pair_LDFLAGS = @PKG_INTERESTPOINT_LDFLAGS@ -lboost_program_options @PKG_BOOST_THREAD_LDFLAGS@
 endif
 
 endif
