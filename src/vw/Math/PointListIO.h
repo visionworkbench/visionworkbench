@@ -44,28 +44,47 @@ namespace math {
   /// usually a vw::Vector<>, but you could substitute other classes
   /// here as well.
   template <class ContainerT>
-  void write_point_list(std::ostream &f, std::vector<ContainerT> const& pts) {
+  void write_point_list(std::ostream &f, std::vector<ContainerT> const& pts, bool binary = false) {
     VW_ASSERT( pts.size() > 0, LogicErr() << "No vectors to write!" );
 
     unsigned num_points = pts.size();
     unsigned dimensions = pts[0].size();
 
-    f << dimensions << std::endl;
-    f << num_points << std::endl;
-    for (unsigned i = 0; i < num_points; i++) {
-      for (unsigned j = 0; j < dimensions; j++)
-        f << pts[i][j] << " ";
-      f << std::endl;
+    if (binary) {
+      f.write((char*)&dimensions, sizeof(dimensions));
+      f.write((char*)&num_points, sizeof(num_points));
+      for (unsigned i = 0; i < num_points; i++) {
+        for (unsigned j = 0; j < dimensions; j++)
+          f.write((char*)&pts[i][j], sizeof(pts[i][j]));
+      }
+    }
+    else {
+      f << dimensions << std::endl;
+      f << num_points << std::endl;
+      for (unsigned i = 0; i < num_points; i++) {
+        for (unsigned j = 0; j < dimensions; j++)
+          f << pts[i][j] << " ";
+        f << std::endl;
+      }
     }
   }
 
   template <class ContainerT>
-  void write_point_list(std::string const& filename, std::vector<ContainerT> const& pts) {
+  void write_point_list(std::string const& filename, std::vector<ContainerT> const& pts, bool binary = false) {
     VW_ASSERT( pts.size() > 0, LogicErr() << "No vectors to write!" );
-    std::ofstream f(filename.c_str());
-    VW_ASSERT( f, IOErr() << "Unable to open file for writing!" );
-    write_point_list(f, pts);
-    f.close();
+    
+    if (binary) {
+      std::ofstream f(filename.c_str(), std::ofstream::out | std::ofstream::binary);
+      VW_ASSERT( f, IOErr() << "Unable to open file for writing!" );
+      write_point_list(f, pts, binary);
+      f.close();
+    }
+    else {
+      std::ofstream f(filename.c_str());
+      VW_ASSERT( f, IOErr() << "Unable to open file for writing!" );
+      write_point_list(f, pts, binary);
+      f.close();
+    }
   }
 
   /// This function reads a list of points into any container that
@@ -73,33 +92,56 @@ namespace math {
   /// usually a vw::Vector<>, but you could substitute other classes
   /// here as well.
   template <class ContainerT>
-  void read_point_list(std::istream &f, std::vector<ContainerT> &pts) {
+  void read_point_list(std::istream &f, std::vector<ContainerT> &pts, bool binary = false) {
     ContainerT v;
-    double d;
     unsigned num_points;
     unsigned dimensions;
 
-    f >> dimensions;
-    VW_ASSERT( !f.fail(), IOErr() << "Invalid point list file format!" );
-    f >> num_points;
-    VW_ASSERT( !f.fail(), IOErr() << "Invalid point list file format!" );
-    v.set_size(dimensions);
-    for (unsigned i = 0; i < num_points; i++) {
-      for (unsigned j = 0; j < dimensions; j++) {
-        f >> d;
-        VW_ASSERT( !f.fail(), IOErr() << "Invalid point list file format!" );
-        v[j] = d;
+    if (binary) {
+      f.read((char*)&dimensions, sizeof(dimensions));
+      VW_ASSERT( !f.fail(), IOErr() << "Invalid point list file format!" );
+      f.read((char*)&num_points, sizeof(num_points));
+      VW_ASSERT( !f.fail(), IOErr() << "Invalid point list file format!" );
+      for (unsigned i = 0; i < num_points; i++) {
+        for (unsigned j = 0; j < dimensions; j++) {
+          f.read((char*)&v[j], sizeof(v[j]));
+          VW_ASSERT( !f.fail(), IOErr() << "Invalid point list file format!" );
+        }
+        pts.push_back(v);
       }
-      pts.push_back(v);
+    }
+    else {
+      double d;
+      f >> dimensions;
+      VW_ASSERT( !f.fail(), IOErr() << "Invalid point list file format!" );
+      f >> num_points;
+      VW_ASSERT( !f.fail(), IOErr() << "Invalid point list file format!" );
+      v.set_size(dimensions);
+      for (unsigned i = 0; i < num_points; i++) {
+        for (unsigned j = 0; j < dimensions; j++) {
+          f >> d;
+          VW_ASSERT( !f.fail(), IOErr() << "Invalid point list file format!" );
+          v[j] = d;
+        }
+        pts.push_back(v);
+      }
     }
   }
 
   template <class ContainerT>
-  void read_point_list(std::string const& filename, std::vector<ContainerT> &pts) {
-    std::ifstream f(filename.c_str());
-    VW_ASSERT( f, IOErr() << "Unable to open file for reading!" );
-    read_point_list(f, pts);
-    f.close();
+  void read_point_list(std::string const& filename, std::vector<ContainerT> &pts, bool binary = false) {
+    if (binary) {
+      std::ifstream f(filename.c_str(), std::ifstream::in | std::ifstream::binary);
+      VW_ASSERT( f, IOErr() << "Unable to open file for reading!" );
+      read_point_list(f, pts, binary);
+      f.close();
+    }
+    else {
+      std::ifstream f(filename.c_str());
+      VW_ASSERT( f, IOErr() << "Unable to open file for reading!" );
+      read_point_list(f, pts, binary);
+      f.close();
+    }
   }
 
 }} // namespace vw::math

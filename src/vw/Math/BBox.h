@@ -279,17 +279,25 @@ namespace math {
     }
 
     /// Writes the bounding box.
-    void write( std::ostream& os = std::cout ) const {
+    void write( std::ostream& os = std::cout, bool binary = false ) const {
       std::vector<Vector<RealT, DimN> > points;
       points.push_back(m_min);
       points.push_back(m_max);
-      write_point_list(os, points);
+      write_point_list(os, points, binary);
     }
 
     /// Writes the bounding box.
-    void write( const char *fn ) const {
-      std::ofstream of( fn );
-      write(of);
+    void write( const char *fn, bool binary = false ) const {
+      if (binary) {
+        std::ofstream of( fn, std::ofstream::out | std::ofstream::binary );
+        write(of, binary);
+        of.close();
+      }
+      else {
+        std::ofstream of( fn );
+        write(of, binary);
+        of.close();
+      }
     }
 
     /// Scales the bounding box relative to the origin.
@@ -392,15 +400,15 @@ namespace math {
 
   /// Writes a bounding box to a file.
   template <class BBoxT, class RealT, int DimN>
-  void write_bbox( std::string const& filename, BBoxBase<BBoxT,RealT,DimN> const& bbox ) {
-    bbox.write(filename.c_str());
+  void write_bbox( std::string const& filename, BBoxBase<BBoxT,RealT,DimN> const& bbox, bool binary = false ) {
+    bbox.write(filename.c_str(), binary);
   }
 
   /// Reads a bounding box from a file.
   template <class BBoxT, class RealT, int DimN>
-  void read_bbox( std::string const& filename, BBoxBase<BBoxT,RealT,DimN>& bbox ) {
+  void read_bbox( std::string const& filename, BBoxBase<BBoxT,RealT,DimN>& bbox, bool binary = false ) {
     std::vector<Vector<RealT,DimN> > points;
-    read_point_list(filename, points);
+    read_point_list(filename, points, binary);
     VW_ASSERT( points.size() == 2, IOErr() << "Incorrect number of points in bbox file!" );
     bbox = BBoxBase<BBoxT,RealT,DimN>(points[0], points[1]);
   }

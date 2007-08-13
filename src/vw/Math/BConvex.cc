@@ -884,7 +884,7 @@ namespace math {
     os << *((const C_Polyhedron*)m_poly);
   }
 
-  void BConvex::write( std::ostream& os ) const {
+  void BConvex::write( std::ostream& os, bool binary /* = false*/ ) const {
     if (!empty()) {
       unsigned dim = ((const C_Polyhedron*)m_poly)->space_dimension();
       std::vector<Vector<double> > points;
@@ -896,13 +896,21 @@ namespace math {
         unconvert_vector(v, vd);
         points.push_back(vd);
       }
-      write_point_list(os, points);
+      write_point_list(os, points, binary);
     }
   }
 
-  void BConvex::write( const char *fn ) const {
-    std::ofstream of(fn);
-    write(of);
+  void BConvex::write( const char *fn, bool binary /* = false*/ ) const {
+    if (binary) {
+      std::ofstream of(fn, std::ofstream::out | std::ofstream::binary);
+      write(of, binary);
+      of.close();
+    }
+    else {
+      std::ofstream of(fn);
+      write(of, binary);
+      of.close();
+    }
   }
 
   void BConvex::write_vrml( std::ostream& os ) const {
@@ -1107,13 +1115,13 @@ namespace math {
     return os;
   }
 
-  void write_bconvex( std::string const& filename, BConvex const& bconv ) {
-    bconv.write(filename.c_str());
+  void write_bconvex( std::string const& filename, BConvex const& bconv, bool binary /* = false*/ ) {
+    bconv.write(filename.c_str(), binary);
   }
 
-  void read_bconvex( std::string const& filename, BConvex& bconv ) {
+  void read_bconvex( std::string const& filename, BConvex& bconv, bool binary /* = false*/ ) {
     std::vector<Vector<double> > points;
-    read_point_list(filename, points);
+    read_point_list(filename, points, binary);
     bconv = BConvex(points);
   }
 
