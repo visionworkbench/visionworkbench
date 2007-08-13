@@ -101,7 +101,7 @@ namespace vw {
         return oss.str();
       }
       
-      typename boost::shared_ptr<typename GeneratorT::value_type> value() {
+      typename boost::shared_ptr<typename GeneratorT::value_type> const& value() {
         //        VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache accessing CacheLine " << this << std::endl; )
         if( !m_value ) {
           m_generation_count++;
