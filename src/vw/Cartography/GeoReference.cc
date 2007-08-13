@@ -321,15 +321,15 @@ namespace cartography {
   // the center of upper left pixel) if file is georeferenced
   // according to the convention that [0,0] is the upper left hand
   // corner of the upper left pixel.
-  inline Matrix<double,3,3> GeoReference::vw_native_transform() const {
-    if (pixel_interpretation() == GeoReference::PixelAsArea)
+  inline Matrix3x3 const& GeoReference::vw_native_transform() const {
+    if (m_pixel_interpretation == GeoReference::PixelAsArea)
       return m_shifted_transform;
     else
       return m_transform;
   }
 
-  inline Matrix<double,3,3> GeoReference::vw_native_inverse_transform() const {
-    if (pixel_interpretation() == GeoReference::PixelAsArea) 
+  inline Matrix3x3 const& GeoReference::vw_native_inverse_transform() const {
+    if (m_pixel_interpretation == GeoReference::PixelAsArea) 
       return m_inv_shifted_transform;
     else
       return m_inv_transform;
@@ -470,18 +470,14 @@ namespace cartography {
   /// For a point in the projected space, compute the position of
   /// that point in unprojected (Geographic) coordinates (lat,lon).
   Vector2 GeoReference::point_to_lonlat(Vector2 loc) const {
+    if ( ! m_is_projected ) return loc;
+
     XY projected;  
     LP unprojected;
 
     projected.u = loc[0];
     projected.v = loc[1];
 
-    // Proj.4 expects the (lon,lat) pair to be in radians, so we
-    // must make a conversion if the CS in geographic (lat/lon).
-    if ( !m_is_projected ) {
-      projected.u *= DEG_TO_RAD;
-      projected.v *= DEG_TO_RAD;
-    }
     unprojected = pj_inv(projected, m_proj_context->proj_ptr());
 
     // Convert from radians to degrees.
@@ -491,6 +487,8 @@ namespace cartography {
   /// Given a position in geographic coordinates (lat,lon), compute
   /// the location in the projected coordinate system.
   Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
+    if ( ! m_is_projected ) return lon_lat;
+
     XY projected;  
     LP unprojected;
 
@@ -501,10 +499,7 @@ namespace cartography {
 
     projected = pj_fwd(unprojected, m_proj_context->proj_ptr());
 
-    if ( !m_is_projected ) 
-      return Vector2(projected.u * RAD_TO_DEG, projected.v * RAD_TO_DEG);
-    else 
-      return Vector2(projected.u, projected.v);
+    return Vector2(projected.u, projected.v);
   }
 
 }} // vw::cartography

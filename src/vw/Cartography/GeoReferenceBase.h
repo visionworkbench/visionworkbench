@@ -37,13 +37,7 @@ namespace cartography {
   /// encode how to translate between this coordinate system and the
   /// "Geographic" coordinate system (lat,lon)
   class GeoReferenceBase {
-    int m_pixel_interpretation;
-
-  protected:
-    Datum m_datum;
-
   public:
-
     /// The affine transform converts from pixel space to geographic
     /// or projected space and vice versa.  Most often, this process
     /// entails interpolating based on floating point pixel
@@ -75,25 +69,25 @@ namespace cartography {
     /// The default pixel interpretation for GeoReference is PixelAsPoint
     enum PixelInterpretation { PixelAsArea, PixelAsPoint };
 
-    virtual PixelInterpretation pixel_interpretation() const { return (PixelInterpretation)(m_pixel_interpretation); }
-    virtual void set_pixel_interpretation(PixelInterpretation const& p) { m_pixel_interpretation = p; }
+  protected:
+    PixelInterpretation m_pixel_interpretation;
+    Datum m_datum;
 
+  public:
+    PixelInterpretation pixel_interpretation() const { return m_pixel_interpretation; }
+    void set_pixel_interpretation(PixelInterpretation const& p) { m_pixel_interpretation = p; }
 
     /// Default Constructor
-    GeoReferenceBase() {
-      m_pixel_interpretation = GeoReferenceBase::PixelAsPoint; 
-    }
+    GeoReferenceBase() : m_pixel_interpretation( GeoReferenceBase::PixelAsPoint ) {}
 
     /// Takes a geodetic datum.
-    GeoReferenceBase(Datum const& datum) : m_datum(datum) {
-      m_pixel_interpretation = GeoReferenceBase::PixelAsPoint; 
-    }
+    GeoReferenceBase(Datum const& datum) : m_pixel_interpretation( GeoReferenceBase::PixelAsPoint ), m_datum(datum) {}
 
     /// Destructor.
     virtual ~GeoReferenceBase() {}
 
-    virtual Datum datum() const { return m_datum; }
-    virtual void set_datum(Datum const& datum) { m_datum = datum; }
+    Datum const& datum() const { return m_datum; }
+    void set_datum(Datum const& datum) { m_datum = datum; }
 
     /// For a given pixel coordinate, compute the position of that
     /// pixel in this georeferenced space.

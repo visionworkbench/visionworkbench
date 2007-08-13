@@ -13,8 +13,16 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include <vw/vw.h>
-#include <vw/Image/PerPixelAccessorViews.h>
+#include <vw/Core/Functors.h>
+#include <vw/Image/PixelTypes.h>
+#include <vw/Image/PerPixelViews.h>
+#include <vw/Image/ImageViewRef.h>
+#include <vw/Image/Algorithms.h>
+#include <vw/Image/Statistics.h>
+#include <vw/Image/ImageMath.h>
+#include <vw/FileIO/DiskImageView.h>
+#include <vw/Cartography/GeoReference.h>
+#include <vw/Cartography/FileIO.h>
 
 using namespace vw;
 

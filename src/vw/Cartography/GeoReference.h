@@ -56,8 +56,8 @@ namespace cartography {
     /// center of the top left pixel.  If pixel_interpretation() is
     /// set to PixelAsArea, this method will adjust the affine
     /// transform my 0.5 pixels right and down.
-    Matrix<double,3,3> vw_native_transform() const;
-    Matrix<double,3,3> vw_native_inverse_transform() const;
+    Matrix3x3 const& vw_native_transform() const;
+    Matrix3x3 const& vw_native_inverse_transform() const;
 
   public:
 
