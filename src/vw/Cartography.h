@@ -34,7 +34,10 @@
 #include <vw/Cartography/FileIO.h>
 #include <vw/Cartography/PointImageManipulation.h>
 #include <vw/Cartography/OrthoImageView.h>
+
+#if defined(VW_HAVE_PKG_CARTOGRAPHY) && (VW_HAVE_PKG_CARTOGRAPHY==1)
 #include <vw/Cartography/CameraBBox.h>
+#endif
 
 #endif // __VW_CARTOGRAPHY_H__
  
