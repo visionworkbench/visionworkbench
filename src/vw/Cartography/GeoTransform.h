@@ -32,12 +32,12 @@ namespace cartography {
 
   class GeoTransform : public TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction> {
     
-    GeoReferenceBase const& m_src_georef;
-    GeoReferenceBase const& m_dst_georef;
+    GeoReference m_src_georef;
+    GeoReference m_dst_georef;
 
   public:
     /// Normal constructor
-    GeoTransform(GeoReferenceBase const& src_georef, GeoReferenceBase const& dst_georef) :
+    GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef) :
       m_src_georef(src_georef), m_dst_georef(dst_georef) {}
 
     /// Given a pixel coordinate of an image in a destination
@@ -160,8 +160,8 @@ namespace cartography {
   /// Important Note: The convention here is that the Vector3 contains
   /// the ordered triple: (longitude, latitude, altitude). 
   void reproject_point_image(ImageView<Vector3> const& point_image,
-                             GeoReferenceBase const& src_georef,
-                             GeoReferenceBase const& dst_georef); 
+                             GeoReference const& src_georef,
+                             GeoReference const& dst_georef); 
 
 }} // namespace vw::cartography
 

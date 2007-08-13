@@ -29,8 +29,8 @@ namespace vw {
 namespace cartography {
 
   void reproject_point_image(ImageView<Vector3> const& point_image,
-                             GeoReferenceBase const& src_georef,
-                             GeoReferenceBase const& dst_georef) {
+                             GeoReference const& src_georef,
+                             GeoReference const& dst_georef) {
 
     GeoTransform gtx(src_georef, dst_georef);
 
