@@ -118,6 +118,8 @@ namespace cartography {
     void set_oblique_stereographic(double center_latitude, double center_longitude, double scale, double false_easting = 0, double false_northing = 0);
     /// Use Lambert Azimuthal projection
     void set_lambert_azimuthal(double center_latitude, double center_longitude, double false_easting = 0, double false_northing = 0);
+    /// Use Lambert (Conic) Conformal projection with two standard parallels
+    void set_lambert_conformal(double std_parallel_1, double std_parallel_2, double center_latitude, double center_longitude, double false_easting = 0, double false_northing = 0);
     /// Use Universal Transverse Mercator (UTM) projection
     void set_UTM(int zone, int north=true);
     

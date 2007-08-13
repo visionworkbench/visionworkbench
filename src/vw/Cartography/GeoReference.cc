@@ -401,6 +401,14 @@ namespace cartography {
     m_is_projected = true;
     init_proj();
   }
+
+  void GeoReference::set_lambert_conformal(double std_parallel_1, double std_parallel_2, double center_latitude, double center_longitude, double false_easting, double false_northing) {
+    std::ostringstream strm;
+    strm << "+proj=lcc +lat_1=" << std_parallel_1 << " +lat_2=" << std_parallel_2 << " +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    m_proj_projection_str = strm.str();
+    m_is_projected = true;
+    init_proj();
+  }
   
   void GeoReference::set_UTM(int zone, int north) {
     std::ostringstream strm;
@@ -451,8 +459,9 @@ namespace cartography {
   Vector2 GeoReference::pixel_to_point(Vector2 pix) const {
     Vector2 loc;
     Matrix<double,3,3> M = this->vw_native_transform();
-    loc[0] = pix[0] * M(0,0) + pix[1] * M(0,1) + M(0,2) / (M(2,0) + M(2,1) + M(2,2));
-    loc[1] = pix[0] * M(1,0) + pix[1] * M(1,1) + M(1,2) / (M(2,0) + M(2,1) + M(2,2));
+    double denom = pix[0] * M(2,0) + pix[1] * M(2,1) + M(2,2);
+    loc[0] = (pix[0] * M(0,0) + pix[1] * M(0,1) + M(0,2)) / denom;
+    loc[1] = (pix[0] * M(1,0) + pix[1] * M(1,1) + M(1,2)) / denom;
     return loc;
   }
   
@@ -461,8 +470,9 @@ namespace cartography {
   Vector2 GeoReference::point_to_pixel(Vector2 loc) const {
     Vector2 pix;
     Matrix<double,3,3> M = this->vw_native_inverse_transform();
-    pix[0] = loc[0] * M(0,0) + loc[1] * M(0,1) + M(0,2) / (M(2,0) + M(2,1) + M(2,2));
-    pix[1] = loc[0] * M(1,0) + loc[1] * M(1,1) + M(1,2) / (M(2,0) + M(2,1) + M(2,2));
+    double denom = loc[0] * M(2,0) + loc[1] * M(2,1) + M(2,2);
+    pix[0] = (loc[0] * M(0,0) + loc[1] * M(0,1) + M(0,2)) / denom;
+    pix[1] = (loc[0] * M(1,0) + loc[1] * M(1,1) + M(1,2)) / denom;
     return pix;
   }
 
