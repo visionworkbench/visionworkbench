@@ -61,6 +61,11 @@ namespace math {
     }
 
     template <class QuaternionT>
+    static inline typename QuaternionT::value_type quaternion_equality( QuaternionT const& a, QuaternionT const& b ) {
+      return a.core_ == b.core_;
+    }
+
+    template <class QuaternionT>
     static inline typename QuaternionT::value_type quaternion_real( QuaternionT const& q ) {
       return real( q.core_ );
     }
@@ -371,6 +376,11 @@ namespace math {
   template <class QuaternionT>
   inline std::ostream& operator<<( std::ostream& os, QuaternionBase<QuaternionT> const& q ) {
     return QuaternionImplementation::quaternion_to_stream( q.impl(), os );
+  }
+
+  template <class QuaternionT>
+  inline bool operator==( QuaternionBase<QuaternionT> const& a, QuaternionBase<QuaternionT> const& b ) {
+    return QuaternionImplementation::quaternion_equality( a.impl(), b.impl() );
   }
 
   template <class QuaternionT>
