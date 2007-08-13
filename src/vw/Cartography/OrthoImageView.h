@@ -92,11 +92,9 @@ namespace cartography {
       // 2. Add in the offset from the datum that was used, which
       //    converts from altitude to planetary radius.
       // 3. Convert to cartesian (xyz) coordinates.
-      Vector3 lon_lat_radius;
-      subvector(lon_lat_radius,0,2) = m_georef.pixel_to_lonlat(Vector2(i,j));
-      lon_lat_radius(2) = m_terrain(i,j) + m_georef.datum().radius(lon_lat_radius(0), 
-                                                                   lon_lat_radius(1));
-      Vector3 xyz = lon_lat_radius_to_xyz( lon_lat_radius );
+      Vector2 lon_lat( m_georef.pixel_to_lonlat(Vector2(i,j)) );
+      double radius = m_terrain(i,j) + m_georef.datum().radius(lon_lat(0), lon_lat(1));
+      Vector3 xyz( lon_lat_radius_to_xyz( Vector3(lon_lat(0),lon_lat(1),radius) ) );
 
       // Now we can image the point using the camera model and return
       // the resulting pixel from the camera image.
@@ -108,9 +106,11 @@ namespace cartography {
     typedef OrthoImageView<typename TerrainImageT::prerasterize_type,
                            typename CameraImageT::prerasterize_type,
                            InterpT, EdgeT> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_terrain.prerasterize(bbox), m_georef, 
-                                                                                                  m_camera_image_ref.prerasterize(bbox), m_camera_model,
-                                                                                                  m_interp_func, m_edge_func); }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+      return prerasterize_type( m_terrain.prerasterize(bbox), m_georef, 
+                                m_camera_image_ref.prerasterize(BBox2i(0,0,m_camera_image_ref.cols(),m_camera_image_ref.rows())), m_camera_model,
+                                m_interp_func, m_edge_func);
+    }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
 
@@ -122,9 +122,9 @@ namespace cartography {
   // -------------------------------------------------------------------------------
 
   template <class TerrainImageT, class CameraImageT, class InterpT, class EdgeT>
-  OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT> orthoproject( ImageViewBase<TerrainImageT> &terrain_image, 
+  OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT> orthoproject( ImageViewBase<TerrainImageT> const& terrain_image, 
                                                                             GeoReference const& georef,
-                                                                            ImageViewBase<CameraImageT> &camera_image,
+                                                                            ImageViewBase<CameraImageT> const& camera_image,
                                                                             boost::shared_ptr<vw::camera::CameraModel> camera_model,
                                                                             InterpT const& interp_func,
                                                                             EdgeT const& edge_extend_func) {
