@@ -155,7 +155,7 @@ namespace vw {
   /// Declare the standard 1-channel pixel traits for PixelGray.
   VW_DECLARE_PIXEL_TYPE(PixelGray,1);
 
-  /// Print a PixelGrayA to a debugging stream.
+  /// Print a PixelGray to a debugging stream.
   template <class ChannelT>
   std::ostream& operator<<( std::ostream& os, PixelGray<ChannelT> const& pix ) {
     return os << "PixelGray(" << _numeric(pix.v()) << ")";
