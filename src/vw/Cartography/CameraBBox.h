@@ -42,7 +42,6 @@ namespace cartography {
     return camera_bbox( georef, 0.0, 0.0, camera_model, cols, rows );
   }
 
-
 } // namespace cartography
 } // namespace vw
 

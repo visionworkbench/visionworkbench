@@ -37,15 +37,20 @@ jpeg2k_headers = DiskImageResourceGeoReferenceHelperJP2.h
 jpeg2k_sources = DiskImageResourceGeoReferenceHelperJP2.cc
 endif
 
+if MAKE_MODULE_CARTOGRAPHY
+camerabbox_headers = CameraBBox.h
+camerabbox_sources = CameraBBox.cc
+endif
+
 include_HEADERS = FileIO.h GeoReferenceBase.h GeoReference.h		\
                   GeoTransform.h Datum.h PointImageManipulation.h	\
-                  OrthoImageView.h CameraBBox.h				\
+                  OrthoImageView.h					\
                   DiskImageResourceGeoReferenceHelperPDS.h		\
-                  $(gdal_headers) $(jpeg2k_headers)
+                  $(gdal_headers) $(jpeg2k_headers) $(camerabbox_headers)
 
 libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc	\
                   DiskImageResourceGeoReferenceHelperPDS.cc		\
-                  $(gdal_sources) $(jpeg2k_sources)
+                  $(gdal_sources) $(jpeg2k_sources) $(camerabbox_sources)
 
 libvwCartography_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwCartography_la_LIBADD = @MODULE_CARTOGRAPHY_LDFLAGS@
