@@ -77,7 +77,7 @@ namespace vw {
 
     boost::shared_ptr<ImageResource> r;
 
-    Cache& m_cache;
+    Cache *m_cache_ptr;
     bool m_enable_cache;
     Vector2i m_block_size;
     int m_table_width, m_table_height;
@@ -113,7 +113,7 @@ namespace vw {
         for( int32 ix=0; ix<m_table_width; ++ix ) {
           BBox2i bbox( ix*m_block_size.x(), iy*m_block_size.y(), m_block_size.x(), m_block_size.y() );
           bbox.crop( view_bbox );
-          block(ix,iy) = m_cache.insert( BlockGenerator( r, bbox ) );
+          block(ix,iy) = m_cache_ptr->insert( BlockGenerator( r, bbox ) );
         }
       }
     }
@@ -131,7 +131,7 @@ namespace vw {
     /// done using it).
     ImageResourceView( ImageResource *resource, bool cache=true )
       : r( resource ),
-        m_cache(Cache::system_cache()),
+        m_cache_ptr(&Cache::system_cache()),
         m_enable_cache(cache),
         m_block_size( r->native_block_size() )
     { if(cache) initialize(); }
@@ -141,7 +141,7 @@ namespace vw {
     /// (i.e. deletes it when it's done using it).
     ImageResourceView( ImageResource *resource, Cache& cache )
       : r( resource ),
-        m_cache(cache),
+        m_cache_ptr(&cache),
         m_enable_cache(true),
         m_block_size( r->native_block_size() )
     { initialize(); }
@@ -149,7 +149,7 @@ namespace vw {
     /// Constructs an ImageResourceView of the given resource.
     ImageResourceView( boost::shared_ptr<ImageResource> resource, bool cache=true )
       : r( resource ),
-        m_cache(Cache::system_cache()),
+        m_cache_ptr(&Cache::system_cache()),
         m_enable_cache(cache),
         m_block_size( r->native_block_size() )
     { if(cache) initialize(); }
@@ -158,7 +158,7 @@ namespace vw {
     /// specified cache area.
     ImageResourceView( boost::shared_ptr<ImageResource> resource, Cache& cache )
       : r( resource ),
-        m_cache(cache),
+        m_cache_ptr(&cache),
         m_enable_cache(true),
         m_block_size( r->native_block_size() )
     { initialize(); }
@@ -181,6 +181,9 @@ namespace vw {
 #endif
       if( ! m_enable_cache )
         vw_throw( LogicErr() << "Non-cacheing ImageResourceViews do not support per-pixel access" );
+      // Early-out optimization for single-block resources
+      if( m_block_table->size() == 1 )
+        return ((*m_block_table)[0])->operator()( x, y );
       int32 ix = x/m_block_size.x(), iy = y/m_block_size.y();
       return block(ix,iy)->operator()( x-ix*m_block_size.x(), y - iy*m_block_size.y() );
     }
