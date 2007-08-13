@@ -22,8 +22,9 @@
 // __END_LICENSE__
 
 #include <vw/Cartography/CameraBBox.h>
+#include <vw/Cartography/PointImageManipulation.h>
 
-vw::BBox2 vw::cartography::camera_bbox( vw::GeoReference const& georef, double min_alt, double max_alt,
+vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& georef, double min_alt, double max_alt,
                                         boost::shared_ptr<vw::camera::CameraModel> camera_model, int32 cols, int32 rows ) {
     
   double semi_major_axis = georef.datum().semi_major_axis();
