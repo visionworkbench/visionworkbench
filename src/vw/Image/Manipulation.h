@@ -745,7 +745,9 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef SubsampleView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox), m_xdelta, m_ydelta ); }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+      return prerasterize_type( m_child.prerasterize(BBox2i(m_xdelta*bbox.min().x(),m_ydelta*bbox.min().y(),m_xdelta*bbox.width(),m_ydelta*bbox.height())), m_xdelta, m_ydelta );
+    }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
