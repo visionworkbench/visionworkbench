@@ -56,16 +56,25 @@ using namespace vw::cartography;
 
 //  mask_zero_pixels()
 //
-// Creates an alpha channel based on pixels with a value of zero.
-template <class PixelT> struct AlphaTypeFromPixelType { typedef PixelT type; };
+// Creates an alpha channel based on pixels with a value of zero.  The
+// first version covers scalar types.  The remaining versions cover
+// compound pixel types.
+template <class PixelT> struct AlphaTypeFromPixelType { typedef PixelGrayA<PixelT> type; }; 
 template<class ChannelT> struct AlphaTypeFromPixelType<PixelGray<ChannelT> > { typedef PixelGrayA<ChannelT> type; };
+template<class ChannelT> struct AlphaTypeFromPixelType<PixelGrayA<ChannelT> > { typedef PixelGrayA<ChannelT> type; };
 template<class ChannelT> struct AlphaTypeFromPixelType<PixelRGB<ChannelT> > { typedef PixelRGBA<ChannelT> type; };
+template<class ChannelT> struct AlphaTypeFromPixelType<PixelRGBA<ChannelT> > { typedef PixelRGBA<ChannelT> type; };
 
-struct MaskZeroPixelFunc: public vw::UnaryReturnTemplateType<AlphaTypeFromPixelType> {
-  template <class PixelT>
+template <class PixelT>
+class MaskZeroPixelFunc: public vw::UnaryReturnTemplateType<AlphaTypeFromPixelType> {
+  PixelT m_masked_val;
+
+public:
+  MaskZeroPixelFunc(PixelT masked_val = PixelT()) : m_masked_val(masked_val) {} 
+
   typename AlphaTypeFromPixelType<PixelT>::type operator() (PixelT const& pix) const {
     typedef typename AlphaTypeFromPixelType<PixelT>::type result_type;
-    if (pix[0] == 0) 
+    if (pix == m_masked_val) 
       return result_type();  // Mask pixel
     else
       return result_type(pix);
@@ -73,29 +82,33 @@ struct MaskZeroPixelFunc: public vw::UnaryReturnTemplateType<AlphaTypeFromPixelT
 };
 
 template <class ViewT>
-vw::UnaryPerPixelView<ViewT, MaskZeroPixelFunc> 
-mask_zero_pixels(vw::ImageViewBase<ViewT> const& view) {
-  return vw::per_pixel_filter(view.impl(), MaskZeroPixelFunc());
+vw::UnaryPerPixelView<ViewT, MaskZeroPixelFunc<typename ViewT::pixel_type> > 
+mask_zero_pixels(vw::ImageViewBase<ViewT> const& view, typename ViewT::pixel_type masked_val = typename ViewT::pixel_type() ) {
+  return vw::per_pixel_filter(view.impl(), MaskZeroPixelFunc<typename ViewT::pixel_type>(masked_val));
 }
 
 // do_blend()
 //
 template <class PixelT>
-void do_blend( std::vector<std::string> const& image_files, std::string const& mosaic_name, std::string const& output_file_type, bool draft, bool qtree, int patch_size, int patch_overlap, int draw_order_offset, int max_lod_pixels ) {
-  vw::mosaic::ImageComposite<PixelT> composite;
-    
+void do_blend( std::vector<std::string> const& image_files, std::string const& mosaic_name, std::string const& output_file_type, 
+               bool draft, bool qtree, int patch_size, int patch_overlap, int draw_order_offset, int max_lod_pixels , bool do_black_is_transparent) {
+
+  typedef typename AlphaTypeFromPixelType<PixelT>::type alpha_pixel_type;
+
+  vw::mosaic::ImageComposite<alpha_pixel_type> composite;
   if( draft ) composite.set_draft_mode( true );
 
   double smallest_x_scale = vw::ScalarTypeLimits<float>::highest();
   double smallest_y_scale = vw::ScalarTypeLimits<float>::highest();
+  double smallest_x_val = vw::ScalarTypeLimits<float>::highest();
+  double smallest_y_val = vw::ScalarTypeLimits<float>::highest();
 
   // First pass, read georeferencing information and build an output
   // georef.
   for(unsigned i = 0; i < image_files.size(); ++i) {
     std::cout << "Adding file " << image_files[i] << std::endl;
-    DiskImageResourceGDAL file_resource( image_files[i] );
     GeoReference input_georef;
-    file_resource.read_metadata( input_georef );
+    read_georeference( input_georef, image_files[i] );
     std::cout << "\t" << input_georef.transform() << "\n";
 
     Matrix3x3 affine = input_georef.transform();
@@ -104,30 +117,44 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
       smallest_y_scale = affine(1,1);
     }
 
+    if (affine(0,2) < smallest_x_val) 
+      smallest_x_val = affine(0,2);
+
+    if (affine(1,2) < smallest_y_val) 
+      smallest_y_val = affine(1,2);
+
     if( input_georef.transform() == identity_matrix<3>() ) {
       vw_out(InfoMessage) << "No georeferencing info found for image: \"" << image_files[i] << "\".  Aborting.\n";
       exit(0);
     }
   }
 
-  // Adopt the scale of the highest resolution being composited.
-  Matrix3x3 output_affine = identity_matrix<3>();
-  output_affine(0,0) = smallest_x_scale;
-  output_affine(1,1) = smallest_y_scale;
-  std::cout << "\nScale for mosaic: [" << smallest_x_scale << " " << smallest_y_scale << "] units/pixel\n";
-
   // Second pass: add files to the image composite.
   for(unsigned i = 0; i < image_files.size(); ++i) {
-    DiskImageResourceGDAL file_resource( image_files[i] );
     GeoReference input_georef;
-    file_resource.read_metadata( input_georef );
+    read_georeference(input_georef, image_files[i]);
     Matrix3x3 affine = input_georef.transform();
 
-    DiskImageView<PixelT> source( image_files[i] );
-    //     HomographyTransform trans(inverse(output_affine)*affine);
-    //     BBox2i bbox = trans.forward_bbox( BBox2i(0,0,source.cols(),source.rows()) );
-    //    composite.insert( crop( transform( mask_zero_pixels(source), trans ), bbox ), bbox.min().x(), bbox.min().y() );
-    composite.insert( mask_zero_pixels(source), affine(0,2), affine(1,2) );
+    DiskImageView<PixelT> source_disk_image( image_files[i] );
+
+    // Convert all of the images so they share the same scale factor.
+    // Adopt the scale of the highest resolution being composited.
+    Matrix3x3 output_affine = affine;
+    output_affine(0,0) = smallest_x_scale;
+    output_affine(1,1) = smallest_y_scale;
+
+    HomographyTransform trans(inverse(output_affine)*affine);
+    BBox2 output_bbox = trans.forward_bbox( BBox2(0,0,source_disk_image.cols(),source_disk_image.rows()) );
+    output_bbox.min().x() = 0;
+    output_bbox.min().y() = 0;
+    
+    if (do_black_is_transparent) {
+      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( mask_zero_pixels(source_disk_image), trans ), output_bbox );
+      composite.insert( masked_source, output_affine(0,2)/output_affine(0,0), output_affine(1,2)/output_affine(1,1) );
+    } else {
+      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( pixel_cast<alpha_pixel_type>(source_disk_image), trans ), output_bbox );
+      composite.insert( masked_source, output_affine(0,2)/output_affine(0,0), output_affine(1,2)/output_affine(1,1) );
+    }
   }
 
   vw::vw_out(vw::InfoMessage) << "Preparing the composite..." << std::endl;
@@ -137,7 +164,7 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
     BBox2 ll_bbox( -30,-30,30.0,30.0*(float)(composite.rows())/(float)(composite.cols()) );
     vw_out(0) << "\tOverlay will appear in this bounding box in Google Earth: " << ll_bbox << "\n";
     vw_out(0) << "\tComposite bbox: " << composite.source_data_bbox() << "\n";
-    vw::mosaic::KMLQuadTreeGenerator<PixelT > quadtree( mosaic_name, composite, ll_bbox );
+    vw::mosaic::KMLQuadTreeGenerator<alpha_pixel_type> quadtree( mosaic_name, composite, ll_bbox );
     quadtree.set_output_image_file_type( output_file_type );
     quadtree.set_patch_size( patch_size );
     quadtree.set_patch_overlap( patch_overlap );
@@ -147,10 +174,21 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
     quadtree.generate(TerminalProgressCallback());
     vw::vw_out(vw::InfoMessage) << "Done!" << std::endl;
   } else {
+    Matrix3x3 output_affine = identity_matrix<3>();
+    output_affine(0,0) = smallest_x_scale;
+    output_affine(1,1) = smallest_y_scale;
+    output_affine(0,2) = smallest_x_val;
+    output_affine(1,2) = smallest_y_val;
+
+    // Take the georef from the first file, but update the affine transform
+    GeoReference output_georef; 
+    read_georeference( output_georef, image_files[0] );
+    output_georef.set_transform(output_affine);
+
+    std::cout << "Source bbox: " <<  composite.source_data_bbox() << "\n";
     std::string mosaic_filename = mosaic_name+".blend."+output_file_type;
     vw::vw_out(vw::InfoMessage) << "Blending..." << std::endl;
-    //    vw::ImageViewRef<PixelT> im = block_rasterize( composite );
-    write_image( mosaic_filename, composite, TerminalProgressCallback() );
+    write_georeferenced_image( mosaic_filename, composite, output_georef, TerminalProgressCallback() );
     vw::vw_out(vw::InfoMessage) << "Done!" << std::endl;
   }
 }
@@ -173,9 +211,11 @@ int main( int argc, char *argv[] ) {
       ("size", po::value<int>(&patch_size)->default_value(256), "Patch size, in pixels")
       ("overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels (must be even)")
       ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
+      ("black-is-transparent", "Make this pixel value equal 0 transparent")
       ("draft", "Draft mode (no blending)")
       ("qtree", "Output in quadtree format")
-      ("grayscale", "Process in grayscale only")
+      ("ignore-alpha", "Ignore the alpha channel of the input images.")
+      ("float", "Process as a floating point image.")
       ("max-lod-pixels", po::value<int>(&max_lod_pixels)->default_value(1024), "Max LoD in pixels, or -1 for none")
       ("draw-order-offset", po::value<int>(&draw_order_offset)->default_value(100), "Set an offset for the KML <drawOrder> tag for this overlay")
       ("verbose", "Verbose output");
@@ -228,11 +268,14 @@ int main( int argc, char *argv[] ) {
     
     vw::Cache::system_cache().resize( cache_size*1024*1024 );
 
-    if( vm.count("grayscale") ) {
-      do_blend<vw::PixelGrayA<float> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels );
-    }
-    else {
-      do_blend<vw::PixelRGBA<float> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels );
+    if( vm.count("float") && !vm.count("ignore-alpha") ) {
+      do_blend<vw::PixelGrayA<float> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent") );
+    } else if( vm.count("float") && vm.count("ignore-alpha") ) {
+      do_blend<vw::PixelGray<float> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent") );
+    } else if( !vm.count("float") && !vm.count("ignore-alpha") ) {
+      do_blend<vw::PixelRGBA<uint8> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent") );
+    } else if( !vm.count("float") && vm.count("ignore-alpha") ) {
+      do_blend<vw::PixelRGB<uint8> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent") );      
     }
 
   }

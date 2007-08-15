@@ -50,11 +50,6 @@ using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
 
-
-struct null_deleter {
-  void operator()(void const *) const {}
-};
-
 int main( int argc, char *argv[] ) {
 
   std::string input_filename, output_filename, copy_filename;
