@@ -102,6 +102,7 @@ namespace math {
       VW_ASSERT( !f.fail(), IOErr() << "Invalid point list file format!" );
       f.read((char*)&num_points, sizeof(num_points));
       VW_ASSERT( !f.fail(), IOErr() << "Invalid point list file format!" );
+      v.set_size(dimensions);
       for (unsigned i = 0; i < num_points; i++) {
         for (unsigned j = 0; j < dimensions; j++) {
           f.read((char*)&v[j], sizeof(v[j]));
