@@ -31,6 +31,7 @@ nodist_TestVector_SOURCES = TestVector.cxx
 nodist_TestMatrix_SOURCES = TestMatrix.cxx
 nodist_TestQuaternion_SOURCES = TestQuaternion.cxx
 nodist_TestBBox_SOURCES = TestBBox.cxx
+nodist_TestBBall_SOURCES = TestBBall.cxx
 nodist_TestFunctions_SOURCES = TestFunctions.cxx
 nodist_TestFunctors_SOURCES = TestFunctors.cxx
 nodist_TestNelderMead_SOURCES = TestNelderMead.cxx
@@ -49,7 +50,7 @@ nodist_TestBConvex_SOURCES = TestBConvex.cxx
 TestPPL = TestBConvex
 endif
 
-TESTS = TestVector TestMatrix TestQuaternion TestBBox TestFunctions	 \
+TESTS = TestVector TestMatrix TestQuaternion TestBBox TestBBall TestFunctions	 \
         TestFunctors TestNelderMead TestSpatialTree $(TestLinearAlgebra) \
         $(TestPPL) #TestConjugateGradient
 endif

@@ -752,6 +752,14 @@ namespace math {
       num_vertices++;
     }
 #else
+    //NOTE: This seems like a ridiculous thing to do, using qhull to find the convex
+    // hull and then making PPL compute the convex hull again. However, PPL is only 
+    // computing the convex hull of the points that are actually on the convex hull 
+    // (as determined by qhull), so we don't run into the extremely long runtime that
+    // we would have run into by having PPL take the initial convex hull (qhull is 
+    // much faster with a large number of points). Also, as it turns out, 
+    // transferring the hyperplanes from qhull to PPL results in a lot more numerical 
+    // error than transferring the vertices.
     m_poly = new_poly(dim);
     FORALLfacets {
       num_facets++;

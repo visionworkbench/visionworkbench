@@ -208,7 +208,7 @@ namespace math {
     bool contains( const VectorBase<VectorT> &point ) const {
       using namespace vector_containment_comparison;
       VW_ASSERT(m_min.size() == 0 || point.impl().size() == m_min.size(), ArgumentErr() << "Vector must have dimension " << m_min.size() << ".");
-      return ((point >= m_min) && (point < m_max));
+      return ((m_min.size() != 0) && (point >= m_min) && (point < m_max));
     }
 
     /// Returns true if the given bounding box is entirely contained
@@ -217,7 +217,7 @@ namespace math {
     bool contains( const BBoxBase<BBoxT1, RealT1, DimN1> &bbox ) const {
       using namespace vector_containment_comparison;
       VW_ASSERT(m_min.size() == 0 || bbox.min().size() == m_min.size(), ArgumentErr() << "BBox must have dimension " << m_min.size() << ".");
-      return ((bbox.min() >= m_min) && (bbox.max() <= m_max));
+      return ((m_min.size() != 0) && (bbox.min() >= m_min) && (bbox.max() <= m_max));
     }
 
     /// Returns true if the given bounding box intersects this
@@ -230,7 +230,7 @@ namespace math {
             m_max[i] <= bbox.min()[i] )
           return false;
       }
-      return true;
+      return (m_min.size() != 0);
     }
 
     /// Returns the size (i.e. the diagonal vector) of the bounding box.

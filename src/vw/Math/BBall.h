@@ -49,26 +49,26 @@ namespace math {
   public:
 
     /// Default constructor. Constructs an empty bounding ball.
-    BBallBase() : m_radius( 0 ) {}
+    BBallBase() : m_empty( true ) {}
 
     /// Constructs a bounding ball with the given center and radius.
     template <class VectorT>
     BBallBase( VectorBase<VectorT> const& center, RealT radius ) :
-      m_center( center ), m_radius( radius ) {}
+      m_center( center ), m_radius( radius ), m_empty( false ) {}
 
     /// Constructs a 2D bounding ball with the given center point
     /// coordinates and radius.  (Only valid for 2D bouding
     /// balls.)
     BBallBase( RealT centerx, RealT centery, RealT radius )
       : m_center( Vector<RealT,2>(centerx,centery) ), 
-        m_radius( radius ) {}
+        m_radius( radius ), m_empty( false ) {}
 
     /// Constructs a 3D bounding ball with the given center point
     /// coordinates and radius.  (Only valid for 3D bouding
     /// balls.)
     BBallBase( RealT centerx, RealT centery, RealT centerz, RealT radius )
       : m_center( Vector<RealT,3>(centerx,centery,centerz) ), 
-        m_radius( radius ) {}
+        m_radius( radius ), m_empty( false ) {}
 
     /// Returns the derived implementation type.
     BBallT& impl() { return *static_cast<BBallT*>(this); }
@@ -79,55 +79,77 @@ namespace math {
     /// Grows a bounding ball to include the given point.
     template <class VectorT>
     void grow( VectorBase<VectorT> const& point ) {
-      VW_ASSERT(point.impl().size() == m_center.size(), ArgumentErr() << "Vector must have dimension " << m_center.size() << ".");
-      Vector<RealT, DimN> v = point - m_center;
-      RealT dist = norm_2(v);
-      RealT radius_d;
-      if (dist > m_radius) {
-        radius_d = (dist - m_radius)/2;
-        m_center += v/dist*radius_d;
-        m_radius += radius_d;
+      VW_ASSERT(m_center.size() == 0 || point.impl().size() == m_center.size(), ArgumentErr() << "Vector must have dimension " << m_center.size() << ".");
+      if (empty()) {
+        m_center = point;
+        m_radius = 0;
+        m_empty = false;
+      }
+      else {
+        Vector<RealT, DimN> v = point - m_center;
+        double dist = norm_2(v);
+        double radius_d;
+        if (dist > (double)m_radius) {
+          radius_d = (dist - (double)m_radius)/2;
+          m_center += v/dist*radius_d;
+          v = point - m_center;
+          dist = norm_2(v);
+          if (dist > 0)
+            m_radius += (RealT)dist;
+        }
       }
     }
     
     /// Grows a bounding ball to include the given bounding ball.
     template <class BBallT1, class RealT1, int DimN1>
     void grow( BBallBase<BBallT1, RealT1, DimN1> const& bball ) {
-      Vector<RealT, DimN> v = bball.m_center - m_center;
-      grow(bball.m_center + normalize(v)*bball.m_radius);
+      if (bball.empty())
+        return;
+      if (empty()) {
+        m_center = bball.center_();
+        m_radius = bball.radius();
+        m_empty = bball.empty();
+      }
+      else {
+        Vector<RealT, DimN> v = bball.center_() - m_center;
+        grow(bball.center_() + normalize(v)*bball.radius());
+      }
     }
 
     /// Crops (intersects) this bounding ball to the given bounding ball.
     template <class BBallT1, class RealT1, int DimN1>
     void crop( BBallBase<BBallT1, RealT1, DimN1> const& bball ) {
-      Vector<RealT, DimN> v = bball.m_center - m_center;
-      RealT dist = norm_2(v);
-      if (dist > (m_radius + bball.m_radius)) {
+      if (empty() || bball.empty())
+        return;
+      Vector<RealT, DimN> v = bball.center_() - m_center;
+      RealT dist = (RealT)norm_2(v);
+      if (dist > (m_radius + bball.radius())) {
         // intersects(bball) == false
         m_radius = 0;
+        m_empty = true;
       }
-      else if (dist <= (m_radius - bball.m_radius)) {
+      else if (dist <= (m_radius - bball.radius())) {
         // contains(bball) == true
-        m_center = bball.m_center;
-        m_radius = bball.m_radius;
+        m_center = bball.center_();
+        m_radius = bball.radius();
       }
-      else if (dist <= (bball.m_radius - m_radius)) {
+      else if (dist <= (bball.radius() - m_radius)) {
         // bball.contains(*this) == true
         // smallest BBall is *this
         return;
       }
       else if (m_radius >= dist) {
         // smallest BBall is bball
-        m_center = bball.m_center;
-        m_radius = bball.m_radius;
+        m_center = bball.center_();
+        m_radius = bball.radius();
       }
-      else if (bball.m_radius >= dist) {
+      else if (bball.radius() >= dist) {
         // smallest BBall is *this
         return;
       }
       else {
         // normal intersection
-        RealT x = (dist + (m_radius*m_radius - bball.m_radius*bball.m_radius)/dist)/2;
+        RealT x = (dist + (m_radius*m_radius - bball.radius()*bball.radius())/dist)/2;
         m_center += v/dist*x;
         m_radius = std::sqrt(m_radius*m_radius - x*x);
       }
@@ -135,33 +157,35 @@ namespace math {
 
     /// Expands this bounding ball by the given offset in every direction.
     void expand( RealT offset ) {
-      m_radius += offset;
+      if (!empty())
+        m_radius += offset;
     }
 
     /// Contracts this bounding ball by the given offset in every direction.
     void contract( RealT offset ) {
-      m_radius -= offset;
+      if (!empty())
+        m_radius -= offset;
     }
 
     /// Returns true if the given point is contained in the bounding ball.
     template <class VectorT>
     bool contains( const VectorBase<VectorT> &point ) const {
-      VW_ASSERT(point.impl().size() == m_center.size(), ArgumentErr() << "Vector must have dimension " << m_center.size() << ".");
-      return (norm_2(m_center - point) <= m_radius);
+      VW_ASSERT(m_center.size() == 0 || point.impl().size() == m_center.size(), ArgumentErr() << "Vector must have dimension " << m_center.size() << ".");
+      return (!empty() && (norm_2(m_center - point) <= (double)m_radius));
     }
 
     /// Returns true if the given bounding ball is entirely contained
     /// in this bounding ball.
     template <class BBallT1, class RealT1, int DimN1>
     bool contains( const BBallBase<BBallT1, RealT1, DimN1> &bball ) const {
-      return (norm_2(m_center - bball.m_center) <= (m_radius - bball.m_radius));
+      return (!empty() && !bball.empty() && (norm_2(m_center - bball.center_()) <= (double)(m_radius - bball.radius())));
     }
 
     /// Returns true if the given bounding ball intersects this
     /// bounding ball.
     template <class BBallT1, class RealT1, int DimN1>
     bool intersects( const BBallBase<BBallT1, RealT1, DimN1>& bball ) const {
-      return (norm_2(m_center - bball.m_center) <= (m_radius + bball.m_radius));
+      return (!empty() && !bball.empty() && (norm_2(m_center - bball.center_()) <= (double)(m_radius + bball.radius())));
     }
 
     /// Returns the size (i.e. the diameter) of the bounding ball.
@@ -177,15 +201,13 @@ namespace math {
     Vector<RealT, DimN> &center_() { return m_center; }
 
     /// Returns the radius of the bounding ball.
-    Vector<RealT, DimN> const& radius() const { return m_radius; }
+    RealT const& radius() const { return m_radius; }
 
     /// Returns the radius of the bounding ball.
-    Vector<RealT, DimN> &radius() { return m_radius; }
+    RealT &radius() { return m_radius; }
 
     /// Returns true if the bounding ball is empty (i.e. degenerate).
-    bool empty() const {
-      return (m_radius <= 0);
-    }
+    bool empty() const { return m_empty; }
 
     /// Scales the bounding ball relative to the origin.
     template <class ScalarT>
@@ -217,9 +239,10 @@ namespace math {
       return *this;
     }
 
-  private:
+  protected:
     Vector<RealT, DimN> m_center;
     RealT m_radius;
+    bool m_empty;
   };
   
   /// Scales a bounding ball relative to the origin.
@@ -328,6 +351,7 @@ namespace math {
     BBall& operator=( BBallBase<BBallT1, RealT1, DimN1> const& bball ) {
       this->center_() = bball.center_();
       this->radius() = bball.radius();
+      this->m_empty = bball.empty();
       return *this;
     }
   };
@@ -368,6 +392,7 @@ namespace math {
     BBall& operator=( BBallBase<BBallT1, RealT1, DimN1> const& bball ) {
       this->center_() = bball.center_();
       this->radius() = bball.radius();
+      this->m_empty = bball.empty();
       return *this;
     }
   };
