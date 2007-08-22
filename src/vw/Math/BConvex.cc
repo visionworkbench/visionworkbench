@@ -29,7 +29,7 @@
 
 #include <boost/thread/mutex.hpp>
 
-#include <vw/config.h> // VW_HAVE_PKG_QHULL
+#include <vw/config.h> // VW_HAVE_PKG_QHULL, VW_HAVE_PKG_PPL, VW_HAVE_PKG_APRON
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/PointListIO.h>
@@ -37,8 +37,10 @@
 #include <vw/Math/BConvex.h>
 using namespace vw::math::bconvex_promote;
 
+#if defined(VW_HAVE_PKG_PPL) && VW_HAVE_PKG_PPL==1
 #include <gmpxx.h> // GNU Multiple Precision Arithmetic Library
 #include <ppl.hh> // Parma Polyhedra Library
+#endif
 
 #if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
 extern "C" {
@@ -205,119 +207,235 @@ namespace {
     return s;
   }
 
-  /// Creates a PPL point.
-  Parma_Polyhedra_Library::Generator point_generator( vw::math::Vector<mpq_class> const& point ) {
-    Parma_Polyhedra_Library::Linear_Expression e;
-    unsigned dim = point.size();
-    vw::math::Vector<mpq_class> pointc( dim );
-    common_denominator(point, pointc);
-    for (unsigned i = point.size() - 1; 1; i--) {
-      e += pointc(i).get_num() * Parma_Polyhedra_Library::Variable(i);
-      if (i == 0)
-        break;
+#if defined(VW_HAVE_PKG_PPL) && VW_HAVE_PKG_PPL==1
+
+  /// All functionality that is tied to PPL.
+  class BConvexImpl
+  {
+  public:
+    /// Constructor.
+    BConvexImpl( unsigned dim, bool universe = false ) : poly( dim, universe ? Parma_Polyhedra_Library::UNIVERSE : Parma_Polyhedra_Library::EMPTY ) {}
+
+    /// Copy constructor.
+    BConvexImpl( const BConvexImpl &other ) : poly(other.poly) {}
+
+    /// Destructor.
+    ~BConvexImpl() {}
+
+    /// Assignment operator.
+    BConvexImpl &operator=( const BConvexImpl &other ) {poly = other.poly;}
+
+    /// Return dimension of ambient space.
+    inline unsigned space_dimension() const {return poly.space_dimension();}
+
+    /// Return whether polyhedron is the universe polyhedron.
+    inline bool is_universe() const {return poly.is_universe();}
+
+    /// Return whether polyhedron is empty.
+    inline bool is_empty() const {return poly.is_empty();}
+
+    /// Return whether the polyhedron contains the given point.
+    inline bool contains( const vw::Vector<mpq_class> &point ) const {
+      return (poly.relation_with(point_generator(point)) == Parma_Polyhedra_Library::Poly_Gen_Relation::subsumes());
     }
-    Parma_Polyhedra_Library::Generator g = Parma_Polyhedra_Library::point(e, pointc(0).get_den());
-    return g;
-  }
+    
+    /// Return whether the polyhedron contains the other polyhedron.
+    inline bool contains( const BConvexImpl &other ) const {return poly.contains(other.poly);}
+
+    /// Return whether the polyhedron is disjoint from the other polyhedron.
+    inline bool is_disjoint_from( const BConvexImpl &other ) const {return poly.is_disjoint_from(other.poly);}
+
+    /// Return whether the polyhedron is equal to the other polyhedron.
+    inline bool equal( const BConvexImpl &other ) const {
+      using Parma_Polyhedra_Library::operator==;
+      return (poly == other.poly);
+    }
+
+    /// Return the number of constraints.
+    inline unsigned num_constraints() const {
+      return num_constraints(poly.minimized_constraints(), true);
+    }
+
+    /// Add a constraint.
+    inline void add_constraint( const vw::Vector<mpq_class> &coef ) {
+      poly.add_constraint(constraint_generator(coef));
+    }
+
+    /// Add multiple constraints.
+    inline void add_constraints( const std::vector<vw::Vector<mpq_class> > &constraints ) {
+      std::vector<vw::Vector<mpq_class> >::const_iterator i;
+      for (i = constraints.begin(); i != constraints.end(); i++)
+        add_constraint(*i);
+    }
+
+    /// Get all constraints.
+    std::vector<vw::Vector<mpz_class> > &get_constraints( std::vector<vw::Vector<mpz_class> > &constraints ) const {
+      vw::Vector<mpz_class> coef;
+      const Parma_Polyhedra_Library::Constraint_System &cs = poly.minimized_constraints();
+      Parma_Polyhedra_Library::Constraint_System::const_iterator i;
+      constraints.clear();
+      for (i = cs.begin(); i != cs.end(); i++) {
+        VW_ASSERT(!(*i).is_strict_inequality(), vw::LogicErr() << "Retrieved strict inequality from closed convex polyhedron!");
+        coefficients(*i, coef);
+        constraints.push_back(coef);
+        if ((*i).is_equality())
+          constraints.push_back(-coef);
+      }
+      return constraints;
+    }
+
+    /// Return the number of generators.
+    inline unsigned num_generators() const {
+      return num_generators(poly.minimized_generators());
+    }
+
+    /// Add a (point) generator.
+    inline void add_generator( const vw::Vector<mpq_class> &point ) {
+      poly.add_generator(point_generator(point));
+    }
+
+    /// Add multiple (point) generators.
+    inline void add_generators( const std::vector<vw::Vector<mpq_class> > &generators ) {
+      std::vector<vw::Vector<mpq_class> >::const_iterator i;
+      for (i = generators.begin(); i != generators.end(); i++)
+        add_generator(*i);
+    }
+
+    /// Get all (point) generators.
+    std::vector<vw::Vector<mpq_class> > &get_generators( std::vector<vw::Vector<mpq_class> > &generators ) const {
+      vw::Vector<mpq_class> p;
+      const Parma_Polyhedra_Library::Generator_System &gs = poly.minimized_generators();
+      Parma_Polyhedra_Library::Generator_System::const_iterator i;
+      generators.clear();
+      for (i = gs.begin(); i != gs.end(); i++) {
+        VW_ASSERT((*i).is_point(), vw::LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
+        convert_point(*i, p);
+        generators.push_back(p);
+      }
+      return generators;
+    }
+
+    /// Assign to this polyhedron the convex hull of this polyhedron and the other polyhedron.
+    inline void poly_hull_assign( const BConvexImpl &other ) {poly.poly_hull_assign(other.poly);}
+
+    /// Assign to this polyhedron the intersection of this polyhedron and the other polyhedron.
+    inline void intersection_assign( const BConvexImpl &other ) {poly.intersection_assign(other.poly);}
+
+    /// Print the polyhedron.
+    void print( std::ostream& os ) const {
+      using ::Parma_Polyhedra_Library::IO_Operators::operator<<;
+      os << poly;
+    }
+
+  private:
+    /// Creates a PPL point.
+    static Parma_Polyhedra_Library::Generator point_generator( vw::math::Vector<mpq_class> const& point ) {
+      using namespace Parma_Polyhedra_Library;
+      Linear_Expression e;
+      unsigned dim = point.size();
+      vw::math::Vector<mpq_class> pointc( dim );
+      common_denominator(point, pointc);
+      for (unsigned i = point.size() - 1; 1; i--) {
+        e += pointc(i).get_num() * Variable(i);
+        if (i == 0)
+          break;
+      }
+      Generator g = ::Parma_Polyhedra_Library::point(e, pointc(0).get_den());
+      return g;
+    }
   
-  /// Multiplies a PPL Variable by a scalar.
-  template <class ScalarT>
-  inline Parma_Polyhedra_Library::Linear_Expression mult_variable(Parma_Polyhedra_Library::Variable v, ScalarT s) {
-    return v * s;
-  }
+    /// Creates a PPL Constraint from an mpz_class Vector.
+    static Parma_Polyhedra_Library::Constraint constraint_generator( vw::math::Vector<mpz_class> const& coef ) {
+      using namespace Parma_Polyhedra_Library;
+      unsigned dim = coef.size() - 1;
+      Linear_Expression e;
+      unsigned i;
+      for (i = dim - 1; 1; i--) {
+        e += (Variable(i) * coef[i]);
+        if (i == 0)
+          break;
+      }
+      e += coef[dim];
+      Constraint c = (e >= 0);
+      return c;
+    }
   
-  /// Adds a scalar to a PPL Linear_Expression.
-  template <class ScalarT>
-  inline Parma_Polyhedra_Library::Linear_Expression add_scalar(Parma_Polyhedra_Library::Linear_Expression e, ScalarT s) {
-    return e + s;
-  }
+    /// Creates a PPL Constraint from an mpq_class Vector.
+    static Parma_Polyhedra_Library::Constraint constraint_generator( vw::math::Vector<mpq_class> const& coef ) {
+      vw::math::Vector<mpz_class> coefz( coef.size() );
+      no_denominator(coef, coefz);
+      return constraint_generator(coefz);
+    }
   
-  /// Subtracts a scalar from a PPL Linear_Expression.
-  template <class ScalarT>
-  inline Parma_Polyhedra_Library::Linear_Expression sub_scalar(Parma_Polyhedra_Library::Linear_Expression e, ScalarT s) {
-    return e - s;
-  }
-
-  /// Creates a PPL Constraint from an mpz_class Vector.
-  Parma_Polyhedra_Library::Constraint constraint_generator( vw::math::Vector<mpz_class> const& coef ) {
-    unsigned dim = coef.size() - 1;
-    Parma_Polyhedra_Library::Linear_Expression e;
-    unsigned i;
-    for (i = dim - 1; 1; i--) {
-      e += mult_variable(Parma_Polyhedra_Library::Variable(i), coef[i]);
-      if (i == 0)
-        break;
+    /// Finds the coefficients of a PPL Constraint.
+    static void coefficients( Parma_Polyhedra_Library::Constraint const& c, vw::math::Vector<mpz_class> &coef ) {
+      VW_ASSERT(!c.is_strict_inequality(), vw::LogicErr() << "Retrieved strict inequality from closed convex polyhedron!");
+      unsigned dim = c.space_dimension();
+      unsigned i;
+      coef.set_size(dim + 1);
+      for (i = dim - 1; 1; i--) {
+        coef[i] = c.coefficient(Parma_Polyhedra_Library::Variable(i));
+        if (i == 0)
+          break;
+      }
+      coef[dim] = c.inhomogeneous_term();
     }
-    e += coef[dim];
-    Parma_Polyhedra_Library::Constraint c = (e >= 0);
-    return c;
-  }
-
-  /// Creates a PPL Constraint from an mpq_class Vector.
-  Parma_Polyhedra_Library::Constraint constraint_generator( vw::math::Vector<mpq_class> const& coef ) {
-    vw::math::Vector<mpz_class> coefz( coef.size() );
-    no_denominator(coef, coefz);
-    return constraint_generator(coefz);
-  }
-
-  /// Finds the coefficients of a PPL Constraint.
-  void coefficients( Parma_Polyhedra_Library::Constraint const& c, vw::math::Vector<mpz_class> &coef ) {
-    unsigned dim = c.space_dimension();
-    unsigned i;
-    coef.set_size(dim + 1);
-    for (i = dim - 1; 1; i--) {
-      coef[i] = c.coefficient(Parma_Polyhedra_Library::Variable(i));
-      if (i == 0)
-        break;
+  
+    /// Finds the coefficients of a PPL Constraint.
+    static void coefficients( Parma_Polyhedra_Library::Constraint const& c, vw::math::Vector<mpq_class> &coef ) {
+      VW_ASSERT(!c.is_strict_inequality(), vw::LogicErr() << "Retrieved strict inequality from closed convex polyhedron!");
+      unsigned dim = c.space_dimension();
+      unsigned i;
+      coef.set_size(dim + 1);
+      for (i = dim - 1; 1; i--) {
+        coef[i] = mpq_class(c.coefficient(Parma_Polyhedra_Library::Variable(i)), 1);
+        if (i == 0)
+          break;
+      }
+      coef[dim] = mpq_class(c.inhomogeneous_term(), 1);
     }
-    coef[dim] = c.inhomogeneous_term();
-  }
-
-  /// Finds the coefficients of a PPL Constraint.
-  void coefficients( Parma_Polyhedra_Library::Constraint const& c, vw::math::Vector<mpq_class> &coef ) {
-    unsigned dim = c.space_dimension();
-    unsigned i;
-    coef.set_size(dim + 1);
-    for (i = dim - 1; 1; i--) {
-      coef[i] = mpq_class(c.coefficient(Parma_Polyhedra_Library::Variable(i)), 1);
-      if (i == 0)
-        break;
+  
+    /// Returns the PPL Generator (point) as a Vector.
+    static void convert_point( Parma_Polyhedra_Library::Generator const& g, vw::Vector<mpq_class> &p ) {
+      VW_ASSERT(g.is_point(), vw::LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
+      unsigned dim = g.space_dimension();
+      unsigned i;
+      p.set_size(dim);
+      for (i = dim - 1; 1; i--) {
+        p(i) = mpq_class(g.coefficient(Parma_Polyhedra_Library::Variable(i)), g.divisor());
+        if (i == 0)
+          break;
+      }
     }
-    coef[dim] = mpq_class(c.inhomogeneous_term(), 1);
-  }
-
-  /// Returns the PPL Generator (point) as a Vector.
-  void convert_point( Parma_Polyhedra_Library::Generator const& g, vw::Vector<mpq_class> &p ) {
-    VW_ASSERT(g.is_point(), vw::LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
-    unsigned dim = g.space_dimension();
-    unsigned i;
-    p.set_size(dim);
-    for (i = dim - 1; 1; i--) {
-      p(i) = mpq_class(g.coefficient(Parma_Polyhedra_Library::Variable(i)), g.divisor());
-      if (i == 0)
-        break;
+  
+    /// Finds the number of constraints in a constraint system.
+    static inline unsigned num_constraints( Parma_Polyhedra_Library::Constraint_System const& cs, bool count_equalities_twice = false ) {
+      unsigned n = 0;
+      Parma_Polyhedra_Library::Constraint_System::const_iterator i;
+      for (i = cs.begin(); i != cs.end(); i++) {
+        VW_ASSERT(!(*i).is_strict_inequality(), vw::LogicErr() << "Retrieved strict inequality from closed convex polyhedron!");
+        n++;
+        if ((*i).is_equality() && count_equalities_twice)
+          n++;
+      }
+      return n;
     }
-  }
-
-  /// Finds the number of constraints in a constraint system.
-  inline unsigned num_constraints( Parma_Polyhedra_Library::Constraint_System const& cs ) {
-    unsigned n = 0;
-    Parma_Polyhedra_Library::Constraint_System::const_iterator i;
-    for (i = cs.begin(); i != cs.end(); i++)
-      n++;
-    return n;
-  }
-
-  /// Finds the number of generators in a generator system.
-  inline unsigned num_generators( Parma_Polyhedra_Library::Generator_System const& gs ) {
-    unsigned n = 0;
-    Parma_Polyhedra_Library::Generator_System::const_iterator i;
-    for (i = gs.begin(); i != gs.end(); i++) {
-      VW_ASSERT((*i).is_point(), vw::LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
-      n++;
+  
+    /// Finds the number of generators in a generator system.
+    static inline unsigned num_generators( Parma_Polyhedra_Library::Generator_System const& gs ) {
+      unsigned n = 0;
+      Parma_Polyhedra_Library::Generator_System::const_iterator i;
+      for (i = gs.begin(); i != gs.end(); i++) {
+        VW_ASSERT((*i).is_point(), vw::LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
+        n++;
+      }
+      return n;
     }
-    return n;
-  }
+
+    Parma_Polyhedra_Library::C_Polyhedron poly;
+  };
+
+#endif // defined(VW_HAVE_PKG_PPL) && VW_HAVE_PKG_PPL==1
 
 #if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
 
@@ -362,17 +480,14 @@ namespace {
 #endif // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
 
   /// Find the center of a polyhedron.
-  void poly_center( const Parma_Polyhedra_Library::C_Polyhedron *poly, vw::Vector<mpq_class> &c ) {
-    VW_ASSERT(poly, vw::LogicErr() << "Polyhedron pointer is null!");
-    unsigned dim = poly->space_dimension();
-    vw::Vector<mpq_class> v(dim);
+  void poly_center( const std::vector<vw::Vector<mpq_class> > &gs, vw::Vector<mpq_class> &c ) {
+    VW_ASSERT(!gs.empty(), vw::LogicErr() << "Generator list is empty!");
+    unsigned dim = gs[0].size();
     unsigned n = 0;
-    const Parma_Polyhedra_Library::Generator_System &gs = poly->minimized_generators();
     c.set_size(dim);
     fill(c, 0);
-    for (Parma_Polyhedra_Library::Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
-      convert_point(*i, v);
-      c += v;
+    for (std::vector<vw::Vector<mpq_class> >::const_iterator i = gs.begin(); i != gs.end(); i++) {
+      c += *i;
       n++;
     }
     c /= n;
@@ -422,24 +537,21 @@ namespace {
   }
 
   /// Find the facets of the polyhedron.
-  void poly_facet_list( const Parma_Polyhedra_Library::C_Polyhedron *poly, std::vector<vw::Vector<mpq_class> > &points, std::vector<std::vector<unsigned> > &facets ) {
+  void poly_facet_list( const BConvexImpl *poly, std::vector<vw::Vector<mpq_class> > &points, std::vector<std::vector<unsigned> > &facets ) {
     if (!poly || poly->is_empty())
       return;
       
     unsigned dim = poly->space_dimension();
-    const Parma_Polyhedra_Library::Generator_System &gs = poly->minimized_generators();
-    unsigned num_points = num_generators(gs);
+    unsigned num_points = 0;
     vw::Vector<double> vertexv( dim );
-    vw::Vector<mpq_class> vertexq( dim );
 
     VW_ASSERT(dim > 0 && dim <= 3, vw::ArgumentErr() << "Cannot find facet list of dimension <= 0 or > 3!");
 
+    poly->get_generators(points);
+    num_points = points.size();
+
     if (dim == 1) {
       VW_ASSERT(num_points <= 2, vw::LogicErr() << "Found line with more than 2 vertices!");
-      for (Parma_Polyhedra_Library::Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
-        convert_point(*i, vertexq);
-        points.push_back(vertexq);
-      }
       facets.push_back(std::vector<unsigned>());
       if (num_points == 1)
         facets[0].push_back(0);
@@ -478,12 +590,10 @@ namespace {
       prims = new vw::math::GeomPrimitive*[num_points];
       k = 0;
       l = 0;
-      for (Parma_Polyhedra_Library::Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++, l++) {
+      for (std::vector<vw::Vector<mpq_class> >::iterator i = points.begin(); i != points.end(); i++, l++) {
         prim = new PointPrimitive;
         prim->index = l;
-        convert_point(*i, vertexq);
-        points.push_back(vertexq);
-        unconvert_vector(vertexq, prim->point);
+        unconvert_vector(*i, prim->point);
         prim->bbox.grow(prim->point);
         for (j = 0; j < dim; j++, k++)
           p[k] = prim->point[j];
@@ -647,27 +757,31 @@ namespace {
   }
 
   /// Offsets the polyhedron by the given vector.
-  void offset_poly( vw::Vector<mpq_class> const& v, Parma_Polyhedra_Library::C_Polyhedron *poly ) {
+  void offset_poly( vw::Vector<mpq_class> const& v, BConvexImpl *&poly ) {
     unsigned dim = poly->space_dimension();
-    for (unsigned i = dim - 1; 1; i--) {
-      Parma_Polyhedra_Library::Linear_Expression e;
-      e += add_scalar(mult_variable(Parma_Polyhedra_Library::Variable(i), v(i).get_den()), v(i).get_num());
-      poly->affine_image(Parma_Polyhedra_Library::Variable(i), e, v(i).get_den());
-      if (i == 0)
-        break;
+    std::vector<vw::Vector<mpq_class> > gs;
+    poly->get_generators(gs);
+    for (std::vector<vw::Vector<mpq_class> >::iterator i = gs.begin(); i != gs.end(); i++) {
+      for (unsigned j = 0; j < (*i).size(); j++)
+        (*i)[j] += v[j];
     }
+    delete poly;
+    poly = new BConvexImpl( dim );
+    poly->add_generators(gs);
   }
 
   /// Scales the polyhedron relative to the origin.
-  void scale_poly( mpq_class const& s, Parma_Polyhedra_Library::C_Polyhedron *poly ) {
+  void scale_poly( mpq_class const& s, BConvexImpl *&poly ) {
     unsigned dim = poly->space_dimension();
-    for (unsigned i = dim - 1; 1; i--) {
-      Parma_Polyhedra_Library::Linear_Expression e;
-      e += mult_variable(Parma_Polyhedra_Library::Variable(i), s.get_num());
-      poly->affine_image(Parma_Polyhedra_Library::Variable(i), e, s.get_den());
-      if (i == 0)
-        break;
+    std::vector<vw::Vector<mpq_class> > gs;
+    poly->get_generators(gs);
+    for (std::vector<vw::Vector<mpq_class> >::iterator i = gs.begin(); i != gs.end(); i++) {
+      for (unsigned j = 0; j < (*i).size(); j++)
+        (*i)[j] *= s;
     }
+    delete poly;
+    poly = new BConvexImpl( dim );
+    poly->add_generators(gs);
   }
 
 } // namespace
@@ -688,12 +802,12 @@ namespace math {
   } // namespace bconvex_promote
 
   /*static*/ void *BConvex::new_poly( unsigned dim ) {
-    Parma_Polyhedra_Library::C_Polyhedron *p = new Parma_Polyhedra_Library::C_Polyhedron( dim, Parma_Polyhedra_Library::EMPTY );
+    BConvexImpl *p = new BConvexImpl( dim );
     return (void*)p;
   }
 
   /*static*/ void *BConvex::new_poly( const void *poly ) {
-    Parma_Polyhedra_Library::C_Polyhedron *p = new Parma_Polyhedra_Library::C_Polyhedron( *((const Parma_Polyhedra_Library::C_Polyhedron*)poly) );
+    BConvexImpl *p = new BConvexImpl( *((const BConvexImpl*)poly) );
     return (void*)p;
   }
 
@@ -704,12 +818,12 @@ namespace math {
   
   /*static*/ void BConvex::delete_poly( void *poly ) {
     if (poly)
-      delete (Parma_Polyhedra_Library::C_Polyhedron*)poly;
+      delete (BConvexImpl*)poly;
   }
   
   /*static*/ void BConvex::copy_poly( const void *from_poly, void *&to_poly ) {
     if (to_poly)
-      *((Parma_Polyhedra_Library::C_Polyhedron*)to_poly) = *((const Parma_Polyhedra_Library::C_Polyhedron*)from_poly);
+      *((BConvexImpl*)to_poly) = *((const BConvexImpl*)from_poly);
     else
       to_poly = new_poly(from_poly);
   }
@@ -737,14 +851,13 @@ namespace math {
     qhull_run(dim, num_points, p);
     
 #if 0
-    m_poly = (void*)(new C_Polyhedron( dim, UNIVERSE ));
+    m_poly = (void*)(new BConvexImpl( dim, true ));
     FORALLfacets {
       for (i = 0; i < dim; i++)
         facetv[i] = -facet->normal[i];
       facetv[i] = -facet->offset;
       //NOTE: Printing facet->toporient here for the [0,1]^3 unit cube test case (see TestBConvex.h) demonstrates that facet->toporient is meaningless in the qhull output.
-      Constraint c = constraint_generator(convert_vector(facetv, facetq));
-      ((C_Polyhedron*)m_poly)->add_constraint(c);
+      ((BConvexImpl*)m_poly)->add_constraint(convert_vector(facetv, facetq));
       num_facets++;
     }
     FORALLvertices {
@@ -766,8 +879,7 @@ namespace math {
     FORALLvertices {
       for (i = 0; i < dim; i++)
         vertexv[i] = vertex->point[i];
-      Generator g = point_generator(convert_vector(vertexv, vertexq));
-      ((C_Polyhedron*)m_poly)->add_generator(g);
+      ((BConvexImpl*)m_poly)->add_generator(convert_vector(vertexv, vertexq));
       num_vertices++;
     }
 #endif
@@ -775,7 +887,7 @@ namespace math {
     //std::cout << "PPL: " << this->num_facets() << " facets and " << this->num_vertices() << " vertices" << std::endl;
     
     VW_ASSERT(!this->empty(), LogicErr() << "Convex hull is empty!");
-    VW_ASSERT(!((const C_Polyhedron*)m_poly)->is_universe(), LogicErr() << "Convex hull is universe!");
+    VW_ASSERT(!((const BConvexImpl*)m_poly)->is_universe(), LogicErr() << "Convex hull is universe!");
     
     qhull_free();
 #else // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
@@ -785,75 +897,71 @@ namespace math {
   
   void BConvex::grow_( Vector<Promoted> const& point ) {
     Vector<mpq_class> pointq;
-    ((Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->add_generator(point_generator(convert_vector(point, pointq)));
+    ((BConvexImpl*)m_poly)->add_generator(convert_vector(point, pointq));
   }
 
   void BConvex::grow( BConvex const& bconv ) {
-    new_poly_if_needed(((const Parma_Polyhedra_Library::C_Polyhedron*)(bconv.poly()))->space_dimension(), m_poly);
-    ((Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->poly_hull_assign(*((const Parma_Polyhedra_Library::C_Polyhedron*)(bconv.poly())));
+    new_poly_if_needed(((const BConvexImpl*)(bconv.poly()))->space_dimension(), m_poly);
+    ((BConvexImpl*)m_poly)->poly_hull_assign(*((const BConvexImpl*)(bconv.poly())));
   }
 
   void BConvex::crop( BConvex const& bconv ) {
     if (!m_poly)
       return;
-    ((Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->intersection_assign(*((const Parma_Polyhedra_Library::C_Polyhedron*)(bconv.poly())));
+    ((BConvexImpl*)m_poly)->intersection_assign(*((const BConvexImpl*)(bconv.poly())));
   }
 
   void BConvex::expand( double offset ) {
     VW_ASSERT(!empty(), LogicErr() << "Cannot expand an empty polyhedron!");
-    unsigned dim = ((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->space_dimension();
+    unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
     Vector<mpq_class> center_( dim );
-    poly_center((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly, center_);
-    void *poly = new_poly(dim);
-    Vector<mpq_class> p( dim ), d;
+    Vector<mpq_class> d;
     double norm;
-    const Parma_Polyhedra_Library::Generator_System &gs = ((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->minimized_generators();
-    Parma_Polyhedra_Library::Generator_System::const_iterator i;
-    for (i = gs.begin(); i != gs.end(); i++) {
-      convert_point(*i, p);
-      d = p - center_;
+    std::vector<vw::Vector<mpq_class> > gs;
+    ((const BConvexImpl*)m_poly)->get_generators(gs);
+    poly_center(gs, center_);
+    for (std::vector<vw::Vector<mpq_class> >::iterator i = gs.begin(); i != gs.end(); i++) {
+      d = *i - center_;
       norm = norm_2_gmp(d);
       if (offset < 0.0 && -offset >= norm)
-        p = center_;
+        *i = center_;
       else
-        p = center_ + (1.0 + offset / norm) * d;
-      Parma_Polyhedra_Library::Generator g = point_generator(p);
-      ((Parma_Polyhedra_Library::C_Polyhedron*)poly)->add_generator(g);
+        *i = center_ + (1.0 + offset / norm) * d;
     }
-    delete (Parma_Polyhedra_Library::C_Polyhedron*)m_poly;
-    m_poly = poly;
+    delete_poly(m_poly);
+    m_poly = new_poly( dim );
+    ((BConvexImpl*)m_poly)->add_generators(gs);
   }
 
   bool BConvex::contains_( Vector<Promoted> const& point ) const {
     Vector<mpq_class> pointq;
-    return (((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->relation_with(point_generator(convert_vector(point, pointq))) == Parma_Polyhedra_Library::Poly_Gen_Relation::subsumes());
+    return ((const BConvexImpl*)m_poly)->contains(convert_vector(point, pointq));
   }
 
   bool BConvex::contains( BConvex const& bconv ) const {
     if (!m_poly)
       return false;
-    return ((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->contains(*((const Parma_Polyhedra_Library::C_Polyhedron*)(bconv.poly())));
+    return ((const BConvexImpl*)m_poly)->contains(*((const BConvexImpl*)(bconv.poly())));
   }
 
   bool BConvex::intersects( BConvex const& bconv ) const {
     if (!m_poly)
       return false;
-    return !((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->is_disjoint_from(*((const Parma_Polyhedra_Library::C_Polyhedron*)(bconv.poly())));
+    return !((const BConvexImpl*)m_poly)->is_disjoint_from(*((const BConvexImpl*)(bconv.poly())));
   }
 
   double BConvex::size() const {
     if (!m_poly)
       return 0.0;
-    unsigned dim = ((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->space_dimension();
+    unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
     double result = 0;
     double d;
-    Vector<mpq_class> v(dim);
     Vector<mpq_class> c;
-    poly_center((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly, c);
-    const Parma_Polyhedra_Library::Generator_System &gs = ((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->minimized_generators();
-    for (Parma_Polyhedra_Library::Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
-      convert_point(*i, v);
-      d = norm_2_sqr_gmp(v - c);
+    std::vector<vw::Vector<mpq_class> > gs;
+    ((const BConvexImpl*)m_poly)->get_generators(gs);
+    poly_center(gs, c);
+    for (std::vector<vw::Vector<mpq_class> >::iterator i = gs.begin(); i != gs.end(); i++) {
+      d = norm_2_sqr_gmp(*i - c);
       result = std::max(result, d);
     }
     result = 2*std::sqrt(result);
@@ -862,10 +970,12 @@ namespace math {
 
   Vector<double> BConvex::center() const {
     VW_ASSERT(!empty(), LogicErr() << "Cannot find the center of an empty polyhedron!");
-    unsigned dim = ((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->space_dimension();
+    unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
     Vector<mpq_class> c(dim);
     Vector<double> cd(dim);
-    poly_center((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly, c);
+    std::vector<vw::Vector<mpq_class> > gs;
+    ((const BConvexImpl*)m_poly)->get_generators(gs);
+    poly_center(gs, c);
     unconvert_vector(c, cd);
     return cd;
   }
@@ -873,13 +983,13 @@ namespace math {
   bool BConvex::equal( BConvex const& bconv ) const {
     if (empty())
       return bconv.empty();
-    return *((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly) == *((const Parma_Polyhedra_Library::C_Polyhedron*)(bconv.poly()));
+    return ((const BConvexImpl*)m_poly)->equal(*((const BConvexImpl*)(bconv.poly())));
   }
 
   bool BConvex::empty() const {
     if (!m_poly)
       return true;
-    return ((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->is_empty();
+    return ((const BConvexImpl*)m_poly)->is_empty();
   }
 
   void BConvex::print( std::ostream& os ) const {
@@ -887,20 +997,18 @@ namespace math {
       os << "false";
       return;
     }
-    using ::Parma_Polyhedra_Library::IO_Operators::operator<<;
-    os << *((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly);
+    ((const BConvexImpl*)m_poly)->print(os);
   }
 
   void BConvex::write( std::ostream& os, bool binary /* = false*/ ) const {
     if (!empty()) {
-      unsigned dim = ((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->space_dimension();
+      unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
       std::vector<Vector<double> > points;
-      Vector<mpq_class> v(dim);
       Vector<double> vd(dim);
-      const Parma_Polyhedra_Library::Generator_System &gs = ((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->minimized_generators();
-      for (Parma_Polyhedra_Library::Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
-        convert_point(*i, v);
-        unconvert_vector(v, vd);
+      std::vector<vw::Vector<mpq_class> > gs;
+      ((const BConvexImpl*)m_poly)->get_generators(gs);
+      for (std::vector<vw::Vector<mpq_class> >::iterator i = gs.begin(); i != gs.end(); i++) {
+        unconvert_vector(*i, vd);
         points.push_back(vd);
       }
       write_point_list(os, points, binary);
@@ -928,7 +1036,7 @@ namespace math {
     os << "Separator {\n";
   
     if (!empty()) {
-      unsigned dim = ((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->space_dimension();
+      unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
       unsigned num_points;
       unsigned num_facets;
       Vector<double> vertexv( dim );
@@ -936,7 +1044,7 @@ namespace math {
       std::vector<std::vector<unsigned> > facets;
       unsigned i, j, k;
       
-      poly_facet_list((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly, points, facets);
+      poly_facet_list((const BConvexImpl*)m_poly, points, facets);
       num_points = points.size();
       num_facets = facets.size();
       
@@ -1017,7 +1125,7 @@ namespace math {
       os << "0 0 0\n";
     }
     else {
-      unsigned dim = ((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->space_dimension();
+      unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
       unsigned num_points;
       unsigned num_facets;
       unsigned num_edges;
@@ -1026,7 +1134,7 @@ namespace math {
       std::vector<std::vector<unsigned> > facets;
       unsigned i, j, k;
       
-      poly_facet_list((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly, points, facets);
+      poly_facet_list((const BConvexImpl*)m_poly, points, facets);
       num_points = points.size();
       num_facets = facets.size();
       
@@ -1066,26 +1174,25 @@ namespace math {
   unsigned BConvex::num_facets() const {
     if (!m_poly)
       return 0;
-    return num_constraints(((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->minimized_constraints());
+    return ((const BConvexImpl*)m_poly)->num_constraints();
   }
 
   unsigned BConvex::num_vertices() const {
     if (!m_poly)
       return 0;
-    return num_generators(((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->minimized_generators());
+    return ((const BConvexImpl*)m_poly)->num_generators();
   }
   
   BBoxN BConvex::bounding_box() const {
     BBoxN bbox;
     if (!m_poly)
       return bbox;
-    unsigned dim = ((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->space_dimension();
-    Vector<mpq_class> v(dim);
+    unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
     Vector<double> vd(dim);
-    const Parma_Polyhedra_Library::Generator_System &gs = ((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->minimized_generators();
-    for (Parma_Polyhedra_Library::Generator_System::const_iterator i = gs.begin(); i != gs.end(); i++) {
-      convert_point(*i, v);
-      unconvert_vector(v, vd);
+    std::vector<vw::Vector<mpq_class> > gs;
+    ((const BConvexImpl*)m_poly)->get_generators(gs);
+    for (std::vector<vw::Vector<mpq_class> >::iterator i = gs.begin(); i != gs.end(); i++) {
+      unconvert_vector(*i, vd);
       bbox.grow(vd);
     }
     return bbox;
@@ -1093,28 +1200,36 @@ namespace math {
 
   void BConvex::operator_mult_eq_( Promoted const& s ) {
     mpq_class q;
+    BConvexImpl *poly = (BConvexImpl*)m_poly;
     convert_scalar(s, q);
-    scale_poly(q, (Parma_Polyhedra_Library::C_Polyhedron*)m_poly);
+    scale_poly(q, poly);
+    m_poly = poly;
   }
 
   void BConvex::operator_div_eq_( Promoted const& s ) {
     mpq_class q;
+    BConvexImpl *poly = (BConvexImpl*)m_poly;
     convert_scalar(s, q);
-    scale_poly(mpq_class(q.get_den(), q.get_num()), (Parma_Polyhedra_Library::C_Polyhedron*)m_poly);
+    scale_poly(mpq_class(q.get_den(), q.get_num()), poly);
+    m_poly = poly;
   }
 
   void BConvex::operator_plus_eq_( Vector<Promoted> const& v ) {
-    unsigned dim = ((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->space_dimension();
+    unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
     Vector<mpq_class> vq( dim );
+    BConvexImpl *poly = (BConvexImpl*)m_poly;
     convert_vector(v, vq);
-    offset_poly(vq, (Parma_Polyhedra_Library::C_Polyhedron*)m_poly);
+    offset_poly(vq, poly);
+    m_poly = poly;
   }
 
   void BConvex::operator_minus_eq_( Vector<Promoted> const& v ) {
-    unsigned dim = ((const Parma_Polyhedra_Library::C_Polyhedron*)m_poly)->space_dimension();
+    unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
     Vector<mpq_class> vq( dim );
+    BConvexImpl *poly = (BConvexImpl*)m_poly;
     convert_vector(v, vq);
-    offset_poly(-vq, (Parma_Polyhedra_Library::C_Polyhedron*)m_poly);
+    offset_poly(-vq, poly);
+    m_poly = poly;
   }
 
   std::ostream& operator<<( std::ostream& os, BConvex const& bconv ) {
