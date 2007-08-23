@@ -80,6 +80,7 @@ namespace vw {
       inline void deprioritize() { m_cache.deprioritize(this); }
     public:
       CacheLineBase( Cache& cache, size_t size ) : m_cache(cache), m_prev(0), m_next(0), m_size(size) {}
+      virtual ~CacheLineBase() {}
       virtual inline void invalidate() { m_cache.invalidate(this); }
       virtual size_t size() const { return m_size; }
     };
