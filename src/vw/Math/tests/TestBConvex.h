@@ -84,22 +84,22 @@ public:
     c1.grow(Vector3(0.5, 0.5, 0.5));
     std::ostringstream os1;
     os1 << c1;
-    TS_ASSERT( check_bconvex_print(os1.str(), std::string("-C >= -1, -B >= -1, -A >= -1, A >= 0, C >= 0, B >= 0")) );
+    TS_ASSERT( check_bconvex_print(os1.str(), std::string("-C >= -1, -B >= -1, -A >= -1, A >= 0, C >= 0, B >= 0")) || check_bconvex_print(os1.str(), std::string("-1*X + 0*Y + 0*Z + 1 >= 0, 0*X + -1*Y + 0*Z + 1 >= 0, 0*X + 0*Y + -1*Z + 1 >= 0, 0*X + 0*Y + 1*Z + 0 >= 0, 0*X + 1*Y + 0*Z + 0 >= 0, 1*X + 0*Y + 0*Z + 0 >= 0")) );
     std::ostringstream os2;
     os2 << (c1 * 4);
-    TS_ASSERT( check_bconvex_print(os2.str(), std::string("-C >= -4, -B >= -4, -A >= -4, A >= 0, C >= 0, B >= 0")) );
+    TS_ASSERT( check_bconvex_print(os2.str(), std::string("-C >= -4, -B >= -4, -A >= -4, A >= 0, C >= 0, B >= 0")) || check_bconvex_print(os2.str(), std::string("-1*X + 0*Y + 0*Z + 4 >= 0, 0*X + -1*Y + 0*Z + 4 >= 0, 0*X + 0*Y + -1*Z + 4 >= 0, 0*X + 0*Y + 1*Z + 0 >= 0, 0*X + 1*Y + 0*Z + 0 >= 0, 1*X + 0*Y + 0*Z + 0 >= 0")) );
     std::ostringstream os3;
     os3 << (4 * c1);
-    TS_ASSERT( check_bconvex_print(os3.str(), std::string("-C >= -4, -B >= -4, -A >= -4, A >= 0, C >= 0, B >= 0")) );
+    TS_ASSERT( check_bconvex_print(os3.str(), std::string("-C >= -4, -B >= -4, -A >= -4, A >= 0, C >= 0, B >= 0")) || check_bconvex_print(os3.str(), std::string("-1*X + 0*Y + 0*Z + 4 >= 0, 0*X + -1*Y + 0*Z + 4 >= 0, 0*X + 0*Y + -1*Z + 4 >= 0, 0*X + 0*Y + 1*Z + 0 >= 0, 0*X + 1*Y + 0*Z + 0 >= 0, 1*X + 0*Y + 0*Z + 0 >= 0")) );
     std::ostringstream os4;
     os4 << ((c1 * 4) / 4);
-    TS_ASSERT( check_bconvex_print(os4.str(), std::string("-C >= -1, -B >= -1, -A >= -1, A >= 0, C >= 0, B >= 0")) );
+    TS_ASSERT( check_bconvex_print(os4.str(), std::string("-C >= -1, -B >= -1, -A >= -1, A >= 0, C >= 0, B >= 0")) || check_bconvex_print(os4.str(), std::string("-1*X + 0*Y + 0*Z + 1 >= 0, 0*X + -1*Y + 0*Z + 1 >= 0, 0*X + 0*Y + -1*Z + 1 >= 0, 0*X + 0*Y + 1*Z + 0 >= 0, 0*X + 1*Y + 0*Z + 0 >= 0, 1*X + 0*Y + 0*Z + 0 >= 0")) );
     std::ostringstream os5;
     os5 << (c1 + Vector3(1, -2, 3));
-    TS_ASSERT( check_bconvex_print(os5.str(), std::string("-C >= -4, -B >= 1, -A >= -2, A >= 1, C >= 3, B >= -2")) );
+    TS_ASSERT( check_bconvex_print(os5.str(), std::string("-C >= -4, -B >= 1, -A >= -2, A >= 1, C >= 3, B >= -2")) || check_bconvex_print(os5.str(), std::string("-1*X + 0*Y + 0*Z + 2 >= 0, 0*X + -1*Y + 0*Z + -1 >= 0, 0*X + 0*Y + -1*Z + 4 >= 0, 0*X + 0*Y + 1*Z + -3 >= 0, 0*X + 1*Y + 0*Z + 2 >= 0, 1*X + 0*Y + 0*Z + -1 >= 0")) );
     std::ostringstream os6;
     os6 << ((c1 + Vector3(1, -2, 3)) - Vector3(1, -2, 3));
-    TS_ASSERT( check_bconvex_print(os6.str(), std::string("-C >= -1, -B >= -1, -A >= -1, A >= 0, C >= 0, B >= 0")) );
+    TS_ASSERT( check_bconvex_print(os6.str(), std::string("-C >= -1, -B >= -1, -A >= -1, A >= 0, C >= 0, B >= 0")) || check_bconvex_print(os6.str(), std::string("-1*X + 0*Y + 0*Z + 1 >= 0, 0*X + -1*Y + 0*Z + 1 >= 0, 0*X + 0*Y + -1*Z + 1 >= 0, 0*X + 0*Y + 1*Z + 0 >= 0, 0*X + 1*Y + 0*Z + 0 >= 0, 1*X + 0*Y + 0*Z + 0 >= 0")) );
 
     v.clear();
     // box with min (-2,-2,-2) and max (2,2,2)

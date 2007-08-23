@@ -49,6 +49,10 @@ if HAVE_PKG_PPL
 nodist_TestBConvex_SOURCES = TestBConvex.cxx
 TestPPL = TestBConvex
 endif
+if HAVE_PKG_APRON
+nodist_TestBConvex_SOURCES = TestBConvex.cxx
+TestPPL = TestBConvex
+endif
 
 TESTS = TestVector TestMatrix TestQuaternion TestBBox TestBBall TestFunctions	 \
         TestFunctors TestNelderMead TestSpatialTree $(TestLinearAlgebra) \

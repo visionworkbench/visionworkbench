@@ -48,7 +48,9 @@ PKG_PATHS="  \
   $IRGPKG_DIR/glew             \
   $IRGPKG_DIR/cg               \
   $IRGPKG_DIR/qhull-2003.1     \
-  $IRGPKG_DIR/ppl-0.9          \
+  $IRGPKG_DIR/gmp-4.2.1        \
+  $IRGPKG_DIR/mpfr-2.2.1       \
+  $IRGPKG_DIR/apron-0.9.6      \
   /usr/X11R6                   \
 "
 

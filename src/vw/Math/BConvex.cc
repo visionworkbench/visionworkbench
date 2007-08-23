@@ -40,6 +40,13 @@ using namespace vw::math::bconvex_promote;
 #if defined(VW_HAVE_PKG_PPL) && VW_HAVE_PKG_PPL==1
 #include <gmpxx.h> // GNU Multiple Precision Arithmetic Library
 #include <ppl.hh> // Parma Polyhedra Library
+#elif defined(VW_HAVE_PKG_APRON) && VW_HAVE_PKG_APRON==1
+#include <gmpxx.h> // GNU Multiple Precision Arithmetic Library
+extern "C" {
+#include <ap_global0.h> // Apron
+#include <ap_global1.h>
+#include <pk.h> // NewPolka
+}
 #endif
 
 #if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
@@ -433,6 +440,440 @@ namespace {
     }
 
     Parma_Polyhedra_Library::C_Polyhedron poly;
+  };
+
+#elif defined(VW_HAVE_PKG_APRON) && VW_HAVE_PKG_APRON==1
+
+  /// All functionality that is tied to Apron/NewPolka.
+  class BConvexImpl {
+  public:
+    /// Constructor.
+    BConvexImpl( unsigned dim_, bool universe = false ) : dim( dim_ ) {
+      generate_variable_names();
+      man = pk_manager_alloc(false); // no strict inequalities
+      env = ap_environment_alloc(0, 0, variable_names, dim);
+      poly = universe ? ap_abstract1_top(man, env) : ap_abstract1_bottom(man, env);
+    }
+  
+    /// Copy constructor.
+    BConvexImpl( const BConvexImpl &other ) : dim( other.dim ) {
+      generate_variable_names();
+      man = pk_manager_alloc(false); // no strict constraints
+      env = ap_environment_alloc(NULL, 0, variable_names, other.dim);
+      poly = ap_abstract1_copy(other.man, &other.poly);
+    }
+
+    /// Destructor.
+    ~BConvexImpl() {
+      ap_abstract1_clear(man, &poly);
+      ap_environment_free(env);
+      ap_manager_free(man);
+      cleanup_variable_names();
+    }
+
+    /// Assignment operator.
+    BConvexImpl &operator=( const BConvexImpl &other ) {
+      if (&other != (const BConvexImpl*)this) {
+        ap_abstract1_clear(man, &poly);
+        ap_environment_free(env);
+        ap_manager_free(man);
+        cleanup_variable_names();
+        dim = other.dim;
+        generate_variable_names();
+        man = pk_manager_alloc(false); // no strict constraints
+        env = ap_environment_alloc(NULL, 0, variable_names, other.dim);
+        poly = ap_abstract1_copy(other.man, &other.poly);
+      }
+      return *this;
+    }
+
+    /// Return dimension of ambient space.
+    inline unsigned space_dimension() const {return dim;}
+
+    /// Return whether polyhedron is the universe polyhedron.
+    inline bool is_universe() const {return ap_abstract1_is_top(man, &poly);}
+
+    /// Return whether polyhedron is empty.
+    inline bool is_empty() const {return ap_abstract1_is_bottom(man, &poly);}
+
+    /// Return whether the polyhedron contains the given point.
+    inline bool contains( const vw::Vector<mpq_class> &point ) const {
+      BConvexImpl point_poly(point.size(), true);
+      return contains(point_polyhedron_generator(point, point_poly));
+    }
+    
+    /// Return whether the polyhedron contains the other polyhedron.
+    inline bool contains( const BConvexImpl &other ) const {
+      VW_ASSERT(ap_environment_is_eq(env, other.env), vw::ArgumentErr() << "Cannot compare convex shapes with different environments!");
+      return ap_abstract1_is_leq(man, &other.poly, &poly);
+    }
+
+    /// Return whether the polyhedron is disjoint from the other polyhedron.
+    bool is_disjoint_from( const BConvexImpl &other ) const {
+      VW_ASSERT(ap_environment_is_eq(env, other.env), vw::ArgumentErr() << "Cannot compare convex shapes with different environments!");
+      bool disjoint;
+      ap_abstract1_t intersection;
+      intersection = ap_abstract1_meet(man, false, &poly, &other.poly);
+      disjoint = ap_abstract1_is_bottom(man, &intersection);
+      ap_abstract1_clear(man, &intersection);
+      return disjoint;
+    }
+
+    /// Return whether the polyhedron is equal to the other polyhedron.
+    inline bool equal( const BConvexImpl &other ) const {
+      VW_ASSERT(ap_environment_is_eq(env, other.env), vw::ArgumentErr() << "Cannot compare convex shapes with different environments!");
+      return ap_abstract1_is_eq(man, &other.poly, &poly);
+    }
+
+    /// Return the number of constraints.
+    unsigned num_constraints() const {
+      unsigned n;
+      ap_lincons1_array_t cs = ap_abstract1_to_lincons_array(man, &poly);
+      n = num_constraints(&cs);
+      ap_lincons1_array_clear(&cs);
+      return n;
+    }
+  
+    /// Add a constraint.
+    void add_constraint( const vw::Vector<mpq_class> &coef ) {
+      VW_ASSERT(coef.size() == dim + 1, vw::ArgumentErr() << "Cannot add constraint of different dimension!");
+      ap_lincons1_array_t cs = ap_lincons1_array_make(env, 1);
+      ap_lincons1_t c = constraint_generator(coef);
+      ap_lincons1_array_set(&cs, 0, &c);
+      poly = ap_abstract1_meet_lincons_array(man, true, &poly, &cs);
+      ap_lincons1_array_clear(&cs);
+    }
+  
+    /// Add multiple constraints.
+    void add_constraints( const std::vector<vw::Vector<mpq_class> > &constraints ) {
+      ap_lincons1_array_t cs = ap_lincons1_array_make(env, constraints.size());
+      ap_lincons1_t c;
+      for (unsigned i = 0; i < constraints.size(); i++) {
+        VW_ASSERT(constraints[i].size() == dim + 1, vw::ArgumentErr() << "Cannot add constraint of different dimension!");
+        c = constraint_generator(constraints[i]);
+        ap_lincons1_array_set(&cs, i, &c); //NOTE: even though c is passed as a pointer, it is OK to reuse it
+      }
+      poly = ap_abstract1_meet_lincons_array(man, true, &poly, &cs);
+      ap_lincons1_array_clear(&cs);
+    }
+  
+    /// Get all constraints.
+    std::vector<vw::Vector<mpz_class> > &get_constraints( std::vector<vw::Vector<mpz_class> > &constraints ) const {
+      ap_lincons1_array_t cs = ap_abstract1_to_lincons_array(man, &poly);
+      ap_lincons1_t c;
+      ap_constyp_t *t;
+      vw::Vector<mpz_class> coef;
+      constraints.clear();
+      for (unsigned i = 0; i < ap_lincons1_array_size(&cs); i++) {
+        c = ap_lincons1_array_get(&cs, i);
+        t = ap_lincons1_constypref(&c);
+        VW_ASSERT(*t == AP_CONS_EQ || *t == AP_CONS_SUPEQ, vw::LogicErr() << "Retrieved strict inequality from closed convex polyhedron!");
+        coefficients(&c, coef);
+        constraints.push_back(coef);
+        if (*t == AP_CONS_EQ)
+          constraints.push_back(-coef);
+      }
+      ap_lincons1_array_clear(&cs);
+    }
+
+//#if 0
+    /// Return the number of generators.
+    unsigned num_generators() const {
+      unsigned n;
+      ap_generator1_array_t gs = ap_abstract1_to_generator_array(man, &poly);
+      n = num_generators(&gs);
+      ap_generator1_array_clear(&gs);
+      return n;
+    }
+
+    /// Add a (point) generator.
+    void add_generator( const vw::Vector<mpq_class> &point ) {
+      VW_ASSERT(point.size() == dim, vw::ArgumentErr() << "Cannot add point of different dimension!");
+      BConvexImpl point_poly(point.size(), true);
+      poly_hull_assign(point_polyhedron_generator(point, point_poly));
+#if 0
+      ap_generator1_array_t old_gs = ap_abstract1_to_generator_array(man, &poly);
+      unsigned old_n = num_generators(&old_gs);
+      unsigned new_n = old_n + 1;
+      ap_generator1_array_t new_gs = ap_generator1_array_make(env, new_n);
+      ap_generator1_t old_g, new_g;
+      unsigned i;
+      for (i = 0; i < old_n; i++) {
+        old_g = ap_lincons1_array_get(&old_gs, i);
+        new_g = ap_generator1_copy(&old_g);
+        ap_generator1_array_set(&new_gs, i, &new_g); //NOTE: even though new_g is passed as a pointer, it is OK to reuse it
+      }
+      ap_generator1_array_clear(&old_gs);
+
+
+      ap_lincons1_array_t gs = ap_lincons1_array_make(env, 1);
+      ap_lincons1_t c = constraint_generator(coef);
+      ap_lincons1_array_set(&cs, 0, &c);
+      poly = ap_abstract1_meet_lincons_array(man, true, &poly, &cs);
+      
+      ap_generator1_array_clear(&new_gs); //FIXME: do this?
+#endif
+    }
+
+    /// Add multiple (point) generators.
+    inline void add_generators( const std::vector<vw::Vector<mpq_class> > &generators ) {
+      std::vector<vw::Vector<mpq_class> >::const_iterator i;
+      for (i = generators.begin(); i != generators.end(); i++)
+        add_generator(*i);
+    }
+
+    /// Get all (point) generators.
+    std::vector<vw::Vector<mpq_class> > &get_generators( std::vector<vw::Vector<mpq_class> > &generators ) const {
+      vw::Vector<mpq_class> p;
+      ap_generator1_array_t gs = ap_abstract1_to_generator_array(man, &poly);
+      ap_generator1_t g;
+      ap_gentyp_t *t;
+      generators.clear();
+      for (unsigned i = 0; i < ap_generator1_array_size(&gs); i++) {
+        g = ap_generator1_array_get(&gs, i);
+        t = ap_generator1_gentypref(&g);
+        VW_ASSERT(*t == AP_GEN_VERTEX, vw::LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
+        convert_point(&g, p);
+        generators.push_back(p);
+      }
+      return generators;
+    }
+//#endif
+
+    /// Assign to this polyhedron the convex hull of this polyhedron and the other polyhedron.
+    inline void poly_hull_assign( const BConvexImpl &other ) {
+      VW_ASSERT(ap_environment_is_eq(env, other.env), vw::ArgumentErr() << "Cannot combine convex shapes with different environments!");
+      poly = ap_abstract1_join(man, true, &poly, &other.poly);
+    }
+
+    /// Assign to this polyhedron the intersection of this polyhedron and the other polyhedron.
+    inline void intersection_assign( const BConvexImpl &other ) {
+      VW_ASSERT(ap_environment_is_eq(env, other.env), vw::ArgumentErr() << "Cannot combine convex shapes with different environments!");
+      poly = ap_abstract1_meet(man, true, &poly, &other.poly);
+    }
+
+    /// Print the polyhedron.
+    void print( std::ostream& os ) const {
+      if (is_empty()) {
+        os << "false";
+        return;
+      }
+      if (is_universe()) {
+        os << "true";
+        return;
+      }
+      unsigned i, j;
+      std::vector<vw::Vector<mpz_class> > constraints;
+      get_constraints(constraints);
+      for (i = 0; i < constraints.size(); i++) {
+        for (j = 0; j < constraints[i].size() - 1; j++)
+          os << constraints[i][j].get_str() << "*" << std::string((char*)(variable_names[j])) << " + ";
+        os << constraints[i][j].get_str() << " >= 0";
+        if (i < constraints.size() - 1)
+          os << ", ";
+      }
+    }
+
+//#if 0
+    //FIXME: get rid of this
+    void print() const {
+      ap_abstract1_fprint(stdout, man, &poly);
+      printf("\n"); //FIXME: get rid of this
+    }
+//#endif
+  
+  private:
+    /// Generate a variable name for each dimension.
+    void generate_variable_names() {
+      char i;
+      unsigned j, k;
+      VW_ASSERT(dim <= 26, vw::LogicErr() << "Unable to create more than 26 variable names!");
+      variable_names_char = (char*)malloc(2 * dim * sizeof(char));
+      variable_names = (ap_var_t*)malloc(dim * sizeof(ap_var_t));
+      for (j = 0, k = 1; j < dim; j++, k += 2)
+        variable_names_char[k] = '\0';
+      for (i = 0, j = 0, k = 0; i < 3 && j < dim; i++, j++, k += 2) {
+        variable_names_char[k] = 'X' + i;
+        variable_names[j] = (ap_var_t)&variable_names_char[k];
+      }
+      for (i = 0; i < 3 && j < dim; i++, j++, k += 2) {
+        variable_names_char[k] = 'U' + i;
+        variable_names[j] = (ap_var_t)&variable_names_char[k];
+      }
+      for (i = 0; i < 20 && j < dim; i++, j++, k += 2) {
+        variable_names_char[k] = 'A' + i;
+        variable_names[j] = (ap_var_t)&variable_names_char[k];
+      }
+    }
+  
+    /// Cleanup variable names for each dimension.
+    void cleanup_variable_names() {
+      free(variable_names);
+      variable_names = 0;
+      free(variable_names_char);
+      variable_names_char = 0;
+    }
+  
+    /// Creates an Apron scalar.
+    static ap_scalar_t *scalar_generator( const mpq_class &scalar ) {
+      ap_scalar_t *s = ap_scalar_alloc();
+      mpq_class q = scalar;
+      ap_scalar_set_mpq(s, q.get_mpq_t());
+      return s;
+    }
+    
+#if 0
+    /// Creates an Apron point.
+    ap_generator1_t point_generator( const vw::Vector<mpq_class> &point ) const {
+      ap_linexpr1_t *e = (ap_linexpr1_t*)malloc(sizeof(ap_linexpr1_t));
+      *e = ap_linexpr1_make(env, AP_LINEXPR_DENSE, point.size());
+      ap_linexpr0_t *e0 = ap_linexpr1_linexpr0ref(e);
+      unsigned i;
+      for (i = 0; i < point.size(); i++)
+        ap_linexpr0_set_coeff_scalar(e0, i, scalar_generator(point[i]));
+      ap_linexpr0_set_cst_scalar(e0, scalar_generator(0)); //FIXME: ???
+      ap_generator1_t g = ap_generator1_make(AP_GEN_VERTEX, e);
+      //NOTE: e is not duplicated; it will be freed when g is cleaned up
+      return g;
+    }
+#endif
+
+    /// Make a polyhedron that contains a single point.
+    static BConvexImpl &point_polyhedron_generator( const vw::Vector<mpq_class> &point, BConvexImpl &point_poly ) {
+      std::vector<vw::Vector<mpq_class> > constraints;
+      vw::Vector<mpq_class> coef1, coef2;
+      coef1.set_size(point.size() + 1);
+      coef2.set_size(point.size() + 1);
+      for (unsigned i = 0; i < point.size(); i++) {
+        coef1[i] = 0;
+        coef2[i] = 0;
+      }
+      for (unsigned i = 0; i < point.size(); i++) {
+        coef1[i] = -1;
+        coef2[i] = 1;
+        coef1[point.size()] = point[i];
+        coef2[point.size()] = -point[i];
+        constraints.push_back(coef1);
+        constraints.push_back(coef2);
+        coef1[i] = 0;
+        coef2[i] = 0;
+      }
+      point_poly.add_constraints(constraints);
+#if 0
+      point_poly.print();
+      std::vector<vw::Vector<mpq_class> > gs;
+      point_poly.get_generators(gs);
+      std::cout << "Has " << point_poly.num_generators() << " generators:" << std::endl;
+      for (unsigned i = 0; i < gs.size(); i++) {
+        for (unsigned j = 0; j < gs[i].size(); j++)
+          std::cout << gs[i][j].get_str() << " ";
+        std::cout << std::endl;
+      }
+#endif
+      return point_poly;
+    }
+    
+    /// Creates an Apron constraint.
+    ap_lincons1_t constraint_generator( const vw::Vector<mpq_class> &coef ) const {
+      ap_linexpr1_t *e = (ap_linexpr1_t*)malloc(sizeof(ap_linexpr1_t));
+      *e = ap_linexpr1_make(env, AP_LINEXPR_DENSE, coef.size() - 1);
+      ap_linexpr0_t *e0 = ap_linexpr1_linexpr0ref(e);
+      unsigned i;
+      for (i = 0; i < (coef.size() - 1); i++)
+        ap_linexpr0_set_coeff_scalar(e0, i, scalar_generator(coef[i]));
+      ap_linexpr0_set_cst_scalar(e0, scalar_generator(coef[i]));
+      ap_lincons1_t c = ap_lincons1_make(AP_CONS_SUPEQ, e, 0);
+      //NOTE: e is not duplicated; it will be freed when c is cleaned up
+      return c;
+    }
+    
+    /// Finds the value of an Apron scalar.
+    static mpq_class &convert_scalar( ap_scalar_t *s, mpq_class &scalar ) {
+      VW_ASSERT(s->discr == AP_SCALAR_MPQ, vw::ArgumentErr() << "Trying to convert scalar of wrong type!");
+      scalar = mpq_class(s->val.mpq);
+      return scalar;
+    }
+    
+    /// Finds the coefficients of an Apron constraint.
+    void coefficients( ap_lincons1_t *c, vw::Vector<mpz_class> &coef ) const {
+      ap_lincons0_t *c0 = ap_lincons1_lincons0ref(c);
+      ap_linexpr1_t e = ap_lincons1_linexpr1ref(c);
+      ap_linexpr0_t *e0 = ap_linexpr1_linexpr0ref(&e);
+      ap_coeff_t *a = ap_coeff_alloc(AP_COEFF_SCALAR);
+      mpq_class q;
+      unsigned i;
+      VW_ASSERT(ap_linexpr0_is_linear(e0), vw::ArgumentErr() << "Linear expression is not linear!");
+      coef.set_size(dim + 1);
+      for (i = 0; i < dim; i++) {
+        ap_linexpr0_get_coeff(a, e0, i);
+        VW_ASSERT(a->discr == AP_COEFF_SCALAR, vw::ArgumentErr() << "Linear expression is not linear!");
+        convert_scalar(a->val.scalar, q);
+        VW_ASSERT(q.get_den() == 1, vw::ArgumentErr() << "Linear expression has non-integer coefficients!");
+        coef[i] = q.get_num();
+      }
+      ap_linexpr0_get_cst(a, e0);
+      VW_ASSERT(a->discr == AP_COEFF_SCALAR, vw::ArgumentErr() << "Linear expression is not linear!");
+      convert_scalar(a->val.scalar, q);
+      VW_ASSERT(q.get_den() == 1, vw::ArgumentErr() << "Linear expression has non-integer coefficients!");
+      coef[i] = q.get_num();
+      ap_coeff_free(a);
+    }
+    
+    /// Returns the Apron generator (point) as a Vector.
+    void convert_point( ap_generator1_t *g, vw::Vector<mpq_class> &p ) const {
+      ap_generator0_t *g0 = ap_generator1_generator0ref(g);
+      ap_linexpr1_t e = ap_generator1_linexpr1ref(g);
+      ap_linexpr0_t *e0 = ap_linexpr1_linexpr0ref(&e);
+      ap_gentyp_t *t = ap_generator1_gentypref(g);
+      ap_coeff_t *a = ap_coeff_alloc(AP_COEFF_SCALAR);
+      unsigned i;
+      VW_ASSERT(*t == AP_GEN_VERTEX, vw::LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
+      VW_ASSERT(ap_linexpr0_is_linear(e0), vw::ArgumentErr() << "Linear expression is not linear!");
+      p.set_size(dim);
+      for (i = 0; i < dim; i++) {
+        ap_linexpr0_get_coeff(a, e0, i);
+        VW_ASSERT(a->discr == AP_COEFF_SCALAR, vw::ArgumentErr() << "Linear expression is not linear!");
+        convert_scalar(a->val.scalar, p[i]);
+      }
+      ap_coeff_free(a);
+    }
+
+    /// Finds the number of constraints in a constraint system.
+    static unsigned num_constraints( ap_lincons1_array_t *cs ) {
+      ap_lincons1_t c;
+      ap_constyp_t *t;
+      unsigned n = 0;
+      for (unsigned i = 0; i < ap_lincons1_array_size(cs); i++) {
+        c = ap_lincons1_array_get(cs, i);
+        t = ap_lincons1_constypref(&c);
+        VW_ASSERT(*t == AP_CONS_EQ || *t == AP_CONS_SUPEQ, vw::LogicErr() << "Retrieved strict inequality from closed convex polyhedron!");
+        n++;
+        if (*t == AP_CONS_EQ)
+          n++;
+      }
+      return n;
+    }
+
+    /// Finds the number of generators in a generator system.
+    static unsigned num_generators( ap_generator1_array_t *gs ) {
+      ap_generator1_t g;
+      ap_gentyp_t *t;
+      unsigned n = 0;
+      for (unsigned i = 0; i < ap_generator1_array_size(gs); i++) {
+        g = ap_generator1_array_get(gs, i);
+        t = ap_generator1_gentypref(&g);
+        VW_ASSERT(*t == AP_GEN_VERTEX, vw::LogicErr() << "Retrieved non-point generator from closed convex polyhedron!");
+        n++;
+      }
+      return n;
+    }
+  
+    unsigned dim;
+    char *variable_names_char;
+    ap_var_t *variable_names;
+    ap_manager_t *man;
+    ap_environment_t *env;
+    mutable ap_abstract1_t poly;
   };
 
 #endif // defined(VW_HAVE_PKG_PPL) && VW_HAVE_PKG_PPL==1
