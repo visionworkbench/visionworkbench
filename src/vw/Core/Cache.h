@@ -194,7 +194,7 @@ namespace vw {
         VW_ASSERT( m_line_ptr, NullPtrErr() << "Invalid cache handle!" );
         return m_line_ptr->value();
       }
-      bool valid() const { m_line_ptr->valid(); }
+      bool valid() const { return m_line_ptr->valid(); }
       size_t size() const { return m_line_ptr->size(); }
       void deprioritize() const { return m_line_ptr->deprioritize(); }
     };
