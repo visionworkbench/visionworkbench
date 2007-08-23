@@ -66,8 +66,8 @@ public:
     static int num_actual_blocks = 3;
     static int num_cache_blocks = 2;
 
-    //    std::cout << "\n\n";
-    //    set_debug_level(VerboseDebugMessage+1);
+    //std::cout << "\n\n";
+    //set_debug_level(VerboseDebugMessage+1);
 
     vw::Cache cache( num_cache_blocks*dimension*dimension );  
 

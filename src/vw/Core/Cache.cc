@@ -29,11 +29,16 @@
 #include <vw/Core/Debugging.h>
 
 namespace {
-  vw::Cache g_system_cache( 512*1024*1024 );
+  vw::RunOnce system_cache_once = VW_RUNONCE_INIT;
+  vw::Cache *system_cache_ptr = 0;
+  void init_system_cache() {
+    system_cache_ptr = new vw::Cache( 512*1024*1024 );
+  }
 }
 
 vw::Cache& vw::Cache::system_cache() {
-  return g_system_cache;
+  system_cache_once.run( init_system_cache );
+  return *system_cache_ptr;
 }
 
 void vw::Cache::allocate( size_t size ) {
@@ -49,6 +54,7 @@ void vw::Cache::allocate( size_t size ) {
 }
 
 void vw::Cache::resize( size_t size ) {
+  Mutex::Lock lock(m_mutex);
   m_max_size = size;
   while( m_size > m_max_size ) {
     VW_ASSERT( m_last_valid, LogicErr() << "Cache is empty but has nonzero size!" );

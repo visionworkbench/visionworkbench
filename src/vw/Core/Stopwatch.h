@@ -6,9 +6,9 @@
 #include <string>
 
 // BOOST includes
-#include <boost/thread/mutex.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include <vw/Core/Thread.h>
 
 namespace vw {
 
@@ -20,7 +20,7 @@ namespace vw {
       unsigned long long m_last_start;    // from Stopwatch::microtime
       unsigned long m_startdepth;
       unsigned long m_numstops;
-      mutable boost::mutex m_mutex;
+      mutable Mutex m_mutex;
       data() :  m_total_elapsed(0),
                 m_last_start(0),
                 m_startdepth(0),
@@ -35,14 +35,14 @@ namespace vw {
     Stopwatch() : m_data(new data()) {}
     
     void start() {
-      boost::mutex::scoped_lock lock(m_data->m_mutex);
+      Mutex::Lock lock(m_data->m_mutex);
       if (!(m_data->m_startdepth++)) {
         m_data->m_last_start= microtime();
       }
     }
 
     void stop() {
-      boost::mutex::scoped_lock lock(m_data->m_mutex);
+      Mutex::Lock lock(m_data->m_mutex);
       if (!--(m_data->m_startdepth)) {
         m_data->m_numstops++;
         m_data->m_total_elapsed += microtime() - m_data->m_last_start;
@@ -54,7 +54,7 @@ namespace vw {
     }
 
     unsigned long long elapsed_microseconds() const {
-      boost::mutex::scoped_lock lock(m_data->m_mutex);
+      Mutex::Lock lock(m_data->m_mutex);
       return m_data->m_total_elapsed;
     }
 
@@ -70,7 +70,7 @@ namespace vw {
 
   // StopwatchSet is a named set of Stopwatches
   class StopwatchSet {
-    mutable boost::mutex m_mutex;
+    mutable Mutex m_mutex;
     unsigned long long m_construction_time;
 
     std::map<std::string, Stopwatch> m_stopwatches;
@@ -80,7 +80,7 @@ namespace vw {
 
     // Find or create stopwatch named "name"
     Stopwatch get(const std::string &name) {
-      boost::mutex::scoped_lock lock(m_mutex);
+      Mutex::Lock lock(m_mutex);
       return m_stopwatches[name];
     }
 
@@ -95,7 +95,7 @@ namespace vw {
     // Returns a copy of the map between names and stopwatches
     // (Copy is for thread safety)
     std::map<std::string, Stopwatch> get_stopwatches() const {
-      boost::mutex::scoped_lock lock(m_mutex);
+      Mutex::Lock lock(m_mutex);
       return m_stopwatches;
     }
 

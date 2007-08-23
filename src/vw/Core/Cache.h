@@ -25,6 +25,21 @@
 /// 
 /// Types and functions to assist cacheing regeneratable data.
 ///
+/// The main public API is thread-safe:
+///  Cache::insert(GeneratorT const&)
+///  Cache::system_cache()
+///  Cache::resize(size_t)
+///  The entire Handle<GeneratorT> class
+///
+/// No other functions are guaranteed to be thread-safe.  There are
+/// two levels of synchronization: one lock per cache to protect the
+/// cache data structure itself, and one lock per cache line to
+/// protect the m_value pointer and synchronize the (potentially very
+/// expensive) generation operation.  Note also that the valid()
+/// function is only useful as a heuristic: there is no guarantee that
+/// the cache line won't be invalidated between when the function
+/// checks the state and when you examine the result.
+///
 #ifndef __VW_CORE_CACHE_H__
 #define __VW_CORE_CACHE_H__
 
@@ -36,6 +51,7 @@
 #include <boost/smart_ptr.hpp>
 
 #include <vw/Core/Exception.h>
+#include <vw/Core/Thread.h>
 #include <vw/Core/Stopwatch.h>
 
 #include <iostream>
@@ -49,23 +65,23 @@ namespace vw {
   // An LRU-based regeneratable-data cache
   class Cache {
 
-    // CacheLineBase
+    // The abstract base class for all cache line objects.
     class CacheLineBase {
       Cache& m_cache;
       CacheLineBase *m_prev, *m_next;
-      size_t m_size;
-      bool valid;
+      const size_t m_size;
       friend class Cache;
     protected:
+      Cache& cache() const { return m_cache; }
       inline void allocate() { m_cache.allocate(m_size); }
       inline void deallocate() { m_cache.deallocate(m_size); }
-      inline void validate() { m_cache.validate(this); valid=true; }
+      inline void validate() { m_cache.validate(this); }
+      inline void remove() { m_cache.remove( this ); }
+      inline void deprioritize() { m_cache.deprioritize(this); }
     public:
-      CacheLineBase( Cache& cache, size_t size ) : m_cache(cache), m_prev(0), m_next(0), m_size(size), valid(false) { m_cache.invalidate( this ); }
-      virtual ~CacheLineBase() { invalidate(); m_cache.remove( this ); }
-      virtual inline void invalidate() { if(valid) m_cache.invalidate(this); valid=false; }
+      CacheLineBase( Cache& cache, size_t size ) : m_cache(cache), m_prev(0), m_next(0), m_size(size) {}
+      virtual inline void invalidate() { m_cache.invalidate(this); }
       virtual size_t size() const { return m_size; }
-      void deprioritize() { m_cache.deprioritize(this); }
     };
     friend class CacheLineBase;
 
@@ -74,24 +90,32 @@ namespace vw {
     class CacheLine : public CacheLineBase {
       GeneratorT m_generator;
       typename boost::shared_ptr<typename GeneratorT::value_type> m_value;
+      Mutex m_mutex; // Mutex for m_value and generation of this cache line
       unsigned m_generation_count;
+
     public:
       CacheLine( Cache& cache, GeneratorT const& generator )
         : CacheLineBase(cache,generator.size()), m_generator(generator), m_generation_count(0)
       {
         VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache creating CacheLine " << info() << std::endl; )
+        Mutex::Lock cache_lock(cache.m_mutex);
+        CacheLineBase::invalidate();
       }
       
       virtual ~CacheLine() {
-        if ( valid() ) this->invalidate();
+        invalidate();
         VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache destroying CacheLine " << info() << std::endl; )
+        Mutex::Lock cache_lock(cache().m_mutex);
+        remove();
       }
       
       virtual void invalidate() {
+        Mutex::Lock line_lock(m_mutex);
+        if( ! m_value ) return;
         VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache invalidating CacheLine " << info() << std::endl; )
         CacheLineBase::invalidate();
-        m_value.reset();
         CacheLineBase::deallocate();
+        m_value.reset();
       }
 
       std::string info() {
@@ -102,27 +126,44 @@ namespace vw {
       }
       
       typename boost::shared_ptr<typename GeneratorT::value_type> const& value() {
-        //        VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache accessing CacheLine " << this << std::endl; )
+        Mutex::Lock line_lock(m_mutex);
         if( !m_value ) {
           m_generation_count++;
           VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache generating CacheLine " << info() << std::endl );
-          CacheLineBase::allocate();
+          {
+            Mutex::Lock cache_lock(cache().m_mutex);
+            CacheLineBase::allocate();
+          }
           ScopedWatch sw((std::string("Cache ")
                           + (m_generation_count == 1 ? "generating " : "regenerating ")
                           + typeid(this).name()).c_str());
           m_value = m_generator.generate();
         }
-        CacheLineBase::validate();
+        {
+          Mutex::Lock cache_lock(cache().m_mutex);
+          CacheLineBase::validate();
+        }
         return m_value;
       }
 
-      bool valid() const { return m_value; }
+      bool valid() {
+        Mutex::Lock line_lock(m_mutex);
+        return (bool)m_value;
+      }
 
-      void deprioritize() { if( valid() ) CacheLineBase::deprioritize(); }
+      void deprioritize() {
+        Mutex::Lock line_lock(m_mutex);
+        if( m_value ) {
+          Mutex::Lock cache_lock(cache().m_mutex);
+          CacheLineBase::deprioritize();
+        }
+      }
     };
+
 
     CacheLineBase *m_first_valid, *m_last_valid, *m_first_invalid;
     size_t m_size, m_max_size;
+    Mutex m_mutex;
 
     void allocate( size_t size );
     void deallocate( size_t size );
@@ -152,8 +193,8 @@ namespace vw {
         VW_ASSERT( m_line_ptr, NullPtrErr() << "Invalid cache handle!" );
         return m_line_ptr->value();
       }
+      bool valid() const { m_line_ptr->valid(); }
       size_t size() const { return m_line_ptr->size(); }
-      bool valid() const { return m_line_ptr->valid(); }
       void deprioritize() const { return m_line_ptr->deprioritize(); }
     };
 

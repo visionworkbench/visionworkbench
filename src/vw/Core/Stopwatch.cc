@@ -48,7 +48,7 @@ namespace vw {
 
   // StopwatchSet
   string StopwatchSet::report() const {
-    boost::mutex::scoped_lock lock(m_mutex);
+    Mutex::Lock lock(m_mutex);
 
     vector<pair<string, Stopwatch> > sorted(m_stopwatches.begin(), m_stopwatches.end());
     sort(sorted.begin(), sorted.end(), pair_string_stopwatch_elapsed_gt);
@@ -90,8 +90,8 @@ namespace vw {
   // assume that constructors in this file have already been called
   
   StopwatchSet *global_stopwatch_set() {
-    static boost::once_flag flag = BOOST_ONCE_INIT;
-    boost::call_once(GlobalStopwatchSet::_create, flag);
+    static RunOnce once = VW_RUNONCE_INIT;
+    once.run(GlobalStopwatchSet::_create);
     return GlobalStopwatchSet::_g_global_stopwatch_set;
   }
 

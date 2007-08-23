@@ -61,28 +61,17 @@ namespace stereo {
       typename PreProcFilterT::result_type right_image = preproc_filter(channels_to_planes(image1));
       return do_correlation(left_image,right_image,preproc_filter.use_bit_image());
     }
-      
-    void register_worker_thread(int id, CorrelationWorkThreadBase* child) {
-      boost::mutex::scoped_lock lock(m_mutex);
-      m_children[id] = child;
-    }
-
-    CorrelationWorkThreadBase* get_worker_thread(int id) {
-      boost::mutex::scoped_lock lock(m_mutex);
-      return m_children[id];
-    }
-      
+    
   private:
       
     template <class ChannelT>
     ImageView<PixelDisparity<float> > do_correlation(ImageView<ChannelT> &left_image, ImageView<ChannelT> &right_image, bool bit_image);
 
-    std::vector<CorrelationWorkThreadBase*> m_children;
     double m_crossCorrThreshold;
     float m_corrscore_rejection_threshold;
     int m_useHorizSubpixel;
     int m_useVertSubpixel;
-    mutable boost::mutex m_mutex;
+    mutable Mutex m_mutex;
       
   };
 

@@ -215,6 +215,10 @@ AX_PKG_BOOST_LIB(PROGRAM_OPTIONS, [-lboost_program_options], [boost/program_opti
 AX_PKG_BOOST_LIB(FILESYSTEM, [-lboost_filesystem], [boost/filesystem/path.hpp])
 AX_PKG_BOOST_LIB(THREAD, [-lboost_thread], [boost/thread/thread.hpp])
 
+# This provides an easy way for users to override the threads options 
+# if they are replacing Boost threads with something else for their platform.
+AX_PKG(THREADS, [BOOST_THREAD], [], [])
+
 AX_PKG_LAPACK
 AM_CONDITIONAL(HAVE_PKG_LAPACK, [test "$HAVE_PKG_LAPACK" = "yes"])
 
@@ -236,7 +240,7 @@ AX_PKG(Z, [], [-lz], [zlib.h])
 AX_PKG(PNG, [], [-lpng], [png.h])
 AX_PKG(JPEG, [], [-ljpeg], [jpeglib.h])
 AX_PKG(TIFF, [], [-ltiff], [tiff.h])
-AX_PKG(OPENEXR, [Z PTHREADS], [-lImath -lHalf -lIex -lIlmImf], [ImfOutputFile.h], [OpenEXR])
+AX_PKG(OPENEXR, [Z], [-lImath -lHalf -lIex -lIlmImf], [ImfOutputFile.h], [OpenEXR])
 AX_PKG(HDF, [], [-ldf -lmfhdf], [mfhdf.h])
 
 AX_PKG(X11, [], [-lXext -lX11 -lXmu -lXi -lXt], [])
@@ -270,7 +274,7 @@ AM_CONDITIONAL(HAVE_PKG_GDAL, [test "$HAVE_PKG_GDAL" = "yes"])
 #	module definitions
 ##################################################
 
-AX_MODULE(CORE, [src/vw/Core], [libvwCore.la], yes, [M BOOST PTHREADS BOOST_THREAD])
+AX_MODULE(CORE, [src/vw/Core], [libvwCore.la], yes, [M BOOST THREADS], [PTHREADS])
 AX_MODULE(MATH, [src/vw/Math], [libvwMath.la], yes, [CORE], [LAPACK GMP PPL APRON QHULL])
 AX_MODULE(IMAGE, [src/vw/Image], [libvwImage.la], yes, [MATH])
 AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [Z PNG JPEG TIFF OPENEXR JPEG2K HDF GDAL])
@@ -280,12 +284,12 @@ if test ${MAKE_MODULE_VW} != "yes"; then
 fi
 
 AX_MODULE(CAMERA, [src/vw/Camera], [libvwCamera.la], yes, [VW BOOST_PROGRAM_OPTIONS])
-AX_MODULE(MOSAIC, [src/vw/Mosaic], [libvwMosaic.la], yes, [VW PTHREADS BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
+AX_MODULE(MOSAIC, [src/vw/Mosaic], [libvwMosaic.la], yes, [VW BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
 AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], yes, [VW BOOST_PROGRAM_OPTIONS])
 AX_MODULE(CARTOGRAPHY, [src/vw/Cartography], [libvwCartography.la], yes, [VW PROJ4 XMLPARSER],[GDAL])
 AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], yes, [VW CAMERA BOOST_PROGRAM_OPTIONS LAPACK])
-AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], yes, [STEREO_SRC VW PTHREADS BOOST_THREAD])
-AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW GL GLU GLUT GLEW], [CG PTHREADS])
+AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], yes, [STEREO_SRC VW])
+AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW GL GLU GLUT GLEW], [CG])
 
 # These are here (instead of inside the MODULE macro where they belong)
 # for backwards compatability with older versions of automake.

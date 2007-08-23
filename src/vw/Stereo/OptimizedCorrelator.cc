@@ -1,15 +1,10 @@
-#include <vw/Image/ImageView.h>
-#include <vw/Image/Algorithms.h>
 #include <vw/Stereo/OptimizedCorrelator.h>
 
-using namespace vw;
-
-// Boost
 #include <boost/format.hpp>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/xtime.hpp>
-#include <boost/utility/enable_if.hpp>
+
+#include <vw/Core/Thread.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/Algorithms.h>
 
 using namespace std;
 using namespace vw;
@@ -52,86 +47,65 @@ struct BitAbsDifferenceFunc {
 /// Given a type, these traits classes help to determine a suitable
 /// working type for accumulation operations in the correlator
 template <class T> struct CorrelatorAccumulatorType {};
-template <> struct CorrelatorAccumulatorType<vw::uint8>   { typedef vw::uint16   type; };
-template <> struct CorrelatorAccumulatorType<vw::int8>    { typedef vw::uint16   type; };
-template <> struct CorrelatorAccumulatorType<vw::uint16>  { typedef vw::uint32   type; };
-template <> struct CorrelatorAccumulatorType<vw::int16>   { typedef vw::uint32   type; };
-template <> struct CorrelatorAccumulatorType<vw::uint32>  { typedef vw::uint64   type; };
-template <> struct CorrelatorAccumulatorType<vw::int32>   { typedef vw::uint64   type; };
+template <> struct CorrelatorAccumulatorType<vw::uint8>   { typedef vw::uint16  type; };
+template <> struct CorrelatorAccumulatorType<vw::int8>    { typedef vw::uint16  type; };
+template <> struct CorrelatorAccumulatorType<vw::uint16>  { typedef vw::uint32  type; };
+template <> struct CorrelatorAccumulatorType<vw::int16>   { typedef vw::uint32  type; };
+template <> struct CorrelatorAccumulatorType<vw::uint32>  { typedef vw::uint64  type; };
+template <> struct CorrelatorAccumulatorType<vw::int32>   { typedef vw::uint64  type; };
 template <> struct CorrelatorAccumulatorType<vw::float32> { typedef vw::float32 type; };
 template <> struct CorrelatorAccumulatorType<vw::float64> { typedef vw::float64 type; };
 
 namespace vw {
 namespace stereo {
 
-  // Handy, platform independent utility function for putting boost
-  // threads to sleep for a specific number of milliseconds.
-  void millisecond_sleep(unsigned long milliseconds) {
-    
-    static long const nanoseconds_per_second = 1000L*1000L*1000L;
-    boost::xtime xt;
-    boost::xtime_get(&xt, boost::TIME_UTC);
-    xt.nsec+=1000*1000*milliseconds;
-    while (xt.nsec > nanoseconds_per_second) {
-      xt.nsec -= nanoseconds_per_second;
-      xt.sec++;
-    }
-    
-    boost::thread::sleep(xt);
-  }
-  
-  class CorrelationWorkThreadBase {
+  class CorrelationWorkThreadBase : public Thread::Runnable {
   protected:
-    OptimizedCorrelator* m_parent;
-    int m_id;
     ImageView<PixelDisparity<float> > m_result;
 
     std::string m_correlation_rate_string;
     double m_progress_percent;
     std::string m_progress_string;
     bool m_done;
-    bool m_should_terminate;
-    mutable boost::mutex m_mutex;
+    mutable Mutex m_mutex;
     char temp_progress[100];
   public:
-    virtual bool is_done() {
-      boost::mutex::scoped_lock lock(m_mutex);
-      return m_done;
-    }
+
+    CorrelationWorkThreadBase() : m_progress_percent(0), m_done(false) {}
 
     virtual ImageView<PixelDisparity<float> > result() { return m_result; }
   
-    virtual void terminate() {
-      boost::mutex::scoped_lock lock(m_mutex);
-      m_should_terminate = true;
-    }
+    // Currently we do not support graceful early termination
+    virtual void kill() {}
   
-    virtual std::string correlation_rate_string() {
-      boost::mutex::scoped_lock lock(m_mutex);
+    std::string correlation_rate_string() const {
+      Mutex::Lock lock(m_mutex);
       return m_correlation_rate_string;
     }
   
-    virtual std::string progress_string() {
-      boost::mutex::scoped_lock lock(m_mutex);
+    std::string progress_string() const {
+      Mutex::Lock lock(m_mutex);
       return m_progress_string;
     }
   
     /// Returns a number between 0.0 and 100.0
-    virtual double progress_percent() { return m_progress_percent; }
+    double progress_percent() { return m_progress_percent; }
   
-  
-    virtual void set_correlation_rate_string(std::string str) {
-      boost::mutex::scoped_lock lock(m_mutex);
+    bool is_done() const {
+      return m_done;
+    }
+
+    void set_correlation_rate_string(std::string str) {
+      Mutex::Lock lock(m_mutex);
       m_correlation_rate_string = str;
     }
   
-    virtual void set_progress_string(std::string str) {
-      boost::mutex::scoped_lock lock(m_mutex);
+    void set_progress_string(std::string str) {
+      Mutex::Lock lock(m_mutex);
       m_progress_string = str;
     }
   
-    virtual void set_done(bool val) {
-      boost::mutex::scoped_lock lock(m_mutex);
+    void set_done(bool val) {
       m_done = val;
     }
   };
@@ -141,7 +115,7 @@ namespace stereo {
   /// correlation processing.  This functor can be used to easily spin
   /// off multiple threads of correlation on a multiprocessor machine.
   template <class ViewT, class AbsDifferenceT>
-  class CorrelationWorkThread : CorrelationWorkThreadBase {
+  class CorrelationWorkThread : public CorrelationWorkThreadBase {
 
     // Handy typedefs
     typedef typename ViewT::pixel_type pixel_type;
@@ -149,8 +123,8 @@ namespace stereo {
     
     // This is used as an intermediate format for the correlator
     typedef struct soadStruct {
-      double hDisp;	// disparity in x for the best match 
-      double vDisp;	// disparity in y for the best match 
+      double hDisp; // disparity in x for the best match 
+      double vDisp; // disparity in y for the best match 
       double best;  // soad at the best match 
     } soad;
   
@@ -184,7 +158,7 @@ namespace stereo {
       ChannelT *diff = new ChannelT[width*height]; // buffer containing results of substraction of L/R images
       VW_ASSERT( diff, NullPtrErr() << "cannot allocate the correlator's difference buffer!" );
 
-      accumulator_type *cSum = new accumulator_type[width];      // sum per column (kernel hight)
+      accumulator_type *cSum = new accumulator_type[width]; // sum per column (kernel hight)
       VW_ASSERT( cSum, NullPtrErr() << "cannot allocate the correlator's column sum buffer!" );
 
       struct local_result {
@@ -326,66 +300,14 @@ namespace stereo {
       return(result);
     }
 
-
-  
-    // Hide this constructor -- it should never be called.
-    CorrelationWorkThread() {}
-
   public:
 
-    // The copy constructor must be coded explicitly be cause the mutex
-    // object is non-copyable.
-    CorrelationWorkThread(const CorrelationWorkThread& other) {
-      boost::mutex::scoped_lock lock(other.m_mutex);
-      m_parent = other.m_parent;
-      m_id = other.m_id;
-      m_result = other.m_result;
-      m_min_h = other.m_min_h;
-      m_max_h = other.m_max_h;
-      m_min_v = other.m_min_v;
-      m_max_v = other.m_max_v;
-      m_kern_height = other.m_kern_height;
-      m_kern_width = other.m_kern_width;
-      m_left_image = other.m_left_image;
-      m_right_image = other.m_right_image;
-      m_done = other.m_done;
-      m_should_terminate = other.m_should_terminate;
-      m_corrscore_rejection_threshold = other.m_corrscore_rejection_threshold;
-    }
-
-    // For assignment we need to synchronize both objects!
-    const CorrelationWorkThread& operator=(const CorrelationWorkThread& other) {
-      if (this == &other)
-        return *this;
-      boost::mutex::scoped_lock lock1(&m_mutex < &other.m_mutex ? m_mutex : other.m_mutex);
-      boost::mutex::scoped_lock lock2(&m_mutex > &other.m_mutex ? m_mutex : other.m_mutex);
-      m_parent = other.m_parent;
-      m_id = other.m_id;
-      m_result = other.m_result;
-      m_min_h = other.m_min_h;
-      m_max_h = other.m_max_h;
-      m_min_v = other.m_min_v;
-      m_max_v = other.m_max_v;
-      m_kern_height = other.m_kern_height;
-      m_kern_width = other.m_kern_width;
-      m_left_image = other.m_left_image;
-      m_right_image = other.m_right_image;
-      m_done = other.m_done;
-      m_should_terminate = other.m_should_terminate;
-      m_corrscore_rejection_threshold = other.m_corrscore_rejection_threshold;
-      return *this;
-    }
-
-    CorrelationWorkThread(OptimizedCorrelator* parent,
-                          int id,
-                          int min_h, int max_h,
+    CorrelationWorkThread(int min_h, int max_h,
                           int min_v, int max_v,
                           int kern_width, int kern_height,
                           float corrscore_rejection_threshold,
                           ViewT const& left_image, 
                           ViewT const& right_image) {
-      m_parent = parent;
-      m_id = id;
       m_min_h = min_h;
       m_max_h = max_h;
       m_min_v = min_v;
@@ -395,21 +317,14 @@ namespace stereo {
       m_left_image = left_image;
       m_right_image = right_image;
       m_corrscore_rejection_threshold = corrscore_rejection_threshold;
-
-      m_done = false;
-      m_should_terminate = false;
-      m_progress_percent = 0.0;
     }
   
     /// Call this operator to start the correlation operation.
-    void operator() () {
-      set_done(false);
-      m_parent->register_worker_thread(m_id, this);
-    
+    virtual void run() {    
       int width = m_left_image.cols();
       int height = m_left_image.rows();
 
-      soad* result = fast2Dcorr_optimized(m_min_h, m_max_h, m_min_v, m_max_v, height, width, m_kern_height, m_kern_width, m_corrscore_rejection_threshold, &(m_left_image(0,0)), &(m_right_image(0,0)));    
+      soad* result = fast2Dcorr_optimized(m_min_h, m_max_h, m_min_v, m_max_v, height, width, m_kern_height, m_kern_width, m_corrscore_rejection_threshold, &(m_left_image(0,0)), &(m_right_image(0,0)));
     
       m_result.set_size(width, height);
       for (int j = 0; j < height; j++) {
@@ -425,12 +340,6 @@ namespace stereo {
     
       delete [] result;  
       set_done(true);
-    
-      // After the thread has finished doing the work, it should hang
-      // around so that the parent has a chance to request any final state
-      // from the child.  When the parent is finished, it can dismiss the
-      // child with the terminate() method.
-      while (!m_should_terminate) { millisecond_sleep(100); }
     }
 
   };
@@ -483,8 +392,6 @@ OptimizedCorrelator::OptimizedCorrelator(int minH,	/* left bound disparity searc
   m_corrscore_rejection_threshold = corrscore_rejection_threshold;
   m_useHorizSubpixel = useSubpixelH;
   m_useVertSubpixel = useSubpixelV;
-  m_children = std::vector<CorrelationWorkThreadBase*>(2);
-  m_children[0] = m_children[1] = NULL;
 }
 
 template <class ChannelT>
@@ -493,88 +400,85 @@ ImageView<PixelDisparity<float> > OptimizedCorrelator::do_correlation(ImageView<
   //Run the correlator and record how long it takes to run.
   double begin__ = Time();
       
-  try {
-    boost::thread_group threads;
-    if (bit_image) {
-      threads.create_thread(CorrelationWorkThread<ImageView<ChannelT>, BitAbsDifferenceFunc>(this, 0, -m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, right_image, left_image));
-      threads.create_thread(CorrelationWorkThread<ImageView<ChannelT>, BitAbsDifferenceFunc>(this, 1,  m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, left_image, right_image));
-    } else {
-      threads.create_thread(CorrelationWorkThread<ImageView<ChannelT>, StandardAbsDifferenceFunc>(this, 0, -m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, right_image, left_image));
-      threads.create_thread(CorrelationWorkThread<ImageView<ChannelT>, StandardAbsDifferenceFunc>(this, 1,  m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, left_image, right_image));
-    }
+  // Configure the workers
+  boost::shared_ptr<CorrelationWorkThreadBase> worker0, worker1;
+  if( bit_image ) {
+    worker0.reset( new CorrelationWorkThread<ImageView<ChannelT>, BitAbsDifferenceFunc>(-m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, right_image, left_image) );
+    worker1.reset( new CorrelationWorkThread<ImageView<ChannelT>, BitAbsDifferenceFunc>(m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, left_image, right_image) );
+  } else {
+    worker0.reset( new CorrelationWorkThread<ImageView<ChannelT>, StandardAbsDifferenceFunc>(-m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, right_image, left_image) );
+    worker1.reset( new CorrelationWorkThread<ImageView<ChannelT>, StandardAbsDifferenceFunc>(m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, left_image, right_image) );
+  }
 
-    // Wait until the child threads register with their parent, then begin to query them 
-    // for information about their current state.
-    while (!get_worker_thread(0) || !get_worker_thread(1));
-    while (!get_worker_thread(0)->is_done() || !get_worker_thread(1)->is_done()) {
+  try {
+    // Launch the threads
+    Thread thread0(worker0);
+    Thread thread1(worker1);
+
+    // Update the progress info while the threads are running.
+    while (!worker0->is_done() || !worker1->is_done()) {
       if (m_verbose) {
         std::cout << boost::format("\t%1$-50s %2$-50s               \r") 
-          % get_worker_thread(0)->progress_string() 
-          % get_worker_thread(1)->progress_string();
+          % worker0->progress_string() 
+          % worker1->progress_string();
         fflush(stdout);
       }
-      millisecond_sleep(100);
+      Thread::sleep_ms(100);
     }
 
-    // Once the threads have complete their task, they hang around so
-    // that we can print out some summary statistics.  We then
-    // terminate them and join them back into the main thread.
-    if (m_verbose) {
-      std::cout << boost::format("\t%1$-50s %2$-50s               \n") 
-        % get_worker_thread(0)->progress_string() 
-        % get_worker_thread(1)->progress_string();
-      std::cout << boost::format("\t%1$-50s %2$-50s \n") 
-        % get_worker_thread(0)->correlation_rate_string()
-        % get_worker_thread(1)->correlation_rate_string();
-    }
-
-    // Ask the worker threads for the actual results of the disparity correlation
-    ImageView<PixelDisparity<float> > resultR2L = get_worker_thread(0)->result();
-    ImageView<PixelDisparity<float> > resultL2R = get_worker_thread(1)->result();
-
-    // We now have all the information we need.  Shut down the worker
-    // threads and wait for them to finish terminating.
-    get_worker_thread(0)->terminate();
-    get_worker_thread(1)->terminate();
-    threads.join_all(); 
-  
-    // Cross check the left and right disparity maps
-    cross_corr_consistency_check(resultL2R, resultR2L,m_crossCorrThreshold, m_verbose);
-
-    // Do subpixel correlation
-    subpixel_correlation(resultL2R, left_image, right_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel, m_verbose);
-
-    int matched = 0;
-    int total = 0;
-    int nn = 0;
-    for (int j = 0; j < resultL2R.rows(); j++) {
-      for (int i = 0; i < resultL2R.cols(); i++) {
-        total++;
-        if (!(resultL2R(i,j).missing())) {
-          matched++;
-        }
-        nn++;
-      }
-    } 
-
-    double lapse__ = Time() - begin__;
-    if (m_verbose) {
-      vw_out(InfoMessage) << "\tTotal correlation + subpixel took " << lapse__ << " sec";
-      double nTries = 2.0 * (m_lMaxV - m_lMinV + 1) * (m_lMaxH - m_lMinH + 1);
-      double rate = nTries * left_image.cols() * left_image.rows() / lapse__ / 1.0e6;
-      vw_out(InfoMessage) << "\t(" << rate << " M disparities/second)\n";
-
-      double score = (100.0 * matched) / total;
-      vw_out(InfoMessage) << "\tCorrelation rate: " << score << "\n\n";
-    }
-
-
-    return resultL2R;
-    
-  } catch (boost::thread_resource_error &e) {
+    // The threads are destroyed, but the worker objects remain.
+  }
+  // FIXME This probably belongs over in Thread.h?
+  catch (boost::thread_resource_error &e) {
     vw_throw( LogicErr() << "OptimizedCorrelator: Could not create correlation threads." );
   }
 
+  // Print out some final summary statistics
+  if (m_verbose) {
+    std::cout << boost::format("\t%1$-50s %2$-50s               \n") 
+      % worker0->progress_string() 
+      % worker1->progress_string();
+    std::cout << boost::format("\t%1$-50s %2$-50s \n") 
+      % worker0->correlation_rate_string()
+      % worker1->correlation_rate_string();
+  }
+
+  // Grab the results
+  ImageView<PixelDisparity<float> > resultR2L = worker0->result();
+  ImageView<PixelDisparity<float> > resultL2R = worker1->result();
+
+  // Cross check the left and right disparity maps
+  cross_corr_consistency_check(resultL2R, resultR2L,m_crossCorrThreshold, m_verbose);
+
+  // Do subpixel correlation
+  subpixel_correlation(resultL2R, left_image, right_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel, m_verbose);
+
+  int matched = 0;
+  int total = 0;
+  int nn = 0;
+  for (int j = 0; j < resultL2R.rows(); j++) {
+    for (int i = 0; i < resultL2R.cols(); i++) {
+      total++;
+      if (!(resultL2R(i,j).missing())) {
+        matched++;
+      }
+      nn++;
+    }
+  } 
+
+  double lapse__ = Time() - begin__;
+  if (m_verbose) {
+    vw_out(InfoMessage) << "\tTotal correlation + subpixel took " << lapse__ << " sec";
+    double nTries = 2.0 * (m_lMaxV - m_lMinV + 1) * (m_lMaxH - m_lMinH + 1);
+    double rate = nTries * left_image.cols() * left_image.rows() / lapse__ / 1.0e6;
+    vw_out(InfoMessage) << "\t(" << rate << " M disparities/second)\n";
+
+    double score = (100.0 * matched) / total;
+    vw_out(InfoMessage) << "\tCorrelation rate: " << score << "\n\n";
+  }
+
+  return resultL2R;
+    
 }
 
 // Explicit template initialization

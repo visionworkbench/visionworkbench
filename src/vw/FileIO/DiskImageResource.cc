@@ -38,6 +38,9 @@
 #include <map>
 #include <boost/algorithm/string.hpp>
 
+// For RunOnce
+#include <vw/Core/Thread.h>
+
 #include <vw/FileIO/PropertyMultiMap.h>
 #include <vw/FileIO/PropertySetManager.h>
 
@@ -114,10 +117,9 @@ static std::string file_extension( std::string const& filename ) {
   return extension;
 }
 
+static vw::RunOnce rdft_once = VW_RUNONCE_INIT;
+
 static void register_default_file_types() {
-  static bool already = false;
-  if( already ) return;
-  already = true;
   vw::DiskImageResource::register_file_type( ".img", vw::DiskImageResourcePDS::type_static(), &vw::DiskImageResourcePDS::construct_open, &vw::DiskImageResourcePDS::construct_create );
   vw::DiskImageResource::register_file_type( ".pds", vw::DiskImageResourcePDS::type_static(), &vw::DiskImageResourcePDS::construct_open, &vw::DiskImageResourcePDS::construct_create );
   vw::DiskImageResource::register_file_type( ".lbl", vw::DiskImageResourcePDS::type_static(), &vw::DiskImageResourcePDS::construct_open, &vw::DiskImageResourcePDS::construct_create );
@@ -178,7 +180,7 @@ static void register_default_file_types() {
 
 vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename,
                                                     FileMetadataCollection const& fmeta /*= FileMetadataCollection::create()*/ ) {
-  register_default_file_types();
+  rdft_once.run( register_default_file_types );
   if( open_map ) {
     std::pair<std::string,construct_open_func> item;
     bool found_func;
@@ -199,7 +201,7 @@ vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename,
 }
 
 vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, ImageFormat const& format, FileMetadataCollection const& fmeta /*= FileMetadataCollection::create()*/ ) {
-  register_default_file_types();
+  rdft_once.run( register_default_file_types );
   if( create_map ) {
     std::pair<std::string,construct_create_func> item;
     bool found_func;

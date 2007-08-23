@@ -27,9 +27,8 @@
 #include <math.h>
 #include <vector>
 
-#include <boost/thread/mutex.hpp>
-
 #include <vw/config.h> // VW_HAVE_PKG_QHULL, VW_HAVE_PKG_PPL, VW_HAVE_PKG_APRON
+#include <vw/Core/Thread.h> // Mutex for qhull
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/PointListIO.h>
@@ -78,7 +77,7 @@ namespace math {
 
 namespace {
   /// Mutex for qhull, which is not thread-safe.
-  boost::mutex bconvex_qhull_mutex;
+  vw::Mutex bconvex_qhull_mutex;
   
   /// Point primitive for SpatialTree.
   class PointPrimitive : public vw::math::GeomPrimitive
@@ -1005,7 +1004,7 @@ namespace {
     
 #if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
 
-      boost::mutex::scoped_lock lock(bconvex_qhull_mutex);
+      Mutex::Lock lock(bconvex_qhull_mutex);
       double *p = new double[dim * num_points];
       double **ps = 0;
       facetT *facet;
@@ -1279,7 +1278,7 @@ namespace math {
 
   void BConvex::init_with_qhull( unsigned dim, unsigned num_points, double *p ) {
 #if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
-    boost::mutex::scoped_lock lock(bconvex_qhull_mutex);
+    Mutex::Lock lock(bconvex_qhull_mutex);
     facetT *facet;
     Vector<double> facetv(dim + 1);
     Vector<mpq_class> facetq(dim + 1);
