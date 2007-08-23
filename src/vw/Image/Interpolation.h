@@ -165,19 +165,19 @@ namespace vw {
                             
     template <class PreRastImageT>
     prerasterize_type prerasterize_helper( BBox2i bbox, PreRastImageT const& image, false_type ) const {
-      int32 padded_width = bbox.width() + 2 * m_interp_func.pixel_buffer;
-      int32 padded_height = bbox.height() + 2 * m_interp_func.pixel_buffer;
-      ImageView<pixel_type> buf( padded_width, padded_height, m_image.planes() );
-      BBox2i adjusted_bbox(bbox.min().x() - m_interp_func.pixel_buffer, 
-                           bbox.min().y() - m_interp_func.pixel_buffer,
-                           padded_width, padded_height);
-      image.rasterize( buf, adjusted_bbox );
-      return prerasterize_type( CropView<ImageView<pixel_type> >( buf, BBox2i(-adjusted_bbox.min().x(),-adjusted_bbox.min().y(),
+      ImageView<pixel_type> buf( bbox.width(), bbox.height(), m_image.planes() );
+      image.rasterize( buf, bbox );
+      return prerasterize_type( CropView<ImageView<pixel_type> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),
                                                                               image.cols(), image.rows())), m_interp_func);
     }
 
     inline prerasterize_type prerasterize( BBox2i bbox ) const {
-      return prerasterize_helper(bbox, m_image, typename IsMultiplyAccessible<ImageT>::type() );
+      int32 padded_width = bbox.width() + 2 * m_interp_func.pixel_buffer;
+      int32 padded_height = bbox.height() + 2 * m_interp_func.pixel_buffer;
+      BBox2i adjusted_bbox(bbox.min().x() - m_interp_func.pixel_buffer, 
+                           bbox.min().y() - m_interp_func.pixel_buffer,
+                           padded_width, padded_height);
+      return prerasterize_helper(adjusted_bbox, m_image, typename IsMultiplyAccessible<ImageT>::type() );
     }
   
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
