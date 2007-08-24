@@ -261,95 +261,57 @@ namespace vw {
       return dest;
     }
     
-    // If the pixels in the child view can be repeatedly accessed
-    // without incurring any additional overhead (e.g. a TransposeView
-    // of an ImageView) then we do not need to rasterize the child
-    // before we proceed to rasterize ourself.
+    // In principle we could avoid rasterizing the child first if it's 
+    // MultiplyAccessible.  In practice that turns out to be a pain to 
+    // get right, and convolution is generally a much more expensive 
+    // operation than a single extra copy.
     template <class DestT>
     void rasterize( DestT const& dest, BBox2i bbox ) const {
-      BBox2i child_bbox = bbox;
-      int32 ci = m_i_kernel.size() ? (m_i_kernel.size()-1-m_ci) : 0;
-      int32 cj = m_j_kernel.size() ? (m_j_kernel.size()-1-m_cj) : 0;
-      child_bbox.min() -= Vector2i( m_i_kernel.size()-ci-1, m_j_kernel.size()-cj-1 );
-      child_bbox.max() += Vector2i( ci, cj );
-      // FIXME: This all has some tricky behavior if the child image
-      // is already edge-extended.  The following line solves some
-      // problems while creating others.  This requires some careful
-      // thought and testing....
-      // child_bbox.crop( BBox2i(0,0,m_image.cols(),m_image.rows()) );
-      if( IsMultiplyAccessible<ImageT>::value ) {
-        rasterize_helper( crop(edge_extend(m_image,m_edge).prerasterize(child_bbox),bbox), dest );
-      } else {
-        rasterize_helper( crop(copy(crop(edge_extend(m_image,m_edge),child_bbox)),bbox-child_bbox.min()), dest );
+      int32 ni = m_i_kernel.size(), nj = m_j_kernel.size();
+      if( ni==0 && nj==0 ) {
+        return edge_extend(m_image,m_edge).rasterize(dest,bbox);
       }
-    }
-
-    template <class SrcT, class DestT>
-    void rasterize_helper( SrcT const& src, DestT const& dest ) const {	
-      int32 ci = m_i_kernel.size() ? (m_i_kernel.size()-1-m_ci) : 0;
-      int32 cj = m_j_kernel.size() ? (m_j_kernel.size()-1-m_cj) : 0;
-      int32 ni=m_i_kernel.size(), nj=m_j_kernel.size();
+      BBox2i child_bbox = bbox;
+      child_bbox.min() -= Vector2i( ni?(ni-m_ci-1):0, nj?(nj-m_cj-1):0 );
+      child_bbox.max() += Vector2i( ni?m_ci:0, nj?m_cj:0 );
+      ImageView<typename ImageT::pixel_type> src_buf = edge_extend(m_image,child_bbox,m_edge);
       if( ni>0 && nj>0 ) {
-        ImageView<pixel_type> work( src.cols(), src.rows(), src.planes() );
-        convolve_1d( src, work, m_i_kernel, ci );
-        convolve_1d( transpose(work), transpose(dest), m_j_kernel, cj );
+        ImageView<pixel_type> work( bbox.width(), child_bbox.height() );
+        convolve_1d( src_buf, work, m_i_kernel );
+        src_buf.reset(); // Free up some memory
+        convolve_1d( transpose(work), transpose(dest), m_j_kernel );
       }
       else if( ni>0 ) {
-        convolve_1d( src, dest, m_i_kernel, ci );
+        convolve_1d( src_buf, dest, m_i_kernel );
       }
-      else if( nj>0 ) {
-        convolve_1d( transpose(src), transpose(dest), m_j_kernel, cj );
-      }
-      else {
-        src.rasterize( dest, BBox2i(0,0,src.cols(),src.rows()) );
+      else /* nj>0 */ {
+        convolve_1d( transpose(src_buf), transpose(dest), m_j_kernel );
       }
     }
 
     template <class SrcT, class DestT>
-    void convolve_1d( SrcT const& src, DestT const& dest, std::vector<KernelT> const& kernel, int32 c ) const {
+    void convolve_1d( SrcT const& src, DestT const& dest, std::vector<KernelT> const& kernel ) const {
       typedef typename SrcT::pixel_accessor SrcAccessT;
-      EdgeExtensionView<SrcT,EdgeT> edge_view( src, m_edge );
-      typedef typename EdgeExtensionView<SrcT,EdgeT>::pixel_accessor EdgeAccessT;
       typedef typename DestT::pixel_accessor DestAccessT;
       typedef typename DestT::pixel_type DestPixelT;
-      typedef typename ProductType<typename SrcT::pixel_type, KernelT>::type AccumT;
 
       SrcAccessT splane = src.origin();
-      EdgeAccessT eplane = edge_view.origin().advance(-c,0);
       DestAccessT dplane = dest.origin();
       for( int32 p=0; p<src.planes(); ++p ) {
         SrcAccessT srow = splane;
-        EdgeAccessT erow = eplane;
         DestAccessT drow = dplane;
-        for( int32 j=0; j<src.rows(); ++j ) {
+        for( int32 y=0; y<dest.rows(); ++y ) {
           SrcAccessT scol = srow;
-          EdgeAccessT ecol = erow;
           DestAccessT dcol = drow;
-          int32 i=0;
-          if( (int32)kernel.size() <= src.cols() ) {
-            for( ; i<c; ++i ) {
-              *dcol = DestPixelT( correlate_1d_at_point( ecol, kernel.rbegin(), kernel.size() ) );
-              ecol.next_col();
-              dcol.next_col();
-            }
-            for( ; i<=src.cols()-(int32)kernel.size()+c ; ++i ) {
-              *dcol = DestPixelT( correlate_1d_at_point( scol, kernel.rbegin(), kernel.size() ) );
-              scol.next_col();
-              dcol.next_col();
-            }
-            ecol.advance( src.cols()-(int32)kernel.size()+1, 0 );
-          }
-          for( ; i<src.cols(); ++i ) {
-            *dcol = DestPixelT( correlate_1d_at_point( ecol, kernel.rbegin(), kernel.size() ) );
-            ecol.next_col();
+          for( int32 x=0; x<dest.cols(); ++x ) {
+            *dcol = DestPixelT( correlate_1d_at_point( scol, kernel.rbegin(), kernel.size() ) );
+            scol.next_col();
             dcol.next_col();
           }
           srow.next_row();
-          erow.next_row();
           drow.next_row();
         }
         splane.next_plane();
-        eplane.next_plane();
         dplane.next_plane();
       }
     }
