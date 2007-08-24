@@ -91,7 +91,7 @@ mask_zero_pixels(vw::ImageViewBase<ViewT> const& view, typename ViewT::pixel_typ
 //
 template <class PixelT>
 void do_blend( std::vector<std::string> const& image_files, std::string const& mosaic_name, std::string const& output_file_type, 
-               bool draft, bool qtree, int patch_size, int patch_overlap, int draw_order_offset, int max_lod_pixels , bool do_black_is_transparent) {
+               bool draft, bool qtree, int patch_size, int patch_overlap, int draw_order_offset, int max_lod_pixels , bool do_black_is_transparent, bool do_no_output_alpha) {
 
   typedef typename AlphaTypeFromPixelType<PixelT>::type alpha_pixel_type;
 
@@ -150,10 +150,10 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
     
     if (do_black_is_transparent) {
       ImageViewRef<alpha_pixel_type> masked_source = crop( transform( mask_zero_pixels(source_disk_image), trans ), output_bbox );
-      composite.insert( masked_source, output_affine(0,2)/output_affine(0,0), output_affine(1,2)/output_affine(1,1) );
+      composite.insert( masked_source, (int)(output_affine(0,2)/output_affine(0,0)), (int)(output_affine(1,2)/output_affine(1,1)) );
     } else {
       ImageViewRef<alpha_pixel_type> masked_source = crop( transform( pixel_cast<alpha_pixel_type>(source_disk_image), trans ), output_bbox );
-      composite.insert( masked_source, output_affine(0,2)/output_affine(0,0), output_affine(1,2)/output_affine(1,1) );
+      composite.insert( masked_source, (int)(output_affine(0,2)/output_affine(0,0)), (int)(output_affine(1,2)/output_affine(1,1)) );
     }
   }
 
@@ -188,7 +188,11 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
     std::cout << "Source bbox: " <<  composite.source_data_bbox() << "\n";
     std::string mosaic_filename = mosaic_name+".blend."+output_file_type;
     vw::vw_out(vw::InfoMessage) << "Blending..." << std::endl;
-    write_georeferenced_image( mosaic_filename, composite, output_georef, TerminalProgressCallback() );
+    if (do_no_output_alpha) {
+      write_georeferenced_image( mosaic_filename, pixel_cast<PixelT>(composite), output_georef, TerminalProgressCallback() );
+    } else {
+      write_georeferenced_image( mosaic_filename, composite, output_georef, TerminalProgressCallback() );
+    }
     vw::vw_out(vw::InfoMessage) << "Done!" << std::endl;
   }
 }
@@ -215,6 +219,7 @@ int main( int argc, char *argv[] ) {
       ("draft", "Draft mode (no blending)")
       ("qtree", "Output in quadtree format")
       ("ignore-alpha", "Ignore the alpha channel of the input images.")
+      ("no-output-alpha", "Do not write an alpha channel in the output image")
       ("float", "Process as a floating point image.")
       ("max-lod-pixels", po::value<int>(&max_lod_pixels)->default_value(1024), "Max LoD in pixels, or -1 for none")
       ("draw-order-offset", po::value<int>(&draw_order_offset)->default_value(100), "Set an offset for the KML <drawOrder> tag for this overlay")
@@ -269,13 +274,13 @@ int main( int argc, char *argv[] ) {
     vw::Cache::system_cache().resize( cache_size*1024*1024 );
 
     if( vm.count("float") && !vm.count("ignore-alpha") ) {
-      do_blend<vw::PixelGrayA<float> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent") );
+      do_blend<vw::PixelGrayA<float> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent"), false );
     } else if( vm.count("float") && vm.count("ignore-alpha") ) {
-      do_blend<vw::PixelGray<float> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent") );
+      do_blend<vw::PixelGray<float> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent"), vm.count("no-output-alpha") );
     } else if( !vm.count("float") && !vm.count("ignore-alpha") ) {
-      do_blend<vw::PixelRGBA<uint8> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent") );
+      do_blend<vw::PixelRGBA<uint8> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent"), false );
     } else if( !vm.count("float") && vm.count("ignore-alpha") ) {
-      do_blend<vw::PixelRGB<uint8> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent") );      
+      do_blend<vw::PixelRGB<uint8> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent"), vm.count("no-output-alpha") );      
     }
 
   }
