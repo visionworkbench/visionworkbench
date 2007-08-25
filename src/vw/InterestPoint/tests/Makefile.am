@@ -27,7 +27,9 @@
 
 if MAKE_MODULE_INTERESTPOINT
 
-TESTS = 
+nodist_TestKDTree_SOURCES = TestKDTree.cxx
+
+TESTS = TestKDTree
 
 endif
 

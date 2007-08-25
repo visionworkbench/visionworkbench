@@ -75,7 +75,14 @@ namespace ip {
     /// have a vector of integers, PCA-SIFT features have a vector of
     /// floats or doubles...
     vw::Vector<float> descriptor;
-
+    
+    vw::Vector<float>::iterator begin(){
+      return descriptor.begin();
+    }
+    vw::Vector<float>::iterator end(){
+      return descriptor.end();
+    }
+    
     int size() const { return 2; }
     float operator[] (int index) const { 
       if (index == 0) return x;
