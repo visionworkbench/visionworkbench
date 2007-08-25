@@ -72,6 +72,7 @@ int main( int argc, char *argv[] ) {
   float palette_scale=1.0, palette_offset=0.0;
   int draw_order_offset;
   float pixel_scale=1.0, pixel_offset=0.0;
+  double lcc_parallel1, lcc_parallel2;
 
   po::options_description general_options("General Options");
   general_options.add_options()
@@ -93,10 +94,13 @@ int main( int argc, char *argv[] ) {
     ("orthographic", "Assume an orthographic projection")
     ("stereographic", "Assume a stereographic projection")
     ("lambert-azimuthal", "Assume a Lambert azimuthal projection")
+    ("lambert-conformal-conic", "Assume a Lambert Conformal Conic projection")
     ("utm", po::value<unsigned>(&utm_zone), "Assume UTM projection with the given zone")
     ("proj-lat", po::value<double>(&proj_lat), "The center of projection latitude (if applicable)")
     ("proj-lon", po::value<double>(&proj_lon), "The center of projection longitude (if applicable)")
     ("proj-scale", po::value<double>(&proj_scale), "The projection scale (if applicable)")
+    ("std-parallel1", po::value<double>(&lcc_parallel1), "Standard parallels for Lambert Conformal Conic projection")
+    ("std-parallel2", po::value<double>(&lcc_parallel2), "Standard parallels for Lambert Conformal Conic projection")
     ("nudge-x", po::value<double>(&nudge_x), "Nudge the image, in projected coordinates")
     ("nudge-y", po::value<double>(&nudge_y), "Nudge the image, in projected coordinates");
     
@@ -218,6 +222,7 @@ int main( int argc, char *argv[] ) {
     else if( vm.count("orthographic") ) input_georef.set_orthographic(proj_lat,proj_lon);
     else if( vm.count("stereographic") ) input_georef.set_stereographic(proj_lat,proj_lon,proj_scale);
     else if( vm.count("lambert-azimuthal") ) input_georef.set_lambert_azimuthal(proj_lat,proj_lon);
+    else if( vm.count("lambert-conformal-conic") ) input_georef.set_lambert_azimuthal(lcc_parallel1, lcc_parallel2, proj_lat, proj_lon);
     else if( vm.count("utm") ) input_georef.set_UTM( utm_zone );
 
     if( vm.count("nudge-x") || vm.count("nudge-y") ) {

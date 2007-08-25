@@ -147,14 +147,19 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
     BBox2 output_bbox = trans.forward_bbox( BBox2(0,0,source_disk_image.cols(),source_disk_image.rows()) );
     output_bbox.min().x() = 0;
     output_bbox.min().y() = 0;
-    
+
+    // I've hardwired this to use nearest pixel interpolation for now
+    // until we have a chance to sit down and develop a better
+    // strategy for intepolating and filtering in the presence of
+    // missing pixels in DEMs. -mbroxton 
     if (do_black_is_transparent) {
-      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( mask_zero_pixels(source_disk_image), trans ), output_bbox );
+      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( mask_zero_pixels(source_disk_image), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
       composite.insert( masked_source, (int)(output_affine(0,2)/output_affine(0,0)), (int)(output_affine(1,2)/output_affine(1,1)) );
     } else {
-      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( pixel_cast<alpha_pixel_type>(source_disk_image), trans ), output_bbox );
+      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( pixel_cast<alpha_pixel_type>(source_disk_image), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
       composite.insert( masked_source, (int)(output_affine(0,2)/output_affine(0,0)), (int)(output_affine(1,2)/output_affine(1,1)) );
     }
+
   }
 
   vw::vw_out(vw::InfoMessage) << "Preparing the composite..." << std::endl;
