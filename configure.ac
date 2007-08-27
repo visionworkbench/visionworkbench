@@ -274,7 +274,7 @@ AM_CONDITIONAL(HAVE_PKG_GDAL, [test "$HAVE_PKG_GDAL" = "yes"])
 #	module definitions
 ##################################################
 
-AX_MODULE(CORE, [src/vw/Core], [libvwCore.la], yes, [M BOOST THREADS], [PTHREADS])
+AX_MODULE(CORE, [src/vw/Core], [libvwCore.la], yes, [BOOST THREADS M], [PTHREADS])
 AX_MODULE(MATH, [src/vw/Math], [libvwMath.la], yes, [CORE], [LAPACK GMP PPL APRON QHULL])
 AX_MODULE(IMAGE, [src/vw/Image], [libvwImage.la], yes, [MATH])
 AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [Z PNG JPEG TIFF OPENEXR JPEG2K HDF GDAL])
