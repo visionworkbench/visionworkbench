@@ -1004,7 +1004,7 @@ namespace {
     
 #if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
 
-      Mutex::Lock lock(bconvex_qhull_mutex);
+      vw::Mutex::Lock lock(bconvex_qhull_mutex);
       double *p = new double[dim * num_points];
       double **ps = 0;
       facetT *facet;
