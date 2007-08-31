@@ -82,7 +82,7 @@ public:
     }
   }
 
-  void test_rotation_matrix()
+  void test_rotation()
   {
     // Create a test vector to rotate
     Vector3 test_vec(0.1, 0.84, 0.23);
@@ -99,10 +99,18 @@ public:
 
     Vector3 sol1 = rotation * test_vec;
     Vector3 sol2 = rotation2 * test_vec;
+    Vector3 sol3 = quat.rotate(test_vec);
+    Vector3 sol4 = -quat.rotate(-test_vec);
 
     TS_ASSERT_DELTA(sol1(0),sol2(0),1e-9);
     TS_ASSERT_DELTA(sol1(1),sol2(1),1e-9);
     TS_ASSERT_DELTA(sol1(2),sol2(2),1e-9);
+    TS_ASSERT_DELTA(sol1(0),sol3(0),1e-9);
+    TS_ASSERT_DELTA(sol1(1),sol3(1),1e-9);
+    TS_ASSERT_DELTA(sol1(2),sol3(2),1e-9);
+    TS_ASSERT_DELTA(sol1(0),sol4(0),1e-9);
+    TS_ASSERT_DELTA(sol1(1),sol4(1),1e-9);
+    TS_ASSERT_DELTA(sol1(2),sol4(2),1e-9);
   }
 
 }; // class TestQuaternion
