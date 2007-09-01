@@ -11,6 +11,7 @@ namespace vw { namespace GPU {
   class GenericFragmentShader_1i0f {
   protected:
     std::string path;
+#endif
   public:
     GenericFragmentShader_1i0f(const char* fragmentShaderBaseName);
  
@@ -21,6 +22,9 @@ namespace vw { namespace GPU {
 
     GPUImageBase operator()(const GPUImageBase& image1);
   };
+
+
+
 
   class GenericFragmentShader_2i0f {
   protected:
@@ -37,6 +41,8 @@ namespace vw { namespace GPU {
   };
 
   
+
+
   class GenericFragmentShader_1i1f {
   protected:
     std::string path;
@@ -50,6 +56,8 @@ namespace vw { namespace GPU {
 
     GPUImageBase operator()(const GPUImageBase& image1, float float1);
   };
+
+
 
   class GenericFragmentShader_1i2f {
   protected:
@@ -65,6 +73,8 @@ namespace vw { namespace GPU {
     GPUImageBase operator()(const GPUImageBase& image1, float float1, float float2);
   };
 
+
+
   class GenericFragmentShader_1i3f {
   protected:
     std::string path;
@@ -78,6 +88,8 @@ namespace vw { namespace GPU {
 
     GPUImageBase operator()(const GPUImageBase& image1, float float1, float float2, float float3);
   };
+
+
 
   class GenericFragmentShader_1i4f {
   protected:
