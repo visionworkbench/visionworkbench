@@ -125,7 +125,7 @@ namespace cartography {
     template <class ViewT> 
     BBox2 bounding_box(ImageViewBase<ViewT> const& view) const {
       return BBox2(pixel_to_point(Vector2(0,0)),
-                   pixel_to_point(Vector2(view.cols(), view.rows())));
+                   pixel_to_point(Vector2(view.impl().cols(), view.impl().rows())));
     }
 
     /// Return the box that bounds the area represented by the
@@ -133,7 +133,7 @@ namespace cartography {
     template <class ViewT> 
     BBox2 lonlat_bounding_box(ImageViewBase<ViewT> const& view) const {
       return BBox2 (pixel_to_lonlat(Vector2(0,0)),
-                    pixel_to_lonlat(Vector2(view.cols(), view.rows())));
+                    pixel_to_lonlat(Vector2(view.impl().cols(), view.impl().rows())));
     }
   };
 
