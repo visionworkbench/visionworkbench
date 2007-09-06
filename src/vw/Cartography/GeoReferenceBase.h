@@ -124,16 +124,24 @@ namespace cartography {
     /// geotransform for the dimensions of the given image.
     template <class ViewT> 
     BBox2 bounding_box(ImageViewBase<ViewT> const& view) const {
-      return BBox2(pixel_to_point(Vector2(0,0)),
-                   pixel_to_point(Vector2(view.impl().cols(), view.impl().rows())));
+      BBox2 bbox;
+      bbox.grow(pixel_to_point(Vector2(0,0)));
+      bbox.grow(pixel_to_point(Vector2(view.impl().cols(),0)));
+      bbox.grow(pixel_to_point(Vector2(0,view.impl().rows())));
+      bbox.grow(pixel_to_point(Vector2(view.impl().cols(), view.impl().rows())));
+      return bbox;
     }
 
     /// Return the box that bounds the area represented by the
     /// geotransform for the dimensions of the given image.
     template <class ViewT> 
     BBox2 lonlat_bounding_box(ImageViewBase<ViewT> const& view) const {
-      return BBox2 (pixel_to_lonlat(Vector2(0,0)),
-                    pixel_to_lonlat(Vector2(view.impl().cols(), view.impl().rows())));
+      BBox2 bbox;
+      bbox.grow(pixel_to_lonlat(Vector2(0,0)));
+      bbox.grow(pixel_to_lonlat(Vector2(view.impl().cols(),0)));
+      bbox.grow(pixel_to_lonlat(Vector2(0,view.impl().rows())));
+      bbox.grow(pixel_to_lonlat(Vector2(view.impl().cols(), view.impl().rows())));
+      return bbox;
     }
   };
 

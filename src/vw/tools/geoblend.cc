@@ -101,15 +101,25 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
   double smallest_x_scale = vw::ScalarTypeLimits<float>::highest();
   double smallest_y_scale = vw::ScalarTypeLimits<float>::highest();
   double smallest_x_val = vw::ScalarTypeLimits<float>::highest();
-  double smallest_y_val = vw::ScalarTypeLimits<float>::highest();
+  double largest_y_val = vw::ScalarTypeLimits<float>::lowest();
 
   // First pass, read georeferencing information and build an output
   // georef.
   for(unsigned i = 0; i < image_files.size(); ++i) {
     std::cout << "Adding file " << image_files[i] << std::endl;
+
     GeoReference input_georef;
     read_georeference( input_georef, image_files[i] );
-    std::cout << "\t" << input_georef.transform() << "\n";
+    DiskImageView<PixelT> source_disk_image( image_files[i] );
+    std::cout << "\tTransform: " << input_georef.transform()
+              << "\t\tBBox: " << input_georef.bounding_box(source_disk_image) << "\n";
+
+    // Check to make sure the image has valid georeferencing
+    // information.
+    if( input_georef.transform() == identity_matrix<3>() ) {
+      vw_out(InfoMessage) << "No georeferencing info found for image: \"" << image_files[i] << "\".  Aborting.\n";
+      exit(0);
+    }
 
     Matrix3x3 affine = input_georef.transform();
     if (fabs(affine(0,0)) < smallest_x_scale || fabs(affine(1,1)) < smallest_y_scale) {
@@ -120,33 +130,37 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
     if (affine(0,2) < smallest_x_val) 
       smallest_x_val = affine(0,2);
 
-    if (affine(1,2) < smallest_y_val) 
-      smallest_y_val = affine(1,2);
+    // Note: since the y coordinates are typically flipped in a DEM,
+    // we look here for the _largest_ y value, since it corresponds to
+    // the upper left hand pixel.
+    if (affine(1,2) > largest_y_val) 
+      largest_y_val = affine(1,2);
 
-    if( input_georef.transform() == identity_matrix<3>() ) {
-      vw_out(InfoMessage) << "No georeferencing info found for image: \"" << image_files[i] << "\".  Aborting.\n";
-      exit(0);
-    }
   }
+
+  // Convert all of the images so they share the same scale factor.
+  // Adopt the scale of the highest resolution being composited.
+  Matrix3x3 output_affine = identity_matrix<3>();
+  output_affine(0,0) = smallest_x_scale;
+  output_affine(1,1) = smallest_y_scale;
+  output_affine(0,2) = smallest_x_val;
+  output_affine(1,2) = largest_y_val;
+
+  // Take the georef from the first file (this ensures that the
+  // projection and datum information is preserved...), but update the
+  // affine transform.
+  GeoReference output_georef; 
+  read_georeference( output_georef, image_files[0] );
+  output_georef.set_transform(output_affine);
 
   // Second pass: add files to the image composite.
   for(unsigned i = 0; i < image_files.size(); ++i) {
     GeoReference input_georef;
     read_georeference(input_georef, image_files[i]);
-    Matrix3x3 affine = input_georef.transform();
-
     DiskImageView<PixelT> source_disk_image( image_files[i] );
 
-    // Convert all of the images so they share the same scale factor.
-    // Adopt the scale of the highest resolution being composited.
-    Matrix3x3 output_affine = affine;
-    output_affine(0,0) = smallest_x_scale;
-    output_affine(1,1) = smallest_y_scale;
-
-    HomographyTransform trans(inverse(output_affine)*affine);
+    GeoTransform trans(input_georef, output_georef);
     BBox2 output_bbox = trans.forward_bbox( BBox2(0,0,source_disk_image.cols(),source_disk_image.rows()) );
-    output_bbox.min().x() = 0;
-    output_bbox.min().y() = 0;
 
     // I've hardwired this to use nearest pixel interpolation for now
     // until we have a chance to sit down and develop a better
@@ -154,16 +168,16 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
     // missing pixels in DEMs. -mbroxton 
     if (do_black_is_transparent) {
       ImageViewRef<alpha_pixel_type> masked_source = crop( transform( mask_zero_pixels(source_disk_image), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
-      composite.insert( masked_source, (int)(output_affine(0,2)/output_affine(0,0)), (int)(output_affine(1,2)/output_affine(1,1)) );
+      composite.insert( masked_source, output_bbox.min().x(), output_bbox.min().y() );
     } else {
       ImageViewRef<alpha_pixel_type> masked_source = crop( transform( pixel_cast<alpha_pixel_type>(source_disk_image), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
-      composite.insert( masked_source, (int)(output_affine(0,2)/output_affine(0,0)), (int)(output_affine(1,2)/output_affine(1,1)) );
+      composite.insert( masked_source, output_bbox.min().x(), output_bbox.min().y() );
     }
 
   }
 
-  vw::vw_out(vw::InfoMessage) << "Preparing the composite..." << std::endl;
-  composite.prepare(TerminalProgressCallback() );
+  vw_out(vw::InfoMessage) << "\n";
+  composite.prepare(TerminalProgressCallback(vw::InfoMessage, "Preparing the composite: "));
   if( qtree ) {
     vw::vw_out(vw::InfoMessage) << "Preparing the quadtree..." << std::endl;
     BBox2 ll_bbox( -30,-30,30.0,30.0*(float)(composite.rows())/(float)(composite.cols()) );
@@ -179,32 +193,23 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
     quadtree.generate(TerminalProgressCallback());
     vw::vw_out(vw::InfoMessage) << "Done!" << std::endl;
   } else {
-    Matrix3x3 output_affine = identity_matrix<3>();
-    output_affine(0,0) = smallest_x_scale;
-    output_affine(1,1) = smallest_y_scale;
-    output_affine(0,2) = smallest_x_val;
-    output_affine(1,2) = smallest_y_val;
 
-    // Take the georef from the first file, but update the affine transform
-    GeoReference output_georef; 
-    read_georeference( output_georef, image_files[0] );
-    output_georef.set_transform(output_affine);
+    std::cout << "\nOutput image:\n";
+    std::cout << "\tTransform: " << output_affine
+              << "\t\tBBox: " << output_georef.bounding_box(composite) << "\n\n";
 
-    std::cout << "Source bbox: " <<  composite.source_data_bbox() << "\n";
     std::string mosaic_filename = mosaic_name+".blend."+output_file_type;
-    vw::vw_out(vw::InfoMessage) << "Blending..." << std::endl;
     if (do_no_output_alpha) {
-      write_georeferenced_image( mosaic_filename, pixel_cast<PixelT>(composite), output_georef, TerminalProgressCallback() );
+      write_georeferenced_image( mosaic_filename, pixel_cast<PixelT>(composite), output_georef, TerminalProgressCallback(vw::InfoMessage, "Blending: ") );
     } else {
-      write_georeferenced_image( mosaic_filename, composite, output_georef, TerminalProgressCallback() );
+      write_georeferenced_image( mosaic_filename, composite, output_georef, TerminalProgressCallback(vw::InfoMessage, "Blending: ") );
     }
-    vw::vw_out(vw::InfoMessage) << "Done!" << std::endl;
   }
 }
 
 int main( int argc, char *argv[] ) {
   try {
-    std::string mosaic_name, input_file_type, output_file_type;
+    std::string mosaic_name, output_file_type;
     std::vector<std::string> image_files;
     int patch_size, patch_overlap;
     unsigned cache_size;
@@ -215,7 +220,6 @@ int main( int argc, char *argv[] ) {
     general_options.add_options()
       ("help", "Display this help message")
       ("mosaic-name,o", po::value<std::string>(&mosaic_name)->default_value("mosaic"), "Explicitly specify the input directory")
-      ("input-file-type", po::value<std::string>(&input_file_type)->default_value("tif"), "Output file type")
       ("output-file-type,t", po::value<std::string>(&output_file_type)->default_value("tif"), "Output file type")
       ("size", po::value<int>(&patch_size)->default_value(256), "Patch size, in pixels")
       ("overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels (must be even)")
