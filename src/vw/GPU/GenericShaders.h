@@ -11,7 +11,6 @@ namespace vw { namespace GPU {
   class GenericFragmentShader_1i0f {
   protected:
     std::string path;
-#endif
   public:
     GenericFragmentShader_1i0f(const char* fragmentShaderBaseName);
  

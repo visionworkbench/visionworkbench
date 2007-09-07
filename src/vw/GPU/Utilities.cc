@@ -65,7 +65,7 @@ void TokenReplacer::AddVariable(const char* variableName, const char*  variableV
 }
 
 
-void TokenReplacer::Replace(string& inText, string& outText) {
+void TokenReplacer::Replace(const string& inText, string& outText) {
 	int inLength = inText.size();
 	outText.resize(0);
 	outText.reserve((int) (inLength * 1.5));

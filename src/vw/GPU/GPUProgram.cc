@@ -1,19 +1,19 @@
 /*
- *  GPUProgram.cpp
- *  VWGPU
- *
- *  Created by Ian Saxton on 5/17/06.
- *
- */
+  *  GPUProgram.cpp
+  *  VWGPU
+  *
+  *  Created by Ian Saxton on 5/17/06.
+  *
+  */
 
-#include <fstream>
-#include <iostream>
+ #include <fstream>
+ #include <iostream>
 
-#include <boost/algorithm/string.hpp>
+ #include <boost/algorithm/string.hpp>
 
-#include <vw/Core/Exception.h>
-#include <vw/GPU/GPUProgram.h>
-#include <vw/GPU/Utilities.h>
+ #include <vw/Core/Exception.h>
+ #include <vw/GPU/GPUProgram.h>
+ #include <vw/GPU/Utilities.h>
 
 
 namespace vw { namespace GPU {
@@ -56,13 +56,13 @@ namespace vw { namespace GPU {
     }
     return true;
   }
- 
+
   //########################################################################
   //#    GLSL - Vertex Shader
   //########################################################################
 
 
-  bool GPUVertexShader_GLSL::compile(string& vertexString) {   
+  bool GPUVertexShader_GLSL::compile(const string& vertexString) {   
     const char* cStr = vertexString.c_str();
     shader = glCreateShaderObjectARB(GL_VERTEX_SHADER_ARB);
     glShaderSourceARB(shader, 1, (const GLcharARB**) &cStr, NULL);	
@@ -74,19 +74,21 @@ namespace vw { namespace GPU {
     if(!isCompiled) {
       gpu_log("\n*********GLSL Vertex Shader Compilation Error*********\n");
       gpu_log(errorString);
+      gpu_log("********************************************************\n");
+      gpu_log(vertexString.c_str());
       gpu_log("******************************************************\n");
       return false;
     }
     return true;
   }
-	
+
   //########################################################################
   //#    GLSL - Fragment Shader
   //########################################################################
 
 
 
-  bool GPUFragmentShader_GLSL::compile(string& fragmentString) {   
+  bool GPUFragmentShader_GLSL::compile(const string& fragmentString) {   
     const char* cStr = fragmentString.c_str();
     shader = glCreateShaderObjectARB(GL_FRAGMENT_SHADER_ARB);
     glShaderSourceARB(shader, 1, (const GLcharARB**) &cStr, NULL);	
@@ -100,6 +102,9 @@ namespace vw { namespace GPU {
       gpu_log("\n*********GLSL Fragment Shader Compilation Error*********\n");
       gpu_log(errorString);
       gpu_log("********************************************************\n");
+      gpu_log(fragmentString.c_str());
+      gpu_log("\n********************************************************\n");
+
       return false;
     }
     return true;
@@ -254,7 +259,7 @@ namespace vw { namespace GPU {
   }
 
 
-    //########################################################################
+  //########################################################################
   //#                           CG - Internal Globals                      #
   //########################################################################
 
@@ -297,66 +302,72 @@ namespace vw { namespace GPU {
 
   typedef pair<pair<string, string>, pair<vector<int>, vector<int> > > GPUProgramKey;
 
-GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, const vector<int>& fragmentAttributes,
-					      const string& vertexString, const vector<int>& vertexAttributes)
-{
-  shaderCompilationStatus = SHADER_COMPILATION_STATUS_SUCCESS_FILE;	
-  // Vertex
-  GPUVertexShader_GLSL vertexShader;
-  if(!vertexString.empty()) {
-    string vertReplacedString;
-    string& sourceString = vertexString;
-    if(vertexAttributes.size()) {
-      TokenReplacer tr;
-      for(int i=0; i < vertexAttributes.size(); i++) {
-	sprintf(charBuffer1, "%i", i+1);
-	sprintf(charBuffer2, "%i", vertexAttributes[i]);
-	tr.AddVariable(charBuffer1, charBuffer2);
+  GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, const vector<int>& fragmentAttributes,
+						  const string& vertexString, const vector<int>& vertexAttributes)
+  {
+    shaderCompilationStatus = SHADER_COMPILATION_STATUS_SUCCESS_FILE;	
+    static char charBuffer1[32];
+    static char charBuffer2[32];
+    // Vertex
+    GPUVertexShader_GLSL vertexShader;
+    if(!vertexString.empty()) {
+      string vertReplacedString;
+      const string* sourceString = &vertexString;
+      if(vertexAttributes.size()) {
+	TokenReplacer tr;
+	for(int i=0; i < vertexAttributes.size(); i++) {
+	  sprintf(charBuffer1, "%i", i+1);
+	  sprintf(charBuffer2, "%i", vertexAttributes[i]);
+	  tr.AddVariable(charBuffer1, charBuffer2);
+	}
+	tr.Replace(vertexString, vertReplacedString);
+	sourceString = &vertReplacedString;
       }
-      tr.Replace(vertexString, vertReplacedString);
-      sourceString = vertReplacedString;
-    }
-    if(!vertexShader.compile(sourceString)) {
-      shaderCompilationStatus = SHADER_COMPILATION_STATUS_ERROR_COMPILE;
-      return NULL;
-    }	
-  }					
-  // Fragment
-  GPUFragmentShader_GLSL fragmentShader;
-  if(fragmentPath.size()) {
-    string fragReplacedString;
-    string& sourceString = fragRawString;
-    if(fragmentAttributes.size()) {
-      TokenReplacer tr;
-      string variable;
-      for(int i=0; i < fragmentAttributes.size(); i++) {
-	sprintf(charBuffer1, "%i", i+1);
-	sprintf(charBuffer2, "%i", fragmentAttributes[i]);
-	tr.AddVariable(charBuffer1, charBuffer2);
+      if(!vertexShader.compile(*sourceString)) {
+	shaderCompilationStatus = SHADER_COMPILATION_STATUS_ERROR_COMPILE;
+	throw(Exception("GPUProgram creation failed."));	
+      }	
+    }					
+    // Fragment
+    GPUFragmentShader_GLSL fragmentShader;
+    if(!fragmentString.empty()) {
+      string fragReplacedString;
+      const string* sourceString = &fragmentString;
+      if(fragmentAttributes.size()) {
+	TokenReplacer tr;
+	string variable;
+	for(int i=0; i < fragmentAttributes.size(); i++) {
+	  sprintf(charBuffer1, "%i", i+1);
+	  sprintf(charBuffer2, "%i", fragmentAttributes[i]);
+	  tr.AddVariable(charBuffer1, charBuffer2);
+	}
+	tr.Replace(fragmentString, fragReplacedString);
+	sourceString = &fragReplacedString;
       }
-      tr.Replace(fragRawString, fragReplacedString);
-      sourceString = fragReplacedString;
+      if(!fragmentShader.compile(*sourceString)) {
+	shaderCompilationStatus = SHADER_COMPILATION_STATUS_ERROR_COMPILE;
+	throw(Exception("GPUProgram creation failed."));	
+      }
+    }						
+    // Program
+    GPUProgram_GLSL* program = new GPUProgram_GLSL;
+    if(!program->Link(vertexShader, fragmentShader)) {
+      shaderCompilationStatus = SHADER_COMPILATION_STATUS_ERROR_LINK;
+      delete program;
+      throw(Exception("GPUProgram creation failed."));	
     }
-    if(!fragmentShader.compile(sourceString)) {
-      shaderCompilationStatus = SHADER_COMPILATION_STATUS_ERROR_COMPILE;
-      return NULL;
-    }
-  }						
-  // Program
-  GPUProgram_GLSL* program = new GPUProgram_GLSL;
-  if(!program->Link(vertexShader, fragmentShader)) {
-    shaderCompilationStatus = SHADER_COMPILATION_STATUS_ERROR_LINK;
-    delete program;
-    return NULL;
+    return program;
   }
-  return program;
-}
- 
+
+
+
+
   static std::map<GPUProgramKey, GPUProgram_GLSL*> program_cache_glsl;
 
 
+
   GPUProgram_GLSL* create_gpu_program_glsl(const string& fragmentPath, const vector<int>& fragmentAttributes,
-					 const string& vertexPath, const vector<int>& vertexAttributes)
+					   const string& vertexPath, const vector<int>& vertexAttributes)
   {
     // Static
     // Check cache
@@ -371,29 +382,29 @@ GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, co
     string vertexString;
     GPUVertexShader_GLSL vertexShader;
     if(!vertexPath.empty()) {
-      std::map<std::string, char*>::iterator iter_map = standard_shaders_map.find((vertexPath + ".glsl").c_str());
+      std::map<std::string, char*>::iterator iter_map = standard_shaders_map.find((vertexPath).c_str());
       if(iter_map != standard_shaders_map.end()) {
-	vertRawString = (*iter_map).second;
+	vertexString = (*iter_map).second;
       }
-      else if(!ReadFileAsString(shader_base_path + vertexPath + ".glsl", vertRawString)) {
+      else if(!ReadFileAsString(shader_base_path + vertexPath, vertexString)) {
 	shaderCompilationStatus = SHADER_COMPILATION_STATUS_ERROR_FILE;
-	return NULL;
+	throw(Exception("GPUProgram creation failed."));	
       }
     }
     // Fragment File Read
     string fragmentString;
     if(!fragmentPath.empty()) {			
-      std::map<std::string, char*>::iterator iter_map = standard_shaders_map.find((fragmentPath + ".glsl").c_str());
+      std::map<std::string, char*>::iterator iter_map = standard_shaders_map.find((fragmentPath).c_str());
       if(iter_map != standard_shaders_map.end()) {
 	fragmentString = (*iter_map).second;
       }
-      else if(!ReadFileAsString(shader_base_path + fragmentPath + ".glsl", fragmentString)) {
+      else if(!ReadFileAsString(shader_base_path + fragmentPath, fragmentString)) {
 	shaderCompilationStatus = SHADER_COMPILATION_STATUS_ERROR_FILE;
-	return NULL;
+	throw(Exception("GPUProgram creation failed."));	
       }
     }
     // Compile Strings
-    GPUProgram* program = create_gpu_program_gl_string(fragmentString, fragmentAttributes, vertexString, vertexAttributes);
+    GPUProgram_GLSL* program = create_gpu_program_glsl_string(fragmentString, fragmentAttributes, vertexString, vertexAttributes);
     if(program)
       program_cache_glsl[programKey] = program;
     return program;
@@ -412,14 +423,16 @@ GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, co
 
   GPUProgram_CG* create_gpu_program_cg_string(const string& fragmentString, const vector<int>& fragmentAttributes,
 					      const string& vertexString, const vector<int>& vertexAttributes)
-{
+  {
     auto_ptr<GPUShader_CG> vertexShader(NULL);
-    auto_ptr<GPUShader_CG> fragmentShader(NULL);									    
+    auto_ptr<GPUShader_CG> fragmentShader(NULL);
+    static char charBuffer1[32];
+    static char charBuffer2[32];								    
     // VERTEX
     if(!vertexString.empty()) {
-      vertexShader.reset(new vertexShader());
+      vertexShader.reset(new GPUShader_CG());
       string vertReplacedString;      
-      string& sourceString = vertexString;
+      const string* sourceString = &vertexString;
       if(vertexAttributes.size()) {     // Specialize String
 	TokenReplacer tr;
 	string variable;
@@ -429,18 +442,18 @@ GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, co
 	  tr.AddVariable(charBuffer1, charBuffer2);
 	}
 	tr.Replace(vertexString, vertReplacedString);
-	sourceString = vertReplacedString;
+	sourceString = &vertReplacedString;
       }
-      if(!vertexShader->compile_source_with_string(sourceString.c_str(), CG_PROFILE_VP30, "main", NULL)) {
+      if(!vertexShader->compile_source_with_string(sourceString->c_str(), CG_PROFILE_VP30, "main", NULL)) {
 	shaderCompilationStatus = SHADER_COMPILATION_STATUS_ERROR_COMPILE;
-	return NULL;	
+	throw(Exception("GPUProgram creation failed."));	
       }
     }
     // FRAGMENT
     if(!fragmentString.empty()) {
-      fragmentShader.reset(new fragmentShader());
+      fragmentShader.reset(new GPUShader_CG());
       string fragReplacedString;      
-      string& sourceString = fragmentString;
+      const string* sourceString = &fragmentString;
       if(fragmentAttributes.size()) {     // Specialize String
 	TokenReplacer tr;
 	string variable;
@@ -450,11 +463,11 @@ GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, co
 	  tr.AddVariable(charBuffer1, charBuffer2);
 	}
 	tr.Replace(fragmentString, fragReplacedString);
-	sourceString = fragReplacedString;
+	sourceString = &fragReplacedString;
       }
-      if(!fragmentShader->compile_source_with_string(sourceString.c_str(), CG_PROFILE_FP30, "main", NULL)) {
+      if(!fragmentShader->compile_source_with_string(sourceString->c_str(), CG_PROFILE_FP30, "main", NULL)) {
 	shaderCompilationStatus = SHADER_COMPILATION_STATUS_ERROR_COMPILE;
-	return NULL;	
+	throw(Exception("GPUProgram creation failed."));
       }
     }
     // PROGRAM - Make new program, put in cache and return it 
@@ -493,6 +506,7 @@ GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, co
     string fragRawString;
     string fragAssemblyFilePath;
     bool fragComplete = false;
+    bool fail = false;
     // VERTEX
     if(!vertexPath.empty()) {
       std::map<std::string, char*>::iterator iter_map = standard_shaders_map.find((vertexPath).c_str());
@@ -501,11 +515,11 @@ GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, co
       }
       else if(!ReadFileAsString(shader_base_path + vertexPath, vertRawString)) {
 	shaderCompilationStatus = SHADER_COMPILATION_STATUS_ERROR_FILE;
-	return NULL;
+	fail = true;
       }
     }
     // FRAGMENT
-    if(!fragmentPath.empty()) {
+    if(!fail && !fragmentPath.empty()) {
       // If using assembly caching, create assembly path and attempt to load it.
       if(shader_assembly_cache_enabled) {
 	string modifiedFragmentPath = fragmentPath;
@@ -528,13 +542,13 @@ GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, co
 	}
 	else if(!ReadFileAsString(shader_base_path + fragmentPath, fragRawString)) {
 	  shaderCompilationStatus = SHADER_COMPILATION_STATUS_ERROR_FILE;
-	  return NULL;
+	  fail = true;
 	}
       }
     }
     // Specialize Strings and Compile Shaders
     // VERTEX
-    if(!vertexPath.empty()) {
+    if(!fail && !vertexPath.empty()) {
       vertexShader.reset(new GPUShader_CG);
       string vertReplacedString;      
       string& sourceString = vertRawString;
@@ -555,7 +569,7 @@ GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, co
       }
     }
     // FRAGMENT
-    if(!fragmentPath.empty() && !fragComplete) {
+    if(!fail && !fragmentPath.empty() && !fragComplete) {
       fragmentShader.reset(new GPUShader_CG);
       string fragReplacedString;      
       string& sourceString = fragRawString;
@@ -572,13 +586,16 @@ GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, co
       }
       if(!fragmentShader->compile_source_with_string(sourceString.c_str(), CG_PROFILE_FP30, "main", NULL)) {
 	shaderCompilationStatus = SHADER_COMPILATION_STATUS_ERROR_COMPILE;
-	return NULL;	
+	fail = true;	
       }
       if(shader_assembly_cache_enabled) {
 	if(fragmentShader->save_compiled_file(fragAssemblyFilePath.c_str())) {
 	}
       }
     }
+
+    if(fail)
+      throw(Exception("GPUProgram creation failed."));
     // PROGRAM - Make new program, put in cache and return it 
     GPUProgram_CG* program = new GPUProgram_CG(vertexShader.get(), fragmentShader.get());
     vertexShader.release();
@@ -615,10 +632,10 @@ GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, co
 	sprintf(buffer2, "%s%i ", buffer2, fragmentAttributes[i]);
       sprintf(buffer2, "%s>", buffer2);
     }
-           
+
     static char buffer3[512];
     GPUProgram* program = NULL;
-    sprintf(buffer3, "[GPUProgramSet::GetProgram] VERTEX: %s%s, FRAGMENT: %s%s }    ", vertexPath.c_str(), buffer1, fragmentPath.c_str(), buffer2);
+    sprintf(buffer3, "[create_gpu_program] FRAGMENT: %s%s, VERTEX: %s%s }    ", fragmentPath.c_str(), buffer2, vertexPath.c_str(), buffer1 );
     gpu_log(buffer3);
     // FIND PROGRAM
 
@@ -626,19 +643,32 @@ GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, co
     gpu_log("  ");
 #ifdef VW_HAVE_PKG_CG
     if(shaderLanguageChoice == SHADER_LANGUAGE_CHOICE_CG_GLSL || shaderLanguageChoice == SHADER_LANGUAGE_CHOICE_CG) {
-      program = create_gpu_program_cg(fragmentPath  + ".cg", fragmentAttributes, vertexPath + ".cg", vertexAttributes);
+      try {
+	program = create_gpu_program_cg(fragmentPath  + ".cg", fragmentAttributes, 
+					vertexPath.empty() ? "" : vertexPath + ".cg", vertexAttributes);
+      }
+      catch(...) { program = NULL; }
       gpu_log("Trying CG... ");
     }
 #endif  
 
     if(!program && shaderLanguageChoice != SHADER_LANGUAGE_CHOICE_CG) {
-      program = create_gpu_program_gl(fragmentPath + ".glsl", fragmentAttributes, vertexPath + ".glsl", vertexAttributes);
+      try {
+	program = create_gpu_program_glsl(fragmentPath + ".glsl", fragmentAttributes, 
+					  vertexPath.empty() ? "" : vertexPath + ".glsl", vertexAttributes);
+      }
+      catch(...) {  program = NULL; }
       gpu_log("Trying GLSL... ");
     }
 
 #ifdef VW_HAVE_PKG_CG
     if(!program && shaderLanguageChoice == SHADER_LANGUAGE_CHOICE_GLSL_CG) {
-      program = create_gpu_program_cg(fragmentPath  + ".cg", fragmentAttributes, vertexPath  + ".cg", vertexAttributes);
+      try {
+	program = create_gpu_program_cg(fragmentPath  + ".cg", fragmentAttributes, 
+					vertexPath.empty() ? "" : vertexPath + ".cg", vertexAttributes);
+      }
+      catch(...) {  program = NULL; }
+
       gpu_log("Trying CG... ");
     }
 #endif  
@@ -657,25 +687,24 @@ GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, co
       if(get_shader_compilation_status() == SHADER_COMPILATION_STATUS_ERROR_LINK)
 	gpu_log("*** FAILED (Link Error) ***\n");
 
-      throw(Exception("[vw::GPU::GPUProgramSet::GetProgram] Program creation failed."));
+      throw(Exception("GPUProgram creation failed."));
     }
 
     return program;
-   
   }
 
-void clear_gpu_program_cache() {
-  for(map<GPUProgramKey, GPUProgram_GLSL*>::iterator iter = program_cache_glsl.begin(); iter != program_cache_glsl.end(); iter++)
-    delete (*iter).second;
-  program_cache_glsl.clear();
+  void clear_gpu_program_cache() {
+    for(map<GPUProgramKey, GPUProgram_GLSL*>::iterator iter = program_cache_glsl.begin(); iter != program_cache_glsl.end(); iter++)
+      delete (*iter).second;
+    program_cache_glsl.clear();
 
 #ifdef VW_HAVE_PKG_CG
-  for(map<GPUProgramKey, GPUProgram_CG*>::iterator iter = program_cache_cg.begin(); iter != program_cache_cg.end(); iter++)
-    delete (*iter).second;
-  program_cache_cg.clear();
+    for(map<GPUProgramKey, GPUProgram_CG*>::iterator iter = program_cache_cg.begin(); iter != program_cache_cg.end(); iter++)
+      delete (*iter).second;
+    program_cache_cg.clear();
 #endif
 
-}
+  }
 
 
 

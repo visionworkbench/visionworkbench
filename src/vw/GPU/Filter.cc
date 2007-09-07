@@ -52,14 +52,6 @@ GPUImageBase seperable_convolution_filter(const GPUImageBase& image,
 {
 // Static
   static vector<int> fAttributes(1);
-  static GPUProgramSet programSet_Rows;
-  static GPUProgramSet programSet_Columns;
-  static int needsInit = 1;
-  if(needsInit--) {
-    programSet_Rows.set_base_paths("", "VWGPU_Filter/convolution-rows");
-    programSet_Columns.set_base_paths("", "VWGPU_Filter/convolution-columns");
-  }
-  vector<int> emptyVector;
 // GLState - Setup
   ((GPUImageBase&) image).rasterize_homography();
   GPUImageBase temp1(image.width(), image.height(), image.format(), image.type());

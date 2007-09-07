@@ -82,7 +82,7 @@ class TokenReplacer {
 public:
 	void AddVariable(string& variableName, string& variableValue);
 	void AddVariable(const char* variableName, const char*  variableValue);
-	void Replace(string& inText, string& outText);
+	void Replace(const string& inText, string& outText);
 // INLINE
 	void Clear() {
 		stringMap.clear();
