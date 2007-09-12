@@ -21,9 +21,10 @@ map<pair<Tex_Format, Tex_Type>, pair<Tex_Format, Tex_Type> > TexAlloc::textureSu
 //                                        TexAlloc: Class Functions
 //#################################################################################################################
 
+static char buffer[256];
+
 TexBlock* 
 TexAlloc::alloc(int w, int h, Tex_Format format, Tex_Type type) {
-  static char buffer[256];
 // check for init
   if(!isInit)
     _init();
@@ -68,7 +69,7 @@ TexAlloc::alloc(int w, int h, Tex_Format format, Tex_Type type) {
 	if(format != realFormat || type != realType)
 		sprintf(buffer, "   ### TexAlloc: [%i x %i] Texture Format/Type Substitution.  Created New\n", w, h, (int) format);
 	else
-		sprintf(buffer, "   ### TexAlloc: [%i x %i] Format = %i.  Created New\n", w, h, (int) format);
+		sprintf(buffer, "   ### TexAlloc: [%i x %i] Format = %i.  Created New - Total MB: %f\n", w, h, (int) format, allocatedSize / 1000000.0);
     gpu_log(buffer);
 	
     if(!texObj->width()) {
@@ -91,6 +92,8 @@ TexAlloc::release(TexObj* texObj) {
   else {
     allocatedCount--;
     allocatedSize -= texObj->MemorySize();
+    sprintf(buffer, "   ### Tex DELETED: [%i x %i]. Format = %i. - Total MB: %f\n", texObj->width(), texObj->height(), (int) texObj->format(), allocatedSize / 1000000.0);
+    gpu_log(buffer);
     delete texObj;
   }
 }
@@ -101,8 +104,12 @@ void
 TexAlloc::clear_recycled() {
   std::list<TexObj*>::iterator iter;
   for(iter = texRecycleList.begin(); iter != texRecycleList.end(); iter++) {
+    TexObj* texObj = *iter;
     allocatedCount--;
-    allocatedSize -= (*iter)->MemorySize();
+    allocatedSize -= texObj->MemorySize();
+    sprintf(buffer, "   ### Tex DELETED: [%i x %i]. Format = %i. - Total MB: %f\n", 
+	    texObj->width(), texObj->height(), (int) texObj->format(), allocatedSize / 1000000.0);
+    gpu_log(buffer);
     delete *iter;
   }
   texRecycleList.clear();

@@ -259,7 +259,7 @@ namespace vw { namespace GPU {
     h_out = h_translate * homography;
 
     GPUImageBase temp = image;
-    temp.apply_homography(h_out, InterpT(), EdgeT(), pt_max(0) - pt_min(0), pt_max(1) - pt_min(1));
+    temp.apply_homography(h_out, InterpT(), EdgeT(), (int) (pt_max(0) - pt_min(0)), (int) (pt_max(1) - pt_min(1)));
     return temp;
   }
 

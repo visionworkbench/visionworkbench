@@ -3,7 +3,7 @@
 using namespace vw;
 using namespace GPU;
 
-#define MISSING_PIXEL 1000000
+#define MISSING_PIXEL 10000
 
 //########################################################################
 //#  correlation_iteration - glsl_fragment_strings and a free function                
@@ -18,7 +18,7 @@ void main() { \
  vec2 coord = gl_TexCoord[0].st; \
   float v1 = texture2DRect(i1, vec2(coord.s, coord.t)).r; \
   float v2 = texture2DRect(i2, vec2(coord.s + x_offset, coord.t + y_offset)).r; \
-  gl_FragColor.r = v1 - v2; \
+  gl_FragColor.r = abs(v1 - v2); \
 }";
 
 
@@ -65,8 +65,20 @@ void main() { \
  } \
 }";
 
+template<class PixelT>
+void norm_and_save(const string &path, const GPUImage<PixelT> image) {
+  //return;
+  //ImageView<PixelT> image;
+  //gpu_image.write_image_view(image);
+  float min = min_channel_value(image);
+  float max = max_channel_value(image);
+  printf("Saving image as \'%s\' [Values between %f and %f]\n", path.c_str(), min, max);
+  GPUImage<PixelT> normalized = normalize(image, 0, 1);
+  write_image(path, normalized);
+}
 
 
+#include <sstream>
 
 GPUImageBase correlation_iteration(int dx, 
 				   int dy, 
@@ -83,7 +95,9 @@ GPUImageBase correlation_iteration(int dx,
   GPUImage<PixelGray<float> > temp2(width, height);
   GPUImageBase temp_bests;
   temp_bests.copy_attributes(out_left_bests);
-  
+  // TRY: Init temps
+  fill(temp1, 0, 0, 0, 0);
+  fill(temp2, 0, 0, 0, 0);
   // *********  STAGE 1 - Offset and Difference **********
   // Setup
   ShaderInvocation_SetupGLState(width, height);
@@ -101,6 +115,15 @@ GPUImageBase correlation_iteration(int dx,
   program->set_uniform_float("y_offset", -dy);   
   // Drawing
   ShaderInvocation_DrawRectOneTexture(temp1);
+  // TEST
+    // TEST
+  {
+    ostringstream ostream;
+    ostream << "OUTPUT_OffsetAndDifference_DX_" << dx << ".png";
+    printf("DX = %i  ", dx);
+    norm_and_save(ostream.str(), temp1);
+  }
+  //norm_and_save("OUTPUT_Offset_and_Difference.png", temp1);
   // *********  STAGE 2 - Column Sums ***********
   {
     // Setup
@@ -126,6 +149,7 @@ GPUImageBase correlation_iteration(int dx,
     // Drawing
     ShaderInvocation_DrawRectOneTexture(temp2);  
   }
+  
   // *********  STAGE 3 - Row Sums ***********
   {
     // Setup
@@ -149,7 +173,15 @@ GPUImageBase correlation_iteration(int dx,
     // Input
     program->set_uniform_texture("i1", 0, temp2);
     // Drawing
-    ShaderInvocation_DrawRectOneTexture(temp1);  
+    ShaderInvocation_DrawRectOneTexture(temp1); 
+
+    // TEST
+    ostringstream ostream;
+    ostream << "OUTPUT_RowSums_DX_" << dx << ".png";
+    printf("DX = %i  ", dx);
+    norm_and_save(ostream.str(), temp1);
+
+ 
   }
   // *********  STAGE 4A/B - Update Best Values for Left and Right ***********
   {
@@ -170,6 +202,8 @@ GPUImageBase correlation_iteration(int dx,
     // Drawing
     ShaderInvocation_DrawRectOneTexture(temp_bests);
     // Copy to output
+    out_left_bests = temp_bests;
+    /*
     out_left_bests = copy(temp_bests);
 
     // RIGHT SIDE: Setup
@@ -187,6 +221,7 @@ GPUImageBase correlation_iteration(int dx,
     ShaderInvocation_DrawRectOneTexture(temp_bests);
     // Copy to output
     out_right_bests = temp_bests;
+    */
   }			
 }
 
@@ -268,19 +303,24 @@ GPUImage<PixelRGB<float> > stereo_correlation(const GPUImageBase &leftImage,
     };
   GPUImageBase laplacian_matrix(3, 3, TEX_R, TEX_FLOAT32, TEX_R, TEX_FLOAT32, matrix2);
   // Left Image - Input / SLOG
+  //norm_and_save("OUTPUT_Left_Normalized.png", (GPUImage<PixelGray<float> >) leftImage);
+
   GPUImageBase temp_left = convolution_filter(leftImage, gaussian_matrix);
   temp_left = convolution_filter(temp_left, laplacian_matrix);
-  temp_left = threshold(temp_left, 0, -1, 1);
+  temp_left = threshold(temp_left, 0, 0, 1);
+  //norm_and_save("OUTPUT_Left_SLOG.png", (GPUImage<PixelGray<float> >)temp_left);
   // Right Image - Input / SLOG  
+  //norm_and_save("OUTPUT_Right_Original.png", (GPUImage<PixelGray<float> >) rightImage);
   GPUImageBase temp_right = convolution_filter(rightImage, gaussian_matrix);
   temp_right = convolution_filter(temp_right, laplacian_matrix);
-  temp_right = threshold(temp_right, 0, -1, 1);
+  temp_right = threshold(temp_right, 0, 0, 1);
+  //norm_and_save("OUTPUT_Right_SLOG.png", (GPUImage<PixelGray<float> >)temp_right);
   // Best Scores
   GPUImage<PixelRGB<float> > best_values_left(leftImage.width(), leftImage.height());
-  fill(best_values_left, 1000000, 0, 0, 0); 
+  fill(best_values_left, 1000000, 1000000, 1000000, 0); 
 
   GPUImage<PixelRGB<float> > best_values_right(leftImage.width(), leftImage.height());
-  fill(best_values_right, 1000000, 0, 0, 0);
+  fill(best_values_right, 1000000, 1000000, 1000000, 0);
   // LOOP
   int c=0;
   for(int DX = minDX; DX < maxDX+1; DX++) {
@@ -297,34 +337,11 @@ GPUImage<PixelRGB<float> > stereo_correlation(const GPUImageBase &leftImage,
   }
   
   // CROSS CHECK
-  GPUImageBase best_values_cross = 
-    correlation_cross_check(crossCorrThreshold, best_values_left, best_values_right);
+  // GPUImageBase best_values_cross = 
+  //  correlation_cross_check(crossCorrThreshold, best_values_left, best_values_right);
+  // return best_values_cross;
 
-  return best_values_cross;
-
-  // Read Back Output
-  // TO DO - Need to decide if it should return it as GPUImage or ImageView or DisparityMap
-  /*
-    int oWidth = bestSOADCross_Texture.Width();
-    int oHeight = bestSOADCross_Texture.Height();
-
-    vil_image_view<float> DHImage_FView(oWidth, oHeight);
-    bestSOADCross_Texture.Read(TEX_G, TEX_FLOAT32, DHImage_FView.top_left_ptr());
-
-    vil_image_view<float> DVImage_FView(oWidth, oHeight);
-    bestSOADCross_Texture.Read(TEX_B, TEX_FLOAT32, DVImage_FView.top_left_ptr());
-
-    DisparityMap disparityMap(oWidth, oHeight);
-    for(int y=0; y < DHImage_FView.nj(); y++) {
-    for(int x=0; x < DHImage_FView.ni(); x++) {
-    disparityMap(x, y, 0) = DHImage_FView(x, y);
-    disparityMap(x, y, 1) = DVImage_FView(x, y);
-    }
-    }
-  
-    printf("returning...\n");
-    return DisparityMap();
-  */
+  return best_values_left;
 }
 
 int main(int argc, char *argv[]) {
@@ -353,6 +370,7 @@ int main(int argc, char *argv[]) {
   // Init
   gpu_init(true, true);
   set_shader_language_choice(SHADER_LANGUAGE_CHOICE_GLSL);
+  //set_gpu_memory_recycling(false);
     // Read image
   ImageView<PixelGray<float> > left_image, right_image;
   read_image(left_image, left_path);
@@ -372,9 +390,26 @@ int main(int argc, char *argv[]) {
 							 minDY,
 							 maxDY,
 							 crossCorrThreshold);
-
-  ImageView<PixelGray<float> > dx_image(output.cols(), output.rows());
-  output.read(TEX_G, TEX_FLOAT32, &(dx_image(0,0)));
-  normalize(dx_image, 0, maxDX-minDX);
-  write_image(output_path, dx_image);
+{
+    ImageView<PixelGray<float> > image(output.cols(), output.rows());
+    output.read(TEX_R, TEX_FLOAT32, &(image(0,0)));
+    float min = min_channel_value(image);
+    float max = max_channel_value(image);
+    printf("Score Values: min / max: %f, %f\n", min, max);
+    image = normalize(image);
+    write_image("OUTPUT_SCORE.png", image);
+  } 
+ {
+    ImageView<PixelGray<float> > dx_image(output.cols(), output.rows());
+    output.read(TEX_G, TEX_FLOAT32, &(dx_image(0,0)));
+    float min = min_channel_value(dx_image);
+    float max = max_channel_value(dx_image);
+    printf("DX Value: min / max: %f, %f\n", min, max);
+    dx_image = dx_image - PixelGray<float>(min);
+    dx_image = dx_image / PixelGray<float>(max);
+    //normalize(dx_image, 0, maxDX-minDX);
+    write_image(output_path, dx_image);
+  }
+  set_gpu_memory_recycling(false);
+  return 0;
 }

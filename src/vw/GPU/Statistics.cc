@@ -69,7 +69,7 @@ float min_channel_value(const GPUImageBase& image)
 // ITERATIONS: 1 to n
   GPUImageBase tex_PreviousLevel = tex_StartLevel;
   float output;
-  GPUProgram* program = create_gpu_program("VWGPU_Statistics/max-quad");
+  GPUProgram* program = create_gpu_program("VWGPU_Statistics/min-quad");
   program->install();
 
   for(int iLevel = 1; iLevel <= POT_Level; iLevel++) {

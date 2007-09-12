@@ -201,10 +201,10 @@ class GPUImageBase : public ShaderNode_Base {
   void write(int x, int y, int w, int h, Tex_Format inputFormat, Tex_Type inputType, void* data) 
     { _texBlock->write(x + _xOffset, y + _yOffset, w, h, inputFormat, inputType, data); }
 
-  void read(Tex_Format outputFormat, Tex_Type outputType, void* data)
+  void read(Tex_Format outputFormat, Tex_Type outputType, void* data) const 
     { rasterize_homography();_texBlock->read(_xOffset, _yOffset, _width, _height, outputFormat, outputType, data); }
 
-  void read(int x, int y, int w, int h, Tex_Format outputFormat, Tex_Type outputType, void* data)
+  void read(int x, int y, int w, int h, Tex_Format outputFormat, Tex_Type outputType, void* data) const
     { rasterize_homography(); _texBlock->read(x + _xOffset, y + _yOffset, w, h, outputFormat, outputType, data); }
 
   GLuint target() const { return _texBlock->target(); }
@@ -317,7 +317,7 @@ class GPUPixel {
 					  GPUImage<PixelT>::get_gpu_type_for_pixelt(), (void*) &pixel);
   }
   
-  PixelT operator*() {
+  PixelT operator*() const {
 	PixelT pixel;
 	_texBlock->read(_xOffset, _yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
 					  GPUImage<PixelT>::get_gpu_type_for_pixelt(), &pixel);
@@ -325,7 +325,7 @@ class GPUPixel {
   }
   
   
-  operator PixelT() {
+  operator PixelT() const {
 	PixelT pixel;
 	_texBlock->read(_xOffset, _yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
 					  GPUImage<PixelT>::get_gpu_type_for_pixelt(), &pixel);
@@ -490,7 +490,7 @@ class GPUImage :  public GPUImageBase { // public ImageViewBase<GPUImage<PixelT>
     return *this;
   }
 
-  const PixelT operator()(int col, int row) {
+  const PixelT operator()(int col, int row) const {
     PixelT pixel;
     Tex_Type gpu_type = get_gpu_type_for_pixelt();
     Tex_Format tex_format = get_format_for_pixelt();
@@ -502,7 +502,7 @@ class GPUImage :  public GPUImageBase { // public ImageViewBase<GPUImage<PixelT>
 	return GPUPixel<PixelT>(*this, col, row);
   }
 
-  void write_image_view(ImageView<typename TexTraitsForPixelT<PixelT>::imageview_t>& image) {
+  void write_image_view(ImageView<typename TexTraitsForPixelT<PixelT>::imageview_t>& image) const {
     Tex_Type cpu_type =  get_cpu_type_for_pixelt(); 
     image.set_size(width(), height());
     read(get_format_for_pixelt(), cpu_type, &(image(0, 0)));
@@ -527,7 +527,7 @@ class GPUImage :  public GPUImageBase { // public ImageViewBase<GPUImage<PixelT>
   }
 
   template <class PixelT>
-  inline void write_image(const std::string& filename, GPUImage<PixelT>& image) {
+  inline void write_image(const std::string& filename, const GPUImage<PixelT>& image) {
     ImageView<typename TexTraitsForPixelT<PixelT>::imageview_t> imageView;
     image.write_image_view(imageView);
     write_image(filename, imageView);
