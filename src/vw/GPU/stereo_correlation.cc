@@ -52,9 +52,11 @@ uniform sampler2DRect inSums; \
 uniform sampler2DRect inBestValues; \
 uniform float dx; \
 uniform float dy; \
+uniform float xOffset; \
+uniform float yOffset; \
 void main() { \
   vec2 coord = gl_TexCoord[0].st; \
-  float sum = texture2DRect(inSums, coord).r; \
+  float sum = texture2DRect(inSums, vec2(coord.s + xOffset, coord.t + yOffset)).r; \
   vec3 old_bests = texture2DRect(inBestValues, coord).rgb; \
   bool isBest = sum < old_bests.r; \
   if(isBest) { \
@@ -80,14 +82,29 @@ void norm_and_save(const string &path, const GPUImage<PixelT> image) {
 
 #include <sstream>
 
-GPUImageBase correlation_iteration(int dx, 
+void correlation_iteration(int dx, 
 				   int dy, 
 				   int kernalHalfSize, 
-				   const GPUImageBase& in_left,
-				   const GPUImageBase& in_right,
+				   const GPUImage<PixelGray<float> >& in_left,
+				   const GPUImage<PixelGray<float> >& in_right,
 				   GPUImageBase& out_left_bests,  
 				   GPUImageBase& out_right_bests)
 {
+    // TEST
+  if(0){
+    ostringstream ostream;
+    ostream << "OUTPUT_LeftInput_DX_" << dx << ".png";
+    printf("DX = %i  ", dx);
+    norm_and_save(ostream.str(), in_left);
+  }
+  if(0){
+    ostringstream ostream;
+    ostream << "OUTPUT_RightInput_DX_" << dx << ".png";
+    printf("DX = %i  ", dx);
+    norm_and_save(ostream.str(), in_right);
+  }
+
+
   int width = in_left.width();
   int height = in_left.height();
   // Temp Images  
@@ -95,9 +112,10 @@ GPUImageBase correlation_iteration(int dx,
   GPUImage<PixelGray<float> > temp2(width, height);
   GPUImageBase temp_bests;
   temp_bests.copy_attributes(out_left_bests);
+
   // TRY: Init temps
-  fill(temp1, 0, 0, 0, 0);
-  fill(temp2, 0, 0, 0, 0);
+  //fill(temp1, 0, 0, 0, 0);
+  //fill(temp2, 0, 0, 0, 0);
   // *********  STAGE 1 - Offset and Difference **********
   // Setup
   ShaderInvocation_SetupGLState(width, height);
@@ -110,20 +128,21 @@ GPUImageBase correlation_iteration(int dx,
   ShaderInvocation_SetOutputImage(temp1);
   // Input
   program->set_uniform_texture("i1", 0, in_left);
-  program->set_uniform_texture("i2", 0, in_right);
+  program->set_uniform_texture("i2", 1, in_right);
   program->set_uniform_float("x_offset", -dx);
   program->set_uniform_float("y_offset", -dy);   
   // Drawing
   ShaderInvocation_DrawRectOneTexture(temp1);
   // TEST
     // TEST
-  {
+  if(0){
     ostringstream ostream;
     ostream << "OUTPUT_OffsetAndDifference_DX_" << dx << ".png";
     printf("DX = %i  ", dx);
     norm_and_save(ostream.str(), temp1);
   }
   //norm_and_save("OUTPUT_Offset_and_Difference.png", temp1);
+
   // *********  STAGE 2 - Column Sums ***********
   {
     // Setup
@@ -150,7 +169,7 @@ GPUImageBase correlation_iteration(int dx,
     ShaderInvocation_DrawRectOneTexture(temp2);  
   }
   
-  // *********  STAGE 3 - Row Sums ***********
+  // *********  Stage 3 - Row Sums ***********
   {
     // Setup
     ShaderInvocation_SetupGLState(width, height);
@@ -176,52 +195,84 @@ GPUImageBase correlation_iteration(int dx,
     ShaderInvocation_DrawRectOneTexture(temp1); 
 
     // TEST
+    if(0) {
     ostringstream ostream;
     ostream << "OUTPUT_RowSums_DX_" << dx << ".png";
     printf("DX = %i  ", dx);
     norm_and_save(ostream.str(), temp1);
-
- 
+    }
   }
   // *********  STAGE 4A/B - Update Best Values for Left and Right ***********
   {
     static GPUProgram* program = NULL;
     if(!program)
       program = create_gpu_program_glsl_string(glsl_string_correlation_iteration);
-    // LEFT SIDE: Setup
+    GPUProgram* program_copy = create_gpu_program("VWGPU_Algorithms/copy-1i0f");
+
+    // LEFT SIDE:
+    // Copy invalid region:    
     ShaderInvocation_SetupGLState(width, height);
-    // Program
-    program->install();
-    // Output
+    program_copy->install();
     ShaderInvocation_SetOutputImage(temp_bests);
-    // Input
+    program_copy->set_uniform_texture("i1", 0, out_left_bests);
+    
+    glBegin(GL_QUADS);							  
+    glTexCoord2f(0, 0);         glVertex2f(0, 0);
+    glTexCoord2f(dx, 0);      glVertex2f(dx, 0);
+    glTexCoord2f(dx, height);  glVertex2f(dx, height);
+    glTexCoord2f(0, height);     glVertex2f(0, height);
+    glEnd();
+    // Update best values in valid region
+    ShaderInvocation_SetupGLState(width, height);
+    program->install();
+    ShaderInvocation_SetOutputImage(temp_bests);
     program->set_uniform_texture("inSums", 0, temp1);
     program->set_uniform_texture("inBestValues", 1, out_left_bests);
     program->set_uniform_float("dx", dx);
     program->set_uniform_float("dy", dy);
-    // Drawing
-    ShaderInvocation_DrawRectOneTexture(temp_bests);
-    // Copy to output
-    out_left_bests = temp_bests;
-    /*
+    program->set_uniform_float("xOffset", 0);
+    program->set_uniform_float("yOffset", 0);
+    
+    glBegin(GL_QUADS);							  
+    glTexCoord2f(dx, 0);         glVertex2f(dx, 0);
+    glTexCoord2f(width, 0);      glVertex2f(width, 0);
+    glTexCoord2f(width, height);  glVertex2f(width, height);
+    glTexCoord2f(dx, height);     glVertex2f(dx, height);
+    glEnd();
+    
     out_left_bests = copy(temp_bests);
-
-    // RIGHT SIDE: Setup
+    // RIGHT SIDE:
+    // Copy invalid region:    
     ShaderInvocation_SetupGLState(width, height);
-    // Program
-    program->install();
-    // Output
+    program_copy->install();
     ShaderInvocation_SetOutputImage(temp_bests);
-    // Input
+    program_copy->set_uniform_texture("i1", 0, out_right_bests);
+    
+    glBegin(GL_QUADS);							  
+    glTexCoord2f(width-dx, 0);         glVertex2f(width-dx, 0);
+    glTexCoord2f(width, 0);      glVertex2f(width, 0);
+    glTexCoord2f(width, height);  glVertex2f(width, height);
+    glTexCoord2f(width-dx, height);     glVertex2f(width-dx, height);
+    glEnd();
+    // Update best values in valid region
+    ShaderInvocation_SetupGLState(width, height);
+    program->install();
+    ShaderInvocation_SetOutputImage(temp_bests);
     program->set_uniform_texture("inSums", 0, temp1);
     program->set_uniform_texture("inBestValues", 1, out_right_bests);
-    program->set_uniform_float("dx", -dx);
-    program->set_uniform_float("dy", -dy);
-    // Drawing
-    ShaderInvocation_DrawRectOneTexture(temp_bests);
-    // Copy to output
+    program->set_uniform_float("dx", dx);
+    program->set_uniform_float("dy", dy);
+    program->set_uniform_float("xOffset", -dx); // SOMETHING's WRONG HERE
+    program->set_uniform_float("yOffset", -dy);
+       
+    glBegin(GL_QUADS);							  
+    glTexCoord2f(0, 0);         glVertex2f(0, 0);
+    glTexCoord2f(width-dx, 0);      glVertex2f(width-dx, 0);
+    glTexCoord2f(width-dx, height);  glVertex2f(width-dx, height);
+    glTexCoord2f(0, height);     glVertex2f(0, height);
+    glEnd();
+
     out_right_bests = temp_bests;
-    */
   }			
 }
 
@@ -236,9 +287,9 @@ uniform float crossCheckThreshold; \
 uniform float missingPixel; \
 void main() { \
  vec3 leftValues = texture2DRect(inLeftBestValues, gl_TexCoord[0].st).rgb; \
- vec2 rightCorresponding = texture2DRect(inRightBestValues, vec2(gl_TexCoord[0].s + leftValues.g, gl_TexCoord[0].t + leftValues.b )).gb; \
- float xAbsDifference = abs(leftValues.g + rightCorresponding.r); \
- float yAbsDifference = abs(leftValues.b + rightCorresponding.g); \
+ vec3 rightValues = texture2DRect(inRightBestValues, vec2(gl_TexCoord[0].s + leftValues.g, gl_TexCoord[0].t + leftValues.b )).rgb; \
+ float xAbsDifference = abs(leftValues.g - rightValues.g); \
+ float yAbsDifference = abs(leftValues.b - rightValues.b); \
  bool withinThreshhold = xAbsDifference < crossCheckThreshold && yAbsDifference < crossCheckThreshold; \
  if(withinThreshhold) { \
     gl_FragColor.rgb = leftValues.rgb; \
@@ -324,7 +375,7 @@ GPUImage<PixelRGB<float> > stereo_correlation(const GPUImageBase &leftImage,
   // LOOP
   int c=0;
   for(int DX = minDX; DX < maxDX+1; DX++) {
-    for(int DY = minDY; DY < maxDY+1; DY++) {       
+    for(int DY = minDY; DY < maxDY+1; DY++) {  
       correlation_iteration(DX, 
 			    DY, 
 			    kernalHalfSize, 
@@ -337,11 +388,10 @@ GPUImage<PixelRGB<float> > stereo_correlation(const GPUImageBase &leftImage,
   }
   
   // CROSS CHECK
-  // GPUImageBase best_values_cross = 
-  //  correlation_cross_check(crossCorrThreshold, best_values_left, best_values_right);
-  // return best_values_cross;
-
+  GPUImageBase best_values_cross = 
+    correlation_cross_check(crossCorrThreshold, best_values_left, best_values_right);
   return best_values_left;
+
 }
 
 int main(int argc, char *argv[]) {
@@ -405,9 +455,9 @@ int main(int argc, char *argv[]) {
     float min = min_channel_value(dx_image);
     float max = max_channel_value(dx_image);
     printf("DX Value: min / max: %f, %f\n", min, max);
-    dx_image = dx_image - PixelGray<float>(min);
-    dx_image = dx_image / PixelGray<float>(max);
-    //normalize(dx_image, 0, maxDX-minDX);
+    dx_image = dx_image - PixelGray<float>(minDX);
+    dx_image = dx_image / PixelGray<float>(maxDX - minDX);
+    //normalize(dx_image);
     write_image(output_path, dx_image);
   }
   set_gpu_memory_recycling(false);
