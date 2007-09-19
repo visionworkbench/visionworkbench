@@ -22,7 +22,7 @@ extern GLuint g_framebuffer;
 
 // Initialization
 
-void gpu_init(bool dummyWindow = true, bool isLoggingEnabled = false);
+ void gpu_init(const std::string &log_path = std::string(), bool dummyWindow = true);
 
  void gpu_cleanup();
 

@@ -14,7 +14,7 @@ bool TexAlloc::isInit = false;
 list<TexObj*> TexAlloc::texRecycleList;
 int TexAlloc::allocatedCount = 0;
 int TexAlloc::allocatedSize = 0;
-bool TexAlloc::recylingEnabled = true;
+bool TexAlloc::recylingEnabled = false;
 map<pair<Tex_Format, Tex_Type>, pair<Tex_Format, Tex_Type> > TexAlloc::textureSubstitutesMap;
 
 //#################################################################################################################
