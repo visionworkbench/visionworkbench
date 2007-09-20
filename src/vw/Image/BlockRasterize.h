@@ -32,6 +32,7 @@
 #define __VW_IMAGE_BLOCKRASTERIZE_H__
 
 #include <vw/Image/ImageViewBase.h>
+#include <vw/Image/BlockProcessor.h>
 
 namespace vw {
 
@@ -39,16 +40,26 @@ namespace vw {
   template <class ImageT>
   class BlockRasterizeView : public ImageViewBase<BlockRasterizeView<ImageT> > {
     ImageT m_child;
-    int32 m_blocksize;
+    int32 m_block_cols, m_block_rows;
+    int m_num_threads;
   public:
     typedef typename ImageT::pixel_type pixel_type;
     typedef typename ImageT::result_type result_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
-    BlockRasterizeView( ImageT const& image, int32 blocksize = 256 ) : m_child(image), m_blocksize(blocksize) {}
-
-    inline int32 blocksize() const { return m_blocksize; }
-    inline void set_blocksize( int32 blocksize ) { m_blocksize = blocksize; }
+    BlockRasterizeView( ImageT const& image,
+                        int32 block_cols = 0,
+                        int32 block_rows = 0,
+                        int num_threads = 0 )
+      : m_child(image),
+        m_block_cols(block_cols),
+        m_block_rows(block_rows),
+        m_num_threads(num_threads?num_threads:(Thread::default_num_threads()))
+    {
+      if( m_block_cols <= 0 ) m_block_cols = image.cols();
+      if( m_block_rows <= 0 ) m_block_rows = (std::max)( image.rows()/m_num_threads, 1 );
+      // XXX Should the default block size be different for very wide images?
+    }
 
     inline int32 cols() const { return m_child.cols(); }
     inline int32 rows() const { return m_child.rows(); }
@@ -61,17 +72,25 @@ namespace vw {
     ImageT const& child() const { return m_child; }
 
     /// \cond INTERNAL
+    template <class DestT>
+    class RasterizeFunctor {
+      ImageT const& m_src;
+      DestT const& m_dest;
+      Vector2 m_offset;
+    public:
+      RasterizeFunctor( ImageT const& src, DestT const& dest, Vector2 const& offset )
+        : m_src(src), m_dest(dest), m_offset(offset) {}
+      void operator()( BBox2i const& bbox ) const {
+        m_src.rasterize( crop( m_dest, bbox+m_offset ), bbox );
+      }
+    };
+
     typedef BlockRasterizeView prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i bbox ) const { return *this; }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
-      for( int32 y=0; y<bbox.height(); y+=m_blocksize ) {
-        int32 height = (std::min)( m_blocksize, bbox.height()-y );
-        for( int32 x=0; x<bbox.width(); x+=m_blocksize ) {
-          int32 width = (std::min)( m_blocksize, bbox.width()-x );
-          BBox2i block_bbox( x+bbox.min().x(), y+bbox.min().y(), width, height );
-          m_child.prerasterize( block_bbox ).rasterize( crop( dest, x, y, width, height ), block_bbox );
-        }
-      }
+      RasterizeFunctor<DestT> rasterizer(m_child,dest,bbox.min());
+      BlockProcessor<RasterizeFunctor<DestT> > process(rasterizer, m_block_cols, m_block_rows);
+      process(bbox);
     }
     /// \endcond
   };
@@ -85,8 +104,11 @@ namespace vw {
   /// given view, causing it to rasterize in blocks rather than all 
   /// at once.
   template <class ImageT>
-  inline BlockRasterizeView<ImageT> block_rasterize( ImageT const& image, int32 blocksize = 256 ) {
-    return BlockRasterizeView<ImageT>( image, blocksize );
+  inline BlockRasterizeView<ImageT> block_rasterize( ImageViewBase<ImageT> const& image,
+                                                     int32 block_cols = 0,
+                                                     int32 block_rows = 0,
+                                                     int num_threads = 0 ) {
+    return BlockRasterizeView<ImageT>( image.impl(), block_cols, block_rows, num_threads );
   }
 
 } // namespace vw

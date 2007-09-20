@@ -120,6 +120,8 @@ namespace vw {
       }
       boost::thread::sleep(xt);
     }
+    static int default_num_threads();
+    static void set_default_num_threads(int);
   };
 
 

@@ -21,36 +21,16 @@
 // 
 // __END_LICENSE__
 
-/// \file Image.h
-/// 
-/// A convenience header that includes the header files in vw/Image.
-/// 
-#ifndef __VW_IMAGE_H__
-#define __VW_IMAGE_H__
+#include <vw/Core/Thread.h>
 
-#include <vw/Image/PixelIterator.h>
-#include <vw/Image/ImageViewBase.h>
-#include <vw/Image/PixelAccessors.h>
-#include <vw/Image/ImageView.h>
-#include <vw/Image/ImageViewRef.h>
-#include <vw/Image/PixelTypeInfo.h>
-#include <vw/Image/PixelMath.h>
-#include <vw/Image/PixelTypes.h>
-#include <vw/Image/PerPixelViews.h>
-#include <vw/Image/PerPixelAccessorViews.h>
-#include <vw/Image/UtilityViews.h>
-#include <vw/Image/ImageMath.h>
-#include <vw/Image/ImageResource.h>
-#include <vw/Image/ImageResourceView.h>
-#include <vw/Image/Manipulation.h>
-#include <vw/Image/Algorithms.h>
-#include <vw/Image/EdgeExtension.h>
-#include <vw/Image/Interpolation.h>
-#include <vw/Image/Convolution.h>
-#include <vw/Image/Filter.h>
-#include <vw/Image/Transform.h>
-#include <vw/Image/BlockProcessor.h>
-#include <vw/Image/BlockRasterize.h>
-#include <vw/Image/Statistics.h>
+namespace {
+  static int num_threads = 4;
+}
 
-#endif // __VW_IMAGE_H__
+int vw::Thread::default_num_threads() {
+  return num_threads;
+}
+
+void vw::Thread::set_default_num_threads(int threads) {
+  num_threads = threads;
+}

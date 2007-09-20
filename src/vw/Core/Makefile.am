@@ -31,7 +31,8 @@ include_HEADERS = Exception.h FundamentalTypes.h TypeDeduction.h	\
 	VarArray.h Functors.h CompoundTypes.h Debugging.h Thread.h	\
 	Cache.h ProgressCallback.h Stopwatch.h
 
-libvwCore_la_SOURCES = Debugging.cc Exception.cc Cache.cc ProgressCallback.cc Stopwatch.cc
+libvwCore_la_SOURCES = Debugging.cc Exception.cc Thread.cc Cache.cc 	\
+	ProgressCallback.cc Stopwatch.cc
 libvwCore_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwCore_la_LIBADD = @MODULE_CORE_LDFLAGS@
 
