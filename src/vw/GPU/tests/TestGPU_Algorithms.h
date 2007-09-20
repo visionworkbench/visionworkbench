@@ -52,7 +52,7 @@ public:
 
   void test_image_algo_clamp()
   {
-	gpu_init();
+    gpu_init();
     GPUImage<PixelRGB<float> > im(2,1);
     im.pixel(0,0) = PixelRGB<float>(0.5,0.9,1.5);
     im.pixel(1,0) = PixelRGB<float>(-1,0,1);
@@ -84,7 +84,7 @@ public:
 
   void test_image_algo_normalize()
   {
-  	gpu_init();
+    gpu_init();
     GPUImage<PixelRGB<float> > im(2,1);
     im.pixel(0,0) = PixelRGB<float>(0.5,1.5,2.5);
     im.pixel(1,0) = PixelRGB<float>(-1.5,0,1);
@@ -116,7 +116,7 @@ public:
 
   void test_image_algo_threshold()
   {
-	gpu_init();
+    gpu_init();
     GPUImage<PixelRGB<float> > im(2,1);
     im.pixel(0,0) = PixelRGB<float>(0.5,1.5,2.5);
     im.pixel(1,0) = PixelRGB<float>(-1.5,0,1);

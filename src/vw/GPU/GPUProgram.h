@@ -113,7 +113,32 @@ namespace vw { namespace GPU {
     }
     void set_uniform_texture(const char* name, int n, const GPUImageBase& texture) { 
       glUniform1i(glGetUniformLocationARB(program, name), n);
-      glActiveTexture(GL_TEXTURE0 + n);
+      switch(n) {
+      case 0:
+	glActiveTexture(GL_TEXTURE0);
+	break;
+      case 1:
+	glActiveTexture(GL_TEXTURE1);
+	break;
+      case 2:
+	glActiveTexture(GL_TEXTURE2);
+	break;
+      case 3:
+	glActiveTexture(GL_TEXTURE3);
+	break;
+      case 4:
+	glActiveTexture(GL_TEXTURE4);
+	break;
+      case 5:
+	glActiveTexture(GL_TEXTURE5);
+	break;
+      case 6:
+	glActiveTexture(GL_TEXTURE6);
+	break;
+      case 7:
+	glActiveTexture(GL_TEXTURE7);
+	break;
+      }
       texture.bind();
     }
     void set_uniform_float(const char* name, float value, bool is_uint8) {

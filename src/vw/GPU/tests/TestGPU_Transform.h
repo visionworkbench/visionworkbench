@@ -34,32 +34,32 @@ using namespace GPU;
 
 class TestTransform : public CxxTest::TestSuite
 {
-public:
+ public:
 
   void testTranslateTransform() // NOT DONE
-  {
-	/*
-    GPUImage<float> im(2,3); im.pixel(0,0)=1; im.pixel(1,0)=2; im.pixel(0,1)=3; im.pixel(1,1)=4; im.pixel(0,2)=5; im.pixel(1,2)=6;
-    GPUImage<float> im2 = translate(im, TranslateTransform(1,1));
-    TransformView<InterpolationView<EdgeExtendView<GPUImage<float>, ZeroEdgeExtend>, BilinearInterpolation>, TranslateTransform> im2 = transform(im, TranslateTransform(1,1));
-    TS_ASSERT_DELTA( im2.cols(), 2 );
-    TS_ASSERT_DELTA( im2.rows(), 3 );
-    TS_ASSERT_DELTA( im2(1,1), 1 );
-    TS_ASSERT_DELTA( im2(0,0), 0 );
-    TS_ASSERT_DELTA( im2(1,2), 3 );
-    TS_ASSERT_DELTA( im2(-1,-1), 0 );
-    TS_ASSERT_DELTA( im2(-100,-100), 0 );
+    {
+      /*
+	GPUImage<float> im(2,3); im.pixel(0,0)=1; im.pixel(1,0)=2; im.pixel(0,1)=3; im.pixel(1,1)=4; im.pixel(0,2)=5; im.pixel(1,2)=6;
+	GPUImage<float> im2 = translate(im, TranslateTransform(1,1));
+	TransformView<InterpolationView<EdgeExtendView<GPUImage<float>, ZeroEdgeExtend>, BilinearInterpolation>, TranslateTransform> im2 = transform(im, TranslateTransform(1,1));
+	TS_ASSERT_DELTA( im2.cols(), 2 );
+	TS_ASSERT_DELTA( im2.rows(), 3 );
+	TS_ASSERT_DELTA( im2(1,1), 1 );
+	TS_ASSERT_DELTA( im2(0,0), 0 );
+	TS_ASSERT_DELTA( im2(1,2), 3 );
+	TS_ASSERT_DELTA( im2(-1,-1), 0 );
+	TS_ASSERT_DELTA( im2(-100,-100), 0 );
 
-    // Test accessor
-    TS_ASSERT_DELTA( *(im2.origin().advance(1,1)), 1 );
-    TS_ASSERT_DELTA( *(im2.origin().advance(-1,-1)), 0 );
+	// Test accessor
+	TS_ASSERT_DELTA( *(im2.origin().advance(1,1)), 1 );
+	TS_ASSERT_DELTA( *(im2.origin().advance(-1,-1)), 0 );
 
-    // Test the traits
-    TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) ); 
-    TS_ASSERT( bool_trait<IsFloatingPointIndexable>( transform(im, TranslateTransform(1,1)) ) );
-    TS_ASSERT( !bool_trait<IsMultiplyAccessible>( transform(im, TranslateTransform(1,1)) ) );
-	*/
-  }
+	// Test the traits
+	TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) ); 
+	TS_ASSERT( bool_trait<IsFloatingPointIndexable>( transform(im, TranslateTransform(1,1)) ) );
+	TS_ASSERT( !bool_trait<IsMultiplyAccessible>( transform(im, TranslateTransform(1,1)) ) );
+      */
+    }
   
   void testHomographyTransform() {
 	
@@ -75,16 +75,16 @@ public:
 }
 
   void testResample_BilinearInterpolation()
-  {
-	gpu_init();
-    GPUImage<float> im(2,3); im.pixel(0,0)=1; im.pixel(1,0)=2; im.pixel(0,1)=3; im.pixel(1,1)=4; im.pixel(0,2)=5; im.pixel(1,2)=6;
-	GPUImage<float> im2 = resample(im, 2, 2, 4, 6, BilinearInterpolation(), ZeroEdgeExtend());
-    TS_ASSERT_DELTA( im2.cols(), 4, DELTA_PRECISION);
-    TS_ASSERT_DELTA( im2.rows(), 6, DELTA_PRECISION);
-    TS_ASSERT_DELTA( im2(0,0), 1, DELTA_PRECISION);
-    TS_ASSERT_DELTA( im2(0,2), 3, DELTA_PRECISION);
-    TS_ASSERT_DELTA( im2(2,2), 4, DELTA_PRECISION);
-    TS_ASSERT_DELTA( im2(1,1), 2.5, DELTA_PRECISION);
-    TS_ASSERT_DELTA( im2(1,2), 3.5, DELTA_PRECISION);
-  }
+    {
+      gpu_init();
+      GPUImage<float> im(2,3); im.pixel(0,0)=1; im.pixel(1,0)=2; im.pixel(0,1)=3; im.pixel(1,1)=4; im.pixel(0,2)=5; im.pixel(1,2)=6;
+      GPUImage<float> im2 = resample(im, 2, 2, 4, 6, BilinearInterpolation(), ZeroEdgeExtend());
+      TS_ASSERT_DELTA( im2.cols(), 4, DELTA_PRECISION);
+      TS_ASSERT_DELTA( im2.rows(), 6, DELTA_PRECISION);
+      TS_ASSERT_DELTA( im2(0,0), 1, DELTA_PRECISION);
+      TS_ASSERT_DELTA( im2(0,2), 3, DELTA_PRECISION);
+      TS_ASSERT_DELTA( im2(2,2), 4, DELTA_PRECISION);
+      TS_ASSERT_DELTA( im2(1,1), 2.5, DELTA_PRECISION);
+      TS_ASSERT_DELTA( im2(1,2), 3.5, DELTA_PRECISION);
+    }
 };

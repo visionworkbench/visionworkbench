@@ -32,42 +32,43 @@ using namespace GPU;
 
 class TestImageMath : public CxxTest::TestSuite
 {
-public:
+ public:
 
-void init() {
-	gpu_init(true, true);
-}
+  void init() {
+    gpu_init();
+  }
  
   
 #define TEST_UNARY_MATH_FUNCTION(func,arg,result)                       \
-	{																	\
-	gpu_init(true, true);												\
-	PixelRGBA<float> arg_pixel(arg, arg, arg, arg);						\
-	PixelRGBA<float> im_pixel;											\
-    GPUImage<PixelRGBA<float> > im(1,1);								\
-	im.pixel(0, 0) = arg_pixel;												\
-	im_pixel = func(im)(0,0);											\
-    TS_ASSERT_DELTA(im_pixel.r(), result, 0.00025);						\
-    TS_ASSERT_DELTA(im_pixel.g(), result, 0.00025);						\
-    TS_ASSERT_DELTA(im_pixel.b(), result, 0.00025);						\
-    TS_ASSERT_DELTA(im_pixel.a(), result, 0.00025);						\
+	{								\
+	gpu_init();						        \
+	PixelRGBA<float> arg_pixel(arg, arg, arg, arg);			\
+	PixelRGBA<float> im_pixel;					\
+        GPUImage<PixelRGBA<float> > im(1,1);				\
+	im.pixel(0, 0) = arg_pixel;				        \
+	im_pixel = func(im)(0,0);					\
+        TS_ASSERT_DELTA(im_pixel.r(), result, 0.00025);		        \
+        TS_ASSERT_DELTA(im_pixel.g(), result, 0.00025);			\
+        TS_ASSERT_DELTA(im_pixel.b(), result, 0.00025);			\
+        TS_ASSERT_DELTA(im_pixel.a(), result, 0.00025);			\
 	}				
 
 
 #define TEST_BINARY_MATH_FUNCTION(func,arg1,arg2,result)                \
-  {																		\
-	gpu_init(true, true);												\
-    GPUImage<PixelRGBA<float> > im1(1,1);								\
-	im1.pixel(0, 0) = PixelRGBA<float>(arg1, arg1, arg1, arg1);				\
-    GPUImage<PixelRGBA<float> > im2(1,1);								\
-	im2.pixel(0, 0) = PixelRGBA<float>(arg2, arg2, arg2, arg2);				\
-	PixelRGBA<float> im_pixel;											\
-	im_pixel = func(im1, im2)(0,0);										\
-    TS_ASSERT_DELTA(im_pixel.r(), result, 0.00025);						\
-	im_pixel = func(arg1, im2)(0,0);									\
-    TS_ASSERT_DELTA(im_pixel.r(), result, 0.00025); 					\
-	im_pixel = func(im1, arg2)(0,0);									\
-    TS_ASSERT_DELTA(im_pixel.r(), result, 0.00025);						\
+  {									\
+    gpu_init();						                \
+    GPUImage<PixelRGBA<float> > im1(1,1);				\
+	im1.pixel(0, 0) = PixelRGBA<float>(arg1, arg1, arg1, arg1);	\
+    GPUImage<PixelRGBA<float> > im2(1,1);				\
+	im2.pixel(0, 0) = PixelRGBA<float>(arg2, arg2, arg2, arg2);	\
+	PixelRGBA<float> im_pixel;					\
+    TS_ASSERT_DELTA(im1(0,0).r() == arg1, im2(0,0).r() == arg2, 0.00025);\
+    im_pixel = func(im1, im2)(0,0);					\
+    TS_ASSERT_DELTA(im_pixel.r(), result, 0.00025);			\
+    im_pixel = func(arg1, im2)(0,0);				\
+    TS_ASSERT_DELTA(im_pixel.r(), result, 0.00025); 			\
+    im_pixel = func(im1, arg2)(0,0);				\
+    TS_ASSERT_DELTA(im_pixel.r(), result, 0.00025);			\
   }
 
   void test_acos() { TEST_UNARY_MATH_FUNCTION(acos,0.5,1.0472); } 
@@ -103,13 +104,13 @@ void init() {
   void test_cbrt() { TEST_UNARY_MATH_FUNCTION(cbrt,2.0,1.25992); }
   void test_hypot() { TEST_BINARY_MATH_FUNCTION(hypot,2.0,1.0,2.23607); }
   void test_copysign() { TEST_BINARY_MATH_FUNCTION(copysign,3.0,-2.0,-3.0);
-                         TEST_BINARY_MATH_FUNCTION(copysign,3.0,2.0,3.0); }
+  TEST_BINARY_MATH_FUNCTION(copysign,3.0,2.0,3.0); }
   void test_fdim() { TEST_BINARY_MATH_FUNCTION(fdim,3.0,2.0,1.0);
-                     TEST_BINARY_MATH_FUNCTION(fdim,2.0,3.0,0.0); }
+  TEST_BINARY_MATH_FUNCTION(fdim,2.0,3.0,0.0); }
   void test_round() { TEST_UNARY_MATH_FUNCTION(round,1.4,1.0);
-                      TEST_UNARY_MATH_FUNCTION(round,1.5,2.0); }
+  TEST_UNARY_MATH_FUNCTION(round,1.5,2.0); }
   void test_trunc() { TEST_UNARY_MATH_FUNCTION(trunc,1.5,1.0);
-                      TEST_UNARY_MATH_FUNCTION(trunc,-1.5,-1.0); }
+  TEST_UNARY_MATH_FUNCTION(trunc,-1.5,-1.0); }
 					  
 #if(0)
   //void test_erf() { TEST_UNARY_MATH_FUNCTION(erf,1.0,0.842701); }
@@ -120,7 +121,7 @@ void init() {
 
 #endif
 
-// Image Operators
+  // Image Operators
   void test_operator_add() { TEST_BINARY_MATH_FUNCTION(operator+,1.0,2.0,3.0); }
   void test_operator_subtract() { TEST_BINARY_MATH_FUNCTION(operator-,5.0,3.0,2.0); }
   void test_operator_multiply() { TEST_BINARY_MATH_FUNCTION(operator*,3.0,4.0,12.0); }

@@ -374,7 +374,7 @@ class TestImageOperators : public CxxTest::TestSuite
 { 
 public:
   void test_general() {
-    gpu_init(true, true);
+    gpu_init();
     set_shader_language_choice(SHADER_LANGUAGE_CHOICE_GLSL); // TEMP
    printf("\n");
     int aaa = sizeof(UtilityTimer);
@@ -442,7 +442,7 @@ public:
   }
 
   void test_profile() {
-    gpu_init(true, true);
+    gpu_init();
     TexAlloc::set_recycling(true);
      printf("\n--- PixelRGB<float> ---\n");
      profile_functions<PixelRGB<float> >(NULL);
