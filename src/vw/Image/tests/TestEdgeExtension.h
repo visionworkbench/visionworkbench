@@ -30,6 +30,14 @@
 #include <boost/utility/result_of.hpp>
 #include <boost/type_traits.hpp>
 
+#define TS_ASSERT_BBOX(B,X,Y,W,H)    \
+  { BBox2i b = B;                    \
+    TS_ASSERT_EQUALS(b.min().x(),X); \
+    TS_ASSERT_EQUALS(b.min().y(),Y); \
+    TS_ASSERT_EQUALS(b.width(),W);   \
+    TS_ASSERT_EQUALS(b.height(),H);  \
+  }
+
 using namespace vw;
 
 class TestEdgeExtension : public CxxTest::TestSuite
@@ -57,6 +65,11 @@ public:
     // Test the traits
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ZeroEdgeExtension() ) ) );
     TS_ASSERT( (boost::is_same<boost::result_of<NoEdgeExtension(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
+
+    // Test the prerasterization bbox
+    NoEdgeExtension ee;
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(0,0,2,1)), 0,0,2,1 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,1,1,2)), 1,1,1,2 );
   }
 
 
@@ -86,6 +99,17 @@ public:
     // Test the traits
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ZeroEdgeExtension() ) ) );
     TS_ASSERT( (boost::is_same<boost::result_of<ZeroEdgeExtension(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
+
+    // Test the prerasterization bbox
+    ZeroEdgeExtension ee;
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(0,0,2,1)), 0,0,2,1 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,1,1,2)), 1,1,1,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-1,-1,2,2)), 0,0,1,1 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,-1,2,2)), 1,0,1,1 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-1,2,2,2)), 0,2,1,1 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,2,2,2)), 1,2,1,1 );
+    TS_ASSERT( ee.source_bbox(im,BBox2i(-2,-2,2,2)).empty() );
+    TS_ASSERT( ee.source_bbox(im,BBox2i(2,3,2,2)).empty() );
   }
 
   void testConstantEdgeExtension()
@@ -114,6 +138,17 @@ public:
     // Test the traits
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ZeroEdgeExtension() ) ) );
     TS_ASSERT( (boost::is_same<boost::result_of<ConstantEdgeExtension(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
+
+    // Test the prerasterization bbox
+    ConstantEdgeExtension ee;
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(0,0,2,1)), 0,0,2,1 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,1,1,2)), 1,1,1,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-1,-1,2,2)), 0,0,1,1 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,-1,2,2)), 1,0,1,1 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-1,2,2,2)), 0,2,1,1 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,2,2,2)), 1,2,1,1 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-2,-2,2,2)), 0,0,1,1 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(2,3,2,2)), 1,2,1,1 );
   }
 
   void testPeriodicEdgeExtension()
@@ -153,6 +188,40 @@ public:
     // Test the traits
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, PeriodicEdgeExtension() ) ) );
     TS_ASSERT( (boost::is_same<boost::result_of<PeriodicEdgeExtension(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
+
+    // Test the prerasterization bbox
+    PeriodicEdgeExtension ee;
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(0,0,2,1)), 0,0,2,1 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,1,1,2)), 1,1,1,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-1,-1,2,2)), 0,0,2,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,-1,2,2)), 0,0,2,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-1,2,2,2)), 0,0,2,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,2,2,2)), 0,0,2,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-2,-2,2,2)), 0,1,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(2,3,2,2)), 0,0,2,2 );
+    im.set_size(4,4);
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-5,-5,2,2)), 0,0,4,4 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-4,-4,2,2)), 0,0,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-3,-3,2,2)), 1,1,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-2,-2,2,2)), 2,2,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-1,-1,2,2)), 0,0,4,4 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(0,0,2,2)), 0,0,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,1,2,2)), 1,1,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(2,2,2,2)), 2,2,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(3,3,2,2)), 0,0,4,4 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(4,4,2,2)), 0,0,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(5,5,2,2)), 1,1,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-5,-5,3,3)), 0,0,4,4 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-4,-4,3,3)), 0,0,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-3,-3,3,3)), 1,1,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-2,-2,3,3)), 0,0,4,4 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-1,-1,3,3)), 0,0,4,4 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(0,0,3,3)), 0,0,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,1,3,3)), 1,1,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(2,2,3,3)), 0,0,4,4 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(3,3,3,3)), 0,0,4,4 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(4,4,3,3)), 0,0,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(5,5,3,3)), 1,1,3,3 );
   }
 
   void testReflectEdgeExtension()
@@ -192,6 +261,53 @@ public:
     // Test the traits
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( edge_extend(im, ReflectEdgeExtension() ) ) );
     TS_ASSERT( (boost::is_same<boost::result_of<ReflectEdgeExtension(ImageView<SomeType>,int,int,int)>::type,SomeType>::value) );
+
+    // Test the prerasterization bbox
+    ReflectEdgeExtension ee;
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(0,0,2,1)), 0,0,2,1 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,1,1,2)), 1,1,1,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-1,-1,2,2)), 0,0,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,-1,2,2)), 0,0,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-1,2,2,2)), 0,1,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,2,2,2)), 0,1,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-2,-2,2,2)), 0,1,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(2,3,2,2)), 0,0,2,2 );
+    im.set_size(4,4);
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-5,-5,2,2)), 1,1,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-4,-4,2,2)), 2,2,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-3,-3,2,2)), 2,2,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-2,-2,2,2)), 1,1,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-1,-1,2,2)), 0,0,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(0,0,2,2)), 0,0,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,1,2,2)), 1,1,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(2,2,2,2)), 2,2,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(3,3,2,2)), 2,2,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(4,4,2,2)), 1,1,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(5,5,2,2)), 0,0,2,2 );
+
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-5,-5,3,3)), 1,1,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-4,-4,3,3)), 2,2,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-3,-3,3,3)), 1,1,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-2,-2,3,3)), 0,0,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-1,-1,3,3)), 0,0,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(0,0,3,3)), 0,0,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,1,3,3)), 1,1,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(2,2,3,3)), 2,2,2,2 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(3,3,3,3)), 1,1,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(4,4,3,3)), 0,0,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(5,5,3,3)), 0,0,2,2 );
+
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-5,-5,4,4)), 1,1,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-4,-4,4,4)), 1,1,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-3,-3,4,4)), 0,0,4,4 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-2,-2,4,4)), 0,0,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-1,-1,4,4)), 0,0,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(0,0,4,4)), 0,0,4,4 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(1,1,4,4)), 1,1,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(2,2,4,4)), 1,1,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(3,3,4,4)), 0,0,4,4 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(4,4,4,4)), 0,0,3,3 );
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(5,5,4,4)), 0,0,3,3 );
   }
 
 };

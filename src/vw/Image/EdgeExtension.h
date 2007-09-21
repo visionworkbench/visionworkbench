@@ -47,6 +47,7 @@
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/PixelAccessors.h>
 #include <vw/Math/BBox.h>
+#include <vw/Math/Functions.h>
 
 namespace vw {
  
@@ -79,6 +80,10 @@ namespace vw {
     inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
       return view(i,j,p);
     }
+    template <class ViewT>
+    inline BBox2i source_bbox( ViewT const& view, BBox2i const& bbox ) const {
+      return bbox;
+    }
   };
 
   /// An edge extention type that extends the image with zeroes in 
@@ -91,6 +96,12 @@ namespace vw {
       else
         return typename ViewT::pixel_type();
     }
+    template <class ViewT>
+    inline BBox2i source_bbox( ViewT const& view, BBox2i const& bbox ) const {
+      BBox2i result = bbox;
+      result.crop( BBox2i( 0, 0, view.cols(), view.rows() ) );
+      return result;
+    }
   };
 
   /// An edge extension type that extends the image using constant 
@@ -101,6 +112,19 @@ namespace vw {
     inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
       return view((i<0) ? 0 : (i>=view.cols()) ? (view.cols()-1) : i,
                   (j<0) ? 0 : (j>=view.rows()) ? (view.rows()-1) : j, p);
+    }
+    template <class ViewT>
+    inline BBox2i source_bbox( ViewT const& view, BBox2i const& bbox ) const {
+      BBox2i result = bbox;
+      if( bbox.min().x() < 0 ) result.min().x() = 0;
+      else if( bbox.min().x() >= view.cols() ) result.min().x() = view.cols()-1;
+      if( bbox.min().y() < 0 ) result.min().y() = 0;
+      else if( bbox.min().y() >= view.rows() ) result.min().y() = view.rows()-1;
+      if( bbox.max().x() > view.cols() ) result.max().x() = view.cols();
+      else if( bbox.max().x() <= 0 ) result.max().x() = 1;
+      if( bbox.max().y() > view.rows() ) result.max().y() = view.rows();
+      else if( bbox.max().y() <= 0 ) result.max().y() = 1;
+      return result;
     }
   };
 
@@ -114,6 +138,35 @@ namespace vw {
       d_j %= int(view.rows());
       if( d_j < 0 ) d_j += view.rows();
       return view(d_i,d_j,p);
+    }
+    template <class ViewT>
+    inline BBox2i source_bbox( ViewT const& view, BBox2i const& bbox ) const {
+      BBox2i result;
+      if( bbox.width() >= view.cols() ) {
+        result.min().x() = 0;
+        result.max().x() = view.cols();
+      }
+      else {
+        result.min().x() = mod(bbox.min().x(), view.cols());
+        result.max().x() = mod(bbox.max().x()-1, view.cols())+1;
+        if( result.min().x() >= result.max().x() ) {
+          result.min().x() = 0;
+          result.max().x() = view.cols();
+        }
+      }
+      if( bbox.height() >= view.rows() ) {
+        result.min().y() = 0;
+        result.max().y() = view.rows();
+      }
+      else {
+        result.min().y() = mod(bbox.min().y(), view.rows());
+        result.max().y() = mod(bbox.max().y()-1, view.rows())+1;
+        if( result.min().y() >= result.max().y() ) {
+          result.min().y() = 0;
+          result.max().y() = view.rows();
+        }
+      }
+      return result;
     }
   };
 
@@ -132,9 +185,56 @@ namespace vw {
       if( d_j > vrm1 ) d_j = 2*vrm1 - d_j;
       return view(d_i,d_j,p);
     }
+    template <class ViewT>
+    inline BBox2i source_bbox( ViewT const& view, BBox2i const& bbox ) const {
+      BBox2i result;
+      if( bbox.width() >= 2*view.cols()-2 ) {
+        result.min().x() = 0;
+        result.max().x() = view.cols();
+      }
+      else {
+        result.min().x() = mod(bbox.min().x(), 2*view.cols()-2);
+        result.max().x() = mod(bbox.max().x()-1, 2*view.cols()-2)+1;
+        if( result.min().x() >= result.max().x() ) {
+          result.max().x() = (std::max)(result.max().x(),2*view.cols()-1-result.min().x());
+          result.min().x() = 0;
+        }
+        else if( result.min().x() >= view.cols() ) {
+          int tmp = 2*view.cols()-1-result.min().x();
+          result.min().x() = 2*view.cols()-1-result.max().x();
+          result.max().x() = tmp;
+        }
+        else if( result.max().x() > view.cols() ) {
+          result.min().x() = (std::min)(result.min().x(),2*view.cols()-1-result.max().x());
+          result.max().x() = view.cols();
+        }
+      }
+      if( bbox.height() >= 2*view.rows()-2 ) {
+        result.min().y() = 0;
+        result.max().y() = view.rows();
+      }
+      else {
+        result.min().y() = mod(bbox.min().y(), 2*view.rows()-2);
+        result.max().y() = mod(bbox.max().y()-1, 2*view.rows()-2)+1;
+        if( result.min().y() >= result.max().y() ) {
+          result.max().y() = (std::max)(result.max().y(),2*view.rows()-1-result.min().y());
+          result.min().y() = 0;
+        }
+        else if( result.min().y() >= view.rows() ) {
+          int tmp = 2*view.rows()-1-result.min().y();
+          result.min().y() = 2*view.rows()-1-result.max().y();
+          result.max().y() = tmp;
+        }
+        else if( result.max().y() > view.rows() ) {
+          result.min().y() = (std::min)(result.min().y(),2*view.rows()-1-result.max().y());
+          result.max().y() = view.rows();
+        }
+      }
+      return result;
+    }
   };
 
-  /// A linear extrapolationedge extension type.
+  /// A linear extrapolation edge extension type.
   struct LinearEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
     inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
@@ -155,6 +255,18 @@ namespace vw {
         else if( j > vrm1 ) return view(i,vrm1,p) + (j-vrm1)*(view(i,vrm1,p)-view(i,vrm1-1,p));
         else return view(i,j,p);
       }
+    }
+    inline BBox2i source_bbox( BBox2i const& bbox, int32 cols, int32 rows ) const {
+      BBox2i result = bbox;
+      if( bbox.min().x() < 1 ) result.min().x() = 1;
+      else if( bbox.min().x() >= cols-1 ) result.min().x() = cols-2;
+      if( bbox.min().y() < 1 ) result.min().y() = 1;
+      else if( bbox.min().y() >= rows-1 ) result.min().y() = rows-2;
+      if( bbox.max().x() > cols-1 ) result.max().x() = cols-1;
+      else if( bbox.max().x() <= 1 ) result.max().x() = 2;
+      if( bbox.max().y() > rows-1 ) result.max().y() = rows-1;
+      else if( bbox.max().y() <= 1 ) result.max().y() = 2;
+      return result;
     }
   };
 
@@ -202,8 +314,7 @@ namespace vw {
 
     typedef EdgeExtensionView<typename ImageT::prerasterize_type,ExtensionT> prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i bbox ) const {
-      bbox += Vector2i( m_xoffset, m_yoffset );
-      bbox.crop( BBox2i( 0, 0, m_image.cols(), m_image.rows() ) );
+      bbox = m_extension_func.source_bbox( m_image, bbox + Vector2i( m_xoffset, m_yoffset ) );
       // Make degenerate bboxes sane
       if( bbox.empty() ) bbox = BBox2i(0,0,0,0);
       return prerasterize_type(m_image.prerasterize(bbox), m_xoffset, m_yoffset, m_cols, m_rows, m_extension_func );
