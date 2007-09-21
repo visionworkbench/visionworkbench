@@ -65,6 +65,14 @@ namespace impl {
     else return int32(val);
   }
 
+  /// A replacement for the C++ modulo operator % which sucks less.
+  /// Always returns a value in the range [0,b), or (b,0] if b<0.
+  template <class T>
+  inline T mod( T a, T b ) {
+    T m = a%b;
+    return (b<0) ? ((m>0)?(m+b):(m)) : ((m<0)?(m+b):(m));
+  }
+
   double erfc(double);
 
   /// The error function, i.e. the integral of the normal 
@@ -146,6 +154,8 @@ namespace impl {
   using ::floor;
   using ::atan2;
   using ::pow;
+
+  using math::impl::mod;
 
 #ifdef WIN32
   using math::impl::erf;
