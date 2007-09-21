@@ -102,6 +102,32 @@ namespace vw {
     return UnaryPerPixelView<ImageT,ftor<ScalarT> >( image.impl(), ftor<ScalarT>(scalar) ); \
   }
 
+#define VW_IMAGE_MATH_BINARY_IP_II_FUNCTION(func,ftor)                  \
+  template <class Image1T, class Image2T>                               \
+  inline Image1T& func( ImageViewBase<Image1T>& image1, ImageViewBase<Image2T> const& image2 ) { \
+    apply_per_pixel( image1, image2, ftor() );                          \
+    return image1.impl();                                               \
+  }                                                                     \
+  template <class Image1T, class Image2T>                               \
+  inline Image1T const& func( ImageViewBase<Image1T> const& image1, ImageViewBase<Image2T> const& image2 ) { \
+    apply_per_pixel( image1, image2, ftor() );                          \
+    return image1.impl();                                               \
+  }
+
+#define VW_IMAGE_MATH_BINARY_IP_IS_FUNCTION(func,ftor)                  \
+  template <class ImageT, class ScalarT>                                \
+  typename boost::disable_if< IsImageView<ScalarT>, ImageT& >::type     \
+  inline func( ImageViewBase<ImageT>& image, ScalarT scalar ) {         \
+    apply_per_pixel( image, ftor<ScalarT>(scalar) );                    \
+    return image.impl();                                                \
+  }                                                                     \
+  template <class ImageT, class ScalarT>                                \
+  typename boost::disable_if< IsImageView<ScalarT>, ImageT const& >::type     \
+  inline func( ImageViewBase<ImageT> const& image, ScalarT scalar ) {         \
+    apply_per_pixel( image, ftor<ScalarT>(scalar) );                    \
+    return image.impl();                                                \
+  }
+
 
   // *******************************************************************
   // Default mathematical operator overlaods
@@ -119,6 +145,12 @@ namespace vw {
   /// Sum of a scalar and an image.
   VW_IMAGE_MATH_BINARY_SI_FUNCTION(operator +, vw::ValArgSumFunctor)
 
+  /// In-place sum of two images.
+  VW_IMAGE_MATH_BINARY_IP_II_FUNCTION(operator +=, vw::ArgArgInPlaceSumFunctor)
+
+  /// In-place sum of an image and a scalar.
+  VW_IMAGE_MATH_BINARY_IP_IS_FUNCTION(operator +=, vw::ArgValInPlaceSumFunctor)
+
   /// Difference of two images.
   VW_IMAGE_MATH_BINARY_II_FUNCTION(operator -, vw::ArgArgDifferenceFunctor)
 
@@ -127,6 +159,12 @@ namespace vw {
 
   /// Difference of a scalar and an image.
   VW_IMAGE_MATH_BINARY_SI_FUNCTION(operator -, vw::ValArgDifferenceFunctor)
+
+  /// In-place difference of two images.
+  VW_IMAGE_MATH_BINARY_IP_II_FUNCTION(operator -=, vw::ArgArgInPlaceDifferenceFunctor)
+
+  /// In-place difference of an image and a scalar.
+  VW_IMAGE_MATH_BINARY_IP_IS_FUNCTION(operator -=, vw::ArgValInPlaceDifferenceFunctor)
 
   /// Product of two images.
   VW_IMAGE_MATH_BINARY_II_FUNCTION(operator *, vw::ArgArgProductFunctor)
@@ -137,6 +175,12 @@ namespace vw {
   /// Product of a scalar and an image.
   VW_IMAGE_MATH_BINARY_SI_FUNCTION(operator *, vw::ValArgProductFunctor)
 
+  /// In-place product of two images.
+  VW_IMAGE_MATH_BINARY_IP_II_FUNCTION(operator *=, vw::ArgArgInPlaceProductFunctor)
+
+  /// In-place product of an image and a scalar.
+  VW_IMAGE_MATH_BINARY_IP_IS_FUNCTION(operator *=, vw::ArgValInPlaceProductFunctor)
+
   /// Quotient of two images.
   VW_IMAGE_MATH_BINARY_II_FUNCTION(operator /, vw::ArgArgSafeQuotientFunctor)
 
@@ -145,6 +189,12 @@ namespace vw {
 
   /// Quotient of a scalar and an image.
   VW_IMAGE_MATH_BINARY_SI_FUNCTION(operator /, vw::ValArgSafeQuotientFunctor)
+
+  /// In-place quotient of two images.
+  VW_IMAGE_MATH_BINARY_IP_II_FUNCTION(operator /=, vw::ArgArgInPlaceQuotientFunctor)
+
+  /// In-place quotient of an image and a scalar.
+  VW_IMAGE_MATH_BINARY_IP_IS_FUNCTION(operator /=, vw::ArgValInPlaceQuotientFunctor)
 
 
   // *******************************************************************

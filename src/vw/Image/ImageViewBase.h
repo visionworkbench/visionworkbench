@@ -99,15 +99,6 @@ namespace vw {
       return format;
     }
 
-    template <class ArgT> inline ImplT& operator+=( ArgT a ) { return impl() = (impl() + a ); }
-    template <class ArgT> inline ImplT const& operator+=( ArgT a ) const { return impl() = (impl() + a ); }
-    template <class ArgT> inline ImplT& operator-=( ArgT a ) { return impl() = (impl() - a ); }
-    template <class ArgT> inline ImplT const& operator-=( ArgT a ) const { return impl() = (impl() - a ); }
-    template <class ArgT> inline ImplT& operator*=( ArgT a ) { return impl() = (impl() * a ); }
-    template <class ArgT> inline ImplT const& operator*=( ArgT a ) const { return impl() = (impl() * a ); }
-    template <class ArgT> inline ImplT& operator/=( ArgT a ) { return impl() = (impl() / a ); }
-    template <class ArgT> inline ImplT const& operator/=( ArgT a ) const { return impl() = (impl() / a ); }
-
   /// \cond INTERNAL
     protected:
     // These are defined here to prevent the user from accidentally

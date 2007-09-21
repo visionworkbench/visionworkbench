@@ -93,6 +93,28 @@ namespace vw {
     /// \endcond
   };
 
+  /// A mix-in specifying that a binary functor always returns 
+  /// the same type as its first argument.
+  struct BinaryReturn1stType {
+    /// \cond INTERNAL
+    template<class Arg1T, class Arg2T>
+    struct result {
+      typedef Arg1T type;
+    };
+    /// \endcond
+  };
+
+  /// A mix-in specifying that a binary functor always returns 
+  /// the same type as its second argument.
+  struct BinaryReturn2ndType {
+    /// \cond INTERNAL
+    template<class Arg1T, class Arg2T>
+    struct result {
+      typedef Arg2T type;
+    };
+    /// \endcond
+  };
+
   /// A mix-in specifying that a functor is an unary functor 
   /// whose return type is determined by the given binary 
   /// type function with the given first argument.
@@ -205,6 +227,24 @@ namespace vw {
     inline typename SumType<ValT,ArgT>::type operator()( ArgT const& arg ) const { return m_val+arg; }
   };
 
+  // Binary in-place sum of two arguments
+  struct ArgArgInPlaceSumFunctor : BinaryReturn1stType {
+    template <class Arg1T, class Arg2T>
+    inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const { return arg1+=arg2; }
+  };
+
+  // Unary in-place sum of an argument and a value
+  template <class ValT>
+  struct ArgValInPlaceSumFunctor : UnaryReturnSameType {
+  private:
+    const ValT m_val;
+  public:
+    ArgValInPlaceSumFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline ArgT& operator()( ArgT& arg ) const { return arg+=m_val; }
+  };
+
   // Binary difference of two arguments
   struct ArgArgDifferenceFunctor : BinaryReturnTemplateType<DifferenceType> {
     template <class Arg1T, class Arg2T>
@@ -233,6 +273,24 @@ namespace vw {
 
     template <class ArgT>
     inline typename DifferenceType<ValT,ArgT>::type operator()( ArgT const& arg ) const { return m_val-arg; }
+  };
+
+  // Binary in-place difference of two arguments
+  struct ArgArgInPlaceDifferenceFunctor : BinaryReturn1stType {
+    template <class Arg1T, class Arg2T>
+    inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const { return arg1-=arg2; }
+  };
+
+  // Unary in-place difference of an argument and a value
+  template <class ValT>
+  struct ArgValInPlaceDifferenceFunctor : UnaryReturnSameType {
+  private:
+    const ValT m_val;
+  public:
+    ArgValInPlaceDifferenceFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline ArgT& operator()( ArgT& arg ) const { return arg-=m_val; }
   };
 
   // Binary product of two arguments
@@ -265,6 +323,24 @@ namespace vw {
     inline typename ProductType<ValT,ArgT>::type operator()( ArgT const& arg ) const { return m_val*arg; }
   };
 
+  // Binary in-place product of two arguments
+  struct ArgArgInPlaceProductFunctor : BinaryReturn1stType {
+    template <class Arg1T, class Arg2T>
+    inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const { return arg1*=arg2; }
+  };
+
+  // Unary in-place product of an argument and a value
+  template <class ValT>
+  struct ArgValInPlaceProductFunctor : UnaryReturnSameType {
+  private:
+    const ValT m_val;
+  public:
+    ArgValInPlaceProductFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline ArgT& operator()( ArgT& arg ) const { return arg*=m_val; }
+  };
+
   // Binary quotient of two arguments
   struct ArgArgQuotientFunctor : BinaryReturnTemplateType<QuotientType> {
     template <class Arg1T, class Arg2T>
@@ -293,6 +369,24 @@ namespace vw {
 
     template <class ArgT>
     inline typename QuotientType<ValT,ArgT>::type operator()( ArgT const& arg ) const { return m_val/arg; }
+  };
+
+  // Binary in-place quotient of two arguments
+  struct ArgArgInPlaceQuotientFunctor : BinaryReturn1stType {
+    template <class Arg1T, class Arg2T>
+    inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const { return arg1/=arg2; }
+  };
+
+  // Unary in-place quotient of an argument and a value
+  template <class ValT>
+  struct ArgValInPlaceQuotientFunctor : UnaryReturnSameType {
+  private:
+    const ValT m_val;
+  public:
+    ArgValInPlaceQuotientFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline ArgT& operator()( ArgT& arg ) const { return arg/=m_val; }
   };
 
   // **** WARNING ****

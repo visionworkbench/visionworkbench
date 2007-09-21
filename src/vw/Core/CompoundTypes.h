@@ -184,6 +184,97 @@ namespace vw {
 
 
   // *******************************************************************
+  // Binary in-place elementwise compound type functor.
+  // *******************************************************************
+
+  template <class FuncT>
+  class BinaryInPlaceCompoundFunctor {
+    FuncT func;
+
+    // The general multi-channel case
+    template <bool CompoundB, int ChannelsN, class Arg1T, class Arg2T>
+    struct Helper {
+      static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
+        for( int i=0; i<ChannelsN; ++i ) func(arg1[i],arg2[i]);
+        return arg1;
+      }
+    };
+
+    // Specialization for non-compound types
+    template <class Arg1T, class Arg2T>
+    struct Helper<false,1,Arg1T,Arg2T> {
+      static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
+        return arg1(arg1,arg2);
+      }
+    };
+
+    // Specialization for one-channel types
+    template <class Arg1T, class Arg2T>
+    struct Helper<true,1,Arg1T,Arg2T> {
+      static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
+        func(arg1[0],arg2[0]);
+        return arg1;
+      }
+    };
+
+    // Specialization for two-channel types
+    template <class Arg1T, class Arg2T>
+    struct Helper<true,2,Arg1T,Arg2T> {
+      static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
+        func(arg1[0],arg2[0]);
+        func(arg1[1],arg2[1]);
+        return arg1;
+      }
+    };
+
+    // Specialization for three-channel types
+    template <class Arg1T, class Arg2T>
+    struct Helper<true,3,Arg1T,Arg2T> {
+      static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
+        func(arg1[0],arg2[0]);
+        func(arg1[1],arg2[1]);
+        func(arg1[2],arg2[2]);
+        return arg1;
+      }
+    };
+
+    // Specialization for four-channel types
+    template <class Arg1T, class Arg2T>
+    struct Helper<true,4,Arg1T,Arg2T> {
+      static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
+        func(arg1[0],arg2[0]);
+        func(arg1[1],arg2[1]);
+        func(arg1[2],arg2[2]);
+        func(arg1[3],arg2[3]);
+        return arg1;
+      }
+    };
+
+  public:
+    BinaryInPlaceCompoundFunctor() : func() {}
+    BinaryInPlaceCompoundFunctor( FuncT const& func ) : func(func) {}
+    
+    template <class ArgsT> struct result {};
+
+    template <class F, class Arg1T, class Arg2T>
+    struct result<F(Arg1T,Arg2T)> {
+      typedef Arg1T& type;
+    };
+
+    template <class Arg1T, class Arg2T>
+    typename result<BinaryInPlaceCompoundFunctor(Arg1T,Arg2T)>::type
+    inline operator()( Arg1T& arg1, Arg2T const& arg2 ) const {
+      return Helper<IsCompound<Arg1T>::value,CompoundNumChannels<Arg1T>::value,Arg1T,Arg2T>::apply(func,arg1,arg2);
+    }
+  };
+
+  template <class FuncT, class Arg1T, class Arg2T>
+  inline Arg1T& compound_apply_in_place( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
+    return BinaryInPlaceCompoundFunctor<FuncT>(func)(arg1,arg2);
+  }
+
+
+  // *******************************************************************
   // Unary elementwise compound type functor.
   // *******************************************************************
 
@@ -271,6 +362,97 @@ namespace vw {
   typename CompoundResult<FuncT,ArgT>::type
   inline compound_apply( FuncT const& func, ArgT const& arg ) {
     return UnaryCompoundFunctor<FuncT>(func)(arg);
+  }
+
+
+  // *******************************************************************
+  // Unary in-place elementwise compound type functor.
+  // *******************************************************************
+
+  template <class FuncT>
+  class UnaryInPlaceCompoundFunctor {
+    FuncT func;
+
+    // The general multi-channel case
+    template <bool CompoundB, int ChannelsN, class ArgT>
+    struct Helper {
+      static inline ArgT& apply( FuncT const& func, ArgT& arg ) {
+        for( int i=0; i<ChannelsN; ++i ) func(arg[i]);
+        return arg;
+      }
+    };
+
+    // Specialization for non-compound types
+    template <class ArgT>
+    struct Helper<false,1,ArgT> {
+      static inline ArgT& apply( FuncT const& func, ArgT& arg ) {
+        return arg(arg);
+      }
+    };
+
+    // Specialization for single-channel types
+    template <class ArgT>
+    struct Helper<true,1,ArgT> {
+      static inline ArgT& apply( FuncT const& func, ArgT& arg ) {
+        func(arg[0]);
+        return arg;
+      }
+    };
+
+    // Specialization for two-channel types
+    template <class ArgT>
+    struct Helper<true,2,ArgT> {
+      static inline ArgT& apply( FuncT const& func, ArgT& arg ) {
+        func(arg[0]);
+        func(arg[1]);
+        return arg;
+      }
+    };
+
+    // Specialization for three-channel types
+    template <class ArgT>
+    struct Helper<true,3,ArgT> {
+      static inline ArgT& apply( FuncT const& func, ArgT& arg ) {
+        func(arg[0]);
+        func(arg[1]);
+        func(arg[2]);
+        return arg;
+      }
+    };
+
+    // Specialization for four-channel types
+    template <class ArgT>
+    struct Helper<true,4,ArgT> {
+      static inline ArgT& apply( FuncT const& func, ArgT& arg ) {
+        func(arg[0]);
+        func(arg[1]);
+        func(arg[2]);
+        func(arg[3]);
+        return arg;
+      }
+    };
+
+  public:
+    UnaryInPlaceCompoundFunctor() : func() {}
+    UnaryInPlaceCompoundFunctor( FuncT const& func ) : func(func) {}
+    
+    template <class ArgsT> struct result {};
+
+    template <class F, class ArgT>
+    struct result<F(ArgT)> {
+      typedef ArgT& type;
+    };
+
+    template <class ArgT>
+    typename result<UnaryInPlaceCompoundFunctor(ArgT)>::type
+    inline operator()( ArgT& arg ) const {
+      return Helper<IsCompound<ArgT>::value,CompoundNumChannels<ArgT>::value,ArgT>::apply(func,arg);
+    }
+  };
+
+  template <class FuncT, class ArgT>
+  inline ArgT& compound_apply_in_place( FuncT const& func, ArgT& arg ) {
+    return UnaryInPlaceCompoundFunctor<FuncT>(func)(arg);
   }
 
 } // namespace vw

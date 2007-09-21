@@ -26,6 +26,7 @@
 
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Image/Manipulation.h>
 
 using namespace std;
 using namespace vw;
@@ -93,6 +94,18 @@ public:
     TS_ASSERT_EQUALS( im3(0,1), 9 );
     TS_ASSERT_EQUALS( im3(1,1), 11 );
 
+    (im3 += 2) += 2;
+    TS_ASSERT_EQUALS( im3(0,0), 9 );
+    TS_ASSERT_EQUALS( im3(1,0), 11 );
+    TS_ASSERT_EQUALS( im3(0,1), 13 );
+    TS_ASSERT_EQUALS( im3(1,1), 15 );
+
+    crop(im3,0,1,2,1) -= 2;
+    TS_ASSERT_EQUALS( im3(0,0), 9 );
+    TS_ASSERT_EQUALS( im3(1,0), 11 );
+    TS_ASSERT_EQUALS( im3(0,1), 11 );
+    TS_ASSERT_EQUALS( im3(1,1), 13 );
+
     // Test the traits
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( im1 + im2 ) );
   }
@@ -131,6 +144,12 @@ public:
     TS_ASSERT_EQUALS( im3(1,0), -5 );
     TS_ASSERT_EQUALS( im3(0,1), -7 );
     TS_ASSERT_EQUALS( im3(1,1), -9 );
+
+    (im3 -= 2 ) -= 2;
+    TS_ASSERT_EQUALS( im3(0,0), -7 );
+    TS_ASSERT_EQUALS( im3(1,0), -9 );
+    TS_ASSERT_EQUALS( im3(0,1), -11 );
+    TS_ASSERT_EQUALS( im3(1,1), -13 );
 
     // Test the traits
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( im1 - im2 ) );
@@ -171,6 +190,13 @@ public:
     TS_ASSERT_EQUALS( im3(0,1), 13.5 );
     TS_ASSERT_EQUALS( im3(1,1), 24 );
 
+    (im3 *= 2) *= 2;
+
+    TS_ASSERT_EQUALS( im3(0,0), 6 );
+    TS_ASSERT_EQUALS( im3(1,0), 24 );
+    TS_ASSERT_EQUALS( im3(0,1), 54 );
+    TS_ASSERT_EQUALS( im3(1,1), 96 );
+
     // Test the traits
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( im1 * im2 ) );
   }
@@ -209,6 +235,12 @@ public:
     TS_ASSERT_EQUALS( im3(1,0), 0.25 );
     TS_ASSERT_EQUALS( im3(0,1), 1 );
     TS_ASSERT_EQUALS( im3(1,1), 0.0625 );
+
+    (im3 /= 0.5) /= 0.5;
+    TS_ASSERT_EQUALS( im3(0,0), 16 );
+    TS_ASSERT_EQUALS( im3(1,0), 1 );
+    TS_ASSERT_EQUALS( im3(0,1), 4 );
+    TS_ASSERT_EQUALS( im3(1,1), 0.25 );
 
     // Test the traits
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( im1 / im2 ) );

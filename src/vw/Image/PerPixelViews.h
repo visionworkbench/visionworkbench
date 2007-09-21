@@ -178,6 +178,56 @@ namespace vw {
     /// \endcond
   };
 
+
+  // *******************************************************************
+  // apply_per_pixel -- Non-view-based per-pixel manipulation
+  // *******************************************************************
+
+  template <class ImageT, class FuncT>
+  void apply_per_pixel( ImageViewBase<ImageT> const& image, FuncT const& func ) {
+    typedef typename ImageT::pixel_accessor ImageAccT;
+    ImageAccT iplane = image.impl().origin();
+    for( int32 plane=image.impl().planes(); plane; --plane ) {
+      ImageAccT irow = iplane;
+      for( int32 row=image.impl().rows(); row; --row ) {
+        ImageAccT icol = irow;
+        for( int32 col=image.impl().cols(); col; --col ) {
+          func(*icol);
+          icol.next_col();
+        }
+        irow.next_row();
+      }
+      iplane.next_plane();
+    }
+  }
+
+  template <class Image1T, class Image2T, class FuncT>
+  inline void apply_per_pixel( ImageViewBase<Image1T> const& image1, ImageViewBase<Image2T> const& image2, FuncT const& func ) {
+    VW_ASSERT( image1.impl().cols()==image2.impl().cols() && image1.impl().rows()==image2.impl().rows() && image1.impl().planes()==image2.impl().planes(),
+               ArgumentErr() << "apply_per_pixel: Image arguments must have the same dimensions." );
+    typedef typename Image1T::pixel_accessor Image1AccT;
+    typedef typename Image2T::pixel_accessor Image2AccT;
+    Image1AccT i1plane = image1.impl().origin();
+    Image2AccT i2plane = image2.impl().origin();
+    for( int32 plane=image1.impl().planes(); plane; --plane ) {
+      Image1AccT i1row = i1plane;
+      Image2AccT i2row = i2plane;
+      for( int32 row=image1.impl().rows(); row; --row ) {
+        Image1AccT i1col = i1row;
+        Image2AccT i2col = i2row;
+        for( int32 col=image1.impl().cols(); col; --col ) {
+          func(*i1col,*i2col);
+          i1col.next_col();
+          i2col.next_col();
+        }
+        i1row.next_row();
+        i2row.next_row();
+      }
+      i1plane.next_plane();
+      i2plane.next_plane();
+    }
+  }
+
 };
 
 #endif // __VW_IMAGE_PERPIXELVIEWS_H__

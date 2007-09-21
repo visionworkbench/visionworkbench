@@ -52,10 +52,6 @@ namespace vw {
   public:
     DerivedT& impl() { return static_cast<DerivedT&>(*this); }
     DerivedT const& impl() const { return static_cast<DerivedT const&>(*this); }
-    template <class ArgT> inline DerivedT& operator+=( ArgT a ) { return *static_cast<DerivedT*>(this) = (static_cast<DerivedT const&>(*this) + a ); }
-    template <class ArgT> inline DerivedT& operator-=( ArgT a ) { return *static_cast<DerivedT*>(this) = (static_cast<DerivedT const&>(*this) - a ); }
-    template <class ArgT> inline DerivedT& operator*=( ArgT a ) { return *static_cast<DerivedT*>(this) = (static_cast<DerivedT const&>(*this) * a ); }
-    template <class ArgT> inline DerivedT& operator/=( ArgT a ) { return *static_cast<DerivedT*>(this) = (static_cast<DerivedT const&>(*this) / a ); }
   };
 
 
@@ -84,6 +80,20 @@ namespace vw {
     return compound_apply(ftor<ScalarT>(scalar), pixel.impl() );        \
   }
 
+#define VW_PIXEL_MATH_BINARY_IP_FUNCTION(func,ftor)                     \
+  template <class Pixel1T, class Pixel2T>                               \
+  typename boost::enable_if< CompoundIsCompatible<Pixel1T,Pixel2T>, Pixel1T&>::type \
+  inline func( PixelMathBase<Pixel1T>& pixel1, PixelMathBase<Pixel2T> const& pixel2 ) { \
+    return compound_apply_in_place(ftor(), pixel1.impl(), pixel2.impl() ); \
+  }
+
+#define VW_PIXEL_MATH_BINARY_IS_FUNCTION(func,ftor)                     \
+  template <class PixelT, class ScalarT>                                \
+  typename boost::enable_if< IsScalar<ScalarT>, PixelT&>::type          \
+  inline func( PixelMathBase<PixelT>& pixel, ScalarT scalar ) {         \
+    return compound_apply_in_place(ftor<ScalarT>(scalar), pixel.impl() ); \
+  }
+
 #define VW_PIXEL_MATH_BINARY_SP_FUNCTION(func,ftor)                     \
   template <class PixelT, class ScalarT>                                \
   typename boost::enable_if< IsScalar<ScalarT>, typename CompoundResult<ftor<ScalarT>,PixelT>::type >::type \
@@ -108,15 +118,23 @@ namespace vw {
   VW_PIXEL_MATH_BINARY_PP_FUNCTION(operator +, vw::ArgArgSumFunctor)
   VW_PIXEL_MATH_BINARY_PS_FUNCTION(operator +, vw::ArgValSumFunctor)
   VW_PIXEL_MATH_BINARY_SP_FUNCTION(operator +, vw::ValArgSumFunctor)
+  VW_PIXEL_MATH_BINARY_IP_FUNCTION(operator +=, vw::ArgArgInPlaceSumFunctor)
+  VW_PIXEL_MATH_BINARY_IS_FUNCTION(operator +=, vw::ArgValInPlaceSumFunctor)
   VW_PIXEL_MATH_BINARY_PP_FUNCTION(operator -, vw::ArgArgDifferenceFunctor)
   VW_PIXEL_MATH_BINARY_PS_FUNCTION(operator -, vw::ArgValDifferenceFunctor)
   VW_PIXEL_MATH_BINARY_SP_FUNCTION(operator -, vw::ValArgDifferenceFunctor)
+  VW_PIXEL_MATH_BINARY_IP_FUNCTION(operator -=, vw::ArgArgInPlaceDifferenceFunctor)
+  VW_PIXEL_MATH_BINARY_IS_FUNCTION(operator -=, vw::ArgValInPlaceDifferenceFunctor)
   VW_PIXEL_MATH_BINARY_PP_FUNCTION(operator *, vw::ArgArgProductFunctor)
   VW_PIXEL_MATH_BINARY_PS_FUNCTION(operator *, vw::ArgValProductFunctor)
   VW_PIXEL_MATH_BINARY_SP_FUNCTION(operator *, vw::ValArgProductFunctor)
+  VW_PIXEL_MATH_BINARY_IP_FUNCTION(operator *=, vw::ArgArgInPlaceProductFunctor)
+  VW_PIXEL_MATH_BINARY_IS_FUNCTION(operator *=, vw::ArgValInPlaceProductFunctor)
   VW_PIXEL_MATH_BINARY_PP_FUNCTION(operator /, vw::ArgArgQuotientFunctor)
   VW_PIXEL_MATH_BINARY_PS_FUNCTION(operator /, vw::ArgValQuotientFunctor)
   VW_PIXEL_MATH_BINARY_SP_FUNCTION(operator /, vw::ValArgQuotientFunctor)
+  VW_PIXEL_MATH_BINARY_IP_FUNCTION(operator /=, vw::ArgArgInPlaceQuotientFunctor)
+  VW_PIXEL_MATH_BINARY_IS_FUNCTION(operator /=, vw::ArgValInPlaceQuotientFunctor)
 
   template <class Pixel1T, class Pixel2T>
   typename boost::enable_if< CompoundIsCompatible<Pixel1T,Pixel2T>, bool >::type

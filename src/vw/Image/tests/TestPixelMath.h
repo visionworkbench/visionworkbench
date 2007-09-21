@@ -25,7 +25,7 @@
 #include <cxxtest/TestSuite.h>
 
 #include <vw/Image/PixelMath.h>
-#include <vw/Image/PixelTypeInfo.h>
+#include <vw/Image/PixelTypes.h>
 
 // Create a simple toy pixel type using the PixelMathBase 
 // class to test its default functionality in isolation.
@@ -137,6 +137,58 @@ public:
     TS_ASSERT( is_of_type<ToyType<float> >( name(float(1),ToyType<int>(1) ) ) ); \
     TS_ASSERT( is_of_type<ToyType<double> >( name(int(1),ToyType<int>(1) ) ) ); \
   } while(false)
+
+  void test_self_assignment() {
+    PixelRGB<uint8> a(1,2,3), b(2,3,4);
+    a += 2;
+    TS_ASSERT_EQUALS( a[0], 3 );
+    TS_ASSERT_EQUALS( a[1], 4 );
+    TS_ASSERT_EQUALS( a[2], 5 );
+    a -= 2;
+    TS_ASSERT_EQUALS( a[0], 1 );
+    TS_ASSERT_EQUALS( a[1], 2 );
+    TS_ASSERT_EQUALS( a[2], 3 );
+    a *= 2;
+    TS_ASSERT_EQUALS( a[0], 2 );
+    TS_ASSERT_EQUALS( a[1], 4 );
+    TS_ASSERT_EQUALS( a[2], 6 );
+    a /= 2;
+    TS_ASSERT_EQUALS( a[0], 1 );
+    TS_ASSERT_EQUALS( a[1], 2 );
+    TS_ASSERT_EQUALS( a[2], 3 );
+    a += b;
+    TS_ASSERT_EQUALS( a[0], 3 );
+    TS_ASSERT_EQUALS( a[1], 5 );
+    TS_ASSERT_EQUALS( a[2], 7 );
+    a -= b;
+    TS_ASSERT_EQUALS( a[0], 1 );
+    TS_ASSERT_EQUALS( a[1], 2 );
+    TS_ASSERT_EQUALS( a[2], 3 );
+    a *= b;
+    TS_ASSERT_EQUALS( a[0], 2 );
+    TS_ASSERT_EQUALS( a[1], 6 );
+    TS_ASSERT_EQUALS( a[2], 12 );
+    a /= b;
+    TS_ASSERT_EQUALS( a[0], 1 );
+    TS_ASSERT_EQUALS( a[1], 2 );
+    TS_ASSERT_EQUALS( a[2], 3 );
+    (a += 2) += 2;
+    TS_ASSERT_EQUALS( a[0], 5 );
+    TS_ASSERT_EQUALS( a[1], 6 );
+    TS_ASSERT_EQUALS( a[2], 7 );
+    (a -= 2) -= 2;
+    TS_ASSERT_EQUALS( a[0], 1 );
+    TS_ASSERT_EQUALS( a[1], 2 );
+    TS_ASSERT_EQUALS( a[2], 3 );
+    (a *= 2) *= 2;
+    TS_ASSERT_EQUALS( a[0], 4 );
+    TS_ASSERT_EQUALS( a[1], 8 );
+    TS_ASSERT_EQUALS( a[2], 12 );
+    (a /= 2) /= 2;
+    TS_ASSERT_EQUALS( a[0], 1 );
+    TS_ASSERT_EQUALS( a[1], 2 );
+    TS_ASSERT_EQUALS( a[2], 3 );
+  }
 
   void test_acos() { TEST_UNARY_MATH_FUNCTION(acos,0.5,1.0472); }
   void test_asin() { TEST_UNARY_MATH_FUNCTION(asin,0.5,0.523599); }
