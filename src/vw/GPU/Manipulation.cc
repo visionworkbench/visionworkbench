@@ -20,7 +20,7 @@ namespace vw {
 	GPUImageBase temp(image.width(), image.height(), image.format(), image.type());
 	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
 // INPUT
-	program->set_uniform_texture("image", 0, image);
+	program->set_uniform_texture("image", image);
 // DRAW
 	float t_x1 = image.x(upper_left_i);
 	float t_x2 = image.x(upper_left_i + width);
@@ -51,7 +51,7 @@ namespace vw {
 	GPUImageBase temp(image.width(), image.height(), image.format(), image.type());
 	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
 // INPUT
-	program->set_uniform_texture("image", 0, image);
+	program->set_uniform_texture("image", image);
 // DRAW
 	int width = image.width();
 	int height = image.height();
@@ -90,7 +90,7 @@ namespace vw {
 // INPUT
 	glColor3f(1.0, 0.0, 0.0);
 
-	program->set_uniform_texture("image", 0, image);
+	program->set_uniform_texture("image", image);
 // DRAW
 	int width = image.width();
 	int height = image.height();
@@ -218,7 +218,7 @@ GPUImageBase transpose(const GPUImageBase& image) {
 	GPUImageBase temp(out_width, out_height, image.format(), image.type());
 	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
 // INPUT
-	program->set_uniform_texture("image1", 0, image);
+	program->set_uniform_texture("image1", image);
 // DRAW
 	ShaderInvocation_DrawRectOneTexture(image, Rectangle2D<int>(0, 0, out_width, out_height), 
 					    Rectangle2D<int>(0, 0, out_width, out_height));
@@ -244,7 +244,7 @@ GPUImageBase transpose(const GPUImageBase& image) {
 // OUTPUT
       glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, image1.target(), image1.name(), 0);	
 // INPUT
-      program->set_uniform_texture("image1", 0, inputTex);
+      program->set_uniform_texture("image1", inputTex);
 // DRAW
       ShaderInvocation_DrawRectOneTexture(inputTex, Rectangle2D<int>(x, y, width, height), 
 					  Rectangle2D<int>(0, 0, width, height));

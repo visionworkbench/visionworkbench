@@ -28,8 +28,8 @@ GPUImageBase convolution_filter(const GPUImageBase& image,
   GPUImageBase temp(image.width(), image.height(), image.format(), image.type());
   glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
   // INPUT
-  program->set_uniform_texture("image", 0, image);
-  program->set_uniform_texture("kernel", 1, kernel);
+  program->set_uniform_texture("image", image);
+  program->set_uniform_texture("kernel", kernel);
   program->set_uniform_float("hHalfSize", (kernel.width() / 2));
   program->set_uniform_float("vHalfSize", (kernel.height() / 2));
   // DRAW
@@ -69,8 +69,8 @@ GPUImageBase seperable_convolution_filter(const GPUImageBase& image,
 	  // OUTPUT
 	  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, output->target(), output->name(), 0);	
 	  // INPUT
-	  program->set_uniform_texture("image", 0, *input);
-	  program->set_uniform_texture("kernel", 1, hKernel);
+	  program->set_uniform_texture("image", *input);
+	  program->set_uniform_texture("kernel", hKernel);
 	  program->set_uniform_float("halfSize", hKernel.width() / 2);
 	  // DRAW
 	  ShaderInvocation_DrawRectOneTexture(*input);
@@ -91,8 +91,8 @@ GPUImageBase seperable_convolution_filter(const GPUImageBase& image,
 	  // OUTPUT
 	  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, output->target(), output->name(), 0);	
 	  // INPUT
-	  program->set_uniform_texture("image", 0, *input);
-	  program->set_uniform_texture("kernel", 1, hKernel);
+	  program->set_uniform_texture("image", *input);
+	  program->set_uniform_texture("kernel", hKernel);
 	  program->set_uniform_float("halfSize", hKernel.width() / 2);
 	  // DRAW
 	  ShaderInvocation_DrawRectOneTexture(*input);

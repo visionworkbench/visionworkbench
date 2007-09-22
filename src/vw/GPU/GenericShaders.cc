@@ -22,7 +22,7 @@ namespace vw { namespace GPU {
     temp.copy_attributes(image1);
     ShaderInvocation_SetOutputImage(temp);
     // Input
-    program->set_uniform_texture("i1", 0, image1);
+    program->set_uniform_texture("i1", image1);
     // Drawing
     ShaderInvocation_DrawRectOneTexture(image1);
     // Cleanup
@@ -50,8 +50,8 @@ namespace vw { namespace GPU {
     GPUImageBase temp(image1.width(), image1.height(), image1.format(), image1.type());
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
     // INPUT
-    program->set_uniform_texture("i1", 0, image1);
-    program->set_uniform_texture("i2", 1, image2);
+    program->set_uniform_texture("i1", image1);
+    program->set_uniform_texture("i2", image2);
     // DRAW
     ShaderInvocation_DrawRectOneTexture(image1);
     // CleanUp State
@@ -81,7 +81,7 @@ namespace vw { namespace GPU {
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
     // INPUT
     bool is_int8 = image1.type() == TEX_UINT8;
-    program->set_uniform_texture("i1", 0, image1);
+    program->set_uniform_texture("i1", image1);
     program->set_uniform_float("f1", float1, is_int8);	
     // DRAW
     ShaderInvocation_DrawRectOneTexture(image1);
@@ -113,7 +113,7 @@ namespace vw { namespace GPU {
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
     // INPUT
     bool is_int8 = image1.type() == TEX_UINT8;
-    program->set_uniform_texture("i1", 0, image1);
+    program->set_uniform_texture("i1", image1);
     program->set_uniform_float("f1", float1, is_int8);
     program->set_uniform_float("f2", float2, is_int8);		
     // DRAW
@@ -143,7 +143,7 @@ namespace vw { namespace GPU {
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
     // INPUT
     bool is_int8 = image1.type() == TEX_UINT8;
-    program->set_uniform_texture("i1", 0, image1);
+    program->set_uniform_texture("i1", image1);
     program->set_uniform_float("f1", float1, is_int8);
     program->set_uniform_float("f2", float2, is_int8);	
     program->set_uniform_float("f3", float3, is_int8);		
@@ -173,7 +173,7 @@ namespace vw { namespace GPU {
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
     // INPUT
     bool is_int8 = image1.type() == TEX_UINT8;
-    program->set_uniform_texture("i1", 0, image1);
+    program->set_uniform_texture("i1", image1);
     program->set_uniform_float("f1", float1, is_int8);
     program->set_uniform_float("f2", float2, is_int8);	
     program->set_uniform_float("f3", float3, is_int8);	

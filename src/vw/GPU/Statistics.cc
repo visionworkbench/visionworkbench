@@ -14,16 +14,6 @@ namespace vw { namespace GPU {
 #define MIN(n1, n2) n1 < n2 ? n1 : n2
 #define MAX(n1, n2) n1 > n2 ? n1 : n2
 
-// ##################### TEMP - testing ########################
-void print_image(GPUImageBase& im, char* text = 0) {	
-	if(text) printf("%s\n", text);
-	for(int y=0; y < im.rows(); y++) {	
-		for(int x=0; x < im.cols(); x++) {	
-			printf("%.4f ", ((GPUImage<float>&) im)(x, y));	
-		}	
-		printf("\n");	
-	}	
-}
 
 // *******************************************************************
 //    min_channel_value()
@@ -48,7 +38,7 @@ float min_channel_value(const GPUImageBase& image)
   ((GPUImageBase&) image).rasterize_homography();		
   ShaderInvocation_SetupGLState(tex_StartLevel);
   glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, tex_StartLevel.target(), tex_StartLevel.name(), 0);	
-  program_Level1->set_uniform_texture("image", 0, image);
+  program_Level1->set_uniform_texture("image", image);
   glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   int draw_size = image.width();
@@ -70,14 +60,14 @@ float min_channel_value(const GPUImageBase& image)
   GPUImageBase tex_PreviousLevel = tex_StartLevel;
   float output;
   GPUProgram* program = create_gpu_program("VWGPU_Statistics/min-quad");
-  program->install();
 
   for(int iLevel = 1; iLevel <= POT_Level; iLevel++) {
+    program->install();
     int reductionRatio = (int) powf(2.0, iLevel);
     GPUImageBase tex_CurrentLevel(MAX(1, POT_Dimension / reductionRatio), MAX(1, POT_Dimension / reductionRatio), TEX_R, image.type());
     ShaderInvocation_SetupGLState(tex_CurrentLevel);
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, tex_CurrentLevel.target(), tex_CurrentLevel.name(), 0);	
-    program->set_uniform_texture("image", 0, tex_PreviousLevel);
+    program->set_uniform_texture("image", tex_PreviousLevel);
     glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP);
     ShaderInvocation_DrawRectOneTexture(tex_PreviousLevel, Vector2(0, 0), Vector2(tex_CurrentLevel.width(), tex_CurrentLevel.height()), 
@@ -115,7 +105,7 @@ float max_channel_value(const GPUImageBase& image)
 
   GPUImageBase tex_StartLevel(MAX(1, POT_Dimension), MAX(1, POT_Dimension), TEX_R, image.type());
   glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, tex_StartLevel.target(), tex_StartLevel.name(), 0);	
-  program_Level1->set_uniform_texture("image", 0, image);
+  program_Level1->set_uniform_texture("image", image);
   ShaderInvocation_DrawRectOneTexture(image, Rectangle2D<int>(0, 0, tex_StartLevel.width(), tex_StartLevel.height()), 
 				      Rectangle2D<int>(0, 0, tex_StartLevel.width(), tex_StartLevel.height()));
   program_Level1->uninstall();
@@ -133,14 +123,14 @@ float max_channel_value(const GPUImageBase& image)
 // ITERATIONS: 1 to n
   GPUImageBase tex_PreviousLevel = tex_StartLevel;
   GPUProgram* program = create_gpu_program("VWGPU_Statistics/max-quad");
-  program->install();
 
   for(int iLevel = 1; iLevel <= POT_Level; iLevel++) {
+    program->install();
     int reductionRatio = (int) powf(2.0, iLevel);
     GPUImageBase tex_CurrentLevel(MAX(1, POT_Dimension / reductionRatio), MAX(1, POT_Dimension / reductionRatio), TEX_R, image.type());
     ShaderInvocation_SetupGLState(tex_CurrentLevel);
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, tex_CurrentLevel.target(), tex_CurrentLevel.name(), 0);	
-    program->set_uniform_texture("image", 0, tex_PreviousLevel);
+    program->set_uniform_texture("image", tex_PreviousLevel);
     glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP);
     ShaderInvocation_DrawRectOneTexture(tex_PreviousLevel, Vector2(0, 0), Vector2(tex_CurrentLevel.width(), tex_CurrentLevel.height()), 
@@ -179,7 +169,7 @@ float sum_channel_value(const GPUImageBase& image)
 
   GPUImageBase tex_StartLevel(MAX(1, POT_Dimension), MAX(1, POT_Dimension), TEX_R, image.type());
   glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, tex_StartLevel.target(), tex_StartLevel.name(), 0);	
-  program_Level1->set_uniform_texture("image", 0, image);
+  program_Level1->set_uniform_texture("image", image);
   ShaderInvocation_DrawRectOneTexture(image, Rectangle2D<int>(0, 0, tex_StartLevel.width(), tex_StartLevel.height()), 
 				      Rectangle2D<int>(0, 0, tex_StartLevel.width(), tex_StartLevel.height()));
   program_Level1->uninstall();
@@ -197,14 +187,14 @@ float sum_channel_value(const GPUImageBase& image)
 // ITERATIONS: 1 to n
   GPUImageBase tex_PreviousLevel = tex_StartLevel;
   GPUProgram* program = create_gpu_program("VWGPU_Statistics/sum-quad");
-  program->install();
 
   for(int iLevel = 1; iLevel <= POT_Level; iLevel++) {
+    program->install();
     int reductionRatio = (int) powf(2.0, iLevel);
     GPUImageBase tex_CurrentLevel(MAX(1, POT_Dimension / reductionRatio), MAX(1, POT_Dimension / reductionRatio), TEX_R, image.type());
     ShaderInvocation_SetupGLState(tex_CurrentLevel);
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, tex_CurrentLevel.target(), tex_CurrentLevel.name(), 0);	
-    program->set_uniform_texture("image", 0, tex_PreviousLevel);
+    program->set_uniform_texture("image", tex_PreviousLevel);
     glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP);
     glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP);
     ShaderInvocation_DrawRectOneTexture(tex_PreviousLevel, Vector2(0, 0), Vector2(tex_CurrentLevel.width(), tex_CurrentLevel.height()), 

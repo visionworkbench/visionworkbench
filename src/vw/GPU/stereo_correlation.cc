@@ -3,8 +3,9 @@
 using namespace vw;
 using namespace GPU;
 
+
 //########################################################################
-//#  correlation_iteration - glsl_fragment_strings and a free function                
+//#  correlation_iteration - glsl_frag strings and a free function                
 //########################################################################
 
 char* glsl_frag_offset_and_difference = " \
@@ -88,12 +89,14 @@ void correlation_iteration(int dx,
       program = create_gpu_program_glsl_string(glsl_frag_offset_and_difference);
     program->install();
     ShaderInvocation_SetOutputImage(temp1);
-    program->set_uniform_texture("i1", 0, in_left);
-    program->set_uniform_texture("i2", 1, in_right);
+    program->set_uniform_texture("i1", in_left);
+    program->set_uniform_texture("i2", in_right);
     program->set_uniform_float("x_offset", -dx);
     program->set_uniform_float("y_offset", -dy);   
     ShaderInvocation_DrawRectOneTexture(temp1);
   }
+  // write_image("OUTPUT_TEST_Difference.png", (GPUImage<PixelGray<float> >) temp1);
+
   // *********  STAGE 2 - Column Sum ***********
   {
     ShaderInvocation_SetupGLState(width, height);
@@ -113,7 +116,7 @@ void correlation_iteration(int dx,
     // Execute
     program->install();
     ShaderInvocation_SetOutputImage(temp2);
-    program->set_uniform_texture("i1", 0, temp1);
+    program->set_uniform_texture("i1", temp1);
     ShaderInvocation_DrawRectOneTexture(temp2);  
   }
   // *********  Stage 3 - Row Sum ***********
@@ -135,7 +138,7 @@ void correlation_iteration(int dx,
     // Execute
     program->install();
     ShaderInvocation_SetOutputImage(temp1);
-    program->set_uniform_texture("i1", 0, temp2);
+    program->set_uniform_texture("i1", temp2);
     ShaderInvocation_DrawRectOneTexture(temp1); 
   }
   // *********  STAGE 4 L/R - Update Best Values for Left and Right ***********
@@ -150,7 +153,7 @@ void correlation_iteration(int dx,
     ShaderInvocation_SetupGLState(width, height);
     program_copy->install();
     ShaderInvocation_SetOutputImage(temp_bests);
-    program_copy->set_uniform_texture("i1", 0, out_left_bests);
+    program_copy->set_uniform_texture("i1", out_left_bests);
 
     int left_bound = dx;
     glBegin(GL_QUADS);							  
@@ -163,8 +166,8 @@ void correlation_iteration(int dx,
     ShaderInvocation_SetupGLState(width, height);
     program->install();
     ShaderInvocation_SetOutputImage(temp_bests);
-    program->set_uniform_texture("inSums", 0, temp1);
-    program->set_uniform_texture("inBestValues", 1, out_left_bests);
+    program->set_uniform_texture("inSums", temp1);
+    program->set_uniform_texture("inBestValues", out_left_bests);
     program->set_uniform_float("dx", dx);
     program->set_uniform_float("dy", dy);
     program->set_uniform_float("xOffset", 0);
@@ -187,7 +190,7 @@ void correlation_iteration(int dx,
     ShaderInvocation_SetupGLState(width, height);
     program_copy->install();
     ShaderInvocation_SetOutputImage(temp_bests);
-    program_copy->set_uniform_texture("i1", 0, out_right_bests);
+    program_copy->set_uniform_texture("i1", out_right_bests);
 
     int right_bound = width - dx - kernalHalfSize; 
     glBegin(GL_QUADS);							  
@@ -200,8 +203,8 @@ void correlation_iteration(int dx,
     ShaderInvocation_SetupGLState(width, height);
     program->install();
     ShaderInvocation_SetOutputImage(temp_bests);
-    program->set_uniform_texture("inSums", 0, temp1);
-    program->set_uniform_texture("inBestValues", 1, out_right_bests);
+    program->set_uniform_texture("inSums", temp1);
+    program->set_uniform_texture("inBestValues", out_right_bests);
     program->set_uniform_float("dx", dx);
     program->set_uniform_float("dy", dy);
     program->set_uniform_float("xOffset", dx);
@@ -257,8 +260,8 @@ GPUImageBase correlation_cross_check(float threshold, GPUImageBase best_values_l
   GPUImageBase output;
   output.copy_attributes(best_values_left);
   ShaderInvocation_SetOutputImage(output);
-  program->set_uniform_texture("inLeftBestValues", 0, best_values_left);
-  program->set_uniform_texture("inRightBestValues", 1, best_values_right);
+  program->set_uniform_texture("inLeftBestValues", best_values_left);
+  program->set_uniform_texture("inRightBestValues", best_values_right);
   program->set_uniform_float("crossCheckThreshold", threshold);
   program->set_uniform_float("missingPixel", MISSING_PIXEL);
   ShaderInvocation_DrawRectOneTexture(output);
@@ -299,6 +302,7 @@ GPUImage<PixelRGB<float> > stereo_correlation(const GPUImageBase &leftImage,
   GPUImageBase temp_left = convolution_filter(leftImage, gaussian_matrix);
   temp_left = convolution_filter(temp_left, laplacian_matrix);
   temp_left = threshold(temp_left, 0, 0, 1);
+  write_image("OUTPUT_TEST_Left_SLOG.png", (GPUImage<PixelGray<float> >) temp_left);
   // Right Image - SLOG  
   GPUImageBase temp_right = convolution_filter(rightImage, gaussian_matrix);
   temp_right = convolution_filter(temp_right, laplacian_matrix);
@@ -327,6 +331,11 @@ GPUImage<PixelRGB<float> > stereo_correlation(const GPUImageBase &leftImage,
     correlation_cross_check(crossCorrThreshold, best_values_left, best_values_right);
   return best_values_cross;
 }
+
+
+//########################################################################
+//#  main                  
+//########################################################################
 
 int main(int argc, char *argv[]) {
   // Parse arguments
@@ -372,18 +381,18 @@ int main(int argc, char *argv[]) {
   }
   // Stereo Correlation
   GPUImage<PixelRGB<float> > best_values = stereo_correlation((GPUImage<PixelGray<float> >) left_image,
-							 (GPUImage<PixelGray<float> >) right_image,
-							 NULL,
-							 (int) floorf(kernalSize / 2.0),
-							 minDX,
-							 maxDX,
-							 minDY,
-							 maxDY,
-							 crossCorrThreshold);
+							      (GPUImage<PixelGray<float> >) right_image,
+							      NULL,
+							      (int) floorf(kernalSize / 2.0),
+							      minDX,
+							      maxDX,
+							      minDY,
+							      maxDY,
+							      crossCorrThreshold);
   // Slice requested channels and return as image files (RED = best_score, GREEN = best_dx, BLUE = best_dy)
-    ImageView<PixelGray<float> > output_image(best_values.cols(), best_values.rows());
+  ImageView<PixelGray<float> > output_image(best_values.cols(), best_values.rows());
 
- if(!output_path_dx.empty()) {
+  if(!output_path_dx.empty()) {
     best_values.read(TEX_G, TEX_FLOAT32, &(output_image(0,0)));
     output_image = output_image - PixelGray<float>(minDX);
     output_image = output_image / PixelGray<float>(maxDX - minDX);
@@ -395,7 +404,7 @@ int main(int argc, char *argv[]) {
       return -1;
     }
   }
- if(!output_path_dy.empty()) {
+  if(!output_path_dy.empty()) {
     best_values.read(TEX_B, TEX_FLOAT32, &(output_image(0,0)));
     output_image = output_image - PixelGray<float>(minDY);
     output_image = output_image / PixelGray<float>(maxDY - minDY);
@@ -407,7 +416,7 @@ int main(int argc, char *argv[]) {
       return -1;
     }
   }
- if(!output_path_score.empty()) {
+  if(!output_path_score.empty()) {
     int max_score = (int) powf(1 + 2 * floorf(kernalSize / 2.0), 2);
     best_values.read(TEX_R, TEX_FLOAT32, &(output_image(0,0)));
     output_image = output_image / PixelGray<float>(max_score);
@@ -419,7 +428,7 @@ int main(int argc, char *argv[]) {
       return -1;
     }
   }
- // Clean up and return
-  set_gpu_memory_recycling(false);
+  // Clean up and return
+  gpu_cleanup();
   return 0;
 }

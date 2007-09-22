@@ -291,12 +291,12 @@ struct TexTraitsForPixelT { };
 template <class PixelT> class GPUImage;
 
 template <class PixelT>
-class GPUPixel { 
+  class GPUPixel { 
   TexBlock* _texBlock;
   int _xOffset;
   int _yOffset;
   public:
-// Instance Functions - Ctors/Dtor
+  // Instance Functions - Ctors/Dtor
   GPUPixel() { 
     _texBlock = NULL;
   }
@@ -313,24 +313,28 @@ class GPUPixel {
   }
   
   void operator=(const PixelT& pixel) {
-	_texBlock->write(_xOffset, _yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
-					  GPUImage<PixelT>::get_gpu_type_for_pixelt(), (void*) &pixel);
+    _texBlock->write(_xOffset, _yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
+		     GPUImage<PixelT>::get_gpu_type_for_pixelt(), (void*) &pixel);
   }
   
   PixelT operator*() const {
-	PixelT pixel;
-	_texBlock->read(_xOffset, _yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
-					  GPUImage<PixelT>::get_gpu_type_for_pixelt(), &pixel);
-	return pixel;
+    PixelT pixel;
+    _texBlock->read(_xOffset, _yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
+		    GPUImage<PixelT>::get_gpu_type_for_pixelt(), &pixel);
+    return pixel;
   }
   
   
   operator PixelT() const {
-	PixelT pixel;
-	_texBlock->read(_xOffset, _yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
-					  GPUImage<PixelT>::get_gpu_type_for_pixelt(), &pixel);
-	return pixel;
+    PixelT pixel;
+    _texBlock->read(_xOffset, _yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
+		    GPUImage<PixelT>::get_gpu_type_for_pixelt(), &pixel);
+    return pixel;
   }
+  
+  
+  
+
 
 };
 
@@ -489,7 +493,7 @@ class GPUImage :  public GPUImageBase { // public ImageViewBase<GPUImage<PixelT>
     _texBlock->retain();
     return *this;
   }
-
+  
   const PixelT operator()(int col, int row) const {
     PixelT pixel;
     Tex_Type gpu_type = get_gpu_type_for_pixelt();
@@ -497,11 +501,15 @@ class GPUImage :  public GPUImageBase { // public ImageViewBase<GPUImage<PixelT>
     read(col, row, 1, 1, tex_format, gpu_type, (void*) &pixel);
     return pixel;
   }
-
+  
   GPUPixel<PixelT> pixel(int col, int row) {
-	return GPUPixel<PixelT>(*this, col, row);
+  	return GPUPixel<PixelT>(*this, col, row);
   }
-
+  
+  GPUPixel<PixelT> operator()(int col, int row) {
+      return GPUPixel<PixelT>(*this, col, row);
+  }
+  
   void write_image_view(ImageView<typename TexTraitsForPixelT<PixelT>::imageview_t>& image) const {
     Tex_Type cpu_type =  get_cpu_type_for_pixelt(); 
     image.set_size(width(), height());

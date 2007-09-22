@@ -54,7 +54,7 @@ namespace vw { namespace GPU {
     ShaderInvocation_SetOutputImage(temp);
     // INPUT
     bool is_int8 = image.type() == TEX_UINT8;
-    program->set_uniform_texture("i1", 0, image);
+    program->set_uniform_texture("i1", image);
     program->set_uniform_float("f1", thresh, is_int8);
     program->set_uniform_float("f2", low, is_int8);	
     program->set_uniform_float("f3", high, is_int8);		

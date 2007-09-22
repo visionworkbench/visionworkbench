@@ -14,7 +14,7 @@ namespace vw { namespace GPU {
 
   static bool loggingEnabled;
 
-  ShaderLanguageChoiceEnum shaderLanguageChoice = SHADER_LANGUAGE_CHOICE_CG_GLSL;
+  ShaderLanguageChoiceEnum shaderLanguageChoice = SHADER_LANGUAGE_CHOICE_GLSL;
 
   // gpu_init
 
@@ -84,7 +84,7 @@ namespace vw { namespace GPU {
     set_gpu_memory_recycling(false);
   }
 
-  // Setup
+  // Settings
 
   void set_shader_language_choice(ShaderLanguageChoiceEnum choice) {
     shaderLanguageChoice = choice;

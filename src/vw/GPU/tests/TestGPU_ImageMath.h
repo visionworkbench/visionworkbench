@@ -30,6 +30,7 @@ using namespace std;
 using namespace vw;
 using namespace GPU;
 
+
 class TestImageMath : public CxxTest::TestSuite
 {
  public:
@@ -56,18 +57,17 @@ class TestImageMath : public CxxTest::TestSuite
 
 #define TEST_BINARY_MATH_FUNCTION(func,arg1,arg2,result)                \
   {									\
-    gpu_init();						                \
+    gpu_init();	                  					\
     GPUImage<PixelRGBA<float> > im1(1,1);				\
-	im1.pixel(0, 0) = PixelRGBA<float>(arg1, arg1, arg1, arg1);	\
+    im1.pixel(0, 0) = PixelRGBA<float>(arg1, arg1, arg1, arg1);	        \
     GPUImage<PixelRGBA<float> > im2(1,1);				\
-	im2.pixel(0, 0) = PixelRGBA<float>(arg2, arg2, arg2, arg2);	\
-	PixelRGBA<float> im_pixel;					\
-    TS_ASSERT_DELTA(im1(0,0).r() == arg1, im2(0,0).r() == arg2, 0.00025);\
+    im2.pixel(0, 0) = PixelRGBA<float>(arg2, arg2, arg2, arg2);	        \
+    PixelRGBA<float> im_pixel;					        \
     im_pixel = func(im1, im2)(0,0);					\
     TS_ASSERT_DELTA(im_pixel.r(), result, 0.00025);			\
-    im_pixel = func(arg1, im2)(0,0);				\
+    im_pixel = func(arg1, im2)(0,0); 			                \
     TS_ASSERT_DELTA(im_pixel.r(), result, 0.00025); 			\
-    im_pixel = func(im1, arg2)(0,0);				\
+    im_pixel = func(im1, arg2)(0,0);				        \
     TS_ASSERT_DELTA(im_pixel.r(), result, 0.00025);			\
   }
 

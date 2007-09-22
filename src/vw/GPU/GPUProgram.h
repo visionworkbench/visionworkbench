@@ -41,7 +41,6 @@ namespace vw { namespace GPU {
     SHADER_COMPILATION_STATUS_ERROR_FILE,
     SHADER_COMPILATION_STATUS_ERROR_COMPILE,
     SHADER_COMPILATION_STATUS_ERROR_LINK
-
   };
 
   extern ShaderCompilationStatusEnum shaderCompilationStatus;
@@ -60,7 +59,7 @@ namespace vw { namespace GPU {
     virtual ~GPUProgram() { }
     virtual void install() = 0;
     virtual void uninstall() = 0;
-    virtual void set_uniform_texture(const char* name, int id, const GPUImageBase& texture) = 0;
+    virtual void set_uniform_texture(const char* name, const GPUImageBase& texture) = 0;
     virtual void set_uniform_float(const char* name, float value, bool is_uint8 = false) = 0;
   };
 
@@ -98,48 +97,29 @@ namespace vw { namespace GPU {
 
   class GPUProgram_GLSL : public GPUProgram {
     GLhandleARB program;
+    int bound_texture_count;
   public:
     bool Link(GPUVertexShader_GLSL& vertex, GPUFragmentShader_GLSL& fragment);
     // INLINE
-    GPUProgram_GLSL() { program = 0; }
+    GPUProgram_GLSL() { program = 0; bound_texture_count = 0; }
     ~GPUProgram_GLSL() { if(program) glDeleteObjectARB(program); }
     GLhandleARB get_program() { return program; }
     // Over-Riden
     void install() { 
       glUseProgramObjectARB(program); 
+      bound_texture_count = 0;
     }
     void uninstall() {
       glUseProgramObjectARB(0); 
     }
-    void set_uniform_texture(const char* name, int n, const GPUImageBase& texture) { 
-      glUniform1i(glGetUniformLocationARB(program, name), n);
-      switch(n) {
-      case 0:
-	glActiveTexture(GL_TEXTURE0);
-	break;
-      case 1:
-	glActiveTexture(GL_TEXTURE1);
-	break;
-      case 2:
-	glActiveTexture(GL_TEXTURE2);
-	break;
-      case 3:
-	glActiveTexture(GL_TEXTURE3);
-	break;
-      case 4:
-	glActiveTexture(GL_TEXTURE4);
-	break;
-      case 5:
-	glActiveTexture(GL_TEXTURE5);
-	break;
-      case 6:
-	glActiveTexture(GL_TEXTURE6);
-	break;
-      case 7:
-	glActiveTexture(GL_TEXTURE7);
-	break;
-      }
+    void set_uniform_texture(const char* name, const GPUImageBase& texture) { 
+      glUniform1i(glGetUniformLocationARB(program, name), bound_texture_count);
+      glGetError();
+      glActiveTexture(GL_TEXTURE0 + bound_texture_count);
+      if(glGetError() != GL_NO_ERROR)
+	throw(Exception("[GPUProgram::set_uniform_texture] Error: Too many textures bound."));
       texture.bind();
+      bound_texture_count++;
     }
     void set_uniform_float(const char* name, float value, bool is_uint8) {
       if(is_uint8) value /= 255.0;
@@ -180,6 +160,7 @@ namespace vw { namespace GPU {
   class GPUProgram_CG : public GPUProgram {
     GPUShader_CG* vertexShader;
     GPUShader_CG* fragmentShader;
+    int bound_texture_count;
   public:
     // INLINE
     GPUProgram_CG(GPUShader_CG* inVertexShader, GPUShader_CG* inFragmentShader) 
@@ -194,6 +175,7 @@ namespace vw { namespace GPU {
 	vertexShader->install();
       if(fragmentShader)
 	fragmentShader->install();
+      bound_texture_count = 0;
     }
     void uninstall() {
       if(vertexShader)
@@ -201,16 +183,21 @@ namespace vw { namespace GPU {
       if(fragmentShader)
 	fragmentShader->uninstall();
     }
-    void set_uniform_texture(const char* name, int n, const GPUImageBase& texture) { 
-      if(vertexShader) cgGLSetTextureParameter(cgGetNamedParameter(vertexShader->get_cg_program(), name), texture.name());
+    void set_uniform_texture(const char* name, const GPUImageBase& texture) { 
+      if(vertexShader) {
+	cgGLSetTextureParameter(cgGetNamedParameter(vertexShader->get_cg_program(), name), texture.name());
+	cgGLEnableTextureParameter(cgGetNamedParameter(vertexShader->get_cg_program(), name));
+      }
       if(fragmentShader) {
 	cgGLSetTextureParameter(cgGetNamedParameter(fragmentShader->get_cg_program(), name), texture.name());
 	cgGLEnableTextureParameter(cgGetNamedParameter(fragmentShader->get_cg_program(), name));
       }
+      glGetError();
+      glActiveTexture(GL_TEXTURE0 + bound_texture_count);
+      if(glGetError() != GL_NO_ERROR)
+	throw(Exception("[GPUProgram::set_uniform_texture] Error: Too many textures bound."));
       texture.bind();
-    }
-    void set_uniform_texture(int id, int n, const GPUImageBase& texture) { 
-      //cgGLSetTextureParameter(id, inputTex.name());
+      bound_texture_count++;
     }
     void set_uniform_float(const char* name, float value, bool is_uint8) {
       if(is_uint8) value /= 255.0;
