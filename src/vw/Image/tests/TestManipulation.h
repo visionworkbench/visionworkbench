@@ -28,6 +28,7 @@
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/Manipulation.h>
+#include <vw/Image/Filter.h>
 
 using namespace vw;
 
@@ -43,6 +44,16 @@ public:
   template <class T1, class T2>
   static bool has_pixel_type( T2 ) {
     return boost::is_same<T1,typename T2::pixel_type>::value;
+  }
+
+  template <class T1, class T2>
+  static bool has_result_type( T2 ) {
+    return boost::is_same<T1,typename T2::result_type>::value;
+  }
+
+  template <class T>
+  static T const& make_const_ref( T const& arg ) {
+    return arg;
   }
 
   void test_copy()
@@ -755,6 +766,10 @@ public:
 
     // Test the traits
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( select_channel(im,1) ) );
+    TS_ASSERT( has_pixel_type<double>( select_channel(im,1) ) );
+    TS_ASSERT( has_result_type<double&>( select_channel(im,1) ) );
+    TS_ASSERT( has_pixel_type<double>( select_channel(per_pixel_filter(im,&make_const_ref<PixelRGB<double> >),1) ) );
+    TS_ASSERT( has_result_type<double const&>( select_channel(per_pixel_filter(im,&make_const_ref<PixelRGB<double> >),1) ) );
 
     // Test a non-writable view
     ImageViewRef<PixelRGB<double> > im3 = im;

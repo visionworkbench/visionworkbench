@@ -51,7 +51,8 @@ namespace vw {
     FuncT const& m_func;
   public:
     typedef typename boost::result_of<FuncT(typename ImageIterT::pixel_type)>::type result_type;
-    typedef typename boost::remove_reference<result_type>::type pixel_type;
+    typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type pixel_type;
+
     UnaryPerPixelAccessor( ImageIterT const& iter, FuncT const& func ) : m_iter(iter), m_func(func) {}
     inline UnaryPerPixelAccessor& next_col() { m_iter.next_col(); return *this; }
     inline UnaryPerPixelAccessor& prev_col() { m_iter.prev_col(); return *this; }
@@ -70,7 +71,7 @@ namespace vw {
     FuncT m_func;
   public:
     typedef typename boost::result_of<FuncT(typename ImageT::pixel_type)>::type result_type;
-    typedef typename boost::remove_reference<result_type>::type pixel_type;
+    typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type pixel_type;
     typedef UnaryPerPixelAccessor<typename ImageT::pixel_accessor, FuncT> pixel_accessor;
 
     UnaryPerPixelView( ImageT const& image ) : m_image(image), m_func() {}
@@ -116,7 +117,7 @@ namespace vw {
     FuncT const& m_func;
   public:
     typedef typename boost::result_of<FuncT(typename Image1IterT::pixel_type,typename Image2IterT::pixel_type)>::type result_type;
-    typedef typename boost::remove_reference<result_type>::type pixel_type;
+    typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type pixel_type;
 
     BinaryPerPixelAccessor( Image1IterT const& iter1, Image2IterT const& iter2, FuncT const& func ) : m_iter1(iter1), m_iter2(iter2), m_func(func) {}
     inline BinaryPerPixelAccessor& next_col() { m_iter1.next_col(); m_iter2.next_col(); return *this; }
@@ -140,7 +141,7 @@ namespace vw {
     FuncT m_func;
   public:
     typedef typename boost::result_of<FuncT(typename Image1T::pixel_type, typename Image2T::pixel_type)>::type result_type;
-    typedef typename boost::remove_reference<result_type>::type pixel_type;
+    typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type pixel_type;
 
     typedef BinaryPerPixelAccessor<typename Image1T::pixel_accessor,
                                    typename Image2T::pixel_accessor,
