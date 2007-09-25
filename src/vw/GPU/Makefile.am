@@ -31,14 +31,14 @@ StandardShaders.cc:
 if MAKE_MODULE_GPU
 
 include_HEADERS = Setup.h Utilities.h StandardShaders.h   \
-  GPUProgram.h TexAlloc.h TexBlock.h	\
+  GPUProgram.h TexAlloc.h	\
   TexObj.h GPUImage.h  Filter.h 				\
   Manipulation.h Transform.h  GenericShaders.h						\
   ImageMath.h Statistics.h  Algorithms.h						\
   Interpolation.h EdgeExtension.h 
 
 libvwGPU_la_SOURCES = Setup.cc Utilities.cc StandardShaders.cc 	\
-  GPUProgram.cc TexAlloc.cc TexBlock.cc				\
+  GPUProgram.cc TexAlloc.cc				\
   TexObj.cc GPUImage.cc Filter.cc 	\
   Manipulation.cc Transform.cc GenericShaders.cc			\
   ImageMath.cc Statistics.cc Algorithms.cc								

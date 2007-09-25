@@ -54,9 +54,9 @@ namespace vw { namespace GPU {
 										const std::vector<float>& hKernalVector, 
 										const std::vector<float>& vKernalVector) {
 	GPUImage<float> hKernel(hKernalVector.size(), 1);
-	hKernel.write(TEX_R, TEX_FLOAT32, &(hKernalVector[0]));
+	hKernel.write(GPU_RED, GPU_FLOAT32, &(hKernalVector[0]));
 	GPUImage<float> vKernel(vKernalVector.size(), 1);
-	vKernel.write(TEX_R, TEX_FLOAT32, &(vKernalVector[0]));
+	vKernel.write(GPU_RED, GPU_FLOAT32, &(vKernalVector[0]));
     return seperable_convolution_filter((GPUImageBase&) image, hKernel, vKernel);
   }
   
@@ -76,8 +76,8 @@ namespace vw { namespace GPU {
     std::vector<float> x_kernel, y_kernel;
     generate_gaussian_kernel(x_kernel, x_sigma, x_dim);
     generate_gaussian_kernel(y_kernel, y_sigma, y_dim);
-    GPUImageBase x_kernel_tex(x_kernel.size(), 1, TEX_R, TEX_FLOAT32, TEX_R, TEX_FLOAT32, &(x_kernel[0]));
-    GPUImageBase y_kernel_tex(y_kernel.size(), 1, TEX_R, TEX_FLOAT32, TEX_R, TEX_FLOAT32, &(y_kernel[0]));
+    GPUImageBase x_kernel_tex(x_kernel.size(), 1, GPU_RED, GPU_FLOAT32, GPU_RED, GPU_FLOAT32, &(x_kernel[0]));
+    GPUImageBase y_kernel_tex(y_kernel.size(), 1, GPU_RED, GPU_FLOAT32, GPU_RED, GPU_FLOAT32, &(y_kernel[0]));
     return seperable_convolution_filter((GPUImageBase&) image, x_kernel_tex, y_kernel_tex);
   }
 
@@ -99,8 +99,8 @@ namespace vw { namespace GPU {
     std::vector<float> x_kernel, y_kernel;
     generate_derivative_kernel(x_kernel, x_deriv, x_dim);
     generate_derivative_kernel(y_kernel, y_deriv, y_dim);
-    GPUImageBase x_kernel_tex(x_kernel.size(), 1, TEX_R, TEX_FLOAT32, TEX_R, TEX_FLOAT32, &(x_kernel[0]));
-    GPUImageBase y_kernel_tex(y_kernel.size(), 1, TEX_R, TEX_FLOAT32, TEX_R, TEX_FLOAT32, &(y_kernel[0]));
+    GPUImageBase x_kernel_tex(x_kernel.size(), 1, GPU_RED, GPU_FLOAT32, GPU_RED, GPU_FLOAT32, &(x_kernel[0]));
+    GPUImageBase y_kernel_tex(y_kernel.size(), 1, GPU_RED, GPU_FLOAT32, GPU_RED, GPU_FLOAT32, &(y_kernel[0]));
     return seperable_convolution_filter((GPUImageBase&) image, x_kernel_tex, y_kernel_tex);
   }
 
@@ -111,7 +111,7 @@ namespace vw { namespace GPU {
     kernel(0,0)=0; kernel(1,0)=1;  kernel(2,0)=0;
     kernel(0,1)=1; kernel(1,1)=-4; kernel(2,1)=1;
     kernel(0,2)=0; kernel(1,2)=1;  kernel(2,2)=0;
-    GPUImageBase kernel_tex(3, 3, TEX_R, TEX_FLOAT32, TEX_R, TEX_FLOAT32, &(kernel(0, 0)));
+    GPUImageBase kernel_tex(3, 3, GPU_RED, GPU_FLOAT32, GPU_RED, GPU_FLOAT32, &(kernel(0, 0)));
     return convolution_filter((GPUImageBase&) image, kernel_tex);
   }
 
@@ -120,7 +120,7 @@ namespace vw { namespace GPU {
     inline gaussian_derivative_filter(const GPUImage<PixelT>& image, float x_sigma, int x_deriv, float y_sigma, int y_deriv, float angle, int size) {
      ImageView<float> kernel;
     generate_gaussian_derivative_kernel( kernel, x_sigma, x_deriv, y_sigma, y_deriv, angle, size );
-    GPUImageBase kernel_tex(kernel.cols(), kernel.rows(), TEX_R, TEX_FLOAT32, TEX_R, TEX_FLOAT32, &(kernel(0, 0)));
+    GPUImageBase kernel_tex(kernel.cols(), kernel.rows(), GPU_RED, GPU_FLOAT32, GPU_RED, GPU_FLOAT32, &(kernel(0, 0)));
     return convolution_filter((GPUImageBase&) image, kernel_tex);
   }
 

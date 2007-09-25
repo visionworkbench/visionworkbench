@@ -20,6 +20,8 @@ namespace vw { namespace GPU {
 
 extern GLuint g_framebuffer;
 
+extern bool loggingEnabled;
+
 // Initialization
 
  void gpu_init(const std::string &log_path = std::string(), bool dummyWindow = true);
@@ -63,6 +65,8 @@ extern GLuint g_framebuffer;
 // Logging
 
  void gpu_log(const char* string);
+
+ static bool gpu_log_enabled() { return loggingEnabled; }
 
 
 

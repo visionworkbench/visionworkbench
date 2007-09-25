@@ -11,7 +11,6 @@
 
 
 #include <vw/GPU/TexAlloc.h>
-#include <vw/GPU/TexBlock.h>
 #include <vw/GPU/TexObj.h>
 #include <vw/GPU/Expressions.h>
 #include <vw/GPU/Interpolation.h>
@@ -29,10 +28,10 @@ namespace vw { namespace GPU {
 //                                               Class: GPUImageBase
 //#################################################################################################################
 
-class GPUImageBase : public ShaderNode_Base {
+class GPUImageBase {
  protected:
 // Member Variables - Protected
-  TexBlock* _texBlock;
+  TexObj* _texObj;
   int _width;
   int _height;
   int _xOffset;
@@ -47,7 +46,7 @@ class GPUImageBase : public ShaderNode_Base {
   GPUImageBase() { 
     _width = 0;
     _height  = 0;
-    _texBlock = NULL;
+    _texObj = NULL;
     _isHomography = false;
   }
 
@@ -57,13 +56,13 @@ class GPUImageBase : public ShaderNode_Base {
     if(w ==0 || h == 0) {
 	  _width = 0;
 	  _height = 0;
-	  _texBlock = NULL;
+	  _texObj = NULL;
       return;
 	}
-    _texBlock = TexAlloc::alloc(w, h, format, type);
-    _texBlock->retain();
-    _width = _texBlock->width();
-    _height = _texBlock->height();
+    _texObj = TexAlloc::alloc(w, h, format, type);
+    _texObj->retain();
+    _width = _texObj->width();
+    _height = _texObj->height();
     _isHomography = false;
   }
 
@@ -75,19 +74,19 @@ class GPUImageBase : public ShaderNode_Base {
     if(w ==0 || h == 0) {
 	  _width = 0;
 	  _height = 0;
-	  _texBlock = NULL;
+	  _texObj = NULL;
       return;
 	}
-    _texBlock = TexAlloc::alloc(w, h, format, type);
-    _texBlock->retain();
-    _width = _texBlock->width();
-    _height = _texBlock->height();
+    _texObj = TexAlloc::alloc(w, h, format, type);
+    _texObj->retain();
+    _width = _texObj->width();
+    _height = _texObj->height();
     write(0, 0, _width, _height, inputFormat, inputType, data);
     _isHomography = false; 
   }
 
   ~GPUImageBase() {
-    if(_texBlock) _texBlock->release(); 
+    if(_texObj) _texObj->release(); 
   }
 
 
@@ -96,8 +95,8 @@ class GPUImageBase : public ShaderNode_Base {
     _height  = cpyTex._height;
     _xOffset = cpyTex._xOffset;
     _yOffset = cpyTex._yOffset;
-    _texBlock = cpyTex._texBlock;
-    _texBlock->retain();
+    _texObj = cpyTex._texObj;
+    _texObj->retain();
     _isHomography = cpyTex._isHomography;
     _homography = cpyTex._homography;
     _interpolation_string = cpyTex._interpolation_string;
@@ -109,23 +108,23 @@ class GPUImageBase : public ShaderNode_Base {
   void copy_attributes(const GPUImageBase& cpyTex) {
     _xOffset = 0;
     _yOffset = 0;
-    _texBlock = TexAlloc::alloc(cpyTex.width(), cpyTex.height(), cpyTex.format(), cpyTex.type());
-    _texBlock->retain();
-    _width = _texBlock->width();
-    _height = _texBlock->height();
+    _texObj = TexAlloc::alloc(cpyTex.width(), cpyTex.height(), cpyTex.format(), cpyTex.type());
+    _texObj->retain();
+    _width = _texObj->width();
+    _height = _texObj->height();
     _isHomography = false;
   }
 
 // Instance Functions - Operators
   GPUImageBase& operator=(const GPUImageBase& cpyTex) {
-    if(_texBlock)
-      _texBlock->release();
+    if(_texObj)
+      _texObj->release();
     _width = cpyTex._width;
     _height  = cpyTex._height;
     _xOffset = cpyTex._xOffset;
     _yOffset = cpyTex._yOffset;
-    _texBlock = cpyTex._texBlock;
-    _texBlock->retain();
+    _texObj = cpyTex._texObj;
+    _texObj->retain();
     _isHomography = cpyTex._isHomography;
     _homography = cpyTex._homography;
     _interpolation_string = cpyTex._interpolation_string;
@@ -143,9 +142,9 @@ class GPUImageBase : public ShaderNode_Base {
   int rows() const { return _height; }
 
   void reset() { 
-    if(_texBlock)
-      _texBlock->release();
-    _texBlock = NULL;
+    if(_texObj)
+      _texObj->release();
+    _texObj = NULL;
     _width = 0;
     _height = 0;
   }
@@ -185,46 +184,46 @@ class GPUImageBase : public ShaderNode_Base {
   int width() const { return _width; }
   int height() const { return _height; }
 
-  int real_width() const { return _texBlock->real_width(); }
-  int real_height() const { return _texBlock->real_height(); }
-  bool same_real_object(const GPUImageBase& other) { return _texBlock->same_real_object(*(other._texBlock)); }
+  int real_width() const { return _texObj->width(); }
+  int real_height() const { return _texObj->height(); }
+  bool same_real_object(const GPUImageBase& other) { return false; }
  
-   TexBlock* GetTexBlock() const { return _texBlock; } // TEMP - These 3 functions are only for use in the GPUImage copy constructor
+   TexObj* GetTexObj() const { return _texObj; } // TEMP - These 3 functions are only for use in the GPUImage copy constructor
   int OffsetX() const { return _xOffset; }
   int OffsetY() const { return _yOffset; }
 
   void translate(int x, int y) { _xOffset += x; _yOffset += y; }
 
   void write(Tex_Format inputFormat, Tex_Type inputType, void* data) 
-    { _texBlock->write(_xOffset, _yOffset, _width, _height, inputFormat, inputType, data); }
+    { _texObj->write(_xOffset, _yOffset, _width, _height, inputFormat, inputType, data); }
 
   void write(int x, int y, int w, int h, Tex_Format inputFormat, Tex_Type inputType, void* data) 
-    { _texBlock->write(x + _xOffset, y + _yOffset, w, h, inputFormat, inputType, data); }
+    { _texObj->write(x + _xOffset, y + _yOffset, w, h, inputFormat, inputType, data); }
 
   void read(Tex_Format outputFormat, Tex_Type outputType, void* data) const 
-    { rasterize_homography();_texBlock->read(_xOffset, _yOffset, _width, _height, outputFormat, outputType, data); }
+    { rasterize_homography();_texObj->read(_xOffset, _yOffset, _width, _height, outputFormat, outputType, data); }
 
   void read(int x, int y, int w, int h, Tex_Format outputFormat, Tex_Type outputType, void* data) const
-    { rasterize_homography(); _texBlock->read(x + _xOffset, y + _yOffset, w, h, outputFormat, outputType, data); }
+    { rasterize_homography(); _texObj->read(x + _xOffset, y + _yOffset, w, h, outputFormat, outputType, data); }
 
-  GLuint target() const { return _texBlock->target(); }
+  GLuint target() const { return _texObj->target(); }
 
-  GLuint name() const { return _texBlock->name(); }
+  GLuint name() const { return _texObj->name(); }
 
-  void bind() const { _texBlock->bind(); }
+  void bind() const { _texObj->bind(); }
 
-  float x(float x) const { return _texBlock->x(x + _xOffset); }
+  float x(float x) const { return _texObj->x(x + _xOffset); }
 
-  float y(float y) const { return _texBlock->y(y + _yOffset); }
+  float y(float y) const { return _texObj->y(y + _yOffset); }
 
-  Tex_Format format() const { return _texBlock->format(); }
+  Tex_Format format() const { return _texObj->format(); }
 
-  Tex_Type type() const { return _texBlock->type(); }
+  Tex_Type type() const { return _texObj->type(); }
 
   int num_channels() const {
     Tex_Format theFormat = format();
-    if(theFormat == TEX_RGBA) return 4;
-    else if(theFormat == TEX_RGB) return 3;
+    if(theFormat == GPU_RGBA) return 4;
+    else if(theFormat == GPU_RGB) return 3;
     else return 1;
   }
 };
@@ -239,22 +238,22 @@ class GPUImageBase : public ShaderNode_Base {
 
  template <> 
  struct TexTraitsForChannelT<float> {
-   static const Tex_Type gpu_type = TEX_FLOAT32;
-   static const Tex_Type cpu_type = TEX_FLOAT32;
+   static const Tex_Type gpu_type = GPU_FLOAT32;
+   static const Tex_Type cpu_type = GPU_FLOAT32;
    typedef float input_type;
  };
 
  template <> 
  struct TexTraitsForChannelT<float16> {
-   static const Tex_Type gpu_type = TEX_FLOAT16;
-   static const Tex_Type cpu_type = TEX_FLOAT32;
+   static const Tex_Type gpu_type = GPU_FLOAT16;
+   static const Tex_Type cpu_type = GPU_FLOAT32;
    typedef float input_type;
  };
 
  template <> 
  struct TexTraitsForChannelT<vw::uint8> {
-   static const Tex_Type gpu_type = TEX_UINT8;
-   static const Tex_Type cpu_type = TEX_UINT8;
+   static const Tex_Type gpu_type = GPU_UINT8;
+   static const Tex_Type cpu_type = GPU_UINT8;
    typedef vw::uint8 input_type;
  };
 
@@ -292,34 +291,34 @@ template <class PixelT> class GPUImage;
 
 template <class PixelT>
   class GPUPixel { 
-  TexBlock* _texBlock;
+  TexObj* _texObj;
   int _xOffset;
   int _yOffset;
   public:
   // Instance Functions - Ctors/Dtor
   GPUPixel() { 
-    _texBlock = NULL;
+    _texObj = NULL;
   }
 
   GPUPixel(const GPUImage<PixelT>& image, int xOffset, int yOffset) {
     _xOffset = xOffset;
     _yOffset = yOffset;
-    _texBlock = image._texBlock;
-    _texBlock->retain();
+    _texObj = image._texObj;
+    _texObj->retain();
   }
 
   ~GPUPixel() {
-    if(_texBlock) _texBlock->release(); 
+    if(_texObj) _texObj->release(); 
   }
   
   void operator=(const PixelT& pixel) {
-    _texBlock->write(_xOffset, _yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
+    _texObj->write(_xOffset, _yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
 		     GPUImage<PixelT>::get_gpu_type_for_pixelt(), (void*) &pixel);
   }
   
   PixelT operator*() const {
     PixelT pixel;
-    _texBlock->read(_xOffset, _yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
+    _texObj->read(_xOffset, _yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
 		    GPUImage<PixelT>::get_gpu_type_for_pixelt(), &pixel);
     return pixel;
   }
@@ -327,7 +326,7 @@ template <class PixelT>
   
   operator PixelT() const {
     PixelT pixel;
-    _texBlock->read(_xOffset, _yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
+    _texObj->read(_xOffset, _yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
 		    GPUImage<PixelT>::get_gpu_type_for_pixelt(), &pixel);
     return pixel;
   }
@@ -350,14 +349,14 @@ class GPUImage :  public GPUImageBase { // public ImageViewBase<GPUImage<PixelT>
     int num_channels = PixelNumChannels<PixelT>::value;
     Tex_Format tex_format;
     if(num_channels == 1)
-      tex_format = TEX_R;
+      tex_format = GPU_RED;
     else if(num_channels == 4)
-      tex_format = TEX_RGBA;
+      tex_format = GPU_RGBA;
     else if(num_channels == 3)
-      tex_format = TEX_RGB;
+      tex_format = GPU_RGB;
     else if(num_channels == 2) {
       printf("get_format_for_pixelt: 2 Channel not supported.\n");
-      tex_format = TEX_RGB;
+      tex_format = GPU_RGB;
     }
     return tex_format;
   }
@@ -375,7 +374,7 @@ class GPUImage :  public GPUImageBase { // public ImageViewBase<GPUImage<PixelT>
     _height = 0;
     _xOffset = 0;
     _yOffset = 0;
-    _texBlock = NULL;
+    _texObj = NULL;
     _isHomography = false;
   }
   
@@ -385,14 +384,14 @@ class GPUImage :  public GPUImageBase { // public ImageViewBase<GPUImage<PixelT>
     if(w ==0 || h == 0) {
 	  _width = 0;
 	  _height = 0;
-	  _texBlock = NULL;
+	  _texObj = NULL;
       return;
 	}
     Tex_Type gpu_type = get_gpu_type_for_pixelt();
-    _texBlock = TexAlloc::alloc(w, h, get_format_for_pixelt(), gpu_type);
-    _texBlock->retain();
-    _width = _texBlock->width();
-    _height = _texBlock->height();
+    _texObj = TexAlloc::alloc(w, h, get_format_for_pixelt(), gpu_type);
+    _texObj->retain();
+    _width = _texObj->width();
+    _height = _texObj->height();
     _isHomography = false;
   }
    
@@ -405,14 +404,14 @@ class GPUImage :  public GPUImageBase { // public ImageViewBase<GPUImage<PixelT>
     if(w ==0 || h == 0) {
 	  _width = 0;
 	  _height = 0;
-	  _texBlock = NULL;
+	  _texObj = NULL;
       return;
 	}
     Tex_Type gpu_type = get_gpu_type_for_pixelt();
-    _texBlock = TexAlloc::alloc(w, h, get_format_for_pixelt(), gpu_type);
-    _texBlock->retain();
-    _width = _texBlock->width();
-    _height = _texBlock->height();
+    _texObj = TexAlloc::alloc(w, h, get_format_for_pixelt(), gpu_type);
+    _texObj->retain();
+    _width = _texObj->width();
+    _height = _texObj->height();
     write(0, 0, _width, _height,  inputFormat, inputType, data); 
   }
 
@@ -423,10 +422,10 @@ class GPUImage :  public GPUImageBase { // public ImageViewBase<GPUImage<PixelT>
     _yOffset = 0;
     _isHomography = false;
     Tex_Format tex_format = get_format_for_pixelt();
-    _texBlock = TexAlloc::alloc(_width, _height, tex_format, get_gpu_type_for_pixelt());
-    _texBlock->retain();
-    _width = _texBlock->width();
-    _height = _texBlock->height();
+    _texObj = TexAlloc::alloc(_width, _height, tex_format, get_gpu_type_for_pixelt());
+    _texObj->retain();
+    _width = _texObj->width();
+    _height = _texObj->height();
     write(0, 0, _width, _height, tex_format, get_cpu_type_for_pixelt(), &(image(0, 0)));
   }  
 
@@ -441,8 +440,8 @@ class GPUImage :  public GPUImageBase { // public ImageViewBase<GPUImage<PixelT>
     _edge_extension_type = cpyTex._edge_extension_type;
     _xOffset = cpyTex._xOffset;
     _yOffset = cpyTex._yOffset;
-    _texBlock = cpyTex._texBlock;
-    _texBlock->retain();
+    _texObj = cpyTex._texObj;
+    _texObj->retain();
   }
 
   GPUImage(const GPUImageBase& cpyTex) {
@@ -468,18 +467,18 @@ class GPUImage :  public GPUImageBase { // public ImageViewBase<GPUImage<PixelT>
     _yOffset = 0;
     _isHomography = false;
     Tex_Format tex_format = get_format_for_pixelt();
-    _texBlock = TexAlloc::alloc(_width, _height, tex_format, get_gpu_type_for_pixelt());
-    _texBlock->retain();
-    _width = _texBlock->width();
-    _height = _texBlock->height();
+    _texObj = TexAlloc::alloc(_width, _height, tex_format, get_gpu_type_for_pixelt());
+    _texObj->retain();
+    _width = _texObj->width();
+    _height = _texObj->height();
     write(0, 0, _width, _height, tex_format, get_cpu_type_for_pixelt(), &(image(0, 0)));
     return *this;
   }
 
 
   GPUImage& operator=(const GPUImage& cpyTex) {
-    if(_texBlock)
-      _texBlock->release();
+    if(_texObj)
+      _texObj->release();
     _width = cpyTex.width();
     _height  = cpyTex.height();
     _isHomography = cpyTex._isHomography;
@@ -489,8 +488,8 @@ class GPUImage :  public GPUImageBase { // public ImageViewBase<GPUImage<PixelT>
     _edge_extension_type = cpyTex._edge_extension_type;
     _xOffset = cpyTex.OffsetX();
     _yOffset = cpyTex.OffsetY();
-    _texBlock = cpyTex._texBlock;
-    _texBlock->retain();
+    _texObj = cpyTex._texObj;
+    _texObj->retain();
     return *this;
   }
   

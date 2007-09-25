@@ -24,7 +24,7 @@ namespace vw { namespace GPU {
 	GPUImageBase temp(width(), height(), format(), type());
 	ShaderInvocation_SetOutputImage(temp);
 // INPUT
-	program->set_uniform_texture("image", *this);
+	program->set_input_image("image", *this);
 	EdgeExtension_SetupTexture(_edge_extension_type);
 // DRAW
 	HomographyTransform h_functor(_homography);

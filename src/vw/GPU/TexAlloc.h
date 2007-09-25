@@ -22,7 +22,7 @@ class TexAlloc {
   static std::map<std::pair<Tex_Format, Tex_Type>, std::pair<Tex_Format, Tex_Type> > textureSubstitutesMap;
  public:
   // Class Functions
-  static TexBlock* alloc(int w, int h, Tex_Format format, Tex_Type type);
+  static TexObj* alloc(int w, int h, Tex_Format format, Tex_Type type);
   static void release(TexObj* texObj);
   static void clear_recycled();
   static void generate_texture_substitutions(bool verbose = false);

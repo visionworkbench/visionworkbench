@@ -7,7 +7,7 @@
 
 namespace vw { namespace GPU {
 
-#define TEX_DEBUG_PRINT 0
+#define GPU_DEBUG_PRINT 0
 class TexBlock;
 class TexAlloc;
 
@@ -16,42 +16,42 @@ class TexAlloc;
 //#################################################################################################################
 
 enum Tex_Format {
-  TEX_R = GL_RED,
-  TEX_G = GL_GREEN,
-  TEX_B = GL_BLUE,
-  TEX_RGB = GL_RGB,
-  TEX_RGBA = GL_RGBA,
-  TEX_DEPTH
+  GPU_RED = GL_RED,
+  GPU_GREEN = GL_GREEN,
+  GPU_BLUE = GL_BLUE,
+  GPU_RGB = GL_RGB,
+  GPU_RGBA = GL_RGBA,
+  GPU_DEPTH
 };
 
 enum Tex_Type {
-  TEX_UINT8 = 1,
-  TEX_FLOAT16 = 2,
-  TEX_FLOAT32 = 4
+  GPU_UINT8 = 1,
+  GPU_FLOAT16 = 2,
+  GPU_FLOAT32 = 4
 };
 
  inline const char* TexFormatToString(Tex_Format format) {
-   if(format == TEX_R)
-     return "TEX_R";
-   else if(format == TEX_G)
-     return "TEX_G";
-   else if(format == TEX_R)
-     return "TEX_R";
-   else if(format == TEX_B)
-     return "TEX_B";
-   else if(format == TEX_RGB)
-     return "TEX_RGB";
+   if(format == GPU_RED)
+     return "GPU_RED";
+   else if(format == GPU_GREEN)
+     return "GPU_GREEN";
+   else if(format == GPU_RED)
+     return "GPU_RED";
+   else if(format == GPU_BLUE)
+     return "GPU_BLUE";
+   else if(format == GPU_RGB)
+     return "GPU_RGB";
    else
-     return "TEX_RGBA";
+     return "GPU_RGBA";
  }
 
  inline const char* TexTypeToString(Tex_Type type) {
-   if(type == TEX_UINT8)
-     return "TEX_UINT8";
-   else if(type == TEX_FLOAT16)
-     return "TEX_FLOAT16";
+   if(type == GPU_UINT8)
+     return "GPU_UINT8";
+   else if(type == GPU_FLOAT16)
+     return "GPU_FLOAT16";
    else 
-     return "TEX_FLOAT32";
+     return "GPU_FLOAT32";
  }
 
 //#################################################################################################################
@@ -66,15 +66,15 @@ protected:
   Tex_Format _format;
   int _width;
   int _height;
-  list<TexBlock*> texBlockList;
+  int _refCount;
 public:
   TexObj(int w, int h, Tex_Format internalFormat, Tex_Type internalType);
 
   ~TexObj();
 
-  void retain(TexBlock* texBlock);
+  void retain();
 
-  void release(TexBlock* texBlock);
+  void release();
 // INLINE
   GLuint name() { return texName; }
 
@@ -84,9 +84,9 @@ public:
 
   int MemorySize() { 
     int nComponents; 
-    if(_format == TEX_RGB) 
+    if(_format == GPU_RGB) 
       nComponents = 3;
-    else if(_format == TEX_RGBA) 
+    else if(_format == GPU_RGBA) 
       nComponents = 4;
     else
       nComponents = 1;
@@ -94,9 +94,9 @@ public:
   }
   
   int Components() {
-    if(_format == TEX_RGB) 
+    if(_format == GPU_RGB) 
 		return 3;
-	else if(_format == TEX_RGBA) 
+	else if(_format == GPU_RGBA) 
 		return 4;
     else
 		return 1;
@@ -106,13 +106,22 @@ public:
 
   int height() { return _height; }
 
-// VIRTUAL
-  float x(float x);
-  float y(float y);
+  int real_width() { return _width; }
+
+  int real_height() { return _height; }
+
+  float x(float x) { return x; }
+
+  float y(float y) { return y; }
+
+  GLuint target() { return GL_TEXTURE_RECTANGLE_ARB; }
+
+  void bind() { glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texName); }
+
+// MEMBER
   void write(int x, int y, int w, int h, Tex_Format inputFormat, Tex_Type inputType, void* data);
+
   void read(int x, int y, int w, int h, Tex_Format outputFormat, Tex_Type outputType, void* data);
-  GLuint target();
-  void bind();
 
 };
 

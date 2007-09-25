@@ -148,9 +148,9 @@ namespace vw {
       GPUImage<PixelRGBA<ChannelT> > output(outputWidth, outputHeight);
       glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, output.target(), output.name(), 0);	
       // INPUT
-      program->set_uniform_texture("image", 0, image);
-      program->set_uniform_float("xCellOffset", outputWidth - 2*overlap);
-      program->set_uniform_float("yCellOffset", outputHeight - 2*overlap);
+      program->set_input_image("image", 0, image);
+      program->set_input_float("xCellOffset", outputWidth - 2*overlap);
+      program->set_input_float("yCellOffset", outputHeight - 2*overlap);
       // DRAW
       ShaderInvocation_DrawRectOneTexture(image);
       // CleanUp State
@@ -182,7 +182,7 @@ namespace vw {
       // 1. R-Channel	
       GPUProgram* program = create_gpu_program("VWGPU_Manipulation/SelectChannel-R");
       program->install();
-      program->set_uniform_texture("image1", 0, image);
+      program->set_input_image("image1", 0, image);
       t_x1 = tImage_x1;
       t_x2 = tImage_x2 - overlap;
       t_y1 = tImage_y1;
@@ -200,7 +200,7 @@ namespace vw {
       // 2. G-Channel	
       program = create_gpu_program("VWGPU_Manipulation/SelectChannel-G");
       program->install();
-      program->set_uniform_texture("image1", 0, image);
+      program->set_input_image("image1", 0, image);
       t_x1 = tImage_x1 + overlap;
       t_x2 = tImage_x2;
       t_y1 = tImage_y1;
@@ -218,7 +218,7 @@ namespace vw {
       // 3. B-Channel	
       program = create_gpu_program("VWGPU_Manipulation/SelectChannel-B");
       program->install();
-      program->set_uniform_texture("image1", 0, image);
+      program->set_input_image("image1", 0, image);
       t_x1 = tImage_x1;
       t_x2 = tImage_x2 - overlap;
       t_y1 = tImage_y1 + overlap;
@@ -236,7 +236,7 @@ namespace vw {
       // 4. A-Channel	
       program = create_gpu_program("VWGPU_Manipulation/SelectChannel-A");
       program->install();
-      program->set_uniform_texture("image1", 0, image);
+      program->set_input_image("image1", 0, image);
       t_x1 = tImage_x1 + overlap;
       t_x2 = tImage_x2;
       t_y1 = tImage_y1 + overlap;

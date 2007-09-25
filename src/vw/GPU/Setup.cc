@@ -12,7 +12,7 @@ namespace vw { namespace GPU {
 
   ofstream gpuLogFile;
 
-  static bool loggingEnabled;
+  bool loggingEnabled;
 
   ShaderLanguageChoiceEnum shaderLanguageChoice = SHADER_LANGUAGE_CHOICE_GLSL;
 

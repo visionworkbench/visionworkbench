@@ -59,8 +59,8 @@ namespace vw { namespace GPU {
     virtual ~GPUProgram() { }
     virtual void install() = 0;
     virtual void uninstall() = 0;
-    virtual void set_uniform_texture(const char* name, const GPUImageBase& texture) = 0;
-    virtual void set_uniform_float(const char* name, float value, bool is_uint8 = false) = 0;
+    virtual void set_input_image(const char* name, const GPUImageBase& texture) = 0;
+    virtual void set_input_float(const char* name, float value, bool is_uint8 = false) = 0;
   };
 
   //################################################################################################################
@@ -112,16 +112,16 @@ namespace vw { namespace GPU {
     void uninstall() {
       glUseProgramObjectARB(0); 
     }
-    void set_uniform_texture(const char* name, const GPUImageBase& texture) { 
+    void set_input_image(const char* name, const GPUImageBase& texture) { 
       glUniform1i(glGetUniformLocationARB(program, name), bound_texture_count);
       glGetError();
       glActiveTexture(GL_TEXTURE0 + bound_texture_count);
       if(glGetError() != GL_NO_ERROR)
-	throw(Exception("[GPUProgram::set_uniform_texture] Error: Too many textures bound."));
+	throw(Exception("[GPUProgram::set_input_image] Error: Too many textures bound."));
       texture.bind();
       bound_texture_count++;
     }
-    void set_uniform_float(const char* name, float value, bool is_uint8) {
+    void set_input_float(const char* name, float value, bool is_uint8) {
       if(is_uint8) value /= 255.0;
       glUniform1f(glGetUniformLocationARB(program, name), value);	
     }
@@ -183,7 +183,7 @@ namespace vw { namespace GPU {
       if(fragmentShader)
 	fragmentShader->uninstall();
     }
-    void set_uniform_texture(const char* name, const GPUImageBase& texture) { 
+    void set_input_image(const char* name, const GPUImageBase& texture) { 
       if(vertexShader) {
 	cgGLSetTextureParameter(cgGetNamedParameter(vertexShader->get_cg_program(), name), texture.name());
 	cgGLEnableTextureParameter(cgGetNamedParameter(vertexShader->get_cg_program(), name));
@@ -195,11 +195,11 @@ namespace vw { namespace GPU {
       glGetError();
       glActiveTexture(GL_TEXTURE0 + bound_texture_count);
       if(glGetError() != GL_NO_ERROR)
-	throw(Exception("[GPUProgram::set_uniform_texture] Error: Too many textures bound."));
+	throw(Exception("[GPUProgram::set_input_image] Error: Too many textures bound."));
       texture.bind();
       bound_texture_count++;
     }
-    void set_uniform_float(const char* name, float value, bool is_uint8) {
+    void set_input_float(const char* name, float value, bool is_uint8) {
       if(is_uint8) value /= 255.0;
       if(vertexShader) cgGLSetParameter1f(cgGetNamedParameter(vertexShader->get_cg_program(), name), value);
       if(fragmentShader) cgGLSetParameter1f(cgGetNamedParameter(fragmentShader->get_cg_program(), name), value);

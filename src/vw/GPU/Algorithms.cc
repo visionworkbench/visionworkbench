@@ -13,11 +13,11 @@ namespace vw { namespace GPU {
     program->install();
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, image.target(), image.name(), 0);
     // INPUTS
-    bool is_uint8 = image.type() == TEX_UINT8;
-    program->set_uniform_float("f1", red, is_uint8);
-    program->set_uniform_float("f2", green, is_uint8);
-    program->set_uniform_float("f3", blue, is_uint8);
-    program->set_uniform_float("f4", alpha, is_uint8);
+    bool is_uint8 = image.type() == GPU_UINT8;
+    program->set_input_float("f1", red, is_uint8);
+    program->set_input_float("f2", green, is_uint8);
+    program->set_input_float("f3", blue, is_uint8);
+    program->set_input_float("f4", alpha, is_uint8);
     // DRAW
     int x1 = (int) image.x(bounds.x);
     int x2 = (int) x1 + bounds.width;
@@ -53,11 +53,11 @@ namespace vw { namespace GPU {
     temp.copy_attributes(image);
     ShaderInvocation_SetOutputImage(temp);
     // INPUT
-    bool is_int8 = image.type() == TEX_UINT8;
-    program->set_uniform_texture("i1", image);
-    program->set_uniform_float("f1", thresh, is_int8);
-    program->set_uniform_float("f2", low, is_int8);	
-    program->set_uniform_float("f3", high, is_int8);		
+    bool is_int8 = image.type() == GPU_UINT8;
+    program->set_input_image("i1", image);
+    program->set_input_float("f1", thresh, is_int8);
+    program->set_input_float("f2", low, is_int8);	
+    program->set_input_float("f3", high, is_int8);		
     // DRAW
     ShaderInvocation_DrawRectOneTexture(image);
     // CleanUp State
