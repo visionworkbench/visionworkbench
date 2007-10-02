@@ -184,6 +184,15 @@ namespace vw {
     typedef PixelT result_type;
     typedef ImageViewRefAccessor<PixelT> pixel_accessor;
 
+    // Default contstruction conjures up an empty memory image as a
+    // placeholder.  This allows an ImageViewRef to be created without
+    // any arguments, which makes it suitable for use in situations
+    // where creation and assignment must happen as seperate steps,
+    // such as in STL containers.
+    ImageViewRef() : m_view( new ImageViewRefImpl<ImageView<PixelT> >(ImageView<PixelT>()) ) {}
+
+    // Assignment constructor creates an ImageViewRef from another
+    // ImageView.
     template <class ViewT> ImageViewRef( ImageViewBase<ViewT> const& view ) : m_view( new ImageViewRefImpl<ViewT>(view) ) {}
     ~ImageViewRef() {}
 
