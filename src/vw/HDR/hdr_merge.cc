@@ -40,40 +40,35 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include <vw/Image/ImageView.h>
+#include <vw/Image.h>
 #include <vw/FileIO.h>
-#include <vw/Image/Algorithms.h>
-#include <vw/Image/ImageMath.h>
-#include <vw/HDR/LDRtoHDR.h>
-#include <vw/HDR/GlobalToneMap.h>
+#include <vw/HDR.h>
 
 #include <vector>
-
-#include <boost/algorithm/string.hpp>
+#include <string>
 
 using namespace std;
-using namespace boost;
 using namespace vw;
 using namespace vw::hdr;
 
 int main( int argc, char *argv[] ) {
   try {
-    std::vector<std::string> filenames;
-    std::string output_filename, generated_curves_file, curves_input_file;
-    float ratio = 1.414; // default ratio is a factor of two in exposure
+    std::vector<std::string> input_filenames;
+    std::string output_filename, curve_coefficient_file, tabulated_curves_file;
+    float exposure_ratio = 1.414; // default ratio is a factor of two in exposure
     
     po::options_description desc("Options");
     desc.add_options()
       ("help", "Display this help message")
-      ("filenames", po::value<std::vector<std::string> >(&filenames), "Specify the input files")
+      ("input-filenames", po::value<std::vector<std::string> >(&input_filenames), "Specify the input files")
       ("output-filename,o", po::value<std::string>(&output_filename), "Specify the output filename")
-      ("exposure-ratio,e", po::value<float>(&ratio), "Manually specified exposure ratio for the images (in units of f-stops).")
-      ("generate-curves,g", po::value<std::string>(&generated_curves_file), "Write the curves file to disk using this filename.")
-      ("use-curves,c", po::value<std::string>(&curves_input_file), "Read the curves file from disk using this filename.")
-      ("verbose,v", "Print out status messages.");
+      ("exposure-ratio,e", po::value<float>(&exposure_ratio), "Manually specified exposure ratio for the images (in units of f-stops).")
+      ("save-curve-coefficients,s", po::value<std::string>(&curve_coefficient_file), "Write the curve coefficients to a file on disk.")
+      ("use-curve-coefficients,c", po::value<std::string>(&curve_coefficient_file), "Read the curve coefficients from a file on disk.")
+      ("save-tabulated-curves", po::value<std::string>(&tabulated_curves_file), "Write a tabulated version of the curves that would be suitable for plotting.");
 
     po::positional_options_description p;
-    p.add("filenames", -1);
+    p.add("input-filenames", -1);
     
     po::variables_map vm;
     po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
@@ -84,15 +79,10 @@ int main( int argc, char *argv[] ) {
       return 1;
     }
 
-    if( vm.count("filenames") != 1 ) {
-      std::cout << "Usage: " << argv[0] << " <filenames>\n";
+    if( vm.count("input-filenames") != 1 ) {
+      std::cout << "Usage: " << argv[0] << " <input-filenames> [args]\n";
       std::cout << desc << std::endl;
       return 1;
-    }
-
-    bool verbose = true;
-    if ( vm.count("verbose") == 0 ) {
-      verbose = false;
     }
 
     if (vm.count("output-filename") != 1) {
@@ -101,50 +91,32 @@ int main( int argc, char *argv[] ) {
       output_filename = "merged-hdr.exr";
     }
 
-    vector<Vector<double> > curves;
     // Process HDR stack using Exif tags.
-    if (verbose) { std::cout << "Merging images into a single HDR luminance map.\n"; }
     ImageView<PixelRGB<float> > hdr;
 
-    // User has provided an explicit exposure ratio
-    if( vm.count("exposure-ratio") != 0 ) {
-      // In the absence of EXIF data, we must rely on the
-      // user-provided exposure ratio and read in the images
-      // ourselvelves.
-      if (verbose) { cout << "One or more files have no EXIF metadata.  Falling back on command line exposure ratio.\n"; }
-      if (ratio == 0) {
-        cout << "Error: the exposure ratio was not supplied at the command line.  Exiting.\n\n";
-        return 1;
-      }
-      vector<ImageView<PixelRGB<float> > > images(filenames.size());
-      for ( unsigned i=0; i < filenames.size(); ++i )
-        read_image(images[i], filenames[i]);
+    // In the absense of EXIF data or if the user has provided an
+    // explicit exposure ratio, we go with that value here.
+    std::vector<double> brightness_values;
+    if( vm.count("exposure-ratio") != 0 ) 
+      brightness_values = brightness_values_from_exposure_ratio(exposure_ratio, input_filenames.size());
+    else
+      brightness_values = brightness_values_from_exif(input_filenames);
 
-      // If the user has supplied a camera curve file, read it in and
-      // use it.  Otherwise, ottempt to deduce the camera curves based
-      // on the image data itself.
-      if ( vm.count("use-curves") != 0 ) 
-        read_curves_file(curves, curves_input_file);
-      else
-        curves = camera_curves(images, ratio);
-      
-      // Using the images and the camera curves, assemble the HDR image.
-      hdr = process_ldr_images(images, curves, ratio);
+    // For debugging:
+    for (int i = 0; i < brightness_values.size(); ++i) 
+      vw_out(0) << "BV: " << brightness_values[i] << "\n";
 
+    vector<ImageViewRef<PixelRGB<float> > > images(input_filenames.size());
+    for ( unsigned i=0; i < input_filenames.size(); ++i )
+      images[i] = DiskImageView<PixelRGB<float> >(input_filenames[i]);
 
-    // No exposure ratio supplied.  
-    } else { 
-      try {
-        hdr = process_ldr_images_exif(filenames, curves);
-      } catch (vw::camera::ExifErr &e) {
-        std::cout << "Error: could not parse EXIF data from images and no exposure ratio was supplied.  \nExiting.\n\n";
-        exit(1);
-      }
-    }
+    CameraCurveFn curves = camera_curves(images, brightness_values);
 
-    if( vm.count("generate-curves") != 0 ) {
-      write_curves_file(generated_curves_file, curves);
-    }
+    // Write out the curves to disk as a tabulated file
+    write_curves("vals.dat", curves);
+
+    // Using the images and the camera curves, assemble the HDR image.
+    hdr = HighDynamicRangeView<PixelRGB<float> > (images, curves, brightness_values);
 
     // Write out the result file
     write_image(output_filename, hdr);

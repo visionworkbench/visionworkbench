@@ -40,6 +40,7 @@ namespace po = boost::program_options;
 #include <vw/Image/ImageMath.h>
 
 #include <vw/HDR/CameraCurve.h>
+#include <vw/HDR/PolynomialCameraCurve.h>
 #include <vw/HDR/GlobalToneMap.h>
 #include <vw/HDR/LocalToneMap.h>
 
@@ -122,20 +123,18 @@ int main( int argc, char *argv[] ) {
       if (verbose) { std::cout << "Applying camera curves from \"" << curves_input_file << "\"\n"; }
 
       vector<Vector<double> > curves;
-      read_curves_file(curves, curves_input_file);
+      read_polynomial_curve_coefficients(curves, curves_input_file);
       if (curves.size() != tone_mapped.channels()) {
         cout << "Error: The number of curves does not match the number of channels in the tone mapped image.  Exiting. \n\n";
         exit(1);
       }
       
       // Invert the curves
-      vector<Vector<double> > inverse_curves(curves.size());
-      for ( unsigned i = 0; i < curves.size(); ++i ) {
-        invert_curve(curves[i], inverse_curves[i], VW_HDR_RESPONSE_POLYNOMIAL_ORDER);
-      }
+      std::vector<Vector<double> > inverse_curves = invert_polynomial(curves);
       
       // Apply the curves
-      psi(tone_mapped, curves);
+      //      ImageView<PixelRGB<float> > test = LuminanceView<ImageView<PixelRGB<float> > >(tone_mapped, inverse_curves, 0.5);
+      //      write_image("test.exr", tone_mapped);    
     }
     
     // Write out the result to disk.

@@ -59,73 +59,148 @@
 namespace vw { 
 namespace hdr {
 
+  /// Converts each pixel value in the image to scaled illuminance
+  /// values based on a set of polynomial response curves, one
+  /// curve for each image channel.
+  template <class SrcPixelT>
+  class HighDynamicRangeView : public ImageViewBase<HighDynamicRangeView<SrcPixelT> > {
+    
+  public:
 
-  /// Combine a set of LDR images into one HDR image.  You must supply
-  /// a set of camera response curve coefficients 
-  template <class PixelT>
-  ImageView<PixelT> ldr_to_hdr(std::vector<ImageView<PixelT> > images, 
-                               std::vector<Vector<double> > const &curves, 
-                               std::vector<double> const &brightness_values) {
-    int32 width = images[0].cols();
-    int32 height = images[0].rows();
-    int32 n_channels = PixelNumChannels<PixelT>::value;
-    ImageView<PixelT> hdr_image(width, height);
-    ImageView<PixelT> image_sum(width, height);
-    ImageView<double> weight_sum(width, height);
-    
-    // Convert all pixel values to scaled radiance values
-    for ( unsigned i = 0; i < images.size(); ++i ) {
-      psi(images[i], curves);
-    }
-    
-    // Bring all images into same domain and average pixels across images using
-    // a weighting function that favors pixels in middle of dynamic range
-    double min_bv = *(min_element(brightness_values.begin(), brightness_values.end()));
-    for ( unsigned i = 0; i < images.size(); ++i ) {
-      ImageView<PixelGray<double> > gray = images[i];
-      ImageView<double> weight = 1.0 - 2.0 * abs(0.5 - channels_to_planes(gray));
-      double ratio = pow(2.0, (brightness_values[i] - min_bv) * 0.5);
-      //      std::cout << "Ratio: " << ratio << "\n";
-      hdr_image += weight * images[i] * ratio;
-      weight_sum += weight;
-    }
-    
-    // Divide by sum of weights, compensating for very small weightings
-    std::vector<Vector<int,2> > sat;
-    for ( int32 col = 0; col < width; ++col ) {
-      for ( int32 row = 0; row < height; ++row ) {
-        if (weight_sum(col, row) < 0.2) {
-          sat.push_back(Vector<int,2>(col, row));
-          weight_sum(col, row) = 1.0;
-        }
-      }
-    }
-    hdr_image /= weight_sum;
-    ImageView<PixelGray<double> > gray = hdr_image;
-    ImageView<PixelGray<double> > bright_or_dark = images[images.size() / 2];
-    double min, max;
-    min_max_channel_values(bright_or_dark, min, max);
-    double threshold = (min + max) / 2;
-    min_max_channel_values(gray, min, max);
-    
-    // Assign very bright/dark pixels
-    for ( unsigned i = 0; i < sat.size(); ++i ) {
-      int col = sat[i].x();
-      int row = sat[i].y();
-      double value;
-      if (bright_or_dark(col, row)[0] > threshold) {
-        value = max;
-      } else {
-        value = min;
-      }
-      for ( int32 channel = 0; channel < n_channels; ++channel ) {
-        hdr_image(col, row)[channel] = value;
-      }
-    }
-    
-    return hdr_image;
-  }
+    typedef typename CompoundChannelCast<SrcPixelT, double>::type pixel_type;
+    typedef pixel_type result_type;
+    typedef ProceduralPixelAccessor<HighDynamicRangeView> pixel_accessor;
 
+  private:
+    std::vector<ImageViewRef<SrcPixelT> > m_views;
+    CameraCurveFn m_curves;
+    std::vector<double> m_brightness_vals;
+    
+  public:
+
+    HighDynamicRangeView( std::vector<ImageViewRef<SrcPixelT> > const& views, 
+                          CameraCurveFn const& curves,
+                          std::vector<double> brightness_vals) : 
+      m_views(views), m_curves(curves), m_brightness_vals(brightness_vals) {
+    }
+    
+    inline int32 cols() const { return m_views[0].cols(); }
+    inline int32 rows() const { return m_views[0].rows(); }
+    inline int32 planes() const { return m_views[0].planes(); }
+
+    inline pixel_accessor origin() const { return pixel_accessor(*this); }
+
+    inline pixel_type operator()( int i, int j, int p=0 ) const { 
+      pixel_type hdr_pix;
+      double weight_sum = 0;
+      
+      // Bring all images into same domain and average pixels across images using
+      // a weighting function that favors pixels in middle of dynamic range.
+      for ( unsigned c = 0; c < m_views.size(); ++c ) {
+
+        // We will use a gaussian weighting scheme that peak at 0.5 and
+        // falls off to very close to zero at 0.0 and 1.0.
+        //
+        // Although it was constructed by "eyeballing it" in MATLAB,
+        // we find that this scheme works very well in practice.  It
+        // is certainly better than our old "linear" weighting scheme:
+        //
+        //        double weight = 2.0 * (-abs(0.5 - gray) + 0.5);
+        //
+        // Gaussian Weighting:
+        PixelGray<double> gray(m_views[c](i,j,p));  // Convert to grayscale
+        double weight = exp(-pow((gray-0.5),2)/(0.07)); 
+
+        // The camera response function returns a relative luminance
+        // value between 0.0 and 2.0. 
+        pixel_type src_val = m_curves( m_views[c](i,j,p) );
+        hdr_pix += weight * m_brightness_vals[c] * src_val;
+        weight_sum += weight;
+      }
+      
+      // Divide by sum of weights
+      return hdr_pix / weight_sum;
+
+      
+      // NOTE: This is code was used to handle the saturation cases,
+      // but it doesn't seem to be necessary with the new weighting
+      // function.  It should be deleted at some point in the future.
+//       if (weight_sum > 0.01)
+//         // Divide by sum of weights
+//         return hdr_pix / weight_sum;
+//        else {
+//         int nth_view = m_views.size()-1;
+//         pixel_type bracket_val1 = m_curves(m_views[0](i,j,p) );
+//         pixel_type bracket_val2 = m_curves(m_views[nth_view](i,j,p) );
+//         double gray1 = 2.0*m_brightness_vals[0]*PixelGray<double>(bracket_val1);  // Convert to grayscale
+//         double gray2 = 2.0*m_brightness_vals[nth_view]*PixelGray<double>(bracket_val2);  // Convert to grayscale
+        
+//         // For pixels that lie at the very fringes of the dynamic
+//         // range, the weight will be very close to zero, so dividing
+//         // by the weight will lead to a poorly conditioned average
+//         // value as a result.  For these values, we instead take the
+//         // pixel values directly from the brightest or darkest image.
+//         //
+//         // Case 1: Fully saturated (bright pixel)
+//         if (gray1 > m_brightness_vals[0] && gray2 > m_brightness_vals[nth_view]) {
+//           if (gray1 > gray2)
+//             return 2.0*m_brightness_vals[0]*bracket_val1;
+//           else 
+//             return 2.0*m_brightness_vals[nth_view]*bracket_val2;
+
+//         // Case 2: Full unsaturated (black pixel)
+//         } else {
+//           if (gray1 < gray2)
+//             return 2.0*m_brightness_vals[0]*bracket_val1;
+//           else 
+//             return 2.0*m_brightness_vals[nth_view]*bracket_val2;
+//         }
+        
+//       }
+    }
+    
+    /// \COND INTERNAL
+    typedef HighDynamicRangeView<SrcPixelT> prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { 
+
+      // Rasterize each of the individual LDR images if necessary.
+      std::vector<ImageViewRef<SrcPixelT> > m_prerast_views(m_views.size());
+      for (int i = 0; i < m_views.size(); ++i) 
+        m_prerast_views[i] = m_views[i].prerasterize(bbox);
+
+      return prerasterize_type( m_prerast_views, m_curves, m_brightness_vals ); 
+    }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    /// \endcond
+  };
+
+//     // First pick a reasonable middle threshold value for picking
+//     // whether a pixel is saturated as white or black. 
+//     double min, max;
+//     ImageView<PixelGray<double> > bright_or_dark = LuminanceView<ViewT>(images[images.size() / 2], curves, brightness_values[images.size() / 2]);
+//     min_max_channel_values(bright_or_dark, min, max);
+//     double threshold = (min + max) / 2;
+
+//     // Now, determine the absolute minimum and maximum values present
+//     // in the image.
+//     ImageView<PixelGray<double> > gray = hdr_image;
+//     min_max_channel_values(gray, min, max);
+    
+//     // Assign very bright/dark pixels
+//     for ( unsigned i = 0; i < sat.size(); ++i ) {
+//       int col = sat[i].x();
+//       int row = sat[i].y();
+//       double value;
+//       if (bright_or_dark(col, row)[0] > threshold) {
+//         value = max;
+//       } else {
+//         value = min;
+//       }
+//       for ( int32 channel = 0; channel < n_channels; ++channel ) {
+//         hdr_image(col, row)[channel] = value;
+//       }
+//     }
+    
   /// Stitches the set of LDR images into one HDR image.  The camera
   /// response curve is estimated from the provided images, however
   /// you must supply a vector of brightness values corresponding to
@@ -143,55 +218,43 @@ namespace hdr {
   /// in Proceedings of the IEEE Conference on Computer Vision and
   /// Pattern Recoognition, Fort Collins, CO. June 1999.
   ///
-  template <class PixelT>
-  ImageView<PixelT> process_ldr_images(std::vector<ImageView<PixelT> > const &images, 
-                                       std::vector<Vector<double> > &ret_curves, 
-                                       std::vector<double> brightness_values) {
-    typedef typename PixelChannelType<PixelT>::type channel_type;
+//   template <class ViewT>
+//   ImageView<double> process_ldr_images(std::vector<ViewT> const &images, 
+//                                        std::vector<Vector<double> > &ret_curves, 
+//                                        std::vector<double> brightness_values) {
     
-    int32 n_channels = PixelNumChannels<PixelT>::value;
-    std::vector<Matrix<double> > pairs(n_channels);
-    std::vector<Vector<double> > curves(n_channels);
+//     typedef typename PixelChannelType<PixelT>::type channel_type;
+    
+//     int32 n_channels = PixelNumChannels<PixelT>::value;
+//     std::vector<Matrix<double> > pairs(n_channels);
+//     std::vector<Vector<double> > curves(n_channels);
 
-    // Sample each image channel
-    for ( int32 i = 0; i < n_channels; ++i ) {
-      pairs[i] = generate_ldr_intensity_pairs(images, VW_HDR_NUM_PAIRS, i, brightness_values);
-    }
+//     // Sample each image channel
+//     for ( int32 i = 0; i < n_channels; ++i ) {
+//       pairs[i] = generate_ldr_intensity_pairs(images, brightness_values, VW_HDR_NUM_PAIRS, i);
+//     }
+//     vw_out(0) << "Brightness values: \n";
+//     for (int i = 0; i < brightness_values.size(); ++i) {
+//       vw_out(0) << brightness_values[i] << "\n";
+//     }
 
-    // Compute camera response curve for each channel. See CameraCurve.h.
-    for ( int32 i = 0; i < n_channels; ++i ) {
-      estimate_inverse_camera_curve(pairs[i], curves[i], VW_HDR_RESPONSE_POLYNOMIAL_ORDER);
-    }
+//      std::cout << pairs[0].cols() << " x " << pairs[0].rows() << "\n";
 
-    ret_curves = curves;
+//     for (int i = 0; i < pairs[0].rows(); ++i) {
+//       vw_out(0) << pairs[0](i,0) << " " << pairs[0](i,1) << " " <<  pairs[0](i,2) << "\n";
+//     }
 
-    // Stitch LDR image set into HDR image
-    ImageView<PixelT> hdr_image = ldr_to_hdr(images, curves, brightness_values);
-    return hdr_image;
-  }
+//     // Compute camera response curve for each channel. See CameraCurve.h.
+//     for ( int32 i = 0; i < n_channels; ++i ) {
+//       estimate_inverse_camera_curve(pairs[i], curves[i], VW_HDR_RESPONSE_POLYNOMIAL_ORDER);
+//     }
 
-  /// Stitches the set of LDR images into one HDR image.  Use this
-  /// variant of the function if you only know the constant exposure
-  /// rations (spacing between consecutive exposures).  
-  template <class PixelT>
-  ImageView<PixelT> process_ldr_images(std::vector<ImageView<PixelT> > const &images, 
-                                       std::vector<Vector<double> > &ret_curves, 
-                                       double ratio = VW_HDR_DEFAULT_FSTOP_RATIO) {
+//     ret_curves = curves;
 
-    std::vector<double> brightness_values(images.size());
-    for ( unsigned i=0; i < brightness_values.size(); ++i ) {
-      brightness_values[i] = pow(ratio, i);
-    }
-    return process_ldr_images(images, ret_curves, brightness_values);      
-  }
+//     // Stitch LDR image set into HDR image
+//     return ldr_to_hdr(images, curves, brightness_values);
+//   }
 
-  /// Combines the set of LDR images into one HDR image from images on
-  /// disk that have embedded EXIF metadata.  This metadata is used to
-  /// infer the exposure ratios between images.
-  vw::ImageView<vw::PixelRGB<double> > process_ldr_images_exif(std::vector<std::string> const& filenames,
-                                                               std::vector<vw::Vector<double> > &ret_curves);
-
-  
-}} // vw::HDR 
+}} // vw::hdr
         
 #endif  // __LDRtoHDR_H__
