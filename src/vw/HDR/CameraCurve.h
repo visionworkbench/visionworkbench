@@ -212,7 +212,36 @@ namespace hdr {
   public:
     CameraCurveFn(std::vector<Vector<double> > const& lookup_tables) :
       m_lookup_tables(lookup_tables) {}
-    
+
+
+    // Generate an approximate version of the inverse curves as a new
+    // CameraCurveFn object.  
+    CameraCurveFn inverse_curves() {
+      std::vector<Vector<double> > m_inverse_lookup_tables(m_lookup_tables.size()); 
+      
+      for (int c = 0; c < m_lookup_tables.size(); ++c) {
+        double min_val = m_lookup_tables[c][0];
+        double max_val = m_lookup_tables[c][m_lookup_tables[c].size()-1];
+
+        m_inverse_lookup_tables[c].set_size(m_lookup_tables[c].size());
+        double L = min_val;
+        for (int i = 0; i < m_lookup_tables[c].size(); ++i) {
+          
+          // Search for the value that best matches
+          int j = 0;
+          while (j < m_lookup_tables[c].size() && m_lookup_tables[c][j] <= L)
+            ++j;
+
+          if (j == m_lookup_tables[c].size())
+            m_inverse_lookup_tables[c][i] = double(j-1)/(m_lookup_tables[c].size()-1);
+          else
+            m_inverse_lookup_tables[c][i] = double(j)/(m_lookup_tables[c].size()-1);
+
+          L += (max_val-min_val)/(m_lookup_tables[c].size()-1);
+        }
+      }
+    }
+
     // Returns the luminance value for a given pixel value.  Linearly
     // interpolates between points in the lookup table.  Pixel value
     // is expected to be a value in the range [0.0 1.0]
@@ -229,7 +258,7 @@ namespace hdr {
       double frac = scaled_pixel_val - idx1;
       return exp(val1 + (val2-val1) * frac);
     }
-    
+
     template <class PixelT>
     typename CompoundChannelCast<PixelT, double>::type operator() (PixelT pixel_val) const {
       typedef typename CompoundChannelCast<PixelT, double>::type pixel_type;
@@ -244,6 +273,20 @@ namespace hdr {
       return result;
     }
 
+    template <class PixelT>
+    typename CompoundChannelCast<PixelT, double>::type inverse (PixelT pixel_val) const {
+      typedef typename CompoundChannelCast<PixelT, double>::type pixel_type;
+
+      if (CompoundNumChannels<PixelT>::value != this->num_channels()) 
+        vw_throw(ArgumentErr() << "CameraCurveFn: pixel does not have the same number of channels as there are curves.");
+
+      pixel_type result;
+      for (int c = 0; c < CompoundNumChannels<PixelT>::value; ++c) {
+        result[c] = this->inverse(double(pixel_val[c]), c);
+      }
+      return result;
+    }
+
     int num_channels() const { return m_lookup_tables.size(); }
 
     Vector<double> const& lookup_table(int channel) const { 
@@ -252,7 +295,7 @@ namespace hdr {
 
       return m_lookup_tables[channel]; 
     }
-        
+
   };
   
   /// Returns a lookup table, indexed by pixel values, that contains
@@ -293,8 +336,10 @@ namespace hdr {
   }
 
   /// Write the camera curve values in a tabulated format on disk.
-  void write_curves(std::string const& curves_file, 
-                    CameraCurveFn const &curves);
+  void write_curves(std::string const& curves_file, CameraCurveFn const &curves);
+
+  /// Read the camera curve values from a tabulated format on disk.
+  CameraCurveFn read_curves(std::string const& curves_file);
 
   /// A pixel casting functor, used by \ref pixel_cast().
   template <class PixelT>
@@ -311,7 +356,6 @@ namespace hdr {
     }
   };
 
-
   /// Create a new image view that contains luminance values rather than pixel values.
   template <class ImageT>
   inline UnaryPerPixelView<ImageT,LuminanceFunc<typename ImageT::pixel_type> > luminance_image( ImageViewBase<ImageT> const& image,
@@ -319,7 +363,6 @@ namespace hdr {
                                                                                                 double brightness_val) {
     return UnaryPerPixelView<ImageT,LuminanceFunc<typename ImageT::pixel_type> >( image.impl(), LuminanceFunc<typename ImageT::pixel_type>(curves, brightness_val) );
   }
-
 
 }} // namespace vw::HDR 
 

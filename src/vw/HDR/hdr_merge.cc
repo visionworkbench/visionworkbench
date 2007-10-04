@@ -54,18 +54,16 @@ using namespace vw::hdr;
 int main( int argc, char *argv[] ) {
   try {
     std::vector<std::string> input_filenames;
-    std::string output_filename, curve_coefficient_file, tabulated_curves_file;
-    float exposure_ratio = 1.414; // default ratio is a factor of two in exposure
+    std::string output_filename, curve_file;
+    float exposure_ratio = 0;
     
     po::options_description desc("Options");
     desc.add_options()
       ("help", "Display this help message")
       ("input-filenames", po::value<std::vector<std::string> >(&input_filenames), "Specify the input files")
-      ("output-filename,o", po::value<std::string>(&output_filename), "Specify the output filename")
+      ("output-filename,o", po::value<std::string>(&output_filename)->default_value("hdr.exr"), "Specify the output filename")
       ("exposure-ratio,e", po::value<float>(&exposure_ratio), "Manually specified exposure ratio for the images (in units of f-stops).")
-      ("save-curve-coefficients,s", po::value<std::string>(&curve_coefficient_file), "Write the curve coefficients to a file on disk.")
-      ("use-curve-coefficients,c", po::value<std::string>(&curve_coefficient_file), "Read the curve coefficients from a file on disk.")
-      ("save-tabulated-curves", po::value<std::string>(&tabulated_curves_file), "Write a tabulated version of the curves that would be suitable for plotting.");
+      ("save-curves,c", po::value<std::string>(&curve_file), "Write the curve lookup tables to a file on disk.");
 
     po::positional_options_description p;
     p.add("input-filenames", -1);
@@ -85,41 +83,35 @@ int main( int argc, char *argv[] ) {
       return 1;
     }
 
-    if (vm.count("output-filename") != 1) {
-      // Replace this with a more sophisticated algorithm that finds
-      // the longest substring shared by all of the input filenames.
-      output_filename = "merged-hdr.exr";
-    }
-
     // Process HDR stack using Exif tags.
     ImageView<PixelRGB<float> > hdr;
 
     // In the absense of EXIF data or if the user has provided an
     // explicit exposure ratio, we go with that value here.
-    std::vector<double> brightness_values;
+       std::vector<double> brightness_values;
     if( vm.count("exposure-ratio") != 0 ) 
       brightness_values = brightness_values_from_exposure_ratio(exposure_ratio, input_filenames.size());
     else
       brightness_values = brightness_values_from_exif(input_filenames);
 
-    // For debugging:
-    for (int i = 0; i < brightness_values.size(); ++i) 
-      vw_out(0) << "BV: " << brightness_values[i] << "\n";
+    // For debugging: (print out the brightness values
+    //     for (int i = 0; i < brightness_values.size(); ++i) 
+    //       vw_out(0) << "BV: " << brightness_values[i] << "\n";
 
     vector<ImageViewRef<PixelRGB<float> > > images(input_filenames.size());
     for ( unsigned i=0; i < input_filenames.size(); ++i )
       images[i] = DiskImageView<PixelRGB<float> >(input_filenames[i]);
 
+    // Compute the camera curves
     CameraCurveFn curves = camera_curves(images, brightness_values);
 
     // Write out the curves to disk as a tabulated file
-    write_curves("vals.dat", curves);
+    if ( vm.count("save-curves") != 0 ) {
+      write_curves(curve_file, curves);
+    }
 
-    // Using the images and the camera curves, assemble the HDR image.
-    hdr = HighDynamicRangeView<PixelRGB<float> > (images, curves, brightness_values);
-
-    // Write out the result file
-    write_image(output_filename, hdr);
+    // Create the HDR images and write the results to the file
+    write_image(output_filename, HighDynamicRangeView<PixelRGB<float> > (images, curves, brightness_values) );
 
   } catch (vw::Exception &e) {
     std::cout << argv[0] << ": a Vision Workbench error occurred: \n\t" << e.what() << "\nExiting.\n\n";  

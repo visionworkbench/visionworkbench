@@ -38,6 +38,7 @@ namespace po = boost::program_options;
 #include <vw/FileIO.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageMath.h>
+#include <vw/Image/ImageViewRef.h>
 
 #include <vw/HDR/CameraCurve.h>
 #include <vw/HDR/PolynomialCameraCurve.h>
@@ -51,26 +52,19 @@ using namespace std;
 using namespace vw;
 using namespace vw::hdr;
 
-const double DRAGO_DEFAULT_BIAS = 0.85;
-const double DRAGO_DEFAULT_EXPOSURE_FACTOR = 1.0;
-const double DRAGO_DEFAULT_LDMAX = 100;
-
 int main( int argc, char *argv[] ) {
   try {
     std::string input_filename, output_filename, curves_input_file;
-    float bias, exposure_factor, Ld_max, gamma;
+    float bias, gamma;
     
     po::options_description desc("Options");
     desc.add_options()
       ("help", "Display this help message")
       ("input-filename", po::value<std::string>(&input_filename), "Specify the input filename.")
-      ("output-filename", po::value<std::string>(&output_filename), "Specify the output filename.")
-      ("bias,b", po::value<float>(&bias)->default_value(DRAGO_DEFAULT_BIAS), "Drago Tonemapping Parameter: Bias")
-      ("exposure-factor,e", po::value<float>(&exposure_factor)->default_value(DRAGO_DEFAULT_EXPOSURE_FACTOR), "Drago Tonemapping Parameter: Exposure Factor")
-      ("ld-max,l", po::value<float>(&Ld_max)->default_value(DRAGO_DEFAULT_LDMAX), "Drago Tonemapping Parameter: Ld_max")
-      ("use-curves,c", po::value<std::string>(&curves_input_file), "Apply the inverse of a curves file on disk to the tonemapped image.")
-      ("gamma,g", po::value<float>(&gamma), "Apply a gamma correction to the tonemapped image.")
-      ("verbose,v", "Print out status messages.");
+      ("output-filename,o", po::value<std::string>(&output_filename)->default_value("tonemapped.png"), "Specify the output filename.")
+      ("bias,b", po::value<float>(&bias)->default_value(vw::hdr::DRAGO_DEFAULT_BIAS), "Drago Tonemapping Parameter.  (The default of 0.85 works well for most images)")
+      ("gamma,g", po::value<float>(&gamma)->default_value(2.2), "Apply a gamma correction to the tonemapped image.");
+
     
     po::positional_options_description p;
     p.add("input-filename", 1);
@@ -86,56 +80,20 @@ int main( int argc, char *argv[] ) {
     }
     
     if( vm.count("input-filename") != 1 ) {
-      std::cout << "Usage: " << argv[0] << " <input filename> <output filename>\n";
+      std::cout << "Usage: " << argv[0] << " <input filename>\n";
       std::cout << desc << std::endl;
       return 1;
     }
     
-    if( vm.count("output-filename") != 1 ) {
-      std::cout << "Usage: " << argv[0] << " <input filename> <output filename>\n";
-      std::cout << desc << std::endl;
-      return 1;
-    }
-    
-    bool verbose = true;
-    if ( vm.count("verbose") == 0 ) {
-      verbose = false;
-    }
     
     // Read in the HDR Image
-    ImageView<PixelRGB<float> > hdr;
-    read_image(hdr, input_filename);
+    DiskImageView<PixelRGB<float> > hdr(input_filename);
     
     // Apply Drago tone-mapping operator.
-    if (verbose) { std::cout << "Applying the Drago tone mapping operator.\n"; }
-
-    ImageView<PixelRGB<float> > tone_mapped = drago_tone_map(hdr, bias, exposure_factor, Ld_max);
+    ImageViewRef<PixelRGB<double> > tone_mapped = drago_tone_map(hdr, bias);
     
     // Apply gamma correction.
-    if (vm.count("gamma") != 0) {
-      if (verbose) { std::cout << "Applying a gamma correction of " << gamma << ".\n"; }
-      tone_mapped = pow(copy(tone_mapped), 1/gamma);
-    }
-    
-    // Re-apply camera response curves.
-    // First must invert curves calculated earlier.
-    if (vm.count("use-curves") != 0) {
-      if (verbose) { std::cout << "Applying camera curves from \"" << curves_input_file << "\"\n"; }
-
-      vector<Vector<double> > curves;
-      read_polynomial_curve_coefficients(curves, curves_input_file);
-      if (curves.size() != tone_mapped.channels()) {
-        cout << "Error: The number of curves does not match the number of channels in the tone mapped image.  Exiting. \n\n";
-        exit(1);
-      }
-      
-      // Invert the curves
-      std::vector<Vector<double> > inverse_curves = invert_polynomial(curves);
-      
-      // Apply the curves
-      //      ImageView<PixelRGB<float> > test = LuminanceView<ImageView<PixelRGB<float> > >(tone_mapped, inverse_curves, 0.5);
-      //      write_image("test.exr", tone_mapped);    
-    }
+    tone_mapped = pow(tone_mapped, gamma);
     
     // Write out the result to disk.
     write_image(output_filename, tone_mapped);    

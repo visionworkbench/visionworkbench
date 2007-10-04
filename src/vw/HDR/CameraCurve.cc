@@ -118,13 +118,41 @@ namespace hdr {
 
     FILE* output_file = fopen(curves_file.c_str(), "w");
     if ( !output_file ) vw_throw( IOErr() << "write_curves: failed to open file for writing." );
-    for ( unsigned j = 0; j < curves.lookup_table(0).size(); ++j ) {
-      for (unsigned i = 0; i < curves.num_channels(); ++i) {
+    for (unsigned i = 0; i < curves.num_channels(); ++i) {
+      for ( unsigned j = 0; j < curves.lookup_table(0).size(); ++j ) {
         fprintf(output_file, "%f ", curves.lookup_table(i)[j]);
       }
       fprintf(output_file, "\n");
     }
     fclose(output_file);
   }
+
+  CameraCurveFn read_curves(std::string const& curves_file) {
+    FILE* input_file = fopen(curves_file.c_str(), "r");
+    if ( !input_file ) vw_throw( IOErr() << "read_curves: failed to open file for reading." );
+    
+    char c_line[10000];
+    
+    std::vector<vw::Vector<double> > lookup_tables;
+    while ( !feof(input_file) ) {
+      if ( !fgets(c_line, 10000, input_file) )
+        break;
+      std::string line = c_line;
+      boost::trim_left(line); 
+      boost::trim_right(line);
+
+      std::vector< std::string > split_vec; // #2: Search for individual values
+      boost::split( split_vec, line, boost::is_any_of(" ") );
+      Vector<double> curve(split_vec.size());
+      for ( unsigned i = 0; i < split_vec.size(); ++i ) {
+        curve[i] = atof(split_vec[i].c_str());
+      }
+      lookup_tables.push_back(curve);
+    }
+    fclose(input_file);
+    
+    return CameraCurveFn(lookup_tables);
+  }
+
 
 }} // namespace vw::hdr
