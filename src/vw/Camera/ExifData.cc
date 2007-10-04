@@ -425,14 +425,14 @@ bool vw::camera::ExifData::read_jpeg_sections(FILE* infile) {
   return false;
 }
 
-bool vw::camera::ExifData::import_data(const char* filename) {
+bool vw::camera::ExifData::import_data(std::string const &filename) {
   tags.clear();
-  FILE * infile = fopen(filename, "rb"); // Unix ignores 'b', windows needs it.
+  FILE * infile = fopen(filename.c_str(), "rb"); // Unix ignores 'b', windows needs it.
   
   VW_ASSERT( infile != NULL, IOErr() << "Cannot open file.");
 
   // Identify file type (using suffixes)
-  const char * suffix = strrchr(filename, '.');
+  const char * suffix = strrchr(filename.c_str(), '.');
   VW_ASSERT( suffix != NULL, IOErr() << "Cannot determine file type.");
   bool ret = false;
   if ((strcmp(suffix, ".jpg") == 0) || (strcmp(suffix, ".jpeg") == 0)) {
@@ -442,16 +442,12 @@ bool vw::camera::ExifData::import_data(const char* filename) {
     // Process TIFF IFD structure
     ret = read_tiff_ifd(infile);
   }
-//   if (!ret) {
-//     printf("Warning: file %s contains no Exif data.\n", filename);
-//   }
-
   fclose(infile);
   
   return ret;
 }
 
-bool vw::camera::ExifData::get_tag_value(unsigned int tag, int &value) {
+bool vw::camera::ExifData::get_tag_value(const uint16 tag, int &value) {
   std::map<unsigned int, ExifTagData>::const_iterator tag_iter = tags.find(tag);
   if (tag_iter == tags.end()) return false;
   switch ((*tag_iter).second.type) {
@@ -467,7 +463,7 @@ bool vw::camera::ExifData::get_tag_value(unsigned int tag, int &value) {
   return true;
 }
 
-bool vw::camera::ExifData::get_tag_value(unsigned int tag, double &value) {
+bool vw::camera::ExifData::get_tag_value(const uint16 tag, double &value) {
   std::map<unsigned int, ExifTagData>::const_iterator tag_iter = tags.find(tag);
   if (tag_iter == tags.end()) return false;
   switch ((*tag_iter).second.type) {
@@ -483,7 +479,7 @@ bool vw::camera::ExifData::get_tag_value(unsigned int tag, double &value) {
   return true;
 }
 
-bool vw::camera::ExifData::get_tag_value(unsigned int tag, char* &value) {
+bool vw::camera::ExifData::get_tag_value(const uint16 tag, std::string &value) {
   std::map<unsigned int, ExifTagData>::const_iterator tag_iter = tags.find(tag);
   if (tag_iter == tags.end()) return false;
   if ((*tag_iter).second.type != StringType) return false;
