@@ -63,7 +63,8 @@ int main( int argc, char *argv[] ) {
       ("input-filenames", po::value<std::vector<std::string> >(&input_filenames), "Specify the input files")
       ("output-filename,o", po::value<std::string>(&output_filename)->default_value("hdr.exr"), "Specify the output filename")
       ("exposure-ratio,e", po::value<float>(&exposure_ratio), "Manually specified exposure ratio for the images (in units of f-stops).")
-      ("save-curves,c", po::value<std::string>(&curve_file), "Write the curve lookup tables to a file on disk.");
+      ("save-curves,c", po::value<std::string>(&curve_file), "Write the curve lookup tables to a file on disk.")
+      ("use-curves", po::value<std::string>(&curve_file), "Read the curve lookup tables to a file on disk.  These curves will be used instead of computing new curves.");
 
     po::positional_options_description p;
     p.add("input-filenames", -1);
@@ -103,11 +104,16 @@ int main( int argc, char *argv[] ) {
       images[i] = DiskImageView<PixelRGB<float> >(input_filenames[i]);
 
     // Compute the camera curves
-    CameraCurveFn curves = camera_curves(images, brightness_values);
+    CameraCurveFn curves;
+    if ( vm.count("use-curves") != 0 ) 
+      curves = read_curves(curve_file);
+    else {
+      curves = camera_curves(images, brightness_values);
 
-    // Write out the curves to disk as a tabulated file
-    if ( vm.count("save-curves") != 0 ) {
-      write_curves(curve_file, curves);
+      // Write out the curves to disk as a tabulated file
+      if ( vm.count("save-curves") != 0 ) {
+        write_curves(curve_file, curves);
+      }
     }
 
     // Create the HDR images and write the results to the file

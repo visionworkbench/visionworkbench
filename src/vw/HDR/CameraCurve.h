@@ -213,34 +213,7 @@ namespace hdr {
     CameraCurveFn(std::vector<Vector<double> > const& lookup_tables) :
       m_lookup_tables(lookup_tables) {}
 
-
-    // Generate an approximate version of the inverse curves as a new
-    // CameraCurveFn object.  
-    CameraCurveFn inverse_curves() {
-      std::vector<Vector<double> > m_inverse_lookup_tables(m_lookup_tables.size()); 
-      
-      for (int c = 0; c < m_lookup_tables.size(); ++c) {
-        double min_val = m_lookup_tables[c][0];
-        double max_val = m_lookup_tables[c][m_lookup_tables[c].size()-1];
-
-        m_inverse_lookup_tables[c].set_size(m_lookup_tables[c].size());
-        double L = min_val;
-        for (int i = 0; i < m_lookup_tables[c].size(); ++i) {
-          
-          // Search for the value that best matches
-          int j = 0;
-          while (j < m_lookup_tables[c].size() && m_lookup_tables[c][j] <= L)
-            ++j;
-
-          if (j == m_lookup_tables[c].size())
-            m_inverse_lookup_tables[c][i] = double(j-1)/(m_lookup_tables[c].size()-1);
-          else
-            m_inverse_lookup_tables[c][i] = double(j)/(m_lookup_tables[c].size()-1);
-
-          L += (max_val-min_val)/(m_lookup_tables[c].size()-1);
-        }
-      }
-    }
+    CameraCurveFn() {}
 
     // Returns the luminance value for a given pixel value.  Linearly
     // interpolates between points in the lookup table.  Pixel value
