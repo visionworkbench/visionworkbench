@@ -69,6 +69,9 @@ public:
     // Okay, so this is not how you'd normally use a lock.
     Mutex::Lock *lock = new Mutex::Lock( runnable->mutex );
     Thread *thread = new Thread( runnable );
+    // There is technically a race condition in this test, but this 
+    // yield makes things reasonably deterministic.
+    Thread::yield();
     TS_ASSERT_EQUALS( runnable->value, 1 );
 
     delete lock;
