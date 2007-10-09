@@ -361,6 +361,7 @@ AC_DEFUN([AX_PKG_LAPACK],
     AX_PKG(LAPACK, [], [-lclapack -lblas -lf2c], [])
     if test "$HAVE_PKG_LAPACK" = "no"; then
       echo "CLAPACK not found, trying standard LAPACK."
+      unset HAVE_PKG_LAPACK
       AX_PKG(LAPACK, [], [-llapack -lblas], [])
     fi
   fi
