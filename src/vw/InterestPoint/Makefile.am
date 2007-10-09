@@ -39,9 +39,11 @@ libvwInterestPoint_la_LIBADD = @MODULE_INTERESTPOINT_LDFLAGS@
 lib_LTLIBRARIES = libvwInterestPoint.la
 
 if ENABLE_EXCEPTIONS
-bin_PROGRAMS = match_pair
+bin_PROGRAMS = match_pair vw_sift
 match_pair_SOURCES = match_pair.cc
 match_pair_LDFLAGS = @PKG_INTERESTPOINT_LDFLAGS@ -lboost_program_options @PKG_BOOST_THREAD_LDFLAGS@
+vw_sift_SOURCES = vw_sift.cc
+vw_sift_LDFLAGS = @PKG_INTERESTPOINT_LDFLAGS@
 endif
 
 endif
