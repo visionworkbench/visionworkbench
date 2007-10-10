@@ -42,14 +42,6 @@ libvwCamera_la_LIBADD = @MODULE_CAMERA_LDFLAGS@
 
 lib_LTLIBRARIES = libvwCamera.la
 
-if ENABLE_EXCEPTIONS
-bin_PROGRAMS = print_exif bayer
-print_exif_SOURCES = print_exif.cc 
-bayer_SOURCES = bayer.cc
-print_exif_LDFLAGS = @PKG_CAMERA_LDFLAGS@
-bayer_LDFLAGS = @PKG_CAMERA_LDFLAGS@
-endif
-
 endif
 
 ########################################################################

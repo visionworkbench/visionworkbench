@@ -37,14 +37,6 @@ libvwHDR_la_LIBADD = @MODULE_HDR_LDFLAGS@
 
 lib_LTLIBRARIES = libvwHDR.la
 
-if ENABLE_EXCEPTIONS
-bin_PROGRAMS = hdr_tonemap hdr_merge
-hdr_merge_SOURCES = hdr_merge.cc 
-hdr_merge_LDFLAGS = @PKG_HDR_LDFLAGS@
-hdr_tonemap_SOURCES = hdr_tonemap.cc 
-hdr_tonemap_LDFLAGS = @PKG_HDR_LDFLAGS@ 
-endif
-
 endif
 
 ########################################################################

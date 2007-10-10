@@ -36,14 +36,6 @@ libvwMosaic_la_LIBADD = @MODULE_MOSAIC_LDFLAGS@
 
 lib_LTLIBRARIES = libvwMosaic.la
 
-if ENABLE_EXCEPTIONS
-bin_PROGRAMS = qtree blend
-qtree_SOURCES = qtree.cc
-qtree_LDFLAGS = @PKG_MOSAIC_LDFLAGS@ @PKG_BOOST_THREAD_LDFLAGS@
-blend_SOURCES = blend.cc
-blend_LDFLAGS = @PKG_MOSAIC_LDFLAGS@ @PKG_BOOST_THREAD_LDFLAGS@
-endif
-
 endif
 
 ########################################################################

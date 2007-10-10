@@ -47,14 +47,6 @@ libvwGPU_la_LIBADD = @MODULE_GPU_LDFLAGS@
 
 lib_LTLIBRARIES = libvwGPU.la
 
-
-
-stereo_correlation_SOURCES = stereo_correlation.cc
-
-stereo_correlation_LDADD = @MODULE_GPU_LDFLAGS@ -lvwGPU
-
-bin_PROGRAMS = stereo_correlation
-
 endif
 
 ########################################################################
