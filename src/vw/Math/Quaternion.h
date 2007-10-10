@@ -467,6 +467,11 @@ namespace math {
     return QuaternionImplementation::quaternion_quaternion_quotient( q1.impl(), q2.impl() );
   }
 
+  template <class QuaternionT>
+  inline QuaternionT normalize( QuaternionBase<QuaternionT> const& q ) {
+    return q.impl() / norm_2(q);
+  }
+
   using ::exp;
   template <class QuaternionT>
   inline QuaternionT exp( QuaternionBase<QuaternionT> const& q ) {
