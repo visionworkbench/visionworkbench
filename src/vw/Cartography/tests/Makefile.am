@@ -39,8 +39,8 @@ endif
 # general
 ########################################################################
 
-AM_CPPFLAGS = @MODULE_CARTOGRAPHY_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
-AM_LDFLAGS  = @PKG_CARTOGRAPHY_LDFLAGS@
+AM_CPPFLAGS = @VW_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
+AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_CARTOGRAPHY_LIBS@ @PKG_VW_LIBS@
 
 check_PROGRAMS = $(TESTS)
 EXTRA_DIST = $(patsubst %,%.h,$(TESTS))

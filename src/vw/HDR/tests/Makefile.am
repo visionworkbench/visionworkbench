@@ -37,8 +37,8 @@ endif
 # general
 ########################################################################
 
-AM_CPPFLAGS = @MODULE_HDR_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
-AM_LDFLAGS  = @PKG_HDR_LDFLAGS@
+AM_CPPFLAGS = @VW_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
+AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_HDR_LIBS@ @PKG_VW_LIBS@
 
 check_PROGRAMS = $(TESTS)
 EXTRA_DIST = $(patsubst %,%.h,$(TESTS))

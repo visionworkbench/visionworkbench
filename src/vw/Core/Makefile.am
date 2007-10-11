@@ -34,7 +34,7 @@ include_HEADERS = Exception.h FundamentalTypes.h TypeDeduction.h	\
 libvwCore_la_SOURCES = Debugging.cc Exception.cc Thread.cc Cache.cc 	\
 	ProgressCallback.cc Stopwatch.cc
 libvwCore_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
-libvwCore_la_LIBADD = @MODULE_CORE_LDFLAGS@
+libvwCore_la_LIBADD = @MODULE_CORE_LIBS@
 
 lib_LTLIBRARIES = libvwCore.la
 
@@ -44,11 +44,11 @@ endif
 # general
 ########################################################################
 
+AM_CPPFLAGS = @VW_CPPFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@
+
 SUBDIRS = . tests
 
 includedir = $(prefix)/include/vw/Core
-
-AM_CPPFLAGS = @MODULE_CORE_CPPFLAGS@
-AM_LDFLAGS  =
 
 include $(top_srcdir)/config/rules.mak

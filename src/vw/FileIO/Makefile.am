@@ -72,9 +72,8 @@ libvwFileIO_la_SOURCES = DiskImageResource.cc FileMetadata.cc \
 	DiskImageResourcePDS.cc $(png_sources) $(jpeg_sources) $(tiff_sources) $(openexr_sources) \
 	$(jpeg2k_sources) $(hdf_sources) $(gdal_sources)
 
-libvwFileIO_la_CPPFLAGS = @MODULE_FILEIO_CPPFLAGS@
 libvwFileIO_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
-libvwFileIO_la_LIBADD = @MODULE_FILEIO_LDFLAGS@
+libvwFileIO_la_LIBADD = @MODULE_FILEIO_LIBS@
 
 lib_LTLIBRARIES = libvwFileIO.la
 
@@ -84,11 +83,11 @@ endif
 # general
 ########################################################################
 
+AM_CPPFLAGS = @VW_CPPFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@
+
 SUBDIRS = . tests
 
 includedir = $(prefix)/include/vw/FileIO
-
-AM_CPPFLAGS = @MODULE_FILEIO_CPPFLAGS@
-AM_LDFLAGS  = 
 
 include $(top_srcdir)/config/rules.mak

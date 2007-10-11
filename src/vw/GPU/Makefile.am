@@ -43,7 +43,7 @@ libvwGPU_la_SOURCES = Setup.cc Utilities.cc StandardShaders.cc 	\
   Manipulation.cc Transform.cc GenericShaders.cc			\
   ImageMath.cc Statistics.cc Algorithms.cc								
 
-libvwGPU_la_LIBADD = @MODULE_GPU_LDFLAGS@
+libvwGPU_la_LIBADD = @MODULE_GPU_LIBS@
 
 lib_LTLIBRARIES = libvwGPU.la
 
@@ -53,11 +53,11 @@ endif
 # general
 ########################################################################
 
+AM_CPPFLAGS = @VW_CPPFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@
+
 SUBDIRS = . tests
 
 includedir = $(prefix)/include/vw/GPU
-
-AM_CPPFLAGS = @MODULE_GPU_CPPFLAGS@
-AM_LDFLAGS  = 
 
 include $(top_srcdir)/config/rules.mak

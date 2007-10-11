@@ -35,7 +35,7 @@ libvwStereo_la_SOURCES = StereoModel.cc OptimizedCorrelator.cc	\
 	 PyramidCorrelator.cc
 
 libvwStereo_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
-libvwStereo_la_LIBADD = @MODULE_STEREO_LDFLAGS@
+libvwStereo_la_LIBADD = @MODULE_STEREO_LIBS@
 
 lib_LTLIBRARIES = libvwStereo.la
 
@@ -45,11 +45,11 @@ endif
 # general
 ########################################################################
 
+AM_CPPFLAGS = @VW_CPPFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@
+
 SUBDIRS = . tests
 
 includedir = $(prefix)/include/vw/Stereo
-
-AM_CPPFLAGS = @MODULE_STEREO_CPPFLAGS@
-AM_LDFLAGS  = 
 
 include $(top_srcdir)/config/rules.mak

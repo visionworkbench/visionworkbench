@@ -54,8 +54,8 @@ endif
 # general
 ########################################################################
 
-AM_CPPFLAGS = @MODULE_IMAGE_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
-AM_LDFLAGS  = @PKG_IMAGE_LDFLAGS@
+AM_CPPFLAGS = @VW_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
+AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_IMAGE_LIBS@ @PKG_MATH_LIBS@ @PKG_CORE_LIBS@
 
 check_PROGRAMS = $(TESTS)
 EXTRA_DIST = $(patsubst %,%.h,$(TESTS))

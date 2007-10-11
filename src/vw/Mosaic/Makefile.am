@@ -32,7 +32,7 @@ include_HEADERS = QuadTreeGenerator.h ImageComposite.h \
 
 libvwMosaic_la_SOURCES = 
 libvwMosaic_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
-libvwMosaic_la_LIBADD = @MODULE_MOSAIC_LDFLAGS@
+libvwMosaic_la_LIBADD = @MODULE_MOSAIC_LIBS@
 
 lib_LTLIBRARIES = libvwMosaic.la
 
@@ -42,11 +42,11 @@ endif
 # general
 ########################################################################
 
+AM_CPPFLAGS = @VW_CPPFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@
+
 SUBDIRS = . tests
 
 includedir = $(prefix)/include/vw/Mosaic
-
-AM_CPPFLAGS = @MODULE_MOSAIC_CPPFLAGS@
-AM_LDFLAGS  = 
 
 include $(top_srcdir)/config/rules.mak

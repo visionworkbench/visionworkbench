@@ -21,8 +21,7 @@
 # 
 # __END_LICENSE__
 
-
-AC_INIT([NASA Vision Workbench], [1.0.1], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
+AC_INIT([NASA Vision Workbench], [2.0.alpha], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
 AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE
@@ -33,6 +32,7 @@ LIBTOOL_REVISION=0
 LIBTOOL_AGE=0
 LIBTOOL_VERSION=$LIBTOOL_CURRENT:$LIBTOOL_REVISION:$LIBTOOL_AGE
 AC_SUBST(LIBTOOL_VERSION)
+
 
 ##################################################
 #	configuration options
@@ -120,13 +120,6 @@ AC_DEFINE_UNQUOTED(NO_EXCEPTIONS,
                    [$no_exceptions],
                    [Define to 1 to disable C++ exceptions.])
 
-if test "yes" = "$ENABLE_VERBOSE" ; then
-  AC_MSG_NOTICE([using CPPFLAGS=$CPPFLAGS])
-  AC_MSG_NOTICE([using CFLAGS=$CFLAGS])
-  AC_MSG_NOTICE([using CXXFLAGS=$CXXFLAGS])
-  AC_MSG_NOTICE([using VW_NO_EXCEPTIONS=$no_exceptions])
-fi
-
 # We set up the include paths ourselves, so 
 # we ask autoconf to get out of the way.
 DEFAULT_INCLUDES=
@@ -197,6 +190,12 @@ AM_CONDITIONAL(DIST_REMOVE_MODULES, [test ! -z "$DIST_REMOVE_MODULES"])
 #	package checks	    
 ##################################################
 
+# Make sure these are set so AC_PROG_CC doesn't initialize them with
+# its defaults, since we take care of setting debug and optimization
+# levels ourselves.
+CFLAGS="$CFLAGS"
+CXXFLAGS="$CXXFLAGS"
+
 AC_PROG_CC
 AC_PROG_CXX
 AC_PROG_INSTALL
@@ -220,25 +219,19 @@ AX_PKG_BOOST_LIB(THREAD, [-lboost_thread], [boost/thread/thread.hpp])
 AX_PKG(THREADS, [BOOST_THREAD], [], [])
 
 AX_PKG_LAPACK
-AM_CONDITIONAL(HAVE_PKG_LAPACK, [test "$HAVE_PKG_LAPACK" = "yes"])
 
 AX_PKG(QHULL, [], [-lqhull], [qhull/qhull.h])
-AM_CONDITIONAL(HAVE_PKG_QHULL, [test "$HAVE_PKG_QHULL" = "yes"])
 
 AX_PKG(GMP, [], [-lgmpxx -lgmp], [gmpxx.h gmp.h])
 AX_PKG(MPFR, [], [-lmpfr], [mpfr.h])
 AX_PKG(PPL, [GMP], [-lppl], [ppl.hh])
 AX_PKG(APRON, [GMP MPFR], [-lpolkag -lapron -litvmpq -litvdbl], [ap_global0.h ap_global1.h pk.h])
-AM_CONDITIONAL(HAVE_PKG_GMP, [test "$HAVE_PKG_GMP" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_MPFR, [test "$HAVE_PKG_MPFR" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_PPL, [test "$HAVE_PKG_PPL" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_APRON, [test "$HAVE_PKG_APRON" = "yes"])
 
 AX_PKG(M, [], [-lm], [math.h])
 AX_PKG(Z, [], [-lz], [zlib.h])
 
 AX_PKG(PNG, [], [-lpng], [png.h])
-AX_PKG(JPEG, [], [-ljpeg], [jpeglib.h])
+AX_PKG(JPEG, [], [-ljpeg], [stdio.h jpeglib.h]) # jpeglib.h requires stdio.h to have been included
 AX_PKG(TIFF, [], [-ltiff], [tiff.h])
 AX_PKG(OPENEXR, [Z], [-lImath -lHalf -lIex -lIlmImf], [ImfOutputFile.h], [OpenEXR])
 AX_PKG(HDF, [], [-ldf -lmfhdf], [mfhdf.h])
@@ -253,15 +246,15 @@ AX_PKG(CG, [], [-lCg -lCgGL], [Cg/cg.h])
 
 AX_PKG(GDAL, [], [-lgdal], [gdal.h])
 AX_PKG(PROJ4, [], [-lproj], [projects.h])
-AX_PKG(XMLPARSER, [], [-lxmlparser], [xmlParser.h])
-AX_PKG(JPEG2K, [], [-lopenjpeg], [openjpeg.h])
-
-#AX_PKG(VCL, [], [-lvcl], [vcl_algorithm.h], [vcl])
-#AX_PKG(VXL, [VCL], [-lvgl_algo -lvil_algo -lvnl_algo -lvul -lvgl -lvnl -lvil -lvcl -lnetlib], 
-#            [vil/vil_image_view.h], [core])
 
 # These are here (instead of inside the PKG macro where they belong)
 # for backwards compatability with older versions of automake.
+AM_CONDITIONAL(HAVE_PKG_LAPACK, [test "$HAVE_PKG_LAPACK" = "yes"])
+AM_CONDITIONAL(HAVE_PKG_QHULL, [test "$HAVE_PKG_QHULL" = "yes"])
+AM_CONDITIONAL(HAVE_PKG_GMP, [test "$HAVE_PKG_GMP" = "yes"])
+AM_CONDITIONAL(HAVE_PKG_MPFR, [test "$HAVE_PKG_MPFR" = "yes"])
+AM_CONDITIONAL(HAVE_PKG_PPL, [test "$HAVE_PKG_PPL" = "yes"])
+AM_CONDITIONAL(HAVE_PKG_APRON, [test "$HAVE_PKG_APRON" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_PNG, [test "$HAVE_PKG_PNG" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_JPEG, [test "$HAVE_PKG_JPEG" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_TIFF, [test "$HAVE_PKG_TIFF" = "yes"])
@@ -270,26 +263,27 @@ AM_CONDITIONAL(HAVE_PKG_HDF, [test "$HAVE_PKG_HDF" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_JPEG2K, [test "$HAVE_PKG_JPEG2K" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_GDAL, [test "$HAVE_PKG_GDAL" = "yes"])
 
+
 ##################################################
 #	module definitions
 ##################################################
 
-AX_MODULE(CORE, [src/vw/Core], [libvwCore.la], yes, [BOOST THREADS M], [PTHREADS])
-AX_MODULE(MATH, [src/vw/Math], [libvwMath.la], yes, [CORE], [LAPACK GMP PPL APRON QHULL])
+AX_MODULE(CORE, [src/vw/Core], [libvwCore.la], yes, [], [BOOST THREADS M], [PTHREADS])
+AX_MODULE(MATH, [src/vw/Math], [libvwMath.la], yes, [CORE], [], [LAPACK GMP PPL APRON QHULL])
 AX_MODULE(IMAGE, [src/vw/Image], [libvwImage.la], yes, [MATH])
-AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [Z PNG JPEG TIFF OPENEXR JPEG2K HDF GDAL])
-AX_MODULE(VW, [src/vw], [libvw.la], yes, [CORE MATH IMAGE], [FILEIO])
+AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [], [Z PNG JPEG TIFF OPENEXR JPEG2K HDF GDAL])
+AX_MODULE(VW, [src/vw], [libvw.la], yes, [], [CORE MATH IMAGE], [FILEIO])
 if test ${MAKE_MODULE_VW} != "yes"; then
   AC_MSG_ERROR([cannot build the Vision Workbench core modules!])
 fi
 
-AX_MODULE(CAMERA, [src/vw/Camera], [libvwCamera.la], yes, [VW BOOST_PROGRAM_OPTIONS])
-AX_MODULE(MOSAIC, [src/vw/Mosaic], [libvwMosaic.la], yes, [VW BOOST_PROGRAM_OPTIONS BOOST_FILESYSTEM])
-AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], yes, [VW BOOST_PROGRAM_OPTIONS])
-AX_MODULE(CARTOGRAPHY, [src/vw/Cartography], [libvwCartography.la], yes, [VW PROJ4 XMLPARSER],[GDAL])
-AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], yes, [VW CAMERA BOOST_PROGRAM_OPTIONS LAPACK])
-AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], yes, [STEREO_SRC VW])
-AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW GL GLU GLUT GLEW], [CG])
+AX_MODULE(CAMERA, [src/vw/Camera], [libvwCamera.la], yes, [VW])
+AX_MODULE(MOSAIC, [src/vw/Mosaic], [libvwMosaic.la], yes, [VW])
+AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], yes, [VW])
+AX_MODULE(CARTOGRAPHY, [src/vw/Cartography], [libvwCartography.la], yes, [VW], [PROJ4], [GDAL])
+AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], yes, [VW], [CAMERA LAPACK])
+AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], yes, [VW], [])
+AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW], [GL GLU GLUT GLEW], [CG])
 
 # These are here (instead of inside the MODULE macro where they belong)
 # for backwards compatability with older versions of automake.
@@ -305,6 +299,23 @@ AM_CONDITIONAL(MAKE_MODULE_HDR, [test "$MAKE_MODULE_HDR" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_STEREO, [test "$MAKE_MODULE_STEREO" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GPU, [test "$MAKE_MODULE_GPU" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_INTERESTPOINT, [test "$MAKE_MODULE_INTERESTPOINT" = "yes"])
+
+
+##################################################
+#	final processing	    
+##################################################
+
+if test "yes" = "$ENABLE_VERBOSE" ; then
+  AC_MSG_NOTICE([using CPPFLAGS=$CPPFLAGS $VW_CPPFLAGS])
+  AC_MSG_NOTICE([using CFLAGS=$CFLAGS])
+  AC_MSG_NOTICE([using CXXFLAGS=$CXXFLAGS])
+  AC_MSG_NOTICE([using LDFLAGS=$LDFLAGS $VW_LDFLAGS])
+  AC_MSG_NOTICE([using VW_NO_EXCEPTIONS=$no_exceptions])
+fi
+
+AC_SUBST(VW_CPPFLAGS)
+AC_SUBST(VW_LDFLAGS)
+
 
 ##################################################
 #	makefiles to process	    

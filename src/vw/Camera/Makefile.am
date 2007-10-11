@@ -38,7 +38,7 @@ include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h		\
 
 libvwCamera_la_SOURCES = PinholeModel.cc CAHVModel.cc CAHVORModel.cc Exif.cc ExifData.cc  
 libvwCamera_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
-libvwCamera_la_LIBADD = @MODULE_CAMERA_LDFLAGS@
+libvwCamera_la_LIBADD = @MODULE_CAMERA_LIBS@
 
 lib_LTLIBRARIES = libvwCamera.la
 
@@ -48,12 +48,12 @@ endif
 # general
 ########################################################################
 
+AM_CPPFLAGS = @VW_CPPFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@
+
 SUBDIRS = . tests
 
 includedir = $(prefix)/include/vw/Camera
-
-AM_CPPFLAGS = @MODULE_CAMERA_CPPFLAGS@
-AM_LDFLAGS  = 
 
 include $(top_srcdir)/config/rules.mak
 

@@ -63,8 +63,8 @@ endif
 # general
 ########################################################################
 
-AM_CPPFLAGS = @MODULE_MATH_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
-AM_LDFLAGS  = @PKG_MATH_LDFLAGS@
+AM_CPPFLAGS = @VW_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
+AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_MATH_LIBS@ @PKG_CORE_LIBS@
 
 check_PROGRAMS = $(TESTS)
 EXTRA_DIST = $(patsubst %,%.h,$(TESTS))

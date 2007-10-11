@@ -22,7 +22,7 @@
 # __END_LICENSE__
 
 all:
-	./setup.py build_ext --swig-opts=-c++ $(PKG_VW_CPPFLAGS) -I$(prefix)/include -L$(prefix)/lib build
+	./setup.py build_ext --swig-opts=-c++ $(VW_CPPFLAGS) -I$(prefix)/include -L$(prefix)/lib build
 
 install: all
 	./setup.py install

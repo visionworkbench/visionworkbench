@@ -55,7 +55,7 @@ include_HEADERS = Vector.h Matrix.h BShape.h BBox.h BBall.h	\
 
 libvwMath_la_SOURCES = SpatialTree.cc MinimumSpanningTree.cc $(convex_sources)
 libvwMath_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
-libvwMath_la_LIBADD = @MODULE_MATH_LDFLAGS@
+libvwMath_la_LIBADD = @MODULE_MATH_LIBS@
 
 lib_LTLIBRARIES = libvwMath.la
 
@@ -65,11 +65,11 @@ endif
 # general
 ########################################################################
 
+AM_CPPFLAGS = @VW_CPPFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@
+
 SUBDIRS = . tests
 
 includedir = $(prefix)/include/vw/Math
-
-AM_CPPFLAGS = @MODULE_MATH_CPPFLAGS@
-AM_LDFLAGS  = 
 
 include $(top_srcdir)/config/rules.mak

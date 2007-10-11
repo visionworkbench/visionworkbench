@@ -53,7 +53,7 @@ libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc	\
                   $(gdal_sources) $(jpeg2k_sources) $(camerabbox_sources)
 
 libvwCartography_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
-libvwCartography_la_LIBADD = @MODULE_CARTOGRAPHY_LDFLAGS@
+libvwCartography_la_LIBADD = @MODULE_CARTOGRAPHY_LIBS@
 
 lib_LTLIBRARIES = libvwCartography.la
 
@@ -63,11 +63,11 @@ endif
 # general
 ########################################################################
 
+AM_CPPFLAGS = @VW_CPPFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@
+
 SUBDIRS = . tests
 
 includedir = $(prefix)/include/vw/Cartography
-
-AM_CPPFLAGS = @MODULE_CARTOGRAPHY_CPPFLAGS@
-AM_LDFLAGS  = 
 
 include $(top_srcdir)/config/rules.mak
