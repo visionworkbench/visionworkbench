@@ -640,7 +640,7 @@ AC_DEFUN([AX_PKG_PTHREADS],
 # Usage: AX_MODULE(<name>, <directory>, <library>, <default>, <prerequisites>, <required dependencies>[, <optional dependencies>])
 AC_DEFUN([AX_MODULE],
 [
-
+  # Silently ignore modules that don't exist in this distribution
   if test -d $2 ; then
 
     HAVE_PKG_$1_SRC=yes
@@ -648,14 +648,14 @@ AC_DEFUN([AX_MODULE],
     AC_ARG_ENABLE([module-]translit($1,`A-Z',`a-z'),
       AC_HELP_STRING([--enable-module-]translit($1,`A-Z',`a-z'), [enable the $1 module @<:@$4@:>@]), 
       [ ENABLE_MODULE_$1=$enableval ],
-      [ if test x$ENABLE_MODULE_$1 = x; then ENABLE_MODULE_$1=$4 ; fi ]
+      [ if test x$ENABLE_MODULE_$1 = x; then ENABLE_MODULE_$1=`echo -n $4 | tr [A-Z] [a-z]` ; fi ]
     )
 
     AC_MSG_CHECKING([whether to build module $1])
     ax_module_enable=$ENABLE_MODULE_$1
 
     if test $ax_module_enable != "yes" ; then
-      AC_MSG_RESULT([no])
+      AC_MSG_RESULT([no (disabled)])
     fi
 
     ax_libs=""
