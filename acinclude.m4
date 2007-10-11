@@ -193,7 +193,7 @@ AC_DEFUN([AX_PKG],
 	  AC_LINK_IFELSE(
 	    AC_LANG_PROGRAM([#include "conftest.h"],[]),
 	    [ HAVE_PKG_$1=yes ; AC_MSG_RESULT([yes]) ; break ] )
-	  VW_LDFLAGS="-L$path/lib"
+	  VW_LDFLAGS="-L$path/lib $VW_LDFLAGS"
 	  LDFLAGS="$ax_pkg_old_ldflags $VW_LDFLAGS"
 	fi
 	AC_LINK_IFELSE(
