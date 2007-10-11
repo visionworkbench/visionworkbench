@@ -256,16 +256,25 @@ namespace vw {
         else return view(i,j,p);
       }
     }
-    inline BBox2i source_bbox( BBox2i const& bbox, int32 cols, int32 rows ) const {
+    template <class ViewT>
+    inline BBox2i source_bbox( ViewT const& view, BBox2i const& bbox ) const {
       BBox2i result = bbox;
-      if( bbox.min().x() < 1 ) result.min().x() = 1;
-      else if( bbox.min().x() >= cols-1 ) result.min().x() = cols-2;
-      if( bbox.min().y() < 1 ) result.min().y() = 1;
-      else if( bbox.min().y() >= rows-1 ) result.min().y() = rows-2;
-      if( bbox.max().x() > cols-1 ) result.max().x() = cols-1;
-      else if( bbox.max().x() <= 1 ) result.max().x() = 2;
-      if( bbox.max().y() > rows-1 ) result.max().y() = rows-1;
-      else if( bbox.max().y() <= 1 ) result.max().y() = 2;
+      if( bbox.min().x() < 0 ) {
+        result.min().x() = 0;
+        result.max().x() = (std::max)( result.max().x(), 2 );
+      }
+      if( bbox.max().x() > view.cols() ) {
+        result.max().x() = view.cols();
+        result.min().x() = (std::min)( result.min().x(), view.cols()-2 );
+      }
+      if( bbox.min().y() < 0 ) {
+        result.min().y() = 0;
+        result.max().y() = (std::max)( result.max().y(), 2 );
+      }
+      if( bbox.max().y() > view.rows() ) {
+        result.max().y() = view.rows();
+        result.min().y() = (std::min)( result.min().y(), view.rows()-2 );
+      }
       return result;
     }
   };
