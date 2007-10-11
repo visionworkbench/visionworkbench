@@ -37,6 +37,9 @@
 #include <vw/Cartography/DiskImageResourceGeoReferenceHelperPDS.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
 
+// xmlParser
+//#include <xmlParser.h>
+
 // libProj.4
 #include <projects.h>
 
@@ -74,6 +77,141 @@ static void register_default_disk_image_resources() {
 #endif
   vw::cartography::GeoReference::register_disk_image_resource(vw::DiskImageResourcePDS::type_static(), &vw::cartography::DiskImageResourceGeoReferenceHelperPDS::read_georeference, &vw::cartography::DiskImageResourceGeoReferenceHelperPDS::write_georeference);
 }
+
+// namespace {
+
+  // Commented out the following GML parsing code until it has been finished. -mbroxton
+
+
+//   // Make GML from a GeoReference
+//   //NOTE: caller must free returned string
+//   //FIXME: needs to take a GeoReference instead of just making boilerplate GML
+//   //FIXME: remember that affine transform is [lat; lon] = dehom(A * [u; v; 1])
+//   char* make_gml(vw::cartography::GeoReference const& georef) {
+//     char* s;
+//     XMLNode t, n1, n2, n3, n4, n5, n6, n7, n8, n9, n10;
+    
+//     t = XMLNode::createXMLTopNode("xml", TRUE);
+//     t.addAttribute("version", "1.0");
+//     t.addAttribute("encoding", "UTF-8");
+    
+//     //NOTE: this was initially generated from a sample gml file using gml_print_code("/home/ttemplet/gmljp2/gmlsamples/minimalgml.xml")
+    
+//     n1 = t.addChild("gml:FeatureCollection");
+//     n1.addAttribute("xmlns", "http://www.opengis.net/gml");
+//     n1.addAttribute("xmlns:gml", "http://www.opengis.net/gml");
+//     n1.addAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+//     n1.addAttribute("xsi:schemaLocation", "http://www.opengis.net/gml gmlJP2Profile.xsd"); //FIXME: see p. 41 of GMLJP2 standard, which appears to say that gmlJP2Profile.xsd must be included in the jp2 file and cannot be linked like in the commented-out line below
+//     //n1.addAttribute("xsi:schemaLocation", "http://www.opengis.net/gml http://schemas.opengis.net/gml/3.1.1/profiles/gmlJP2Profile/1.0.0/gmlJP2Profile.xsd");
+    
+//     n2 = n1.addChild("gml:boundedBy");
+//     n3 = n2.addChild("gml:Envelope");
+//     n4 = n3.addChild("gml:lowerCorner");
+//     n4.addText("270379.500 3942462.000");
+//     n4 = n3.addChild("gml:upperCorner");
+//     n4.addText("518842.500 3942462.000");
+    
+//     n2 = n1.addChild("gml:featureMember");
+//     n3 = n2.addChild("gml:FeatureCollection");
+    
+//     n4 = n3.addChild("gml:boundedBy");
+//     n5 = n4.addChild("gml:Envelope");
+//     n6 = n5.addChild("gml:lowerCorner");
+//     n6.addText("270379.500 3942462.000");
+//     n6 = n5.addChild("gml:upperCorner");
+//     n6.addText("518842.500 3942462.000");
+    
+//     n4 = n3.addChild("gml:featureMember");
+//     n5 = n4.addChild("gml:RectifiedGridCoverage");
+//     n5.addAttribute("dimension", "2");
+//     n5.addAttribute("gml:id", "RGC0001");
+//     n6 = n5.addChild("gml:description");
+//     n6.addText("This GMLJP2 Minimal Root Instance contains a GML Rectified Grid. The rectified grid is embedded in a RectifiedGridCoverage with generic range parameters (to be ignored).");
+//     n6 = n5.addChild("gml:rectifiedGridDomain");
+//     n7 = n6.addChild("gml:RectifiedGrid");
+//     n7.addAttribute("dimension", "2");
+    
+//     n8 = n7.addChild("gml:limits");
+//     n9 = n8.addChild("gml:GridEnvelope");
+//     n10 = n9.addChild("gml:low");
+//     n10.addText("0 0");
+//     n10 = n9.addChild("gml:high");
+//     n10.addText("8718 7812");
+    
+//     n8 = n7.addChild("gml:axisName");
+//     n8.addText("x");
+//     n8 = n7.addChild("gml:axisName");
+//     n8.addText("y");
+    
+//     n8 = n7.addChild("gml:origin");
+//     n9 = n8.addChild("gml:Point");
+//     n9.addAttribute("gml:id", "Pt001");
+//     n9.addAttribute("srsName", "urn:ogc:def:crs:EPSG:6.6:32612");
+//     n10 = n9.addChild("gml:description");
+//     n10.addText("\"Upper-left\" image origin");
+//     n10 = n9.addChild("gml:coordinates");
+//     n10.addText("270379.500000, 3942462.000000");
+    
+//     n8 = n7.addChild("gml:offsetVector");
+//     n8.addAttribute("srsName", "urn:ogc:def:crs:EPSG:6.6:32612");
+//     n8.addText("28.5 0");
+//     n8 = n7.addChild("gml:offsetVector");
+//     n8.addAttribute("srsName", "urn:ogc:def:crs:EPSG:6.6:32612");
+//     n8.addText("0 28.5");
+    
+//     n6 = n5.addChild("gml:rangeSet");
+//     n7 = n6.addChild("gml:File");
+//     n8 = n7.addChild("gml:rangeParameters");
+//     n9 = n8.addChild("gml:QuantityList");
+//     n9.addAttribute("uom", "urn:ogc:def:crs:EPSG:6.6:32612");
+//     n9.addText("inapplicable");
+//     n8 = n7.addChild("gml:fileName");
+//     n8.addText("Not Applicable");
+//     n8 = n7.addChild("gml:fileStructure");
+//     n8.addText("Record Interleaved");
+    
+//     n6 = n5.addChild("gml:coverageFunction");
+//     n7 = n6.addChild("gml:GridFunction");
+//     n8 = n7.addChild("gml:sequenceRule");
+//     n8.addAttribute("order", "+x+y");
+//     n8.addText("Linear");
+//     n8 = n7.addChild("gml:startPoint");
+//     n8.addText("0 0");
+    
+//     s = t.createXMLString(false);
+//     return s;
+//   }
+  
+//   #if 0
+//   // Recursive implementation of gml_print_code()
+//   void gml_print_code_recursive(XMLNode const& n, int d) {
+//     int num_attributes, num_text, num_children;
+//     int i;
+    
+//     std::cout << "n" << d << " = n" << (d - 1) << ".addChild(\"" << (strchr(n.getName(), ':') ? "" : "gml:") << n.getName() << "\");" << std::endl;
+    
+//     num_attributes = n.nAttribute();
+//     for(i = 0; i < num_attributes; i++)
+//       std::cout << "n" << d << ".addAttribute(\"" << n.getAttributeName(i) << "\", \"" << n.getAttributeValue(i) << "\");" << std::endl;
+      
+//     num_text = n.nText();
+//     for(i = 0; i < num_text; i++)
+//       std::cout << "n" << d << ".addText(\"" << n.getText(i) << "\");" << std::endl;
+  
+//     num_children = n.nChildNode();
+//     for(i = 0; i < num_children; i++)
+//       gml_print_code_recursive(n.getChildNode(i), d + 1);
+//   }
+  
+//   // Print C++ code to create the XML file fn
+//   void gml_print_code(const char* fn) {
+//     XMLNode t;
+     
+//     t = XMLNode::openFileHelper(fn, "FeatureCollection");
+//     gml_print_code_recursive(t, 1);
+//   }
+//   #endif
+// }
 
 
 namespace vw {
