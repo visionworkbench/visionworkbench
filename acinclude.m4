@@ -432,13 +432,16 @@ AC_DEFUN([AX_PKG_LAPACK],
 ])
 
 
-# Usage: AX_PKG_BOOST_LIB(<name>, <dependencies>, <libraries>)
+# Usage: AX_PKG_BOOST_LIB(<name>, <libraries>, <header>)
 AC_DEFUN([AX_PKG_BOOST_LIB],
 [
   AC_MSG_CHECKING(for package BOOST_$1)
   if test "$ENABLE_VERBOSE" = "yes"; then
     AC_MSG_RESULT([])
   fi
+
+  AC_LANG_SAVE
+  AC_LANG(C++)
 
   # Skip testing if the user has overridden
   if test -z ${HAVE_PKG_BOOST_$1}; then
@@ -471,6 +474,61 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
     fi
   fi
 
+  ax_pkg_old_vw_cppflags=$VW_CPPFLAGS
+  ax_pkg_old_vw_ldflags=$VW_LDFLAGS
+  ax_pkg_old_cppflags=$CPPFLAGS
+  ax_pkg_old_ldflags=$LDFLAGS
+  ax_pkg_old_libs=$LIBS
+  while true ; do
+    echo > conftest.h
+    for header in $3 ; do
+      echo "#include <$header>" >> conftest.h
+    done
+    # First see if the current paths are sufficient
+    if test "x${ENABLE_VERBOSE}" = "xyes" ; then
+      AC_MSG_CHECKING([whether current paths are sufficient...])
+    fi
+    CPPFLAGS="$ax_pkg_old_cppflags $VW_CPPFLAGS"
+    LDFLAGS="$ax_pkg_old_ldflags $VW_LDFLAGS"
+    LIBS="$PKG_BOOST_$1_LIBS $ax_pkg_old_libs"
+    AC_LINK_IFELSE( AC_LANG_PROGRAM([#include "conftest.h"],[]), [ax_result=yes], [ax_result=no] )
+    if test "x${ENABLE_VERBOSE}" = "xyes" ; then
+      AC_MSG_RESULT([$ax_result])
+    fi
+    if test "$ax_result" = "yes" ; then break ; fi
+    # Try it with just the include path
+    if test "x${ENABLE_VERBOSE}" = "xyes" ; then
+      AC_MSG_CHECKING([whether adding the include path is sufficient...])
+    fi
+    VW_CPPFLAGS="-I${PKG_BOOST_INCDIR} $VW_CPPFLAGS"
+    CPPFLAGS="$ax_pkg_old_cppflags $VW_CPPFLAGS"
+    AC_LINK_IFELSE( AC_LANG_PROGRAM([#include "conftest.h"],[]), [ax_result=yes], [ax_result=no] )
+    if test "x${ENABLE_VERBOSE}" = "xyes" ; then
+      AC_MSG_RESULT([$ax_result])
+    fi
+    if test "$ax_result" = "yes" ; then break ; fi
+    # Finally, try it with the linker path
+    if test "x${ENABLE_VERBOSE}" = "xyes" ; then
+      AC_MSG_CHECKING([whether adding the include and linker paths works...])
+    fi
+    VW_LDFLAGS="-L${PKG_BOOST_LIBDIR} $VW_LDFLAGS"
+    LDFLAGS="$ax_pkg_old_ldflags $VW_LDFLAGS"
+    AC_LINK_IFELSE( AC_LANG_PROGRAM([#include "conftest.h"],[]), [ax_result=yes], [ax_result=no] )
+    if test "x${ENABLE_VERBOSE}" = "xyes" ; then
+      AC_MSG_RESULT([$ax_result])
+    fi
+    if test "$ax_result" = "yes" ; then break ; fi
+    # The detected version of boost seems to be invalid!
+    HAVE_PKG_BOOST_$1="no"
+    VW_CPPFLAGS="$ax_pkg_old_vw_cppflags"
+    VW_LDFLAGS="$ax_pkg_old_vw_ldflags"
+    break
+  done
+
+  CPPFLAGS="$ax_pkg_old_cppflags"
+  LDFLAGS="$ax_pkg_old_ldflags"
+  LIBS="$ax_pkg_old_libs"
+
   if test ${HAVE_PKG_BOOST_$1} = "yes" ; then
     ax_have_pkg_bool=1
   else
@@ -489,6 +547,8 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
   else
     AC_MSG_RESULT([${HAVE_PKG_BOOST_$1}])
   fi
+
+  AC_LANG_RESTORE
 ])
 
 
