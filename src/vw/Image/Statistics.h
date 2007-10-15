@@ -237,7 +237,7 @@ namespace vw {
     }
     if (!valid) 
       vw_throw(ArgumentErr() << "stddev_channel_value(): the image contained zero valid pixels.");
-    return channel_type(sqrt(accum) / ((view.planes() * view.rows() * view.cols() * view.channels()) - 1));
+    return channel_type(sqrt(accum / ((view.planes() * view.rows() * view.cols() * view.channels()) - 1)));
   }
 
   /// Compute the sum of the pixels of the channels of all of the planes of the image.
