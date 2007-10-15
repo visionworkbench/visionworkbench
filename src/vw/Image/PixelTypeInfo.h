@@ -57,6 +57,8 @@ namespace vw {
   template <class T> struct PixelNumChannels : CompoundNumChannels<T> {};
   template <class T, class ChannelT> struct PixelChannelCast : CompoundChannelCast<T,ChannelT> {};
   template <class T> struct PixelHasAlpha : false_type {};
+  template <class T> struct PixelWithAlpha {};
+  template <class T> struct PixelWithoutAlpha { typedef T type; };
 
   template <class PixelT>
   struct PixelMakeComplex {
@@ -67,23 +69,6 @@ namespace vw {
   struct PixelMakeReal {
     typedef typename PixelChannelCast<PixelT,typename MakeReal<typename PixelChannelType<PixelT>::type>::type>::type type;
   };
-
-
-  // *******************************************************************
-  // Basic pixel alpha channel logic
-  //
-  // Here we provide basic pixel type manipulation classes for
-  // determining whether a pixel is transparent (i.e. its alpha is
-  // zero).  For pixel types without alpha, the pixel is always
-  // considered to be non-transparent.
-  // *******************************************************************
-  template <class PixelT>
-  inline typename boost::enable_if<typename PixelHasAlpha<PixelT>::type, bool>::type
-  is_transparent(PixelT const& pixel) { return !(pixel.a()); }
-
-  template <class PixelT>
-  inline typename boost::disable_if<typename PixelHasAlpha<PixelT>::type, bool>::type
-  is_transparent(PixelT const& /*pixel*/) { return false; }
 
 
   // *******************************************************************
@@ -131,6 +116,41 @@ namespace vw {
   /// really just want to know the range of values you can store in a 
   /// given type, use std::numeric_limits instead.
   template <class T> struct ChannelRange : public ChannelRangeHelper<typename CompoundChannelType<T>::type, boost::integer_traits<typename CompoundChannelType<T>::type>::is_integer> {};
+
+
+  // *******************************************************************
+  // Basic pixel alpha channel logic
+  //
+  // Here we provide basic pixel type manipulation classes for
+  // determining whether a pixel is transparent (i.e. its alpha is
+  // zero).  For pixel types without alpha, the pixel is always
+  // considered to be non-transparent.
+  // *******************************************************************
+  template <class PixelT>
+  inline typename boost::enable_if<typename PixelHasAlpha<PixelT>::type, bool>::type
+  is_transparent(PixelT const& pixel) { return !(pixel.a()); }
+
+  template <class PixelT>
+  inline typename boost::disable_if<typename PixelHasAlpha<PixelT>::type, bool>::type
+  is_transparent(PixelT const& /*pixel*/) { return false; }
+
+  template <class PixelT>
+  inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename PixelChannelType<PixelT>::type >::type
+  alpha_channel( PixelT& pix ) {
+    return ChannelRange<PixelT>::max();
+  }
+
+  template <class PixelT>
+  inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, PixelT& >::type
+  non_alpha_channels( PixelT& pix ) {
+    return pix;
+  }
+
+  template <class PixelT>
+  inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, const PixelT& >::type
+  non_alpha_channels( const PixelT& pix ) {
+    return pix;
+  }
 
 
   // *******************************************************************

@@ -133,6 +133,38 @@ namespace vw {
 
 
   // *******************************************************************
+  // Pixel iteration functions
+  // *******************************************************************
+
+
+  template <class ViewT, class FuncT>
+  void for_each_pixel_( const ImageViewBase<ViewT> &view_, FuncT &func ) {
+    const ViewT& view = view_.impl();
+    typedef typename ViewT::pixel_accessor pixel_accessor;
+    pixel_accessor plane_acc = view.origin();
+    for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
+      pixel_accessor row_acc = plane_acc;
+      for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
+        pixel_accessor col_acc = row_acc;
+        for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
+          func( *col_acc );
+        }
+      }  
+    }
+  }
+
+  template <class ViewT, class FuncT>
+  void for_each_pixel( const ImageViewBase<ViewT> &view, FuncT &func ) {
+    for_each_pixel_<ViewT,FuncT>(view,func);
+  }
+
+  template <class ViewT, class FuncT>
+  void for_each_pixel( const ImageViewBase<ViewT> &view, const FuncT &func ) {
+    for_each_pixel_<ViewT,const FuncT>(view,func);
+  }
+
+
+  // *******************************************************************
   // The master rasterization function
   // *******************************************************************
 

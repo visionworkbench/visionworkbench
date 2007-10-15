@@ -54,6 +54,9 @@ namespace vw {
     : public boost::mpl::or_< typename IsScalar<T>::type, typename IsCompound<T>::type >::type {};
   template <class T1, class T2> struct CompoundIsCompatible
     : public boost::is_same< typename CompoundChannelCast<T1, typename CompoundChannelType<T2>::type>::type, T2 >::type {};
+  template <class T> struct CompoundAccumulatorType { 
+    typedef typename CompoundChannelCast<T, typename AccumulatorType<typename CompoundChannelType<T>::type>::type>::type type;
+  };
 
   // Default specializations of the compound type traits for const types.
   template <class T> struct CompoundChannelType<const T> : public CompoundChannelType<T> {};
@@ -90,6 +93,17 @@ namespace vw {
     return pixel[channel];
   }
 
+  // Computes the mean value of a compound type.  Not especially efficient.
+  template <class T>
+  typename boost::enable_if< IsScalarOrCompound<T>, double >::type
+  inline mean_channel_value( T const& arg ) {
+    typedef typename CompoundChannelType<T>::type channel_type;
+    int num_channels = CompoundNumChannels<T>::value;
+    double accum = 0;
+    for( int i=0; i<num_channels; ++i )
+      accum += compound_select_channel<channel_type const&>( arg, i );
+    return accum / num_channels;
+  }
 
   // *******************************************************************
   // Binary elementwise compound type functor.
@@ -372,11 +386,12 @@ namespace vw {
   template <class FuncT>
   class UnaryInPlaceCompoundFunctor {
     FuncT func;
+    typedef typename boost::add_reference<FuncT>::type func_ref;
 
     // The general multi-channel case
     template <bool CompoundB, int ChannelsN, class ArgT>
     struct Helper {
-      static inline ArgT& apply( FuncT const& func, ArgT& arg ) {
+      static inline ArgT& apply( func_ref func, ArgT& arg ) {
         for( int i=0; i<ChannelsN; ++i ) func(arg[i]);
         return arg;
       }
@@ -385,7 +400,7 @@ namespace vw {
     // Specialization for non-compound types
     template <class ArgT>
     struct Helper<false,1,ArgT> {
-      static inline ArgT& apply( FuncT const& func, ArgT& arg ) {
+      static inline ArgT& apply( func_ref func, ArgT& arg ) {
         return arg(arg);
       }
     };
@@ -393,7 +408,7 @@ namespace vw {
     // Specialization for single-channel types
     template <class ArgT>
     struct Helper<true,1,ArgT> {
-      static inline ArgT& apply( FuncT const& func, ArgT& arg ) {
+      static inline ArgT& apply( func_ref func, ArgT& arg ) {
         func(arg[0]);
         return arg;
       }
@@ -402,7 +417,7 @@ namespace vw {
     // Specialization for two-channel types
     template <class ArgT>
     struct Helper<true,2,ArgT> {
-      static inline ArgT& apply( FuncT const& func, ArgT& arg ) {
+      static inline ArgT& apply( func_ref func, ArgT& arg ) {
         func(arg[0]);
         func(arg[1]);
         return arg;
@@ -412,7 +427,7 @@ namespace vw {
     // Specialization for three-channel types
     template <class ArgT>
     struct Helper<true,3,ArgT> {
-      static inline ArgT& apply( FuncT const& func, ArgT& arg ) {
+      static inline ArgT& apply( func_ref func, ArgT& arg ) {
         func(arg[0]);
         func(arg[1]);
         func(arg[2]);
@@ -423,7 +438,7 @@ namespace vw {
     // Specialization for four-channel types
     template <class ArgT>
     struct Helper<true,4,ArgT> {
-      static inline ArgT& apply( FuncT const& func, ArgT& arg ) {
+      static inline ArgT& apply( func_ref func, ArgT& arg ) {
         func(arg[0]);
         func(arg[1]);
         func(arg[2]);
@@ -434,25 +449,45 @@ namespace vw {
 
   public:
     UnaryInPlaceCompoundFunctor() : func() {}
-    UnaryInPlaceCompoundFunctor( FuncT const& func ) : func(func) {}
+    UnaryInPlaceCompoundFunctor( func_ref func ) : func(func) {}
     
     template <class ArgsT> struct result {};
 
+    /// FIXME: This seems not to respect the constness of ArgT?  Weird?
     template <class F, class ArgT>
     struct result<F(ArgT)> {
       typedef ArgT& type;
     };
 
     template <class ArgT>
-    typename result<UnaryInPlaceCompoundFunctor(ArgT)>::type
-    inline operator()( ArgT& arg ) const {
+    inline ArgT& operator()( ArgT& arg ) const {
       return Helper<IsCompound<ArgT>::value,CompoundNumChannels<ArgT>::value,ArgT>::apply(func,arg);
+    }
+
+    template <class ArgT>
+    inline const ArgT& operator()( const ArgT& arg ) const {
+      return Helper<IsCompound<ArgT>::value,CompoundNumChannels<ArgT>::value,const ArgT>::apply(func,arg);
     }
   };
 
   template <class FuncT, class ArgT>
+  inline ArgT& compound_apply_in_place( FuncT& func, ArgT& arg ) {
+    return UnaryInPlaceCompoundFunctor<FuncT&>(func)(arg);
+  }
+
+  template <class FuncT, class ArgT>
+  inline const ArgT& compound_apply_in_place( FuncT& func, ArgT const& arg ) {
+    return UnaryInPlaceCompoundFunctor<FuncT&>(func)(arg);
+  }
+
+  template <class FuncT, class ArgT>
   inline ArgT& compound_apply_in_place( FuncT const& func, ArgT& arg ) {
-    return UnaryInPlaceCompoundFunctor<FuncT>(func)(arg);
+    return UnaryInPlaceCompoundFunctor<FuncT const&>(func)(arg);
+  }
+
+  template <class FuncT, class ArgT>
+  inline const ArgT& compound_apply_in_place( FuncT const& func, ArgT const& arg ) {
+    return UnaryInPlaceCompoundFunctor<FuncT const&>(func)(arg);
   }
 
 } // namespace vw

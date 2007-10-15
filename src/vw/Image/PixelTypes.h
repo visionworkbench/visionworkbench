@@ -241,6 +241,20 @@ namespace vw {
   /// Declare the standard 2-channel pixel traits for PixelGrayA.
   VW_DECLARE_PIXEL_TYPE(PixelGrayA,2);
   template <class T> struct PixelHasAlpha<PixelGrayA<T> > : true_type {};
+  template <class T> struct PixelWithAlpha<PixelGray<T> > { typedef PixelGrayA<T> type; };
+  template <class T> struct PixelWithoutAlpha<PixelGrayA<T> > { typedef PixelGray<T> type; };
+  template <class T> T& alpha_channel( PixelGrayA<T>& pix ) {
+    return pix.a();
+  }
+  template <class T> const T& alpha_channel( const PixelGrayA<T>& pix ) {
+    return pix.a();
+  }
+  template <class T> PixelGray<T>& non_alpha_channels( PixelGrayA<T>& pix ) {
+    return reinterpret_cast<PixelGray<T>&>( pix );
+  }
+  template <class T> const PixelGray<T>& non_alpha_channels( const PixelGrayA<T>& pix ) {
+    return reinterpret_cast<const PixelGray<T>&>( pix );
+  }
 
   /// Print a PixelGrayA to a debugging stream.
   template <class ChannelT>
@@ -432,6 +446,20 @@ namespace vw {
   /// Declare the standard 2-channel pixel traits for PixelGrayA.
   VW_DECLARE_PIXEL_TYPE(PixelRGBA,4);
   template <class T> struct PixelHasAlpha<PixelRGBA<T> > : true_type {};
+  template <class T> struct PixelWithAlpha<PixelRGB<T> > { typedef PixelRGBA<T> type; };
+  template <class T> struct PixelWithoutAlpha<PixelRGBA<T> > { typedef PixelRGB<T> type; };
+  template <class T> T& alpha_channel( PixelRGBA<T>& pix ) {
+    return pix.a();
+  }
+  template <class T> const T& alpha_channel( const PixelRGBA<T>& pix ) {
+    return pix.a();
+  }
+  template <class T> PixelRGB<T>& non_alpha_channels( PixelRGBA<T>& pix ) {
+    return reinterpret_cast<PixelRGB<T>&>( pix );
+  }
+  template <class T> const PixelRGB<T>& non_alpha_channels( const PixelRGBA<T>& pix ) {
+    return reinterpret_cast<const PixelRGB<T>&>( pix );
+  }
 
   /// Print a PixelRGBA to a debugging stream.
   template <class ChannelT>
