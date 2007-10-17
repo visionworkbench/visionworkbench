@@ -246,20 +246,6 @@ namespace hdr {
       return result;
     }
 
-    template <class PixelT>
-    typename CompoundChannelCast<PixelT, double>::type inverse (PixelT pixel_val) const {
-      typedef typename CompoundChannelCast<PixelT, double>::type pixel_type;
-
-      if (CompoundNumChannels<PixelT>::value != this->num_channels()) 
-        vw_throw(ArgumentErr() << "CameraCurveFn: pixel does not have the same number of channels as there are curves.");
-
-      pixel_type result;
-      for (int c = 0; c < CompoundNumChannels<PixelT>::value; ++c) {
-        result[c] = this->inverse(double(pixel_val[c]), c);
-      }
-      return result;
-    }
-
     int num_channels() const { return m_lookup_tables.size(); }
 
     Vector<double> const& lookup_table(int channel) const { 
