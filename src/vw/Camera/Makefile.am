@@ -36,8 +36,9 @@ include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h		\
                   CameraTransform.h Exif.h ExifData.h BayerFilter.h	\
                   $(lsm_headers)
 
-libvwCamera_la_SOURCES = PinholeModel.cc CAHVModel.cc CAHVORModel.cc Exif.cc ExifData.cc  
-libvwCamera_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
+libvwCamera_la_SOURCES = PinholeModel.cc CAHVModel.cc CAHVORModel.cc	\
+	Exif.cc ExifData.cc
+
 libvwCamera_la_LIBADD = @MODULE_CAMERA_LIBS@
 
 lib_LTLIBRARIES = libvwCamera.la
@@ -49,7 +50,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
-AM_LDFLAGS = @VW_LDFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@
 
 SUBDIRS = . tests
 

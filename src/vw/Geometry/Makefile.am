@@ -43,7 +43,8 @@ endif
 endif
 endif
 
-include_HEADERS = Shape.h SpatialTree.h PointListIO.h Sphere.h Box.h $(convex_headers)
+include_HEADERS = Shape.h SpatialTree.h PointListIO.h Sphere.h Box.h	\
+	$(convex_headers)
 
 libvwGeometry_la_SOURCES = SpatialTree.cc $(convex_sources)
 libvwGeometry_la_LIBADD = @MODULE_GEOMETRY_LIBS@

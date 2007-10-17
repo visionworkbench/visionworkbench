@@ -34,7 +34,6 @@ include_HEADERS = Correlate.h ReferenceCorrelator.h		\
 libvwStereo_la_SOURCES = StereoModel.cc OptimizedCorrelator.cc	\
 	 PyramidCorrelator.cc
 
-libvwStereo_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwStereo_la_LIBADD = @MODULE_STEREO_LIBS@
 
 lib_LTLIBRARIES = libvwStereo.la
@@ -46,7 +45,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
-AM_LDFLAGS = @VW_LDFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@
 
 SUBDIRS = . tests
 

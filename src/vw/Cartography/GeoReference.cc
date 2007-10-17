@@ -29,11 +29,6 @@
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #endif
 
-#if defined(VW_HAVE_PKG_JPEG2K) && VW_HAVE_PKG_JPEG2K
-#include <vw/Cartography/DiskImageResourceGeoReferenceHelperJP2.h>
-#include <vw/FileIO/DiskImageResourceJP2.h>
-#endif
-
 #include <vw/Cartography/DiskImageResourceGeoReferenceHelperPDS.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
 
@@ -69,9 +64,6 @@ static void register_default_disk_image_resources() {
   vw::cartography::GeoReference::register_disk_image_resource(vw::DiskImageResourceGDAL::type_static(), &vw::cartography::DiskImageResourceGeoReferenceHelperGDAL::read_georeference, &vw::cartography::DiskImageResourceGeoReferenceHelperGDAL::write_georeference);
 #endif
 
-#if defined(VW_HAVE_PKG_JPEG2K) && VW_HAVE_PKG_JPEG2K==1
-  vw::cartography::GeoReference::register_disk_image_resource(vw::DiskImageResourceJP2::type_static(), &vw::cartography::DiskImageResourceGeoReferenceHelperJP2::read_georeference, &vw::cartography::DiskImageResourceGeoReferenceHelperJP2::write_georeference);
-#endif
   vw::cartography::GeoReference::register_disk_image_resource(vw::DiskImageResourcePDS::type_static(), &vw::cartography::DiskImageResourceGeoReferenceHelperPDS::read_georeference, &vw::cartography::DiskImageResourceGeoReferenceHelperPDS::write_georeference);
 }
 

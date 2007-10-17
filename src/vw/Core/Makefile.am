@@ -33,7 +33,6 @@ include_HEADERS = Exception.h FundamentalTypes.h TypeDeduction.h	\
 
 libvwCore_la_SOURCES = Debugging.cc Exception.cc Thread.cc Cache.cc 	\
 	ProgressCallback.cc Stopwatch.cc
-libvwCore_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwCore_la_LIBADD = @MODULE_CORE_LIBS@
 
 lib_LTLIBRARIES = libvwCore.la
@@ -45,7 +44,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
-AM_LDFLAGS = @VW_LDFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@
 
 SUBDIRS = . tests
 

@@ -21,13 +21,13 @@
 # 
 # __END_LICENSE__
 
-AC_INIT([NASA Vision Workbench], [2.0.alpha], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
+AC_INIT([NASA Vision Workbench], [2.0.alpha1], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
 AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE
 AX_CONFIG_HEADER_PREFIX([src/vw/config.h], [VW_])
 
-LIBTOOL_CURRENT=0
+LIBTOOL_CURRENT=1
 LIBTOOL_REVISION=0
 LIBTOOL_AGE=0
 LIBTOOL_VERSION=$LIBTOOL_CURRENT:$LIBTOOL_REVISION:$LIBTOOL_AGE
@@ -180,7 +180,10 @@ fi
 
 AC_ARG_WITH(dist-remove-modules,
   AC_HELP_STRING([--with-dist-remove-modules="MODULE @<:@MODULE...@:>@"], [remove certain modules from the distribution]),
-  [DIST_REMOVE_MODULES=$withval]
+  [DIST_REMOVE_MODULES=$withval],[ # These follow on separate lines so they can be removed cleanly from the distro
+  DIST_REMOVE_MODULES="$DIST_REMOVE_MODULES Geometry"
+  DIST_REMOVE_MODULES="$DIST_REMOVE_MODULES Python"
+  ]
 )
 AC_SUBST(DIST_REMOVE_MODULES)
 AM_CONDITIONAL(DIST_REMOVE_MODULES, [test ! -z "$DIST_REMOVE_MODULES"])
@@ -260,7 +263,6 @@ AM_CONDITIONAL(HAVE_PKG_JPEG, [test "$HAVE_PKG_JPEG" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_TIFF, [test "$HAVE_PKG_TIFF" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_OPENEXR, [test "$HAVE_PKG_OPENEXR" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_HDF, [test "$HAVE_PKG_HDF" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_JPEG2K, [test "$HAVE_PKG_JPEG2K" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_GDAL, [test "$HAVE_PKG_GDAL" = "yes"])
 
 
@@ -271,7 +273,7 @@ AM_CONDITIONAL(HAVE_PKG_GDAL, [test "$HAVE_PKG_GDAL" = "yes"])
 AX_MODULE(CORE, [src/vw/Core], [libvwCore.la], yes, [], [BOOST THREADS M], [PTHREADS])
 AX_MODULE(MATH, [src/vw/Math], [libvwMath.la], yes, [CORE], [], [LAPACK])
 AX_MODULE(IMAGE, [src/vw/Image], [libvwImage.la], yes, [MATH])
-AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [], [Z PNG JPEG TIFF OPENEXR JPEG2K HDF GDAL])
+AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [], [Z PNG JPEG TIFF OPENEXR HDF GDAL])
 AX_MODULE(VW, [src/vw], [libvw.la], yes, [], [CORE MATH IMAGE], [FILEIO])
 if test ${MAKE_MODULE_VW} != "yes"; then
   AC_MSG_ERROR([cannot build the Vision Workbench core modules!])

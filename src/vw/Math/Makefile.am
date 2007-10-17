@@ -37,7 +37,6 @@ include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h	\
                   MinimumSpanningTree.h $(lapack_headers)
 
 libvwMath_la_SOURCES = MinimumSpanningTree.cc
-libvwMath_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwMath_la_LIBADD = @MODULE_MATH_LIBS@
 
 lib_LTLIBRARIES = libvwMath.la
@@ -49,7 +48,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
-AM_LDFLAGS = @VW_LDFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@
 
 SUBDIRS = . tests
 

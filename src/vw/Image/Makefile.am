@@ -37,7 +37,6 @@ include_HEADERS = PixelIterator.h ImageViewBase.h PixelAccessors.h	\
 	BlockCacheView.h UtilityViews.h Palette.h
 
 libvwImage_la_SOURCES = ImageResource.cc Filter.cc
-libvwImage_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwImage_la_LIBADD = @MODULE_IMAGE_LIBS@
 
 lib_LTLIBRARIES = libvwImage.la
@@ -49,7 +48,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
-AM_LDFLAGS = @VW_LDFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@
 
 SUBDIRS = . tests
 

@@ -32,11 +32,6 @@ gdal_headers = DiskImageResourceGeoReferenceHelperGDAL.h
 gdal_sources = DiskImageResourceGeoReferenceHelperGDAL.cc
 endif
 
-if HAVE_PKG_JPEG2K
-jpeg2k_headers = DiskImageResourceGeoReferenceHelperJP2.h
-jpeg2k_sources = DiskImageResourceGeoReferenceHelperJP2.cc
-endif
-
 if MAKE_MODULE_CARTOGRAPHY
 camerabbox_headers = CameraBBox.h
 camerabbox_sources = CameraBBox.cc
@@ -46,13 +41,12 @@ include_HEADERS = FileIO.h GeoReferenceBase.h GeoReference.h		\
                   GeoTransform.h Datum.h PointImageManipulation.h	\
                   OrthoImageView.h					\
                   DiskImageResourceGeoReferenceHelperPDS.h		\
-                  $(gdal_headers) $(jpeg2k_headers) $(camerabbox_headers)
+                  $(gdal_headers) $(camerabbox_headers)
 
 libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc	\
                   DiskImageResourceGeoReferenceHelperPDS.cc		\
-                  $(gdal_sources) $(jpeg2k_sources) $(camerabbox_sources)
+                  $(gdal_sources) $(camerabbox_sources)
 
-libvwCartography_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwCartography_la_LIBADD = @MODULE_CARTOGRAPHY_LIBS@
 
 lib_LTLIBRARIES = libvwCartography.la
@@ -64,7 +58,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
-AM_LDFLAGS = @VW_LDFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@
 
 SUBDIRS = . tests
 

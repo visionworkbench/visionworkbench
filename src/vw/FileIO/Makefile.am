@@ -42,11 +42,6 @@ tiff_headers = DiskImageResourceTIFF.h
 tiff_sources = DiskImageResourceTIFF.cc
 endif
 
-if HAVE_PKG_JPEG2K
-jpeg2k_headers = DiskImageResourceJP2.h
-jpeg2k_sources = DiskImageResourceJP2.cc
-endif
-
 if HAVE_PKG_OPENEXR
 if ENABLE_EXCEPTIONS
 openexr_headers = DiskImageResourceOpenEXR.h
@@ -64,15 +59,17 @@ gdal_headers = DiskImageResourceGDAL.h
 gdal_sources = DiskImageResourceGDAL.cc
 endif
 
-include_HEADERS = DiskImageResource.h DiskImageView.h PropertyMultiMap.h PropertySetManager.h \
-	FileMetadata.h JP2.h DiskImageResourcePDS.h $(png_headers) $(jpeg_headers) $(tiff_headers) \
-	$(openexr_headers) $(jpeg2k_headers) $(hdf_headers) $(gdal_headers)
+include_HEADERS = DiskImageResource.h DiskImageView.h			\
+	PropertyMultiMap.h PropertySetManager.h FileMetadata.h JP2.h	\
+	DiskImageResourcePDS.h $(png_headers) $(jpeg_headers)		\
+	$(tiff_headers) $(openexr_headers) $(hdf_headers)		\
+	$(gdal_headers)
 
-libvwFileIO_la_SOURCES = DiskImageResource.cc FileMetadata.cc \
-	DiskImageResourcePDS.cc $(png_sources) $(jpeg_sources) $(tiff_sources) $(openexr_sources) \
-	$(jpeg2k_sources) $(hdf_sources) $(gdal_sources)
+libvwFileIO_la_SOURCES = DiskImageResource.cc FileMetadata.cc	\
+	DiskImageResourcePDS.cc $(png_sources) $(jpeg_sources)	\
+	$(tiff_sources) $(openexr_sources) $(hdf_sources)	\
+	$(gdal_sources)
 
-libvwFileIO_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwFileIO_la_LIBADD = @MODULE_FILEIO_LIBS@
 
 lib_LTLIBRARIES = libvwFileIO.la
@@ -84,7 +81,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
-AM_LDFLAGS = @VW_LDFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@
 
 SUBDIRS = . tests
 

@@ -32,7 +32,6 @@ include_HEADERS = CameraCurve.h GlobalToneMap.h LDRtoHDR.h	\
 
 libvwHDR_la_SOURCES = LocalToneMap.cc CameraCurve.cc
 
-libvwHDR_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwHDR_la_LIBADD = @MODULE_HDR_LIBS@
 
 lib_LTLIBRARIES = libvwHDR.la
@@ -44,7 +43,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
-AM_LDFLAGS = @VW_LDFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@
 
 SUBDIRS = . tests
 

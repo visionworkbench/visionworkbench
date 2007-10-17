@@ -33,7 +33,6 @@ include_HEADERS = Detector.h Descriptor.h Matcher.h RANSAC.h Extrema.h \
                   InterestTraits.h SIFT_Descriptor.h KDTree.h
 
 libvwInterestPoint_la_SOURCES = 
-libvwInterestPoint_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwInterestPoint_la_LIBADD = @MODULE_INTERESTPOINT_LIBS@
 
 lib_LTLIBRARIES = libvwInterestPoint.la
@@ -45,7 +44,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
-AM_LDFLAGS = @VW_LDFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@
 
 SUBDIRS = . tests
 
