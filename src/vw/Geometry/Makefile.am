@@ -27,10 +27,25 @@
 
 if MAKE_MODULE_GEOMETRY
 
-include_HEADERS = 
+# Convex can use either PPL or Apron
+if HAVE_PKG_PPL
+if HAVE_PKG_GMP
+convex_headers = Convex.h
+convex_sources = Convex.cc
+endif
+endif
+if HAVE_PKG_APRON
+if HAVE_PKG_GMP
+if HAVE_PKG_MPFR
+convex_headers = Convex.h
+convex_sources = Convex.cc
+endif
+endif
+endif
 
-libvwGeometry_la_SOURCES = 
-libvwGeometry_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
+include_HEADERS = Shape.h SpatialTree.h PointListIO.h Sphere.h Box.h $(convex_headers)
+
+libvwGeometry_la_SOURCES = SpatialTree.cc $(convex_sources)
 libvwGeometry_la_LIBADD = @MODULE_GEOMETRY_LIBS@
 
 lib_LTLIBRARIES = libvwGeometry.la
@@ -42,7 +57,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
-AM_LDFLAGS = @VW_LDFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@
 
 SUBDIRS = . tests
 

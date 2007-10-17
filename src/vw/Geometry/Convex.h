@@ -21,13 +21,13 @@
 // 
 // __END_LICENSE__
 
-/// \file BConvex.h
+/// \file Convex.h
 ///
-/// Provides a generic convex bounding shape.
-#ifndef __VW_MATH__BCONVEX_H__
-#define __VW_MATH__BCONVEX_H__
+/// Provides a generic convex shape.
+#ifndef __VW_GEOMETRY_CONVEX_H__
+#define __VW_GEOMETRY_CONVEX_H__
 
-// In addition to the standard incremental grow() method, BConvex provides a
+// In addition to the standard incremental grow() method, Convex provides a
 // constructor that takes a std::vector of vw::Vectors. If qhull is available,
 // this constructor uses it to construct the initial convex hull, which is much
 // better than using the incremental grow() method for a large number of
@@ -45,16 +45,16 @@
 
 #include <boost/static_assert.hpp>
 
-#include <vw/Math/BShape.h>
-#include <vw/Math/BBox.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Functors.h>
+#include <vw/Geometry/Shape.h>
+#include <vw/Geometry/Box.h>
 
 namespace vw {
 namespace math {
 
   /// \cond INTERNAL
-  namespace bconvex_promote {
+  namespace convex_promote {
     struct Promoted {
       //NOTE: we use these types because they are the longest input types supported by GMP
       typedef long int SignedT;
@@ -160,31 +160,31 @@ namespace math {
       }
     };
 
-  } // namespace bconvex_promote
+  } // namespace convex_promote
   /// \endcond
   
   // *******************************************************************
-  // class BConvex
+  // class Convex
   // *******************************************************************
   
   /// A general arbitrary-dimensional convex shape class.
-  class BConvex : public BShapeBase<BConvex, double, 0> {
+  class Convex : public ShapeBase<Convex, double, 0> {
   public:
     /// Default constructor.
-    BConvex() {
+    Convex() {
       m_poly = 0;
     }
 
     /// Polyhedron-only constructor.
-    BConvex( const void *poly ) {
+    Convex( const void *poly ) {
       m_poly = new_poly(poly);
     }
     
     /// Vector-of-points constructor.
     template <class ContainerT>
-    BConvex( std::vector<ContainerT> const& points ) {
+    Convex( std::vector<ContainerT> const& points ) {
       unsigned num_points = points.size();
-      VW_ASSERT( num_points > 0, ArgumentErr() << "No points provided to BConvex vector-of-points constructor!" );
+      VW_ASSERT( num_points > 0, ArgumentErr() << "No points provided to Convex vector-of-points constructor!" );
       unsigned dim = points[0].size();
       if (have_qhull()) {
         double *p = new double[num_points*dim];
@@ -202,18 +202,18 @@ namespace math {
     }
 
     /// Destructor.
-    ~BConvex() {
+    ~Convex() {
       delete_poly(m_poly);
       m_poly = 0;
     }
     
     /// Copy constructor.
-    BConvex( BConvex const& bconv ) {
+    Convex( Convex const& bconv ) {
       m_poly = new_poly(bconv.poly());
     }
     
     /// Copy assignment operator.
-    BConvex& operator=( BConvex const& bconv ) {
+    Convex& operator=( Convex const& bconv ) {
       copy_poly(bconv.poly(), m_poly);
       return *this;
     }
@@ -227,16 +227,16 @@ namespace math {
     /// Grows a convex shape to include the given point.
     template <class VectorT>
     void grow( VectorBase<VectorT> const& point ) {
-      Vector<bconvex_promote::Promoted> p;
+      Vector<convex_promote::Promoted> p;
       new_poly_if_needed(point.impl().size(), m_poly);
       grow_(promote_vector(point, p));
     }
     
     /// Grows a convex shape to include the given convex shape.
-    void grow( BConvex const& bconv );
+    void grow( Convex const& bconv );
     
     /// Crops (intersects) this convex shape to the given convex shape.
-    void crop( BConvex const& bconv );
+    void crop( Convex const& bconv );
     
     /// Expands this convex shape by the given offset in every direction.
     void expand( double offset );
@@ -249,7 +249,7 @@ namespace math {
     /// Returns true if the given point is contained in the convex shape.
     template <class VectorT>
     bool contains( VectorBase<VectorT> const& point ) const {
-      Vector<bconvex_promote::Promoted> p;
+      Vector<convex_promote::Promoted> p;
       if (!m_poly)
         return false;
       return contains_(promote_vector(point, p));
@@ -257,11 +257,11 @@ namespace math {
     
     /// Returns true if the given convex shape is entirely contained
     /// in this convex shape.
-    bool contains( BConvex const& bconv ) const;
+    bool contains( Convex const& bconv ) const;
     
     /// Returns true if the given convex shape intersects this
     /// convex shape.
-    bool intersects( BConvex const& bconv ) const;
+    bool intersects( Convex const& bconv ) const;
     
     /// Returns the size (i.e. twice the largest distance between
     /// the center and a vertex) of the convex shape.
@@ -280,11 +280,11 @@ namespace math {
     unsigned num_vertices() const;
     
     /// Returns a bounding box that contains this convex shape.
-    BBoxN bounding_box() const;
+    BoxN bounding_box() const;
 
     /// Returns true if the given convex shape is equal to this
     /// convex shape.
-    bool equal( BConvex const& bconv ) const;
+    bool equal( Convex const& bconv ) const;
 
     /// Prints the convex shape.
     void print( std::ostream& os = std::cout ) const;
@@ -309,8 +309,8 @@ namespace math {
 
     /// Scales the convex shape relative to the origin.
     template <class ScalarT>
-    BConvex& operator*=( ScalarT s ) {
-      using namespace bconvex_promote;
+    Convex& operator*=( ScalarT s ) {
+      using namespace convex_promote;
       VW_ASSERT( !empty(), LogicErr() << "Cannot multiply an empty polyhedron by a scalar!" );
       Promoted r;
       operator_mult_eq_(promote_scalar(s, r));
@@ -319,8 +319,8 @@ namespace math {
 
     /// Scales the convex shape relative to the origin.
     template <class ScalarT>
-    BConvex& operator/=( ScalarT s ) {
-      using namespace bconvex_promote;
+    Convex& operator/=( ScalarT s ) {
+      using namespace convex_promote;
       VW_ASSERT( !empty(), LogicErr() << "Cannot divide an empty polyhedron by a scalar!" );
       Promoted r;
       operator_div_eq_(promote_scalar(s, r));
@@ -329,26 +329,26 @@ namespace math {
 
     /// Offsets the convex shape by the given vector.
     template <class VectorT>
-    BConvex& operator+=( VectorBase<VectorT> const& v ) {
+    Convex& operator+=( VectorBase<VectorT> const& v ) {
       VW_ASSERT( !empty(), LogicErr() << "Cannot add a vector to an empty polyhedron!" );
-      Vector<bconvex_promote::Promoted> p;
+      Vector<convex_promote::Promoted> p;
       operator_plus_eq_(promote_vector(v, p));
       return *this;
     }
 
     /// Offsets the convex shape by the negation of the given vector.
     template <class VectorT>
-    BConvex& operator-=( VectorBase<VectorT> const& v ) {
+    Convex& operator-=( VectorBase<VectorT> const& v ) {
       VW_ASSERT( !empty(), LogicErr() << "Cannot subtract a vector from an empty polyhedron!" );
-      Vector<bconvex_promote::Promoted> p;
+      Vector<convex_promote::Promoted> p;
       operator_minus_eq_(promote_vector(v, p));
       return *this;
     }
 
     /// Converts a Vector to a Promoted Vector.
     template <class VectorT>
-    static Vector<bconvex_promote::Promoted> const& promote_vector( VectorBase<VectorT> const& point, Vector<bconvex_promote::Promoted> &p ) {
-      using namespace bconvex_promote;
+    static Vector<convex_promote::Promoted> const& promote_vector( VectorBase<VectorT> const& point, Vector<convex_promote::Promoted> &p ) {
+      using namespace convex_promote;
       unsigned dim = point.impl().size();
       p.set_size(dim);
       for (unsigned i = 0; i < dim; i++)
@@ -358,8 +358,8 @@ namespace math {
     
     /// Converts a scalar to a Promoted.
     template <class ScalarT>
-    static inline bconvex_promote::Promoted const& promote_scalar( ScalarT s, bconvex_promote::Promoted &r ) {
-      using namespace bconvex_promote;
+    static inline convex_promote::Promoted const& promote_scalar( ScalarT s, convex_promote::Promoted &r ) {
+      using namespace convex_promote;
       PromoteFuncs<ScalarT>::set(s, r);
       return r;
     }
@@ -388,93 +388,93 @@ namespace math {
     void init_with_qhull( unsigned dim, unsigned num_points, double *p );
 
     /// Grows a convex shape to include the given point.
-    void grow_( Vector<bconvex_promote::Promoted> const& point );
+    void grow_( Vector<convex_promote::Promoted> const& point );
 
     /// Returns true if the given point is contained in the convex shape.
-    bool contains_( Vector<bconvex_promote::Promoted> const& point ) const;
+    bool contains_( Vector<convex_promote::Promoted> const& point ) const;
 
     /// Scales the convex shape relative to the origin.
-    void operator_mult_eq_( bconvex_promote::Promoted const& s );
+    void operator_mult_eq_( convex_promote::Promoted const& s );
 
     /// Scales the convex shape relative to the origin.
-    void operator_div_eq_( bconvex_promote::Promoted const& s );
+    void operator_div_eq_( convex_promote::Promoted const& s );
 
     /// Offsets the convex shape by the given vector.
-    void operator_plus_eq_( Vector<bconvex_promote::Promoted> const& v );
+    void operator_plus_eq_( Vector<convex_promote::Promoted> const& v );
 
     /// Offsets the convex shape by the negation of the given vector.
-    void operator_minus_eq_( Vector<bconvex_promote::Promoted> const& v );
+    void operator_minus_eq_( Vector<convex_promote::Promoted> const& v );
     
     void *m_poly;
   };
   
   /// Scales a convex shape relative to the origin.
   template <class ScalarT>
-  inline BConvex operator*( BConvex const& bconv, ScalarT s ) {
-    BConvex result = bconv;
+  inline Convex operator*( Convex const& bconv, ScalarT s ) {
+    Convex result = bconv;
     result *= s;
     return result;
   }
 
   /// Scales a convex shape relative to the origin.
   template <class ScalarT>
-  inline BConvex operator/( BConvex const& bconv, ScalarT s ) {
-    BConvex result = bconv;
+  inline Convex operator/( Convex const& bconv, ScalarT s ) {
+    Convex result = bconv;
     result /= s;
     return result;
   }
 
   /// Scales a convex shape relative to the origin.
   template <class ScalarT>
-  inline BConvex operator*( ScalarT s, BConvex const& bconv ) {
+  inline Convex operator*( ScalarT s, Convex const& bconv ) {
     return bconv * s;
   }
   
   /// Offsets a convex shape by the given vector.
   template <class VectorT>
-  inline BConvex operator+( BConvex const& bconv, VectorBase<VectorT> const& v ) {
-    BConvex result = bconv;
+  inline Convex operator+( Convex const& bconv, VectorBase<VectorT> const& v ) {
+    Convex result = bconv;
     result += v.impl();
     return result;
   }
 
   /// Offsets a convex shape by the given vector.
   template <class VectorT>
-  inline BConvex operator+( VectorBase<VectorT> const& v, BConvex const& bconv ) {
+  inline Convex operator+( VectorBase<VectorT> const& v, Convex const& bconv ) {
     return bconv + v;
   }
 
   /// Offsets a convex shape by the negation of the given vector.
   template <class VectorT>
-  inline BConvex operator-( BConvex const& bconv, VectorBase<VectorT> const& v ) {
-    BConvex result = bconv;
+  inline Convex operator-( Convex const& bconv, VectorBase<VectorT> const& v ) {
+    Convex result = bconv;
     result -= v.impl();
     return result;
   }
 
   /// Equality of two convex shapes.
-  inline bool operator==( BConvex const& bconv1, BConvex const& bconv2 ) {
+  inline bool operator==( Convex const& bconv1, Convex const& bconv2 ) {
     return bconv1.equal(bconv2);
   }
 
   /// Inequality of two convex shapes.
-  inline bool operator!=( BConvex const& bconv1, BConvex const& bconv2 ) {
+  inline bool operator!=( Convex const& bconv1, Convex const& bconv2 ) {
     return !bconv1.equal(bconv2);
   }
   
   /// Writes a convex shape to an ostream.
-  std::ostream& operator<<( std::ostream& os, BConvex const& bconv );
+  std::ostream& operator<<( std::ostream& os, Convex const& bconv );
 
   /// Writes a convex shape to a file.
-  void write_bconvex( std::string const& filename, BConvex const& bconv, bool binary = false );
+  void write_convex( std::string const& filename, Convex const& bconv, bool binary = false );
 
   /// Reads a convex shape from a file.
-  void read_bconvex( std::string const& filename, BConvex& bconv, bool binary = false );
+  void read_convex( std::string const& filename, Convex& bconv, bool binary = false );
 
 } // namespace math
 
-  // Include BConvex in vw namespace.
-  using math::BConvex;
+  // Include Convex in vw namespace.
+  using geometry::Convex;
 } // namespace vw
 
-#endif // __VW_MATH__BCONVEX_H__
+#endif // __VW_GEOMETRY_CONVEX_H__

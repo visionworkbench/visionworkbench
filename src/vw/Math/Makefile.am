@@ -31,29 +31,12 @@ if HAVE_PKG_LAPACK
 lapack_headers = LinearAlgebra.h LevenbergMarquardt.h Geometry.h
 endif
 
-# BConvex can use either PPL or Apron
-if HAVE_PKG_PPL
-if HAVE_PKG_GMP
-convex_headers = BConvex.h
-convex_sources = BConvex.cc
-endif
-endif
-if HAVE_PKG_APRON
-if HAVE_PKG_GMP
-if HAVE_PKG_MPFR
-convex_headers = BConvex.h
-convex_sources = BConvex.cc
-endif
-endif
-endif
+include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h	\
+                  Quaternion.h EulerAngles.h ConjugateGradient.h	\
+                  NelderMead.h Statistics.h DisjointSet.h		\
+                  MinimumSpanningTree.h $(lapack_headers)
 
-include_HEADERS = Vector.h Matrix.h BShape.h BBox.h BBall.h	\
-                  Functions.h Functors.h Quaternion.h EulerAngles.h	\
-                  ConjugateGradient.h NelderMead.h SpatialTree.h	\
-                  Statistics.h DisjointSet.h MinimumSpanningTree.h	\
-                  PointListIO.h $(lapack_headers) $(convex_headers)
-
-libvwMath_la_SOURCES = SpatialTree.cc MinimumSpanningTree.cc $(convex_sources)
+libvwMath_la_SOURCES = MinimumSpanningTree.cc
 libvwMath_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvwMath_la_LIBADD = @MODULE_MATH_LIBS@
 

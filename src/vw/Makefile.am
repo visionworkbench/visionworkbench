@@ -80,15 +80,22 @@ hdr_subdirs = HDR
 hdr_headers = HDR.h
 endif
 
+if MAKE_MODULE_GEOMETRY
+geometry_subdirs = Geometry
+geometry_headers = Geometry.h
+endif
+
 include_HEADERS = $(core_headers) $(math_headers) $(image_headers)	\
 	$(fileio_headers) $(camera_headers) $(mosaic_headers)		\
 	$(stereo_headers) $(cartography_headers) $(gpu_headers)		\
-	$(interestpoint_headers) $(hdr_headers) vw.h
+	$(interestpoint_headers) $(hdr_headers) $(geometry_headers)	\
+	vw.h
 
-SUBDIRS = $(core_subdirs) $(math_subdirs) $(image_subdirs)	\
-	$(fileio_subdirs) . $(camera_subdirs) $(mosaic_subdirs)	\
-	$(stereo_subdirs) $(cartography_subdirs) $(gpu_subdirs)	\
-	$(interestpoint_subdirs) $(hdr_subdirs) tests tools
+SUBDIRS = $(core_subdirs) $(math_subdirs) $(image_subdirs)		\
+	$(fileio_subdirs) . $(camera_subdirs) $(mosaic_subdirs)		\
+	$(stereo_subdirs) $(cartography_subdirs) $(gpu_subdirs)		\
+	$(interestpoint_subdirs) $(hdr_subdirs) $(geometry_subdirs)	\
+	tests tools
 
 lib_LTLIBRARIES = libvw.la
 libvw_la_SOURCES =

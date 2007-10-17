@@ -12,7 +12,7 @@
 #include <vw/Math/BBox.h>
 
 namespace vw {
-namespace math {
+namespace geometry {
 
   class GeomPrimitive {
   public:

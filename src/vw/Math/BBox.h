@@ -24,8 +24,8 @@
 /// \file BBox.h
 ///
 /// Provides a generic bounding box.
-#ifndef __VW_MATH__BBOX_H__
-#define __VW_MATH__BBOX_H__
+#ifndef __VW_MATH_BBOX_H__
+#define __VW_MATH_BBOX_H__
 
 #include <iostream>
 #include <limits>
@@ -34,9 +34,7 @@
 
 #include <boost/static_assert.hpp>
 
-#include <vw/Math/BShape.h>
 #include <vw/Math/Vector.h>
-#include <vw/Math/PointListIO.h>
 
 namespace vw {
 namespace math {
@@ -107,7 +105,7 @@ namespace math {
   /// represented by vectors pointing to the minimal and maximal
   /// corners.
   template <class BBoxT, class RealT, int DimN>
-  class BBoxBase : public BShapeBase<BBoxBase<BBoxT, RealT, DimN>, RealT, DimN> {
+  class BBoxBase {
   public:
 
     /// Default constructor.  Constructs the ultimate empty bounding 
@@ -278,28 +276,6 @@ namespace math {
       return (m_min.size() <= 0);
     }
 
-    /// Writes the bounding box.
-    void write( std::ostream& os = std::cout, bool binary = false ) const {
-      std::vector<Vector<RealT, DimN> > points;
-      points.push_back(m_min);
-      points.push_back(m_max);
-      write_point_list(os, points, binary);
-    }
-
-    /// Writes the bounding box.
-    void write( const char *fn, bool binary = false ) const {
-      if (binary) {
-        std::ofstream of( fn, std::ofstream::out | std::ofstream::binary );
-        write(of, binary);
-        of.close();
-      }
-      else {
-        std::ofstream of( fn );
-        write(of, binary);
-        of.close();
-      }
-    }
-
     /// Scales the bounding box relative to the origin.
     template <class ScalarT>
     BBoxBase& operator*=( ScalarT s ) {
@@ -396,21 +372,6 @@ namespace math {
   template <class BBoxT, class RealT, int DimN>
   std::ostream& operator<<( std::ostream& os, BBoxBase<BBoxT,RealT,DimN> const& bbox ) {
     return os << "(" << bbox.min() << "-" << bbox.max() << ")";
-  }
-
-  /// Writes a bounding box to a file.
-  template <class BBoxT, class RealT, int DimN>
-  void write_bbox( std::string const& filename, BBoxBase<BBoxT,RealT,DimN> const& bbox, bool binary = false ) {
-    bbox.write(filename.c_str(), binary);
-  }
-
-  /// Reads a bounding box from a file.
-  template <class BBoxT, class RealT, int DimN>
-  void read_bbox( std::string const& filename, BBoxBase<BBoxT,RealT,DimN>& bbox, bool binary = false ) {
-    std::vector<Vector<RealT,DimN> > points;
-    read_point_list(filename, points, binary);
-    VW_ASSERT( points.size() == 2, IOErr() << "Incorrect number of points in bbox file!" );
-    bbox = BBoxBase<BBoxT,RealT,DimN>(points[0], points[1]);
   }
 
   // *******************************************************************
@@ -582,4 +543,4 @@ namespace math {
 
 } // namespace vw
 
-#endif // __VW_MATH__BBOX_H__
+#endif // __VW_MATH_BBOX_H__

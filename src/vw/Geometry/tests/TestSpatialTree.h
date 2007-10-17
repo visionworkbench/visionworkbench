@@ -26,11 +26,11 @@
 #include <cxxtest/TestSuite.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/BBox.h>
-#include <vw/Math/SpatialTree.h>
+#include <vw/Geometry/SpatialTree.h>
 
 using namespace std;
 using namespace vw;
-using namespace vw::math;
+using namespace vw::geometry;
 
 #define TEST_SPATIAL_TREE_PRINT_RESULT_1D "+ Min[Vector1(0)] Max[Vector1(16)]\n  + Min[Vector1(8)] Max[Vector1(16)]\n    + Min[Vector1(12)] Max[Vector1(16)]\n    + Min[Vector1(8)] Max[Vector1(12)]\n      + Min[Vector1(10)] Max[Vector1(12)]\n      + Min[Vector1(8)] Max[Vector1(10)]\n        + Min[Vector1(9)] Max[Vector1(10)]\n          + Min[Vector1(9.5)] Max[Vector1(10)]\n          + Min[Vector1(9)] Max[Vector1(9.5)]\n            + Min[Vector1(9.25)] Max[Vector1(9.5)]\n            + Min[Vector1(9)] Max[Vector1(9.25)]\n              + Min[Vector1(9.125)] Max[Vector1(9.25)]\n              + Min[Vector1(9)] Max[Vector1(9.125)]\n                Min[Vector1(9)] Max[Vector1(9.1)]\n        + Min[Vector1(8)] Max[Vector1(9)]\n  + Min[Vector1(0)] Max[Vector1(8)]\n    + Min[Vector1(4)] Max[Vector1(8)]\n    + Min[Vector1(0)] Max[Vector1(4)]\n      + Min[Vector1(2)] Max[Vector1(4)]\n      + Min[Vector1(0)] Max[Vector1(2)]\n        + Min[Vector1(1)] Max[Vector1(2)]\n          Min[Vector1(1)] Max[Vector1(1.75)]\n          + Min[Vector1(1.5)] Max[Vector1(2)]\n            Min[Vector1(1.5)] Max[Vector1(2)]\n          + Min[Vector1(1)] Max[Vector1(1.5)]\n        + Min[Vector1(0)] Max[Vector1(1)]\n          + Min[Vector1(0.5)] Max[Vector1(1)]\n          + Min[Vector1(0)] Max[Vector1(0.5)]\n            + Min[Vector1(0.25)] Max[Vector1(0.5)]\n            + Min[Vector1(0)] Max[Vector1(0.25)]\n              Min[Vector1(0.1)] Max[Vector1(0.2)]\n"
 

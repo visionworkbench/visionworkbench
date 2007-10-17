@@ -21,28 +21,21 @@
 // 
 // __END_LICENSE__
 
-/// \file Math.h
+/// \file Geometry.h
 /// 
-/// A convenience header that includes the header files in vw/Math.
+/// A convenience header that includes the header files in vw/Geometry.
 /// 
-#ifndef __VW_MATH_H__
-#define __VW_MATH_H__
+#ifndef __VW_GEOMETRY_H__
+#define __VW_GEOMETRY_H__
 
-#include <vw/Math/Functions.h>
-#include <vw/Math/Functors.h>
-#include <vw/Math/Vector.h>
-#include <vw/Math/Matrix.h>
-#include <vw/Math/BBox.h>
-#include <vw/Math/Quaternion.h>
-#include <vw/Math/ConjugateGradient.h>
-#include <vw/Math/NelderMead.h>
-#include <vw/Math/EulerAngles.h>
-#include <vw/Math/Statistics.h>
+#include <vw/Geometry/Shape.h>
+#include <vw/Geometry/Box.h>
+#include <vw/Geometry/Sphere.h>
+#include <vw/Geometry/SpatialTree.h>
+#include <vw/Geometry/PointListIO.h>
 
-#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
-#include <vw/Math/LinearAlgebra.h>
-#include <vw/Math/LevenbergMarquardt.h>
-#include <vw/Math/Geometry.h>
+#if (defined(VW_HAVE_PKG_PPL) && VW_HAVE_PKG_PPL==1) || (defined(VW_HAVE_PKG_APRON) && VW_HAVE_PKG_APRON==1)
+#include <vw/Geometry/Convex.h>
 #endif
 
-#endif // __VW_MATH_H__
+#endif // __VW_GEOMETRY_H__

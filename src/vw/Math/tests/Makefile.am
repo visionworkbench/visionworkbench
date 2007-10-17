@@ -31,12 +31,10 @@ nodist_TestVector_SOURCES = TestVector.cxx
 nodist_TestMatrix_SOURCES = TestMatrix.cxx
 nodist_TestQuaternion_SOURCES = TestQuaternion.cxx
 nodist_TestBBox_SOURCES = TestBBox.cxx
-nodist_TestBBall_SOURCES = TestBBall.cxx
 nodist_TestFunctions_SOURCES = TestFunctions.cxx
 nodist_TestFunctors_SOURCES = TestFunctors.cxx
 nodist_TestNelderMead_SOURCES = TestNelderMead.cxx
 #nodist_TestConjugateGradient_SOURCES = TestConjugateGradient.cxx
-nodist_TestSpatialTree_SOURCES = TestSpatialTree.cxx
 
 if HAVE_PKG_LAPACK
 nodist_TestLinearAlgebra_SOURCES = TestLinearAlgebra.cxx
@@ -45,18 +43,9 @@ nodist_TestLevenbergMarquardt_SOURCES = TestLevenbergMarquardt.cxx
 TestLinearAlgebra = TestLinearAlgebra TestGeometry TestLevenbergMarquardt
 endif
 
-if HAVE_PKG_PPL
-nodist_TestBConvex_SOURCES = TestBConvex.cxx
-TestPPL = TestBConvex
-endif
-if HAVE_PKG_APRON
-nodist_TestBConvex_SOURCES = TestBConvex.cxx
-TestPPL = TestBConvex
-endif
-
-TESTS = TestVector TestMatrix TestQuaternion TestBBox TestBBall TestFunctions	 \
-        TestFunctors TestNelderMead TestSpatialTree $(TestLinearAlgebra) \
-        $(TestPPL) #TestConjugateGradient
+TESTS = TestVector TestMatrix TestQuaternion TestBBox TestFunctions	\
+        TestFunctors TestNelderMead $(TestLinearAlgebra)		\
+        #TestConjugateGradient
 endif
 
 ########################################################################

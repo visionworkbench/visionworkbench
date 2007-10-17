@@ -24,17 +24,20 @@
 /// \file DisjointSet.h
 ///
 /// Provides a disjoint set data structure.
-#ifndef __VW_MATH__DISJOINT_SET_H__
-#define __VW_MATH__DISJOINT_SET_H__
+#ifndef __VW_MATH_DISJOINTSET_H__
+#define __VW_MATH_DISJOINTSET_H__
 
-// This is an efficient disjoint set data structure. It allows the user
-// to insert new elements as single-element sets, insert new elements into
-// existing sets, combine sets, and find the set that contains a given
-// element.
+// This is an efficient disjoint set data structure, i.e. a set of
+// values is partitioned into multiple disjoint subsets. It allows the
+// user to insert new elements as single-element sets, insert new
+// elements into existing sets, combine sets, and find the set that
+// contains a given element.
 
-// Note that find(Elem) is much more efficient than find(ElemT), so it is
-// strongly recommended that you store the Elem returned by insert().
-
+// Note that find(Elem) is much more efficient than find(ElemT), so it
+// is strongly recommended that you store the Elem returned by
+// insert() if you intend to find() it again later.  Also, it is possible 
+// to store multiple elements with the same value in a DisjointSet, but 
+// if you do so then find(ElemT) becomes ambiguous.
 
 #include <list>
 
@@ -134,4 +137,4 @@ namespace math {
 
 }} // namespace vw::math
 
-#endif // __VW_MATH__DISJOINT_SET_H__
+#endif // __VW_MATH_DISJOINTSET_H__

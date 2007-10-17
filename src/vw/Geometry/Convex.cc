@@ -33,8 +33,8 @@
 #include <vw/Math/Matrix.h>
 #include <vw/Math/PointListIO.h>
 #include <vw/Math/SpatialTree.h>
-#include <vw/Math/BConvex.h>
-using namespace vw::math::bconvex_promote;
+#include <vw/Geometry/Convex.h>
+using namespace vw::geometry::convex_promote;
 
 #if defined(VW_HAVE_PKG_PPL) && VW_HAVE_PKG_PPL==1
 #include <gmpxx.h> // GNU Multiple Precision Arithmetic Library
@@ -56,7 +56,7 @@ extern "C" {
 #endif
 
 namespace vw {
-namespace math {
+namespace geometry {
 
   /// Square of vector 2-norm (with gmp elements).
   template <class VectorT>
@@ -77,7 +77,7 @@ namespace math {
 
 namespace {
   /// Mutex for qhull, which is not thread-safe.
-  vw::Mutex bconvex_qhull_mutex;
+  vw::Mutex convex_qhull_mutex;
   
   /// Point primitive for SpatialTree.
   class PointPrimitive : public vw::math::GeomPrimitive
@@ -93,11 +93,11 @@ namespace {
       using namespace vw::math;
       return norm_2(point - point_);
     }
-    virtual const vw::BBox<double> &bounding_box() const {return bbox;}
+    virtual const vw::BoxN &bounding_box() const {return bbox;}
   
     unsigned index;
     vw::Vector<double> point;
-    vw::BBox<double> bbox;
+    vw::BoxN bbox;
   };
   
   /// Indexed polyhedron edge.
@@ -216,20 +216,20 @@ namespace {
 #if defined(VW_HAVE_PKG_PPL) && VW_HAVE_PKG_PPL==1
 
   /// All functionality that is tied to PPL.
-  class BConvexImpl
+  class ConvexImpl
   {
   public:
     /// Constructor.
-    BConvexImpl( unsigned dim, bool universe = false ) : poly( dim, universe ? Parma_Polyhedra_Library::UNIVERSE : Parma_Polyhedra_Library::EMPTY ) {}
+    ConvexImpl( unsigned dim, bool universe = false ) : poly( dim, universe ? Parma_Polyhedra_Library::UNIVERSE : Parma_Polyhedra_Library::EMPTY ) {}
 
     /// Copy constructor.
-    BConvexImpl( const BConvexImpl &other ) : poly(other.poly) {}
+    ConvexImpl( const ConvexImpl &other ) : poly(other.poly) {}
 
     /// Destructor.
-    ~BConvexImpl() {}
+    ~ConvexImpl() {}
 
     /// Assignment operator.
-    BConvexImpl &operator=( const BConvexImpl &other ) {poly = other.poly;}
+    ConvexImpl &operator=( const ConvexImpl &other ) {poly = other.poly;}
 
     /// Return dimension of ambient space.
     inline unsigned space_dimension() const {return poly.space_dimension();}
@@ -246,13 +246,13 @@ namespace {
     }
     
     /// Return whether the polyhedron contains the other polyhedron.
-    inline bool contains( const BConvexImpl &other ) const {return poly.contains(other.poly);}
+    inline bool contains( const ConvexImpl &other ) const {return poly.contains(other.poly);}
 
     /// Return whether the polyhedron is disjoint from the other polyhedron.
-    inline bool is_disjoint_from( const BConvexImpl &other ) const {return poly.is_disjoint_from(other.poly);}
+    inline bool is_disjoint_from( const ConvexImpl &other ) const {return poly.is_disjoint_from(other.poly);}
 
     /// Return whether the polyhedron is equal to the other polyhedron.
-    inline bool equal( const BConvexImpl &other ) const {
+    inline bool equal( const ConvexImpl &other ) const {
       using Parma_Polyhedra_Library::operator==;
       return (poly == other.poly);
     }
@@ -322,10 +322,10 @@ namespace {
     }
 
     /// Assign to this polyhedron the convex hull of this polyhedron and the other polyhedron.
-    inline void poly_hull_assign( const BConvexImpl &other ) {poly.poly_hull_assign(other.poly);}
+    inline void poly_hull_assign( const ConvexImpl &other ) {poly.poly_hull_assign(other.poly);}
 
     /// Assign to this polyhedron the intersection of this polyhedron and the other polyhedron.
-    inline void intersection_assign( const BConvexImpl &other ) {poly.intersection_assign(other.poly);}
+    inline void intersection_assign( const ConvexImpl &other ) {poly.intersection_assign(other.poly);}
 
     /// Print the polyhedron.
     void print( std::ostream& os ) const {
@@ -444,10 +444,10 @@ namespace {
 #elif defined(VW_HAVE_PKG_APRON) && VW_HAVE_PKG_APRON==1
 
   /// All functionality that is tied to Apron/NewPolka.
-  class BConvexImpl {
+  class ConvexImpl {
   public:
     /// Constructor.
-    BConvexImpl( unsigned dim_, bool universe = false ) : dim( dim_ ) {
+    ConvexImpl( unsigned dim_, bool universe = false ) : dim( dim_ ) {
       generate_variable_names();
       man = pk_manager_alloc(false); // no strict inequalities
       env = ap_environment_alloc(0, 0, variable_names, dim);
@@ -455,7 +455,7 @@ namespace {
     }
   
     /// Copy constructor.
-    BConvexImpl( const BConvexImpl &other ) : dim( other.dim ) {
+    ConvexImpl( const ConvexImpl &other ) : dim( other.dim ) {
       generate_variable_names();
       man = pk_manager_alloc(false); // no strict constraints
       env = ap_environment_alloc(NULL, 0, variable_names, other.dim);
@@ -463,7 +463,7 @@ namespace {
     }
 
     /// Destructor.
-    ~BConvexImpl() {
+    ~ConvexImpl() {
       ap_abstract1_clear(man, &poly);
       ap_environment_free(env);
       ap_manager_free(man);
@@ -471,8 +471,8 @@ namespace {
     }
 
     /// Assignment operator.
-    BConvexImpl &operator=( const BConvexImpl &other ) {
-      if (&other != (const BConvexImpl*)this) {
+    ConvexImpl &operator=( const ConvexImpl &other ) {
+      if (&other != (const ConvexImpl*)this) {
         ap_abstract1_clear(man, &poly);
         ap_environment_free(env);
         ap_manager_free(man);
@@ -497,18 +497,18 @@ namespace {
 
     /// Return whether the polyhedron contains the given point.
     inline bool contains( const vw::Vector<mpq_class> &point ) const {
-      BConvexImpl point_poly(point.size(), true);
+      ConvexImpl point_poly(point.size(), true);
       return contains(point_polyhedron_generator(point, point_poly));
     }
     
     /// Return whether the polyhedron contains the other polyhedron.
-    inline bool contains( const BConvexImpl &other ) const {
+    inline bool contains( const ConvexImpl &other ) const {
       VW_ASSERT(ap_environment_is_eq(env, other.env), vw::ArgumentErr() << "Cannot compare convex shapes with different environments!");
       return ap_abstract1_is_leq(man, &other.poly, &poly);
     }
 
     /// Return whether the polyhedron is disjoint from the other polyhedron.
-    bool is_disjoint_from( const BConvexImpl &other ) const {
+    bool is_disjoint_from( const ConvexImpl &other ) const {
       VW_ASSERT(ap_environment_is_eq(env, other.env), vw::ArgumentErr() << "Cannot compare convex shapes with different environments!");
       bool disjoint;
       ap_abstract1_t intersection;
@@ -519,7 +519,7 @@ namespace {
     }
 
     /// Return whether the polyhedron is equal to the other polyhedron.
-    inline bool equal( const BConvexImpl &other ) const {
+    inline bool equal( const ConvexImpl &other ) const {
       VW_ASSERT(ap_environment_is_eq(env, other.env), vw::ArgumentErr() << "Cannot compare convex shapes with different environments!");
       return ap_abstract1_is_eq(man, &other.poly, &poly);
     }
@@ -588,7 +588,7 @@ namespace {
     /// Add a (point) generator.
     void add_generator( const vw::Vector<mpq_class> &point ) {
       VW_ASSERT(point.size() == dim, vw::ArgumentErr() << "Cannot add point of different dimension!");
-      BConvexImpl point_poly(point.size(), true);
+      ConvexImpl point_poly(point.size(), true);
       poly_hull_assign(point_polyhedron_generator(point, point_poly));
 #if 0
       ap_generator1_array_t old_gs = ap_abstract1_to_generator_array(man, &poly);
@@ -640,13 +640,13 @@ namespace {
 //#endif
 
     /// Assign to this polyhedron the convex hull of this polyhedron and the other polyhedron.
-    inline void poly_hull_assign( const BConvexImpl &other ) {
+    inline void poly_hull_assign( const ConvexImpl &other ) {
       VW_ASSERT(ap_environment_is_eq(env, other.env), vw::ArgumentErr() << "Cannot combine convex shapes with different environments!");
       poly = ap_abstract1_join(man, true, &poly, &other.poly);
     }
 
     /// Assign to this polyhedron the intersection of this polyhedron and the other polyhedron.
-    inline void intersection_assign( const BConvexImpl &other ) {
+    inline void intersection_assign( const ConvexImpl &other ) {
       VW_ASSERT(ap_environment_is_eq(env, other.env), vw::ArgumentErr() << "Cannot combine convex shapes with different environments!");
       poly = ap_abstract1_meet(man, true, &poly, &other.poly);
     }
@@ -738,7 +738,7 @@ namespace {
 #endif
 
     /// Make a polyhedron that contains a single point.
-    static BConvexImpl &point_polyhedron_generator( const vw::Vector<mpq_class> &point, BConvexImpl &point_poly ) {
+    static ConvexImpl &point_polyhedron_generator( const vw::Vector<mpq_class> &point, ConvexImpl &point_poly ) {
       std::vector<vw::Vector<mpq_class> > constraints;
       vw::Vector<mpq_class> coef1, coef2;
       coef1.set_size(point.size() + 1);
@@ -977,7 +977,7 @@ namespace {
   }
 
   /// Find the facets of the polyhedron.
-  void poly_facet_list( const BConvexImpl *poly, std::vector<vw::Vector<mpq_class> > &points, std::vector<std::vector<unsigned> > &facets ) {
+  void poly_facet_list( const ConvexImpl *poly, std::vector<vw::Vector<mpq_class> > &points, std::vector<std::vector<unsigned> > &facets ) {
     if (!poly || poly->is_empty())
       return;
       
@@ -1004,7 +1004,7 @@ namespace {
     
 #if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
 
-      vw::Mutex::Lock lock(bconvex_qhull_mutex);
+      vw::Mutex::Lock lock(convex_qhull_mutex);
       double *p = new double[dim * num_points];
       double **ps = 0;
       facetT *facet;
@@ -1197,7 +1197,7 @@ namespace {
   }
 
   /// Offsets the polyhedron by the given vector.
-  void offset_poly( vw::Vector<mpq_class> const& v, BConvexImpl *&poly ) {
+  void offset_poly( vw::Vector<mpq_class> const& v, ConvexImpl *&poly ) {
     unsigned dim = poly->space_dimension();
     std::vector<vw::Vector<mpq_class> > gs;
     poly->get_generators(gs);
@@ -1206,12 +1206,12 @@ namespace {
         (*i)[j] += v[j];
     }
     delete poly;
-    poly = new BConvexImpl( dim );
+    poly = new ConvexImpl( dim );
     poly->add_generators(gs);
   }
 
   /// Scales the polyhedron relative to the origin.
-  void scale_poly( mpq_class const& s, BConvexImpl *&poly ) {
+  void scale_poly( mpq_class const& s, ConvexImpl *&poly ) {
     unsigned dim = poly->space_dimension();
     std::vector<vw::Vector<mpq_class> > gs;
     poly->get_generators(gs);
@@ -1220,7 +1220,7 @@ namespace {
         (*i)[j] *= s;
     }
     delete poly;
-    poly = new BConvexImpl( dim );
+    poly = new ConvexImpl( dim );
     poly->add_generators(gs);
   }
 
@@ -1229,7 +1229,7 @@ namespace {
 namespace vw {
 namespace math {
 
-  namespace bconvex_promote {
+  namespace convex_promote {
 
     std::ostream& operator<<( std::ostream& os, Promoted const& r ) {
       if (!r.is_integral)
@@ -1239,36 +1239,36 @@ namespace math {
       return os << r.val.u;
     }
 
-  } // namespace bconvex_promote
+  } // namespace convex_promote
 
-  /*static*/ void *BConvex::new_poly( unsigned dim ) {
-    BConvexImpl *p = new BConvexImpl( dim );
+  /*static*/ void *Convex::new_poly( unsigned dim ) {
+    ConvexImpl *p = new ConvexImpl( dim );
     return (void*)p;
   }
 
-  /*static*/ void *BConvex::new_poly( const void *poly ) {
-    BConvexImpl *p = new BConvexImpl( *((const BConvexImpl*)poly) );
+  /*static*/ void *Convex::new_poly( const void *poly ) {
+    ConvexImpl *p = new ConvexImpl( *((const ConvexImpl*)poly) );
     return (void*)p;
   }
 
-  /*static*/ void BConvex::new_poly_if_needed( unsigned dim, void *&poly ) {
+  /*static*/ void Convex::new_poly_if_needed( unsigned dim, void *&poly ) {
     if (!poly)
       poly = new_poly(dim);
   }
   
-  /*static*/ void BConvex::delete_poly( void *poly ) {
+  /*static*/ void Convex::delete_poly( void *poly ) {
     if (poly)
-      delete (BConvexImpl*)poly;
+      delete (ConvexImpl*)poly;
   }
   
-  /*static*/ void BConvex::copy_poly( const void *from_poly, void *&to_poly ) {
+  /*static*/ void Convex::copy_poly( const void *from_poly, void *&to_poly ) {
     if (to_poly)
-      *((BConvexImpl*)to_poly) = *((const BConvexImpl*)from_poly);
+      *((ConvexImpl*)to_poly) = *((const ConvexImpl*)from_poly);
     else
       to_poly = new_poly(from_poly);
   }
   
-  /*static*/ bool BConvex::have_qhull() {
+  /*static*/ bool Convex::have_qhull() {
 #if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
     return true;
 #else
@@ -1276,9 +1276,9 @@ namespace math {
 #endif
   }
 
-  void BConvex::init_with_qhull( unsigned dim, unsigned num_points, double *p ) {
+  void Convex::init_with_qhull( unsigned dim, unsigned num_points, double *p ) {
 #if defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
-    Mutex::Lock lock(bconvex_qhull_mutex);
+    Mutex::Lock lock(convex_qhull_mutex);
     facetT *facet;
     Vector<double> facetv(dim + 1);
     Vector<mpq_class> facetq(dim + 1);
@@ -1291,13 +1291,13 @@ namespace math {
     qhull_run(dim, num_points, p);
     
 #if 0
-    m_poly = (void*)(new BConvexImpl( dim, true ));
+    m_poly = (void*)(new ConvexImpl( dim, true ));
     FORALLfacets {
       for (i = 0; i < dim; i++)
         facetv[i] = -facet->normal[i];
       facetv[i] = -facet->offset;
-      //NOTE: Printing facet->toporient here for the [0,1]^3 unit cube test case (see TestBConvex.h) demonstrates that facet->toporient is meaningless in the qhull output.
-      ((BConvexImpl*)m_poly)->add_constraint(convert_vector(facetv, facetq));
+      //NOTE: Printing facet->toporient here for the [0,1]^3 unit cube test case (see TestConvex.h) demonstrates that facet->toporient is meaningless in the qhull output.
+      ((ConvexImpl*)m_poly)->add_constraint(convert_vector(facetv, facetq));
       num_facets++;
     }
     FORALLvertices {
@@ -1319,7 +1319,7 @@ namespace math {
     FORALLvertices {
       for (i = 0; i < dim; i++)
         vertexv[i] = vertex->point[i];
-      ((BConvexImpl*)m_poly)->add_generator(convert_vector(vertexv, vertexq));
+      ((ConvexImpl*)m_poly)->add_generator(convert_vector(vertexv, vertexq));
       num_vertices++;
     }
 #endif
@@ -1327,7 +1327,7 @@ namespace math {
     //std::cout << "PPL: " << this->num_facets() << " facets and " << this->num_vertices() << " vertices" << std::endl;
     
     VW_ASSERT(!this->empty(), LogicErr() << "Convex hull is empty!");
-    VW_ASSERT(!((const BConvexImpl*)m_poly)->is_universe(), LogicErr() << "Convex hull is universe!");
+    VW_ASSERT(!((const ConvexImpl*)m_poly)->is_universe(), LogicErr() << "Convex hull is universe!");
     
     qhull_free();
 #else // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
@@ -1335,30 +1335,30 @@ namespace math {
 #endif // defined(VW_HAVE_PKG_QHULL) && VW_HAVE_PKG_QHULL==1
   }
   
-  void BConvex::grow_( Vector<Promoted> const& point ) {
+  void Convex::grow_( Vector<Promoted> const& point ) {
     Vector<mpq_class> pointq;
-    ((BConvexImpl*)m_poly)->add_generator(convert_vector(point, pointq));
+    ((ConvexImpl*)m_poly)->add_generator(convert_vector(point, pointq));
   }
 
-  void BConvex::grow( BConvex const& bconv ) {
-    new_poly_if_needed(((const BConvexImpl*)(bconv.poly()))->space_dimension(), m_poly);
-    ((BConvexImpl*)m_poly)->poly_hull_assign(*((const BConvexImpl*)(bconv.poly())));
+  void Convex::grow( Convex const& bconv ) {
+    new_poly_if_needed(((const ConvexImpl*)(bconv.poly()))->space_dimension(), m_poly);
+    ((ConvexImpl*)m_poly)->poly_hull_assign(*((const ConvexImpl*)(bconv.poly())));
   }
 
-  void BConvex::crop( BConvex const& bconv ) {
+  void Convex::crop( Convex const& bconv ) {
     if (!m_poly)
       return;
-    ((BConvexImpl*)m_poly)->intersection_assign(*((const BConvexImpl*)(bconv.poly())));
+    ((ConvexImpl*)m_poly)->intersection_assign(*((const ConvexImpl*)(bconv.poly())));
   }
 
-  void BConvex::expand( double offset ) {
+  void Convex::expand( double offset ) {
     VW_ASSERT(!empty(), LogicErr() << "Cannot expand an empty polyhedron!");
-    unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
+    unsigned dim = ((const ConvexImpl*)m_poly)->space_dimension();
     Vector<mpq_class> center_( dim );
     Vector<mpq_class> d;
     double norm;
     std::vector<vw::Vector<mpq_class> > gs;
-    ((const BConvexImpl*)m_poly)->get_generators(gs);
+    ((const ConvexImpl*)m_poly)->get_generators(gs);
     poly_center(gs, center_);
     for (std::vector<vw::Vector<mpq_class> >::iterator i = gs.begin(); i != gs.end(); i++) {
       d = *i - center_;
@@ -1370,35 +1370,35 @@ namespace math {
     }
     delete_poly(m_poly);
     m_poly = new_poly( dim );
-    ((BConvexImpl*)m_poly)->add_generators(gs);
+    ((ConvexImpl*)m_poly)->add_generators(gs);
   }
 
-  bool BConvex::contains_( Vector<Promoted> const& point ) const {
+  bool Convex::contains_( Vector<Promoted> const& point ) const {
     Vector<mpq_class> pointq;
-    return ((const BConvexImpl*)m_poly)->contains(convert_vector(point, pointq));
+    return ((const ConvexImpl*)m_poly)->contains(convert_vector(point, pointq));
   }
 
-  bool BConvex::contains( BConvex const& bconv ) const {
+  bool Convex::contains( Convex const& bconv ) const {
     if (!m_poly)
       return false;
-    return ((const BConvexImpl*)m_poly)->contains(*((const BConvexImpl*)(bconv.poly())));
+    return ((const ConvexImpl*)m_poly)->contains(*((const ConvexImpl*)(bconv.poly())));
   }
 
-  bool BConvex::intersects( BConvex const& bconv ) const {
+  bool Convex::intersects( Convex const& bconv ) const {
     if (!m_poly)
       return false;
-    return !((const BConvexImpl*)m_poly)->is_disjoint_from(*((const BConvexImpl*)(bconv.poly())));
+    return !((const ConvexImpl*)m_poly)->is_disjoint_from(*((const ConvexImpl*)(bconv.poly())));
   }
 
-  double BConvex::size() const {
+  double Convex::size() const {
     if (!m_poly)
       return 0.0;
-    unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
+    unsigned dim = ((const ConvexImpl*)m_poly)->space_dimension();
     double result = 0;
     double d;
     Vector<mpq_class> c;
     std::vector<vw::Vector<mpq_class> > gs;
-    ((const BConvexImpl*)m_poly)->get_generators(gs);
+    ((const ConvexImpl*)m_poly)->get_generators(gs);
     poly_center(gs, c);
     for (std::vector<vw::Vector<mpq_class> >::iterator i = gs.begin(); i != gs.end(); i++) {
       d = norm_2_sqr_gmp(*i - c);
@@ -1408,45 +1408,45 @@ namespace math {
     return result;
   }
 
-  Vector<double> BConvex::center() const {
+  Vector<double> Convex::center() const {
     VW_ASSERT(!empty(), LogicErr() << "Cannot find the center of an empty polyhedron!");
-    unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
+    unsigned dim = ((const ConvexImpl*)m_poly)->space_dimension();
     Vector<mpq_class> c(dim);
     Vector<double> cd(dim);
     std::vector<vw::Vector<mpq_class> > gs;
-    ((const BConvexImpl*)m_poly)->get_generators(gs);
+    ((const ConvexImpl*)m_poly)->get_generators(gs);
     poly_center(gs, c);
     unconvert_vector(c, cd);
     return cd;
   }
 
-  bool BConvex::equal( BConvex const& bconv ) const {
+  bool Convex::equal( Convex const& bconv ) const {
     if (empty())
       return bconv.empty();
-    return ((const BConvexImpl*)m_poly)->equal(*((const BConvexImpl*)(bconv.poly())));
+    return ((const ConvexImpl*)m_poly)->equal(*((const ConvexImpl*)(bconv.poly())));
   }
 
-  bool BConvex::empty() const {
+  bool Convex::empty() const {
     if (!m_poly)
       return true;
-    return ((const BConvexImpl*)m_poly)->is_empty();
+    return ((const ConvexImpl*)m_poly)->is_empty();
   }
 
-  void BConvex::print( std::ostream& os ) const {
+  void Convex::print( std::ostream& os ) const {
     if (!m_poly) {
       os << "false";
       return;
     }
-    ((const BConvexImpl*)m_poly)->print(os);
+    ((const ConvexImpl*)m_poly)->print(os);
   }
 
-  void BConvex::write( std::ostream& os, bool binary /* = false*/ ) const {
+  void Convex::write( std::ostream& os, bool binary /* = false*/ ) const {
     if (!empty()) {
-      unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
+      unsigned dim = ((const ConvexImpl*)m_poly)->space_dimension();
       std::vector<Vector<double> > points;
       Vector<double> vd(dim);
       std::vector<vw::Vector<mpq_class> > gs;
-      ((const BConvexImpl*)m_poly)->get_generators(gs);
+      ((const ConvexImpl*)m_poly)->get_generators(gs);
       for (std::vector<vw::Vector<mpq_class> >::iterator i = gs.begin(); i != gs.end(); i++) {
         unconvert_vector(*i, vd);
         points.push_back(vd);
@@ -1455,7 +1455,7 @@ namespace math {
     }
   }
 
-  void BConvex::write( const char *fn, bool binary /* = false*/ ) const {
+  void Convex::write( const char *fn, bool binary /* = false*/ ) const {
     if (binary) {
       std::ofstream of(fn, std::ofstream::out | std::ofstream::binary);
       write(of, binary);
@@ -1468,7 +1468,7 @@ namespace math {
     }
   }
 
-  void BConvex::write_vrml( std::ostream& os ) const {
+  void Convex::write_vrml( std::ostream& os ) const {
     os << "#VRML V1.0 ascii\n\n";
     os << "# Created by the Intelligent Robotics Group,\n";
     os << "# NASA Ames Research Center\n";
@@ -1476,7 +1476,7 @@ namespace math {
     os << "Separator {\n";
   
     if (!empty()) {
-      unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
+      unsigned dim = ((const ConvexImpl*)m_poly)->space_dimension();
       unsigned num_points;
       unsigned num_facets;
       Vector<double> vertexv( dim );
@@ -1484,7 +1484,7 @@ namespace math {
       std::vector<std::vector<unsigned> > facets;
       unsigned i, j, k;
       
-      poly_facet_list((const BConvexImpl*)m_poly, points, facets);
+      poly_facet_list((const ConvexImpl*)m_poly, points, facets);
       num_points = points.size();
       num_facets = facets.size();
       
@@ -1550,12 +1550,12 @@ namespace math {
     os << "}\n";
   }
 
-  void BConvex::write_vrml( const char *fn ) const {
+  void Convex::write_vrml( const char *fn ) const {
     std::ofstream of(fn);
     write_vrml(of);
   }
   
-  void BConvex::write_oogl( std::ostream& os ) const {
+  void Convex::write_oogl( std::ostream& os ) const {
     os << "OFF\n\n";
     os << "# Created by the Intelligent Robotics Group,\n";
     os << "# NASA Ames Research Center\n";
@@ -1565,7 +1565,7 @@ namespace math {
       os << "0 0 0\n";
     }
     else {
-      unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
+      unsigned dim = ((const ConvexImpl*)m_poly)->space_dimension();
       unsigned num_points;
       unsigned num_facets;
       unsigned num_edges;
@@ -1574,7 +1574,7 @@ namespace math {
       std::vector<std::vector<unsigned> > facets;
       unsigned i, j, k;
       
-      poly_facet_list((const BConvexImpl*)m_poly, points, facets);
+      poly_facet_list((const ConvexImpl*)m_poly, points, facets);
       num_points = points.size();
       num_facets = facets.size();
       
@@ -1606,31 +1606,31 @@ namespace math {
     }
   }
 
-  void BConvex::write_oogl( const char *fn ) const {
+  void Convex::write_oogl( const char *fn ) const {
     std::ofstream of(fn);
     write_oogl(of);
   }
   
-  unsigned BConvex::num_facets() const {
+  unsigned Convex::num_facets() const {
     if (!m_poly)
       return 0;
-    return ((const BConvexImpl*)m_poly)->num_constraints();
+    return ((const ConvexImpl*)m_poly)->num_constraints();
   }
 
-  unsigned BConvex::num_vertices() const {
+  unsigned Convex::num_vertices() const {
     if (!m_poly)
       return 0;
-    return ((const BConvexImpl*)m_poly)->num_generators();
+    return ((const ConvexImpl*)m_poly)->num_generators();
   }
   
-  BBoxN BConvex::bounding_box() const {
-    BBoxN bbox;
+  BoxN Convex::bounding_box() const {
+    BoxN bbox;
     if (!m_poly)
       return bbox;
-    unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
+    unsigned dim = ((const ConvexImpl*)m_poly)->space_dimension();
     Vector<double> vd(dim);
     std::vector<vw::Vector<mpq_class> > gs;
-    ((const BConvexImpl*)m_poly)->get_generators(gs);
+    ((const ConvexImpl*)m_poly)->get_generators(gs);
     for (std::vector<vw::Vector<mpq_class> >::iterator i = gs.begin(); i != gs.end(); i++) {
       unconvert_vector(*i, vd);
       bbox.grow(vd);
@@ -1638,53 +1638,53 @@ namespace math {
     return bbox;
   }
 
-  void BConvex::operator_mult_eq_( Promoted const& s ) {
+  void Convex::operator_mult_eq_( Promoted const& s ) {
     mpq_class q;
-    BConvexImpl *poly = (BConvexImpl*)m_poly;
+    ConvexImpl *poly = (ConvexImpl*)m_poly;
     convert_scalar(s, q);
     scale_poly(q, poly);
     m_poly = poly;
   }
 
-  void BConvex::operator_div_eq_( Promoted const& s ) {
+  void Convex::operator_div_eq_( Promoted const& s ) {
     mpq_class q;
-    BConvexImpl *poly = (BConvexImpl*)m_poly;
+    ConvexImpl *poly = (ConvexImpl*)m_poly;
     convert_scalar(s, q);
     scale_poly(mpq_class(q.get_den(), q.get_num()), poly);
     m_poly = poly;
   }
 
-  void BConvex::operator_plus_eq_( Vector<Promoted> const& v ) {
-    unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
+  void Convex::operator_plus_eq_( Vector<Promoted> const& v ) {
+    unsigned dim = ((const ConvexImpl*)m_poly)->space_dimension();
     Vector<mpq_class> vq( dim );
-    BConvexImpl *poly = (BConvexImpl*)m_poly;
+    ConvexImpl *poly = (ConvexImpl*)m_poly;
     convert_vector(v, vq);
     offset_poly(vq, poly);
     m_poly = poly;
   }
 
-  void BConvex::operator_minus_eq_( Vector<Promoted> const& v ) {
-    unsigned dim = ((const BConvexImpl*)m_poly)->space_dimension();
+  void Convex::operator_minus_eq_( Vector<Promoted> const& v ) {
+    unsigned dim = ((const ConvexImpl*)m_poly)->space_dimension();
     Vector<mpq_class> vq( dim );
-    BConvexImpl *poly = (BConvexImpl*)m_poly;
+    ConvexImpl *poly = (ConvexImpl*)m_poly;
     convert_vector(v, vq);
     offset_poly(-vq, poly);
     m_poly = poly;
   }
 
-  std::ostream& operator<<( std::ostream& os, BConvex const& bconv ) {
+  std::ostream& operator<<( std::ostream& os, Convex const& bconv ) {
     bconv.print(os);
     return os;
   }
 
-  void write_bconvex( std::string const& filename, BConvex const& bconv, bool binary /* = false*/ ) {
+  void write_convex( std::string const& filename, Convex const& bconv, bool binary /* = false*/ ) {
     bconv.write(filename.c_str(), binary);
   }
 
-  void read_bconvex( std::string const& filename, BConvex& bconv, bool binary /* = false*/ ) {
+  void read_convex( std::string const& filename, Convex& bconv, bool binary /* = false*/ ) {
     std::vector<Vector<double> > points;
     read_point_list(filename, points, binary);
-    bconv = BConvex(points);
+    bconv = Convex(points);
   }
 
-}} // namespace vw::math
+}} // namespace vw::geometry

@@ -1,4 +1,4 @@
-#include <vw/Math/SpatialTree.h>
+#include <vw/Geometry/SpatialTree.h>
 
 #include <assert.h>
 #include <iostream> // debugging
@@ -20,7 +20,7 @@ using namespace std;
 // 3) unset (no bbox, no quads, no polygons)
 
 namespace vw {
-namespace math {
+namespace geometry {
 
   /*virtual*/ double GeomPrimitive::distance(const Vector<double> &point) const {
     VW_ASSERT( 0, LogicErr() << "Child class of GeomPrimitive does not implement distance()!" );
@@ -41,7 +41,7 @@ namespace math {
 
 namespace {
 
-  using namespace vw::math;
+  using namespace vw::geometry;
 
   void split_node(SpatialTree::SpatialTreeNode* node, int num_quadrants, SpatialTree::BBoxT quadrant_bboxes[]) {
     node->m_is_split = true;
