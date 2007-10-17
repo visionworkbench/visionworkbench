@@ -52,7 +52,7 @@ namespace geometry {
     
     /// Returns the derived implementation type.
     ShapeT const& shape_impl() const { return *static_cast<ShapeT const*>(this); }
-
+/* These introduce ambiguities in Box, and it's not clear that we really want them....
     /// Grows a bounding shape to include the given point.
     template <class VectorT>
     void grow( VectorBase<VectorT> const& point ) {
@@ -108,6 +108,7 @@ namespace geometry {
     ShapeT& operator-=( VectorBase<VectorT> const& v ) {
       return shape_impl() = shape_impl() - v;
     }
+*/
   };
   
   /// Scales a bounding shape relative to the origin.

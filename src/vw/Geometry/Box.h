@@ -101,8 +101,8 @@ namespace geometry {
     /// Writes the box.
     void write( std::ostream& os = std::cout, bool binary = false ) const {
       std::vector<Vector<RealT, DimN> > points;
-      points.push_back(m_min);
-      points.push_back(m_max);
+      points.push_back(this->min());
+      points.push_back(this->max());
       write_point_list(os, points, binary);
     }
 

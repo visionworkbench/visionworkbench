@@ -51,7 +51,7 @@
 #include <vw/Geometry/Box.h>
 
 namespace vw {
-namespace math {
+namespace geometry {
 
   /// \cond INTERNAL
   namespace convex_promote {

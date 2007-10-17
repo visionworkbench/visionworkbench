@@ -31,8 +31,8 @@
 #include <vw/Core/Thread.h> // Mutex for qhull
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
-#include <vw/Math/PointListIO.h>
-#include <vw/Math/SpatialTree.h>
+#include <vw/Geometry/PointListIO.h>
+#include <vw/Geometry/SpatialTree.h>
 #include <vw/Geometry/Convex.h>
 using namespace vw::geometry::convex_promote;
 
@@ -73,14 +73,14 @@ namespace geometry {
     return sqrt( norm_2_sqr_gmp(v) );
   }
 
-}} // namespace vw::math
+}} // namespace vw::geometry
 
 namespace {
   /// Mutex for qhull, which is not thread-safe.
   vw::Mutex convex_qhull_mutex;
   
   /// Point primitive for SpatialTree.
-  class PointPrimitive : public vw::math::GeomPrimitive
+  class PointPrimitive : public vw::geometry::GeomPrimitive
   {
   public:
     PointPrimitive() {}
@@ -1018,7 +1018,7 @@ namespace {
       vw::Matrix<double> *basis = 0;
       vw::Vector<double> *plane_origin = 0;
       vw::Vector<double> proj;
-      vw::math::GeomPrimitive **prims;
+      vw::geometry::GeomPrimitive **prims;
       PointPrimitive *prim;
       IndexedEdge edge;
       std::vector<IndexedEdge> edges;
@@ -1027,7 +1027,7 @@ namespace {
       unsigned j, k, l;
       bool found_it;
   
-      prims = new vw::math::GeomPrimitive*[num_points];
+      prims = new vw::geometry::GeomPrimitive*[num_points];
       k = 0;
       l = 0;
       for (std::vector<vw::Vector<mpq_class> >::iterator i = points.begin(); i != points.end(); i++, l++) {
@@ -1037,10 +1037,10 @@ namespace {
         prim->bbox.grow(prim->point);
         for (j = 0; j < dim; j++, k++)
           p[k] = prim->point[j];
-        prims[l] = (vw::math::GeomPrimitive*)prim;
+        prims[l] = (vw::geometry::GeomPrimitive*)prim;
       }
       VW_ASSERT(k == dim * num_points, vw::LogicErr() << "k != dim * num_points!");
-      vw::math::SpatialTree st( num_points, prims, 5 );
+      vw::geometry::SpatialTree st( num_points, prims, 5 );
   
       qhull_run(dim, num_points, p);
       if (dim == 2) {
@@ -1227,7 +1227,7 @@ namespace {
 } // namespace
 
 namespace vw {
-namespace math {
+namespace geometry {
 
   namespace convex_promote {
 
