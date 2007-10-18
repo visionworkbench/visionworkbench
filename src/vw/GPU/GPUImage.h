@@ -1,6 +1,6 @@
 
-#ifndef __VW_GPU_GPUIMAGE_HTEXREF_H__
-#define __VW_GPU_GPUIMAGE_HTEXREF_H__
+#ifndef __VW_GPU_GPUIMAGE_H__
+#define __VW_GPU_GPUIMAGE_H__
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewBase.h>
