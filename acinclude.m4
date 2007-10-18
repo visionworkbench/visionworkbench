@@ -421,11 +421,16 @@ AC_DEFUN([AX_PKG_LAPACK],
     if test "$HAVE_PKG_LAPACK" = "no"; then
       unset HAVE_PKG_LAPACK
       # Otherwise check for standard LAPACK
-      if test "$ENABLE_VERBOSE" = "yes"; then
-	AC_MSG_NOTICE(["CLAPACK not found, trying standard LAPACK."])
-      fi
+      AC_MSG_NOTICE(["CLAPACK not found, trying standard LAPACK."])
       unset HAVE_PKG_LAPACK
       AX_PKG(LAPACK, [], [-llapack -lblas], [])
+    fi
+    if test "$HAVE_PKG_LAPACK" = "no"; then
+      unset HAVE_PKG_LAPACK
+      # Some newer boxes require -lgfortran, so try that too
+      AC_MSG_NOTICE(["trying standard LAPACK with -lgfortran."])
+      unset HAVE_PKG_LAPACK
+      AX_PKG(LAPACK, [], [-llapack -lblas -lgfortran], [])
     fi
   fi
 
