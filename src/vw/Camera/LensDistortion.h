@@ -30,7 +30,7 @@
 #include <vw/Camera/CameraModel.h>
 #include <vw/Math/Vector.h>
 
-#if defined(VW_HAVE_PKG_JLAPACK) && VW_HAVE_PKG_LAPACK==1
+#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
 #include <vw/Math/LevenbergMarquardt.h>
 #endif
 
