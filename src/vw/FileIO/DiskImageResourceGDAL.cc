@@ -411,8 +411,11 @@ namespace vw {
     }
     
     char **options = NULL;
+    options = CSLSetNameValue( options, "ALPHA", "YES" );
+    options = CSLSetNameValue( options, "INTERLEAVE", "PIXEL" );
     GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(format.channel_type);
     GDALDataset *dataset = driver->Create( filename.c_str(), cols(), rows(), num_bands, gdal_pix_fmt, options );
+    CSLDestroy( options );
 
     m_dataset = (void*) dataset;
   }
