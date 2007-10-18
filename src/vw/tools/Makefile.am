@@ -124,8 +124,7 @@ endif
 
 bin_PROGRAMS = $(camera_progs) $(cartography_progs) $(hdr_progs)	\
                $(interestpoint_progs) $(mosaic_progs)			\
-               $(cart_mos_progs) $(stereo_progs) $(gpu_progs)		\
-               $(jp2dump_prog)
+               $(cart_mos_progs) $(stereo_progs) $(gpu_progs)	
 
 endif
 
