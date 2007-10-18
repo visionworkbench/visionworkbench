@@ -249,15 +249,15 @@ int main( int argc, char *argv[] ) {
     GeoTransform geotx( georeferences[i], output_georef );
     ImageViewRef<PixelRGBA<uint8> > source = DiskImageView<PixelRGBA<uint8> >( image_files[i] );
     if( pixel_scale != 1.0 || pixel_offset != 0.0 ) {
-      source.reset( channel_cast_rescale<uint8>( DiskImageView<PixelRGBA<float> >( image_files[i] ) * pixel_scale + pixel_offset ) );
+      source = channel_cast_rescale<uint8>( DiskImageView<PixelRGBA<float> >( image_files[i] ) * pixel_scale + pixel_offset );
     }
     if( vm.count("palette-file") ) {
       DiskImageView<float> disk_image( image_files[i] );
       if( vm.count("palette-scale") || vm.count("palette-offset") ) {
-        source.reset( per_pixel_filter( disk_image*palette_scale+palette_offset, PaletteFilter<PixelRGBA<uint8> >(palette_file) ) );
+        source = per_pixel_filter( disk_image*palette_scale+palette_offset, PaletteFilter<PixelRGBA<uint8> >(palette_file) );
       }
       else {
-        source.reset( per_pixel_filter( disk_image, PaletteFilter<PixelRGBA<uint8> >(palette_file) ) );
+        source = per_pixel_filter( disk_image, PaletteFilter<PixelRGBA<uint8> >(palette_file) );
       }
     }
     BBox2i bbox = compose(kmltx,geotx).forward_bbox( BBox2i(0,0,source.cols(),source.rows()) );
@@ -273,12 +273,15 @@ int main( int argc, char *argv[] ) {
       if( east_lon == 180 ) bbox.max().x() = total_resolution;
       if( north_lat == 90 ) bbox.min().y() = total_resolution/4;
       if( south_lat == -90 ) bbox.max().y() = 3*total_resolution/4;
-      composite.insert( crop( transform( source, compose(kmltx,geotx), ConstantEdgeExtension() ), bbox ),
-                        bbox.min().x(), bbox.min().y() );
+      source = crop( transform( source, compose(kmltx,geotx), ConstantEdgeExtension() ), bbox );
     }
     else {
-      composite.insert( crop( transform( source, compose(kmltx,geotx) ), bbox ),
-                        bbox.min().x(), bbox.min().y() );
+      source = crop( transform( source, compose(kmltx,geotx) ), bbox );
+    }
+    composite.insert( source, bbox.min().x(), bbox.min().y() );
+    // Images that wrap the date line must be added to the composite on both sides.
+    if( bbox.max().x() > total_resolution ) {
+      composite.insert( source, bbox.min().x()-total_resolution, bbox.min().y() );
     }
   }
 
