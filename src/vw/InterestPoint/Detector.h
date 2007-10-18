@@ -42,30 +42,35 @@
 namespace vw {
 namespace ip {
 
-// Lowe recommends 36 bins, but this could also be learned.
+// XXX FIXME
+// The orientation-detection code here may or may not be patent-
+// encumbered.  We need to replace this.  Something as simple as 
+// a pair of Gaussian derivatives is likely to work pretty well, 
+// at least as a stop-gap measure.
+
 #define FEATURE_ORI_NBINS (36)
 
-/// Find the keypoints in an image using the provided detector.  
+/// Find the interest points in an image using the provided detector.  
 /// 
 /// Some images are too large to be processed for interest points all
-/// at once.  If the user specifies a max_keypoint_image_dimension,
+/// at once.  If the user specifies a max_interestpoint_image_dimension,
 /// this value is used to segment the image into smaller images which
-/// are passed individually to the keypoint detector.  This routine
-/// combines the keypoints from the sub-images once detection is
-/// complete.  Be aware that a few keypoints along the segment
+/// are passed individually to the interest point detector.  This routine
+/// combines the interest points from the sub-images once detection is
+/// complete.  Be aware that a few interest points along the segment
 /// borders may be lost.  A good max dimension depends on the amount
 /// of RAM needed by the detector (and the total RAM available).  A
 /// value of 2048 seems to work well in most cases.
 template <class ViewT, class DetectorT>
-KeypointList interest_points(vw::ImageViewBase<ViewT> const& image, DetectorT const& detector,
-                             const int32 max_keypoint_image_dimension = 0) {
-  KeypointList interest_points;
+InterestPointList interest_points(vw::ImageViewBase<ViewT> const& image, DetectorT const& detector,
+                             const int32 max_interestpoint_image_dimension = 0) {
+  InterestPointList interest_points;
 
   vw_out(InfoMessage) << "\tFinding interest points" << std::flush;
 
   // If the user has not specified a chunk size, we process the
   // entire image in one shot.
-  if (!max_keypoint_image_dimension) {
+  if (!max_interestpoint_image_dimension) {
     vw_out(InfoMessage) << "..." << std::flush;
     interest_points = detector(image.impl());
 
@@ -73,12 +78,12 @@ KeypointList interest_points(vw::ImageViewBase<ViewT> const& image, DetectorT co
   // individually.
   } else {
     
-    std::vector<BBox2i> bboxes = image_blocks(image.impl(), max_keypoint_image_dimension, max_keypoint_image_dimension);
+    std::vector<BBox2i> bboxes = image_blocks(image.impl(), max_interestpoint_image_dimension, max_interestpoint_image_dimension);
     for (int i = 0; i < bboxes.size(); ++i) {
       vw_out(InfoMessage) << "." << std::flush;
       
-      KeypointList new_points = detector(crop(image.impl(), bboxes[i]));
-      for (KeypointList::iterator pt = new_points.begin(); pt != new_points.end(); ++pt) {
+      InterestPointList new_points = detector(crop(image.impl(), bboxes[i]));
+      for (InterestPointList::iterator pt = new_points.begin(); pt != new_points.end(); ++pt) {
         (*pt).x +=  bboxes[i].min().x();
         (*pt).ix += bboxes[i].min().x();
         (*pt).y +=  bboxes[i].min().y();
@@ -90,7 +95,7 @@ KeypointList interest_points(vw::ImageViewBase<ViewT> const& image, DetectorT co
   }
 
   vw_out(InfoMessage) << " done.";
-  vw_out(InfoMessage) << "     (" << interest_points.size() << " keypoints found)\n";
+  vw_out(InfoMessage) << "     (" << interest_points.size() << " interest points found)\n";
   return interest_points;
 }
 
@@ -181,7 +186,7 @@ public:
 
   /// Detect interest points in the source image.
   template <class SrcT>
-  KeypointList operator() (ImageViewBase<SrcT> const& src) const {
+  InterestPointList operator() (ImageViewBase<SrcT> const& src) const {
     Timer total("\tTotal elapsed time", DebugMessage);
 
     // Calculate gradients, orientations and magnitudes
@@ -199,11 +204,11 @@ public:
 
     // Find extrema in interest image
     vw_out(DebugMessage) << "\tFinding extrema... ";
-    KeypointList points;
+    InterestPointList points;
     {
       Timer t("elapsed time", DebugMessage);
       find_extrema(points, img_data);
-      vw_out(DebugMessage) << "done (" << points.size() << " keypoints), ";
+      vw_out(DebugMessage) << "done (" << points.size() << " interest points), ";
     }
 
     // Subpixel localization
@@ -211,7 +216,7 @@ public:
     {
       Timer t("elapsed time", DebugMessage);
       localize(points, img_data);
-      vw_out(DebugMessage) << "done (" << points.size() << " keypoints), ";
+      vw_out(DebugMessage) << "done (" << points.size() << " interest points), ";
     }
 
     // Threshold (after localization)
@@ -219,7 +224,7 @@ public:
     {
       Timer t("elapsed time", DebugMessage);
       threshold(points, img_data);
-      vw_out(DebugMessage) << "done (" << points.size() << " keypoints), ";
+      vw_out(DebugMessage) << "done (" << points.size() << " interest points), ";
     }
 
     // Assign orientations
@@ -227,7 +232,7 @@ public:
     {
       Timer t("elapsed time", DebugMessage);
       assign_orientations(points, img_data);
-      vw_out(DebugMessage) << "done (" << points.size() << " keypoints), ";
+      vw_out(DebugMessage) << "done (" << points.size() << " interest points), ";
     }
 
     // Return vector of interest points
@@ -240,15 +245,15 @@ protected:
 
   // By default, use find_peaks in Extrema.h
   template <class DataT>
-  inline int find_extrema(KeypointList& points, DataT const& img_data) const {
+  inline int find_extrema(InterestPointList& points, DataT const& img_data) const {
     return find_peaks(points, img_data);
   }
 
   // By default, use fit_peak in Localize.h
   template <class DataT>
-  inline int localize(KeypointList& points, DataT const& img_data) const {
+  inline int localize(InterestPointList& points, DataT const& img_data) const {
     // TODO: Remove points rejected by localizer
-    for (KeypointList::iterator i = points.begin(); i != points.end(); ++i) {
+    for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
       fit_peak(img_data.interest(), *i);
     }
 
@@ -256,9 +261,9 @@ protected:
   }
 
   template <class DataT>
-  inline int threshold(KeypointList& points, DataT const& img_data) const {
+  inline int threshold(InterestPointList& points, DataT const& img_data) const {
     // TODO: list::remove_if
-    KeypointList::iterator pos = points.begin();
+    InterestPointList::iterator pos = points.begin();
     while (pos != points.end()) {
       if (!m_threshold(*pos, img_data))
         pos = points.erase(pos);
@@ -268,7 +273,7 @@ protected:
   }
 
   template <class DataT>
-  int assign_orientations(KeypointList& points, DataT const& img_data) const {
+  int assign_orientations(InterestPointList& points, DataT const& img_data) const {
     std::vector<float> orientation;
     // TODO: Need to do testing to figure out when it is more efficient to use
     // shallow views or fully rasterize up front. This may need to be decided at
@@ -278,7 +283,7 @@ protected:
     ImageView<typename DataT::pixel_type> ori = img_data.orientation();
     ImageView<typename DataT::pixel_type> mag = img_data.magnitude();
 
-    for (KeypointList::iterator i = points.begin(); i != points.end(); ++i) {
+    for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
       get_orientation(orientation, ori, mag, (int)(i->x + 0.5), (int)(i->y + 0.5));
       if (!orientation.empty()) {
         i->orientation = orientation[0];
@@ -321,7 +326,6 @@ protected:
   }
 };
 
-// Lowe recommends 3 scales per octave.
 #define IP_DEFAULT_SCALES (3)
 // TODO: choose number of octaves based on image size
 #define IP_DEFAULT_OCTAVES (3)
@@ -351,7 +355,7 @@ public:
 
   /// Detect interest points in the source image.
   template <class SrcT>
-  KeypointList operator() (ImageViewBase<SrcT> const& src) const {
+  InterestPointList operator() (ImageViewBase<SrcT> const& src) const {
     typedef ImageInterestData<ImageView<typename SrcT::pixel_type>,InterestT> DataT;
 
     Timer total("\t\tTotal elapsed time", DebugMessage);
@@ -362,7 +366,7 @@ public:
     ImageOctave<typename DataT::source_type> octave(src, m_scales);
     delete t_oct;
 
-    KeypointList points;
+    InterestPointList points;
     std::vector<DataT> img_data;
 
     for (int o = 0; o < m_octaves; ++o) {
@@ -392,7 +396,7 @@ public:
 
       // Find extrema in interest image
       vw_out(DebugMessage) << "\tFinding extrema... ";
-      KeypointList new_points;
+      InterestPointList new_points;
       {
         Timer t("elapsed time", DebugMessage);
         find_extrema(new_points, img_data, octave);
@@ -404,7 +408,7 @@ public:
       {
         Timer t("elapsed time", DebugMessage);
         localize(new_points, img_data, octave);
-        vw_out(DebugMessage) << "done (" << new_points.size() << " keypoints), ";
+        vw_out(DebugMessage) << "done (" << new_points.size() << " interest points), ";
       }
 
       // Threshold
@@ -412,7 +416,7 @@ public:
       {
         Timer t("elapsed time", DebugMessage);
         threshold(new_points, img_data, octave);
-        vw_out(DebugMessage) << "done (" << new_points.size() << " keypoints), ";
+        vw_out(DebugMessage) << "done (" << new_points.size() << " interest points), ";
       }
 
       // Assign orientations
@@ -420,11 +424,11 @@ public:
       {
         Timer t("elapsed time", DebugMessage);
         assign_orientations(new_points, img_data, octave);
-        vw_out(DebugMessage) << "done (" << new_points.size() << " keypoints), ";
+        vw_out(DebugMessage) << "done (" << new_points.size() << " interest points), ";
       }
 
       // Scale subpixel location to move back to original coords
-      for (KeypointList::iterator i = new_points.begin(); i != new_points.end(); ++i) {
+      for (InterestPointList::iterator i = new_points.begin(); i != new_points.end(); ++i) {
         i->x *= octave.base_scale;
         i->y *= octave.base_scale;
         // TODO: make sure this doesn't screw up any post-processing
@@ -455,7 +459,7 @@ protected:
 
   // By default, uses find_peaks in Extrema.h
   template <class DataT, class ViewT>
-  inline int find_extrema(KeypointList& points,
+  inline int find_extrema(InterestPointList& points,
                           std::vector<DataT> const& img_data,
                           ImageOctave<ViewT> const& octave) const {
     return find_peaks(points, img_data, octave);
@@ -463,10 +467,10 @@ protected:
 
   // By default, uses fit_peak in Localize.h
   template <class DataT, class ViewT>
-  inline int localize(KeypointList& points,
+  inline int localize(InterestPointList& points,
                       std::vector<DataT> const& img_data,
                       ImageOctave<ViewT> const& octave) const {
-    for (KeypointList::iterator i = points.begin(); i != points.end(); ++i) {
+    for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
       fit_peak(img_data, *i, octave);
     }
 
@@ -474,11 +478,11 @@ protected:
   }
 
   template <class DataT, class ViewT>
-  inline int threshold(KeypointList& points,
+  inline int threshold(InterestPointList& points,
                        std::vector<DataT> const& img_data,
                        ImageOctave<ViewT> const& octave) const {
     // TODO: list::remove_if
-    KeypointList::iterator pos = points.begin();
+    InterestPointList::iterator pos = points.begin();
     while (pos != points.end()) {
       int k = octave.scale_to_plane_index(pos->scale);
       if (!m_threshold(*pos, img_data[k]))
@@ -489,7 +493,7 @@ protected:
   }
 
   template <class DataT, class ViewT>
-  int assign_orientations(KeypointList& points,
+  int assign_orientations(InterestPointList& points,
                           std::vector<DataT> const& img_data,
                           ImageOctave<ViewT> const& octave) const {
     std::vector<float> orientation;
@@ -506,7 +510,7 @@ protected:
     }
     */
 
-    for (KeypointList::iterator i = points.begin(); i != points.end(); ++i) {
+    for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
       int k = octave.scale_to_plane_index(i->scale);
       // NOTE: use i->ix, i->iy?
       //get_orientation(orientation, ori[k], mag[k], (int)(i->x + 0.5),

@@ -30,7 +30,7 @@ if MAKE_MODULE_INTERESTPOINT
 include_HEADERS = Detector.h Descriptor.h Matcher.h RANSAC.h Extrema.h \
                   Localize.h InterestView.h WeightedHistogram.h ImageOctave.h \
                   InterestData.h Threshold.h ImageOctaveHistory.h \
-                  InterestTraits.h SIFT_Descriptor.h KDTree.h
+                  InterestTraits.h KDTree.h
 
 libvwInterestPoint_la_SOURCES = 
 libvwInterestPoint_la_LIBADD = @MODULE_INTERESTPOINT_LIBS@

@@ -35,7 +35,6 @@
 #include <algorithm>
 #include <math.h>
 
-// Yet another magic number from Lowe.
 #define INTEREST_POINT_MODE_THRESHOLD (0.8)
 #define INTEREST_POINT_MODE_LIMIT (5)
 

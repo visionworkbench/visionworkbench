@@ -21,17 +21,16 @@
 // 
 // __END_LICENSE__
 
-/// \file match_pair.cc
+/// \file ipmatch.cc
 ///
 /// Example program demonstrating how to align two images using the
 /// Interest Point module.
 ///
 /// Usage:
-/// ./match_pair [image 1] [image 2] [output prefix]
+/// ./ipmatch [image 1] [image 2] [output prefix]
 
 #include <vw/InterestPoint.h>
 #include <vw/Image.h>
-#include <vw/Math.h>
 #include <vw/Mosaic.h>
 #include <vw/FileIO.h>
 
@@ -64,10 +63,10 @@ static std::string suffix_from_filename(std::string const& filename) {
 // Draws the interest points as green squares, with orientation and
 // scale indicated by a red line.
 int draw_points( ImageView<PixelRGB<float> >& image,
-                 KeypointList const& points ) {
+                 InterestPointList const& points ) {
   // Draw points into color planes
   int n = 0;
-  for (KeypointList::const_iterator pt = points.begin();
+  for (InterestPointList::const_iterator pt = points.begin();
        pt != points.end() && n < TOP_POINTS; ++pt, ++n) {
     // Draw a red line from the point outward along the orientation
     for (int r=0; r<(int)(8*(*pt).scale); ++r){
@@ -92,7 +91,7 @@ int draw_points( ImageView<PixelRGB<float> >& image,
 // Draw the interest points and write as an image.
 template <class ViewT>
 void write_point_image(std::string out_file_name, ImageViewBase<ViewT> const& src,
-                       KeypointList const& points) {
+                       InterestPointList const& points) {
   ImageView<PixelRGB<float> > viz = copy(src);
   draw_points(viz, points);
   write_image(out_file_name, viz);
@@ -115,7 +114,7 @@ void write_match_image(std::string out_file_name,
   // Rasterize the composite so that we can draw on it.
   ImageView<PixelRGB<float> > comp = composite;
   
-  // Draw a red line between matching keypoints
+  // Draw a red line between matching interest points
   for (unsigned int i = 0; i < matched_ip1.size(); ++i) {
     Vector2 start(matched_ip1[i][0], matched_ip1[i][1]);
     Vector2 end(matched_ip2[i][0]+src1.impl().cols(), matched_ip2[i][1]);
@@ -153,7 +152,7 @@ void do_match(std::vector<std::string> input_file_names, std::string output_file
   // pixels to conserve memory.
   vw_out(InfoMessage) << "\nInterest Point Detection:\n";
 
-  static const int MAX_KEYPOINT_IMAGE_DIMENSION = 2048;
+  static const int MAX_INTERESTPOINT_IMAGE_DIMENSION = 2048;
   typedef DefaultThresholdT<LoGInterest>::type Threshold;
   typedef ScaledInterestPointDetector<LoGInterest> Detector;
 
@@ -163,9 +162,9 @@ void do_match(std::vector<std::string> input_file_names, std::string output_file
   // If too few interest points, try something like:
   // Detector detector(Threshold(0.01));
 
-  // KeypointList := std::list<InterestPoint>
-  KeypointList ip1 = interest_points(left, detector, MAX_KEYPOINT_IMAGE_DIMENSION);
-  KeypointList ip2 = interest_points(right, detector, MAX_KEYPOINT_IMAGE_DIMENSION);
+  // InterestPointList := std::list<InterestPoint>
+  InterestPointList ip1 = interest_points(left, detector, MAX_INTERESTPOINT_IMAGE_DIMENSION);
+  InterestPointList ip2 = interest_points(right, detector, MAX_INTERESTPOINT_IMAGE_DIMENSION);
 
   static const int NUM_POINTS = 1000;
   vw_out(InfoMessage) << "Truncating to " << NUM_POINTS << " points:\n";
@@ -204,11 +203,11 @@ void do_match(std::vector<std::string> input_file_names, std::string output_file
   if (use_homography) 
     align_matrix = ransac(matched_ip2, matched_ip1, 
                           vw::math::HomographyFittingFunctor(),
-                          KeypointErrorMetric());
+                          InterestPointErrorMetric());
   else
     align_matrix = ransac(matched_ip2, matched_ip1, 
                           vw::math::SimilarityFittingFunctor(),
-                          KeypointErrorMetric());
+                          InterestPointErrorMetric());
 
   // Write out the aligned pair of images
   ImageViewRef<PixelT> aligned_image = transform(right_disk_image, HomographyTransform(align_matrix),

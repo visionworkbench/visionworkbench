@@ -39,11 +39,11 @@
 namespace vw { 
 namespace ip {
 
-  /// This metric can be used to measure the error between a keypoint
-  /// p2 and a second keypoint p1 that is transformed by a 3x3 matrix
-  /// H.  This is predominately used when matching keypoints using
-  /// RANSAC.
-  struct KeypointErrorMetric {
+  /// This metric can be used to measure the error between a interest
+  /// point p2 and a second interest point p1 that is transformed by a
+  /// 3x3 matrix H.  This is predominately used when matching interest
+  /// points using RANSAC.
+  struct InterestPointErrorMetric {
     template <class RelationT, class ContainerT>
     double operator() (RelationT const& H,
                        ContainerT const& p1, 
@@ -55,9 +55,9 @@ namespace ip {
 
   /// Select only the interest points that fall within the specified bounding box.
   template <class RealT>
-  KeypointList crop(KeypointList const& interest_points, BBox<RealT,2> const& bbox) {
-    KeypointList return_val;
-    for (KeypointList::iterator i = interest_points.begin(); i != interest_points.end(); ++i) {
+  InterestPointList crop(InterestPointList const& interest_points, BBox<RealT,2> const& bbox) {
+    InterestPointList return_val;
+    for (InterestPointList::iterator i = interest_points.begin(); i != interest_points.end(); ++i) {
       if (bbox.contains(Vector<RealT,2>(RealT((*i).x), RealT((*i).y))))
         return_val.push_back(*i);
     }
@@ -108,8 +108,8 @@ namespace ip {
 
 //     /// Compute descriptors for a set of interest points from the given
 //     /// source (an image or set of images).
-//     inline void compute_descriptors( KeypointList& points ) const {
-//       for (KeypointList::iterator i = points.begin(); i != points.end(); ++i) {
+//     inline void compute_descriptors( InterestPointList& points ) const {
+//       for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
 //         impl()(*i);
 //       }
 //     }
@@ -117,12 +117,12 @@ namespace ip {
 
 
   template <class ViewT, class DescriptorT> 
-  void compute_descriptors( ImageViewBase<ViewT> const& image, KeypointList& points, DescriptorT const& descriptor ) {
-    for (KeypointList::iterator i = points.begin(); i != points.end(); ++i) {
-      // First we ompute the support region based on the keypoint 
+  void compute_descriptors( ImageViewBase<ViewT> const& image, InterestPointList& points, DescriptorT const& descriptor ) {
+    for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
+      // First we ompute the support region based on the interest point 
       ImageView<typename ViewT::pixel_type> support = get_support(*i, image.impl());
 
-      // Next, we pass the support region and the keypoint to the
+      // Next, we pass the support region and the interest point to the
       // descriptor generator.
       i->descriptor = descriptor(support);
     }

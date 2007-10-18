@@ -43,7 +43,7 @@ namespace ip {
 //  Must be of form: 
 //      float operator() (const InterestPoint& ip1, const InterestPoint& ip2, float maxdist = DBL_MAX) 
 
-/// L2 Norm: returns Euclidian distance squared between pair of keypoint descriptors.  Optional 
+/// L2 Norm: returns Euclidian distance squared between pair of interest point descriptors.  Optional 
 /// argument "maxdist" to provide early termination of computation if result will exceed maxdist.
 class L2NormMetric {
 public:
@@ -224,8 +224,8 @@ public:
   InterestPointMatcher(double threshold = 0.5, MetricT metric = MetricT(), ConstraintT constraint = ConstraintT()) 
     : constraint(constraint), distance_metric(metric), threshold(threshold) { }
   
-  /// Given two lists of keypoints, this routine returns the two lists
-  /// of matching keypoints based on the Metric and Constraints
+  /// Given two lists of interest points, this routine returns the two lists
+  /// of matching interest points based on the Metric and Constraints
   /// provided by the user.
   template <class ListT, class MatchListT>
   void match( ListT const& ip1, ListT const& ip2,
@@ -260,7 +260,7 @@ private:
 
     std::vector<IterT> indx(ip1.size(), ip2.end());
     int progress_inc = std::max((int)(ip1.size() / 10), 1);
-    vw_out(InfoMessage) << "\tFinding keypoint matches" << std::flush;
+    vw_out(InfoMessage) << "\tFinding interest point matches" << std::flush;
     int n = 0;
     for (IterT ip1_i = ip1.begin(); ip1_i != ip1.end(); ++ip1_i, ++n) {
       if (n % progress_inc == 0)

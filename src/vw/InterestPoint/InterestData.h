@@ -71,9 +71,8 @@ namespace ip {
     /// The interest measure (could be Harris, LoG, etc.).
     float interest;
 
-    /// And finally the descriptor for the interest point.  Interest points
-    /// have a vector of integers, PCA-SIFT features have a vector of
-    /// floats or doubles...
+    /// And finally the descriptor for the interest point.  For example, 
+    /// PCA descriptors would have a vector of floats or doubles...
     vw::Vector<float> descriptor;
     
     vw::Vector<float>::iterator begin(){
@@ -98,10 +97,10 @@ namespace ip {
   };
 
   // Need to use list instead of vector for efficient thresholding.
-  typedef std::list<InterestPoint> KeypointList;
+  typedef std::list<InterestPoint> InterestPointList;
 
   /// Sort points by interest, and optionally cull them beyond some number.
-  inline int cull_interest_points(KeypointList &points, int num_points = -1) {
+  inline int cull_interest_points(InterestPointList &points, int num_points = -1) {
     points.sort();
     if ((num_points >= 0) && (num_points < (int)points.size()))
       points.resize(num_points);

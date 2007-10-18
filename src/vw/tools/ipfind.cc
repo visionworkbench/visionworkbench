@@ -21,19 +21,14 @@
 // 
 // __END_LICENSE__
 
-/// \file vw_sift.cc
+/// \file ipfind.cc
 ///
-/// Finds the SIFT keypoints in an image and outputs them in the
-/// ASCII format used by David Lowe's sift binary.
+/// Finds the interest points in an image and outputs them an 
+/// ASCII format.
 ///
 /// Example usage:
-/// vw_sift book.jpg book.key
+/// ipfind book.jpg book.ip
 ///
-/// As opposed to usage for Lowe's sift:
-/// sift <book.pgm >book.key
-///
-/// NOTE: Currently uses scale-invariant LoG interest point detector
-/// instead of actual SIFT detector
 
 #include <vw/InterestPoint.h>
 #include <vw/Image.h>
@@ -45,7 +40,7 @@ using namespace vw::ip;
 
 int main(int argc, char** argv) {
   if (argc < 3) {
-    std::cerr << "Usage: vw_sift [image] [output file]\n";
+    std::cerr << "Usage: ipfind [image] [output file]\n";
     return -1;
   }
 
@@ -55,24 +50,24 @@ int main(int argc, char** argv) {
   DiskImageView<PixelGray<float> > disk_image(argv[1]);
   ImageView<float> image = channels_to_planes(disk_image);
 
-  vw_out(InfoMessage) << "Finding keypoints...\n";
+  vw_out(InfoMessage) << "Finding interest points...\n";
 
-  static const int MAX_KEYPOINT_IMAGE_DIMENSION = 2048;
-  // FIXME: change to SIFT_Descriptor when able
+  static const int MAX_INTERESTPOINT_IMAGE_DIMENSION = 2048;
+  // FIXME: change to a better descriptor, like PCA
   typedef ScaledInterestPointDetector<LoGInterest> Detector;
 
-  KeypointList ip = interest_points(image, Detector(), MAX_KEYPOINT_IMAGE_DIMENSION);
+  InterestPointList ip = interest_points(image, Detector(), MAX_INTERESTPOINT_IMAGE_DIMENSION);
   unsigned num_pts = ip.size();
   if (num_pts == 0) {
-    vw_out(InfoMessage) << "0 keypoints found.\n";
+    vw_out(InfoMessage) << "0 interest points found.\n";
     return 0;
   }
   unsigned size = ip.front().descriptor.size();
 
-  // Write out detected keypoints to file.
+  // Write out detected interest points to file.
   FILE *out = fopen(argv[2], "w");
   fprintf(out, "%u %u\n", num_pts, size);
-  for (KeypointList::iterator i = ip.begin(); i != ip.end(); ++i) {
+  for (InterestPointList::iterator i = ip.begin(); i != ip.end(); ++i) {
     float orientation = i->orientation;
     while (orientation > M_PI) orientation -= 2 * M_PI;
     while (orientation < -M_PI) orientation += 2 * M_PI;
@@ -85,7 +80,7 @@ int main(int argc, char** argv) {
   }
   fclose(out);
 
-  vw_out(InfoMessage) << ip.size() << " keypoints found.\n";
+  vw_out(InfoMessage) << ip.size() << " interest points found.\n";
 
   return 0;
 }

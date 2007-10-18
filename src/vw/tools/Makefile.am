@@ -72,13 +72,13 @@ endif
 # Command-line tools based on the InterestPoint module
 if MAKE_MODULE_INTERESTPOINT 
 if HAVE_PKG_LAPACK
-interestpoint_progs = match_pair vw_sift
+interestpoint_progs = ipfind ipmatch
 # 
-match_pair_SOURCES = match_pair.cc
-match_pair_LDADD = @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
+ipfind_SOURCES = ipfind.cc
+ipfind_LDADD = @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
 # 
-vw_sift_SOURCES = vw_sift.cc
-vw_sift_LDADD = @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
+ipmatch_SOURCES = ipmatch.cc
+ipmatch_LDADD = @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
 endif
 endif
 

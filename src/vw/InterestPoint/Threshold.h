@@ -30,7 +30,6 @@
 
 #include <vw/InterestPoint/InterestData.h>
 
-// Lowe recommends 0.3, I'm having better luck with 0.03.
 #define DEFAULT_INTEREST_THRESHOLD (0.03)
 
 namespace vw {
@@ -98,10 +97,10 @@ namespace ip {
     }
   };
 
-  // TODO: Better default thresholding options, like the Brown/Lowe approach?
-  // This is tricky to decouple completely, as thresholding techniques can
-  // require data not currently encapsulated by ImageInterestData, like
-  // curvatures (from localization) and the Hessian matrix.
+  // TODO: Better default thresholding options?  This is tricky to
+  // decouple completely, as thresholding techniques can require data
+  // not currently encapsulated by ImageInterestData, like curvatures
+  // (from localization) and the Hessian matrix.
 
 }} // namespace vw::ip
 

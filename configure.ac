@@ -180,10 +180,7 @@ fi
 
 AC_ARG_WITH(dist-remove-modules,
   AC_HELP_STRING([--with-dist-remove-modules="MODULE @<:@MODULE...@:>@"], [remove certain modules from the distribution]),
-  [DIST_REMOVE_MODULES=$withval],[ # These follow on separate lines so they can be removed cleanly from the distro
-  DIST_REMOVE_MODULES="$DIST_REMOVE_MODULES Geometry"
-  DIST_REMOVE_MODULES="$DIST_REMOVE_MODULES Python"
-  ]
+  [DIST_REMOVE_MODULES=$withval], [DIST_REMOVE_MODULES="Geometry InterestPoint Python"]
 )
 AC_SUBST(DIST_REMOVE_MODULES)
 AM_CONDITIONAL(DIST_REMOVE_MODULES, [test ! -z "$DIST_REMOVE_MODULES"])

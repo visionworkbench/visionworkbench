@@ -238,7 +238,7 @@ namespace ip {
 
   /// Find spatial peaks of a certain type in the interest image.
   template <class DataT>
-  int find_peaks(KeypointList& interest_points, DataT const& data) {
+  int find_peaks(InterestPointList& interest_points, DataT const& data) {
     typename DataT::interest_type const& interest = data.interest();
     int32 ncols = interest.cols();
     int32 nrows = interest.rows();
@@ -259,7 +259,7 @@ namespace ip {
 
   /// Find spatial/scale peaks of some type in the image octave.
   template <class DataT, class ViewT>
-  int find_peaks( KeypointList& interest_points, 
+  int find_peaks( InterestPointList& interest_points, 
                   std::vector<DataT> const& data,
                   ImageOctave<ViewT> const& octave) {
     // Check that we have a few planes of corner response function
