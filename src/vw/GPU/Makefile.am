@@ -28,6 +28,8 @@
 StandardShaders.cc:
 	perl StandardShaders.pl
 
+CLEANFILES = StandardShaders.cc
+
 if MAKE_MODULE_GPU
 
 include_HEADERS = Setup.h Utilities.h StandardShaders.h GPUProgram.h	\
