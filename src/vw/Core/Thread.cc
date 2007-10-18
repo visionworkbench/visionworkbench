@@ -22,9 +22,10 @@
 // __END_LICENSE__
 
 #include <vw/Core/Thread.h>
+#include <vw/config.h>
 
 namespace {
-  static int num_threads = 4;
+  static int num_threads = VW_NUM_THREADS;
 }
 
 int vw::Thread::default_num_threads() {
