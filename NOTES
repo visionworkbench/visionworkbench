@@ -1,4 +1,34 @@
-*** RELEASE 1.0.1, 2 FEBRUARY 2006 ***
+*** RELEASE 2.0.alpha1, 18 OCTOBER 2007 ***
+
+So many little things have changed or been added that it is hard to
+know where to begin.  Real documentation will be forthcoming during
+the beta period.  More will become apparent in forthcoming alpha
+relases, too.  We'll focus on a few big-ticket items here.
+
+Added the Stereo module, which performs dense stereo correlation on pairs 
+of images using a fast sum-of-absolute-difference technique.  See the 
+correlate.cc example program for a few examples of how it can be used.
+
+Added the GPU module, which supports performing many image processing
+operations directly on the GPU.  Docs and examples coming soon.
+
+Greatly enhanced the options for handling very large images.  For
+large images in memory, multi-thread your image processing operations
+using the new block_rasterize() function.  For extremely large images
+on disk, "read" them in using a DiskImageView, "process" them lazily
+using ImageViewRef for any necessary intermediates, and write the
+result to disk using write_image().
+
+Greatly improved camera response curve calibration in the HDR module.
+The command-line tools hdr_merge and hdr_tonemap work well in many 
+cases now.
+
+Added support for orthorectifiying an aerial or satellite image if you
+have a traditional camera model and (optionally) a suitable DEM.  See
+OrthoImageView.h and its companion helper file CameraBBox.h in the
+Cartography module.
+
+*** RELEASE 1.0.1, 2 FEBRUARY 2007 ***
 
 Renamed the *EdgeExtend classes and header files to *EdgeExtension,
 for grammatical consistency.
