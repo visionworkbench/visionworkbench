@@ -106,8 +106,8 @@ namespace vw {
     /// Implicit construction from the raw channel value.
     PixelGray( ChannelT v ) { m_ch[0]=v; }
 
-    /// Explicit conversion from other PixelGray types.
-    template <class OtherT> explicit PixelGray( PixelGray<OtherT> other ) {
+    /// Conversion from other PixelGray types.
+    template <class OtherT> PixelGray( PixelGray<OtherT> other ) {
       m_ch[0] = ChannelT(other[0]);
     }
     
@@ -197,8 +197,8 @@ namespace vw {
       m_ch[1] = ChannelRange<ChannelT>::max();
     }
 
-    /// Explicit conversion from other PixelGrayA types.
-    template <class OtherT> explicit PixelGrayA( PixelGrayA<OtherT> other ) {
+    /// Conversion from other PixelGrayA types.
+    template <class OtherT> PixelGrayA( PixelGrayA<OtherT> other ) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelT(other[1]);
     }
@@ -295,8 +295,8 @@ namespace vw {
       m_ch[0] = m_ch[1] = m_ch[2] = ChannelT(other[0]);
     }
     
-    /// Explicit conversion from other PixelRGB types.
-    template <class OtherT> explicit PixelRGB( PixelRGB<OtherT> const& other ) {
+    /// Conversion from other PixelRGB types.
+    template <class OtherT> PixelRGB( PixelRGB<OtherT> const& other ) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelT(other[1]);
       m_ch[2] = ChannelT(other[2]);
@@ -408,8 +408,8 @@ namespace vw {
       m_ch[3] = ChannelRange<ChannelT>::max();
     }
 
-    /// Explicit conversion from other PixelRGBA types.    
-    template <class OtherT> explicit PixelRGBA( PixelRGBA<OtherT> const& other ) {
+    /// Conversion from other PixelRGBA types.    
+    template <class OtherT> PixelRGBA( PixelRGBA<OtherT> const& other ) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelT(other[1]);
       m_ch[2] = ChannelT(other[2]);
@@ -507,8 +507,8 @@ namespace vw {
       m_ch[0]=h; m_ch[1]=s; m_ch[2]=v;
     }
 
-    /// Explicit conversion from other PixelHSV types.
-    template <class OtherT> explicit PixelHSV( PixelHSV<OtherT> const& other ) {
+    /// Conversion from other PixelHSV types.
+    template <class OtherT> PixelHSV( PixelHSV<OtherT> const& other ) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelT(other[1]);
       m_ch[2] = ChannelT(other[2]);
@@ -630,8 +630,8 @@ namespace vw {
       m_ch[0]=x; m_ch[1]=y; m_ch[2]=z;
     }
 
-    /// Explicit conversion from other PixelXYZ types.
-    template <class OtherT> explicit PixelXYZ( PixelXYZ<OtherT> const& other ) {
+    /// Conversion from other PixelXYZ types.
+    template <class OtherT> PixelXYZ( PixelXYZ<OtherT> const& other ) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelT(other[1]);
       m_ch[2] = ChannelT(other[2]);
