@@ -27,7 +27,7 @@ AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE
 AX_CONFIG_HEADER_PREFIX([src/vw/config.h], [VW_])
 
-LIBTOOL_CURRENT=1
+LIBTOOL_CURRENT=2
 LIBTOOL_REVISION=0
 LIBTOOL_AGE=0
 LIBTOOL_VERSION=$LIBTOOL_CURRENT:$LIBTOOL_REVISION:$LIBTOOL_AGE
@@ -253,11 +253,9 @@ AX_PKG(OPENEXR, [Z PTHREADS], [-lImath -lHalf -lIex -lIlmImf], [ImfOutputFile.h]
 AX_PKG(HDF, [], [-ldf -lmfhdf], [mfhdf.h])
 
 AX_PKG(X11, [], [-lXext -lX11 -lXmu -lXi -lXt], [])
-AX_PKG(GL, [X11], [-lGL], [GL/gl.h])
-AX_PKG(GLU, [GL], [-lGLU], [GL/glu.h])
-AX_PKG(GLUT, [GL GLU], [-lglut], [GL/glut.h])
-AX_PKG(FREEGLUT, [GL GLU], [-lglut], [GL/glut.h GL/freeglut_ext.h])
-AX_PKG(GLEW, [X11 GL GLU M], [-lGLEW], [GL/glew.h])
+AX_PKG(GL, [X11], [-lGL -lGLU], [GL/gl.h GL/glu.h])
+AX_PKG(GLUT, [X11 GL], [-lglut], [GL/glut.h])
+AX_PKG(GLEW, [GL M], [-lGLEW], [GL/glew.h])
 AX_PKG(CG, [], [-lCg -lCgGL], [Cg/cg.h])
 
 AX_PKG(GDAL, [], [-lgdal], [gdal.h])
@@ -298,7 +296,11 @@ AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], yes, [
 AX_MODULE(CARTOGRAPHY, [src/vw/Cartography], [libvwCartography.la], yes, [VW], [PROJ4], [GDAL])
 AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], yes, [VW], [CAMERA LAPACK])
 AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], yes, [VW], [])
-AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], yes, [VW], [GL GLU GLUT GLEW], [CG])
+if test $host_vendor = apple; then
+  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], yes, [VW], [GL GLU GLUT], [CG])
+else 
+  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], yes, [VW], [GL GLU GLUT GLEW], [CG])
+fi
 AX_MODULE(GEOMETRY, [src/vw/Geometry], [libvwGeometry.la], yes, [VW], [], [GMP PPL APRON QHULL])
 
 # These are here (instead of inside the MODULE macro where they belong)
