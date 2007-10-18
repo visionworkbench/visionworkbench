@@ -41,7 +41,6 @@ namespace po = boost::program_options;
 #include <vw/Image/ImageViewRef.h>
 
 #include <vw/HDR/CameraCurve.h>
-#include <vw/HDR/PolynomialCameraCurve.h>
 #include <vw/HDR/GlobalToneMap.h>
 #include <vw/HDR/LocalToneMap.h>
 
