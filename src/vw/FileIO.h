@@ -30,7 +30,6 @@
 
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageView.h>
-#include <vw/FileIO/FileMetadata.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
 
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1

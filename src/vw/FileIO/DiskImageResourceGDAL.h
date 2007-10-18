@@ -71,7 +71,7 @@ namespace vw {
     virtual Vector2i native_block_size() const;
     virtual void flush();
 
-    void* dataset() { return m_dataset; }
+    void* dataset() const { return m_dataset; }
 
     void open( std::string const& filename );    
     void create( std::string const& filename,

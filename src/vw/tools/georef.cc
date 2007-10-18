@@ -138,11 +138,10 @@ int main( int argc, char *argv[] ) {
   DiskImageResourceGDAL file_resource( input_filename );
   GeoReference georef;
   if( vm.count("copy") ) {
-    DiskImageResourceGDAL copy_resource( copy_filename );
-    copy_resource.read_metadata( georef );
+    read_georeference( georef, copy_filename );
   }
   else {
-    file_resource.read_metadata( georef );
+    read_georeference( georef, file_resource );
   }
 
   if ( georef.proj4_str() == "" ) georef.set_well_known_geogcs("WGS84");

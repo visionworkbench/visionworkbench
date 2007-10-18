@@ -21,13 +21,15 @@
 // 
 // __END_LICENSE__
 #include <vw/Cartography/GeoReference.h>
+#include <vw/FileIO/PropertyMultiMap.h>
 
+//NOTE: conditional is for when GeoReference becomes independent of GDAL
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL
-#include <vw/Cartography/GeoReferenceResourceGDAL.h>
+#include <vw/Cartography/DiskImageResourceGeoReferenceHelperGDAL.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #endif
 
-#include <vw/Cartography/GeoReferenceResourcePDS.h>
+#include <vw/Cartography/DiskImageResourceGeoReferenceHelperPDS.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
 
 // libProj.4
@@ -37,24 +39,34 @@
 #include <boost/algorithm/string.hpp>
 
 
-void vw::cartography::read_georeference( vw::cartography::GeoReference& georef, vw::ImageResource const& resource ) {
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-  DiskImageResourceGDAL const* gdal = dynamic_cast<DiskImageResourceGDAL const*>( &resource );
-  if( gdal ) return read_gdal_georeference( georef, *gdal );
-#endif
-  DiskImageResourcePDS const* pds = dynamic_cast<DiskImageResourcePDS const*>( &resource );
-  if( pds ) return read_pds_georeference( georef, *pds );
-  vw_throw(NoImplErr() << "This image resource does not support reading georeferencing information.");
+
+namespace {
+  vw::FileMetadata::ReadMetadataMapType *read_map = 0;
+  vw::FileMetadata::WriteMetadataMapType *write_map = 0;
 }
 
-void vw::cartography::write_georeference( vw::ImageResource& resource, vw::cartography::GeoReference const& georef ) {
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-  DiskImageResourceGDAL* gdal = dynamic_cast<DiskImageResourceGDAL*>( &resource );
-  if( gdal ) return write_gdal_georeference( *gdal, georef );
-#endif
-  // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
-  vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
+void vw::cartography::GeoReference::register_disk_image_resource(std::string const& disk_image_resource_type,
+                                                                 vw::FileMetadata::read_metadata_func read_func,
+                                                                 vw::FileMetadata::write_metadata_func write_func) {
+  if(!read_map) read_map = new vw::FileMetadata::ReadMetadataMapType();
+  if(!write_map) write_map = new vw::FileMetadata::WriteMetadataMapType();
+  read_map->insert(std::make_pair(disk_image_resource_type, read_func));
+  write_map->insert(std::make_pair(disk_image_resource_type, write_func));
+  vw::DiskImageResource::register_metadata_type(disk_image_resource_type, vw::cartography::GeoReference::metadata_type_static());
 }
+
+static void register_default_disk_image_resources() {
+  static bool already = false;
+  if( already ) return;
+  already = true;
+
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+  vw::cartography::GeoReference::register_disk_image_resource(vw::DiskImageResourceGDAL::type_static(), &vw::cartography::DiskImageResourceGeoReferenceHelperGDAL::read_georeference, &vw::cartography::DiskImageResourceGeoReferenceHelperGDAL::write_georeference);
+#endif
+
+  vw::cartography::GeoReference::register_disk_image_resource(vw::DiskImageResourcePDS::type_static(), &vw::cartography::DiskImageResourceGeoReferenceHelperPDS::read_georeference, &vw::cartography::DiskImageResourceGeoReferenceHelperPDS::write_georeference);
+}
+
 
 namespace vw {
 namespace cartography {
@@ -122,6 +134,7 @@ namespace cartography {
   /// select the default datum (WGS84) and projection (geographic).
   GeoReference::GeoReference() {
     set_transform(vw::math::identity_matrix<3>());
+    register_default_disk_image_resources();
     set_geographic();
     init_proj();
   }
@@ -129,6 +142,7 @@ namespace cartography {
   /// Takes a geodetic datum.  The affine transform defaults to the identity matrix.
   GeoReference::GeoReference(Datum const& datum) : GeoReferenceBase(datum){
     set_transform(vw::math::identity_matrix<3>());
+    register_default_disk_image_resources();
     set_geographic();
     init_proj();
   }
@@ -136,6 +150,7 @@ namespace cartography {
   /// Takes a geodetic datum and an affine transformation matrix
   GeoReference::GeoReference(Datum const& datum, Matrix<double,3,3> const& transform) : GeoReferenceBase(datum) {
     set_transform(transform);
+    register_default_disk_image_resources();
     set_geographic();
     init_proj();
   }
@@ -267,6 +282,31 @@ namespace cartography {
       m_is_projected = true;
     init_proj();
   }
+  
+  /*virtual*/ void GeoReference::read_file_metadata(DiskImageResource* r) {
+    if(read_map) {
+      std::pair<std::string,read_metadata_func> item;
+      bool found_func = read_map->find(item, r->type());
+      if(found_func) {
+        item.second(this, r);
+        return;
+      }
+    }
+    vw_throw(NoImplErr() << "Unsuppported DiskImageResource: " << r->type());
+  }
+  
+  /*virtual*/ void GeoReference::write_file_metadata(DiskImageResource* r) const {
+    if(write_map) {
+      std::pair<std::string,write_metadata_func> item;
+      bool found_func = write_map->find(item, r->type());
+      if(found_func) {
+        item.second(r, this);
+        return;
+      }
+    }
+    vw_throw(NoImplErr() << "Unsuppported DiskImageResource: " << r->type());
+  }
+
 
   /// For a given pixel coordinate, compute the position of that
   /// pixel in this georeferenced space.

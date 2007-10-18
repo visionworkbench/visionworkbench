@@ -28,8 +28,8 @@
 if MAKE_MODULE_CARTOGRAPHY
 
 if HAVE_PKG_GDAL
-gdal_headers = DiskImageResourceGeoReferenceHelperGDAL.h
-gdal_sources = DiskImageResourceGeoReferenceHelperGDAL.cc
+gdal_headers = GeoReferenceResourceGDAL.h
+gdal_sources = GeoReferenceResourceGDAL.cc
 endif
 
 if MAKE_MODULE_CARTOGRAPHY
@@ -39,13 +39,12 @@ endif
 
 include_HEADERS = FileIO.h GeoReferenceBase.h GeoReference.h		\
                   GeoTransform.h Datum.h PointImageManipulation.h	\
-                  OrthoImageView.h					\
-                  DiskImageResourceGeoReferenceHelperPDS.h		\
+                  OrthoImageView.h GeoReferenceResourcePDS.h		\
                   $(gdal_headers) $(camerabbox_headers)
 
 libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc	\
-                  DiskImageResourceGeoReferenceHelperPDS.cc		\
-                  $(gdal_sources) $(camerabbox_sources)
+                  GeoReferenceResourcePDS.cc $(gdal_sources)		\
+                  $(camerabbox_sources)
 
 libvwCartography_la_LIBADD = @MODULE_CARTOGRAPHY_LIBS@
 

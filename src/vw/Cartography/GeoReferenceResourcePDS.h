@@ -20,38 +20,22 @@
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
 // 
 // __END_LICENSE__
+#ifndef __VW_CARTOGRAPHY_GEOREFERENCEHELPERPDS_H__
+#define __VW_CARTOGRAPHY_GEOREFERENCEHELPERPDS_H__
 
-/// \file Image.h
-/// 
-/// A convenience header that includes the header files in vw/Image.
-/// 
-#ifndef __VW_IMAGE_H__
-#define __VW_IMAGE_H__
+#include <vw/FileIO/DiskImageResourcePDS.h>
+#include <vw/Cartography/GeoReference.h>
 
-#include <vw/Image/PixelIterator.h>
-#include <vw/Image/ImageViewBase.h>
-#include <vw/Image/PixelAccessors.h>
-#include <vw/Image/ImageView.h>
-#include <vw/Image/ImageIO.h>
-#include <vw/Image/ImageViewRef.h>
-#include <vw/Image/PixelTypeInfo.h>
-#include <vw/Image/PixelMath.h>
-#include <vw/Image/PixelTypes.h>
-#include <vw/Image/PerPixelViews.h>
-#include <vw/Image/PerPixelAccessorViews.h>
-#include <vw/Image/UtilityViews.h>
-#include <vw/Image/ImageMath.h>
-#include <vw/Image/ImageResource.h>
-#include <vw/Image/ImageResourceView.h>
-#include <vw/Image/Manipulation.h>
-#include <vw/Image/Algorithms.h>
-#include <vw/Image/EdgeExtension.h>
-#include <vw/Image/Interpolation.h>
-#include <vw/Image/Convolution.h>
-#include <vw/Image/Filter.h>
-#include <vw/Image/Transform.h>
-#include <vw/Image/BlockProcessor.h>
-#include <vw/Image/BlockRasterize.h>
-#include <vw/Image/Statistics.h>
+// Boost
+#include <boost/algorithm/string.hpp>
 
-#endif // __VW_IMAGE_H__
+namespace vw {
+namespace cartography {
+
+  void read_pds_georeference( GeoReference& georef, DiskImageResourcePDS const& resource );
+  // We do not support writing PDS images at this time.
+  // void write_pds_georeference( DiskImageResourcePDS& resource, GeoReference const& georef );
+
+}} // namespace vw::cartography
+
+#endif // __VW_CARTOGRAPHY_GEOREFERENCEHELPERPDS_H__

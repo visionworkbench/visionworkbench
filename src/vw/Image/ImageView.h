@@ -34,6 +34,7 @@
 #include <boost/type_traits.hpp>
 
 #include <vw/Core/Exception.h>
+#include <vw/Core/ProgressCallback.h>
 
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/ImageResource.h>
@@ -310,72 +311,6 @@ namespace vw {
     ViewT m_view;
     Vector2i m_block_size;
   };
-
-  // *******************************************************************
-  // Image view reading and writing functions.
-  // *******************************************************************
-
-  template <class PixelT>
-  inline void read_image( ImageView<PixelT>& dst, ImageResource const& src, BBox2i const& bbox ) {
-    int32 planes = 1;
-    if( ! IsCompound<PixelT>::value ) {
-      // The image has a fundamental pixel type
-      if( src.planes()>1 && src.channels()>1 )
-        vw_throw( ArgumentErr() << "Cannot read a multi-plane multi-channel image resource into a single-channel view." );
-      planes = (std::max)( src.planes(), src.channels() );
-    }
-    dst.set_size( bbox.width(), bbox.height(), planes );
-    src.read( dst.buffer(), bbox );
-  }
-
-  template <class PixelT>
-  inline void read_image( ImageView<PixelT>& dst, ImageResource const& src ) {
-    read_image( dst, src, BBox2i(0,0,src.cols(),src.rows()) );
-  }
-
-  template <class PixelT>
-  inline void read_image( ImageView<PixelT> const& dst, ImageResource const& src, BBox2i const& bbox ) {
-    src.read( dst.buffer(), bbox );
-  }
-
-  template <class PixelT>
-  inline void read_image( ImageView<PixelT> const& dst, ImageResource const& src ) {
-    read_image( dst, src, BBox2i(0,0,src.cols(),src.rows()) );
-  }
-
-  template <class ImageT>
-  inline void read_image( ImageViewBase<ImageT> const& dst, ImageResource const& src, BBox2i const& bbox ) {
-    ImageView<typename ImageT::pixel_type> intermediate;
-    read_image( intermediate, src, bbox );
-    dst.impl() = intermediate;
-  }
-
-  template <class ImageT>
-  inline void read_image( ImageViewBase<ImageT> const& dst, ImageResource const& src ) {
-    read_image( dst, src, BBox2i(0,0,src.cols(),src.rows()) );
-  }
-
-  template <class PixelT>
-  inline void write_image( ImageResource &dst, ImageView<PixelT> const& src, BBox2i const& bbox ) {
-    dst.write( src.buffer(), bbox );
-  }
-
-  template <class PixelT>
-  inline void write_image( ImageResource &dst, ImageView<PixelT> const& src ) {
-    write_image( dst, src, BBox2i(0,0,dst.cols(),dst.rows()) );
-  }
-
-  template <class ImageT>
-  inline void write_image( ImageResource &dst, ImageViewBase<ImageT> const& src, BBox2i const& bbox ) {
-    ImageView<typename ImageT::pixel_type> intermediate = src;
-    write_image( dst, intermediate, bbox );
-  }
-
-  template <class ImageT>
-  inline void write_image( ImageResource &dst, ImageViewBase<ImageT> const& src ) {
-    ImageView<typename ImageT::pixel_type> intermediate = src;
-    write_image( dst, intermediate );
-  }
 
 } // namespace vw
 

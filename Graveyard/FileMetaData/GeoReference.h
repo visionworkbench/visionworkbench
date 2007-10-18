@@ -28,6 +28,7 @@
 #include <vw/Core/Exception.h>
 #include <vw/Cartography/GeoReferenceBase.h>
 #include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/FileMetadata.h>
 
 // Boost
 #include <boost/algorithm/string.hpp>
@@ -42,7 +43,7 @@ namespace cartography {
   /// The georeference class contains the mapping from image coordinates
   /// (u,v) to geospatial coordinates (typically lat/lon, or possibly
   /// meters in a UTM grid cell, etc.)
-  class GeoReference : public GeoReferenceBase {
+  class GeoReference : public GeoReferenceBase, public FileMetadata {
     Matrix<double,3,3> m_transform, m_inv_transform, m_shifted_transform, m_inv_shifted_transform;
     std::string m_proj_projection_str, m_gml_str;
     boost::shared_ptr<ProjContext> m_proj_context;
@@ -74,6 +75,15 @@ namespace cartography {
     /// Destructor.
     virtual ~GeoReference() {}
     
+    /// Implementation of FileMetadata interface.
+    static std::string metadata_type_static(void) { return "GeoReference"; };
+    virtual std::string metadata_type(void) const { return metadata_type_static(); };
+    virtual void read_file_metadata(DiskImageResource* r);
+    virtual void write_file_metadata(DiskImageResource* r) const;
+    static void register_disk_image_resource(std::string const& disk_image_resource_type,
+                                             read_metadata_func read_func,
+                                             write_metadata_func write_func);
+
     void set_transform(Matrix<double,3,3> transform);
     virtual void set_datum(Datum const& datum);
 
@@ -145,47 +155,6 @@ namespace cartography {
     return os;
   }
 
-  //
-  // Georeference I/O operations
-  //
-
-  /// Read georeferencing information from an image resource.
-  void read_georeference( GeoReference& georef, ImageResource const& resource );
-
-  /// A convenience function to read georeferencing information from an image file.
-  inline void read_georeference( GeoReference& georef, const std::string &filename ) {
-    DiskImageResource *r = DiskImageResource::open( filename );
-    read_georeference( georef, *r );
-    delete r;
-  }
-
-  /// A convenience function to read an image and its georeferencing information.
-  template <class PixelT>
-  void read_georeferenced_image( ImageView<PixelT>& image, GeoReference& georef, const std::string &filename ) {
-    DiskImageResource *r = DiskImageResource::open( filename );
-    read_georeference( georef, *r );
-    read_image( image, *r );
-    delete r;
-  }
-
-  /// Write georeferencing information to an image resource.  You should 
-  /// generally call this prior to writing image data to the resource.
-  void write_georeference( ImageResource& resource, GeoReference const& georef );
-
-  /// A convenience function to write image data and its georeferencing information 
-  /// to a file.
-  template <class ImageT>
-  void write_georeferenced_image( std::string const& filename,
-                                  ImageViewBase<ImageT> const& image,
-                                  GeoReference const& georef,
-                                  ProgressCallback const& progress_callback = ProgressCallback::dummy_instance() ) {
-    vw_out(InfoMessage+1) << "\tSaving image: " << filename << "\t";
-    DiskImageResource *r = DiskImageResource::create( filename, image.format() );
-    vw_out(InfoMessage+1) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
-    write_georeference( *r, georef );
-    write_image( *r, image, progress_callback );
-    delete r;
-  }
 
 }} // namespace vw::cartography
 
