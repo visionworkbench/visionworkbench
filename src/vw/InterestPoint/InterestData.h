@@ -71,7 +71,7 @@ namespace ip {
     /// The interest measure (could be Harris, LoG, etc.).
     float interest;
 
-    /// And finally the descriptor for the interest point.  SIFT points
+    /// And finally the descriptor for the interest point.  Interest points
     /// have a vector of integers, PCA-SIFT features have a vector of
     /// floats or doubles...
     vw::Vector<float> descriptor;

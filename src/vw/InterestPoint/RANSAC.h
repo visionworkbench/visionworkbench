@@ -60,7 +60,6 @@
 #define __INTERESTPOINT_RANSAC_H__
 
 #include <vw/InterestPoint/Descriptor.h>
-#include <vw/Math/Geometry.h>
 
 #include <time.h>
 #include <stdlib.h>

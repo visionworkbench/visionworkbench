@@ -726,7 +726,7 @@ namespace {
 } // namespace
 
 namespace vw {
-namespace math {
+namespace geometry {
 
   GeomPrimitive *
   SpatialTree::closest(const VectorT &point, double distance_threshold /*= -1*/, double *distance /*= 0*/) {

@@ -31,6 +31,7 @@
 
 #include <vw/InterestPoint.h>
 #include <vw/Image.h>
+#include <vw/Math.h>
 #include <vw/Mosaic.h>
 #include <vw/FileIO.h>
 

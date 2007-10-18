@@ -133,19 +133,20 @@ public:
                                                      -0.0007824968779459596,
                                                      0.0009675505571067333)));
     
-
     Vector2 result1 = pinhole.point_to_pixel(pinhole.pixel_to_vector(Vector2(0,0))+pinhole.camera_center(Vector2(0,0)));
     Vector2 result2 = pinhole2.point_to_pixel(pinhole2.pixel_to_vector(Vector2(0,0))+pinhole2.camera_center(Vector2(0,0)));
     Vector2 result3 = pinhole3.point_to_pixel(pinhole3.pixel_to_vector(Vector2(0,0))+pinhole3.camera_center(Vector2(0,0)));
+#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
     Vector2 result4 = pinhole4.point_to_pixel(pinhole4.pixel_to_vector(Vector2(0,0))+pinhole4.camera_center(Vector2(0,0)));
-
+#endif
     TS_ASSERT_EQUALS(result1, Vector2(0,0));
     TS_ASSERT_EQUALS(result2, Vector2(0,0));
     TS_ASSERT_DELTA(result3[0], Vector2(0,0)[0], 1e-8);
     TS_ASSERT_DELTA(result3[1], Vector2(0,0)[1], 1e-8);
+#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
     TS_ASSERT_DELTA(result4[0], Vector4(0,0)[0], 1e-3);
     TS_ASSERT_DELTA(result4[1], Vector4(0,0)[1], 1e-3);
-
+#endif
   }
 
   void test_tsai_distortion()
@@ -161,6 +162,7 @@ public:
                                                      0.00116333004552871))); 
     boost::shared_ptr<LensDistortion> distortion = pinhole.lens_distortion();
     
+#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
     Vector2 distorted_pix = distortion->get_distorted_coordinates(Vector2(200,200));
     Vector2 undistorted_pix = distortion->get_undistorted_coordinates(distorted_pix);
     
@@ -168,6 +170,7 @@ public:
     TS_ASSERT_DELTA(distorted_pix[1], 244.395, 0.1);
     TS_ASSERT_DELTA(undistorted_pix[0], 200, 0.1); 
     TS_ASSERT_DELTA(undistorted_pix[1], 200, 0.1); 
+#endif
   }
 
 };

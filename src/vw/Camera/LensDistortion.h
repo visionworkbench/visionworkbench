@@ -29,7 +29,10 @@
 
 #include <vw/Camera/CameraModel.h>
 #include <vw/Math/Vector.h>
+
+#if defined(VW_HAVE_PKG_JLAPACK) && VW_HAVE_PKG_LAPACK==1
 #include <vw/Math/LevenbergMarquardt.h>
+#endif
 
 #include <boost/shared_ptr.hpp>
 
@@ -94,6 +97,7 @@ namespace camera {
 
 
 
+#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
   /// \cond INTERNAL
   // Optimization functor for computing the undistorted coordinates
   // using levenberg marquardt.
@@ -109,6 +113,7 @@ namespace camera {
       return m_model_ptr->get_distorted_coordinates(x);
     }
   };
+#endif 
   
   // This CRTP base class is inserted here in the inheritance chain to
   // provide a point where we can keep track of some templatized
@@ -162,12 +167,18 @@ namespace camera {
     // get_undistorted_coordinates() which will perform faster than
     // this generic iterative implementation.
     virtual Vector2 get_undistorted_coordinates(Vector2 const& p) const {
+#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
       UndistortOptimizeFunctor model(*this);
       int status;
       Vector2 solution = levenberg_marquardt( model, p, p, status, 0.1, 0.1 ); // tol = 0.1 pixels
       VW_DEBUG_ASSERT( status != vw::math::optimization::eConvergedRelTolerance,
                        PixelToRayErr() << "get_undistorted_coordinates: failed to converge." );
       return solution;
+#else
+      vw_throw(NoImplErr() << "CameraModel: Cannot compute undistorted coordinate using non-linear optimization techniques.  "
+	       << "Overload this default implementation or recompile the Vision Workbench with LAPACK support enabled.");
+      return Vector2(); // Never reached
+#endif
     }
 
   };

@@ -70,7 +70,8 @@ hdr_tonemap_LDADD = @PKG_HDR_LIBS@ $(COMMON_LIBS)
 endif
 
 # Command-line tools based on the InterestPoint module
-if MAKE_MODULE_INTERESTPOINT
+if MAKE_MODULE_INTERESTPOINT 
+if HAVE_PKG_LAPACK
 interestpoint_progs = match_pair vw_sift
 # 
 match_pair_SOURCES = match_pair.cc
@@ -78,6 +79,7 @@ match_pair_LDADD = @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
 # 
 vw_sift_SOURCES = vw_sift.cc
 vw_sift_LDADD = @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
+endif
 endif
 
 # Command-line tools based on the Mosaic module
