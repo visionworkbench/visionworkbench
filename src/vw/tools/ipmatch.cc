@@ -30,6 +30,7 @@
 /// ./ipmatch [image 1] [image 2] [output prefix]
 
 #include <vw/InterestPoint.h>
+#include <vw/Math.h>
 #include <vw/Image.h>
 #include <vw/Mosaic.h>
 #include <vw/FileIO.h>

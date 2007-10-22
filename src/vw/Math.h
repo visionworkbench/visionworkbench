@@ -28,6 +28,8 @@
 #ifndef __VW_MATH_H__
 #define __VW_MATH_H__
 
+#include <vw/config.h>
+
 #include <vw/Math/Functions.h>
 #include <vw/Math/Functors.h>
 #include <vw/Math/Vector.h>

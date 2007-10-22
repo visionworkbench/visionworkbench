@@ -44,7 +44,7 @@ namespace math {
     template <class VectorT1, class VectorT2>
     inline bool operator<( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
       VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different length." );
-      for( int i=0; i<v1.impl().size(); ++i)
+      for( unsigned i=0; i<v1.impl().size(); ++i)
         if( ! ( v1.impl()[i] < v2.impl()[i] ) ) return false;
       return true;
     }
@@ -52,7 +52,7 @@ namespace math {
     template <class VectorT1, class VectorT2>
     inline bool operator<=( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
       VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different length." );
-      for( int i=0; i<v1.impl().size(); ++i)
+      for( unsigned i=0; i<v1.impl().size(); ++i)
         if( ! ( v1.impl()[i] <= v2.impl()[i] ) ) return false;
       return true;
     }
@@ -60,7 +60,7 @@ namespace math {
     template <class VectorT1, class VectorT2>
     inline bool operator>( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
       VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different length." );
-      for( int i=0; i<v1.impl().size(); ++i)
+      for( unsigned i=0; i<v1.impl().size(); ++i)
         if( ! ( v1.impl()[i] > v2.impl()[i] ) ) return false;
       return true;
     }
@@ -68,7 +68,7 @@ namespace math {
     template <class VectorT1, class VectorT2>
     inline bool operator>=( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
       VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different length." );
-      for( int i=0; i<v1.impl().size(); ++i)
+      for( unsigned i=0; i<v1.impl().size(); ++i)
         if( ! ( v1.impl()[i] >= v2.impl()[i] ) ) return false;
       return true;
     }
@@ -78,7 +78,7 @@ namespace math {
       VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute max of vectors of different length." );
       VectorT1 v3;
       v3.set_size(v1.impl().size());
-      for( int i=0; i<v1.impl().size(); ++i)
+      for( unsigned i=0; i<v1.impl().size(); ++i)
         v3[i] = std::max(v1.impl()[i], v2.impl()[i]);
       return v3;
     }
@@ -88,7 +88,7 @@ namespace math {
       VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute min of vectors of different length." );
       VectorT1 v3;
       v3.set_size(v1.impl().size());
-      for( int i=0; i<v1.impl().size(); ++i)
+      for( unsigned i=0; i<v1.impl().size(); ++i)
         v3[i] = std::min(v1.impl()[i], v2.impl()[i]);
       return v3;
     }
@@ -187,7 +187,7 @@ namespace math {
 
     /// Expands this bounding box by the given offset in every direction.
     void expand( RealT offset ) {
-      for( int i=0; i<m_min.size(); ++i ) {
+      for( unsigned i=0; i<m_min.size(); ++i ) {
         m_min[i] -= offset;
         m_max[i] += offset;
       }

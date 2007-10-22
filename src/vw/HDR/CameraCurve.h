@@ -249,7 +249,7 @@ namespace hdr {
     int num_channels() const { return m_lookup_tables.size(); }
 
     Vector<double> const& lookup_table(int channel) const { 
-      if (channel < 0 || channel >= m_lookup_tables.size()) 
+      if (channel < 0 || (size_t)channel >= m_lookup_tables.size()) 
         vw_throw(ArgumentErr() << "CameraCurveFn: unknown lookup table.");
 
       return m_lookup_tables[channel]; 

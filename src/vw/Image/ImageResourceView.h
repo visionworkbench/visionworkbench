@@ -34,6 +34,7 @@
 #include <vw/Core/Cache.h>
 #include <vw/Core/Debugging.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Image/ImageIO.h>
 #include <vw/Image/Manipulation.h>
 
 namespace vw {
