@@ -276,10 +276,10 @@ namespace mosaic {
     }
 
     pixel_type operator()( int x, int y, int p=0 ) const {
-      // FIXME: This would be easy to add, though expensive. 
-      // What about cacheing output blocks?
-      vw_throw( NoImplErr() << "ImageComposite does not support individual pixel access!" );
-      return pixel_type(); // never reached
+      // FIXME: This is horribly slow, and totally untested for
+      // multi-band blending.  We should do something faster for draft
+      // mode, and possibly cache output blocks in multi-band mode?
+      return generate_patch(BBox2i(x,y,1,1))(0,0,p);
     }
 
     typedef ProceduralPixelAccessor<ImageComposite> pixel_accessor;
