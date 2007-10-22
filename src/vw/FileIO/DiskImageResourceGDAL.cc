@@ -343,8 +343,8 @@ namespace vw {
      m_format.pixel_format = VW_PIXEL_GRAY;     
      m_format.planes = 1;
    } else if ( dataset->GetRasterCount() == 2 && 
-               std::string(GDALGetColorInterpretationName(dataset->GetRasterBand(1)->GetColorInterpretation())) == std::string("Gray") &&
-               std::string(GDALGetColorInterpretationName(dataset->GetRasterBand(2)->GetColorInterpretation())) == std::string("Alpha")) {
+               std::string(GDALGetColorInterpretationName(dataset->GetRasterBand(1)->GetColorInterpretation())) == std::string("Gray") /* &&
+               std::string(GDALGetColorInterpretationName(dataset->GetRasterBand(2)->GetColorInterpretation())) == std::string("Alpha") */ ) {
      m_format.pixel_format = VW_PIXEL_GRAYA;
      m_format.planes = 1;
    } else if ( dataset->GetRasterCount() == 3 && 
