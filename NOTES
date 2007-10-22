@@ -1,3 +1,14 @@
+*** RELEASE 2.0.alpha2, 22 OCTOBER 2007 ***
+
+This release primarily fixes a critical bug in the handling of GeoTIFFs 
+that prevents loading of georeference information in many cases.
+
+Added a CylindricalEdgeExtension type to simplify working with global
+maps in cylindrical projections: it applies periodic edge extension in
+the x-axis and constant edge extension in the y-axis.
+
+A handful of other minor tweaks/fixes.
+
 *** RELEASE 2.0.alpha1, 18 OCTOBER 2007 ***
 
 So many little things have changed or been added that it is hard to
