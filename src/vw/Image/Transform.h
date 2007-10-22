@@ -36,6 +36,7 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Image/ImageViewBase.h>
+#include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Interpolation.h>
 #include <vw/Image/Manipulation.h>
 
@@ -308,9 +309,11 @@ namespace vw {
   /// to location (i,j) in the output image is at the position stored
   /// in lookup_image(i,j).
   class PointLookupTransform : public TransformBase<PointLookupTransform> {
-    ImageView<Vector2> m_lookup_image;
+    ImageViewRef<Vector2> m_lookup_image;
   public:
-    PointLookupTransform(ImageView<Vector2> &lookup_image) : m_lookup_image(lookup_image) {}
+    template <class OffsetImageT>
+    PointLookupTransform(ImageViewBase<OffsetImageT> const& lookup_image)
+      : m_lookup_image(lookup_image.impl()) {}
     
     inline Vector2 reverse(const Vector2 &p) const {
       int32 x = (int32) p.x(), y = (int32) p.y();
@@ -328,9 +331,11 @@ namespace vw {
   /// corresponds to location (i,j) in the output image is at the
   /// position stored in (i,j) + lookup_image(i,j).
   class PointOffsetTransform : public TransformBase<PointOffsetTransform> {
-    ImageView<Vector2> m_offset_image;
+    ImageViewRef<Vector2> m_offset_image;
   public:
-    PointOffsetTransform(ImageView<Vector2> &offset_image) : m_offset_image(offset_image) {}
+    template <class OffsetImageT>
+    PointOffsetTransform(ImageViewBase<OffsetImageT> const& offset_image)
+      : m_offset_image(offset_image.impl()) {}
     
     inline Vector2 reverse(const Vector2 &p) const {
       int32 x = (int32) p.x(), y = (int32) p.y();
