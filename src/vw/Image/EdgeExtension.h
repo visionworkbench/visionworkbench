@@ -170,6 +170,41 @@ namespace vw {
     }
   };
 
+  /// A cylindrical edge extension type: periodic in the x axis, constant in the y axis.
+  struct CylindricalEdgeExtension : EdgeExtensionBase {
+    template <class ViewT>
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
+      int32 d_i=i;
+      d_i %= int(view.cols());
+      if( d_i < 0 ) d_i += view.cols();
+      int32 d_j = (j<0) ? 0 : (j>=view.rows()) ? (view.rows()-1) : j;
+      return view(d_i,d_j,p);
+    }
+    template <class ViewT>
+    inline BBox2i source_bbox( ViewT const& view, BBox2i const& bbox ) const {
+      BBox2i result;
+      if( bbox.width() >= view.cols() ) {
+        result.min().x() = 0;
+        result.max().x() = view.cols();
+      }
+      else {
+        result.min().x() = mod(bbox.min().x(), view.cols());
+        result.max().x() = mod(bbox.max().x()-1, view.cols())+1;
+        if( result.min().x() >= result.max().x() ) {
+          result.min().x() = 0;
+          result.max().x() = view.cols();
+        }
+      }
+      if( bbox.min().y() < 0 ) result.min().y() = 0;
+      else if( bbox.min().y() >= view.rows() ) result.min().y() = view.rows()-1;
+      else result.min().y() = bbox.min().y();
+      if( bbox.max().y() > view.rows() ) result.max().y() = view.rows();
+      else if( bbox.max().y() <= 0 ) result.max().y() = 1;
+      else result.max().y() = bbox.max().y();
+      return result;
+    }
+  };
+
   /// A reflection edge extension type.
   struct ReflectEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
