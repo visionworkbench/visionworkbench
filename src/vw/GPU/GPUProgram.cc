@@ -116,7 +116,7 @@ namespace vw { namespace GPU {
   //#    CG Specific Code
   //########################################################################
 
-#ifdef VW_HAVE_PKG_CG
+#if defined(VW_HAVE_PKG_CG) && VW_HAVE_PKG_CG==1
 
   CGerror CGCheckError();
 
@@ -419,7 +419,7 @@ namespace vw { namespace GPU {
   //#    Creation Free Functions - CG
   //#############################################################################################
 
-#ifdef VW_HAVE_PKG_CG
+#if defined(VW_HAVE_PKG_CG) && VW_HAVE_PKG_CG==1
 
   GPUProgram_CG* create_gpu_program_cg_string(const string& fragmentString, const vector<int>& fragmentAttributes,
 					      const string& vertexString, const vector<int>& vertexAttributes)
@@ -641,7 +641,7 @@ namespace vw { namespace GPU {
 
     gpu_log(get_string_for_shader_language_choice_enum(shaderLanguageChoice));
     gpu_log("  ");
-#ifdef VW_HAVE_PKG_CG
+#if defined(VW_HAVE_PKG_CG) && VW_HAVE_PKG_CG==1
     if(shaderLanguageChoice == SHADER_LANGUAGE_CHOICE_CG_GLSL || shaderLanguageChoice == SHADER_LANGUAGE_CHOICE_CG) {
       try {
 	program = create_gpu_program_cg(fragmentPath  + ".cg", fragmentAttributes, 
@@ -661,7 +661,8 @@ namespace vw { namespace GPU {
       gpu_log("Trying GLSL... ");
     }
 
-#ifdef VW_HAVE_PKG_CG
+#if defined(VW_HAVE_PKG_CG) && VW_HAVE_PKG_CG==1
+
     if(!program && shaderLanguageChoice == SHADER_LANGUAGE_CHOICE_GLSL_CG) {
       try {
 	program = create_gpu_program_cg(fragmentPath  + ".cg", fragmentAttributes, 
@@ -698,7 +699,7 @@ namespace vw { namespace GPU {
       delete (*iter).second;
     program_cache_glsl.clear();
 
-#ifdef VW_HAVE_PKG_CG
+#if defined(VW_HAVE_PKG_CG) && VW_HAVE_PKG_CG==1
     for(map<GPUProgramKey, GPUProgram_CG*>::iterator iter = program_cache_cg.begin(); iter != program_cache_cg.end(); iter++)
       delete (*iter).second;
     program_cache_cg.clear();

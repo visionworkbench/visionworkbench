@@ -7,11 +7,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <vw/config.h>
 #include <vw/GPU/Setup.h>
 #include <vw/GPU/GPUImage.h>
 
 
-#ifdef VW_HAVE_PKG_CG
+#if defined(VW_HAVE_PKG_CG) && VW_HAVE_PKG_CG==1
 #include "Cg/cg.h"
 #include "Cg/cgGL.h"
 #endif
@@ -132,8 +133,7 @@ namespace vw { namespace GPU {
   //#    CG Classes:  GPUShader_CG, GPUProgram_CG (subclass), GPUProgramSet_CG (subclass)         
   //#############################################################################################
 
-
-#ifdef VW_HAVE_PKG_CG
+#if defined(VW_HAVE_PKG_CG) && VW_HAVE_PKG_CG==1
 
   class GPUShader_CG {
     // Variables - Member
@@ -225,7 +225,7 @@ namespace vw { namespace GPU {
   GPUProgram_GLSL* create_gpu_program_glsl(const string& fragmentPath, const vector<int>& fragmentAttributes = vector<int>(),
 					   const string& vertexPath = "", const vector<int>& vertexAttributes = vector<int>());
 
-#ifdef VW_HAVE_PKG_CG
+#if defined(VW_HAVE_PKG_CG) && VW_HAVE_PKG_CG==1
 
   GPUProgram_CG* create_gpu_program_cg_string(const string& fragmentString, const vector<int>& fragmentAttributes = vector<int>(),
 					      const string& vertexString = "", const vector<int>& vertexAttributes = vector<int>());

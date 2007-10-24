@@ -250,8 +250,9 @@ AX_PKG(OPENEXR, [Z PTHREADS], [-lImath -lHalf -lIex -lIlmImf], [ImfOutputFile.h]
 AX_PKG(HDF, [], [-ldf -lmfhdf], [mfhdf.h])
 
 AX_PKG(X11, [], [-lXext -lX11 -lXmu -lXi -lXt], [])
-AX_PKG(GL, [X11], [-lGL -lGLU], [GL/gl.h GL/glu.h])
-AX_PKG(GLUT, [X11 GL], [-lglut], [GL/glut.h])
+AX_PKG_GL
+#AX_PKG(GL, [X11], [-lGL -lGLU], [GL/gl.h GL/glu.h])
+#AX_PKG(GLUT, [X11 GL], [-lglut], [GL/glut.h])
 AX_PKG(GLEW, [GL M], [-lGLEW], [GL/glew.h])
 AX_PKG(CG, [], [-lCg -lCgGL], [Cg/cg.h])
 
@@ -294,9 +295,9 @@ AX_MODULE(CARTOGRAPHY, [src/vw/Cartography], [libvwCartography.la], yes, [VW], [
 AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], yes, [VW], [CAMERA LAPACK])
 AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], yes, [VW], [])
 if test $host_vendor = apple; then
-  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], yes, [VW], [GL GLU GLUT], [CG])
+  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], yes, [VW], [GL], [CG])
 else 
-  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], yes, [VW], [GL GLU GLUT GLEW], [CG])
+  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], yes, [VW], [GL GLEW], [CG])
 fi
 AX_MODULE(GEOMETRY, [src/vw/Geometry], [libvwGeometry.la], yes, [VW], [], [GMP PPL APRON QHULL])
 
