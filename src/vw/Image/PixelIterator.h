@@ -37,13 +37,25 @@ namespace vw {
   /// An STL-compliant iterator for accessing a general image view 
   /// as an ordered 1-dimensional container of pixels.
   ///
-  /// The iterator first traverses rows, then columns, then planes.
-  /// This iterator can be used in the generic standard template
-  /// library algorithms.  Creating a fully STL-compliant iterator is
-  /// actually quite a lot of work, so this class is a subclass of the
-  /// boost iterator_facade<>, which takes care of defining the many
-  /// types and member functions necessary for various STL iterator
-  /// types.
+  /// The iterator first traverses from column to column, then from
+  /// row to row, and finally from plane to plane.  This iterator can
+  /// be used in the generic standard template library algorithms.
+  /// Creating a fully STL-compliant iterator is actually quite a lot
+  /// of work, so this class is a subclass of boost::iterator_facade,
+  /// which takes care of defining the many types and member functions
+  /// necessary for various STL iterator types.
+  /// 
+  /// PixelIterator is a relatively slow mechanism for working with
+  /// image pixels.  It stores a single offset into the image, and
+  /// every time you dereference the iterator it uses modular
+  /// arithmetic to compute the corresponding column, row, and plane
+  /// number.  You might think it would be faster for the iterator to
+  /// operate on those quantities directly, but then you end up having
+  /// to do an equivalent amount of math every time you move the
+  /// iterator---regardless of whether or not you end up dereferencing
+  /// it---which turns out to be even worse in many applications.  If 
+  /// performance is a concern, you are generally better off working 
+  /// with pixel accessors rather than pixel iterators.
   template <class ViewT>
   class PixelIterator : public boost::iterator_facade<PixelIterator<ViewT>,
                                                       typename ViewT::pixel_type,
@@ -56,7 +68,7 @@ namespace vw {
     typedef typename ViewT::pixel_type pixel_type;
 
     // Private variables
-    ViewT const* m_view_ptr;
+    ViewT const& m_view;
     int32 m_width, m_height;
     int64 m_index, m_pixels_per_plane;
 
@@ -72,25 +84,34 @@ namespace vw {
     // Dereferencing
     typename PixelIterator::reference dereference() const { 
       // Modulus arithmetic for random access iteratation
-      int32 p = (int32)(m_index / m_pixels_per_plane);
-      int32 r = (int32)(m_index % m_pixels_per_plane) / m_width;
-      int32 c = (int32)(m_index % m_pixels_per_plane) % m_width;
-
-      return (*m_view_ptr)(c,r,p);
+      return m_view(col(),row(),plane());
     }
 
   public:
     // Constructors
     PixelIterator( ViewT const& view, int32 c, int32 r, int32 p=0 ) 
-      : m_view_ptr(&view), m_width(view.cols()), m_height(view.rows()) {
+      : m_view(view), m_width(view.cols()), m_height(view.rows()) {
       m_index = p*((int64) m_width*m_height) + r*m_width + c;
       m_pixels_per_plane = (int64) m_width * m_height;
     }
         
     explicit PixelIterator( ViewT const& view )
-      :  m_view_ptr(&view), m_width(view.cols()), m_height(view.rows()), m_index(0) {
+      :  m_view(view), m_width(view.cols()), m_height(view.rows()), m_index(0) {
       m_pixels_per_plane = (int64) m_width * m_height;
     }
+
+    int32 col() const {
+      return (int32)(m_index % m_pixels_per_plane) % m_width;
+    }
+
+    int32 row() const {
+      return (int32)(m_index % m_pixels_per_plane) / m_width;
+    }
+
+    int32 plane() const {
+      return (int32)(m_index / m_pixels_per_plane);
+    }
+
   };
 
 } // namespace vw
