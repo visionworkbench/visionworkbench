@@ -99,12 +99,15 @@ namespace ip {
   // Need to use list instead of vector for efficient thresholding.
   typedef std::list<InterestPoint> InterestPointList;
 
-  /// Sort points by interest, and optionally cull them beyond some number.
-  inline int cull_interest_points(InterestPointList &points, int num_points = -1) {
-    points.sort();
-    if ((num_points >= 0) && (num_points < (int)points.size()))
-      points.resize(num_points);
-    return points.size();
+  /// Select only the interest points that fall within the specified bounding box.
+  template <class RealT>
+  InterestPointList crop(InterestPointList const& interest_points, BBox<RealT,2> const& bbox) {
+    InterestPointList return_val;
+    for (InterestPointList::iterator i = interest_points.begin(); i != interest_points.end(); ++i) {
+      if (bbox.contains(Vector<RealT,2>(RealT((*i).x), RealT((*i).y))))
+        return_val.push_back(*i);
+    }
+    return return_val;
   }
 
   /// ImageInterestData
@@ -124,6 +127,7 @@ namespace ip {
   /// If some other sort of shared data is needed or any of the temporaries
   /// should be calculated in a different fashion, ImageInterestData can be
   /// partially specialized on InterestT.
+
   // TODO: may be simpler to inherit from InterestTraits
   template <class SrcT, class InterestT>
   class ImageInterestData {

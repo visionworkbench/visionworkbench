@@ -56,13 +56,10 @@
 ///    error: || p2 - H * p1 ||
 ///
 
-#ifndef __INTERESTPOINT_RANSAC_H__
-#define __INTERESTPOINT_RANSAC_H__
+#ifndef __VW_INTERESTPOINT_RANSAC_H__
+#define __VW_INTERESTPOINT_RANSAC_H__
 
-#include <vw/InterestPoint/Descriptor.h>
-
-#include <time.h>
-#include <stdlib.h>
+#include <vw/Math/Vector.h>
 
 namespace vw { 
 namespace ip {
@@ -78,6 +75,19 @@ namespace ip {
                        ContainerT const& p1, 
                        ContainerT const& p2) const {
       return vw::math::norm_2( p2 - H * p1 );
+    }
+  };
+
+  /// This metric can be used to measure the error between a interest
+  /// point p2 and a second interest point p1 that is transformed by a
+  /// 3x3 matrix H.  This is predominately used when matching interest
+  /// points using RANSAC.
+  struct InterestPointErrorMetric {
+    template <class RelationT, class ContainerT>
+    double operator() (RelationT const& H,
+                       ContainerT const& p1, 
+                       ContainerT const& p2) const {
+      return vw::math::norm_2( Vector3(p2.x,p2.y,1) - H * Vector3(p1.x,p1.y,1));
     }
   };
 

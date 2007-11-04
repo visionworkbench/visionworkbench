@@ -54,9 +54,9 @@ int main(int argc, char** argv) {
 
   static const int MAX_INTERESTPOINT_IMAGE_DIMENSION = 2048;
   // FIXME: change to a better descriptor, like PCA
-  typedef ScaledInterestPointDetector<LoGInterest> Detector;
+  ScaledInterestPointDetector<LogInterestOperator> detector;
+  InterestPointList ip = detector(image, MAX_INTERESTPOINT_IMAGE_DIMENSION);
 
-  InterestPointList ip = interest_points(image, Detector(), MAX_INTERESTPOINT_IMAGE_DIMENSION);
   unsigned num_pts = ip.size();
   if (num_pts == 0) {
     vw_out(InfoMessage) << "0 interest points found.\n";

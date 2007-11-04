@@ -34,12 +34,11 @@
 #include <vw/InterestPoint/Extrema.h>
 #include <vw/InterestPoint/ImageOctave.h>
 #include <vw/InterestPoint/ImageOctaveHistory.h>
-#include <vw/InterestPoint/InterestView.h>
+#include <vw/InterestPoint/InterestOperator.h>
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/Localize.h>
 #include <vw/InterestPoint/Matcher.h>
 #include <vw/InterestPoint/RANSAC.h>
-#include <vw/InterestPoint/Threshold.h>
 #include <vw/InterestPoint/WeightedHistogram.h>
 #endif // __VW_INTERESTPOINT_H__
  

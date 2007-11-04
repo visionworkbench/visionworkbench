@@ -75,11 +75,11 @@ namespace vw { namespace ip {
     typedef typename DefaultInterestT<SrcT,InterestT>::type interest_type;
   };
 
-  /// InterestViewTraits can be partially specialized on the interest view
-  /// to specify which processed views to fully rasterize. By default, it
-  /// only rasterizes the interest image.
+  /// InterestOperatorTraits can be partially specialized on the
+  /// interest view to specify which processed views to fully
+  /// rasterize. By default, it only rasterizes the interest image.
   template <class SrcT, class InterestT>
-  struct InterestViewTraits {
+  struct InterestOperatorTraits {
     typedef typename DefaultRasterizeT<SrcT>::type          rasterize_type;
     typedef typename DefaultGradientT<SrcT>::type           gradient_type;
     typedef typename DefaultMagT<SrcT>::type                mag_type;
@@ -93,8 +93,8 @@ namespace vw { namespace ip {
   /// we infer that speed is desired; otherwise we use the default types.
   template <class SrcT, class InterestT>
   struct InterestTraitsHelper {
-    //typedef typename boost::mpl::if_< IsMultiplyAccessible<SrcT>, InterestViewTraits<SrcT, InterestT>, InterestDefaultTraits<SrcT, InterestT> >::type type;
-    typedef InterestViewTraits<SrcT,InterestT> type;
+    //typedef typename boost::mpl::if_< IsMultiplyAccessible<SrcT>, InterestOperatorTraits<SrcT, InterestT>, InterestDefaultTraits<SrcT, InterestT> >::type type;
+    typedef InterestOperatorTraits<SrcT,InterestT> type;
   };
 
   template <class PixelT, class InterestT>
@@ -111,7 +111,7 @@ namespace vw { namespace ip {
 
   /// Peak type defaults to maxima.
   template <class InterestT>
-    struct InterestPeakType { static const int peak_type = IP_MAX; };
+  struct InterestPeakType { static const int peak_type = IP_MAX; };
 
 } } //namespace vw::ip
 
