@@ -119,47 +119,6 @@ namespace vw {
     }
   };
 
-  struct gdal_color_interp_for_vw_pixel_format {
-    static GDALColorInterp value(int band, int vw_pixel_type) {
-      if (vw_pixel_type == VW_PIXEL_GRAY) {
-        switch (band) {
-        case 0: return GCI_GrayIndex;
-        default: vw_throw( LogicErr() << "DiskImageResourceGDAL: requested band does not exist for selected color table." );
-        }
-      } else if (vw_pixel_type == VW_PIXEL_GRAYA) {
-        switch (band) {
-        case 0: return GCI_GrayIndex;
-        case 1: return GCI_AlphaBand;
-        default: vw_throw( LogicErr() << "DiskImageResourceGDAL: requested band does not exist for selected color table." );
-        }
-      } else if (vw_pixel_type == VW_PIXEL_RGB) {
-        switch (band) {
-        case 0: return GCI_RedBand;
-        case 1: return GCI_GreenBand;
-        case 2: return GCI_BlueBand;
-        default: vw_throw( LogicErr() << "DiskImageResourceGDAL: requested band does not exist for selected color table." );
-        }
-      } else if (vw_pixel_type == VW_PIXEL_RGBA) {
-        switch (band) {
-        case 0: return GCI_RedBand;
-        case 1: return GCI_GreenBand;
-        case 2: return GCI_BlueBand;
-        case 3: return GCI_AlphaBand;
-        default: vw_throw( LogicErr() << "DiskImageResourceGDAL: requested band does not exist for selected color table." );
-        }
-      } else if (vw_pixel_type == VW_PIXEL_HSV) {
-        switch (band) {
-        case 0: return GCI_HueBand;
-        case 1: return GCI_SaturationBand;
-        case 2: return GCI_LightnessBand;
-        default: vw_throw( LogicErr() << "DiskImageResourceGDAL: requested band does not exist for selected color table." );
-        }
-      } else {
-        return GCI_GrayIndex;
-      }
-    }
-  };
-
   static std::string file_extension( std::string const& filename ) {
     std::string::size_type dot = filename.find_last_of('.');
     std::string extension = filename.substr( dot );
@@ -429,6 +388,9 @@ namespace vw {
     char **options = NULL;
     options = CSLSetNameValue( options, "ALPHA", "YES" );
     options = CSLSetNameValue( options, "INTERLEAVE", "PIXEL" );
+    if( m_format.pixel_format == VW_PIXEL_RGB || m_format.pixel_format == VW_PIXEL_RGBA ) {
+      options = CSLSetNameValue( options, "PHOTOMETRIC", "RGB" );
+    }
     GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(format.channel_type);
     GDALDataset *dataset = driver->Create( filename.c_str(), cols(), rows(), num_bands, gdal_pix_fmt, options );
     CSLDestroy( options );
@@ -503,20 +465,19 @@ namespace vw {
     dst.pstride = dst.format.rows * dst.rstride;
     convert( dst, src );
 
-    int b = 1;
+    GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
     for (int32 p = 0; p < dst.format.planes; p++) {
       for (int32 c = 0; c < num_channels(dst.format.pixel_format); c++) {
-        GDALRasterBand *band = ((GDALDataset*)m_dataset)->GetRasterBand(b++);
-	//        band->SetColorInterpretation(gdal_color_interp_for_vw_pixel_format::value(p, dst.format.pixel_format));
-        GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
+        GDALRasterBand *band = ((GDALDataset*)m_dataset)->GetRasterBand(c+1);
         band->RasterIO( GF_Write, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
                         (uint8*)dst(0,0,p) + channel_size(dst.format.channel_type)*c, 
                         dst.format.cols, dst.format.rows, gdal_pix_fmt, dst.cstride, dst.rstride );
       }  
-      //FIXME: if we allow partial writes, m_convert_jp2 should probably only be set on complete writes
-      if (is_jp2(m_filename))
-        m_convert_jp2 = true;
     }
+    
+    //FIXME: if we allow partial writes, m_convert_jp2 should probably only be set on complete writes
+    if (is_jp2(m_filename))
+      m_convert_jp2 = true;
     
     delete [] data;
   }
