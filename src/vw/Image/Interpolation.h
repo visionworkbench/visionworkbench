@@ -79,10 +79,11 @@ namespace vw {
     template <class ViewT>
     inline typename ViewT::pixel_type operator()(const ViewT &view, double i, double j, int32 p ) const { 
       int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
-      double normx = i-x, normy = j-y;
+      typedef typename FloatType<typename PixelChannelType<typename ViewT::pixel_type>::type>::type real_type;
+      real_type normx = i-x, normy = j-y;
 
-      return typename ViewT::pixel_type( (view(x,y,p)   * (1.0-normy) + view(x,y+1,p)   * normy) * (1.0-normx) +
-                                         (view(x+1,y,p) * (1.0-normy) + view(x+1,y+1,p) * normy) * normx );
+      return typename ViewT::pixel_type( (view(x,y,p)   * (1-normy) + view(x,y+1,p)   * normy) * (1-normx) +
+                                         (view(x+1,y,p) * (1-normy) + view(x+1,y+1,p) * normy) * normx );
     }
   };
 
@@ -92,18 +93,19 @@ namespace vw {
     template <class ViewT>
     inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, int32 p ) const { 
       int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
-      double normx = i-x, normy = j-y;
+      typedef typename FloatType<typename PixelChannelType<typename ViewT::pixel_type>::type>::type real_type;
+      real_type normx = i-x, normy = j-y;
   
-      double s0 = ((2-normx)*normx-1)*normx;      double t0 = ((2-normy)*normy-1)*normy;
-      double s1 = (3*normx-5)*normx*normx+2;      double t1 = (3*normy-5)*normy*normy+2;
-      double s2 = ((4-3*normx)*normx+1)*normx;    double t2 = ((4-3*normy)*normy+1)*normy;
-      double s3 = (normx-1)*normx*normx;          double t3 = (normy-1)*normy*normy;
+      real_type s0 = ((2-normx)*normx-1)*normx;      real_type t0 = ((2-normy)*normy-1)*normy;
+      real_type s1 = (3*normx-5)*normx*normx+2;      real_type t1 = (3*normy-5)*normy*normy+2;
+      real_type s2 = ((4-3*normx)*normx+1)*normx;    real_type t2 = ((4-3*normy)*normy+1)*normy;
+      real_type s3 = (normx-1)*normx*normx;          real_type t3 = (normy-1)*normy*normy;
       
       typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
-      return channel_cast_clamp<channel_type>( ( ( s0*view(x-1,y-1,p) + s1*view(x+0,y-1,p) + s2*view(x+1,y-1,p) + s3*view(x+2,y-1,p) ) * t0 +
-                                                 ( s0*view(x-1,y+0,p) + s1*view(x+0,y+0,p) + s2*view(x+1,y+0,p) + s3*view(x+2,y+0,p) ) * t1 +
-                                                 ( s0*view(x-1,y+1,p) + s1*view(x+0,y+1,p) + s2*view(x+1,y+1,p) + s3*view(x+2,y+1,p) ) * t2 +
-                                                 ( s0*view(x-1,y+2,p) + s1*view(x+0,y+2,p) + s2*view(x+1,y+2,p) + s3*view(x+2,y+2,p) ) * t3 ) * 0.25 );
+      return channel_cast_clamp_if_int<channel_type>( ( ( s0*view(x-1,y-1,p) + s1*view(x+0,y-1,p) + s2*view(x+1,y-1,p) + s3*view(x+2,y-1,p) ) * t0 +
+                                                        ( s0*view(x-1,y+0,p) + s1*view(x+0,y+0,p) + s2*view(x+1,y+0,p) + s3*view(x+2,y+0,p) ) * t1 +
+                                                        ( s0*view(x-1,y+1,p) + s1*view(x+0,y+1,p) + s2*view(x+1,y+1,p) + s3*view(x+2,y+1,p) ) * t2 +
+                                                        ( s0*view(x-1,y+2,p) + s1*view(x+0,y+2,p) + s2*view(x+1,y+2,p) + s3*view(x+2,y+2,p) ) * t3 ) * 0.25 );
     }
   };
 
