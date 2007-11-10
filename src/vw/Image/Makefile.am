@@ -36,7 +36,7 @@ include_HEADERS = PixelIterator.h ImageViewBase.h PixelAccessors.h	\
 	EdgeExtend.h BlockProcessor.h BlockRasterize.h			\
 	BlockCacheView.h UtilityViews.h Palette.h
 
-libvwImage_la_SOURCES = ImageResource.cc Filter.cc
+libvwImage_la_SOURCES = PixelTypeInfo.cc ImageResource.cc Filter.cc
 libvwImage_la_LIBADD = @MODULE_IMAGE_LIBS@
 
 lib_LTLIBRARIES = libvwImage.la

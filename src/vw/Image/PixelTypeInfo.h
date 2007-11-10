@@ -227,6 +227,14 @@ namespace vw {
     return compound_apply( ChannelCastClampFunctor<ChannelT>(), pixel );
   }
 
+  template <class ChannelT, class PixelT>
+  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
+  inline channel_cast_clamp_if_int( PixelT pixel ) {
+    if( boost::is_floating_point<ChannelT>::value )
+      return compound_apply( ChannelCastFunctor<ChannelT>(), pixel );
+    else
+      return compound_apply( ChannelCastClampFunctor<ChannelT>(), pixel );
+  }
 
   // *******************************************************************
   // Pixel casting and rescaling logic.
@@ -443,48 +451,10 @@ namespace vw {
   template<> struct ChannelTypeID<vw::float64>   { static const ChannelTypeEnum value = VW_CHANNEL_FLOAT64; };
   template<> struct ChannelTypeID<bool>          { static const ChannelTypeEnum value = VW_CHANNEL_BOOL; };
 
-  inline int32 num_channels( PixelFormatEnum format ) {
-    switch( format ) {
-    case VW_PIXEL_SCALAR:
-    case VW_PIXEL_GRAY:
-      return 1;
-    case VW_PIXEL_GRAYA:
-      return 2;
-    case VW_PIXEL_RGB:
-    case VW_PIXEL_HSV:
-    case VW_PIXEL_XYZ:
-      return 3;
-    case VW_PIXEL_RGBA:
-      return 4;
-    default:
-      vw_throw( ArgumentErr() << "Unrecognized or unsupported pixel format (" << format << ")." );
-      return 0; // never reached
-    }
-  }
-
-  inline int32 channel_size( ChannelTypeEnum type ) {
-    switch( type ) {
-    case VW_CHANNEL_BOOL:
-      return sizeof(bool);
-    case VW_CHANNEL_INT8:
-    case VW_CHANNEL_UINT8:
-      return 1;
-    case VW_CHANNEL_INT16:
-    case VW_CHANNEL_UINT16:
-      return 2;
-    case VW_CHANNEL_INT32:
-    case VW_CHANNEL_UINT32:
-    case VW_CHANNEL_FLOAT32:
-      return 4;
-    case VW_CHANNEL_INT64:
-    case VW_CHANNEL_UINT64:
-    case VW_CHANNEL_FLOAT64:
-      return 8;
-    default:
-      vw_throw( ArgumentErr() << "Unrecognized or unsupported channel type (" << type << ")." );
-      return 0; // never reached
-    }
-  }
+  int32 channel_size( ChannelTypeEnum type );
+  const char *channel_type_name( ChannelTypeEnum type );
+  int32 num_channels( PixelFormatEnum format );
+  const char *pixel_format_name( PixelFormatEnum format );
 
 } // namespace vw
 
