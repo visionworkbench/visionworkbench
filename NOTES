@@ -1,3 +1,32 @@
+*** RELEASE 2.0.alpha3, 9 NOVEMBER 2007 ***
+
+This release introduces the InterestPoint module, which provides tools 
+to locate point features in images that can be use for image alignment, 
+matching, or tracking.  We use it for things like grossly aligning images 
+prior to dense stereo correlation with the Stereo module, or aligning 
+images of a panorama prior to blending with the Mosaic module.  This 
+release includes tools for detecting interest points as peaks in 
+Laplacian or Harris operator spaces, and for extracting scaled, oriented 
+image patches around peaks for identification.  Still to come are 
+PCA-based interest point descriptors (i.e. feature vectors) and a fast 
+KD-tree-based interest point matching system.
+
+Updated the configuration and build system to support recent versions 
+of the OpenEXR file IO library and building the GPU module using the 
+Apple OpenGL frameworks on OS X.  Leopard support not yet tested.
+
+Added row(), col(), and plane() methods to PixelIterator.
+
+Added some more methods for querying SDS metadata in HDF files.
+
+Added limited support for reading palette-based images via GDAL.
+
+Fixed some corner cases in the image interpolation code.
+
+Added pixel_format_name() and channel_type_name() for debugging output.
+
+A handful of other minor tweaks/fixes.
+
 *** RELEASE 2.0.alpha2, 22 OCTOBER 2007 ***
 
 This release primarily fixes a critical bug in the handling of GeoTIFFs 

@@ -21,7 +21,7 @@
 # 
 # __END_LICENSE__
 
-AC_INIT([NASA Vision Workbench], [2.0.alpha2], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
+AC_INIT([NASA Vision Workbench], [2.0.alpha3], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
 AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE
@@ -180,7 +180,7 @@ fi
 
 AC_ARG_WITH(dist-remove-modules,
   AC_HELP_STRING([--with-dist-remove-modules="MODULE @<:@MODULE...@:>@"], [remove certain modules from the distribution]),
-  [DIST_REMOVE_MODULES=$withval], [DIST_REMOVE_MODULES="Geometry InterestPoint Python"]
+  [DIST_REMOVE_MODULES=$withval], [DIST_REMOVE_MODULES="Geometry Python"]
 )
 AC_SUBST(DIST_REMOVE_MODULES)
 AM_CONDITIONAL(DIST_REMOVE_MODULES, [test ! -z "$DIST_REMOVE_MODULES"])
