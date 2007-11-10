@@ -432,6 +432,15 @@ AC_DEFUN([AX_PKG_LAPACK],
       unset HAVE_PKG_LAPACK
       AX_PKG(LAPACK, [], [-llapack -lblas -lgfortran], [])
     fi
+    if test "$HAVE_PKG_LAPACK" = "no"; then
+      unset HAVE_PKG_LAPACK
+      # On some systems, BLAS and LAPACK are installed in different places
+      AC_MSG_NOTICE(["trying to find BLAS and LAPACK seperately."])
+      unset HAVE_PKG_LAPACK
+      AX_PKG(STANDALONE_BLAS, [], [-lblas], [])
+      AX_PKG(STANDALONE_LAPACK, [], [-llapack], [])
+      AX_PKG(LAPACK, [STANDALONE_LAPACK STANDALONE_BLAS], [], [])
+    fi
   fi
 
 ])
