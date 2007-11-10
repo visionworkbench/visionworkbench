@@ -138,7 +138,7 @@ public:
   }
 
   void test_read_image_rgb_tif_uint8() {
-#if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
+#if (defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1) || (defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1)
     ImageView<PixelRGB<uint8> > image;
     TS_ASSERT_THROWS_NOTHING( read_image( image, "rgb2x2.tif" ) );
     TS_ASSERT_EQUALS( image.cols(), 2 );
@@ -160,7 +160,7 @@ public:
   }
 
   void test_write_image_rgb_tif_uint8() {
-#if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
+#if (defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1) || (defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1)
     ImageView<PixelRGB<uint8> > image(2,2);
     image(0,0) = PixelRGB<uint8>(120,240,180);
     image(1,0) = PixelRGB<uint8>(36,89,79);
@@ -188,7 +188,7 @@ public:
   }
 
   void test_read_image_rgb_tif_float() {
-#if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
+#if (defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1) || (defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1)
     ImageView<PixelRGB<float> > image;
     TS_ASSERT_THROWS_NOTHING( read_image( image, "rgb2x2.tif" ) );
     TS_ASSERT_EQUALS( image.cols(), 2 );
@@ -210,7 +210,7 @@ public:
   }
 
   void test_write_image_rgb_tif_float() {
-#if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
+#if (defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1) || (defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1)
     ImageView<PixelRGB<float> > image(2,2);
     image(0,0) = PixelRGB<float>(0.7,0.3,0.2);
     image(1,0) = PixelRGB<float>(0.8,0.1,0.2);
