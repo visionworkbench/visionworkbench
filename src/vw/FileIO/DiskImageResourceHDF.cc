@@ -80,14 +80,7 @@ namespace vw {
 
 class vw::DiskImageResourceInfoHDF {
 public:
-  struct SDSInfo {
-    ::int32 id;
-    char name[65];
-    ::int32 rank;
-    ::int32 dim_sizes[MAX_VAR_DIMS];
-    ::int32 data_type;
-    ::int32 n_attrs;
-  };
+  typedef DiskImageResourceHDF::SDSInfo SDSInfo;
 
   struct PlaneInfo {
     ::int32 sds;
@@ -113,13 +106,20 @@ public:
     sds_info.resize( n_datasets );
     for( ::int32 i=0; i<n_datasets; ++i ) {
 
-      if( (sds_info[i].id = SDselect( sd_id, i )) == FAIL )
+      int32 id;
+      if( (id = SDselect( sd_id, i )) == FAIL )
         vw_throw( IOErr() << "Unable to select SDS in HDF file \"" << filename << "\"!" );
 
-      if( SDgetinfo( sds_info[i].id, sds_info[i].name, &sds_info[i].rank, sds_info[i].dim_sizes, &sds_info[i].data_type, &sds_info[i].n_attrs ) == FAIL )
+      char name[65];
+      int32 dim_sizes[MAX_VAR_DIMS], data_type;
+      if( SDgetinfo( id, name, &sds_info[i].rank, dim_sizes, &data_type, &sds_info[i].n_attrs ) == FAIL )
         vw_throw( IOErr() << "Unable to read SDS info from HDF file \"" << filename << "\"!" );
+      sds_info[i].name = name;
+      sds_info[i].dim_sizes.insert( sds_info[i].dim_sizes.begin(), dim_sizes, dim_sizes+sds_info[i].rank );
+      sds_info[i].type = hdf_to_vw_type( data_type );
 
-      if( SDiscoordvar( sds_info[i].id ) )
+      sds_info[i].coord = SDiscoordvar( id );
+      if( sds_info[i].coord )
         vw_out(VerboseDebugMessage) << "  DIM ";
       else
         vw_out(VerboseDebugMessage) << "  SDS ";
@@ -130,11 +130,11 @@ public:
         if( j-- == 0 ) break;
         vw_out(VerboseDebugMessage) << "x";
       }
-      vw_out(VerboseDebugMessage) << " (data type " << sds_info[i].data_type << ", " << sds_info[i].n_attrs << " attrs)" << std::endl;
+      vw_out(VerboseDebugMessage) << " (data type " << sds_info[i].type << ", " << sds_info[i].n_attrs << " attrs)" << std::endl;
 
-      if( ! SDiscoordvar( sds_info[i].id ) ) {
+      if( ! SDiscoordvar( id ) ) {
         for( int j=sds_info[i].rank-1; j>=0; --j ) {
-          ::int32 dim_id = SDgetdimid( sds_info[i].id, j );
+          ::int32 dim_id = SDgetdimid( id, j );
           if( dim_id == FAIL )
             vw_throw( IOErr() << "Unable to get dimension ID in HDF file \"" << filename << "\"!" );
           char dim_name[65];
@@ -150,7 +150,7 @@ public:
         }
       }
 
-      SDendaccess( sds_info[i].id );
+      SDendaccess( id );
     }
   }
   
@@ -158,8 +158,17 @@ public:
     if( sd_id != FAIL ) SDend( sd_id );
   }
 
+  vw::DiskImageResourceHDF::sds_iterator sds_begin() const {
+    return sds_info.begin();
+  }
+
+  vw::DiskImageResourceHDF::sds_iterator sds_end() const {
+    return sds_info.end();
+  }
+
   ImageFormat select_sds_planes( std::vector<DiskImageResourceHDF::SDSBand> const& sds_planes ) {
-    ::int32 cols=0, rows=0, data_type=0;
+    ::int32 cols=0, rows=0;
+    ChannelTypeEnum data_type;
     std::vector<PlaneInfo> new_plane_info(sds_planes.size());
     // For each requested plane
     for( unsigned plane=0; plane<sds_planes.size(); ++plane ) {
@@ -174,7 +183,7 @@ public:
             vw::vw_throw( vw::IOErr() << "Invalid SDS band requested from HDF file \"" << resource.filename() << "\"!" );
           // Get the plane's properties
           ::int32 plane_cols=0, plane_rows=0;
-          ::int32 plane_type = sds_info[sds].data_type;
+          ChannelTypeEnum plane_type = sds_info[sds].type;
           if( rank == 2 ) {
             plane_cols = sds_info[sds].dim_sizes[1];
             plane_rows = sds_info[sds].dim_sizes[0];
@@ -203,7 +212,7 @@ public:
         vw_throw( IOErr() << "Requested SDS not found in HDF file \"" << resource.filename() << "\"!" );
     }
     ImageFormat new_format;
-    new_format.channel_type = hdf_to_vw_type( data_type );
+    new_format.channel_type = data_type;
     new_format.cols = cols;
     new_format.rows = rows;
     new_format.planes = sds_planes.size();
@@ -273,8 +282,8 @@ public:
   void get_sds_fillvalue( std::string const& sds_name, float32& result ) const {
     ::int32 sds_index = SDnametoindex( sd_id, sds_name.c_str() );
     if( sds_index == FAIL ) vw_throw( NotFoundErr() << "SDS not found!" );
-    if( sds_info[sds_index].data_type != DFNT_FLOAT32 )
-      vw_throw( IOErr() << "SDS has incorrect data type (expected " << DFNT_FLOAT32 << ", found " << sds_info[sds_index].data_type << ")!" );
+    if( sds_info[sds_index].type != VW_CHANNEL_FLOAT32 )
+      vw_throw( IOErr() << "SDS has incorrect data type (expected FLOAT32, found " << channel_type_name(sds_info[sds_index].type) << ")!" );
     ::int32 sds_id = SDselect( sd_id, sds_index );
     if( sds_id == FAIL ) vw_throw( IOErr() << "Unable to select SDS in HDF file \"" << resource.filename() << "\"!" );
     if( SDgetfillvalue( sds_id, &result ) == FAIL )
@@ -306,6 +315,84 @@ public:
     return attrs;
   }
 
+  void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<int8>& result ) const {
+    ::int32 sds_index = SDnametoindex( sd_id, sds_name.c_str() );
+    if( sds_index == FAIL ) vw_throw( NotFoundErr() << "SDS not found!" );
+    ::int32 sds_id = SDselect( sd_id, sds_index );
+    if( sds_id == FAIL ) vw_throw( IOErr() << "Unable to select SDS in HDF file \"" << resource.filename() << "\"!" );
+    ::int32 attr_index = SDfindattr( sds_id, attr_name.c_str() );
+    if( attr_index == FAIL ) vw_throw( NotFoundErr() << "SDS attribute not found!" );
+    char name[65];
+    ::int32 data_type, count;
+    ::int32 status = SDattrinfo( sds_id, attr_index, name, &data_type, &count );
+    if( status == FAIL ) vw_throw( IOErr() << "Unable to get SDS attribute info in HDF file \"" << resource.filename() << "\"!" );
+    if( data_type != DFNT_INT8 ) vw_throw( NotFoundErr() << "SDS attribute with requested type not found! (expected " << DFNT_INT8 << ", found " << data_type << ")" );
+    result.resize( count );
+    status = SDreadattr( sds_id, attr_index, &result[0] );
+    if( status == FAIL ) vw_throw( IOErr() << "Unable to read SDS attribute in HDF file \"" << resource.filename() << "\"!" );
+    vw_out(VerboseDebugMessage) << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
+    SDendaccess( sds_id );
+  }
+
+  void get_sds_attr( std::string const& sds_name, std::string const& attr_name, int8& result ) const {
+    std::vector<int8> result_vec;
+    get_sds_attr( sds_name, attr_name, result_vec );
+    if( result_vec.size() != 1 ) vw_throw( NotFoundErr() << "SDS attribute with requested size not found!" );
+    result = result_vec[0];
+  }
+
+  void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<uint8>& result ) const {
+    ::int32 sds_index = SDnametoindex( sd_id, sds_name.c_str() );
+    if( sds_index == FAIL ) vw_throw( NotFoundErr() << "SDS not found!" );
+    ::int32 sds_id = SDselect( sd_id, sds_index );
+    if( sds_id == FAIL ) vw_throw( IOErr() << "Unable to select SDS in HDF file \"" << resource.filename() << "\"!" );
+    ::int32 attr_index = SDfindattr( sds_id, attr_name.c_str() );
+    if( attr_index == FAIL ) vw_throw( NotFoundErr() << "SDS attribute not found!" );
+    char name[65];
+    ::int32 data_type, count;
+    ::int32 status = SDattrinfo( sds_id, attr_index, name, &data_type, &count );
+    if( status == FAIL ) vw_throw( IOErr() << "Unable to get SDS attribute info in HDF file \"" << resource.filename() << "\"!" );
+    if( data_type != DFNT_UINT8 ) vw_throw( NotFoundErr() << "SDS attribute with requested type not found! (expected " << DFNT_UINT8 << ", found " << data_type << ")" );
+    result.resize( count );
+    status = SDreadattr( sds_id, attr_index, &result[0] );
+    if( status == FAIL ) vw_throw( IOErr() << "Unable to read SDS attribute in HDF file \"" << resource.filename() << "\"!" );
+    vw_out(VerboseDebugMessage) << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
+    SDendaccess( sds_id );
+  }
+
+  void get_sds_attr( std::string const& sds_name, std::string const& attr_name, uint8& result ) const {
+    std::vector<uint8> result_vec;
+    get_sds_attr( sds_name, attr_name, result_vec );
+    if( result_vec.size() != 1 ) vw_throw( NotFoundErr() << "SDS attribute with requested size not found!" );
+    result = result_vec[0];
+  }
+
+  void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<int16>& result ) const {
+    ::int32 sds_index = SDnametoindex( sd_id, sds_name.c_str() );
+    if( sds_index == FAIL ) vw_throw( NotFoundErr() << "SDS not found!" );
+    ::int32 sds_id = SDselect( sd_id, sds_index );
+    if( sds_id == FAIL ) vw_throw( IOErr() << "Unable to select SDS in HDF file \"" << resource.filename() << "\"!" );
+    ::int32 attr_index = SDfindattr( sds_id, attr_name.c_str() );
+    if( attr_index == FAIL ) vw_throw( NotFoundErr() << "SDS attribute not found!" );
+    char name[65];
+    ::int32 data_type, count;
+    ::int32 status = SDattrinfo( sds_id, attr_index, name, &data_type, &count );
+    if( status == FAIL ) vw_throw( IOErr() << "Unable to get SDS attribute info in HDF file \"" << resource.filename() << "\"!" );
+    if( data_type != DFNT_INT16 ) vw_throw( NotFoundErr() << "SDS attribute with requested type not found! (expected " << DFNT_INT16 << ", found " << data_type << ")" );
+    result.resize( count );
+    status = SDreadattr( sds_id, attr_index, &result[0] );
+    if( status == FAIL ) vw_throw( IOErr() << "Unable to read SDS attribute in HDF file \"" << resource.filename() << "\"!" );
+    vw_out(VerboseDebugMessage) << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
+    SDendaccess( sds_id );
+  }
+
+  void get_sds_attr( std::string const& sds_name, std::string const& attr_name, int16& result ) const {
+    std::vector<int16> result_vec;
+    get_sds_attr( sds_name, attr_name, result_vec );
+    if( result_vec.size() != 1 ) vw_throw( NotFoundErr() << "SDS attribute with requested size not found!" );
+    result = result_vec[0];
+  }
+
   void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<uint16>& result ) const {
     ::int32 sds_index = SDnametoindex( sd_id, sds_name.c_str() );
     if( sds_index == FAIL ) vw_throw( NotFoundErr() << "SDS not found!" );
@@ -327,6 +414,58 @@ public:
 
   void get_sds_attr( std::string const& sds_name, std::string const& attr_name, uint16& result ) const {
     std::vector<uint16> result_vec;
+    get_sds_attr( sds_name, attr_name, result_vec );
+    if( result_vec.size() != 1 ) vw_throw( NotFoundErr() << "SDS attribute with requested size not found!" );
+    result = result_vec[0];
+  }
+
+  void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<int32>& result ) const {
+    ::int32 sds_index = SDnametoindex( sd_id, sds_name.c_str() );
+    if( sds_index == FAIL ) vw_throw( NotFoundErr() << "SDS not found!" );
+    ::int32 sds_id = SDselect( sd_id, sds_index );
+    if( sds_id == FAIL ) vw_throw( IOErr() << "Unable to select SDS in HDF file \"" << resource.filename() << "\"!" );
+    ::int32 attr_index = SDfindattr( sds_id, attr_name.c_str() );
+    if( attr_index == FAIL ) vw_throw( NotFoundErr() << "SDS attribute not found!" );
+    char name[65];
+    ::int32 data_type, count;
+    ::int32 status = SDattrinfo( sds_id, attr_index, name, &data_type, &count );
+    if( status == FAIL ) vw_throw( IOErr() << "Unable to get SDS attribute info in HDF file \"" << resource.filename() << "\"!" );
+    if( data_type != DFNT_INT32 ) vw_throw( NotFoundErr() << "SDS attribute with requested type not found! (expected " << DFNT_INT32 << ", found " << data_type << ")" );
+    result.resize( count );
+    status = SDreadattr( sds_id, attr_index, &result[0] );
+    if( status == FAIL ) vw_throw( IOErr() << "Unable to read SDS attribute in HDF file \"" << resource.filename() << "\"!" );
+    vw_out(VerboseDebugMessage) << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
+    SDendaccess( sds_id );
+  }
+
+  void get_sds_attr( std::string const& sds_name, std::string const& attr_name, int32& result ) const {
+    std::vector<int32> result_vec;
+    get_sds_attr( sds_name, attr_name, result_vec );
+    if( result_vec.size() != 1 ) vw_throw( NotFoundErr() << "SDS attribute with requested size not found!" );
+    result = result_vec[0];
+  }
+
+  void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<uint32>& result ) const {
+    ::int32 sds_index = SDnametoindex( sd_id, sds_name.c_str() );
+    if( sds_index == FAIL ) vw_throw( NotFoundErr() << "SDS not found!" );
+    ::int32 sds_id = SDselect( sd_id, sds_index );
+    if( sds_id == FAIL ) vw_throw( IOErr() << "Unable to select SDS in HDF file \"" << resource.filename() << "\"!" );
+    ::int32 attr_index = SDfindattr( sds_id, attr_name.c_str() );
+    if( attr_index == FAIL ) vw_throw( NotFoundErr() << "SDS attribute not found!" );
+    char name[65];
+    ::int32 data_type, count;
+    ::int32 status = SDattrinfo( sds_id, attr_index, name, &data_type, &count );
+    if( status == FAIL ) vw_throw( IOErr() << "Unable to get SDS attribute info in HDF file \"" << resource.filename() << "\"!" );
+    if( data_type != DFNT_UINT32 ) vw_throw( NotFoundErr() << "SDS attribute with requested type not found! (expected " << DFNT_UINT32 << ", found " << data_type << ")" );
+    result.resize( count );
+    status = SDreadattr( sds_id, attr_index, &result[0] );
+    if( status == FAIL ) vw_throw( IOErr() << "Unable to read SDS attribute in HDF file \"" << resource.filename() << "\"!" );
+    vw_out(VerboseDebugMessage) << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
+    SDendaccess( sds_id );
+  }
+
+  void get_sds_attr( std::string const& sds_name, std::string const& attr_name, uint32& result ) const {
+    std::vector<uint32> result_vec;
     get_sds_attr( sds_name, attr_name, result_vec );
     if( result_vec.size() != 1 ) vw_throw( NotFoundErr() << "SDS attribute with requested size not found!" );
     result = result_vec[0];
@@ -426,6 +565,14 @@ void vw::DiskImageResourceHDF::read( ImageBuffer const& dstbuf, BBox2i const& bb
   m_info->read( dstbuf, bbox );
 }
 
+vw::DiskImageResourceHDF::sds_iterator vw::DiskImageResourceHDF::sds_begin() const {
+  return m_info->sds_begin();
+}
+
+vw::DiskImageResourceHDF::sds_iterator vw::DiskImageResourceHDF::sds_end() const {
+  return m_info->sds_end();
+}
+
 void vw::DiskImageResourceHDF::select_sds_planes( std::vector<vw::DiskImageResourceHDF::SDSBand> const& sds_planes ) {
   m_format = m_info->select_sds_planes( sds_planes );
 }
@@ -443,11 +590,51 @@ std::vector<vw::DiskImageResourceHDF::AttrInfo> vw::DiskImageResourceHDF::get_sd
   return m_info->get_sds_attrs( sds_name );
 }
 
+void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<int8>& result ) const {
+  m_info->get_sds_attr( sds_name, attr_name, result );
+}
+
+void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, int8& result ) const {
+  m_info->get_sds_attr( sds_name, attr_name, result );
+}
+
+void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<uint8>& result ) const {
+  m_info->get_sds_attr( sds_name, attr_name, result );
+}
+
+void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, uint8& result ) const {
+  m_info->get_sds_attr( sds_name, attr_name, result );
+}
+
+void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<int16>& result ) const {
+  m_info->get_sds_attr( sds_name, attr_name, result );
+}
+
+void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, int16& result ) const {
+  m_info->get_sds_attr( sds_name, attr_name, result );
+}
+
 void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<uint16>& result ) const {
   m_info->get_sds_attr( sds_name, attr_name, result );
 }
 
 void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, uint16& result ) const {
+  m_info->get_sds_attr( sds_name, attr_name, result );
+}
+
+void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<int32>& result ) const {
+  m_info->get_sds_attr( sds_name, attr_name, result );
+}
+
+void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, int32& result ) const {
+  m_info->get_sds_attr( sds_name, attr_name, result );
+}
+
+void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<uint32>& result ) const {
+  m_info->get_sds_attr( sds_name, attr_name, result );
+}
+
+void vw::DiskImageResourceHDF::get_sds_attr( std::string const& sds_name, std::string const& attr_name, uint32& result ) const {
   m_info->get_sds_attr( sds_name, attr_name, result );
 }
 

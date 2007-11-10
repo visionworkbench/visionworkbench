@@ -73,16 +73,29 @@ namespace vw {
 
     // The HDF-specific interface:
 
-    struct SDSBand {
+    struct SDSInfo {
       std::string name;
-      int band;
-      SDSBand( std::string const& name, int band=0 ) : name(name), band(band) {}
+      ChannelTypeEnum type;
+      int32 rank;
+      std::vector<int32> dim_sizes;
+      bool coord;
+      int32 n_attrs;
     };
+
+    typedef std::vector<SDSInfo>::const_iterator sds_iterator;
+    sds_iterator sds_begin() const;
+    sds_iterator sds_end() const;
 
     struct AttrInfo {
       std::string name;
       ChannelTypeEnum type;
       int size;
+    };
+
+    struct SDSBand {
+      std::string name;
+      int band;
+      SDSBand( std::string const& name, int band=0 ) : name(name), band(band) {}
     };
 
     void select_sds_planes( std::vector<SDSBand> const& sds_planes );
@@ -93,8 +106,18 @@ namespace vw {
 
     std::vector<AttrInfo> get_sds_attrs( std::string const& sds_name ) const;
 
+    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<int8>& result ) const;
+    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, int8& result ) const;
+    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<uint8>& result ) const;
+    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, uint8& result ) const;
+    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<int16>& result ) const;
+    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, int16& result ) const;
     void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<uint16>& result ) const;
     void get_sds_attr( std::string const& sds_name, std::string const& attr_name, uint16& result ) const;
+    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<int32>& result ) const;
+    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, int32& result ) const;
+    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<uint32>& result ) const;
+    void get_sds_attr( std::string const& sds_name, std::string const& attr_name, uint32& result ) const;
     void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<float32>& result ) const;
     void get_sds_attr( std::string const& sds_name, std::string const& attr_name, float32& result ) const;
     void get_sds_attr( std::string const& sds_name, std::string const& attr_name, std::vector<float64>& result ) const;
