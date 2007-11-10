@@ -202,6 +202,13 @@ namespace math {
       for( unsigned i=4; i<SizeN; ++i ) (*this)[i] = ElemT();
     }
 
+    /// Constructs a vector whose first five elements are as given.
+    Vector( ElemT e1, ElemT e2, ElemT e3, ElemT e4, ElemT e5 ) {
+      BOOST_STATIC_ASSERT( SizeN >= 5 );
+      (*this)[0] = e1; (*this)[1] = e2; (*this)[2] = e3; (*this)[3] = e4; (*this)[4] = e5;
+      for( unsigned i=5; i<SizeN; ++i ) (*this)[i] = ElemT();
+    }
+
     /// Constructs a vector from given densely-packed data.  This
     /// constructor copies the data.  If you wish to make a shallow
     /// proxy object instead, see vw::VectorProxy.
