@@ -308,7 +308,7 @@ namespace vw {
     m_format.rows = dataset->GetRasterYSize();
     double geo_transform[6];
    
-   // <test code> 
+    // <test code> 
     vw_out(DebugMessage) << "\n\tMetadata description: " << dataset->GetDescription() << std::endl;
     char** metadata = dataset->GetMetadata();
     vw_out(DebugMessage) << "\tCount: " << CSLCount(metadata) << std::endl;
@@ -325,46 +325,62 @@ namespace vw {
       dataset->GetRasterYSize() << "x" <<
       dataset->GetRasterCount() << std::endl;
       
-   if( dataset->GetGeoTransform( geo_transform ) == CE_None ) {
-     m_geo_transform.set_identity();
-     m_geo_transform(0,0) = geo_transform[1];
-     m_geo_transform(0,1) = geo_transform[2];
-     m_geo_transform(0,2) = geo_transform[0];
-     m_geo_transform(1,0) = geo_transform[4];
-     m_geo_transform(1,1) = geo_transform[5];
-     m_geo_transform(1,2) = geo_transform[3];
-     vw_out(DebugMessage) << "\tAffine transform: " << m_geo_transform << std::endl;
-   }
-   // <test code> 
+    if( dataset->GetGeoTransform( geo_transform ) == CE_None ) {
+      m_geo_transform.set_identity();
+      m_geo_transform(0,0) = geo_transform[1];
+      m_geo_transform(0,1) = geo_transform[2];
+      m_geo_transform(0,2) = geo_transform[0];
+      m_geo_transform(1,0) = geo_transform[4];
+      m_geo_transform(1,1) = geo_transform[5];
+      m_geo_transform(1,2) = geo_transform[3];
+      vw_out(DebugMessage) << "\tAffine transform: " << m_geo_transform << std::endl;
+    }
+    // <test code> 
    
-   // We do our best here to determine what pixel format the GDAL image is in.  
-   if ( dataset->GetRasterCount() == 1 && 
-        std::string(GDALGetColorInterpretationName(dataset->GetRasterBand(1)->GetColorInterpretation())) == std::string("Gray")) {
-     m_format.pixel_format = VW_PIXEL_GRAY;     
+    // We do our best here to determine what pixel format the GDAL image is in.  
+    for( int i=1; i<=dataset->GetRasterCount(); ++i )
+    if ( dataset->GetRasterCount() == 1 && 
+         dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_GrayIndex ) {
+      m_format.pixel_format = VW_PIXEL_GRAY;     
+      m_format.planes = 1;
+    } else if ( dataset->GetRasterCount() == 2 && 
+                dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_GrayIndex /* &&
+                dataset->GetRasterBand(2)->GetColorInterpretation() == GCI_AlphaBand */ ) {
+      m_format.pixel_format = VW_PIXEL_GRAYA;
+      m_format.planes = 1;
+    } else if ( dataset->GetRasterCount() == 3 && 
+                dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_RedBand &&
+                dataset->GetRasterBand(2)->GetColorInterpretation() == GCI_GreenBand &&
+                dataset->GetRasterBand(3)->GetColorInterpretation() == GCI_BlueBand) {
+      m_format.pixel_format = VW_PIXEL_RGB;
+      m_format.planes = 1;
+    } else if ( dataset->GetRasterCount() == 4 && 
+                dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_RedBand &&
+                dataset->GetRasterBand(2)->GetColorInterpretation() == GCI_GreenBand &&
+                dataset->GetRasterBand(3)->GetColorInterpretation() == GCI_BlueBand &&
+                dataset->GetRasterBand(4)->GetColorInterpretation() == GCI_AlphaBand) {
+      m_format.pixel_format = VW_PIXEL_RGBA;
      m_format.planes = 1;
-   } else if ( dataset->GetRasterCount() == 2 && 
-               std::string(GDALGetColorInterpretationName(dataset->GetRasterBand(1)->GetColorInterpretation())) == std::string("Gray") /* &&
-               std::string(GDALGetColorInterpretationName(dataset->GetRasterBand(2)->GetColorInterpretation())) == std::string("Alpha") */ ) {
-     m_format.pixel_format = VW_PIXEL_GRAYA;
-     m_format.planes = 1;
-   } else if ( dataset->GetRasterCount() == 3 && 
-               std::string(GDALGetColorInterpretationName(dataset->GetRasterBand(1)->GetColorInterpretation())) == std::string("Red") &&
-               std::string(GDALGetColorInterpretationName(dataset->GetRasterBand(2)->GetColorInterpretation())) == std::string("Green") &&
-               std::string(GDALGetColorInterpretationName(dataset->GetRasterBand(3)->GetColorInterpretation())) == std::string("Blue")) {
-     m_format.pixel_format = VW_PIXEL_RGB;
-     m_format.planes = 1;
-   } else if ( dataset->GetRasterCount() == 4 && 
-               std::string(GDALGetColorInterpretationName(dataset->GetRasterBand(1)->GetColorInterpretation())) == std::string("Red") &&
-               std::string(GDALGetColorInterpretationName(dataset->GetRasterBand(2)->GetColorInterpretation())) == std::string("Green") &&
-               std::string(GDALGetColorInterpretationName(dataset->GetRasterBand(3)->GetColorInterpretation())) == std::string("Blue") &&
-               std::string(GDALGetColorInterpretationName(dataset->GetRasterBand(4)->GetColorInterpretation())) == std::string("Alpha")) {
-     m_format.pixel_format = VW_PIXEL_RGBA;
-     m_format.planes = 1;
-   } else {
-     m_format.pixel_format = VW_PIXEL_SCALAR;    
-     m_format.planes = dataset->GetRasterCount();
-   }
-   m_format.channel_type = gdal_pix_fmt_to_vw_channel_id::value(dataset->GetRasterBand(1)->GetRasterDataType());
+    } else {
+      m_format.pixel_format = VW_PIXEL_SCALAR;    
+      m_format.planes = dataset->GetRasterCount();
+    }
+    m_format.channel_type = gdal_pix_fmt_to_vw_channel_id::value(dataset->GetRasterBand(1)->GetRasterDataType());
+    // Special limited read-only support for palette-based images
+    if( dataset->GetRasterCount() == 1 && 
+        dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_PaletteIndex &&
+        m_format.channel_type == VW_CHANNEL_UINT8 ) {
+      m_format.pixel_format = VW_PIXEL_RGBA;
+      m_format.planes = 1;
+      GDALColorTable *color_table = dataset->GetRasterBand(1)->GetColorTable();
+      int num_entries = color_table->GetColorEntryCount();
+      m_palette.resize( num_entries );
+      GDALColorEntry color;
+      for( int i=0; i<num_entries; ++i ) {
+        color_table->GetColorEntryAsRGB( i, &color );
+        m_palette[i] = PixelRGBA<uint8>( color.c1, color.c2, color.c3, color.c4 );
+      }
+    }
   }
 
   /// Bind the resource to a file for writing.  
@@ -430,12 +446,11 @@ namespace vw {
     if (!m_dataset) 
       vw_throw( LogicErr() << "DiskImageResourceGDAL: Could not read file. No file has been opened." );
 
-    GDALRasterBand  *band;
     int             blocksize_x, blocksize_y;
     int             bGotMin, bGotMax;
     double          adfMinMax[2];
     
-    uint8 *data = new uint8[channel_size(channel_type()) * rows() * cols() * planes() * channels()];
+    uint8 *data = new uint8[channel_size(channel_type()) * bbox.width() * bbox.height() * planes() * channels()];
     ImageBuffer src;
     src.data = data;
     src.format = m_format;
@@ -445,47 +460,26 @@ namespace vw {
     src.rstride = src.cstride * src.format.cols;
     src.pstride = src.rstride * src.format.rows;
 
-    int b = 1;
-    for ( int32 p = 0; p < planes(); ++p ) {
-      for ( int32 c = 0; c < channels(); ++c ) {
-        band = ((GDALDataset *)m_dataset)->GetRasterBand(b++);
-
-        // <Test code>
-        vw_out(DebugMessage) << "\n\tMetadata description: " << band->GetDescription() << std::endl;
-        char** metadata = band->GetMetadata();
-        vw_out(DebugMessage) << "\tCount: " << CSLCount(metadata) << std::endl;
-        for (int i = 0; i < CSLCount(metadata); i++) {
-          vw_out(DebugMessage) << "\t\t" << CSLGetField(metadata,i) << std::endl;
+    if( m_palette.size() == 0 ) {
+      for ( int32 p = 0; p < planes(); ++p ) {
+        for ( int32 c = 0; c < channels(); ++c ) {
+          GDALRasterBand  *band = ((GDALDataset *)m_dataset)->GetRasterBand(c+1);
+          GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
+          band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
+                          (uint8*)src(0,0,p) + channel_size(src.format.channel_type)*c, 
+                          src.format.cols, src.format.rows, gdal_pix_fmt, src.cstride, src.rstride );
         }
-        
-        band->GetBlockSize( &blocksize_x, &blocksize_y );
-        vw_out(DebugMessage)
-          << "\tBlock=" << blocksize_x << "x" << blocksize_y
-          << " Type=" << GDALGetDataTypeName(band->GetRasterDataType())
-          << " ColorInterp=" << GDALGetColorInterpretationName(band->GetColorInterpretation())
-          << std::endl;
-        
-        adfMinMax[0] = band->GetMinimum( &bGotMin );
-        adfMinMax[1] = band->GetMaximum( &bGotMax );
-        if( ! (bGotMin && bGotMax) )
-          GDALComputeRasterMinMax((GDALRasterBandH)band, TRUE, adfMinMax);   
-        vw_out(DebugMessage)
-          << "\tMin=" << adfMinMax[0] << ", Max=" << adfMinMax[1] << std::endl;
-        
-        //       if( band->GetOverviewCount() > 0 )
-        //         printf( "\tBand has %d overviews.\n", band->GetOverviewCount() );
-        
-        //       if( band->GetColorTable() != NULL )
-        //         printf( "\tBand has a color table with %d entries.\n", 
-        //                 band->GetColorTable()->GetColorEntryCount() );
-        // <Test code>
-        
-        // Read in the data one scanline at a time and copy that data into an ImageView
-        GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
-        band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
-                        (uint8*)src(0,0,p) + channel_size(src.format.channel_type)*c, 
-                        src.format.cols, src.format.rows, gdal_pix_fmt, src.cstride, src.rstride );
       }
+    }
+    else { // palette conversion
+      GDALRasterBand  *band = ((GDALDataset *)m_dataset)->GetRasterBand(1);
+      uint8 *index_data = new uint8[bbox.width() * bbox.height()];
+      band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
+                      index_data, bbox.width(), bbox.height(), GDT_Byte, 1, bbox.width() );
+      PixelRGBA<uint8> *rgba_data = (PixelRGBA<uint8>*) data;
+      for( int i=0; i<bbox.width()*bbox.height(); ++i )
+        rgba_data[i] = m_palette[index_data[i]];
+      delete [] index_data;
     }
     convert( dest, src );
     delete [] data;

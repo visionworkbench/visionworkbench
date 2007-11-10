@@ -87,6 +87,7 @@ namespace vw {
     void* m_dataset;
     Matrix<double,3,3> m_geo_transform;
     bool m_convert_jp2;
+    std::vector<PixelRGBA<uint8> > m_palette;
   };
 
 } // namespace vw
