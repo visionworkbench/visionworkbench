@@ -120,6 +120,15 @@ namespace vw {
     typedef std::complex<typename AccumulatorType<T>::type> type;
   };
 
+  /// Given a type, this traits class determines a floating-point type 
+  /// capable of representing the same range accurately.
+  template <class T> struct FloatType { typedef vw::float32 type; };
+  template <> struct FloatType<vw::uint32>  { typedef vw::float64 type; };
+  template <> struct FloatType<vw::int32>   { typedef vw::float64 type; };
+  template <> struct FloatType<vw::uint64>  { typedef vw::float64 type; };
+  template <> struct FloatType<vw::int64>   { typedef vw::float64 type; };
+  template <> struct FloatType<vw::float64> { typedef vw::float64 type; };
+
   /// This type computation class template computes a complex type 
   /// with the same storage type as the argument.  (This is the 
   /// identity operation for complex types.)
