@@ -30,82 +30,38 @@
 
 #include <vw/Image.h>
 
-namespace vw { namespace ip {
-
-  /// Template functions to identify the default processed view types.
-  template <class SrcT>
-  struct DefaultRasterizeT {
-    typedef ImageView<typename SrcT::pixel_type> type;
-  };
-
-  template <class SrcT>
-  struct DefaultGradientT {
-    typedef SeparableConvolutionView<SrcT, typename DefaultKernelT<typename SrcT::pixel_type>::type, ConstantEdgeExtension> type;
-  };
-  
-  template <class SrcT>
-  struct DefaultMagT {
-    typedef typename DefaultGradientT<SrcT>::type gradient_type;
-    typedef BinaryPerPixelView<gradient_type, gradient_type, vw::math::ArgArgHypotFunctor> type;
-  };
-
-  template <class SrcT>
-  struct DefaultOriT {
-    typedef typename DefaultGradientT<SrcT>::type gradient_type;
-    typedef BinaryPerPixelView<gradient_type, gradient_type, vw::math::ArgArgAtan2Functor> type;
-  };
-
-  template <class SrcT, class InterestT>
-  struct DefaultInterestT {
-    typedef typename InterestT::template ViewType<SrcT> type;
-  };
-
-  // TODO: how should we handle ImageResourceViews?
-  // TODO: should enforce defaults only when SrcT is ImageViewRef instead of checking
-  //       IsMultiplyAccessible (also solves above)
-
-  /// By default, we do not rasterize any of the processed views to conserve
-  /// memory and computation.
-  template <class SrcT, class InterestT>
-  struct InterestDefaultTraits {
-    typedef typename DefaultRasterizeT<SrcT>::type          rasterize_type;
-    typedef typename DefaultGradientT<SrcT>::type           gradient_type;
-    typedef typename DefaultMagT<SrcT>::type                mag_type;
-    typedef typename DefaultOriT<SrcT>::type                ori_type;
-    typedef typename DefaultInterestT<SrcT,InterestT>::type interest_type;
-  };
-
-  /// InterestOperatorTraits can be partially specialized on the
-  /// interest view to specify which processed views to fully
-  /// rasterize. By default, it only rasterizes the interest image.
-  template <class SrcT, class InterestT>
-  struct InterestOperatorTraits {
-    typedef typename DefaultRasterizeT<SrcT>::type          rasterize_type;
-    typedef typename DefaultGradientT<SrcT>::type           gradient_type;
-    typedef typename DefaultMagT<SrcT>::type                mag_type;
-    typedef typename DefaultOriT<SrcT>::type                ori_type;
-    typedef rasterize_type                                  interest_type;
-  };
+namespace vw { 
+namespace ip {
 
   /// This template function decides whether to use the memory-optimized
   /// default types or the potentially speed-optimized types associated with
   /// the interest view class. If the source type supports efficient access,
   /// we infer that speed is desired; otherwise we use the default types.
+  ///
+  /// InterestOperatorTraits can be partially specialized on the
+  /// interest view to specify which processed views to fully
+  /// rasterize. By default, it only rasterizes the interest image.
   template <class SrcT, class InterestT>
-  struct InterestTraitsHelper {
-    //typedef typename boost::mpl::if_< IsMultiplyAccessible<SrcT>, InterestOperatorTraits<SrcT, InterestT>, InterestDefaultTraits<SrcT, InterestT> >::type type;
-    typedef InterestOperatorTraits<SrcT,InterestT> type;
+  struct InterestOperatorTraits {
+    typedef ImageView<typename SrcT::pixel_type>                rasterize_type;
+    typedef ImageView<typename SrcT::pixel_type>                gradient_type;
+    typedef ImageView<typename SrcT::pixel_type>                mag_type;
+    typedef ImageView<typename SrcT::pixel_type>                ori_type;
+    typedef ImageView<typename SrcT::pixel_type>                interest_type;
   };
 
-  template <class PixelT, class InterestT>
-  struct InterestTraitsHelper <ImageViewRef<PixelT>, InterestT> {
-    typedef InterestDefaultTraits<ImageViewRef<PixelT>,InterestT> type;
-  };
-
-  /// Inherits the inferred appropriate type traits.
-  template <class SrcT, class InterestT>
-  struct InterestTraits : public InterestTraitsHelper<SrcT,InterestT>::type {};
-
+  // This should speed things up by delaying the rasterization of some
+  // of these views, but instead it slows things down.  Why??
+//   struct InterestOperatorTraits {
+//     typedef ImageView<typename SrcT::pixel_type>                                                          rasterize_type;
+//     typedef SeparableConvolutionView<SrcT, 
+//                                      typename DefaultKernelT<typename SrcT::pixel_type>::type, 
+//                                      ConstantEdgeExtension>                                               gradient_type;
+//     typedef BinaryPerPixelView<gradient_type, gradient_type, vw::math::ArgArgHypotFunctor>                mag_type;
+//     typedef BinaryPerPixelView<gradient_type, gradient_type, vw::math::ArgArgAtan2Functor>                ori_type;
+//     typedef ImageView<typename SrcT::pixel_type>                                                          interest_type;
+//   };
+  
   /// Type(s) of peak in the interest image that indicate a feature.
   enum { IP_MAX, IP_MIN, IP_MINMAX };
 

@@ -127,8 +127,6 @@ namespace ip {
   /// If some other sort of shared data is needed or any of the temporaries
   /// should be calculated in a different fashion, ImageInterestData can be
   /// partially specialized on InterestT.
-
-  // TODO: may be simpler to inherit from InterestTraits
   template <class SrcT, class InterestT>
   class ImageInterestData {
   public:
@@ -138,14 +136,13 @@ namespace ip {
     /// (thresholding, orientation assignment, etc.) require at most support
     /// regions around the interest points.
     typedef SrcT source_type;
-    typedef InterestT interest_measure_type;
     typedef typename SrcT::pixel_type pixel_type;
 
-    typedef typename InterestTraits<SrcT, InterestT>::rasterize_type rasterize_type;
-    typedef typename InterestTraits<SrcT, InterestT>::gradient_type gradient_type;
-    typedef typename InterestTraits<SrcT, InterestT>::mag_type mag_type;
-    typedef typename InterestTraits<SrcT, InterestT>::ori_type ori_type;
-    typedef typename InterestTraits<SrcT, InterestT>::interest_type interest_type;
+    typedef typename InterestOperatorTraits<SrcT, InterestT>::rasterize_type rasterize_type;
+    typedef typename InterestOperatorTraits<SrcT, InterestT>::gradient_type gradient_type;
+    typedef typename InterestOperatorTraits<SrcT, InterestT>::mag_type mag_type;
+    typedef typename InterestOperatorTraits<SrcT, InterestT>::ori_type ori_type;
+    typedef typename InterestOperatorTraits<SrcT, InterestT>::interest_type interest_type;
 
     static const int peak_type = InterestPeakType<InterestT>::peak_type;
 
@@ -169,8 +166,10 @@ namespace ip {
     inline ori_type const& orientation() const { return m_ori; }
 
     /// Accessors to mutable interest image.
-    inline interest_type& interest() { return *m_interest; }
-    inline interest_type const& interest() const { return *m_interest; }
+    inline interest_type& interest() const { 
+      if (!m_interest) vw_throw(LogicErr() << "ImageInterestData::interest() Interest image has not yet been computed.");
+      return *m_interest; 
+    }
 
     template <class ViewT>
     inline void set_interest(ImageViewBase<ViewT> const& interest) {

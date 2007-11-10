@@ -25,8 +25,8 @@
 /// 
 /// ImageOctave class for constructing the scale space of a source image.
 /// 
-#ifndef _IMAGE_OCTAVE_H_
-#define _IMAGE_OCTAVE_H_
+#ifndef __VW_INTERESTPOINT_IMAGEOCTAVE_H__
+#define __VW_INTERESTPOINT_IMAGEOCTAVE_H__
 
 // Vision Workbench
 #include <vw/Image/ImageView.h>
@@ -42,7 +42,7 @@
 // Boost
 #include <boost/static_assert.hpp>
 
-// Magic numbers used by Lowe.  Learn these parameters?
+// Magic numbers. Learn these parameters?
 #define INITIAL_SIGMA (1.6)
 #define CAMERA_SIGMA (0.5)
 

@@ -114,67 +114,50 @@ namespace ip {
     }
 
   };
-
-
   /// Get the orientation of the point at (i0,j0,k0).  This is done by
-  /// computing a weighted histogram of edge orientations in a region
-  /// around the detected point.  The weights for the weighted histogram
-  /// are computed by multiplying the edge magnitude at each point by a
-  /// gaussian weight.  The edge orientation histogram is then smoothed,
-  /// effectively computing a kernel density estimate.  This density
-  /// function is then searched for local peaks.
+  /// computing a gaussian weighted average orientations in a region
+  /// around the detected point.  This is not the most sophisticated
+  /// method for determing orientations -- for example, if there is
+  /// more than one dominant edge orientation in an image, this will
+  /// produce a blended average of those two directions, and if those
+  /// two directions are opposites, then they will cancel each other
+  /// out.  However, this seems to work well enough for the time
+  /// being.
   template <class OriT, class MagT>
-  int get_orientation( std::vector<float>& orientation,
-                       ImageViewBase<OriT> const& ori,
-                       ImageViewBase<MagT> const& mag,
-                       int i0, int j0, float sigma_ratio = 1.0) {
+  float get_orientation( ImageViewBase<OriT> const& x_grad,
+                         ImageViewBase<MagT> const& y_grad,
+                         float i0, float j0, float sigma_ratio = 1.0) {
 
-    static const int FEATURE_ORI_NBINS =36;
+    // The size, in pixels, of the image patch used to compute the orientation.
+    static const int IP_ORIENTATION_WIDTH = 10;
 
-    // NOTE: half width decreased from 20 for speed
-    static const int IP_ORIENTATION_HALF_WIDTH = 5;
-
-    // TODO: speed this step up!
-    orientation.clear();
     // Nominal feature support patch is WxW at the base scale, with
     // W = IP_ORIENTATION_HALF_WIDTH * 2 + 1, and
     // we multiply by sigma[k]/sigma[1] for other planes.
-  
+    //   
     // Get bounds for scaled WxW window centered at (i,j) in plane k
-    int halfwidth = (int)(IP_ORIENTATION_HALF_WIDTH*sigma_ratio + 0.5);
-    int left  = i0 - halfwidth;
-    int top   = j0 - halfwidth;
-    int width = halfwidth*2+1;
-    if ( (left >= 0) && (top >= 0) &&
-         (left + width < (int)(ori.impl().cols())) &&
-         (top + width < (int)(ori.impl().rows()))) {
+    int halfwidth = (int)(IP_ORIENTATION_WIDTH/2*sigma_ratio + 0.5);
+    int left  = roundf(i0 - halfwidth);
+    int top   = roundf(j0 - halfwidth);
 
-      // Compute (gaussian weight)*(edge magnitude) kernel
-      ImageView<float> weight(width,width);
-      make_gaussian_kernel_2d( weight, 6 * sigma_ratio, width );
-      // FIXME: Without the edge_extend here (and below) rasterization
-      // will occasionally segfault. This concerns me.
-      weight *= crop(edge_extend(mag.impl()),left,top,width,width);
-    
-      // Compute weighted histogram of edge orientations
-      std::vector<float> histo;
-      weighted_histogram( crop(edge_extend(ori.impl()),left,top,width,width),
-                          weight, histo,
-                          -M_PI, M_PI, FEATURE_ORI_NBINS );
-    
-      // Smooth histogram
-      smooth_weighted_histogram( histo, 5.0 );
+    // Compute (gaussian weight)*(edge magnitude) kernel
+    ImageView<float> weight(IP_ORIENTATION_WIDTH,IP_ORIENTATION_WIDTH);
+    make_gaussian_kernel_2d( weight, 6 * sigma_ratio, IP_ORIENTATION_WIDTH );
 
-      // Find orientations at modes of the histogram
-      std::vector<int> mode;
-      find_weighted_histogram_mode( histo, mode );
-      orientation.reserve(mode.size());
-      for (unsigned m = 0; m < mode.size(); ++m)
-        orientation.push_back( mode[m] * (2*M_PI/FEATURE_ORI_NBINS) - M_PI );
-    }
-  
-    return 0;
+    // We must compute the average orientation in quadrature.
+    double weight_sum = sum_of_pixel_values(weight);
+    
+    // Compute the gaussian weighted average x_gradient
+    ImageView<float> weighted_grad = weight * crop(edge_extend(x_grad.impl()),left,top,IP_ORIENTATION_WIDTH,IP_ORIENTATION_WIDTH);
+    double avg_x_grad = sum_of_pixel_values(weighted_grad) / weight_sum; 
+
+    // Compute the gaussian weighted average y_gradient
+    weighted_grad = weight * crop(edge_extend(y_grad.impl()),left,top,IP_ORIENTATION_WIDTH,IP_ORIENTATION_WIDTH);
+    double avg_y_grad = sum_of_pixel_values(weighted_grad) / weight_sum; 
+
+    return atan2(avg_y_grad,avg_x_grad);
   }
+
 
   /// This class performs interest point detection on a source image
   /// without using scale space methods.
@@ -200,7 +183,12 @@ namespace ip {
       // Calculate gradients, orientations and magnitudes
       vw_out(DebugMessage) << "\n\tCreating image data... ";
       Timer *timer = new Timer("done, elapsed time", DebugMessage);
-      ImageInterestData<ViewT, InterestT> img_data(image);
+
+      // We blur the image by a small amount to eliminate any noise
+      // that might confuse the interest point detector.
+      typedef SeparableConvolutionView<ViewT, typename DefaultKernelT<typename ViewT::pixel_type>::type, ConstantEdgeExtension> blurred_image_type;
+      ImageInterestData<blurred_image_type, InterestT> img_data(gaussian_filter(image,0.5));
+
       delete timer;
 
       // Compute interest image
@@ -293,25 +281,17 @@ namespace ip {
 
     template <class DataT>
     int assign_orientations(InterestPointList& points, DataT const& img_data) const {
-      std::vector<float> orientation;
-      // TODO: Need to do testing to figure out when it is more efficient to use
-      // shallow views or fully rasterize up front. This may need to be decided at
-      // runtime depending on the number of points and size of support region.
-    
-      // Ensure orientation and magnitude are fully rasterized.
-      ImageView<typename DataT::pixel_type> ori = img_data.orientation();
-      ImageView<typename DataT::pixel_type> mag = img_data.magnitude();
+
+      // Save the X gradient
+      ImageView<float> grad_x_image = normalize(img_data.gradient_x());
+      vw::write_image("grad_x1.jpg", grad_x_image);
+
+      // Save the Y gradient      
+      ImageView<float> grad_y_image = normalize(img_data.gradient_y());
+      vw::write_image("grad_y1.jpg", grad_y_image);
 
       for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
-        get_orientation(orientation, ori, mag, (int)(i->x + 0.5), (int)(i->y + 0.5));
-        if (!orientation.empty()) {
-          i->orientation = orientation[0];
-          for (int j = 1; j < orientation.size(); ++j) {
-            InterestPoint pt = *i;
-            pt.orientation = orientation[j];
-            points.insert(i, pt);
-          }
-        }
+        i->orientation = get_orientation(img_data.gradient_x(), img_data.gradient_y(), i->x, i->y);
       }
     }
 
@@ -382,13 +362,17 @@ namespace ip {
     template <class ViewT>
     InterestPointList process_image(ImageViewBase<ViewT> const& image) const {
       typedef ImageInterestData<ImageView<typename ViewT::pixel_type>,InterestT> DataT;
-
+      
       Timer total("\t\tTotal elapsed time", DebugMessage);
-
+      
       // Create scale space
       vw_out(DebugMessage) << "\n\tCreating initial image octave... ";
       Timer *t_oct = new Timer("done, elapsed time", DebugMessage);
-      ImageOctave<typename DataT::source_type> octave(image, m_scales);
+      
+      // We blur the image by a small amount to eliminate any noise
+      // that might confuse the interest point detector.
+      ImageOctave<typename DataT::source_type> octave(gaussian_filter(image,0.5), m_scales);
+      
       delete t_oct;
 
       InterestPointList points;
@@ -490,8 +474,6 @@ namespace ip {
     InterestT m_interest;
     int m_scales, m_octaves, m_max_points;
     
-    //ImageOctaveHistory<ImageInterestData<ImageViewRef<float>, InterestT> > *history;
-
     // By default, uses find_peaks in Extrema.h
     template <class DataT, class ViewT>
     inline int find_extrema(InterestPointList& points,
@@ -531,36 +513,14 @@ namespace ip {
     int assign_orientations(InterestPointList& points,
                             std::vector<DataT> const& img_data,
                             ImageOctave<ViewT> const& octave) const {
-      std::vector<float> orientation;
-
-      // TODO: shallow view vs. fully rasterized
-      // Ensure orientation and magnitude are fully rasterized.
-      // TODO: This is NOT memory efficient.
-      /*
-        std::vector<typename DataT::rasterize_type> ori(octave.num_planes);
-        std::vector<typename DataT::rasterize_type> mag(octave.num_planes);
-        for (int k = 0; k < octave.num_planes; ++k) {
-        ori[k] = img_data[k].orientation();
-        mag[k] = img_data[k].magnitude();
-        }
-      */
 
       for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
         int k = octave.scale_to_plane_index(i->scale);
-        // NOTE: use i->ix, i->iy?
-        get_orientation(orientation, img_data[k].orientation(), img_data[k].magnitude(),
-                        (int)(i->x + 0.5), (int)(i->y + 0.5), octave.sigma[k]/octave.sigma[1]);
-        if (!orientation.empty()) {
-          i->orientation = orientation[0];
-          for (int j = 1; j < orientation.size(); ++j) {
-            InterestPoint pt = *i;
-            pt.orientation = orientation[j];
-            points.insert(i, pt);
-          }
-        }
+        i->orientation = get_orientation(img_data[k].gradient_x(), img_data[k].gradient_y(),
+                                         i->x, i->y, octave.sigma[k]/octave.sigma[1]);
       }
     }
-
+    
     /// This method dumps the various images internal to the detector out
     /// to files for visualization and debugging.  The images written out
     /// are the x and y gradients, edge orientation and magnitude, and
