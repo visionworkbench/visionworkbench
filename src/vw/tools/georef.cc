@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <fstream>
+#include <iostream> 
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -52,7 +53,7 @@ using namespace vw::cartography;
 
 int main( int argc, char *argv[] ) {
 
-  std::string input_filename, output_filename, copy_filename;
+  std::string input_filename, output_filename, copy_filename, tfw_filename;
   double north_lat=90.0, south_lat=-90.0;
   double east_lon=180.0, west_lon=-180.0;
   double proj_lat=0, proj_lon=0, proj_scale=1;
@@ -71,6 +72,7 @@ int main( int argc, char *argv[] ) {
   po::options_description projection_options("Projection Options");
   projection_options.add_options()
     ("copy", po::value<std::string>(&copy_filename), "Copy the projection from the given file")
+    ("tfw", po::value<std::string>(&tfw_filename), "Create a .tfw sidecar file with the given filename rather than a full copy of the image file")
     ("north", po::value<double>(&north_lat), "The northernmost latitude in degrees")
     ("south", po::value<double>(&south_lat), "The southernmost latitude in degrees")
     ("east", po::value<double>(&east_lon), "The easternmost latitude in degrees")
@@ -185,36 +187,52 @@ int main( int argc, char *argv[] ) {
   // image files in some cases, so we make a fresh DiskImageView rather 
   // than making an ImageResourceView of the existing GDAL resource.
 
-  switch( file_resource.pixel_format() ) {
-  case VW_PIXEL_SCALAR: {
-    DiskImageView<uint8> input_image( input_filename );
-    write_georeferenced_image( output_filename, input_image, georef );
-    break;
-  }
-  case VW_PIXEL_GRAY: {
-    DiskImageView<PixelGray<uint8> > input_image( input_filename );
-    write_georeferenced_image( output_filename, input_image, georef );
-    break;
-  }
-  case VW_PIXEL_GRAYA: {
-    DiskImageView<PixelGrayA<uint8> > input_image( input_filename );
-    write_georeferenced_image( output_filename, input_image, georef );
-    break;
-  }
-  case VW_PIXEL_RGB: {
-    DiskImageView<PixelRGB<uint8> > input_image( input_filename );
-    write_georeferenced_image( output_filename, input_image, georef );
-    break;
-  }
-  case VW_PIXEL_RGBA: {
-    DiskImageView<PixelRGBA<uint8> > input_image( input_filename );
-    write_georeferenced_image( output_filename, input_image, georef );
-    break;
-  }
-  default: {
-    vw_throw( NoImplErr() << "Unsupported pixel format: " << file_resource.pixel_format() );
-    break;
-  }
+  if (vm.count("tfw")) {
+    std::ofstream tfw_file(tfw_filename.c_str());
+    tfw_file << georef.transform()(0,0) << "\n";
+    tfw_file << georef.transform()(0,1) << "\n";
+    tfw_file << georef.transform()(1,0) << "\n";
+    tfw_file << georef.transform()(1,1) << "\n";
+    if (vm.count("pixel-as-point")) {
+      tfw_file << georef.transform()(0,2) << "\n";
+      tfw_file << georef.transform()(1,2) << "\n";
+    } else {
+      tfw_file << georef.transform()(0,2) + 0.5*georef.transform()(0,0) << "\n";
+      tfw_file << georef.transform()(1,2) + 0.5*georef.transform()(1,1) << "\n";
+    }
+    tfw_file.close();
+  } else {
+    switch( file_resource.pixel_format() ) {
+    case VW_PIXEL_SCALAR: {
+      DiskImageView<uint8> input_image( input_filename );
+      write_georeferenced_image( output_filename, input_image, georef );
+      break;
+    }
+    case VW_PIXEL_GRAY: {
+      DiskImageView<PixelGray<uint8> > input_image( input_filename );
+      write_georeferenced_image( output_filename, input_image, georef );
+      break;
+    }
+    case VW_PIXEL_GRAYA: {
+      DiskImageView<PixelGrayA<uint8> > input_image( input_filename );
+      write_georeferenced_image( output_filename, input_image, georef );
+      break;
+    }
+    case VW_PIXEL_RGB: {
+      DiskImageView<PixelRGB<uint8> > input_image( input_filename );
+      write_georeferenced_image( output_filename, input_image, georef );
+      break;
+    }
+    case VW_PIXEL_RGBA: {
+      DiskImageView<PixelRGBA<uint8> > input_image( input_filename );
+      write_georeferenced_image( output_filename, input_image, georef );
+      break;
+    }
+    default: {
+      vw_throw( NoImplErr() << "Unsupported pixel format: " << file_resource.pixel_format() );
+      break;
+    }
+    }
   }
   return 0;
 }

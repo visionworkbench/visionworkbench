@@ -54,7 +54,7 @@ namespace vw {
       : m_func(func), m_block_cols(block_cols), m_block_rows(block_rows),
         m_num_threads(threads?threads:(Thread::default_num_threads())) {}
 
-    class BlockThread : public Thread::Runnable {
+    class BlockThread {
     public:
       struct Info {
         FuncT const& m_func;
@@ -69,7 +69,7 @@ namespace vw {
       
       BlockThread( Info &info ) : info(info) {}
 
-      virtual void run() {
+      void operator()() {
         while( true ) {
           BBox2i bbox;
           {
@@ -87,8 +87,6 @@ namespace vw {
           info.m_func( bbox );
         }
       }
-
-      virtual void kill() {}
 
     private:
       Info &info;

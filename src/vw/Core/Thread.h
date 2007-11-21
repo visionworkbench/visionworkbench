@@ -30,26 +30,20 @@
 /// Boost threads design itself is expected to be overhauled at some
 /// point.
 ///
-/// To create a thread, first subclass the Runnable abstract class.
-/// It has only two methods: the run() method, which will be run in
-/// the child thread, and the kill() method, which should signal the
-/// running thread to terminate and clean up.  Note that the kill()
-/// function itself will run in a separate thread from the run()
-/// function, so it should signify this using an atomic or
-/// synchronized mechanism.  Also note that the thread may have
-/// already terminated when kill() is called.
+/// To create a thread, pass in any object that has the operator()
+/// defined.
 ///
 /// The rest of the interface is sraightforward.  These are the 
 /// the things you will need to implement if you want to use a 
 /// different thread library.  The interface consists of:
 ///
 /// * A Thread class, whose constructor takes a shared pointer to a
-///   Runnable.  The constructor should invoke the Runnable's run()
-///   function in a new thread, and the destructor should invoke 
-///   the kill() function and join the child thread.  The static 
-///   yeild() function should yield the active thread, and the static 
-///   sleep_ms() functin should sleep the active thread for the given 
-///   number of milliseconds.  The Thread class may be non-copyable.
+///   Task.  The constructor should invoke the Task's operator()
+///   function in a new thread, and the destructor should join the
+///   child thread.  The static yeild() function should yield the
+///   active thread, and the static sleep_ms() functin should sleep
+///   the active thread for the given number of milliseconds.  The
+///   Thread class may be non-copyable.
 ///
 /// * A Mutex class, implementing a simple mutual exclusion lock. 
 ///   This should have no methods other than the default constructor 
@@ -66,60 +60,71 @@
 ///   that are statically allocated at global or namespace scope and
 ///   statically initialized to VW_RUNONCE_INIT.)
 
-#ifndef __VW_CORE_THREADS_H__
-#define __VW_CORE_THREADS_H__
+#ifndef __VW_CORE_THREAD_H__
+#define __VW_CORE_THREAD_H__
 
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
 
 namespace vw {
 
-  // A thread class, that runs a Runnable.  The Runnable is run() in
-  // the new thread.  When the Thread object is destroyed it will call
-  // the runnable's kill() function and join the child thread if it
-  // has not already terminated.
+  // A thread class, that runs a "Task", which is an object or
+  // function that has the operator() defined.  When the Thread object
+  // is destroyed it will join the child thread if it has not already
+  // terminated.
   class Thread {
-  public:
 
-    // An abstract runnable base class.
-    class Runnable {
-    public:
-      virtual ~Runnable() {}
-      virtual void run() = 0;  // Runs in the child thread
-      virtual void kill() = 0; // Runs in the calling thread
-    };
-
-  private:
-    boost::shared_ptr<Runnable> m_runnable;
     boost::thread m_thread;
 
     // Ensure non-copyable semantics
     Thread( Thread const& );
     Thread& operator=( Thread const& );
 
-    // A wrapper so we can can construct a boost::thread
-    class RunFunctor {
-      Runnable& m_runnable;
+    // For some reason, the boost thread library makes a copy of the
+    // Task object before handing it off to the thread.  This is
+    // annoying, because it means that the parent thread no longer has
+    // direct acess to the child thread's instance of the task object.
+    // This helper allows the parent thread to retain direct access to
+    // the child instance of the task.
+    template <class TaskT>
+    class TaskHelper {
+      boost::shared_ptr<TaskT> m_task;
     public:
-      inline RunFunctor( Runnable& runnable ) : m_runnable( runnable ) {}
-      inline void operator()() const { m_runnable.run(); }
+      TaskHelper(boost::shared_ptr<TaskT> task) : m_task(task) {}
+      void operator() () { (*m_task)(); }
     };
 
   public:
-    inline Thread( boost::shared_ptr<Runnable> runnable ) : m_runnable( runnable ), m_thread( RunFunctor( *runnable ) ) {}
-    inline ~Thread() { m_runnable->kill(); m_thread.join(); }
+
+    // This variant of the constructor takes a Task that is copy
+    // constructable.  The thread mades a copy of the task, and this
+    // instance is no longer directly accessibly from the parent
+    // thread.
+    template<class TaskT>
+    inline Thread( TaskT task ) : m_thread( task ) {}
+
+    // This variant of the constructor takes a shared point to a task.
+    // The thread mades a copy of the shared pointer task, allowing
+    // the parent to still access the task instance that is running in
+    // the thread.
+    template<class TaskT>
+    inline Thread( boost::shared_ptr<TaskT> task ) : m_thread( TaskHelper<TaskT>(task) ) {}
+
+    inline ~Thread() { m_thread.join(); }
+
+    inline void join() { m_thread.join(); }
     static inline void yield() { boost::thread::yield(); }
     static inline void sleep_ms( unsigned long milliseconds ) {
-      static long const nanoseconds_per_second = 1000L*1000L*1000L;
       boost::xtime xt;
       boost::xtime_get(&xt, boost::TIME_UTC);
-      xt.nsec+=1000*1000*milliseconds;
-      while (xt.nsec > nanoseconds_per_second) {
-        xt.nsec -= nanoseconds_per_second;
+      while (milliseconds >= 1000) {
         xt.sec++;
+        milliseconds -= 1000;
       }
+      xt.nsec+=1e6*milliseconds;
       boost::thread::sleep(xt);
     }
+
     static int default_num_threads();
     static void set_default_num_threads(int);
   };
@@ -128,15 +133,23 @@ namespace vw {
   // A simple mutual exclusion class.
   class Mutex : private boost::mutex {
 
+    friend class Lock;
+
     // Ensure non-copyable semantics
     Mutex( Mutex const& );
     Mutex& operator=( Mutex const& );
-
+    
   public:
     inline Mutex() {}
 
     // A scoped lock class, used to lock and unlock a Mutex.
-    class Lock : private boost::mutex::scoped_lock {
+    //
+    // TODO: This should inherit privately from
+    // boost::mutex::scoped_lock, but this causes a compilation error
+    // when the Condition class below tries to get access to the
+    // members of scoped_lock.  I'm stumped how to fix this at the
+    // moment, but we should do this at some point. -mbroxton
+    class Lock : public boost::mutex::scoped_lock {
 
       // Ensure non-copyable semantics
       Lock( Lock const& );
@@ -145,10 +158,61 @@ namespace vw {
     public:
       inline Lock( Mutex &mutex ) : boost::mutex::scoped_lock( mutex ) {}
     };
-    friend class Lock;
-
   };
 
+  class Condition : private boost::condition
+  {
+    // Ensure non-copyable semantics
+    Condition( Condition const& );
+    Condition& operator=( Condition const& );
+
+  public:
+    // construct/copy/destruct
+    inline Condition() : boost::condition() {}
+
+    // notification
+    void notify_one() {
+      boost::condition::notify_one();
+    }
+
+    void notify_all() { 
+      boost::condition::notify_all();
+    }
+
+    // waiting
+    template<typename LockT> void wait(LockT &lock) { 
+      boost::condition::wait(lock);
+    }
+
+    template<typename LockT, typename Pred> 
+    void wait(LockT &lock, Pred pred) {
+      boost::condition::wait(lock,pred);
+    }
+
+    template<typename LockT> 
+    bool timed_wait(LockT &lock, unsigned long milliseconds) {
+      boost::xtime xt;
+      boost::xtime_get(&xt, boost::TIME_UTC);
+      while (milliseconds >= 1000) {
+        xt.sec++;
+        milliseconds -= 1000;
+      }
+      xt.nsec+=1e6*milliseconds;
+      boost::condition::wait(lock, xt);
+    }
+
+    template<typename LockT, typename Pred> 
+    bool timed_wait(LockT &lock, unsigned long milliseconds, Pred pred) {
+      boost::xtime xt;
+      boost::xtime_get(&xt, boost::TIME_UTC);
+      while (milliseconds >= 1000) {
+        xt.sec++;
+        milliseconds -= 1000;
+      }
+      xt.nsec+=1e6*milliseconds;
+      boost::condition::wait(lock, xt, pred);
+    }
+  };
 
   // A special POD class to enable safe library initialization.  You 
   // should only define these objects at global or namespace scope, 
@@ -165,4 +229,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_CORE_THREADS_H__
+#endif // __VW_CORE_THREAD_H__

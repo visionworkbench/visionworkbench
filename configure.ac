@@ -246,7 +246,7 @@ AX_PKG(Z, [], [-lz], [zlib.h])
 AX_PKG(PNG, [], [-lpng], [png.h])
 AX_PKG(JPEG, [], [-ljpeg], [stdio.h jpeglib.h]) # jpeglib.h requires stdio.h to have been included
 AX_PKG(TIFF, [], [-ltiff], [tiff.h])
-AX_PKG(ILMBASE, [Z PTHREADS], [-lImath -lHalf -lIex -lIlmImf], [], [IlmBase])
+AX_PKG(ILMBASE, [Z PTHREADS], [-lImath -lHalf -lIex], [], [IlmBase])
 AX_PKG(OPENEXR, [ILMBASE], [-lIlmImf], [ImfOutputFile.h], [OpenEXR])
 AX_PKG(HDF, [], [-ldf -lmfhdf], [mfhdf.h])
 

@@ -59,7 +59,7 @@ template <> struct CorrelatorAccumulatorType<vw::float64> { typedef vw::float64 
 namespace vw {
 namespace stereo {
 
-  class CorrelationWorkThreadBase : public Thread::Runnable {
+  class CorrelationWorkThreadBase {
   protected:
     ImageView<PixelDisparity<float> > m_result;
 
@@ -72,11 +72,10 @@ namespace stereo {
   public:
 
     CorrelationWorkThreadBase() : m_progress_percent(0), m_done(false) {}
+    virtual ~CorrelationWorkThreadBase() {}
+    virtual void operator()() = 0;
 
     virtual ImageView<PixelDisparity<float> > result() { return m_result; }
-  
-    // Currently we do not support graceful early termination
-    virtual void kill() {}
   
     std::string correlation_rate_string() const {
       Mutex::Lock lock(m_mutex);
@@ -318,9 +317,12 @@ namespace stereo {
       m_right_image = right_image;
       m_corrscore_rejection_threshold = corrscore_rejection_threshold;
     }
+
+  public:
+    virtual ~CorrelationWorkThread() {}
   
     /// Call this operator to start the correlation operation.
-    virtual void run() {    
+    virtual void operator()() {    
       int width = m_left_image.cols();
       int height = m_left_image.rows();
 
@@ -427,6 +429,8 @@ ImageView<PixelDisparity<float> > OptimizedCorrelator::do_correlation(ImageView<
     }
 
     // The threads are destroyed, but the worker objects remain.
+    thread0.join();
+    thread1.join();
   }
   // FIXME This probably belongs over in Thread.h?
   catch (boost::thread_resource_error &e) {

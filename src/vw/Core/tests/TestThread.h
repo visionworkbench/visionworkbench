@@ -35,26 +35,36 @@ void run_once_func() {
 }
 RunOnce once = VW_RUNONCE_INIT;
 
-
 class TestThread : public CxxTest::TestSuite
 {
-  class TestRunnable : public Thread::Runnable {
+
+  class TestTask {
   public:
     int value;
     bool terminate;
-    Mutex mutex;
-    TestRunnable() : value(0), terminate(false) {}
-    void run() {
+    Condition &m_condition;
+    TestTask(Condition &cond) : value(0), terminate(false), m_condition(cond) {}
+
+    void operator()() {
       value = 1;
-      {
-        Mutex::Lock lock(mutex);
-        value = 2;
-      }
+      m_condition.notify_all();
+
+      int count = 0;
       while( !terminate ) {
         Thread::yield();
+        if (count++ > 100) {
+          TS_FAIL("Test thread iterated 100 times... it shouldn't take this long.  Maybe deadlock occured?");
+          exit(0);
+        }
       }
+
+      // Terminate, but wait 100ms first, to make sure our condition
+      // synchronization is working.
+      Thread::sleep_ms(100);
       value = 3;
+      m_condition.notify_all();
     }
+
     void kill() {
       terminate = true;
     }
@@ -63,25 +73,28 @@ class TestThread : public CxxTest::TestSuite
 public:
   void test_thread_and_mutex()
   {
-    boost::shared_ptr<TestRunnable> runnable( new TestRunnable() );
-    TS_ASSERT_EQUALS( runnable->value, 0 );
+    Mutex condition_mutex;
+    Condition index_updated_event;
+    boost::shared_ptr<TestTask> task( new TestTask(index_updated_event) );
+    TS_ASSERT_EQUALS( task->value, 0 );
 
     // Okay, so this is not how you'd normally use a lock.
-    Mutex::Lock *lock = new Mutex::Lock( runnable->mutex );
-    Thread *thread = new Thread( runnable );
-    // There is technically a race condition in this test, but this 
-    // yield makes things reasonably deterministic.
-    Thread::yield();
-    TS_ASSERT_EQUALS( runnable->value, 1 );
+    Thread *thread = new Thread( task );
 
-    delete lock;
-    // This is overkill: we're just testing both APIs
-    Thread::yield();
-    Thread::sleep_ms(10);
-    TS_ASSERT_EQUALS( runnable->value, 2 );
+    {
+      Mutex::Lock cond_lock(condition_mutex);
+      index_updated_event.wait(cond_lock);
+    }
+    TS_ASSERT_EQUALS( task->value, 1 );
 
+    task->kill();
+    {
+      Mutex::Lock cond_lock(condition_mutex);
+      index_updated_event.wait(cond_lock);
+    }
+    TS_ASSERT_EQUALS( task->value, 3 );
+    thread->join();
     delete thread;
-    TS_ASSERT_EQUALS( runnable->value, 3 );
   }
 
   void test_run_once()

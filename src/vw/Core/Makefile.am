@@ -29,7 +29,7 @@ if MAKE_MODULE_CORE
 
 include_HEADERS = Exception.h FundamentalTypes.h TypeDeduction.h	\
 	VarArray.h Functors.h CompoundTypes.h Debugging.h Thread.h	\
-	Cache.h ProgressCallback.h Stopwatch.h
+	ThreadPool.h Cache.h ProgressCallback.h Stopwatch.h
 
 libvwCore_la_SOURCES = Debugging.cc Exception.cc Thread.cc Cache.cc 	\
 	ProgressCallback.cc Stopwatch.cc
