@@ -198,7 +198,7 @@ namespace vw {
         milliseconds -= 1000;
       }
       xt.nsec+=1e6*milliseconds;
-      boost::condition::wait(lock, xt);
+      return boost::condition::wait(lock, xt);
     }
 
     template<typename LockT, typename Pred> 
@@ -210,7 +210,7 @@ namespace vw {
         milliseconds -= 1000;
       }
       xt.nsec+=1e6*milliseconds;
-      boost::condition::wait(lock, xt, pred);
+      return boost::condition::wait(lock, xt, pred);
     }
   };
 

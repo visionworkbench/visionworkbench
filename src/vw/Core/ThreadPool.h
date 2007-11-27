@@ -33,6 +33,9 @@
 #include <vw/Core/Debugging.h>
 #include <vw/Core/Exception.h>
 
+// STL
+#include <map>
+
 namespace vw {
   // ----------------------  --------------  ---------------------------
   // ----------------------       Task       ---------------------------
@@ -49,6 +52,7 @@ namespace vw {
   // Declaration of the Threadpool Interface
   struct IThreadPool {
     virtual void check_for_tasks() = 0;
+    virtual ~IThreadPool() {}
   };
 
   // Task Generator Base Class
@@ -104,7 +108,9 @@ namespace vw {
     int m_next_index;
   public:
 
-    OrderedWorkQueue() : m_next_index(0), WorkQueue() {}
+    OrderedWorkQueue() : WorkQueue() {
+      m_next_index = 0;
+    }
 
     int size() { return m_queued_tasks.size(); }
     
@@ -127,15 +133,16 @@ namespace vw {
     virtual boost::shared_ptr<Task> get_next_task() { 
       if (m_queued_tasks.size() == 0) 
         vw_throw(LogicErr() << "OrderedWorkQueue: a task was requested when none were available.");
+
       std::map<int, boost::shared_ptr<Task> >::iterator iter = m_queued_tasks.begin();
-      if ((*iter).first == m_next_index) {
-        boost::shared_ptr<Task> task = (*iter).second;
-        m_queued_tasks.erase(m_queued_tasks.begin());
-        m_next_index++;
-        return task;
-      } else {
+      if ((*iter).first != m_next_index) {
         vw_throw(LogicErr() << "OrderedWorkQueue: a task was requested, but the task with the next expected index was not found.");
       }
+       
+      boost::shared_ptr<Task> task = (*iter).second;
+      m_queued_tasks.erase(m_queued_tasks.begin());
+      m_next_index++;
+      return task;
     }
   };
 
@@ -164,11 +171,11 @@ namespace vw {
     typedef std::pair<boost::shared_ptr<WorkerThread>,
                       boost::shared_ptr<Thread> > threadpool_pair; 
 
-    int m_active_workers;
     int m_max_workers;
+    int m_active_workers;
+    boost::shared_ptr<WorkQueue> m_taskgen;
     Mutex m_mutex;
     std::list<threadpool_pair> m_running_threads;
-    boost::shared_ptr<WorkQueue> m_taskgen;
     Condition m_joined_event;
 
     // This is called whenever a worker thread finishes its task. If
@@ -213,7 +220,7 @@ namespace vw {
       m_taskgen->set_threadpool_ptr(this);
       this->check_for_tasks();
     }
-    ~ThreadPool() { this->join_all(); }
+    virtual ~ThreadPool() { this->join_all(); }
 
     void set_task_generator(boost::shared_ptr<WorkQueue> taskgen) {
       Mutex::Lock lock(m_mutex);
