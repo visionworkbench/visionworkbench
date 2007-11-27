@@ -41,50 +41,101 @@ namespace vw {
     virtual ~Task() {}
     virtual void operator()() = 0;
   };
-    
-  template <class TaskT>
-  class GenericTask : public Task {
-    TaskT &m_task;
-  public:
-    GenericTask(TaskT &task) : m_task(task) {}
-    virtual ~GenericTask() {}
-    virtual void operator()() { m_task(); }
-  };
 
   // ----------------------  --------------  ---------------------------
   // ----------------------  Task Generator  ---------------------------
   // ----------------------  --------------  ---------------------------
 
-  struct TaskGenerator {
-    virtual ~TaskGenerator() {}
-    virtual bool idle() = 0;
-    virtual boost::shared_ptr<Task> request_task() = 0;
+  // Declaration of the Threadpool Interface
+  struct IThreadPool {
+    virtual void check_for_tasks() = 0;
   };
 
-  class FifoTaskGenerator : public TaskGenerator {
+  // Task Generator Base Class
+  class WorkQueue {
+    IThreadPool* m_threadpool_ptr;
+ 
+  public:
+    WorkQueue() { m_threadpool_ptr = NULL;}
+    virtual ~WorkQueue() {}
+
+    // Subclasses of WorkQueue must implement these three methods
+    virtual bool idle() = 0;
+    virtual boost::shared_ptr<Task> get_next_task() = 0;
+
+    void set_threadpool_ptr(IThreadPool* threadpool_ptr) { m_threadpool_ptr = threadpool_ptr; }
+    void notify() { if (m_threadpool_ptr) m_threadpool_ptr->check_for_tasks(); }
+  };
+
+
+
+  /// A simple, first-in, first-out work queue.
+  class FifoWorkQueue : public WorkQueue {
     std::list<boost::shared_ptr<Task> > m_queued_tasks;
   public:
+
+    FifoWorkQueue() : WorkQueue() {}
 
     int size() { return m_queued_tasks.size(); }
     
     // Add a task that is being tracked by a shared pointer.
-    void add_task(boost::shared_ptr<Task> task) { m_queued_tasks.push_back(task); }
-
-    // must keep the task object around until the TaskGenerator is
-    // done using it.
-    template <class TaskT>
-    void add_task(TaskT &task) {
-      boost::shared_ptr<Task> task_wrapper( new GenericTask<TaskT>(task) );
-      add_task(task_wrapper);
+    void add_task(boost::shared_ptr<Task> task) { 
+      m_queued_tasks.push_back(task); 
+      notify();
     }
 
     virtual bool idle() { return !m_queued_tasks.size(); }
-    virtual boost::shared_ptr<Task> request_task() { 
+
+    virtual boost::shared_ptr<Task> get_next_task() { 
       if (m_queued_tasks.size() == 0) 
-        vw_throw(LogicErr() << "FifoTaskGenerator: a task was requested when none were available.");
+        vw_throw(LogicErr() << "FifoWorkQueue: a task was requested when none were available.");
       boost::shared_ptr<Task> task = m_queued_tasks.front();
       m_queued_tasks.pop_front();
       return task;
+    }
+  };
+
+  /// A simple ordered work queue.  Tasks are each given an "index"
+  /// and they are processed in order, starting with the task at index
+  /// 0.  The idle() method belowe only returns false if the task with
+  /// the next expected index is present in the work queue.
+  class OrderedWorkQueue : public WorkQueue {
+    std::map<int, boost::shared_ptr<Task> > m_queued_tasks;
+    int m_next_index;
+  public:
+
+    OrderedWorkQueue() : m_next_index(0), WorkQueue() {}
+
+    int size() { return m_queued_tasks.size(); }
+    
+    // Add a task that is being tracked by a shared pointer.
+    void add_task(boost::shared_ptr<Task> task, int index) { 
+      m_queued_tasks[index] = task;
+      notify();
+    }
+
+    virtual bool idle() { 
+      if ( m_queued_tasks.size() == 0 ) return true;
+
+      std::map<int, boost::shared_ptr<Task> >::iterator iter = m_queued_tasks.begin();
+      if ((*iter).first == m_next_index) 
+        return false;
+      else 
+        return true;
+    }
+
+    virtual boost::shared_ptr<Task> get_next_task() { 
+      if (m_queued_tasks.size() == 0) 
+        vw_throw(LogicErr() << "OrderedWorkQueue: a task was requested when none were available.");
+      std::map<int, boost::shared_ptr<Task> >::iterator iter = m_queued_tasks.begin();
+      if ((*iter).first == m_next_index) {
+        boost::shared_ptr<Task> task = (*iter).second;
+        m_queued_tasks.erase(m_queued_tasks.begin());
+        m_next_index++;
+        return task;
+      } else {
+        vw_throw(LogicErr() << "OrderedWorkQueue: a task was requested, but the task with the next expected index was not found.");
+      }
     }
   };
 
@@ -92,7 +143,7 @@ namespace vw {
   // ----------------------   Thread Pool    ---------------------------
   // ----------------------  --------------  ---------------------------
 
-  class ThreadPool {
+  class ThreadPool : public IThreadPool {
     
     // The worker thread class is cognizant of both the thread and the
     // threadpool object.  When a worker thread finishes its task it
@@ -117,7 +168,7 @@ namespace vw {
     int m_max_workers;
     Mutex m_mutex;
     std::list<threadpool_pair> m_running_threads;
-    boost::shared_ptr<TaskGenerator> m_taskgen;
+    boost::shared_ptr<WorkQueue> m_taskgen;
     Condition m_joined_event;
 
     // This is called whenever a worker thread finishes its task. If
@@ -157,25 +208,28 @@ namespace vw {
   public:
     
     // Constructor & Destructor
-    ThreadPool(boost::shared_ptr<TaskGenerator> taskgen, int num_threads = Thread::default_num_threads()) : 
+    ThreadPool(boost::shared_ptr<WorkQueue> taskgen, int num_threads = Thread::default_num_threads()) : 
       m_max_workers(num_threads), m_active_workers(0), m_taskgen(taskgen) {
+      m_taskgen->set_threadpool_ptr(this);
       this->check_for_tasks();
     }
     ~ThreadPool() { this->join_all(); }
 
-    void set_task_generator(boost::shared_ptr<TaskGenerator> taskgen) {
+    void set_task_generator(boost::shared_ptr<WorkQueue> taskgen) {
       Mutex::Lock lock(m_mutex);
+      m_taskgen->set_threadpool_ptr(NULL);
       m_taskgen = taskgen;
+      m_taskgen->set_threadpool_ptr(this);
       this->check_for_tasks();
     }
 
-    void check_for_tasks() {
+    virtual void check_for_tasks() {
       Mutex::Lock lock(m_mutex);
 
       // While there are available threads, farm out the tasks from
       // the task generator
       while (m_taskgen && m_active_workers < m_max_workers && !(m_taskgen->idle()) ) {
-        boost::shared_ptr<WorkerThread> next_worker( new WorkerThread(*this, m_taskgen->request_task()) );
+        boost::shared_ptr<WorkerThread> next_worker( new WorkerThread(*this, m_taskgen->get_next_task()) );
         boost::shared_ptr<Thread> thread(new Thread(next_worker));
         m_running_threads.push_back(threadpool_pair(next_worker, thread));
         m_active_workers++;
