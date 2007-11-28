@@ -49,26 +49,119 @@ namespace vw {
   // ----------------------  Task Generator  ---------------------------
   // ----------------------  --------------  ---------------------------
 
-  // Declaration of the Threadpool Interface
-  struct IThreadPool {
-    virtual void check_for_tasks() = 0;
-    virtual ~IThreadPool() {}
-  };
-
-  // Task Generator Base Class
+  // Work Queue Base Class
   class WorkQueue {
-    IThreadPool* m_threadpool_ptr;
- 
-  public:
-    WorkQueue() { m_threadpool_ptr = NULL;}
-    virtual ~WorkQueue() {}
 
-    // Subclasses of WorkQueue must implement these three methods
-    virtual bool idle() = 0;
+    // The worker thread class is the Task object that is spun out to
+    // do the actual work of the WorkQueue.  When a worker thread
+    // finishes its task it notifies the threadpool, which farms out
+    // the next task to the worker thread.
+    class WorkerThread {
+      WorkQueue &m_queue;
+      boost::shared_ptr<Task> m_task;
+      int m_thread_id;
+    public:
+      WorkerThread(WorkQueue& queue, boost::shared_ptr<Task> initial_task, int thread_id) :
+        m_queue(queue), m_task(initial_task), m_thread_id(thread_id) {}
+      ~WorkerThread() {}
+      void operator()() { 
+        // Run the initial task
+        (*m_task)();
+
+        // ... and continue running tasks as long as they are available.
+        while ( m_task = m_queue.get_next_task() ) {
+          vw_out(VerboseDebugMessage+1) << "ThreadPool: reusing worker thread " << m_thread_id << ".\n"; 
+          (*m_task)();
+        }
+
+        m_queue.worker_thread_complete(m_thread_id); 
+      }
+    };
+
+    int m_active_workers, m_max_workers;
+    Mutex m_queue_mutex;
+    std::vector<boost::shared_ptr<Thread> > m_running_threads;
+    std::list<int> m_available_thread_ids;
+    Condition m_joined_event;
+
+    // This is called whenever a worker thread finishes its task. If
+    // there are more tasks available, the worker is given more work.
+    // Otherwise, the worker terminates.
+    void worker_thread_complete(int worker_id) {
+      Mutex::Lock lock(m_queue_mutex);
+      
+      m_active_workers--;
+      vw_out(VerboseDebugMessage+1) << "ThreadPool: terminating worker thread " << worker_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active ].\n"; 
+      
+      // Erase the worker thread from the list of active threads
+      VW_ASSERT(worker_id >= 0 && worker_id < int(m_running_threads.size()), 
+                LogicErr() << "WorkQueue: request to terminate thread " << worker_id << ", which does not exist.");
+      m_running_threads[worker_id] = boost::shared_ptr<Thread>();
+      m_available_thread_ids.push_back(worker_id);
+
+      // Notify any threads that are waiting for the join event.
+      m_joined_event.notify_all();
+    }
+
+  public:
+    WorkQueue(int num_threads = Thread::default_num_threads() ) : m_active_workers(0), m_max_workers(num_threads) {
+      m_running_threads.resize(num_threads);
+      for (int i = 0; i < num_threads; ++i)
+        m_available_thread_ids.push_back(i);
+    }
+    virtual ~WorkQueue() { this->join_all(); }
+
+    /// Return a shared pointer to the next task.  If no tasks are
+    /// available, return an empty shared pointer.
     virtual boost::shared_ptr<Task> get_next_task() = 0;
 
-    void set_threadpool_ptr(IThreadPool* threadpool_ptr) { m_threadpool_ptr = threadpool_ptr; }
-    void notify() { if (m_threadpool_ptr) m_threadpool_ptr->check_for_tasks(); }
+    void notify() {
+      Mutex::Lock lock(m_queue_mutex);
+
+      // While there are available threads, farm out the tasks from
+      // the task generator
+      boost::shared_ptr<Task> task;
+      while (m_available_thread_ids.size() != 0 && (task = this->get_next_task()) ) {
+        int next_available_thread_id = m_available_thread_ids.front();
+        m_available_thread_ids.pop_front();
+
+        boost::shared_ptr<WorkerThread> next_worker( new WorkerThread(*this, task, next_available_thread_id) );
+        boost::shared_ptr<Thread> thread(new Thread(next_worker));
+        m_running_threads[next_available_thread_id] = thread;
+        m_active_workers++;
+        vw_out(VerboseDebugMessage+1) << "ThreadPool: creating worker thread " << next_available_thread_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active. ]\n"; 
+      } 
+    }
+
+    /// Return the max number threads that can run concurrently at any
+    /// given time using this threadpool.
+    int max_threads() { 
+      Mutex::Lock lock(m_queue_mutex);
+      return m_max_workers;
+    }
+
+    /// Return the max number threads that can run concurrently at any
+    /// given time using this threadpool.
+    int active_threads() { 
+      Mutex::Lock lock(m_queue_mutex);
+      return m_active_workers;
+    }
+
+    // Join all currently running threads and wait for the task pool to be empty.
+    void join_all() {
+      bool finished = false;
+      
+      // Wait for the threads to clean up the threadpool state and exit.
+      while(!finished) {
+        Mutex::Lock lock(m_queue_mutex);
+        if (m_active_workers != 0) {
+          m_joined_event.wait(lock);
+        } else {
+          finished = true;
+        }
+      }
+    }
+
   };
 
 
@@ -76,23 +169,30 @@ namespace vw {
   /// A simple, first-in, first-out work queue.
   class FifoWorkQueue : public WorkQueue {
     std::list<boost::shared_ptr<Task> > m_queued_tasks;
+    Mutex m_mutex;
   public:
 
-    FifoWorkQueue() : WorkQueue() {}
+    FifoWorkQueue(int num_threads = Thread::default_num_threads()) : WorkQueue(num_threads) {}
 
-    int size() { return m_queued_tasks.size(); }
+    int size() { 
+      Mutex::Lock lock(m_mutex);
+      return m_queued_tasks.size(); 
+    }
     
     // Add a task that is being tracked by a shared pointer.
     void add_task(boost::shared_ptr<Task> task) { 
-      m_queued_tasks.push_back(task); 
-      notify();
+      {
+        Mutex::Lock lock(m_mutex);
+        m_queued_tasks.push_back(task); 
+      }
+      this->notify();
     }
 
-    virtual bool idle() { return !m_queued_tasks.size(); }
-
     virtual boost::shared_ptr<Task> get_next_task() { 
+      Mutex::Lock lock(m_mutex);
       if (m_queued_tasks.size() == 0) 
-        vw_throw(LogicErr() << "FifoWorkQueue: a task was requested when none were available.");
+        return boost::shared_ptr<Task>();
+
       boost::shared_ptr<Task> task = m_queued_tasks.front();
       m_queued_tasks.pop_front();
       return task;
@@ -100,183 +200,55 @@ namespace vw {
   };
 
   /// A simple ordered work queue.  Tasks are each given an "index"
-  /// and they are processed in order, starting with the task at index
-  /// 0.  The idle() method belowe only returns false if the task with
-  /// the next expected index is present in the work queue.
+  /// and they are processed in order starting with the task at index
+  /// 0.  The idle() method returns true unless the task with the next
+  /// expected index is present in the work queue.
   class OrderedWorkQueue : public WorkQueue {
     std::map<int, boost::shared_ptr<Task> > m_queued_tasks;
     int m_next_index;
+    Mutex m_mutex;
   public:
 
-    OrderedWorkQueue() : WorkQueue() {
+    OrderedWorkQueue(int num_threads = Thread::default_num_threads()) : WorkQueue(num_threads) {
       m_next_index = 0;
     }
 
-    int size() { return m_queued_tasks.size(); }
+    int size() { 
+      Mutex::Lock lock(m_mutex);
+      return m_queued_tasks.size(); 
+    }
     
     // Add a task that is being tracked by a shared pointer.
     void add_task(boost::shared_ptr<Task> task, int index) { 
-      m_queued_tasks[index] = task;
+      {
+        Mutex::Lock lock(m_mutex);
+        m_queued_tasks[index] = task;
+      }
       notify();
     }
 
-    virtual bool idle() { 
-      if ( m_queued_tasks.size() == 0 ) return true;
-
-      std::map<int, boost::shared_ptr<Task> >::iterator iter = m_queued_tasks.begin();
-      if ((*iter).first == m_next_index) 
-        return false;
-      else 
-        return true;
-    }
-
     virtual boost::shared_ptr<Task> get_next_task() { 
+
+      // If there are no tasks available, we return the NULL task.
       if (m_queued_tasks.size() == 0) 
-        vw_throw(LogicErr() << "OrderedWorkQueue: a task was requested when none were available.");
+        return boost::shared_ptr<Task>();
 
-      std::map<int, boost::shared_ptr<Task> >::iterator iter = m_queued_tasks.begin();
-      if ((*iter).first != m_next_index) {
-        vw_throw(LogicErr() << "OrderedWorkQueue: a task was requested, but the task with the next expected index was not found.");
-      }
+      {
+        Mutex::Lock lock(m_mutex);
+        std::map<int, boost::shared_ptr<Task> >::iterator iter = m_queued_tasks.begin();
+
+        // If the next task does not have the expected index, we
+        // return the NULL task.
+        if ((*iter).first != m_next_index) 
+          return boost::shared_ptr<Task>();
+
        
-      boost::shared_ptr<Task> task = (*iter).second;
-      m_queued_tasks.erase(m_queued_tasks.begin());
-      m_next_index++;
-      return task;
-    }
-  };
-
-  // ----------------------  --------------  ---------------------------
-  // ----------------------   Thread Pool    ---------------------------
-  // ----------------------  --------------  ---------------------------
-
-  class ThreadPool : public IThreadPool {
-    
-    // The worker thread class is cognizant of both the thread and the
-    // threadpool object.  When a worker thread finishes its task it
-    // notifies the threadpool, which farms out the next task to the
-    // worker thread.
-    class WorkerThread {
-      ThreadPool &m_pool;
-      boost::shared_ptr<Task> m_task;
-    public:
-      WorkerThread(ThreadPool& pool, boost::shared_ptr<Task> task) : m_pool(pool), m_task(task) {}
-      ~WorkerThread() {}
-      void operator()() { 
-        (*m_task)();  
-        m_pool.task_complete(this); 
-      }
-    };
-
-    typedef std::pair<boost::shared_ptr<WorkerThread>,
-                      boost::shared_ptr<Thread> > threadpool_pair; 
-
-    int m_max_workers;
-    int m_active_workers;
-    boost::shared_ptr<WorkQueue> m_taskgen;
-    Mutex m_mutex;
-    std::list<threadpool_pair> m_running_threads;
-    Condition m_joined_event;
-
-    // This is called whenever a worker thread finishes its task. If
-    // there are more tasks available, the worker is given more work.
-    // Otherwise, the worker terminates.
-    void task_complete(WorkerThread* worker_ptr) {
-      {
-        Mutex::Lock lock(m_mutex);
-        
-        m_active_workers--;
-        vw_out(DebugMessage) << "ThreadPool: terminated worker thread.  [ " << m_active_workers << " / " << m_max_workers << " now active ].\n"; 
-      }
-      
-      this->check_for_tasks();
-      
-      {
-        Mutex::Lock lock(m_mutex);        
-
-        // Erase the worker thread from the list of active threads
-        bool erased = false;
-        for (std::list<threadpool_pair>::iterator it = m_running_threads.begin(); it != m_running_threads.end(); ++it) {
-          if (&( *(it->first) ) == worker_ptr) {
-            m_running_threads.erase(it);
-            erased = true;
-            break;
-          }
-        }
-        // If execution reaches this point, something went wrong during
-        // thread cleanup.  Sound the alarm!
-        if (!erased)
-          vw_throw(LogicErr() << "ThreadPool: tried to clean up a non-existent thread.  This is bad news!");
-      }
-      
-      m_joined_event.notify_all();
-    }
-
-  public:
-    
-    // Constructor & Destructor
-    ThreadPool(boost::shared_ptr<WorkQueue> taskgen, int num_threads = Thread::default_num_threads()) : 
-      m_max_workers(num_threads), m_active_workers(0), m_taskgen(taskgen) {
-      m_taskgen->set_threadpool_ptr(this);
-      this->check_for_tasks();
-    }
-    virtual ~ThreadPool() { this->join_all(); }
-
-    void set_task_generator(boost::shared_ptr<WorkQueue> taskgen) {
-      Mutex::Lock lock(m_mutex);
-      m_taskgen->set_threadpool_ptr(NULL);
-      m_taskgen = taskgen;
-      m_taskgen->set_threadpool_ptr(this);
-      this->check_for_tasks();
-    }
-
-    virtual void check_for_tasks() {
-      Mutex::Lock lock(m_mutex);
-
-      // While there are available threads, farm out the tasks from
-      // the task generator
-      while (m_taskgen && m_active_workers < m_max_workers && !(m_taskgen->idle()) ) {
-        boost::shared_ptr<WorkerThread> next_worker( new WorkerThread(*this, m_taskgen->get_next_task()) );
-        boost::shared_ptr<Thread> thread(new Thread(next_worker));
-        m_running_threads.push_back(threadpool_pair(next_worker, thread));
-        m_active_workers++;
-        vw_out(DebugMessage) << "ThreadPool: created worker thread.  [ " << m_active_workers << " / " << m_max_workers << " now active. ]\n"; 
-      } 
-    }
-
-    /// Return the max number threads that can run concurrently at any
-    /// given time using this threadpool.
-    int max_threads() { 
-      Mutex::Lock lock(m_mutex);
-      return m_max_workers;
-    }
-
-    /// Return the max number threads that can run concurrently at any
-    /// given time using this threadpool.
-    int active_threads() { 
-      Mutex::Lock lock(m_mutex);
-      return m_active_workers;
-    }
-
-    void clear() { 
-      Mutex::Lock lock(m_mutex);
-      m_taskgen.reset();
-    }
-
-    // Join all threads and clear all pending tasks from the list.
-    void join_all() {
-      bool finished = false;
-      
-      // Wait for the threads to clean up the threadpool state and exit.
-      while(!finished) {
-        Mutex::Lock lock(m_mutex);
-        if (m_running_threads.size() != 0) 
-          m_joined_event.wait(lock);
-        else 
-          finished = true;
+        boost::shared_ptr<Task> task = (*iter).second;
+        m_queued_tasks.erase(m_queued_tasks.begin());
+        m_next_index++;
+        return task;
       }
     }
-    
   };
 
 } // namespace vw

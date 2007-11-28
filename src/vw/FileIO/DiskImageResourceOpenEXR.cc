@@ -42,6 +42,7 @@
 #include <ImfStringAttribute.h>
 #include <ImfMatrixAttribute.h>
 #include <ImfArray.h>
+#include <ImfLineOrder.h>
 #include <ImfChannelList.h>
 
 #include <vw/Core/Exception.h>
@@ -156,7 +157,7 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
 }
 
 
-void vw::DiskImageResourceOpenEXR::set_tiled_write(int32 tile_width, int32 tile_height) {
+void vw::DiskImageResourceOpenEXR::set_tiled_write(int32 tile_width, int32 tile_height, bool random_tile_order) {
   m_tiled = true;
   m_block_size = Vector2i(tile_width, tile_height);
   
@@ -178,6 +179,14 @@ void vw::DiskImageResourceOpenEXR::set_tiled_write(int32 tile_width, int32 tile_
     }
 
     header.setTileDescription(Imf::TileDescription (m_block_size[0], m_block_size[1], Imf::ONE_LEVEL)); 
+
+    // Instruct the OpenEXR library to write tiles to the file in
+    // whatever order they are given.  Otherwise, OpenEXR will buffer
+    // out-of-order tiles until it is their turn to be written to
+    // disk.
+    if (random_tile_order)
+      header.lineOrder() = Imf::RANDOM_Y;
+
     m_output_file_ptr = new Imf::TiledOutputFile(m_filename.c_str(), header);
   } catch (Iex::BaseExc e) {
     vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: Failed to create " << m_filename << ".\n\t" << e.what() );
@@ -205,6 +214,7 @@ void vw::DiskImageResourceOpenEXR::set_scanline_write(int32 scanlines_per_block)
       m_labels[nn] = openexr_channel_string_of_pixel_type(m_format.pixel_format, nn);
       header.channels().insert (m_labels[nn].c_str(), Imf::Channel (Imf::FLOAT));
     }
+    header.lineOrder() = Imf::INCREASING_Y;
 
     m_block_size = Vector2i(m_format.cols,m_openexr_rows_per_block);
     m_output_file_ptr = new Imf::OutputFile(m_filename.c_str(), header);

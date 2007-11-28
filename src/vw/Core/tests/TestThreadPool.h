@@ -70,20 +70,18 @@ public:
     boost::shared_ptr<TestTask> task1 (new TestTask);
     boost::shared_ptr<TestTask> task2 (new TestTask);
     boost::shared_ptr<TestTask> task3 (new TestTask);
-
-   TS_ASSERT_EQUALS( task1->value(), 0 );
+    
+    TS_ASSERT_EQUALS( task1->value(), 0 );
     TS_ASSERT_EQUALS( task2->value(), 0 );
     TS_ASSERT_EQUALS( task3->value(), 0 );
-
-    set_debug_level(VerboseDebugMessage);
-    FifoWorkQueue *taskgen = new FifoWorkQueue;
-    taskgen->add_task(task1);
-    taskgen->add_task(task2);
-    taskgen->add_task(task3);
-
-    boost::shared_ptr<WorkQueue> taskgen_ptr(taskgen);
-    ThreadPool pool(taskgen_ptr, 4);
     
+    set_debug_level(VerboseDebugMessage);
+    
+    FifoWorkQueue queue(4);
+    queue.add_task(task1);
+    queue.add_task(task2);
+    queue.add_task(task3);
+
     TS_ASSERT_EQUALS( task1->value(), 1 );
     TS_ASSERT_EQUALS( task2->value(), 1 );
     TS_ASSERT_EQUALS( task3->value(), 1 );
@@ -98,7 +96,7 @@ public:
     task2->kill();
     task1->kill();
     
-    pool.join_all();
+    queue.join_all();
   }
 
 
@@ -112,14 +110,12 @@ public:
     TS_ASSERT_EQUALS( task3->value(), 0 );
 
     set_debug_level(VerboseDebugMessage);
-    FifoWorkQueue *taskgen = new FifoWorkQueue;
-    taskgen->add_task(task1);
-    taskgen->add_task(task2);
-    taskgen->add_task(task3);
+    FifoWorkQueue queue(2);
+    queue.add_task(task1);
+    queue.add_task(task2);
+    queue.add_task(task3);
 
     set_debug_level(VerboseDebugMessage);
-    boost::shared_ptr<WorkQueue> taskgen_ptr(taskgen);
-    ThreadPool pool(taskgen_ptr, 2);
     
     TS_ASSERT_EQUALS( task1->value(), 1 );
     TS_ASSERT_EQUALS( task2->value(), 1 );
@@ -135,7 +131,7 @@ public:
     task2->kill();
     task3->kill();
     
-    pool.join_all();
+    queue.join_all();
   }
 
 
@@ -149,14 +145,12 @@ public:
     TS_ASSERT_EQUALS( task3->value(), 0 );
 
     set_debug_level(VerboseDebugMessage);
-    FifoWorkQueue *taskgen = new FifoWorkQueue;
-    taskgen->add_task(task1);
-    taskgen->add_task(task2);
-    taskgen->add_task(task3);
+    FifoWorkQueue queue(8);
+    queue.add_task(task1);
+    queue.add_task(task2);
+    queue.add_task(task3);
 
     set_debug_level(VerboseDebugMessage);
-    boost::shared_ptr<WorkQueue> taskgen_ptr(taskgen);
-    ThreadPool pool(taskgen_ptr, 8);
     
     TS_ASSERT_EQUALS( task1->value(), 1 );
     TS_ASSERT_EQUALS( task2->value(), 1 );
@@ -175,9 +169,9 @@ public:
     TS_ASSERT_EQUALS( task4->value(), 0 );
     TS_ASSERT_EQUALS( task5->value(), 0 );
     TS_ASSERT_EQUALS( task6->value(), 0 );
-    taskgen->add_task(task4);
-    taskgen->add_task(task5);
-    taskgen->add_task(task6);
+    queue.add_task(task4);
+    queue.add_task(task5);
+    queue.add_task(task6);
     Thread::sleep_ms(100);
     TS_ASSERT_EQUALS( task4->value(), 1 );
     TS_ASSERT_EQUALS( task5->value(), 1 );
@@ -189,7 +183,7 @@ public:
     task4->kill();
     task5->kill();
     task6->kill();
-    pool.join_all();
+    queue.join_all();
   }
 
 
@@ -203,19 +197,17 @@ public:
     TS_ASSERT_EQUALS( task3->value(), 0 );
 
     set_debug_level(VerboseDebugMessage);
-    OrderedWorkQueue *taskgen = new OrderedWorkQueue;
-    taskgen->add_task(task1, 2);
-    taskgen->add_task(task2, 1);
+    OrderedWorkQueue queue(8);
+    queue.add_task(task1, 2);
+    queue.add_task(task2, 1);
     
     set_debug_level(VerboseDebugMessage);
-    boost::shared_ptr<WorkQueue> taskgen_ptr(taskgen);
-    ThreadPool pool(taskgen_ptr, 8);
     
     TS_ASSERT_EQUALS( task1->value(), 0 );
     TS_ASSERT_EQUALS( task2->value(), 0 );
     TS_ASSERT_EQUALS( task3->value(), 0 );
     
-    taskgen->add_task(task3, 0);
+    queue.add_task(task3, 0);
     Thread::sleep_ms(100);
     TS_ASSERT_EQUALS( task1->value(), 1 );
     TS_ASSERT_EQUALS( task2->value(), 1 );
@@ -227,14 +219,14 @@ public:
     TS_ASSERT_EQUALS( task4->value(), 0 );
     TS_ASSERT_EQUALS( task5->value(), 0 );
     TS_ASSERT_EQUALS( task6->value(), 0 );
-    taskgen->add_task(task4, 3);
-    taskgen->add_task(task5, 5);
+    queue.add_task(task4, 3);
+    queue.add_task(task5, 5);
     Thread::sleep_ms(100);
     TS_ASSERT_EQUALS( task4->value(), 1 );
     TS_ASSERT_EQUALS( task5->value(), 0 );
     TS_ASSERT_EQUALS( task6->value(), 0 );
 
-    taskgen->add_task(task6, 4);
+    queue.add_task(task6, 4);
     Thread::sleep_ms(100);
     TS_ASSERT_EQUALS( task4->value(), 1 );
     TS_ASSERT_EQUALS( task5->value(), 1 );
@@ -247,7 +239,7 @@ public:
     task5->kill();
     task6->kill();
 
-    pool.join_all();
+    queue.join_all();
   }
 
 };

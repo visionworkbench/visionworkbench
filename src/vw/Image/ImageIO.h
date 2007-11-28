@@ -31,6 +31,7 @@
 
 #include <vw/Core/Exception.h>
 #include <vw/Core/ProgressCallback.h>
+#include <vw/Core/ThreadPool.h>
 
 #include <vw/Image/ImageResource.h>
 #include <vw/Image/ImageView.h>
@@ -97,11 +98,143 @@ namespace vw {
     write_image( dst, intermediate, bbox );
   }
 
+  // This task generator manages the rasterizing and writing of images to disk.
+  //
+  // Only one thread can be writing to the ImageResource at any given
+  // time, however several threads can be rasterizing simultaneously.
+  // 
+  class ThreadedBlockWriter {
+
+    boost::shared_ptr<FifoWorkQueue> m_rasterize_work_queue;
+    boost::shared_ptr<OrderedWorkQueue> m_write_work_queue;
+
+    // ----------------------------- TASK TYPES (2) --------------------------------
+
+    template <class PixelT>
+    class WriteBlockTask : public Task {
+      ImageResource& m_resource;
+      ImageView<PixelT> m_image_block;
+      BBox2i m_bbox; 
+
+    public:
+      WriteBlockTask(ImageResource& resource, ImageView<PixelT> const& image_block, BBox2i bbox) : 
+        m_resource(resource), m_image_block(image_block), m_bbox(bbox) {}
+
+      virtual ~WriteBlockTask() {}
+      virtual void operator() () { m_resource.write( m_image_block.buffer(), m_bbox ); }
+    };
+
+    // ------
+
+    template <class ViewT>
+    class RasterizeBlockTask : public Task {
+      ThreadedBlockWriter &m_parent;
+      ImageResource& m_resource;
+      ViewT const& m_image;
+      BBox2i m_bbox;
+      int m_index;
+      
+    public:
+      RasterizeBlockTask(ThreadedBlockWriter &parent, ImageResource& resource, ImageViewBase<ViewT> const& image, BBox2i const& bbox, int index) :
+        m_parent(parent), m_resource(resource), m_image(image.impl()), m_bbox(bbox), m_index(index) {}
+
+      virtual ~RasterizeBlockTask() {}
+      virtual void operator()() { 
+        ImageView<typename ViewT::pixel_type> image_block( crop(m_image, m_bbox) );
+
+        // Once rasterization is complete, we queue up a request to write this block to disk.
+        boost::shared_ptr<Task> write_task ( new WriteBlockTask<typename ViewT::pixel_type>( m_resource, image_block, m_bbox) );
+        m_parent.add_write_task(write_task, m_index);
+      }
+    };
+
+    // ----------------------------- ------------------------ --------------------------------
+
+    void add_write_task(boost::shared_ptr<Task> task, int index) { m_write_work_queue->add_task(task, index); }
+    void add_rasterize_task(boost::shared_ptr<Task> task) { m_rasterize_work_queue->add_task(task); }
+    
+  public:
+    ThreadedBlockWriter() {
+      m_rasterize_work_queue = boost::shared_ptr<FifoWorkQueue>( new FifoWorkQueue() );
+      m_write_work_queue = boost::shared_ptr<OrderedWorkQueue>( new OrderedWorkQueue(1) );
+    }
+
+
+    // Add a block to be rasterized.  You can optionally supply an
+    // index, which will indicate the order in which this block should
+    // be written to disk.
+    template <class ViewT>
+    void add_block(ImageResource& resource, ImageViewBase<ViewT> const& image, BBox2i const& bbox, int index = -1) { 
+      boost::shared_ptr<Task> task( new RasterizeBlockTask<ViewT>(*this, resource, image, bbox, index) );
+      this->add_rasterize_task(task);
+    }
+                        
+    void process_blocks( const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
+      
+      // I need to think about how to properly measure progress in the
+      // multithreaded system.
+      progress_callback.report_progress(0);
+      if (progress_callback.abort_requested()) 
+        vw_throw( Aborted() << "Aborted by ProgressCallback" );
+      //       progress_callback.report_progress((processed_row_blocks + processed_col_blocks)/total_num_blocks);
+      progress_callback.report_finished();
+      
+      m_rasterize_work_queue->join_all();
+      m_write_work_queue->join_all();
+    }
+  };
+
+
   /// Write an image view to a resource.
+  template <class ImageT>
+  void block_write_image( ImageResource& resource, ImageViewBase<ImageT> const& image, 
+                          const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
+
+    VW_ASSERT( image.impl().cols() != 0 && image.impl().rows() != 0 && image.impl().planes() != 0,
+               ArgumentErr() << "write_image: cannot write an empty image to a resource" );
+
+    // Set up the threaded block writer object, which will manage
+    // rasterizing and writing images to disk one block (and one
+    // thread) at a time.
+    ThreadedBlockWriter block_writer;
+    
+    // Write the image to disk in blocks.  We may need to revisit
+    // the order in which these blocks are rasterized, but for now
+    // it rasterizes blocks from left to right, then top to bottom.
+    Vector2i block_size = resource.native_block_size();
+    for (int32 j = 0; j < (int32)resource.rows(); j+= block_size.y()) {
+      for (int32 i = 0; i < (int32)resource.cols(); i+= block_size.x()) {
+        
+        // Rasterize and save this image block
+        BBox2i current_bbox(Vector2i(i,j),
+                            Vector2i(std::min(i+block_size.x(),(int32)(resource.cols())),
+                                     std::min(j+block_size.y(),(int32)(resource.rows()))));
+        
+        // Add a task to rasterize this image block.  A seperate task
+        // to write the results to disk is generated automatically
+        // when rasterization is complete.
+        int col_blocks = int( ceil(float(resource.cols())/float(block_size.x())) );
+        int i_block_index = int(i/block_size.x());
+        int j_block_index = int(j/block_size.y());
+        int index = j_block_index*col_blocks+i_block_index;
+
+        // For debugging:
+        //    int total_num_blocks = ((resource.rows()-1)/block_size.y()+1) * ((resource.cols()-1)/block_size.x()+1);
+        //   vw_out(0) << "Adding block " << index+1 << "/"<< total_num_blocks << " : " << current_bbox << "\n";
+
+        block_writer.add_block(resource, image, current_bbox, index);
+      }
+    }
+    
+    // Start the threaded block writer and wait for all tasks to finish.
+    block_writer.process_blocks(progress_callback);
+  }
+  
+
   template <class ImageT>
   void write_image( ImageResource& resource, ImageViewBase<ImageT> const& image, 
                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
-
+    
     VW_ASSERT( image.impl().cols() != 0 && image.impl().rows() != 0 && image.impl().planes() != 0,
                ArgumentErr() << "write_image: cannot write an empty image to a resource" );
 
@@ -140,6 +273,7 @@ namespace vw {
     progress_callback.report_finished();
 
   }
+
 
 } // namespace vw
 
