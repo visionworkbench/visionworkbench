@@ -704,7 +704,7 @@ namespace vw {
 
 
   // *******************************************************************
-  // The Vector mathemaical vector pixel type.
+  // The Vector mathematical vector pixel type.
   // *******************************************************************
 
   /// Declare the standard variable-channel pixel traits for the 

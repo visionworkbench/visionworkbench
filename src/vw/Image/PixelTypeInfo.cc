@@ -34,17 +34,21 @@ vw::int32 vw::channel_size( vw::ChannelTypeEnum type ) {
   case VW_CHANNEL_CHAR:
   case VW_CHANNEL_INT8:
   case VW_CHANNEL_UINT8:
+  case VW_CHANNEL_GENERIC_1_BYTE:
     return 1;
   case VW_CHANNEL_INT16:
   case VW_CHANNEL_UINT16:
+  case VW_CHANNEL_GENERIC_2_BYTE:
     return 2;
   case VW_CHANNEL_INT32:
   case VW_CHANNEL_UINT32:
   case VW_CHANNEL_FLOAT32:
+  case VW_CHANNEL_GENERIC_4_BYTE:
     return 4;
   case VW_CHANNEL_INT64:
   case VW_CHANNEL_UINT64:
   case VW_CHANNEL_FLOAT64:
+  case VW_CHANNEL_GENERIC_8_BYTE:
     return 8;
   default:
     vw_throw( ArgumentErr() << "Unrecognized or unsupported channel type (" << type << ")." );
@@ -74,14 +78,18 @@ vw::int32 vw::num_channels( vw::PixelFormatEnum format ) {
   switch( format ) {
   case VW_PIXEL_SCALAR:
   case VW_PIXEL_GRAY:
+  case VW_PIXEL_GENERIC_1_CHANNEL:
     return 1;
   case VW_PIXEL_GRAYA:
+  case VW_PIXEL_GENERIC_2_CHANNEL:
     return 2;
   case VW_PIXEL_RGB:
   case VW_PIXEL_HSV:
   case VW_PIXEL_XYZ:
+  case VW_PIXEL_GENERIC_3_CHANNEL:
     return 3;
   case VW_PIXEL_RGBA:
+  case VW_PIXEL_GENERIC_4_CHANNEL:
     return 4;
   default:
     vw_throw( ArgumentErr() << "Unrecognized or unsupported pixel format (" << format << ")." );

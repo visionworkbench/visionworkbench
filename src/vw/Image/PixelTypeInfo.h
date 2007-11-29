@@ -398,6 +398,10 @@ namespace vw {
     VW_PIXEL_RGBA = 5,
     VW_PIXEL_HSV = 6,
     VW_PIXEL_XYZ = 7,
+    VW_PIXEL_GENERIC_1_CHANNEL = 90,
+    VW_PIXEL_GENERIC_2_CHANNEL = 91,
+    VW_PIXEL_GENERIC_3_CHANNEL = 92,
+    VW_PIXEL_GENERIC_4_CHANNEL = 93,
     VW_PIXEL_USER = 100
   };
 
@@ -416,6 +420,10 @@ namespace vw {
     VW_CHANNEL_FLOAT64 = 11,
     VW_CHANNEL_BOOL = 12,
     VW_CHANNEL_CHAR = 13, // A tag to identify e.g. string medadata
+    VW_CHANNEL_GENERIC_1_BYTE = 90,
+    VW_CHANNEL_GENERIC_2_BYTE = 91,
+    VW_CHANNEL_GENERIC_4_BYTE = 92,
+    VW_CHANNEL_GENERIC_8_BYTE = 93,
     VW_CHANNEL_USER = 100
   };
   
