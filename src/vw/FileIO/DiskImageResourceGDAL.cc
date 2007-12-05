@@ -388,7 +388,8 @@ namespace vw {
     char **options = NULL;
     options = CSLSetNameValue( options, "ALPHA", "YES" );
     options = CSLSetNameValue( options, "INTERLEAVE", "PIXEL" );
-    if( m_format.pixel_format == VW_PIXEL_RGB || m_format.pixel_format == VW_PIXEL_RGBA ) {
+    if( m_format.pixel_format == VW_PIXEL_RGB || m_format.pixel_format == VW_PIXEL_RGBA ||
+        m_format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL || m_format.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL) {
       options = CSLSetNameValue( options, "PHOTOMETRIC", "RGB" );
     }
     GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(format.channel_type);
@@ -469,6 +470,7 @@ namespace vw {
     for (int32 p = 0; p < dst.format.planes; p++) {
       for (int32 c = 0; c < num_channels(dst.format.pixel_format); c++) {
         GDALRasterBand *band = ((GDALDataset*)m_dataset)->GetRasterBand(c+1);
+
         band->RasterIO( GF_Write, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
                         (uint8*)dst(0,0,p) + channel_size(dst.format.channel_type)*c, 
                         dst.format.cols, dst.format.rows, gdal_pix_fmt, dst.cstride, dst.rstride );
