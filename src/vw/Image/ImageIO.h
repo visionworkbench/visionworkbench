@@ -271,9 +271,7 @@ namespace vw {
       }
     }
     progress_callback.report_finished();
-
   }
-
 
 } // namespace vw
 

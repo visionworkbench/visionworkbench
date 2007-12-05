@@ -358,8 +358,22 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src ) {
       new_src.pstride = channel_size( src.format.channel_type );
       return convert( dst, new_src );
     }
+    // We support conversions between user specified generic pixel
+    // types and the pixel types with an identical number of channels.
+    if ( ( src.format.pixel_format == VW_PIXEL_GENERIC_1_CHANNEL && dst.format.pixel_format == VW_PIXEL_GRAY ) ||
+         ( dst.format.pixel_format == VW_PIXEL_GENERIC_1_CHANNEL && src.format.pixel_format == VW_PIXEL_GRAY ) ||
+         ( src.format.pixel_format == VW_PIXEL_GENERIC_2_CHANNEL && dst.format.pixel_format == VW_PIXEL_GRAYA ) ||
+         ( dst.format.pixel_format == VW_PIXEL_GENERIC_2_CHANNEL && src.format.pixel_format == VW_PIXEL_GRAYA ) ||
+         ( src.format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL && dst.format.pixel_format == VW_PIXEL_RGB ) ||
+         ( dst.format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL && src.format.pixel_format == VW_PIXEL_RGB ) ||
+         ( src.format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL && dst.format.pixel_format == VW_PIXEL_XYZ ) ||
+         ( dst.format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL && src.format.pixel_format == VW_PIXEL_XYZ ) ||
+         ( src.format.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL && dst.format.pixel_format == VW_PIXEL_RGBA ) ||
+         ( dst.format.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL && src.format.pixel_format == VW_PIXEL_RGBA ) ) {
+      // Do nothing, these combinations are ok to convert.
+    } 
     // Other than that, we only support conversion between the core pixel formats
-    if( ( src.format.pixel_format!=VW_PIXEL_GRAY && src.format.pixel_format!=VW_PIXEL_GRAYA && 
+    else if( ( src.format.pixel_format!=VW_PIXEL_GRAY && src.format.pixel_format!=VW_PIXEL_GRAYA && 
           src.format.pixel_format!=VW_PIXEL_RGB && src.format.pixel_format!=VW_PIXEL_RGBA &&
           src.format.pixel_format!=VW_PIXEL_XYZ) ||
         ( dst.format.pixel_format!=VW_PIXEL_GRAY && dst.format.pixel_format!=VW_PIXEL_GRAYA && 
