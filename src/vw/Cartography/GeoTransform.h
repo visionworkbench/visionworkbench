@@ -34,24 +34,42 @@ namespace cartography {
     
     GeoReference m_src_georef;
     GeoReference m_dst_georef;
+    bool m_skip_map_projection;
 
   public:
     /// Normal constructor
     GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef) :
-      m_src_georef(src_georef), m_dst_georef(dst_georef) {}
+      m_src_georef(src_georef), m_dst_georef(dst_georef) {
+
+      // This optimizes in the common case where the two images are
+      // already in the same map projection, and we need only apply
+      // the affine transform.  This will break, of course, as soon as
+      // we have mare than one type of GeoReference object, but it
+      // makes life faster for now. -mbroxton
+      if (m_src_georef.proj4_str() == m_dst_georef.proj4_str()) 
+        m_skip_map_projection = true;
+      else 
+        m_skip_map_projection = false;
+    }
 
     /// Given a pixel coordinate of an image in a destination
     /// georeference frame, this routine computes the corresponding
     /// pixel from an image in the source georeference frame.
     Vector2 reverse(Vector2 const& v) const {
-      return m_src_georef.lonlat_to_pixel(m_dst_georef.pixel_to_lonlat(v));
+      if (m_skip_map_projection)
+        return m_src_georef.point_to_pixel(m_dst_georef.pixel_to_point(v));
+      else
+        return m_src_georef.lonlat_to_pixel(m_dst_georef.pixel_to_lonlat(v));
     }
 
     /// Given a pixel coordinate of an image in a source
     /// georeference frame, this routine computes the corresponding
     /// pixel the destination (transformed) image.
     Vector2 forward(Vector2 const& v) const {
-      return m_dst_georef.lonlat_to_pixel(m_src_georef.pixel_to_lonlat(v));
+      if (m_skip_map_projection)
+        return m_dst_georef.point_to_pixel(m_src_georef.pixel_to_point(v));
+      else
+        return m_dst_georef.lonlat_to_pixel(m_src_georef.pixel_to_lonlat(v));
     }
 
   };
