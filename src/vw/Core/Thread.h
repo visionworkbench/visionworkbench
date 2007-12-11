@@ -121,7 +121,7 @@ namespace vw {
         xt.sec++;
         milliseconds -= 1000;
       }
-      xt.nsec+=1e6*milliseconds;
+      xt.nsec+=int_fast32_t(1e6*milliseconds);
       boost::thread::sleep(xt);
     }
 

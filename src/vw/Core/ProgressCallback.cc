@@ -32,11 +32,14 @@ const vw::ProgressCallback &vw::ProgressCallback::dummy_instance() {
 }
 
 void vw::TerminalProgressCallback::report_progress(double progress) const {
-  int pi = static_cast<int>(progress * 60);
-  vw_out(m_level) << "\r" << m_pre_progress_text << "[";
-  for( int i=0; i<pi; ++i ) vw_out(m_level) << "*";
-  for( int i=60; i>pi; --i ) vw_out(m_level) << ".";
-  vw_out(m_level) << "] " << (int)(progress*100) << "%" << std::flush;
+  if (fabs(progress - m_last_reported_progress) > 0.01) {
+    m_last_reported_progress = progress;
+    int pi = static_cast<int>(progress * 60);
+    vw_out(m_level) << "\r" << m_pre_progress_text << "[";
+    for( int i=0; i<pi; ++i ) vw_out(m_level) << "*";
+    for( int i=60; i>pi; --i ) vw_out(m_level) << ".";
+    vw_out(m_level) << "] " << (int)(progress*100) << "%" << std::flush;
+  }
 }
 
 void vw::TerminalProgressCallback::report_aborted(std::string why) const {
