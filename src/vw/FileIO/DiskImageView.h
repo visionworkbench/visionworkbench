@@ -65,7 +65,7 @@ namespace vw {
       : base_type( resource, cache ) {}
 
     /// Constructs a DiskImageView of the given resource.  Takes
-    /// ownership of the resouqce object (i.e. deletes it when it's
+    /// ownership of the resource object (i.e. deletes it when it's
     /// done using it).
     DiskImageView( DiskImageResource *resource, bool cache=true )
       : base_type( resource, cache ) {}

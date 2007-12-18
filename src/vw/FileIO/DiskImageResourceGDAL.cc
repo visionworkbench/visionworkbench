@@ -48,8 +48,24 @@
 #include <vector>
 #include <list>
 #include <vw/Core/Exception.h>
+#include <vw/Core/Cache.h>
 #include <vw/Image/PixelTypes.h>
 #include <boost/algorithm/string.hpp>
+
+// This cache of GDAL file handles allows up to 200 files to be open
+// at a time.
+namespace {
+  vw::RunOnce gdal_cache_once = VW_RUNONCE_INIT;
+  vw::Cache *gdal_cache_ptr = 0;
+  void init_gdal_cache() {
+    gdal_cache_ptr = new vw::Cache( 200 );
+  }
+}
+
+vw::Cache& vw::DiskImageResourceGDAL::gdal_cache() {
+  gdal_cache_once.run( init_gdal_cache );
+  return *gdal_cache_ptr;
+}
 
 namespace {
 
@@ -249,20 +265,38 @@ namespace vw {
       delete[] d_converted;
   }
   /// \endcond
-  
+
+  GdalDatasetHandle::GdalDatasetHandle(std::string filename) {
+    m_filename = filename;
+    vw_out(VerboseDebugMessage) << "GDAL Handle opening " << m_filename << "\n";
+    m_dataset_ptr = GDALOpen( m_filename.c_str(), GA_ReadOnly );
+    if ( !m_dataset_ptr ) 
+      vw_throw(ArgumentErr() << "DiskImageResourceGDAL: Could not open \"" << m_filename << "\"");
+  }
+
+  GdalDatasetHandle::~GdalDatasetHandle() { 
+    vw_out(VerboseDebugMessage) << "GDAL Handle closing " << m_filename << "\n";
+    if (m_dataset_ptr) 
+      delete static_cast<GDALDataset*>(m_dataset_ptr);
+  }
+
   /// Bind the resource to a file for reading.  Confirm that we can
   /// open the file and that it has a sane pixel format.
   void DiskImageResourceGDAL::open( std::string const& filename )
   {
     // Register all GDAL file readers and writers and open the data set.
     GDALAllRegister();
-    GDALDataset *dataset = (GDALDataset *) GDALOpen( filename.c_str(), GA_ReadOnly );
+
+    // Add a cache generator that can regenerate this dataset if it
+    // needs to be closed due to too many open files.
+    m_dataset_cache_handle = gdal_cache().insert(GdalDatasetGenerator(filename));
+
+    GDALDataset *dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
     if( dataset == NULL ) {
       vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read " << filename << "." );
     }      
 
     m_filename = filename;
-    m_dataset = (void*) dataset;
     m_format.cols = dataset->GetRasterXSize();
     m_format.rows = dataset->GetRasterYSize();
     double geo_transform[6];
@@ -294,7 +328,6 @@ namespace vw {
       m_geo_transform(1,2) = geo_transform[3];
       vw_out(DebugMessage) << "\tAffine transform: " << m_geo_transform << std::endl;
     }
-    // <test code> 
    
     // We do our best here to determine what pixel format the GDAL image is in.  
     for( int i=1; i<=dataset->GetRasterCount(); ++i )
@@ -340,11 +373,15 @@ namespace vw {
         m_palette[i] = PixelRGBA<uint8>( color.c1, color.c2, color.c3, color.c4 );
       }
     }
+
+    // Set the native block size
+    set_native_block_size(Vector2i(-1,-1));
   }
 
   /// Bind the resource to a file for writing.  
   void DiskImageResourceGDAL::create( std::string const& filename, 
-                                      ImageFormat const& format )
+                                      ImageFormat const& format,
+                                      Vector2i block_size)
   {
     VW_ASSERT(format.planes == 1 || format.pixel_format==VW_PIXEL_SCALAR,
               NoImplErr() << "DiskImageResourceGDAL: Cannot create " << filename << "\n\t"
@@ -392,11 +429,28 @@ namespace vw {
         m_format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL || m_format.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL) {
       options = CSLSetNameValue( options, "PHOTOMETRIC", "RGB" );
     }
+    // If the user has specified a block size, we set the option for it here.
+    if (block_size[0] != -1 && block_size[1] != -1) {
+      std::ostringstream x_str, y_str;
+      x_str << block_size[0];
+      y_str << block_size[1];
+      options = CSLSetNameValue( options, "TILED", "YES" );
+      options = CSLSetNameValue( options, "BLOCKYSIZE", x_str.str().c_str() );
+      options = CSLSetNameValue( options, "BLOCKXSIZE", y_str.str().c_str() );
+    }
     GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(format.channel_type);
     GDALDataset *dataset = driver->Create( filename.c_str(), cols(), rows(), num_bands, gdal_pix_fmt, options );
     CSLDestroy( options );
 
-    m_dataset = (void*) dataset;
+    m_write_dataset_ptr = (void*) dataset;
+
+    // Set the native block size.  If the user has not specified a
+    // block size, we go with GDAL's default.  Otherwise, we go with
+    // our own block size.
+    if (block_size[0] != -1 && block_size[1] != -1) 
+      set_native_block_size(block_size);
+    else 
+      set_native_block_size(Vector2i(-1,-1));
   }
 
 
@@ -406,8 +460,9 @@ namespace vw {
     VW_ASSERT( channels() == 1 || planes()==1,
                LogicErr() << "DiskImageResourceGDAL: cannot read an image that has both multiple channels and multiple planes." );
  
-    if (!m_dataset) 
-      vw_throw( LogicErr() << "DiskImageResourceGDAL: Could not read file. No file has been opened." );
+    GDALDataset *dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
+    if (!dataset) 
+      vw_throw( LogicErr() << "DiskImageResourceGDAL::read() Could not read file. No file has been opened." );
 
     int             blocksize_x, blocksize_y;
     int             bGotMin, bGotMax;
@@ -426,7 +481,7 @@ namespace vw {
     if( m_palette.size() == 0 ) {
       for ( int32 p = 0; p < planes(); ++p ) {
         for ( int32 c = 0; c < channels(); ++c ) {
-          GDALRasterBand  *band = ((GDALDataset *)m_dataset)->GetRasterBand(c+1);
+          GDALRasterBand  *band = dataset->GetRasterBand(c+1);
           GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
           band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
                           (uint8*)src(0,0,p) + channel_size(src.format.channel_type)*c, 
@@ -435,7 +490,7 @@ namespace vw {
       }
     }
     else { // palette conversion
-      GDALRasterBand  *band = ((GDALDataset *)m_dataset)->GetRasterBand(1);
+      GDALRasterBand  *band = dataset->GetRasterBand(1);
       uint8 *index_data = new uint8[bbox.width() * bbox.height()];
       band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
                       index_data, bbox.width(), bbox.height(), GDT_Byte, 1, bbox.width() );
@@ -469,7 +524,7 @@ namespace vw {
     GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
     for (int32 p = 0; p < dst.format.planes; p++) {
       for (int32 c = 0; c < num_channels(dst.format.pixel_format); c++) {
-        GDALRasterBand *band = ((GDALDataset*)m_dataset)->GetRasterBand(c+1);
+        GDALRasterBand *band = ((GDALDataset*)m_write_dataset_ptr)->GetRasterBand(c+1);
 
         band->RasterIO( GF_Write, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
                         (uint8*)dst(0,0,p) + channel_size(dst.format.channel_type)*c, 
@@ -484,26 +539,52 @@ namespace vw {
     delete [] data;
   }
 
-  Vector2i DiskImageResourceGDAL::native_block_size() const {
-    // GDAL assumes a single-row stripsize even for file formats 
-    // like PNG for which it does not support true strip access.
-    // Thus, we check the file driver type before accepting GDAL's 
-    // block size as our own.
-    GDALDataset *dataset = (GDALDataset*)m_dataset;
+  // Set the native block size
+  //
+  // Be careful here -- you can set any block size here, but you
+  // choice may lead to extremely inefficient FileIO operations.  You
+  // can choose to pass in -1 as the width and/or the height of the
+  // block, in which case the width and/or height is chosen by GDAL.
+  // 
+  // For example, if you pass in a vector of (-1,-1), the block size will be
+  // assigned based on GDAL's best guess of the best block or strip
+  // size. However, GDAL assumes a single-row stripsize even for file
+  // formats like PNG for which it does not support true strip access.
+  // Thus, we check the file driver type before accepting GDAL's block
+  // size as our own.
+  // 
+  void DiskImageResourceGDAL::set_native_block_size(Vector2i block_size) {
+    GDALDataset *dataset;
+    if (m_write_dataset_ptr) 
+      dataset = static_cast<GDALDataset*>(m_write_dataset_ptr);
+    else 
+      dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
+    
+    if (!dataset) 
+      vw_throw(LogicErr() << "DiskImageResourceGDAL: Could not set native block size.  No file is open.");
+               
     if ( dataset->GetDriver() != GetGDALDriverManager()->GetDriverByName("GTiff") ) {
-      return Vector2i(cols(),rows());
-    }
-    else {
+      m_native_blocksize = Vector2i(cols(),rows());
+    } else {
       GDALRasterBand *band = dataset->GetRasterBand(1);
       int xsize, ysize;
       band->GetBlockSize(&xsize,&ysize);
-      return Vector2i(xsize,ysize);
+      m_native_blocksize = Vector2i(xsize,ysize);
     }
+    
+    if (block_size[0] != -1) 
+      m_native_blocksize[0] = block_size[0];
+    if (block_size[1] != -1) 
+      m_native_blocksize[1] = block_size[1];
+  }
+
+  Vector2i DiskImageResourceGDAL::native_block_size() const {
+    return m_native_blocksize;
   }
 
   void DiskImageResourceGDAL::flush() { 
-    if (m_dataset) {
-      delete (GDALDataset*)m_dataset;
+    if (m_write_dataset_ptr) {
+      delete (GDALDataset*)m_write_dataset_ptr;
       if (m_convert_jp2)
         convert_jp2(m_filename);
     }
