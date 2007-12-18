@@ -111,7 +111,7 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
     GeoReference input_georef;
     read_georeference( input_georef, image_files[i] );
     DiskImageView<PixelT> source_disk_image( image_files[i] );
-    std::cout << "\tTransform: " << input_georef.transform()
+    std::cout << "\tTransform: " << input_georef.transform() 
               << "\t\tBBox: " << input_georef.bounding_box(source_disk_image) << "\n";
 
     // Check to make sure the image has valid georeferencing
@@ -170,18 +170,24 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
       ImageViewRef<alpha_pixel_type> masked_source = crop( transform( mask_zero_pixels(source_disk_image), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
       composite.insert( masked_source, output_bbox.min().x(), output_bbox.min().y() );
     } else {
-      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( pixel_cast<alpha_pixel_type>(source_disk_image), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
-      composite.insert( masked_source, output_bbox.min().x(), output_bbox.min().y() );
+     ImageViewRef<alpha_pixel_type> masked_source = crop( transform( pixel_cast<alpha_pixel_type>(source_disk_image), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
+     composite.insert( masked_source, output_bbox.min().x(), output_bbox.min().y() );
     }
 
   }
 
   vw_out(vw::InfoMessage) << "\n";
   composite.prepare(TerminalProgressCallback(vw::InfoMessage, "Preparing the composite: "));
+  vw_out(0) << "Composite dimensions: " << composite.cols() << "  " << composite.rows() << "\n";
   if( qtree ) {
     vw::vw_out(vw::InfoMessage) << "Preparing the quadtree..." << std::endl;
-    BBox2 ll_bbox( -30,-30,30.0,30.0*(float)(composite.rows())/(float)(composite.cols()) );
-    vw_out(0) << "\tOverlay will appear in this bounding box in Google Earth: " << ll_bbox << "\n";
+    BBox2 ll_bbox;
+    if ((float)(composite.rows())/(float)(composite.cols()) < 1.0)
+      ll_bbox = BBox2( -30,-30,30.0,30.0*(float)(composite.rows())/(float)(composite.cols()) );
+    else 
+      ll_bbox = BBox2( -30,-30,30.0*(float)(composite.cols())/(float)(composite.rows()),30.0);
+    std::cout << ll_bbox << "\n";
+    vw_out(0) << "\tOverlay will appear in this KML bounding box: " << ll_bbox << "\n";
     vw_out(0) << "\tComposite bbox: " << composite.source_data_bbox() << "\n";
     vw::mosaic::KMLQuadTreeGenerator<alpha_pixel_type> quadtree( mosaic_name, composite, ll_bbox );
     quadtree.set_output_image_file_type( output_file_type );
@@ -193,11 +199,9 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
     quadtree.generate(TerminalProgressCallback());
     vw::vw_out(vw::InfoMessage) << "Done!" << std::endl;
   } else {
-
     std::cout << "\nOutput image:\n";
-    std::cout << "\tTransform: " << output_affine
-              << "\t\tBBox: " << output_georef.bounding_box(composite) << "\n\n";
-
+    std::cout << "\tTransform: " << output_affine << "\n"
+              << "\t\tBBox: " << output_georef.bounding_box(composite) << " [ W: " << output_georef.bounding_box(composite).width() << " H: " << output_georef.bounding_box(composite).height() << " ]\n\n";
     std::string mosaic_filename = mosaic_name+".blend."+output_file_type;
     if (do_no_output_alpha) {
       write_georeferenced_image( mosaic_filename, pixel_cast<PixelT>(composite), output_georef, TerminalProgressCallback(vw::InfoMessage, "Blending: ") );
