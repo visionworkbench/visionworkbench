@@ -230,7 +230,7 @@ namespace stereo {
     /// Correlator Constructor
     ///
     /// Set pyramid_levels to 0 to force the use of a single pyramid level (essentially disabling pyramid correlation).
-    PyramidCorrelator(BBox2 initial_search_range, Vector2i kernel_size, int slog_width = 1.5, float cross_correlation_threshold = 1, float corrscore_rejection_threshold = 1.0, bool do_h_subpixel = true, bool do_v_subpixel = true, int pyramid_min_image_dimension = 256) :
+    PyramidCorrelator(BBox2 initial_search_range, Vector2i kernel_size, float slog_width = 1.5f, float cross_correlation_threshold = 1, float corrscore_rejection_threshold = 1.0, bool do_h_subpixel = true, bool do_v_subpixel = true, int pyramid_min_image_dimension = 256) :
       m_initial_search_range(initial_search_range), m_kernel_size(kernel_size), m_slog_width(slog_width), m_cross_correlation_threshold(cross_correlation_threshold), m_corrscore_rejection_threshold(corrscore_rejection_threshold), m_do_h_subpixel(do_h_subpixel), m_do_v_subpixel(do_v_subpixel), m_pyramid_min_image_dimension(pyramid_min_image_dimension) {
       m_debug_prefix = "";
     }
