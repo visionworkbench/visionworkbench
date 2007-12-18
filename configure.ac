@@ -233,7 +233,7 @@ AX_PKG(THREADS, [BOOST_THREAD], [], [])
 
 AX_PKG_LAPACK
 
-AX_PKG(QHULL, [], [-lqhull], [qhull/qhull.h])
+AX_PKG(QHULL, [], [-lqhull], [stdio.h stdlib.h string.h ctype.h math.h qhull/qhull.h])
 
 AX_PKG(GMP, [], [-lgmpxx -lgmp], [gmpxx.h gmp.h])
 AX_PKG(MPFR, [], [-lmpfr], [mpfr.h])
