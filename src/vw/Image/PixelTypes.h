@@ -35,7 +35,6 @@
 #define __VW_IMAGE_PIXELTYPES_H__
 
 #include <ostream>
-#include <iostream>
 
 #include <boost/type_traits.hpp>
 #include <boost/utility/enable_if.hpp>
@@ -748,7 +747,7 @@ namespace vw {
     PixelLuv() { m_ch[0]=m_ch[1]=m_ch[2]=0; }
 
     /// Explicitly constructs a gray pixel with the given L value.
-    PixelLuv( ChannelT const& l ) { m_ch[0]=m_ch[1]=0; m_ch[0]=l; }
+    PixelLuv( ChannelT const& l ) { m_ch[0]=l; m_ch[1]=m_ch[2]=0; }
 
     /// Constructs a pixel with the given channel values.
     PixelLuv( ChannelT const& l, ChannelT const& u, ChannelT const& v ) {
