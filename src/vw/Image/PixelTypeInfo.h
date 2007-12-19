@@ -383,6 +383,7 @@ namespace vw {
   template <class ChannelT> class PixelRGBA;
   template <class ChannelT> class PixelHSV;
   template <class ChannelT> class PixelXYZ;
+  template <class ChannelT> class PixelLuv;
 
 
   // *******************************************************************
@@ -398,6 +399,7 @@ namespace vw {
     VW_PIXEL_RGBA = 5,
     VW_PIXEL_HSV = 6,
     VW_PIXEL_XYZ = 7,
+    VW_PIXEL_LUV = 8,
     VW_PIXEL_GENERIC_1_CHANNEL = 90,
     VW_PIXEL_GENERIC_2_CHANNEL = 91,
     VW_PIXEL_GENERIC_3_CHANNEL = 92,
@@ -445,6 +447,7 @@ namespace vw {
   template <class ChT> struct PixelFormatID<PixelRGBA<ChT> >  { static const PixelFormatEnum value = VW_PIXEL_RGBA; };
   template <class ChT> struct PixelFormatID<PixelHSV<ChT> >   { static const PixelFormatEnum value = VW_PIXEL_HSV; };
   template <class ChT> struct PixelFormatID<PixelXYZ<ChT> >   { static const PixelFormatEnum value = VW_PIXEL_XYZ; };
+  template <class ChT> struct PixelFormatID<PixelLuv<ChT> >   { static const PixelFormatEnum value = VW_PIXEL_LUV; };
 
   template <class ChannelT> struct ChannelTypeID { static const ChannelTypeEnum value = VW_CHANNEL_UNKNOWN; };
   template<> struct ChannelTypeID<vw::int8>      { static const ChannelTypeEnum value = VW_CHANNEL_INT8; };

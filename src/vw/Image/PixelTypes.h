@@ -24,8 +24,8 @@
 /// \file PixelTypes.h
 /// 
 /// Defines the standard pixel types.  Currently this includes
-/// PixelGray, PixelGrayA, PixelRGB, PixelRGBA, PixelHSV, and
-/// PixelXYZ.
+/// PixelGray, PixelGrayA, PixelRGB, PixelRGBA, PixelHSV, PixelXYZ,
+/// and PixelLuv.
 ///
 /// The alpha pixel types (PixelGrayA and PixelRGBA) have 
 /// arithmetic operators defined that assume the pixels 
@@ -35,6 +35,7 @@
 #define __VW_IMAGE_PIXELTYPES_H__
 
 #include <ostream>
+#include <iostream>
 
 #include <boost/type_traits.hpp>
 #include <boost/utility/enable_if.hpp>
@@ -73,6 +74,23 @@ namespace vw {
 #define VW_XYZ_TO_RGB_ZR_WEIGHT (-0.498535)
 #define VW_XYZ_TO_RGB_ZG_WEIGHT (0.041556)
 #define VW_XYZ_TO_RGB_ZB_WEIGHT (1.057311)
+
+  // Default weights used for Luv <-> XYZ conversions
+#define VW_LUV_L_MIN (0.1)
+#define VW_LUV_L_THRESH (8.0)
+#define VW_LUV_L_OFFSET (16.0)
+#define VW_LUV_D65_X_N (0.95050)
+#define VW_LUV_D65_Y_N (1.00000)
+#define VW_LUV_D65_Z_N (1.08870)
+#define VW_LUV_L_T (216.0/VW_LUV_C_1)
+#define VW_LUV_C_1 (24389.0)
+#define VW_LUV_C_2 (27.0/VW_LUV_C_1)
+#define VW_LUV_C_3 (116.0)
+#define VW_LUV_UN_PRIME \
+  (4 * VW_LUV_D65_X_N / (VW_LUV_D65_X_N + 15*VW_LUV_D65_Y_N + 3*VW_LUV_D65_Z_N))
+#define VW_LUV_VN_PRIME \
+  (9 * VW_LUV_D65_Y_N / (VW_LUV_D65_X_N + 15*VW_LUV_D65_Y_N + 3*VW_LUV_D65_Z_N))
+#define VW_LUV_EPSILON (1E-6)
 
   // This function is used in messy color space conversions 
   // that operate internally using floating-point numbers 
@@ -314,6 +332,9 @@ namespace vw {
 
     /// Explicit conversion from PixelXYZ types.
     template <class OtherT> explicit PixelRGB( PixelXYZ<OtherT> const& other );
+
+    /// Explicit conversion from PixelLuv types.
+    template <class OtherT> explicit PixelRGB( PixelLuv<OtherT> const& other );
 
     /// Channel indexing operator.
     inline ChannelT& operator[](int i) { return m_ch[i]; }
@@ -640,6 +661,9 @@ namespace vw {
     /// Explicit conversion from PixelRGB types.
     template <class OtherT> explicit PixelXYZ( PixelRGB<OtherT> const& rgb );
 
+    /// Explicit conversion from PixelLuv types.
+    template <class OtherT> explicit PixelXYZ( PixelLuv<OtherT> const& luv );
+
     /// Channel indexing operator.
     inline ChannelT& operator[](int i) { return m_ch[i]; }
     /// Channel indexing operator (const overload).
@@ -702,6 +726,154 @@ namespace vw {
                                       VW_RGB_TO_XYZ_BZ_WEIGHT*rgb.b() );
   }
 
+  // *******************************************************************
+  // The PixelLuv CIE 1976 L*u*v* uniform perceptual pixel type.
+  // *******************************************************************
+
+  /// A full-color L*u*v color space pixel type.  This color space has the
+  /// property that Euclidean distance between pixels is proportional to perceived
+  /// color differences.  This code was adapted from code originally written
+  /// by Matt Deans, and originated from the following reference: 
+  /// "G. Wyszecki and W. S. Stiles: Color Science: Concepts and
+  /// Methods, Quantitative Data and Formulae, Wiley, New York, 1982."
+  /// for details.  This transformation uses a D65 white point
+  /// specified by VW_LUV_{X,Y,Z}_N.
+  template <class ChannelT>
+  class PixelLuv : public PixelMathBase< PixelLuv<ChannelT> >
+  {
+    ChannelT m_ch[3];
+
+  public:
+    // Default constructor (zero value).
+    PixelLuv() { m_ch[0]=m_ch[1]=m_ch[2]=0; }
+
+    /// Explicitly constructs a gray pixel with the given L value.
+    PixelLuv( ChannelT const& l ) { m_ch[0]=m_ch[1]=0; m_ch[0]=l; }
+
+    /// Constructs a pixel with the given channel values.
+    PixelLuv( ChannelT const& l, ChannelT const& u, ChannelT const& v ) {
+      m_ch[0]=l; m_ch[1]=u; m_ch[2]=v;
+    }
+
+    /// Conversion from other PixelLuv types.
+    template <class OtherT> PixelLuv( PixelLuv<OtherT> const& other ) {
+      m_ch[0] = ChannelT(other[0]);
+      m_ch[1] = ChannelT(other[1]);
+      m_ch[2] = ChannelT(other[2]);
+    }
+
+    /// Explicit conversion from PixelXYZ types.
+    template <class OtherT> explicit PixelLuv( PixelXYZ<OtherT> const& xyz );
+
+    /// Explicit conversion from PixelRGB types.
+    template <class OtherT> explicit PixelLuv( PixelRGB<OtherT> const& rgb );
+
+    /// Channel indexing operator.
+    inline ChannelT& operator[](int i) { return m_ch[i]; }
+    /// Channel indexing operator (const overload).
+    inline ChannelT const& operator[](int i) const { return m_ch[i]; }
+    /// Channel indexing operator.
+    inline ChannelT& operator()(int i) { return m_ch[i]; }
+    /// Channel indexing operator (const overload).
+    inline ChannelT const& operator()(int i) const { return m_ch[i]; }
+
+    /// l channel accessor.
+    inline ChannelT& l() { return m_ch[0]; }
+    /// l channel accessor (const overload).
+    inline ChannelT const& l() const { return m_ch[0]; }
+    /// u channel accessor.
+    inline ChannelT& u() { return m_ch[1]; }
+    /// u channel accessor (const overload).
+    inline ChannelT const& u() const { return m_ch[1]; }
+    /// v channel accessor.
+    inline ChannelT& v() { return m_ch[2]; }
+    /// v channel accessor (const overload).
+    inline ChannelT const& v() const { return m_ch[2]; }
+  };
+
+  /// Declare the standard 3-channel pixel traits for PixelLuv.
+  VW_DECLARE_PIXEL_TYPE(PixelLuv, 3);
+
+  /// Print a PixelLuv to a debugging stream.
+  template <class ChannelT>
+  std::ostream& operator<<( std::ostream& os, PixelLuv<ChannelT> const& pix ) {
+    return os << "PixelLuv(" << _numeric(pix.l()) << "," << _numeric(pix.u()) << "," << _numeric(pix.v()) << ")";
+  }
+
+  /// Luv->XYZ conversion
+  template <class ChannelT>
+  template <class OtherT>
+  PixelXYZ<ChannelT>::PixelXYZ( PixelLuv<OtherT> const& luv ) {
+    if (luv.l() >= VW_LUV_L_MIN) {
+
+      // Set y
+      if (luv.l() < VW_LUV_L_THRESH) {
+	y() = luv.l() * VW_LUV_D65_Y_N * VW_LUV_C_2;
+      } else {
+	y() = (luv.l() + VW_LUV_L_OFFSET) / VW_LUV_C_3;
+	y() = VW_LUV_D65_Y_N * y() * y() * y();
+      }
+
+      double u_prime = luv.u() / (13 * luv.l()) + VW_LUV_UN_PRIME;
+      double v_prime = luv.v() / (13 * luv.l()) + VW_LUV_VN_PRIME;
+
+      // Set x, z
+      x() = 9 * u_prime * y() / (4 * v_prime);
+      z() = (12 - 3 * u_prime - 20 * v_prime) * y() / (4 * v_prime);
+    } else {
+      x() = y() = z() = 0.0;
+    }
+  }
+
+  /// XYZ->Luv conversion
+  template <class ChannelT>
+  template <class OtherT>
+  PixelLuv<ChannelT>::PixelLuv( PixelXYZ<OtherT> const& xyz ) {
+    // Compute L*
+    double L0 = xyz.y() / VW_LUV_D65_Y_N;
+    if (L0 > VW_LUV_L_T) {
+      l() = VW_LUV_C_3 * pow(L0, 1.0 / 3.0) - VW_LUV_L_OFFSET;
+    } else {
+      l() = L0 / VW_LUV_C_2;
+    }
+
+    double constant = xyz.x() + 15 * xyz.y() + 3 * xyz.z();
+    double u_prime, v_prime;
+    if (fabs(constant) > VW_LUV_EPSILON) {
+      u_prime = (4.0 * xyz.x()) / constant;
+      v_prime = (9.0 * xyz.y()) / constant;
+    } else {
+      u_prime = 4.0;
+      v_prime = 9.0 / 15.0;
+    }
+
+    u() = 13.0 * l() * (u_prime - VW_LUV_UN_PRIME);
+    v() = 13.0 * l() * (v_prime - VW_LUV_VN_PRIME);
+  }
+
+  /// Luv->RGB conversion
+  template <class ChannelT>
+  template <class OtherT>
+  PixelRGB<ChannelT>::PixelRGB( PixelLuv<OtherT> const& luv ) {
+    // Luv->XYZ->RGB
+    PixelXYZ<ChannelT> xyz(luv);
+    PixelRGB<ChannelT> rgb(xyz);
+    m_ch[0] = rgb.m_ch[0];
+    m_ch[1] = rgb.m_ch[1];
+    m_ch[2] = rgb.m_ch[2];
+  }
+
+  /// RGB->Luv conversion
+  template <class ChannelT>
+  template <class OtherT>
+  PixelLuv<ChannelT>::PixelLuv( PixelRGB<OtherT> const& rgb ) {
+    // RGB->XYZ->Luv
+    PixelXYZ<ChannelT> xyz(rgb);
+    PixelLuv<ChannelT> luv(xyz);
+    m_ch[0] = luv.m_ch[0];
+    m_ch[1] = luv.m_ch[1];
+    m_ch[2] = luv.m_ch[2];
+  }
 
   // *******************************************************************
   // The Vector mathematical vector pixel type.
