@@ -27,9 +27,9 @@
 # the package.  Make sure to run this on a computer with an UP-TO-DATE 
 # version of autotools if you're going to make a public release!
 
-if test -x `which libtoolize` 2> /dev/null ; then
+if test `which libtoolize` 2> /dev/null ; then
     libtoolize --force > /dev/null
-elif test -x `which glibtoolize` 2> /dev/null ; then
+elif test `which glibtoolize` 2> /dev/null ; then
     glibtoolize --force > /dev/null
 else
     echo "Error: libtoolize not found!  Do you have autotools installed?"
@@ -38,5 +38,5 @@ fi
 
 aclocal
 autoheader
-automake -a
+automake -a -Wno-portability
 autoconf

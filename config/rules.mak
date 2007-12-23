@@ -27,9 +27,9 @@
 
 SUFFIXES = .cxx
 
-CXXTEST_DIR :=   $(top_srcdir)/thirdparty/cxxtest
-CXXTEST_GEN :=   $(CXXTEST_DIR)/cxxtestgen.pl
-CXXTEST_ARGS :=  --error-printer
+CXXTEST_DIR =   $(top_srcdir)/thirdparty/cxxtest
+CXXTEST_GEN =   $(CXXTEST_DIR)/cxxtestgen.pl
+CXXTEST_ARGS =  --error-printer
 
 %.cxx: %.h 
 	$(CXXTEST_GEN) $(CXXTEST_ARGS) -o $@ $<
