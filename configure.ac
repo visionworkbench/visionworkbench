@@ -296,9 +296,9 @@ AX_MODULE(CARTOGRAPHY, [src/vw/Cartography], [libvwCartography.la], yes, [VW], [
 AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], yes, [VW], [CAMERA LAPACK])
 AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], yes, [VW], [])
 if test $host_vendor = apple; then
-  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], yes, [VW], [GL], [CG])
+  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW], [GL], [CG])
 else 
-  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], yes, [VW], [GL GLEW], [CG])
+  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW], [GL GLEW], [CG])
 fi
 AX_MODULE(GEOMETRY, [src/vw/Geometry], [libvwGeometry.la], yes, [VW], [], [GMP PPL APRON QHULL])
 
