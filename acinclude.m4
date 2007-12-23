@@ -714,7 +714,7 @@ AC_DEFUN([AX_MODULE],
     AC_ARG_ENABLE([module-]translit($1,`A-Z',`a-z'),
       AC_HELP_STRING([--enable-module-]translit($1,`A-Z',`a-z'), [enable the $1 module @<:@$4@:>@]), 
       [ ENABLE_MODULE_$1=$enableval ],
-      [ if test x$ENABLE_MODULE_$1 = x; then ENABLE_MODULE_$1=`echo -n $4 | tr [A-Z] [a-z]` ; fi ]
+      [ if test x"$ENABLE_MODULE_$1" = x; then ENABLE_MODULE_$1=`/bin/echo -n $4 | tr [A-Z] [a-z]` ; fi ]
     )
 
     AC_MSG_CHECKING([whether to build module $1])
@@ -730,7 +730,7 @@ AC_DEFUN([AX_MODULE],
     if test "$ax_module_enable" = "yes" ; then
       for ax_dependency in $5 ; do
         ax_dependency_have="HAVE_PKG_${ax_dependency}"
-        if test x${!ax_dependency_have} != "xyes"; then
+        if test x"${!ax_dependency_have}" != "xyes"; then
           AC_MSG_RESULT([no])
           AC_MSG_NOTICE([warning: unable to build requested module $1 (needs ${ax_dependency})!])
           ax_module_enable=no;
@@ -743,7 +743,7 @@ AC_DEFUN([AX_MODULE],
     if test "$ax_module_enable" = "yes" ; then
       for ax_dependency in $6 ; do
         ax_dependency_have="HAVE_PKG_${ax_dependency}"
-        if test x${!ax_dependency_have} = "xyes"; then
+        if test x"${!ax_dependency_have}" = "xyes"; then
           ax_dep_libs="PKG_${ax_dependency}_LIBS"
           ax_libs="${ax_libs} ${!ax_dep_libs}"
         else
@@ -759,7 +759,7 @@ AC_DEFUN([AX_MODULE],
       # Check for optional dependencies
       for ax_dependency in $7 ; do
         ax_dependency_have="HAVE_PKG_${ax_dependency}"
-        if test x${!ax_dependency_have} = "xyes"; then
+        if test x"${!ax_dependency_have}" = "xyes"; then
           ax_dep_libs="PKG_${ax_dependency}_LIBS"
           ax_libs="${ax_libs} ${!ax_dep_libs}"
         fi
