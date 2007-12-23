@@ -41,8 +41,7 @@ namespace vw {
 namespace cartography {
 
   void read_gdal_georeference( GeoReference& georef, DiskImageResourceGDAL const& resource ) {
-    GDALDataset* dataset = static_cast<GDALDataset*>(resource.dataset());
-    
+    GDALDataset *dataset = static_cast<GDALDataset*>(resource.get_read_dataset_ptr());    
     if (!dataset) 
       vw_throw( LogicErr() << "read_gdal_georeference: Could not read georeference. No file has been opened." );
     
@@ -156,8 +155,8 @@ namespace cartography {
 
   
   void write_gdal_georeference( DiskImageResourceGDAL& resource, GeoReference const& georef ) {
-    GDALDataset* dataset = (GDALDataset*)(resource.dataset());
-    
+
+    GDALDataset *dataset = static_cast<GDALDataset*>(resource.get_write_dataset_ptr());
     if (!dataset) 
       vw_throw( LogicErr() << "GeoReferenceHelperGDAL: Could not write georeference. No file has been opened." );
 
