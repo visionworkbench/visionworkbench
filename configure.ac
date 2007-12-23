@@ -285,7 +285,7 @@ AX_MODULE(MATH, [src/vw/Math], [libvwMath.la], yes, [CORE], [], [LAPACK])
 AX_MODULE(IMAGE, [src/vw/Image], [libvwImage.la], yes, [MATH])
 AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [], [Z PNG JPEG TIFF OPENEXR HDF GDAL])
 AX_MODULE(VW, [src/vw], [libvw.la], yes, [], [CORE MATH IMAGE], [FILEIO])
-if test ${MAKE_MODULE_VW} != "yes"; then
+if test "${MAKE_MODULE_VW}" != "yes"; then
   AC_MSG_ERROR([cannot build the Vision Workbench core modules!])
 fi
 

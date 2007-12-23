@@ -218,7 +218,7 @@ AC_DEFUN([AX_PKG],
     fi
 
   fi
-  if test ${HAVE_PKG_$1} = "yes" ; then
+  if test "${HAVE_PKG_$1}" = "yes" ; then
     ax_have_pkg_bool=1
   else
     ax_have_pkg_bool=0
@@ -297,7 +297,7 @@ AC_DEFUN([AX_PKG_BOOST],
     done
   fi
 
-  if test ${HAVE_PKG_BOOST} = "yes" ; then
+  if test "${HAVE_PKG_BOOST}" = "yes" ; then
     ax_pkg_old_vw_cppflags=$VW_CPPFLAGS
     ax_pkg_old_vw_ldflags=$VW_LDFLAGS
     ax_pkg_old_cppflags=$CPPFLAGS
@@ -347,7 +347,7 @@ AC_DEFUN([AX_PKG_BOOST],
   CPPFLAGS="$ax_pkg_old_cppflags"
   LDFLAGS="$ax_pkg_old_ldflags"
 
-  if test ${HAVE_PKG_BOOST} = "yes" ; then
+  if test "${HAVE_PKG_BOOST}" = "yes" ; then
     ax_have_pkg_bool=1
   else
     ax_have_pkg_bool=0
@@ -393,7 +393,7 @@ AC_DEFUN([AX_PKG_LAPACK],
     if test "$ENABLE_VERBOSE" = "yes"; then
       AC_MSG_RESULT([found])
     fi
-    if test ${HAVE_PKG_LAPACK} = "yes" ; then
+    if test "${HAVE_PKG_LAPACK}" = "yes" ; then
       ax_have_pkg_bool=1
     else
       ax_have_pkg_bool=0
@@ -469,7 +469,7 @@ AC_DEFUN([AX_PKG_GL],
     if test "$ENABLE_VERBOSE" = "yes"; then
       AC_MSG_RESULT([found])
     fi
-    if test ${HAVE_PKG_GL} = "yes" ; then
+    if test "${HAVE_PKG_GL}" = "yes" ; then
       ax_have_pkg_bool=1
     else
       ax_have_pkg_bool=0
@@ -595,7 +595,7 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
   LDFLAGS="$ax_pkg_old_ldflags"
   LIBS="$ax_pkg_old_libs"
 
-  if test ${HAVE_PKG_BOOST_$1} = "yes" ; then
+  if test "${HAVE_PKG_BOOST_$1}" = "yes" ; then
     ax_have_pkg_bool=1
   else
     ax_have_pkg_bool=0
@@ -680,7 +680,7 @@ AC_DEFUN([AX_PKG_PTHREADS],
     PKG_PTHREADS_LIBS="$PKG_PTHREADS_LDFLAGS"
   fi
 
-  if test ${HAVE_PKG_PTHREADS} = "yes" ; then
+  if test "${HAVE_PKG_PTHREADS}" = "yes" ; then
     ax_have_pkg_bool=1
   else
     ax_have_pkg_bool=0
@@ -720,14 +720,14 @@ AC_DEFUN([AX_MODULE],
     AC_MSG_CHECKING([whether to build module $1])
     ax_module_enable=$ENABLE_MODULE_$1
 
-    if test $ax_module_enable != "yes" ; then
+    if test "$ax_module_enable" != "yes" ; then
       AC_MSG_RESULT([no (disabled)])
     fi
 
     ax_libs=""
 
     # Check for prerequisites
-    if test $ax_module_enable = "yes" ; then
+    if test "$ax_module_enable" = "yes" ; then
       for ax_dependency in $5 ; do
         ax_dependency_have="HAVE_PKG_${ax_dependency}"
         if test x${!ax_dependency_have} != "xyes"; then
@@ -740,7 +740,7 @@ AC_DEFUN([AX_MODULE],
     fi
 
     # Check for required dependencies
-    if test $ax_module_enable = "yes" ; then
+    if test "$ax_module_enable" = "yes" ; then
       for ax_dependency in $6 ; do
         ax_dependency_have="HAVE_PKG_${ax_dependency}"
         if test x${!ax_dependency_have} = "xyes"; then
@@ -755,7 +755,7 @@ AC_DEFUN([AX_MODULE],
       done
     fi
 
-    if test $ax_module_enable = "yes" ; then
+    if test "$ax_module_enable" = "yes" ; then
       # Check for optional dependencies
       for ax_dependency in $7 ; do
         ax_dependency_have="HAVE_PKG_${ax_dependency}"
@@ -785,7 +785,7 @@ AC_DEFUN([AX_MODULE],
   MAKE_MODULE_$1=${ax_module_enable}
   AC_SUBST(MAKE_MODULE_$1)
 
-  if test ${HAVE_PKG_$1} = "yes" ; then
+  if test "${HAVE_PKG_$1}" = "yes" ; then
     ax_have_pkg_bool=1
   else
     ax_have_pkg_bool=0
