@@ -68,67 +68,26 @@
 
 namespace vw {
 
-  // A thread class, that runs a "Task", which is an object or
-  // function that has the operator() defined.  When the Thread object
-  // is destroyed it will join the child thread if it has not already
-  // terminated.
-  class Thread {
+  // --------------------------------------------------------------
+  //                            RUNONCE
+  // --------------------------------------------------------------  
 
-    boost::thread m_thread;
+#define VW_RUNONCE_INIT { BOOST_ONCE_INIT }
 
-    // Ensure non-copyable semantics
-    Thread( Thread const& );
-    Thread& operator=( Thread const& );
+  // A special POD class to enable safe library initialization.  You 
+  // should only define these objects at global or namespace scope, 
+  // and statically initialize them to VW_RUNONCE_INIT.
+  struct RunOnce {
+    boost::once_flag m_flag;
 
-    // For some reason, the boost thread library makes a copy of the
-    // Task object before handing it off to the thread.  This is
-    // annoying, because it means that the parent thread no longer has
-    // direct acess to the child thread's instance of the task object.
-    // This helper allows the parent thread to retain direct access to
-    // the child instance of the task.
-    template <class TaskT>
-    class TaskHelper {
-      boost::shared_ptr<TaskT> m_task;
-    public:
-      TaskHelper(boost::shared_ptr<TaskT> task) : m_task(task) {}
-      void operator() () { (*m_task)(); }
-    };
-
-  public:
-
-    // This variant of the constructor takes a Task that is copy
-    // constructable.  The thread mades a copy of the task, and this
-    // instance is no longer directly accessibly from the parent
-    // thread.
-    template<class TaskT>
-    inline Thread( TaskT task ) : m_thread( task ) {}
-
-    // This variant of the constructor takes a shared point to a task.
-    // The thread mades a copy of the shared pointer task, allowing
-    // the parent to still access the task instance that is running in
-    // the thread.
-    template<class TaskT>
-    inline Thread( boost::shared_ptr<TaskT> task ) : m_thread( TaskHelper<TaskT>(task) ) {}
-
-    inline ~Thread() { m_thread.join(); }
-
-    inline void join() { m_thread.join(); }
-    static inline void yield() { boost::thread::yield(); }
-    static inline void sleep_ms( unsigned long milliseconds ) {
-      boost::xtime xt;
-      boost::xtime_get(&xt, boost::TIME_UTC);
-      while (milliseconds >= 1000) {
-        xt.sec++;
-        milliseconds -= 1000;
-      }
-      xt.nsec+=int_fast32_t(1e6*milliseconds);
-      boost::thread::sleep(xt);
+    inline void run( void (*func)() ) {
+      boost::call_once( func, m_flag );
     }
-
-    static int default_num_threads();
-    static void set_default_num_threads(int);
   };
 
+  // --------------------------------------------------------------
+  //                            MUTEX 
+  // --------------------------------------------------------------  
 
   // A simple mutual exclusion class.
   class Mutex : private boost::mutex {
@@ -159,6 +118,10 @@ namespace vw {
       inline Lock( Mutex &mutex ) : boost::mutex::scoped_lock( mutex ) {}
     };
   };
+
+  // --------------------------------------------------------------
+  //                            CONDITION
+  // --------------------------------------------------------------  
 
   class Condition : private boost::condition
   {
@@ -214,18 +177,78 @@ namespace vw {
     }
   };
 
-  // A special POD class to enable safe library initialization.  You 
-  // should only define these objects at global or namespace scope, 
-  // and statically initialize them to VW_RUNONCE_INIT.
-  struct RunOnce {
-    boost::once_flag m_flag;
+  // --------------------------------------------------------------
+  //                            THREAD
+  // --------------------------------------------------------------  
 
-    inline void run( void (*func)() ) {
-      boost::call_once( func, m_flag );
+  // A thread class, that runs a "Task", which is an object or
+  // function that has the operator() defined.  When the Thread object
+  // is destroyed it will join the child thread if it has not already
+  // terminated.
+  class Thread {
+
+    boost::thread m_thread;
+
+    // Ensure non-copyable semantics
+    Thread( Thread const& );
+    Thread& operator=( Thread const& );
+
+    // For some reason, the boost thread library makes a copy of the
+    // Task object before handing it off to the thread.  This is
+    // annoying, because it means that the parent thread no longer has
+    // direct acess to the child thread's instance of the task object.
+    // This helper allows the parent thread to retain direct access to
+    // the child instance of the task.
+    template <class TaskT>
+    class TaskHelper {
+      boost::shared_ptr<TaskT> m_task;
+    public:
+      TaskHelper(boost::shared_ptr<TaskT> task) : m_task(task) {}
+      void operator() () { (*m_task)(); }
+    };
+
+  public:
+
+    // This variant of the constructor takes a Task that is copy
+    // constructable.  The thread mades a copy of the task, and this
+    // instance is no longer directly accessibly from the parent
+    // thread.
+    template<class TaskT>
+    inline Thread( TaskT task ) : m_thread( task ) {}
+
+    // This variant of the constructor takes a shared point to a task.
+    // The thread mades a copy of the shared pointer task, allowing
+    // the parent to still access the task instance that is running in
+    // the thread.
+    template<class TaskT>
+    inline Thread( boost::shared_ptr<TaskT> task ) : m_thread( TaskHelper<TaskT>(task) ) {}
+
+    inline ~Thread() { m_thread.join(); }
+
+    inline void join() { m_thread.join(); }
+    
+    /// Returns a unique ID for this thread.  The ID for a thread is
+    /// not determined until the thread calls the id() function for
+    /// the first time, so there is no gurantee that IDs will be
+    /// assigned in the same order that threads are created.
+    static int id();
+
+    static inline void yield() { boost::thread::yield(); }
+    static inline void sleep_ms( unsigned long milliseconds ) {
+      boost::xtime xt;
+      boost::xtime_get(&xt, boost::TIME_UTC);
+      while (milliseconds >= 1000) {
+        xt.sec++;
+        milliseconds -= 1000;
+      }
+      xt.nsec+=int_fast32_t(1e6*milliseconds);
+      boost::thread::sleep(xt);
     }
+
+    static int default_num_threads();
+    static void set_default_num_threads(int);
   };
 
-#define VW_RUNONCE_INIT { BOOST_ONCE_INIT }
 
 } // namespace vw
 
