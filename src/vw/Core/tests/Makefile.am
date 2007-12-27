@@ -27,7 +27,7 @@
 
 if MAKE_MODULE_CORE
 
-TESTS = TestCompoundTypes TestFunctors TestExceptions TestThread TestThreadPool TestCache
+TESTS = TestCompoundTypes TestFunctors TestExceptions TestThread TestThreadPool TestCache TestLog
 
 nodist_TestCompoundTypes_SOURCES = TestCompoundTypes.cxx
 nodist_TestFunctors_SOURCES = TestFunctors.cxx
@@ -35,6 +35,7 @@ nodist_TestExceptions_SOURCES = TestExceptions.cxx
 nodist_TestCache_SOURCES = TestCache.cxx
 nodist_TestThread_SOURCES = TestThread.cxx
 nodist_TestThreadPool_SOURCES = TestThreadPool.cxx
+nodist_TestLog_SOURCES = TestLog.cxx
 
 endif
 

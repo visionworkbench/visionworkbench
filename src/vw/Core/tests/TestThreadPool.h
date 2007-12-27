@@ -99,7 +99,6 @@ public:
     queue.join_all();
   }
 
-
   void test_threadpool_with_limited_threads()
   {
     boost::shared_ptr<TestTask> task1 (new TestTask);

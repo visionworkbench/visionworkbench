@@ -64,7 +64,8 @@ namespace vw {
     WarningMessage = 10,
     InfoMessage = 20,
     DebugMessage = 30,
-    VerboseDebugMessage = 40
+    VerboseDebugMessage = 40,
+    EveryMessage = 100
   };
 
   std::ostream& vw_out( int level );
