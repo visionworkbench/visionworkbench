@@ -57,6 +57,21 @@ class TestLog : public CxxTest::TestSuite
 
 
 public:
+
+  void test_utility_ostreams() {
+    
+    vw::null_ostream null_strm;
+    vw::multi_ostream multi_strm;
+
+    multi_strm.add(std::cout);
+    multi_strm.add(std::cout);
+    multi_strm.add(null_strm);
+
+    std::cout << "\nTesting utility ostreams.\n";
+    null_strm << "\tYou should not see this message.\n";
+    multi_strm << "\tYou should see this message twice.\n";
+  }
+
   void test_basic_logging() {
     std::cout << "\n";
 
@@ -88,6 +103,17 @@ public:
     thread2.join();
     thread3.join();
     log(0, "log test") << "Log test complete.\n";
+  }
+
+  void test_system_log() {
+    std::cout << "\nTesting System Log\n";
+
+    vw_out(0) << "\tTesting system log (first call)\n";
+    vw_out(0,"test") << "\tTesting system log (second call)\n";
+    system_log().add(std::cout);
+    SystemLog::system_log()(0,"test") << "\tYou should see this message twice; once with the logging prefix and once without.\n";
+    system_log().clear();
+    SystemLog::system_log()(0,"test") << "\tYou should see this message once.\n";
   }
 
 };

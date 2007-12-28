@@ -33,35 +33,6 @@
 #include <Windows.h>
 #endif
 
-namespace {
-  // A null output stream buffer that silently ignores any data.
-  class NullStreamBuf : public ::std::basic_streambuf<char> {
-    virtual NullStreamBuf::int_type overflow( NullStreamBuf::int_type c ) {
-      return NullStreamBuf::traits_type::not_eof( c );
-    }
-  };
-
-  static NullStreamBuf g_the_nullbuf;
-  static std::ostream g_the_nullstream( &g_the_nullbuf );
-  static std::ostream g_the_ostream( std::clog.rdbuf() );
-  static int g_the_level = vw::InfoMessage;
-}
-
-std::ostream& vw::vw_out( int level ) {
-  if( level > g_the_level ) return g_the_nullstream;
-  else return g_the_ostream;
-}
-
-void vw::set_debug_level( int level ) {
-  g_the_level = level;
-}
-
-void vw::set_output_stream( std::ostream& stream ) {
-  g_the_ostream.rdbuf( stream.rdbuf() );
-}
-
-
-
 vw::Timer::Timer( std::string const& desc, MessageLevel level )
   : m_desc(desc), m_level(level) {
 #ifdef WIN32

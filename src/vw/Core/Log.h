@@ -57,6 +57,19 @@
 #include <fstream>
 
 namespace vw {
+
+  // ----------------------------------------------------------------
+  // Debugging output types and functions
+  // ----------------------------------------------------------------
+
+  enum MessageLevel {
+    ErrorMessage = 0,
+    WarningMessage = 10,
+    InfoMessage = 20,
+    DebugMessage = 30,
+    VerboseDebugMessage = 40,
+    EveryMessage = 100
+  };
   
   // ----------------------------------------------------------------
   //                     Utility Streams
@@ -65,97 +78,92 @@ namespace vw {
   // These classes provide a basic NULL ostream and an ostream that
   // can take data and re-stream it to multiple sub-streams.
 
-  template<typename CharT, typename traits = std::char_traits<CharT> >
-  class NullOutputBuf : public std::basic_streambuf<CharT, traits> {
-    typedef typename std::basic_streambuf<CharT, traits>::int_type int_type;
-  protected:
-    virtual int_type overflow(int_type c) { return traits::not_eof(c); }
-  };
-
-  template<typename CharT, typename traits>
-  class NullOutputStreamInit {
-    NullOutputBuf<CharT, traits> m_buf;
-
-  public:
-    NullOutputBuf<CharT, traits>* buf() {
-      return &m_buf;
-    }
-  };
-
-  // Null Output Stream
-  template<typename CharT, typename traits = std::char_traits<CharT> >
-  class NullOutputStream : private virtual NullOutputStreamInit<CharT, traits>,
-                           public std::basic_ostream<CharT, traits> {
-  public:
-    NullOutputStream() : NullOutputStreamInit<CharT, traits>(),
-                         std::basic_ostream<CharT,traits>(NullOutputStreamInit<CharT, traits>::buf()) {}
-  };
-
-  template<typename CharT, typename traits = std::char_traits<CharT> >
-  class MultiOutputBuf : public std::basic_streambuf<CharT, traits> {
-    typedef typename std::basic_streambuf<CharT, traits>::int_type int_type;
-    typedef std::vector<std::basic_ostream<CharT, traits>* > stream_container;
-    typedef typename stream_container::iterator stream_iterator;
-    stream_container m_streams;
-
-  protected:
-    virtual std::streamsize xsputn(const CharT* sequence, std::streamsize num) {
-      stream_iterator current = m_streams.begin();
-      stream_iterator end = m_streams.end();
-      for(; current != end; ++current) 
-        (*current)->write(sequence, num);
-      return num;
-    }
-
-    virtual int_type overflow(int_type c) {
-      stream_iterator current = m_streams.begin();
-      stream_iterator end = m_streams.end();
-      
-      for(; current != end; ++current) 
-        (*current)->put(c);
-      return c;
-    }
-
-  public:
-    void add(std::basic_ostream<CharT, traits>& stream) { m_streams.push_back(&stream); }
-    void remove(std::basic_ostream<CharT, traits>& stream) {
-      stream_iterator pos = std::find(m_streams.begin(),m_streams.end(), &stream);
-      if(pos != m_streams.end()) 
-        m_streams.erase(pos);
-    }
-  };
-
-  template<typename CharT, typename traits>
-  class MultiOutputStreamInit {
-    MultiOutputBuf<CharT, traits> m_buf;
-
-  public:
-    MultiOutputBuf<CharT, traits>* buf() { return &m_buf; }
-  };
-
-  template<typename CharT, typename traits = std::char_traits<CharT> >
-  class MultiOutputStream : private MultiOutputStreamInit<CharT, traits>, 
-                            public std::basic_ostream<CharT, traits> {
-  public:
-    MultiOutputStream() : MultiOutputStreamInit<CharT, traits>(), 
-                          std::basic_ostream<CharT, traits>(MultiOutputStreamInit<CharT, traits>::buf()) {}
-    bool add(std::basic_ostream<CharT, traits>& str) {
-      return MultiOutputStreamInit<CharT, traits>::buf()->add(str);
-    }
+  namespace {
+    // Null Output Stream
+    template<typename CharT, typename traits = std::char_traits<CharT> >
+    class NullOutputBuf : public std::basic_streambuf<CharT, traits> {
+      typedef typename std::basic_streambuf<CharT, traits>::int_type int_type;
+      virtual int_type overflow(int_type c) { return traits::not_eof(c); }
+    };
     
-    bool remove(std::basic_ostream<CharT, traits>& str) {
-      return MultiOutputStreamInit<CharT, traits>::buf()->remove(str);
-    }
-  };
+    template<typename CharT, typename traits>
+    class NullOutputStreamInit {
+      NullOutputBuf<CharT, traits> m_buf;      
+    public:
+      NullOutputBuf<CharT, traits>* buf() { return &m_buf; }
+    };
 
-  // Some handy typedefs
-  //
-  // These are made to be lower case names to jive with the C++ std
-  // library naming convertion for streams (i.e. std::cin, std::cout,
-  // etc.)
-  typedef NullOutputStream<char> null_ostream;
-  typedef MultiOutputStream<char> multi_ostream;
-  
+    template<typename CharT, typename traits = std::char_traits<CharT> >
+    class NullOutputStream : private virtual NullOutputStreamInit<CharT, traits>,
+                             public std::basic_ostream<CharT, traits> {
+    public:
+      NullOutputStream() : NullOutputStreamInit<CharT, traits>(),
+                           std::basic_ostream<CharT,traits>(NullOutputStreamInit<CharT, traits>::buf()) {}
+    };
+
+    // Multi output stream
+    template<typename CharT, typename traits = std::char_traits<CharT> >
+    class MultiOutputBuf : public std::basic_streambuf<CharT, traits> {
+      typedef typename std::basic_streambuf<CharT, traits>::int_type int_type;
+      typedef std::vector<std::basic_ostream<CharT, traits>* > stream_container;
+      typedef typename stream_container::iterator stream_iterator;
+      stream_container m_streams;
+      
+    protected:
+      virtual std::streamsize xsputn(const CharT* sequence, std::streamsize num) {
+        stream_iterator current = m_streams.begin();
+        stream_iterator end = m_streams.end();
+        for(; current != end; ++current) 
+          (*current)->write(sequence, num);
+        return num;
+      }
+      
+      virtual int_type overflow(int_type c) {
+        stream_iterator current = m_streams.begin();
+        stream_iterator end = m_streams.end();
+        
+        for(; current != end; ++current) 
+          (*current)->put(c);
+        return c;
+      }
+
+    public:
+      void add(std::basic_ostream<CharT, traits>& stream) { m_streams.push_back(&stream); }
+      void remove(std::basic_ostream<CharT, traits>& stream) {
+        stream_iterator pos = std::find(m_streams.begin(),m_streams.end(), &stream);
+        if(pos != m_streams.end()) 
+          m_streams.erase(pos);
+      }
+      void clear() { m_streams.clear(); }
+    };
+
+    template<typename CharT, typename traits>
+    class MultiOutputStreamInit {
+      MultiOutputBuf<CharT, traits> m_buf;
+    public:
+      MultiOutputBuf<CharT, traits>* buf() { return &m_buf; }
+    };
+
+    template<typename CharT, typename traits = std::char_traits<CharT> >
+    class MultiOutputStream : private MultiOutputStreamInit<CharT, traits>, 
+                              public std::basic_ostream<CharT, traits> {
+    public:
+      MultiOutputStream() : MultiOutputStreamInit<CharT, traits>(), 
+                            std::basic_ostream<CharT, traits>(MultiOutputStreamInit<CharT, traits>::buf()) {}
+      void add(std::basic_ostream<CharT, traits>& str) { MultiOutputStreamInit<CharT, traits>::buf()->add(str); }
+      void remove(std::basic_ostream<CharT, traits>& str) { MultiOutputStreamInit<CharT, traits>::buf()->remove(str); }
+      void clear() { MultiOutputStreamInit<CharT, traits>::buf()->clear(); }
+    };
+    
+    // Some handy typedefs
+    //
+    // These are made to be lower case names to jive with the C++ std
+    // library naming convertion for streams (i.e. std::cin, std::cout,
+    // etc.)
+    typedef NullOutputStream<char> null_ostream;
+    typedef MultiOutputStream<char> multi_ostream;
+  }
+
   // In order to create our own C++ streams compatible ostream object,
   // we must first define a subclass of basic_streambuf<>, which
   // handles stream output on a character by character basis.  This is
@@ -202,7 +210,7 @@ namespace vw {
       // This is a bit of a hack that forces a sync whenever the
       // character string *ends* with a newline, thereby flushing the
       // buffer and printing a line to the log file.
-      if ( *(s+num-1) == '\n' )
+      if ( *(s+num-1) == '\n' || *(s+num-1) == '\r' )
         sync();
 
       return num;
@@ -267,13 +275,56 @@ namespace vw {
     }
   };
 
+  class LogRuleSet {
+    // The ruleset determines what log messages are sent to the VW system log file
+    typedef std::pair<int, std::string> rule_type;
+    typedef std::list<rule_type> rules_type;
+    rules_type m_rules;
 
+  public:
+    
+    // By default, the LogRuleSet is set up to pass "console" messages
+    // at level vw::InfoMessage or higher.
+    LogRuleSet() {
+      m_rules.push_back(rule_type(vw::InfoMessage, "console"));      
+    }
+
+    void add_rule(std::string log_namespace, int log_level) {
+      m_rules.push_back(rule_type(log_level, boost::to_lower_copy(log_namespace)));
+    }
+        
+    // You can overload this method froma subclass to change the
+    // behavior of the LogRuleSet.
+    virtual bool operator() (std::string log_namespace, int log_level) {
+      for (rules_type::iterator it = m_rules.begin(); it != m_rules.end(); ++it) {
+        
+        std::string ns = boost::to_lower_copy((*it).second);
+        // Pass through rule for complete wildcard
+        if ( vw::EveryMessage == (*it).first && ns == "any" )
+          return true;
+        
+        // Pass through if the level matches and the namespace is a wildcard
+        if ( log_level <= (*it).first && ns == "any" )
+          return true;
+
+        // Pass through if the level and namepace match
+        if ( log_level <= (*it).first && ns == log_namespace )
+           return true;
+      }
+
+      // We reach this line if all of the rules have failed, in
+      // which case we return a NULL stream, which will result in
+      // nothing being logged.
+      return false;
+    }
+  };
 
   class Log {
     std::ostream *m_log_ostream_ptr;
     LogStream<char> m_log_stream;
     bool m_prepend_infostamp;
-    
+    LogRuleSet m_rule_set;
+
     // Ensure non-copyable semantics
     Log( Log const& );
     Log& operator=( Log const& );
@@ -309,50 +360,9 @@ namespace vw {
       else 
         return m_log_stream;
     }
+
+    LogRuleSet& rule_set() { return m_rule_set; }
   };
-
-  class LogRuleSet {
-    // The ruleset determines what log messages are sent to the VW system log file
-    typedef std::pair<int, std::string> rule_type;
-    typedef std::list<rule_type> rules_type;
-    rules_type m_rules;
-
-  public:
-    
-    // By default, the LogRuleSet is set up to pass "console" messages
-    // at level vw::InfoMessage or higher.
-    LogRuleSet() {
-      m_rules.push_back(rule_type(vw::InfoMessage, "console"));      
-    }
-
-    void add_rule(std::string log_namespace, int log_level) {
-      m_rules.push_back(rule_type(log_level, boost::to_lower_copy(log_namespace)));
-    }
-        
-    bool operator() (std::string log_namespace, int log_level) {
-      for (rules_type::iterator it = m_rules.begin(); it != m_rules.end(); ++it) {
-        
-        std::string ns = boost::to_lower_copy((*it).second);
-        // Pass through rule for complete wildcard
-        if ( vw::EveryMessage == (*it).first && ns == "any" )
-          return true;
-        
-        // Pass through if the level matches and the namespace is a wildcard
-        if ( log_level <= (*it).first && ns == "any" )
-          return true;
-
-        // Pass through if the level and namepace match
-        if ( log_level <= (*it).first && ns == log_namespace )
-           return true;
-      }
-
-      // We reach this line if all of the rules have failed, in
-      // which case we return a NULL stream, which will result in
-      // nothing being logged.
-      return false;
-    }
-  };
-
 
   class SystemLog {
 
@@ -365,8 +375,14 @@ namespace vw {
     Mutex m_logconf_time_mutex;
     Mutex m_logconf_file_mutex;
     
-    LogRuleSet m_file_log_ruleset;
+    std::vector<boost::shared_ptr<Log> > m_logs;
+    boost::shared_ptr<Log> m_console_log;
 
+    // The multi_ostream creates a single stream that delegates to
+    // its child streams.      
+    multi_ostream m_multi_ostream;
+
+    // Private methods for checking the logconf file
     void stat_logconf();
     void reload_logconf_rules();
 
@@ -379,21 +395,51 @@ namespace vw {
     SystemLog() : m_logconf_last_polltime(0),
                   m_logconf_last_modification(0),
                   m_logconf_filename("/tmp/.vw_logconf"),
-                  m_logconf_poll_period(5.0) {}
+                  m_logconf_poll_period(5.0),
+                  m_console_log(new Log(std::cout, false)) {}
 
-    std::ostream& operator() (int level, std::string log_namespace="console") { 
-      stat_logconf();
-      return std::cout;
-    }
+    std::ostream& operator() (int level, std::string log_namespace="console");
 
     void set_logconf_filename(std::string filename) { m_logconf_filename = filename; }
     void set_logconf_poll_period(double period) { m_logconf_poll_period = period; }
+
+    /// Add a stream to the SystemLog manager.  You may optionally specify a
+    /// LogRuleSet.
+    void add(std::ostream &stream, LogRuleSet rule_set = LogRuleSet()) {
+      m_logs.push_back( boost::shared_ptr<Log>(new Log(stream)) );
+    }
+
+    // Add an already existing log to the system log manager.
+    void add(boost::shared_ptr<Log> log) {
+      m_logs.push_back( log ) );
+    }
+
+    /// Reset the System Log; closing all of the currently open Log
+    /// streams.
+    void clear() { m_logs.clear(); }
     
+    void set_console_stream(std::ostream& stream, LogRuleSet rule_set = LogRuleSet()) {
+      m_console_log = boost::shared_ptr<Log>(new Log(stream) );
+      m_console_log->rule_set() = rule_set;
+    }
+
+    void set_console_rule_set(std::ostream& stream, LogRuleSet rule_set = LogRuleSet()) {
+      m_console_log->rule_set() = rule_set;
+    }
+
     // Static instance used for accessing a single instance of the
     // System log.
     static SystemLog& system_log();
-
   };
+
+
+  // Declaration of the standard VW I/O routine.
+  std::ostream& vw_out( int log_level, std::string log_namespace = "console" );
+  SystemLog& system_log();
+  void set_debug_level( int log_level );
+  void set_output_stream( std::ostream& stream );
+
+
 
 } // namespace vw
 

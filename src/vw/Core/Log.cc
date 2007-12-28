@@ -29,6 +29,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+// ---------------------------------------------------
+// Create a single instance of the SystemLog
+// ---------------------------------------------------
 namespace {
   vw::RunOnce system_log_once = VW_RUNONCE_INIT;
   boost::shared_ptr<vw::SystemLog> system_log_ptr;
@@ -36,6 +39,39 @@ namespace {
     system_log_ptr = boost::shared_ptr<vw::SystemLog>(new vw::SystemLog());
   }
 }
+
+// ---------------------------------------------------
+// Basic stream support
+// ---------------------------------------------------
+namespace {
+  static vw::null_ostream g_the_nullstream;
+  static int g_the_level = vw::InfoMessage;
+}
+
+std::ostream& vw::vw_out( int log_level, std::string log_namespace ) {
+  if (log_level > g_the_level) 
+    return g_the_nullstream;
+  else 
+    return vw::SystemLog::system_log()(log_level, log_namespace);
+}
+
+vw::SystemLog& vw::system_log() {
+  return vw::SystemLog::system_log();
+}
+
+void vw::set_debug_level( int log_level ) {
+  g_the_level = log_level;
+}
+
+void vw::set_output_stream( std::ostream& stream ) {
+  vw::SystemLog& log = vw::SystemLog::system_log();
+  log.set_console_stream(stream);
+}
+
+
+// ---------------------------------------------------
+// SystemLog Methods
+// ---------------------------------------------------
 
 vw::SystemLog& vw::SystemLog::system_log() {
   system_log_once.run( init_system_log );
@@ -56,7 +92,7 @@ void vw::SystemLog::reload_logconf_rules() {
         // failed
       }
       int log_level = atoi(split_vec[1].c_str());
-      m_file_log_ruleset.add_rule(split_vec[0], log_level);
+      //      m_file_log_ruleset.add_rule(split_vec[0], log_level);
     }
   }
 }
@@ -100,4 +136,22 @@ void vw::SystemLog::stat_logconf() {
     }
   }
 }
+
+std::ostream& vw::SystemLog::operator() (int level, std::string log_namespace) { 
+  // First, check to see if the logconf file has been updated.
+  // Reload the rulesets if it has.
+  stat_logconf();
+  
+  // Add the console log output...
+  m_multi_ostream.clear();
+  m_multi_ostream.add(m_console_log->operator()(level, log_namespace));
+  
+  // ... and the rest of the active log streams.
+  std::vector<boost::shared_ptr<Log> >::iterator iter = m_logs.begin();
+  for (;iter != m_logs.end(); ++iter) 
+    m_multi_ostream.add((*iter)->operator()(level,log_namespace));
+
+  return m_multi_ostream;
+}
+
 

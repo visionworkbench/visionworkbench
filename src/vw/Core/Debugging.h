@@ -28,6 +28,8 @@
 #ifndef __VW_CORE_DEBUGGING_H__
 #define __VW_CORE_DEBUGGING_H__
 
+#include <vw/Core/Log.h>
+
 #ifndef WIN32
 #include <sys/time.h>
 #endif
@@ -54,24 +56,6 @@ namespace vw {
 #else
 #define VW_DEBUG(x) x
 #endif
-
-  // *******************************************************************
-  // Debugging output types and functions
-  // *******************************************************************
-
-  enum MessageLevel {
-    ErrorMessage = 0,
-    WarningMessage = 10,
-    InfoMessage = 20,
-    DebugMessage = 30,
-    VerboseDebugMessage = 40,
-    EveryMessage = 100
-  };
-
-  std::ostream& vw_out( int level );
-  void set_debug_level( int level );
-  void set_output_stream( std::ostream& stream );
-
 
   // *******************************************************************
   // Timing types and functions

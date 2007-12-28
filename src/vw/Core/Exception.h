@@ -114,7 +114,6 @@
 #include <ostream>
 
 #include <vw/config.h>
-#include <vw/Core/Debugging.h>
 
 #if defined(VW_NO_EXCEPTIONS) && (VW_NO_EXCEPTIONS==1)
 #define VW_IF_EXCEPTIONS(x)
