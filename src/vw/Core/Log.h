@@ -43,13 +43,14 @@
 #include <vw/Core/Exception.h>
 
 // Boost Headers
-#include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/algorithm/string.hpp>
 
 // STD Headers
 #include <string>
 #include <list>
 #include <vector>
+#include <map>
+#include <iostream>
 
 // STD Headers for defininog our own ostream subclass
 #include <streambuf>
@@ -78,91 +79,91 @@ namespace vw {
   // These classes provide a basic NULL ostream and an ostream that
   // can take data and re-stream it to multiple sub-streams.
 
-  namespace {
-    // Null Output Stream
-    template<typename CharT, typename traits = std::char_traits<CharT> >
-    class NullOutputBuf : public std::basic_streambuf<CharT, traits> {
-      typedef typename std::basic_streambuf<CharT, traits>::int_type int_type;
-      virtual int_type overflow(int_type c) { return traits::not_eof(c); }
-    };
+  // Null Output Stream
+  template<typename CharT, typename traits = std::char_traits<CharT> >
+  class NullOutputBuf : public std::basic_streambuf<CharT, traits> {
+    typedef typename std::basic_streambuf<CharT, traits>::int_type int_type;
+    virtual int_type overflow(int_type c) { return traits::not_eof(c); }
+  };
+  
+  template<typename CharT, typename traits>
+  class NullOutputStreamInit {
+    NullOutputBuf<CharT, traits> m_buf;      
+  public:
+    NullOutputBuf<CharT, traits>* buf() { return &m_buf; }
+  };
+  
+  template<typename CharT, typename traits = std::char_traits<CharT> >
+  class NullOutputStream : private virtual NullOutputStreamInit<CharT, traits>,
+                           public std::basic_ostream<CharT, traits> {
+  public:
+    NullOutputStream() : NullOutputStreamInit<CharT, traits>(),
+                         std::basic_ostream<CharT,traits>(NullOutputStreamInit<CharT, traits>::buf()) {}
+  };
+  
+  // Multi output stream
+  template<typename CharT, typename traits = std::char_traits<CharT> >
+  class MultiOutputBuf : public std::basic_streambuf<CharT, traits> {
+    typedef typename std::basic_streambuf<CharT, traits>::int_type int_type;
+    typedef std::vector<std::basic_ostream<CharT, traits>* > stream_container;
+    typedef typename stream_container::iterator stream_iterator;
+    stream_container m_streams;
     
-    template<typename CharT, typename traits>
-    class NullOutputStreamInit {
-      NullOutputBuf<CharT, traits> m_buf;      
-    public:
-      NullOutputBuf<CharT, traits>* buf() { return &m_buf; }
-    };
-
-    template<typename CharT, typename traits = std::char_traits<CharT> >
-    class NullOutputStream : private virtual NullOutputStreamInit<CharT, traits>,
-                             public std::basic_ostream<CharT, traits> {
-    public:
-      NullOutputStream() : NullOutputStreamInit<CharT, traits>(),
-                           std::basic_ostream<CharT,traits>(NullOutputStreamInit<CharT, traits>::buf()) {}
-    };
-
-    // Multi output stream
-    template<typename CharT, typename traits = std::char_traits<CharT> >
-    class MultiOutputBuf : public std::basic_streambuf<CharT, traits> {
-      typedef typename std::basic_streambuf<CharT, traits>::int_type int_type;
-      typedef std::vector<std::basic_ostream<CharT, traits>* > stream_container;
-      typedef typename stream_container::iterator stream_iterator;
-      stream_container m_streams;
+  protected:
+    virtual std::streamsize xsputn(const CharT* sequence, std::streamsize num) {
+      stream_iterator current = m_streams.begin();
+      stream_iterator end = m_streams.end();
+      for(; current != end; ++current) 
+        (*current)->write(sequence, num);
+      return num;
+    }
+    
+    virtual int_type overflow(int_type c) {
+      stream_iterator current = m_streams.begin();
+      stream_iterator end = m_streams.end();
       
-    protected:
-      virtual std::streamsize xsputn(const CharT* sequence, std::streamsize num) {
-        stream_iterator current = m_streams.begin();
-        stream_iterator end = m_streams.end();
-        for(; current != end; ++current) 
-          (*current)->write(sequence, num);
-        return num;
+      for(; current != end; ++current) 
+        (*current)->put(c);
+      return c;
+    }
+    
+  public:
+    void add(std::basic_ostream<CharT, traits>& stream) { m_streams.push_back(&stream); }
+    void remove(std::basic_ostream<CharT, traits>& stream) {
+      stream_iterator pos = std::find(m_streams.begin(),m_streams.end(), &stream);
+      if(pos != m_streams.end()) 
+        m_streams.erase(pos);
       }
-      
-      virtual int_type overflow(int_type c) {
-        stream_iterator current = m_streams.begin();
-        stream_iterator end = m_streams.end();
-        
-        for(; current != end; ++current) 
-          (*current)->put(c);
-        return c;
-      }
+    void clear() { m_streams.clear(); }
+  };
+  
+  template<typename CharT, typename traits>
+  class MultiOutputStreamInit {
+    MultiOutputBuf<CharT, traits> m_buf;
+  public:
+    MultiOutputBuf<CharT, traits>* buf() { return &m_buf; }
+  };
 
-    public:
-      void add(std::basic_ostream<CharT, traits>& stream) { m_streams.push_back(&stream); }
-      void remove(std::basic_ostream<CharT, traits>& stream) {
-        stream_iterator pos = std::find(m_streams.begin(),m_streams.end(), &stream);
-        if(pos != m_streams.end()) 
-          m_streams.erase(pos);
-      }
-      void clear() { m_streams.clear(); }
-    };
-
-    template<typename CharT, typename traits>
-    class MultiOutputStreamInit {
-      MultiOutputBuf<CharT, traits> m_buf;
-    public:
-      MultiOutputBuf<CharT, traits>* buf() { return &m_buf; }
-    };
-
-    template<typename CharT, typename traits = std::char_traits<CharT> >
-    class MultiOutputStream : private MultiOutputStreamInit<CharT, traits>, 
-                              public std::basic_ostream<CharT, traits> {
-    public:
-      MultiOutputStream() : MultiOutputStreamInit<CharT, traits>(), 
+  template<typename CharT, typename traits = std::char_traits<CharT> >
+  class MultiOutputStream : private MultiOutputStreamInit<CharT, traits>, 
+                            public std::basic_ostream<CharT, traits> {
+  public:
+    MultiOutputStream() : MultiOutputStreamInit<CharT, traits>(), 
                             std::basic_ostream<CharT, traits>(MultiOutputStreamInit<CharT, traits>::buf()) {}
-      void add(std::basic_ostream<CharT, traits>& str) { MultiOutputStreamInit<CharT, traits>::buf()->add(str); }
-      void remove(std::basic_ostream<CharT, traits>& str) { MultiOutputStreamInit<CharT, traits>::buf()->remove(str); }
-      void clear() { MultiOutputStreamInit<CharT, traits>::buf()->clear(); }
-    };
+    void add(std::basic_ostream<CharT, traits>& str) { MultiOutputStreamInit<CharT, traits>::buf()->add(str); }
+    void remove(std::basic_ostream<CharT, traits>& str) { MultiOutputStreamInit<CharT, traits>::buf()->remove(str); }
+    void clear() { MultiOutputStreamInit<CharT, traits>::buf()->clear(); }
+  };
     
-    // Some handy typedefs
-    //
-    // These are made to be lower case names to jive with the C++ std
-    // library naming convertion for streams (i.e. std::cin, std::cout,
-    // etc.)
-    typedef NullOutputStream<char> null_ostream;
-    typedef MultiOutputStream<char> multi_ostream;
-  }
+  // Some handy typedefs
+  //
+  // These are made to be lower case names to jive with the C++ std
+  // library naming convertion for streams (i.e. std::cin, std::cout,
+  // etc.)
+  typedef NullOutputStream<char> null_ostream;
+  typedef MultiOutputStream<char> multi_ostream;
+
+  
 
   // In order to create our own C++ streams compatible ostream object,
   // we must first define a subclass of basic_streambuf<>, which
@@ -170,9 +171,8 @@ namespace vw {
   // not the most elegent block of code, but this seems to be the
   // "approved" method for defining custom behaviour in a subclass of
   // basic_ostream<>.
-  //
   template<class CharT, class traits = std::char_traits<CharT> >
-  class LogStreamBuf : public std::basic_streambuf<CharT, traits> {
+  class PerThreadBufferedStreamBuf : public std::basic_streambuf<CharT, traits> {
 
     typedef typename std::basic_streambuf<CharT, traits>::int_type int_type;
 
@@ -210,44 +210,46 @@ namespace vw {
       // This is a bit of a hack that forces a sync whenever the
       // character string *ends* with a newline, thereby flushing the
       // buffer and printing a line to the log file.
-      if ( *(s+num-1) == '\n' || *(s+num-1) == '\r' )
+      int last_char_position = m_buffers[ Thread::id() ].size()-1;
+      if ( m_buffers[ Thread::id() ][last_char_position] == '\n' || 
+           m_buffers[ Thread::id() ][last_char_position] == '\r' ) 
         sync();
-
       return num;
     }
 
     virtual int sync() {
       Mutex::Lock lock(m_mutex);
-      if(!m_buffers[ Thread::id() ].empty() && m_out) {
+      if(!m_buffers[ Thread::id() ].empty() && m_out ) {
         m_out->sputn(&m_buffers[ Thread::id() ][0], static_cast<std::streamsize>(m_buffers[ Thread::id() ].size()));
+        m_out->pubsync();
         m_buffers[ Thread::id() ].clear();
       }
       return 0;
     }
 
   public:
-    LogStreamBuf() : m_out(NULL), m_buffers() {}
-    ~LogStreamBuf() { sync(); }
+    PerThreadBufferedStreamBuf() : m_out(NULL), m_buffers() {}
+    ~PerThreadBufferedStreamBuf() { sync(); }
 
     void init(std::basic_streambuf<CharT,traits>* out) { m_out = out; }
   };
 
   // The order with which the base classes are initialized in
-  // LogStream is not fully defined unless we inherit from this as a
+  // PerThreadBufferedStream is not fully defined unless we inherit from this as a
   // pure virtual base class.  This gives us the extra wiggle room we
-  // need to connect two properly initialized LogStreamBuf and
-  // LogStream objects.
+  // need to connect two properly initialized PerThreadBufferedStreamBuf and
+  // PerThreadBufferedStream objects.
   template<class CharT, class traits = std::char_traits<CharT> >
-  class LogStreamBufInit {
-    LogStreamBuf<CharT, traits> m_buf;    
+  class PerThreadBufferedStreamBufInit {
+    PerThreadBufferedStreamBuf<CharT, traits> m_buf;    
   public:
-    LogStreamBuf<CharT, traits>* buf() { return &m_buf; }
+    PerThreadBufferedStreamBuf<CharT, traits>* buf() { return &m_buf; }
   };
 
   // Aside from some tricky initialization semantics, this subclass of
   // basic_ostream is actaully fairly simple.  It passes along
-  // characters to the LogStreamBuf, which does the actual interesting
-  // stuff.
+  // characters to the PerThreadBufferedStreamBuf, which does the
+  // actual interesting stuff.
   //
   // You can use the ctor or the set_stream method to pass in any C++
   // ostream (e.g. std::cout or a std::ofstream) to be the ultimate
@@ -255,23 +257,23 @@ namespace vw {
   // which acts as an intermediary, queuing characters on a per thread
   // basis and ensuring thread safety.
   template<class CharT, class traits = std::char_traits<CharT> >
-  class LogStream : private virtual LogStreamBufInit<CharT, traits>,
+  class PerThreadBufferedStream : private virtual PerThreadBufferedStreamBufInit<CharT, traits>,
                     public std::basic_ostream<CharT, traits> {
   public:    
     // No stream specified.  Will swallow characters until one is set
     // using set_stream().
-    LogStream() : LogStreamBufInit<CharT,traits>(),
-                  std::basic_ostream<CharT, traits>(LogStreamBufInit<CharT,traits>::buf()) {
+    PerThreadBufferedStream() : PerThreadBufferedStreamBufInit<CharT,traits>(),
+                  std::basic_ostream<CharT, traits>(PerThreadBufferedStreamBufInit<CharT,traits>::buf()) {
     }
 
 
-    LogStream(std::basic_ostream<CharT, traits>& out) : LogStreamBufInit<CharT,traits>(),
-                                                        std::basic_ostream<CharT, traits>(LogStreamBufInit<CharT,traits>::buf()) {
-      LogStreamBufInit<CharT,traits>::buf()->init(out.rdbuf());
+    PerThreadBufferedStream(std::basic_ostream<CharT, traits>& out) : PerThreadBufferedStreamBufInit<CharT,traits>(),
+                                                        std::basic_ostream<CharT, traits>(PerThreadBufferedStreamBufInit<CharT,traits>::buf()) {
+      PerThreadBufferedStreamBufInit<CharT,traits>::buf()->init(out.rdbuf());
     }
     
     void set_stream(std::basic_ostream<CharT, traits>& out) {
-      LogStreamBufInit<CharT,traits>::buf()->init(out.rdbuf());
+      PerThreadBufferedStreamBufInit<CharT,traits>::buf()->init(out.rdbuf());
     }
   };
 
@@ -290,25 +292,27 @@ namespace vw {
     }
 
     void add_rule(std::string log_namespace, int log_level) {
-      m_rules.push_back(rule_type(log_level, boost::to_lower_copy(log_namespace)));
+      m_rules.push_front(rule_type(log_level, boost::to_lower_copy(log_namespace)));
     }
+
+    void clear() { m_rules.clear(); }
         
     // You can overload this method froma subclass to change the
     // behavior of the LogRuleSet.
-    virtual bool operator() (std::string log_namespace, int log_level) {
+    virtual bool operator() (int log_level, std::string log_namespace) {
+
       for (rules_type::iterator it = m_rules.begin(); it != m_rules.end(); ++it) {
-        
-        std::string ns = boost::to_lower_copy((*it).second);
+
         // Pass through rule for complete wildcard
-        if ( vw::EveryMessage == (*it).first && ns == "any" )
+        if ( vw::EveryMessage == (*it).first && (*it).second == "*" )
           return true;
         
         // Pass through if the level matches and the namespace is a wildcard
-        if ( log_level <= (*it).first && ns == "any" )
+        if ( log_level <= (*it).first && (*it).second == "*" )
           return true;
 
         // Pass through if the level and namepace match
-        if ( log_level <= (*it).first && ns == log_namespace )
+        if ( log_level <= (*it).first && (*it).second == boost::to_lower_copy(log_namespace) )
            return true;
       }
 
@@ -319,9 +323,14 @@ namespace vw {
     }
   };
 
+
+  // -------------------------------------------------------
+  //                         LOG  
+  // -------------------------------------------------------
+  //
   class Log {
     std::ostream *m_log_ostream_ptr;
-    LogStream<char> m_log_stream;
+    PerThreadBufferedStream<char> m_log_stream;
     bool m_prepend_infostamp;
     LogRuleSet m_rule_set;
 
@@ -353,14 +362,12 @@ namespace vw {
         delete static_cast<std::ofstream*>(m_log_ostream_ptr);
     }
 
-    std::ostream& operator() (int level, std::string log_namespace="general") { 
-      boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
-      if (m_prepend_infostamp) 
-        return m_log_stream << now << " {" << Thread::id() << "} [ " << log_namespace << " ] : ";
-      else 
-        return m_log_stream;
-    }
+    /// This method return an ostream that you can write a log message
+    /// to if the rule_set matches the log level and namespace
+    /// provided.  Otherwise, a null ostream is returned.
+    std::ostream& operator() (int level, std::string log_namespace="console");
 
+    /// Access the rule set for this log object.
     LogRuleSet& rule_set() { return m_rule_set; }
   };
 
@@ -418,28 +425,19 @@ namespace vw {
     /// streams.
     void clear() { m_logs.clear(); }
     
+    Log& console_log() { return *m_console_log; }
     void set_console_stream(std::ostream& stream, LogRuleSet rule_set = LogRuleSet()) {
       m_console_log = boost::shared_ptr<Log>(new Log(stream) );
       m_console_log->rule_set() = rule_set;
     }
-
-    void set_console_rule_set(std::ostream& stream, LogRuleSet rule_set = LogRuleSet()) {
-      m_console_log->rule_set() = rule_set;
-    }
-
-    // Static instance used for accessing a single instance of the
-    // System log.
-    static SystemLog& system_log();
   };
-
 
   // Declaration of the standard VW I/O routine.
   std::ostream& vw_out( int log_level, std::string log_namespace = "console" );
-  SystemLog& system_log();
   void set_debug_level( int log_level );
   void set_output_stream( std::ostream& stream );
 
-
+  SystemLog& system_log();
 
 } // namespace vw
 

@@ -24,6 +24,7 @@
 
 // Boost header
 #include <boost/thread/xtime.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 // C Standard Library headers ( for stat(2) )
 #include <sys/types.h>
@@ -33,6 +34,7 @@
 // Create a single instance of the SystemLog
 // ---------------------------------------------------
 namespace {
+  static vw::null_ostream g_null_ostream;
   vw::RunOnce system_log_once = VW_RUNONCE_INIT;
   boost::shared_ptr<vw::SystemLog> system_log_ptr;
   void init_system_log() {
@@ -43,41 +45,41 @@ namespace {
 // ---------------------------------------------------
 // Basic stream support
 // ---------------------------------------------------
-namespace {
-  static vw::null_ostream g_the_nullstream;
-  static int g_the_level = vw::InfoMessage;
-}
-
 std::ostream& vw::vw_out( int log_level, std::string log_namespace ) {
-  if (log_level > g_the_level) 
-    return g_the_nullstream;
-  else 
-    return vw::SystemLog::system_log()(log_level, log_namespace);
-}
-
-vw::SystemLog& vw::system_log() {
-  return vw::SystemLog::system_log();
+  return system_log()(log_level, log_namespace);
 }
 
 void vw::set_debug_level( int log_level ) {
-  g_the_level = log_level;
+  system_log().console_log().rule_set().add_rule("console", log_level);
 }
 
 void vw::set_output_stream( std::ostream& stream ) {
-  vw::SystemLog& log = vw::SystemLog::system_log();
-  log.set_console_stream(stream);
+  system_log().set_console_stream(stream);
 }
 
-
-// ---------------------------------------------------
-// SystemLog Methods
-// ---------------------------------------------------
-
-vw::SystemLog& vw::SystemLog::system_log() {
+vw::SystemLog& vw::system_log() {
   system_log_once.run( init_system_log );
   return *system_log_ptr;
 }
 
+// ---------------------------------------------------
+// Log Methods
+// ---------------------------------------------------
+std::ostream& vw::Log::operator() (int level, std::string log_namespace) {
+  if (m_rule_set(level, log_namespace)) {
+    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+    if (m_prepend_infostamp) 
+      return m_log_stream << now << " {" << Thread::id() << "} [ " << log_namespace << " ] : ";
+    else 
+      return m_log_stream;
+  } else {
+    return g_null_ostream;
+  }
+}
+
+// ---------------------------------------------------
+// SystemLog Methods
+// ---------------------------------------------------
 void vw::SystemLog::reload_logconf_rules() {
   std::ifstream f(m_logconf_filename.c_str());
   

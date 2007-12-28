@@ -35,10 +35,12 @@ void vw::TerminalProgressCallback::report_progress(double progress) const {
   if (fabs(progress - m_last_reported_progress) > 0.01) {
     m_last_reported_progress = progress;
     int pi = static_cast<int>(progress * 60);
-    vw_out(m_level) << "\r" << m_pre_progress_text << "[";
-    for( int i=0; i<pi; ++i ) vw_out(m_level) << "*";
-    for( int i=60; i>pi; --i ) vw_out(m_level) << ".";
-    vw_out(m_level) << "] " << (int)(progress*100) << "%" << std::flush;
+    std::ostringstream p;
+    p << m_pre_progress_text << "[";
+    for( int i=0; i<pi; ++i ) p << "*";
+    for( int i=60; i>pi; --i ) p << ".";
+    p << "] " << (int)(progress*100) << "%\r";
+    vw_out(m_level) << p.str() << std::flush;
   }
 }
 
@@ -47,5 +49,5 @@ void vw::TerminalProgressCallback::report_aborted(std::string why) const {
 }
 
 void vw::TerminalProgressCallback::report_finished() const {
-  vw_out(m_level) << "\r" << m_pre_progress_text << "[************************************************************] Complete!" << std::endl;
+  vw_out(m_level) << m_pre_progress_text << "[************************************************************] Complete!\n";
 }

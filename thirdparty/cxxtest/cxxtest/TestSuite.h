@@ -53,7 +53,7 @@ namespace CxxTest
                          const char *yExpr, Y y,
                          const char *message )
     {
-        if ( !equals( x, y ) ) {
+      if ( !CxxTest::equals( x, y ) ) {
             if ( message )
                 tracker().failedTest( file, line, message );
             tracker().failedAssertEquals( file, line, xExpr, yExpr, TS_AS_STRING(x), TS_AS_STRING(y) );

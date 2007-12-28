@@ -146,6 +146,9 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
   output_affine(0,2) = smallest_x_val;
   output_affine(1,2) = largest_y_val;
 
+  vw_out(0) << "Output affine transform: " << output_affine << "\n";
+  vw_out(0) << int(smallest_x_val) << "  " << int(largest_y_val) << "\n";
+
   // Take the georef from the first file (this ensures that the
   // projection and datum information is preserved...), but update the
   // affine transform.

@@ -26,6 +26,7 @@
 
 #include <vw/Core/Log.h>
 #include <vw/Core/Thread.h>
+#include <vw/Core/ProgressCallback.h>
 
 #include <iostream>
 #include <string>
@@ -72,6 +73,20 @@ public:
     multi_strm << "\tYou should see this message twice.\n";
   }
 
+  void test_log_rule_set() {    
+    LogRuleSet rs;
+    rs.add_rule("console", vw::InfoMessage);
+    rs.add_rule("foo", vw::VerboseDebugMessage);
+    rs.add_rule("Bar", vw::EveryMessage);
+
+    TS_ASSERT_EQUALS( rs(vw::InfoMessage+1, "console"), false);
+    TS_ASSERT_EQUALS( rs(vw::InfoMessage, "console"), true);
+    TS_ASSERT_EQUALS( rs(vw::VerboseDebugMessage+1, "foo"), false);
+    TS_ASSERT_EQUALS( rs(vw::VerboseDebugMessage, "foo"), true);
+    TS_ASSERT_EQUALS( rs(vw::VerboseDebugMessage+1, "BAR"), true);
+    TS_ASSERT_EQUALS( rs(vw::VerboseDebugMessage, "BAR"), true);
+  }
+
   void test_basic_logging() {
     std::cout << "\n";
 
@@ -85,6 +100,7 @@ public:
   void test_multithreaded_logging() {
     std::cout << "\n";
     Log log(std::cout);
+    log.rule_set().add_rule("log test", vw::EveryMessage);
     log(0, "log test") << "Testing logging from multiple threads\n";
     boost::shared_ptr<TestLogTask> task1( new TestLogTask(log,"log test") );
     boost::shared_ptr<TestLogTask> task2( new TestLogTask(log,"log test") );
@@ -107,13 +123,28 @@ public:
 
   void test_system_log() {
     std::cout << "\nTesting System Log\n";
+    system_log().console_log().rule_set().add_rule("test", vw::EveryMessage);
 
     vw_out(0) << "\tTesting system log (first call)\n";
     vw_out(0,"test") << "\tTesting system log (second call)\n";
-    system_log().add(std::cout);
-    SystemLog::system_log()(0,"test") << "\tYou should see this message twice; once with the logging prefix and once without.\n";
+
+    boost::shared_ptr<Log> new_log(new Log(std::cout));
+    new_log->rule_set().add_rule("test", vw::EveryMessage);
+    system_log().add(new_log);
+    vw_out(0,"test") << "\tYou should see this message twice; once with the logging prefix and once without.\n";
+
     system_log().clear();
-    SystemLog::system_log()(0,"test") << "\tYou should see this message once.\n";
+    vw_out(0,"test") << "\tYou should see this message once.\n";
+  }
+
+  void test_progress_callback() {
+     vw_out(0) << "\nTesting Logging with a progress callback\n";
+    TerminalProgressCallback pc(vw::InfoMessage, "\tTesting: ");
+    for (double i = 0; i < 1.0; i+=0.01) {
+      pc.report_progress(i);
+      Thread::sleep_ms(10);
+    }
+    pc.report_finished();
   }
 
 };

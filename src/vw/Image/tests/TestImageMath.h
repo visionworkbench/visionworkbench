@@ -263,7 +263,8 @@ public:
   }
 
   void test_imag() {
-    ImageView<std::complex<double> > im(1,1); im(0,0)=std::complex<double>(1.0,2.0);
+    ImageView<std::complex<double> > im(1,1); 
+    im(0,0)=std::complex<double>(1.0,2.0);
     TS_ASSERT_EQUALS( imag(im).cols(), im.cols()  );
     TS_ASSERT_EQUALS( imag(im).rows(), im.rows()  );
     TS_ASSERT_EQUALS( imag(im).planes(), im.planes()  );
