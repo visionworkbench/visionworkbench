@@ -411,7 +411,7 @@ namespace vw {
 
     // Add an already existing log to the system log manager.
     void add(boost::shared_ptr<Log> log) {
-      m_logs.push_back( log ) );
+      m_logs.push_back( log );
     }
 
     /// Reset the System Log; closing all of the currently open Log
