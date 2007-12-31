@@ -50,7 +50,7 @@ std::ostream& vw::vw_out( int log_level, std::string log_namespace ) {
 }
 
 void vw::set_debug_level( int log_level ) {
-  system_log().console_log().rule_set().add_rule("console", log_level);
+  system_log().console_log().rule_set().add_rule(log_level, "console");
 }
 
 void vw::set_output_stream( std::ostream& stream ) {
@@ -65,6 +65,22 @@ vw::SystemLog& vw::system_log() {
 // ---------------------------------------------------
 // Log Methods
 // ---------------------------------------------------
+vw::Log::Log(std::string log_filename, bool prepend_infostamp) : m_prepend_infostamp(prepend_infostamp) {
+  // Open file and place the insertion pointer at the end of the file (ios_base::ate)
+  m_log_ostream_ptr = new std::ofstream(log_filename.c_str(), std::ios::app);
+  if (! static_cast<std::ofstream*>(m_log_ostream_ptr)->is_open())
+    vw_throw(IOErr() << "Could not open log file " << log_filename << " for writing.");
+  
+  boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+  *m_log_ostream_ptr << "\n\n" << "Vision Workbench log started at " << now << ".\n\n";
+      
+  m_log_stream.set_stream(*m_log_ostream_ptr);
+}
+
+vw::Log::Log(std::ostream& log_ostream, bool prepend_infostamp) : m_log_stream(log_ostream), 
+                                                                  m_log_ostream_ptr(NULL),
+                                                                  m_prepend_infostamp(prepend_infostamp) {}
+
 std::ostream& vw::Log::operator() (int level, std::string log_namespace) {
   if (m_rule_set(level, log_namespace)) {
     boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
@@ -81,20 +97,55 @@ std::ostream& vw::Log::operator() (int level, std::string log_namespace) {
 // SystemLog Methods
 // ---------------------------------------------------
 void vw::SystemLog::reload_logconf_rules() {
+  vw_out(InfoMessage, "log") << "Reloading log configuration file: " << m_logconf_filename << ".\n";
+  
   std::ifstream f(m_logconf_filename.c_str());
   
   if (f.is_open()) {
+    boost::shared_ptr<Log> current_log;
     while (!f.eof()) {
       char c_line[2048];
       f.getline(c_line, 2048);
       std::string line = boost::trim_copy(std::string(c_line));
-      std::vector<std::string> split_vec;
-      boost::split(split_vec, line, boost::is_any_of(" "));
-      if (split_vec.size() != 2) {
-        // failed
+
+      // Check to see if this line is empty or if it starts with '#',
+      // which we ignore as a comment.
+      if ( line.size() != 0 && line[0] != '#' ) {
+        std::vector<std::string> tokens;
+        boost::split(tokens, line, boost::is_any_of(" "));
+
+        // All lines in the file should contain exactly two tokens
+        // seperated by a space.  If not, we ignore the line.
+        if (tokens.size() == 2) {
+
+          // Handle the wildcard "*" for log level.
+          int log_level;
+          if (tokens[0] == "*")
+            log_level = vw::EveryMessage;
+          else 
+            log_level = atoi(tokens[0].c_str());            
+
+          if (boost::to_lower_copy(tokens[0]) == "logfile") {
+            // If the first token is the "logfile" string, we start a
+            // new log file stream with the supplied filename.
+            if (tokens[1] == "console") {
+              vw_out(DebugMessage, "log") << "Adding rules for console.\n";
+              current_log.reset();
+            } else {
+              vw_out(DebugMessage, "log") << "Adding rules for log file: " << tokens[1] << ".\n";
+              current_log = boost::shared_ptr<Log>( new Log(tokens[1]) );
+              this->add(current_log);
+            }        
+          } else {
+            // Otherwise, we need to add the rule for the current log.
+            vw_out(DebugMessage, "log") << "Adding rule: " << tokens[0] << "   " << tokens[1] << "\n";
+            if (current_log) 
+              current_log->rule_set().add_rule(log_level, tokens[1]);
+            else 
+              m_console_log->rule_set().add_rule(log_level, tokens[1]);
+          }
+        }
       }
-      int log_level = atoi(split_vec[1].c_str());
-      //      m_file_log_ruleset.add_rule(split_vec[0], log_level);
     }
   }
 }
@@ -106,7 +157,7 @@ void vw::SystemLog::stat_logconf() {
   boost::xtime xt;
   boost::xtime_get(&xt, boost::TIME_UTC);
   bool needs_reloading = false;
-  
+
   // Every five seconds, we attempt to open the log config file to see
   // if there have been any changes.  The mutex locking for querying
   // the time is handled seperately from reading the file so that only
@@ -143,17 +194,20 @@ std::ostream& vw::SystemLog::operator() (int level, std::string log_namespace) {
   // First, check to see if the logconf file has been updated.
   // Reload the rulesets if it has.
   stat_logconf();
-  
+
+  if(m_multi_ostreams.find( Thread::id() ) == m_multi_ostreams.end())
+    m_multi_ostreams[ Thread::id() ] = boost::shared_ptr<multi_ostream>(new multi_ostream);
+  m_multi_ostreams[ Thread::id() ]->clear();
+
   // Add the console log output...
-  m_multi_ostream.clear();
-  m_multi_ostream.add(m_console_log->operator()(level, log_namespace));
+  m_multi_ostreams[ Thread::id() ]->add(m_console_log->operator()(level, log_namespace));
   
   // ... and the rest of the active log streams.
   std::vector<boost::shared_ptr<Log> >::iterator iter = m_logs.begin();
   for (;iter != m_logs.end(); ++iter) 
-    m_multi_ostream.add((*iter)->operator()(level,log_namespace));
+    m_multi_ostreams[ Thread::id() ]->add((*iter)->operator()(level,log_namespace));
 
-  return m_multi_ostream;
+  return *m_multi_ostreams[ Thread::id() ];
 }
 
 

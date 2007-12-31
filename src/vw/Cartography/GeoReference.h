@@ -179,9 +179,9 @@ namespace cartography {
                                   ImageViewBase<ImageT> const& image,
                                   GeoReference const& georef,
                                   ProgressCallback const& progress_callback = ProgressCallback::dummy_instance() ) {
-    vw_out(InfoMessage+1) << "\tSaving image: " << filename << "\t";
+    vw_out(InfoMessage, "fileio") << "\tSaving image: " << filename << "\t";
     DiskImageResource *r = DiskImageResource::create( filename, image.format() );
-    vw_out(InfoMessage+1) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
+    vw_out(InfoMessage, "fileio") << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
     write_georeference( *r, georef );
     write_image( *r, image, progress_callback );
     delete r;

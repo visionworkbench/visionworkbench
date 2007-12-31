@@ -53,7 +53,8 @@ namespace cartography {
     key = "MAP_PROJECTION_TYPE";
     if ( resource.query(key,value) ) { 
       if (value != "\"SIMPLE CYLINDRICAL\"") {
-        vw_out(ErrorMessage) << "Unsupported map projection type in PDS header."; 
+        vw_out(ErrorMessage, "console") << "Unsupported map projection type in PDS header."; 
+        vw_out(ErrorMessage, "cartography") << "Unsupported map projection type in PDS header."; 
         failed = true;
       }
       datum.set_semi_minor_axis(atof(value.c_str()) * 1000); 

@@ -122,12 +122,12 @@ namespace vw {
   template <class PixelT>
   void read_image( ImageView<PixelT>& in_image, const std::string &filename ) {
 
-    vw_out(InfoMessage+1) << "\tLoading image: " << filename << "\t";
+    vw_out(InfoMessage, "fileio") << "\tLoading image: " << filename << "\t";
 
     // Open the file for reading
     DiskImageResource *r = DiskImageResource::open( filename );
 
-    vw_out(InfoMessage+1) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
+    vw_out(InfoMessage, "fileio") << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
 
     // Read the data 
     read_image(in_image, *r);
@@ -155,9 +155,9 @@ namespace vw {
     for( unsigned p=0; p<files; ++p ) {
       std::string name = filename;
       if( files > 1 ) boost::replace_last( name, "*",  str( boost::format("%1%") % p ) );
-      vw_out(InfoMessage+1) << "\tSaving image: " << name << "\t";
+      vw_out(InfoMessage, "fileio") << "\tSaving image: " << name << "\t";
       DiskImageResource *r = DiskImageResource::create( name, out_image_format );
-      vw_out(InfoMessage+1) << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
+      vw_out(InfoMessage, "fileio") << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
 
       write_image(*r, select_plane(out_image.impl(),p), SubProgressCallback(progress_callback,p/(float)files,(p+1)/(float)files));
 

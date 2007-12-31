@@ -127,10 +127,10 @@ namespace mosaic {
       m_patch_cache.resize( m_tree_levels );
       m_filename_cache.resize( m_tree_levels );
 
-      vw_out(DebugMessage) << "Using patch size: " << m_patch_size << " pixels" << std::endl;
-      vw_out(DebugMessage) << "Using patch overlap: " << m_patch_overlap << " pixels" << std::endl;
-      vw_out(DebugMessage) << "Generating patch files of type: " << m_output_image_type << std::endl;
-      vw_out(DebugMessage) << "Generating " << m_base_dir << " quadtree with " << m_tree_levels << " levels." << std::endl;
+      vw_out(DebugMessage, "mosaic") << "Using patch size: " << m_patch_size << " pixels" << std::endl;
+      vw_out(DebugMessage, "mosaic") << "Using patch overlap: " << m_patch_overlap << " pixels" << std::endl;
+      vw_out(DebugMessage, "mosaic") << "Generating patch files of type: " << m_output_image_type << std::endl;
+      vw_out(DebugMessage, "mosaic") << "Generating " << m_base_dir << " quadtree with " << m_tree_levels << " levels." << std::endl;
 
       try {
         generate_branch( "r", m_tree_levels-1, 0, 0, progress_callback );
@@ -232,7 +232,7 @@ namespace mosaic {
       if( m_crop_images ) {
         info.image_bbox = nonzero_data_bounding_box( image );
         if( info.image_bbox.empty() ) {
-          vw_out(DebugMessage) << "\tIgnoring empty image: " << name << std::endl;
+          vw_out(DebugMessage, "mosaic") << "\tIgnoring empty image: " << name << std::endl;
           return;
         }
         if( info.image_bbox.width() != int(m_patch_size) || info.image_bbox.height() != int(m_patch_size) )
@@ -251,7 +251,7 @@ namespace mosaic {
 
       create_directories( fs::path( info.filepath, fs::native ).branch_path() );
 
-      vw_out(InfoMessage+1) << "\tSaving image: " << info.filepath << "\t" << patch_image.cols() << "x" << patch_image.rows() << std::endl;
+      vw_out(InfoMessage, "mosaic") << "\tSaving image: " << info.filepath << "\t" << patch_image.cols() << "x" << patch_image.rows() << std::endl;
       write_image( info, patch_image );
       write_meta_file( info );
     }
@@ -270,7 +270,7 @@ namespace mosaic {
 
       // Reject patches that fall outside the crop region
       if( ! patch_bbox.intersects( m_crop_bbox ) ) {
-        vw_out(DebugMessage) << "\tIgnoring empty image: " << name << std::endl;
+        vw_out(DebugMessage, "mosaic") << "\tIgnoring empty image: " << name << std::endl;
         image.set_size( interior_size, interior_size );
         return image;
       }
@@ -279,7 +279,7 @@ namespace mosaic {
       // This effectively prunes branches of the tree with no source
       // data.
       if( ! (*m_sparse_tile_check)(patch_bbox) ) {
-        vw_out(DebugMessage) << "\tIgnoring empty branch: " << name << std::endl;
+        vw_out(DebugMessage, "mosaic") << "\tIgnoring empty branch: " << name << std::endl;
         image.set_size( interior_size, interior_size );
         return image;
       }
@@ -287,7 +287,7 @@ namespace mosaic {
       // Base case: rasterize the highest resolution tile.
       if( level == 0 ) {
         ScopedWatch sw("QuadTreeGenerator::generate_branch: rasterize leaf");
-        vw_out(DebugMessage) << "ImageQuadTreeGenerator rasterizing region " << patch_bbox << std::endl;
+        vw_out(DebugMessage, "mosaic") << "ImageQuadTreeGenerator rasterizing region " << patch_bbox << std::endl;
         BBox2i data_bbox = patch_bbox;
         data_bbox.crop( m_crop_bbox );
         image = crop( m_source, data_bbox );

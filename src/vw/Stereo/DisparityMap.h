@@ -120,13 +120,13 @@ namespace disparity {
 
     if (num_good == 0) {
       if (verbose)
-        vw_out(WarningMessage) << "Disparity range -- disparity map had zero good pixels.";
+        vw_out(WarningMessage, "stereo") << "Disparity range -- disparity map had zero good pixels.";
       return BBox2(0,0,0,0);
     }
     
     if (verbose) 
-      vw_out(InfoMessage) << "Disparity range -- Horizontal: [" << min_horz_disp << ", " << max_horz_disp 
-                          << "]   Vertical: [" << min_vert_disp << ", " << max_vert_disp << "]  ("<< num_good << " good)\n"; 
+      vw_out(InfoMessage, "stereo") << "Disparity range -- Horizontal: [" << min_horz_disp << ", " << max_horz_disp 
+                                    << "]   Vertical: [" << min_vert_disp << ", " << max_vert_disp << "]  ("<< num_good << " good)\n"; 
     return BBox2(Vector2(min_horz_disp, min_vert_disp),Vector2(max_horz_disp, max_vert_disp));
   }
 

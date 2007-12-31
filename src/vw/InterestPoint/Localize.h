@@ -92,7 +92,7 @@ namespace ip {
     fit_peak_1D( f_vals, dj, y2coef );
 
     if ( (fabs(di)>1) || (fabs(dj)>1)) {
-      vw::vw_out(VerboseDebugMessage) << "\tLocalization correction too large\n";
+      vw::vw_out(VerboseDebugMessage, "interest_point") << "\tLocalization correction too large\n";
       return false;
     }
 
@@ -131,7 +131,7 @@ namespace ip {
     fit_peak_1D( f_vals, dp, s2coef );
 
     if ( fabs(dp)>1) {
-      vw::vw_out(VerboseDebugMessage) << "\tLocalization correction too large\n";
+      vw::vw_out(VerboseDebugMessage, "interest_point") << "\tLocalization correction too large\n";
       return false;
     }
     

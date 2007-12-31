@@ -36,6 +36,7 @@
 #include <vw/InterestPoint/ImageOctaveHistory.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/Manipulation.h>
+#include <vw/Core/ThreadPool.h>
 #include <vw/FileIO.h>
 
 namespace vw {
@@ -78,7 +79,7 @@ namespace ip {
 
       InterestPointList interest_points;
       
-      vw_out(InfoMessage) << "\tFinding interest points" << std::flush;
+      vw_out(InfoMessage, "interest_point") << "\tFinding interest points" << std::flush;
       
       // If the user has not specified a chunk size, we process the
       // entire image in one shot.
@@ -87,7 +88,7 @@ namespace ip {
       // (rescaling as necessary) here before passing it off to the
       // rest of the interest detector code.
       if (!max_interestpoint_image_dimension) {
-        vw_out(InfoMessage) << "..." << std::flush;
+        vw_out(InfoMessage, "interest_point") << "..." << std::flush;
         interest_points = impl().process_image(pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image.impl())));
         
         // Otherwise we segment the image and process each sub-image
@@ -95,7 +96,7 @@ namespace ip {
       } else {
         std::vector<BBox2i> bboxes = image_blocks(image.impl(), max_interestpoint_image_dimension, max_interestpoint_image_dimension);
         for (int i = 0; i < bboxes.size(); ++i) {
-          vw_out(InfoMessage) << "." << std::flush;
+          vw_out(InfoMessage, "interest_point") << "." << std::flush;
           
           InterestPointList new_points = impl().process_image(crop(pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image.impl())), bboxes[i]));
           for (InterestPointList::iterator pt = new_points.begin(); pt != new_points.end(); ++pt) {
@@ -108,12 +109,84 @@ namespace ip {
         }
       }
       
-      vw_out(InfoMessage) << " done.";
-      vw_out(InfoMessage) << "     (" << interest_points.size() << " interest points found)\n";
+      vw_out(InfoMessage, "interest_point") << " done.";
+      vw_out(InfoMessage, "interest_point") << "     (" << interest_points.size() << " interest points found)\n";
       return interest_points;
     }
 
   };
+
+  namespace {
+    vw::Mutex g_vw_interest_point_detection_lock;
+  }
+
+  template <class ViewT, class DetectorT>
+  class InterestPointDetectionTask : public Task {
+    // Disable copyable symantics 
+    InterestPointDetectionTask(InterestPointDetectionTask& copy) {}
+    void operator=(InterestPointDetectionTask& copy) {}
+
+    ViewT m_view;
+    DetectorT& m_detector;
+    BBox2i m_bbox;
+    InterestPointList& m_interest_point_list;
+    Mutex& m_mutex;
+    
+    
+  public:
+    InterestPointDetectionTask(ViewT const& view, DetectorT& detector, BBox2i bbox,
+                               InterestPointList& ip_list, Mutex &mutex ) : 
+      m_view(view), m_detector(detector), m_bbox(bbox),
+      m_interest_point_list(ip_list), m_mutex(mutex) {}
+
+    void operator()() { 
+      vw_out(DebugMessage, "interest_point") << "Interest point detection thread started with bbox " << m_bbox << "\n";
+      InterestPointList new_ip_list;// = m_detector(crop(pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(m_view.impl())), m_bbox),0);
+      for (InterestPointList::iterator pt = new_ip_list.begin(); pt != new_ip_list.end(); ++pt) {
+        (*pt).x +=  m_bbox.min().x();
+        (*pt).ix += m_bbox.min().x();
+        (*pt).y +=  m_bbox.min().y();
+        (*pt).iy += m_bbox.min().y();
+      }
+
+      // Append these interest points to the master list owned by the
+      // detect_interest_points() function.
+      vw_out(DebugMessage, "interest_point") << "Interest point detection thread detected " << new_ip_list.size() << " interest points.\n";
+      {
+        Mutex::Lock lock(m_mutex);
+        m_interest_point_list.splice(m_interest_point_list.end(), new_ip_list);
+      }
+    }
+    InterestPointList interest_point_list() { return m_interest_point_list; }
+  };
+ 
+  /// This free function implements a multithreaded interest point
+  /// detector.
+  template <class ViewT, class DetectorT>
+  InterestPointList detect_interest_points (ViewT const& view, DetectorT& detector) {
+    typedef InterestPointDetectionTask<ViewT, DetectorT> task_type;
+
+    FifoWorkQueue queue;
+    InterestPointList ip_list;
+    Mutex mutex;     // Used to lock access to ip_list by the child threads.
+
+    vw_out(DebugMessage, "interest_point") << "Running MT interest point detector.  Input image: [ " << view.impl().cols() << " x " << view.impl().rows() << " ]\n";
+
+    // Process the image in 2048x2048 pixel blocks.
+    std::vector<BBox2i> bboxes = image_blocks(view.impl(), 2048, 2048);
+    for (int i = 0; i < bboxes.size(); ++i) {
+      boost::shared_ptr<task_type> task (new task_type(view, detector, bboxes[i], ip_list, mutex ) );
+      queue.add_task(task);
+    }    
+    vw_out(DebugMessage, "interest_point") << "Waiting for threads to terminate.\n";
+    queue.join_all();
+
+    vw_out(DebugMessage, "interest_point") << "MT interest point detection complete.  " << ip_list.size() << " interest point detected.\n";
+    Thread::sleep_ms(2000);
+    exit(0);
+    return ip_list;
+  }
+
   /// Get the orientation of the point at (i0,j0,k0).  This is done by
   /// computing a gaussian weighted average orientations in a region
   /// around the detected point.  This is not the most sophisticated
@@ -178,11 +251,11 @@ namespace ip {
     /// Detect interest points in the source image.  
     template <class ViewT>
     InterestPointList process_image(ImageViewBase<ViewT> const& image) const {
-      Timer total("\tTotal elapsed time", DebugMessage);
+      Timer total("\tTotal elapsed time", DebugMessage, "interest_point");
 
       // Calculate gradients, orientations and magnitudes
-      vw_out(DebugMessage) << "\n\tCreating image data... ";
-      Timer *timer = new Timer("done, elapsed time", DebugMessage);
+      vw_out(DebugMessage, "interest_point") << "\n\tCreating image data... ";
+      Timer *timer = new Timer("done, elapsed time", DebugMessage, "interest_point");
 
       // We blur the image by a small amount to eliminate any noise
       // that might confuse the interest point detector.
@@ -192,54 +265,54 @@ namespace ip {
       delete timer;
 
       // Compute interest image
-      vw_out(DebugMessage) << "\tComputing interest image... ";
+      vw_out(DebugMessage, "interest_point") << "\tComputing interest image... ";
       {
-        Timer t("done, elapsed time", DebugMessage);
+        Timer t("done, elapsed time", DebugMessage, "interest_point");
         m_interest(img_data);
       }
 
       // Find extrema in interest image
-      vw_out(DebugMessage) << "\tFinding extrema... ";
+      vw_out(DebugMessage, "interest_point") << "\tFinding extrema... ";
       InterestPointList points;
       {
-        Timer t("elapsed time", DebugMessage);
+        Timer t("elapsed time", DebugMessage, "interest_point");
         find_extrema(points, img_data);
-        vw_out(DebugMessage) << "done (" << points.size() << " interest points), ";
+        vw_out(DebugMessage, "interest_point") << "done (" << points.size() << " interest points), ";
       }
 
       // Subpixel localization
-      vw_out(DebugMessage) << "\tLocalizing... ";
+      vw_out(DebugMessage, "interest_point") << "\tLocalizing... ";
       {
-        Timer t("elapsed time", DebugMessage);
+        Timer t("elapsed time", DebugMessage, "interest_point");
         localize(points, img_data);
-        vw_out(DebugMessage) << "done (" << points.size() << " interest points), ";
+        vw_out(DebugMessage, "interest_point") << "done (" << points.size() << " interest points), ";
       }
 
       // Threshold (after localization)
-      vw_out(DebugMessage) << "\tThresholding... ";
+      vw_out(DebugMessage, "interest_point") << "\tThresholding... ";
       {
-        Timer t("elapsed time", DebugMessage);
+        Timer t("elapsed time", DebugMessage, "interest_point");
         threshold(points, img_data);
-        vw_out(DebugMessage) << "done (" << points.size() << " interest points), ";
+        vw_out(DebugMessage, "interest_point") << "done (" << points.size() << " interest points), ";
       }
       
       // Cull (limit the number of interest points to the N "most interesting" points)
-      vw_out(DebugMessage) << "\tCulling Interest Points (limit is set to " << m_max_points << " points)... ";
+      vw_out(DebugMessage, "interest_point") << "\tCulling Interest Points (limit is set to " << m_max_points << " points)... ";
       {
-        Timer t("elapsed time", DebugMessage);
+        Timer t("elapsed time", DebugMessage, "interest_point");
         int original_num_points = points.size();
         points.sort();
         if ((m_max_points > 0) && (m_max_points < (int)points.size())) 
           points.resize(m_max_points);
-        vw_out(DebugMessage) << "done (removed " << original_num_points - points.size() << " interest points, " << points.size() << " remaining.), ";
+        vw_out(DebugMessage, "interest_point") << "done (removed " << original_num_points - points.size() << " interest points, " << points.size() << " remaining.), ";
       }
 
       // Assign orientations
-      vw_out(DebugMessage) << "\tAssigning orientations... ";
+      vw_out(DebugMessage, "interest_point") << "\tAssigning orientations... ";
       {
-        Timer t("elapsed time", DebugMessage);
+        Timer t("elapsed time", DebugMessage, "interest_point");
         assign_orientations(points, img_data);
-        vw_out(DebugMessage) << "done (" << points.size() << " interest points), ";
+        vw_out(DebugMessage, "interest_point") << "done (" << points.size() << " interest points), ";
       }
 
       // Return vector of interest points
@@ -363,11 +436,11 @@ namespace ip {
     InterestPointList process_image(ImageViewBase<ViewT> const& image) const {
       typedef ImageInterestData<ImageView<typename ViewT::pixel_type>,InterestT> DataT;
       
-      Timer total("\t\tTotal elapsed time", DebugMessage);
+      Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
       
       // Create scale space
-      vw_out(DebugMessage) << "\n\tCreating initial image octave... ";
-      Timer *t_oct = new Timer("done, elapsed time", DebugMessage);
+      vw_out(DebugMessage, "interest_point") << "\n\tCreating initial image octave... ";
+      Timer *t_oct = new Timer("done, elapsed time", DebugMessage, "interest_point");
       
       // We blur the image by a small amount to eliminate any noise
       // that might confuse the interest point detector.
@@ -379,12 +452,12 @@ namespace ip {
       std::vector<DataT> img_data;
 
       for (int o = 0; o < m_octaves; ++o) {
-        Timer t_loop("\t\tElapsed time for octave", DebugMessage);
+        Timer t_loop("\t\tElapsed time for octave", DebugMessage, "interest_point");
 
         // Calculate intermediate data (gradients, orientations, magnitudes)
-        vw_out(DebugMessage) << "\tCreating image data... ";
+        vw_out(DebugMessage, "interest_point") << "\tCreating image data... ";
         {
-          Timer t("done, elapsed time", DebugMessage);
+          Timer t("done, elapsed time", DebugMessage, "interest_point");
           img_data.clear();
           img_data.reserve(octave.num_planes);
           for (int k = 0; k < octave.num_planes; ++k) {
@@ -393,9 +466,9 @@ namespace ip {
         }
 
         // Compute interest images
-        vw_out(DebugMessage) << "\tComputing interest images... ";
+        vw_out(DebugMessage, "interest_point") << "\tComputing interest images... ";
         {
-          Timer t("done, elapsed time", DebugMessage);
+          Timer t("done, elapsed time", DebugMessage, "interest_point");
           for (int k = 0; k < octave.num_planes; ++k) {
             m_interest(img_data[k], octave.plane_index_to_scale(k));
           }
@@ -404,47 +477,47 @@ namespace ip {
         // TODO: record history
 
         // Find extrema in interest image
-        vw_out(DebugMessage) << "\tFinding extrema... ";
+        vw_out(DebugMessage, "interest_point") << "\tFinding extrema... ";
         InterestPointList new_points;
         {
-          Timer t("elapsed time", DebugMessage);
+          Timer t("elapsed time", DebugMessage, "interest_point");
           find_extrema(new_points, img_data, octave);
-          vw_out(DebugMessage) << "done (" << new_points.size() << " extrema found), ";
+          vw_out(DebugMessage, "interest_point") << "done (" << new_points.size() << " extrema found), ";
         }
 
         // Subpixel localization
-        vw_out(DebugMessage) << "\tLocalizing... ";
+        vw_out(DebugMessage, "interest_point") << "\tLocalizing... ";
         {
-          Timer t("elapsed time", DebugMessage);
+          Timer t("elapsed time", DebugMessage, "interest_point");
           localize(new_points, img_data, octave);
-          vw_out(DebugMessage) << "done (" << new_points.size() << " interest points), ";
+          vw_out(DebugMessage, "interest_point") << "done (" << new_points.size() << " interest points), ";
         }
 
         // Threshold
-        vw_out(DebugMessage) << "\tThresholding... ";
+        vw_out(DebugMessage, "interest_point") << "\tThresholding... ";
         {
-          Timer t("elapsed time", DebugMessage);
+          Timer t("elapsed time", DebugMessage, "interest_point");
           threshold(new_points, img_data, octave);
-          vw_out(DebugMessage) << "done (" << new_points.size() << " interest points), ";
+          vw_out(DebugMessage, "interest_point") << "done (" << new_points.size() << " interest points), ";
         }
 
         // Cull (limit the number of interest points to the N "most interesting" points)
-        vw_out(DebugMessage) << "\tCulling Interest Points (limit is set to " << m_max_points << " points)... ";
+        vw_out(DebugMessage, "interest_point") << "\tCulling Interest Points (limit is set to " << m_max_points << " points)... ";
         {
-          Timer t("elapsed time", DebugMessage);
+          Timer t("elapsed time", DebugMessage, "interest_point");
           int original_num_points = new_points.size();
           new_points.sort();
           if ((m_max_points > 0) && (m_max_points < (int)new_points.size())) 
             new_points.resize(m_max_points);
-          vw_out(DebugMessage) << "done (removed " << original_num_points - new_points.size() << " interest points, " << new_points.size() << " remaining.), ";
+          vw_out(DebugMessage, "interest_point") << "done (removed " << original_num_points - new_points.size() << " interest points, " << new_points.size() << " remaining.), ";
         }
         
         // Assign orientations
-        vw_out(DebugMessage) << "\tAssigning orientations... ";
+        vw_out(DebugMessage, "interest_point") << "\tAssigning orientations... ";
         {
-          Timer t("elapsed time", DebugMessage);
+          Timer t("elapsed time", DebugMessage, "interest_point");
           assign_orientations(new_points, img_data, octave);
-          vw_out(DebugMessage) << "done (" << new_points.size() << " interest points), ";
+          vw_out(DebugMessage, "interest_point") << "done (" << new_points.size() << " interest points), ";
         }
 
         // Scale subpixel location to move back to original coords
@@ -461,7 +534,7 @@ namespace ip {
       
         // Build next octave of scale space
         if (o != m_octaves - 1) {
-          vw_out(DebugMessage) << "\tBuilding next octave... ";
+          vw_out(DebugMessage, "interest_point") << "\tBuilding next octave... ";
           Timer t("done, elapsed time", DebugMessage);
           octave.build_next();
         }

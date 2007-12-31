@@ -587,12 +587,12 @@ namespace vw {
     // If the image bounding box is too large or too small, print a
     // warning message.
     if ( (bbox.width() * bbox.height()) < min_image_size ) {
-      vw_out(WarningMessage) << "Warning: The transformed image exceeds the minimum (" << min_image_size << ") \n"
-                             << "         recommended image dimension in compute_transformed_bbox().\n";
+      vw_out(WarningMessage, "image") << "Warning: The transformed image exceeds the minimum (" << min_image_size << ") \n"
+                                      << "         recommended image dimension in compute_transformed_bbox().\n";
     }
     if ( (bbox.width() * bbox.height()) > max_image_size ) {
-      vw_out(WarningMessage) << "Warning: The transformed image exceeds the maximum (" << max_image_size << ") \n"
-                             << "         recommended image dimension in compute_transformed_bbox().\n";
+      vw_out(WarningMessage, "image") << "Warning: The transformed image exceeds the maximum (" << max_image_size << ") \n"
+                                      << "         recommended image dimension in compute_transformed_bbox().\n";
     }
     return bbox;
   }
@@ -641,12 +641,12 @@ namespace vw {
     // back and set the size of the output image to the size of the
     // input image and print a warning message.
     if ( (bbox.width() * bbox.height()) < min_image_size ) {
-      vw_out(WarningMessage) << "Warning: The transformed image exceeds the minimum (" << min_image_size << ") \n"
-                             << "         recommended image dimension in compute_transformed_bbox_fast().\n";
+      vw_out(WarningMessage, "image") << "Warning: The transformed image exceeds the minimum (" << min_image_size << ") \n"
+                                      << "         recommended image dimension in compute_transformed_bbox_fast().\n";
     }
     if ( (bbox.width() * bbox.height()) > max_image_size ) {
-      vw_out(WarningMessage) << "Warning: The transformed image exceeds the maximum (" << max_image_size << ") \n"
-                             << "         recommended image dimension in compute_transformed_bbox_fast().\n";
+      vw_out(WarningMessage, "image") << "Warning: The transformed image exceeds the maximum (" << max_image_size << ") \n"
+                                      << "         recommended image dimension in compute_transformed_bbox_fast().\n";
     }
     return bbox;
   }

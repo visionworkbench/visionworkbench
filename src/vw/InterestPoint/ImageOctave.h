@@ -136,7 +136,7 @@ public:
     scales.reserve(num_planes);
     
     // Scales constructed by blurring.  Assume some sigma for the first one.
-    vw::vw_out(VerboseDebugMessage) << "\tAssuming camera_sigma " << CAMERA_SIGMA 
+    vw::vw_out(VerboseDebugMessage, "interest_point") << "\tAssuming camera_sigma " << CAMERA_SIGMA 
                                     << std::endl;
     float camera_sigma = CAMERA_SIGMA;
 
@@ -146,7 +146,7 @@ public:
     // the output of a larger kernel with fewer operations.
     if (sigma[0]>camera_sigma){
       float use_sigma = sqrt( sigma[0]*sigma[0] - camera_sigma*camera_sigma );
-      vw::vw_out(VerboseDebugMessage) << "\tMaking plane " << 0 << " using sigma "
+      vw::vw_out(VerboseDebugMessage, "interest_point") << "\tMaking plane " << 0 << " using sigma "
                                       << use_sigma << " so final sigma is "
                                       << sigma[0] << std::endl;
       scales.push_back(ViewT(vw::gaussian_filter(src_im, use_sigma)));
@@ -157,7 +157,7 @@ public:
     // Each next plane is blurred version of the previous
     for (int i=1; i<num_planes; i++){
       float use_sigma = sqrt( sigma[i]*sigma[i] - sigma[i-1]*sigma[i-1] );
-      vw::vw_out(VerboseDebugMessage) << "\tMaking plane " << i << " using sigma "
+      vw::vw_out(VerboseDebugMessage, "interest_point") << "\tMaking plane " << i << " using sigma "
                                       << use_sigma << " so final sigma is "
                                       << sigma[i] << std::endl;
       scales.push_back(ViewT(vw::gaussian_filter(scales[i-1], use_sigma)));
@@ -197,7 +197,7 @@ public:
     float use_sigma;
     for (int k=2; k<num_planes; k++){
       use_sigma = sqrt( sigma[k]*sigma[k] - sigma[k-1]*sigma[k-1] );
-      vw::vw_out(VerboseDebugMessage) << "\tMaking plane " << k << " using sigma "
+      vw::vw_out(VerboseDebugMessage, "interest_point") << "\tMaking plane " << k << " using sigma "
                                       << use_sigma << " so final sigma is "
                                       << sigma[k] << std::endl;
       scales[k] = ViewT(vw::gaussian_filter(scales[k-1], use_sigma));

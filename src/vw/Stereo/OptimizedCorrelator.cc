@@ -472,13 +472,13 @@ ImageView<PixelDisparity<float> > OptimizedCorrelator::do_correlation(ImageView<
 
   double lapse__ = Time() - begin__;
   if (m_verbose) {
-    vw_out(InfoMessage) << "\tTotal correlation + subpixel took " << lapse__ << " sec";
+    vw_out(InfoMessage, "stereo") << "\tTotal correlation + subpixel took " << lapse__ << " sec";
     double nTries = 2.0 * (m_lMaxV - m_lMinV + 1) * (m_lMaxH - m_lMinH + 1);
     double rate = nTries * left_image.cols() * left_image.rows() / lapse__ / 1.0e6;
-    vw_out(InfoMessage) << "\t(" << rate << " M disparities/second)\n";
+    vw_out(InfoMessage, "stereo") << "\t(" << rate << " M disparities/second)\n";
 
     double score = (100.0 * matched) / total;
-    vw_out(InfoMessage) << "\tCorrelation rate: " << score << "\n\n";
+    vw_out(InfoMessage, "stereo") << "\tCorrelation rate: " << score << "\n\n";
   }
 
   return resultL2R;

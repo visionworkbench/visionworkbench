@@ -44,8 +44,8 @@
 #define __VW_CORE_CACHE_H__
 
 // Uncomment one of these to enable or disable cache debug messages
-//#define VW_CACHE_DEBUG(x) x
-#define VW_CACHE_DEBUG(x)
+#define VW_CACHE_DEBUG(x) x
+//#define VW_CACHE_DEBUG(x)
 
 #include <typeinfo>
 #include <boost/smart_ptr.hpp>
@@ -53,6 +53,7 @@
 #include <vw/Core/Exception.h>
 #include <vw/Core/Thread.h>
 #include <vw/Core/Stopwatch.h>
+#include <vw/Core/Log.h>
 
 #include <iostream>
 
@@ -98,14 +99,14 @@ namespace vw {
       CacheLine( Cache& cache, GeneratorT const& generator )
         : CacheLineBase(cache,generator.size()), m_generator(generator), m_generation_count(0)
       {
-        VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache creating CacheLine " << info() << std::endl; )
+        VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache creating CacheLine " << info() << "\n"; )
         Mutex::Lock cache_lock(cache.m_mutex);
         CacheLineBase::invalidate();
       }
       
       virtual ~CacheLine() {
         invalidate();
-        VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache destroying CacheLine " << info() << std::endl; )
+        VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache destroying CacheLine " << info() << "\n"; )
         Mutex::Lock cache_lock(cache().m_mutex);
         remove();
       }
@@ -113,7 +114,7 @@ namespace vw {
       virtual void invalidate() {
         Mutex::Lock line_lock(m_mutex);
         if( ! m_value ) return;
-        VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache invalidating CacheLine " << info() << std::endl; )
+        VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache invalidating CacheLine " << info() << "\n"; );
         CacheLineBase::invalidate();
         CacheLineBase::deallocate();
         m_value.reset();
@@ -130,7 +131,7 @@ namespace vw {
         Mutex::Lock line_lock(m_mutex);
         if( !m_value ) {
           m_generation_count++;
-          VW_CACHE_DEBUG( vw_out(VerboseDebugMessage) << "Cache generating CacheLine " << info() << std::endl );
+          VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache generating CacheLine " << info() << "\n"; )
           {
             Mutex::Lock cache_lock(cache().m_mutex);
             CacheLineBase::allocate();

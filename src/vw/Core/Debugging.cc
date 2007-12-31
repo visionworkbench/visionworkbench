@@ -33,8 +33,8 @@
 #include <Windows.h>
 #endif
 
-vw::Timer::Timer( std::string const& desc, MessageLevel level )
-  : m_desc(desc), m_level(level) {
+vw::Timer::Timer( std::string const& desc, MessageLevel level, std::string const& log_namespace )
+  : m_desc(desc), m_level(level), m_log_namespace(log_namespace) {
 #ifdef WIN32
   LARGE_INTEGER begin;
   QueryPerformanceCounter( &begin );
@@ -56,5 +56,5 @@ vw::Timer::~Timer() {
   double duration = end.tv_sec - m_begin.tv_sec;
   duration += (end.tv_usec - m_begin.tv_usec)/1.0e6;
 #endif
-  vw_out(m_level) << m_desc << ": " << duration << std::endl;
+  vw_out(m_level, m_log_namespace) << m_desc << ": " << duration << std::endl;
 }

@@ -212,9 +212,9 @@ namespace ip {
       }
 
       // For debugging
-      vw_out(InfoMessage) << "\nBest overall:" << std::endl;
-      vw_out(InfoMessage) << "\tFit = " << H_max << std::endl;
-      vw_out(InfoMessage) << "\tInliers / Total  = " << inliers_max << " / " << p1.size() << "\n\n";
+      vw_out(InfoMessage, "interest_point") << "\nBest overall:" << std::endl;
+      vw_out(InfoMessage, "interest_point") << "\tFit = " << H_max << std::endl;
+      vw_out(InfoMessage, "interest_point") << "\tInliers / Total  = " << inliers_max << " / " << p1.size() << "\n\n";
 
       ////////////////////////////////////
       // Second part:

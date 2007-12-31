@@ -101,7 +101,7 @@ public:
     if( SDfileinfo( sd_id, &n_datasets, &n_fileattrs ) == FAIL )
       vw_throw( IOErr() << "Unable to read info from HDF file \"" << filename << "\"!" );
 
-    vw_out(VerboseDebugMessage) << "HDF SD file \"" << filename << "\": " << n_datasets << " datasets, " << n_fileattrs << " fileattrs" << std::endl;
+    vw_out(VerboseDebugMessage, "fileio") << "HDF SD file \"" << filename << "\": " << n_datasets << " datasets, " << n_fileattrs << " fileattrs" << std::endl;
 
     sds_info.resize( n_datasets );
     for( ::int32 i=0; i<n_datasets; ++i ) {
@@ -120,17 +120,17 @@ public:
 
       sds_info[i].coord = SDiscoordvar( id );
       if( sds_info[i].coord )
-        vw_out(VerboseDebugMessage) << "  DIM ";
+        vw_out(VerboseDebugMessage, "fileio") << "  DIM ";
       else
-        vw_out(VerboseDebugMessage) << "  SDS ";
+        vw_out(VerboseDebugMessage, "fileio") << "  SDS ";
 
-      vw_out(VerboseDebugMessage) << i << ": \"" << sds_info[i].name << "\" ";
+      vw_out(VerboseDebugMessage, "fileio") << i << ": \"" << sds_info[i].name << "\" ";
       for( int j=sds_info[i].rank-1; ; ) {
-        vw_out(VerboseDebugMessage) << sds_info[i].dim_sizes[j];
+        vw_out(VerboseDebugMessage, "fileio") << sds_info[i].dim_sizes[j];
         if( j-- == 0 ) break;
-        vw_out(VerboseDebugMessage) << "x";
+        vw_out(VerboseDebugMessage, "fileio") << "x";
       }
-      vw_out(VerboseDebugMessage) << " (data type " << sds_info[i].type << ", " << sds_info[i].n_attrs << " attrs)" << std::endl;
+      vw_out(VerboseDebugMessage, "fileio") << " (data type " << sds_info[i].type << ", " << sds_info[i].n_attrs << " attrs)" << std::endl;
 
       if( ! SDiscoordvar( id ) ) {
         for( int j=sds_info[i].rank-1; j>=0; --j ) {
@@ -146,7 +146,7 @@ public:
           // FIXME: We really don't support this yet.
           // if( dim_data_type != 0 )
           //   vw_throw( NoImplErr() << "SDS dimension scales not supported (HDF file \"" << filename << "\")!" );
-          vw_out(VerboseDebugMessage) << "    Dim " << j << ": \"" << dim_name << "\" (size " << dim_size << ", " << dim_n_attrs << " attrs)" << std::endl;
+          vw_out(VerboseDebugMessage, "fileio") << "    Dim " << j << ": \"" << dim_name << "\" (size " << dim_size << ", " << dim_n_attrs << " attrs)" << std::endl;
         }
       }
 
@@ -218,7 +218,7 @@ public:
     new_format.planes = sds_planes.size();
     new_format.pixel_format = VW_PIXEL_SCALAR;
     plane_info = new_plane_info;
-    vw_out(VerboseDebugMessage) << "Configured resource: " << new_format.cols << "x" << new_format.rows << "x" << new_format.planes << std::endl;
+    vw_out(VerboseDebugMessage, "fileio") << "Configured resource: " << new_format.cols << "x" << new_format.rows << "x" << new_format.planes << std::endl;
     return new_format;
   }
 
@@ -330,7 +330,7 @@ public:
     result.resize( count );
     status = SDreadattr( sds_id, attr_index, &result[0] );
     if( status == FAIL ) vw_throw( IOErr() << "Unable to read SDS attribute in HDF file \"" << resource.filename() << "\"!" );
-    vw_out(VerboseDebugMessage) << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
+    vw_out(VerboseDebugMessage, "fileio") << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
     SDendaccess( sds_id );
   }
 
@@ -356,7 +356,7 @@ public:
     result.resize( count );
     status = SDreadattr( sds_id, attr_index, &result[0] );
     if( status == FAIL ) vw_throw( IOErr() << "Unable to read SDS attribute in HDF file \"" << resource.filename() << "\"!" );
-    vw_out(VerboseDebugMessage) << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
+    vw_out(VerboseDebugMessage, "fileio") << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
     SDendaccess( sds_id );
   }
 
@@ -382,7 +382,7 @@ public:
     result.resize( count );
     status = SDreadattr( sds_id, attr_index, &result[0] );
     if( status == FAIL ) vw_throw( IOErr() << "Unable to read SDS attribute in HDF file \"" << resource.filename() << "\"!" );
-    vw_out(VerboseDebugMessage) << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
+    vw_out(VerboseDebugMessage, "fileio") << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
     SDendaccess( sds_id );
   }
 
@@ -408,7 +408,7 @@ public:
     result.resize( count );
     status = SDreadattr( sds_id, attr_index, &result[0] );
     if( status == FAIL ) vw_throw( IOErr() << "Unable to read SDS attribute in HDF file \"" << resource.filename() << "\"!" );
-    vw_out(VerboseDebugMessage) << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
+    vw_out(VerboseDebugMessage, "fileio") << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
     SDendaccess( sds_id );
   }
 
@@ -434,7 +434,7 @@ public:
     result.resize( count );
     status = SDreadattr( sds_id, attr_index, &result[0] );
     if( status == FAIL ) vw_throw( IOErr() << "Unable to read SDS attribute in HDF file \"" << resource.filename() << "\"!" );
-    vw_out(VerboseDebugMessage) << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
+    vw_out(VerboseDebugMessage, "fileio") << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
     SDendaccess( sds_id );
   }
 
@@ -460,7 +460,7 @@ public:
     result.resize( count );
     status = SDreadattr( sds_id, attr_index, &result[0] );
     if( status == FAIL ) vw_throw( IOErr() << "Unable to read SDS attribute in HDF file \"" << resource.filename() << "\"!" );
-    vw_out(VerboseDebugMessage) << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
+    vw_out(VerboseDebugMessage, "fileio") << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
     SDendaccess( sds_id );
   }
 
@@ -486,7 +486,7 @@ public:
     result.resize( count );
     status = SDreadattr( sds_id, attr_index, &result[0] );
     if( status == FAIL ) vw_throw( IOErr() << "Unable to read SDS attribute in HDF file \"" << resource.filename() << "\"!" );
-    vw_out(VerboseDebugMessage) << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
+    vw_out(VerboseDebugMessage, "fileio") << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
     SDendaccess( sds_id );
   }
 
@@ -512,7 +512,7 @@ public:
     result.resize( count );
     status = SDreadattr( sds_id, attr_index, &result[0] );
     if( status == FAIL ) vw_throw( IOErr() << "Unable to read SDS attribute in HDF file \"" << resource.filename() << "\"!" );
-    vw_out(VerboseDebugMessage) << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
+    vw_out(VerboseDebugMessage, "fileio") << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
     SDendaccess( sds_id );
   }
 
@@ -540,7 +540,7 @@ public:
     status = SDreadattr( sds_id, attr_index, &result[0] );
     if( count>0 && result[count-1]==0 ) result.resize(count-1); // Remove excess trailing zero
     if( status == FAIL ) vw_throw( IOErr() << "Unable to read SDS attribute in HDF file \"" << resource.filename() << "\"!" );
-    vw_out(VerboseDebugMessage) << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
+    vw_out(VerboseDebugMessage, "fileio") << "Attribute \"" << name << "\": data type " << data_type << ", length " << count << std::endl;
     SDendaccess( sds_id );
   }
 };

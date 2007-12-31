@@ -84,6 +84,7 @@ namespace vw {
   class NullOutputBuf : public std::basic_streambuf<CharT, traits> {
     typedef typename std::basic_streambuf<CharT, traits>::int_type int_type;
     virtual int_type overflow(int_type c) { return traits::not_eof(c); }
+    virtual std::streamsize xsputn(const CharT* sequence, std::streamsize num) { return num; }
   };
   
   template<typename CharT, typename traits>
@@ -108,9 +109,11 @@ namespace vw {
     typedef std::vector<std::basic_ostream<CharT, traits>* > stream_container;
     typedef typename stream_container::iterator stream_iterator;
     stream_container m_streams;
+    Mutex m_mutex;
     
   protected:
     virtual std::streamsize xsputn(const CharT* sequence, std::streamsize num) {
+      Mutex::Lock lock(m_mutex);
       stream_iterator current = m_streams.begin();
       stream_iterator end = m_streams.end();
       for(; current != end; ++current) 
@@ -119,6 +122,7 @@ namespace vw {
     }
     
     virtual int_type overflow(int_type c) {
+      Mutex::Lock lock(m_mutex);
       stream_iterator current = m_streams.begin();
       stream_iterator end = m_streams.end();
       
@@ -128,13 +132,20 @@ namespace vw {
     }
     
   public:
-    void add(std::basic_ostream<CharT, traits>& stream) { m_streams.push_back(&stream); }
+    void add(std::basic_ostream<CharT, traits>& stream) { 
+      Mutex::Lock lock(m_mutex);
+      m_streams.push_back(&stream); 
+    }
     void remove(std::basic_ostream<CharT, traits>& stream) {
+      Mutex::Lock lock(m_mutex);
       stream_iterator pos = std::find(m_streams.begin(),m_streams.end(), &stream);
       if(pos != m_streams.end()) 
         m_streams.erase(pos);
-      }
-    void clear() { m_streams.clear(); }
+    }
+    void clear() {       
+      Mutex::Lock lock(m_mutex);
+      m_streams.clear(); 
+    }
   };
   
   template<typename CharT, typename traits>
@@ -162,7 +173,6 @@ namespace vw {
   // etc.)
   typedef NullOutputStream<char> null_ostream;
   typedef MultiOutputStream<char> multi_ostream;
-
   
 
   // In order to create our own C++ streams compatible ostream object,
@@ -282,24 +292,40 @@ namespace vw {
     typedef std::pair<int, std::string> rule_type;
     typedef std::list<rule_type> rules_type;
     rules_type m_rules;
+    Mutex m_mutex;
 
   public:
+
+    // Ensure Copyable semantics
+    LogRuleSet( LogRuleSet const& copy_log) {
+      m_rules = copy_log.m_rules;
+    }
+
+    LogRuleSet& operator=( LogRuleSet const& copy_log) {
+      m_rules = copy_log.m_rules;
+    }
+
     
-    // By default, the LogRuleSet is set up to pass "console" messages
+    // by default, the LogRuleSet is set up to pass "console" messages
     // at level vw::InfoMessage or higher.
     LogRuleSet() {
       m_rules.push_back(rule_type(vw::InfoMessage, "console"));      
     }
 
-    void add_rule(std::string log_namespace, int log_level) {
+    void add_rule(int log_level, std::string log_namespace) {
+      Mutex::Lock lock(m_mutex);
       m_rules.push_front(rule_type(log_level, boost::to_lower_copy(log_namespace)));
     }
 
-    void clear() { m_rules.clear(); }
+    void clear() { 
+      Mutex::Lock lock(m_mutex);
+      m_rules.clear(); 
+    }
         
-    // You can overload this method froma subclass to change the
+    // You can overload this method from a subclass to change the
     // behavior of the LogRuleSet.
     virtual bool operator() (int log_level, std::string log_namespace) {
+      Mutex::Lock lock(m_mutex);
 
       for (rules_type::iterator it = m_rules.begin(); it != m_rules.end(); ++it) {
 
@@ -342,19 +368,12 @@ namespace vw {
 
     // Initialize a log from a filename.  A new internal ofstream is
     // created to stream log messages to disk.
-    Log(std::string log_filename, bool prepend_infostamp = true) : m_prepend_infostamp(prepend_infostamp) {
-      m_log_ostream_ptr = new std::ofstream(log_filename.c_str());
-      if (! static_cast<std::ofstream*>(m_log_ostream_ptr)->is_open())
-        vw_throw(IOErr() << "Could not open log file " << log_filename << " for writing.");
-      m_log_stream.set_stream(*m_log_ostream_ptr);
-    }
+    Log(std::string log_filename, bool prepend_infostamp = true);
 
     // Initialize a log using an already open stream.  Warning: The
     // log stores the stream by reference, so you MUST delete the log
     // object _before_ closing and de-allocating the stream.
-    Log(std::ostream& log_ostream, bool prepend_infostamp = true) : m_log_stream(log_ostream), 
-                                                                    m_log_ostream_ptr(NULL),
-                                                                    m_prepend_infostamp(prepend_infostamp) {}
+    Log(std::ostream& log_ostream, bool prepend_infostamp = true);
 
     ~Log() {
       m_log_stream.set_stream(std::cout);
@@ -381,13 +400,23 @@ namespace vw {
     double m_logconf_poll_period;
     Mutex m_logconf_time_mutex;
     Mutex m_logconf_file_mutex;
+    Mutex m_system_log_mutex;
     
     std::vector<boost::shared_ptr<Log> > m_logs;
     boost::shared_ptr<Log> m_console_log;
 
-    // The multi_ostream creates a single stream that delegates to
-    // its child streams.      
-    multi_ostream m_multi_ostream;
+    // The multi_ostream creates a single stream that delegates to its
+    // child streams. We store one multi_ostream per thread, since
+    // each thread will have a different set of output streams it is
+    // currently accessing.
+    //
+    // TODO: Rather than manage this as a simple map (which will grow
+    // quite large and hurt performance if there are many threads), we
+    // should really use some sort of cache of shared_ptr's to
+    // ostreams here.  The tricky thing is that once we return the
+    // ostream, we don't know how long the thread will use it before
+    // it can be safely de-allocated.  
+    std::map<int, boost::shared_ptr<multi_ostream> > m_multi_ostreams;
 
     // Private methods for checking the logconf file
     void stat_logconf();
@@ -413,26 +442,36 @@ namespace vw {
     /// Add a stream to the SystemLog manager.  You may optionally specify a
     /// LogRuleSet.
     void add(std::ostream &stream, LogRuleSet rule_set = LogRuleSet()) {
+      Mutex::Lock lock(m_system_log_mutex);
       m_logs.push_back( boost::shared_ptr<Log>(new Log(stream)) );
     }
 
     // Add an already existing log to the system log manager.
     void add(boost::shared_ptr<Log> log) {
+      Mutex::Lock lock(m_system_log_mutex);
       m_logs.push_back( log );
     }
 
     /// Reset the System Log; closing all of the currently open Log
     /// streams.
-    void clear() { m_logs.clear(); }
+    void clear() { 
+      Mutex::Lock lock(m_system_log_mutex);
+      m_logs.clear(); 
+    }
     
-    Log& console_log() { return *m_console_log; }
+    Log& console_log() { 
+      Mutex::Lock lock(m_system_log_mutex);
+      return *m_console_log; 
+    }
+
     void set_console_stream(std::ostream& stream, LogRuleSet rule_set = LogRuleSet()) {
+      Mutex::Lock lock(m_system_log_mutex);
       m_console_log = boost::shared_ptr<Log>(new Log(stream) );
       m_console_log->rule_set() = rule_set;
     }
   };
 
-  // Declaration of the standard VW I/O routine.
+  // Declaration of the standard VW log routine. 
   std::ostream& vw_out( int log_level, std::string log_namespace = "console" );
   void set_debug_level( int log_level );
   void set_output_stream( std::ostream& stream );

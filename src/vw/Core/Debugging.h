@@ -63,6 +63,7 @@ namespace vw {
 
   class Timer {
     std::string m_desc;
+    std::string m_log_namespace;
     MessageLevel m_level;
 #ifdef WIN32
     __int64 m_begin;
@@ -70,7 +71,7 @@ namespace vw {
     timeval m_begin;
 #endif
   public:
-    Timer( std::string const& desc, MessageLevel level=InfoMessage );
+    Timer( std::string const& desc, MessageLevel level=InfoMessage, std::string const& log_namespace = "console" );
 
     ~Timer();
   };

@@ -127,7 +127,7 @@ namespace vw {
           break;
 #endif
         default:
-          vw_out(DebugMessage) << "Unsupported PNG comment type in PNG read!" << std::endl;
+          vw_out(WarningMessage, "fileio") << "Unsupported PNG comment type in PNG read!" << std::endl;
           continue;
         }
         comments.push_back( c );

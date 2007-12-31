@@ -261,7 +261,7 @@ namespace stereo {
         while (dimension > m_pyramid_min_image_dimension) { pyramid_levels++; dimension /= 2;}
       } 
 
-      vw_out(InfoMessage) << "Initializing pyramid correlator with " << pyramid_levels << " levels.\n";
+      vw_out(InfoMessage, "stereo") << "Initializing pyramid correlator with " << pyramid_levels << " levels.\n";
 
       // Build the image pyramid
       std::vector<ImageView<channel_type> > left_pyramid(pyramid_levels), right_pyramid(pyramid_levels);

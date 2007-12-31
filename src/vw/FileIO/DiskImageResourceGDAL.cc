@@ -268,14 +268,14 @@ namespace vw {
 
   GdalDatasetHandle::GdalDatasetHandle(std::string filename) {
     m_filename = filename;
-    vw_out(VerboseDebugMessage) << "GDAL Handle opening " << m_filename << "\n";
+    vw_out(VerboseDebugMessage, "fileio") << "GDAL Handle opening " << m_filename << "\n";
     m_dataset_ptr = GDALOpen( m_filename.c_str(), GA_ReadOnly );
     if ( !m_dataset_ptr ) 
       vw_throw(ArgumentErr() << "DiskImageResourceGDAL: Could not open \"" << m_filename << "\"");
   }
 
   GdalDatasetHandle::~GdalDatasetHandle() { 
-    vw_out(VerboseDebugMessage) << "GDAL Handle closing " << m_filename << "\n";
+    vw_out(VerboseDebugMessage, "fileio") << "GDAL Handle closing " << m_filename << "\n";
     if (m_dataset_ptr) 
       delete static_cast<GDALDataset*>(m_dataset_ptr);
   }
@@ -302,18 +302,18 @@ namespace vw {
     double geo_transform[6];
    
     // <test code> 
-    vw_out(DebugMessage) << "\n\tMetadata description: " << dataset->GetDescription() << std::endl;
+    vw_out(DebugMessage, "fileio") << "\n\tMetadata description: " << dataset->GetDescription() << std::endl;
     char** metadata = dataset->GetMetadata();
-    vw_out(DebugMessage) << "\tCount: " << CSLCount(metadata) << std::endl;
+    vw_out(DebugMessage, "fileio") << "\tCount: " << CSLCount(metadata) << std::endl;
     for (int i = 0; i < CSLCount(metadata); i++) {
-      vw_out(DebugMessage) << "\t\t" << CSLGetField(metadata,i) << std::endl;
+      vw_out(DebugMessage, "fileio") << "\t\t" << CSLGetField(metadata,i) << std::endl;
     }
 
-    vw_out(DebugMessage) << "\tDriver: " << 
+    vw_out(DebugMessage, "fileio") << "\tDriver: " << 
       dataset->GetDriver()->GetDescription() <<
       dataset->GetDriver()->GetMetadataItem( GDAL_DMD_LONGNAME ) << std::endl;
    
-    vw_out(DebugMessage) << "\tSize is " <<
+    vw_out(DebugMessage, "fileio") << "\tSize is " <<
       dataset->GetRasterXSize() << "x" <<
       dataset->GetRasterYSize() << "x" <<
       dataset->GetRasterCount() << std::endl;
@@ -326,7 +326,7 @@ namespace vw {
       m_geo_transform(1,0) = geo_transform[4];
       m_geo_transform(1,1) = geo_transform[5];
       m_geo_transform(1,2) = geo_transform[3];
-      vw_out(DebugMessage) << "\tAffine transform: " << m_geo_transform << std::endl;
+      vw_out(DebugMessage, "fileio") << "\tAffine transform: " << m_geo_transform << std::endl;
     }
    
     // We do our best here to determine what pixel format the GDAL image is in.  
@@ -403,14 +403,14 @@ namespace vw {
     std::list<std::string>::iterator i;
     bool unsupported_driver = false;
     for( i = gdal_format_string.begin(); i != gdal_format_string.end() && driver == NULL; i++ ) {
-      vw_out(DebugMessage) << "Attempting to creating a new file with the following type: " << (*i) << std::endl;
+      vw_out(DebugMessage, "fileio") << "Attempting to creating a new file with the following type: " << (*i) << std::endl;
       driver = GetGDALDriverManager()->GetDriverByName((*i).c_str());
       if( driver == NULL )
         continue;
         
       char** metadata = driver->GetMetadata();
       if( !CSLFetchBoolean( metadata, GDAL_DCAP_CREATE, FALSE ) ) {
-        vw_out(DebugMessage) << "GDAL driver " << (*i) << " does not support create." << std::endl;
+        vw_out(DebugMessage, "fileio") << "GDAL driver " << (*i) << " does not support create." << std::endl;
         driver = NULL;
         unsupported_driver = true;
       }

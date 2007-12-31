@@ -95,7 +95,7 @@ namespace vw {
     }
     
     ~DiskCacheHandle() { 
-      vw_out(DebugMessage) << "DiskCacheImageView: deleting temporary cache file: " << m_filename << "\n";
+      vw_out(DebugMessage, "fileio") << "DiskCacheImageView: deleting temporary cache file: " << m_filename << "\n";
       unlink(m_filename.c_str());
     }
 
@@ -125,7 +125,7 @@ namespace vw {
       char base_name[] = "/tmp/vw_cache_XXXXXXX";
       std::string filename = mktemp(base_name);
       filename = filename + "." + m_file_type;
-      vw_out(InfoMessage) << "Creating disk cache of image in: " << filename << "\n";
+      vw_out(InfoMessage, "fileio") << "Creating disk cache of image in: " << filename << "\n";
       write_image(filename, pixel_cast_rescale<PixelT>(view), TerminalProgressCallback());
       m_handle = boost::shared_ptr<DiskCacheHandle<PixelT> >(new DiskCacheHandle<PixelT>(view.impl(), filename)); 
     }

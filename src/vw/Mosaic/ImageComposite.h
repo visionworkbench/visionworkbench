@@ -324,7 +324,7 @@ namespace mosaic {
 
 template <class PixelT>
 void vw::mosaic::ImageComposite<PixelT>::generate_masks( vw::ProgressCallback const& progress_callback ) const {
-  vw_out(DebugMessage) << "Generating masks..." << std::endl;
+  vw_out(DebugMessage, "mosaic") << "Generating masks..." << std::endl;
   std::vector<Cache::Handle<GrassfireGenerator> > grassfires;
   for( unsigned i=0; i<sources.size(); ++i )
     grassfires.push_back( m_cache.insert( GrassfireGenerator( sourcerefs[i] ) ) );
@@ -366,7 +366,7 @@ void vw::mosaic::ImageComposite<PixelT>::generate_masks( vw::ProgressCallback co
 
 template <class PixelT>
 boost::shared_ptr<typename vw::mosaic::ImageComposite<PixelT>::Pyramid> vw::mosaic::ImageComposite<PixelT>::PyramidGenerator::generate() const {
-  vw_out(DebugMessage) << "ImageComposite generating pyramid " << m_index << std::endl;
+  vw_out(DebugMessage, "mosaic") << "ImageComposite generating pyramid " << m_index << std::endl;
   boost::shared_ptr<Pyramid> ptr( new Pyramid );
   ImageView<pixel_type> source = copy(*m_composite.sources[m_index]);
   m_composite.sources[m_index].deprioritize();
@@ -404,7 +404,7 @@ boost::shared_ptr<typename vw::mosaic::ImageComposite<PixelT>::Pyramid> vw::mosa
 
 template <class PixelT>
 void vw::mosaic::ImageComposite<PixelT>::insert( ImageViewRef<pixel_type> const& image, int x, int y ) {
-  vw_out(VerboseDebugMessage) << "ImageComposite inserting image " << pyramids.size() << std::endl;
+  vw_out(VerboseDebugMessage, "mosaic") << "ImageComposite inserting image " << pyramids.size() << std::endl;
   sourcerefs.push_back( image );
   sources.push_back( m_cache.insert( SourceGenerator( image ) ) );
   alphas.push_back( m_cache.insert( AlphaGenerator( *this, pyramids.size() ) ) );
@@ -460,7 +460,7 @@ void vw::mosaic::ImageComposite<PixelT>::prepare( BBox2i const& total_bbox,
 // to the given bounding box.
 template <class PixelT>
 vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox<int,2> const& patch_bbox ) const {
-  vw_out(DebugMessage) << "ImageComposite compositing patch " << patch_bbox << "..." << std::endl;
+  vw_out(DebugMessage, "mosaic") << "ImageComposite compositing patch " << patch_bbox << "..." << std::endl;
   // Compute bboxes and allocate the pyramids
   std::vector<BBox<int,2> > bbox_pyr;
   std::vector<ImageView<pixel_type> > sum_pyr(levels);
@@ -561,7 +561,7 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox<int,
 // to the given bounding box WITHOUT blending.
 template <class PixelT>
 vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::draft_patch( BBox<int,2> const& patch_bbox ) const {
-  vw_out(DebugMessage) << "ImageComposite compositing patch " << patch_bbox << "..." << std::endl;
+  vw_out(DebugMessage, "mosaic") << "ImageComposite compositing patch " << patch_bbox << "..." << std::endl;
   ImageView<pixel_type> composite(patch_bbox.width(),patch_bbox.height());
 
   // Add each image to the composite.

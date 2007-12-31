@@ -178,7 +178,7 @@ namespace vw {
     /// Returns the pixel at the given position in the given plane.
     result_type operator()( int32 x, int32 y, int32 /*plane*/=1 ) const {
 #if VW_DEBUG_LEVEL > 1
-      vw_out(VerboseDebugMessage) << "ImageResourceView rasterizing pixel (" << x << "," << y << ")" << std::endl;
+      vw_out(VerboseDebugMessage, "image") << "ImageResourceView rasterizing pixel (" << x << "," << y << ")" << std::endl;
 #endif
       if( ! m_enable_cache )
         vw_throw( LogicErr() << "Non-cacheing ImageResourceViews do not support per-pixel access" );
@@ -203,7 +203,7 @@ namespace vw {
     }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
 #if VW_DEBUG_LEVEL > 1
-      vw_out(VerboseDebugMessage) << "ImageResourceView rasterizing bbox " << bbox << std::endl;
+      vw_out(VerboseDebugMessage, "image") << "ImageResourceView rasterizing bbox " << bbox << std::endl;
 #endif
       if( !m_enable_cache ) return read_image( dest, *r, bbox );
       int32 ix0=bbox.min().x()/m_block_size.x(), iy=bbox.min().y()/m_block_size.y();
@@ -213,7 +213,7 @@ namespace vw {
           BBox2i block_bbox( ix*m_block_size.x(), iy*m_block_size.y(), m_block_size.x(), m_block_size.y() );
           block_bbox.crop( bbox );
 #if VW_DEBUG_LEVEL > 1
-          vw_out(VerboseDebugMessage) << "ImageResourceView rasterizing block (" << ix << "," << iy << "), block_bbox " << block_bbox << std::endl;
+          vw_out(VerboseDebugMessage, "image") << "ImageResourceView rasterizing block (" << ix << "," << iy << "), block_bbox " << block_bbox << std::endl;
 #endif
           block(ix,iy)->rasterize( crop( dest, block_bbox-bbox.min() ),
                                    block_bbox-Vector2i(ix*m_block_size.x(),iy*m_block_size.y()) );

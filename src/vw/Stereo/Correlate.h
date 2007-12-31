@@ -233,7 +233,7 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     vw::MatrixProxy<double,6,9> pinvA(pinvA_data);
     for (int r = 0; r < height; r++) {
       if (r%100 == 0) 
-        if (verbose) vw_out(0) << "\tPerforming sub-pixel correlation... "<< (double(r)/height * 100) << "%%\r" << std::flush;
+        if (verbose) vw_out(InfoMessage, "stereo") << "\tPerforming sub-pixel correlation... "<< (double(r)/height * 100) << "%%\r" << std::flush;
     
       for (int c = 0; c < width; c++) {
       
@@ -359,7 +359,7 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
         } 
       }
     }
-    if (verbose) vw_out(0) << "\tPerforming sub-pixel correlation... done.                 \n";
+    if (verbose) vw_out(InfoMessage, "stereo") << "\tPerforming sub-pixel correlation... done.                 \n";
   }
 
   /// This routine cross checks L2R and R2L, placing the final version
@@ -372,7 +372,7 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     int count = 0, match_count = 0;
   
     if (verbose)
-      vw_out(InfoMessage) << "\tCrosscorr threshold: " << cross_corr_threshold << "\n";
+      vw_out(InfoMessage, "stereo") << "\tCrosscorr threshold: " << cross_corr_threshold << "\n";
     if (cross_corr_threshold < 0) 
       vw_throw( vw::ArgumentErr() << "CrossCorrConsistencyCheck2D: the crosscorr threshold was less than 0." );
   
@@ -413,7 +413,7 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
       }
     } 
     if (verbose) 
-      vw_out(InfoMessage) << "\tCross-correlation retained " << count << " / " << match_count << " matches (" << ((float)count/match_count*100) <<" percent).\n";
+      vw_out(InfoMessage, "stereo") << "\tCross-correlation retained " << count << " / " << match_count << " matches (" << ((float)count/match_count*100) <<" percent).\n";
   }
 
 }} // namespace vw::stereo

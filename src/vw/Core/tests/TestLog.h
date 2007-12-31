@@ -75,9 +75,9 @@ public:
 
   void test_log_rule_set() {    
     LogRuleSet rs;
-    rs.add_rule("console", vw::InfoMessage);
-    rs.add_rule("foo", vw::VerboseDebugMessage);
-    rs.add_rule("Bar", vw::EveryMessage);
+    rs.add_rule(vw::InfoMessage, "console");
+    rs.add_rule(vw::VerboseDebugMessage, "foo");
+    rs.add_rule(vw::EveryMessage, "Bar");
 
     TS_ASSERT_EQUALS( rs(vw::InfoMessage+1, "console"), false);
     TS_ASSERT_EQUALS( rs(vw::InfoMessage, "console"), true);
@@ -100,7 +100,7 @@ public:
   void test_multithreaded_logging() {
     std::cout << "\n";
     Log log(std::cout);
-    log.rule_set().add_rule("log test", vw::EveryMessage);
+    log.rule_set().add_rule(vw::EveryMessage, "log test");
     log(0, "log test") << "Testing logging from multiple threads\n";
     boost::shared_ptr<TestLogTask> task1( new TestLogTask(log,"log test") );
     boost::shared_ptr<TestLogTask> task2( new TestLogTask(log,"log test") );
@@ -123,13 +123,13 @@ public:
 
   void test_system_log() {
     std::cout << "\nTesting System Log\n";
-    system_log().console_log().rule_set().add_rule("test", vw::EveryMessage);
+    system_log().console_log().rule_set().add_rule(vw::EveryMessage, "test");
 
     vw_out(0) << "\tTesting system log (first call)\n";
     vw_out(0,"test") << "\tTesting system log (second call)\n";
 
     boost::shared_ptr<Log> new_log(new Log(std::cout));
-    new_log->rule_set().add_rule("test", vw::EveryMessage);
+    new_log->rule_set().add_rule(vw::EveryMessage, "test");
     system_log().add(new_log);
     vw_out(0,"test") << "\tYou should see this message twice; once with the logging prefix and once without.\n";
 

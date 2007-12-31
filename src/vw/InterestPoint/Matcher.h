@@ -260,15 +260,15 @@ private:
 
     std::vector<IterT> indx(ip1.size(), ip2.end());
     int progress_inc = std::max((int)(ip1.size() / 10), 1);
-    vw_out(InfoMessage) << "\tFinding interest point matches" << std::flush;
+    vw_out(InfoMessage, "interest_point") << "\tFinding interest point matches" << std::flush;
     int n = 0;
     for (IterT ip1_i = ip1.begin(); ip1_i != ip1.end(); ++ip1_i, ++n) {
       if (n % progress_inc == 0)
-        vw_out(InfoMessage) << "." << std::flush;
+        vw_out(InfoMessage, "interest_point") << "." << std::flush;
       std::vector<IterT> candidates = constraint(*ip1_i, ip2);
       indx[n] = best_match(*ip1_i, ip2, candidates);
     }
-    vw_out(InfoMessage) << " done.\n";
+    vw_out(InfoMessage, "interest_point") << " done.\n";
     
     return indx;
   }
