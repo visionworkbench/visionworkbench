@@ -49,13 +49,15 @@ namespace vw {
     public:
       boost::shared_ptr<ImageResource> m_res_ptr;
       BBox2i m_bbox;
+      Mutex& m_rsrc_mutex;
     public:
       typedef ImageView<PixelT> value_type;
 
-      BlockGenerator( boost::shared_ptr<ImageResource> res_ptr, BBox2i bbox )
-        : m_res_ptr( res_ptr ), m_bbox( bbox ) {}
+      BlockGenerator( boost::shared_ptr<ImageResource> res_ptr, BBox2i bbox, Mutex& mutex )
+        : m_res_ptr( res_ptr ), m_bbox( bbox ), m_rsrc_mutex(mutex) {}
       
       size_t size() const {
+        Mutex::Lock lock(m_rsrc_mutex);
         return m_bbox.width() * m_bbox.height() * m_res_ptr->planes() * sizeof(PixelT);
       }
       
@@ -71,7 +73,10 @@ namespace vw {
           planes = 1;
         
         boost::shared_ptr<ImageView<PixelT> > ptr( new ImageView<PixelT>( m_bbox.width(), m_bbox.height(), planes ) );
-        m_res_ptr->read( ptr->buffer(), m_bbox );
+        {
+          Mutex::Lock lock(m_rsrc_mutex);
+          m_res_ptr->read( ptr->buffer(), m_bbox );
+        }
         return ptr;
       }
     };
@@ -84,6 +89,7 @@ namespace vw {
     int m_table_width, m_table_height;
     typedef std::vector<Cache::Handle<BlockGenerator> > block_table_type;
     boost::shared_ptr<block_table_type> m_block_table;
+    boost::shared_ptr<Mutex> m_rsrc_mutex;
 
     Cache::Handle<BlockGenerator>& block( int ix, int iy ) const {
       if( ix<0 || ix>=m_table_width || iy<0 || iy>=m_table_height )
@@ -114,7 +120,7 @@ namespace vw {
         for( int32 ix=0; ix<m_table_width; ++ix ) {
           BBox2i bbox( ix*m_block_size.x(), iy*m_block_size.y(), m_block_size.x(), m_block_size.y() );
           bbox.crop( view_bbox );
-          block(ix,iy) = m_cache_ptr->insert( BlockGenerator( r, bbox ) );
+          block(ix,iy) = m_cache_ptr->insert( BlockGenerator( r, bbox, *m_rsrc_mutex ) );
         }
       }
     }
@@ -134,7 +140,8 @@ namespace vw {
       : r( resource ),
         m_cache_ptr(&Cache::system_cache()),
         m_enable_cache(cache),
-        m_block_size( r->native_block_size() )
+        m_block_size( r->native_block_size() ),
+        m_rsrc_mutex( boost::shared_ptr<Mutex>(new Mutex) )
     { if(cache) initialize(); }
 
     /// Constructs an ImageResourceView of the given resource using the
@@ -144,7 +151,8 @@ namespace vw {
       : r( resource ),
         m_cache_ptr(&cache),
         m_enable_cache(true),
-        m_block_size( r->native_block_size() )
+        m_block_size( r->native_block_size() ),
+        m_rsrc_mutex( boost::shared_ptr<Mutex>(new Mutex) )
     { initialize(); }
 
     /// Constructs an ImageResourceView of the given resource.
@@ -152,7 +160,8 @@ namespace vw {
       : r( resource ),
         m_cache_ptr(&Cache::system_cache()),
         m_enable_cache(cache),
-        m_block_size( r->native_block_size() )
+        m_block_size( r->native_block_size() ),
+        m_rsrc_mutex( boost::shared_ptr<Mutex>(new Mutex) )
     { if(cache) initialize(); }
 
     /// Constructs an ImageResourceView of the given resource using the
@@ -161,7 +170,8 @@ namespace vw {
       : r( resource ),
         m_cache_ptr(&cache),
         m_enable_cache(true),
-        m_block_size( r->native_block_size() )
+        m_block_size( r->native_block_size() ),
+        m_rsrc_mutex( boost::shared_ptr<Mutex>(new Mutex) )
     { initialize(); }
 
     ~ImageResourceView() {}

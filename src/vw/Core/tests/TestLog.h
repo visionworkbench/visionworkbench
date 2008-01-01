@@ -38,9 +38,9 @@ class TestLog : public CxxTest::TestSuite
 
   struct TestLogTask {
     bool m_terminate;
-    Log& m_log;
+    LogInstance& m_log;
     std::string m_ns;
-    TestLogTask(Log &log, std::string ns) : m_terminate(false), m_log(log), m_ns(ns) {}
+    TestLogTask(LogInstance &log, std::string ns) : m_terminate(false), m_log(log), m_ns(ns) {}
 
     void operator()() {
       m_log(0,m_ns) << "\tThread " << Thread::id() << " activated\n";
@@ -90,16 +90,16 @@ public:
   void test_basic_logging() {
     std::cout << "\n";
 
-    Log stdout_log(std::cout);
+    LogInstance stdout_log(std::cout);
     stdout_log(0,"log test") << "Testing logging to stdout\n";
 
-    Log stderr_log(std::cerr);
+    LogInstance stderr_log(std::cerr);
     stderr_log(0,"log test") << "Testing logging to stderr\n";
   }
 
   void test_multithreaded_logging() {
     std::cout << "\n";
-    Log log(std::cout);
+    LogInstance log(std::cout);
     log.rule_set().add_rule(vw::EveryMessage, "log test");
     log(0, "log test") << "Testing logging from multiple threads\n";
     boost::shared_ptr<TestLogTask> task1( new TestLogTask(log,"log test") );
@@ -123,17 +123,17 @@ public:
 
   void test_system_log() {
     std::cout << "\nTesting System Log\n";
-    system_log().console_log().rule_set().add_rule(vw::EveryMessage, "test");
+    Log::system_log().console_log().rule_set().add_rule(vw::EveryMessage, "test");
 
     vw_out(0) << "\tTesting system log (first call)\n";
     vw_out(0,"test") << "\tTesting system log (second call)\n";
 
-    boost::shared_ptr<Log> new_log(new Log(std::cout));
+    boost::shared_ptr<LogInstance> new_log(new LogInstance(std::cout));
     new_log->rule_set().add_rule(vw::EveryMessage, "test");
-    system_log().add(new_log);
+    Log::system_log().add(new_log);
     vw_out(0,"test") << "\tYou should see this message twice; once with the logging prefix and once without.\n";
 
-    system_log().clear();
+    Log::system_log().clear();
     vw_out(0,"test") << "\tYou should see this message once.\n";
   }
 
@@ -145,6 +145,16 @@ public:
       Thread::sleep_ms(10);
     }
     pc.report_finished();
+  }
+
+  void test_flush_and_newline() {
+    vw_out(0) << "\nTesting log termination operators.\n";
+    vw_out(0) << "\tTesting log line terminated by std::flush..." << std::flush;
+    Thread::sleep_ms(1000);
+    vw_out(0) << " done.\n";
+    vw_out(0) << "\tTesting log line terminated by std::endl... done." << std::endl;
+    Thread::sleep_ms(1000);
+    vw_out(0) << "Finished.\n";
   }
 
 };

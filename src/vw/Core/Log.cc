@@ -36,9 +36,9 @@
 namespace {
   static vw::null_ostream g_null_ostream;
   vw::RunOnce system_log_once = VW_RUNONCE_INIT;
-  boost::shared_ptr<vw::SystemLog> system_log_ptr;
+  boost::shared_ptr<vw::Log> system_log_ptr;
   void init_system_log() {
-    system_log_ptr = boost::shared_ptr<vw::SystemLog>(new vw::SystemLog());
+    system_log_ptr = boost::shared_ptr<vw::Log>(new vw::Log());
   }
 }
 
@@ -46,26 +46,21 @@ namespace {
 // Basic stream support
 // ---------------------------------------------------
 std::ostream& vw::vw_out( int log_level, std::string log_namespace ) {
-  return system_log()(log_level, log_namespace);
+  return Log::system_log()(log_level, log_namespace);
 }
 
 void vw::set_debug_level( int log_level ) {
-  system_log().console_log().rule_set().add_rule(log_level, "console");
+  Log::system_log().console_log().rule_set().add_rule(log_level, "console");
 }
 
 void vw::set_output_stream( std::ostream& stream ) {
-  system_log().set_console_stream(stream);
-}
-
-vw::SystemLog& vw::system_log() {
-  system_log_once.run( init_system_log );
-  return *system_log_ptr;
+  Log::system_log().set_console_stream(stream);
 }
 
 // ---------------------------------------------------
-// Log Methods
+// LogInstance Methods
 // ---------------------------------------------------
-vw::Log::Log(std::string log_filename, bool prepend_infostamp) : m_prepend_infostamp(prepend_infostamp) {
+vw::LogInstance::LogInstance(std::string log_filename, bool prepend_infostamp) : m_prepend_infostamp(prepend_infostamp) {
   // Open file and place the insertion pointer at the end of the file (ios_base::ate)
   m_log_ostream_ptr = new std::ofstream(log_filename.c_str(), std::ios::app);
   if (! static_cast<std::ofstream*>(m_log_ostream_ptr)->is_open())
@@ -77,11 +72,11 @@ vw::Log::Log(std::string log_filename, bool prepend_infostamp) : m_prepend_infos
   m_log_stream.set_stream(*m_log_ostream_ptr);
 }
 
-vw::Log::Log(std::ostream& log_ostream, bool prepend_infostamp) : m_log_stream(log_ostream), 
+vw::LogInstance::LogInstance(std::ostream& log_ostream, bool prepend_infostamp) : m_log_stream(log_ostream), 
                                                                   m_log_ostream_ptr(NULL),
                                                                   m_prepend_infostamp(prepend_infostamp) {}
 
-std::ostream& vw::Log::operator() (int level, std::string log_namespace) {
+std::ostream& vw::LogInstance::operator() (int level, std::string log_namespace) {
   if (m_rule_set(level, log_namespace)) {
     boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
     if (m_prepend_infostamp) 
@@ -94,15 +89,15 @@ std::ostream& vw::Log::operator() (int level, std::string log_namespace) {
 }
 
 // ---------------------------------------------------
-// SystemLog Methods
+// Log Methods
 // ---------------------------------------------------
-void vw::SystemLog::reload_logconf_rules() {
+void vw::Log::reload_logconf_rules() {
   vw_out(InfoMessage, "log") << "Reloading log configuration file: " << m_logconf_filename << ".\n";
   
   std::ifstream f(m_logconf_filename.c_str());
   
   if (f.is_open()) {
-    boost::shared_ptr<Log> current_log;
+    boost::shared_ptr<LogInstance> current_log;
     while (!f.eof()) {
       char c_line[2048];
       f.getline(c_line, 2048);
@@ -133,7 +128,7 @@ void vw::SystemLog::reload_logconf_rules() {
               current_log.reset();
             } else {
               vw_out(DebugMessage, "log") << "Adding rules for log file: " << tokens[1] << ".\n";
-              current_log = boost::shared_ptr<Log>( new Log(tokens[1]) );
+              current_log = boost::shared_ptr<LogInstance>( new LogInstance(tokens[1]) );
               this->add(current_log);
             }        
           } else {
@@ -153,7 +148,7 @@ void vw::SystemLog::reload_logconf_rules() {
 // Every m_log_settings_period seconds, this method polls the
 // m_log_settings_file to see if it exists and to see if it has been
 // recently modified.  If so, we reload the log ruleset from the file.
-void vw::SystemLog::stat_logconf() {
+void vw::Log::stat_logconf() {
   boost::xtime xt;
   boost::xtime_get(&xt, boost::TIME_UTC);
   bool needs_reloading = false;
@@ -190,24 +185,28 @@ void vw::SystemLog::stat_logconf() {
   }
 }
 
-std::ostream& vw::SystemLog::operator() (int level, std::string log_namespace) { 
+std::ostream& vw::Log::operator() (int level, std::string log_namespace) { 
   // First, check to see if the logconf file has been updated.
   // Reload the rulesets if it has.
   stat_logconf();
 
+  // Check to see if we have an ostream defined yet for this thread.
   if(m_multi_ostreams.find( Thread::id() ) == m_multi_ostreams.end())
     m_multi_ostreams[ Thread::id() ] = boost::shared_ptr<multi_ostream>(new multi_ostream);
-  m_multi_ostreams[ Thread::id() ]->clear();
 
-  // Add the console log output...
+  // Reset and add the console log output...
+  m_multi_ostreams[ Thread::id() ]->clear();
   m_multi_ostreams[ Thread::id() ]->add(m_console_log->operator()(level, log_namespace));
   
   // ... and the rest of the active log streams.
-  std::vector<boost::shared_ptr<Log> >::iterator iter = m_logs.begin();
+  std::vector<boost::shared_ptr<LogInstance> >::iterator iter = m_logs.begin();
   for (;iter != m_logs.end(); ++iter) 
     m_multi_ostreams[ Thread::id() ]->add((*iter)->operator()(level,log_namespace));
 
   return *m_multi_ostreams[ Thread::id() ];
 }
 
-
+vw::Log& vw::Log::system_log() {
+  system_log_once.run( init_system_log );
+  return *system_log_ptr;
+}

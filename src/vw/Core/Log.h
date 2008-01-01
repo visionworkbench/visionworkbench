@@ -130,6 +130,18 @@ namespace vw {
         (*current)->put(c);
       return c;
     }
+
+    // The sync function simply propogates the sync() request to the
+    // child ostreams.
+    virtual int sync() {
+      Mutex::Lock lock(m_mutex);
+      stream_iterator current = m_streams.begin();
+      stream_iterator end = m_streams.end();
+      
+      for(; current != end; ++current) 
+        (*current)->rdbuf()->pubsync();
+      return 0;
+    }
     
   public:
     void add(std::basic_ostream<CharT, traits>& stream) { 
@@ -204,10 +216,17 @@ namespace vw {
     // streambuf.  In practice, characters are fed in batches using
     // xputn() below.
     virtual int_type overflow(int_type c) {
-      Mutex::Lock lock(m_mutex);
-      if(!traits::eq_int_type(c, traits::eof())) {
-        m_buffers[ Thread::id() ].push_back(c);
+      {
+        Mutex::Lock lock(m_mutex);
+        if(!traits::eq_int_type(c, traits::eof())) {
+          m_buffers[ Thread::id() ].push_back(c);
+        }
       }
+      
+      // If the last character is a newline or cairrage return, then
+      // we force a call to sync().
+      if ( c == '\n' || c == '\r' ) 
+        sync();
       return traits::not_eof(c);
     }
 
@@ -221,6 +240,7 @@ namespace vw {
       // character string *ends* with a newline, thereby flushing the
       // buffer and printing a line to the log file.
       int last_char_position = m_buffers[ Thread::id() ].size()-1;
+
       if ( m_buffers[ Thread::id() ][last_char_position] == '\n' || 
            m_buffers[ Thread::id() ][last_char_position] == '\r' ) 
         sync();
@@ -241,6 +261,11 @@ namespace vw {
     PerThreadBufferedStreamBuf() : m_out(NULL), m_buffers() {}
     ~PerThreadBufferedStreamBuf() { sync(); }
 
+    void test() {
+      std::cout << "Call to test\n";
+    }
+
+
     void init(std::basic_streambuf<CharT,traits>* out) { m_out = out; }
   };
 
@@ -253,7 +278,9 @@ namespace vw {
   class PerThreadBufferedStreamBufInit {
     PerThreadBufferedStreamBuf<CharT, traits> m_buf;    
   public:
-    PerThreadBufferedStreamBuf<CharT, traits>* buf() { return &m_buf; }
+    PerThreadBufferedStreamBuf<CharT, traits>* buf() { 
+      return &m_buf; 
+    }
   };
 
   // Aside from some tricky initialization semantics, this subclass of
@@ -268,22 +295,27 @@ namespace vw {
   // basis and ensuring thread safety.
   template<class CharT, class traits = std::char_traits<CharT> >
   class PerThreadBufferedStream : private virtual PerThreadBufferedStreamBufInit<CharT, traits>,
-                    public std::basic_ostream<CharT, traits> {
+                                  public std::basic_ostream<CharT, traits> {
   public:    
     // No stream specified.  Will swallow characters until one is set
     // using set_stream().
     PerThreadBufferedStream() : PerThreadBufferedStreamBufInit<CharT,traits>(),
-                  std::basic_ostream<CharT, traits>(PerThreadBufferedStreamBufInit<CharT,traits>::buf()) {
-    }
-
-
+                                std::basic_ostream<CharT, traits>(PerThreadBufferedStreamBufInit<CharT,traits>::buf()) {}
+    
+    
     PerThreadBufferedStream(std::basic_ostream<CharT, traits>& out) : PerThreadBufferedStreamBufInit<CharT,traits>(),
-                                                        std::basic_ostream<CharT, traits>(PerThreadBufferedStreamBufInit<CharT,traits>::buf()) {
+                                                                      std::basic_ostream<CharT, traits>(PerThreadBufferedStreamBufInit<CharT,traits>::buf()) {
       PerThreadBufferedStreamBufInit<CharT,traits>::buf()->init(out.rdbuf());
     }
     
     void set_stream(std::basic_ostream<CharT, traits>& out) {
       PerThreadBufferedStreamBufInit<CharT,traits>::buf()->init(out.rdbuf());
+    }
+
+    void test() {
+      std::cout << "Hi there3\n";
+      this->rdbuf()->pubsync();
+      std::cout << "Hi there33\n";       
     }
   };
 
@@ -351,31 +383,31 @@ namespace vw {
 
 
   // -------------------------------------------------------
-  //                         LOG  
+  //                         LogInstance
   // -------------------------------------------------------
   //
-  class Log {
+  class LogInstance {
     std::ostream *m_log_ostream_ptr;
     PerThreadBufferedStream<char> m_log_stream;
     bool m_prepend_infostamp;
     LogRuleSet m_rule_set;
 
     // Ensure non-copyable semantics
-    Log( Log const& );
-    Log& operator=( Log const& );
+    LogInstance( LogInstance const& );
+    LogInstance& operator=( LogInstance const& );
 
   public:
 
     // Initialize a log from a filename.  A new internal ofstream is
     // created to stream log messages to disk.
-    Log(std::string log_filename, bool prepend_infostamp = true);
+    LogInstance(std::string log_filename, bool prepend_infostamp = true);
 
     // Initialize a log using an already open stream.  Warning: The
     // log stores the stream by reference, so you MUST delete the log
     // object _before_ closing and de-allocating the stream.
-    Log(std::ostream& log_ostream, bool prepend_infostamp = true);
+    LogInstance(std::ostream& log_ostream, bool prepend_infostamp = true);
 
-    ~Log() {
+    ~LogInstance() {
       m_log_stream.set_stream(std::cout);
       if (m_log_ostream_ptr) 
         delete static_cast<std::ofstream*>(m_log_ostream_ptr);
@@ -390,7 +422,12 @@ namespace vw {
     LogRuleSet& rule_set() { return m_rule_set; }
   };
 
-  class SystemLog {
+
+  // -------------------------------------------------------
+  //                         Log
+  // -------------------------------------------------------
+
+  class Log {
 
     // Member variables assoc. with periodically polling the log
     // configuration (logconf) file.
@@ -402,8 +439,8 @@ namespace vw {
     Mutex m_logconf_file_mutex;
     Mutex m_system_log_mutex;
     
-    std::vector<boost::shared_ptr<Log> > m_logs;
-    boost::shared_ptr<Log> m_console_log;
+    std::vector<boost::shared_ptr<LogInstance> > m_logs;
+    boost::shared_ptr<LogInstance> m_console_log;
 
     // The multi_ostream creates a single stream that delegates to its
     // child streams. We store one multi_ostream per thread, since
@@ -423,31 +460,31 @@ namespace vw {
     void reload_logconf_rules();
 
     // Ensure non-copyable semantics
-    SystemLog( SystemLog const& );
-    SystemLog& operator=( Log const& );
+    Log( Log const& );
+    Log& operator=( Log const& );
 
   public:
 
-    SystemLog() : m_logconf_last_polltime(0),
+    Log() : m_logconf_last_polltime(0),
                   m_logconf_last_modification(0),
                   m_logconf_filename("/tmp/.vw_logconf"),
                   m_logconf_poll_period(5.0),
-                  m_console_log(new Log(std::cout, false)) {}
+                  m_console_log(new LogInstance(std::cout, false)) {}
 
     std::ostream& operator() (int level, std::string log_namespace="console");
 
     void set_logconf_filename(std::string filename) { m_logconf_filename = filename; }
     void set_logconf_poll_period(double period) { m_logconf_poll_period = period; }
 
-    /// Add a stream to the SystemLog manager.  You may optionally specify a
+    /// Add a stream to the Log manager.  You may optionally specify a
     /// LogRuleSet.
     void add(std::ostream &stream, LogRuleSet rule_set = LogRuleSet()) {
       Mutex::Lock lock(m_system_log_mutex);
-      m_logs.push_back( boost::shared_ptr<Log>(new Log(stream)) );
+      m_logs.push_back( boost::shared_ptr<LogInstance>(new LogInstance(stream)) );
     }
 
     // Add an already existing log to the system log manager.
-    void add(boost::shared_ptr<Log> log) {
+    void add(boost::shared_ptr<LogInstance> log) {
       Mutex::Lock lock(m_system_log_mutex);
       m_logs.push_back( log );
     }
@@ -459,16 +496,19 @@ namespace vw {
       m_logs.clear(); 
     }
     
-    Log& console_log() { 
+    LogInstance& console_log() { 
       Mutex::Lock lock(m_system_log_mutex);
       return *m_console_log; 
     }
 
     void set_console_stream(std::ostream& stream, LogRuleSet rule_set = LogRuleSet()) {
       Mutex::Lock lock(m_system_log_mutex);
-      m_console_log = boost::shared_ptr<Log>(new Log(stream) );
+      m_console_log = boost::shared_ptr<LogInstance>(new LogInstance(stream) );
       m_console_log->rule_set() = rule_set;
     }
+
+    // Static method to access the system log instance
+    static Log& system_log();
   };
 
   // Declaration of the standard VW log routine. 
@@ -476,7 +516,6 @@ namespace vw {
   void set_debug_level( int log_level );
   void set_output_stream( std::ostream& stream );
 
-  SystemLog& system_log();
 
 } // namespace vw
 
