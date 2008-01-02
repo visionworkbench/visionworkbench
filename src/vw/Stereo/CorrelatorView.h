@@ -62,8 +62,11 @@ namespace stereo {
 
     /// An image view for performing image correlation
     template <class PixelT>
-    class CorrelatorView : public ImageViewBase<CorrelatorView<PixelT> >
-    {    
+    class CorrelatorView : public ImageViewBase<CorrelatorView<PixelT> > {
+
+      ImageViewRef<PixelT> m_left_image, m_right_image;
+      CorrelationSettings m_settings;
+
     public:
       typedef PixelDisparity<float> pixel_type;
       typedef pixel_type result_type;
@@ -97,7 +100,7 @@ namespace stereo {
       typedef CropView<ImageView<pixel_type> > prerasterize_type;
       inline prerasterize_type prerasterize(BBox2i bbox) const
       {
-        vw_out(InfoMessage, "stereo") << "\n\tBlock: " << bbox << "\n";
+        vw_out(InfoMessage, "stereo") << "CorrelatorView: rasterizing image block " << bbox << ".\n";
         
         BBox2i search_bbox(Vector2i(m_settings.m_lMinH, m_settings.m_lMinV),
                            Vector2i(m_settings.m_lMaxH, m_settings.m_lMaxV));
@@ -123,14 +126,15 @@ namespace stereo {
         left_crop_bbox.min() -= Vector2i(m_settings.m_lKernWidth, m_settings.m_lKernHeight);
         left_crop_bbox.max() += Vector2i(m_settings.m_lKernWidth, m_settings.m_lKernHeight);
 
-//         std::cout << "\nCorrelatorView::prerasterize(): search_bbox: " << search_bbox << std::endl;
-//         std::cout << "\n                             left_crop_bbox: " << left_crop_bbox << std::endl;
-//         std::cout << "\n                            right_crop_bbox: " << right_crop_bbox << std::endl;
+        // Log some helpful debugging info
+        vw_out(DebugMessage, "stereo") << "\t    search_bbox: " << search_bbox << std::endl;
+        vw_out(DebugMessage, "stereo") << "\t left_crop_bbox: " << left_crop_bbox << std::endl;
+        vw_out(DebugMessage, "stereo") << "\tright_crop_bbox: " << right_crop_bbox << std::endl;
 
         // We crop the images to the expanded bounding box and edge
         // extend in case the new bbox extends past the image bounds.
-        ImageView<PixelT> cropped_left_image = crop(edge_extend(m_left_image, ReflectEdgeExtension()), left_crop_bbox);
-        ImageView<PixelT> cropped_right_image = crop(edge_extend(m_right_image, ReflectEdgeExtension()), right_crop_bbox);
+        ImageView<PixelT> cropped_left_image = crop(edge_extend(m_left_image, ZeroEdgeExtension()), left_crop_bbox);
+        ImageView<PixelT> cropped_right_image = crop(edge_extend(m_right_image, ZeroEdgeExtension()), right_crop_bbox);
 
         // We have all of the settings adjusted.  Now we just have to
         // run the correlator.
@@ -170,10 +174,6 @@ namespace stereo {
         vw::rasterize(prerasterize(bbox), dest, bbox);
       }
       /// \endcond
-
-    private:
-      ImageViewRef<PixelT> m_left_image, m_right_image;
-      CorrelationSettings m_settings;
     };
   }
 } // namespace vw::stereo

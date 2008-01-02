@@ -361,6 +361,7 @@ namespace vw {
       bbox = m_extension_func.source_bbox( m_image, bbox + Vector2i( m_xoffset, m_yoffset ) );
       // Make degenerate bboxes sane
       if( bbox.empty() ) bbox = BBox2i(0,0,0,0);
+      vw_out(VerboseDebugMessage, "image") << "EdgeExtensionView: prerasterizing child view with bbox " << bbox << ".\n";
       return prerasterize_type(m_image.prerasterize(bbox), m_xoffset, m_yoffset, m_cols, m_rows, m_extension_func );
     }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }

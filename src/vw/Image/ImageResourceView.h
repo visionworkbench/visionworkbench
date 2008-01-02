@@ -212,9 +212,7 @@ namespace vw {
       return CropView<ImageView<PixelT> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),cols(),rows()) );
     }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
-#if VW_DEBUG_LEVEL > 1
       vw_out(VerboseDebugMessage, "image") << "ImageResourceView rasterizing bbox " << bbox << std::endl;
-#endif
       if( !m_enable_cache ) return read_image( dest, *r, bbox );
       int32 ix0=bbox.min().x()/m_block_size.x(), iy=bbox.min().y()/m_block_size.y();
       int32 maxix=(bbox.max().x()-1)/m_block_size.x(), maxiy=(bbox.max().y()-1)/m_block_size.y();
@@ -222,9 +220,7 @@ namespace vw {
         for( int32 ix = ix0; ix <= maxix; ++ix ) {
           BBox2i block_bbox( ix*m_block_size.x(), iy*m_block_size.y(), m_block_size.x(), m_block_size.y() );
           block_bbox.crop( bbox );
-#if VW_DEBUG_LEVEL > 1
           vw_out(VerboseDebugMessage, "image") << "ImageResourceView rasterizing block (" << ix << "," << iy << "), block_bbox " << block_bbox << std::endl;
-#endif
           block(ix,iy)->rasterize( crop( dest, block_bbox-bbox.min() ),
                                    block_bbox-Vector2i(ix*m_block_size.x(),iy*m_block_size.y()) );
         }

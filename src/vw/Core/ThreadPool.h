@@ -70,7 +70,7 @@ namespace vw {
 
         // ... and continue running tasks as long as they are available.
         while ( m_task = m_queue.get_next_task() ) {
-          vw_out(DebugMessage, "thread") << "ThreadPool: reusing worker thread " << m_thread_id << ".\n"; 
+          vw_out(DebugMessage, "thread") << "ThreadPool: reusing worker thread " << m_thread_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active ]\n"; 
           (*m_task)();
         }
 
@@ -91,7 +91,7 @@ namespace vw {
       Mutex::Lock lock(m_queue_mutex);
       
       m_active_workers--;
-      vw_out(DebugMessage, "thread") << "ThreadPool: terminating worker thread " << worker_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active ].\n"; 
+      vw_out(DebugMessage, "thread") << "ThreadPool: terminating worker thread " << worker_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active ]\n"; 
       
       // Erase the worker thread from the list of active threads
       VW_ASSERT(worker_id >= 0 && worker_id < int(m_running_threads.size()), 
@@ -129,7 +129,7 @@ namespace vw {
         boost::shared_ptr<Thread> thread(new Thread(next_worker));
         m_running_threads[next_available_thread_id] = thread;
         m_active_workers++;
-        vw_out(DebugMessage, "thread") << "ThreadPool: creating worker thread " << next_available_thread_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active. ]\n"; 
+        vw_out(DebugMessage, "thread") << "ThreadPool: creating worker thread " << next_available_thread_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active ]\n"; 
       } 
     }
 
