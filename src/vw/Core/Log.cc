@@ -76,8 +76,8 @@ vw::LogInstance::LogInstance(std::ostream& log_ostream, bool prepend_infostamp) 
                                                                   m_log_ostream_ptr(NULL),
                                                                   m_prepend_infostamp(prepend_infostamp) {}
 
-std::ostream& vw::LogInstance::operator() (int level, std::string log_namespace) {
-  if (m_rule_set(level, log_namespace)) {
+std::ostream& vw::LogInstance::operator() (int log_level, std::string log_namespace) {
+  if (m_rule_set(log_level, log_namespace)) {
     boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
     if (m_prepend_infostamp) 
       return m_log_stream << now << " {" << Thread::id() << "} [ " << log_namespace << " ] : ";
@@ -185,7 +185,7 @@ void vw::Log::stat_logconf() {
   }
 }
 
-std::ostream& vw::Log::operator() (int level, std::string log_namespace) { 
+std::ostream& vw::Log::operator() (int log_level, std::string log_namespace) { 
   // First, check to see if the logconf file has been updated.
   // Reload the rulesets if it has.
   stat_logconf();
@@ -196,12 +196,12 @@ std::ostream& vw::Log::operator() (int level, std::string log_namespace) {
 
   // Reset and add the console log output...
   m_multi_ostreams[ Thread::id() ]->clear();
-  m_multi_ostreams[ Thread::id() ]->add(m_console_log->operator()(level, log_namespace));
+  m_multi_ostreams[ Thread::id() ]->add(m_console_log->operator()(log_level, log_namespace));
   
   // ... and the rest of the active log streams.
   std::vector<boost::shared_ptr<LogInstance> >::iterator iter = m_logs.begin();
   for (;iter != m_logs.end(); ++iter) 
-    m_multi_ostreams[ Thread::id() ]->add((*iter)->operator()(level,log_namespace));
+    m_multi_ostreams[ Thread::id() ]->add((*iter)->operator()(log_level,log_namespace));
 
   return *m_multi_ostreams[ Thread::id() ];
 }

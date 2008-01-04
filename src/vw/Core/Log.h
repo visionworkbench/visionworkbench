@@ -71,6 +71,8 @@ namespace vw {
     VerboseDebugMessage = 40,
     EveryMessage = 100
   };
+
+  /// \cond INTERNAL
   
   // ----------------------------------------------------------------
   //                     Utility Streams
@@ -319,6 +321,8 @@ namespace vw {
     }
   };
 
+  /// \endcond
+
   class LogRuleSet {
     // The ruleset determines what log messages are sent to the VW system log file
     typedef std::pair<int, std::string> rule_type;
@@ -335,6 +339,7 @@ namespace vw {
 
     LogRuleSet& operator=( LogRuleSet const& copy_log) {
       m_rules = copy_log.m_rules;
+      return *this;
     }
 
     
@@ -343,6 +348,8 @@ namespace vw {
     LogRuleSet() {
       m_rules.push_back(rule_type(vw::InfoMessage, "console"));      
     }
+
+    virtual ~LogRuleSet() {}
 
     void add_rule(int log_level, std::string log_namespace) {
       Mutex::Lock lock(m_mutex);
@@ -416,7 +423,7 @@ namespace vw {
     /// This method return an ostream that you can write a log message
     /// to if the rule_set matches the log level and namespace
     /// provided.  Otherwise, a null ostream is returned.
-    std::ostream& operator() (int level, std::string log_namespace="console");
+    std::ostream& operator() (int log_level, std::string log_namespace="console");
 
     /// Access the rule set for this log object.
     LogRuleSet& rule_set() { return m_rule_set; }
@@ -427,7 +434,23 @@ namespace vw {
   //                         Log
   // -------------------------------------------------------
 
+  /// The system log class manages logging to the console and to files
+  /// on disk.  It supports multiple open log streams, each with their
+  /// own LogRuleSet.  This class also periodically checks the
+  /// m_logconf_filename (set by default to /tmp/.vw_logconf) for
+  /// changes.  When changes occur, the log settings are reloaded from
+  /// the logconf file.
+  ///
+  /// Important Note: You should access the system log using the
+  /// Log::system_log() static method, which access a singleton
+  /// instance of the system log class.  You should not need to create
+  /// a log object yourself.
   class Log {
+
+    // Pointers to various log instances that are currently being
+    // managed by the system log.
+    std::vector<boost::shared_ptr<LogInstance> > m_logs;
+    boost::shared_ptr<LogInstance> m_console_log;
 
     // Member variables assoc. with periodically polling the log
     // configuration (logconf) file.
@@ -439,9 +462,6 @@ namespace vw {
     Mutex m_logconf_file_mutex;
     Mutex m_system_log_mutex;
     
-    std::vector<boost::shared_ptr<LogInstance> > m_logs;
-    boost::shared_ptr<LogInstance> m_console_log;
-
     // The multi_ostream creates a single stream that delegates to its
     // child streams. We store one multi_ostream per thread, since
     // each thread will have a different set of output streams it is
@@ -465,15 +485,28 @@ namespace vw {
 
   public:
 
-    Log() : m_logconf_last_polltime(0),
-                  m_logconf_last_modification(0),
-                  m_logconf_filename("/tmp/.vw_logconf"),
-                  m_logconf_poll_period(5.0),
-                  m_console_log(new LogInstance(std::cout, false)) {}
+    /// You should probably not create an instance of Log on your own
+    /// using this constructor.  Instead, you can access a global
+    /// instance of the log class using the static Log::system_log()
+    /// method below.
+    Log() : m_console_log(new LogInstance(std::cout, false)),
+            m_logconf_last_polltime(0),
+            m_logconf_last_modification(0),
+            m_logconf_filename("/tmp/.vw_logconf"),
+            m_logconf_poll_period(5.0) {}
 
-    std::ostream& operator() (int level, std::string log_namespace="console");
 
+    /// The call operator returns a subclass of the basic_ostream
+    /// object, which is suitable for use with the C++ << operator.
+    /// The returned stream object proxy's for the various log streams
+    /// being managed by the system log that match the log_level and
+    /// log_namespace.
+    std::ostream& operator() (int log_level, std::string log_namespace="console");
+
+    /// Change the logconf filename (default: /tmp/.vw_longconf)
     void set_logconf_filename(std::string filename) { m_logconf_filename = filename; }
+
+    /// Change the logconf file poll period.  (default: 5 seconds)
     void set_logconf_poll_period(double period) { m_logconf_poll_period = period; }
 
     /// Add a stream to the Log manager.  You may optionally specify a
@@ -483,7 +516,7 @@ namespace vw {
       m_logs.push_back( boost::shared_ptr<LogInstance>(new LogInstance(stream)) );
     }
 
-    // Add an already existing log to the system log manager.
+    // Add an already existing LogInstance to the system log manager.
     void add(boost::shared_ptr<LogInstance> log) {
       Mutex::Lock lock(m_system_log_mutex);
       m_logs.push_back( log );
@@ -495,27 +528,43 @@ namespace vw {
       Mutex::Lock lock(m_system_log_mutex);
       m_logs.clear(); 
     }
-    
+
+    /// Return a reference to the console LogInstance.
     LogInstance& console_log() { 
       Mutex::Lock lock(m_system_log_mutex);
       return *m_console_log; 
     }
 
+    /// Set the output stream and LogRuleSet for the console log
+    /// instance.  This can be used to redirect the console output to
+    /// a file, for example.
     void set_console_stream(std::ostream& stream, LogRuleSet rule_set = LogRuleSet()) {
       Mutex::Lock lock(m_system_log_mutex);
       m_console_log = boost::shared_ptr<LogInstance>(new LogInstance(stream) );
       m_console_log->rule_set() = rule_set;
     }
 
-    // Static method to access the system log instance
+    // Static method to access the singleton instance of the system
+    // log.  You should *always* use this method if you want to access
+    // Vision Workbench system log, where all Vision Workbench log
+    // messages go.
     static Log& system_log();
   };
 
-  // Declaration of the standard VW log routine. 
+  /// The vision workbench logging operator.  Use this to generate a
+  /// message in the system log using the given log_level and
+  /// log_namespace.
   std::ostream& vw_out( int log_level, std::string log_namespace = "console" );
-  void set_debug_level( int log_level );
-  void set_output_stream( std::ostream& stream );
 
+  /// Deprecated: Set the debug level for the system console log.  You
+  /// can exercise much more fine grained control over the system log
+  /// by manipulating the Log::system_log().console_log().rule_set().
+  void set_debug_level( int log_level );
+
+  /// Deprecated: Set the output stream for the system console log to
+  /// an arbitrary C++ ostream.  You should use
+  /// Log::system_log().set_console_stream() instead.
+  void set_output_stream( std::ostream& stream );
 
 } // namespace vw
 
