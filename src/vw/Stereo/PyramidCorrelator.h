@@ -91,7 +91,7 @@ namespace stereo {
           search_ranges = compute_search_ranges(disparity_map, nominal_blocks);
         }
 
-        for (int r = 0; r < nominal_blocks.size(); ++r) {
+        for (unsigned r = 0; r < nominal_blocks.size(); ++r) {
           prog.report_progress((float)r/nominal_blocks.size());
       
           // Given a block from the left image, compute the bounding
@@ -186,7 +186,6 @@ namespace stereo {
         if (m_debug_prefix.size() > 0) {
           std::ostringstream current_level;
           current_level << n;
-          double min_h_disp, min_v_disp, max_h_disp, max_v_disp;
           BBox2 disp_range = disparity::get_disparity_range(disparity_map);
           write_image( m_debug_prefix+"-H-" + current_level.str() + ".jpg", normalize(clamp(select_channel(disparity_map,0), disp_range.min().x(), disp_range.max().x() )));
           write_image( m_debug_prefix+"-V-" + current_level.str() + ".jpg", normalize(clamp(select_channel(disparity_map,1), disp_range.min().y(), disp_range.max().y() )));

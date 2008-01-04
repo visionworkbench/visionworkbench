@@ -73,8 +73,8 @@ vw::LogInstance::LogInstance(std::string log_filename, bool prepend_infostamp) :
 }
 
 vw::LogInstance::LogInstance(std::ostream& log_ostream, bool prepend_infostamp) : m_log_stream(log_ostream), 
-                                                                  m_log_ostream_ptr(NULL),
-                                                                  m_prepend_infostamp(prepend_infostamp) {}
+                                                                                  m_log_ostream_ptr(NULL),
+                                                                                  m_prepend_infostamp(prepend_infostamp) {}
 
 std::ostream& vw::LogInstance::operator() (int log_level, std::string log_namespace) {
   if (m_rule_set(log_level, log_namespace)) {
@@ -169,7 +169,7 @@ void vw::Log::stat_logconf() {
   if (needs_reloading) {
     Mutex::Lock lock(m_logconf_file_mutex);
     FILE *f;
-    if ( f = fopen(m_logconf_filename.c_str(), "r") ) {
+    if ( (f = fopen(m_logconf_filename.c_str(), "r")) ) {
       fclose(f);
 
       // Check to see if the file has changed.  If so, re-read the

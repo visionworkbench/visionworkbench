@@ -63,8 +63,8 @@ namespace vw {
 
   class Timer {
     std::string m_desc;
-    std::string m_log_namespace;
     MessageLevel m_level;
+    std::string m_log_namespace;
 #ifdef WIN32
     __int64 m_begin;
 #else

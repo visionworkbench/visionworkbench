@@ -83,10 +83,14 @@ namespace ip {
     }
     
     int size() const { return 2; }
+
     float operator[] (int index) const { 
       if (index == 0) return x;
       else if (index == 1) return y;
       else vw_throw( vw::ArgumentErr() << "Interest Point: Invalid index" );
+
+      // Control should never reach this point
+      return 0;
     }
 
     /// std::sort can be used to sort InterestPoints in descending

@@ -160,7 +160,7 @@ namespace hdr {
 
     // Error checking
     VW_ASSERT(images.size() > 1, ArgumentErr() << "Need at least two images.");
-    VW_ASSERT((channel >= 0) && (channel < n_channels), ArgumentErr() << "No such channel.");
+    VW_ASSERT((channel >= 0) && (channel < int(n_channels)), ArgumentErr() << "No such channel.");
 
     Matrix<channel_type> pair_list(num_pairs, images.size());
     int height = images[0].impl().rows();
@@ -173,7 +173,7 @@ namespace hdr {
       int rand_x = VW_HDR_GET_RAND(width);
       int rand_y = VW_HDR_GET_RAND(height);
 
-      for (int j = 0; j < images.size(); ++j) 
+      for (unsigned j = 0; j < images.size(); ++j) 
         pair_list(i,j) = sample_image(images[j].impl(), rand_x, rand_y, channel, kernel_size);
       ++i;
     }
@@ -236,7 +236,7 @@ namespace hdr {
     typename CompoundChannelCast<PixelT, double>::type operator() (PixelT pixel_val) const {
       typedef typename CompoundChannelCast<PixelT, double>::type pixel_type;
 
-      if (CompoundNumChannels<PixelT>::value != this->num_channels()) 
+      if (CompoundNumChannels<PixelT>::value != int32(this->num_channels())) 
         vw_throw(ArgumentErr() << "CameraCurveFn: pixel does not have the same number of channels as there are curves.");
 
       pixel_type result;
@@ -246,7 +246,7 @@ namespace hdr {
       return result;
     }
 
-    int num_channels() const { return m_lookup_tables.size(); }
+    unsigned num_channels() const { return m_lookup_tables.size(); }
 
     Vector<double> const& lookup_table(int channel) const { 
       if (channel < 0 || (size_t)channel >= m_lookup_tables.size()) 

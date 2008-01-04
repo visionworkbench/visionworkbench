@@ -99,14 +99,14 @@ namespace disparity {
 
     // Find the max/min disparity values
     num_good = 0;
-    for (unsigned j = 0; j < disparity_map_impl.rows(); j++) {
+    for (int32 j = 0; j < disparity_map_impl.rows(); j++) {
 
       // Update the progress callback.
       if (progress_callback.abort_requested()) 
         vw_throw( Aborted() << "Aborted by ProgressCallback" );
       progress_callback.report_progress((float)j/disparity_map_impl.rows());
 
-      for (unsigned i = 0; i < disparity_map_impl.cols(); i++) {
+      for (int32 i = 0; i < disparity_map_impl.cols(); i++) {
         if ( !disparity_map_impl(i,j).missing() ) {
           max_horz_disp = disparity_map_impl(i,j).h() > max_horz_disp ? disparity_map_impl(i,j).h() : max_horz_disp;
           min_horz_disp = disparity_map_impl(i,j).h() < min_horz_disp ? disparity_map_impl(i,j).h() : min_horz_disp;

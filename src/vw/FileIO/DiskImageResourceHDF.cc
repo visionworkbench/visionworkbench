@@ -255,7 +255,7 @@ public:
     srcbuf.rstride = srcbuf.cstride * bbox.width();
     srcbuf.pstride = srcbuf.rstride * bbox.height();
     // For each requested plane...
-    for( uint32 p=0; p<srcbuf.format.planes; ++p ) {
+    for( uint32 p=0; p<uint32(srcbuf.format.planes); ++p ) {
       // Select the SDS
       ::int32 sds_id = SDselect( sd_id, plane_info[p].sds );
       if( sds_id == FAIL ) vw_throw( IOErr() << "Unable to select SDS in HDF file \"" << resource.filename() << "\"!" );

@@ -77,6 +77,9 @@ namespace math {
       return rotation_z_axis(theta);
     else 
       vw_throw(vw::ArgumentErr() << "euler_to_quaternion(): unknown axis \"" << axis << "\"\n");
+    
+    // Should never reach this point.
+    return vw::Matrix<double,3,3>();
   }
   /// \endcond
 

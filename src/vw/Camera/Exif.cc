@@ -142,7 +142,7 @@ double vw::camera::ExifView::get_exposure_value() {
 double vw::camera::ExifView::get_film_speed_value() {
   double iso = (double)get_iso();
   const double N = 1/3.125;
-  const double K = 12.5; 
+  //  const double K = 12.5; 
   return log(iso * N)/log(2.); // log2(value) = log(value)/log(2)
 }
 
@@ -174,7 +174,7 @@ double vw::camera::ExifView::get_luminance_value() {
 // http://en.wikipedia.org/wiki/Light_meter#Exposure_meter_calibration
 //
 double vw::camera::ExifView::get_average_luminance() {
-  const double N = 1/3.125;
+  // const double N = 1/3.125;
   const double K = 12.5; 
 
   try {

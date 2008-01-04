@@ -260,7 +260,7 @@ namespace vw {
     }
 
   public:
-    PerThreadBufferedStreamBuf() : m_out(NULL), m_buffers() {}
+    PerThreadBufferedStreamBuf() : m_buffers(), m_out(NULL) {}
     ~PerThreadBufferedStreamBuf() { sync(); }
 
     void test() {
@@ -394,8 +394,8 @@ namespace vw {
   // -------------------------------------------------------
   //
   class LogInstance {
-    std::ostream *m_log_ostream_ptr;
     PerThreadBufferedStream<char> m_log_stream;
+    std::ostream *m_log_ostream_ptr;
     bool m_prepend_infostamp;
     LogRuleSet m_rule_set;
 

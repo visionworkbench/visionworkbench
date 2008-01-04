@@ -56,11 +56,10 @@ namespace hdr {
     DragoFunctor(double L_wmin, double L_wmax, double bias, int b_min, int b_max) : 
       L_wmax(L_wmax), b_min(b_min) {
       b_diff = b_max - b_min;
+      power = log(bias) / log(0.5);
 
       offset = log(L_wmin + 1.0) / log(b_min + b_diff * pow(L_wmin / L_wmax, power));
       scale = log(L_wmax + 1.0) / log(b_min + b_diff * pow(L_wmax / L_wmax, power)) - offset;
-
-      power = log(bias) / log(0.5);
     }
     
     typename CompoundChannelCast<PixelT,double>::type operator() (PixelT L_w) const {

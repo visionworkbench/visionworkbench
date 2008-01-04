@@ -49,13 +49,13 @@ std::vector<vw::BBox2> vw::stereo::PyramidCorrelator::compute_search_ranges(Imag
   std::vector<int> fixed_blocks;
 
   // Step two: compute the search ranges from the disparity map.
-  for (int r = 0; r < nominal_blocks.size(); ++r)
+  for (unsigned r = 0; r < nominal_blocks.size(); ++r)
     search_ranges[r] = disparity::get_disparity_range(crop(prev_disparity_map,(nominal_blocks[r])/2), good_pixel_vec[r], false);
       
 
   // Step two: adjust the search range or fix it if it came from a
   // block weith zero valid pixels.
-  for (int r = 0; r < nominal_blocks.size(); ++r) {
+  for (unsigned r = 0; r < nominal_blocks.size(); ++r) {
 
     // Pick a reasonable search range based on neighboring tiles rather
     // than skipping out entirely here.
@@ -68,7 +68,7 @@ std::vector<vw::BBox2> vw::stereo::PyramidCorrelator::compute_search_ranges(Imag
       BBox2i this_bbox = nominal_blocks[r];
       this_bbox.expand(1);
       bool found_one_match = false;
-      for (int b = 0; b < nominal_blocks.size(); ++b) 
+      for (unsigned b = 0; b < nominal_blocks.size(); ++b) 
         if (good_pixel_vec[b] != 0 && this_bbox.intersects(nominal_blocks[b])) {
           if (found_one_match) {
             search_ranges[r].grow(search_ranges[b]);
@@ -84,12 +84,12 @@ std::vector<vw::BBox2> vw::stereo::PyramidCorrelator::compute_search_ranges(Imag
   // Set the good_pixel_vec[r] to a positive value for the fixed
   // blocks so that the search range is adjusted correctly be the code
   // below.
-  for (int i = 0; i < fixed_blocks.size(); ++i) 
+  for (unsigned i = 0; i < fixed_blocks.size(); ++i) 
     good_pixel_vec[fixed_blocks[i]] = 1;
 
   // Step three: scale up the search range for the next pyramid
   // level and pad it here.
-  for (int r = 0; r < nominal_blocks.size(); ++r) {
+  for (unsigned r = 0; r < nominal_blocks.size(); ++r) {
     if (good_pixel_vec[r] != 0) {
       search_ranges[r] *= 2;
       search_ranges[r].min().x() -= 2;

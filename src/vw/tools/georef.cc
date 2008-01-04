@@ -132,7 +132,6 @@ int main( int argc, char *argv[] ) {
 
   GeoReference output_georef;
   output_georef.set_well_known_geogcs("WGS84");
-  int total_resolution = 1024;
 
   // Read in georeference info and compute total resolution
   bool manual = vm.count("north") || vm.count("south") || vm.count("east") || vm.count("west");

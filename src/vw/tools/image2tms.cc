@@ -66,11 +66,9 @@ int main( int argc, char *argv[] ) {
   int patch_size, patch_overlap;
   float jpeg_quality;
   unsigned cache_size;
-  int max_lod_pixels;
   double nudge_x=0, nudge_y=0;
   std::string palette_file;
   float palette_scale=1.0, palette_offset=0.0;
-  int draw_order_offset;
 
   po::options_description general_options("General Options");
   general_options.add_options()

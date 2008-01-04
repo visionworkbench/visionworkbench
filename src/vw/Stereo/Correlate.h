@@ -368,7 +368,6 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
                                            ImageView<PixelDisparity<float> > &R2L,
                                            double cross_corr_threshold, bool verbose = false) {
     int32 xx,yy;
-    int xOffset, yOffset;
     int count = 0, match_count = 0;
   
     if (verbose)

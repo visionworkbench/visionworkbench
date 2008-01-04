@@ -307,17 +307,15 @@ namespace ip {
 
     // By default, use fit_peak in Localize.h
     template <class DataT>
-    inline int localize(InterestPointList& points, DataT const& img_data) const {
+    inline void localize(InterestPointList& points, DataT const& img_data) const {
       // TODO: Remove points rejected by localizer
       for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
         fit_peak(img_data.interest(), *i);
       }
-
-      return 0;
     }
 
     template <class DataT>
-    inline int threshold(InterestPointList& points, DataT const& img_data) const {
+    inline void threshold(InterestPointList& points, DataT const& img_data) const {
       // TODO: list::remove_if
       InterestPointList::iterator pos = points.begin();
       while (pos != points.end()) {
@@ -329,7 +327,7 @@ namespace ip {
     }
 
     template <class DataT>
-    int assign_orientations(InterestPointList& points, DataT const& img_data) const {
+    void assign_orientations(InterestPointList& points, DataT const& img_data) const {
 
       // Save the X gradient
       ImageView<float> grad_x_image = normalize(img_data.gradient_x());
@@ -349,7 +347,7 @@ namespace ip {
     /// are the x and y gradients, edge orientation and magnitude, and
     /// interest function values for the source image.
     template <class DataT>
-    int write_images(DataT const& img_data) const {
+    void write_images(DataT const& img_data) const {
       // Save the X gradient
       ImageView<float> grad_x_image = normalize(img_data.gradient_x());
       vw::write_image("grad_x.jpg", grad_x_image);
@@ -369,8 +367,6 @@ namespace ip {
       // Save the interest function image
       ImageView<float> interest_image = normalize(img_data.interest());
       vw::write_image("interest.jpg", interest_image);
-
-      return 0;
     }
   };
 
@@ -544,7 +540,7 @@ namespace ip {
     }
 
     template <class DataT, class ViewT>
-    inline int threshold(InterestPointList& points,
+    inline void threshold(InterestPointList& points,
                          std::vector<DataT> const& img_data,
                          ImageOctave<ViewT> const& octave) const {
       // TODO: list::remove_if
@@ -559,9 +555,9 @@ namespace ip {
     }
 
     template <class DataT, class ViewT>
-    int assign_orientations(InterestPointList& points,
-                            std::vector<DataT> const& img_data,
-                            ImageOctave<ViewT> const& octave) const {
+    void assign_orientations(InterestPointList& points,
+                             std::vector<DataT> const& img_data,
+                             ImageOctave<ViewT> const& octave) const {
 
       for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
         int k = octave.scale_to_plane_index(i->scale);

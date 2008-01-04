@@ -84,8 +84,8 @@ namespace hdr {
 
     // Include data fitting equations
     int k = 0;
-    for (int i = 0; i < pixels.rows(); ++i) {
-      for (int j = 0; j < pixels.cols(); ++j) {
+    for (unsigned i = 0; i < pixels.rows(); ++i) {
+      for (unsigned j = 0; j < pixels.cols(); ++j) {
         int idx = int(pixels(i,j)*(n-1));
         double wij = gaussian_weighting_func(pixels(i,j));
         A(k,idx) = wij;  

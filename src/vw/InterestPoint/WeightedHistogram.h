@@ -75,7 +75,6 @@ int make_gaussian_kernel_2d( KernelT& kernel, float sigma, int usewidth=0 ) {
   generate_gaussian_kernel(kernel_1d, sigma, usewidth);
   int kerwidth = kernel_1d.size();
   kernel.set_size(kerwidth,kerwidth);
-  int halfwidth = (kerwidth-1)/2;
   
   // Put in Gaussian values
   for (int j=0; j<kerwidth; j++)

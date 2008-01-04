@@ -165,7 +165,7 @@ namespace hdr {
 
       // Rasterize each of the individual LDR images if necessary.
       std::vector<ImageViewRef<SrcPixelT> > m_prerast_views(m_views.size());
-      for (int i = 0; i < m_views.size(); ++i) 
+      for (unsigned i = 0; i < m_views.size(); ++i) 
         m_prerast_views[i] = m_views[i].prerasterize(bbox);
 
       return prerasterize_type( m_prerast_views, m_curves, m_brightness_vals ); 

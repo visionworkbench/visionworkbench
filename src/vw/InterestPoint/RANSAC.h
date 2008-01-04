@@ -100,13 +100,13 @@ namespace ip {
 
     // Returns the number of inliers for a given threshold.
     template <class ContainerT>
-    int num_inliers(typename FittingFuncT::result_type const& H,
+    unsigned num_inliers(typename FittingFuncT::result_type const& H,
                     std::vector<ContainerT> const& p1, std::vector<ContainerT> const& p2) const {
         
-      int result = 0;
-      for (unsigned int i=0; i<p1.size(); i++) {
+      unsigned result = 0;
+      for (unsigned i=0; i<p1.size(); i++) {
         if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold) 
-          result++;
+          ++result;
       }
       return result;
     }
@@ -130,16 +130,15 @@ namespace ip {
     
     /// \cond INTERNAL  
     // Utility Function: Pick N UNIQUE, random integers in the range [0, size] 
-    inline void _vw_get_n_unique_integers(unsigned int size, unsigned int n, int* samples) {
+    inline void _vw_get_n_unique_integers(unsigned int size, unsigned n, int* samples) {
       VW_ASSERT(size >= n, ArgumentErr() << "Not enough samples\n");
-      int i,j;
       
-      for (i=0; i<n; ++i) {
+      for (unsigned i=0; i<n; ++i) {
         bool done = false;
         while (!done) {
           samples[i] = (int)(((double)random() / (double)RAND_MAX) * size);
           done = true;
-          for (j = 0; j < i; j++) 
+          for (unsigned j = 0; j < i; j++) 
             if (samples[i] == samples[j]) 
               done = false;
         }
@@ -162,7 +161,7 @@ namespace ip {
       VW_ASSERT( p1.size() != 0,  
                  RANSACErr() << "RANSAC Error.  Insufficient data.\n");
 
-      int inliers_max = 0;
+      unsigned inliers_max = 0;
       typename FittingFuncT::result_type H;
       typename FittingFuncT::result_type H_max;
 
@@ -198,7 +197,7 @@ namespace ip {
         H = m_fitting_func(try1, try2);
         
         // Compute consensuss
-        int n_inliers = num_inliers(H, p1, p2);
+        unsigned n_inliers = num_inliers(H, p1, p2);
 
         // Keep best consensus
         if (n_inliers > inliers_max) {

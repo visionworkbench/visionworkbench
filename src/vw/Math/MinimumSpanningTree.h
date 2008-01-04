@@ -54,6 +54,7 @@ namespace math {
   
   class EdgePrimitiveFunctor {
   public:
+    virtual ~EdgePrimitiveFunctor() {}
     virtual void operator()(EdgePrimitive *prim, int node_toward_root) = 0;
   };
 

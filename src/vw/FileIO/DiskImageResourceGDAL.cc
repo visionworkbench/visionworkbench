@@ -464,9 +464,10 @@ namespace vw {
     if (!dataset) 
       vw_throw( LogicErr() << "DiskImageResourceGDAL::read() Could not read file. No file has been opened." );
 
-    int             blocksize_x, blocksize_y;
-    int             bGotMin, bGotMax;
-    double          adfMinMax[2];
+    // No longer used
+    //     int             blocksize_x, blocksize_y;
+    //     int             bGotMin, bGotMax;
+    //     double          adfMinMax[2];
     
     uint8 *data = new uint8[channel_size(channel_type()) * bbox.width() * bbox.height() * planes() * channels()];
     ImageBuffer src;
