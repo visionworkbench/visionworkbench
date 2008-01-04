@@ -103,8 +103,8 @@
 /// The user specifies the error-handling behavior by overriding the
 /// abstract method handle().  When exceptiosn have not been disabled,
 /// the Exception class and its children define a virtual method
-/// _throw() which the handler may call to have the exception throw
-/// itself in a type-aware manner.
+/// default_throw() which the handler may call to have the exception
+/// throw itself in a type-aware manner.
 ///
 #ifndef __VW_CORE_EXCEPTION_H__
 #define __VW_CORE_EXCEPTION_H__

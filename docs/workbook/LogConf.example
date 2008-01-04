@@ -1,0 +1,44 @@
+# This is an example VW log configuration file. Save 
+# this file to /tmp/.vw_logconf to adjust the VW log 
+# settings, even if the program is already running.
+#
+# The following integers are associated with the 
+# log levels throughout the Vision Workbench.  Use 
+# these in the log rules below. 
+#
+#    ErrorMessage = 0
+#    WarningMessage = 10
+#    InfoMessage = 20
+#    DebugMessage = 30
+#    VerboseDebugMessage = 40
+#
+# You can create a new log file or adjust the settings 
+# for the console log:
+#
+#   logfile <filename> 
+#       - or -
+#   logfile console
+#
+# Once you have created a logfile (or selected the 
+# console), you can add log rules using the following 
+# syntax. (Note that you can use wildcard characters 
+# '*' to catch all log_levels for a given log_namespace, 
+# or vice versa.)
+#
+# <log_level> <log_namespace>
+#
+# Example: For the console log, turn on InfoMessage 
+# logging for the thread sub-system and log every 
+# message from the cache sub-system.
+
+logfile console
+20 thread
+* cache
+
+
+# Turn on DebugMessage logging for both subsystems  
+# to a file on disk.
+
+logfile /tmp/vw_test.log
+30 cache
+30 thread

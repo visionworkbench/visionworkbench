@@ -23,6 +23,22 @@
 
 /// \file Core/Cache.h
 /// 
+/// The Vision Workbench provides a thread-safe system for caching
+/// regeneratable data.  When the cache is full, the least recently
+/// used object is "invalidated" to make room for new objects.
+/// Invalidated objects have had the resource associated with them
+/// (e.g. memory or other resources) deallocated or freed, however,
+/// the object can be "regenerated" (that is, the resource is
+/// regenerated automatically by the cache) when the object is next
+/// accessed.
+
+/// The vw::Cache object defined in src/vw/Core/Cache.h can be used to
+/// store any resource.  For example, one common usage would be to
+/// create a cache of image blocks in memory.  In this case, the cache
+/// enforces a maximum memory footprint for image block storage, and
+/// it regenerates the blocks (e.g. reloads them from a file on disk)
+/// when necessary if a block is accessed.
+///
 /// Types and functions to assist cacheing regeneratable data.
 ///
 /// The main public API is thread-safe:
@@ -35,10 +51,15 @@
 /// two levels of synchronization: one lock per cache to protect the
 /// cache data structure itself, and one lock per cache line to
 /// protect the m_value pointer and synchronize the (potentially very
-/// expensive) generation operation.  Note also that the valid()
-/// function is only useful as a heuristic: there is no guarantee that
-/// the cache line won't be invalidated between when the function
-/// checks the state and when you examine the result.
+/// expensive) generation operation.  However, the lock on the cache
+/// line ends just before the generate() method is called on the
+/// m_value object itself, so that object is responsible for its own
+/// thread safety.
+///
+/// Note also that the valid() function is only useful as a heuristic:
+/// there is no guarantee that the cache line won't be invalidated
+/// between when the function checks the state and when you examine
+/// the result.
 ///
 #ifndef __VW_CORE_CACHE_H__
 #define __VW_CORE_CACHE_H__
@@ -59,9 +80,9 @@
 
 namespace vw {
 
-  // Cache contains a list of pointers to CacheLine
-  // CacheLine is virtual and contains {generator,object,valid}
-  // Handle contains a shared pointer to CacheLine
+  // Cache contains a list of pointers to CacheLine CacheLine is
+  // virtual and contains {generator,object,valid} Handle contains a
+  // shared pointer to CacheLine
 
   // An LRU-based regeneratable-data cache
   class Cache {

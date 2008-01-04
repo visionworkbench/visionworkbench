@@ -1,0 +1,339 @@
+\chapter{The Vision Workbench Core Module}
+\label{ch:core-module}
+
+The Core Module contains fundamental tools for building good software infrastructure.
+
+ \section{Vision Workbench Exceptions}
+\label{sec:exceptions}
+
+The Vision Workbench is intended in part to be used in flight systems,
+experimental multiprocessor systems, or other environments where
+exceptions may not be fully supported.  As a result, the use of
+exceptions within the Vision Workbench is tightly controlled.  In
+particular, the exception usage rules were designed to minimize the
+imact on platforms that do not support exceptions at all.  There is a
+standard Vision Workbench "exception" class hierarchy which is used to
+describe errors and can be used even on platforms that do not support
+the C++ exception system.
+ 
+The \verb#vw::Exception# class serves as a base class for all VWB error
+types.  It is designed to make it easy to throw exceptions with
+meaningful error messages.  For example, this code:
+
+\begin{verbatim}
+  vw_throw( vw::Exception() << "Unable to open file \"" << filename << "\"!" );
+\end{verbatim}
+
+would generate a message like this:
+
+\begin{verbatim}
+  terminate called after throwing an instance of 'vw::Exception'
+       what():  Unable to open file "somefile.foo"! 
+\end{verbatim}
+
+Note that in the example the exception was thrown by calling the
+\verb#vw_throw()# function rather than by using the C++ throw
+statement.  On platforms that do support C++ exceptions the default
+behavior for \verb#vw_throw()# is to throw the exception in the usual
+way.  However, the user can provide their own error-handling mechanism
+if they choose.  For example, the default behavior when exceptions are
+disabled is to print the error text to \verb#stderr# and call
+\verb#abort()#.
+
+There are a number of standard exception types that derive from
+\verb#vw::Exception#.  These are shown in Table
+\ref{tbl:exception-types}.  In the above example, the exception should
+probably have been of type \verb#vw::IOErr#.  
+
+Also, two macros, \verb#VW_ASSERT(condition,exception)# and
+\verb#VW_DEBUG_ASSERT(condition,exception)#, are provided, with the
+usual assertion semantics.  The only difference is that the debug
+assertions will be disabled for increased performance in release
+builds when \verb#VW_DEBUG_LEVEL# is defined to zero (which happens by
+default when \verb#NDEBUG# is defined).
+
+\begin{table}[t]\begin{centering}
+\begin{tabular}{|l|l|l|} \hline
+Function & Description \\ \hline \hline
+\verb#ArgumentErr# & Invalid function argument exception \\ \hline
+\verb#LogicErr# & Incorrect program logic exception \\ \hline
+\verb#InputErr# & Invalid program input exception \\ \hline
+\verb#IOErr# & IO (usually disk IO) failure exception \\ \hline
+\verb#MathErr# & Arithmetic failure exception \\ \hline
+\verb#NullPtrErr# & Unexpected NULL pointer exception\\ \hline
+\verb#TypeErr# & Invalid type exception \\ \hline
+\verb#NotFoundErr# & Not found exception \\ \hline
+\verb#NoImplErr# & Unimplemented functionality exception \\ \hline
+\verb#Aborted# & Operation aborted partway through \\ \hline
+
+\end{tabular}
+\caption{Vision Workbench exception types that derive from
+  vw::Exception.  All behave like C++ output stream classes, so you
+  can associate an error message with the exception using the
+  stream operator.}
+\label{tbl:exception-types}
+\end{centering}\end{table}
+
+Exceptions are enabled or disabled based on the value of the
+\verb#VW_NO_EXCEPTIONS# macro defined in \verb#vw/config.h#.  This
+value can be set by passing the command line options
+\verb#--enable-exceptions# (the default) or \verb#--disable-exceptions#
+to the configure script prior to building the Vision Workbench.  This
+option also sets an automake variable called \verb#ENABLE_EXCEPTIONS#
+which may be used by the build system to conditionally compile entire
+source files.
+
+In either case the default behavior of \verb#vw_throw()# may be
+overridden by passing a pointer to a user-defined object derived from
+\verb#ExceptionHandler# to \verb#vw::set_exception_handler()#.  The
+user specifies the error-handling behavior by overriding the abstract
+method \verb#handle()#.
+
+\section{The System Cache}
+\label{sec:cache}
+
+The Vision Workbench provides a thread-safe system for caching
+regeneratable data.  When the cache is full, the least recently used
+object is {\em invalidated} to make room for new objects.  Invalidated
+objects have had the resource associated with them (e.g. memory or
+other resources) deallocated or freed, however, the object can be {\em
+  regenerated} (that is, the resource is regenerated automatically by
+the cache) when the object is next accessed.
+
+The \verb#vw::Cache# object defined in \verb#src/vw/Core/Cache.h# can
+be used to store any resource.  For example, one common usage would be
+to create a cache of image blocks in memory.  In this case, the cache
+enforces a maximum memory footprint for image block storage, and it
+regenerates the blocks (e.g. reloads them from a file on disk) when
+necessary if a block is accessed.  
+
+One can also cache more abstract resource types, such as std::ofstream
+objects pointing at open files on disk. The following section
+describes this use case in detail.
+
+\subsection{Example: Caching std::ofstream}
+
+Consider a situation wherein your system needs to open and read from
+tens of thousands of tiny files on disk.  There is a high degree of
+locality of access, meaning that once you start reading from a file,
+you are likely to read from it again in the near future, but that
+likelihood diminishes as time goes on.  It is impractical to simply
+open all of the files at once (this would eat up memory in your
+program, plus there is a hard limit in most operating systems on the
+number of open files you can have at any one time).  However, it could
+potentially be very slow to close and re-open the file each time you
+attempt to read from it because of the time it takes to parse the file
+header or seek to the correct location.
+
+This situation calls for a cache.  
+
+We begin by specifying a {\em generator} class whose sole purpose is
+to regenerate the resource if it is ever necessary to reopen it.  In
+this case, our class contains a \verb#generate()# method that return a
+shared pointer to a newly open ifstream.  
+
+\begin{verbatim}
+  class FileHandleGenerator {
+    std::string m_filename;
+  public:
+    typedef std::ifstream value_type;
+
+    FileHandleGenerator( std::string filename ) : m_filename( filename ) {}
+    
+    // The size is useful when managing items that have
+    // a known size (e.g. allocated blocks in memory).
+    // When caching abstract items, like open files, the
+    // size does not matter, only the total number of open 
+    // files, hence the size in this case is 1.
+    size_t size() const { return 1; }
+
+    // Generate is called whenever there is a cache miss.  In 
+    // this example, we reopen the file in append mode.
+    boost::shared_ptr<value_type> generate() const {
+      return boost::shared_ptr<value_type> ( new std::ifstream(m_filename, ios::app) );
+    }
+  };
+\end{verbatim}
+
+Next, we create a \verb#vw::Cache# object for storing instances of our
+\verb#FileHandleGenerator# class.  The cache itself can be declared
+without knowing the type of the generator(s) that will be inserted
+into it.  The \verb#vw::Cache# constructor takes only one argument
+specifying the size of the cache.  This value will be used in
+conjunction with the \verb#size()# methods its cache generators to
+determine when the cache is full.  If the sum of the \verb#size()#
+values from {\em valid} generators exceeds the max cache size, the
+least recently used cache generator is invalidated to make room for a
+new call to \verb#generate()#.
+
+\begin{verbatim}
+  // This cache maintains up to 200 open files at a time.
+  static vw::Cache filehandle_cache( 200 );
+
+  // Insert a ifstream generator into the cache and store a handle 
+  // so that we can access it later.
+  Cache::Handle<FileHandleGenerator> file_ptr;
+  file_ptr = filehandle_cache().insert(GdalDatasetGenerator(filename));
+
+  // ... time passes ...
+
+  // We access the file generator like a pointer.  The cache 
+  // will re-open the file if necessary.
+  char[2048] line_from_file;
+  *file_ptr.get_line(line_from_file, 2048);
+\end{verbatim}
+
+Note in this example that our call to \verb#insert()# returns a
+\verb#Cache::Handle<># object that ``points at'' the cache's version
+of the ifstream object.  The cache handle behaves like a pointer, and
+we can use it just as we would a normal C++ pointer to a
+\verb#std::ifstrem#.  However, if the cache closes the file at any
+point to make room for other files, this cache handle ensures that the
+file is regenerated (re-opened) the next time we try to access it.
+
+\subsection{Performance Considerations and Debugging}
+
+Use of a cache can greatly increase the efficiency of a program by
+storing information that would be expensive to regenerate for as long
+as possible.  However, depending on the size of the cache and the
+pattern you are using to access it, one can inadvertently end up in a
+situation where performance may suffer considerably.
+
+For example, consider a scenario where you have a
+\verb#DiskImageView<># that points at a very large (22,000x22,000
+pixels) 8-bit RGB image that is stored in a file format with a block
+size of 2048x2048 pixels.  The \verb#DiskImageView<># caches these
+block as the image is accessed, and each block takes ~96-MB of memory.
+
+If we access the \verb#DiskImageView<># one scan line at a time (during
+a rasterization operation, for example), the cache will need to store
+at least $22,000/2048 = 10$ blocks in memory for efficient access (i.e
+our cache size must be >= 960-MB).  If the cache is too small, the
+left-most image blocks in the row will be invalidated by the cache to
+make room for the right-most blocks, and vice versa as we traverse
+{\em each scanline} of the \verb#DiskImageView<>#.  Given that it
+takes a few seconds to regenerate each block, this would be hugely
+inefficient.
+
+If your code is running much, much slower than you expect, you may
+have a similar cache miss problem.  You can debug this by observing
+the ``cache'' {\em log namespace} using the system log (see Section
+\ref{sec:log} for details).  The cache subsystem logs debugging
+information whenever cache handles are invalidated or regenerated.
+Use these messages to get a gross idea of how the cache is
+performing.
+
+\section{The System Log}
+\label{sec:log}
+
+As the Vision Workbench has become more parallelized, and as new
+subsystems (e.g. caching, fileio, threadpool management, etc.) have
+been added, it has become increasingly challenging to monitor and
+debug the code base.  The Vision Workbench log class was designed to
+address the evolving needs of VW developers and users alike.  The
+following design guidelines summarize the features of the system log
+facility provided in \verb#vw/Core/Log.h#.   
+
+\begin{itemize}
+\item {\bf Thread Safety}: Log messages are buffered on a
+  per-thread basis so that messages form different threads are
+  correctly interleaved one line at a time in the log output.
+\item {\bf Log Granularity}: Users will want to monitor different
+  subsystems at different times.  Each log message includes an
+  associated {\em log namespace} and {\em log level}.  Used in
+  conjunction with the the \verb#LogRuleSet# class, the log namespace
+  and level allow the user to monitor only the log messages that
+  concern them
+\item {\bf Multiple Log Streams}: Log messages can be directed either
+  to the user's terminal, one or more files on disk, or both at the
+  same time.  Each log stream has its own \verb#LogRuleSet#, so it is
+  possible to tailor the log output that appears in each file.
+\item {\bf Runtime Log Adjustment}: When something goes wrong in the
+  middle of a long job, it is undesirable to stop the program to
+  adjust the log settings.  The VW log framework will reload the log
+  settings from the \verb#/tmp/.vw_logconf# file (if it exists) every
+  5 seconds, so it is possible to adjust log settings during program
+  execution.  See Section \ref{sec:logconf-file} below.
+\end{itemize}
+
+\subsection{Writing Log Messages}
+
+Logging in the Vision Workbench is simple.  Just call the
+\verb#vw_out(log_level, log_namespace)# command, which will return a
+\verb#basic_ostream# object that you can stream into using the standard C++
+\verb#<<# operator.  For example,
+
+\begin{verbatim}
+// Record the default number of Vision Workbench threads to the log
+int num_threads = vw::Thread::default_num_threads();
+vw_out(vw::InfoMessage, "thread") << "The default number of threads is " << num_threads << "\n";
+\end{verbatim}
+
+This would generate a log message that looks something like this.
+
+\begin{verbatim}
+2007-Dec-28 14:31:52 {0} [ thread ] : The default number of threads is 8.
+\end{verbatim}
+
+The log message includes an {\em infostamp} consisting of the timestamp,
+the unique id of the thread that generated the log message, and the
+\verb#log_namespace# specified as an argument to \verb#vw_out#.  
+
+\begin{verbatim}
+<date> <time> {<thread_id>} [ <log_namespace> ] : <log_message>
+\end{verbatim}
+
+Note that, for aesthetic reasons, log messages that go to the console
+only print the \verb#log_message# after the colon; the {\em infostamp} is
+omitted. A new {\em infostamp} is prepended to the log stream each
+time \verb#vw_out()# is called.
+
+Take note of the newline character at the end of stream to
+\verb#vw_out()# in the example above.  The logging framework will
+cache the log message until it sees the newline {\em at the end} of a
+call to \verb#operator<<#, at which point the log stream is flushed,
+and newline is written, starting a new line in the log file.
+Therefore, it is highly recommended that you end every log message
+with a newline character (or \verb#std::endl#).
+
+\subsection{The Log Configuration File}
+\label{sec:logconf-file}
+
+The {\em log configuration file} can be used to change the Vision
+Workbench logging behavior in real-time, even while your program is
+running.  
+
+Every five seconds, or when a log message is generated using
+\verb#vw_out()# (whichever is {\em longer}, the system log checks to
+see if the logconf file has been modified.  If so, it erases all log
+streams and log rules, and reloads these settings from the file.  If
+you modify the file while your program is running, you will see your
+changes take affect anywhere from 0-5 seconds from the time that you
+save your changes.
+
+Using the file, you have full control over the system log: you can
+create as many log streams to files as you like, and you can adjust
+the log rules for both the console log and the log file streams.  Note
+that syntax errors and malformed statements are silently ignored by
+the log configuration file parser, so check your file carefully for
+errors prior to saving.
+
+An example log configuration file appears in
+Listing~\ref{lst:LogConf.example}.
+
+\sourcelst{LogConf.example}{An example log configuration file.}
+
+\begin{verbatim}
+\end{verbatim}
+
+\subsection{System Log API}
+If you would rather not use the log configuration file, you can adjust
+the system log settings directly by accessing the singleton instance of
+the vw::Log class using \verb#vw::system_log()#.  Once you have done
+this, you can explicitly add (or clear) new log streams (or
+\verb#LogInstance# objects, in the parlance of the API), and you can
+adjust log rule sets (using the \verb#LogRuleSet#) class.
+
+Consult the API documentation for \verb#vw/Core/Log.h# for more
+information.
+

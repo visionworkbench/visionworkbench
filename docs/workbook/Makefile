@@ -1,5 +1,5 @@
 INCPATH += -I../../src -I/opt/local/include
-LIBS = ../../src/vw/FileIO/libvwFileIO.la ../../src/vw/Mosaic/libvwMosaic.la
+LIBS = ../../src/vw/libvw.la ../../src/vw/Mosaic/libvwMosaic.la -lboost_filesystem
 CXXFLAGS = -O3 -g -Wall
 
 GENERATED_IMAGES = images/mural_*.jpg images/hand.jpg images/lips.jpg	\
