@@ -23,10 +23,10 @@
 
 
 #include <cxxtest/TestSuite.h>
-#include <vw/InterestPoint/KDTree.h>
+#include <vw/Math/KDTree.h>
 
 using namespace vw;
-using namespace vw::ip;
+using namespace vw::math;
 
 class TestKDTree : public CxxTest::TestSuite
 {
@@ -857,7 +857,7 @@ class TestKDTree : public CxxTest::TestSuite
 
   void test_region_record_constraint(){
     typedef std::vector<double> range_t;
-    double infinity = DBL_MAX;
+    double infinity = ScalarTypeLimits<double>::highest();
     range_t lowRange, highRange;
     lowRange.push_back(0);
     lowRange.push_back(0);
@@ -922,7 +922,7 @@ class TestKDTree : public CxxTest::TestSuite
   
   void test_constrained_search(){
     typedef std::vector<double> range_t;
-    double infinity = DBL_MAX;
+    double infinity = ScalarTypeLimits<double>::highest();
     range_t lowRange, highRange;
     lowRange.push_back(0);
     lowRange.push_back(0);

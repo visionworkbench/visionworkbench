@@ -34,7 +34,7 @@ endif
 include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h	\
                   Quaternion.h EulerAngles.h ConjugateGradient.h	\
                   NelderMead.h Statistics.h DisjointSet.h		\
-                  MinimumSpanningTree.h $(lapack_headers)
+                  MinimumSpanningTree.h KDTree.h $(lapack_headers)
 
 libvwMath_la_SOURCES = MinimumSpanningTree.cc
 libvwMath_la_LIBADD = @MODULE_MATH_LIBS@
