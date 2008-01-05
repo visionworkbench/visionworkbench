@@ -218,13 +218,13 @@ namespace hdr {
     // Returns the luminance value for a given pixel value.  Linearly
     // interpolates between points in the lookup table.  Pixel value
     // is expected to be a value in the range [0.0 1.0]
-    double operator() (double pixel_val, double channel) const {
+    double operator() (double pixel_val, unsigned channel) const {
       if (channel < 0 || channel >= m_lookup_tables.size()) 
         vw_throw(ArgumentErr() << "CameraCurveFn: unknown lookup table.");
 
       double scaled_pixel_val = pixel_val*(m_lookup_tables[channel].size()-1);
-      int idx1 = floor(scaled_pixel_val);
-      int idx2 = ceil(scaled_pixel_val);
+      int idx1 = int(floor(scaled_pixel_val));
+      int idx2 = int(ceil(scaled_pixel_val));
       double val1 = m_lookup_tables[channel][idx1];
       double val2 = m_lookup_tables[channel][idx2];
 

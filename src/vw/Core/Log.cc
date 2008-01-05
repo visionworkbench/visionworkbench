@@ -176,10 +176,17 @@ void vw::Log::stat_logconf() {
       // settings.
       struct stat stat_struct;
       if (stat(m_logconf_filename.c_str(), &stat_struct) == 0) {
+#ifdef __APPLE__
         if (stat_struct.st_mtimespec.tv_sec > m_logconf_last_modification) {
           m_logconf_last_modification = stat_struct.st_mtimespec.tv_sec;
           reload_logconf_rules();
         }
+#else // Linux
+        if (stat_struct.st_mtime > m_logconf_last_modification) {
+          m_logconf_last_modification = stat_struct.st_mtime;
+          reload_logconf_rules();
+        }
+#endif
       }
     }
   }

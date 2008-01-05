@@ -82,6 +82,10 @@ public:
     queue.add_task(task2);
     queue.add_task(task3);
 
+    // This is slightly sloppy -- we just wait a few hundred ms for
+    // the thread to start and to set the flag.  This should really be
+    // done with a condition variable.
+    Thread::sleep_ms(200);
     TS_ASSERT_EQUALS( task1->value(), 1 );
     TS_ASSERT_EQUALS( task2->value(), 1 );
     TS_ASSERT_EQUALS( task3->value(), 1 );
@@ -114,8 +118,10 @@ public:
     queue.add_task(task2);
     queue.add_task(task3);
 
-    set_debug_level(VerboseDebugMessage);
-    
+    // This is slightly sloppy -- we just wait a few hundred ms for
+    // the thread to start and to set the flag.  This should really be
+    // done with a condition variable.
+    Thread::sleep_ms(200);
     TS_ASSERT_EQUALS( task1->value(), 1 );
     TS_ASSERT_EQUALS( task2->value(), 1 );
     

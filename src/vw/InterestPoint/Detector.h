@@ -186,8 +186,8 @@ namespace ip {
     //   
     // Get bounds for scaled WxW window centered at (i,j) in plane k
     int halfwidth = (int)(IP_ORIENTATION_WIDTH/2*sigma_ratio + 0.5);
-    int left  = roundf(i0 - halfwidth);
-    int top   = roundf(j0 - halfwidth);
+    int left  = int(roundf(i0 - halfwidth));
+    int top   = int(roundf(j0 - halfwidth));
 
     // Compute (gaussian weight)*(edge magnitude) kernel
     ImageView<float> weight(IP_ORIENTATION_WIDTH,IP_ORIENTATION_WIDTH);
