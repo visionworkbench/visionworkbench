@@ -150,7 +150,7 @@ namespace ip {
 
     // Process the image in 2048x2048 pixel blocks.
     std::vector<BBox2i> bboxes = image_blocks(view.impl(), 2048, 2048);
-    for (int i = 0; i < bboxes.size(); ++i) {
+    for (unsigned i = 0; i < bboxes.size(); ++i) {
       vw_out(InfoMessage, "interest_point") << "Locating interest points in block " << i << "/" << bboxes.size() << "   [ " << bboxes[i] << " ]\n";
       boost::shared_ptr<task_type> task (new task_type(view, detector, bboxes[i], ip_list, mutex ) );
       queue.add_task(task);
