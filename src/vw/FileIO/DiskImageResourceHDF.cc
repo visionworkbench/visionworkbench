@@ -168,7 +168,8 @@ public:
 
   ImageFormat select_sds_planes( std::vector<DiskImageResourceHDF::SDSBand> const& sds_planes ) {
     ::int32 cols=0, rows=0;
-    ChannelTypeEnum data_type;
+    ChannelTypeEnum data_type = VW_CHANNEL_UNKNOWN;
+    VW_ASSERT(sds_planes.size()>0,ArgumentErr()<<"DiskImageResourceHDF::select_sds_planes() must be passed at least one plane!");
     std::vector<PlaneInfo> new_plane_info(sds_planes.size());
     // For each requested plane
     for( unsigned plane=0; plane<sds_planes.size(); ++plane ) {
