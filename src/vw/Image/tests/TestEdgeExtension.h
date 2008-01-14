@@ -381,6 +381,9 @@ public:
     TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(3,3,4,4)), 0,0,4,4 );
     TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(4,4,4,4)), 0,0,3,3 );
     TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(5,5,4,4)), 0,0,3,3 );
+
+    im.set_size(5,5);
+    TS_ASSERT_BBOX( ee.source_bbox(im,BBox2i(-1,-1,7,7)), 0,0,5,5 );
   }
 
   void testLinearEdgeExtension()

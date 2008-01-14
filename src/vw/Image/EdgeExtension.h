@@ -231,7 +231,7 @@ namespace vw {
         result.min().x() = mod(bbox.min().x(), 2*view.cols()-2);
         result.max().x() = mod(bbox.max().x()-1, 2*view.cols()-2)+1;
         if( result.min().x() >= result.max().x() ) {
-          result.max().x() = (std::max)(result.max().x(),2*view.cols()-1-result.min().x());
+          result.max().x() = (std::min)((std::max)(result.max().x(),2*view.cols()-1-result.min().x()),view.cols());
           result.min().x() = 0;
         }
         else if( result.min().x() >= view.cols() ) {
@@ -252,7 +252,7 @@ namespace vw {
         result.min().y() = mod(bbox.min().y(), 2*view.rows()-2);
         result.max().y() = mod(bbox.max().y()-1, 2*view.rows()-2)+1;
         if( result.min().y() >= result.max().y() ) {
-          result.max().y() = (std::max)(result.max().y(),2*view.rows()-1-result.min().y());
+          result.max().y() = (std::min)((std::max)(result.max().y(),2*view.rows()-1-result.min().y()),view.rows());
           result.min().y() = 0;
         }
         else if( result.min().y() >= view.rows() ) {
