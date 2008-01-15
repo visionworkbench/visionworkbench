@@ -16,7 +16,12 @@ subsystem.  This functionality has been a long time in coming, and it
 greatly improves the ability to print debugging and status information
 to the user's console or to one or more files on disk.  You can read
 the new chapter in the Vision Workbook titled "Core Module" to learn
-all about it.
+all about it.  
+
+IMPORTANT NOTE: This logging system is not yet windows compatible --
+we do not recommend that you upgrade to 2.0alpha4 if you are currently
+developing on windows unless you want to patch the Log.{cc,h} files to
+replace POSIX functionality with the Windows equivalents.
 
 Added VW_GENERIC_{N}_CHANNEL and VW_PIXEL_GENERIC_{N}_CHANNEL types.
 These can be used if you need to augment the PixelFormatID<> type
