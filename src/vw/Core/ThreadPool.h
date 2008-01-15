@@ -70,7 +70,7 @@ namespace vw {
 
         // ... and continue running tasks as long as they are available.
         while ( m_task = m_queue.get_next_task() ) {
-          vw_out(DebugMessage, "thread") << "ThreadPool: reusing worker thread.";
+          vw_out(DebugMessage, "thread") << "ThreadPool: reusing worker thread.\n";
           (*m_task)();
         }
 
