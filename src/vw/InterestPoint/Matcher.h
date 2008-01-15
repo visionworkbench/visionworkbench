@@ -31,6 +31,8 @@
 #include <algorithm>
 
 #include <vw/InterestPoint/Descriptor.h>
+#include <vw/Math/KDTree.h>
+#include <vw/Core/Log.h>
 #include <vector>
 #include <math.h>
 #include <float.h>
@@ -228,10 +230,40 @@ public:
   /// of matching interest points based on the Metric and Constraints
   /// provided by the user.
   template <class ListT, class MatchListT>
-  void match( ListT const& ip1, ListT const& ip2,
-              MatchListT& matched_ip1, MatchListT& matched_ip2,
-              bool bidirectional = false) const {
+  void operator()( ListT const& ip1, ListT const& ip2,
+                   MatchListT& matched_ip1, MatchListT& matched_ip2,
+                   bool bidirectional = false) const {
     typedef typename ListT::const_iterator IterT;
+
+//     std::vector<vw::Vector<float> > ip2_descriptors(ip2.size());
+//     for (int i = 0; i < ip2.size(); ++i) {
+//       ip2_descriptors[i] = ip2[i].descriptor;
+//     }
+
+//     vw::vw_log(0) << "Building KD Tree...\n";
+//     math::KDTree<vw::Vector<float> > kd(ip2_descriptors.size(), ip2_descriptors.begin(), ip2_descriptors.end());
+    
+//     matched_ip1.clear(); matched_ip2.clear();
+    
+//     for (IterT iter = ip1.begin(); iter != ip1.end(); ++iter) {
+//       std::vector<vw::Vector<float> > nearest_records;
+//       int num_records = kd.m_nearest_neighbors(ip1.descriptor, nearest_records, 2);
+//       if (num_records != 2) 
+//         vw_out(0) << "Search returned 0 records\n";
+
+//       float dist0 = 0.0;
+//       float dist1 = 0.0;
+//       for (unsigned int i = 0; i < nearest_records.size(); i++) 
+//         dist0 += pow((*iter).descriptor - nearest_records[0],2);
+//       for (unsigned int i = 0; i < nearest_records.size(); i++) 
+//         dist1 += pow((*iter).descriptor - nearest_records[1],2);
+
+//       if (dist0 < threshold * dist1)
+//         return best_match;
+//       else
+//         return ip1.end();
+//     }
+
 
     std::vector<IterT> index;
     if (bidirectional) 

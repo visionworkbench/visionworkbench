@@ -253,7 +253,7 @@ int main(int argc, char** argv) {
   DefaultMatcher matcher(matcher_threshold);
   // RANSAC needs the matches as a vector.
   std::vector<InterestPoint> matched_ip1, matched_ip2;
-  matcher.match(ip1, ip2, matched_ip1, matched_ip2);
+  matcher(ip1, ip2, matched_ip1, matched_ip2);
   vw_out(InfoMessage) << "\tFound " << matched_ip1.size() << " putative matches.\n";
 
   // Write out the putative point correspondence image
