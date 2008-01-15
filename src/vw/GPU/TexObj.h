@@ -5,7 +5,8 @@
 #include <list>
 #include <vw/GPU/Setup.h>
 
-namespace vw { namespace GPU {
+namespace vw { 
+namespace GPU {
 
 #define GPU_DEBUG_PRINT 0
 class TexBlock;
@@ -30,8 +31,8 @@ enum Tex_Type {
   GPU_FLOAT32 = 4
 };
 
- inline const char* TexFormatToString(Tex_Format format) {
-   if(format == GPU_RED)
+  inline const char* TexFormatToString(Tex_Format format) {
+    if(format == GPU_RED)
      return "GPU_RED";
    else if(format == GPU_GREEN)
      return "GPU_GREEN";
@@ -62,11 +63,11 @@ class TexObj {
   friend class TexAlloc;
 protected:
   GLuint texName;
-  Tex_Type _type;
-  Tex_Format _format;
-  int _width;
-  int _height;
-  int _refCount;
+  Tex_Type m_type;
+  Tex_Format m_format;
+  int m_width;
+  int m_height;
+  int m_refCount;
 public:
   TexObj(int w, int h, Tex_Format internalFormat, Tex_Type internalType);
 
@@ -78,37 +79,37 @@ public:
 // INLINE
   GLuint name() { return texName; }
 
-  Tex_Format format() { return _format; }
+  Tex_Format format() { return m_format; }
 
-  Tex_Type type() { return _type; }
+  Tex_Type type() { return m_type; }
 
   int MemorySize() { 
     int nComponents; 
-    if(_format == GPU_RGB) 
+    if(m_format == GPU_RGB) 
       nComponents = 3;
-    else if(_format == GPU_RGBA) 
+    else if(m_format == GPU_RGBA) 
       nComponents = 4;
     else
       nComponents = 1;
-    return _width * _height * _type * nComponents;
+    return m_width * m_height * m_type * nComponents;
   }
   
   int Components() {
-    if(_format == GPU_RGB) 
-		return 3;
-	else if(_format == GPU_RGBA) 
-		return 4;
+    if(m_format == GPU_RGB) 
+      return 3;
+    else if(m_format == GPU_RGBA) 
+      return 4;
     else
-		return 1;
+      return 1;
   }
 
-  int width() { return _width; }
+  int width() { return m_width; }
 
-  int height() { return _height; }
+  int height() { return m_height; }
 
-  int real_width() { return _width; }
+  int real_width() { return m_width; }
 
-  int real_height() { return _height; }
+  int real_height() { return m_height; }
 
   float x(float x) { return x; }
 

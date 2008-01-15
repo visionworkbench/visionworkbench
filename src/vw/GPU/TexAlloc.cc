@@ -26,7 +26,8 @@ namespace vw { namespace GPU {
   TexAlloc::alloc(int w, int h, Tex_Format format, Tex_Type type) {
     // check for init
     if(!isInit)
-      _init();
+      initialize_texalloc();
+
     // Attribute Substition
     Tex_Format realFormat = format;
     Tex_Type realType = type;
@@ -128,6 +129,7 @@ namespace vw { namespace GPU {
       if(format == GPU_RED) sprintf(buffer1, "GPU_RED");
       else if(format == GPU_RGB) sprintf(buffer1, "GPU_RGB");
       else if(format == GPU_RGBA) sprintf(buffer1, "GPU_RGBA");
+
       for(int i_type=0; i_type < 3; i_type++) {
 	bool failed = false;
 	Tex_Type type = textureTypes[i_type];
@@ -211,7 +213,7 @@ namespace vw { namespace GPU {
   //#################################################################################################################
 
   void 
-  TexAlloc::_init() {
+  TexAlloc::initialize_texalloc() {
     generate_texture_substitutions();
     isInit = true;
   }

@@ -185,7 +185,7 @@ static bool have_pkg_cg = false;
  
 #define PROFILE_FUNCTION(GPU, CPU, TEXT) {  \
  UtilityTimer timer; \
- float time_cpu, time_gpu1_cg, time_gpu2_cg, time_gpu1_glsl, time_gpu2_glsl, dif_cg, dif_glsl;  \
+ float time_cpu=0, time_gpu1_cg=0, time_gpu2_cg=0, time_gpu1_glsl=0, time_gpu2_glsl=0, dif_cg =0, dif_glsl = 0;  \
  ShaderCompilationStatusEnum comp_status_cg, comp_status_glsl; \
  timer.Start(); CPU; timer.Stop(); time_cpu = timer.ElapsedSeconds();  \
  if(have_pkg_cg) { \
@@ -231,42 +231,42 @@ GENERIC_FRAGMENT_SHADER_FUNCTION_1i2f(transform_sine_wave, period, amplitude, "U
 
   template <class PixelT>
   void profile_functions(char* save_base_path = NULL) {
- // *********** Profile PixelRGB<float> *******************
+  // *********** Profile PixelRGB<float> *******************
   typedef typename TexTraitsForPixelT<PixelT>::imageview_t PixelT_CPU;
   //PixelT pixel_gpu;
   PixelT_CPU pixel_cpu;
+  
+  GPUImage<PixelT> tex;
+  read_image(tex, "tests/test_images/lighthouse-1000x1000.png");
+  ImageView<PixelT_CPU> img;
+  read_image(img, "tests/test_images/lighthouse-1000x1000.png");
+  ImageView<PixelT_CPU> img_out(img.cols(), img.rows());
+  
+  printf("--- Image Size = %i x %i ---\n", img.cols(), img.rows());
+  
+  GPUImage<PixelT> result_tex(img.cols(), img.rows());
+  ImageView<PixelT_CPU>  result_img(img.cols(), img.rows());
+  ImageView<PixelT_CPU> working_img;
+  
+  PrintProfileHeader();
+  // ImageAlgorithms
+  ImageView<PixelRGB<float> > img2(1, 1);
+  img2(1, 1) = PixelRGB<float>(1, 1, 1);
+  img2 = acos(img2);
+  PROFILE_FUNCTION(result_tex = acos(tex), result_img = acos(img), "acos(img)");
+  
 
-    GPUImage<PixelT> tex;
-    read_image(tex, "tests/test_images/lighthouse-1000x1000.png");
-    ImageView<PixelT_CPU> img;
-    read_image(img, "tests/test_images/lighthouse-1000x1000.png");
-    ImageView<PixelT_CPU> img_out(img.cols(), img.rows());
-
-    printf("--- Image Size = %i x %i ---\n", img.cols(), img.rows());
-
-    GPUImage<PixelT> result_tex(img.cols(), img.rows());
-    ImageView<PixelT_CPU>  result_img(img.cols(), img.rows());
-    ImageView<PixelT_CPU> working_img;
-
-    PrintProfileHeader();
- // ImageAlgorithms
-    ImageView<PixelRGB<float> > img2(1, 1);
-    img2(1, 1) = PixelRGB<float>(1, 1, 1);
-    img2 = acos(img2);
-    PROFILE_FUNCTION(result_tex = acos(tex), result_img = acos(img), "acos(img)");
-
-
-    printf(" *** ImageAlgorithms:\n");
-    
-    PROFILE_FUNCTION(result_tex = copy(tex), result_img = copy(img), "copy(img)");
-    PROFILE_FUNCTION(result_tex = clamp(tex, 0.4, 0.6), result_img = clamp(img, 0.4, 0.6), "clamp(img, 0.4, 0.6)");
-    PROFILE_FUNCTION(result_tex = threshold(tex, 0.5, 0, 1), result_img = threshold(img, 0.5, 0, 1), "threshold(img, 0.5, 0, 1)");
-    PROFILE_FUNCTION(result_tex = normalize(tex, 0, 1), result_img = normalize(img, 0, 1), "normalize(img, 0, 1)");
-    PROFILE_FUNCTION(fill(result_tex, 1, 0, 0, 1), fill(result_img, pixel_cpu), "fill(img, 1, 0, 0, 1)");
+  printf(" *** ImageAlgorithms:\n");
+  
+  PROFILE_FUNCTION(result_tex = copy(tex), result_img = copy(img), "copy(img)");
+  PROFILE_FUNCTION(result_tex = clamp(tex, 0.4, 0.6), result_img = clamp(img, 0.4, 0.6), "clamp(img, 0.4, 0.6)");
+  PROFILE_FUNCTION(result_tex = threshold(tex, 0.5, 0, 1), result_img = threshold(img, 0.5, 0, 1), "threshold(img, 0.5, 0, 1)");
+  PROFILE_FUNCTION(result_tex = normalize(tex, 0, 1), result_img = normalize(img, 0, 1), "normalize(img, 0, 1)");
+  PROFILE_FUNCTION(fill(result_tex, 1, 0, 0, 1), fill(result_img, pixel_cpu), "fill(img, 1, 0, 0, 1)");
 // ImageMath 
-    printf(" *** ImageMath:\n");
-    //PROFILE_FUNCTION(result_tex = abs(tex), result_img = abs(img), "abs(img)");
-    PROFILE_FUNCTION(result_tex = acos(tex), result_img = acos(img), "acos(img)");
+  printf(" *** ImageMath:\n");
+  //PROFILE_FUNCTION(result_tex = abs(tex), result_img = abs(img), "abs(img)");
+  PROFILE_FUNCTION(result_tex = acos(tex), result_img = acos(img), "acos(img)");
     PROFILE_FUNCTION(result_tex = acosh(tex), result_img = acosh(img), "acosh(img)"); 
     PROFILE_FUNCTION(result_tex = asin(tex), result_img = asin(img), "asin(img)");
     PROFILE_FUNCTION(result_tex = asinh(tex), result_img = asinh(img), "asinh(img)");

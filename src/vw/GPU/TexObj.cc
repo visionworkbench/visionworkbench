@@ -5,22 +5,21 @@
 #include <vw/GPU/Setup.h>
 #include <vw/GPU/TexAlloc.h>
 
-
 using namespace std;
 
-namespace vw { namespace GPU {
+namespace vw { 
+namespace GPU {
 
 #define USE_PBO false
-
+  
   //#################################################################################################################
   //                                        TexObj: Instance Functions
   //#################################################################################################################
 
-
-
   TexObj::TexObj(int w, int h, Tex_Format internalFormat, Tex_Type internalType) {
-    _refCount = 0;
+    m_refCount = 0;
     GLuint format_gl;
+
     if(internalFormat == GPU_DEPTH) {
       if(internalType == GPU_FLOAT32)
 	format_gl == GL_DEPTH_COMPONENT24;
@@ -55,6 +54,7 @@ namespace vw { namespace GPU {
       else 
 	format_gl = GL_FLOAT_R16_NV;
     }
+
     else {
       if(internalFormat == GPU_DEPTH)
 	format_gl = GL_DEPTH_COMPONENT;
@@ -65,11 +65,11 @@ namespace vw { namespace GPU {
       else 
 	format_gl = GL_LUMINANCE;
     }  
-    //
-    _width = w;
-    _height = h;
-    _format = internalFormat;
-    _type = internalType;
+
+    m_width = w;
+    m_height = h;
+    m_format = internalFormat;
+    m_type = internalType;
 
     glGenTextures(1, &texName);
     glBindTexture(GL_TEXTURE_RECTANGLE_ARB, texName);
@@ -83,8 +83,8 @@ namespace vw { namespace GPU {
     glGetError();
     glTexImage2D(GL_TEXTURE_RECTANGLE_ARB, 0, format_gl, w, h, 0, GL_LUMINANCE, GL_FLOAT, NULL); 
     if(glGetError()) {
-      _width = 0;
-      _height = 0;
+      m_width = 0;
+      m_height = 0;
       throw(Exception("[vw::GPU::TexObj()] Error allocating texture."));
     }
   }
@@ -96,19 +96,19 @@ namespace vw { namespace GPU {
   }
 
   void TexObj::retain() { 
-    _refCount++; 
+    m_refCount++; 
   }
 
   void TexObj::release() { 
-    _refCount--; 
-    if(!_refCount) TexAlloc::release(this);
+    m_refCount--; 
+    if(!m_refCount) TexAlloc::release(this);
   }
 
   void 
   TexObj::write(int x, int y, int w, int h, Tex_Format inputFormat, Tex_Type inputType, void* data) {
     // FORMAT
     GLuint inputFormat_gl;
-    if(inputFormat == GPU_RED && _format == GPU_RED) 
+    if(inputFormat == GPU_RED && m_format == GPU_RED) 
       inputFormat_gl = GL_LUMINANCE;
     else
       inputFormat_gl = inputFormat;  
@@ -160,7 +160,7 @@ namespace vw { namespace GPU {
 	
     // Format
     GLuint outFormat_gl;
-    if(outputFormat == GPU_RED &&  _format == GPU_RED) 
+    if(outputFormat == GPU_RED &&  m_format == GPU_RED) 
       outFormat_gl = GL_LUMINANCE;
     else
       outFormat_gl = outputFormat;
@@ -187,8 +187,4 @@ namespace vw { namespace GPU {
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
   }
 
-
-
-
-
-} } // namespaces GPU, vw
+}} // namespaces GPU, vw

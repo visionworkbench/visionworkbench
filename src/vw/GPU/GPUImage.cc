@@ -11,23 +11,24 @@
 
 using namespace std;
 
-namespace vw { namespace GPU {
+namespace vw { 
+namespace GPU {
 
     void GPUImageBase::rasterize_homography() const {
-      if(!_isHomography) return;
+      if(!m_isHomography) return;
 // GLState
 	ShaderInvocation_SetupGLState(width(), height());
 // Program
-	GPUProgram* program = create_gpu_program(_interpolation_string);
+	GPUProgram* program = create_gpu_program(m_interpolation_string);
 	program->install();
 // OUTPUT
 	GPUImageBase temp(width(), height(), format(), type());
 	ShaderInvocation_SetOutputImage(temp);
 // INPUT
 	program->set_input_image("image", *this);
-	EdgeExtension_SetupTexture(_edge_extension_type);
+	EdgeExtension_SetupTexture(m_edge_extension_type);
 // DRAW
-	HomographyTransform h_functor(_homography);
+	HomographyTransform h_functor(m_homography);
       
 	Vector2 t_0_0 = h_functor.forward(Vector2(-0.5, -0.5));
 	Vector2 t_1_0 = h_functor.forward(Vector2(width()-0.5, -0.5)); 
@@ -45,9 +46,7 @@ namespace vw { namespace GPU {
  	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 	*((GPUImageBase*) this) = temp;
     }
-	
-	
-
+       
 // GPUImageBase Members
 
 } } // namespaces GPU, vw
