@@ -21,7 +21,7 @@
 # 
 # __END_LICENSE__
 
-AC_INIT([NASA Vision Workbench], [2.0.alpha3], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
+AC_INIT([NASA Vision Workbench], [2.0.alpha4], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
 AC_CONFIG_AUX_DIR(config)
 AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE
@@ -66,6 +66,7 @@ PKG_PATHS="${PKG_PATHS} ${HOME} ${HOME}/local /sw /opt /opt/local /usr/local /us
 
 CPPFLAGS="$CPPFLAGS -I\${top_srcdir}/src"
 
+# Debugging
 AC_ARG_ENABLE(debug,
   AC_HELP_STRING([--enable-debug], [generate debugging symbols @<:@no@:>@]),
   [ ENABLE_DEBUG=$enableval ], 
@@ -78,6 +79,21 @@ else
    AX_CFLAGS="$AX_CFLAGS -DNDEBUG"
 fi
 
+# Target Architecture
+AC_ARG_ENABLE(architecture,
+  AC_HELP_STRING([--enable-architecture@<:@=ARCH@:>@], [select a target architecture @<:@x86_64@:>@]),
+  [ TARGET_ARCHITECTURE=$enableval ],
+  [ if test -z "$TARGET_ARCHITECTURE"; then echo; fi ]
+)
+
+if test ! -z "$TARGET_ARCHITECTURE"; then
+  AC_MSG_NOTICE([Setting target architecture to $TARGET_ARCHITECTURE])
+  AX_CFLAGS="$AX_CFLAGS -arch $TARGET_ARCHITECTURE"
+else 
+  AC_MSG_NOTICE([Setting target architecture to default])
+fi 
+
+# Optimization
 AC_ARG_ENABLE(optimize,
   AC_HELP_STRING([--enable-optimize@<:@=LEVEL@:>@], [compiler optimization level @<:@yes@:>@]), 
   [ ENABLE_OPTIMIZE=$enableval ],
@@ -187,19 +203,6 @@ AM_CONDITIONAL(DIST_REMOVE_MODULES, [test ! -z "$DIST_REMOVE_MODULES"])
 
 
 ##################################################
-#	library options	    
-##################################################
-
-if test -z $NUM_THREADS ; then NUM_THREADS=4 ; fi
-AH_TEMPLATE([NUM_THREADS],
-            [Define to the default number of threads that the Vision 
-             Workbench should spawn for multi-threaded operations.])
-AC_ARG_WITH(num-threads,
-  AC_HELP_STRING([--with-num-threads[=4]], [set the default number of processing threads for multi-threaded operations]),
-  [NUM_THREADS=$withval])
-AC_DEFINE_UNQUOTED([NUM_THREADS],[$NUM_THREADS])
-
-##################################################
 #	package checks	    
 ##################################################
 
@@ -246,7 +249,7 @@ AX_PKG(Z, [], [-lz], [zlib.h])
 AX_PKG(PNG, [], [-lpng], [png.h])
 AX_PKG(JPEG, [], [-ljpeg], [stdio.h jpeglib.h]) # jpeglib.h requires stdio.h to have been included
 AX_PKG(TIFF, [], [-ltiff], [tiff.h])
-AX_PKG(ILMBASE, [Z PTHREADS], [-lImath -lHalf -lIex], [], [IlmBase])
+AX_PKG(ILMBASE, [Z PTHREADS], [-lImath -lHalf -lIex], [Iex.h], [OpenEXR])
 AX_PKG(OPENEXR, [ILMBASE], [-lIlmImf], [ImfOutputFile.h], [OpenEXR])
 AX_PKG(HDF, [], [-ldf -lmfhdf], [mfhdf.h])
 
@@ -318,6 +321,19 @@ AM_CONDITIONAL(MAKE_MODULE_STEREO, [test "$MAKE_MODULE_STEREO" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GPU, [test "$MAKE_MODULE_GPU" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GEOMETRY, [test "$MAKE_MODULE_GEOMETRY" = "yes"])
 
+##################################################
+#	library options	    
+##################################################
+
+if test -z $NUM_THREADS ; then NUM_THREADS=4 ; fi
+AH_TEMPLATE([NUM_THREADS],
+            [Define to the default number of threads that the Vision 
+             Workbench should spawn for multi-threaded operations.])
+AC_ARG_WITH(num-threads,
+  AC_HELP_STRING([--with-num-threads[=4]], [set the default number of processing threads for multi-threaded operations]),
+  [NUM_THREADS=$withval])
+AC_DEFINE_UNQUOTED([NUM_THREADS],[$NUM_THREADS])
+AC_MSG_NOTICE([VW will use $NUM_THREADS THREADS by default])
 
 ##################################################
 #	final processing	    
