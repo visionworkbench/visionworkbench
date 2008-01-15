@@ -13,8 +13,12 @@ Matthew Hancher  -- Lead Developer
 
 Kerri Cahoy      -- Testing
 Matthew Deans    -- InterestPoint
-Patrick Mihelich -- HDR
+Patrick Mihelich -- HDR, InterestPoint
 Aaron Rolett     -- Mosaic
-Randy Sargent    -- Mosaic
+Randy Sargent    -- Mosaic, Core, Image
 Ian Saxton       -- GPU
 Joey Gannon      -- Camera
+Matthew Faulkner -- Math, Camera
+Kyle Husmann     -- Camera, Stereo
+Xavier Bouyssounouse - Image
+Eric Park        -- InterestPoint

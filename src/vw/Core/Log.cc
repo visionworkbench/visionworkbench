@@ -26,9 +26,11 @@
 #include <boost/thread/xtime.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-// C Standard Library headers ( for stat(2) )
+// C Standard Library headers ( for stat(2) and getpwuid() )
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <pwd.h>
 
 // ---------------------------------------------------
 // Create a single instance of the SystemLog
@@ -190,6 +192,13 @@ void vw::Log::stat_logconf() {
       }
     }
   }
+}
+
+void vw::Log::set_default_logconf_filename() {
+  struct passwd *pw;
+  pw = getpwuid( getuid() );
+  std::string homedir = pw->pw_dir; 
+  m_logconf_filename = homedir + "/.vw_logconf";
 }
 
 std::ostream& vw::Log::operator() (int log_level, std::string log_namespace) { 

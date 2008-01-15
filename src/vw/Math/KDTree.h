@@ -87,7 +87,7 @@
 ///   The root's range is -infinity to infinity on each dimension, represented
 ///   as LO_Range = record of -inf, HI_Range = record of +inf.
 ///
-///     L: [-inf, -inf, ..., -inf]    
+///     L: [-inf, -inf, ..., -inf]
 ///     H: [+inf, +inf, ..., +inf]      root, disc = 1
 ///     Record:[0, 1, ..., -3]          / \
 ///                                    /   \

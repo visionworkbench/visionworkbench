@@ -437,7 +437,7 @@ namespace vw {
   /// The system log class manages logging to the console and to files
   /// on disk.  It supports multiple open log streams, each with their
   /// own LogRuleSet.  This class also periodically checks the
-  /// m_logconf_filename (set by default to /tmp/.vw_logconf) for
+  /// m_logconf_filename (set by default to ~/.vw_logconf) for
   /// changes.  When changes occur, the log settings are reloaded from
   /// the logconf file.
   ///
@@ -479,6 +479,8 @@ namespace vw {
     void stat_logconf();
     void reload_logconf_rules();
 
+    void set_default_logconf_filename();
+
     // Ensure non-copyable semantics
     Log( Log const& );
     Log& operator=( Log const& );
@@ -492,9 +494,9 @@ namespace vw {
     Log() : m_console_log(new LogInstance(std::cout, false)),
             m_logconf_last_polltime(0),
             m_logconf_last_modification(0),
-            m_logconf_filename("/tmp/.vw_logconf"),
-            m_logconf_poll_period(5.0) {}
-
+            m_logconf_poll_period(5.0) {
+      set_default_logconf_filename();
+    }
 
     /// The call operator returns a subclass of the basic_ostream
     /// object, which is suitable for use with the C++ << operator.
@@ -503,7 +505,7 @@ namespace vw {
     /// log_namespace.
     std::ostream& operator() (int log_level, std::string log_namespace="console");
 
-    /// Change the logconf filename (default: /tmp/.vw_longconf)
+    /// Change the logconf filename (default: ~/.vw_longconf)
     void set_logconf_filename(std::string filename) { m_logconf_filename = filename; }
 
     /// Change the logconf file poll period.  (default: 5 seconds)

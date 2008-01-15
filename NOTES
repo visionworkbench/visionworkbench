@@ -1,3 +1,61 @@
+*** RELEASE 2.0.alpha4, 15 JANUARY 2008 ***
+
+This release features many improvements to the primitives found in the
+Core module of the Vision Workbench.  
+
+In particular, we have improved the generic threading interface by
+adding a Condition class and a static method, Thread::id(), which
+returns a globally unique ID for the current thread.  We have also
+added a new WorkQueue class for managing thread pools.  You may want
+to try out multithreaded image rasterization if you have a multicore
+machine.  The block_rasterize() and block_write_image() functions can
+help you get started!  
+
+This release also features the debut of a thread-safe logging
+subsystem.  This functionality has been a long time in coming, and it
+greatly improves the ability to print debugging and status information
+to the user's console or to one or more files on disk.  You can read
+the new chapter in the Vision Workbook titled "Core Module" to learn
+all about it.
+
+Added VW_GENERIC_{N}_CHANNEL and VW_PIXEL_GENERIC_{N}_CHANNEL types.
+These can be used if you need to augment the PixelFormatID<> type
+traits class so that you can save an unusual or custom pixel type to
+an image file.
+
+Added better detection of the OpenEXR libraries, especially for
+version 1.5 and above.
+
+Improved detection of LAPACK libraries and fixed a bug in the m4
+macros that appeared with certain versions of autotools.
+
+Added a rate-limiting feature to the TerminalProgressCallback() that
+eliminates redundant stream output that can negatively impact
+performance on a slow terminal.
+
+Optimized the GeoTransform object in cases where source and
+destination transform are the same.
+
+You can now have arbitrarily many DiskImageResourceGDAL's open thanks
+to a new internal system for caching open file descriptors.
+
+Added a new colorspace: Luv
+
+Fixed compatibility problems with Automake 1.10 which was causing
+problems on MacOS 10.5.
+
+Eliminated many compiler warnings that appear when you compile with
+-Wall.
+
+Added a chapter to the Vision Workbook(!): Core Module
+
+Moved the KDTree class from the InterestPoint module to the Math
+module.
+
+Fixed a tricky edge condition in the ReflectEdgeExtension that would
+sometimes cause a segfault.
+
+
 *** RELEASE 2.0.alpha3, 9 NOVEMBER 2007 ***
 
 This release introduces the InterestPoint module, which provides tools 
