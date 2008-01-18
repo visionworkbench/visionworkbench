@@ -202,18 +202,19 @@ namespace mosaic {
   /// cooresponding to a standard global KML image quad-tree.
   class GlobalKMLTransform : public TransformHelper<GlobalKMLTransform,ConvexFunction,ConvexFunction>
   {
-    int resolution;
+    int xresolution, yresolution;
   public:
-    GlobalKMLTransform( int resolution ) : resolution(resolution) {}
+    GlobalKMLTransform( int resolution ) : xresolution(resolution), yresolution(resolution) {}
+    GlobalKMLTransform( int xresolution, int yresolution ) : xresolution(xresolution), yresolution(yresolution) {}
     
     // Convert degrees lat/lon to pixel location
     inline Vector2 forward( Vector2 const& p ) const {
-      return resolution*Vector2( p.x()+180.0, 180.0-p.y() )/360.0 - Vector2(0.5,0.5);
+      return Vector2( xresolution*(p.x()+180.0)/360.0-0.5, yresolution*(180.0-p.y())/360.0-0.5 );
     }
     
     // Convert pixel location to degrees lat/lon
     inline Vector2 reverse( Vector2 const& p ) const {
-      return Vector2( 360.0*(p.x()+0.5)/resolution-180.0, 180.0-360.0*(p.y()+0.5)/resolution );
+      return Vector2( 360.0*(p.x()+0.5)/xresolution-180.0, 180.0-360.0*(p.y()+0.5)/yresolution );
     }
 
     template <class TransformT>

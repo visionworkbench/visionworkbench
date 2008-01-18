@@ -73,6 +73,7 @@ int main( int argc, char *argv[] ) {
   int draw_order_offset;
   float pixel_scale=1.0, pixel_offset=0.0;
   double lcc_parallel1, lcc_parallel2;
+  int aspect_ratio=0;
 
   po::options_description general_options("General Options");
   general_options.add_options()
@@ -122,7 +123,8 @@ int main( int argc, char *argv[] ) {
     ("max-lod-pixels", po::value<int>(&max_lod_pixels)->default_value(1024), "Max LoD in pixels, or -1 for none")
     ("draw-order-offset", po::value<int>(&draw_order_offset)->default_value(0), "Set an offset for the KML <drawOrder> tag for this overlay")
     ("composite-overlay", "Composite images using direct overlaying (default)")
-    ("composite-multiband", "Composite images using multi-band blending");
+    ("composite-multiband", "Composite images using multi-band blending")
+    ("aspect-ratio", po::value<int>(&aspect_ratio)->default_value(1),"Pixel aspect ratio (for polar overlays; should be a power of two)");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
@@ -242,7 +244,8 @@ int main( int argc, char *argv[] ) {
 
   // Configure the composite
   ImageComposite<PixelRGBA<uint8> > composite;
-  GlobalKMLTransform kmltx( total_resolution );
+  int xresolution = total_resolution / aspect_ratio, yresolution = total_resolution;
+  GlobalKMLTransform kmltx( xresolution, yresolution );
 
   // Add the transformed input files to the composite
   for( unsigned i=0; i<image_files.size(); ++i ) {
@@ -270,9 +273,9 @@ int main( int argc, char *argv[] ) {
       // you might expect, which can create visible artifacts if 
       // it happens at the boundaries of the coordinate system.
       if( west_lon == -180 ) bbox.min().x() = 0;
-      if( east_lon == 180 ) bbox.max().x() = total_resolution;
-      if( north_lat == 90 ) bbox.min().y() = total_resolution/4;
-      if( south_lat == -90 ) bbox.max().y() = 3*total_resolution/4;
+      if( east_lon == 180 ) bbox.max().x() = xresolution;
+      if( north_lat == 90 ) bbox.min().y() = yresolution/4;
+      if( south_lat == -90 ) bbox.max().y() = 3*yresolution/4;
       source = crop( transform( source, compose(kmltx,geotx), ConstantEdgeExtension() ), bbox );
     }
     else {
@@ -280,21 +283,21 @@ int main( int argc, char *argv[] ) {
     }
     composite.insert( source, bbox.min().x(), bbox.min().y() );
     // Images that wrap the date line must be added to the composite on both sides.
-    if( bbox.max().x() > total_resolution ) {
-      composite.insert( source, bbox.min().x()-total_resolution, bbox.min().y() );
+    if( bbox.max().x() > xresolution ) {
+      composite.insert( source, bbox.min().x()-xresolution, bbox.min().y() );
     }
   }
 
   // Compute a tighter Google Earth coordinate system aligned bounding box
   BBox2i bbox = composite.bbox();
-  bbox.crop( BBox2i(0,0,total_resolution,total_resolution) );
+  bbox.crop( BBox2i(0,0,xresolution,yresolution) );
   int dim = 2 << (int)(log( (std::max)(bbox.width(),bbox.height()) )/log(2));
   if ( dim > total_resolution ) dim = total_resolution;
   BBox2i total_bbox( (bbox.min().x()/dim)*dim, (bbox.min().y()/dim)*dim, dim, dim );
   if ( ! total_bbox.contains( bbox ) ) {
-    if( total_bbox.max().x() == total_resolution ) total_bbox.min().x() -= dim;
+    if( total_bbox.max().x() == xresolution ) total_bbox.min().x() -= dim;
     else total_bbox.max().x() += dim;
-    if( total_bbox.max().y() == total_resolution ) total_bbox.min().y() -= dim;
+    if( total_bbox.max().y() == yresolution ) total_bbox.min().y() -= dim;
     else total_bbox.max().y() += dim;
   }
 
@@ -311,10 +314,10 @@ int main( int argc, char *argv[] ) {
   data_bbox.crop( BBox2i(0,0,total_bbox.width(),total_bbox.height()) );
 
   // Prepare the quadtree
-  BBox2 ll_bbox( -180.0 + (360.0*total_bbox.min().x())/total_resolution, 
-                 180.0 - (360.0*total_bbox.max().y())/total_resolution,
-                 (360.0*total_bbox.width())/total_resolution,
-                 (360.0*total_bbox.height())/total_resolution );
+  BBox2 ll_bbox( -180.0 + (360.0*total_bbox.min().x())/xresolution, 
+                 180.0 - (360.0*total_bbox.max().y())/yresolution,
+                 (360.0*total_bbox.width())/xresolution,
+                 (360.0*total_bbox.height())/yresolution );
   KMLQuadTreeGenerator<PixelRGBA<uint8> > quadtree( output_file_name, composite, ll_bbox );
   quadtree.set_max_lod_pixels(max_lod_pixels);
   quadtree.set_crop_bbox( data_bbox );
