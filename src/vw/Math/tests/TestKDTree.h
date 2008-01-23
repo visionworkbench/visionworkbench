@@ -237,7 +237,7 @@ class TestKDTree : public CxxTest::TestSuite
     VarianceDiscSelector vds;
     //The int argument does nothing
     unsigned dimension_of_max_variance = vds(fileA.begin(), fileA.end(), 0);
-    TS_ASSERT_EQUALS(dimension_of_max_variance, 2);
+    TS_ASSERT_EQUALS(int(dimension_of_max_variance), 2);
 
     std::vector< std::vector<double> > fileB(3);
     
@@ -259,7 +259,7 @@ class TestKDTree : public CxxTest::TestSuite
 
 
     dimension_of_max_variance = vds(fileB.begin(), fileB.end(), 22);
-    TS_ASSERT_EQUALS(dimension_of_max_variance, 1);
+    TS_ASSERT_EQUALS(int(dimension_of_max_variance), 1);
   }
 
   void test_modulo_disc_selector(){
@@ -277,11 +277,11 @@ class TestKDTree : public CxxTest::TestSuite
     file[1].push_back(-10);
     file[1].push_back(10);
 
-    TS_ASSERT_EQUALS(mds(file.begin(), file.end(), -1), 0);
-    TS_ASSERT_EQUALS(mds(file.begin(), file.end(), 0), 1);
-    TS_ASSERT_EQUALS(mds(file.begin(), file.end(), 1), 2);
-    TS_ASSERT_EQUALS(mds(file.begin(), file.end(), 2), 3);
-    TS_ASSERT_EQUALS(mds(file.begin(), file.end(), 3), 0);
+    TS_ASSERT_EQUALS(int(mds(file.begin(), file.end(), -1)), 0);
+    TS_ASSERT_EQUALS(int(mds(file.begin(), file.end(), 0)), 1);
+    TS_ASSERT_EQUALS(int(mds(file.begin(), file.end(), 1)), 2);
+    TS_ASSERT_EQUALS(int(mds(file.begin(), file.end(), 2)), 3);
+    TS_ASSERT_EQUALS(int(mds(file.begin(), file.end(), 3)), 0);
   }
 
   void test_max_diff_disc_selector(){
@@ -305,13 +305,13 @@ class TestKDTree : public CxxTest::TestSuite
     fileB[2].push_back(9);
     fileB[2].push_back(10);    
 
-    TS_ASSERT_EQUALS(mdds(fileB.begin(), fileB.end(), 7), 1);
+    TS_ASSERT_EQUALS(int(mdds(fileB.begin(), fileB.end(), 7)), 1);
   }
 
   void test_basic_constructor(){
-    typedef std::vector< std::vector<int> >::iterator file_iter_t;
-    KDTree<file_iter_t> kd(5);
-    TS_ASSERT_EQUALS(kd.size(), 0);
+    typedef std::vector< std::vector<int> > file_t;
+    KDTree<file_t> kd(5);
+    TS_ASSERT_EQUALS(int(kd.size()), 0);
 
     //insert
     std::vector<int> new_record;    
@@ -323,13 +323,13 @@ class TestKDTree : public CxxTest::TestSuite
     new_record.push_back(5);
 
     kd.insert(new_record);
-    TS_ASSERT_EQUALS(kd.size(), 1);
+    TS_ASSERT_EQUALS(int(kd.size()), 1);
   }
 
   void test_constructor_default_functors(){
     
     std::vector< std::vector<int> > file(6);
-    typedef std::vector< std::vector<int> >::iterator file_iter_t;
+    typedef std::vector< std::vector<int> > file_t;
  
     file[0].push_back(1);
     file[0].push_back(2);
@@ -355,7 +355,7 @@ class TestKDTree : public CxxTest::TestSuite
     file[5].push_back(-2);
     file[5].push_back(-2);
 
-    KDTree<file_iter_t> kd(3, file.begin(), file.end());
+    KDTree<file_t> kd(3, file);
     TS_ASSERT_EQUALS(kd.size(), 6);
 
     //insert
@@ -370,8 +370,8 @@ class TestKDTree : public CxxTest::TestSuite
 
   void test_search(){
         
-    std::vector< std::vector<double> > file(6);
-    typedef std::vector< std::vector<double> >::iterator file_iter_t;
+    typedef std::vector< std::vector<double> > file_t;
+    file_t file(6);
  
     file[0].push_back(1.0);
     file[0].push_back(2.2);
@@ -397,11 +397,11 @@ class TestKDTree : public CxxTest::TestSuite
     file[5].push_back(-2);
     file[5].push_back(-2);
 
-    KDTree<file_iter_t> kd_A(3, file.begin(), file.end());
-    KDTree<file_iter_t> kd_B(3, file.begin(), file.end(), VarianceDiscSelector(), MedianPartitioner());
-    KDTree<file_iter_t> kd_C(3, file.begin(), file.end(), VarianceDiscSelector(), RandPartitioner());
-    KDTree<file_iter_t> kd_D(3, file.begin(), file.end(), ModuloDiscSelector(3), RandPartitioner());
-    KDTree<file_iter_t> kd_E(3, file.begin(), file.end(), MaxDiffDiscSelector(), MedianPartitioner());
+    KDTree<file_t> kd_A(3, file);
+    KDTree<file_t> kd_B(3, file, VarianceDiscSelector(), MedianPartitioner());
+    KDTree<file_t> kd_C(3, file, VarianceDiscSelector(), RandPartitioner());
+    KDTree<file_t> kd_D(3, file, ModuloDiscSelector(3), RandPartitioner());
+    KDTree<file_t> kd_E(3, file, MaxDiffDiscSelector(), MedianPartitioner());
 
 
     std::vector<double> queryA, queryB, queryC, queryD;
@@ -429,9 +429,9 @@ class TestKDTree : public CxxTest::TestSuite
 
     //    std::cout<<"Find 4 nearest to query "<<"\n"; print_record(queryB.begin(), queryB.end()); std::cout<<"\n";
     num_records = kd_A.m_nearest_neighbors(queryB, nearest_records, 4);
-    //    TS_ASSERT_EQUALS(num_records, 6);
+    TS_ASSERT_EQUALS(num_records, 4);
     
-    //print_file(nearest_records.begin(), nearest_records.end());
+    //    print_file(nearest_records.begin(), nearest_records.end());
 
     TS_ASSERT_EQUALS(nearest_records[0][0], -22);
     TS_ASSERT_EQUALS(nearest_records[0][1], 18);
@@ -651,7 +651,7 @@ class TestKDTree : public CxxTest::TestSuite
     
     typedef std::vector<double> record_t;
     std::vector<record_t> file(9);
-    typedef std::vector< record_t >::iterator file_iter_t;
+    typedef std::vector< record_t > file_t;
  
     file[0].push_back(0);
     file[0].push_back(0);
@@ -713,12 +713,12 @@ class TestKDTree : public CxxTest::TestSuite
     int num_records;
 
 
-    KDTree<file_iter_t> kd_A(2);
-    KDTree<file_iter_t> kd_B(2, file.begin(), file.end());
-    KDTree<file_iter_t> kd_C(2, file.begin(), file.end(), VarianceDiscSelector(), MedianPartitioner());
-    KDTree<file_iter_t> kd_D(2, file.begin(), file.end(), VarianceDiscSelector(), RandPartitioner());
-    KDTree<file_iter_t> kd_E(2, file.begin(), file.end(), ModuloDiscSelector(2), RandPartitioner());
-    KDTree<file_iter_t> kd_F(2, file.begin(), file.end(), MaxDiffDiscSelector(), MedianPartitioner());
+    KDTree<file_t> kd_A(2);
+    KDTree<file_t> kd_B(2, file);
+    KDTree<file_t> kd_C(2, file, VarianceDiscSelector(), MedianPartitioner());
+    KDTree<file_t> kd_D(2, file, VarianceDiscSelector(), RandPartitioner());
+    KDTree<file_t> kd_E(2, file, ModuloDiscSelector(2), RandPartitioner());
+    KDTree<file_t> kd_F(2, file, MaxDiffDiscSelector(), MedianPartitioner());
 
     //Attempt a search on an empty tree:
     num_records = kd_A.m_nearest_neighbors(queryB, nearest_records, 4);
@@ -934,7 +934,7 @@ class TestKDTree : public CxxTest::TestSuite
 
     //Build A KD tree
      std::vector< range_t > file(6);
-    typedef std::vector< range_t >::iterator file_iter_t;
+    typedef std::vector< range_t > file_t;
  
     file[0].push_back(1.0);
     file[0].push_back(2.2);
@@ -954,7 +954,7 @@ class TestKDTree : public CxxTest::TestSuite
     file[5].push_back(-2);
     file[5].push_back(-2);
    
-    KDTree<file_iter_t> kd(2, file.begin(), file.end());
+    KDTree<file_t> kd(2, file);
 
     //Some queries
 

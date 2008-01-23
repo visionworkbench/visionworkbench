@@ -67,19 +67,21 @@
 ///
 /// The record is the k-dimensional object. It must be iterable.
 ///
-/// The discriminator identifies which of the vertex's k keys is used to divide
-/// the subtrees. For some vertex P, let j = discriminator(P). Then, any vertex Q
-/// in the LO subtree satisfies Key_j(Q) < Key_j(P), and any vertex R in the HI
-/// subtree satisfies Key_j(r) >= Key_j(Q). Note "=" for the HI subtree;
-/// this allows for duplicate keys (multisets), but sacrifices any guarantees
-/// that the tree be balanced.
+/// The discriminator identifies which of the vertex's k keys is used
+/// to divide the subtrees. For some vertex P, let j =
+/// discriminator(P). Then, any vertex Q in the LO subtree satisfies
+/// Key_j(Q) < Key_j(P), and any vertex R in the HI subtree satisfies
+/// Key_j(r) >= Key_j(Q). Note "=" for the HI subtree; this allows for
+/// duplicate keys (multisets), but sacrifices any guarantees that the
+/// tree be balanced.
 ///
-/// Lo and Hi identifiers - bgl vertex descriptors 'loson' and 'hison' which are
-/// the roots of the low and high subtrees below a vertex.
+/// Lo and Hi identifiers - bgl vertex descriptors 'loson' and 'hison'
+/// which are the roots of the low and high subtrees below a vertex.
 ///
-/// Lo and Hi ranges - Each vertex represents a partitioning of the k-dimensional space
-/// along the dimension specified by the discriminator. For any vertex P in the tree,
-/// all values in the subtree rooted at P fall within the hyper-rectangle bounded by
+/// Lo and Hi ranges - Each vertex represents a partitioning of the
+/// k-dimensional space along the dimension specified by the
+/// discriminator. For any vertex P in the tree, all values in the
+/// subtree rooted at P fall within the hyper-rectangle bounded by
 /// lorange(P) and hirange(p)
 ///
 /// 
@@ -89,9 +91,9 @@
 ///
 ///     L: [-inf, -inf, ..., -inf]
 ///     H: [+inf, +inf, ..., +inf]      root, disc = 1
-///     Record:[0, 1, ..., -3]          / \
-///                                    /   \
-///                                   /     \
+///     Record:[0, 1, ..., -3]          | |
+///                                    |   |
+///                                   |     |
 ///       L: [-inf, -inf,...,-inf]   A        B  L:   [-inf, 1, ..., -inf]
 ///       H: (+inf, 1, ... ,+inf)                     H: [+inf, +inf, .., +inf]
 ///      
@@ -146,25 +148,29 @@ namespace math {
   // Function object for comparing records by their discriminator keys
   // ContainerT must be have a const_iterator
   template<typename ContainerT> 
-  class DiscriminatorCompare
-  {
+  class DiscriminatorCompare {
+
+    ContainerT m_pivot;
+    unsigned m_discriminator;
+    typename ContainerT::const_iterator pivot_iter;
+
   public:
     DiscriminatorCompare(ContainerT pivot, unsigned discriminator)
-      : m_pivot(pivot), m_discriminator(discriminator){}
+      : m_discriminator(discriminator){
+      set_pivot(pivot);
+    }
   
     DiscriminatorCompare(unsigned discriminator): m_discriminator(discriminator){}
   
     // Unary operator. x[discriminator] < pivot[discriminator]
-    bool operator()(const ContainerT& x) const{
+    bool operator()(const ContainerT& x) const {
       typename ContainerT::const_iterator input_iter = x.begin();
-      typename ContainerT::const_iterator pivot_iter = m_pivot.begin();
       std::advance(input_iter, m_discriminator);
-      std::advance(pivot_iter, m_discriminator);
       return *input_iter < *pivot_iter;
     }
   
     // Binary operator. x[discriminator] < y[discriminator]
-    bool operator()(const ContainerT& x, const ContainerT& y) const{  
+    bool operator()(const ContainerT& x, const ContainerT& y) const {  
       typename ContainerT::const_iterator x_iter = x.begin();
       typename ContainerT::const_iterator y_iter = y.begin();
       std::advance(x_iter, m_discriminator);
@@ -172,12 +178,12 @@ namespace math {
       return *x_iter < *y_iter;
     }
 
-    void set_pivot(ContainerT new_pivot){m_pivot = new_pivot;}
+    void set_pivot(ContainerT new_pivot){
+      m_pivot = new_pivot;
+      pivot_iter = m_pivot.begin();
+      std::advance(pivot_iter, m_discriminator);
+    }
     void set_discriminator(unsigned new_disc){m_discriminator = new_disc;}
-
-  private:
-    ContainerT m_pivot;
-    unsigned m_discriminator;
   };
 
 
@@ -198,7 +204,7 @@ namespace math {
   {
   public:
     template<typename RandomAccessIterT>
-    RandomAccessIterT operator() (RandomAccessIterT beg, RandomAccessIterT end, unsigned discriminator)
+    RandomAccessIterT operator() (RandomAccessIterT beg, RandomAccessIterT end, unsigned discriminator) const
     {
       typedef typename std::iterator_traits<RandomAccessIterT>::value_type record_type;
       
@@ -220,7 +226,7 @@ namespace math {
   // A thread-safer random number generator
   class KDRandom{
   public:
-    ptrdiff_t operator()(ptrdiff_t max){
+    ptrdiff_t operator()(ptrdiff_t max) const {
       double tmp;
       tmp = static_cast<double>(rand())
         / static_cast<double>(RAND_MAX);
@@ -230,11 +236,10 @@ namespace math {
 
 
   //Input is partitioned around a randomly selected pivot record
-  class RandPartitioner
-  {
+  class RandPartitioner {
   public:
     template <typename RandomAccessIterT>
-    RandomAccessIterT operator() (RandomAccessIterT beg, RandomAccessIterT end, unsigned disc)
+    RandomAccessIterT operator() (RandomAccessIterT beg, RandomAccessIterT end, unsigned disc) const
     {
       typedef typename std::iterator_traits<RandomAccessIterT>::value_type record_type;
       
@@ -251,12 +256,10 @@ namespace math {
   //////////////// Discriminator Selectors //////////////////////
 
   //Selects the discriminator as the dimension of maximum variance
-  class VarianceDiscSelector
-  {
+  class VarianceDiscSelector {
   public:
     template<typename RandomAccessIterT>
-    unsigned operator() (RandomAccessIterT file_beg, RandomAccessIterT file_end, unsigned disc)
-    {
+    unsigned operator() (RandomAccessIterT file_beg, RandomAccessIterT file_end, unsigned disc) const {
       typedef typename std::iterator_traits<RandomAccessIterT>::value_type record_t;
       typedef typename record_t::iterator record_iter_t;
 
@@ -309,12 +312,10 @@ namespace math {
 
 
   //Selects the discriminator as the dimension with largest (max-min) value
-  class MaxDiffDiscSelector
-  {
+  class MaxDiffDiscSelector {
   public:
     template<typename RandomAccessIterT>
-    unsigned operator() (RandomAccessIterT file_beg, RandomAccessIterT file_end, unsigned unused_argument)
-    {
+    unsigned operator() (RandomAccessIterT file_beg, RandomAccessIterT file_end, unsigned unused_argument) const {
       typedef typename std::iterator_traits<RandomAccessIterT>::value_type record_t;
       typedef typename record_t::iterator record_iter_t;
   
@@ -360,35 +361,33 @@ namespace math {
 
 
   //NEXTDISC(d) = d+1 mod k (Bently's Discriminator selector)
-  class ModuloDiscSelector
-  {
+  class ModuloDiscSelector {
+    unsigned m_k;
   public:
     //Constructor
     ModuloDiscSelector(unsigned k)
       : m_k(k) {}
     template <typename ForwardIterT>
-    unsigned operator() (ForwardIterT beg, ForwardIterT end, int disc){
+    unsigned operator() (ForwardIterT beg, ForwardIterT end, int disc) const {
       return (disc + 1) % m_k;
     }
-  private:
-    unsigned m_k;
   };
 
 
   ////////////////////////// Record Constraint Functors ////////////////////////
   // These must implement the unary operator(), and the binary function domains overlap
   // both functions must be passed objects with iterators
-  class NullRecordConstraintKD{
+  class NullRecordConstraintKD {
   public:
     //template< typename ForwardIterT>
     //bool operator()(ForwardIterT record_beg, ForwardIterT record_end){
     template<typename T>
-    bool operator()(T record){
+    bool operator()(T record) const {
       return true;
     }
       
     template<typename T>
-    bool domains_overlap(const T& lowRange, const T& highRange ){
+    bool domains_overlap(const T& lowRange, const T& highRange ) const {
       return true;
     }
   };
@@ -396,7 +395,12 @@ namespace math {
   // When applied to a nearest neighbors search, restricts the result to
   // the m nearest records within the specified region
   template<typename RangeT>
-  class RegionRecordConstraintKD{
+  class RegionRecordConstraintKD {
+
+    //Bounds of the constraint region:
+    RangeT lowRange_;
+    RangeT highRange_;
+
   public:
     //Constructor
     RegionRecordConstraintKD(RangeT lowRange, RangeT highRange)
@@ -404,12 +408,11 @@ namespace math {
       
     //template<typename ForwardIterT>
     //bool operator()(ForwardIterT record_beg, ForwardIterT record_end)
-    bool operator()(RangeT record)
-    {
+    bool operator()(RangeT record) const {
       //check that all keys fall between lowRange_ and hiRange_
-      typename RangeT::iterator low = lowRange_.begin();
-      typename RangeT::iterator high = highRange_.begin();
-      for(typename RangeT::iterator record_beg = record.begin(); record_beg != record.end(); ++record_beg)
+      typename RangeT::const_iterator low = lowRange_.begin();
+      typename RangeT::const_iterator high = highRange_.begin();
+      for(typename RangeT::const_iterator record_beg = record.begin(); record_beg != record.end(); ++record_beg)
         {
           if( *record_beg < *low )
             return false;
@@ -435,7 +438,7 @@ namespace math {
       return true;
     }
     //Test if any part of a vertex's domain falls withiin the constrained region:
-    bool domains_overlap(const RangeT& lowRange, const RangeT&highRange ){
+    bool domains_overlap(const RangeT &lowRange, const RangeT &highRange ) const {
       //check if either lowRange or highRange are within the constraint region
       //...odd syntax for calling this object's own operator()...
       bool lowWithin = operator()(lowRange);
@@ -452,10 +455,6 @@ namespace math {
       return false;
     }
 
-  private:
-    //Bounds of the constraint region:
-    RangeT lowRange_;
-    RangeT highRange_;
   };
 
   //////////////////// Distance Metrics ////////////////////////////////////
@@ -472,8 +471,7 @@ namespace math {
       }
     */
     template <typename IterA, typename IterB>
-    double operator()(IterA a_first, IterA a_last, IterB b_first)
-    {
+    double operator()(IterA a_first, IterA a_last, IterB b_first) const {
       typedef typename std::iterator_traits<IterA>::value_type a_key_t;
       typedef typename std::iterator_traits<IterB>::value_type b_key_t;
 
@@ -495,12 +493,13 @@ namespace math {
   /////////////////////////////////////////////////////////////////////////
   /// KD Tree
   //
-  template<typename RandomAccessIterT>
-    
+  //  template <typename RandomAccessIterT>
+  template <class FileT>
   class KDTree{
 
-    typedef typename std::iterator_traits<RandomAccessIterT>::value_type record_t;
-    typedef typename record_t::iterator record_iter_t;
+    typedef typename FileT::iterator RandomAccessIterT;
+    typedef typename FileT::value_type record_t;
+    typedef typename record_t::const_iterator record_iter_t;
     typedef typename std::iterator_traits<record_iter_t>::value_type key_t;
            
     typedef typename std::vector<key_t> range_t; //range_t should be selected to provide the operator[]
@@ -558,33 +557,27 @@ namespace math {
       m_root = m_NIL;
     }
 
-    KDTree(unsigned k, RandomAccessIterT file_beg, RandomAccessIterT file_end) : m_k(k), m_max_depth(0), m_min_depth(INT_MAX)
+    KDTree(unsigned k, FileT const& file) : m_k(k), m_max_depth(0), m_min_depth(INT_MAX)
     {
-      if(file_beg != file_end)
-        assert(m_k ==(unsigned) distance((*file_beg).begin(), (*file_beg).end()));
-
       //initialize
       initialize_property_maps();
       initialize_infinity();
 
       //build tree
-      initialize_tree(file_beg, file_end, ModuloDiscSelector(m_k), MedianPartitioner());
+      initialize_tree(file, ModuloDiscSelector(m_k), MedianPartitioner());
     }
   
     //Specify functors to select discriminator and partition
     template<typename DiscSelector, typename Partitioner>
-    KDTree(unsigned k, RandomAccessIterT file_beg, RandomAccessIterT file_end,
+    KDTree(unsigned k, FileT const& file,
            DiscSelector discSelector, Partitioner partitioner) : m_k(k), m_max_depth(0), m_min_depth(INT_MAX)
     {
-      if (file_beg != file_end)
-        assert(m_k == (unsigned)distance((*file_beg).begin(), (*file_beg).end()));
-
       //initialize
       initialize_property_maps();
       initialize_infinity();
 
       //build tree
-      initialize_tree(file_beg, file_end, discSelector, partitioner);
+      initialize_tree(file, discSelector, partitioner);
     }
 
   private:
@@ -603,7 +596,7 @@ namespace math {
       m_NEGATIVE_INFINITY = vw::ScalarTypeLimits<key_t>::lowest();
     }
     template<typename DiscSelector, typename Partitioner>
-    void initialize_tree(RandomAccessIterT file_beg, RandomAccessIterT file_end,
+    void initialize_tree(FileT const& file,
                          DiscSelector discselector, Partitioner partitioner)
     {
       range_t lo_range(m_k, m_NEGATIVE_INFINITY);
@@ -613,8 +606,8 @@ namespace math {
 
       //TODO: This copy is to ensure that the input file is not modified
       // but I'm not sure if that's necessary
-      std::vector<record_t> temp_file(distance(file_beg, file_end));
-      std::copy(file_beg, file_end, temp_file.begin());
+      std::vector<record_t> temp_file(distance(file.begin(), file.end()));
+      std::copy(file.begin(), file.end(), temp_file.begin());
 	  
       m_root = build_tree(temp_file.begin(), temp_file.end(), lo_range, hi_range,
                           ModuloDiscSelector(m_k), MedianPartitioner(), -1, 0);
@@ -662,17 +655,17 @@ namespace math {
     // Query must be a container with k keys.
     //TODO: the return type of nearest_records should not depend on ContainerT
     template <typename ContainerT>
-    unsigned m_nearest_neighbors(ContainerT query, std::vector<record_t>& nearest_records, unsigned m = 1)
+    unsigned m_nearest_neighbors(ContainerT const& query, std::vector<record_t>& nearest_records, unsigned m = 1)
     {
       return m_nearest_neighbors(query, nearest_records, m, NullRecordConstraintKD(), SafeEuclideanDistanceMetric());
     }
       
     template <typename ContainerT, typename RecordConstraintT, typename DistanceMetricT>
-    unsigned m_nearest_neighbors(ContainerT query, std::vector<record_t>& nearest_records, unsigned m = 1,
+    unsigned m_nearest_neighbors(ContainerT const& query, std::vector<record_t>& nearest_records, unsigned m = 1,
                                  RecordConstraintT recordConstraint = NullRecordConstraintKD(),
                                  DistanceMetricT distanceMetric = SafeEuclideanDistanceMetric())
     {
-      assert( m_k == (unsigned) distance(query.begin(), query.end()) );
+      assert( m_k == (unsigned) std::distance(query.begin(), query.end()) );
       nearest_records.clear();
       
       //Initialize the priority queue with m sentinel NIL pairs
@@ -935,28 +928,26 @@ namespace math {
     // might contain records satisfying the constraint would be explored.
     // This could be done by only searching a child if the child's lorange or
     // the child's hirange satisfies the constraint.
-      
     template<typename RecordConstraint, typename DistanceMetric>
-    int nearest_neighbors(Vertex N, range_t query, unsigned m, RecordConstraint recordConstraint, DistanceMetric distanceMetric)
+    int nearest_neighbors(Vertex const& N, range_t const& query, unsigned m, RecordConstraint const& recordConstraint, DistanceMetric const& distanceMetric)
     {
       if (N == m_NIL){
         //std::cout<<"leaf.\n";
         return 0;
       }
 
-      range_t N_lorange = get(m_LORANGE_map, N);
-      range_t N_hirange = get(m_HIRANGE_map, N);
+      range_t& N_lorange = get(m_LORANGE_map, N);
+      range_t& N_hirange = get(m_HIRANGE_map, N);
 
       //If no part of N's domain satisfies the constraint, don't search
       if(!recordConstraint.domains_overlap(N_lorange,  N_hirange)){
         return 0;
       }
-      record_t N_record = get(m_record_map, N);
+      record_t& N_record = get(m_record_map, N);
       unsigned disc = get(m_discriminator_map, N);
-      Vertex loson = get(m_LOSON_map, N);
-      Vertex hison = get(m_HISON_map, N);
+      Vertex& loson = get(m_LOSON_map, N);
+      Vertex& hison = get(m_HISON_map, N);
 
-	  
       //Calculate distance from query to N's record.
       //double distance_to_N = kd_euclidean_distance(query.begin(), query.end(), N_record.begin());
       double distance_to_N = distanceMetric(query.begin(), query.end(), N_record.begin());
@@ -966,7 +957,7 @@ namespace math {
       double distance_to_mth_best = m_POSITIVE_INFINITY;
       if (!m_priority_queue.empty()){
         boost::tie(dummy, distance_to_mth_best) = m_priority_queue.top();
-      }else{
+      } else {
         std::cout<<"Priority Queue is empty!?\n";
       }
 
@@ -981,12 +972,10 @@ namespace math {
         boost::tie(dummy, distance_to_mth_best) = m_priority_queue.top();
       }
 
-      // Now it is necesary to search the subtree on the same side
-      // of the partition as the query. When recursion returns, if
-      // it is possible that the other subtree could contain
-      // nearer neighbors, it is necessary to search that subtree too.
-
-
+      // Now it is necesary to search the subtree on the same side of
+      // the partition as the query. When recursion returns, if it is
+      // possible that the other subtree could contain nearer
+      // neighbors, it is necessary to search that subtree too.
       record_iter_t partition_key_position = N_record.begin();
       std::advance(partition_key_position, disc);
       double partition_key = *partition_key_position;
@@ -1002,10 +991,8 @@ namespace math {
 	  //m nearest may have changed from searching loson
 	  if (!m_priority_queue.empty())
             boost::tie(dummy, distance_to_mth_best) = m_priority_queue.top();
-	  range_t hisons_lorange = N_lorange;
-	  range_t hisons_hirange = N_hirange;
-	  hisons_lorange[disc] = partition_key;
-	  if (bounds_overlap_ball(query, hisons_lorange, hisons_hirange, distance_to_mth_best))
+	  N_lorange[disc] = partition_key;
+	  if (bounds_overlap_ball(query, N_lorange, N_hirange, distance_to_mth_best))
 	    {
 	      //std::cout<<"Hison's Bounds Overlap Ball, check hi side too.\n";
 	      done = nearest_neighbors(hison, query, m, recordConstraint, distanceMetric);
@@ -1020,10 +1007,8 @@ namespace math {
         //m nearest may have changed from searching hison
         if (!m_priority_queue.empty())
           boost::tie(dummy, distance_to_mth_best) = m_priority_queue.top();
-        range_t losons_lorange = N_lorange;
-        range_t losons_hirange = N_hirange;
-        losons_hirange[disc] = partition_key;
-        if (bounds_overlap_ball(query, losons_lorange, losons_hirange, distance_to_mth_best))
+        N_hirange[disc] = partition_key;
+        if (bounds_overlap_ball(query, N_lorange, N_hirange, distance_to_mth_best))
 	  {
 	    //std::cout<<"LOson's's Bounds Overlap Ball, check lo side too.\n";
 	    done = nearest_neighbors(loson, query, m, recordConstraint, distanceMetric);
@@ -1060,7 +1045,7 @@ namespace math {
     //
     // If the radius is infinite, than it is considered to overlap any bounds, even if they are also
     // infinite.
-    bool bounds_overlap_ball(range_t query, range_t lorange, range_t hirange, double radius) const{
+    bool bounds_overlap_ball(range_t const& query, range_t const& lorange, range_t const& hirange, double radius) const {
       //double infinity = ScalarTypeLimits<double>::highest();
       //if( fabs(radius) == infinity){
       if( (radius == m_POSITIVE_INFINITY) || (radius == m_NEGATIVE_INFINITY)){
@@ -1106,7 +1091,7 @@ namespace math {
     // is less than the radius of the ball.
     //
     // TODO: all uses of ScalarTypeLimits<double>::highest() should be replaced with a C implementation of infinity!
-    bool ball_within_bounds(range_t query, range_t lorange, range_t hirange, double radius){
+    bool ball_within_bounds(range_t const& query, range_t const& lorange, range_t const& hirange, double radius){
       //The poorly defined case of an "infinite" radius ball within "infinite" bounds
       if(fabs(radius) == m_POSITIVE_INFINITY)
         return false;
@@ -1133,7 +1118,7 @@ namespace math {
     }
 
     // The coordinate distance the one-dimensional distance along a particular coordinate
-    double coordinate_distance(range_t a, range_t b, unsigned i){
+    double coordinate_distance(range_t const& a, range_t const& b, unsigned i) const {
       //double infinity = ScalarTypeLimits<double>::highest();
       if ((fabs(a[i]) == m_POSITIVE_INFINITY) || (fabs(b[i]) == m_POSITIVE_INFINITY))
         return m_POSITIVE_INFINITY;
