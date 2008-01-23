@@ -1,5 +1,5 @@
 # This is an example VW log configuration file. Save 
-# this file to /tmp/.vw_logconf to adjust the VW log 
+# this file to ~/.vw_logconf to adjust the VW log 
 # settings, even if the program is already running.
 #
 # The following integers are associated with the 
