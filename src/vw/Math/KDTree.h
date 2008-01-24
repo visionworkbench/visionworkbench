@@ -472,17 +472,9 @@ namespace math {
     */
     template <typename IterA, typename IterB>
     double operator()(IterA a_first, IterA a_last, IterB b_first) const {
-      typedef typename std::iterator_traits<IterA>::value_type a_key_t;
-      typedef typename std::iterator_traits<IterB>::value_type b_key_t;
-
-      a_key_t a_infinity = vw::ScalarTypeLimits<a_key_t>::highest();
-      b_key_t b_infinity = vw::ScalarTypeLimits<b_key_t>::highest();
       double distance_sq = 0;
 	  
       for( ; a_first != a_last; ++a_first, ++b_first){
-        //check for risk of overflow
-        if( (fabs(*a_first) == a_infinity) || (fabs(*b_first) == b_infinity) )
-          return vw::ScalarTypeLimits<double>::highest();
         distance_sq += pow( (*a_first - *b_first), 2);
       }
       return sqrt(distance_sq);
@@ -1045,40 +1037,41 @@ namespace math {
     //
     // If the radius is infinite, than it is considered to overlap any bounds, even if they are also
     // infinite.
-    bool bounds_overlap_ball(range_t const& query, range_t const& lorange, range_t const& hirange, double radius) const {
-      //double infinity = ScalarTypeLimits<double>::highest();
-      //if( fabs(radius) == infinity){
-      if( (radius == m_POSITIVE_INFINITY) || (radius == m_NEGATIVE_INFINITY)){
-        //std::cout<<"Infinite Radius overlaps all bounds!\n";
-        return true;
-      }
-      //If any coordinate of the query is +/- infinity, then the ball overlaps no bounds
-      for(unsigned i = 0; i < m_k; ++i){
-        if( fabs(query[i]) == m_POSITIVE_INFINITY){
-          //std::cout<<"Query with infinite coordinate overlaps no bounds!\n";
-          return false;
-        }
-      }
+    inline bool bounds_overlap_ball(range_t const& query, range_t const& lorange, range_t const& hirange, double radius) const {
+      // DELETE ?
+      //       if( (radius == m_POSITIVE_INFINITY) || (radius == m_NEGATIVE_INFINITY)){
+      //         //std::cout<<"Infinite Radius overlaps all bounds!\n";
+      //         return true;
+      //       }
+      
+      //       //If any coordinate of the query is +/- infinity, then the ball overlaps no bounds
+      //       for(typename range_t::const_iterator iter = query.begin(); iter != query.end(); ++iter) {
+      //         if( *iter == m_POSITIVE_INFINITY || *iter == m_NEGATIVE_INFINITY) {
+      //           //std::cout<<"Query with infinite coordinate overlaps no bounds!\n";
+      //           return false;
+      //         }
+      //       }
+
       //Now we can assume that the query has no infinities in it.
       double radius_squared = pow(radius, 2);
       double d_squared = 0;
-      for(unsigned i = 0; i < m_k; ++i){
+      typename range_t::const_iterator iter = query.begin();
+      typename range_t::const_iterator lorange_iter = lorange.begin();
+      typename range_t::const_iterator hirange_iter = hirange.begin();
+      for( ; iter != query.end(); ++iter, ++lorange_iter, ++hirange_iter) {
 	  
-        if(query[i] < lorange[i]){
-          //lorange really shouldn't be +/- infinity, but check to be sure
-          assert( fabs(lorange[i]) != m_POSITIVE_INFINITY);
-          d_squared += pow( query[i] - lorange[i], 2);
+        if(*iter < *lorange_iter) {
+          d_squared += pow( *iter - *lorange_iter, 2);
           if (d_squared > radius_squared)
             return false;
 	    
-        }else if(query[i] > hirange[i]){
-          assert( fabs(hirange[i]) != m_POSITIVE_INFINITY);
-          d_squared += pow( query[i] - hirange[i], 2);
+        } else if(*iter > *hirange_iter) {
+          d_squared += pow( *iter - *hirange_iter, 2);
           if (d_squared > radius_squared)
             return false;
         }
-        //else if lorange[i] < query[i] < hirange[i] then within bounds, and the ith
-        //coordiante distance is 0
+        //else if *lorange_iter < *iter < *hirange_iter then within
+        //bounds, and the ith coordiante distance is 0
       }
       //d_squared < radius_squared, so no overlap
       return true;
@@ -1092,37 +1085,36 @@ namespace math {
     //
     // TODO: all uses of ScalarTypeLimits<double>::highest() should be replaced with a C implementation of infinity!
     bool ball_within_bounds(range_t const& query, range_t const& lorange, range_t const& hirange, double radius){
-      //The poorly defined case of an "infinite" radius ball within "infinite" bounds
-      if(fabs(radius) == m_POSITIVE_INFINITY)
-        return false;
-      assert(radius >= 0);
-	
-      //double infinity = ScalarTypeLimits<double>::highest();
-      //A query with an infinite coordinate is not within any bounds
-      for(unsigned i = 0; i < m_k; ++i){
-        if( fabs(query[i]) == m_POSITIVE_INFINITY){
-          //std::cout<<"Query with infinite coordinate escapes all bounds!\n";
-          return false;
-        }
-      }
+      // DELETE?
+      //       //The poorly defined case of an "infinite" radius ball within "infinite" bounds
+      //       if(fabs(radius) == m_POSITIVE_INFINITY)
+      //         return false;
+      //       VW_DEBUG_ASSERT(radius >= 0, ArgumentErr() << "KDTree::ball_within_bounds() radius is zero or non-positive.");
+      
+      //       //A query with an infinite coordinate is not within any bounds
+      //       for(typename range_t::const_iterator iter = query.begin(); iter != query.end(); ++iter) {
+      //         if( *iter == m_POSITIVE_INFINITY || *iter == m_NEGATIVE_INFINITY) {
+      //           //std::cout<<"Query with infinite coordinate overlaps no bounds!\n";
+      //           return false;
+      //         }
+      //       }
 
-      //If any coordinate distance is less less than radius, ball escapes bounds, so return false
-      //if a bound is +/- infinity, the coordinate distance is infinity
-      for( unsigned i = 0; i < m_k; ++i){
-        if(coordinate_distance(query, lorange, i) <= radius)
+      //If any coordinate distance is less less than radius, ball
+      //escapes bounds, so return false if a bound is +/- infinity,
+      //the coordinate distance is infinity
+      typename range_t::const_iterator iter = query.begin();
+      typename range_t::const_iterator lorange_iter = lorange.begin();
+      typename range_t::const_iterator hirange_iter = hirange.begin();
+      for( ; iter != query.end(); ++iter, ++lorange_iter, ++hirange_iter) {
+        // DELETE?
+        //         if ((fabs(*lorange_iter) == m_POSITIVE_INFINITY) || (fabs(*hirange_iter) == m_POSITIVE_INFINITY))
+        //           return false;
+        if (fabs( *iter - *lorange_iter ) <= radius)
           return false;
-        if(coordinate_distance(query, hirange, i) <= radius)
+        if (fabs( *iter - *hirange_iter ) <= radius)
           return false;
       }
       return true;
-    }
-
-    // The coordinate distance the one-dimensional distance along a particular coordinate
-    double coordinate_distance(range_t const& a, range_t const& b, unsigned i) const {
-      //double infinity = ScalarTypeLimits<double>::highest();
-      if ((fabs(a[i]) == m_POSITIVE_INFINITY) || (fabs(b[i]) == m_POSITIVE_INFINITY))
-        return m_POSITIVE_INFINITY;
-      return fabs( a[i] - b[i] );
     }
 
     //checks if a record is on the low side of the vertex's partition.
