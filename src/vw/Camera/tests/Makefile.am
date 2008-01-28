@@ -27,11 +27,12 @@
 
 if MAKE_MODULE_CAMERA
 
-TESTS = TestCAHVORModel TestLinearPushbroomModel TestPinholeModel # TestLensDistortion TestCameraTransform
+TESTS = TestCAHVORModel TestLinearPushbroomModel TestPinholeModel TestBundleAdjust # TestLensDistortion TestCameraTransform
 
 nodist_TestCAHVORModel_SOURCES = TestCAHVORModel.cxx
 nodist_TestLinearPushbroomModel_SOURCES = TestLinearPushbroomModel.cxx
 nodist_TestPinholeModel_SOURCES = TestPinholeModel.cxx
+nodist_TestBundleAdjust_SOURCES = TestBundleAdjust.cxx
 #nodist_TestLensDistortion_SOURCES = TestLensDistortion.cxx
 #nodist_TestCameraTransform_SOURCES = TestCameraTransform.cxx
 

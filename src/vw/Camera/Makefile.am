@@ -29,7 +29,8 @@ if MAKE_MODULE_CAMERA
 
 if HAVE_PKG_LAPACK
 lsm_headers = Extrinsics.h LinescanModel.h LinearPushbroomModel.h	\
-              OrbitingPushbroomModel.h PinholeModel.h LensDistortion.h
+              OrbitingPushbroomModel.h PinholeModel.h LensDistortion.h  \
+	      BundleAdjust.h
 endif
 
 include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h		\
@@ -37,7 +38,7 @@ include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h		\
                   $(lsm_headers)
 
 libvwCamera_la_SOURCES = PinholeModel.cc CAHVModel.cc CAHVORModel.cc	\
-	Exif.cc ExifData.cc
+	          Exif.cc ExifData.cc
 
 libvwCamera_la_LIBADD = @MODULE_CAMERA_LIBS@
 
