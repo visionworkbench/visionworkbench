@@ -27,8 +27,6 @@
 #ifndef __VW_GEOMETRY_SHAPE_H__
 #define __VW_GEOMETRY_SHAPE_H__
 
-#include <iostream>
-
 #include <vw/Math/Vector.h>
 
 namespace vw {
@@ -165,12 +163,6 @@ namespace geometry {
   template <class ShapeT, class RealT, int DimN>
   inline bool operator!=( ShapeBase<ShapeT, RealT, DimN> const& shape1, ShapeBase<ShapeT, RealT, DimN> const& shape2 ) {
     return shape1.shape_impl() != shape2.shape_impl();
-  }
-
-  /// Writes a bounding shape to an ostream.
-  template <class ShapeT, class RealT, int DimN>
-  std::ostream& operator<<( std::ostream& os, ShapeBase<ShapeT, RealT, DimN> const& shape ) {
-    return os << shape.shape_impl();
   }
 
 }} // namespace vw::geometry
