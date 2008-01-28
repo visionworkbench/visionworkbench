@@ -469,7 +469,7 @@ Function & Description \\ \hline \hline
 \verb#prod(vector)# & Product of elements, i.e. $\prod v_i$ \\ \hline
 \verb#normalize(vector)# & The normalized form of a vector, i.e. $v/|v|$ \\ \hline
 \verb#dot_prod(vector,vector)# & Vector dot product, i.e. $u\cdot v$ \\ \hline
-\verb#cross_prod(vector,vector)# & Vector dot product, i.e. $u\times v$ \\ \hline
+\verb#cross_prod(vector,vector)# & Vector cross product, i.e. $u\times v$ \\ \hline
 \end{tabular}
 \caption{The vector math functions defined in {\tt <vw/Math/Vector.h>}.}
 \label{tbl:vector-functions}
@@ -734,7 +734,7 @@ image to include the shifted pixels.
 
 \begin{verbatim} 
   result_image = crop(translate(input_image, u_translation, v_translation), 
-                      0, 0, input_image.cos() + x_translation, input_image.rows());
+                      0, 0, input_image.cols() + x_translation, input_image.rows());
 \end{verbatim}
 
 If \verb#input_image# was 320x240, \verb#result_image# will be 420x240
@@ -830,7 +830,7 @@ Type & Description \\ \hline \hline
 
 Having now addressed some of the fundamental issues that arise when
 transforming images, we now turn our discussion to how one might
-formulate and implement new a image transformation algorithm.
+formulate and implement a new image transformation algorithm.
 
 In the most general sense, a transform is computed by performing the
 following two steps for every pixel in the output image.
@@ -943,7 +943,7 @@ summarize, you can create and use your own transformation functor
 \end{itemize}
 
 Of course, some of the most common transform functors are provided for
-you as part of the Vision Workbench.  refer to Table
+you as part of the Vision Workbench.  Refer to Table
 \ref{tbl:transform-functors} for a list of built-in classes available
 in \verb#<vw/Image/Transform.h>#
 

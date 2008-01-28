@@ -129,10 +129,14 @@ Forward projection of a 3D point is handled by the
   Vector3 world_coordinates;
   Vector2 pixel_coordinates = camera_model.point_to_pixel(world_coordinates);
 \end{verbatim}
-Remember that in C++, you will need to maintain a pointer to the
-derived camera model class in order to ensure that the virtual
-inheritance mechanism calls the method from the derived class rather
-than the base class.
+
+%% hutz: From my comprehension, the following paragraph makes 
+%%       a very incorrect statement on C++ virtual methods.
+%%       Can somebody correct me if I'm wrong?
+% Remember that in C++, you will need to maintain a pointer to the
+% derived camera model class in order to ensure that the virtual
+% inheritance mechanism calls the method from the derived class rather
+% than the base class.
 
 The back projection operation is split into two separate API calls.
 The \verb#camera_center()# method returns the origin of the ray, and
