@@ -98,6 +98,72 @@ namespace camera {
 
   };  
 
+
+  /// This class is useful if you have an existing camera model, and
+  /// you want to systematically "tweak" its extrinsic parameters
+  /// (position and pose).  This is particularly useful in Bundle
+  /// Adjustment.
+  class AdjustedCameraModel : public CameraModel {
+    
+    boost::shared_ptr<CameraModel> m_camera;
+    Vector3 m_translation;
+    Quaternion<double> m_rotation;
+    Quaternion<double> m_rotation_inverse;
+    
+  public:
+    AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model) : m_camera(camera_model) {
+      m_rotation = math::Quaternion<double>(math::identity_matrix<3>());
+      m_rotation_inverse = math::Quaternion<double>(math::identity_matrix<3>());
+    }
+
+    virtual ~AdjustedCameraModel() {}
+    
+    Vector3 translation() const { return m_translation; }
+    Quaternion<double> rotation() const { return m_rotation; }
+    Matrix<double,3,3> rotation_matrix() const { return m_rotation.rotation_matrix(); }
+
+    void set_translation(Vector3 const& translation) { m_translation = translation; }
+    void set_rotation(Quaternion<double> const& rotation) { 
+      m_rotation = rotation;
+      m_rotation_inverse = inverse(m_rotation);
+    }
+    void set_rotation(Matrix<double,3,3> const& rotation) {
+      m_rotation = Quaternion<double>(rotation);
+      m_rotation_inverse = inverse(m_rotation);
+    }
+
+    virtual Vector2 point_to_pixel (Vector3 const& point) const {
+      //       std::cout<< "\t   Orig: " << point << "\n";
+      //       std::cout<< "\tRotated: " << m_rotation.rotate(point) << "\n";
+      //       std::cout<< "\t   Orig: " << m_camera->point_to_pixel(point) << "\n";
+      //       std::cout << *(static_cast<PinholeModel*>(&(*m_camera)))<<"\n";
+      //       std::cout<< "\tRotated: " << m_camera->point_to_pixel(m_rotation.rotate(point)) << "\n";
+
+      Vector2 original_pix = m_camera->point_to_pixel(point);
+      Vector3 cam_center = m_camera->camera_center(original_pix);
+      Vector3 vec = point-cam_center;
+      return m_camera->point_to_pixel(m_rotation.rotate(vec) + this->camera_center(original_pix));  // Is this correct?
+    }
+
+    virtual Vector3 pixel_to_vector (Vector2 const& pix) const {
+      //       std::cout << m_rotation.rotation_matrix() << "\n";
+      //       std::cout << m_rotation_inverse.rotation_matrix() << "\n";
+      //       std::cout << m_rotation << "\n";
+      //       std::cout << m_rotation_inverse << "\n\n";
+      
+      return m_rotation_inverse.rotate(m_camera->pixel_to_vector(pix));
+    }
+
+    virtual Vector3 camera_center (Vector2 const& pix) const {
+      return m_camera->camera_center(pix) + m_translation;
+    }
+
+    virtual Quaternion<double> camera_pose(Vector2 const& pix) const {
+      return m_camera->camera_pose(pix)*m_rotation_inverse;      
+    }
+  };
+
+
   /// Error during projection of a 3D point onto the image plane.
   VW_DEFINE_EXCEPTION(PointToPixelErr, vw::Exception);
 

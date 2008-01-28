@@ -33,6 +33,7 @@
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/LinearAlgebra.h>
+#include <vw/Camera/CameraModel.h>
 #include <vw/Core/Debugging.h>
 
 // Boost 
@@ -42,12 +43,135 @@
 #include <boost/numeric/ublas/io.hpp>
 
 namespace vw {
-namespace math {
+namespace camera {
+  
+  // CRTP Base class for Bundle Adjustment functors.
+  // 
+  // The child class must implement this method:
+  //
+  //   Vector2 operator() ( Vector<double, CameraParamsN> const& a_j, Vector<double, PointParamsN> const& b_i ) const;
+  //
+  template <class ImplT, int CameraParamsN, int PointParamsN>
+  struct BundleAdjustmentModelBase {
+
+    /// \cond INTERNAL
+    // Methods to access the derived type
+    inline ImplT& impl() { return static_cast<ImplT&>(*this); }
+    inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
+    /// \endcond
+   
+
+    inline Vector2 error( unsigned i, unsigned j, 
+                          Vector2 const& x_ij, 
+                          Vector<double, CameraParamsN> const& a_j, 
+                          Vector<double, PointParamsN> const& b_i ) {
+      return x_ij - impl()(i,j,a_j,b_i);
+    }
+
+    // Approximate the jacobian for small variations in the a_j
+    // parameters (camera parameters). 
+    inline Matrix<double, 2, CameraParamsN> A_jacobian ( unsigned i, unsigned j,
+                                                         Vector<double, CameraParamsN> const& a_j, 
+                                                         Vector<double, PointParamsN> const& b_i ) {
+      // Get nominal function value
+      Vector2 h0 = impl()(i,j,a_j,b_i);
+
+      // Jacobian is #outputs x #params
+      Matrix<double, 2, CameraParamsN> J;
+
+      // For each param dimension, add epsilon and re-evaluate h() to
+      // get numerical derivative w.r.t. that parameter
+      for ( unsigned i=0; i < CameraParamsN; ++i ){
+        Vector<double, CameraParamsN> a_j_prime = a_j;
+
+        // Variable step size, depending on parameter value
+        double epsilon = 1e-7 + fabs(a_j(i)*1e-7);
+        a_j_prime(i) += epsilon;
+
+        // Evaluate function with this step and compute the derivative
+        // w.r.t. parameter i
+        Vector2 hi = impl()(i,j,a_j_prime, b_i);
+        select_col(J,i) = (hi-h0)/epsilon;
+      }
+      return J;
+    }
+
+    // Approximate the jacobian for small variations in the b_i
+    // parameters (3d point locations). 
+    inline Matrix<double, 2, PointParamsN> B_jacobian ( unsigned i, unsigned j,
+                                                        Vector<double, CameraParamsN> const& a_j, 
+                                                        Vector<double, PointParamsN> const& b_i ) {
+      // Get nominal function value
+      Vector2 h0 = impl()(i,j,a_j, b_i);
+
+      // Jacobian is #outputs x #params
+      Matrix<double, 2, PointParamsN> J;
+
+      // For each param dimension, add epsilon and re-evaluate h() to
+      // get numerical derivative w.r.t. that parameter
+      for ( unsigned i=0; i < PointParamsN; ++i ){
+        Vector<double> b_i_prime = b_i;
+
+        // Variable step size, depending on parameter value
+        double epsilon = 1e-7 + fabs(b_i(i)*1e-7);
+        b_i_prime(i) += epsilon;
+
+        // Evaluate function with this step and compute the derivative
+        // w.r.t. parameter i
+        Vector2 hi = impl()(i,j,b_i_prime, b_i);
+        select_col(J,i) = (hi-h0)/epsilon;
+      }
+      return J;
+    }
+  };
+
+  class CameraBundleAdjustmentModel : BundleAdjustmentModelBase<CameraBundleAdjustmentModel, 7, 3> {
+    std::vector<boost::shared_ptr<AdjustedCameraModel> > m_cameras;
+
+  public:
+    typedef AdjustedCameraModel camera_type;
+    
+    CameraBundleAdjustmentModel(std::vector<boost::shared_ptr<CameraModel> > cameras) : m_cameras(cameras.size()) {
+      
+      // populate...
+
+    }
+   
+    // Given the 'a' vector (camera model parameters) for the j'th
+    // image, and the 'b' vector (3D point location) for the i'th
+    // point, return the location of b_i on imager j in pixel
+    // coordinates.
+    Vector2 operator() ( unsigned i, unsigned j, Vector<double,7> const& a_j, Vector<double,3> const& b_i ) {
+
+      Vector4 q1 = normalize(subvector(a_j, 0, 4));
+      m_cameras[j]->set_rotation(Quaternion<double>(q1[0], q1[1], q1[2], q1[3]));
+      m_cameras[j]->set_translation(subvector(a_j, 4,3));
+      
+      return m_cameras[j]->point_to_pixel(b_i);
+    }    
+    
+    Vector<double,7> camera_params_as_vector(unsigned j) const {
+      Vector<double,7> result;
+      Quaternion<double> rot = m_cameras[j]->rotation();
+      Vector3 trans = m_cameras[j]->translation();
+      result(0) = rot[0];
+      result(1) = rot[1];
+      result(2) = rot[2];
+      result(3) = rot[3];
+      result(4) = trans(0);
+      result(5) = trans(1);
+      result(6) = trans(2);
+      return result;
+    }
+
+    std::vector<boost::shared_ptr<AdjustedCameraModel> > camera_models() {
+      return m_cameras;
+    }
+  };
 
   //--------------------------------------------------------------
   //                 Sparse Skyline Matrix 
   //--------------------------------------------------------------
-
 
   /// An extremely simple sparse matrix class that wraps around a
   /// boost compessed_matrix<>, but keeps track of the first non-zero
@@ -264,6 +388,148 @@ namespace math {
     }
     return x;
   }
+
+
+  //--------------------------------------------------------------
+  //                     BundleAdjustment
+  //--------------------------------------------------------------
+
+  template <class BundleAdjustModelT>
+  class BundleAdjustment {   
+
+  public:
+
+    // Use this type to describe a "bundle" for a given 3D point.
+    // Each element 'i' of the vector contains 1) the index 'j' of a
+    // camera where that point was imaged (corresponding to a camera
+    // in camera_models), and 2) the pixel location where point 'i'
+    // was imaged by imager 'j'.
+    struct Bundle {
+      typedef std::vector<std::pair<uint32, Vector2> > pixel_list_type;
+      Vector3 position;
+      pixel_list_type imaged_pixel_locations;
+    };
+
+    typedef std::vector<std::pair<uint32, Vector2> > bundle_type;
+
+  private:
+    std::vector<Bundle> m_bundles;
+    BundleAdjustModelT m_model;
+
+    // These are the paramaters to be estimated.  Their values are
+    // updated as the optimization progresses.
+    std::vector<Vector<double, 7> > a;
+    std::vector<Vector<double, 3> > b;
+  public:
+
+    BundleAdjustment(std::vector<boost::shared_ptr<CameraModel> > const& camera_models,
+                     std::vector<Bundle> const& bundles) : 
+      m_bundles(bundles), m_model(camera_models), a(camera_models.size()), b(bundles.size()) {
+
+      // Set up the a and b vectors.
+      for (unsigned i = 0; i < bundles.size(); ++i) {
+        b[i] = m_bundles[i].position;
+      }
+
+      for (unsigned j = 0; j < camera_models.size(); ++j) {
+        a[j] = m_model.camera_params_as_vector(j);
+      }
+    }
+
+    // Returns a list of "adjusted" camera models that resulted from
+    // the bundle adjustment.
+    std::vector<boost::shared_ptr<typename BundleAdjustModelT::camera_type> > camera_models() {
+      return m_model.camera_models();
+    }    
+
+//     // Each entry in the outer vector corresponds to a distinct 3D
+//     // point.  The inner vector contains a list of image IDs and
+//     // pixel coordinates where that point was imaged.
+    
+//     void update(std::vector<Vector<double> > const& a, std::vector<Vector<double> > const& b, bundles_type const& points, int num_images, double lambda) const {
+
+//       mapped_matrix<Matrix<double> > A(points.size(), num_images);
+//       mapped_matrix<Matrix<double> > B(points.size(), num_images);
+//       mapped_matrix<Vector2> epsilon(points.size(), num_images);
+
+//       mapped_vector< Matrix<double> > U(A.size1());  // size1() == rows
+//       mapped_vector< Matrix<double> > V(B.size1());  
+//       mapped_matrix<Matrix<double> > W(points.size(), num_images);
+//       mapped_vector< Vector2 > epsilon_a(A.size1());
+//       mapped_vector< Vector2 > epsilon_b(B.size1());
+//       mapped_matrix<Matrix<double> > Y(points.size(), num_images);
+//       //      mapped_matrix<Matrix<double> > S(points.size(), num_image);
+
+    
+//       // Populate the Jacobian, which is broken into two sparse
+//       // matrices A & B, as well as the error matrix and the W 
+//       // matrix.
+//       int i = 0;
+//       for (bundles_type::const_iterator iter = points.begin(); iter != points.end(); ++iter) {
+//         for (bundle_type::const_iterator point_iter = (*iter).begin(); point_iter != (*iter).end(); ++point_iter) {
+//           int j = (*point_iter).first;
+
+//           // Store jacobian values
+//           A(i,j) = A_jacobian(a[j],b[i]);
+//           B(i,j) = B_jacobian(a[j],b[i]);
+
+//           // Compute error vector
+//           epsilon(i,j) = this->error((*point_iter).second,a[j],b[i]);
+
+//           // Store intermediate values
+//           U(j) += transpose(A(i,j).ref()) * /* inverse(SIGMA)* */ A(i,j).ref();
+//           V(i) += transpose(B(i,j).ref()) * /* inverse(SIGMA)* */ B(i,j).ref();
+//           W(i,j) = transpose(A(i,j).ref()) * /* inverse(SIGMA)* */ B(i,j).ref();
+//           epsilon_a(j) += transpose(A(i,j).ref()) * /* inverse(SIGMA)* */ epsilon(i,j).ref();
+//           epsilon_b(i) += transpose(B(i,j).ref()) * /* inverse(SIGMA)* */ epsilon(i,j).ref();
+
+//           /// MUST ONLY AUGMENT DIAGONAL ENTRIES!!!
+//           //          Y(i,j) = W(i,j).ref() * inverse( V(i).ref() * (1.0f+lambda) ); 
+
+//           ++i;
+//         }
+//       }
+
+//       // Second pass
+//       //
+//       //  NEED TO INCORPORATE THE CORRECT USE OF K!!!
+//       //
+
+// //       i = 0;
+// //       for (bundles_type::iterator iter = points.begin(); iter != points.end(); ++iter) {
+// //         for (bundle_type::iterator point_iter = *iter.begin(); point_iter != *iter.end(); ++point_iter) {
+// //           int j = (*point_iter).first;
+// //           if (i==j) 
+//           /// MUST ONLY AUGMENT DIAGONAL ENTRIES!!!
+// //             S(i,j) -= ( Y(i,j).ref()*transpose(W(i,j).ref()) + (U(j).ref() * (1.0f+lambda)) );
+// //           else  
+// //             S(i,j) -= ( Y(i,j).ref()*transpose(W(i,j).ref()) );
+          
+// //           ea(j) += epsilon_a(j).ref() - (Y(i,j).ref() * epsilon_b(i).ref());
+// //           ++i;
+// //         }
+// //       }
+      
+//       //       mapped_vector<double> delta_a = inverse(S) * ea;
+
+//       // Third pass
+// //       i = 0;
+// //       for (bundles_type::iterator iter = points.begin(); iter != points.end(); ++iter) {
+// //         for (bundle_type::iterator point_iter = *iter.begin(); point_iter != *iter.end(); ++point_iter) {
+// //           eb(j) += epsilon_b(i).ref() - (transpose(W(i,j).ref()) * delta_a(j).ref());
+// //           ++i;
+// //         }
+// //       }
+
+//       /// MUST ONLY AUGMENT DIAGONAL ENTRIES!!!
+//       //      mapped_vector<double> delta_b = inverse( V[i] * (1.0f+lambda) ) * eb;
+//     }
+
+  };
+
+
+
+
   
 }} // namespace vw::math
 
