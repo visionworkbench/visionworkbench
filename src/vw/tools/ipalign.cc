@@ -251,9 +251,15 @@ int main(int argc, char** argv) {
   // constraints on the matched interest points.
   vw_out(InfoMessage) << "\nInterest Point Matching:\n";
   DefaultMatcher matcher(matcher_threshold);
-  // RANSAC needs the matches as a vector.
+
+  // RANSAC needs the matches as a vector, and so does the matcher.
+  // this is messy, but for now we simply make a copy.
+  std::vector<InterestPoint> ip1_copy(ip1.size()), ip2_copy(ip2.size());
+  std::copy(ip1.begin(), ip1.end(), ip1_copy.begin());
+  std::copy(ip2.begin(), ip2.end(), ip2_copy.begin());
+
   std::vector<InterestPoint> matched_ip1, matched_ip2;
-  matcher(ip1, ip2, matched_ip1, matched_ip2);
+  matcher(ip1_copy, ip2_copy, matched_ip1, matched_ip2);
   vw_out(InfoMessage) << "\tFound " << matched_ip1.size() << " putative matches.\n";
 
   // Write out the putative point correspondence image
