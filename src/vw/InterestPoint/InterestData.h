@@ -41,11 +41,15 @@ namespace ip {
 
   /// A class for storing information about an interest point.
   struct InterestPoint {
+    typedef vw::Vector<float> descriptor_type;
+    typedef descriptor_type::iterator iterator;
+    typedef descriptor_type::const_iterator const_iterator;
 
     InterestPoint() {}
 
     InterestPoint(int x, int y, float scale=1.0, float interest=0.0, float ori=0.0)
       : x((float)x), y((float)y), scale(scale), ix(x), iy(y), orientation(ori), interest(interest) {}
+
 
     /// Subpixel (col,row) location of point
     float x,y;
@@ -73,24 +77,15 @@ namespace ip {
 
     /// And finally the descriptor for the interest point.  For example, 
     /// PCA descriptors would have a vector of floats or doubles...
-    vw::Vector<float> descriptor;
+    descriptor_type descriptor;
+
+    const_iterator begin() const { return descriptor.begin(); }
+    const_iterator end() const { return descriptor.end(); }
     
-    vw::Vector<float>::iterator begin(){
-      return descriptor.begin();
-    }
-    vw::Vector<float>::iterator end(){
-      return descriptor.end();
-    }
-    
-    int size() const { return 2; }
+    int size() const { return descriptor.size(); }
 
     float operator[] (int index) const { 
-      if (index == 0) return x;
-      else if (index == 1) return y;
-      else vw_throw( vw::ArgumentErr() << "Interest Point: Invalid index" );
-
-      // Control should never reach this point
-      return 0;
+      return descriptor[index];
     }
 
     /// std::sort can be used to sort InterestPoints in descending

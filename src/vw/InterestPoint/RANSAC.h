@@ -87,7 +87,7 @@ namespace ip {
     double operator() (RelationT const& H,
                        ContainerT const& p1, 
                        ContainerT const& p2) const {
-      return vw::math::norm_2( Vector3(p2.x,p2.y,1) - H * Vector3(p1.x,p1.y,1));
+      return vw::math::norm_2( Vector3(p2[0],p2[1],1) - H * Vector3(p1[0],p1[1],1));
     }
   };
 
@@ -110,23 +110,6 @@ namespace ip {
       }
       return result;
     }
-
-    // Returns the list of inlier indices.
-    template <class ContainerT>
-    void inliers(typename FittingFuncT::result_type const& H,
-                 std::vector<ContainerT> const& p1,std::vector<ContainerT> const& p2,
-                 std::vector<ContainerT> &inliers1, std::vector<ContainerT> &inliers2) const {
-        
-      inliers1.clear();
-      inliers2.clear();
-      
-      for (unsigned int i=0; i<p1.size(); i++) {
-        if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold) {
-          inliers1.push_back(p1[i]);
-          inliers2.push_back(p2[i]);
-        }
-      }
-    }
     
     /// \cond INTERNAL  
     // Utility Function: Pick N UNIQUE, random integers in the range [0, size] 
@@ -147,6 +130,24 @@ namespace ip {
     /// \endcond
     
   public:
+
+    // Returns the list of inlier indices.
+    template <class ContainerT>
+    void inliers(typename FittingFuncT::result_type const& H,
+                 std::vector<ContainerT> const& p1,std::vector<ContainerT> const& p2,
+                 std::vector<ContainerT> &inliers1, std::vector<ContainerT> &inliers2) const {
+        
+      inliers1.clear();
+      inliers2.clear();
+      
+      for (unsigned int i=0; i<p1.size(); i++) {
+        if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold) {
+          inliers1.push_back(p1[i]);
+          inliers2.push_back(p2[i]);
+        }
+      }
+    }
+
     RandomSampleConsensus(FittingFuncT const& fitting_func, ErrorFuncT const& error_func, double inlier_threshold)
       : m_fitting_func(fitting_func), m_error_func(error_func), m_inlier_threshold(inlier_threshold) {}
     
@@ -154,7 +155,6 @@ namespace ip {
     typename FittingFuncT::result_type operator()(std::vector<ContainerT> const& p1, 
                                                   std::vector<ContainerT> const& p2,
                                                   int ransac_iterations = 0) {
-
       // check consistency
       VW_ASSERT( p1.size() == p2.size(), 
                  RANSACErr() << "RANSAC Error.  data vectors are not the same size." );

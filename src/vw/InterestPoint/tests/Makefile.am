@@ -27,7 +27,9 @@
 
 if MAKE_MODULE_INTERESTPOINT
 
-TESTS =
+nodist_TestMatcher_SOURCES = TestMatcher.cxx
+
+TESTS = TestMatcher
 
 endif
 
