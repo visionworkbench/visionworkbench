@@ -81,6 +81,43 @@ void print_matrix(MatrixT const& A) {
   }
 }
 
+
+
+// Note: this is a non-skyline optimized factorization that is used to
+// test correctness in the unit tests below.  
+//
+// Perform L*D*L^T decomposition on a symmetric semi-definite
+// matrix.  WARNING: The results are stored in place, so this
+// operation destroys the previous contents of A.
+//
+// Once this operation is complete, the diagonal entries of A
+// contain the values from D, and the lower left block diagonal of A
+// contains L.  (The diagonal entries of L are always 1, so those
+// are assumed here...)
+template <class MatrixT>
+void ldl_decomposition(MatrixT& A) {
+  VW_ASSERT(A.cols() == A.rows(), ArgumentErr() << "ldl_decomposition: argument must be square and symmetric.\n");
+  for (unsigned j = 0; j < A.cols(); ++j) {
+      
+    // Compute v(1:j)
+    std::vector<double> v(j+1);
+    v[j] = A(j,j);
+    for (unsigned i = 0; i < j; ++i) {
+      v[i] = A(j,i)*A(i,i);
+      v[j] -= A(j,i)*v[i];
+    }
+    
+    // Store d(j) and compute L(j+1:n,j)
+    A(j,j) = v[j];
+    for (unsigned i = j+1; i < A.cols(); ++i) {
+      double row_sum = 0;
+      for (unsigned jj = 0; jj < j; ++jj) 
+        row_sum += A(i,jj)*v[jj];
+      A(i,j) = ( A(i,j)-row_sum ) / v[j];
+    }
+  }
+}
+
 class TestOptimization : public CxxTest::TestSuite
 {
 public:

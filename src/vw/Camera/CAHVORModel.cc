@@ -34,7 +34,7 @@ vw::camera::CAHVORModel::CAHVORModel(std::string const& filename) {
     vw_throw( IOErr() << "CAHVORModel: Could not open file." );
 
   char line[4096];    
-  printf("Reading CAHVOR file: %s\n", filename.c_str());
+  vw_out(InfoMessage, "camera") << "Reading CAHVOR file: " << filename << ".\n";
     
   // Scan through comments 
   fgets(line, sizeof(line), cahvorFP);
@@ -98,7 +98,7 @@ void vw::camera::CAHVORModel::write(std::string const& filename) {
   if (cahvorFP == 0)
     vw_throw( IOErr() << "CAHVORModel::write: Could not open file." );
 
-  printf("Writing CAHVOR file: %s\n", filename.c_str());
+  vw_out(InfoMessage, "camera") << "Writing CAHVOR file: " << filename << "\n";
 
   if (fprintf(cahvorFP,"C = %lf %lf %lf\n", C(0), C(1), C(2)) < 3) {
     vw_throw( IOErr() << "CAHVORModel::write: Could not write C vector\n" );
@@ -232,7 +232,7 @@ vw::Vector3 vw::camera::CAHVORModel::pixel_to_vector(vw::Vector2 const& pix, vw:
     deriv = (5*k5*u_2 + 3*k3)*u_2 + k1;
     
     if (deriv <= 0) {
-      printf("CAHVORModel.pixel_to_vector(): Distortion is too negative\n");
+      vw_out(InfoMessage, "camera") << "CAHVORModel.pixel_to_vector(): Distortion is too negative\n";
       break;
     } else {
       du = poly/deriv;
@@ -243,7 +243,7 @@ vw::Vector3 vw::camera::CAHVORModel::pixel_to_vector(vw::Vector2 const& pix, vw:
   } 
   
   if (i >= VW_CAHVOR_MAXITER) {
-    printf("CAHVORModel.pixel_to_vector(): Too many iterations (%d)\n", i);
+    vw_out(InfoMessage, "camera") << "CAHVORModel.pixel_to_vector(): Too many iterations (" << i << ")\n";
   } 
   
   mu = 1 - u;
@@ -389,7 +389,7 @@ vw::Vector3 vw::camera::CAHVORModel::pixel_to_vector(vw::Vector2 const& pix) con
     deriv = (5*k5*u_2 + 3*k3)*u_2 + k1;
 
     if (deriv <= 0) {
-      printf("CAHVORModel.pixel_to_vector(): Distortion is too negative\n");
+      vw_out(InfoMessage, "camera") << "CAHVORModel.pixel_to_vector(): Distortion is too negative\n";
       break;
     } else {
       du = poly/deriv;
@@ -401,7 +401,7 @@ vw::Vector3 vw::camera::CAHVORModel::pixel_to_vector(vw::Vector2 const& pix) con
   
 
   if (i >= VW_CAHVOR_MAXITER) {
-    printf("CAHVORModel.pixel_to_vector(): Too many iterations (%d)\n", i);
+    vw_out(InfoMessage, "camera") << "CAHVORModel.pixel_to_vector(): Too many iterations (" << i << ")\n";
   } 
 
   mu = 1 - u;
