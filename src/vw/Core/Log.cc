@@ -22,15 +22,42 @@
 // __END_LICENSE__
 #include <vw/Core/Log.h>
 
-// Boost header
+// Boost headers
 #include <boost/thread/xtime.hpp>
+// Posix time is not fully supported in the version of Boost for RHEL
+// Workstation 4
+#ifdef __APPLE__
 #include <boost/date_time/posix_time/posix_time.hpp>
+#else
+#include <ctime>
+#endif
 
 // C Standard Library headers ( for stat(2) and getpwuid() )
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <pwd.h>
+
+
+// Posix time is not fully supported in the version of Boost for RHEL
+// Workstation 4
+#ifndef __APPLE__
+inline std::string
+current_posix_time_string()
+{
+  char time_string[1024];
+  strftime(time_string, sizeof(time_string), "%F %T", localtime(0));
+  return std::string(time_string);
+}
+#else
+inline std::string
+current_posix_time_string()
+{
+  std::ostringstream time_string_stream;
+  time_string_stream << boost::posix_time::second_clock::local_time();
+  return time_string_stream.str();
+}
+#endif
 
 // ---------------------------------------------------
 // Create a single instance of the SystemLog
@@ -67,9 +94,8 @@ vw::LogInstance::LogInstance(std::string log_filename, bool prepend_infostamp) :
   m_log_ostream_ptr = new std::ofstream(log_filename.c_str(), std::ios::app);
   if (! static_cast<std::ofstream*>(m_log_ostream_ptr)->is_open())
     vw_throw(IOErr() << "Could not open log file " << log_filename << " for writing.");
-  
-  boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
-  *m_log_ostream_ptr << "\n\n" << "Vision Workbench log started at " << now << ".\n\n";
+
+  *m_log_ostream_ptr << "\n\n" << "Vision Workbench log started at " << current_posix_time_string() << ".\n\n";
       
   m_log_stream.set_stream(*m_log_ostream_ptr);
 }
@@ -80,9 +106,8 @@ vw::LogInstance::LogInstance(std::ostream& log_ostream, bool prepend_infostamp) 
 
 std::ostream& vw::LogInstance::operator() (int log_level, std::string log_namespace) {
   if (m_rule_set(log_level, log_namespace)) {
-    boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
     if (m_prepend_infostamp) 
-      return m_log_stream << now << " {" << Thread::id() << "} [ " << log_namespace << " ] : ";
+      return m_log_stream << current_posix_time_string() << " {" << Thread::id() << "} [ " << log_namespace << " ] : ";
     else 
       return m_log_stream;
   } else {
