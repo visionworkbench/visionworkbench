@@ -38,5 +38,9 @@ fi
 
 aclocal
 autoheader
-automake -a -Wno-portability
+if test "`automake --version | grep "1.10"`" 2> /dev/null ; then
+    automake -a -Wno-portability
+else
+    automake -a
+fi
 autoconf
