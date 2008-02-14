@@ -27,13 +27,13 @@
 # the package.  Make sure to run this on a computer with an UP-TO-DATE 
 # version of autotools if you're going to make a public release!
 
-if test `which libtoolize` 2> /dev/null ; then
-    libtoolize --force > /dev/null
-elif test `which glibtoolize` 2> /dev/null ; then
-    glibtoolize --force > /dev/null
+if which libtoolize >& /dev/null ; then
+   libtoolize --force > /dev/null
+elif which glibtoolize >& /dev/null ; then
+   glibtoolize --force > /dev/null
 else
-    echo "Error: libtoolize not found!  Do you have autotools installed?"
-    exit
+   echo "Error: libtoolize not found!  Do you have autotools installed?"
+   exit
 fi
 
 aclocal
