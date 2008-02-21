@@ -45,6 +45,7 @@ namespace mosaic {
     int max_lod_pixels;
     int draw_order_offset;
     std::string kml_title;
+    std::string kml_metadata;
     mutable std::ostringstream root_node_tags;
 
     std::string kml_latlonaltbox( BBox2 const& longlat_bbox ) const {
@@ -120,6 +121,10 @@ namespace mosaic {
       kml_title = name;
     }
 
+    void set_metadata( std::string const& data ) {
+      kml_metadata = data;
+    }
+
     virtual ~KMLQuadTreeGenerator() {}
     
     virtual std::string compute_image_path( std::string const& name ) const {
@@ -145,6 +150,8 @@ namespace mosaic {
       if( root_node ) {
         if( ! kml_title.empty() )
           root_node_tags << "  <name>" << kml_title << "</name>\n";
+        if( ! kml_metadata.empty() )
+          root_node_tags << "  <Metadata>" << kml_metadata << "</Metadata>\n";
         BBox2 bbox = pixels_to_longlat( base_type::m_crop_bbox );
         double lon = (bbox.min().x()+bbox.max().x())/2;
         double lat = (bbox.min().y()+bbox.max().y())/2;
@@ -164,7 +171,8 @@ namespace mosaic {
       fs::ofstream kml( kml_path );
       kml << std::setprecision(10);
 
-      kml << "<Folder>\n";
+      kml << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
+      kml << "<kml><Folder>\n";
       int children = 0;
       std::string kml0 = compute_image_path( info.name+"0" ) + ".kml";
       if( exists( fs::path( kml0, fs::native ) ) ) {
@@ -191,7 +199,7 @@ namespace mosaic {
       if( base_type::m_output_image_type == "auto" && extension(file_path)==".jpg" ) max_lod = -1;
       kml << kml_ground_overlay( file_path.leaf(), bb, rbb, base_type::m_tree_levels-info.level, max_lod );
       if( root_node ) kml << root_node_tags.str();
-      kml << "</Folder>\n";
+      kml << "</Folder></kml>\n";
     }
 
   };

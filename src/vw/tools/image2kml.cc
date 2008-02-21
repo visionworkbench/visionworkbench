@@ -140,6 +140,12 @@ int main( int argc, char *argv[] ) {
   po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
   po::notify( vm );
 
+  std::ostringstream command_line;
+  for( int i=0; i<argc; ++i ) {
+    command_line << argv[i];
+    if( i < argc-1 ) command_line << " ";
+  }
+
   std::ostringstream usage;
   usage << "Usage: image2kml [options] <filename>..." << std::endl << std::endl;
   usage << general_options << std::endl;
@@ -319,6 +325,7 @@ int main( int argc, char *argv[] ) {
                  (360.0*total_bbox.width())/xresolution,
                  (360.0*total_bbox.height())/yresolution );
   KMLQuadTreeGenerator<PixelRGBA<uint8> > quadtree( output_file_name, composite, ll_bbox );
+  quadtree.set_metadata( "<generatedBy><![CDATA[" + command_line.str() + "]]></generatedBy>" );
   quadtree.set_max_lod_pixels(max_lod_pixels);
   quadtree.set_crop_bbox( data_bbox );
   quadtree.set_draw_order_offset( draw_order_offset );
