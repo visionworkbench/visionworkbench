@@ -45,8 +45,10 @@
 inline std::string
 current_posix_time_string()
 {
-  char time_string[1024];
-  strftime(time_string, sizeof(time_string), "%F %T", localtime(0));
+  char time_string[2048];
+  time_t t = time(0);
+  struct tm* time_struct = localtime(&t);
+  strftime(time_string, 2048, "%F %T", time_struct);
   return std::string(time_string);
 }
 #else
@@ -106,7 +108,7 @@ vw::LogInstance::LogInstance(std::ostream& log_ostream, bool prepend_infostamp) 
 
 std::ostream& vw::LogInstance::operator() (int log_level, std::string log_namespace) {
   if (m_rule_set(log_level, log_namespace)) {
-    if (m_prepend_infostamp) 
+    if (m_prepend_infostamp)
       return m_log_stream << current_posix_time_string() << " {" << Thread::id() << "} [ " << log_namespace << " ] : ";
     else 
       return m_log_stream;
