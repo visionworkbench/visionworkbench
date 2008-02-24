@@ -730,7 +730,10 @@ AC_DEFUN([AX_MODULE],
     if test "$ax_module_enable" = "yes" ; then
       for ax_dependency in $5 ; do
         ax_dependency_have="HAVE_PKG_${ax_dependency}"
-        if test x"${!ax_dependency_have}" != "xyes"; then
+        if test x"${!ax_dependency_have}" = "xyes"; then
+          ax_dep_libs="PKG_${ax_dependency}_LIBS"
+          ax_libs="${ax_libs} ${!ax_dep_libs}"
+	else
           AC_MSG_RESULT([no])
           AC_MSG_NOTICE([warning: unable to build requested module $1 (needs ${ax_dependency})!])
           ax_module_enable=no;
