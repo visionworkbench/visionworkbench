@@ -433,7 +433,18 @@ AC_DEFUN([AX_PKG_LAPACK],
           AC_MSG_NOTICE(["trying to find BLAS and LAPACK seperately."])
           AX_PKG(STANDALONE_BLAS, [], [-lblas], [])
           AX_PKG(STANDALONE_LAPACK, [], [-llapack], [])
-          AX_PKG(LAPACK, [STANDALONE_LAPACK STANDALONE_BLAS], [], [])
+          AX_PKG(STANDALONE_LAPACK_AND_BLAS, [STANDALONE_LAPACK STANDALONE_BLAS], [], [])
+
+	  if test "$HAVE_PKG_STANDALONE_LAPACK_AND_BLAS" = "no"; then
+            # On some systems, F2C, FBLAS and FLAPACK are installed in different places
+            AC_MSG_NOTICE(["trying to find F2C, FBLAS, and FLAPACK seperately."])
+            AX_PKG(STANDALONE_F2C, [], [-lf2c], [])
+            AX_PKG(STANDALONE_FBLAS, [STANDALONE_F2C], [-lblas], [])
+            AX_PKG(STANDALONE_FLAPACK, [STANDALONE_F2C], [-llapack], [])
+            AX_PKG(LAPACK, [STANDALONE_FLAPACK STANDALONE_FBLAS STANDALONE_F2C], [], [])
+	  else 
+            AX_PKG(LAPACK, [STANDALONE_LAPACK_AND_BLAS], [], [])
+	  fi # FBLAS and FLAPACK
         else
           AX_PKG(LAPACK, [FLAPACK], [], [])
         fi # BLAS and LAPACK
