@@ -209,31 +209,47 @@ namespace vw {
 
   public:
 
-    // This variant of the constructor takes a Task that is copy
-    // constructable.  The thread mades a copy of the task, and this
-    // instance is no longer directly accessibly from the parent
-    // thread.
+    /// This variant of the constructor takes a Task that is copy
+    /// constructable.  The thread mades a copy of the task, and this
+    /// instance is no longer directly accessibly from the parent
+    /// thread.
     template<class TaskT>
     inline Thread( TaskT task ) : m_thread( task ) {}
 
-    // This variant of the constructor takes a shared point to a task.
-    // The thread mades a copy of the shared pointer task, allowing
-    // the parent to still access the task instance that is running in
-    // the thread.
+    /// This variant of the constructor takes a shared point to a task.
+    /// The thread mades a copy of the shared pointer task, allowing
+    /// the parent to still access the task instance that is running in
+    /// the thread.
     template<class TaskT>
     inline Thread( boost::shared_ptr<TaskT> task ) : m_thread( TaskHelper<TaskT>(task) ) {}
 
-    inline ~Thread() { m_thread.join(); }
+    /// Destroys the thread.  The actual thread of execution may
+    /// continue to execute after the thread object has been destroyed.
+    inline ~Thread() {}
 
+    /// The current thread of execution blocks until this thread
+    /// finishes execution of the task and all resources are reclaimed.
     inline void join() { m_thread.join(); }
+
+
+    // --------------
+    // STATIC METHODS
+    // --------------
     
-    /// Returns a unique ID for this thread.  The ID for a thread is
-    /// not determined until the thread calls the id() function for
-    /// the first time, so there is no gurantee that IDs will be
-    /// assigned in the same order that threads are created.
+    /// Returns a unique ID for the current thread.  The ID for a
+    /// thread is not determined until the thread calls the id()
+    /// function for the first time, so there is no gurantee that IDs
+    /// will be assigned in the same order that threads are created.
     static int id();
 
+    /// Cause the current thread to yield the remainder of its
+    /// execution time to the kernel's scheduler.
     static inline void yield() { boost::thread::yield(); }
+
+    /// Cause the current thread to sleep for a specified amount of
+    /// time.  The thread will not be scheduled to run at all for the
+    /// duration, so machine resources are free for other
+    /// threads/processes.
     static inline void sleep_ms( unsigned long milliseconds ) {
       boost::xtime xt;
       boost::xtime_get(&xt, boost::TIME_UTC);
@@ -245,6 +261,8 @@ namespace vw {
       boost::thread::sleep(xt);
     }
 
+    /// Control the default number of threads spawned by various
+    /// multi-threaded processes in the Vision Workbench.
     static int default_num_threads();
     static void set_default_num_threads(int);
   };

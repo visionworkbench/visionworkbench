@@ -96,6 +96,7 @@ public:
     TS_ASSERT_EQUALS( task->value, 0 );
 
     Thread *thread; 
+
     {
       Mutex::Lock cond_lock(condition_mutex);
       thread = new Thread( task );
@@ -115,7 +116,7 @@ public:
 
   void test_thread_id()
   {
-    std::cout << "\n";
+    std::cout << "\nTesting thread ID...\n";
 
     // Start by testing my own ID.
     int id;
@@ -142,10 +143,12 @@ public:
     thread1.join();
     thread2.join();
     thread3.join();
+    std::cout << "--> done!\n";
   }
 
   void test_run_once()
   {
+    std::cout << "Testing runonce!\n";
     TS_ASSERT_EQUALS( once_value, 0 );
     once.run( run_once_func );
     TS_ASSERT_EQUALS( once_value, 1 );
