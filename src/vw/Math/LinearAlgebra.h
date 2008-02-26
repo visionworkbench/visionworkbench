@@ -43,20 +43,20 @@ namespace vw {
 namespace math {
 
   /// \cond INTERNAL
-  extern "C"  int sgeev_(char *jobvl, char *jobvr, int *n, float *a, 
-                         int *lda, float *wr, float *wi, float *vl, int *ldvl, float *vr, 
-                         int *ldvr, float *work, int *lwork, int *info);
+  extern "C"  int sgeev_(char *jobvl, char *jobvr, long int *n, float *a, 
+                         long int *lda, float *wr, float *wi, float *vl, long int *ldvl, float *vr, 
+                         long int *ldvr, float *work, long int *lwork, long int *info);
 
-  extern "C"  int dgeev_(char *jobvl, char *jobvr, int *n, double *a, 
-                         int *lda, double *wr, double *wi, double *vl, int *ldvl, double *vr, 
-                         int *ldvr, double *work, int *lwork, int *info);
+  extern "C"  int dgeev_(char *jobvl, char *jobvr, long int *n, double *a, 
+                         long int *lda, double *wr, double *wi, double *vl, long int *ldvl, double *vr, 
+                         long int *ldvr, double *work, long int *lwork, long int *info);
 
 
-  static inline void geev(char jobvl, char jobvr, int n, float *a, int lda, float *wr, float *wi, float *vl, int ldvl, float *vr, int ldvr, float *work, int lwork, int *info) {
+  static inline void geev(char jobvl, char jobvr, long int n, float *a, long int lda, float *wr, float *wi, float *vl, long int ldvl, float *vr, long int ldvr, float *work, long int lwork, long int *info) {
     sgeev_(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
   }
 
-  static inline void geev(char jobvl, char jobvr, int n, double *a, int lda, double *wr, double *wi, double *vl, int ldvl, double *vr, int ldvr, double *work, int lwork, int *info) {
+  static inline void geev(char jobvl, char jobvr, long int n, double *a, long int lda, double *wr, double *wi, double *vl, long int ldvl, double *vr, long int ldvr, double *work, long int lwork, long int *info) {
     dgeev_(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
   }
   /// \endcond
@@ -69,15 +69,15 @@ namespace math {
   inline void eigen( MatrixT const& A, EigenvaluesT &e ) {
     VW_ASSERT( A.cols()==A.rows(), ArgumentErr() << "Eigendecomposition can only be performed on square matrices." );
     typedef typename MatrixT::value_type real_type;
-    const int lda = A.rows();
+    const long int lda = A.rows();
     Matrix<real_type> Abuf = transpose(A);
     Vector<real_type> wr_buf( A.cols() );
     Vector<real_type> wi_buf( A.cols() );
     real_type work_size;
-    int n = A.cols(); 
-    int lwork = -1, info;
+    long int n = A.cols(); 
+    long int lwork = -1, info;
     geev('N','N',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, &work_size, lwork, &info);
-    lwork = int(work_size);
+    lwork = (long int)(work_size);
     std::vector<real_type> work( lwork );
     geev('N','N',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, &work[0], lwork, &info);
     if (info < 0) 
@@ -99,16 +99,16 @@ namespace math {
   inline void eigen( AMatrixT &A, EigenvaluesT &e, VMatrixT &V ) {
     VW_ASSERT( A.cols()==A.rows(), ArgumentErr() << "Eigendecomposition can only be performed on square matrices." );
     typedef typename AMatrixT::value_type real_type;
-    const int lda = A.rows();
-    const int ldvr = A.cols();
+    const long int lda = A.rows();
+    const long int ldvr = A.cols();
     Matrix<real_type> Abuf = transpose(A);
     Matrix<real_type> Vbuf( A.rows(), A.cols() );
     Vector<real_type> wr_buf( A.cols() );
     Vector<real_type> wi_buf( A.cols() );
     real_type work_size;
-    int n = A.cols(), lwork = -1, info;
+    long int n = A.cols(), lwork = -1, info;
     geev('N','V',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, &(Vbuf(0,0)), ldvr, &work_size, lwork, &info);
-    lwork = int(work_size);
+    lwork = (long int)(work_size);
     std::vector<real_type> work( lwork );
     geev('N','V',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, &(Vbuf(0,0)), ldvr, &work[0], lwork, &info);
     if (info < 0) 
@@ -132,19 +132,19 @@ namespace math {
   }
 
   /// \cond INTERNAL
-  extern "C"  int sgesdd_(char *jobz, int *m, int *n, float *a, 
-                          int *lda, float *s, float *u, int *ldu, float *vt, int *ldvt,
-                          float *work, int *lwork, int *iwork, int *info);
+  extern "C"  int sgesdd_(char *jobz, long int *m, long int *n, float *a, 
+                          long int *lda, float *s, float *u, long int *ldu, float *vt, long int *ldvt,
+                          float *work, long int *lwork, long int *iwork, long int *info);
 
-  extern "C"  int dgesdd_(char *jobz, int *m, int *n, double *a,
-                          int *lda, double *s, double *u, int *ldu, double *vt, int *ldvt, 
-                          double *work, int *lwork, int *iwork, int *info);
+  extern "C"  int dgesdd_(char *jobz, long int *m, long int *n, double *a,
+                          long int *lda, double *s, double *u, long int *ldu, double *vt, long int *ldvt, 
+                          double *work, long int *lwork, long int *iwork, long int *info);
 
-  static inline void gesdd(char jobz, int m, int n, float *a, int lda, float *s, float *u, int ldu, float *vt, int ldvt, float *work, int lwork, int *iwork, int *info) { 
+  static inline void gesdd(char jobz, long int m, long int n, float *a, long int lda, float *s, float *u, long int ldu, float *vt, long int ldvt, float *work, long int lwork, long int *iwork, long int *info) { 
     sgesdd_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, iwork, info);
   }
 
-  static inline void gesdd(char jobz, int m, int n, double *a, int lda, double *s, double *u, int ldu, double *vt, int ldvt, double *work, int lwork, int *iwork, int *info) { 
+  static inline void gesdd(char jobz, long int m, long int n, double *a, long int lda, double *s, double *u, long int ldu, double *vt, long int ldvt, double *work, long int lwork, long int *iwork, long int *info) { 
     dgesdd_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, iwork, info);
   }
   /// \endcond
@@ -156,16 +156,16 @@ namespace math {
   template <class AMatrixT, class SingularValuesT> 
   inline void svd( AMatrixT const& A, SingularValuesT &s ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type real_type;
-    const int m = A.rows(), n = A.cols();
-    const int minmn = std::min(m,n);
-    const int lda = A.rows();
+    const long int m = A.rows(), n = A.cols();
+    const long int minmn = std::min(m,n);
+    const long int lda = A.rows();
     Matrix<real_type> Abuf = transpose(A);
     Vector<real_type> sbuf( minmn );
     real_type work_size;
-    int lwork = -1, info;
-    std::vector<int> iwork( 8*minmn );
+    long int lwork = -1, info;
+    std::vector<long int> iwork( 8*minmn );
     gesdd('N', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), NULL, 1, NULL, 1, &work_size, lwork, &iwork[0], &info);
-    lwork = int(work_size);
+    lwork = (long int)(work_size);
     std::vector<real_type> work( lwork );
     gesdd('N', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), NULL, 1, NULL, 1, &work[0], lwork, &iwork[0], &info);
     if (info < 0) 
@@ -184,19 +184,19 @@ namespace math {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type temp_type1;
     typedef typename PromoteType<temp_type1, typename UMatrixT::value_type>::type temp_type2;
     typedef typename PromoteType<temp_type2, typename VTMatrixT::value_type>::type real_type;
-    const int m = A.rows(), n = A.cols();
-    const int minmn = std::min(m,n);
-    const int lda = A.rows();
+    const long int m = A.rows(), n = A.cols();
+    const long int minmn = std::min(m,n);
+    const long int lda = A.rows();
     Matrix<real_type> Abuf = transpose(A);
     Matrix<real_type> Ubuf( minmn, A.rows() );
     Matrix<real_type> VTbuf( A.cols(), minmn );
     Vector<real_type> sbuf( minmn );
     real_type work_size;
-    int lwork = -1, info;
-    std::vector<int> iwork( 8*minmn );
-    int ldu = m, ldvt = minmn;
+    long int lwork = -1, info;
+    std::vector<long int> iwork( 8*minmn );
+    long int ldu = m, ldvt = minmn;
     gesdd('S', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work_size, lwork, &iwork[0], &info);
-    lwork = int(work_size);
+    lwork = (long int)(work_size);
     std::vector<real_type> work( lwork );
     gesdd('S', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work[0], lwork, &iwork[0], &info);
     if (info < 0) 
@@ -219,19 +219,19 @@ namespace math {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type temp_type1;
     typedef typename PromoteType<temp_type1, typename UMatrixT::value_type>::type temp_type2;
     typedef typename PromoteType<temp_type2, typename VTMatrixT::value_type>::type real_type;
-    const int m = A.rows(), n = A.cols();
-    const int minmn = std::min(m,n);
-    const int lda = A.rows();
+    const long int m = A.rows(), n = A.cols();
+    const long int minmn = std::min(m,n);
+    const long int lda = A.rows();
     Matrix<real_type> Abuf = transpose(A);
     Matrix<real_type> Ubuf( A.rows(), A.rows() );
     Matrix<real_type> VTbuf( A.cols(), A.cols() );
     Vector<real_type> sbuf( minmn );
     real_type work_size;
-    int lwork = -1, info;
-    std::vector<int> iwork( 8*minmn ); 
-    int ldu = m, ldvt = n;
+    long int lwork = -1, info;
+    std::vector<long int> iwork( 8*minmn ); 
+    long int ldu = m, ldvt = n;
     gesdd('A', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work_size, lwork, &iwork[0], &info);
-    lwork = int(work_size);
+    lwork = (long int)(work_size);
     std::vector<real_type> work( lwork );
     gesdd('A', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work[0], lwork, &iwork[0], &info);
     if (info < 0) 
@@ -262,22 +262,22 @@ namespace math {
 
 
   /// \cond INTERNAL
-  extern "C"  int sgelsd_(const int* m, const int* n, const int* nrhs, float* a, 
-                          const int* lda, float *b, const int* ldb, float* s, 
-                          const float* rcond, int* rank, float* work, const int* lwork, 
-                          int* iwork, int* info);
+  extern "C"  int sgelsd_(const long int* m, const long int* n, const long int* nrhs, float* a, 
+                          const long int* lda, float *b, const long int* ldb, float* s, 
+                          const float* rcond, long int* rank, float* work, const long int* lwork, 
+                          long int* iwork, long int* info);
 
-  extern "C"  int dgelsd_(const int* m, const int* n, const int* nrhs, double* a, 
-                          const int* lda, double *b, const int* ldb, double* s, 
-                          const double* rcond, int* rank, double* work, const int* lwork, 
-                          int* iwork, int* info);
+  extern "C"  int dgelsd_(const long int* m, const long int* n, const long int* nrhs, double* a, 
+                          const long int* lda, double *b, const long int* ldb, double* s, 
+                          const double* rcond, long int* rank, double* work, const long int* lwork, 
+                          long int* iwork, long int* info);
 
-  static inline void gelsd(int m, int n, int rhs, float *a, int lda, float *b, int ldb, float *s, float rcond, int *rank, float *work, int lwork, int* iwork, int *info) {
-    sgelsd_( &m, &n, &rhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, iwork, info );
+  static inline void gelsd(long int m, long int n, long int nrhs, float *a, long int lda, float *b, long int ldb, float *s, float rcond, long int *rank, float *work, long int lwork, long int* iwork, long int *info) {
+    sgelsd_( &m, &n, &nrhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, iwork, info );
   }
 
-  static inline void gelsd(int m, int n, int rhs, double *a, int lda, double *b, int ldb, double *s, double rcond, int *rank, double *work, int lwork, int* iwork, int *info) {
-    dgelsd_( &m, &n, &rhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, iwork, info );
+  static inline void gelsd(long int m, long int n, long int nrhs, double *a, long int lda, double *b, long int ldb, double *s, double rcond, long int *rank, double *work, long int lwork, long int* iwork, long int *info) {
+    dgelsd_( &m, &n, &nrhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, iwork, info );
   }
   /// \endcond
 
@@ -287,15 +287,15 @@ namespace math {
   least_squares( AMatrixT & A, BVectorT & B, double cond = -1 ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type real_type;
     Matrix<real_type> Abuf = transpose(A);
-    const int m = A.rows(), n = A.cols();
+    const long int m = A.rows(), n = A.cols();
     const int minmn = std::min(m,n), maxmn = std::max(m,n);
     Vector<real_type> Bbuf(maxmn);
     subvector(Bbuf,0,m) = B;
-    const int nrhs = 1, lda = A.rows(), ldb = maxmn;
+    const long int nrhs = 1, lda = A.rows(), ldb = maxmn;
     std::vector<real_type> s( minmn );
     real_type const rcond = cond;
-    int rank, lwork = -1, info;
-    std::vector<int> iwork( (3*int(log(minmn+1.)/log(2.))+11)*minmn ); // log2(x) = log(x)/log(2)
+    long int rank, lwork = -1, info;
+    std::vector<long int> iwork( (3*int(log(minmn+1.)/log(2.))+11)*minmn ); // log2(x) = log(x)/log(2)
     real_type work_size;
     gelsd( m, n, nrhs, &(Abuf(0,0)), lda, &(Bbuf(0)), ldb, &s[0], rcond, &rank, &work_size, lwork, &iwork[0], &info );
     lwork = int(work_size);
