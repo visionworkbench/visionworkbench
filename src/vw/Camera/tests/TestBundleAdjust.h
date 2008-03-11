@@ -261,7 +261,7 @@ public:
 
   void test_LDL_solve_scalability()
   {
-    int N =1000;
+    int N = 1000;
     int S = 30;
 
     srandom((unsigned int) clock());

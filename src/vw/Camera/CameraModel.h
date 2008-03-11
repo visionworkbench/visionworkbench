@@ -32,6 +32,7 @@
 #include <vw/Core/Exception.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Quaternion.h>
+#include <vw/Core/Log.h>
 
 namespace vw { 
 namespace camera {
@@ -121,6 +122,32 @@ namespace camera {
     Vector3 translation() const { return m_translation; }
     Quaternion<double> rotation() const { return m_rotation; }
     Matrix<double,3,3> rotation_matrix() const { return m_rotation.rotation_matrix(); }
+    Vector3 axis_angle_rotation() const {
+      Quaternion<double> quat = this->rotation();
+      Vector4 rot;
+      rot(0) = quat.w();
+      rot(1) = quat.x();
+      rot(2) = quat.y();
+      rot(3) = quat.z();
+      if (rot(0) > 1)
+        rot = normalize(rot);
+      double angle = 2 * acos(rot[0]);
+      double s = sqrt(1-rot[0]*rot[0]); // assuming quaternion normalised then w is less than 1, so term always positive.
+      Vector3 result;
+      // if s is close to zero, then direction of axis is not important
+      if (s < 0.001) {
+        result[0] = rot.x();   // if it is important that axis is normalised then replace with x=1; y=z=0
+        result[1] = rot.y();
+        result[2] = rot.z();
+      } else {
+        result[0] = rot.x()/s; // normalize axis
+        result[1] = rot.y()/s;
+        result[2] = rot.z()/s;
+      }
+
+      result *= angle;
+      return result;
+    }
 
     void set_translation(Vector3 const& translation) { m_translation = translation; }
     void set_rotation(Quaternion<double> const& rotation) { 
@@ -132,26 +159,32 @@ namespace camera {
       m_rotation_inverse = inverse(m_rotation);
     }
 
-    virtual Vector2 point_to_pixel (Vector3 const& point) const {
-      //       std::cout<< "\t   Orig: " << point << "\n";
-      //       std::cout<< "\tRotated: " << m_rotation.rotate(point) << "\n";
-      //       std::cout<< "\t   Orig: " << m_camera->point_to_pixel(point) << "\n";
-      //       std::cout << *(static_cast<PinholeModel*>(&(*m_camera)))<<"\n";
-      //       std::cout<< "\tRotated: " << m_camera->point_to_pixel(m_rotation.rotate(point)) << "\n";
+    void set_axis_angle_rotation(Vector3 const& axis_angle) {
+      Quaternion<double> rot; 
+      double angle = norm_2(axis_angle);
+      Vector3 temp = normalize(axis_angle);
+      double s = sin(angle/2);
+      if (angle == 0) {
+        rot.x() = 0;
+        rot.y() = 0;
+        rot.z() = 0;
+      } else {
+        rot.x() = temp[0] * s;
+        rot.y() = temp[1] * s;
+        rot.z() = temp[2] * s;
+      }
+      rot.w() = cos(angle/2);
+      this->set_rotation(rot);
+    }
 
-      Vector2 original_pix = m_camera->point_to_pixel(point);
-      Vector3 cam_center = m_camera->camera_center(original_pix);
-      Vector3 vec = point-cam_center;
-      return m_camera->point_to_pixel(m_rotation.rotate(vec) + this->camera_center(original_pix));  // Is this correct?
+    virtual Vector2 point_to_pixel (Vector3 const& point) const {
+      Vector3 offset_pt = point-m_camera->camera_center(Vector2(0,0))-m_translation;
+      Vector3 new_pt = m_rotation_inverse.rotate(offset_pt) + m_camera->camera_center(Vector2(0,0));
+      return m_camera->point_to_pixel(new_pt);
     }
 
     virtual Vector3 pixel_to_vector (Vector2 const& pix) const {
-      //       std::cout << m_rotation.rotation_matrix() << "\n";
-      //       std::cout << m_rotation_inverse.rotation_matrix() << "\n";
-      //       std::cout << m_rotation << "\n";
-      //       std::cout << m_rotation_inverse << "\n\n";
-      
-      return m_rotation_inverse.rotate(m_camera->pixel_to_vector(pix));
+      return m_rotation.rotate(m_camera->pixel_to_vector(pix));
     }
 
     virtual Vector3 camera_center (Vector2 const& pix) const {
@@ -161,6 +194,23 @@ namespace camera {
     virtual Quaternion<double> camera_pose(Vector2 const& pix) const {
       return m_camera->camera_pose(pix)*m_rotation_inverse;      
     }
+
+    void write(std::string filename) {
+      std::ofstream ostr(filename.c_str());
+      ostr << m_translation[0] << " " << m_translation[1] << " " << m_translation[2] << "\n";
+      ostr << m_rotation.w() << " " << m_rotation.x() << " " << m_rotation.y() << " " << m_rotation.z() << "\n";
+    }
+
+    void read(std::string filename) {
+      Quaternion<double> rot;
+      Vector3 pos;
+      std::ifstream istr(filename.c_str());
+      istr >> pos[0] >> pos[1] >> pos[2];
+      istr >> rot.w() >> rot.x() >> rot.y() >> rot.z();
+      this->set_translation(pos);
+      this->set_rotation(rot);
+    }
+
   };
 
 
