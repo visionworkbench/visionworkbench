@@ -27,7 +27,8 @@
 
 if MAKE_MODULE_STEREO
 
-TESTS = # TestCorrelator
+TESTS = TestStereoModel # TestCorrelator
+nodist_TestStereoModel_SOURCES = TestStereoModel.cxx
 # nodist_TestCorrelator_SOURCES = TestCorrelator.cxx
 
 endif
