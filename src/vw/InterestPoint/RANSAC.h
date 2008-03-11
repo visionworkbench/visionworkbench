@@ -114,7 +114,7 @@ namespace ip {
     /// \cond INTERNAL  
     // Utility Function: Pick N UNIQUE, random integers in the range [0, size] 
     inline void _vw_get_n_unique_integers(unsigned int size, unsigned n, int* samples) {
-      VW_ASSERT(size >= n, ArgumentErr() << "Not enough samples\n");
+      VW_ASSERT(size >= n, ArgumentErr() << "Not enough samples (" << n << " / " << size << ")\n");
       
       for (unsigned i=0; i<n; ++i) {
         bool done = false;
@@ -160,6 +160,8 @@ namespace ip {
                  RANSACErr() << "RANSAC Error.  data vectors are not the same size." );
       VW_ASSERT( p1.size() != 0,  
                  RANSACErr() << "RANSAC Error.  Insufficient data.\n");
+      VW_ASSERT( p1.size() >= m_fitting_func.min_elements_needed_for_fit(p1[0]),  
+                 RANSACErr() << "RANSAC Error.  Not enough potential matches for this fitting funtor. ("<<p1.size() << "/" << m_fitting_func.min_elements_needed_for_fit(p1[0]) << ")\n");
 
       unsigned inliers_max = 0;
       typename FittingFuncT::result_type H;

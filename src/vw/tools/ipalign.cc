@@ -275,7 +275,7 @@ int main(int argc, char** argv) {
                           InterestPointErrorMetric());
   else
     align_matrix = ransac(matched_ip2, matched_ip1, 
-                          vw::math::SimilarityFittingFunctor(),
+                          vw::math::AffineFittingFunctor(),
                           InterestPointErrorMetric());
 
   // Write out the aligned pair of images

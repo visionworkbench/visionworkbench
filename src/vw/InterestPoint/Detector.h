@@ -329,13 +329,13 @@ namespace ip {
     template <class DataT>
     void assign_orientations(InterestPointList& points, DataT const& img_data) const {
 
-      // Save the X gradient
-      ImageView<float> grad_x_image = normalize(img_data.gradient_x());
-      vw::write_image("grad_x1.jpg", grad_x_image);
+//       // Save the X gradient
+//       ImageView<float> grad_x_image = normalize(img_data.gradient_x());
+//       vw::write_image("grad_x1.jpg", grad_x_image);
 
-      // Save the Y gradient      
-      ImageView<float> grad_y_image = normalize(img_data.gradient_y());
-      vw::write_image("grad_y1.jpg", grad_y_image);
+//       // Save the Y gradient      
+//       ImageView<float> grad_y_image = normalize(img_data.gradient_y());
+//       vw::write_image("grad_y1.jpg", grad_y_image);
 
       for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
         i->orientation = get_orientation(img_data.gradient_x(), img_data.gradient_y(), i->x, i->y);
