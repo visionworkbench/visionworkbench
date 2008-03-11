@@ -35,6 +35,7 @@
 #include <vw/Math/Matrix.h>
 #include <vw/Math/LinearAlgebra.h>
 #include <vw/Math/Statistics.h>
+#include <vw/Math/LevenbergMarquardt.h>
 
 namespace vw { 
 namespace math {
@@ -42,26 +43,14 @@ namespace math {
   /// This fitting functor attempts to find a homography (8 degrees of
   /// freedom) that transforms point p1 to match points p2.  This fit
   /// is optimal in a least squares sense.
-  class HomographyFittingFunctor {
-    bool m_homogeneous;
-  public:
+  struct HomographyFittingFunctor {
     typedef vw::Matrix<double> result_type;
 
-    /// If you pass an example datum to this function, it will return
-    /// the minimum number of putative matches needed to compute a fit.
+    /// A homography requires at least 4 point matches to determine 8 unknowns
     template <class ContainerT>
     unsigned min_elements_needed_for_fit(ContainerT const& example) const {
-      return example.size()*example.size();
+      return 4;
     }
-    
-    /// If this functor is going to be applied to points in a
-    /// projective space (i.e. homogeneous coordinates), you should
-    /// set this flag to to true.  Otherwise, the functor will augment
-    /// the points (make them homegeneous) when computing H.  In
-    /// either case, the resulting Matrix will be in projective
-    /// coordinates.
-    HomographyFittingFunctor(bool homogeneous_points = false) 
-      : m_homogeneous(homogeneous_points) {}
     
     /// This function can match points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
@@ -83,17 +72,8 @@ namespace math {
       vw::Matrix<double> A;
       vw::Matrix<double> B;
       
-      if (m_homogeneous) {
-        A.set_size(num_points, dimensions);
-        B.set_size(num_points, dimensions);
-      } else {
-        A.set_size(num_points, dimensions+1);
-        B.set_size(num_points, dimensions+1);
-        for (unsigned i = 0; i < A.rows(); ++i) {
-          A(i,dimensions) = 1.0;
-          B(i,dimensions) = 1.0;
-        }
-      }
+      A.set_size(num_points, dimensions);
+      B.set_size(num_points, dimensions);
 
       for (unsigned r = 0; r < num_points; ++r) {
         for (unsigned c = 0; c < dimensions; ++c) {
@@ -110,110 +90,18 @@ namespace math {
       return H;
     }
   };
-
-  /// This fitting functor attempts to find a similarity transformation (rotation,
-  /// translation and scaling -- 5 degrees of freedom) that transforms
-  /// point p1 to match points p2.  This fit is optimal in a least
-  /// squares sense.
-  class SimilarityFittingFunctor {
-    bool m_homogeneous;
-  public:
-    typedef vw::Matrix<double> result_type;
-    
-    /// If you pass an example datum to this function, it will return
-    /// the minimum number of putative matches needed to compute a fit.
-    template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& example) const {
-      return example.size()*example.size();
-    }
-    /// If this functor is going to be applied to points in a
-    /// projective space (i.e. homogeneous coordinates), you should
-    /// set this flag to to true.  Otherwise, the functor will augment
-    /// the points (make them homegeneous) when computing H.  In
-    /// either case, the resulting Matrix will be in projective
-    /// coordinates.
-    SimilarityFittingFunctor(bool homogeneous_points = false) 
-      : m_homogeneous(homogeneous_points) {}
-
-    /// This function can match points in any container that supports
-    /// the size() and operator[] methods.  The container is usually a
-    /// vw::Vector<>, but you could substitute other classes here as
-    /// well.
-    template <class ContainerT>
-    vw::Matrix<double> operator() (std::vector<ContainerT> const& p1, 
-                                   std::vector<ContainerT> const& p2) const {
-
-      // check consistency
-      VW_ASSERT( p1.size() == p2.size(), 
-                 vw::ArgumentErr() << "Cannot compute similarity transformation.  p1 and p2 are not the same size." );
-      VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
-                 vw::ArgumentErr() << "Cannot compute similarity transformation.  Insufficient data.\n");
-      
-      unsigned num_points = p1.size();
-      unsigned dimensions = p1[0].size();
-        
-      vw::Matrix<double> A;
-      vw::Matrix<double> B;
-      
-      if (m_homogeneous) {
-        A.set_size(num_points, dimensions);
-        B.set_size(num_points, dimensions-1);
-      } else {
-        A.set_size(num_points, dimensions+1);
-        B.set_size(num_points, dimensions);
-        for (unsigned i = 0; i < A.rows(); ++i) {
-          A(i,dimensions) = 1.0; 
-        }
-      }
-
-      for (unsigned r = 0; r < num_points; ++r) {
-        for (unsigned c = 0; c < dimensions; ++c) {
-          A(r,c) = p1[r][c];
-          if (c < B.cols())
-            B(r,c) = p2[r][c];
-        }
-      }
  
-      // Compute the least squares approximate fit for this similarity
-      if (m_homogeneous) {
-        vw::Matrix<double> H(dimensions, dimensions);
-        fill(H,0.0);
-        H(dimensions-1, dimensions-1) = 1.0;
-        submatrix(H, 0, 0, dimensions-1, dimensions) = transpose( pseudoinverse(A)*B );
-        return H;
-      } else {
-        vw::Matrix<double> H(dimensions+1, dimensions+1);
-        fill(H,0.0);
-        H(dimensions, dimensions) = 1.0;
-        submatrix(H, 0, 0, dimensions, dimensions+1) = transpose( pseudoinverse(A)*B );
-        return H;
-      }
-    }
-  };
 
-  /// This fitting functor attempts to find an affine transformation (rotation and
-  /// translation -- 4 degrees of freedom) that transforms
-  /// point p1 to match points p2.  This fit is optimal in a least
-  /// squares sense.
-  class AffineFittingFunctor {
-    bool m_homogeneous;
-  public:
-    typedef vw::Matrix<double> result_type;
-    
-    /// If you pass an example datum to this function, it will return
-    /// the minimum number of putative matches needed to compute a fit.
+  /// This fitting functor attempts to find an affine transformation
+  /// (rotation, translation, scaling, and skewing -- 6 degrees of
+  /// freedom) that transforms point p1 to match points p2.  This fit
+  /// is optimal in a least squares sense.
+  struct AffineFittingFunctor {
+    typedef vw::Matrix<double,3,3> result_type;
+
+    /// A similarity requires 3 pairs of data points to make a fit.
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& example) const {
-      return example.size()*example.size();
-    }
-    /// If this functor is going to be applied to points in a
-    /// projective space (i.e. homogeneous coordinates), you should
-    /// set this flag to to true.  If so, the functor will project the points
-    /// (remove the the homogeneous coordinate) when computing H.  In
-    /// either case, the resulting Matrix will be in projective
-    /// coordinates.
-    AffineFittingFunctor(bool homogeneous_points = false) 
-      : m_homogeneous(homogeneous_points) {}
+    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 3; }
 
     /// This function can match points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
@@ -229,54 +117,175 @@ namespace math {
       VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
                  vw::ArgumentErr() << "Cannot compute affine transformation.  Insufficient data.\n");
       
-      unsigned num_points = p1.size();
-      unsigned dimensions = p1[0].size();
-      if (m_homogeneous) {
-        dimensions--;
-      }
+
+      Vector<double> y(p1.size()*2); 
+      Vector<double> x(6);
+      Matrix<double> A(p1.size()*2, 6);
+
+      // Formulate a linear least squares problem to find the
+      // components of the similarity matrix: 
+      //       | s00 s01 s02 |
+      //  S =  | s10 s11 s12 |
+      //       | 0   0   1   |
+      //
+      for (unsigned i = 0; i < p1.size(); ++i) {
+        A(i*2,0) = p1[i][0];
+        A(i*2,1) = p1[i][1];
+        A(i*2,4) = 1;
+        A(i*2+1,2) = p1[i][0];
+        A(i*2+1,3) = p1[i][1];
+        A(i*2+1,5) = 1;
         
-      vw::Matrix<double> A;
-      vw::Matrix<double> B;
-      A.set_size(dimensions, num_points);
-      B.set_size(dimensions, num_points);
-
-      ContainerT centroid1;
-      ContainerT centroid2;
-      MeanFunctor cf(m_homogeneous);
-      centroid1 = cf(p1);
-      centroid2 = cf(p2);
-
-      for (unsigned int row = 0; row < dimensions; ++row) {
-        for (unsigned int col = 0; col < num_points; ++col) {
-          A(row, col) = (p1[col][row] - centroid1[row]);
-          B(row, col) = (p2[col][row] - centroid2[row]);
-        }
+        y(i*2) = p2[i][0];
+        y(i*2+1) = p2[i][1];
       }
-      
-      vw::Matrix<double> U, VT;
-      vw::Vector<double> S;
-      vw::Matrix<double> correction = identity_matrix(dimensions);
-      vw::Matrix<double> H = B*transpose(A);
-      vw::Matrix<double> E(dimensions+1, dimensions+1);
-      vw::Matrix<double> rotation;
-      vw::Vector<double> translation;
-      svd(H, U, S, VT);
-      correction(dimensions-1,dimensions-1) = det(U) * det(VT);
-      rotation = transpose(VT)*correction*transpose(U);
-      translation = subvector(centroid1, 0, dimensions) - rotation*subvector(centroid2, 0, dimensions);
-      submatrix(E, 0, 0, dimensions, dimensions) = rotation;
-      //NOTE: the following does not work: subvector(select_col(E, dimensions), 0, dimensions) = translation;
-      for (unsigned int row = 0; row < dimensions; ++row)
-        E(row,dimensions) = translation(row);
-      for (unsigned int col = 0; col < dimensions; ++col)
-        E(dimensions,col) = 0;
-      E(dimensions,dimensions) = 1;
 
-      // check that det(R) > 0
-      VW_ASSERT( det(rotation) > 0, 
-                 vw::LogicErr() << "det(R) <= 0" );
-                 
-      return E;
+      x = least_squares(A,y);
+
+      Matrix<double> S(3,3);
+      S.set_identity();
+      S(0,0) = x(0);
+      S(0,1) = x(1);
+      S(1,0) = x(2);
+      S(1,1) = x(3);
+      S(0,2) = x(4);
+      S(1,2) = x(5);
+
+      return S;
+    }
+  };
+
+
+
+  /// This fitting functor attempts to find an affine transformation
+  /// (rotation, translation, scaling.
+  struct SimilarityFittingFunctor {
+    typedef vw::Matrix<double,3,3> result_type;
+
+    /// A similarity requires 3 pairs of data points to make a fit.
+    template <class ContainerT>
+    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 3; }
+
+    /// This function can match points in any container that supports
+    /// the size() and operator[] methods.  The container is usually a
+    /// vw::Vector<>, but you could substitute other classes here as
+    /// well.
+    template <class ContainerT>
+    vw::Matrix<double> operator() (std::vector<ContainerT> const& p1, 
+                                   std::vector<ContainerT> const& p2) const {
+
+      // check consistency
+      VW_ASSERT( p1.size() == p2.size(), 
+                 vw::ArgumentErr() << "Cannot compute affine transformation.  p1 and p2 are not the same size." );
+      VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
+                 vw::ArgumentErr() << "Cannot compute affine transformation.  Insufficient data.\n");
+
+      unsigned dimensions = p1[0].size()-1;
+
+      // Compute the center of mass of each collection of points.
+      MeanFunctor m(true);
+      ContainerT mean1 = m(p1);
+      ContainerT mean2 = m(p2);
+
+      // Compute the scale factor between the points
+      double dist1 = 0, dist2 = 0;
+      for (unsigned i = 0; i < p1.size(); ++i) {
+        dist1 += norm_2(p1[i]-mean1);
+        dist2 += norm_2(p2[i]-mean2);
+      }      
+      dist1 /= p1.size();
+      dist2 /= p2.size();
+      double scale_factor = dist2/dist1;
+          
+      // Compute the rotation
+      Matrix<double> H(dimensions, dimensions);
+      for (unsigned i = 0; i < p1.size(); ++i) {
+        Matrix<double> a(dimensions,1);
+        Matrix<double> b(dimensions,1);
+        for (unsigned d = 0; d < dimensions; ++d) {
+          a(d,0) = p1[i][d]-mean1[d];
+          b(d,0) = p2[i][d]-mean2[d];
+        }
+        H += a * transpose(b);
+      }
+
+      Matrix<double> U, VT;
+      Vector<double> S;
+      svd(H, U, S, VT);
+
+      Matrix<double> R = transpose(VT)*transpose(U);
+    
+      // Compute the translation
+      Vector<double> translation = subvector(mean2,0,2)-scale_factor*R*subvector(mean1,0,2);
+  
+      Matrix<double> result(3,3);
+      submatrix(result,0,0,dimensions,dimensions) = scale_factor*R;
+      for (unsigned i = 0; i < result.rows(); ++i) {
+        result(i,dimensions) = translation(i);
+      }
+      result(dimensions,dimensions) = 1;
+      return result;
+    }
+  };
+
+  /// This fitting functor attempts to find an affine transformation
+  /// (rotation, translation, scaling.
+  struct TranslationRotationFittingFunctor {
+    typedef vw::Matrix<double,3,3> result_type;
+
+    /// A similarity requires 3 pairs of data points to make a fit.
+    template <class ContainerT>
+    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 3; }
+
+    /// This function can match points in any container that supports
+    /// the size() and operator[] methods.  The container is usually a
+    /// vw::Vector<>, but you could substitute other classes here as
+    /// well.
+    template <class ContainerT>
+    vw::Matrix<double> operator() (std::vector<ContainerT> const& p1, 
+                                   std::vector<ContainerT> const& p2) const {
+
+      // check consistency
+      VW_ASSERT( p1.size() == p2.size(), 
+                 vw::ArgumentErr() << "Cannot compute affine transformation.  p1 and p2 are not the same size." );
+      VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
+                 vw::ArgumentErr() << "Cannot compute affine transformation.  Insufficient data.\n");
+
+      unsigned dimensions = p1[0].size()-1;
+
+      // Compute the center of mass of each collection of points.
+      MeanFunctor m(true);
+      ContainerT mean1 = m(p1);
+      ContainerT mean2 = m(p2);
+
+      // Compute the rotation
+      Matrix<double> H(dimensions, dimensions);
+      for (unsigned i = 0; i < p1.size(); ++i) {
+        Matrix<double> a(dimensions,1);
+        Matrix<double> b(dimensions,1);
+        for (unsigned d = 0; d < dimensions; ++d) {
+          a(d,0) = p1[i][d]-mean1[d];
+          b(d,0) = p2[i][d]-mean2[d];
+        }
+        H += a * transpose(b);
+      }
+
+      Matrix<double> U, VT;
+      Vector<double> S;
+      svd(H, U, S, VT);
+
+      Matrix<double> R = transpose(VT)*transpose(U);
+    
+      // Compute the translation
+      Vector<double> translation = subvector(mean2,0,2)-R*subvector(mean1,0,2);
+  
+      Matrix<double> result(3,3);
+      submatrix(result,0,0,dimensions,dimensions) = R;
+      for (unsigned i = 0; i < result.rows(); ++i) {
+        result(i,dimensions) = translation(i);
+      }
+      result(dimensions,dimensions) = 1;
+      return result;
     }
   };
 
