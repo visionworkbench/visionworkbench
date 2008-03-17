@@ -60,11 +60,11 @@ int main( int argc, char *argv[] ) {
     po::options_description desc("Options");
     desc.add_options()
       ("help", "Display this help message")
-      ("input-filenames", po::value<std::vector<std::string> >(&input_filenames), "Specify the input files")
-      ("output-filename,o", po::value<std::string>(&output_filename)->default_value("hdr.exr"), "Specify the output filename")
-      ("exposure-ratio,e", po::value<float>(&exposure_ratio), "Manually specified exposure ratio for the images (in units of f-stops).")
+      ("input-filenames,i", po::value<std::vector<std::string> >(&input_filenames), "Specify the input files")
+      ("output-filename,o", po::value<std::string>(&output_filename)->default_value("merged_hdr_image.exr"), "Specify the output filename")
+      ("exposure-ratio,e", po::value<float>(&exposure_ratio), "Manually specified exposure ratio for the images (e.g. for increasing power of 2 expoures, you would use a exposure-ratio of 2.0).")
       ("save-curves,c", po::value<std::string>(&curve_file), "Write the curve lookup tables to a file on disk.")
-      ("use-curves", po::value<std::string>(&curve_file), "Read the curve lookup tables to a file on disk.  These curves will be used instead of computing new curves.");
+      ("use-curves,u", po::value<std::string>(&curve_file), "Read the curve lookup tables to a file on disk.  These curves will be used instead of computing new curves.");
 
     po::positional_options_description p;
     p.add("input-filenames", -1);
