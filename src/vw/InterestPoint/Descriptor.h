@@ -29,9 +29,13 @@
 #define __VW_INTERESTPOINT_DESCRIPTOR_H__
 
 #include <vw/Math/Vector.h>
+#include <vw/Math/Matrix.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/InterestPoint/InterestData.h>
+
+#include <vw/InterestPoint/MatrixIO.h>
+#include <vw/InterestPoint/VectorIO.h>
 
 namespace vw { 
 namespace ip {
@@ -52,14 +56,16 @@ namespace ip {
 
     // Given an image and a list of interest points, set the
     // descriptor field of the interest points using the
-    // compute_descriptors() method provided by the subclass.
+    // compute_descriptor() method provided by the subclass.
     template <class ViewT>
     void operator() ( ImageViewBase<ViewT> const& image, InterestPointList& points ) {
+      int idx = 0;
+      vw_out(InfoMessage) << "\nComputing support and descriptor for " << points.size() << " interest points\n";
       for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
 
-        // First we ompute the support region based on the interest point 
+        // First we compute the support region based on the interest point 
         ImageView<PixelGray<float> > support = get_support(*i, pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image.impl())));
-        
+
         // Next, we pass the support region and the interest point to
         // the descriptor generator ( compute_descriptor() ) supplied
         // by the subclass.
@@ -118,7 +124,56 @@ namespace ip {
     }
 
   };
+
+  // An implementation of PCA-SIFT
+  struct PCASIFTDescriptorGenerator : public DescriptorGeneratorBase<PCASIFTDescriptorGenerator> {
+
+    std::string basis_filename, avg_filename;
+    
+    PCASIFTDescriptorGenerator(const std::string& pcabasis_filename,
+			       const std::string& pcaavg_filename) 
+      : basis_filename(pcabasis_filename), avg_filename(pcaavg_filename) { }
+
+
+    template <class ViewT>
+    Vector<float> compute_descriptor (ImageViewBase<ViewT> const& support) const {
+      Matrix<float> pca_basis;
+      Vector<float> pca_avg;
+      
+      // TODO: Move read operation out to the constructor
+      read_matrix(pca_basis, basis_filename);
+      read_vector(pca_avg, avg_filename);
+
+      Vector<float> result;
+      result.set_size(pca_basis.cols());
+
+      // compute normalization constant (sum squares)
+      double norm_const = 0;
+      for (int j = 0; j < support.impl().rows(); j++) {
+	for (int i = 0; i < support.impl().cols(); i++) {
+	  norm_const += support.impl()(i,j) * support.impl()(i,j);
+	}
+      }
+      norm_const = sqrt(norm_const);
+
+      double norm_pixel = 0;
+      // project image patch onto PCA basis to get descriptor
+      unsigned int index = 0;
+      for (int j = 0; j < support.impl().rows(); j++) {
+        for (int i = 0; i < support.impl().cols(); i++) {
+	  norm_pixel = support.impl()(i,j).v()/norm_const - pca_avg(index);
+	  
+	  for (int k = 0; k < pca_basis.cols(); k++) {
+	    result[k] += norm_pixel * pca_basis(index,k);
+	  }
+	  ++index;
+	}
+      }
+      return result;
+    }
+  };
   
 }} // namespace vw::ip
+
 
 #endif //__VW_INTERESTPOINT_DESCRIPTOR_H__

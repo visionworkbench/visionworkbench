@@ -114,8 +114,8 @@ void write_match_image(std::string out_file_name,
   
   // Draw a red line between matching interest points
   for (unsigned int i = 0; i < matched_ip1.size(); ++i) {
-    Vector2 start(matched_ip1[i][0], matched_ip1[i][1]);
-    Vector2 end(matched_ip2[i][0]+src1.impl().cols(), matched_ip2[i][1]);
+    Vector2 start(matched_ip1[i].x, matched_ip1[i].y);
+    Vector2 end(matched_ip2[i].x+src1.impl().cols(), matched_ip2[i].y);
     for (float r=0; r<1.0; r+=1/norm_2(end-start)){
       int i = (int)(0.5 + start.x() + r*(end.x()-start.x()));
       int j = (int)(0.5 + start.y() + r*(end.y()-start.y()));
@@ -243,6 +243,7 @@ int main(int argc, char** argv) {
   // Generate descriptors for interest points.
   vw_out(InfoMessage) << "Generating descriptors... ";
   PatchDescriptorGenerator descriptor;
+  //PCASIFTDescriptorGenerator descriptor("pca_basis.exr", "pca_avg.exr");
   descriptor(left_image, ip1);
   descriptor(right_image, ip2);
   vw_out(InfoMessage) << "done.\n";
@@ -277,6 +278,8 @@ int main(int argc, char** argv) {
     align_matrix = ransac(matched_ip2, matched_ip1, 
                           vw::math::AffineFittingFunctor(),
                           InterestPointErrorMetric());
+
+  vw_out(InfoMessage) << "Writing out aligned pair of images\n";
 
   // Write out the aligned pair of images
   ImageViewRef<PixelRGB<uint8> > aligned_image = transform(right_image, HomographyTransform(align_matrix),

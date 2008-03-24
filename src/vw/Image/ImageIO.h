@@ -21,7 +21,7 @@
 // 
 // __END_LICENSE__
 
-/// \file ImageView.h
+/// \file ImageIO.h
 /// 
 /// Functions for reading and writing image views to and from 
 /// image resources.

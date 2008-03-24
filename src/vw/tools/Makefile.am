@@ -73,13 +73,17 @@ endif
 # Command-line tools based on the InterestPoint module
 if MAKE_MODULE_INTERESTPOINT 
 if HAVE_PKG_LAPACK
-interestpoint_progs = ipalign ipfind
+interestpoint_progs = ipalign ipfind learnpca
 # 
 ipfind_SOURCES = ipfind.cc
 ipfind_LDADD = @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
 # 
 ipalign_SOURCES = ipalign.cc
 ipalign_LDADD = @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
+#
+learnpca_SOURCES = learnpca.cc
+learnpca_LDADD = @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
+#
 endif
 endif
 

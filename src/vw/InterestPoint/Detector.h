@@ -95,7 +95,7 @@ namespace ip {
 
   template <class ViewT, class DetectorT>
   class InterestPointDetectionTask : public Task {
-    // Disable copyable symantics 
+    // Disable copyable semantics 
     InterestPointDetectionTask(InterestPointDetectionTask& copy) {}
     void operator=(InterestPointDetectionTask& copy) {}
 
