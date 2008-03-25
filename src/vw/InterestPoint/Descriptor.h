@@ -60,7 +60,7 @@ namespace ip {
     template <class ViewT>
     void operator() ( ImageViewBase<ViewT> const& image, InterestPointList& points ) {
       int idx = 0;
-      vw_out(InfoMessage) << "\nComputing support and descriptor for " << points.size() << " interest points\n";
+      //vw_out(InfoMessage) << "\nComputing support and descriptor for " << points.size() << " interest points\n";
       for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
 
         // First we compute the support region based on the interest point 

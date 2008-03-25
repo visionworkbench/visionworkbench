@@ -19,6 +19,8 @@ using namespace vw::ip;
 
 // Use DescriptorGeneratorBase::operator() and compute_descriptor methods to 
 // help us populate the training data matrix
+// DescriptorGeneratorBase takes care of finding the support region for
+// each interest point
 class LearnPCADataFiller : public DescriptorGeneratorBase<LearnPCADataFiller> {
 
 private:
@@ -27,9 +29,9 @@ private:
 
 public:
   // *** TODO: Pass by ref without copy?
-  LearnPCADataFiller(Matrix<double>* training_data) {
+  LearnPCADataFiller(Matrix<double>* training_data, unsigned int start_column) {
     data = training_data;
-    column = 0;
+    column = start_column;
   }
   
   template <class ViewT>
@@ -42,8 +44,8 @@ public:
     double norm_const = 0.0;
     // Copy support region into training data matrix
     int row = 0;
-    for (int i = 0; i < support.impl().cols(); i++) {
-      for (int j = 0; j < support.impl().rows(); j++) {
+    for (int j = 0; j < support.impl().rows(); j++) {
+      for (int i = 0; i < support.impl().cols(); i++) {
 	(*data)(row++, column) = support.impl()(i, j);
 	norm_const += support.impl()(i, j) * support.impl()(i, j);
       }
@@ -69,6 +71,8 @@ private:
   std::string avg_filename;
 
   Matrix<double> training_data;
+  unsigned int training_data_size;
+
   Matrix<float> pca_basis;
   Vector<float> pca_avg;
 
@@ -83,7 +87,7 @@ public:
     : basis_filename(pcabasis_filename), avg_filename(pcaavg_filename) {
     
     support_squared = DEFAULT_SUPPORT_SIZE * DEFAULT_SUPPORT_SIZE;
-
+    training_data_size = 0;
   }
 
   void processImage(DiskImageView<PixelRGB<uint8> > &image) {
@@ -96,21 +100,30 @@ public:
     InterestPointList ipl;
     LogInterestOperator interest_operator(log_threshold);
     ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator);
+    cout << "Running interest point detector on " << image.filename() << endl;
     ipl = detector(image, tile_size);
     //write_point_image("out.png", image, ipl);
 
-    training_data.set_size(support_squared, ipl.size());
+    // Resize the training data matrix to accommodate new interest points
+    unsigned int interest_point_index = training_data_size;
+    training_data_size += ipl.size();
+    training_data.set_size(support_squared, training_data_size, true);
     
     // Populate training data matrix
-    LearnPCADataFiller fill_matrix(&training_data);
+    LearnPCADataFiller fill_matrix(&training_data, interest_point_index);
     
     cout << "Populating training matrix" << endl;
+    cout << "  Starting fill at column " << interest_point_index << endl;
+    cout << "  " << ipl.size() << " interest points" << endl;
+    cout << "  " << training_data_size << " total interest points\n" << endl;
     fill_matrix(image, ipl);
   }
 
   void runPCA() {
+    cout << "Running PCA on training data" << endl;
+
     // Compute average
-    cout << "Computing average" << endl;
+    cout << "  Computing average" << endl;
     pca_avg.set_size(support_squared);
     for (int i = 0; i < support_squared; i++) {
       for (int j = 0; j < training_data.cols(); j++) {
@@ -120,7 +133,7 @@ public:
     }
 
     // Subtract average
-    cout << "Subtracting average" << endl;
+    cout << "  Subtracting average" << endl;
     for (int i = 0; i < support_squared; i++) {
       for (int j = 0; j < training_data.cols(); j++) {
 	training_data(i, j) -= pca_avg(i);
@@ -128,28 +141,23 @@ public:
     }
 
     // Compute SVD of training data matrix
-    cout << "Computing SVD" << endl;
+    cout << "  Computing SVD" << endl;
     Matrix<float> U;
     Vector<float> E;
     Matrix<float> VT;
     svd(training_data, U, E, VT);
 
-    cout << "size(E): " << E.size() << endl;
-    for (int i = 0; i < E.size(); i++) {
-      cout << "Singular Value: " << E[i] << endl;
-      for (int j = 0; j < U.rows(); j++) {
-	//cout << U(i, j) << " ";
-      }
-      cout << endl << endl;
+    assert(E.size() >= PCA_BASIS_SIZE);
+    cout << "  Top " << PCA_BASIS_SIZE << " singular values from " << E.size()
+	 << " total singular values" << endl;
+    for (int i = 0; i < PCA_BASIS_SIZE; i++) {
+      cout << "  " << i << ": " << E[i] << endl;
     }
-
-    //cout << pca_avg << endl;
 
     // Take top n eignvectors of U as PCA basis
     Matrix<float> pca_basis = submatrix(U, 0, 0, U.rows(), 
 					PCA_BASIS_SIZE);
 
-    //cout << pca_basis << endl;
     cout << "pca_basis: " << pca_basis.rows() << " x " << pca_basis.cols() << endl;
     cout << "pca_avg: " << pca_avg.size() << endl;
 
