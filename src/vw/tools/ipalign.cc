@@ -132,7 +132,7 @@ void write_match_image(std::string out_file_name,
 int main(int argc, char** argv) {
 
   std::vector<std::string> input_file_names;
-  std::string output_file_name, interest_operator;
+  std::string output_file_name, interest_operator, descriptor_generator;
   float matcher_threshold, log_threshold, harris_threshold;
   int tile_size;
 
@@ -151,6 +151,9 @@ int main(int argc, char** argv) {
     ("harris-threshold", po::value<float>(&harris_threshold)->default_value(1e-5), "Sets the threshold for the Harris Interest Operator")
     ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest metric from [LoG, Harris]")
     ("single-scale", "Do not use the scale-space interest point detector.")
+
+    // Descriptor generator options
+    ("descriptor-generator", po::value<std::string>(&descriptor_generator)->default_value("pca"), "Choose a descriptor generator from [patch,pca]")
 
     // Alignment options
     ("homography", "Align images using a full projective transform (homography).  By default, aligment uses a more restricted Similarity transform.");
@@ -241,11 +244,18 @@ int main(int argc, char** argv) {
   }
 
   // Generate descriptors for interest points.
-  vw_out(InfoMessage) << "Generating descriptors... ";
-  PatchDescriptorGenerator descriptor;
-  //PCASIFTDescriptorGenerator descriptor("pca_basis.exr", "pca_avg.exr");
-  descriptor(left_image, ip1);
-  descriptor(right_image, ip2);
+  vw_out(InfoMessage) << "Generating descriptors using " << descriptor_generator << " generator... ";
+  if (descriptor_generator == "patch") {
+    PatchDescriptorGenerator descriptor;
+    descriptor(left_image, ip1);
+    descriptor(right_image, ip2);
+  }
+  else {
+    PCASIFTDescriptorGenerator descriptor("pca_basis.exr", "pca_avg.exr");
+    descriptor(left_image, ip1);
+    descriptor(right_image, ip2);
+  }
+
   vw_out(InfoMessage) << "done.\n";
   
   // The basic interest point matcher does not impose any

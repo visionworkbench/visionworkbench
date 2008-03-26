@@ -92,17 +92,18 @@ public:
 
   void processImage(DiskImageView<PixelRGB<uint8> > &image) {
     
-    float log_threshold = 0.1;
+    //float log_threshold = 0.1;
     int tile_size = 2048;
     
     // *** TODO: let user choose interest point detector
     // Find interest points in image
     InterestPointList ipl;
-    LogInterestOperator interest_operator(log_threshold);
-    ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator);
+    //LogInterestOperator interest_operator(log_threshold);
+    //ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator);
+    ScaledInterestPointDetector<LogInterestOperator> detector;
     cout << "Running interest point detector on " << image.filename() << endl;
     ipl = detector(image, tile_size);
-    //write_point_image("out.png", image, ipl);
+    //write_point_image("ip_" + image.filename(), image, ipl);
 
     // Resize the training data matrix to accommodate new interest points
     unsigned int interest_point_index = training_data_size;
