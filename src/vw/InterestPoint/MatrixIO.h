@@ -75,7 +75,7 @@ namespace vw {
 	      << " (1 plane/channel) to be read into a matrix");
     vw::Matrix<T> result(buffer_image.rows(), buffer_image.cols());
 
-    unsigned int i, j;
+    int i, j;
     for (i = 0; i < buffer_image.cols(); i++) {
       for (j = 0; j < buffer_image.rows(); j++) {
 	result.impl()(j, i) = buffer_image(i, j);
