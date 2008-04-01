@@ -43,7 +43,8 @@ namespace vw {
     DiskImageResourceTIFF( std::string const& filename );
 
     DiskImageResourceTIFF( std::string const& filename, 
-                           ImageFormat const& format );
+                           ImageFormat const& format,
+                           bool use_compression = false );
     
     virtual ~DiskImageResourceTIFF() {}
     
@@ -70,6 +71,9 @@ namespace vw {
                                                 ImageFormat const& format );
 
     void use_lzw_compression(bool state) { m_use_compression = state; }
+
+  protected:
+    void check_retval(const int retval, const int error_val) const;
 
   private:
     boost::shared_ptr<DiskImageResourceInfoTIFF> m_info;

@@ -44,6 +44,10 @@
 #define VW_ERROR_BUFFER_SIZE 2048
 #endif
 
+#ifdef WIN32
+#define snprintf _snprintf
+#endif
+
 namespace vw {
   class DiskImageResourceInfoTIFF {
   public:
@@ -68,11 +72,24 @@ static void tiff_warning_handler(const char* module, const char* frmt, va_list a
 
 /// Handle libTIFF error conditions by vw_throwing an IOErr with the 
 /// message text.
-static void tiff_error_handler(const char* module, const char* frmt, va_list ap) {
+/*static void tiff_error_handler(const char* module, const char* frmt, va_list ap) {
   char msg[VW_ERROR_BUFFER_SIZE];
   vsnprintf( msg, VW_ERROR_BUFFER_SIZE, frmt, ap );
   vw_throw( vw::IOErr() << "DiskImageResourceTIFF (" << (module?module:"none") << ") Error: " << msg );
 }
+*/
+
+// Handle libTIFF error conditions by writing the error and hope the calling
+// program checks the return value for the function
+static char tiff_error_msg[VW_ERROR_BUFFER_SIZE];
+static void tiff_error_handler(const char* module, const char* frmt, va_list ap) {
+  char msg[VW_ERROR_BUFFER_SIZE];
+  vsnprintf( msg, VW_ERROR_BUFFER_SIZE, frmt, ap );
+  snprintf( tiff_error_msg, VW_ERROR_BUFFER_SIZE, 
+    "DiskImageResourceTIFF (%s) Error: %s",
+    (module?module:"none"), msg );
+}
+
 
 vw::DiskImageResourceTIFF::DiskImageResourceTIFF( std::string const& filename )
   : DiskImageResource( filename ), m_info( new DiskImageResourceInfoTIFF() )
@@ -82,10 +99,11 @@ vw::DiskImageResourceTIFF::DiskImageResourceTIFF( std::string const& filename )
 }
     
 vw::DiskImageResourceTIFF::DiskImageResourceTIFF( std::string const& filename, 
-                                                  vw::ImageFormat const& format )
-  : DiskImageResource( filename ), m_info( new DiskImageResourceInfoTIFF() )
+                                                  vw::ImageFormat const& format,
+                                                  bool use_compression )
+  : DiskImageResource( filename ), m_info( new DiskImageResourceInfoTIFF() ),
+    m_use_compression( use_compression )
 {
-  m_use_compression = false;
   create( filename, format );
 }
 
@@ -108,17 +126,20 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
   // Otherwise we can run into endianness problems.
   uint32 cols_tmp, rows_tmp;
   uint16 planes_tmp;
-  TIFFGetField( tif, TIFFTAG_IMAGEWIDTH, &cols_tmp );
-  TIFFGetField( tif, TIFFTAG_IMAGELENGTH, &rows_tmp );
-  TIFFGetFieldDefaulted( tif, TIFFTAG_SAMPLESPERPIXEL, &planes_tmp );
+  check_retval(TIFFGetField( tif, TIFFTAG_IMAGEWIDTH, &cols_tmp ), 0);
+  check_retval(TIFFGetField( tif, TIFFTAG_IMAGELENGTH, &rows_tmp ), 0);
+  check_retval(
+    TIFFGetFieldDefaulted( tif, TIFFTAG_SAMPLESPERPIXEL, &planes_tmp ), 0);
   m_format.cols = cols_tmp;
   m_format.rows = rows_tmp;
   m_format.planes = planes_tmp;
 
   uint16 sample_format = 0, bits_per_sample = 0, photometric = 0;
-  TIFFGetFieldDefaulted( tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample );
-  TIFFGetFieldDefaulted( tif, TIFFTAG_SAMPLEFORMAT, &sample_format );
-  TIFFGetField( tif, TIFFTAG_PHOTOMETRIC, &photometric );
+  check_retval(
+    TIFFGetFieldDefaulted( tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample ), 0);
+  check_retval(
+    TIFFGetFieldDefaulted( tif, TIFFTAG_SAMPLEFORMAT, &sample_format ), 0);
+  check_retval(TIFFGetField( tif, TIFFTAG_PHOTOMETRIC, &photometric ), 0);
 
   m_format.channel_type = VW_CHANNEL_UNKNOWN;
   switch( sample_format ) {
@@ -157,7 +178,7 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
   }
 
   uint16 plane_configuration = 0;
-  TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &plane_configuration);
+  check_retval(TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &plane_configuration), 0);
 
   // FIXME: Tiff might actually provide us with some info on
   // colorimetric interpretation of the channels, so maybe we should
@@ -180,13 +201,13 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
   
   if( TIFFIsTiled(tif) ) {
     uint32 tile_width, tile_length;
-    TIFFGetField( tif, TIFFTAG_TILEWIDTH, &tile_width );
-    TIFFGetField( tif, TIFFTAG_TILELENGTH, &tile_length );
+    check_retval(TIFFGetField( tif, TIFFTAG_TILEWIDTH, &tile_width ), 0);
+    check_retval(TIFFGetField( tif, TIFFTAG_TILELENGTH, &tile_length ), 0);
     m_info->block_size = Vector2i(tile_width,tile_length);
   }
   else {
     uint32 rows_per_strip;
-    TIFFGetField( tif, TIFFTAG_ROWSPERSTRIP, &rows_per_strip );
+    check_retval(TIFFGetField( tif, TIFFTAG_ROWSPERSTRIP, &rows_per_strip ), 0);
     m_info->block_size = Vector2i(cols(),rows_per_strip);
   }
 
@@ -210,42 +231,43 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
   TIFF* tif = TIFFOpen(m_filename.c_str(), "w");
   if( !tif  ) vw_throw( vw::IOErr() << "Failed to create \"" << m_filename << "\" using libTIFF." );
 
-  TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, (uint32)m_format.cols);
-  TIFFSetField(tif, TIFFTAG_IMAGELENGTH, (uint32)m_format.rows);
-  TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, (uint16)(8*channel_size(m_format.channel_type)));
+  check_retval(TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, (uint32)m_format.cols), 0);
+  check_retval(TIFFSetField(tif, TIFFTAG_IMAGELENGTH, (uint32)m_format.rows), 0);
+  check_retval(TIFFSetField(tif, TIFFTAG_BITSPERSAMPLE, (uint16)(8*channel_size(m_format.channel_type))), 0);
 
   if (m_format.pixel_format == VW_PIXEL_RGB ||
       m_format.pixel_format == VW_PIXEL_RGBA) {
-    TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+    check_retval(TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB), 0);
   } else {
-    TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+    check_retval(TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK), 0);
   }
 
-  TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, 1);
-  TIFFSetField(tif, TIFFTAG_RESOLUTIONUNIT, RESUNIT_INCH);
-  TIFFSetField(tif, TIFFTAG_XRESOLUTION, 70.0);
-  TIFFSetField(tif, TIFFTAG_YRESOLUTION, 70.0);
+  check_retval(TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, 1), 0);
+  check_retval(TIFFSetField(tif, TIFFTAG_RESOLUTIONUNIT, RESUNIT_INCH), 0);
+  check_retval(TIFFSetField(tif, TIFFTAG_XRESOLUTION, 70.0), 0);
+  check_retval(TIFFSetField(tif, TIFFTAG_YRESOLUTION, 70.0), 0);
 
-  if (m_use_compression)
-    TIFFSetField(tif, TIFFTAG_COMPRESSION,COMPRESSION_LZW);
+  if (m_use_compression) {
+    check_retval(TIFFSetField(tif, TIFFTAG_COMPRESSION,COMPRESSION_LZW), 0);
+  }
 
   switch (m_format.channel_type) {
   case VW_CHANNEL_INT8:
   case VW_CHANNEL_INT16:
   case VW_CHANNEL_INT32:
   case VW_CHANNEL_INT64:
-    TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_INT);
+    check_retval(TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_INT), 0);
     break;
   case VW_CHANNEL_UINT8:
   case VW_CHANNEL_UINT16:
   case VW_CHANNEL_UINT32:
   case VW_CHANNEL_UINT64:
-    TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
+    check_retval(TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT), 0);
     break;
   case VW_CHANNEL_FLOAT16:
   case VW_CHANNEL_FLOAT32:
   case VW_CHANNEL_FLOAT64:
-    TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP);
+    check_retval(TIFFSetField(tif, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_IEEEFP), 0);
     break;
   default:
     vw_throw( IOErr() << "DiskImageResourceTIFF: Unsupported VW channel type." );
@@ -254,16 +276,17 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
   if (m_format.pixel_format == VW_PIXEL_SCALAR) {
     // Multi-plane images with simple pixel types are stored in seperate
     // planes in the TIFF image.
-    TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_SEPARATE);
-    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, (uint16)m_format.planes);
+    check_retval(TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_SEPARATE), 0);
+    check_retval(
+      TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, (uint16)m_format.planes), 0);
   } else {
     // Compound pixel types are stored contiguously in TIFF files
-    TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-    TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, (uint16)num_channels(m_format.pixel_format));
+    check_retval(TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG), 0);
+    check_retval(TIFFSetField(tif, TIFFTAG_SAMPLESPERPIXEL, (uint16)num_channels(m_format.pixel_format)), 0);
   }
 
   uint32 rows_per_strip = TIFFDefaultStripSize( tif, 0 );
-  TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, rows_per_strip);
+  check_retval(TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, rows_per_strip), 0);
   m_info->block_size = Vector2i(cols(),rows_per_strip);
     
   m_info->tif = tif;
@@ -279,10 +302,10 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
   if( !tif ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << m_filename << "\" for reading!" );
 
   uint16 config = 0, bpsample = 0, nsamples = 0, photometric = 0;
-  TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &config);
-  TIFFGetField(tif, TIFFTAG_BITSPERSAMPLE, &bpsample);
-  TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
-  TIFFGetField(tif, TIFFTAG_PHOTOMETRIC, &photometric);
+  check_retval(TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &config), 0);
+  check_retval(TIFFGetField(tif, TIFFTAG_BITSPERSAMPLE, &bpsample), 0);
+  check_retval(TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples), 0);
+  check_retval(TIFFGetField(tif, TIFFTAG_PHOTOMETRIC, &photometric), 0);
 
   bool is_planar = (config == PLANARCONFIG_SEPARATE) && (m_format.pixel_format != VW_PIXEL_SCALAR);
   bool is_tiled = TIFFIsTiled(tif);
@@ -290,27 +313,29 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
   // Compute the tile or strip geometry
   uint32 block_cols, block_rows, block_size, blocks_per_row, blocks_per_plane;
   if( is_tiled ) {
-    TIFFGetField(tif, TIFFTAG_TILEWIDTH, &block_cols);
-    TIFFGetField(tif, TIFFTAG_TILELENGTH, &block_rows);
+    check_retval(TIFFGetField(tif, TIFFTAG_TILEWIDTH, &block_cols), 0);
+    check_retval(TIFFGetField(tif, TIFFTAG_TILELENGTH, &block_rows), 0);
     block_size = TIFFTileSize(tif);
     blocks_per_row = (cols()-1) / block_cols + 1;
     blocks_per_plane = blocks_per_row * ( (rows()-1) / block_rows + 1 );
   }
   else {
     block_cols = cols();
-    TIFFGetField( tif, TIFFTAG_ROWSPERSTRIP, &block_rows );
+    check_retval(TIFFGetField( tif, TIFFTAG_ROWSPERSTRIP, &block_rows ), 0);
     block_size = TIFFStripSize(tif);
     blocks_per_row = 1;
     blocks_per_plane = (rows()-1) / block_rows + 1;
   }
 
   tdata_t buf = _TIFFmalloc( block_size );
+  if( !buf ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to malloc!" );
 
   // Allocate a buffer interleave planar data
   tdata_t plane_buf = 0;
   if( is_planar ) {
     plane_buf = buf;
     buf = _TIFFmalloc( block_size * nsamples );
+    if( !buf ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to malloc!" );
   }
 
   // Palettized TIFFs are always uint16 RGB
@@ -319,7 +344,9 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
   if( photometric == PHOTOMETRIC_PALETTE ) {
     palette_buf = buf;
     buf = _TIFFmalloc( block_cols*block_rows*6 );
-    TIFFGetField( tif, TIFFTAG_COLORMAP, &red_table, &green_table, &blue_table );
+    if( !buf ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to malloc!" );
+
+    check_retval(TIFFGetField( tif, TIFFTAG_COLORMAP, &red_table, &green_table, &blue_table ), 0);
   }
 
   // Set up the source and destination image buffers
@@ -342,8 +369,8 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
       if( is_planar ) {
         // At the moment we make an extra copy here to spoof plane contiguity
         for( int i=0; i<nsamples; ++i ) {
-          if( is_tiled ) TIFFReadEncodedTile( tif, block_id+i*blocks_per_plane, plane_buf, (tsize_t) -1 );
-          else TIFFReadEncodedStrip( tif, block_id+i*blocks_per_plane, plane_buf, (tsize_t) -1 );
+          if( is_tiled ) check_retval(TIFFReadEncodedTile( tif, block_id+i*blocks_per_plane, plane_buf, (tsize_t) -1 ), -1);
+          else check_retval(TIFFReadEncodedStrip( tif, block_id+i*blocks_per_plane, plane_buf, (tsize_t) -1 ), 0);
           // Oh man, this is horrible!
           switch(bpsample/8) {
           case 1:
@@ -373,8 +400,8 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
         }
       }
       else if( photometric == PHOTOMETRIC_PALETTE ) {
-        if( is_tiled ) TIFFReadEncodedTile( tif, block_id, palette_buf, (tsize_t) -1 );
-        else TIFFReadEncodedStrip( tif, block_id, palette_buf, (tsize_t) -1 );
+        if( is_tiled ) check_retval(TIFFReadEncodedTile( tif, block_id, palette_buf, (tsize_t) -1 ), -1);
+        else check_retval(TIFFReadEncodedStrip( tif, block_id, palette_buf, (tsize_t) -1 ), 0);
         if( photometric == PHOTOMETRIC_PALETTE ) {
           for( int y=data_top; y<data_bottom; ++y ) {
             for( int x=data_left; x<data_right; ++x ) {
@@ -388,8 +415,10 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
         }
       }
       else {
-        if( is_tiled ) TIFFReadEncodedTile( tif, block_id, buf, (tsize_t) -1 );
-        else TIFFReadEncodedStrip( tif, block_id, buf, (tsize_t) -1 );
+        if( is_tiled ) 
+          check_retval(TIFFReadEncodedTile( tif, block_id, buf, (tsize_t) -1 ), -1);
+        else 
+          check_retval(TIFFReadEncodedStrip( tif, block_id, buf, (tsize_t) -1 ), -1);
       }
       
       src_buf.data = (uint8*)buf + data_left*src_buf.cstride + data_top*src_buf.rstride;
@@ -417,6 +446,7 @@ void vw::DiskImageResourceTIFF::write( ImageBuffer const& src, BBox2i const& bbo
   // Allocate some buffer memory for the output data
   uint32 scanline_size = num_channels(m_format.pixel_format) * channel_size(m_format.channel_type) * m_format.cols;
   tdata_t buf = _TIFFmalloc(scanline_size);
+  if( !buf ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to malloc!" );
 
   // Set up the image buffer and convert the data into this buffer.
   ImageBuffer dst;
@@ -437,7 +467,7 @@ void vw::DiskImageResourceTIFF::write( ImageBuffer const& src, BBox2i const& bbo
     ImageBuffer src_row = src_plane;
     for (int32 row = 0; row < bbox.height(); row++) {
       convert( dst, src_row );
-      TIFFWriteScanline(m_info->tif, (uint8*)buf, bbox.min()[1]+row, p);
+      check_retval(TIFFWriteScanline(m_info->tif, (uint8*)buf, bbox.min()[1]+row, p), -1);
       src_row.data = (uint8*)src_row.data + src_row.rstride;
     }
     src_plane.data = (uint8*)src_plane.data + src_plane.pstride;
@@ -457,3 +487,12 @@ vw::DiskImageResource* vw::DiskImageResourceTIFF::construct_create( std::string 
                                                                     ImageFormat const& format ) {
   return new DiskImageResourceTIFF( filename, format );
 }
+
+// Helper routine for TIFF functions to check their return values and throw
+// if there was an error.
+void vw::DiskImageResourceTIFF::check_retval(const int retval, const int error_val) const {
+  if (retval == error_val) {
+    vw_throw( vw::IOErr() << "check_retval: " << tiff_error_msg );
+  }
+}
+
