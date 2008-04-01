@@ -47,6 +47,7 @@ namespace camera {
     
     std::map<unsigned int, ExifTagData> tags;
     bool MotorolaOrder;
+    unsigned int ExifLocation;
     
     int process_tiff_header(unsigned char * buffer);
     bool read_jpeg_sections(FILE* infile);
@@ -71,6 +72,7 @@ namespace camera {
     bool get_tag_value(const uint16 tag, int &value);
     bool get_tag_value(const uint16 tag, double &value);
     bool get_tag_value(const uint16 tag, std::string &value);
+    unsigned int get_exif_location();
     
     void print_debug();
   };

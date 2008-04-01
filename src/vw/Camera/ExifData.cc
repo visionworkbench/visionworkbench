@@ -24,6 +24,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
 #include <vw/Camera/ExifData.h>
+#include <boost/algorithm/string/predicate.hpp>
 
 namespace vw {
 namespace camera {
@@ -362,17 +363,20 @@ bool vw::camera::ExifData::read_tiff_ifd(FILE* infile) {
 }
 
 bool vw::camera::ExifData::read_jpeg_sections(FILE* infile) {
+  unsigned int pos = 0;
   int a = fgetc(infile);
 
   if (a != 0xff || fgetc(infile) != M_SOI){
     return false;
   }
+  pos+=2;
 
   while (true) {
     int marker = 0;
     
     for (int i = 0; i < 7; i++){
       marker = fgetc(infile);
+      pos++;
       if (marker != 0xff) break;
       
       VW_ASSERT( i < 6, IOErr() << "Too many padding bytes." );
@@ -393,6 +397,7 @@ bool vw::camera::ExifData::read_jpeg_sections(FILE* infile) {
     data[1] = (uint8)ll;
     
     int got = fread(data+2, 1, itemlen-2, infile); // Read the whole section.
+    pos += itemlen;
     VW_ASSERT( got == itemlen - 2, IOErr() << "Premature end of file." );
     
     switch(marker){
@@ -408,6 +413,7 @@ bool vw::camera::ExifData::read_jpeg_sections(FILE* infile) {
 	// Make sure section is marked "Exif", as some software may use
 	// marker 31 for other purposes.
 	if (memcmp(data+2, "Exif", 4) == 0) {
+          ExifLocation = pos - itemlen + 8;
 	  process_exif(data, itemlen);
 	  free(data);
 	  return true;
@@ -430,17 +436,20 @@ bool vw::camera::ExifData::import_data(std::string const &filename) {
   FILE * infile = fopen(filename.c_str(), "rb"); // Unix ignores 'b', windows needs it.
   
   VW_ASSERT( infile != NULL, IOErr() << "Cannot open file.");
-
-  // Identify file type (using suffixes)
-  const char * suffix = strrchr(filename.c_str(), '.');
-  VW_ASSERT( suffix != NULL, IOErr() << "Cannot determine file type.");
   bool ret = false;
-  if ((strcmp(suffix, ".jpg") == 0) || (strcmp(suffix, ".jpeg") == 0)) {
+  
+  // Identify file type (using suffixes)
+  
+  if (boost::algorithm::iends_with(filename, ".jpg") ||
+      boost::algorithm::iends_with(filename, ".jpeg")) {
     // Scan the JPEG headers
     ret = read_jpeg_sections(infile);
-  } else if ((strcmp(suffix, ".tif") == 0) || (strcmp(suffix, ".tiff") == 0)) {
+  } else if (boost::algorithm::iends_with(filename, ".tif") ||
+             boost::algorithm::iends_with(filename, ".tiff")) {
     // Process TIFF IFD structure
     ret = read_tiff_ifd(infile);
+  } else {
+    VW_ASSERT( 0, IOErr() << "Cannot determine file type.");
   }
   fclose(infile);
   
@@ -485,6 +494,10 @@ bool vw::camera::ExifData::get_tag_value(const uint16 tag, std::string &value) {
   if ((*tag_iter).second.type != StringType) return false;
   value = (*tag_iter).second.value.s;
   return true;
+}
+
+unsigned int vw::camera::ExifData::get_exif_location() {
+  return ExifLocation;
 }
 
 void vw::camera::ExifData::print_debug() {
