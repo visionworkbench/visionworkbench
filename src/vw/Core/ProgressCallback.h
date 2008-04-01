@@ -32,12 +32,14 @@
 #include <string>
 
 #include <vw/Core/Debugging.h>
+#include <vw/Core/Exception.h>
 
 namespace vw {
 
   /// The base class for progress monitoring.
   class ProgressCallback {
   protected:
+    // WARNING:  this flag may not be valid for some subclasses.  Always call abort_requested() and request_abort()
     bool m_abort_requested;
   public:
     ProgressCallback() : m_abort_requested( false ) {}
@@ -58,6 +60,14 @@ namespace vw {
 
     // Has an abort been requested?
     virtual bool abort_requested() const { return m_abort_requested; }
+
+    // Throw vw::Aborted if abort has been requested
+    virtual void abort_if_requested() const {
+      if (abort_requested()) {
+        report_aborted();
+        vw_throw(Aborted());
+      }
+    }
 
     // Request abort
     virtual void request_abort() { m_abort_requested = true; }
