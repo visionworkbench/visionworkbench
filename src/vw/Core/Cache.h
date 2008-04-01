@@ -231,6 +231,7 @@ namespace vw {
     }
 
     void resize( size_t size );
+    size_t max_size() { return m_max_size; }
 
     static Cache& system_cache();
   };
