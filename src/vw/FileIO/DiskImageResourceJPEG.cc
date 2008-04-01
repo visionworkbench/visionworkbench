@@ -40,6 +40,11 @@
 
 extern "C" {
 #include <jpeglib.h>
+  struct vw_jpeg_error_mgr {
+    struct jpeg_error_mgr pub;
+    jmp_buf error_return;
+    char error_msg[2048];
+  };
 }
 
 int vw::DiskImageResourceJPEG::default_subsampilng_factor = 1;
@@ -54,9 +59,9 @@ METHODDEF(void) vw_jpeg_error_handler (j_common_ptr cinfo) {
   // cinfo->err really points to a my_error_mgr struct, so coerce
   // pointer and return to the last location where setjmp() was
   // calledq.
-  char error_msg[2048];
-  (*cinfo->err->format_message) (cinfo, error_msg);
-  vw_throw( vw::IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << error_msg );
+  
+  (*cinfo->err->format_message) (cinfo, ((vw_jpeg_error_mgr*)(cinfo->err))->error_msg);
+  longjmp(((vw_jpeg_error_mgr*)(cinfo->err))->error_return, 1);
 }
 
 
@@ -77,8 +82,15 @@ void vw::DiskImageResourceJPEG::flush() {
 
 /// Bind the resource to a file for reading.  Confirm that we can open
 /// the file and that it has a sane pixel format.  
-void vw::DiskImageResourceJPEG::open( std::string const& filename )
+void vw::DiskImageResourceJPEG::open( std::string const& filename, int subsample_factor, size_t byte_offset )
 {
+  if (subsample_factor == 1 || subsample_factor == 2 ||
+      subsample_factor == 4 || subsample_factor == 8) {
+    m_subsample_factor = subsample_factor; 
+  } else {
+    vw_throw( ArgumentErr() << "DiskImageResourceJPEG: subsample_factor must be 1, 2, 4, or 8" );
+  }
+  
   if(m_file_ptr)
     vw_throw( IOErr() << "DiskImageResourceJPEG: A file is already open." );
 
@@ -87,9 +99,17 @@ void vw::DiskImageResourceJPEG::open( std::string const& filename )
 
   // Set up error handling.  If the JPEG library encounters an error,
   // it will return here and vw_throw an exception.
-  jpeg_error_mgr jerr;
-  cinfo.err = jpeg_std_error(&jerr);
-  jerr.error_exit = vw_jpeg_error_handler;
+  vw_jpeg_error_mgr jerr;
+  cinfo.err = jpeg_std_error((jpeg_error_mgr*)&jerr);
+  ((jpeg_error_mgr*)&jerr)->error_exit = vw_jpeg_error_handler;
+  if (setjmp(jerr.error_return)) {
+    // Non-local error return
+    // WARNING: libjpg calls later in this function, on error, will longjmp here
+    // DO NOT leave newly constructed C++ objects on the stack between here
+    // and any of the libjpg calls later in this function
+    vw_throw( vw::IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << jerr.error_msg );
+  }
+  
   jpeg_create_decompress(&cinfo);
 
   // Open the file on disk
@@ -97,6 +117,8 @@ void vw::DiskImageResourceJPEG::open( std::string const& filename )
   if ((infile = fopen(filename.c_str(), "rb")) == NULL) {
     vw_throw( vw::IOErr() << "Failed to open \"" << filename << "\" using libJPEG." );
   }
+  if (byte_offset) fseek(infile, byte_offset, SEEK_SET);
+  
   jpeg_stdio_src(&cinfo, infile);
   m_filename = filename;
   m_file_ptr = infile;
@@ -129,7 +151,7 @@ void vw::DiskImageResourceJPEG::open( std::string const& filename )
   
   // Rewind the file so that we can restart the jpeg header reading
   // process when the user calls read().
-  fseek(infile, 0, SEEK_SET);
+  fseek(infile, byte_offset, SEEK_SET);
 }
 
 /// Bind the resource to a file for writing.
@@ -179,9 +201,16 @@ void vw::DiskImageResourceJPEG::read( ImageBuffer const& dest, BBox2i const& bbo
 
   // Set up error handling.  If the JPEG library encounters an error,
   // it will return here and vw_throw an exception.
-  jpeg_error_mgr jerr;
-  cinfo.err = jpeg_std_error(&jerr);
-  jerr.error_exit = vw_jpeg_error_handler;
+  vw_jpeg_error_mgr jerr;
+  cinfo.err = jpeg_std_error((jpeg_error_mgr*)&jerr);
+  ((jpeg_error_mgr*)&jerr)->error_exit = vw_jpeg_error_handler;
+  if (setjmp(jerr.error_return)) {
+    // Non-local error return
+    // WARNING: libjpg calls later in this function, on error, will longjmp here
+    // DO NOT leave newly constructed C++ objects on the stack between here
+    // and any of the libjpg calls later in this function
+    vw_throw( vw::IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << jerr.error_msg );
+  }
 
   jpeg_create_decompress(&cinfo);
 	jpeg_stdio_src(&cinfo, (FILE*)m_file_ptr);
@@ -209,6 +238,15 @@ void vw::DiskImageResourceJPEG::read( ImageBuffer const& dest, BBox2i const& bbo
   JSAMPARRAY scanline = (*cinfo.mem->alloc_sarray)
 		((j_common_ptr) &cinfo, JPOOL_IMAGE, scanline_size, 1);
   boost::scoped_array<uint8> buf( new uint8[scanline_size * cinfo.output_height] );
+
+  if (setjmp(jerr.error_return)) {
+    // Non-local error return
+    // WARNING: libjpg calls later in this function, on error, will longjmp here
+    // DO NOT leave newly constructed C++ objects on the stack between here
+    // and any of the libjpg calls later in this function
+    vw_throw( vw::IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << jerr.error_msg );
+  }
+  
   while (cinfo.output_scanline < cinfo.output_height) {
     jpeg_read_scanlines(&cinfo, scanline, 1);
     
@@ -252,9 +290,16 @@ void vw::DiskImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbo
 
   // Set up error handling.  If the JPEG library encounters an error,
   // it will return here and vw_throw an exception.
-  jpeg_error_mgr jerr;
-  cinfo.err = jpeg_std_error(&jerr);
-  jerr.error_exit = vw_jpeg_error_handler;
+  vw_jpeg_error_mgr jerr;
+  cinfo.err = jpeg_std_error((jpeg_error_mgr*)&jerr);
+  ((jpeg_error_mgr*)&jerr)->error_exit = vw_jpeg_error_handler;
+  if (setjmp(jerr.error_return)) {
+    // Non-local error return
+    // WARNING: libjpg calls later in this function, on error, will longjmp here
+    // DO NOT leave newly constructed C++ objects on the stack between here
+    // and any of the libjpg calls later in this function
+    vw_throw( vw::IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << jerr.error_msg );
+  }
 
   jpeg_create_compress(&cinfo);
 	jpeg_stdio_dest(&cinfo, (FILE*)m_file_ptr);
@@ -283,6 +328,15 @@ void vw::DiskImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbo
   // Set up the image buffer and convert the data into this buffer
   ImageBuffer dst;
   boost::scoped_array<uint8> buf( new uint8[cinfo.image_width*cinfo.input_components*cinfo.image_height] );
+
+  if (setjmp(jerr.error_return)) {
+    // Non-local error return
+    // WARNING: libjpg calls later in this function, on error, will longjmp here
+    // DO NOT leave newly constructed C++ objects on the stack between here
+    // and any of the libjpg calls later in this function
+    vw_throw( vw::IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << jerr.error_msg );
+  }
+
   dst.data = buf.get();
   dst.format = m_format;
   dst.cstride = num_channels(m_format.pixel_format) * channel_size(m_format.channel_type);

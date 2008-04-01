@@ -29,6 +29,7 @@
 #define __VW_FILEIO_DISK_IMAGE_RESOUCE_JPEG_H__
 
 #include <string>
+#include <setjmp.h>
 
 #include <vw/Image/PixelTypes.h>
 #include <vw/FileIO/DiskImageResource.h>
@@ -38,15 +39,16 @@ namespace vw {
   class DiskImageResourceJPEG : public DiskImageResource {
   public:
 
-    DiskImageResourceJPEG( std::string const& filename )
+    DiskImageResourceJPEG( std::string const& filename,
+                           int subsample_factor = 1,
+                           size_t byte_offset = 0)
       : DiskImageResource( filename )
     {
-      m_subsample_factor = default_subsampilng_factor;
       m_quality = default_quality;
       m_file_ptr = NULL;
       m_jpg_compress_header = NULL;
       m_jpg_decompress_header = NULL;
-      open( filename );
+      open( filename, subsample_factor, byte_offset );
     }
     
     DiskImageResourceJPEG( std::string const& filename, 
@@ -93,16 +95,9 @@ namespace vw {
       open(m_filename, subsample_factor);
     }
 
-    void open( std::string const& filename );
-    void open( std::string const& filename, int subsample_factor ) {
-      if (subsample_factor == 1 || subsample_factor == 2 ||
-          subsample_factor == 4 || subsample_factor == 8) {
-        m_subsample_factor = subsample_factor; 
-      } else {
-        vw_throw( ArgumentErr() << "DiskImageResourceJPEG: subsample_factor must be 1, 2, 4, or 8" );
-      }
-      open(filename);
-    }
+    void open( std::string const& filename,
+               int subsample_factor = 1,
+               size_t byte_offset = 0);
 
     void create( std::string const& filename,
                  ImageFormat const& format );
@@ -123,6 +118,7 @@ namespace vw {
 
     static int default_subsampilng_factor;
     static float default_quality;
+    jmp_buf err_return;
 
   };
 
