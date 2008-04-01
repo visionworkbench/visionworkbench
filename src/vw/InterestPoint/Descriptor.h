@@ -59,7 +59,6 @@ namespace ip {
     // compute_descriptor() method provided by the subclass.
     template <class ViewT>
     void operator() ( ImageViewBase<ViewT> const& image, InterestPointList& points ) {
-      int idx = 0;
       //vw_out(InfoMessage) << "\nComputing support and descriptor for " << points.size() << " interest points\n";
       for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
 
