@@ -589,7 +589,7 @@ namespace math {
     }
     template<typename DiscSelector, typename Partitioner>
     void initialize_tree(FileT const& file,
-                         DiscSelector discselector, Partitioner partitioner)
+                         DiscSelector /*discselector*/, Partitioner /*partitioner*/)
     {
       range_t lo_range(m_k, m_NEGATIVE_INFINITY);
       range_t hi_range(m_k, m_POSITIVE_INFINITY);
