@@ -132,12 +132,8 @@ namespace mosaic {
       vw_out(DebugMessage, "mosaic") << "Generating patch files of type: " << m_output_image_type << std::endl;
       vw_out(DebugMessage, "mosaic") << "Generating " << m_base_dir << " quadtree with " << m_tree_levels << " levels." << std::endl;
 
-      try {
-        generate_branch( "r", m_tree_levels-1, 0, 0, progress_callback );
-        progress_callback.report_finished();
-      } catch (Aborted) {
-        progress_callback.report_aborted();
-      }
+      generate_branch( "r", m_tree_levels-1, 0, 0, progress_callback );
+      progress_callback.report_finished();
     }
 
     BBox2i const& get_crop_bbox() const {
@@ -260,9 +256,7 @@ namespace mosaic {
                                        const ProgressCallback &progress_callback ) 
     {
       progress_callback.report_progress(0);
-      if (progress_callback.abort_requested()) {
-        vw_throw( Aborted() << "Aborted by ProgressCallback" );
-      }
+      progress_callback.abort_if_requested();
       ImageView<PixelT> image;
       int32 scale = 1 << level;
       int32 interior_size = m_patch_size - m_patch_overlap;
