@@ -101,8 +101,9 @@ namespace vw {
     void initialize() {
       if( m_block_size.x()==cols() && m_block_size.y()==1 ) {
         // Group scanlines into 16K chunks for efficiency
-        const size_t blocksize = 16384;
-        if( cols()*rows()*planes()*sizeof(PixelT) < blocksize ) {
+        const size_t blocksize = 2*1024*1024; // 2 megabytes
+        // Watch out -- 32-bit int arithmetic will overflow for gigapixel-scale TIFF files
+        if( (double)cols()*rows()*planes()*sizeof(PixelT) < blocksize ) {
           m_block_size.y()=rows();
         }
         else {
