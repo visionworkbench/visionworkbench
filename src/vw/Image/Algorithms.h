@@ -341,7 +341,7 @@ namespace vw {
   template <class SourceT>
   ImageView<int32> grassfire( ImageViewBase<SourceT> const& src ) {
     int32 cols = src.impl().cols(), rows = src.impl().rows();
-    ImageView<int32> result( src.cols(), src.rows() );
+    ImageView<int32> result( cols, rows );
     grassfire( src, result );
     return result;
   }
