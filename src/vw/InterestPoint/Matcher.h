@@ -194,6 +194,12 @@ namespace ip {
     typedef typename ListT::const_iterator IterT;
     
     matched_ip1.clear(); matched_ip2.clear();
+    if (!ip1.size() || !ip2.size()) {
+      vw_out(InfoMessage,"interest_point") << "KD-Tree: no points to match, exiting\n";
+      progress_callback.report_finished();
+      return;
+    }
+      
 
     math::KDTree<ListT> kd(ip2.begin()->descriptor.size(), ip2);
     vw_out(InfoMessage,"interest_point") << "KD-Tree created with " << kd.size() << " nodes and depth ranging from " << kd.min_depth() << " to " << kd.max_depth() << ".  Searching...\n";
