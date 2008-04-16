@@ -382,12 +382,12 @@ namespace math {
     //template< typename ForwardIterT>
     //bool operator()(ForwardIterT record_beg, ForwardIterT record_end){
     template<typename T>
-    bool operator()(T record) const {
+    bool operator()(T /*record*/) const {
       return true;
     }
       
     template<typename T>
-    bool domains_overlap(const T& lowRange, const T& highRange ) const {
+    bool domains_overlap(const T& /*lowRange*/, const T& /*highRange*/ ) const {
       return true;
     }
   };
