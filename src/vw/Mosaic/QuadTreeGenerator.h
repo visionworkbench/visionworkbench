@@ -67,7 +67,8 @@ namespace mosaic {
         m_patch_size( 256 ),
         m_patch_overlap( 0 ),
         m_levels_per_directory( 3 ),
-        m_crop_images( true )
+        m_crop_images( true ),
+        m_write_meta_file( true )
     {
       fs::path tree_path( tree_name, fs::native );
       fs::path base_path = tree_path.branch_path() / tree_path.leaf();
@@ -187,6 +188,10 @@ namespace mosaic {
       m_crop_images = crop;
     }
 
+    void set_write_meta_file( bool write_meta_file ) {
+      m_write_meta_file = write_meta_file;
+    }
+
     std::string const& get_base_dir() const {
       return m_base_dir;
     }
@@ -208,6 +213,7 @@ namespace mosaic {
     int32 m_patch_overlap;
     int32 m_levels_per_directory;
     bool m_crop_images;
+    bool m_write_meta_file;
     int32 m_tree_levels;
     std::vector<std::map<std::pair<int32,int32>,ImageView<PixelT> > > m_patch_cache;
     std::vector<std::map<std::pair<int32,int32>,std::string> > m_filename_cache;
@@ -249,7 +255,7 @@ namespace mosaic {
 
       vw_out(InfoMessage, "mosaic") << "\tSaving image: " << info.filepath << "\t" << patch_image.cols() << "x" << patch_image.rows() << std::endl;
       write_image( info, patch_image );
-      write_meta_file( info );
+      if (m_write_meta_file) write_meta_file( info );
     }
 
     ImageView<PixelT> generate_branch( std::string name, int32 level, int32 x, int32 y, 
