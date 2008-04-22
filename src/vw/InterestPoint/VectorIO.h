@@ -74,9 +74,8 @@ namespace vw {
 	      << " (1 plane/channel) to be read into a vector");
     vw::Vector<T> result(buffer_image.cols());
 
-    int i;
-    for (i = 0; i < buffer_image.cols(); i++) {
-	result.impl()(i) = buffer_image(i, 0);
+    for (int i = 0; i < buffer_image.cols(); i++) {
+      result.impl()(i) = buffer_image(i, 0);
     }
     in_vector = result;
   }

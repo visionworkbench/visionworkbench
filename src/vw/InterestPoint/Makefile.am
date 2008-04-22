@@ -32,7 +32,7 @@ include_HEADERS = Detector.h Descriptor.h Matcher.h RANSAC.h Extrema.h	\
                   ImageOctave.h InterestData.h ImageOctaveHistory.h	\
                   InterestTraits.h MatrixIO.h VectorIO.h
 
-libvwInterestPoint_la_SOURCES = 
+libvwInterestPoint_la_SOURCES = InterestData.cc
 libvwInterestPoint_la_LIBADD = @MODULE_INTERESTPOINT_LIBS@
 
 lib_LTLIBRARIES = libvwInterestPoint.la

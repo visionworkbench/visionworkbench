@@ -128,23 +128,23 @@ namespace ip {
   struct PCASIFTDescriptorGenerator : public DescriptorGeneratorBase<PCASIFTDescriptorGenerator> {
 
     std::string basis_filename, avg_filename;
+    Matrix<float> pca_basis;
+    Vector<float> pca_avg;
     
     PCASIFTDescriptorGenerator(const std::string& pcabasis_filename,
 			       const std::string& pcaavg_filename) 
-      : basis_filename(pcabasis_filename), avg_filename(pcaavg_filename) { }
+      : basis_filename(pcabasis_filename), avg_filename(pcaavg_filename) {
+
+      // Read the PCA basis matrix and average vector
+      read_matrix(pca_basis, basis_filename);
+      read_vector(pca_avg, avg_filename);
+    }
 
 
     template <class ViewT>
     Vector<float> compute_descriptor (ImageViewBase<ViewT> const& support) const {
-      Matrix<float> pca_basis;
-      Vector<float> pca_avg;
       
-      // TODO: Move read operation out to the constructor
-      read_matrix(pca_basis, basis_filename);
-      read_vector(pca_avg, avg_filename);
-
-      Vector<float> result;
-      result.set_size(pca_basis.cols());
+      Vector<float> result(pca_basis.cols());
 
       // compute normalization constant (sum squares)
       double norm_const = 0;
@@ -162,7 +162,7 @@ namespace ip {
         for (int i = 0; i < support.impl().cols(); i++) {
 	  norm_pixel = support.impl()(i,j).v()/norm_const - pca_avg(index);
 	  
-	  for (int k = 0; k < pca_basis.cols(); k++) {
+	  for (unsigned k = 0; k < pca_basis.cols(); k++) {
 	    result[k] += norm_pixel * pca_basis(index,k);
 	  }
 	  ++index;

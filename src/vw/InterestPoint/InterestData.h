@@ -98,6 +98,11 @@ namespace ip {
   // Need to use list instead of vector for efficient thresholding.
   typedef std::list<InterestPoint> InterestPointList;
 
+  // Routines for reading & writing interest point data files
+  void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip);
+  void write_binary_ip_file(std::string ip_file, InterestPointList ip);
+  std::vector<InterestPoint> read_binary_ip_file(std::string ip_file);
+
   /// Select only the interest points that fall within the specified bounding box.
   template <class RealT>
   InterestPointList crop(InterestPointList const& interest_points, BBox<RealT,2> const& bbox) {

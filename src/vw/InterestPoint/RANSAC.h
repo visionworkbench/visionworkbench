@@ -87,7 +87,7 @@ namespace ip {
     double operator() (RelationT const& H,
                        ContainerT const& p1, 
                        ContainerT const& p2) const {
-      return vw::math::norm_2( Vector3(p2.x,p2.y,1) - H * Vector3(p1.x,p1.y,1));
+      return vw::math::norm_2( Vector3(p2[0],p2[1],1) - H * Vector3(p1[0],p1[1],1));
     }
   };
 
