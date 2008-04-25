@@ -32,7 +32,7 @@ include_HEADERS = Correlate.h ReferenceCorrelator.h		\
 	PyramidCorrelator.h StereoView.h CorrelatorView.h
 
 libvwStereo_la_SOURCES = StereoModel.cc OptimizedCorrelator.cc	\
-	 PyramidCorrelator.cc
+	 PyramidCorrelator.cc Correlate.cc
 
 libvwStereo_la_LIBADD = @MODULE_STEREO_LIBS@
 

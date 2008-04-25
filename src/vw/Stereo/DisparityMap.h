@@ -1,3 +1,25 @@
+// __BEGIN_LICENSE__
+// 
+// Copyright (C) 2006 United States Government as represented by the
+// Administrator of the National Aeronautics and Space Administration
+// (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
+// 
+// This software is distributed under the NASA Open Source Agreement
+// (NOSA), version 1.3.  The NOSA has been approved by the Open Source
+// Initiative.  See the file COPYING at the top of the distribution
+// directory tree for the complete NOSA document.
+// 
+// THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
+// KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
+// LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
+// SPECIFICATIONS, ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+// A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
+// THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
+// DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
+// 
+// __END_LICENSE__
 #ifndef __VW_STEREO_DISPARITY_MAP_H__
 #define __VW_STEREO_DISPARITY_MAP_H__
 
@@ -250,11 +272,11 @@ namespace disparity {
   template <class MaskViewT>
   struct DisparityMaskFunc: public vw::ReturnFixedType<PixelDisparity<float> >  {
 
-    MaskViewT m_left_mask, m_right_mask;
+    MaskViewT m_left_mask; 
+    MaskViewT m_right_mask;
 
     DisparityMaskFunc( MaskViewT const& left_mask, MaskViewT const& right_mask) :
-      m_left_mask(left_mask), m_right_mask(right_mask) {
-    }
+      m_left_mask(left_mask), m_right_mask(right_mask) {}
 
     PixelDisparity<float> operator() (PixelDisparity<float> const& pix, Vector3 const& loc) const {
       if ( pix.missing() ||                                               // If already a missing pixel
@@ -262,7 +284,7 @@ namespace disparity {
            loc[1] < 0 || loc[1] >= m_left_mask.rows() ||                  // or outside of bounds of 
            loc[0]+pix.h() < 0 || loc[0]+pix.h() >= m_right_mask.cols() || // the left or right image
            loc[1]+pix.v() < 0 || loc[1]+pix.v() >= m_right_mask.rows() || //
-           !(m_left_mask(int(loc[0]), int(loc[1]))) || // or the pixel is masked
+           !(m_left_mask(int(loc[0]), int(loc[1]))) ||                    // or the pixel is masked
            !(m_right_mask(int(loc[0]+pix.h()), int(loc[1]+pix.v()))) ) {
         return PixelDisparity<float>();                                   // then set to missing pixel value
       } else {
@@ -278,15 +300,14 @@ namespace disparity {
   /// the left or right mask image.
   template <class ViewT, class MaskViewT>
   BinaryPerPixelView<ViewT, PixelIndex3View, DisparityMaskFunc<MaskViewT> > mask(ImageViewBase<ViewT> const& disparity_map, 
-                                                                                ImageViewBase<MaskViewT> const& left_mask, 
-                                                                                ImageViewBase<MaskViewT> const& right_mask) {
+                                                                                 ImageViewBase<MaskViewT> const& left_mask, 
+                                                                                 ImageViewBase<MaskViewT> const& right_mask) {
     // Note: We use the PixelIndexView and Binary per pixel filter
     // idiom her to pass the location (in pixel coordinates) into the
     // functor along with the pixel value at that location.
     return BinaryPerPixelView<ViewT, PixelIndex3View, DisparityMaskFunc<MaskViewT> >(disparity_map.impl(), 
-                                                                                    PixelIndex3View(disparity_map),
-                                                                                    DisparityMaskFunc<MaskViewT>(left_mask.impl(),
-                                                                                                                 right_mask.impl()));
+                                                                                     PixelIndex3View(disparity_map),
+                                                                                     DisparityMaskFunc<MaskViewT>(left_mask.impl(), right_mask.impl()));
   }
 
 

@@ -1,3 +1,25 @@
+// __BEGIN_LICENSE__
+// 
+// Copyright (C) 2006 United States Government as represented by the
+// Administrator of the National Aeronautics and Space Administration
+// (NASA).  All Rights Reserved.
+// 
+// Copyright 2006 Carnegie Mellon University. All rights reserved.
+// 
+// This software is distributed under the NASA Open Source Agreement
+// (NOSA), version 1.3.  The NOSA has been approved by the Open Source
+// Initiative.  See the file COPYING at the top of the distribution
+// directory tree for the complete NOSA document.
+// 
+// THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
+// KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
+// LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
+// SPECIFICATIONS, ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR
+// A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
+// THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
+// DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
+// 
+// __END_LICENSE__
 #ifndef __VW_STEREO_CORRELATE_H__
 #define __VW_STEREO_CORRELATE_H__
 
@@ -5,6 +27,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Math/Matrix.h>
+#include <vw/Math/LinearAlgebra.h>
 #include <vw/Stereo/DisparityMap.h>
 
 #define VW_STEREO_MISSING_PIXEL -32000
@@ -199,6 +222,184 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   }
 
   template <class ChannelT> 
+  void subpixel_correlation_new(ImageView<PixelDisparity<float> > &disparity_map,
+                            ImageView<ChannelT> const& left_input_image,
+                            ImageView<ChannelT> const& right_input_image,
+                            int kern_width, int kern_height,
+                            bool do_horizontal_subpixel = true,
+                            bool do_vertical_subpixel = true,
+                            bool verbose = false) {
+    VW_ASSERT(left_input_image.cols() == right_input_image.cols() && left_input_image.cols() == disparity_map.cols() &&
+              left_input_image.rows() == right_input_image.rows() && left_input_image.rows() == disparity_map.rows(),
+              ArgumentErr() << "subpixel_correlation: input image dimensions do not agree.\n");
+
+     // Bail out if no subpixel computation has been requested 
+    if (!do_horizontal_subpixel && !do_vertical_subpixel) return;
+
+    EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension > left_image = edge_extend(left_input_image, ZeroEdgeExtension());
+    EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension > right_image = edge_extend(right_input_image, ZeroEdgeExtension());
+
+    int kern_half_height = kern_height/2;
+    int kern_half_width = kern_width/2;
+    
+    Vector<double> I_1((kern_width+1)*(kern_height+1));        
+    Matrix<double> I_2((kern_width+1)*(kern_height+1), 10); 
+
+    for (int j = 0; j < disparity_map.rows(); j++) {
+      if (j%100 == 0) 
+        if (verbose) vw_out(InfoMessage, "stereo") << "\tPerforming sub-pixel correlation... "<< (double(j)/disparity_map.rows() * 100) << "%              \r" << std::flush;
+      for (int i = 0; i < disparity_map.cols(); i++) {
+        if ( !disparity_map(i,j).missing() ) {
+
+          // What is the starting (integer) disparity offset?
+          int hdisp= (int)disparity_map(i,j).h();
+          int vdisp= (int)disparity_map(i,j).v();
+
+          if (i == 237 && j == 237)
+            std::cout << "\n\nPixel 237x237: " << hdisp << " " << vdisp << "      ";
+
+          // Copy the image data into I_1 and I_2
+          int idx = 0;
+          for (int r = -kern_half_height; r <= kern_half_height; ++r) {
+            for (int c = -kern_half_width; c <= kern_half_width; ++c) { 
+              I_1(idx) = left_image(i+c, j+r);
+//               I_2(idx,0) = right_image(i+c+hdisp-1, j+r+vdisp  );
+//               I_2(idx,1) = right_image(i+c+hdisp  , j+r+vdisp-1);
+//               I_2(idx,2) = right_image(i+c+hdisp  , j+r+vdisp  );
+//               I_2(idx,3) = right_image(i+c+hdisp  , j+r+vdisp+1);
+//               I_2(idx,4) = right_image(i+c+hdisp+1, j+r+vdisp  );
+//               I_2(idx,5) = 1;
+              I_2(idx,0) = right_image(i+c+hdisp-1, j+r+vdisp-1);
+              I_2(idx,1) = right_image(i+c+hdisp  , j+r+vdisp-1);
+              I_2(idx,2) = right_image(i+c+hdisp+1, j+r+vdisp-1);
+              I_2(idx,3) = right_image(i+c+hdisp-1, j+r+vdisp  );
+              I_2(idx,4) = right_image(i+c+hdisp  , j+r+vdisp  );
+              I_2(idx,5) = right_image(i+c+hdisp+1, j+r+vdisp  );
+              I_2(idx,6) = right_image(i+c+hdisp-1, j+r+vdisp+1);
+              I_2(idx,7) = right_image(i+c+hdisp  , j+r+vdisp+1);
+              I_2(idx,8) = right_image(i+c+hdisp+1, j+r+vdisp+1);
+              I_2(idx,9) = 1;
+              ++idx;
+            }
+          }
+
+          // Solve for the coefficients
+          Matrix<double> L = inverse(transpose(I_2)*I_2)*transpose(I_2);
+          Vector<double> A = L*I_1;
+          double S1 = sum(subvector(A,0,9));  
+          Vector2 dX_1 ( ( A(5)-A(3) ) / S1, ( A(7)-A(1) ) / S1 );
+//           double S1 = sum(subvector(A,0,5));  
+//           Vector2 dX_1 ( ( A(4)-A(0) ) / S1, ( A(3)-A(1) ) / S1 );
+          Matrix2x2 CV_1;
+
+          Vector<double> sum_vec = I_1;
+          for (unsigned z = 0; z < sum_vec.size(); ++z)
+            sum_vec[z] -= A[9];  
+          for (unsigned z = 0; z < 9; ++z)
+            sum_vec -= (A[z]*select_col(I_2,z));
+          Vector<double> square_sum_vec = elem_prod(sum_vec, sum_vec) / (2*kern_width+1)*(2*kern_height+1);
+          double sigma_1 = sqrt(sum(square_sum_vec));
+
+          double scaled_sigma_1 = (sigma_1*sigma_1)/(S1*S1);;
+          Vector<double> L1 = select_row(L,1);
+          Vector<double> L3 = select_row(L,3);
+          Vector<double> L5 = select_row(L,5);
+          Vector<double> L7 = select_row(L,7);
+          CV_1(0,0) = scaled_sigma_1 * dot_prod(L5-L3,L5-L3);   // var(dx)
+          CV_1(0,1) = scaled_sigma_1 * dot_prod(L5-L3,L7-L1);   // cov(dx,dy)
+          CV_1(1,0) = CV_1(0,1);
+          CV_1(1,1) = scaled_sigma_1 * dot_prod(L7-L1,L7-L1);   // var(dy)
+//           Vector<double> L0 = select_row(L,0);
+//           Vector<double> L4 = select_row(L,4);
+//           Vector<double> L1 = select_row(L,1);
+//           Vector<double> L3 = select_row(L,3);
+//           CV_1(0,0) = scaled_sigma_1 * dot_prod(L4-L0,L4-L0);   // var(dx)
+//           CV_1(0,1) = scaled_sigma_1 * dot_prod(L4-L0,L3-L1);   // cov(dx,dy)
+//           CV_1(1,0) = CV_1(0,1);
+//           CV_1(1,1) = scaled_sigma_1 * dot_prod(L3-L1,L3-L1);   // var(dy)
+
+          // Copy the image data into I_1 and I_2
+          idx = 0;
+          for (int r = -kern_half_height; r <= kern_half_height; ++r) {
+            for (int c = -kern_half_width; c <= kern_half_width; ++c) { 
+              I_1(idx) = right_image(i+hdisp+c, j+vdisp+r);
+              I_2(idx,0) = left_image(i+c-1, j+r-1);
+              I_2(idx,1) = left_image(i+c  , j+r-1);
+              I_2(idx,2) = left_image(i+c+1, j+r-1);
+              I_2(idx,3) = left_image(i+c-1, j+r  );
+              I_2(idx,4) = left_image(i+c  , j+r  );
+              I_2(idx,5) = left_image(i+c+1, j+r  );
+              I_2(idx,6) = left_image(i+c-1, j+r+1);
+              I_2(idx,7) = left_image(i+c  , j+r+1);
+              I_2(idx,8) = left_image(i+c+1, j+r+1);
+              I_2(idx,9) = 1;
+//               I_2(idx,0) = left_image(i+c-1, j+r  );
+//               I_2(idx,1) = left_image(i+c  , j+r-1);
+//               I_2(idx,2) = left_image(i+c  , j+r  );
+//               I_2(idx,3) = left_image(i+c  , j+r+1);
+//               I_2(idx,4) = left_image(i+c+1, j+r  );
+//               I_2(idx,5) = 1;
+              ++idx;
+            }
+          }
+
+          // Solve for the coefficients
+          L = inverse(transpose(I_2)*I_2)*transpose(I_2);
+          Vector<double> B = L * I_1;
+          double S2 = sum(subvector(B,0,9));  
+          Vector2 dX_2 ( ( B(3)-B(5) ) / S2, ( B(1)-B(7) ) / S2 );
+//           double S2 = sum(subvector(B,0,5));  
+//           Vector2 dX_2 ( ( B(0)-B(4) ) / S2, ( B(1)-B(3) ) / S2 );
+          Matrix2x2 CV_2;
+
+          sum_vec = I_1;
+          for (unsigned z = 0; z < sum_vec.size(); ++z)
+            sum_vec[z] -= B[9];  
+          for (unsigned z = 0; z < 9; ++z)
+            sum_vec -= (B[z]*select_col(I_2,z));
+          square_sum_vec = elem_prod(sum_vec, sum_vec) / (2*kern_width+1)*(2*kern_height+1);
+          double sigma_2 = sqrt(sum(square_sum_vec));
+
+          double scaled_sigma_2 = (sigma_2*sigma_2)/(S2*S2);
+//           L4 = select_row(L,4);
+//           L0 = select_row(L,0);
+//           L3 = select_row(L,3);
+//           L1 = select_row(L,1);
+//           CV_2(0,0) = scaled_sigma_2 * dot_prod(L0-L4,L0-L4);   // var(dx)
+//           CV_2(0,1) = scaled_sigma_2 * dot_prod(L0-L4,L1-L3);   // cov(dx,dy)
+//           CV_2(1,0) = CV_2(0,1);
+//           CV_2(1,1) = scaled_sigma_2 * dot_prod(L1-L3,L1-L3);   // var(dy)
+          L1 = select_row(L,1);
+          L3 = select_row(L,3);
+          L5 = select_row(L,5);
+          L7 = select_row(L,7);
+          CV_2(0,0) = scaled_sigma_2 * dot_prod(L3-L5,L3-L5);   // var(dx)
+          CV_2(0,1) = scaled_sigma_2 * dot_prod(L3-L5,L1-L7);   // cov(dx,dy)
+          CV_2(1,0) = CV_2(0,1);
+          CV_2(1,1) = scaled_sigma_2 * dot_prod(L1-L7,L1-L7);   // var(dy)
+
+          Matrix2x2 CV_1i = inverse(CV_1);
+          Matrix2x2 CV_2i = inverse(CV_2);
+          Vector2 update = inverse(CV_1i + CV_2i) * (CV_1i*dX_1 + CV_2i*dX_2);
+  
+          disparity_map(i,j).h() += update[0]; // dx
+          disparity_map(i,j).v() += update[1]; // dy
+
+          if (i == 237 && j == 237) {
+            std::cout << "\n\t\t" << dX_1[0] << " " << dX_1[1] << "   " << A << " " << sum(subvector(A,0,9)) << "  " << sigma_1 << "  \n";
+            std::cout << "\t\t" << dX_2[0] << " " << dX_2[1] << "   " << B << " " << sum(subvector(B,0,9)) << "  " << sigma_2 << "  \n";
+            std::cout << "\t\t" << update[0] << " " << update[1] << "   " << CV_1 << "   " << CV_2 << "\n";
+            std::cout << "Pixel 237x237: " << disparity_map(i,j).h() << " " << disparity_map(i,j).v() << " \n\n";
+          }
+        }
+      }
+    }
+
+    if (verbose) vw_out(InfoMessage, "stereo") << "\tPerforming sub-pixel correlation... done.                 \n";
+  }
+
+
+  template <class ChannelT> 
   void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
                             ImageView<ChannelT> const& left_image,
                             ImageView<ChannelT> const& right_image,
@@ -233,13 +434,16 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     vw::MatrixProxy<double,6,9> pinvA(pinvA_data);
     for (int r = 0; r < height; r++) {
       if (r%100 == 0) 
-        if (verbose) vw_out(InfoMessage, "stereo") << "\tPerforming sub-pixel correlation... "<< (double(r)/height * 100) << "%%\r" << std::flush;
+        if (verbose) vw_out(InfoMessage, "stereo") << "\tPerforming sub-pixel correlation... "<< (double(r)/height * 100) << "%        \r" << std::flush;
     
       for (int c = 0; c < width; c++) {
       
         if ( !disparity_map(c,r).missing() ) {
           int hdisp= (int)disparity_map(c,r).h();
           int vdisp= (int)disparity_map(c,r).v();
+
+          if (r == 237 && c == 237)
+            std::cout << "Pixel 237x237: " << hdisp << " " << vdisp << "      ";
         
           double mid = compute_soad(new_img0, new_img1,
                                     r, c,
@@ -351,6 +555,12 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
             if (fabs(offset(0)) < 2.0 && fabs(offset(1)) < 2.0) {
               disparity_map(c,r).h() += offset(0);
               disparity_map(c,r).v() += offset(1);
+
+              if (r == 237 && c == 237) {
+                std::cout << offset(0) << " " << offset(1) << "      \n";
+                std::cout << "Pixel 237x237: " << disparity_map(c,r).h() << " " << disparity_map(c,r).v() << "      \n\n";
+              }
+
             } else {
               disparity_map(c,r) = PixelDisparity<float>();
               //            std::cout << "Bad offset: " << offset(0) << " " << offset(1) << "\n";
@@ -364,56 +574,9 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
 
   /// This routine cross checks L2R and R2L, placing the final version
   /// of the disparity map in L2R.
-  static void cross_corr_consistency_check(ImageView<PixelDisparity<float> > &L2R, 
-                                           ImageView<PixelDisparity<float> > &R2L,
-                                           double cross_corr_threshold, bool verbose = false) {
-    int32 xx,yy;
-    int count = 0, match_count = 0;
-  
-    if (verbose)
-      vw_out(InfoMessage, "stereo") << "\tCrosscorr threshold: " << cross_corr_threshold << "\n";
-    if (cross_corr_threshold < 0) 
-      vw_throw( vw::ArgumentErr() << "CrossCorrConsistencyCheck2D: the crosscorr threshold was less than 0." );
-  
-    for(xx = 0; xx < L2R.cols(); xx++) {     
-      for(yy = 0; yy < L2R.rows(); yy++) {
-      
-        int xOffset = (int)L2R(xx,yy).h();
-        int yOffset = (int)L2R(xx,yy).v();
-      
-        // Check to make sure we are within the image bounds
-        if(xx+xOffset < 0 || yy+yOffset < 0 ||
-           xx+xOffset >= R2L.cols() || yy+yOffset >= R2L.rows()) {
-          L2R(xx,yy) = PixelDisparity<float>();  // Default constructor is missing pixel.
-        }
-
-        // Check for missing pixels
-        else if ( L2R(xx,yy).missing() ||
-                  R2L(xx+xOffset, yy+yOffset).missing() ) {
-          L2R(xx,yy) = PixelDisparity<float>();  // Default constructor is missing pixel.
-        }
-      
-        // Check for correlation consistency
-        //
-        // Since the hdisp for the R2L and L2R buffers will be opposite 
-        // in sign, we determine their similarity by *summing* them, rather
-        // than differencing them as you might expect.
-        else if (cross_corr_threshold >= fabs(L2R(xx,yy).h() + R2L(xx+xOffset,yy+yOffset).h()) &&
-                 cross_corr_threshold >= fabs(L2R(xx,yy).v() + R2L(xx+xOffset,yy+yOffset).v())) {
-          count++;
-          match_count++;
-        }
-      
-        // Otherwise, the pixel is bad.
-        else {
-          match_count++;
-          L2R(xx,yy) = PixelDisparity<float>();  // Default constructor is missing pixel.
-        } 
-      }
-    } 
-    if (verbose) 
-      vw_out(InfoMessage, "stereo") << "\tCross-correlation retained " << count << " / " << match_count << " matches (" << ((float)count/match_count*100) <<" percent).\n";
-  }
+  void cross_corr_consistency_check(ImageView<PixelDisparity<float> > &L2R, 
+                                    ImageView<PixelDisparity<float> > &R2L,
+                                    double cross_corr_threshold, bool verbose = false);
 
 }} // namespace vw::stereo
 
