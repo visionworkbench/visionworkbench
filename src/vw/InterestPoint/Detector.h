@@ -279,7 +279,7 @@ namespace ip {
         int original_num_points = points.size();
         points.sort();
         if ((m_max_points > 0) && (m_max_points < (int)points.size())) 
-          points.resize(m_max_points);
+           points.resize(m_max_points);
         vw_out(DebugMessage, "interest_point") << "done (removed " << original_num_points - points.size() << " interest points, " << points.size() << " remaining.), ";
       }
 
