@@ -190,6 +190,7 @@ int main( int argc, char *argv[] ) {
   Cache::system_cache().resize( cache_size*1024*1024 );
 
   GeoReference output_georef;
+  output_georef.set_well_known_geogcs("WGS84"); 
   int total_resolution = 1024;
 
   // Read in georeference info and compute total resolution
@@ -201,13 +202,13 @@ int main( int argc, char *argv[] ) {
     GeoReference input_georef;
     read_georeference( input_georef, file_resource );
 
-    // Adopt the first image's datum, but set the projection to simple
-    // cylidrical and the transform is the identity matrix.
-    if (i==0) {
-      output_georef = input_georef;
-      output_georef.set_geographic();
-      output_georef.set_transform(identity_matrix<3>());
-    }
+//     // Adopt the first image's datum, but set the projection to simple
+//     // cylidrical and the transform is the identity matrix.
+//     if (i==0) {
+//       output_georef = input_georef;
+//       output_georef.set_geographic();
+//       output_georef.set_transform(identity_matrix<3>());
+//     }
 
     if ( input_georef.proj4_str() == "" ) input_georef.set_well_known_geogcs("WGS84");
     if( manual || input_georef.transform() == identity_matrix<3>() ) {
