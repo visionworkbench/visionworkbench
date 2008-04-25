@@ -332,7 +332,8 @@ namespace vw {
     // We do our best here to determine what pixel format the GDAL image is in.  
     for( int i=1; i<=dataset->GetRasterCount(); ++i )
     if ( dataset->GetRasterCount() == 1 && 
-         dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_GrayIndex ) {
+         (dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_GrayIndex ||
+          dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_Undefined)) {
       m_format.pixel_format = VW_PIXEL_GRAY;     
       m_format.planes = 1;
     } else if ( dataset->GetRasterCount() == 2 && 
@@ -564,14 +565,15 @@ namespace vw {
     if (!dataset) 
       vw_throw(LogicErr() << "DiskImageResourceGDAL: Could not set native block size.  No file is open.");
                
-    if ( dataset->GetDriver() != GetGDALDriverManager()->GetDriverByName("GTiff") ) {
-      m_native_blocksize = Vector2i(cols(),rows());
-    } else {
+    if ( dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("GTiff") ||
+         dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("ISIS3") ) {
       GDALRasterBand *band = dataset->GetRasterBand(1);
       int xsize, ysize;
       band->GetBlockSize(&xsize,&ysize);
       m_native_blocksize = Vector2i(xsize,ysize);
-    }
+    } else {
+      m_native_blocksize = Vector2i(cols(),rows());
+    } 
     
     if (block_size[0] != -1) 
       m_native_blocksize[0] = block_size[0];
