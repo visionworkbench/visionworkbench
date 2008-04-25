@@ -24,7 +24,7 @@
 // TestLinearPushbroomModel.h
 #include <cxxtest/TestSuite.h>
 
-#include <vw/Camera/ExifData.h>
+#include <vw/Camera/Exif.h>
 
 using namespace std;
 using namespace vw;
@@ -40,13 +40,13 @@ public:
     //exif_data.print_debug();
     {
       double exposure;
-      bool found = exif_data.get_tag_value(TAG_ExposureTime, exposure);
+      bool found = exif_data.get_tag_value(EXIF_ExposureTime, exposure);
       TS_ASSERT(found);
       TS_ASSERT_DELTA(exposure, 0.0125, 1e-8);
     }
     {
       double fstop;
-      bool found = exif_data.get_tag_value(TAG_FNumber, fstop);
+      bool found = exif_data.get_tag_value(EXIF_FNumber, fstop);
       TS_ASSERT(found);
       TS_ASSERT_DELTA(fstop, 5.8, 1e-8);
     }
@@ -54,9 +54,9 @@ public:
       int thumbnail_offset;
       int thumbnail_length;
       int exif_location;
-      bool found = exif_data.get_tag_value(TAG_ThumbnailOffset, thumbnail_offset);
+      bool found = exif_data.get_tag_value(EXIF_ThumbnailOffset, thumbnail_offset);
       TS_ASSERT(found);
-      found = exif_data.get_tag_value(TAG_ThumbnailLength, thumbnail_length);
+      found = exif_data.get_tag_value(EXIF_ThumbnailLength, thumbnail_length);
       TS_ASSERT(found);
       exif_location = exif_data.get_exif_location();
       
