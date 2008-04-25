@@ -125,6 +125,10 @@ namespace mosaic {
       ScopedWatch sw("QuadTreeGenerator::generate");
       int32 maxdim = std::max( m_source.cols(), m_source.rows() );
       m_tree_levels = 1 + int32( ceil( log( maxdim/(double)(m_patch_size-m_patch_overlap) ) / log(2.0) ) );
+      
+      // Small images should have at least one quadtree level.
+      if (m_tree_levels < 1) m_tree_levels = 1;
+
       m_patch_cache.resize( m_tree_levels );
       m_filename_cache.resize( m_tree_levels );
 
