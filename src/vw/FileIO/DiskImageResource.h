@@ -159,7 +159,12 @@ namespace vw {
       DiskImageResource *r = DiskImageResource::create( name, out_image_format );
       vw_out(InfoMessage, "fileio") << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
 
-      write_image(*r, select_plane(out_image.impl(),p), SubProgressCallback(progress_callback,p/(float)files,(p+1)/(float)files));
+      if ( files > 1 ) {
+        write_image(*r, select_plane(out_image.impl(),p), SubProgressCallback(progress_callback,p/(float)files,(p+1)/(float)files));
+        progress_callback.report_finished();
+      } else {
+        write_image(*r, select_plane(out_image.impl(),p), progress_callback);
+      }
 
       delete r;
     }
