@@ -33,6 +33,33 @@
 namespace vw {
 namespace math {
 
+  // Returns: A Vector3 containing the euler angles [phi, omega, kappa] inline
+  inline Vector3 rotation_matrix_to_euler_xyz(const Matrix<double,3,3> rotation_matrix) {
+    double omega = asin(rotation_matrix(0,2));
+    double phi = acos(rotation_matrix(2,2) / cos(omega));
+    double kappa = acos(rotation_matrix(0,0) / cos(omega));
+    return Vector3(phi, omega, kappa);
+  }
+
+  // Returns: A Vector3 containing the euler angles [phi, omega, kappa]
+  inline Vector3 rotation_matrix_to_euler_yxz(const Matrix<double,3,3> rotation_matrix) {
+    double cos_phi = sqrt (1 - rotation_matrix(2,1) * rotation_matrix(2,1));
+    double phi = atan2(rotation_matrix(2,1), cos_phi);
+    double omega = atan2(-rotation_matrix(2,0), rotation_matrix(2,2));
+    double kappa = atan2(-rotation_matrix(0,1), rotation_matrix(1,1));
+    return Vector3(omega, phi, kappa);
+  }
+  
+  // Returns: A Vector3 containing the euler angles [phi, omega, kappa]
+  inline Vector3 rotation_matrix_to_euler_zxy(const Matrix<double,3,3> rotation_matrix) {
+    double sin_phi = -rotation_matrix(1,2);
+    double cos_phi = sqrt (1 - sin_phi*sin_phi);
+    double phi = atan2(sin_phi, cos_phi);
+    double omega = atan2(rotation_matrix(0,2), rotation_matrix(2,2));
+    double kappa = atan2(rotation_matrix(1,0), rotation_matrix(1,1));
+    return Vector3(kappa, phi, omega);
+  }
+
   // Return the rotation matrix for the rotation about the x-axis
   inline vw::Matrix<double,3,3> rotation_x_axis(double theta) {
     vw::Matrix<double,3,3> e;
