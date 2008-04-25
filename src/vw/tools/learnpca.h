@@ -127,7 +127,7 @@ public:
     cout << "  Computing average" << endl;
     pca_avg.set_size(support_squared);
     for (int i = 0; i < support_squared; i++) {
-      for (int j = 0; j < training_data.cols(); j++) {
+      for (unsigned j = 0; j < training_data.cols(); j++) {
 	pca_avg(i) += training_data(i, j);
       }
       pca_avg(i) /= training_data.cols();
@@ -136,7 +136,7 @@ public:
     // Subtract average
     cout << "  Subtracting average" << endl;
     for (int i = 0; i < support_squared; i++) {
-      for (int j = 0; j < training_data.cols(); j++) {
+      for (unsigned j = 0; j < training_data.cols(); j++) {
 	training_data(i, j) -= pca_avg(i);
       }
     }
