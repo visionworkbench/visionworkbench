@@ -117,6 +117,10 @@ namespace vw {
     virtual void flush();
 
 
+    /// Some GDAL files store a "NoData" value.  You can use these
+    /// methods to access that information. 
+    double get_no_data_value(int band);
+
     void open( std::string const& filename );    
     void create( std::string const& filename,
                  ImageFormat const& format,

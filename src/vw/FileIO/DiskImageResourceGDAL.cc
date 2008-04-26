@@ -280,6 +280,14 @@ namespace vw {
       delete static_cast<GDALDataset*>(m_dataset_ptr);
   }
 
+  double DiskImageResourceGDAL::get_no_data_value(int band) {
+    GDALDataset *dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
+    if( dataset == NULL ) {
+      vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read no data value.  Are you sure the file is open?" );
+    }      
+    return dataset->GetRasterBand(band+1)->GetNoDataValue();
+  }
+
   /// Bind the resource to a file for reading.  Confirm that we can
   /// open the file and that it has a sane pixel format.
   void DiskImageResourceGDAL::open( std::string const& filename )
