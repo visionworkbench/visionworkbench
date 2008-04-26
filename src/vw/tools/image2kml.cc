@@ -108,7 +108,8 @@ int main( int argc, char *argv[] ) {
   po::options_description input_options("Input Options");
   input_options.add_options()
     ("pixel-scale", po::value<float>(&pixel_scale)->default_value(1.0), "Scale factor to apply to pixels")
-    ("pixel-offset", po::value<float>(&pixel_offset)->default_value(0.0), "Offset to apply to pixels");
+    ("pixel-offset", po::value<float>(&pixel_offset)->default_value(0.0), "Offset to apply to pixels")
+    ("normalize", "Normalize input images so that their full dynamic range falls in between [0,255].");
 
   po::options_description output_options("Output Options");
   output_options.add_options()
@@ -193,22 +194,27 @@ int main( int argc, char *argv[] ) {
   output_georef.set_well_known_geogcs("WGS84"); 
   int total_resolution = 1024;
 
+  // For image stretching
+  float lo_value = ScalarTypeLimits<float>::highest();
+  float hi_value = ScalarTypeLimits<float>::lowest();
+
   // Read in georeference info and compute total resolution
   bool manual = vm.count("north") || vm.count("south") || vm.count("east") || vm.count("west");
   std::vector<GeoReference> georeferences;
   for( unsigned i=0; i<image_files.size(); ++i ) {
     std::cout << "Adding file " << image_files[i] << std::endl;
     DiskImageResourceGDAL file_resource( image_files[i] );
+    if( vm.count("normalize") ) {
+      float no_data_value = file_resource.get_no_data_value(0);
+      DiskImageView<PixelRGBA<float> > min_max_file(image_files[i]);
+      float new_lo, new_hi;
+      min_max_channel_values(min_max_file, new_lo, new_hi, no_data_value);
+      lo_value = std::min(new_lo,lo_value);
+      hi_value = std::max(new_hi,hi_value);
+      std::cout << "Pixel range for \"" << image_files[i] << "\": [" << new_lo << " " << new_hi << "]    Output dynamic range: [" << lo_value << " " << hi_value << "]\n";
+    }
     GeoReference input_georef;
     read_georeference( input_georef, file_resource );
-
-//     // Adopt the first image's datum, but set the projection to simple
-//     // cylidrical and the transform is the identity matrix.
-//     if (i==0) {
-//       output_georef = input_georef;
-//       output_georef.set_geographic();
-//       output_georef.set_transform(identity_matrix<3>());
-//     }
 
     if ( input_georef.proj4_str() == "" ) input_georef.set_well_known_geogcs("WGS84");
     if( manual || input_georef.transform() == identity_matrix<3>() ) {
@@ -261,13 +267,18 @@ int main( int argc, char *argv[] ) {
   int xresolution = total_resolution / aspect_ratio, yresolution = total_resolution;
   GlobalKMLTransform kmltx( xresolution, yresolution );
 
+
   // Add the transformed input files to the composite
   for( unsigned i=0; i<image_files.size(); ++i ) {
     GeoTransform geotx( georeferences[i], output_georef );
     ImageViewRef<PixelRGBA<uint8> > source = DiskImageView<PixelRGBA<uint8> >( image_files[i] );
-    if( pixel_scale != 1.0 || pixel_offset != 0.0 ) {
+    if( pixel_scale != 1.0 || pixel_offset != 0.0 ) 
       source = channel_cast_rescale<uint8>( DiskImageView<PixelRGBA<float> >( image_files[i] ) * pixel_scale + pixel_offset );
-    }
+
+    if( vm.count("normalize") )
+      source = channel_cast_rescale<uint8>( normalize_retain_alpha(DiskImageView<PixelRGBA<float> >( image_files[i] ), lo_value, hi_value, 0.0, 1.0) );
+
+    
     if( vm.count("palette-file") ) {
       DiskImageView<float> disk_image( image_files[i] );
       if( vm.count("palette-scale") || vm.count("palette-offset") ) {
