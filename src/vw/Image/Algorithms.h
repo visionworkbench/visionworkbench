@@ -141,7 +141,41 @@ namespace vw {
       return (ChannelT)((value - m_old_min) * m_old_to_new_ratio + m_new_min);
     }
   };
+
+  template <class PixelT>
+  class ChannelNormalizeRetainAlphaFunctor: public UnaryReturnSameType {
+    typedef typename CompoundChannelType<PixelT>::type channel_type;
+    channel_type m_old_min, m_new_min;
+    double m_old_to_new_ratio;
+  public:
+    ChannelNormalizeRetainAlphaFunctor( channel_type old_min, channel_type old_max, 
+                                        channel_type new_min, channel_type new_max )
+      : m_old_min(old_min), m_new_min(new_min)
+    {
+      if( old_max == old_min ) { m_old_to_new_ratio = 0.0; }
+      else { m_old_to_new_ratio = (new_max - new_min)/(double)(old_max - old_min); }
+    }
+
+    PixelT operator()( PixelT value ) const {
+      if (is_transparent(value)) return value;
+      else {
+        PixelT result;
+        non_alpha_channels(result) = (non_alpha_channels(value) - m_old_min) * m_old_to_new_ratio + m_new_min;
+        alpha_channel(result) = alpha_channel(value);
+        return result;
+      }
+    }
+  };
   /// \endcond
+
+  /// Renormalize the values in an image to fall within the range [low,high).
+  template <class ImageT, class OldLowT, class OldHighT, class NewLowT, class NewHighT>
+  UnaryPerPixelView<ImageT, ChannelNormalizeRetainAlphaFunctor<typename ImageT::pixel_type> >
+  inline normalize_retain_alpha( ImageViewBase<ImageT> const& image, OldLowT old_low, OldHighT old_high, NewLowT new_low, NewHighT new_high  ) {
+    typedef ChannelNormalizeRetainAlphaFunctor<typename ImageT::pixel_type> func_type;
+    func_type func ( old_low, old_high, new_low, new_high );
+    return UnaryPerPixelView<ImageT, func_type >( image.impl(), func );
+  }
 
   /// Renormalize the values in an image to fall within the range [low,high).
   template <class ImageT, class OldLowT, class OldHighT, class NewLowT, class NewHighT>

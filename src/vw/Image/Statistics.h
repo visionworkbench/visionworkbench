@@ -117,21 +117,32 @@ namespace vw {
     typedef typename ViewT::pixel_type pixel_type;
     typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
     int num_channels;
+    channel_type m_no_data_value;
+    bool m_valid_no_data_value;
     channel_type minval, maxval;
     bool valid;
   public:
     MinMaxChannelAccumulator()
       : num_channels( PixelNumChannels<pixel_type>::value - (PixelHasAlpha<pixel_type>::value ? 1 : 0) ),
+        m_valid_no_data_value(false),
         valid(false) {}
+
+    MinMaxChannelAccumulator(channel_type no_data_value)
+      : num_channels( PixelNumChannels<pixel_type>::value - (PixelHasAlpha<pixel_type>::value ? 1 : 0) ),
+        m_no_data_value(no_data_value), m_valid_no_data_value(true),
+        valid(false) {
+    }
 
     void operator()( pixel_type const& pix ) {
       if (is_transparent(pix)) return;
-      if (!valid) {
-        minval = maxval = compound_select_channel<channel_type>(pix,0);
-        valid = true;
+      if (!valid && (!m_valid_no_data_value || 
+                     compound_select_channel<channel_type>(pix,0) != m_no_data_value)) {
+          minval = maxval = compound_select_channel<channel_type>(pix,0);
+          valid = true;
       }
       for (int channel = 0; channel < num_channels; channel++) {
         channel_type channel_value = compound_select_channel<channel_type>(pix,channel);
+        if( m_valid_no_data_value && channel_value == m_no_data_value) continue;
         if( channel_value < minval ) minval = channel_value;
         if( channel_value > maxval ) maxval = channel_value;
       }
@@ -174,6 +185,22 @@ namespace vw {
                                typename CompoundChannelType<typename ViewT::pixel_type>::type &max )
   {
     MinMaxChannelAccumulator<ViewT> accumulator;
+    for_each_pixel( view, accumulator );
+    min = accumulator.minimum();
+    max = accumulator.maximum();
+  }
+
+  /// Simultaneously compute the min and max value in all of the
+  /// channels of all of the planes of the image.  This variant of the
+  /// function allows you to specify a "No Data" value that is ignored
+  /// when computing the statistics.
+  template <class ViewT>
+  void min_max_channel_values( const ImageViewBase<ViewT> &view, 
+                               typename CompoundChannelType<typename ViewT::pixel_type>::type &min, 
+                               typename CompoundChannelType<typename ViewT::pixel_type>::type &max,
+                               typename CompoundChannelType<typename ViewT::pixel_type>::type &no_data_value)
+  {
+    MinMaxChannelAccumulator<ViewT> accumulator(no_data_value);
     for_each_pixel( view, accumulator );
     min = accumulator.minimum();
     max = accumulator.maximum();
