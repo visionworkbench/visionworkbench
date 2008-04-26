@@ -329,29 +329,31 @@ namespace vw {
       vw_out(DebugMessage, "fileio") << "\tAffine transform: " << m_geo_transform << std::endl;
     }
    
-    // We do our best here to determine what pixel format the GDAL image is in.  
+    // We do our best here to determine what pixel format the GDAL image is in.
+    // Commented out the color interpretation checks because the reader (below)
+    // can't really cope well with the the default multi-plane interpretation 
+    // and this is a quicker work-around than actually fixing the problem. -mdh
     for( int i=1; i<=dataset->GetRasterCount(); ++i )
-    if ( dataset->GetRasterCount() == 1 && 
-         (dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_GrayIndex ||
-          dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_Undefined)) {
+    if ( dataset->GetRasterCount() == 1 /* && 
+                dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_GrayIndex */ ) {
       m_format.pixel_format = VW_PIXEL_GRAY;     
       m_format.planes = 1;
-    } else if ( dataset->GetRasterCount() == 2 && 
-                dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_GrayIndex /* &&
+    } else if ( dataset->GetRasterCount() == 2 /* && 
+                dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_GrayIndex &&
                 dataset->GetRasterBand(2)->GetColorInterpretation() == GCI_AlphaBand */ ) {
       m_format.pixel_format = VW_PIXEL_GRAYA;
       m_format.planes = 1;
-    } else if ( dataset->GetRasterCount() == 3 && 
+    } else if ( dataset->GetRasterCount() == 3 /* && 
                 dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_RedBand &&
                 dataset->GetRasterBand(2)->GetColorInterpretation() == GCI_GreenBand &&
-                dataset->GetRasterBand(3)->GetColorInterpretation() == GCI_BlueBand) {
+                dataset->GetRasterBand(3)->GetColorInterpretation() == GCI_BlueBand */) {
       m_format.pixel_format = VW_PIXEL_RGB;
       m_format.planes = 1;
-    } else if ( dataset->GetRasterCount() == 4 && 
+    } else if ( dataset->GetRasterCount() == 4 /* && 
                 dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_RedBand &&
                 dataset->GetRasterBand(2)->GetColorInterpretation() == GCI_GreenBand &&
                 dataset->GetRasterBand(3)->GetColorInterpretation() == GCI_BlueBand &&
-                dataset->GetRasterBand(4)->GetColorInterpretation() == GCI_AlphaBand) {
+                dataset->GetRasterBand(4)->GetColorInterpretation() == GCI_AlphaBand */) {
       m_format.pixel_format = VW_PIXEL_RGBA;
      m_format.planes = 1;
     } else {
