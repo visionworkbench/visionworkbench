@@ -41,7 +41,9 @@ if HAVE_PKG_LAPACK
 nodist_TestLinearAlgebra_SOURCES = TestLinearAlgebra.cxx
 nodist_TestGeometry_SOURCES = TestGeometry.cxx
 nodist_TestLevenbergMarquardt_SOURCES = TestLevenbergMarquardt.cxx
-TestLinearAlgebra = TestLinearAlgebra TestGeometry TestLevenbergMarquardt
+nodist_TestPoseEstimation_SOURCES = TestPoseEstimation.cxx
+TestLinearAlgebra = TestLinearAlgebra TestGeometry	\
+	TestLevenbergMarquardt TestPoseEstimation
 endif
 
 TESTS = TestVector TestMatrix TestQuaternion TestBBox TestFunctions	\
