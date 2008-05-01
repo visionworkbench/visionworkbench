@@ -281,4 +281,26 @@ public:
     TS_ASSERT_EQUALS( (transpose(v1)/2)*v2, 11 );
   }
 
+  void test_vector_real()
+  {
+    Vector<std::complex<float>,3> v(std::complex<float>(1,2),
+                                    std::complex<float>(2,3),
+                                    std::complex<float>(3,4));
+
+    TS_ASSERT_EQUALS( real(v)(0), 1 );
+    TS_ASSERT_EQUALS( real(v)(1), 2 );
+    TS_ASSERT_EQUALS( real(v)(2), 3 );
+  }
+
+  void test_vector_imag()
+  {
+    Vector<std::complex<float>,3> v(std::complex<float>(1,2),
+                                    std::complex<float>(2,3),
+                                    std::complex<float>(3,4));
+
+    TS_ASSERT_EQUALS( imag(v)(0), 2 );
+    TS_ASSERT_EQUALS( imag(v)(1), 3 );
+    TS_ASSERT_EQUALS( imag(v)(2), 4 );
+  }
+
 }; // class TestVector

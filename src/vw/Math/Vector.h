@@ -49,6 +49,7 @@
 ///   Vector homogenization and dehomogenization via hom() and dehom()
 ///   Dot/inner product via dot_prod(v1,v2) or transpose(v1)*v2
 ///   Cross product of 3-element vectors via cross_prod()
+///   Real and imaginary parts of complex vectors via real() and imag()
 ///
 #ifndef __VW_MATH_VECTOR_H__
 #define __VW_MATH_VECTOR_H__
@@ -67,6 +68,7 @@
 #include <vw/Core/Exception.h>
 #include <vw/Core/TypeDeduction.h>
 #include <vw/Core/Functors.h>
+#include <vw/Math/Functors.h>
 
 namespace vw {
 namespace math {
@@ -1611,6 +1613,20 @@ namespace math {
     Vector1T const& v1 = v1_.impl();
     Vector2T const& v2 = v2_.impl();
     return result_type( v1[1]*v2[2]-v1[2]*v2[1], v1[2]*v2[0]-v1[0]*v2[2], v1[0]*v2[1]-v1[1]*v2[0] );
+  }
+
+  /// Real part of of a (complex) vector.
+  template <class VectorT>
+  VectorUnaryFunc<VectorT, ArgRealFunctor>
+  inline real( VectorBase<VectorT> const& v ) {
+    return VectorUnaryFunc<VectorT, ArgRealFunctor>( v.impl() );
+  }
+
+  /// Imaginary part of of a (complex) vector.
+  template <class VectorT>
+  VectorUnaryFunc<VectorT, ArgImagFunctor>
+  inline imag( VectorBase<VectorT> const& v ) {
+    return VectorUnaryFunc<VectorT, ArgImagFunctor>( v.impl() );
   }
 
 } // namespace math
