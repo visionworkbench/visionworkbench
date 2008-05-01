@@ -1084,6 +1084,14 @@ namespace math {
       return m(i,col);
     }
 
+    reference_type operator[]( int i ) {
+      return m(i,col);
+    }
+
+    const_reference_type operator[]( int i ) const {
+      return m(i,col);
+    }
+
     iterator begin() {
       return iterator( m.begin() + col, m.cols() );
     }
