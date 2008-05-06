@@ -24,8 +24,8 @@
 #include <vw/Cartography/CameraBBox.h>
 #include <vw/Cartography/PointImageManipulation.h>
 
-vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& georef, double min_alt, double max_alt,
-                                        boost::shared_ptr<vw::camera::CameraModel> camera_model, int32 cols, int32 rows ) {
+vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& georef, float min_alt, float max_alt,
+                                        boost::shared_ptr<vw::camera::CameraModel> camera_model, int32 cols, int32 rows, float &scale ) {
     
   double semi_major_axis = georef.datum().semi_major_axis();
   double semi_minor_axis = georef.datum().semi_minor_axis();
@@ -34,8 +34,10 @@ vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& geo
   double radius_sqr = radius*radius;
 
   BBox2 bbox_180, bbox_360;
-  bool first_sign=false, pole=true;
+  bool first_sign=false, pole=true, last_valid=false;
   Vector3 last_intersection;
+  Vector2 last_lonlat;
+  scale = -1;
 
   // Top row
   for( int x=0; x<cols; ++x ) {
@@ -49,7 +51,10 @@ vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& geo
 
     double alpha = - dot_prod(center,vector);
     Vector3 projection = center + alpha * vector;
-    if( norm_2_sqr(projection) > radius_sqr ) continue; // the ray does not intersect the sphere
+    if( norm_2_sqr(projection) > radius_sqr ) {  // the ray does not intersect the sphere
+      last_valid = false;
+      continue;
+    }
     alpha -= sqrt( radius_sqr - norm_2_sqr(projection) );
     Vector3 intersection = center + alpha * vector;
     intersection.z() /= z_scale;
@@ -59,10 +64,19 @@ vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& geo
     if( x==1 ) first_sign = sign;
     if( x>1 && sign!=first_sign ) pole = false;
     
-    Vector3 llr = xyz_to_lon_lat_radius( intersection );
-    bbox_180.grow( Vector2(llr.x(),llr.y()) );
-    llr.x() += 180.0;
-    bbox_360.grow( Vector2(llr.x(),llr.y()) );
+    Vector3 llr = georef.datum().cartesian_to_geodetic( intersection );
+    Vector2 lonlat( llr.x(), llr.y() );
+
+    if( last_valid ) {
+      double d = norm_2( lonlat - last_lonlat );
+      if( scale < 0 || d < scale ) scale = d;
+    }
+    last_lonlat = lonlat;
+
+    bbox_180.grow( lonlat );
+    lonlat.x() += 180.0;
+    bbox_360.grow( lonlat );
+    last_valid = true;
   }
   // Bottom row
   for( int x=cols-1; x>=0; --x ) {
@@ -76,7 +90,10 @@ vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& geo
     
     double alpha = - dot_prod(center,vector);
     Vector3 projection = center + alpha * vector;
-    if( norm_2_sqr(projection) > radius_sqr ) continue; // the ray does not intersect the sphere
+    if( norm_2_sqr(projection) > radius_sqr ) {  // the ray does not intersect the sphere
+      last_valid = false;
+      continue;
+    }
     alpha -= sqrt( radius_sqr - norm_2_sqr(projection) );
     Vector3 intersection = center + alpha * vector;
     intersection.z() /= z_scale;
@@ -85,10 +102,19 @@ vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& geo
     last_intersection = intersection;
     if( x>0 && sign!=first_sign ) pole = false;
     
-    Vector3 llr = xyz_to_lon_lat_radius( intersection );
-    bbox_180.grow( Vector2(llr.x(),llr.y()) );
-    llr.x() += 180.0;
-    bbox_360.grow( Vector2(llr.x(),llr.y()) );
+    Vector3 llr = georef.datum().cartesian_to_geodetic( intersection );
+    Vector2 lonlat( llr.x(), llr.y() );
+
+    if( last_valid ) {
+      double d = norm_2( lonlat - last_lonlat );
+      if( scale < 0 || d < scale ) scale = d;
+    }
+    last_lonlat = lonlat;
+
+    bbox_180.grow( lonlat );
+    lonlat.x() += 180.0;
+    bbox_360.grow( lonlat );
+    last_valid = true;
   }
   // Left side
   for( int y=rows-2; y>0; --y ) {
@@ -102,7 +128,10 @@ vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& geo
     
     double alpha = - dot_prod(center,vector);
     Vector3 projection = center + alpha * vector;
-    if( norm_2_sqr(projection) > radius_sqr ) continue; // the ray does not intersect the sphere
+    if( norm_2_sqr(projection) > radius_sqr ) {  // the ray does not intersect the sphere
+      last_valid = false;
+      continue;
+    }
     alpha -= sqrt( radius_sqr - norm_2_sqr(projection) );
     Vector3 intersection = center + alpha * vector;
     intersection.z() /= z_scale;
@@ -111,12 +140,22 @@ vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& geo
     last_intersection = intersection;
     if( y<rows-2 && sign!=first_sign ) pole = false;
     
-    Vector3 llr = xyz_to_lon_lat_radius( intersection );
-    bbox_180.grow( Vector2(llr.x(),llr.y()) );
-    llr.x() += 180.0;
-    bbox_360.grow( Vector2(llr.x(),llr.y()) );
+    Vector3 llr = georef.datum().cartesian_to_geodetic( intersection );
+    Vector2 lonlat( llr.x(), llr.y() );
+
+    if( last_valid ) {
+      double d = norm_2( lonlat - last_lonlat );
+      if( scale < 0 || d < scale ) scale = d;
+    }
+    last_lonlat = lonlat;
+
+    bbox_180.grow( lonlat );
+    lonlat.x() += 180.0;
+    bbox_360.grow( lonlat );
+    last_valid = true;
   }
   // Right side
+  last_valid = false;
   for( int y=1; y<rows-1; ++y ) {
     Vector2 pix(cols-1,y);
     
@@ -128,7 +167,10 @@ vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& geo
     
     double alpha = - dot_prod(center,vector);
     Vector3 projection = center + alpha * vector;
-    if( norm_2_sqr(projection) > radius_sqr ) continue; // the ray does not intersect the sphere
+    if( norm_2_sqr(projection) > radius_sqr ) {  // the ray does not intersect the sphere
+      last_valid = false;
+      continue;
+    }
     alpha -= sqrt( radius_sqr - norm_2_sqr(projection) );
     Vector3 intersection = center + alpha * vector;
     intersection.z() /= z_scale;
@@ -137,10 +179,19 @@ vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& geo
     last_intersection = intersection;
     if( y>1 && sign!=first_sign ) pole = false;
     
-    Vector3 llr = xyz_to_lon_lat_radius( intersection );
-    bbox_180.grow( Vector2(llr.x(),llr.y()) );
-    llr.x() += 180.0;
-    bbox_360.grow( Vector2(llr.x(),llr.y()) );
+    Vector3 llr = georef.datum().cartesian_to_geodetic( intersection );
+    Vector2 lonlat( llr.x(), llr.y() );
+
+    if( last_valid ) {
+      double d = norm_2( lonlat - last_lonlat );
+      if( scale < 0 || d < scale ) scale = d;
+    }
+    last_lonlat = lonlat;
+
+    bbox_180.grow( lonlat );
+    lonlat.x() += 180.0;
+    bbox_360.grow( lonlat );
+    last_valid = true;
   }
   
   BBox2 bbox = bbox_180;

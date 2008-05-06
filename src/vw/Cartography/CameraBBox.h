@@ -35,11 +35,12 @@
 namespace vw {
 namespace cartography {
 
-  BBox2 camera_bbox( GeoReference const& georef, double min_alt, double max_alt,
-                     boost::shared_ptr<vw::camera::CameraModel> camera_model, int32 cols, int32 rows );
+  BBox2 camera_bbox( GeoReference const& georef, float min_alt, float max_alt,
+                     boost::shared_ptr<vw::camera::CameraModel> camera_model, int32 cols, int32 rows, float &scale );
 
   inline BBox2 camera_bbox( GeoReference const& georef, boost::shared_ptr<vw::camera::CameraModel> camera_model, int32 cols, int32 rows ) {
-    return camera_bbox( georef, 0.0, 0.0, camera_model, cols, rows );
+    float scale;
+    return camera_bbox( georef, 0.0, 0.0, camera_model, cols, rows, scale );
   }
 
 } // namespace cartography
