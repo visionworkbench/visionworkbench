@@ -603,6 +603,15 @@ namespace vw {
     }
   }
 
+  // Provide read access to the file's metadata
+  char **DiskImageResourceGDAL::get_metadata() const {
+    GDALDataset *dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
+    if( dataset == NULL ) {
+      vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read " << m_filename << "." );
+    }      
+    return dataset->GetMetadata();
+  }
+
   // A FileIO hook to open a file for reading
   vw::DiskImageResource* DiskImageResourceGDAL::construct_open( std::string const& filename ) {
     return new DiskImageResourceGDAL( filename );

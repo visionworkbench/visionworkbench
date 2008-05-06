@@ -131,6 +131,8 @@ namespace vw {
     static DiskImageResource* construct_create( std::string const& filename,
                                                 ImageFormat const& format );
 
+    char **get_metadata() const;
+
     void* get_write_dataset_ptr() const { return m_write_dataset_ptr; }
     void* get_read_dataset_ptr() const { return (*(m_dataset_cache_handle)).get_dataset(); }
 
