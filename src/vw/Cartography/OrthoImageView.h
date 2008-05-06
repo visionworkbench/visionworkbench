@@ -93,9 +93,8 @@ namespace cartography {
       //    converts from altitude to planetary radius.
       // 3. Convert to cartesian (xyz) coordinates.
       Vector2 lon_lat( m_georef.pixel_to_lonlat(Vector2(i,j)) );
-      double radius = m_terrain(i,j) + m_georef.datum().radius(lon_lat(0), lon_lat(1));
-      Vector3 xyz( lon_lat_radius_to_xyz( Vector3(lon_lat(0),lon_lat(1),radius) ) );
-
+      Vector3 xyz = m_georef.datum().geodetic_to_cartesian( Vector3( lon_lat.x(), lon_lat.y(), m_terrain(i,j) ) );
+                                                           
       // Now we can image the point using the camera model and return
       // the resulting pixel from the camera image.
       Vector2 pix = m_camera_model->point_to_pixel(xyz);
