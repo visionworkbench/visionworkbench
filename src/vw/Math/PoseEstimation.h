@@ -47,13 +47,13 @@ namespace math {
   // which further reduces to an eigenvector problem.
   template <class Matrix1T, class Matrix2T>
   Quaternion<float64> relative_orientation( MatrixBase<Matrix1T> const& vectors1,
-                                            MatrixBase<Matrix2T> const& vectors2 )
+                                            MatrixBase<Matrix2T> const& vectors2)
   {
     VW_ASSERT( vectors1.impl().rows()==3 && vectors2.impl().rows()==3 && 
                vectors1.impl().cols()==vectors2.impl().cols(),
                ArgumentErr( "relative_orientation(): Invalid or incompatible matrix dimensions" ) );
     Matrix4x4 M;
-    for( int i=0; i<vectors1.impl().cols(); ++i ) {
+    for( unsigned i=0; i<vectors1.impl().cols(); ++i ) {
       MatrixCol<const Matrix1T> v1(vectors1.impl(),i);
       MatrixCol<const Matrix2T> v2(vectors2.impl(),i);
       M(0,0) += -dot_prod(v1,v2);
@@ -76,8 +76,15 @@ namespace math {
     Vector<std::complex<float64>,4> evals;
     Matrix<std::complex<float64>,4,4> evecs;
     eigen( M, evals, evecs );
-    Quat result( real( select_col( evecs, 0 ) ) );
-    return result;
+    int index = 0;
+    float64 min_eval = real(evals(0));
+    for( int i=1; i<4; ++i ) {
+      if( real(evals(i)) < min_eval ) {
+        index = i;
+        min_eval = real(evals(i));
+      }
+    }
+    return Quat( real( select_col( evecs, index ) ) );
   }
 
 } // namespace math
