@@ -43,7 +43,7 @@ vw::cartography::Datum::Datum(std::string const& name,
 }
 
 void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
-  m_meridian_name = "Grenwich";
+  m_meridian_name = "Greenwich";
   m_meridian_offset = 0;
   if (name == "WGS84") {        
     m_name = "WGS_1984";
@@ -51,28 +51,37 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     m_semi_major_axis = 6378137.0;
     m_semi_minor_axis = 6356752.3;
     m_proj_str = "+ellps=WGS84 +datum=WGS84";
-    
-  } else if (name == "WGS72") {
+    return;
+  } 
+  
+  if (name == "WGS72") {
     m_name="WGS_1972";
     m_spheroid_name="WGS 72";
     m_semi_major_axis = 6378135.0;
     m_semi_minor_axis = 6356750.5;
     m_proj_str = "+ellps=WGS72 +towgs84=0,0,4.5,0,0,0.554,0.2263";
-    
-  } else if (name == "NAD83") {
+    return;
+  } 
+  
+  if (name == "NAD83") {
     m_name="North_American_Datum_1983";
     m_spheroid_name="GRS 1980";
     m_semi_major_axis = 6378137;
     m_semi_minor_axis = 6356752.3;
     m_proj_str = "+ellps=GRS80 +datum=NAD83";
-    
-  } else if (name == "NAD27") {
+    return;
+  }
+
+  if (name == "NAD27") {
     m_name="North_American_Datum_1927";
     m_spheroid_name="Clarke 1866";
     m_semi_major_axis = 6378206.4;
     m_semi_minor_axis = 6356583.8;
     m_proj_str = "+ellps=clrk66 +datum=NAD27";
+    return;
   }
+  
+  vw::vw_throw( vw::InputErr() << "Unknown datum string \"" << name << "\"!");
 }
 
 void vw::cartography::Datum::set_semi_major_axis(double val) { 
@@ -108,12 +117,12 @@ double vw::cartography::Datum::inverse_flattening() const {
   return 1.0 / (1.0 - m_semi_minor_axis / m_semi_major_axis);
 }
 
-vw::Matrix3x3 vw::cartography::Datum::ned_to_ecef( vw::Vector3 const& p) const {
+vw::Matrix3x3 vw::cartography::Datum::ecef_to_ned_matrix( vw::Vector3 const& p) const {
   double lat = p.y();
   if ( lat < -90 ) lat = -90;
   if ( lat > 90 ) lat = 90;
 
-  double rlon = p.x() * (M_PI/180);
+  double rlon = (p.x() + m_meridian_offset) * (M_PI/180);
   double rlat = lat * (M_PI/180);
   double slat = sin( rlat );
   double clat = cos( rlat );
@@ -147,7 +156,7 @@ vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian( vw::Vector3 const& p 
   if ( lat < -90 ) lat = -90;
   if ( lat > 90 ) lat = 90;
 
-  double rlon = p.x() * (M_PI/180);
+  double rlon = (p.x() + m_meridian_offset) * (M_PI/180);
   double rlat = lat * (M_PI/180);
   double slat = sin( rlat );
   double clat = cos( rlat );
@@ -214,7 +223,7 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& p 
     if( sdlat*sdlat < epsilon2 ) break;
   }
   
-  return Vector3( lon, atan(slat/fabs(clat))/(M_PI/180), alt );
+  return Vector3( lon - m_meridian_offset, atan(slat/fabs(clat))/(M_PI/180), alt );
 }
 
 std::ostream& vw::cartography::operator<<( std::ostream& os, vw::cartography::Datum const& datum ) {

@@ -109,7 +109,7 @@ namespace cartography {
     
     /// Return rotation matrix for converting NED vectors
     /// to ECEF vectors.
-    Matrix3x3 ned_to_ecef( Vector3 const& p) const;
+    Matrix3x3 ecef_to_ned_matrix( Vector3 const& p) const;
   
     Vector3 cartesian_to_geodetic( Vector3 const& p ) const;
   };
