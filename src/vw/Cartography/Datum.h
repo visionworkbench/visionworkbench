@@ -28,6 +28,7 @@
 #include <math.h>
 
 #include <vw/Math/Vector.h>
+#include <vw/Math/Matrix.h>
 #include <vw/Image/PerPixelViews.h>
 
 // For an excellent discussion of the various concepts, terms, and 
@@ -103,7 +104,13 @@ namespace cartography {
 
     double inverse_flattening() const;
 
+    /// Return cartesian (ECEF) coordinates of geodetic coordinates p
     Vector3 geodetic_to_cartesian( Vector3 const& p ) const;
+    
+    /// Return rotation matrix for converting NED vectors
+    /// to ECEF vectors.
+    Matrix3x3 ned_to_ecef( Vector3 const& p) const;
+  
     Vector3 cartesian_to_geodetic( Vector3 const& p ) const;
   };
 

@@ -108,6 +108,33 @@ double vw::cartography::Datum::inverse_flattening() const {
   return 1.0 / (1.0 - m_semi_minor_axis / m_semi_major_axis);
 }
 
+vw::Matrix3x3 vw::cartography::Datum::ned_to_ecef( vw::Vector3 const& p) const {
+  double lat = p.y();
+  if ( lat < -90 ) lat = -90;
+  if ( lat > 90 ) lat = 90;
+
+  double rlon = p.x() * (M_PI/180);
+  double rlat = lat * (M_PI/180);
+  double slat = sin( rlat );
+  double clat = cos( rlat );
+  double slon = sin( rlon );
+  double clon = cos( rlon );
+
+  Matrix3x3 R;
+
+  R(0,0) = -slat*clon;
+  R(0,1) = -slat*slon;
+  R(0,2) = clat;
+  R(1,0) = -slon;
+  R(1,1) = clon;
+  R(1,2) = 0.0;
+  R(2,0) = -clon*clat;
+  R(2,1) = -slon*clat;
+  R(2,2) = -slat;
+
+  return R;
+}
+
 
 vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian( vw::Vector3 const& p ) const {
   double a = m_semi_major_axis;
