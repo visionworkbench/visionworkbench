@@ -98,6 +98,7 @@ void vw::cartography::Datum::set_semi_minor_axis(double val) {
   m_proj_str = strm.str();
 }
 
+// return meridian radius of curvature.  NOT geocentric radius
 double vw::cartography::Datum::radius(double lon, double lat) const {
   // Optimize in the case of spherical datum
   if (m_semi_major_axis == m_semi_minor_axis) {
@@ -111,6 +112,58 @@ double vw::cartography::Datum::radius(double lon, double lat) const {
   double x = a * cos(t);
   double y = b * sin(t);
   return sqrt(x*x + y*y);
+}
+
+double vw::cartography::Datum::geocentric_latitude(double lat) const {
+   // Optimize in the case of spherical datum
+  if (m_semi_major_axis == m_semi_minor_axis) {
+    return m_semi_major_axis;
+  } 
+  
+  // Bi-axial Ellpisoid datum
+  // http://mathworld.wolfram.com/GeocentricLatitude.html
+  double a = m_semi_major_axis;
+  double b = m_semi_minor_axis;
+  double a2 = a * a;
+  double b2 = b * b;
+  double e2 = (a2 - b2) / a2;
+  return atan((1-e2)*tan(lat * M_PI / 180.0));
+
+}
+
+double vw::cartography::Datum::radius_of_curvature(double lon, double lat) const {
+  // Optimize in the case of spherical datum
+  if (m_semi_major_axis == m_semi_minor_axis) {
+    return m_semi_major_axis;
+  } 
+
+  // Bi-axial Ellpisoid datum
+  double a = m_semi_major_axis;
+  double b = m_semi_minor_axis;
+  double a2 = a * a;
+  double b2 = b * b;
+  double e2 = (a2 - b2) / a2;
+  double slat = sin(M_PI/180*lat);
+  return a / sqrt(1.0 - e2*slat*slat);
+}
+
+// return meridian radius of curvature.  NOT geocentric radius
+double vw::cartography::Datum::geocentric_radius(double lon, double lat, double alt) const {
+  // Optimize in the case of spherical datum
+  if (m_semi_major_axis == m_semi_minor_axis) {
+    return m_semi_major_axis + alt;
+  } 
+  double a = m_semi_major_axis;
+  double b = m_semi_minor_axis;
+  double a2 = a * a;
+  double b2 = b * b;
+  double e2 = (a2 - b2) / a2;  
+  double rlat = lat * (M_PI/180);
+  double slat = sin( rlat );
+  double clat = cos( rlat );
+  double Rn = a / sqrt(1.0-e2*slat*slat) + alt;
+ 
+  return sqrt(Rn*Rn*(clat*clat + (1-e2)*(1-e2)*slat*slat));
 }
 
 double vw::cartography::Datum::inverse_flattening() const {

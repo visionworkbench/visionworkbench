@@ -102,6 +102,16 @@ namespace cartography {
 
     double radius(double lon, double lat) const;
 
+    /// return geocentric latitude corresponding to geodetic lat:
+    double geocentric_latitude(double lat) const;
+
+    /// return radius of curvature in the prime vertical.
+    double radius_of_curvature(double lon, double lat) const;
+
+    /// return distance from the center of the Earth (lat,lon are geodetic,
+    //// alt is ellipsoidal or geodetic height).
+    double geocentric_radius(double lon, double lat, double alt = 0.0) const;
+
     double inverse_flattening() const;
 
     /// Return cartesian (ECEF) coordinates of geodetic coordinates p
