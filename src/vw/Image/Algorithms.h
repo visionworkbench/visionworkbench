@@ -168,7 +168,8 @@ namespace vw {
   };
   /// \endcond
 
-  /// Renormalize the values in an image to fall within the range [low,high).
+  /// Renormalize the values in an image to fall within the range
+  /// [low,high), but leave the values in the alpha channel untouched.
   template <class ImageT, class OldLowT, class OldHighT, class NewLowT, class NewHighT>
   UnaryPerPixelView<ImageT, ChannelNormalizeRetainAlphaFunctor<typename ImageT::pixel_type> >
   inline normalize_retain_alpha( ImageViewBase<ImageT> const& image, OldLowT old_low, OldHighT old_high, NewLowT new_low, NewHighT new_high  ) {
