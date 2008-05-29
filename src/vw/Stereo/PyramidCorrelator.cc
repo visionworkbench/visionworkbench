@@ -4,6 +4,86 @@
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Image/Transform.h>
 
+
+std::vector<vw::BBox2i> vw::stereo::PyramidCorrelator::subdivide_bboxes(vw::ImageView<vw::PixelDisparity<float> > const& disparity_map, vw::BBox2i const& box) {
+  //  std::cout << "SUBDIVIDING BBOXES: " << disparity_map.cols() << " " << disparity_map.rows() << "    " << box <<"\n";
+  std::vector<BBox2i> result;
+  BBox2i box_div_2 = box;
+  box_div_2.min() = box.min()/2;  box_div_2.max() = box.max()/2;
+  BBox2 disp_range = stereo::disparity::get_disparity_range(crop(disparity_map, box_div_2));
+  double cost  = box.width()*box.height()*disp_range.width()*disp_range.height();
+
+  if (cost == 0 && 
+      disp_range.max().x() == 0 && disp_range.max().y() == 0 &&
+      disp_range.min().x() == 0 && disp_range.min().y() == 0) {
+    // Search range is zero.  Reject this bounding box.
+    //    std::cout << "\t Rejecting: " << box << " " << disp_range << " " << cost << "  " << disp_range << "\n";
+    return result;
+  } else if (cost < 4e5 || box.width() < 128 || box.height() < 128) {
+    // The bounding box is small enough.  
+    //    std::cout << "\t      Leaf: " << box << " " << disp_range << " " << cost << "\n";
+    result.push_back(box);
+    return result;
+  } else {
+    BBox2i subbox1 = box, subbox2 = box;
+    if (box.width() > box.height()) {
+      subbox1.max().x() = box.min().x() + box.width()/2;
+      subbox2.min().x() = box.min().x() + box.width()/2;
+    } else {
+      subbox1.max().y() = box.min().y() + box.height()/2;
+      subbox2.min().y() = box.min().y() + box.height()/2;
+    }
+    //    std::cout << "\tSubdividing: " << box << " " << subbox1 << " " << subbox2 << "  " << cost << "\n";
+    result = subdivide_bboxes(disparity_map, subbox1);
+    std::vector<BBox2i> l2 = subdivide_bboxes(disparity_map, subbox2);
+    result.insert(result.end(), l2.begin(), l2.end());
+    return result;
+  }
+}
+
+void draw_bbox(vw::ImageView<vw::PixelRGB<float> > &view, vw::BBox2i const& bbox) {
+  int u,v; 
+  // Top
+  v = bbox.min().y();
+  for (u = bbox.min().x(); u < bbox.max().x(); ++u) 
+    view(u,v) = vw::PixelRGB<float>(1.0,0.0,0.0);
+  
+  // Bottom
+  v = bbox.max().y()-1;
+  for (u = bbox.min().x(); u < bbox.max().x(); ++u) 
+    view(u,v) = vw::PixelRGB<float>(1.0,0.0,0.0);
+  
+  // Left
+  u = bbox.min().x();
+  for (v = bbox.min().y(); v < bbox.max().y(); ++v) 
+    view(u,v) = vw::PixelRGB<float>(1.0,0.0,0.0);
+  
+  // Left
+  u = bbox.max().x()-1;
+  for (v = bbox.min().y(); v < bbox.max().y(); ++v) 
+    view(u,v) = vw::PixelRGB<float>(1.0,0.0,0.0);
+}
+
+void vw::stereo::PyramidCorrelator::write_debug_images(int n, ImageViewRef<PixelDisparity<float> > const& disparity_map, std::vector<BBox2i> nominal_blocks) {
+  std::ostringstream current_level;
+  current_level << n;
+  BBox2 disp_range = disparity::get_disparity_range(disparity_map);
+  ImageView<PixelRGB<float> > horz = normalize(clamp(select_channel(disparity_map,0), disp_range.min().x(), disp_range.max().x() ));
+  ImageView<PixelRGB<float> > vert = normalize(clamp(select_channel(disparity_map,1), disp_range.min().y(), disp_range.max().y() ));
+  
+  for (unsigned i = 0; i < nominal_blocks.size(); ++i) {
+    draw_bbox(horz, nominal_blocks[i]);
+    draw_bbox(vert, nominal_blocks[i]);
+  }
+  
+  write_image( m_debug_prefix+current_level.str()+"-H.jpg", horz);
+  write_image( m_debug_prefix+current_level.str()+"-V.jpg", vert);
+  
+  // For debugging:
+  //           write_image( m_debug_prefix+"-L-" + current_level.str() + "-mask.jpg", normalize(channel_cast<uint8>(left_masks[n])));
+  //           write_image( m_debug_prefix+"-R-" + current_level.str() + "-mask.jpg", normalize(channel_cast<uint8>(right_masks[n])));
+}
+
 // Iterate over the nominal blocks, creating output blocks for correlation
 //
 // To compute the block size, we must 1) Adjust the and size of

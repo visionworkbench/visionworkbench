@@ -66,11 +66,11 @@ namespace stereo {
     // diverged).
     inline double error( int i, int j, int p=0 ) const { 
       double error;     
-      if ( !disparity_map(i,j).missing() ) {
-        m_disparity_map(Vector2( i, j ),
-                        Vector2( i + disparity_map(i,j).h(),
-                                 j + disparity_map(i,j).v() ), 
-                           error );
+      if ( !m_disparity_map(i,j).missing() ) {
+        m_stereo_model(Vector2( i, j ),
+                       Vector2( i + m_disparity_map(i,j).h(),
+                                j + m_disparity_map(i,j).v() ), 
+                       error );
         if (error >= 0) 
           return error;
       }

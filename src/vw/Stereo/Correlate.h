@@ -255,8 +255,8 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
           int hdisp= (int)disparity_map(i,j).h();
           int vdisp= (int)disparity_map(i,j).v();
 
-          if (i == 237 && j == 237)
-            std::cout << "\n\nPixel 237x237: " << hdisp << " " << vdisp << "      ";
+//           if (i == 237 && j == 237)
+//             std::cout << "\n\nPixel 237x237: " << hdisp << " " << vdisp << "      ";
 
           // Copy the image data into I_1 and I_2
           int idx = 0;
@@ -385,12 +385,12 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
           disparity_map(i,j).h() += update[0]; // dx
           disparity_map(i,j).v() += update[1]; // dy
 
-          if (i == 237 && j == 237) {
-            std::cout << "\n\t\t" << dX_1[0] << " " << dX_1[1] << "   " << A << " " << sum(subvector(A,0,9)) << "  " << sigma_1 << "  \n";
-            std::cout << "\t\t" << dX_2[0] << " " << dX_2[1] << "   " << B << " " << sum(subvector(B,0,9)) << "  " << sigma_2 << "  \n";
-            std::cout << "\t\t" << update[0] << " " << update[1] << "   " << CV_1 << "   " << CV_2 << "\n";
-            std::cout << "Pixel 237x237: " << disparity_map(i,j).h() << " " << disparity_map(i,j).v() << " \n\n";
-          }
+//           if (i == 237 && j == 237) {
+//             std::cout << "\n\t\t" << dX_1[0] << " " << dX_1[1] << "   " << A << " " << sum(subvector(A,0,9)) << "  " << sigma_1 << "  \n";
+//             std::cout << "\t\t" << dX_2[0] << " " << dX_2[1] << "   " << B << " " << sum(subvector(B,0,9)) << "  " << sigma_2 << "  \n";
+//             std::cout << "\t\t" << update[0] << " " << update[1] << "   " << CV_1 << "   " << CV_2 << "\n";
+//             std::cout << "Pixel 237x237: " << disparity_map(i,j).h() << " " << disparity_map(i,j).v() << " \n\n";
+//           }
         }
       }
     }
@@ -442,8 +442,8 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
           int hdisp= (int)disparity_map(c,r).h();
           int vdisp= (int)disparity_map(c,r).v();
 
-          if (r == 237 && c == 237)
-            std::cout << "Pixel 237x237: " << hdisp << " " << vdisp << "      ";
+//           if (r == 237 && c == 237)
+//             std::cout << "Pixel 237x237: " << hdisp << " " << vdisp << "      ";
         
           double mid = compute_soad(new_img0, new_img1,
                                     r, c,
@@ -556,10 +556,10 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
               disparity_map(c,r).h() += offset(0);
               disparity_map(c,r).v() += offset(1);
 
-              if (r == 237 && c == 237) {
-                std::cout << offset(0) << " " << offset(1) << "      \n";
-                std::cout << "Pixel 237x237: " << disparity_map(c,r).h() << " " << disparity_map(c,r).v() << "      \n\n";
-              }
+//               if (r == 237 && c == 237) {
+//                 std::cout << offset(0) << " " << offset(1) << "      \n";
+//                 std::cout << "Pixel 237x237: " << disparity_map(c,r).h() << " " << disparity_map(c,r).v() << "      \n\n";
+//               }
 
             } else {
               disparity_map(c,r) = PixelDisparity<float>();

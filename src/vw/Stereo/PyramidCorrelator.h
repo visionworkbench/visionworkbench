@@ -12,7 +12,6 @@ namespace stereo {
 
     BBox2 m_initial_search_range;
     Vector2i m_kernel_size;
-    float m_slog_width;
     float m_cross_correlation_threshold;
     float m_corrscore_rejection_threshold;
     bool m_do_h_subpixel,m_do_v_subpixel;
@@ -48,7 +47,10 @@ namespace stereo {
                                   BBox2i &left_block, BBox2i &right_block);
 
     std::vector<BBox2> compute_search_ranges(ImageView<PixelDisparity<float> > const& prev_disparity_map, 
-                                              std::vector<BBox2i> nominal_blocks);
+                                             std::vector<BBox2i> nominal_blocks);
+    
+    void write_debug_images(int n, ImageViewRef<PixelDisparity<float> > const& disparity_map, std::vector<BBox2i> nominal_blocks);
+    std::vector<BBox2i> subdivide_bboxes(ImageView<PixelDisparity<float> > const& disparity_map, BBox2i const& box);
 
     // do_correlation()
     //
@@ -65,7 +67,8 @@ namespace stereo {
       BBox2 initial_search_range = m_initial_search_range / pow(2, pyramid_levels-1);
       ImageView<PixelDisparity<float> > disparity_map;
     
-      // Refined the disparity map by searching in the local region where the last good disparity value was found
+      // Refined the disparity map by searching in the local region
+      // where the last good disparity value was found.
       for (int n = pyramid_levels - 1; n >=0; --n) {
         std::ostringstream current_level;
         current_level << n;
@@ -75,7 +78,7 @@ namespace stereo {
     
         // 1. Subdivide disparity map into subregions.  We build up
         //    the disparity map for the level, one subregion at a
-        //    time.  For now, subregions that are 512x512 pixels seem
+        //    time.  For now, subregions that are 512x512 pixels seems
         //    to be an efficient size.
         //
         //    We also build a list of search ranges from the previous
@@ -87,7 +90,8 @@ namespace stereo {
           nominal_blocks.push_back(BBox2i(0,0,left_pyramid[n].cols(), left_pyramid[n].rows()));
           search_ranges.push_back(initial_search_range);
         } else { 
-          nominal_blocks = image_blocks(left_pyramid[n], 512, 512);
+          //nominal_blocks = image_blocks(left_pyramid[n], 512, 512);
+          nominal_blocks = subdivide_bboxes(disparity_map, BBox2i(0,0,left_pyramid[n].cols(), left_pyramid[n].rows()));
           search_ranges = compute_search_ranges(disparity_map, nominal_blocks);
         }
 
@@ -158,7 +162,7 @@ namespace stereo {
                                                             nominal_blocks[r].height());
         }
         prog.report_finished();
-
+        
     
         // Clean up the disparity map by rejecting outliers in the lower
         // resolution levels of the pyramid.  These are some settings that
@@ -181,25 +185,14 @@ namespace stereo {
                                           left_masks[n], right_masks[n]); 
         else
           disparity_map = disparity::mask(new_disparity_map, left_masks[n], right_masks[n]);
-
+        
         // Debugging output at each level
-        if (m_debug_prefix.size() > 0) {
-          std::ostringstream current_level;
-          current_level << n;
-          BBox2 disp_range = disparity::get_disparity_range(disparity_map);
-          write_image( m_debug_prefix+"-H-" + current_level.str() + ".jpg", normalize(clamp(select_channel(disparity_map,0), disp_range.min().x(), disp_range.max().x() )));
-          write_image( m_debug_prefix+"-V-" + current_level.str() + ".jpg", normalize(clamp(select_channel(disparity_map,1), disp_range.min().y(), disp_range.max().y() )));
-
-          // For debugging:
-          //           write_image( m_debug_prefix+"-L-" + current_level.str() + "-mask.jpg", normalize(channel_cast<uint8>(left_masks[n])));
-          //           write_image( m_debug_prefix+"-R-" + current_level.str() + "-mask.jpg", normalize(channel_cast<uint8>(right_masks[n])));
-        }
-    
+        if (m_debug_prefix.size() > 0)
+          write_debug_images(n, disparity_map, nominal_blocks);
       }
 
       return disparity_map;
     }
-
 
     template <class ViewT, class PreProcFilterT>
     vw::ImageView<vw::PixelDisparity<float> > correlate(ImageViewBase<ViewT> const& left_image, ImageViewBase<ViewT> const& right_image, 
@@ -220,7 +213,6 @@ namespace stereo {
             result(i,j).h() += offset[0];
             result(i,j).v() += offset[1];
           }
-      
       return result;
     }
     
@@ -229,15 +221,14 @@ namespace stereo {
     /// Correlator Constructor
     ///
     /// Set pyramid_levels to 0 to force the use of a single pyramid level (essentially disabling pyramid correlation).
-    PyramidCorrelator(BBox2 initial_search_range, Vector2i kernel_size, float slog_width = 1.5f, float cross_correlation_threshold = 1, float corrscore_rejection_threshold = 1.0, bool do_h_subpixel = true, bool do_v_subpixel = true, int pyramid_min_image_dimension = 256) :
-      m_initial_search_range(initial_search_range), m_kernel_size(kernel_size), m_slog_width(slog_width), m_cross_correlation_threshold(cross_correlation_threshold), m_corrscore_rejection_threshold(corrscore_rejection_threshold), m_do_h_subpixel(do_h_subpixel), m_do_v_subpixel(do_v_subpixel), m_pyramid_min_image_dimension(pyramid_min_image_dimension) {
+    PyramidCorrelator(BBox2 initial_search_range, Vector2i kernel_size, float cross_correlation_threshold = 1, float corrscore_rejection_threshold = 1.0, bool do_h_subpixel = true, bool do_v_subpixel = true, int pyramid_min_image_dimension = 256) :
+      m_initial_search_range(initial_search_range), m_kernel_size(kernel_size), m_cross_correlation_threshold(cross_correlation_threshold), m_corrscore_rejection_threshold(corrscore_rejection_threshold), m_do_h_subpixel(do_h_subpixel), m_do_v_subpixel(do_v_subpixel), m_pyramid_min_image_dimension(pyramid_min_image_dimension) {
       m_debug_prefix = "";
     }
 
     /// Turn on debugging output.  The debug_file_prefix string is
     /// used as a prefix for all debug image files.
     void set_debug_mode(std::string const& debug_file_prefix) { m_debug_prefix = debug_file_prefix; }
-
     
     template <class ViewT, class PreProcFilterT>
     ImageView<PixelDisparity<float> > operator() (ImageViewBase<ViewT> const& left_image,
@@ -246,7 +237,8 @@ namespace stereo {
       typedef typename ViewT::pixel_type pixel_type;
       typedef typename PixelChannelType<pixel_type>::type channel_type;
       
-      VW_ASSERT(left_image.impl().cols() == right_image.impl().cols() && left_image.impl().rows() == right_image.impl().rows(),
+      VW_ASSERT(left_image.impl().cols() == right_image.impl().cols() && 
+                left_image.impl().rows() == right_image.impl().rows(),
                 ArgumentErr() << "Correlator(): input image dimensions do not match.");
 
       // Compute the number of pyramid levels needed to reach the
@@ -259,7 +251,6 @@ namespace stereo {
         int dimension = std::min(left_image.impl().cols(), left_image.impl().rows());
         while (dimension > m_pyramid_min_image_dimension) { pyramid_levels++; dimension /= 2;}
       } 
-
       vw_out(InfoMessage, "stereo") << "Initializing pyramid correlator with " << pyramid_levels << " levels.\n";
 
       // Build the image pyramid
