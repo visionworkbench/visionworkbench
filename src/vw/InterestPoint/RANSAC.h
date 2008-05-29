@@ -101,8 +101,8 @@ namespace ip {
     // Returns the number of inliers for a given threshold.
     template <class ContainerT>
     unsigned num_inliers(typename FittingFuncT::result_type const& H,
-                    std::vector<ContainerT> const& p1, std::vector<ContainerT> const& p2) const {
-        
+                         std::vector<ContainerT> const& p1, 
+                         std::vector<ContainerT> const& p2) const {
       unsigned result = 0;
       for (unsigned i=0; i<p1.size(); i++) {
         if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold) 
@@ -146,6 +146,17 @@ namespace ip {
           inliers2.push_back(p2[i]);
         }
       }
+    }
+
+    // Returns the list of inlier indices.
+    template <class ContainerT>
+    std::vector<int> inlier_indices(typename FittingFuncT::result_type const& H,
+                                     std::vector<ContainerT> const& p1,std::vector<ContainerT> const& p2) const {
+      std::vector<int> result;
+      for (unsigned int i=0; i<p1.size(); i++) 
+        if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold) 
+          result.push_back(i);
+      return result;
     }
 
     RandomSampleConsensus(FittingFuncT const& fitting_func, ErrorFuncT const& error_func, double inlier_threshold)
@@ -212,11 +223,6 @@ namespace ip {
         vw_throw( RANSACErr() << "RANSAC was unable to find a fit that matched the supplied data." );
       }
 
-      // For debugging
-      vw_out(InfoMessage, "interest_point") << "\nBest overall:" << std::endl;
-      vw_out(InfoMessage, "interest_point") << "\tFit = " << H_max << std::endl;
-      vw_out(InfoMessage, "interest_point") << "\tInliers / Total  = " << inliers_max << " / " << p1.size() << "\n\n";
-
       ////////////////////////////////////
       // Second part:
       //    1. find all inliers the best fit
@@ -230,6 +236,10 @@ namespace ip {
         H = m_fitting_func(try1, try2);
         inliers( H, p1, p2, try1, try2 );
       }
+      // For debugging
+      vw_out(InfoMessage, "interest_point") << "\nRANSAC Summary:" << std::endl;
+      vw_out(InfoMessage, "interest_point") << "\tFit = " << H << std::endl;
+      vw_out(InfoMessage, "interest_point") << "\tInliers / Total  = " << try1.size() << " / " << p1.size() << "\n\n";
       return H;
     }
     

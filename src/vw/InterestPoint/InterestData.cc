@@ -55,25 +55,46 @@ namespace ip {
     fclose(out);
   }
 
+  inline void write_ip_record(std::ofstream &f, InterestPoint const& p) {
+    f.write((char*)&(p.x), sizeof(p.x));
+    f.write((char*)&(p.y), sizeof(p.y));
+    f.write((char*)&(p.ix), sizeof(p.ix));
+    f.write((char*)&(p.iy), sizeof(p.iy));
+    f.write((char*)&(p.orientation), sizeof(p.orientation));
+    f.write((char*)&(p.scale), sizeof(p.scale));
+    f.write((char*)&(p.interest), sizeof(p.interest));
+    int size = p.size();
+    f.write((char*)(&size), sizeof(int));
+    for (unsigned i = 0; i < p.descriptor.size(); ++i) 
+      f.write((char*)&(p.descriptor[i]), sizeof(p.descriptor[i]));
+  }
+
+  inline InterestPoint read_ip_record(std::ifstream &f) {
+    InterestPoint ip;    
+    f.read((char*)&(ip.x), sizeof(ip.x));
+    f.read((char*)&(ip.y), sizeof(ip.y));
+    f.read((char*)&(ip.ix), sizeof(ip.ix));
+    f.read((char*)&(ip.iy), sizeof(ip.iy));
+    f.read((char*)&(ip.orientation), sizeof(ip.orientation));
+    f.read((char*)&(ip.scale), sizeof(ip.scale));
+    f.read((char*)&(ip.interest), sizeof(ip.interest));
+
+    int size;
+    f.read((char*)&(size), sizeof(ip.descriptor.size()));
+    ip.descriptor = Vector<double>(size);
+    for (int i = 0; i < size; ++i) 
+      f.read((char*)&(ip.descriptor[i]), sizeof(ip.descriptor[i]));
+    return ip;
+  }
+
   void write_binary_ip_file(std::string ip_file, InterestPointList ip) {
     std::ofstream f;
     f.open(ip_file.c_str(), std::ios::binary | std::ios::out);
     InterestPointList::iterator iter = ip.begin();
     int size = ip.size();
     f.write((char*)&size, sizeof(int));
-    for ( ; iter != ip.end(); ++iter) {
-      f.write((char*)&(iter->x), sizeof(iter->x));
-      f.write((char*)&(iter->y), sizeof(iter->y));
-      f.write((char*)&(iter->ix), sizeof(iter->ix));
-      f.write((char*)&(iter->iy), sizeof(iter->iy));
-      f.write((char*)&(iter->orientation), sizeof(iter->orientation));
-      f.write((char*)&(iter->scale), sizeof(iter->scale));
-      f.write((char*)&(iter->interest), sizeof(iter->interest));
-      int size = iter->size();
-      f.write((char*)(&size), sizeof(int));
-      for (unsigned i = 0; i < iter->descriptor.size(); ++i) 
-        f.write((char*)&(iter->descriptor[i]), sizeof(iter->descriptor[i]));
-    }
+    for ( ; iter != ip.end(); ++iter) 
+      write_ip_record(f, *iter);
     f.close();
   }
 
@@ -84,27 +105,54 @@ namespace ip {
     f.open(ip_file.c_str(), std::ios::binary | std::ios::in);
     int size;
     f.read((char*)&size, sizeof(int));
-    for (int i = 0; i < size; ++i) {
-      InterestPoint ip;
-      f.read((char*)&(ip.x), sizeof(ip.x));
-      f.read((char*)&(ip.y), sizeof(ip.y));
-      f.read((char*)&(ip.ix), sizeof(ip.ix));
-      f.read((char*)&(ip.iy), sizeof(ip.iy));
-      f.read((char*)&(ip.orientation), sizeof(ip.orientation));
-      f.read((char*)&(ip.scale), sizeof(ip.scale));
-      f.read((char*)&(ip.interest), sizeof(ip.interest));
-
-      int size;
-      f.read((char*)&(size), sizeof(ip.descriptor.size()));
-      ip.descriptor = Vector<double>(size);
-      for (int i = 0; i < size; ++i) 
-        f.read((char*)&(ip.descriptor[i]), sizeof(ip.descriptor[i]));
-      result.push_back(ip);
-    }
+    for (int i = 0; i < size; ++i) 
+      result.push_back( read_ip_record(f) );
     f.close();
     return result;
   }
 
+  // Routines for reading & writing interest point match files
+  void write_binary_match_file(std::string match_file, std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2) {
+    std::ofstream f;
+    f.open(match_file.c_str(), std::ios::binary | std::ios::out);
+    std::vector<InterestPoint>::const_iterator iter1 = ip1.begin();
+    std::vector<InterestPoint>::const_iterator iter2 = ip2.begin();
+    int size1 = ip1.size();
+    int size2 = ip2.size();
+    f.write((char*)&size1, sizeof(int));
+    f.write((char*)&size2, sizeof(int));
+    for ( ; iter1 != ip1.end(); ++iter1) 
+      write_ip_record(f, *iter1);
+    for ( ; iter2 != ip2.end(); ++iter2) 
+      write_ip_record(f, *iter2);
+    f.close();
+  }
+
+  void read_binary_match_file(std::string match_file, std::vector<InterestPoint> &ip1, std::vector<InterestPoint> &ip2) {
+    ip1.clear();
+    ip2.clear();
+    
+    std::ifstream f;
+    f.open(match_file.c_str(), std::ios::binary | std::ios::in);
+    int size1, size2;
+    f.read((char*)&size1, sizeof(int));
+    f.read((char*)&size2, sizeof(int));
+    for (int i = 0; i < size1; ++i) 
+      ip1.push_back( read_ip_record(f) );
+    for (int i = 0; i < size2; ++i) 
+      ip2.push_back( read_ip_record(f) );
+    f.close();
+  }
+
+  std::vector<Vector3> iplist_to_vectorlist(std::vector<InterestPoint> const& iplist) {
+    std::vector<Vector3> result(iplist.size());
+    for (unsigned i=0; i < iplist.size(); ++i) {
+      result[i][0] = iplist[i].x;
+      result[i][1] = iplist[i].y;
+      result[i][2] = 1; // homogeneous vector
+    }
+    return result;
+  }
 
   
 }} // namespace vw::ip

@@ -83,25 +83,32 @@ namespace ip {
     const_iterator end() const { return descriptor.end(); }
     
     int size() const { return descriptor.size(); }
-
-    float operator[] (int index) const { 
-      return descriptor[index];
-    }
+    float operator[] (int index) { return descriptor[index]; }
 
     /// std::sort can be used to sort InterestPoints in descending
     /// order of interest.
     bool operator< (const InterestPoint& other) const {
       return (other.interest < interest);
     }
+
   };
 
   // Need to use list instead of vector for efficient thresholding.
   typedef std::list<InterestPoint> InterestPointList;
 
+  // Utility function converts from a list of interest points to a
+  // vector of interest point locations.  (Useful when preping data
+  // far RANSAC...)
+  std::vector<Vector3> iplist_to_vectorlist(std::vector<InterestPoint> const& iplist);
+
   // Routines for reading & writing interest point data files
   void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip);
   void write_binary_ip_file(std::string ip_file, InterestPointList ip);
   std::vector<InterestPoint> read_binary_ip_file(std::string ip_file);
+
+  // Routines for reading & writing interest point match files
+  void write_binary_match_file(std::string match_file, std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2);
+  void read_binary_match_file(std::string match_file, std::vector<InterestPoint> &ip1, std::vector<InterestPoint> &ip2);
 
   /// Select only the interest points that fall within the specified bounding box.
   template <class RealT>

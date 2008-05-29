@@ -77,8 +77,7 @@ namespace ip {
     InterestPointList operator() (vw::ImageViewBase<ViewT> const& image,
                                   const int32 max_interestpoint_image_dimension = 0) {
 
-      InterestPointList interest_points;
-      
+      InterestPointList interest_points;      
       vw_out(DebugMessage, "interest_point") << "Finding interest points in block: [ " << image.impl().cols() << " x " << image.impl().rows() << " ]\n";
       
       // Note: We explicitly convert the image to PixelGray<float>
@@ -104,19 +103,17 @@ namespace ip {
     BBox2i m_bbox;
     InterestPointList& m_interest_point_list;
     Mutex& m_mutex;
-    
+    int m_id, m_max_id;
     
   public:
     InterestPointDetectionTask(ViewT const& view, DetectorT& detector, BBox2i bbox,
-                               InterestPointList& ip_list, Mutex &mutex ) : 
+                               InterestPointList& ip_list, Mutex &mutex, int id, int max_id ) : 
       m_view(view), m_detector(detector), m_bbox(bbox),
-      m_interest_point_list(ip_list), m_mutex(mutex) {}
+      m_interest_point_list(ip_list), m_mutex(mutex), m_id(id), m_max_id(max_id) {}
 
     void operator()() { 
-      vw_out(DebugMessage, "interest_point") << "Interest point detection thread started with bbox " << m_bbox << "\n";
+      vw_out(InfoMessage, "interest_point") << "Locating interest points in block " << m_id << "/" << m_max_id << "   [ " << m_bbox << " ]\n";
       InterestPointList new_ip_list = m_detector(crop(pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(m_view.impl())), m_bbox),0);
-      vw_out(DebugMessage, "interest_point") << "Cropping image as a test.\n";
-
       for (InterestPointList::iterator pt = new_ip_list.begin(); pt != new_ip_list.end(); ++pt) {
         (*pt).x +=  m_bbox.min().x();
         (*pt).ix += m_bbox.min().x();
@@ -126,7 +123,6 @@ namespace ip {
 
       // Append these interest points to the master list owned by the
       // detect_interest_points() function.
-      vw_out(DebugMessage, "interest_point") << "Interest point detection thread detected " << new_ip_list.size() << " interest points.\n";
       {
         Mutex::Lock lock(m_mutex);
         m_interest_point_list.splice(m_interest_point_list.end(), new_ip_list);
@@ -151,8 +147,7 @@ namespace ip {
     // Process the image in 2048x2048 pixel blocks.
     std::vector<BBox2i> bboxes = image_blocks(view.impl(), 2048, 2048);
     for (unsigned i = 0; i < bboxes.size(); ++i) {
-      vw_out(InfoMessage, "interest_point") << "Locating interest points in block " << i << "/" << bboxes.size() << "   [ " << bboxes[i] << " ]\n";
-      boost::shared_ptr<task_type> task (new task_type(view, detector, bboxes[i], ip_list, mutex ) );
+      boost::shared_ptr<task_type> task (new task_type(view, detector, bboxes[i], ip_list, mutex, i+1, bboxes.size() ) );
       queue.add_task(task);
     }    
     vw_out(DebugMessage, "interest_point") << "Waiting for threads to terminate.\n";
