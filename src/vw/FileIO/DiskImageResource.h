@@ -107,6 +107,12 @@ namespace vw {
                                     construct_open_func open_func,
                                     construct_create_func create_func );
 
+    /// This method is called automatically the first time you read or
+    /// write a file, however in some situations you may want to
+    /// register the default file types _before_ registering your own
+    /// file types so that you can override the default FileIO drivers. 
+    static void register_default_file_types(); 
+
   protected:
     DiskImageResource( std::string const& filename ) : m_filename(filename) {}
     ImageFormat m_format;

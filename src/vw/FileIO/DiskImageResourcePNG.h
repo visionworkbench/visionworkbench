@@ -82,6 +82,8 @@ namespace vw {
 
     unsigned num_comments() const;
     Comment const& get_comment( unsigned i ) const;
+    std::string const& get_comment_key  ( unsigned i ) const;
+    std::string const& get_comment_value( unsigned i ) const;
 
     bool is_palette_based() const;
     void set_use_palette_indices();

@@ -85,9 +85,20 @@ void vw::DiskImageResource::register_file_type( std::string const& extension,
 {
   if( ! open_map ) open_map = new OpenMapType();
   if( ! create_map ) create_map = new CreateMapType();
-  //std::cout << "REGISTERING DiskImageResource " << disk_image_resource_type << " for extension " << extension << std::endl;
-  open_map->insert( std::make_pair( extension, open_func ) );
-  create_map->insert( std::make_pair( extension, create_func ) );
+  //  std::cout << "REGISTERING DiskImageResource " << disk_image_resource_type << " for extension " << extension << std::endl;
+
+  OpenMapType::iterator om_iter = open_map->find( extension );
+  if ( om_iter != open_map->end() )
+    om_iter->second = open_func;
+  else
+    open_map->insert( std::make_pair( extension, open_func ) );
+
+  CreateMapType::iterator cm_iter = create_map->find( extension );
+  if ( cm_iter != create_map->end() )
+    cm_iter->second = create_func;
+  else
+    create_map->insert( std::make_pair( extension, create_func ) );
+    
 }
 
 static std::string file_extension( std::string const& filename ) {
@@ -101,23 +112,21 @@ static std::string file_extension( std::string const& filename ) {
 
 static vw::RunOnce rdft_once = VW_RUNONCE_INIT;
 
-static void register_default_file_types() {
+static void register_default_file_types_impl() {
   vw::DiskImageResource::register_file_type( ".img", vw::DiskImageResourcePDS::type_static(), &vw::DiskImageResourcePDS::construct_open, &vw::DiskImageResourcePDS::construct_create );
   vw::DiskImageResource::register_file_type( ".pds", vw::DiskImageResourcePDS::type_static(), &vw::DiskImageResourcePDS::construct_open, &vw::DiskImageResourcePDS::construct_create );
   vw::DiskImageResource::register_file_type( ".lbl", vw::DiskImageResourcePDS::type_static(), &vw::DiskImageResourcePDS::construct_open, &vw::DiskImageResourcePDS::construct_create );
 
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
   vw::DiskImageResource::register_file_type( ".png", vw::DiskImageResourcePNG::type_static(), &vw::DiskImageResourcePNG::construct_open, &vw::DiskImageResourcePNG::construct_create );
-#endif
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+#elif defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   vw::DiskImageResource::register_file_type( ".png", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
 #endif
 
 #if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
   vw::DiskImageResource::register_file_type( ".jpg", vw::DiskImageResourceJPEG::type_static(), &vw::DiskImageResourceJPEG::construct_open, &vw::DiskImageResourceJPEG::construct_create );
   vw::DiskImageResource::register_file_type( ".jpeg", vw::DiskImageResourceJPEG::type_static(), &vw::DiskImageResourceJPEG::construct_open, &vw::DiskImageResourceJPEG::construct_create );
-#endif
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+#elif
   vw::DiskImageResource::register_file_type( ".jpg", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
   vw::DiskImageResource::register_file_type( ".jpeg", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
 #endif
@@ -128,7 +137,6 @@ static void register_default_file_types() {
   // the "raw" encoded image, with image encoding and size specified
   // in a small header. A file with a .jpf extension is a full fledged
   // JPEG2000 image with acquisition and (possibly) GML metadata.
-  std::cout << "------------- REGISTERING JP2 -----------------" << std::endl;
   vw::DiskImageResource::register_file_type(".jp2", vw::DiskImageResourceJP2::type_static(), &vw::DiskImageResourceJP2::construct_open, &vw::DiskImageResourceJP2::construct_create );
 
   vw::DiskImageResource::register_file_type(".j2k", vw::DiskImageResourceJP2::type_static(), &vw::DiskImageResourceJP2::construct_open, &vw::DiskImageResourceJP2::construct_create );
@@ -153,18 +161,24 @@ static void register_default_file_types() {
 #endif
 
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-  vw::DiskImageResource::register_file_type( ".cub", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
   vw::DiskImageResource::register_file_type( ".grd", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
   vw::DiskImageResource::register_file_type( ".dem", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
   vw::DiskImageResource::register_file_type( ".bil", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
+  vw::DiskImageResource::register_file_type( ".cub", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
 #endif
+
+}
+
+// This extra class helps to ensure that register_file_type() is only run once.
+void vw::DiskImageResource::register_default_file_types() {
+  rdft_once.run( register_default_file_types_impl );
 }
 
 vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename ) {
-  rdft_once.run( register_default_file_types );
+  register_default_file_types();
   if( open_map ) {
     OpenMapType::iterator i = open_map->find( file_extension( filename ) );
-    if( i != open_map->end() )
+    if( i != open_map->end() ) 
       return i->second( filename );
   }
   vw_throw( NoImplErr() << "Unsuppported file format: " << filename );
@@ -172,7 +186,7 @@ vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename 
 }
 
 vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, ImageFormat const& format ) {
-  rdft_once.run( register_default_file_types );
+  register_default_file_types();
   if( create_map ) {
     CreateMapType::iterator i = create_map->find( file_extension( filename ) );
     if( i != create_map->end() )

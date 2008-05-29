@@ -428,7 +428,7 @@ namespace vw {
     }
     if( driver == NULL ) {
       if( unsupported_driver )
-        vw_throw( vw::IOErr() << "Selected GDAL driver not supported." );
+        vw_throw( vw::IOErr() << "Could not write: " << filename << ".  Selected GDAL driver not supported." );
       else
         vw_throw( vw::IOErr() << "Error opening selected GDAL file I/O driver." );
     }
