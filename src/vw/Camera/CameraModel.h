@@ -117,6 +117,10 @@ namespace camera {
       m_rotation_inverse = math::Quaternion<double>(math::identity_matrix<3>());
     }
 
+    AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model,
+                        Vector3 const& translation, math::Quaternion<double> const& rotation) : 
+      m_camera(camera_model), m_translation(translation), m_rotation(rotation), m_rotation_inverse(inverse(rotation)) {}
+
     virtual ~AdjustedCameraModel() {}
     
     Vector3 translation() const { return m_translation; }
