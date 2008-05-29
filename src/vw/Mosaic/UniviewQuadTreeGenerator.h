@@ -26,8 +26,8 @@
 /// A subclass of ImageQuadTreeGenerator that generates multi-resolution 
 /// TMS overlays.
 /// 
-#ifndef __VW_MOSAIC_TMSQUADTREEGENERATOR_H__
-#define __VW_MOSAIC_TMSQUADTREEGENERATOR_H__
+#ifndef __VW_MOSAIC_UNIVIEWQUADTREEGENERATOR_H__
+#define __VW_MOSAIC_UNIVIEWQUADTREEGENERATOR_H__
 
 #include <iomanip>
 #include <vw/Mosaic/QuadTreeGenerator.h>
@@ -36,7 +36,7 @@ namespace vw {
 namespace mosaic {
 
   template <class PixelT>
-  class TMSQuadTreeGenerator : public vw::mosaic::ImageQuadTreeGenerator<PixelT>
+  class UniviewQuadTreeGenerator : public vw::mosaic::ImageQuadTreeGenerator<PixelT>
   {
     typedef vw::mosaic::ImageQuadTreeGenerator<PixelT> base_type;
 
@@ -48,17 +48,17 @@ namespace mosaic {
 
   public:
     // Constructor, templatized on the source image type.  The supplied 
-    // bounding box sets the size in degrees of the TMS overlay, and has 
+    // bounding box sets the size in degrees of the Uniview overlay, and has 
     // nothing in particular to do with the source image or pixels.
     template <class ImageT>
-    TMSQuadTreeGenerator( std::string const& tree_name,
-                          ImageViewBase<ImageT> const& source )
+    UniviewQuadTreeGenerator( std::string const& tree_name,
+                              ImageViewBase<ImageT> const& source )
       : vw::mosaic::ImageQuadTreeGenerator<PixelT>( tree_name, source )
     {
       base_type::set_crop_images( false );
     }
     
-    virtual ~TMSQuadTreeGenerator() {}
+    virtual ~UniviewQuadTreeGenerator() {}
     
     virtual std::string compute_image_path( std::string const& name ) const {
       fs::path path( base_type::m_base_dir, fs::native );
@@ -71,7 +71,10 @@ namespace mosaic {
         else if( name[i]=='3' ) pos += Vector2i(1,0);
       }
       std::ostringstream oss;
-      oss << name.length()-1 << "/" << pos.x() << "/" << pos.y();
+      if (name.length() == 1) 
+        oss << "global";
+      else
+        oss << name.length()-2 << "/" << pos.y() << "/" << pos.x();
       path /= oss.str();
 
       return path.native_file_string();
@@ -83,41 +86,7 @@ namespace mosaic {
 
   };
 
-
-  /// A transform functor that relates unprojected lon/lat 
-  /// coordinates in degrees to an unprojected pixel space 
-  /// cooresponding to a standard global TMS image quad-tree.
-  class GlobalTMSTransform : public TransformHelper<GlobalTMSTransform,ConvexFunction,ConvexFunction>
-  {
-    double resolution;
-  public:
-    GlobalTMSTransform( int resolution ) : resolution(resolution) {}
-    
-    // Convert degrees lat/lon to pixel location.  Wrap points that
-    // are in the longitude range of [180,360] around to [-180,0].
-    inline Vector2 forward( Vector2 const& p ) const {
-      return resolution*Vector2( p.x()+180.0, 270.0-p.y() )/360.0 - Vector2(0.5,0.5);
-    }
-    
-    // Convert pixel location to degrees lat/lon
-    inline Vector2 reverse( Vector2 const& p ) const {
-      return Vector2( 360.0*(p.x()+0.5)/resolution-180.0, 270.0-360.0*(p.y()+0.5)/resolution );
-    }
-
-    template <class TransformT>
-    static inline int compute_resolution( TransformT const& tx, Vector2 const& pixel ) {
-      Vector2 pos = tx.forward( pixel );
-      Vector2 x_vector = tx.forward( pixel+Vector2(1,0) ) - pos;
-      Vector2 y_vector = tx.forward( pixel+Vector2(0,1) ) - pos;
-      double degrees_per_pixel = (std::min)( norm_2(x_vector), norm_2(y_vector) );
-      double pixels_per_circumference = 360.0 / degrees_per_pixel;
-      int scale_exponent = (int) ceil( log(pixels_per_circumference)/log(2) );
-      int resolution = 1 << scale_exponent;
-      return resolution;
-    }
-  };
-
 } // namespace mosaic
 } // namespace vw
 
-#endif // __VW_MOSAIC_TMSQUADTREEGENERATOR_H__
+#endif // __VW_MOSAIC_UNIVIEWQUADTREEGENERATOR_H__

@@ -225,6 +225,8 @@ namespace mosaic {
       return Vector2( 360.0*(p.x()+0.5)/xresolution-180.0, 180.0-360.0*(p.y()+0.5)/yresolution );
     }
 
+    // Returns the number of pixels per planetary circumfrence,
+    // rounding up to a power of two.
     template <class TransformT>
     static inline int compute_resolution( TransformT const& tx, Vector2 const& pixel ) {
       Vector2 pos = tx.forward( pixel );

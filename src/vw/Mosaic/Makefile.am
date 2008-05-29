@@ -29,7 +29,7 @@ if MAKE_MODULE_MOSAIC
 
 include_HEADERS = QuadTreeGenerator.h ImageComposite.h	\
 	KMLQuadTreeGenerator.h SparseTileCheck.h	\
-	TMSQuadTreeGenerator.h
+	TMSQuadTreeGenerator.h UniviewQuadTreeGenerator.h
 
 libvwMosaic_la_SOURCES = 
 libvwMosaic_la_LIBADD = @MODULE_MOSAIC_LIBS@
