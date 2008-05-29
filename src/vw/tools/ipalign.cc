@@ -210,12 +210,12 @@ int main(int argc, char** argv) {
     HarrisInterestOperator interest_operator(harris_threshold);
     if (!vm.count("single-scale")) {
       ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator);
-      ip1 = detector(left_image, tile_size);
-      ip2 = detector(right_image, tile_size);
+      ip1 = detect_interest_points(left_image, detector);
+      ip2 = detect_interest_points(right_image, detector);
     } else {
       InterestPointDetector<HarrisInterestOperator> detector(interest_operator);
-      ip1 = detector(left_image, tile_size);
-      ip2 = detector(right_image, tile_size); 
+      ip1 = detect_interest_points(left_image, detector);
+      ip2 = detect_interest_points(right_image, detector); 
     }
   } else if (interest_operator == "LoG") {
     // Use a scale-space Laplacian of Gaussian feature detector. The
@@ -223,17 +223,18 @@ int main(int argc, char** argv) {
     LogInterestOperator interest_operator(log_threshold);
     if (!vm.count("single-scale")) {
       ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator);
-      ip1 = detector(left_image, tile_size);
-      ip2 = detector(right_image, tile_size); 
+      ip1 = detect_interest_points(left_image, detector);
+      ip2 = detect_interest_points(right_image, detector); 
     } else {
       InterestPointDetector<LogInterestOperator> detector(interest_operator);
-      ip1 = detector(left_image, tile_size);
-      ip2 = detector(right_image, tile_size); 
+      ip1 = detect_interest_points(left_image, detector);
+      ip2 = detect_interest_points(right_image, detector); 
     }
   } else {
     std::cout << "Unknown interest operator: " << interest_operator << ".  Options are : [ Harris, LoG ]\n";
     exit(0);
   }
+  vw_out(0) << "\t Found " << ip1.size() << " and " << ip2.size() << " points in the left and right image respectively.\n";
 
   // Write out images with interest points marked
   std::string prefix = prefix_from_filename(output_file_name);
@@ -261,7 +262,6 @@ int main(int argc, char** argv) {
   // The basic interest point matcher does not impose any
   // constraints on the matched interest points.
   vw_out(InfoMessage) << "\nInterest Point Matching:\n";
-  DefaultMatcher matcher(matcher_threshold);
 
   // RANSAC needs the matches as a vector, and so does the matcher.
   // this is messy, but for now we simply make a copy.
@@ -269,8 +269,9 @@ int main(int argc, char** argv) {
   std::copy(ip1.begin(), ip1.end(), ip1_copy.begin());
   std::copy(ip2.begin(), ip2.end(), ip2_copy.begin());
 
+  DefaultMatcher matcher(matcher_threshold);
   std::vector<InterestPoint> matched_ip1, matched_ip2;
-  matcher(ip1_copy, ip2_copy, matched_ip1, matched_ip2);
+  matcher(ip1_copy, ip2_copy, matched_ip1, matched_ip2, false, TerminalProgressCallback());
   vw_out(InfoMessage) << "\tFound " << matched_ip1.size() << " putative matches.\n";
 
   // Write out the putative point correspondence image
@@ -279,13 +280,15 @@ int main(int argc, char** argv) {
   
   // RANSAC is used to fit a similarity transform between the
   // matched sets of points
+  std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
+  std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
   Matrix<double> align_matrix;
   if (vm.count("homography")) 
-    align_matrix = ransac(matched_ip2, matched_ip1, 
+    align_matrix = ransac(ransac_ip2, ransac_ip1, 
                           vw::math::HomographyFittingFunctor(),
                           InterestPointErrorMetric());
   else
-    align_matrix = ransac(matched_ip2, matched_ip1, 
+    align_matrix = ransac(ransac_ip2, ransac_ip1, 
                           vw::math::AffineFittingFunctor(),
                           InterestPointErrorMetric());
 

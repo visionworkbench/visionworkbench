@@ -99,19 +99,18 @@ int main(int argc, char** argv) {
   for (unsigned i = 0; i < input_file_names.size(); ++i) {
 
     vw_out(0) << "Finding interest points in \"" << input_file_names[i] << "\".\n";
-
     std::string file_prefix = prefix_from_filename(input_file_names[i]);
-    DiskImageView<PixelRGB<uint8> > image(input_file_names[i]);
+    DiskImageView<PixelRGB<float> > image(input_file_names[i]);
 
     InterestPointList ip;
     if (interest_operator == "Harris") {
       HarrisInterestOperator interest_operator(harris_threshold);
       if (!vm.count("single-scale")) {
         ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator);
-        ip = detector(image, tile_size);
+        ip = detect_interest_points(image, detector);
       } else {
         InterestPointDetector<HarrisInterestOperator> detector(interest_operator);
-        ip = detector(image, tile_size);
+        ip = detect_interest_points(image, detector);
       }
     } else if (interest_operator == "LoG") {
       // Use a scale-space Laplacian of Gaussian feature detector. The
@@ -119,10 +118,10 @@ int main(int argc, char** argv) {
       LogInterestOperator interest_operator(log_threshold);
       if (!vm.count("single-scale")) {
         ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator);
-        ip = detector(image, tile_size);
+        ip = detect_interest_points(image, detector);
       } else {
         InterestPointDetector<LogInterestOperator> detector(interest_operator);
-        ip = detector(image, tile_size);
+        ip = detect_interest_points(image, detector);
       }
     } else {
       vw_out(0) << "Unknown interest operator: " << interest_operator << ".  Options are : [ Harris, LoG ]\n";
