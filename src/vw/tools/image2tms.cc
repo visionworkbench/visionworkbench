@@ -48,112 +48,30 @@ namespace po = boost::program_options;
 #include <vw/Cartography/FileIO.h>
 #include <vw/Mosaic/ImageComposite.h>
 #include <vw/Mosaic/TMSQuadTreeGenerator.h>
+#include <vw/Mosaic/UniviewQuadTreeGenerator.h>
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
 using namespace vw::mosaic;
 
+// Global Variables
+std::vector<std::string> image_files;
+std::string output_file_name;
+std::string output_file_type;
+double north_lat=90.0, south_lat=-90.0;
+double east_lon=180.0, west_lon=-180.0;
+double proj_lat=0, proj_lon=0, proj_scale=1;
+unsigned utm_zone;
+int patch_size, patch_overlap;
+float jpeg_quality;
+unsigned cache_size;
+double nudge_x=0, nudge_y=0;
+std::string palette_file, channel_type;
+float palette_scale=1.0, palette_offset=0.0;
 
-int main( int argc, char *argv[] ) {
+template <class ChannelT>
+void do_mosaic(po::variables_map const& vm) {
 
-  std::vector<std::string> image_files;
-  std::string output_file_name;
-  std::string output_file_type;
-  double north_lat=90.0, south_lat=-90.0;
-  double east_lon=180.0, west_lon=-180.0;
-  double proj_lat=0, proj_lon=0, proj_scale=1;
-  unsigned utm_zone;
-  int patch_size, patch_overlap;
-  float jpeg_quality;
-  unsigned cache_size;
-  double nudge_x=0, nudge_y=0;
-  std::string palette_file;
-  float palette_scale=1.0, palette_offset=0.0;
-
-  po::options_description general_options("General Options");
-  general_options.add_options()
-    ("output-name,o", po::value<std::string>(&output_file_name)->default_value("output"), "Specify the base output filename")
-    ("quiet,q", "Quiet output")
-    ("verbose,v", "Verbose output")
-    ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
-    ("help", "Display this help message");
-
-  po::options_description projection_options("Projection Options");
-  projection_options.add_options()
-    ("north", po::value<double>(&north_lat), "The northernmost latitude in degrees")
-    ("south", po::value<double>(&south_lat), "The southernmost latitude in degrees")
-    ("east", po::value<double>(&east_lon), "The easternmost latitude in degrees")
-    ("west", po::value<double>(&west_lon), "The westernmost latitude in degrees")
-    ("sinusoidal", "Assume a sinusoidal projection")
-    ("mercator", "Assume a Mercator projection")
-    ("transverse-mercator", "Assume a transverse Mercator projection")
-    ("orthographic", "Assume an orthographic projection")
-    ("stereographic", "Assume a stereographic projection")
-    ("lambert-azimuthal", "Assume a Lambert azimuthal projection")
-    ("utm", po::value<unsigned>(&utm_zone), "Assume UTM projection with the given zone")
-    ("proj-lat", po::value<double>(&proj_lat), "The center of projection latitude (if applicable)")
-    ("proj-lon", po::value<double>(&proj_lon), "The center of projection longitude (if applicable)")
-    ("proj-scale", po::value<double>(&proj_scale), "The projection scale (if applicable)")
-    ("nudge-x", po::value<double>(&nudge_x), "Nudge the image, in projected coordinates")
-    ("nudge-y", po::value<double>(&nudge_y), "Nudge the image, in projected coordinates");
-    
-  po::options_description output_options("Output Options");
-  output_options.add_options()
-    ("file-type", po::value<std::string>(&output_file_type)->default_value("png"), "Output file type")
-    ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
-    ("palette-file", po::value<std::string>(&palette_file), "Apply a palette from the given file")
-    ("palette-scale", po::value<float>(&palette_scale), "Apply a scale factor before applying the palette")
-    ("palette-offset", po::value<float>(&palette_offset), "Apply an offset before applying the palette")
-    ("patch-size", po::value<int>(&patch_size)->default_value(256), "Patch size, in pixels")
-    ("patch-overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels (must be even)")
-    ("patch-crop", "Crop output patches")
-    ("composite-overlay", "Composite images using direct overlaying (default)")
-    ("composite-multiband", "Composite images using multi-band blending");
-
-  po::options_description hidden_options("");
-  hidden_options.add_options()
-    ("input-file", po::value<std::vector<std::string> >(&image_files));
-
-  po::options_description options("Allowed Options");
-  options.add(general_options).add(projection_options).add(output_options).add(hidden_options);
-
-  po::positional_options_description p;
-  p.add("input-file", -1);
-
-  po::variables_map vm;
-  po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
-  po::notify( vm );
-
-  std::ostringstream usage;
-  usage << "Usage: image2tms [options] <filename>..." << std::endl << std::endl;
-  usage << general_options << std::endl;
-  usage << output_options << std::endl;
-  usage << projection_options << std::endl;
-
-  if( vm.count("help") ) {
-    std::cout << usage.str();
-    return 1;
-  }
-
-  if( vm.count("input-file") < 1 ) {
-    std::cout << "Error: Must specify at least one input file!" << std::endl << std::endl;
-    std::cout << usage.str();
-    return 1;
-  }
-
-  if( patch_size <= 0 ) {
-    std::cerr << "Error: The patch size must be a positive number!  (You specified " << patch_size << ".)" << std::endl << std::endl;
-    std::cout << usage.str();
-    return 1;
-  }
-    
-  if( patch_overlap<0 || patch_overlap>=patch_size || patch_overlap%2==1 ) {
-    std::cerr << "Error: The patch overlap must be an even nonnegative number" << std::endl;
-    std::cerr << "smaller than the patch size!  (You specified " << patch_overlap << ".)" << std::endl << std::endl;
-    std::cout << usage.str();
-    return 1;
-  }
-  
   TerminalProgressCallback tpc;
   const ProgressCallback *progress = &tpc;
   if( vm.count("verbose") ) {
@@ -226,20 +144,20 @@ int main( int argc, char *argv[] ) {
   }
 
   // Configure the composite
-  ImageComposite<PixelRGBA<uint8> > composite;
+  ImageComposite<PixelRGBA<ChannelT> > composite;
   GlobalTMSTransform tmstx( total_resolution );
 
   // Add the transformed input files to the composite
   for( unsigned i=0; i<image_files.size(); ++i ) {
     GeoTransform geotx( georeferences[i], output_georef );
-    ImageViewRef<PixelRGBA<uint8> > source = DiskImageView<PixelRGBA<uint8> >( image_files[i] );
+    ImageViewRef<PixelRGBA<ChannelT> > source = DiskImageView<PixelRGBA<ChannelT> >( image_files[i] );
     if( vm.count("palette-file") ) {
       DiskImageView<float> disk_image( image_files[i] );
       if( vm.count("palette-scale") || vm.count("palette-offset") ) {
-        source.reset( per_pixel_filter( disk_image*palette_scale+palette_offset, PaletteFilter<PixelRGBA<uint8> >(palette_file) ) );
+        source.reset( per_pixel_filter( disk_image*palette_scale+palette_offset, PaletteFilter<PixelRGBA<ChannelT> >(palette_file) ) );
       }
       else {
-        source.reset( per_pixel_filter( disk_image, PaletteFilter<PixelRGBA<uint8> >(palette_file) ) );
+        source.reset( per_pixel_filter( disk_image, PaletteFilter<PixelRGBA<ChannelT> >(palette_file) ) );
       }
     }
     BBox2i bbox = compose(tmstx,geotx).forward_bbox( BBox2i(0,0,source.cols(),source.rows()) );
@@ -255,16 +173,31 @@ int main( int argc, char *argv[] ) {
       if( east_lon == 180 ) bbox.max().x() = total_resolution;
       if( north_lat == 90 ) bbox.min().y() = total_resolution/2;
       if( south_lat == -90 ) bbox.max().y() = total_resolution;
-      composite.insert( crop( transform( source, compose(tmstx,geotx), ConstantEdgeExtension() ), bbox ),
-                        bbox.min().x(), bbox.min().y() );
+      source = crop( transform( source, compose(tmstx,geotx), ConstantEdgeExtension() ), bbox );
     }
     else {
-      composite.insert( crop( transform( source, compose(tmstx,geotx) ), bbox ),
-                        bbox.min().x(), bbox.min().y() );
+      source = crop( transform( source, compose(tmstx,geotx) ), bbox );
+    }
+    composite.insert( source, bbox.min().x(), bbox.min().y() );
+    // Images that wrap the date line must be added to the composite on both sides.
+    if( bbox.max().x() > total_resolution ) {
+      composite.insert( source, bbox.min().x()-total_resolution, bbox.min().y() );
     }
   }
 
-  BBox2i total_bbox( 0,0,total_resolution,total_resolution );
+  // Grow the bounding box to align it with the patch size boundaries
+  BBox2i bbox = composite.bbox();
+  std::cout << "Comp bbox: " << bbox << "\n";
+  BBox2i data_bbox(std::floor(double(bbox.min().x())/patch_size)*patch_size,
+                   std::floor(double(bbox.min().y())/patch_size)*patch_size,
+                   std::ceil(double(bbox.width())/patch_size)*patch_size,
+                   std::ceil(double(bbox.height())/patch_size)*patch_size);
+  std::cout << "Data bbox: " << data_bbox << "\n";
+
+  BBox2i total_bbox = composite.bbox();
+  total_bbox.grow( BBox2i(0,0,total_resolution,total_resolution) );
+  std::cout << "Total bbox: " << total_bbox << "\n";
+  std::cout << "Total res: " << total_resolution << "\n";
 
   // Prepare the composite
   if( vm.count("composite-multiband") ) {
@@ -275,25 +208,160 @@ int main( int argc, char *argv[] ) {
     composite.set_draft_mode( true );
     composite.prepare( total_bbox );
   }
-  BBox2i data_bbox = composite.bbox();
-  data_bbox.crop( BBox2i(0,total_resolution/2,total_resolution,total_resolution/2) );
+
 
   // Compute the geodetic bounding box
-  vw_out(InfoMessage) << "Bounding box: " <<
-    -180.0 + data_bbox.min().x() * 360.0 / total_resolution << ", " <<
-    270.0 - data_bbox.max().y() * 360.0 / total_resolution << "," << 
-    -180.0 + data_bbox.max().x() * 360.0 / total_resolution << ", " <<
-    270.0 - data_bbox.min().y() * 360.0 / total_resolution << std::endl;
+  Vector2 invmin = tmstx.reverse(total_bbox.min());
+  Vector2 invmax = tmstx.reverse(total_bbox.max());
+  BBox2 ll_bbox;
+  ll_bbox.min().x() = invmin[0];
+  ll_bbox.max().y() = invmin[1];
+  ll_bbox.max().x() = invmax[0];
+  ll_bbox.min().y() = invmax[1];
+  vw_out(InfoMessage) << "LonLat BBox: " << ll_bbox << "\n";
 
   // Prepare the quadtree
-  TMSQuadTreeGenerator<PixelRGBA<uint8> > quadtree( output_file_name, composite );
-  quadtree.set_crop_bbox( data_bbox );
-  if( vm.count("crop") ) quadtree.set_crop_images( true );
-  quadtree.set_output_image_file_type( output_file_type );
+  if (vm.count("uniview")) {
+    UniviewQuadTreeGenerator<PixelRGBA<ChannelT> > quadtree( output_file_name, composite );
+    quadtree.set_crop_bbox( data_bbox );
+    if( vm.count("crop") ) quadtree.set_crop_images( true );
+    quadtree.set_output_image_file_type( output_file_type );
+    quadtree.set_patch_size( patch_size );
 
-  // Generate the composite
-  vw_out(InfoMessage) << "Generating TMS Overlay..." << std::endl;
-  quadtree.generate( *progress );
+    // Generate the composite
+    vw_out(InfoMessage) << "Generating Uniview Overlay..." << std::endl;
+    quadtree.generate( *progress );
+
+    std::string config_filename = output_file_type + ".conf";
+    std::ofstream conf( config_filename.c_str());
+    conf << "[Offlinedataset]\n";
+    conf << "NrRows=1\n";
+    conf << "NrColumns=2\n";
+    //    conf << "Bbox= "<<ll_bbox.min().x()<<" "<<ll_bbox.max().y()<<" "<<ll_bbox.max().x()<<" "<<ll_bbox.min().y()<<"\n";
+    conf << "Bbox= -180 -90 180 90\n";
+    conf << "DatasetTitle=" << output_file_name << "\n";
+    conf << "Tessellation=19\n\n";
+
+    conf << "// Texture\n";
+    conf << "TextureCacheLocation=modules/marsds/Offlinedatasets/" << output_file_name << "/Texture/\n";
+    conf << "TextureCallstring=Generated by the NASA Vision Workbench image2tms tool.\n";
+    conf << "TextureFormat=" << quadtree.get_output_image_file_type() << "\n";
+    conf << "TextureLevels= " << quadtree.get_tree_levels()-1 << "\n";
+    conf << "TextureSize= " << patch_size << "\n\n";
+    conf.close();
+
+  } else {
+    TMSQuadTreeGenerator<PixelRGBA<ChannelT> > quadtree( output_file_name, composite );
+    quadtree.set_crop_bbox( data_bbox );
+    if( vm.count("crop") ) quadtree.set_crop_images( true );
+    quadtree.set_output_image_file_type( output_file_type );
+    quadtree.set_patch_size( patch_size );
+    
+    // Generate the composite
+    vw_out(InfoMessage) << "Generating TMS Overlay..." << std::endl;
+    quadtree.generate( *progress );
+  }  
+}
+
+
+int main( int argc, char *argv[] ) {
+
+  po::options_description general_options("General Options");
+  general_options.add_options()
+    ("output-name,o", po::value<std::string>(&output_file_name)->default_value("output"), "Specify the base output filename")
+    ("quiet,q", "Quiet output")
+    ("verbose,v", "Verbose output")
+    ("uniview", "Produce output suitable for use with the SCISS Uniview Program.")
+    ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
+    ("help", "Display this help message");
+
+  po::options_description projection_options("Projection Options");
+  projection_options.add_options()
+    ("north", po::value<double>(&north_lat), "The northernmost latitude in degrees")
+    ("south", po::value<double>(&south_lat), "The southernmost latitude in degrees")
+    ("east", po::value<double>(&east_lon), "The easternmost latitude in degrees")
+    ("west", po::value<double>(&west_lon), "The westernmost latitude in degrees")
+    ("sinusoidal", "Assume a sinusoidal projection")
+    ("mercator", "Assume a Mercator projection")
+    ("transverse-mercator", "Assume a transverse Mercator projection")
+    ("orthographic", "Assume an orthographic projection")
+    ("stereographic", "Assume a stereographic projection")
+    ("lambert-azimuthal", "Assume a Lambert azimuthal projection")
+    ("utm", po::value<unsigned>(&utm_zone), "Assume UTM projection with the given zone")
+    ("proj-lat", po::value<double>(&proj_lat), "The center of projection latitude (if applicable)")
+    ("proj-lon", po::value<double>(&proj_lon), "The center of projection longitude (if applicable)")
+    ("proj-scale", po::value<double>(&proj_scale), "The projection scale (if applicable)")
+    ("nudge-x", po::value<double>(&nudge_x), "Nudge the image, in projected coordinates")
+    ("nudge-y", po::value<double>(&nudge_y), "Nudge the image, in projected coordinates");
+    
+  po::options_description output_options("Output Options");
+  output_options.add_options()
+    ("file-type", po::value<std::string>(&output_file_type)->default_value("png"), "Output file type")
+    ("channel-type", po::value<std::string>(&channel_type)->default_value("uint8"), "Output channel type.  Choose one of: [uint8, uint16, int16, float]")
+    ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
+    ("palette-file", po::value<std::string>(&palette_file), "Apply a palette from the given file")
+    ("palette-scale", po::value<float>(&palette_scale), "Apply a scale factor before applying the palette")
+    ("palette-offset", po::value<float>(&palette_offset), "Apply an offset before applying the palette")
+    ("patch-size", po::value<int>(&patch_size)->default_value(256), "Patch size, in pixels")
+    ("patch-overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels (must be even)")
+    ("patch-crop", "Crop output patches")
+    ("composite-overlay", "Composite images using direct overlaying (default)")
+    ("composite-multiband", "Composite images using multi-band blending");
+
+  po::options_description hidden_options("");
+  hidden_options.add_options()
+    ("input-file", po::value<std::vector<std::string> >(&image_files));
+
+  po::options_description options("Allowed Options");
+  options.add(general_options).add(projection_options).add(output_options).add(hidden_options);
+
+  po::positional_options_description p;
+  p.add("input-file", -1);
+
+  po::variables_map vm;
+  po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
+  po::notify( vm );
+
+  std::ostringstream usage;
+  usage << "Usage: image2tms [options] <filename>..." << std::endl << std::endl;
+  usage << general_options << std::endl;
+  usage << output_options << std::endl;
+  usage << projection_options << std::endl;
+
+  if( vm.count("help") ) {
+    std::cout << usage.str();
+    return 1;
+  }
+
+  if( vm.count("input-file") < 1 ) {
+    std::cout << "Error: Must specify at least one input file!" << std::endl << std::endl;
+    std::cout << usage.str();
+    return 1;
+  }
+
+  if( patch_size <= 0 ) {
+    std::cerr << "Error: The patch size must be a positive number!  (You specified " << patch_size << ".)" << std::endl << std::endl;
+    std::cout << usage.str();
+    return 1;
+  }
+    
+  if( patch_overlap<0 || patch_overlap>=patch_size || patch_overlap%2==1 ) {
+    std::cerr << "Error: The patch overlap must be an even nonnegative number" << std::endl;
+    std::cerr << "smaller than the patch size!  (You specified " << patch_overlap << ".)" << std::endl << std::endl;
+    std::cout << usage.str();
+    return 1;
+  }
+
+  if (channel_type == "uint8") 
+    do_mosaic<uint8>(vm);
+  else if (channel_type == "uint16") 
+    do_mosaic<uint16>(vm);
+  else if (channel_type == "int16") 
+    do_mosaic<int16>(vm);
+  else if (channel_type == "float") 
+    do_mosaic<float>(vm);
+  else 
+    std::cout << "Unknown channel type: " << channel_type << "     Choose a channel type from: [uint8, uint16, int16, float]\n";
 
   return 0;
 }
