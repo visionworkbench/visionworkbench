@@ -123,7 +123,6 @@ namespace camera {
     }
   };
 
-
   class CameraBundleAdjustmentModel : public BundleAdjustmentModelBase<CameraBundleAdjustmentModel, 6, 3> {
     std::vector<boost::shared_ptr<AdjustedCameraModel> > m_cameras;
 
@@ -175,9 +174,15 @@ namespace camera {
     Vector<double,6> initial_parameters(unsigned j) const { return Vector<double,6>(); }
   };
 
-  //--------------------------------------------------------------
+  //------------------------------------------------------------------
   //                 Sparse Skyline Matrix 
-  //--------------------------------------------------------------
+  //
+  // The hessian in the sparse LM algorithm takes the form of a Sparse
+  // skyline matrix.  Under this sparseness condition, efficient
+  // solutions to a linear system can be efficiently computed.  The
+  // code below defines a class for a sparse skyline matrix as well as
+  // methods for it's decomposition and for linear system solving.
+  // -----------------------------------------------------------------
 
   /// An extremely simple sparse matrix class that wraps around a
   /// boost compessed_matrix<>, but keeps track of the first non-zero
@@ -218,8 +223,6 @@ namespace camera {
       else
         return m_matrix.find_element(i,j); 
     }
-
-
 
     // Some boost sparse matrix types define this method...
     void push_back (uint32 i, uint32 j, ElemT const& val) {
@@ -287,11 +290,10 @@ namespace camera {
 
   };
 
-  //--------------------------------------------------------------
-  //        L*D*L^T Decompostion for Symmetric Matrices
-  //--------------------------------------------------------------
+  //--------------------------------------------------------------------
+  //        L*D*L^T Decompostion for Symmetric, Spares, Skyline Matrices
+  //--------------------------------------------------------------------
   
-
   // Perform L*D*L^T decomposition on a sparse, skyline symmetric
   // semi-definite matrix.  WARNING: The results are stored in place,
   // so this operation destroys the previous contents of A.
@@ -358,8 +360,7 @@ namespace camera {
           break; // Break out of the inner loop
       }
     }
-    
-
+   
     // Forward Substitution Step ( L*x'=b )
     vw::Vector<double> x_prime(A.cols());
     for (unsigned i = 0; i < x_prime.size(); ++i) {
@@ -445,6 +446,8 @@ namespace camera {
     
     void set_lambda(double lambda) { m_lambda = lambda; }
 
+    // Robust cost functions.  These cost function can help to reduce
+    // the impact of outliers in the bundle adjustment.
     double pseudo_huber_error(double delta_norm, double b) {
       return 2.0f * pow(b,2) * (sqrt(1.0f + pow(delta_norm/b,2)) - 1.0f);
     }
@@ -464,6 +467,10 @@ namespace camera {
       return abs(delta_norm);
     }
 
+    // This is a simple, non-sparse, unoptimized implementation of LM
+    // bundle adjustment.  It is primarily used for validation and
+    // debugging.
+    //
     // Each entry in the outer vector corresponds to a distinct 3D
     // point.  The inner vector contains a list of image IDs and
     // pixel coordinates where that point was imaged.
@@ -742,11 +749,11 @@ namespace camera {
       }
     }
 
-
-
     //------------------------
 
-
+    // This is the sparse levenberg marquardt update step.  Returns
+    // the average improvement in the cost function.
+    // 
     // Each entry in the outer vector corresponds to a distinct 3D
     // point.  The inner vector contains a list of image IDs and
     // pixel coordinates where that point was imaged.
@@ -806,7 +813,7 @@ namespace camera {
       error_total = sqrt(error_total);
 
       
-      // Add in the camera position and point position constraint terms
+      // Add in the camera position constraint terms.
       for (unsigned j = 0; j < U.size(); ++j) {        
         Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> inverse_cov;
         for (unsigned jj=0; jj < 3; ++jj) {
@@ -824,16 +831,15 @@ namespace camera {
         epsilon_a(j) += transpose(C) * inverse_cov * eps_a;
       }
 
-//       for (unsigned i = 0; i < V.size(); ++i) {        
-//         Matrix<double, BundleAdjustModelT::point_params_n, BundleAdjustModelT::point_params_n> D;
-//         V(i) += transpose(D) * D;
 
-//         Vector<double, BundleAdjustModelT::point_params_n> eps_b;// = -b[i];
-//         epsilon_b(i) += transpose(D) * eps_b;
-//       }
-        
-
-
+      // Add in camera pose constraint terms
+      //       for (unsigned i = 0; i < V.size(); ++i) {        
+      //         Matrix<double, BundleAdjustModelT::point_params_n, BundleAdjustModelT::point_params_n> D;
+      //         V(i) += transpose(D) * D;
+      
+      //         Vector<double, BundleAdjustModelT::point_params_n> eps_b;// = -b[i];
+      //         epsilon_b(i) += transpose(D) * eps_b;
+      //       }
 
       //      std::cout << "Average error on the image plane for " << n << " points: " << (error_total/n) << " pixels   (total error: " << error_total << ")\n";
  
