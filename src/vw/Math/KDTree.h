@@ -368,7 +368,7 @@ namespace math {
     ModuloDiscSelector(unsigned k)
       : m_k(k) {}
     template <typename ForwardIterT>
-    unsigned operator() (ForwardIterT beg, ForwardIterT end, int disc) const {
+    unsigned operator() (ForwardIterT /*beg*/, ForwardIterT /*end*/, int disc) const {
       return (disc + 1) % m_k;
     }
   };
