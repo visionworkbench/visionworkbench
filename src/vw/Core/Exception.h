@@ -30,7 +30,7 @@
 /// environments where exceptions may not be fully supported.  As a
 /// result, the use of exceptions within the Vision Workbench is
 /// tightly controlled.  In particular, the exception usage rules were
-/// designed to minimize the imact on platforms that do not support
+/// designed to minimize the impact on platforms that do not support
 /// exceptions at all.  There is a standard Vision Workbench
 /// "exception" class hierarchy which is used to describe errors and
 /// can be used even on platforms that do not support the C++
