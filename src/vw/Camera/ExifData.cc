@@ -456,7 +456,7 @@ bool vw::camera::ExifData::import_data(std::string const &filename) {
   return ret;
 }
 
-bool vw::camera::ExifData::get_tag_value(const uint16 tag, int &value) {
+bool vw::camera::ExifData::get_tag_value(const uint16 tag, int &value) const {
   std::map<unsigned int, ExifTagData>::const_iterator tag_iter = tags.find(tag);
   if (tag_iter == tags.end()) return false;
   switch ((*tag_iter).second.type) {
@@ -472,7 +472,7 @@ bool vw::camera::ExifData::get_tag_value(const uint16 tag, int &value) {
   return true;
 }
 
-bool vw::camera::ExifData::get_tag_value(const uint16 tag, double &value) {
+bool vw::camera::ExifData::get_tag_value(const uint16 tag, double &value) const {
   std::map<unsigned int, ExifTagData>::const_iterator tag_iter = tags.find(tag);
   if (tag_iter == tags.end()) return false;
   switch ((*tag_iter).second.type) {
@@ -488,7 +488,7 @@ bool vw::camera::ExifData::get_tag_value(const uint16 tag, double &value) {
   return true;
 }
 
-bool vw::camera::ExifData::get_tag_value(const uint16 tag, std::string &value) {
+bool vw::camera::ExifData::get_tag_value(const uint16 tag, std::string &value) const {
   std::map<unsigned int, ExifTagData>::const_iterator tag_iter = tags.find(tag);
   if (tag_iter == tags.end()) return false;
   if ((*tag_iter).second.type != StringType) return false;
@@ -496,7 +496,7 @@ bool vw::camera::ExifData::get_tag_value(const uint16 tag, std::string &value) {
   return true;
 }
 
-unsigned int vw::camera::ExifData::get_exif_location() {
+unsigned int vw::camera::ExifData::get_exif_location() const {
   return ExifLocation;
 }
 

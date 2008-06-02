@@ -147,19 +147,20 @@ namespace camera {
 
     // Query the data by tag ID (common tags are enumerated at the top if
     // Exif.h)
-    void query_by_tag(const uint16 tag, int& value);
-    void query_by_tag(const uint16 tag, double& value);
-    void query_by_tag(const uint16 tag, std::string& value);
+    void query_by_tag(const uint16 tag, int& value) const;
+    void query_by_tag(const uint16 tag, double& value) const;
+    void query_by_tag(const uint16 tag, std::string& value) const;
 
     
     // Camera info
-    std::string get_make();
-    std::string get_model();
+    std::string get_make() const;
+    std::string get_model() const;
     
     // Camera settings
-    double get_f_number();
-    double get_exposure_time();
-    double get_iso();
+    double get_f_number() const;
+    double get_exposure_time() const;
+    double get_iso() const;
+    double get_focal_length_35mm_equiv() const;
     
     // APEX equivalents
     //
@@ -170,15 +171,19 @@ namespace camera {
 
     // This function returns the value for brightness using the linear
     // system
-    double get_average_luminance();
+    double get_average_luminance() const;
 
     // These functions report values in the additive logarithmic
     // system.
-    double get_aperture_value();
-    double get_time_value();
-    double get_exposure_value();
-    double get_film_speed_value();
-    double get_luminance_value();
+    double get_aperture_value() const;
+    double get_time_value() const;
+    double get_exposure_value() const;
+    double get_film_speed_value() const;
+    double get_luminance_value() const;
+    bool   get_auto_exposure_enabled() const;
+
+    // Location of thumbnail image in file
+    size_t get_thumbnail_location() const;
   };
 
 }} // namespace vw::camera

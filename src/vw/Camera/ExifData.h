@@ -69,10 +69,10 @@ namespace camera {
     
     bool import_data(std::string const &filename);
     
-    bool get_tag_value(const uint16 tag, int &value);
-    bool get_tag_value(const uint16 tag, double &value);
-    bool get_tag_value(const uint16 tag, std::string &value);
-    unsigned int get_exif_location();
+    bool get_tag_value(const uint16 tag, int &value) const;
+    bool get_tag_value(const uint16 tag, double &value) const;
+    bool get_tag_value(const uint16 tag, std::string &value) const;
+    unsigned int get_exif_location() const;
     
     void print_debug();
   };
