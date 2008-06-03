@@ -130,6 +130,7 @@ namespace camera {
     }
     
     virtual ~LinescanModel() {}
+    virtual std::string type() const { return "Linescan"; }
 
     //------------------------------------------------------------------
     // Interface

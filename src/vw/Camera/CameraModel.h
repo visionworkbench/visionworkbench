@@ -90,6 +90,9 @@ namespace camera {
     /// intersection in a stereo vision algorithm).
     virtual Vector3 camera_center(Vector2 const& pix) const = 0;
 
+    /// Subclasses must define a method that return the camera type as a string.
+    virtual std::string type() const = 0;
+
     /// Returns the pose (as a quaternion) of the camera for a given
     /// pixel.
     virtual Quaternion<double> camera_pose(Vector2 const& /*pix*/) const {
@@ -122,7 +125,8 @@ namespace camera {
       m_camera(camera_model), m_translation(translation), m_rotation(rotation), m_rotation_inverse(inverse(rotation)) {}
 
     virtual ~AdjustedCameraModel() {}
-    
+    virtual std::string type() const { return "Adjusted"; }
+
     Vector3 translation() const { return m_translation; }
     Quaternion<double> rotation() const { return m_rotation; }
     Matrix<double,3,3> rotation_matrix() const { return m_rotation.rotation_matrix(); }

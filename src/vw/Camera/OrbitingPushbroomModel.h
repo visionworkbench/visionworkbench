@@ -120,6 +120,8 @@ namespace camera {
                                                            SLERPPoseInterpolation(camera_poses, t0_camera_pose, dt_camera_pose)) {}
 
     virtual ~OrbitingPushbroomModel() {}
+    virtual std::string type() const { return "OrbitingPushbroom"; }
+
   };  
 }}	// namespace vw::camera
 

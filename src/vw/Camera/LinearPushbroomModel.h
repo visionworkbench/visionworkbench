@@ -73,6 +73,7 @@ namespace camera {
                                                               ConstantPoseInterpolation(camera_pose)) {}
 
     virtual ~LinearPushbroomModel() {}
+    virtual std::string type() const { return "LinearPushbroom"; }
   };  
 
 }}	// namespace vw::camera

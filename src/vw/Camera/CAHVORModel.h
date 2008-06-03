@@ -62,6 +62,7 @@ namespace camera {
       C(C_vec), A(A_vec), H(H_vec), V(V_vec), O(O_vec), R(R_vec) {}
 
     virtual ~CAHVORModel() {}
+    virtual std::string type() const { return "CAHVOR"; }
 
     //------------------------------------------------------------------
     // Methods

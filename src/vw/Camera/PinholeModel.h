@@ -245,6 +245,7 @@ namespace camera {
       m_distortion_model_ptr->set_parent_camera_model(this);
     }
 
+    virtual std::string type() const { return "Pinhole"; }
     virtual ~PinholeModel() {}
 
     /// Read a pinhole model from a file on disk.

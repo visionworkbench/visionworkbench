@@ -105,6 +105,7 @@ namespace camera {
     
     CAHVModel operator= (PinholeModel const& pin_model);
     
+    virtual std::string type() const { return "CAHV"; }
     
     /// Initialize the CAHV vectors indirectly using pinhole camera
     /// parameters.  In this variant, the view matrix is supplied

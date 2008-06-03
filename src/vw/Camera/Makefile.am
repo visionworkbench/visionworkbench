@@ -35,7 +35,7 @@ endif
 
 include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h		\
                   CameraTransform.h Exif.h ExifData.h BayerFilter.h	\
-                  $(lsm_headers)
+                  ControlNetwork.h $(lsm_headers)
 
 libvwCamera_la_SOURCES = PinholeModel.cc CAHVModel.cc CAHVORModel.cc	\
 	          Exif.cc ExifData.cc
