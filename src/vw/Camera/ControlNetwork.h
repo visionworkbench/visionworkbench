@@ -32,6 +32,9 @@
 // STL
 #include <string>
 #include <vector>
+#include <fstream>
+
+#include <vw/Math/Vector.h>
 
 namespace vw {
 namespace camera {
