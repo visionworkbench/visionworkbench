@@ -478,11 +478,12 @@ namespace camera {
     // pixel coordinates where that point was imaged.
     double update_reference_impl(double &abs_tol, double &rel_tol) { 
       ++m_iterations;
-      int num_observations = 2*m_num_observations+6*a.size()+3*b.size();
-      int num_parameters = 6*a.size() + 3*b.size();
+      int num_observations = 2*m_num_observations + BundleAdjustModelT::camera_params_n*a.size() + BundleAdjustModelT::point_params_n*b.size();
+      int num_parameters = BundleAdjustModelT::camera_params_n*a.size() + BundleAdjustModelT::point_params_n*b.size();
       
       Matrix<double> J(num_observations, num_parameters);
       Vector<double> epsilon(num_observations);
+      Matrix<double> sigma(num_observations, num_observations);
       
       // --- SETUP STEP ----
 
@@ -490,59 +491,81 @@ namespace camera {
       int idx = 0;
       int num_cameras = m_model.size();
       for (unsigned i = 0; i < m_control_net.size(); ++i) {
-        Vector<double, BundleAdjustModelT::point_params_n> point_params = b[i];
         for (unsigned j = 0; j < m_control_net[i].size(); ++j) {
+
           int camera_idx = m_control_net[i][j].image_id();
-          Vector<double, BundleAdjustModelT::camera_params_n> camera_params = a[camera_idx];
-          
-          Matrix<double> J_a = m_model.A_jacobian(i,camera_idx, camera_params, point_params);
-          Matrix<double> J_b = m_model.B_jacobian(i,camera_idx, camera_params, point_params);
+
+          Matrix<double> J_a = m_model.A_jacobian(i,camera_idx, a[camera_idx], b[i]);
+          Matrix<double> J_b = m_model.B_jacobian(i,camera_idx, a[camera_idx], b[i]);
 
           // Populate the Jacobian Matrix
           submatrix(J, 2*idx, camera_idx*J_a.cols(), 2, J_a.cols()) = J_a;
           submatrix(J, 2*idx, num_cameras*J_a.cols() + i*J_b.cols(), 2, J_b.cols()) = J_b;
 
           // Apply robust cost function weighting and populate the error vector
-          Vector2 unweighted_error = m_control_net[i][j].position() - m_model(i, camera_idx, camera_params, point_params);
+          Vector2 unweighted_error = m_control_net[i][j].position() - m_model(i, camera_idx, a[camera_idx], b[i]);
           double weight = sqrt(huber_error(norm_2(unweighted_error),1.0)) / norm_2(unweighted_error);
           subvector(epsilon,2*idx,2) = unweighted_error * weight;
+
+          // Fill in the entries of the sigma matrix with the uncertainty of the observations.
+          Matrix2x2 inverse_cov;
+          Vector2 pixel_sigma = m_control_net[i][j].sigma();
+          inverse_cov(0,0) = 1/pixel_sigma(0);
+          inverse_cov(1,1) = 1/pixel_sigma(1);
+          submatrix(sigma, 2*idx, 2*idx, 2, 2) = inverse_cov;
 
           ++idx;
         }
       }
       
-      // Add rows to J for a priori position/pose constraints
-      Matrix<double> id(6*a.size(),6*a.size());
-      id.set_identity();
-      for (unsigned i=0; i < a.size(); ++i) {
-        for (unsigned j=0; j < 3; ++j) {
-          unsigned pos = 6*i+j;
-          id(pos,pos) *= 0.1;   // position
-        }
-        for (unsigned j=3; j < 6; ++j) {
-          unsigned pos = 6*i+j;
-          id(pos,pos) *= 0.9;   // pose
-        }
+      // Add rows to J and epsilon for a priori position/pose constraints...
+      for (unsigned j=0; j < a.size(); ++j) {
+        Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> id;
+        id.set_identity();
+        submatrix(J,
+                  2*m_num_observations + j*BundleAdjustModelT::camera_params_n,
+                  j*BundleAdjustModelT::camera_params_n,
+                  BundleAdjustModelT::camera_params_n,
+                  BundleAdjustModelT::camera_params_n) = id;
+        subvector(epsilon,2*m_num_observations + j*BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n) = -a[j];
+        submatrix(sigma,
+                  2*m_num_observations + j*BundleAdjustModelT::camera_params_n,
+                  2*m_num_observations + j*BundleAdjustModelT::camera_params_n,
+                  BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n) = m_model.A_inverse_covariance(j);
       }
-      submatrix(J,2*m_num_observations,0,6*a.size(),6*a.size()) = id;
-
-      // And add error measurement to epsilon
-      for (unsigned i=0; i < a.size(); ++i) {
-        subvector(epsilon,2*m_num_observations + BundleAdjustModelT::camera_params_n*i,6) = -a[i];
+      
+      // ... and the position of the 3D points to J and epsilon ...
+      for (unsigned i=0; i < b.size(); ++i) {
+        Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> id;
+        id.set_identity();
+        submatrix(J,2*m_num_observations + BundleAdjustModelT::camera_params_n*a.size() + i*BundleAdjustModelT::point_params_n,
+                  BundleAdjustModelT::camera_params_n*a.size() + i*BundleAdjustModelT::point_params_n,
+                  BundleAdjustModelT::point_params_n,
+                  BundleAdjustModelT::point_params_n) = id;
+        subvector(epsilon,2*m_num_observations + BundleAdjustModelT::camera_params_n*a.size() + i*BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n) = -b[i];
+        submatrix(sigma,
+                  2*m_num_observations + BundleAdjustModelT::camera_params_n*a.size() + i*BundleAdjustModelT::point_params_n,
+                  2*m_num_observations + BundleAdjustModelT::camera_params_n*a.size() + i*BundleAdjustModelT::point_params_n,
+                  BundleAdjustModelT::point_params_n, BundleAdjustModelT::point_params_n) = m_model.B_inverse_covariance(i);
       }
 
+//       std::cout << "J: " << J << "\n\n";
+//       std::cout << "epsilon: " << epsilon << "\n\n";
+//      std::cout << "sigma: " << sigma << "\n\n";
 
       // --- UPDATE STEP ----
       
       // Build up the right side of the normal equation...
-      Vector<double> del_J = -1.0 * (transpose(J) * epsilon);
+      Vector<double> del_J = -1.0 * (transpose(J) * sigma * epsilon);
 
       // ... and the left side.  (Remembering to rescale the diagonal
       // entries of the approximated hessian by lambda)
-      Matrix<double> hessian = (transpose(J) * J);
+      Matrix<double> hessian = transpose(J) * sigma * J;
       for ( unsigned i=0; i < hessian.rows(); ++i )
-          hessian(i,i) += hessian(i,i)*m_lambda + m_lambda;
-
+        hessian(i,i) += hessian(i,i)*m_lambda;
+        //        hessian(i,i) += m_lambda;
+        //        hessian(i,i) += hessian(i,i)*m_lambda + m_lambda;
+      
       // Solve for update
       Vector<double> delta = least_squares(hessian, del_J);
 
@@ -579,6 +602,7 @@ namespace camera {
       }
 
       if (norm_2(new_epsilon) < norm_2(epsilon))  {
+
         for (unsigned j=0; j<a.size(); ++j) 
           a[j] -= subvector(delta, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
         for (unsigned i=0; i<b.size(); ++i)
@@ -595,11 +619,13 @@ namespace camera {
 
         abs_tol = avg_err;
         rel_tol = improvement;
-        
         return improvement;
+
       } else {
+
         m_lambda *= 10;
         return ScalarTypeLimits<double>::highest();
+
       }
     }
 
@@ -644,7 +670,7 @@ namespace camera {
 
           // Apply robust cost function weighting
           double weight = sqrt(huber_error(norm_2(unweighted_error),1.0)) / norm_2(unweighted_error);
-          epsilon(i,j).ref() = unweighted_error * weight;
+          epsilon(i,j) = unweighted_error * weight;
           error_total += pow(epsilon(i,j).ref()(0),2);
           error_total += pow(epsilon(i,j).ref()(1),2);
 
@@ -697,11 +723,13 @@ namespace camera {
       // the parameter lambda.
       for (i = 0; i < U.size(); ++i)  
         for (unsigned j = 0; j < BundleAdjustModelT::camera_params_n; ++j)
-          U(i).ref()(j,j) += U(i).ref()(j,j)*m_lambda + m_lambda;
+          U(i).ref()(j,j) += U(i).ref()(j,j)*m_lambda;
+      //          U(i).ref()(j,j) += U(i).ref()(j,j)*m_lambda + m_lambda;
 
       for (i = 0; i < V.size(); ++i) 
         for (unsigned j = 0; j < BundleAdjustModelT::point_params_n; ++j) 
-          V(i).ref()(j,j) += V(i).ref()(j,j)*m_lambda + m_lambda;
+          V(i).ref()(j,j) += V(i).ref()(j,j)*m_lambda;
+      //          V(i).ref()(j,j) += V(i).ref()(j,j)*m_lambda + m_lambda;
 
       // Create the 'e' vector in S * delta_a = e.  The first step is
       // to "flatten" our block structure to a vector that contains
