@@ -38,7 +38,7 @@
 /// 
 /// The vw::Exception class serves as a base class for all VWB error
 /// types.  It is designed to make it easy to throw exceptions with 
-/// meaningful error messages.  For example, the this invocation:
+/// meaningful error messages.  For example, this invocation:
 ///
 ///  <TT>vw_throw( vw::Exception() << "Unable to open file \"" << filename << "\"!" );</TT>
 ///
@@ -86,7 +86,7 @@
 /// error message.  This purely cosmetic usage must be conditionally
 /// compiled like this:
 ///  #if ! ( defined(VW_NO_EXCEPTIONS) && (VW_NO_EXCEPTIONS==1) )
-/// Obvisouly this functionality will be disabled on platforms 
+/// Obviously this functionality will be disabled on platforms 
 /// that do not support exceptions.
 ///
 /// Exceptions are enabled or disabled based on the value of the
@@ -101,7 +101,7 @@
 /// overridden by calling set_exception_handler(), passing it a
 /// pointer to a user-defined object derived from ExceptionHandler.
 /// The user specifies the error-handling behavior by overriding the
-/// abstract method handle().  When exceptiosn have not been disabled,
+/// abstract method handle().  When exceptions have not been disabled,
 /// the Exception class and its children define a virtual method
 /// default_throw() which the handler may call to have the exception
 /// throw itself in a type-aware manner.
