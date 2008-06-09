@@ -146,6 +146,8 @@ namespace camera {
     return false;
   }
 
+  std::ostream& operator<<( std::ostream& os, ControlMeasure const& measure);
+
   /// ControlPoints are 3D locations in geographic coordinates (lon,
   /// lat, radius) that are associated with a certain number of
   /// ControlMeasures.  Each ControlMeasure is an observation where
@@ -191,6 +193,18 @@ namespace camera {
     void add_measures(std::vector<ControlMeasure> const& measures) { 
       m_measures.insert(m_measures.end(), measures.begin(), measures.end());
     }
+
+    /// Remove the control point at the specified index.
+    void delete_measure(unsigned index) {
+      if (index >= this->size())
+        vw_throw(LogicErr() << "ControlPoint::delete_control_point -- index " << index << " exceeds control point dimensions.");
+
+      iterator iter = this->begin();
+      for (unsigned i=0; i<index; ++i)
+        ++iter;
+      
+      m_measures.erase(iter);
+    }
     
     /// Access a specific control measure that is associated with this control point.
     ControlMeasure& operator[] (int index) { return m_measures[index]; }
@@ -203,7 +217,7 @@ namespace camera {
     /// this->size() if no match is found.
     unsigned find(ControlMeasure const& query) {
       for (unsigned i = 0; i < m_measures.size(); ++i) 
-        if (m_measures[i] == query) 
+        if (m_measures[i] == query)  
           return i;
       // If no matches are found, return m_measures.size() (the last index + 1)
       return m_measures.size();
@@ -235,6 +249,7 @@ namespace camera {
 
   };
 
+  std::ostream& operator<<( std::ostream& os, ControlPoint const& point);
 
   /// The control network contains a list of control points (either ground control
   /// points or tie points).
@@ -269,11 +284,23 @@ namespace camera {
     const_iterator end() const { return m_control_points.end(); }
 
     /// Associate a single control measure with this ControlPoint
-    void add_control_point(ControlPoint const& measure) { m_control_points.push_back(measure); }
+    void add_control_point(ControlPoint const& point) { m_control_points.push_back(point); }
 
     /// Associate multiple control measures with this ControlPoint
-    void add_control_points(std::vector<ControlPoint> const& measures) { 
-      m_control_points.insert(m_control_points.end(), measures.begin(), measures.end());
+    void add_control_points(std::vector<ControlPoint> const& points) { 
+      m_control_points.insert(m_control_points.end(), points.begin(), points.end());
+    }
+
+    /// Remove the control point at the specified index.
+    void delete_control_point(unsigned index) {
+      if (index >= this->size())
+        vw_throw(LogicErr() << "ControlNetwork::delete_control_point -- index " << index << " exceeds control network dimensions.");
+
+      iterator iter = this->begin();
+      for (unsigned i=0; i<index; ++i)
+        ++iter;
+      
+      m_control_points.erase(iter);
     }
     
     /// Access a specific control measure that is associated with this control point.
@@ -348,6 +375,8 @@ namespace camera {
     }
 
   };
+
+  std::ostream& operator<<( std::ostream& os, ControlNetwork const& cnet);
 
 }} // namespace vw::camera
 

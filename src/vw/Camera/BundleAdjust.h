@@ -759,9 +759,10 @@ namespace camera {
           error_total += pow(epsilon(i,j).ref()(1),2);
 
           Matrix2x2 inverse_cov;
-          Vector2 pixel_sigma = measure_iter->sigma();
-          inverse_cov(0,0) = 1/pixel_sigma(0);
-          inverse_cov(1,1) = 1/pixel_sigma(1);
+          inverse_cov.set_identity();
+//           Vector2 pixel_sigma = measure_iter->sigma();
+//           inverse_cov(0,0) = 1/pixel_sigma(0);
+//           inverse_cov(1,1) = 1/pixel_sigma(1);
 
           // Store intermediate values
           U(j) += transpose(A(i,j).ref()) * inverse_cov * A(i,j).ref();

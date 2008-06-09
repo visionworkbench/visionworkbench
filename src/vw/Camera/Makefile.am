@@ -38,7 +38,7 @@ include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h		\
                   ControlNetwork.h $(lsm_headers)
 
 libvwCamera_la_SOURCES = PinholeModel.cc CAHVModel.cc CAHVORModel.cc	\
-	          Exif.cc ExifData.cc
+	          Exif.cc ExifData.cc ControlNetwork.cc
 
 libvwCamera_la_LIBADD = @MODULE_CAMERA_LIBS@
 
