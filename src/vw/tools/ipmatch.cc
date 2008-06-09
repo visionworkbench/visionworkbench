@@ -195,7 +195,7 @@ int main(int argc, char** argv) {
         }
       } catch (vw::ip::RANSACErr &e) {
         std::cout << "RANSAC Failed: " << e.what() << "\n";
-        exit(0);
+        continue;
       }
       vw_out(InfoMessage) << "Found " << indices.size() << " final matches.\n";
       
