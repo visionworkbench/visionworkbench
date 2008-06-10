@@ -394,17 +394,6 @@ namespace camera {
   //                     BundleAdjustment
   //--------------------------------------------------------------
 
-  // Use this type to describe a "bundle" for a given 3D point.
-  // Each element 'i' of the vector contains 1) the index 'j' of a
-  // camera where that point was imaged (corresponding to a camera
-  // in camera_models), and 2) the pixel location where point 'i'
-  // was imaged by imager 'j'.
-  struct Bundle {
-    typedef std::vector<std::pair<uint32, Vector2> > pixel_list_type;
-    Vector3 position;
-    pixel_list_type imaged_pixel_locations;
-  };
-  
   template <class BundleAdjustModelT>
   class BundleAdjustment {   
     
@@ -695,7 +684,7 @@ namespace camera {
         double pixel_improvement = (norm_2(subvector(unweighted_epsilon,0,2*m_num_pixel_observations)) - 
                                     norm_2(subvector(unweighted_new_epsilon,0,2*m_num_pixel_observations))) / (2*m_num_pixel_observations);;
         double pixel_avg_err = norm_2(subvector(unweighted_new_epsilon,0,2*m_num_pixel_observations)) / (2*m_num_pixel_observations);
-        std::cout << "Reference LM Iteration " << m_iterations << ": \t"
+        std::cout << "Reference LM Iteration " << m_iterations << ":     "
                   << "  Image Plane: [" << pixel_avg_err << "  delta: " << pixel_improvement << "]\t"
                   << "  Overall: [" << overall_avg_err << "  delta: " << overall_improvement << "]\t"
                   << "  Lambda: " << m_lambda << "             \n" << std::flush;
@@ -717,6 +706,10 @@ namespace camera {
     // the average improvement in the cost function.
     double update(double &abs_tol, double &rel_tol) { 
       ++m_iterations;
+      
+      double huber_pixel_threshold = 10.0; // Set Huber threshold to 10 pixels      
+      double huber_camera_threshold = 2.0; // Set Huber threshold to 2 meters/degrees
+      double huber_point_threshold = 2.0;  // Set Huber threshold to 2 meters
 
       VW_DEBUG_ASSERT(m_control_net.size() == b.size(), LogicErr() << "BundleAdjustment::update() : Number of bundles does not match the size of the b vector.");
 
@@ -740,6 +733,7 @@ namespace camera {
       unsigned i = 0;
       unsigned n = 0;
       double error_total = 0;
+      double unweighted_error_total = 0;
       for (typename ControlNetwork::const_iterator iter = m_control_net.begin(); iter != m_control_net.end(); ++iter) {
         for (typename ControlPoint::const_iterator measure_iter = (*iter).begin(); measure_iter != (*iter).end(); ++measure_iter) {
           unsigned j = (*measure_iter).image_id();
@@ -753,16 +747,16 @@ namespace camera {
           Vector2 unweighted_error = measure_iter->position() - m_model(i,j,a[j],b[i]);
 
           // Apply robust cost function weighting
-          double weight = sqrt(huber_error(norm_2(unweighted_error),1.0)) / norm_2(unweighted_error);
+          double weight = sqrt(huber_error(norm_2(unweighted_error),huber_pixel_threshold)) / norm_2(unweighted_error);
           epsilon(i,j) = unweighted_error * weight;
           error_total += pow(epsilon(i,j).ref()(0),2);
           error_total += pow(epsilon(i,j).ref()(1),2);
+          unweighted_error_total += norm_2(unweighted_error);
 
           Matrix2x2 inverse_cov;
-          inverse_cov.set_identity();
-//           Vector2 pixel_sigma = measure_iter->sigma();
-//           inverse_cov(0,0) = 1/pixel_sigma(0);
-//           inverse_cov(1,1) = 1/pixel_sigma(1);
+          Vector2 pixel_sigma = measure_iter->sigma();
+          inverse_cov(0,0) = 1/pixel_sigma(0);
+          inverse_cov(1,1) = 1/pixel_sigma(1);
 
           // Store intermediate values
           U(j) += transpose(A(i,j).ref()) * inverse_cov * A(i,j).ref();
@@ -774,7 +768,6 @@ namespace camera {
         }
         ++i;
       }
-      error_total = sqrt(error_total);
       
       // Add in the camera position and pose constraint terms and covariances.
       for (unsigned j = 0; j < U.size(); ++j) {        
@@ -786,20 +779,33 @@ namespace camera {
         U(j) += transpose(C) * inverse_cov * C;
 
         Vector<double, BundleAdjustModelT::camera_params_n> eps_a = a_initial[j]-a[j];
+
+//         double weight = sqrt(huber_error(norm_2(unweighted_error),huber_camera_threshold)) / norm_2(unweighted_error);
+//         Vector<double, BundleAdjustModelT::camera_params_n> eps_a = weight * unweighted_error;
+
+        error_total += pow(eps_a(0),2);
+        error_total += pow(eps_a(1),2);
         epsilon_a(j) += transpose(C) * inverse_cov * eps_a;
       }
 
       // Add in the 3D point position constraint terms and covariances.
-      for (unsigned i = 0; i < V.size(); ++i) {        
+      for (unsigned i = 0; i < V.size(); ++i) {
         Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> inverse_cov;
         inverse_cov = m_model.B_inverse_covariance(i);
-
+        
         Matrix<double, BundleAdjustModelT::point_params_n, BundleAdjustModelT::point_params_n> D;
         D.set_identity();
         V(i) += transpose(D) * inverse_cov * D;
-      
-        Vector<double, BundleAdjustModelT::point_params_n> eps_b = b_initial[i]-b[i];
-        epsilon_b(i) += transpose(D) * inverse_cov * eps_b;
+        
+        // We only add constraints for Ground Control Points (GCPs), not for 3D tie points.
+        if (m_control_net[i].type() == ControlPoint::GroundControlPoint) {
+          Vector<double, BundleAdjustModelT::point_params_n> eps_b = b_initial[i]-b[i];
+//           double weight = sqrt(huber_error(norm_2(unweighted_error),huber_point_threshold)) / norm_2(unweighted_error);
+//           Vector<double, BundleAdjustModelT::point_params_n> eps_b = weight * unweighted_error;
+          error_total += pow(eps_b(0),2);
+          error_total += pow(eps_b(1),2);
+          epsilon_b(i) += transpose(D) * inverse_cov * eps_b;
+        }
       }
 
       //      std::cout << "Average error on the image plane for " << n << " points: " << (error_total/n) << " pixels   (total error: " << error_total << ")\n";
@@ -918,9 +924,12 @@ namespace camera {
         ++i;
       }
 
+      // -------------------------------
       // Compute the update error vector
+      // -------------------------------
       i = 0;
       double new_error_total = 0;
+      double new_unweighted_error_total = 0;
       for (typename ControlNetwork::const_iterator iter = m_control_net.begin(); iter != m_control_net.end(); ++iter) {
         for (typename ControlPoint::const_iterator measure_iter = (*iter).begin(); measure_iter != (*iter).end(); ++measure_iter) {
           unsigned j = measure_iter->image_id();
@@ -931,14 +940,39 @@ namespace camera {
           Vector2 unweighted_error = measure_iter->position() - m_model(i,j,new_a,new_b);
 
           // Apply robust cost function weighting
-          double weight = sqrt(huber_error(norm_2(unweighted_error),1.0)) / norm_2(unweighted_error);
+          double weight = sqrt(huber_error(norm_2(unweighted_error),huber_pixel_threshold)) / norm_2(unweighted_error);
           Vector2 weighted_error = weight * unweighted_error;
           new_error_total += pow(weighted_error(0),2);
           new_error_total += pow(weighted_error(1),2);
+          new_unweighted_error_total += norm_2(unweighted_error);
         }
         ++i;
       }
-      new_error_total = sqrt(new_error_total);
+
+      for (unsigned j = 0; j < U.size(); ++j) {        
+        Vector<double, BundleAdjustModelT::camera_params_n> new_a = a[j] + subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
+        Vector<double, BundleAdjustModelT::camera_params_n> eps_a = a_initial[j]-new_a;
+
+//         double weight = sqrt(huber_error(norm_2(unweighted_error),huber_camera_threshold)) / norm_2(unweighted_error);
+//         Vector<double, BundleAdjustModelT::camera_params_n> eps_a = weight * unweighted_error;
+
+        new_error_total += pow(eps_a(0),2);
+        new_error_total += pow(eps_a(1),2);
+      }
+
+      for (unsigned i = 0; i < V.size(); ++i) {
+        // We only add constraints for Ground Control Points (GCPs), not for 3D tie points.
+        if (m_control_net[i].type() == ControlPoint::GroundControlPoint) {
+          Vector<double, BundleAdjustModelT::point_params_n> new_b = b[i] + delta_b(i).ref();
+          Vector<double, BundleAdjustModelT::point_params_n> eps_b = b_initial[i]-new_b;
+
+//           double weight = sqrt(huber_error(norm_2(unweighted_error),huber_point_threshold)) / norm_2(unweighted_error);
+//           Vector<double, BundleAdjustModelT::point_params_n> eps_b = weight * unweighted_error;
+
+          new_error_total += pow(eps_b(0),2);
+          new_error_total += pow(eps_b(1),2);          
+        }
+      }
       
       if (new_error_total < error_total)  {
         for (unsigned j=0; j<a.size(); ++j) 
@@ -951,14 +985,19 @@ namespace camera {
         m_model.update(a);
 
         // Summarize the stats from this step in the iteration
-        double improvement = (error_total - new_error_total)/m_num_pixel_observations;
-        double avg_err = new_error_total/m_num_pixel_observations;
-        std::cout << "Sparse LM Iteration " << m_iterations << " -- Error: " << avg_err << "  Delta: " << improvement << "  Lambda: " << m_lambda << "             \n" << std::flush;
+        double overall_improvement = sqrt(error_total) - sqrt(new_error_total);
+        double overall_error = sqrt(new_error_total);
+        double pixel_avg_improvement = (new_unweighted_error_total-unweighted_error_total) / m_num_pixel_observations;
+        double pixel_avg_err = new_unweighted_error_total / m_num_pixel_observations;
+        std::cout << "Sparse LM Iteration " << m_iterations << ":    "
+                  << "  Image Plane: [" << pixel_avg_err << "  delta: " << pixel_avg_improvement << "]\t"
+                  << "  Overall: [" << overall_error << "  delta: " << overall_improvement << "]\t"
+                  << "  Lambda: " << m_lambda << "             \n" << std::flush;
 
-        abs_tol = avg_err;
-        rel_tol = improvement;
+        abs_tol = overall_error;
+        rel_tol = overall_improvement;
         
-        return improvement;
+        return overall_improvement;
       } else {
         m_lambda *= 10;
         return ScalarTypeLimits<double>::highest();

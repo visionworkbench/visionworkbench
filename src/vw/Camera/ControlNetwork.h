@@ -164,12 +164,18 @@ namespace camera {
     typedef std::vector<ControlMeasure>::iterator iterator;
     typedef std::vector<ControlMeasure>::const_iterator const_iterator;
     
+    enum ControlPointType { GroundControlPoint, TiePoint };
+    ControlPointType m_type;
+
     /// Constructor 
-    ControlPoint() {
+    ControlPoint(ControlPointType type = ControlPoint::TiePoint) : m_type(type) {
       m_ignore = false;
       m_id = "not set";
     }
 
+    ControlPointType type() const { return m_type; }
+    void set_type(ControlPointType type) { m_type = type; }
+    
     // Iterators
     iterator begin() { return m_measures.begin(); }
     iterator end() { return m_measures.end(); }
@@ -276,6 +282,25 @@ namespace camera {
     /// Returns the number of control measures associated with this
     /// control point.
     unsigned size() const { return m_control_points.size(); }
+
+    /// Return the number of Control Points that are Ground Control Points (GCPs)
+    unsigned num_ground_control_points() const { 
+      unsigned count=0;
+      for (unsigned i=0; i<this->size(); ++i) {
+        if ((*this)[i].type() == ControlPoint::GroundControlPoint)
+          ++count;
+      }
+      return count;
+    }
+
+    unsigned num_3d_tie_points() const { 
+      unsigned count=0;
+      for (unsigned i=0; i<this->size(); ++i) {
+        if ((*this)[i].type() == ControlPoint::TiePoint)
+          ++count;
+      }
+      return count;
+    }
 
     // Iterators
     iterator begin() { return m_control_points.begin(); }
