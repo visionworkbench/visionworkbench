@@ -324,7 +324,7 @@ namespace camera {
     /// Write the current control network to a file on disk.
     void write_control_network(std::string filename) {
       std::ofstream ofile(filename.c_str());
-      ofile << this->size();
+      ofile << this->size() << "\n";
       
       for (unsigned c=0; c < this->size(); ++c) {
         ControlPoint& cpoint = (*this)[c];
