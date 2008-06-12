@@ -477,14 +477,12 @@ vw::DiskImageResourcePNG::Comment const& vw::DiskImageResourcePNG::get_comment( 
   return m_info->get_comment(i);
 }
 
-std::string vw::DiskImageResourcePNG::get_comment_key( unsigned i ) const {
-  Comment result = get_comment(i);
-  return result.key;
+std::string const& vw::DiskImageResourcePNG::get_comment_key( unsigned i ) const {
+  return get_comment(i).key;
 }
 
-std::string vw::DiskImageResourcePNG::get_comment_value( unsigned i ) const {
-  Comment result = get_comment(i);
-  return result.text;
+std::string const& vw::DiskImageResourcePNG::get_comment_value( unsigned i ) const {
+  return get_comment(i).text;
 }
 
 bool vw::DiskImageResourcePNG::is_palette_based() const {
