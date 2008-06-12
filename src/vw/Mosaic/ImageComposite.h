@@ -58,13 +58,13 @@ namespace mosaic {
   public:
     int cols_, rows_;
     ImageView<PixelT> image;
-    BBox<int,2> bbox;
+    BBox2i bbox;
 
     typedef PixelT pixel_type;
     typedef PixelT result_type;
 
     template <class ImageT>
-    PositionedImage( int cols, int rows, ImageT const& image, BBox<int,2> const& bbox ) : cols_(cols), rows_(rows), image(image), bbox(bbox) {}
+    PositionedImage( int cols, int rows, ImageT const& image, BBox2i const& bbox ) : cols_(cols), rows_(rows), image(image), bbox(bbox) {}
 
     PositionedImage reduce() const {
       const int border = 1;
@@ -75,9 +75,9 @@ namespace mosaic {
       std::vector<float> kernel(3); kernel[0]=0.25; kernel[1]=0.5; kernel[2]=0.25;
       // I don't quite yet understand why (if?) this is the correct bounding box,
       // but bad things happen without the final "+1"s:
-      BBox<int,2> new_bbox( Vector<int,2>( (bbox.min().x()-left)/2, (bbox.min().y()-top)/2 ),
-                            Vector<int,2>( (bbox.min().x()-left)/2 + (bbox.width()+left+right+1)/2+1,
-                                                (bbox.min().y()-top)/2 + (bbox.height()+top+bottom+1)/2+1 ) );
+      BBox2i new_bbox( Vector2i( (bbox.min().x()-left)/2, (bbox.min().y()-top)/2 ),
+		       Vector2i( (bbox.min().x()-left)/2 + (bbox.width()+left+right+1)/2+1,
+				 (bbox.min().y()-top)/2 + (bbox.height()+top+bottom+1)/2+1 ) );
       // We use vw::rasterize() here rather than ordinary assignment because it is 
       // faster for this particular combination of filtering and subsampling.
       ImageView<PixelT> new_image( new_bbox.width(), new_bbox.height() );
@@ -99,20 +99,20 @@ namespace mosaic {
     // When overlay==true, it overlays the image on top of the destination,
     // respecting any alpha channel.
     void addto( ImageView<PixelT> const& dest, int ox, int oy, bool overlay = false ) {
-      BBox<int,2> sum_bbox = bbox;
-      sum_bbox.crop( BBox<int,2>( Vector<int,2>(ox,oy), Vector<int,2>(ox+dest.cols(),oy+dest.rows()) ) );
+      BBox2i sum_bbox = bbox;
+      sum_bbox.crop( BBox2i( Vector2i(ox,oy), Vector2i(ox+dest.cols(),oy+dest.rows()) ) );
       if( sum_bbox.empty() ) return;
       if( overlay ) {
         if( PixelHasAlpha<PixelT>::value ) {
-          crop( dest, sum_bbox-Vector<int,2>(ox,oy) ) *= 1.0 - select_alpha_channel( crop( image, sum_bbox-bbox.min() ) ) / (double)ChannelRange<PixelT>::max();
-          crop( dest, sum_bbox-Vector<int,2>(ox,oy) ) += crop( image, sum_bbox-bbox.min() );
+          crop( dest, sum_bbox-Vector2i(ox,oy) ) *= 1.0 - select_alpha_channel( crop( image, sum_bbox-bbox.min() ) ) / (double)ChannelRange<PixelT>::max();
+          crop( dest, sum_bbox-Vector2i(ox,oy) ) += crop( image, sum_bbox-bbox.min() );
         }
         else {
-          crop( dest, sum_bbox-Vector<int,2>(ox,oy) ) = crop( image, sum_bbox-bbox.min() );
+          crop( dest, sum_bbox-Vector2i(ox,oy) ) = crop( image, sum_bbox-bbox.min() );
         }
       }
       else {
-        crop( dest, sum_bbox-Vector<int,2>(ox,oy) ) += crop( image, sum_bbox-bbox.min() );
+        crop( dest, sum_bbox-Vector2i(ox,oy) ) += crop( image, sum_bbox-bbox.min() );
       }
     }
 
@@ -211,7 +211,7 @@ namespace mosaic {
 
     friend class PyramidGenerator;
 
-    std::vector<BBox<int,2> > bboxes;
+    std::vector<BBox2i > bboxes;
     BBox2i view_bbox, data_bbox;
     int mindim, levels;
     bool m_draft_mode;
@@ -225,8 +225,8 @@ namespace mosaic {
 
     void generate_masks( ProgressCallback const& progress_callback ) const;
 
-    ImageView<pixel_type> blend_patch( BBox<int,2> const& patch_bbox ) const;
-    ImageView<pixel_type> draft_patch( BBox<int,2> const& patch_bbox ) const;
+    ImageView<pixel_type> blend_patch( BBox2i const& patch_bbox ) const;
+    ImageView<pixel_type> draft_patch( BBox2i const& patch_bbox ) const;
 
   public:
     typedef pixel_type result_type;
@@ -238,7 +238,7 @@ namespace mosaic {
     void prepare( const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() );
     void prepare( BBox2i const& total_bbox, const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() );
 
-    ImageView<pixel_type> generate_patch( BBox<int,2> const& patch_bbox ) const {
+    ImageView<pixel_type> generate_patch( BBox2i const& patch_bbox ) const {
       if( m_draft_mode ) return draft_patch( patch_bbox );
       else return blend_patch( patch_bbox );
     }
@@ -410,7 +410,7 @@ void vw::mosaic::ImageComposite<PixelT>::insert( ImageViewRef<pixel_type> const&
   alphas.push_back( m_cache.insert( AlphaGenerator( *this, pyramids.size() ) ) );
   pyramids.push_back( m_cache.insert( PyramidGenerator( *this, pyramids.size() ) ) );
   int cols = image.cols(), rows = image.rows();
-  BBox<int,2> image_bbox( Vector<int,2>(x, y), Vector<int,2>(x+cols, y+rows) );
+  BBox2i image_bbox( Vector2i(x, y), Vector2i(x+cols, y+rows) );
   bboxes.push_back( image_bbox );
   if( bboxes.size() == 1 ) {
     view_bbox = bboxes.back();
@@ -459,25 +459,25 @@ void vw::mosaic::ImageComposite<PixelT>::prepare( BBox2i const& total_bbox,
 // Generates a full-resolution patch of the mosaic corresponding
 // to the given bounding box.
 template <class PixelT>
-vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox<int,2> const& patch_bbox ) const {
+vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox2i const& patch_bbox ) const {
   vw_out(DebugMessage, "mosaic") << "ImageComposite compositing patch " << patch_bbox << "..." << std::endl;
   // Compute bboxes and allocate the pyramids
-  std::vector<BBox<int,2> > bbox_pyr;
+  std::vector<BBox2i> bbox_pyr;
   std::vector<ImageView<pixel_type> > sum_pyr(levels);
   std::vector<ImageView<channel_type> > msum_pyr(levels);
   for( int l=0; l<levels; ++l ) {
     if( l==0 ) bbox_pyr.push_back( patch_bbox );
-    else bbox_pyr.push_back( BBox<int,2>( Vector<int,2>( bbox_pyr[l-1].min().x() / 2,
-                                                         bbox_pyr[l-1].min().y() / 2 ),
-                                          Vector<int,2>( bbox_pyr[l-1].min().x() / 2 + ( bbox_pyr[l-1].width() + bbox_pyr[l-1].min().x() % 2 ) / 2 + 1,
-                                                         bbox_pyr[l-1].min().y() / 2 + ( bbox_pyr[l-1].height() + bbox_pyr[l-1].min().y() % 2 ) / 2 + 1) ) );
+    else bbox_pyr.push_back( BBox2i( Vector2i( bbox_pyr[l-1].min().x() / 2,
+					       bbox_pyr[l-1].min().y() / 2 ),
+				     Vector2i( bbox_pyr[l-1].min().x() / 2 + ( bbox_pyr[l-1].width() + bbox_pyr[l-1].min().x() % 2 ) / 2 + 1,
+					       bbox_pyr[l-1].min().y() / 2 + ( bbox_pyr[l-1].height() + bbox_pyr[l-1].min().y() % 2 ) / 2 + 1) ) );
     sum_pyr[l] = ImageView<pixel_type>( bbox_pyr[l].width(), bbox_pyr[l].height() );
     msum_pyr[l] = ImageView<channel_type>( bbox_pyr[l].width(), bbox_pyr[l].height() );
   }
   
   // Compute the bounding box for source pixels that could 
   // impact the patch.
-  BBox<int,2> padded_bbox = patch_bbox;
+  BBox2i padded_bbox = patch_bbox;
   for( int l=0; l<levels-1; ++l ) {
     padded_bbox.min().x() = padded_bbox.min().x()/2;
     padded_bbox.min().y() = padded_bbox.min().y()/2;
@@ -516,9 +516,9 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox<int,
   for( int l=levels; l; --l ) {
     if( l < levels ) {
       composite = ImageView<pixel_type>( crop( resample( composite, 2 ), 
-                                                      bbox_pyr[l-1].min().x()-2*bbox_pyr[l].min().x(), 
-                                                      bbox_pyr[l-1].min().y()-2*bbox_pyr[l].min().y(), 
-                                                      sum_pyr[l-1].cols(), sum_pyr[l-1].rows() ) );
+					       bbox_pyr[l-1].min().x()-2*bbox_pyr[l].min().x(), 
+					       bbox_pyr[l-1].min().y()-2*bbox_pyr[l].min().y(), 
+					       sum_pyr[l-1].cols(), sum_pyr[l-1].rows() ) );
     }
     composite += sum_pyr[l-1] / msum_pyr[l-1];
     sum_pyr.pop_back();
@@ -537,7 +537,7 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox<int,
     
       ImageView<channel_type> source_alpha = *alphas[p];
     
-      BBox<int,2> overlap = patch_bbox;
+      BBox2i overlap = patch_bbox;
       overlap.crop( bboxes[p] );
       for( int j=0; j<overlap.height(); ++j ) {
         for( int i=0; i<overlap.width(); ++i ) {
@@ -560,7 +560,7 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox<int,
 // Generates a full-resolution patch of the mosaic corresponding
 // to the given bounding box WITHOUT blending.
 template <class PixelT>
-vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::draft_patch( BBox<int,2> const& patch_bbox ) const {
+vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::draft_patch( BBox2i const& patch_bbox ) const {
   vw_out(DebugMessage, "mosaic") << "ImageComposite compositing patch " << patch_bbox << "..." << std::endl;
   ImageView<pixel_type> composite(patch_bbox.width(),patch_bbox.height());
 
