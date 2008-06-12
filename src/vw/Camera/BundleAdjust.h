@@ -125,57 +125,6 @@ namespace camera {
     }
   };
 
-  class CameraBundleAdjustmentModel : public BundleAdjustmentModelBase<CameraBundleAdjustmentModel, 6, 3> {
-    std::vector<boost::shared_ptr<AdjustedCameraModel> > m_cameras;
-
-  public:
-    typedef AdjustedCameraModel camera_type;
-    
-    CameraBundleAdjustmentModel(std::vector<boost::shared_ptr<CameraModel> > const& cameras) : 
-      m_cameras(cameras.size()) {
-
-      for (unsigned i = 0; i < cameras.size(); ++i)
-        m_cameras[i] = boost::shared_ptr<AdjustedCameraModel>(new AdjustedCameraModel(cameras[i]));
-    }
-
-    void update(std::vector<Vector<double, camera_params_n> > a) {
-      for (unsigned j=0; j < a.size(); ++j) {
-        Vector3 q1 = subvector(a[j], 0, 3);
-        m_cameras[j]->set_axis_angle_rotation(q1);
-        m_cameras[j]->set_translation(subvector(a[j], 3,3));
-      }
-    }
-   
-    std::vector<boost::shared_ptr<CameraModel> > adjusted_cameras() const {
-      std::vector<boost::shared_ptr<CameraModel> > result(m_cameras.size());
-      for (unsigned i = 0; i < m_cameras.size(); ++i) {
-        result[i] = m_cameras[i];
-      }
-      return result;
-    }
-
-    void write_adjustments(std::vector<std::string> const& filenames) {
-      for (unsigned int i=0; i < filenames.size(); ++i) {
-        m_cameras[i]->write(filenames[i]+".adjust");
-      }
-    }
-
-    // Given the 'a' vector (camera model parameters) for the j'th
-    // image, and the 'b' vector (3D point location) for the i'th
-    // point, return the location of b_i on imager j in pixel
-    // coordinates.
-    Vector2 operator() ( unsigned i, unsigned j, Vector<double,6> const& a_j, Vector<double,3> const& b_i ) {
-
-      Vector3 q1 = subvector(a_j, 0, 3);
-      m_cameras[j]->set_axis_angle_rotation(q1);
-      m_cameras[j]->set_translation(subvector(a_j, 3,3));
-      
-      return m_cameras[j]->point_to_pixel(b_i);
-    }    
-    
-    Vector<double,6> initial_parameters(unsigned j) const { return Vector<double,6>(); }
-  };
-
   //------------------------------------------------------------------
   //                 Sparse Skyline Matrix 
   //
