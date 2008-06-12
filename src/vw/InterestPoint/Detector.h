@@ -474,8 +474,8 @@ namespace ip {
           Timer t("elapsed time", DebugMessage, "interest_point");
           int original_num_points = new_points.size();
           new_points.sort();
-          if ((m_max_points > 0) && (m_max_points < (int)new_points.size())) 
-            new_points.resize(m_max_points);
+          if ((m_max_points > 0) && (m_max_points/m_octaves < (int)new_points.size())) 
+            new_points.resize(m_max_points/m_octaves);
           vw_out(DebugMessage, "interest_point") << "done (removed " << original_num_points - new_points.size() << " interest points, " << new_points.size() << " remaining.), ";
         }
         
