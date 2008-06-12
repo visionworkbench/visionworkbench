@@ -49,6 +49,7 @@ int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
   std::string interest_operator, descriptor_generator;
   float harris_threshold, log_threshold;
+  int max_points;
   int tile_size;
 
   po::options_description general_options("Options");
@@ -56,13 +57,14 @@ int main(int argc, char** argv) {
     ("help", "Display this help message")
     ("tile-size,t", po::value<int>(&tile_size)->default_value(2048), "Specify the tile size for processing interest points. (Useful when working with large images)")
     ("lowe,l", "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
-
+    
     // Interest point detector options
     ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris]")
     ("log-threshold", po::value<float>(&log_threshold)->default_value(0.03), "Sets the threshold for the Laplacian of Gaussian interest operator")
     ("harris-threshold", po::value<float>(&harris_threshold)->default_value(1e-5), "Sets the threshold for the Harris interest operator")
+    ("max-points", po::value<int>(&max_points)->default_value(1000), "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
     ("single-scale", "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
-    
+
     // Descriptor generator options
     ("descriptor-generator", po::value<std::string>(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca]");
 
@@ -106,10 +108,10 @@ int main(int argc, char** argv) {
     if (interest_operator == "Harris") {
       HarrisInterestOperator interest_operator(harris_threshold);
       if (!vm.count("single-scale")) {
-        ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator);
+        ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator, max_points);
         ip = detect_interest_points(image, detector);
       } else {
-        InterestPointDetector<HarrisInterestOperator> detector(interest_operator);
+        InterestPointDetector<HarrisInterestOperator> detector(interest_operator, max_points);
         ip = detect_interest_points(image, detector);
       }
     } else if (interest_operator == "LoG") {
@@ -117,10 +119,10 @@ int main(int argc, char** argv) {
       // associated threshold is abs(interest) > interest_threshold.
       LogInterestOperator interest_operator(log_threshold);
       if (!vm.count("single-scale")) {
-        ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator);
+        ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator, max_points);
         ip = detect_interest_points(image, detector);
       } else {
-        InterestPointDetector<LogInterestOperator> detector(interest_operator);
+        InterestPointDetector<LogInterestOperator> detector(interest_operator, max_points);
         ip = detect_interest_points(image, detector);
       }
     } else {
