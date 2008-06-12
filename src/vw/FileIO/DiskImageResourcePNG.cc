@@ -477,12 +477,12 @@ vw::DiskImageResourcePNG::Comment const& vw::DiskImageResourcePNG::get_comment( 
   return m_info->get_comment(i);
 }
 
-std::string const& vw::DiskImageResourcePNG::get_comment_key( unsigned i ) const {
+std::string vw::DiskImageResourcePNG::get_comment_key( unsigned i ) const {
   Comment result = get_comment(i);
   return result.key;
 }
 
-std::string const& vw::DiskImageResourcePNG::get_comment_value( unsigned i ) const {
+std::string vw::DiskImageResourcePNG::get_comment_value( unsigned i ) const {
   Comment result = get_comment(i);
   return result.text;
 }
