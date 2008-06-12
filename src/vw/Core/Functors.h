@@ -230,7 +230,7 @@ namespace vw {
   // Binary in-place sum of two arguments
   struct ArgArgInPlaceSumFunctor : BinaryReturn1stType {
     template <class Arg1T, class Arg2T>
-    inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const { return arg1+=arg2; }
+    inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const { return arg1=(Arg1T)(arg1+arg2); }
   };
 
   // Unary in-place sum of an argument and a value
@@ -242,7 +242,7 @@ namespace vw {
     ArgValInPlaceSumFunctor( ValT const& val ) : m_val(val) {}
 
     template <class ArgT>
-    inline ArgT& operator()( ArgT& arg ) const { return arg+=m_val; }
+    inline ArgT& operator()( ArgT& arg ) const { return arg=(ArgT)(arg+m_val); }
   };
 
   // Binary difference of two arguments
@@ -278,7 +278,7 @@ namespace vw {
   // Binary in-place difference of two arguments
   struct ArgArgInPlaceDifferenceFunctor : BinaryReturn1stType {
     template <class Arg1T, class Arg2T>
-    inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const { return arg1-=arg2; }
+    inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const { return arg1=(Arg1T)(arg1-arg2); }
   };
 
   // Unary in-place difference of an argument and a value
@@ -290,7 +290,7 @@ namespace vw {
     ArgValInPlaceDifferenceFunctor( ValT const& val ) : m_val(val) {}
 
     template <class ArgT>
-    inline ArgT& operator()( ArgT& arg ) const { return arg-=m_val; }
+    inline ArgT& operator()( ArgT& arg ) const { return arg=(ArgT)(arg-m_val); }
   };
 
   // Binary product of two arguments
@@ -326,7 +326,7 @@ namespace vw {
   // Binary in-place product of two arguments
   struct ArgArgInPlaceProductFunctor : BinaryReturn1stType {
     template <class Arg1T, class Arg2T>
-    inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const { return arg1*=arg2; }
+    inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const { return arg1=(Arg1T)(arg1*arg2); }
   };
 
   // Unary in-place product of an argument and a value
@@ -338,7 +338,7 @@ namespace vw {
     ArgValInPlaceProductFunctor( ValT const& val ) : m_val(val) {}
 
     template <class ArgT>
-    inline ArgT& operator()( ArgT& arg ) const { return arg*=m_val; }
+    inline ArgT& operator()( ArgT& arg ) const { return arg=(ArgT)(arg*m_val); }
   };
 
   // Binary quotient of two arguments
@@ -374,7 +374,7 @@ namespace vw {
   // Binary in-place quotient of two arguments
   struct ArgArgInPlaceQuotientFunctor : BinaryReturn1stType {
     template <class Arg1T, class Arg2T>
-    inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const { return arg1/=arg2; }
+    inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const { return arg1=(Arg1T)(arg1/arg2); }
   };
 
   // Unary in-place quotient of an argument and a value
@@ -386,7 +386,7 @@ namespace vw {
     ArgValInPlaceQuotientFunctor( ValT const& val ) : m_val(val) {}
 
     template <class ArgT>
-    inline ArgT& operator()( ArgT& arg ) const { return arg/=m_val; }
+    inline ArgT& operator()( ArgT& arg ) const { return arg=(ArgT)(arg/m_val); }
   };
 
   // **** WARNING ****
