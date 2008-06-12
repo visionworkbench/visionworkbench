@@ -13,6 +13,10 @@ from pixel import channel_type, pixel_type, pixel_format, channel_range
 import image
 from image import Image, isimage
 
+# Pixel type casting for pixels and images
+import pixelcast
+from pixelcast import pixel_cast
+
 # Edge Extension
 # Note: The bounding-box form of edge_extend does not yet exist.
 from image import ZeroEdgeExtension, ConstantEdgeExtension, PeriodicEdgeExtension, ReflectEdgeExtension
@@ -48,6 +52,8 @@ from fileio import DiskImageResource, DiskImageResourceJPEG, DiskImageView
 # Mosaic
 import mosaic
 from mosaic import ImageQuadTreeGenerator
+import composite
+from composite import ImageComposite
 
 # Cartography
 import cartography

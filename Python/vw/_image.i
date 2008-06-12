@@ -65,11 +65,11 @@ namespace vw {
     typedef PixelT pixel_type;
     ImageView();
     ImageView(unsigned cols, unsigned rows, unsigned planes=1);
-    unsigned cols() const;
-    unsigned rows() const;
-    unsigned planes() const;
-    unsigned channels() const;
     %extend {
+      int get_cols() const { return self->cols(); }
+      int get_rows() const { return self->rows(); }
+      int get_planes() const { return self->planes(); }
+      int get_channels() const { return self->channels(); }
       PixelT const& get_pixel( int x, int y, int p=0 ) { return self->operator()(x,y,p); }
       void set_pixel( PixelT const& val, int x, int y, int p=0 ) { self->operator()(x,y,p) = val; }
       ImageView get_region( int x, int y, int cols, int rows ) { return crop(*self,x,y,cols,rows); }
@@ -88,6 +88,10 @@ namespace vw {
     %pythoncode {
       __getitem__ = Image_getitem
       __setitem__ = Image_setitem
+      cols = property(get_cols)
+      rows = property(get_rows)
+      planes = property(get_planes)
+      channels = property(get_channels)
     }
   };
 
@@ -96,12 +100,12 @@ namespace vw {
   public:
     typedef PixelT pixel_type;
     ImageViewRef( ImageView<pixel_type> const& image );
-    unsigned cols() const;
-    unsigned rows() const;
-    unsigned planes() const;
-    unsigned channels() const;
     %extend {
       ImageViewRef() { return 0; }
+      int get_cols() const { return self->cols(); }
+      int get_rows() const { return self->rows(); }
+      int get_planes() const { return self->planes(); }
+      int get_channels() const { return self->channels(); }
       ImageView<PixelT> rasterize() const { return vw::copy(*self); }
       pixel_type get_pixel( int x, int y, int p=0 ) { return self->operator()(x,y,p); }
       ImageView<pixel_type> get_region( int x, int y, int cols, int rows ) { return crop(*self,x,y,cols,rows); }
@@ -111,6 +115,10 @@ namespace vw {
     }
     %pythoncode {
       __getitem__ = Image_getitem
+      cols = property(get_cols)
+      rows = property(get_rows)
+      planes = property(get_planes)
+      channels = property(get_channels)
       def ref(self):
         return self
     }
@@ -120,19 +128,29 @@ namespace vw {
 %pythoncode {
   _pixel_image_table = dict()
 
-  def Image( cols=0, rows=0, planes=1, ptype=None ):
-    if isimage(cols):
-      image = cols
-      if ptype is None:
-        ptype = image.pixel_type
-      if ptype is not image.pixel_type:
-        raise NotImplementedError, 'Incompatible pixel type'
+  class Image(object):
+    '''The standard Vision Workbench image class.'''
+
+    def __init__( self, cols=0, rows=0, planes=1, ptype=None, pformat=None, ctype=None ):
+      if isimage(cols):
+        image = cols
+        ptype = pixel._compute_pixel_type(image.pixel_type,ptype,pformat,ctype)
+        if ptype != image.pixel_type:
+          # we could cast here, but the easy way would create a cyclic dependency
+          raise NotImplementedError, 'Incompatible pixel type'
+        self.__dict__['impl'] = image.ref().rasterize()
       else:
-        return image.ref().rasterize()
-    else:
-      if ptype is None:
-        ptype = pixel.PixelRGB_float32
-      return _pixel_image_table[ptype](cols,rows,planes)
+        ptype = pixel._compute_pixel_type(pixel.PixelRGB_float32,ptype,pformat,ctype)
+        self.__dict__['impl'] = _pixel_image_table[ptype](cols,rows,planes)
+
+    def __getattr__(self,name):
+      return getattr(self.impl,name)
+
+    def __setattr__(self,name,value):
+      return setattr(self.impl,name,value)
+
+    __getitem__ = Image_getitem
+    __setitem__ = Image_setitem
 }
 
 %define %instantiate_image_types(cname,ctype,pname,ptype,...)
@@ -141,8 +159,14 @@ namespace vw {
   %pythoncode {
     _pixel_image_table[pixel.pname] = ImageView_##pname
     ImageView_##pname.pixel_type = pixel.pname
-    ImageView_##pname.channel_type = pixel.cname
     ImageViewRef_##pname.pixel_type = pixel.pname
+    try:
+      ImageView_##pname.pixel_format = pixel.pname.pixel_format
+      ImageViewRef_##pname.pixel_format = pixel.pname.pixel_format
+    except:
+      ImageView_##pname.pixel_format = pixel.PixelScalar
+      ImageViewRef_##pname.pixel_format = pixel.PixelScalar
+    ImageView_##pname.channel_type = pixel.cname
     ImageViewRef_##pname.channel_type = pixel.cname
     def _ImageView_##pname##_ref(self):
       return ImageViewRef_##pname(self)
@@ -185,8 +209,8 @@ namespace vw {
 %pythoncode {
   def edge_extend(image,xoffset=0,yoffset=0,cols=None,rows=None,edge=None):
     ref = image.ref()
-    if cols is None: cols = ref.cols()
-    if rows is None: rows = ref.rows()
+    if cols is None: cols = ref.cols
+    if rows is None: rows = ref.rows
     if edge is None: edge = ZeroEdgeExtension()
     return _edge_extend(ref,xoffset,yoffset,cols,rows,edge)
 }

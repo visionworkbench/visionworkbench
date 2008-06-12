@@ -11,20 +11,29 @@ namespace vw {
   class DiskImageResource {
   public:
     virtual ~DiskImageResource();
-    int32 cols() const;
-    int32 rows() const;
-    int32 planes() const;
-    int32 channels() const;
     %extend {
+      int get_cols() const { return self->cols(); }
+      int get_rows() const { return self->rows(); }
+      int get_planes() const { return self->planes(); }
+      int get_channels() const { return self->channels(); }
       DiskImageResource( std::string const& filename ) { return vw::DiskImageResource::open( filename ); }
       PixelFormatEnum _pixel_format() const { return self->pixel_format(); }
       ChannelTypeEnum _channel_type() const { return self->channel_type(); }
     }
     %pythoncode {
-      def pixel_format(self):
+      cols = property(get_cols)
+      rows = property(get_rows)
+      planes = property(get_planes)
+      channels = property(get_channels)
+      def get_pixel_format(self):
         return pixel._pixel_format_table[ self._pixel_format() ]
-      def channel_type(self):
+      def get_channel_type(self):
         return pixel._channel_type_table[ self._channel_type() ]
+      def get_pixel_type(self):
+        return self.pixel_format[self.channel_type]
+      pixel_format = property(get_pixel_format)
+      channel_type = property(get_channel_type)
+      pixel_type = property(get_pixel_type)
     }
   };
 
@@ -55,34 +64,30 @@ namespace vw {
 
     virtual ~DiskImageView();
     
-    unsigned cols() const;
-    unsigned rows() const;
-    unsigned planes() const;
-    unsigned channels() const;
-
-    std::string filename() const;
-
     %extend {
+      int get_cols() const { return self->cols(); }
+      int get_rows() const { return self->rows(); }
+      int get_planes() const { return self->planes(); }
+      int get_channels() const { return self->channels(); }
+      std::string get_filename() const { return self->filename(); }
       vw::ImageViewRef<PixelT> ref() const { return *self; }
+    }
+
+    %pythoncode {
+      cols = property(get_cols)
+      rows = property(get_rows)
+      planes = property(get_planes)
+      channels = property(get_channels)
+      filename = property(get_filename)
     }
   };
 }
 
 %pythoncode {
-  def _compute_pixel_type(r,ptype,pformat,ctype):
-    if ptype is None:
-      if ctype is None: ctype = r.channel_type()
-      if pformat is None: pformat = r.pixel_format()
-      ptype = pformat[ctype]
-    elif pformat is not None or ctype is not None:
-      raise Exception, "Cannot specify both ptype and pformat/ctype"
-    return ptype
-
-	    
   def read_image(filename,ptype=None,pformat=None,ctype=None):
-    r = DiskImageResource(filename)
-    im = image.Image(ptype=_compute_pixel_type(r,ptype,pformat,ctype))
-    _read_image( im, r )
+    resource = DiskImageResource(filename)
+    im = image.Image(ptype=pixel._compute_pixel_type(resource.pixel_type(),ptype,pformat,ctype))
+    _read_image(im.impl,resource)
     return im
 
 
@@ -97,33 +102,15 @@ namespace vw {
 
     def __init__(self,resource,ptype=None,pformat=None,ctype=None):
       if resource.__class__ is str:
-        resource = DiskImageResource(filename)
-      resource.thisown = 0
-      self.pixel_type = _compute_pixel_type(resource,ptype,pformat,ctype)
-      self.impl = self._pixel_type_table[self.pixel_type](resource)
+        resource = DiskImageResource(resource)
+      self.pixel_type = pixel._compute_pixel_type(resource.pixel_type,ptype,pformat,ctype)
+      self.delegate = self._pixel_type_table[self.pixel_type](resource)
     
-    def _get_cols(self):
-      return self.impl.cols()
-    cols = property(_get_cols)
+    def __getattr__(self,name):
+      return getattr(self.delegate,name)
 
-    def _get_rows(self):
-      return self.impl.rows()
-    rows = property(_get_rows)
-
-    def _get_planes(self):
-      return self.impl.planes()
-    planes = property(_get_planes)
-
-    def _get_channels(self):
-      return self.impl.channels()
-    channels = property(_get_channels)
-
-    def _get_filename(self):
-      return self.impl.filename()
-    filename = property(_get_filename)
-
-    def ref(self):
-      return self.impl.ref() 
+    def __setattr__(self,name,value):
+      return setattr(self.delegate,name,value)
 }
 
 %define %instantiate_fileio(cname,ctype,pname,ptype,...)

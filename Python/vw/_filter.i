@@ -45,8 +45,8 @@
   from image import ConstantEdgeExtension
 
   def convolution_filter(image,kernel,cx=None,cy=None,edge=None):
-    if cx is None: cx = int( kernel.cols() / 2 )
-    if cy is None: cy = int( kernel.rows() / 2 )
+    if cx is None: cx = int( kernel.cols / 2 )
+    if cy is None: cy = int( kernel.rows / 2 )
     if edge is None: edge = ConstantEdgeExtension()
     return _convolution_filter(image.ref(),kernel,cx,cy,edge)
 

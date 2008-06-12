@@ -22,7 +22,7 @@
 # __END_LICENSE__
 
 all:
-	./setup.py build_ext --swig-opts=-c++ $(VW_CPPFLAGS) -I$(prefix)/include -L$(prefix)/lib build
+	./setup.py build_ext --swig-opts=-c++ $(VW_CPPFLAGS) -I$(prefix)/include:/usr/local/include -L$(prefix)/lib:/usr/local/lib -lboost_filesystem build
 
 install: all
 	./setup.py install

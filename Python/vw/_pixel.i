@@ -12,15 +12,20 @@
   %macro( float32, vw::float32, args )
 %enddef
 
-#define %instantiate_for_scalar_pixel_type_for_channel_type(cname,ctype,macro,args...) %macro(cname,ctype,cname,ctype,args)
+%define %instantiate_for_pixel_formats(macro,args...)
+  %macro( PixelGray,  vw::PixelGray,  args )
+  %macro( PixelGrayA, vw::PixelGrayA, args )
+  %macro( PixelRGB,   vw::PixelRGB,   args )
+  %macro( PixelRGBA,  vw::PixelRGBA,  args )
+%enddef
+
+#define %instantiate_for_scalar_pixel_for_channel_type(cname,ctype,macro,args...) %macro(cname,ctype,cname,ctype,args)
 #define %instantiate_for_pixel_type_for_channel_type(cname,ctype,macro,pname,ptype,args...) %macro(cname,ctype,pname##_##cname,ptype<ctype>,args)
+#define %instantiate_for_pixel_type_for_channel_types(pname,ptype,macro,args...) %instantiate_for_channel_types(instantiate_for_pixel_type_for_channel_type,macro,pname,ptype,args)
 
 %define %instantiate_for_pixel_types(macro,args...)
-  %instantiate_for_channel_types(instantiate_for_scalar_pixel_type_for_channel_type,macro,args)
-  %instantiate_for_channel_types(instantiate_for_pixel_type_for_channel_type,macro, PixelGray,  vw::PixelGray,  args)
-  %instantiate_for_channel_types(instantiate_for_pixel_type_for_channel_type,macro, PixelGrayA, vw::PixelGrayA, args)
-  %instantiate_for_channel_types(instantiate_for_pixel_type_for_channel_type,macro, PixelRGB,   vw::PixelRGB,   args)
-  %instantiate_for_channel_types(instantiate_for_pixel_type_for_channel_type,macro, PixelRGBA,  vw::PixelRGBA,  args)
+  %instantiate_for_channel_types(instantiate_for_scalar_pixel_for_channel_type,macro,args)
+  %instantiate_for_pixel_formats(instantiate_for_pixel_type_for_channel_types,macro,args)
 %enddef
 
 #define %is_float(ctype) #ctype=="vw::float16" || #ctype=="vw::float32" || #ctype=="vw::float64"
@@ -325,3 +330,20 @@ namespace vw {
   };
 }
 %instantiate_pixel_type(PixelXYZ,vw::PixelXYZ,VW_PIXEL_XYZ)
+
+%pythoncode {
+  def _compute_pixel_type(default=None,ptype=None,pformat=None,ctype=None):
+    if ptype is None:
+      if ctype is None:
+        if default is None:
+          raise Exception, "No channel type specified"
+        ctype = default.channel_type
+      if pformat is None:
+        if default is None:
+          raise Exception, "No pixel format specified"
+        pformat = default.pixel_format
+      ptype = pformat[ctype]
+    elif pformat is not None or ctype is not None:
+      raise Exception, "Cannot specify both ptype and pformat/ctype"
+    return ptype
+}

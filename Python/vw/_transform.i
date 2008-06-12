@@ -130,8 +130,8 @@ namespace vw {
     return _rotate(edge_extend(image,edge=edge),theta,interp)
 
   def homography(image,matrix,xsize=None,ysize=None,edge=None,interp=None):
-    if xsize is None: xsize = image.cols()
-    if ysize is None: ysize = image.rows()
+    if xsize is None: xsize = image.cols
+    if ysize is None: ysize = image.rows
     if edge is None: edge = ZeroEdgeExtension()
     if interp is None: interp = BilinearInterpolation()
     return _homography(edge_extend(image,edge=edge),matrix,xsize,ysize,interp)
