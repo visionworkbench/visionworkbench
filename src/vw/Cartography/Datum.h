@@ -55,6 +55,7 @@ namespace cartography {
     double m_semi_major_axis;
     double m_semi_minor_axis;
     double m_meridian_offset;
+    bool m_geocentric;
     std::string m_proj_str;
 
   public:
@@ -89,14 +90,16 @@ namespace cartography {
     std::string const& meridian_name() const { return m_meridian_name; }
 
     void set_semi_major_axis(double val);
-    double const& semi_major_axis() const { return m_semi_major_axis; }
+    double semi_major_axis() const { return m_semi_major_axis; }
 
     void set_semi_minor_axis(double val);
-    double const &semi_minor_axis() const { return m_semi_minor_axis; }
+    double semi_minor_axis() const { return m_semi_minor_axis; }
 
     double &meridian_offset() { return m_meridian_offset; }
-    double const& meridian_offset() const { return m_meridian_offset; }
+    double meridian_offset() const { return m_meridian_offset; }
 
+    void set_geocentric(bool val);
+    bool geocentric() const { return m_geocentric; }
 
     std::string proj4_str() const { return m_proj_str; }
 

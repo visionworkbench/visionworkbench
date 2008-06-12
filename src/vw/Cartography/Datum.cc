@@ -88,6 +88,7 @@ void vw::cartography::Datum::set_semi_major_axis(double val) {
   m_semi_major_axis = val;  
   std::ostringstream strm;
   strm << "+a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
+  if (m_geocentric) strm << " +geoc";
   m_proj_str = strm.str();
 }
 
@@ -95,6 +96,7 @@ void vw::cartography::Datum::set_semi_minor_axis(double val) {
   m_semi_minor_axis = val;  
   std::ostringstream strm;
   strm << "+a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
+  if (m_geocentric) strm << " +geoc";
   m_proj_str = strm.str();
 }
 
