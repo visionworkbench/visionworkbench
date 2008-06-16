@@ -10,19 +10,19 @@
 
 %inline %{
   template <class PixelT, class KernelT, class EdgeT>
-  vw::ImageViewRef<PixelT> _convolution_filter( vw::ImageViewRef<PixelT> const& image, vw::ImageView<KernelT> const& kernel, int cx, int cy, EdgeT const& edge ) {
+  vw::ImageViewRef<PixelT> _convolution_filter( vw::ImageViewRef<PixelT> const& image, vw::ImageView<KernelT> const& kernel, vw::int32 cx, vw::int32 cy, EdgeT const& edge ) {
     return vw::pixel_cast<PixelT>( convolution_filter( image, kernel, cx, cy, edge ) );
   }
   template <class PixelT, class KernelT, class EdgeT>
-  vw::ImageViewRef<PixelT> _separable_convolution_filter( vw::ImageViewRef<PixelT> const& image, std::vector<KernelT> const& xkernel, std::vector<KernelT> const& ykernel, int cx, int cy, EdgeT const& edge ) {
+  vw::ImageViewRef<PixelT> _separable_convolution_filter( vw::ImageViewRef<PixelT> const& image, std::vector<KernelT> const& xkernel, std::vector<KernelT> const& ykernel, vw::int32 cx, vw::int32 cy, EdgeT const& edge ) {
     return vw::pixel_cast<PixelT>( separable_convolution_filter( image, xkernel, ykernel, cx, cy, edge ) );
   }
   template <class PixelT, class EdgeT>
-  vw::ImageViewRef<PixelT> _gaussian_filter( vw::ImageViewRef<PixelT> const& image, double xsigma, double ysigma, int xkernel, int ykernel, EdgeT const& edge ) {
+  vw::ImageViewRef<PixelT> _gaussian_filter( vw::ImageViewRef<PixelT> const& image, double xsigma, double ysigma, vw::int32 xkernel, vw::int32 ykernel, EdgeT const& edge ) {
     return vw::pixel_cast<PixelT>( gaussian_filter( image, xsigma, ysigma, xkernel, ykernel, edge ) );
   }
   template <class PixelT, class EdgeT>
-  vw::ImageViewRef<PixelT> _derivative_filter( vw::ImageViewRef<PixelT> const& image, double xderiv, double yderiv, int xkernel, int ykernel, EdgeT const& edge ) {
+  vw::ImageViewRef<PixelT> _derivative_filter( vw::ImageViewRef<PixelT> const& image, vw::int32 xderiv, vw::int32 yderiv, vw::int32 xkernel, vw::int32 ykernel, EdgeT const& edge ) {
     return vw::pixel_cast<PixelT>( derivative_filter( image, xderiv, yderiv, xkernel, ykernel, edge ) );
   }
   template <class PixelT, class EdgeT>
