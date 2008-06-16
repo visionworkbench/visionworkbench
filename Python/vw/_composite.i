@@ -56,10 +56,15 @@ namespace mosaic {
 
     _pixel_type_table = dict()
 
-    def ImageComposite(ptype=None, pformat=None, ctype=None, **args):
-      ptype = pixel._compute_pixel_type(pixel.PixelRGBA_float32,ptype,pformat,ctype);
-      return self._pixel_type_table[ptype](args)
+    def __init__(self, ptype=None, pformat=None, ctype=None):
+      ptype = pixel._compute_pixel_type(pixel.PixelRGBA_float32,ptype,pformat,ctype)
+      self.__dict__['_delegate'] = ImageComposite._pixel_type_table[ptype]()
 
+    def __getattr__(self,name):
+      return getattr(self._delegate,name)
+
+    def __setattr__(self,name,value):
+      return setattr(self._delegate,name,value)
 }
 
 %define %instantiate_imagecomposite_types(cname,ctype,pname,ptype,...)

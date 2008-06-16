@@ -103,14 +103,15 @@ namespace vw {
     def __init__(self,resource,ptype=None,pformat=None,ctype=None):
       if resource.__class__ is str:
         resource = DiskImageResource(resource)
-      self.pixel_type = pixel._compute_pixel_type(resource.pixel_type,ptype,pformat,ctype)
-      self.delegate = self._pixel_type_table[self.pixel_type](resource)
+      self.__dict__['pixel_type'] = pixel._compute_pixel_type(resource.pixel_type,ptype,pformat,ctype)
+      resource.thisown = 0
+      self.__dict__['_delegate'] = DiskImageView._pixel_type_table[self.pixel_type](resource)
     
     def __getattr__(self,name):
-      return getattr(self.delegate,name)
+      return getattr(self._delegate,name)
 
     def __setattr__(self,name,value):
-      return setattr(self.delegate,name,value)
+      return setattr(self._delegate,name,value)
 }
 
 %define %instantiate_fileio(cname,ctype,pname,ptype,...)
