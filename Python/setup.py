@@ -15,7 +15,7 @@ class libtool_build_ext( build_ext ):
 	    self.compiler.linker_so[0] = self.compiler.compiler_cxx[0]
 	    self.compiler.compiler_cxx = []
 	# We need to link using libtool to get dependencies right
-	self.compiler.linker_so = ['../libtool', '--mode=link'] + self.compiler.linker_so
+	self.compiler.linker_so = ['../libtool', '--mode=link', '--tag=CXX'] + self.compiler.linker_so
 	build_ext.build_extensions(self)
 	
 modules = [

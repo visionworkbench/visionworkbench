@@ -4,7 +4,7 @@
 
 %{
 #include <vw/Image.h>
-#include <vw/FileiO.h>
+#include <vw/FileIO.h>
 %}
 
 namespace vw {
