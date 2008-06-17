@@ -465,6 +465,20 @@ namespace camera {
     int iterations() const { return m_iterations; }
 
     //----------------------------------------------------------------
+    //Added by Zack, remove later?
+
+    const int& num_points(void){return b.size();}
+    
+    const Vector<double,BundleAdjustModelT::point_params_n>& get_point(int i){return b[i];}
+
+    const int& num_cameras(void){return a.size();}
+
+    const Vector<double,BundleAdjustModelT::camera_params_n>& get_camera(int j){return a[j];}
+
+    //----------------------------------------------------------------
+
+
+    //----------------------------------------------------------------
     // Robust cost functions.  These cost function can help to reduce
     // the impact of outliers in the bundle adjustment.
 
