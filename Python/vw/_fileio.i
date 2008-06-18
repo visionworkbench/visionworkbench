@@ -42,6 +42,14 @@ namespace vw {
     virtual ~DiskImageResource();
     DiskImageResourceJPEG( std::string const& filename );
   };
+
+  class DiskImageResourcePNG : public DiskImageResource {
+  public:
+    DiskImageResourcePNG( std::string const& filename );
+    unsigned num_comments() const;
+    std::string const& get_comment_key  ( unsigned i ) const;
+    std::string const& get_comment_value( unsigned i ) const;
+  };	
 }
 
 %inline %{
