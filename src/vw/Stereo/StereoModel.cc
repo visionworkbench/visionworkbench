@@ -103,5 +103,10 @@ namespace stereo {
          << ",  Max error = " << max_error << endl;
     return xyz;
   }
-    
+
+  double StereoModel::convergence_angle(Vector2 const& pix1, Vector2 const& pix2) const {
+      Vector3 vecFromA = m_camera1->pixel_to_vector(pix1);
+      Vector3 vecFromB = m_camera2->pixel_to_vector(pix2);
+      return acos(dot_prod(vecFromA, vecFromB));
+  }    
 }} // namespace vw::stereo

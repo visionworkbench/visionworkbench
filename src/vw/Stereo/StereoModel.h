@@ -34,6 +34,13 @@ namespace stereo {
     /// distance between the rays at their nearest point of
     /// intersection.
     Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2, double& error ) const;
+
+    /// Returns the dot product of the two rays emanating from camera
+    /// 1 and camera 2 through pix1 and pix2 respectively.  This can
+    /// effectively be interpreted as the angle (in radians) between
+    /// the two rays, and it is a useful test for checking when the
+    /// two rays are close to parallel.
+    double convergence_angle(Vector2 const& pix1, Vector2 const& pix2) const;
   
   protected:
     //------------------------------------------------------------------
