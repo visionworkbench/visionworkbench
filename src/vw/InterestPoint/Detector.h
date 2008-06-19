@@ -135,10 +135,10 @@ namespace ip {
   /// detector.  Threads are spun off to process the image in
   /// 2048x2048 pixel blocks.
   template <class ViewT, class DetectorT>
-  InterestPointList detect_interest_points (ViewT const& view, DetectorT& detector) {
+  InterestPointList detect_interest_points (ViewT const& view, DetectorT& detector, int num_threads = Thread::default_num_threads()) {
     typedef InterestPointDetectionTask<ViewT, DetectorT> task_type;
 
-    FifoWorkQueue queue;
+    FifoWorkQueue queue(num_threads);
     InterestPointList ip_list;
     Mutex mutex;     // Used to lock access to ip_list by the child threads.
     

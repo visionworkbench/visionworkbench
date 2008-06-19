@@ -51,10 +51,12 @@ int main(int argc, char** argv) {
   float harris_threshold, log_threshold;
   int max_points;
   int tile_size;
+  int num_threads;
 
   po::options_description general_options("Options");
   general_options.add_options()
     ("help", "Display this help message")
+    ("num-threads", po::value<int>(&num_threads)->default_value(0), "Set the number of threads for interest point detection.  Setting the num_threads to zero causes ipfind to use the visionworkbench default number of threads.")
     ("tile-size,t", po::value<int>(&tile_size)->default_value(2048), "Specify the tile size for processing interest points. (Useful when working with large images)")
     ("lowe,l", "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
     
@@ -97,6 +99,10 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  if (num_threads == 0) {
+    num_threads = Thread::default_num_threads();
+  }
+
   // Iterate over the input files and find interest points in each.
   for (unsigned i = 0; i < input_file_names.size(); ++i) {
 
@@ -109,10 +115,10 @@ int main(int argc, char** argv) {
       HarrisInterestOperator interest_operator(harris_threshold);
       if (!vm.count("single-scale")) {
         ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator, max_points);
-        ip = detect_interest_points(image, detector);
+        ip = detect_interest_points(image, detector, num_threads);
       } else {
         InterestPointDetector<HarrisInterestOperator> detector(interest_operator, max_points);
-        ip = detect_interest_points(image, detector);
+        ip = detect_interest_points(image, detector, num_threads);
       }
     } else if (interest_operator == "LoG") {
       // Use a scale-space Laplacian of Gaussian feature detector. The
@@ -120,10 +126,10 @@ int main(int argc, char** argv) {
       LogInterestOperator interest_operator(log_threshold);
       if (!vm.count("single-scale")) {
         ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator, max_points);
-        ip = detect_interest_points(image, detector);
+        ip = detect_interest_points(image, detector, num_threads);
       } else {
         InterestPointDetector<LogInterestOperator> detector(interest_operator, max_points);
-        ip = detect_interest_points(image, detector);
+        ip = detect_interest_points(image, detector, num_threads);
       }
     } else {
       vw_out(0) << "Unknown interest operator: " << interest_operator << ".  Options are : [ Harris, LoG ]\n";
