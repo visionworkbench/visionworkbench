@@ -472,6 +472,81 @@ public:
       }
     }
   }
+  
+  /***/
+
+
+  void test_pixel_xyz_to_lab_to_xyz()
+  {
+    // Omit solid black for Lab
+    for( double x=0.1; x<=1; x+=0.1 ) {
+      for( double y=0.1; y<=1; y+=0.1 ) {
+        for( double z=0.1; z<=1; z+=0.1 ) {
+
+	  PixelXYZ<double> tmp1(x,y,z);
+	  PixelLab<double> tmp2(tmp1);
+          PixelXYZ<double> xyz(tmp2);
+	  
+          TS_ASSERT_DELTA( xyz.x(), x, 1e-4 );
+          TS_ASSERT_DELTA( xyz.y(), y, 1e-4 );
+          TS_ASSERT_DELTA( xyz.z(), z, 1e-4 );
+        }
+      }
+    }
+  }
+
+  void test_pixel_lab_to_xyz_to_lab()
+  {
+    // Omit solid black for Lab
+    for( double l=0.1; l<=1; l+=0.1 ) {
+      for( double a=0.0; a<=1; a+=0.1 ) {
+        for( double b=0.0; b<=1; b+=0.1 ) {
+	  PixelLab<double> tmp1(l,a,b);
+	  PixelXYZ<double> tmp2(tmp1);
+          PixelLab<double> lab(tmp2);
+          TS_ASSERT_DELTA( lab.l(), l, 1e-4 );
+          TS_ASSERT_DELTA( lab.a(), a, 1e-4 );
+          TS_ASSERT_DELTA( lab.b(), b, 1e-4 );
+        }
+      }
+    }
+  }
+
+  void test_pixel_rgb_to_lab_to_rgb()
+  {
+    // Omit solid black for Lab
+    for( double r=0.1; r<=1; r+=0.1 ) {
+      for( double g=0.1; g<=1; g+=0.1 ) {
+        for( double b=0.1; b<=1; b+=0.1 ) {
+
+	  PixelRGB<double> tmp1(r,g,b);
+	  PixelLab<double> tmp2(tmp1);
+          PixelRGB<double> rgb(tmp2);
+	  
+          TS_ASSERT_DELTA( rgb.r(), r, 1e-4 );
+          TS_ASSERT_DELTA( rgb.g(), g, 1e-4 );
+          TS_ASSERT_DELTA( rgb.b(), b, 1e-4 );
+        }
+      }
+    }
+  }
+
+  void test_pixel_lab_to_rgb_to_lab()
+  {
+    // Omit solid black for Lab
+    for( double l=0.1; l<=1; l+=0.1 ) {
+      for( double a=0.0; a<=1; a+=0.1 ) {
+        for( double b=0.0; b<=1; b+=0.1 ) {
+	  PixelLab<double> tmp1(l,a,b);
+	  PixelRGB<double> tmp2(tmp1);
+          PixelLab<double> lab(tmp2);
+          TS_ASSERT_DELTA( lab.l(), l, 1e-4 );
+          TS_ASSERT_DELTA( lab.a(), a, 1e-4 );
+          TS_ASSERT_DELTA( lab.b(), b, 1e-4 );
+        }
+      }
+    }
+  }
 
 };
 

@@ -384,6 +384,7 @@ namespace vw {
   template <class ChannelT> class PixelHSV;
   template <class ChannelT> class PixelXYZ;
   template <class ChannelT> class PixelLuv;
+  template <class ChannelT> class PixelLab;
 
 
   // *******************************************************************

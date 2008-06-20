@@ -91,6 +91,15 @@ namespace vw {
   (9 * VW_LUV_D65_Y_N / (VW_LUV_D65_X_N + 15*VW_LUV_D65_Y_N + 3*VW_LUV_D65_Z_N))
 #define VW_LUV_EPSILON (1E-6)
 
+// Constants for Lab <-> XYZ conversions
+#define VW_LAB_DELTA   (6.0/29.0)
+#define VW_LAB_DELTA2  (VW_LAB_DELTA*VW_LAB_DELTA)
+#define VW_LAB_DELTA3  (VW_LAB_DELTA*VW_LAB_DELTA*VW_LAB_DELTA)
+#define VW_LAB_D65_X_N (0.95050)
+#define VW_LAB_D65_Y_N (1.00000)
+#define VW_LAB_D65_Z_N (1.08870)
+
+
   // This function is used in messy color space conversions 
   // that operate internally using floating-point numbers 
   // even when the destination channel type is integral.
@@ -334,6 +343,9 @@ namespace vw {
 
     /// Explicit conversion from PixelLuv types.
     template <class OtherT> explicit PixelRGB( PixelLuv<OtherT> const& other );
+
+    /// Explicit conversion from PixelLab types.
+    template <class OtherT> explicit PixelRGB( PixelLab<OtherT> const& other );
 
     /// Channel indexing operator.
     inline ChannelT& operator[](int i) { return m_ch[i]; }
@@ -663,6 +675,9 @@ namespace vw {
     /// Explicit conversion from PixelLuv types.
     template <class OtherT> explicit PixelXYZ( PixelLuv<OtherT> const& luv );
 
+    /// Explicit conversion from PixelLab types.
+    template <class OtherT> explicit PixelXYZ( PixelLab<OtherT> const& lab );
+
     /// Channel indexing operator.
     inline ChannelT& operator[](int i) { return m_ch[i]; }
     /// Channel indexing operator (const overload).
@@ -873,6 +888,165 @@ namespace vw {
     m_ch[1] = luv.m_ch[1];
     m_ch[2] = luv.m_ch[2];
   }
+  
+  
+  
+
+  // *******************************************************************
+  // The PixelLab CIE 1976 L*a*b* uniform perceptual pixel type.
+  // *******************************************************************
+
+  /// A full-color L*a*b* color space pixel type.  This color space has the
+  /// property that Euclidean distance between pixels is proportional to perceived
+  /// color differences.  Originated from the following reference: 
+  /// "G. Wyszecki and W. S. Stiles: Color Science: Concepts and
+  /// Methods, Quantitative Data and Formulae, Wiley, New York, 1982."
+  /// for details.  This transformation uses a D65 white point
+  /// specified by VW_LAB_{X,Y,Z}_N.
+  template <class ChannelT>
+  class PixelLab : public PixelMathBase< PixelLab<ChannelT> >
+  {
+    ChannelT m_ch[3];
+
+  public:
+    // Default constructor (zero value).
+    PixelLab() { m_ch[0]=m_ch[1]=m_ch[2]=0; }
+
+    /// Explicitly constructs a gray pixel with the given L value.
+    PixelLab( ChannelT const& l ) { m_ch[0]=l; m_ch[1]=m_ch[2]=0; }
+
+    /// Constructs a pixel with the given channel values.
+    PixelLab( ChannelT const& l, ChannelT const& a, ChannelT const& b ) {
+      m_ch[0]=l; m_ch[1]=a; m_ch[2]=b;
+    }
+
+    /// Conversion from other PixelLab types.
+    template <class OtherT> PixelLab( PixelLab<OtherT> const& other ) {
+      m_ch[0] = ChannelT(other[0]);
+      m_ch[1] = ChannelT(other[1]);
+      m_ch[2] = ChannelT(other[2]);
+    }
+
+    /// Explicit conversion from PixelXYZ types.
+    template <class OtherT> explicit PixelLab( PixelXYZ<OtherT> const& xyz );
+
+    /// Explicit conversion from PixelRGB types.
+    template <class OtherT> explicit PixelLab( PixelRGB<OtherT> const& rgb );
+
+    /// Channel indexing operator.
+    inline ChannelT& operator[](int i) { return m_ch[i]; }
+    /// Channel indexing operator (const overload).
+    inline ChannelT const& operator[](int i) const { return m_ch[i]; }
+    /// Channel indexing operator.
+    inline ChannelT& operator()(int i) { return m_ch[i]; }
+    /// Channel indexing operator (const overload).
+    inline ChannelT const& operator()(int i) const { return m_ch[i]; }
+
+    /// l channel accessor.
+    inline ChannelT& l() { return m_ch[0]; }
+    /// l channel accessor (const overload).
+    inline ChannelT const& l() const { return m_ch[0]; }
+    /// a channel accessor.
+    inline ChannelT& a() { return m_ch[1]; }
+    /// a channel accessor (const overload).
+    inline ChannelT const& a() const { return m_ch[1]; }
+    /// b channel accessor.
+    inline ChannelT& b() { return m_ch[2]; }
+    /// b channel accessor (const overload).
+    inline ChannelT const& b() const { return m_ch[2]; }
+  };
+
+  /// Declare the standard 3-channel pixel traits for PixelLab.
+  VW_DECLARE_PIXEL_TYPE(PixelLab, 3);
+
+  /// Print a PixelLab to a debugging stream.
+  template <class ChannelT>
+  std::ostream& operator<<( std::ostream& os, PixelLab<ChannelT> const& pix ) {
+    return os << "PixelLab(" << _numeric(pix.l()) << "," << _numeric(pix.a()) << "," << _numeric(pix.b()) << ")";
+  }
+
+//  namespace lab_conversions {
+//	  double lab_func(double x) {
+//		  if (x > VW_LAB_DELTA3)
+//			  return pow(x, 1.0/3.0);
+//		  else
+//			  return 7.787*x + 16.0/116.0;
+//	  }
+//	  double lab_inv_func(double x) {
+//		  if (x > VW_LAB_DELTA)
+//			  return pow(x, 3.0);
+//		  else
+//			  return (x - 16.0/116.0) * 3 * VW_LAB_DELTA2;
+//	  }
+//  }
+  
+  /// Lab->XYZ conversion
+  template <class ChannelT>
+  template <class OtherT>
+  PixelXYZ<ChannelT>::PixelXYZ( PixelLab<OtherT> const& lab ) {
+	  double f_y = (lab.l() + 16.0)/116.0;
+	  double f_x = f_y + lab.a()/500.0;
+	  double f_z = f_y - lab.b()/200.0;
+	  
+//	  y() = lab_conversions::lab_inv_func(f_y) * VW_LAB_D65_Y_N;
+//	  x() = lab_conversions::lab_inv_func(f_x) * VW_LAB_D65_X_N;
+//	  z() = lab_conversions::lab_inv_func(f_z) * VW_LAB_D65_Z_N;
+	  
+  	  y() = (f_y > VW_LAB_DELTA ? pow(f_y, 3.0) : (f_y - 16.0/116.0) * 3 * VW_LAB_DELTA2) * VW_LAB_D65_Y_N;
+  	  x() = (f_x > VW_LAB_DELTA ? pow(f_x, 3.0) : (f_x - 16.0/116.0) * 3 * VW_LAB_DELTA2) * VW_LAB_D65_X_N;
+  	  z() = (f_z > VW_LAB_DELTA ? pow(f_z, 3.0) : (f_z - 16.0/116.0) * 3 * VW_LAB_DELTA2) * VW_LAB_D65_Z_N;
+  }
+
+  /// XYZ->Lab conversion
+  template <class ChannelT>
+  template <class OtherT>
+  PixelLab<ChannelT>::PixelLab( PixelXYZ<OtherT> const& xyz ) {
+    double x_xn = xyz.x() / VW_LAB_D65_X_N;
+    double y_yn = xyz.y() / VW_LAB_D65_Y_N;
+    double z_zn = xyz.z() / VW_LAB_D65_Z_N;
+	    
+    if (y_yn > VW_LAB_DELTA3) {
+      l() = 116.0 * pow(y_yn, 1.0/3.0) - 16;
+    } else {
+      l() = 903.3 * y_yn;
+    }
+
+    a() = 500.0 * (
+		(x_xn > VW_LAB_DELTA3 ? pow(x_xn, 1.0/3.0) : 7.787*x_xn + 16.0/116.0) -
+		(y_yn > VW_LAB_DELTA3 ? pow(y_yn, 1.0/3.0) : 7.787*y_yn + 16.0/116.0)
+	);
+    b() = 200.0 * (
+		(y_yn > VW_LAB_DELTA3 ? pow(y_yn, 1.0/3.0) : 7.787*y_yn + 16.0/116.0) -
+		(z_zn > VW_LAB_DELTA3 ? pow(z_zn, 1.0/3.0) : 7.787*z_zn + 16.0/116.0)
+	);
+  }
+
+  /// Lab->RGB conversion
+  template <class ChannelT>
+  template <class OtherT>
+  PixelRGB<ChannelT>::PixelRGB( PixelLab<OtherT> const& lab ) {
+    // Lab->XYZ->RGB
+    PixelXYZ<ChannelT> xyz(lab);
+    PixelRGB<ChannelT> rgb(xyz);
+    m_ch[0] = rgb.m_ch[0];
+    m_ch[1] = rgb.m_ch[1];
+    m_ch[2] = rgb.m_ch[2];
+  }
+
+  /// RGB->Lab conversion
+  template <class ChannelT>
+  template <class OtherT>
+  PixelLab<ChannelT>::PixelLab( PixelRGB<OtherT> const& rgb ) {
+    // RGB->XYZ->Lab
+    PixelXYZ<ChannelT> xyz(rgb);
+    PixelLab<ChannelT> lab(xyz);
+    m_ch[0] = lab.m_ch[0];
+    m_ch[1] = lab.m_ch[1];
+    m_ch[2] = lab.m_ch[2];
+  }
+  
+  
+  
 
   // *******************************************************************
   // The Vector mathematical vector pixel type.
