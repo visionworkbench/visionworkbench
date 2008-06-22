@@ -344,7 +344,7 @@ namespace vw {
   };                                                         \
   template <class ChannelT>                                  \
   struct CompoundNumChannels<PIXELT<ChannelT> > {            \
-    static const int32 value = NCHANNELS;                 \
+    static const int32 value = NCHANNELS;                    \
   };                                                         \
   template <class OldChT, class NewChT>                      \
   struct CompoundChannelCast<PIXELT<OldChT>, NewChT> {       \
@@ -353,7 +353,7 @@ namespace vw {
   template <class OldChT, class NewChT>                      \
   struct CompoundChannelCast<PIXELT<OldChT>, const NewChT> { \
     typedef const PIXELT<NewChT> type;                       \
-  }
+  }                                                          \
 
   /// This macro provides the appropriate specializations of 
   /// the compound type traits classes for a new pixel type 
@@ -386,6 +386,8 @@ namespace vw {
   template <class ChannelT> class PixelLuv;
   template <class ChannelT> class PixelLab;
 
+  // Forward pixel type declarations for the pixel mask wrapper
+  template <class ChildT> class PixelMask;
 
   // *******************************************************************
   // Run-time pixel type manipulation routines.
@@ -401,6 +403,17 @@ namespace vw {
     VW_PIXEL_HSV = 6,
     VW_PIXEL_XYZ = 7,
     VW_PIXEL_LUV = 8,
+    VW_PIXEL_LAB = 9,
+    VW_PIXEL_UNKNOWN_MASKED = 40,
+    VW_PIXEL_SCALAR_MASKED = 41,
+    VW_PIXEL_GRAY_MASKED = 42,
+    VW_PIXEL_GRAYA_MASKED = 43,
+    VW_PIXEL_RGB_MASKED = 44,
+    VW_PIXEL_RGBA_MASKED = 45,
+    VW_PIXEL_HSV_MASKED = 46,
+    VW_PIXEL_XYZ_MASKED = 47,
+    VW_PIXEL_LUV_MASKED = 48,
+    VW_PIXEL_LAB_MASKED = 49,
     VW_PIXEL_GENERIC_1_CHANNEL = 90,
     VW_PIXEL_GENERIC_2_CHANNEL = 91,
     VW_PIXEL_GENERIC_3_CHANNEL = 92,
@@ -430,6 +443,7 @@ namespace vw {
     VW_CHANNEL_USER = 100
   };
   
+  // PixelFormatID<> 
   template <class PixelT> struct PixelFormatID { static const PixelFormatEnum value = VW_PIXEL_UNKNOWN; };
   template<> struct PixelFormatID<vw::int8>    { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
   template<> struct PixelFormatID<vw::uint8>   { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
@@ -449,7 +463,30 @@ namespace vw {
   template <class ChT> struct PixelFormatID<PixelHSV<ChT> >   { static const PixelFormatEnum value = VW_PIXEL_HSV; };
   template <class ChT> struct PixelFormatID<PixelXYZ<ChT> >   { static const PixelFormatEnum value = VW_PIXEL_XYZ; };
   template <class ChT> struct PixelFormatID<PixelLuv<ChT> >   { static const PixelFormatEnum value = VW_PIXEL_LUV; };
+  template <class ChT> struct PixelFormatID<PixelLab<ChT> >   { static const PixelFormatEnum value = VW_PIXEL_LAB; };
 
+  // PixelFormatID<> specialized for masked pixel types
+  template<> struct PixelFormatID<PixelMask<vw::int8> >    { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::uint8> >   { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::int16> >   { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::uint16> >  { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::int32> >   { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::uint32> >  { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::int64> >   { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::uint64> >  { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::float32> > { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<vw::float64> > { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template<> struct PixelFormatID<PixelMask<bool> >        { static const PixelFormatEnum value = VW_PIXEL_SCALAR_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelGray<ChT> > >  { static const PixelFormatEnum value = VW_PIXEL_GRAY_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelGrayA<ChT> > > { static const PixelFormatEnum value = VW_PIXEL_GRAYA_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelRGB<ChT> > >   { static const PixelFormatEnum value = VW_PIXEL_RGB_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelRGBA<ChT> > >  { static const PixelFormatEnum value = VW_PIXEL_RGBA_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelHSV<ChT> > >   { static const PixelFormatEnum value = VW_PIXEL_HSV_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelXYZ<ChT> > >   { static const PixelFormatEnum value = VW_PIXEL_XYZ_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelLuv<ChT> > >   { static const PixelFormatEnum value = VW_PIXEL_LUV_MASKED; };
+  template <class ChT> struct PixelFormatID<PixelMask<PixelLab<ChT> > >   { static const PixelFormatEnum value = VW_PIXEL_LAB_MASKED; };
+
+  // ChannelTypeID<> 
   template <class ChannelT> struct ChannelTypeID { static const ChannelTypeEnum value = VW_CHANNEL_UNKNOWN; };
   template<> struct ChannelTypeID<vw::int8>      { static const ChannelTypeEnum value = VW_CHANNEL_INT8; };
   template<> struct ChannelTypeID<vw::uint8>     { static const ChannelTypeEnum value = VW_CHANNEL_UINT8; };

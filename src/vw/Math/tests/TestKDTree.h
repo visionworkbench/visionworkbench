@@ -356,7 +356,7 @@ class TestKDTree : public CxxTest::TestSuite
     file[5].push_back(-2);
 
     KDTree<file_t> kd(3, file);
-    TS_ASSERT_EQUALS(kd.size(), 6);
+    TS_ASSERT_EQUALS(int(kd.size()), 6);
 
     //insert
     std::vector<int> new_record;
@@ -365,7 +365,7 @@ class TestKDTree : public CxxTest::TestSuite
     new_record.push_back(6);
 
     kd.insert(new_record);
-    TS_ASSERT_EQUALS(kd.size(), 7);
+    TS_ASSERT_EQUALS(int(kd.size()), 7);
   }
 
   void test_search(){

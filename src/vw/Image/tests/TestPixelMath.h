@@ -26,6 +26,7 @@
 
 #include <vw/Image/PixelMath.h>
 #include <vw/Image/PixelTypes.h>
+#include <vw/Image/PixelMask.h>
 
 // Create a simple toy pixel type using the PixelMathBase 
 // class to test its default functionality in isolation.
@@ -321,6 +322,49 @@ public:
     TS_ASSERT( ( boost::is_same< ToyType<double>, boost::result_of<vw::math::ValArgHypotFunctor<ToyType<double> >(ToyType<double>)>::type >::value ) );
     TS_ASSERT( is_of_type<ToyType<double> >( vw::math::ValArgHypotFunctor<ToyType<double> >(x)(y) ) );
     TS_ASSERT_DELTA( vw::math::ValArgHypotFunctor<ToyType<double> >(x)(y)[0], hypot(x[0],y[0]), 1e-8 );
+  }
+
+
+  void test_basic_masked_pixel_arithmetic() {
+    PixelMask<PixelRGB<uint8> > a(1,2,3), b(2,3,4);
+    PixelMask<PixelRGB<uint8> > i;
+
+    // Valid + valid
+    PixelMask<PixelRGB<uint8> > test = a + b;
+    TS_ASSERT( test[0] == 3 );
+    TS_ASSERT( test[1] == 5 );
+    TS_ASSERT( test[2] == 7 );
+    TS_ASSERT( test[3] == 1 );
+
+    // Valid + invalid
+    test = a + i;
+    TS_ASSERT( test[0] == 0 );
+    TS_ASSERT( test[1] == 0 );
+    TS_ASSERT( test[2] == 0 );
+    TS_ASSERT( test[3] == 0 );
+
+    // Invalid + invalid
+    test = i + i;
+    TS_ASSERT( test[0] == 0 );
+    TS_ASSERT( test[1] == 0 );
+    TS_ASSERT( test[2] == 0 );
+    TS_ASSERT( test[3] == 0 );
+
+    // Valid + scalar
+    test = a;
+    test += 25;
+    TS_ASSERT( test[0] == 26 );
+    TS_ASSERT( test[1] == 27 );
+    TS_ASSERT( test[2] == 28 );
+    TS_ASSERT( test[3] == 1 );
+
+    // Invalid + scalar
+    test = i;
+    test += 24;
+    TS_ASSERT( test[0] == 0 );
+    TS_ASSERT( test[1] == 0 );
+    TS_ASSERT( test[2] == 0 );
+    TS_ASSERT( test[3] == 0 );
   }
 
 };

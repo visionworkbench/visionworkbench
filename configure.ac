@@ -227,7 +227,6 @@ AX_PKG_PTHREADS
 
 AX_PKG_BOOST
 AX_PKG_BOOST_LIB(PROGRAM_OPTIONS, [-lboost_program_options], [boost/program_options.hpp])
-
 AX_PKG_BOOST_LIB(FILESYSTEM_PRE_1_35, [-lboost_filesystem], [boost/filesystem/path.hpp])
 if test "$HAVE_PKG_BOOST_FILESYSTEM_PRE_1_35" = "no"; then
   echo "Checking for BOOST_FILESYSTEM 1.35 or later..."

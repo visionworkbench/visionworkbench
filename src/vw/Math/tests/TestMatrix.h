@@ -287,7 +287,7 @@ public:
     TS_ASSERT_EQUALS( m(1,1), 5 );
 
     Vector<float> cv = select_col(m,1);
-    TS_ASSERT_EQUALS( cv.size(), 2 );
+    TS_ASSERT_EQUALS( int(cv.size()), 2 );
     TS_ASSERT_EQUALS( cv(0), 2 );
     TS_ASSERT_EQUALS( cv(1), 5 );
 
@@ -298,7 +298,7 @@ public:
     TS_ASSERT_EQUALS( m(1,1), 5 );
 
     Vector<float> rv = select_row(m,1);
-    TS_ASSERT_EQUALS( rv.size(), 2 );
+    TS_ASSERT_EQUALS( int(rv.size()), 2 );
     TS_ASSERT_EQUALS( rv(0), 3 );
     TS_ASSERT_EQUALS( rv(1), 5 );
 
@@ -316,13 +316,13 @@ public:
 
     // Matrix*Vector
     Vector<float> r1 = m*v;
-    TS_ASSERT_EQUALS( r1.size(), 2 );
+    TS_ASSERT_EQUALS( int(r1.size()), 2 );
     TS_ASSERT_EQUALS( r1(0), 5 );
     TS_ASSERT_EQUALS( r1(1), 11 );
 
     // Matrix*Vector
     Vector<float> r2 = transpose(transpose(v)*m);
-    TS_ASSERT_EQUALS( r2.size(), 2 );
+    TS_ASSERT_EQUALS( int(r2.size()), 2 );
     TS_ASSERT_EQUALS( r2(0), 7 );
     TS_ASSERT_EQUALS( r2(1), 10 );
 

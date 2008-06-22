@@ -35,7 +35,7 @@ public:
   {
     // Default constructor
     Vector<float,4> v;
-    TS_ASSERT_EQUALS(v.size(),4);
+    TS_ASSERT_EQUALS(int(v.size()),4);
     TS_ASSERT_EQUALS(v(0),0);
     TS_ASSERT_EQUALS(v(1),0);
     TS_ASSERT_EQUALS(v(2),0);
@@ -43,7 +43,7 @@ public:
 
     // Values constructor
     Vector<float,4> v2(6,7,8,9);
-    TS_ASSERT_EQUALS(v2.size(),4);
+    TS_ASSERT_EQUALS(int(v2.size()),4);
     TS_ASSERT_EQUALS(v2[0],6);
     TS_ASSERT_EQUALS(v2[1],7);
     TS_ASSERT_EQUALS(v2[2],8);
@@ -58,7 +58,7 @@ public:
 
     // Copy constructor
     Vector<float,4> v3(v2);
-    TS_ASSERT_EQUALS(v3.size(),4);
+    TS_ASSERT_EQUALS(int(v3.size()),4);
     TS_ASSERT_EQUALS(v3(0),6);
     TS_ASSERT_EQUALS(v3(1),7);
     TS_ASSERT_EQUALS(v3(2),8);
@@ -77,7 +77,7 @@ public:
   void test_dynamic_vector()
   {
     Vector<float> v(4);
-    TS_ASSERT_EQUALS(v.size(),4);
+    TS_ASSERT_EQUALS(int(v.size()),4);
     TS_ASSERT_EQUALS(v(0),0);
     TS_ASSERT_EQUALS(v(1),0);
     TS_ASSERT_EQUALS(v(2),0);
@@ -94,7 +94,7 @@ public:
     TS_ASSERT_EQUALS(v(3),9);
 
     v.set_size(3,true);
-    TS_ASSERT_EQUALS(v.size(),3);
+    TS_ASSERT_EQUALS(int(v.size()),3);
     TS_ASSERT_EQUALS(v(0),6);
     TS_ASSERT_EQUALS(v(1),7);
     TS_ASSERT_EQUALS(v(2),8);
@@ -109,28 +109,28 @@ public:
     float data[] = {1,2,3,4};
 
     VectorProxy<float,4> vp1(data);
-    TS_ASSERT_EQUALS(vp1.size(),4);
+    TS_ASSERT_EQUALS(int(vp1.size()),4);
     TS_ASSERT_EQUALS(vp1(0),1);
     TS_ASSERT_EQUALS(vp1(1),2);
     TS_ASSERT_EQUALS(vp1(2),3);
     TS_ASSERT_EQUALS(vp1(3),4);
 
     TS_ASSERT_THROWS_NOTHING( (vp1=Vector<float,4>(5,6,7,8)) );
-    TS_ASSERT_EQUALS(vp1.size(),4);
+    TS_ASSERT_EQUALS(int(vp1.size()),4);
     TS_ASSERT_EQUALS(vp1(0),5);
     TS_ASSERT_EQUALS(vp1(1),6);
     TS_ASSERT_EQUALS(vp1(2),7);
     TS_ASSERT_EQUALS(vp1(3),8);
 
     VectorProxy<float> vp2(4,data);
-    TS_ASSERT_EQUALS(vp2.size(),4);
+    TS_ASSERT_EQUALS(int(vp2.size()),4);
     TS_ASSERT_EQUALS(vp2(0),5);
     TS_ASSERT_EQUALS(vp2(1),6);
     TS_ASSERT_EQUALS(vp2(2),7);
     TS_ASSERT_EQUALS(vp2(3),8);
 
     TS_ASSERT_THROWS_NOTHING( (vp2=Vector<float,4>(1,2,3,4)) );
-    TS_ASSERT_EQUALS(vp1.size(),4);
+    TS_ASSERT_EQUALS(int(vp1.size()),4);
     TS_ASSERT_EQUALS(vp2(0),1);
     TS_ASSERT_EQUALS(vp2(1),2);
     TS_ASSERT_EQUALS(vp2(2),3);
@@ -141,7 +141,7 @@ public:
   {
     Vector<float,4> v(1,2,3,4);
     Vector<float> sv = subvector(v,2,2);
-    TS_ASSERT_EQUALS( sv.size(), 2 );
+    TS_ASSERT_EQUALS( int(sv.size()), 2 );
     TS_ASSERT_EQUALS( sv(0), 3 );
     TS_ASSERT_EQUALS( sv(1), 4 );
     subvector(v,1,2) = Vector<float,2>(4,5);

@@ -81,16 +81,28 @@ vw::int32 vw::num_channels( vw::PixelFormatEnum format ) {
   case VW_PIXEL_GENERIC_1_CHANNEL:
     return 1;
   case VW_PIXEL_GRAYA:
+  case VW_PIXEL_SCALAR_MASKED:
+  case VW_PIXEL_GRAY_MASKED:
   case VW_PIXEL_GENERIC_2_CHANNEL:
     return 2;
   case VW_PIXEL_RGB:
   case VW_PIXEL_HSV:
   case VW_PIXEL_XYZ:
+  case VW_PIXEL_LUV:
+  case VW_PIXEL_LAB:
+  case VW_PIXEL_GRAYA_MASKED:
   case VW_PIXEL_GENERIC_3_CHANNEL:
     return 3;
   case VW_PIXEL_RGBA:
+  case VW_PIXEL_RGB_MASKED:
+  case VW_PIXEL_HSV_MASKED:
+  case VW_PIXEL_XYZ_MASKED:
+  case VW_PIXEL_LUV_MASKED:
+  case VW_PIXEL_LAB_MASKED:
   case VW_PIXEL_GENERIC_4_CHANNEL:
     return 4;
+  case VW_PIXEL_RGBA_MASKED:
+    return 5;
   default:
     vw_throw( ArgumentErr() << "Unrecognized or unsupported pixel format (" << format << ")." );
     return 0; // never reached
@@ -106,6 +118,17 @@ const char *vw::pixel_format_name( vw::PixelFormatEnum format ) {
   case VW_PIXEL_RGBA: return "RGBA";
   case VW_PIXEL_HSV: return "HSV";
   case VW_PIXEL_XYZ: return "XYZ";
+  case VW_PIXEL_LUV: return "LUV";
+  case VW_PIXEL_LAB: return "LAB";
+  case VW_PIXEL_SCALAR_MASKED: return "SCALAR_MASKED";
+  case VW_PIXEL_GRAY_MASKED: return "GRAY_MASKED";
+  case VW_PIXEL_GRAYA_MASKED: return "GRAYA_MASKED";
+  case VW_PIXEL_RGB_MASKED: return "RGB_MASKED";
+  case VW_PIXEL_RGBA_MASKED: return "RGBA_MASKED";
+  case VW_PIXEL_HSV_MASKED: return "HSV_MASKED";
+  case VW_PIXEL_XYZ_MASKED: return "XYZ_MASKED";
+  case VW_PIXEL_LUV_MASKED: return "LUV_MASKED";
+  case VW_PIXEL_LAB_MASKED: return "LAB_MASKED";
   default: return "UNKNOWN";
   }
 }

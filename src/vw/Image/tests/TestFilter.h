@@ -55,20 +55,20 @@ public:
   void test_generate_gaussian_kernel() {
     std::vector<double> kernel;
     generate_gaussian_kernel( kernel, 1.0, 5 );
-    TS_ASSERT_EQUALS( kernel.size(), 5 );
+    TS_ASSERT_EQUALS( int(kernel.size()), 5 );
     TS_ASSERT_DELTA( kernel[0], 0.06135958087, 1e-8 );
     TS_ASSERT_DELTA( kernel[1], 0.2447702197, 1e-7 );
     TS_ASSERT_DELTA( kernel[2], 0.3877403988, 1e-7 );
     TS_ASSERT_DELTA( kernel[3], 0.2447702197, 1e-7 );
     TS_ASSERT_DELTA( kernel[4], 0.06135958087, 1e-8 );
     generate_gaussian_kernel( kernel, 1.0, 4 );
-    TS_ASSERT_EQUALS( kernel.size(), 4 );
+    TS_ASSERT_EQUALS( int(kernel.size()), 4 );
     TS_ASSERT_DELTA( kernel[0], 0.1423836140, 1e-7 );
     TS_ASSERT_DELTA( kernel[1], 0.3576163860, 1e-7 );
     TS_ASSERT_DELTA( kernel[2], 0.3576163860, 1e-7 );
     TS_ASSERT_DELTA( kernel[3], 0.1423836140, 1e-7 );
     generate_gaussian_kernel( kernel, 1.5 );
-    TS_ASSERT_EQUALS( kernel.size(), 9 );
+    TS_ASSERT_EQUALS( int(kernel.size()), 9 );
     TS_ASSERT_DELTA( kernel[0], 0.008488347404, 1e-9 );
     TS_ASSERT_DELTA( kernel[1], 0.03807782601, 1e-8 );
     TS_ASSERT_DELTA( kernel[2], 0.1111650246, 1e-7 );
@@ -79,27 +79,27 @@ public:
     TS_ASSERT_DELTA( kernel[7], 0.03807782601, 1e-8 );
     TS_ASSERT_DELTA( kernel[8], 0.008488347404, 1e-9 );
     generate_gaussian_kernel( kernel, 0 );
-    TS_ASSERT_EQUALS( kernel.size(), 0 );
+    TS_ASSERT_EQUALS( int(kernel.size()), 0 );
   }
 
   void test_generate_derivative_kernel() {
     std::vector<double> kernel;
     generate_derivative_kernel( kernel, 1, 5 );
-    TS_ASSERT_EQUALS( kernel.size(), 5 );
+    TS_ASSERT_EQUALS( int(kernel.size()), 5 );
     TS_ASSERT_DELTA( kernel[0], -0.08333333333, 1e-8 );
     TS_ASSERT_DELTA( kernel[1], 0.6666666667, 1e-7 );
     TS_ASSERT_DELTA( kernel[2], 0, 1e-7 );
     TS_ASSERT_DELTA( kernel[3], -0.6666666667, 1e-7 );
     TS_ASSERT_DELTA( kernel[4], 0.08333333333, 1e-8 );
     generate_derivative_kernel( kernel, 4, 5 );
-    TS_ASSERT_EQUALS( kernel.size(), 5 );
+    TS_ASSERT_EQUALS( int(kernel.size()), 5 );
     TS_ASSERT_DELTA( kernel[0], 1.0, 1e-7 );
     TS_ASSERT_DELTA( kernel[1], -4.0, 1e-7 );
     TS_ASSERT_DELTA( kernel[2], 6.0, 1e-7 );
     TS_ASSERT_DELTA( kernel[3], -4.0, 1e-7 );
     TS_ASSERT_DELTA( kernel[4], 1.0, 1e-7 );
     generate_derivative_kernel( kernel, 5 );
-    TS_ASSERT_EQUALS( kernel.size(), 7 );
+    TS_ASSERT_EQUALS( int(kernel.size()), 7 );
     TS_ASSERT_DELTA( kernel[0], 0.5, 1e-8 );
     TS_ASSERT_DELTA( kernel[1], -2.0, 1e-7 );
     TS_ASSERT_DELTA( kernel[2], 2.5, 1e-7 );
@@ -108,17 +108,17 @@ public:
     TS_ASSERT_DELTA( kernel[5], 2.0, 1e-7 );
     TS_ASSERT_DELTA( kernel[6], -0.5, 1e-8 );
     generate_derivative_kernel( kernel, 1 );
-    TS_ASSERT_EQUALS( kernel.size(), 3 );
+    TS_ASSERT_EQUALS( int(kernel.size()), 3 );
     TS_ASSERT_EQUALS( kernel[0], 0.5 );
     TS_ASSERT_EQUALS( kernel[1], 0 );
     TS_ASSERT_EQUALS( kernel[2], -0.5 );
     generate_derivative_kernel( kernel, 2 );
-    TS_ASSERT_EQUALS( kernel.size(), 3 );
+    TS_ASSERT_EQUALS( int(kernel.size()), 3 );
     TS_ASSERT_EQUALS( kernel[0], 1 );
     TS_ASSERT_EQUALS( kernel[1], -2 );
     TS_ASSERT_EQUALS( kernel[2], 1 );
     generate_gaussian_kernel( kernel, 0 );
-    TS_ASSERT_EQUALS( kernel.size(), 0 );
+    TS_ASSERT_EQUALS( int(kernel.size()), 0 );
   }
 
   void test_derivative_filter() {

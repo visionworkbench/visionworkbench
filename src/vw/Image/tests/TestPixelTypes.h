@@ -25,6 +25,7 @@
 #include <cxxtest/TestSuite.h>
 
 #include <vw/Image/PixelTypes.h>
+#include <vw/Image/PixelMask.h>
 
 using namespace std;
 using namespace vw;
@@ -472,10 +473,6 @@ public:
       }
     }
   }
-  
-  /***/
-
-
   void test_pixel_xyz_to_lab_to_xyz()
   {
     // Omit solid black for Lab
@@ -546,6 +543,110 @@ public:
         }
       }
     }
+  }
+  
+  /***/
+
+  void test_pixel_mask()
+  {
+    // Default construction
+    { 
+      PixelMask<PixelGray<uint8> > test; 
+      TS_ASSERT( test.valid() == 0 ); 
+    } 
+
+    // Implicit construction from scalar
+    { 
+      PixelMask<PixelGray<uint8> > test = 5; 
+      TS_ASSERT( test[0] == 5 );
+      TS_ASSERT( test[1] == 1 ); 
+    } 
+    
+    // Construction from child type
+    { 
+      PixelGray<uint8> g = 5;
+      PixelMask<PixelGray<uint8> > test = g; 
+      TS_ASSERT( test[0] == 5 );
+      TS_ASSERT( test[1] == 1 ); 
+    } 
+
+    // Construction from another PixelMask<> w/ same channel type
+    { 
+      PixelMask<PixelGray<uint8> > gv = 5;
+      PixelMask<PixelGray<uint8> > test = gv;
+      TS_ASSERT( test[0] == 5 );
+      TS_ASSERT( test[1] == 1 ); 
+    } 
+
+    // Construction from another PixelMask<> w/ different channel type
+    { 
+      PixelMask<PixelGray<uint8> > gv = 5; 
+      PixelMask<PixelGray<float> > test = channel_cast<float>(gv);
+      TS_ASSERT( test[0] == 5 );
+      TS_ASSERT( test[1] == 1 ); 
+    } 
+
+    // Construction from another PixelMask<> w/ an implicit conversion
+    { 
+      PixelGray<uint8> foo = 5;
+      PixelRGB<uint8> bar(foo);
+      TS_ASSERT( foo[0] == 5 );
+      TS_ASSERT( bar[0] == 5 ); 
+      
+      PixelMask<PixelGray<uint8> > gv = 5; 
+      PixelMask<PixelRGB<uint8> > test(gv);
+      TS_ASSERT( gv[0] == 5 );
+      TS_ASSERT( test[0] == 5 );
+      TS_ASSERT( test[3] == 1 ); 
+    } 
+
+    // Construction from scalar types
+    { 
+      uint8 foo = 5;
+      PixelMask<uint8> gv = foo; 
+      PixelMask<uint8> test(gv);
+      TS_ASSERT( gv[0] == 5 );
+      TS_ASSERT( test[0] == 5 );
+      TS_ASSERT( test[1] == 1 ); 
+
+      // Downcast back to uint8
+      uint8 bar = test;
+      TS_ASSERT( bar == 5 ); 
+      
+      test.invalidate();
+      bar = test;
+      TS_ASSERT( bar == 5 ); 
+      
+      // The following lines should fail to compile ( throwing a boost
+      // static assert error... ) because you should not be able to
+      // downcast from a PixelRGB<> to a uint8.
+      //       PixelMask<PixelRGB<uint8> > downcast_test(4,2,6);
+      //       bar = downcast_test;
+    } 
+
+    // Check for pixel transparency 
+    {
+      PixelMask<float> v1(1.0);
+      PixelMask<PixelGray<uint8> > v2;
+
+      TS_ASSERT( is_transparent(v1) == false );
+      TS_ASSERT( is_transparent(v2) == true );
+
+      v2.validate();
+      v1.invalidate();
+      
+      TS_ASSERT( is_transparent(v1) == true );
+      TS_ASSERT( is_transparent(v2) == false );
+      
+    }
+
+    // Test type traits
+    { 
+      TS_ASSERT( CompoundNumChannels<PixelMask<PixelGray<uint8> > >::value == 2 );
+      TS_ASSERT( CompoundNumChannels<PixelMask<PixelRGB<uint8> > >::value == 4 );
+      TS_ASSERT( CompoundNumChannels<PixelMask<PixelRGBA<uint8> > >::value == 5 );
+      TS_ASSERT( CompoundNumChannels<PixelMask<Vector3> >::value == 4 );
+    } 
   }
 
 };
