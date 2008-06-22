@@ -94,7 +94,12 @@ namespace cartography {
       // 3. Convert to cartesian (xyz) coordinates.
       Vector2 lon_lat( m_georef.pixel_to_lonlat(Vector2(i,j)) );
       Vector3 xyz = m_georef.datum().geodetic_to_cartesian( Vector3( lon_lat.x(), lon_lat.y(), m_terrain(i,j) ) );
-                                                           
+                   
+      // Check for a missing DEM pixels.
+      if ( is_transparent(m_terrain(i,j)) ) {
+        return result_type();
+      }
+                                        
       // Now we can image the point using the camera model and return
       // the resulting pixel from the camera image.
       Vector2 pix = m_camera_model->point_to_pixel(xyz);
@@ -102,24 +107,19 @@ namespace cartography {
     }
 
     /// \cond INTERNAL
-    typedef OrthoImageView<typename TerrainImageT::prerasterize_type,
-                           typename CameraImageT::prerasterize_type,
-                           InterpT, EdgeT> prerasterize_type;
+    typedef OrthoImageView<typename TerrainImageT::prerasterize_type, CameraImageT, InterpT, EdgeT> prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
-      return prerasterize_type( m_terrain.prerasterize(bbox), m_georef, 
-                                m_camera_image_ref.prerasterize(BBox2i(0,0,m_camera_image_ref.cols(),m_camera_image_ref.rows())), m_camera_model,
-                                m_interp_func, m_edge_func);
+      return prerasterize_type( m_terrain.prerasterize(bbox), 
+                                m_georef, m_camera_image_ref, 
+                                m_camera_model, m_interp_func, m_edge_func);
     }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
-
   };
-
 
   // -------------------------------------------------------------------------------
   // Functional API
   // -------------------------------------------------------------------------------
-
   template <class TerrainImageT, class CameraImageT, class InterpT, class EdgeT>
   OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT> orthoproject( ImageViewBase<TerrainImageT> const& terrain_image, 
                                                                             GeoReference const& georef,
