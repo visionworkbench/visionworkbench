@@ -104,6 +104,29 @@ namespace vw {
     }
   };
 
+  /// An edge extention type that extends the image with a
+  /// user-supplied value in all directions.
+  template <class PixelT>
+  struct ValueEdgeExtension : EdgeExtensionBase {
+    PixelT m_pix;
+    ValueEdgeExtension(PixelT pix) : m_pix(pix) {}
+
+    template <class ViewT>
+    inline PixelT operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
+      if( i>=0 && j>=0 && i<view.cols() && j<view.rows() )
+        return view(i,j,p);
+      else
+        return m_pix;
+    }
+
+    template <class ViewT>
+    inline BBox2i source_bbox( ViewT const& view, BBox2i const& bbox ) const {
+      BBox2i result = bbox;
+      result.crop( BBox2i( 0, 0, view.cols(), view.rows() ) );
+      return result;
+    }
+  };
+
   /// An edge extension type that extends the image using constant 
   /// functions in all directions.  In other words, it returns the 
   /// nearest valid pixel.
