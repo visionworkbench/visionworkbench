@@ -226,6 +226,7 @@ fi
 AX_PKG_PTHREADS
 
 AX_PKG_BOOST
+AC_MSG_NOTICE([VW will be built using Boost version $BOOST_VERSION])
 AX_PKG_BOOST_LIB(PROGRAM_OPTIONS, [-lboost_program_options], [boost/program_options.hpp])
 AX_PKG_BOOST_LIB(FILESYSTEM_PRE_1_35, [-lboost_filesystem], [boost/filesystem/path.hpp])
 if test "$HAVE_PKG_BOOST_FILESYSTEM_PRE_1_35" = "no"; then

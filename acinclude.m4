@@ -358,6 +358,30 @@ AC_DEFUN([AX_PKG_BOOST],
 
   AC_SUBST(HAVE_PKG_BOOST)
 
+  AC_LANG_CONFTEST(
+  [AC_LANG_PROGRAM([[
+#include <iostream>
+#include <boost/version.hpp>
+#define STR2(s) #s
+#define STR(s) STR2(s)
+]],[[
+std::cout << STR(BOOST_VERSION);
+]])])
+  $CXX $VW_CPPFLAGS -o conftest conftest.cc
+  BOOST_VERSION=`./conftest`
+  AC_DEFINE_UNQUOTED([BOOST_VERSION],
+                     [$BOOST_VERSION],
+                     [The version of Boost with which the Vision Workbench was built.])
+
+  AH_VERBATIM([_VW_CHECK_BOOST_VERSION],
+[// Check to make sure the user is using the same version of Boost
+// headers that the Vision Workbench was built with.
+#include <boost/version.hpp>
+#if BOOST_VERSION != VW_BOOST_VERSION
+#error You are using a different version of Boost than you used to build the Vision Workbench!
+#endif
+])
+
   if test "$ENABLE_VERBOSE" = "yes"; then
     AC_MSG_NOTICE([HAVE_PKG_BOOST= $HAVE_PKG_BOOST])
     AC_MSG_NOTICE([VW_CPPFLAGS= $VW_CPPFLAGS])
