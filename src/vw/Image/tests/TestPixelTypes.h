@@ -559,7 +559,7 @@ public:
     { 
       PixelMask<PixelGray<uint8> > test = 5; 
       TS_ASSERT( test[0] == 5 );
-      TS_ASSERT( test[1] == 1 ); 
+      TS_ASSERT( test[1] == 255 ); 
     } 
     
     // Construction from child type
@@ -567,7 +567,7 @@ public:
       PixelGray<uint8> g = 5;
       PixelMask<PixelGray<uint8> > test = g; 
       TS_ASSERT( test[0] == 5 );
-      TS_ASSERT( test[1] == 1 ); 
+      TS_ASSERT( test[1] == 255 ); 
     } 
 
     // Construction from another PixelMask<> w/ same channel type
@@ -575,7 +575,7 @@ public:
       PixelMask<PixelGray<uint8> > gv = 5;
       PixelMask<PixelGray<uint8> > test = gv;
       TS_ASSERT( test[0] == 5 );
-      TS_ASSERT( test[1] == 1 ); 
+      TS_ASSERT( test[1] == 255 ); 
     } 
 
     // Construction from another PixelMask<> w/ different channel type
@@ -597,7 +597,7 @@ public:
       PixelMask<PixelRGB<uint8> > test(gv);
       TS_ASSERT( gv[0] == 5 );
       TS_ASSERT( test[0] == 5 );
-      TS_ASSERT( test[3] == 1 ); 
+      TS_ASSERT( test[3] == 255 ); 
     } 
 
     // Construction from scalar types
@@ -607,7 +607,7 @@ public:
       PixelMask<uint8> test(gv);
       TS_ASSERT( gv[0] == 5 );
       TS_ASSERT( test[0] == 5 );
-      TS_ASSERT( test[1] == 1 ); 
+      TS_ASSERT( test[1] == 255 ); 
 
       // Downcast back to uint8
       uint8 bar = test;

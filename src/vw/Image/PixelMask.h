@@ -115,21 +115,24 @@ namespace vw {
 
     // Default constructor (zero value).  Pixel is not valid by
     // default.
-    PixelMask() { m_child = ChildT(); m_valid = channel_type(); }
+    PixelMask() { 
+      m_child = ChildT(); 
+      m_valid = ChannelRange<channel_type>::min();
+    }
 
-    /// Implicit construction from the raw channel value, or from the
+    /// implicit construction from the raw channel value, or from the
     /// child pixel type value.  Values constructed in this manner
     /// are considered valid.
     template <class T>
     PixelMask( T const& pix) {
       m_child = pix;
-      m_valid = 1;
+      m_valid = ChannelRange<channel_type>::max();
     }
 
     /// Conversion from other PixelMask<> types.
     template <class OtherT> explicit PixelMask( PixelMask<OtherT> other ) {
       if (other.valid()) { 
-        m_valid = 1;
+        m_valid = ChannelRange<channel_type>::max();
         // We let the child's built-in conversions do their work here.
         // This will fail if there is no conversion defined from
         // OtherT to ChildT.
@@ -142,32 +145,35 @@ namespace vw {
 
     /// Constructs a pixel with the given channel values (use only when child has 2 channels)
     PixelMask( channel_type const& a0, channel_type const& a1 ) {
-      m_child[0]=a0; m_child[1]=a1; m_valid = 1;
+      m_child[0]=a0; m_child[1]=a1; m_valid = ChannelRange<channel_type>::max();
     }
 
     /// Constructs a pixel with the given channel values (use only when child has 3 channels)
     PixelMask( channel_type const& a0, channel_type const& a1, channel_type const& a2 ) {
-      m_child[0]=a0; m_child[1]=a1; m_child[2]=a2; m_valid = 1;
+      m_child[0]=a0; m_child[1]=a1; m_child[2]=a2; m_valid = ChannelRange<channel_type>::max();
     }
 
     /// Constructs a pixel with the given channel values (use only when child has 4 channels)
     PixelMask( channel_type const& a0, channel_type const& a1, channel_type const& a2, channel_type const& a3 ) {
-      m_child[0]=a0; m_child[1]=a1; m_child[2]=a2; m_child[3]=a3; m_valid = 1;
+      m_child[0]=a0; m_child[1]=a1; m_child[2]=a2; m_child[3]=a3; m_valid = ChannelRange<channel_type>::max();
     }
 
     /// Returns the value from the valid channel
     channel_type valid() const { return m_valid; }
 
     /// Invalidates this pixel, setting its valid bit to zero.
-    void invalidate() { m_valid = 0; }
+    void invalidate() { m_valid = ChannelRange<channel_type>::min(); }
 
     /// Invalidates this pixel, setting its valid bit to 1;
-    void validate() { m_valid = 1; }
+    void validate() { m_valid = ChannelRange<channel_type>::max(); }
 
     /// Returns the child pixel type
     ChildT const& child() const { return m_child; }
 
-    /// Automatic down-cast to the raw channel value in numeric contexts.
+    /// Automatic down-cast to the raw channel value in numeric
+    /// contexts.  This should only work for pixels that contain one
+    /// data channel (plus the mask channel).  We add a
+    /// BOOST_STATIC_ASSERT here to make sure that this is the case.
     operator channel_type() const { 
        BOOST_STATIC_ASSERT(CompoundNumChannels<ChildT>::value == 1);
        return compound_select_channel<channel_type const&>(m_child,0); 
@@ -206,7 +212,7 @@ namespace vw {
   /// Print a PixelMask to a debugging stream.
   template <class ChildT>
   std::ostream& operator<<( std::ostream& os, PixelMask<ChildT> const& pix ) {
-    return os << "PixelMask( " << pix.child() << " " << _numeric(pix.valid()) << ")";
+    return os << "PixelMask( " << _numeric(pix.valid()) << " " << pix.valid() << " )";
   }
 
   // We must declare each pixel type we wish to use with the valid pixel wrapper.
@@ -675,17 +681,23 @@ namespace vw {
   /// pixels masked.
   ///
   template <class ViewT>
-  class PixelMaskView : public ImageViewBase<PixelMaskView<ViewT> > {
+  class CreatePixelMaskView : public ImageViewBase<CreatePixelMaskView<ViewT> > {
     ViewT m_view;
     typename ViewT::pixel_type m_nodata_value;
+    bool m_use_nodata_value;
 
   public:
     typedef PixelMask<typename ViewT::pixel_type> pixel_type;
     typedef PixelMask<typename ViewT::pixel_type> const result_type;
-    typedef ProceduralPixelAccessor<PixelMaskView> pixel_accessor;
+    typedef ProceduralPixelAccessor<CreatePixelMaskView> pixel_accessor;
 
-    PixelMaskView( ViewT const& view, typename ViewT::pixel_type const& nodata_value) 
-      : m_view(view), m_nodata_value(nodata_value) {}
+    CreatePixelMaskView( ViewT const& view, typename ViewT::pixel_type const& nodata_value) 
+      : m_view(view), m_use_nodata_value(false) {}
+
+    void set_nodata_value( typename ViewT::pixel_type value ) {
+      m_nodata_value = value;
+      m_use_nodata_value = true;
+    }
 
     inline int32 cols() const { return m_view.cols(); }
     inline int32 rows() const { return m_view.rows(); }
@@ -694,7 +706,7 @@ namespace vw {
     inline pixel_accessor origin() const { return pixel_accessor( *this ); }
 
     inline result_type operator()( int32 col, int32 row, int32 plane=0 ) const { 
-      if (m_view(col,row,plane) == m_nodata_value) {
+      if (m_use_nodata_value && m_view(col,row,plane) == m_nodata_value) {
         pixel_type result = m_view(col,row,plane);
         result.invalidate();
         return result;
@@ -702,8 +714,8 @@ namespace vw {
         return m_view(col,row,plane);
       }
     }
-
-    typedef PixelMaskView prerasterize_type;
+    
+    typedef CreatePixelMaskView prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i /*bbox*/ ) const { return *this; }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
       vw::rasterize( prerasterize(bbox), dest, bbox );
@@ -711,11 +723,18 @@ namespace vw {
   };
 
   template <class ViewT>
-  struct IsMultiplyAccessible<PixelMaskView<ViewT> > : public true_type {};
+  struct IsMultiplyAccessible<CreatePixelMaskView<ViewT> > : public true_type {};
 
   template <class ViewT>
-  PixelMaskView<ViewT> mask_view( ImageViewBase<ViewT> const& view, typename ViewT::pixel_type const& value) {
-    return PixelMaskView<ViewT>( view.impl(), value );
+  CreatePixelMaskView<ViewT> create_mask( ImageViewBase<ViewT> const& view, typename ViewT::pixel_type const& value) {
+    CreatePixelMaskView<ViewT> pm_view( view.impl(), value );
+    pm_view.set_nodata_value(value);
+    return pm_view;
+  }
+
+  template <class ViewT>
+  CreatePixelMaskView<ViewT> create_mask( ImageViewBase<ViewT> const& view) {
+    return CreatePixelMaskView<ViewT>( view.impl() );
   }
 
   // *******************************************************************
@@ -768,7 +787,7 @@ namespace vw {
   ApplyPixelMaskView<ViewT> apply_mask( ImageViewBase<ViewT> const& view, 
                                         typename ViewT::pixel_type::child_type const& value = 
                                         typename ViewT::pixel_type::child_type() ) {
-    return PixelMaskView<ViewT>( view.impl(), value );
+    return ApplyPixelMaskView<ViewT>( view.impl(), value );
   }
 
 }

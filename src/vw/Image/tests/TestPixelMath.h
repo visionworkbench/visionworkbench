@@ -334,7 +334,7 @@ public:
     TS_ASSERT( test[0] == 3 );
     TS_ASSERT( test[1] == 5 );
     TS_ASSERT( test[2] == 7 );
-    TS_ASSERT( test[3] == 1 );
+    TS_ASSERT( test[3] == 255 );
 
     // Valid + invalid
     test = a + i;
@@ -356,7 +356,7 @@ public:
     TS_ASSERT( test[0] == 26 );
     TS_ASSERT( test[1] == 27 );
     TS_ASSERT( test[2] == 28 );
-    TS_ASSERT( test[3] == 1 );
+    TS_ASSERT( test[3] == 255 );
 
     // Invalid + scalar
     test = i;
