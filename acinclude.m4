@@ -367,7 +367,7 @@ AC_DEFUN([AX_PKG_BOOST],
 ]],[[
 std::cout << STR(BOOST_VERSION);
 ]])])
-  $CXX $VW_CPPFLAGS -o conftest conftest.cc
+  $CXX $VW_CPPFLAGS -o conftest conftest.$ac_ext
   BOOST_VERSION=`./conftest`
   AC_DEFINE_UNQUOTED([BOOST_VERSION],
                      [$BOOST_VERSION],
