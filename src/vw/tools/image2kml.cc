@@ -59,6 +59,7 @@ int main( int argc, char *argv[] ) {
   std::vector<std::string> image_files;
   std::string output_file_name;
   std::string output_file_type;
+  GeoReference output_georef;
   double north_lat=90.0, south_lat=-90.0;
   double east_lon=180.0, west_lon=-180.0;
   double proj_lat=0, proj_lon=0, proj_scale=1;
@@ -74,6 +75,7 @@ int main( int argc, char *argv[] ) {
   float pixel_scale=1.0, pixel_offset=0.0;
   double lcc_parallel1, lcc_parallel2;
   int aspect_ratio=0;
+  int total_resolution = 1024;
 
   po::options_description general_options("General Options");
   general_options.add_options()
@@ -89,6 +91,7 @@ int main( int argc, char *argv[] ) {
     ("south", po::value<double>(&south_lat), "The southernmost latitude in degrees")
     ("east", po::value<double>(&east_lon), "The easternmost longitude in degrees")
     ("west", po::value<double>(&west_lon), "The westernmost longitude in degrees")
+    ("force-wgs84", "Assume the input images' geographic coordinate systems are WGS84, even if they're not (old behavior)")
     ("sinusoidal", "Assume a sinusoidal projection")
     ("mercator", "Assume a Mercator projection")
     ("transverse-mercator", "Assume a transverse Mercator projection")
@@ -190,10 +193,6 @@ int main( int argc, char *argv[] ) {
   DiskImageResourceJPEG::set_default_quality( jpeg_quality );
   Cache::system_cache().resize( cache_size*1024*1024 );
 
-  GeoReference output_georef;
-  output_georef.set_well_known_geogcs("WGS84"); 
-  int total_resolution = 1024;
-
   // For image stretching
   float lo_value = ScalarTypeLimits<float>::highest();
   float hi_value = ScalarTypeLimits<float>::lowest();
@@ -216,6 +215,8 @@ int main( int argc, char *argv[] ) {
     GeoReference input_georef;
     read_georeference( input_georef, file_resource );
 
+    if(vm.count("force-wgs84"))
+      input_georef.set_well_known_geogcs("WGS84");
     if ( input_georef.proj4_str() == "" ) input_georef.set_well_known_geogcs("WGS84");
     if( manual || input_georef.transform() == identity_matrix<3>() ) {
       if( image_files.size() == 1 ) {
@@ -256,17 +257,33 @@ int main( int argc, char *argv[] ) {
     
     georeferences.push_back( input_georef );
 
+    // Just need a WGS84 georeference for computing resolution.
+    output_georef.set_well_known_geogcs("WGS84");
     GeoTransform geotx( input_georef, output_georef );
     Vector2 center_pixel( file_resource.cols()/2, file_resource.rows()/2 );
-    int resolution = GlobalKMLTransform::compute_resolution( geotx, center_pixel );
-    if( resolution > total_resolution ) total_resolution = resolution;
+    // Calculate the best resolution at 5 different points in the image,
+    // as occasionally there's a singularity at the center pixel that 
+    // makes it extremely tiny (such as in pole-centered images).
+    int cols = file_resource.cols();
+    int rows = file_resource.rows();
+    Vector2 res_pixel[5];
+    res_pixel[0] = Vector2( cols/2, rows/2 );
+    res_pixel[1] = Vector2( cols/2 + cols/4, rows/2 );
+    res_pixel[2] = Vector2( cols/2 - cols/4, rows/2 );
+    res_pixel[3] = Vector2( cols, rows/2 + rows/4 );
+    res_pixel[4] = Vector2( cols, rows/2 - rows/4 );
+    int resolution[5];
+    for(int i=0; i < 5; i++) {
+        resolution[i] = output::kml::compute_resolution( geotx, res_pixel[i] );
+        if( resolution[i] > total_resolution) total_resolution = resolution[i];
+    }
   }
+  // Now that we know the best resolution, we can get our output_georef.
+  int xresolution = total_resolution / aspect_ratio, yresolution = total_resolution;
+  output_georef = output::kml::get_output_georeference(xresolution,yresolution);
 
   // Configure the composite
   ImageComposite<PixelRGBA<uint8> > composite;
-  int xresolution = total_resolution / aspect_ratio, yresolution = total_resolution;
-  GlobalKMLTransform kmltx( xresolution, yresolution );
-
 
   // Add the transformed input files to the composite
   for( unsigned i=0; i<image_files.size(); ++i ) {
@@ -288,7 +305,9 @@ int main( int argc, char *argv[] ) {
         source = per_pixel_filter( disk_image, PaletteFilter<PixelRGBA<uint8> >(palette_file) );
       }
     }
-    BBox2i bbox = compose(kmltx,geotx).forward_bbox( BBox2i(0,0,source.cols(),source.rows()) );
+
+    BBox2i bbox = geotx.forward_bbox( BBox2i(0,0,source.cols(),source.rows()) );
+    
     // Constant edge extension is better for transformations that 
     // preserve the rectangularity of the image.  At the moment we 
     // only do this for manual transforms, alas.
@@ -301,10 +320,10 @@ int main( int argc, char *argv[] ) {
       if( east_lon == 180 ) bbox.max().x() = xresolution;
       if( north_lat == 90 ) bbox.min().y() = yresolution/4;
       if( south_lat == -90 ) bbox.max().y() = 3*yresolution/4;
-      source = crop( transform( source, compose(kmltx,geotx), ConstantEdgeExtension() ), bbox );
+      source = crop( transform( source, geotx, ConstantEdgeExtension() ), bbox );
     }
     else {
-      source = crop( transform( source, compose(kmltx,geotx) ), bbox );
+      source = crop( transform( source, geotx ), bbox );
     }
     composite.insert( source, bbox.min().x(), bbox.min().y() );
     // Images that wrap the date line must be added to the composite on both sides.

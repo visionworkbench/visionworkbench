@@ -28,6 +28,21 @@
 namespace vw {
 namespace cartography {
 
+  // Performs a forward or reverse datum conversion.
+  Vector2 GeoTransform::datum_convert(Vector2 const& v, bool forward) const {
+    double x = v[0];
+    double y = v[1];
+    double z = 0;
+
+    if(forward)
+      pj_transform(m_src_datum->proj_ptr(), m_dst_datum->proj_ptr(), 1, 0, &x, &y, &z);
+    else
+      pj_transform(m_dst_datum->proj_ptr(), m_src_datum->proj_ptr(), 1, 0, &x, &y, &z);
+    CHECK_PROJ_ERROR;
+
+    return Vector2(x, y);
+  }
+
   void reproject_point_image(ImageView<Vector3> const& point_image,
                              GeoReference const& src_georef,
                              GeoReference const& dst_georef) {

@@ -262,8 +262,7 @@ namespace mosaic {
       if (m_write_meta_file) write_meta_file( info );
     }
 
-    ImageView<PixelT> generate_branch( std::string name, int32 level, int32 x, int32 y, 
-                                       const ProgressCallback &progress_callback ) 
+    virtual ImageView<PixelT> generate_branch( std::string name, int32 level, int32 x, int32 y, const ProgressCallback &progress_callback ) 
     {
       progress_callback.report_progress(0);
       progress_callback.abort_if_requested();

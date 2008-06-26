@@ -134,13 +134,49 @@ namespace cartography {
 
     /// Return the box that bounds the area represented by the
     /// geotransform for the dimensions of the given image.
+    /// Note that this doesn't tell you whether the image takes the 
+    /// long path or the short path from the left longitude to the 
+    /// right longitude.
+    ///
+    /// Assumption: that the projection is continuous.
     template <class ViewT> 
     BBox2 lonlat_bounding_box(ImageViewBase<ViewT> const& view) const {
       BBox2 bbox;
-      bbox.grow(pixel_to_lonlat(Vector2(0,0)));
-      bbox.grow(pixel_to_lonlat(Vector2(view.impl().cols(),0)));
-      bbox.grow(pixel_to_lonlat(Vector2(0,view.impl().rows())));
-      bbox.grow(pixel_to_lonlat(Vector2(view.impl().cols(), view.impl().rows())));
+      int x;
+      int y;
+      Vector2 pix;
+      
+      // As all the projections are continuous, we can just walk the 
+      // edges to find the bounding box.
+      // Walk the top & bottom (technically past the edge of pixel space) rows
+      x = view.impl().rows();
+      for(y=0; y < view.impl().cols(); y++) {
+          bbox.grow(pixel_to_lonlat(Vector2(0,y)));
+          bbox.grow(pixel_to_lonlat(Vector2(x,y)));
+      }
+      // Walk the left & right (technically past the edge of pixel space) columns
+      y = view.impl().cols();
+      for(x=0; x < view.impl().rows(); x++) {
+          bbox.grow(pixel_to_lonlat(Vector2(x,0)));
+          bbox.grow(pixel_to_lonlat(Vector2(x,y)));
+      }
+
+      // Do we cross the north or south pole? Have to cover that case 
+      // specially. Fortunately it's easy, because (anything, 90) or 
+      // (anything, -90) will always be in the image.
+      // North pole:
+      pix = lonlat_to_pixel(Vector2(0, 90));
+      if(0 <= pix[0] && pix[0] <= view.impl().rows() &&
+         0 <= pix[1] && pix[1] <= view.impl().cols()) {
+          bbox.grow(Vector2(0, 90));
+      }
+      // South pole:
+      pix = lonlat_to_pixel(Vector2(0, -90));
+      if(0 <= pix[0] && pix[0] <= view.impl().rows() &&
+         0 <= pix[1] && pix[1] <= view.impl().cols()) {
+          bbox.grow(Vector2(0, -90));
+      }
+
       return bbox;
     }
   };

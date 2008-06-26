@@ -65,6 +65,7 @@ namespace cartography {
 
       std::vector<std::string> input_strings;
       std::vector<std::string> output_strings;
+      std::vector<std::string> datum_strings;
       std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
       boost::split( input_strings, trimmed_proj4_str, boost::is_any_of(" ") ); 
       for (unsigned int i = 0; i < input_strings.size(); ++i) {
@@ -86,8 +87,13 @@ namespace cartography {
             (input_strings[i].find("+no_cut") == 0) || 
             (input_strings[i].find("+h=") == 0) || 
             (input_strings[i].find("+W=") == 0) || 
-            (input_strings[i].find("+units=") == 0)) {
+            (input_strings[i].find("+units=") == 0) ||
+            (input_strings[i].find("+zone=") == 0)) {
           output_strings.push_back(input_strings[i]);
+        } else if ((input_strings[i].find("+ellps=") == 0) ||
+                   (input_strings[i].find("+datum=") == 0)) {
+          // We put these in the proj4_str for the Datum class.
+          datum_strings.push_back(input_strings[i]);
         }
       }
       std::ostringstream strm;
@@ -121,6 +127,15 @@ namespace cartography {
         datum.set_semi_minor_axis(semi_minor);
       }
       datum.meridian_offset() = gdal_spatial_ref.GetPrimeMeridian();
+      // Set the proj4 string for datum.
+      std::stringstream datum_proj4_ss;
+      for(int i=0; i < datum_strings.size(); i++)
+          datum_proj4_ss << datum_strings[i] << ' ';
+      // Add the current proj4 string in the case that our ellipse/datum 
+      // values are empty.
+      if(boost::trim_copy(datum_proj4_ss.str()) == "")
+        datum_proj4_ss << datum.proj4_str();
+      datum.proj4_str() = boost::trim_copy(datum_proj4_ss.str());
       georef.set_datum(datum);
     }
     

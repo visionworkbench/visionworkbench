@@ -23,6 +23,10 @@
 #ifndef __VW_CARTOGRAPHY_GEOTRANSFORM_H__
 #define __VW_CARTOGRAPHY_GEOTRANSFORM_H__
 
+#include <sstream>
+#include <string>
+
+#include <vw/Core/Exception.h>
 #include <vw/Math/Vector.h>
 #include <vw/Image/Transform.h>
 #include <vw/Cartography/GeoReference.h>
@@ -34,22 +38,59 @@ namespace cartography {
     
     GeoReference m_src_georef;
     GeoReference m_dst_georef;
+    boost::shared_ptr<ProjContext> m_src_datum;
+    boost::shared_ptr<ProjContext> m_dst_datum;
     bool m_skip_map_projection;
+    bool m_skip_datum_conversion;
+
+    /* Converts between datums. The parameter 'forward' specifies whether 
+     * we convert forward (true) or reverse (false).
+    */
+    Vector2 datum_convert(Vector2 const& v, bool forward) const;
 
   public:
     /// Normal constructor
     GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef) :
       m_src_georef(src_georef), m_dst_georef(dst_georef) {
+      const std::string src_datum = m_src_georef.datum().proj4_str();
+      const std::string dst_datum = m_dst_georef.datum().proj4_str();
 
       // This optimizes in the common case where the two images are
       // already in the same map projection, and we need only apply
       // the affine transform.  This will break, of course, as soon as
       // we have mare than one type of GeoReference object, but it
       // makes life faster for now. -mbroxton
-      if (m_src_georef.proj4_str() == m_dst_georef.proj4_str()) 
+      if (m_src_georef.proj4_str() == m_dst_georef.proj4_str())
         m_skip_map_projection = true;
-      else 
+      else
         m_skip_map_projection = false;
+
+      // This optimizes the case where the two datums are the same, 
+      // and thus we don't need to call proj to convert between them 
+      // as we transform.
+      if(src_datum == dst_datum) {
+        m_skip_datum_conversion = true;
+      } else {
+        // Set up the various variables for proj.
+        m_skip_datum_conversion = false;
+
+        // The source proj4 context.
+        std::stringstream ss_src;
+        // We convert lat/long to lat/long regardless of what the 
+        // source or destination georef uses.
+        ss_src << "+proj=latlong " << src_datum;
+        m_src_datum = boost::shared_ptr<ProjContext>(new ProjContext(ss_src.str()));
+        CHECK_PROJ_ERROR;
+        if(m_src_datum == NULL)
+          vw_throw(InputErr() << pj_strerrno(pj_errno));
+
+        // The destination proj4 context.
+        std::stringstream ss_dst;
+        ss_dst << "+proj=latlong " << dst_datum;
+        m_dst_datum = boost::shared_ptr<ProjContext>(new ProjContext(ss_dst.str()));
+        if(m_dst_datum == NULL)
+          vw_throw(InputErr() << pj_strerrno(pj_errno));
+      }
     }
 
     /// Given a pixel coordinate of an image in a destination
@@ -58,8 +99,11 @@ namespace cartography {
     Vector2 reverse(Vector2 const& v) const {
       if (m_skip_map_projection)
         return m_src_georef.point_to_pixel(m_dst_georef.pixel_to_point(v));
-      else
+      if(m_skip_datum_conversion)
         return m_src_georef.lonlat_to_pixel(m_dst_georef.pixel_to_lonlat(v));
+      Vector2 dst_lonlat = m_dst_georef.pixel_to_lonlat(v);
+      dst_lonlat = datum_convert(dst_lonlat, false);
+      return m_src_georef.lonlat_to_pixel(dst_lonlat);
     }
 
     /// Given a pixel coordinate of an image in a source
@@ -68,8 +112,60 @@ namespace cartography {
     Vector2 forward(Vector2 const& v) const {
       if (m_skip_map_projection)
         return m_dst_georef.point_to_pixel(m_src_georef.pixel_to_point(v));
-      else
+      if(m_skip_datum_conversion)
         return m_dst_georef.lonlat_to_pixel(m_src_georef.pixel_to_lonlat(v));
+      Vector2 src_lonlat = m_src_georef.pixel_to_lonlat(v);
+      src_lonlat = datum_convert(src_lonlat, true);
+      return m_dst_georef.lonlat_to_pixel(src_lonlat);
+    }
+
+    // We override forward_bbox so it understands to check if the image 
+    // crosses the poles or not.
+    BBox2i forward_bbox( BBox2i const& bbox ) const {
+      BBox2 r = TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction>::forward_bbox(bbox);
+      int rows_min = bbox.min().y();
+      int rows_max = bbox.max().y();
+      int cols_min = bbox.min().x();
+      int cols_max = bbox.max().x();
+      Vector2 pix;
+
+      // Check the north pole.
+      pix = m_src_georef.lonlat_to_pixel( Vector2(0, 90) );
+      if (rows_min <= pix[1] && pix[1] <= rows_max &&
+          cols_min <= pix[0] && pix[0] <= cols_max)
+        r.grow( forward(pix) );
+
+      // Check the south pole.
+      pix = m_src_georef.lonlat_to_pixel( Vector2(0, -90) );
+      if (rows_min <= pix[1] && pix[1] <= rows_max &&
+          cols_min <= pix[0] && pix[0] <= cols_max)
+        r.grow( forward(pix) );
+
+      return grow_bbox_to_int(r);
+    }
+
+    // We do the same for reverse_bbox
+    BBox2i reverse_bbox( BBox2i const& bbox ) const {
+      BBox2 r = TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction>::reverse_bbox(bbox);
+      int rows_min = bbox.min().y();
+      int rows_max = bbox.max().y();
+      int cols_min = bbox.min().x();
+      int cols_max = bbox.max().x();
+      Vector2 pix;
+
+      // Check the north pole.
+      pix = m_dst_georef.lonlat_to_pixel( Vector2(0, 90) );
+      if (rows_min <= pix[1] && pix[1] < rows_max &&
+          cols_min <= pix[0] && pix[0] < cols_max)
+        r.grow( reverse(pix) );
+
+      // Check the south pole.
+      pix = m_dst_georef.lonlat_to_pixel( Vector2(0, -90) );
+      if (rows_min <= pix[1] && pix[1] < rows_max &&
+          cols_min <= pix[0] && pix[0] < cols_max)
+        r.grow( reverse(pix) );
+
+      return grow_bbox_to_int(r);
     }
 
   };

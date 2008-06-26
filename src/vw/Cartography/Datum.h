@@ -101,7 +101,8 @@ namespace cartography {
     void set_geocentric(bool val);
     bool geocentric() const { return m_geocentric; }
 
-    std::string proj4_str() const { return m_proj_str; }
+    std::string &proj4_str() { return m_proj_str; }
+    std::string const& proj4_str() const { return m_proj_str; }
 
     double radius(double lon, double lat) const;
 

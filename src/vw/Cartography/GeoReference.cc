@@ -30,12 +30,8 @@
 #include <vw/Cartography/GeoReferenceResourcePDS.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
 
-// libProj.4
-#include <projects.h>
-
 // Boost
 #include <boost/algorithm/string.hpp>
-
 
 void vw::cartography::read_georeference( vw::cartography::GeoReference& georef, vw::ImageResource const& resource ) {
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
@@ -58,54 +54,6 @@ void vw::cartography::write_georeference( vw::ImageResource& resource, vw::carto
 
 namespace vw {
 namespace cartography {
-
-  // Here is some machinery to keep track of an initialized proj.4
-  // projection context using a smart pointer.  Using a smart pointer
-  // here simplies the rest of the GeoReference class considerably, and
-  // reduces the possibility of a memory related bug.
-  class ProjContext {
-    PJ* m_proj_ptr;
-
-    char** split_proj4_string(std::string const& proj4_str, int &num_strings) {
-      std::vector<std::string> arg_strings;
-      std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
-      boost::split( arg_strings, trimmed_proj4_str, boost::is_any_of(" ") ); 
-    
-      char** strings = new char*[arg_strings.size()]; 
-      for ( unsigned i = 0; i < arg_strings.size(); ++i ) {
-        strings[i] = new char[2048];
-        strncpy(strings[i], arg_strings[i].c_str(), 2048);
-      }
-      num_strings = arg_strings.size();
-      return strings;
-    }
-
-    // These are private so that we don't accidentally call them.
-    // Copying a ProjContext is bad.
-    ProjContext(ProjContext const& ctx) {}
-    ProjContext& operator=(ProjContext const& ctx) { return *this; }
-
-  public:
-    ProjContext(std::string const& proj4_str) {
-
-      // proj.4 is expecting the parameters to be split up into seperate
-      // c-style strings.
-      int num;
-      char** proj_strings = split_proj4_string(proj4_str, num);
-      m_proj_ptr = pj_init(num, proj_strings);
-                                                
-      if (!m_proj_ptr) 
-        vw::vw_throw(vw::LogicErr() << "GeoReference: an error occured while initializing proj.4 with string: " << proj4_str);
-      
-      for (int i = 0; i < num; i++) 
-        delete [] proj_strings[i];
-      delete [] proj_strings;
-    }
-
-    ~ProjContext() { pj_free(m_proj_ptr); }
-    inline PJ* proj_ptr() { return m_proj_ptr; }
-  };
-
 
 
   std::string GeoReference::proj4_str() const { 
@@ -303,6 +251,7 @@ namespace cartography {
     projected.v = loc[1];
 
     unprojected = pj_inv(projected, m_proj_context->proj_ptr());
+    CHECK_PROJ_ERROR;
 
     // Convert from radians to degrees.
     return Vector2(unprojected.u * RAD_TO_DEG, unprojected.v * RAD_TO_DEG);
@@ -313,6 +262,12 @@ namespace cartography {
   Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
     if ( ! m_is_projected ) return lon_lat;
 
+    // Clamp the latitude range to [-90, 90] as occasionally we get edge 
+    // pixels that extend slightly beyond that range and cause Proj.4 to 
+    // fail.
+    if(lon_lat[1] > 90) lon_lat[1] = 90;
+    else if(lon_lat[1] < -90) lon_lat[1] = -90;
+
     XY projected;  
     LP unprojected;
 
@@ -322,8 +277,67 @@ namespace cartography {
     unprojected.v = lon_lat[1] * DEG_TO_RAD;
 
     projected = pj_fwd(unprojected, m_proj_context->proj_ptr());
+    CHECK_PROJ_ERROR;
 
     return Vector2(projected.u, projected.v);
   }
 
+  /************** Functions for class ProjContext *******************/
+  char** ProjContext::split_proj4_string(std::string const& proj4_str, int &num_strings) {
+    std::vector<std::string> arg_strings;
+    std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
+    boost::split( arg_strings, trimmed_proj4_str, boost::is_any_of(" ") ); 
+
+    char** strings = new char*[arg_strings.size()]; 
+    for ( unsigned i = 0; i < arg_strings.size(); ++i ) {
+      strings[i] = new char[2048];
+      strncpy(strings[i], arg_strings[i].c_str(), 2048);
+    }
+    num_strings = arg_strings.size();
+    return strings;
+  }
+
+  ProjContext::ProjContext(std::string const& proj4_str) {
+
+    // proj.4 is expecting the parameters to be split up into seperate
+    // c-style strings.
+    int num;
+    char** proj_strings = split_proj4_string(proj4_str, num);
+    m_proj_ptr = pj_init(num, proj_strings);
+
+    if (!m_proj_ptr) 
+      vw::vw_throw(vw::LogicErr() << "GeoReference: an error occured while initializing proj.4 with string: " << proj4_str);
+
+    for (int i = 0; i < num; i++) 
+      delete [] proj_strings[i];
+    delete [] proj_strings;
+  }
+
+  /***************** Functions for output GeoReferences *****************/
+  namespace output {  
+    GeoReference kml::get_output_georeference(int xresolution, int yresolution) {
+      GeoReference r;
+      Matrix3x3 transform;
+
+      r.set_well_known_geogcs("WGS84");
+
+      // We specify here the KML transformation for longitude/latitude
+      // to an exact pixel. Thus when we set the georeference 
+      // transform (which is pixel -> lon/lat), we have to use its 
+      // inverse.
+      transform(0,0) = xresolution / 360.0;
+      transform(0,1) = 0;
+      transform(0,2) = xresolution / 2.0 - 0.5;
+      transform(1,0) = 0;
+      transform(1,1) = -(yresolution / 360.0);
+      transform(1,2) = yresolution / 2.0 - 0.5;
+      transform(2,0) = 0;
+      transform(2,1) = 0;
+      transform(2,2) = 1;
+      r.set_transform(vw::math::inverse(transform));
+
+      return r;
+    }
+
+  } // namespace vw::cartography::output
 }} // vw::cartography

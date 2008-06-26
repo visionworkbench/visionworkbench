@@ -29,15 +29,41 @@
 #include <vw/Cartography/GeoReferenceBase.h>
 #include <vw/FileIO/DiskImageResource.h>
 
+// libProj.4
+#include <projects.h>
+
 // Boost
 #include <boost/algorithm/string.hpp>
 #include <boost/smart_ptr.hpp>
+
+// Macro for checking Proj.4 output, something we do a lot of.
+#define CHECK_PROJ_ERROR if(pj_errno) vw_throw(ArgumentErr() << "Proj.4 error: " << pj_strerrno(pj_errno))
  
 namespace vw {
 namespace cartography {
 
-  // Forward declaration
-  class ProjContext;
+  // Here is some machinery to keep track of an initialized proj.4
+  // projection context using a smart pointer.  Using a smart pointer
+  // here simplies the rest of the GeoReference class considerably, and
+  // reduces the possibility of a memory related bug. Implementation 
+  // code for most of it is in GeoReference.cc.
+  class ProjContext {
+    PJ* m_proj_ptr;
+
+    char** split_proj4_string(std::string const& proj4_str, int &num_strings);
+
+    // These are private so that we don't accidentally call them.
+    // Copying a ProjContext is bad.
+    ProjContext(ProjContext const& ctx) {}
+    ProjContext& operator=(ProjContext const& ctx) { return *this; }
+
+  public:
+    ProjContext(std::string const& proj4_str);
+
+    ~ProjContext() { pj_free(m_proj_ptr); }
+    inline PJ* proj_ptr() { return m_proj_ptr; }
+  };
+
   
   /// The georeference class contains the mapping from image coordinates
   /// (u,v) to geospatial coordinates (typically lat/lon, or possibly
@@ -186,6 +212,33 @@ namespace cartography {
     write_image( *r, image, progress_callback );
     delete r;
   }
+
+  /// The following namespace contains functions that return GeoReferences 
+  /// for certain well-known output styles, such as KML (and related 
+  /// functions involved in doing so).
+  namespace output {
+    namespace kml {
+      /// Returns a georeference with an affine transformation that turns
+      /// unprojected pixel space corresponding to a standard global KML
+      /// image quad-tree to coordinates in degrees lon/lat in WGS84, and 
+      /// vice versa.
+      GeoReference get_output_georeference(int xresolution, int yresolution);
+
+      // Returns the number of pixels per planetary circumference, 
+      // rounding up to a power of two.
+      template <class TransformT>
+      inline int compute_resolution( TransformT const& tx, Vector2 const& pixel ) {
+        Vector2 pos = tx.forward( pixel );
+        Vector2 x_vector = tx.forward( pixel+Vector2(1,0) ) - pos;
+        Vector2 y_vector = tx.forward( pixel+Vector2(0,1) ) - pos;
+        double degrees_per_pixel = (std::min)( norm_2(x_vector), norm_2(y_vector) );
+        double pixels_per_circumference = 360.0 / degrees_per_pixel;
+        int scale_exponent = (int) ceil( log(pixels_per_circumference)/log(2) );
+        int resolution = 1 << scale_exponent;
+        return resolution;
+      }
+    } // namespace: vw::cartography::output::kml
+  } // namespace vw::cartography::output
 
 }} // namespace vw::cartography
 
