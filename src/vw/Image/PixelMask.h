@@ -46,54 +46,6 @@
 namespace vw {
 
   // *******************************************************************
-  // A pixel type convenience macro and forward declrations.
-  // *******************************************************************
-
-  /// This macro provides the appropriate specializations of the
-  /// compound type traits classes for a new pixel type with a fixed
-  /// number of channels (the common case).  This is a special
-  /// adaptation that adds PixelMask<> semantics to any pixel type for
-  /// which this macro has been executed.
-#define VW_DECLARE_PIXEL_MASK_TYPE(PIXELT,NCHANNELS)                      \
-  template <class ChannelT>                                               \
-  struct CompoundChannelType<PixelMask<PIXELT<ChannelT> > > {             \
-    typedef ChannelT type;                                                \
-  };                                                                      \
-  template <class ChannelT>                                               \
-  struct CompoundNumChannels<PixelMask<PIXELT<ChannelT> > > {             \
-    static const int32 value = NCHANNELS + 1;                             \
-  };                                                                      \
-  template <class OldChT, class NewChT>                                   \
-  struct CompoundChannelCast<PixelMask<PIXELT<OldChT> >, NewChT> {        \
-    typedef PixelMask<PIXELT<NewChT> > type;                              \
-  };                                                                      \
-  template <class OldChT, class NewChT>                                   \
-  struct CompoundChannelCast<PixelMask<PIXELT<OldChT> >, const NewChT> {  \
-    typedef const PixelMask<PIXELT<NewChT> > type;                        \
-  }                                                                       \
-
-  /// This macro provides the appropriate specializations of 
-  /// the compound type traits classes for a new pixel type 
-  /// with a variable number of channels.
-#define VW_DECLARE_PIXEL_MASK_TYPE_NCHANNELS(PIXELT)                    \
-  template <class ChannelT, int SizeN>                                   \
-  struct CompoundChannelType<PixelMask<PIXELT<ChannelT,SizeN> > > {      \
-    typedef ChannelT type;                                               \
-  };                                                                     \
-  template <class ChannelT, int SizeN>                                   \
-  struct CompoundNumChannels<PixelMask<PIXELT<ChannelT,SizeN> > > {      \
-    static const int32 value = SizeN + 1;                                \
-  };                                                                     \
-  template <class OldChT, class NewChT, int SizeN>                       \
-  struct CompoundChannelCast<PixelMask<PIXELT<OldChT,SizeN> >, NewChT> { \
-    typedef PixelMask<PIXELT<NewChT,SizeN> > type;                       \
-  };                                                                     \
-  template <class OldChT, class NewChT, int SizeN>                       \
-  struct CompoundChannelCast<PixelMask<PIXELT<OldChT,SizeN> >, const NewChT> { \
-    typedef const PixelMask<PIXELT<NewChT,SizeN> > type;                 \
-  }
-
-  // *******************************************************************
   // The PixelMask wrapper pixel type.
   // *******************************************************************
 
@@ -209,21 +161,58 @@ namespace vw {
     }
   };
 
+  // *******************************************************************
+  // Generic Mask Manipulation Methods
+  // *******************************************************************
+
+  // Overload for the pixel transparency traits class.  
+  template <class ChildT>
+  bool is_transparent(PixelMask<ChildT> const& pixel) { return !pixel.valid(); }
+
+  // Generic method for "validating" pixel (setting the mask bit).
+  // This is a no-op by default, but it actually calls px.validate()
+  // for PixelMask<> types.
+  template <class PixelT>
+  inline void validate(PixelT &pixel) { return; }
+
+  template <class ChildPixelT>
+  inline void validate(PixelMask<ChildPixelT> &pixel) { pixel.validate(); }
+
+  // Generic method for "invalidating" pixel (removing the mask bit).
+  // This is a no-op by default, but it actually calls px.validate()
+  // for PixelMask<> types.
+  template <class PixelT>
+  inline void invalidate(PixelT &pixel) { return; }
+
+  template <class ChildPixelT>
+  inline void invalidate(PixelMask<ChildPixelT> &pixel) { pixel.validate(); }
+
   /// Print a PixelMask to a debugging stream.
   template <class ChildT>
   std::ostream& operator<<( std::ostream& os, PixelMask<ChildT> const& pix ) {
-    return os << "PixelMask( " << _numeric(pix.valid()) << " " << pix.valid() << " )";
+    return os << "PixelMask( " << pix.child() << " : " << _numeric(pix.valid()) << " )";
   }
 
-  // We must declare each pixel type we wish to use with the valid pixel wrapper.
-  VW_DECLARE_PIXEL_MASK_TYPE(PixelGray,1);
-  VW_DECLARE_PIXEL_MASK_TYPE(PixelGrayA,2);
-  VW_DECLARE_PIXEL_MASK_TYPE(PixelRGB,3);
-  VW_DECLARE_PIXEL_MASK_TYPE(PixelRGBA,4);
-  VW_DECLARE_PIXEL_MASK_TYPE(PixelHSV, 3);
-  VW_DECLARE_PIXEL_MASK_TYPE(PixelXYZ, 3);
-  VW_DECLARE_PIXEL_MASK_TYPE(PixelLuv, 3);
-  VW_DECLARE_PIXEL_MASK_TYPE_NCHANNELS(Vector);
+  // *******************************************************************
+  // Type Traits
+  // *******************************************************************  
+
+  template <class T>                                           
+  struct CompoundChannelType<PixelMask<T> > {             
+    typedef typename CompoundChannelType<T>::type type;
+  };              
+  template <class T>                                               
+  struct CompoundNumChannels<PixelMask<T> > {             
+    static const int32 value = CompoundNumChannels<T>::value + 1;                             
+  };                                                                      
+  template <class OldT, class NewChT>                                   
+  struct CompoundChannelCast<PixelMask<OldT>, NewChT> { 
+    typedef PixelMask<typename CompoundChannelCast<OldT,NewChT>::type> type; 
+  };                                                                      
+  template <class OldT, class NewChT>                                   
+  struct CompoundChannelCast<PixelMask<OldT>, const NewChT> {  
+    typedef const PixelMask<typename CompoundChannelCast<OldT,NewChT>::type> type;  
+  };
 
   // Computes the mean value of a compound PixelMask<> type.  Not
   // especially efficient.
@@ -242,30 +231,23 @@ namespace vw {
     }
   }
 
-  // Overload for the pixel transparency traits class.  
-  template <class ChildT>
-  bool is_transparent(PixelMask<ChildT> const& pixel) { return !pixel.valid(); }
-
   // *******************************************************************
   // Binary elementwise compound type functor.
   // *******************************************************************
 
-  template <class FuncT>
-  class PixelMaskBinaryCompoundFunctor {
+  template <class FuncT, class ChildPixel1T, class ChildPixel2T>
+  class BinaryCompoundFunctor<FuncT, PixelMask<ChildPixel1T>, PixelMask<ChildPixel2T> > {
     FuncT func;
 
     // The general multi-channel case
     template <bool CompoundB, int ChannelsN, class ResultT, class Arg1T, class Arg2T>
     struct Helper {
       static inline ResultT construct( FuncT const& func, Arg1T const& arg1, Arg2T const& arg2 ) {
-        if (arg1.valid() && arg2.valid()) {
-          ResultT result;
-          for( int i=0; i<ChannelsN-1; ++i ) result[i] = func(arg1[i],arg2[i]);
+        ResultT result;
+        for( int i=0; i<ChannelsN-1; ++i ) result[i] = func(arg1[i],arg2[i]);
+        if (arg1.valid() && arg2.valid()) 
           result.validate();
-          return result;
-        } else {
-          return ResultT();
-        }
+        return result;
       }
     };
 
@@ -273,10 +255,10 @@ namespace vw {
     template <class ResultT, class Arg1T, class Arg2T>
     struct Helper<true,2,ResultT,Arg1T,Arg2T> {
       static inline ResultT construct( FuncT const& func, Arg1T const& arg1, Arg2T const& arg2 ) {
-        if (arg1.valid() && arg2.valid())
-          return ResultT( func(arg1[0],arg2[0]) );
-        else 
-          return ResultT();
+        ResultT result( func(arg1[0],arg2[0]) );
+        if (!arg1.valid() || !arg2.valid())
+          result.invalidate();
+        return result;
       }
     };
 
@@ -284,10 +266,10 @@ namespace vw {
     template <class ResultT, class Arg1T, class Arg2T>
     struct Helper<true,3,ResultT,Arg1T,Arg2T> {
       static inline ResultT construct( FuncT const& func, Arg1T const& arg1, Arg2T const& arg2 ) {
-        if (arg1.valid() && arg2.valid())
-          return ResultT( func(arg1[0],arg2[0]), func(arg1[1],arg2[1]) );
-        else 
-          return ResultT();
+        ResultT result( func(arg1[0],arg2[0]), func(arg1[1],arg2[1]) );
+        if (!arg1.valid() || !arg2.valid())
+          result.invalidate();
+        return result;
       }
     };
 
@@ -295,10 +277,10 @@ namespace vw {
     template <class ResultT, class Arg1T, class Arg2T>
     struct Helper<true,4,ResultT,Arg1T,Arg2T> {
       static inline ResultT construct( FuncT const& func, Arg1T const& arg1, Arg2T const& arg2 ) {
-        if (arg1.valid() && arg2.valid())
-          return ResultT( func(arg1[0],arg2[0]), func(arg1[1],arg2[1]), func(arg1[2],arg2[2]) );
-        else 
-          return ResultT();
+        ResultT result( func(arg1[0],arg2[0]), func(arg1[1],arg2[1]), func(arg1[2],arg2[2]) );
+        if (!arg1.valid() || !arg2.valid())
+          result.invalidate();
+        return result;
       }
     };
 
@@ -306,16 +288,16 @@ namespace vw {
     template <class ResultT, class Arg1T, class Arg2T>
     struct Helper<true,5,ResultT,Arg1T,Arg2T> {
       static inline ResultT construct( FuncT const& func, Arg1T const& arg1, Arg2T const& arg2 ) {
-        if (arg1.valid() && arg2.valid())
-          return ResultT( func(arg1[0],arg2[0]), func(arg1[1],arg2[1]), func(arg1[2],arg2[2]), func(arg1[3],arg2[3]) );
-        else 
-          return ResultT();
+        ResultT result( func(arg1[0],arg2[0]), func(arg1[1],arg2[1]), func(arg1[2],arg2[2]), func(arg1[3],arg2[3]) );
+        if (!arg1.valid() || !arg2.valid())
+          result.invalidate();
+        return result;
       }
     };
 
   public:
-    PixelMaskBinaryCompoundFunctor() : func() {}
-    PixelMaskBinaryCompoundFunctor( FuncT const& func ) : func(func) {}
+    BinaryCompoundFunctor() : func() {}
+    BinaryCompoundFunctor( FuncT const& func ) : func(func) {}
     
     template <class ArgsT> struct result {};
 
@@ -328,43 +310,28 @@ namespace vw {
     };
 
     template <class Arg1T, class Arg2T>
-    typename result<PixelMaskBinaryCompoundFunctor(Arg1T,Arg2T)>::type
+    typename result<BinaryCompoundFunctor(Arg1T,Arg2T)>::type
     inline operator()( Arg1T const& arg1, Arg2T const& arg2 ) const {
-      typedef typename result<PixelMaskBinaryCompoundFunctor(Arg1T,Arg2T)>::type result_type;
+      typedef typename result<BinaryCompoundFunctor(Arg1T,Arg2T)>::type result_type;
       return Helper<IsCompound<result_type>::value,CompoundNumChannels<result_type>::value,result_type,Arg1T,Arg2T>::construct(func,arg1,arg2);
     }
   };
-
-
-  template <class FuncT, class Arg1T, class Arg2T=void>
-  struct PixelMaskCompoundResult {
-    typedef typename boost::result_of<PixelMaskBinaryCompoundFunctor<FuncT>(Arg1T,Arg2T)>::type type;
-  };
-
-  template <class FuncT, class Arg1T, class Arg2T>
-  typename PixelMaskCompoundResult<FuncT,PixelMask<Arg1T>,PixelMask<Arg2T> >::type
-  inline compound_apply( FuncT const& func, PixelMask<Arg1T> const& arg1, PixelMask<Arg2T> const& arg2 ) {
-    return PixelMaskBinaryCompoundFunctor<FuncT>(func)(arg1,arg2);
-  }
-
 
   // *******************************************************************
   // Binary in-place elementwise compound type functor.
   // *******************************************************************
 
-  template <class FuncT>
-  class PixelMaskBinaryInPlaceCompoundFunctor {
+  template <class FuncT, class ChildPixel1T, class ChildPixel2T>
+  class BinaryInPlaceCompoundFunctor<FuncT, PixelMask<ChildPixel1T>, PixelMask<ChildPixel2T> > {
     FuncT func;
 
     // The general multi-channel case
     template <bool CompoundB, int ChannelsN, class Arg1T, class Arg2T>
     struct Helper {
       static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
-        if (arg1.valid() && arg2.valid()) {
-          for( int i=0; i<ChannelsN-1; ++i ) func(arg1[i],arg2[i]);
-        } else {
-          arg1 = Arg1T();
-        }
+        for( int i=0; i<ChannelsN-1; ++i ) func(arg1[i],arg2[i]);
+        if (!arg2.valid()) 
+          arg1.invalidate();
         return arg1;
       }
     };
@@ -373,10 +340,9 @@ namespace vw {
     template <class Arg1T, class Arg2T>
     struct Helper<true,2,Arg1T,Arg2T> {
       static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
-        if (arg1.valid() && arg2.valid())
-          func(arg1[0],arg2[0]);
-        else 
-          arg1 = Arg1T();
+        func(arg1[0],arg2[0]);
+        if (!arg2.valid()) 
+          arg1.invalidate();
         return arg1;
       }
     };
@@ -385,12 +351,10 @@ namespace vw {
     template <class Arg1T, class Arg2T>
     struct Helper<true,3,Arg1T,Arg2T> {
       static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
-        if (arg1.valid() && arg2.valid()) {
-          func(arg1[0],arg2[0]);
-          func(arg1[1],arg2[1]);
-        } else {
-          arg1 = Arg1T();
-        }
+        func(arg1[0],arg2[0]);
+        func(arg1[1],arg2[1]);
+        if (!arg2.valid()) 
+          arg1.invalidate();
         return arg1;
       }
     };
@@ -399,13 +363,11 @@ namespace vw {
     template <class Arg1T, class Arg2T>
     struct Helper<true,4,Arg1T,Arg2T> {
       static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
-        if (arg1.valid() && arg2.valid()) {
-          func(arg1[0],arg2[0]);
-          func(arg1[1],arg2[1]);
-          func(arg1[2],arg2[2]);
-        } else {
-          arg1 = Arg1T();
-        }
+        func(arg1[0],arg2[0]);
+        func(arg1[1],arg2[1]);
+        func(arg1[2],arg2[2]);
+        if (!arg2.valid()) 
+          arg1.invalidate();
         return arg1;
       }
     };
@@ -414,21 +376,19 @@ namespace vw {
     template <class Arg1T, class Arg2T>
     struct Helper<true,5,Arg1T,Arg2T> {
       static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
-        if (arg1.valid() && arg2.valid()) {
-          func(arg1[0],arg2[0]);
-          func(arg1[1],arg2[1]);
-          func(arg1[2],arg2[2]);
-          func(arg1[3],arg2[3]);
-        } else {
-          arg1 = Arg1T();
-        }
+        func(arg1[0],arg2[0]);
+        func(arg1[1],arg2[1]);
+        func(arg1[2],arg2[2]);
+        func(arg1[3],arg2[3]);
+        if (!arg2.valid()) 
+          arg1.invalidate();
         return arg1;
       }
     };
 
   public:
-    PixelMaskBinaryInPlaceCompoundFunctor() : func() {}
-    PixelMaskBinaryInPlaceCompoundFunctor( FuncT const& func ) : func(func) {}
+    BinaryInPlaceCompoundFunctor() : func() {}
+    BinaryInPlaceCompoundFunctor( FuncT const& func ) : func(func) {}
     
     template <class ArgsT> struct result {};
 
@@ -438,38 +398,29 @@ namespace vw {
     };
 
     template <class Arg1T, class Arg2T>
-    typename result<PixelMaskBinaryInPlaceCompoundFunctor(Arg1T,Arg2T)>::type
+    typename result<BinaryInPlaceCompoundFunctor(Arg1T,Arg2T)>::type
     inline operator()( Arg1T& arg1, Arg2T const& arg2 ) const {
       return Helper<IsCompound<Arg1T>::value,CompoundNumChannels<Arg1T>::value,Arg1T,Arg2T>::apply(func,arg1,arg2);
     }
   };
 
-  template <class FuncT, class Arg1T, class Arg2T>
-  inline PixelMask<Arg1T>& compound_apply_in_place( FuncT const& func, PixelMask<Arg1T>& arg1, PixelMask<Arg2T> const& arg2 ) {
-    return PixelMaskBinaryInPlaceCompoundFunctor<FuncT>(func)(arg1,arg2);
-  }
-
-
   // *******************************************************************
   // Unary elementwise compound type functor.
   // *******************************************************************
 
-  template <class FuncT>
-  class PixelMaskUnaryCompoundFunctor {
+  template <class FuncT, class ChildPixelT>
+  class UnaryCompoundFunctor<FuncT, PixelMask<ChildPixelT> > {
     FuncT func;
 
     // The general multi-channel case
     template <bool CompoundB, int ChannelsN, class ResultT, class ArgT>
     struct Helper {
       static inline ResultT construct( FuncT const& func, ArgT const& arg ) {
-        if (arg.valid()) {
-          ResultT result;
-          for( int i=0; i<ChannelsN-1; ++i ) result[i] = func(arg[i]);
+        ResultT result;
+        for( int i=0; i<ChannelsN-1; ++i ) result[i] = func(arg[i]);
+        if (arg.valid()) 
           result.validate();
-          return result;
-        } else {
-          return ResultT();
-        }
+        return result;
       }
     };
 
@@ -477,10 +428,10 @@ namespace vw {
     template <class ResultT, class ArgT>
     struct Helper<true,2,ResultT,ArgT> {
       static inline ResultT construct( FuncT const& func, ArgT const& arg ) {
-        if (arg.valid())
-          return ResultT( func(arg[0]) );
-        else 
-          return ResultT();
+        ResultT result( func(arg[0]) );
+        if (!arg.valid())
+          result.invalidate();
+        return result;
       }
     };
 
@@ -488,10 +439,10 @@ namespace vw {
     template <class ResultT, class ArgT>
     struct Helper<true,3,ResultT,ArgT> {
       static inline ResultT construct( FuncT const& func, ArgT const& arg ) {
-        if (arg.valid())
-          return ResultT( func(arg[0]), func(arg[1]) );
-        else 
-          return ResultT();
+        ResultT result( func(arg[0]), func(arg[1]) );
+        if (!arg.valid())
+          result.invalidate();
+        return result;
       }
     };
 
@@ -499,10 +450,10 @@ namespace vw {
     template <class ResultT, class ArgT>
     struct Helper<true,4,ResultT,ArgT> {
       static inline ResultT construct( FuncT const& func, ArgT const& arg ) {
-        if (arg.valid())
-          return ResultT( func(arg[0]), func(arg[1]), func(arg[2]) );
-        else 
-          return ResultT();
+        ResultT result( func(arg[0]), func(arg[1]), func(arg[2]) );
+        if (!arg.valid())
+          result.invalidate();
+        return result;
       }
     };
 
@@ -510,16 +461,16 @@ namespace vw {
     template <class ResultT, class ArgT>
     struct Helper<true,5,ResultT,ArgT> {
       static inline ResultT construct( FuncT const& func, ArgT const& arg ) {
-        if (arg.valid())
-          return ResultT( func(arg[0]), func(arg[1]), func(arg[2]), func(arg[3]) );
-        else 
-          return ResultT();
+        ResultT result( func(arg[0]), func(arg[1]), func(arg[2]), func(arg[3]) );
+        if (!arg.valid())
+          result.invalidate();
+        return result;
       }
     };
 
   public:
-    PixelMaskUnaryCompoundFunctor() : func() {}
-    PixelMaskUnaryCompoundFunctor( FuncT const& func ) : func(func) {}
+    UnaryCompoundFunctor() : func() {}
+    UnaryCompoundFunctor( FuncT const& func ) : func(func) {}
     
     template <class ArgsT> struct result {};
 
@@ -531,31 +482,19 @@ namespace vw {
     };
 
     template <class ArgT>
-    typename result<PixelMaskUnaryCompoundFunctor(ArgT)>::type
+    typename result<UnaryCompoundFunctor(ArgT)>::type
     inline operator()( ArgT const& arg ) const {
-      typedef typename result<PixelMaskUnaryCompoundFunctor(ArgT)>::type result_type;
+      typedef typename result<UnaryCompoundFunctor(ArgT)>::type result_type;
       return Helper<IsCompound<result_type>::value,CompoundNumChannels<result_type>::value,result_type,ArgT>::construct(func,arg);
     }
   };
-
-  template <class FuncT, class ArgT>
-  struct PixelMaskCompoundResult<FuncT,ArgT,void> {
-    typedef typename boost::result_of<PixelMaskUnaryCompoundFunctor<FuncT>(ArgT)>::type type;
-  };
-
-  template <class FuncT, class ArgT>
-  typename PixelMaskCompoundResult<FuncT,PixelMask<ArgT> >::type
-  inline compound_apply( FuncT const& func, PixelMask<ArgT> const& arg ) {
-    return PixelMaskUnaryCompoundFunctor<FuncT>(func)(arg);
-  }
-
 
   // *******************************************************************
   // Unary in-place elementwise compound type functor.
   // *******************************************************************
 
-  template <class FuncT>
-  class PixelMaskUnaryInPlaceCompoundFunctor {
+  template <class FuncT, class ChildPixelT>
+  class UnaryInPlaceCompoundFunctor<FuncT, PixelMask<ChildPixelT> > {
     FuncT func;
     typedef typename boost::add_reference<FuncT>::type func_ref;
 
@@ -563,11 +502,7 @@ namespace vw {
     template <bool CompoundB, int ChannelsN, class ArgT>
     struct Helper {
       static inline ArgT& apply( func_ref func, ArgT& arg ) {
-        if (arg.valid()) {
-          for( int i=0; i<ChannelsN-1; ++i ) func(arg[i]);
-        } else {
-          arg = ArgT();
-        }
+        for( int i=0; i<ChannelsN-1; ++i ) func(arg[i]);
         return arg;
       }
     };
@@ -576,10 +511,7 @@ namespace vw {
     template <class ArgT>
     struct Helper<true,2,ArgT> {
       static inline ArgT& apply( func_ref func, ArgT& arg ) {
-        if (arg.valid())
-          func(arg[0]);
-        else 
-          arg = ArgT();
+        func(arg[0]);
         return arg;
       }
     };
@@ -588,12 +520,8 @@ namespace vw {
     template <class ArgT>
     struct Helper<true,3,ArgT> {
       static inline ArgT& apply( func_ref func, ArgT& arg ) {
-        if (arg.valid()) {
-          func(arg[0]);
-          func(arg[1]);
-        } else {
-          arg = ArgT();
-        }
+        func(arg[0]);
+        func(arg[1]);
         return arg;
       }
     };
@@ -602,13 +530,9 @@ namespace vw {
     template <class ArgT>
     struct Helper<true,4,ArgT> {
       static inline ArgT& apply( func_ref func, ArgT& arg ) {
-        if (arg.valid()) {
-          func(arg[0]);
-          func(arg[1]);
-          func(arg[2]);
-        } else {
-          arg = ArgT();
-        }
+        func(arg[0]);
+        func(arg[1]);
+        func(arg[2]);
         return arg;
       }
     };
@@ -617,21 +541,17 @@ namespace vw {
     template <class ArgT>
     struct Helper<true,5,ArgT> {
       static inline ArgT& apply( func_ref func, ArgT& arg ) {
-        if (arg.valid()) {
-          func(arg[0]);
-          func(arg[1]);
-          func(arg[2]);
-          func(arg[3]);
-        } else {
-          arg = ArgT();
-        }
+        func(arg[0]);
+        func(arg[1]);
+        func(arg[2]);
+        func(arg[3]);
         return arg;
       }
     };
 
   public:
-    PixelMaskUnaryInPlaceCompoundFunctor() : func() {}
-    PixelMaskUnaryInPlaceCompoundFunctor( func_ref func ) : func(func) {}
+    UnaryInPlaceCompoundFunctor() : func() {}
+    UnaryInPlaceCompoundFunctor( func_ref func ) : func(func) {}
     
     template <class ArgsT> struct result {};
 
@@ -652,25 +572,56 @@ namespace vw {
     }
   };
 
-  template <class FuncT, class ArgT>
-  inline PixelMask<ArgT>& compound_apply_in_place( FuncT& func, PixelMask<ArgT>& arg ) {
-    return PixelMaskUnaryInPlaceCompoundFunctor<FuncT&>(func)(arg);
+  // *******************************************************************
+  // The PixelMath specialization
+  // *******************************************************************
+#define VW_PIXEL_MASK_MATH_BINARY_PS_FUNCTION(func,ftor)                               \
+  template <class PixelT, class ScalarT>                                               \
+  typename boost::enable_if< IsScalar<ScalarT>, typename CompoundResult<ftor<ScalarT>,PixelT>::type >::type \
+  inline func( PixelMathBase<PixelT> const& pixel, PixelMask<ScalarT> masked_scalar ) { \
+    if (!masked_scalar.valid()) {                                                       \
+      PixelT px = pixel.impl();                                                         \
+      px.invalidate();                                                                  \
+      return compound_apply(ftor<ScalarT>(masked_scalar.child()), px );                 \
+    } else {                                                                            \
+      return compound_apply(ftor<ScalarT>(masked_scalar.child()), pixel.impl() );       \
+    }                                                                                   \
   }
 
-  template <class FuncT, class ArgT>
-  inline const PixelMask<ArgT>& compound_apply_in_place( FuncT& func, PixelMask<ArgT> const& arg ) {
-    return PixelMaskUnaryInPlaceCompoundFunctor<FuncT&>(func)(arg);
+#define VW_PIXEL_MASK_MATH_BINARY_SP_FUNCTION(func,ftor)                                \
+  template <class PixelT, class ScalarT>                                                \
+  typename boost::enable_if< IsScalar<ScalarT>, typename CompoundResult<ftor<ScalarT>,PixelT>::type >::type \
+  inline func( PixelMask<ScalarT> masked_scalar, PixelMathBase<PixelT> const& pixel ) { \
+    if (!masked_scalar.valid()) {                                                       \
+      PixelT px = pixel.impl();                                                         \
+      px.invalidate();                                                                  \
+      return compound_apply(ftor<ScalarT>(masked_scalar.child()), px );                 \
+    } else {                                                                            \
+      return compound_apply(ftor<ScalarT>(masked_scalar.child()), pixel.impl() );       \
+    }                                                                                   \
   }
 
-  template <class FuncT, class ArgT>
-  inline PixelMask<ArgT>& compound_apply_in_place( FuncT const& func, PixelMask<ArgT>& arg ) {
-    return PixelMaskUnaryInPlaceCompoundFunctor<FuncT const&>(func)(arg);
+#define VW_PIXEL_MASK_MATH_BINARY_IS_FUNCTION(func,ftor)                                 \
+  template <class PixelT, class ScalarT>                                                 \
+  typename boost::enable_if< IsScalar<ScalarT>, PixelT&>::type                           \
+  inline func( PixelMathBase<PixelT>& pixel, PixelMask<ScalarT> masked_scalar ) {        \
+    if (!masked_scalar.valid())                                                          \
+      pixel.impl().invalidate();                                                         \
+    return compound_apply_in_place(ftor<ScalarT>(masked_scalar.child()), pixel.impl() ); \
   }
 
-  template <class FuncT, class ArgT>
-  inline const PixelMask<ArgT>& compound_apply_in_place( FuncT const& func, PixelMask<ArgT> const& arg ) {
-    return PixelMaskUnaryInPlaceCompoundFunctor<FuncT const&>(func)(arg);
-  }
+  VW_PIXEL_MASK_MATH_BINARY_PS_FUNCTION(operator +, vw::ArgValSumFunctor)
+  VW_PIXEL_MASK_MATH_BINARY_SP_FUNCTION(operator +, vw::ValArgSumFunctor)
+  VW_PIXEL_MASK_MATH_BINARY_IS_FUNCTION(operator +=, vw::ArgValInPlaceSumFunctor)
+  VW_PIXEL_MASK_MATH_BINARY_PS_FUNCTION(operator -, vw::ArgValDifferenceFunctor)
+  VW_PIXEL_MASK_MATH_BINARY_SP_FUNCTION(operator -, vw::ValArgDifferenceFunctor)
+  VW_PIXEL_MASK_MATH_BINARY_IS_FUNCTION(operator -=, vw::ArgValInPlaceDifferenceFunctor)
+  VW_PIXEL_MASK_MATH_BINARY_PS_FUNCTION(operator *, vw::ArgValProductFunctor)
+  VW_PIXEL_MASK_MATH_BINARY_SP_FUNCTION(operator *, vw::ValArgProductFunctor)
+  VW_PIXEL_MASK_MATH_BINARY_IS_FUNCTION(operator *=, vw::ArgValInPlaceProductFunctor)
+  VW_PIXEL_MASK_MATH_BINARY_PS_FUNCTION(operator /, vw::ArgValQuotientFunctor)
+  VW_PIXEL_MASK_MATH_BINARY_SP_FUNCTION(operator /, vw::ValArgQuotientFunctor)
+  VW_PIXEL_MASK_MATH_BINARY_IS_FUNCTION(operator /=, vw::ArgValInPlaceQuotientFunctor)
 
   // *******************************************************************
   /// MaskView
@@ -768,7 +719,7 @@ namespace vw {
     inline pixel_accessor origin() const { return pixel_accessor( *this ); }
 
     inline result_type operator()( int32 col, int32 row, int32 plane=0 ) const { 
-      typename ViewT::pixel_type& px = m_view(col,row,plane);
+      typename ViewT::pixel_type const& px = m_view(col,row,plane);
       if ( !is_transparent(px) ) {
         return px.child();
       } else {

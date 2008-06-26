@@ -54,7 +54,6 @@ namespace vw {
   template<> struct PixelFormatID<Vector3>   { static const PixelFormatEnum value = VW_PIXEL_XYZ; };
 }
 
-
 //  compute_normals()
 //
 // Compute a vector normal to the surface of a DEM for each given
@@ -87,8 +86,8 @@ public:
     
     // Form two orthogonal vectors in the plane containing the three
     // altitude points
-    Vector3 n1(1, 0, alt2-alt1);
-    Vector3 n2(0, 1, alt3-alt1);
+    Vector3 n1(m_u_scale, 0, alt2-alt1);
+    Vector3 n2(0, m_v_scale, alt3-alt1);
 
     // Return the vector normal to the local plane.
     if (is_transparent(*accessor_loc))
@@ -107,15 +106,13 @@ UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, Comput
 
 class DotProdFunc : public ReturnFixedType<PixelMask<PixelGray<float> > > {
   Vector3 m_vec;
-
 public:
   DotProdFunc(Vector3 const& vec) : m_vec(vec) {}
-  
   PixelMask<PixelGray<float> > operator() (PixelMask<Vector3> const& pix) const {
     if (is_transparent(pix))
       return PixelMask<PixelGray<float> >();
     else 
-      return dot_prod(pix.child(),m_vec);
+      return dot_prod(pix.child(),m_vec)/(norm_2(pix.child()) * norm_2(m_vec));
   }
 };
 
@@ -128,26 +125,20 @@ UnaryPerPixelView<ViewT, DotProdFunc> dot_prod(ImageViewBase<ViewT> const& view,
 int main( int argc, char *argv[] ) {
 
   set_debug_level(InfoMessage);
-
   std::string input_file_name, output_file_name;
   float azimuth, elevation, scale, clamp_range;
   float dem_default_value;
-  float low_value, high_value;
   float blur_sigma;
-
 
   po::options_description desc("Options");
   desc.add_options()
     ("help", "Display this help message")
-    ("stats", "Print out statistics of the input DEM")
     ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
     ("output-file,o", po::value<std::string>(&output_file_name)->default_value("shaded-relief.tif"), "Specify the output file")
     ("azimuth,a", po::value<float>(&azimuth)->default_value(0), "Sets the direction tha the light source is coming from.  Zero degrees is to the right, with positive degree counter-clockwise.")
     ("elevation,e", po::value<float>(&elevation)->default_value(0), "Set the elevation of the light source.")
     ("scale,s", po::value<float>(&scale)->default_value(0), "Set the scale of a pixel (in the same units as the DTM height values.")
     ("clamp-range", po::value<float>(&clamp_range)->default_value(4), "Set the range of floating point values to clamp to prior to normalizing.  You can normally leave this setting untouched.")
-    ("low-value", po::value<float>(&low_value), "Renormalize DEM to the specified range.  Must be used in conjunction with high-value")
-    ("high-value", po::value<float>(&high_value), "Renormalize DEM to the specified range.  Must be used in conjunction with low-value")
     ("dem-default-value", po::value<float>(&dem_default_value), "Remap the DEM default value to the min altitude value.")
     ("blur", po::value<float>(&blur_sigma), "Pre-blur the DEM with the specified sigma.");
   po::positional_options_description p;
@@ -171,7 +162,7 @@ int main( int argc, char *argv[] ) {
   try {
     cartography::GeoReference georef;
     cartography::read_georeference(georef, input_file_name);
-
+    
     // Select the pixel scale.
     float u_scale, v_scale;
     if (scale == 0) {
@@ -187,7 +178,7 @@ int main( int argc, char *argv[] ) {
       u_scale = scale;
       v_scale = scale;
     }
-
+    
     // Set the direction of the light source.
     Vector3 light_0(1,0,0);
     Vector3 light = math::euler_to_rotation_matrix(azimuth*M_PI/180, elevation*M_PI/180, 0, "zyx") * light_0;  
@@ -195,26 +186,11 @@ int main( int argc, char *argv[] ) {
     // Compute the surface normals
     std::cout << "Loading DEM: " << input_file_name << ".\n";
     DiskImageView<PixelGray<float> > disk_dem_file(input_file_name);
+
     ImageViewRef<PixelMask<PixelGray<float> > > dem = create_mask(disk_dem_file);
-
-    if (vm.count("stats")) {
-      float minval, maxval;
-      if (vm.count("dem-default-value"))
-        min_max_channel_values(dem, minval, maxval, dem_default_value);
-      else 
-        min_max_channel_values(dem, minval, maxval);
-      std::cout << "\t--> DEM Height Range: [" << minval << " " << maxval << "]\n";
-    }
-
     if (vm.count("dem-default-value")) {
       std::cout << "\t--> Masking pixel value: " << dem_default_value << ".\n";
       dem = create_mask(disk_dem_file, dem_default_value);
-    }
-
-    if (vm.count("low-value") && vm.count("high-value")) {
-      std::cout << "\t--> Normalizing shading for height values in range [" << low_value << ", " << high_value << "].\n";
-      dem = normalize(dem, low_value, high_value, 0, 1.0);
-      write_image("test.tif", dem);
     }
 
     if (vm.count("blur")) {
@@ -223,8 +199,7 @@ int main( int argc, char *argv[] ) {
     }
 
     // The final result is the dot product of the light source with the normals
-    std::cout << "Computing normals.\n";
-    ImageViewRef<PixelMask<PixelGray<float> > > shaded_image = dot_prod(compute_normals(dem, u_scale, v_scale), light);
+    ImageViewRef<PixelMask<PixelGray<uint8> > > shaded_image = channel_cast_rescale<uint8>(clamp(dot_prod(compute_normals(dem, u_scale, v_scale), light)));
 
     // Save the result
     std::cout << "Writing shaded relief image.\n";

@@ -38,6 +38,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/EdgeExtension.h>
+#include <vw/Image/PixelMask.h>
 
 namespace vw {
 
@@ -57,6 +58,7 @@ namespace vw {
   inline correlate_1d_at_point( SrcAccessT const& src, KernelIterT const& kernel, int32 n ) {
     typedef typename ProductType<typename SrcAccessT::pixel_type, typename std::iterator_traits<KernelIterT>::value_type>::type result_type;
     result_type result = result_type();
+    validate(result);
     SrcAccessT s = src;
     KernelIterT k = kernel;
     for( int32 i=n; i; --i ) {
@@ -71,7 +73,9 @@ namespace vw {
   typename ProductType<typename SrcAccessT::pixel_type, typename KernelAccessT::pixel_type>::type
   inline correlate_2d_at_point( SrcAccessT const& src, KernelAccessT const& kernel, int32 cols, int32 rows ) {
     typedef typename ProductType<typename SrcAccessT::pixel_type, typename KernelAccessT::pixel_type>::type result_type;
+
     result_type result = result_type();
+    validate(result);
     SrcAccessT srow = src;
     KernelAccessT krow = kernel;
     for( int32 j=rows; j; --j ) {

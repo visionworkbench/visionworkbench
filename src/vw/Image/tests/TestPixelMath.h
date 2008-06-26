@@ -338,9 +338,9 @@ public:
 
     // Valid + invalid
     test = a + i;
-    TS_ASSERT( test[0] == 0 );
-    TS_ASSERT( test[1] == 0 );
-    TS_ASSERT( test[2] == 0 );
+    TS_ASSERT( test[0] == 1 );
+    TS_ASSERT( test[1] == 2 );
+    TS_ASSERT( test[2] == 3 );
     TS_ASSERT( test[3] == 0 );
 
     // Invalid + invalid
@@ -361,9 +361,44 @@ public:
     // Invalid + scalar
     test = i;
     test += 24;
+    TS_ASSERT( test[0] == 24 );
+    TS_ASSERT( test[1] == 24 );
+    TS_ASSERT( test[2] == 24 );
+    TS_ASSERT( test[3] == 0 );
+  }
+
+  void test_casting_masked_pixel_arithmetic() {
+
+    PixelMask<PixelRGB<uint8> > rgb(1,2,3);
+    PixelMask<float> g = 2;
+    PixelMask<float> invalid;
+    PixelMask<float> invalid2 = 1;
+    invalid2.invalidate();
+    
+    // Test binary compound operations
+    PixelMask<PixelRGB<float> > test = rgb * g;
+    TS_ASSERT( test[0] == 2 );
+    TS_ASSERT( test[1] == 4 );
+    TS_ASSERT( test[2] == 6 );
+    TS_ASSERT( test[3] == 1.0 );
+
+    // Test binary in-place operations
+    test *= g;
+    TS_ASSERT( test[0] == 4 );
+    TS_ASSERT( test[1] == 8 );
+    TS_ASSERT( test[2] == 12 );
+    TS_ASSERT( test[3] == 1.0 );
+
+    test *= invalid;
     TS_ASSERT( test[0] == 0 );
     TS_ASSERT( test[1] == 0 );
     TS_ASSERT( test[2] == 0 );
+    TS_ASSERT( test[3] == 0 );
+
+    test = rgb*invalid2;
+    TS_ASSERT( test[0] == 1 );
+    TS_ASSERT( test[1] == 2 );
+    TS_ASSERT( test[2] == 3 );
     TS_ASSERT( test[3] == 0 );
   }
 

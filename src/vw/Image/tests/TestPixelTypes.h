@@ -636,8 +636,24 @@ public:
       v1.invalidate();
       
       TS_ASSERT( is_transparent(v1) == true );
+      TS_ASSERT( is_transparent(v2) == false );      
+    }
+
+    // Check to ensure that operations still occur even when the
+    // pixels are masked.
+    {
+      PixelMask<PixelGray<uint8> > v1(23);
+      PixelMask<PixelGray<uint8> > v2(6);
+      v1.invalidate();
+
+      TS_ASSERT( is_transparent(v1) == true );
       TS_ASSERT( is_transparent(v2) == false );
-      
+      TS_ASSERT( v1[0] == 23 );
+      TS_ASSERT( v2[0] == 6 );
+
+      PixelMask<PixelGray<uint8> > test = v1 + v2;
+      TS_ASSERT( is_transparent(test) == true );
+      TS_ASSERT( test[0] == 29 );
     }
 
     // Test type traits

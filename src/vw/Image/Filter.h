@@ -346,9 +346,9 @@ namespace vw {
   /// \see vw::per_pixel_filter
   /// \see vw/Functors.h
   template <class SrcT, class FuncT>
-  UnaryPerPixelView<SrcT,UnaryCompoundFunctor<FuncT> >
+  UnaryPerPixelView<SrcT,UnaryCompoundFunctor<FuncT, typename SrcT::pixel_type> >
   inline per_pixel_channel_filter( ImageViewBase<SrcT> const& src, FuncT const& func ) {
-    return UnaryPerPixelView<SrcT,UnaryCompoundFunctor<FuncT> >( src.impl(), UnaryCompoundFunctor<FuncT>(func) );
+    return UnaryPerPixelView<SrcT,UnaryCompoundFunctor<FuncT, typename SrcT::pixel_type> >( src.impl(), UnaryCompoundFunctor<FuncT,typename SrcT::pixel_type>(func) );
   }
 
 } // namespace vw

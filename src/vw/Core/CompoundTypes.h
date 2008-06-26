@@ -109,7 +109,7 @@ namespace vw {
   // Binary elementwise compound type functor.
   // *******************************************************************
 
-  template <class FuncT>
+  template <class FuncT, class FuncArg1T, class FuncArg2T>
   class BinaryCompoundFunctor {
     FuncT func;
 
@@ -187,13 +187,13 @@ namespace vw {
 
   template <class FuncT, class Arg1T, class Arg2T=void>
   struct CompoundResult {
-    typedef typename boost::result_of<BinaryCompoundFunctor<FuncT>(Arg1T,Arg2T)>::type type;
+    typedef typename boost::result_of<BinaryCompoundFunctor<FuncT, Arg1T, Arg2T>(Arg1T,Arg2T)>::type type;
   };
 
   template <class FuncT, class Arg1T, class Arg2T>
   typename CompoundResult<FuncT,Arg1T,Arg2T>::type
   inline compound_apply( FuncT const& func, Arg1T const& arg1, Arg2T const& arg2 ) {
-    return BinaryCompoundFunctor<FuncT>(func)(arg1,arg2);
+    return BinaryCompoundFunctor<FuncT,Arg1T,Arg2T>(func)(arg1,arg2);
   }
 
 
@@ -201,7 +201,7 @@ namespace vw {
   // Binary in-place elementwise compound type functor.
   // *******************************************************************
 
-  template <class FuncT>
+  template <class FuncT, class FuncArg1T, class FuncArg2T>
   class BinaryInPlaceCompoundFunctor {
     FuncT func;
 
@@ -284,7 +284,7 @@ namespace vw {
 
   template <class FuncT, class Arg1T, class Arg2T>
   inline Arg1T& compound_apply_in_place( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
-    return BinaryInPlaceCompoundFunctor<FuncT>(func)(arg1,arg2);
+    return BinaryInPlaceCompoundFunctor<FuncT,Arg1T,Arg2T>(func)(arg1,arg2);
   }
 
 
@@ -292,7 +292,7 @@ namespace vw {
   // Unary elementwise compound type functor.
   // *******************************************************************
 
-  template <class FuncT>
+  template <class FuncT, class FuncArgT>
   class UnaryCompoundFunctor {
     FuncT func;
 
@@ -369,13 +369,13 @@ namespace vw {
 
   template <class FuncT, class ArgT>
   struct CompoundResult<FuncT,ArgT,void> {
-    typedef typename boost::result_of<UnaryCompoundFunctor<FuncT>(ArgT)>::type type;
+    typedef typename boost::result_of<UnaryCompoundFunctor<FuncT,ArgT>(ArgT)>::type type;
   };
 
   template <class FuncT, class ArgT>
   typename CompoundResult<FuncT,ArgT>::type
   inline compound_apply( FuncT const& func, ArgT const& arg ) {
-    return UnaryCompoundFunctor<FuncT>(func)(arg);
+    return UnaryCompoundFunctor<FuncT,ArgT>(func)(arg);
   }
 
 
@@ -383,7 +383,7 @@ namespace vw {
   // Unary in-place elementwise compound type functor.
   // *******************************************************************
 
-  template <class FuncT>
+  template <class FuncT, class FuncArgT>
   class UnaryInPlaceCompoundFunctor {
     FuncT func;
     typedef typename boost::add_reference<FuncT>::type func_ref;
@@ -472,22 +472,22 @@ namespace vw {
 
   template <class FuncT, class ArgT>
   inline ArgT& compound_apply_in_place( FuncT& func, ArgT& arg ) {
-    return UnaryInPlaceCompoundFunctor<FuncT&>(func)(arg);
+    return UnaryInPlaceCompoundFunctor<FuncT&,ArgT>(func)(arg);
   }
 
   template <class FuncT, class ArgT>
   inline const ArgT& compound_apply_in_place( FuncT& func, ArgT const& arg ) {
-    return UnaryInPlaceCompoundFunctor<FuncT&>(func)(arg);
+    return UnaryInPlaceCompoundFunctor<FuncT&,ArgT>(func)(arg);
   }
 
   template <class FuncT, class ArgT>
   inline ArgT& compound_apply_in_place( FuncT const& func, ArgT& arg ) {
-    return UnaryInPlaceCompoundFunctor<FuncT const&>(func)(arg);
+    return UnaryInPlaceCompoundFunctor<FuncT const&,ArgT>(func)(arg);
   }
 
   template <class FuncT, class ArgT>
   inline const ArgT& compound_apply_in_place( FuncT const& func, ArgT const& arg ) {
-    return UnaryInPlaceCompoundFunctor<FuncT const&>(func)(arg);
+    return UnaryInPlaceCompoundFunctor<FuncT const&,ArgT>(func)(arg);
   }
 
 } // namespace vw

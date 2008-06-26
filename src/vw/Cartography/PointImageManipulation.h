@@ -161,8 +161,8 @@ namespace cartography {
   }
 
   template <class ElemT>
-  inline Vector<ElemT,3> lon_lat_radius_to_xyz( Vector<ElemT,3> const& xyz, bool east_positive = true ) {
-    return LonLatRadToXYZFunctor::apply(xyz, east_positive);
+  inline Vector<ElemT,3> lon_lat_radius_to_xyz( Vector<ElemT,3> const& lon_lat_alt, bool east_positive = true ) {
+    return LonLatRadToXYZFunctor::apply(lon_lat_alt, east_positive);
   }
 
   // --------------------- CHANGE OF PROJECTION ----------------------
