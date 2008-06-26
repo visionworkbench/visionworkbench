@@ -1,5 +1,5 @@
-INCPATH += -I../../src -I/opt/local/include
-LIBS = ../../src/vw/libvw.la ../../src/vw/Mosaic/libvwMosaic.la -lboost_filesystem
+INCPATH += -I../../src -I/opt/local/include -I/irg/packages/i386_darwin_gcc4.0/boost/include/
+LIBS = ../../src/vw/libvw.la ../../src/vw/Mosaic/libvwMosaic.la -lboost_filesystem -L/irg/packages/i386_darwin_gcc4.0/boost/lib
 CXXFLAGS = -O3 -g -Wall
 
 GENERATED_IMAGES = images/mural_*.jpg images/hand.jpg images/lips.jpg	\

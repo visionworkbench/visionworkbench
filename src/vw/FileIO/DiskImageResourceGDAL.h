@@ -107,10 +107,8 @@ namespace vw {
     /// 
     /// For example, if you pass in a vector of (-1,-1), the block size will be
     /// assigned based on GDAL's best guess of the best block or strip
-    /// size. However, GDAL assumes a single-row stripsize even for file
-    /// formats like PNG for which it does not support true strip access.
-    /// Thus, we check the file driver type before accepting GDAL's block
-    /// size as our own.
+    /// size. However, we override GDAL's choice for certain formats like PNG where
+    /// the best "block size" is the entire image.
     void set_native_block_size(Vector2i block_size);
 
     virtual Vector2i native_block_size() const;

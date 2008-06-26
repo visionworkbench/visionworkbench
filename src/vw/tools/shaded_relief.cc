@@ -38,9 +38,12 @@ namespace po = boost::program_options;
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageViewRef.h>
+#include <vw/Image/Filter.h>
+#include <vw/Image/PixelMask.h>
 #include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/Math/EulerAngles.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/FileIO.h>
 
@@ -61,7 +64,7 @@ namespace vw {
 // directions so that the direction of the vector in physical space
 // can be properly ascertained.  This is often contained in the (0,0)
 // and (1,1) entry of the georeference transform.
-class ComputeNormalsFunc : public ReturnFixedType<Vector3> 
+class ComputeNormalsFunc : public ReturnFixedType<PixelMask<Vector3> > 
 {
   double m_u_scale, m_v_scale;
 
@@ -72,8 +75,9 @@ public:
   BBox2i work_area() const { return BBox2i(Vector2i(0, 0), Vector2i(1, 1)); }
     
   template <class PixelAccessorT>
-  Vector3 operator() (PixelAccessorT const& accessor_loc) const {
+  PixelMask<Vector3> operator() (PixelAccessorT const& accessor_loc) const {
     PixelAccessorT acc = accessor_loc;
+
     // Pick out the three altitude values.
     double alt1 = *acc;
     acc.advance(1,0);
@@ -83,11 +87,14 @@ public:
     
     // Form two orthogonal vectors in the plane containing the three
     // altitude points
-    Vector3 n1(m_u_scale, 0, alt2-alt1);
-    Vector3 n2(0, m_v_scale, alt3-alt1);
+    Vector3 n1(1, 0, alt2-alt1);
+    Vector3 n2(0, 1, alt3-alt1);
 
     // Return the vector normal to the local plane.
-    return cross_prod(n1,n2);
+    if (is_transparent(*accessor_loc))
+      return PixelMask<Vector3>();
+    else
+      return cross_prod(n1,n2);
   }
 };
 
@@ -98,41 +105,20 @@ UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, Comput
                                                                                                        ComputeNormalsFunc (u_scale, v_scale)); 
 }
 
-template <class PixelT>
-class RemapPixelFunc : public ReturnFixedType<PixelT> {
-
-  PixelT m_src_pix, m_dst_pix;
-
-public:
-  RemapPixelFunc(PixelT const& src_pix, PixelT const& dst_pix) : 
-    m_src_pix(src_pix), m_dst_pix(dst_pix) {}
-  
-  PixelT operator() (PixelT const& pix) const {
-    if (pix == m_src_pix) 
-      return m_dst_pix;
-    else 
-      return pix;
-  }
-};
-  
-template <class ViewT> 
-UnaryPerPixelView<ViewT, RemapPixelFunc<typename ViewT::pixel_type> > remap_pixel(ImageViewBase<ViewT> const& view, typename ViewT::pixel_type src_value, typename ViewT::pixel_type dst_value) {
-  return UnaryPerPixelView<ViewT, RemapPixelFunc<typename ViewT::pixel_type> >(view.impl(), RemapPixelFunc<typename ViewT::pixel_type>(src_value, dst_value));
-}
-
-
-class DotProdFunc : public ReturnFixedType<float> {
-
+class DotProdFunc : public ReturnFixedType<PixelMask<PixelGray<float> > > {
   Vector3 m_vec;
 
 public:
   DotProdFunc(Vector3 const& vec) : m_vec(vec) {}
   
-  float operator() (Vector3 const& pix) const {
-    return dot_prod(pix,m_vec);
+  PixelMask<PixelGray<float> > operator() (PixelMask<Vector3> const& pix) const {
+    if (is_transparent(pix))
+      return PixelMask<PixelGray<float> >();
+    else 
+      return dot_prod(pix.child(),m_vec);
   }
 };
-  
+
 template <class ViewT> 
 UnaryPerPixelView<ViewT, DotProdFunc> dot_prod(ImageViewBase<ViewT> const& view, Vector3 const& vec) {
   return UnaryPerPixelView<ViewT, DotProdFunc>(view.impl(), DotProdFunc(vec));
@@ -146,21 +132,24 @@ int main( int argc, char *argv[] ) {
   std::string input_file_name, output_file_name;
   float azimuth, elevation, scale, clamp_range;
   float dem_default_value;
-  float clamp_low, clamp_high;
+  float low_value, high_value;
+  float blur_sigma;
+
 
   po::options_description desc("Options");
   desc.add_options()
     ("help", "Display this help message")
+    ("stats", "Print out statistics of the input DEM")
     ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
     ("output-file,o", po::value<std::string>(&output_file_name)->default_value("shaded-relief.tif"), "Specify the output file")
     ("azimuth,a", po::value<float>(&azimuth)->default_value(0), "Sets the direction tha the light source is coming from.  Zero degrees is to the right, with positive degree counter-clockwise.")
     ("elevation,e", po::value<float>(&elevation)->default_value(0), "Set the elevation of the light source.")
     ("scale,s", po::value<float>(&scale)->default_value(0), "Set the scale of a pixel (in the same units as the DTM height values.")
     ("clamp-range", po::value<float>(&clamp_range)->default_value(4), "Set the range of floating point values to clamp to prior to normalizing.  You can normally leave this setting untouched.")
-    ("clamp-low", po::value<float>(&clamp_low), "Clamp the DEM to the specified range.  Must be used in conjunction with clamp-high")
-    ("clamp-high", po::value<float>(&clamp_high), "Clamp the DEM to the specified range.  Must be used in conjunction with clamp-low")
+    ("low-value", po::value<float>(&low_value), "Renormalize DEM to the specified range.  Must be used in conjunction with high-value")
+    ("high-value", po::value<float>(&high_value), "Renormalize DEM to the specified range.  Must be used in conjunction with low-value")
     ("dem-default-value", po::value<float>(&dem_default_value), "Remap the DEM default value to the min altitude value.")
-    ("no-normalize", "Don't normalize the result -- save the original values as a floating point file (if possible).  This is most often used for debugging.");
+    ("blur", po::value<float>(&blur_sigma), "Pre-blur the DEM with the specified sigma.");
   po::positional_options_description p;
   p.add("input-file", 1);
 
@@ -204,29 +193,44 @@ int main( int argc, char *argv[] ) {
     Vector3 light = math::euler_to_rotation_matrix(azimuth*M_PI/180, elevation*M_PI/180, 0, "zyx") * light_0;  
 
     // Compute the surface normals
-    DiskImageView<float> disk_dem_file(input_file_name);
-    ImageViewRef<float> dem = channel_cast<float>(disk_dem_file);
+    std::cout << "Loading DEM: " << input_file_name << ".\n";
+    DiskImageView<PixelGray<float> > disk_dem_file(input_file_name);
+    ImageViewRef<PixelMask<PixelGray<float> > > dem = create_mask(disk_dem_file);
 
-    if (vm.count("clamp-low") && vm.count("clamp-high")) {
-      std::cout << "Clamping DEM pixel values to range [" << clamp_low << ", " << clamp_high << "].\n";
-      dem = clamp(dem, clamp_low, clamp_high);
+    if (vm.count("stats")) {
+      float minval, maxval;
+      if (vm.count("dem-default-value"))
+        min_max_channel_values(dem, minval, maxval, dem_default_value);
+      else 
+        min_max_channel_values(dem, minval, maxval);
+      std::cout << "\t--> DEM Height Range: [" << minval << " " << maxval << "]\n";
     }
 
     if (vm.count("dem-default-value")) {
-      std::cout << "Remapping default pixel value " << dem_default_value << " to 0.\n";
-      dem = remap_pixel(dem, dem_default_value, 0);
+      std::cout << "\t--> Masking pixel value: " << dem_default_value << ".\n";
+      dem = create_mask(disk_dem_file, dem_default_value);
+    }
+
+    if (vm.count("low-value") && vm.count("high-value")) {
+      std::cout << "\t--> Normalizing shading for height values in range [" << low_value << ", " << high_value << "].\n";
+      dem = normalize(dem, low_value, high_value, 0, 1.0);
+      write_image("test.tif", dem);
+    }
+
+    if (vm.count("blur")) {
+      std::cout << "\t--> Blurring pixel with gaussian kernal.  Sigma = " << blur_sigma << "\n";
+      dem = gaussian_filter(dem, blur_sigma);
     }
 
     // The final result is the dot product of the light source with the normals
-    std::cout << "Computing normals..." << std::flush;
-    DiskCacheImageView<float> result = dot_prod(compute_normals(dem, u_scale, v_scale), light);
+    std::cout << "Computing normals.\n";
+    ImageViewRef<PixelMask<PixelGray<float> > > shaded_image = dot_prod(compute_normals(dem, u_scale, v_scale), light);
 
     // Save the result
     std::cout << "Writing shaded relief image.\n";
-    if (vm.count("no-normalize"))
-      write_image(output_file_name, result, TerminalProgressCallback());
-    else
-      write_image(output_file_name, channel_cast<uint8>(normalize(clamp(result,-clamp_range,clamp_range),0,255)), TerminalProgressCallback());
+    DiskImageResourceGDAL rsrc(output_file_name, shaded_image.format());
+    rsrc.set_native_block_size(Vector2i(1024,1024));
+    write_image(rsrc, shaded_image, TerminalProgressCallback());
 
   } catch( Exception& e ) {
     std::cerr << "Error: " << e.what() << std::endl;

@@ -691,8 +691,11 @@ namespace vw {
     typedef PixelMask<typename ViewT::pixel_type> const result_type;
     typedef ProceduralPixelAccessor<CreatePixelMaskView> pixel_accessor;
 
-    CreatePixelMaskView( ViewT const& view, typename ViewT::pixel_type const& nodata_value) 
+    CreatePixelMaskView( ViewT const& view ) 
       : m_view(view), m_use_nodata_value(false) {}
+
+    CreatePixelMaskView( ViewT const& view, typename ViewT::pixel_type const& nodata_value) 
+      : m_view(view), m_use_nodata_value(true) {}
 
     void set_nodata_value( typename ViewT::pixel_type value ) {
       m_nodata_value = value;
