@@ -152,7 +152,8 @@ int main( int argc, char *argv[] ) {
     std::cout << "Writing image.\n";
     if (shaded_relief_file_name != "") {
       DiskImageView<PixelMask<float> > shaded_relief_image(shaded_relief_file_name);
-      write_georeferenced_image(output_file_name, channel_cast_rescale<uint8>(colorized_image*apply_mask(shaded_relief_image)), georef, TerminalProgressCallback());
+      ImageViewRef<PixelMask<PixelRGB<float> > > shaded_image = copy_mask(colorized_image*apply_mask(shaded_relief_image), shaded_relief_image);
+      write_georeferenced_image(output_file_name, channel_cast_rescale<uint8>(shaded_image), georef, TerminalProgressCallback());
     } else {
       write_georeferenced_image(output_file_name, channel_cast_rescale<uint8>(colorized_image), georef, TerminalProgressCallback());
     }

@@ -205,6 +205,7 @@ int main( int argc, char *argv[] ) {
     std::cout << "Writing shaded relief image.\n";
     DiskImageResourceGDAL rsrc(output_file_name, shaded_image.format());
     rsrc.set_native_block_size(Vector2i(1024,1024));
+    write_georeference(rsrc, georef);
     write_image(rsrc, shaded_image, TerminalProgressCallback());
 
   } catch( Exception& e ) {
