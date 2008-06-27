@@ -68,7 +68,7 @@ namespace vw {
     typedef typename ViewT::pixel_type pixel_type;
 
     // Private variables
-    ViewT const& m_view;
+    ViewT const &m_view;
     int32 m_width, m_height;
     int64 m_index, m_pixels_per_plane;
 
@@ -94,7 +94,30 @@ namespace vw {
       m_index = p*((int64) m_width*m_height) + r*m_width + c;
       m_pixels_per_plane = (int64) m_width * m_height;
     }
-        
+
+    PixelIterator():
+      m_view(), m_width(-1), m_height(-1),
+      m_index(-1), m_pixels_per_plane(-1)
+    { }
+
+    /* The compiler does not like the default copy constructor and 
+     * assignment operators when using the m_view variable, for some 
+     * reason, so we override them here.
+    */
+    PixelIterator( PixelIterator<ViewT> const& cpy ):
+      m_view(cpy.m_view), m_width(cpy.m_width), m_height(cpy.m_height),
+      m_index(cpy.m_index), m_pixels_per_plane(cpy.m_pixels_per_plane) { }
+
+    PixelIterator& operator=( PixelIterator<ViewT> const &cpy ) {
+      m_view = cpy.m_view;
+      m_width = cpy.m_width;
+      m_height = cpy.m_height;
+      m_index = cpy.m_index;
+      m_pixels_per_plane = cpy.m_pixels_per_plane;
+
+      return *this;
+    }
+
     explicit PixelIterator( ViewT const& view )
       :  m_view(view), m_width(view.cols()), m_height(view.rows()), m_index(0) {
       m_pixels_per_plane = (int64) m_width * m_height;
