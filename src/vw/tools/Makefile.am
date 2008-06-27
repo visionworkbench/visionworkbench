@@ -51,12 +51,12 @@ shaded_relief_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 colorize_dem_SOURCES = colorize_dem.cc
 colorize_dem_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 # Adds or adjusts an image's georeferencing information
-if HAVE_PKG_GDAL
-cart_gdal_progs = georef
 georef_SOURCES = georef.cc
 georef_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
+if HAVE_PKG_GDAL
+cart_gdal_progs = georef shaded_relief
 endif
-cartography_progs = shaded_relief colorize_dem $(cart_gdal_progs)
+cartography_progs = colorize_dem $(cart_gdal_progs)
 endif
 
 # Command-line tools based on the HDR module
