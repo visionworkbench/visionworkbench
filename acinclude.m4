@@ -568,7 +568,7 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
         AX_FIND_FILES([`echo $2 | sed 's/-l\([[^[:space:]]]*\)/lib\1$4.*/g'`],[$PKG_BOOST_LIBDIR])
         if test ! -z "$ax_find_files_path" ; then
           HAVE_PKG_BOOST_$1="yes"
-          PKG_BOOST_$1_LIBS="$2"
+          PKG_BOOST_$1_LIBS="$2$4"
         else
           # Check for required libraries with some suffix. We have to check
           # for both a suffix before $4 (pre-suffix) and a suffix 
@@ -580,22 +580,10 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
           ax_pkg_boost_file=`ls ${PKG_BOOST_LIBDIR}/${ax_pkg_boost_lib}-*$4* | head -n 1 | sed "s,^${PKG_BOOST_LIBDIR}/\(.*\),\1,"`
 
           # The pre-suffix.
-          ax_pkg_boost_presuffix=`echo ${ax_pkg_boost_file} | sed "s/${ax_pkg_boost_lib}\(.*\)-$4.*/\1/"`
-          if ! test -z $ax_pkg_boost_presuffix; then
-            # Add - to the end of the presuffix. We might want to make 
-            # this a little more extensible (allow other characters 
-            # besides -).
-            ax_pkg_boost_presuffix=${ax_pkg_boost_presuffix}-
-          fi
+          ax_pkg_boost_presuffix=`echo ${ax_pkg_boost_file} | sed "s/${ax_pkg_boost_lib}\(.*\)$4.*/\1/"`
 
           # The post-suffix.
-          ax_pkg_boost_postsuffix=`echo ${ax_pkg_boost_file} | sed "s/${ax_pkg_boost_lib}.*-$4-\([[^.]]*\).*/\1/"`
-          if ! test -z $ax_pkg_boost_postsuffix; then
-            # Add - to the start of the postsuffix. We might want to make 
-            # this a little more extensible (allow other characters 
-            # besides -).
-            ax_pkg_boost_postsuffix=-${ax_pkg_boost_postsuffix}
-          fi
+          ax_pkg_boost_postsuffix=`echo ${ax_pkg_boost_file} | sed "s/${ax_pkg_boost_lib}${ax_pkg_boost_presuffix}$4\([[^.]]*\).*/\1/"`
 
           AX_FIND_FILES([`echo $2 | sed "s/-l\([[^[:space:]]]*\)/lib\1${ax_pkg_boost_presuffix}$4${ax_pkg_boost_postsuffix}.*/g"`],[$PKG_BOOST_LIBDIR])
           if test ! -z $ax_find_files_path ; then
