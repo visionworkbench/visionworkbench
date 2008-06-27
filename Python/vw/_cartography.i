@@ -7,6 +7,7 @@
 %}
 
 %include "std_string.i"
+%include "carrays.i"
 %include "numpy.i"
 
 %import "_image.i"
@@ -16,8 +17,42 @@
   import_array();
 %}
 
+%array_class(double, doublea);
+
 namespace vw {
 namespace cartography {
+
+  class Datum {
+  public:
+    Datum();
+    Datum( std::string const& name );
+
+    %extend {
+      void _geodetic_to_cartesian( double arg[3], double result[3] ) {
+        (*(vw::Vector3*)result) = self->geodetic_to_cartesian( (*(vw::Vector3*)arg) );
+      }
+      void _cartesian_to_geodetic( double arg[3], double result[3] ) {
+        (*(vw::Vector3*)result) = self->cartesian_to_geodetic( (*(vw::Vector3*)arg) );
+      }
+    }
+    %pythoncode {
+      def geodetic_to_cartesian(self, geodetic):
+        g = doublea(3)
+        c = doublea(3)
+        for i in range(0,3):
+          g[i] = geodetic[i]
+        self._geodetic_to_cartesian(g, c)
+        return [c[i] for i in range(0,3)]
+
+      def cartesian_to_geodetic(self, cartesian):
+        c = doublea(3)
+        g = doublea(3)
+        for i in range(0,3):
+          c[i] = cartesian[i]
+        self._cartesian_to_geodetic(c, g)
+        return [g[i] for i in range(0,3)]
+    }
+  };
 
   class GeoReference {
   public:
