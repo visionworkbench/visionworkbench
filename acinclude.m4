@@ -580,7 +580,7 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
           ax_pkg_boost_file=`ls ${PKG_BOOST_LIBDIR}/${ax_pkg_boost_lib}-*$4* | head -n 1 | sed "s,^${PKG_BOOST_LIBDIR}/\(.*\),\1,"`
 
           # The pre-suffix.
-          ax_pkg_boost_presuffix=`echo ${ax_pkg_boost_file} | sed "s/${ax_pkg_boost_lib}\(.*\)$4.*/\1/"`
+          ax_pkg_boost_presuffix=`echo ${ax_pkg_boost_file} | sed "s/${ax_pkg_boost_lib}\([[^.]]*\)$4.*/\1/"`
 
           # The post-suffix.
           ax_pkg_boost_postsuffix=`echo ${ax_pkg_boost_file} | sed "s/${ax_pkg_boost_lib}${ax_pkg_boost_presuffix}$4\([[^.]]*\).*/\1/"`
