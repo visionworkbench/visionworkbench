@@ -155,6 +155,9 @@ public:
     queue.add_task(task2);
     queue.add_task(task3);
 
+    // Give the tasks a chance to start up...
+    Thread::sleep_ms(100);
+
     set_debug_level(VerboseDebugMessage);
     
     TS_ASSERT_EQUALS( task1->value(), 1 );

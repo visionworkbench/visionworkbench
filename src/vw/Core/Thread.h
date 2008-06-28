@@ -119,6 +119,36 @@ namespace vw {
     };
   };
 
+  // A simple mutual exclusion class.
+  class RecursiveMutex : private boost::recursive_mutex {
+
+    friend class Lock;
+
+    // Ensure non-copyable semantics
+    RecursiveMutex( RecursiveMutex const& );
+    RecursiveMutex& operator=( RecursiveMutex const& );
+    
+  public:
+    inline RecursiveMutex() {}
+
+    // A scoped lock class, used to lock and unlock a Mutex.
+    //
+    // TODO: This should inherit privately from
+    // boost::mutex::scoped_lock, but this causes a compilation error
+    // when the Condition class below tries to get access to the
+    // members of scoped_lock.  I'm stumped how to fix this at the
+    // moment, but we should do this at some point. -mbroxton
+    class Lock : public boost::recursive_mutex::scoped_lock {
+
+      // Ensure non-copyable semantics
+      Lock( Lock const& );
+      Lock& operator=( Lock const& );
+
+    public:
+      inline Lock( RecursiveMutex &mutex ) : boost::recursive_mutex::scoped_lock( mutex ) {}
+    };
+  };
+
   // --------------------------------------------------------------
   //                            CONDITION
   // --------------------------------------------------------------  

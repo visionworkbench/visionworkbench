@@ -47,16 +47,16 @@ class TestThread : public CxxTest::TestSuite
     TestTask(Mutex &mutex, Condition &cond) : value(0), terminate(false), m_mutex(mutex), m_condition(cond) {}
 
     void operator()() {
-      value = 1;
       {
         Mutex::Lock lock(m_mutex);
-        m_condition.notify_all();
+	value = 1;
       }
+      m_condition.notify_all();
 
       int count = 0;
       while( !terminate ) {
-        Thread::yield();
-        if (count++ > 100) {
+        Thread::sleep_ms(100);
+        if (count++ > 50) {
           TS_FAIL("Test thread iterated 100 times... it shouldn't take this long.  Maybe deadlock occured?");
           exit(0);
         }
@@ -64,12 +64,15 @@ class TestThread : public CxxTest::TestSuite
 
       // Terminate, but wait 100ms first, to make sure our condition
       // synchronization is working.
-      Thread::sleep_ms(100);
-      value = 3;
+      Thread::sleep_ms(10);
+      {
+	Mutex::Lock lock(m_mutex);
+	value = 3;
+      }
       m_condition.notify_all();
     }
 
-    void kill() { terminate = true; }
+    void kill() { Thread::sleep_ms(100); terminate = true; }
   };
 
   class TestThreadIdTask {
@@ -84,7 +87,7 @@ class TestThread : public CxxTest::TestSuite
       std::cout << "\tThread " << Thread::id() << " terminated\n";
     }
 
-    void kill() { terminate = true; }
+    void kill() { Thread::sleep_ms(100); terminate = true; }
   };
       
 public:
