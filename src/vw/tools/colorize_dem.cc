@@ -38,7 +38,9 @@ public:
     if (is_transparent(pix)) 
       return PixelMask<PixelRGB<float> >();
     
-    const float val = compound_select_channel<const float&>(pix,0);
+    float val = compound_select_channel<const float&>(pix,0);
+    if (val > 1.0) val = 1.0;
+    if (val < 0.0) val = 0.0;
     
     Vector2 red_range(3/8.0, 1.0);
     Vector2 green_range(2/8.0, 6/8.0);
