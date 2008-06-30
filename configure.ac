@@ -225,17 +225,24 @@ fi
 
 AX_PKG_PTHREADS
 
+# 64-bit systems are annoying, and occasionally put stuff in /usr/lib64
+# instead of /usr/lib.
+AC_ARG_ENABLE(boost-in-lib64,
+  AC_HELP_STRING([--enable-boost-in-lib64], [Boost library files are in lib64 instead of lib @<:@no@:>@]),
+  [ BOOST_IN_LIB64=$enableval ], 
+  [ if test -z "$BOOST_IN_LIB64"; then BOOST_IN_LIB64=no; fi ]
+)
 AX_PKG_BOOST
 AC_MSG_NOTICE([VW will be built using Boost version $BOOST_VERSION])
-AX_PKG_BOOST_LIB(PROGRAM_OPTIONS, [-lboost_program_options], [boost/program_options.hpp], [-mt])
-AX_PKG_BOOST_LIB(FILESYSTEM_PRE_1_35, [-lboost_filesystem], [boost/filesystem/path.hpp], [-mt])
+AX_PKG_BOOST_LIB(PROGRAM_OPTIONS, [-lboost_program_options], [boost/program_options.hpp])
+AX_PKG_BOOST_LIB(FILESYSTEM_PRE_1_35, [-lboost_filesystem], [boost/filesystem/path.hpp])
 if test "$HAVE_PKG_BOOST_FILESYSTEM_PRE_1_35" = "no"; then
   echo "Checking for BOOST_FILESYSTEM 1.35 or later..."
-  AX_PKG_BOOST_LIB(FILESYSTEM, [-lboost_filesystem -lboost_system], [boost/filesystem/path.hpp], [-mt])
+  AX_PKG_BOOST_LIB(FILESYSTEM, [-lboost_filesystem -lboost_system], [boost/filesystem/path.hpp])
 else 
   AX_PKG(BOOST_FILESYSTEM, [BOOST_FILESYSTEM_PRE_1_35], [], [])
 fi
-AX_PKG_BOOST_LIB(THREAD, [-lboost_thread], [boost/thread/thread.hpp], [-mt])
+AX_PKG_BOOST_LIB(THREAD, [-lboost_thread], [boost/thread/thread.hpp])
 
 # This provides an easy way for users to override the threads options 
 # if they are replacing Boost threads with something else for their platform.

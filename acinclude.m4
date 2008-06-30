@@ -267,6 +267,9 @@ AC_DEFUN([AX_PKG_BOOST],
       if test -d "${ax_boost_base_path}/include/boost" ; then
         PKG_BOOST_INCDIR="${ax_boost_base_path}/include"
         PKG_BOOST_LIBDIR="${ax_boost_base_path}/lib"
+        if test "x${BOOST_IN_LIB64}" = "xyes" ; then
+          PKG_BOOST_LIBDIR="${PKG_BOOST_LIBDIR}64"
+        fi
         HAVE_PKG_BOOST="yes"
         if test "$ENABLE_VERBOSE" = "yes"; then
           AC_MSG_RESULT([found])
@@ -539,11 +542,14 @@ dnl that makes our old logic not work. You can't just add -mt to the old
 dnl library you're looking for, because the -compiler part comes first. 
 dnl IE, the non-multithreaded library would be named libboost_X-gcc41.so, 
 dnl and the multithreaded library would be named libboost_X-gcc41-mt.so.
-dnl Thus we have this function, which is more flexible. It takes an 
-dnl additional parameter at the end, which is a "semi-suffix" -- text that 
-dnl appears at either the end of the library filename (but before the .so),
-dnl or somewhere in the middle (in case there's another suffix).
-# Usage: AX_PKG_BOOST_LIB(<name>, <libraries>, <header>, <semi-suffix>)
+dnl
+dnl For that reason, we've added an environment variable:
+dnl BOOST_LIBRARIES_SUFFIX. The function here tries to find a version of 
+dnl Boost with the string in said variable somewhere inside the Boost 
+dnl library names, but after the initial name of the library (specified 
+dnl as the second parameter to this function). A blank value will give 
+dnl normal behavior.
+# Usage: AX_PKG_BOOST_LIB(<name>, <libraries>, <header>)
 AC_DEFUN([AX_PKG_BOOST_LIB],
 [
   AC_MSG_CHECKING(for package BOOST_$1)
@@ -564,31 +570,32 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
       # Check for required headers
       AX_FIND_FILES([$3],[${PKG_BOOST_INCDIR}])
       if test ! -z "$ax_find_files_path" ; then
-        # Check for required libraries with no suffix
-        AX_FIND_FILES([`echo $2 | sed 's/-l\([[^[:space:]]]*\)/lib\1$4.*/g'`],[$PKG_BOOST_LIBDIR])
+        # Check for required libraries with no suffix, aside from the one 
+        # given by environment variable.
+        AX_FIND_FILES([`echo $2 | sed "s/-l\([[^[:space:]]]*\)/lib\1${BOOST_LIBRARIES_SUFFIX}.*/g"`],[$PKG_BOOST_LIBDIR])
         if test ! -z "$ax_find_files_path" ; then
           HAVE_PKG_BOOST_$1="yes"
-          PKG_BOOST_$1_LIBS="$2$4"
+          PKG_BOOST_$1_LIBS="$2${BOOST_LIBRARIES_SUFFIX}"
         else
           # Check for required libraries with some suffix. We have to check
-          # for both a suffix before $4 (pre-suffix) and a suffix 
-          # after (for example) the -mt (post-suffix), because boost likes 
-          # to stick the name of the compiler before the -mt. Extremely
-          # annoying.
+          # for both a suffix before ${BOOST_LIBRARIES_SUFFIX} (pre-suffix) 
+          # and a suffix after (for example) the -mt (post-suffix), because 
+          # boost likes to stick the name of the compiler before the -mt.
+          # Extremely annoying.
 
           ax_pkg_boost_lib=`echo $2 | awk '{print [$]1}' | sed 's/-l\([[^[:space:]-]]*\).*/lib\1/g'`
-          ax_pkg_boost_file=`ls ${PKG_BOOST_LIBDIR}/${ax_pkg_boost_lib}-*$4* | head -n 1 | sed "s,^${PKG_BOOST_LIBDIR}/\(.*\),\1,"`
+          ax_pkg_boost_file=`ls ${PKG_BOOST_LIBDIR}/${ax_pkg_boost_lib}-*${BOOST_LIBRARIES_SUFFIX}* | head -n 1 | sed "s,^${PKG_BOOST_LIBDIR}/\(.*\),\1,"`
 
           # The pre-suffix.
-          ax_pkg_boost_presuffix=`echo ${ax_pkg_boost_file} | sed "s/${ax_pkg_boost_lib}\([[^.]]*\)$4.*/\1/"`
+          ax_pkg_boost_presuffix=`echo ${ax_pkg_boost_file} | sed "s/${ax_pkg_boost_lib}\([[^.]]*\)${BOOST_LIBRARIES_SUFFIX}.*/\1/"`
 
           # The post-suffix.
-          ax_pkg_boost_postsuffix=`echo ${ax_pkg_boost_file} | sed "s/${ax_pkg_boost_lib}${ax_pkg_boost_presuffix}$4\([[^.]]*\).*/\1/"`
+          ax_pkg_boost_postsuffix=`echo ${ax_pkg_boost_file} | sed "s/${ax_pkg_boost_lib}${ax_pkg_boost_presuffix}${BOOST_LIBRARIES_SUFFIX}\([[^.]]*\).*/\1/"`
 
-          AX_FIND_FILES([`echo $2 | sed "s/-l\([[^[:space:]]]*\)/lib\1${ax_pkg_boost_presuffix}$4${ax_pkg_boost_postsuffix}.*/g"`],[$PKG_BOOST_LIBDIR])
+          AX_FIND_FILES([`echo $2 | sed "s/-l\([[^[:space:]]]*\)/lib\1${ax_pkg_boost_presuffix}${BOOST_LIBRARIES_SUFFIX}${ax_pkg_boost_postsuffix}.*/g"`],[$PKG_BOOST_LIBDIR])
           if test ! -z $ax_find_files_path ; then
             HAVE_PKG_BOOST_$1="yes"
-            PKG_BOOST_$1_LIBS=`echo $2 | sed "s/[[^ ]]*/&${ax_pkg_boost_presuffix}$4${ax_pkg_boost_postsuffx}/g"`
+            PKG_BOOST_$1_LIBS=`echo $2 | sed "s/[[^ ]]*/&${ax_pkg_boost_presuffix}${BOOST_LIBRARIES_SUFFIX}${ax_pkg_boost_postsuffx}/g"`
           fi
         fi
       fi
