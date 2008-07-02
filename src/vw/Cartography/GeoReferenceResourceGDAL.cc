@@ -129,7 +129,7 @@ namespace cartography {
       datum.meridian_offset() = gdal_spatial_ref.GetPrimeMeridian();
       // Set the proj4 string for datum.
       std::stringstream datum_proj4_ss;
-      for(int i=0; i < datum_strings.size(); i++)
+      for(unsigned i=0; i < datum_strings.size(); i++)
           datum_proj4_ss << datum_strings[i] << ' ';
       // Add the current proj4 string in the case that our ellipse/datum 
       // values are empty.

@@ -37,14 +37,6 @@ namespace stereo {
 
 VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
 
-  // Timing (profiling) utilites
-  static inline double Time(void) {
-    struct timeval tv;
-    gettimeofday(&tv, 0);
-    return ((double) tv.tv_sec + (double) tv.tv_usec / 1.0e6);
-  }
-
-
   // Sign of the Laplacian of the Gaussian pre-processing
   // 
   // Default gaussian blur standard deviation is 1.5 pixels.
@@ -94,7 +86,6 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     }
     static bool use_bit_image() { return false; }    
   };
-
 
 
   // Return absolute difference of two bit images
@@ -211,9 +202,6 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
      * Of course, we optimize this computation a bit by unrolling it by hand beforehand.
      */
     double denom = 4 * x(0) * x(1) - (x(2) * x(2));
-  
-//     offset(0) = ( x(2) * x(4) - 2 * x(1) * x(3) ) / denom;
-//     offset(1) = ( x(2) * x(3) - 2 * x(1) * x(4) ) / denom;
   
     offset(0) = ( x(2) * x(4) - 2 * x(1) * x(3) ) / denom;
     offset(1) = ( x(2) * x(3) - 2 * x(0) * x(4) ) / denom;

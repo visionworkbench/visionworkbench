@@ -148,7 +148,6 @@ int main( int argc, char *argv[] ) {
       std::cout << "\t--> Using user-specified color map range: [" << min_val << "  " << max_val << "]\n";
     }
 
-
     ImageViewRef<PixelMask<PixelRGB<float> > > colorized_image = colormap(normalize(dem,min_val,max_val,0,1.0));
 
     std::cout << "Writing image.\n";

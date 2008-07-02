@@ -1,5 +1,7 @@
 #ifndef __VW_STEREO_REFERENCE_CORRELATOR__
 #define  __VW_STEREO_REFERENCE_CORRELATOR__
+
+#include <vw/Core/Stopwatch.h>
 #include <vw/Stereo/Correlate.h>
 
 namespace vw {
@@ -88,7 +90,8 @@ public:
     int height = image0.impl().rows();
 
     //Run the correlator and record how long it takes to run.
-    double begin__ = Time();
+    Stopwatch timer;
+    timer.start();
 
     std::cout << "\tRunning left-to-right correlation... " << std::flush;
     ImageView<PixelDisparity<float> > resultL2R = this->correlate(l_image, r_image,false,PreProcFilterT::use_bit_image());
@@ -118,7 +121,8 @@ public:
       }
     } 
 
-    double lapse__ = Time() - begin__;
+    timer.stop();
+    double lapse__ = timer.elapsed_seconds();
     if (m_verbose) {
       std::cout << "\tTotal correlation + subpixel took " << lapse__ << " sec";
       double nTries = 2.0 * (m_lMaxV - m_lMinV + 1) * (m_lMaxH - m_lMinH + 1);

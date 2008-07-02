@@ -11,15 +11,15 @@ using namespace vw;
 using namespace vw::stereo;
 
 // Some useful default values and constants 
-#define DEFAULT_KERN_WIDTH 29
-#define DEFAULT_KERN_HEIGHT 21
+#define DEFAULT_KERN_WIDTH 24
+#define DEFAULT_KERN_HEIGHT 24
 #define DEFAULT_MIN_H -50
 #define DEFAULT_MAX_H 50
 #define DEFAULT_MIN_V -1
 #define DEFAULT_MAX_V 1
 #define DEFAULT_CROSSCORR_THRESHOLD 2
 #define DEFAULT_USE_SUBPIXEL_H true
-#define DEFAULT_USE_SUBPIXEL_V false
+#define DEFAULT_USE_SUBPIXEL_V true
 
 /********************************************************************
  *                     Constructors                                 *

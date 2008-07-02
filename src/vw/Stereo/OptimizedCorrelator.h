@@ -1,6 +1,7 @@
 #ifndef __VW_STEREO_OPTIMIZED_CORRELATOR__
 #define __VW_STEREO_OPTIMIZED_CORRELATOR__
 
+#include <vw/Core/Stopwatch.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Stereo/DisparityMap.h>
@@ -138,7 +139,10 @@ namespace stereo {
       
       typedef typename CorrelatorAccumulatorType<ChannelT>::type accumulator_type;
 
-      double before = Time();
+      // Start a timer
+      vw::Stopwatch timer;
+      timer.start();
+
       int numCorrTries = (btmDisp - topDisp + 1) * (maxDisp - minDisp + 1);
 
       ChannelT *diff = new ChannelT[width*height]; // buffer containing results of substraction of L/R images
@@ -278,7 +282,8 @@ namespace stereo {
       set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processed successfully.")
                               % topDisp % btmDisp % minDisp % maxDisp));
   
-      double duration= Time()-before;
+      timer.stop();
+      double duration = timer.elapsed_seconds();
       double mdisp_per_sec= ((double)numCorrTries * width * height)/duration/1e6;
       set_correlation_rate_string(str(boost::format("%1% seconds (%2% M disparities/second)")
                                       % (int)duration % mdisp_per_sec));
@@ -338,6 +343,10 @@ namespace stereo {
     int m_lKernWidth, m_lKernHeight;
     int m_lMinH, m_lMaxH, m_lMinV, m_lMaxV;
     int m_verbose;
+    double m_crossCorrThreshold;
+    float m_corrscore_rejection_threshold;
+    int m_useHorizSubpixel, m_useVertSubpixel;
+    mutable Mutex m_mutex;
 
   public:
     OptimizedCorrelator();
@@ -376,7 +385,8 @@ namespace stereo {
       typename PreProcFilterT::result_type right_image = preproc_filter(channels_to_planes(image1));  
 
       //Run the correlator and record how long it takes to run.
-      double begin__ = Time();
+      Stopwatch timer;
+      timer.start();
       
       // Configure the workers
       boost::shared_ptr<CorrelationWorkThreadBase> worker0, worker1;
@@ -428,12 +438,12 @@ namespace stereo {
       ImageView<PixelDisparity<float> > resultL2R = worker1->result();
 
       // Cross check the left and right disparity maps
-      cross_corr_consistency_check(resultL2R, resultR2L,m_crossCorrThreshold, m_verbose);
+      cross_corr_consistency_check(resultL2R, resultR2L, m_crossCorrThreshold, m_verbose);
 
       // Do subpixel correlation
-      //   ImageView<channel_type> subpix_image0 = channels_to_planes(image0);
-      //   ImageView<channel_type> subpix_image1 = channels_to_planes(image1);
-      //   subpixel_correlation(resultL2R, subpix_image0, subpix_image1, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel, m_verbose);
+//       NullStereoPreprocessingFilter testfilt;;
+//       typename NullStereoPreprocessingFilter::result_type left_subpixel_image = testfilt(channels_to_planes(image0));
+//       typename NullStereoPreprocessingFilter::result_type right_subpixel_image = testfilt(channels_to_planes(image1));  
       subpixel_correlation(resultL2R, left_image, right_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel, m_verbose);
 
       int matched = 0;
@@ -449,7 +459,8 @@ namespace stereo {
         }
       } 
 
-      double lapse__ = Time() - begin__;
+      timer.stop();
+      double lapse__ = timer.elapsed_seconds();
       if (m_verbose) {
         vw_out(InfoMessage, "stereo") << "\tTotal correlation + subpixel took " << lapse__ << " sec";
         double nTries = 2.0 * (m_lMaxV - m_lMinV + 1) * (m_lMaxH - m_lMinH + 1);
@@ -461,17 +472,7 @@ namespace stereo {
       }
 
       return resultL2R;
-    
-    }
-
-  private:
-      
-    double m_crossCorrThreshold;
-    float m_corrscore_rejection_threshold;
-    int m_useHorizSubpixel;
-    int m_useVertSubpixel;
-    mutable Mutex m_mutex;
-      
+    }      
   };
 
 
