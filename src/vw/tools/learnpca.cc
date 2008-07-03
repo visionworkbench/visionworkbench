@@ -1,8 +1,15 @@
 #include <iostream>
 #include "learnpca.h"
 
+using namespace std;
+
 int main(int argc, char *argv[])
 {
+  if (argc < 2) {
+    cout << "learnpca <training image files...>" << endl;
+    return 0;
+  }
+
   LearnPCA lpca("pca_basis.exr", "pca_avg.exr");
 
   for (int i = 1; i < argc; i++) {

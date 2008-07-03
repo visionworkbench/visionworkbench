@@ -90,20 +90,43 @@ public:
     training_data_size = 0;
   }
 
-  void processImage(DiskImageView<PixelRGB<uint8> > &image) {
+  template <class T>
+  vw::ImageView<T> bin_subsample(const vw::ImageView<T> &image) {
+    vw::ImageView<T> ret(image.cols()/2, image.rows()/2);
+    for (int y= 0; y< ret.rows(); y++) {
+      for (int x= 0; x< ret.cols(); x++) {
+	ret(x,y) = T(
+		     (image(x*2, y*2  )/2 + image(x*2+1, y*2  )/2)/2 +
+		     (image(x*2, y*2+1)/2 + image(x*2+1, y*2+1)/2)/2);
+      }
+    }
+    return ret;
+  }
+
+  void processImage(DiskImageView<PixelRGB<uint8> > &dimage) {
     
-    //float log_threshold = 0.1;
+    float log_threshold = 0.01;
     int tile_size = 2048;
     
     // *** TODO: let user choose interest point detector
     // Find interest points in image
     InterestPointList ipl;
-    //LogInterestOperator interest_operator(log_threshold);
-    //ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator);
-    ScaledInterestPointDetector<LogInterestOperator> detector;
-    cout << "Running interest point detector on " << image.filename() << endl;
+
+		// *** TODO: set this somewhere else
+    int max_x_dim = 1000;
+    ImageView<PixelRGB<uint8> > image = dimage;
+    while(image.cols() > max_x_dim) {
+      image = bin_subsample(image);
+      cout << "Reduced image to " << image.cols() << "x" << image.rows() << endl;
+    }
+    image = gaussian_filter(image, 1);
+
+    LogInterestOperator interest_operator(log_threshold);
+    ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator);
+    //ScaledInterestPointDetector<LogInterestOperator> detector;
+    cout << "Running interest point detector on " << dimage.filename() << endl;
     ipl = detector(image, tile_size);
-    //write_point_image("ip_" + image.filename(), image, ipl);
+    write_point_image("ip_" + dimage.filename(), image, ipl);
 
     // Resize the training data matrix to accommodate new interest points
     unsigned int interest_point_index = training_data_size;
