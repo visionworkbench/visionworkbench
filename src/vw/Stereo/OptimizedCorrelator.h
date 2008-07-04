@@ -15,24 +15,42 @@
 namespace vw { 
 namespace stereo {
 
-  // These functors allow us to specialize the behavior of the image
-  // differencing operation, which is part of measuring the sum of
-  // absolute difference (SOAD) between two images.  For 8-bit slog
-  // images, we take the xor (^) of the two images.
-  struct StandardAbsDifferenceFunc {
-    static inline float absdiff (const float val1, const float val2) { return fabs(val1-val2); }
-    static inline double absdiff (const double val1, const double val2) { return fabs(val1-val2); }
-    static inline uint8 absdiff (const uint8 val1, const uint8 val2) { return val1 > val2 ? (val1-val2) : (val2-val1); }
-    static inline uint16 absdiff (const uint16 val1, const uint16 val2) { return val1 > val2 ? (val1-val2) : (val2-val1); }
-    static inline uint32 absdiff (const uint32 val1, const uint32 val2) { return val1 > val2 ? (val1-val2) : (val2-val1); }
-    static inline int8 absdiff (const int8 val1, const int8 val2) { return abs(val1-val2); }
-    static inline int16 absdiff (const int16 val1, const int16 val2) { return abs(val1-val2); }
-    static inline int32 absdiff (const int32 val1, const int32 val2) { return abs(val1-val2); }
+  class AbsDiffCostFunc {
+    private:
+      // These functors allow us to specialize the behavior of the image
+      // differencing operation, which is part of measuring the sum of
+      // absolute difference (SOAD) between two images.  For 8-bit slog
+      // images, we take the xor (^) of the two images.
+
+      static inline float absdiff (const float val1, const float val2) { return fabs(val1-val2); }
+      static inline double absdiff (const double val1, const double val2) { return fabs(val1-val2); }
+      static inline uint8 absdiff (const uint8 val1, const uint8 val2) { return val1 > val2 ? (val1-val2) : (val2-val1); }
+      static inline uint16 absdiff (const uint16 val1, const uint16 val2) { return val1 > val2 ? (val1-val2) : (val2-val1); }
+      static inline uint32 absdiff (const uint32 val1, const uint32 val2) { return val1 > val2 ? (val1-val2) : (val2-val1); }
+      static inline int8 absdiff (const int8 val1, const int8 val2) { return abs(val1-val2); }
+      static inline int16 absdiff (const int16 val1, const int16 val2) { return abs(val1-val2); }
+      static inline int32 absdiff (const int32 val1, const int32 val2) { return abs(val1-val2); }
+      
+    public:
+      template <class ChannelT>
+      ChannelT operator()(ChannelT const& x, ChannelT const& y) {
+        return absdiff(x, y);
+      }
   };
 
+  class SqDiffCostFunc {
+    public:
+      template <class ChannelT>
+      ChannelT operator()(ChannelT const& x, ChannelT const& y) {
+        return (x - y) * (x - y);
+      }
+  };
+
+/*
   struct BitAbsDifferenceFunc {
     static inline uint8 absdiff (const uint8 val1, const uint8 val2) { return val1^val2; }
   };
+*/
 
   /// Given a type, these traits classes help to determine a suitable
   /// working type for accumulation operations in the correlator
@@ -101,7 +119,7 @@ namespace stereo {
   /// The correlation work thread is a functor that does the actual
   /// correlation processing.  This functor can be used to easily spin
   /// off multiple threads of correlation on a multiprocessor machine.
-  template <class ViewT, class AbsDifferenceT>
+  template <class ViewT, class CostFuncT>
   class CorrelationWorkThread : public CorrelationWorkThreadBase {
 
     // Handy typedefs
@@ -122,6 +140,8 @@ namespace stereo {
 
     ViewT m_left_image;
     ViewT m_right_image;
+
+    CostFuncT m_cost_func;
 
     template <class ChannelT>
     soad *fast2Dcorr_optimized(int minDisp,	/* left bound disparity search */
@@ -188,7 +208,7 @@ namespace stereo {
             const ChannelT *rimg_ptr = rimg_row;
             const ChannelT *simg_ptr = simg_row;
             for( int i=xEnd-xStart+(hKern-1); i; --i ) {
-              *(diff_ptr++) = AbsDifferenceT::absdiff( (*(rimg_ptr++)), (*(simg_ptr++)) );
+              *(diff_ptr++) = m_cost_func( (*(rimg_ptr++)), (*(simg_ptr++)) );
             }
             diff_row += width;
             rimg_row += width;
@@ -298,7 +318,8 @@ namespace stereo {
                           int kern_width, int kern_height,
                           float corrscore_rejection_threshold,
                           ViewT const& left_image, 
-                          ViewT const& right_image) {
+                          ViewT const& right_image,
+                          CostFuncT const& cost_func) {
       m_min_h = min_h;
       m_max_h = max_h;
       m_min_v = min_v;
@@ -308,6 +329,7 @@ namespace stereo {
       m_left_image = left_image;
       m_right_image = right_image;
       m_corrscore_rejection_threshold = corrscore_rejection_threshold;
+      m_cost_func = cost_func;
     }
 
   public:
@@ -361,11 +383,19 @@ namespace stereo {
                         float corrscore_rejection_threshold,
                         int useSubpixelH,
                         int useSubpixelV);
-    
+
     template <class ViewT, class PreProcFilterT>
     ImageView<PixelDisparity<float> > operator()(ImageViewBase<ViewT> const& image0,
                                                  ImageViewBase<ViewT> const& image1,
                                                  PreProcFilterT const& preproc_filter) {
+      return (*this)(image0, image1, preproc_filter, AbsDiffCostFunc());
+    }
+    
+    template <class ViewT, class PreProcFilterT, class CostFuncT>
+    ImageView<PixelDisparity<float> > operator()(ImageViewBase<ViewT> const& image0,
+                                                 ImageViewBase<ViewT> const& image1,
+                                                 PreProcFilterT const& preproc_filter,
+                                                 CostFuncT const& cost_func) {
 
       typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
 
@@ -390,6 +420,7 @@ namespace stereo {
       
       // Configure the workers
       boost::shared_ptr<CorrelationWorkThreadBase> worker0, worker1;
+/*
       if( preproc_filter.use_bit_image() ) {
         worker0.reset( new CorrelationWorkThread<ImageView<channel_type>, BitAbsDifferenceFunc>(-m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, right_image, left_image) );
         worker1.reset( new CorrelationWorkThread<ImageView<channel_type>, BitAbsDifferenceFunc>(m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, left_image, right_image) );
@@ -397,6 +428,9 @@ namespace stereo {
         worker0.reset( new CorrelationWorkThread<ImageView<channel_type>, StandardAbsDifferenceFunc>(-m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, right_image, left_image) );
         worker1.reset( new CorrelationWorkThread<ImageView<channel_type>, StandardAbsDifferenceFunc>(m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, left_image, right_image) );
       }
+*/
+        worker0.reset( new CorrelationWorkThread<ImageView<channel_type>, CostFuncT>(-m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, right_image, left_image, cost_func) );
+        worker1.reset( new CorrelationWorkThread<ImageView<channel_type>, CostFuncT>( m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, left_image, right_image, cost_func) );
 
       try {
         // Launch the threads
