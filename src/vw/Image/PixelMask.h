@@ -644,7 +644,7 @@ namespace vw {
   VW_PIXEL_MASK_MATH_BINARY_IS_FUNCTION(operator /=, vw::ArgValInPlaceQuotientFunctor)
 
 
- // *******************************************************************
+  // *******************************************************************
   /// create_mask( view, value )
   ///
   /// Given a view with pixels of type PixelT and a pixel value to
@@ -666,7 +666,8 @@ namespace vw {
   UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> >
   create_mask( ImageViewBase<ViewT> const& view,
                typename ViewT::pixel_type const& value = typename ViewT::pixel_type() ) {
-    return per_pixel_filter( view, CreatePixelMask<typename ViewT::pixel_type>(value) );
+    typedef UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> > view_type;
+    return view_type( view.impl(), CreatePixelMask<typename ViewT::pixel_type>(value) );
   }
 
   // Indicate that create_mask is "reasonably fast" and should never
@@ -698,7 +699,8 @@ namespace vw {
   apply_mask( ImageViewBase<ViewT> const& view, 
               typename UnmaskedPixelType<typename ViewT::pixel_type>::type const& value = 
               typename UnmaskedPixelType<typename ViewT::pixel_type>::type() ) {
-    return per_pixel_filter( view, ApplyPixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type>(value) );
+    typedef UnaryPerPixelView<ViewT,ApplyPixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type> > view_type;
+    return view_type( view.impl(), ApplyPixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type>(value) );
   }
 
   // Indicate that apply_mask is "reasonably fast" and should never
@@ -724,10 +726,11 @@ namespace vw {
   };
 
   template <class ViewT, class MaskViewT>
-  BinaryPerPixelView<ViewT,MaskViewT,ApplyPixelMask<typename ViewT::pixel_type> >
+  BinaryPerPixelView<ViewT,MaskViewT,CopyPixelMask<typename ViewT::pixel_type> >
   copy_mask( ImageViewBase<ViewT> const& view,
              ImageViewBase<MaskViewT> const& mask_view ) {
-    return per_pixel_filter( view, mask_view, CopyPixelMask<typename ViewT::pixel_type>() );
+    typedef BinaryPerPixelView<ViewT,MaskViewT,CopyPixelMask<typename ViewT::pixel_type> > view_type;
+    return view_type( view.impl(), mask_view.impl(), CopyPixelMask<typename ViewT::pixel_type>() );
   }
 
   // Indicate that copy_mask is "reasonably fast" and should never
@@ -736,6 +739,6 @@ namespace vw {
   struct IsMultiplyAccessible<BinaryPerPixelView<ViewT,MaskViewT,CopyPixelMask<typename ViewT::pixel_type> > >
     : public boost::mpl::and_<IsMultiplyAccessible<ViewT>,IsMultiplyAccessible<MaskViewT> >::type {};
 
-}
+} // namespace vw
 
 #endif // __VW_IMAGE_PIXELMASK_H__
