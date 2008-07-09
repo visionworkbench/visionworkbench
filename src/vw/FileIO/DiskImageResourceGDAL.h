@@ -23,11 +23,25 @@
 /// 
 /// Provides support for georeferenced files via the GDAL library.
 ///
+/// Advanced users can pass custom options to GDAL when creating a 
+/// resource.  Here is an example showing how to make a tiled, 
+/// compressed BigTIFF (assuming libtiff 4.0 or greater):
+///
+///   DiskImageResourceGDAL::Options options;
+///   options["COMPRESS"] = "LZW";
+///   options["BIGTIFF"] = "YES";
+///   DiskImageResourceGDAL resource( "filename.tif",
+///                                   image.format(),
+///                                   Vector2i(256,256),
+///                                   options );
+///   write_image( resource, image );
+///
 #ifndef __VW_FILEIO_DISKIMAGERESOUCEGDAL_H__
 #define __VW_FILEIO_DISKIMAGERESOUCEGDAL_H__
 
 #include <vw/config.h>
 #include <string>
+#include <map>
 
 // VW Headers
 #include <vw/Image/PixelTypes.h>
@@ -67,6 +81,8 @@ namespace vw {
   class DiskImageResourceGDAL : public DiskImageResource {
   public:
 
+    typedef std::map<std::string,std::string> Options;
+
     DiskImageResourceGDAL( std::string const& filename )
       : DiskImageResource( filename )
     {
@@ -83,6 +99,17 @@ namespace vw {
       m_write_dataset_ptr = NULL;
       m_convert_jp2 = false;
       create( filename, format, block_size );
+    }
+    
+    DiskImageResourceGDAL( std::string const& filename, 
+                           ImageFormat const& format,
+                           Vector2i block_size,
+                           Options const& options )
+      : DiskImageResource( filename )
+    {
+      m_write_dataset_ptr = NULL;
+      m_convert_jp2 = false;
+      create( filename, format, block_size, options );
     }
     
     virtual ~DiskImageResourceGDAL() {
@@ -122,7 +149,15 @@ namespace vw {
     void open( std::string const& filename );    
     void create( std::string const& filename,
                  ImageFormat const& format,
-                 Vector2i m_block_size = Vector2i(-1,-1) );
+                 Vector2i block_size,
+                 Options const& options );
+
+    void create( std::string const& filename,
+                 ImageFormat const& format,
+                 Vector2i block_size = Vector2i(-1,-1) )
+    {
+      create( filename, format, block_size, Options() );
+    }
     
     static DiskImageResource* construct_open( std::string const& filename );
 

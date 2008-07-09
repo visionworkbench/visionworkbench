@@ -392,7 +392,8 @@ namespace vw {
   /// Bind the resource to a file for writing.  
   void DiskImageResourceGDAL::create( std::string const& filename, 
                                       ImageFormat const& format,
-                                      Vector2i block_size)
+                                      Vector2i block_size,
+                                      std::map<std::string,std::string> const& user_options )
   {
     VW_ASSERT(format.planes == 1 || format.pixel_format==VW_PIXEL_SCALAR,
               NoImplErr() << "DiskImageResourceGDAL: Cannot create " << filename << "\n\t"
@@ -449,6 +450,11 @@ namespace vw {
       options = CSLSetNameValue( options, "BLOCKYSIZE", x_str.str().c_str() );
       options = CSLSetNameValue( options, "BLOCKXSIZE", y_str.str().c_str() );
     }
+
+    for( std::map<std::string,std::string>::const_iterator i=user_options.begin(); i!=user_options.end(); ++i ) {
+      options = CSLSetNameValue( options, i->first.c_str(), i->second.c_str() );
+    }
+
     GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(format.channel_type);
     GDALDataset *dataset = driver->Create( filename.c_str(), cols(), rows(), num_bands, gdal_pix_fmt, options );
     CSLDestroy( options );
