@@ -160,6 +160,29 @@ namespace vw {
     typedef typename boost::mpl::if_< boost::is_reference<SrcT>, cv_dst&, cv_dst >::type type;
   };
 
+  /// This template class is designed to wrap a built-in numeric type
+  /// (such as int) in order to make it possible for another class to
+  /// effectively inherit from a numeric type.  There's probably a lot
+  /// more we could do here, but for the moment we just allow
+  /// construction from and casting to the relevant numeric type.
+  template <class T>
+  class FundamentalTypeClass {
+    T m_value;
+  public:
+    FundamentalTypeClass() : m_value() {}
+    FundamentalTypeClass( T const& value ) : m_value( value ) {}
+    operator T() const { return m_value; }
+  };
+
+  /// This type function returns a class type corresponding to the
+  /// given type.  If the argument is already a class type then this
+  /// is just the identity function.  If the argument is a built-in 
+  /// type (such as int) then this returns the corresponding 
+  /// FundamentalTypeClass type.
+  template <class T> struct ClassType {
+    typedef typename boost::mpl::if_<boost::is_class<T>,T,FundamentalTypeClass<T> >::type type;
+  };
+
 } // namespace vw
 
 #endif // __VW_CORE_FUNDAMENTALTYPES_H__
