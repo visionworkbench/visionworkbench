@@ -371,6 +371,10 @@ namespace camera {
     double operator() (double delta_norm) { return abs(delta_norm); }
   };
 
+  struct L2Error {
+    double operator() (double delta_norm) { return delta_norm*delta_norm; }
+  };
+
   struct CauchyError { 
     double m_sigma;
     CauchyError(double sigma) : m_sigma(sigma) {}
@@ -639,7 +643,7 @@ namespace camera {
 
       //      std::cout << "new: " << norm_2(new_epsilon) << "  " << norm_2(epsilon) << "\n";
 
-      if (norm_2(new_epsilon) < norm_2(epsilon))  {
+      if (norm_2(sigma*new_epsilon) < norm_2(sigma*epsilon))  {
         
         // If the error has been improved, we save the delta and
         // divide lambda by 10.
@@ -650,8 +654,8 @@ namespace camera {
         m_lambda /= 10;
         
         // Summarize the stats from this step in the iteration
-        double overall_norm = norm_2(new_epsilon);
-        double overall_delta = norm_2(epsilon) - norm_2(new_epsilon);
+        double overall_norm = norm_2(sigma*new_epsilon);
+        double overall_delta = norm_2(sigma*epsilon) - norm_2(sigma*new_epsilon);
         std::cout << "Reference LM Iteration " << m_iterations << ":     "
                   << "  Overall: " << overall_norm << "  delta: " << overall_delta << "  lambda: " << m_lambda << "\t";
 
