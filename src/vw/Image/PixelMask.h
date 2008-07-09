@@ -41,6 +41,7 @@
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Image/PixelMath.h>
 #include <vw/Image/PixelAccessors.h>
+#include <vw/Image/PerPixelViews.h>
 #include <vw/Math/Vector.h>
 
 namespace vw {
@@ -642,178 +643,98 @@ namespace vw {
   VW_PIXEL_MASK_MATH_BINARY_SP_FUNCTION(operator /, vw::ValArgQuotientFunctor)
   VW_PIXEL_MASK_MATH_BINARY_IS_FUNCTION(operator /=, vw::ArgValInPlaceQuotientFunctor)
 
-  // *******************************************************************
-  /// MaskView
+
+ // *******************************************************************
+  /// create_mask( view, value )
   ///
   /// Given a view with pixels of type PixelT and a pixel value to
   /// consider as the "no data" or masked value, returns a view with
   /// pixels that are of the PixelMask<PixelT>, with the appropriate
   /// pixels masked.
   ///
-  template <class ViewT>
-  class CreatePixelMaskView : public ImageViewBase<CreatePixelMaskView<ViewT> > {
-    ViewT m_view;
-    typename ViewT::pixel_type m_nodata_value;
-    bool m_use_nodata_value;
-
+  template <class PixelT>
+  class CreatePixelMask : public ReturnFixedType<PixelMask<PixelT> > {
+    PixelT m_nodata_value;
   public:
-    typedef typename MaskedPixelType<typename ViewT::pixel_type>::type pixel_type;
-    typedef typename MaskedPixelType<typename ViewT::pixel_type>::type const result_type;
-    typedef ProceduralPixelAccessor<CreatePixelMaskView> pixel_accessor;
-
-    CreatePixelMaskView( ViewT const& view ) 
-      : m_view(view), m_use_nodata_value(false) {}
-
-    CreatePixelMaskView( ViewT const& view, typename ViewT::pixel_type const& nodata_value) 
-      : m_view(view), m_use_nodata_value(true) {}
-
-    void set_nodata_value( typename ViewT::pixel_type value ) {
-      m_nodata_value = value;
-      m_use_nodata_value = true;
-    }
-
-    inline int32 cols() const { return m_view.cols(); }
-    inline int32 rows() const { return m_view.rows(); }
-    inline int32 planes() const { return m_view.planes(); }
-
-    inline pixel_accessor origin() const { return pixel_accessor( *this ); }
-
-    inline result_type operator()( int32 col, int32 row, int32 plane=0 ) const { 
-      if (m_use_nodata_value && m_view(col,row,plane) == m_nodata_value) {
-        pixel_type result = m_view(col,row,plane);
-        result.invalidate();
-        return result;
-      } else {
-        return m_view(col,row,plane);
-      }
-    }
-    
-    typedef CreatePixelMaskView prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i /*bbox*/ ) const { return *this; }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
-      vw::rasterize( prerasterize(bbox), dest, bbox );
+    CreatePixelMask( PixelT const& nodata_value ) : m_nodata_value(nodata_value) {}
+    PixelMask<PixelT> operator()( PixelT const& value ) const {
+      return (value==m_nodata_value) ? PixelMask<PixelT>() : PixelMask<PixelT>(value);
     }
   };
 
   template <class ViewT>
-  struct IsMultiplyAccessible<CreatePixelMaskView<ViewT> > : public true_type {};
-
-  template <class ViewT>
-  CreatePixelMaskView<ViewT> create_mask( ImageViewBase<ViewT> const& view, typename ViewT::pixel_type const& value) {
-    CreatePixelMaskView<ViewT> pm_view( view.impl(), value );
-    pm_view.set_nodata_value(value);
-    return pm_view;
+  UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> >
+  create_mask( ImageViewBase<ViewT> const& view,
+               typename ViewT::pixel_type const& value = typename ViewT::pixel_type() ) {
+    return per_pixel_filter( view, CreatePixelMask<typename ViewT::pixel_type>(value) );
   }
 
+  // Indicate that create_mask is "reasonably fast" and should never
+  // induce an extra rasterization step during prerasterization.
   template <class ViewT>
-  CreatePixelMaskView<ViewT> create_mask( ImageViewBase<ViewT> const& view) {
-    return CreatePixelMaskView<ViewT>( view.impl() );
-  }
+  struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,CreatePixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type> > >
+    : public IsMultiplyAccessible<ViewT> {};
 
   // *******************************************************************
-  /// ApplyPixelMaskView
+  /// apply_mask( view, value )
   ///
   /// Given a view with pixels of the type PixelMask<T>, this view
   /// returns an image with pixels of type T where any pixel that was
   /// marked as "invalid" in the mask is replaced with the constant
-  /// pixel value passed in as replacement_value.  The
-  /// replacement_value is T() by default.
+  /// pixel value passed in as value.  The value is T() by default.
   ///
-  template <class ViewT>
-  class ApplyPixelMaskView : public ImageViewBase<ApplyPixelMaskView<ViewT> > {
-    ViewT m_view;
-    typename UnmaskedPixelType<typename ViewT::pixel_type>::type m_replacement_value;
-
+  template <class PixelT>
+  class ApplyPixelMask : public ReturnFixedType<PixelT const&> {
+    PixelT m_nodata_value;
   public:
-    typedef typename UnmaskedPixelType<typename ViewT::pixel_type>::type pixel_type;
-    typedef typename UnmaskedPixelType<typename ViewT::pixel_type>::type const result_type;
-    typedef ProceduralPixelAccessor<ApplyPixelMaskView> pixel_accessor;
-
-    ApplyPixelMaskView( ViewT const& view, pixel_type replacement_value = pixel_type() ) : m_view(view) {}
-
-    inline int32 cols() const { return m_view.cols(); }
-    inline int32 rows() const { return m_view.rows(); }
-    inline int32 planes() const { return m_view.planes(); }
-
-    inline pixel_accessor origin() const { return pixel_accessor( *this ); }
-
-    inline result_type operator()( int32 col, int32 row, int32 plane=0 ) const { 
-      typename ViewT::pixel_type const& px = m_view(col,row,plane);
-      if ( !is_transparent(px) ) {
-        return px.child();
-      } else {
-        return m_replacement_value;
-      }
-    }
-
-    typedef ApplyPixelMaskView prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i /*bbox*/ ) const { return *this; }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
-      vw::rasterize( prerasterize(bbox), dest, bbox );
+    ApplyPixelMask( PixelT const& nodata_value ) : m_nodata_value(nodata_value) {}
+    PixelT const& operator()( PixelMask<PixelT> const& value ) const {
+      return value.valid() ? value.child() : m_nodata_value;
     }
   };
 
   template <class ViewT>
-  struct IsMultiplyAccessible<ApplyPixelMaskView<ViewT> > : public true_type {};
-
-  template <class ViewT>
-  ApplyPixelMaskView<ViewT> apply_mask( ImageViewBase<ViewT> const& view, 
-                                        typename UnmaskedPixelType<typename ViewT::pixel_type>::type const& value = 
-                                        typename UnmaskedPixelType<typename ViewT::pixel_type>::type() ) {
-    return ApplyPixelMaskView<ViewT>( view.impl(), value );
+  UnaryPerPixelView<ViewT,ApplyPixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type> >
+  apply_mask( ImageViewBase<ViewT> const& view, 
+              typename UnmaskedPixelType<typename ViewT::pixel_type>::type const& value = 
+              typename UnmaskedPixelType<typename ViewT::pixel_type>::type() ) {
+    return per_pixel_filter( view, ApplyPixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type>(value) );
   }
+
+  // Indicate that apply_mask is "reasonably fast" and should never
+  // induce an extra rasterization step during prerasterization.
+  template <class ViewT>
+  struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,ApplyPixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type> > >
+    : public IsMultiplyAccessible<ViewT> {};
 
   // *******************************************************************
-  /// CopyMaskView
+  /// copy_mask(view, mask)
   ///
-  /// Copies a Mask from one image to another.  
+  /// Copies a mask from one image to another.  
   ///
-  template <class ViewT, class MaskViewT>
-  class CopyPixelMaskView : public ImageViewBase<CopyPixelMaskView<ViewT, MaskViewT> > {
-    ViewT m_view;
-    MaskViewT m_mask_view;
-
+  template <class PixelT>
+  class CopyPixelMask : public ReturnFixedType<typename MaskedPixelType<PixelT>::type> {
   public:
-    typedef typename MaskedPixelType<typename ViewT::pixel_type>::type pixel_type;
-    typedef typename MaskedPixelType<typename ViewT::pixel_type>::type const result_type;
-    typedef ProceduralPixelAccessor<CopyPixelMaskView> pixel_accessor;
-
-    CopyPixelMaskView( ViewT const& view, MaskViewT const& mask_view ) 
-      : m_view(view), m_mask_view(mask_view) {
-      VW_ASSERT( view.cols() == mask_view.cols() && view.rows() == mask_view.rows(),
-                 ArgumentErr() << "CopyPixelMaskView: image and mask do not have the same dimensions." );
-    }
-
-    inline int32 cols() const { return m_view.cols(); }
-    inline int32 rows() const { return m_view.rows(); }
-    inline int32 planes() const { return m_view.planes(); }
-
-    inline pixel_accessor origin() const { return pixel_accessor( *this ); }
-
-    inline result_type operator()( int32 col, int32 row, int32 plane=0 ) const { 
-      if ( is_transparent(m_mask_view(col,row,plane)) ) {
-        pixel_type result = m_view(col,row,plane);
-        result.invalidate();
-        return result;
-      } else {
-        return m_view(col,row,plane);
-      }
-    }
-    
-    typedef CopyPixelMaskView prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i /*bbox*/ ) const { return *this; }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
-      vw::rasterize( prerasterize(bbox), dest, bbox );
+    template <class MaskPixelT>
+    typename MaskedPixelType<PixelT>::type operator()( PixelT const& value, MaskPixelT const& mask ) const {
+      typename MaskedPixelType<PixelT>::type result = value;
+      if (is_transparent(mask)) result.invalidate();
+      return result;
     }
   };
 
   template <class ViewT, class MaskViewT>
-  struct IsMultiplyAccessible<CopyPixelMaskView<ViewT,MaskViewT> > : public true_type {};
-
-  template <class ViewT, class MaskViewT>
-  CopyPixelMaskView<ViewT, MaskViewT> copy_mask( ImageViewBase<ViewT> const& view, ImageViewBase<MaskViewT> const& mask_view) {
-    return CopyPixelMaskView<ViewT, MaskViewT>( view.impl(), mask_view.impl() );
+  BinaryPerPixelView<ViewT,MaskViewT,ApplyPixelMask<typename ViewT::pixel_type> >
+  copy_mask( ImageViewBase<ViewT> const& view,
+             ImageViewBase<MaskViewT> const& mask_view ) {
+    return per_pixel_filter( view, mask_view, CopyPixelMask<typename ViewT::pixel_type>() );
   }
+
+  // Indicate that copy_mask is "reasonably fast" and should never
+  // induce an extra rasterization step during prerasterization.
+  template <class ViewT, class MaskViewT>
+  struct IsMultiplyAccessible<BinaryPerPixelView<ViewT,MaskViewT,CopyPixelMask<typename ViewT::pixel_type> > >
+    : public boost::mpl::and_<IsMultiplyAccessible<ViewT>,IsMultiplyAccessible<MaskViewT> >::type {};
 
 }
 
