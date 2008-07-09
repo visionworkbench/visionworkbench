@@ -177,11 +177,56 @@ public:
     TS_ASSERT_DIFFERS( &im1(1,1), &im2(1,1) );
   }
 
-  void testDefaultRasterization()
+  void testDefaultRasterization1()
   {
     ImageView<double> im1(2,2); im1(0,0)=1; im1(1,0)=2; im1(0,1)=3; im1(1,1)=4;
     ImageView<double> im2(2,2);
     TS_ASSERT_THROWS_NOTHING( vw::rasterize( im1, im2, BBox2i(0,0,2,2) ) );
+    TS_ASSERT_EQUALS( im1(0,0), im2(0,0) );
+    TS_ASSERT_EQUALS( im1(1,0), im2(1,0) );
+    TS_ASSERT_EQUALS( im1(0,1), im2(0,1) );
+    TS_ASSERT_EQUALS( im1(1,1), im2(1,1) );
+    TS_ASSERT_DIFFERS( &im1(0,0), &im2(0,0) );
+    TS_ASSERT_DIFFERS( &im1(1,0), &im2(1,0) );
+    TS_ASSERT_DIFFERS( &im1(0,1), &im2(0,1) );
+    TS_ASSERT_DIFFERS( &im1(1,1), &im2(1,1) );
+  }
+
+  void testDefaultRasterization2()
+  {
+    ImageView<double> im1(2,2); im1(0,0)=1; im1(1,0)=2; im1(0,1)=3; im1(1,1)=4;
+    ImageView<double> im2(2,2);
+    TS_ASSERT_THROWS_NOTHING( vw::rasterize( im1, im2 ) );
+    TS_ASSERT_EQUALS( im1(0,0), im2(0,0) );
+    TS_ASSERT_EQUALS( im1(1,0), im2(1,0) );
+    TS_ASSERT_EQUALS( im1(0,1), im2(0,1) );
+    TS_ASSERT_EQUALS( im1(1,1), im2(1,1) );
+    TS_ASSERT_DIFFERS( &im1(0,0), &im2(0,0) );
+    TS_ASSERT_DIFFERS( &im1(1,0), &im2(1,0) );
+    TS_ASSERT_DIFFERS( &im1(0,1), &im2(0,1) );
+    TS_ASSERT_DIFFERS( &im1(1,1), &im2(1,1) );
+  }
+
+  void testDefaultRasterization3()
+  {
+    ImageView<double> im1(2,2); im1(0,0)=1; im1(1,0)=2; im1(0,1)=3; im1(1,1)=4;
+    ImageView<double> im2;
+    TS_ASSERT_THROWS_NOTHING( vw::rasterize( im1, im2, BBox2i(0,0,2,2) ) );
+    TS_ASSERT_EQUALS( im1(0,0), im2(0,0) );
+    TS_ASSERT_EQUALS( im1(1,0), im2(1,0) );
+    TS_ASSERT_EQUALS( im1(0,1), im2(0,1) );
+    TS_ASSERT_EQUALS( im1(1,1), im2(1,1) );
+    TS_ASSERT_DIFFERS( &im1(0,0), &im2(0,0) );
+    TS_ASSERT_DIFFERS( &im1(1,0), &im2(1,0) );
+    TS_ASSERT_DIFFERS( &im1(0,1), &im2(0,1) );
+    TS_ASSERT_DIFFERS( &im1(1,1), &im2(1,1) );
+  }
+
+  void testDefaultRasterization4()
+  {
+    ImageView<double> im1(2,2); im1(0,0)=1; im1(1,0)=2; im1(0,1)=3; im1(1,1)=4;
+    ImageView<double> im2;
+    TS_ASSERT_THROWS_NOTHING( vw::rasterize( im1, im2 ) );
     TS_ASSERT_EQUALS( im1(0,0), im2(0,0) );
     TS_ASSERT_EQUALS( im1(1,0), im2(1,0) );
     TS_ASSERT_EQUALS( im1(0,1), im2(0,1) );

@@ -224,6 +224,7 @@ namespace vw {
   template <class SrcT, class DestT>
   typename boost::enable_if<IsResizable<DestT>, void>::type
   inline rasterize( SrcT const& src, DestT& dest ) {
+    dest.set_size( src.cols(), src.rows(), src.planes() );
     rasterize( src, const_cast<DestT const&>(dest), BBox2i(0,0,src.cols(),src.rows()) );
   }
 
