@@ -70,10 +70,9 @@ namespace camera {
     
     // Approximate the jacobian for small variations in the a_j
     // parameters (camera parameters). 
-    virtual Matrix<double, 2, CameraParamsN> A_jacobian ( unsigned i, unsigned j,
+    inline Matrix<double, 2, CameraParamsN> A_jacobian ( unsigned i, unsigned j,
                                                          Vector<double, CameraParamsN> const& a_j, 
-                                                          Vector<double, PointParamsN> const& b_i,
-                                                          double delta = 1e-7) {
+                                                         Vector<double, PointParamsN> const& b_i ) {
       // Get nominal function value
       Vector2 h0 = impl()(i,j,a_j,b_i);
 
@@ -86,7 +85,7 @@ namespace camera {
         Vector<double, CameraParamsN> a_j_prime = a_j;
 
         // Variable step size, depending on parameter value
-        double epsilon = delta + fabs(a_j(i)*delta);
+        double epsilon = 1e-7 + fabs(a_j(i)*1e-7);
         a_j_prime(i) += epsilon;
 
         // Evaluate function with this step and compute the derivative
@@ -99,10 +98,9 @@ namespace camera {
 
     // Approximate the jacobian for small variations in the b_i
     // parameters (3d point locations). 
-    virtual Matrix<double, 2, PointParamsN> B_jacobian ( unsigned i, unsigned j,
-                                                         Vector<double, CameraParamsN> const& a_j, 
-                                                         Vector<double, PointParamsN> const& b_i, 
-                                                         double delta = 1e-7) {
+    inline Matrix<double, 2, PointParamsN> B_jacobian ( unsigned i, unsigned j,
+                                                        Vector<double, CameraParamsN> const& a_j, 
+                                                        Vector<double, PointParamsN> const& b_i ) {
       // Get nominal function value
       Vector2 h0 = impl()(i,j,a_j, b_i);
 
@@ -115,7 +113,7 @@ namespace camera {
         Vector<double, PointParamsN> b_i_prime = b_i;
 
         // Variable step size, depending on parameter value
-        double epsilon = delta + fabs(b_i(i)*delta);
+        double epsilon = 1e-7 + fabs(b_i(i)*1e-7);
         b_i_prime(i) += epsilon;
 
         // Evaluate function with this step and compute the derivative
@@ -302,7 +300,7 @@ namespace camera {
     const std::vector<uint32>& skyline = A.skyline();
     std::vector<uint32> inverse_skyline(skyline.size());
     
-    // Construct the inverse skyline matrix, which is used to optimize the final
+    // Construct the inverse skyline, which is used to optimize the final
     // back substitution step below.
     for (unsigned j = 0; j < inverse_skyline.size(); ++j) {
       inverse_skyline[j] = 0;
@@ -368,11 +366,12 @@ namespace camera {
   };
 
   struct L1Error { 
-    double operator() (double delta_norm) { return abs(delta_norm); }
+    double operator() (double delta_norm) { return fabs(delta_norm); }
   };
 
-  struct L2Error {
-    double operator() (double delta_norm) { return delta_norm*delta_norm; }
+
+ struct L2Error { 
+   double operator() (double delta_norm) { return delta_norm*delta_norm; }
   };
 
   struct CauchyError { 
@@ -395,6 +394,8 @@ namespace camera {
     ControlNetwork m_control_net;
     BundleAdjustModelT &m_model;
     double m_lambda;
+    double m_lambda_low;
+    unsigned m_is;
     int m_iterations;
     RobustCostT m_robust_cost_func;
     
@@ -407,9 +408,11 @@ namespace camera {
 
       m_iterations = 0;
 
-      // Set an initial value for lambda.  This value varies as the
-      // algorithm converges.
+      // Set an initial value for lambda, lambda_low, and is.  These values vary as the
+      // algorithm proceeds.
       m_lambda = 1e-3;
+      m_lambda_low = 0.25;
+      m_is = 0;
 
       // Compute the initial error
 
@@ -461,12 +464,15 @@ namespace camera {
       }
 
       // Summarize the stats from this step in the iteration
-      double overall_norm = norm_2(epsilon);
+      double overall_norm = transpose(epsilon) *  epsilon;
       std::cout << "LM Initialization             "
-                << "  Overall: " << overall_norm << "  lambda: " << m_lambda << "\n";
+                << "  Overall squared error: " << overall_norm << "  lambda: " << m_lambda << "\n";
     }
   
     void set_lambda(double lambda) { m_lambda = lambda; }
+    void set_lambda_low(double lambda_low) { m_lambda_low = lambda_low; }
+    void set_is(unsigned is) { m_is = is; }
+
     int iterations() const { return m_iterations; }
     //----------------------------------------------------------------
 
@@ -484,6 +490,12 @@ namespace camera {
     // pixel coordinates where that point was imaged.
     double update_reference_impl(double &abs_tol, double &rel_tol) { 
       ++m_iterations;
+
+      // Fletcher LM parameteres
+      double rho_low = .25;
+      double rho_high = .75;
+    
+    
 
       // Here are some useful variable declarations that make the code
       // below more readable.
@@ -593,8 +605,9 @@ namespace camera {
       // ... and the left side.  (Remembering to rescale the diagonal
       // entries of the approximated hessian by lambda)
       Matrix<double> hessian = transpose(J) * sigma * J;
+      Matrix<double> hessian_old = hessian;
       for ( unsigned i=0; i < hessian.rows(); ++i )
-        hessian(i,i) += hessian(i,i)*m_lambda;
+        hessian(i,i) *= (1 + m_lambda);
 
       // Solve for update
       Vector<double> delta = least_squares(hessian, del_J);
@@ -643,209 +656,145 @@ namespace camera {
 
       //      std::cout << "new: " << norm_2(new_epsilon) << "  " << norm_2(epsilon) << "\n";
 
-      if (norm_2(sigma*new_epsilon) < norm_2(sigma*epsilon))  {
-        
-        // If the error has been improved, we save the delta and
-        // divide lambda by 10.
-        for (unsigned j=0; j<m_model.num_cameras(); ++j) 
+      //if (norm_2(new_epsilon) < norm_2(epsilon))  {
+      
+
+      //Fletcher modification
+      double Splus = transpose(new_epsilon) * sigma * new_epsilon; //Compute new objective
+      double S = transpose(epsilon) * sigma * epsilon;            //Compute old objective
+      //double dS = -transpose(delta) * ( transpose(J) * sigma * (2* epsilon + J * delta)); // Compute predicted improvement
+      double dS = transpose(delta) * (2 * del_J - hessian_old * delta);
+
+      double R = (S - Splus)/dS; // Compute ratio
+      double nu;
+      
+      
+      if (R > rho_high) {
+	m_lambda /= 10;
+/* 	if (m_lambda < m_lambda_low) */
+/* 	  m_lambda = 0; */
+      }
+      else if (R < rho_low){
+	nu = (Splus - S)/(-transpose(delta) * transpose(J) * sigma * epsilon) + 2;
+	if (nu > 10)
+	  nu = 10;
+	if (nu < 2)
+	  nu = 2;
+/* 	if (m_lambda == 0){ */
+	  
+/* 	  Matrix<double> hessianInverse = pseudoinverse(hessian_old); // compute pseudoinverse */
+/* 	  double max = 0.0; */
+/* 	  for ( unsigned i=0; i < hessianInverse.rows(); ++i ) */
+/* 	    if (fabs(hessianInverse(i,i)) > max) */
+/* 	      max = fabs(hessianInverse(i,i)); */
+	  
+/* 	  // set both lambda and lower bound to new value */
+/* 	  m_lambda = 1/max; */
+/* 	  m_lambda_low = 1/max; */
+
+/* 	  nu = nu/2; */
+/* 	} */
+	m_lambda = nu*m_lambda;
+	if (R < 0)
+	  m_lambda = 10*m_lambda;
+      }
+      
+      unsigned ret = 0;
+      
+     /*  if((Splus > S)&&(m_is ==0)){ */
+/* 	m_is = 1; */
+/*       } */
+      
+      
+      if(Splus < S){
+	ret = 1;
+	for (unsigned j=0; j<m_model.num_cameras(); ++j) 
           m_model.set_A_parameters(j, m_model.A_parameters(j) - subvector(delta, num_cam_params*j, num_cam_params));
         for (unsigned i=0; i<m_model.num_points(); ++i)
           m_model.set_B_parameters(i, m_model.B_parameters(i) - subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params));
-        m_lambda /= 10;
-        
-        // Summarize the stats from this step in the iteration
-        double overall_norm = norm_2(sigma*new_epsilon);
-        double overall_delta = norm_2(sigma*epsilon) - norm_2(sigma*new_epsilon);
-        std::cout << "Reference LM Iteration " << m_iterations << ":     "
-                  << "  Overall: " << overall_norm << "  delta: " << overall_delta << "  lambda: " << m_lambda << "\t";
-
+	
+	// Summarize the stats from this step in the iteration
+        //double overall_norm = norm_2(new_epsilon);
+        double overall_norm = sqrt(transpose(new_epsilon) * sigma * new_epsilon);
+	
+	//double overall_delta = norm_2(epsilon) - norm_2(new_epsilon);
+        double overall_delta = sqrt(transpose(epsilon) * sigma * epsilon) - sqrt(transpose(new_epsilon) * sigma * new_epsilon); 
+	
+	std::cout <<"\n" << "Reference LM Iteration " << m_iterations << ":     "
+                  << "  Overall Modified: " << overall_norm << "  delta: " << overall_delta << "  lambda: " << m_lambda << "\t" << "   Ratio:  " << R << "  lambda_low:  " << m_lambda_low << " is:  " << m_is;  
+	
         // Give the bundle adjustment a model to report the error for
         // this iteration in a manner of its choosing.
         m_model.report_error();
-
+	
         abs_tol = overall_norm;
-        rel_tol = overall_delta;
-        return overall_delta;
-
-      } else {
-
-        // Otherwise, we increase lambda and try again.
-        m_lambda *= 10;
-        return ScalarTypeLimits<double>::highest();
-
+        rel_tol = overall_delta;	
       }
+     /*  if(Splus < S) */
+/* 	m_is = 0; */
+      
+      else{
+	double overall_delta = sqrt(transpose(epsilon) * sigma * epsilon) - sqrt(transpose(new_epsilon) * sigma * new_epsilon); 
+	std::cout <<"\n" << "Reference LM Iteration " << m_iterations << ":     "
+		  << "  \t   "  << "  delta  "<< overall_delta << "  lambda: " << m_lambda << "\t" << "   Ratio:  " << R << "  lambda_low:  " << m_lambda_low << " is:  " << m_is; 
+	
+      }
+      
+      if (ret){
+	double overall_delta = sqrt(transpose(epsilon) * sigma * epsilon) - sqrt(transpose(new_epsilon) * sigma * new_epsilon); 
+	return overall_delta;
+      }
+      else
+	return ScalarTypeLimits<double>::highest();
+      
+      
+
+      /* if (transpose(new_epsilon) * sigma * new_epsilon < transpose(epsilon) * sigma * epsilon){ */
+
+ 
+/*         // If the error has been improved, we save the delta and */
+/*         // divide lambda by 10. */
+/*         for (unsigned j=0; j<m_model.num_cameras(); ++j)  */
+/*           m_model.set_A_parameters(j, m_model.A_parameters(j) - subvector(delta, num_cam_params*j, num_cam_params)); */
+/*         for (unsigned i=0; i<m_model.num_points(); ++i) */
+/*           m_model.set_B_parameters(i, m_model.B_parameters(i) - subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params)); */
+/*         m_lambda /= 10; */
+        
+/*         // Summarize the stats from this step in the iteration */
+/*         //double overall_norm = norm_2(new_epsilon); */
+/*         double overall_norm = sqrt(transpose(new_epsilon) * sigma * new_epsilon); */
+	
+/* 	//double overall_delta = norm_2(epsilon) - norm_2(new_epsilon); */
+/*         double overall_delta = sqrt(transpose(epsilon) * sigma * epsilon) - sqrt(transpose(new_epsilon) * sigma * new_epsilon);  */
+
+/* 	std::cout << "Reference LM Iteration " << m_iterations << ":     " */
+/*                   << "  Overall Modified: " << overall_norm << "  delta: " << overall_delta << "  lambda: " << m_lambda << "\t"; */
+
+/*         // Give the bundle adjustment a model to report the error for */
+/*         // this iteration in a manner of its choosing. */
+/*         m_model.report_error(); */
+
+/*         abs_tol = overall_norm; */
+/*         rel_tol = overall_delta; */
+/*         return overall_delta; */
+
+/*       } else { */
+
+/*         // Otherwise, we increase lambda and try again. */
+/*         m_lambda *= 10; */
+/*         return ScalarTypeLimits<double>::highest(); */
+
+/*       } */
+    
+
     }
 
 
-    // This is a simple, non-sparse, unoptimized implementation of LM
-    // bundle adjustment.  It is primarily used for validation and
-    // debugging.
-    //
-    // Each entry in the outer vector corresponds to a distinct 3D
-    // point.  The inner vector contains a list of image IDs and
-    // pixel coordinates where that point was imaged.
-    double update_reference_impl2(double &abs_tol, double &rel_tol) { 
-      ++m_iterations;
+      /////////////////////////////////////////////////////////////
+     /////                 SPARSE LM IMPLEMENTATION    ///////////
+    /////////////////////////////////////////////////////////////
 
-      // Here are some useful variable declarations that make the code
-      // below more readable.
-      unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
-      unsigned num_pt_params = BundleAdjustModelT::point_params_n;
-      unsigned num_model_parameters = m_model.num_cameras()*num_cam_params + m_model.num_points()*num_pt_params;
-
-      unsigned num_cameras = m_model.num_cameras();
-      unsigned num_ground_control_points = m_control_net.num_ground_control_points();
-      unsigned num_observations = 2*m_model.num_pixel_observations();
-
-      // The core LM matrices and vectors
-      Matrix<double> J(num_observations, num_model_parameters);   // Jacobian Matrix
-      Vector<double> epsilon(num_observations);                   
-      Vector<double> old_epsilon(num_observations + num_cam_params * num_cameras);                   
-      Matrix<double> sigma(num_observations, num_observations);   // Sigma (uncertainty) matrix
-
-      // --- SETUP STEP ----
-      // Add rows to J and epsilon for the imaged pixel observations
-      int idx = 0;
-      for (unsigned i = 0; i < m_control_net.size(); ++i) {       // Iterate over control points
-        for (unsigned m = 0; m < m_control_net[i].size(); ++m) {  // Iterate over control measures
-          int camera_idx = m_control_net[i][m].image_id();
-
-          Matrix<double> J_a = m_model.A_jacobian(i,camera_idx, 
-                                                  m_model.A_parameters(camera_idx), 
-                                                  m_model.B_parameters(i));
-          Matrix<double> J_b = m_model.B_jacobian(i,camera_idx, 
-                                                  m_model.A_parameters(camera_idx), 
-                                                  m_model.B_parameters(i));
-
-          // Populate the Jacobian Matrix
-          submatrix(J, 2*idx, num_cam_params*camera_idx, 2, num_cam_params) = J_a;
-          submatrix(J, 2*idx, num_cam_params*num_cameras + i*num_pt_params, 2, num_pt_params) = J_b;
-
-          // Apply robust cost function weighting and populate the error vector
-          Vector2 unweighted_error = m_control_net[i][m].position() - m_model(i, camera_idx, 
-                                                                              m_model.A_parameters(camera_idx), 
-                                                                              m_model.B_parameters(i));
-          double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
-          subvector(epsilon,2*idx,2) = unweighted_error * weight;
-          subvector(old_epsilon,2*idx,2) = unweighted_error * weight;
-
-          // Fill in the entries of the sigma matrix with the uncertainty of the observations.
-          Matrix2x2 inverse_cov;
-          Vector2 pixel_sigma = m_control_net[i][m].sigma();
-          inverse_cov(0,0) = 1/pixel_sigma(0);
-          inverse_cov(1,1) = 1/pixel_sigma(1);
-          submatrix(sigma, 2*idx, 2*idx, 2, 2) = inverse_cov;
-
-          ++idx;
-        }
-      }
-      
-      // Add rows to J and epsilon for a priori camera parameters...
-      Vector<double> z(num_cam_params*num_cameras+num_pt_params*m_model.num_points());
-      Matrix<double> sigma_z(num_cam_params*num_cameras+num_pt_params*m_model.num_points(), 
-                             num_cam_params*num_cameras+num_pt_params*m_model.num_points());
-      for (unsigned j=0; j < num_cameras; ++j) {
-        Matrix<double> id(num_cam_params, num_cam_params);
-        id.set_identity();
-
-        Vector<double> unweighted_error = m_model.A_initial(j)-m_model.A_parameters(j);
-        subvector(z,
-                  j*num_cam_params,
-                  num_cam_params) = unweighted_error;
-        subvector(old_epsilon,
-                  2*m_model.num_pixel_observations()+j*num_cam_params,
-                  num_cam_params) = unweighted_error;
-        submatrix(sigma_z,
-                  j*num_cam_params,
-                  j*num_cam_params,
-                  num_cam_params, num_cam_params) = m_model.A_inverse_covariance(j);
-      }
-
-      // For debugging:
-      //       std::cout << "J: " << J << "\n\n";
-      //       std::cout << "epsilon: " << epsilon << "\n\n";
-      //       std::cout << "sigma: " << sigma << "\n\n";
-      //       exit(0);
-      
-      // --- UPDATE STEP ----
-
-      // Build up the right side of the normal equation...
-      Vector<double> del_J = -1.0 * (transpose(J) * sigma * epsilon + sigma_z * z);
-
-      // ... and the left side.  (Remembering to rescale the diagonal
-      // entries of the approximated hessian by lambda)
-      Matrix<double> hessian = transpose(J) * sigma * J + sigma_z;
-      for ( unsigned i=0; i < hessian.rows(); ++i )
-        hessian(i,i) += hessian(i,i)*m_lambda;
-
-      // Solve for update
-      Vector<double> delta = least_squares(hessian, del_J);
-
-      // --- EVALUATE UPDATE STEP ---
-      Vector<double> new_epsilon(num_observations + num_cam_params * num_cameras);                   // Error vector
-
-      idx = 0;
-      for (unsigned i = 0; i < m_control_net.size(); ++i) {       // Iterate over control points
-        for (unsigned m = 0; m < m_control_net[i].size(); ++m) {  // Iterate over control measures
-          int camera_idx = m_control_net[i][m].image_id();
-
-          Vector<double> cam_delta = subvector(delta, num_cam_params*camera_idx, num_cam_params);
-          Vector<double> pt_delta = subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params);
-
-          // Apply robust cost function weighting and populate the error vector
-          Vector2 unweighted_error = m_control_net[i][m].position() - m_model(i, camera_idx,
-                                                                              m_model.A_parameters(camera_idx)-cam_delta, 
-                                                                              m_model.B_parameters(i)-pt_delta);
-          double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
-          subvector(new_epsilon,2*idx,2) = unweighted_error * weight;
-
-          ++idx;
-        }
-      }
-
-      // Add rows to J and epsilon for a priori position/pose constraints...
-      for (unsigned j=0; j < num_cameras; ++j) {
-        Vector<double> cam_delta = subvector(delta, num_cam_params*j, num_cam_params);
-        subvector(new_epsilon,
-                  2*m_model.num_pixel_observations() + j*num_cam_params,
-                  num_cam_params) = m_model.A_initial(j)-(m_model.A_parameters(j)-cam_delta);
-      }
-
-      //      std::cout << "new: " << norm_2(new_epsilon) << "  " << norm_2(epsilon) << "\n";
-
-      if (norm_2(new_epsilon) < norm_2(old_epsilon))  {
-        
-        // If the error has been improved, we save the delta and
-        // divide lambda by 10.
-        for (unsigned j=0; j<m_model.num_cameras(); ++j) 
-          m_model.set_A_parameters(j, m_model.A_parameters(j) - subvector(delta, num_cam_params*j, num_cam_params));
-        for (unsigned i=0; i<m_model.num_points(); ++i)
-          m_model.set_B_parameters(i, m_model.B_parameters(i) - subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params));
-        m_lambda /= 10;
-        
-        // Summarize the stats from this step in the iteration
-        double overall_norm = norm_2(new_epsilon);
-        double overall_delta = norm_2(epsilon) - norm_2(new_epsilon);
-        std::cout << "Reference2 LM Iteration " << m_iterations << ":     "
-                  << "  Overall: " << overall_norm << "  delta: " << overall_delta << "  lambda: " << m_lambda << "\t";
-
-        // Give the bundle adjustment a model to report the error for
-        // this iteration in a manner of its choosing.
-        m_model.report_error();
-
-        abs_tol = overall_norm;
-        rel_tol = overall_delta;
-        return overall_delta;
-
-      } else {
-
-        // Otherwise, we increase lambda and try again.
-        m_lambda *= 10;
-        return ScalarTypeLimits<double>::highest();
-
-      }
-    }
-
+    
     // This is the sparse levenberg marquardt update step.  Returns
     // the average improvement in the cost function.
     double update(double &abs_tol, double &rel_tol) { 
@@ -857,26 +806,54 @@ namespace camera {
       boost::numeric::ublas::mapped_matrix<Matrix<double, 2, BundleAdjustModelT::camera_params_n> > A(m_model.num_points(), m_model.num_cameras());
       boost::numeric::ublas::mapped_matrix<Matrix<double, 2, BundleAdjustModelT::point_params_n> > B(m_model.num_points(), m_model.num_cameras());
       boost::numeric::ublas::mapped_matrix<Vector2> epsilon(m_model.num_points(), m_model.num_cameras());
-
+      boost::numeric::ublas::mapped_matrix<Vector2> new_epsilon(m_model.num_points(), m_model.num_cameras());
+      
+      // Data structures necessary for Fletcher modification
+      // boost::numeric::ublas::mapped_matrix<Vector2> Jp(m_model.num_points(), m_model.num_cameras());
+      
+      
+           
       // Intermediate Matrices and vectors
-      boost::numeric::ublas::mapped_vector< Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> > U(m_model.num_cameras()); 
+      boost::numeric::ublas::mapped_vector< Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> > U(m_model.num_cameras());
       boost::numeric::ublas::mapped_vector< Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> > V(m_model.num_points());  
       boost::numeric::ublas::mapped_matrix<Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> > W(m_model.num_points(), m_model.num_cameras());
+     
+     
+      // Copies of Intermediate Marices
+      boost::numeric::ublas::mapped_vector< Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> > U_old(m_model.num_cameras()); 
+      boost::numeric::ublas::mapped_vector< Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> > V_old(m_model.num_points());  
+      boost::numeric::ublas::mapped_matrix<Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> > W_old(m_model.num_points(), m_model.num_cameras());
+
 
       boost::numeric::ublas::mapped_vector< Vector<double,BundleAdjustModelT::camera_params_n> > epsilon_a(m_model.num_cameras());
       boost::numeric::ublas::mapped_vector< Vector<double,BundleAdjustModelT::point_params_n > > epsilon_b(m_model.num_points());
+
+      boost::numeric::ublas::mapped_vector< Vector<double,BundleAdjustModelT::camera_params_n> > Hp_a(m_model.num_cameras());
+      boost::numeric::ublas::mapped_vector< Vector<double,BundleAdjustModelT::point_params_n > > Hp_b(m_model.num_points()); 
+      
+
       boost::numeric::ublas::mapped_matrix<Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> > Y(m_model.num_points(), m_model.num_cameras());
+
+      boost::numeric::ublas::mapped_matrix<Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> > Y_old(m_model.num_points(), m_model.num_cameras());
+      
     
       // Populate the Jacobian, which is broken into two sparse
       // matrices A & B, as well as the error matrix and the W 
       // matrix.
       unsigned i = 0;
-      double error_total = 0;
+      double error_total = 0; // assume this is r^T\Sigma^{-1}r
+       // Fletcher LM parameteres
+      double rho_low = .25;
+      double rho_high = .75;
+
+      double dS; //Predicted improvement for Fletcher modification
+      double nu_mult; //Multiplier necessary for Fletcher lambda calculation
+
       for (typename ControlNetwork::const_iterator iter = m_control_net.begin(); iter != m_control_net.end(); ++iter) {
         for (typename ControlPoint::const_iterator measure_iter = (*iter).begin(); measure_iter != (*iter).end(); ++measure_iter) {
           unsigned j = (*measure_iter).image_id();
           VW_DEBUG_ASSERT(j >=0 && j < m_model.num_cameras(), ArgumentErr() << "BundleAdjustment::update() : image index out of bounds.");
-
+	  
           // Store jacobian values
           A(i,j) = m_model.A_jacobian(i,j,m_model.A_parameters(j),m_model.B_parameters(i));
           B(i,j) = m_model.B_jacobian(i,j,m_model.A_parameters(j),m_model.B_parameters(i));
@@ -885,69 +862,97 @@ namespace camera {
           Vector2 unweighted_error = measure_iter->position() - m_model(i,j,m_model.A_parameters(j),m_model.B_parameters(i));
           double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
           epsilon(i,j) = unweighted_error * weight;
-          error_total += pow(epsilon(i,j).ref()(0),2);
-          error_total += pow(epsilon(i,j).ref()(1),2);
 
-          Matrix2x2 inverse_cov;
+	 	            
+	  Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = measure_iter->sigma();
           inverse_cov(0,0) = 1/pixel_sigma(0);
           inverse_cov(1,1) = 1/pixel_sigma(1);
+	 
+	  // Update r^T\Sigma^{-1}r
+          //error_total += pow(epsilon(i,j).ref()(0),2)/pixel_sigma(0);
+          //error_total += pow(epsilon(i,j).ref()(1),2)/pixel_sigma(1);
 
+	  error_total += transpose(epsilon(i,j).ref()) * inverse_cov * epsilon(i,j).ref();
+          
           // For debugging:
-          //           std::cout << "Pixel " << i << " " << j << "  :  " << "  " << A(i,j).ref() << "  " << B(i,j).ref() << epsilon(i,j).ref() << "  " << inverse_cov << "\n";
+          //           std::cout << "Pixel " << i << " " << j << "  :  " << "  " << A(i,j).ref() << "  " << B(i,j).ref() << epsilon(i,j).ref() << "  " << inverse_cov << "\n";   
 
           // Store intermediate values
           U(j) += transpose(A(i,j).ref()) * inverse_cov * A(i,j).ref();
           V(i) += transpose(B(i,j).ref()) * inverse_cov * B(i,j).ref();
           W(i,j) = transpose(A(i,j).ref()) * inverse_cov * B(i,j).ref();
-          epsilon_a(j) += transpose(A(i,j).ref()) * inverse_cov * epsilon(i,j).ref();
+
+	  epsilon_a(j) += transpose(A(i,j).ref()) * inverse_cov * epsilon(i,j).ref();
           epsilon_b(i) += transpose(B(i,j).ref()) * inverse_cov * epsilon(i,j).ref();
-        }
+
+	 
+	  // Update Jp vector needed for Fletcher modification 
+	  //Jp(i,j) = A(i,j).ref() * epsilon_a(j).ref() + B(i,j).ref() * epsilon_b(i).ref();
+
+	  //dS +=   -1*transpose(Jp(i,j).ref()) * inverse_cov * (2*epsilon(i,j).ref() - Jp(i,j).ref()); 
+	  //nu_mult += transpose(Jp(i,j).ref()) * inverse_cov * epsilon(i,j).ref();
+	}
+	  
         ++i;
       }
+     
       
-      // Add in the camera position and pose constraint terms and covariances.
-      for (unsigned j = 0; j < U.size(); ++j) {        
-        Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> inverse_cov;
-        inverse_cov = m_model.A_inverse_covariance(j);
-
-        Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> C;
-        C.set_identity();
-        U(j) += transpose(C) * inverse_cov * C;
-
-        Vector<double, BundleAdjustModelT::camera_params_n> eps_a = m_model.A_initial(j)-m_model.A_parameters(j);
-        for (unsigned jj=0; jj < BundleAdjustModelT::camera_params_n; ++jj) 
-          error_total += pow(eps_a(jj),2);
-
-        epsilon_a(j) += transpose(C) * inverse_cov * eps_a;
+     /*  // Add in the camera position and pose constraint terms and covariances. */
+/*       for (unsigned j = 0; j < U.size(); ++j) {         */
         
-        // For debugging
-        //        std::cout << "Camera " << j << ":   " << inverse_cov << "    " << eps_a << "\n";
-      }
+/* 	Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> inverse_cov; */
+/*         inverse_cov = m_model.A_inverse_covariance(j); */
 
-      // Add in the 3D point position constraint terms and
-      // covariances. We only add constraints for Ground Control
-      // Points (GCPs), not for 3D tie points.
-      for (unsigned i = 0; i < V.size(); ++i) {
-        if (m_control_net[i].type() == ControlPoint::GroundControlPoint) {
+/*         Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> C; */
+/*         C.set_identity(); */
+/*         U(j) += transpose(C) * inverse_cov * C; */
 
-          Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> inverse_cov;
-          inverse_cov = m_model.B_inverse_covariance(i);
+/*         Vector<double, BundleAdjustModelT::camera_params_n> eps_a = m_model.A_initial(j)-m_model.A_parameters(j); */
+/*         //for (unsigned jj=0; jj < BundleAdjustModelT::camera_params_n; ++jj)  */
+/* 	  // Update objective r^T\Sigma^{-1}r */
+/* 	  //error_total += pow(eps_a(jj),2)*inverse_cov(jj, jj); */
+	
+	
+/* 	error_total += transpose(eps_a) * inverse_cov * eps_a; */
+	
+/* 	epsilon_a(j) += transpose(C) * inverse_cov * eps_a; */
+        
+/*         // For debugging */
+/*         //        std::cout << "Camera " << j << ":   " << inverse_cov << "    " << eps_a << "\n"; */
+/*       } */
+
+/*       // Add in the 3D point position constraint terms and */
+/*       // covariances. We only add constraints for Ground Control */
+/*       // Points (GCPs), not for 3D tie points. */
+/*       for (unsigned i = 0; i < V.size(); ++i) { */
+/*         if (m_control_net[i].type() == ControlPoint::GroundControlPoint) { */
+
+/*           Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> inverse_cov; */
+/*           inverse_cov = m_model.B_inverse_covariance(i); */
           
-          Matrix<double, BundleAdjustModelT::point_params_n, BundleAdjustModelT::point_params_n> D;
-          D.set_identity();
-          V(i) += transpose(D) * inverse_cov * D;
+/*           Matrix<double, BundleAdjustModelT::point_params_n, BundleAdjustModelT::point_params_n> D; */
+/*           D.set_identity(); */
+/*           V(i) += transpose(D) * inverse_cov * D; */
           
-          Vector<double, BundleAdjustModelT::point_params_n> eps_b = m_model.B_initial(i)-m_model.B_parameters(i);
-          for (unsigned ii=0; ii < BundleAdjustModelT::point_params_n; ++ii) 
-            error_total += pow(eps_b(ii),2);
+/*           Vector<double, BundleAdjustModelT::point_params_n> eps_b = m_model.B_initial(i)-m_model.B_parameters(i); */
+/*           //for (unsigned ii=0; ii < BundleAdjustModelT::point_params_n; ++ii)  */
+/* 	  //error_total += pow(eps_b(ii),2)*inverse_cov(ii, ii); */
+	
+	  
+/* 	  error_total += transpose(eps_b) * inverse_cov * eps_b;  */
+	  
+/* 	  epsilon_b(i) += transpose(D) * inverse_cov * eps_b; */
 
-          epsilon_b(i) += transpose(D) * inverse_cov * eps_b;
+/*           // For debugging */
+/*           //          std::cout << "Point " << i << ":   " << inverse_cov << "    " << eps_b << "\n"; */
+/*         } */
+/*       } */
 
-          // For debugging
-          //          std::cout << "Point " << i << ":   " << inverse_cov << "    " << eps_b << "\n";
-        }
-      }
+      
+      U_old = U;
+      V_old = V;
+      W_old = W;
 
       // "Augment" the diagonal entries of the U and V matrices with
       // the parameter lambda.
@@ -977,6 +982,7 @@ namespace camera {
 
           // Compute the blocks of Y
           Y(i,j) = W(i,j).ref() * inverse( V(i).ref() ); 
+	  Y_old(i,j) = W_old(i,j).ref() * pseudoinverse(V_old(i).ref());
           
           // "Flatten the block structure to compute 'e'.
           Vector<double, BundleAdjustModelT::camera_params_n> temp = Y(i,j).ref()*epsilon_b(i).ref();
@@ -1048,26 +1054,161 @@ namespace camera {
       // Compute the LDL^T decomposition and solve using sparse methods.
       Vector<double> delta_a = sparse_solve(S, e);
       boost::numeric::ublas::mapped_vector<Vector<double, BundleAdjustModelT::point_params_n> > delta_b(m_model.num_points());
+      boost::numeric::ublas::mapped_vector<Vector<double, BundleAdjustModelT::camera_params_n> > delta_a_aux(m_model.num_cameras());
 
       i = 0;
       for (typename ControlNetwork::const_iterator iter = m_control_net.begin(); iter != m_control_net.end(); ++iter) {
         Vector<double, BundleAdjustModelT::point_params_n> temp;
         for (typename ControlPoint::const_iterator j_measure_iter = (*iter).begin(); j_measure_iter != (*iter).end(); ++j_measure_iter) {
           unsigned j = j_measure_iter->image_id();
-          Vector<double, BundleAdjustModelT::camera_params_n> delta_a_j = subvector(delta_a, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n);
-          temp += transpose( W(i,j).ref() ) * delta_a_j;
-        }
+          //Vector<double, BundleAdjustModelT::camera_params_n> delta_a_j = subvector(delta_a, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n);
+          delta_a_aux(j) =  subvector(delta_a, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n);
+
+	  temp += transpose( W(i,j).ref() ) * delta_a_aux(j).ref();
+	}
         
         delta_b(i) = inverse( V(i).ref() ) * (epsilon_b(i).ref() - temp);
         //        std::cout << "Delta B: " << delta_b(i).ref() << "\n";
         ++i;
       }
+      
+      //Compute predicted improvement and Jp vector
+
+      
+
+
+
+     /*  //for (typename ControlNetwork::const_iterator iter = m_control_net.begin(); iter != m_control_net.end(); ++iter) { */
+/*       //for (typename ControlPoint::const_iterator measure_iter = (*iter).begin(); measure_iter != (*iter).end(); ++measure_iter) { */
+/*       for (unsigned i = 0; i < V.size(); i++){ */
+/* 	for (unsigned j = 0; j < U.size(); j++){ */
+/* 	  //Vector<double, BundleAdjustModelT::camera_params_n> delta_a_j = subvector(delta_a, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n); */
+	  
+		  
+/* 	  // Update Jp vector needed for Fletcher modification */
+	  
+/* 	  // std::cout << "columns of A(i,j)" << A(i,j).ref().cols() << " size of delta_a_j " << BundleAdjustModelT::camera_params_n << "\n"; */
+	  
+/* 	  //	  std::cout << "columns of B(i,j)" << B(i,j).ref().cols() << " size of delta_b " << BundleAdjustModelT::camera_params_n << "\n"; */
+	  
+/* 	  // JsJp_a */
+	  
+/* 	  JsJp_a(j) += W(i,j).ref() * delta_b(i).ref(); */
+/* 	  JsJp_b(i) += transpose(W(i,j).ref()) * delta_a_aux(j).ref(); */
+	  
+/* 	  if(i == j){ */
+/* 	    JsJp_a(j) += U(j).ref() * delta_a_aux(j).ref(); */
+/* 	    JsJp_b(i) += V(i).ref() * delta_b(i).ref(); */
+/* 	  } */
+	  
+/* 	} */
+	
+/*       } */
+      
+/*       for (unsigned i = 0; i < V.size(); i++){ */
+/* 	dS -= transpose(delta_b(i).ref()) * (2 * epsilon_b(i).ref() + JsJp_b(i).ref()); */
+/* 	nu_mult -= transpose(delta_b(i).ref()) * epsilon_b(i).ref(); */
+/*       } */
+
+/*       for (unsigned j = 0; j < U.size(); j++){ */
+/* 	//Vector<double, BundleAdjustModelT::camera_params_n> delta_a_j = subvector(delta_a, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n); */
+/* 	dS -= transpose(delta_a_aux(j).ref()) * (2 * epsilon_a(j).ref() + JsJp_a(j).ref()); */
+/* 	nu_mult -= transpose(delta_a_aux(j).ref()) * epsilon_a(j).ref(); */
+/*       } */
+      
+
+     /*  i=0; */
+/*       for (typename ControlNetwork::const_iterator iter = m_control_net.begin(); iter != m_control_net.end(); ++iter) { */
+/*         for (typename ControlPoint::const_iterator measure_iter = (*iter).begin(); measure_iter != (*iter).end(); ++measure_iter) { */
+/*           unsigned j = (*measure_iter).image_id(); */
+/*           VW_DEBUG_ASSERT(j >=0 && j < m_model.num_cameras(), ArgumentErr() << "BundleAdjustment::update() : image index out of bounds."); */
+	  
+/*           // Store jacobian values */
+/*           //A(i,j) = m_model.A_jacobian(i,j,m_model.A_parameters(j),m_model.B_parameters(i)); */
+/*           //B(i,j) = m_model.B_jacobian(i,j,m_model.A_parameters(j),m_model.B_parameters(i)); */
+
+/*           // Apply robust cost function weighting */
+/*           //Vector2 unweighted_error = measure_iter->position() - m_model(i,j,m_model.A_parameters(j),m_model.B_parameters(i)); */
+/*           //double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error); */
+/*           //epsilon(i,j) = unweighted_error * weight; */
+
+	 	 	            
+/* 	  Matrix2x2 inverse_cov; */
+/*           Vector2 pixel_sigma = measure_iter->sigma(); */
+/*           inverse_cov(0,0) = 1/pixel_sigma(0); */
+/*           inverse_cov(1,1) = 1/pixel_sigma(1); */
+	 
+/* 	  //error_total += transpose(epsilon(i,j).ref()) * inverse_cov * epsilon(i,j).ref(); */
+/* 	  Jp(i,j) = A(i,j).ref() * delta_a_aux(j).ref() + B(i,j).ref() * delta_b(i).ref(); */
+	  
+/* 	  dS -=  transpose(Jp(i,j).ref()) * inverse_cov * (2 * epsilon(i,j).ref() + Jp(i,j).ref()); */
+/* 	  nu_mult -= transpose(Jp(i,j).ref()) * inverse_cov * epsilon(i,j).ref(); */
+
+/* 	} */
+	  
+/*         ++i; */
+/*       } */
+
+
+
+
+      i=0;
+      for (typename ControlNetwork::const_iterator iter = m_control_net.begin(); iter != m_control_net.end(); ++iter) {
+        for (typename ControlPoint::const_iterator measure_iter = (*iter).begin(); measure_iter != (*iter).end(); ++measure_iter) {
+          unsigned j = (*measure_iter).image_id();
+          VW_DEBUG_ASSERT(j >=0 && j < m_model.num_cameras(), ArgumentErr() << "BundleAdjustment::update() : image index out of bounds.");
+	  
+          // Store jacobian values
+          //A(i,j) = m_model.A_jacobian(i,j,m_model.A_parameters(j),m_model.B_parameters(i));
+          //B(i,j) = m_model.B_jacobian(i,j,m_model.A_parameters(j),m_model.B_parameters(i));
+
+          // Apply robust cost function weighting
+          //Vector2 unweighted_error = measure_iter->position() - m_model(i,j,m_model.A_parameters(j),m_model.B_parameters(i));
+          //double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
+          //epsilon(i,j) = unweighted_error * weight;
+	  
+	  Hp_a(j) += W_old(i,j).ref() * delta_b(i).ref();
+	  Hp_b(i) += transpose(W_old(i,j).ref()) * delta_a_aux(j).ref();
+	 	 	            
+
+	  /*	  dS -=  transpose(Jp(i,j).ref()) * inverse_cov * (2 * epsilon(i,j).ref() + Jp(i,j).ref()); */
+/* 	  nu_mult -= transpose(Jp(i,j).ref()) * inverse_cov * epsilon(i,j).ref(); */
+
+	}
+	  
+        ++i;
+      }
+
+
+      for (unsigned i = 0; i < V.size(); i++){ 
+
+	Hp_b(i) += V_old(i).ref()*delta_b(i).ref();
+	nu_mult += transpose(delta_b(i).ref()) * epsilon_b(i).ref(); 
+	dS += transpose(delta_b(i).ref()) * (2 * epsilon_b(i).ref() - Hp_b(i).ref());
+  
+      }
+
+      for (unsigned j = 0; j < U.size(); j++){ 
+	
+	Hp_a(j) += U_old(j).ref()*delta_a_aux(j).ref();
+	nu_mult += transpose(delta_a_aux(j).ref()) * epsilon_a(j).ref();
+	dS += transpose(delta_a_aux(j).ref()) *(2 * epsilon_a(j).ref() - Hp_a(j).ref());
+	
+      }
+
+
+
+
+
+
+
+
 
       // -------------------------------
       // Compute the update error vector
       // -------------------------------
       i = 0;
-      double new_error_total = 0;
+      double new_error_total = 0; 
       for (typename ControlNetwork::const_iterator iter = m_control_net.begin(); iter != m_control_net.end(); ++iter) {
         for (typename ControlPoint::const_iterator measure_iter = (*iter).begin(); measure_iter != (*iter).end(); ++measure_iter) {
           unsigned j = measure_iter->image_id();
@@ -1079,61 +1220,210 @@ namespace camera {
           // Apply robust cost function weighting
           Vector2 unweighted_error = measure_iter->position() - m_model(i,j,new_a,new_b);
           double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
-          Vector2 weighted_error = weight * unweighted_error;
-          new_error_total += pow(weighted_error(0),2);
-          new_error_total += pow(weighted_error(1),2);
+          new_epsilon(i,j) = weight * unweighted_error;
+          
+	  Matrix2x2 inverse_cov;
+          Vector2 pixel_sigma = measure_iter->sigma();
+          inverse_cov(0,0) = 1/pixel_sigma(0);
+          inverse_cov(1,1) = 1/pixel_sigma(1);
+
+	  //new_error_total += pow(weighted_error(0),2);
+          //new_error_total += pow(weighted_error(1),2);
+	  new_error_total += transpose(new_epsilon(i,j).ref()) * inverse_cov * new_epsilon(i,j).ref();
         }
         ++i;
       }
 
-      for (unsigned j = 0; j < U.size(); ++j) {        
-        Vector<double, BundleAdjustModelT::camera_params_n> new_a = m_model.A_parameters(j) + subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
-        Vector<double, BundleAdjustModelT::camera_params_n> eps_a = m_model.A_initial(j)-new_a;
-        for (unsigned jj=0; jj < BundleAdjustModelT::camera_params_n; ++jj) 
-          new_error_total += pow(eps_a(jj),2);
-      }
+    /*   for (unsigned j = 0; j < U.size(); ++j) {         */
+/*         Vector<double, BundleAdjustModelT::camera_params_n> new_a = m_model.A_parameters(j) + subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n); */
+/*         Vector<double, BundleAdjustModelT::camera_params_n> eps_a = m_model.A_initial(j)-new_a; */
+        
+/* 	Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> inverse_cov; */
+/* 	inverse_cov = m_model.A_inverse_covariance(j); */
+	
 
-      // We only add constraints for Ground Control Points (GCPs), not for 3D tie points.
-      for (unsigned i = 0; i < V.size(); ++i) {
-        if (m_control_net[i].type() == ControlPoint::GroundControlPoint) {
-          Vector<double, BundleAdjustModelT::point_params_n> new_b = m_model.B_parameters(i) + delta_b(i).ref();
-          Vector<double, BundleAdjustModelT::point_params_n> eps_b = m_model.B_initial(i)-new_b;
-          for (unsigned ii=0; ii < BundleAdjustModelT::point_params_n; ++ii) 
-            new_error_total += pow(eps_b(ii),2);
-        }
-      }
+/* 	//for (unsigned jj=0; jj < BundleAdjustModelT::camera_params_n; ++jj)  */
+/* 	//new_error_total += pow(eps_a(jj),2)*inverse_cov(jj, jj); */
+/* 	new_error_total += transpose(eps_a) * inverse_cov * eps_a; */
+/*       } */
+      
+/*       // We only add constraints for Ground Control Points (GCPs), not for 3D tie points. */
+      
 
-      //      std::cout << "new: " << sqrt(new_error_total) << "  " << sqrt(error_total) << "\n";
-      if (new_error_total < error_total)  {
-        for (unsigned j=0; j<m_model.num_cameras(); ++j) 
-          m_model.set_A_parameters(j, m_model.A_parameters(j) + subvector(delta_a, 
-                                                                          BundleAdjustModelT::camera_params_n*j, 
+/*       for (unsigned i = 0; i < V.size(); ++i) { */
+/*         if (m_control_net[i].type() == ControlPoint::GroundControlPoint) { */
+/*           Vector<double, BundleAdjustModelT::point_params_n> new_b = m_model.B_parameters(i) + delta_b(i).ref(); */
+/*           Vector<double, BundleAdjustModelT::point_params_n> eps_b = m_model.B_initial(i)-new_b; */
+	  
+	  
+/* 	  Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> inverse_cov; */
+/*           inverse_cov = m_model.B_inverse_covariance(i); */
+          
+/* 	  //for (unsigned ii=0; ii < BundleAdjustModelT::point_params_n; ++ii)  */
+/* 	  //new_error_total += pow(eps_b(ii),2)*inverse_cov(ii, ii); */
+	  
+/* 	  new_error_total += transpose(eps_b) * inverse_cov * eps_b; */
+/*         } */
+/*       } */
+    
+
+   
+       //Fletcher modification
+      double Splus = new_error_total; //Compute new objective
+      double SS = error_total;            //Compute old objective
+      
+
+      //double dS = -2*(dTeps_a + dTeps_b + 2*dWd + dUd + dVd);   // Predicted Improvement
+      
+      std::cout << " dS " << dS << "\n";
+
+
+      double R = (SS - Splus)/dS; // Compute ratio
+      double nu;
+      
+      
+      if (R > rho_high) {
+	m_lambda /= 3;
+/* 	if (m_lambda < m_lambda_low) */
+/* 	  m_lambda = 0; */
+      }
+      else if (R < rho_low){
+	nu = (Splus - SS)/(-nu_mult) + 2;
+	if (nu > 10)
+	  nu = 10;
+	if (nu < 2)
+	  nu = 2;
+/* 	if (m_lambda == 0){ */
+	  
+/* 	  // want to set lambda to 1/max(abs(diag(U^{-1})), abs(diag(V^{-1}))) */
+	  
+
+	  	  
+/* 	  double nz_mean = 1.0; */
+	  	  
+	  
+/* 	  // update lambda in a similar way to the Fletcher algorithm. */
+/* 	  for ( unsigned j=0; j < U_old.size(); ++j ){ */
+	    	    
+/* 	    Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> Utemp = U_old(j).ref(); */
+
+/* 	    for (unsigned jj = 0; jj < Utemp.rows(); ++jj){ */
+/* 	      if ((fabs(Utemp(jj,jj)) > 0) && (fabs(Utemp(jj,jj)) < nz_mean)) */
+/* 		nz_mean = fabs(Utemp(jj,jj)); */
+/* 	     } */
+
+/* 	  } */
+	   
+/* 	  for (unsigned i=0;i < V_old.size(); ++i ){ */
+/* 	    Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> Vtemp;  */
+	    
+/* 	    for (unsigned ii = 0; ii < Vtemp.rows(); ++ii){ */
+/* 	      if ((fabs(Vtemp(ii,ii)) > 0)&&(fabs(Vtemp(ii,ii)) < nz_mean)) */
+/* 		nz_mean = fabs(Vtemp(ii,ii)); */
+/* 	    } */
+/* 	  } */
+
+
+/* 	  // set both lambda and lower bound to new value */
+/* 	  m_lambda = nz_mean; */
+/* 	  m_lambda_low = nz_mean; */
+
+/* 	  nu = nu/2; */
+/* 	} */
+	m_lambda = nu*m_lambda;
+
+      } 
+      
+      
+      unsigned ret = 0;
+      
+     /*  if((Splus > SS)&&(m_is ==0)){ */
+/*       	m_is = 1; */
+/*       } */
+      
+      
+
+      if(Splus < SS){
+	 
+	ret = 1;
+	
+      }
+      // if (Splus > SS)
+      //	m_lambda = m_lambda * 4;
+
+      if(ret){	
+        for (unsigned j=0; j<m_model.num_cameras(); ++j)
+          m_model.set_A_parameters(j, m_model.A_parameters(j) + subvector(delta_a,
+                                                                          BundleAdjustModelT::camera_params_n*j,
                                                                           BundleAdjustModelT::camera_params_n));
         for (unsigned i=0; i<m_model.num_points(); ++i)
           m_model.set_B_parameters(i, m_model.B_parameters(i) + delta_b(i).ref());
-        m_lambda /= 10;
+      
 
         // Summarize the stats from this step in the iteration
         double overall_norm = sqrt(new_error_total);
         double overall_delta = sqrt(error_total) - sqrt(new_error_total);
-        std::cout << "Sparse LM Iteration " << m_iterations << ":     "
-                  << "  Overall: " << overall_norm << "  delta: " << overall_delta << "  lambda: " << m_lambda << "\t";
-
+        std::cout << "\n" << "Sparse LM Iteration " << m_iterations << ":     "
+                  << "  Overall: " << overall_norm << "  delta: " << overall_delta << "  lambda: " << m_lambda <<"   Ratio:  " << R << "  lambda_low:  " << m_lambda_low << " is:  " << m_is; 
+	
         // Give the bundle adjustment a model to report the error for
         // this iteration in a manner of its choosing.
         m_model.report_error();
 
         abs_tol = overall_norm;
-        rel_tol = overall_delta;
+        rel_tol = fabs(overall_delta);
         return overall_delta;
-
-      } else {
-        m_lambda *= 10;
-        return ScalarTypeLimits<double>::highest();
       }
+      
+      
+    //if(Splus < SS)
+    // m_is = 0; 
+      
+      else{
+	double overall_delta = sqrt(error_total) - sqrt(new_error_total); 
+	std::cout <<"\n" << "Sparse LM Iteration " << m_iterations << ":     "
+		  << "  \t   "  << "  delta  "<< overall_delta << "  lambda: " << m_lambda << "\t" << "   Ratio:  " << R << "  lambda_low:  " << m_lambda_low << " is:  " << m_is; 
+	return ScalarTypeLimits<double>::highest();
+      }
+      
+      
+      
+
+
+      
+      /* //      std::cout << "new: " << sqrt(new_error_total) << "  " << sqrt(error_total) << "\n"; */
+/*       if (new_error_total < error_total)  { */
+/*         for (unsigned j=0; j<m_model.num_cameras(); ++j)  */
+/*           m_model.set_A_parameters(j, m_model.A_parameters(j) + subvector(delta_a,  */
+/*                                                                           BundleAdjustModelT::camera_params_n*j,  */
+/*                                                                           BundleAdjustModelT::camera_params_n)); */
+/*         for (unsigned i=0; i<m_model.num_points(); ++i) */
+/*           m_model.set_B_parameters(i, m_model.B_parameters(i) + delta_b(i).ref()); */
+/*         m_lambda /= 10; */
+
+/*         // Summarize the stats from this step in the iteration */
+/*         double overall_norm = sqrt(new_error_total); */
+/*         double overall_delta = sqrt(error_total) - sqrt(new_error_total); */
+/*         std::cout << "Sparse LM Iteration " << m_iterations << ":     " */
+/*                   << "  Overall: " << overall_norm << "  delta: " << overall_delta << "  lambda: " << m_lambda << "\t"; */
+
+/*         // Give the bundle adjustment a model to report the error for */
+/*         // this iteration in a manner of its choosing. */
+/*         m_model.report_error(); */
+
+/*         abs_tol = overall_norm; */
+/*         rel_tol = overall_delta; */
+/*         return overall_delta; */
+
+/*       } else { */
+/*         m_lambda *= 10; */
+/*         return ScalarTypeLimits<double>::highest(); */
+/*       } */
+
+
 
     }
-
+    
     BundleAdjustModelT& bundle_adjust_model() { return m_model; }
   };
   
