@@ -4,6 +4,7 @@
 #include <vw/Core/Stopwatch.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
+#include <vw/Image/Transform.h>
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Stereo/Correlate.h>
 
@@ -14,56 +15,6 @@
 
 namespace vw { 
 namespace stereo {
-
-  class AbsDiffCostFunc {
-    private:
-      // These functors allow us to specialize the behavior of the image
-      // differencing operation, which is part of measuring the sum of
-      // absolute difference (SOAD) between two images.  For 8-bit slog
-      // images, we take the xor (^) of the two images.
-
-      static inline float absdiff (const float val1, const float val2) { return fabs(val1-val2); }
-      static inline double absdiff (const double val1, const double val2) { return fabs(val1-val2); }
-      static inline uint8 absdiff (const uint8 val1, const uint8 val2) { return val1 > val2 ? (val1-val2) : (val2-val1); }
-      static inline uint16 absdiff (const uint16 val1, const uint16 val2) { return val1 > val2 ? (val1-val2) : (val2-val1); }
-      static inline uint32 absdiff (const uint32 val1, const uint32 val2) { return val1 > val2 ? (val1-val2) : (val2-val1); }
-      static inline int8 absdiff (const int8 val1, const int8 val2) { return abs(val1-val2); }
-      static inline int16 absdiff (const int16 val1, const int16 val2) { return abs(val1-val2); }
-      static inline int32 absdiff (const int32 val1, const int32 val2) { return abs(val1-val2); }
-      
-    public:
-      template <class ChannelT>
-      ChannelT operator()(ChannelT const& x, ChannelT const& y) {
-        return absdiff(x, y);
-      }
-  };
-
-  class SqDiffCostFunc {
-    public:
-      template <class ChannelT>
-      ChannelT operator()(ChannelT const& x, ChannelT const& y) {
-        return (x - y) * (x - y);
-      }
-  };
-
-/*
-  struct BitAbsDifferenceFunc {
-    static inline uint8 absdiff (const uint8 val1, const uint8 val2) { return val1^val2; }
-  };
-*/
-
-  /// Given a type, these traits classes help to determine a suitable
-  /// working type for accumulation operations in the correlator
-  template <class T> struct CorrelatorAccumulatorType {};
-  template <> struct CorrelatorAccumulatorType<vw::uint8>   { typedef vw::uint16  type; };
-  template <> struct CorrelatorAccumulatorType<vw::int8>    { typedef vw::uint16  type; };
-  template <> struct CorrelatorAccumulatorType<vw::uint16>  { typedef vw::uint32  type; };
-  template <> struct CorrelatorAccumulatorType<vw::int16>   { typedef vw::uint32  type; };
-  template <> struct CorrelatorAccumulatorType<vw::uint32>  { typedef vw::uint64  type; };
-  template <> struct CorrelatorAccumulatorType<vw::int32>   { typedef vw::uint64  type; };
-  template <> struct CorrelatorAccumulatorType<vw::float32> { typedef vw::float32 type; };
-  template <> struct CorrelatorAccumulatorType<vw::float64> { typedef vw::float64 type; };
-
 
   // Threading classes
   class CorrelationWorkThreadBase {
@@ -411,8 +362,8 @@ namespace stereo {
         vw_throw( ArgumentErr() << "Both images must be single channel/single plane images!" );
       }
 
-      typename PreProcFilterT::result_type left_image = preproc_filter(channels_to_planes(image0));
-      typename PreProcFilterT::result_type right_image = preproc_filter(channels_to_planes(image1));  
+      typename PreProcFilterT::result_type left_image = preproc_filter(image0);
+      typename PreProcFilterT::result_type right_image = preproc_filter(image1);
 
       //Run the correlator and record how long it takes to run.
       Stopwatch timer;
@@ -420,17 +371,9 @@ namespace stereo {
       
       // Configure the workers
       boost::shared_ptr<CorrelationWorkThreadBase> worker0, worker1;
-/*
-      if( preproc_filter.use_bit_image() ) {
-        worker0.reset( new CorrelationWorkThread<ImageView<channel_type>, BitAbsDifferenceFunc>(-m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, right_image, left_image) );
-        worker1.reset( new CorrelationWorkThread<ImageView<channel_type>, BitAbsDifferenceFunc>(m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, left_image, right_image) );
-      } else {
-        worker0.reset( new CorrelationWorkThread<ImageView<channel_type>, StandardAbsDifferenceFunc>(-m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, right_image, left_image) );
-        worker1.reset( new CorrelationWorkThread<ImageView<channel_type>, StandardAbsDifferenceFunc>(m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, left_image, right_image) );
-      }
-*/
-        worker0.reset( new CorrelationWorkThread<ImageView<channel_type>, CostFuncT>(-m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, right_image, left_image, cost_func) );
-        worker1.reset( new CorrelationWorkThread<ImageView<channel_type>, CostFuncT>( m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, left_image, right_image, cost_func) );
+
+      worker0.reset( new CorrelationWorkThread<ImageView<channel_type>, CostFuncT>(-m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, right_image, left_image, cost_func) );
+      worker1.reset( new CorrelationWorkThread<ImageView<channel_type>, CostFuncT>( m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, left_image, right_image, cost_func) );
 
       try {
         // Launch the threads
@@ -475,10 +418,10 @@ namespace stereo {
       cross_corr_consistency_check(resultL2R, resultR2L, m_crossCorrThreshold, m_verbose);
 
       // Do subpixel correlation
-//       NullStereoPreprocessingFilter testfilt;;
-//       typename NullStereoPreprocessingFilter::result_type left_subpixel_image = testfilt(channels_to_planes(image0));
-//       typename NullStereoPreprocessingFilter::result_type right_subpixel_image = testfilt(channels_to_planes(image1));  
-      subpixel_correlation(resultL2R, left_image, right_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel, m_verbose);
+      LogStereoPreprocessingFilter testfilt(1.5);
+      typename LogStereoPreprocessingFilter::result_type left_subpixel_image = testfilt(image0);
+      typename LogStereoPreprocessingFilter::result_type right_subpixel_image = testfilt(image1);  
+      subpixel_correlation(resultL2R, left_subpixel_image, right_subpixel_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel, m_verbose);
 
       int matched = 0;
       int total = 0;

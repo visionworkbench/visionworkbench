@@ -35,6 +35,18 @@
 namespace vw {
 namespace stereo {
 
+  /// Given a type, these traits classes help to determine a suitable
+  /// working type for accumulation operations in the correlator
+  template <class T> struct CorrelatorAccumulatorType {};
+  template <> struct CorrelatorAccumulatorType<vw::uint8>   { typedef vw::uint16  type; };
+  template <> struct CorrelatorAccumulatorType<vw::int8>    { typedef vw::uint16  type; };
+  template <> struct CorrelatorAccumulatorType<vw::uint16>  { typedef vw::uint32  type; };
+  template <> struct CorrelatorAccumulatorType<vw::int16>   { typedef vw::uint32  type; };
+  template <> struct CorrelatorAccumulatorType<vw::uint32>  { typedef vw::uint64  type; };
+  template <> struct CorrelatorAccumulatorType<vw::int32>   { typedef vw::uint64  type; };
+  template <> struct CorrelatorAccumulatorType<vw::float32> { typedef vw::float32 type; };
+  template <> struct CorrelatorAccumulatorType<vw::float64> { typedef vw::float64 type; };
+
 VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
 
   // Sign of the Laplacian of the Gaussian pre-processing
@@ -87,18 +99,33 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     static bool use_bit_image() { return false; }    
   };
 
+  class AbsDiffCostFunc {
+    // These functors allow us to specialize the behavior of the image
+    // differencing operation, which is part of measuring the sum of
+    // absolute difference (SOAD) between two images.  For 8-bit slog
+    // images, we take the xor (^) of the two images.
+    static inline float absdiff (const float val1, const float val2) { return fabs(val1-val2); }
+    static inline double absdiff (const double val1, const double val2) { return fabs(val1-val2); }
+    static inline uint8 absdiff (const uint8 val1, const uint8 val2) { return val1 > val2 ? (val1-val2) : (val2-val1); }
+    static inline uint16 absdiff (const uint16 val1, const uint16 val2) { return val1 > val2 ? (val1-val2) : (val2-val1); }
+    static inline uint32 absdiff (const uint32 val1, const uint32 val2) { return val1 > val2 ? (val1-val2) : (val2-val1); }
+    static inline int8 absdiff (const int8 val1, const int8 val2) { return abs(val1-val2); }
+    static inline int16 absdiff (const int16 val1, const int16 val2) { return abs(val1-val2); }
+    static inline int32 absdiff (const int32 val1, const int32 val2) { return abs(val1-val2); }
+    
+  public:
+    template <class ChannelT>
+    ChannelT operator()(ChannelT const& x, ChannelT const& y) {
+      return absdiff(x, y);
+    }
+  };
 
-  // Return absolute difference of two bit images
-  inline unsigned char correlator_absolute_difference(unsigned char val1, unsigned char val2) {
-    return val1 ^ val2;
-  }
-  
-  // Return absolute difference of two bit images
-  inline float correlator_absolute_difference(float val1, float val2) {
-    float diff = val1 - val2;
-    if (diff > 0) return diff; else return -diff;
-  }
-
+  struct SqDiffCostFunc {
+    template <class ChannelT>
+    ChannelT operator()(ChannelT const& x, ChannelT const& y) {
+      return (x - y) * (x - y);
+    }
+  };
 
   /// Compute the sum of the absolute difference between a template
   /// region taken from img1 and the window centered at (c,r) in img0.
@@ -122,10 +149,11 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     new_img0 += c + r*width;
     new_img1 += (c+hdisp) + (r+vdisp)*width;
   
-    typename vw::AccumulatorType<ChannelT>::type ret = 0;
+    typename CorrelatorAccumulatorType<ChannelT>::type ret = 0;
+    AbsDiffCostFunc cost_fn;
     for (int rr= 0; rr< kern_height; rr++) {
-      for (int cc= 0; cc< kern_width; cc++) {
-        ret += correlator_absolute_difference(new_img0[cc], new_img1[cc]);
+     for (int cc= 0; cc< kern_width; cc++) {
+        ret += cost_fn(new_img0[cc], new_img1[cc]);
       }
       new_img0 += width;
       new_img1 += width;
@@ -162,51 +190,6 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
       }
     }
     return best_disparity;
-  }
-
-  static double find_minimum(double lt, double mid, double rt) {
-    double a = (rt+lt)*0.5-mid;
-    double b = (rt-lt)*0.5;
-    return -b/(2.0*a);
-  }
-
-  /* 
-   * Find the minimun of a 2d hyperbolic surface that is fit to the nine points 
-   * around and including the peak in the disparity map.  This gives better 
-   * subpixel resolution when both horizontal and vertical subpixel is requested.
-   * 
-   * The equation of the surface we are fitting is:
-   *    z = ax^2 + by^2 + cxy + dx + ey + f
-   */
-  template <class VectorT, class MatrixT>
-  static vw::Vector2 find_minimum_2d(vw::VectorBase<VectorT> &points, vw::MatrixBase<MatrixT> &pinvA) {
-
-    vw::Vector2 offset;
-
-    /* 
-     * First, compute the parameters of the hyperbolic surface by fitting the nine points in 'points'
-     * using a linear least squares fit.  This process is fairly fast, since we have already pre-computed
-     * the inverse of the A matrix in Ax = b.
-     */
-    vw::Vector<double> x = pinvA * points;
-  
-    /* 
-     * With these parameters, we have a closed form expression for the surface.  We compute the 
-     * derivative, and find the point where the slope is zero.  This is our maximum.
-     *
-     * Max is at [x,y] where:
-     *
-     *   dz/dx = 2ax + cy + d = 0
-     *   dz/dy = 2by + cx + e = 0
-     * 
-     * Of course, we optimize this computation a bit by unrolling it by hand beforehand.
-     */
-    double denom = 4 * x(0) * x(1) - (x(2) * x(2));
-  
-    offset(0) = ( x(2) * x(4) - 2 * x(1) * x(3) ) / denom;
-    offset(1) = ( x(2) * x(3) - 2 * x(0) * x(4) ) / denom;
-
-    return offset;
   }
 
   template <class ChannelT> 
@@ -394,171 +377,7 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
                             int kern_width, int kern_height,
                             bool do_horizontal_subpixel = true,
                             bool do_vertical_subpixel = true,
-                            bool verbose = false) {
-
-    VW_ASSERT(left_image.cols() == right_image.cols() && left_image.cols() == disparity_map.cols() &&
-              left_image.rows() == right_image.rows() && left_image.rows() == disparity_map.rows(),
-              ArgumentErr() << "subpixel_correlation: input image dimensions do not agree.\n");
-
-    int height = disparity_map.rows();
-    int width = disparity_map.cols();
-
-    ChannelT *new_img0 = &(left_image(0,0));
-    ChannelT *new_img1 = &(right_image(0,0));
-  
-    // Bail out if no subpixel computation has been requested 
-    if (!do_horizontal_subpixel && !do_vertical_subpixel) return;
-  
-    // We get a considerable speedup in our 2d subpixel correlation if
-    // we go ahead and compute the pseudoinverse of the A matrix (where
-    // each row in A is [ x^2 y^2 xy x y 1] (our 2d hyperbolic surface)
-    // for the range of x = [-1:1] and y = [-1:1].
-    static double pinvA_data[] = { 1.0/6,  1.0/6,  1.0/6, -1.0/3, -1.0/3, -1.0/3,  1.0/6,  1.0/6,  1.0/6,
-                                   1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,
-                                   1.0/4,    0.0, -1.0/4,    0.0,    0.0,    0.0, -1.0/4,    0.0,  1.0/4,
-                                   -1.0/6, -1.0/6, -1.0/6,    0.0,    0.0,   0.0,  1.0/6,  1.0/6,  1.0/6,
-                                   -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0, 1.0/6, -1.0/6,    0.0,  1.0/6,
-                                   -1.0/9,  2.0/9, -1.0/9,  2.0/9,  5.0/9, 2.0/9, -1.0/9,  2.0/9, -1.0/9 }; 
-    vw::MatrixProxy<double,6,9> pinvA(pinvA_data);
-    for (int r = 0; r < height; r++) {
-      if (r%100 == 0) 
-        if (verbose) vw_out(InfoMessage, "stereo") << "\tPerforming sub-pixel correlation... "<< (double(r)/height * 100) << "%        \r" << std::flush;
-    
-      for (int c = 0; c < width; c++) {
-      
-        if ( !disparity_map(c,r).missing() ) {
-          int hdisp= (int)disparity_map(c,r).h();
-          int vdisp= (int)disparity_map(c,r).v();
-
-//           if (r == 237 && c == 237)
-//             std::cout << "Pixel 237x237: " << hdisp << " " << vdisp << "      ";
-        
-          double mid = compute_soad(new_img0, new_img1,
-                                    r, c,
-                                    hdisp,   vdisp,
-                                    kern_width, kern_height,
-                                    width, height);
-        
-          // If only horizontal subpixel resolution is requested 
-          if (do_horizontal_subpixel && !do_vertical_subpixel) {
-            double lt= compute_soad(new_img0, new_img1,
-                                    r, c,
-                                    hdisp-1, vdisp,
-                                    kern_width, kern_height,
-                                    width, height);
-            double rt= compute_soad(new_img0, new_img1,
-                                    r, c,
-                                    hdisp+1, vdisp,
-                                    kern_width, kern_height,
-                                    width, height);
-          
-            if ((mid <= lt && mid < rt) || (mid <= rt && mid < lt)) {
-              disparity_map(c,r).h() += find_minimum(lt, mid, rt);
-            } else {
-              disparity_map(c,r) = PixelDisparity<float>();
-            }
-          }
-      
-          // If only vertical subpixel resolution is requested 
-          if (do_vertical_subpixel && !do_horizontal_subpixel) {
-            double up= compute_soad(new_img0, new_img1,
-                                    r, c,
-                                    hdisp, vdisp-1,
-                                    kern_width, kern_height,
-                                    width, height);
-            double dn= compute_soad(new_img0, new_img1,
-                                    r, c,
-                                    hdisp, vdisp+1,
-                                    kern_width, kern_height,
-                                    width, height);
-          
-            if ((mid <= up && mid < dn) || (mid <= dn && mid < up)) {
-              disparity_map(c,r).v() += find_minimum(up, mid, dn);
-            } else {
-              disparity_map(c,r) = PixelDisparity<float>();
-            }
-          }
-        
-        
-          // If both vertical and horizontal subpixel resolution is requested,
-          // we try to fit a 2d hyperbolic surface using the 9 points surrounding the
-          // peak SOAD value.  
-          //
-          // We place the soad values into a vector using the following indices
-          // (i.e. index 4 is the max disparity value)
-          // 
-          //     0  3  6
-          //     1  4  7
-          //     2  5  8
-          //
-          if (do_vertical_subpixel && do_horizontal_subpixel) {
-            vw::Vector<double,9> points;
-          
-            points(0) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp-1, vdisp-1,
-                                             kern_width, kern_height,
-                                             width, height);
-            points(1) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp-1, vdisp,
-                                             kern_width, kern_height,
-                                             width, height);
-            points(2) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp-1, vdisp+1,
-                                             kern_width, kern_height,
-                                             width, height);
-            points(3) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp, vdisp-1,
-                                             kern_width, kern_height,
-                                             width, height);
-            points(4) = (double)mid;
-            points(5) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp, vdisp+1,
-                                             kern_width, kern_height,
-                                             width, height);
-            points(6) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp+1, vdisp-1,
-                                             kern_width, kern_height,
-                                             width, height);
-            points(7) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp+1, vdisp,
-                                             kern_width, kern_height,
-                                             width, height);
-            points(8) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp+1, vdisp+1,
-                                             kern_width, kern_height,
-                                             width, height);
-            
-            vw::Vector2 offset = find_minimum_2d(points, pinvA);
-          
-            // This prevents us from adding in large offsets for
-            // poorly fit data.
-            if (fabs(offset(0)) < 2.0 && fabs(offset(1)) < 2.0) {
-              disparity_map(c,r).h() += offset(0);
-              disparity_map(c,r).v() += offset(1);
-
-//               if (r == 237 && c == 237) {
-//                 std::cout << offset(0) << " " << offset(1) << "      \n";
-//                 std::cout << "Pixel 237x237: " << disparity_map(c,r).h() << " " << disparity_map(c,r).v() << "      \n\n";
-//               }
-
-            } else {
-              disparity_map(c,r) = PixelDisparity<float>();
-              //            std::cout << "Bad offset: " << offset(0) << " " << offset(1) << "\n";
-            }
-          }
-        } 
-      }
-    }
-    if (verbose) vw_out(InfoMessage, "stereo") << "\tPerforming sub-pixel correlation... done.                 \n";
-  }
+                            bool verbose = false);
 
   /// This routine cross checks L2R and R2L, placing the final version
   /// of the disparity map in L2R.

@@ -259,22 +259,35 @@ namespace vw {
   /// Affine function (i.e. linear plus translation) image transform functor
   class AffineTransform : public TransformHelper<AffineTransform,ConvexFunction,ConvexFunction> {
   protected:
-    Matrix2x2 m_matrix, m_matrix_inverse;
-    Vector2 m_offset;
+    double a, b, c, d;
+    double ai, bi, ci, di;
+    double x, y;
     AffineTransform() {}
   public:
-    AffineTransform( Matrix2x2 const& matrix, Vector2 const& offset )
-      : m_matrix( matrix ), m_matrix_inverse( inverse( matrix ) ), m_offset( offset ) {}
+    AffineTransform( Matrix2x2 const& matrix, Vector2 const& offset ) :
+      a( matrix(0,0) ), b( matrix(0,1) ), 
+      c( matrix(1,0) ), d( matrix(1,1) ),
+      x( offset(0) ), y( offset(1) )
+    {
+      Matrix2x2 inv = inverse( matrix );
+      ai = inv(0,0);
+      bi = inv(0,1);
+      ci = inv(1,0);
+      di = inv(1,1);
+    }
 
     inline Vector2 forward( Vector2 const& p ) const {
-      return m_matrix * p + m_offset;
+      return Vector2(a*p[0]+b*p[1] + x,
+                     c*p[0]+d*p[1] + y);
     }
 
     inline Vector2 reverse( Vector2 const& p ) const {
-      return m_matrix_inverse * ( p - m_offset );
+      double px = p[0]-x;
+      double py = p[1]-y;
+      return Vector2(ai*px+bi*py,
+                     ci*px+di*py);
     }
   };
-
 
   /// Homography image transform functor
   ///
