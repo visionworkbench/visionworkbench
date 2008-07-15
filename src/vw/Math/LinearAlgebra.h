@@ -281,6 +281,33 @@ namespace math {
   }
   /// \endcond
 
+  /// \cond INTERNAL
+  extern "C"  int sgelss_(const long int* m, const long int* n, const long int* nrhs, float* a, 
+                          const long int* lda, float *b, const long int* ldb, float* s, 
+                          const float* rcond, long int* rank, float* work, const long int* lwork, 
+                          long int* info);
+  
+  extern "C"  int dgelss_(const long int* m, const long int* n, const long int* nrhs, double* a, 
+                          const long int* lda, double *b, const long int* ldb, double* s, 
+                          const double* rcond, long int* rank, double* work, const long int* lwork, 
+                          long int* info);
+
+  static inline void gelss(long int m, long int n, long int rhs, double *a, long int lda, double *b, long int ldb, double *s, double rcond, long int *rank, double *work, long int lwork, long int *info) {
+    dgelss_( &m, &n, &rhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, info );
+  }
+
+  static inline void gelss(long int m, long int n, long int rhs, float *a, long int lda, float *b, long int ldb, float *s, float rcond, long int *rank, float *work, long int lwork, long int *info) {
+    sgelss_( &m, &n, &rhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, info );
+  }
+  /// \endcond
+
+  /// \endcond
+
+
+  // gelsd seems to lock up on some problems (see TestLinearAlgebra.h)
+  // gelss seems to be more reliable
+#define USE_GELSS 1
+  
   /// Computes the minimum-norm solution to a real linear least squares problem.
   template <class AMatrixT, class BVectorT>
   Vector<typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type>
@@ -295,12 +322,20 @@ namespace math {
     std::vector<real_type> s( minmn );
     real_type const rcond = cond;
     long int rank, lwork = -1, info;
-    std::vector<long int> iwork( (3*int(log(minmn+1.)/log(2.))+11)*minmn ); // log2(x) = log(x)/log(2)
     real_type work_size;
+#if USE_GELSS
+    gelss( m, n, nrhs, &(Abuf(0,0)), lda, &(Bbuf(0)), ldb, &s[0], rcond, &rank, &work_size, lwork, &info );
+    lwork = int(work_size);
+    std::vector<real_type> work( lwork );
+    gelss( m, n, nrhs, &(Abuf(0,0)), lda, &(Bbuf(0)), ldb, &s[0], rcond, &rank, &work[0], lwork, &info );
+#else    
+    std::vector<long int> iwork( (3*int(log(minmn+1.)/log(2.))+11)*minmn ); // log2(x) = log(x)/log(2)
     gelsd( m, n, nrhs, &(Abuf(0,0)), lda, &(Bbuf(0)), ldb, &s[0], rcond, &rank, &work_size, lwork, &iwork[0], &info );
     lwork = int(work_size);
     std::vector<real_type> work( lwork );
     gelsd( m, n, nrhs, &(Abuf(0,0)), lda, &(Bbuf(0)), ldb, &s[0], rcond, &rank, &work[0], lwork, &iwork[0], &info );
+#endif
+
     Bbuf.set_size(n,true);
     return Bbuf;
   }
