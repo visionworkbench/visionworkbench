@@ -131,7 +131,7 @@ namespace stereo {
 
     int center_pix_x = kern_width/2;
     int center_pix_y = kern_height/2;
-    int two_sigma_sqr = 2*pow(kern_width/3,2);
+    int two_sigma_sqr = 2*pow(kern_width/2,2);
 
     ImageView<float> weight(kern_width, kern_height);
     for (int j = 0; j < kern_height; ++j) {
@@ -146,7 +146,7 @@ namespace stereo {
                                  ImageView<PixelDisparity<float> > const& disparity_map_patch,
                                  ImageView<float> const& weight_template) {
     
-    const float continuity_threshold_squared = 16;
+    const float continuity_threshold_squared = 64;  // T = 8
     int center_pix_x = weight_template.cols()/2;
     int center_pix_y = weight_template.rows()/2;
     PixelDisparity<float> center_pix = disparity_map_patch(center_pix_x, center_pix_y);
@@ -180,7 +180,7 @@ namespace stereo {
         disp_col_acc.next_col();
         weight_col_acc.next_col();
         template_col_acc.next_col();
-      }
+     }
       disp_row_acc.next_row();
       weight_row_acc.next_row();
       template_row_acc.next_row();
@@ -459,7 +459,7 @@ namespace stereo {
 
 
   template<class ChannelT>
-  void subpixel_correlation_affine_2d(ImageView<PixelDisparity<float> > &disparity_map,
+  void subpixel_correlation_grr(ImageView<PixelDisparity<float> > &disparity_map,
                             ImageView<ChannelT> const& left_image,
                             ImageView<ChannelT> const& right_image,
                             int kern_width, int kern_height,
@@ -509,6 +509,7 @@ namespace stereo {
         // 
         //   | d(0) d(1) d(2) | 
         //   | d(3) d(4) d(5) |
+        //   |  0    0    1   |
         //
         Vector<double,6> d;
         d(0) = 1.0;
@@ -526,9 +527,7 @@ namespace stereo {
         // in the neighborhood.
         if (good_pixels < weight_threshold) 
           continue;
-                
-        // Populate the matrix for the linear least square iteration
-        // step.  This only needs to be done once per subpixel disparity.
+
         Matrix<double,6,6> rhs;
         for (int jj=-kern_height/2; jj <= kern_height/2; ++jj) {
           for (int ii=-kern_width/2; ii <= kern_width/2; ++ii) {
@@ -539,48 +538,48 @@ namespace stereo {
             double I_x_I_y = w(i,j) * I_x(i,j) * I_y(i,j);
 
             // UL
-            rhs(0,0) += i*i*I_x_sqr;
-            rhs(0,1) += i*j*I_x_sqr;
-            rhs(0,2) += i*I_x_sqr;
-            rhs(1,0) += i*j*I_x_sqr;
-            rhs(1,1) += j*j*I_x_sqr;
-            rhs(1,2) += j*I_x_sqr;
-            rhs(2,0) += i*I_x_sqr;
-            rhs(2,1) += j*I_x_sqr;
-            rhs(2,2) += I_x_sqr;
+            rhs(0,0) += ii*ii * I_x_sqr;
+            rhs(0,1) += ii*jj * I_x_sqr;
+            rhs(0,2) += ii    * I_x_sqr;
+            rhs(1,0) += ii*jj * I_x_sqr;
+            rhs(1,1) += jj*jj * I_x_sqr;
+            rhs(1,2) += jj    * I_x_sqr;
+            rhs(2,0) += ii    * I_x_sqr;
+            rhs(2,1) += jj    * I_x_sqr;
+            rhs(2,2) +=         I_x_sqr;
 
             // UR
-            rhs(0,3) += i*i * I_x_I_y;
-            rhs(0,4) += i*j * I_x_I_y;
-            rhs(0,5) += i   * I_x_I_y;
-            rhs(1,3) += i*j * I_x_I_y;
-            rhs(1,4) += j*j * I_x_I_y;
-            rhs(1,5) += j   * I_x_I_y;
-            rhs(2,3) += i   * I_x_I_y;
-            rhs(2,4) += j   * I_x_I_y;
-            rhs(2,5) +=       I_x_I_y;
+            rhs(0,3) += ii*ii * I_x_I_y;
+            rhs(0,4) += ii*jj * I_x_I_y;
+            rhs(0,5) += ii    * I_x_I_y;
+            rhs(1,3) += ii*jj * I_x_I_y;
+            rhs(1,4) += jj*jj * I_x_I_y;
+            rhs(1,5) += jj    * I_x_I_y;
+            rhs(2,3) += ii    * I_x_I_y;
+            rhs(2,4) += jj    * I_x_I_y;
+            rhs(2,5) +=         I_x_I_y;
 
             // LL
-            rhs(3,0) += i*i * I_x_I_y;
-            rhs(3,1) += i*j * I_x_I_y;
-            rhs(3,2) += i   * I_x_I_y;
-            rhs(4,0) += i*j * I_x_I_y;
-            rhs(4,1) += j*j * I_x_I_y;
-            rhs(4,2) += j   * I_x_I_y;
-            rhs(5,0) += i   * I_x_I_y;
-            rhs(5,1) += j   * I_x_I_y;
-            rhs(5,2) +=       I_x_I_y;
+            rhs(3,0) += ii*ii * I_x_I_y;
+            rhs(3,1) += ii*jj * I_x_I_y;
+            rhs(3,2) += ii    * I_x_I_y;
+            rhs(4,0) += ii*jj * I_x_I_y;
+            rhs(4,1) += jj*jj * I_x_I_y;
+            rhs(4,2) += jj    * I_x_I_y;
+            rhs(5,0) += ii    * I_x_I_y;
+            rhs(5,1) += jj    * I_x_I_y;
+            rhs(5,2) +=         I_x_I_y;
 
             // LR
-            rhs(3,3) += i*i*I_y_sqr;
-            rhs(3,4) += i*j*I_y_sqr;
-            rhs(3,5) += i*I_y_sqr;
-            rhs(4,3) += i*j*I_y_sqr;
-            rhs(4,4) += j*j*I_y_sqr;
-            rhs(4,5) += j*I_y_sqr;
-            rhs(5,3) += i*I_y_sqr;
-            rhs(5,4) += j*I_y_sqr;
-            rhs(5,5) += I_y_sqr;
+            rhs(3,3) += ii*ii * I_y_sqr;
+            rhs(3,4) += ii*jj * I_y_sqr;
+            rhs(3,5) += ii    * I_y_sqr;
+            rhs(4,3) += ii*jj * I_y_sqr;
+            rhs(4,4) += jj*jj * I_y_sqr;
+            rhs(4,5) += jj    * I_y_sqr;
+            rhs(5,3) += ii    * I_y_sqr;
+            rhs(5,4) += jj    * I_y_sqr;
+            rhs(5,5) +=         I_y_sqr;
           }
         }
         try {
@@ -625,11 +624,11 @@ namespace stereo {
               // add this to the update equation.
               double I_x_val = w(i,j) * I_x(i,j);
               double I_y_val = w(i,j) * I_y(i,j);
-              lhs(0) += i * I_x_val * I_e_val;
-              lhs(1) += j * I_x_val * I_e_val;
+              lhs(0) += ii * I_x_val * I_e_val;
+              lhs(1) += jj * I_x_val * I_e_val;
               lhs(2) +=     I_x_val * I_e_val;
-              lhs(3) += i * I_y_val * I_e_val;
-              lhs(4) += j * I_y_val * I_e_val;
+              lhs(3) += ii * I_y_val * I_e_val;
+              lhs(4) += jj * I_y_val * I_e_val;
               lhs(5) +=     I_y_val * I_e_val;
             }
           }
@@ -652,13 +651,13 @@ namespace stereo {
 
           Vector<double,6> update = inv_rhs * lhs;
           d += update;
-          //          std::cout << "Update: " << update << "     " << d << "     " << sqrt(error_total) << "\n";
+          //   std::cout << "Update: " << update << "     " << d << "     " << sqrt(error_total) << "    " << (sqrt(update[2]*update[2]+update[5]*update[5])) << "\n";
 
           // Termination condition
-          if (norm_2(update) < 0.03) 
+          if (norm_2(update) < 0.01) 
             break;
         }
-        //std::cout << "----> " << d << "\n\n";
+        //        std::cout << "----> " << d << "\n\n";
         
         affinity(0,0) = d[0];
         affinity(0,1) = d[1];
@@ -673,7 +672,6 @@ namespace stereo {
           disparity_map(x,y).h() += offset(0);
           disparity_map(x,y).v() += offset(1);
         }
-
       }
     }
     if (verbose) 
