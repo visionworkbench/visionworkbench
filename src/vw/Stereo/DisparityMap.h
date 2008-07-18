@@ -263,6 +263,24 @@ namespace disparity {
     return mask;
   }
 
+  //  mask_black_pixels()
+  template <class ViewT>
+  void mask_black_pixels(vw::ImageViewBase<ViewT> const& input_image,
+                         vw::ImageView<uint8> &mask_image) {
+
+    typedef typename ViewT::pixel_type pixel_type;
+    
+    VW_ASSERT(input_image.impl().cols() == mask_image.cols() && input_image.impl().rows() == mask_image.rows(),
+              ArgumentErr() << "mask_black_pixels() : Input image and mask images do not have the same dimensions.");
+
+    for (int j=0; j < mask_image.rows(); ++j) {
+      for (int i=0; i < mask_image.cols(); ++i) {
+        if (input_image.impl()(i,j) == pixel_type()) 
+          mask_image(i,j) = 0;
+      }
+    }
+  }
+
   //  mask()
   //
   /// Given a pair of masks for the left and right images and a

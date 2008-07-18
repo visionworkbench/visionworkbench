@@ -459,14 +459,14 @@ namespace stereo {
 
 
   template<class ChannelT>
-  void subpixel_correlation_grr(ImageView<PixelDisparity<float> > &disparity_map,
-                            ImageView<ChannelT> const& left_image,
-                            ImageView<ChannelT> const& right_image,
-                            int kern_width, int kern_height,
-                            bool do_horizontal_subpixel,
-                            bool do_vertical_subpixel,
-                            bool verbose) {
-
+  void subpixel_correlation_new(ImageView<PixelDisparity<float> > &disparity_map,
+                                      ImageView<ChannelT> const& left_image,
+                                      ImageView<ChannelT> const& right_image,
+                                      int kern_width, int kern_height,
+                                      bool do_horizontal_subpixel,
+                                      bool do_vertical_subpixel,
+                                      bool verbose) {
+    
     VW_ASSERT( disparity_map.cols() == left_image.cols() &&
                disparity_map.rows() == left_image.rows(),
                ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
