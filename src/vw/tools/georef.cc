@@ -201,36 +201,71 @@ int main( int argc, char *argv[] ) {
     }
     tfw_file.close();
   } else {
-    switch( file_resource.pixel_format() ) {
-    case VW_PIXEL_SCALAR: {
-      DiskImageView<uint8> input_image( input_filename );
-      write_georeferenced_image( output_filename, input_image, georef );
-      break;
-    }
-    case VW_PIXEL_GRAY: {
-      DiskImageView<PixelGray<uint8> > input_image( input_filename );
-      write_georeferenced_image( output_filename, input_image, georef );
-      break;
-    }
-    case VW_PIXEL_GRAYA: {
-      DiskImageView<PixelGrayA<uint8> > input_image( input_filename );
-      write_georeferenced_image( output_filename, input_image, georef );
-      break;
-    }
-    case VW_PIXEL_RGB: {
-      DiskImageView<PixelRGB<uint8> > input_image( input_filename );
-      write_georeferenced_image( output_filename, input_image, georef );
-      break;
-    }
-    case VW_PIXEL_RGBA: {
-      DiskImageView<PixelRGBA<uint8> > input_image( input_filename );
-      write_georeferenced_image( output_filename, input_image, georef );
-      break;
-    }
-    default: {
-      vw_throw( NoImplErr() << "Unsupported pixel format: " << file_resource.pixel_format() );
-      break;
-    }
+    switch( file_resource.channel_type() ) {
+    case VW_CHANNEL_FLOAT32:
+      switch( file_resource.pixel_format() ) {
+      case VW_PIXEL_SCALAR: {
+        DiskImageView<float32> input_image( input_filename );
+        write_georeferenced_image( output_filename, input_image, georef );
+        break;
+      }
+      case VW_PIXEL_GRAY: {
+        DiskImageView<PixelGray<float32> > input_image( input_filename );
+        write_georeferenced_image( output_filename, input_image, georef );
+        break;
+      }
+      case VW_PIXEL_GRAYA: {
+        DiskImageView<PixelGrayA<float32> > input_image( input_filename );
+        write_georeferenced_image( output_filename, input_image, georef );
+        break;
+      }
+      case VW_PIXEL_RGB: {
+        DiskImageView<PixelRGB<float32> > input_image( input_filename );
+        write_georeferenced_image( output_filename, input_image, georef );
+        break;
+      }
+      case VW_PIXEL_RGBA: {
+        DiskImageView<PixelRGBA<float32> > input_image( input_filename );
+        write_georeferenced_image( output_filename, input_image, georef );
+        break;
+      }
+      default: {
+        vw_throw( NoImplErr() << "Unsupported pixel format: " << file_resource.pixel_format() );
+        break;
+      }
+      }
+    default:
+      switch( file_resource.pixel_format() ) {
+      case VW_PIXEL_SCALAR: {
+        DiskImageView<uint8> input_image( input_filename );
+        write_georeferenced_image( output_filename, input_image, georef );
+        break;
+      }
+      case VW_PIXEL_GRAY: {
+        DiskImageView<PixelGray<uint8> > input_image( input_filename );
+        write_georeferenced_image( output_filename, input_image, georef );
+        break;
+      }
+      case VW_PIXEL_GRAYA: {
+        DiskImageView<PixelGrayA<uint8> > input_image( input_filename );
+        write_georeferenced_image( output_filename, input_image, georef );
+        break;
+      }
+      case VW_PIXEL_RGB: {
+        DiskImageView<PixelRGB<uint8> > input_image( input_filename );
+        write_georeferenced_image( output_filename, input_image, georef );
+        break;
+      }
+      case VW_PIXEL_RGBA: {
+        DiskImageView<PixelRGBA<uint8> > input_image( input_filename );
+        write_georeferenced_image( output_filename, input_image, georef );
+        break;
+      }
+      default: {
+        vw_throw( NoImplErr() << "Unsupported pixel format: " << file_resource.pixel_format() );
+        break;
+      }
+      }
     }
   }
   return 0;
