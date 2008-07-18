@@ -665,10 +665,19 @@ namespace vw {
   template <class ViewT>
   UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> >
   create_mask( ImageViewBase<ViewT> const& view,
-               typename ViewT::pixel_type const& value = typename ViewT::pixel_type() ) {
+               typename ViewT::pixel_type const& value ) {
     typedef UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> > view_type;
     return view_type( view.impl(), CreatePixelMask<typename ViewT::pixel_type>(value) );
   }
+
+  // We overload the function rather than defaulting the value
+  // argument to work around a compiler issue in MSVC 2005.
+  template <class ViewT>
+  UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> >
+  create_mask( ImageViewBase<ViewT> const& view ) {
+    return create_mask( view, typename ViewT::pixel_type() );
+  }
+
 
   // Indicate that create_mask is "reasonably fast" and should never
   // induce an extra rasterization step during prerasterization.
@@ -697,10 +706,17 @@ namespace vw {
   template <class ViewT>
   UnaryPerPixelView<ViewT,ApplyPixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type> >
   apply_mask( ImageViewBase<ViewT> const& view, 
-              typename UnmaskedPixelType<typename ViewT::pixel_type>::type const& value = 
-              typename UnmaskedPixelType<typename ViewT::pixel_type>::type() ) {
+              typename UnmaskedPixelType<typename ViewT::pixel_type>::type const& value ) {
     typedef UnaryPerPixelView<ViewT,ApplyPixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type> > view_type;
     return view_type( view.impl(), ApplyPixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type>(value) );
+  }
+
+  // We overload the function rather than defaulting the value
+  // argument to work around a compiler issue in MSVC 2005.
+  template <class ViewT>
+  UnaryPerPixelView<ViewT,ApplyPixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type> >
+  apply_mask( ImageViewBase<ViewT> const& view ) {
+    return apply_mask( view, typename UnmaskedPixelType<typename ViewT::pixel_type>::type() );
   }
 
   // Indicate that apply_mask is "reasonably fast" and should never
