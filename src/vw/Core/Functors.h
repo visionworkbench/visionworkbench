@@ -434,6 +434,30 @@ namespace vw {
     }
   };
 
+  // Safe binary in-place quotient of two arguments
+  struct ArgArgInPlaceSafeQuotientFunctor : BinaryReturn1stType {
+    template <class Arg1T, class Arg2T>
+    inline Arg1T& operator()( Arg1T& arg1, Arg2T const& arg2 ) const {
+      if ( arg2==Arg2T() ) return arg1=Arg1T();
+      else return arg1=(Arg1T)(arg1/arg2);
+    }
+  };
+
+  // Safe unary in-place quotient of an argument and a value
+  template <class ValT>
+  struct ArgValInPlaceSafeQuotientFunctor : UnaryReturnSameType {
+  private:
+    const ValT m_val;
+  public:
+    ArgValInPlaceSafeQuotientFunctor( ValT const& val ) : m_val(val) {}
+
+    template <class ArgT>
+    inline ArgT& operator()( ArgT& arg ) const {
+      if ( m_val==ValT() ) return arg=ArgT();
+      else return arg=(ArgT)(arg/m_val);
+    }
+  };
+
   // Binary equality operator of two arguments
   struct ArgArgEqualityFunctor : ReturnFixedType<bool> {
     template <class Arg1T, class Arg2T>

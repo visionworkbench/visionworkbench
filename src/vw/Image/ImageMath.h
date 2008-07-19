@@ -191,10 +191,10 @@ namespace vw {
   VW_IMAGE_MATH_BINARY_SI_FUNCTION(operator /, vw::ValArgSafeQuotientFunctor)
 
   /// In-place quotient of two images.
-  VW_IMAGE_MATH_BINARY_IP_II_FUNCTION(operator /=, vw::ArgArgInPlaceQuotientFunctor)
+  VW_IMAGE_MATH_BINARY_IP_II_FUNCTION(operator /=, vw::ArgArgInPlaceSafeQuotientFunctor)
 
   /// In-place quotient of an image and a scalar.
-  VW_IMAGE_MATH_BINARY_IP_IS_FUNCTION(operator /=, vw::ArgValInPlaceQuotientFunctor)
+  VW_IMAGE_MATH_BINARY_IP_IS_FUNCTION(operator /=, vw::ArgValInPlaceSafeQuotientFunctor)
 
 
   // *******************************************************************
