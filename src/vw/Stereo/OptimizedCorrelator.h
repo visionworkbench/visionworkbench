@@ -421,9 +421,8 @@ namespace stereo {
       LogStereoPreprocessingFilter testfilt(1.5);
       typename LogStereoPreprocessingFilter::result_type left_subpixel_image = testfilt(image0);
       typename LogStereoPreprocessingFilter::result_type right_subpixel_image = testfilt(image1);  
-      { 
-        subpixel_correlation(resultL2R, left_subpixel_image, right_subpixel_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel, m_verbose);
-      }
+      subpixel_correlation(resultL2R, left_subpixel_image, right_subpixel_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel, m_verbose);
+
       int matched = 0;
       int total = 0;
       int nn = 0;
