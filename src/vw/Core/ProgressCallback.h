@@ -106,8 +106,12 @@ namespace vw {
     mutable double m_last_reported_progress;
   public:
     TerminalProgressCallback( MessageLevel level = InfoMessage, std::string pre_progress_text = "" ) : 
-      m_level(level), m_pre_progress_text(pre_progress_text), m_last_reported_progress(0) {}
+      m_level(level), m_pre_progress_text(pre_progress_text), m_last_reported_progress(-1) {}
     virtual ~TerminalProgressCallback() {}
+
+    void set_progress_text( std::string const& text ) {
+      m_pre_progress_text = text;
+    }
 
     virtual void report_progress(double progress) const;
     virtual void report_aborted(std::string why="") const;
