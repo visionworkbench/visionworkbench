@@ -93,7 +93,7 @@ int main( int argc, char *argv[] ) {
   set_debug_level(VerboseDebugMessage-1);
 
   std::string input_file_name, output_file_name, shaded_relief_file_name;
-  float dem_default_value;
+  float nodata_value;
   float min_val = 0, max_val = 0;
   
   po::options_description desc("Options");
@@ -102,7 +102,7 @@ int main( int argc, char *argv[] ) {
     ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
     ("shaded-relief-file", po::value<std::string>(&shaded_relief_file_name)->default_value(""), "Specify a shaded relief image (grayscale) to apply to the colorized image.")
     ("output-file,o", po::value<std::string>(&output_file_name)->default_value("output.tif"), "Specify the output file")
-    ("dem-default-value", po::value<float>(&dem_default_value), "Remap the DEM default value to the min altitude value.")
+    ("nodata-value", po::value<float>(&nodata_value), "Remap the DEM default value to the min altitude value.")
     ("min", po::value<float>(&min_val), "Explicitly specify the range of the color map.")
     ("max", po::value<float>(&max_val), "Explicitly specify the range of the color map.")
     ("verbose", "Verbose output");
@@ -133,16 +133,19 @@ int main( int argc, char *argv[] ) {
     cartography::read_georeference(georef, input_file_name);
 
     DiskImageView<PixelGray<float> > disk_dem_file(input_file_name);
-    ImageViewRef<PixelMask<PixelGray<float> > > dem = create_mask(disk_dem_file);
+    ImageViewRef<PixelMask<PixelGray<float> > > dem;
 
     std::cout << "Creating colorized DEM.\n";
-    if (vm.count("dem-default-value")) {
-      std::cout << "\t--> Masking default pixel value: " << dem_default_value << ".\n";
-      dem = create_mask(disk_dem_file, dem_default_value);
+    if (vm.count("nodata-value")) {
+      std::cout << "\t--> Masking nodata value: " << nodata_value << ".\n";
+      dem = create_mask(disk_dem_file, nodata_value);
+    }
+    else {
+      dem = pixel_cast<PixelMask<PixelGray<float> > >(disk_dem_file);
     }
 
     if (min_val == 0 && max_val == 0) {
-      min_max_channel_values(disk_dem_file, min_val, max_val, dem_default_value);
+      min_max_channel_values(disk_dem_file, min_val, max_val, nodata_value);
       std::cout << "\t--> DEM color map range: [" << min_val << "  " << max_val << "]\n";
     } else {
       std::cout << "\t--> Using user-specified color map range: [" << min_val << "  " << max_val << "]\n";
