@@ -63,12 +63,10 @@ bool draft;
 unsigned int tilesize;
 bool tile_output;
 unsigned int patch_size, patch_overlap;
-float transparent_pixel;
-bool has_transparent_pixel = false;
+float nodata_value;
+bool has_nodata_value = false;
 bool do_no_output_alpha;
 
-//  mask_zero_pixels()
-//
 // Creates an alpha channel based on pixels with a value of zero.  The
 // first version covers scalar types.  The remaining versions cover
 // compound pixel types.
@@ -78,16 +76,22 @@ template<class ChannelT> struct AlphaTypeFromPixelType<PixelGrayA<ChannelT> > { 
 template<class ChannelT> struct AlphaTypeFromPixelType<PixelRGB<ChannelT> > { typedef PixelRGBA<ChannelT> type; };
 template<class ChannelT> struct AlphaTypeFromPixelType<PixelRGBA<ChannelT> > { typedef PixelRGBA<ChannelT> type; };
 
+template <class PixelT> struct NonAlphaTypeFromPixelType { typedef PixelGrayA<PixelT> type; }; 
+template<class ChannelT> struct NonAlphaTypeFromPixelType<PixelGray<ChannelT> > { typedef PixelGray<ChannelT> type; };
+template<class ChannelT> struct NonAlphaTypeFromPixelType<PixelGrayA<ChannelT> > { typedef PixelGray<ChannelT> type; };
+template<class ChannelT> struct NonAlphaTypeFromPixelType<PixelRGB<ChannelT> > { typedef PixelRGB<ChannelT> type; };
+template<class ChannelT> struct NonAlphaTypeFromPixelType<PixelRGBA<ChannelT> > { typedef PixelRGB<ChannelT> type; };
+
 template <class PixelT>
-class MaskZeroPixelFunc: public vw::UnaryReturnTemplateType<AlphaTypeFromPixelType> {
-  PixelT m_masked_val;
+class NodataToMaskFunctor: public vw::UnaryReturnTemplateType<AlphaTypeFromPixelType> {
+  PixelT m_nodata_value;
 
 public:
-  MaskZeroPixelFunc(PixelT masked_val = PixelT()) : m_masked_val(masked_val) {} 
+  NodataToMaskFunctor(float nodata_value = 0) : m_nodata_value(nodata_value) {} 
 
   typename AlphaTypeFromPixelType<PixelT>::type operator() (PixelT const& pix) const {
     typedef typename AlphaTypeFromPixelType<PixelT>::type result_type;
-    if (pix == m_masked_val) 
+    if (pix == m_nodata_value) 
       return result_type();  // Mask pixel
     else
       return result_type(pix);
@@ -95,9 +99,31 @@ public:
 };
 
 template <class ViewT>
-vw::UnaryPerPixelView<ViewT, MaskZeroPixelFunc<typename ViewT::pixel_type> > 
-mask_zero_pixels(vw::ImageViewBase<ViewT> const& view, typename ViewT::pixel_type masked_val = typename ViewT::pixel_type() ) {
-  return vw::per_pixel_filter(view.impl(), MaskZeroPixelFunc<typename ViewT::pixel_type>(masked_val));
+vw::UnaryPerPixelView<ViewT, NodataToMaskFunctor<typename ViewT::pixel_type> > 
+nodata_to_mask(vw::ImageViewBase<ViewT> const& view, float nodata_value = 0 ) {
+  return vw::per_pixel_filter(view.impl(), NodataToMaskFunctor<typename ViewT::pixel_type>(nodata_value));
+}
+
+template <class PixelT>
+class MaskToNodataFunctor: public vw::UnaryReturnTemplateType<NonAlphaTypeFromPixelType> {
+  PixelT m_nodata_value;
+
+public:
+  MaskToNodataFunctor(float nodata_value = 0) : m_nodata_value(nodata_value) {} 
+
+  typename NonAlphaTypeFromPixelType<PixelT>::type operator() (PixelT const& pix) const {
+    typedef typename NonAlphaTypeFromPixelType<PixelT>::type result_type;
+    if (is_transparent(pix)) 
+      return result_type(m_nodata_value);
+    else
+      return result_type(pix);
+  }
+};
+
+template <class ViewT>
+vw::UnaryPerPixelView<ViewT, MaskToNodataFunctor<typename ViewT::pixel_type> > 
+mask_to_nodata(vw::ImageViewBase<ViewT> const& view, float nodata_value = 0 ) {
+  return vw::per_pixel_filter(view.impl(), MaskToNodataFunctor<typename ViewT::pixel_type>(nodata_value));
 }
 
 // do_blend()
@@ -107,6 +133,8 @@ void do_blend() {
 
   typedef typename AlphaTypeFromPixelType<PixelT>::type alpha_pixel_type;
   typedef typename PixelChannelCast<alpha_pixel_type,float32>::type float_pixel_type;
+
+  TerminalProgressCallback tpc( vw::InfoMessage );
 
   vw::mosaic::ImageComposite<float_pixel_type> composite;
   if( draft ) composite.set_draft_mode( true );
@@ -118,19 +146,22 @@ void do_blend() {
 
   // First pass, read georeferencing information and build an output
   // georef.
+  tpc.set_progress_text( "Status (scanning):   " );
+  SubProgressCallback scanning_pc( tpc, 0, 0.05 );
   for(unsigned i = 0; i < image_files.size(); ++i) {
-    std::cout << "Adding file " << image_files[i] << std::endl;
+    vw_out(vw::VerboseDebugMessage) << "Adding file " << image_files[i] << std::endl;
+    scanning_pc.report_fractional_progress(i,image_files.size());
 
     GeoReference input_georef;
     read_georeference( input_georef, image_files[i] );
     DiskImageView<PixelT> source_disk_image( image_files[i] );
-    std::cout << "\tTransform: " << input_georef.transform() 
-              << "\t\tBBox: " << input_georef.bounding_box(source_disk_image) << "\n";
+    vw_out(vw::VerboseDebugMessage) << "\tTransform: " << input_georef.transform() 
+                                    << "\t\tBBox: " << input_georef.bounding_box(source_disk_image) << std::endl;
 
     // Check to make sure the image has valid georeferencing
     // information.
     if( input_georef.transform() == identity_matrix<3>() ) {
-      vw_out(InfoMessage) << "No georeferencing info found for image: \"" << image_files[i] << "\".  Aborting.\n";
+      vw_out(InfoMessage) << "No georeferencing info found for image: \"" << image_files[i] << "\".  Aborting." << std::endl;
       exit(0);
     }
 
@@ -150,6 +181,7 @@ void do_blend() {
       largest_y_val = affine(1,2);
 
   }
+  scanning_pc.report_finished();
 
   // Convert all of the images so they share the same scale factor.
   // Adopt the scale of the highest resolution being composited.
@@ -159,8 +191,8 @@ void do_blend() {
   output_affine(0,2) = smallest_x_val;
   output_affine(1,2) = largest_y_val;
 
-  vw_out(0) << "Output affine transform: " << output_affine << "\n";
-  vw_out(0) << int(smallest_x_val) << "  " << int(largest_y_val) << "\n";
+  vw_out(VerboseDebugMessage) << "Output affine transform: " << output_affine << std::endl
+                              << int(smallest_x_val) << "  " << int(largest_y_val) << std::endl;
 
   // Take the georef from the first file (this ensures that the
   // projection and datum information is preserved...), but update the
@@ -169,22 +201,25 @@ void do_blend() {
   read_georeference( output_georef, image_files[0] );
   output_georef.set_transform(output_affine);
 
+  tpc.set_progress_text( "Status (assembling): " );
+  SubProgressCallback assembling_pc( tpc, 0.05, 0.1 );
   // Second pass: add files to the image composite.
   for(unsigned i = 0; i < image_files.size(); ++i) {
+    assembling_pc.report_fractional_progress(i, image_files.size() );
     GeoReference input_georef;
     read_georeference(input_georef, image_files[i]);
     DiskImageView<PixelT> source_disk_image( image_files[i] );
 
     GeoTransform trans(input_georef, output_georef);
     BBox2 output_bbox = trans.forward_bbox( BBox2(0,0,source_disk_image.cols(),source_disk_image.rows()) );
-    std::cerr << "output_bbox = " << output_bbox << std::endl;
+    vw_out(vw::VerboseDebugMessage) << "output_bbox = " << output_bbox << std::endl;
 
     // I've hardwired this to use nearest pixel interpolation for now
     // until we have a chance to sit down and develop a better
     // strategy for intepolating and filtering in the presence of
     // missing pixels in DEMs. -mbroxton 
-    if (has_transparent_pixel) {
-      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( mask_zero_pixels(source_disk_image, PixelT(transparent_pixel)), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
+    if (has_nodata_value) {
+      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( nodata_to_mask(source_disk_image, nodata_value), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
       composite.insert( channel_cast_rescale<float32>(masked_source), (int)output_bbox.min().x(), (int)output_bbox.min().y() );
     } else {
      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( pixel_cast<alpha_pixel_type>(source_disk_image), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
@@ -192,24 +227,28 @@ void do_blend() {
     }
 
   }
+  assembling_pc.report_finished();
 
-  vw_out(vw::InfoMessage) << "\n";
-  composite.prepare(TerminalProgressCallback(vw::InfoMessage, "Preparing the composite:\n"));
-  vw_out(0) << "Composite dimensions: " << composite.cols() << "  " << composite.rows() << "\n";
+  tpc.set_progress_text( "Status (preparing):  " );
+  vw_out(vw::VerboseDebugMessage) << std::endl;
+  composite.prepare( SubProgressCallback( tpc, 0.1, 0.5 ) );
+  vw_out(vw::VerboseDebugMessage) << "Composite dimensions: " << composite.cols() << "  " << composite.rows() << std::endl;
 
+  tpc.set_progress_text( "Status (blending):   " );
+  SubProgressCallback blending_pc( tpc, 0.5, 1.0 );
   // Output the image in tiles, or one large image.
   if(tile_output) {
     const int dim = patch_size - patch_overlap;
     const int tile_width = composite.cols() / dim;
     const int tile_height = composite.rows() / dim;
-    std::cout << "Outputting composite in " << tile_width * tile_height << " tiles." << std::endl;
+    vw_out(vw::VerboseDebugMessage) << "Outputting composite in " << tile_width * tile_height << " tiles." << std::endl;
 
     for(int i=0; i < composite.rows(); i += dim) {
       for(int j=0; j < composite.cols(); j += dim) {
         BBox2i tile_bbox(j, i, dim, dim);
         if(tile_bbox.max().x() >= composite.cols()) tile_bbox.max().x() = composite.cols();
         if(tile_bbox.max().y() >= composite.rows()) tile_bbox.max().y() = composite.cols();
-        ImageView<PixelT> tile_view = crop(channel_cast_rescale<typename PixelChannelType<PixelT>::type>(clamp(composite)), tile_bbox);
+        ImageView<PixelT> tile_view = crop(channel_cast_rescale<typename PixelChannelType<PixelT>::type>(composite), tile_bbox);
         GeoReference tile_georef = output_georef;
 
         // Adjust the affine transformation's offset to point to the upper
@@ -227,20 +266,26 @@ void do_blend() {
         tile_filename << output_file_type;
 
         // Finally, write.
-        write_georeferenced_image( tile_filename.str(), tile_view, tile_georef, TerminalProgressCallback(vw::InfoMessage, "Writing Tile: ") );
+        write_georeferenced_image( tile_filename.str(), tile_view, tile_georef, blending_pc );
       }
     }
   } else {
-    std::cout << "\nOutput image:\n";
-    std::cout << "\tTransform: " << output_affine << "\n"
-              << "\t\tBBox: " << output_georef.bounding_box(composite) << " [ W: " << output_georef.bounding_box(composite).width() << " H: " << output_georef.bounding_box(composite).height() << " ]\n\n";
+    vw_out(vw::VerboseDebugMessage) << "Output image:" << std::endl
+                                    << "\tTransform: " << output_affine << std::endl
+                                    << "\t\tBBox: " << output_georef.bounding_box(composite) << " [ W: " << output_georef.bounding_box(composite).width() << " H: " << output_georef.bounding_box(composite).height() << " ]" << std::endl << std::endl;
     std::string mosaic_filename = mosaic_name+".blend."+output_file_type;
-    if (do_no_output_alpha) {
-      write_georeferenced_image( mosaic_filename, pixel_cast<PixelT>(channel_cast_rescale<typename PixelChannelType<PixelT>::type>(clamp(composite))), output_georef, TerminalProgressCallback(vw::InfoMessage, "Blending: ") );
+    if (has_nodata_value) {
+      write_georeferenced_image( mosaic_filename, mask_to_nodata( channel_cast_rescale<typename PixelChannelType<PixelT>::type>(composite), nodata_value), output_georef, blending_pc);
+    }
+    else if (do_no_output_alpha) {
+      write_georeferenced_image( mosaic_filename, pixel_cast<PixelT>(channel_cast_rescale<typename PixelChannelType<PixelT>::type>(composite)), output_georef, blending_pc);
     } else {
-      write_georeferenced_image( mosaic_filename, channel_cast_rescale<typename PixelChannelType<PixelT>::type>(clamp(composite)), output_georef, TerminalProgressCallback(vw::InfoMessage, "Blending: ") );
+      write_georeferenced_image( mosaic_filename, channel_cast_rescale<typename PixelChannelType<PixelT>::type>(composite), output_georef, blending_pc);
     }
   }
+  blending_pc.report_finished();
+
+  tpc.report_finished();
 }
 
 int main( int argc, char *argv[] ) {
@@ -259,9 +304,9 @@ int main( int argc, char *argv[] ) {
       ("draft", po::value<bool>(&draft)->default_value(false), "Draft mode (no blending)")
       ("ignore-alpha", "Ignore the alpha channel of the input images.")
       ("no-output-alpha", po::value<bool>(&do_no_output_alpha)->default_value(false), "Do not write an alpha channel in the output image")
-      ("transparent-pixel", po::value<float>(&transparent_pixel), "Pixel value to make transparent in the input images (for blending)")
+      ("nodata-value", po::value<float>(&nodata_value), "Pixel value to use for nodata in input and output")
       ("grayscale", "Process as a grayscale image.")
-      ("channel-type", po::value<std::string>(&channel_type_str)->default_value("uint8"), "Images' channel type. One of [uint8, uint16, int16, float].")
+      ("channel-type", po::value<std::string>(&channel_type_str), "Images' channel type. One of [uint8, uint16, int16, float].")
       ("verbose", "Verbose output");
 
     po::options_description hidden_options("");
@@ -283,13 +328,13 @@ int main( int argc, char *argv[] ) {
     usage << general_options << std::endl;
 
     if( vm.count("help") ) {
-      std::cout << usage.str() << std::endl;
+      std::cerr << usage.str() << std::endl;
       return 1;
     }
     
     if( vm.count("input-files") < 1 ) {
-      std::cout << "Error: Must specify at least one input file!" << std::endl << std::endl;
-      std::cout << usage.str();
+      std::cerr << "Error: Must specify at least one input file!" << std::endl << std::endl;
+      std::cerr << usage.str();
       return 1;
     }
     
@@ -301,14 +346,14 @@ int main( int argc, char *argv[] ) {
 
     if( patch_size <= 0 ) {
       std::cerr << "Error: The patch size must be a positive number!  (You specified " << patch_size << ".)" << std::endl;
-      std::cout << usage << std::endl;
+      std::cerr << usage << std::endl;
       return 1;
     }
     
     if( patch_overlap<0 || patch_overlap>=patch_size || patch_overlap%2==1 ) {
       std::cerr << "Error: The patch overlap must be an even number nonnegative number" << std::endl;
       std::cerr << "smaller than the patch size!  (You specified " << patch_overlap << ".)" << std::endl;
-      std::cout << usage << std::endl;
+      std::cerr << usage << std::endl;
       return 1;
     }
 
@@ -320,11 +365,11 @@ int main( int argc, char *argv[] ) {
 
     if(tilesize >= 0 && output_file_type != "tif") {
         std::cerr << "Error: Cannot output a unified tiled TIFF if output file type is not set to tif." << std::endl;
-        std::cout << usage << std::endl;
+        std::cerr << usage << std::endl;
         return 1;
     }
 
-    if(vm.count("transparent-pixel")) has_transparent_pixel = true;
+    if(vm.count("nodata-value")) has_nodata_value = true;
 
     vw::Cache::system_cache().resize( cache_size*1024*1024 );
 
@@ -349,7 +394,7 @@ int main( int argc, char *argv[] ) {
       if (pixel_format == VW_PIXEL_GRAYA) pixel_format = VW_PIXEL_GRAY;
     }
 
-    vw_out(vw::DebugMessage) << "Using pixel type " << pixel_format_name(pixel_format) << ":" << channel_type_name(channel_type) << std::endl;
+    vw_out(vw::VerboseDebugMessage) << "Using pixel type " << pixel_format_name(pixel_format) << ":" << channel_type_name(channel_type) << std::endl;
 
     switch (pixel_format) {
     case VW_PIXEL_GRAY:
