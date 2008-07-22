@@ -57,7 +57,7 @@ using namespace vw::cartography;
 std::vector<std::string> image_files;
 std::string mosaic_name;
 std::string output_file_type;
-std::string channel_type;
+std::string channel_type_str;
 unsigned cache_size;
 bool draft;
 unsigned int tilesize;
@@ -106,8 +106,9 @@ template <class PixelT>
 void do_blend() {
 
   typedef typename AlphaTypeFromPixelType<PixelT>::type alpha_pixel_type;
+  typedef typename PixelChannelCast<alpha_pixel_type,float32>::type float_pixel_type;
 
-  vw::mosaic::ImageComposite<alpha_pixel_type> composite;
+  vw::mosaic::ImageComposite<float_pixel_type> composite;
   if( draft ) composite.set_draft_mode( true );
 
   double smallest_x_scale = vw::ScalarTypeLimits<float>::highest();
@@ -184,10 +185,10 @@ void do_blend() {
     // missing pixels in DEMs. -mbroxton 
     if (has_transparent_pixel) {
       ImageViewRef<alpha_pixel_type> masked_source = crop( transform( mask_zero_pixels(source_disk_image, PixelT(transparent_pixel)), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
-      composite.insert( masked_source, (int)output_bbox.min().x(), (int)output_bbox.min().y() );
+      composite.insert( channel_cast_rescale<float32>(masked_source), (int)output_bbox.min().x(), (int)output_bbox.min().y() );
     } else {
      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( pixel_cast<alpha_pixel_type>(source_disk_image), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
-     composite.insert( masked_source, (int)output_bbox.min().x(), (int)output_bbox.min().y() );
+     composite.insert( channel_cast_rescale<float32>(masked_source), (int)output_bbox.min().x(), (int)output_bbox.min().y() );
     }
 
   }
@@ -195,6 +196,7 @@ void do_blend() {
   vw_out(vw::InfoMessage) << "\n";
   composite.prepare(TerminalProgressCallback(vw::InfoMessage, "Preparing the composite:\n"));
   vw_out(0) << "Composite dimensions: " << composite.cols() << "  " << composite.rows() << "\n";
+
   // Output the image in tiles, or one large image.
   if(tile_output) {
     const int dim = patch_size - patch_overlap;
@@ -207,7 +209,7 @@ void do_blend() {
         BBox2i tile_bbox(j, i, dim, dim);
         if(tile_bbox.max().x() >= composite.cols()) tile_bbox.max().x() = composite.cols();
         if(tile_bbox.max().y() >= composite.rows()) tile_bbox.max().y() = composite.cols();
-        ImageView<PixelT> tile_view = crop(composite, tile_bbox);
+        ImageView<PixelT> tile_view = crop(channel_cast_rescale<typename PixelChannelType<PixelT>::type>(clamp(composite)), tile_bbox);
         GeoReference tile_georef = output_georef;
 
         // Adjust the affine transformation's offset to point to the upper
@@ -234,9 +236,9 @@ void do_blend() {
               << "\t\tBBox: " << output_georef.bounding_box(composite) << " [ W: " << output_georef.bounding_box(composite).width() << " H: " << output_georef.bounding_box(composite).height() << " ]\n\n";
     std::string mosaic_filename = mosaic_name+".blend."+output_file_type;
     if (do_no_output_alpha) {
-      write_georeferenced_image( mosaic_filename, pixel_cast<PixelT>(composite), output_georef, TerminalProgressCallback(vw::InfoMessage, "Blending: ") );
+      write_georeferenced_image( mosaic_filename, pixel_cast<PixelT>(channel_cast_rescale<typename PixelChannelType<PixelT>::type>(clamp(composite))), output_georef, TerminalProgressCallback(vw::InfoMessage, "Blending: ") );
     } else {
-      write_georeferenced_image( mosaic_filename, composite, output_georef, TerminalProgressCallback(vw::InfoMessage, "Blending: ") );
+      write_georeferenced_image( mosaic_filename, channel_cast_rescale<typename PixelChannelType<PixelT>::type>(clamp(composite)), output_georef, TerminalProgressCallback(vw::InfoMessage, "Blending: ") );
     }
   }
 }
@@ -259,7 +261,7 @@ int main( int argc, char *argv[] ) {
       ("no-output-alpha", po::value<bool>(&do_no_output_alpha)->default_value(false), "Do not write an alpha channel in the output image")
       ("transparent-pixel", po::value<float>(&transparent_pixel), "Pixel value to make transparent in the input images (for blending)")
       ("grayscale", "Process as a grayscale image.")
-      ("channel-type", po::value<std::string>(&channel_type)->default_value("uint8"), "Images' channel type. One of [uint8, uint16, int16, float].")
+      ("channel-type", po::value<std::string>(&channel_type_str)->default_value("uint8"), "Images' channel type. One of [uint8, uint16, int16, float].")
       ("verbose", "Verbose output");
 
     po::options_description hidden_options("");
@@ -326,67 +328,63 @@ int main( int argc, char *argv[] ) {
 
     vw::Cache::system_cache().resize( cache_size*1024*1024 );
 
-    // Annoying C++ not having first-class types.
-    // Right now, this is all disabled and we only support PixelRGBA uint8,
-    // until we can figure out how to get rid of this mess and do it at 
-    // runtime or something. That way we won't have a >19 megabyte binary.
-#if 1
-    if(channel_type == "uint8") {
-      if(vm.count("grayscale")) {
-        if(vm.count("ignore-alpha"))
-          do_blend<vw::PixelGray<uint8> >();
-        else
-          do_blend<vw::PixelGrayA<uint8> >();
-      } else {
-        if(vm.count("ignore-alpha"))
-          do_blend<vw::PixelRGB<uint8> >();
-        else
-          do_blend<vw::PixelRGBA<uint8> >();
+    DiskImageResource *first_resource = DiskImageResource::open(image_files[0]);
+    ChannelTypeEnum channel_type = first_resource->channel_type();
+    PixelFormatEnum pixel_format = first_resource->pixel_format();
+    delete first_resource;
+    if (vm.count("channel-type")) {
+      if (channel_type_str == "uint8") channel_type = VW_CHANNEL_UINT8;
+      else if (channel_type_str == "int16") channel_type = VW_CHANNEL_INT16;
+      else if (channel_type_str == "uint16") channel_type = VW_CHANNEL_UINT16;
+      else if (channel_type_str == "float") channel_type = VW_CHANNEL_FLOAT32;
+      else {
+        std::cerr << "Error: Bad channel type specified." << std::endl;
+        std::cerr << usage.str() << std::endl;
+        exit(1);
       }
-    } else if(channel_type == "uint16") {
-      if(vm.count("grayscale")) {
-        if(vm.count("ignore-alpha"))
-          do_blend<vw::PixelGray<uint16> >();
-        else
-          do_blend<vw::PixelGrayA<uint16> >();
-      } else {
-        if(vm.count("ignore-alpha"))
-          do_blend<vw::PixelRGB<uint16> >();
-        else
-          do_blend<vw::PixelRGBA<uint16> >();
-      }
-    } else if(channel_type == "int16") {
-      if(vm.count("grayscale")) {
-        if(vm.count("ignore-alpha"))
-          do_blend<vw::PixelGray<int16> >();
-        else
-          do_blend<vw::PixelGrayA<int16> >();
-      } else {
-        if(vm.count("ignore-alpha"))
-          do_blend<vw::PixelRGB<int16> >();
-        else
-          do_blend<vw::PixelRGBA<int16> >();
-      }
-    } else if(channel_type == "float") {
-      if(vm.count("grayscale")) {
-        if(vm.count("ignore-alpha"))
-          do_blend<vw::PixelGray<float> >();
-        else
-          do_blend<vw::PixelGrayA<float> >();
-      } else {
-        if(vm.count("ignore-alpha"))
-          do_blend<vw::PixelRGB<float> >();
-        else
-          do_blend<vw::PixelRGBA<float> >();
-      }
-    } else {
-      std::cerr << "Error: Bad channel type specified." << std::endl;
-      std::cout << usage.str() << std::endl;
-      return 1;
     }
-#else
-    do_blend<vw::PixelGray<float> >();
-#endif
+      
+    if (vm.count("ignore-alpha")) {
+      if (pixel_format == VW_PIXEL_RGBA) pixel_format = VW_PIXEL_RGB;
+      if (pixel_format == VW_PIXEL_GRAYA) pixel_format = VW_PIXEL_GRAY;
+    }
+
+    vw_out(vw::DebugMessage) << "Using pixel type " << pixel_format_name(pixel_format) << ":" << channel_type_name(channel_type) << std::endl;
+
+    switch (pixel_format) {
+    case VW_PIXEL_GRAY:
+      switch (channel_type) {
+      case VW_CHANNEL_UINT8:   do_blend<vw::PixelGray<vw::uint8> >(); break;
+      case VW_CHANNEL_INT16:   do_blend<vw::PixelGray<vw::int16> >(); break;
+      case VW_CHANNEL_UINT16:  do_blend<vw::PixelGray<vw::uint16> >(); break;
+      default:                 do_blend<vw::PixelGray<vw::float32> >(); break;
+      }
+      break;
+    case VW_PIXEL_GRAYA:
+      switch (channel_type) {
+      case VW_CHANNEL_UINT8:   do_blend<vw::PixelGrayA<vw::uint8> >(); break;
+      case VW_CHANNEL_INT16:   do_blend<vw::PixelGrayA<vw::int16> >(); break;
+      case VW_CHANNEL_UINT16:  do_blend<vw::PixelGrayA<vw::uint16> >(); break;
+      default:                 do_blend<vw::PixelGrayA<vw::float32> >(); break;
+      }
+      break;
+    case VW_PIXEL_RGB:
+      switch (channel_type) {
+      case VW_CHANNEL_UINT8:   do_blend<vw::PixelRGB<vw::uint8> >(); break;
+      case VW_CHANNEL_INT16:   do_blend<vw::PixelRGB<vw::int16> >(); break;
+      case VW_CHANNEL_UINT16:  do_blend<vw::PixelRGB<vw::uint16> >(); break;
+      default:                 do_blend<vw::PixelRGB<vw::float32> >(); break;
+      }
+      break;
+    default:
+      switch (channel_type) {
+      case VW_CHANNEL_UINT8:   do_blend<vw::PixelRGBA<vw::uint8> >(); break;
+      case VW_CHANNEL_INT16:   do_blend<vw::PixelRGBA<vw::int16> >(); break;
+      case VW_CHANNEL_UINT16:  do_blend<vw::PixelRGBA<vw::uint16> >(); break;
+      default:                 do_blend<vw::PixelRGBA<vw::float32> >(); break;
+      }
+      break;
+    }
 
   }
   catch( std::exception &err ) {
