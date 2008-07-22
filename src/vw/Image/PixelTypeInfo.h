@@ -194,6 +194,11 @@ namespace vw {
   public:
     template <class SourceT>
     inline DestT operator()( SourceT source ) const {
+      // Clamping semantics are more reasonable for float->int rescaling.
+      if( boost::is_floating_point<SourceT>::value && ! boost::is_floating_point<DestT>::value) {
+        if( source > ChannelRange<SourceT>::max() ) source = ChannelRange<SourceT>::max();
+        else if( source < ChannelRange<SourceT>::min() ) source = ChannelRange<SourceT>::min();
+      }
       return (DestT)(source*(((double)(ChannelRange<DestT>::max()))/(ChannelRange<SourceT>::max())));
     }
     inline DestT operator()( DestT source ) const {
