@@ -30,7 +30,7 @@
 
 #include <string>
 #include <fstream>
-#include <list>
+#include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -53,6 +53,19 @@ using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
 
+// Variables from the command line.
+std::vector<std::string> image_files;
+std::string mosaic_name;
+std::string output_file_type;
+std::string channel_type;
+unsigned cache_size;
+bool draft;
+unsigned int tilesize;
+bool tile_output;
+unsigned int patch_size, patch_overlap;
+float transparent_pixel;
+bool has_transparent_pixel = false;
+bool do_no_output_alpha;
 
 //  mask_zero_pixels()
 //
@@ -90,8 +103,7 @@ mask_zero_pixels(vw::ImageViewBase<ViewT> const& view, typename ViewT::pixel_typ
 // do_blend()
 //
 template <class PixelT>
-void do_blend( std::vector<std::string> const& image_files, std::string const& mosaic_name, std::string const& output_file_type, 
-               bool draft, bool qtree, int patch_size, int patch_overlap, int draw_order_offset, int max_lod_pixels , bool do_black_is_transparent, bool do_no_output_alpha) {
+void do_blend() {
 
   typedef typename AlphaTypeFromPixelType<PixelT>::type alpha_pixel_type;
 
@@ -164,43 +176,58 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
 
     GeoTransform trans(input_georef, output_georef);
     BBox2 output_bbox = trans.forward_bbox( BBox2(0,0,source_disk_image.cols(),source_disk_image.rows()) );
+    std::cerr << "output_bbox = " << output_bbox << std::endl;
 
     // I've hardwired this to use nearest pixel interpolation for now
     // until we have a chance to sit down and develop a better
     // strategy for intepolating and filtering in the presence of
     // missing pixels in DEMs. -mbroxton 
-    if (do_black_is_transparent) {
-      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( mask_zero_pixels(source_disk_image), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
-      composite.insert( masked_source, output_bbox.min().x(), output_bbox.min().y() );
+    if (has_transparent_pixel) {
+      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( mask_zero_pixels(source_disk_image, PixelT(transparent_pixel)), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
+      composite.insert( masked_source, (int)output_bbox.min().x(), (int)output_bbox.min().y() );
     } else {
      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( pixel_cast<alpha_pixel_type>(source_disk_image), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
-     composite.insert( masked_source, output_bbox.min().x(), output_bbox.min().y() );
+     composite.insert( masked_source, (int)output_bbox.min().x(), (int)output_bbox.min().y() );
     }
 
   }
 
   vw_out(vw::InfoMessage) << "\n";
-  composite.prepare(TerminalProgressCallback(vw::InfoMessage, "Preparing the composite: "));
+  composite.prepare(TerminalProgressCallback(vw::InfoMessage, "Preparing the composite:\n"));
   vw_out(0) << "Composite dimensions: " << composite.cols() << "  " << composite.rows() << "\n";
-  if( qtree ) {
-    vw::vw_out(vw::InfoMessage) << "Preparing the quadtree..." << std::endl;
-    BBox2 ll_bbox;
-    if ((float)(composite.rows())/(float)(composite.cols()) < 1.0)
-      ll_bbox = BBox2( -30,-30,30.0,30.0*(float)(composite.rows())/(float)(composite.cols()) );
-    else 
-      ll_bbox = BBox2( -30,-30,30.0*(float)(composite.cols())/(float)(composite.rows()),30.0);
-    std::cout << ll_bbox << "\n";
-    vw_out(0) << "\tOverlay will appear in this KML bounding box: " << ll_bbox << "\n";
-    vw_out(0) << "\tComposite bbox: " << composite.source_data_bbox() << "\n";
-    vw::mosaic::KMLQuadTreeGenerator<alpha_pixel_type> quadtree( mosaic_name, composite, ll_bbox );
-    quadtree.set_output_image_file_type( output_file_type );
-    quadtree.set_patch_size( patch_size );
-    quadtree.set_patch_overlap( patch_overlap );
-    quadtree.set_draw_order_offset( draw_order_offset );
-    quadtree.set_max_lod_pixels(max_lod_pixels);
-    vw::vw_out(vw::InfoMessage) << "Generating..." << std::endl;
-    quadtree.generate(TerminalProgressCallback());
-    vw::vw_out(vw::InfoMessage) << "Done!" << std::endl;
+  // Output the image in tiles, or one large image.
+  if(tile_output) {
+    const int dim = patch_size - patch_overlap;
+    const int tile_width = composite.cols() / dim;
+    const int tile_height = composite.rows() / dim;
+    std::cout << "Outputting composite in " << tile_width * tile_height << " tiles." << std::endl;
+
+    for(int i=0; i < composite.rows(); i += dim) {
+      for(int j=0; j < composite.cols(); j += dim) {
+        BBox2i tile_bbox(j, i, dim, dim);
+        if(tile_bbox.max().x() >= composite.cols()) tile_bbox.max().x() = composite.cols();
+        if(tile_bbox.max().y() >= composite.rows()) tile_bbox.max().y() = composite.cols();
+        ImageView<PixelT> tile_view = crop(composite, tile_bbox);
+        GeoReference tile_georef = output_georef;
+
+        // Adjust the affine transformation's offset to point to the upper
+        // left of this tile.
+        Vector2 upper_left = output_georef.pixel_to_point( Vector2(j, i) );
+        Matrix3x3 tile_transform = tile_georef.transform();
+        tile_transform(0,2) += upper_left[0];
+        tile_transform(1,2) += upper_left[1];
+        tile_georef.set_transform(tile_transform);
+
+        // Filename for this tile.
+        std::stringstream tile_filename;
+        tile_filename << mosaic_name;
+        tile_filename << '.' << j << '.' << i << '.';
+        tile_filename << output_file_type;
+
+        // Finally, write.
+        write_georeferenced_image( tile_filename.str(), tile_view, tile_georef, TerminalProgressCallback(vw::InfoMessage, "Writing Tile: ") );
+      }
+    }
   } else {
     std::cout << "\nOutput image:\n";
     std::cout << "\tTransform: " << output_affine << "\n"
@@ -216,29 +243,23 @@ void do_blend( std::vector<std::string> const& image_files, std::string const& m
 
 int main( int argc, char *argv[] ) {
   try {
-    std::string mosaic_name, output_file_type;
-    std::vector<std::string> image_files;
-    int patch_size, patch_overlap;
-    unsigned cache_size;
-    int draw_order_offset;
-    int max_lod_pixels;
 
     po::options_description general_options("Options");
     general_options.add_options()
       ("help", "Display this help message")
       ("mosaic-name,o", po::value<std::string>(&mosaic_name)->default_value("mosaic"), "Explicitly specify the input directory")
       ("output-file-type,t", po::value<std::string>(&output_file_type)->default_value("tif"), "Output file type")
-      ("size", po::value<int>(&patch_size)->default_value(256), "Patch size, in pixels")
-      ("overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels (must be even)")
+      ("tile-output", "Output the leaf tiles of a quadtree, instead of a single blended image.")
+      ("tiled-tiff", po::value<unsigned int>(&tilesize)->default_value(0), "Output a tiled TIFF image, with given tile size (0 disables, TIFF only)")
+      ("patch-size", po::value<unsigned int>(&patch_size)->default_value(256), "Patch size for tiled output, in pixels")
+      ("patch-overlap", po::value<unsigned int>(&patch_overlap)->default_value(0), "Patch overlap for tiled output, in pixels")
       ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
-      ("black-is-transparent", "Make this pixel value equal 0 transparent")
-      ("draft", "Draft mode (no blending)")
-      ("qtree", "Output in quadtree format")
+      ("draft", po::value<bool>(&draft)->default_value(false), "Draft mode (no blending)")
       ("ignore-alpha", "Ignore the alpha channel of the input images.")
-      ("no-output-alpha", "Do not write an alpha channel in the output image")
-      ("float", "Process as a floating point image.")
-      ("max-lod-pixels", po::value<int>(&max_lod_pixels)->default_value(1024), "Max LoD in pixels, or -1 for none")
-      ("draw-order-offset", po::value<int>(&draw_order_offset)->default_value(100), "Set an offset for the KML <drawOrder> tag for this overlay")
+      ("no-output-alpha", po::value<bool>(&do_no_output_alpha)->default_value(false), "Do not write an alpha channel in the output image")
+      ("transparent-pixel", po::value<float>(&transparent_pixel), "Pixel value to make transparent in the input images (for blending)")
+      ("grayscale", "Process as a grayscale image.")
+      ("channel-type", po::value<std::string>(&channel_type)->default_value("uint8"), "Images' channel type. One of [uint8, uint16, int16, float].")
       ("verbose", "Verbose output");
 
     po::options_description hidden_options("");
@@ -260,7 +281,7 @@ int main( int argc, char *argv[] ) {
     usage << general_options << std::endl;
 
     if( vm.count("help") ) {
-      std::cout << usage << std::endl;
+      std::cout << usage.str() << std::endl;
       return 1;
     }
     
@@ -274,6 +295,8 @@ int main( int argc, char *argv[] ) {
       vw::set_debug_level(vw::VerboseDebugMessage);
     }
 
+    if(vm.count("tile-output")) tile_output = true; else tile_output = false;
+
     if( patch_size <= 0 ) {
       std::cerr << "Error: The patch size must be a positive number!  (You specified " << patch_size << ".)" << std::endl;
       std::cout << usage << std::endl;
@@ -286,18 +309,84 @@ int main( int argc, char *argv[] ) {
       std::cout << usage << std::endl;
       return 1;
     }
-    
+
+    if(tilesize > 0 && vm.count("tile-output")) {
+        std::cerr << "Error: Cannot output both a unified tiled TIFF (single image output) and individual tiles (multiple image output)." << std::endl;
+        std::cerr << "\tThe two options --tiled-tiff (> 0) and --tile-output conflict." << std::endl;
+        return 1;
+    }
+
+    if(tilesize >= 0 && output_file_type != "tif") {
+        std::cerr << "Error: Cannot output a unified tiled TIFF if output file type is not set to tif." << std::endl;
+        std::cout << usage << std::endl;
+        return 1;
+    }
+
+    if(vm.count("transparent-pixel")) has_transparent_pixel = true;
+
     vw::Cache::system_cache().resize( cache_size*1024*1024 );
 
-    if( vm.count("float") && !vm.count("ignore-alpha") ) {
-      do_blend<vw::PixelGrayA<float> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent"), false );
-    } else if( vm.count("float") && vm.count("ignore-alpha") ) {
-      do_blend<vw::PixelGray<float> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent"), vm.count("no-output-alpha") );
-    } else if( !vm.count("float") && !vm.count("ignore-alpha") ) {
-      do_blend<vw::PixelRGBA<uint8> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent"), false );
-    } else if( !vm.count("float") && vm.count("ignore-alpha") ) {
-      do_blend<vw::PixelRGB<uint8> >( image_files, mosaic_name, output_file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap, draw_order_offset, max_lod_pixels, vm.count("black-is-transparent"), vm.count("no-output-alpha") );      
+    // Annoying C++ not having first-class types.
+    // Right now, this is all disabled and we only support PixelRGBA uint8,
+    // until we can figure out how to get rid of this mess and do it at 
+    // runtime or something. That way we won't have a >19 megabyte binary.
+#if 1
+    if(channel_type == "uint8") {
+      if(vm.count("grayscale")) {
+        if(vm.count("ignore-alpha"))
+          do_blend<vw::PixelGray<uint8> >();
+        else
+          do_blend<vw::PixelGrayA<uint8> >();
+      } else {
+        if(vm.count("ignore-alpha"))
+          do_blend<vw::PixelRGB<uint8> >();
+        else
+          do_blend<vw::PixelRGBA<uint8> >();
+      }
+    } else if(channel_type == "uint16") {
+      if(vm.count("grayscale")) {
+        if(vm.count("ignore-alpha"))
+          do_blend<vw::PixelGray<uint16> >();
+        else
+          do_blend<vw::PixelGrayA<uint16> >();
+      } else {
+        if(vm.count("ignore-alpha"))
+          do_blend<vw::PixelRGB<uint16> >();
+        else
+          do_blend<vw::PixelRGBA<uint16> >();
+      }
+    } else if(channel_type == "int16") {
+      if(vm.count("grayscale")) {
+        if(vm.count("ignore-alpha"))
+          do_blend<vw::PixelGray<int16> >();
+        else
+          do_blend<vw::PixelGrayA<int16> >();
+      } else {
+        if(vm.count("ignore-alpha"))
+          do_blend<vw::PixelRGB<int16> >();
+        else
+          do_blend<vw::PixelRGBA<int16> >();
+      }
+    } else if(channel_type == "float") {
+      if(vm.count("grayscale")) {
+        if(vm.count("ignore-alpha"))
+          do_blend<vw::PixelGray<float> >();
+        else
+          do_blend<vw::PixelGrayA<float> >();
+      } else {
+        if(vm.count("ignore-alpha"))
+          do_blend<vw::PixelRGB<float> >();
+        else
+          do_blend<vw::PixelRGBA<float> >();
+      }
+    } else {
+      std::cerr << "Error: Bad channel type specified." << std::endl;
+      std::cout << usage.str() << std::endl;
+      return 1;
     }
+#else
+    do_blend<vw::PixelGray<float> >();
+#endif
 
   }
   catch( std::exception &err ) {
