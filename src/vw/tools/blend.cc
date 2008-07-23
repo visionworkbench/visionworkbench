@@ -28,7 +28,7 @@
 
 #include <string>
 #include <fstream>
-#include <list>
+#include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -47,12 +47,23 @@ namespace fs = boost::filesystem;
 #include <vw/Mosaic/QuadTreeGenerator.h>
 #include <vw/Mosaic/ImageComposite.h>
 
+std::vector<std::string> image_files;
+std::string mosaic_name;
+std::string file_type;
+unsigned int cache_size;
+int patch_size, patch_overlap;
+bool draft;
+bool qtree;
+
 template <class PixelT>
-void do_blend( std::string const& mosaic_name, std::string const& file_type, bool draft, bool qtree, int patch_size, int patch_overlap ) {
+void do_blend() {
   vw::mosaic::ImageComposite<PixelT> composite;
-    
   if( draft ) composite.set_draft_mode( true );
-    
+
+  for(unsigned int i=0; i < image_files.size(); i++) {
+      std::cout << "Adding file: " << image_files[i] << std::endl;
+  }
+
   std::map<std::string,fs::path> image_files;
   std::map<std::string,fs::path> offset_files;
   fs::path source_dir_path( mosaic_name, fs::native );
@@ -95,17 +106,13 @@ void do_blend( std::string const& mosaic_name, std::string const& file_type, boo
 
 int main( int argc, char *argv[] ) {
   try {
-    std::string mosaic_name, file_type;
-    int patch_size, patch_overlap;
-    unsigned cache_size;
-    
     po::options_description desc("Options");
     desc.add_options()
       ("help", "Display this help message")
       ("input-dir", po::value<std::string>(&mosaic_name), "Explicitly specify the input directory")
       ("file-type", po::value<std::string>(&file_type)->default_value("png"), "Output file type")
-      ("size", po::value<int>(&patch_size)->default_value(256), "Patch size, in pixels")
-      ("overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels (must be even)")
+      ("patch-size", po::value<int>(&patch_size)->default_value(256), "Patch size, in pixels")
+      ("patch-overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels (must be even)")
       ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
       ("draft", "Draft mode (no blending)")
       ("qtree", "Output in quadtree format")
@@ -113,46 +120,49 @@ int main( int argc, char *argv[] ) {
       ("verbose", "Verbose output");
     po::positional_options_description p;
     p.add("input-dir", 1);
-    
+
     po::variables_map vm;
     po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
     po::notify( vm );
-    
+
     if( vm.count("help") ) {
       std::cout << desc << std::endl;
       return 1;
     }
-    
+
     if( vm.count("input-dir") != 1 ) {
       std::cout << "Error: Must specify one (and only one) input directory!" << std::endl;
       std::cout << desc << std::endl;
       return 1;
     }
-    
+
     if( vm.count("verbose") ) {
       vw::set_debug_level(vw::VerboseDebugMessage);
     }
+
+    if( vm.count("draft") ) draft = true; else draft = false;
+    if( vm.count("qtree") ) qtree = true; else qtree = false;
 
     if( patch_size <= 0 ) {
       std::cerr << "Error: The patch size must be a positive number!  (You specified " << patch_size << ".)" << std::endl;
       std::cout << desc << std::endl;
       return 1;
     }
-    
+
     if( patch_overlap<0 || patch_overlap>=patch_size || patch_overlap%2==1 ) {
       std::cerr << "Error: The patch overlap must be an even number nonnegative number" << std::endl;
       std::cerr << "smaller than the patch size!  (You specified " << patch_overlap << ".)" << std::endl;
       std::cout << desc << std::endl;
       return 1;
     }
-    
+
     vw::Cache::system_cache().resize( cache_size*1024*1024 );
 
     if( vm.count("grayscale") ) {
-      do_blend<vw::PixelGrayA<float> >( mosaic_name, file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap );
+      do_blend<vw::PixelGrayA<float> >();
     }
     else {
-      do_blend<vw::PixelRGBA<float> >( mosaic_name, file_type, vm.count("draft"), vm.count("qtree"), patch_size, patch_overlap );
+      do_blend<vw::PixelRGBA<float> >();
     }
 
   }

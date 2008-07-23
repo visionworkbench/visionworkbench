@@ -297,7 +297,7 @@ int main( int argc, char *argv[] ) {
       ("mosaic-name,o", po::value<std::string>(&mosaic_name)->default_value("mosaic"), "Explicitly specify the input directory")
       ("output-file-type,t", po::value<std::string>(&output_file_type)->default_value("tif"), "Output file type")
       ("tile-output", "Output the leaf tiles of a quadtree, instead of a single blended image.")
-      ("tiled-tiff", po::value<unsigned int>(&tilesize)->default_value(0), "Output a tiled TIFF image, with given tile size (0 disables, TIFF only)")
+//      ("tiled-tiff", po::value<unsigned int>(&tilesize)->default_value(0), "Output a tiled TIFF image, with given tile size (0 disables, TIFF only)")
       ("patch-size", po::value<unsigned int>(&patch_size)->default_value(256), "Patch size for tiled output, in pixels")
       ("patch-overlap", po::value<unsigned int>(&patch_overlap)->default_value(0), "Patch overlap for tiled output, in pixels")
       ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
@@ -305,7 +305,6 @@ int main( int argc, char *argv[] ) {
       ("ignore-alpha", "Ignore the alpha channel of the input images.")
       ("no-output-alpha", po::value<bool>(&do_no_output_alpha)->default_value(false), "Do not write an alpha channel in the output image")
       ("nodata-value", po::value<float>(&nodata_value), "Pixel value to use for nodata in input and output")
-      ("grayscale", "Process as a grayscale image.")
       ("channel-type", po::value<std::string>(&channel_type_str), "Images' channel type. One of [uint8, uint16, int16, float].")
       ("verbose", "Verbose output");
 
@@ -388,7 +387,7 @@ int main( int argc, char *argv[] ) {
         exit(1);
       }
     }
-      
+
     if (vm.count("ignore-alpha")) {
       if (pixel_format == VW_PIXEL_RGBA) pixel_format = VW_PIXEL_RGB;
       if (pixel_format == VW_PIXEL_GRAYA) pixel_format = VW_PIXEL_GRAY;

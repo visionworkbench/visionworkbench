@@ -134,7 +134,7 @@ AC_DEFUN([AX_PKG],
   # We can skip searching if we're already at "no"
   if test "no" = "$HAVE_PKG_$1"; then
     AC_MSG_RESULT([no (disabled by user)])
-  
+
   else
     # Test for and inherit libraries from dependencies
     PKG_$1_LIBS="$3"
@@ -162,7 +162,7 @@ AC_DEFUN([AX_PKG],
     else
 
       if test "x$ENABLE_VERBOSE" = "yes"; then
-	AC_MSG_RESULT([searching...])
+	    AC_MSG_RESULT([searching...])
       fi
 
       HAVE_PKG_$1=no
@@ -170,49 +170,55 @@ AC_DEFUN([AX_PKG],
       ax_pkg_old_libs=$LIBS
       LIBS=$PKG_$1_LIBS $LIBS
       for path in none $PKG_PATHS; do
-	ax_pkg_old_cppflags=$CPPFLAGS
-	ax_pkg_old_ldflags=$LDFLAGS
-	ax_pkg_old_vw_cppflags=$VW_CPPFLAGS
-	ax_pkg_old_vw_ldflags=$VW_LDFLAGS
-	echo > conftest.h
-	for header in $4 ; do
-	  echo "#include <$header>" >> conftest.h
-	done
-	CPPFLAGS="$ax_pkg_old_cppflags $VW_CPPFLAGS"
-	LDFLAGS="$ax_pkg_old_ldflags $VW_LDFLAGS"
-	if test "$path" != "none"; then
-	  if test x"$ENABLE_VERBOSE" = "xyes"; then
-	    AC_MSG_CHECKING([for package $1 in $path])
-	  fi
+	    ax_pkg_old_cppflags=$CPPFLAGS
+	    ax_pkg_old_ldflags=$LDFLAGS
+	    ax_pkg_old_vw_cppflags=$VW_CPPFLAGS
+	    ax_pkg_old_vw_ldflags=$VW_LDFLAGS
+	    echo > conftest.h
+	    for header in $4 ; do
+	      echo "#include <$header>" >> conftest.h
+	    done
+	    CPPFLAGS="$ax_pkg_old_cppflags $VW_CPPFLAGS"
+	    LDFLAGS="$ax_pkg_old_ldflags $VW_LDFLAGS"
+	    if test "$path" != "none"; then
+	      if test x"$ENABLE_VERBOSE" = "xyes"; then
+	        AC_MSG_CHECKING([for package $1 in $path])
+	      fi
           if test -z "$5"; then
             VW_CPPFLAGS="-I$path/include $VW_CPPFLAGS"
-	  else
-	    VW_CPPFLAGS="-I$path/include/$5 $VW_CPPFLAGS"
+	      else
+	        VW_CPPFLAGS="-I$path/include/$5 $VW_CPPFLAGS"
           fi
-	  CPPFLAGS="$ax_pkg_old_cppflags $VW_CPPFLAGS"
-	  AC_LINK_IFELSE(
-	    AC_LANG_PROGRAM([#include "conftest.h"],[]),
-	    [ HAVE_PKG_$1=yes ; AC_MSG_RESULT([yes]) ; break ] )
-	  VW_LDFLAGS="-L$path/lib $VW_LDFLAGS"
-	  LDFLAGS="$ax_pkg_old_ldflags $VW_LDFLAGS"
-	fi
-	AC_LINK_IFELSE(
-	  AC_LANG_PROGRAM([#include "conftest.h"],[]),
-	  [ HAVE_PKG_$1=yes ; AC_MSG_RESULT([yes]) ; break ] )
-	if test x"$ENABLE_VERBOSE" = "xyes"; then
-	  AC_MSG_RESULT([no])
-	fi
-	CPPFLAGS=$ax_pkg_old_cppflags
-	LDFLAGS=$ax_pkg_old_ldflags
-	VW_CPPFLAGS=$ax_pkg_old_vw_cppflags
-	VW_LDFLAGS=$ax_pkg_old_vw_ldflags
+	      CPPFLAGS="$ax_pkg_old_cppflags $VW_CPPFLAGS"
+	      AC_LINK_IFELSE(
+	        AC_LANG_PROGRAM([#include "conftest.h"],[]),
+	        [ HAVE_PKG_$1=yes ; AC_MSG_RESULT([yes]) ; break ] )
+          # Sometimes we'll have /foo/lib64 and /foo/lib confusion on
+          # 64-bit machines, so accept both if one doesn't appear.
+          if test -d $path/${AX_LIBDIR}; then
+	        VW_LDFLAGS="-L$path/${AX_LIBDIR} $VW_LDFLAGS"
+          elif test x"${AX_LIBDIR}" = "xlib64"; then
+            VW_LDFLAGS="-L$path/${AX_OTHER_LIBDIR} $VW_LDFLAGS"
+          fi
+          LDFLAGS="$ax_pkg_old_ldflags $VW_LDFLAGS"
+        fi
+        AC_LINK_IFELSE(
+          AC_LANG_PROGRAM([#include "conftest.h"],[]),
+          [ HAVE_PKG_$1=yes ; AC_MSG_RESULT([yes]) ; break ] )
+        if test x"$ENABLE_VERBOSE" = "xyes"; then
+          AC_MSG_RESULT([no])
+        fi
+        CPPFLAGS=$ax_pkg_old_cppflags
+        LDFLAGS=$ax_pkg_old_ldflags
+        VW_CPPFLAGS=$ax_pkg_old_vw_cppflags
+        VW_LDFLAGS=$ax_pkg_old_vw_ldflags
       done
       CPPFLAGS=$ax_pkg_old_cppflags
       LDFLAGS=$ax_pkg_old_ldflags
       LIBS=$ax_pkg_old_libs
 
       if test "x$HAVE_PKG_$1" = "xno" -a "x$ENABLE_VERBOSE" != "xyes"; then
-	AC_MSG_RESULT([no (not found)])
+	    AC_MSG_RESULT([no (not found)])
       fi
 
     fi
@@ -266,9 +272,10 @@ AC_DEFUN([AX_PKG_BOOST],
       fi
       if test -d "${ax_boost_base_path}/include/boost" ; then
         PKG_BOOST_INCDIR="${ax_boost_base_path}/include"
-        PKG_BOOST_LIBDIR="${ax_boost_base_path}/lib"
-        if test "x${BOOST_IN_LIB64}" = "xyes" ; then
-          PKG_BOOST_LIBDIR="${PKG_BOOST_LIBDIR}64"
+        PKG_BOOST_LIBDIR="${ax_boost_base_path}/${AX_LIBDIR}"
+        # In case it's not in lib64 despite specifying lib64...
+        if test ! -d $PKG_BOOST_LIBDIR -a x"${AX_LIBDIR}" = "xlib64"; then
+          PKG_BOOST_LIBDIR="${ax_boost_base_path}/${AX_OTHER_LIBDIR}"
         fi
         HAVE_PKG_BOOST="yes"
         if test "$ENABLE_VERBOSE" = "yes"; then

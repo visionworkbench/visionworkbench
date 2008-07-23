@@ -25,9 +25,53 @@
 // Vision Workbench
 #include <vw/Image/ImageView.h>
 
+// Proj.4
+#include <projects.h>
+
+
 namespace vw {
 namespace cartography {
 
+  // Constructor
+    GeoTransform::GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef) :
+    m_src_georef(src_georef), m_dst_georef(dst_georef) {
+    const std::string src_datum = m_src_georef.datum().proj4_str();
+    const std::string dst_datum = m_dst_georef.datum().proj4_str();
+
+    // This optimizes in the common case where the two images are
+    // already in the same map projection, and we need only apply
+    // the affine transform.  This will break, of course, as soon as
+    // we have mare than one type of GeoReference object, but it
+    // makes life faster for now. -mbroxton
+    if (m_src_georef.proj4_str() == m_dst_georef.proj4_str())
+      m_skip_map_projection = true;
+    else
+      m_skip_map_projection = false;
+
+    // This optimizes the case where the two datums are the same, 
+    // and thus we don't need to call proj to convert between them 
+    // as we transform.
+    if(src_datum == dst_datum) {
+      m_skip_datum_conversion = true;
+    } else {
+      // Set up the various variables for proj.
+      m_skip_datum_conversion = false;
+
+      // The source proj4 context.
+      std::stringstream ss_src;
+      // We convert lat/long to lat/long regardless of what the 
+      // source or destination georef uses.
+      ss_src << "+proj=latlong " << src_datum;
+      m_src_datum = boost::shared_ptr<ProjContext>(new ProjContext(ss_src.str()));
+      CHECK_PROJ_INIT_ERROR(ss_src.str().c_str());
+
+      // The destination proj4 context.
+      std::stringstream ss_dst;
+      ss_dst << "+proj=latlong " << dst_datum;
+      m_dst_datum = boost::shared_ptr<ProjContext>(new ProjContext(ss_dst.str()));
+      CHECK_PROJ_INIT_ERROR(ss_dst.str().c_str());
+    }
+  }
   // Performs a forward or reverse datum conversion.
   Vector2 GeoTransform::datum_convert(Vector2 const& v, bool forward) const {
     double x = v[0];

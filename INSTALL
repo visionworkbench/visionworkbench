@@ -184,3 +184,19 @@ Finally, to specify that the build system should install the Vision
 Workbench someplace other than "/usr/local", specify the path using
 the "--prefix=PATH" option.  The corresponding configuration file
 variable is, of course, called "PREFIX".
+
+
+Common Problems
+===============
+
+When linking against a GDAL library that uses an internal libtiff, the 
+opening of TIFF files can fail to function correctly when Vision 
+Workbench also links against another libtiff. To see whether or not 
+GDAL is using an internal libtiff, run ldd on the gdal library and 
+check its linkage; if it does not link, then check gdalinfo --format. 
+If GTiff is supported, and ldd says that the gdal library is not linked 
+against libtiff, then GDAL is using an internal libtiff library.
+
+In that case, you will want to disable libtiff. Add "--without-tiff" to 
+the ./configure command line. This does not effect the functionality of 
+Vision Workbench, as it will use GDAL to open TIFF files instead.

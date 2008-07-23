@@ -93,6 +93,32 @@ else
   AC_MSG_NOTICE([Setting target architecture to default])
 fi 
 
+# For 64-bit machines, we'll generally want to autodetect if lib64 exists,
+# and use it. Sometimes the user will want to force use of lib64 or lib
+# instead of the autodetection. Thus we have this command line option.
+AC_ARG_ENABLE(lib64,
+  AC_HELP_STRING([--enable-lib64], [force configure to use the lib64 directory (yes) or the lib directory (no) to find libraries @<:@autodetect@:>@]),
+  [ USE_LIB64=$enableval ],
+  [ if test -z "$USE_LIB64"; then USE_LIB64="autodetect"; fi ]
+)
+if test x"$USE_LIB64" = "xautodetect"; then
+  if test -d "/lib64" -o -d "/usr/lib64"; then
+    USE_LIB64="yes"
+  else
+    USE_LIB64="no"
+  fi
+fi
+# Sometimes we have /foo/lib64 and /foo/lib confusion on 64-bit machines, 
+# so we'll use possibly both if one doesn't appear for a certain 
+# library path.
+if test x"$USE_LIB64" = "xyes"; then
+  AX_LIBDIR="lib64"
+  AX_OTHER_LIBDIR="lib"
+else
+  AX_LIBDIR="lib"
+  AX_OTHER_LIBDIR="lib64"
+fi
+
 # Optimization
 AC_ARG_ENABLE(optimize,
   AC_HELP_STRING([--enable-optimize@<:@=LEVEL@:>@], [compiler optimization level @<:@yes@:>@]), 
@@ -225,13 +251,6 @@ fi
 
 AX_PKG_PTHREADS
 
-# 64-bit systems are annoying, and occasionally put stuff in /usr/lib64
-# instead of /usr/lib.
-AC_ARG_ENABLE(boost-in-lib64,
-  AC_HELP_STRING([--enable-boost-in-lib64], [Boost library files are in lib64 instead of lib @<:@no@:>@]),
-  [ BOOST_IN_LIB64=$enableval ], 
-  [ if test -z "$BOOST_IN_LIB64"; then BOOST_IN_LIB64=no; fi ]
-)
 AX_PKG_BOOST
 AC_MSG_NOTICE([VW will be built using Boost version $BOOST_VERSION])
 AX_PKG_BOOST_LIB(PROGRAM_OPTIONS, [-lboost_program_options], [boost/program_options.hpp])

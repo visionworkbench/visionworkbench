@@ -29,15 +29,20 @@
 #include <vw/Cartography/GeoReferenceBase.h>
 #include <vw/FileIO/DiskImageResource.h>
 
-// libProj.4
-#include <projects.h>
-
 // Boost
 #include <boost/algorithm/string.hpp>
 #include <boost/smart_ptr.hpp>
 
+// Forward declaration of Proj.4 things. C++ needs forward declaration of 
+// typedefs so we can call it PJ instead of PJconsts. Bad if Proj ever 
+// changes their struct names; we suddenly have a difficult to find bug.
+// If the Proj API ever changes and this breaks, see if there's a new name
+// for this structure.
+struct PJconsts;
+
 // Macro for checking Proj.4 output, something we do a lot of.
 #define CHECK_PROJ_ERROR if(pj_errno) vw_throw(ArgumentErr() << "Proj.4 error: " << pj_strerrno(pj_errno))
+#define CHECK_PROJ_INIT_ERROR(str) if(pj_errno) vw_throw(InputErr() << "Proj.4 failed to initialize on string: " << str << "\n\tError was: " << pj_strerrno(pj_errno))
  
 namespace vw {
 namespace cartography {
@@ -48,6 +53,11 @@ namespace cartography {
   // reduces the possibility of a memory related bug. Implementation 
   // code for most of it is in GeoReference.cc.
   class ProjContext {
+    // Declare PJconsts as PJ like done in projects.h; sadly, C++ has no
+    // forward declaration of typedefs. So if Proj ever changes their
+    // names, we get screwed over here and have to change this as well.
+    typedef PJconsts PJ;
+
     PJ* m_proj_ptr;
 
     char** split_proj4_string(std::string const& proj4_str, int &num_strings);
@@ -60,7 +70,7 @@ namespace cartography {
   public:
     ProjContext(std::string const& proj4_str);
 
-    ~ProjContext() { pj_free(m_proj_ptr); }
+    ~ProjContext();
     inline PJ* proj_ptr() { return m_proj_ptr; }
   };
 
@@ -106,6 +116,10 @@ namespace cartography {
     std::string proj4_str() const;
     const std::string gml_str()    const { return m_gml_str; }
     Matrix<double,3,3> transform() const { return m_transform; }
+
+    // Returns the proj.4 string of both the GeoReference and the datum, 
+    // concatenated. This is what proj4_str() used to do.
+    std::string overall_proj4_str() const;
     
     /// True if the georeference is using a projected coordinate
     /// system.  False if no projection is used (ie. we are only using
@@ -238,6 +252,18 @@ namespace cartography {
         return 1 << scale_exponent;
       }
     } // namespace: vw::cartography::output::kml
+
+    namespace tms {
+      GeoReference get_output_georeference(int resolution);
+
+      // Returns the number of pixels per planetary circumference, 
+      // rounding up to a power of two.
+      template <class TransformT>
+      inline int compute_resolution( TransformT const& tx, Vector2 const& pixel ) {
+        // It's exactly the same as the one for KML.
+        return vw::cartography::output::kml::compute_resolution(tx, pixel);
+      }
+    } // namespace vw::cartography::output::tms
   } // namespace vw::cartography::output
 
 }} // namespace vw::cartography

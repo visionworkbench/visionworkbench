@@ -210,7 +210,7 @@ int main( int argc, char *argv[] ) {
         break;
       }
       case VW_PIXEL_GRAY: {
-        DiskImageView<PixelGray<float32> > input_image( input_filename );
+        DiskImageView<PixelGray<float> > input_image( input_filename );
         write_georeferenced_image( output_filename, input_image, georef );
         break;
       }
@@ -234,6 +234,7 @@ int main( int argc, char *argv[] ) {
         break;
       }
       }
+      break;
     default:
       switch( file_resource.pixel_format() ) {
       case VW_PIXEL_SCALAR: {
@@ -266,6 +267,7 @@ int main( int argc, char *argv[] ) {
         break;
       }
       }
+      break;
     }
   }
   return 0;

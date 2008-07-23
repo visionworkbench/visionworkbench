@@ -47,7 +47,7 @@ extern "C" {
   };
 }
 
-int vw::DiskImageResourceJPEG::default_subsampilng_factor = 1;
+int vw::DiskImageResourceJPEG::default_subsampling_factor = 1;
 float vw::DiskImageResourceJPEG::default_quality = 0.95f;
 
 // This class and the following method are part of the structure for
@@ -58,12 +58,152 @@ METHODDEF(void) vw_jpeg_error_handler (j_common_ptr cinfo) {
 
   // cinfo->err really points to a my_error_mgr struct, so coerce
   // pointer and return to the last location where setjmp() was
-  // calledq.
+  // called.
   
   (*cinfo->err->format_message) (cinfo, ((vw_jpeg_error_mgr*)(cinfo->err))->error_msg);
   longjmp(((vw_jpeg_error_mgr*)(cinfo->err))->error_return, 1);
 }
 
+
+/* A struct to handle the data for jpeglib's internals. Have to use it so 
+ * we can hide the various types from our own header file, which is not 
+ * allowed to depend on libjpeg header files.
+*/
+class vw::DiskImageResourceJPEG::vw_jpeg_decompress_context {
+  // The enclosing class. Need the pointer so we can access its member 
+  // variables.
+  vw::DiskImageResourceJPEG *outer;
+
+  // Error context. JPEG uses longjmp() to break out of things when there's
+  // an error.
+  vw_jpeg_error_mgr jerr;
+
+public:
+  int current_line;
+  jpeg_decompress_struct decompress_ctx;
+  JSAMPARRAY scanline;
+  int scanline_size;
+
+  vw_jpeg_decompress_context(vw::DiskImageResourceJPEG *outer) {
+    this->outer = outer;
+    current_line = -1;
+    ((jpeg_error_mgr*)&jerr)->error_exit = vw_jpeg_error_handler;
+
+    // Set the position of the input stream at zero. Create a new decompress
+    // context.
+    fseek(outer->m_file_ptr, outer->m_byte_offset, SEEK_SET);
+    decompress_ctx.err = jpeg_std_error((jpeg_error_mgr*)&jerr);
+    if (setjmp(jerr.error_return)) {
+      // Non-local error return
+      // WARNING: libjpg calls later in this function, on error, will longjmp here
+      // DO NOT leave newly constructed C++ objects on the stack between here
+      // and any of the libjpg calls later in this function
+      vw_throw( vw::IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << jerr.error_msg );
+    }
+    jpeg_create_decompress(&decompress_ctx);
+    jpeg_stdio_src(&decompress_ctx, outer->m_file_ptr);
+
+    // Read the header information and parse it
+  	jpeg_read_header(&decompress_ctx, TRUE);
+
+    // If the user has requested a grayscale image, we can speed up the
+    // decoding process by forcing the jpeg driver to decode the image
+    // in grayscale (since the color components need not be processed).
+    // This is commented out for now because it seems to be involved 
+    // in some screwey behavior on Linux.
+#if 0
+    if (dest.format.pixel_format == VW_PIXEL_GRAY) 
+      decompress_ctx.out_color_space = JCS_GRAYSCALE;
+#endif
+
+    // If the user has requested a subsampled version of the original
+    // image, we pass this request along to the JPEG driver here.
+    decompress_ctx.scale_num = 1;
+    decompress_ctx.scale_denom = outer->m_subsample_factor;
+
+    // Start the decompression
+    jpeg_start_decompress(&decompress_ctx);
+
+    // Set the parent class's format.
+    outer->m_format.cols = decompress_ctx.output_width;
+    outer->m_format.rows = decompress_ctx.output_height;
+    outer->m_format.channel_type = VW_CHANNEL_UINT8;
+    
+    switch (decompress_ctx.output_components) {
+      case 1:
+        outer->m_format.pixel_format = VW_PIXEL_GRAY;
+        outer->m_format.planes=1;
+        break;
+      case 2:
+        outer->m_format.pixel_format = VW_PIXEL_GRAYA;
+        outer->m_format.planes=1;
+        break;
+      case 3:
+        outer->m_format.pixel_format = VW_PIXEL_RGB;
+        outer->m_format.planes=1;
+        break;
+      case 4:
+        outer->m_format.pixel_format = VW_PIXEL_RGBA;
+        outer->m_format.planes=1; break;
+      default:
+        outer->m_format.planes = decompress_ctx.output_components;
+        outer->m_format.pixel_format = VW_PIXEL_SCALAR;
+        break;
+    }
+
+    // Allocate the scanline
+    scanline_size = decompress_ctx.output_width * decompress_ctx.output_components;
+    scanline = (*(decompress_ctx.mem->alloc_sarray))
+	  	((j_common_ptr) &decompress_ctx, JPOOL_IMAGE, scanline_size, 1);
+
+    // Finally, we're now at line 0, so set it.
+    current_line = 0;
+  }
+
+  ~vw_jpeg_decompress_context() {
+    // Set up error handling.
+    if (setjmp(jerr.error_return))
+      vw_throw( vw::IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << jerr.error_msg );
+
+    if(current_line >= 0) {
+      jpeg_abort_decompress(&decompress_ctx);
+      jpeg_destroy_decompress(&decompress_ctx);
+    }
+  }
+
+
+  /* Reads the next line into scanline. Advances current_line appropriately.
+   *
+   * Warning!
+   * We set up error handling here using the struct's error context. This
+   * will clobber any error handling you already have, so be sure to 
+   * reset it!
+   */
+  void readline() {
+    advance(1);
+  }
+
+  /* Advances the current point in the file "lines" number of lines. 
+   * Sets current_line accordingly.
+   *
+   * Warning!
+   * We set up error handling here using the struct's error context. This
+   * will clobber any error handling you already have, so be sure to 
+   * reset it!
+  */
+  void advance(size_t lines) {
+    // Set up error handling.  If the JPEG library encounters an error,
+    // it will return here and vw_throw an exception.
+    if(setjmp(jerr.error_return))
+      vw_throw( vw::IOErr() << "DiskImageResourceJPEG: A libjpeg error occured. " << jerr.error_msg );
+
+    for(size_t i=0; i < lines; i++) {
+      jpeg_read_scanlines(&decompress_ctx, scanline, 1);
+      current_line++;
+    }
+  }
+
+};
 
 /// Close the JPEG file when the object is destroyed
 vw::DiskImageResourceJPEG::~DiskImageResourceJPEG() {
@@ -77,7 +217,6 @@ void vw::DiskImageResourceJPEG::flush() {
     fclose((FILE*)m_file_ptr);  
     m_file_ptr = NULL;
   }
-
 }
 
 /// Bind the resource to a file for reading.  Confirm that we can open
@@ -94,64 +233,20 @@ void vw::DiskImageResourceJPEG::open( std::string const& filename, int subsample
   if(m_file_ptr)
     vw_throw( IOErr() << "DiskImageResourceJPEG: A file is already open." );
 
-  // Set up the JPEG data structures
-  jpeg_decompress_struct cinfo;
-
-  // Set up error handling.  If the JPEG library encounters an error,
-  // it will return here and vw_throw an exception.
-  vw_jpeg_error_mgr jerr;
-  cinfo.err = jpeg_std_error((jpeg_error_mgr*)&jerr);
-  ((jpeg_error_mgr*)&jerr)->error_exit = vw_jpeg_error_handler;
-  if (setjmp(jerr.error_return)) {
-    // Non-local error return
-    // WARNING: libjpg calls later in this function, on error, will longjmp here
-    // DO NOT leave newly constructed C++ objects on the stack between here
-    // and any of the libjpg calls later in this function
-    vw_throw( vw::IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << jerr.error_msg );
-  }
-  
-  jpeg_create_decompress(&cinfo);
-
   // Open the file on disk
   FILE * infile;
   if ((infile = fopen(filename.c_str(), "rb")) == NULL) {
     vw_throw( vw::IOErr() << "Failed to open \"" << filename << "\" using libJPEG." );
   }
   if (byte_offset) fseek(infile, byte_offset, SEEK_SET);
-  
-  jpeg_stdio_src(&cinfo, infile);
+
+  m_byte_offset = byte_offset;
   m_filename = filename;
   m_file_ptr = infile;
 
-  // Read the header information and parse it
-  jpeg_read_header(&cinfo, TRUE);
-
-  // If the user has requested a subsampled version of the original
-  // image, we pass this request along to the JPEG driver here.
-  cinfo.scale_num = 1; 
-  cinfo.scale_denom = m_subsample_factor;
-
-  // Start the decompression routine
-  jpeg_start_decompress(&cinfo);
-  
-  m_format.cols = cinfo.output_width;
-  m_format.rows = cinfo.output_height;
-  m_format.channel_type = VW_CHANNEL_UINT8;
-    
-  switch (cinfo.output_components) {
-  case 1:  m_format.pixel_format = VW_PIXEL_GRAY;   m_format.planes=1; break;
-  case 2:  m_format.pixel_format = VW_PIXEL_GRAYA;  m_format.planes=1; break;
-  case 3:  m_format.pixel_format = VW_PIXEL_RGB;    m_format.planes=1; break;
-  case 4:  m_format.pixel_format = VW_PIXEL_RGBA;   m_format.planes=1; break;
-  default: m_format.planes = cinfo.output_components; m_format.pixel_format = VW_PIXEL_SCALAR; break;
-  }
-
-  jpeg_abort_decompress(&cinfo);
-  jpeg_destroy_decompress(&cinfo);
-  
-  // Rewind the file so that we can restart the jpeg header reading
-  // process when the user calls read().
-  fseek(infile, byte_offset, SEEK_SET);
+  // Now that all the needed members are set up, initialize the
+  // decompress context.
+  m_decompress_context = boost::shared_ptr<vw::DiskImageResourceJPEG::vw_jpeg_decompress_context>(new vw::DiskImageResourceJPEG::vw_jpeg_decompress_context(this));
 }
 
 /// Bind the resource to a file for writing.
@@ -188,93 +283,67 @@ void vw::DiskImageResourceJPEG::create( std::string const& filename,
   }
 }
 
-/// Read the disk image into the given buffer.
-void vw::DiskImageResourceJPEG::read( ImageBuffer const& dest, BBox2i const& bbox ) const
-{
-  VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
-             NoImplErr() << "DiskImageResourceJPEG does not support partial reads." );
-  VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
-             IOErr() << "Buffer has wrong dimensions in JPEG read." );
+/* Read the disk image, or a number of scanlines past the current point, 
+ * into the given buffer. If you're reading lines, it reads them in 
+ * starting at the top of the ImageBuffer given. It detects whether to read
+ * lines automatically depending on whether bbox represents the whole 
+ * image or not.
+*/
+void vw::DiskImageResourceJPEG::read( ImageBuffer const& dest, BBox2i const& bbox) const {
+  const int start_row = bbox.min().y();
+  const int end_row = bbox.max().y();
 
-  // Set up the JPEG data structures
-  jpeg_decompress_struct cinfo;
+  VW_ASSERT( dest.format.cols == cols(), IOErr() << "Destination buffer has different columns than file in JPEG read.");
+  VW_ASSERT( dest.format.rows <= rows(), IOErr() << "Destination buffer has too many rows in JPEG read.");
+  VW_ASSERT( bbox.height() == dest.format.rows, ArgumentErr() << "Destination buffer and requested bounding box have different height.");
 
-  // Set up error handling.  If the JPEG library encounters an error,
-  // it will return here and vw_throw an exception.
-  vw_jpeg_error_mgr jerr;
-  cinfo.err = jpeg_std_error((jpeg_error_mgr*)&jerr);
-  ((jpeg_error_mgr*)&jerr)->error_exit = vw_jpeg_error_handler;
-  if (setjmp(jerr.error_return)) {
-    // Non-local error return
-    // WARNING: libjpg calls later in this function, on error, will longjmp here
-    // DO NOT leave newly constructed C++ objects on the stack between here
-    // and any of the libjpg calls later in this function
-    vw_throw( vw::IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << jerr.error_msg );
+  // If we're starting from the beginning, or if we don't have an open 
+  // decompress context, restart from the beginning of the file.
+  if(m_decompress_context->current_line != start_row) {
+    if(m_decompress_context->current_line > start_row)
+      read_reset();
+    m_decompress_context->advance(start_row - m_decompress_context->current_line);
   }
 
-  jpeg_create_decompress(&cinfo);
-	jpeg_stdio_src(&cinfo, (FILE*)m_file_ptr);
+  // Now read.
+  boost::scoped_array<uint8> buf( new uint8[m_decompress_context->scanline_size * bbox.height()] );
 
-  // Read the header information and parse it
-	jpeg_read_header(&cinfo, TRUE);
+  while (m_decompress_context->decompress_ctx.output_scanline < end_row) {
+    m_decompress_context->readline();
 
-  // If the user has requested a grayscale image, we can speed up the
-  // decoding process by forcing the jpeg driver to decode the image
-  // in grayscale (since the color components need not be processed).
-  // This is commented out for now because it seems to be involved 
-  // in some screwey behavior on Linux.
-  // if (dest.format.pixel_format == VW_PIXEL_GRAY) 
-  //   cinfo.out_color_space = JCS_GRAYSCALE;
-
-  // If the user has requested a subsampled version of the original
-  // image, we pass this request along to the JPEG driver here.
-  cinfo.scale_num = 1; 
-  cinfo.scale_denom = m_subsample_factor;
-
-  // Start the decompression
-  jpeg_start_decompress(&cinfo);
-
-  int scanline_size = cinfo.output_width * cinfo.output_components;
-  JSAMPARRAY scanline = (*cinfo.mem->alloc_sarray)
-		((j_common_ptr) &cinfo, JPOOL_IMAGE, scanline_size, 1);
-  boost::scoped_array<uint8> buf( new uint8[scanline_size * cinfo.output_height] );
-
-  if (setjmp(jerr.error_return)) {
-    // Non-local error return
-    // WARNING: libjpg calls later in this function, on error, will longjmp here
-    // DO NOT leave newly constructed C++ objects on the stack between here
-    // and any of the libjpg calls later in this function
-    vw_throw( vw::IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << jerr.error_msg );
-  }
-  
-  while (cinfo.output_scanline < cinfo.output_height) {
-    jpeg_read_scanlines(&cinfo, scanline, 1);
-    
     // Copy the data over into a contiguous buffer, which is what
     // convert() expects when we call it below.  This extra copy of
     // the data is undesirable, but probably not a huge performance
     // hit compared to reading the data from disk.
-    for (int i = 0; i < scanline_size; i++) 
-      buf[scanline_size * (cinfo.output_scanline-1) + i] = (uint8)(scanline[0][i]);
+    for (int i = 0; i < m_decompress_context->scanline_size; i++) 
+      buf[m_decompress_context->scanline_size * (m_decompress_context->decompress_ctx.output_scanline - start_row - 1) + i] = (uint8)(((JSAMPARRAY)(m_decompress_context->scanline))[0][i]);
   }
 
-  jpeg_finish_decompress(&cinfo);
-  jpeg_destroy_decompress(&cinfo);
-  
   // Set up an image buffer around the tdata_t buf object that
   // jpeg used to copy it's data.
   ImageBuffer src;
   src.data = buf.get();
   src.format = m_format;
+  // The number of rows we're reading may be different, seeing as how we 
+  // can read sequential lines.
+  src.format.rows = bbox.height();
 
-  // This is part of the grayscale optimization above.
-  // if (dest.format.pixel_format == VW_PIXEL_GRAY) 
-  //   src.format.pixel_format = VW_PIXEL_GRAY;
+  // This is part of the grayscale optimization that we remove due to 
+  // wonkiness on Linux.
+#if 0
+  if (dest.format.pixel_format == VW_PIXEL_GRAY) 
+    src.format.pixel_format = VW_PIXEL_GRAY;
+#endif
 
-  src.cstride = scanline_size / cinfo.output_width;
-  src.rstride = scanline_size;
-  src.pstride = scanline_size * cinfo.output_height;
+  src.cstride = m_decompress_context->scanline_size / m_decompress_context->decompress_ctx.output_width;
+  src.rstride = m_decompress_context->scanline_size;
+  src.pstride = m_decompress_context->scanline_size * bbox.height();
   convert( dest, src );
+
+}
+
+void vw::DiskImageResourceJPEG::read_reset() const {
+  m_decompress_context = boost::shared_ptr<vw::DiskImageResourceJPEG::vw_jpeg_decompress_context>(new vw::DiskImageResourceJPEG::vw_jpeg_decompress_context(const_cast<vw::DiskImageResourceJPEG*>(this)));
 }
 
 // Write the given buffer into the disk image.

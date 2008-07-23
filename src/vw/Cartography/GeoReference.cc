@@ -33,6 +33,10 @@
 // Boost
 #include <boost/algorithm/string.hpp>
 
+// Proj.4
+#include <projects.h>
+
+
 void vw::cartography::read_georeference( vw::cartography::GeoReference& georef, vw::ImageResource const& resource ) {
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   DiskImageResourceGDAL const* gdal = dynamic_cast<DiskImageResourceGDAL const*>( &resource );
@@ -57,12 +61,16 @@ namespace cartography {
 
 
   std::string GeoReference::proj4_str() const { 
+    return m_proj_projection_str;
+  }
+
+  std::string GeoReference::overall_proj4_str() const {
     std::string proj4_str = m_proj_projection_str + " " + m_datum.proj4_str() + " +no_defs";
     return proj4_str;
   }
   
   void GeoReference::init_proj() {
-    m_proj_context = boost::shared_ptr<ProjContext>(new ProjContext(proj4_str()));
+    m_proj_context = boost::shared_ptr<ProjContext>(new ProjContext(overall_proj4_str()));
   }
 
   /// Construct a default georeference.  This georeference will use
@@ -277,6 +285,10 @@ namespace cartography {
     unprojected.v = lon_lat[1] * DEG_TO_RAD;
 
     projected = pj_fwd(unprojected, m_proj_context->proj_ptr());
+    // Needed because latitudes -90 and 90 can fail on spheroids.
+    if(pj_errno == -20)
+      if(lon_lat[1] == 90 || lon_lat[1] == -90)
+        return Vector2(-1, -1);
     CHECK_PROJ_ERROR;
 
     return Vector2(projected.u, projected.v);
@@ -304,13 +316,15 @@ namespace cartography {
     int num;
     char** proj_strings = split_proj4_string(proj4_str, num);
     m_proj_ptr = pj_init(num, proj_strings);
-
-    if (!m_proj_ptr) 
-      vw::vw_throw(vw::LogicErr() << "GeoReference: an error occured while initializing proj.4 with string: " << proj4_str);
+    CHECK_PROJ_INIT_ERROR(proj4_str);
 
     for (int i = 0; i < num; i++) 
       delete [] proj_strings[i];
     delete [] proj_strings;
+  }
+
+  ProjContext::~ProjContext() {
+    pj_free(m_proj_ptr);
   }
 
   /***************** Functions for output GeoReferences *****************/
@@ -331,6 +345,29 @@ namespace cartography {
       transform(1,0) = 0;
       transform(1,1) = -(yresolution / 360.0);
       transform(1,2) = yresolution / 2.0 - 0.5;
+      transform(2,0) = 0;
+      transform(2,1) = 0;
+      transform(2,2) = 1;
+      r.set_transform(vw::math::inverse(transform));
+
+      return r;
+    }
+
+    GeoReference tms::get_output_georeference(int resolution) {
+      GeoReference r;
+      Matrix3x3 transform;
+
+      r.set_well_known_geogcs("WGS84");
+      // We specify here the TMS transformation for longitude/latitude
+      // to an exact pixel. Thus when we set the georeference 
+      // transform (which is pixel -> lon/lat), we have to use its 
+      // inverse.
+      transform(0,0) = resolution / 360.0;
+      transform(0,1) = 0;
+      transform(0,2) = resolution / 2.0 - 0.5;
+      transform(1,0) = 0;
+      transform(1,1) = -(resolution / 360.0);
+      transform(1,2) = .75 * resolution - 0.5;
       transform(2,0) = 0;
       transform(2,1) = 0;
       transform(2,2) = 1;

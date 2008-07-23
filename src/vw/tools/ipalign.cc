@@ -32,7 +32,7 @@
 #include <vw/InterestPoint.h>
 #include <vw/Math.h>
 #include <vw/Image.h>
-#include <vw/Mosaic.h>
+#include <vw/Mosaic/ImageComposite.h>
 #include <vw/FileIO.h>
 
 using namespace vw;

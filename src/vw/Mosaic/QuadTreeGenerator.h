@@ -121,7 +121,7 @@ namespace mosaic {
       outfile << m_source.rows() << "\n";
     }
 
-    void generate( const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
+    virtual void generate( const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
       ScopedWatch sw("QuadTreeGenerator::generate");
       int32 maxdim = std::max( m_source.cols(), m_source.rows() );
       m_tree_levels = 1 + int32( ceil( log( maxdim/(double)(m_patch_size-m_patch_overlap) ) / log(2.0) ) );
@@ -223,7 +223,7 @@ namespace mosaic {
     std::vector<std::map<std::pair<int32,int32>,std::string> > m_filename_cache;
     boost::shared_ptr<SparseTileCheckBase> m_sparse_tile_check;
     
-    void write_patch( ImageView<PixelT> const& image, std::string const& name, int32 level, int32 x, int32 y ) const {
+    virtual void write_patch( ImageView<PixelT> const& image, std::string const& name, int32 level, int32 x, int32 y ) const {
       PatchInfo info;
       info.name = name;
       info.filepath = compute_image_path( name );

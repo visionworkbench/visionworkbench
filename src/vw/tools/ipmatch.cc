@@ -31,7 +31,7 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Math.h>
-#include <vw/Mosaic.h>
+#include <vw/Mosaic/ImageComposite.h>
 
 using namespace vw;
 using namespace vw::ip;

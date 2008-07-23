@@ -28,11 +28,14 @@
 #ifndef __VW_FILEIO_DISK_IMAGE_RESOUCE_JPEG_H__
 #define __VW_FILEIO_DISK_IMAGE_RESOUCE_JPEG_H__
 
+#include <cstdio>
 #include <string>
 #include <setjmp.h>
+#include <boost/shared_ptr.hpp>
 
 #include <vw/Image/PixelTypes.h>
 #include <vw/FileIO/DiskImageResource.h>
+
 
 namespace vw {
 
@@ -55,7 +58,7 @@ namespace vw {
                            ImageFormat const& format )
       : DiskImageResource( filename )
     {
-      m_subsample_factor = default_subsampilng_factor;
+      m_subsample_factor = default_subsampling_factor;
       m_quality = default_quality;
       m_file_ptr = NULL;
       m_jpg_compress_header = NULL;
@@ -108,17 +111,34 @@ namespace vw {
                                                 ImageFormat const& format );
 
   private:
+    // Forward declare an abstraction class that contains jpeg stuff.
+    class vw_jpeg_decompress_context;
+    friend class vw_jpeg_decompress_context;
     
     std::string m_filename;
     float m_quality;
     int m_subsample_factor;
     void* m_jpg_decompress_header;
     void* m_jpg_compress_header;
-    void* m_file_ptr;
+    FILE* m_file_ptr;
+    size_t m_byte_offset;
 
-    static int default_subsampilng_factor;
+    static int default_subsampling_factor;
     static float default_quality;
-    jmp_buf err_return;
+
+    /* The decompression context. We can't use an auto_ptr here because 
+     * vw_jpeg_decompress_context is forward-declared and the compiler 
+     * will not see its destructor, which means its destructor won't 
+     * actually get called :-( (See the compiler warnings when you try to 
+     * use std::auto_ptr<> here.) Boost's shared_ptr class, however, does 
+     * _not_ have this problem, and is perfectly safe to use in this case.
+    */
+    mutable boost::shared_ptr<vw_jpeg_decompress_context> m_decompress_context;
+
+    /* Resets the decompression context and current point in the file to 
+     * the beginning.
+    */
+    void read_reset() const;
 
   };
 

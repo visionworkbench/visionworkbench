@@ -83,40 +83,6 @@ namespace mosaic {
 
   };
 
-
-  /// A transform functor that relates unprojected lon/lat 
-  /// coordinates in degrees to an unprojected pixel space 
-  /// cooresponding to a standard global TMS image quad-tree.
-  class GlobalTMSTransform : public TransformHelper<GlobalTMSTransform,ConvexFunction,ConvexFunction>
-  {
-    double resolution;
-  public:
-    GlobalTMSTransform( int resolution ) : resolution(resolution) {}
-    
-    // Convert degrees lat/lon to pixel location.  Wrap points that
-    // are in the longitude range of [180,360] around to [-180,0].
-    inline Vector2 forward( Vector2 const& p ) const {
-      return resolution*Vector2( p.x()+180.0, 270.0-p.y() )/360.0 - Vector2(0.5,0.5);
-    }
-    
-    // Convert pixel location to degrees lat/lon
-    inline Vector2 reverse( Vector2 const& p ) const {
-      return Vector2( 360.0*(p.x()+0.5)/resolution-180.0, 270.0-360.0*(p.y()+0.5)/resolution );
-    }
-
-    template <class TransformT>
-    static inline int compute_resolution( TransformT const& tx, Vector2 const& pixel ) {
-      Vector2 pos = tx.forward( pixel );
-      Vector2 x_vector = tx.forward( pixel+Vector2(1,0) ) - pos;
-      Vector2 y_vector = tx.forward( pixel+Vector2(0,1) ) - pos;
-      double degrees_per_pixel = (std::min)( norm_2(x_vector), norm_2(y_vector) );
-      double pixels_per_circumference = 360.0 / degrees_per_pixel;
-      int scale_exponent = (int) ceil( log(pixels_per_circumference)/log(2) );
-      int resolution = 1 << scale_exponent;
-      return resolution;
-    }
-  };
-
 } // namespace mosaic
 } // namespace vw
 

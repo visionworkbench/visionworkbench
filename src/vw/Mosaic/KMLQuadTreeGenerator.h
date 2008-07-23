@@ -118,20 +118,17 @@ namespace mosaic {
      * we stop using 4 branches at each node, and instead use 3 (merging 
      * the top or bottom two) as |latitude| increases.
     */
-    virtual ImageView<PixelT> generate_branch( std::string name, int32 level, BBox2i const& bbox, int32 width_patch_size, const ProgressCallback &progress_callback )
+    virtual ImageView<PixelT> generate_branch( std::string name, int32 level, BBox2i const& bbox, const ProgressCallback &progress_callback )
     {
       progress_callback.report_progress(0);
       if(progress_callback.abort_requested())
         vw_throw(Aborted() << "Aborted by ProgressCallback" );
       ImageView<PixelT> image;
-      bool wide_image;
 
-      if(bbox.width() != bbox.height()) wide_image = true;
-      else wide_image = false;
       int height = this->m_patch_size;
-      int width = width_patch_size;
+      int width = this->m_patch_size;
 
-      // Reject patches that fall otuside the crop region
+      // Reject patches that fall outside the crop region
       if(!bbox.intersects( this->m_crop_bbox ) ) {
         vw_out(DebugMessage, "mosaic") << "\tIgnoring empty image: " << name << std::endl;
         image.set_size(width, height);
@@ -154,6 +151,8 @@ namespace mosaic {
 
         if( data_bbox != bbox )
             image = edge_extend( image, bbox - data_bbox.min(), ZeroEdgeExtension() );
+        if( image.cols() != this->m_patch_size )
+          image = subsample( image, image.cols() / this->m_patch_size, 1);
       } else {
         ImageView<PixelT> big_image(2*width, 2*height);
         SubProgressCallback spcb0(progress_callback, 0., .25);
@@ -169,25 +168,25 @@ namespace mosaic {
         // Top half of the quadtree.
         if(center_lat > 0 && merge) {
           // Merge the top half of this part of the quadtree.
-          crop(big_image, 0, 0, 2*width_patch_size, this->m_patch_size) =
-              resize( generate_branch( name+"4", level-1, BBox2i(bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height()/2), 2*width_patch_size, spcb4), 2*width_patch_size, this->m_patch_size );
+          crop(big_image, 0, 0, 2*this->m_patch_size, this->m_patch_size) =
+              resize( generate_branch( name+"4", level-1, BBox2i(bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height()/2), spcb4), 2*this->m_patch_size, this->m_patch_size );
         } else {
           // Do not merge the top half.
-          crop(big_image, 0, 0, width_patch_size, this->m_patch_size) =
-              generate_branch( name+"0", level-1, BBox2i(bbox.min().x(), bbox.min().y(), bbox.width()/2, bbox.height()/2), width_patch_size, spcb0 );
-          crop(big_image, width_patch_size, 0, width_patch_size, this->m_patch_size) =
-              generate_branch( name+"1", level-1, BBox2i(bbox.min().x() + bbox.width()/2, bbox.min().y(), bbox.width()/2, bbox.height()/2), width_patch_size, spcb1 );
+          crop(big_image, 0, 0, this->m_patch_size, this->m_patch_size) =
+              generate_branch( name+"0", level-1, BBox2i(bbox.min().x(), bbox.min().y(), bbox.width()/2, bbox.height()/2), spcb0 );
+          crop(big_image, this->m_patch_size, 0, this->m_patch_size, this->m_patch_size) =
+              generate_branch( name+"1", level-1, BBox2i(bbox.min().x() + bbox.width()/2, bbox.min().y(), bbox.width()/2, bbox.height()/2), spcb1 );
         }
         
         // Bottom half of the quadtree.
         if(center_lat < 0 && merge) {
-          crop(big_image, 0, this->m_patch_size, 2*width_patch_size, this->m_patch_size) =
-            resize( generate_branch( name+"5", level-1, BBox2i(bbox.min().x(), bbox.min().y()+bbox.height()/2, bbox.width(), bbox.height()/2), 2*width_patch_size, spcb4 ), 2*width_patch_size, this->m_patch_size );
+          crop(big_image, 0, this->m_patch_size, 2*this->m_patch_size, this->m_patch_size) =
+            resize( generate_branch( name+"5", level-1, BBox2i(bbox.min().x(), bbox.min().y()+bbox.height()/2, bbox.width(), bbox.height()/2), spcb4 ), 2*this->m_patch_size, this->m_patch_size );
         } else {
-          crop(big_image, 0, this->m_patch_size, width_patch_size, this->m_patch_size) =
-              generate_branch( name+"2", level-1, BBox2i(bbox.min().x(), bbox.min().y()+bbox.height()/2, bbox.width()/2, bbox.height()/2), width_patch_size, spcb2 );
-          crop(big_image, width_patch_size, this->m_patch_size, width_patch_size, this->m_patch_size) =
-              generate_branch( name+"3", level-1, BBox2i(bbox.min().x()+bbox.width()/2, bbox.min().y()+bbox.height()/2, bbox.width()/2, bbox.height()/2), width_patch_size, spcb3 );
+          crop(big_image, 0, this->m_patch_size, this->m_patch_size, this->m_patch_size) =
+              generate_branch( name+"2", level-1, BBox2i(bbox.min().x(), bbox.min().y()+bbox.height()/2, bbox.width()/2, bbox.height()/2), spcb2 );
+          crop(big_image, this->m_patch_size, this->m_patch_size, this->m_patch_size, this->m_patch_size) =
+              generate_branch( name+"3", level-1, BBox2i(bbox.min().x()+bbox.width()/2, bbox.min().y()+bbox.height()/2, bbox.width()/2, bbox.height()/2), spcb3 );
         }
 
         std::vector<float> kernel(2);
@@ -362,7 +361,7 @@ namespace mosaic {
       vw_out(DebugMessage, "mosaic") << "Generating " << this->m_base_dir << " quadtree with " << this->m_tree_levels << " levels." << std::endl;
 
       int tree_size = this->m_patch_size * (1 << (this->m_tree_levels-1));
-      generate_branch("r", this->m_tree_levels-1, BBox2i(0,0,tree_size,tree_size), this->m_patch_size, progress_callback);
+      generate_branch("r", this->m_tree_levels-1, BBox2i(0,0,tree_size,tree_size), progress_callback);
       progress_callback.report_finished();
     }
 

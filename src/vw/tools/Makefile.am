@@ -92,10 +92,7 @@ endif
 
 # Command-line tools based on the Mosaic module
 if MAKE_MODULE_MOSAIC
-mosaic_progs = qtree blend
-# Generates a quad-tree representation of an image
-qtree_SOURCES = qtree.cc
-qtree_LDADD = @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
+mosaic_progs = blend
 # Blends multiple images into a composite
 blend_SOURCES = blend.cc
 blend_LDADD = @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
@@ -105,13 +102,10 @@ endif
 if MAKE_MODULE_CARTOGRAPHY
 if MAKE_MODULE_MOSAIC
 if HAVE_PKG_GDAL
-cart_mos_progs = image2kml image2tms geoblend
-# Generates a KML superoverlay from a georeferenced image
-image2kml_SOURCES = image2kml.cc
-image2kml_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
-# Generates a TMS map heirarchy from a georeferenced image
-image2tms_SOURCES = image2tms.cc
-image2tms_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
+cart_mos_progs = image2qtree geoblend
+# Generates a quadtree of some sort from a georeferenced image
+image2qtree_SOURCES = image2qtree.cc
+image2qtree_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
 # Creates a blended composite from multiple georeferenced images
 geoblend_SOURCES = geoblend.cc
 geoblend_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
