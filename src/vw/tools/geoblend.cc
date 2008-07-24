@@ -61,11 +61,10 @@ std::string channel_type_str;
 unsigned cache_size;
 bool draft;
 unsigned int tilesize;
-bool tile_output;
+bool tile_output = false;
 unsigned int patch_size, patch_overlap;
 float nodata_value;
 bool has_nodata_value = false;
-bool do_no_output_alpha;
 
 // Creates an alpha channel based on pixels with a value of zero.  The
 // first version covers scalar types.  The remaining versions cover
@@ -273,15 +272,28 @@ void do_blend() {
     vw_out(vw::VerboseDebugMessage) << "Output image:" << std::endl
                                     << "\tTransform: " << output_affine << std::endl
                                     << "\t\tBBox: " << output_georef.bounding_box(composite) << " [ W: " << output_georef.bounding_box(composite).width() << " H: " << output_georef.bounding_box(composite).height() << " ]" << std::endl << std::endl;
+
     std::string mosaic_filename = mosaic_name+".blend."+output_file_type;
+    DiskImageResourceGDAL *out_resource;
+    ImageViewRef<PixelT> out_image;
+
+    // Specify the output image resource.
     if (has_nodata_value) {
-      write_georeferenced_image( mosaic_filename, mask_to_nodata( channel_cast_rescale<typename PixelChannelType<PixelT>::type>(composite), nodata_value), output_georef, blending_pc);
-    }
-    else if (do_no_output_alpha) {
-      write_georeferenced_image( mosaic_filename, pixel_cast<PixelT>(channel_cast_rescale<typename PixelChannelType<PixelT>::type>(composite)), output_georef, blending_pc);
+      out_image = pixel_cast<PixelT>( mask_to_nodata( channel_cast_rescale<typename PixelChannelType<PixelT>::type>(composite), nodata_value ) );
     } else {
-      write_georeferenced_image( mosaic_filename, channel_cast_rescale<typename PixelChannelType<PixelT>::type>(composite), output_georef, blending_pc);
+      out_image = pixel_cast<PixelT>( channel_cast_rescale<typename PixelChannelType<PixelT>::type>(composite) );
     }
+
+    // Set up tiled TIFF output, if it's specified.
+    if(tilesize > 0)
+      out_resource = new DiskImageResourceGDAL( mosaic_filename, out_image.format(), Vector2i(tilesize, tilesize) );
+    else
+      out_resource = new DiskImageResourceGDAL( mosaic_filename, out_image.format() );
+
+    // Finally, write.
+    write_georeference(*out_resource, output_georef);
+    write_image(*out_resource, out_image, blending_pc);
+    delete out_resource;
   }
   blending_pc.report_finished();
 
@@ -297,14 +309,13 @@ int main( int argc, char *argv[] ) {
       ("mosaic-name,o", po::value<std::string>(&mosaic_name)->default_value("mosaic"), "Explicitly specify the input directory")
       ("output-file-type,t", po::value<std::string>(&output_file_type)->default_value("tif"), "Output file type")
       ("tile-output", "Output the leaf tiles of a quadtree, instead of a single blended image.")
-//      ("tiled-tiff", po::value<unsigned int>(&tilesize)->default_value(0), "Output a tiled TIFF image, with given tile size (0 disables, TIFF only)")
+      ("tiled-tiff", po::value<unsigned int>(&tilesize)->default_value(0), "Output a tiled TIFF image, with given tile size (0 disables, TIFF only)")
       ("patch-size", po::value<unsigned int>(&patch_size)->default_value(256), "Patch size for tiled output, in pixels")
       ("patch-overlap", po::value<unsigned int>(&patch_overlap)->default_value(0), "Patch overlap for tiled output, in pixels")
       ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
       ("draft", po::value<bool>(&draft)->default_value(false), "Draft mode (no blending)")
-      ("ignore-alpha", "Ignore the alpha channel of the input images.")
-      ("no-output-alpha", po::value<bool>(&do_no_output_alpha)->default_value(false), "Do not write an alpha channel in the output image")
-      ("nodata-value", po::value<float>(&nodata_value), "Pixel value to use for nodata in input and output")
+      ("ignore-alpha", "Ignore the alpha channel of the input images, and don't write an alpha channel in output.")
+      ("nodata-value", po::value<float>(&nodata_value), "Pixel value to use for nodata in input and output (when there's no alpha channel)")
       ("channel-type", po::value<std::string>(&channel_type_str), "Images' channel type. One of [uint8, uint16, int16, float].")
       ("verbose", "Verbose output");
 
@@ -341,7 +352,7 @@ int main( int argc, char *argv[] ) {
       vw::set_debug_level(vw::VerboseDebugMessage);
     }
 
-    if(vm.count("tile-output")) tile_output = true; else tile_output = false;
+    if(vm.count("tile-output")) tile_output = true;
 
     if( patch_size <= 0 ) {
       std::cerr << "Error: The patch size must be a positive number!  (You specified " << patch_size << ".)" << std::endl;
