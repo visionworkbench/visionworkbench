@@ -76,9 +76,9 @@ namespace vw {
     class RasterizeFunctor {
       ImageT const& m_src;
       DestT const& m_dest;
-      Vector2 m_offset;
+      Vector2i m_offset;
     public:
-      RasterizeFunctor( ImageT const& src, DestT const& dest, Vector2 const& offset )
+      RasterizeFunctor( ImageT const& src, DestT const& dest, Vector2i const& offset )
         : m_src(src), m_dest(dest), m_offset(offset) {}
       void operator()( BBox2i const& bbox ) const {
         m_src.rasterize( crop( m_dest, bbox+m_offset ), bbox );

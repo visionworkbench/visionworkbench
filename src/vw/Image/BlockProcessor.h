@@ -104,6 +104,10 @@ namespace vw {
         boost::shared_ptr<Thread> thread( new Thread( generator ) );
         threads.push_back( thread );
       }
+
+      for( int i=0; i<m_num_threads; ++i ) {
+        threads[i]->join();
+      }
     }
 
   };
