@@ -158,6 +158,17 @@ AC_DEFUN([AX_PKG],
     elif test "x$HAVE_PKG_$1" = "xyes" ; then
       AC_MSG_RESULT([yes (using user-supplied flags)])
 
+      # Add package-specific cppflags/ldflags to what we have so far.
+      # This is necessary for systems that have one version of a library 
+      # installed in a default location, and another that they want to use 
+      # instead in a separate location.
+      if test -n ${PKG_$1_CPPFLAGS} ; then
+        VW_CPPFLAGS="${PKG_$1_CPPFLAGS} ${VW_CPPFLAGS}"
+      fi
+      if test -n ${PKG_$1_LDFLAGS} ; then
+        VW_LDFLAGS="${PKG_$1_LDFLAGS} ${VW_LDFLAGS}"
+      fi
+
     # Otherwise we look for a path that contains the needed headers and libraries
     else
 

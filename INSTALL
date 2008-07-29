@@ -189,6 +189,27 @@ variable is, of course, called "PREFIX".
 Common Problems
 ===============
 
+* I have (library X) installed in one location that I want to use, and 
+there's another version installed system-wide. How do I get Vision 
+Workbench to build with the version I want?
+
+Due to limitations in the underlying build system tools, the 
+autodetection will always detect the system-installed library and ignore 
+different installations, even if the PKG_PATHS environment variable is 
+set. To get around this, set the following environment variables (where 
+X is the name of the library as known by the configure script's 
+--with-X, in caps):
+
+HAVE_PKG_X=yes
+PKG_X_CPPFLAGS="-I/path/to/include/directory"
+PKG_X_LDFLAGS="-L/path/to/library/directory"
+
+(These can be set in the config.options file.) Vision Workbench should 
+then link against the library in the location specified in this manner.
+
+
+* Vision Workbench crashes when opening a TIFF/GeoTIFF file!
+
 When linking against a GDAL library that uses an internal libtiff, the 
 opening of TIFF files can fail to function correctly when Vision 
 Workbench also links against another libtiff. To see whether or not 
