@@ -30,6 +30,15 @@
 namespace vw { 
 namespace camera {
 
+  struct ExifDateTime {
+    uint16 m_year;       // 4-digit
+    uint8  m_month;      // 1-12
+    uint8  m_day;        // 0-31
+    uint8  m_hour;       // 0-23
+    uint8  m_minute;    // 0-59
+    uint8  m_second;    // 0-59
+  };
+
   /// Convenience constants for use in querying by tag value. Names are
   /// of the form EXIF_<Field name>, with the original capitalization of
   /// the field name retained. Some obscure tags may not be listed, but
@@ -150,11 +159,17 @@ namespace camera {
     void query_by_tag(const uint16 tag, int& value) const;
     void query_by_tag(const uint16 tag, double& value) const;
     void query_by_tag(const uint16 tag, std::string& value) const;
+    void query_by_tag(const uint16 tag, ExifDateTime& value) const;
 
     
     // Camera info
     std::string get_make() const;
     std::string get_model() const;
+
+    // Date and time
+    ExifDateTime get_modification_time() const;
+    ExifDateTime get_capture_time() const;
+    ExifDateTime get_digitization_time() const;
     
     // Camera settings
     double get_f_number() const;

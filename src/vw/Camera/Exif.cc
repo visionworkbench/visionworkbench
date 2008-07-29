@@ -24,6 +24,8 @@
 #include <vw/Camera/Exif.h>
 
 #include <math.h>
+#include <iostream>
+#include <sstream>
 
 // --------------------------------------------------------------
 //                   ExifView
@@ -56,6 +58,22 @@ void vw::camera::ExifView::query_by_tag(const uint16 tag, std::string& value) co
   if (!success) vw_throw(ExifErr() << "Could not read EXIF tag: " << tag << ".");
 }
 
+// Query the data by tag ID (common tags are enumerated at the top if
+// Exif.h)
+void vw::camera::ExifView::query_by_tag(const uint16 tag, vw::camera::ExifDateTime& value) const {
+  std::string date_in_ascii;
+  bool success = m_data.get_tag_value(tag, date_in_ascii);
+  if (!success) vw_throw(ExifErr() << "Could not read EXIF tag: " << tag << ".");
+  std::istringstream in(date_in_ascii);
+  int tmp;
+  tmp = 0; while (!isdigit(in.peek()) && !in.eof()) in.get(); in >> tmp; value.m_year   = tmp;
+  tmp = 0; while (!isdigit(in.peek()) && !in.eof()) in.get(); in >> tmp; value.m_month  = tmp;
+  tmp = 0; while (!isdigit(in.peek()) && !in.eof()) in.get(); in >> tmp; value.m_day    = tmp;
+  tmp = 0; while (!isdigit(in.peek()) && !in.eof()) in.get(); in >> tmp; value.m_hour   = tmp;
+  tmp = 0; while (!isdigit(in.peek()) && !in.eof()) in.get(); in >> tmp; value.m_minute = tmp;
+  tmp = 0; while (!isdigit(in.peek()) && !in.eof()) in.get(); in >> tmp; value.m_second = tmp;
+}
+
 // Camera info
 std::string vw::camera::ExifView::get_make() const {
   std::string make;
@@ -67,6 +85,27 @@ std::string vw::camera::ExifView::get_model() const {
   std::string model;
   query_by_tag(EXIF_Model, model);
   return model;
+}
+
+// Get date and time of file modification from EXIF
+vw::camera::ExifDateTime vw::camera::ExifView::get_modification_time() const {
+  vw::camera::ExifDateTime date_time;
+  query_by_tag(EXIF_DateTime, date_time);
+  return date_time;
+}
+
+// Get date and time of image capture from EXIF
+vw::camera::ExifDateTime vw::camera::ExifView::get_capture_time() const {
+  vw::camera::ExifDateTime date_time;
+  query_by_tag(EXIF_DateTimeOriginal, date_time);
+  return date_time;
+}
+
+// Get date and time of image digitization from EXIF
+vw::camera::ExifDateTime vw::camera::ExifView::get_digitization_time() const {
+  vw::camera::ExifDateTime date_time;
+  query_by_tag(EXIF_DateTimeDigitized, date_time);
+  return date_time;
 }
 
 // Camera settings
