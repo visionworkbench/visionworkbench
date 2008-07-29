@@ -43,71 +43,237 @@
 #include <vw/Image/Manipulation.h>
 #include <vw/FileIO/DiskImageResourcePNG.h>
 
-namespace vw {
+using namespace vw;
 
-  // *******************************************************************
-  // The PNG library interface class
-  // *******************************************************************
+/************************************************************************
+ ********************** PNG CONTEXT STRUCTURES **************************
+ **** These things encapsulate the read/write to the PNG file itself. ***
+************************************************************************/
+// Common stuff for both the read and write contexts.
+struct DiskImageResourcePNG::vw_png_context {
+  // The PNG comments
+  std::vector<DiskImageResourcePNG::Comment> comments;
 
-  class DiskImageResourceInfoPNG {
-    std::string m_filename;
-    bool m_readable;
-    bool m_palette_based;
-    bool m_use_palette_indices;
-    ImageFormat &m_format;
-    std::vector<DiskImageResourcePNG::Comment> comments;
-    ImageView<PixelRGBA<uint8> > m_palette;
+  vw_png_context(DiskImageResourcePNG *outer) {
+    this->outer = outer;
+  }
 
-    static void read_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
-      std::fstream *fs = (std::fstream*) png_get_io_ptr(png_ptr);
-      fs->read( (char*)data, length );
+  virtual ~vw_png_context() { }
+
+protected:
+  // Pointer to the containing class, necessary to access some of its 
+  // members.
+  DiskImageResourcePNG *outer;
+
+  // Structures from libpng.
+  png_structp png_ptr;
+  png_infop info_ptr;
+
+  // Pointer to actual file on disk. shared_ptr instead of std::auto_ptr
+  // because of problems with auto_ptr's deletion.
+  boost::shared_ptr<std::fstream> m_file;
+};
+
+
+// Context for reading.
+struct DiskImageResourcePNG::vw_png_read_context:
+  public DiskImageResourcePNG::vw_png_context
+{
+
+  // Current line we're at in the image.
+  int current_line;
+  boost::shared_array<uint8> scanline;
+  int scanline_size;
+
+  // Other image data.
+  int bytes_per_channel;
+  int channels;
+  bool interlaced;
+
+  // Open a PNG context from a file, for reading.
+  vw_png_read_context(DiskImageResourcePNG *outer):
+    vw_png_context(outer)
+  {
+    uint32 cols;
+    uint32 rows;
+    int bit_depth;
+    int color_type;
+    int interlace_type;
+    int channels;
+    int filter_method;
+    int compression_type;
+//    int num_passes; // For interlacing :-(
+
+    m_file = boost::shared_ptr<std::fstream>( new std::fstream( outer->m_filename.c_str(), std::ios_base::in | std::ios_base::binary ) );
+    if(!m_file)
+      vw_throw(IOErr() << "DiskImageResourcePNG: Unable to open input file " << outer->m_filename << ".");
+
+    // Read the first 8 bytes to make sure it's actually a PNG.
+    char sig[8];
+    m_file->read(sig, 8);
+    bool is_png = !png_sig_cmp((png_byte*)sig, 0, 8);
+    if(!is_png)
+      vw_throw(IOErr() << "DiskImageResourcePNG: Input file " << outer->m_filename << " is not a valid PNG file.");
+
+    // Allocate the structures.
+    png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING,
+                                     NULL, NULL, NULL);
+    if(!png_ptr)
+      vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create read structure for file " << outer->m_filename << ".");
+
+    info_ptr = png_create_info_struct(png_ptr);
+    if(!info_ptr) {
+      png_destroy_read_struct(&png_ptr, NULL, NULL);
+      vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create info structure for file " << outer->m_filename << ".");
     }
 
-    static void write_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
-      std::fstream *fs = (std::fstream*) png_get_io_ptr(png_ptr);
-      fs->write( (char*)data, length );
+    endinfo_ptr = png_create_info_struct(png_ptr);
+    if(!endinfo_ptr) {
+      png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
+      vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create info structure for file " << outer->m_filename << ".");
     }
 
-    static void flush_data( png_structp png_ptr ) {
-        std::fstream *fs = (std::fstream*) png_get_io_ptr(png_ptr);
-        fs->flush();
-    }
-    
-    void read_init( std::fstream &fs, png_structp &png_ptr, png_infop &info_ptr, png_infop &end_ptr ) {
-      char header[8];
-      fs.read( header, 8 );
-      if ( !fs || png_sig_cmp((png_bytep)header,0,8) )
-        vw_throw( IOErr() << "Input file " << m_filename << " is not a valid PNG file." );
-      
-      png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING,0,0,0);
-      if ( !png_ptr ) vw_throw( IOErr() << "Unable to initialize PNG reader." );
-      
-      info_ptr = png_create_info_struct(png_ptr);
-      if ( !info_ptr ) vw_throw( IOErr() << "Unable to initialize PNG reader." );
-      
-      end_ptr = png_create_info_struct(png_ptr);
-      if (!end_ptr) vw_throw( IOErr() << "Unable to initialize PNG reader." );
-      
-      png_set_read_fn(png_ptr, (voidp)&fs, read_data);
-      
-      png_set_sig_bytes(png_ptr, 8);
-  
-      png_read_info(png_ptr, info_ptr);
-    }
+    // Rewind to the beginning of the file.
+    png_set_sig_bytes(png_ptr, 8);
 
-    void read_comments( png_structp &png_ptr, png_infop &info_ptr ) {
-      png_text *text_ptr;
-      int num_comments = png_get_text(png_ptr, info_ptr, &text_ptr, 0);
-      comments.clear();
-      for ( int i=0; i<num_comments; ++i ) {
-        DiskImageResourcePNG::Comment c;
-        c.key = text_ptr[i].key;
-        c.text = text_ptr[i].text;
+    // Fetch the comments.
+    read_comments();
+
+    // Set up expansion. Palette images get expanded to RGB, grayscale 
+    // images of less than 8 bits per channel are expanded to 8 bits per 
+    // channel, and tRNS chunks are expanded to alpha channels.
+    png_set_expand(png_ptr);
+
+    // Must call this as we're using fstream and not FILE*
+    png_set_read_fn(png_ptr, (voidp)m_file.get(), read_data);
+
+    // Read up to the start of the data, and set some values.
+    png_read_info(png_ptr, info_ptr);
+    png_get_IHDR(png_ptr, info_ptr, (png_uint_32*)(&cols), (png_uint_32*)(&rows), &bit_depth, &color_type, &interlace_type, &compression_type, &filter_method);
+
+    switch(bit_depth) {
+      case 1:
+      case 2:
+      case 4:
+      case 8:
+        bytes_per_channel = 1;
+        outer->m_format.channel_type = VW_CHANNEL_UINT8;
+        break;
+      case 16:
+        bytes_per_channel = 2;
+        outer->m_format.channel_type = VW_CHANNEL_UINT16;
+        break;
+      default:
+        // Unreachable
+        bytes_per_channel = 1;
+        outer->m_format.channel_type = VW_CHANNEL_UINT8;
+        break;
+    }
+    switch(color_type) {
+      case PNG_COLOR_TYPE_GRAY:
+        channels = 1;
+        outer->m_format.pixel_format = VW_PIXEL_GRAY;
+        break;
+      case PNG_COLOR_TYPE_GRAY_ALPHA:
+        channels = 2;
+        outer->m_format.pixel_format = VW_PIXEL_GRAYA;
+        break;
+      case PNG_COLOR_TYPE_PALETTE:
+        channels = 3;
+        outer->m_format.pixel_format = VW_PIXEL_RGB;
+        if( png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) ) {
+          channels++;
+          outer->m_format.pixel_format = VW_PIXEL_RGBA;
+        }
+        break;
+      case PNG_COLOR_TYPE_RGB:
+        channels = 3;
+        outer->m_format.pixel_format = VW_PIXEL_RGB;
+        break;
+      case PNG_COLOR_TYPE_RGB_ALPHA:
+        channels = 4;
+        outer->m_format.pixel_format = VW_PIXEL_RGBA;
+        break;
+      default:
+        // Unreachable
+        channels = 4;
+        outer->m_format.pixel_format = VW_PIXEL_RGBA;
+        break;
+    }
+    if(interlace_type != PNG_INTERLACE_NONE)
+      interlaced = true;
+    else
+      interlaced = false;
+
+    png_read_update_info(png_ptr, info_ptr);
+    png_get_IHDR(png_ptr, info_ptr, (png_uint_32*)(&cols), (png_uint_32*)(&rows), &bit_depth, &color_type, &interlace_type, &compression_type, &filter_method);
+
+    outer->m_format.cols = cols;
+    outer->m_format.rows = rows;
+    outer->m_format.planes = 1;
+
+    // Allocate the scanline.
+    scanline_size = cols * bytes_per_channel * channels;
+    scanline = boost::shared_array<uint8>(new uint8[scanline_size]);
+    png_start_read_image(png_ptr);
+
+    current_line = 0;
+  }
+
+  virtual ~vw_png_read_context() {
+    png_read_end(png_ptr, endinfo_ptr);
+    png_destroy_read_struct(&png_ptr, &info_ptr, &endinfo_ptr);
+    m_file->close();
+  }
+
+  void readline() {
+    png_read_row(png_ptr, (png_bytep)scanline.get(), NULL);
+    current_line++;
+  }
+
+  void readall(boost::scoped_array<uint8> &dst) {
+    if(current_line != 0)
+      vw_throw(IOErr() << "DiskImageResourcePNG: cannot read entire file unless line marker set at beginning.");
+    png_bytep row_pointers[outer->m_format.rows];
+    for(int i=0; i < outer->m_format.rows; i++)
+      row_pointers[i] = (png_bytep)dst.get() + i*scanline_size;
+    png_read_image(png_ptr, row_pointers);
+    current_line = outer->m_format.rows;
+  }
+
+
+  // Advances place in the image by line lines.
+  void advance(size_t lines) {
+    for(size_t i = 0; i < lines; i++) {
+      png_read_row(png_ptr, NULL, NULL);
+      current_line++;
+    }
+  }
+
+private:
+  // Structures from libpng.
+  png_infop endinfo_ptr;
+
+  // Function for reading data, given to PNG.
+  static void read_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
+    std::fstream *fs = (std::fstream*)png_get_io_ptr(png_ptr);
+    fs->read( (char*)data, length );
+  }
+
+  // Fetches the comments out of the PNG when we first open it.
+  void read_comments() {
+    png_text *text_ptr;
+    int num_comments = png_get_text(png_ptr, info_ptr, &text_ptr, 0);
+    comments.clear();
+    for ( int i=0; i<num_comments; ++i ) {
+      DiskImageResourcePNG::Comment c;
+      c.key = text_ptr[i].key;
+      c.text = text_ptr[i].text;
 #ifdef PNG_iTXt_SUPPORTED
-        c.lang = text_ptr[i].lang;
-        c.lang_key = text_ptr[i].lang_key;
+      c.lang = text_ptr[i].lang;
+      c.lang_key = text_ptr[i].lang_key;
 #endif
-        switch( text_ptr[i].compression ) {
+      switch( text_ptr[i].compression ) {
         case PNG_TEXT_COMPRESSION_NONE:
           c.utf8 = false;
           c.compressed = false;
@@ -129,375 +295,290 @@ namespace vw {
         default:
           vw_out(WarningMessage, "fileio") << "Unsupported PNG comment type in PNG read!" << std::endl;
           continue;
-        }
-        comments.push_back( c );
       }
+      comments.push_back( c );
+    }
+  }
+};
+
+// Context for writing
+struct DiskImageResourcePNG::vw_png_write_context:
+  public DiskImageResourcePNG::vw_png_context
+{
+  int scanline_size;
+
+  vw_png_write_context(DiskImageResourcePNG *outer, const DiskImageResourcePNG::Options &options):
+    vw_png_context(outer)
+  {
+    m_file = boost::shared_ptr<std::fstream>( new std::fstream( outer->m_filename.c_str(), std::ios_base::out | std::ios_base::binary ) );
+    if(!m_file)
+      vw_throw(IOErr() << "DiskImageResourcePNG: Unable to open output file " << outer->m_filename << ".");
+
+    // Allocate the structures.
+    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING,
+                                      NULL, NULL, NULL);
+    if(!png_ptr)
+      vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create read structure for file " << outer->m_filename << ".");
+
+    info_ptr = png_create_info_struct(png_ptr);
+    if(!info_ptr) {
+      png_destroy_read_struct(&png_ptr, NULL, NULL);
+      vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create info structure for file " << outer->m_filename << ".");
     }
 
-    void read_cleanup( png_structp &png_ptr, png_infop &info_ptr, png_infop &end_ptr ) const {
-      if ( png_ptr ) png_destroy_read_struct( &png_ptr, &info_ptr, &end_ptr );
-    }
-    
-    void write_init( std::fstream& fs, png_structp &png_ptr, png_infop &info_ptr ) {
-      png_ptr = 0;
-      info_ptr = 0;
-      png_ptr = png_create_write_struct( PNG_LIBPNG_VER_STRING, 0, 0, 0 );
-      if ( !png_ptr ) vw_throw( IOErr() << "Unable to initialize PNG writer." );
-        
-      png_set_write_fn( png_ptr, (voidp)&fs, write_data, flush_data );
-        
-      info_ptr = png_create_info_struct(png_ptr);
-      if ( !info_ptr ) {
-        png_destroy_write_struct(&png_ptr,&info_ptr);
-        vw_throw( IOErr() << "Unable to initialize PNG writer." );
-      }
+    // Must call this as we're using fstream and not FILE*
+    png_set_write_fn(png_ptr, (voidp)m_file.get(), write_data, flush_data);
 
-      int color_type = 0;
-      if( m_palette_based ) {
-        color_type = PNG_COLOR_TYPE_PALETTE;
-        if ( m_use_palette_indices ) {
-          png_colorp palette = (png_colorp) png_malloc( png_ptr, m_palette.cols() * sizeof(png_color) );
-          png_bytep alpha = (png_bytep) png_malloc( png_ptr, m_palette.cols() * sizeof(png_byte) );
-          for ( int i=0; i<(int)m_palette.cols(); ++i ) {
-            palette[i].red = m_palette(i,0).r();
-            palette[i].green = m_palette(i,0).g();
-            palette[i].blue = m_palette(i,0).b();
-            alpha[i] = m_palette(i,0).a();
-          }
-          png_set_PLTE( png_ptr, info_ptr, palette, m_palette.cols() );
-          png_set_tRNS( png_ptr, info_ptr, alpha, m_palette.cols(), 0 );
-        }
-      }
-      else {
-        switch( m_format.pixel_format ) {
-        case VW_PIXEL_GRAY:  color_type = PNG_COLOR_TYPE_GRAY;       break;
-        case VW_PIXEL_GRAYA: color_type = PNG_COLOR_TYPE_GRAY_ALPHA; break;
-        case VW_PIXEL_RGB:   color_type = PNG_COLOR_TYPE_RGB;        break;
-        case VW_PIXEL_RGBA:  color_type = PNG_COLOR_TYPE_RGB_ALPHA;  break;
-        default:
-          png_destroy_write_struct(&png_ptr,&info_ptr);
-          vw_throw( LogicErr() << "Unexpected pixel format (" << m_format.pixel_format << ") in PNG write." );
-        }
-      }
-        
-      png_set_IHDR( png_ptr, info_ptr, m_format.cols, m_format.rows, (m_format.channel_type==VW_CHANNEL_UINT8) ? 8 : 16,
-                    color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT );
-      png_write_info( png_ptr, info_ptr );
-    }
-
-    void write_cleanup( png_structp &png_ptr, png_infop &info_ptr ) {
-      if ( ! png_ptr ) return;
-      if( m_palette_based && m_use_palette_indices ) {
-        png_colorp palette;
-        //        png_bytep alpha;
-        int tmp;
-        png_get_PLTE( png_ptr, info_ptr, &palette, &tmp );
-      }
-      png_destroy_write_struct( &png_ptr, &info_ptr );
-    }
-
-  public:
-    DiskImageResourceInfoPNG( ImageFormat &format )
-      : m_filename(), m_readable(false), m_palette_based(false), m_use_palette_indices(false), m_format(format) {}
-
-    ~DiskImageResourceInfoPNG() { }
-
-    void open( std::string const& filename ) {
-      m_readable = false;
-      m_filename = filename;
-      std::fstream fs( m_filename.c_str(), std::ios_base::in | std::ios_base::binary );
-      if ( !fs ) vw_throw( IOErr() << "Unable to open input file " << m_filename << "." );
-      png_structp png_ptr;
-      png_infop info_ptr, end_ptr;
-      read_init( fs, png_ptr, info_ptr, end_ptr );
-      read_comments( png_ptr, info_ptr );
-      
-      m_format.cols = png_get_image_width(png_ptr, info_ptr);
-      m_format.rows = png_get_image_height(png_ptr, info_ptr);
-      m_format.planes = 1;
-      int depth = png_get_bit_depth(png_ptr, info_ptr);
-      int type = png_get_color_type(png_ptr, info_ptr);
-      
-      switch( type ) {
-      case PNG_COLOR_TYPE_GRAY:
-        m_format.pixel_format = VW_PIXEL_GRAY;
+    // Set some needed values.
+    int width = outer->m_format.cols;
+    int height = outer->m_format.rows;
+    int channels = num_channels(outer->m_format.pixel_format);
+    int bit_depth = channel_size(outer->m_format.channel_type) * 8;
+    int color_type;
+    switch(outer->m_format.pixel_format) {
+      case VW_PIXEL_GRAY:
+        color_type = PNG_COLOR_TYPE_GRAY;
         break;
-      case PNG_COLOR_TYPE_GRAY_ALPHA:
-        m_format.pixel_format = VW_PIXEL_GRAYA;
+      case VW_PIXEL_GRAYA:
+        color_type = PNG_COLOR_TYPE_GRAY_ALPHA;
         break;
-      case PNG_COLOR_TYPE_RGB:
-        m_format.pixel_format = VW_PIXEL_RGB;
+      case VW_PIXEL_RGB:
+        color_type = PNG_COLOR_TYPE_RGB;
         break;
-      case PNG_COLOR_TYPE_RGB_ALPHA:
-        m_format.pixel_format = VW_PIXEL_RGBA;
-        break;
-      case PNG_COLOR_TYPE_PALETTE: {
-        m_palette_based = true;
-        if ( png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) )
-          m_format.pixel_format = VW_PIXEL_RGBA;
-        else m_format.pixel_format = VW_PIXEL_RGB;
-        break;
-      }
-      default:
-        vw_throw( NoImplErr() << "Unsupported PNG pixel format (" << type << ")." );
-      }
-      
-      switch( depth ) {
-      case 8:
-        m_format.channel_type = VW_CHANNEL_UINT8;
-        break;
-      case 16:
-        m_format.channel_type = VW_CHANNEL_UINT16;
+      case VW_PIXEL_RGBA:
+        color_type = PNG_COLOR_TYPE_RGBA;
         break;
       default:
-        vw_throw( NoImplErr() << "Unsupported PNG pixel depth (" << depth << ")." );
+        color_type = PNG_COLOR_TYPE_RGBA;
+        break;
+    }
+    if(options.using_palette) {
+      color_type = PNG_COLOR_TYPE_PALETTE;
+      channels = 3;
+    }
+    int interlace_type;
+    if(options.using_interlace)
+      interlace_type = PNG_INTERLACE_ADAM7;
+    else
+      interlace_type = PNG_INTERLACE_NONE;
+    int compression_type = PNG_COMPRESSION_TYPE_DEFAULT;
+    int filter_method = PNG_FILTER_TYPE_DEFAULT;
+    png_set_IHDR(png_ptr, info_ptr, width, height, bit_depth, color_type, interlace_type, compression_type, filter_method);
+
+    if(options.using_palette && options.using_palette_indices) {
+      png_colorp palette = (png_colorp) png_malloc( png_ptr, options.palette.cols() * sizeof(png_color) );
+      png_bytep alpha = (png_bytep) png_malloc( png_ptr, options.palette.cols() * sizeof(png_byte) );
+      for ( int i=0; i<(int)options.palette.cols(); ++i ) {
+        palette[i].red = options.palette(i,0).r();
+        palette[i].green = options.palette(i,0).g();
+        palette[i].blue = options.palette(i,0).b();
+        alpha[i] = options.palette(i,0).a();
       }
-      
-      read_cleanup( png_ptr, info_ptr, end_ptr );
-      m_readable = true;
-    }
-
-    void create( std::string const& filename, ImageFormat const& format ) {
-      m_format = format;
-      // If we're asked for a multi-plane scalar format, pretend we've
-      // been asked for the corresponding single-plane multi-channel format.
-      if ( m_format.pixel_format == VW_PIXEL_SCALAR ) {
-        switch( m_format.planes ) {
-        case 1: m_format.pixel_format = VW_PIXEL_GRAY;  break;
-        case 2: m_format.pixel_format = VW_PIXEL_GRAYA; break;
-        case 3: m_format.pixel_format = VW_PIXEL_RGB;   break;
-        case 4: m_format.pixel_format = VW_PIXEL_RGBA;  break;
-        default: vw_throw( ArgumentErr() << "PNG files do not support more than four planes." );
-        }
-        m_format.planes = 1;
+      png_set_PLTE( png_ptr, info_ptr, palette, options.palette.cols() );
+      if(options.using_palette_alpha) {
+        png_set_tRNS( png_ptr, info_ptr, alpha, options.palette.cols(), 0 );
+        channels++;
       }
-      if ( m_format.planes != 1 ) vw_throw( ArgumentErr() << "PNG files do not support multiple images." );
-      if ( m_format.pixel_format!=VW_PIXEL_GRAY && m_format.pixel_format!=VW_PIXEL_GRAYA && 
-          m_format.pixel_format!=VW_PIXEL_RGB  && m_format.pixel_format!=VW_PIXEL_RGBA )
-        vw_throw( ArgumentErr() << "Unrecognized pixel format (" << m_format.pixel_format << ") for PNG image." );
-      if ( m_format.channel_type!=VW_CHANNEL_UINT16 ) m_format.channel_type = VW_CHANNEL_UINT8;
-      m_readable = false;
-      m_filename = filename;
     }
 
-    void read( ImageBuffer const& dest, BBox2i bbox ) {
-      std::fstream fs( m_filename.c_str(), std::ios_base::in | std::ios_base::binary );
-      if ( !fs ) vw_throw( IOErr() << "Unable to open input file " << m_filename << "." );
-      png_structp png_ptr;
-      png_infop info_ptr, end_ptr;
-      read_init( fs, png_ptr, info_ptr, end_ptr );
-      VW_ASSERT( bbox.min().x()>=0 && bbox.min().y()>=0 && bbox.max().x()<=int(m_format.cols) && bbox.max().y()<=int(m_format.rows),
-                 ArgumentErr() << "Requested bounding box extends beyond disk image boundaries in PNG read." );
-      VW_ASSERT( int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
-                 ArgumentErr() << "Destination buffer has wrong dimensions in PNG read." );
+    png_set_compression_level(png_ptr, options.compression_level);
 
-      ImageBuffer src;
-      unsigned Bpp = (m_format.channel_type==VW_CHANNEL_UINT16) ? 2 : 1;
-      unsigned channels = png_get_channels( png_ptr, info_ptr );
+    // Set up the scanline for writing.
+    scanline_size = (bit_depth / 8) * width * channels;
 
-      // Handle palette-based images
-      if( ! m_use_palette_indices ) {
-        int type = png_get_color_type(png_ptr, info_ptr);
-        if ( type == PNG_COLOR_TYPE_PALETTE ) {
-          png_set_palette_to_rgb(png_ptr);
-          if ( png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) ) {
-            png_set_tRNS_to_alpha(png_ptr);
-            channels = 4;
-          }
-          else channels = 3;
-        }
-      }
+    // Finally, write the info out.
+    png_write_info(png_ptr, info_ptr);
+  }
 
-      // This is a terrible hack for detecting little-endian architectures.
-      if ( m_format.channel_type==VW_CHANNEL_UINT16 ) {
-        uint16 x = 1;
-        if ( *(uint8*)&x == 1 ) png_set_swap( png_ptr );
-      }
+  virtual ~vw_png_write_context() {
+    png_write_end(png_ptr, info_ptr);
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+    m_file->close();
+  }
 
-      src.format = m_format;
-      src.cstride = Bpp*channels;
-      src.rstride = m_format.cols*Bpp*channels;
-      src.pstride = m_format.rows*m_format.cols*Bpp*channels;
-      src.unpremultiplied = true;
-      src.format.cols = bbox.width();
+  // Writes the given ImageBuffer (with the same dimensions as m_format)
+  // to the file. Closing happens when the context is destroyed.
+  void write(const ImageBuffer &buf) const {
+    png_bytep row_pointers[outer->m_format.rows];
+    for(int i=0; i < outer->m_format.rows; i++)
+      row_pointers[i] = (uint8*)buf.data + i * scanline_size;
 
-      if( png_get_interlace_type( png_ptr, info_ptr ) != PNG_INTERLACE_NONE || 
-          m_format.cols * m_format.rows * channels * Bpp < (2<<20) ) {
-        // Handle interlaced and small images all at once.
-        std::vector<uint8> buffer(m_format.cols*m_format.rows*channels*Bpp);
-        src.data = &buffer[0] + bbox.min().x()*src.cstride + bbox.min().y()*src.rstride;
-        src.format.rows = bbox.height();
-        std::vector<png_bytep> row_pointers( m_format.rows );
-        for ( int32 i=0; i<m_format.rows; ++i )
-          row_pointers[i] = (png_bytep)(&buffer[0]) + i*src.rstride;
-        png_read_image( png_ptr, &row_pointers[0] );
-        convert( dest, src );
-      }
-      else {
-        // Handle large non-interlaced images one row at a time.
-        // FIXME We should really do multiple rows at a time if 
-        // there are few columns, to avoid overhead in convert().
-        std::vector<uint8> buffer(m_format.cols*channels*Bpp);
-        src.data = &buffer[0] + bbox.min().x()*src.cstride;
-        src.format.rows = 1;
-        ImageBuffer dest_row = dest;
-        dest_row.format.rows = 1;
-        for( int row=0; row<bbox.min().y(); ++row ) {
-          // Skip un-needed rows...
-          png_read_row( png_ptr, &buffer[0], 0 );
-        }
-        for( int row=0; row<bbox.height(); ++row ) {
-          png_read_row( png_ptr, &buffer[0], 0 );
-          convert( dest_row, src );
-          dest_row.data = (uint8*)dest_row.data + dest_row.rstride;
-        }
-      }
+    png_write_image(png_ptr, row_pointers);
+  }
 
-      read_cleanup( png_ptr, info_ptr, end_ptr );
-    }
+private:
+  // Function for libpng to use to write as we're not using FILE*.
+  static void write_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
+    std::fstream *fs = (std::fstream*)png_get_io_ptr(png_ptr);
+    fs->write( (char*)data, length );
+  }
 
-    void write( ImageBuffer const& src ) {
-      std::fstream fs( m_filename.c_str(), std::ios::out | std::ios_base::binary );
-      if ( !fs ) vw_throw( IOErr() << "Unable to open output file \"" << m_filename << "\"." );
-      png_structp png_ptr;
-      png_infop info_ptr;
-      write_init( fs, png_ptr, info_ptr );
-      VW_ASSERT( src.format.cols==m_format.cols && src.format.rows==m_format.rows, IOErr() << "Buffer has wrong dimensions in PNG write." );
-      ImageBuffer dst;
-      unsigned Bpp = (m_format.channel_type==VW_CHANNEL_UINT16) ? 2 : 1;
-      unsigned channels = png_get_channels( png_ptr, info_ptr );
-      std::vector<uint8> buffer(m_format.cols*m_format.rows*channels*Bpp);
-      dst.data = &buffer[0];
-      dst.format = m_format;
-      dst.cstride = Bpp*channels;
-      dst.rstride = m_format.cols*Bpp*channels;
-      dst.pstride = m_format.rows*m_format.cols*Bpp*channels;
-      dst.unpremultiplied = true;
-
-      std::vector<png_bytep> row_pointers( m_format.rows );
-      for ( int32 i=0; i<m_format.rows; ++i )
-        row_pointers[i] = (png_bytep)(dst.data) + i*dst.rstride;
-
-      // This is a terrible hack for detecting little-endian architectures.
-      if ( m_format.channel_type==VW_CHANNEL_UINT16 ) {
-        uint16 x = 1;
-        if ( *(uint8*)&x == 1 ) png_set_swap( png_ptr );
-      }
-
-      convert( dst, src );
-      png_write_image( png_ptr, &row_pointers[0] );
-      png_write_end( png_ptr, info_ptr );
-      write_cleanup( png_ptr, info_ptr );
-    }
-
-    unsigned num_comments() const {
-      return comments.size();
-    }
-
-    DiskImageResourcePNG::Comment const& get_comment( unsigned i ) const {
-      return comments[i];
-    }
-
-    bool is_palette_based() const {
-      return m_palette_based;
-    }
-
-    ImageView<PixelRGBA<uint8> > get_palette() const {
-      return copy( m_palette );
-    }
-
-    void set_palette( ImageView<PixelRGBA<uint8> > const& palette ) {
-      m_palette = copy( palette );
-      m_palette_based = true;
-    }
-
-    void set_use_palette_indices() {
-      if( ! m_palette_based )
-        vw_throw( IOErr() << "PNG file is not palette-based!" );
-      m_use_palette_indices = true;
-      m_format.pixel_format = VW_PIXEL_SCALAR;
-      m_format.channel_type = VW_CHANNEL_UINT8;
-    }
-  };
-
-} // namespace vw
-
+  static void flush_data( png_structp png_ptr) {
+    std::fstream *fs = (std::fstream*)png_get_io_ptr(png_ptr);
+    fs->flush();
+  }
+};
 
 // *********************************************************************
 // Public interface function definitions
 // *********************************************************************
 
-vw::DiskImageResourcePNG::DiskImageResourcePNG( std::string const& filename )
-  : DiskImageResource( filename ), m_info( new DiskImageResourceInfoPNG(m_format) ) {
-  open( filename );
+/***********************************************************************
+ *********************** CONSTRUCTORS & DESTRUCTORS ********************
+***********************************************************************/
+
+DiskImageResourcePNG::DiskImageResourcePNG( std::string const& filename ): DiskImageResource(filename)
+{
+  open(filename);
 }
 
-vw::DiskImageResourcePNG::DiskImageResourcePNG( std::string const& filename, 
-                                                ImageFormat const& format )
-  : DiskImageResource( filename ), m_info( new DiskImageResourceInfoPNG(m_format) ) {
-  create( filename, format );
+DiskImageResource* DiskImageResourcePNG::construct_open( std::string const& filename ) {
+  return new DiskImageResourcePNG( filename );
 }
 
 vw::DiskImageResourcePNG::~DiskImageResourcePNG() {
 }
 
-void vw::DiskImageResourcePNG::open( std::string const& filename ) {
-  m_info->open( filename );
+DiskImageResourcePNG::DiskImageResourcePNG( std::string const& filename, ImageFormat const& format ):
+  DiskImageResource( filename )
+{
+  create( filename, format );
 }
 
-void vw::DiskImageResourcePNG::create( std::string const& filename, 
-                                       ImageFormat const& format ) {
-  m_info->create( filename, format );
+DiskImageResourcePNG::DiskImageResourcePNG( std::string const& filename, ImageFormat const& format, DiskImageResourcePNG::Options const& options):
+  DiskImageResource(filename)
+{
+  create( filename, format, options );
 }
 
-void vw::DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) const {
-  m_info->read( dest, bbox );
-}
-
-void vw::DiskImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox ) {
-  VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
-             NoImplErr() << "DiskImageResourcePNG does not support partial writes." );
-  m_info->write( src );
-}
-
-vw::DiskImageResource* vw::DiskImageResourcePNG::construct_open( std::string const& filename ) {
-  return new DiskImageResourcePNG( filename );
-}
-
-vw::DiskImageResource* vw::DiskImageResourcePNG::construct_create( std::string const& filename,
+DiskImageResource* DiskImageResourcePNG::construct_create( std::string const& filename,
                                                                    ImageFormat const& format ) {
   return new DiskImageResourcePNG( filename, format );
 }
 
-unsigned vw::DiskImageResourcePNG::num_comments() const {
-  return m_info->num_comments();
+/***********************************************************************
+ ************************ STUFF FOR READING ****************************
+***********************************************************************/
+
+void DiskImageResourcePNG::open( std::string const& filename ) {
+  m_ctx = boost::shared_ptr<vw_png_context>( new vw_png_read_context( const_cast<DiskImageResourcePNG *>(this) ) );
 }
 
-vw::DiskImageResourcePNG::Comment const& vw::DiskImageResourcePNG::get_comment( unsigned i ) const {
-  return m_info->get_comment(i);
+void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) const {
+  vw_png_read_context *ctx = dynamic_cast<vw_png_read_context *>(m_ctx.get());
+  const int start_line = bbox.min().y();
+  const int end_line = bbox.max().y();
+  // Error checking.
+  VW_ASSERT( dest.format.cols == cols(), IOErr() << "DiskImageResourcePNG: Destination buffer has different columns than file.");
+  VW_ASSERT( dest.format.rows <= rows(), IOErr() << "DiskImageResourcePNG: Destination buffer has too many rows.");
+  VW_ASSERT(bbox.height() == dest.format.rows, ArgumentErr() << "DiskImageResourcePNG: Destination buffer and requested bounding box have different height.");
+
+  boost::scoped_array<uint8> buf( new uint8[ctx->scanline_size * bbox.height()] );
+  // Interlacing is causing problems when read line-by-line...I think it's
+  // a bug in libpng.
+  if( ctx->interlaced ) {
+    if( bbox.height() != rows() )
+      vw_throw( NoImplErr() << "DiskImageResourcePNG: Reading interlaced files line-by-line is currently unsupported." );
+
+    ctx->readall(buf);
+  } else {
+    // FIXME: Normal operation. Make this what happens all the time when
+    // the libpng bug gets fixed. The bug in question causes the final 
+    // parts of the expanded, interlaced image (the ones we care about) to
+    // seemingly 'lose' a row.
+
+    // If our start line is a spot before the current line, we need to reopen the file.
+    if(start_line < ctx->current_line)
+      read_reset();
+    if(start_line > ctx->current_line)
+      ctx->advance(start_line - ctx->current_line);
+
+    // Now read.
+    while(ctx->current_line < end_line) {
+      ctx->readline();
+
+      // Copy the data over into a contiguous buffer, which is what
+      // convert() expects when we call it below. This extra copy of the 
+      // data is undesirable, but probably not a huge performance hit 
+      // compared to reading the data from disk.
+      for(int i=0; i < ctx->scanline_size; i++)
+        buf[ctx->scanline_size * (ctx->current_line - start_line - 1) + i] =
+          ctx->scanline[i];
+    }
+
+  }
+
+  // Set up an image buffer for convert().
+  ImageBuffer src;
+  src.data = buf.get();
+  src.format = m_format;
+  // The number of rows we're reading may be different, seeing as how we 
+  // can read sequential lines.
+  src.format.rows = bbox.height();
+  src.cstride = ctx->scanline_size / m_format.cols;
+  src.rstride = ctx->scanline_size;
+  src.pstride = ctx->scanline_size * bbox.height();
+  convert(dest, src);
 }
 
-std::string const& vw::DiskImageResourcePNG::get_comment_key( unsigned i ) const {
+void DiskImageResourcePNG::read_reset() const {
+  m_ctx = boost::shared_ptr<DiskImageResourcePNG::vw_png_read_context>( new DiskImageResourcePNG::vw_png_read_context( const_cast<DiskImageResourcePNG *>(this) ) );
+}
+
+unsigned DiskImageResourcePNG::num_comments() const {
+  return m_ctx->comments.size();
+}
+
+DiskImageResourcePNG::Comment const& DiskImageResourcePNG::get_comment( unsigned i ) const {
+  return m_ctx->comments[i];
+}
+
+std::string const& DiskImageResourcePNG::get_comment_key( unsigned i ) const {
   return get_comment(i).key;
 }
 
-std::string const& vw::DiskImageResourcePNG::get_comment_value( unsigned i ) const {
+std::string const& DiskImageResourcePNG::get_comment_value( unsigned i ) const {
   return get_comment(i).text;
 }
 
-bool vw::DiskImageResourcePNG::is_palette_based() const {
-  return m_info->is_palette_based();
+/***********************************************************************
+ ************************ STUFF FOR WRITING ****************************
+***********************************************************************/
+
+void DiskImageResourcePNG::create( std::string const& filename, ImageFormat const& format ) {
+  DiskImageResourcePNG::create( filename, format, DiskImageResourcePNG::Options() );
 }
 
-vw::ImageView<vw::PixelRGBA<vw::uint8> > vw::DiskImageResourcePNG::get_palette() const {
-  return m_info->get_palette();
+void DiskImageResourcePNG::create( std::string const& filename, ImageFormat const& format, DiskImageResourcePNG::Options const& options ) {
+  if(m_ctx.get() != NULL)
+    vw_throw( IOErr() << "DiskImageResourcePNG: A file is already open." );
+
+  m_filename = filename;
+  m_format = format;
+
+  m_ctx = boost::shared_ptr<vw_png_context>( new vw_png_write_context( const_cast<DiskImageResourcePNG *>(this), options ) );
 }
 
-void vw::DiskImageResourcePNG::set_palette( ImageView<PixelRGBA<uint8> > const& palette ) {
-  m_info->set_palette( palette );
-}
+void DiskImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox ) {
+  vw_png_write_context *ctx = dynamic_cast<vw_png_write_context *>( m_ctx.get() );
 
-void vw::DiskImageResourcePNG::set_use_palette_indices() {
-  m_info->set_use_palette_indices();
-}
+  VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
+             NoImplErr() << "DiskImageResourcePNG does not support partial writes." );
+  VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
+             ArgumentErr() << "DiskImageResourcePNG: Buffer has wrong dimensions in PNG write." );
 
+  // Set up the image buffer and convert the data into this buffer.
+  ImageBuffer dst;
+  boost::scoped_array<uint8> buf(new uint8[ctx->scanline_size * bbox.height()]);
+
+  dst.data = buf.get();
+  dst.format = m_format;
+  dst.format.rows = bbox.height();
+  dst.cstride = num_channels(m_format.pixel_format) * channel_size(m_format.channel_type);
+  dst.rstride = dst.cstride * m_format.cols;
+  dst.pstride = dst.rstride * m_format.rows;
+  convert(dst, src);
+
+  // Write.
+  ctx->write(dst);
+}

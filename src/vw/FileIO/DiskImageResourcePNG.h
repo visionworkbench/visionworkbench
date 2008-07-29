@@ -39,10 +39,11 @@
 
 namespace vw {
 
-  class DiskImageResourceInfoPNG;
-
   class DiskImageResourcePNG : public DiskImageResource {
   public:
+
+    // Forward declare the options structure, which gets defined later on.
+    struct Options;
 
     // The standard DiskImageResource interface:
 
@@ -50,6 +51,11 @@ namespace vw {
 
     DiskImageResourcePNG( std::string const& filename, 
                           ImageFormat const& format );
+
+    // Additional constructor for passing in options.
+    DiskImageResourcePNG( std::string const& filename,
+                          ImageFormat const& format,
+                          Options const& options );
     
     virtual ~DiskImageResourcePNG();
     
@@ -68,6 +74,10 @@ namespace vw {
     void create( std::string const& filename,
                  ImageFormat const& format );
 
+    void create( std::string const& filename,
+                 ImageFormat const& format,
+                 Options const& options );
+
     static DiskImageResource* construct_open( std::string const& filename );
 
     static DiskImageResource* construct_create( std::string const& filename,
@@ -85,11 +95,24 @@ namespace vw {
     std::string const& get_comment_key  ( unsigned i ) const;
     std::string const& get_comment_value( unsigned i ) const;
 
-    bool is_palette_based() const;
-    void set_use_palette_indices();
+    // Options that can be passed in while writing. The default is
+    // generally 'good enough'.
+    struct Options {
+      int compression_level; // From 0 to 9
+      bool using_interlace; // Interlace output.
+      bool using_palette; // Output as a palette.
+      bool using_palette_indices; // For setting your own palette.
+      bool using_palette_alpha; // If your palette has an alpha channel.
+      ImageView<PixelRGBA<uint8> > palette; // The palette, set manually.
 
-    ImageView<PixelRGBA<uint8> > get_palette() const;
-    void set_palette( ImageView<PixelRGBA<uint8> > const& palette );
+      Options() {
+        compression_level = 9;
+        using_interlace = false;
+        using_palette = false;
+        using_palette_indices = false;
+        using_palette_alpha = false;
+      }
+    };
 
     // Convenience functions:
 
@@ -97,14 +120,26 @@ namespace vw {
                                     ImageView<uint8> const& image,
                                     ImageView<PixelRGBA<uint8> > const& palette )
     {
-      DiskImageResourcePNG png( filename, image.format() );
-      png.set_palette( palette );
-      png.set_use_palette_indices();
+      Options options;
+      options.using_palette = true;
+      options.using_palette_indices = true;
+      options.using_palette_alpha = true;
+      options.palette = palette;
+
+      DiskImageResourcePNG png( filename, image.format(), options );
       png.write( image.buffer(), BBox2i(0,0,image.cols(),image.rows()) );
     }
 
   private:
-    boost::shared_ptr<DiskImageResourceInfoPNG> m_info;
+    // vw_png_context is declared in the cc file, and unused elsewhere, 
+    // but we have a pointer to it. So forward declare.
+    struct vw_png_context;
+    struct vw_png_read_context;
+    struct vw_png_write_context;
+
+    mutable boost::shared_ptr<vw_png_context> m_ctx;
+
+    void read_reset() const;
   };
 
 } // namespace vw
