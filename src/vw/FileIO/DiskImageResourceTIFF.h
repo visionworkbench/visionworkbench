@@ -76,7 +76,7 @@ namespace vw {
     void check_retval(const int retval, const int error_val) const;
 
   private:
-    boost::shared_ptr<DiskImageResourceInfoTIFF> m_info;
+    mutable boost::shared_ptr<DiskImageResourceInfoTIFF> m_info;
     bool m_use_compression;
   };
 

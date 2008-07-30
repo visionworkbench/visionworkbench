@@ -54,10 +54,19 @@ namespace vw {
     TIFF *tif;
     Vector2i block_size;
     std::string filename;
+    int current_line;
+    bool striped;
 
-    DiskImageResourceInfoTIFF() : tif(0), block_size() {}
+    DiskImageResourceInfoTIFF() : tif(0), block_size(), current_line(0) {}
     ~DiskImageResourceInfoTIFF() { 
       if( tif ) TIFFClose(tif);
+    }
+
+    void reopen_read() {
+      if( tif ) TIFFClose(tif);
+      tif = TIFFOpen(filename.c_str(), "r");
+      if( !tif ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << filename << "\" for reading!" );
+      current_line = 0;
     }
   };
 }
@@ -298,31 +307,33 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
   VW_ASSERT( int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
              ArgumentErr() << "DiskImageResourceTIFF (read) Error: Destination buffer has wrong dimensions!" );
 
-  TIFF* tif = TIFFOpen( m_info->filename.c_str(), "r" );
-  if( !tif ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << m_filename << "\" for reading!" );
+  // Only support sequential reading on striped TIFFs right now.
+  if( !m_info || !(m_info->striped) || (m_info->striped && m_info->current_line > bbox.min().y()) )
+    m_info->reopen_read();
 
   uint16 config = 0, bpsample = 0, nsamples = 0, photometric = 0;
-  check_retval(TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &config), 0);
-  check_retval(TIFFGetField(tif, TIFFTAG_BITSPERSAMPLE, &bpsample), 0);
-  check_retval(TIFFGetField(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples), 0);
-  check_retval(TIFFGetField(tif, TIFFTAG_PHOTOMETRIC, &photometric), 0);
+  check_retval(TIFFGetField(m_info->tif, TIFFTAG_PLANARCONFIG, &config), 0);
+  check_retval(TIFFGetField(m_info->tif, TIFFTAG_BITSPERSAMPLE, &bpsample), 0);
+  check_retval(TIFFGetField(m_info->tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples), 0);
+  check_retval(TIFFGetField(m_info->tif, TIFFTAG_PHOTOMETRIC, &photometric), 0);
 
   bool is_planar = (config == PLANARCONFIG_SEPARATE) && (m_format.pixel_format != VW_PIXEL_SCALAR);
-  bool is_tiled = TIFFIsTiled(tif);
+  bool is_tiled = TIFFIsTiled(m_info->tif);
+  m_info->striped = !is_tiled;
 
   // Compute the tile or strip geometry
   uint32 block_cols, block_rows, block_size, blocks_per_row, blocks_per_plane;
   if( is_tiled ) {
-    check_retval(TIFFGetField(tif, TIFFTAG_TILEWIDTH, &block_cols), 0);
-    check_retval(TIFFGetField(tif, TIFFTAG_TILELENGTH, &block_rows), 0);
-    block_size = TIFFTileSize(tif);
+    check_retval(TIFFGetField(m_info->tif, TIFFTAG_TILEWIDTH, &block_cols), 0);
+    check_retval(TIFFGetField(m_info->tif, TIFFTAG_TILELENGTH, &block_rows), 0);
+    block_size = TIFFTileSize(m_info->tif);
     blocks_per_row = (cols()-1) / block_cols + 1;
     blocks_per_plane = blocks_per_row * ( (rows()-1) / block_rows + 1 );
   }
   else {
     block_cols = cols();
-    check_retval(TIFFGetField( tif, TIFFTAG_ROWSPERSTRIP, &block_rows ), 0);
-    block_size = TIFFStripSize(tif);
+    check_retval(TIFFGetField( m_info->tif, TIFFTAG_ROWSPERSTRIP, &block_rows ), 0);
+    block_size = TIFFStripSize(m_info->tif);
     blocks_per_row = 1;
     blocks_per_plane = (rows()-1) / block_rows + 1;
   }
@@ -346,7 +357,7 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
     buf = _TIFFmalloc( block_cols*block_rows*6 );
     if( !buf ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to malloc!" );
 
-    check_retval(TIFFGetField( tif, TIFFTAG_COLORMAP, &red_table, &green_table, &blue_table ), 0);
+    check_retval(TIFFGetField( m_info->tif, TIFFTAG_COLORMAP, &red_table, &green_table, &blue_table ), 0);
   }
 
   // Set up the source and destination image buffers
@@ -369,8 +380,8 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
       if( is_planar ) {
         // At the moment we make an extra copy here to spoof plane contiguity
         for( int i=0; i<nsamples; ++i ) {
-          if( is_tiled ) check_retval(TIFFReadEncodedTile( tif, block_id+i*blocks_per_plane, plane_buf, (tsize_t) -1 ), -1);
-          else check_retval(TIFFReadEncodedStrip( tif, block_id+i*blocks_per_plane, plane_buf, (tsize_t) -1 ), 0);
+          if( is_tiled ) check_retval(TIFFReadEncodedTile( m_info->tif, block_id+i*blocks_per_plane, plane_buf, (tsize_t) -1 ), -1);
+          else check_retval(TIFFReadEncodedStrip( m_info->tif, block_id+i*blocks_per_plane, plane_buf, (tsize_t) -1 ), 0);
           // Oh man, this is horrible!
           switch(bpsample/8) {
           case 1:
@@ -400,8 +411,8 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
         }
       }
       else if( photometric == PHOTOMETRIC_PALETTE ) {
-        if( is_tiled ) check_retval(TIFFReadEncodedTile( tif, block_id, palette_buf, (tsize_t) -1 ), -1);
-        else check_retval(TIFFReadEncodedStrip( tif, block_id, palette_buf, (tsize_t) -1 ), 0);
+        if( is_tiled ) check_retval(TIFFReadEncodedTile( m_info->tif, block_id, palette_buf, (tsize_t) -1 ), -1);
+        else check_retval(TIFFReadEncodedStrip( m_info->tif, block_id, palette_buf, (tsize_t) -1 ), 0);
         if( photometric == PHOTOMETRIC_PALETTE ) {
           for( int y=data_top; y<data_bottom; ++y ) {
             for( int x=data_left; x<data_right; ++x ) {
@@ -415,10 +426,12 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
         }
       }
       else {
-        if( is_tiled ) 
-          check_retval(TIFFReadEncodedTile( tif, block_id, buf, (tsize_t) -1 ), -1);
-        else 
-          check_retval(TIFFReadEncodedStrip( tif, block_id, buf, (tsize_t) -1 ), -1);
+        if( is_tiled )  {
+          check_retval(TIFFReadEncodedTile( m_info->tif, block_id, buf, (tsize_t) -1 ), -1);
+        } else {
+          check_retval(TIFFReadEncodedStrip( m_info->tif, block_id, buf, (tsize_t) -1 ), -1);
+          m_info->current_line++;
+        }
       }
       
       src_buf.data = (uint8*)buf + data_left*src_buf.cstride + data_top*src_buf.rstride;
@@ -434,7 +447,7 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
   _TIFFfree(buf);
   if( plane_buf ) _TIFFfree(plane_buf);
   if( palette_buf ) _TIFFfree(palette_buf);
-  TIFFClose(tif);
+//  TIFFClose(m_info->tif);
 }
 
 // Write the given buffer into the disk image.
