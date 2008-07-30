@@ -221,7 +221,6 @@ struct DiskImageResourcePNG::vw_png_read_context:
   }
 
   virtual ~vw_png_read_context() {
-    png_read_end(png_ptr, endinfo_ptr);
     png_destroy_read_struct(&png_ptr, &info_ptr, &endinfo_ptr);
     m_file->close();
   }
