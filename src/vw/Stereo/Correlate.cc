@@ -133,7 +133,7 @@ namespace stereo {
 
     int center_pix_x = kern_width/2;
     int center_pix_y = kern_height/2;
-    int two_sigma_sqr = 2*pow(kern_width/2,2);
+    int two_sigma_sqr = 2*pow(kern_width/3,2);
 
     ImageView<float> weight(kern_width, kern_height);
     for (int j = 0; j < kern_height; ++j) {
@@ -196,6 +196,19 @@ namespace stereo {
     return num_good_pix;
   }
 
+
+  struct HuberError { 
+    double m_b;
+    HuberError(double b) : m_b(b) {}
+
+    double operator() (double delta_norm) {
+      if (delta_norm < m_b)
+        return delta_norm*delta_norm;
+      else
+        return 2*m_b*delta_norm - m_b*m_b;
+    }
+  };
+
   template<class ChannelT>
   void subpixel_correlation_affine_2d(ImageView<PixelDisparity<float> > &disparity_map,
                                       ImageView<ChannelT> const& left_image,
@@ -209,6 +222,10 @@ namespace stereo {
                disparity_map.rows() == left_image.rows(),
                ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
 
+    // Robust cost function settings
+    const float thresh = 0.001;
+    HuberError robust_cost_fn(thresh);
+
     int kern_pixels = kern_height * kern_width;
     int weight_threshold = kern_pixels / 4;
 
@@ -221,7 +238,6 @@ namespace stereo {
 
     // Workspace images are allocated up here out of the tight inner
     // loop.  We rasterize into these directly in the code below.
-    ImageView<ChannelT> right_image_patch(kern_width, kern_height);
     ImageView<float> w(kern_width, kern_height);
     
     Vector2 offset;
@@ -233,12 +249,14 @@ namespace stereo {
     double last_time = 0;
     for (int y=kern_height/2; y<left_image.rows()-kern_height/2; ++y) {
       if (verbose && y % 10 == 0) {
-        vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y << " / " << left_image.rows() << "    (" << (sw.elapsed_seconds() - last_time) << " s per 10 scanlines)      \r" << std::flush;
+        sw.stop();
+        vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y << " / " << left_image.rows() << "    (" << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time)) << " pixels/s, "<< sw.elapsed_seconds() << " s total )      \r" << std::flush;
         last_time = sw.elapsed_seconds();
+        sw.start();
       }
       for (int x=kern_width/2; x<left_image.cols()-kern_width/2; ++x) {
         BBox2i current_window(x-kern_width/2, y-kern_height/2, kern_width, kern_height);
-        Vector2 base_offset( -disparity_map(x,y).h() , -disparity_map(x,y).v() );
+        Vector2 base_offset( -disparity_map(x,y).h() , -disparity_map(x,y).v() );          
 
         // Skip over pixels for which we have no initial disparity estimate
         if (disparity_map(x,y).missing())
@@ -259,151 +277,39 @@ namespace stereo {
         CropView<ImageView<ChannelT> > left_image_patch = crop(left_image, current_window);
         CropView<ImageView<float> > I_x = crop(x_deriv, current_window);
         CropView<ImageView<float> > I_y = crop(y_deriv, current_window);
-        
-        // Compute the weight image
-        int good_pixels = adjust_weight_image(w, crop(disparity_map, current_window), weight_template);
-        
-        // Skip over pixels for which there are very few good matches
-        // in the neighborhood.
-        if (good_pixels < weight_threshold) 
-          continue;
-
-        Matrix<float,6,6> rhs;
-//         int window_size = kern_width*kern_height;
-
-//         float I_x_sqr_test[window_size] __attribute__ ((aligned));
-//         float I_y_sqr_test[window_size] __attribute__ ((aligned));
-//         float I_x_I_y_test[window_size] __attribute__ ((aligned));
-//         float ii_test[window_size] __attribute__ ((aligned));
-//         float jj_test[window_size] __attribute__ ((aligned));
-//         float ij_test[window_size] __attribute__ ((aligned));
-//         float i_test[window_size] __attribute__ ((aligned));
-//         float j_test[window_size] __attribute__ ((aligned));
-//         for (int jj=-kern_height/2; jj <= kern_height/2; ++jj) {
-//           for (int ii=-kern_width/2; ii <= kern_width/2; ++ii) {
-//             int i = ii + kern_width/2;
-//             int j = jj + kern_height/2;
-
-//             I_x_sqr_test[kern_width*j+i] = w(i,j) * I_x(i,j) * I_x(i,j);
-//             I_y_sqr_test[kern_width*j+i] = w(i,j) * I_y(i,j) * I_y(i,j);
-//             I_x_I_y_test[kern_width*j+i] = w(i,j) * I_x(i,j) * I_y(i,j);
-//             ii_test[kern_width*j+i] = ii*ii;
-//             ij_test[kern_width*j+i] = ii*jj;
-//             jj_test[kern_width*j+i] = jj*jj;
-//             i_test[kern_width*j+i] = ii;
-//             j_test[kern_width*j+i] = jj;
-//           }
-//         }
-//         float sum_buf[window_size] __attribute__ ((aligned));
-//         vDSP_vmul(I_x_sqr_test,1,ii_test,1,sum_buf,1,window_size);
-//         vDSP_sve(sum_buf,1,&(rhs(0,0)),window_size);
-//         vDSP_vmul(I_x_sqr_test,1,ij_test,1,sum_buf,1,window_size);
-//         vDSP_sve(sum_buf,1,&(rhs(0,1)),window_size);
-//         vDSP_vmul(I_x_sqr_test,1,i_test,1,sum_buf,1,window_size);
-//         vDSP_sve(sum_buf,1,&(rhs(0,2)),window_size);
-//         vDSP_vmul(I_x_sqr_test,1,jj_test,1,sum_buf,1,window_size);
-//         vDSP_sve(sum_buf,1,&(rhs(1,1)),window_size);
-//         vDSP_vmul(I_x_sqr_test,1,j_test,1,sum_buf,1,window_size);
-//         vDSP_sve(sum_buf,1,&(rhs(1,2)),window_size);
-//         vDSP_sve(I_x_sqr_test,1,&(rhs(2,2)),window_size);
-
-//         vDSP_vmul(I_x_I_y_test,1,ii_test,1,sum_buf,1,window_size);
-//         vDSP_sve(sum_buf,1,&(rhs(0,3)),window_size);
-//         vDSP_vmul(I_x_I_y_test,1,ij_test,1,sum_buf,1,window_size);
-//         vDSP_sve(sum_buf,1,&(rhs(0,4)),window_size);
-//         vDSP_vmul(I_x_I_y_test,1,i_test,1,sum_buf,1,window_size);
-//         vDSP_sve(sum_buf,1,&(rhs(0,5)),window_size);
-//         vDSP_vmul(I_x_I_y_test,1,jj_test,1,sum_buf,1,window_size);
-//         vDSP_sve(sum_buf,1,&(rhs(1,4)),window_size);
-//         vDSP_vmul(I_x_I_y_test,1,j_test,1,sum_buf,1,window_size);
-//         vDSP_sve(sum_buf,1,&(rhs(1,5)),window_size);
-//         vDSP_sve(I_x_I_y_test,1,&(rhs(2,5)),window_size);
-
-//         vDSP_vmul(I_y_sqr_test,1,ii_test,1,sum_buf,1,window_size);
-//         vDSP_sve(sum_buf,1,&(rhs(3,3)),window_size);
-//         vDSP_vmul(I_y_sqr_test,1,ij_test,1,sum_buf,1,window_size);
-//         vDSP_sve(sum_buf,1,&(rhs(3,4)),window_size);
-//         vDSP_vmul(I_y_sqr_test,1,i_test,1,sum_buf,1,window_size);
-//         vDSP_sve(sum_buf,1,&(rhs(3,5)),window_size);
-//         vDSP_vmul(I_y_sqr_test,1,jj_test,1,sum_buf,1,window_size);
-//         vDSP_sve(sum_buf,1,&(rhs(4,4)),window_size);
-//         vDSP_vmul(I_y_sqr_test,1,j_test,1,sum_buf,1,window_size);
-//         vDSP_sve(sum_buf,1,&(rhs(4,5)),window_size);
-//         vDSP_sve(I_y_sqr_test,1,&(rhs(5,5)),window_size);
-
-
-        for (int jj=-kern_height/2; jj <= kern_height/2; ++jj) {
-          for (int ii=-kern_width/2; ii <= kern_width/2; ++ii) {
-            int i = ii + kern_width/2;
-            int j = jj + kern_height/2;
-            float I_x_sqr = w(i,j) * I_x(i,j) * I_x(i,j);
-            float I_y_sqr = w(i,j) * I_y(i,j) * I_y(i,j);
-            float I_x_I_y = w(i,j) * I_x(i,j) * I_y(i,j);
-
-            // UL
-            rhs(0,0) += ii*ii * I_x_sqr;
-            rhs(0,1) += ii*jj * I_x_sqr;
-            rhs(0,2) += ii    * I_x_sqr;
-            rhs(1,1) += jj*jj * I_x_sqr;
-            rhs(1,2) += jj    * I_x_sqr;
-            rhs(2,2) +=         I_x_sqr;
-
-            // UR
-            rhs(0,3) += ii*ii * I_x_I_y;
-            rhs(0,4) += ii*jj * I_x_I_y;
-            rhs(0,5) += ii    * I_x_I_y;
-            rhs(1,4) += jj*jj * I_x_I_y;
-            rhs(1,5) += jj    * I_x_I_y;
-            rhs(2,5) +=         I_x_I_y;
-
-            // LR
-            rhs(3,3) += ii*ii * I_y_sqr;
-            rhs(3,4) += ii*jj * I_y_sqr;
-            rhs(3,5) += ii    * I_y_sqr;
-            rhs(4,4) += jj*jj * I_y_sqr;
-            rhs(4,5) += jj    * I_y_sqr;
-            rhs(5,5) +=         I_y_sqr;
-          }
-        }
-
-        // Fill in symmetric entries
-        rhs(1,0) = rhs(0,1);
-        rhs(2,0) = rhs(0,2);
-        rhs(2,1) = rhs(1,2);
-        rhs(1,3) = rhs(0,4);
-        rhs(2,3) = rhs(0,5);
-        rhs(2,4) = rhs(1,5);
-        rhs(3,0) = rhs(0,3);
-        rhs(3,1) = rhs(1,3);
-        rhs(3,2) = rhs(2,3);
-        rhs(4,0) = rhs(0,4);
-        rhs(4,1) = rhs(1,4);
-        rhs(4,2) = rhs(2,4);
-        rhs(4,3) = rhs(3,4);
-        rhs(5,0) = rhs(0,5);
-        rhs(5,1) = rhs(1,5);
-        rhs(5,2) = rhs(2,5);
-        rhs(5,3) = rhs(3,5);
-        rhs(5,4) = rhs(4,5);
-
+                
         // Iterate until a solution is found or the max number of
         // iterations is reached.
         for (unsigned iter = 0; iter < 10; ++iter) {
           offset(0) = d[2];
           offset(1) = d[5];
-
-          // First we check to see if our current transform is
-          // reasonable.  If not, abort this pixel!!
+          
+          // First we check to see if our current subpixel translation
+          // is less than one half of the window width.  If not, then
+          // we are probably having trouble converging and we abort
+          // this pixel!!
           if (norm_2(offset) > kern_width/2) 
             break;
-
-          Vector<float,6> lhs;
-          float error_total = 0;
+          
           InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
             interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());
+          
           float x_base = x + disparity_map(x,y).h();
           float y_base = y + disparity_map(x,y).v();
+          //          float error_total = 0;
 
+          // Compute the base weight image
+          int good_pixels = adjust_weight_image(w, crop(disparity_map, current_window), weight_template);
+          
+          //           // Skip over pixels for which there are very few good matches
+          //           // in the neighborhood.
+          //           if (good_pixels < weight_threshold) {
+          //             disparity_map(x,y) = PixelDisparity<float>();
+          //             continue;
+          //           }
+
+          Matrix<float,6,6> rhs;
+          Vector<float,6> lhs;
           for (int jj = -kern_height/2; jj <= kern_height/2; ++jj) {
             for (int ii = -kern_width/2; ii <= kern_width/2; ++ii) {
               int i = ii + kern_width/2;
@@ -414,22 +320,84 @@ namespace stereo {
               float xx = x_base + d[0] * ii + d[1] * jj + offset(0);
               float yy = y_base + d[3] * ii + d[4] * jj + offset(1);
               float I_e_val = right_interp_image(xx,yy) - left_image_patch(i,j);
-              error_total += pow(I_e_val,2);
+
+              // Apply the robust cost function.  We use a huber
+              // function to gently remove outliers for small errors,
+              // but we set a hard limit a 5 times the cost threshold
+              // to remove major (salt&pepper) noise.
+              float robust_weight = 1.0;
+              if (fabs(I_e_val) > thresh*5 || I_e_val == 0.0)
+                robust_weight = 1e-16;
+              else 
+                robust_weight = sqrt(robust_cost_fn(fabs(I_e_val)))/fabs(I_e_val);
+              w(i,j) *= robust_weight;
+
+              //              error_total += pow(I_e_val,2);
 
               // We combine the error value with the derivative and
               // add this to the update equation.
               float I_x_val = w(i,j) * I_x(i,j);
               float I_y_val = w(i,j) * I_y(i,j);
+              float I_x_sqr = w(i,j) * I_x(i,j) * I_x(i,j);
+              float I_y_sqr = w(i,j) * I_y(i,j) * I_y(i,j);
+              float I_x_I_y = w(i,j) * I_x(i,j) * I_y(i,j);
+
+              // Left hand side
               lhs(0) += ii * I_x_val * I_e_val;
               lhs(1) += jj * I_x_val * I_e_val;
               lhs(2) +=      I_x_val * I_e_val;
               lhs(3) += ii * I_y_val * I_e_val;
               lhs(4) += jj * I_y_val * I_e_val;
               lhs(5) +=      I_y_val * I_e_val;
+              
+              // UL
+              rhs(0,0) += ii*ii * I_x_sqr;
+              rhs(0,1) += ii*jj * I_x_sqr;
+              rhs(0,2) += ii    * I_x_sqr;
+              rhs(1,1) += jj*jj * I_x_sqr;
+              rhs(1,2) += jj    * I_x_sqr;
+              rhs(2,2) +=         I_x_sqr;
+              
+              // UR
+              rhs(0,3) += ii*ii * I_x_I_y;
+              rhs(0,4) += ii*jj * I_x_I_y;
+              rhs(0,5) += ii    * I_x_I_y;
+              rhs(1,4) += jj*jj * I_x_I_y;
+              rhs(1,5) += jj    * I_x_I_y;
+              rhs(2,5) +=         I_x_I_y;
+              
+              // LR
+              rhs(3,3) += ii*ii * I_y_sqr;
+              rhs(3,4) += ii*jj * I_y_sqr;
+              rhs(3,5) += ii    * I_y_sqr;
+              rhs(4,4) += jj*jj * I_y_sqr;
+              rhs(4,5) += jj    * I_y_sqr;
+              rhs(5,5) +=         I_y_sqr;
             }
           }
 
+          // Fill in symmetric entries
+          rhs(1,0) = rhs(0,1);
+          rhs(2,0) = rhs(0,2);
+          rhs(2,1) = rhs(1,2);
+          rhs(1,3) = rhs(0,4);
+          rhs(2,3) = rhs(0,5);
+          rhs(2,4) = rhs(1,5);
+          rhs(3,0) = rhs(0,3);
+          rhs(3,1) = rhs(1,3);
+          rhs(3,2) = rhs(2,3);
+          rhs(4,0) = rhs(0,4);
+          rhs(4,1) = rhs(1,4);
+          rhs(4,2) = rhs(2,4);
+          rhs(4,3) = rhs(3,4);
+          rhs(5,0) = rhs(0,5);
+          rhs(5,1) = rhs(1,5);
+          rhs(5,2) = rhs(2,5);
+          rhs(5,3) = rhs(3,5);
+          rhs(5,4) = rhs(4,5);
+
 //           {          
+//             ImageView<ChannelT> right_image_patch(kern_width, kern_height);
 //             for (int jj = -kern_height/2; jj <= kern_height/2; ++jj) {
 //               for (int ii = -kern_width/2; ii <= kern_width/2; ++ii) {
 //                 float xx = x_base + d[0] * ii + d[1] * jj + offset(0);
@@ -447,7 +415,7 @@ namespace stereo {
           lhs *= -1;
           Vector<float,6> update = least_squares(rhs, lhs);
           d += update;
-          //   std::cout << "Update: " << update << "     " << d << "     " << sqrt(error_total) << "    " << (sqrt(update[2]*update[2]+update[5]*update[5])) << "\n";
+          //          std::cout << "Update: " << update << "     " << d << "     " << sqrt(error_total) << "    " << (sqrt(update[2]*update[2]+update[5]*update[5])) << "\n";
 
           // Termination condition
           if (norm_2(update) < 0.01) 
