@@ -87,6 +87,18 @@ namespace vw {
     // This is called whenever a worker thread finishes its task. If
     // there are more tasks available, the worker is given more work.
     // Otherwise, the worker terminates.
+    //
+    // *************************************************************
+    // IMPORANT NOTE: The worker_thread_complete() method is called
+    // from within child thread so that we can clean up the list of
+    // available threads.  As such, one must be very careful about
+    // what is done in this method, because for the duration of this
+    // method, the child thread has access to it's own shared pointer.
+    // This method has been carefully written so as not to
+    // accidentally allow the thread to delete it's own shared
+    // pointer, which could cause the thread to call its own join()
+    // method.
+    // *************************************************************
     void worker_thread_complete(int worker_id) {
       Mutex::Lock lock(m_queue_mutex);
       
@@ -96,7 +108,6 @@ namespace vw {
       // Erase the worker thread from the list of active threads
       VW_ASSERT(worker_id >= 0 && worker_id < int(m_running_threads.size()), 
                 LogicErr() << "WorkQueue: request to terminate thread " << worker_id << ", which does not exist.");
-      m_running_threads[worker_id] = boost::shared_ptr<Thread>();
       m_available_thread_ids.push_back(worker_id);
 
       // Notify any threads that are waiting for the join event.
@@ -115,6 +126,11 @@ namespace vw {
     /// available, return an empty shared pointer.
     virtual boost::shared_ptr<Task> get_next_task() = 0;
 
+    // Notify can be called by a child class that inherits from
+    // WorkQueue.  A call to notify will cause the WorkQueue to
+    // re-examine the list of tasks it has available for execution.
+    // If there are any idle slots for worker threads, it will spin
+    // off WorkerThreads to execute these tasks.
     void notify() {
       Mutex::Lock lock(m_queue_mutex);
 
@@ -224,7 +240,7 @@ namespace vw {
         Mutex::Lock lock(m_mutex);
         m_queued_tasks[index] = task;
       }
-      notify();
+      this->notify();
     }
 
     virtual boost::shared_ptr<Task> get_next_task() { 
