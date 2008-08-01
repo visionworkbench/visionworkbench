@@ -335,7 +335,7 @@ void do_mosaic(po::variables_map const& vm) {
   // the quadtree generator does not calculate the tree levels until 
   // the generation function is called.
   if(output_metadata == "uniview") { 
-    std::string config_filename = output_file_type + ".conf";
+    std::string config_filename = output_file_name + ".conf";
     std::ofstream conf( config_filename.c_str() );
     conf << "[Offlinedataset]\n";
     conf << "NrRows=1\n";
