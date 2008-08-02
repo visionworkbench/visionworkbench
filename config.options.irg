@@ -36,24 +36,14 @@ PREFIX=`pwd`/build/$IRG_ARCH
 # Set these to the directories that contain lib/include directories
 # for packages in non-standard locations.  
 
-PKG_PATHS="  \
-  `pwd`/thirdparty/xmlParser_2.22_bsd \
+#Missing qhull, ppl, and apron
+PKG_PATHS="                    \
   $IRGPKG_DIR/vxl-1.9.0        \
-  $IRGPKG_DIR/boost_1_34_1     \
+  $IRGPKG_DIR/boost_1_35_1     \
   $IRGPKG_DIR/openexr-1.4.0    \
-  $IRGPKG_DIR/openexr-1.3.0    \
   $IRGPKG_DIR/gdal-1.5.2       \
   $IRGPKG_DIR/proj-4.6.0       \
   $IRGPKG_DIR/LAPACK           \
-  $IRGPKG_DIR/glew             \
-  $IRGPKG_DIR/cg               \
-  $IRGPKG_DIR/qhull-2003.1     \
   $IRGPKG_DIR/gmp-4.2.1        \
-  $IRGPKG_DIR/mpfr-2.2.1       \
-  $IRGPKG_DIR/apron-0.9.6      \
-  $IRGPKG_DIR/ppl-0.9          \
-  /usr/X11R6                   \
+  $IRGPKG_DIR/mpfr-2.3.1       \
 "
-
-
-
