@@ -187,7 +187,26 @@ namespace vw {
 
 
   // ********************************************************************
-  // PixelType Arithmetic Operator Functors
+  // Utility Functors
+  // ********************************************************************
+
+  // Unary no-operation functor
+  struct NoOpFunctor : ReturnFixedType<void> {
+    template <class ArgT>
+    inline void operator()( ArgT const& arg ) const {}
+  };
+
+  // Unary identity functor
+  struct IdentityFunctor : UnaryReturnSameType {
+    template <class ArgT>
+    inline ArgT const& operator()( ArgT const& arg ) const {
+      return arg;
+    }
+  };
+
+
+  // ********************************************************************
+  // Arithmetic Operator Functors
   // ********************************************************************
 
   // Unary negation of an argument
