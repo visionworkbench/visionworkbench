@@ -79,7 +79,7 @@ namespace vw {
   }
 
   template <class ResultT, class PixelT>
-  inline ResultT compound_select_channel( PixelT pixel, typename boost::enable_if<typename boost::mpl::and_<typename boost::mpl::not_< IsCompound<PixelT> >::type, typename boost::mpl::not_<typename boost::is_reference<ResultT>::type>::type >, int32>::type /*channel*/ ) {
+  inline ResultT compound_select_channel( PixelT const& pixel, typename boost::enable_if<typename boost::mpl::and_<typename boost::mpl::not_< IsCompound<PixelT> >::type, typename boost::mpl::not_<typename boost::is_reference<ResultT>::type>::type >, int32>::type /*channel*/ ) {
     return pixel;
   }
 
@@ -89,11 +89,12 @@ namespace vw {
   }
 
   template <class ResultT, class PixelT>
-  inline ResultT compound_select_channel( PixelT pixel, typename boost::enable_if<typename boost::mpl::and_<IsCompound<PixelT>, typename boost::mpl::not_<typename boost::is_reference<ResultT>::type>::type >, int32>::type channel ) {
+  inline ResultT compound_select_channel( PixelT const& pixel, typename boost::enable_if<typename boost::mpl::and_<IsCompound<PixelT>, typename boost::mpl::not_<typename boost::is_reference<ResultT>::type>::type >, int32>::type channel ) {
     return pixel[channel];
   }
 
   // Computes the mean value of a compound type.  Not especially efficient.
+  // I'm not really sure this is the best place for this to live....
   template <class T>
   typename boost::enable_if< IsScalarOrCompound<T>, double >::type
   inline mean_channel_value( T const& arg ) {
@@ -218,7 +219,8 @@ namespace vw {
     template <class Arg1T, class Arg2T>
     struct Helper<false,1,Arg1T,Arg2T> {
       static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
-        return arg1(arg1,arg2);
+        func(arg1,arg2);
+	return arg1;
       }
     };
 
@@ -401,7 +403,8 @@ namespace vw {
     template <class ArgT>
     struct Helper<false,1,ArgT> {
       static inline ArgT& apply( func_ref func, ArgT& arg ) {
-        return arg(arg);
+        func(arg);
+	return arg;
       }
     };
 
