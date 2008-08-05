@@ -34,9 +34,11 @@
 #include <cstdlib>
 #include <limits>
 #include <complex>
+#include <vector>
 
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Functors.h>
+#include <vw/Core/Exception.h>
 #include <vw/Math/Functions.h>
 
 // The math.h header in FreeBSD (and possibly other platforms) does
@@ -303,7 +305,89 @@ namespace math {
     }
   };
 
+
+  // General-purpose accumulation functor
+  template <class AccumT, class FuncT = ArgArgInPlaceSumFunctor>
+  struct Accumulator : ReturnFixedType<AccumT const&> {
+  private:
+    AccumT m_accum;
+    FuncT m_func;
+  public:
+    Accumulator() : m_accum(), m_func() {}
+    Accumulator( FuncT const& func ) : m_accum(), m_func(func) {}
+    Accumulator( AccumT const& accum ) : m_accum(accum), m_func() {}
+    Accumulator( AccumT const& accum, FuncT const& func ) : m_accum(accum), m_func(func) {}
+
+    template <class ArgT>
+    inline AccumT const& operator()( ArgT const& arg ) {
+      m_func(m_accum, arg);
+      return m_accum;
+    }
+
+    inline AccumT const& val() const {
+      return m_accum;
+    }
+
+    void reset( AccumT const& accum = AccumT() ) {
+      m_accum = accum;
+    }
+  };
+    
+
+  // Computes minimum and maximum values
+  template <class T>
+  class MinMaxAccumulator : public ReturnFixedType<void> {
+    T m_minval, m_maxval;
+    bool m_valid;
+  public:
+    MinMaxAccumulator() : m_valid(false) {}
+
+    void operator()( T const& arg ) {
+      if ( ! m_valid ) {
+        m_minval = m_maxval = arg;
+        m_valid = true;
+      }
+      else {
+        if( arg < m_minval ) m_minval = arg;
+        if( m_maxval < arg ) m_maxval = arg;
+      }
+    }
+
+    T minimum() const {
+      VW_ASSERT(m_valid, ArgumentErr() << "MinMaxAccumulator: no valid samples");
+      return m_minval;
+    }
+
+    T maximum() const {
+      VW_ASSERT(m_valid, ArgumentErr() << "MinMaxAccumulator: no valid samples");
+      return m_maxval;
+    }
+  };
+
+
+  // Computes the median of the values to which it is applied.
+  template <class ValueT>
+  class MedianAccumulator : public ReturnFixedType<void> {
+    std::vector<ValueT> m_values;
+  public:
+    void operator()( ValueT const& value ) {
+      m_values.push_back( value );
+    }
+
+    ValueT const& median() {
+      VW_ASSERT(m_values.size(), ArgumentErr() << "MedianAccumulator: no valid samples");
+      sort(m_values.begin(), m_values.end());
+      return m_values[m_values.size()/2];
+    }
+  };
+
 } // namespace math
+
+  // I'm not even really sure why the math namespace exists anymore.... -MDH
+  using math::Accumulator;
+  using math::MinMaxAccumulator;
+  using math::MedianAccumulator;
+
 } // namespace vw
 
 #endif  // __VW_MATH_FUNCTORS_H__
