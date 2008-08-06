@@ -270,7 +270,6 @@ void do_mosaic(po::variables_map const& vm) {
     ll_bbox.max().x() = invmax[0];
     ll_bbox.min().y() = invmax[1];
   }
-  std::cerr << "DEBUG: ll_bbox = " << ll_bbox << std::endl;
 
   // Prepare the composite.
   if( vm.count("composite-multiband") ) {
