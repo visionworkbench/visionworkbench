@@ -520,7 +520,7 @@ namespace camera {
     BundleAdjustModelT &m_model;
     double m_lambda;
     double m_nu;
-    unsigned m_found;
+    //unsigned m_found;
     double g_tol;
     double d_tol;
 
@@ -540,7 +540,7 @@ namespace camera {
       // algorithm proceeds.
       m_lambda = 1e-3;
       m_nu = 2;
-      m_found = 0;
+      //m_found = 0;
       g_tol = 1e-10;
       d_tol = 1e-10;
 
@@ -797,7 +797,8 @@ namespace camera {
     // Each entry in the outer vector corresponds to a distinct 3D
     // point.  The inner vector contains a list of image IDs and
     // pixel coordinates where that point was imaged.
-    double update_reference_impl(double &abs_tol, double &rel_tol, unsigned &found) { 
+
+    double update_reference_impl(double &abs_tol, double &rel_tol) { 
       ++m_iterations;
 
       // Fletcher LM parameteres
@@ -913,11 +914,11 @@ namespace camera {
       // Build up the right side of the normal equation...
       Vector<double> del_J = -1.0 * (transpose(J) * sigma * epsilon);
       
-      // Check first termination criteria
-      m_found = 1;
-      for(unsigned i = 0; i < del_J.size(); i++)
-	if (fabs(del_J[i]) > g_tol)
-	  m_found = 0;
+    /*   // Check first termination criteria */
+/*       m_found = 1; */
+/*       for(unsigned i = 0; i < del_J.size(); i++) */
+/* 	if (fabs(del_J[i]) > g_tol) */
+/* 	  m_found = 0; */
 
       //      std::cout << "\n"<< "\n" << " del_J in R. Impl:" << del_J <<"\n" <<"\n";
 
@@ -994,8 +995,8 @@ namespace camera {
       }
 
       //second termination criteria
-      if(sqrt(norm_2(delta)) <= d_tol * (sqrt(nsq_x)) + d_tol)
-	m_found = 1;
+     /*  if(sqrt(norm_2(delta)) <= d_tol * (sqrt(nsq_x)) + d_tol) */
+/* 	m_found = 1; */
 
 //       std::cout << "\n" << "\n" << " delta in R: " << delta << "\n" << "\n";  
 
@@ -1092,7 +1093,7 @@ namespace camera {
 	
         abs_tol = overall_norm;
         rel_tol = overall_delta;	
-	found = m_found;
+	//	found = m_found;
 
 	double temp = 1 - pow((2*R - 1),3);
 	if (temp < 1.0/3.0)
@@ -1125,7 +1126,7 @@ namespace camera {
     
     // This is the sparse levenberg marquardt update step.  Returns
     // the average improvement in the cost function.
-    double update(double &abs_tol, double &rel_tol, unsigned &found) { 
+    double update(double &abs_tol, double &rel_tol) { 
       ++m_iterations;
       
       VW_DEBUG_ASSERT(m_control_net.size() == m_model.num_points(), LogicErr() << "BundleAdjustment::update() : Number of bundles does not match the number of points in the bundle adjustment model.");
@@ -1573,10 +1574,10 @@ namespace camera {
       }
       
       // first termination criteria
-      m_found = 1;
-      for (unsigned i = 0; i < g.size(); i++)
-	if (fabs(g[i]) > g_tol)
-	  m_found = 0;
+     /*  m_found = 1; */
+/*       for (unsigned i = 0; i < g.size(); i++) */
+/* 	if (fabs(g[i]) > g_tol) */
+/* 	  m_found = 0; */
       
       i = 0;
       double nsq_x = 0.0;
@@ -1588,8 +1589,8 @@ namespace camera {
       }
       
       // second termination criteria
-      if (sqrt(norm_2(delta)) <= d_tol * (sqrt(nsq_x) + d_tol))
-	m_found = 1;
+      /* if (sqrt(norm_2(delta)) <= d_tol * (sqrt(nsq_x) + d_tol)) */
+/* 	m_found = 1; */
 
       dS = .5 * transpose(delta) *(m_lambda * delta + g);
 
@@ -1688,7 +1689,7 @@ namespace camera {
 	
         abs_tol = overall_norm;
         rel_tol = fabs(overall_delta);
-	found = m_found;
+	//	found = m_found;
 
 	double temp = 1 - pow((2*R - 1),3);
 	if (temp < 1.0/3.0)
@@ -1720,7 +1721,7 @@ namespace camera {
 	
         abs_tol = overall_norm;
         rel_tol = fabs(overall_delta);
-	found = m_found;
+	//found = m_found;
 
 	//m_lambda = 2;
 	//m_lambda /= 2; //make lambda smaller, since we made progress like in old algorithm
