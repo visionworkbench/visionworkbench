@@ -133,8 +133,15 @@ struct DiskImageResourcePNG::vw_png_read_context:
       vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create info structure for file " << outer->m_filename << ".");
     }
 
+    // Must call this as we're using fstream and not FILE*
+    png_set_read_fn(png_ptr, (voidp)m_file.get(), read_data);
+
     // Rewind to the beginning of the file.
     png_set_sig_bytes(png_ptr, 8);
+
+    // Read in the info pointer (some stuff will get changed, and we run
+    // png_read_update_info).
+    png_read_info(png_ptr, info_ptr);
 
     // Fetch the comments.
     read_comments();
@@ -144,11 +151,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
     // channel, and tRNS chunks are expanded to alpha channels.
     png_set_expand(png_ptr);
 
-    // Must call this as we're using fstream and not FILE*
-    png_set_read_fn(png_ptr, (voidp)m_file.get(), read_data);
-
     // Read up to the start of the data, and set some values.
-    png_read_info(png_ptr, info_ptr);
     png_get_IHDR(png_ptr, info_ptr, (png_uint_32*)(&cols), (png_uint_32*)(&rows), &bit_depth, &color_type, &interlace_type, &compression_type, &filter_method);
 
     switch(bit_depth) {
