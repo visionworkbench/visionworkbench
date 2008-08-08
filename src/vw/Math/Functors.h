@@ -313,6 +313,8 @@ namespace math {
     AccumT m_accum;
     FuncT m_func;
   public:
+    typedef AccumT value_type;
+
     Accumulator() : m_accum(), m_func() {}
     Accumulator( FuncT const& func ) : m_accum(), m_func(func) {}
     Accumulator( AccumT const& accum ) : m_accum(accum), m_func() {}
@@ -324,7 +326,7 @@ namespace math {
       return m_accum;
     }
 
-    inline AccumT const& val() const {
+    inline AccumT const& value() const {
       return m_accum;
     }
 
@@ -335,14 +337,16 @@ namespace math {
     
 
   // Computes minimum and maximum values
-  template <class T>
+  template <class ValT>
   class MinMaxAccumulator : public ReturnFixedType<void> {
-    T m_minval, m_maxval;
+    ValT m_minval, m_maxval;
     bool m_valid;
   public:
+    typedef std::pair<ValT,ValT> value_type;
+
     MinMaxAccumulator() : m_valid(false) {}
 
-    void operator()( T const& arg ) {
+    void operator()( ValT const& arg ) {
       if ( ! m_valid ) {
         m_minval = m_maxval = arg;
         m_valid = true;
@@ -353,33 +357,88 @@ namespace math {
       }
     }
 
-    T minimum() const {
+    ValT minimum() const {
       VW_ASSERT(m_valid, ArgumentErr() << "MinMaxAccumulator: no valid samples");
       return m_minval;
     }
 
-    T maximum() const {
+    ValT maximum() const {
       VW_ASSERT(m_valid, ArgumentErr() << "MinMaxAccumulator: no valid samples");
       return m_maxval;
+    }
+
+    std::pair<ValT,ValT> value() const {
+      VW_ASSERT(m_valid, ArgumentErr() << "MinMaxAccumulator: no valid samples");
+      return std::make_pair(m_minval,m_maxval);
     }
   };
 
 
   // Computes the median of the values to which it is applied.
-  template <class ValueT>
+  template <class ValT>
   class MedianAccumulator : public ReturnFixedType<void> {
-    std::vector<ValueT> m_values;
+    std::vector<ValT> m_values;
   public:
-    void operator()( ValueT const& value ) {
+    typedef ValT value_type;
+
+    void operator()( ValT const& value ) {
       m_values.push_back( value );
     }
 
-    ValueT const& median() {
+    ValT const& value() {
       VW_ASSERT(m_values.size(), ArgumentErr() << "MedianAccumulator: no valid samples");
       sort(m_values.begin(), m_values.end());
       return m_values[m_values.size()/2];
     }
   };
+
+
+  // Computes the mean of the values to which it is applied.
+  template <class ValT>
+  class MeanAccumulator : public ReturnFixedType<void> {
+    typedef typename CompoundChannelCast<ValT,double>::type accum_type;
+    accum_type m_accum;
+    double m_count;
+  public:
+    typedef accum_type value_type;
+
+    MeanAccumulator() : m_accum(), m_count() {}
+
+    void operator()( ValT const& value ) {
+      m_accum += value;
+      m_count += 1.0;
+    }
+
+    value_type value() const {
+      VW_ASSERT(m_count, ArgumentErr() << "MeanAccumulator: no valid samples");
+      return m_accum / m_count;
+    }
+  };
+
+
+  // Computes the standard deviation of the values to which it is applied.
+  template <class ValT>
+  class StdDevAccumulator : public ReturnFixedType<void> {
+    typedef typename CompoundChannelCast<ValT,double>::type accum_type;
+    accum_type mom1_accum, mom2_accum;
+    double num_samples;
+  public:
+    typedef accum_type value_type;
+
+    StdDevAccumulator() : mom1_accum(), mom2_accum(), num_samples() {}
+
+    void operator()( ValT const& arg ) {
+      mom1_accum += arg;
+      mom2_accum += (accum_type) arg * arg;
+      num_samples += 1.0;
+    }
+
+    value_type value() const {
+      VW_ASSERT(num_samples, ArgumentErr() << "StdDevAccumulator(): no valid samples.");
+      return sqrt(mom2_accum/num_samples - (mom1_accum/num_samples)*(mom1_accum/num_samples));
+    }
+  };
+
 
 } // namespace math
 
@@ -387,6 +446,8 @@ namespace math {
   using math::Accumulator;
   using math::MinMaxAccumulator;
   using math::MedianAccumulator;
+  using math::MeanAccumulator;
+  using math::StdDevAccumulator;
 
 } // namespace vw
 
