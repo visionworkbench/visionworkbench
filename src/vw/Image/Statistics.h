@@ -153,26 +153,6 @@ namespace vw {
     max = accumulator.maximum();
   }
 
-  /// Simultaneously compute the min and max value in all of the
-  /// channels of all of the planes of the image.  This variant of the
-  /// function allows you to specify a "No Data" value that is ignored
-  /// when computing the statistics.
-  /// XXX Does this really deserve its own variant of this function,
-  /// when the user could just as easily call create_mask() themselves?
-  template <class ViewT>
-  void min_max_channel_values( const ImageViewBase<ViewT> &view, 
-                               typename PixelChannelType<typename ViewT::pixel_type>::type &min, 
-                               typename PixelChannelType<typename ViewT::pixel_type>::type &max,
-                               typename PixelChannelType<typename ViewT::pixel_type>::type &no_data_value)
-  {
-    typedef typename PixelChannelType<typename ViewT::pixel_type>::type accum_type;
-    ChannelAccumulator<MinMaxAccumulator<accum_type> > accumulator;
-    for_each_pixel( create_mask(view,no_data_value), accumulator );
-    min = accumulator.minimum();
-    max = accumulator.maximum();
-  }
-
-
   /// Compute the sum of all valid pixels in the image.
   template <class ViewT>
   typename PixelChannelCast<typename UnmaskedPixelType<typename ViewT::pixel_type>::type,typename AccumulatorType<typename PixelChannelType<typename ViewT::pixel_type>::type>::type>::type
