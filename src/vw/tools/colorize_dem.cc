@@ -145,7 +145,7 @@ int main( int argc, char *argv[] ) {
     }
 
     if (min_val == 0 && max_val == 0) {
-      min_max_channel_values(disk_dem_file, min_val, max_val, nodata_value);
+      min_max_channel_values( create_mask(disk_dem_file, nodata_value), min_val, max_val);
       std::cout << "\t--> DEM color map range: [" << min_val << "  " << max_val << "]\n";
     } else {
       std::cout << "\t--> Using user-specified color map range: [" << min_val << "  " << max_val << "]\n";
