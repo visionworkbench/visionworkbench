@@ -220,12 +220,25 @@ namespace stereo {
 
     /// Correlator Constructor
     ///
-    /// Set pyramid_levels to 0 to force the use of a single pyramid level (essentially disabling pyramid correlation).
-    PyramidCorrelator(BBox2 initial_search_range, Vector2i kernel_size, float cross_correlation_threshold = 1, float corrscore_rejection_threshold = 1.0, bool do_h_subpixel = true, bool do_v_subpixel = true, int pyramid_min_image_dimension = 256) :
-      m_initial_search_range(initial_search_range), m_kernel_size(kernel_size), m_cross_correlation_threshold(cross_correlation_threshold), m_corrscore_rejection_threshold(corrscore_rejection_threshold), m_do_h_subpixel(do_h_subpixel), m_do_v_subpixel(do_v_subpixel), m_pyramid_min_image_dimension(pyramid_min_image_dimension) {
+    /// Set pyramid_levels to 0 to force the use of a single pyramid
+    /// level (essentially disabling pyramid correlation).
+    PyramidCorrelator(BBox2 initial_search_range, 
+                      Vector2i kernel_size, 
+                      float cross_correlation_threshold = 1, 
+                      float corrscore_rejection_threshold = 1.0, 
+                      bool do_h_subpixel = true, 
+                      bool do_v_subpixel = true, 
+                      int pyramid_min_image_dimension = 256) :
+      m_initial_search_range(initial_search_range), 
+      m_kernel_size(kernel_size), 
+      m_cross_correlation_threshold(cross_correlation_threshold), 
+      m_corrscore_rejection_threshold(corrscore_rejection_threshold), 
+      m_do_h_subpixel(do_h_subpixel), 
+      m_do_v_subpixel(do_v_subpixel), 
+      m_pyramid_min_image_dimension(pyramid_min_image_dimension) {
       m_debug_prefix = "";
     }
-
+    
     /// Turn on debugging output.  The debug_file_prefix string is
     /// used as a prefix for all debug image files.
     void set_debug_mode(std::string const& debug_file_prefix) { m_debug_prefix = debug_file_prefix; }
@@ -234,6 +247,7 @@ namespace stereo {
     ImageView<PixelDisparity<float> > operator() (ImageViewBase<ViewT> const& left_image,
                                                   ImageViewBase<ViewT> const& right_image,
                                                   PreProcFilterT const& preproc_filter) {
+
       typedef typename ViewT::pixel_type pixel_type;
       typedef typename PixelChannelType<pixel_type>::type channel_type;
       

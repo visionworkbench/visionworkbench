@@ -223,7 +223,7 @@ namespace stereo {
                ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
 
     // Robust cost function settings
-    const float thresh = 0.001;
+    const float thresh = 0.01;
     HuberError robust_cost_fn(thresh);
 
     int kern_pixels = kern_height * kern_width;
@@ -277,6 +277,16 @@ namespace stereo {
         CropView<ImageView<ChannelT> > left_image_patch = crop(left_image, current_window);
         CropView<ImageView<float> > I_x = crop(x_deriv, current_window);
         CropView<ImageView<float> > I_y = crop(y_deriv, current_window);
+        
+        // Compute the base weight image
+        int good_pixels = adjust_weight_image(w, crop(disparity_map, current_window), weight_template);
+        
+        // Skip over pixels for which there are very few good matches
+        // in the neighborhood.
+        if (good_pixels < weight_threshold) {
+          disparity_map(x,y) = PixelDisparity<float>();
+          continue;
+        }
                 
         // Iterate until a solution is found or the max number of
         // iterations is reached.
@@ -298,16 +308,6 @@ namespace stereo {
           float y_base = y + disparity_map(x,y).v();
           //          float error_total = 0;
 
-          // Compute the base weight image
-          int good_pixels = adjust_weight_image(w, crop(disparity_map, current_window), weight_template);
-          
-          //           // Skip over pixels for which there are very few good matches
-          //           // in the neighborhood.
-          //           if (good_pixels < weight_threshold) {
-          //             disparity_map(x,y) = PixelDisparity<float>();
-          //             continue;
-          //           }
-
           Matrix<float,6,6> rhs;
           Vector<float,6> lhs;
           for (int jj = -kern_height/2; jj <= kern_height/2; ++jj) {
@@ -319,28 +319,23 @@ namespace stereo {
               // and the error for the current pixel.
               float xx = x_base + d[0] * ii + d[1] * jj + offset(0);
               float yy = y_base + d[3] * ii + d[4] * jj + offset(1);
-              float I_e_val = right_interp_image(xx,yy) - left_image_patch(i,j);
+              float I_e_val = right_interp_image(xx,yy) - left_image_patch(i,j) + 1e-16; 
 
               // Apply the robust cost function.  We use a huber
               // function to gently remove outliers for small errors,
               // but we set a hard limit a 5 times the cost threshold
               // to remove major (salt&pepper) noise.
-              float robust_weight = 1.0;
-              if (fabs(I_e_val) > thresh*5 || I_e_val == 0.0)
-                robust_weight = 1e-16;
-              else 
-                robust_weight = sqrt(robust_cost_fn(fabs(I_e_val)))/fabs(I_e_val);
-              w(i,j) *= robust_weight;
-
+              //              if (fabs(I_e_val) > thresh*5 || I_e_val == 0.0)
+              float robust_weight = sqrt(robust_cost_fn(fabs(I_e_val)))/fabs(I_e_val);
               //              error_total += pow(I_e_val,2);
 
               // We combine the error value with the derivative and
               // add this to the update equation.
-              float I_x_val = w(i,j) * I_x(i,j);
-              float I_y_val = w(i,j) * I_y(i,j);
-              float I_x_sqr = w(i,j) * I_x(i,j) * I_x(i,j);
-              float I_y_sqr = w(i,j) * I_y(i,j) * I_y(i,j);
-              float I_x_I_y = w(i,j) * I_x(i,j) * I_y(i,j);
+              float I_x_val = robust_weight * w(i,j) * I_x(i,j);
+              float I_y_val = robust_weight * w(i,j) * I_y(i,j);
+              float I_x_sqr = robust_weight * w(i,j) * I_x(i,j) * I_x(i,j);
+              float I_y_sqr = robust_weight * w(i,j) * I_y(i,j) * I_y(i,j);
+              float I_x_I_y = robust_weight * w(i,j) * I_x(i,j) * I_y(i,j);
 
               // Left hand side
               lhs(0) += ii * I_x_val * I_e_val;
@@ -350,7 +345,7 @@ namespace stereo {
               lhs(4) += jj * I_y_val * I_e_val;
               lhs(5) +=      I_y_val * I_e_val;
               
-              // UL
+              // Right Hand Side UL
               rhs(0,0) += ii*ii * I_x_sqr;
               rhs(0,1) += ii*jj * I_x_sqr;
               rhs(0,2) += ii    * I_x_sqr;
@@ -358,7 +353,7 @@ namespace stereo {
               rhs(1,2) += jj    * I_x_sqr;
               rhs(2,2) +=         I_x_sqr;
               
-              // UR
+              // Right Hand Side UR
               rhs(0,3) += ii*ii * I_x_I_y;
               rhs(0,4) += ii*jj * I_x_I_y;
               rhs(0,5) += ii    * I_x_I_y;
@@ -366,7 +361,7 @@ namespace stereo {
               rhs(1,5) += jj    * I_x_I_y;
               rhs(2,5) +=         I_x_I_y;
               
-              // LR
+              // Right Hand Side LR
               rhs(3,3) += ii*ii * I_y_sqr;
               rhs(3,4) += ii*jj * I_y_sqr;
               rhs(3,5) += ii    * I_y_sqr;
@@ -375,6 +370,8 @@ namespace stereo {
               rhs(5,5) +=         I_y_sqr;
             }
           }
+
+          lhs *= -1;
 
           // Fill in symmetric entries
           rhs(1,0) = rhs(0,1);
@@ -396,36 +393,52 @@ namespace stereo {
           rhs(5,3) = rhs(3,5);
           rhs(5,4) = rhs(4,5);
 
-//           {          
-//             ImageView<ChannelT> right_image_patch(kern_width, kern_height);
-//             for (int jj = -kern_height/2; jj <= kern_height/2; ++jj) {
-//               for (int ii = -kern_width/2; ii <= kern_width/2; ++ii) {
-//                 float xx = x_base + d[0] * ii + d[1] * jj + offset(0);
-//                 float yy = y_base + d[3] * ii + d[4] * jj + offset(1);
-//                 right_image_patch(ii+kern_width/2, jj+kern_width/2) = right_interp_image(xx,yy);
-//               }
-//             }
-//             std::ostringstream ostr;
-//             ostr << x << "_" << y << "-" << iter;
-//             write_image("small/left-"+ostr.str()+".tif", left_image_patch);
-//             write_image("small/right-"+ostr.str()+".tif", right_image_patch);
-//             write_image("small/weight-"+ostr.str()+".tif", w);
-//           }
+          //           {          
+          //             ImageView<ChannelT> right_image_patch(kern_width, kern_height);
+          //             for (int jj = -kern_height/2; jj <= kern_height/2; ++jj) {
+          //               for (int ii = -kern_width/2; ii <= kern_width/2; ++ii) {
+          //                 float xx = x_base + d[0] * ii + d[1] * jj + offset(0);
+          //                 float yy = y_base + d[3] * ii + d[4] * jj + offset(1);
+          //                 right_image_patch(ii+kern_width/2, jj+kern_width/2) = right_interp_image(xx,yy);
+          //               }
+          //             }
+          //             std::ostringstream ostr;
+          //             ostr << x << "_" << y << "-" << iter;
+          //             write_image("small/left-"+ostr.str()+".tif", left_image_patch);
+          //             write_image("small/right-"+ostr.str()+".tif", right_image_patch);
+          //             write_image("small/weight-"+ostr.str()+".tif", w);
+          //           }
 
-          lhs *= -1;
-          Vector<float,6> update = least_squares(rhs, lhs);
-          d += update;
-          //          std::cout << "Update: " << update << "     " << d << "     " << sqrt(error_total) << "    " << (sqrt(update[2]*update[2]+update[5]*update[5])) << "\n";
+
+          // Solves lhs = rhs * x, and stores the result in-place in lhs.
+          Matrix<double,6,6> pre_rhs = rhs;
+          Vector<double,6> pre_lhs = lhs;
+          try { solve_symmetric_nocopy(rhs,lhs);
+          } catch (ArgumentErr &e) {
+            std::cout << "Error @ " << x << " " << y << "\n";
+//             std::cout << "Exception caught: " << e.what() << "\n";
+//             std::cout << "PRERHS: " << pre_rhs << "\n";
+//             std::cout << "PRELHS: " << pre_lhs << "\n\n";
+//             std::cout << "RHS: " << rhs << "\n";
+//             std::cout << "LHS: " << lhs << "\n\n";
+//             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
+//             exit(0);
+          }
+          d += lhs;
+
+          //          std::cout << "Update: " << lhs << "     " << d << "     " << sqrt(error_total) << "    " << (sqrt(lhs[2]*lhs[2]+lhs[5]*lhs[5])) << "\n";
 
           // Termination condition
-          if (norm_2(update) < 0.01) 
+          if (norm_2(lhs) < 0.01) 
             break;
         }
         //        std::cout << "----> " << d << "\n\n";
         offset(0) = d[2];
         offset(1) = d[5];
         
-        if (norm_2(offset) > 3) {
+        if (norm_2(offset) > 3 || 
+            offset(0) != offset(0) ||  // Check to make sure the offset is not NaN...
+            offset(1) != offset(1) ) { // ... ditto.
           disparity_map(x,y) = PixelDisparity<float>();
         } else {
           disparity_map(x,y).h() += offset(0);

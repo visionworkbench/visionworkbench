@@ -160,7 +160,7 @@ namespace stereo {
       // good pixel data is placed into the coordinates specified by
       // the bbox.  This allows rasterize to touch those pixels
       // using the coordinates inside the bbox.  The pixels outside
-      // those coordinates are invalid, but they never get accessed.
+      // those coordinates are invalid, and they never get accessed.
       return CropView<ImageView<pixel_type> > (disparity_map, BBox2i(m_kernel_size[0]-bbox.min().x(), 
                                                                      m_kernel_size[1]-bbox.min().y(), 
                                                                      bbox.width(), bbox.height()));
