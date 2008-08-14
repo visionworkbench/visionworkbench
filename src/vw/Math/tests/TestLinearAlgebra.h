@@ -417,5 +417,55 @@ public:
     TS_ASSERT_DELTA(V(1,0).imag(), 0, 0.0001);
   }
 
+  void test_linear_static()
+  {
+    Matrix<float,3,3> A;
+    A(0,0) = 81; A(0,1) = 91; A(0,2) = 27; 
+    A(1,0) = 90; A(1,1) = 63; A(1,2) = 54;
+    A(2,0) = 12; A(2,1) = 9;  A(2,2) = 95; 
+
+    Vector<float,3> b;
+    b(0) = 5;
+    b(1) = 95;
+    b(2) = 2;
+
+    Vector<float,3> x = solve(A,b);
+    Vector<float,3> x_test = inverse(A)*b;
+
+    TS_ASSERT_DELTA(x[0],  x_test[0], 0.0001);
+    TS_ASSERT_DELTA(x[1],  x_test[1], 0.0001);
+    TS_ASSERT_DELTA(x[2],  x_test[2], 0.0001);
+
+    TS_ASSERT_DELTA(x[0],  2.8077, 0.0001);
+    TS_ASSERT_DELTA(x[1], -2.4131, 0.0001);
+    TS_ASSERT_DELTA(x[2], -0.1050, 0.0001);
+  }
+
+  void test_linear_symmetric_static()
+  {
+    Matrix<float,3,3> A;
+    A(0,0) = 81; A(0,1) = 91; A(0,2) = 27; 
+    A(1,0) = 90; A(1,1) = 63; A(1,2) = 54;
+    A(2,0) = 12; A(2,1) = 9;  A(2,2) = 95; 
+
+    Matrix<float,3,3> symA = transpose(A)*A;
+
+    Vector<float,3> b;
+    b(0) = 5;
+    b(1) = 95;
+    b(2) = 2;
+
+    Vector<float,3> x_test = inverse(symA)*b;
+    solve_symmetric_nocopy(symA,b);
+
+    TS_ASSERT_DELTA(b[0],  x_test[0], 0.0001);
+    TS_ASSERT_DELTA(b[1],  x_test[1], 0.0001);
+    TS_ASSERT_DELTA(b[2],  x_test[2], 0.0001);
+
+    TS_ASSERT_DELTA(b[0], -0.1360, 0.0001);
+    TS_ASSERT_DELTA(b[1],  0.1473, 0.0001);
+    TS_ASSERT_DELTA(b[2],  0.0100, 0.0001);
+  }
+
 
 }; // class TestVector

@@ -340,6 +340,130 @@ namespace math {
     return Bbuf;
   }
 
+
+  // ---------------------------------------------------------------------------
+  // x = solve(A,b) - Computes the solution to a real system of linear 
+  // equations:
+  //
+  //     A*x=b
+  //
+  // Based on the LAPACK GESV routines, this solution is computed
+  // using LU decomposition and back/forward substitution.
+  // ---------------------------------------------------------------------------
+
+  /// \cond INTERNAL
+  extern "C"    int sgesv_(const long int *n, const long int *nrhs, float *a, 
+                           const long int *lda, long int *ipiv, float *b, 
+                           const long int *ldb, long int *info);
+
+  extern "C"    int dgesv_(const long int *n, const long int *nrhs, double *a, 
+                           const long int *lda, long int *ipiv, double *b, 
+                           const long int *ldb, long int *info);
+
+  static inline void gesv(const long int n, const long int nrhs, float *a, const long int lda, 
+                          long int *ipiv, float *b, const long int ldb, long int *info) {
+    sgesv_(&n, &nrhs, a, &lda, ipiv, b, &ldb, info);
+  }
+
+  static inline void gesv(const long int n, const long int nrhs, double *a, const long int lda, 
+                          long int *ipiv, double *b, const long int ldb, long int *info) {
+    dgesv_(&n, &nrhs, a, &lda, ipiv, b, &ldb, info);
+  }
+  /// \endcond
+
+  /// Computes the minimum-norm solution to a real linear least squares problem.
+  template <class AMatrixT, class BVectorT>
+  Vector<typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type>
+  solve( AMatrixT & A, BVectorT & B ) {
+    typedef typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type real_type;
+
+    const long int n = A.cols();
+    const long int lda = A.rows();
+    const long int nrhs = 1;
+    Vector<long int> ipiv( A.rows() );
+    const long int ldb = B.size();
+    long int info;
+
+    Matrix<real_type> Abuf = transpose(A);
+    Vector<real_type> result = B;
+    gesv(n,nrhs,&(Abuf(0,0)), lda, &(ipiv(0)), &(result(0)), ldb, &info);
+
+    if (info < 0) 
+      vw_throw( ArgumentErr() << "solve(): LAPACK driver gesv reported an error with argument " << -info << "." );
+    if (info > 0) 
+      vw_throw( ArgumentErr() << "solve(): LAPACK driver gesv could not solve equation.  Factor " << info << " of A is zero, so A is singular." );
+
+    return result;
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // x = solve_symmetric(A,b) where A is a symmetric, positive definite matrix.
+  // Computes the solution to a real system of linear equations:
+  //
+  //     A*x=b
+  //
+  // Based on the LAPACK POSV routines, this solution is computed
+  // using cholesky decomposition and back/forward substitution.  This
+  // routine is twice as efficient as the normal version of solve()
+  // when symmetric matrices are available.
+  // ---------------------------------------------------------------------------
+
+  /// \cond INTERNAL
+  extern "C"    int sposv_(const char *uplo, const long int *n, const long int *nrhs, float *a, 
+                           const long int *lda, float *b, const long int *ldb, long int *info);
+
+  extern "C"    int dposv_(const char *uplo, const long int *n, const long int *nrhs, double *a,
+                           const long int *lda, double *b, const long int *ldb, long int *info);
+
+  static inline void posv(const char uplo, const long int n, const long int nrhs, float *a, 
+                          const long int lda, float *b, const long int ldb, long int *info) {
+    sposv_(&uplo, &n, &nrhs, a, &lda, b, &ldb, info);
+  }
+
+  static inline void posv(const char uplo, const long int n, const long int nrhs, double *a, 
+                          const long int lda, double *b, const long int ldb, long int *info) {
+    dposv_(&uplo, &n, &nrhs, a, &lda, b, &ldb, info);
+  }
+
+  /// \endcond
+
+  /// Solve the equation Ax=b where A is a symmetric positive definite
+  /// matrix.  This version of this method will modify A and b.  Upon
+  /// return, A contains its cholesky factorization, and b will
+  /// contain the result of the computation, x.  Because this method
+  /// does not copy A or b, it can perform considerably faster than
+  /// the non-nocopy method below.
+  template <class AMatrixT, class BVectorT>
+  void solve_symmetric_nocopy( AMatrixT & A, BVectorT & B ) {
+    const long int n = A.cols();
+    const long int nrhs = 1;
+    const long int lda = A.rows();
+    const long int ldb = B.size();
+    long int info;
+    posv('L',n,nrhs,&(A(0,0)), lda, &(B(0)), ldb, &info);
+
+    if (info < 0) 
+      vw_throw( ArgumentErr() << "solve_symmetric(): LAPACK driver posv reported an error with argument " << -info << "." );
+    if (info > 0) 
+      vw_throw( ArgumentErr() << "solve_symmetric(): LAPACK driver posv could not solve equation because A is not symmetric positive definite." );
+  }
+
+  /// Solve the equation Ax=b where A is a symmetric positive definite
+  /// matrix.  This version of this method will not modify A and b.
+  /// The result (x) is returned as the return value.
+  template <class AMatrixT, class BVectorT>
+  Vector<typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type>
+  solve_symmetric( AMatrixT & A, BVectorT & B ) {
+    typedef typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type real_type;
+    Matrix<real_type> Abuf = A;
+    Vector<real_type> result = B;
+    solve_symmetric_nocopy(A,B);
+    return result;
+  }
+
+
+
 } // namespace math
 } // namespace vw
 
