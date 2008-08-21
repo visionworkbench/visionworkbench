@@ -518,6 +518,7 @@ namespace camera {
   private:
     ControlNetwork m_control_net;
     BundleAdjustModelT &m_model;
+    unsigned m_control; //0 for new control, 1 for old control
     double m_lambda;
     double m_nu;
     //unsigned m_found;
@@ -539,6 +540,7 @@ namespace camera {
       // Set an initial value for lambda, lambda_low, and is.  These values vary as the
       // algorithm proceeds.
       m_lambda = 1e-3;
+      m_control = 0; //use fast control
       m_nu = 2;
       //m_found = 0;
       g_tol = 1e-10;
@@ -600,6 +602,7 @@ namespace camera {
     }
   
     void set_lambda(double lambda) { m_lambda = lambda; }
+    void set_control(unsigned control){m_control = control;}
     int iterations() const { return m_iterations; }
 
 
@@ -957,7 +960,7 @@ namespace camera {
 
       Vector<double> delta = del_J;
 
-      // Here we want to make sure that if we apply Schur methods as on p. 604, we can get the same answer as in the general delta. 
+      // Here we want to make sure that if we apply Schur methods as on p. 604, we can get the same answer as in the general delta.  
       unsigned num_cam_entries = num_cam_params * num_cameras;
       unsigned num_pt_entries = num_pt_params * num_points;
 
@@ -1063,7 +1066,7 @@ namespace camera {
       //double dS = transpose(delta) * (del_J - .5 * hessian_old * delta);
       double dS = .5 * transpose(delta) *(m_lambda * delta + del_J);
 
-      std::cout << " dS " << dS << "\n";
+      //std::cout << " dS " << dS << "\n";
 
       // WARNING: will want to replace dS later
 
@@ -1095,21 +1098,30 @@ namespace camera {
         rel_tol = overall_delta;	
 	//	found = m_found;
 
-	double temp = 1 - pow((2*R - 1),3);
-	if (temp < 1.0/3.0)
-	  temp = 1.0/3.0;
-	
-	m_lambda *= temp;
-	m_nu = 2;
+	if(m_control==0){
+	  double temp = 1 - pow((2*R - 1),3);		
+	  if (temp < 1.0/3.0)
+	    temp = 1.0/3.0;
+	  
+	  m_lambda *= temp;
+	  m_nu = 2;
+	}
+	else if(m_control == 1){
+	  m_lambda /= 10;
+	}
 	return overall_delta;
       }
 
    
       
       else{
-	
-	m_lambda *= m_nu;
-	m_nu*=2;
+	if(m_control == 0){
+	 m_lambda *= m_nu; 
+	 m_nu*=2; 
+	}
+	else if (m_control == 1){
+	  m_lambda *= 10;
+	}
 
 	double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon); 
 	std::cout <<"\n" << "Reference LM Iteration " << m_iterations << ":     "
@@ -1348,25 +1360,6 @@ namespace camera {
         ++i; 
       } 
       
-     /*  for (unsigned i = 0; i < V.size(); i++) { */
-/* 	Matrix<double> V_temp = V(i).ref(); */
-/* 	chol_inverse(V_temp); */
-	
-/* 	for (unsigned j = 0; j < U.size(); j++){ */
-/* 	  Y(j,i) = W(j,i).ref() * transpose(V_temp) * V_temp; */
-	           
-/*           // "Flatten the block structure to compute 'e'. */
-/*           Vector<double, BundleAdjustModelT::camera_params_n> temp =  Y(j,i).ref()*epsilon_b(i).ref(); */
-/*           subvector(e, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n) -= temp; */
-/* 	} */
-/*       } */
-      //      std::cout <<"\n"<<"\n"<< "Vector e in SPARSE implementation: \n" << e <<"\n"<<"\n";  
-	
-      
-
-
-      //      std::cout <<"\n"<<"\n"<< "Vector (-e) in S: after second pass: " << -e <<"\n"<<"\n"; 
-      
       // The S matrix is a m x m block matrix with blocks that are
       // camera_params_n x camera_params_n in size.  It has a sparse
       // skyline structure, which makes it more efficient to solve
@@ -1375,43 +1368,6 @@ namespace camera {
       SparseSkylineMatrix<double> S(m_model.num_cameras()*BundleAdjustModelT::camera_params_n, 
                                     m_model.num_cameras()*BundleAdjustModelT::camera_params_n);
       
-      // Need to 'unaugmented' S matrix for Fletcher modification
-      //SparseSkylineMatrix<double> S_old(m_model.num_cameras()*BundleAdjustModelT::camera_params_n, 
-      //                            m_model.num_cameras()*BundleAdjustModelT::camera_params_n);
-      
-
-     /*  for (unsigned i = 0; i < V.size(); i++) { */
-/* 	for (unsigned j = 0; j < U.size(); j++){ */
-/*           for (unsigned k = 0; k < U.size(); k++){ */
-/*             // Compute the block entry... */
-/*             Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> temp = -Y(j,i).ref() * transpose( W(k,i).ref() ); */
-
-/*             // ... and "flatten" this matrix into the scalar entries of S */
-/*             for (unsigned aa = 0; aa < BundleAdjustModelT::camera_params_n; ++aa) { */
-/*               for (unsigned bb = 0; bb < BundleAdjustModelT::camera_params_n; ++bb) { */
-/*                 // FIXME: This if clause is required at the moment to */
-/*                 // ensure that we do not use the += on the symmetric */
-/*                 // entries of the SparseSkylineMatrix.  These */
-/*                 // symmetric entries are shallow, hence this code */
-/*                 // would add the value twice if we're not careful */
-/*                 // here. */
-/*                 if (k*BundleAdjustModelT::camera_params_n + bb <= */
-/*                     j*BundleAdjustModelT::camera_params_n + aa) { */
-/*                   S(j*BundleAdjustModelT::camera_params_n + aa, */
-/*                     k*BundleAdjustModelT::camera_params_n + bb) += temp(aa,bb); */
-
-/* 		  //  S_old(j*BundleAdjustModelT::camera_params_n + aa, */
-/*                   //  k*BundleAdjustModelT::camera_params_n + bb) += temp_old(aa,bb); */
-		  
-
-/*                 } */
-/*               } */
-/*             } */
-            
-/*           } */
-/*         } */
-/*       } */
-
       i = 0;
       for (typename ControlNetwork::const_iterator iter = m_control_net.begin(); iter != m_control_net.end(); ++iter) {
         for (typename ControlPoint::const_iterator j_measure_iter = (*iter).begin(); j_measure_iter != (*iter).end(); ++j_measure_iter) {
@@ -1667,8 +1623,8 @@ namespace camera {
       double R = (SS - Splus)/dS; // Compute ratio
       
       
-      if ((dS>0) && (SS > Splus)){
-      // if (R>0){
+      //if ((dS>0) && (SS > Splus)){
+      if (R>0){
 	for (unsigned j=0; j<m_model.num_cameras(); ++j)
           m_model.set_A_parameters(j, m_model.A_parameters(j) + subvector(delta_a,
                                                                           BundleAdjustModelT::camera_params_n*j,
@@ -1690,47 +1646,30 @@ namespace camera {
         abs_tol = overall_norm;
         rel_tol = fabs(overall_delta);
 	//	found = m_found;
-
-	double temp = 1 - pow((2*R - 1),3);
-	if (temp < 1.0/3.0)
-	  temp = 1.0/3.0;
 	
-	m_lambda *= temp;
-	m_nu = 2;
+	if(m_control == 0){
+	  double temp = 1 - pow((2*R - 1),3);
+	  if (temp < 1.0/3.0)
+	    temp = 1.0/3.0;
+	  
+	  m_lambda *= temp;
+	  m_nu = 2;
+	}
+	else if (m_control == 1){
+	  m_lambda /= 10;
+	}
 	return overall_delta;
-      }
-      
-      else if(SS > Splus){ // we still made progress, so accept new point but don't adjust lambda
-	for (unsigned j=0; j<m_model.num_cameras(); ++j)
-          m_model.set_A_parameters(j, m_model.A_parameters(j) + subvector(delta_a,
-                                                                          BundleAdjustModelT::camera_params_n*j,
-                                                                          BundleAdjustModelT::camera_params_n));
-        for (unsigned i=0; i<m_model.num_points(); ++i)
-	  m_model.set_B_parameters(i, m_model.B_parameters(i) + delta_b(i).ref());
-	
-      
-      // Summarize the stats from this step in the iteration
-	double overall_norm = sqrt(new_error_total);
-        double overall_delta = sqrt(error_total) - sqrt(new_error_total);
-        std::cout << "\n" << "Sparse LM Iteration " << m_iterations << ":     "
-                  << "  Overall: " << overall_norm << "  delta: " << overall_delta << "  lambda: " << m_lambda <<"   Ratio:  " << R << "\n";
-	
-        // Give the bundle adjustment a model to report the error for
-        // this iteration in a manner of its choosing.
-        m_model.report_error();
-	
-        abs_tol = overall_norm;
-        rel_tol = fabs(overall_delta);
-	//found = m_found;
-
-	//m_lambda = 2;
-	//m_lambda /= 2; //make lambda smaller, since we made progress like in old algorithm
       }
       
       else{ // here we didn't make progress
 	
-	m_lambda *= m_nu;
-	m_nu*=2;
+	if (m_control == 0){
+	  m_lambda *= m_nu;
+	  m_nu*=2;
+	}
+	else if (m_control == 1){
+	  m_lambda *= 10;
+	}
 	double overall_delta = sqrt(error_total) - sqrt(new_error_total);
 	std::cout <<"\n" << "Sparse LM Iteration " << m_iterations << "  delta  "<< overall_delta << "  lambda: " << m_lambda << "   Ratio:  " << R <<"\n";
 	return ScalarTypeLimits<double>::highest();
