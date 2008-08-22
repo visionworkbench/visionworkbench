@@ -115,7 +115,7 @@ namespace vw {
 
   public:
     /// The pixel type of the image view.
-    typedef typename ProductType<typename ImageT::pixel_type, typename KernelT::pixel_type>::type pixel_type;
+    typedef typename ImageT::pixel_type pixel_type;
 
     /// We compute the result, so we return by value.
     typedef pixel_type result_type;
@@ -204,7 +204,7 @@ namespace vw {
 
   public:
     /// The pixel type of the view.
-    typedef typename ProductType<typename ImageT::pixel_type, KernelT>::type pixel_type;
+    typedef typename ImageT::pixel_type pixel_type;
     typedef pixel_type result_type;
 
     /// The view's %pixel_accessor type.
