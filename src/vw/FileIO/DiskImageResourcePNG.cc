@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,11 +18,11 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 /// \file DiskImageResourcePNG.cc
-/// 
+///
 /// Provides support for the PNG file format.
 ///
 /// FIXME Currently we do not support 1-bit images, though we could.
@@ -39,11 +39,34 @@
 
 #include <png.h>
 
+#include <csetjmp>
+
 #include <vw/Core/Exception.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/FileIO/DiskImageResourcePNG.h>
 
 using namespace vw;
+
+extern "C" {
+  struct vw_png_err_mgr {
+    jmp_buf error_return;
+    char error_msg[256];
+  };
+}
+
+static void png_error_handler(png_structp png_ptr, png_const_charp error_msg)
+{
+  vw_png_err_mgr *mgr;
+  if (!(mgr = static_cast<vw_png_err_mgr*>(png_get_error_ptr(png_ptr))))
+  {
+    // we're in big trouble. I doubt it's safe to throw here, since
+    // libpng assumes this func doesn't return. Bail out.
+    vw_out(ErrorMessage, "fileio") << "Error while recovering from error in PNG handler: " << error_msg << std::endl;
+    abort();
+  }
+  strncpy(mgr->error_msg, error_msg, 256);
+  longjmp(mgr->error_return, 1);
+}
 
 /************************************************************************
  ********************** PNG CONTEXT STRUCTURES **************************
@@ -61,7 +84,7 @@ struct DiskImageResourcePNG::vw_png_context {
   virtual ~vw_png_context() { }
 
 protected:
-  // Pointer to the containing class, necessary to access some of its 
+  // Pointer to the containing class, necessary to access some of its
   // members.
   DiskImageResourcePNG *outer;
 
@@ -69,11 +92,13 @@ protected:
   png_structp png_ptr;
   png_infop info_ptr;
 
+  // Error manager to prevent libpng from calling abort()
+  vw_png_err_mgr err_mgr;
+
   // Pointer to actual file on disk. shared_ptr instead of std::auto_ptr
   // because of problems with auto_ptr's deletion.
   boost::shared_ptr<std::fstream> m_file;
 };
-
 
 // Context for reading.
 struct DiskImageResourcePNG::vw_png_read_context:
@@ -117,9 +142,17 @@ struct DiskImageResourcePNG::vw_png_read_context:
 
     // Allocate the structures.
     png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING,
-                                     NULL, NULL, NULL);
+                                     &err_mgr, png_error_handler, NULL);
     if(!png_ptr)
       vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create read structure for file " << outer->m_filename << ".");
+
+    if (setjmp(err_mgr.error_return)) {
+      // Non-local error return
+      // WARNING: libpng calls later in this function, on error, will longjmp here
+      // DO NOT leave newly constructed C++ objects on the stack between here
+      // and any of the libpng calls later in this function
+      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
+    }
 
     info_ptr = png_create_info_struct(png_ptr);
     if(!info_ptr) {
@@ -146,8 +179,8 @@ struct DiskImageResourcePNG::vw_png_read_context:
     // Fetch the comments.
     read_comments();
 
-    // Set up expansion. Palette images get expanded to RGB, grayscale 
-    // images of less than 8 bits per channel are expanded to 8 bits per 
+    // Set up expansion. Palette images get expanded to RGB, grayscale
+    // images of less than 8 bits per channel are expanded to 8 bits per
     // channel, and tRNS chunks are expanded to alpha channels.
     png_set_expand(png_ptr);
 
@@ -224,6 +257,8 @@ struct DiskImageResourcePNG::vw_png_read_context:
   }
 
   virtual ~vw_png_read_context() {
+    if (setjmp(err_mgr.error_return))
+      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     png_destroy_read_struct(&png_ptr, &info_ptr, &endinfo_ptr);
     m_file->close();
   }
@@ -318,9 +353,17 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
     // Allocate the structures.
     png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING,
-                                      NULL, NULL, NULL);
+                                     &err_mgr, png_error_handler, NULL);
     if(!png_ptr)
       vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create read structure for file " << outer->m_filename << ".");
+
+    if (setjmp(err_mgr.error_return)) {
+      // Non-local error return
+      // WARNING: libpng calls later in this function, on error, will longjmp here
+      // DO NOT leave newly constructed C++ objects on the stack between here
+      // and any of the libpng calls later in this function
+      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
+    }
 
     info_ptr = png_create_info_struct(png_ptr);
     if(!info_ptr) {
@@ -394,6 +437,8 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
   virtual ~vw_png_write_context() {
     png_write_end(png_ptr, info_ptr);
+    if (setjmp(err_mgr.error_return))
+      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     png_destroy_write_struct(&png_ptr, &info_ptr);
     m_file->close();
   }
@@ -485,7 +530,7 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
     ctx->readall(buf);
   } else {
     // FIXME: Normal operation. Make this what happens all the time when
-    // the libpng bug gets fixed. The bug in question causes the final 
+    // the libpng bug gets fixed. The bug in question causes the final
     // parts of the expanded, interlaced image (the ones we care about) to
     // seemingly 'lose' a row.
 
@@ -500,8 +545,8 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
       ctx->readline();
 
       // Copy the data over into a contiguous buffer, which is what
-      // convert() expects when we call it below. This extra copy of the 
-      // data is undesirable, but probably not a huge performance hit 
+      // convert() expects when we call it below. This extra copy of the
+      // data is undesirable, but probably not a huge performance hit
       // compared to reading the data from disk.
       for(int i=0; i < ctx->scanline_size; i++)
         buf[ctx->scanline_size * (ctx->current_line - start_line - 1) + i] =
@@ -514,7 +559,7 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
   ImageBuffer src;
   src.data = buf.get();
   src.format = m_format;
-  // The number of rows we're reading may be different, seeing as how we 
+  // The number of rows we're reading may be different, seeing as how we
   // can read sequential lines.
   src.format.rows = bbox.height();
   src.cstride = ctx->scanline_size / m_format.cols;
