@@ -119,14 +119,6 @@ struct DiskImageResourcePNG::vw_png_read_context:
   vw_png_read_context(DiskImageResourcePNG *outer):
     vw_png_context(outer)
   {
-    uint32 cols;
-    uint32 rows;
-    int bit_depth;
-    int color_type;
-    int interlace_type;
-    int channels;
-    int filter_method;
-    int compression_type;
 //    int num_passes; // For interlacing :-(
 
     m_file = boost::shared_ptr<std::fstream>( new std::fstream( outer->m_filename.c_str(), std::ios_base::in | std::ios_base::binary ) );
@@ -184,8 +176,18 @@ struct DiskImageResourcePNG::vw_png_read_context:
     // channel, and tRNS chunks are expanded to alpha channels.
     png_set_expand(png_ptr);
 
+    // png_uint_32 could be 4 or 8 bytes, depending on specific build of libpng. be careful.
+    png_uint_32 cols, rows;
+
+    int bit_depth;
+    int color_type;
+    int interlace_type;
+    int channels;
+    int filter_method;
+    int compression_type;
+
     // Read up to the start of the data, and set some values.
-    png_get_IHDR(png_ptr, info_ptr, (png_uint_32*)(&cols), (png_uint_32*)(&rows), &bit_depth, &color_type, &interlace_type, &compression_type, &filter_method);
+    png_get_IHDR(png_ptr, info_ptr, &cols, &rows, &bit_depth, &color_type, &interlace_type, &compression_type, &filter_method);
 
     switch(bit_depth) {
       case 1:
@@ -242,7 +244,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
       interlaced = false;
 
     png_read_update_info(png_ptr, info_ptr);
-    png_get_IHDR(png_ptr, info_ptr, (png_uint_32*)(&cols), (png_uint_32*)(&rows), &bit_depth, &color_type, &interlace_type, &compression_type, &filter_method);
+    png_get_IHDR(png_ptr, info_ptr, &cols, &rows, &bit_depth, &color_type, &interlace_type, &compression_type, &filter_method);
 
     outer->m_format.cols = cols;
     outer->m_format.rows = rows;
