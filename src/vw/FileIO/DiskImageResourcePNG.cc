@@ -159,7 +159,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
     }
 
     // Must call this as we're using fstream and not FILE*
-    png_set_read_fn(png_ptr, (voidp)m_file.get(), read_data);
+    png_set_read_fn(png_ptr, reinterpret_cast<voidp>(m_file.get()), read_data);
 
     // Rewind to the beginning of the file.
     png_set_sig_bytes(png_ptr, 8);
@@ -266,7 +266,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
   }
 
   void readline() {
-    png_read_row(png_ptr, (png_bytep)scanline.get(), NULL);
+    png_read_row(png_ptr, static_cast<png_bytep>(scanline.get()), NULL);
     current_line++;
   }
 
@@ -275,7 +275,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
       vw_throw(IOErr() << "DiskImageResourcePNG: cannot read entire file unless line marker set at beginning.");
     png_bytep row_pointers[outer->m_format.rows];
     for(int i=0; i < outer->m_format.rows; i++)
-      row_pointers[i] = (png_bytep)dst.get() + i*scanline_size;
+      row_pointers[i] = static_cast<png_bytep>(dst.get()) + i*scanline_size;
     png_read_image(png_ptr, row_pointers);
     current_line = outer->m_format.rows;
   }
@@ -295,8 +295,8 @@ private:
 
   // Function for reading data, given to PNG.
   static void read_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
-    std::fstream *fs = (std::fstream*)png_get_io_ptr(png_ptr);
-    fs->read( (char*)data, length );
+    std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
+    fs->read( reinterpret_cast<char*>(data), length );
   }
 
   // Fetches the comments out of the PNG when we first open it.
@@ -374,7 +374,7 @@ struct DiskImageResourcePNG::vw_png_write_context:
     }
 
     // Must call this as we're using fstream and not FILE*
-    png_set_write_fn(png_ptr, (voidp)m_file.get(), write_data, flush_data);
+    png_set_write_fn(png_ptr, reinterpret_cast<voidp>(m_file.get()), write_data, flush_data);
 
     // Set some needed values.
     int width = outer->m_format.cols;
@@ -415,7 +415,7 @@ struct DiskImageResourcePNG::vw_png_write_context:
     if(options.using_palette && options.using_palette_indices) {
       png_colorp palette = (png_colorp) png_malloc( png_ptr, options.palette.cols() * sizeof(png_color) );
       png_bytep alpha = (png_bytep) png_malloc( png_ptr, options.palette.cols() * sizeof(png_byte) );
-      for ( int i=0; i<(int)options.palette.cols(); ++i ) {
+      for ( int i=0; i < static_cast<int>(options.palette.cols()); ++i ) {
         palette[i].red = options.palette(i,0).r();
         palette[i].green = options.palette(i,0).g();
         palette[i].blue = options.palette(i,0).b();
@@ -458,12 +458,12 @@ struct DiskImageResourcePNG::vw_png_write_context:
 private:
   // Function for libpng to use to write as we're not using FILE*.
   static void write_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
-    std::fstream *fs = (std::fstream*)png_get_io_ptr(png_ptr);
+    std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
     fs->write( (char*)data, length );
   }
 
   static void flush_data( png_structp png_ptr) {
-    std::fstream *fs = (std::fstream*)png_get_io_ptr(png_ptr);
+    std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
     fs->flush();
   }
 };
