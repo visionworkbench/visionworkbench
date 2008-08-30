@@ -74,7 +74,7 @@ AC_ARG_ENABLE(debug,
 )
 
 if test "yes" = "$ENABLE_DEBUG"; then
-   AX_CFLAGS="$AX_CFLAGS -g -DDEBUG"
+   AX_CFLAGS="$AX_CFLAGS -g -DDEBUG -D_GLIBCXX_DEBUG"
 else
    AX_CFLAGS="$AX_CFLAGS -DNDEBUG"
 fi
