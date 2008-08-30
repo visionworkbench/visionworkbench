@@ -39,6 +39,13 @@
 
 #include <png.h>
 
+// Non-local error return
+// NOTE: To maintain the stack in the presence of
+// setjmp/longjump and C++, You cannot create something (with a destructor) on
+// the stack and then allow it to longjmp. Therefore, every stack allocation
+// needs a setjmp after it. It also makes sense, for sane backtrace purposes,
+// to put a setjmp in every function that can longjmp, so the backtrace
+// originates from that function.
 #include <csetjmp>
 
 #include <vw/Core/Exception.h>
@@ -145,13 +152,8 @@ struct DiskImageResourcePNG::vw_png_read_context:
     if(!png_ptr)
       vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create read structure for file " << outer->m_filename << ".");
 
-    if (setjmp(err_mgr.error_return)) {
-      // Non-local error return
-      // WARNING: libpng calls later in this function, on error, will longjmp here
-      // DO NOT leave newly constructed C++ objects on the stack between here
-      // and any of the libpng calls later in this function
+    if (setjmp(err_mgr.error_return))
       vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
-    }
 
     info_ptr = png_create_info_struct(png_ptr);
     if(!info_ptr) {
@@ -273,6 +275,8 @@ struct DiskImageResourcePNG::vw_png_read_context:
   }
 
   void readline() {
+    if (setjmp(err_mgr.error_return))
+      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     png_read_row(png_ptr, static_cast<png_bytep>(scanline.get()), NULL);
     current_line++;
   }
@@ -281,6 +285,8 @@ struct DiskImageResourcePNG::vw_png_read_context:
     if(current_line != 0)
       vw_throw(IOErr() << "DiskImageResourcePNG: cannot read entire file unless line marker set at beginning.");
     png_bytep row_pointers[outer->m_format.rows];
+    if (setjmp(err_mgr.error_return))
+      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     for(int i=0; i < outer->m_format.rows; i++)
       row_pointers[i] = static_cast<png_bytep>(dst.get()) + i*scanline_size;
     png_read_image(png_ptr, row_pointers);
@@ -290,6 +296,8 @@ struct DiskImageResourcePNG::vw_png_read_context:
 
   // Advances place in the image by line lines.
   void advance(size_t lines) {
+    if (setjmp(err_mgr.error_return))
+      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     for(size_t i = 0; i < lines; i++) {
       png_read_row(png_ptr, NULL, NULL);
       current_line++;
@@ -302,7 +310,10 @@ private:
 
   // Function for reading data, given to PNG.
   static void read_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
-    std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
+    std::fstream *fs;
+    if (setjmp(err_mgr.error_return))
+      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
+    fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
     fs->read( reinterpret_cast<char*>(data), length );
   }
 
@@ -366,13 +377,8 @@ struct DiskImageResourcePNG::vw_png_write_context:
     if(!png_ptr)
       vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create read structure for file " << outer->m_filename << ".");
 
-    if (setjmp(err_mgr.error_return)) {
-      // Non-local error return
-      // WARNING: libpng calls later in this function, on error, will longjmp here
-      // DO NOT leave newly constructed C++ objects on the stack between here
-      // and any of the libpng calls later in this function
+    if (setjmp(err_mgr.error_return))
       vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
-    }
 
     info_ptr = png_create_info_struct(png_ptr);
     if(!info_ptr) {
@@ -421,13 +427,15 @@ struct DiskImageResourcePNG::vw_png_write_context:
     png_set_IHDR(png_ptr, info_ptr, width, height, bit_depth, color_type, interlace_type, compression_type, filter_method);
 
     if(options.using_palette && options.using_palette_indices) {
-      png_colorp palette = (png_colorp) png_malloc( png_ptr, options.palette.cols() * sizeof(png_color) );
-      png_bytep alpha = (png_bytep) png_malloc( png_ptr, options.palette.cols() * sizeof(png_byte) );
-      for ( int i=0; i < static_cast<int>(options.palette.cols()); ++i ) {
-        palette[i].red = options.palette(i,0).r();
+      png_colorp palette = reinterpret_cast<png_colorp>(png_malloc( png_ptr, options.palette.cols() * sizeof(png_color) ));
+      png_bytep alpha    = reinterpret_cast<png_bytep>(png_malloc( png_ptr, options.palette.cols() * sizeof(png_byte) ));
+      if (setjmp(err_mgr.error_return))
+        vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
+      for ( int i=0; i < int(options.palette.cols()); ++i ) {
+        palette[i].red   = options.palette(i,0).r();
         palette[i].green = options.palette(i,0).g();
-        palette[i].blue = options.palette(i,0).b();
-        alpha[i] = options.palette(i,0).a();
+        palette[i].blue  = options.palette(i,0).b();
+        alpha[i]         = options.palette(i,0).a();
       }
       png_set_PLTE( png_ptr, info_ptr, palette, options.palette.cols() );
       if(options.using_palette_alpha) {
@@ -446,9 +454,9 @@ struct DiskImageResourcePNG::vw_png_write_context:
   }
 
   virtual ~vw_png_write_context() {
-    png_write_end(png_ptr, info_ptr);
     if (setjmp(err_mgr.error_return))
       vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
+    png_write_end(png_ptr, info_ptr);
     png_destroy_write_struct(&png_ptr, &info_ptr);
     m_file->close();
   }
@@ -457,8 +465,10 @@ struct DiskImageResourcePNG::vw_png_write_context:
   // to the file. Closing happens when the context is destroyed.
   void write(const ImageBuffer &buf) const {
     png_bytep row_pointers[outer->m_format.rows];
+    if (setjmp(err_mgr.error_return))
+      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     for(int i=0; i < outer->m_format.rows; i++)
-      row_pointers[i] = (uint8*)buf.data + i * scanline_size;
+      row_pointers[i] = reinterpret_cast<uint8*>(buf.data) + i * scanline_size;
 
     png_write_image(png_ptr, row_pointers);
   }
@@ -466,12 +476,18 @@ struct DiskImageResourcePNG::vw_png_write_context:
 private:
   // Function for libpng to use to write as we're not using FILE*.
   static void write_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
-    std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
+    std::fstream *fs;
+    if (setjmp(err_mgr.error_return))
+      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
+    fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
     fs->write( (char*)data, length );
   }
 
   static void flush_data( png_structp png_ptr) {
-    std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
+    std::fstream *fs;
+    if (setjmp(err_mgr.error_return))
+      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
+    fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
     fs->flush();
   }
 };
