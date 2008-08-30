@@ -384,10 +384,11 @@ struct DiskImageResourcePNG::vw_png_write_context:
     png_set_write_fn(png_ptr, reinterpret_cast<voidp>(m_file.get()), write_data, flush_data);
 
     // Set some needed values.
-    int width = outer->m_format.cols;
-    int height = outer->m_format.rows;
-    int channels = num_channels(outer->m_format.pixel_format);
-    int bit_depth = channel_size(outer->m_format.channel_type) * 8;
+    int width     = outer->m_format.cols;
+    int height    = outer->m_format.rows;
+    int channels  = num_channels(outer->m_format.pixel_format);
+    int bit_depth = outer->m_format.channel_type == VW_CHANNEL_UINT16 ? 16 : 8;
+
     int color_type;
     switch(outer->m_format.pixel_format) {
       case VW_PIXEL_GRAY:
@@ -630,9 +631,14 @@ void DiskImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox ) {
   dst.data = buf.get();
   dst.format = m_format;
   dst.format.rows = bbox.height();
-  dst.cstride = num_channels(m_format.pixel_format) * channel_size(m_format.channel_type);
-  dst.rstride = dst.cstride * m_format.cols;
-  dst.pstride = dst.rstride * m_format.rows;
+
+  if (dst.format.channel_type != VW_CHANNEL_UINT16)
+    dst.format.channel_type = VW_CHANNEL_UINT8;
+
+  dst.cstride = num_channels(dst.format.pixel_format) * channel_size(dst.format.channel_type);
+  dst.rstride = dst.cstride * dst.format.cols;
+  dst.pstride = dst.rstride * dst.format.rows;
+
   convert(dst, src);
 
   // Write.
