@@ -107,7 +107,7 @@ protected:
   png_infop info_ptr;
 
   // Error manager to prevent libpng from calling abort()
-  vw_png_err_mgr err_mgr;
+  mutable vw_png_err_mgr err_mgr;
 
   // Pointer to actual file on disk. shared_ptr instead of std::auto_ptr
   // because of problems with auto_ptr's deletion.
@@ -312,10 +312,7 @@ private:
 
   // Function for reading data, given to PNG.
   static void read_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
-    std::fstream *fs;
-    if (setjmp(err_mgr.error_return))
-      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
-    fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
+    std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));;
     fs->read( reinterpret_cast<char*>(data), length );
   }
 
@@ -471,18 +468,12 @@ struct DiskImageResourcePNG::vw_png_write_context:
 private:
   // Function for libpng to use to write as we're not using FILE*.
   static void write_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
-    std::fstream *fs;
-    if (setjmp(err_mgr.error_return))
-      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
-    fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
+    std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
     fs->write( (char*)data, length );
   }
 
   static void flush_data( png_structp png_ptr) {
-    std::fstream *fs;
-    if (setjmp(err_mgr.error_return))
-      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
-    fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
+    std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
     fs->flush();
   }
 };
