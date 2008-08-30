@@ -133,8 +133,6 @@ struct DiskImageResourcePNG::vw_png_read_context:
   vw_png_read_context(DiskImageResourcePNG *outer):
     vw_png_context(outer)
   {
-//    int num_passes; // For interlacing :-(
-
     m_file = boost::shared_ptr<std::fstream>( new std::fstream( outer->m_filename.c_str(), std::ios_base::in | std::ios_base::binary ) );
     if(!m_file)
       vw_throw(IOErr() << "DiskImageResourcePNG: Unable to open input file " << outer->m_filename << ".");
@@ -185,7 +183,8 @@ struct DiskImageResourcePNG::vw_png_read_context:
     // channel, and tRNS chunks are expanded to alpha channels.
     png_set_expand(png_ptr);
 
-    // png_uint_32 could be 4 or 8 bytes, depending on specific build of libpng. be careful.
+    // png_uint_32 is usually a long, which could be 4 or 8 bytes,
+    // depending on platform. be careful.
     png_uint_32 cols, rows;
 
     int bit_depth;
@@ -194,9 +193,11 @@ struct DiskImageResourcePNG::vw_png_read_context:
     int channels;
     int filter_method;
     int compression_type;
+//    int num_passes; // For interlacing :-(
 
     // Read up to the start of the data, and set some values.
-    png_get_IHDR(png_ptr, info_ptr, &cols, &rows, &bit_depth, &color_type, &interlace_type, &compression_type, &filter_method);
+    png_get_IHDR(png_ptr, info_ptr, &cols, &rows, &bit_depth, &color_type,
+                 &interlace_type, &compression_type, &filter_method);
 
     switch(bit_depth) {
       case 1:
@@ -262,6 +263,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
     // Allocate the scanline.
     scanline_size = cols * bytes_per_channel * channels;
     scanline = boost::shared_array<uint8>(new uint8[scanline_size]);
+
     png_start_read_image(png_ptr);
 
     current_line = 0;
@@ -397,33 +399,26 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
     int color_type;
     switch(outer->m_format.pixel_format) {
-      case VW_PIXEL_GRAY:
-        color_type = PNG_COLOR_TYPE_GRAY;
-        break;
-      case VW_PIXEL_GRAYA:
-        color_type = PNG_COLOR_TYPE_GRAY_ALPHA;
-        break;
-      case VW_PIXEL_RGB:
-        color_type = PNG_COLOR_TYPE_RGB;
-        break;
-      case VW_PIXEL_RGBA:
-        color_type = PNG_COLOR_TYPE_RGBA;
-        break;
-      default:
-        color_type = PNG_COLOR_TYPE_RGBA;
-        break;
+      case VW_PIXEL_GRAY:   color_type = PNG_COLOR_TYPE_GRAY;       break;
+      case VW_PIXEL_GRAYA:  color_type = PNG_COLOR_TYPE_GRAY_ALPHA; break;
+      case VW_PIXEL_RGB:    color_type = PNG_COLOR_TYPE_RGB;        break;
+      case VW_PIXEL_RGBA:   color_type = PNG_COLOR_TYPE_RGBA;       break;
+      default:              color_type = PNG_COLOR_TYPE_RGBA;       break;
     }
     if(options.using_palette) {
       color_type = PNG_COLOR_TYPE_PALETTE;
       channels = 3;
     }
+
     int interlace_type;
     if(options.using_interlace)
       interlace_type = PNG_INTERLACE_ADAM7;
     else
       interlace_type = PNG_INTERLACE_NONE;
+
     int compression_type = PNG_COMPRESSION_TYPE_DEFAULT;
-    int filter_method = PNG_FILTER_TYPE_DEFAULT;
+    int filter_method    = PNG_FILTER_TYPE_DEFAULT;
+
     png_set_IHDR(png_ptr, info_ptr, width, height, bit_depth, color_type, interlace_type, compression_type, filter_method);
 
     if(options.using_palette && options.using_palette_indices) {
