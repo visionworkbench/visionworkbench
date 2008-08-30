@@ -47,10 +47,12 @@
 
 using namespace vw;
 
+static const size_t ERROR_MSG_SIZE = 256;
+
 extern "C" {
   struct vw_png_err_mgr {
     jmp_buf error_return;
-    char error_msg[256];
+    char error_msg[ERROR_MSG_SIZE];
   };
 }
 
@@ -59,12 +61,17 @@ static void png_error_handler(png_structp png_ptr, png_const_charp error_msg)
   vw_png_err_mgr *mgr;
   if (!(mgr = static_cast<vw_png_err_mgr*>(png_get_error_ptr(png_ptr))))
   {
-    // we're in big trouble. I doubt it's safe to throw here, since
-    // libpng assumes this func doesn't return. Bail out.
-    vw_out(ErrorMessage, "fileio") << "Error while recovering from error in PNG handler: " << error_msg << std::endl;
+    // We're in big trouble. libpng expects us not to return. Stack could be
+    // trashed, and we have nowhere to go. It's not safe to throw here. Bail out.
+    vw_out(ErrorMessage, "fileio")
+      << "Error while recovering from error in PNG handler: "
+      << error_msg << std::endl;
     abort();
   }
-  strncpy(mgr->error_msg, error_msg, 256);
+
+  mgr->error_msg[0] = 0; // prep for strncat
+  strncat(mgr->error_msg, error_msg, ERROR_MSG_SIZE);
+
   longjmp(mgr->error_return, 1);
 }
 
