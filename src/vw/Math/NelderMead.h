@@ -61,7 +61,7 @@ namespace math {
     void insert_vertex(vertex_type vertex) {
       vertex_iterator iter = m_vertices.begin();
 
-      while ( vertex.second < (*iter).second && iter != m_vertices.end() )
+      while ( iter != m_vertices.end() && vertex.second < (*iter).second )
         iter++;
 
       m_vertices.insert(iter, vertex);
