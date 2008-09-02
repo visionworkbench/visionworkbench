@@ -68,12 +68,14 @@ CPPFLAGS="$CPPFLAGS -I\${top_srcdir}/src"
 
 # Debugging
 AC_ARG_ENABLE(debug,
-  AC_HELP_STRING([--enable-debug], [generate debugging symbols @<:@no@:>@]),
+  AC_HELP_STRING([--enable-debug@<:@=LEVEL@:>@], [generate debugging symbols @<:@no@:>@]),
   [ ENABLE_DEBUG=$enableval ], 
   [ if test -z "$ENABLE_DEBUG"; then ENABLE_DEBUG=no; fi ]
 )
 
-if test "yes" = "$ENABLE_DEBUG"; then
+if test "yes" = "$ENABLE_DEBUG" || test "1" = "$ENABLE_DEBUG"; then
+   AX_CFLAGS="$AX_CFLAGS -g -DDEBUG"
+elif test "2" = "$ENABLE_DEBUG"; then
    AX_CFLAGS="$AX_CFLAGS -g -DDEBUG -D_GLIBCXX_DEBUG"
 else
    AX_CFLAGS="$AX_CFLAGS -DNDEBUG"
