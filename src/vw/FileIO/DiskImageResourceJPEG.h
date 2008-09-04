@@ -133,7 +133,7 @@ namespace vw {
      * use std::auto_ptr<> here.) Boost's shared_ptr class, however, does 
      * _not_ have this problem, and is perfectly safe to use in this case.
     */
-    mutable boost::shared_ptr<vw_jpeg_decompress_context> m_decompress_context;
+    mutable boost::shared_ptr<vw_jpeg_decompress_context> ctx;
 
     /* Resets the decompression context and current point in the file to 
      * the beginning.

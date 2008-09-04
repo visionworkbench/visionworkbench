@@ -102,7 +102,7 @@ public:
   int current_line;
   jpeg_decompress_struct decompress_ctx;
   JSAMPARRAY scanline;
-  int scanline_size;
+  int cstride;
 
   vw_jpeg_decompress_context(DiskImageResourceJPEG *outer) : outer(outer)
   {
@@ -170,9 +170,9 @@ public:
     }
 
     // Allocate the scanline
-    scanline_size = decompress_ctx.output_width * decompress_ctx.output_components;
+    cstride = decompress_ctx.output_components;
     scanline = (*(decompress_ctx.mem->alloc_sarray))
-      ((j_common_ptr) &decompress_ctx, JPOOL_IMAGE, scanline_size, 1);
+      ((j_common_ptr) &decompress_ctx, JPOOL_IMAGE, cstride * decompress_ctx.output_width, 1);
 
     // Finally, we're now at line 0, so set it.
     current_line = 0;
@@ -269,7 +269,7 @@ void DiskImageResourceJPEG::open( std::string const& filename, int subsample_fac
 
   // Now that all the needed members are set up, initialize the
   // decompress context.
-  m_decompress_context = boost::shared_ptr<DiskImageResourceJPEG::vw_jpeg_decompress_context>(new DiskImageResourceJPEG::vw_jpeg_decompress_context(this));
+  ctx = boost::shared_ptr<DiskImageResourceJPEG::vw_jpeg_decompress_context>(new DiskImageResourceJPEG::vw_jpeg_decompress_context(this));
 }
 
 /// Bind the resource to a file for writing.
@@ -314,35 +314,41 @@ void DiskImageResourceJPEG::create( std::string const& filename,
 */
 void DiskImageResourceJPEG::read( ImageBuffer const& dest, BBox2i const& bbox) const
 {
+  VW_ASSERT( int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
+             ArgumentErr() << "DiskImageResourceJPEG (read) Error: Destination buffer has wrong dimensions!" );
+
   const int start_row = bbox.min().y();
   const int end_row = bbox.max().y();
 
-  VW_ASSERT( dest.format.cols == cols(), IOErr() << "Destination buffer has different columns than file in JPEG read.");
-  VW_ASSERT( dest.format.rows <= rows(), IOErr() << "Destination buffer has too many rows in JPEG read.");
-  VW_ASSERT( bbox.height() == dest.format.rows, ArgumentErr() << "Destination buffer and requested bounding box have different height.");
-
   // If we're starting from the beginning, or if we don't have an open
   // decompress context, restart from the beginning of the file.
-  if(m_decompress_context->current_line != start_row)
+  if(ctx->current_line != start_row)
   {
-    if(m_decompress_context->current_line > start_row)
+    if(ctx->current_line > start_row)
       read_reset();
-    m_decompress_context->advance(start_row - m_decompress_context->current_line);
+    ctx->advance(start_row - ctx->current_line);
   }
 
   // Now read.
-  boost::scoped_array<uint8> buf( new uint8[m_decompress_context->scanline_size * bbox.height()] );
+  boost::scoped_array<uint8> buf( new uint8[ctx->cstride * bbox.width() * bbox.height()] );
 
-  while (m_decompress_context->decompress_ctx.output_scanline < end_row)
+  int32 offset = 0;
+  while (ctx->decompress_ctx.output_scanline < end_row)
   {
-    m_decompress_context->readline();
+    ctx->readline();
 
     // Copy the data over into a contiguous buffer, which is what
     // convert() expects when we call it below.  This extra copy of
     // the data is undesirable, but probably not a huge performance
     // hit compared to reading the data from disk.
-    for (int i = 0; i < m_decompress_context->scanline_size; i++)
-      buf[m_decompress_context->scanline_size * (m_decompress_context->decompress_ctx.output_scanline - start_row - 1) + i] = (uint8)(((JSAMPARRAY)(m_decompress_context->scanline))[0][i]);
+      std::memcpy(buf.get() + offset,
+                  ctx->scanline[0] + ctx->cstride * bbox.min().x(),
+                  bbox.width() * ctx->cstride);
+      offset += bbox.width() * ctx->cstride;
+
+    //for (int i = 0; i < ctx->scanline_size; i++)
+    //  buf[ctx->scanline_size * (ctx->decompress_ctx.output_scanline - start_row - 1) + i]
+    //    = (uint8)(((JSAMPARRAY)(ctx->scanline))[0][i]);
   }
 
   // Set up an image buffer around the tdata_t buf object that
@@ -350,9 +356,11 @@ void DiskImageResourceJPEG::read( ImageBuffer const& dest, BBox2i const& bbox) c
   ImageBuffer src;
   src.data = buf.get();
   src.format = m_format;
+
   // The number of rows we're reading may be different, seeing as how we
   // can read sequential lines.
   src.format.rows = bbox.height();
+  src.format.cols = bbox.width();
 
   // This is part of the grayscale optimization that we remove due to
   // wonkiness on Linux.
@@ -361,15 +369,15 @@ void DiskImageResourceJPEG::read( ImageBuffer const& dest, BBox2i const& bbox) c
     src.format.pixel_format = VW_PIXEL_GRAY;
 #endif
 
-  src.cstride = m_decompress_context->scanline_size / m_decompress_context->decompress_ctx.output_width;
-  src.rstride = m_decompress_context->scanline_size;
-  src.pstride = m_decompress_context->scanline_size * bbox.height();
+  src.cstride = ctx->cstride;
+  src.rstride = src.cstride * src.format.cols;
+  src.pstride = src.rstride * src.format.rows;
   convert( dest, src );
 
 }
 
 void DiskImageResourceJPEG::read_reset() const {
-  m_decompress_context = boost::shared_ptr<DiskImageResourceJPEG::vw_jpeg_decompress_context>(new DiskImageResourceJPEG::vw_jpeg_decompress_context(const_cast<DiskImageResourceJPEG*>(this)));
+  ctx = boost::shared_ptr<DiskImageResourceJPEG::vw_jpeg_decompress_context>(new DiskImageResourceJPEG::vw_jpeg_decompress_context(const_cast<DiskImageResourceJPEG*>(this)));
 }
 
 // Write the given buffer into the disk image.
