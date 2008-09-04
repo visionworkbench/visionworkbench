@@ -59,7 +59,7 @@ static const size_t ERROR_MSG_SIZE = 256;
 extern "C" {
   struct vw_png_err_mgr {
     jmp_buf error_return;
-    char error_msg[ERROR_MSG_SIZE];
+    char    error_msg[ERROR_MSG_SIZE];
   };
 }
 
@@ -87,19 +87,17 @@ static void png_error_handler(png_structp png_ptr, png_const_charp error_msg)
  **** These things encapsulate the read/write to the PNG file itself. ***
 ************************************************************************/
 // Common stuff for both the read and write contexts.
-struct DiskImageResourcePNG::vw_png_context {
-  // The PNG comments
-  std::vector<DiskImageResourcePNG::Comment> comments;
-
-  vw_png_context(DiskImageResourcePNG *outer) {
-    this->outer = outer;
-  }
+struct DiskImageResourcePNG::vw_png_context
+{
+  vw_png_context(DiskImageResourcePNG *outer)
+    : outer(outer) { };
 
   virtual ~vw_png_context() { }
 
+  std::vector<DiskImageResourcePNG::Comment> comments;  // The PNG comments
+
 protected:
-  // Pointer to the containing class, necessary to access some of its
-  // members.
+  // Pointer to containing class, necessary to access some of its members.
   DiskImageResourcePNG *outer;
 
   // Structures from libpng.
@@ -199,7 +197,8 @@ struct DiskImageResourcePNG::vw_png_read_context:
     png_get_IHDR(png_ptr, info_ptr, &cols, &rows, &bit_depth, &color_type,
                  &interlace_type, &compression_type, &filter_method);
 
-    switch(bit_depth) {
+    switch(bit_depth)
+    {
       case 1:
       case 2:
       case 4:
@@ -217,7 +216,9 @@ struct DiskImageResourcePNG::vw_png_read_context:
         outer->m_format.channel_type = VW_CHANNEL_UINT8;
         break;
     }
-    switch(color_type) {
+
+    switch(color_type)
+    {
       case PNG_COLOR_TYPE_GRAY:
         channels = 1;
         outer->m_format.pixel_format = VW_PIXEL_GRAY;
@@ -269,21 +270,24 @@ struct DiskImageResourcePNG::vw_png_read_context:
     current_line = 0;
   }
 
-  virtual ~vw_png_read_context() {
+  virtual ~vw_png_read_context()
+  {
     if (setjmp(err_mgr.error_return))
       vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     png_destroy_read_struct(&png_ptr, &info_ptr, &endinfo_ptr);
     m_file->close();
   }
 
-  void readline() {
+  void readline()
+  {
     if (setjmp(err_mgr.error_return))
       vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     png_read_row(png_ptr, static_cast<png_bytep>(scanline.get()), NULL);
     current_line++;
   }
 
-  void readall(boost::scoped_array<uint8> &dst) {
+  void readall(boost::scoped_array<uint8> &dst)
+  {
     if(current_line != 0)
       vw_throw(IOErr() << "DiskImageResourcePNG: cannot read entire file unless line marker set at beginning.");
     png_bytep row_pointers[outer->m_format.rows];
@@ -297,7 +301,8 @@ struct DiskImageResourcePNG::vw_png_read_context:
 
 
   // Advances place in the image by line lines.
-  void advance(size_t lines) {
+  void advance(size_t lines)
+  {
     if (setjmp(err_mgr.error_return))
       vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     for(size_t i = 0; i < lines; i++) {
@@ -311,17 +316,20 @@ private:
   png_infop endinfo_ptr;
 
   // Function for reading data, given to PNG.
-  static void read_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
+  static void read_data( png_structp png_ptr, png_bytep data, png_size_t length )
+  {
     std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));;
     fs->read( reinterpret_cast<char*>(data), length );
   }
 
   // Fetches the comments out of the PNG when we first open it.
-  void read_comments() {
+  void read_comments()
+  {
     png_text *text_ptr;
     int num_comments = png_get_text(png_ptr, info_ptr, &text_ptr, 0);
     comments.clear();
-    for ( int i=0; i<num_comments; ++i ) {
+    for ( int i=0; i<num_comments; ++i )
+    {
       DiskImageResourcePNG::Comment c;
       c.key = text_ptr[i].key;
       c.text = text_ptr[i].text;
@@ -329,7 +337,8 @@ private:
       c.lang = text_ptr[i].lang;
       c.lang_key = text_ptr[i].lang_key;
 #endif
-      switch( text_ptr[i].compression ) {
+      switch( text_ptr[i].compression )
+      {
         case PNG_TEXT_COMPRESSION_NONE:
           c.utf8 = false;
           c.compressed = false;
@@ -418,12 +427,14 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
     png_set_IHDR(png_ptr, info_ptr, width, height, bit_depth, color_type, interlace_type, compression_type, filter_method);
 
-    if(options.using_palette && options.using_palette_indices) {
+    if(options.using_palette && options.using_palette_indices)
+    {
       png_colorp palette = reinterpret_cast<png_colorp>(png_malloc( png_ptr, options.palette.cols() * sizeof(png_color) ));
       png_bytep alpha    = reinterpret_cast<png_bytep>(png_malloc( png_ptr, options.palette.cols() * sizeof(png_byte) ));
       if (setjmp(err_mgr.error_return))
         vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
-      for ( int i=0; i < int(options.palette.cols()); ++i ) {
+      for ( int i=0; i < int(options.palette.cols()); ++i )
+      {
         palette[i].red   = options.palette(i,0).r();
         palette[i].green = options.palette(i,0).g();
         palette[i].blue  = options.palette(i,0).b();
@@ -445,7 +456,8 @@ struct DiskImageResourcePNG::vw_png_write_context:
     png_write_info(png_ptr, info_ptr);
   }
 
-  virtual ~vw_png_write_context() {
+  virtual ~vw_png_write_context()
+  {
     if (setjmp(err_mgr.error_return))
       vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     png_write_end(png_ptr, info_ptr);
@@ -455,7 +467,8 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
   // Writes the given ImageBuffer (with the same dimensions as m_format)
   // to the file. Closing happens when the context is destroyed.
-  void write(const ImageBuffer &buf) const {
+  void write(const ImageBuffer &buf) const
+  {
     png_bytep row_pointers[outer->m_format.rows];
     if (setjmp(err_mgr.error_return))
       vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
@@ -467,12 +480,14 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
 private:
   // Function for libpng to use to write as we're not using FILE*.
-  static void write_data( png_structp png_ptr, png_bytep data, png_size_t length ) {
+  static void write_data( png_structp png_ptr, png_bytep data, png_size_t length )
+  {
     std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
     fs->write( (char*)data, length );
   }
 
-  static void flush_data( png_structp png_ptr) {
+  static void flush_data( png_structp png_ptr)
+  {
     std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));
     fs->flush();
   }
@@ -486,7 +501,8 @@ private:
  *********************** CONSTRUCTORS & DESTRUCTORS ********************
 ***********************************************************************/
 
-DiskImageResourcePNG::DiskImageResourcePNG( std::string const& filename ): DiskImageResource(filename)
+DiskImageResourcePNG::DiskImageResourcePNG( std::string const& filename )
+  : DiskImageResource(filename)
 {
   open(filename);
 }
@@ -511,7 +527,8 @@ DiskImageResourcePNG::DiskImageResourcePNG( std::string const& filename, ImageFo
 }
 
 DiskImageResource* DiskImageResourcePNG::construct_create( std::string const& filename,
-                                                                   ImageFormat const& format ) {
+                                                           ImageFormat const& format )
+{
   return new DiskImageResourcePNG( filename, format );
 }
 
@@ -523,7 +540,8 @@ void DiskImageResourcePNG::open( std::string const& filename ) {
   m_ctx = boost::shared_ptr<vw_png_context>( new vw_png_read_context( const_cast<DiskImageResourcePNG *>(this) ) );
 }
 
-void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) const {
+void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) const
+{
   vw_png_read_context *ctx = dynamic_cast<vw_png_read_context *>(m_ctx.get());
   const int start_line = bbox.min().y();
   const int end_line = bbox.max().y();
@@ -535,12 +553,15 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
   boost::scoped_array<uint8> buf( new uint8[ctx->scanline_size * bbox.height()] );
   // Interlacing is causing problems when read line-by-line...I think it's
   // a bug in libpng.
-  if( ctx->interlaced ) {
+  if( ctx->interlaced )
+  {
     if( bbox.height() != rows() )
       vw_throw( NoImplErr() << "DiskImageResourcePNG: Reading interlaced files line-by-line is currently unsupported." );
 
     ctx->readall(buf);
-  } else {
+  }
+  else
+  {
     // FIXME: Normal operation. Make this what happens all the time when
     // the libpng bug gets fixed. The bug in question causes the final
     // parts of the expanded, interlaced image (the ones we care about) to
@@ -608,7 +629,8 @@ void DiskImageResourcePNG::create( std::string const& filename, ImageFormat cons
   DiskImageResourcePNG::create( filename, format, DiskImageResourcePNG::Options() );
 }
 
-void DiskImageResourcePNG::create( std::string const& filename, ImageFormat const& format, DiskImageResourcePNG::Options const& options ) {
+void DiskImageResourcePNG::create( std::string const& filename, ImageFormat const& format, DiskImageResourcePNG::Options const& options )
+{
   if(m_ctx.get() != NULL)
     vw_throw( IOErr() << "DiskImageResourcePNG: A file is already open." );
 
@@ -618,7 +640,8 @@ void DiskImageResourcePNG::create( std::string const& filename, ImageFormat cons
   m_ctx = boost::shared_ptr<vw_png_context>( new vw_png_write_context( const_cast<DiskImageResourcePNG *>(this), options ) );
 }
 
-void DiskImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox ) {
+void DiskImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox )
+{
   vw_png_write_context *ctx = dynamic_cast<vw_png_write_context *>( m_ctx.get() );
 
   VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
