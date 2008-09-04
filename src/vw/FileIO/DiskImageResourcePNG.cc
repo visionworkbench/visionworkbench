@@ -96,6 +96,9 @@ struct DiskImageResourcePNG::vw_png_context
 
   std::vector<DiskImageResourcePNG::Comment> comments;  // The PNG comments
 
+  // Cache the column stride for read/writes in bounding boxes
+  int32 cstride;
+
 protected:
   // Pointer to containing class, necessary to access some of its members.
   DiskImageResourcePNG *outer;
@@ -120,7 +123,6 @@ struct DiskImageResourcePNG::vw_png_read_context:
   // Current line we're at in the image.
   int current_line;
   boost::shared_array<uint8> scanline;
-  int scanline_size;
 
   // Other image data.
   int bytes_per_channel;
@@ -262,8 +264,8 @@ struct DiskImageResourcePNG::vw_png_read_context:
     outer->m_format.planes = 1;
 
     // Allocate the scanline.
-    scanline_size = cols * bytes_per_channel * channels;
-    scanline = boost::shared_array<uint8>(new uint8[scanline_size]);
+    cstride = bytes_per_channel * channels;
+    scanline = boost::shared_array<uint8>(new uint8[cstride * cols]);
 
     png_start_read_image(png_ptr);
 
@@ -294,7 +296,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
     if (setjmp(err_mgr.error_return))
       vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     for(int i=0; i < outer->m_format.rows; i++)
-      row_pointers[i] = static_cast<png_bytep>(dst.get()) + i*scanline_size;
+      row_pointers[i] = static_cast<png_bytep>(dst.get()) + i * outer->m_format.cols * cstride;
     png_read_image(png_ptr, row_pointers);
     current_line = outer->m_format.rows;
   }
@@ -370,8 +372,6 @@ private:
 struct DiskImageResourcePNG::vw_png_write_context:
   public DiskImageResourcePNG::vw_png_context
 {
-  int scanline_size;
-
   vw_png_write_context(DiskImageResourcePNG *outer, const DiskImageResourcePNG::Options &options):
     vw_png_context(outer)
   {
@@ -450,7 +450,7 @@ struct DiskImageResourcePNG::vw_png_write_context:
     png_set_compression_level(png_ptr, options.compression_level);
 
     // Set up the scanline for writing.
-    scanline_size = (bit_depth / 8) * width * channels;
+    cstride = (bit_depth / 8) * channels;
 
     // Finally, write the info out.
     png_write_info(png_ptr, info_ptr);
@@ -473,7 +473,7 @@ struct DiskImageResourcePNG::vw_png_write_context:
     if (setjmp(err_mgr.error_return))
       vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     for(int i=0; i < outer->m_format.rows; i++)
-      row_pointers[i] = reinterpret_cast<uint8*>(buf.data) + i * scanline_size;
+      row_pointers[i] = reinterpret_cast<uint8*>(buf.data) + i * cstride * outer->m_format.cols;
 
     png_write_image(png_ptr, row_pointers);
   }
@@ -546,11 +546,10 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
   const int start_line = bbox.min().y();
   const int end_line = bbox.max().y();
   // Error checking.
-  VW_ASSERT( dest.format.cols == cols(), IOErr() << "DiskImageResourcePNG: Destination buffer has different columns than file.");
-  VW_ASSERT( dest.format.rows <= rows(), IOErr() << "DiskImageResourcePNG: Destination buffer has too many rows.");
-  VW_ASSERT(bbox.height() == dest.format.rows, ArgumentErr() << "DiskImageResourcePNG: Destination buffer and requested bounding box have different height.");
+  VW_ASSERT( int(dest.format.cols)==bbox.width() && int(dest.format.rows)==bbox.height(),
+             ArgumentErr() << "DiskImageResourcePNG (read) Error: Destination buffer has wrong dimensions!" );
 
-  boost::scoped_array<uint8> buf( new uint8[ctx->scanline_size * bbox.height()] );
+  boost::scoped_array<uint8> buf( new uint8[ctx->cstride * bbox.width() * bbox.height()] );
   // Interlacing is causing problems when read line-by-line...I think it's
   // a bug in libpng.
   if( ctx->interlaced )
@@ -573,7 +572,8 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
     if(start_line > ctx->current_line)
       ctx->advance(start_line - ctx->current_line);
 
-    // Now read.
+    // Now read
+    int32 offset = 0;
     while(ctx->current_line < end_line) {
       ctx->readline();
 
@@ -581,9 +581,10 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
       // convert() expects when we call it below. This extra copy of the
       // data is undesirable, but probably not a huge performance hit
       // compared to reading the data from disk.
-      for(int i=0; i < ctx->scanline_size; i++)
-        buf[ctx->scanline_size * (ctx->current_line - start_line - 1) + i] =
-          ctx->scanline[i];
+      std::memcpy(buf.get() + offset,
+                  ctx->scanline.get() + ctx->cstride * bbox.min().x(),
+                  bbox.width() * ctx->cstride);
+      offset += bbox.width() * ctx->cstride;
     }
 
   }
@@ -595,9 +596,11 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
   // The number of rows we're reading may be different, seeing as how we
   // can read sequential lines.
   src.format.rows = bbox.height();
-  src.cstride = ctx->scanline_size / m_format.cols;
-  src.rstride = ctx->scanline_size;
-  src.pstride = ctx->scanline_size * bbox.height();
+  src.format.cols = bbox.width();
+
+  src.cstride = ctx->cstride;
+  src.rstride = src.cstride * src.format.cols;
+  src.pstride = src.rstride * src.format.rows;
   convert(dest, src);
 }
 
@@ -651,11 +654,12 @@ void DiskImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox )
 
   // Set up the image buffer and convert the data into this buffer.
   ImageBuffer dst;
-  boost::scoped_array<uint8> buf(new uint8[ctx->scanline_size * bbox.height()]);
+  boost::scoped_array<uint8> buf(new uint8[ctx->cstride * bbox.width() * bbox.height()]);
 
   dst.data = buf.get();
   dst.format = m_format;
   dst.format.rows = bbox.height();
+  dst.format.cols = bbox.width();
 
   if (dst.format.channel_type != VW_CHANNEL_UINT16)
     dst.format.channel_type = VW_CHANNEL_UINT8;
