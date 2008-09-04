@@ -129,9 +129,14 @@ gpu_correlate_SOURCES = gpu_correlate.cc
 gpu_correlate_LDADD = @PKG_GPU_LIBS@ $(COMMON_LIBS)
 endif
 
+doc_generate_SOURCES = doc-generate.cc
+doc_generate_LDADD   = @PKG_VW_LIBS@ @PKG_BOOST_FILESYSTEM_LIBS@
+
 bin_PROGRAMS = $(camera_progs) $(cartography_progs) $(hdr_progs)	\
-               $(interestpoint_progs) $(mosaic_progs)			\
-               $(cart_mos_progs) $(stereo_progs) $(gpu_progs)	
+               $(interestpoint_progs) $(mosaic_progs)				\
+               $(cart_mos_progs) $(stereo_progs) $(gpu_progs)
+
+noinst_PROGRAMS = doc-generate
 
 endif
 
