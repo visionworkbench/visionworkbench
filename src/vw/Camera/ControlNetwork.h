@@ -46,6 +46,7 @@ namespace camera {
   class ControlMeasure {
     float m_col, m_row, m_col_sigma, m_row_sigma;
     std::string m_date_time, m_description;
+    double m_ephemeris_time;
     int m_image_id;
     bool m_ignore;
 
@@ -59,6 +60,7 @@ namespace camera {
       m_description = "none";
       m_ignore = false;
 
+      m_ephemeris_time = 0;
     }
 
     ControlMeasure() : 
@@ -68,6 +70,7 @@ namespace camera {
       m_description = "none";
       m_ignore = false;
 
+      m_ephemeris_time = 0;
     }
 
     /// Return the pixel location for this measurement.
@@ -126,13 +129,18 @@ namespace camera {
     /// Set when this control measurement was made.
     void set_date_time(std::string const& date_time) { m_date_time = date_time; }
 
-
     /// Query whether this control measurement should be ignored in a bundle adjustment.
     bool ignore() const { return m_ignore; }
 
     /// Set whether this control measurement should be ignored in a bundle adjustment.
     void set_ignore(bool state) { m_ignore = state; }
      
+    /// Query what was the ephemeris time of when this pixel was taken
+    double ephemeris_time() const { return m_ephemeris_time; }
+    
+    /// Set the ephemeris time of when this pixel was taken
+    void set_ephemeris_time( double const& time ) { m_ephemeris_time = time; }
+
   };
 
   /// Two control meaures are considered equal if their position,
@@ -140,7 +148,8 @@ namespace camera {
   inline bool operator==( ControlMeasure const& m1, ControlMeasure const& m2 ) {
     if (m1.position() == m2.position() &&
         m1.sigma() == m2.sigma() &&
-        m1.image_id() == m2.image_id()) 
+        m1.image_id() == m2.image_id() && 
+	m1.ephemeris_time() == m2.ephemeris_time() ) 
       return true;
     //else
     return false;
