@@ -32,16 +32,13 @@
 #include <vw/FileIO/DiskImageView.h>
 using namespace vw;
 
-class TestDiskImageResource : public CxxTest::TestSuite
+static void test_read_crop(const char *fn)
 {
-public:
-
-  void test_read_image() {
     set_debug_level(DebugMessage);
     std::cout << std::endl;
 
     DiskImageResource *dir = 0;
-    TS_ASSERT_THROWS_NOTHING( dir = DiskImageResource::open( "mural.png" ) );
+    TS_ASSERT_THROWS_NOTHING( dir = DiskImageResource::open( fn ) );
 
     ImageView<PixelRGB<uint8> > image;
     TS_ASSERT_THROWS_NOTHING( read_image( image, *dir, BBox2i(100,100,100,100) ) );
@@ -52,6 +49,18 @@ public:
     DiskImageView<PixelRGB<uint8> > div( "mural.tif" );
     ImageView<PixelRGB<uint8> > result = crop(div,100,100,100,100);
     write_image( "mural.cropped.tif", result );
+}
+
+class TestDiskImageResource : public CxxTest::TestSuite
+{
+public:
+
+  void test_read_png_sub() {
+    test_read_crop("mural.png");
+  }
+
+  void test_read_jpg_sub() {
+    test_read_crop("mural.jpg");
   }
 
 }; // class TestBlockFileIO
