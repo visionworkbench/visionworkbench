@@ -33,6 +33,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <iomanip>
 
 #include <vw/Math/Vector.h>
 
@@ -362,10 +363,10 @@ namespace camera {
       
       for (unsigned c=0; c < this->size(); ++c) {
         ControlPoint& cpoint = (*this)[c];
-        ofile << cpoint.size() << " " << cpoint.position()[0] << " " << cpoint.position()[1] << " " << cpoint.position()[2] << " " << cpoint.sigma()[0] << " " << cpoint.sigma()[1]<< " " << cpoint.sigma()[2] << " " << cpoint.ignore() << "\n";
+        ofile << std::setprecision(18) << cpoint.size() << " " << cpoint.position()[0] << " " << cpoint.position()[1] << " " << cpoint.position()[2] << " " << cpoint.sigma()[0] << " " << cpoint.sigma()[1]<< " " << cpoint.sigma()[2] << " " << cpoint.ignore() << "\n";
         for (unsigned m = 0; m < cpoint.size(); ++m) {
           ControlMeasure& cmeasure = cpoint[m];
-          ofile << cmeasure.image_id() << " " << cmeasure.position()[0] << " " << cmeasure.position()[1] << " " << cmeasure.sigma()[0] << " " << cmeasure.sigma()[1] << " " << cmeasure.ignore() << "\n";
+          ofile << std::setprecision(18) << cmeasure.image_id() << " " << cmeasure.position()[0] << " " << cmeasure.position()[1] << " " << cmeasure.sigma()[0] << " " << cmeasure.sigma()[1] << " " << cmeasure.ignore() << " " <<  cmeasure.ephemeris_time() << "\n";
         }
       }
       ofile.close();
@@ -395,13 +396,15 @@ namespace camera {
         std::vector<ControlMeasure> cmeasures(num_measures);
         int image_id;
         Vector2 measure_pos, measure_sigma;
+	double ephemeris;
         bool ignore_measure;
         for (unsigned m=0; m < num_measures; ++m) {
-          ifile >> image_id >> measure_pos[0] >> measure_pos[1] >> measure_sigma[0] >> measure_sigma[1] >> ignore_measure;
+          ifile >> image_id >> measure_pos[0] >> measure_pos[1] >> measure_sigma[0] >> measure_sigma[1] >> ignore_measure >> ephemeris;
           cmeasures[m].set_image_id(image_id);
           cmeasures[m].set_position(measure_pos);
           cmeasures[m].set_sigma(measure_sigma);
           cmeasures[m].set_ignore(ignore_measure);
+	  cmeasures[m].set_ephemeris_time(ephemeris);
         }
         cpoints[c].add_measures(cmeasures);
       }
