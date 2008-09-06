@@ -38,12 +38,12 @@ PREFIX=`pwd`/build/$IRG_ARCH
 
 #Missing qhull, ppl, and apron
 PKG_PATHS="                    \
-  $IRGPKG_DIR/vxl-1.9.0        \
-  $IRGPKG_DIR/boost_1_34_1     \
-  $IRGPKG_DIR/openexr-1.4.0    \
-  $IRGPKG_DIR/gdal-1.5.2       \
-  $IRGPKG_DIR/proj-4.6.0       \
+  $IRGPKG_DIR/vxl              \
+  $IRGPKG_DIR/boost            \
+  $IRGPKG_DIR/openexr          \
+  $IRGPKG_DIR/gdal             \
+  $IRGPKG_DIR/proj4            \
   $IRGPKG_DIR/LAPACK           \
-  $IRGPKG_DIR/gmp-4.2.1        \
-  $IRGPKG_DIR/mpfr-2.3.1       \
+  $IRGPKG_DIR/gmp              \
+  $IRGPKG_DIR/mpfr             \
 "
