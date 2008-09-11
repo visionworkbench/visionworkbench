@@ -52,7 +52,8 @@ OptimizedCorrelator::OptimizedCorrelator(int minH,	/* left bound disparity searc
                                          double crosscorrThreshold,
                                          float corrscore_rejection_threshold,
                                          int useSubpixelH,
-                                         int useSubpixelV)
+                                         int useSubpixelV,
+                                         bool do_affine_subpix)
 {
   m_lKernWidth = kernWidth;
   m_lKernHeight = kernHeight;
@@ -66,4 +67,5 @@ OptimizedCorrelator::OptimizedCorrelator(int minH,	/* left bound disparity searc
   m_corrscore_rejection_threshold = corrscore_rejection_threshold;
   m_useHorizSubpixel = useSubpixelH;
   m_useVertSubpixel = useSubpixelV;
+  m_do_affine_subpixel = do_affine_subpix;
 }

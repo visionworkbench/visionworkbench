@@ -15,6 +15,7 @@ class ReferenceCorrelator {
   double m_crossCorrThreshold;
   int m_useHorizSubpixel;
   int m_useVertSubpixel;
+  int m_do_affine_subpixel;
 
 public:
   ReferenceCorrelator(int minH,	/* left bound disparity search window*/
@@ -26,7 +27,8 @@ public:
                       int verbose,
                       double crosscorrThreshold,
                       int useSubpixelH,
-                      int useSubpixelV) {
+                      int useSubpixelV, 
+                      bool do_affine_subpixel) {
     m_lKernWidth = kernWidth;
     m_lKernHeight = kernHeight;
     m_lMinH = minH;
@@ -38,6 +40,7 @@ public:
     m_crossCorrThreshold = crosscorrThreshold;
     m_useHorizSubpixel = useSubpixelH;
     m_useVertSubpixel = useSubpixelV;
+    m_do_affine_subpixel = do_affine_subpixel;
   }
 
   template <class PixelT>
@@ -105,8 +108,11 @@ public:
 
     // Do subpixel correlation
     std::cout << "Subpixel.\n";
-    subpixel_correlation(resultL2R, l_image, r_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel);
-    std::cout << "Done Subpixel.\n";
+      if (m_do_affine_subpixel) 
+        subpixel_correlation_affine_2d(resultL2R, l_image, r_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel);
+      else
+        subpixel_correlation_parabola(resultL2R, l_image, r_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel);
+      std::cout << "Done Subpixel.\n";
 
     int matched = 0;
     int total = 0;

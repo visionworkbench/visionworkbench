@@ -193,13 +193,22 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   }
 
   template <class ChannelT> 
-  void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
-                            ImageView<ChannelT> const& left_image,
-                            ImageView<ChannelT> const& right_image,
-                            int kern_width, int kern_height,
-                            bool do_horizontal_subpixel = true,
-                            bool do_vertical_subpixel = true,
-                            bool verbose = false);
+  void subpixel_correlation_affine_2d(ImageView<PixelDisparity<float> > &disparity_map,
+                                      ImageView<ChannelT> const& left_image,
+                                      ImageView<ChannelT> const& right_image,
+                                      int kern_width, int kern_height,
+                                      bool do_horizontal_subpixel = true,
+                                      bool do_vertical_subpixel = true,
+                                      bool verbose = false);
+
+  template <class ChannelT> 
+  void subpixel_correlation_parabola(ImageView<PixelDisparity<float> > &disparity_map,
+                                     ImageView<ChannelT> const& left_image,
+                                     ImageView<ChannelT> const& right_image,
+                                     int kern_width, int kern_height,
+                                     bool do_horizontal_subpixel = true,
+                                     bool do_vertical_subpixel = true,
+                                     bool verbose = false);
 
   /// This routine cross checks L2R and R2L, placing the final version
   /// of the disparity map in L2R.

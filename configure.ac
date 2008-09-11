@@ -135,9 +135,9 @@ elif test "2" = "$ENABLE_OPTIMIZE"; then
 elif test "1" = "$ENABLE_OPTIMIZE"; then
    AX_CFLAGS="$AX_CFLAGS -O1"
 elif test "coreduo" = "$ENABLE_OPTIMIZE"; then
-   AX_CFLAGS="$AX_CFLAGS -O4 -march=prescott -mtune=prescott -funroll-loops -msse -msse2 -msse3 -mfpmath=sse"
+   AX_CFLAGS="$AX_CFLAGS -O4 -march=prescott -mtune=prescott -funroll-loops -msse -msse2 -msse3 -mfpmath=sse -ftree-vectorize"
 elif test "sse3" = "$ENABLE_OPTIMIZE"; then
-   AX_CFLAGS="$AX_CFLAGS -O4 -funroll-loops -msse -msse2 -msse3 -mfpmath=sse"
+   AX_CFLAGS="$AX_CFLAGS -O4 -funroll-loops -msse -msse2 -msse3 -mfpmath=sse -ftree-vectorize"
 else
    echo 'WARNING: *** The Vision Workbench may not work properly with optimization disabled! ***'
    AX_CFLAGS="$AX_CFLAGS -O0"

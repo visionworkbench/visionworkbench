@@ -319,6 +319,7 @@ namespace stereo {
     double m_crossCorrThreshold;
     float m_corrscore_rejection_threshold;
     int m_useHorizSubpixel, m_useVertSubpixel;
+    bool m_do_affine_subpixel;
     mutable Mutex m_mutex;
 
   public:
@@ -333,7 +334,8 @@ namespace stereo {
                         double crosscorrThreshold,
                         float corrscore_rejection_threshold,
                         int useSubpixelH,
-                        int useSubpixelV);
+                        int useSubpixelV, 
+                        bool do_affine_subpixel);
 
     template <class ViewT, class PreProcFilterT>
     ImageView<PixelDisparity<float> > operator()(ImageViewBase<ViewT> const& image0,
@@ -421,7 +423,10 @@ namespace stereo {
       LogStereoPreprocessingFilter testfilt(1.5);
       typename LogStereoPreprocessingFilter::result_type left_subpixel_image = testfilt(image0);
       typename LogStereoPreprocessingFilter::result_type right_subpixel_image = testfilt(image1);  
-      subpixel_correlation(resultL2R, left_subpixel_image, right_subpixel_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel, m_verbose);
+      if (m_do_affine_subpixel) 
+        subpixel_correlation_affine_2d(resultL2R, left_subpixel_image, right_subpixel_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel, m_verbose);
+      else
+        subpixel_correlation_parabola(resultL2R, left_subpixel_image, right_subpixel_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel, m_verbose);
 
       int matched = 0;
       int total = 0;

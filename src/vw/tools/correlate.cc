@@ -45,6 +45,7 @@ int main( int argc, char *argv[] ) {
       ("csthresh", po::value<float>(&corrscore_thresh)->default_value(1.0), "Correlation score rejection threshold (1.0 is Off <--> 2.0 is Aggressive outlier rejection")
       ("hsubpix", "Enable horizontal sub-pixel correlation")
       ("vsubpix", "Enable vertical sub-pixel correlation")
+      ("affine-subpix", "Enable affine adaptive sub-pixel correlation (slower, but more accurate)")
       ("reference", "Use the slower, simpler reference correlator")
       ("pyramid", "Use the pyramid based correlator")
       ("bitimage", "Force the use of the optimized bit-image correlator")
@@ -83,7 +84,8 @@ int main( int argc, char *argv[] ) {
                                                   xkernel, ykernel,
                                                   true, lrthresh,
                                                   (vm.count("hsubpix")>0),
-                                                  (vm.count("vsubpix")>0) );
+                                                  (vm.count("vsubpix")>0),
+                                                  (vm.count("affine-subpix")>0) );
       if (log > 0) 
         disparity_map = correlator( left, right, stereo::LogStereoPreprocessingFilter(log));
       else 
@@ -95,7 +97,8 @@ int main( int argc, char *argv[] ) {
                                                 slog, lrthresh,
                                                 corrscore_thresh,
                                                 (vm.count("hsubpix")>0),
-                                                (vm.count("vsubpix")>0) );
+                                                (vm.count("vsubpix")>0),
+                                                (vm.count("affine-subpix")>0) );
       correlator.set_debug_mode("debug");
       if (1) {
         vw::Timer corr_timer("Correlation Time");
@@ -110,7 +113,8 @@ int main( int argc, char *argv[] ) {
                                                   xkernel, ykernel,
                                                   true, lrthresh, corrscore_thresh,
                                                   (vm.count("hsubpix")>0),
-                                                  (vm.count("vsubpix")>0) );
+                                                  (vm.count("vsubpix")>0),
+                                                  (vm.count("affine-subpix")>0) );
       if (1) {
         vw::Timer corr_timer("Correlation Time");
         if (log > 0) 

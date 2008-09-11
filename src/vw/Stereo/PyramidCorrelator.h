@@ -14,7 +14,7 @@ namespace stereo {
     Vector2i m_kernel_size;
     float m_cross_correlation_threshold;
     float m_corrscore_rejection_threshold;
-    bool m_do_h_subpixel,m_do_v_subpixel;
+    bool m_do_h_subpixel,m_do_v_subpixel,m_do_affine_subpixel;
     int m_pyramid_min_image_dimension;
     
 
@@ -143,7 +143,7 @@ namespace stereo {
             disparity_block = this->correlate( block1, block2,
                                                adjusted_search_range, 
                                                Vector2(h_disp_offset, v_disp_offset), 
-                                               false, false,
+                                               false, false, false,
                                                preproc_filter );
           else 
             // At the highest resolution level of the pyramid, we
@@ -152,7 +152,9 @@ namespace stereo {
             disparity_block = this->correlate( block1, block2,
                                                adjusted_search_range, 
                                                Vector2(h_disp_offset, v_disp_offset), 
-                                               m_do_h_subpixel, m_do_v_subpixel,
+                                               m_do_h_subpixel, 
+                                               m_do_v_subpixel,
+                                               m_do_affine_subpixel,
                                                preproc_filter );
 
           crop(new_disparity_map, nominal_blocks[r]) = crop(disparity_block, 
@@ -196,15 +198,15 @@ namespace stereo {
 
     template <class ViewT, class PreProcFilterT>
     vw::ImageView<vw::PixelDisparity<float> > correlate(ImageViewBase<ViewT> const& left_image, ImageViewBase<ViewT> const& right_image, 
-                                                        BBox2 search_range, Vector2 offset, bool do_h_subpix, bool do_v_subpix,
-                                                        PreProcFilterT const& preproc_filter) {
+                                                        BBox2 search_range, Vector2 offset, bool do_h_subpix, bool do_v_subpix, 
+                                                        bool do_affine_subpix, PreProcFilterT const& preproc_filter) {
       
       vw::stereo::OptimizedCorrelator correlator( int(floor(search_range.min().x())), int(ceil(search_range.max().x())),
                                                   int(floor(search_range.min().y())), int(ceil(search_range.max().y())),
                                                   m_kernel_size[0], m_kernel_size[1],
                                                   false, m_cross_correlation_threshold,
                                                   m_corrscore_rejection_threshold,
-                                                  do_h_subpix, do_v_subpix );
+                                                  do_h_subpix, do_v_subpix, do_affine_subpix );
       ImageView<PixelDisparity<float> > result = correlator( left_image.impl(), right_image.impl(), preproc_filter);
       
       for (int j = 0; j < result.rows(); ++j) 
@@ -228,6 +230,7 @@ namespace stereo {
                       float corrscore_rejection_threshold = 1.0, 
                       bool do_h_subpixel = true, 
                       bool do_v_subpixel = true, 
+                      bool do_affine_subpixel = false, 
                       int pyramid_min_image_dimension = 256) :
       m_initial_search_range(initial_search_range), 
       m_kernel_size(kernel_size), 
@@ -235,6 +238,7 @@ namespace stereo {
       m_corrscore_rejection_threshold(corrscore_rejection_threshold), 
       m_do_h_subpixel(do_h_subpixel), 
       m_do_v_subpixel(do_v_subpixel), 
+      m_do_affine_subpixel(do_affine_subpixel),
       m_pyramid_min_image_dimension(pyramid_min_image_dimension) {
       m_debug_prefix = "";
     }

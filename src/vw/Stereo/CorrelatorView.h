@@ -26,6 +26,7 @@ namespace stereo {
     Vector2i m_kernel_size;
     bool m_do_h_subpixel;
     bool m_do_v_subpixel;
+    bool m_do_affine_subpixel;
     float m_cross_corr_threshold;
     float m_corr_score_threshold;
     std::string m_debug_prefix;
@@ -53,6 +54,7 @@ namespace stereo {
       m_kernel_size = Vector2i(24,24);
       m_do_h_subpixel = true;
       m_do_v_subpixel = true;
+      m_do_affine_subpixel = false;
       m_cross_corr_threshold = 2.0;
       m_corr_score_threshold = 1.3;
     }
@@ -64,13 +66,15 @@ namespace stereo {
     void set_kernel_size(Vector2i size) { m_kernel_size = size; }
     Vector2i kernel_size() const { return m_kernel_size; }
 
-    void set_subpixel_options(bool do_horizontal, bool do_vertical) {
+    void set_subpixel_options(bool do_horizontal, bool do_vertical, bool do_affine_subpixel = false) {
       m_do_h_subpixel = do_horizontal; 
       m_do_v_subpixel = do_vertical;
+      m_do_affine_subpixel = do_affine_subpixel;
     }
-    void subpixel_options (bool& do_h, bool& do_v) const {
+    void subpixel_options (bool& do_h, bool& do_v, bool& do_affine) const {
       do_h = m_do_h_subpixel;
       do_v = m_do_v_subpixel;
+      do_affine = m_do_affine_subpixel;
     }
 
     void set_cross_corr_threshold(float threshold) { m_cross_corr_threshold = threshold; }
@@ -136,7 +140,7 @@ namespace stereo {
       vw::stereo::PyramidCorrelator correlator(BBox2(0,0,m_search_range.width(),m_search_range.height()),
                                                Vector2i(m_kernel_size[0], m_kernel_size[1]),
                                                m_cross_corr_threshold, m_corr_score_threshold,
-                                               m_do_h_subpixel, m_do_v_subpixel);
+                                               m_do_h_subpixel, m_do_v_subpixel, m_do_affine_subpixel);
 
       // For debugging: this saves the disparity map at various pyramid levels to disk.
       if (m_debug_prefix.size() != 0) {
@@ -180,9 +184,9 @@ namespace stereo {
     os << "\tkernel size : " << view.kernel_size() << "\n";
     os << "\txcorr thresh: " << view.cross_corr_threshold() << "\n";
     os << "\tcorrscore rejection thresh: " << view.corr_score_threshold() << "\n";
-    bool do_h, do_v;
-    view.subpixel_options(do_h, do_v);
-    os << "\tsubpixel    H: " << do_h << "   V: " << do_v << "\n\n";
+    bool do_h, do_v, do_affine;
+    view.subpixel_options(do_h, do_v, do_affine);
+    os << "\tsubpixel    H: " << do_h << "   V: " << do_v << "   Affine: " << do_affine << "\n\n";
     os << "---------------------------------------------------------------\n";
     return os;
   }

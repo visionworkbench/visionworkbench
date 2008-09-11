@@ -436,7 +436,7 @@ namespace stereo {
         offset(0) = d[2];
         offset(1) = d[5];
         
-        if (norm_2(offset) > 3 || 
+        if (norm_2(offset) > 1.5 || 
             offset(0) != offset(0) ||  // Check to make sure the offset is not NaN...
             offset(1) != offset(1) ) { // ... ditto.
           disparity_map(x,y) = PixelDisparity<float>();
@@ -452,13 +452,13 @@ namespace stereo {
 
 
   template<class ChannelT>
-  void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
-                            ImageView<ChannelT> const& left_image,
-                            ImageView<ChannelT> const& right_image,
-                            int kern_width, int kern_height,
-                            bool do_horizontal_subpixel,
-                            bool do_vertical_subpixel,
-                            bool verbose) {
+  void subpixel_correlation_parabola(ImageView<PixelDisparity<float> > &disparity_map,
+                                        ImageView<ChannelT> const& left_image,
+                                        ImageView<ChannelT> const& right_image,
+                                        int kern_width, int kern_height,
+                                        bool do_horizontal_subpixel,
+                                        bool do_vertical_subpixel,
+                                        bool verbose) {
 
     VW_ASSERT(left_image.cols() == right_image.cols() && left_image.cols() == disparity_map.cols() &&
               left_image.rows() == right_image.rows() && left_image.rows() == disparity_map.rows(),
@@ -614,7 +614,7 @@ namespace stereo {
     if (verbose) vw_out(InfoMessage, "stereo") << "\tPerforming sub-pixel correlation... done.                 \n";
   }
 
-  template void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
+  template void subpixel_correlation_affine_2d(ImageView<PixelDisparity<float> > &disparity_map,
                                      ImageView<uint8> const& left_image,
                                      ImageView<uint8> const& right_image,
                                      int kern_width, int kern_height,
@@ -622,7 +622,23 @@ namespace stereo {
                                      bool do_vertical_subpixel,
                                      bool verbose);
 
-  template void subpixel_correlation(ImageView<PixelDisparity<float> > &disparity_map,
+  template void subpixel_correlation_affine_2d(ImageView<PixelDisparity<float> > &disparity_map,
+                                     ImageView<float> const& left_image,
+                                     ImageView<float> const& right_image,
+                                     int kern_width, int kern_height,
+                                     bool do_horizontal_subpixel,
+                                     bool do_vertical_subpixel,
+                                     bool verbose);
+
+  template void subpixel_correlation_parabola(ImageView<PixelDisparity<float> > &disparity_map,
+                                     ImageView<uint8> const& left_image,
+                                     ImageView<uint8> const& right_image,
+                                     int kern_width, int kern_height,
+                                     bool do_horizontal_subpixel,
+                                     bool do_vertical_subpixel,
+                                     bool verbose);
+
+  template void subpixel_correlation_parabola(ImageView<PixelDisparity<float> > &disparity_map,
                                      ImageView<float> const& left_image,
                                      ImageView<float> const& right_image,
                                      int kern_width, int kern_height,
