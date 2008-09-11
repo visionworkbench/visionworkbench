@@ -28,7 +28,6 @@
 #ifndef __VW_MATH_EULER_ANGLES_H__
 #define __VW_MATH_EULER_ANGLES_H__
 
-#include <iostream>
 #include <vw/Math/Quaternion.h>
 
 namespace vw {
@@ -37,8 +36,14 @@ namespace math {
   // Returns: A Vector3 containing the euler angles [phi, omega, kappa] inline
   inline Vector3 rotation_matrix_to_euler_xyz(const Matrix<double,3,3> rotation_matrix) {
     double omega = asin(rotation_matrix(0,2));
-    double phi = atan2( -rotation_matrix(1,2), rotation_matrix(2,2) );
-    double kappa = atan2( -rotation_matrix(0,1), rotation_matrix(0,0) );
+
+    // Re-enabled 09-11-08 - mbroxton
+    double phi = acos(rotation_matrix(2,2) / cos(omega)); 
+    double kappa = acos(rotation_matrix(0,0) / cos(omega)); 
+
+    // Dis-enabled 09-11-08 - mbroxton
+    //     double phi = atan2( -rotation_matrix(1,2), rotation_matrix(2,2) );
+    //     double kappa = atan2( -rotation_matrix(0,1), rotation_matrix(0,0) );
 
     return Vector3(phi, omega, kappa);
   }
@@ -137,7 +142,11 @@ namespace math {
     vw::Matrix<double,3,3> e_omega = euler_rotation_helper(omega, sequence[1]);
     vw::Matrix<double,3,3> e_kappa = euler_rotation_helper(kappa, sequence[2]);
 
-    return e_phi*e_omega*e_kappa;
+    // Re-enabled 09-11-08 - mbroxton
+    return e_kappa*e_omega*e_phi;
+
+    // Dis-enabled 09-11-08 pending further discussion with Zach - mbroxton
+    //    return e_phi*e_omega*e_kappa;
   }
 
   /// Quaternion variant of euler_to_rotation_matrix()
