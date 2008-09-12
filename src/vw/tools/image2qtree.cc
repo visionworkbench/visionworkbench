@@ -83,9 +83,8 @@ int max_lod_pixels; // KML only.
 float pixel_scale=1.0, pixel_offset=0.0;
 double lcc_parallel1, lcc_parallel2;
 int aspect_ratio=1;
-bool verbose=false;
-bool quiet=false;
 bool terrain=false;
+
 // For image stretching.
 float lo_value = ScalarTypeLimits<float>::highest();
 float hi_value = ScalarTypeLimits<float>::lowest();
@@ -122,16 +121,10 @@ void do_normal_mosaic(po::variables_map const& vm, const ProgressCallback *progr
     quadtree.generate( *progress );
 }
 
-template <class ChannelT, class PixelT>
-void do_mosaic(po::variables_map const& vm) {
-  TerminalProgressCallback tpc;
-  const ProgressCallback *progress = &tpc;
-  if(verbose) {
-    set_debug_level(VerboseDebugMessage);
-    progress = &ProgressCallback::dummy_instance();
-  } else if(quiet) {
-    set_debug_level(WarningMessage);
-  }
+template <class PixelT>
+void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
+{
+  typedef typename PixelChannelType<PixelT>::type ChannelT;
 
   // If we're not outputting any special sort of mosaic (just a regular old
   // quadtree, no georeferencing, no metadata), we use a different
@@ -453,14 +446,17 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  TerminalProgressCallback tpc;
+  const ProgressCallback *progress = &tpc;
+
   // Set a few booleans based on input values.
-  if(vm.count("verbose")) verbose = true;
-  if(vm.count("quiet")) quiet = true;
-  if(verbose && quiet) {
-    std::cerr << "Error: Cannot be verbose and quiet at the same time." << std::endl << std::endl;
-    std::cout << usage.str();
-    return 1;
+  if(vm.count("verbose"))
+  {
+    set_debug_level(VerboseDebugMessage);
+    progress = &ProgressCallback::dummy_instance();
   }
+  else if(vm.count("quiet"))
+    set_debug_level(WarningMessage);
 
   if(vm.count("terrain")) {
     terrain = true;
@@ -490,20 +486,20 @@ int main(int argc, char **argv) {
     case VW_PIXEL_GRAY:
     case VW_PIXEL_GRAYA:
       switch(channel_type) {
-        case VW_CHANNEL_UINT8:  do_mosaic<uint8, PixelGrayA<uint8> >(vm); break;
-        case VW_CHANNEL_INT16:  do_mosaic<int16, PixelGrayA<int16> >(vm); break;
-        case VW_CHANNEL_UINT16: do_mosaic<uint16, PixelGrayA<uint16> >(vm); break;
-        default:                do_mosaic<float32, PixelGrayA<float32> >(vm); break;
+        case VW_CHANNEL_UINT8:  do_mosaic<PixelGrayA<uint8>   >(vm, progress); break;
+        case VW_CHANNEL_INT16:  do_mosaic<PixelGrayA<int16>   >(vm, progress); break;
+        case VW_CHANNEL_UINT16: do_mosaic<PixelGrayA<uint16>  >(vm, progress); break;
+        default:                do_mosaic<PixelGrayA<float32> >(vm, progress); break;
       }
       break;
     case VW_PIXEL_RGB:
     case VW_PIXEL_RGBA:
     default:
       switch(channel_type) {
-        case VW_CHANNEL_UINT8:  do_mosaic<uint8, PixelRGBA<uint8> >(vm); break;
-        case VW_CHANNEL_INT16:  do_mosaic<int16, PixelRGBA<int16> >(vm); break;
-        case VW_CHANNEL_UINT16: do_mosaic<uint16, PixelRGBA<uint16> >(vm); break;
-        default:                do_mosaic<float32, PixelRGBA<float32> >(vm); break;
+        case VW_CHANNEL_UINT8:  do_mosaic<PixelRGBA<uint8>   >(vm, progress); break;
+        case VW_CHANNEL_INT16:  do_mosaic<PixelRGBA<int16>   >(vm, progress); break;
+        case VW_CHANNEL_UINT16: do_mosaic<PixelRGBA<uint16>  >(vm, progress); break;
+        default:                do_mosaic<PixelRGBA<float32> >(vm, progress); break;
       }
       break;
   }
