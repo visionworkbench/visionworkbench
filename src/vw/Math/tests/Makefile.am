@@ -35,6 +35,7 @@ nodist_TestFunctions_SOURCES = TestFunctions.cxx
 nodist_TestFunctors_SOURCES = TestFunctors.cxx
 nodist_TestNelderMead_SOURCES = TestNelderMead.cxx
 nodist_TestKDTree_SOURCES = TestKDTree.cxx
+nodist_TestEuler_SOURCES = TestEuler.cxx
 #nodist_TestConjugateGradient_SOURCES = TestConjugateGradient.cxx
 
 if HAVE_PKG_LAPACK
@@ -48,6 +49,7 @@ endif
 
 TESTS = TestVector TestMatrix TestQuaternion TestBBox TestFunctions	\
         TestFunctors TestNelderMead TestKDTree $(TestLinearAlgebra)	\
+	TestEuler
         #TestConjugateGradient
 endif
 
