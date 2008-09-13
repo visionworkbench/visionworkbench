@@ -87,6 +87,44 @@ namespace cartography {
     void set_UTM( int zone, bool north=true );
 
     %extend {
+      void _point_to_pixel( double arg[2], double result[2] ) {
+        (*(vw::Vector2*)result) = self->point_to_pixel( (*(vw::Vector2*)arg) );
+      }
+      void _pixel_to_point( double arg[2], double result[2] ) {
+        (*(vw::Vector2*)result) = self->pixel_to_point( (*(vw::Vector2*)arg) );
+      }
+      void _point_to_lonlat( double arg[2], double result[2] ) {
+        (*(vw::Vector2*)result) = self->point_to_lonlat( (*(vw::Vector2*)arg) );
+      }
+      void _lonlat_to_point( double arg[2], double result[2] ) {
+        (*(vw::Vector2*)result) = self->lonlat_to_point( (*(vw::Vector2*)arg) );
+      }
+      void _pixel_to_lonlat( double arg[2], double result[2] ) {
+        (*(vw::Vector2*)result) = self->pixel_to_lonlat( (*(vw::Vector2*)arg) );
+      }
+      void _lonlat_to_pixel( double arg[2], double result[2] ) {
+        (*(vw::Vector2*)result) = self->lonlat_to_pixel( (*(vw::Vector2*)arg) );
+      }
+    }
+    %pythoncode {
+      def _wrap_converter(func):
+        def converter(self,arg):
+          a = doublea(2)
+          r = doublea(2)
+          for i in range(0,2):
+            a[i] = arg[i]
+          func(self,a,r)
+          return (r[0],r[1])
+        return converter
+      point_to_pixel = _wrap_converter(_point_to_pixel)
+      pixel_to_point = _wrap_converter(_pixel_to_point)
+      point_to_lonlat = _wrap_converter(_point_to_lonlat)
+      lonlat_to_point = _wrap_converter(_lonlat_to_point)
+      pixel_to_lonlat = _wrap_converter(_pixel_to_lonlat)
+      lonlat_to_pixel = _wrap_converter(_lonlat_to_pixel)
+    }
+
+    %extend {
       std::string __repr__() { std::ostringstream oss; oss << *self; return oss.str(); }
     }
   };
@@ -100,6 +138,12 @@ namespace cartography {
     vw::InterpolationView<vw::ImageViewRef<PixelT>, InterpT> interpolated( image, interp );
     vw::TransformRef transform( vw::cartography::GeoTransform(src,dest) );
     return vw::TransformView<vw::InterpolationView<vw::ImageViewRef<PixelT>, InterpT>, vw::TransformRef>( interpolated, transform );
+  }
+
+  vw::cartography::GeoReference read_georeference( std::string const& filename ) {
+    vw::cartography::GeoReference georef;
+    read_georeference( georef, filename );
+    return georef;
   }
 %}
 
