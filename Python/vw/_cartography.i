@@ -3,6 +3,7 @@
 %{
 #define SWIG_FILE_WITH_INIT
 #include <vw/Image.h>
+#include <vw/FileIO.h>
 #include <vw/Cartography.h>
 %}
 
@@ -11,6 +12,7 @@
 %include "numpy.i"
 
 %import "_image.i"
+%import "_fileio.i"
 %import "_transform.i"
 
 %init %{
@@ -133,19 +135,23 @@ namespace cartography {
 } // namespace vw
 
 %inline %{
+  template <class T>
+  vw::cartography::GeoReference read_georeference( T const& filename ) {
+    vw::cartography::GeoReference georef;
+    read_georeference( georef, filename );
+    return georef;
+  }
+
   template <class PixelT, class InterpT>
   vw::ImageViewRef<PixelT> _geotransform( vw::ImageViewRef<PixelT> const& image, vw::cartography::GeoReference const& src, vw::cartography::GeoReference const& dest, InterpT const& interp ) {
     vw::InterpolationView<vw::ImageViewRef<PixelT>, InterpT> interpolated( image, interp );
     vw::TransformRef transform( vw::cartography::GeoTransform(src,dest) );
     return vw::TransformView<vw::InterpolationView<vw::ImageViewRef<PixelT>, InterpT>, vw::TransformRef>( interpolated, transform );
   }
-
-  vw::cartography::GeoReference read_georeference( std::string const& filename ) {
-    vw::cartography::GeoReference georef;
-    read_georeference( georef, filename );
-    return georef;
-  }
 %}
+
+%template(read_georeference) read_georeference<std::string>;
+%template(read_georeference) read_georeference<vw::DiskImageResource>;
 
 %define %instantiate_geotransform(cname,ctype,pname,ptype,in,...)
   %template(_geotransform) _geotransform<ptype, in>;
