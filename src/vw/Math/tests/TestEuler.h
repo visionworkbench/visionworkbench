@@ -71,7 +71,7 @@ public:
 	  double kappa = k * M_PI / 180;
 
 	  vw::Matrix<double,3,3> rot_matrix = euler_to_rotation_matrix( phi, omega, kappa, "yxz");
-	  Vector3 euler = rotation_matrix_to_euler_xyz( rot_matrix );
+	  Vector3 euler = rotation_matrix_to_euler_yxz( rot_matrix );
 
 	  // PASS 1
 	  vw::Matrix<double,3,3> rot_matrix2 = euler_to_rotation_matrix( euler[0], euler[1], euler[2], "yxz");
@@ -97,7 +97,7 @@ public:
 	  double kappa = k * M_PI / 180;
 
 	  vw::Matrix<double,3,3> rot_matrix = euler_to_rotation_matrix( phi, omega, kappa, "zxy");
-	  Vector3 euler = rotation_matrix_to_euler_xyz( rot_matrix );
+	  Vector3 euler = rotation_matrix_to_euler_zxy( rot_matrix );
 
 	  // PASS 1
 	  vw::Matrix<double,3,3> rot_matrix2 = euler_to_rotation_matrix( euler[0], euler[1], euler[2], "zxy");
