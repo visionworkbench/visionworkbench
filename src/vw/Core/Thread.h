@@ -64,6 +64,7 @@
 #define __VW_CORE_THREAD_H__
 
 #include <boost/thread.hpp>
+#include <boost/thread/condition.hpp>
 #include <boost/shared_ptr.hpp>
 
 namespace vw {
