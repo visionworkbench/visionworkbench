@@ -57,7 +57,7 @@ from composite import ImageComposite
 
 # Cartography
 import cartography
-from cartography import geotransform
+from cartography import read_georeference, geotransform
 
 # Dispatch on the source resource type.
 # Currently only filenames are supported.
