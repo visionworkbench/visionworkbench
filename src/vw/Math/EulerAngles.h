@@ -118,18 +118,19 @@ namespace math {
   /// \endcond
 
 
-  /// Creates a quaternion that represents the same rotation as the
-  /// sequence of euler angles, [phi, theta, psi].  The euler angles
-  /// are defined according to the convention specified in variable
-  /// 'sequence'.  Sequence can contain any combination of 'x', 'y',
-  /// and 'z' (though the sequence must be three characters long) that
-  /// defines the axes of rotation for phi, theta, and psi
-  /// respectively.  For example, a sequence of "XYZ" would create a
-  /// rotation of phi degrees around the X axis, then omega degrees
-  /// around the new Y axis, and finally kappa degrees around the new Z
-  /// axis.
+  /// Creates a rotation matrix that represents the same rotation
+  /// through the sequence of euler angles, [phi, theta, kappa].  The
+  /// euler angles are defined according to the convention specified
+  /// in variable 'sequence'.  Sequence is a string containing any
+  /// combination of the characters 'x', 'y', and 'z' (thoug the
+  /// sequence must always be three characters long) that defines the
+  /// axes of rotation for phi, theta, and kappa respectively.  For
+  /// example, the sequence "XYZ" would create a rotation of phi
+  /// degrees around the X axis, then omega degrees around the new Y
+  /// axis, and finally kappa degrees around the new Z axis.
   ///
-  /// In matrix notation, this would rotate a vector x_initial as follows:
+  /// In matrix notation, this would rotate a vector x_initial as
+  /// follows:
   ///
   /// x_final = [ kappa ]_z * [ omega ]_y * [ phi ]_x * x_initial
   ///
