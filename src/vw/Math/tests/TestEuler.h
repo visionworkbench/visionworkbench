@@ -34,6 +34,25 @@ using namespace math;
 class TestEuler : public CxxTest::TestSuite
 {
 public:
+  
+  void test_basic_euler_rotation() {
+    // Should rotate the vector [0 1 0] 90 degrees around the x-axis
+    // to [0 0 1] and then 90 degrees around the NEW y-axis to [1 0 0].
+    Vector3 test_vec(0,1,0);
+    Matrix3x3 rot1 = euler_to_rotation_matrix(M_PI/2, 0, 0, "xyz");
+    Matrix3x3 rot2 = euler_to_rotation_matrix(M_PI/2, M_PI/2, 0, "xyz");
+    Vector3 result1 = rot1 * test_vec;
+    Vector3 result2 = rot2 * test_vec;
+
+    TS_ASSERT_DELTA(result1[0], 0, 1e-8);
+    TS_ASSERT_DELTA(result1[1], 0, 1e-8);
+    TS_ASSERT_DELTA(result1[2], 1, 1e-8);
+
+    TS_ASSERT_DELTA(result2[0], 1, 1e-8);
+    TS_ASSERT_DELTA(result2[1], 0, 1e-8);
+    TS_ASSERT_DELTA(result2[2], 0, 1e-8);
+  }
+
 
   void test_euler_angle_xyz() {
     std::cout << "\nTesting XYZ Euler Combination\n";
