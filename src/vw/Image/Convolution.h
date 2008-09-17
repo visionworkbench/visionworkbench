@@ -159,7 +159,6 @@ namespace vw {
     }
 
     typedef ConvolutionView<CropView<ImageView<typename ImageT::pixel_type> >, KernelT, NoEdgeExtension> prerasterize_type;
-    
     inline prerasterize_type prerasterize( BBox2i bbox ) const {
       int32 ci = (m_kernel.cols()-1-m_ci), cj = (m_kernel.rows()-1-m_cj);
       BBox2i src_bbox( bbox.min().x() - ci, bbox.min().y() - cj,
@@ -258,11 +257,12 @@ namespace vw {
     // of the two axes, and none at all if only one axis is active. 
     // However, that is deterimined at run time and would impact 
     // the prerasterize_type, so we cannot easily do that.
-    typedef ImageView<pixel_type> prerasterize_type;
+    typedef CropView<ImageView<pixel_type> > prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i bbox ) const {
       ImageView<pixel_type> dest( bbox.width(), bbox.height(), m_image.planes() );
       rasterize( dest, bbox );
-      return dest;
+      return CropView<ImageView<pixel_type> >(dest,BBox2i(-bbox.min().x(),-bbox.min().y(),
+                                                          m_image.cols(), m_image.rows()) );
     }
     
     // In principle we could avoid rasterizing the child first if it's 

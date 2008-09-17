@@ -171,7 +171,7 @@ namespace vw {
 
   // A pixel validity checker.
   template <class PixelT>
-  bool is_valid(PixelT const& pixel) { return true; }
+  bool is_valid(PixelT const& /* pixel */) { return true; }
 
   // Overload for the pixel transparency traits class.  
   template <class ChildT>
@@ -181,7 +181,7 @@ namespace vw {
   // This is a no-op by default, but it actually calls px.validate()
   // for PixelMask<> types.
   template <class PixelT>
-  inline void validate(PixelT &pixel) { return; }
+  inline void validate(PixelT & /* pixel */ ) { return; }
 
   template <class ChildPixelT>
   inline void validate(PixelMask<ChildPixelT> &pixel) { pixel.validate(); }

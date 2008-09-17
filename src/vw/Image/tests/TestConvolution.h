@@ -27,6 +27,9 @@
 #include <vw/Image/Convolution.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>
+#include <vw/Image/Algorithms.h>
+#include <vw/Image/ImageViewRef.h>
+#include <vw/Image/Filter.h>
 
 #include <vector>
 
@@ -200,5 +203,24 @@ public:
     TS_ASSERT( !bool_trait<IsFloatingPointIndexable>( cnv ) );
     TS_ASSERT( bool_trait<IsImageView>( cnv ) );
   }
+
+  // This unit test catches a bug in the separable convolution code
+  // that was causing the shift due to a crop operation to be applied
+  // twice to image view operations that included two layers of edge
+  // extension or convolution.
+  void testPrerasterizeCrop()
+  {
+    ImageView<float> test_image(1024,1024);
+    fill(test_image,1.0);
+
+    ImageViewRef<float> two_edge_extend_operations = edge_extend(gaussian_filter(channel_cast<float>(channels_to_planes(test_image)),1.5), ZeroEdgeExtension());
+
+    BBox2i bbox(100,0,1024,1024);
+    ImageView<float> right_buf = crop( two_edge_extend_operations, bbox );
+
+    TS_ASSERT_EQUALS(right_buf(1000,100), 0.0);
+    TS_ASSERT_EQUALS(right_buf(900,100), 1.0);
+  }
+
 
 }; // class TestConvolution
