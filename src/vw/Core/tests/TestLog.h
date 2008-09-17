@@ -29,6 +29,7 @@
 #include <vw/Core/ProgressCallback.h>
 
 #include <iostream>
+#include <fstream>
 #include <string>
 
 using namespace vw;
@@ -69,13 +70,40 @@ public:
     vw::null_ostream null_strm;
     vw::multi_ostream multi_strm;
 
-    multi_strm.add(std::cout);
-    multi_strm.add(std::cout);
+    std::fstream log;
+
+    log.open("log.txt", std::ios::out | std::ios::binary );
+    multi_strm.add(log);
+    multi_strm.add(log);
     multi_strm.add(null_strm);
 
-    std::cout << "\nTesting utility ostreams.\n";
-    null_strm << "\tYou should not see this message.\n";
-    multi_strm << "\tYou should see this message twice.\n";
+    TS_TRACE("Testing utility ostreams.");
+    null_strm << "==>You should not see this message.\n";
+    multi_strm << "==>You should see this message twice.\n";
+
+    multi_strm.remove(null_strm);
+    multi_strm.remove(log);
+    multi_strm.remove(log);
+
+    log.close();
+
+    log.open("log.txt", std::ios::in | std::ios::binary);
+
+    char buf[38];
+
+    log.read(buf, 38);
+    TS_ASSERT_SAME_DATA(buf, "==>You should see this message twice.\n", 38); // 38 = string + newline
+
+    log.read(buf, 38);
+    TS_ASSERT_SAME_DATA(buf, "==>You should see this message twice.\n", 38); // 38 = string + newline
+
+    memset(buf, 0, 38);
+
+    log.read(buf, 38);
+    TS_ASSERT_EQUALS(buf[0], '\0');
+    TS_ASSERT(log.eof());
+
+    log.close();
   }
 
   void test_log_rule_set() {
@@ -93,17 +121,15 @@ public:
   }
 
   void test_basic_logging() {
-    std::cout << "\n";
 
     LogInstance stdout_log(std::cout);
-    stdout_log(0,"log test") << "Testing logging to stdout\n";
+    stdout_log(0,"log test") << "Testing logging to stdout" << std::endl;
 
     LogInstance stderr_log(std::cerr);
-    stderr_log(0,"log test") << "Testing logging to stderr\n";
+    stderr_log(0,"log test") << "Testing logging to stderr" << std::endl;
   }
 
   void test_multithreaded_logging() {
-    std::cout << "\n";
     LogInstance log(std::cout);
     log.rule_set().add_rule(vw::EveryMessage, "log test");
     log(0, "log test") << "Testing logging from multiple threads\n";

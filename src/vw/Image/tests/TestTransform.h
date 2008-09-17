@@ -98,7 +98,7 @@ public:
   void print_image(ImageT & image) {
     for (int i = 0; i < image.cols(); i++) {
       for (int j = 0; j < image.rows(); j++) {
-        TS_TRACE(stringify(image(i,j)))
+        TS_TRACE(stringify(image(i,j)));
       }
     }
   }

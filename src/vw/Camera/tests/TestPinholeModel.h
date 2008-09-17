@@ -91,7 +91,7 @@ public:
 
     TS_TRACE(stringify(pinhole.point_to_pixel(Vector3(-10,0,-10))));
     TS_TRACE(stringify(pinhole.point_to_pixel(Vector3(10,0,-10))));
-    TS_TRACE(stringify(pinhole.point_to_pixel(Vector3(0,-10,-10))))
+    TS_TRACE(stringify(pinhole.point_to_pixel(Vector3(0,-10,-10))));
     TS_TRACE(stringify(pinhole.point_to_pixel(Vector3(0,10,-10))));
   }
 
