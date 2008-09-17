@@ -3,12 +3,12 @@
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -20,7 +20,7 @@
 // __END_LICENSE__
 
 /// \file DiskImageResourceGDAL.cc
-/// 
+///
 /// Provides support for several geospatially referenced file formats
 /// via GDAL.
 ///
@@ -98,7 +98,7 @@ namespace vw {
   /// \cond INTERNAL
   // Type conversion class for selecting the GDAL data type for
   // various VW channel formats.
-  struct vw_channel_id_to_gdal_pix_fmt { 
+  struct vw_channel_id_to_gdal_pix_fmt {
     static GDALDataType value(ChannelTypeEnum vw_type) {
       switch (vw_type) {
       case VW_CHANNEL_UINT8:   return GDT_Byte;
@@ -108,7 +108,7 @@ namespace vw {
       case VW_CHANNEL_UINT32:  return GDT_UInt32;
       case VW_CHANNEL_FLOAT32: return GDT_Float32;
       case VW_CHANNEL_FLOAT64: return GDT_Float64;
-      default: 
+      default:
         vw_throw( IOErr() << "DiskImageResourceGDAL: Unsupported channel type (" << vw_type << ")." );
         return (GDALDataType)0; // never reached
       }
@@ -122,12 +122,12 @@ namespace vw {
     static ChannelTypeEnum value(GDALDataType gdal_type) {
       switch (gdal_type) {
       case GDT_Byte:    return VW_CHANNEL_UINT8;
-      case GDT_Int16:   return VW_CHANNEL_INT16; 
+      case GDT_Int16:   return VW_CHANNEL_INT16;
       case GDT_UInt16:  return VW_CHANNEL_UINT16;
-      case GDT_Int32:   return VW_CHANNEL_INT32; 
+      case GDT_Int32:   return VW_CHANNEL_INT32;
       case GDT_UInt32:  return VW_CHANNEL_UINT32;
-      case GDT_Float32: return VW_CHANNEL_FLOAT32; 
-      case GDT_Float64: return VW_CHANNEL_FLOAT64; 
+      case GDT_Float32: return VW_CHANNEL_FLOAT32;
+      case GDT_Float64: return VW_CHANNEL_FLOAT64;
       default:
         vw_throw( IOErr() << "DiskImageResourceGDAL: Unsupported channel type (" << gdal_type << ")." );
         return (ChannelTypeEnum)0; // never reached
@@ -146,63 +146,83 @@ namespace vw {
     std::string extension = file_extension( filename );
     return (extension == ".jp2" || extension == ".j2k");
   }
-  
+
   // GDAL Support many file formats not specifically enabled here.
   // Consult http://www.remotesensing.org/gdal/formats_list.html for a
   // list of available formats.
   struct gdal_file_format_from_filename {
     static std::list<std::string> format(std::string const& filename) {
       std::list<std::string> retval;
+      std::string ext = file_extension(filename);
 
-      if (file_extension(filename) == ".tif" ||
-          file_extension(filename) == ".tiff") {     // GeoTiff
+      if (ext == ".tif" || ext == ".tiff")        // GeoTiff
         retval.push_back("GTiff");
-        return retval;
-      }  
-
-      if (file_extension(filename) == ".grd") {      // GMT compatible netcdf
+      else if (ext == ".grd")                     // GMT compatible netcdf
         retval.push_back("GMT");
-        return retval;  
-      }
-
-      else if (file_extension(filename) == ".dem") { // ENVI Labelled raster
+      else if (ext == ".dem")                     // ENVI Labelled raster
         retval.push_back("ENVI");
-        return  retval ; 
-      }
-
-      else if (file_extension(filename) == ".bil") { // ESRI .hdr labelled
+      else if (ext == ".bil")                     // ESRI .hdr labelled
         retval.push_back("EHdr");
-        return retval ;
-      }
-
-      else if (file_extension(filename) == ".jpg" ||
-               file_extension(filename) == ".jpeg") { // JPEG JFIF
+      else if (ext == ".jpg" || ext == ".jpeg")   // JPEG JFIF
         retval.push_back("JPEG");
-        return retval ;  
-      }
-
-      else if (is_jp2(filename)) {                    // JPEG 2000
+      else if (is_jp2(filename)) {                // JPEG 2000
         retval.push_back("JP2ECW");
         retval.push_back("JPEG2000");
-        return retval; 
       }
-
-      else if (file_extension(filename) == ".png") { // PNG
+      else if (ext == ".png")                     // PNG
         retval.push_back("PNG");
-        return retval;     
+      else if (ext == ".gif")                     // GIF
+        retval.push_back("GIF");
+      else if (ext == ".cub") {                   // ISIS Cube
+        retval.push_back("ISIS3");
+        retval.push_back("ISIS2");
       }
-
-      else if (file_extension(filename) == ".img") { // Imagine
-        retval.push_back("HFA");
-        return retval;     
-      }
-
-      else {
-        vw_throw( IOErr() << "DiskImageResourceGDAL: \"" << file_extension(filename) << "\" is an unsupported file extension." );
-        return retval; // never reached
-      }
+      else
+        vw_throw( IOErr() << "DiskImageResourceGDAL: \"" << ext << "\" is an unsupported file extension." );
+      return retval;
     }
   };
+
+  // Retrieves a GDAL driver for a specified filename. need_create specifies
+  // whether the driver needs rw support
+  static std::pair<GDALDriver*, bool> gdal_get_driver(std::string const& filename, bool need_create = false)
+  {
+    bool unsupported_driver = false;
+    GDALDriver *driver = NULL;
+
+    // Register the various file types with GDAL
+    GDALAllRegister();
+
+    // Open the appropriate GDAL I/O driver, depending on the fileFormat
+    // argument specified by the user.
+    std::list<std::string> gdal_format_string = gdal_file_format_from_filename::format(filename);
+    std::list<std::string>::iterator i;
+
+    for( i = gdal_format_string.begin(); i != gdal_format_string.end() && driver == NULL; i++ )
+    {
+      vw_out(DebugMessage, "fileio") << "Trying to retrieve GDAL Driver with the following type: " << (*i) << std::endl;
+      driver = GetGDALDriverManager()->GetDriverByName((*i).c_str());
+      if( driver == NULL )
+        continue;
+
+      if (need_create)
+      {
+        char** metadata = driver->GetMetadata();
+        if( !CSLFetchBoolean( metadata, GDAL_DCAP_CREATE, FALSE ) )
+        {
+          vw_out(DebugMessage, "fileio") << "GDAL driver " << (*i) << " does not support create." << std::endl;
+          driver = NULL;
+          unsupported_driver = true;
+        }
+      }
+    }
+    return std::make_pair(driver, unsupported_driver);
+  }
+
+  bool vw::DiskImageResourceGDAL::gdal_has_support(std::string const& filename) {
+    std::pair<GDALDriver *, bool> ret = gdal_get_driver(filename, false);
+    return bool(ret.first);
+  }
 
   static void convert_jp2(std::string const& filename) {
     uint8* d_original = 0;
@@ -213,22 +233,22 @@ namespace vw {
     int c;
     bool has_gml;
     int retval;
-  
+
     if (!(fp = fopen(filename.c_str(), "r")))
       vw_throw( IOErr() << "convert_jp2: Failed to read " << filename << "." );
-  
+
     for (nbytes_read = 0; fgetc(fp) != EOF; nbytes_read++);
     rewind(fp);
-  
+
     d_original = new uint8[nbytes_read];
-  
+
     for (i = 0; i < nbytes_read && (c = fgetc(fp)) != EOF; d_original[i] = (uint8)c, i++);
 
     if (!(i == nbytes_read  && fgetc(fp) == EOF))
       vw_throw( IOErr() << "convert_jp2: Size of " << filename << " has changed." );
 
     fclose(fp);
-  
+
     JP2File f(d_original, nbytes_read);
     //f.print();
     has_gml = has_gmljp2(&f);
@@ -258,7 +278,7 @@ namespace vw {
 
     if (nbytes_written != nbytes_converted)
       vw_throw( IOErr() << "convert_jp2: Failed to write " << filename << "." );
-  
+
     if (d_original)
       delete[] d_original;
     if (d_converted)
@@ -270,13 +290,13 @@ namespace vw {
     m_filename = filename;
     vw_out(VerboseDebugMessage, "fileio") << "GDAL Handle opening " << m_filename << "\n";
     m_dataset_ptr = GDALOpen( m_filename.c_str(), GA_ReadOnly );
-    if ( !m_dataset_ptr ) 
+    if ( !m_dataset_ptr )
       vw_throw(ArgumentErr() << "DiskImageResourceGDAL: Could not open \"" << m_filename << "\"");
   }
 
-  GdalDatasetHandle::~GdalDatasetHandle() { 
+  GdalDatasetHandle::~GdalDatasetHandle() {
     vw_out(VerboseDebugMessage, "fileio") << "GDAL Handle closing " << m_filename << "\n";
-    if (m_dataset_ptr) 
+    if (m_dataset_ptr)
       delete static_cast<GDALDataset*>(m_dataset_ptr);
   }
 
@@ -284,7 +304,7 @@ namespace vw {
     GDALDataset *dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
     if( dataset == NULL ) {
       vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read no data value.  Are you sure the file is open?" );
-    }      
+    }
     return dataset->GetRasterBand(band+1)->GetNoDataValue();
   }
 
@@ -302,14 +322,14 @@ namespace vw {
     GDALDataset *dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
     if( dataset == NULL ) {
       vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read " << filename << "." );
-    }      
+    }
 
     m_filename = filename;
     m_format.cols = dataset->GetRasterXSize();
     m_format.rows = dataset->GetRasterYSize();
     double geo_transform[6];
-   
-    // <test code> 
+
+    // <test code>
     vw_out(DebugMessage, "fileio") << "\n\tMetadata description: " << dataset->GetDescription() << std::endl;
     char** metadata = dataset->GetMetadata();
     vw_out(DebugMessage, "fileio") << "\tCount: " << CSLCount(metadata) << std::endl;
@@ -317,15 +337,15 @@ namespace vw {
       vw_out(DebugMessage, "fileio") << "\t\t" << CSLGetField(metadata,i) << std::endl;
     }
 
-    vw_out(DebugMessage, "fileio") << "\tDriver: " << 
+    vw_out(DebugMessage, "fileio") << "\tDriver: " <<
       dataset->GetDriver()->GetDescription() <<
       dataset->GetDriver()->GetMetadataItem( GDAL_DMD_LONGNAME ) << std::endl;
-   
+
     vw_out(DebugMessage, "fileio") << "\tSize is " <<
       dataset->GetRasterXSize() << "x" <<
       dataset->GetRasterYSize() << "x" <<
       dataset->GetRasterCount() << std::endl;
-      
+
     if( dataset->GetGeoTransform( geo_transform ) == CE_None ) {
       m_geo_transform.set_identity();
       m_geo_transform(0,0) = geo_transform[1];
@@ -336,28 +356,28 @@ namespace vw {
       m_geo_transform(1,2) = geo_transform[3];
       vw_out(DebugMessage, "fileio") << "\tAffine transform: " << m_geo_transform << std::endl;
     }
-   
+
     // We do our best here to determine what pixel format the GDAL image is in.
     // Commented out the color interpretation checks because the reader (below)
-    // can't really cope well with the the default multi-plane interpretation 
+    // can't really cope well with the the default multi-plane interpretation
     // and this is a quicker work-around than actually fixing the problem. -mdh
     for( int i=1; i<=dataset->GetRasterCount(); ++i )
-    if ( dataset->GetRasterCount() == 1 /* && 
+    if ( dataset->GetRasterCount() == 1 /* &&
                 dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_GrayIndex */ ) {
-      m_format.pixel_format = VW_PIXEL_GRAY;     
+      m_format.pixel_format = VW_PIXEL_GRAY;
       m_format.planes = 1;
-    } else if ( dataset->GetRasterCount() == 2 /* && 
+    } else if ( dataset->GetRasterCount() == 2 /* &&
                 dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_GrayIndex &&
                 dataset->GetRasterBand(2)->GetColorInterpretation() == GCI_AlphaBand */ ) {
       m_format.pixel_format = VW_PIXEL_GRAYA;
       m_format.planes = 1;
-    } else if ( dataset->GetRasterCount() == 3 /* && 
+    } else if ( dataset->GetRasterCount() == 3 /* &&
                 dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_RedBand &&
                 dataset->GetRasterBand(2)->GetColorInterpretation() == GCI_GreenBand &&
                 dataset->GetRasterBand(3)->GetColorInterpretation() == GCI_BlueBand */) {
       m_format.pixel_format = VW_PIXEL_RGB;
       m_format.planes = 1;
-    } else if ( dataset->GetRasterCount() == 4 /* && 
+    } else if ( dataset->GetRasterCount() == 4 /* &&
                 dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_RedBand &&
                 dataset->GetRasterBand(2)->GetColorInterpretation() == GCI_GreenBand &&
                 dataset->GetRasterBand(3)->GetColorInterpretation() == GCI_BlueBand &&
@@ -365,12 +385,12 @@ namespace vw {
       m_format.pixel_format = VW_PIXEL_RGBA;
      m_format.planes = 1;
     } else {
-      m_format.pixel_format = VW_PIXEL_SCALAR;    
+      m_format.pixel_format = VW_PIXEL_SCALAR;
       m_format.planes = dataset->GetRasterCount();
     }
     m_format.channel_type = gdal_pix_fmt_to_vw_channel_id::value(dataset->GetRasterBand(1)->GetRasterDataType());
     // Special limited read-only support for palette-based images
-    if( dataset->GetRasterCount() == 1 && 
+    if( dataset->GetRasterCount() == 1 &&
         dataset->GetRasterBand(1)->GetColorInterpretation() == GCI_PaletteIndex &&
         m_format.channel_type == VW_CHANNEL_UINT8 ) {
       m_format.pixel_format = VW_PIXEL_RGBA;
@@ -389,8 +409,8 @@ namespace vw {
     set_native_block_size(Vector2i(-1,-1));
   }
 
-  /// Bind the resource to a file for writing.  
-  void DiskImageResourceGDAL::create( std::string const& filename, 
+  /// Bind the resource to a file for writing.
+  void DiskImageResourceGDAL::create( std::string const& filename,
                                       ImageFormat const& format,
                                       Vector2i block_size,
                                       std::map<std::string,std::string> const& user_options )
@@ -405,35 +425,19 @@ namespace vw {
     m_format = format;
     int num_bands = std::max( format.planes, num_channels( format.pixel_format ) );
 
-    // Register the various file types with GDAL 
-    GDALAllRegister();  
-    
-    // Open the appropriate GDAL I/O driver, depending on the fileFormat
-    // argument specified by the user.
-    std::list<std::string> gdal_format_string = gdal_file_format_from_filename::format(filename);
-    GDALDriver *driver = NULL;
-    std::list<std::string>::iterator i;
-    bool unsupported_driver = false;
-    for( i = gdal_format_string.begin(); i != gdal_format_string.end() && driver == NULL; i++ ) {
-      vw_out(DebugMessage, "fileio") << "Attempting to creating a new file with the following type: " << (*i) << std::endl;
-      driver = GetGDALDriverManager()->GetDriverByName((*i).c_str());
-      if( driver == NULL )
-        continue;
-        
-      char** metadata = driver->GetMetadata();
-      if( !CSLFetchBoolean( metadata, GDAL_DCAP_CREATE, FALSE ) ) {
-        vw_out(DebugMessage, "fileio") << "GDAL driver " << (*i) << " does not support create." << std::endl;
-        driver = NULL;
-        unsupported_driver = true;
-      }
-    }
-    if( driver == NULL ) {
-      if( unsupported_driver )
-        vw_throw( vw::IOErr() << "Could not write: " << filename << ".  Selected GDAL driver not supported." );
+    // returns Maybe driver, and whether it
+    // found a ro driver when a rw one was requested
+    std::pair<GDALDriver *, bool> ret = gdal_get_driver(filename, true);
+
+    if( ret.first == NULL ) {
+      if( ret.second )
+        vw_throw( vw::NoImplErr() << "Could not write: " << filename << ".  Selected GDAL driver not supported." );
       else
         vw_throw( vw::IOErr() << "Error opening selected GDAL file I/O driver." );
     }
-    
+
+    GDALDriver *driver = ret.first;
+
     char **options = NULL;
     options = CSLSetNameValue( options, "ALPHA", "YES" );
     options = CSLSetNameValue( options, "INTERLEAVE", "PIXEL" );
@@ -464,9 +468,9 @@ namespace vw {
     // Set the native block size.  If the user has not specified a
     // block size, we go with GDAL's default.  Otherwise, we go with
     // our own block size.
-    if (block_size[0] != -1 && block_size[1] != -1) 
+    if (block_size[0] != -1 && block_size[1] != -1)
       set_native_block_size(block_size);
-    else 
+    else
       set_native_block_size(Vector2i(-1,-1));
   }
 
@@ -476,16 +480,16 @@ namespace vw {
   {
     VW_ASSERT( channels() == 1 || planes()==1,
                LogicErr() << "DiskImageResourceGDAL: cannot read an image that has both multiple channels and multiple planes." );
- 
+
     GDALDataset *dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
-    if (!dataset) 
+    if (!dataset)
       vw_throw( LogicErr() << "DiskImageResourceGDAL::read() Could not read file. No file has been opened." );
 
     // No longer used
     //     int             blocksize_x, blocksize_y;
     //     int             bGotMin, bGotMax;
     //     double          adfMinMax[2];
-    
+
     uint8 *data = new uint8[channel_size(channel_type()) * bbox.width() * bbox.height() * planes() * channels()];
     ImageBuffer src;
     src.data = data;
@@ -502,7 +506,7 @@ namespace vw {
           GDALRasterBand  *band = dataset->GetRasterBand(c+1);
           GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
           band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
-                          (uint8*)src(0,0,p) + channel_size(src.format.channel_type)*c, 
+                          (uint8*)src(0,0,p) + channel_size(src.format.channel_type)*c,
                           src.format.cols, src.format.rows, gdal_pix_fmt, src.cstride, src.rstride );
         }
       }
@@ -526,7 +530,7 @@ namespace vw {
   void DiskImageResourceGDAL::write( ImageBuffer const& src, BBox2i const& bbox )
   {
     // This is pretty simple since we always write 8-bit integer files.
-    // Note that we handle multi-channel images with interleaved planes. 
+    // Note that we handle multi-channel images with interleaved planes.
     // We've already ensured that either planes==1 or channels==1.
     uint8 *data = new uint8[channel_size(channel_type()) * bbox.width() * bbox.height() * planes() * channels()];
     ImageBuffer dst;
@@ -545,15 +549,15 @@ namespace vw {
         GDALRasterBand *band = ((GDALDataset*)m_write_dataset_ptr)->GetRasterBand(c+1);
 
         band->RasterIO( GF_Write, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
-                        (uint8*)dst(0,0,p) + channel_size(dst.format.channel_type)*c, 
+                        (uint8*)dst(0,0,p) + channel_size(dst.format.channel_type)*c,
                         dst.format.cols, dst.format.rows, gdal_pix_fmt, dst.cstride, dst.rstride );
-      }  
+      }
     }
-    
+
     //FIXME: if we allow partial writes, m_convert_jp2 should probably only be set on complete writes
     if (is_jp2(m_filename))
       m_convert_jp2 = true;
-    
+
     delete [] data;
   }
 
@@ -563,24 +567,24 @@ namespace vw {
   // choice may lead to extremely inefficient FileIO operations.  You
   // can choose to pass in -1 as the width and/or the height of the
   // block, in which case the width and/or height is chosen by GDAL.
-  // 
+  //
   // For example, if you pass in a vector of (-1,-1), the block size will be
   // assigned based on GDAL's best guess of the best block or strip
   // size. However, GDAL assumes a single-row stripsize even for file
   // formats like PNG for which it does not support true strip access.
   // Thus, we check the file driver type before accepting GDAL's block
   // size as our own.
-  // 
+  //
   void DiskImageResourceGDAL::set_native_block_size(Vector2i block_size) {
     GDALDataset *dataset;
-    if (m_write_dataset_ptr) 
+    if (m_write_dataset_ptr)
       dataset = static_cast<GDALDataset*>(m_write_dataset_ptr);
-    else 
+    else
       dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
-    
-    if (!dataset) 
+
+    if (!dataset)
       vw_throw(LogicErr() << "DiskImageResourceGDAL: Could not set native block size.  No file is open.");
-               
+
     if ( dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("GTiff") ||
          dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("ISIS3") ) {
       GDALRasterBand *band = dataset->GetRasterBand(1);
@@ -589,11 +593,11 @@ namespace vw {
       m_native_blocksize = Vector2i(xsize,ysize);
     } else {
       m_native_blocksize = Vector2i(cols(),rows());
-    } 
-    
-    if (block_size[0] != -1) 
+    }
+
+    if (block_size[0] != -1)
       m_native_blocksize[0] = block_size[0];
-    if (block_size[1] != -1) 
+    if (block_size[1] != -1)
       m_native_blocksize[1] = block_size[1];
   }
 
@@ -601,7 +605,7 @@ namespace vw {
     return m_native_blocksize;
   }
 
-  void DiskImageResourceGDAL::flush() { 
+  void DiskImageResourceGDAL::flush() {
     if (m_write_dataset_ptr) {
       delete (GDALDataset*)m_write_dataset_ptr;
       if (m_convert_jp2)
@@ -614,7 +618,7 @@ namespace vw {
     GDALDataset *dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
     if( dataset == NULL ) {
       vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read " << m_filename << "." );
-    }      
+    }
     return dataset->GetMetadata();
   }
 
@@ -628,7 +632,7 @@ namespace vw {
                                                                   ImageFormat const& format ) {
     return new DiskImageResourceGDAL( filename, format );
   }
-  
+
 
 } // namespace vw
 

@@ -141,6 +141,8 @@ namespace vw {
     virtual Vector2i native_block_size() const;
     virtual void flush();
 
+    // Ask GDAL if it's compiled with support for this file
+    static bool gdal_has_support(std::string const& filename);
 
     /// Some GDAL files store a "NoData" value.  You can use these
     /// methods to access that information. 
