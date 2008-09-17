@@ -72,6 +72,8 @@ libvwFileIO_la_LIBADD = @MODULE_FILEIO_LIBS@
 
 lib_LTLIBRARIES = libvwFileIO.la
 
+noinst_HEADERS = DiskImageResource_internal.h
+
 endif
 
 ########################################################################

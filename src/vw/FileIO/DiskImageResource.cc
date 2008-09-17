@@ -35,6 +35,7 @@
 #include <vw/config.h>
 
 #include <iostream>
+#include <set>
 #include <map>
 #include <boost/algorithm/string.hpp>
 
@@ -70,6 +71,7 @@
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #endif
 
+#include <vw/FileIO/DiskImageResource_internal.h>
 
 namespace {
   typedef std::map<std::string,vw::DiskImageResource::construct_open_func> OpenMapType;
@@ -77,6 +79,23 @@ namespace {
   OpenMapType *open_map = 0;
   CreateMapType *create_map = 0;
 }
+
+namespace vw {
+  namespace internal {
+
+void foreach_ext(std::string fn, ExtTestFunction func, std::set<std::string> exclude)
+{
+  OpenMapType::const_iterator oi;
+  vw::DiskImageResource::register_default_file_types();
+
+  for (oi = open_map->begin(); oi != open_map->end(); ++oi)
+  {
+    if (exclude.find(oi->first.substr(1)) == exclude.end())
+      func(fn + oi->first);
+  }
+}
+
+}}
 
 void vw::DiskImageResource::register_file_type( std::string const& extension,
                                                 std::string const& disk_image_resource_type,
