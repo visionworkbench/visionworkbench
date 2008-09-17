@@ -34,8 +34,8 @@
 namespace vw {
 namespace internal {
 
-  typedef void (*ExtTestFunction)(std::string fn);
-  void foreach_ext(std::string fn, ExtTestFunction func, std::set<std::string> exclude = std::set<std::string>() );
+  typedef void (*ExtTestFunction)(std::string const& fn);
+  void foreach_ext(std::string const& fn, ExtTestFunction func, std::set<std::string> const& exclude = std::set<std::string>() );
 
 }} // namespace vw::internal
 

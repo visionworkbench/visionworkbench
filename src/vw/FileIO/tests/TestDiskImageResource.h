@@ -38,7 +38,7 @@ using std::string;
 using std::set;
 
 template <class PixelT>
-static void test_extension(string fn)
+static void test_extension(string const& fn)
 {
   ImageView<PixelT> img1(1,1), img2;
 
