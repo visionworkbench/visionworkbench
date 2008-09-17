@@ -22,19 +22,57 @@
 // __END_LICENSE__
 
 // TestDiskImageResource.h
-#define CXXTEST_ABORT_TEST_ON_FAIL
+//#define CXXTEST_ABORT_TEST_ON_FAIL
 #include <cxxtest/TestSuite.h>
 #include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/DiskImageResource_internal.h>
 
 #include <vw/config.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
 
 using namespace vw;
+using namespace vw::internal;
+
+using std::string;
+using std::set;
+
+template <class PixelT>
+static void test_extension(string fn)
+{
+  ImageView<PixelT> img1(1,1), img2;
+
+  try {
+    write_image(fn, img1);
+    read_image(img2, fn);
+  } catch (vw::NoImplErr &e) {
+    // this doesn't really represent a failure...
+    std::cerr << std::endl << "Failed to test " << fn << " : " << e.what();
+    return;
+  }
+
+  TS_ASSERT_EQUALS(img1.cols()        , img2.cols());
+  TS_ASSERT_EQUALS(img1.rows()        , img2.rows());
+  TS_ASSERT_EQUALS(img1.planes()      , img2.planes());
+  TS_ASSERT_EQUALS(img1.channels()    , img2.channels());
+  TS_ASSERT_EQUALS(img1.channel_type(), img2.channel_type());
+}
 
 class TestDiskImageResource : public CxxTest::TestSuite
 {
 public:
+
+  void test_write_read_view() {
+    set<string> exclude;
+    const char *ex_list[] = {"img", "lbl", "pds"}; // skip the ro PDS formats
+    exclude.insert(ex_list, ex_list+3);
+
+    foreach_ext("rwtest", test_extension<PixelRGB<float>  >, exclude);
+    foreach_ext("rwtest", test_extension<PixelRGB<uint8>  >, exclude);
+    foreach_ext("rwtest", test_extension<PixelRGBA<uint8> >, exclude);
+    foreach_ext("rwtest", test_extension<uint8>, exclude);
+    foreach_ext("rwtest", test_extension<float>, exclude);
+  }
 
   void test_read_image_rgb_png_uint8() {
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
