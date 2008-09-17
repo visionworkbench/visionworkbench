@@ -35,7 +35,8 @@ EXTRA_DIST = config/rules.mak config/relicense config.options.example \
 ########################################################################
 
 install-data-hook:
-	$(INSTALL) src/vw/config.h $(prefix)/include/vw/
+	mkdir -p $(DESTDIR)$(prefix)/include/vw/
+	$(INSTALL) src/vw/config.h $(DESTDIR)$(prefix)/include/vw/
 
 dist-hook:
 	rm -rf `find $(distdir) -name '.svn'`

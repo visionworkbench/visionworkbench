@@ -54,6 +54,7 @@
 #ifndef __VW_MATH_VECTOR_H__
 #define __VW_MATH_VECTOR_H__
 
+#include <cstring>
 #include <vector>
 
 #include <boost/utility/enable_if.hpp>
