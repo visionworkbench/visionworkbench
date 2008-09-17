@@ -168,14 +168,22 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
                              ImageViewBase<ViewT> const& img1,
                              int r, int c,                   // row and column in img0
                              int hdisp, int vdisp,           // Current disparity offset from (c,r) for img1
-                             int kern_width, int kern_height) {// Kernel dimensions
+                             int kern_width, int kern_height,
+                             BBox2i const& left_bbox, 
+                             BBox2i const& right_bbox) {// Kernel dimensions
   
     r -= kern_height/2;
     c -= kern_width/2;
-    if (r<0         || c<0       || r+kern_height>=img0.impl().rows()       || c+kern_width>=img0.impl().cols() ||
-        r+vdisp < 0 || c+hdisp<0 || r+vdisp+kern_height>=img0.impl().rows() || c+hdisp+kern_width>=img0.impl().cols()) {
+    if (r<left_bbox.min().y()         || c<left_bbox.min().x()       || r+kern_height>=left_bbox.max().y()       || c+kern_width>=left_bbox.max().x()) {
+      //      vw_out(0) << "BAD LEFT ACCESS at " << r << " " << c << "   " << img0.impl().rows() << " " << img0.impl().cols() << "\n";
       return VW_STEREO_MISSING_PIXEL;
     }
+
+    if (r+vdisp < right_bbox.min().y() || c+hdisp<right_bbox.min().x() || r+vdisp+kern_height>=right_bbox.max().y() || c+hdisp+kern_width>=right_bbox.max().x()) {
+      //      vw_out(0) << "BAD RIGHT ACCESS at " << (r+vdisp) << " " << (c+hdisp) << "   " << img1.impl().rows() << " " << img1.impl().cols() << "\n";
+      return VW_STEREO_MISSING_PIXEL;
+    }
+
   
     typename CorrelatorAccumulatorType<typename CompoundChannelType<typename ViewT::pixel_type>::type>::type ret = 0;
     AbsDiffCostFunc cost_fn;

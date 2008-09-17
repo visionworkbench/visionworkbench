@@ -32,6 +32,7 @@ namespace stereo {
 
     boost::shared_ptr< CropView<ImageView<float> > > m_left_cached_log_image;
     boost::shared_ptr< CropView<ImageView<float> > > m_right_cached_log_image;
+    BBox2i m_left_bbox, m_right_bbox;
 
     // Settings
     int m_kern_width, m_kern_height;
@@ -118,6 +119,9 @@ namespace stereo {
 
       m_left_log_image = laplacian_filter(gaussian_filter(channel_cast<float>(channels_to_planes(left_image.impl())),1.5));
       m_right_log_image = laplacian_filter(gaussian_filter(channel_cast<float>(channels_to_planes(right_image.impl())),1.5));
+
+      m_left_bbox = BBox2i(0,0,m_left_image.cols(),m_left_image.rows());
+      m_right_bbox = BBox2i(0,0,m_right_image.cols(),m_right_image.rows());
     }
 
     // Standard ImageView interface methods
@@ -149,18 +153,21 @@ namespace stereo {
         double mid = compute_soad(*m_left_cached_log_image, *m_right_cached_log_image,
                                   j, i,
                                   hdisp,   vdisp,
-                                  m_kern_width, m_kern_height);
+                                  m_kern_width, m_kern_height,
+                                  m_left_bbox, m_right_bbox);
         
         // If only horizontal subpixel resolution is requested 
         if (m_do_h_subpixel && !m_do_v_subpixel) {
           double lt= compute_soad(*m_left_cached_log_image, *m_right_cached_log_image,
                                   j, i,
                                   hdisp-1, vdisp,
-                                  m_kern_width, m_kern_height);
+                                  m_kern_width, m_kern_height, 
+                                  m_left_bbox, m_right_bbox);
           double rt= compute_soad(*m_left_cached_log_image, *m_right_cached_log_image,
                                   j, i,
                                   hdisp+1, vdisp,
-                                  m_kern_width, m_kern_height);
+                                  m_kern_width, m_kern_height,
+                                  m_left_bbox, m_right_bbox);
           if ((mid <= lt && mid < rt) || (mid <= rt && mid < lt)) {
             PixelDisparity<float> returnval = m_disparity_map(i,j);
             returnval.h() += find_minimum(lt, mid, rt);
@@ -175,11 +182,13 @@ namespace stereo {
             double up= compute_soad(*m_left_cached_log_image, *m_right_cached_log_image,
                                     j, i,
                                     hdisp, vdisp-1,
-                                    m_kern_width, m_kern_height);
+                                    m_kern_width, m_kern_height,
+                                    m_left_bbox, m_right_bbox);
             double dn= compute_soad(*m_left_cached_log_image, *m_right_cached_log_image,
                                     j, i,
                                     hdisp, vdisp+1,
-                                    m_kern_width, m_kern_height);
+                                    m_kern_width, m_kern_height,
+                                    m_left_bbox, m_right_bbox);
           if ((mid <= up && mid < dn) || (mid <= dn && mid < up)) {
             PixelDisparity<float> returnval = m_disparity_map(i,j);
             returnval.v() += find_minimum(up, mid, dn);
@@ -205,36 +214,44 @@ namespace stereo {
           points(0) = (double)compute_soad(*m_left_cached_log_image, *m_right_cached_log_image,
                                            j, i,
                                            hdisp-1, vdisp-1,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           points(1) = (double)compute_soad(*m_left_cached_log_image, *m_right_cached_log_image,
                                            j, i,
                                            hdisp-1, vdisp,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           points(2) = (double)compute_soad(*m_left_cached_log_image, *m_right_cached_log_image,
                                            j, i,
                                            hdisp-1, vdisp+1,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           points(3) = (double)compute_soad(*m_left_cached_log_image, *m_right_cached_log_image,
                                            j, i,
                                            hdisp, vdisp-1,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           points(4) = (double)mid;
           points(5) = (double)compute_soad(*m_left_cached_log_image, *m_right_cached_log_image,
                                            j, i,
                                            hdisp, vdisp+1,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           points(6) = (double)compute_soad(*m_left_cached_log_image, *m_right_cached_log_image,
                                            j, i,
                                            hdisp+1, vdisp-1,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           points(7) = (double)compute_soad(*m_left_cached_log_image, *m_right_cached_log_image,
                                            j, i,
                                            hdisp+1, vdisp,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           points(8) = (double)compute_soad(*m_left_cached_log_image, *m_right_cached_log_image,
                                            j, i,
                                            hdisp+1, vdisp+1,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           
           vw::Vector2 offset = find_minimum_2d(points, pinvA);
           
@@ -263,18 +280,21 @@ namespace stereo {
         double mid = compute_soad(m_left_log_image, m_right_log_image,
                                   j, i,
                                   hdisp,   vdisp,
-                                  m_kern_width, m_kern_height);
+                                  m_kern_width, m_kern_height,
+                                  m_left_bbox, m_right_bbox);
         
         // If only horizontal subpixel resolution is requested 
         if (m_do_h_subpixel && !m_do_v_subpixel) {
           double lt= compute_soad(m_left_log_image, m_right_log_image,
                                   j, i,
                                   hdisp-1, vdisp,
-                                  m_kern_width, m_kern_height);
+                                  m_kern_width, m_kern_height,
+                                  m_left_bbox, m_right_bbox);
           double rt= compute_soad(m_left_log_image, m_right_log_image,
                                   j, i,
                                   hdisp+1, vdisp,
-                                  m_kern_width, m_kern_height);
+                                  m_kern_width, m_kern_height,
+                                  m_left_bbox, m_right_bbox);
           if ((mid <= lt && mid < rt) || (mid <= rt && mid < lt)) {
             PixelDisparity<float> returnval = m_disparity_map(i,j);
             returnval.h() += find_minimum(lt, mid, rt);
@@ -289,11 +309,13 @@ namespace stereo {
             double up= compute_soad(m_left_log_image, m_right_log_image,
                                     j, i,
                                     hdisp, vdisp-1,
-                                    m_kern_width, m_kern_height);
+                                    m_kern_width, m_kern_height,
+                                    m_left_bbox, m_right_bbox);
             double dn= compute_soad(m_left_log_image, m_right_log_image,
                                     j, i,
                                     hdisp, vdisp+1,
-                                    m_kern_width, m_kern_height);
+                                    m_kern_width, m_kern_height,
+                                    m_left_bbox, m_right_bbox);
           if ((mid <= up && mid < dn) || (mid <= dn && mid < up)) {
             PixelDisparity<float> returnval = m_disparity_map(i,j);
             returnval.v() += find_minimum(up, mid, dn);
@@ -319,36 +341,44 @@ namespace stereo {
           points(0) = (double)compute_soad(m_left_log_image, m_right_log_image,
                                            j, i,
                                            hdisp-1, vdisp-1,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           points(1) = (double)compute_soad(m_left_log_image, m_right_log_image,
                                            j, i,
                                            hdisp-1, vdisp,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           points(2) = (double)compute_soad(m_left_log_image, m_right_log_image,
                                            j, i,
                                            hdisp-1, vdisp+1,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           points(3) = (double)compute_soad(m_left_log_image, m_right_log_image,
                                            j, i,
                                            hdisp, vdisp-1,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           points(4) = (double)mid;
           points(5) = (double)compute_soad(m_left_log_image, m_right_log_image,
                                            j, i,
                                            hdisp, vdisp+1,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           points(6) = (double)compute_soad(m_left_log_image, m_right_log_image,
                                            j, i,
                                            hdisp+1, vdisp-1,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           points(7) = (double)compute_soad(m_left_log_image, m_right_log_image,
                                            j, i,
                                            hdisp+1, vdisp,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           points(8) = (double)compute_soad(m_left_log_image, m_right_log_image,
                                            j, i,
                                            hdisp+1, vdisp+1,
-                                           m_kern_width, m_kern_height);
+                                           m_kern_width, m_kern_height,
+                                           m_left_bbox, m_right_bbox);
           
           vw::Vector2 offset = find_minimum_2d(points, pinvA);
           
@@ -369,26 +399,29 @@ namespace stereo {
     }
 
     void cache(BBox2i bbox) {
-      BBox2i left_bbox = bbox;
-      left_bbox.min() -= Vector2i(1,1);
-      left_bbox.max() += Vector2i(1,1);
+      //      std::cout << "bbox: " << bbox << "\n";
+      m_left_bbox = bbox;
+      m_left_bbox.min() -= Vector2i(m_kern_width/2+1,m_kern_height/2+1);
+      m_left_bbox.max() += Vector2i(m_kern_width/2+1,m_kern_height/2+1);
+      //      std::cout << "left bbox: " << m_left_bbox << "\n";
 
-      ImageView<typename InputViewT::pixel_type> left_buf = crop( m_left_log_image, left_bbox );
-      m_left_cached_log_image.reset(new CropView<ImageView<float> >(left_buf, BBox2i(-left_bbox.min().x(), -left_bbox.min().y(),
+      ImageView<typename InputViewT::pixel_type> left_buf = crop( m_left_log_image, m_left_bbox );
+      m_left_cached_log_image.reset(new CropView<ImageView<float> >(left_buf, BBox2i(-m_left_bbox.min().x(), -m_left_bbox.min().y(),
                                                                                      m_left_image.cols(), m_left_image.rows()) ) );
 
       int num_good;
-      BBox2 disp_range = disparity::get_disparity_range(crop(edge_extend(m_disparity_map,ZeroEdgeExtension()), left_bbox), num_good, false);
+      BBox2 disp_range = disparity::get_disparity_range(crop(edge_extend(m_disparity_map,ZeroEdgeExtension()), m_left_bbox), num_good, false);
+      //      std::cout << "disparity range: " << disp_range << "\n";
 
+      m_right_bbox = bbox;
+      m_right_bbox.min() -= Vector2i(m_kern_width/2+1,m_kern_height/2+1);
+      m_right_bbox.min() += disp_range.min();
+      m_right_bbox.max() += Vector2i(m_kern_width/2+1,m_kern_height/2+1);
+      m_right_bbox.max() += disp_range.max();
+      //      std::cout << "Right bbox: " << m_right_bbox << "\n";
 
-      BBox2i right_bbox = bbox;
-      right_bbox.min() -= Vector2i(1,1);
-      right_bbox.min() += disp_range.min();
-      right_bbox.max() += Vector2i(1,1);
-      right_bbox.max() += disp_range.max();
-
-      ImageView<typename InputViewT::pixel_type> right_buf = crop( m_right_log_image, right_bbox );
-      m_right_cached_log_image.reset(new CropView<ImageView<float> >(right_buf, BBox2i(-right_bbox.min().x(), -right_bbox.min().y(),
+      ImageView<typename InputViewT::pixel_type> right_buf = crop( m_right_log_image, m_right_bbox );
+      m_right_cached_log_image.reset(new CropView<ImageView<float> >(right_buf, BBox2i(-m_right_bbox.min().x(), -m_right_bbox.min().y(),
                                                                                        m_right_image.cols(), m_right_image.rows()) ) );
 
     }
