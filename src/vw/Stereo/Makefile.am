@@ -29,7 +29,8 @@ if MAKE_MODULE_STEREO
 
 include_HEADERS = Correlate.h ReferenceCorrelator.h		\
 	OptimizedCorrelator.h DisparityMap.h StereoModel.h	\
-	PyramidCorrelator.h StereoView.h CorrelatorView.h
+	PyramidCorrelator.h StereoView.h CorrelatorView.h	\
+	SubpixelRefinementView.h
 
 libvwStereo_la_SOURCES = StereoModel.cc OptimizedCorrelator.cc	\
 	 PyramidCorrelator.cc Correlate.cc

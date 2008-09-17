@@ -161,6 +161,32 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     return double(ret);
   }
 
+  /// Compute the sum of the absolute difference between a template
+  /// region taken from img1 and the window centered at (c,r) in img0.
+  template <class ViewT>
+  inline double compute_soad(ImageViewBase<ViewT> const& img0, 
+                             ImageViewBase<ViewT> const& img1,
+                             int r, int c,                   // row and column in img0
+                             int hdisp, int vdisp,           // Current disparity offset from (c,r) for img1
+                             int kern_width, int kern_height) {// Kernel dimensions
+  
+    r -= kern_height/2;
+    c -= kern_width/2;
+    if (r<0         || c<0       || r+kern_height>=img0.impl().rows()       || c+kern_width>=img0.impl().cols() ||
+        r+vdisp < 0 || c+hdisp<0 || r+vdisp+kern_height>=img0.impl().rows() || c+hdisp+kern_width>=img0.impl().cols()) {
+      return VW_STEREO_MISSING_PIXEL;
+    }
+  
+    typename CorrelatorAccumulatorType<typename CompoundChannelType<typename ViewT::pixel_type>::type>::type ret = 0;
+    AbsDiffCostFunc cost_fn;
+    for (int rr= 0; rr< kern_height; rr++) {
+     for (int cc= 0; cc< kern_width; cc++) {
+       ret += cost_fn(img0.impl()(c+cc,r+rr), img1.impl()(c+cc+hdisp,r+rr+vdisp));
+      }
+    }
+    return double(ret);
+  }
+
   /// For a given set of images, compute the optimal disparity (minimum
   /// SOAD) at position left_image(i,j) for the given correlation window
   /// settings.
