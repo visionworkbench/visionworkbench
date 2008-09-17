@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestDiskImageResource.h
@@ -46,8 +46,8 @@ static void test_extension(string fn)
     write_image(fn, img1);
     read_image(img2, fn);
   } catch (vw::NoImplErr &e) {
-    // this doesn't really represent a failure...
-    std::cerr << std::endl << "Failed to test " << fn << " : " << e.what();
+    // this doesn't represent a test failure, just a lack of test coverage
+    TS_WARN(string("Failed to test ") + fn + " : " + e.what());
     return;
   }
 
@@ -260,7 +260,7 @@ public:
     TS_ASSERT_EQUALS( image2.cols(), image.cols() );
     TS_ASSERT_EQUALS( image2.rows(), image.rows() );
     TS_ASSERT_EQUALS( image2.planes(), image.planes() );
-    // TIFF supports floating-point data, so values should 
+    // TIFF supports floating-point data, so values should
     // be reasonably precise.
     TS_ASSERT_DELTA( image2(0,0).r(), image(0,0).r(), 1e-8 );
     TS_ASSERT_DELTA( image2(0,0).g(), image(0,0).g(), 1e-8 );

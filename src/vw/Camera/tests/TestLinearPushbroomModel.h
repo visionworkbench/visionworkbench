@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestLinearPushbroomModel.h
@@ -55,21 +55,19 @@ public:
                                          pose,
                                          position,
                                          velocity);
-    
-//     std::cout << "\n\n";
 
-//     std::cout << "[0,0]: " << cam.pixel_to_vector(Vector2(0,0)) << "\n";
-//     std::cout << "       " << cam.camera_center(Vector2(0,0)) << "\n\n";
+//     TS_TRACE( stringify("[0,0]: ") + stringify(cam.pixel_to_vector(Vector2(0,0))));
+//     TS_TRACE( stringify("       ") + stringify(cam.camera_center(Vector2(0,0))));
 
-//     std::cout << "[512,0]: " << cam.pixel_to_vector(Vector2(512,0)) << "\n";
-//     std::cout << "       " << cam.camera_center(Vector2(512,0)) << "\n\n";
+//     TS_TRACE( stringify("[512,0]: ") + stringify(cam.pixel_to_vector(Vector2(512,0))));
+//     TS_TRACE( stringify("         ") + stringify(cam.camera_center(Vector2(512,0))));
 
-//     std::cout << "[1024,0]: " << cam.pixel_to_vector(Vector2(1024,0)) << "\n";
-//     std::cout << "       " << cam.camera_center(Vector2(1024,0)) << "\n\n";
+//     TS_TRACE( stringify("[1024,0]: ") + stringify(cam.pixel_to_vector(Vector2(1024,0))));
+//     TS_TRACE( stringify("          ") + stringify(cam.camera_center(Vector2(1024,0))));
 
-//     std::cout << "[0,500]: " << cam.pixel_to_vector(Vector2(0,512)) << "\n";
-//     std::cout << "         " << cam.camera_center(Vector2(0,512)) << "\n\n";
-    
+//     TS_TRACE( stringify("[0,500]: ") + stringify(cam.pixel_to_vector(Vector2(0,512))));
+//     TS_TRACE( stringify("         ") + stringify(cam.camera_center(Vector2(0,512))));
+
     Vector3 camera_center, pointing_vector;
     pointing_vector = cam.pixel_to_vector(Vector2(0,0));
     camera_center = cam.camera_center(Vector2(0,0));
@@ -97,7 +95,7 @@ public:
     TS_ASSERT_EQUALS(pointing_vector[0], 0);
     TS_ASSERT_DELTA(pointing_vector[1], 0.981455, 0.0001);
     TS_ASSERT_DELTA(pointing_vector[2], 0.191691, 0.0001);
-    
+
   }
 
 };

@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestThreadPool.h
@@ -59,8 +59,13 @@ class TestLog : public CxxTest::TestSuite
 
 public:
 
+  void test_stringify() {
+    TS_ASSERT_SAME_DATA(stringify("1234").c_str(), "1234", 4);
+    TS_ASSERT_SAME_DATA(stringify(1234).c_str(), "1234", 4);
+  }
+
   void test_utility_ostreams() {
-    
+
     vw::null_ostream null_strm;
     vw::multi_ostream multi_strm;
 
@@ -73,7 +78,7 @@ public:
     multi_strm << "\tYou should see this message twice.\n";
   }
 
-  void test_log_rule_set() {    
+  void test_log_rule_set() {
     LogRuleSet rs;
     rs.add_rule(vw::InfoMessage, "console");
     rs.add_rule(vw::VerboseDebugMessage, "foo");
@@ -105,12 +110,12 @@ public:
     boost::shared_ptr<TestLogTask> task1( new TestLogTask(log,"log test") );
     boost::shared_ptr<TestLogTask> task2( new TestLogTask(log,"log test") );
     boost::shared_ptr<TestLogTask> task3( new TestLogTask(log,"log test") );
-    Thread thread1(task1); 
-    Thread thread2(task2); 
-    Thread thread3(task3); 
+    Thread thread1(task1);
+    Thread thread2(task2);
+    Thread thread3(task3);
 
     Thread::sleep_ms(100);
-    
+
     task1->kill();
     task2->kill();
     task3->kill();

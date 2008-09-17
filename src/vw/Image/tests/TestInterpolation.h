@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestInterpolation.h
@@ -54,7 +54,7 @@ public:
     TS_ASSERT_EQUALS( *(im2.origin().advance(1,1)), 4 );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) ); 
+    TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) );
     TS_ASSERT( bool_trait<IsFloatingPointIndexable>( interpolate(im, BilinearInterpolation()) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( interpolate(im, BilinearInterpolation()) ) );
   }
@@ -76,7 +76,7 @@ public:
     TS_ASSERT_EQUALS( *(im2.origin().advance(1,1)), 4 );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) ); 
+    TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) );
     TS_ASSERT( bool_trait<IsFloatingPointIndexable>( interpolate(im, BicubicInterpolation()) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( interpolate(im, BicubicInterpolation()) ) );
   }
@@ -98,7 +98,7 @@ public:
     TS_ASSERT_EQUALS( *(im2.origin().advance(1,1)), 4 );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) ); 
+    TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) );
     TS_ASSERT( bool_trait<IsFloatingPointIndexable>( interpolate(im, NearestPixelInterpolation()) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( interpolate(im, NearestPixelInterpolation()) ) );
   }

@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestPixelTypes.h
@@ -155,7 +155,7 @@ public:
   {
     int val0, val1, val2;
     val0 = val1 = val2 = 40;
-   
+
     // Standard case
 
     PixelRGB<int8> test_rgb(val0, val1, val2);
@@ -223,7 +223,7 @@ public:
     TS_ASSERT_EQUALS(test_hsv.h(), 0.0);
     TS_ASSERT_EQUALS(test_hsv.s(), 0.0);
     TS_ASSERT_EQUALS(test_hsv.v(), 1.0);
-    
+
     PixelRGB<uint8> input_rgb8(100, 100, 100);
     PixelHSV<uint8> test_hsv8(input_rgb8);
     TS_ASSERT_EQUALS(test_hsv8.h(), 0);
@@ -278,7 +278,7 @@ public:
         }
       }
     }
-    // Rounding error can become significant for small numbers, so we  
+    // Rounding error can become significant for small numbers, so we
     // restrict this test to sufficiently bright and saturated pixels.
     for( uint8 h=0; ; h+=5 ) {
       for( uint8 s=60; ; s+=5 ) {
@@ -311,7 +311,7 @@ public:
         }
       }
     }
-    // Rounding error can become significant for small numbers, so 
+    // Rounding error can become significant for small numbers, so
     // we restrict this test to sufficiently bright pixels.
     for( uint8 r=70; ; r+=5 ) {
       for( uint8 g=70; ; g+=5 ) {
@@ -370,7 +370,7 @@ public:
         }
       }
     }
-    // Values near the top of the range can clamp in XYZ 
+    // Values near the top of the range can clamp in XYZ
     // space, so we stop at 235.
     for( uint8 r=0; r<=235; r+=5 ) {
       for( uint8 g=0; g<=235; g+=5 ) {
@@ -412,7 +412,7 @@ public:
 	  PixelXYZ<double> tmp1(x,y,z);
 	  PixelLuv<double> tmp2(tmp1);
           PixelXYZ<double> xyz(tmp2);
-	  
+
           TS_ASSERT_DELTA( xyz.x(), x, 1e-4 );
           TS_ASSERT_DELTA( xyz.y(), y, 1e-4 );
           TS_ASSERT_DELTA( xyz.z(), z, 1e-4 );
@@ -448,7 +448,7 @@ public:
 	  PixelRGB<double> tmp1(r,g,b);
 	  PixelLuv<double> tmp2(tmp1);
           PixelRGB<double> rgb(tmp2);
-	  
+
           TS_ASSERT_DELTA( rgb.r(), r, 1e-4 );
           TS_ASSERT_DELTA( rgb.g(), g, 1e-4 );
           TS_ASSERT_DELTA( rgb.b(), b, 1e-4 );
@@ -483,7 +483,7 @@ public:
 	  PixelXYZ<double> tmp1(x,y,z);
 	  PixelLab<double> tmp2(tmp1);
           PixelXYZ<double> xyz(tmp2);
-	  
+
           TS_ASSERT_DELTA( xyz.x(), x, 1e-4 );
           TS_ASSERT_DELTA( xyz.y(), y, 1e-4 );
           TS_ASSERT_DELTA( xyz.z(), z, 1e-4 );
@@ -519,7 +519,7 @@ public:
 	  PixelRGB<double> tmp1(r,g,b);
 	  PixelLab<double> tmp2(tmp1);
           PixelRGB<double> rgb(tmp2);
-	  
+
           TS_ASSERT_DELTA( rgb.r(), r, 1e-4 );
           TS_ASSERT_DELTA( rgb.g(), g, 1e-4 );
           TS_ASSERT_DELTA( rgb.b(), b, 1e-4 );
@@ -544,87 +544,87 @@ public:
       }
     }
   }
-  
+
   /***/
 
   void test_pixel_mask()
   {
     // Default construction
-    { 
-      PixelMask<PixelGray<uint8> > test; 
-      TS_ASSERT( test.valid() == 0 ); 
-    } 
+    {
+      PixelMask<PixelGray<uint8> > test;
+      TS_ASSERT( test.valid() == 0 );
+    }
 
     // Implicit construction from scalar
-    { 
-      PixelMask<PixelGray<uint8> > test = 5; 
+    {
+      PixelMask<PixelGray<uint8> > test = 5;
       TS_ASSERT( test[0] == 5 );
-      TS_ASSERT( test[1] == 255 ); 
-    } 
-    
+      TS_ASSERT( test[1] == 255 );
+    }
+
     // Construction from child type
-    { 
+    {
       PixelGray<uint8> g = 5;
-      PixelMask<PixelGray<uint8> > test = g; 
+      PixelMask<PixelGray<uint8> > test = g;
       TS_ASSERT( test[0] == 5 );
-      TS_ASSERT( test[1] == 255 ); 
-    } 
+      TS_ASSERT( test[1] == 255 );
+    }
 
     // Construction from another PixelMask<> w/ same channel type
-    { 
+    {
       PixelMask<PixelGray<uint8> > gv = 5;
       PixelMask<PixelGray<uint8> > test = gv;
       TS_ASSERT( test[0] == 5 );
-      TS_ASSERT( test[1] == 255 ); 
-    } 
+      TS_ASSERT( test[1] == 255 );
+    }
 
     // Construction from another PixelMask<> w/ different channel type
-    { 
-      PixelMask<PixelGray<uint8> > gv = 5; 
+    {
+      PixelMask<PixelGray<uint8> > gv = 5;
       PixelMask<PixelGray<float> > test = channel_cast<float>(gv);
       TS_ASSERT( test[0] == 5 );
-      TS_ASSERT( test[1] == 1 ); 
-    } 
+      TS_ASSERT( test[1] == 1 );
+    }
 
     // Construction from another PixelMask<> w/ an implicit conversion
-    { 
+    {
       PixelGray<uint8> foo = 5;
       PixelRGB<uint8> bar(foo);
       TS_ASSERT( foo[0] == 5 );
-      TS_ASSERT( bar[0] == 5 ); 
-      
-      PixelMask<PixelGray<uint8> > gv = 5; 
+      TS_ASSERT( bar[0] == 5 );
+
+      PixelMask<PixelGray<uint8> > gv = 5;
       PixelMask<PixelRGB<uint8> > test(gv);
       TS_ASSERT( gv[0] == 5 );
       TS_ASSERT( test[0] == 5 );
-      TS_ASSERT( test[3] == 255 ); 
-    } 
+      TS_ASSERT( test[3] == 255 );
+    }
 
     // Construction from scalar types
-    { 
+    {
       uint8 foo = 5;
-      PixelMask<uint8> gv = foo; 
+      PixelMask<uint8> gv = foo;
       PixelMask<uint8> test(gv);
       TS_ASSERT( gv[0] == 5 );
       TS_ASSERT( test[0] == 5 );
-      TS_ASSERT( test[1] == 255 ); 
+      TS_ASSERT( test[1] == 255 );
 
       // Downcast back to uint8
       uint8 bar = test;
-      TS_ASSERT( bar == 5 ); 
-      
+      TS_ASSERT( bar == 5 );
+
       test.invalidate();
       bar = test;
-      TS_ASSERT( bar == 5 ); 
-      
+      TS_ASSERT( bar == 5 );
+
       // The following lines should fail to compile ( throwing a boost
       // static assert error... ) because you should not be able to
       // downcast from a PixelRGB<> to a uint8.
       //       PixelMask<PixelRGB<uint8> > downcast_test(4,2,6);
       //       bar = downcast_test;
-    } 
+    }
 
-    // Check for pixel transparency 
+    // Check for pixel transparency
     {
       PixelMask<float> v1(1.0);
       PixelMask<PixelGray<uint8> > v2;
@@ -634,9 +634,9 @@ public:
 
       v2.validate();
       v1.invalidate();
-      
+
       TS_ASSERT( is_transparent(v1) == true );
-      TS_ASSERT( is_transparent(v2) == false );      
+      TS_ASSERT( is_transparent(v2) == false );
     }
 
     // Check to ensure that operations still occur even when the
@@ -657,12 +657,12 @@ public:
     }
 
     // Test type traits
-    { 
+    {
       TS_ASSERT( CompoundNumChannels<PixelMask<PixelGray<uint8> > >::value == 2 );
       TS_ASSERT( CompoundNumChannels<PixelMask<PixelRGB<uint8> > >::value == 4 );
       TS_ASSERT( CompoundNumChannels<PixelMask<PixelRGBA<uint8> > >::value == 5 );
       TS_ASSERT( CompoundNumChannels<PixelMask<Vector3> >::value == 4 );
-    } 
+    }
   }
 
 };

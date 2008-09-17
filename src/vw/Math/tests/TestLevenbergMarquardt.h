@@ -3,12 +3,12 @@
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -35,9 +35,9 @@ struct TestLeastSquaresModel : public LeastSquaresModelBase<TestLeastSquaresMode
   typedef Matrix<double> jacobian_type;
 
   TestLeastSquaresModel() {}
-  
-  /// Evaluate h(x) 
-  inline result_type operator()( domain_type const& x ) const { 
+
+  /// Evaluate h(x)
+  inline result_type operator()( domain_type const& x ) const {
 
     // For now make up a function to get started with
     Vector<double> h(5);
@@ -63,16 +63,16 @@ public:
     x(1) = 0.3;
     x(2) = 0.4;
     x(3) = 0.5;
-    
+
     TS_ASSERT_DELTA(model(x)(0), 0.29552, 0.0001);
     TS_ASSERT_DELTA(model(x)(1), 0.992809, 0.0001);
     TS_ASSERT_DELTA(model(x)(2), 0.276318, 0.0001);
     TS_ASSERT_DELTA(model(x)(3), 0.380506, 0.0001);
     TS_ASSERT_DELTA(model(x)(4), 0.927295, 0.0001);
 
-    TS_ASSERT_DELTA(model.jacobian(x)(1,1),-0.0478849,0.0001); 
-    TS_ASSERT_DELTA(model.jacobian(x)(2,2),-0.116826,0.0001); 
-    TS_ASSERT_DELTA(model.jacobian(x)(3,0),1.72414,0.0001); 
+    TS_ASSERT_DELTA(model.jacobian(x)(1,1),-0.0478849,0.0001);
+    TS_ASSERT_DELTA(model.jacobian(x)(2,2),-0.116826,0.0001);
+    TS_ASSERT_DELTA(model.jacobian(x)(3,0),1.72414,0.0001);
    }
 
   void test_levenberg_marquardt()

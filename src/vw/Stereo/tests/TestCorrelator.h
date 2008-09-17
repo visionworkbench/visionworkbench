@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestCorrelator.h
@@ -41,9 +41,9 @@ public:
 //     int kern_height = 10;
 
 //     // Computes the complete sum at every pixel
-//     for (int j = kern_height/2; j < image.rows()-kern_height/2; ++j) 
+//     for (int j = kern_height/2; j < image.rows()-kern_height/2; ++j)
 //       for (int i = kern_width/2; i < image.cols()-kern_width/2; ++i) {
-//         int16 sum = compute_sum(image, BBox2i(i-kern_width/2,j-kern_height/2,kern_width,kern_height)); 
+//         int16 sum = compute_sum(image, BBox2i(i-kern_width/2,j-kern_height/2,kern_width,kern_height));
 //         TS_ASSERT_EQUALS(sum,kern_width*kern_height);
 //       }
 
@@ -58,7 +58,7 @@ public:
 //           need_to_compute_full_sum = false;
 //         } else {
 //           sum = update_sum(image, sum, BBox2i(i-kern_width/2,j-kern_height/2,kern_width,kern_height));
-//         }          
+//         }
 //         TS_ASSERT_EQUALS(sum,kern_width*kern_height);
 //       }
 //     }
@@ -79,11 +79,11 @@ public:
 
     ImageView<PixelDisparity<float> > disparity_map;
     disparity_map = corr(image1,image2);
-    
-    for (int j = 0; j < disparity_map.rows(); ++j) 
-      for (int i = 0; i < disparity_map.cols(); ++i) 
-        std::cout << disparity_map(i,j) << "\n";
-        
+
+    for (int j = 0; j < disparity_map.rows(); ++j)
+      for (int i = 0; i < disparity_map.cols(); ++i)
+        TS_TRACE(stringify(disparity_map(i,j)));
+
   }
 
 

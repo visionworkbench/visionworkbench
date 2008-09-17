@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestBBox.h
@@ -185,7 +185,7 @@ public:
     TS_ASSERT_EQUALS( b5.min()[1], 2 );
     TS_ASSERT_EQUALS( b5.max()[0], 3 );
     TS_ASSERT_EQUALS( b5.max()[1], 7 );
-    
+
     // Crop to bbox
     b4.crop( BBox2(2,0,1,4) );
     TS_ASSERT_EQUALS( b4.min()[0], 2 );
@@ -198,7 +198,7 @@ public:
     TS_ASSERT_EQUALS( b5.min()[1], 2 );
     TS_ASSERT_EQUALS( b5.max()[0], 3 );
     TS_ASSERT_EQUALS( b5.max()[1], 4 );
-    
+
     // Expand
     b4.expand(2);
     TS_ASSERT_EQUALS( b4.min()[0], 0 );
@@ -211,7 +211,7 @@ public:
     TS_ASSERT_EQUALS( b5.min()[1], 0 );
     TS_ASSERT_EQUALS( b5.max()[0], 5 );
     TS_ASSERT_EQUALS( b5.max()[1], 6 );
-    
+
     // Contract
     b4.contract(1);
     TS_ASSERT_EQUALS( b4.min()[0], 1 );
@@ -254,7 +254,7 @@ public:
     TS_ASSERT_EQUALS( b5.contains( BBox2(2,2,4,2) ), false );
     TS_ASSERT_EQUALS( b5.contains( BBoxN(2,2,4,4) ), false );
     TS_ASSERT_EQUALS( b5.contains( b4 ), true );
-    
+
     // Intersects
     TS_ASSERT_EQUALS( b4.intersects( BBox2(2,2,2,2) ), true );
     TS_ASSERT_EQUALS( b4.intersects( BBoxN(0,2,4,2) ), true );
@@ -279,7 +279,7 @@ public:
     b5.min()[0] = b5.max()[0];
     TS_ASSERT_EQUALS( b5.empty(), true );
   }
-  
+
   void test_bbox_math()
   {
     BBox2 b1(1,2,2,2), b2;
@@ -323,7 +323,7 @@ public:
     TS_ASSERT_EQUALS( b3.min()[1], 3 );
     TS_ASSERT_EQUALS( b3.max()[0], 4 );
     TS_ASSERT_EQUALS( b3.max()[1], 7 );
-    
+
     // Left scale
     b2 = 2*b1;
     TS_ASSERT_EQUALS( b2.min()[0], 0 );

@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestFunctors.h
@@ -89,7 +89,7 @@ class TestThread : public CxxTest::TestSuite
 
     void kill() { Thread::sleep_ms(100); terminate = true; }
   };
-      
+
 public:
   void test_thread_and_mutex()
   {
@@ -98,7 +98,7 @@ public:
     boost::shared_ptr<TestTask> task( new TestTask(condition_mutex, index_updated_event) );
     TS_ASSERT_EQUALS( task->value, 0 );
 
-    Thread *thread; 
+    Thread *thread;
 
     {
       Mutex::Lock cond_lock(condition_mutex);
@@ -135,9 +135,9 @@ public:
     boost::shared_ptr<TestThreadIdTask> task1( new TestThreadIdTask() );
     boost::shared_ptr<TestThreadIdTask> task2( new TestThreadIdTask() );
     boost::shared_ptr<TestThreadIdTask> task3( new TestThreadIdTask() );
-    Thread thread1(task1); 
-    Thread thread2(task2); 
-    Thread thread3(task3); 
+    Thread thread1(task1);
+    Thread thread2(task2);
+    Thread thread3(task3);
 
     task1->kill();
     task2->kill();

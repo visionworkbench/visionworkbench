@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestBConvex.h
@@ -60,8 +60,8 @@ public:
   void test_bconvex()
   {
     std::vector<Vector3> v;
-   
-    BConvex c0; 
+
+    BConvex c0;
     TS_ASSERT( c0.empty() );
     c0.grow(Vector3(0, 0, 0));
     TS_ASSERT( !c0.empty() );
@@ -80,7 +80,7 @@ public:
     TS_ASSERT( c1.contains(Vector3(0.5, 0.5, 0.5)) );
     TS_ASSERT( c1.contains(Vector3(0.9, 0.9, 0.5)) );
     TS_ASSERT( !c1.contains(Vector3(0.9, 0.9, 1.5)) );
-    
+
     c1.grow(Vector3(0.5, 0.5, 0.5));
     std::ostringstream os1;
     os1 << c1;
@@ -135,26 +135,26 @@ public:
     TS_ASSERT( !c3.intersects(c1) );
     TS_ASSERT( c2.intersects(c3) );
     TS_ASSERT( c3.intersects(c2) );
-    
+
     BConvex c4(v);
     TS_ASSERT( c3 == c4 );
     TS_ASSERT( !(c3 != c4) );
-    
+
     BConvex c5(c4);
     TS_ASSERT( c3 == c5 );
     TS_ASSERT( !(c3 != c5) );
-    
+
     c5 = c2;
     TS_ASSERT( c2 == c5 );
     TS_ASSERT( !(c2 != c5) );
     c5.grow(Vector3(-5, -5, -5));
     TS_ASSERT( !(c2 == c5) );
     TS_ASSERT( c2 != c5 );
-    
+
     c5.crop(c2);
     TS_ASSERT( c2 == c5 );
     TS_ASSERT( !(c2 != c5) );
-    
+
     c5 = c3;
     TS_ASSERT( !c5.contains(Vector3(0.5, 0.5, 0.5)) );
     TS_ASSERT( !c5.contains(Vector3(0.9, 0.9, 0.5)) );
@@ -163,7 +163,7 @@ public:
     TS_ASSERT( c5.contains(Vector3(0.5, 0.5, 0.5)) );
     TS_ASSERT( c5.contains(Vector3(0.9, 0.9, 0.5)) );
     TS_ASSERT( !c5.contains(Vector3(0.9, 0.9, 1.5)) );
-    
+
     BConvex c6;
     c6.grow(Vector3i(-2, 0, 0));
     c6.grow(Vector3i(-2, 0, 2));

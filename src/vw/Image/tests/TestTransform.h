@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestTransform.h
@@ -43,8 +43,8 @@ public:
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
     TransformView<InterpolationView<EdgeExtensionView<ImageView<double>, ZeroEdgeExtension>, BilinearInterpolation>, TranslateTransform> im2 = transform(im, TranslateTransform(1,1));
 
-//     std::cout << compute_transformed_bbox(im, TranslateTransform(1,1)) << "\n";
-//     std::cout << compute_transformed_bbox_fast(im, TranslateTransform(1,1)) << "\n";
+//     TS_TRACE(stringify(compute_transformed_bbox(im, TranslateTransform(1,1))));
+//     TS_TRACE(stringify(compute_transformed_bbox_fast(im, TranslateTransform(1,1))));
 
   }
 
@@ -67,7 +67,7 @@ public:
     TS_ASSERT_EQUALS( *(im2.origin().advance(-1,-1)), 0 );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) ); 
+    TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) );
     TS_ASSERT( bool_trait<IsFloatingPointIndexable>( transform(im, TranslateTransform(1,1)) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( transform(im, TranslateTransform(1,1)) ) );
   }
@@ -76,9 +76,9 @@ public:
   {
     ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
     ImageView<double> im2;
-    // FIXME This test exhibits a Heisenbug on gc.cs.cmu.edu when used 
+    // FIXME This test exhibits a Heisenbug on gc.cs.cmu.edu when used
     // with the default BilinearInterpolation (Red Hat gcc 4.0.2-8).
-    // Attempts at replicating the bug in other contexts fail, so we 
+    // Attempts at replicating the bug in other contexts fail, so we
     // just work around it here for the moment.
     im2 = translate(im,1.0,1.0,ZeroEdgeExtension(),NearestPixelInterpolation());
     TS_ASSERT_EQUALS( im2.cols(), 2 );
@@ -98,9 +98,8 @@ public:
   void print_image(ImageT & image) {
     for (int i = 0; i < image.cols(); i++) {
       for (int j = 0; j < image.rows(); j++) {
-        std::cout << image(i,j) << "  ";
+        TS_TRACE(stringify(image(i,j)))
       }
-      std::cout << "\n";
     }
   }
 
@@ -122,7 +121,7 @@ public:
     TS_ASSERT_EQUALS( *(im2.origin().advance(-1,-1)), 1 );
 
     // Test the traits
-    TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) ); 
+    TS_ASSERT( bool_trait<IsFloatingPointIndexable>( im2 ) );
     TS_ASSERT( bool_trait<IsFloatingPointIndexable>( transform(im, ResampleTransform(1,1)) ) );
     TS_ASSERT( !bool_trait<IsMultiplyAccessible>( transform(im, ResampleTransform(1,1)) ) );
   }

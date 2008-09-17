@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestLinearPushbroomModel.h
@@ -37,7 +37,6 @@ public:
 
   void test_get_point_derivatives()
   {
-    std::cout << std::endl;
     CAHVORModel cahvor;
     /*
     cahvor.C = Vector3(0,0,-10);
@@ -127,24 +126,24 @@ public:
     TS_ASSERT_DELTA( hess_v(1,2), refhyz[1], 0.01 );
     TS_ASSERT_DELTA( hess_v(2,2), refhzz[1], 0.01 );
     /*
-    std::cout << "ref=" << ref << std::endl;
-    std::cout << "u=" << u << " v=" << v << std::endl;
-    std::cout << "grad_u=" << grad_u << std::endl;
-    std::cout << "grad_v=" << grad_v << std::endl;
-    std::cout << "hess_u=" << hess_u << std::endl;
-    std::cout << "hess_v=" << hess_v << std::endl;
-    std::cout << "ddx=" << refgx << std::endl;
-    std::cout << "ddy=" << refgy << std::endl;
-    std::cout << "ddz=" << refgz << std::endl;
-    std::cout << "d2dx2=" << refhxx << std::endl;
-    std::cout << "d2dxdy=" << refhxy << std::endl;
-    std::cout << "d2dxdz=" << refhxz << std::endl;
-    std::cout << "d2dydx=" << refhyx << std::endl;
-    std::cout << "d2dy2=" << refhyy << std::endl;
-    std::cout << "d2dydz=" << refhyz << std::endl;
-    std::cout << "d2dzdx=" << refhzx << std::endl;
-    std::cout << "d2dzdy=" << refhzy << std::endl;
-    std::cout << "d2dz2=" << refhzz << std::endl;
+    TS_TRACE(stringify("ref=")    + stringify(ref));
+    TS_TRACE(stringify("u=")      + stringify(u));
+    TS_TRACE(stringify("grad_u=") + stringify(grad_u));
+    TS_TRACE(stringify("grad_v=") + stringify(grad_v));
+    TS_TRACE(stringify("hess_u=") + stringify(hess_u));
+    TS_TRACE(stringify("hess_v=") + stringify(hess_v));
+    TS_TRACE(stringify("ddx=")    + stringify(refgx));
+    TS_TRACE(stringify("ddy=")    + stringify(refgy));
+    TS_TRACE(stringify("ddz=")    + stringify(refgz));
+    TS_TRACE(stringify("d2dx2=")  + stringify(refhxx));
+    TS_TRACE(stringify("d2dxdy=") + stringify(refhxy));
+    TS_TRACE(stringify("d2dxdz=") + stringify(refhxz));
+    TS_TRACE(stringify("d2dydx=") + stringify(refhyx));
+    TS_TRACE(stringify("d2dy2=")  + stringify(refhyy));
+    TS_TRACE(stringify("d2dydz=") + stringify(refhyz));
+    TS_TRACE(stringify("d2dzdx=") + stringify(refhzx));
+    TS_TRACE(stringify("d2dzdy=") + stringify(refhzy));
+    TS_TRACE(stringify("d2dz2=")  + stringify(refhzz));
     */
   }
 };

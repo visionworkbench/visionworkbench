@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestImageMath.h
@@ -38,8 +38,8 @@ class TestImageMath : public CxxTest::TestSuite
   void init() {
     gpu_init();
   }
- 
-  
+
+
 #define TEST_UNARY_MATH_FUNCTION(func,arg,result)                       \
 	{								\
 	gpu_init();						        \
@@ -52,7 +52,7 @@ class TestImageMath : public CxxTest::TestSuite
         TS_ASSERT_DELTA(im_pixel.g(), result, 0.00025);			\
         TS_ASSERT_DELTA(im_pixel.b(), result, 0.00025);			\
         TS_ASSERT_DELTA(im_pixel.a(), result, 0.00025);			\
-	}				
+	}
 
 
 #define TEST_BINARY_MATH_FUNCTION(func,arg1,arg2,result)                \
@@ -71,7 +71,7 @@ class TestImageMath : public CxxTest::TestSuite
     TS_ASSERT_DELTA(im_pixel.r(), result, 0.00025);			\
   }
 
-  void test_acos() { TEST_UNARY_MATH_FUNCTION(acos,0.5,1.0472); } 
+  void test_acos() { TEST_UNARY_MATH_FUNCTION(acos,0.5,1.0472); }
   void test_asin() { TEST_UNARY_MATH_FUNCTION(asin,0.5,0.523599); }
   void test_atan() { TEST_UNARY_MATH_FUNCTION(atan,1.0,0.785398); }
   void test_cos() { TEST_UNARY_MATH_FUNCTION(cos,1.0,0.540302); }
@@ -82,7 +82,7 @@ class TestImageMath : public CxxTest::TestSuite
   void test_tanh() { TEST_UNARY_MATH_FUNCTION(tanh,1.0,0.761594); }
   void test_exp() { TEST_UNARY_MATH_FUNCTION(exp,1.0,2.718281); }
   void test_log() { TEST_UNARY_MATH_FUNCTION(log,2.0,0.693147); }
-  void test_log10() { TEST_UNARY_MATH_FUNCTION(log10,2.0,0.30103); } 
+  void test_log10() { TEST_UNARY_MATH_FUNCTION(log10,2.0,0.30103); }
   void test_sqrt() { TEST_UNARY_MATH_FUNCTION(sqrt,2.0,1.41421); }
   void test_ceil() { TEST_UNARY_MATH_FUNCTION(ceil,1.5,2.0);
                      TEST_UNARY_MATH_FUNCTION(ceil,-1.5,-1.0); }
@@ -92,7 +92,7 @@ class TestImageMath : public CxxTest::TestSuite
   void test_atan2_neg_x() { TEST_BINARY_MATH_FUNCTION(atan2,-2.0,-1.0,-2.03444); }
   void test_atan2_zero_x() { TEST_BINARY_MATH_FUNCTION(atan2, -1.0,0.0,-1.57080); }
   void test_pow() { TEST_BINARY_MATH_FUNCTION(pow,3.0,2.0,9.0); }
- 
+
 #ifndef WIN32
   void test_acosh() { TEST_UNARY_MATH_FUNCTION(acosh,1.5,0.962424); }
   void test_asinh() { TEST_UNARY_MATH_FUNCTION(asinh,1.0,0.881374); }
@@ -111,7 +111,7 @@ class TestImageMath : public CxxTest::TestSuite
   TEST_UNARY_MATH_FUNCTION(round,1.5,2.0); }
   void test_trunc() { TEST_UNARY_MATH_FUNCTION(trunc,1.5,1.0);
   TEST_UNARY_MATH_FUNCTION(trunc,-1.5,-1.0); }
-					  
+
 #if(0)
   //void test_erf() { TEST_UNARY_MATH_FUNCTION(erf,1.0,0.842701); }
   //void test_erfc() { TEST_UNARY_MATH_FUNCTION(erfc,1.0,0.157299); }
@@ -126,7 +126,7 @@ class TestImageMath : public CxxTest::TestSuite
   void test_operator_subtract() { TEST_BINARY_MATH_FUNCTION(operator-,5.0,3.0,2.0); }
   void test_operator_multiply() { TEST_BINARY_MATH_FUNCTION(operator*,3.0,4.0,12.0); }
   void test_operator_divide() { TEST_BINARY_MATH_FUNCTION(operator/,6.0,3.0,2.0); }
-  
+
 
 
 }; // class TestImageMath

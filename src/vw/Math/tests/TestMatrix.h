@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestMatrix.h
@@ -57,7 +57,7 @@ public:
     TS_ASSERT_EQUALS(m2[0][1],2);
     TS_ASSERT_EQUALS(m2[1][0],3);
     TS_ASSERT_EQUALS(m2[1][1],4);
-    
+
     // Copy constructor
     Matrix<float,2,2> m3(m2);
     TS_ASSERT_EQUALS(m3.rows(),2);
@@ -75,7 +75,7 @@ public:
     TS_ASSERT_EQUALS(m4(0,1),2);
     TS_ASSERT_EQUALS(m4(1,0),3);
     TS_ASSERT_EQUALS(m4(1,1),4);
-    
+
     // set_size()
     TS_ASSERT_THROWS(m1.set_size(3,3), ArgumentErr);
     TS_ASSERT_THROWS_NOTHING(m1.set_size(2,3));
@@ -126,7 +126,7 @@ public:
     TS_ASSERT_EQUALS(m2[0][1],2);
     TS_ASSERT_EQUALS(m2[1][0],3);
     TS_ASSERT_EQUALS(m2[1][1],4);
-    
+
     // Copy constructor
     Matrix<float> m3(m2);
     TS_ASSERT_EQUALS(m3.rows(),2);
@@ -145,7 +145,7 @@ public:
     TS_ASSERT_THROWS_NOTHING(m2.set_size(2,2));
     TS_ASSERT_EQUALS(m2.rows(),2);
     TS_ASSERT_EQUALS(m2.cols(),2);
-    
+
      // set_identity()
     TS_ASSERT_THROWS_NOTHING(m2.set_identity());
     TS_ASSERT_EQUALS(m2.rows(),2);

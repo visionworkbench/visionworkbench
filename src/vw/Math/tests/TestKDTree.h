@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 
@@ -47,8 +47,8 @@ class TestKDTree : public CxxTest::TestSuite
       recordC.push_back(10);
       recordC.push_back(12);
       recordC.push_back(5);
-    
-    
+
+
       DiscriminatorCompare<std::vector<int> > comparator(recordA, 0);
       //test unary operator() input[disc] < pivot[disc]
       TS_ASSERT(comparator(recordB));
@@ -69,7 +69,7 @@ class TestKDTree : public CxxTest::TestSuite
 
     std::vector< std::vector<int> > file(6);
     typedef std::vector< std::vector<int> >::iterator file_iter_t;
- 
+
     file[0].push_back(1);
     file[0].push_back(2);
     file[0].push_back(3);
@@ -105,7 +105,7 @@ class TestKDTree : public CxxTest::TestSuite
     for(file_iter_t iter = file.begin(); iter != partition_position; ++iter){
       TS_ASSERT( (*iter)[disc] < (*partition_position)[disc] );
     }
-    
+
     for(file_iter_t iter = partition_position; iter !=file.end(); ++iter){
       TS_ASSERT( (*iter)[disc] >= (*partition_position)[disc] );
     }
@@ -118,11 +118,11 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT_EQUALS(partition[0], 7);
     TS_ASSERT_EQUALS(partition[1], 10);
     TS_ASSERT_EQUALS(partition[2], -1);
-    
+
     for(file_iter_t iter = file.begin(); iter != partition_position; ++iter){
       TS_ASSERT( (*iter)[disc] < (*partition_position)[disc] );
     }
-    
+
     for(file_iter_t iter = partition_position; iter !=file.end(); ++iter){
       TS_ASSERT( (*iter)[disc] >= (*partition_position)[disc] );
     }
@@ -137,12 +137,12 @@ class TestKDTree : public CxxTest::TestSuite
     for(file_iter_t iter = file.begin(); iter != partition_position; ++iter){
       TS_ASSERT( (*iter)[disc] < (*partition_position)[disc] );
     }
-    
+
     for(file_iter_t iter = partition_position; iter !=file.end(); ++iter){
       TS_ASSERT( (*iter)[disc] >= (*partition_position)[disc] );
     }
 
-    
+
   }
 
   void test_rand_partitioner(){
@@ -152,7 +152,7 @@ class TestKDTree : public CxxTest::TestSuite
     //side satisfy hi_record[disc] >= partition[disc]
     std::vector< std::vector<double> > file(8);
     typedef std::vector<std::vector<double> >::iterator file_iter_t;
-    
+
     file[0].push_back(0.1);
     file[0].push_back(2.2);
     file[0].push_back(10);
@@ -196,12 +196,12 @@ class TestKDTree : public CxxTest::TestSuite
       TS_ASSERT( (*iter)[disc] >= (*partition)[disc] );
     }
 
-    
+
   }
 
   void test_variance_disc_selector(){
     std::vector< std::vector<double> > fileA(8);
-    
+
     fileA[0].push_back(0.1);
     fileA[0].push_back(2.2);
     fileA[0].push_back(10);
@@ -240,7 +240,7 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT_EQUALS(int(dimension_of_max_variance), 2);
 
     std::vector< std::vector<double> > fileB(3);
-    
+
     fileB[0].push_back(0.1);
     fileB[0].push_back(222.2);
     fileB[0].push_back(10);
@@ -249,13 +249,13 @@ class TestKDTree : public CxxTest::TestSuite
     fileB[1].push_back(0.2);
     fileB[1].push_back(-235.8);
     fileB[1].push_back(-10);
-    fileB[1].push_back(10);    
+    fileB[1].push_back(10);
 
-    
+
     fileB[2].push_back(-0.1);
     fileB[2].push_back(155.4);
     fileB[2].push_back(9);
-    fileB[2].push_back(10);    
+    fileB[2].push_back(10);
 
 
     dimension_of_max_variance = vds(fileB.begin(), fileB.end(), 22);
@@ -266,7 +266,7 @@ class TestKDTree : public CxxTest::TestSuite
     ModuloDiscSelector mds(4);
 
     std::vector< std::vector<double> > file(2);
-    
+
     file[0].push_back(0.1);
     file[0].push_back(222.2);
     file[0].push_back(10);
@@ -288,7 +288,7 @@ class TestKDTree : public CxxTest::TestSuite
     MaxDiffDiscSelector mdds;
 
     std::vector< std::vector<double> > fileB(3);
-    
+
     fileB[0].push_back(0.1);
     fileB[0].push_back(222.2);
     fileB[0].push_back(10);
@@ -297,13 +297,13 @@ class TestKDTree : public CxxTest::TestSuite
     fileB[1].push_back(0.2);
     fileB[1].push_back(-235.8);
     fileB[1].push_back(-10);
-    fileB[1].push_back(10);    
+    fileB[1].push_back(10);
 
-    
+
     fileB[2].push_back(-0.1);
     fileB[2].push_back(155.4);
     fileB[2].push_back(9);
-    fileB[2].push_back(10);    
+    fileB[2].push_back(10);
 
     TS_ASSERT_EQUALS(int(mdds(fileB.begin(), fileB.end(), 7)), 1);
   }
@@ -314,7 +314,7 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT_EQUALS(int(kd.size()), 0);
 
     //insert
-    std::vector<int> new_record;    
+    std::vector<int> new_record;
 
     new_record.push_back(4);
     new_record.push_back(5);
@@ -327,10 +327,10 @@ class TestKDTree : public CxxTest::TestSuite
   }
 
   void test_constructor_default_functors(){
-    
+
     std::vector< std::vector<int> > file(6);
     typedef std::vector< std::vector<int> > file_t;
- 
+
     file[0].push_back(1);
     file[0].push_back(2);
     file[0].push_back(3);
@@ -369,10 +369,10 @@ class TestKDTree : public CxxTest::TestSuite
   }
 
   void test_search(){
-        
+
     typedef std::vector< std::vector<double> > file_t;
     file_t file(6);
- 
+
     file[0].push_back(1.0);
     file[0].push_back(2.2);
     file[0].push_back(3.3);
@@ -408,7 +408,7 @@ class TestKDTree : public CxxTest::TestSuite
     queryA.push_back(-0.5);
     queryA.push_back(-0.5);
     queryA.push_back(-0.5);
-  
+
     queryB.push_back(-50);
     queryB.push_back(50);
     queryB.push_back(10);
@@ -425,24 +425,26 @@ class TestKDTree : public CxxTest::TestSuite
     int num_records;
 
     ////////////////////////////////////////////////////////////////////////////////
-    //    std::cout<<"Search in tree A.\n";
+    //    TS_TRACE("Search in tree A.");
 
-    //    std::cout<<"Find 4 nearest to query "<<"\n"; print_record(queryB.begin(), queryB.end()); std::cout<<"\n";
+    //    TS_TRACE("Find 4 nearest to query ");
+    //    print_record(queryB.begin(), queryB.end());
     num_records = kd_A.m_nearest_neighbors(queryB, nearest_records, 4);
     TS_ASSERT_EQUALS(num_records, 4);
-    
+
     //    print_file(nearest_records.begin(), nearest_records.end());
 
     TS_ASSERT_EQUALS(nearest_records[0][0], -22);
     TS_ASSERT_EQUALS(nearest_records[0][1], 18);
     TS_ASSERT_EQUALS(nearest_records[0][2], 9);
 
-    //std::cout<<"Size of kd_A: " << kd_A.size() <<"\n";
+    //TS_TRACE(stringify("Size of kd_A: ") + stringify(kd_A.size()));
     TS_ASSERT_EQUALS(nearest_records[1][0], 8); //err
     TS_ASSERT_EQUALS(nearest_records[1][1], 18);//err
     TS_ASSERT_EQUALS(nearest_records[1][2], 0); //err
 
-    //std::cout<<"Find 2 nearest to query "<<"\n"; print_record(queryA.begin(), queryA.end()); std::cout<<"\n";
+    //TS_TRACE("Find 2 nearest to query ")
+    //print_record(queryA.begin(), queryA.end());
     num_records = kd_A.m_nearest_neighbors(queryA, nearest_records, 2);
     TS_ASSERT_EQUALS(num_records, 2);
     TS_ASSERT_EQUALS(nearest_records[0][0], 0);
@@ -455,7 +457,8 @@ class TestKDTree : public CxxTest::TestSuite
 
     //searching for more records than are in the tree should return the
     //size of the tree
-    //std::cout<<"Find 14 nearest to query "<<"\n"; print_record(queryA.begin(), queryA.end()); std::cout<<"\n";
+    //TS_TRACE("Find 14 nearest to query);
+    //print_record(queryA.begin(), queryA.end());
     num_records = kd_A.m_nearest_neighbors(queryA, nearest_records, 14);
     TS_ASSERT_EQUALS(num_records, 6);
     TS_ASSERT_EQUALS(nearest_records[0][0], 0);
@@ -466,7 +469,8 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT_EQUALS(nearest_records[1][1], -2);
     TS_ASSERT_EQUALS(nearest_records[1][2], -2);
 
-    //std::cout<<"Find 1 nearest to query "<<"\n"; print_record(queryC.begin(), queryC.end()); std::cout<<"\n";
+    //TS_TRACE("Find 1 nearest to query");
+    //print_record(queryC.begin(), queryC.end());
     num_records = kd_A.m_nearest_neighbors(queryC, nearest_records);
     TS_ASSERT_EQUALS(num_records, 1);
     TS_ASSERT_EQUALS(nearest_records[0][0], -2);
@@ -474,9 +478,10 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT_EQUALS(nearest_records[0][2], -2);
 
     /////////////////////////////////////////////////////////////////////////
-    //std::cout<<"Search in tree B.\n";
+    //TS_TRACE("Search in tree B.");
 
-    //std::cout<<"Find 2 nearest to query "<<"\n"; print_record(queryA.begin(), queryA.end()); std::cout<<"\n";
+    //TS_TRACE("Find 2 nearest to query")
+    //print_record(queryA.begin(), queryA.end());
     num_records = kd_B.m_nearest_neighbors(queryA, nearest_records, 2);
     TS_ASSERT_EQUALS(num_records, 2);
     TS_ASSERT_EQUALS(nearest_records[0][0], 0);
@@ -490,7 +495,8 @@ class TestKDTree : public CxxTest::TestSuite
     //searching for more records than are in the tree should return the
     //size of the tree
 
-    //std::cout<<"Find 14 nearest to query "<<"\n"; print_record(queryA.begin(), queryA.end()); std::cout<<"\n";
+    //TS_TRACE("Find 14 nearest to query");
+    //print_record(queryA.begin(), queryA.end());
     num_records = kd_B.m_nearest_neighbors(queryA, nearest_records, 14);
     TS_ASSERT_EQUALS(num_records, 6);
     TS_ASSERT_EQUALS(nearest_records[0][0], 0);
@@ -500,8 +506,9 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT_EQUALS(nearest_records[1][0], -2);
     TS_ASSERT_EQUALS(nearest_records[1][1], -2);
     TS_ASSERT_EQUALS(nearest_records[1][2], -2);
-    
-    //std::cout<<"Find 3 nearest to query "<<"\n"; print_record(queryB.begin(), queryB.end()); std::cout<<"\n";
+
+    //TS_TRACE("Find 3 nearest to query");
+    //print_record(queryB.begin(), queryB.end());
     num_records = kd_B.m_nearest_neighbors(queryB, nearest_records, 3);
     TS_ASSERT_EQUALS(num_records, 3);
     TS_ASSERT_EQUALS(nearest_records[0][0], -22);
@@ -512,7 +519,8 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT_EQUALS(nearest_records[1][1], 18); //err
     TS_ASSERT_EQUALS(nearest_records[1][2], 0); //err
 
-    //std::cout<<"Find 1 nearest to query "<<"\n"; print_record(queryC.begin(), queryC.end()); std::cout<<"\n";
+    //TS_TRACE("Find 1 nearest to query");
+    //print_record(queryC.begin(), queryC.end());
     num_records = kd_B.m_nearest_neighbors(queryC, nearest_records);
     TS_ASSERT_EQUALS(num_records, 1);
     TS_ASSERT_EQUALS(nearest_records[0][0], -2);
@@ -522,7 +530,7 @@ class TestKDTree : public CxxTest::TestSuite
 
 
     /////////////////////////////////////////////////////////////////////////
-    //std::cout<<"Search in tree C.\n";
+    //TS_TRACE("Search in tree C.");
 
     num_records = kd_C.m_nearest_neighbors(queryA, nearest_records, 2);
     TS_ASSERT_EQUALS(num_records, 2);
@@ -545,7 +553,7 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT_EQUALS(nearest_records[1][0], -2);
     TS_ASSERT_EQUALS(nearest_records[1][1], -2);
     TS_ASSERT_EQUALS(nearest_records[1][2], -2);
-    
+
     num_records = kd_C.m_nearest_neighbors(queryB, nearest_records, 3);
     TS_ASSERT_EQUALS(num_records, 3);
     TS_ASSERT_EQUALS(nearest_records[0][0], -22);
@@ -564,7 +572,7 @@ class TestKDTree : public CxxTest::TestSuite
 
 
     /////////////////////////////////////////////////////////////////////
-    //std::cout<<"Search in tree D.\n";
+    //TS_TRACE("Search in tree D.");
 
     num_records = kd_D.m_nearest_neighbors(queryA, nearest_records, 2);
     TS_ASSERT_EQUALS(num_records, 2);
@@ -587,7 +595,7 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT_EQUALS(nearest_records[1][0], -2);
     TS_ASSERT_EQUALS(nearest_records[1][1], -2);
     TS_ASSERT_EQUALS(nearest_records[1][2], -2);
-    
+
     num_records = kd_D.m_nearest_neighbors(queryB, nearest_records, 3);
     TS_ASSERT_EQUALS(num_records, 3);
     TS_ASSERT_EQUALS(nearest_records[0][0], -22);
@@ -606,7 +614,7 @@ class TestKDTree : public CxxTest::TestSuite
 
 
     ////////////////////////////////////////////////////////////////////
-    //std::cout<<"Search in tree E.\n";
+    //TS_TRACE("Search in tree E.");
 
     num_records = kd_E.m_nearest_neighbors(queryA, nearest_records, 2);
     TS_ASSERT_EQUALS(num_records, 2);
@@ -629,7 +637,7 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT_EQUALS(nearest_records[1][0], -2);
     TS_ASSERT_EQUALS(nearest_records[1][1], -2);
     TS_ASSERT_EQUALS(nearest_records[1][2], -2);
-    
+
     num_records = kd_E.m_nearest_neighbors(queryB, nearest_records, 3);
     TS_ASSERT_EQUALS(num_records, 3);
     TS_ASSERT_EQUALS(nearest_records[0][0], -22);
@@ -648,11 +656,11 @@ class TestKDTree : public CxxTest::TestSuite
   }
 
   void test_searches_after_inserts(){
-    
+
     typedef std::vector<double> record_t;
     std::vector<record_t> file(9);
     typedef std::vector< record_t > file_t;
- 
+
     file[0].push_back(0);
     file[0].push_back(0);
 
@@ -706,9 +714,9 @@ class TestKDTree : public CxxTest::TestSuite
 
     queryD.push_back(2000);
     queryD.push_back(2000);
-    
 
-    
+
+
     std::vector<record_t> nearest_records;
     int num_records;
 
@@ -748,7 +756,7 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT_EQUALS(kd_A.max_depth(), 2);
     TS_ASSERT_EQUALS(nearest_records[0][0], recordB[0]);
     TS_ASSERT_EQUALS(nearest_records[0][1], recordB[1]);
-    
+
     //////////////////////   kd_B   /////////////////////////////////////
 
     num_records = kd_B.m_nearest_neighbors(queryC, nearest_records, 1);
@@ -769,7 +777,7 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT_EQUALS(nearest_records[0][0], recordA[0]);
     TS_ASSERT_EQUALS(nearest_records[0][1], recordA[1]);
 
-   
+
     //////////////////////   kd_C   /////////////////////////////////////
 
     num_records = kd_C.m_nearest_neighbors(queryC, nearest_records, 1);
@@ -790,7 +798,7 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT_EQUALS(nearest_records[0][0], recordA[0]);
     TS_ASSERT_EQUALS(nearest_records[0][1], recordA[1]);
 
-   
+
     //////////////////////   kd_D   /////////////////////////////////////
 
     num_records = kd_D.m_nearest_neighbors(queryC, nearest_records, 1);
@@ -811,7 +819,7 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT_EQUALS(nearest_records[0][0], recordA[0]);
     TS_ASSERT_EQUALS(nearest_records[0][1], recordA[1]);
 
-   
+
     //////////////////////   kd_E   /////////////////////////////////////
 
     num_records = kd_E.m_nearest_neighbors(queryC, nearest_records, 1);
@@ -832,7 +840,7 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT_EQUALS(nearest_records[0][0], recordA[0]);
     TS_ASSERT_EQUALS(nearest_records[0][1], recordA[1]);
 
-       
+
     //////////////////////   kd_F   /////////////////////////////////////
 
     num_records = kd_F.m_nearest_neighbors(queryC, nearest_records, 1);
@@ -876,7 +884,7 @@ class TestKDTree : public CxxTest::TestSuite
 
     recordC.push_back(0);
     recordC.push_back(0);
-    
+
 
     //Record A is in the range specified
     TS_ASSERT(regionRecordConstraintKD(recordA));
@@ -907,7 +915,7 @@ class TestKDTree : public CxxTest::TestSuite
     TS_ASSERT(regionRecordConstraintKD.domains_overlap(recordD, highRange));
     //Input region entirely within constraint region
     TS_ASSERT(regionRecordConstraintKD.domains_overlap(recordA, recordA));
-    
+
     //Constraint region entirely within input region:
     RegionRecordConstraintKD<range_t> anotherRegionRecordConstraintKD(recordC, recordA);
     TS_ASSERT(anotherRegionRecordConstraintKD.domains_overlap(recordD, highRange));
@@ -919,7 +927,7 @@ class TestKDTree : public CxxTest::TestSuite
   void test_safe_euclidean_distance_metric(){
     TS_WARN("Need to test safe euclidean distance metric");
   }
-  
+
   void test_constrained_search(){
     typedef std::vector<double> range_t;
     double infinity = ScalarTypeLimits<double>::highest();
@@ -935,25 +943,25 @@ class TestKDTree : public CxxTest::TestSuite
     //Build A KD tree
      std::vector< range_t > file(6);
     typedef std::vector< range_t > file_t;
- 
+
     file[0].push_back(1.0);
     file[0].push_back(2.2);
-   
+
     file[1].push_back(7);
     file[1].push_back(10);
-   
+
     file[2].push_back(8);
     file[2].push_back(18);
-   
+
     file[3].push_back(-22);
     file[3].push_back(18);
-   
+
     file[4].push_back(0);
     file[4].push_back(0);
-   
+
     file[5].push_back(-2);
     file[5].push_back(-2);
-   
+
     KDTree<file_t> kd(2, file);
 
     //Some queries
@@ -970,10 +978,10 @@ class TestKDTree : public CxxTest::TestSuite
     queryC.push_back(19);
 
     //Perform some constrained searches
-    
+
     std::vector<range_t> nearest_records;
     int num_records;
-    
+
     //Find nearest record, excluding those outside the search region:
     num_records = kd.m_nearest_neighbors(queryA, nearest_records, 1, regionRecordConstraintKD, SafeEuclideanDistanceMetric());
     TS_ASSERT_EQUALS( nearest_records[0][0], 0);

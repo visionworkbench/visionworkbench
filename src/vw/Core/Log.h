@@ -57,6 +57,9 @@
 #include <ostream>
 #include <fstream>
 
+// For stringify
+#include <sstream>
+
 namespace vw {
 
   // ----------------------------------------------------------------
@@ -322,6 +325,15 @@ namespace vw {
   };
 
   /// \endcond
+
+  template<typename T>
+  inline std::string stringify(const T& x)
+  {
+    std::ostringstream o;
+    if (!(o << x))
+      return std::string("[failed to stringify ") + typeid(x).name() + "]";
+    return o.str();
+  }
 
   class LogRuleSet {
     // The ruleset determines what log messages are sent to the VW system log file

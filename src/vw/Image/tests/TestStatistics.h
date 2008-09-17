@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // Image/tests/TestStatistics.h
@@ -405,7 +405,7 @@ public:
     TS_ASSERT_DELTA( rgb.g(), 0.6, 1e-6 );
     TS_ASSERT_DELTA( rgb.b(), 1.4, 1e-6 );
     TS_ASSERT( is_of_type<PixelRGB<double> >( weighted_mean_pixel_value(imrgbafa) ) );
-    // These next two are confusing because the function assumes 
+    // These next two are confusing because the function assumes
     // pre-multiplied images so the test images are technically invalid
     rgb = weighted_mean_pixel_value(imrgba8b);
     TS_ASSERT_DELTA( rgb.r(), 44, 1e-6 );

@@ -8,13 +8,13 @@
 #include <vw/GPU.h>
 
 using namespace std;
-using namespace vw;  
+using namespace vw;
 using namespace GPU;
 
 inline void Nothing() { }
 
 //#undef VW_HAVE_PKG_CG
-  
+
 //#################################################################################################################
 //                                 Free Functions: PrintProfileResult & PrintProfileHeader
 //#################################################################################################################
@@ -30,7 +30,7 @@ inline void Nothing() { }
   static int format_factor_int_digits = 6;
 
 
-static void PrintProfileResult(const char* name, float time_cpu, 
+static void PrintProfileResult(const char* name, float time_cpu,
 			       float time_gpu1_cg, float time_gpu2_cg, ShaderCompilationStatusEnum comp_status_cg,
 			       float time_gpu1_glsl, float time_gpu2_glsl, ShaderCompilationStatusEnum comp_status_glsl,
 			       float dif_cg, float dif_glsl) {
@@ -169,8 +169,8 @@ static void PrintProfileHeader() {
   cout.precision(format_time_precision);
   cout.width(format_time_precision + format_time_int_digits + format_column_space); cout << "Comp";;
 
-  cout << endl;   
-} 
+  cout << endl;
+}
 
 #ifdef VW_HAVE_PKG_CG
 static bool have_pkg_cg = true;
@@ -182,7 +182,7 @@ static bool have_pkg_cg = false;
 //                                               Macro: PROFILE_FUNCTION
 //#################################################################################################################
 
- 
+
 #define PROFILE_FUNCTION(GPU, CPU, TEXT) {  \
  UtilityTimer timer; \
  float time_cpu=0, time_gpu1_cg=0, time_gpu2_cg=0, time_gpu1_glsl=0, time_gpu2_glsl=0, dif_cg =0, dif_glsl = 0;  \
@@ -215,16 +215,16 @@ static bool have_pkg_cg = false;
  PrintProfileResult(TEXT, time_cpu, time_gpu1_cg, time_gpu2_cg, comp_status_cg, \
 		    time_gpu1_glsl, time_gpu2_glsl, comp_status_glsl, dif_cg, dif_glsl); \
 }
- 
+
 
 //#################################################################################################################
 //                                              Custom Shader Definitions
 //#################################################################################################################
 
 GENERIC_FRAGMENT_SHADER_FUNCTION_1i3f(expression1, f1, f2, f3, "User/expression1-1i3f")
-     
+
 GENERIC_FRAGMENT_SHADER_FUNCTION_1i2f(transform_sine_wave, period, amplitude, "User/transform-sine-1i2f")
-  
+
 //#################################################################################################################
 //                                            Profile Function
 //#################################################################################################################
@@ -235,39 +235,39 @@ GENERIC_FRAGMENT_SHADER_FUNCTION_1i2f(transform_sine_wave, period, amplitude, "U
   typedef typename TexTraitsForPixelT<PixelT>::imageview_t PixelT_CPU;
   //PixelT pixel_gpu;
   PixelT_CPU pixel_cpu;
-  
+
   GPUImage<PixelT> tex;
   read_image(tex, "tests/test_images/lighthouse-1000x1000.png");
   ImageView<PixelT_CPU> img;
   read_image(img, "tests/test_images/lighthouse-1000x1000.png");
   ImageView<PixelT_CPU> img_out(img.cols(), img.rows());
-  
+
   printf("--- Image Size = %i x %i ---\n", img.cols(), img.rows());
-  
+
   GPUImage<PixelT> result_tex(img.cols(), img.rows());
   ImageView<PixelT_CPU>  result_img(img.cols(), img.rows());
   ImageView<PixelT_CPU> working_img;
-  
+
   PrintProfileHeader();
   // ImageAlgorithms
   ImageView<PixelRGB<float> > img2(1, 1);
   img2(1, 1) = PixelRGB<float>(1, 1, 1);
   img2 = acos(img2);
   PROFILE_FUNCTION(result_tex = acos(tex), result_img = acos(img), "acos(img)");
-  
+
 
   printf(" *** ImageAlgorithms:\n");
-  
+
   PROFILE_FUNCTION(result_tex = copy(tex), result_img = copy(img), "copy(img)");
   PROFILE_FUNCTION(result_tex = clamp(tex, 0.4, 0.6), result_img = clamp(img, 0.4, 0.6), "clamp(img, 0.4, 0.6)");
   PROFILE_FUNCTION(result_tex = threshold(tex, 0.5, 0, 1), result_img = threshold(img, 0.5, 0, 1), "threshold(img, 0.5, 0, 1)");
   PROFILE_FUNCTION(result_tex = normalize(tex, 0, 1), result_img = normalize(img, 0, 1), "normalize(img, 0, 1)");
   PROFILE_FUNCTION(fill(result_tex, 1, 0, 0, 1), fill(result_img, pixel_cpu), "fill(img, 1, 0, 0, 1)");
-// ImageMath 
+// ImageMath
   printf(" *** ImageMath:\n");
   //PROFILE_FUNCTION(result_tex = abs(tex), result_img = abs(img), "abs(img)");
   PROFILE_FUNCTION(result_tex = acos(tex), result_img = acos(img), "acos(img)");
-    PROFILE_FUNCTION(result_tex = acosh(tex), result_img = acosh(img), "acosh(img)"); 
+    PROFILE_FUNCTION(result_tex = acosh(tex), result_img = acosh(img), "acosh(img)");
     PROFILE_FUNCTION(result_tex = asin(tex), result_img = asin(img), "asin(img)");
     PROFILE_FUNCTION(result_tex = asinh(tex), result_img = asinh(img), "asinh(img)");
     PROFILE_FUNCTION(result_tex = atan(tex), result_img = atan(img), "atan(img)");
@@ -311,7 +311,7 @@ GENERIC_FRAGMENT_SHADER_FUNCTION_1i2f(transform_sine_wave, period, amplitude, "U
     PROFILE_FUNCTION(result_tex = pow(2.0, tex),result_img = pow(2.0, img), "pow(2.0, img)");
     PROFILE_FUNCTION(result_tex = pow(tex, tex),result_img = pow(img, img), "pow(img, img)");
 
- // ImageOperators 
+ // ImageOperators
     printf(" *** ImageOperators:\n");
     //PROFILE_FUNCTION(result_tex = tex + 0.1, result_img = img + pixel_cpu, "img + PixelT(0.5 ...)");
     //PROFILE_FUNCTION(result_tex = tex - 0.1, result_img = img - pixel_cpu, "img - PixelT(0.5 ...)");
@@ -330,10 +330,10 @@ GENERIC_FRAGMENT_SHADER_FUNCTION_1i2f(transform_sine_wave, period, amplitude, "U
     printf(" *** Filter:\n");
     PROFILE_FUNCTION(result_tex = gaussian_filter(tex, 0.2, 0.2), result_img = gaussian_filter(img, 0.2, 0.2), "gaussian_filter(img, 0.2, 0.2)");
     PROFILE_FUNCTION(result_tex = gaussian_filter(tex, 0.75, 0.75), result_img = gaussian_filter(img, 0.75, 0.75), "gaussian_filter(img, 0.75, 0.75)");
-    //PROFILE_FUNCTION(result_tex = gaussian_derivative_filter(tex, 2.0, 2.0, 2.0, 2.0, 1.5, 5), 
-    //		     result_img = gaussian_derivative_filter(img, 2.0, 2.0, 2.0, 2.0, 1.5, 5), 
-    //		     "gaussian_derivative_filter(img, 2.0, 2.0, 2.0, 2.0, 1.5, 5)"); 
-    PROFILE_FUNCTION(result_tex = laplacian_filter(tex), 
+    //PROFILE_FUNCTION(result_tex = gaussian_derivative_filter(tex, 2.0, 2.0, 2.0, 2.0, 1.5, 5),
+    //		     result_img = gaussian_derivative_filter(img, 2.0, 2.0, 2.0, 2.0, 1.5, 5),
+    //		     "gaussian_derivative_filter(img, 2.0, 2.0, 2.0, 2.0, 1.5, 5)");
+    PROFILE_FUNCTION(result_tex = laplacian_filter(tex),
 		     laplacian_filter(img),
 		     "laplacian_filter(img)");
  // Manipulation
@@ -351,15 +351,15 @@ GENERIC_FRAGMENT_SHADER_FUNCTION_1i2f(transform_sine_wave, period, amplitude, "U
     printf(" *** Transform:\n");
     PROFILE_FUNCTION(result_tex = free_rotate(tex, 2.0);, result_img = free_rotate(img, 2.0), "free_rotate(img, 2.0)");
     PROFILE_FUNCTION(result_tex = translate(tex, 10, 10), result_img = translate(img, 10, 10), "translate(img, 10, 10)");
-    PROFILE_FUNCTION(result_tex = resample(tex, 1.1, 1.1, tex.width() * 1.1, tex.height() * 1.1, NearestPixelInterpolation(), ZeroEdgeExtend()), 
-		     result_img = resample(img, 1.1, 1.1, tex.width() * 1.1, tex.height() * 1.1, NearestPixelInterpolation(), ZeroEdgeExtend()), 
+    PROFILE_FUNCTION(result_tex = resample(tex, 1.1, 1.1, tex.width() * 1.1, tex.height() * 1.1, NearestPixelInterpolation(), ZeroEdgeExtend()),
+		     result_img = resample(img, 1.1, 1.1, tex.width() * 1.1, tex.height() * 1.1, NearestPixelInterpolation(), ZeroEdgeExtend()),
 		     "resample(tex, 1.1, 1.1, tex.width() * 1.1, tex.height() * 1.1, interpolation::NearestPixel(), ZeroEdgeExtend())");
 
-    PROFILE_FUNCTION(result_tex = resample(tex, 1.1, 1.1, tex.width() * 1.1, tex.height() * 1.1, BilinearInterpolation(), ZeroEdgeExtend()), 
-		     result_img = resample(img, 1.1, 1.1, tex.width() * 1.1, tex.height() * 1.1, BilinearInterpolation(), ZeroEdgeExtend()), 
+    PROFILE_FUNCTION(result_tex = resample(tex, 1.1, 1.1, tex.width() * 1.1, tex.height() * 1.1, BilinearInterpolation(), ZeroEdgeExtend()),
+		     result_img = resample(img, 1.1, 1.1, tex.width() * 1.1, tex.height() * 1.1, BilinearInterpolation(), ZeroEdgeExtend()),
 		     "resample(tex, 1.1, 1.1, tex.width() * 1.1, tex.height() * 1.1, interpolation::Bilinear(), ZeroEdgeExtend())");
-     PROFILE_FUNCTION(result_tex = resample(tex, 1.1, 1.1, tex.width() * 1.1, tex.height() * 1.1, BicubicInterpolation(), ZeroEdgeExtend()), 
-    	     result_img = resample(img, 1.1, 1.1, tex.width() * 1.1, tex.height() * 1.1, BicubicInterpolation(), ZeroEdgeExtend()), 
+     PROFILE_FUNCTION(result_tex = resample(tex, 1.1, 1.1, tex.width() * 1.1, tex.height() * 1.1, BicubicInterpolation(), ZeroEdgeExtend()),
+    	     result_img = resample(img, 1.1, 1.1, tex.width() * 1.1, tex.height() * 1.1, BicubicInterpolation(), ZeroEdgeExtend()),
     	     "resample(tex, 1.1, 1.1, tex.width() * 1.1, tex.height() * 1.1, interpolation::Bicubic(), ZeroEdgeExtend())");
     */
     }
@@ -371,7 +371,7 @@ GENERIC_FRAGMENT_SHADER_FUNCTION_1i2f(transform_sine_wave, period, amplitude, "U
 
 
 class TestImageOperators : public CxxTest::TestSuite
-{ 
+{
 public:
   void test_general() {
     gpu_init();
@@ -386,23 +386,23 @@ public:
     // Allocation
     TexAlloc::set_recycling(false);
     GPUImage<PixelRGB<float> > img_alloc_test_small(100, 100);
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, img_alloc_test_small.target(), img_alloc_test_small.name(), 0);	
-    
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, img_alloc_test_small.target(), img_alloc_test_small.name(), 0);
+
     timer.Start();
     GPUImage<PixelRGB<float> > img_alloc_test(1000, 1000);
-    glFinish(); timer.Stop(); 
+    glFinish(); timer.Stop();
     float time_new_tex_allocation = timer.ElapsedSeconds();
 
     timer.Start();
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, img_alloc_test.target(), img_alloc_test.name(), 0);	
-    glFinish(); timer.Stop(); 
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, img_alloc_test.target(), img_alloc_test.name(), 0);
+    glFinish(); timer.Stop();
     float time_new_tex_binding = timer.ElapsedSeconds();
 
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, img_alloc_test.target(), 0, 0);	
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, img_alloc_test.target(), 0, 0);
 
     timer.Start();
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, img_alloc_test.target(), img_alloc_test.name(), 0);	
-    glFinish(); timer.Stop(); 
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, img_alloc_test.target(), img_alloc_test.name(), 0);
+    glFinish(); timer.Stop();
     float time_old_tex_binding = timer.ElapsedSeconds();
 
     printf("&New Texture Allocation Time: %f\n*New Texture Binding Time: %f\n, Old Texture Binding Time: %f\n\n", time_new_tex_allocation, time_new_tex_binding, time_old_tex_binding);
@@ -413,7 +413,7 @@ public:
     delete (new GPUImage<PixelRGB<float> >(1000, 1000));
     timer.Start();
     tex + 1.0;
-    timer.Stop(); 
+    timer.Stop();
     float time_comp_exec = timer.ElapsedSeconds();
     // Transfers
     tex = img; glFinish();
@@ -421,7 +421,7 @@ public:
     tex = img;
     timer.Stop();  float time_transfer_to_gpu = timer.ElapsedSeconds();
 
-    tex.write_image_view(img); glFinish();    
+    tex.write_image_view(img); glFinish();
     timer.Start();
     tex.write_image_view(img);
     timer.Stop();  float time_transfer_to_cpu = timer.ElapsedSeconds();
@@ -431,13 +431,13 @@ public:
     // Execution
     timer.Start();
     tex + 1.0;
-    timer.Stop(); 
+    timer.Stop();
     float time_exec = timer.ElapsedSeconds();
     // Allocation+ Execution
     TexAlloc::set_recycling(false);
     timer.Start();
     tex + 1.0;
-    timer.Stop(); 
+    timer.Stop();
     float time_alloc_exec = timer.ElapsedSeconds();
   }
 
@@ -455,5 +455,5 @@ public:
 
 
 
-};				   
- 
+};
+

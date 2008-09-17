@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 #include <math.h>
@@ -34,7 +34,7 @@ using namespace math;
 class TestEuler : public CxxTest::TestSuite
 {
 public:
-  
+
   void test_basic_euler_rotation() {
     // Should rotate the vector [0 1 0] 90 degrees around the x-axis
     // to [0 0 1] and then 90 degrees around the NEW y-axis to [1 0 0].
@@ -55,7 +55,7 @@ public:
 
 
   void test_euler_angle_xyz() {
-    std::cout << "\nTesting XYZ Euler Combination\n";
+    TS_TRACE("Testing XYZ Euler Combination\n");
     for (unsigned p = 0; p < 360; p+=60){
       for (unsigned o = 0; o < 360; o+=60){
 	for (unsigned k = 0; k < 360; k+=60){
@@ -77,11 +77,11 @@ public:
 	}
       }
     }
-    std::cout << "Finished.\n";
+    TS_TRACE("Finished.");
   }
 
   void test_euler_angle_yxz() {
-    std::cout << "\nTesting YXZ Euler Combination\n";
+    TS_TRACE("Testing YXZ Euler Combination");
     for (unsigned p = 0; p < 360; p+=60){
       for (unsigned o = 0; o < 360; o+=60){
 	for (unsigned k = 0; k < 360; k+=60){
@@ -103,11 +103,11 @@ public:
 	}
       }
     }
-    std::cout << "Finished.\n";
+    TS_TRACE("Finished.");
   }
 
   void test_euler_angle_zxy() {
-    std::cout << "\nTesting ZXY Euler Combination\n";
+    TS_TRACE("Testing ZXY Euler Combination");
     for (unsigned p = 0; p < 360; p+=60){
       for (unsigned o = 0; o < 360; o+=60){
 	for (unsigned k = 0; k < 360; k+=60){
@@ -129,6 +129,6 @@ public:
 	}
       }
     }
-    std::cout << "Finished.\n";
+    TS_TRACE("Finished.");
   }
 }; // class TestEuler

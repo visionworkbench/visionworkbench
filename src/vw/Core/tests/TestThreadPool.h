@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestThreadPool.h
@@ -63,20 +63,20 @@ class TestThread : public CxxTest::TestSuite
       terminate = true;
     }
   };
-      
+
 public:
   void test_threadpool()
   {
     boost::shared_ptr<TestTask> task1 (new TestTask);
     boost::shared_ptr<TestTask> task2 (new TestTask);
     boost::shared_ptr<TestTask> task3 (new TestTask);
-    
+
     TS_ASSERT_EQUALS( task1->value(), 0 );
     TS_ASSERT_EQUALS( task2->value(), 0 );
     TS_ASSERT_EQUALS( task3->value(), 0 );
-    
+
     set_debug_level(VerboseDebugMessage);
-    
+
     FifoWorkQueue queue(4);
     queue.add_task(task1);
     queue.add_task(task2);
@@ -89,17 +89,17 @@ public:
     TS_ASSERT_EQUALS( task1->value(), 1 );
     TS_ASSERT_EQUALS( task2->value(), 1 );
     TS_ASSERT_EQUALS( task3->value(), 1 );
-    
+
     Thread::sleep_ms(100);
     task3->kill();
     Thread::sleep_ms(100);
     TS_ASSERT_EQUALS( task1->value(), 1 );
     TS_ASSERT_EQUALS( task2->value(), 1 );
     TS_ASSERT_EQUALS( task3->value(), 3 );
-    
+
     task2->kill();
     task1->kill();
-    
+
     queue.join_all();
   }
 
@@ -124,7 +124,7 @@ public:
     Thread::sleep_ms(200);
     TS_ASSERT_EQUALS( task1->value(), 1 );
     TS_ASSERT_EQUALS( task2->value(), 1 );
-    
+
     Thread::sleep_ms(100);
     TS_ASSERT_EQUALS( task3->value(), 0 );
     task1->kill();
@@ -135,7 +135,7 @@ public:
 
     task2->kill();
     task3->kill();
-    
+
     queue.join_all();
   }
 
@@ -159,10 +159,10 @@ public:
     Thread::sleep_ms(100);
 
     set_debug_level(VerboseDebugMessage);
-    
+
     TS_ASSERT_EQUALS( task1->value(), 1 );
     TS_ASSERT_EQUALS( task2->value(), 1 );
-    
+
     Thread::sleep_ms(100);
     task1->kill();
     Thread::sleep_ms(100);
@@ -208,13 +208,13 @@ public:
     OrderedWorkQueue queue(8);
     queue.add_task(task1, 2);
     queue.add_task(task2, 1);
-    
+
     set_debug_level(VerboseDebugMessage);
-    
+
     TS_ASSERT_EQUALS( task1->value(), 0 );
     TS_ASSERT_EQUALS( task2->value(), 0 );
     TS_ASSERT_EQUALS( task3->value(), 0 );
-    
+
     queue.add_task(task3, 0);
     Thread::sleep_ms(100);
     TS_ASSERT_EQUALS( task1->value(), 1 );

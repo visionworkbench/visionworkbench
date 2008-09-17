@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestLinearAlgebra.h
@@ -40,27 +40,27 @@ public:
      double del_J[64]={0, 0, 0, 0, -51879401.1206895336508750915527, 345220721.931542813777923583984, -7713941.33798606880009174346924, -20251317.2964757941663265228271, 60085977.6156569197773933410645, -297528532.086134672164916992188, 8741160.50715760141611099243164, 48197324.407920315861701965332, -15920009.9936054665595293045044, -36273690.7840106561779975891113, -585970.965214778785593807697296, -23774308.3563742823898792266846, 0, 0, 0, 0, 0, 0, 0, 0, -19533967.4717127159237861633301, 3536458.01012331061065196990967, -1355565.05823698081076145172119, 1055282.69741864409297704696655, -27092240.4667053557932376861572, -15049010.0509770475327968597412, -1959159.77428447338752448558807, -2677786.77639175020158290863037, 0, 0, 0, 0, 0, 0, 0, 0, 28170504.2359863072633743286133, 26931334.5266373977065086364746, 3543839.55987171921879053115845, -6475920.25083816982805728912354, 18734840.3757112547755241394043, -19931493.7801269963383674621582, 3073040.57909747073426842689514, 2494469.90114247798919677734375, 204364.908076941268518567085266, 13655492.0584293957799673080444, 1346938.65313535067252814769745, 4980631.39250720385462045669556, -2408244.79752033436670899391174, 365862.393878269940614700317383, -1198100.97325941827148199081421, -4684547.88798932544887065887451, -7755547.88419973477721214294434, -1090775.97667748015373945236206, -2621457.35733163449913263320923, -9007306.06561579741537570953369, -3699611.96560296509414911270142, -26897787.7221815399825572967529, -296697.075326256104744970798492, 8450466.71942384354770183563232};
      vw::Vector<double> del_J_vw(64);
      std::copy(&del_J[0], &del_J[64], del_J_vw.begin());
-     
+
      vw::Matrix<double> hessian_vw(64,64);
      for (unsigned int i = 0; i < 64; i++) {
        for (unsigned int j = 0; j < 64; j++) {
          hessian_vw(i, j) = hessian[i][j];
        }
      }
-     
-     std::cout << "About to call least_squares.  If this hangs, it may be due to a bug in lapack..\n";
+
+     TS_TRACE("About to call least_squares.  If this hangs, it may be due to a bug in lapack..");
      least_squares(hessian_vw, del_J_vw);
-     std::cout << "least_squares returned\n";
+     TS_TRACE("least_squares returned");
      // TODO: check the return value
    }
-  
+
   void test_linear_least_squares_static()
   {
     Matrix<float,4,2> A;
-    A(0,0) = 4; A(0,1) = 17; 
-    A(1,0) = 32; A(1,1) = 33; 
-    A(2,0) = 63; A(2,1) = 3; 
-    A(3,0) = 2; A(3,1) = 73; 
+    A(0,0) = 4; A(0,1) = 17;
+    A(1,0) = 32; A(1,1) = 33;
+    A(2,0) = 63; A(2,1) = 3;
+    A(3,0) = 2; A(3,1) = 73;
 
     Vector<float,4> b;
     b(0) = 5;
@@ -75,15 +75,15 @@ public:
 
     TS_ASSERT_DELTA(x[0], 0.52626, 0.00001);
     TS_ASSERT_DELTA(x[1], 0.37689, 0.00001);
-  }    
+  }
 
   void test_linear_least_squares_underdetermined()
   {
     Matrix<float,2,4> A;
-    A(0,0) = 4; A(1,0) = 17; 
-    A(0,1) = 32; A(1,1) = 33; 
-    A(0,2) = 63; A(1,2) = 3; 
-    A(0,3) = 2; A(1,3) = 73; 
+    A(0,0) = 4; A(1,0) = 17;
+    A(0,1) = 32; A(1,1) = 33;
+    A(0,2) = 63; A(1,2) = 3;
+    A(0,3) = 2; A(1,3) = 73;
 
     Vector<float,2> b;
     b(0) = 5;
@@ -95,18 +95,18 @@ public:
     x = least_squares(A,b);
 
     Vector<float,2> b_prime = A*x;
- 
+
     TS_ASSERT_DELTA(b_prime[0], 5, 1e-4);
     TS_ASSERT_DELTA(b_prime[1], 95, 1e-4);
-  }    
+  }
 
   void test_linear_least_squares_dynamic()
   {
     Matrix<float> A(4,2);
-    A(0,0) = 4; A(0,1) = 17; 
-    A(1,0) = 32; A(1,1) = 33; 
-    A(2,0) = 63; A(2,1) = 3; 
-    A(3,0) = 2; A(3,1) = 73; 
+    A(0,0) = 4; A(0,1) = 17;
+    A(1,0) = 32; A(1,1) = 33;
+    A(2,0) = 63; A(2,1) = 3;
+    A(3,0) = 2; A(3,1) = 73;
 
     Vector<float> b(4);
     b(0) = 5;
@@ -121,7 +121,7 @@ public:
 
     TS_ASSERT_DELTA(x[0], 0.52626, 0.00001);
     TS_ASSERT_DELTA(x[1], 0.37689, 0.00001);
-  }    
+  }
 
 
 
@@ -157,10 +157,10 @@ public:
     TS_ASSERT_DELTA(s[2], 16.0320, 0.0001);
 
     A = Matrix<float>(4,3);
-    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25; 
+    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25;
     A(1,0) = 327;  A(1,1) = 2; A(1,2) = 76;
     A(2,0) = 234;  A(2,1) = 26; A(2,2) = 76;
-    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323; 
+    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323;
 
     // Find the least squares solution to the overconstrained problem Ax=b;
     svd(A,s);
@@ -168,7 +168,7 @@ public:
     TS_ASSERT_DELTA(s[0], 444.7863, 0.0001);
     TS_ASSERT_DELTA(s[1], 292.8446, 0.0001);
     TS_ASSERT_DELTA(s[2], 16.6494, 0.0001);
-  }    
+  }
 
   // Test the svd(A,s) routine with a double matrix
   void test_svd_double()
@@ -202,10 +202,10 @@ public:
     TS_ASSERT_DELTA(s[2], 16.0320, 0.0001);
 
     A = Matrix<double>(4,3);
-    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25; 
+    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25;
     A(1,0) = 327;  A(1,1) = 2; A(1,2) = 76;
     A(2,0) = 234;  A(2,1) = 26; A(2,2) = 76;
-    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323; 
+    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323;
 
     // Find the least squares solution to the overconstrained problem Ax=b;
     svd(A,s);
@@ -213,7 +213,7 @@ public:
     TS_ASSERT_DELTA(s[0], 444.7863, 0.0001);
     TS_ASSERT_DELTA(s[1], 292.8446, 0.0001);
     TS_ASSERT_DELTA(s[2], 16.6494, 0.0001);
-  }    
+  }
 
   // Test the svd(A,s) routine with a mixture of float and double matrix/vectors
   void test_svd_double_float()
@@ -233,7 +233,7 @@ public:
     TS_ASSERT_DELTA(s[1], 336.4697, 0.0001);
     TS_ASSERT_DELTA(s[2], 262.4880, 0.0001);
     TS_ASSERT_DELTA(s[3], 5.8381, 0.0001);
-  }    
+  }
 
   // Test the svd(A,s) routine with a mixture of float and double matrix/vectors
   void test_svd_float_double()
@@ -253,7 +253,7 @@ public:
     TS_ASSERT_DELTA(s[1], 336.4697, 0.0001);
     TS_ASSERT_DELTA(s[2], 262.4880, 0.0001);
     TS_ASSERT_DELTA(s[3], 5.8381, 0.0001);
-  }    
+  }
 
 
 
@@ -311,10 +311,10 @@ public:
     TS_ASSERT_EQUALS(VT.cols(), A.cols());
 
     A = Matrix<float>(4,3);
-    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25; 
+    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25;
     A(1,0) = 327;  A(1,1) = 2; A(1,2) = 76;
     A(2,0) = 234;  A(2,1) = 26; A(2,2) = 76;
-    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323; 
+    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323;
 
     // Find the least squares solution to the overconstrained problem Ax=b;
     svd(A,U,s,VT);
@@ -328,13 +328,13 @@ public:
     TS_ASSERT_DELTA(VT(0,1), -0.0988, 0.0001);
     TS_ASSERT_DELTA(VT(1,0), -0.5586, 0.0001);
     TS_ASSERT_DELTA(VT(1,2), 0.8129, 0.0001);
-    
+
     TS_ASSERT_EQUALS(U.rows(), A.rows());
     TS_ASSERT_EQUALS(U.cols(), std::min(A.rows(), A.cols()));
     TS_ASSERT_EQUALS(VT.rows(), std::min(A.rows(), A.cols()));
     TS_ASSERT_EQUALS(VT.cols(), A.cols());
 
-  } 
+  }
 
 
   // Test the svd(A,U,s,VT) routine with a float matrix
@@ -369,17 +369,17 @@ public:
     TS_ASSERT_EQUALS(pinv.cols(), A.rows());
 
     A = Matrix<float>(4,3);
-    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25; 
+    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25;
     A(1,0) = 327;  A(1,1) = 2; A(1,2) = 76;
     A(2,0) = 234;  A(2,1) = 26; A(2,2) = 76;
-    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323; 
+    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323;
 
     pinv = pseudoinverse(A);
 
     TS_ASSERT_EQUALS(pinv.rows(), A.cols());
     TS_ASSERT_EQUALS(pinv.cols(), A.rows());
 
-  } 
+  }
 
 
   // Test the svd(A,s) routine with a double matrix
@@ -393,7 +393,7 @@ public:
 
     Vector<std::complex<double> > e;
     Matrix<std::complex<double> > V;
-    
+
     // Find the least squares solution to the overconstrained problem Ax=b;
     eigen(A,e);
 
@@ -420,9 +420,9 @@ public:
   void test_linear_static()
   {
     Matrix<float,3,3> A;
-    A(0,0) = 81; A(0,1) = 91; A(0,2) = 27; 
+    A(0,0) = 81; A(0,1) = 91; A(0,2) = 27;
     A(1,0) = 90; A(1,1) = 63; A(1,2) = 54;
-    A(2,0) = 12; A(2,1) = 9;  A(2,2) = 95; 
+    A(2,0) = 12; A(2,1) = 9;  A(2,2) = 95;
 
     Vector<float,3> b;
     b(0) = 5;
@@ -444,9 +444,9 @@ public:
   void test_linear_symmetric_static()
   {
     Matrix<float,3,3> A;
-    A(0,0) = 81; A(0,1) = 91; A(0,2) = 27; 
+    A(0,0) = 81; A(0,1) = 91; A(0,2) = 27;
     A(1,0) = 90; A(1,1) = 63; A(1,2) = 54;
-    A(2,0) = 12; A(2,1) = 9;  A(2,2) = 95; 
+    A(2,0) = 12; A(2,1) = 9;  A(2,2) = 95;
 
     Matrix<float,3,3> symA = transpose(A)*A;
 

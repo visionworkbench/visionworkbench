@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 #include <math.h>
@@ -44,15 +44,15 @@ public:
     // 90-degree rotation about X axis;  Quaternion should be (.707,.707,0,0)
     Quaternion<double> q2(x_axis, .5*M_PI);
     TS_ASSERT_DELTA(math::norm_2(q2 - Quaternion<double>(1./sqrt(2.),1./sqrt(2.),0,0)), 0, 1e-10);
-    
+
     // 180-degree rotation about X axis;  Quaternion should be (0,1,0,0)
     Quaternion<double> q3(x_axis, M_PI);
     TS_ASSERT_DELTA(math::norm_2(q3 - Quaternion<double>(0,1,0,0)), 0, 1e-10);
-    
+
     // 180-degree rotation about Y axis;  Quaternion should be (0,0,1,0)
     Quaternion<double> q4(y_axis, M_PI);
     TS_ASSERT_DELTA(math::norm_2(q4 - Quaternion<double>(0,0,1,0)), 0, 1e-10);
-    
+
     // 180-degree rotation about Z axis;  Quaternion should be (0,0,0,1)
     Quaternion<double> q5(z_axis, M_PI);
     TS_ASSERT_DELTA(math::norm_2(q5 - Quaternion<double>(0,0,0,1)), 0, 1e-10);
@@ -66,9 +66,9 @@ public:
       Vector<double,3> test_axis;
       double test_angle;
       q.axis_angle(test_axis, test_angle);
-      //std::cout << "\nin: " << axis << "," << angle << std::endl;
-      //std::cout << "quaternion: " << q << std::endl;
-      //std::cout << "out: " << test_axis << "," << test_angle << std::endl;
+      //TS_TRACE(stringify("in: "        ) + stringify(axis) + "," + stringify(angle));
+      //TS_TRACE(stringify("quaternion: ") + stringify(q));
+      //TS_TRACE(stringify("out: "       ) + stringify(test_axis) + "," + stringify(test_angle))
 
       if (math::dot_prod(test_axis, axis) < 0) {
         test_axis = -test_axis;
@@ -86,7 +86,7 @@ public:
   {
     // Create a test vector to rotate
     Vector3 test_vec(0.1, 0.84, 0.23);
-    
+
     double theta = 32*M_PI/180;  // 32 degree rotation
     Matrix3x3 rotation = math::identity_matrix<3>();
     rotation(0,0) = cos(theta);

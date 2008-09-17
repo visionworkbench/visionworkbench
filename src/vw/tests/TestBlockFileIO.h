@@ -36,7 +36,6 @@ using namespace vw;
 static void test_read_crop(const char *fn)
 {
     set_debug_level(DebugMessage);
-    std::cout << std::endl;
 
     DiskImageResource *dir = 0;
     TS_ASSERT_THROWS_NOTHING( dir = DiskImageResource::open( fn ) );

@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestCompoundTypes.h
@@ -28,8 +28,8 @@
 
 using namespace vw;
 
-// A simple compound type.  We only test with this one type here, and thus 
-// we do not exercise all of the specialized code paths.  However, those 
+// A simple compound type.  We only test with this one type here, and thus
+// we do not exercise all of the specialized code paths.  However, those
 // do largely get exercized by the pixel math tests in the Image module.
 template <class ChannelT>
 class TestCompound {
@@ -69,7 +69,7 @@ public:
     TS_ASSERT_EQUALS( CompoundNumChannels<TestCompound<float> >::value, 2 );
     TS_ASSERT(( boost::is_same<CompoundChannelCast<TestCompound<float>,int>::type, TestCompound<int> >::value ));
   }
-  
+
   void test_traits() {
     TS_ASSERT(( !IsCompound<uint8>::value ));
     TS_ASSERT(( !IsCompound<double>::value ));
@@ -81,7 +81,7 @@ public:
     TS_ASSERT(( IsCompound<TestCompound<const uint8> >::value ));
     TS_ASSERT(( IsCompound<TestCompound<const double> >::value ));
     TS_ASSERT(( !IsCompound<const DummyType>::value ));
-    
+
     TS_ASSERT(( IsScalarOrCompound<uint8>::value ));
     TS_ASSERT(( IsScalarOrCompound<double>::value ));
     TS_ASSERT(( IsScalarOrCompound<TestCompound<uint8> >::value ));
@@ -92,7 +92,7 @@ public:
     TS_ASSERT(( IsScalarOrCompound<const TestCompound<uint8> >::value ));
     TS_ASSERT(( IsScalarOrCompound<const TestCompound<double> >::value ));
     TS_ASSERT(( !IsScalarOrCompound<const DummyType>::value ));
-    
+
     TS_ASSERT(( CompoundIsCompatible<double,double>::value ));
     TS_ASSERT(( CompoundIsCompatible<uint8,double>::value ));
     TS_ASSERT(( CompoundIsCompatible<TestCompound<double>,TestCompound<double> >::value ));

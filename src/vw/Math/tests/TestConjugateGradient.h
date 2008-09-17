@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestConjugateGradient.h
@@ -59,9 +59,9 @@ public:
     int max_stepsize = 1;
     QuadraticFunction cost_functor;
     QuadraticFunction::domain_type result = steepest_descent( cost_functor, initial_guess, ArmijoStepSize(max_stepsize), numiters);
-//     std::cout << "\n\n" << result << "\n";
-//     std::cout << cost_functor(result) << "\n";
-//     std::cout << cost_functor.gradient(result) << "\n";
+//    TS_TRACE(stringify(result));
+//    TS_TRACE(stringify(cost_functor(result)))
+//    TS_TRACE(stringify(cost_functor.gradient(result)))
 
     TS_ASSERT_DELTA(result[0], 0.1962, 0.001);
     TS_ASSERT_DELTA(result[1], 0.4846, 0.001);
@@ -75,9 +75,9 @@ public:
     int max_stepsize = 1;
     QuadraticFunction cost_functor;
     QuadraticFunction::domain_type result = conjugate_gradient( cost_functor, initial_guess, ArmijoStepSize(max_stepsize), numiters);
-//     std::cout << "\n\n" << result << "\n";
-//     std::cout << cost_functor(result) << "\n";
-//     std::cout << cost_functor.gradient(result) << "\n";
+//     TS_TRACE(stringify(result));
+//     TS_TRACE(stringify(cost_functor(result)));
+//     TS_TRACE(stringify(cost_functor.gradient(result)));
 
     TS_ASSERT_DELTA(result[0], 0.1962, 0.001);
     TS_ASSERT_DELTA(result[1], 0.4846, 0.001);

@@ -3,12 +3,12 @@
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -25,7 +25,7 @@
 #include <vw/Camera/BundleAdjust.h>
 
 #include <stdlib.h>
-#include <time.h> 
+#include <time.h>
 
 using namespace vw;
 using namespace vw::math;
@@ -76,15 +76,15 @@ template <class MatrixT>
 void print_matrix(MatrixT const& A) {
   for (int i = 0; i < A.rows(); ++i) {
     for (int j = 0; j < A.cols(); ++j)
-      std::cout << A(i,j) << " ";
-    std::cout << "\n";
+      TS_TRACE(stringify(A(i,j)));
+    TS_TRACE("\n");
   }
 }
 
 
 
 // Note: this is a non-skyline optimized factorization that is used to
-// test correctness in the unit tests below.  
+// test correctness in the unit tests below.
 //
 // Perform L*D*L^T decomposition on a symmetric semi-definite
 // matrix.  WARNING: The results are stored in place, so this
@@ -98,7 +98,7 @@ template <class MatrixT>
 void ldl_decomposition(MatrixT& A) {
   VW_ASSERT(A.cols() == A.rows(), ArgumentErr() << "ldl_decomposition: argument must be square and symmetric.\n");
   for (unsigned j = 0; j < A.cols(); ++j) {
-      
+
     // Compute v(1:j)
     std::vector<double> v(j+1);
     v[j] = A(j,j);
@@ -106,12 +106,12 @@ void ldl_decomposition(MatrixT& A) {
       v[i] = A(j,i)*A(i,i);
       v[j] -= A(j,i)*v[i];
     }
-    
+
     // Store d(j) and compute L(j+1:n,j)
     A(j,j) = v[j];
     for (unsigned i = j+1; i < A.cols(); ++i) {
       double row_sum = 0;
-      for (unsigned jj = 0; jj < j; ++jj) 
+      for (unsigned jj = 0; jj < j; ++jj)
         row_sum += A(i,jj)*v[jj];
       A(i,j) = ( A(i,j)-row_sum ) / v[j];
     }
@@ -134,32 +134,31 @@ public:
     SparseSkylineMatrix<double> original_sparse_mat(N,N);
 
     std::vector<uint32> test_skyline = create_test_skyline(N, S);
-//     std::cout << "TEST SKYLINE1\n ";
+//     TS_TRACE("TEST SKYLINE1");
 //     for (int i = 0; i < test_skyline.size(); ++i)
-//       std::cout << test_skyline[i] << " ";
-//     std::cout << "\n";
+//       TS_TRACE(stringify(test_skyline[i]))
 
     fill_symmetric_matrix(sparse_mat, test_skyline);
     copy_symmetric_matrix(sparse_mat, nonsparse_mat, test_skyline);
     copy_symmetric_matrix(sparse_mat, original_sparse_mat, test_skyline);
 
 //     std::vector<uint32> sline = sparse_mat.skyline();
-//     std::cout << "SPARSE_MAT SKYLINE1\n ";
+//     TS_TRACE("SPARSE_MAT SKYLINE1");
 //     for (int i = 0; i < sline.size(); ++i)
-//       std::cout << sline[i] << " ";
-//     std::cout << "\n";
+//       TS_TRACE(stringify(sline[i]))
+//     TS_TRACE("\n");
 
-//     std::cout << "Original Sparse_Mat:\n";
+//     TS_TRACE("Original Sparse_Mat:");
 //     print_matrix(sparse_mat);
 //     sparse_mat.print_sparse_structure();
 
-//     std::cout << "Original Nonsparse_Mat:\n";
+//     TS_TRACE("Original Nonsparse_Mat:\n");
 //     print_matrix(nonsparse_mat);
 
 
-//    std::cout << "Running LDL^T decomposition on sparse skyline matrix..." << std::flush;
+//  TS_TRACE("Running LDL^T decomposition on sparse skyline matrix...");
     ldl_decomposition(sparse_mat);
-    //    std::cout << " done.\n";
+    //    TS_TRACE(" done.");
     // Check to make sure the decomposod LDL matrix still has the same
     // sparse structure as the original.
     for (unsigned i=0; i < sparse_mat.rows(); ++i) {
@@ -169,15 +168,15 @@ public:
       }
     }
 
-    //    std::cout << "Running LDL^T decomposition on normal VW matrix..." << std::flush;
-    ldl_decomposition(nonsparse_mat);    
-    //    std::cout << " done.\n";
+    //    TS_TRACE("Running LDL^T decomposition on normal VW matrix...");
+    ldl_decomposition(nonsparse_mat);
+    //    TS_TRACE(" done.");
 
-//     std::cout << "New Sparse_Mat:\n";
+//     TS_TRACE("New Sparse_Mat:");
 //     print_matrix(sparse_mat);
 //     sparse_mat.print_sparse_structure();
 
-//     std::cout << "New Nonsparse_Mat:\n";
+//     TS_TRACE("New Nonsparse_Mat:");
 //     print_matrix(nonsparse_mat);
 
 
@@ -186,7 +185,7 @@ public:
     for (unsigned i=0; i < sparse_mat.rows(); ++i) {
       for (unsigned j=0; j < i; ++j) {
         if (fabs(sparse_mat(i,j).ref() - nonsparse_mat(i,j)) > 0.00001)
-          std::cout << "Mismatch: " << i << " " << j << "\n";
+          TS_WARN(stringify("Mismatch: ") + stringify(i) + " " + stringify(j));
         TS_ASSERT_DELTA(sparse_mat(i,j).ref(), nonsparse_mat(i,j), 0.0001);
       }
     }
@@ -205,13 +204,13 @@ public:
 
     std::vector<uint32> test_skyline = create_test_skyline(N, S);
 
-    std::cout << "\nBuilding " << N << " x " << N << " sparse matrix.\n";
+    TS_TRACE("Building " + stringify(N) +  " x " + stringify(N) +  " sparse matrix.");
     fill_symmetric_matrix(sparse_mat, test_skyline);
     copy_symmetric_matrix(sparse_mat, original_sparse_mat, test_skyline);
 
-    std::cout << "Running LDL^T decomposition on sparse skyline matrix..." << std::flush;
+    TS_TRACE("Running LDL^T decomposition on sparse skyline matrix...");
     ldl_decomposition(sparse_mat);
-    std::cout << " done.\n";
+    TS_TRACE("done.");
     // Check to make sure the decomposod LDL matrix still has the same
     // sparse structure as the original.
     for (unsigned i=0; i < sparse_mat.rows(); ++i) {
@@ -236,20 +235,20 @@ public:
 
     fill_symmetric_matrix(A_sparse, test_skyline);
     copy_symmetric_matrix(A_sparse, A_nonsparse, test_skyline);
-    
+
     // Create a 'b' vector with random entries
     vw::Vector<double> b(A_sparse.cols());
     fill_vector(b);
 
     // First, solve using normal matrix inverse.
-    //    std::cout << "Solving non-sparse " << N << "x" << N << " system... " << std::flush;
+    //    TS_TRACE(stringify("Solving non-sparse ") + stringify(N) + "x" + stringify(N) + " system... ");
     Vector<double> x_nonsparse = inverse(A_nonsparse) * b;
-    //    std::cout << " done.\n";
+    //    TS_TRACE("done.");
 
     // Next, try our fast sparse skyline solver.
-    //    std::cout << "Solving sparse " << N << "x" << N << " system... " << std::flush;
+    //    TS_TRACE(stringify("Solving sparse ") + stringify(N) + "x" + stringify(N) + " system... ");
     Vector<double> x_sparse = sparse_solve(A_sparse, b);
-    //    std::cout << " done.\n";
+    //    TS_TRACE("done.");
 
     // Check to make sure the skyline-optimized LDL decomp produces
     // the same results as the non-optimized implementation.
@@ -271,12 +270,12 @@ public:
     std::vector<uint32> test_skyline = create_test_skyline(N, S);
 
     fill_symmetric_matrix(A_sparse, test_skyline);
-    
+
     // Create a 'b' vector with random entries
     vw::Vector<double> b(A_sparse.cols());
     fill_vector(b);
 
-    std::cout << "\nSolving sparse " << N << "x" << N << " system... " << std::flush;
+    TS_TRACE(stringify("Solving sparse ") + stringify(N) + "x" + stringify(N) + " system... ");
     Vector<double> x_sparse = sparse_solve(A_sparse, b);
   }
 

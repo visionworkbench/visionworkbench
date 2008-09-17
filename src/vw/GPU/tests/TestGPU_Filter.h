@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestFilter.h
@@ -51,7 +51,7 @@ class TestFilter : public CxxTest::TestSuite
     std::vector<float> x_kernel, y_kernel;
     generate_derivative_kernel(x_kernel, 1, 0);
     generate_derivative_kernel(y_kernel, 0, 0);
-    GPUImage<float> src(2,2); 
+    GPUImage<float> src(2,2);
     src.pixel(0,0)=1; src.pixel(1,0)=2; src.pixel(0,1)=3; src.pixel(1,1)=4;
     GPUImage<float> dst = derivative_filter(src, 1, 0 ); // Implicit ConstantEdgeExtend, which the results are based on
     TS_ASSERT_EQUALS( (float) dst(0,0), 0.5 );

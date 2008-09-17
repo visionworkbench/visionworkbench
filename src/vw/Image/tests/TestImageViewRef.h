@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 // TestImageViewRef.h
@@ -62,7 +62,7 @@ public:
         TS_ASSERT_EQUALS( im2(c,r), ref(c,r) );
       }
     }
-    
+
     // Test full rasterization: general case
     ImageView<double> im3 = ref;
     for( int r=0; r<rows; ++r ) {
@@ -79,7 +79,7 @@ public:
         TS_ASSERT_EQUALS( im4(c,r), ref(c,r) );
       }
     }
-    
+
     // Test partial rasterization
     ImageView<float> im5(cols-1,rows-1);
     ref.rasterize( im5, BBox2i(1,1,cols-1,rows-1) );
@@ -88,7 +88,7 @@ public:
         TS_ASSERT_EQUALS( im5(c,r), ref(c+1,r+1) );
       }
     }
-    
+
     // Test iterator
     int val=0;
     for( ImageViewRef<float>::iterator i=ref.begin(), end=ref.end(); i!=end; ++i, ++val ) {

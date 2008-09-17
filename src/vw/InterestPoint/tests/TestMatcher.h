@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 
@@ -32,7 +32,7 @@ using namespace vw::ip;
 class TestMatcher : public CxxTest::TestSuite
 {
   public:
-  
+
   void test_distance_metric() {
     InterestPoint ip1(0,0);
     InterestPoint ip2(5,0);
@@ -51,14 +51,14 @@ class TestMatcher : public CxxTest::TestSuite
     InterestPoint ip2(20,0,2.0,2.0,M_PI);
     ip1.descriptor = Vector3(0,1,0);
     ip2.descriptor = Vector3(0,5,0);
-    
+
     NullConstraint null;
     ScaleOrientationConstraint scale_ori1;
     ScaleOrientationConstraint scale_ori2(0.4, 2.1, -1.2*M_PI, 1.2*M_PI);
-    
+
     PositionConstraint pos1;
     PositionConstraint pos2(-20,20,-20,20);
-    
+
     TS_ASSERT_EQUALS(null(ip1,ip2), true);
     TS_ASSERT_EQUALS(scale_ori1(ip1,ip2), false);
     TS_ASSERT_EQUALS(scale_ori2(ip1,ip2), true);
