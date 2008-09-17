@@ -402,6 +402,7 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
     int color_type;
     switch(outer->m_format.pixel_format) {
+      case VW_PIXEL_SCALAR: // fall through
       case VW_PIXEL_GRAY:   color_type = PNG_COLOR_TYPE_GRAY;       break;
       case VW_PIXEL_GRAYA:  color_type = PNG_COLOR_TYPE_GRAY_ALPHA; break;
       case VW_PIXEL_RGB:    color_type = PNG_COLOR_TYPE_RGB;        break;
