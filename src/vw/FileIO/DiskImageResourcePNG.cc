@@ -213,9 +213,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
         outer->m_format.channel_type = VW_CHANNEL_UINT16;
         break;
       default:
-        // Unreachable
-        bytes_per_channel = 1;
-        outer->m_format.channel_type = VW_CHANNEL_UINT8;
+        vw_throw(vw::ArgumentErr() << "Unknown bit depth " << bit_depth);
         break;
     }
 
@@ -246,10 +244,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
         outer->m_format.pixel_format = VW_PIXEL_RGBA;
         break;
       default:
-        // Unreachable
-        channels = 4;
-        outer->m_format.pixel_format = VW_PIXEL_RGBA;
-        break;
+        vw_throw(vw::ArgumentErr() << "Unknown color type in png");
     }
     if(interlace_type != PNG_INTERLACE_NONE)
       interlaced = true;
@@ -401,6 +396,8 @@ struct DiskImageResourcePNG::vw_png_write_context:
     int width     = outer->m_format.cols;
     int height    = outer->m_format.rows;
     int channels  = num_channels(outer->m_format.pixel_format);
+
+    // anything else will be converted to UINT8
     int bit_depth = outer->m_format.channel_type == VW_CHANNEL_UINT16 ? 16 : 8;
 
     int color_type;
@@ -409,7 +406,8 @@ struct DiskImageResourcePNG::vw_png_write_context:
       case VW_PIXEL_GRAYA:  color_type = PNG_COLOR_TYPE_GRAY_ALPHA; break;
       case VW_PIXEL_RGB:    color_type = PNG_COLOR_TYPE_RGB;        break;
       case VW_PIXEL_RGBA:   color_type = PNG_COLOR_TYPE_RGBA;       break;
-      default:              color_type = PNG_COLOR_TYPE_RGBA;       break;
+      default: vw_throw(vw::ArgumentErr() << "Unsupported pixel format for png: "
+                                          << outer->m_format.pixel_format);
     }
     if(options.using_palette) {
       color_type = PNG_COLOR_TYPE_PALETTE;

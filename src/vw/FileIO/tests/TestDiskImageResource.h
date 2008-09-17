@@ -67,11 +67,13 @@ public:
     const char *ex_list[] = {"img", "lbl", "pds"}; // skip the ro PDS formats
     exclude.insert(ex_list, ex_list+3);
 
-    foreach_ext("rwtest", test_extension<PixelRGB<float>  >, exclude);
-    foreach_ext("rwtest", test_extension<PixelRGB<uint8>  >, exclude);
-    foreach_ext("rwtest", test_extension<PixelRGBA<uint8> >, exclude);
-    foreach_ext("rwtest", test_extension<uint8>, exclude);
-    foreach_ext("rwtest", test_extension<float>, exclude);
+    foreach_ext("rwtest", test_extension<PixelRGB<float> >,   exclude);
+    foreach_ext("rwtest", test_extension<PixelRGB<uint8> >,   exclude);
+    foreach_ext("rwtest", test_extension<PixelRGBA<uint8> >,  exclude);
+    foreach_ext("rwtest", test_extension<PixelGray<uint8> >,  exclude);
+    foreach_ext("rwtest", test_extension<PixelGrayA<float> >, exclude);
+    foreach_ext("rwtest", test_extension<uint8>,              exclude);
+    foreach_ext("rwtest", test_extension<float>,              exclude);
   }
 
   void test_read_image_rgb_png_uint8() {
