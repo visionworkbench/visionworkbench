@@ -35,15 +35,9 @@ namespace math {
 
   // Returns: A Vector3 containing the euler angles [phi, omega, kappa] inline
   inline Vector3 rotation_matrix_to_euler_xyz(const Matrix<double,3,3> rotation_matrix) {
-    double omega = asin(rotation_matrix(0,2));
-
-    // Re-enabled 09-11-08 - mbroxton
-    double phi = acos(rotation_matrix(2,2) / cos(omega)); 
-    double kappa = acos(rotation_matrix(0,0) / cos(omega)); 
-
-    // Dis-enabled 09-11-08 - mbroxton
-    //     double phi = atan2( -rotation_matrix(1,2), rotation_matrix(2,2) );
-    //     double kappa = atan2( -rotation_matrix(0,1), rotation_matrix(0,0) );
+    double omega = asin(-rotation_matrix(2,0));
+    double kappa = atan2(rotation_matrix(1,0),rotation_matrix(0,0));
+    double phi = atan2(rotation_matrix(2,1),rotation_matrix(2,2));
 
     return Vector3(phi, omega, kappa);
   }
