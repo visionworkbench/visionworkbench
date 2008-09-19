@@ -1,5 +1,5 @@
-#ifndef __VW_STEREO_SUBPIXEL_REFINEMENT_VIEW__
-#define __VW_STEREO_SUBPIXEL_REFINEMENT_VIEW__
+#ifndef __VW_STEREO_PARABOLA_SUBPIXEL_VIEW__
+#define __VW_STEREO_PARABOLA_SUBPIXEL_VIEW__
 
 #include <vw/Image/ImageView.h>
 #include <vw/Stereo/DisparityMap.h>
@@ -22,7 +22,7 @@ namespace stereo {
 
   /// An image view for performing image correlation
   template<class InputViewT, class DisparityViewT>
-  class SubpixelRefinementView : public ImageViewBase<SubpixelRefinementView<InputViewT, DisparityViewT> > {
+  class ParabolaSubpixelView : public ImageViewBase<ParabolaSubpixelView<InputViewT, DisparityViewT> > {
 
     DisparityViewT m_disparity_map;
     InputViewT m_left_image; 
@@ -91,9 +91,9 @@ namespace stereo {
   public:
       typedef PixelDisparity<float> pixel_type;
       typedef pixel_type result_type;
-      typedef ProceduralPixelAccessor<SubpixelRefinementView> pixel_accessor;
+      typedef ProceduralPixelAccessor<ParabolaSubpixelView> pixel_accessor;
       
-    SubpixelRefinementView(DisparityViewT const& disparity_map,
+    ParabolaSubpixelView(DisparityViewT const& disparity_map,
                            InputViewT const& left_image,
                            InputViewT const& right_image,
                            int kern_width, int kern_height,
@@ -111,11 +111,11 @@ namespace stereo {
                 (left_image.impl().rows() == right_image.impl().rows()) &&
                 (disparity_map.impl().cols() == right_image.impl().cols()) &&
                 (disparity_map.impl().cols() == right_image.impl().cols()),
-                ArgumentErr() << "SubpixelRefinementView::SubpixelRefinementView(): input image dimensions and/or disparity_map dimensions do not agree.\n");
+                ArgumentErr() << "ParabolaSubpixelView::ParabolaSubpixelView(): input image dimensions and/or disparity_map dimensions do not agree.\n");
       
       VW_ASSERT((left_image.channels() == 1) && (left_image.impl().planes() == 1) &&
                 (right_image.channels() == 1) && (right_image.impl().planes() == 1),
-                ArgumentErr() << "SubpixelRefinementView::SubpixelRefinementView(): multi-channel, multi-plane images not supported.\n");
+                ArgumentErr() << "ParabolaSubpixelView::ParabolaSubpixelView(): multi-channel, multi-plane images not supported.\n");
 
       m_left_log_image = laplacian_filter(gaussian_filter(channel_cast<float>(channels_to_planes(left_image.impl())),1.5));
       m_right_log_image = laplacian_filter(gaussian_filter(channel_cast<float>(channels_to_planes(right_image.impl())),1.5));
@@ -406,8 +406,9 @@ namespace stereo {
       //      std::cout << "left bbox: " << m_left_bbox << "\n";
 
       ImageView<typename InputViewT::pixel_type> left_buf = crop( m_left_log_image, m_left_bbox );
-      m_left_cached_log_image.reset(new CropView<ImageView<float> >(left_buf, BBox2i(-m_left_bbox.min().x(), -m_left_bbox.min().y(),
-                                                                                     m_left_image.cols(), m_left_image.rows()) ) );
+      m_left_cached_log_image.reset(new CropView<ImageView<float> >(left_buf, 
+                                                                    BBox2i(-m_left_bbox.min().x(), -m_left_bbox.min().y(),
+                                                                           m_left_image.cols(), m_left_image.rows()) ) );
 
       int num_good;
       BBox2 disp_range = disparity::get_disparity_range(crop(edge_extend(m_disparity_map,ZeroEdgeExtension()), m_left_bbox), num_good, false);
@@ -427,7 +428,7 @@ namespace stereo {
     }
 
     /// \cond INTERNAL
-    typedef SubpixelRefinementView prerasterize_type;
+    typedef ParabolaSubpixelView prerasterize_type;
     inline prerasterize_type prerasterize(BBox2i bbox) const { 
       prerasterize_type img(m_disparity_map,
                             m_left_image, m_right_image,
@@ -447,4 +448,4 @@ namespace stereo {
 
 }} // namespace vw::stereo
 
-#endif // __VW_STEREO_CORRELATOR_VIEW__         
+#endif // __VW_STEREO_PARABOLA_SUBPIXEL_VIEW__         
