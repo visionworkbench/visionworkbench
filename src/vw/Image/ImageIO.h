@@ -133,18 +133,25 @@ namespace vw {
       ViewT const& m_image;
       BBox2i m_bbox;
       int m_index;
+      int m_total_num_blocks;
+      SubProgressCallback m_progress_callback;
       
     public:
-      RasterizeBlockTask(ThreadedBlockWriter &parent, ImageResource& resource, ImageViewBase<ViewT> const& image, BBox2i const& bbox, int index) :
-        m_parent(parent), m_resource(resource), m_image(image.impl()), m_bbox(bbox), m_index(index) {}
+      RasterizeBlockTask(ThreadedBlockWriter &parent, ImageResource& resource, ImageViewBase<ViewT> const& image, BBox2i const& bbox, int index, int total_num_blocks,
+                         const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) :
+        m_parent(parent), m_resource(resource), m_image(image.impl()), m_bbox(bbox), m_index(index), m_progress_callback(progress_callback,0.0,1.0/float(total_num_blocks)) {}
 
       virtual ~RasterizeBlockTask() {}
       virtual void operator()() { 
+        // Rasterize the block
         ImageView<typename ViewT::pixel_type> image_block( crop(m_image, m_bbox) );
 
-        // Once rasterization is complete, we queue up a request to write this block to disk.
+        // With rasterization complete, we queue up a request to write this block to disk.
         boost::shared_ptr<Task> write_task ( new WriteBlockTask<typename ViewT::pixel_type>( m_resource, image_block, m_bbox) );
         m_parent.add_write_task(write_task, m_index);
+        
+        // Report progress
+        m_progress_callback.report_incremental_progress(1.0);
       }
     };
 
@@ -164,21 +171,13 @@ namespace vw {
     // index, which will indicate the order in which this block should
     // be written to disk.
     template <class ViewT>
-    void add_block(ImageResource& resource, ImageViewBase<ViewT> const& image, BBox2i const& bbox, int index = -1) { 
-      boost::shared_ptr<Task> task( new RasterizeBlockTask<ViewT>(*this, resource, image, bbox, index) );
+    void add_block(ImageResource& resource, ImageViewBase<ViewT> const& image, BBox2i const& bbox, int index, int total_num_blocks,
+                   const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) { 
+      boost::shared_ptr<Task> task( new RasterizeBlockTask<ViewT>(*this, resource, image, bbox, index, total_num_blocks, progress_callback) );
       this->add_rasterize_task(task);
     }
                         
-    void process_blocks( const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
-      
-      // I need to think about how to properly measure progress in the
-      // multithreaded system.
-      progress_callback.report_progress(0);
-      if (progress_callback.abort_requested()) 
-        vw_throw( Aborted() << "Aborted by ProgressCallback" );
-      //       progress_callback.report_progress((processed_row_blocks + processed_col_blocks)/total_num_blocks);
-      progress_callback.report_finished();
-      
+    void process_blocks() {
       m_rasterize_work_queue->join_all();
       m_write_work_queue->join_all();
     }
@@ -193,6 +192,11 @@ namespace vw {
     VW_ASSERT( image.impl().cols() != 0 && image.impl().rows() != 0 && image.impl().planes() != 0,
                ArgumentErr() << "write_image: cannot write an empty image to a resource" );
 
+    // Set the progress meter to zero.
+    progress_callback.report_progress(0);
+    if (progress_callback.abort_requested()) 
+      vw_throw( Aborted() << "Aborted by ProgressCallback" );
+
     // Set up the threaded block writer object, which will manage
     // rasterizing and writing images to disk one block (and one
     // thread) at a time.
@@ -202,6 +206,9 @@ namespace vw {
     // the order in which these blocks are rasterized, but for now
     // it rasterizes blocks from left to right, then top to bottom.
     Vector2i block_size = resource.native_block_size();
+    int total_num_blocks = ((resource.rows()-1)/block_size.y()+1) * ((resource.cols()-1)/block_size.x()+1);
+    vw_out(DebugMessage,"image") << "ThreadedBlockWriter: writing " << total_num_blocks << " blocks.\n";
+
     for (int32 j = 0; j < (int32)resource.rows(); j+= block_size.y()) {
       for (int32 i = 0; i < (int32)resource.cols(); i+= block_size.x()) {
         
@@ -218,16 +225,14 @@ namespace vw {
         int j_block_index = int(j/block_size.y());
         int index = j_block_index*col_blocks+i_block_index;
 
-        // For debugging:
-        //    int total_num_blocks = ((resource.rows()-1)/block_size.y()+1) * ((resource.cols()-1)/block_size.x()+1);
-        //   vw_out(0) << "Adding block " << index+1 << "/"<< total_num_blocks << " : " << current_bbox << "\n";
-
-        block_writer.add_block(resource, image, current_bbox, index);
+        vw_out(VerboseDebugMessage,"image") << "ThreadedBlockWriter: Adding block " << index+1 << "/"<< total_num_blocks << " : " << current_bbox << "\n";
+        block_writer.add_block(resource, image, current_bbox, index, total_num_blocks, progress_callback );
       }
     }
     
     // Start the threaded block writer and wait for all tasks to finish.
-    block_writer.process_blocks(progress_callback);
+    block_writer.process_blocks();
+    progress_callback.report_finished();
   }
   
 
