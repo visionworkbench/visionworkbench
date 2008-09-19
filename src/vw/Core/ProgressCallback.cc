@@ -31,23 +31,25 @@ const vw::ProgressCallback &vw::ProgressCallback::dummy_instance() {
   return g_dummy_progress_callback_instance;
 }
 
-void vw::TerminalProgressCallback::report_progress(double progress) const {
-  if (fabs(progress - m_last_reported_progress) > 0.01) {
-    m_last_reported_progress = progress;
-    int pi = static_cast<int>(progress * 60);
+void vw::TerminalProgressCallback::print_progress() const {
+  if (fabs(m_progress - m_last_reported_progress) > 0.01) {
+    m_last_reported_progress = m_progress;
+    int pi = static_cast<int>(m_progress * 60);
     std::ostringstream p;
     p << "\r" << m_pre_progress_text << "[";
     for( int i=0; i<pi; ++i ) p << "*";
     for( int i=60; i>pi; --i ) p << ".";
-    p << "] " << (int)(progress*100) << "%";
+    p << "] " << (int)(m_progress*100) << "%";
     vw_out(m_level) << p.str() << std::flush;
   }
 }
 
 void vw::TerminalProgressCallback::report_aborted(std::string why) const {
+  Mutex::Lock lock(m_mutex);
   vw_out(m_level) << " Aborted: " << why << std::endl;
 }
 
 void vw::TerminalProgressCallback::report_finished() const {
+  Mutex::Lock lock(m_mutex);
   vw_out(m_level) << "\r" << m_pre_progress_text << "[************************************************************] Complete!\n";
 }
