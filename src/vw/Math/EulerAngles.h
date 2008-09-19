@@ -131,17 +131,13 @@ namespace math {
   inline vw::Matrix<double,3,3> euler_to_rotation_matrix(double phi, double omega, double kappa, std::string const& sequence) {
     
     VW_ASSERT(sequence.size() == 3,
-              vw::ArgumentErr() << "euler_to_quaternion: rotation sequence must be a three character sequence composed of \'x\', \'y\', and \'z\'.");
+              vw::ArgumentErr() << "euler_to_rotation_matrix: rotation sequence must be a three character sequence composed of \'x\', \'y\', and \'z\'.");
     
     vw::Matrix<double,3,3> e_phi = euler_rotation_helper(phi, sequence[0]);
     vw::Matrix<double,3,3> e_omega = euler_rotation_helper(omega, sequence[1]);
     vw::Matrix<double,3,3> e_kappa = euler_rotation_helper(kappa, sequence[2]);
 
-    // Re-enabled 09-11-08 - mbroxton
     return e_kappa*e_omega*e_phi;
-
-    // Dis-enabled 09-11-08 pending further discussion with Zach - mbroxton
-    //    return e_phi*e_omega*e_kappa;
   }
 
   /// Quaternion variant of euler_to_rotation_matrix()
