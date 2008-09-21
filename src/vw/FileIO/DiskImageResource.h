@@ -96,6 +96,7 @@ namespace vw {
     /// type.  Don't forget to delete this DiskImageResource object
     /// when you're finished with it!
     static DiskImageResource* create( std::string const& filename, ImageFormat const& format );
+    static DiskImageResource* create( std::string const& filename, ImageFormat const& format, std::string const& type );
 
     typedef DiskImageResource* (*construct_open_func)( std::string const& filename );
     

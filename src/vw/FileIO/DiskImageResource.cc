@@ -219,6 +219,17 @@ vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename 
   return 0; // never reached
 }
 
+vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, ImageFormat const& format, std::string const& type ) {
+  register_default_file_types();
+  if( create_map ) {
+    CreateMapType::iterator i = create_map->find( type );
+    if( i != create_map->end() )
+      return i->second( filename, format );
+  }
+  vw_throw( NoImplErr() << "Unsuppported file format: " << filename );
+  return 0; // never reached
+}
+
 vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, ImageFormat const& format ) {
   register_default_file_types();
   if( create_map ) {
