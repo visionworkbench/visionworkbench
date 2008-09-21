@@ -31,7 +31,7 @@
 using namespace vw;
 using namespace vw::internal;
 
-static void test_extension(std::string fn)
+static void test_extension(std::string const& fn)
 {
   TS_TRACE(vw::stringify("Testing ") + fn);
 }
