@@ -374,6 +374,18 @@ namespace math {
     return os << "(" << bbox.min() << "-" << bbox.max() << ")";
   }
 
+  /// Asymmetricaly scale a bounding box, by elementwise vector product
+  template <class BBoxT, class RealT, int DimN, class VectorT>
+  inline BBoxT elem_prod( BBoxBase<BBoxT, RealT, DimN> const& bbox, VectorBase<VectorT> const& v ) {
+    return BBoxT( elem_prod(bbox.min(),v), elem_prod(bbox.max(),v) );
+  }
+
+  /// Asymmetricaly scale a bounding box, by elementwise vector quotient
+  template <class BBoxT, class RealT, int DimN, class VectorT>
+  inline BBoxT elem_quot( BBoxBase<BBoxT, RealT, DimN> const& bbox, VectorBase<VectorT> const& v ) {
+    return BBoxT( elem_quot(bbox.min(),v), elem_quot(bbox.max(),v) );
+  }
+
   // *******************************************************************
   // class BBox
   // *******************************************************************
