@@ -67,6 +67,7 @@ std::string output_file_name;
 std::string output_file_type;
 std::string output_metadata;
 std::string module_name;
+double nudge_x=0, nudge_y=0;
 double north_lat=90.0, south_lat=-90.0;
 double east_lon=180.0, west_lon=-180.0;
 double proj_lat=0, proj_lon=0, proj_scale=1;
@@ -161,10 +162,37 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
       input_georef.set_well_known_geogcs("WGS84");
     if(input_georef.proj4_str() == "")
       input_georef.set_well_known_geogcs("WGS84");
-    if(input_georef.transform() == identity_matrix<3>() ) {
-      vw_out(ErrorMessage) << "ERror: No georeferencing info found for input file \"" << image_files[i] << "\"!" << std::endl;
-      exit(1);
+
+    bool manual = vm.count("north") || vm.count("south") || vm.count("east") || vm.count("west");
+    if( manual || input_georef.transform() == identity_matrix<3>() ) {
+      if( image_files.size() == 1 ) {
+        vw_out(InfoMessage) << "No georeferencing info found.  Assuming Plate Carree WGS84: " 
+                            << east_lon << " to " << west_lon << " E, " << south_lat << " to " << north_lat << " N." << std::endl;
+        input_georef = GeoReference();
+        input_georef.set_well_known_geogcs("WGS84");
+        Matrix3x3 m;
+        m(0,0) = (east_lon - west_lon) / file_resource.cols();
+        m(0,2) = west_lon;
+        m(1,1) = (south_lat - north_lat) / file_resource.rows();
+        m(1,2) = north_lat;
+        m(2,2) = 1;
+        input_georef.set_transform( m );
+        manual = true;
+      }
+      else {
+        vw_out(ErrorMessage) << "Error: No georeferencing info found for input file \"" << image_files[i] << "\"!" << std::endl;
+        vw_out(ErrorMessage) << "(Manually-specified bounds are only allowed for single image files.)" << std::endl;
+        exit(1);
+      }
     }
+    else if( vm.count("sinusoidal") ) input_georef.set_sinusoidal(proj_lon);
+    else if( vm.count("mercator") ) input_georef.set_mercator(proj_lat,proj_lon,proj_scale);
+    else if( vm.count("transverse-mercator") ) input_georef.set_transverse_mercator(proj_lat,proj_lon,proj_scale);
+    else if( vm.count("orthographic") ) input_georef.set_orthographic(proj_lat,proj_lon);
+    else if( vm.count("stereographic") ) input_georef.set_stereographic(proj_lat,proj_lon,proj_scale);
+    else if( vm.count("lambert-azimuthal") ) input_georef.set_lambert_azimuthal(proj_lat,proj_lon);
+    else if( vm.count("lambert-conformal-conic") ) input_georef.set_lambert_azimuthal(lcc_parallel1, lcc_parallel2, proj_lat, proj_lon);
+    else if( vm.count("utm") ) input_georef.set_UTM( utm_zone );
 
     georeferences.push_back( input_georef );
 
@@ -397,12 +425,35 @@ int main(int argc, char **argv) {
     ("composite-multiband", "Composite images using multi-band blending")
     ("aspect-ratio", po::value<int>(&aspect_ratio)->default_value(1), "Pixel aspect ratio (for polar overlays; should be a power of two)");
 
+  po::options_description projection_options("Projection Options");
+  projection_options.add_options()
+    ("north", po::value<double>(&north_lat), "The northernmost latitude in degrees")
+    ("south", po::value<double>(&south_lat), "The southernmost latitude in degrees")
+    ("east", po::value<double>(&east_lon), "The easternmost longitude in degrees")
+    ("west", po::value<double>(&west_lon), "The westernmost longitude in degrees")
+    ("force-wgs84", "Assume the input images' geographic coordinate systems are WGS84, even if they're not (old behavior)")
+    ("sinusoidal", "Assume a sinusoidal projection")
+    ("mercator", "Assume a Mercator projection")
+    ("transverse-mercator", "Assume a transverse Mercator projection")
+    ("orthographic", "Assume an orthographic projection")
+    ("stereographic", "Assume a stereographic projection")
+    ("lambert-azimuthal", "Assume a Lambert azimuthal projection")
+    ("lambert-conformal-conic", "Assume a Lambert Conformal Conic projection")
+    ("utm", po::value<unsigned>(&utm_zone), "Assume UTM projection with the given zone")
+    ("proj-lat", po::value<double>(&proj_lat), "The center of projection latitude (if applicable)")
+    ("proj-lon", po::value<double>(&proj_lon), "The center of projection longitude (if applicable)")
+    ("proj-scale", po::value<double>(&proj_scale), "The projection scale (if applicable)")
+    ("std-parallel1", po::value<double>(&lcc_parallel1), "Standard parallels for Lambert Conformal Conic projection")
+    ("std-parallel2", po::value<double>(&lcc_parallel2), "Standard parallels for Lambert Conformal Conic projection")
+    ("nudge-x", po::value<double>(&nudge_x), "Nudge the image, in projected coordinates")
+    ("nudge-y", po::value<double>(&nudge_y), "Nudge the image, in projected coordinates");
+
   po::options_description hidden_options("");
   hidden_options.add_options()
     ("input-file", po::value<std::vector<std::string> >(&image_files));
 
   po::options_description options("Allowed Options");
-  options.add(general_options).add(input_options).add(output_options).add(hidden_options);
+  options.add(general_options).add(input_options).add(output_options).add(projection_options).add(hidden_options);
 
   po::positional_options_description p;
   p.add("input-file", -1);
@@ -422,6 +473,7 @@ int main(int argc, char **argv) {
   usage << general_options << std::endl;
   usage << input_options << std::endl;
   usage << output_options << std::endl;
+  usage << projection_options << std::endl;
 
   if( vm.count("help") ) {
     std::cout << usage.str();
