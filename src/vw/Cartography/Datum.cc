@@ -32,7 +32,7 @@ vw::cartography::Datum::Datum(std::string const& name,
                               double meridian_offset)
   : m_name(name),
     m_spheroid_name(spheroid_name),
-    m_meridian_name(spheroid_name),
+    m_meridian_name(meridian_name),
     m_semi_major_axis(semi_major_axis),
     m_semi_minor_axis(semi_minor_axis),
     m_meridian_offset(meridian_offset)
