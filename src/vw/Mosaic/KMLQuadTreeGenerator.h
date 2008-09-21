@@ -137,7 +137,7 @@ namespace mosaic {
 
       // Reject patches that fail the interior intersection check.
       // This effectively prunes branches of the tree with no source data.
-      if( ! (*(this->m_sparse_tile_check))(bbox) ) {
+      if( ! (this->m_sparse_tile_check)(bbox) ) {
         vw_out(DebugMessage, "mosaic") << "\tIgnoring empty branch: " << name << std::endl;
         image.set_size(width, height);
         return image;

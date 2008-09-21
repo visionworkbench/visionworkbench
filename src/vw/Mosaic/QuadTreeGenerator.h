@@ -68,12 +68,12 @@ namespace mosaic {
         m_patch_overlap( 0 ),
         m_levels_per_directory( 3 ),
         m_crop_images( true ),
-        m_write_meta_file( true )
+        m_write_meta_file( true ),
+        m_sparse_tile_check( SparseTileCheck<ImageT>(source.impl()) )
     {
       fs::path tree_path( tree_name, fs::native );
       fs::path base_path = tree_path.branch_path() / tree_path.leaf();
       m_base_dir = base_path.native_directory_string();
-      m_sparse_tile_check = boost::shared_ptr<SparseTileCheckBase>(new SparseTileCheck<ImageT>(source.impl()));
     }
 
     virtual ~ImageQuadTreeGenerator() {}
@@ -221,7 +221,7 @@ namespace mosaic {
     int32 m_tree_levels;
     std::vector<std::map<std::pair<int32,int32>,ImageView<PixelT> > > m_patch_cache;
     std::vector<std::map<std::pair<int32,int32>,std::string> > m_filename_cache;
-    boost::shared_ptr<SparseTileCheckBase> m_sparse_tile_check;
+    boost::function<bool(BBox2i const&)> m_sparse_tile_check;
     
     virtual void write_patch( ImageView<PixelT> const& image, std::string const& name, int32 level, int32 x, int32 y ) const {
       PatchInfo info;
@@ -281,7 +281,7 @@ namespace mosaic {
       // Reject patches that fail the interior intersection check.
       // This effectively prunes branches of the tree with no source
       // data.
-      if( ! (*m_sparse_tile_check)(patch_bbox) ) {
+      if( ! m_sparse_tile_check(patch_bbox) ) {
         vw_out(DebugMessage, "mosaic") << "\tIgnoring empty branch: " << name << std::endl;
         image.set_size( interior_size, interior_size );
         return image;

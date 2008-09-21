@@ -305,7 +305,7 @@ namespace mosaic {
   // able to check to see whether an arbitrary bbox intersects with
   // any of the the ImageComposite's source images.  
   template <class PixelT>
-  class SparseTileCheck<ImageComposite<PixelT> > : public SparseTileCheckBase {
+  class SparseTileCheck<ImageComposite<PixelT> > {
     std::vector<BBox2i> m_src_bboxes;
   public:
     SparseTileCheck(ImageComposite<PixelT> const& source) : m_src_bboxes(source.child_bboxes()) {}

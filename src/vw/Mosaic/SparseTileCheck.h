@@ -32,20 +32,15 @@
 namespace vw {
 namespace mosaic {
 
-  struct SparseTileCheckBase {
-    virtual ~SparseTileCheckBase() {}
-    virtual bool operator() (BBox2i const& bbox) = 0;
-  };
-  
   // This is the default version for most image views.  It simply
   // checks for intersection with the entire bounding box of the
   // image.
   template <class SrcViewT>
-  class SparseTileCheck : public SparseTileCheckBase {
+  class SparseTileCheck {
     BBox2i m_src_bbox;
   public:
     SparseTileCheck(SrcViewT const& source) : m_src_bbox(0,0,source.cols(),source.rows()) {}
-    virtual bool operator() (BBox2i const& bbox) { return bbox.intersects(m_src_bbox); }
+    bool operator() (BBox2i const& bbox) { return bbox.intersects(m_src_bbox); }
   };
   
 }} // namespace vw::mosaic
