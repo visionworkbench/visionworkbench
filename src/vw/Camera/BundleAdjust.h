@@ -73,6 +73,7 @@ namespace camera {
     inline Matrix<double, 2, CameraParamsN> A_jacobian ( unsigned i, unsigned j,
                                                          Vector<double, CameraParamsN> const& a_j, 
                                                          Vector<double, PointParamsN> const& b_i ) {
+
       // Get nominal function value
       Vector2 h0 = impl()(i,j,a_j,b_i);
 
@@ -81,18 +82,19 @@ namespace camera {
 
       // For each param dimension, add epsilon and re-evaluate h() to
       // get numerical derivative w.r.t. that parameter
-      for ( unsigned i=0; i < CameraParamsN; ++i ){
+      for ( unsigned n=0; n < CameraParamsN; ++n ){
         Vector<double, CameraParamsN> a_j_prime = a_j;
 
         // Variable step size, depending on parameter value
-        double epsilon = 1e-7 + fabs(a_j(i)*1e-7);
-        a_j_prime(i) += epsilon;
+        double epsilon = 1e-7 + fabs(a_j(n)*1e-7);
+        a_j_prime(n) += epsilon;
 
         // Evaluate function with this step and compute the derivative
         // w.r.t. parameter i
         Vector2 hi = impl()(i,j,a_j_prime, b_i);
-        select_col(J,i) = (hi-h0)/epsilon;
+        select_col(J,n) = (hi-h0)/epsilon;
       }
+
       return J;
     }
 
@@ -109,29 +111,21 @@ namespace camera {
 
       // For each param dimension, add epsilon and re-evaluate h() to
       // get numerical derivative w.r.t. that parameter
-      for ( unsigned i=0; i < PointParamsN; ++i ){
+      for ( unsigned n=0; n < PointParamsN; ++n ){
         Vector<double, PointParamsN> b_i_prime = b_i;
 
         // Variable step size, depending on parameter value
-        double epsilon = 1e-7 + fabs(b_i(i)*1e-7);
-        b_i_prime(i) += epsilon;
+        double epsilon = 1e-7 + fabs(b_i(n)*1e-7);
+        b_i_prime(n) += epsilon;
 
         // Evaluate function with this step and compute the derivative
         // w.r.t. parameter i
         Vector2 hi = impl()(i,j,a_j,b_i_prime);
-        select_col(J,i) = (hi-h0)/epsilon;
+        select_col(J,n) = (hi-h0)/epsilon;
       }
       return J;
     }
   };
-
-
-
-
-
-
-
-
 
 
   // Returns cholesky factor L, D in lower left hand corner and
@@ -851,6 +845,7 @@ namespace camera {
           Vector2 unweighted_error = m_control_net[i][m].position() - m_model(i, camera_idx, 
                                                                               m_model.A_parameters(camera_idx), 
                                                                               m_model.B_parameters(i));
+
           double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
           subvector(epsilon,2*idx,2) = unweighted_error * weight;
 
