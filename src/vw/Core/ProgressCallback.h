@@ -115,7 +115,7 @@ namespace vw {
     SubProgressCallback(const ProgressCallback &parent,
                         double from, double to) :
       m_parent(parent), m_from(from), m_to(to) {}
-    SubProgressCallback( const SubProgressCallback& copy ) : 
+    SubProgressCallback( const SubProgressCallback& copy ) : ProgressCallback(copy),
       m_parent(copy.parent()), m_from(copy.from()), m_to(copy.to()) {
       m_progress = copy.progress();
       m_abort_requested = copy.abort_requested();
@@ -150,7 +150,7 @@ namespace vw {
       m_level(level), m_pre_progress_text(pre_progress_text), m_last_reported_progress(-1) {}
     virtual ~TerminalProgressCallback() {}
 
-    TerminalProgressCallback( const TerminalProgressCallback& copy ) {
+    TerminalProgressCallback( const TerminalProgressCallback& copy ) : ProgressCallback(copy) {
       m_level = copy.message_level();
       m_pre_progress_text = copy.pre_progress_text();
       m_progress = copy.progress();
