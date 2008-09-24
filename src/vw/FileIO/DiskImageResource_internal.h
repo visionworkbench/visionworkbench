@@ -30,13 +30,13 @@
 
 #include <string>
 #include <set>
+#include <boost/function.hpp>
 
 namespace vw {
 namespace internal {
-
-  typedef void (*ExtTestFunction)(std::string const& fn);
-  void foreach_ext(std::string const& fn, ExtTestFunction func, std::set<std::string> const& exclude = std::set<std::string>() );
-
+  typedef boost::function<void (std::string const&)> ExtTestFunction;
+  void foreach_ext(std::string const& prefix, ExtTestFunction const& callback,
+                  std::set<std::string> const& exclude = std::set<std::string>() );
 }} // namespace vw::internal
 
 #endif // __VW_FILEIO_DISKIMAGERESOURCE_INTERNAL__

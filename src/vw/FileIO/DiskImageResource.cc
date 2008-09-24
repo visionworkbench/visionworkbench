@@ -83,7 +83,7 @@ namespace {
 namespace vw {
   namespace internal {
 
-void foreach_ext(std::string const& fn, ExtTestFunction func, std::set<std::string> const& exclude)
+void foreach_ext(std::string const& prefix, ExtTestFunction const& callback, std::set<std::string> const& exclude)
 {
   OpenMapType::const_iterator oi;
   vw::DiskImageResource::register_default_file_types();
@@ -91,7 +91,7 @@ void foreach_ext(std::string const& fn, ExtTestFunction func, std::set<std::stri
   for (oi = open_map->begin(); oi != open_map->end(); ++oi)
   {
     if (exclude.find(oi->first.substr(1)) == exclude.end())
-      func(fn + oi->first);
+      callback(prefix + oi->first);
   }
 }
 
