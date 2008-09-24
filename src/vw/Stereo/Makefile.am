@@ -33,7 +33,7 @@ include_HEADERS = Correlate.h ReferenceCorrelator.h		\
 	ParabolaSubpixelView.h AffineSubpixelView.h
 
 libvwStereo_la_SOURCES = StereoModel.cc OptimizedCorrelator.cc	\
-	 PyramidCorrelator.cc Correlate.cc
+	 PyramidCorrelator.cc Correlate.cc AffineSubpixelView.cc
 
 libvwStereo_la_LIBADD = @MODULE_STEREO_LIBS@
 
