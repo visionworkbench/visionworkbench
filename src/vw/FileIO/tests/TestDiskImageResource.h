@@ -64,8 +64,8 @@ public:
 
   void test_write_read_view() {
     set<string> exclude;
-    const char *ex_list[] = {"img", "lbl", "pds"}; // skip the ro PDS formats
-    exclude.insert(ex_list, ex_list+3);
+    const char *ex_list[] = {"img", "lbl", "pds", "cub"}; // skip the ro PDS formats
+    exclude.insert(ex_list, ex_list+4);
 
     foreach_ext("rwtest", test_extension<PixelRGB<float> >,   exclude);
     foreach_ext("rwtest", test_extension<PixelRGB<uint8> >,   exclude);
