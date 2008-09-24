@@ -210,12 +210,14 @@ namespace vw {
         char** metadata = driver->GetMetadata();
         if( !CSLFetchBoolean( metadata, GDAL_DCAP_CREATE, FALSE ) )
         {
-          vw_out(DebugMessage, "fileio") << "GDAL driver " << (*i) << " does not support create." << std::endl;
+          vw_out(WarningMessage, "fileio") << "GDAL driver " << (*i) << " does not support create." << std::endl;
           driver = NULL;
           unsupported_driver = true;
         }
       }
     }
+    if (!driver)
+      vw_out(DebugMessage, "fileio") << "Could not get GDAL driver for filename:" << filename << std::endl;
     return std::make_pair(driver, unsupported_driver);
   }
 
