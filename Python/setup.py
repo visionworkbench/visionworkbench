@@ -20,6 +20,7 @@ class libtool_build_ext( build_ext ):
 	
 modules = [
     Extension( "vw._core",        ["vw/_core.i"],        libraries=["vw"] ),
+    Extension( "vw._vwmath",      ["vw/_vwmath.i"],      include_dirs = [numpy.get_include()], libraries=["vw"] ),
     Extension( "vw._pixel",       ["vw/_pixel.i"],       include_dirs = [numpy.get_include()], libraries=["vw"] ),
     Extension( "vw._image",       ["vw/_image.i"],       include_dirs = [numpy.get_include()], libraries=["vw"] ),
     Extension( "vw._pixelcast",   ["vw/_pixelcast.i"],   include_dirs = [numpy.get_include()], libraries=["vw"] ),
@@ -29,7 +30,7 @@ modules = [
     Extension( "vw._filter",      ["vw/_filter.i"],      include_dirs = [numpy.get_include()], libraries=["vw"] ),
     Extension( "vw._transform",   ["vw/_transform.i"],   include_dirs = [numpy.get_include()], libraries=["vw"] ),
     Extension( "vw._fileio",      ["vw/_fileio.i"],      include_dirs = [numpy.get_include()], libraries=["vw"]  ),
-    Extension( "vw._mosaic",      ["vw/_mosaic.i"],      include_dirs = [numpy.get_include()], libraries=["vwMosaic"]  ),
+    Extension( "vw._qtree",       ["vw/_qtree.i"],      include_dirs = [numpy.get_include()], libraries=["vwMosaic"]  ),
     Extension( "vw._composite",   ["vw/_composite.i"],   include_dirs = [numpy.get_include()], libraries=["vwMosaic"]  ),
     Extension( "vw._cartography", ["vw/_cartography.i"], include_dirs = [numpy.get_include()], libraries=["vwCartography"]  )
     #Extension( "vw._foo",         ["vw/_foo.i"],         include_dirs = [numpy.get_include()], libraries=["vw"] )

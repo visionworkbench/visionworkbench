@@ -33,11 +33,7 @@
 #include <string>
 #include <fstream>
 
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/fstream.hpp>
-#include <boost/filesystem/convenience.hpp>
-
+#include <boost/function.hpp>
 #include <vw/Math/BBox.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
@@ -45,7 +41,7 @@
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/Filter.h>
-#include <vw/FileIO/DiskImageResource.h>
+#include <vw/Image/ImageIO.h>
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Core/Stopwatch.h>
 #include <vw/Mosaic/SparseTileCheck.h>
@@ -53,92 +49,57 @@
 namespace vw {
 namespace mosaic {
 
-  namespace fs = boost::filesystem;
-
+  // This feature, or something like it, should be implemented better and 
+  // moved somewhere into the Image module.
   template <class PixelT>
-  class ImageQuadTreeGenerator {
+  ImageView<PixelT> box_subsample( ImageView<PixelT> const& image, Vector2i const& scale ) {
+    std::vector<double> xkernel(scale.x()), ykernel(scale.y());
+    for( int x=0; x<scale.x(); ++x ) xkernel[x] = 1.0 / scale.x();
+    for( int y=0; y<scale.y(); ++y ) ykernel[y] = 1.0 / scale.y();
+    ImageView<PixelT> result( image.cols()/scale.x(), image.rows()/scale.y() );
+    rasterize( subsample( separable_convolution_filter( image, xkernel, ykernel, scale.x()-1, scale.y()-1 ), scale.x(), scale.y() ), result );
+    return result;
+  }
+
+  class QuadTreeGenerator {
   public:
-
-    template <class ImageT>
-    ImageQuadTreeGenerator( std::string const& tree_name, ImageViewBase<ImageT> const& source )
-      : m_source( source.impl() ),
-        m_crop_bbox( 0, 0, m_source.cols(), m_source.rows() ),
-        m_output_image_type( "png" ),
-        m_patch_size( 256 ),
-        m_patch_overlap( 0 ),
-        m_levels_per_directory( 3 ),
-        m_crop_images( true ),
-        m_write_meta_file( true ),
-        m_sparse_tile_check( SparseTileCheck<ImageT>(source.impl()) )
-    {
-      fs::path tree_path( tree_name, fs::native );
-      fs::path base_path = tree_path.branch_path() / tree_path.leaf();
-      m_base_dir = base_path.native_directory_string();
-    }
-
-    virtual ~ImageQuadTreeGenerator() {}
-
-    struct PatchInfo {
-      std::string name, filepath;
-      int32 level;
-      BBox2i image_bbox;
-      BBox2i visible_bbox;
-      BBox2i region_bbox;
+    struct TileInfo {
+      std::string name, filepath, filetype;
+      BBox2i image_bbox, region_bbox;
     };
 
-    virtual std::string compute_image_path( std::string const& name ) const {
-      fs::path path( m_base_dir, fs::native );
-      
-      for (int i= 0; i< (int)name.length() - (int)m_levels_per_directory; i += m_levels_per_directory) {
-        path /= name.substr( i, m_levels_per_directory );
-      }
-      path /= name;
+    typedef boost::function<std::string(QuadTreeGenerator const&, std::string const&)> image_path_func_type;
+    typedef boost::function<std::vector<std::pair<std::string,BBox2i> >(QuadTreeGenerator const&, std::string const&, BBox2i const&)> branch_func_type;
+    typedef boost::function<boost::shared_ptr<ImageResource>(QuadTreeGenerator const&, TileInfo const&, ImageFormat const&)> tile_resource_func_type;
+    typedef boost::function<void(QuadTreeGenerator const&, TileInfo const&)> metadata_func_type;
+    typedef boost::function<bool(BBox2i const&)> sparse_tile_check_type;
 
-      return path.native_file_string();
+    template <class ImageT>
+    QuadTreeGenerator( ImageViewBase<ImageT> const& image, std::string const& tree_name = "output.qtree" )
+      : m_tree_name( tree_name ),
+        m_tile_size( 256 ),
+        m_file_type( "png" ),
+        m_crop_bbox(),
+        m_crop_images( false ),
+        m_dimensions( image.impl().cols(), image.impl().rows() ),
+        m_processor( new Processor<typename ImageT::pixel_type>( this, image.impl() ) ),
+        m_image_path_func( &simple_image_path ),
+        m_branch_func( &default_branch_func ),
+        m_tile_resource_func( &default_tile_resource_func ),
+        m_metadata_func(),
+        m_sparse_tile_check( SparseTileCheck<ImageT>(image.impl()) )
+    {}
+
+    virtual ~QuadTreeGenerator() {}
+
+    void generate( const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() );
+    
+    std::string const& get_name() const {
+      return m_tree_name;
     }
 
-    virtual void write_image( PatchInfo const& info, ImageView<PixelT> const& image ) const {
-      ImageBuffer buf = image.buffer();
-      DiskImageResource *r = DiskImageResource::create( info.filepath, buf.format );
-      r->write( buf, BBox2i(0,0,buf.format.cols,buf.format.rows) );
-      delete r;
-    }
-
-    virtual void write_meta_file( PatchInfo const& info ) const {
-      int32 scale = 1 << info.level;
-      fs::path filepath( info.filepath, fs::native );
-      fs::ofstream outfile( change_extension( filepath, ".bbx" ) );
-      outfile << scale << "\n";
-      outfile << info.image_bbox.min().x() << "\n";
-      outfile << info.image_bbox.min().y() << "\n";
-      outfile << info.image_bbox.width() << "\n";
-      outfile << info.image_bbox.height() << "\n";
-      outfile << info.visible_bbox.min().x() << "\n";
-      outfile << info.visible_bbox.min().y() << "\n";
-      outfile << info.visible_bbox.width() << "\n";
-      outfile << info.visible_bbox.height() << "\n";
-      outfile << m_source.cols() << "\n";
-      outfile << m_source.rows() << "\n";
-    }
-
-    virtual void generate( const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
-      ScopedWatch sw("QuadTreeGenerator::generate");
-      int32 maxdim = std::max( m_source.cols(), m_source.rows() );
-      m_tree_levels = 1 + int32( ceil( log( maxdim/(double)(m_patch_size-m_patch_overlap) ) / log(2.0) ) );
-      
-      // Small images should have at least one quadtree level.
-      if (m_tree_levels < 1) m_tree_levels = 1;
-
-      m_patch_cache.resize( m_tree_levels );
-      m_filename_cache.resize( m_tree_levels );
-
-      vw_out(DebugMessage, "mosaic") << "Using patch size: " << m_patch_size << " pixels" << std::endl;
-      vw_out(DebugMessage, "mosaic") << "Using patch overlap: " << m_patch_overlap << " pixels" << std::endl;
-      vw_out(DebugMessage, "mosaic") << "Generating patch files of type: " << m_output_image_type << std::endl;
-      vw_out(DebugMessage, "mosaic") << "Generating " << m_base_dir << " quadtree with " << m_tree_levels << " levels." << std::endl;
-
-      generate_branch( "r", m_tree_levels-1, 0, 0, progress_callback );
-      progress_callback.report_finished();
+    void set_name( std::string const& name ) {
+      m_tree_name = name;
     }
 
     BBox2i const& get_crop_bbox() const {
@@ -146,42 +107,36 @@ namespace mosaic {
     }
 
     void set_crop_bbox( BBox2i const& bbox ) {
-      if( bbox.min().x() < 0 || bbox.min().y() < 0 ||
-          bbox.max().x() > int(m_source.cols()) || bbox.max().y() > int(m_source.rows()) )
-        vw_throw( ArgumentErr() << "Requested QuadTree bounding box exceeds source dimensions!" );
+      VW_ASSERT( BBox2i(Vector2i(), m_dimensions).contains(bbox),
+		 ArgumentErr() << "Requested QuadTree bounding box exceeds source dimensions!" );
       m_crop_bbox = bbox;
     }
 
-    std::string const& get_output_image_file_type() const {
-      return m_output_image_type;
+    std::string const& get_file_type() const {
+      return m_file_type;
     }
 
-    void set_output_image_file_type( std::string const& extension ) {
-      m_output_image_type = extension;
+    void set_file_type( std::string const& extension ) {
+      m_file_type = extension;
     }
 
-    int32 get_patch_size() const {
-      return m_patch_size;
+    int32 get_tile_size() const {
+      return m_tile_size;
     }
 
-    void set_patch_size( int32 size ) {
-      m_patch_size = size;
+    void set_tile_size( int32 size ) {
+      m_tile_size = size;
     }
 
-    int32 get_patch_overlap() const {
-      return m_patch_overlap;
+    int32 get_tree_levels() const {
+      int32 maxdim = (std::max)( m_dimensions.x(), m_dimensions.y() );
+      int32 tree_levels = 1 + int32( ceil( log( maxdim/(double)(m_tile_size) ) / log(2.0) ) );
+      if (tree_levels < 1) tree_levels = 1;
+      return tree_levels;
     }
 
-    void set_patch_overlap( int32 overlap ) {
-      m_patch_overlap = overlap;
-    }
-
-    int32 get_levels_per_directory() const {
-      return m_levels_per_directory;
-    }
-
-    void set_levels_per_directory( int32 levels_per_directory ) {
-      m_levels_per_directory = levels_per_directory;
+    Vector2i const& get_dimensions() const {
+      return m_dimensions;
     }
 
     bool get_crop_images() const {
@@ -192,215 +147,157 @@ namespace mosaic {
       m_crop_images = crop;
     }
 
-    void set_write_meta_file( bool write_meta_file ) {
-      m_write_meta_file = write_meta_file;
+    void set_image_path_func( image_path_func_type image_path_func ) {
+      m_image_path_func = image_path_func;
     }
 
-    std::string const& get_base_dir() const {
-      return m_base_dir;
+    std::string image_path( std::string const& name ) const {
+      return m_image_path_func( *this, name );
     }
 
-    void set_base_dir( std::string const& base_dir ) {
-      m_base_dir = base_dir;
+    void set_branch_func( branch_func_type const& branch_func ) {
+      m_branch_func = branch_func;
     }
 
-    int get_tree_levels() const {
-      return m_tree_levels;
+    std::vector<std::pair<std::string,BBox2i> > branches( std::string const& name, BBox2i const& region ) const {
+      return m_branch_func( *this, name, region );
     }
+
+    void set_tile_resource_func( tile_resource_func_type const& tile_resource_func ) {
+      m_tile_resource_func = tile_resource_func;
+    }
+
+    void set_metadata_func( metadata_func_type metadata_func ) {
+      m_metadata_func = metadata_func;
+    }
+
+    // Makes paths of the form "path/name/r0132.jpg"
+    static std::string simple_image_path( QuadTreeGenerator const& qtree, std::string const& name );
+
+    // Makes paths of the form "path/name/r01/r0132.jpg"
+    static std::string tiered_image_path( QuadTreeGenerator const& qtree, std::string const& name, int32 levels_per_directory = 3 );
+
+    // Makes paths of the form "path/name/013/0132.jpg" (and "path/name/name.jpg" for the top level)
+    static std::string named_tiered_image_path( QuadTreeGenerator const& qtree, std::string const& name, int32 levels_per_directory = 3 );
+
+    // The default quad-tree branching function
+    static std::vector<std::pair<std::string,BBox2i> > default_branch_func(QuadTreeGenerator const& qtree, std::string const& name, BBox2i const& region);
+
+    // The default resource function, creates standard disk image resources
+    static boost::shared_ptr<ImageResource> default_tile_resource_func( QuadTreeGenerator const& qtree, TileInfo const& info, ImageFormat const& format );
 
   protected:
-    std::string m_base_dir;
-    ImageViewRef<PixelT> m_source;
+    class ProcessorBase {
+    protected:
+      QuadTreeGenerator *qtree;
+    public:
+      ProcessorBase( QuadTreeGenerator *qtree ) : qtree(qtree) {}
+      virtual ~ProcessorBase() {}
+      virtual void generate( BBox2i const& bbox, const ProgressCallback &progress_callback ) = 0;
+    };
+
+    template <class PixelT>
+    class Processor : public ProcessorBase {
+      ImageViewRef<PixelT> m_source;
+      
+    public:
+      template <class ImageT>
+      Processor( QuadTreeGenerator *qtree, ImageT const& source )
+	: ProcessorBase( qtree ), m_source( source )
+      {}
+      
+      void generate( BBox2i const& region_bbox, const ProgressCallback &progress_callback ) {
+	generate_branch( "", region_bbox, progress_callback );
+      }
+
+      ImageView<PixelT> generate_branch( std::string const& name, BBox2i const& region_bbox, const ProgressCallback &progress_callback ) {
+	progress_callback.report_progress(0);
+	progress_callback.abort_if_requested();
+  
+	ImageView<PixelT> image;
+	TileInfo info;
+	info.name = name;
+	info.region_bbox = region_bbox;
+
+	BBox2i crop_bbox(Vector2i(), qtree->m_dimensions);
+	if( ! qtree->get_crop_bbox().empty() ) crop_bbox.crop( qtree->get_crop_bbox() );
+	info.image_bbox = info.region_bbox;
+	info.image_bbox.crop( crop_bbox );
+	if( info.image_bbox.empty() ) return image;
+  
+	if( qtree->m_sparse_tile_check && ! qtree->m_sparse_tile_check(info.region_bbox) ) return image;
+
+	Vector2i scale = info.region_bbox.size() / qtree->m_tile_size;
+ 
+	std::vector<std::pair<std::string, BBox2i> > children = qtree->m_branch_func(*qtree,info.name,info.region_bbox);
+	if( children.empty() ) {
+	  image = crop( m_source, info.image_bbox );
+	  if( info.image_bbox != info.region_bbox ) {
+	    image = edge_extend( image, info.region_bbox - info.image_bbox.min(), ZeroEdgeExtension() );
+	  }
+	  if( info.region_bbox.width() != qtree->m_tile_size || info.region_bbox.height() != qtree->m_tile_size ) {
+	    image = subsample( image, scale.x(), scale.y() );
+	  }
+	}
+	else {
+	  image.set_size(qtree->m_tile_size,qtree->m_tile_size);
+	  for( unsigned i=0; i<children.size(); ++i ) {
+	    BBox2i dst_bbox = elem_quot( children[i].second - info.region_bbox.min(), scale );
+	    SubProgressCallback spc(progress_callback, i/(double)children.size(), (i+1)/(double)children.size());
+	    ImageView<PixelT> child = generate_branch(children[i].first, children[i].second, spc);
+	    if( ! child ) continue;
+	    crop(image,dst_bbox) = box_subsample( child, elem_quot(qtree->m_tile_size,dst_bbox.size()) );
+	  }
+	}
+  
+	ImageView<PixelT> cropped_image = image;
+	if( qtree->m_crop_images ) {
+	  BBox2i data_bbox = elem_quot( info.image_bbox-info.region_bbox.min(), scale );
+	  if( PixelHasAlpha<PixelT>::value )
+	    data_bbox.crop( nonzero_data_bounding_box( image ) );
+	  if( data_bbox.width() != qtree->m_tile_size || data_bbox.height() != qtree->m_tile_size ) {
+	    if( data_bbox.empty() ) cropped_image.reset();
+	    else cropped_image = crop( image, data_bbox );
+	    info.image_bbox = elem_prod(data_bbox,scale) + info.region_bbox.min();
+	  }
+	}
+  
+	if( qtree->m_file_type == "auto" ) {
+	  if( is_opaque( cropped_image ) ) info.filetype += ".jpg";
+	  else info.filetype += ".png";
+	}
+	else {
+	  info.filetype = "." + qtree->m_file_type;
+	}
+  
+	info.filepath = qtree->m_image_path_func( *qtree, info.name );
+	if( cropped_image ) {
+	  ScopedWatch sw("QuadTreeGenerator::write_tile");
+	  boost::shared_ptr<ImageResource> r = qtree->m_tile_resource_func( *qtree, info, cropped_image.format() );
+	  write_image( *r, cropped_image );
+	}
+	if( qtree->m_metadata_func ) qtree->m_metadata_func( *qtree, info );
+  
+	progress_callback.report_progress(1);
+	return image;
+      }
+    };
+
+    template<class> friend class Processor;
+
+    std::string m_tree_name;
+    int32 m_tile_size;
+    std::string m_file_type;
     BBox2i m_crop_bbox;
-    std::string m_output_image_type;
-    int32 m_patch_size;
-    int32 m_patch_overlap;
-    int32 m_levels_per_directory;
     bool m_crop_images;
-    bool m_write_meta_file;
-    int32 m_tree_levels;
-    std::vector<std::map<std::pair<int32,int32>,ImageView<PixelT> > > m_patch_cache;
-    std::vector<std::map<std::pair<int32,int32>,std::string> > m_filename_cache;
-    boost::function<bool(BBox2i const&)> m_sparse_tile_check;
-    
-    virtual void write_patch( ImageView<PixelT> const& image, std::string const& name, int32 level, int32 x, int32 y ) const {
-      PatchInfo info;
-      info.name = name;
-      info.filepath = compute_image_path( name );
-      info.level = level;
-      int32 scale = 1 << level;
-      int32 interior_size = m_patch_size - m_patch_overlap;
-      Vector2i position( x*interior_size-m_patch_overlap/2, y*interior_size-m_patch_overlap/2 );
-      info.image_bbox = BBox2i( Vector2i(0,0), Vector2i(image.cols(), image.rows()) );
-      info.visible_bbox = info.region_bbox = info.image_bbox;
-      info.visible_bbox.contract( m_patch_overlap/2 );
-      ImageView<PixelT> patch_image = image;
-      if( m_crop_images ) {
-        info.image_bbox = nonzero_data_bounding_box( image );
-        if( info.image_bbox.empty() ) {
-          vw_out(DebugMessage, "mosaic") << "\tIgnoring empty image: " << name << std::endl;
-          return;
-        }
-        if( info.image_bbox.width() != int(m_patch_size) || info.image_bbox.height() != int(m_patch_size) )
-          patch_image = crop( image, info.image_bbox );
-        info.visible_bbox.crop( info.image_bbox );
-      }
-      info.image_bbox = scale * (info.image_bbox + position);
-      info.visible_bbox = scale * (info.visible_bbox + position);
-      info.region_bbox = scale * (info.region_bbox + position);
-      std::string output_image_type = m_output_image_type;
-      if( output_image_type == "auto" ) {
-        if( is_opaque( patch_image ) ) output_image_type = "jpg";
-        else output_image_type = "png";
-      }
-      info.filepath += "." + output_image_type;
+    Vector2i m_dimensions;
+    boost::shared_ptr<ProcessorBase> m_processor;
 
-      create_directories( fs::path( info.filepath, fs::native ).branch_path() );
-
-      vw_out(InfoMessage, "mosaic") << "\tSaving image: " << info.filepath << "\t" << patch_image.cols() << "x" << patch_image.rows() << std::endl;
-      write_image( info, patch_image );
-      if (m_write_meta_file) write_meta_file( info );
-    }
-
-    virtual ImageView<PixelT> generate_branch( std::string name, int32 level, int32 x, int32 y, const ProgressCallback &progress_callback ) 
-    {
-      progress_callback.report_progress(0);
-      progress_callback.abort_if_requested();
-      ImageView<PixelT> image;
-      int32 scale = 1 << level;
-      int32 interior_size = m_patch_size - m_patch_overlap;
-      BBox2i patch_bbox = scale * BBox2i( Vector2i(x, y), Vector2i(x+1, y+1) ) * interior_size;
-
-      // Reject patches that fall outside the crop region
-      if( ! patch_bbox.intersects( m_crop_bbox ) ) {
-        vw_out(DebugMessage, "mosaic") << "\tIgnoring empty image: " << name << std::endl;
-        image.set_size( interior_size, interior_size );
-        return image;
-      }
-
-      // Reject patches that fail the interior intersection check.
-      // This effectively prunes branches of the tree with no source
-      // data.
-      if( ! m_sparse_tile_check(patch_bbox) ) {
-        vw_out(DebugMessage, "mosaic") << "\tIgnoring empty branch: " << name << std::endl;
-        image.set_size( interior_size, interior_size );
-        return image;
-      }
-
-      // Base case: rasterize the highest resolution tile.
-      if( level == 0 ) {
-        ScopedWatch sw("QuadTreeGenerator::generate_branch: rasterize leaf");
-        vw_out(DebugMessage, "mosaic") << "ImageQuadTreeGenerator rasterizing region " << patch_bbox << std::endl;
-        BBox2i data_bbox = patch_bbox;
-        data_bbox.crop( m_crop_bbox );
-        image = crop( m_source, data_bbox );
-        
-        if( data_bbox != patch_bbox ) {
-          ScopedWatch sw("QuadTreeGenerator::generate_branch: rasterize leaf edge extend");
-          image = edge_extend( image, patch_bbox-data_bbox.min(), ZeroEdgeExtension() );
-        }
-      }
-      else {
-        ImageView<PixelT> big_image( 2*interior_size, 2*interior_size );
-        SubProgressCallback spcb0( progress_callback,  0., .25 );
-        SubProgressCallback spcb1( progress_callback, .25, .5 );
-        SubProgressCallback spcb2( progress_callback, .5 , .75 );
-        SubProgressCallback spcb3( progress_callback, .75, 1.);
-
-        crop( big_image, 0, 0, interior_size, interior_size ) = generate_branch( name + "0", level-1, 2*x, 2*y, spcb0 );
-        crop( big_image, interior_size, 0, interior_size, interior_size ) = generate_branch( name + "1", level-1, 2*x+1, 2*y, spcb1 );
-        crop( big_image, 0, interior_size, interior_size, interior_size ) = generate_branch( name + "2", level-1, 2*x, 2*y+1, spcb2 );
-        crop( big_image, interior_size, interior_size, interior_size, interior_size ) = generate_branch( name + "3", level-1, 2*x+1, 2*y+1, spcb3 );
-        std::vector<float> kernel(2); kernel[0]=0.5; kernel[1]=0.5;
-        image.set_size( interior_size, interior_size );
-        ScopedWatch sw("QuadTreeGenerator::generate_branch: rasterize subsampled");
-        rasterize( subsample( separable_convolution_filter( big_image, kernel, kernel, 1, 1 ), 2 ), image );
-      }
-      // If there's no patch overlap, we're done and we can just write it out
-      if( m_patch_overlap == 0 ) {
-        ScopedWatch sw("QuadTreeGenerator::generate_branch: write patch");
-        write_patch( image, name, level, x, y );
-      }
-      // Otherwise this interior affects up to nine patches, each of which 
-      // requires some special consideration.  There may be a cleaner way 
-      // to structure this, but this works for now.
-      else {
-        ScopedWatch sw("QuadTreeGenerator::generate_branch: overlapping patches");
-        int overlap = m_patch_overlap / 2;
-        if( x > 0 ) {
-          if( y > 0 ) {
-            // Top left
-            ImageView<PixelT> &top_left = m_patch_cache[level][std::make_pair(x-1,y-1)];
-            crop( top_left, interior_size+overlap, interior_size+overlap, overlap, overlap ) = crop( image, 0, 0, overlap, overlap );
-            write_patch( top_left, m_filename_cache[level][std::make_pair(x-1,y-1)], level, x-1, y-1 );
-            m_patch_cache[level].erase(std::make_pair(x-1,y-1));
-            m_filename_cache[level].erase(std::make_pair(x-1,y-1));
-          }
-          // Left
-          ImageView<PixelT> &left = m_patch_cache[level][std::make_pair(x-1,y)];
-          crop( left, interior_size+overlap, overlap, overlap, interior_size ) = crop( image, 0, 0, overlap, interior_size );
-          if( scale*interior_size*(y+1) < m_source.rows() ) {
-            // Bottom left
-            ImageView<PixelT> &bot_left = m_patch_cache[level][std::make_pair(x-1,y+1)];
-            bot_left.set_size( m_patch_size, m_patch_size );
-            crop( bot_left, interior_size+overlap, 0, overlap, overlap ) = crop( image, 0, interior_size-overlap, overlap, overlap );
-          }
-          else {
-            write_patch( left, m_filename_cache[level][std::make_pair(x-1,y)], level, x-1, y );
-            m_patch_cache[level].erase(std::make_pair(x-1,y));
-            m_filename_cache[level].erase(std::make_pair(x-1,y));
-          }
-        }
-        if( y > 0 ) {
-          // Top
-          ImageView<PixelT> &top = m_patch_cache[level][std::make_pair(x,y-1)];
-          crop( top, overlap, interior_size+overlap, interior_size, overlap ) = crop( image, 0, 0, interior_size, overlap );
-          if( !( scale*interior_size*(x+1) < m_source.cols() ) ) {
-            write_patch( top, m_filename_cache[level][std::make_pair(x,y-1)], level, x, y-1 );
-            m_patch_cache[level].erase(std::make_pair(x,y-1));
-            m_filename_cache[level].erase(std::make_pair(x,y-1));
-          }
-        }
-        // Center
-        ImageView<PixelT> &center = m_patch_cache[level][std::make_pair(x,y)];
-        center.set_size( m_patch_size, m_patch_size );
-        crop( center, overlap, overlap, interior_size, interior_size ) = image;
-        if( scale*interior_size*(x+1) < m_source.cols() || scale*interior_size*(y+1) < m_source.rows() ) {
-          m_filename_cache[level][std::make_pair(x,y)] = name;
-        }
-        else {
-          write_patch( center, name, level, x, y );
-          m_patch_cache[level].erase(std::make_pair(x,y-1));
-        }
-        if( scale*interior_size*(y+1) < m_source.rows() ) {
-          // Bottom
-          ImageView<PixelT> &bot = m_patch_cache[level][std::make_pair(x,y+1)];
-          bot.set_size( m_patch_size, m_patch_size );
-          crop( bot, overlap, 0, interior_size, overlap ) = crop( image, 0, interior_size-overlap, interior_size, overlap );
-        }
-        if( scale*interior_size*(x+1) < m_source.cols() ) {
-          if( y > 0 ) {
-            // Top right
-            ImageView<PixelT> &top_right = m_patch_cache[level][std::make_pair(x+1,y-1)];
-            top_right.set_size( m_patch_size, m_patch_size );
-            crop( top_right, 0, interior_size+overlap, overlap, overlap ) = crop( image, interior_size-overlap, 0, overlap, overlap );
-          }
-          // Right
-          ImageView<PixelT> &right = m_patch_cache[level][std::make_pair(x+1,y)];
-          right.set_size( m_patch_size, m_patch_size );
-          crop( right, 0, overlap, overlap, interior_size ) = crop( image, interior_size-overlap, 0, overlap, interior_size );
-          if( scale*interior_size*(y+1) < m_source.rows() ) {
-            // Bottom right
-            ImageView<PixelT> &bot_right = m_patch_cache[level][std::make_pair(x+1,y+1)];
-            bot_right.set_size( m_patch_size, m_patch_size );
-            crop( bot_right, 0, 0, overlap, overlap ) = crop( image, interior_size-overlap, interior_size-overlap, overlap, overlap );
-          }
-        }
-      }
-
-      progress_callback.report_progress(1);
-      return image;
-    }
+    image_path_func_type m_image_path_func;
+    branch_func_type m_branch_func;
+    tile_resource_func_type m_tile_resource_func;
+    metadata_func_type m_metadata_func;
+    sparse_tile_check_type m_sparse_tile_check;
   };
 
 } // namespace mosaic

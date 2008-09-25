@@ -21,18 +21,35 @@
 // 
 // __END_LICENSE__
 
-/// \file Mosaic.h
+/// \file UniviewQuadTreeConfig.h
 /// 
-/// A convenience header that includes the header files in vw/Mosaic.
+/// A configuration class that provides callbacks for
+/// QuadTreeGenerator that generate Uniview overlays.
 /// 
-#ifndef __VW_MOSAIC_H__
-#define __VW_MOSAIC_H__
+#ifndef __VW_MOSAIC_UNIVIEWQUADTREECONFIG_H__
+#define __VW_MOSAIC_UNIVIEWQUADTREECONFIG_H__
 
 #include <vw/Mosaic/QuadTreeGenerator.h>
-#include <vw/Mosaic/KMLQuadTreeConfig.h>
-#include <vw/Mosaic/TMSQuadTreeConfig.h>
-#include <vw/Mosaic/UniviewQuadTreeConfig.h>
-#include <vw/Mosaic/GMapQuadTreeConfig.h>
-#include <vw/Mosaic/ImageComposite.h>
 
-#endif // __VW_MOSAIC_H__
+namespace vw {
+namespace mosaic {
+
+  class UniviewQuadTreeConfig {
+  public:
+    UniviewQuadTreeConfig( bool terrain = false ) : m_terrain( terrain ) {}
+
+    void set_terrain( bool terrain ) { m_terrain = terrain; }
+
+    void configure( QuadTreeGenerator &qtree ) const;
+
+    static std::string image_path( QuadTreeGenerator const& qtree, std::string const& name );
+    static boost::shared_ptr<ImageResource> terrain_tile_resource( QuadTreeGenerator const& qtree, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format );
+
+  private:
+    bool m_terrain;
+  };
+
+} // namespace mosaic
+} // namespace vw
+
+#endif // __VW_MOSAIC_UNIVIEWQUADTREECONFIG_H__

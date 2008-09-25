@@ -59,6 +59,20 @@
 }
 
 namespace vw {
+  class ImageFormat {
+  public:
+    int32 cols, rows, planes;
+    PixelFormatEnum pixel_format;
+    ChannelTypeEnum channel_type;
+    
+    ImageFormat()
+      : cols(0), rows(0), planes(0),
+        pixel_format(VW_PIXEL_UNKNOWN),
+        channel_type(VW_CHANNEL_UNKNOWN)
+    {}
+
+  };
+
   template <class PixelT>
   class ImageView {
   public:

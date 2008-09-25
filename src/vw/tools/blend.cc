@@ -53,7 +53,7 @@ using namespace vw;
 string mosaic_name;
 string file_type;
 unsigned int cache_size;
-int patch_size, patch_overlap;
+int tile_size;
 bool draft;
 bool qtree;
 
@@ -87,10 +87,9 @@ void do_blend() {
   composite.prepare();
   if( qtree ) {
     vw_out(InfoMessage) << "Preparing the quadtree..." << endl;
-    mosaic::ImageQuadTreeGenerator<PixelT > quadtree( mosaic_name, composite );
-    quadtree.set_output_image_file_type( file_type );
-    quadtree.set_patch_size( patch_size );
-    quadtree.set_patch_overlap( patch_overlap );
+    mosaic::QuadTreeGenerator quadtree( composite, mosaic_name );
+    quadtree.set_file_type( file_type );
+    quadtree.set_tile_size( tile_size );
     vw_out(InfoMessage) << "Generating..." << endl;
     quadtree.generate();
     vw_out(InfoMessage) << "Done!" << endl;
@@ -109,8 +108,7 @@ int main( int argc, char *argv[] ) {
       ("help", "Display this help message")
       ("input-dir", po::value<string>(&mosaic_name), "Explicitly specify the input directory")
       ("file-type", po::value<string>(&file_type)->default_value("png"), "Output file type")
-      ("patch-size", po::value<int>(&patch_size)->default_value(256), "Patch size, in pixels")
-      ("patch-overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels (must be even)")
+      ("tile-size", po::value<int>(&tile_size)->default_value(256), "Tile size, in pixels")
       ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
       ("draft", "Draft mode (no blending)")
       ("qtree", "Output in quadtree format")
@@ -141,15 +139,8 @@ int main( int argc, char *argv[] ) {
     if( vm.count("draft") ) draft = true; else draft = false;
     if( vm.count("qtree") ) qtree = true; else qtree = false;
 
-    if( patch_size <= 0 ) {
-      cerr << "Error: The patch size must be a positive number!  (You specified " << patch_size << ".)" << endl;
-      cout << desc << endl;
-      return 1;
-    }
-
-    if( patch_overlap<0 || patch_overlap>=patch_size || patch_overlap%2==1 ) {
-      cerr << "Error: The patch overlap must be an even number nonnegative number" << endl;
-      cerr << "smaller than the patch size!  (You specified " << patch_overlap << ".)" << endl;
+    if( tile_size <= 0 ) {
+      cerr << "Error: The tile size must be a positive number!  (You specified " << tile_size << ".)" << endl;
       cout << desc << endl;
       return 1;
     }

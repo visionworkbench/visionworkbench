@@ -28,10 +28,14 @@
 if MAKE_MODULE_MOSAIC
 
 include_HEADERS = QuadTreeGenerator.h ImageComposite.h	\
-	KMLQuadTreeGenerator.h SparseTileCheck.h	\
-	TMSQuadTreeGenerator.h UniviewQuadTreeGenerator.h
+	SparseTileCheck.h KMLQuadTreeConfig.h           \
+	TMSQuadTreeConfig.h UniviewQuadTreeConfig.h     \
+	GMapQuadTreeConfig.h
 
-libvwMosaic_la_SOURCES = 
+libvwMosaic_la_SOURCES = QuadTreeGenerator.cc           \
+	KMLQuadTreeConfig.cc TMSQuadTreeConfig.cc       \
+	UniviewQuadTreeConfig.cc GMapQuadTreeConfig.cc
+
 libvwMosaic_la_LIBADD = @MODULE_MOSAIC_LIBS@
 
 lib_LTLIBRARIES = libvwMosaic.la
@@ -43,7 +47,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
-AM_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@ -no-undefined
+AM_LDFLAGS = @VW_LDFLAGS@ @PKG_BOOST_FILESYSTEM_LIBS@ -version-info @LIBTOOL_VERSION@ -no-undefined
 
 SUBDIRS = . tests
 

@@ -28,6 +28,15 @@ namespace cartography {
   public:
     Datum();
     Datum( std::string const& name );
+    Datum( std::string const& name,
+           std::string const& spheroid_name,
+	   std::string const& meridian_name,
+	   double semi_major_axis,
+	   double semi_minor_axis,
+	   double meridian_offset );
+
+    void set_semi_major_axis(double val);
+    double semi_major_axis() const;
 
     %extend {
       void _geodetic_to_cartesian( double arg[3], double result[3] ) {
@@ -38,6 +47,8 @@ namespace cartography {
       }
     }
     %pythoncode {
+      semi_major_axis = property(semi_major_axis,set_semi_major_axis)
+
       def geodetic_to_cartesian(self, geodetic):
         g = doublea(3)
         c = doublea(3)
@@ -59,6 +70,7 @@ namespace cartography {
   class GeoReference {
   public:
     GeoReference();
+    GeoReference( Datum const& datum );
     
     //void set_spatial_ref(void* spatial_ref_ptr);
     //void set_transform(Matrix<double,3,3> transform) { m_transform = transform; }
@@ -89,6 +101,9 @@ namespace cartography {
     void set_UTM( int zone, bool north=true );
 
     %extend {
+      void _set_transform( double arg[9] ) {
+        self->set_transform( *(vw::Matrix3x3*)arg );
+      }
       void _point_to_pixel( double arg[2], double result[2] ) {
         (*(vw::Vector2*)result) = self->point_to_pixel( (*(vw::Vector2*)arg) );
       }
@@ -109,6 +124,13 @@ namespace cartography {
       }
     }
     %pythoncode {
+      def set_transform(self,M):
+        m = doublea(9)
+        for i in xrange(3):
+            for j in xrange(3):
+                m[3*i+j] = M[i,j]
+        self._set_transform(m)
+
       def _wrap_converter(func):
         def converter(self,arg):
           a = doublea(2)
@@ -142,11 +164,16 @@ namespace cartography {
     return georef;
   }
 
+  vw::BBox2i _forward_bbox( vw::BBox2i const& bbox, vw::cartography::GeoReference const& src, vw::cartography::GeoReference const& dest ) {
+    return vw::cartography::GeoTransform(src,dest).forward_bbox(bbox);
+  }
+
   template <class PixelT, class InterpT>
-  vw::ImageViewRef<PixelT> _geotransform( vw::ImageViewRef<PixelT> const& image, vw::cartography::GeoReference const& src, vw::cartography::GeoReference const& dest, InterpT const& interp ) {
+  vw::ImageViewRef<PixelT> _geotransform( vw::ImageViewRef<PixelT> const& image, vw::cartography::GeoReference const& src, vw::cartography::GeoReference const& dest, InterpT const& interp, vw::int32 cols, vw::int32 rows ) {
     vw::InterpolationView<vw::ImageViewRef<PixelT>, InterpT> interpolated( image, interp );
     vw::TransformRef transform( vw::cartography::GeoTransform(src,dest) );
-    return vw::TransformView<vw::InterpolationView<vw::ImageViewRef<PixelT>, InterpT>, vw::TransformRef>( interpolated, transform );
+    vw::BBox2i bbox = transform.forward_bbox( vw::BBox2i(0,0,image.cols(),image.rows()) );
+    return vw::TransformView<vw::InterpolationView<vw::ImageViewRef<PixelT>, InterpT>, vw::TransformRef>( interpolated, transform, cols?cols:bbox.max().x(), rows?rows:bbox.max().y() );
   }
 %}
 
@@ -160,11 +187,14 @@ namespace cartography {
 %instantiate_for_pixel_types_and_interpolations(instantiate_geotransform)
 
 %pythoncode {
+  from vwmath import BBox2i
   from image import edge_extend, ZeroEdgeExtension
-  from transform import BilinearInterpolation
+  from transform import BicubicInterpolation
 
-  def geotransform(image,src,dest,edge=None,interp=None):
+  def geotransform(image,src,dest,edge=None,interp=None,cols=0,rows=0):
+    if image.__class__ is BBox2i:
+      return _forward_bbox(image,src,dest)
     if edge is None: edge = ZeroEdgeExtension()
-    if interp is None: interp = BilinearInterpolation()
-    return _geotransform(edge_extend(image,edge=edge),src,dest,interp)
+    if interp is None: interp = BicubicInterpolation()
+    return _geotransform(edge_extend(image,edge=edge),src,dest,interp,cols,rows)
 }

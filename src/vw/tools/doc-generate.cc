@@ -36,7 +36,7 @@ int main() {
   // Generate the walker quadtree
   vw::ImageView<vw::PixelRGBA<vw::float32> > walker;
   read_image( walker, "images/Walker.jpg" );
-  vw::mosaic::ImageQuadTreeGenerator<vw::PixelRGBA<vw::float32> > qtree( "images/Walker.qtree", walker );
+  vw::mosaic::QuadTreeGenerator qtree( walker, "images/Walker.qtree" );
   qtree.generate();
   // Composite three patches onto white for printing
   vw::ImageView<vw::PixelRGBA<vw::float32> > patch;

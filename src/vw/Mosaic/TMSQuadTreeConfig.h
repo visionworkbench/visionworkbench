@@ -21,18 +21,31 @@
 // 
 // __END_LICENSE__
 
-/// \file Mosaic.h
+/// \file TMSQuadTreeConfig.h
 /// 
-/// A convenience header that includes the header files in vw/Mosaic.
+/// A configuration class that provides callbacks for
+/// QuadTreeGenerator that generate TMS overlays.
 /// 
-#ifndef __VW_MOSAIC_H__
-#define __VW_MOSAIC_H__
+#ifndef __VW_MOSAIC_TMSQUADTREECONFIG_H__
+#define __VW_MOSAIC_TMSQUADTREECONFIG_H__
 
 #include <vw/Mosaic/QuadTreeGenerator.h>
-#include <vw/Mosaic/KMLQuadTreeConfig.h>
-#include <vw/Mosaic/TMSQuadTreeConfig.h>
-#include <vw/Mosaic/UniviewQuadTreeConfig.h>
-#include <vw/Mosaic/GMapQuadTreeConfig.h>
-#include <vw/Mosaic/ImageComposite.h>
 
-#endif // __VW_MOSAIC_H__
+namespace vw {
+namespace mosaic {
+
+  // This class is overkill, but is exists by analogy to others 
+  // like it for consistency.
+  class TMSQuadTreeConfig {
+  public:
+    void configure( QuadTreeGenerator& qtree ) const;
+
+    // Makes paths of the form "path/name/4/6/3.jpg"
+    static std::string image_path( QuadTreeGenerator const& qtree, std::string const& name );
+
+  };
+
+} // namespace mosaic
+} // namespace vw
+
+#endif // __VW_MOSAIC_TMSQUADTREECONFIG_H__

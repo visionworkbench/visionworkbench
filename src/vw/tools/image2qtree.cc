@@ -24,7 +24,7 @@
 /// This program takes a georeferenced image as its input, and outputs 
 /// a quadtree for that image that is viewable in various terrain display
 /// programs, such as Google Earth. Currently, the program supports output
-/// in KML and TMS format.
+/// in KML, TMS, Uniview, and Google Maps formats.
 
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
@@ -52,10 +52,7 @@ namespace po = boost::program_options;
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoTransform.h>
 #include <vw/Cartography/FileIO.h>
-#include <vw/Mosaic/ImageComposite.h>
-#include <vw/Mosaic/KMLQuadTreeGenerator.h>
-#include <vw/Mosaic/TMSQuadTreeGenerator.h>
-#include <vw/Mosaic/UniviewQuadTreeGenerator.h>
+#include <vw/Mosaic.h>
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
@@ -72,8 +69,7 @@ double north_lat=90.0, south_lat=-90.0;
 double east_lon=180.0, west_lon=-180.0;
 double proj_lat=0, proj_lon=0, proj_scale=1;
 unsigned utm_zone;
-int patch_size;
-int patch_overlap;
+int tile_size;
 float jpeg_quality;
 unsigned cache_size;
 std::string palette_file;
@@ -99,6 +95,7 @@ static void fill_input_maps() {
   str_to_resolution_fn_map[std::string("kml")] = &vw::cartography::output::kml::compute_resolution;
   str_to_resolution_fn_map[std::string("tms")] = &vw::cartography::output::tms::compute_resolution;
   str_to_resolution_fn_map[std::string("uniview")] = &vw::cartography::output::tms::compute_resolution;
+  str_to_resolution_fn_map[std::string("gmap")] = &vw::cartography::output::tms::compute_resolution;
 }
 
 static void get_normalize_vals(std::string filename, DiskImageResourceGDAL &file_resource) {
@@ -114,10 +111,9 @@ static void get_normalize_vals(std::string filename, DiskImageResourceGDAL &file
 template <class PixelT>
 void do_normal_mosaic(po::variables_map const& vm, const ProgressCallback *progress) {
     DiskImageView<PixelT> img(image_files[0]);
-    ImageQuadTreeGenerator<PixelT> quadtree(output_file_name, img);
-    quadtree.set_patch_size( patch_size );
-    quadtree.set_patch_overlap( patch_overlap );
-    quadtree.set_output_image_file_type( output_file_type );
+    QuadTreeGenerator quadtree(img, output_file_name);
+    quadtree.set_tile_size( tile_size );
+    quadtree.set_file_type( output_file_type );
 
     quadtree.generate( *progress );
 }
@@ -220,7 +216,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   int xresolution = total_resolution / aspect_ratio, yresolution = total_resolution;
   if(output_metadata == "kml") {
     output_georef = output::kml::get_output_georeference(xresolution,yresolution);
-  } else if(output_metadata == "tms" || output_metadata == "uniview") {
+  } else if(output_metadata == "tms" || output_metadata == "uniview" || output_metadata == "gmap") {
     output_georef = output::tms::get_output_georeference(total_resolution);
   }
 
@@ -279,7 +275,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
                       180.0 - (360.0*total_bbox.max().y())/yresolution,
                       (360.0*total_bbox.width())/xresolution,
                       (360.0*total_bbox.height())/yresolution );
-  } else if(output_metadata == "tms" || output_metadata == "uniview") {
+  } else if(output_metadata == "tms" || output_metadata == "uniview" || output_metadata == "gmap") {
     total_bbox = composite.bbox();
     total_bbox.grow( BBox2i(0,0,total_resolution,total_resolution) );
     total_bbox.crop( BBox2i(0,0,total_resolution,total_resolution) );
@@ -305,59 +301,55 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   if(output_metadata == "kml") {
     data_bbox = composite.bbox();
     data_bbox.crop( BBox2i(0,0,total_bbox.width(),total_bbox.height()) );
-  } else if(output_metadata == "tms" || output_metadata == "uniview") {
-    data_bbox = BBox2i((int)std::floor(double(bbox.min().x())/patch_size)*patch_size,
-                       (int)std::floor(double(bbox.min().y())/patch_size)*patch_size,
-                       (int)std::ceil(double(bbox.width())/patch_size)*patch_size,
-                       (int)std::ceil(double(bbox.height())/patch_size)*patch_size);
+  } else if(output_metadata == "tms" || output_metadata == "uniview" || output_metadata == "gmap") {
+    data_bbox = BBox2i((int)std::floor(double(bbox.min().x())/tile_size)*tile_size,
+                       (int)std::floor(double(bbox.min().y())/tile_size)*tile_size,
+                       (int)std::ceil(double(bbox.width())/tile_size)*tile_size,
+                       (int)std::ceil(double(bbox.height())/tile_size)*tile_size);
     data_bbox.crop(total_bbox);
   }
 
-  ImageQuadTreeGenerator<PixelT> *quadtree;
+  QuadTreeGenerator quadtree( composite, output_file_name );
 
  // KML specific things. 
   if( output_metadata == "kml" ) {
-    KMLQuadTreeGenerator<PixelT> *tmp;
-    tmp = new KMLQuadTreeGenerator<PixelT>( output_file_name, composite, ll_bbox );
-    quadtree = tmp;
-
-    tmp->set_max_lod_pixels( max_lod_pixels );
-    tmp->set_draw_order_offset( draw_order_offset );
+    KMLQuadTreeConfig config;
+    config.set_longlat_bbox( ll_bbox );
+    config.set_max_lod_pixels( max_lod_pixels );
+    config.set_draw_order_offset( draw_order_offset );
+    config.configure( quadtree );
 
   // TMS specific things.
   } else if( output_metadata == "tms" ) {
-    TMSQuadTreeGenerator<PixelT> *tmp;
-    tmp = new TMSQuadTreeGenerator<PixelT>( output_file_name, composite );
-    quadtree = tmp;
+    TMSQuadTreeConfig config;
+    config.configure( quadtree );
 
   // Uniview specific things.
   } else if( output_metadata == "uniview" ) {
-    UniviewQuadTreeGenerator<PixelT> *tmp;
-    tmp = new UniviewQuadTreeGenerator<PixelT>( output_file_name, composite, terrain );
-    quadtree = tmp;
+    UniviewQuadTreeConfig config( terrain );
+    config.configure( quadtree );
 
-    // Have to delay the uniview-specific things output config file until
-    // the generation is over, due to the way variables are set in the 
-    // QuadTreeGenerator.
+  // Google Maps specific things.
+  } else if( output_metadata == "gmap" ) {
+    GMapQuadTreeConfig config;
+    config.configure( quadtree );
+
   } else {
     // Unreachable
     vw_throw(LogicErr() << "Unreachable statement reached: bad value for output_metadata (value was " << output_metadata << ")");
   }
     
-  quadtree->set_crop_bbox(data_bbox);
-  if( vm.count("crop") ) quadtree->set_crop_images(true);
-  quadtree->set_patch_size(patch_size);
-  quadtree->set_patch_overlap(patch_overlap);
-  quadtree->set_output_image_file_type(output_file_type);
-
+  quadtree.set_crop_bbox(data_bbox);
+  if( vm.count("crop") ) quadtree.set_crop_images(true);
+  quadtree.set_tile_size(tile_size);
+  quadtree.set_file_type(output_file_type);
 
   // Generate the composite.
   vw_out(InfoMessage) << "Generating " << output_metadata << " overlay..." << std::endl;
-  quadtree->generate(*progress);
+  quadtree.generate(*progress);
 
-  // Now output the Uniview config file. Had to delay it to here because 
-  // the quadtree generator does not calculate the tree levels until 
-  // the generation function is called.
+  // This should really get moved into a metadata function for 
+  // UniviewQuadTreeConfig.
   if(output_metadata == "uniview") {
     std::string config_filename = output_file_name + ".conf";
     std::ofstream conf( config_filename.c_str() );
@@ -365,8 +357,8 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
       conf << "// Terrain\n";
       conf << "HeightmapCacheLocation=modules/" << module_name << "/Offlinedatasets/" << output_file_name << "/Terrain/\n";
       conf << "HeightmapCallstring=Generated by the NASA Vision Workbench image2qtree tool.\n";
-      conf << "HeightmapFormat=" << quadtree->get_output_image_file_type() << '\n';
-      conf << "NrHeightmapLevels=" << quadtree->get_tree_levels()-1 << '\n';
+      conf << "HeightmapFormat=" << quadtree.get_file_type() << '\n';
+      conf << "NrHeightmapLevels=" << quadtree.get_tree_levels()-1 << '\n';
       conf << "NrLevelsPerHeightmap=1\n";
     } else {
       conf << "[Offlinedataset]\n";
@@ -379,9 +371,9 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
       conf << "// Texture\n";
       conf << "TextureCacheLocation=modules/" << module_name << "/Offlinedatasets/" << output_file_name << "/Texture/\n";
       conf << "TextureCallstring=Generated by the NASA Vision Workbench image2qtree tool.\n";
-      conf << "TextureFormat=" << quadtree->get_output_image_file_type() << "\n";
-      conf << "TextureLevels= " << quadtree->get_tree_levels()-1 << "\n";
-      conf << "TextureSize= " << patch_size << "\n\n";
+      conf << "TextureFormat=" << quadtree.get_file_type() << "\n";
+      conf << "TextureLevels= " << quadtree.get_tree_levels()-1 << "\n";
+      conf << "TextureSize= " << tile_size << "\n\n";
     }
     conf.close();
     std::cout << "Note: You must merge the texture and terrain config files into a single file (Terrain info should go below texture info.)" << std::endl;
@@ -409,7 +401,7 @@ int main(int argc, char **argv) {
 
   po::options_description output_options("Output Options");
   output_options.add_options()
-    ("output-metadata,m", po::value<std::string>(&output_metadata)->default_value("none"), "Specify the output metadata type. One of [kml, tms, uniview, none]")
+    ("output-metadata,m", po::value<std::string>(&output_metadata)->default_value("none"), "Specify the output metadata type. One of [kml, tms, uniview, gmap, none]")
     ("file-type", po::value<std::string>(&output_file_type)->default_value("png"), "Output file type")
     ("channel-type", po::value<std::string>(&channel_type_str)->default_value("uint8"), "Output (and input) channel type. One of [uint8, uint16, int16, float]")
     ("module-name", po::value<std::string>(&module_name)->default_value("marsds"), "Uniview module name (Uniview only). The module where the output will be placed")
@@ -418,8 +410,7 @@ int main(int argc, char **argv) {
     ("palette-file", po::value<std::string>(&palette_file), "Apply a palette from the given file")
     ("palette-scale", po::value<float>(&palette_scale), "Apply a scale factor before applying the palette")
     ("palette-offset", po::value<float>(&palette_offset), "Apply an offset before applying the palette")
-    ("patch-size", po::value<int>(&patch_size)->default_value(256), "Patch size, in pixels")
-    ("patch-overlap", po::value<int>(&patch_overlap)->default_value(0), "Patch overlap, in pixels")
+    ("tile-size", po::value<int>(&tile_size)->default_value(256), "Tile size, in pixels")
     ("max-lod-pixels", po::value<int>(&max_lod_pixels)->default_value(1024), "Max LoD in pixels, or -1 for none (kml only)")
     ("draw-order-offset", po::value<int>(&draw_order_offset)->default_value(0), "Offset for the <drawOrder> tag for this overlay (kml only)")
     ("composite-multiband", "Composite images using multi-band blending")
@@ -486,14 +477,14 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  if( patch_size <= 0 ) {
-    std::cerr << "Error: The patch size must be a positive number!  (You specified: " << patch_size << ".)" << std::endl << std::endl;
+  if( tile_size <= 0 ) {
+    std::cerr << "Error: The tile size must be a positive number!  (You specified: " << tile_size << ".)" << std::endl << std::endl;
     std::cout << usage.str();
     return 1;
   }
 
   if(str_to_resolution_fn_map.find(output_metadata) == str_to_resolution_fn_map.end()) {
-    std::cerr << "Error: Output metadata must be one of [none, kml, tms, uniview]!  (You specified: " << output_metadata << ".)" << std::endl << std::endl;
+    std::cerr << "Error: Output metadata must be one of [none, kml, tms, uniview, gmap]!  (You specified: " << output_metadata << ".)" << std::endl << std::endl;
     std::cout << usage.str();
     return 1;
   }

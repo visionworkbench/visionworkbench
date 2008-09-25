@@ -3,6 +3,10 @@ import core
 from core import ErrorMessage, WarningMessage, InfoMessage, DebugMessage, VerboseDebugMessage
 from core import set_debug_level
 
+# Math
+import vwmath
+from vwmath import BBox2i
+
 # Pixel types
 import pixel
 from pixel import uint8, int16, uint16, float32
@@ -49,9 +53,9 @@ from transform import resample, resize, translate, rotate, homography
 import fileio
 from fileio import DiskImageResource, DiskImageResourceJPEG, DiskImageView
 
-# Mosaic
-import mosaic
-from mosaic import ImageQuadTreeGenerator
+# Quadtree
+import qtree
+from qtree import QuadTreeGenerator
 import composite
 from composite import ImageComposite
 
