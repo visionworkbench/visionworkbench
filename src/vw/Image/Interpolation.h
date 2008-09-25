@@ -82,8 +82,10 @@ namespace vw {
       typedef typename FloatType<typename PixelChannelType<typename ViewT::pixel_type>::type>::type real_type;
       real_type normx = i-x, normy = j-y;
 
-      return typename ViewT::pixel_type( (view(x,y,p)   * (1-normy) + view(x,y+1,p)   * normy) * (1-normx) +
-                                         (view(x+1,y,p) * (1-normy) + view(x+1,y+1,p) * normy) * normx );
+      typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
+      return channel_cast_round_and_clamp_if_int<channel_type>(
+        ( (view(x,y,p)   * (1-normy) + view(x,y+1,p)   * normy) * (1-normx) +
+	  (view(x+1,y,p) * (1-normy) + view(x+1,y+1,p) * normy) * normx ) );
     }
   };
 
@@ -102,10 +104,11 @@ namespace vw {
       real_type s3 = (normx-1)*normx*normx;          real_type t3 = (normy-1)*normy*normy;
       
       typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
-      return channel_cast_clamp_if_int<channel_type>( ( ( s0*view(x-1,y-1,p) + s1*view(x+0,y-1,p) + s2*view(x+1,y-1,p) + s3*view(x+2,y-1,p) ) * t0 +
-                                                        ( s0*view(x-1,y+0,p) + s1*view(x+0,y+0,p) + s2*view(x+1,y+0,p) + s3*view(x+2,y+0,p) ) * t1 +
-                                                        ( s0*view(x-1,y+1,p) + s1*view(x+0,y+1,p) + s2*view(x+1,y+1,p) + s3*view(x+2,y+1,p) ) * t2 +
-                                                        ( s0*view(x-1,y+2,p) + s1*view(x+0,y+2,p) + s2*view(x+1,y+2,p) + s3*view(x+2,y+2,p) ) * t3 ) * 0.25 );
+      return channel_cast_round_and_clamp_if_int<channel_type>(
+        ( ( s0*view(x-1,y-1,p) + s1*view(x+0,y-1,p) + s2*view(x+1,y-1,p) + s3*view(x+2,y-1,p) ) * t0 +
+	  ( s0*view(x-1,y+0,p) + s1*view(x+0,y+0,p) + s2*view(x+1,y+0,p) + s3*view(x+2,y+0,p) ) * t1 +
+	  ( s0*view(x-1,y+1,p) + s1*view(x+0,y+1,p) + s2*view(x+1,y+1,p) + s3*view(x+2,y+1,p) ) * t2 +
+	  ( s0*view(x-1,y+2,p) + s1*view(x+0,y+2,p) + s2*view(x+1,y+2,p) + s3*view(x+2,y+2,p) ) * t3 ) * 0.25 );
     }
   };
 

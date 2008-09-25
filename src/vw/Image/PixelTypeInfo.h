@@ -241,6 +241,35 @@ namespace vw {
       return compound_apply( ChannelCastClampFunctor<ChannelT>(), pixel );
   }
 
+  template <class DestT>
+  class ChannelCastRoundClampFunctor : public ReturnFixedType<DestT> {
+  public:
+    template <class SourceT>
+    inline DestT operator()( SourceT source ) const {
+      if( source > boost::integer_traits<DestT>::max() ) return boost::integer_traits<DestT>::max();
+      else if( source < boost::integer_traits<DestT>::min() ) return boost::integer_traits<DestT>::min();
+      else return DestT( round( source ) );
+    }
+    inline DestT operator()( DestT source ) const {
+      return source;
+    }
+  };
+
+  template <class ChannelT, class PixelT>
+  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
+  inline channel_cast_round_and_clamp( PixelT pixel ) {
+    return compound_apply( ChannelCastRoundClampFunctor<ChannelT>(), pixel );
+  }
+
+  template <class ChannelT, class PixelT>
+  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
+  inline channel_cast_round_and_clamp_if_int( PixelT pixel ) {
+    if( boost::is_floating_point<ChannelT>::value )
+      return compound_apply( ChannelCastFunctor<ChannelT>(), pixel );
+    else
+      return compound_apply( ChannelCastRoundClampFunctor<ChannelT>(), pixel );
+  }
+
   // *******************************************************************
   // Pixel casting and rescaling logic.
   //
