@@ -39,7 +39,7 @@ namespace stereo {
 
     // Private methods
     ImageView<float> compute_gaussian_weight_image(int kern_width, int kern_height) const;      
-    void AffineSubpixelView::cache(BBox2i bbox);
+    void cache(BBox2i bbox);
 
     template <class DisparityPatchViewT>
     inline int adjust_weight_image(ImageView<float> &weight,
