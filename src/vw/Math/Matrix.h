@@ -228,6 +228,9 @@ namespace math {
     }
     
     void advance( ptrdiff_t n ) {
+      // This safeguards against suprious division by zero troubles encountered 
+      // on some platforms when performing operations on degenerate matrices.
+      if( m_matrix.cols() == 0 ) return;
       if( n < 0 ) {
         ptrdiff_t rowdiff = 1 + (-n)/m_matrix.cols();
         m_row -= rowdiff;
@@ -2119,8 +2122,10 @@ namespace math {
         mri = select_row(buf,i_norm_inf);
         select_row(buf,i_norm_inf) = rowbuf;
       }
-      subvector(mci,i+1,size-i-1) /= buf(i,i);
-      submatrix(buf, i+1, i+1, size-i-1, size-i-1) -= outer_prod( subvector(mci, i+1, size-i-1), subvector(mri,i+1,size-i-1) );
+      if ( i != size-1 ) {
+        subvector(mci,i+1,size-i-1) /= buf(i,i);
+        submatrix(buf, i+1, i+1, size-i-1, size-i-1) -= outer_prod( subvector(mci, i+1, size-i-1), subvector(mri,i+1,size-i-1) );
+      }
     }
 
     // Build up a permuted identity matrix
