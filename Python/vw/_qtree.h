@@ -27,6 +27,8 @@
 /// interface definition file.
 ///
 
+#include "util.h"
+
 // SWIG doesn't currently support nested classes, so we spoof it 
 // into thinking that TileInfo is not nested.  To make it all 
 // work properly, it's best to spoof C++ too.
@@ -35,23 +37,6 @@ namespace mosaic {
   typedef QuadTreeGenerator::TileInfo TileInfo;
 } // namespace vw
 } // namespace mosaic
-
-// A deleter object for use with boost::shared_ptr that keeps track 
-// of the Python object corresponding to whatever C++ object it's 
-// used with, and decrements the Python object's refcount instead 
-// of deleting the C++ object directly.  If the optional second 
-// argument to the constructor is true, we grab a new referece to
-// the object; otherwise, we steal the caller's reference.
-class DecrefDeleter {
-  PyObject *m_obj;
-public:
-  DecrefDeleter( PyObject *obj, bool incref = false ) : m_obj(obj) {
-    if( incref ) Py_INCREF(obj);
-  }
-  template <class T> void operator()(T) {
-    Py_DECREF(m_obj);
-  }
-};
 
 // A wrapper for a user-supplied Python image_path_func callback function 
 std::string image_path_func( boost::shared_ptr<PyObject> const& pyfunc,

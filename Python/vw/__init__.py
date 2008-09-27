@@ -2,6 +2,7 @@
 import core
 from core import ErrorMessage, WarningMessage, InfoMessage, DebugMessage, VerboseDebugMessage
 from core import set_debug_level
+from core import PythonProgressCallback as ProgressCallback, TerminalProgressCallback
 
 # Math
 import vwmath
@@ -51,7 +52,7 @@ from transform import resample, resize, translate, rotate, homography
 
 # File IO
 import fileio
-from fileio import DiskImageResource, DiskImageResourceJPEG, DiskImageView
+from fileio import DiskImageResource, DiskImageResourceJPEG, DiskImageResourcePNG, DiskImageView
 
 # Quadtree
 import qtree

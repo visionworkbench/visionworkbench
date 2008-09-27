@@ -36,11 +36,13 @@
 #include <boost/bind.hpp>
 %}
 
-%include "std_string.i"
-%include "std_vector.i"
-%include "std_pair.i"
-%include "carrays.i"
+%include <std_string.i>
+%include <std_vector.i>
+%include <std_pair.i>
+%include <carrays.i>
+
 %include "numpy.i"
+%include "vwutil.i"
 
 %init %{
   import_array();
@@ -48,6 +50,7 @@
 
 %array_class(double, doublea);
 
+%include "_core.i"
 %import "_vwmath.i"
 %import "_image.i"
 
@@ -78,24 +81,7 @@
   $1 = $input;
 }
 
-// The generate() function is likely enough to throw an exception that we 
-// handle it specially here.  Someday we'll need a more general solution 
-// for this sort of thing.
-%exception vw::mosaic::QuadTreeGenerator::generate {
-    try {
-       $action
-    }
-    catch (vw::Exception const& e) {
-       // If there is an existing Python exception, we just pass it along.
-       // It's a shame we that lose much of the stack trace on the C++ side, 
-       // but life is suffering.
-       if( ! PyErr_Occurred() ) {
-          // Otherwise, we construct a generic complaint.
-	  PyErr_Format( PyExc_RuntimeError, "Vision Workbench exception: %s", e.what() );
-       }
-       goto fail;
-    }
-}
+HANDLE_VW_EXCEPTIONS(vw::mosaic::QuadTreeGenerator::generate)
 
 namespace vw {
 namespace mosaic {
@@ -189,7 +175,9 @@ the Vision Workbook 2.0 for more information.
         self->set_metadata_func( boost::bind(&metadata_func,pyfunc_ptr,qtree_ptr,_2) );
       }
 
-      void generate() { self->generate(vw::TerminalProgressCallback()); }
+      void generate( vw::ProgressCallback const& progress = vw::ProgressCallback::dummy_instance() ) {
+        self->generate(progress);
+      }
     }
 
     %define %instantiate_qtree_types(cname,ctype,pname,ptype,...)
