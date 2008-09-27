@@ -21,6 +21,20 @@
 
 %array_class(double, doublea);
 
+%pythoncode {
+  from numpy import array
+
+  def array_to_doublea(M):
+    m = doublea(9)
+    for i in xrange(3):
+      for j in xrange(3):
+        m[3*i+j] = M[i,j]
+    return m
+
+  def doublea_to_array(M):
+    return array(((M[0],M[1],M[2]),(M[3],M[4],M[5]),(M[6],M[7],M[8])))
+}
+
 namespace vw {
 namespace cartography {
 
@@ -73,7 +87,6 @@ namespace cartography {
     GeoReference( Datum const& datum );
     
     //void set_spatial_ref(void* spatial_ref_ptr);
-    //void set_transform(Matrix<double,3,3> transform) { m_transform = transform; }
     //void set_proj4_str( std::string const& proj4_str );
     //void set_wkt_str( std::string const& wkt_str );
     
@@ -104,6 +117,9 @@ namespace cartography {
       void _set_transform( double arg[9] ) {
         self->set_transform( *(vw::Matrix3x3*)arg );
       }
+      void _get_transform( double arg[9] ) {
+        *(vw::Matrix3x3*)arg = self->transform();
+      } 
       void _point_to_pixel( double arg[2], double result[2] ) {
         (*(vw::Vector2*)result) = self->point_to_pixel( (*(vw::Vector2*)arg) );
       }
@@ -125,11 +141,15 @@ namespace cartography {
     }
     %pythoncode {
       def set_transform(self,M):
+        self._set_transform(array_to_doublea(M))
+
+      def get_transform(self):
         m = doublea(9)
-        for i in xrange(3):
-            for j in xrange(3):
-                m[3*i+j] = M[i,j]
-        self._set_transform(m)
+        self._get_transform(m)
+        M = doublea_to_array(m)
+        return M
+
+      transform = property(get_transform,set_transform)
 
       def _wrap_converter(func):
         def converter(self,arg):
@@ -146,6 +166,20 @@ namespace cartography {
       lonlat_to_point = _wrap_converter(_lonlat_to_point)
       pixel_to_lonlat = _wrap_converter(_pixel_to_lonlat)
       lonlat_to_pixel = _wrap_converter(_lonlat_to_pixel)
+
+      # This nonsense is to override SWIG to enable setting and getting properties
+      _old_getattr = __getattr__
+      def __getattr__(self, name):
+        if name in self.__class__.__dict__ and self.__class__.__dict__[name].__class__ is property and self.__class__.__dict__[name].fget is not None:
+          return self.__class__.__dict__[name].fget(self)
+        else:
+          return self._old_getattr(name)
+      _old_setattr = __setattr__
+      def __setattr__(self, name, value):
+        if name in self.__class__.__dict__ and self.__class__.__dict__[name].__class__ is property and self.__class__.__dict__[name].fset is not None:
+          self.__class__.__dict__[name].fset(self,value)
+        else:
+          self._old_setattr(name,value)
     }
 
     %extend {
