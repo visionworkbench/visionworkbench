@@ -49,6 +49,7 @@ namespace vw {
     unsigned num_comments() const;
     std::string const& get_comment_key  ( unsigned i ) const;
     std::string const& get_comment_value( unsigned i ) const;
+    static void set_default_compression_level(int level);
   };	
 }
 

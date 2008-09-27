@@ -105,14 +105,10 @@ namespace vw {
       bool using_palette_alpha; // If your palette has an alpha channel.
       ImageView<PixelRGBA<uint8> > palette; // The palette, set manually.
 
-      Options() {
-        compression_level = 9;
-        using_interlace = false;
-        using_palette = false;
-        using_palette_indices = false;
-        using_palette_alpha = false;
-      }
+      Options();
     };
+
+    static void set_default_compression_level(int level);
 
     // Convenience functions:
 

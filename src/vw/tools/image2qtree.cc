@@ -47,6 +47,7 @@ namespace po = boost::program_options;
 #include <vw/Image/Palette.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageResourceJPEG.h>
+#include <vw/FileIO/DiskImageResourcePNG.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReference.h>
@@ -71,6 +72,7 @@ double proj_lat=0, proj_lon=0, proj_scale=1;
 unsigned utm_zone;
 int tile_size;
 float jpeg_quality;
+int png_compression;
 unsigned cache_size;
 std::string palette_file;
 std::string channel_type_str;
@@ -137,6 +139,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   }
 
   DiskImageResourceJPEG::set_default_quality( jpeg_quality );
+  DiskImageResourcePNG::set_default_compression_level( png_compression );
   Cache::system_cache().resize( cache_size*1024*1024 );
 
   // Read in georeference info and compute total resolution.
@@ -407,6 +410,7 @@ int main(int argc, char **argv) {
     ("module-name", po::value<std::string>(&module_name)->default_value("marsds"), "Uniview module name (Uniview only). The module where the output will be placed")
     ("terrain", "Outputs image files suitable for a Uniview terrain view. Implies output format as PNG, channel type uint16. Uniview only")
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
+    ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
     ("palette-file", po::value<std::string>(&palette_file), "Apply a palette from the given file")
     ("palette-scale", po::value<float>(&palette_scale), "Apply a scale factor before applying the palette")
     ("palette-offset", po::value<float>(&palette_offset), "Apply an offset before applying the palette")

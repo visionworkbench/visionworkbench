@@ -82,6 +82,24 @@ static void png_error_handler(png_structp png_ptr, png_const_charp error_msg)
   longjmp(mgr->error_return, 1);
 }
 
+// Default PNG file creation options, and related functions.
+namespace {
+  static int default_compression_level = Z_BEST_COMPRESSION;
+}
+
+DiskImageResourcePNG::Options::Options() {
+  compression_level = default_compression_level;
+  using_interlace = false;
+  using_palette = false;
+  using_palette_indices = false;
+  using_palette_alpha = false;
+}
+
+void DiskImageResourcePNG::set_default_compression_level( int level ) {
+  default_compression_level = level;
+}
+
+
 /************************************************************************
  ********************** PNG CONTEXT STRUCTURES **************************
  **** These things encapsulate the read/write to the PNG file itself. ***
@@ -382,6 +400,8 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
     if (setjmp(err_mgr.error_return))
       vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
+
+    png_set_compression_level(png_ptr, Z_BEST_SPEED);
 
     info_ptr = png_create_info_struct(png_ptr);
     if(!info_ptr) {
