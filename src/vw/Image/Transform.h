@@ -65,7 +65,10 @@ namespace vw {
   /// Transform pointers or references directly, but rather indirectly 
   /// via TransformRef.
   class Transform {
+    double m_tolerance;
   public:
+    Transform() : m_tolerance(0.0) {}
+
     virtual ~Transform() {}
 
     /// This defines the transformation from coordinates in the source 
@@ -90,6 +93,12 @@ namespace vw {
 
     /// This applies the reverse transformation to an entire bounding box of pixels.
     virtual BBox2i reverse_bbox( BBox2i const& /*input_bbox*/ ) const { vw_throw( NoImplErr() << "reverse_bbox() is not implemented for this transform." ); return BBox2i(); }
+
+    // Set the tolerance (in pixels) to which this Transform is willing to be approximated.
+    virtual void set_tolerance( double tolerance ) { m_tolerance = tolerance; }
+
+    // Get the tolerance (in pixels) to which this Transform is willing to be approximated.
+    virtual double tolerance() const { return m_tolerance; }
 
   };
 
@@ -506,6 +515,97 @@ namespace vw {
   }
 
 
+  /// ApproximateTransform image transform functor template.
+  ///
+  /// Mimics the behavior of a given transform functor, but attempts to 
+  /// build a lookup table to linearly interpolate approimate results 
+  /// to the reverse() function for arguments within the given bounding 
+  /// box, to within the original transform functor's tolerance.
+  template <class TransformT>
+  class ApproximateTransform : public TransformT {
+    BBox2i m_bbox;
+    ImageView<Vector2> m_table;
+  public:
+    ApproximateTransform( TransformT const& transform, BBox2i const& bbox )
+      : TransformT( transform ), m_bbox( bbox ), m_table(2,2)
+    {
+      // Initialize with a simple 2x2 lookup table
+      int32 n=2;
+      m_table(0,0) = TransformT::reverse(bbox.min());
+      m_table(1,0) = TransformT::reverse(Vector2(bbox.max().x(),bbox.min().y()));
+      m_table(0,1) = TransformT::reverse(Vector2(bbox.min().x(),bbox.max().y()));
+      m_table(1,1) = TransformT::reverse(bbox.max());
+
+      // Double the grid density until the worst (squared) approximation error 
+      // is less than the allowed (squared) tolerance.
+      double max_sqr_err = 0;
+      double tol_sqr = TransformT::tolerance() * TransformT::tolerance();
+      Vector2 origin = bbox.min(), diag = bbox.size();
+      do {
+	n = 2*n-1;
+	// Fall back for unapproximatably crazy transform functions.
+	if( n>=bbox.width()|| n>=bbox.height() ) {
+	  m_table.reset();
+	  return;
+	}
+	ImageView<Vector2> prev = m_table;
+	m_table.set_size(n,n);
+	max_sqr_err = 0;
+	for( int y=0; y<n; ++y ) {
+	  for( int x=0; x<n; ++x ) {
+	    if( (y%2)==0 && (x%2==0) ) {
+	      m_table(x,y) = prev(x/2,y/2);
+	    }
+	    else {
+	      Vector2 pos = Vector2(x,y)/(n-1);
+	      m_table(x,y) = TransformT::reverse(origin+elem_prod(pos,diag));
+	      Vector2 interp;
+	      if( (y%2)==0 ) interp = (prev(x/2,y/2) + prev(x/2+1,y/2)) / 2.0;
+	      else if( (x%2)==0 ) interp = (prev(x/2,y/2) + prev(x/2,y/2+1)) / 2.0;
+	      else interp = (prev(x/2,y/2) + prev(x/2,y/2+1) + prev(x/2+1,y/2) + prev(x/2+1,y/2+1)) / 4.0;
+	      double sqr_err = norm_2_sqr( m_table(x,y) - interp );
+	      if( sqr_err > max_sqr_err ) max_sqr_err = sqr_err;
+	    }
+	  }
+	}
+      } while( max_sqr_err > tol_sqr );
+    }
+
+    inline Vector2 reverse( Vector2 const& p ) const {
+      // Fall back if the function was not approximatable.
+      if( ! m_table ) return TransformT::reverse( p );
+
+      // We re-implement bilinear interpolation by hand here because for 
+      // some reason the BilinearInterpolation object is exceptionally 
+      // slow for Vector data still.
+      int n = m_table.cols() - 1;
+      double px = n * (p.x() - m_bbox.min().x()) / (m_bbox.max().x() - m_bbox.min().x());
+      double py = n * (p.y() - m_bbox.min().y()) / (m_bbox.max().y() - m_bbox.min().y());
+      int32 ix = math::impl::_floor(px);
+      if( ix < 0 ) ix = 0;
+      if( ix >= n ) ix = n-1;
+      int32 iy = math::impl::_floor(py);
+      if( iy < 0 ) iy = 0;
+      if( iy >= n ) iy = n-1;
+      double normx = px-ix, normy = py-iy;
+
+      Vector2 const& m00 = m_table(ix,  iy);
+      Vector2 const& m10 = m_table(ix+1,iy);
+      Vector2 const& m01 = m_table(ix,  iy+1);
+      Vector2 const& m11 = m_table(ix+1,iy+1);
+
+      return Vector2( (m00.x()*(1-normy)+m01.x()*normy)*(1-normx) + 
+		      (m10.x()*(1-normy)+m11.x()*normy)*normx,
+		      (m00.y()*(1-normy)+m01.y()*normy)*(1-normx) + 
+		      (m10.y()*(1-normy)+m11.y()*normy)*normx );
+    }
+
+    // Never re-approximate the approximation.
+    virtual double tolerance() const { return 0; }
+
+  };
+
+
   /// TransformRef virtualized image transform functor adaptor
   class TransformRef : public TransformBase<TransformRef> {
     boost::shared_ptr<Transform> m_transform;
@@ -519,6 +619,8 @@ namespace vw {
     FunctionType reverse_type() const { return m_transform->reverse_type(); }
     BBox2i forward_bbox( BBox2i const& bbox ) const { return m_transform->forward_bbox( bbox ); }
     BBox2i reverse_bbox( BBox2i const& bbox ) const { return m_transform->reverse_bbox( bbox ); }
+    double tolerance() const { return m_transform->tolerance(); }
+    void set_tolerance( double tolerance ) { m_transform->set_tolerance( tolerance ); }
   };
 
 
@@ -567,7 +669,14 @@ namespace vw {
       return prerasterize_type( m_image.prerasterize(transformed_bbox), m_mapper, m_width, m_height );
     }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { 
-      vw::rasterize( prerasterize(bbox), dest, bbox );
+      if( m_mapper.tolerance() > 0.0 ) {
+	ApproximateTransform<TransformT> approx_transform( m_mapper, bbox );
+	TransformView<ImageT, ApproximateTransform<TransformT> > approx_view( m_image, approx_transform, m_width, m_height );
+	vw::rasterize( approx_view.prerasterize(bbox), dest, bbox );
+      }
+      else {
+	vw::rasterize( prerasterize(bbox), dest, bbox );
+      }
     }
     /// \endcond
   };

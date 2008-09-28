@@ -71,7 +71,11 @@ namespace cartography {
       m_dst_datum = boost::shared_ptr<ProjContext>(new ProjContext(ss_dst.str()));
       CHECK_PROJ_INIT_ERROR(ss_dst.str().c_str());
     }
+    // Because GeoTransform is typically very slow, we default to a tolerance 
+    // of 0.1 pixels to allow ourselves to be approximated.
+    set_tolerance( 0.1 );
   }
+
   // Performs a forward or reverse datum conversion.
   Vector2 GeoTransform::datum_convert(Vector2 const& v, bool forward) const {
     double x = v[0];
