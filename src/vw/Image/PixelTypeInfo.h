@@ -32,6 +32,7 @@
 #include <complex>
 #include <boost/integer_traits.hpp>
 #include <boost/utility/enable_if.hpp>
+#include <boost/mpl/if.hpp>
 
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/CompoundTypes.h>
@@ -235,10 +236,9 @@ namespace vw {
   template <class ChannelT, class PixelT>
   typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
   inline channel_cast_clamp_if_int( PixelT pixel ) {
-    if( boost::is_floating_point<ChannelT>::value )
-      return compound_apply( ChannelCastFunctor<ChannelT>(), pixel );
-    else
-      return compound_apply( ChannelCastClampFunctor<ChannelT>(), pixel );
+    typedef typename boost::is_floating_point<ChannelT>::type is_float_type;
+    typedef typename boost::mpl::if_<is_float_type, ChannelCastFunctor<ChannelT>, ChannelCastClampFunctor<ChannelT> >::type functor_type;
+    return compound_apply( functor_type(), pixel );
   }
 
   template <class DestT>
@@ -264,10 +264,9 @@ namespace vw {
   template <class ChannelT, class PixelT>
   typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
   inline channel_cast_round_and_clamp_if_int( PixelT pixel ) {
-    if( boost::is_floating_point<ChannelT>::value )
-      return compound_apply( ChannelCastFunctor<ChannelT>(), pixel );
-    else
-      return compound_apply( ChannelCastRoundClampFunctor<ChannelT>(), pixel );
+    typedef typename boost::is_floating_point<ChannelT>::type is_float_type;
+    typedef typename boost::mpl::if_<is_float_type, ChannelCastFunctor<ChannelT>, ChannelCastRoundClampFunctor<ChannelT> >::type functor_type;
+    return compound_apply( functor_type(), pixel );
   }
 
   // *******************************************************************
