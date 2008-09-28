@@ -40,8 +40,13 @@ namespace vw {
   /// The base class for progress monitoring.
   class ProgressCallback {
   protected:
-    // WARNING:  this flag may not be valid for some subclasses.  Always call abort_requested() and request_abort()
-    bool m_abort_requested;
+    // WARNING:  These may not be valid for some subclasses.  Always access these 
+    // values through the relevant public functions unless you know what you're doing.
+    // Arguably having every single member variable be mutable suggests a design 
+    // flaw.  The idea is that we often want to create a temporary progress callback 
+    // object to pass to a function performing some complex task, but that requires 
+    // that all the key functions be const.  This isn't pretty, but it works for now.
+    mutable bool m_abort_requested;
     mutable double m_progress;
     mutable Mutex m_mutex;
 
@@ -85,7 +90,7 @@ namespace vw {
     }
 
     // Throw vw::Aborted if abort has been requested
-    virtual void abort_if_requested() const {
+    void abort_if_requested() const {
       if (abort_requested()) {
         report_aborted();
         vw_throw(Aborted());
@@ -93,12 +98,12 @@ namespace vw {
     }
 
     // Request abort
-    virtual void request_abort() { 
+    virtual void request_abort() const { 
       Mutex::Lock lock(m_mutex);
       m_abort_requested = true; 
     }
 
-    double progress() const { return m_progress; }
+    virtual double progress() const { return m_progress; }
 
     virtual ~ProgressCallback() {}
     static const ProgressCallback &dummy_instance();
@@ -115,11 +120,6 @@ namespace vw {
     SubProgressCallback(const ProgressCallback &parent,
                         double from, double to) :
       m_parent(parent), m_from(from), m_to(to) {}
-    SubProgressCallback( const SubProgressCallback& copy ) : ProgressCallback(copy),
-      m_parent(copy.parent()), m_from(copy.from()), m_to(copy.to()) {
-      m_progress = copy.progress();
-      m_abort_requested = copy.abort_requested();
-    }
     virtual void report_progress(double progress) const {
       double parent_progress = m_from + (m_to - m_from)*progress;
       m_parent.report_progress(parent_progress);
@@ -132,7 +132,9 @@ namespace vw {
       m_parent.report_aborted(why);
     }
     virtual bool abort_requested() const { return m_parent.abort_requested(); }
+    virtual void request_abort() const { m_parent.request_abort(); }
     virtual ~SubProgressCallback() {}
+    virtual double progress() { return (m_parent.progress() - m_from) / (m_to - m_from); }
     double from() const { return m_from; }
     double to() const {return m_to; }
     const ProgressCallback& parent() const { return m_parent; }
