@@ -41,6 +41,7 @@ namespace vw {
   public:
     virtual ~DiskImageResource();
     DiskImageResourceJPEG( std::string const& filename );
+    static void set_default_quality( float quality );
   };
 
   class DiskImageResourcePNG : public DiskImageResource {
