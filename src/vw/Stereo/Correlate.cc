@@ -22,7 +22,7 @@
 // __END_LICENSE__
 #include <vw/Stereo/Correlate.h>
 #include <vw/Image/ImageViewRef.h>
-#include <vw/Image/Transform.h>
+#include <vw/Image/Interpolation.h>
 
 //#include <vDSP.h>
 

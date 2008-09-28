@@ -2,7 +2,7 @@
 #define __VW_STEREO_CORRELATOR_H__
 
 #include <vw/Image/ImageView.h>
-#include <vw/Image/Transform.h>
+#include <vw/Image/ImageViewRef.h>
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Stereo/OptimizedCorrelator.h>
 

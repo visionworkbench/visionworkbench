@@ -30,7 +30,7 @@
 
 #include <vw/InterestPoint/InterestTraits.h>
 #include <vw/Math/Vector.h>
-#include <vw/Image.h>
+#include <vw/Image/ImageView.h>
 
 #include <vector>
 #include <list>

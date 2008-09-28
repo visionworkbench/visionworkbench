@@ -4,7 +4,6 @@
 #include <vw/Core/Stopwatch.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
-#include <vw/Image/Transform.h>
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Stereo/Correlate.h>
 
