@@ -241,11 +241,17 @@ namespace mosaic {
 	}
 	else {
 	  image.set_size(qtree->m_tile_size,qtree->m_tile_size);
+	  double total_area = (double) info.image_bbox.width() * info.image_bbox.height();
 	  for( unsigned i=0; i<children.size(); ++i ) {
-	    BBox2i dst_bbox = elem_quot( children[i].second - info.region_bbox.min(), scale );
-	    SubProgressCallback spc(progress_callback, i/(double)children.size(), (i+1)/(double)children.size());
+	    BBox2i image_bbox = children[i].second;
+	    image_bbox.crop( info.image_bbox );
+	    if( image_bbox.empty() ) continue;
+	    double child_area = (double) image_bbox.width() * image_bbox.height();
+	    double progress = progress_callback.progress();
+	    SubProgressCallback spc( progress_callback, progress, progress + child_area/total_area );
 	    ImageView<PixelT> child = generate_branch(children[i].first, children[i].second, spc);
 	    if( ! child ) continue;
+	    BBox2i dst_bbox = elem_quot( children[i].second - info.region_bbox.min(), scale );
 	    crop(image,dst_bbox) = box_subsample( child, elem_quot(qtree->m_tile_size,dst_bbox.size()) );
 	  }
 	}
