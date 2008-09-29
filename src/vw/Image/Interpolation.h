@@ -93,14 +93,14 @@ namespace vw {
     }
   };
 
-  // Bicubic interpolation operator
-  struct BicubicInterpolation : InterpolationBase {
-    static const int32 pixel_buffer = 2; 
-    template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, int32 p ) const { 
-      typedef typename ViewT::pixel_type pixel_type;
-      typedef typename CompoundChannelType<pixel_type>::type channel_type;
-      typedef typename CompoundChannelCast<pixel_type,double>::type result_type;
+  // This is broken out so that the implementation can be overridden 
+  // by pixel type.  Optimized versions go at the bottom of the file 
+  // for clarity.
+  template <class ViewT, class PixelT = typename ViewT::pixel_type>
+  struct BicubicInterpolationImpl {
+    static PixelT apply( const ViewT &view, double i, double j, int32 p ) {
+      typedef typename CompoundChannelType<PixelT>::type channel_type;
+      typedef typename CompoundChannelCast<PixelT,double>::type result_type;
       
       int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
       double normx = i-x, normy = j-y;
@@ -134,6 +134,15 @@ namespace vw {
       result *= 0.25;
 
       return channel_cast_round_and_clamp_if_int<channel_type>( result );
+    }
+  };
+
+  // Bicubic interpolation operator
+  struct BicubicInterpolation : InterpolationBase {
+    static const int32 pixel_buffer = 2; 
+    template <class ViewT>
+    inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, int32 p ) const {
+      return BicubicInterpolationImpl<ViewT>::apply( view, i, j, p );
     }
   };
 
@@ -263,5 +272,112 @@ namespace vw {
   }
 
 } // namespace vw
+
+
+// -------------------------------------------------------------------------------
+// SSE Optimizations
+// -------------------------------------------------------------------------------
+
+#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
+#include <xmmintrin.h>
+
+namespace vw {
+
+  extern const float bicubic_coeffs[16] __attribute__ ((aligned (16)));
+
+  template <class ViewT>
+  struct BicubicInterpolationImpl<ViewT, PixelRGBA<uint8> > {
+    static PixelRGBA<uint8> apply( const ViewT &view, double i, double j, int32 p ) {
+      // Front matter: 1.3% of samples.
+      typedef typename ViewT::pixel_accessor acc_type;
+      typedef float v4f[4] __attribute__ ((aligned (16)));
+
+      // Compute integers and normalized offsets.  7.5% of samples.
+      int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
+      float normx = i-x, normy = j-y;
+
+      // Compute the bicubic coefficients.  The next three bits get 
+      // blurred together a bit by GCC, but total 16.9% of samples.
+      __m128 a, b, c, d, s0, s1, s2, s3;
+      a = _mm_set_ps1( normx );
+      b = _mm_set_ps1( normy );
+      s0 = _mm_load_ps( bicubic_coeffs );
+      s1 = _mm_load_ps( bicubic_coeffs+4 );
+      s2 = _mm_load_ps( bicubic_coeffs+8 );
+      s3 = _mm_load_ps( bicubic_coeffs+12 );
+      c = _mm_mul_ps( a, s0 );
+      d = _mm_mul_ps( b, s0 );
+      c = _mm_add_ps( c, s1 );
+      d = _mm_add_ps( d, s1 );
+      c = _mm_mul_ps( c, a );
+      d = _mm_mul_ps( d, b );
+      c = _mm_add_ps( c, s2 );
+      d = _mm_add_ps( d, s2 );
+      c = _mm_mul_ps( c, a );
+      d = _mm_mul_ps( d, b );
+      c = _mm_add_ps( c, s3 );
+      d = _mm_add_ps( d, s3 );
+  
+      // Move the coefficients into place.
+      v4f tmp;
+      _mm_store_ps(tmp,c);
+      s0 = _mm_set_ps1(tmp[0]);
+      s1 = _mm_set_ps1(tmp[1]);
+      s2 = _mm_set_ps1(tmp[2]);
+      s3 = _mm_set_ps1(tmp[3]);
+      _mm_store_ps(tmp,c);
+
+      // Get ready to loop over the source pixels.
+      acc_type acc = view.origin().advance(x-1,y-1);
+      v4f pixel1, pixel2, pixel3, pixel4;  
+
+      // Loop over the source rows, accumulating the result;
+      d = _mm_set_ps1( 0.0f );
+      for( int i=0; i<4; ++i ) {
+        // GCC does a decent job with this.  17.8% of samples.
+        *(PixelRGBA<float>*)(pixel1) = *acc;  acc.next_col();
+        *(PixelRGBA<float>*)(pixel2) = *acc;  acc.next_col();
+        *(PixelRGBA<float>*)(pixel3) = *acc;  acc.next_col();
+        *(PixelRGBA<float>*)(pixel4) = *acc;  acc.advance(-3,1);
+        
+        // Multiply-and-add one row of pixels. 45.7% of samples.
+        a = _mm_load_ps(pixel1);
+        b = _mm_load_ps(pixel2);
+        c = _mm_mul_ps(a, s0);
+        b = _mm_mul_ps(b, s1);
+        c = _mm_add_ps(c, b);
+        a = _mm_load_ps(pixel3);
+        b = _mm_load_ps(pixel4);
+        a = _mm_mul_ps(a, s2);
+        b = _mm_mul_ps(b, s3);
+        c = _mm_add_ps(c, a);
+        c = _mm_add_ps(c, b);
+        a = _mm_set_ps1(tmp[i]);
+        c = _mm_mul_ps(c, a);
+        d = _mm_add_ps(d, c);
+      }
+
+      // Clamp the values to the range of uint8, and add an offset of 0.5
+      // so that truncation results in rounding.  2.0% of samples.
+      a = _mm_set_ps1( 0.0f );
+      b = _mm_set_ps1( 255.0f );
+      c = _mm_set_ps1( 0.5f );
+      d = _mm_max_ps( d, a );
+      d = _mm_min_ps( d, b );
+      d = _mm_add_ps( d, c );
+
+      // Move the result out of SSE-land.  1.0% of samples.
+      _mm_store_ps(tmp,d);
+
+      // Truncate to packed uint8.  6.2% of samples.
+      return PixelRGBA<uint8>( *(PixelRGBA<float>*)(tmp) );
+
+      // Wrap-up.  1.6% of samples.
+    }
+  };  
+
+} // namespace vw
+
+#endif // VW_ENABLE_SSE
 
 #endif // __VW_IMAGE_INTERPOLATION_H__
