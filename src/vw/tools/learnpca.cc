@@ -1,5 +1,5 @@
 #include <iostream>
-#include "learnpca.h"
+#include <vw/InterestPoint/LearnPCA.h>
 
 using namespace std;
 

@@ -48,7 +48,7 @@ AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_VW_LIBS@
 
 check_PROGRAMS = $(TESTS)
 
-EXTRA_DIST = $(patsubst %,%.h,$(TESTS)) mural.png
+EXTRA_DIST = $(patsubst %,%.h,$(TESTS)) mural.png mural.jpg
 
 CLEANFILES = $(patsubst %,%.cxx,$(TESTS))
 

@@ -47,7 +47,7 @@ AM_CPPFLAGS = @VW_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_CAMERA_LIBS@ @PKG_VW_LIBS@
 
 check_PROGRAMS = $(TESTS)
-EXTRA_DIST = $(patsubst %,%.h,$(TESTS))
+EXTRA_DIST = $(patsubst %,%.h,$(TESTS)) test.jpg
 CLEANFILES = $(patsubst %,%.cxx,$(TESTS))
 
 include $(top_srcdir)/config/rules.mak

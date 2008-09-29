@@ -30,7 +30,7 @@ if MAKE_MODULE_INTERESTPOINT
 include_HEADERS = Detector.h Descriptor.h Matcher.h RANSAC.h Extrema.h	\
                   Localize.h InterestOperator.h WeightedHistogram.h	\
                   ImageOctave.h InterestData.h ImageOctaveHistory.h	\
-                  InterestTraits.h MatrixIO.h VectorIO.h
+                  InterestTraits.h MatrixIO.h VectorIO.h LearnPCA.h
 
 libvwInterestPoint_la_SOURCES = InterestData.cc
 libvwInterestPoint_la_LIBADD = @MODULE_INTERESTPOINT_LIBS@
