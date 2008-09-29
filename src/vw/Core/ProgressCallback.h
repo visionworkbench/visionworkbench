@@ -134,7 +134,7 @@ namespace vw {
     virtual bool abort_requested() const { return m_parent.abort_requested(); }
     virtual void request_abort() const { m_parent.request_abort(); }
     virtual ~SubProgressCallback() {}
-    virtual double progress() { return (m_parent.progress() - m_from) / (m_to - m_from); }
+    virtual double progress() const { return (m_parent.progress() - m_from) / (m_to - m_from); }
     double from() const { return m_from; }
     double to() const {return m_to; }
     const ProgressCallback& parent() const { return m_parent; }
