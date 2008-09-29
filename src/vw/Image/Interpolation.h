@@ -100,24 +100,40 @@ namespace vw {
     inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, int32 p ) const { 
       typedef typename ViewT::pixel_type pixel_type;
       typedef typename CompoundChannelType<pixel_type>::type channel_type;
-      typedef typename FloatType<channel_type>::type real_type;
-      typedef typename CompoundChannelCast<pixel_type,real_type>::type result_type;
-
-      int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
-      real_type normx = i-x, normy = j-y;
-  
-      real_type s0 = ((2-normx)*normx-1)*normx;      real_type t0 = ((2-normy)*normy-1)*normy;
-      real_type s1 = (3*normx-5)*normx*normx+2;      real_type t1 = (3*normy-5)*normy*normy+2;
-      real_type s2 = ((4-3*normx)*normx+1)*normx;    real_type t2 = ((4-3*normy)*normy+1)*normy;
-      real_type s3 = (normx-1)*normx*normx;          real_type t3 = (normy-1)*normy*normy;
+      typedef typename CompoundChannelCast<pixel_type,double>::type result_type;
       
-      result_type result = (
-        ( ( s0*view(x-1,y-1,p) + s1*view(x+0,y-1,p) + s2*view(x+1,y-1,p) + s3*view(x+2,y-1,p) ) * t0 +
-	  ( s0*view(x-1,y+0,p) + s1*view(x+0,y+0,p) + s2*view(x+1,y+0,p) + s3*view(x+2,y+0,p) ) * t1 +
-	  ( s0*view(x-1,y+1,p) + s1*view(x+0,y+1,p) + s2*view(x+1,y+1,p) + s3*view(x+2,y+1,p) ) * t2 +
-	  ( s0*view(x-1,y+2,p) + s1*view(x+0,y+2,p) + s2*view(x+1,y+2,p) + s3*view(x+2,y+2,p) ) * t3 ) * 0.25 );
+      int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
+      double normx = i-x, normy = j-y;
+      
+      double s0 = ((2-normx)*normx-1)*normx;      double t0 = ((2-normy)*normy-1)*normy;
+      double s1 = (3*normx-5)*normx*normx+2;      double t1 = (3*normy-5)*normy*normy+2;
+      double s2 = ((4-3*normx)*normx+1)*normx;    double t2 = ((4-3*normy)*normy+1)*normy;
+      double s3 = (normx-1)*normx*normx;          double t3 = (normy-1)*normy*normy;
+      
+      typename ViewT::pixel_accessor acc = view.origin().advance(x-1,y-1,p);
+      result_type row =         s0*(*acc);
+      acc.next_col();    row += s1*(*acc);
+      acc.next_col();    row += s2*(*acc);
+      acc.next_col();    row += s3*(*acc);
+      result_type result =      t0*row;
+      acc.advance(-3,1); row =  s0*(*acc);
+      acc.next_col();    row += s1*(*acc);
+      acc.next_col();    row += s2*(*acc);
+      acc.next_col();    row += s3*(*acc);
+      result +=                 t1*row;
+      acc.advance(-3,1); row =  s0*(*acc);
+      acc.next_col();    row += s1*(*acc);
+      acc.next_col();    row += s2*(*acc);
+      acc.next_col();    row += s3*(*acc);
+      result +=                 t2*row;
+      acc.advance(-3,1); row =  s0*(*acc);
+      acc.next_col();    row += s1*(*acc);
+      acc.next_col();    row += s2*(*acc);
+      acc.next_col();    row += s3*(*acc);
+      result +=                 t3*row;
+      result *= 0.25;
 
-      return channel_cast_round_and_clamp_if_int<channel_type>(result);
+      return channel_cast_round_and_clamp_if_int<channel_type>( result );
     }
   };
 
