@@ -616,6 +616,7 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
   // can read sequential lines.
   src.format.rows = bbox.height();
   src.format.cols = bbox.width();
+  src.unpremultiplied = true;
 
   src.cstride = ctx->cstride;
   src.rstride = src.cstride * src.format.cols;
@@ -679,6 +680,7 @@ void DiskImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox )
   dst.format = m_format;
   dst.format.rows = bbox.height();
   dst.format.cols = bbox.width();
+  dst.unpremultiplied = true;
 
   if (dst.format.channel_type != VW_CHANNEL_UINT16)
     dst.format.channel_type = VW_CHANNEL_UINT8;
