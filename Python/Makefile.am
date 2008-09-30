@@ -22,7 +22,11 @@
 # __END_LICENSE__
 
 all:
-	./setup.py build_ext --swig-opts=-c++ $(VW_CPPFLAGS) -I$(prefix)/include:/usr/local/include -L$(prefix)/lib:/usr/local/lib -lboost_filesystem-mt-1_35 build
+	CFLAGS="$(CXXFLAGS)" ./setup.py build_ext --swig-opts="-c++" $(VW_CPPFLAGS) $(VW_LDFLAGS) build
+# Used to have -I$(prefix)/include:/usr/local/include -L$(prefix)/lib:/usr/local/lib -lboost_filesystem-mt-1_35
 
 install: all
 	./setup.py install
+
+clean:
+	rm -rf build vw/*_wrap* vw/*.pyc vw/cartography.py vw/composite.py vw/core.py vw/fileio.py vw/filter.py vw/image.py vw/imagealgo.py vw/imagemanip.py vw/imagemath.py vw/pixel.py vw/pixelcast.py vw/qtree.py vw/transform.py vw/vwmath.py

@@ -164,6 +164,24 @@ AC_DEFINE_UNQUOTED(NO_EXCEPTIONS,
                    [$no_exceptions],
                    [Define to 1 to disable C++ exceptions.])
 
+# For the moment this is just a manual switch, defaulting to off.
+# Someday this should be sensibly autodetected.
+AC_ARG_ENABLE(sse,
+  AC_HELP_STRING([--enable-sse@<:@=no@:>@], [enable SSE optimizations in some places (development)]), 
+  [ ENABLE_SSE=$enableval ],
+  [ if test -z "$ENABLE_SSE"; then ENABLE_SSE=no; fi ]
+)
+
+if test "$ENABLE_SSE" = "yes"; then
+   enable_sse=1
+else
+   enable_sse=0
+fi
+
+AC_DEFINE_UNQUOTED(ENABLE_SSE,
+                   [$enable_sse],
+                   [Define to 1 to enable SSE optimizations.])
+
 # We set up the include paths ourselves, so 
 # we ask autoconf to get out of the way.
 DEFAULT_INCLUDES=
