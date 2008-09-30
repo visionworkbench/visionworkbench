@@ -325,7 +325,7 @@ namespace vw {
       s1 = _mm_set_ps1(tmp[1]);
       s2 = _mm_set_ps1(tmp[2]);
       s3 = _mm_set_ps1(tmp[3]);
-      _mm_store_ps(tmp,c);
+      _mm_store_ps(tmp,d);
 
       // Get ready to loop over the source pixels.
       acc_type acc = view.origin().advance(x-1,y-1);
