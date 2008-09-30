@@ -128,8 +128,7 @@ AC_DEFUN([AX_PKG],
     AC_MSG_CHECKING([for package $1])
   fi
 
-  AC_LANG_SAVE
-  AC_LANG(C++)
+  AC_LANG_ASSERT(C++)
 
   # We can skip searching if we're already at "no"
   if test "no" = "$HAVE_PKG_$1"; then
@@ -260,8 +259,6 @@ AC_DEFUN([AX_PKG],
     AC_MSG_NOTICE([VW_CPPFLAGS= $VW_CPPFLAGS])
     AC_MSG_NOTICE([VW_LDFLAGS= $VW_LDFLAGS])
   fi
-
-  AC_LANG_RESTORE
 ])
 
 
@@ -273,8 +270,7 @@ AC_DEFUN([AX_PKG_BOOST],
     AC_MSG_RESULT([])
   fi
 
-  AC_LANG_SAVE
-  AC_LANG(C++)
+  AC_LANG_ASSERT(C++)
 
   if test -n "${HAVE_PKG_BOOST}" && test "${HAVE_PKG_BOOST}" != "yes" && test "${HAVE_PKG_BOOST}" != "no"; then
     PKG_PATHS_BOOST=${HAVE_PKG_BOOST}
@@ -424,7 +420,6 @@ std::cout << STR(BOOST_VERSION);
     AC_MSG_RESULT([$HAVE_PKG_BOOST])
   fi
 
-  AC_LANG_RESTORE
 ])
 
 
@@ -588,8 +583,7 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
     AC_MSG_RESULT([])
   fi
 
-  AC_LANG_SAVE
-  AC_LANG(C++)
+  AC_LANG_ASSERT(C++)
 
   # Skip testing if the user has overridden
   if test -z ${HAVE_PKG_BOOST_$1}; then
@@ -706,8 +700,6 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
   else
     AC_MSG_RESULT([${HAVE_PKG_BOOST_$1}])
   fi
-
-  AC_LANG_RESTORE
 ])
 
 dnl Usage: AX_PKG_PTHREADS
@@ -718,8 +710,7 @@ AC_DEFUN([AX_PKG_PTHREADS],
     AC_MSG_RESULT([])
   fi
 
-  AC_LANG_SAVE
-  AC_LANG_C
+  AC_LANG_PUSH(C)
   HAVE_PKG_PTHREADS=no
 
   ax_pkg_pthreads_cppflags_options="none -pthread"
@@ -764,7 +755,7 @@ AC_DEFUN([AX_PKG_PTHREADS],
     done
   done
 
-  AC_LANG_RESTORE
+  AC_LANG_POP(C)
 
   if test "$HAVE_PKG_PTHREADS" = "yes" ; then
     CFLAGS="$CFLAGS $PKG_PTHREADS_CPPFLAGS"
