@@ -115,6 +115,9 @@
 #include <iterator>
 #include <queue>
 
+// for INT_MAX
+#include <climits>
+
 //for printing graph
 //#include <boost/graph/breadth_first_search.hpp> 
 
