@@ -14,18 +14,20 @@ namespace math {
 // (lacking standard installation of lapack headers) is to use the type most
 // appropriate for the bloodline.
 
-#if (defined(VW_HAVE_PKG_CLAPACK)                    && VW_HAVE_PKG_CLAPACK==1) || \
-    (defined(VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS) && VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS==1)
-
-  // f2c-based
-  typedef long f77_int;
-
-#elif (defined(VW_HAVE_PKG_FLAPACK)            && VW_HAVE_PKG_FLAPACK==1) || \
-      (defined(VW_HAVE_PKG_SLAPACK)            && VW_HAVE_PKG_SLAPACK==1) || \
-      (defined(VW_HAVE_PKG_STANDALONE_FLAPACK) && VW_HAVE_PKG_STANDALONE_FLAPACK==1)
+#if (defined(VW_HAVE_PKG_FLAPACK)            && VW_HAVE_PKG_FLAPACK==1) || \
+    (defined(VW_HAVE_PKG_SLAPACK)            && VW_HAVE_PKG_SLAPACK==1) || \
+    (defined(VW_HAVE_PKG_STANDALONE_FLAPACK) && VW_HAVE_PKG_STANDALONE_FLAPACK==1)
 
   // fortran-based
   typedef int32  f77_int;
+
+#elif (defined(VW_HAVE_PKG_CLAPACK)                    && VW_HAVE_PKG_CLAPACK==1) || \
+      (defined(VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS) && VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS==1) || \
+      (defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1)
+  
+
+  // f2c-based
+  typedef long f77_int;
 
 #else
 // We're only installed if lapack is installed, so something is wrong at this point.
