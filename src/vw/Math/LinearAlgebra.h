@@ -458,7 +458,7 @@ namespace math {
     typedef typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type real_type;
     Matrix<real_type> Abuf = A;
     Vector<real_type> result = B;
-    solve_symmetric_nocopy(A,B);
+    solve_symmetric_nocopy(Abuf,result);
     return result;
   }
 
