@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,12 +18,12 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 /// \file LinearAlgebra.h
-/// 
-/// Provides standard linear algebra functions, such as eigendecomposition, 
+///
+/// Provides standard linear algebra functions, such as eigendecomposition,
 /// least-squares, and so on, utilizing LAPACK where possible.
 /// Currently provides:
 ///  - Eigendecomposition via eigen()
@@ -37,55 +37,37 @@
 #include <vw/config.h>
 #include <vw/Core/Exception.h>
 #include <vw/Math/Matrix.h>
+#include <vw/Math/LapackExports.h>
 
 namespace vw {
 /// Numerical linear algebra and computational geometry.
 namespace math {
 
-  /// \cond INTERNAL
-  extern "C"  int sgeev_(char *jobvl, char *jobvr, long int *n, float *a, 
-                         long int *lda, float *wr, float *wi, float *vl, long int *ldvl, float *vr, 
-                         long int *ldvr, float *work, long int *lwork, long int *info);
-
-  extern "C"  int dgeev_(char *jobvl, char *jobvr, long int *n, double *a, 
-                         long int *lda, double *wr, double *wi, double *vl, long int *ldvl, double *vr, 
-                         long int *ldvr, double *work, long int *lwork, long int *info);
-
-
-  static inline void geev(char jobvl, char jobvr, long int n, float *a, long int lda, float *wr, float *wi, float *vl, long int ldvl, float *vr, long int ldvr, float *work, long int lwork, long int *info) {
-    sgeev_(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
-  }
-
-  static inline void geev(char jobvl, char jobvr, long int n, double *a, long int lda, double *wr, double *wi, double *vl, long int ldvl, double *vr, long int ldvr, double *work, long int lwork, long int *info) {
-    dgeev_(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
-  }
-  /// \endcond
-
   /// Compute the eigenvalues of a Matrix A
   ///
   /// E must be a complex vector and will be resized if necessary to
   /// the appropriate output dimensions based on the dimensions of A.
-  template <class MatrixT, class EigenvaluesT> 
+  template <class MatrixT, class EigenvaluesT>
   inline void eigen( MatrixT const& A, EigenvaluesT &e ) {
     VW_ASSERT( A.cols()==A.rows(), ArgumentErr() << "Eigendecomposition can only be performed on square matrices." );
     typedef typename MatrixT::value_type real_type;
-    const long int lda = A.rows();
+    const f77_int lda = A.rows();
     Matrix<real_type> Abuf = transpose(A);
     Vector<real_type> wr_buf( A.cols() );
     Vector<real_type> wi_buf( A.cols() );
     real_type work_size;
-    long int n = A.cols(); 
-    long int lwork = -1, info;
+    f77_int n = A.cols();
+    f77_int lwork = -1, info;
     geev('N','N',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, &work_size, lwork, &info);
-    lwork = (long int)(work_size);
+    lwork = f77_int(work_size);
     std::vector<real_type> work( lwork );
     geev('N','N',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, &work[0], lwork, &info);
-    if (info < 0) 
+    if (info < 0)
       vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev reported an error with argument " << -info << "." );
-    if (info > 0) 
+    if (info > 0)
       vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev only converged for the first " << info << " eigenvectors." );
     e.set_size( A.cols() );
-    for ( unsigned i = 0; i < wr_buf.size(); ++i ) 
+    for ( unsigned i = 0; i < wr_buf.size(); ++i )
       e(i) = std::complex<real_type>(wr_buf(i), wi_buf(i));
   }
 
@@ -95,25 +77,27 @@ namespace math {
   /// contain the eigenvalues and must be a complex vector, while V
   /// will contain eigenvectors and must be a complex matrix. E and V
   /// will be resized based on the dimensions of A.
-  template <class AMatrixT, class EigenvaluesT, class VMatrixT> 
+  template <class AMatrixT, class EigenvaluesT, class VMatrixT>
   inline void eigen( AMatrixT &A, EigenvaluesT &e, VMatrixT &V ) {
     VW_ASSERT( A.cols()==A.rows(), ArgumentErr() << "Eigendecomposition can only be performed on square matrices." );
     typedef typename AMatrixT::value_type real_type;
-    const long int lda = A.rows();
-    const long int ldvr = A.cols();
+    const f77_int lda = A.rows();
+    const f77_int ldvr = A.cols();
     Matrix<real_type> Abuf = transpose(A);
     Matrix<real_type> Vbuf( A.rows(), A.cols() );
     Vector<real_type> wr_buf( A.cols() );
     Vector<real_type> wi_buf( A.cols() );
     real_type work_size;
-    long int n = A.cols(), lwork = -1, info;
+    f77_int n = A.cols();
+    f77_int lwork = -1, info;
+
     geev('N','V',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, &(Vbuf(0,0)), ldvr, &work_size, lwork, &info);
-    lwork = (long int)(work_size);
+    lwork = f77_int(work_size);
     std::vector<real_type> work( lwork );
     geev('N','V',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, &(Vbuf(0,0)), ldvr, &work[0], lwork, &info);
-    if (info < 0) 
+    if (info < 0)
       vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev reported an error with argument " << -info << "." );
-    if (info > 0) 
+    if (info > 0)
       vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev only converged for the first " << info << " eigenvectors." );
     e.set_size( A.cols() );
     V.set_size( Vbuf.cols(), Vbuf.rows() );
@@ -131,77 +115,59 @@ namespace math {
     }
   }
 
-  /// \cond INTERNAL
-  extern "C"  int sgesdd_(char *jobz, long int *m, long int *n, float *a, 
-                          long int *lda, float *s, float *u, long int *ldu, float *vt, long int *ldvt,
-                          float *work, long int *lwork, long int *iwork, long int *info);
-
-  extern "C"  int dgesdd_(char *jobz, long int *m, long int *n, double *a,
-                          long int *lda, double *s, double *u, long int *ldu, double *vt, long int *ldvt, 
-                          double *work, long int *lwork, long int *iwork, long int *info);
-
-  static inline void gesdd(char jobz, long int m, long int n, float *a, long int lda, float *s, float *u, long int ldu, float *vt, long int ldvt, float *work, long int lwork, long int *iwork, long int *info) { 
-    sgesdd_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, iwork, info);
-  }
-
-  static inline void gesdd(char jobz, long int m, long int n, double *a, long int lda, double *s, double *u, long int ldu, double *vt, long int ldvt, double *work, long int lwork, long int *iwork, long int *info) { 
-    dgesdd_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, iwork, info);
-  }
-  /// \endcond
-
   /// Compute the singular values of a Matrix A
   ///
-  /// S will be resized if necessary to the appropriate output 
+  /// S will be resized if necessary to the appropriate output
   /// dimensions based on the dimensions of A.
-  template <class AMatrixT, class SingularValuesT> 
+  template <class AMatrixT, class SingularValuesT>
   inline void svd( AMatrixT const& A, SingularValuesT &s ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type real_type;
-    const long int m = A.rows(), n = A.cols();
-    const long int minmn = std::min(m,n);
-    const long int lda = A.rows();
+    const f77_int m = A.rows(), n = A.cols();
+    const f77_int minmn = std::min(m,n);
+    const f77_int lda = A.rows();
     Matrix<real_type> Abuf = transpose(A);
     Vector<real_type> sbuf( minmn );
     real_type work_size;
-    long int lwork = -1, info;
-    std::vector<long int> iwork( 8*minmn );
+    f77_int lwork = -1, info;
+    std::vector<f77_int> iwork( 8*minmn );
     gesdd('N', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), NULL, 1, NULL, 1, &work_size, lwork, &iwork[0], &info);
-    lwork = (long int)(work_size);
+    lwork = f77_int(work_size);
     std::vector<real_type> work( lwork );
     gesdd('N', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), NULL, 1, NULL, 1, &work[0], lwork, &iwork[0], &info);
-    if (info < 0) 
+    if (info < 0)
       vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << "." );
-    if (info > 0) 
+    if (info > 0)
       vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed." );
     s = sbuf;
   }
-  
+
   /// Compute the singular value decomposition of the matrix A.
   ///
-  /// U, S, and VT will be resized if necessary to the appropriate output 
+  /// U, S, and VT will be resized if necessary to the appropriate output
   /// dimensions based on the dimensions of A.
-  template <class AMatrixT, class UMatrixT, class SingularValuesT, class VTMatrixT> 
+  template <class AMatrixT, class UMatrixT, class SingularValuesT, class VTMatrixT>
   inline void svd( AMatrixT const& A, UMatrixT &U, SingularValuesT &s, VTMatrixT &VT ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type temp_type1;
     typedef typename PromoteType<temp_type1, typename UMatrixT::value_type>::type temp_type2;
     typedef typename PromoteType<temp_type2, typename VTMatrixT::value_type>::type real_type;
-    const long int m = A.rows(), n = A.cols();
-    const long int minmn = std::min(m,n);
-    const long int lda = A.rows();
+    const f77_int m = A.rows(), n = A.cols();
+    const f77_int minmn = std::min(m,n);
+    const f77_int lda = A.rows();
     Matrix<real_type> Abuf = transpose(A);
     Matrix<real_type> Ubuf( minmn, A.rows() );
     Matrix<real_type> VTbuf( A.cols(), minmn );
     Vector<real_type> sbuf( minmn );
     real_type work_size;
-    long int lwork = -1, info;
-    std::vector<long int> iwork( 8*minmn );
-    long int ldu = m, ldvt = minmn;
+    f77_int lwork = -1, info;
+    std::vector<f77_int> iwork( 8*minmn );
+    f77_int ldu = m, ldvt = minmn;
     gesdd('S', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work_size, lwork, &iwork[0], &info);
-    lwork = (long int)(work_size);
+    lwork = f77_int(work_size);
     std::vector<real_type> work( lwork );
     gesdd('S', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work[0], lwork, &iwork[0], &info);
-    if (info < 0) 
+    if (info < 0)
       vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << "." );
-    if (info > 0) 
+    if (info > 0)
       vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed." );
     U = transpose(Ubuf);
     VT = transpose(VTbuf);
@@ -212,31 +178,31 @@ namespace math {
   /// including complete orthogonal bases of the domain and range even
   /// when A is rectangular.
   ///
-  /// U, S, and VT will be resized if necessary to the appropriate output 
+  /// U, S, and VT will be resized if necessary to the appropriate output
   /// dimensions based on the dimensions of A.
-  template <class AMatrixT, class UMatrixT, class SingularValuesT, class VTMatrixT> 
+  template <class AMatrixT, class UMatrixT, class SingularValuesT, class VTMatrixT>
   inline void complete_svd( AMatrixT & A, UMatrixT &U, SingularValuesT &s, VTMatrixT &VT ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type temp_type1;
     typedef typename PromoteType<temp_type1, typename UMatrixT::value_type>::type temp_type2;
     typedef typename PromoteType<temp_type2, typename VTMatrixT::value_type>::type real_type;
-    const long int m = A.rows(), n = A.cols();
-    const long int minmn = std::min(m,n);
-    const long int lda = A.rows();
+    const f77_int m = A.rows(), n = A.cols();
+    const f77_int minmn = std::min(m,n);
+    const f77_int lda = A.rows();
     Matrix<real_type> Abuf = transpose(A);
     Matrix<real_type> Ubuf( A.rows(), A.rows() );
     Matrix<real_type> VTbuf( A.cols(), A.cols() );
     Vector<real_type> sbuf( minmn );
     real_type work_size;
-    long int lwork = -1, info;
-    std::vector<long int> iwork( 8*minmn ); 
-    long int ldu = m, ldvt = n;
+    f77_int lwork = -1, info;
+    std::vector<f77_int> iwork( 8*minmn );
+    f77_int ldu = m, ldvt = n;
     gesdd('A', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work_size, lwork, &iwork[0], &info);
-    lwork = (long int)(work_size);
+    lwork = f77_int(work_size);
     std::vector<real_type> work( lwork );
     gesdd('A', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work[0], lwork, &iwork[0], &info);
-    if (info < 0) 
+    if (info < 0)
       vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << "." );
-    if (info > 0) 
+    if (info > 0)
       vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed." );
     U = transpose(Ubuf);
     VT = transpose(VTbuf);
@@ -260,76 +226,33 @@ namespace math {
     return transpose(vt)*si*transpose(u);
   }
 
-
-  /// \cond INTERNAL
-  extern "C"  int sgelsd_(const long int* m, const long int* n, const long int* nrhs, float* a, 
-                          const long int* lda, float *b, const long int* ldb, float* s, 
-                          const float* rcond, long int* rank, float* work, const long int* lwork, 
-                          long int* iwork, long int* info);
-
-  extern "C"  int dgelsd_(const long int* m, const long int* n, const long int* nrhs, double* a, 
-                          const long int* lda, double *b, const long int* ldb, double* s, 
-                          const double* rcond, long int* rank, double* work, const long int* lwork, 
-                          long int* iwork, long int* info);
-
-  static inline void gelsd(long int m, long int n, long int nrhs, float *a, long int lda, float *b, long int ldb, float *s, float rcond, long int *rank, float *work, long int lwork, long int* iwork, long int *info) {
-    sgelsd_( &m, &n, &nrhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, iwork, info );
-  }
-
-  static inline void gelsd(long int m, long int n, long int nrhs, double *a, long int lda, double *b, long int ldb, double *s, double rcond, long int *rank, double *work, long int lwork, long int* iwork, long int *info) {
-    dgelsd_( &m, &n, &nrhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, iwork, info );
-  }
-  /// \endcond
-
-  /// \cond INTERNAL
-  extern "C"  int sgelss_(const long int* m, const long int* n, const long int* nrhs, float* a, 
-                          const long int* lda, float *b, const long int* ldb, float* s, 
-                          const float* rcond, long int* rank, float* work, const long int* lwork, 
-                          long int* info);
-  
-  extern "C"  int dgelss_(const long int* m, const long int* n, const long int* nrhs, double* a, 
-                          const long int* lda, double *b, const long int* ldb, double* s, 
-                          const double* rcond, long int* rank, double* work, const long int* lwork, 
-                          long int* info);
-
-  static inline void gelss(long int m, long int n, long int rhs, double *a, long int lda, double *b, long int ldb, double *s, double rcond, long int *rank, double *work, long int lwork, long int *info) {
-    dgelss_( &m, &n, &rhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, info );
-  }
-
-  static inline void gelss(long int m, long int n, long int rhs, float *a, long int lda, float *b, long int ldb, float *s, float rcond, long int *rank, float *work, long int lwork, long int *info) {
-    sgelss_( &m, &n, &rhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, info );
-  }
-  /// \endcond
-
-  /// \endcond
-
-
   // gelsd seems to lock up on some problems (see TestLinearAlgebra.h)
   // gelss seems to be more reliable
 #define USE_GELSS 1
-  
+
   /// Computes the minimum-norm solution to a real linear least squares problem.
   template <class AMatrixT, class BVectorT>
   Vector<typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type>
   least_squares( AMatrixT & A, BVectorT & B, double cond = -1 ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type real_type;
     Matrix<real_type> Abuf = transpose(A);
-    const long int m = A.rows(), n = A.cols();
-    const int minmn = std::min(m,n), maxmn = std::max(m,n);
+    const f77_int m = A.rows(), n = A.cols();
+    const f77_int minmn = std::min(m,n), maxmn = std::max(m,n);
     Vector<real_type> Bbuf(maxmn);
     subvector(Bbuf,0,m) = B;
-    const long int nrhs = 1, lda = A.rows(), ldb = maxmn;
+    const f77_int nrhs = 1, lda = A.rows(), ldb = maxmn;
     std::vector<real_type> s( minmn );
     real_type const rcond = cond;
-    long int rank, lwork = -1, info;
+    f77_int rank;
+    f77_int lwork = -1, info;
     real_type work_size;
 #if USE_GELSS
     gelss( m, n, nrhs, &(Abuf(0,0)), lda, &(Bbuf(0)), ldb, &s[0], rcond, &rank, &work_size, lwork, &info );
-    lwork = int(work_size);
+    lwork = f77_int(work_size);
     std::vector<real_type> work( lwork );
     gelss( m, n, nrhs, &(Abuf(0,0)), lda, &(Bbuf(0)), ldb, &s[0], rcond, &rank, &work[0], lwork, &info );
-#else    
-    std::vector<long int> iwork( (3*int(log(minmn+1.)/log(2.))+11)*minmn ); // log2(x) = log(x)/log(2)
+#else
+    std::vector<f77_int> iwork( (3*int(log(minmn+1.)/log(2.))+11)*minmn ); // log2(x) = log(x)/log(2)
     gelsd( m, n, nrhs, &(Abuf(0,0)), lda, &(Bbuf(0)), ldb, &s[0], rcond, &rank, &work_size, lwork, &iwork[0], &info );
     lwork = int(work_size);
     std::vector<real_type> work( lwork );
@@ -342,7 +265,7 @@ namespace math {
 
 
   // ---------------------------------------------------------------------------
-  // x = solve(A,b) - Computes the solution to a real system of linear 
+  // x = solve(A,b) - Computes the solution to a real system of linear
   // equations:
   //
   //     A*x=b
@@ -351,46 +274,26 @@ namespace math {
   // using LU decomposition and back/forward substitution.
   // ---------------------------------------------------------------------------
 
-  /// \cond INTERNAL
-  extern "C"    int sgesv_(const long int *n, const long int *nrhs, float *a, 
-                           const long int *lda, long int *ipiv, float *b, 
-                           const long int *ldb, long int *info);
-
-  extern "C"    int dgesv_(const long int *n, const long int *nrhs, double *a, 
-                           const long int *lda, long int *ipiv, double *b, 
-                           const long int *ldb, long int *info);
-
-  static inline void gesv(const long int n, const long int nrhs, float *a, const long int lda, 
-                          long int *ipiv, float *b, const long int ldb, long int *info) {
-    sgesv_(&n, &nrhs, a, &lda, ipiv, b, &ldb, info);
-  }
-
-  static inline void gesv(const long int n, const long int nrhs, double *a, const long int lda, 
-                          long int *ipiv, double *b, const long int ldb, long int *info) {
-    dgesv_(&n, &nrhs, a, &lda, ipiv, b, &ldb, info);
-  }
-  /// \endcond
-
   /// Computes the minimum-norm solution to a real linear least squares problem.
   template <class AMatrixT, class BVectorT>
   Vector<typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type>
   solve( AMatrixT & A, BVectorT & B ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type real_type;
 
-    const long int n = A.cols();
-    const long int lda = A.rows();
-    const long int nrhs = 1;
-    Vector<long int> ipiv( A.rows() );
-    const long int ldb = B.size();
-    long int info;
+    const f77_int n = A.cols();
+    const f77_int lda = A.rows();
+    const f77_int nrhs = 1;
+    Vector<f77_int> ipiv( A.rows() );
+    const f77_int ldb = B.size();
+    f77_int info;
 
     Matrix<real_type> Abuf = transpose(A);
     Vector<real_type> result = B;
     gesv(n,nrhs,&(Abuf(0,0)), lda, &(ipiv(0)), &(result(0)), ldb, &info);
 
-    if (info < 0) 
+    if (info < 0)
       vw_throw( ArgumentErr() << "solve(): LAPACK driver gesv reported an error with argument " << -info << "." );
-    if (info > 0) 
+    if (info > 0)
       vw_throw( ArgumentErr() << "solve(): LAPACK driver gesv could not solve equation.  Factor " << info << " of A is zero, so A is singular." );
 
     return result;
@@ -409,25 +312,6 @@ namespace math {
   // when symmetric matrices are available.
   // ---------------------------------------------------------------------------
 
-  /// \cond INTERNAL
-  extern "C"    int sposv_(const char *uplo, const long int *n, const long int *nrhs, float *a, 
-                           const long int *lda, float *b, const long int *ldb, long int *info);
-
-  extern "C"    int dposv_(const char *uplo, const long int *n, const long int *nrhs, double *a,
-                           const long int *lda, double *b, const long int *ldb, long int *info);
-
-  static inline void posv(const char uplo, const long int n, const long int nrhs, float *a, 
-                          const long int lda, float *b, const long int ldb, long int *info) {
-    sposv_(&uplo, &n, &nrhs, a, &lda, b, &ldb, info);
-  }
-
-  static inline void posv(const char uplo, const long int n, const long int nrhs, double *a, 
-                          const long int lda, double *b, const long int ldb, long int *info) {
-    dposv_(&uplo, &n, &nrhs, a, &lda, b, &ldb, info);
-  }
-
-  /// \endcond
-
   /// Solve the equation Ax=b where A is a symmetric positive definite
   /// matrix.  This version of this method will modify A and b.  Upon
   /// return, A contains its cholesky factorization, and b will
@@ -436,16 +320,16 @@ namespace math {
   /// the non-nocopy method below.
   template <class AMatrixT, class BVectorT>
   void solve_symmetric_nocopy( AMatrixT & A, BVectorT & B ) {
-    const long int n = A.cols();
-    const long int nrhs = 1;
-    const long int lda = A.rows();
-    const long int ldb = B.size();
-    long int info;
+    const f77_int n = A.cols();
+    const f77_int nrhs = 1;
+    const f77_int lda = A.rows();
+    const f77_int ldb = B.size();
+    f77_int info;
     posv('L',n,nrhs,&(A(0,0)), lda, &(B(0)), ldb, &info);
 
-    if (info < 0) 
+    if (info < 0)
       vw_throw( ArgumentErr() << "solve_symmetric(): LAPACK driver posv reported an error with argument " << -info << "." );
-    if (info > 0) 
+    if (info > 0)
       vw_throw( ArgumentErr() << "solve_symmetric(): LAPACK driver posv could not solve equation because A is not symmetric positive definite." );
   }
 
@@ -461,8 +345,6 @@ namespace math {
     solve_symmetric_nocopy(Abuf,result);
     return result;
   }
-
-
 
 } // namespace math
 } // namespace vw

@@ -29,7 +29,7 @@ if MAKE_MODULE_MATH
 
 if HAVE_PKG_LAPACK
 lapack_headers = LinearAlgebra.h LevenbergMarquardt.h Geometry.h        \
-	PoseEstimation.h
+	PoseEstimation.h LapackExports.h
 endif
 
 include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h	\
