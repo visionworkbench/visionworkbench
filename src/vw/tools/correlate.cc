@@ -27,6 +27,8 @@ int main( int argc, char *argv[] ) {
     int xkernel, ykernel;
     int lrthresh;
     float corrscore_thresh;
+    int cost_blur;
+    int correlator_type;
 
     po::options_description desc("Options");
     desc.add_options()
@@ -43,6 +45,8 @@ int main( int argc, char *argv[] ) {
       ("ykernel", po::value<int>(&ykernel)->default_value(15), "Vertical correlation kernel size")
       ("lrthresh", po::value<int>(&lrthresh)->default_value(2), "Left/right correspondence threshold")
       ("csthresh", po::value<float>(&corrscore_thresh)->default_value(1.0), "Correlation score rejection threshold (1.0 is Off <--> 2.0 is Aggressive outlier rejection")
+      ("cost-blur", po::value<int>(&cost_blur)->default_value(1), "Kernel size for bluring the cost image")
+      ("correlator-type", po::value<int>(&correlator_type)->default_value(0), "0 - Abs difference; 1 - Sq Difference; 2 - NormXCorr")
       ("hsubpix", "Enable horizontal sub-pixel correlation")
       ("vsubpix", "Enable vertical sub-pixel correlation")
       ("affine-subpix", "Enable affine adaptive sub-pixel correlation (slower, but more accurate)")
@@ -77,6 +81,12 @@ int main( int argc, char *argv[] ) {
     ImageViewRef<PixelGray<float> > left = edge_extend(left_disk_image,0,0,cols,rows);
     ImageViewRef<PixelGray<float> > right = edge_extend(right_disk_image,0,0,cols,rows);
 
+    stereo::CorrelatorType corr_type = ABS_DIFF_CORRELATOR; // the default
+    if (correlator_type == 1)
+      corr_type = SQR_DIFF_CORRELATOR;
+    else if (correlator_type == 2)
+      corr_type = NORM_XCORR_CORRELATOR;
+
     ImageView<PixelDisparity<float> > disparity_map;
     if (vm.count("reference")>0) {
       vw::stereo::ReferenceCorrelator correlator( xoffset-xrange, xoffset+xrange,
@@ -94,13 +104,12 @@ int main( int argc, char *argv[] ) {
       vw::stereo::PyramidCorrelator correlator( BBox2(Vector2(xoffset-xrange, yoffset-yrange),
                                                       Vector2(xoffset+xrange, yoffset+yrange)),
                                                 Vector2i(xkernel, ykernel),
-                                                slog, lrthresh,
+                                                lrthresh,
                                                 corrscore_thresh,
-                                                (vm.count("hsubpix")>0),
-                                                (vm.count("vsubpix")>0),
-                                                (vm.count("affine-subpix")>0) );
+                                                cost_blur,
+                                                corr_type);
       correlator.set_debug_mode("debug");
-      if (1) {
+      {
         vw::Timer corr_timer("Correlation Time");
         if (log > 0) 
           disparity_map = correlator( left, right, stereo::LogStereoPreprocessingFilter(log));
@@ -108,14 +117,13 @@ int main( int argc, char *argv[] ) {
            disparity_map = correlator( left, right, stereo::SlogStereoPreprocessingFilter(slog));
       }
     } else {
-      vw::stereo::OptimizedCorrelator correlator( xoffset-xrange, xoffset+xrange,
-                                                  yoffset-yrange, yoffset+yrange,
-                                                  xkernel, ykernel,
-                                                  true, lrthresh, corrscore_thresh,
-                                                  (vm.count("hsubpix")>0),
-                                                  (vm.count("vsubpix")>0),
-                                                  (vm.count("affine-subpix")>0) );
-      if (1) {
+      vw::stereo::OptimizedCorrelator correlator( BBox2i(xoffset-xrange/2, yoffset-yrange/2, xrange, yrange),
+                                                  xkernel, 
+                                                  lrthresh, 
+                                                  corrscore_thresh,
+                                                  cost_blur,
+                                                  corr_type);
+      {
         vw::Timer corr_timer("Correlation Time");
         if (log > 0) 
           disparity_map = correlator( left, right, stereo::LogStereoPreprocessingFilter(log));

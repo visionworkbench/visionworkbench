@@ -35,6 +35,10 @@
 namespace vw {
 namespace stereo {
 
+  enum CorrelatorType { ABS_DIFF_CORRELATOR = 0, 
+                        SQR_DIFF_CORRELATOR = 1,
+                        NORM_XCORR_CORRELATOR = 2 };
+
   /// Given a type, these traits classes help to determine a suitable
   /// working type for accumulation operations in the correlator
   template <class T> struct CorrelatorAccumulatorType {};
@@ -247,7 +251,7 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   /// This routine cross checks L2R and R2L, placing the final version
   /// of the disparity map in L2R.
   void cross_corr_consistency_check(ImageView<PixelDisparity<float> > &L2R, 
-                                    ImageView<PixelDisparity<float> > &R2L,
+                                    ImageView<PixelDisparity<float> > const& R2L,
                                     double cross_corr_threshold, bool verbose = false);
 
 }} // namespace vw::stereo

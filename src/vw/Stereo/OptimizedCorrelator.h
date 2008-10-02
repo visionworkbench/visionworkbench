@@ -8,455 +8,381 @@
 #include <vw/Stereo/Correlate.h>
 
 // Boost
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/thread/xtime.hpp>
 
 namespace vw { 
 namespace stereo {
+  // ---------------------------------------------------------------------------
+  //                        STANDALONE BOX FILTER
+  // ---------------------------------------------------------------------------
 
-  // Threading classes
-  class CorrelationWorkThreadBase {
+  // Efficient box filter implemenation.  
+  template <class ViewT>
+  static ImageView<float> standalone_box_filter(ImageViewBase<ViewT> const& img, Vector2i kernel_size) {
+    int kern_width = kernel_size.x();
+    int kern_height = kernel_size.y();
+
+    ImageView<float> src = img.impl();
+    ImageView<float> dst(src.cols(), src.rows());
+    std::vector<float> rSum(src.rows());
+
+    typedef typename ImageView<float>::pixel_accessor src_accessor;
+    typedef typename ImageView<float>::pixel_accessor dst_accessor;
+    
+    // Seed the row sum buffer
+    src_accessor row_acc = src.origin();
+    for (int y = 0; y < src.rows(); ++y) {
+      rSum[y] = 0;
+      src_accessor col_acc = row_acc;
+      for (int kx = 0; kx < kern_width; ++kx) {
+        rSum[y] += *col_acc; // src(kx, y);
+        col_acc.next_col();
+      }
+      row_acc.next_row();
+    }
+      
+    dst_accessor dst_col_acc = dst.origin();
+    dst_col_acc.advance(kern_width / 2, kern_height / 2);
+    for (int x = 0; x < src.cols() - kern_width; ++x) {
+      // Seed the col sum
+      float cSum = 0;
+      for (int j = 0; j < kern_height; ++j) {
+        cSum += rSum[j];
+      }
+      
+      dst_accessor dst_row_acc = dst_col_acc;
+      for (int y = 0; y < src.rows() - kern_height; ++y) {
+        *dst_row_acc = cSum;  // dst(x + kern_width / 2, y + kern_height / 2) = cSum
+        dst_row_acc.next_row();
+        
+        // Update the col sum
+        cSum += rSum[y + kern_height] - rSum[y];
+      }
+      
+      // Update the row sum
+      for (int j = 0; j < src.rows(); ++j) {
+        rSum[j] += src(x + kern_width, j) - src(x, j);
+      }
+      dst_col_acc.next_col();
+    }
+    
+    return dst;
+  }
+
+  // ---------------------------------------------------------------------------
+  //                           COST FUNCTIONS
+  // ---------------------------------------------------------------------------
+
+  class StereoCostFunction {
+
   protected:
-    ImageView<PixelDisparity<float> > m_result;
+    BBox2i m_left_bbox;
+    ImageView<float> m_src;
+    ImageView<float> m_dst;
+    std::vector<float> m_rSum;
+    int m_kernel_size;
 
-    std::string m_correlation_rate_string;
-    double m_progress_percent;
-    std::string m_progress_string;
-    bool m_done;
-    mutable Mutex m_mutex;
-    char temp_progress[100];
   public:
+    // The constructor allocates the buffers for the box filter once
+    // and only once.
+    StereoCostFunction(int width, int height, BBox2i const& search_window, int kernel_size) :     
+      m_left_bbox(BBox2i((search_window.max().x() < 0) ? (-search_window.max().x()) : 0,
+                         (search_window.max().y() < 0) ? (-search_window.max().y()) : 0,
+                         (search_window.min().x() < 0) ? width - abs(search_window.max().x()) : width - abs(search_window.min().x()),
+                         (search_window.min().y() < 0) ? height - abs(search_window.max().y()) : height - abs(search_window.min().y()) )),
+      m_src(m_left_bbox.width(), m_left_bbox.height()), 
+      m_dst(m_left_bbox.width(), m_left_bbox.height()), 
+      m_rSum(m_left_bbox.height()), 
+      m_kernel_size(kernel_size) {}
 
-    CorrelationWorkThreadBase() : m_progress_percent(0), m_done(false) {}
-    virtual ~CorrelationWorkThreadBase() {}
-    virtual void operator()() = 0;
+    BBox2i const& bbox() const { return m_left_bbox; }
+    int kernel_size() const { return m_kernel_size; }
 
-    virtual ImageView<PixelDisparity<float> > result() { return m_result; }
-  
-    std::string correlation_rate_string() const {
-      Mutex::Lock lock(m_mutex);
-      return m_correlation_rate_string;
-    }
-  
-    std::string progress_string() const {
-      Mutex::Lock lock(m_mutex);
-      return m_progress_string;
-    }
-  
-    /// Returns a number between 0.0 and 100.0
-    double progress_percent() { return m_progress_percent; }
-  
-    bool is_done() const {
-      return m_done;
-    }
+    virtual ImageView<float> calculate(int dx, int dy) = 0;
+    virtual int cols() const = 0;
+    virtual int rows() const = 0;
+    virtual int sample_size() const = 0; // What is the side length of
+                                         // the square of surrounding
+                                         // pixels needed to calculate
+                                         // the cost for a single
+                                         // pixel?
+    virtual ~StereoCostFunction() {}
 
-    void set_correlation_rate_string(std::string str) {
-      Mutex::Lock lock(m_mutex);
-      m_correlation_rate_string = str;
-    }
-  
-    void set_progress_string(std::string str) {
-      Mutex::Lock lock(m_mutex);
-      m_progress_string = str;
-    }
-  
-    void set_done(bool val) {
-      m_done = val;
-    }
-  };
+    // Efficient box filter implemenation.  This filter is called
+    // repeatedly, but we allocate the image buffers only once (in the
+    // constructor, above).
+    template <class BoxViewT>
+    ImageView<float> box_filter(ImageViewBase<BoxViewT> const& img) {
+      int kern_width = m_kernel_size;
+      int kern_height = m_kernel_size;
 
-  /// The correlation work thread is a functor that does the actual
-  /// correlation processing.  This functor can be used to easily spin
-  /// off multiple threads of correlation on a multiprocessor machine.
-  template <class ViewT, class CostFuncT>
-  class CorrelationWorkThread : public CorrelationWorkThreadBase {
+      VW_ASSERT(img.impl().cols() == m_dst.cols() && img.impl().rows() == m_dst.rows(),
+                ArgumentErr() << "StereoCostFunction::box_filter() : image size (" << img.impl().cols() << " " << img.impl().rows() << ") does not match box filter size (" << m_dst.cols() << " " << m_dst.rows() << ").");
+      m_src = img.impl();
 
-    // Handy typedefs
-    typedef typename ViewT::pixel_type pixel_type;
-    typedef typename PixelChannelType<pixel_type>::type channel_type;
-    
-    // This is used as an intermediate format for the correlator
-    typedef struct soadStruct {
-      double hDisp; // disparity in x for the best match 
-      double vDisp; // disparity in y for the best match 
-      double best;  // soad at the best match 
-    } soad;
-  
-    int m_min_h, m_max_h;
-    int m_min_v, m_max_v;
-    int m_kern_height, m_kern_width;
-    float m_corrscore_rejection_threshold;
-
-    ViewT m_left_image;
-    ViewT m_right_image;
-
-    CostFuncT m_cost_func;
-
-    template <class ChannelT>
-    soad *fast2Dcorr_optimized(int minDisp,	/* left bound disparity search */
-                               int maxDisp,	/* right bound disparity search */
-                               int topDisp,	/* top bound disparity search window */
-                               int btmDisp,	/* bottom bound disparity search window */ 
-                               int height,	/* image height */
-                               int width,	/* image width */
-                               int vKern,  /* kernel height */
-                               int hKern,  /* kernel width */
-                               float corrscore_rejection_threshold, /* correlation score fitness score (1.0 disables, 1.5-2.0 is a good value) */
-                               const ChannelT* Rimg,	/* reference image fixed */
-                               const ChannelT* Simg	  /* searched image sliding */
-                               ) {
+      typedef typename ImageView<float>::pixel_accessor src_accessor;
+      typedef typename ImageView<float>::pixel_accessor dst_accessor;
       
-      typedef typename CorrelatorAccumulatorType<ChannelT>::type accumulator_type;
-
-      // Start a timer
-      vw::Stopwatch timer;
-      timer.start();
-
-      int numCorrTries = (btmDisp - topDisp + 1) * (maxDisp - minDisp + 1);
-
-      ChannelT *diff = new ChannelT[width*height]; // buffer containing results of substraction of L/R images
-      VW_ASSERT( diff, NullPtrErr() << "cannot allocate the correlator's difference buffer!" );
-
-      accumulator_type *cSum = new accumulator_type[width]; // sum per column (kernel hight)
-      VW_ASSERT( cSum, NullPtrErr() << "cannot allocate the correlator's column sum buffer!" );
-
-      struct local_result {
-        accumulator_type best, worst;
-        uint16 hvdsp;
-      };
-      local_result *result_buf = new local_result[width * height]; // correlation result buffer
-      VW_ASSERT( result_buf, NullPtrErr() << "cannot allocate the correlator's local result buffer!" );
-
-      // fill the result_buf with default values
-      for (int nn = 0; nn < (width*height); ++nn) {
-        result_buf[nn].worst = ScalarTypeLimits<accumulator_type>::lowest();
-        result_buf[nn].best = ScalarTypeLimits<accumulator_type>::highest();
-        result_buf[nn].hvdsp = ScalarTypeLimits<accumulator_type>::highest();
+      // Seed the row sum buffer
+      src_accessor row_acc = m_src.origin();
+      for (int y = 0; y < m_src.rows(); ++y) {
+        m_rSum[y] = 0;
+        src_accessor col_acc = row_acc;
+        for (int kx = 0; kx < kern_width; ++kx) {
+          m_rSum[y] += *col_acc; // src(kx, y);
+          col_acc.next_col();
+        }
+        row_acc.next_row();
       }
-
-      // for each allowed disparity...
-      for( int dsy=topDisp; dsy<=btmDisp; ++dsy ) {
-        for( int ds=minDisp; ds<=maxDisp; ++ds ) {
-          set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processing %5% %6%")
-                                  % topDisp % btmDisp % minDisp % maxDisp % dsy % ds));
       
-          uint16 ds_combined = (ds-minDisp) + (dsy - topDisp) * (maxDisp - minDisp + 1);
+      dst_accessor dst_col_acc = m_dst.origin();
+      dst_col_acc.advance(kern_width / 2, kern_height / 2);
+      for (int x = 0; x < m_src.cols() - kern_width; ++x) {
+        // Seed the col sum
+        float cSum = 0;
+        for (int j = 0; j < kern_height; ++j) {
+          cSum += m_rSum[j];
+        }
+        
+        dst_accessor dst_row_acc = dst_col_acc;
+        for (int y = 0; y < m_src.rows() - kern_height; ++y) {
+          *dst_row_acc = cSum;  // dst(x + kern_width / 2, y + kern_height / 2) = cSum
+          dst_row_acc.next_row();
           
-          // compute the region of correlation
-          int yStart = (dsy<0) ? (-dsy) : 0;
-          int xStart = (ds<0) ? (-ds) : 0;
-          int yEnd = yStart + height - abs(dsy) - (vKern-1);
-          int xEnd = xStart + width - abs(ds) - (hKern-1);
+          // Update the col sum
+          cSum += m_rSum[y + kern_height] - m_rSum[y];
+        }
+        
+        // Update the row sum
+        for (int j = 0; j < m_src.rows(); ++j) {
+          m_rSum[j] += m_src(x + kern_width, j) - m_src(x, j);
+        }
+        dst_col_acc.next_col();
+      }
       
-          // compute the difference buffer
-          ChannelT *diff_row = diff + yStart*width + xStart;
-          const ChannelT *rimg_row = Rimg + yStart*width + xStart;
-          const ChannelT *simg_row = Simg + (yStart+dsy)*width + (xStart+ds);
-          for( int j=yEnd-yStart+(vKern-1); j; --j ) {
-            ChannelT *diff_ptr = diff_row;
-            const ChannelT *rimg_ptr = rimg_row;
-            const ChannelT *simg_ptr = simg_row;
-            for( int i=xEnd-xStart+(hKern-1); i; --i ) {
-              *(diff_ptr++) = m_cost_func( (*(rimg_ptr++)), (*(simg_ptr++)) );
-            }
-            diff_row += width;
-            rimg_row += width;
-            simg_row += width;
-          }
-
-          // seed the column sum buffer
-          for( int i=0; i<width; ++i ) cSum[i] = 0;
-          diff_row = diff + yStart*width + xStart;
-          accumulator_type *csum_row = cSum + xStart;
-          for( int j=vKern; j; --j ) {
-            ChannelT *diff_ptr = diff_row;
-            accumulator_type *csum_ptr = csum_row;
-            for( int i=xEnd-xStart+(hKern-1); i; --i ) {
-              *(csum_ptr++) += *(diff_ptr++);
-            }
-            diff_row += width;
-          }
-
-          // perform the correlation
-          local_result *result_row = result_buf+(xStart+hKern/2)+(yStart+vKern/2)*width;
-          for( int j=yStart; ; ++j, result_row+=width ) {
-            local_result *result_ptr = result_row;
-
-            // seed the row sum (i.e. soad)
-            typename AccumulatorType<accumulator_type>::type rsum=0;
-            accumulator_type *csum_ptr = cSum + xStart;
-            for( int i=hKern; i; --i )
-              rsum += *(csum_ptr++);
-
-            // correlate the row
-            accumulator_type *csum_tail = cSum + xStart;
-            accumulator_type *csum_head = csum_tail + hKern;
-            for( int i=xEnd-xStart; i; --i, ++result_ptr ) {
-              // store the result if better
-              if( rsum < result_ptr->best ) {
-                result_ptr->best = rsum;
-                result_ptr->hvdsp = ds_combined;
-              }
-
-              if( rsum > result_ptr->worst ) 
-                result_ptr->worst = rsum;
-
-              // update the row sum
-              rsum += *(csum_head++) - *(csum_tail++);
-            }
-
-            // break if this is the last row
-            if( j+1 == yEnd ) break;
-
-            // update the column sum
-            csum_ptr = cSum + xStart;
-            ChannelT *diff_tail = diff + xStart + j*width;
-            ChannelT *diff_head = diff_tail + vKern*width;
-            for( int i=xEnd-xStart+(hKern-1); i; --i ) {
-              *(csum_ptr++) += *(diff_head++) - *(diff_tail++);
-            }
-          }
-        }
-      }
-      delete[] diff;
-      delete[] cSum;
-
-      soad *result;      // soad buffer to be returned
-      result = (soad *)malloc (width*height*sizeof(soad));
-      VW_ASSERT( result, NullPtrErr() << "cannot allocate the correlator's SOAD buffer!" );
-  
-      // convert from the local result buffer to the return format and
-      // reject any pixels that do not have a sufficiently distincive
-      // peak in the correlation space.
-      for( int j = 0; j < height; ++j) {
-        for( int i = 0; i < width; ++i) {
-          float ratio = float(result_buf[j*width+i].worst+1) / float(result_buf[j*width+i].best+1);
-          int nn = width*j+i;
-          if( result_buf[nn].best == USHRT_MAX || ratio <= m_corrscore_rejection_threshold ) {
-            result[nn].best = VW_STEREO_MISSING_PIXEL;
-            result[nn].hDisp = VW_STEREO_MISSING_PIXEL;
-            result[nn].vDisp = VW_STEREO_MISSING_PIXEL;
-          } else {
-            result[nn].best = result_buf[nn].best;
-            int hvDisp = result_buf[nn].hvdsp;
-            int hDisp = hvDisp % (maxDisp-minDisp+1) + minDisp;
-            int vDisp = hvDisp / (maxDisp-minDisp+1) + topDisp;
-            result[nn].hDisp = hDisp;
-            result[nn].vDisp = vDisp;
-          }
-        }
-      }
-      delete[] result_buf;
-
-      set_progress_string(str(boost::format("V: [%1%,%2%] H: [%3%,%4%] processed successfully.")
-                              % topDisp % btmDisp % minDisp % maxDisp));
-  
-      timer.stop();
-      double duration = timer.elapsed_seconds();
-      double mdisp_per_sec= ((double)numCorrTries * width * height)/duration/1e6;
-      set_correlation_rate_string(str(boost::format("%1% seconds (%2% M disparities/second)")
-                                      % (int)duration % mdisp_per_sec));
-
-      return(result);
+      return m_dst;
     }
-
-  public:
-
-    CorrelationWorkThread(int min_h, int max_h,
-                          int min_v, int max_v,
-                          int kern_width, int kern_height,
-                          float corrscore_rejection_threshold,
-                          ViewT const& left_image, 
-                          ViewT const& right_image,
-                          CostFuncT const& cost_func) {
-      m_min_h = min_h;
-      m_max_h = max_h;
-      m_min_v = min_v;
-      m_max_v = max_v;
-      m_kern_height = kern_height;
-      m_kern_width = kern_width;
-      m_left_image = left_image;
-      m_right_image = right_image;
-      m_corrscore_rejection_threshold = corrscore_rejection_threshold;
-      m_cost_func = cost_func;
-    }
-
-  public:
-    virtual ~CorrelationWorkThread() {}
-  
-    /// Call this operator to start the correlation operation.
-    virtual void operator()() {    
-      int width = m_left_image.cols();
-      int height = m_left_image.rows();
-
-      soad* result = fast2Dcorr_optimized(m_min_h, m_max_h, m_min_v, m_max_v, height, width, m_kern_height, m_kern_width, m_corrscore_rejection_threshold, &(m_left_image(0,0)), &(m_right_image(0,0)));
-    
-      m_result.set_size(width, height);
-      for (int j = 0; j < height; j++) {
-        for (int i = 0; i < width; i++) {
-          if (result[j*width+i].hDisp == VW_STEREO_MISSING_PIXEL) {
-            m_result(i,j) = PixelDisparity<float>();  // Default constructor creates a missing pixel
-          } else {
-            m_result(i,j) = PixelDisparity<float>(result[j*width+i].hDisp,
-                                                  result[j*width+i].vDisp);
-          }
-        }
-      }
-    
-      delete [] result;  
-      set_done(true);
-    }
-
   };
+
+  class AbsDifferenceCost : public StereoCostFunction {
+    ImageView<float> m_left, m_right;
+
+  public:
+    template <class ViewT>
+    AbsDifferenceCost(ImageViewBase<ViewT> const& left, 
+                      ImageViewBase<ViewT> const& right, 
+                      BBox2i const& search_window,
+                      int kern_size) : StereoCostFunction(left.impl().cols(), left.impl().rows(), 
+                                                                 search_window, kern_size), 
+                                       m_left(copy(left.impl())),
+                                       m_right(copy(right.impl())) {
+      VW_ASSERT(m_left.impl().cols() == m_right.impl().cols(), ArgumentErr() << "Left and right images not the same width");
+      VW_ASSERT(m_left.impl().rows() == m_right.impl().rows(), ArgumentErr() << "Left and right images not the same height");
+    }
+    
+    virtual ImageView<float> calculate(int dx, int dy);
+    
+    virtual int cols() const { return m_left.cols(); }
+    virtual int rows() const { return m_left.rows(); }
+    virtual int sample_size() const { return this->kernel_size(); }
+  };
+
+  
+  class SqDifferenceCost : public StereoCostFunction {
+    ImageView<float> m_left, m_right;
+  public:
+    template <class ViewT>
+    SqDifferenceCost(ImageViewBase<ViewT> const& left, 
+                     ImageViewBase<ViewT> const& right, 
+                     BBox2i const& search_window,
+                     int kern_size) : StereoCostFunction(left.impl().cols(), 
+                                                         left.impl().rows(), 
+                                                         search_window, kern_size), 
+                                      m_left(copy(left.impl())),
+                                      m_right(copy(right.impl()) ) {
+      VW_ASSERT(m_left.cols() == m_right.cols(), ArgumentErr() << "Left and right images not the same width");
+      VW_ASSERT(m_left.rows() == m_right.rows(), ArgumentErr() << "Left and right images not the same height");
+    }
+    
+    virtual ImageView<float> calculate(int dx, int dy);
+    
+    virtual int cols() const { return m_left.cols(); }
+    virtual int rows() const { return m_left.rows(); }
+    virtual int sample_size() const { return this->kernel_size(); }
+  };
+  
+  class NormXCorrCost : public StereoCostFunction {
+    ImageView<float> m_left, m_left_mean, m_left_variance;
+    ImageView<float> m_right, m_right_mean, m_right_variance;
+    
+  public:
+    template<class ViewT>
+    NormXCorrCost(ImageViewBase<ViewT> const& left, 
+                  ImageViewBase<ViewT> const& right, 
+                  BBox2i const& search_window,
+                  int kern_size) : StereoCostFunction(left.impl().cols(), left.impl().rows(), 
+                                                      search_window, kern_size), 
+                                   m_left(copy(left.impl())), 
+                                   m_right(copy(right.impl())) {
+      VW_ASSERT(m_left.cols() == m_right.cols(), ArgumentErr() << "Left and right images not the same width");
+      VW_ASSERT(m_left.rows() == m_right.rows(), ArgumentErr() << "Left and right images not the same height");
+      
+      vw::ImageView<float> left_mean_sq = standalone_box_filter(m_left * m_left, Vector2i(kern_size,kern_size));
+      m_left_mean = standalone_box_filter(m_left, Vector2i(kern_size,kern_size));
+      m_left_variance = left_mean_sq - m_left_mean * m_left_mean;
+      
+      vw::ImageView<float> right_mean_sq = standalone_box_filter(m_right * m_right, Vector2i(kern_size,kern_size));
+      m_right_mean = standalone_box_filter(m_right, Vector2i(kern_size,kern_size));
+      m_right_variance = right_mean_sq - m_right_mean * m_right_mean;
+    }
+    
+    virtual ImageView<float> calculate(int dx, int dy);
+    
+    virtual int cols() const { return m_left.cols(); }
+    virtual int rows() const { return m_left.rows(); }
+    virtual int sample_size() const { return this->kernel_size(); }
+  };
+  
+  class BlurCost : public StereoCostFunction {
+    boost::shared_ptr<StereoCostFunction> m_base_cost;
+    int m_blur_size;
+  public:
+    BlurCost(boost::shared_ptr<StereoCostFunction> base_cost,
+             BBox2i const& search_window,
+             int blur_size) : StereoCostFunction(base_cost->cols(), base_cost->rows(), 
+                                                 search_window, blur_size), 
+                              m_base_cost(base_cost), 
+                              m_blur_size(blur_size) {}
+    
+    virtual ImageView<float> calculate(int dx, int dy) {
+      return this->box_filter(m_base_cost->calculate(dx, dy));
+    }
+    
+    int cols() const { return m_base_cost->cols(); }
+    int rows() const { return m_base_cost->rows(); }
+    int sample_size() const { 
+      return m_blur_size + m_base_cost->sample_size();
+    }
+  };
+
+  ImageView<PixelDisparity<float> > correlate(boost::shared_ptr<StereoCostFunction> const& cost_function,
+                                              BBox2i const& search_window,
+                                              ProgressCallback const& progress = ProgressCallback::dummy_instance() );  
+
+
 
   class OptimizedCorrelator {
     
-    int m_lKernWidth, m_lKernHeight;
-    int m_lMinH, m_lMaxH, m_lMinV, m_lMaxV;
-    int m_verbose;
-    double m_crossCorrThreshold;
-    float m_corrscore_rejection_threshold;
-    int m_useHorizSubpixel, m_useVertSubpixel;
-    bool m_do_affine_subpixel;
-    mutable Mutex m_mutex;
+    BBox2i m_search_window;
+    int m_kern_size;
+    double m_cross_correlation_threshold;
+    double m_corrscore_rejection_threshold;
+    int m_cost_blur;
+    stereo::CorrelatorType m_correlator_type;
 
   public:
-    OptimizedCorrelator();
-    OptimizedCorrelator(int minH,	/* left bound disparity search window*/
-                        int maxH,	/* right bound disparity search window*/
-                        int minV,	/* bottom bound disparity search window */ 
-                        int maxV,	/* top bound disparity search window */
-                        int kernWidth,	/* size of the kernel */
-                        int kernHeight,       
-                        int verbose,
-                        double crosscorrThreshold,
+    
+    // See Correlate.h for CorrelatorType options.
+    OptimizedCorrelator(BBox2i const& search_window,
+                        int const kernel_size,
+                        int cross_correlation_threshold,
                         float corrscore_rejection_threshold,
-                        int useSubpixelH,
-                        int useSubpixelV, 
-                        bool do_affine_subpixel);
-
+                        int cost_blur = 1,
+                        stereo::CorrelatorType correlator_type = ABS_DIFF_CORRELATOR ) : 
+      m_search_window(search_window),
+      m_kern_size(kernel_size),
+      m_cross_correlation_threshold(cross_correlation_threshold),
+      m_corrscore_rejection_threshold(corrscore_rejection_threshold),
+      m_cost_blur(cost_blur),
+      m_correlator_type(correlator_type) {}
+      
     template <class ViewT, class PreProcFilterT>
     ImageView<PixelDisparity<float> > operator()(ImageViewBase<ViewT> const& image0,
                                                  ImageViewBase<ViewT> const& image1,
                                                  PreProcFilterT const& preproc_filter) {
-      return (*this)(image0, image1, preproc_filter, AbsDiffCostFunc());
-    }
-    
-    template <class ViewT, class PreProcFilterT, class CostFuncT>
-    ImageView<PixelDisparity<float> > operator()(ImageViewBase<ViewT> const& image0,
-                                                 ImageViewBase<ViewT> const& image1,
-                                                 PreProcFilterT const& preproc_filter,
-                                                 CostFuncT const& cost_func) {
-
-      typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
-
+      
       // Check to make sure that image0 and image1 have equal dimensions 
       if ((image0.impl().cols() != image1.impl().cols()) ||
           (image0.impl().rows() != image1.impl().rows())) {
         vw_throw( ArgumentErr() << "Primary and secondary image dimensions do not agree!" );
       }
-  
+      
       // Check to make sure that the images are single channel/single plane
       if (!(image0.channels() == 1 && image0.impl().planes() == 1 &&
             image1.channels() == 1 && image1.impl().planes() == 1)) {
         vw_throw( ArgumentErr() << "Both images must be single channel/single plane images!" );
       }
-
-      typename PreProcFilterT::result_type left_image = preproc_filter(image0);
-      typename PreProcFilterT::result_type right_image = preproc_filter(image1);
+      
+      typedef typename PreProcFilterT::result_type preproc_type;
+      preproc_type left_image = preproc_filter(image0);
+      preproc_type right_image = preproc_filter(image1);
+      
+      BBox2i r2l_window(-m_search_window.max().x(), -m_search_window.max().y(),
+                        m_search_window.width(), m_search_window.height());
 
       //Run the correlator and record how long it takes to run.
       Stopwatch timer;
       timer.start();
       
-      // Configure the workers
-      boost::shared_ptr<CorrelationWorkThreadBase> worker0, worker1;
+      boost::shared_ptr<StereoCostFunction> l2r_cost, r2l_cost;
 
-      worker0.reset( new CorrelationWorkThread<ImageView<channel_type>, CostFuncT>(-m_lMaxH, -m_lMinH, -m_lMaxV, -m_lMinV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, right_image, left_image, cost_func) );
-      worker1.reset( new CorrelationWorkThread<ImageView<channel_type>, CostFuncT>( m_lMinH,  m_lMaxH,  m_lMinV,  m_lMaxV, m_lKernWidth, m_lKernHeight, m_corrscore_rejection_threshold, left_image, right_image, cost_func) );
-
-      try {
-        // Launch the threads
-        Thread thread0(worker0);
-        Thread thread1(worker1);
-
-        // Update the progress info while the threads are running.
-        while (!worker0->is_done() || !worker1->is_done()) {
-          if (m_verbose) {
-            std::cout << boost::format("\t%1$-50s %2$-50s               \r") 
-              % worker0->progress_string() 
-              % worker1->progress_string();
-            fflush(stdout);
-          }
-          Thread::sleep_ms(100);
-        }
-
-        // The threads are destroyed, but the worker objects remain.
-        thread0.join();
-        thread1.join();
-      }
-      // FIXME This probably belongs over in Thread.h?
-      catch (boost::thread_resource_error &e) {
-        vw_throw( LogicErr() << "OptimizedCorrelator: Could not create correlation threads." );
+      if (m_correlator_type == ABS_DIFF_CORRELATOR) {
+        l2r_cost.reset(new AbsDifferenceCost(left_image, right_image, m_search_window, m_kern_size));
+        r2l_cost.reset(new AbsDifferenceCost(right_image, left_image, r2l_window, m_kern_size));
+      } else if (m_correlator_type == SQR_DIFF_CORRELATOR) {
+        l2r_cost.reset(new SqDifferenceCost(left_image, right_image, m_search_window, m_kern_size));
+        r2l_cost.reset(new SqDifferenceCost(right_image, left_image, r2l_window, m_kern_size));
+      } else if (m_correlator_type == NORM_XCORR_CORRELATOR) { 
+        l2r_cost.reset(new NormXCorrCost(left_image, right_image, m_search_window, m_kern_size));
+        r2l_cost.reset(new NormXCorrCost(right_image, left_image, r2l_window, m_kern_size));
+      } else {
+        vw_throw(ArgumentErr() << "OptimizedCorrelator: unknown correlator type " << m_correlator_type << ".");
       }
 
-      // Print out some final summary statistics
-      if (m_verbose) {
-        std::cout << boost::format("\t%1$-50s %2$-50s               \n") 
-          % worker0->progress_string() 
-          % worker1->progress_string();
-        std::cout << boost::format("\t%1$-50s %2$-50s \n") 
-          % worker0->correlation_rate_string()
-          % worker1->correlation_rate_string();
+      boost::shared_ptr<StereoCostFunction> l2r_cost_and_blur = l2r_cost;
+      boost::shared_ptr<StereoCostFunction> r2l_cost_and_blur = r2l_cost;
+      if (m_cost_blur > 1) {
+        l2r_cost_and_blur.reset(new BlurCost(l2r_cost, m_search_window, m_cost_blur));
+        r2l_cost_and_blur.reset(new BlurCost(r2l_cost, r2l_window, m_cost_blur));
       }
+      
+      ImageView<PixelDisparity<float> > result_l2r = stereo::correlate(l2r_cost_and_blur, m_search_window);
+      ImageView<PixelDisparity<float> > result_r2l = stereo::correlate(r2l_cost_and_blur, r2l_window);
 
-      // Grab the results
-      ImageView<PixelDisparity<float> > resultR2L = worker0->result();
-      ImageView<PixelDisparity<float> > resultL2R = worker1->result();
-
+      timer.stop();
+      //      double lapse__ = timer.elapsed_seconds();
+      
       // Cross check the left and right disparity maps
-      cross_corr_consistency_check(resultL2R, resultR2L, m_crossCorrThreshold, m_verbose);
-
-      // Do subpixel correlation
-      LogStereoPreprocessingFilter testfilt(1.5);
-      typename LogStereoPreprocessingFilter::result_type left_subpixel_image = testfilt(image0);
-      typename LogStereoPreprocessingFilter::result_type right_subpixel_image = testfilt(image1);  
-      if (m_do_affine_subpixel) 
-        subpixel_correlation_affine_2d(resultL2R, left_subpixel_image, right_subpixel_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel, m_verbose);
-      else
-        subpixel_correlation_parabola(resultL2R, left_subpixel_image, right_subpixel_image, m_lKernWidth, m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel, m_verbose);
+      cross_corr_consistency_check(result_l2r, result_r2l, m_cross_correlation_threshold, false);
 
       int matched = 0;
       int total = 0;
       int nn = 0;
-      for (int j = 0; j < resultL2R.rows(); j++) {
-        for (int i = 0; i < resultL2R.cols(); i++) {
+      for (int j = 0; j < result_l2r.rows(); j++) {
+        for (int i = 0; i < result_l2r.cols(); i++) {
           total++;
-          if (!(resultL2R(i,j).missing())) {
+          if (!(result_l2r(i,j).missing())) {
             matched++;
           }
           nn++;
         }
       } 
 
-      timer.stop();
-      double lapse__ = timer.elapsed_seconds();
-      if (m_verbose) {
-        vw_out(InfoMessage, "stereo") << "\tTotal correlation + subpixel took " << lapse__ << " sec";
-        double nTries = 2.0 * (m_lMaxV - m_lMinV + 1) * (m_lMaxH - m_lMinH + 1);
-        double rate = nTries * left_image.cols() * left_image.rows() / lapse__ / 1.0e6;
-        vw_out(InfoMessage, "stereo") << "\t(" << rate << " M disparities/second)\n";
-
-        double score = (100.0 * matched) / total;
-        vw_out(InfoMessage, "stereo") << "\tCorrelation rate: " << score << "\n\n";
-      }
-
-      return resultL2R;
+      //      vw_out(InfoMessage, "stereo")
+      //      vw_out(0) << "\tCorrelation took " << lapse__ << " sec";
+      //      double nTries = (m_search_window.max().y() - m_search_window.min().y() + 1) * (m_search_window.max().x() - m_search_window.min().x() + 1);
+      //      double rate = nTries * left_image.cols() * left_image.rows() / lapse__ / 1.0e6;
+      //      vw_out(0) << "\t(" << rate << " M disparities/second)\n";
+      
+      //      double score = (100.0 * matched) / total;
+      //      vw_out(0) << "\tCorrelation rate: " << score << "\n\n";
+    
+      return result_l2r;
     }      
   };
 
 
+
 }}   // namespace vw::stereo
 
-#endif /* __OptimizedCorrelator_h__ */
+#endif // __VW_STEREO_OPTIMIZED_CORRELATOR__

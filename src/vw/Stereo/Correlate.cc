@@ -32,7 +32,7 @@ namespace stereo {
   /// This routine cross checks L2R and R2L, placing the final version
   /// of the disparity map in L2R.
   void cross_corr_consistency_check(ImageView<PixelDisparity<float> > &L2R, 
-                                    ImageView<PixelDisparity<float> > &R2L,
+                                    ImageView<PixelDisparity<float> > const& R2L,
                                     double cross_corr_threshold, bool verbose) {
     int32 xx,yy;
     int count = 0, match_count = 0;
