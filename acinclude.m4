@@ -183,8 +183,8 @@ AC_DEFUN([AX_PKG],
 
       HAVE_PKG_$1=no
 
-      ax_pkg_old_libs=$LIBS
-      LIBS=$PKG_$1_LIBS $LIBS
+      ax_pkg_old_libs="$LIBS"
+      LIBS="$PKG_$1_LIBS $LIBS"
       for path in none $PKG_PATHS_$1; do
 	    ax_pkg_old_cppflags=$CPPFLAGS
 	    ax_pkg_old_ldflags=$LDFLAGS
