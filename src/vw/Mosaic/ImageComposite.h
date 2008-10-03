@@ -309,7 +309,7 @@ namespace mosaic {
     std::vector<BBox2i> m_src_bboxes;
   public:
     SparseTileCheck(ImageComposite<PixelT> const& source) : m_src_bboxes(source.child_bboxes()) {}
-    virtual bool operator() (BBox2i const& bbox) {
+    bool operator() (BBox2i const& bbox) {
       bool result = false;
       for (unsigned int i = 0; i < m_src_bboxes.size(); ++i)
         result = result || bbox.intersects(m_src_bboxes[i]);
