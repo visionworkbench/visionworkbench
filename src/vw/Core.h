@@ -35,5 +35,6 @@
 #include <vw/Core/CompoundTypes.h>
 #include <vw/Core/Functors.h>
 #include <vw/Core/Cache.h>
+#include <vw/Core/TerminationHandler.h>
 
 #endif // __VW_CORE_H__

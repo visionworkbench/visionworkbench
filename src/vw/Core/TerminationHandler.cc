@@ -15,8 +15,9 @@
 #  ifdef VW_HAVE___CXA_CURRENT_EXCEPTION_TYPE
 #    define USE_INTROSPECTION_EXCEPTION
 #  endif
-#elif defined(VW_HAVE_BACKTRACE) && defined(VW_HAVE_DLADDR)
-#  define USE_INTROSPECTION_BACKTRACE
+#  if defined(VW_HAVE_BACKTRACE) && defined(VW_HAVE_DLADDR)
+#    define USE_INTROSPECTION_BACKTRACE
+#  endif
 #endif
 
 namespace {
