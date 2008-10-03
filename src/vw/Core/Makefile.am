@@ -27,12 +27,13 @@
 
 if MAKE_MODULE_CORE
 
-include_HEADERS = Exception.h FundamentalTypes.h TypeDeduction.h	\
-	VarArray.h Functors.h CompoundTypes.h Debugging.h Thread.h	\
-	ThreadPool.h Cache.h ProgressCallback.h Stopwatch.h Log.h
+include_HEADERS = Exception.h FundamentalTypes.h TypeDeduction.h    \
+	VarArray.h Functors.h CompoundTypes.h Debugging.h Thread.h      \
+	ThreadPool.h Cache.h ProgressCallback.h Stopwatch.h Log.h       \
+	TerminationHandler.h
 
 libvwCore_la_SOURCES = Debugging.cc Exception.cc Thread.cc Cache.cc 	\
-	ProgressCallback.cc Stopwatch.cc Log.cc
+	ProgressCallback.cc Stopwatch.cc Log.cc TerminationHandler.cc
 libvwCore_la_LIBADD = @MODULE_CORE_LIBS@
 
 lib_LTLIBRARIES = libvwCore.la
