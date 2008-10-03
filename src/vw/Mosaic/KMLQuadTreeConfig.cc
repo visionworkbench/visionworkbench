@@ -46,7 +46,7 @@ namespace mosaic {
 
     std::string kml_latlonaltbox( BBox2 const& longlat_bbox ) const;
     std::string kml_network_link( std::string const& name, std::string const& href, BBox2 const& longlat_bbox ) const;
-    std::string kml_ground_overlay( std::string const& href, BBox2 const& bbox, int draw_order, int max_lod_pixels ) const;
+    std::string kml_ground_overlay( std::string const& href, BBox2 const& region_bbox, BBox2 const& image_bbox, int draw_order, int max_lod_pixels ) const;
     BBox2 pixels_to_longlat( BBox2i const& image_bbox, Vector2i const& dimensions ) const;
 
     std::vector<std::pair<std::string,vw::BBox2i> > branch_func( QuadTreeGenerator const&, std::string const& name, BBox2i const& region ) const;
@@ -117,14 +117,14 @@ namespace mosaic {
     return tag.str();
   }
 
-  std::string KMLQuadTreeConfigData::kml_ground_overlay( std::string const& href, BBox2 const& bbox, int draw_order, int max_lod_pixels ) const {
+  std::string KMLQuadTreeConfigData::kml_ground_overlay( std::string const& href, BBox2 const& region_bbox, BBox2 const& image_bbox, int draw_order, int max_lod_pixels ) const {
     std::ostringstream tag;
     tag << std::setprecision(10);
     tag << "  <GroundOverlay>\n"
-	<< "    <Region>" << kml_latlonaltbox(bbox) << "<Lod><minLodPixels>128</minLodPixels><maxLodPixels>" << max_lod_pixels << "</maxLodPixels></Lod></Region>\n"
+	<< "    <Region>" << kml_latlonaltbox(region_bbox) << "<Lod><minLodPixels>0</minLodPixels><maxLodPixels>" << max_lod_pixels << "</maxLodPixels></Lod></Region>\n"
 	<< "    <name>" << href << "</name>\n"
 	<< "    <Icon><href>" << href << "</href></Icon>\n"
-	<< "    " << kml_latlonaltbox(bbox) << "\n"
+	<< "    " << kml_latlonaltbox(image_bbox) << "\n"
 	<< "    <drawOrder>" << draw_order << "</drawOrder>\n"
 	<< "  </GroundOverlay>\n";
     return tag.str();
@@ -186,6 +186,7 @@ namespace mosaic {
     if( num_children == 0 ) max_lod = -1;
     int draw_order = m_draw_order_offset + info.name.size();
     kml << kml_ground_overlay( file_path.leaf() + info.filetype,
+			       pixels_to_longlat( info.region_bbox, qtree.get_dimensions() ),
 			       pixels_to_longlat( info.image_bbox, qtree.get_dimensions() ),
 			       draw_order, max_lod );
     
