@@ -34,7 +34,7 @@
 #include <vw/Stereo/OptimizedCorrelator.h>
 #include <vw/Stereo/PyramidCorrelator.h>
 #include <vw/Stereo/CorrelatorView.h>
-#include <vw/Stereo/ParabolaSubpixelView.h>
+#include <vw/Stereo/SubpixelView.h>
 
 #endif // __VW_STEREO_H__
  
