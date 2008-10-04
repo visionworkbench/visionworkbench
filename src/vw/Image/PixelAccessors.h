@@ -56,14 +56,27 @@ namespace vw {
   /// const pixel type.  It is primarily intended to be used by ImageView.
   template <class PixelT>
   class MemoryStridingPixelAccessor {
+#ifdef VW_IMAGE_BOUNDS_CHECK
+    PixelT *m_base_ptr; 
+    int32 m_num_pixels;
+#endif
     PixelT *m_ptr;
     ptrdiff_t m_cstride, m_rstride, m_pstride;
   public:
     typedef PixelT pixel_type;
     typedef PixelT& result_type;
 
+#ifdef VW_IMAGE_BOUNDS_CHECK
+    MemoryStridingPixelAccessor( PixelT *ptr, 
+                                 ptrdiff_t cstride, ptrdiff_t rstride, ptrdiff_t pstride,
+                                 int32 cols, int32 rows, int32 planes)
+      : m_base_ptr(ptr), m_num_pixels(cols * rows * planes),
+        m_ptr(ptr), m_cstride(cstride), m_rstride(rstride), m_pstride(pstride) {}
+#else
     MemoryStridingPixelAccessor( PixelT *ptr, ptrdiff_t cstride, ptrdiff_t rstride, ptrdiff_t pstride )
-      : m_ptr(ptr), m_cstride(cstride), m_rstride(rstride), m_pstride(pstride) {}
+      : m_ptr(ptr), m_cstride(cstride), m_rstride(rstride), m_pstride(pstride) {
+    }
+#endif
     
     inline MemoryStridingPixelAccessor& next_col() { m_ptr += m_cstride; return *this; }
     inline MemoryStridingPixelAccessor& prev_col() { m_ptr -= m_cstride; return *this; }
@@ -76,7 +89,14 @@ namespace vw {
       return *this;
     }
 
-    inline result_type operator*() const { return *m_ptr; }
+    inline result_type operator*() const { 
+#ifdef VW_IMAGE_BOUNDS_CHECK
+      int32 delta = int32(m_ptr - m_base_ptr);
+      if (delta < 0 || delta >= m_num_pixels)
+        vw_throw(ArgumentErr() << "MemoryStridingPixelAccessor() - invalid index " << delta << " / " << (m_num_pixels-1) << ".");
+#endif
+      return *m_ptr; 
+    }
   };
 
 

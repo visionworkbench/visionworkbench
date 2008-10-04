@@ -311,4 +311,50 @@ public:
     TS_ASSERT_EQUALS( i, im.end() );
   }
 
+#ifdef VW_IMAGE_BOUNDS_CHECK
+  void testBoundsCheck()
+  {
+    ImageView<PixelRGB<uint8> > test_img(2,2);
+
+    // First, test to make sure that the operator() bounds checking is
+    // working properly.
+    PixelRGB<uint8> test = test_img(0,0);
+    TS_ASSERT_THROWS_NOTHING ( test = test_img(1,0) );
+    TS_ASSERT_THROWS_NOTHING ( test = test_img(0,1) );
+    TS_ASSERT_THROWS_NOTHING ( test = test_img(1,1) );
+    TS_ASSERT_THROWS_ANYTHING ( test = test_img(0,2) );
+    TS_ASSERT_THROWS_ANYTHING ( test = test_img(2,0) );
+    TS_ASSERT_THROWS_ANYTHING ( test = test_img(-1,0) );
+    TS_ASSERT_THROWS_ANYTHING ( test = test_img(0,-1) );
+    
+    // Next, test to make sure that the MemoryStridingPixelAccessor
+    // bounds checking is working properly.
+    ImageView<PixelRGB<uint8> >::pixel_accessor acc = test_img.origin();
+
+    TS_ASSERT_THROWS_NOTHING( test = *acc );
+
+    // First, check to make sure that negative indices cause an error.
+    acc.prev_col();
+    TS_ASSERT_THROWS_ANYTHING ( test = *acc );
+    
+    // Proceed through colums
+    acc = test_img.origin();
+    acc.next_col();
+    TS_ASSERT_THROWS_NOTHING ( test = *acc );
+    acc.next_col();
+    TS_ASSERT_THROWS_NOTHING ( test = *acc );
+    acc.next_col();
+    TS_ASSERT_THROWS_NOTHING ( test = *acc );
+    acc.next_col();
+    TS_ASSERT_THROWS_ANYTHING ( test = *acc );
+
+    // Proceed through rows
+    acc = test_img.origin();
+    acc.next_row();
+    TS_ASSERT_THROWS_NOTHING ( test = *acc );
+    acc.next_row();
+    TS_ASSERT_THROWS_ANYTHING ( test = *acc );
+  }
+#endif
+
 };
