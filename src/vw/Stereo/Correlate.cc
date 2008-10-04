@@ -129,6 +129,22 @@ namespace stereo {
 
   ///-------------------------------------------------------------------------
 
+  inline double huber_robust_coefficient (double delta_norm, double b) {
+    if (delta_norm < b)
+      return delta_norm*delta_norm;
+    else
+      return 2*b*delta_norm - b*b;
+  }
+  
+  inline double cauchy_robust_coefficient (double delta_norm, double b) {
+    double b_sqr = b*b;
+    return b_sqr*log(1+delta_norm*delta_norm/b_sqr);
+  }
+  
+  inline double blake_zisserman_robust_coefficient (double delta_norm, double b) {
+    return -log(exp(-(delta_norm*delta_norm) ) + b);
+  }
+
   inline ImageView<float> compute_gaussian_weight_image(int kern_width, int kern_height) {
 
     int center_pix_x = kern_width/2;
@@ -222,12 +238,16 @@ namespace stereo {
                disparity_map.rows() == left_image.rows(),
                ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
 
+    // This is the maximum number of pixels that the solution can be
+    // adjusted by affine subpixel refinement.
+    static const int AFFINE_SUBPIXEL_MAX_TRANSLATION = 5;
+
     // Robust cost function settings
     const float thresh = 0.01;
     HuberError robust_cost_fn(thresh);
 
     int kern_pixels = kern_height * kern_width;
-    int weight_threshold = kern_pixels / 4;
+    int weight_threshold = kern_pixels / 2;
 
     // Bail out if no subpixel computation has been requested 
     if (!do_horizontal_subpixel && !do_vertical_subpixel) return;
@@ -298,7 +318,7 @@ namespace stereo {
           // is less than one half of the window width.  If not, then
           // we are probably having trouble converging and we abort
           // this pixel!!
-          if (norm_2(offset) > kern_width/2) 
+          if (norm_2(offset) > AFFINE_SUBPIXEL_MAX_TRANSLATION) 
             break;
           
           InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
@@ -320,15 +340,23 @@ namespace stereo {
               float xx = x_base + d[0] * ii + d[1] * jj + offset(0);
               float yy = y_base + d[3] * ii + d[4] * jj + offset(1);
               float I_e_val = right_interp_image(xx,yy) - left_image_patch(i,j) + 1e-16; 
+              //              error_total += pow(I_e_val,2);
 
               // Apply the robust cost function.  We use a huber
               // function to gently remove outliers for small errors,
               // but we set a hard limit a 5 times the cost threshold
               // to remove major (salt&pepper) noise.
-              //              if (fabs(I_e_val) > thresh*5 || I_e_val == 0.0)
-              float robust_weight = sqrt(robust_cost_fn(fabs(I_e_val)))/fabs(I_e_val);
-              //              error_total += pow(I_e_val,2);
-
+              double thresh = 1e-3;
+              
+              // Cauchy seems to work well with thresh ~= 1e-4
+              float robust_weight = sqrt(cauchy_robust_coefficient(fabs(I_e_val),thresh))/fabs(I_e_val);
+              
+              // Huber seems to work well with thresh >= 1e-5
+              //        float robust_weight = sqrt(huber_robust_coefficient(fabs(I_e_val),thresh))/fabs(I_e_val);
+              
+              // Disable robust cost function altogether
+              //        float robust_weight = 1;
+              
               // We combine the error value with the derivative and
               // add this to the update equation.
               float I_x_val = robust_weight * w(i,j) * I_x(i,j);
@@ -411,18 +439,19 @@ namespace stereo {
 
 
           // Solves lhs = rhs * x, and stores the result in-place in lhs.
-          Matrix<double,6,6> pre_rhs = rhs;
-          Vector<double,6> pre_lhs = lhs;
-          try { solve_symmetric_nocopy(rhs,lhs);
+          //           Matrix<double,6,6> pre_rhs = rhs;
+          //           Vector<double,6> pre_lhs = lhs;
+          try { 
+            solve_symmetric_nocopy(rhs,lhs);
           } catch (ArgumentErr &e) {
             std::cout << "Error @ " << x << " " << y << "\n";
-//             std::cout << "Exception caught: " << e.what() << "\n";
-//             std::cout << "PRERHS: " << pre_rhs << "\n";
-//             std::cout << "PRELHS: " << pre_lhs << "\n\n";
-//             std::cout << "RHS: " << rhs << "\n";
-//             std::cout << "LHS: " << lhs << "\n\n";
-//             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
-//             exit(0);
+            //             std::cout << "Exception caught: " << e.what() << "\n";
+            //             std::cout << "PRERHS: " << pre_rhs << "\n";
+            //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
+            //             std::cout << "RHS: " << rhs << "\n";
+            //             std::cout << "LHS: " << lhs << "\n\n";
+            //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
+            //             exit(0);
           }
           d += lhs;
 
@@ -436,7 +465,7 @@ namespace stereo {
         offset(0) = d[2];
         offset(1) = d[5];
         
-        if (norm_2(offset) > 1.5 || 
+        if (norm_2(offset) > AFFINE_SUBPIXEL_MAX_TRANSLATION || 
             offset(0) != offset(0) ||  // Check to make sure the offset is not NaN...
             offset(1) != offset(1) ) { // ... ditto.
           disparity_map(x,y) = PixelDisparity<float>();

@@ -177,7 +177,6 @@ namespace stereo {
     os << "\tsearch range: " << view.search_range() << "\n";
     os << "\tkernel size : " << view.kernel_size() << "\n";
     os << "\txcorr thresh: " << view.cross_corr_threshold() << "\n";
-    os << "\tcorrscore rejection thresh: " << view.corr_score_threshold() << "\n";
     os << "\tcost blur: " << view.cost_blur() << "\n";
     os << "\tcorrelator type: " << view.correlator_type() << "\n";
     os << "\tcorrscore rejection thresh: " << view.corr_score_threshold() << "\n";

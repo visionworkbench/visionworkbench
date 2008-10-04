@@ -30,10 +30,10 @@ if MAKE_MODULE_STEREO
 include_HEADERS = Correlate.h ReferenceCorrelator.h		\
 	OptimizedCorrelator.h DisparityMap.h StereoModel.h	\
 	PyramidCorrelator.h StereoView.h CorrelatorView.h	\
-	ParabolaSubpixelView.h AffineSubpixelView.h
+	SubpixelView.h
 
 libvwStereo_la_SOURCES = StereoModel.cc PyramidCorrelator.cc		\
-	 Correlate.cc OptimizedCorrelator.cc AffineSubpixelView.cc
+	 Correlate.cc OptimizedCorrelator.cc 
 
 libvwStereo_la_LIBADD = @MODULE_STEREO_LIBS@
 
