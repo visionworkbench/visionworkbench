@@ -148,7 +148,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   int total_resolution = 1024;
   std::vector<GeoReference> georeferences;
 
-  for(int i=0; i < image_files.size(); i++) {
+  for(unsigned i=0; i < image_files.size(); i++) {
     std::cout << "Adding file " << image_files[i] << std::endl;
     DiskImageResourceGDAL file_resource( image_files[i] );
 
@@ -227,7 +227,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   ImageComposite<PixelT> composite;
 
   // Add the transformed image files to the composite.
-  for(int i=0; i < image_files.size(); i++) {
+  for(unsigned i=0; i < image_files.size(); i++) {
     GeoTransform geotx( georeferences[i], output_georef );
     ImageViewRef<PixelT> source = DiskImageView<PixelT>( image_files[i] );
 
