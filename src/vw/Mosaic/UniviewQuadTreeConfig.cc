@@ -46,6 +46,7 @@ namespace mosaic {
       ImageFormat result = format;
       result.pixel_format = VW_PIXEL_GRAY;
       result.channel_type = VW_CHANNEL_UINT16;
+      return result;
     }
 
   public:
