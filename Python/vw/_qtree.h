@@ -27,8 +27,6 @@
 /// interface definition file.
 ///
 
-#include "util.h"
-
 // SWIG doesn't currently support nested classes, so we spoof it 
 // into thinking that TileInfo is not nested.  To make it all 
 // work properly, it's best to spoof C++ too.
