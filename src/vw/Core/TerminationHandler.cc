@@ -4,25 +4,35 @@
 #include <cstdlib>
 
 #include <typeinfo>
-#include <cxxabi.h>
-#include <execinfo.h>
-#include <dlfcn.h>
 
 #include <vw/config.h>
+
+#ifdef VW_HAVE_CXXABI_H
+#include <cxxabi.h>
+#endif
+
+#ifdef VW_HAVE_EXECINFO_H
+// for backtrace
+#include <execinfo.h>
+#endif
+
+#ifdef VW_HAVE_DLFCN_H
+#include <dlfcn.h>
+#endif
+
 #include "TerminationHandler.h"
 
-#ifdef VW_HAVE___CXA_DEMANGLE
-#  ifdef VW_HAVE___CXA_CURRENT_EXCEPTION_TYPE
+
+#if defined(VW_HAVE___CXA_DEMANGLE) && defined(VW_HAVE_CXXABI_H)
+#  if defined(VW_HAVE___CXA_CURRENT_EXCEPTION_TYPE)
 #    define USE_INTROSPECTION_EXCEPTION
 #  endif
-#  if defined(VW_HAVE_BACKTRACE) && defined(VW_HAVE_DLADDR)
+#  if defined(VW_HAVE_BACKTRACE) && defined(VW_HAVE_DLADDR) && defined(VW_HAVE_DLFCN_H) && defined(VW_HAVE_EXECINFO_H)
 #    define USE_INTROSPECTION_BACKTRACE
 #  endif
 #endif
 
 namespace {
-
-using namespace abi;
 
 // The original default terminate() handler. Should be std::abort, but isn't
 // always
@@ -63,14 +73,14 @@ void print_exception_info()
 #ifdef USE_INTROSPECTION_EXCEPTION
   // Make sure there was an exception; terminate is also called for an
   // attempt to rethrow when there is no suitable exception.
-  std::type_info *t = __cxa_current_exception_type();
+  std::type_info *t = abi::__cxa_current_exception_type();
   if (t)
   {
     // Note that "name" is the mangled name.
     char const *name = t->name();
     {
       int status = -1;
-      char *dem  = __cxa_demangle(name, 0, 0, &status);
+      char *dem  = abi::__cxa_demangle(name, 0, 0, &status);
 
       fputs("terminate called after throwing an instance of '", stderr);
       if (status == 0)
@@ -130,7 +140,7 @@ void do_backtrace()
         if (info.dli_sname)
         {
           int status = -1;
-          char *dem  = __cxa_demangle(info.dli_sname, 0, 0, &status);
+          char *dem  = abi::__cxa_demangle(info.dli_sname, 0, 0, &status);
 
           fprintf(stderr, "(%s+0x%lx)", status == 0 ? dem : info.dli_sname,
                   ((long)backtrace_buffer[i])-((long)info.dli_saddr));
