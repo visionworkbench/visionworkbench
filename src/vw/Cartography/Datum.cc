@@ -35,7 +35,8 @@ vw::cartography::Datum::Datum(std::string const& name,
     m_meridian_name(meridian_name),
     m_semi_major_axis(semi_major_axis),
     m_semi_minor_axis(semi_minor_axis),
-    m_meridian_offset(meridian_offset)
+    m_meridian_offset(meridian_offset),
+    m_geocentric(false)
 {
   std::ostringstream strm;
   strm << "+a=" << semi_major_axis << " +b=" << semi_minor_axis;
@@ -44,6 +45,8 @@ vw::cartography::Datum::Datum(std::string const& name,
 
 void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
   m_meridian_name = "Greenwich";
+  m_geocentric = false;
+
   m_meridian_offset = 0;
   if (name == "WGS84") {        
     m_name = "WGS_1984";
