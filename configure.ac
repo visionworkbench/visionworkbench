@@ -182,6 +182,22 @@ AC_DEFINE_UNQUOTED(ENABLE_SSE,
                    [$enable_sse],
                    [Define to 1 to enable SSE optimizations.])
 
+AC_ARG_ENABLE(bounds-check,
+  AC_HELP_STRING([--enable-bounds_check@<:@=no@:>@], [enable image bounds checking (SLOW!).]),
+  [ ENABLE_BOUNDS_CHECK=$enableval ],
+  [ if test -z "$ENABLE_BOUNDS_CHECK"; then ENABLE_BOUNDS_CHECK=no; fi ]
+)
+
+if test "$ENABLE_BOUNDS_CHECK" = "yes"; then
+   enable_bounds_check=1
+else
+   enable_bounds_check=0
+fi
+
+AC_DEFINE_UNQUOTED(IMAGE_BOUNDS_CHECK,
+                   [$enable_bounds_check],
+                   [Define to 1 to enable image bounds checking (SLOW!).])
+
 # We set up the include paths ourselves, so 
 # we ask autoconf to get out of the way.
 DEFAULT_INCLUDES=
