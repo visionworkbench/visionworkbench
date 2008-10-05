@@ -59,7 +59,7 @@ namespace cartography {
       char* proj_str_tmp;
       gdal_spatial_ref.exportToProj4(&proj_str_tmp);
       std::string proj4_str = proj_str_tmp;
-      delete proj_str_tmp;
+      CPLFree( proj_str_tmp );
       // For debugging:
       //      vw_out(0) << "PROJ in --> " << proj4_str << "\n";
 
