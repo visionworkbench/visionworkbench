@@ -236,19 +236,22 @@ namespace vw {
     }
 
     virtual std::streamsize xsputn(const CharT* s, std::streamsize num) {
+      buffer_type& buffer = m_buffers[ Thread::id() ];
       {
         Mutex::Lock lock(m_mutex);
-        std::copy(s, s + num, std::back_inserter<buffer_type>( m_buffers[ Thread::id() ] ));
+        std::copy(s, s + num, std::back_inserter<buffer_type>( buffer ));
       }
 
       // This is a bit of a hack that forces a sync whenever the
       // character string *ends* with a newline, thereby flushing the
       // buffer and printing a line to the log file.
-      int last_char_position = m_buffers[ Thread::id() ].size()-1;
+      if ( buffer.size() > 0 ) {
+	int last_char_position = buffer.size()-1;
 
-      if ( m_buffers[ Thread::id() ][last_char_position] == '\n' || 
-           m_buffers[ Thread::id() ][last_char_position] == '\r' ) 
-        sync();
+	if ( buffer[last_char_position] == '\n' || 
+	     buffer[last_char_position] == '\r' ) 
+	  sync();
+      }
       return num;
     }
 
