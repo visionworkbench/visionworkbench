@@ -311,9 +311,9 @@ public:
     TS_ASSERT_EQUALS( i, im.end() );
   }
 
-#ifdef VW_IMAGE_BOUNDS_CHECK
   void testBoundsCheck()
   {
+#if defined(VW_IMAGE_BOUNDS_CHECK) && (VW_IMAGE_BOUNDS_CHECK==1)
     ImageView<PixelRGB<uint8> > test_img(2,2);
 
     // First, test to make sure that the operator() bounds checking is
@@ -354,7 +354,7 @@ public:
     TS_ASSERT_THROWS_NOTHING ( test = *acc );
     acc.next_row();
     TS_ASSERT_THROWS_ANYTHING ( test = *acc );
-  }
 #endif
+  }
 
 };
