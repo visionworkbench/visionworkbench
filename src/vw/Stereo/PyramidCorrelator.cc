@@ -122,7 +122,7 @@ vw::BBox2 vw::stereo::PyramidCorrelator::compute_matching_blocks(BBox2i const& n
 //  range slightly so that we cover all feasible disparity levels at
 //  the higher level of resolution.
 std::vector<vw::BBox2> vw::stereo::PyramidCorrelator::compute_search_ranges(ImageView<PixelDisparity<float> > const& prev_disparity_map, 
-                                                                      std::vector<BBox2i> nominal_blocks) {
+                                                                            std::vector<BBox2i> nominal_blocks) {
   std::vector<BBox2> search_ranges(nominal_blocks.size());
   std::vector<int> good_pixel_vec(nominal_blocks.size());
   std::vector<int> fixed_blocks;

@@ -24,8 +24,6 @@
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Interpolation.h>
 
-//#include <vDSP.h>
-
 namespace vw {
 namespace stereo {  
 
@@ -136,9 +134,9 @@ namespace stereo {
       return 2*b*delta_norm - b*b;
   }
   
-  inline double cauchy_robust_coefficient (double delta_norm, double b) {
-    double b_sqr = b*b;
-    return b_sqr*log(1+delta_norm*delta_norm/b_sqr);
+  inline float cauchy_robust_coefficient (float delta_norm, float b) {
+    float b_sqr = b*b;
+    return b_sqr*logf(1+delta_norm*delta_norm/b_sqr);
   }
   
   inline double blake_zisserman_robust_coefficient (double delta_norm, double b) {
@@ -240,7 +238,9 @@ namespace stereo {
 
     // This is the maximum number of pixels that the solution can be
     // adjusted by affine subpixel refinement.
-    static const int AFFINE_SUBPIXEL_MAX_TRANSLATION = 5;
+    int AFFINE_SUBPIXEL_MAX_TRANSLATION = kern_width/2;
+    int kern_half_height = kern_height/2;
+    int kern_half_width = kern_width/2;
 
     // Robust cost function settings
     const float thresh = 0.01;
@@ -260,22 +260,20 @@ namespace stereo {
     // loop.  We rasterize into these directly in the code below.
     ImageView<float> w(kern_width, kern_height);
     
-    Vector2 offset;
-
     // Iterate over all of the pixels in the disparity map except for
     // the outer edges.
     Stopwatch sw;
     sw.start();
     double last_time = 0;
-    for (int y=kern_height/2; y<left_image.rows()-kern_height/2; ++y) {
+    for (int y=kern_half_height; y<left_image.rows()-kern_half_height; ++y) {
       if (verbose && y % 10 == 0) {
         sw.stop();
         vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y << " / " << left_image.rows() << "    (" << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time)) << " pixels/s, "<< sw.elapsed_seconds() << " s total )      \r" << std::flush;
         last_time = sw.elapsed_seconds();
         sw.start();
       }
-      for (int x=kern_width/2; x<left_image.cols()-kern_width/2; ++x) {
-        BBox2i current_window(x-kern_width/2, y-kern_height/2, kern_width, kern_height);
+      for (int x=kern_half_width; x<left_image.cols()-kern_half_width; ++x) {
+        BBox2i current_window(x-kern_half_width, y-kern_half_height, kern_width, kern_height);
         Vector2 base_offset( -disparity_map(x,y).h() , -disparity_map(x,y).v() );          
 
         // Skip over pixels for which we have no initial disparity estimate
@@ -311,14 +309,11 @@ namespace stereo {
         // Iterate until a solution is found or the max number of
         // iterations is reached.
         for (unsigned iter = 0; iter < 10; ++iter) {
-          offset(0) = d[2];
-          offset(1) = d[5];
-          
           // First we check to see if our current subpixel translation
           // is less than one half of the window width.  If not, then
           // we are probably having trouble converging and we abort
           // this pixel!!
-          if (norm_2(offset) > AFFINE_SUBPIXEL_MAX_TRANSLATION) 
+          if (norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION) 
             break;
           
           InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
@@ -330,26 +325,37 @@ namespace stereo {
 
           Matrix<float,6,6> rhs;
           Vector<float,6> lhs;
-          for (int jj = -kern_height/2; jj <= kern_height/2; ++jj) {
-            for (int ii = -kern_width/2; ii <= kern_width/2; ++ii) {
-              int i = ii + kern_width/2;
-              int j = jj + kern_height/2;
+
+          // Set up pixel accessors
+          typename ImageView<float>::pixel_accessor w_row = w.origin();
+          typename CropView<ImageView<float> >::pixel_accessor I_x_row = I_x.origin();
+          typename CropView<ImageView<float> >::pixel_accessor I_y_row = I_y.origin();
+          typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_row = left_image_patch.origin();
+
+          for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+            typename ImageView<float>::pixel_accessor w_ptr = w_row;
+            typename CropView<ImageView<float> >::pixel_accessor I_x_ptr = I_x_row;
+            typename CropView<ImageView<float> >::pixel_accessor I_y_ptr = I_y_row;
+            typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_ptr = left_image_patch_row;
+          
+            for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
 
               // First we compute the pixel offset for the right image
               // and the error for the current pixel.
-              float xx = x_base + d[0] * ii + d[1] * jj + offset(0);
-              float yy = y_base + d[3] * ii + d[4] * jj + offset(1);
-              float I_e_val = right_interp_image(xx,yy) - left_image_patch(i,j) + 1e-16; 
+              float xx = x_base + d[0] * ii + d[1] * jj + d[2];
+              float yy = y_base + d[3] * ii + d[4] * jj + d[5];
+              float I_e_val = right_interp_image(xx,yy) - (*left_image_patch_ptr) + 1e-16; 
               //              error_total += pow(I_e_val,2);
 
               // Apply the robust cost function.  We use a huber
               // function to gently remove outliers for small errors,
               // but we set a hard limit a 5 times the cost threshold
               // to remove major (salt&pepper) noise.
-              double thresh = 1e-3;
+              float thresh = 1e-3;
               
               // Cauchy seems to work well with thresh ~= 1e-4
-              float robust_weight = sqrt(cauchy_robust_coefficient(fabs(I_e_val),thresh))/fabs(I_e_val);
+              float error_value = fabsf(I_e_val);
+              float robust_weight = sqrtf(cauchy_robust_coefficient(error_value,thresh))/error_value;
               
               // Huber seems to work well with thresh >= 1e-5
               //        float robust_weight = sqrt(huber_robust_coefficient(fabs(I_e_val),thresh))/fabs(I_e_val);
@@ -359,11 +365,12 @@ namespace stereo {
               
               // We combine the error value with the derivative and
               // add this to the update equation.
-              float I_x_val = robust_weight * w(i,j) * I_x(i,j);
-              float I_y_val = robust_weight * w(i,j) * I_y(i,j);
-              float I_x_sqr = robust_weight * w(i,j) * I_x(i,j) * I_x(i,j);
-              float I_y_sqr = robust_weight * w(i,j) * I_y(i,j) * I_y(i,j);
-              float I_x_I_y = robust_weight * w(i,j) * I_x(i,j) * I_y(i,j);
+              float weight = robust_weight * (*w_ptr);
+              float I_x_val = weight * (*I_x_ptr);
+              float I_y_val = weight * (*I_y_ptr);
+              float I_x_sqr = I_x_val * (*I_x_ptr);
+              float I_y_sqr = I_y_val * (*I_y_ptr);
+              float I_x_I_y = I_x_val * (*I_y_ptr);
 
               // Left hand side
               lhs(0) += ii * I_x_val * I_e_val;
@@ -396,9 +403,17 @@ namespace stereo {
               rhs(4,4) += jj*jj * I_y_sqr;
               rhs(4,5) += jj    * I_y_sqr;
               rhs(5,5) +=         I_y_sqr;
-            }
-          }
 
+              w_ptr.next_col();
+              I_x_ptr.next_col();
+              I_y_ptr.next_col();
+              left_image_patch_ptr.next_col();
+            }
+            w_row.next_row();
+            I_x_row.next_row();
+            I_y_row.next_row();
+            left_image_patch_row.next_row();
+          }          
           lhs *= -1;
 
           // Fill in symmetric entries
@@ -423,11 +438,11 @@ namespace stereo {
 
           //           {          
           //             ImageView<ChannelT> right_image_patch(kern_width, kern_height);
-          //             for (int jj = -kern_height/2; jj <= kern_height/2; ++jj) {
-          //               for (int ii = -kern_width/2; ii <= kern_width/2; ++ii) {
-          //                 float xx = x_base + d[0] * ii + d[1] * jj + offset(0);
-          //                 float yy = y_base + d[3] * ii + d[4] * jj + offset(1);
-          //                 right_image_patch(ii+kern_width/2, jj+kern_width/2) = right_interp_image(xx,yy);
+          //             for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+          //               for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
+          //                 float xx = x_base + d[0] * ii + d[1] * jj + d[2];
+          //                 float yy = y_base + d[3] * ii + d[4] * jj + d[5];
+          //                 right_image_patch(ii+kern_half_width, jj+kern_half_width) = right_interp_image(xx,yy);
           //               }
           //             }
           //             std::ostringstream ostr;
@@ -462,16 +477,14 @@ namespace stereo {
             break;
         }
         //        std::cout << "----> " << d << "\n\n";
-        offset(0) = d[2];
-        offset(1) = d[5];
         
-        if (norm_2(offset) > AFFINE_SUBPIXEL_MAX_TRANSLATION || 
-            offset(0) != offset(0) ||  // Check to make sure the offset is not NaN...
-            offset(1) != offset(1) ) { // ... ditto.
+        if ( norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION || 
+            d[2] != d[2] ||  // Check to make sure the offset is not NaN...
+            d[5] != d[5] ) { // ... ditto.
           disparity_map(x,y) = PixelDisparity<float>();
         } else {
-          disparity_map(x,y).h() += offset(0);
-          disparity_map(x,y).v() += offset(1);
+          disparity_map(x,y).h() += d[2];
+          disparity_map(x,y).v() += d[5];
         }
       }
     }
