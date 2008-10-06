@@ -152,6 +152,26 @@ namespace math {
   }
 
 
+  /// This helper class allows overriding the basic vector assignment 
+  /// operations in specific cases for efficiency, using template 
+  /// specialization.
+  template <class DstVecT, class SrcVecT>
+  struct VectorAssignImpl {
+    static void assign( DstVecT& dst, SrcVecT const& src ) {
+      std::copy( src.begin(), src.end(), dst.begin() );
+    }
+  };
+
+  /// This helper class allows overriding the basic vector clearing 
+  /// operation in specific cases for efficiency, using template 
+  /// specialization.
+  template <class VectorT>
+  struct VectorClearImpl {
+    static void clear( VectorT& vec ) {
+      std::fill( vec.begin(), vec.end(), typename VectorT::value_type() );
+    }
+  };
+
   // *******************************************************************
   // class Vector<ElemT,SizeN>
   // A statically-allocated fixed-dimension vector class.
@@ -174,7 +194,7 @@ namespace math {
 
     /// Constructs a vector of zeroes.
     Vector() {
-      memset( core_.c_array(), 0, SizeN*sizeof(ElemT) );
+      VectorClearImpl<Vector>::clear(*this);
     }
 
     /// Constructs a vector whose first element is as given.
@@ -187,7 +207,7 @@ namespace math {
     /// Constructs a vector whose first two elements are as given.
     Vector( ElemT e1, ElemT e2 ) {
       BOOST_STATIC_ASSERT( SizeN >= 2 );
-      (*this)[0] = e1; (*this)[1] = e2;
+      core_[0] = e1; core_[1] = e2;
       for( unsigned i=2; i<SizeN; ++i ) (*this)[i] = ElemT();
     }
 
@@ -226,7 +246,7 @@ namespace math {
     template <class T>
     Vector( VectorBase<T> const& v ) { 
       VW_ASSERT( v.impl().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << "." );
-      std::copy( v.impl().begin(), v.impl().end(), begin() );
+      VectorAssignImpl<Vector,T>::assign(*this,v.impl());
     }
 
     /// Standard copy assignment operator.
@@ -250,7 +270,7 @@ namespace math {
     template <class T>
     Vector& operator=( VectorNoTmp<T> const& v ) { 
       VW_ASSERT( v.impl().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << "." );
-      std::copy( v.impl().begin(), v.impl().end(), begin() );
+      VectorAssignImpl<Vector,T>::assign(*this,v.impl());
       return *this;
     }
 
@@ -332,7 +352,62 @@ namespace math {
   struct VectorSize<Vector<ElemT,SizeN> > {
     const static int value = SizeN;
   };
-  
+
+  template <class DstElemT, class SrcVecT>
+  struct VectorAssignImpl<Vector<DstElemT,2>,SrcVecT> {
+    static void assign( Vector<DstElemT,2>& dst, SrcVecT const& src ) {
+      dst(0) = src(0);
+      dst(1) = src(1);
+    }
+  };
+
+  template <class DstElemT, class SrcVecT>
+  struct VectorAssignImpl<Vector<DstElemT,3>,SrcVecT> {
+    static void assign( Vector<DstElemT,3>& dst, SrcVecT const& src ) {
+      dst(0) = src(0);
+      dst(1) = src(1);
+      dst(2) = src(2);
+    }
+  };
+
+  template <class DstElemT, class SrcVecT>
+  struct VectorAssignImpl<Vector<DstElemT,4>,SrcVecT> {
+    static void assign( Vector<DstElemT,4>& dst, SrcVecT const& src ) {
+      dst(0) = src(0);
+      dst(1) = src(1);
+      dst(2) = src(2);
+      dst(3) = src(3);
+    }
+  };
+
+  template <class ElemT>
+  struct VectorClearImpl<Vector<ElemT,2> > {
+    static void clear( Vector<ElemT,2>& v ) {
+      v(0) = v(1) = ElemT(0);
+    }
+  };
+
+  template <class ElemT>
+  struct VectorClearImpl<Vector<ElemT,3> > {
+    static void clear( Vector<ElemT,3>& v ) {
+      v(0) = v(1) = v(2) = ElemT();
+    }
+  };
+
+  template <class ElemT>
+  struct VectorClearImpl<Vector<ElemT,4> > {
+    static void clear( Vector<ElemT,4>& v ) {
+      v(0) = v(1) = v(2) = v(3) = ElemT();
+    }
+  };
+
+  template <class ElemT, int N>
+  struct VectorClearImpl<Vector<ElemT,N> > {
+    static void clear( Vector<ElemT,N>& v ) {
+      memset( &v(0), 0, N*sizeof(ElemT) );
+    }
+  };
+
 
   // *******************************************************************
   // class Vector<ElemT>
@@ -372,7 +447,7 @@ namespace math {
     template <class T>
     Vector( VectorBase<T> const& v ) {
       set_size( v.impl().size() );
-      std::copy( v.impl().begin(), v.impl().end(), begin() );
+      VectorAssignImpl<Vector,T>::assign(*this,v.impl());
     }
 
     /// Standard copy assignment operator.
@@ -395,7 +470,7 @@ namespace math {
     template <class T>
     Vector& operator=( VectorNoTmp<T> const& v ) {
       if( v.impl().size()==size() ) {
-        std::copy( v.impl().begin(), v.impl().end(), begin() );
+	VectorAssignImpl<Vector,T>::assign(*this,v.impl());
         return *this;
       }
       else return *this = v.impl();
@@ -473,7 +548,7 @@ namespace math {
     VectorProxy& operator=( VectorProxy const& v ) {
       VW_ASSERT( v.size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
       Vector<value_type> tmp( v );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+      VectorAssignImpl<VectorProxy,Vector<value_type> >::assign(*this,tmp);
       return *this;
     }
 
@@ -482,7 +557,7 @@ namespace math {
     VectorProxy& operator=( VectorBase<T> const& v ) { 
       VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
       Vector<value_type> tmp( v );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+      VectorAssignImpl<VectorProxy,Vector<value_type> >::assign(*this,tmp);
       return *this;
     }
 
@@ -491,7 +566,7 @@ namespace math {
     template <class T>
     VectorProxy& operator=( VectorNoTmp<T> const& v ) { 
       VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
-      std::copy( v.impl().begin(), v.impl().end(), begin() );
+      VectorAssignImpl<VectorProxy,T>::assign(*this,v.impl());
       return *this;
     }
 
@@ -602,7 +677,7 @@ namespace math {
     VectorProxy& operator=( VectorProxy const& v ) {
       VW_ASSERT( v.size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
       Vector<value_type> tmp( v );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+      VectorAssignImpl<VectorProxy,Vector<value_type> >::assign(*this,tmp);
       return *this;
     }
 
@@ -611,7 +686,7 @@ namespace math {
     VectorProxy& operator=( VectorBase<T> const& v ) { 
       VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
       Vector<value_type> tmp( v );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+      VectorAssignImpl<VectorProxy,Vector<value_type> >::assign(*this,tmp);
       return *this;
     }
 
@@ -620,7 +695,7 @@ namespace math {
     template <class T>
     VectorProxy& operator=( VectorNoTmp<T> const& v ) { 
       VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
-      std::copy( v.impl().begin(), v.impl().end(), begin() );
+      VectorAssignImpl<VectorProxy,T>::assign(*this,v.impl());
       return *this;
     }
 
@@ -822,7 +897,7 @@ namespace math {
     SubVector& operator=( SubVector const& v ) {
       VW_ASSERT( v.size()==size(), ArgumentErr() << "Vectors must have same size in subvector assignment" );
       Vector<value_type> tmp( v );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+      VectorAssignImpl<SubVector,Vector<value_type> >::assign(*this,tmp);
       return *this;
     }
 
@@ -831,7 +906,7 @@ namespace math {
     SubVector& operator=( VectorBase<OtherT> const& v ) {
       VW_ASSERT( v.impl().size()==m_size, ArgumentErr() << "Vectors must have same size in subvector assignment" );
       Vector<value_type> tmp( v );
-      std::copy( tmp.begin(), tmp.end(), begin() );
+      VectorAssignImpl<SubVector,Vector<value_type> >::assign(*this,tmp);
       return *this;
     }
 
@@ -840,7 +915,7 @@ namespace math {
     template <class OtherT>
     SubVector& operator=( VectorNoTmp<OtherT> const& v ) {
       VW_ASSERT( v.impl().size()==m_size, ArgumentErr() << "Vectors must have same size in subvector assignment" );
-      std::copy( v.impl().begin(), v.impl().end(), begin() );
+      VectorAssignImpl<SubVector,OtherT>::assign(*this,v.impl());
       return *this;
     }
 
