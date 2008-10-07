@@ -21,6 +21,7 @@
 // 
 // __END_LICENSE__
 #include <vw/Camera/Exif.h>
+#include <stdlib.h>
 #include <iostream>
 
 using namespace vw::camera;
