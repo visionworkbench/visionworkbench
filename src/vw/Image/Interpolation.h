@@ -48,13 +48,17 @@
 namespace vw {
 
   /// \cond INTERNAL
-  // Functors for common interpolation modes.  You may define your own
-  // functor similar to those that appear below.  The functor must
-  // define the call operator, which takes a view and a set of
-  // (floating point) coordinates, and return the interpolated value
-  // at that sub-pixel location.
+  // Stub classes defining common interpolation modes.  You may define 
+  // your own class similar to those that appear below.  The stub class 
+  // must functor must have an Interpolator type function that returns 
+  // the type of the interpolation functor, and a static interpolator() 
+  // function that returns the interpolator itself.  For simple 
+  // functions, the stub class and the interpolation function may be 
+  // the same class (e.g. see NearestPixelInterpolation).  This extra 
+  // level of indirection makes it possible to do more flexible 
+  // template-based special-casing for optimization.
 
-  /// A base class for the interpolation types that provides the
+  /// A base class for interpolation functors that provides the
   /// common return type deduction logic in case users want to use
   /// these types in a more general manner.
   ///
@@ -73,24 +77,51 @@ namespace vw {
     };
   };
 
-  // Bilinear interpolation operator
-  struct BilinearInterpolation : InterpolationBase {
-    static const int32 pixel_buffer = 1; 
-    template <class ViewT>
-    inline typename ViewT::pixel_type operator()(const ViewT &view, double i, double j, int32 p ) const { 
+  // This is broken out so that the implementation can be overridden 
+  // by pixel type.  Optimized versions go at the bottom of the file 
+  // for clarity.
+  template <class ViewT, class PixelT = typename ViewT::pixel_type>
+  struct BilinearInterpolationImpl : InterpolationBase {
+    PixelT operator()( const ViewT &view, double i, double j, int32 p ) const {
       typedef typename ViewT::pixel_type pixel_type;
       typedef typename CompoundChannelType<pixel_type>::type channel_type;
       typedef typename FloatType<channel_type>::type real_type;
       typedef typename CompoundChannelCast<pixel_type,real_type>::type result_type;
 
       int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
-      real_type normx = i-x, normy = j-y;
+      real_type normx = i-x, normy = j-y, norm1mx = 1-normx, norm1my = 1-normy;
 
-      result_type result = (view(x,y,p)   * (1-normy) + view(x,y+1,p)   * normy) * (1-normx) +
-                           (view(x+1,y,p) * (1-normy) + view(x+1,y+1,p) * normy) * normx;
+      typename ViewT::pixel_accessor acc = view.origin().advance(x,y,p);
+      result_type result = (*acc) * norm1mx;
+      acc.next_col();
+      result += (*acc) * normx;
+      result *= norm1my;
+      acc.advance(-1,1);
+      result_type row = (*acc) * norm1mx;
+      acc.next_col();
+      row += (*acc) * normx;
+      result += row * normy;
 
       // Linear interpolation is, well, linear, so there's no need to clamp.
       return channel_cast_round_if_int<channel_type>(result);
+    }
+  };
+
+  // Bilinear interpolation operator
+  struct BilinearInterpolation {
+    static const int32 pixel_buffer = 1;
+    template <class ViewT>
+    struct Interpolator {
+      typedef BilinearInterpolationImpl<ViewT> type;
+    };
+    template <class ViewT>
+    static typename Interpolator<ViewT>::type interpolator( const ViewT &view ) {
+      return typename Interpolator<ViewT>::type();
+    }
+    // This function is here for backwards-compatibility and is deprecated.
+    template <class ViewT>
+    inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, int32 p ) const {
+      return interpolator(view)( view, i, j, p );
     }
   };
 
@@ -99,7 +130,7 @@ namespace vw {
   // for clarity.
   template <class ViewT, class PixelT = typename ViewT::pixel_type>
   struct BicubicInterpolationImpl {
-    static PixelT apply( const ViewT &view, double i, double j, int32 p ) {
+    PixelT operator()( const ViewT &view, double i, double j, int32 p ) const {
       typedef typename CompoundChannelType<PixelT>::type channel_type;
       typedef typename CompoundChannelCast<PixelT,double>::type result_type;
       
@@ -134,24 +165,42 @@ namespace vw {
       result +=                 t3*row;
       result *= 0.25;
 
+      // Bicubic interpolation is non-convex, so we must clamp if integer
       return channel_cast_round_and_clamp_if_int<channel_type>( result );
     }
   };
 
   // Bicubic interpolation operator
-  struct BicubicInterpolation : InterpolationBase {
-    static const int32 pixel_buffer = 2; 
+  struct BicubicInterpolation {
+    static const int32 pixel_buffer = 1;
+    template <class ViewT>
+    struct Interpolator {
+      typedef BicubicInterpolationImpl<ViewT> type;
+    };
+    template <class ViewT>
+    static typename Interpolator<ViewT>::type interpolator( const ViewT &view ) {
+      return typename Interpolator<ViewT>::type();
+    }
+    // This function is here for backwards-compatibility and is deprecated.
     template <class ViewT>
     inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, int32 p ) const {
-      return BicubicInterpolationImpl<ViewT>::apply( view, i, j, p );
+      return interpolator(view)( view, i, j, p );
     }
   };
 
   // NearestPixel interpolation operator.  
-  struct NearestPixelInterpolation : InterpolationBase {
-    static const int32 pixel_buffer = 1; 
+  struct NearestPixelInterpolation {
+    static const int32 pixel_buffer = 1;
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, int32 p ) const {
+    struct Interpolator {
+      typedef NearestPixelInterpolation type;
+    };
+    template <class ViewT>
+    static NearestPixelInterpolation interpolator( const ViewT &view ) {
+      return NearestPixelInterpolation();
+    }
+    template <class ViewT>
+    typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, int32 p ) const {
       int32 x = math::impl::_round(i), y = math::impl::_round(j);
       return view(x,y,p);
     }
@@ -169,8 +218,9 @@ namespace vw {
   class InterpolationView : public ImageViewBase<InterpolationView<ImageT, InterpT> >
   {
   private:
+    typedef typename InterpT::template Interpolator<ImageT>::type interp_type;
     ImageT m_image;
-    InterpT m_interp_func;
+    interp_type m_interp_func;
   public:
 
     typedef typename ImageT::pixel_type pixel_type;
@@ -178,8 +228,8 @@ namespace vw {
     typedef ProceduralPixelAccessor<InterpolationView<ImageT, InterpT> > pixel_accessor;
     
     InterpolationView( ImageT const& image, 
-                       InterpT const& interp_func = InterpT()) :
-      m_image(image), m_interp_func(interp_func) {}
+                       InterpT const& interp_stub = InterpT()) :
+      m_image(image), m_interp_func(InterpT::interpolator(image)) {}
 
     inline int32 cols() const { return m_image.cols(); }
     inline int32 rows() const { return m_image.rows(); }
@@ -200,7 +250,7 @@ namespace vw {
 
     template <class PreRastImageT>
     prerasterize_type prerasterize_helper( BBox2i bbox, PreRastImageT const& image, true_type ) const { 
-      return prerasterize_type( image.prerasterize(bbox), m_interp_func ); 
+      return prerasterize_type( image.prerasterize(bbox) ); 
     }
                             
     template <class PreRastImageT>
@@ -208,14 +258,14 @@ namespace vw {
       ImageView<pixel_type> buf( bbox.width(), bbox.height(), m_image.planes() );
       image.rasterize( buf, bbox );
       return prerasterize_type( CropView<ImageView<pixel_type> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),
-                                                                              image.cols(), image.rows())), m_interp_func);
+                                                                              image.cols(), image.rows())));
     }
 
     inline prerasterize_type prerasterize( BBox2i bbox ) const {
-      int32 padded_width = bbox.width() + 2 * m_interp_func.pixel_buffer;
-      int32 padded_height = bbox.height() + 2 * m_interp_func.pixel_buffer;
-      BBox2i adjusted_bbox(bbox.min().x() - m_interp_func.pixel_buffer, 
-                           bbox.min().y() - m_interp_func.pixel_buffer,
+      int32 padded_width = bbox.width() + 2 * InterpT::pixel_buffer;
+      int32 padded_height = bbox.height() + 2 * InterpT::pixel_buffer;
+      BBox2i adjusted_bbox(bbox.min().x() - InterpT::pixel_buffer, 
+                           bbox.min().y() - InterpT::pixel_buffer,
                            padded_width, padded_height);
       return prerasterize_helper(adjusted_bbox, m_image, typename IsMultiplyAccessible<ImageT>::type() );
     }
@@ -288,7 +338,7 @@ namespace vw {
 
   template <class ViewT>
   struct BicubicInterpolationImpl<ViewT, PixelRGBA<uint8> > {
-    static PixelRGBA<uint8> apply( const ViewT &view, double i, double j, int32 p ) {
+    PixelRGBA<uint8> operator()( const ViewT &view, double i, double j, int32 p ) {
       // Front matter: 1.3% of samples.
       typedef typename ViewT::pixel_accessor acc_type;
       typedef float v4f[4] __attribute__ ((aligned (16)));
