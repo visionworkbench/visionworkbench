@@ -54,6 +54,13 @@ namespace impl {
     else return int32(val+0.5);
   }
 
+  /// A special inlinable implementation of round() 
+  /// for the common case of float->int32.
+  inline int32 _round( float val ) {
+    if( val < 0 ) return int32(val-0.5f);
+    else return int32(val+0.5f);
+  }
+
   /// A special inlinable implementation of floor() 
   /// for the common case of double->int32.
   inline int32 _floor( double val ) {
