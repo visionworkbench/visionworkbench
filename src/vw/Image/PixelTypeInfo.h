@@ -242,6 +242,32 @@ namespace vw {
   }
 
   template <class DestT>
+  class ChannelCastRoundFunctor : public ReturnFixedType<DestT> {
+  public:
+    template <class SourceT>
+    inline DestT operator()( SourceT source ) const {
+      return DestT( round( source ) );
+    }
+    inline DestT operator()( DestT source ) const {
+      return source;
+    }
+  };
+
+  template <class ChannelT, class PixelT>
+  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
+  inline channel_cast_round( PixelT pixel ) {
+    return compound_apply( ChannelCastRoundFunctor<ChannelT>(), pixel );
+  }
+
+  template <class ChannelT, class PixelT>
+  typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename CompoundChannelCast<PixelT, ChannelT>::type >::type
+  inline channel_cast_round_if_int( PixelT pixel ) {
+    typedef typename boost::is_floating_point<ChannelT>::type is_float_type;
+    typedef typename boost::mpl::if_<is_float_type, ChannelCastFunctor<ChannelT>, ChannelCastRoundFunctor<ChannelT> >::type functor_type;
+    return compound_apply( functor_type(), pixel );
+  }
+
+  template <class DestT>
   class ChannelCastRoundClampFunctor : public ReturnFixedType<DestT> {
   public:
     template <class SourceT>

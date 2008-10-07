@@ -89,7 +89,8 @@ namespace vw {
       result_type result = (view(x,y,p)   * (1-normy) + view(x,y+1,p)   * normy) * (1-normx) +
                            (view(x+1,y,p) * (1-normy) + view(x+1,y+1,p) * normy) * normx;
 
-      return channel_cast_round_and_clamp_if_int<channel_type>(result);
+      // Linear interpolation is, well, linear, so there's no need to clamp.
+      return channel_cast_round_if_int<channel_type>(result);
     }
   };
 
