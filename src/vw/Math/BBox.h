@@ -171,17 +171,19 @@ namespace math {
     void crop( BBoxBase<BBoxT1, RealT1, DimN1> const& bbox ) {
       VW_ASSERT(m_min.size() == 0 || bbox.min().size() == m_min.size(), ArgumentErr() << "BBox must have dimension " << m_min.size() << ".");
       for( unsigned i=0; i<m_min.size(); ++i ) {
-        if( m_min[i] < bbox.min()[i] )
+        if( m_min[i] < bbox.min()[i] ) {
           if( m_max[i] < bbox.min()[i] )
             m_min[i] = m_max[i]; 
           else
             m_min[i] = bbox.min()[i];
+	}
 
-        if( m_max[i] > bbox.max()[i] )
+        if( m_max[i] > bbox.max()[i] ) {
           if ( m_min[i] > bbox.max()[i] )
             m_max[i] = m_min[i];
           else
             m_max[i] = bbox.max()[i];
+	}
       }
     }
 
