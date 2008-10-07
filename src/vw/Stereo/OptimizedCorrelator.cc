@@ -56,7 +56,7 @@ ImageView<float> SqDifferenceCost::calculate(int dx, int dy) {
   BBox2i right_bbox = this->bbox() + Vector2i(dx, dy);
   CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > left_window(edge_extend(m_left,ZeroEdgeExtension()), this->bbox());
   CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > right_window(edge_extend(m_right,ZeroEdgeExtension()), right_bbox);
-  return this->box_filter(abs_difference(left_window, right_window));
+  return this->box_filter(sq_difference(left_window, right_window));
 }
 
 
