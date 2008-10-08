@@ -338,7 +338,7 @@ namespace vw {
 
   template <class ViewT>
   struct BicubicInterpolationImpl<ViewT, PixelRGBA<uint8> > {
-    PixelRGBA<uint8> operator()( const ViewT &view, double i, double j, int32 p ) {
+    PixelRGBA<uint8> operator()( const ViewT &view, double i, double j, int32 p ) const {
       // Front matter: 1.3% of samples.
       typedef typename ViewT::pixel_accessor acc_type;
       typedef float v4f[4] __attribute__ ((aligned (16)));
