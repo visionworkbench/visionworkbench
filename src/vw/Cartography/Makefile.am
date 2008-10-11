@@ -32,7 +32,7 @@ gdal_headers = GeoReferenceResourceGDAL.h
 gdal_sources = GeoReferenceResourceGDAL.cc
 endif
 
-if MAKE_MODULE_CARTOGRAPHY
+if MAKE_MODULE_CAMERA
 camerabbox_headers = CameraBBox.h
 camerabbox_sources = CameraBBox.cc
 endif
