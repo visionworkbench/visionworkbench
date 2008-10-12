@@ -1312,7 +1312,7 @@ namespace math {
     typedef value_type reference_type;
     typedef value_type const_reference_type;
 
-    MatrixBinaryFunc( Matrix1T const& m1, Matrix2T const& m2 ) : m1(m1), m2(m2) {
+    MatrixBinaryFunc( Matrix1T const& m1, Matrix2T const& m2 ) : m1(m1), m2(m2), func() {
       VW_ASSERT( m1.rows() == m2.rows() && m1.cols() == m2.cols(), ArgumentErr() << "Matrices must have same size in MatrixBinaryFunc" );
     }
 
