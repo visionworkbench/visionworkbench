@@ -27,11 +27,27 @@ namespace po = boost::program_options;
 
 using namespace vw;
 
+// Global variables
+std::string input_file_name, output_file_name = "", shaded_relief_file_name;
+float nodata_value;
+float min_val = 0, max_val = 0;
+
+// Useful functions
+
+/// Erases a file suffix if one exists and returns the base string
+static std::string prefix_from_filename(std::string const& filename) {
+  std::string result = filename;
+  int index = result.rfind(".");
+  if (index != -1) 
+    result.erase(index, result.size());
+  return result;
+}
+
+// Colormap function
 class ColormapFunc : public ReturnFixedType<PixelMask<PixelRGB<float> > > {
 
 public:
   ColormapFunc() {}
-
   
   template <class PixelT>
   PixelMask<PixelRGB<float> > operator() (PixelT const& pix) const {
@@ -87,21 +103,59 @@ UnaryPerPixelView<ViewT, ColormapFunc> colormap(ImageViewBase<ViewT> const& view
   return UnaryPerPixelView<ViewT, ColormapFunc>(view.impl(), ColormapFunc());
 }
 
+// ---------------------------------------------------------------------------------------------------
+
+template <class PixelT>
+void do_colorized_dem(po::variables_map const& vm) {
+
+  cartography::GeoReference georef;
+  cartography::read_georeference(georef, input_file_name);
+  
+  DiskImageView<PixelT> disk_dem_file(input_file_name);
+  ImageViewRef<PixelGray<float> > input_image = channel_cast<float>(disk_dem_file);
+
+  
+  std::cout << "Creating colorized DEM.\n";
+  if (min_val == 0 && max_val == 0) {
+    min_max_channel_values( create_mask( input_image, nodata_value), min_val, max_val);
+    std::cout << "\t--> DEM color map range: [" << min_val << "  " << max_val << "]\n";
+  } else {
+    std::cout << "\t--> Using user-specified color map range: [" << min_val << "  " << max_val << "]\n";
+  }
+
+  ImageViewRef<PixelMask<PixelGray<float> > > dem;
+  if (vm.count("nodata-value")) {
+    std::cout << "\t--> Masking nodata value: " << nodata_value << ".\n";
+    dem = channel_cast<float>(create_mask(input_image, nodata_value));
+  } else {
+    dem = pixel_cast<PixelMask<PixelGray<float> > >(input_image);
+  }
+  
+  ImageViewRef<PixelMask<PixelRGB<float> > > colorized_image = colormap(normalize(dem,min_val,max_val,0,1.0));
+
+  if (shaded_relief_file_name != "") {
+    std::cout << "\t--> Incorporating hillshading from: " << shaded_relief_file_name << ".\n";
+    DiskImageView<PixelMask<float> > shaded_relief_image(shaded_relief_file_name);
+    ImageViewRef<PixelMask<PixelRGB<float> > > shaded_image = copy_mask(colorized_image*apply_mask(shaded_relief_image), shaded_relief_image);
+    std::cout << "Writing image color-mapped image: " << output_file_name << "\n";
+    write_georeferenced_image(output_file_name, channel_cast_rescale<uint8>(shaded_image), georef, TerminalProgressCallback());
+  } else {
+    std::cout << "Writing image color-mapped image: " << output_file_name << "\n";
+    write_georeferenced_image(output_file_name, channel_cast_rescale<uint8>(colorized_image), georef, TerminalProgressCallback());
+  }
+}
+
 
 int main( int argc, char *argv[] ) {
 
   set_debug_level(VerboseDebugMessage-1);
-
-  std::string input_file_name, output_file_name, shaded_relief_file_name;
-  float nodata_value;
-  float min_val = 0, max_val = 0;
   
   po::options_description desc("Options");
   desc.add_options()
     ("help", "Display this help message")
     ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
-    ("shaded-relief-file", po::value<std::string>(&shaded_relief_file_name)->default_value(""), "Specify a shaded relief image (grayscale) to apply to the colorized image.")
-    ("output-file,o", po::value<std::string>(&output_file_name)->default_value("output.tif"), "Specify the output file")
+    ("shaded-relief-file,s", po::value<std::string>(&shaded_relief_file_name)->default_value(""), "Specify a shaded relief image (grayscale) to apply to the colorized image.")
+    ("output-file,o", po::value<std::string>(&output_file_name), "Specify the output file")
     ("nodata-value", po::value<float>(&nodata_value), "Remap the DEM default value to the min altitude value.")
     ("min", po::value<float>(&min_val), "Explicitly specify the range of the color map.")
     ("max", po::value<float>(&max_val), "Explicitly specify the range of the color map.")
@@ -124,42 +178,35 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
+  if( output_file_name == "" ) {
+    output_file_name = prefix_from_filename(input_file_name) + "_CMAP.tif";
+  }
+
   if( vm.count("verbose") ) {
     set_debug_level(VerboseDebugMessage);
   }
 
   try {
-    cartography::GeoReference georef;
-    cartography::read_georeference(georef, input_file_name);
 
-    DiskImageView<PixelGray<float> > disk_dem_file(input_file_name);
-    ImageViewRef<PixelMask<PixelGray<float> > > dem;
+    // Get the right pixel/channel type.
+    DiskImageResource *rsrc = DiskImageResource::open(input_file_name);
+    ChannelTypeEnum channel_type = rsrc->channel_type();
+    PixelFormatEnum pixel_format = rsrc->pixel_format();
+    delete rsrc;
 
-    std::cout << "Creating colorized DEM.\n";
-    if (vm.count("nodata-value")) {
-      std::cout << "\t--> Masking nodata value: " << nodata_value << ".\n";
-      dem = create_mask(disk_dem_file, nodata_value);
-    }
-    else {
-      dem = pixel_cast<PixelMask<PixelGray<float> > >(disk_dem_file);
-    }
 
-    if (min_val == 0 && max_val == 0) {
-      min_max_channel_values( create_mask(disk_dem_file, nodata_value), min_val, max_val);
-      std::cout << "\t--> DEM color map range: [" << min_val << "  " << max_val << "]\n";
-    } else {
-      std::cout << "\t--> Using user-specified color map range: [" << min_val << "  " << max_val << "]\n";
-    }
-
-    ImageViewRef<PixelMask<PixelRGB<float> > > colorized_image = colormap(normalize(dem,min_val,max_val,0,1.0));
-
-    std::cout << "Writing image.\n";
-    if (shaded_relief_file_name != "") {
-      DiskImageView<PixelMask<float> > shaded_relief_image(shaded_relief_file_name);
-      ImageViewRef<PixelMask<PixelRGB<float> > > shaded_image = copy_mask(colorized_image*apply_mask(shaded_relief_image), shaded_relief_image);
-      write_georeferenced_image(output_file_name, channel_cast_rescale<uint8>(shaded_image), georef, TerminalProgressCallback());
-    } else {
-      write_georeferenced_image(output_file_name, channel_cast_rescale<uint8>(colorized_image), georef, TerminalProgressCallback());
+    switch(pixel_format) {
+    case VW_PIXEL_GRAY:
+      switch(channel_type) {
+      case VW_CHANNEL_UINT8:  do_colorized_dem<PixelGray<uint8>   >(vm); break;
+      case VW_CHANNEL_INT16:  do_colorized_dem<PixelGray<int16>   >(vm); break;
+      case VW_CHANNEL_UINT16: do_colorized_dem<PixelGray<uint16>  >(vm); break;
+      default:                do_colorized_dem<PixelGray<float32> >(vm); break;
+      }
+      break;
+    default:
+      std::cout << "Error: Unsupported pixel format.  The DEM image must have only one channel.";
+      exit(0);
     }
   }
   catch( Exception& e ) {
