@@ -61,7 +61,7 @@ using namespace vw::mosaic;
 
 // Global variables
 std::vector<std::string> image_files;
-std::string output_file_name;
+std::string output_file_name = "";
 std::string output_file_type;
 std::string output_metadata;
 std::string module_name;
@@ -90,6 +90,15 @@ float hi_value = ScalarTypeLimits<float>::lowest();
 
 // Function pointers for computing resolution.
 std::map<std::string, int (*)(const GeoTransform&, const Vector2&)> str_to_resolution_fn_map;
+
+// Erases a file suffix if one exists and returns the base string
+static std::string prefix_from_filename(std::string const& filename) {
+  std::string result = filename;
+  int index = result.rfind(".");
+  if (index != -1) 
+    result.erase(index, result.size());
+  return result;
+}
 
 // Fill the maps for converting input strings to function pointers.
 static void fill_input_maps() {
@@ -389,7 +398,7 @@ int main(int argc, char **argv) {
 
   po::options_description general_options("General Options");
   general_options.add_options()
-    ("output-name,o", po::value<std::string>(&output_file_name)->default_value("output"), "Specify the base output directory")
+    ("output-name,o", po::value<std::string>(&output_file_name), "Specify the base output directory")
     ("quiet,q", "Quiet output")
     ("verbose,v", "Verbose output")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
@@ -480,6 +489,9 @@ int main(int argc, char **argv) {
     std::cout << usage.str();
     return 1;
   }
+
+  if( output_file_name == "" )
+    output_file_name = prefix_from_filename(image_files[0]);
 
   if( tile_size <= 0 ) {
     std::cerr << "Error: The tile size must be a positive number!  (You specified: " << tile_size << ".)" << std::endl << std::endl;
