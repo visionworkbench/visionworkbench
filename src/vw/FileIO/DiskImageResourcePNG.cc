@@ -208,7 +208,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
     int bit_depth;
     int color_type;
     int interlace_type;
-    int channels;
+    int channels = 1;  // Set a default value to avoid compiler warnings.
     int filter_method;
     int compression_type;
 //    int num_passes; // For interlacing :-(
@@ -420,7 +420,7 @@ struct DiskImageResourcePNG::vw_png_write_context:
     // anything else will be converted to UINT8
     int bit_depth = outer->m_format.channel_type == VW_CHANNEL_UINT16 ? 16 : 8;
 
-    int color_type;
+    int color_type = PNG_COLOR_TYPE_GRAY;  // Set a default value to avoid compiler warnings
     switch(outer->m_format.pixel_format) {
       case VW_PIXEL_SCALAR: // fall through
       case VW_PIXEL_GRAY:   color_type = PNG_COLOR_TYPE_GRAY;       break;

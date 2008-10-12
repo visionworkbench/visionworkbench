@@ -333,7 +333,7 @@ void DiskImageResourceJPEG::read( ImageBuffer const& dest, BBox2i const& bbox) c
   boost::scoped_array<uint8> buf( new uint8[ctx->cstride * bbox.width() * bbox.height()] );
 
   int32 offset = 0;
-  while (ctx->decompress_ctx.output_scanline < end_row)
+  while (int(ctx->decompress_ctx.output_scanline) < end_row)
   {
     ctx->readline();
 
