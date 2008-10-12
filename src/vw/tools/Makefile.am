@@ -45,18 +45,18 @@ endif
 # Command-line tools based on the Cartography module
 if MAKE_MODULE_CARTOGRAPHY
 # Converts a DEM to a simple shaded-relief map
-shaded_relief_SOURCES = shaded_relief.cc
-shaded_relief_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
+hillshade_SOURCES = hillshade.cc
+hillshade_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 # Converts a DEM to a simple color map
-colorize_dem_SOURCES = colorize_dem.cc
-colorize_dem_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
+colormap_SOURCES = colormap.cc
+colormap_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 # Adds or adjusts an image's georeferencing information
 georef_SOURCES = georef.cc
 georef_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 if HAVE_PKG_GDAL
-cart_gdal_progs = georef shaded_relief
+cart_gdal_progs = georef hillshade
 endif
-cartography_progs = colorize_dem $(cart_gdal_progs)
+cartography_progs = colormap $(cart_gdal_progs)
 endif
 
 # Command-line tools based on the HDR module
