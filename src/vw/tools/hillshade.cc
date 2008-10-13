@@ -118,7 +118,7 @@ public:
     Vector3 n2(0, m_v_scale, alt3-alt1);
 
     // Return the vector normal to the local plane.
-    return cross_prod(n1,n2);
+    return normalize(cross_prod(n1,n2));
   }
 };
 
@@ -136,8 +136,12 @@ public:
   PixelMask<PixelGray<float> > operator() (PixelMask<Vector3> const& pix) const {
     if (is_transparent(pix))
       return PixelMask<PixelGray<float> >();
-    else 
+    else {
+//       std::cout << "Vec1 : " << pix.child() << "   " << norm_2(pix.child()) << "\n";
+//       std::cout << "Vec2 : " << m_vec << "   " << norm_2(m_vec) << "\n";
+//       std::cout << "OVerall: " << dot_prod(pix.child(),m_vec)/(norm_2(pix.child()) * norm_2(m_vec)) << "\n\n";
       return dot_prod(pix.child(),m_vec)/(norm_2(pix.child()) * norm_2(m_vec));
+    }
   }
 };
 
@@ -167,12 +171,13 @@ void do_hillshade(po::variables_map const& vm) {
     }
   } else {
     u_scale = scale;
-    v_scale = scale;
+    v_scale = -scale;
   }
+  std::cout << "scale: " << u_scale << "  " << v_scale << "\n";
   
   // Set the direction of the light source.
   Vector3 light_0(1,0,0);
-  Vector3 light = math::euler_to_rotation_matrix(azimuth*M_PI/180, elevation*M_PI/180, 0, "zyx") * light_0;  
+  Vector3 light = math::euler_to_rotation_matrix(elevation*M_PI/180, azimuth*M_PI/180, 0, "yzx") * light_0;  
 
   // Compute the surface normals
   std::cout << "Loading: " << input_file_name << ".\n";
