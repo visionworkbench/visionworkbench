@@ -182,6 +182,11 @@ namespace cartography {
     os << "\tTransform  : " << georef.transform() << "\n";
     os << "\t" << georef.datum() << "\n";
     os << "\tProj.4 String: " << georef.proj4_str() << "\n";
+    os << "\tPixel Interpretation: ";
+    if (georef.pixel_interpretation() == GeoReference::PixelAsArea) 
+      os << "pixel as area\n";
+    else if (georef.pixel_interpretation() == GeoReference::PixelAsPoint) 
+      os << "pixel as point\n";
     return os;
   }
 
