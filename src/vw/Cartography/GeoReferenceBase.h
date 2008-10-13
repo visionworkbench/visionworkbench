@@ -78,10 +78,10 @@ namespace cartography {
     void set_pixel_interpretation(PixelInterpretation const& p) { m_pixel_interpretation = p; }
 
     /// Default Constructor
-    GeoReferenceBase() : m_pixel_interpretation( GeoReferenceBase::PixelAsPoint ) {}
+    GeoReferenceBase() : m_pixel_interpretation( GeoReferenceBase::PixelAsArea ) {}
 
     /// Takes a geodetic datum.
-    GeoReferenceBase(Datum const& datum) : m_pixel_interpretation( GeoReferenceBase::PixelAsPoint ), m_datum(datum) {}
+    GeoReferenceBase(Datum const& datum) : m_pixel_interpretation( GeoReferenceBase::PixelAsArea ), m_datum(datum) {}
 
     /// Destructor.
     virtual ~GeoReferenceBase() {}
