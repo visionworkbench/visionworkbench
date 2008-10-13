@@ -331,47 +331,35 @@ namespace cartography {
   namespace output {  
     GeoReference kml::get_output_georeference(int xresolution, int yresolution) {
       GeoReference r;
+      r.set_pixel_interpretation(GeoReference::PixelAsArea);
+
+      // Note: the global KML pixel space extends to +/- 180 degrees 
+      // latitude as well as longitude.
       Matrix3x3 transform;
-
-      r.set_well_known_geogcs("WGS84");
-
-      // We specify here the KML transformation for longitude/latitude
-      // to an exact pixel. Thus when we set the georeference 
-      // transform (which is pixel -> lon/lat), we have to use its 
-      // inverse.
-      transform(0,0) = xresolution / 360.0;
-      transform(0,1) = 0;
-      transform(0,2) = xresolution / 2.0 - 0.5;
-      transform(1,0) = 0;
-      transform(1,1) = -(yresolution / 360.0);
-      transform(1,2) = yresolution / 2.0 - 0.5;
-      transform(2,0) = 0;
-      transform(2,1) = 0;
+      transform(0,0) = 360.0 / xresolution;
+      transform(0,2) = -180;
+      transform(1,1) = -360.0 / yresolution;
+      transform(1,2) = 180;
       transform(2,2) = 1;
-      r.set_transform(vw::math::inverse(transform));
+      r.set_transform(transform);
 
       return r;
     }
 
     GeoReference tms::get_output_georeference(int resolution) {
       GeoReference r;
-      Matrix3x3 transform;
+      r.set_pixel_interpretation(GeoReference::PixelAsArea);
 
-      r.set_well_known_geogcs("WGS84");
-      // We specify here the TMS transformation for longitude/latitude
-      // to an exact pixel. Thus when we set the georeference 
-      // transform (which is pixel -> lon/lat), we have to use its 
-      // inverse.
-      transform(0,0) = resolution / 360.0;
-      transform(0,1) = 0;
-      transform(0,2) = resolution / 2.0 - 0.5;
-      transform(1,0) = 0;
-      transform(1,1) = -(resolution / 360.0);
-      transform(1,2) = .75 * resolution - 0.5;
-      transform(2,0) = 0;
-      transform(2,1) = 0;
+      // Note: the global TMS pixel space extends from +270 to -90 
+      // latitude, so that the lower-left hand corner is tile-
+      // aligned, since TMS uses an origin in the lower left.
+      Matrix3x3 transform;
+      transform(0,0) = 360.0 / resolution;
+      transform(0,2) = -180;
+      transform(1,1) = -360.0 / resolution;
+      transform(1,2) = 270;
       transform(2,2) = 1;
-      r.set_transform(vw::math::inverse(transform));
+      r.set_transform(transform);
 
       return r;
     }
