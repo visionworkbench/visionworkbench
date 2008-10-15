@@ -319,7 +319,7 @@ namespace math {
     }
 
     template <class VectorT>
-    void axis_angle( VectorBase<VectorT> &axis_, ElemT &angle ) {
+    void axis_angle( VectorBase<VectorT> &axis_, ElemT &angle ) const {
       VectorT & axis = axis_.impl();
 
       Vector<ElemT,3> imag_part = imag(*this);
