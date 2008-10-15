@@ -87,7 +87,7 @@ namespace mosaic {
 
   void vw::mosaic::KMLQuadTreeConfig::configure( QuadTreeGenerator& qtree ) const {
     qtree.set_crop_images( true );
-    qtree.set_image_path_func( &QuadTreeGenerator::named_tiered_image_path );
+    //qtree.set_image_path_func( &QuadTreeGenerator::named_tiered_image_path );
     qtree.set_metadata_func( boost::bind(&KMLQuadTreeConfigData::metadata_func,m_data,_1,_2) );
     qtree.set_branch_func( boost::bind(&KMLQuadTreeConfigData::branch_func,m_data,_1,_2,_3) );
   }
