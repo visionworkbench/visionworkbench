@@ -132,9 +132,23 @@ static std::string file_extension( std::string const& filename ) {
 static vw::RunOnce rdft_once = VW_RUNONCE_INIT;
 
 static void register_default_file_types_impl() {
+
+  // Give GDAL precedence in reading PDS images when this is supported.
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+  if (vw::DiskImageResourceGDAL::gdal_has_support(".img") && 
+      vw::DiskImageResourceGDAL::gdal_has_support(".pds") &&
+      vw::DiskImageResourceGDAL::gdal_has_support(".lbl")) {
+    vw::DiskImageResource::register_file_type( ".img", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
+    vw::DiskImageResource::register_file_type( ".pds", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
+    vw::DiskImageResource::register_file_type( ".lbl", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
+  } else {
+#endif 
   vw::DiskImageResource::register_file_type( ".img", vw::DiskImageResourcePDS::type_static(), &vw::DiskImageResourcePDS::construct_open, &vw::DiskImageResourcePDS::construct_create );
   vw::DiskImageResource::register_file_type( ".pds", vw::DiskImageResourcePDS::type_static(), &vw::DiskImageResourcePDS::construct_open, &vw::DiskImageResourcePDS::construct_create );
   vw::DiskImageResource::register_file_type( ".lbl", vw::DiskImageResourcePDS::type_static(), &vw::DiskImageResourcePDS::construct_open, &vw::DiskImageResourcePDS::construct_create );
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+  }
+#endif 
 
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
   vw::DiskImageResource::register_file_type( ".png", vw::DiskImageResourcePNG::type_static(), &vw::DiskImageResourcePNG::construct_open, &vw::DiskImageResourcePNG::construct_create );

@@ -176,6 +176,8 @@ namespace vw {
       else if (ext == ".cub") {                   // ISIS Cube
         retval.push_back("ISIS3");
         retval.push_back("ISIS2");
+      } else if (ext == ".img" || ext == ".pds" || ext == ".lbl") {  // Planetary data system image
+        retval.push_back("PDS");
       }
       else
         vw_throw( IOErr() << "DiskImageResourceGDAL: \"" << ext << "\" is an unsupported file extension." );
