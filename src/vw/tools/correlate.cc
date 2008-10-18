@@ -81,6 +81,10 @@ int main( int argc, char *argv[] ) {
     ImageViewRef<PixelGray<float> > left = edge_extend(left_disk_image,0,0,cols,rows);
     ImageViewRef<PixelGray<float> > right = edge_extend(right_disk_image,0,0,cols,rows);
 
+    int mask_buffer = std::max(xkernel, ykernel);
+    ImageViewRef<uint8> left_mask = channel_cast_rescale<uint8>(disparity::generate_mask(left_disk_image, mask_buffer));
+    ImageViewRef<uint8> right_mask = channel_cast_rescale<uint8>(disparity::generate_mask(right_disk_image, mask_buffer));
+
     stereo::CorrelatorType corr_type = ABS_DIFF_CORRELATOR; // the default
     if (correlator_type == 1)
       corr_type = SQR_DIFF_CORRELATOR;
@@ -112,9 +116,9 @@ int main( int argc, char *argv[] ) {
       {
         vw::Timer corr_timer("Correlation Time");
         if (log > 0) 
-          disparity_map = correlator( left, right, stereo::LogStereoPreprocessingFilter(log));
+          disparity_map = correlator( left, right, left_mask, right_mask, stereo::LogStereoPreprocessingFilter(log));
          else 
-           disparity_map = correlator( left, right, stereo::SlogStereoPreprocessingFilter(slog));
+           disparity_map = correlator( left, right, left_mask, right_mask, stereo::SlogStereoPreprocessingFilter(slog));
       }
     } else {
       vw::stereo::OptimizedCorrelator correlator( BBox2i(xoffset-xrange/2, yoffset-yrange/2, xrange, yrange),
