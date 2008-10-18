@@ -15,10 +15,11 @@ namespace vw {
 namespace stereo {
 
   /// An image view for performing image correlation
-  template <class PixelT, class PreProcFuncT>
-  class CorrelatorView : public ImageViewBase<CorrelatorView<PixelT, PreProcFuncT> > {
+  template <class ImagePixelT, class MaskPixelT, class PreProcFuncT>
+  class CorrelatorView : public ImageViewBase<CorrelatorView<ImagePixelT, MaskPixelT, PreProcFuncT> > {
 
-    ImageViewRef<PixelT> m_left_image, m_right_image;
+    ImageViewRef<ImagePixelT> m_left_image, m_right_image;
+    ImageViewRef<MaskPixelT> m_left_mask, m_right_mask;
     PreProcFuncT m_preproc_func;
 
     // Settings
@@ -35,14 +36,26 @@ namespace stereo {
       typedef pixel_type result_type;
       typedef ProceduralPixelAccessor<CorrelatorView> pixel_accessor;
       
-    template <class ImageT>
-    CorrelatorView(ImageViewBase<ImageT> const& left_image, ImageViewBase<ImageT> const& right_image, PreProcFuncT const& preproc_func) :
-      m_left_image(left_image.impl()), m_right_image(right_image.impl()), m_preproc_func(preproc_func) {
+    template <class ImageT, class MaskT>
+    CorrelatorView(ImageViewBase<ImageT> const& left_image, ImageViewBase<ImageT> const& right_image, 
+                   ImageViewBase<MaskT> const& left_mask, ImageViewBase<MaskT> const& right_mask, 
+                   PreProcFuncT const& preproc_func) :
+      m_left_image(left_image.impl()), m_right_image(right_image.impl()), 
+      m_left_mask(left_mask.impl()), m_right_mask(right_mask.impl()), 
+      m_preproc_func(preproc_func) {
 
       // Basic assertions
       VW_ASSERT((left_image.impl().cols() == right_image.impl().cols()) &&
                 (left_image.impl().rows() == right_image.impl().rows()),
                 ArgumentErr() << "CorrelatorView::CorrelatorView(): input image dimensions do not agree.\n");
+
+      VW_ASSERT((left_image.impl().cols() == left_mask.impl().cols()) &&
+                (left_image.impl().rows() == left_mask.impl().rows()),
+                ArgumentErr() << "CorrelatorView::CorrelatorView(): input image and mask image dimensions do not agree.\n");
+
+      VW_ASSERT((left_image.impl().cols() == right_mask.impl().cols()) &&
+                (left_image.impl().rows() == right_mask.impl().rows()),
+                ArgumentErr() << "CorrelatorView::CorrelatorView(): input image and mask image dimensions do not agree.\n");
       
       VW_ASSERT((left_image.channels() == 1) && (left_image.impl().planes() == 1) &&
                 (right_image.channels() == 1) && (right_image.impl().planes() == 1),
@@ -126,8 +139,10 @@ namespace stereo {
 
       // We crop the images to the expanded bounding box and edge
       // extend in case the new bbox extends past the image bounds.
-      ImageView<PixelT> cropped_left_image = crop(edge_extend(m_left_image, ZeroEdgeExtension()), left_crop_bbox);
-      ImageView<PixelT> cropped_right_image = crop(edge_extend(m_right_image, ZeroEdgeExtension()), right_crop_bbox);
+      ImageView<ImagePixelT> cropped_left_image = crop(edge_extend(m_left_image, ZeroEdgeExtension()), left_crop_bbox);
+      ImageView<ImagePixelT> cropped_right_image = crop(edge_extend(m_right_image, ZeroEdgeExtension()), right_crop_bbox);
+      ImageView<MaskPixelT> cropped_left_mask = crop(edge_extend(m_left_mask, ZeroEdgeExtension()), left_crop_bbox);
+      ImageView<MaskPixelT> cropped_right_mask = crop(edge_extend(m_right_mask, ZeroEdgeExtension()), right_crop_bbox);
       
       // We have all of the settings adjusted.  Now we just have to
       // run the correlator.
@@ -143,7 +158,9 @@ namespace stereo {
         correlator.set_debug_mode(m_debug_prefix + ostr.str());
       }
       
-      ImageView<pixel_type> disparity_map = correlator(cropped_left_image, cropped_right_image, m_preproc_func);
+      ImageView<pixel_type> disparity_map = correlator(cropped_left_image, cropped_right_image, 
+                                                       cropped_left_mask, cropped_right_mask,
+                                                       m_preproc_func);
       
       // Adjust the disparities to be relative to the uncropped
       // image pixel locations
@@ -171,8 +188,8 @@ namespace stereo {
   };
 
   /// Summarize a CorrelatorView object
-  template <class PixelT, class PreProcFuncT>
-  std::ostream& operator<<( std::ostream& os, CorrelatorView<PixelT,PreProcFuncT> const& view ) {
+  template <class ImagePixelT, class MaskPixelT, class PreProcFuncT>
+  std::ostream& operator<<( std::ostream& os, CorrelatorView<ImagePixelT,MaskPixelT,PreProcFuncT> const& view ) {
     os << "------------------------- CorrelatorView ----------------------\n";
     os << "\tsearch range: " << view.search_range() << "\n";
     os << "\tkernel size : " << view.kernel_size() << "\n";

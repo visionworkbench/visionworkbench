@@ -147,7 +147,7 @@ namespace stereo {
 
     int center_pix_x = kern_width/2;
     int center_pix_y = kern_height/2;
-    int two_sigma_sqr = 2*pow(kern_width/3,2);
+    float two_sigma_sqr = 2.0*pow(float(kern_width)/6.0,2.0);
 
     ImageView<float> weight(kern_width, kern_height);
     for (int j = 0; j < kern_height; ++j) {
@@ -182,16 +182,16 @@ namespace stereo {
         if ( (*disp_col_acc).missing()) 
           *weight_col_acc = 0;
 
-//         // ... or if there is a large discontinuity ...
-//         if (pow( (*disp_col_acc).h()-center_pix.h(),2) + pow( (*disp_col_acc).v()-center_pix.v(),2) >= continuity_threshold_squared)
-//           *weight_col_acc = 0;
+        // ... or if there is a large discontinuity ...
+        //         if (pow( (*disp_col_acc).h()-center_pix.h(),2) + pow( (*disp_col_acc).v()-center_pix.v(),2) >= continuity_threshold_squared)
+        //           *weight_col_acc = 0;
 
         // ... otherwise we use the weight from the weight template
-        else {
+         else {
           *weight_col_acc = *template_col_acc;
           sum += *weight_col_acc;
           ++num_good_pix;
-        }
+         }
 
         disp_col_acc.next_col();
         weight_col_acc.next_col();
@@ -225,20 +225,26 @@ namespace stereo {
 
   template<class ChannelT>
   void subpixel_correlation_affine_2d(ImageView<PixelDisparity<float> > &disparity_map,
-                                      ImageView<ChannelT> const& left_image,
-                                      ImageView<ChannelT> const& right_image,
+                                      ImageView<ChannelT> const& left_input_image,
+                                      ImageView<ChannelT> const& right_input_image,
                                       int kern_width, int kern_height,
                                       bool do_horizontal_subpixel,
                                       bool do_vertical_subpixel,
                                       bool verbose) {
     
-    VW_ASSERT( disparity_map.cols() == left_image.cols() &&
-               disparity_map.rows() == left_image.rows(),
+    VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
+               disparity_map.rows() == left_input_image.rows(),
                ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
+
+
+
+    for (float blur_sigma = 3; blur_sigma >= 1.0; blur_sigma /= 2.0) {
+      ImageView<ChannelT> left_image = LogStereoPreprocessingFilter(blur_sigma)(left_input_image);
+      ImageView<ChannelT> right_image = LogStereoPreprocessingFilter(blur_sigma)(right_input_image);
 
     // This is the maximum number of pixels that the solution can be
     // adjusted by affine subpixel refinement.
-    int AFFINE_SUBPIXEL_MAX_TRANSLATION = kern_width/2;
+    float AFFINE_SUBPIXEL_MAX_TRANSLATION = kern_width/2;
     int kern_half_height = kern_height/2;
     int kern_half_width = kern_width/2;
 
@@ -265,6 +271,8 @@ namespace stereo {
     Stopwatch sw;
     sw.start();
     double last_time = 0;
+
+
     for (int y=kern_half_height; y<left_image.rows()-kern_half_height; ++y) {
       if (verbose && y % 10 == 0) {
         sw.stop();
@@ -272,7 +280,11 @@ namespace stereo {
         last_time = sw.elapsed_seconds();
         sw.start();
       }
+      // For debugging:
+      // for (int x=279; x<280; ++x) {
       for (int x=kern_half_width; x<left_image.cols()-kern_half_width; ++x) {
+
+
         BBox2i current_window(x-kern_half_width, y-kern_half_height, kern_width, kern_height);
         Vector2 base_offset( -disparity_map(x,y).h() , -disparity_map(x,y).v() );          
 
@@ -436,21 +448,22 @@ namespace stereo {
           rhs(5,3) = rhs(3,5);
           rhs(5,4) = rhs(4,5);
 
-          //           {          
-          //             ImageView<ChannelT> right_image_patch(kern_width, kern_height);
-          //             for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
-          //               for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
-          //                 float xx = x_base + d[0] * ii + d[1] * jj + d[2];
-          //                 float yy = y_base + d[3] * ii + d[4] * jj + d[5];
-          //                 right_image_patch(ii+kern_half_width, jj+kern_half_width) = right_interp_image(xx,yy);
-          //               }
-          //             }
-          //             std::ostringstream ostr;
-          //             ostr << x << "_" << y << "-" << iter;
-          //             write_image("small/left-"+ostr.str()+".tif", left_image_patch);
-          //             write_image("small/right-"+ostr.str()+".tif", right_image_patch);
-          //             write_image("small/weight-"+ostr.str()+".tif", w);
-          //           }
+
+          //           if (y == 270) {          
+          //                       ImageView<ChannelT> right_image_patch(kern_width, kern_height);
+          //                       for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+          //                         for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
+          //                           float xx = x_base + d[0] * ii + d[1] * jj + d[2];
+          //                           float yy = y_base + d[3] * ii + d[4] * jj + d[5];
+          //                           right_image_patch(ii+kern_half_width, jj+kern_half_width) = right_interp_image(xx,yy);
+          //                         }
+          //                       }
+          //                       std::ostringstream ostr;
+          //                       ostr << x << "_" << y << "_" << int(blur_sigma) << "_" << iter;
+          //                       write_image("small/left-"+ostr.str()+".tif", left_image_patch);
+          //                       write_image("small/right-"+ostr.str()+".tif", right_image_patch);
+          //                       write_image("small/weight-"+ostr.str()+".tif", w);
+          //                     }
 
 
           // Solves lhs = rhs * x, and stores the result in-place in lhs.
@@ -470,17 +483,18 @@ namespace stereo {
           }
           d += lhs;
 
-          //          std::cout << "Update: " << lhs << "     " << d << "     " << sqrt(error_total) << "    " << (sqrt(lhs[2]*lhs[2]+lhs[5]*lhs[5])) << "\n";
+          //           if (y == 270) 
+          //             std::cout << "Update: " << lhs << "     " << d << "     " << sqrt(error_total) << "    " << (sqrt(lhs[2]*lhs[2]+lhs[5]*lhs[5])) << "\n";
 
           // Termination condition
-          if (norm_2(lhs) < 0.01) 
+          if (norm_2(lhs) < 0.03) 
             break;
         }
-        //        std::cout << "----> " << d << "\n\n";
+        //         std::cout << "----> " << d << "\n\n";
         
         if ( norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION || 
-            d[2] != d[2] ||  // Check to make sure the offset is not NaN...
-            d[5] != d[5] ) { // ... ditto.
+             d[2] != d[2] ||  // Check to make sure the offset is not NaN...
+             d[5] != d[5] ) { // ... ditto.
           disparity_map(x,y) = PixelDisparity<float>();
         } else {
           disparity_map(x,y).h() += d[2];
@@ -488,6 +502,9 @@ namespace stereo {
         }
       }
     }
+
+    }
+
     if (verbose) 
       vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: done.                                         \n";
   }
@@ -643,7 +660,7 @@ namespace stereo {
           
             // This prevents us from adding in large offsets for
             // poorly fit data.
-            if (fabs(offset(0)) < 2.0 && fabs(offset(1)) < 2.0) {
+            if (norm_2(offset) < 5.0) {
               disparity_map(c,r).h() += offset(0);
               disparity_map(c,r).v() += offset(1);
             } else {

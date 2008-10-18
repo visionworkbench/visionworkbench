@@ -11,7 +11,8 @@ namespace vw {
 namespace stereo {
 
   /// An image view for performing image correlation
-  class AffineSubpixelView : public ImageViewBase<AffineSubpixelView> {
+  template <class PreprocFilterT>
+  class SubpixelView : public ImageViewBase<SubpixelView<PreprocFilterT> > {
 
     ImageViewRef<PixelDisparity<float> > m_disparity_map;
     ImageViewRef<float> m_left_image; 
@@ -21,39 +22,42 @@ namespace stereo {
     int m_kern_width, m_kern_height;
     bool m_do_h_subpixel, m_do_v_subpixel;
     bool m_do_affine_subpixel;
+    PreprocFilterT m_preproc_filter;
     bool m_verbose;
 
   public:
       typedef PixelDisparity<float> pixel_type;
       typedef pixel_type result_type;
-      typedef ProceduralPixelAccessor<AffineSubpixelView> pixel_accessor;
+      typedef ProceduralPixelAccessor<SubpixelView> pixel_accessor;
         
     template <class DisparityViewT, class InputViewT>
-    AffineSubpixelView(DisparityViewT const& disparity_map,
-                       InputViewT const& left_image,
-                       InputViewT const& right_image,
-                       int kern_width, int kern_height,
-                       bool do_horizontal_subpixel,
-                       bool do_vertical_subpixel,
-                       bool do_affine_subpixel,
-                       bool verbose) : m_disparity_map(disparity_map),
-                                       m_left_image(left_image),
-                                       m_right_image(right_image),
-                                       m_kern_width(kern_width), m_kern_height(kern_height),
-                                       m_do_h_subpixel(do_horizontal_subpixel),
-                                       m_do_v_subpixel(do_vertical_subpixel),
-                                       m_do_affine_subpixel(do_affine_subpixel),
-                                       m_verbose(verbose) {
+    SubpixelView(DisparityViewT const& disparity_map,
+                 InputViewT const& left_image,
+                 InputViewT const& right_image,
+                 int kern_width, int kern_height,
+                 bool do_horizontal_subpixel,
+                 bool do_vertical_subpixel,
+                 bool do_affine_subpixel,
+                 PreprocFilterT preproc_filter,
+                 bool verbose) : m_disparity_map(disparity_map),
+                                 m_left_image(left_image),
+                                 m_right_image(right_image),
+                                 m_kern_width(kern_width), m_kern_height(kern_height),
+                                 m_do_h_subpixel(do_horizontal_subpixel),
+                                 m_do_v_subpixel(do_vertical_subpixel),
+                                 m_do_affine_subpixel(do_affine_subpixel),
+                                 m_preproc_filter(preproc_filter),
+                                 m_verbose(verbose) {
       // Basic assertions
       VW_ASSERT((left_image.impl().cols() == right_image.impl().cols()) &&
                 (left_image.impl().rows() == right_image.impl().rows()) &&
                 (disparity_map.impl().cols() == right_image.impl().cols()) &&
                 (disparity_map.impl().cols() == right_image.impl().cols()),
-                ArgumentErr() << "AffineSubpixelView::AffineSubpixelView(): input image dimensions and/or disparity_map dimensions do not agree.\n");
+                ArgumentErr() << "SubpixelView::SubpixelView(): input image dimensions and/or disparity_map dimensions do not agree.\n");
       
       VW_ASSERT((left_image.channels() == 1) && (left_image.impl().planes() == 1) &&
                 (right_image.channels() == 1) && (right_image.impl().planes() == 1),
-                ArgumentErr() << "AffineSubpixelView::AffineSubpixelView(): multi-channel, multi-plane images not supported.\n");
+                ArgumentErr() << "SubpixelView::SubpixelView(): multi-channel, multi-plane images not supported.\n");
     }
 
     // Standard ImageView interface methods
@@ -98,9 +102,14 @@ namespace stereo {
 
       // We crop the images to the expanded bounding box and edge
       // extend in case the new bbox extends past the image bounds.
-      LogStereoPreprocessingFilter preproc_filter(1.5);
-      ImageView<float> left_image_patch = preproc_filter(crop(edge_extend(m_left_image,ZeroEdgeExtension()), left_crop_bbox));
-      ImageView<float> right_image_patch = preproc_filter(crop(edge_extend(m_right_image,ZeroEdgeExtension()), right_crop_bbox));
+      ImageView<float> left_image_patch, right_image_patch;
+      if (m_do_affine_subpixel) { // affine subpixel does its own pre-processing
+        left_image_patch = crop(edge_extend(m_left_image,ZeroEdgeExtension()), left_crop_bbox);
+        right_image_patch = crop(edge_extend(m_right_image,ZeroEdgeExtension()), right_crop_bbox);
+      } else { // parabola subpixel does the same preprocessing as the pyramid correlator
+        left_image_patch = m_preproc_filter(crop(edge_extend(m_left_image,ZeroEdgeExtension()), left_crop_bbox));
+        right_image_patch = m_preproc_filter(crop(edge_extend(m_right_image,ZeroEdgeExtension()), right_crop_bbox));
+      }
       ImageView<PixelDisparity<float> > disparity_map_patch = crop(edge_extend(m_disparity_map, ZeroEdgeExtension()), left_crop_bbox);
 
       // Adjust the disparities to be relative to the cropped

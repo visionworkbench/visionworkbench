@@ -42,6 +42,29 @@ namespace stereo {
       return outImg;
     }
 
+    // Reduce the image size by a factor of two by averaging the pixels
+    template <class MaskPixelT>
+    ImageView<MaskPixelT> subsample_mask_by_two(ImageView<MaskPixelT> &img) {
+      
+      ImageView<MaskPixelT> outImg(img.cols()/2, img.rows()/2,img.planes());		
+      int32 i, j, p;
+    
+      for (p = 0; p < outImg.planes() ; p++) {
+        for (i = 0; i < outImg.cols(); i++) {
+          for (j = 0; j < outImg.rows(); j++) {  
+            if (!img(2*i     , 2*j    ,p) ||
+                !img(2*i + 1 , 2*j    ,p) ||
+                !img(2*i     , 2*j + 1,p) || 
+                !img(2*i + 1 , 2*j + 1,p) ) 
+              outImg(i,j,p) =  MaskPixelT();
+            else 
+              outImg(i,j,p) = ScalarTypeLimits<MaskPixelT>::highest();
+          }
+        }
+      }
+      return outImg;
+    }
+
     // Iterate over the nominal blocks, creating output blocks for correlation
     BBox2 compute_matching_blocks(BBox2i const& nominal_block, BBox2 search_range, 
                                   BBox2i &left_block, BBox2i &right_block);
@@ -59,8 +82,8 @@ namespace stereo {
     template <class ChannelT, class PreProcFilterT>
     vw::ImageView<vw::PixelDisparity<float> > do_correlation(std::vector<ImageView<ChannelT> > left_pyramid, 
                                                              std::vector<ImageView<ChannelT> > right_pyramid,
-                                                             std::vector<ImageView<bool> > left_masks, 
-                                                             std::vector<ImageView<bool> > right_masks,
+                                                             std::vector<ImageView<uint8> > left_masks, 
+                                                             std::vector<ImageView<uint8> > right_masks,
                                                              PreProcFilterT const& preproc_filter) {
 
       int pyramid_levels = left_pyramid.size();
@@ -234,9 +257,11 @@ namespace stereo {
     /// used as a prefix for all debug image files.
     void set_debug_mode(std::string const& debug_file_prefix) { m_debug_prefix = debug_file_prefix; }
     
-    template <class ViewT, class PreProcFilterT>
+    template <class ViewT, class MaskViewT, class PreProcFilterT>
     ImageView<PixelDisparity<float> > operator() (ImageViewBase<ViewT> const& left_image,
                                                   ImageViewBase<ViewT> const& right_image,
+                                                  ImageViewBase<MaskViewT> const& left_mask,
+                                                  ImageViewBase<MaskViewT> const& right_mask,
                                                   PreProcFilterT const& preproc_filter) {
 
       typedef typename ViewT::pixel_type pixel_type;
@@ -245,6 +270,14 @@ namespace stereo {
       VW_ASSERT(left_image.impl().cols() == right_image.impl().cols() && 
                 left_image.impl().rows() == right_image.impl().rows(),
                 ArgumentErr() << "Correlator(): input image dimensions do not match.");
+
+      VW_ASSERT(left_image.impl().cols() == left_mask.impl().cols() && 
+                left_image.impl().rows() == left_mask.impl().rows(),
+                ArgumentErr() << "Correlator(): input image and mask dimensions do not match.");
+
+      VW_ASSERT(left_image.impl().cols() == right_mask.impl().cols() && 
+                left_image.impl().rows() == right_mask.impl().rows(),
+                ArgumentErr() << "Correlator(): input image and mask dimensions do not match.");
 
       // Compute the number of pyramid levels needed to reach the
       // minimum image resolution set by the user.  
@@ -260,19 +293,22 @@ namespace stereo {
 
       // Build the image pyramid
       std::vector<ImageView<channel_type> > left_pyramid(pyramid_levels), right_pyramid(pyramid_levels);
-      std::vector<ImageView<bool> > left_masks(pyramid_levels), right_masks(pyramid_levels);
+      std::vector<ImageView<uint8> > left_masks(pyramid_levels), right_masks(pyramid_levels);
 
       left_pyramid[0] = channels_to_planes(left_image);
       right_pyramid[0] = channels_to_planes(right_image);
-      left_masks[0] = disparity::generate_mask(left_image);
-      right_masks[0] = disparity::generate_mask(right_image);
+      left_masks[0] = channels_to_planes(left_mask);
+      right_masks[0] = channels_to_planes(right_mask);
       
       // Produce the image pyramid
       for (int n = 1; n < pyramid_levels; ++n) {
+        std::ostringstream ostr;
+        ostr << n;
+
         left_pyramid[n] = subsample_by_two(left_pyramid[n-1]);
         right_pyramid[n] = subsample_by_two(right_pyramid[n-1]);
-        left_masks[n] = disparity::generate_mask(left_pyramid[n]);
-        right_masks[n] = disparity::generate_mask(right_pyramid[n]);
+        left_masks[n] = subsample_mask_by_two(left_masks[n-1]);
+        right_masks[n] = subsample_mask_by_two(right_masks[n-1]);
       }
 
       return do_correlation(left_pyramid, right_pyramid, left_masks, right_masks, preproc_filter);

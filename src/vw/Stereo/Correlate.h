@@ -90,6 +90,25 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     
     static bool use_bit_image() { return false; }
   };
+
+  // Gaussian blur pre-processing
+  // 
+  // Default gaussian blur standard deviation is 1.5 pixels.
+  class BlurStereoPreprocessingFilter {
+    float m_blur_sigma;
+    
+  public:
+    typedef ImageView<float> result_type;
+
+    BlurStereoPreprocessingFilter(float blur_sigma = 1.5) : m_blur_sigma(blur_sigma) {}
+    
+    template <class ViewT>
+    result_type operator()(ImageViewBase<ViewT> const& view) const {
+      return gaussian_filter(channel_cast<float>(view.impl()),m_blur_sigma);
+    }
+    
+    static bool use_bit_image() { return false; }
+  };
   
   // No pre-processing
   class NullStereoPreprocessingFilter {
