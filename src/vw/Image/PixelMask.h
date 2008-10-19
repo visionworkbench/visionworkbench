@@ -775,6 +775,34 @@ namespace vw {
   struct IsMultiplyAccessible<BinaryPerPixelView<ViewT,MaskViewT,CopyPixelMask<typename ViewT::pixel_type> > >
     : public boost::mpl::and_<IsMultiplyAccessible<ViewT>,IsMultiplyAccessible<MaskViewT> >::type {};
 
+  // *******************************************************************
+  /// mask_to_alpha(view)
+  ///
+  /// Converts a mask channel to an alpha channel, generating an image that 
+  /// is transparent wherever the data is masked.
+  ///
+  template <class PixelT>
+  class MaskToAlpha : public ReturnFixedType<typename PixelWithAlpha<typename UnmaskedPixelType<PixelT>::type>::type> {
+  public:
+    typedef typename PixelWithAlpha<typename UnmaskedPixelType<PixelT>::type>::type result_type;
+    result_type operator()( PixelT const& pixel ) const {
+      if (is_transparent(pixel)) return result_type();
+      else return result_type(pixel.child());
+    }
+  };
+
+  template <class ViewT>
+  UnaryPerPixelView<ViewT,MaskToAlpha<typename ViewT::pixel_type> >
+  mask_to_alpha( ImageViewBase<ViewT> const& view ) {
+    typedef UnaryPerPixelView<ViewT,MaskToAlpha<typename ViewT::pixel_type> > view_type;
+    return view_type( view.impl(), MaskToAlpha<typename ViewT::pixel_type>() );
+  }
+
+  // Indicate that mask_to_alpha is "reasonably fast" and should never
+  // induce an extra rasterization step during prerasterization.
+  template <class ViewT>
+  struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,MaskToAlpha<typename ViewT::pixel_type> > >
+    : public IsMultiplyAccessible<ViewT> {};
 } // namespace vw
 
 #endif // __VW_IMAGE_PIXELMASK_H__
