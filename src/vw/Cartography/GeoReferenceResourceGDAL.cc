@@ -166,6 +166,21 @@ namespace cartography {
         }
       }
     }
+
+    // Georeference functions need not be invertible.  When we perform a reverse 
+    // lookup (e.g. during a geotransformation) we rely on PROJ.4 to pick one 
+    // possible value.  However, the georeference might actually place the image 
+    // at another (equivalent) location in the projected space.  This is hard to 
+    // recover from at run-time, and we currently have no generic solution to this 
+    // problem.  In the mean time, we at least test whether the georefernce is 
+    // likely to run into this problem (and warn the user) by checking whether 
+    // forward- and reverse-projecting the origin pixel lands us back at the origin.
+    Vector2 origin = georef.lonlat_to_pixel( georef.pixel_to_lonlat( Vector2() ) );
+    if( origin.x()*origin.x() + origin.y()*origin.y() > 0.1 ) {
+      vw_out(WarningMessage) << "read_gdal_georeference(): WARNING! Resource file " <<
+	resource.filename() << " contains a non-normal georeference.  Bad things "
+	"may happen: puppies dying, rainbows fading, mortage foreclosures, etc." << std::endl;
+    }
   }
 
   
