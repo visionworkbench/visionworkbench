@@ -23,6 +23,9 @@
 
 #include <vw/Mosaic/KMLQuadTreeConfig.h>
 
+#include <vw/Image.h>
+#include <vw/FileIO/DiskImageResourcePNG.h>
+
 #include <iomanip>
 #include <sstream>
 #include <boost/bind.hpp>
@@ -34,6 +37,72 @@
 namespace fs = boost::filesystem;
 
 namespace vw {
+
+  // This wrapper class intercepts premultiplied alpha data being written 
+  // to a PNG resource, and implements a pyramid-based hole-filling 
+  // algorithm to extrapolate data into the alpha-masked regions of the 
+  // image.
+  // 
+  // This is a workaround hack for a Google Earth bug, in which GE's 
+  // rendering of semi-transparent GroundOverlays interpolates  
+  // alpha-masked (i.e. invalid) data, resulting in annoying (generally 
+  // black) fringes around semi-transparent images.
+  class DiskImageResourcePNGAlphaHack : public DiskImageResourcePNG {
+  public:
+
+    DiskImageResourcePNGAlphaHack( std::string const& filename, ImageFormat const& format ) : DiskImageResourcePNG(filename,format) {}
+
+    void write( ImageBuffer const& src, BBox2i const& bbox ) {
+      int levels = (int) floor(((std::min)(log(bbox.width()),log(bbox.height())))/log(2));
+      if( levels<2 || src.unpremultiplied || !(src.format.pixel_format==VW_PIXEL_RGBA || src.format.pixel_format==VW_PIXEL_GRAYA) )
+	return DiskImageResourcePNG::write(src,bbox);
+      
+      std::vector<ImageView<PixelRGBA<float> > > pyramid(levels);
+      pyramid[0].set_size( bbox.width(), bbox.height() );
+      convert( pyramid[0].buffer(), src );
+      
+      std::vector<float> kernel(2);
+      kernel[0] = kernel[1] = 0.5;
+      for( int i=1; i<levels; ++i ) {
+	pyramid[i] = subsample(separable_convolution_filter(pyramid[i-1],kernel,kernel,1,1,ConstantEdgeExtension()),2);
+      }
+      
+      for( int i=levels-1; i>0; --i ) {
+	ImageView<PixelRGBA<float> > up = resample(pyramid[i],2.0,pyramid[i-1].cols(),pyramid[i-1].rows(),ConstantEdgeExtension(),BilinearInterpolation());
+	if(i>1) {
+	  for( int y=0; y<up.rows(); ++y ) {
+	    for( int x=0; x<up.cols(); ++x ) {
+	      if(pyramid[i-1](x,y).a()==0.0) {
+		pyramid[i-1](x,y) = up(x,y);
+	      }
+	    }
+	  }
+	}
+	else {
+	  for( int y=0; y<up.rows(); ++y ) {
+	    for( int x=0; x<up.cols(); ++x ) {
+	      if(pyramid[0](x,y).a()==0.0) {
+		if(up(x,y).a()!=0.0) {
+		  pyramid[0](x,y) = up(x,y) / up(x,y).a();
+		  pyramid[0](x,y).a() = 0;
+		}
+	      }
+	      else {
+		pyramid[0](x,y).r() /= pyramid[0](x,y).a();
+		pyramid[0](x,y).g() /= pyramid[0](x,y).a();
+              pyramid[0](x,y).b() /= pyramid[0](x,y).a();
+	      }
+	    }
+	  }
+	}
+      }
+
+      ImageBuffer buffer = pyramid[0].buffer();
+      buffer.unpremultiplied = true;
+      DiskImageResourcePNG::write(buffer,bbox);
+    }
+  };
+
 namespace mosaic {
 
   struct KMLQuadTreeConfigData {
@@ -51,11 +120,12 @@ namespace mosaic {
 
     std::vector<std::pair<std::string,vw::BBox2i> > branch_func( QuadTreeGenerator const&, std::string const& name, BBox2i const& region ) const;
     void metadata_func( QuadTreeGenerator const&, QuadTreeGenerator::TileInfo const& info ) const;
+    boost::shared_ptr<ImageResource> tile_resource_func( QuadTreeGenerator const&, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) const;
 
   public:
     KMLQuadTreeConfigData()
       : m_longlat_bbox(-180,-90,360,180),
-        m_max_lod_pixels(-1),
+        m_max_lod_pixels(1024),
         m_draw_order_offset(0)
     {}
   };
@@ -87,9 +157,11 @@ namespace mosaic {
 
   void vw::mosaic::KMLQuadTreeConfig::configure( QuadTreeGenerator& qtree ) const {
     qtree.set_crop_images( true );
+    qtree.set_file_type( "auto" );
     qtree.set_image_path_func( &QuadTreeGenerator::named_tiered_image_path );
     qtree.set_metadata_func( boost::bind(&KMLQuadTreeConfigData::metadata_func,m_data,_1,_2) );
     qtree.set_branch_func( boost::bind(&KMLQuadTreeConfigData::branch_func,m_data,_1,_2,_3) );
+    qtree.set_tile_resource_func( boost::bind(&KMLQuadTreeConfigData::tile_resource_func,m_data,_1,_2,_3) );
   }
 
   std::string KMLQuadTreeConfigData::kml_latlonaltbox( BBox2 const& longlat_bbox ) const {
@@ -220,6 +292,16 @@ namespace mosaic {
       }
     }
     return children;
+  }
+
+  boost::shared_ptr<ImageResource> KMLQuadTreeConfigData::tile_resource_func( QuadTreeGenerator const&, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) const {
+    create_directories( fs::path( info.filepath, fs::native ).branch_path() );
+    if( info.filetype == ".png" && (format.pixel_format==VW_PIXEL_RGBA || format.pixel_format==VW_PIXEL_GRAYA) ) {
+      return boost::shared_ptr<ImageResource>( new DiskImageResourcePNGAlphaHack( info.filepath+info.filetype, format ) );
+    }
+    else {
+      return boost::shared_ptr<ImageResource>( DiskImageResource::create( info.filepath+info.filetype, format ) );
+    }
   }
 
 } // namespace mosaic
