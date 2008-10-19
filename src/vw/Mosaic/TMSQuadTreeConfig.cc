@@ -51,6 +51,7 @@ namespace mosaic {
 
   void TMSQuadTreeConfig::configure( QuadTreeGenerator& qtree ) const {
     qtree.set_image_path_func( &image_path );
+    qtree.set_cull_images( true );
   }
 
 } // namespace mosaic

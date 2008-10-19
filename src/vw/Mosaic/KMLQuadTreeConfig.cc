@@ -156,7 +156,7 @@ namespace mosaic {
   }
 
   void vw::mosaic::KMLQuadTreeConfig::configure( QuadTreeGenerator& qtree ) const {
-    qtree.set_crop_images( true );
+    qtree.set_cull_images( true );
     qtree.set_file_type( "auto" );
     qtree.set_image_path_func( &QuadTreeGenerator::named_tiered_image_path );
     qtree.set_metadata_func( boost::bind(&KMLQuadTreeConfigData::metadata_func,m_data,_1,_2) );
@@ -214,10 +214,10 @@ namespace mosaic {
   }
 
   void KMLQuadTreeConfigData::metadata_func( QuadTreeGenerator const& qtree, QuadTreeGenerator::TileInfo const& info ) const {
+    std::ostringstream kml;
     fs::path file_path( info.filepath, fs::native );
     int base_len = file_path.branch_path().native_file_string().size() + 1;
     fs::path kml_path = change_extension( file_path, ".kml" );
-    fs::ofstream kml( kml_path );
     kml << std::setprecision(10);
 
     kml << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
@@ -257,13 +257,27 @@ namespace mosaic {
     int max_lod = m_max_lod_pixels;
     if( num_children == 0 ) max_lod = -1;
     int draw_order = m_draw_order_offset + info.name.size();
-    kml << kml_ground_overlay( file_path.leaf() + info.filetype,
-			       pixels_to_longlat( info.region_bbox, qtree.get_dimensions() ),
-			       pixels_to_longlat( info.image_bbox, qtree.get_dimensions() ),
-			       draw_order, max_lod );
+    BBox2i go_bbox = (qtree.get_crop_images() ? info.image_bbox : info.region_bbox);
+    if( exists( fs::path( info.filepath + info.filetype ) ) ) {
+      kml << kml_ground_overlay( file_path.leaf() + info.filetype,
+				 pixels_to_longlat( info.region_bbox, qtree.get_dimensions() ),
+				 pixels_to_longlat( go_bbox, qtree.get_dimensions() ),
+				 draw_order, max_lod );
+      num_children++;
+    }
     
-    if( root_node ) kml << m_root_node_tags.str();
+    if( root_node ) {
+      kml << m_root_node_tags.str();
+      num_children++;
+    }
+
     kml << "</Folder></kml>\n";
+
+    // Skip this file if there aren't any real contents
+    if( num_children != 0 ) {
+      fs::ofstream kmlfs( kml_path );
+      kmlfs << kml.str();
+    }
   }
 
   std::vector<std::pair<std::string,vw::BBox2i> > KMLQuadTreeConfigData::branch_func( QuadTreeGenerator const& qtree, std::string const& name, BBox2i const& region ) const {

@@ -58,6 +58,7 @@ namespace mosaic {
   }
 
   void GMapQuadTreeConfig::configure( QuadTreeGenerator& qtree ) const {
+    qtree.set_cull_images( true );
     qtree.set_file_type( "auto" );
     qtree.set_image_path_func( &image_path );
     qtree.set_tile_resource_func( &tile_resource );

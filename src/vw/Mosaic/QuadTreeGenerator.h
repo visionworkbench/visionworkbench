@@ -81,6 +81,7 @@ namespace mosaic {
         m_file_type( "png" ),
         m_crop_bbox(),
         m_crop_images( false ),
+        m_cull_images( false ),
         m_dimensions( image.impl().cols(), image.impl().rows() ),
         m_processor( new Processor<typename ImageT::pixel_type>( this, image.impl() ) ),
         m_image_path_func( &simple_image_path ),
@@ -145,6 +146,14 @@ namespace mosaic {
 
     void set_crop_images( bool crop ) {
       m_crop_images = crop;
+    }
+
+    bool get_cull_images() const {
+      return m_cull_images;
+    }
+
+    void set_cull_images( bool cull ) {
+      m_cull_images = cull;
     }
 
     void set_image_path_func( image_path_func_type image_path_func ) {
@@ -223,7 +232,12 @@ namespace mosaic {
 	if( ! qtree->get_crop_bbox().empty() ) crop_bbox.crop( qtree->get_crop_bbox() );
 	info.image_bbox = info.region_bbox;
 	info.image_bbox.crop( crop_bbox );
-	if( info.image_bbox.empty() ) return image;
+
+	if( info.image_bbox.empty() ) {
+	  if( ! (qtree->m_crop_images || qtree->m_cull_images) )
+	    image.set_size( qtree->m_tile_size, qtree->m_tile_size );
+	  return image;
+	}
   
 	if( qtree->m_sparse_tile_check && ! qtree->m_sparse_tile_check(info.region_bbox) ) return image;
 
@@ -257,13 +271,15 @@ namespace mosaic {
 	}
   
 	ImageView<PixelT> cropped_image = image;
-	if( qtree->m_crop_images ) {
+	if( qtree->m_crop_images || qtree->m_cull_images ) {
 	  BBox2i data_bbox = elem_quot( info.image_bbox-info.region_bbox.min(), scale );
 	  if( PixelHasAlpha<PixelT>::value )
 	    data_bbox.crop( nonzero_data_bounding_box( image ) );
 	  if( data_bbox.width() != qtree->m_tile_size || data_bbox.height() != qtree->m_tile_size ) {
 	    if( data_bbox.empty() ) cropped_image.reset();
-	    else cropped_image = crop( image, data_bbox );
+	    else if( qtree->m_crop_images ) {
+	      cropped_image = crop( image, data_bbox );
+	    }
 	    info.image_bbox = elem_prod(data_bbox,scale) + info.region_bbox.min();
 	  }
 	}
@@ -296,6 +312,7 @@ namespace mosaic {
     std::string m_file_type;
     BBox2i m_crop_bbox;
     bool m_crop_images;
+    bool m_cull_images;
     Vector2i m_dimensions;
     boost::shared_ptr<ProcessorBase> m_processor;
 
