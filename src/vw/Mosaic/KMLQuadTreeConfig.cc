@@ -166,7 +166,6 @@ namespace mosaic {
 
   std::string KMLQuadTreeConfigData::kml_latlonaltbox( BBox2 const& longlat_bbox ) const {
     BBox2 bbox = longlat_bbox;
-    bbox.crop( m_longlat_bbox );
     std::ostringstream tag;
     tag << std::setprecision(10);
     tag << "<LatLonAltBox>"
