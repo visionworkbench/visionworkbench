@@ -169,7 +169,6 @@ namespace camera {
       submatrix(M, j, j, n-j, 1)/= sqrt(M(j,j));
     }
   };
-  
 
   
   // solves Lx = b
@@ -572,7 +571,7 @@ namespace camera {
       }
 
       // Add rows to J and epsilon for a priori position/pose constraints...
-      for (unsigned j=0; j < num_cameras; ++j) {	
+      for (unsigned j=0; j < num_cameras; ++j) {
         subvector(epsilon,
                   2*m_model.num_pixel_observations() + j*num_cam_params,
                   num_cam_params) = m_model.A_initial(j)-m_model.A_parameters(j);
@@ -830,7 +829,7 @@ namespace camera {
         for (unsigned m = 0; m < m_control_net[i].size(); ++m) {  // Iterate over control measures
           int camera_idx = m_control_net[i][m].image_id();
 
-          Matrix<double> J_a = m_model.A_jacobian(i ,camera_idx, 
+          Matrix<double> J_a = m_model.A_jacobian(i,camera_idx, 
                                                   m_model.A_parameters(camera_idx), 
                                                   m_model.B_parameters(i));
           Matrix<double> J_b = m_model.B_jacobian(i,camera_idx, 
@@ -1018,15 +1017,10 @@ namespace camera {
           Vector<double> cam_delta = subvector(delta, num_cam_params*camera_idx, num_cam_params);
           Vector<double> pt_delta = subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params);
 
-	  // Deltas are not allowed to be applied to GCPs
-	  Vector2 unweighted_error;
-	  if (m_control_net[i].type() == ControlPoint::GroundControlPoint) {
-	    unweighted_error = m_control_net[i][m].position() - m_model(i, camera_idx, m_model.A_parameters(camera_idx)-cam_delta, m_model.B_parameters(i));
-	  } else {
-	    // Apply robust cost function weighting and populate the error vector
-	    unweighted_error = m_control_net[i][m].position() - m_model(i, camera_idx, m_model.A_parameters(camera_idx)-cam_delta, m_model.B_parameters(i)-pt_delta);
-	  }
-
+          // Apply robust cost function weighting and populate the error vector
+          Vector2 unweighted_error = m_control_net[i][m].position() - m_model(i, camera_idx,
+                                                                              m_model.A_parameters(camera_idx)-cam_delta, 
+                                                                              m_model.B_parameters(i)-pt_delta);
           double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
           subvector(new_epsilon,2*idx,2) = unweighted_error * weight;
 
@@ -1046,29 +1040,18 @@ namespace camera {
       idx = 0;
       for (unsigned i=0; i < m_model.num_points(); ++i) {
         if (m_control_net[i].type() == ControlPoint::GroundControlPoint) {
-
-	  // Oct 23rd - Z. Moratto
-	  
-	  // This calculation of error for GCP is wrong. BA should not
-	  // be allowed to attempt to move the GCP. If an error for the GCP is
-	  // wanted in meteres from world space, the GCP should be viewed by more
-	  // than one camera. These cameras can then triangulate a believed
-	  // position of GCP and that can be used for error. If a GCP has only one
-	  // camera observing it, then it's error is only calculated in the image
-	  // plane for that camera. If proceed with the old style of error for GCP
-	  // it's error will not be applied directly to the camera parameters and
-	  // will have to influence through an indirect net effect that it applies
-	  // to all other points.
-
-	  // Voiding any effect caused here, in the future delete or overhaul
           Vector<double> pt_delta = subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params);
           subvector(new_epsilon,
                     2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
-                    num_pt_params) = m_model.B_initial(i)-m_model.B_initial(i);
+                    num_pt_params) = m_model.B_initial(i)-(m_model.B_parameters(i)-pt_delta);
           ++idx;
         }
       }
 
+      //      std::cout << "new: " << norm_2(new_epsilon) << "  " << norm_2(epsilon) << "\n";
+
+      //if (norm_2(new_epsilon) < norm_2(epsilon))  {
+      
 
       //Fletcher modification
       double Splus = .5*transpose(new_epsilon) * sigma * new_epsilon; //Compute new objective
@@ -1086,15 +1069,12 @@ namespace camera {
       
       if (R > 0){
 	ret = 1;	
-
-	// Applying changes
 	for (unsigned j=0; j<m_model.num_cameras(); ++j) 
           m_model.set_A_parameters(j, m_model.A_parameters(j) - subvector(delta, num_cam_params*j, num_cam_params));
-        for (unsigned i=0; i<m_model.num_points(); ++i) {
-	  if (m_control_net[i].type() != ControlPoint::GroundControlPoint) 
-	    m_model.set_B_parameters(i, m_model.B_parameters(i) - subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params));
-	}
-	// Summarize the stats from this step in the iteration
+        for (unsigned i=0; i<m_model.num_points(); ++i)
+          m_model.set_B_parameters(i, m_model.B_parameters(i) - subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params));
+	
+		// Summarize the stats from this step in the iteration
         //double overall_norm = norm_2(new_epsilon);
         double overall_norm = sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon);
 	
@@ -1251,14 +1231,14 @@ namespace camera {
         inverse_cov = m_model.A_inverse_covariance(j);
 
         Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> C;
-
         C.set_identity();
-
         U(j) += transpose(C) * inverse_cov * C;
 
-	// NOTE:
-	// need to some how make this optional
         Vector<double, BundleAdjustModelT::camera_params_n> eps_a = m_model.A_initial(j)-m_model.A_parameters(j);
+        //for (unsigned jj=0; jj < BundleAdjustModelT::camera_params_n; ++jj)
+	  // Update objective r^T\Sigma^{-1}r
+	  //error_total += pow(eps_a(jj),2)*inverse_cov(jj, jj);
+	
 	
 	error_total += .5  * transpose(eps_a) * inverse_cov * eps_a;
 	
@@ -1576,17 +1556,13 @@ namespace camera {
           
           // Compute error vector
           Vector<double, BundleAdjustModelT::camera_params_n> new_a = m_model.A_parameters(j) + subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
+	  Vector<double> del_a = subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
 
-	  Vector<double, BundleAdjustModelT::point_params_n> new_b = m_model.B_parameters(i) + delta_b(i).ref();
+          Vector<double, BundleAdjustModelT::point_params_n> new_b = m_model.B_parameters(i) + delta_b(i).ref();
+
 	 
           // Apply robust cost function weighting
-	  // GCPs are not allowed to move
-	  Vector2 unweighted_error;
-	  if ((*iter).type() == ControlPoint::GroundControlPoint) {
-	    unweighted_error = measure_iter->position() - m_model(i,j,new_a,m_model.B_parameters(i));
-	  } else {
-	    unweighted_error = measure_iter->position() - m_model(i,j,new_a,new_b);
-	  }
+          Vector2 unweighted_error = measure_iter->position() - m_model(i,j,new_a,new_b);
           double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
           new_epsilon(i,j) = weight * unweighted_error;
           
@@ -1601,7 +1577,6 @@ namespace camera {
         ++i;
       }
 
-      // Camera constraints?
       for (unsigned j = 0; j < U.size(); ++j) {
         Vector<double, BundleAdjustModelT::camera_params_n> new_a = m_model.A_parameters(j) + subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
         Vector<double, BundleAdjustModelT::camera_params_n> eps_a = m_model.A_initial(j)-new_a;
@@ -1615,21 +1590,18 @@ namespace camera {
       }
       
       // We only add constraints for Ground Control Points (GCPs), not for 3D tie points.
+      
+
       for (unsigned i = 0; i < V.size(); ++i) {
         if (m_control_net[i].type() == ControlPoint::GroundControlPoint) {
-
-	  // This GCP section is calculated wrong. See above post from Z. Moratto.
-
-	  // Voiding any effect here, delete in the future or overhaul
-
-          //Vector<double, BundleAdjustModelT::point_params_n> new_b = m_model.B_parameters(i) + delta_b(i).ref();
-          //Vector<double, BundleAdjustModelT::point_params_n> eps_b = m_model.B_initial(i)-new_b;
+          Vector<double, BundleAdjustModelT::point_params_n> new_b = m_model.B_parameters(i) + delta_b(i).ref();
+          Vector<double, BundleAdjustModelT::point_params_n> eps_b = m_model.B_initial(i)-new_b;
 	  
 	  
-	  //Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> inverse_cov;
-          //inverse_cov = m_model.B_inverse_covariance(i);
+	  Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> inverse_cov;
+          inverse_cov = m_model.B_inverse_covariance(i);
           
-	  //new_error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
+	  new_error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
         }
       }
       
@@ -1647,15 +1619,12 @@ namespace camera {
       
       //if ((dS>0) && (SS > Splus)){
       if (R>0){
-
-	// Apply changes
 	for (unsigned j=0; j<m_model.num_cameras(); ++j)
           m_model.set_A_parameters(j, m_model.A_parameters(j) + subvector(delta_a,
                                                                           BundleAdjustModelT::camera_params_n*j,
                                                                           BundleAdjustModelT::camera_params_n));
         for (unsigned i=0; i<m_model.num_points(); ++i)
-	  if (m_control_net[i].type() != ControlPoint::GroundControlPoint ) 
-	    m_model.set_B_parameters(i, m_model.B_parameters(i) + delta_b(i).ref());
+          m_model.set_B_parameters(i, m_model.B_parameters(i) + delta_b(i).ref());
 	
 	
         // Summarize the stats from this step in the iteration
@@ -1702,7 +1671,6 @@ namespace camera {
 
       // Never reached
       //__________________________________________________________________________________________________
-
 
       return 0;
       
