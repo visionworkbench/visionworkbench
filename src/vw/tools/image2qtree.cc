@@ -153,7 +153,6 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
 
   // Read in georeference info and compute total resolution.
   GeoReference output_georef;
-  output_georef.set_well_known_geogcs("WGS84");
   int total_resolution = 1024;
   std::vector<GeoReference> georeferences;
 
@@ -166,10 +165,15 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     GeoReference input_georef;
     read_georeference( input_georef, file_resource );
 
-    if(vm.count("force-wgs84"))
+    if(vm.count("force-wgs84")) {
       input_georef.set_well_known_geogcs("WGS84");
-    if(input_georef.proj4_str() == "")
+    }
+    if(input_georef.proj4_str() == "") {
       input_georef.set_well_known_geogcs("WGS84");
+    }
+    if(i==0) {
+      output_georef.set_datum( input_georef.datum() );
+    }
 
     bool manual = vm.count("north") || vm.count("south") || vm.count("east") || vm.count("west");
     if( manual || input_georef.transform() == identity_matrix<3>() ) {
@@ -224,12 +228,16 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
       if( resolution > total_resolution ) total_resolution = resolution;
     }
   }
+
   // Now that we have the best resolution, we can get our output_georef.
   int xresolution = total_resolution / aspect_ratio, yresolution = total_resolution;
+
   if(output_metadata == "kml") {
     output_georef = output::kml::get_output_georeference(xresolution,yresolution);
+    output_georef.set_datum( georeferences[0].datum() );
   } else if(output_metadata == "tms" || output_metadata == "uniview" || output_metadata == "gmap") {
     output_georef = output::tms::get_output_georeference(total_resolution);
+    output_georef.set_datum( georeferences[0].datum() );
   }
 
   // Configure the composite.
@@ -258,10 +266,13 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
 
     BBox2i bbox = geotx.forward_bbox( BBox2i(0,0,source.cols(),source.rows()) );
     source = crop( transform( source, geotx ), bbox );
-    composite.insert( source, bbox.min().x(), bbox.min().y() );
     // Images that wrap the date line must be added to the composite on both sides.
     if( bbox.max().x() > total_resolution ) {
       composite.insert( source, bbox.min().x()-total_resolution, bbox.min().y() );
+    }
+    // Images that are in the 180-360 range *only* go on the other side.
+    if( bbox.min().x() < xresolution ) {
+      composite.insert( source, bbox.min().x(), bbox.min().y() );
     }
   }
 

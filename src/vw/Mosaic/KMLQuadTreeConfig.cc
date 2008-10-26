@@ -283,9 +283,11 @@ namespace mosaic {
     std::vector<std::pair<std::string,vw::BBox2i> > children;
     if( region.height() > qtree.get_tile_size() ) {
 
-      double aspect_ratio = 2 * region.width() / region.height();
-      double bottom_lat = m_longlat_bbox.max().y() - region.max().y()*m_longlat_bbox.height() / qtree.get_dimensions().y();
-      double top_lat = m_longlat_bbox.max().y() - region.min().y()*m_longlat_bbox.height() / qtree.get_dimensions().y();
+      Vector2i dims = qtree.get_dimensions();
+      double aspect_ratio = 2 * (region.width()/region.height()) * ( (m_longlat_bbox.width()/dims.x()) / (m_longlat_bbox.height()/dims.y()) );
+								     
+      double bottom_lat = m_longlat_bbox.max().y() - region.max().y()*m_longlat_bbox.height() / dims.y();
+      double top_lat = m_longlat_bbox.max().y() - region.min().y()*m_longlat_bbox.height() / dims.y();
       bool top_merge = ( bottom_lat > 0 ) && ( ( 1.0 / cos(M_PI/180 * bottom_lat) ) > aspect_ratio );
       bool bottom_merge = ( top_lat < 0 ) && ( ( 1.0 / cos(M_PI/180 * top_lat) ) > aspect_ratio );
 
