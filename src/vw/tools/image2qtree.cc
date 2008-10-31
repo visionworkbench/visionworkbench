@@ -206,6 +206,13 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     else if( vm.count("lambert-conformal-conic") ) input_georef.set_lambert_azimuthal(lcc_parallel1, lcc_parallel2, proj_lat, proj_lon);
     else if( vm.count("utm") ) input_georef.set_UTM( utm_zone );
 
+    if( vm.count("nudge-x") || vm.count("nudge-y") ) {
+      Matrix3x3 m = input_georef.transform();
+      m(0,2) += nudge_x;
+      m(1,2) += nudge_y;
+      input_georef.set_transform( m );
+    }
+
     georeferences.push_back( input_georef );
 
     // Right now, we only need a WGS84 output geoereference to compute 
