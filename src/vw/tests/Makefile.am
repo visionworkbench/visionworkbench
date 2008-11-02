@@ -48,8 +48,8 @@ AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_VW_LIBS@
 
 check_PROGRAMS = $(TESTS)
 
-EXTRA_DIST = $(patsubst %,%.h,$(TESTS)) mural.png mural.jpg
+EXTRA_DIST = $(TESTS:%=%.h) mural.png mural.jpg
 
-CLEANFILES = $(patsubst %,%.cxx,$(TESTS))
+CLEANFILES = $(TESTS:%=%.cxx)
 
 include $(top_srcdir)/config/rules.mak

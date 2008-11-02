@@ -43,8 +43,8 @@ AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_FILEIO_LIBS@ @PKG_IMAGE_LIBS@ @PKG_MATH_LIBS@ @P
 
 check_PROGRAMS = $(TESTS)
 
-EXTRA_DIST = $(patsubst %,%.h,$(TESTS)) rgb2x2.png rgb2x2.tif rgb2x2.jpg
+EXTRA_DIST = $(TESTS:%=%.h) rgb2x2.png rgb2x2.tif rgb2x2.jpg
 
-CLEANFILES = $(patsubst %,%.cxx,$(TESTS)) tmp.png tmp.tif
+CLEANFILES = $(TESTS:%=%.cxx) tmp.png tmp.tif
 
 include $(top_srcdir)/config/rules.mak
