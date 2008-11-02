@@ -66,7 +66,7 @@ namespace cartography {
     /// system in line with the Vision Workbench internal
     /// representation.
     ///
-    /// The default pixel interpretation for GeoReference is PixelAsPoint
+    /// The default pixel interpretation for GeoReference is PixelAsArea
     enum PixelInterpretation { PixelAsArea, PixelAsPoint };
 
   protected:

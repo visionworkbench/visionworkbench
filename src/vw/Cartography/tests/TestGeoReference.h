@@ -37,6 +37,7 @@ public:
   void test_basic_geographic()
   {
     GeoReference georef;
+    georef.set_pixel_interpretation(GeoReferenceBase::PixelAsPoint);
     georef.set_well_known_geogcs("WGS84");
 
     // Start with some basic test of a geographic (unprojected)
@@ -109,6 +110,8 @@ public:
   {
     // Set up a spherical datum for testing purposes.
     GeoReference georef;
+    georef.set_pixel_interpretation(GeoReferenceBase::PixelAsPoint);
+
     Datum d = georef.datum();
     d.set_semi_minor_axis(d.semi_major_axis());
     georef.set_datum(d);
