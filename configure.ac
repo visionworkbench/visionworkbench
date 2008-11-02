@@ -380,6 +380,8 @@ AX_MODULE(GEOMETRY, [src/vw/Geometry], [libvwGeometry.la], yes, [VW], [], [GMP P
 
 AX_MODULE(TOOLS, [src/vw/tools], [], yes, [], [])
 
+AX_MODULE_PYTHON([no])
+
 # These are here (instead of inside the MODULE macro where they belong)
 # for backwards compatability with older versions of automake.
 AM_CONDITIONAL(MAKE_MODULE_CORE, [test "$MAKE_MODULE_CORE" = "yes"])
@@ -396,6 +398,7 @@ AM_CONDITIONAL(MAKE_MODULE_STEREO, [test "$MAKE_MODULE_STEREO" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GPU, [test "$MAKE_MODULE_GPU" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GEOMETRY, [test "$MAKE_MODULE_GEOMETRY" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_TOOLS, [test "$MAKE_MODULE_TOOLS" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_PYTHON, [test "$MAKE_MODULE_PYTHON" = "yes"])
 
 ##################################################
 #	library options	    
@@ -463,6 +466,7 @@ AC_CONFIG_FILES([                       \
   src/vw/InterestPoint/tests/Makefile   \
   src/vw/Geometry/Makefile              \
   src/vw/Geometry/tests/Makefile        \
+  Python/vw/Makefile                    \
   Python/Makefile                       \
 ])
 
