@@ -23,6 +23,7 @@
 
 AC_INIT([NASA Vision Workbench], [2.0.alpha4], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
 AC_CONFIG_AUX_DIR(config)
+AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE
 AX_CONFIG_HEADER_PREFIX([src/vw/config.h], [VW_])
@@ -63,8 +64,6 @@ PKG_PATHS="${PKG_PATHS} ${HOME} ${HOME}/local /sw /opt /opt/local /usr/local /us
 ##################################################
 #	compilation options	    
 ##################################################
-
-CPPFLAGS="$CPPFLAGS -I\${top_srcdir}/src"
 
 # Debugging
 AC_ARG_ENABLE(debug,
@@ -143,8 +142,9 @@ else
    AX_CFLAGS="$AX_CFLAGS -O0"
 fi
 
-CFLAGS="$CFLAGS $AX_CFLAGS"
-CXXFLAGS="$CXXFLAGS $AX_CFLAGS"
+CFLAGS="$CFLAGS -I\${top_srcdir}/src $AX_CFLAGS"
+CXXFLAGS="$CXXFLAGS  -I\${top_srcdir}/src $AX_CFLAGS"
+
 
 AC_ARG_ENABLE(exceptions,
   AC_HELP_STRING([--enable-exceptions@<:@=yes@:>@], [enable the C++ exception mechanism]), 
@@ -416,10 +416,12 @@ AC_MSG_NOTICE([VW will use $NUM_THREADS THREADS by default])
 ##################################################
 
 if test "yes" = "$ENABLE_VERBOSE" ; then
-  AC_MSG_NOTICE([using CPPFLAGS=$CPPFLAGS $VW_CPPFLAGS])
+  AC_MSG_NOTICE([using CPPFLAGS=$CPPFLAGS])
+  AC_MSG_NOTICE([using VW_CPPFLAGS=$VW_CPPFLAGS])
   AC_MSG_NOTICE([using CFLAGS=$CFLAGS])
   AC_MSG_NOTICE([using CXXFLAGS=$CXXFLAGS])
-  AC_MSG_NOTICE([using LDFLAGS=$LDFLAGS $VW_LDFLAGS])
+  AC_MSG_NOTICE([using LDFLAGS=$LDFLAGS])
+  AC_MSG_NOTICE([using VW_LDFLAGS=$VW_LDFLAGS])
   AC_MSG_NOTICE([using VW_NO_EXCEPTIONS=$no_exceptions])
 fi
 

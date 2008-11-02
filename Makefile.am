@@ -24,11 +24,12 @@
 ########################################################################
 # sources
 ########################################################################
+ACLOCAL_AMFLAGS = -I m4 -I thirdparty/m4
 
 SUBDIRS = src
 
 EXTRA_DIST = config/rules.mak config/relicense config.options.example \
-	NOTES docs thirdparty 
+	NOTES docs thirdparty/cxxtest
 
 ########################################################################
 # special top-level rules
