@@ -1,16 +1,16 @@
-dnl Here's a new version of AX_PKG_BOOST_LIB designed to find the 
+dnl Here's a new version of AX_PKG_BOOST_LIB designed to find the
 dnl multithreaded boost libraries and boost libraries that are just weirdly
-dnl named in general. Boost libraries follow a weird naming convention 
-dnl that makes our old logic not work. You can't just add -mt to the old 
-dnl library you're looking for, because the -compiler part comes first. 
-dnl IE, the non-multithreaded library would be named libboost_X-gcc41.so, 
+dnl named in general. Boost libraries follow a weird naming convention
+dnl that makes our old logic not work. You can't just add -mt to the old
+dnl library you're looking for, because the -compiler part comes first.
+dnl IE, the non-multithreaded library would be named libboost_X-gcc41.so,
 dnl and the multithreaded library would be named libboost_X-gcc41-mt.so.
 dnl
 dnl For that reason, we've added an environment variable:
-dnl BOOST_LIBRARIES_SUFFIX. The function here tries to find a version of 
-dnl Boost with the string in said variable somewhere inside the Boost 
-dnl library names, but after the initial name of the library (specified 
-dnl as the second parameter to this function). A blank value will give 
+dnl BOOST_LIBRARIES_SUFFIX. The function here tries to find a version of
+dnl Boost with the string in said variable somewhere inside the Boost
+dnl library names, but after the initial name of the library (specified
+dnl as the second parameter to this function). A blank value will give
 dnl normal behavior.
 # Usage: AX_PKG_BOOST_LIB(<name>, <libraries>, <header>)
 AC_DEFUN([AX_PKG_BOOST_LIB],
@@ -32,7 +32,7 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
       # Check for required headers
       AX_FIND_FILES([$3],[${PKG_BOOST_INCDIR}])
       if test ! -z "$ax_find_files_path" ; then
-        # Check for required libraries with no suffix, aside from the one 
+        # Check for required libraries with no suffix, aside from the one
         # given by environment variable.
         AX_FIND_FILES([`echo $2 | sed "s/-l\([[^[:space:]]]*\)/lib\1${BOOST_LIBRARIES_SUFFIX}.*/g"`],[$PKG_BOOST_LIBDIR])
         if test ! -z "$ax_find_files_path" ; then
@@ -40,8 +40,8 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
           PKG_BOOST_$1_LIBS="$2${BOOST_LIBRARIES_SUFFIX}"
         else
           # Check for required libraries with some suffix. We have to check
-          # for both a suffix before ${BOOST_LIBRARIES_SUFFIX} (pre-suffix) 
-          # and a suffix after (for example) the -mt (post-suffix), because 
+          # for both a suffix before ${BOOST_LIBRARIES_SUFFIX} (pre-suffix)
+          # and a suffix after (for example) the -mt (post-suffix), because
           # boost likes to stick the name of the compiler before the -mt.
           # Extremely annoying.
 
@@ -134,6 +134,8 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
   if test "$ENABLE_VERBOSE" = "yes"; then
     AC_MSG_NOTICE([HAVE_PKG_BOOST_$1 = ${HAVE_PKG_BOOST_$1}])
     AC_MSG_NOTICE([PKG_BOOST_$1_LIBS= $PKG_BOOST_$1_LIBS])
+    AC_MSG_NOTICE([CPPFLAGS= $CPPFLAGS])
+    AC_MSG_NOTICE([LDFLAGS= $LDFLAGS])
   else
     AC_MSG_RESULT([${HAVE_PKG_BOOST_$1}])
   fi

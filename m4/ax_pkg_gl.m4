@@ -37,9 +37,11 @@ AC_DEFUN([AX_PKG_GL],
       AC_MSG_NOTICE([PKG_GL_LIBS = ${PKG_GL_LIBS}])
       AC_MSG_NOTICE([VW_CPPFLAGS = ${VW_CPPFLAGS}])
       AC_MSG_NOTICE([VW_LDFLAGS = ${VW_LDFLAGS}])
+      AC_MSG_NOTICE([CPPFLAGS= $CPPFLAGS])
+      AC_MSG_NOTICE([LDFLAGS= $LDFLAGS])
     else
       AC_MSG_RESULT([${HAVE_PKG_GL}])
-    fi  
+    fi
 
   # For all other platforms, we search for static GL libraries
   # in the conventional manner.

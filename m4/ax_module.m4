@@ -7,7 +7,7 @@ AC_DEFUN([AX_MODULE],
     HAVE_PKG_$1_SRC=yes
 
     AC_ARG_ENABLE([module-]translit($1,`A-Z',`a-z'),
-      AC_HELP_STRING([--enable-module-]translit($1,`A-Z',`a-z'), [enable the $1 module @<:@$4@:>@]), 
+      AC_HELP_STRING([--enable-module-]translit($1,`A-Z',`a-z'), [enable the $1 module @<:@$4@:>@]),
       [ ENABLE_MODULE_$1=$enableval ],
       [ if test x"$ENABLE_MODULE_$1" = x; then ENABLE_MODULE_$1=`/bin/echo -n $4 | tr [A-Z] [a-z]` ; fi ]
     )
@@ -28,7 +28,7 @@ AC_DEFUN([AX_MODULE],
         if test x"${!ax_dependency_have}" = "xyes"; then
           ax_dep_libs="PKG_${ax_dependency}_LIBS"
           ax_libs="${ax_libs} ${!ax_dep_libs}"
-	else
+        else
           AC_MSG_RESULT([no])
           AC_MSG_NOTICE([warning: unable to build requested module $1 (needs ${ax_dependency})!])
           ax_module_enable=no;
@@ -68,7 +68,7 @@ AC_DEFUN([AX_MODULE],
       PKG_$1_LIBS="$ax_libs \$(top_srcdir)/$2/$3"
       AC_MSG_RESULT([yes])
     fi
-  
+
   else
     HAVE_PKG_$1_SRC=no
     ax_module_enable=no
@@ -99,7 +99,7 @@ AC_DEFUN([AX_MODULE],
     AC_MSG_NOTICE(PKG_$1_LIBS = ${PKG_$1_LIBS})
   fi
 
-  #  We're putting these in configure.ac manually by now, for 
+  #  We're putting these in configure.ac manually by now, for
   #  backwards compatability with older versions of automake.
   #  AM_CONDITIONAL([MAKE_MODULE_$1], [test "$MAKE_MODULE_$1" = "yes"])
 ])

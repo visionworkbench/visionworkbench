@@ -37,9 +37,11 @@ AC_DEFUN([AX_PKG_LAPACK],
       AC_MSG_NOTICE([PKG_LAPACK_LIBS = ${PKG_LAPACK_LIBS}])
       AC_MSG_NOTICE([VW_CPPFLAGS = ${VW_CPPFLAGS}])
       AC_MSG_NOTICE([VW_LDFLAGS = ${VW_LDFLAGS}])
+      AC_MSG_NOTICE([CPPFLAGS= $CPPFLAGS])
+      AC_MSG_NOTICE([LDFLAGS= $LDFLAGS])
     else
       AC_MSG_RESULT([${HAVE_PKG_LAPACK}])
-    fi  
+    fi
 
   # For all other platforms, we search for static LAPACK libraries
   # in the conventional manner.
@@ -63,16 +65,16 @@ AC_DEFUN([AX_PKG_LAPACK],
           AX_PKG(STANDALONE_LAPACK, [], [-llapack], [])
           AX_PKG(STANDALONE_LAPACK_AND_BLAS, [STANDALONE_LAPACK STANDALONE_BLAS], [], [])
 
-	  if test "$HAVE_PKG_STANDALONE_LAPACK_AND_BLAS" = "no"; then
+          if test "$HAVE_PKG_STANDALONE_LAPACK_AND_BLAS" = "no"; then
             # On some systems, F2C, FBLAS and FLAPACK are installed in different places
             AC_MSG_NOTICE(["trying to find F2C, FBLAS, and FLAPACK seperately."])
             AX_PKG(STANDALONE_F2C, [], [-lf2c], [])
             AX_PKG(STANDALONE_FBLAS, [STANDALONE_F2C], [-lblas], [])
             AX_PKG(STANDALONE_FLAPACK, [STANDALONE_F2C], [-llapack], [])
             AX_PKG(LAPACK, [STANDALONE_FLAPACK STANDALONE_FBLAS STANDALONE_F2C], [], [])
-	  else 
+          else
             AX_PKG(LAPACK, [STANDALONE_LAPACK_AND_BLAS], [], [])
-	  fi # FBLAS and FLAPACK
+          fi # FBLAS and FLAPACK
         else
           AX_PKG(LAPACK, [FLAPACK], [], [])
         fi # BLAS and LAPACK

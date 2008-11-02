@@ -42,8 +42,8 @@ AC_DEFUN([AX_PKG],
       AC_MSG_RESULT([yes (using user-supplied flags)])
 
       # Add package-specific cppflags/ldflags to what we have so far.
-      # This is necessary for systems that have one version of a library 
-      # installed in a default location, and another that they want to use 
+      # This is necessary for systems that have one version of a library
+      # installed in a default location, and another that they want to use
       # instead in a separate location.
       if test -n ${PKG_$1_CPPFLAGS} ; then
         VW_CPPFLAGS="${PKG_$1_CPPFLAGS} ${VW_CPPFLAGS}"
@@ -56,7 +56,7 @@ AC_DEFUN([AX_PKG],
     else
 
       if test "x$ENABLE_VERBOSE" = "yes"; then
-	    AC_MSG_RESULT([searching...])
+        AC_MSG_RESULT([searching...])
       fi
 
       if test -n "${HAVE_PKG_$1}" && test "${HAVE_PKG_$1}" != "yes" && test "${HAVE_PKG_$1}" != "no"; then
@@ -68,57 +68,60 @@ AC_DEFUN([AX_PKG],
       HAVE_PKG_$1=no
 
       ax_pkg_old_libs="$LIBS"
+      ax_pkg_old_cppflags="$CPPFLAGS"
+      ax_pkg_old_ldflags="$LDFLAGS"
+      ax_pkg_old_vw_cppflags="$VW_CPPFLAGS"
+      ax_pkg_old_vw_ldflags="$VW_LDFLAGS"
       LIBS="$PKG_$1_LIBS $LIBS"
       for path in none $PKG_PATHS_$1; do
-	    ax_pkg_old_cppflags=$CPPFLAGS
-	    ax_pkg_old_ldflags=$LDFLAGS
-	    ax_pkg_old_vw_cppflags=$VW_CPPFLAGS
-	    ax_pkg_old_vw_ldflags=$VW_LDFLAGS
-	    echo > conftest.h
-	    for header in $4 ; do
-	      echo "#include <$header>" >> conftest.h
-	    done
-	    CPPFLAGS="$ax_pkg_old_cppflags $VW_CPPFLAGS"
-	    LDFLAGS="$ax_pkg_old_ldflags $VW_LDFLAGS"
-	    if test "$path" != "none"; then
-	      if test x"$ENABLE_VERBOSE" = "xyes"; then
-	        AC_MSG_CHECKING([for package $1 in $path])
-	      fi
+
+        CPPFLAGS="$ax_pkg_old_cppflags"
+        LDFLAGS="$ax_pkg_old_ldflags"
+        VW_CPPFLAGS="$ax_pkg_old_vw_cppflags"
+        VW_LDFLAGS="$ax_pkg_old_vw_ldflags"
+
+        echo > conftest.h
+        for header in $4 ; do
+          echo "#include <$header>" >> conftest.h
+        done
+        TRY_ADD_CPPFLAGS=""
+        TRY_ADD_LDFLAGS=""
+        if test "$path" != "none"; then
+          if test x"$ENABLE_VERBOSE" = "xyes"; then
+            AC_MSG_CHECKING([for package $1 in $path])
+          fi
           if test -z "$5"; then
-            VW_CPPFLAGS="-I$path/include $VW_CPPFLAGS"
-	      else
-	        VW_CPPFLAGS="-I$path/include/$5 $VW_CPPFLAGS"
+            TRY_ADD_CPPFLAGS="-I$path/include"
+          else
+            TRY_ADD_CPPFLAGS="-I$path/include/$5"
           fi
-	      CPPFLAGS="$ax_pkg_old_cppflags $VW_CPPFLAGS"
-	      AC_LINK_IFELSE(
-	        AC_LANG_PROGRAM([#include "conftest.h"],[]),
-	        [ HAVE_PKG_$1=yes ; AC_MSG_RESULT([yes]) ; break ] )
-          # Sometimes we'll have /foo/lib64 and /foo/lib confusion on
-          # 64-bit machines, so accept both if one doesn't appear.
           if test -d $path/${AX_LIBDIR}; then
-	        VW_LDFLAGS="-L$path/${AX_LIBDIR} $VW_LDFLAGS"
+              TRY_ADD_LDFLAGS="-L$path/${AX_LIBDIR}"
           elif test x"${AX_LIBDIR}" = "xlib64"; then
-            VW_LDFLAGS="-L$path/${AX_OTHER_LIBDIR} $VW_LDFLAGS"
+              TRY_ADD_LDFLAGS="-L$path/${AX_OTHER_LIBDIR}"
           fi
-          LDFLAGS="$ax_pkg_old_ldflags $VW_LDFLAGS"
+
+          CPPFLAGS="$CPPFLAGS $TRY_ADD_CPPFLAGS"
+          LDFLAGS="$LDFLAGS $TRY_ADD_LDFLAGS"
         fi
         AC_LINK_IFELSE(
           AC_LANG_PROGRAM([#include "conftest.h"],[]),
           [ HAVE_PKG_$1=yes ; AC_MSG_RESULT([yes]) ; break ] )
+        TRY_ADD_CPPFLAGS=""
+        TRY_ADD_LDFLAGS=""
         if test x"$ENABLE_VERBOSE" = "xyes"; then
           AC_MSG_RESULT([no])
         fi
-        CPPFLAGS=$ax_pkg_old_cppflags
-        LDFLAGS=$ax_pkg_old_ldflags
-        VW_CPPFLAGS=$ax_pkg_old_vw_cppflags
-        VW_LDFLAGS=$ax_pkg_old_vw_ldflags
       done
-      CPPFLAGS=$ax_pkg_old_cppflags
-      LDFLAGS=$ax_pkg_old_ldflags
-      LIBS=$ax_pkg_old_libs
+
+      VW_CPPFLAGS="$VW_CPPFLAGS $TRY_ADD_CPPFLAGS"
+      VW_LDFLAGS="$VW_LDFLAGS $TRY_ADD_LDFLAGS"
+      CPPFLAGS="$ax_pkg_old_cppflags"
+      LDFLAGS="$ax_pkg_old_ldflags"
+      LIBS="$ax_pkg_old_libs"
 
       if test "x$HAVE_PKG_$1" = "xno" -a "x$ENABLE_VERBOSE" != "xyes"; then
-	    AC_MSG_RESULT([no (not found)])
+        AC_MSG_RESULT([no (not found)])
       fi
 
     fi
@@ -140,6 +143,8 @@ AC_DEFUN([AX_PKG],
   if test x"$ENABLE_VERBOSE" == "xyes"; then
     AC_MSG_NOTICE([HAVE_PKG_$1 = ${HAVE_PKG_$1}])
     AC_MSG_NOTICE([PKG_$1_LIBS= $PKG_$1_LIBS])
+    AC_MSG_NOTICE([CPPFLAGS= $CPPFLAGS])
+    AC_MSG_NOTICE([LDFLAGS= $LDFLAGS])
     AC_MSG_NOTICE([VW_CPPFLAGS= $VW_CPPFLAGS])
     AC_MSG_NOTICE([VW_LDFLAGS= $VW_LDFLAGS])
   fi

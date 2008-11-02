@@ -72,33 +72,33 @@ AC_DEFUN([AX_PKG_BOOST],
     while true ; do
       # First see if the current paths are sufficient
       if test "x${ENABLE_VERBOSE}" = "xyes" ; then
-	AC_MSG_CHECKING([whether current paths are sufficient...])
+        AC_MSG_CHECKING([whether current paths are sufficient...])
       fi
       AC_LINK_IFELSE( AC_LANG_PROGRAM([#include <boost/version.hpp>],[]), [ax_result=yes], [ax_result=no] )
       if test "x${ENABLE_VERBOSE}" = "xyes" ; then
-	AC_MSG_RESULT([$ax_result])
+        AC_MSG_RESULT([$ax_result])
       fi
       if test "$ax_result" = "yes" ; then break ; fi
       # Try it with just the include path
       VW_CPPFLAGS="-I${PKG_BOOST_INCDIR} $VW_CPPFLAGS"
       CPPFLAGS="$ax_pkg_old_cppflags $VW_CPPFLAGS"
       if test "x${ENABLE_VERBOSE}" = "xyes" ; then
-	AC_MSG_CHECKING([whether adding the include path is sufficient...])
+        AC_MSG_CHECKING([whether adding the include path is sufficient...])
       fi
       AC_LINK_IFELSE( AC_LANG_PROGRAM([#include <boost/version.hpp>],[]), [ax_result=yes], [ax_result=no] )
       if test "x${ENABLE_VERBOSE}" = "xyes" ; then
-	AC_MSG_RESULT([$ax_result])
+        AC_MSG_RESULT([$ax_result])
       fi
       if test "$ax_result" = "yes" ; then break ; fi
       # Finally, try it with the linker path
       VW_LDFLAGS="-L${PKG_BOOST_LIBDIR} $VW_LDFLAGS"
       LDFLAGS="$ax_pkg_old_ldflags $VW_LDFLAGS"
       if test "x${ENABLE_VERBOSE}" = "xyes" ; then
-	AC_MSG_CHECKING([whether adding the include and linker paths works...])
+        AC_MSG_CHECKING([whether adding the include and linker paths works...])
       fi
       AC_LINK_IFELSE( AC_LANG_PROGRAM([#include <boost/version.hpp>],[]), [ax_result=yes], [ax_result=no] )
       if test "x${ENABLE_VERBOSE}" = "xyes" ; then
-	AC_MSG_RESULT([$ax_result])
+        AC_MSG_RESULT([$ax_result])
       fi
       if test "$ax_result" = "yes" ; then break ; fi
       # The detected version of boost seems to be invalid!
@@ -152,6 +152,8 @@ std::cout << STR(BOOST_VERSION);
     AC_MSG_NOTICE([HAVE_PKG_BOOST= $HAVE_PKG_BOOST])
     AC_MSG_NOTICE([VW_CPPFLAGS= $VW_CPPFLAGS])
     AC_MSG_NOTICE([VW_LDFLAGS= $VW_LDFLAGS])
+    AC_MSG_NOTICE([CPPFLAGS= $CPPFLAGS])
+    AC_MSG_NOTICE([LDFLAGS= $LDFLAGS])
   else
     AC_MSG_RESULT([$HAVE_PKG_BOOST])
   fi
