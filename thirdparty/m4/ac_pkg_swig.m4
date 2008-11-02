@@ -2,7 +2,7 @@
 #
 # SYNOPSIS
 #
-#   AC_PROG_SWIG([major.minor.micro])
+#   AC_PROG_SWIG([major.minor.micro], [RUN-IF-OK], [RUN-IF-FAILED])
 #
 # DESCRIPTION
 #
@@ -25,7 +25,7 @@
 #
 # LAST MODIFICATION
 #
-#   2006-10-22
+#   2008-11-01
 #
 # COPYLEFT
 #
@@ -33,6 +33,8 @@
 #   Copyright (c) 2006 Alan W. Irwin <irwin@beluga.phys.uvic.ca>
 #   Copyright (c) 2006 Rafael Laboissiere <rafael@laboissiere.net>
 #   Copyright (c) 2006 Andrew Collier <colliera@ukzn.ac.za>
+#   Copyright (c) 2008 Mike Lundy <Mike.Lundy@nasa.gov>
+#                      on behalf of SGT and NASA
 #
 #   This program is free software; you can redistribute it and/or
 #   modify it under the terms of the GNU General Public License as
@@ -65,14 +67,14 @@
 #   modified version as well.
 
 AC_DEFUN([AC_PROG_SWIG],[
+
         AC_PATH_PROG([SWIG],[swig])
         if test -z "$SWIG" ; then
-                AC_MSG_WARN([cannot find 'swig' program. You should look at http://www.swig.org])
-                SWIG='echo "Error: SWIG is not installed. You should look at http://www.swig.org" ; false'
+                SWIG=""
+                m4_default([$3], [AC_MSG_ERROR([cannot find 'swig' program. You should look at http://www.swig.org])])
         elif test -n "$1" ; then
-                AC_MSG_CHECKING([for SWIG version])
+                AC_MSG_CHECKING([for swig version >= $1])
                 [swig_version=`$SWIG -version 2>&1 | grep 'SWIG Version' | sed 's/.*\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*/\1/g'`]
-                AC_MSG_RESULT([$swig_version])
                 if test -n "$swig_version" ; then
                         # Calculate the required version number components
                         [required=$1]
@@ -109,16 +111,18 @@ AC_DEFUN([AC_PROG_SWIG],[
                         if test $available_major -ne $required_major \
                                 -o $available_minor -ne $required_minor \
                                 -o $available_patch -lt $required_patch ; then
-                                AC_MSG_WARN([SWIG version >= $1 is required.  You have $swig_version.  You should look at http://www.swig.org])
-                                SWIG='echo "Error: SWIG version >= $1 is required.  You have '"$swig_version"'.  You should look at http://www.swig.org" ; false'
+                                AC_MSG_RESULT([no (found $swig_version)])
+                                SWIG=""
+                                m4_default([$3], [AC_MSG_ERROR([SWIG version >= $1 is required.  You have $swig_version.  You should look at http://www.swig.org])])
                         else
-                                AC_MSG_NOTICE([SWIG executable is '$SWIG'])
+                                AC_MSG_RESULT([yes])
                                 SWIG_LIB=`$SWIG -swiglib`
-                                AC_MSG_NOTICE([SWIG library directory is '$SWIG_LIB'])
+                                $2
                         fi
                 else
-                        AC_MSG_WARN([cannot determine SWIG version])
-                        SWIG='echo "Error: Cannot determine SWIG version.  You should look at http://www.swig.org" ; false'
+                        AC_MSG_RESULT([could not determine version])
+                        SWIG=""
+                        m4_default([$3], [AC_MSG_ERROR([cannot determine SWIG version])])
                 fi
         fi
         AC_SUBST([SWIG_LIB])

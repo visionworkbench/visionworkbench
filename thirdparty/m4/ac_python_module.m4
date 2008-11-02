@@ -13,21 +13,20 @@
 #
 # LAST MODIFICATION
 #
-#   2007-01-09
+#   2008-11-01
 #
 # COPYLEFT
 #
 #   Copyright (c) 2007 Andrew Collier <colliera@ukzn.ac.za>
+#   Copyright (c) 2008 Mike Lundy <Mike.Lundy@nasa.gov>
+#                      on behalf of SGT and NASA
 #
 #   Copying and distribution of this file, with or without
 #   modification, are permitted in any medium without royalty provided
 #   the copyright notice and this notice are preserved.
 
 AC_DEFUN([AC_PYTHON_MODULE],[
-    if test -z $PYTHON;
-    then
-        PYTHON="python"
-    fi
+    AC_REQUIRE([AM_PATH_PYTHON])
     PYTHON_NAME=`basename $PYTHON`
     AC_MSG_CHECKING($PYTHON_NAME module: $1)
 	$PYTHON -c "import $1" 2>/dev/null
