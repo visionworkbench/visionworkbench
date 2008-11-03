@@ -35,6 +35,19 @@
     return array(((M[0],M[1],M[2]),(M[3],M[4],M[5]),(M[6],M[7],M[8])))
 }
 
+%inline %{
+namespace vw {
+namespace cartography {
+
+  enum PixelInterpretation {
+    PixelAsArea = GeoReference::PixelAsArea,
+    PixelAsPoint = GeoReference::PixelAsPoint
+  };
+
+}
+}
+%}
+
 namespace vw {
 namespace cartography {
 
@@ -138,6 +151,12 @@ namespace cartography {
       void _lonlat_to_pixel( double arg[2], double result[2] ) {
         (*(vw::Vector2*)result) = self->lonlat_to_pixel( (*(vw::Vector2*)arg) );
       }
+      void _set_pixel_interpretation( PixelInterpretation interp ) {
+        self->set_pixel_interpretation( (vw::cartography::GeoReference::PixelInterpretation) interp );
+      }
+      PixelInterpretation _get_pixel_interpretation() {
+        return (vw::cartography::PixelInterpretation) self->pixel_interpretation();
+      }
     }
     %pythoncode {
       def set_transform(self,M):
@@ -166,6 +185,8 @@ namespace cartography {
       lonlat_to_point = _wrap_converter(_lonlat_to_point)
       pixel_to_lonlat = _wrap_converter(_pixel_to_lonlat)
       lonlat_to_pixel = _wrap_converter(_lonlat_to_pixel)
+
+      pixel_interpretation = property(_get_pixel_interpretation, _set_pixel_interpretation)
 
       # This nonsense is to override SWIG to enable setting and getting properties
       _old_getattr = __getattr__

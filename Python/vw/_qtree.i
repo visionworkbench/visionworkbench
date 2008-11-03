@@ -137,24 +137,31 @@ the Vision Workbook 2.0 for more information.
     QuadTreeGenerator( vw::ImageViewRef<PixelT> const& source, std::string const& tree_name );
 
     %extend {
+      std::string const& _get_name() const { return self->get_name(); }
+      void _set_name( std::string const& name ) { self->set_name(name); }
+
       vw::BBox2i const& _get_crop_bbox() const { return self->get_crop_bbox(); }
       void _set_crop_bbox( vw::BBox2i const& bbox ) { self->set_crop_bbox(bbox); }
 
       std::string const& _get_file_type() const { return self->get_file_type(); }
-
       void _set_file_type( std::string const& extension ) { self->set_file_type(extension); }
-      vw::int32 _get_tile_size() const { return self->get_tile_size(); }
 
+      vw::int32 _get_tile_size() const { return self->get_tile_size(); }
       void _set_tile_size( vw::int32 size ) { self->set_tile_size(size); }
+
       vw::int32 _get_tree_levels() const { return self->get_tree_levels(); }
 
       bool _get_crop_images() const { return self->get_crop_images(); }
       void _set_crop_images( bool crop ) { self->set_crop_images(crop); }
 
-      void _set_image_path_func( PyObject *pyfunc, PyObject *qtree ) {
+      void _set_python_image_path_func( PyObject *pyfunc, PyObject *qtree ) {
         boost::shared_ptr<PyObject> pyfunc_ptr( pyfunc, DecrefDeleter(pyfunc,true) );
-        boost::shared_ptr<PyObject> qtree_ptr( pyfunc, DecrefDeleter(qtree,true) );
+        boost::shared_ptr<PyObject> qtree_ptr( qtree, DecrefDeleter(qtree,true) );
         self->set_image_path_func( boost::bind(&image_path_func,pyfunc_ptr,qtree_ptr,_2) );
+      }
+
+      void _set_simple_image_path_func() {
+        self->set_image_path_func( &vw::mosaic::QuadTreeGenerator::simple_image_path );
       }
 
       void _set_branch_func( PyObject *pyfunc, PyObject *qtree ) {
@@ -179,6 +186,8 @@ the Vision Workbook 2.0 for more information.
         self->generate(progress);
       }
     }
+
+    static std::string simple_image_path( QuadTreeGenerator const& qtree, std::string const& name );
 
     %define %instantiate_qtree_types(cname,ctype,pname,ptype,...)
       %template(QuadTreeGenerator) QuadTreeGenerator<ptype >;
@@ -207,12 +216,19 @@ the Vision Workbook 2.0 for more information.
         if config:
           config.configure( self )
 
+      def _set_image_path_func(self, func):
+        if func == self.simple_image_path:
+          self._set_simple_image_path_func()
+        else:
+          self._set_python_image_path_func(func,self)
+
+      name = property(_get_name,_set_name)
       crop_bbox = property(_get_crop_bbox,_set_crop_bbox)
       file_type = property(_get_file_type,_set_file_type)
       tile_size = property(_get_tile_size,_set_tile_size)
       crop_images = property(_get_crop_images,_set_crop_images)
       tree_levels = property(_get_tree_levels)
-      image_path_func = property(fset=lambda self,func: self._set_image_path_func(func,self))
+      image_path_func = property(fset=_set_image_path_func)
       branch_func = property(fset=lambda self,func: self._set_branch_func(func,self))
       tile_resource_func = property(fset=lambda self,func: self._set_tile_resource_func(func,self))
       metadata_func = property(fset=lambda self,func: self._set_metadata_func(func,self))
