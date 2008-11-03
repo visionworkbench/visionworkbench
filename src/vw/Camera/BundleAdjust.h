@@ -730,8 +730,8 @@ namespace camera {
           // Fill in the entries of the sigma matrix with the uncertainty of the observations.
           Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = m_control_net[i][m].sigma();
-          inverse_cov(0,0) = 1/pixel_sigma(0);
-          inverse_cov(1,1) = 1/pixel_sigma(1);
+          inverse_cov(0,0) = 1/pow(pixel_sigma(0),2);
+          inverse_cov(1,1) = 1/pow(pixel_sigma(1),2);
           submatrix(sigma, 2*idx, 2*idx, 2, 2) = inverse_cov;
 
           ++idx;
@@ -797,8 +797,8 @@ namespace camera {
       ++m_iterations;
 
       // Fletcher LM parameteres
-      double rho_low = .25;
-      double rho_high = .75;
+//       double rho_low = .25;
+//       double rho_high = .75;
     
       // Here are some useful variable declarations that make the code
       // below more readable.
@@ -847,8 +847,8 @@ namespace camera {
           // Fill in the entries of the sigma matrix with the uncertainty of the observations.
           Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = m_control_net[i][m].sigma();
-          inverse_cov(0,0) = 1/pixel_sigma(0);
-          inverse_cov(1,1) = 1/pixel_sigma(1);
+          inverse_cov(0,0) = 1/pow(pixel_sigma(0),2);
+          inverse_cov(1,1) = 1/pow(pixel_sigma(1),2);
           submatrix(sigma, 2*idx, 2*idx, 2, 2) = inverse_cov;
 
           ++idx;
@@ -1165,8 +1165,8 @@ namespace camera {
 	 	            
 	  Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = measure_iter->sigma();
-          inverse_cov(0,0) = 1/pixel_sigma(0);
-          inverse_cov(1,1) = 1/pixel_sigma(1);
+          inverse_cov(0,0) = 1/pow(pixel_sigma(0),2);
+          inverse_cov(1,1) = 1/pow(pixel_sigma(1),2);
 	 
 	  error_total += .5 * transpose(epsilon(i,j).ref()) * inverse_cov * epsilon(i,j).ref();
           
@@ -1513,8 +1513,8 @@ namespace camera {
           
 	  Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = measure_iter->sigma();
-          inverse_cov(0,0) = 1/pixel_sigma(0);
-          inverse_cov(1,1) = 1/pixel_sigma(1);
+          inverse_cov(0,0) = 1/pow(pixel_sigma(0),2);
+          inverse_cov(1,1) = 1/pow(pixel_sigma(1),2);
 	 
 	  new_error_total += .5 * transpose(new_epsilon(i,j).ref()) * inverse_cov * new_epsilon(i,j).ref();
         }
