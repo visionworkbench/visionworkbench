@@ -147,7 +147,7 @@ namespace stereo {
 
     int center_pix_x = kern_width/2;
     int center_pix_y = kern_height/2;
-    float two_sigma_sqr = 2.0*pow(float(kern_width)/6.0,2.0);
+    float two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0);
 
     ImageView<float> weight(kern_width, kern_height);
     for (int j = 0; j < kern_height; ++j) {
@@ -359,10 +359,8 @@ namespace stereo {
               float I_e_val = right_interp_image(xx,yy) - (*left_image_patch_ptr) + 1e-16; 
               //              error_total += pow(I_e_val,2);
 
-              // Apply the robust cost function.  We use a huber
-              // function to gently remove outliers for small errors,
-              // but we set a hard limit a 5 times the cost threshold
-              // to remove major (salt&pepper) noise.
+              // Apply the robust cost function.  We use a cauchy
+              // function to gently remove outliers for small errors.
               float thresh = 1e-3;
               
               // Cauchy seems to work well with thresh ~= 1e-4
@@ -487,7 +485,7 @@ namespace stereo {
           //             std::cout << "Update: " << lhs << "     " << d << "     " << sqrt(error_total) << "    " << (sqrt(lhs[2]*lhs[2]+lhs[5]*lhs[5])) << "\n";
 
           // Termination condition
-          if (norm_2(lhs) < 0.03) 
+          if (norm_2(lhs) < 0.01) 
             break;
         }
         //         std::cout << "----> " << d << "\n\n";
