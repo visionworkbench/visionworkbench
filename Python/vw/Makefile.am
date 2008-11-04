@@ -21,6 +21,8 @@
 #
 # __END_LICENSE__
 
+if MAKE_MODULE_PYTHON
+
 MODULES= cartography composite core fileio filter image imagealgo imagemanip imagemath pixel pixelcast qtree transform vwmath
 
 BUILT_SOURCES = $(MODULES:%=%_wrap.cpp)
@@ -104,3 +106,5 @@ pyexec_vw_LTLIBRARIES = _cartography.la _composite.la _core.la _fileio.la _filte
 
 %_wrap.cpp : _%.i
 	$(SWIG) $(SWIG_PYTHON_OPT) $(SWIG_PYTHON_CPPFLAGS) $(VW_CPPFLAGS) -o $@ $<
+
+endif

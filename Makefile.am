@@ -26,11 +26,7 @@
 ########################################################################
 ACLOCAL_AMFLAGS = -I m4 -I thirdparty/m4
 
-if MAKE_MODULE_PYTHON
-python_subdirs = Python
-endif
-
-SUBDIRS = src $(python_subdirs)
+SUBDIRS = src Python
 
 EXTRA_DIST = config/rules.mak config/relicense config.options.example \
 	NOTES docs thirdparty/cxxtest
