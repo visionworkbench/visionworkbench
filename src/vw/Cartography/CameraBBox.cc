@@ -75,7 +75,7 @@ vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& geo
     last_lonlat = lonlat;
 
     bbox_180.grow( lonlat );
-    lonlat.x() += 180.0;
+    lonlat.x() += 360.0;
     bbox_360.grow( lonlat );
     last_valid = true;
   }
@@ -113,7 +113,7 @@ vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& geo
     last_lonlat = lonlat;
 
     bbox_180.grow( lonlat );
-    lonlat.x() += 180.0;
+    lonlat.x() += 360.0;
     bbox_360.grow( lonlat );
     last_valid = true;
   }
@@ -151,7 +151,7 @@ vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& geo
     last_lonlat = lonlat;
 
     bbox_180.grow( lonlat );
-    lonlat.x() += 180.0;
+    lonlat.x() += 360.0;
     bbox_360.grow( lonlat );
     last_valid = true;
   }
@@ -190,14 +190,18 @@ vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& geo
     last_lonlat = lonlat;
 
     bbox_180.grow( lonlat );
-    lonlat.x() += 180.0;
+    lonlat.x() += 360.0;
     bbox_360.grow( lonlat );
     last_valid = true;
   }
-  
+  // For debugging:
+  //   std::cout << "BBox360: " << bbox_360 << "    BBox180: " << bbox_180 << "\n";
   BBox2 bbox = bbox_180;
-  // FIXME: This may break for bboxes greater than 180 degrees wide.
-  if( bbox_180.min().x() < 0 && bbox_180.max().x() > 0 && bbox_360.max().x() < 360 ) bbox = bbox_360;
+  // If the bbox_180 crosses the singularity at 180 degrees, then we
+  // return the bbox_360 instead.
+  if( (bbox_180.min().x() < 180.0 && bbox_180.max().x() > 180.0) ||
+      (bbox_180.min().x() < -180.0 && bbox_180.max().x() > -180.0) ) 
+    bbox = bbox_360;
   if( pole ) {
     bbox.min().x() = -180;
     bbox.max().x() = 180;
