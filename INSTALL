@@ -1,223 +1,234 @@
-# __BEGIN_LICENSE__
-# 
-# Copyright (C) 2006 United States Government as represented by the
-# Administrator of the National Aeronautics and Space Administration
-# (NASA).  All Rights Reserved.
-# 
-# Copyright 2006 Carnegie Mellon University. All rights reserved.
-# 
-# This software is distributed under the NASA Open Source Agreement
-# (NOSA), version 1.3.  The NOSA has been approved by the Open Source
-# Initiative.  See the file COPYING at the top of the distribution
-# directory tree for the complete NOSA document.
-# 
-# THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
-# KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
-# LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
-# SPECIFICATIONS, ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR
-# A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
-# THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
-# DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-# 
-# __END_LICENSE__
+Installation Instructions
+*************************
 
+Copyright (C) 1994, 1995, 1996, 1999, 2000, 2001, 2002, 2004, 2005,
+2006 Free Software Foundation, Inc.
 
-Requirements
-============
+This file is free documentation; the Free Software Foundation gives
+unlimited permission to copy, distribute and modify it.
 
-If you are reading this document then you already have a copy of the 
-Vision Workbench sources.  You may want to confirm that you have the 
-most most up-to-date distribution, which will always be available from 
-the NASA Ames open-source software website, at:
-   http://ti.arc.nasa.gov/visionworkbench
-There you will also be able to download an up-to-date copy of the
-user's guide, called the Vision Workbook, which contains a more
-complete description of how to get started with the Vision Workbench.
+Basic Installation
+==================
 
-You will also need to obtain and install whichever pre-requisite
-libraries you will need.  The only strict requirement is the Boost C++
-Libraries, a set of extensions to the standard C++ libraries that is
-available at www.boost.org.  Many modern Linux systems come with some
-version of Boost already installed, generally in the directory
-/usr/include/boost.  The Vision Workbench has been tested with Boost
-versions 1.32 and later.
+Briefly, the shell commands `./configure; make; make install' should
+configure, build, and install this package.  The following
+more-detailed instructions are generic; see the `README' file for
+instructions specific to this package.
 
-Other libraries are required only if you want to use particular
-features of the Vision Workbench.  A summary of the various libraries
-that the Vision Workbench will detect and use if present is given in
-following table.  It lists the particular Vision Workbench module that
-uses the library, whether it is required or optional for that module,
-and where the library can be obtained.  If you are just starting out
-with the Vision Workbench, it is generally fine to begin only with
-Boost and support for one or two file formats.  You can always go back
-and rebuild the Vision Workbench with support for additional features
-later if you discover that you need them.
+   The `configure' shell script attempts to guess correct values for
+various system-dependent variables used during compilation.  It uses
+those values to create a `Makefile' in each directory of the package.
+It may also create one or more `.h' files containing system-dependent
+definitions.  Finally, it creates a shell script `config.status' that
+you can run in the future to recreate the current configuration, and a
+file `config.log' containing compiler output (useful mainly for
+debugging `configure').
 
- Name    | Used By               | Source
----------+-----------------------+------------------------------------
- Boost   | All                   | ttp://www.boost.org/
- LAPACK  | Portions of Math, HDR | See notes below
- PNG     | FileIO (opt.)         | http://www.libpng.org/
- JPEG    | FileIO (opt.)         | http://www.ijg.org/
- TIFF    | FileIO (opt.)         | http://www.libtiff.org/
- OpenEXR | FileIO (opt.)         | http://www.openexr.com/
- PROJ.4  | Cartography (req.)    | http://www.remotesensing.org/proj/
- GDAL    | Cartography (opt.)    | http://www.remotesensing.org/gdal/
+   It can also use an optional file (typically called `config.cache'
+and enabled with `--cache-file=config.cache' or simply `-C') that saves
+the results of its tests to speed up reconfiguring.  Caching is
+disabled by default to prevent problems with accidental use of stale
+cache files.
 
-One dependency that is worth discussing briefly is LAPACK, which
-provides the Vision Workbench with a computational linear algebra back
-end.  LAPACK is a comprehensive and widely-used linear algebra support
-library in the public domain.  LAPACK also requires the Basic Linear
-Algebra Subroutines (BLAS) library, which is usually bundled with
-LAPACK.
+   If you need to do unusual things to compile the package, please try
+to figure out how `configure' could check whether to do them, and mail
+diffs or instructions to the address given in the `README' so they can
+be considered for the next release.  If you are using the cache, and at
+some point `config.cache' contains results you don't want to keep, you
+may remove or edit it.
 
-The basic matrix and vector algebra in the Math module does not depend
-on LAPACK and BLAS.  However, the routines in <vw/Math/LinearAlgebra.h> 
-will only be built if LAPACK is detected by the build system.  For
-your convenience, we provide a stand-alone LAPACK and BLAS
-distribution on the Vision Workbench website listed at the top of this
-document.  This distribution has been tested with the Vision
-Workbench, so we recommend its use if you are installing LAPACK for
-the first time.  However, other versions of LAPACK and BLAS that come
-pre-installed on your system will probably work just as well.  In
-particular, Mac OS X users {\em do not} need to install LAPACK;
-optimized linear algebra support is provided by Apple's "veclib"
-framework on Mac OS X.  Remember to add the "-framework veclib" flag
-when linking your application against the Vision Workbench if you are
-using these functions on the Mac platform.
+   The file `configure.ac' (or `configure.in') is used to create
+`configure' by a program called `autoconf'.  You need `configure.ac' if
+you want to change it or regenerate `configure' using a newer version
+of `autoconf'.
 
+The simplest way to compile this package is:
 
-Building the Vision Workbench
-=============================
+  1. `cd' to the directory containing the package's source code and type
+     `./configure' to configure the package for your system.
 
-First configure the build system by running "./configure" from the
-base directory of the source distribution.  This script will examine
-your machine to determine what build tools to use and what libraries
-are installed as well as where they are located.  Near the end of its
-output it will list whether or not it was able to find each library
-and which Vision Workbench modules it is going to build.  You should
-examine this output to confirm that it was able to find all the
-libraries that you had expected it to.  If not then you may need to
-configure the build system to search in the right places, as discussed
-in the next section.
+     Running `configure' might take a while.  While running, it prints
+     some messages telling which features it is checking for.
 
-Assuming the output of the configure script looks good, you can now
-proceed to build the Vision Workbench itself by running "make".  Most
-of the Vision Workbench is header-only, so "building" the Vision
-Workbench should be relatively quick.  Once the build is complete,
-confirm that things are working properly by building and running the
-unit tests by typing "make check".  If there are no errors, the final
-step is to install the Vision Workbench headers, library, and sample
-programs using "make install".  By default the installation location
-is the directory /usr/local, so you will need to obtain the necessary
-privileges to write to this directory using a command such as "sudo"
-or "su".  If you do not have administrator privileges on you computer
-then see the next section for information on how to specify an
-alternative installation directory.
+  2. Type `make' to compile the package.
 
-Building the Vision Workbench under Windows is possible, but it is not
-currently automatically supported.  The easiest thing to do is to
-include the .cc files from the Vision Workbench modules that you want
-to use directly in your own project file.  You will of course still
-need to install the Boost libraries as well as any other libraries you
-want to use.  Pre-built Windows versions of a number of libraries,
-such as the JPEG, PNG, and TIFF libraries, are available online from
-the GnuWin32 project at gnuwin32.sourceforge.net.  You will need to
-configure your project's include file and library search paths
-appropriately.  Also be sure to configure your project to define the
-preprocessor symbol "NOMINMAX" to disable the non-portable Windows
-definitions of min() and max() macros, which interfere with the
-standard C++ library functions of the same names.
+  3. Optionally, type `make check' to run any self-tests that come with
+     the package.
 
+  4. Type `make install' to install the programs and any data files and
+     documentation.
 
-Configuring the Build System
-============================
+  5. You can remove the program binaries and object files from the
+     source code directory by typing `make clean'.  To also remove the
+     files that `configure' created (so you can compile the package for
+     a different kind of computer), type `make distclean'.  There is
+     also a `make maintainer-clean' target, but that is intended mainly
+     for the package's developers.  If you use it, you may have to get
+     all sorts of other programs in order to regenerate files that came
+     with the distribution.
 
-The Vision Workbench build system offers a variety of configuration
-options that you provide as command-line flags to the "configure"
-script.  We'll discuss a few of the most important options here, but
-for a complete list you can run "./configure --help".  As an
-alternative to specifying command-line flags every time, you may
-instead create a file called "config.options" with your preferences in
-the base directory of the Vision Workbench repository.  A file called
-"config.options.example" is provided that you can copy and edit to
-your liking.  Note that none of this has any impact on Visual Studio
-users, who must instead configure their projects by hand.
+Compilers and Options
+=====================
 
-The single most important option is the "--with-paths=PATHS" flag,
-where you replace "PATHS" with a whitespace-separated list of paths
-that the build system should search when looking for installed
-libraries.  For example if you specify "--with-paths=/foo/bar" then it
-will search for header files in "/foo/bar/include", library files in
-"/foo/bar/lib", and so on.  The default search path includes a number
-of common locations for user-installed libraries, such as
-"/usr/local", "$(HOME)/local", and "/sw".  The "PKG_PATHS"
-configuration file variable has the same effect as this option.
+Some systems require unusual options for compilation or linking that the
+`configure' script does not know about.  Run `./configure --help' for
+details on some of the pertinent environment variables.
 
-The next most important options have the form "--enable-module-foo[=no]", 
-where "foo" is replaced by the lower-case name of a module such as
-"mosaic" or "hdr".  This allows you to control whether or not certain
-modules are built.  Disabling modules that you do not use can speed up
-compilation and testing time, which is especially useful if you are
-making changes to the Vision Workbench source and need to recompile
-often.  The corresponding configuration file variables have the form
-"ENABLE_MODULE_FOO", in all-caps, and are set to either "yes" or "no".
+   You can give `configure' initial values for configuration parameters
+by setting variables in the command line or in the environment.  Here
+is an example:
 
-Two handy options, "--enable-optimize" and "--enable-debug", determine
-the compiler options used when building the few library files.  You
-can again specify an optional argument of the form "=no" to disable
-the corresponding feature, and you can also specify a particular
-optimization level in the same manner.  For example, if you want to
-make it as easy as possible to debug Vision Workbench code using a
-debugger you might use "--enable-optimize=no --enable-debug" to
-disable all optimizations and include debugging symbols.  The
-corresponding configuration file variables are "ENABLE_OPTIMIZE" and
-"ENABLE_DEUBG".  Keep in mind that since most Vision Workbench code is
-header-only you should remember to configure your own project
-similarly or you may not notice any difference.  For normal
-non-debugging use, we strongly recommend that you enable moderate
-compiler optimization; much of the heavily templatized and generic
-Vision Workbench code requires basic optimizations such as function
-inlining to achieve a reasonable level of performance.
+     ./configure CC=c99 CFLAGS=-g LIBS=-lposix
 
-Finally, to specify that the build system should install the Vision
-Workbench someplace other than "/usr/local", specify the path using
-the "--prefix=PATH" option.  The corresponding configuration file
-variable is, of course, called "PREFIX".
+   *Note Defining Variables::, for more details.
 
+Compiling For Multiple Architectures
+====================================
 
-Common Problems
-===============
+You can compile the package for more than one kind of computer at the
+same time, by placing the object files for each architecture in their
+own directory.  To do this, you can use GNU `make'.  `cd' to the
+directory where you want the object files and executables to go and run
+the `configure' script.  `configure' automatically checks for the
+source code in the directory that `configure' is in and in `..'.
 
-* I have (library X) installed in one location that I want to use, and 
-there's another version installed system-wide. How do I get Vision 
-Workbench to build with the version I want?
+   With a non-GNU `make', it is safer to compile the package for one
+architecture at a time in the source code directory.  After you have
+installed the package for one architecture, use `make distclean' before
+reconfiguring for another architecture.
 
-Due to limitations in the underlying build system tools, the 
-autodetection will always detect the system-installed library and ignore 
-different installations, even if the PKG_PATHS environment variable is 
-set. To get around this, set the following environment variables (where 
-X is the name of the library as known by the configure script's 
---with-X, in caps):
+Installation Names
+==================
 
-HAVE_PKG_X=yes
-PKG_X_CPPFLAGS="-I/path/to/include/directory"
-PKG_X_LDFLAGS="-L/path/to/library/directory"
+By default, `make install' installs the package's commands under
+`/usr/local/bin', include files under `/usr/local/include', etc.  You
+can specify an installation prefix other than `/usr/local' by giving
+`configure' the option `--prefix=PREFIX'.
 
-(These can be set in the config.options file.) Vision Workbench should 
-then link against the library in the location specified in this manner.
+   You can specify separate installation prefixes for
+architecture-specific files and architecture-independent files.  If you
+pass the option `--exec-prefix=PREFIX' to `configure', the package uses
+PREFIX as the prefix for installing programs and libraries.
+Documentation and other data files still use the regular prefix.
 
+   In addition, if you use an unusual directory layout you can give
+options like `--bindir=DIR' to specify different values for particular
+kinds of files.  Run `configure --help' for a list of the directories
+you can set and what kinds of files go in them.
 
-* Vision Workbench crashes when opening a TIFF/GeoTIFF file!
+   If the package supports it, you can cause programs to be installed
+with an extra prefix or suffix on their names by giving `configure' the
+option `--program-prefix=PREFIX' or `--program-suffix=SUFFIX'.
 
-When linking against a GDAL library that uses an internal libtiff, the 
-opening of TIFF files can fail to function correctly when Vision 
-Workbench also links against another libtiff. To see whether or not 
-GDAL is using an internal libtiff, run ldd on the gdal library and 
-check its linkage; if it does not link, then check gdalinfo --format. 
-If GTiff is supported, and ldd says that the gdal library is not linked 
-against libtiff, then GDAL is using an internal libtiff library.
+Optional Features
+=================
 
-In that case, you will want to disable libtiff. Add "--without-tiff" to 
-the ./configure command line. This does not effect the functionality of 
-Vision Workbench, as it will use GDAL to open TIFF files instead.
+Some packages pay attention to `--enable-FEATURE' options to
+`configure', where FEATURE indicates an optional part of the package.
+They may also pay attention to `--with-PACKAGE' options, where PACKAGE
+is something like `gnu-as' or `x' (for the X Window System).  The
+`README' should mention any `--enable-' and `--with-' options that the
+package recognizes.
+
+   For packages that use the X Window System, `configure' can usually
+find the X include and library files automatically, but if it doesn't,
+you can use the `configure' options `--x-includes=DIR' and
+`--x-libraries=DIR' to specify their locations.
+
+Specifying the System Type
+==========================
+
+There may be some features `configure' cannot figure out automatically,
+but needs to determine by the type of machine the package will run on.
+Usually, assuming the package is built to be run on the _same_
+architectures, `configure' can figure that out, but if it prints a
+message saying it cannot guess the machine type, give it the
+`--build=TYPE' option.  TYPE can either be a short name for the system
+type, such as `sun4', or a canonical name which has the form:
+
+     CPU-COMPANY-SYSTEM
+
+where SYSTEM can have one of these forms:
+
+     OS KERNEL-OS
+
+   See the file `config.sub' for the possible values of each field.  If
+`config.sub' isn't included in this package, then this package doesn't
+need to know the machine type.
+
+   If you are _building_ compiler tools for cross-compiling, you should
+use the option `--target=TYPE' to select the type of system they will
+produce code for.
+
+   If you want to _use_ a cross compiler, that generates code for a
+platform different from the build platform, you should specify the
+"host" platform (i.e., that on which the generated programs will
+eventually be run) with `--host=TYPE'.
+
+Sharing Defaults
+================
+
+If you want to set default values for `configure' scripts to share, you
+can create a site shell script called `config.site' that gives default
+values for variables like `CC', `cache_file', and `prefix'.
+`configure' looks for `PREFIX/share/config.site' if it exists, then
+`PREFIX/etc/config.site' if it exists.  Or, you can set the
+`CONFIG_SITE' environment variable to the location of the site script.
+A warning: not all `configure' scripts look for a site script.
+
+Defining Variables
+==================
+
+Variables not defined in a site shell script can be set in the
+environment passed to `configure'.  However, some packages may run
+configure again during the build, and the customized values of these
+variables may be lost.  In order to avoid this problem, you should set
+them in the `configure' command line, using `VAR=value'.  For example:
+
+     ./configure CC=/usr/local2/bin/gcc
+
+causes the specified `gcc' to be used as the C compiler (unless it is
+overridden in the site shell script).
+
+Unfortunately, this technique does not work for `CONFIG_SHELL' due to
+an Autoconf bug.  Until the bug is fixed you can use this workaround:
+
+     CONFIG_SHELL=/bin/bash /bin/bash ./configure CONFIG_SHELL=/bin/bash
+
+`configure' Invocation
+======================
+
+`configure' recognizes the following options to control how it operates.
+
+`--help'
+`-h'
+     Print a summary of the options to `configure', and exit.
+
+`--version'
+`-V'
+     Print the version of Autoconf used to generate the `configure'
+     script, and exit.
+
+`--cache-file=FILE'
+     Enable the cache: use and save the results of the tests in FILE,
+     traditionally `config.cache'.  FILE defaults to `/dev/null' to
+     disable caching.
+
+`--config-cache'
+`-C'
+     Alias for `--cache-file=config.cache'.
+
+`--quiet'
+`--silent'
+`-q'
+     Do not print messages saying which checks are being made.  To
+     suppress all normal output, redirect it to `/dev/null' (any error
+     messages will still be shown).
+
+`--srcdir=DIR'
+     Look for the package's source code in directory DIR.  Usually
+     `configure' can determine that directory automatically.
+
+`configure' also accepts some other, not widely useful, options.  Run
+`configure --help' for more details.
+
