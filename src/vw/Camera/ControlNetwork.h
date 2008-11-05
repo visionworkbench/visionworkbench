@@ -363,7 +363,7 @@ namespace camera {
       
       for (unsigned c=0; c < this->size(); ++c) {
         ControlPoint& cpoint = (*this)[c];
-        ofile << std::setprecision(18) << cpoint.size() << " " << cpoint.position()[0] << " " << cpoint.position()[1] << " " << cpoint.position()[2] << " " << cpoint.sigma()[0] << " " << cpoint.sigma()[1]<< " " << cpoint.sigma()[2] << " " << cpoint.ignore() << "\n";
+        ofile << std::setprecision(18) << cpoint.size() << " " << cpoint.position()[0] << " " << cpoint.position()[1] << " " << cpoint.position()[2] << " " << cpoint.sigma()[0] << " " << cpoint.sigma()[1]<< " " << cpoint.sigma()[2] << " " << cpoint.ignore() << " " << cpoint.type() << "\n";
         for (unsigned m = 0; m < cpoint.size(); ++m) {
           ControlMeasure& cmeasure = cpoint[m];
           ofile << std::setprecision(18) << cmeasure.image_id() << " " << cmeasure.position()[0] << " " << cmeasure.position()[1] << " " << cmeasure.sigma()[0] << " " << cmeasure.sigma()[1] << " " << cmeasure.ignore() << " " <<  cmeasure.ephemeris_time() << "\n";
@@ -386,12 +386,14 @@ namespace camera {
       Vector3 pos;
       Vector3 pos_sigma;
       bool ignore_point;
+      int type;
       for (int c=0; c < total_control_points; ++c) {
-        ifile >> num_measures >> pos[0] >> pos[1] >> pos[2] >> pos_sigma[0] >> pos_sigma[1] >> pos_sigma[2] >> ignore_point;
+        ifile >> num_measures >> pos[0] >> pos[1] >> pos[2] >> pos_sigma[0] >> pos_sigma[1] >> pos_sigma[2] >> ignore_point >> type;
 
         cpoints[c].set_position(pos);
         cpoints[c].set_sigma(pos_sigma);
         cpoints[c].set_ignore(ignore_point);
+	cpoints[c].set_type( static_cast<ControlPoint::ControlPointType>( type ));
 
         std::vector<ControlMeasure> cmeasures(num_measures);
         int image_id;
