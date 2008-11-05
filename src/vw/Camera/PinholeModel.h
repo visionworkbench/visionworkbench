@@ -99,6 +99,7 @@ namespace camera {
     Vector3 m_camera_center;
     Matrix<double,3,3> m_rotation;
     Matrix<double,3,3> m_intrinsics;
+    Matrix<double,3,4> m_extrinsics;
 
     // Intrinsic parameters, in pixel units
     double m_fu, m_fv, m_cu, m_cv;
@@ -275,6 +276,15 @@ namespace camera {
       //  Apply the lens distortion model
       return m_distortion_model_ptr->get_distorted_coordinates(pixel);
     }
+
+    // Is a valid projection of point is possible?
+    // This is equal to: Is the point in front of the camera (z > 0)
+    // after extinsic transformation?
+    virtual bool projection_valid(Vector3 const& point) const {
+      // z coordinate after extrinsic transformation
+      double z = m_extrinsics(2, 0)*point(0) + m_extrinsics(2, 1)*point(1) + m_extrinsics(2, 2)*point(2) + m_extrinsics(2,3);
+      return z > 0;
+    }
     
 
     // Returns a (normalized) pointing vector from the camera center
@@ -387,7 +397,6 @@ namespace camera {
       assert( fabs( norm_2(m_v_direction) - 1 ) < 0.001 );
       assert( fabs( norm_2(m_w_direction) - 1 ) < 0.001 );
 
-      Matrix<double,3,4> extrinsics;
       Matrix<double,3,3> uvwRotation;
 
       select_row(uvwRotation,0) = m_u_direction;
@@ -395,10 +404,10 @@ namespace camera {
       select_row(uvwRotation,2) = m_w_direction;
       
       Matrix<double,3,3> m_rotation_inverse = transpose(m_rotation);
-      submatrix(extrinsics,0,0,3,3) = uvwRotation * m_rotation_inverse;
-      select_col(extrinsics,3) = uvwRotation * -m_rotation_inverse * m_camera_center;
+      submatrix(m_extrinsics,0,0,3,3) = uvwRotation * m_rotation_inverse;
+      select_col(m_extrinsics,3) = uvwRotation * -m_rotation_inverse * m_camera_center;
       
-      m_camera_matrix = m_intrinsics * extrinsics;
+      m_camera_matrix = m_intrinsics * m_extrinsics;
       m_inv_camera_transform = inverse(uvwRotation*m_rotation_inverse) * inverse(m_intrinsics);
     }
 
