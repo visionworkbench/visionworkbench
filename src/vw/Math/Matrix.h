@@ -149,6 +149,14 @@ namespace math {
       set_identity();
     }
 
+    /// Set the matrix to the identity matrix with the same dimensions.
+    void set_zero() {
+      int n=impl().rows();
+      int m=impl().cols();
+      for( int i=0; i<n; ++i )
+        for( int j=0; j<m; ++j )
+          impl()(i,j) = (typename MatrixT::value_type(0));
+    }
   };
 
 
