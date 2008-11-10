@@ -21,7 +21,8 @@ namespace stereo {
     // General Settings
     int m_kern_width, m_kern_height;
     bool m_do_h_subpixel, m_do_v_subpixel;
-    bool m_do_affine_subpixel;
+    //bool m_do_affine_subpixel;
+    int m_do_affine_subpixel;
     PreprocFilterT m_preproc_filter;
     bool m_verbose;
 
@@ -37,7 +38,8 @@ namespace stereo {
                  int kern_width, int kern_height,
                  bool do_horizontal_subpixel,
                  bool do_vertical_subpixel,
-                 bool do_affine_subpixel,
+                 //bool do_affine_subpixel,
+                 int do_affine_subpixel,
                  PreprocFilterT preproc_filter,
                  bool verbose) : m_disparity_map(disparity_map),
                                  m_left_image(left_image),
@@ -103,7 +105,7 @@ namespace stereo {
       // We crop the images to the expanded bounding box and edge
       // extend in case the new bbox extends past the image bounds.
       ImageView<float> left_image_patch, right_image_patch;
-      if (m_do_affine_subpixel) { // affine subpixel does its own pre-processing
+      if (m_do_affine_subpixel > 0) { // affine subpixel does its own pre-processing
         left_image_patch = crop(edge_extend(m_left_image,ZeroEdgeExtension()), left_crop_bbox);
         right_image_patch = crop(edge_extend(m_right_image,ZeroEdgeExtension()), right_crop_bbox);
       } else { // parabola subpixel does the same preprocessing as the pyramid correlator
@@ -125,7 +127,48 @@ namespace stereo {
       //       ostr << "__" << bbox.min().x() << "_" << bbox.min().y() << ".tif";
       //       write_image("left"+ostr.str(), left_image_patch);
       //       write_image("right"+ostr.str(), right_image_patch);
-
+      
+      printf("m_do_affine_subpixel = %d\n", m_do_affine_subpixel);
+      switch (m_do_affine_subpixel){
+          case 0 :
+              subpixel_correlation_parabola(disparity_map_patch,
+                                      left_image_patch,
+                                      right_image_patch,
+                                      m_kern_width, m_kern_height,
+                                      m_do_h_subpixel, m_do_v_subpixel,
+                                      m_verbose);
+              break;
+          case 1:
+              subpixel_correlation_affine_2d(disparity_map_patch,
+                                       left_image_patch,
+                                       right_image_patch,
+                                       m_kern_width, m_kern_height,
+                                       m_do_h_subpixel, m_do_v_subpixel,
+                                       m_verbose);
+	      break;
+          case 2:
+               
+               subpixel_correlation_affine_2d_bayesian(disparity_map_patch,
+                                       left_image_patch,
+                                       right_image_patch,
+                                       m_kern_width, m_kern_height,
+                                       m_do_h_subpixel, m_do_v_subpixel,
+                                       m_verbose);
+	       break;
+          default:
+	    printf("Error\n");
+	    /*
+              subpixel_correlation_parabola(disparity_map_patch,
+                                      left_image_patch,
+                                      right_image_patch,
+                                      m_kern_width, m_kern_height,
+                                      m_do_h_subpixel, m_do_v_subpixel,
+                                      m_verbose);
+	    */
+              break;
+      }
+      
+      /*
       if (m_do_affine_subpixel) {
         subpixel_correlation_affine_2d(disparity_map_patch,
                                        left_image_patch,
@@ -141,7 +184,7 @@ namespace stereo {
                                       m_do_h_subpixel, m_do_v_subpixel,
                                       m_verbose);
       }
-
+      */
       // Undo the above adjustment
       for (int v = 0; v < disparity_map_patch.rows(); ++v)
         for (int u = 0; u < disparity_map_patch.cols(); ++u)
