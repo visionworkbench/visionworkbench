@@ -25,6 +25,8 @@
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Math/EulerAngles.h>
 
+// For std::setprecision
+#include <iomanip>
 
 // Reads in a file containing parameters of a pinhole model with
 // a tsai lens distortion model. An example is provided at the end of this file.
