@@ -163,6 +163,7 @@ void vw::camera::PinholeModel::write_file(std::string const& filename) const {
   std::ofstream cam_file(filename.c_str());
   if( !cam_file.is_open() ) vw_throw( IOErr() << "PinholeModel::write_file: Could not open file\n" );
   
+  cam_file << std::setprecision(std::numeric_limits<double>::digits10);
   cam_file << "fu = " << m_fu << "\n";
   cam_file << "fv = " << m_fv << "\n";
   cam_file << "cu = " << m_cu << "\n";
