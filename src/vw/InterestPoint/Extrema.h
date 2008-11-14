@@ -35,7 +35,8 @@ namespace vw {
 namespace ip {
 
 // Do not search too close to image boundary.
-#define IP_BORDER_WIDTH (20)
+//#define IP_BORDER_WIDTH (20)
+#define IP_BORDER_WIDTH (0)
 
   // Local min/max functions.
 
