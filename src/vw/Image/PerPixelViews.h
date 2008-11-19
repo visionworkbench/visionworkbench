@@ -151,7 +151,7 @@ namespace vw {
       : m_image1(image1), m_image2(image2), m_func()
     {
       VW_ASSERT( m_image1.cols()==m_image2.cols() &&
-		 m_image1.rows()==m_image1.rows() &&
+		 m_image1.rows()==m_image2.rows() &&
 		 m_image1.planes()==m_image2.planes(),
                  ArgumentErr() << "BinaryPerPixelView: Images must have same dimensions in binary image operation." );
     }
@@ -160,7 +160,7 @@ namespace vw {
       : m_image1(image1), m_image2(image2), m_func(func)
     {
       VW_ASSERT( m_image1.cols()==m_image2.cols() &&
-		 m_image1.rows()==m_image1.rows() &&
+		 m_image1.rows()==m_image2.rows() &&
 		 m_image1.planes()==m_image2.planes(),
                  ArgumentErr() << "BinaryPerPixelView: Images must have same dimensions in binary image operation." );
     }
@@ -175,6 +175,89 @@ namespace vw {
     /// \cond INTERNAL
     typedef BinaryPerPixelView<typename Image1T::prerasterize_type, typename Image2T::prerasterize_type, FuncT> prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image1.prerasterize(bbox), m_image2.prerasterize(bbox), m_func ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    /// \endcond
+  };
+
+  // *******************************************************************
+  // TrinaryPerPixelView
+  // *******************************************************************
+
+  // Specialized Accessor
+  template <class Image1IterT, class Image2IterT, class Image3IterT, class FuncT>
+  class TrinaryPerPixelAccessor {
+    Image1IterT m_iter1;
+    Image2IterT m_iter2;
+    Image3IterT m_iter3;
+    FuncT const& m_func;
+  public:
+    typedef typename boost::result_of<FuncT(typename Image1IterT::pixel_type,typename Image2IterT::pixel_type,typename Image3IterT::pixel_type)>::type result_type;
+    typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type pixel_type;
+
+    TrinaryPerPixelAccessor( Image1IterT const& iter1, Image2IterT const& iter2, Image2IterT const& iter3, FuncT const& func ) : m_iter1(iter1), m_iter2(iter2), m_iter3(iter3), m_func(func) {}
+    inline TrinaryPerPixelAccessor& next_col() { m_iter1.next_col(); m_iter2.next_col(); m_iter3.next_col(); return *this; }
+    inline TrinaryPerPixelAccessor& prev_col() { m_iter1.prev_col(); m_iter2.prev_col(); m_iter3.prev_col(); return *this; }
+    inline TrinaryPerPixelAccessor& next_row() { m_iter1.next_row(); m_iter2.next_row(); m_iter3.next_row(); return *this; }
+    inline TrinaryPerPixelAccessor& prev_row() { m_iter1.prev_row(); m_iter2.prev_row(); m_iter3.prev_row(); return *this; }
+    inline TrinaryPerPixelAccessor& next_plane() { m_iter1.next_plane(); m_iter2.next_plane(); m_iter3.next_plane(); return *this; }
+    inline TrinaryPerPixelAccessor& prev_plane() { m_iter1.prev_plane(); m_iter2.prev_plane(); m_iter3.prev_plane(); return *this; }
+    inline TrinaryPerPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) 
+      { m_iter1.advance(di,dj,dp); m_iter2.advance(di,dj,dp); m_iter3.advance(di,dj,dp); return *this; }
+    inline result_type operator*() const { return m_func(*m_iter1,*m_iter2,*m_iter3); }
+  };
+
+  // Image View Class Definition
+  template <class Image1T, class Image2T, class Image3T, class FuncT>
+  class TrinaryPerPixelView : public ImageViewBase<TrinaryPerPixelView<Image1T,Image2T,Image3T,FuncT> >
+  {
+  private:
+    Image1T m_image1;
+    Image2T m_image2;
+    Image3T m_image3;
+    FuncT m_func;
+  public:
+    typedef typename boost::result_of<FuncT(typename Image1T::pixel_type, typename Image2T::pixel_type, typename Image3T::pixel_type)>::type result_type;
+    typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type pixel_type;
+
+    typedef TrinaryPerPixelAccessor<typename Image1T::pixel_accessor,
+                                    typename Image2T::pixel_accessor,
+                                    typename Image3T::pixel_accessor,
+                                    FuncT> pixel_accessor;
+
+    TrinaryPerPixelView( Image1T const& image1, Image2T const& image2, Image3T const& image3 )
+      : m_image1(image1), m_image2(image2), m_image3(image3), m_func()
+    {
+      VW_ASSERT( m_image1.cols()==m_image2.cols() &&
+		 m_image1.rows()==m_image2.rows() &&
+		 m_image1.planes()==m_image2.planes() &&
+                 m_image1.cols()==m_image3.cols() &&
+		 m_image1.rows()==m_image3.rows() &&
+		 m_image1.planes()==m_image3.planes(),
+                 ArgumentErr() << "TrinaryPerPixelView: Images must have same dimensions in trinary image operation." );
+    }
+
+    TrinaryPerPixelView( Image1T const& image1, Image2T const& image2, Image3T const& image3, FuncT const& func )
+      : m_image1(image1), m_image2(image2), m_image3(image3), m_func(func)
+    {
+      VW_ASSERT( m_image1.cols()==m_image2.cols() &&
+		 m_image1.rows()==m_image2.rows() &&
+		 m_image1.planes()==m_image2.planes() &&
+                 m_image1.cols()==m_image2.cols() &&
+		 m_image1.rows()==m_image2.rows() &&
+		 m_image1.planes()==m_image2.planes(),
+                 ArgumentErr() << "TrinaryPerPixelView: Images must have same dimensions in trinary image operation." );
+    }
+
+    inline int32 cols() const { return m_image1.cols(); }
+    inline int32 rows() const { return m_image1.rows(); }
+    inline int32 planes() const { return m_image1.planes(); }
+
+    inline pixel_accessor origin() const { return pixel_accessor(m_image1.origin(),m_image2.origin(),m_image3.origin(),m_func); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_func(m_image1(i,j,p),m_image2(i,j,p),m_image3(i,j,p)); }
+
+    /// \cond INTERNAL
+    typedef TrinaryPerPixelView<typename Image1T::prerasterize_type, typename Image2T::prerasterize_type, typename Image3T::prerasterize_type, FuncT> prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i bbox ) const { return prerasterize_type( m_image1.prerasterize(bbox), m_image2.prerasterize(bbox), m_image3.prerasterize(bbox), m_func ); }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
@@ -226,6 +309,42 @@ namespace vw {
       }
       i1plane.next_plane();
       i2plane.next_plane();
+    }
+  }
+
+  template <class Image1T, class Image2T, class Image3T, class FuncT>
+  inline void apply_per_pixel( ImageViewBase<Image1T> const& image1, ImageViewBase<Image2T> const& image2, ImageViewBase<Image3T> const& image3, FuncT const& func ) {
+    VW_ASSERT( image1.impl().cols()==image2.impl().cols() && image1.impl().rows()==image2.impl().rows() && image1.impl().planes()==image2.impl().planes(),
+               ArgumentErr() << "apply_per_pixel: Image arguments must have the same dimensions." );
+    VW_ASSERT( image1.impl().cols()==image3.impl().cols() && image1.impl().rows()==image3.impl().rows() && image1.impl().planes()==image3.impl().planes(),
+               ArgumentErr() << "apply_per_pixel: Image arguments must have the same dimensions." );
+    typedef typename Image1T::pixel_accessor Image1AccT;
+    typedef typename Image2T::pixel_accessor Image2AccT;
+    typedef typename Image3T::pixel_accessor Image3AccT;
+    Image1AccT i1plane = image1.impl().origin();
+    Image2AccT i2plane = image2.impl().origin();
+    Image2AccT i3plane = image3.impl().origin();
+    for( int32 plane=image1.impl().planes(); plane; --plane ) {
+      Image1AccT i1row = i1plane;
+      Image2AccT i2row = i2plane;
+      Image2AccT i3row = i3plane;
+      for( int32 row=image1.impl().rows(); row; --row ) {
+        Image1AccT i1col = i1row;
+        Image2AccT i2col = i2row;
+        Image3AccT i3col = i3row;
+        for( int32 col=image1.impl().cols(); col; --col ) {
+          func(*i1col,*i2col,*i3col);
+          i1col.next_col();
+          i2col.next_col();
+          i3col.next_col();
+        }
+        i1row.next_row();
+        i2row.next_row();
+        i3row.next_row();
+      }
+      i1plane.next_plane();
+      i2plane.next_plane();
+      i3plane.next_plane();
     }
   }
 
