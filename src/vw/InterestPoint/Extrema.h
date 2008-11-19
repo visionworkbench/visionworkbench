@@ -35,8 +35,12 @@ namespace vw {
 namespace ip {
 
 // Do not search too close to image boundary.
-//#define IP_BORDER_WIDTH (20)
-#define IP_BORDER_WIDTH (0)
+#define IP_BORDER_WIDTH (20)
+
+// Setting the border width to zero causes a seg fault at the
+// moment... we'll need to look into this before we turn this back
+// on. -mbroxton
+//#define IP_BORDER_WIDTH (0)
 
   // Local min/max functions.
 
