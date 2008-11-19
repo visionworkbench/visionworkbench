@@ -128,63 +128,36 @@ namespace stereo {
       //       write_image("left"+ostr.str(), left_image_patch);
       //       write_image("right"+ostr.str(), right_image_patch);
       
-      printf("m_do_affine_subpixel = %d\n", m_do_affine_subpixel);
       switch (m_do_affine_subpixel){
-          case 0 :
-              subpixel_correlation_parabola(disparity_map_patch,
-                                      left_image_patch,
-                                      right_image_patch,
-                                      m_kern_width, m_kern_height,
-                                      m_do_h_subpixel, m_do_v_subpixel,
-                                      m_verbose);
-              break;
-          case 1:
-              subpixel_correlation_affine_2d(disparity_map_patch,
-                                       left_image_patch,
-                                       right_image_patch,
-                                       m_kern_width, m_kern_height,
-                                       m_do_h_subpixel, m_do_v_subpixel,
-                                       m_verbose);
-	      break;
-          case 2:
-               
-               subpixel_correlation_affine_2d_bayesian(disparity_map_patch,
-                                       left_image_patch,
-                                       right_image_patch,
-                                       m_kern_width, m_kern_height,
-                                       m_do_h_subpixel, m_do_v_subpixel,
-                                       m_verbose);
-	       break;
-          default:
-	    printf("Error\n");
-	    /*
-              subpixel_correlation_parabola(disparity_map_patch,
-                                      left_image_patch,
-                                      right_image_patch,
-                                      m_kern_width, m_kern_height,
-                                      m_do_h_subpixel, m_do_v_subpixel,
-                                      m_verbose);
-	    */
-              break;
-      }
-      
-      /*
-      if (m_do_affine_subpixel) {
-        subpixel_correlation_affine_2d(disparity_map_patch,
-                                       left_image_patch,
-                                       right_image_patch,
-                                       m_kern_width, m_kern_height,
-                                       m_do_h_subpixel, m_do_v_subpixel,
-                                       m_verbose);
-      } else {
+      case 0 : // Parabola Subpixel
         subpixel_correlation_parabola(disparity_map_patch,
                                       left_image_patch,
                                       right_image_patch,
                                       m_kern_width, m_kern_height,
                                       m_do_h_subpixel, m_do_v_subpixel,
                                       m_verbose);
+        break;
+      case 1: // Robust Subpixel
+        subpixel_correlation_affine_2d(disparity_map_patch,
+                                       left_image_patch,
+                                       right_image_patch,
+                                       m_kern_width, m_kern_height,
+                                       m_do_h_subpixel, m_do_v_subpixel,
+                                       m_verbose);
+        break;
+      case 2: // Bayes Subpixel
+        subpixel_correlation_affine_2d_bayesian(disparity_map_patch,
+                                                left_image_patch,
+                                                right_image_patch,
+                                                m_kern_width, m_kern_height,
+                                                m_do_h_subpixel, m_do_v_subpixel,
+                                                m_verbose);
+        break;
+      default:
+        vw_throw(ArgumentErr() << "Unknown subpixel correlation type: " << m_do_affine_subpixel << ".");
+        break;
       }
-      */
+      
       // Undo the above adjustment
       for (int v = 0; v < disparity_map_patch.rows(); ++v)
         for (int u = 0; u < disparity_map_patch.cols(); ++u)
