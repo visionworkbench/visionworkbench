@@ -121,12 +121,13 @@ namespace vw {
     std::string m_file_type;
 
     template <class ViewT>
-    void initialize(ImageViewBase<ViewT> const& view) {
+    void initialize(ImageViewBase<ViewT> const& view, 
+                    const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
       char base_name[] = "/tmp/vw_cache_XXXXXXX";
       std::string filename = mktemp(base_name);
       filename = filename + "." + m_file_type;
       vw_out(InfoMessage, "fileio") << "Creating disk cache of image in: " << filename << "\n";
-      write_image(filename, pixel_cast_rescale<PixelT>(view), TerminalProgressCallback());
+      write_image(filename, pixel_cast_rescale<PixelT>(view), progress_callback);
       m_handle = boost::shared_ptr<DiskCacheHandle<PixelT> >(new DiskCacheHandle<PixelT>(view.impl(), filename)); 
     }
 
@@ -138,8 +139,10 @@ namespace vw {
     /// Create a temporary image view cache file on disk using a
     /// system supplied temporary filename.
     template <class ViewT>
-    DiskCacheImageView(ImageViewBase<ViewT> const& view, std::string const& file_type = "tif") : m_file_type(file_type) {
-      this->initialize(view.impl());
+    DiskCacheImageView(ImageViewBase<ViewT> const& view, std::string const& file_type = "tif",
+                       const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) : 
+      m_file_type(file_type) {
+      this->initialize(view.impl(), progress_callback);
     }
 
     inline int32 cols() const { return m_handle->view().cols(); }
