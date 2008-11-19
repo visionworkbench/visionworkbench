@@ -154,7 +154,6 @@ namespace ip {
     queue.join_all();
 
     vw_out(DebugMessage, "interest_point") << "MT interest point detection complete.  " << ip_list.size() << " interest point detected.\n";
-    Thread::sleep_ms(2000);
     return ip_list;
   }
 
