@@ -25,75 +25,74 @@ if MAKE_MODULE_PYTHON
 
 MODULES= cartography composite core fileio filter image imagealgo imagemanip imagemath pixel pixelcast qtree transform vwmath
 
-BUILT_SOURCES = $(MODULES:%=%_wrap.cpp)
-CLEANFILES = $(BUILT_SOURCES) $(MODULES:%=%_wrap.h) $(MODULES:%=%.py)
+CLEANFILES = $(MODULES:%=%_wrap.h) $(MODULES:%=%.py) $(MODULES:%=%_wrap.cpp)
 
-_cartography_la_SOURCES = cartography_wrap.cpp _cartography.i
+nodist__cartography_la_SOURCES = cartography_wrap.cpp _cartography.i
 _cartography_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(VW_CPPFLAGS) $(NUMPY_CPPFLAGS)
 _cartography_la_LDFLAGS  = -module $(VW_LDFLAGS)
 _cartography_la_LIBADD   = $(PKG_CARTOGRAPHY_LIBS)
 
-_composite_la_SOURCES = composite_wrap.cpp _composite.i
+nodist__composite_la_SOURCES = composite_wrap.cpp _composite.i
 _composite_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(VW_CPPFLAGS) $(NUMPY_CPPFLAGS)
 _composite_la_LDFLAGS = -module $(VW_LDFLAGS)
 _composite_la_LIBADD = $(PKG_MOSAIC_LIBS)
 
-_core_la_SOURCES = core_wrap.cpp _core.i
+nodist__core_la_SOURCES = core_wrap.cpp _core.i
 _core_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(VW_CPPFLAGS)
 _core_la_LDFLAGS = -module $(VW_LDFLAGS)
 _core_la_LIBADD = $(PKG_VW_LIBS)
 
-_fileio_la_SOURCES = fileio_wrap.cpp _fileio.i
+nodist__fileio_la_SOURCES = fileio_wrap.cpp _fileio.i
 _fileio_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(VW_CPPFLAGS) $(NUMPY_CPPFLAGS)
 _fileio_la_LDFLAGS = -module $(VW_LDFLAGS)
 _fileio_la_LIBADD = $(PKG_VW_LIBS)
 
-_filter_la_SOURCES = filter_wrap.cpp _filter.i
+nodist__filter_la_SOURCES = filter_wrap.cpp _filter.i
 _filter_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(VW_CPPFLAGS) $(NUMPY_CPPFLAGS)
 _filter_la_LDFLAGS = -module $(VW_LDFLAGS)
 _filter_la_LIBADD = $(PKG_VW_LIBS)
 
-_image_la_SOURCES = image_wrap.cpp _image.i
+nodist__image_la_SOURCES = image_wrap.cpp _image.i
 _image_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(VW_CPPFLAGS) $(NUMPY_CPPFLAGS)
 _image_la_LDFLAGS = -module $(VW_LDFLAGS)
 _image_la_LIBADD = $(PKG_VW_LIBS)
 
-_imagealgo_la_SOURCES = imagealgo_wrap.cpp _imagealgo.i
+nodist__imagealgo_la_SOURCES = imagealgo_wrap.cpp _imagealgo.i
 _imagealgo_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(VW_CPPFLAGS) $(NUMPY_CPPFLAGS)
 _imagealgo_la_LDFLAGS = -module $(VW_LDFLAGS)
 _imagealgo_la_LIBADD = $(PKG_VW_LIBS)
 
-_imagemanip_la_SOURCES = imagemanip_wrap.cpp _imagemanip.i
+nodist__imagemanip_la_SOURCES = imagemanip_wrap.cpp _imagemanip.i
 _imagemanip_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(VW_CPPFLAGS) $(NUMPY_CPPFLAGS)
 _imagemanip_la_LDFLAGS = -module $(VW_LDFLAGS)
 _imagemanip_la_LIBADD = $(PKG_VW_LIBS)
 
-_imagemath_la_SOURCES = imagemath_wrap.cpp _imagemath.i
+nodist__imagemath_la_SOURCES = imagemath_wrap.cpp _imagemath.i
 _imagemath_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(VW_CPPFLAGS) $(NUMPY_CPPFLAGS)
 _imagemath_la_LDFLAGS = -module $(VW_LDFLAGS)
 _imagemath_la_LIBADD = $(PKG_VW_LIBS)
 
-_pixel_la_SOURCES = pixel_wrap.cpp _pixel.i
+nodist__pixel_la_SOURCES = pixel_wrap.cpp _pixel.i
 _pixel_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(VW_CPPFLAGS) $(NUMPY_CPPFLAGS)
 _pixel_la_LDFLAGS = -module $(VW_LDFLAGS)
 _pixel_la_LIBADD = $(PKG_VW_LIBS)
 
-_pixelcast_la_SOURCES = pixelcast_wrap.cpp _pixelcast.i
+nodist__pixelcast_la_SOURCES = pixelcast_wrap.cpp _pixelcast.i
 _pixelcast_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(VW_CPPFLAGS) $(NUMPY_CPPFLAGS)
 _pixelcast_la_LDFLAGS = -module $(VW_LDFLAGS)
 _pixelcast_la_LIBADD = $(PKG_VW_LIBS)
 
-_qtree_la_SOURCES = qtree_wrap.cpp _qtree.i
+nodist__qtree_la_SOURCES = qtree_wrap.cpp _qtree.i
 _qtree_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(VW_CPPFLAGS) $(NUMPY_CPPFLAGS)
 _qtree_la_LDFLAGS = -module $(VW_LDFLAGS)
 _qtree_la_LIBADD = $(PKG_MOSAIC_LIBS)
 
-_transform_la_SOURCES = transform_wrap.cpp _transform.i
+nodist__transform_la_SOURCES = transform_wrap.cpp _transform.i
 _transform_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(VW_CPPFLAGS) $(NUMPY_CPPFLAGS)
 _transform_la_LDFLAGS = -module $(VW_LDFLAGS)
 _transform_la_LIBADD = $(PKG_VW_LIBS)
 
-_vwmath_la_SOURCES = vwmath_wrap.cpp _vwmath.i
+nodist__vwmath_la_SOURCES = vwmath_wrap.cpp _vwmath.i
 _vwmath_la_CPPFLAGS = $(SWIG_PYTHON_CPPFLAGS) $(VW_CPPFLAGS) $(NUMPY_CPPFLAGS)
 _vwmath_la_LDFLAGS = -module $(VW_LDFLAGS)
 _vwmath_la_LIBADD = $(PKG_VW_LIBS)
@@ -101,7 +100,7 @@ _vwmath_la_LIBADD = $(PKG_VW_LIBS)
 python_vwdir = ${pythondir}/vw
 pyexec_vwdir = ${pyexecdir}/vw
 
-python_vw_PYTHON = __init__.py cartography.py composite.py core.py fileio.py filter.py image.py imagealgo.py imagemanip.py imagemath.py pixel.py pixelcast.py qtree.py transform.py vwmath.py
+python_vw_PYTHON_NODIST = __init__.py cartography.py composite.py core.py fileio.py filter.py image.py imagealgo.py imagemanip.py imagemath.py pixel.py pixelcast.py qtree.py transform.py vwmath.py
 pyexec_vw_LTLIBRARIES = _cartography.la _composite.la _core.la _fileio.la _filter.la _image.la _imagealgo.la _imagemanip.la _imagemath.la _pixel.la _pixelcast.la _qtree.la _transform.la _vwmath.la
 
 %_wrap.cpp : _%.i

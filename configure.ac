@@ -21,7 +21,7 @@
 # 
 # __END_LICENSE__
 
-AC_INIT([NASA Vision Workbench], [2.0.alpha4], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
+AC_INIT([NASA Vision Workbench], [2.0.alpha5-pre], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
