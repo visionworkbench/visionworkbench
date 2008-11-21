@@ -29,7 +29,7 @@ ACLOCAL_AMFLAGS = -I m4 -I thirdparty/m4
 SUBDIRS = src Python
 
 EXTRA_DIST = config/rules.mak config/relicense config.options.example \
-	NOTES docs thirdparty/cxxtest
+	NOTES docs thirdparty/cxxtest INSTALLGUIDE
 
 ########################################################################
 # special top-level rules

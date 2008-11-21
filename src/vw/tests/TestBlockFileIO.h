@@ -26,7 +26,6 @@
 #include <cxxtest/TestSuite.h>
 #include <string>
 #include <vw/FileIO/DiskImageResource.h>
-#include <vw/FileIO/DiskImageResourceTIFF.h>
 
 #include <vw/Image.h>
 #include <vw/FileIO.h>

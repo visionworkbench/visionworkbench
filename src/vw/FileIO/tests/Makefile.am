@@ -45,6 +45,6 @@ check_PROGRAMS = $(TESTS)
 
 EXTRA_DIST = $(TESTS:%=%.h) rgb2x2.png rgb2x2.tif rgb2x2.jpg
 
-CLEANFILES = $(TESTS:%=%.cxx) tmp.png tmp.tif
+CLEANFILES = $(TESTS:%=%.cxx) tmp.png tmp.tif rwtest.*
 
 include $(top_srcdir)/config/rules.mak

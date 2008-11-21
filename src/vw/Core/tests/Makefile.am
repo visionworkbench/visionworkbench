@@ -48,6 +48,6 @@ AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_CORE_LIBS@
 
 check_PROGRAMS = $(TESTS)
 EXTRA_DIST = $(TESTS:%=%.h)
-CLEANFILES = $(TESTS:%=%.cxx)
+CLEANFILES = $(TESTS:%=%.cxx) log.txt
 
 include $(top_srcdir)/config/rules.mak
