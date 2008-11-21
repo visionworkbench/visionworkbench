@@ -338,7 +338,13 @@ AX_PKG(JPEG, [], [-ljpeg], [stdio.h jpeglib.h]) # jpeglib.h requires stdio.h to 
 AX_PKG(TIFF, [], [-ltiff], [tiff.h])
 AX_PKG(ILMBASE, [Z PTHREADS], [-lImath -lHalf -lIex], [Iex.h], [OpenEXR])
 AX_PKG(OPENEXR, [ILMBASE], [-lIlmImf], [ImfOutputFile.h], [OpenEXR])
-AX_PKG(HDF, [], [-ldf -lmfhdf], [mfhdf.h])
+
+AX_PKG(HDF_PLAIN, [], [-ldf -lmfhdf], [mfhdf.h])
+if test "$HAVE_PKG_HDF_PLAIN" = "no"; then
+    AX_PKG(HDF, [], [-ldf -lmfhdf], [mfhdf.h], [hdf])
+else
+    AX_PKG(HDF, [HDF_PLAIN], [], [])
+fi
 
 AX_PKG(X11, [], [-lXext -lX11 -lXmu -lXi -lXt], [])
 AX_PKG_GL
