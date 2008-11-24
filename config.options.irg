@@ -9,10 +9,11 @@ IRGPKG_DIR=/irg/packages/$IRG_ARCH
 ### Configure Options
 #
 # These options allow you modify the basic behavior of the build environment.
-
 ENABLE_DEBUG=no
 ENABLE_OPTIMIZE=yes
-PREFIX=`pwd`/build/$IRG_ARCH
+
+# This is where vw will be installed.
+PREFIX=$HOME/local
 
 ### Module Configuration
 #
@@ -23,27 +24,42 @@ PREFIX=`pwd`/build/$IRG_ARCH
 # cannot be found.  Look at the output from ./configure to see whether
 # the module will ultimately be built.
 
-# ENABLE_MODULE_MOSAIC=yes
 # ENABLE_MODULE_CAMERA=yes
 # ENABLE_MODULE_CARTOGRAPHY=yes
-# ENABLE_MODULE_HDR=yes
-# ENABLE_MODULE_STEREO=yes
-# ENABLE_MODULE_INTERESTPOINT=yes
+# ENABLE_MODULE_CORE=yes
+# ENABLE_MODULE_FILEIO=yes
+# ENABLE_MODULE_GEOMETRY=yes
 # ENABLE_MODULE_GPU=no
+# ENABLE_MODULE_HDR=yes
+# ENABLE_MODULE_IMAGE=yes
+# ENABLE_MODULE_INTERESTPOINT=yes
+# ENABLE_MODULE_MATH=yes
+# ENABLE_MODULE_MOSAIC=yes
+# ENABLE_MODULE_STEREO=yes
+# ENABLE_MODULE_TOOLS=yes
+# ENABLE_MODULE_PYTHON=no
 
-### Package Base Paths 
+### Package Base Paths
 #
 # Set these to the directories that contain lib/include directories
-# for packages in non-standard locations.  
+# for packages in non-standard locations.
 
-#Missing qhull, ppl, and apron
-PKG_PATHS="                    \
-  $IRGPKG_DIR/vxl              \
-  $IRGPKG_DIR/boost            \
-  $IRGPKG_DIR/openexr          \
-  $IRGPKG_DIR/gdal             \
-  $IRGPKG_DIR/proj4            \
-  $IRGPKG_DIR/LAPACK           \
-  $IRGPKG_DIR/gmp              \
-  $IRGPKG_DIR/mpfr             \
-"
+## Use this for speed
+#HAVE_PKG_CLAPACK=no
+#HAVE_PKG_SLAPACK=/usr
+
+# Use this if it should run on every irg machine
+HAVE_PKG_CLAPACK=$IRGPKG_DIR/LAPACK
+
+
+HAVE_PKG_BOOST=$IRGPKG_DIR/boost
+HAVE_PKG_GDAL=$IRGPKG_DIR/gdal
+HAVE_PKG_GMP=$IRGPKG_DIR/gmp
+HAVE_PKG_JPEG=$IRGPKG_DIR/libjpeg-62
+HAVE_PKG_MPFR=$IRGPKG_DIR/mpfr
+HAVE_PKG_OPENEXR=$IRGPKG_DIR/openexr
+HAVE_PKG_ILMBASE=$IRGPKG_DIR/openexr
+HAVE_PKG_PNG=$IRGPKG_DIR/libpng-1.2.29
+HAVE_PKG_PPL=$IRGPKG_DIR/ppl-0.9
+HAVE_PKG_PROJ4=$IRGPKG_DIR/proj4
+HAVE_PKG_TIFF=no
