@@ -64,8 +64,8 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
     fi
   fi
 
-  ax_pkg_old_vw_cppflags=$VW_CPPFLAGS
-  ax_pkg_old_vw_ldflags=$VW_LDFLAGS
+  ax_pkg_old_other_cppflags=$OTHER_CPPFLAGS
+  ax_pkg_old_other_ldflags=$OTHER_LDFLAGS
   ax_pkg_old_cppflags=$CPPFLAGS
   ax_pkg_old_ldflags=$LDFLAGS
   ax_pkg_old_libs=$LIBS
@@ -78,8 +78,8 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
     if test "x${ENABLE_VERBOSE}" = "xyes" ; then
       AC_MSG_CHECKING([whether current paths are sufficient...])
     fi
-    CPPFLAGS="$ax_pkg_old_cppflags $VW_CPPFLAGS"
-    LDFLAGS="$ax_pkg_old_ldflags $VW_LDFLAGS"
+    CPPFLAGS="$ax_pkg_old_cppflags $OTHER_CPPFLAGS"
+    LDFLAGS="$ax_pkg_old_ldflags $OTHER_LDFLAGS"
     LIBS="$PKG_BOOST_$1_LIBS $ax_pkg_old_libs"
     AC_LINK_IFELSE( AC_LANG_PROGRAM([#include "conftest.h"],[]), [ax_result=yes], [ax_result=no] )
     if test "x${ENABLE_VERBOSE}" = "xyes" ; then
@@ -90,8 +90,8 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
     if test "x${ENABLE_VERBOSE}" = "xyes" ; then
       AC_MSG_CHECKING([whether adding the include path is sufficient...])
     fi
-    VW_CPPFLAGS="-I${PKG_BOOST_INCDIR} $VW_CPPFLAGS"
-    CPPFLAGS="$ax_pkg_old_cppflags $VW_CPPFLAGS"
+    OTHER_CPPFLAGS="-I${PKG_BOOST_INCDIR} $OTHER_CPPFLAGS"
+    CPPFLAGS="$ax_pkg_old_cppflags $OTHER_CPPFLAGS"
     AC_LINK_IFELSE( AC_LANG_PROGRAM([#include "conftest.h"],[]), [ax_result=yes], [ax_result=no] )
     if test "x${ENABLE_VERBOSE}" = "xyes" ; then
       AC_MSG_RESULT([$ax_result])
@@ -101,8 +101,8 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
     if test "x${ENABLE_VERBOSE}" = "xyes" ; then
       AC_MSG_CHECKING([whether adding the include and linker paths works...])
     fi
-    VW_LDFLAGS="-L${PKG_BOOST_LIBDIR} $VW_LDFLAGS"
-    LDFLAGS="$ax_pkg_old_ldflags $VW_LDFLAGS"
+    OTHER_LDFLAGS="-L${PKG_BOOST_LIBDIR} $OTHER_LDFLAGS"
+    LDFLAGS="$ax_pkg_old_ldflags $OTHER_LDFLAGS"
     AC_LINK_IFELSE( AC_LANG_PROGRAM([#include "conftest.h"],[]), [ax_result=yes], [ax_result=no] )
     if test "x${ENABLE_VERBOSE}" = "xyes" ; then
       AC_MSG_RESULT([$ax_result])
@@ -110,8 +110,8 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
     if test "$ax_result" = "yes" ; then break ; fi
     # The detected version of boost seems to be invalid!
     HAVE_PKG_BOOST_$1="no"
-    VW_CPPFLAGS="$ax_pkg_old_vw_cppflags"
-    VW_LDFLAGS="$ax_pkg_old_vw_ldflags"
+    OTHER_CPPFLAGS="$ax_pkg_old_other_cppflags"
+    OTHER_LDFLAGS="$ax_pkg_old_other_ldflags"
     break
   done
 

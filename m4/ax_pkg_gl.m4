@@ -16,7 +16,7 @@ AC_DEFUN([AX_PKG_GL],
     fi
 
     HAVE_PKG_GL="yes"
-    PKG_GL_LIBS="$VW_LDFLAGS -framework OpenGL -framework GLUT"
+    PKG_GL_LIBS="$OTHER_LDFLAGS -framework OpenGL -framework GLUT"
 
     if test "$ENABLE_VERBOSE" = "yes"; then
       AC_MSG_RESULT([found])
@@ -35,8 +35,8 @@ AC_DEFUN([AX_PKG_GL],
     if test "$ENABLE_VERBOSE" = "yes"; then
       AC_MSG_NOTICE([HAVE_PKG_GL = ${HAVE_PKG_GL}])
       AC_MSG_NOTICE([PKG_GL_LIBS = ${PKG_GL_LIBS}])
-      AC_MSG_NOTICE([VW_CPPFLAGS = ${VW_CPPFLAGS}])
-      AC_MSG_NOTICE([VW_LDFLAGS = ${VW_LDFLAGS}])
+      AC_MSG_NOTICE([OTHER_CPPFLAGS = ${OTHER_CPPFLAGS}])
+      AC_MSG_NOTICE([OTHER_LDFLAGS = ${OTHER_LDFLAGS}])
       AC_MSG_NOTICE([CPPFLAGS= $CPPFLAGS])
       AC_MSG_NOTICE([LDFLAGS= $LDFLAGS])
     else

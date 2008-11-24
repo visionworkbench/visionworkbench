@@ -18,6 +18,7 @@ AC_DEFUN([AX_PKG_BOOST],
   # Skip testing if the user has overridden
   if test -z ${HAVE_PKG_BOOST}; then
 
+    PKG_BOOST_CPPFLAGS=
     PKG_BOOST_LIBS=
     HAVE_PKG_BOOST=no
 
@@ -64,8 +65,8 @@ AC_DEFUN([AX_PKG_BOOST],
   fi
 
   if test "${HAVE_PKG_BOOST}" = "yes" ; then
-    ax_pkg_old_vw_cppflags=$VW_CPPFLAGS
-    ax_pkg_old_vw_ldflags=$VW_LDFLAGS
+    ax_pkg_old_other_cppflags=$OTHER_CPPFLAGS
+    ax_pkg_old_other_ldflags=$OTHER_LDFLAGS
     ax_pkg_old_cppflags=$CPPFLAGS
     ax_pkg_old_ldflags=$LDFLAGS
     ax_pkg_old_libs=$LIBS
@@ -80,8 +81,8 @@ AC_DEFUN([AX_PKG_BOOST],
       fi
       if test "$ax_result" = "yes" ; then break ; fi
       # Try it with just the include path
-      VW_CPPFLAGS="-I${PKG_BOOST_INCDIR} $VW_CPPFLAGS"
-      CPPFLAGS="$ax_pkg_old_cppflags $VW_CPPFLAGS"
+      OTHER_CPPFLAGS="-I${PKG_BOOST_INCDIR} $OTHER_CPPFLAGS"
+      CPPFLAGS="$ax_pkg_old_cppflags $OTHER_CPPFLAGS"
       if test "x${ENABLE_VERBOSE}" = "xyes" ; then
         AC_MSG_CHECKING([whether adding the include path is sufficient...])
       fi
@@ -91,8 +92,8 @@ AC_DEFUN([AX_PKG_BOOST],
       fi
       if test "$ax_result" = "yes" ; then break ; fi
       # Finally, try it with the linker path
-      VW_LDFLAGS="-L${PKG_BOOST_LIBDIR} $VW_LDFLAGS"
-      LDFLAGS="$ax_pkg_old_ldflags $VW_LDFLAGS"
+      OTHER_LDFLAGS="-L${PKG_BOOST_LIBDIR} $OTHER_LDFLAGS"
+      LDFLAGS="$ax_pkg_old_ldflags $OTHER_LDFLAGS"
       if test "x${ENABLE_VERBOSE}" = "xyes" ; then
         AC_MSG_CHECKING([whether adding the include and linker paths works...])
       fi
@@ -103,8 +104,8 @@ AC_DEFUN([AX_PKG_BOOST],
       if test "$ax_result" = "yes" ; then break ; fi
       # The detected version of boost seems to be invalid!
       HAVE_PKG_BOOST="no"
-      VW_CPPFLAGS="$ax_pkg_old_vw_cppflags"
-      VW_LDFLAGS="$ax_pkg_old_vw_ldflags"
+      OTHER_CPPFLAGS="$ax_pkg_old_other_cppflags"
+      OTHER_LDFLAGS="$ax_pkg_old_other_ldflags"
       unset PKG_BOOST_INCDIR
       unset PKG_BOOST_LIBDIR
       break
@@ -115,6 +116,8 @@ AC_DEFUN([AX_PKG_BOOST],
 
   if test "${HAVE_PKG_BOOST}" = "yes" ; then
     ax_have_pkg_bool=1
+    PKG_BOOST_CPPFLAGS="-I${PKG_BOOST_INCDIR}"
+    PKG_BOOST_LIBS="-L${PKG_BOOST_LIBDIR}"
   else
     ax_have_pkg_bool=0
   fi
@@ -122,36 +125,14 @@ AC_DEFUN([AX_PKG_BOOST],
                      [$ax_have_pkg_bool],
                      [Define to 1 if the BOOST package is available.])
 
+  AC_SUBST(PKG_BOOST_CPPFLAGS)
+  AC_SUBST(PKG_BOOST_LIBS)
   AC_SUBST(HAVE_PKG_BOOST)
-
-  AC_LANG_CONFTEST(
-  [AC_LANG_PROGRAM([[
-#include <iostream>
-#include <boost/version.hpp>
-#define STR2(s) #s
-#define STR(s) STR2(s)
-]],[[
-std::cout << STR(BOOST_VERSION);
-]])])
-  $CXX $VW_CPPFLAGS -I${PKG_BOOST_INCDIR} -o conftest conftest.$ac_ext
-  BOOST_VERSION=`./conftest`
-  AC_DEFINE_UNQUOTED([BOOST_VERSION],
-                     [$BOOST_VERSION],
-                     [The version of Boost with which the Vision Workbench was built.])
-
-  AH_VERBATIM([_VW_CHECK_BOOST_VERSION],
-[// Check to make sure the user is using the same version of Boost
-// headers that the Vision Workbench was built with.
-#include <boost/version.hpp>
-#if BOOST_VERSION != VW_BOOST_VERSION
-#error You are using a different version of Boost than you used to build the Vision Workbench!
-#endif
-])
 
   if test "$ENABLE_VERBOSE" = "yes"; then
     AC_MSG_NOTICE([HAVE_PKG_BOOST= $HAVE_PKG_BOOST])
-    AC_MSG_NOTICE([VW_CPPFLAGS= $VW_CPPFLAGS])
-    AC_MSG_NOTICE([VW_LDFLAGS= $VW_LDFLAGS])
+    AC_MSG_NOTICE([OTHER_CPPFLAGS= $OTHER_CPPFLAGS])
+    AC_MSG_NOTICE([OTHER_LDFLAGS= $OTHER_LDFLAGS])
     AC_MSG_NOTICE([CPPFLAGS= $CPPFLAGS])
     AC_MSG_NOTICE([LDFLAGS= $LDFLAGS])
   else

@@ -19,15 +19,24 @@ AC_DEFUN([AX_PKG],
     AC_MSG_RESULT([no (disabled by user)])
 
   else
-    # Test for and inherit libraries from dependencies
-    PKG_$1_LIBS="$3"
+    if test -z "${FORCE_$1_LDFLAGS}"; then
+        PKG_$1_LIBS="$3"
+    else
+        PKG_$1_LIBS="${FORCE_$1_LDFLAGS}"
+    fi
+
+    # Test for and inherit from dependencies
     for x in $2; do
       ax_pkg_have_dep=HAVE_PKG_${x}
       if test "${!ax_pkg_have_dep}" = "yes"; then
+        ax_pkg_dep_cxxflags="PKG_${x}_CPPFLAGS"
         ax_pkg_dep_libs="PKG_${x}_LIBS"
+        PKG_$1_CPPFLAGS="$PKG_$1_CPPFLAGS ${!ax_pkg_dep_cxxflags}"
         PKG_$1_LIBS="$PKG_$1_LIBS ${!ax_pkg_dep_libs}"
+        unset ax_pkg_dep_cxxflags
         unset ax_pkg_dep_libs
       else
+        unset PKG_$1_CPPFLAGS
         unset PKG_$1_LIBS
         HAVE_PKG_$1="no"
         break
@@ -41,17 +50,6 @@ AC_DEFUN([AX_PKG],
     elif test "x$HAVE_PKG_$1" = "xyes" ; then
       AC_MSG_RESULT([yes (using user-supplied flags)])
 
-      # Add package-specific cppflags/ldflags to what we have so far.
-      # This is necessary for systems that have one version of a library
-      # installed in a default location, and another that they want to use
-      # instead in a separate location.
-      if test -n ${PKG_$1_CPPFLAGS} ; then
-        VW_CPPFLAGS="${PKG_$1_CPPFLAGS} ${VW_CPPFLAGS}"
-      fi
-      if test -n ${PKG_$1_LDFLAGS} ; then
-        VW_LDFLAGS="${PKG_$1_LDFLAGS} ${VW_LDFLAGS}"
-      fi
-
     # Otherwise we look for a path that contains the needed headers and libraries
     else
 
@@ -59,10 +57,12 @@ AC_DEFUN([AX_PKG],
         AC_MSG_RESULT([searching...])
       fi
 
-      if test -n "${HAVE_PKG_$1}" && test "${HAVE_PKG_$1}" != "yes" && test "${HAVE_PKG_$1}" != "no"; then
+      if test -n "${FORCE_$1_LDFLAGS}"; then
+        PKG_PATHS_$1=""
+      elif test -n "${HAVE_PKG_$1}" && test "${HAVE_PKG_$1}" != "yes" && test "${HAVE_PKG_$1}" != "no"; then
         PKG_PATHS_$1=${HAVE_PKG_$1}
       else
-        PKG_PATHS_$1=${PKG_PATHS}
+        PKG_PATHS_$1="none ${PKG_PATHS}"
       fi
 
       HAVE_PKG_$1=no
@@ -70,15 +70,16 @@ AC_DEFUN([AX_PKG],
       ax_pkg_old_libs="$LIBS"
       ax_pkg_old_cppflags="$CPPFLAGS"
       ax_pkg_old_ldflags="$LDFLAGS"
-      ax_pkg_old_vw_cppflags="$VW_CPPFLAGS"
-      ax_pkg_old_vw_ldflags="$VW_LDFLAGS"
-      LIBS="$PKG_$1_LIBS $LIBS"
-      for path in none $PKG_PATHS_$1; do
+      ax_pkg_old_other_cppflags="$OTHER_CPPFLAGS"
+      ax_pkg_old_other_ldflags="$OTHER_LDFLAGS"
 
-        CPPFLAGS="$ax_pkg_old_cppflags"
+      LIBS="$PKG_$1_LIBS $LIBS"
+      for path in $PKG_PATHS_$1; do
+
+        CPPFLAGS="$PKG_$1_CPPFLAGS $ax_pkg_old_cppflags"
         LDFLAGS="$ax_pkg_old_ldflags"
-        VW_CPPFLAGS="$ax_pkg_old_vw_cppflags"
-        VW_LDFLAGS="$ax_pkg_old_vw_ldflags"
+        OTHER_CPPFLAGS="$ax_pkg_old_other_cppflags"
+        OTHER_LDFLAGS="$ax_pkg_old_other_ldflags"
 
         echo > conftest.h
         for header in $4 ; do
@@ -90,11 +91,23 @@ AC_DEFUN([AX_PKG],
           if test x"$ENABLE_VERBOSE" = "xyes"; then
             AC_MSG_CHECKING([for package $1 in $path])
           fi
-          if test -z "$5"; then
-            TRY_ADD_CPPFLAGS="-I$path/include"
-          else
-            TRY_ADD_CPPFLAGS="-I$path/include/$5"
+
+          # ISIS is really stupid, and they use /foo/inc as their include file
+          # location instead of /foo/include. So we check for that. This sees 
+          # about any other idiot libraries that use the same design as well.
+          AX_INCLUDE_DIR=include
+          if ! test -d $path/${AX_INCLUDE_DIR}; then
+            if test -d $path/inc; then
+              AX_INCLUDE_DIR=inc
+            fi
           fi
+
+          if test -z "$5"; then
+            TRY_ADD_CPPFLAGS="$ADD_$1_CPPFLAGS -I$path/${AX_INCLUDE_DIR}"
+          else
+            TRY_ADD_CPPFLAGS="$ADD_$1_CPPFLAGS -I$path/${AX_INCLUDE_DIR}/$5"
+          fi
+
           if test -d $path/${AX_LIBDIR}; then
               TRY_ADD_LDFLAGS="-L$path/${AX_LIBDIR}"
           elif test x"${AX_LIBDIR}" = "xlib64"; then
@@ -103,6 +116,10 @@ AC_DEFUN([AX_PKG],
 
           CPPFLAGS="$CPPFLAGS $TRY_ADD_CPPFLAGS"
           LDFLAGS="$LDFLAGS $TRY_ADD_LDFLAGS"
+        else
+            # search in current paths
+            CPPFLAGS="$CPPFLAGS $OTHER_CPPFLAGS"
+            LDFLAGS="$LDFLAGS $OTHER_LDFLAGS"
         fi
         AC_LINK_IFELSE(
           AC_LANG_PROGRAM([#include "conftest.h"],[]),
@@ -114,8 +131,11 @@ AC_DEFUN([AX_PKG],
         fi
       done
 
-      VW_CPPFLAGS="$VW_CPPFLAGS $TRY_ADD_CPPFLAGS"
-      VW_LDFLAGS="$VW_LDFLAGS $TRY_ADD_LDFLAGS"
+      PKG_$1_CPPFLAGS="$PKG_$1_CPPFLAGS $TRY_ADD_CPPFLAGS"
+      PKG_$1_LIBS="$PKG_$1_LIBS $TRY_ADD_LDFLAGS"
+
+      OTHER_CPPFLAGS="$OTHER_CPPFLAGS $TRY_ADD_CPPFLAGS"
+      OTHER_LDFLAGS="$OTHER_LDFLAGS $TRY_ADD_LDFLAGS"
       CPPFLAGS="$ax_pkg_old_cppflags"
       LDFLAGS="$ax_pkg_old_ldflags"
       LIBS="$ax_pkg_old_libs"
@@ -131,21 +151,24 @@ AC_DEFUN([AX_PKG],
     ax_have_pkg_bool=1
   else
     ax_have_pkg_bool=0
+    PKG_$1_CPPFLAGS=
     PKG_$1_LIBS=
   fi
   AC_DEFINE_UNQUOTED([HAVE_PKG_$1],
                      [$ax_have_pkg_bool],
                      [Define to 1 if the $1 package is available.])
 
+  AC_SUBST(PKG_$1_CPPFLAGS)
   AC_SUBST(PKG_$1_LIBS)
   AC_SUBST(HAVE_PKG_$1)
 
   if test x"$ENABLE_VERBOSE" == "xyes"; then
     AC_MSG_NOTICE([HAVE_PKG_$1 = ${HAVE_PKG_$1}])
+    AC_MSG_NOTICE([PKG_$1_CPPFLAGS= $PKG_$1_CPPFLAGS])
     AC_MSG_NOTICE([PKG_$1_LIBS= $PKG_$1_LIBS])
     AC_MSG_NOTICE([CPPFLAGS= $CPPFLAGS])
     AC_MSG_NOTICE([LDFLAGS= $LDFLAGS])
-    AC_MSG_NOTICE([VW_CPPFLAGS= $VW_CPPFLAGS])
-    AC_MSG_NOTICE([VW_LDFLAGS= $VW_LDFLAGS])
+    AC_MSG_NOTICE([OTHER_CPPFLAGS= $OTHER_CPPFLAGS])
+    AC_MSG_NOTICE([OTHER_LDFLAGS= $OTHER_LDFLAGS])
   fi
 ])
