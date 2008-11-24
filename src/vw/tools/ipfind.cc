@@ -48,7 +48,7 @@ static std::string prefix_from_filename(std::string const& filename) {
 int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
   std::string interest_operator, descriptor_generator;
-  float harris_threshold, log_threshold;
+  float harris_threshold, log_threshold, surf_threshold;
   int max_points;
   int tile_size;
   int num_threads;
@@ -61,9 +61,10 @@ int main(int argc, char** argv) {
     ("lowe,l", "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
     
     // Interest point detector options
-    ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris]")
+    ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris, SURF]")
     ("log-threshold", po::value<float>(&log_threshold)->default_value(0.03), "Sets the threshold for the Laplacian of Gaussian interest operator")
     ("harris-threshold", po::value<float>(&harris_threshold)->default_value(1e-5), "Sets the threshold for the Harris interest operator")
+    ("surf-threshold", po::value<float>(&surf_threshold)->default_value(0.01), "Sets the threshold for the SURF interest operator")
     ("max-points", po::value<int>(&max_points)->default_value(1000), "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
     ("single-scale", "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
 
@@ -131,6 +132,11 @@ int main(int argc, char** argv) {
         InterestPointDetector<LogInterestOperator> detector(interest_operator, max_points);
         ip = detect_interest_points(image, detector, num_threads);
       }
+    } else if (interest_operator == "SURF") {
+      /// Right now we only support ScaledInterest Detection
+      SURFInterestOperator interest_operator(surf_threshold);
+      SURFInterestPointDetector<SURFInterestOperator> detector(interest_operator, max_points);
+      ip = detector.process_image( image );
     } else {
       vw_out(0) << "Unknown interest operator: " << interest_operator << ".  Options are : [ Harris, LoG ]\n";
       exit(0);

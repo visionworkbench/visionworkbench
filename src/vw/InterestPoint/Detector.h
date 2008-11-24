@@ -383,13 +383,13 @@ namespace ip {
     /// Otherwies, the max_points most "interesting" points are
     /// returned.
     ScaledInterestPointDetector(int max_points = 1000)
-      : m_interest(InterestT()), m_scales(IP_DEFAULT_OCTAVES), m_octaves(IP_DEFAULT_SCALES), m_max_points(max_points) {}
+      : m_interest(InterestT()), m_scales(IP_DEFAULT_SCALES), m_octaves(IP_DEFAULT_OCTAVES), m_max_points(max_points) {}
 
     /// Setting max_points = 0 will disable interest point culling.
     /// Otherwies, the max_points most "interesting" points are
     /// returned.
     ScaledInterestPointDetector(InterestT const& interest, int max_points = 1000) 
-      : m_interest(interest), m_scales(IP_DEFAULT_OCTAVES), m_octaves(IP_DEFAULT_SCALES), m_max_points(max_points) {}
+      : m_interest(interest), m_scales(IP_DEFAULT_SCALES), m_octaves(IP_DEFAULT_OCTAVES), m_max_points(max_points) {}
 
     /// Setting max_points = 0 will disable interest point culling.
     /// Otherwies, the max_points most "interesting" points are

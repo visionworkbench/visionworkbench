@@ -40,5 +40,7 @@
 #include <vw/InterestPoint/Matcher.h>
 #include <vw/InterestPoint/RANSAC.h>
 #include <vw/InterestPoint/WeightedHistogram.h>
+#include <vw/InterestPoint/SURF.h>
+#include <vw/InterestPoint/IntegralImage.h>
 #endif // __VW_INTERESTPOINT_H__
  

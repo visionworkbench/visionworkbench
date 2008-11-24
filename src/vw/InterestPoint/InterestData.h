@@ -47,8 +47,8 @@ namespace ip {
 
     InterestPoint() {}
 
-    InterestPoint(int x, int y, float scale=1.0, float interest=0.0, float ori=0.0)
-      : x((float)x), y((float)y), scale(scale), ix(x), iy(y), orientation(ori), interest(interest) {}
+  InterestPoint(int x, int y, float scale=1.0, float interest=0.0, float ori=0.0, bool pol=false, unsigned idx = 0)
+  : x((float)x), y((float)y), scale(scale), ix(x), iy(y), orientation(ori), interest(interest), polarity(pol), index(idx) {}
 
 
     /// Subpixel (col,row) location of point
@@ -74,6 +74,12 @@ namespace ip {
 
     /// The interest measure (could be Harris, LoG, etc.).
     float interest;
+
+    /// These are some extras for SURF
+    bool polarity;
+    /// This is the integer location in scale space (used for indexing
+    /// a vector of interest images)
+    unsigned index;
 
     /// And finally the descriptor for the interest point.  For example, 
     /// PCA descriptors would have a vector of floats or doubles...
