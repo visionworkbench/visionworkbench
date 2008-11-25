@@ -454,7 +454,7 @@ namespace ip {
     const float two_pi = 3.14159*2.0;
     float sumx, sumy, mod, greatest_mod;
     greatest_mod = 0;
-    for (float a = 0; a < two_pi; a += 0.1) {
+    for (float a = 0; a < two_pi; a += 0.01) {
       sumx = sumy = 0;
       for (int idx = 0; idx < 49; idx++ ) {
 	// Is it in my slice
@@ -462,8 +462,14 @@ namespace ip {
 	     (angle[idx] + two_pi > a - pi_6 && angle[idx] + two_pi < a + pi_6 ) ||
 	     (angle[idx] - two_pi > a - pi_6 && angle[idx] - two_pi < a + pi_6 ) ) {
 	  
-	  sumx += h_response[idx];
-	  sumy += v_response[idx];
+	  float diff_a = fabs( angle[idx] - a );
+	  if ( diff_a > 3.14159 )
+	    diff_a = fabs( diff_a - two_pi );
+
+	  float weight = -6*diff_a/3.14159 + 1;
+
+	  sumx += weight*h_response[idx];
+	  sumy += weight*v_response[idx];
 	}
       }
       
