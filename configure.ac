@@ -144,6 +144,7 @@ fi
 
 CFLAGS="$CFLAGS -I\${top_srcdir}/src $AX_CFLAGS"
 CXXFLAGS="$CXXFLAGS  -I\${top_srcdir}/src $AX_CFLAGS"
+LDFLAGS="$LDFLAGS -Wl,-no-undefined -Wl,-as-needed"
 
 
 AC_ARG_ENABLE(exceptions,

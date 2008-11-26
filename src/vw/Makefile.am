@@ -103,7 +103,7 @@ SUBDIRS = $(core_subdirs) $(math_subdirs) $(image_subdirs)		\
 
 lib_LTLIBRARIES = libvw.la
 libvw_la_SOURCES =
-libvw_la_LDFLAGS= -version-info @LIBTOOL_VERSION@ -no-undefined
+libvw_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvw_la_LIBADD = Core/libvwCore.la Math/libvwMath.la Image/libvwImage.la FileIO/libvwFileIO.la
 
 ########################################################################
