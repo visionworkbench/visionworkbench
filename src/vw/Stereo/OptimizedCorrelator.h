@@ -12,62 +12,6 @@
 
 namespace vw { 
 namespace stereo {
-  // ---------------------------------------------------------------------------
-  //                        STANDALONE BOX FILTER
-  // ---------------------------------------------------------------------------
-
-  // Efficient box filter implemenation.  
-  template <class ViewT>
-  static ImageView<float> standalone_box_filter(ImageViewBase<ViewT> const& img, Vector2i kernel_size) {
-    int kern_width = kernel_size.x();
-    int kern_height = kernel_size.y();
-
-    ImageView<float> src = img.impl();
-    ImageView<float> dst(src.cols(), src.rows());
-    std::vector<float> rSum(src.rows());
-
-    typedef typename ImageView<float>::pixel_accessor src_accessor;
-    typedef typename ImageView<float>::pixel_accessor dst_accessor;
-    
-    // Seed the row sum buffer
-    src_accessor row_acc = src.origin();
-    for (int y = 0; y < src.rows(); ++y) {
-      rSum[y] = 0;
-      src_accessor col_acc = row_acc;
-      for (int kx = 0; kx < kern_width; ++kx) {
-        rSum[y] += *col_acc; // src(kx, y);
-        col_acc.next_col();
-      }
-      row_acc.next_row();
-    }
-      
-    dst_accessor dst_col_acc = dst.origin();
-    dst_col_acc.advance(kern_width / 2, kern_height / 2);
-    for (int x = 0; x < src.cols() - kern_width; ++x) {
-      // Seed the col sum
-      float cSum = 0;
-      for (int j = 0; j < kern_height; ++j) {
-        cSum += rSum[j];
-      }
-      
-      dst_accessor dst_row_acc = dst_col_acc;
-      for (int y = 0; y < src.rows() - kern_height; ++y) {
-        *dst_row_acc = cSum;  // dst(x + kern_width / 2, y + kern_height / 2) = cSum
-        dst_row_acc.next_row();
-        
-        // Update the col sum
-        cSum += rSum[y + kern_height] - rSum[y];
-      }
-      
-      // Update the row sum
-      for (int j = 0; j < src.rows(); ++j) {
-        rSum[j] += src(x + kern_width, j) - src(x, j);
-      }
-      dst_col_acc.next_col();
-    }
-    
-    return dst;
-  }
 
   // ---------------------------------------------------------------------------
   //                           COST FUNCTIONS
@@ -108,6 +52,7 @@ namespace stereo {
                                          // pixel?
     virtual ~StereoCostFunction() {}
 
+
     // Efficient box filter implemenation.  This filter is called
     // repeatedly, but we allocate the image buffers only once (in the
     // constructor, above).
@@ -118,49 +63,38 @@ namespace stereo {
 
       VW_ASSERT(img.impl().cols() == m_dst.cols() && img.impl().rows() == m_dst.rows(),
                 ArgumentErr() << "StereoCostFunction::box_filter() : image size (" << img.impl().cols() << " " << img.impl().rows() << ") does not match box filter size (" << m_dst.cols() << " " << m_dst.rows() << ").");
-      m_src = img.impl();
 
-      typedef typename ImageView<float>::pixel_accessor src_accessor;
-      typedef typename ImageView<float>::pixel_accessor dst_accessor;
-      
-      // Seed the row sum buffer
-      src_accessor row_acc = m_src.origin();
-      for (int y = 0; y < m_src.rows(); ++y) {
-        m_rSum[y] = 0;
-        src_accessor col_acc = row_acc;
-        for (int kx = 0; kx < kern_width; ++kx) {
-          m_rSum[y] += *col_acc; // src(kx, y);
-          col_acc.next_col();
+      ImageView<float> src = img.impl();
+      Vector<float> cSum(src.cols());
+
+      // Seed the column sum buffer
+      for (int x = 0; x < src.cols(); x++) {
+        cSum(x) = 0;
+        for (int ky = 0; ky < kern_height; ky++) {
+          cSum(x) += src(x, ky);
         }
-        row_acc.next_row();
       }
-      
-      dst_accessor dst_col_acc = m_dst.origin();
-      dst_col_acc.advance(kern_width / 2, kern_height / 2);
-      for (int x = 0; x < m_src.cols() - kern_width; ++x) {
-        // Seed the col sum
-        float cSum = 0;
-        for (int j = 0; j < kern_height; ++j) {
-          cSum += m_rSum[j];
+
+      for (int y = 0; y < src.rows() - kern_height; y++) {
+        // Seed the row sum
+        float rsum = 0;
+        for (int i = 0; i < kern_width; i++) {
+          rsum += cSum(i);
         }
-        
-        dst_accessor dst_row_acc = dst_col_acc;
-        for (int y = 0; y < m_src.rows() - kern_height; ++y) {
-          *dst_row_acc = cSum;  // dst(x + kern_width / 2, y + kern_height / 2) = cSum
-          dst_row_acc.next_row();
-          
-          // Update the col sum
-          cSum += m_rSum[y + kern_height] - m_rSum[y];
+
+        for (int x = 0; x < src.cols() - kern_width; x++) {
+          m_dst(x + kern_width / 2, y + kern_height / 2) = rsum;
+          // Update the row sum
+          rsum += cSum(x + kern_width) - cSum(x);
         }
-        
-        // Update the row sum
-        for (int j = 0; j < m_src.rows(); ++j) {
-          m_rSum[j] += m_src(x + kern_width, j) - m_src(x, j);
+
+        // Update the column sum
+        for (int i = 0; i < src.cols(); i++) {
+          cSum(i) += src(i, y + kern_height) - src(i, y);
         }
-        dst_col_acc.next_col();
       }
-      
-      return m_dst;
+
+      return m_dst / (kern_width * kern_height);
     }
   };
 
@@ -227,12 +161,12 @@ namespace stereo {
       VW_ASSERT(m_left.cols() == m_right.cols(), ArgumentErr() << "Left and right images not the same width");
       VW_ASSERT(m_left.rows() == m_right.rows(), ArgumentErr() << "Left and right images not the same height");
       
-      vw::ImageView<float> left_mean_sq = standalone_box_filter(m_left * m_left, Vector2i(kern_size,kern_size));
-      m_left_mean = standalone_box_filter(m_left, Vector2i(kern_size,kern_size));
+      vw::ImageView<float> left_mean_sq = this->box_filter(m_left * m_left);
+      m_left_mean = this->box_filter(m_left);
       m_left_variance = left_mean_sq - m_left_mean * m_left_mean;
       
-      vw::ImageView<float> right_mean_sq = standalone_box_filter(m_right * m_right, Vector2i(kern_size,kern_size));
-      m_right_mean = standalone_box_filter(m_right, Vector2i(kern_size,kern_size));
+      vw::ImageView<float> right_mean_sq = this->box_filter(m_right * m_right);
+      m_right_mean = this->box_filter(m_right);
       m_right_variance = right_mean_sq - m_right_mean * m_right_mean;
     }
     

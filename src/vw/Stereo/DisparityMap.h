@@ -64,24 +64,27 @@ namespace vw {
   
     template <class OtherT> explicit PixelDisparity( PixelDisparity<OtherT> const& other ) { m_ch[0]=other[0]; m_ch[1]=other[1]; m_ch[2]=other[2];}
 
-    inline ChannelT& operator[](int i) { return m_ch[i]; }
-    inline ChannelT const& operator[](int i) const { return m_ch[i]; }
-    inline ChannelT& h() { return m_ch[0]; }
-    inline ChannelT const& h() const { return m_ch[0]; }
-    inline ChannelT& v() { return m_ch[1]; }
-    inline ChannelT const& v() const { return m_ch[1]; }
-    inline ChannelT& missing() { return m_ch[2]; }
-    inline ChannelT missing() const { return m_ch[2]; }
-    inline double magnitude() const { return sqrtf((double)m_ch[0]*m_ch[0] + (double)m_ch[1]*m_ch[1]); }
-    inline double magnitude_squared() const { return (double)m_ch[0]*m_ch[0] + (double)m_ch[1]*m_ch[1]; }
+    ChannelT& operator[](int i) { return m_ch[i]; }
+    ChannelT const& operator[](int i) const { return m_ch[i]; }
+    ChannelT& h() { return m_ch[0]; }
+    ChannelT const& h() const { return m_ch[0]; }
+    ChannelT& v() { return m_ch[1]; }
+    ChannelT const& v() const { return m_ch[1]; }
+    ChannelT& missing() { return m_ch[2]; }
+    ChannelT missing() const { return m_ch[2]; }
+    double magnitude() const { return sqrtf((double)m_ch[0]*m_ch[0] + (double)m_ch[1]*m_ch[1]); }
+    double magnitude_squared() const { return (double)m_ch[0]*m_ch[0] + (double)m_ch[1]*m_ch[1]; }
 
-    inline PixelDisparity& operator-() { if (!missing()) {m_ch[0]=-m_ch[0]; m_ch[1]=-m_ch[1];} return *this; }
-    inline PixelDisparity& operator+=( PixelDisparity const& p ) { if (missing() || p.missing()) {m_ch[0]=m_ch[1]=0; m_ch[2] = 1;} 
+    PixelDisparity& operator-() { if (!missing()) {m_ch[0]=-m_ch[0]; m_ch[1]=-m_ch[1];} return *this; }
+    PixelDisparity& operator+=( PixelDisparity const& p ) { if (missing() || p.missing()) {m_ch[0]=m_ch[1]=0; m_ch[2] = 1;} 
       else { m_ch[0]+=p[0]; m_ch[1]+=p[1]; } return *this; }
-    inline PixelDisparity& operator-=( PixelDisparity const& p ) { if (missing() || p.missing()) {m_ch[0]=m_ch[1]=0; m_ch[2] = 1;} 
+    PixelDisparity& operator-=( PixelDisparity const& p ) { if (missing() || p.missing()) {m_ch[0]=m_ch[1]=0; m_ch[2] = 1;} 
       else { m_ch[0]-=p[0]; m_ch[1]-=p[1]; } return *this; }
-    inline PixelDisparity& operator*=( ChannelT s ) { if (!missing()) { m_ch[0]*=s; m_ch[1]*=s; } return *this; }
-    inline PixelDisparity& operator/=( ChannelT s ) { if (!missing()) { m_ch[0]/=s; m_ch[1]/=s; } return *this; }
+    PixelDisparity& operator*=( ChannelT s ) { if (!missing()) { m_ch[0]*=s; m_ch[1]*=s; } return *this; }
+    PixelDisparity& operator/=( ChannelT s ) { if (!missing()) { m_ch[0]/=s; m_ch[1]/=s; } return *this; }
+    bool operator==(PixelDisparity const& p ) const { 
+      return ( missing() == p.missing() && h() == p.h() && v() == p.v() );
+    }
   };
 
   /// \cond INTERNAL
