@@ -61,24 +61,24 @@ int type_match(int actual_type, int desired_type) {
  */
 PyArrayObject* obj_to_array_no_conversion(PyObject* input, int typecode) {
   PyArrayObject* ary = NULL;
-  if (is_array(input) && (typecode == PyArray_NOTYPE || 
-			  PyArray_EquivTypenums(array_type(input), 
+  if (is_array(input) && (typecode == PyArray_NOTYPE ||
+			  PyArray_EquivTypenums(array_type(input),
 						typecode))) {
         ary = (PyArrayObject*) input;
     }
     else if is_array(input) {
       char* desired_type = typecode_string(typecode);
       char* actual_type = typecode_string(array_type(input));
-      PyErr_Format(PyExc_TypeError, 
-		   "Array of type '%s' required.  Array of type '%s' given", 
+      PyErr_Format(PyExc_TypeError,
+		   "Array of type '%s' required.  Array of type '%s' given",
 		   desired_type, actual_type);
       ary = NULL;
     }
     else {
       char * desired_type = typecode_string(typecode);
       char * actual_type = pytype_string(input);
-      PyErr_Format(PyExc_TypeError, 
-		   "Array of type '%s' required.  A %s was given", 
+      PyErr_Format(PyExc_TypeError,
+		   "Array of type '%s' required.  A %s was given",
 		   desired_type, actual_type);
       ary = NULL;
     }
@@ -122,8 +122,8 @@ PyArrayObject* make_contiguous(PyArrayObject* ary, int* is_new_object,
     *is_new_object = 0;
   }
   else {
-    result = (PyArrayObject*) PyArray_ContiguousFromObject((PyObject*)ary, 
-							   array_type(ary), 
+    result = (PyArrayObject*) PyArray_ContiguousFromObject((PyObject*)ary,
+							   array_type(ary),
 							   min_dims,
 							   max_dims);
     *is_new_object = 1;
@@ -142,14 +142,14 @@ PyArrayObject* obj_to_array_contiguous_allow_conversion(PyObject* input,
   int is_new1 = 0;
   int is_new2 = 0;
   PyArrayObject* ary2;
-  PyArrayObject* ary1 = obj_to_array_allow_conversion(input, typecode, 
+  PyArrayObject* ary1 = obj_to_array_allow_conversion(input, typecode,
 						      &is_new1);
   if (ary1) {
     ary2 = make_contiguous(ary1, &is_new2, 0, 0);
     if ( is_new1 && is_new2) {
       Py_DECREF(ary1);
     }
-    ary1 = ary2;    
+    ary1 = ary2;
   }
   *is_new_object = is_new1 || is_new2;
   return ary1;
@@ -175,8 +175,8 @@ int require_contiguous(PyArrayObject* ary) {
 int require_dimensions(PyArrayObject* ary, int exact_dimensions) {
   int success = 1;
   if (array_dimensions(ary) != exact_dimensions) {
-    PyErr_Format(PyExc_TypeError, 
-		 "Array must be have %d dimensions.  Given array has %d dimensions", 
+    PyErr_Format(PyExc_TypeError,
+		 "Array must be have %d dimensions.  Given array has %d dimensions",
 		 exact_dimensions, array_dimensions(ary));
     success = 0;
   }
@@ -200,17 +200,17 @@ int require_dimensions_n(PyArrayObject* ary, int* exact_dimensions, int n) {
   }
   if (!success) {
     for (i = 0; i < n-1; i++) {
-      sprintf(s, "%d, ", exact_dimensions[i]);                
+      sprintf(s, "%d, ", exact_dimensions[i]);
       strcat(dims_str,s);
     }
-    sprintf(s, " or %d", exact_dimensions[n-1]);            
+    sprintf(s, " or %d", exact_dimensions[n-1]);
     strcat(dims_str,s);
-    PyErr_Format(PyExc_TypeError, 
+    PyErr_Format(PyExc_TypeError,
 		 "Array must be have %s dimensions.  Given array has %d dimensions",
 		 dims_str, array_dimensions(ary));
   }
   return success;
-}    
+}
 
 /* Require the given PyArrayObject to have a specified shape.  If the
  * array has the specified shape, return 1.  Otherwise, set the python
@@ -225,29 +225,29 @@ int require_size(PyArrayObject* ary, int* size, int n) {
   char actual_dims[255] = "[";
   for(i=0; i < n;i++) {
     if (size[i] != -1 &&  size[i] != array_size(ary,i)) {
-      success = 0;    
+      success = 0;
     }
   }
   if (!success) {
     for (i = 0; i < n; i++) {
       if (size[i] == -1) {
-	sprintf(s, "*,");                
+	sprintf(s, "*,");
       }
       else
       {
-	sprintf(s, "%d,", size[i]);                
-      }    
+	sprintf(s, "%d,", size[i]);
+      }
       strcat(desired_dims,s);
     }
     len = strlen(desired_dims);
     desired_dims[len-1] = ']';
     for (i = 0; i < n; i++) {
-      sprintf(s, "%d,", array_size(ary,i));                            
+      sprintf(s, "%d,", array_size(ary,i));
       strcat(actual_dims,s);
     }
     len = strlen(actual_dims);
     actual_dims[len-1] = ']';
-    PyErr_Format(PyExc_TypeError, 
+    PyErr_Format(PyExc_TypeError,
 		 "Array must be have shape of %s.  Given array has shape of %s",
 		 desired_dims, actual_dims);
   }
@@ -354,7 +354,7 @@ TYPEMAP_IN2(PyObject,      PyArray_OBJECT)
  *     %apply (double* INPLACE_ARRAY2, int DIM1, int DIM2) {double* mx, int rows, int cols}
  *     void negate(double* series, int length);
  *     void normalize(double* mx, int rows, int cols);
- *     
+ *
  *
  * or with
  *
@@ -427,7 +427,7 @@ TYPEMAP_INPLACE2(PyObject,      PyArray_OBJECT)
  *     %apply (double* ARGOUT_ARRAY[ANY][ANY]) {double* mx, int rows, int cols}
  *     void negate(double* series, int length);
  *     void normalize(double* mx, int rows, int cols);
- *     
+ *
  *
  * or with
  *

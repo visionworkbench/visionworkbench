@@ -51,7 +51,7 @@ namespace vw {
     std::string const& get_comment_key  ( unsigned i ) const;
     std::string const& get_comment_value( unsigned i ) const;
     static void set_default_compression_level(int level);
-  };	
+  };
 }
 
 %inline %{
@@ -73,7 +73,7 @@ namespace vw {
     DiskImageView( DiskImageResource *resource );
 
     virtual ~DiskImageView();
-    
+
     %extend {
       int get_cols() const { return self->cols(); }
       int get_rows() const { return self->rows(); }
@@ -116,7 +116,7 @@ namespace vw {
       self.__dict__['pixel_type'] = pixel._compute_pixel_type(resource.pixel_type,ptype,pformat,ctype)
       resource.thisown = 0
       self.__dict__['_delegate'] = DiskImageView._pixel_type_table[self.pixel_type](resource)
-    
+
     def __getattr__(self,name):
       return getattr(self._delegate,name)
 

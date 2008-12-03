@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,12 +18,12 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 /// \file _qtree.i
-/// 
-/// Defines a Python interface to the QuadTreeGenerator and related 
+///
+/// Defines a Python interface to the QuadTreeGenerator and related
 /// classes in the Mosaic module.
 ///
 
@@ -75,7 +75,7 @@
   $1 = $input;
 }
 
-// Grab a Python QuadTreeGenerator object, to bind to a callback. 
+// Grab a Python QuadTreeGenerator object, to bind to a callback.
 // We don't check the type because we call these functions ourselves.
 %typemap(in) PyObject *qtree {
   $1 = $input;
@@ -103,9 +103,9 @@ the image has been subsampled by a power of two so that it fits within
 a single image tile.  The resulting image tiles are saved as image
 resources, typically written as image files on disk.
 
-The QuadTreeGenerator can be customized in a number of ways, and it 
-also includes a number of built-in \"modes\" that allow you to 
-conveniently configure it in a number of standard ways.  These modes, 
+The QuadTreeGenerator can be customized in a number of ways, and it
+also includes a number of built-in \"modes\" that allow you to
+conveniently configure it in a number of standard ways.  These modes,
 specified with the mode='foo' argument to the constructor, are:
 
   'kml'     : Generate a regionated KML image overlay for Google Earth
@@ -192,7 +192,7 @@ the Vision Workbook 2.0 for more information.
     %define %instantiate_qtree_types(cname,ctype,pname,ptype,...)
       %template(QuadTreeGenerator) QuadTreeGenerator<ptype >;
     %enddef
-   
+
     %instantiate_for_pixel_types(instantiate_qtree_types)
 
     %pythoncode {

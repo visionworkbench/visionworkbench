@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,17 +18,17 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 /// \file _qtree.h
-/// 
-/// Defines additional C++ types and functions used by the _qtree.i 
+///
+/// Defines additional C++ types and functions used by the _qtree.i
 /// interface definition file.
 ///
 
-// SWIG doesn't currently support nested classes, so we spoof it 
-// into thinking that TileInfo is not nested.  To make it all 
+// SWIG doesn't currently support nested classes, so we spoof it
+// into thinking that TileInfo is not nested.  To make it all
 // work properly, it's best to spoof C++ too.
 namespace vw {
 namespace mosaic {
@@ -36,7 +36,7 @@ namespace mosaic {
 } // namespace vw
 } // namespace mosaic
 
-// A wrapper for a user-supplied Python image_path_func callback function 
+// A wrapper for a user-supplied Python image_path_func callback function
 std::string image_path_func( boost::shared_ptr<PyObject> const& pyfunc,
                              boost::shared_ptr<PyObject> const& qtree,
                              std::string const& name )
@@ -58,7 +58,7 @@ error:
   return path;
 }
 
-// A wrapper for a user-supplied Python branch_func callback function 
+// A wrapper for a user-supplied Python branch_func callback function
 std::vector<std::pair<std::string,vw::BBox2i> > branch_func( boost::shared_ptr<PyObject> const& pyfunc,
                                                              boost::shared_ptr<PyObject> const& qtree,
                                                              std::string const& name,
@@ -96,7 +96,7 @@ error:
   return result;
 }
 
-// A wrapper for a user-supplied Python tile_resource_func callback function 
+// A wrapper for a user-supplied Python tile_resource_func callback function
 boost::shared_ptr<vw::ImageResource> tile_resource_func( boost::shared_ptr<PyObject> const& pyfunc,
                                                          boost::shared_ptr<PyObject> const& qtree,
                                                          vw::mosaic::TileInfo const& info,
@@ -130,7 +130,7 @@ error:
   return resource_ptr;
 }
 
-// A wrapper for a user-supplied Python metadata_func callback function 
+// A wrapper for a user-supplied Python metadata_func callback function
 void metadata_func( boost::shared_ptr<PyObject> const& pyfunc,
                     boost::shared_ptr<PyObject> const& qtree,
                     vw::mosaic::TileInfo const& info )

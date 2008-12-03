@@ -142,8 +142,8 @@ else
    AX_CFLAGS="$AX_CFLAGS -O0"
 fi
 
-CFLAGS="$CFLAGS -I\${top_srcdir}/src $AX_CFLAGS"
-CXXFLAGS="$CXXFLAGS  -I\${top_srcdir}/src $AX_CFLAGS"
+CFLAGS="$CFLAGS $AX_CFLAGS"
+CXXFLAGS="$CXXFLAGS $AX_CFLAGS"
 if test "x$host_vendor" != "xapple"; then
   LDFLAGS="$LDFLAGS -Wl,-no-undefined -Wl,-as-needed"
 fi
@@ -404,7 +404,7 @@ AX_MODULE(GEOMETRY, [src/vw/Geometry], [libvwGeometry.la], yes, [VW], [], [GMP P
 
 AX_MODULE(TOOLS, [src/vw/tools], [], yes, [], [])
 
-AX_MODULE_PYTHON([no])
+AX_MODULE_PYTHON([src/vw/Python], [no])
 
 # These are here (instead of inside the MODULE macro where they belong)
 # for backwards compatability with older versions of automake.
@@ -442,7 +442,7 @@ AC_MSG_NOTICE([VW will use $NUM_THREADS THREADS by default])
 #	final processing	    
 ##################################################
 
-VW_CPPFLAGS="$OTHER_CPPFLAGS"
+VW_CPPFLAGS="-I\${top_srcdir}/src $OTHER_CPPFLAGS"
 VW_LDFLAGS="$OTHER_LDFLAGS"
 
 if test "yes" = "$ENABLE_VERBOSE" ; then
@@ -493,8 +493,8 @@ AC_CONFIG_FILES([                       \
   src/vw/InterestPoint/tests/Makefile   \
   src/vw/Geometry/Makefile              \
   src/vw/Geometry/tests/Makefile        \
-  Python/vw/Makefile                    \
-  Python/Makefile                       \
+  src/vw/Python/vw/Makefile             \
+  src/vw/Python/Makefile                \
 ])
 
 AC_OUTPUT

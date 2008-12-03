@@ -98,11 +98,11 @@ namespace cartography {
   public:
     GeoReference();
     GeoReference( Datum const& datum );
-    
+
     //void set_spatial_ref(void* spatial_ref_ptr);
     //void set_proj4_str( std::string const& proj4_str );
     //void set_wkt_str( std::string const& wkt_str );
-    
+
     //std::string proj4_str() const;
     //std::string wkt_str() const;
 
@@ -115,7 +115,7 @@ namespace cartography {
 
     //bool is_projected() const;
 
-    //BBox2 bounding_box(int width, int height) const;    
+    //BBox2 bounding_box(int width, int height) const;
 
     void set_well_known_geogcs( std::string const& name );
 
@@ -132,7 +132,7 @@ namespace cartography {
       }
       void _get_transform( double arg[9] ) {
         *(vw::Matrix3x3*)arg = self->transform();
-      } 
+      }
       void _point_to_pixel( double arg[2], double result[2] ) {
         (*(vw::Vector2*)result) = self->point_to_pixel( (*(vw::Vector2*)arg) );
       }
@@ -238,7 +238,7 @@ namespace cartography {
 %define %instantiate_geotransform(cname,ctype,pname,ptype,in,...)
   %template(_geotransform) _geotransform<ptype, in>;
 %enddef
-   
+
 %instantiate_for_pixel_types_and_interpolations(instantiate_geotransform)
 
 %pythoncode {

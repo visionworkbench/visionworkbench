@@ -86,7 +86,7 @@ namespace vw {
       if( ! m_progress_func ) return;
       PyEval_CallFunction( m_progress_func.get(), "(d)", progress );
       if( PyErr_Occurred() ) vw_throw( vw::Exception() );
-    }  
+    }
 
   public:
     PythonProgressCallback( PyObject *progress_func, PyObject *finished_func, PyObject *aborted_func )
@@ -104,7 +104,7 @@ namespace vw {
     void report_incremental_progress(double incremental_progress) const {
       ProgressCallback::report_incremental_progress(incremental_progress);
       call_progress_func(progress());
-    }    
+    }
 
     void report_finished() const {
       ProgressCallback::report_finished();

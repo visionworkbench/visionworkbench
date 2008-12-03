@@ -64,7 +64,7 @@ namespace vw {
     int32 cols, rows, planes;
     PixelFormatEnum pixel_format;
     ChannelTypeEnum channel_type;
-    
+
     ImageFormat()
       : cols(0), rows(0), planes(0),
         pixel_format(VW_PIXEL_UNKNOWN),
@@ -93,7 +93,7 @@ namespace vw {
       void set_col( ImageView const& val, int index ) { select_col(*self,index) = val; }
       void set_col( PixelT const& val, int index ) { fill( select_col(*self,index), val ); }
       ImageView get_row( int index ) { return select_row(*self,index); }
-      void set_row( PixelT const& val, int index ) { fill( select_row(*self,index), val ); }     
+      void set_row( PixelT const& val, int index ) { fill( select_row(*self,index), val ); }
       void set_row( ImageView const& val, int index ) { select_row(*self,index) = val; }
       ImageView get_plane( int index ) { return select_plane(*self,index); }
       void set_plane( ImageView const& val, int index ) { select_plane(*self,index) = val; }
