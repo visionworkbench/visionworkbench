@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
   general_options.add_options()
     ("help", "Display this help message")
     ("matcher-threshold,t", po::value<double>(&matcher_threshold)->default_value(0.8), "Threshold for the interest point matcher.")
-    ("ransac-constraint,r", po::value<std::string>(&ransac_constraint)->default_value("similarity"), "RANSAC constraint type.  Choose one of: [similarity, homograhy].")
+    ("ransac-constraint,r", po::value<std::string>(&ransac_constraint)->default_value("similarity"), "RANSAC constraint type.  Choose one of: [similarity, homography, or none].")
     ("inlier-threshold,i", po::value<int>(&inlier_threshold)->default_value(10), "RANSAC inlier threshold.")
     ("debug-image,d", "Write out debug images.");
 
@@ -189,8 +189,11 @@ int main(int argc, char** argv) {
                                                                                                   inlier_threshold ); // inlier_threshold
           Matrix<double> H = ransac(ransac_ip1,ransac_ip2);
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
+	} else if (ransac_constraint == "none") {
+	  for ( unsigned i = 0; i < matched_ip1.size(); ++i )
+	    indices.push_back(i);
         } else {
-          std::cout << "Unknown RANSAC constraint type: " << ransac_constraint << ".  Choose one of: [similarity, homography]\n";
+          std::cout << "Unknown RANSAC constraint type: " << ransac_constraint << ".  Choose one of: [similarity, homography, or none]\n";
           exit(0);
         }
       } catch (vw::ip::RANSACErr &e) {
