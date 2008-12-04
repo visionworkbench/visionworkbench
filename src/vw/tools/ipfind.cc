@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
     ("single-scale", "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
 
     // Descriptor generator options
-    ("descriptor-generator", po::value<std::string>(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca,SURF]");
+    ("descriptor-generator", po::value<std::string>(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca]");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
@@ -151,9 +151,6 @@ int main(int argc, char** argv) {
       descriptor(image, ip);
     } else if (descriptor_generator == "pca") {
       PCASIFTDescriptorGenerator descriptor("pca_basis.exr", "pca_avg.exr");
-      descriptor(image, ip);
-    } else if (descriptor_generator == "SURF") {
-      SURFDescriptorGenerator descriptor;
       descriptor(image, ip);
     } else {
       vw_out(0) << "Unknown descriptor generator: " << descriptor_generator << "\n";
