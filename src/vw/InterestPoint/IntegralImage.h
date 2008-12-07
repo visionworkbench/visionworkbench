@@ -38,16 +38,14 @@ namespace ip {
   template <class ViewT>
   inline ImageView<double> IntegralImage( ImageViewBase<ViewT> const& source ) {
     
-    ImageView<float> image = pixel_cast<PixelGray<float> >(source);
-
     // Allocating space for integral image
-    vw::ImageView<double> integral( image.cols()+1, image.rows()+1 );
+    vw::ImageView<double> integral( source.impl().cols()+1, source.impl().rows()+1 );
     
     // Performing cumulative sum in the x direction
     for( signed y = 1; y < integral.rows(); ++y ) {
       integral(0,y) = 0;  // This is only need if the integral is not zero in the beginning
       for( signed x = 1; x < integral.cols(); ++x ) {
-	integral(x,y) = integral(x-1,y) + double(image(x,y));
+	integral(x,y) = integral(x-1,y) + pixel_cast<PixelGray<double> >(source.impl()(x-1,y-1)).v();
       }
     }
 
