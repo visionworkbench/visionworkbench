@@ -38,6 +38,7 @@ vw::int32 vw::channel_size( vw::ChannelTypeEnum type ) {
     return 1;
   case VW_CHANNEL_INT16:
   case VW_CHANNEL_UINT16:
+  case VW_CHANNEL_FLOAT16:
   case VW_CHANNEL_GENERIC_2_BYTE:
     return 2;
   case VW_CHANNEL_INT32:
@@ -66,10 +67,15 @@ const char *vw::channel_type_name( vw::ChannelTypeEnum format ) {
   case VW_CHANNEL_UINT16: return "UINT16";
   case VW_CHANNEL_INT32: return "INT32";
   case VW_CHANNEL_UINT32: return "UINT32";
+  case VW_CHANNEL_FLOAT16: return "FLOAT16";
   case VW_CHANNEL_FLOAT32: return "FLOAT32";
   case VW_CHANNEL_INT64: return "INT64";
   case VW_CHANNEL_UINT64: return "UINT64";
   case VW_CHANNEL_FLOAT64: return "FLOAT64";
+  case VW_CHANNEL_GENERIC_1_BYTE: return "GENERIC_1_BYTE";
+  case VW_CHANNEL_GENERIC_2_BYTE: return "GENERIC_2_BYTE";
+  case VW_CHANNEL_GENERIC_4_BYTE: return "GENERIC_3_BYTE";
+  case VW_CHANNEL_GENERIC_8_BYTE: return "GENERIC_4_BYTE";
   default: return "UNKNOWN";
   }
 }
@@ -120,6 +126,7 @@ const char *vw::pixel_format_name( vw::PixelFormatEnum format ) {
   case VW_PIXEL_XYZ: return "XYZ";
   case VW_PIXEL_LUV: return "LUV";
   case VW_PIXEL_LAB: return "LAB";
+  case VW_PIXEL_UNKNOWN_MASKED: return "UNKNOWN_MASKED";
   case VW_PIXEL_SCALAR_MASKED: return "SCALAR_MASKED";
   case VW_PIXEL_GRAY_MASKED: return "GRAY_MASKED";
   case VW_PIXEL_GRAYA_MASKED: return "GRAYA_MASKED";
@@ -129,6 +136,10 @@ const char *vw::pixel_format_name( vw::PixelFormatEnum format ) {
   case VW_PIXEL_XYZ_MASKED: return "XYZ_MASKED";
   case VW_PIXEL_LUV_MASKED: return "LUV_MASKED";
   case VW_PIXEL_LAB_MASKED: return "LAB_MASKED";
+  case VW_PIXEL_GENERIC_1_CHANNEL: return "VW_PIXEL_GENERIC_1_CHANNEL";
+  case VW_PIXEL_GENERIC_2_CHANNEL: return "VW_PIXEL_GENERIC_2_CHANNEL";
+  case VW_PIXEL_GENERIC_3_CHANNEL: return "VW_PIXEL_GENERIC_3_CHANNEL";
+  case VW_PIXEL_GENERIC_4_CHANNEL: return "VW_PIXEL_GENERIC_4_CHANNEL";
   default: return "UNKNOWN";
   }
 }
