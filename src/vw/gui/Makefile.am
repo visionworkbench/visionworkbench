@@ -22,16 +22,38 @@
 # __END_LICENSE__
 
 ########################################################################
-# tests (using cxxtest)
+# sources
 ########################################################################
 
-SUFFIXES = .cxx
+# 'make clean' should get rid of any QT meta-object compiled files.
+CLEANFILES = *.moc.cc
 
-CXXTEST_DIR =   $(top_srcdir)/thirdparty/cxxtest
-CXXTEST_GEN =   $(CXXTEST_DIR)/cxxtestgen.pl
-CXXTEST_ARGS =  --error-printer
+# For simplicity, these example applications depend on exceptions
+if ENABLE_EXCEPTIONS
 
-.h.cxx:
-	$(CXXTEST_GEN) $(CXXTEST_ARGS) -o $@ $<
+COMMON_LIBS = @PKG_VW_LIBS@ @PKG_BOOST_FILESYSTEM_LIBS@	\
+	      @PKG_BOOST_PROGRAM_OPTIONS_LIBS@          \
+	      @PKG_BOOST_THREAD_LIBS@ 
 
-include $(top_srcdir)/config/autotroll.mak
+# Graphical tools based on the core modules
+vwv_SOURCES  = vwv.cc vwv_MainWindow.cc vwv_MainWindow.moc.cc \
+	       vwv_GlPreviewWidget.cc vwv_GlPreviewWidget.moc.cc
+#vwv_CXXFLAGS = $(QT_CXXFLAGS) 
+vwv_LDADD    = @PKG_VW_LIBS@ $(COMMON_LIBS) $(QT_LIBS)
+
+bin_PROGRAMS = vwv
+
+noinst_PROGRAMS = 
+
+endif
+
+########################################################################
+# general
+########################################################################
+
+AM_CPPFLAGS = @VW_CPPFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@
+
+includedir = $(prefix)/include/vw
+
+include $(top_srcdir)/config/rules.mak

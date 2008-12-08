@@ -89,6 +89,10 @@ if MAKE_MODULE_TOOLS
 tools_subdirs = tools
 endif
 
+if MAKE_MODULE_GUI
+gui_subdirs = gui
+endif
+
 if MAKE_MODULE_PYTHON
 python_subdirs = Python
 endif
@@ -103,7 +107,7 @@ SUBDIRS = $(core_subdirs) $(math_subdirs) $(image_subdirs)		\
 	$(fileio_subdirs) . $(camera_subdirs) $(mosaic_subdirs)		\
 	$(stereo_subdirs) $(cartography_subdirs) $(gpu_subdirs)		\
 	$(interestpoint_subdirs) $(hdr_subdirs) $(geometry_subdirs)	\
-	tests $(tools_subdirs) $(python_subdirs)
+	tests $(tools_subdirs) $(gui_subdirs) $(python_subdirs)
 
 lib_LTLIBRARIES = libvw.la
 libvw_la_SOURCES =

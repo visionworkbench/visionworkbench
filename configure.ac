@@ -299,6 +299,9 @@ AC_SUBST(HAVE_SWIG)
 
 AC_LANG(C++)
 
+# Qt with AutoTroll.
+AT_WITH_QT([+gui +sql +opengl])
+
 AX_CHECK_INTROSPECTION
 
 if test "yes" = "$ENABLE_VERBOSE"; then
@@ -360,6 +363,19 @@ AX_PKG(CG, [], [-lCg -lCgGL], [Cg/cg.h])
 AX_PKG(GDAL, [], [-lgdal], [gdal.h])
 AX_PKG(PROJ4, [], [-lproj], [projects.h])
 
+# We seed QT_INCLUDE's cppflags with the ones qmake figured out
+ADD_QT_INCLUDE_CPPFLAGS="$ADD_QT_INCLUDE_CPPFLAGS $QT_CPPFLAGS"
+AX_PKG(QT_INCLUDE, [],           [],          [QVector])
+
+if test x"$host_vendor" = "xapple"; then
+    AX_PKG(QT,      [QT_INCLUDE],   [],              [])
+else
+    AX_PKG(QT_CORE, [QT_INCLUDE],   [-lQtCore],  [QVector])
+    AX_PKG(QT_GUI,  [QT_INCLUDE],   [-lQtGui],   [QLabel])
+    AX_PKG(QT_SQL,  [QT_INCLUDE],   [-lQtSql],   [QtSql])
+    AX_PKG(QT,      [QT_INCLUDE QT_CORE QT_GUI QT_SQL], [], [])
+fi
+
 # These are here (instead of inside the PKG macro where they belong)
 # for backwards compatability with older versions of automake.
 AM_CONDITIONAL(HAVE_PKG_LAPACK, [test "$HAVE_PKG_LAPACK" = "yes"])
@@ -403,6 +419,7 @@ fi
 AX_MODULE(GEOMETRY, [src/vw/Geometry], [libvwGeometry.la], yes, [VW], [], [GMP PPL APRON QHULL])
 
 AX_MODULE(TOOLS, [src/vw/tools], [], yes, [], [])
+AX_MODULE(GUI, [src/vw/gui], [], no, [VW], [QT])
 
 AX_MODULE_PYTHON([src/vw/Python], [no])
 
@@ -422,6 +439,7 @@ AM_CONDITIONAL(MAKE_MODULE_STEREO, [test "$MAKE_MODULE_STEREO" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GPU, [test "$MAKE_MODULE_GPU" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GEOMETRY, [test "$MAKE_MODULE_GEOMETRY" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_TOOLS, [test "$MAKE_MODULE_TOOLS" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_GUI, [test "$MAKE_MODULE_GUI" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_PYTHON, [test "$MAKE_MODULE_PYTHON" = "yes"])
 
 ##################################################
@@ -469,6 +487,7 @@ AC_CONFIG_FILES([                       \
   src/vw/Makefile                       \
   src/vw/tests/Makefile                 \
   src/vw/tools/Makefile                 \
+  src/vw/gui/Makefile                   \
   src/vw/Core/Makefile                  \
   src/vw/Core/tests/Makefile            \
   src/vw/Math/Makefile                  \
