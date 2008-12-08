@@ -64,14 +64,28 @@ namespace vw {
       boost::shared_ptr<ImageView<PixelT> > generate() const {
 
         // If the user has requested a single-plane, compound pixel
-        // type, but the file is a multi-plane, scalr pixel file
+        // type, but the file is a multi-plane, scalar pixel file
         // without any pixel semantics, we force the resource to a
         // single plane so that convert() can convert from a
         // multiplane file to compound pixel type image.
         int32 planes = m_res_ptr->planes();
         if (PixelNumChannels<PixelT>::value != 1)
           planes = 1;
-        
+
+        // On the other hand, if the file has a compound pixel type,
+        // but the user has requested that this image resource have a
+        // scalar pixel type, then this image resource needs to be
+        // multi-plane.
+        if ( !(IsCompound<PixelT>::value) ) {
+          // Option 1: multi-channel
+          if (m_res_ptr->channels() >= 1 && m_res_ptr->planes() == 1)
+            planes = m_res_ptr->channels();
+          
+          // Option 2: multi-plane
+          else if (m_res_ptr->channels() == 1 && m_res_ptr->planes() > 1)
+            planes = m_res_ptr->planes();
+        }
+
         boost::shared_ptr<ImageView<PixelT> > ptr( new ImageView<PixelT>( m_bbox.width(), m_bbox.height(), planes ) );
         {
           Mutex::Lock lock(m_rsrc_mutex);
