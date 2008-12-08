@@ -75,6 +75,9 @@ namespace vw {
     /// Returns the channel type of an image on disk.
     ChannelTypeEnum channel_type() const { return m_format.channel_type; }
 
+    /// Returns the channel type of an image on disk.
+    ImageFormat format() const { return m_format; }
+
     /// Return the filename of the disk image file.
     std::string filename() const { return m_filename; }
 
