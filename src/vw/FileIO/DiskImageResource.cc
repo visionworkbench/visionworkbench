@@ -202,19 +202,6 @@ static void register_default_file_types_impl() {
   vw::DiskImageResource::register_file_type( ".exr", vw::DiskImageResourceOpenEXR::type_static(), &vw::DiskImageResourceOpenEXR::construct_open, &vw::DiskImageResourceOpenEXR::construct_create );
 #endif
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-  if (vw::DiskImageResourceGDAL::gdal_has_support(".grd"))
-    vw::DiskImageResource::register_file_type( ".grd", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
-  if (vw::DiskImageResourceGDAL::gdal_has_support(".dem"))
-    vw::DiskImageResource::register_file_type( ".dem", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
-  if (vw::DiskImageResourceGDAL::gdal_has_support(".bil"))
-    vw::DiskImageResource::register_file_type( ".bil", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
-  if (vw::DiskImageResourceGDAL::gdal_has_support(".cub"))
-    vw::DiskImageResource::register_file_type( ".cub", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
-  if (vw::DiskImageResourceGDAL::gdal_has_support(".gif"))
-    vw::DiskImageResource::register_file_type( ".gif", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
-#endif
-
 }
 
 // This extra class helps to ensure that register_file_type() is only run once.
@@ -229,10 +216,23 @@ vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename 
     if( i != open_map->end() ) 
       return i->second( filename );
   }
+
+  // GDAL has support for many useful file formats, and we fall back
+  // on it here in case none of the registered file handlers know how
+  // to do the job.
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+  if (vw::DiskImageResourceGDAL::gdal_has_support( file_extension(filename) ))
+    return vw::DiskImageResourceGDAL::construct_open(filename);
+#endif
+
+  // If all attempts to find a suitable file driver fails, we throw an
+  // exception.
   vw_throw( NoImplErr() << "Unsuppported file format: " << filename );
   return 0; // never reached
 }
 
+/// Returns a disk image resource with the given filename.  The file
+/// type is determined by the value in 'type'.
 vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, ImageFormat const& format, std::string const& type ) {
   register_default_file_types();
   if( create_map ) {
@@ -240,10 +240,12 @@ vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filenam
     if( i != create_map->end() )
       return i->second( filename, format );
   }
-  vw_throw( NoImplErr() << "Unsuppported file format: " << filename );
+  vw_throw( NoImplErr() << "Unsuppported file type \"" << type << "\" for filename: " << filename );
   return 0; // never reached
 }
 
+/// Returns a disk image resource with the given filename.  The file
+/// type is determined by the extension of the filename.
 vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, ImageFormat const& format ) {
   register_default_file_types();
   if( create_map ) {
