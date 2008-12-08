@@ -178,6 +178,18 @@ namespace vw {
         retval.push_back("ISIS2");
       } else if (ext == ".img" || ext == ".pds" || ext == ".lbl") {  // Planetary data system image
         retval.push_back("PDS");
+      } else if (ext == ".ddf") {                // USGS SDTS DEM
+        retval.push_back("SDTS");
+      } else if (ext == ".asc") {                // Arc/Info ASCII Grid
+        retval.push_back("AAIGrid");
+      } else if (ext == ".adf") {                // Arc/Info Binary Grid
+        retval.push_back("AIG");
+      } else if (ext == ".doq") {                // New Labelled USGS DOQ 
+        retval.push_back("DOQ2");
+      } else if (ext == ".dt0" || ext == ".dt1" || ext == ".dt2") { // Military Elevation Data
+        retval.push_back("DTED");
+      } else if (ext == ".fits") {                // FITS (needs GDAL w/ libcfitsio)
+        retval.push_back("FITS");
       }
       else
         vw_throw( IOErr() << "DiskImageResourceGDAL: \"" << ext << "\" is an unsupported file extension." );
