@@ -65,7 +65,13 @@ AC_DEFUN([AX_MODULE],
 
       # Set up the variables
       MODULE_$1_LIBS=$ax_libs
-      PKG_$1_LIBS="$ax_libs \$(top_srcdir)/$2/$3"
+
+      if test -z "$3"; then
+        PKG_$1_LIBS="$ax_libs"
+      else
+        PKG_$1_LIBS="$ax_libs \$(top_srcdir)/$2/$3"
+      fi
+
       AC_MSG_RESULT([yes])
     fi
 
