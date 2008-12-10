@@ -32,6 +32,49 @@
 
 using namespace vw;
 
+class PrerasterizationTestView : public ImageViewBase<PrerasterizationTestView> {
+  ImageView<uint8> image;
+public:
+  typedef ImageView<uint8>::pixel_type pixel_type;
+  typedef ImageView<uint8>::result_type result_type;
+  typedef ImageView<uint8>::pixel_accessor pixel_accessor;
+
+  PrerasterizationTestView( int32 cols, int32 rows ) : image(cols,rows) {}
+  int32 cols() const { return image.cols(); }
+  int32 rows() const { return image.rows(); }
+  int32 planes() const { return 1; }
+  pixel_accessor origin() const { return image.origin(); }
+
+  BBox2i bbox() const {
+    BBox2i result;
+    for( int32 y=0; y<image.rows(); ++y ) {
+      for( int32 x=0; x<image.cols(); ++x ) {
+	if( image(x,y) ) result.grow( Vector2(x,y) );
+      }
+    }
+    if( result != BBox2i() ) {
+      result.max() += Vector2i(1,1);
+    }
+    return result;
+  }
+
+  typedef PrerasterizationTestView prerasterize_type;
+  inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+    if( bbox.min().x() < 0 || bbox.min().y() < 0 || bbox.max().x() > image.cols() || bbox.max().y() > image.rows() ) {
+      vw_throw(ArgumentErr() << "PrerasterizationTestView::prerasterize() called with bounding box that exceeds image dimensions");
+    }
+    for( int32 y=bbox.min().y(); y<bbox.max().y(); ++y ) {
+      for( int32 x=bbox.min().x(); x<bbox.max().x(); ++x ) {
+	image(x,y) = 1;
+      }
+    }
+    return *this;
+  }
+  template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
+    vw::rasterize( prerasterize(bbox), dest, bbox );
+  }
+};
+
 class TestImageView : public CxxTest::TestSuite
 {
 public:
@@ -109,6 +152,12 @@ public:
     for ( int r=0; r<im3.rows(); ++r )
       for ( int c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
+
+    // Test prerasterization
+    PrerasterizationTestView ptv(4,4);
+    TransposeView<PrerasterizationTestView> rtv(ptv);
+    TS_ASSERT_THROWS_NOTHING( rtv.prerasterize(BBox2i(2,0,1,2)) );
+    TS_ASSERT_EQUALS( ptv.bbox(), BBox2i(0,2,2,1) );
 
     // Test the accessor / generic rasterization
     ImageView<double> im4(rmv.cols(),rmv.rows());
@@ -189,6 +238,12 @@ public:
       for ( int c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
 
+    // Test prerasterization
+    PrerasterizationTestView ptv(4,4);
+    Rotate180View<PrerasterizationTestView> rtv(ptv);
+    TS_ASSERT_THROWS_NOTHING( rtv.prerasterize(BBox2i(2,0,1,2)) );
+    TS_ASSERT_EQUALS( ptv.bbox(), BBox2i(1,2,1,2) );
+
     // Test the accessor / generic rasterization
     ImageView<double> im4(rmv.cols(),rmv.rows());
     vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
@@ -265,6 +320,12 @@ public:
     for ( int r=0; r<im3.rows(); ++r )
       for ( int c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
+
+    // Test prerasterization
+    PrerasterizationTestView ptv(4,4);
+    Rotate90CWView<PrerasterizationTestView> rtv(ptv);
+    TS_ASSERT_THROWS_NOTHING( rtv.prerasterize(BBox2i(2,0,1,2)) );
+    TS_ASSERT_EQUALS( ptv.bbox(), BBox2i(0,1,2,1) );
 
     // Test the accessor / generic rasterization
     ImageView<double> im4(rmv.cols(),rmv.rows());
@@ -343,6 +404,12 @@ public:
       for ( int c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
 
+    // Test prerasterization
+    PrerasterizationTestView ptv(4,4);
+    Rotate90CCWView<PrerasterizationTestView> rtv(ptv);
+    TS_ASSERT_THROWS_NOTHING( rtv.prerasterize(BBox2i(2,0,1,2)) );
+    TS_ASSERT_EQUALS( ptv.bbox(), BBox2i(2,2,2,1) );
+
     // Test the accessor / generic rasterization
     ImageView<double> im4(rmv.cols(),rmv.rows());
     vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
@@ -419,6 +486,12 @@ public:
     for ( int r=0; r<im3.rows(); ++r )
       for ( int c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
+
+    // Test prerasterization
+    PrerasterizationTestView ptv(4,4);
+    FlipVerticalView<PrerasterizationTestView> rtv(ptv);
+    TS_ASSERT_THROWS_NOTHING( rtv.prerasterize(BBox2i(2,0,1,2)) );
+    TS_ASSERT_EQUALS( ptv.bbox(), BBox2i(2,2,1,2) );
 
     // Test the accessor / generic rasterization
     ImageView<double> im4(rmv.cols(),rmv.rows());
@@ -497,6 +570,12 @@ public:
       for ( int c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
 
+    // Test prerasterization
+    PrerasterizationTestView ptv(4,4);
+    FlipHorizontalView<PrerasterizationTestView> rtv(ptv);
+    TS_ASSERT_THROWS_NOTHING( rtv.prerasterize(BBox2i(2,0,1,2)) );
+    TS_ASSERT_EQUALS( ptv.bbox(), BBox2i(1,0,1,2) );
+
     // Test the accessor / generic rasterization
     ImageView<double> im4(rmv.cols(),rmv.rows());
     vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
@@ -573,6 +652,12 @@ public:
     for ( int r=0; r<im3.rows(); ++r )
       for ( int c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), cv(c+1,r+1) );
+
+    // Test prerasterization
+    PrerasterizationTestView ptv(4,4);
+    CropView<PrerasterizationTestView> rtv(ptv,0,1,3,3);
+    TS_ASSERT_THROWS_NOTHING( rtv.prerasterize(BBox2i(2,0,1,2)) );
+    TS_ASSERT_EQUALS( ptv.bbox(), BBox2i(2,1,1,2) );
 
     // Test the accessor / generic rasterization
     ImageView<double> im4(cv.cols(),cv.rows());
@@ -652,6 +737,12 @@ public:
     for ( int r=0; r<im3.rows(); ++r )
       for ( int c=0; c<im3.cols(); ++c )
         TS_ASSERT_EQUALS( im3(c,r), ssv(c+1,r+1) );
+
+    // Test prerasterization
+    PrerasterizationTestView ptv(4,4);
+    SubsampleView<PrerasterizationTestView> rtv(ptv,2,2);
+    TS_ASSERT_THROWS_NOTHING( rtv.prerasterize(BBox2i(1,0,1,2)) );
+    TS_ASSERT_EQUALS( ptv.bbox(), BBox2i(2,0,2,4) );
 
     // Test the accessor / generic rasterization
     ImageView<double> im4(ssv.cols(),ssv.rows());

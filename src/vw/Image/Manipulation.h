@@ -167,7 +167,10 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef TransposeView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+      BBox2i child_bbox( bbox.min().y(), bbox.min().x(), bbox.height(), bbox.width() );
+      return prerasterize_type( m_child.prerasterize(child_bbox) );
+    }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
@@ -250,7 +253,10 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef Rotate180View<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+      BBox2i child_bbox( cols()-bbox.max().x(), rows()-bbox.max().y(), bbox.width(), bbox.height() );
+      return prerasterize_type( m_child.prerasterize(child_bbox) );
+    }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
@@ -332,7 +338,10 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef Rotate90CWView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+      BBox2i child_bbox( bbox.min().y(), cols()-bbox.max().x(), bbox.height(), bbox.width() );
+      return prerasterize_type( m_child.prerasterize(child_bbox) );
+    }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
@@ -415,7 +424,10 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef Rotate90CCWView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+      BBox2i child_bbox( rows()-bbox.max().y(), bbox.min().x(), bbox.height(), bbox.width() );
+      return prerasterize_type( m_child.prerasterize(child_bbox) );
+    }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
@@ -498,7 +510,10 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef FlipVerticalView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+      BBox2i child_bbox( bbox.min().x(), rows()-bbox.max().y(), bbox.width(), bbox.height() );
+      return prerasterize_type( m_child.prerasterize(child_bbox) );
+    }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
@@ -581,7 +596,10 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef FlipHorizontalView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_child.prerasterize(bbox) ); }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+      BBox2i child_bbox( cols()-bbox.max().x(), bbox.min().y(), bbox.width(), bbox.height() );
+      return prerasterize_type( m_child.prerasterize(child_bbox) );
+    }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
