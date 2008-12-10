@@ -419,7 +419,7 @@ fi
 AX_MODULE(GEOMETRY, [src/vw/Geometry], [libvwGeometry.la], yes, [VW], [], [GMP PPL APRON QHULL])
 
 AX_MODULE(TOOLS, [src/vw/tools], [], yes, [], [])
-AX_MODULE(GUI, [src/vw/gui], [], no, [VW], [QT])
+AX_MODULE(GUI, [src/vw/gui], [], yes, [VW], [QT])
 
 AX_MODULE_PYTHON([src/vw/Python], [no])
 
