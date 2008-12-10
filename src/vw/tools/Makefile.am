@@ -28,8 +28,7 @@
 # For simplicity, these example applications depend on exceptions
 if ENABLE_EXCEPTIONS
 
-COMMON_LIBS = @PKG_VW_LIBS@ @PKG_BOOST_FILESYSTEM_LIBS@ \
-	@PKG_BOOST_PROGRAM_OPTIONS_LIBS@ @PKG_BOOST_THREAD_LIBS@
+COMMON_LIBS = @PKG_TOOLS_LIBS@
 
 # Command-line tools based on the Camera module
 if MAKE_MODULE_CAMERA
