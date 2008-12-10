@@ -119,6 +119,7 @@ int main(int argc, char** argv) {
   general_options.add_options()
     ("help", "Display this help message")
     ("matcher-threshold,t", po::value<double>(&matcher_threshold)->default_value(0.8), "Threshold for the interest point matcher.")
+    ("non-kdtree", "Use an implementation of the interest matcher that is not reliant on a KDTree algorithm")
     ("ransac-constraint,r", po::value<std::string>(&ransac_constraint)->default_value("similarity"), "RANSAC constraint type.  Choose one of: [similarity, homography, or none].")
     ("inlier-threshold,i", po::value<int>(&inlier_threshold)->default_value(10), "RANSAC inlier threshold.")
     ("debug-image,d", "Write out debug images.");
@@ -162,11 +163,18 @@ int main(int argc, char** argv) {
       ip2 = read_binary_ip_file(prefix_from_filename(input_file_names[j])+".vwip");
       vw_out(0) << "Matching between " << input_file_names[i] << " (" << ip1.size() << " points) and " << input_file_names[j] << " (" << ip2.size() << " points).\n"; 
 
-      // Run the basic interest point matcher.
-      InterestPointMatcher<L2NormMetric,NullConstraint> matcher(matcher_threshold);
-      //      DefaultMatcher matcher(matcher_threshold);
       std::vector<InterestPoint> matched_ip1, matched_ip2;
-      matcher(ip1, ip2, matched_ip1, matched_ip2, false, TerminalProgressCallback());
+
+      if ( !vm.count("non-kdtree") ) {
+	// Run interest point matcher that uses KDTree algorithm.
+	InterestPointMatcher<L2NormMetric,NullConstraint> matcher(matcher_threshold);
+	matcher(ip1, ip2, matched_ip1, matched_ip2, false, TerminalProgressCallback());
+      } else {
+	// Run interest point matcher that does not use KDTree algorithm.
+	InterestPointMatcherSimple<L2NormMetric,NullConstraint> matcher(matcher_threshold);
+	matcher(ip1, ip2, matched_ip1, matched_ip2, false, TerminalProgressCallback());
+      }
+
       remove_duplicates(matched_ip1, matched_ip2);
       vw_out(InfoMessage) << "Found " << matched_ip1.size() << " putative matches.\n";
 
