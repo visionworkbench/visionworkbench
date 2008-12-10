@@ -299,9 +299,6 @@ AC_SUBST(HAVE_SWIG)
 
 AC_LANG(C++)
 
-# Qt with AutoTroll.
-AT_WITH_QT([+gui +sql +opengl])
-
 AX_CHECK_INTROSPECTION
 
 if test "yes" = "$ENABLE_VERBOSE"; then
@@ -362,6 +359,10 @@ AX_PKG(CG, [], [-lCg -lCgGL], [Cg/cg.h])
 
 AX_PKG(GDAL, [], [-lgdal], [gdal.h])
 AX_PKG(PROJ4, [], [-lproj], [projects.h])
+
+# Qt with AutoTroll.
+AT_WITH_QT([+gui +sql +opengl], [], [], [], [HAVE_PKG_QT_INCLUDE=no])
+AT_REQUIRE_QT_VERSION([4.0], [], [HAVE_PKG_QT_INCLUDE=no])
 
 # We seed QT_INCLUDE's cppflags with the ones qmake figured out
 ADD_QT_INCLUDE_CPPFLAGS="$ADD_QT_INCLUDE_CPPFLAGS $QT_CPPFLAGS"
