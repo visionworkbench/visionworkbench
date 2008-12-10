@@ -368,12 +368,13 @@ ADD_QT_INCLUDE_CPPFLAGS="$ADD_QT_INCLUDE_CPPFLAGS $QT_CPPFLAGS"
 AX_PKG(QT_INCLUDE, [],           [],          [QVector])
 
 if test x"$host_vendor" = "xapple"; then
-    AX_PKG(QT,      [QT_INCLUDE],   [],              [])
+    AX_PKG(QT,         [QT_INCLUDE],   [$QT_LIBS], [])
 else
-    AX_PKG(QT_CORE, [QT_INCLUDE],   [-lQtCore],  [QVector])
-    AX_PKG(QT_GUI,  [QT_INCLUDE],   [-lQtGui],   [QLabel])
-    AX_PKG(QT_SQL,  [QT_INCLUDE],   [-lQtSql],   [QtSql])
-    AX_PKG(QT,      [QT_INCLUDE QT_CORE QT_GUI QT_SQL], [], [])
+    AX_PKG(QT_CORE,    [QT_INCLUDE],   [-lQtCore],   [QVector])
+    AX_PKG(QT_OPENGL,  [QT_INCLUDE],   [-lQtOpenGL], [QtOpenGL])
+    AX_PKG(QT_GUI,     [QT_INCLUDE],   [-lQtGui],    [QLabel])
+    AX_PKG(QT_SQL,     [QT_INCLUDE],   [-lQtSql],    [QtSql])
+    AX_PKG(QT, [QT_INCLUDE QT_CORE QT_GUI QT_OPENGL QT_SQL], [], [])
 fi
 
 # These are here (instead of inside the PKG macro where they belong)
@@ -419,7 +420,7 @@ fi
 AX_MODULE(GEOMETRY, [src/vw/Geometry], [libvwGeometry.la], yes, [VW], [], [GMP PPL APRON QHULL])
 
 AX_MODULE(TOOLS, [src/vw/tools], [], yes, [], [])
-AX_MODULE(GUI, [src/vw/gui], [], yes, [VW], [QT])
+AX_MODULE(GUI, [src/vw/gui], [], yes, [VW], [QT BOOST_PROGRAM_OPTIONS])
 
 AX_MODULE_PYTHON([src/vw/Python], [no])
 

@@ -31,15 +31,11 @@ CLEANFILES = *.moc.cc
 # For simplicity, these example applications depend on exceptions
 if ENABLE_EXCEPTIONS
 
-COMMON_LIBS = @PKG_VW_LIBS@ @PKG_BOOST_FILESYSTEM_LIBS@	\
-	      @PKG_BOOST_PROGRAM_OPTIONS_LIBS@          \
-	      @PKG_BOOST_THREAD_LIBS@ 
-
 # Graphical tools based on the core modules
 vwv_SOURCES  = vwv.cc vwv_MainWindow.cc vwv_MainWindow.moc.cc \
-	       vwv_GlPreviewWidget.cc vwv_GlPreviewWidget.moc.cc
+               vwv_GlPreviewWidget.cc vwv_GlPreviewWidget.moc.cc
 #vwv_CXXFLAGS = $(QT_CXXFLAGS) 
-vwv_LDADD    = @PKG_VW_LIBS@ $(COMMON_LIBS) $(QT_LIBS)
+vwv_LDADD    = @PKG_GUI_LIBS@
 
 bin_PROGRAMS = vwv
 
