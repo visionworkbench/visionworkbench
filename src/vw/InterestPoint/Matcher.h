@@ -49,11 +49,11 @@ namespace ip {
   /// provide early termination of computation if result will exceed
   /// maxdist.
   struct L2NormMetric {
-    float operator() (InterestPoint const& ip1, InterestPoint const& ip2, float maxdist = DBL_MAX) const {
-      float dist = 0.0;
+    double operator() (InterestPoint const& ip1, InterestPoint const& ip2, float maxdist = DBL_MAX) const {
+      double dist = 0.0;
       for (unsigned int i = 0; i < ip1.descriptor.size(); i++) {
-        dist += pow((ip1.descriptor[i] - ip2.descriptor[i]),2);
-        if (dist > maxdist) break;  // abort calculation if distance exceeds upper bound
+	dist += pow((ip1.descriptor[i] - ip2.descriptor[i]),2);
+	if (dist > maxdist) break;  // abort calculation if distance exceeds upper bound
       }
       return dist;
     }
@@ -183,52 +183,52 @@ namespace ip {
   InterestPointMatcher(double threshold = 0.5, MetricT metric = MetricT(), ConstraintT constraint = ConstraintT()) 
     : m_constraint(constraint), m_distance_metric(metric), m_threshold(threshold) { }
   
-  /// Given two lists of interest points, this routine returns the two lists
-  /// of matching interest points based on the Metric and Constraints
-  /// provided by the user.
-  template <class ListT, class MatchListT>
-  void operator()( ListT const& ip1, ListT const& ip2,
-                   MatchListT& matched_ip1, MatchListT& matched_ip2,
-                   bool bidirectional = false,
-                   const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const {
-    typedef typename ListT::const_iterator IterT;
-    
-    matched_ip1.clear(); matched_ip2.clear();
-    if (!ip1.size() || !ip2.size()) {
-      vw_out(InfoMessage,"interest_point") << "KD-Tree: no points to match, exiting\n";
-      progress_callback.report_finished();
-      return;
-    }
+    /// Given two lists of interest points, this routine returns the two lists
+    /// of matching interest points based on the Metric and Constraints
+    /// provided by the user.
+    template <class ListT, class MatchListT>
+    void operator()( ListT const& ip1, ListT const& ip2,
+		     MatchListT& matched_ip1, MatchListT& matched_ip2,
+		     bool bidirectional = false,
+		     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const {
+      typedef typename ListT::const_iterator IterT;
+      
+      matched_ip1.clear(); matched_ip2.clear();
+      if (!ip1.size() || !ip2.size()) {
+	vw_out(InfoMessage,"interest_point") << "KD-Tree: no points to match, exiting\n";
+	progress_callback.report_finished();
+	return;
+      }
       
 
-    math::KDTree<ListT> kd(ip2.begin()->descriptor.size(), ip2);
-    vw_out(InfoMessage,"interest_point") << "KD-Tree created with " << kd.size() << " nodes and depth ranging from " << kd.min_depth() << " to " << kd.max_depth() << ".  Searching...\n";
+      math::KDTree<ListT> kd(ip2.begin()->descriptor.size(), ip2);
+      vw_out(InfoMessage,"interest_point") << "KD-Tree created with " << kd.size() << " nodes and depth ranging from " << kd.min_depth() << " to " << kd.max_depth() << ".  Searching...\n";
+      
+      progress_callback.report_progress(0);
+      
+      int size = ip1.size();
+      int n = 0;
+      for (IterT iter = ip1.begin(); iter != ip1.end(); ++iter, ++n) {
+	if (progress_callback.abort_requested()) 
+	  vw_throw( Aborted() << "Aborted by ProgressCallback" );
+	progress_callback.report_progress(float(n)/float(size));
+	
+	std::vector<InterestPoint> nearest_records;
+	int num_records = kd.m_nearest_neighbors(*iter, nearest_records, 2);
+	if (num_records != 2) 
+	  continue; // Ignore if there are no matches
 
-    progress_callback.report_progress(0);
+	bool constraint_satisfied = false;
+	if (bidirectional) {
+	  if (m_constraint(nearest_records[0], *iter) &&
+	      m_constraint(*iter, nearest_records[0])) 
+	    constraint_satisfied = true;
+	} else {
+	  if (m_constraint(nearest_records[0], *iter))
+	    constraint_satisfied = true;
+	}
 
-    int size = ip1.size();
-    int n = 0;
-    for (IterT iter = ip1.begin(); iter != ip1.end(); ++iter, ++n) {
-      if (progress_callback.abort_requested()) 
-        vw_throw( Aborted() << "Aborted by ProgressCallback" );
-      progress_callback.report_progress(float(n)/float(size));
-
-      std::vector<InterestPoint> nearest_records;
-      int num_records = kd.m_nearest_neighbors(*iter, nearest_records, 2);
-      if (num_records != 2) 
-        continue; // Ignore if there are no matches
-
-      bool constraint_satisfied = false;
-      if (bidirectional) {
-        if (m_constraint(nearest_records[0], *iter) &&
-            m_constraint(*iter, nearest_records[0])) 
-          constraint_satisfied = true;
-      } else {
-        if (m_constraint(nearest_records[0], *iter))
-          constraint_satisfied = true;
-      }
-
-      if (constraint_satisfied) {
+	if (constraint_satisfied) {
           double dist0 = m_distance_metric(nearest_records[0], *iter);
           double dist1 = m_distance_metric(nearest_records[1], *iter);
           
@@ -236,12 +236,86 @@ namespace ip {
             matched_ip1.push_back(*iter);  
             matched_ip2.push_back(nearest_records[0]);
           }
+	}
+      }
+      progress_callback.report_finished();
+    }
+  };
+  
+  // A even more basic interest point matcher that doesn't rely on
+  // KDTree as it sometimes produces incorrect results
+  template < class MetricT, class ConstraintT >
+  class InterestPointMatcherSimple {
+    ConstraintT m_constraint;
+    MetricT m_distance_metric;
+    double m_threshold;
+
+  public:
+
+  InterestPointMatcherSimple(double threshold = 0.5, MetricT metric = MetricT(), ConstraintT constraint = ConstraintT()) 
+    : m_constraint(constraint), m_distance_metric(metric), m_threshold(threshold) { }
+  
+    /// Given two lists of interest points, this routine returns the two lists
+    /// of matching interest points based on the Metric and Constraints
+    /// provided by the user.
+    template <class ListT, class MatchListT>
+    void operator()( ListT const& ip1, ListT const& ip2,
+		     MatchListT& matched_ip1, MatchListT& matched_ip2,
+		     bool bidirectional = false,
+		     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const {
+      typedef typename ListT::const_iterator IterT;
+      
+      matched_ip1.clear(); matched_ip2.clear();
+      if (!ip1.size() || !ip2.size()) {
+	vw_out(InfoMessage,"interest_point") << "KD-Tree: no points to match, exiting\n";
+	progress_callback.report_finished();
+	return;
+      }
+      
+      progress_callback.report_progress(0);
+      std::vector<int> match_index( ip1.size() );
+      for (unsigned i = 0; i < ip1.size(); i++ ) {
+	if (progress_callback.abort_requested()) 
+	  vw_throw( Aborted() << "Aborted by ProgressCallback" );
+	progress_callback.report_progress(float(i)/float(ip1.size()));
+	
+	double first_pick = 1e100, second_pick = 1e100;
+	match_index[i] = -1;
+	// Comparing ip1's feature against all of ip2's
+	for (unsigned j = 0; j < ip2.size(); j++ ) {
+	  
+	  if ( ip1[i].polarity != ip2[j].polarity )
+	    continue;
+	  
+	  double distance = m_distance_metric( ip1[i], ip2[j] );
+	  
+	  if ( distance < first_pick ) {
+	    match_index[i] = j;
+	    first_pick = distance;
+	  } else if ( distance < second_pick ) {
+	    second_pick = distance;
+	  }
+	  
+	}
+	
+	// Checking to see if the match is strong enough
+	if ( first_pick > m_threshold * second_pick ) 
+	  match_index[i] = -1;
+      }
+      
+      progress_callback.report_finished();
+
+      // Building matched_ip1 & matched ip 2
+      for (unsigned i = 0; i < ip1.size(); i++ ) {
+	if ( match_index[i] != -1 ) {
+	  matched_ip1.push_back( ip1[i] );
+	  matched_ip2.push_back( ip2[match_index[i]] );
+	}
       }
     }
-    progress_callback.report_finished();
-  }
-};
+  };
   
+
 //////////////////////////////////////////////////////////////////////////////
 // Convenience Typedefs
 typedef InterestPointMatcher< L2NormMetric, NullConstraint > DefaultMatcher;

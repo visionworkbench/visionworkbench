@@ -79,6 +79,7 @@ namespace ip {
 	float Dxx = XSecondDerivative(integral,x,y,filter_size);
 	float Dyy = YSecondDerivative(integral,x,y,filter_size);
 	data_image->operator()(ix,iy) = Dxx*Dyy - (0.81*Dxy*Dxy);
+	
 	pol_image->operator()(ix,iy) = 0 < (Dxx + Dyy);
       }
     }
@@ -349,9 +350,9 @@ namespace ip {
   // - index     = index to evaluate at, representative of octave & scale
   // - step      = the step size that is for the interest data
   // This calculates the gradient, hmm... it negative
-  Vector3& SURFGradient3D( std::vector<SURFScaleData> const& scaleData,
-			       int const& ix, int const& iy, 
-			       unsigned const& index, unsigned const& step ) {
+  Vector3 SURFGradient3D( std::vector<SURFScaleData> const& scaleData,
+			  int const& ix, int const& iy, 
+			  unsigned const& index, unsigned const& step ) {
 
     vw::Vector3 B;
     B(0) = -0.5*(scaleData[index].determinant(ix+step,iy) -
@@ -372,9 +373,9 @@ namespace ip {
   // - index     = index to evaluate at, representative of octave & scale
   // - step      = the step size that is for the interest data
   // This calculates the hessian matrix
-  Matrix3x3& SURFHessian3D( std::vector<SURFScaleData> const& scaleData, 
-			    int const& ix, int const& iy, 
-			    unsigned const& index, unsigned const& step ) {
+  Matrix3x3 SURFHessian3D( std::vector<SURFScaleData> const& scaleData, 
+			   int const& ix, int const& iy, 
+			   unsigned const& index, unsigned const& step ) {
 
     vw::Matrix3x3 A;
     // Dxx

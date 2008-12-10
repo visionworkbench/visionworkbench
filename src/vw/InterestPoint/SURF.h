@@ -35,6 +35,7 @@
 #include <vw/InterestPoint/IntegralImage.h>
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/Descriptor.h>
 #include <vw/Math.h>
 #include <vw/Image.h>
 
@@ -192,15 +193,15 @@ namespace ip {
 
   // SURF Gradient 3D
   // This calculates the gradient, hmm... it negative
-  Vector3& SURFGradient3D( std::vector<SURFScaleData> const& scaleData,
-			       int const& ix, int const& iy, 
-			       unsigned const& index, unsigned const& step );
+  Vector3 SURFGradient3D( std::vector<SURFScaleData> const& scaleData,
+			  int const& ix, int const& iy, 
+			  unsigned const& index, unsigned const& step );
 
   // SURF Hessian 3D
   // This calculates the hessian matrix for sub pixel correlation
-  Matrix3x3& SURFHessian3D( std::vector<SURFScaleData> const& scaleData, 
-				   int const& ix, int const& iy, 
-				   unsigned const& index, unsigned const& step );
+  Matrix3x3 SURFHessian3D( std::vector<SURFScaleData> const& scaleData, 
+			   int const& ix, int const& iy, 
+			   unsigned const& index, unsigned const& step );
 
   // SURF Orientation
   // This calculates the orientation of a feature
@@ -245,6 +246,9 @@ namespace ip {
     template <class ViewT>
     InterestPointList process_image(ImageViewBase<ViewT> const& image) {
 
+      // Timing
+      Timer *total = new Timer("Total elapsed time", DebugMessage, "interest_point");
+
       // Set SURF Params;
       m_params.setForImage( image );
       
@@ -252,7 +256,7 @@ namespace ip {
       vw_out(InfoMessage,"interest_point") << "\tBuilding Integral Image.\n";
       ImageView<double> integral = IntegralImage( image );
       vw_out(DebugMessage,"interest_point") << "\tdone ( integral size " << integral.cols() << "x" << integral.rows() << " ).\n";
-      
+
       // Create Interest Scales
       vw_out(InfoMessage,"interest_point") << "\tCalculating Interest Data.\n";
       std::vector<SURFScaleData> interest_scales;
@@ -273,9 +277,8 @@ namespace ip {
 
 	for ( unsigned scale_num = 0; scale_num < m_params.scales; ++scale_num){
 	  // Calling the interest image
-	  interest_scales.push_back( SURFProcessScale( integral, 
-						       octave_num, scale_num, 
-						       m_params ) );
+	  interest_scales.push_back( SURFProcessScale( integral, octave_num, 
+						       scale_num, m_params ) );
 	}
       }
       
@@ -310,6 +313,7 @@ namespace ip {
 						(*point).scale );
       }
       
+      delete total;
       return ip;
     }
 
@@ -321,6 +325,95 @@ namespace ip {
     //std::vector<SURFScaleData> m_interest_scales;
   };
 
+  // SURF Descriptor 64 bit
+  struct SURFDescriptorGenerator : public DescriptorGeneratorBase<SURFDescriptorGenerator> {
+    
+
+    Matrix<float,20,20> gaussian_weight;
+
+    // Constructor
+    SURFDescriptorGenerator( void ) {
+      // building gaussian weight meu = 9.5 (center of our gaussian)
+      for (char x = 0; x < 20; x++ ) {
+	for (char y = 0; y < 20; y++ ) {
+	  float dist = (float(x) - 9.5f)*(float(x) - 9.5 ) - (float(y) - 9.5)*(float(y) - 9.5 );
+	  
+	  gaussian_weight(x,y) = exp( -dist/21.78 );
+	}
+      }
+    }
+
+    // Actually Descriptor arithmetic
+    template <class ViewT>
+    Vector<float> compute_descriptor (ImageViewBase<ViewT> const& support) const {
+      
+      Vector<float> result(64);
+      Matrix<float,20,20> h_response;
+      Matrix<float,20,20> v_response;
+
+      // Building responses
+      for ( char x = 0; x < 20; x++ ) {
+	for ( char y = 0; y < 20; y++ ) {
+	  h_response(x,y) = (support.impl()(x+1,y).v() + support.impl()(x+1,y+1).v() - 
+			     support.impl()(x,y).v() - support.impl()(x,y+1).v() )*gaussian_weight(x,y);
+
+	  v_response(x,y) = (support.impl()(x,y+1).v() + support.impl()(x+1,y+1).v() - 
+			     support.impl()(x,y).v() - support.impl()(x+1,y).v() )*gaussian_weight(x,y);
+	}
+      }
+
+      // Building the descriptor
+      for ( char x = 0; x < 4; x++ ) {
+	for ( char y = 0; y < 4; y++ ) {
+	  
+	  // Summing responses
+	  for ( char ix = 0; ix < 5; ix++ ) {
+	    for ( char iy = 0; iy < 5; iy++ ) {
+
+	      // Dx
+	      result(16*x + 4*y) += h_response(x*5+ix, y*5+iy);
+
+	      // |Dx|
+	      result(16*x + 4*y + 1) += fabs(h_response(x*5+ix, y*5+iy));
+
+	      // Dy
+	      result(16*x + 4*y + 2) += v_response(x*5+ix, y*5+iy);
+	     
+	      // |Dy|
+	      result(16*x + 4*y + 3) += fabs(v_response(x*5+ix, y*5+iy));
+	      
+	    }
+	  }
+
+	  // Normalizing this section of the descriptor 
+	  float mod = 0;
+	  for ( char ix = 0; ix < 4; ix++ )
+	    mod += result( 16*x + 4*y + ix);
+	  for ( char ix = 0; ix < 4; ix++ )
+	    result( 16*x + 4*y + ix ) /= mod;
+	}
+      }
+
+      return result;
+    }
+
+    // This builds the window used for the descriptor
+    template <class ViewT>
+    inline ImageView<typename ViewT::pixel_type> get_support( float x, float y, float scale, float ori,
+                                                              ImageViewBase<ViewT> const& source, int size=21 ) {
+
+      float scaling = 1.0f / scale;
+
+      // Output is 21x21 pixels
+      return transform(source.impl(),
+		       compose(TranslateTransform(10, 10), 
+			       compose(ResampleTransform(scaling, scaling),
+				       RotateTransform(-ori),
+				       TranslateTransform(-x, -y))),
+		       21, 21); 
+    }
+
+  };
   
 }} // namespace vw::ip
 
