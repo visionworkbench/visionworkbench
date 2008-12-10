@@ -26,6 +26,16 @@
 /// The Vision Workbench image viewer. 
 ///
 
+#ifdef __linux__
+// This is required to get prototypes, according to the opengl linux abi
+#define GL_GLEXT_PROTOTYPES 1
+#endif
+
+#include <GL/gl.h>
+
+// for gluErrorString
+#include <GL/glu.h>
+
 // Qt
 #include <QtGui>
 
