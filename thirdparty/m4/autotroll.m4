@@ -125,7 +125,7 @@ dnl Memo: AC_ARG_WITH(package, help-string, [if-given], [if-not-given])
   fi
 
   # Find moc (Meta Object Compiler).
-  AC_PATH_PROGS([MOC], [amoc], [missing], [$QT_PATH:$PATH:$tmp_qt_paths])
+  AC_PATH_PROGS([MOC], [moc], [missing], [$QT_PATH:$PATH:$tmp_qt_paths])
   if test x"$MOC" = xmissing; then
     AX_INSTEAD_IF([$5], [Cannot find moc (Meta Object Compiler) in your PATH. Try using --with-qt.])
     break
