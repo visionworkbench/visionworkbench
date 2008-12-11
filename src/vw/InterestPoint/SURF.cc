@@ -429,51 +429,53 @@ namespace ip {
 			 float const& scale ) {
     int iscale = round(scale);
 
-    std::vector<float> h_response(49);
-    std::vector<float> v_response(49);
-    std::vector<float> angle(49);
+    std::vector<float> h_response(169);
+    std::vector<float> v_response(169);
+    std::vector<float> angle(169);
+    int measures = 0;
     float ori = 0;
 
-    // Calculating all the responses
-    for (signed idx = 0, i = ix-3*iscale; 
-	 i <=(ix+3*iscale); i+= iscale ) {
-      for (signed j = iy-3*iscale; j<=(iy+3*iscale); j+=iscale) {
-	// Calculating the haar wavelet response
-	if ( (i - 2*iscale < 0 || j - 2*iscale < 0) || 
-	     (i + 2*iscale >= integral.cols() || j + 2*iscale >= integral.rows() ) ) {
+    for ( int i = -6; i <= 6; i++ ) {
+      for ( int j = -6; j <= 6; j++ ) {
+	// Is this this within the radius of 6
+	if ( (i*i + j*j) > 36 )
 	  continue;
-	}
-	h_response[idx] = HHaarWavelet( integral, i, j, iscale*4 );
-	v_response[idx] = VHaarWavelet( integral, i, j, iscale*4 );
-	angle[idx] = atan2(v_response[idx],h_response[idx]);
-	idx++;
+
+	// Is this still on the image?
+	if ( (ix + i*iscale - 2*iscale < 0 || iy + j*iscale - 2*iscale < 0 ) ||
+	     (ix + i*iscale + 2*iscale >= integral.cols() || iy + j*iscale + 2*iscale >= integral.rows() ) )
+	  continue;
+
+	float distance_2 = i*i + j*j;
+	float weight = exp(-distance_2/12.5);
+
+	h_response[measures] =
+	  weight*HHaarWavelet( integral, ix + i*iscale, iy + j*iscale, iscale*4 );
+	v_response[measures] =
+	  weight*VHaarWavelet( integral, ix + i*iscale, iy + j*iscale, iscale*4 );
+	angle[measures] = atan2( v_response[measures],
+				 h_response[measures] );
+	measures++;
       }
     }
 
-    // Fitting a slice to find the main reponse
+    // Fitting a slice to find the response
     const float pi_6 = 3.14159/6.0;
     const float two_pi = 3.14159*2.0;
-    float sumx, sumy, mod, greatest_mod;
-    greatest_mod = 0;
-    for (float a = 0; a < two_pi; a += 0.01) {
+    float sumx, sumy, mod, greatest_mod = 0;
+    for ( float a = 0; a < two_pi; a+= 0.01) {
       sumx = sumy = 0;
-      for (int idx = 0; idx < 49; idx++ ) {
+      for ( int idx = 0; idx < measures; idx++ ) {
 	// Is it in my slice
 	if ( (angle[idx] > a - pi_6 && angle[idx] < a + pi_6 ) ||
 	     (angle[idx] + two_pi > a - pi_6 && angle[idx] + two_pi < a + pi_6 ) ||
 	     (angle[idx] - two_pi > a - pi_6 && angle[idx] - two_pi < a + pi_6 ) ) {
-	  
-	  float diff_a = fabs( angle[idx] - a );
-	  if ( diff_a > 3.14159 )
-	    diff_a = fabs( diff_a - two_pi );
 
-	  float weight = -6*diff_a/3.14159 + 1;
-
-	  sumx += weight*h_response[idx];
-	  sumy += weight*v_response[idx];
+	  sumx += h_response[idx];
+	  sumy += v_response[idx];
 	}
       }
-      
+
       mod = sumx*sumx + sumy*sumy;
       if ( mod > greatest_mod ) {
 	greatest_mod = mod;
