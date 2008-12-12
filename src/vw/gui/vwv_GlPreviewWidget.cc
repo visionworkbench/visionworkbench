@@ -31,10 +31,13 @@
 #define GL_GLEXT_PROTOTYPES 1
 #endif
 
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
+#else // Linux
 #include <GL/gl.h>
-
-// for gluErrorString
 #include <GL/glu.h>
+#endif 
 
 // Qt
 #include <QtGui>
