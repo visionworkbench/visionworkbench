@@ -16,7 +16,11 @@ AC_DEFUN([AX_PKG_GL],
     fi
 
     HAVE_PKG_GL="yes"
-    PKG_GL_LIBS="$OTHER_LDFLAGS -framework OpenGL -framework GLUT"
+
+    # This ugly set of extra linker directive (-dylib_file) helps to
+    # avoid "linker cycling" in some situations with libGL.dylib.  See
+    # http://developer.apple.com/qa/qa2007/qa1567.html for more info.
+    PKG_GL_LIBS="$OTHER_LDFLAGS -framework OpenGL -framework GLUT  -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib"
 
     if test "$ENABLE_VERBOSE" = "yes"; then
       AC_MSG_RESULT([found])
