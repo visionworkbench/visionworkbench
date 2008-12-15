@@ -64,7 +64,8 @@ namespace ip {
     f.write((char*)&(p.scale), sizeof(p.scale));
     f.write((char*)&(p.interest), sizeof(p.interest));
     f.write((char*)&(p.polarity), sizeof(p.polarity));
-    f.write((char*)&(p.index), sizeof(p.index));
+    f.write((char*)&(p.octave), sizeof(p.octave));
+    f.write((char*)&(p.scale_lvl), sizeof(p.scale_lvl));
     int size = p.size();
     f.write((char*)(&size), sizeof(int));
     for (unsigned i = 0; i < p.descriptor.size(); ++i) 
@@ -81,7 +82,8 @@ namespace ip {
     f.read((char*)&(ip.scale), sizeof(ip.scale));
     f.read((char*)&(ip.interest), sizeof(ip.interest));
     f.read((char*)&(ip.polarity), sizeof(ip.polarity));
-    f.read((char*)&(ip.index), sizeof(ip.index));
+    f.read((char*)&(ip.octave), sizeof(ip.octave));
+    f.read((char*)&(ip.scale_lvl), sizeof(ip.scale_lvl));
 
     int size;
     f.read((char*)&(size), sizeof(ip.descriptor.size()));

@@ -107,29 +107,25 @@ namespace ip {
   inline float XSecondDerivative( ImageView<double> const& integral,
 				  int const& x, int const& y,
 				  unsigned const& filter_size ) {
-    float derivative = 0;
-    unsigned translation = floor(filter_size/2);
-    unsigned top_edge = round(2*float(filter_size)/9.)+y-translation;
-    unsigned bottom_edge = round(7*float(filter_size)/9.)+y-translation;
-    unsigned div_1 = round(float(filter_size)/3.)+x-translation;
-    unsigned div_2 = round(float(filter_size)*6/9.)+x-translation;
-    unsigned div_3 = filter_size+x-translation;
+    unsigned lobe = filter_size / 3;
+    unsigned half_lobe = floor( float(lobe) / 2.0 );
+    float derivative;
 
-    //Adding the positive far left
-    derivative += IntegralBlock(integral,
-				Vector2i(x-translation,top_edge),
-				Vector2i(div_1,bottom_edge) );
+    // Adding positive left;
+    derivative = IntegralBlock( integral,
+				Vector2i( x - lobe - half_lobe, y - lobe + 1 ),
+				Vector2i( x - half_lobe, y + lobe ) );
 
-    //Adding the double negative middle
-    derivative -= 2*IntegralBlock(integral,
-				  Vector2i(div_1,top_edge),
-				  Vector2i(div_2,bottom_edge) );
+    // Adding negative middle;
+    derivative -= 2.0*IntegralBlock( integral,
+				     Vector2i( x - half_lobe, y - lobe + 1 ),
+				     Vector2i( x + half_lobe + 1, y + lobe ) );
 
-    //Adding the positive far right
-    derivative += IntegralBlock(integral,
-				Vector2i(div_2,top_edge),
-				Vector2i(div_3,bottom_edge) );
-
+    // Adding positive right;
+    derivative += IntegralBlock( integral,
+				 Vector2i( x + half_lobe + 1, y - lobe + 1 ),
+				 Vector2i( x + half_lobe + lobe + 1, y + lobe ) );
+    
     return derivative;
   }
 
@@ -140,7 +136,6 @@ namespace ip {
 				 int const& x, int const& y,
 				 unsigned const& filter_size ) {
     float derivative = 0;
-    unsigned translation = floor(filter_size/2);
 
     return derivative;
   }
@@ -151,28 +146,24 @@ namespace ip {
   inline float YSecondDerivative( ImageView<double> const& integral,
 				  int const& x, int const& y,
 				  unsigned const& filter_size ) {
-    float derivative = 0;
-    unsigned translation = floor(filter_size/2);
-    unsigned left_edge = round(2*float(filter_size)/9.)+x-translation;
-    unsigned right_edge = round(7*float(filter_size)/9.)+x-translation;
-    unsigned div_1 = round(float(filter_size)/3.)+y-translation;
-    unsigned div_2 = round(float(filter_size)*6/9.)+y-translation;
-    unsigned div_3 = filter_size+y-translation;
+    unsigned lobe = filter_size / 3;
+    unsigned half_lobe = floor( float(lobe) / 2.0 );
+    float derivative;
 
-    //Adding the positive far top
-    derivative += IntegralBlock(integral,
-				Vector2i(left_edge,y-translation),
-				Vector2i(right_edge,div_1) );
+    // Adding positive top;
+    derivative = IntegralBlock( integral,
+				Vector2i( x - lobe + 1, y - lobe - half_lobe ),
+				Vector2i( x + lobe, y - half_lobe ) );
 
-    //Adding the double negative in middle
-    derivative -= 2*IntegralBlock(integral,
-				  Vector2i(left_edge,div_1),
-				  Vector2i(right_edge,div_2) );
+    // Adding negative middle;
+    derivative -= 2.0*IntegralBlock( integral,
+				     Vector2i( x - lobe + 1, y - half_lobe ),
+				     Vector2i( x + lobe, y + half_lobe + 1 ) );
 
-    //Adding the positive far bottom
-    derivative += IntegralBlock(integral,
-				Vector2i(left_edge,div_2),
-				Vector2i(right_edge,div_3) );
+    // Adding positive bottom;
+    derivative += IntegralBlock( integral,
+				 Vector2i( x - lobe + 1, y + half_lobe + 1 ),
+				 Vector2i( x + lobe, y + half_lobe + lobe + 1 ) );
 
     return derivative;
   }
@@ -183,32 +174,29 @@ namespace ip {
   inline float XYDerivative( ImageView<double> const& integral,
 			     int const& x, int const& y,
 			     unsigned const& filter_size ) {
-    float derivative = 0;
-    unsigned translation = floor(filter_size/2);
-    unsigned start_1 = round(float(filter_size)/9.);
-    unsigned start_2 = round(5*float(filter_size)/9.);
-    unsigned stop_1 = round(4*float(filter_size)/9.);
-    unsigned stop_2 = round(8*float(filter_size)/9.);
 
-    //Adding positive top left
-    derivative = IntegralBlock(integral,
-				Vector2i((start_1+x)-translation,(start_1+y)-translation),
-				Vector2i((stop_1+x)-translation, (stop_1+y)-translation));
+    unsigned lobe = filter_size / 3;
+    float derivative;
 
-    //Adding negative top right
-    derivative -= IntegralBlock(integral,
-				Vector2i((start_2+x)-translation,(start_1+y)-translation),
-				Vector2i((stop_2+x)-translation, (stop_1+y)-translation));
+    // Adding positive top left
+    derivative = IntegralBlock( integral,
+				Vector2i( x - lobe, y - lobe ),
+				Vector2i( x, y ) );
+    
+    // Adding negative top right
+    derivative -= IntegralBlock( integral,
+				 Vector2i( x + 1, y - lobe ),
+				 Vector2i( x + lobe + 1, y ) );
 
-    //Adding negative bottom left
-    derivative -= IntegralBlock(integral,
-				Vector2i((start_1+x)-translation,(start_2+y)-translation),
-				Vector2i((stop_1+x)-translation, (stop_2+y)-translation));
+    // Adding negative bottom left
+    derivative -= IntegralBlock( integral,
+				 Vector2i( x - lobe, y + 1 ),
+				 Vector2i( x, y + lobe + 1 ) );
 
-    //Adding positive bottom right
-    derivative += IntegralBlock(integral,
-				Vector2i((start_2+x)-translation,(start_2+y)-translation),
-				Vector2i((stop_2+x)-translation, (stop_2+y)-translation));
+    // Adding positve bottom right
+    derivative += IntegralBlock( integral,
+				 Vector2i( x + 1, y + 1 ),
+				 Vector2i( x + 1 + lobe, y + 1 + lobe ) );
 
     return derivative;
   }
@@ -229,6 +217,9 @@ namespace ip {
     response += integral(ix-half_size,iy+half_size);
     response -= 2*integral(ix,iy+half_size);
     response += integral(ix+half_size,iy+half_size);
+
+    //response /= size*size;
+
     return response;
   }
 
@@ -248,6 +239,9 @@ namespace ip {
     response -= 2*integral(ix+half_size,iy);
     response -= integral(ix-half_size,iy+half_size);
     response += integral(ix+half_size,iy+half_size);
+
+    //response /= size*size;
+
     return response;
   }
 

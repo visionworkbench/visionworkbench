@@ -64,12 +64,12 @@ int main(int argc, char** argv) {
     ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris, SURF]")
     ("log-threshold", po::value<float>(&log_threshold)->default_value(0.03), "Sets the threshold for the Laplacian of Gaussian interest operator")
     ("harris-threshold", po::value<float>(&harris_threshold)->default_value(1e-5), "Sets the threshold for the Harris interest operator")
-    ("surf-threshold", po::value<float>(&surf_threshold)->default_value(0.1), "Sets the threshold for the SURF interest operator")
+    ("surf-threshold", po::value<float>(&surf_threshold)->default_value(0.01), "Sets the threshold for the SURF interest operator")
     ("max-points", po::value<int>(&max_points)->default_value(1000), "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
     ("single-scale", "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
 
     // Descriptor generator options
-    ("descriptor-generator", po::value<std::string>(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca,SURF]");
+    ("descriptor-generator", po::value<std::string>(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca,SURF,SURF128]");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
@@ -154,6 +154,9 @@ int main(int argc, char** argv) {
       descriptor(image, ip);
     } else if (descriptor_generator == "SURF") {
       SURFDescriptorGenerator descriptor;
+      descriptor(image, ip);
+    } else if (descriptor_generator == "SURF128") { 
+      SURFDescriptorGenerator descriptor( true );
       descriptor(image, ip);
     } else {
       vw_out(0) << "Unknown descriptor generator: " << descriptor_generator << "\n";

@@ -52,7 +52,7 @@ namespace ip {
     double operator() (InterestPoint const& ip1, InterestPoint const& ip2, float maxdist = DBL_MAX) const {
       double dist = 0.0;
       for (unsigned int i = 0; i < ip1.descriptor.size(); i++) {
-	dist += pow((ip1.descriptor[i] - ip2.descriptor[i]),2);
+	dist += (ip1.descriptor[i] - ip2.descriptor[i])*(ip1.descriptor[i] - ip2.descriptor[i]);
 	if (dist > maxdist) break;  // abort calculation if distance exceeds upper bound
       }
       return dist;
@@ -267,7 +267,7 @@ namespace ip {
       
       matched_ip1.clear(); matched_ip2.clear();
       if (!ip1.size() || !ip2.size()) {
-	vw_out(InfoMessage,"interest_point") << "KD-Tree: no points to match, exiting\n";
+	vw_out(InfoMessage,"interest_point") << "No points to match, exiting\n";
 	progress_callback.report_finished();
 	return;
       }
@@ -291,6 +291,7 @@ namespace ip {
 	  
 	  if ( distance < first_pick ) {
 	    match_index[i] = j;
+	    second_pick = first_pick;
 	    first_pick = distance;
 	  } else if ( distance < second_pick ) {
 	    second_pick = distance;

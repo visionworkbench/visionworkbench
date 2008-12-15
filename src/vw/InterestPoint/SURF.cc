@@ -36,26 +36,17 @@ namespace ip {
   
   /// Creates a interest scale for SURF
   SURFScaleData SURFProcessScale( vw::ImageView<double> const& integral, 
-					 unsigned const& octave, unsigned const& scale, 
-					 SURFParams const& params ) {
+				  unsigned const& filter_size, 
+				  unsigned const& sampling_step,
+				  SURFParams const& params ) {
     /// Calculating how big the filter is for current octave and scale
-    unsigned first_filter_size_for_octave = 9;
-    for (unsigned i = 0; i < octave; ++i)
-      first_filter_size_for_octave += 30*(i == 0 ? 1 : 2<<(i-1));
-    unsigned filter_size = first_filter_size_for_octave;
-    for (unsigned i = 0; i < scale; ++i)
-      filter_size += 6*(i == 0 ? 1 : 2<<(i-1));
-    unsigned sampling_step = 2<<octave;
-    if (scale == 0 && octave != 0) // This for comparisons between octaves (so up'n the resolution)
-      sampling_step = 2<<(octave-1);
     unsigned s_temp = floor(float(filter_size)/2.);
     unsigned starting_point = s_temp + (sampling_step - (s_temp & (sampling_step - 1)));
 
-    vw_out(vw::DebugMessage,"interest_point")<< "Octave: " << octave 
-					     << " Scale: " << scale 
+    vw_out(vw::DebugMessage,"interest_point")<< "Building Interest Image: ";
+    vw_out(vw::DebugMessage,"interest_point")<< "\t> filter size: " << filter_size 
+					     << "\n\t> sampling step: " << sampling_step
 					     << std::endl;
-    vw_out(vw::DebugMessage,"interest_point")<< "\t> filter size:" 
-					     << filter_size << std::endl;
 
     /// Calculating how big the interest image is going to be for our data
     unsigned data_cols = floor(float(params.cols - (starting_point<<1))/float(sampling_step)) + 1;
@@ -84,12 +75,13 @@ namespace ip {
       }
     }
    
-    return SURFScaleData( data_image, pol_image, starting_point, sampling_step);
+    return SURFScaleData( data_image, pol_image, filter_size, sampling_step);
   }
 
   /// Finds the maximas in our data
   std::list<InterestPoint> SURFMaximaDetection( std::vector<SURFScaleData> const & scaleData, 
 						       SURFParams const& params ) {
+
     std::list<InterestPoint> ip;
 
     // A maxima must be larger than it 8 nearest neighbor in it's own
@@ -99,103 +91,99 @@ namespace ip {
     // the scale below in the other octave.
 
     for (unsigned curr_oct = 0; curr_oct < params.octaves; ++curr_oct ) {
-      for (unsigned curr_scale = 0; curr_scale < params.scales; ++curr_scale ) {
+      for (unsigned curr_scale = 1; curr_scale < (params.scales - 1 ); ++curr_scale ) {
 
 	// Index for the current octave and scale
-	unsigned index = curr_oct*params.scales + curr_scale;
+	unsigned index0 = params.convToIndex( curr_oct, curr_scale );
+	unsigned indexDown = params.convToIndex( curr_oct, curr_scale - 1 );
+	unsigned indexUp = params.convToIndex( curr_oct, curr_scale + 1 );
 	unsigned sampling_step = 2<<curr_oct;
 
-	if (index == 0)
-	  continue;
-	if (index == scaleData.size() - 1)
-	  continue;
-
-	// Calculating what the current scale is. I'm emulating the
-	// numbers that were in the SURF paper
-	float scale=1.2;
-	for (unsigned o = 0; o < curr_oct; ++o)
-	  scale+=6*pow(2,o);
-	for (unsigned s = 0; s < curr_scale; ++s)
-	  scale+=1.2*pow(2,curr_oct);
-
+	float scale = scaleData[index0].filter_size();
+	
 	// comparing across all the pixels now
 	for (unsigned x = sampling_step; x < params.cols - sampling_step; 
 	     x+=sampling_step) {
 	  for (unsigned y = sampling_step; y < params.rows - sampling_step; 
 	       y+=sampling_step) {
 
-            #define value scaleData[index].determinant(x,y)
+            #define value scaleData[index0].determinant(x,y)
 
 	    if (value < params.threshold)
 	      continue;
 	    
 	    // From this scale
-	    if (scaleData[index].isLessThan(value,x-sampling_step,y))
+	    if (scaleData[index0].isLessThan(value,x-sampling_step,y))
 	      continue;
-	    if (scaleData[index].isLessThan(value,x-sampling_step,y-sampling_step))
+	    if (scaleData[index0].isLessThan(value,x-sampling_step,y-sampling_step))
 	      continue;
-	    if (scaleData[index].isLessThan(value,x,y-sampling_step))
+	    if (scaleData[index0].isLessThan(value,x,y-sampling_step))
 	      continue;
-	    if (scaleData[index].isLessThan(value,x+sampling_step,y-sampling_step))
+	    if (scaleData[index0].isLessThan(value,x+sampling_step,y-sampling_step))
 	      continue;
-	    if (scaleData[index].isLessThan(value,x+sampling_step,y))
+	    if (scaleData[index0].isLessThan(value,x+sampling_step,y))
 	      continue;
-	    if (scaleData[index].isLessThan(value,x+sampling_step,y+sampling_step))
+	    if (scaleData[index0].isLessThan(value,x+sampling_step,y+sampling_step))
 	      continue;
-	    if (scaleData[index].isLessThan(value,x,y+sampling_step))
+	    if (scaleData[index0].isLessThan(value,x,y+sampling_step))
 	      continue;
-	    if (scaleData[index].isLessThan(value,x-sampling_step,y+sampling_step))
+	    if (scaleData[index0].isLessThan(value,x-sampling_step,y+sampling_step))
 	      continue;
 
 	    // From the scale below
-	    if (scaleData[index-1].isLessThan(value,x-sampling_step,y))
+	    if (scaleData[indexDown].isLessThan(value,x-sampling_step,y))
 	      continue;
-	    if (scaleData[index-1].isLessThan(value,x-sampling_step,y-sampling_step))
+	    if (scaleData[indexDown].isLessThan(value,x-sampling_step,y-sampling_step))
 	      continue;
-	    if (scaleData[index-1].isLessThan(value,x,y-sampling_step))
+	    if (scaleData[indexDown].isLessThan(value,x,y-sampling_step))
 	      continue;
-	    if (scaleData[index-1].isLessThan(value,x+sampling_step,y-sampling_step))
+	    if (scaleData[indexDown].isLessThan(value,x+sampling_step,y-sampling_step))
 	      continue;
-	    if (scaleData[index-1].isLessThan(value,x+sampling_step,y))
+	    if (scaleData[indexDown].isLessThan(value,x+sampling_step,y))
 	      continue;
-	    if (scaleData[index-1].isLessThan(value,x+sampling_step,y+sampling_step))
+	    if (scaleData[indexDown].isLessThan(value,x+sampling_step,y+sampling_step))
 	      continue;
-	    if (scaleData[index-1].isLessThan(value,x,y+sampling_step))
+	    if (scaleData[indexDown].isLessThan(value,x,y+sampling_step))
 	      continue;
-	    if (scaleData[index-1].isLessThan(value,x-sampling_step,y+sampling_step))
+	    if (scaleData[indexDown].isLessThan(value,x-sampling_step,y+sampling_step))
 	      continue;
-	    if (scaleData[index-1].isLessThan(value,x,y))
+	    if (scaleData[indexDown].isLessThan(value,x,y))
 	      continue;
 
 	    // From the scale above
-	    if (scaleData[index+1].isLessThan(value,x-sampling_step,y))
+	    if (scaleData[indexUp].isLessThan(value,x-sampling_step,y))
 	      continue;
-	    if (scaleData[index+1].isLessThan(value,x-sampling_step,y-sampling_step))
+	    if (scaleData[indexUp].isLessThan(value,x-sampling_step,y-sampling_step))
 	      continue;
-	    if (scaleData[index+1].isLessThan(value,x,y-sampling_step))
+	    if (scaleData[indexUp].isLessThan(value,x,y-sampling_step))
 	      continue;
-	    if (scaleData[index+1].isLessThan(value,x+sampling_step,y-sampling_step))
+	    if (scaleData[indexUp].isLessThan(value,x+sampling_step,y-sampling_step))
 	      continue;
-	    if (scaleData[index+1].isLessThan(value,x+sampling_step,y))
+	    if (scaleData[indexUp].isLessThan(value,x+sampling_step,y))
 	      continue;
-	    if (scaleData[index+1].isLessThan(value,x+sampling_step,y+sampling_step))
+	    if (scaleData[indexUp].isLessThan(value,x+sampling_step,y+sampling_step))
 	      continue;
-	    if (scaleData[index+1].isLessThan(value,x,y+sampling_step))
+	    if (scaleData[indexUp].isLessThan(value,x,y+sampling_step))
 	      continue;
-	    if (scaleData[index+1].isLessThan(value,x-sampling_step,y+sampling_step))
+	    if (scaleData[indexUp].isLessThan(value,x-sampling_step,y+sampling_step))
 	      continue;
-	    if (scaleData[index+1].isLessThan(value,x,y))
+	    if (scaleData[indexUp].isLessThan(value,x,y))
 	      continue;
 
 	    #undef value
 
 	    // Are you still with me?
             ip.push_back(vw::ip::InterestPoint(x,y,scale,
-					       scaleData[index].determinant(x,y),
-					       0.0, scaleData[index].polarity(x,y),
-					       index));
+					       scaleData[index0].determinant(x,y),
+					       0.0, scaleData[index0].polarity(x,y),
+					       curr_oct, curr_scale));
+
+	    // Note at this point the Interest Point's scale actually
+	    // corresponds to the filter size. (it's not that
+	    // important)
 
 	  }
+
 	}
 
       }
@@ -210,43 +198,43 @@ namespace ip {
   /// scales
   void SURFWriteDebugImages( std::vector<SURFScaleData> const& scaleData,
 			     SURFParams const& params ) {
-    if (scaleData.size() == 0)
-      return;
+
+
     for ( unsigned octave_num = 0; octave_num < params.octaves; ++octave_num) {
-	for ( unsigned scale_num = 0; scale_num < params.scales; ++scale_num) {
-	  unsigned index = octave_num*params.scales + scale_num;
-	  unsigned sampling_step = 2<<octave_num;
-	  if (scale_num == 0 && octave_num != 0)
-	    sampling_step = 2<<(octave_num - 1);
-	  unsigned data_cols = floor(float(params.cols)/float(sampling_step)) + 1;
-	  unsigned data_rows = floor(float(params.rows)/float(sampling_step)) + 1;
 
-	  vw::ImageView<float> debug( data_cols, data_rows);
-	  for ( unsigned sx = 0, dx = 0; sx < params.cols; sx+=sampling_step,dx++)
-	    for ( unsigned sy = 0, dy = 0; sy < params.rows; sy+=sampling_step, dy++)
-	      debug(dx,dy) = scaleData[index].determinant(sx,sy);
+      for ( unsigned scale_num = 0; scale_num < params.scales; ++scale_num) {
+	unsigned index = params.convToIndex( octave_num, scale_num );
+	unsigned sampling_step = 2 << octave_num;
 	
-	  // Normalizing
-	  float min = debug(0,0);
-	  for (vw::ImageView<float>::iterator iter = debug.begin();
+	unsigned data_cols = floor(float(params.cols)/float(sampling_step)) + 1;
+	unsigned data_rows = floor(float(params.rows)/float(sampling_step)) + 1;
+	
+	vw::ImageView<float> debug( data_cols, data_rows);
+	for ( unsigned sx = 0, dx = 0; sx < params.cols; sx+=sampling_step,dx++)
+	  for ( unsigned sy = 0, dy = 0; sy < params.rows; sy+=sampling_step, dy++)
+	    debug(dx,dy) = scaleData[index].determinant(sx,sy);
+	
+	// Normalizing
+	float min = debug(0,0);
+	for (vw::ImageView<float>::iterator iter = debug.begin();
 	     iter != debug.end(); ++iter)
-	    if (*iter < min) min = *iter;
-	  std::cout << "\t> min: " << min;
-	  debug -= min;
-	  float max = debug(0,0);
-	  for (vw::ImageView<float>::iterator iter = debug.begin();
-	       iter != debug.end(); ++iter)
-	    if (*iter > max) max = *iter;
-	  std::cout << " max: " << max << std::endl;
-	  debug /= max;
+	  if (*iter < min) min = *iter;
+	std::cout << "\t> min: " << min;
+	debug -= min;
+	float max = debug(0,0);
+	for (vw::ImageView<float>::iterator iter = debug.begin();
+	     iter != debug.end(); ++iter)
+	  if (*iter > max) max = *iter;
+	std::cout << " max: " << max << std::endl;
+	debug /= max;
 
-	  // Name
-	  std::ostringstream ostr;
-	  ostr << "dbg_iimage_" << octave_num << "_" << scale_num << ".png";
-	  write_image( ostr.str(), debug );
-	  
-	}
-      }
+	// Name
+	std::ostringstream ostr;
+	ostr << "dbg_iimage_" << octave_num << "_" << scale_num << ".png";
+	write_image( ostr.str(), debug );
+	
+      }  // End scale iteration
+    } // End octave iteration
   }
 
   /// SURF Subpixel refinement
@@ -255,91 +243,84 @@ namespace ip {
   void SURFSubpixelRefinement( std::list<vw::ip::InterestPoint>& ip,
 			       std::vector<SURFScaleData> const& scaleData,
 			       SURFParams const& params ) {
-    // Calculating scaleSizes before hand, this is important for when
-    // it comes time to interpolate what the actual scale is. SURF has lotsa
-    // weird scale values. Here's what to expect:
-    // (1.2, 2.4, 3.6, 4.8, 7.2, 9.6, 12.0, 14.4, 19.2 ... and so on.
-    std::vector<float> scaleSize(params.octaves*params.scales);
-    scaleSize[0] = 1.2;
-    for (unsigned curr_oct = 0; curr_oct < params.octaves - 1; ++curr_oct )
-      scaleSize[(curr_oct+1)*params.scales] = scaleSize[curr_oct*params.scales] + 6*pow(2,curr_oct);
-    for (unsigned curr_oct = 0; curr_oct < params.octaves; ++curr_oct ) {
-      for (unsigned curr_scale = 1; curr_scale < params.scales; ++curr_scale ) {
-	unsigned index = curr_oct*params.scales + curr_scale;
-	scaleSize[index]=scaleSize[index-1]+1.2*pow(2,curr_oct);
-      }
-    }
 
     // Performing refinement on all pixels
     for (std::list<vw::ip::InterestPoint>::iterator point = ip.begin();
 	 point != ip.end(); ++point) {
 
-      signed dx = 0, dy = 0;
+      signed dx = 0, dy = 0, ds = 0;
       vw::Vector3 result;
       unsigned iter;
-
+      unsigned sampling_step = 2<<(*point).octave;
+      
       for (iter = 0; iter < 5; ++iter) {
+	
 	// Apply changes
 	(*point).ix += dx;
 	(*point).iy += dy;
+	(*point).scale_lvl += ds;
+	dx = dy = ds = 0;
 
-	// Calculate what the sample step is (I'm going to keep this in
-	// terms of the main image)
-	unsigned octave = (unsigned)floor(double((*point).index)/double(params.scales));
-	unsigned sampling_step = 2<<octave;
-	unsigned filter_size = 9;
-	for (unsigned i = 0; i < octave; ++i)
-	  filter_size += 30*(i == 0 ? 1 : 2<<(i-1));
-	unsigned s_temp = floor(float(filter_size)/2.);
-	signed starting_point = s_temp + (sampling_step - (s_temp & (sampling_step - 1)));
+	unsigned index0 = params.convToIndex( (*point).octave,
+					      (*point).scale_lvl );
 
-	if ((*point).ix < starting_point || (*point).ix > int(params.cols) - starting_point) {
-	  vw_out(DebugMessage, "interest_point") << "SURFSubpixel Refinement: ix is out of bounds.\n";
-	  continue;
-	}
-	if ((*point).iy < starting_point || (*point).iy > int(params.rows) - starting_point) {
-	  vw_out(DebugMessage, "interest_point") << "SURFSubpixel Refinement: iy is out of bounds.\n";
-	  continue;
+	// Has this point left the boundaries?  Note: isValid does
+	//    double duty. It can determine if the point has left the
+	//    edge of interest image
+	if ( !scaleData[index0].isValid( (*point).ix, (*point).iy ) ||
+	     (*point).scale_lvl < 1 ||
+	     (*point).scale_lvl > params.scales - 2 ) {
+
+	  // Axe this point then
+	  iter = 5;
+	  break;
 	}
 
 	// Finding gradients
-	vw::Vector3 B = SURFGradient3D(scaleData, (*point).ix, (*point).iy,
-				       (*point).index, sampling_step );
+	vw::Vector3 B = SURFGradient3D( scaleData, (*point), params );
 
 	// Finding second derivatives
-	vw::Matrix3x3 A = SURFHessian3D(scaleData, (*point).ix, (*point).iy,
-					(*point).index, sampling_step );
+	vw::Matrix3x3 A = SURFHessian3D( scaleData, (*point), params );
 
 	result = vw::math::solve(A,B);
 
-	dx = dy = 0;
-	if ( (result(0) > float(sampling_step)/2 || result(0) < -float(sampling_step)/2) && ( (*point).ix+round(result(0))) < params.cols - starting_point
-	     && ((*point).ix+round(result(0))) > starting_point)
+	if (result(0) > 0.5 || result(0) < -0.5)
 	  dx = result(0) > 0 ? sampling_step : -sampling_step;
-
-        if ( (result(1) > float(sampling_step)/2 || result(1) < -float(sampling_step)/2) && ( (*point).iy+round(result(1))) < params.rows - starting_point 
-	     && ((*point).iy+round(result(1))) > starting_point)
+        if (result(1) > 0.5 || result(1) < -0.5)
 	  dy = result(1) > 0 ? sampling_step : -sampling_step;
+	if (result(2) > 0.5 || result(2) < -0.5 )
+	  ds = result(2) > 0 ? 1 : - 1;
       
-	if (dx == 0 && dy == 0) break;
-	
+	if (dx == 0 && dy == 0 && ds == 0) break;
+
       } //End of iter
 
       // Deciding if to remove for too many iterations
-      if (iter >= 4 ) {
-	vw_out(vw::DebugMessage,"interest_point")<<"removing point\tx:" << (*point).ix << "\ty:" << (*point).iy << "\ts:" << (*point).scale << std::endl;
+      if (iter > 4 ) {
 	point = ip.erase(point);
 	point--;
 	continue;
       }
-
+      
       // Calculating the refinement
       {
-	(*point).x = float((*point).ix) + result(0);
-	(*point).y = float((*point).iy) + result(1);
-	// Not trying to make you think or anything
-	(*point).scale += (result(2)>0 ? result(2) : -result(2))*(scaleSize[result(2) > 0 ? (*point).index+1 : (*point).index-1]-scaleSize[(*point).index]);
+	(*point).x = float((*point).ix) + result(0)*sampling_step;
+	(*point).y = float((*point).iy) + result(1)*sampling_step;
+	(*point).ix += round(result(0)*sampling_step);
+	(*point).iy += round(result(1)*sampling_step);
+
+	// Scale Interpolation
+	//   At this time IP's scale becomes actually scale size (which is the gaussian variance of the filter)
+	unsigned index0 = params.convToIndex( (*point).octave, (*point).scale_lvl );
+	unsigned index1 = params.convToIndex( (*point).octave,
+					      (*point).scale_lvl + ( result(2)>0 ? 1 : -1 ) );
+
+	(*point).scale = params.calcScale( float(scaleData[index0].filter_size()) + 
+					   fabs( result(2) )*( float(scaleData[index1].filter_size()) -
+							       float(scaleData[index0].filter_size()) ) );
+					   
       }
+
     } // end of for
   }
 
@@ -349,18 +330,23 @@ namespace ip {
   // - iy        = y location to evaluate at
   // - index     = index to evaluate at, representative of octave & scale
   // - step      = the step size that is for the interest data
-  // This calculates the gradient, hmm... it negative
+  // This calculates the gradient, hmm... its negative
   Vector3 SURFGradient3D( std::vector<SURFScaleData> const& scaleData,
-			  int const& ix, int const& iy, 
-			  unsigned const& index, unsigned const& step ) {
+			  vw::ip::InterestPoint const& ip, 
+			  SURFParams const& params ) {
+
+    int step = 0x2<<ip.octave;
+    int index0 = params.convToIndex( ip.octave, ip.scale_lvl );
+    int indexDown = params.convToIndex( ip.octave, ip.scale_lvl - 1);
+    int indexUp = params.convToIndex( ip.octave, ip.scale_lvl + 1);
 
     vw::Vector3 B;
-    B(0) = -0.5*(scaleData[index].determinant(ix+step,iy) -
-		 scaleData[index].determinant(ix-step,iy));
-    B(1) = -0.5*(scaleData[index].determinant(ix,iy+step) -
-		 scaleData[index].determinant(ix,iy-step));
-    B(2) = -0.5*(scaleData[index+1].determinant(ix,iy) -
-		 scaleData[index-1].determinant(ix,iy) );
+    B(0) = -0.5*(scaleData[index0].determinant(ip.ix+step,ip.iy) -
+		 scaleData[index0].determinant(ip.ix-step,ip.iy));
+    B(1) = -0.5*(scaleData[index0].determinant(ip.ix,ip.iy+step) -
+		 scaleData[index0].determinant(ip.ix,ip.iy-step));
+    B(2) = -0.5*(scaleData[indexUp].determinant(ip.ix,ip.iy) -
+		 scaleData[indexDown].determinant(ip.ix,ip.iy) );
     
     return B;
   }
@@ -374,44 +360,49 @@ namespace ip {
   // - step      = the step size that is for the interest data
   // This calculates the hessian matrix
   Matrix3x3 SURFHessian3D( std::vector<SURFScaleData> const& scaleData, 
-			   int const& ix, int const& iy, 
-			   unsigned const& index, unsigned const& step ) {
+			   vw::ip::InterestPoint const& ip, 
+			   SURFParams const& params ) {
+
+    int step = 0x2<<ip.octave;
+    int index0 = params.convToIndex( ip.octave, ip.scale_lvl );
+    int indexDown = params.convToIndex( ip.octave, ip.scale_lvl - 1);
+    int indexUp = params.convToIndex( ip.octave, ip.scale_lvl + 1 );
 
     vw::Matrix3x3 A;
     // Dxx
-    A(0,0) = scaleData[index].determinant(ix+step,iy) +
-      scaleData[index].determinant(ix-step,iy) -
-      2.0*scaleData[index].determinant(ix,iy);
+    A(0,0) = scaleData[index0].determinant(ip.ix+step, ip.iy) +
+      scaleData[index0].determinant(ip.ix-step,ip.iy) -
+      2.0*scaleData[index0].determinant(ip.ix,ip.iy);
     // Dyy
-    A(1,1) = scaleData[index].determinant(ix,iy+step) +
-      scaleData[index].determinant(ix,iy-step) -
-      2.0*scaleData[index].determinant(ix,iy);
+    A(1,1) = scaleData[index0].determinant(ip.ix,ip.iy+step) +
+      scaleData[index0].determinant(ip.ix,ip.iy-step) -
+      2.0*scaleData[index0].determinant(ip.ix,ip.iy);
     // Dzz
-    A(2,2) = scaleData[index+1].determinant(ix,iy) +
-      scaleData[index-1].determinant(ix,iy) -
-      2.0*scaleData[index].determinant(ix,iy);
+    A(2,2) = scaleData[indexUp].determinant(ip.ix,ip.iy) +
+      scaleData[indexDown].determinant(ip.ix,ip.iy) -
+      2.0*scaleData[index0].determinant(ip.ix,ip.iy);
     
-    // keep'n it invertable yo :)
-    A(0,0) += 1e-29;
-    A(1,1) += 1e-29;
-    A(2,2) += 1e-29;
+    // Keep'n it invertable
+    A(0,0) += 1e-30;
+    A(1,1) += 1e-30;
+    A(2,2) += 1e-30;
 
     // Dxy
-    A(0,1) = A(1,0) = 0.25*(scaleData[index].determinant(ix+step,iy+step) +
-			    scaleData[index].determinant(ix-step,iy-step) -
-			    scaleData[index].determinant(ix+step,iy-step) -
-			    scaleData[index].determinant(ix-step,iy+step));
+    A(0,1) = A(1,0) = 0.25*(scaleData[index0].determinant(ip.ix+step,ip.iy+step) +
+			    scaleData[index0].determinant(ip.ix-step,ip.iy-step) -
+			    scaleData[index0].determinant(ip.ix+step,ip.iy-step) -
+			    scaleData[index0].determinant(ip.ix-step,ip.iy+step));
 	
     // Dxs
-    A(0,2) = A(2,0) = 0.25*(scaleData[index+1].determinant(ix+step,iy) +
-			    scaleData[index-1].determinant(ix-step,iy) -
-			    scaleData[index-1].determinant(ix+step,iy) -
-			    scaleData[index+1].determinant(ix-step,iy) );
+    A(0,2) = A(2,0) = 0.25*(scaleData[indexUp].determinant(ip.ix+step,ip.iy) +
+			    scaleData[indexDown].determinant(ip.ix-step,ip.iy) -
+			    scaleData[indexDown].determinant(ip.ix+step,ip.iy) -
+			    scaleData[indexUp].determinant(ip.ix-step,ip.iy) );
     // Dys
-    A(1,2) = A(2,1) = 0.25*(scaleData[index+1].determinant(ix,iy+step) +
-			    scaleData[index-1].determinant(ix,iy-step) -
-			    scaleData[index-1].determinant(ix,iy+step) -
-			    scaleData[index+1].determinant(ix,iy-step) );
+    A(1,2) = A(2,1) = 0.25*(scaleData[indexUp].determinant(ip.ix,ip.iy+step) +
+			    scaleData[indexDown].determinant(ip.ix,ip.iy-step) -
+			    scaleData[indexDown].determinant(ip.ix,ip.iy+step) -
+			    scaleData[indexUp].determinant(ip.ix,ip.iy-step) );
 
     return A;
   }
@@ -426,7 +417,7 @@ namespace ip {
   // paper. Well, kinda, this implementation is a little lazy.
   float SURFOrientation( vw::ImageView<double> const& integral, 
 			 int const& ix, int const& iy,
-			 float const& scale ) {
+			 float const& scale) {
     int iscale = round(scale);
 
     std::vector<float> h_response(169);
