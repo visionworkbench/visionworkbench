@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
   // Check to make sure we can open the file.
   try {
     DiskImageResource *test_resource = DiskImageResource::open(image_filename);
-    std::cout << "\t--> Opening " << image_filename << "\n";
+    std::cout << "\t--> Opening " << test_resource->filename() << "\n";
   } catch (IOErr &e) {
     std::cout << "Could not open file: " << image_filename << "\n\t--> " << e.what() << "\n";
     exit(0);

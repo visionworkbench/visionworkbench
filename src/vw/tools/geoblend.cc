@@ -360,7 +360,7 @@ int main( int argc, char *argv[] ) {
       return 1;
     }
     
-    if( patch_overlap<0 || patch_overlap>=patch_size || patch_overlap%2==1 ) {
+    if( patch_overlap>=patch_size || patch_overlap%2==1 ) {
       std::cerr << "Error: The patch overlap must be an even number nonnegative number" << std::endl;
       std::cerr << "smaller than the patch size!  (You specified " << patch_overlap << ".)" << std::endl;
       std::cerr << usage << std::endl;
@@ -373,7 +373,7 @@ int main( int argc, char *argv[] ) {
         return 1;
     }
 
-    if(tilesize >= 0 && output_file_type != "tif") {
+    if(output_file_type != "tif") {
         std::cerr << "Error: Cannot output a unified tiled TIFF if output file type is not set to tif." << std::endl;
         std::cerr << usage << std::endl;
         return 1;

@@ -344,14 +344,16 @@ void vw::camera::ExifData::process_exif(unsigned char * ExifSection, unsigned in
 bool vw::camera::ExifData::read_tiff_ifd(FILE* infile) {
   // Obtain file size
   fseek(infile, 0, SEEK_END);
-  long lSize = ftell(infile);
+  size_t lSize = ftell(infile);
   rewind(infile);
 
   // Read complete file into buffer (inefficient, but allows us to use same process_exif_dir function
   // unchanged for both jpg and tiff).
   unsigned char * buffer = (unsigned char *) malloc(lSize);
   VW_ASSERT( buffer != NULL, NullPtrErr() << "Could not allocate memory.");
-  fread(buffer, 1, lSize, infile);
+
+  if (fread(buffer, 1, lSize, infile) != lSize)
+    vw_throw(IOErr() << "File changed size!");
 
   int first_offset = process_tiff_header(buffer);
 

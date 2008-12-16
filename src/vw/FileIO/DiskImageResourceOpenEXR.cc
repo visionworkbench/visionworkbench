@@ -88,11 +88,12 @@ namespace {
 // The destructor is here, despite being so brief, because deleting 
 // an object safely requires knowing its full type.
 vw::DiskImageResourceOpenEXR::~DiskImageResourceOpenEXR() {
-  if (m_input_file_ptr) 
+  if (m_input_file_ptr) {
     if (m_tiled)
       delete static_cast<Imf::TiledInputFile*>(m_input_file_ptr);
     else 
       delete static_cast<Imf::InputFile*>(m_input_file_ptr);
+  }
   if (m_output_file_ptr) {
     if (m_tiled)
       delete static_cast<Imf::TiledOutputFile*>(m_output_file_ptr);

@@ -114,6 +114,8 @@ libvw_la_SOURCES =
 libvw_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
 libvw_la_LIBADD = Core/libvwCore.la Math/libvwMath.la Image/libvwImage.la FileIO/libvwFileIO.la
 
+CLEANFILES = config.h.pre.in~
+
 ########################################################################
 # general
 ########################################################################

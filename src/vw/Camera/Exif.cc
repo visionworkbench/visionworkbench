@@ -164,7 +164,7 @@ double vw::camera::ExifView::get_focal_length_35mm_equiv() const {
   if (focal_plane_y_resolution <= 0) vw_throw(ExifErr() << "Illegal value for FocalPlaneYResolution");
   int focal_plane_resolution_unit = 2;
   try { query_by_tag(EXIF_FocalPlaneResolutionUnit, focal_plane_resolution_unit); } catch (ExifErr) {}
-  double focal_plane_resolution_unit_in_mm;
+  double focal_plane_resolution_unit_in_mm = 0;
   switch (focal_plane_resolution_unit) {
   case 2: // inch
     focal_plane_resolution_unit_in_mm = 25.4;
