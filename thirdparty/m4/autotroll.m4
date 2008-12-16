@@ -394,7 +394,7 @@ instead" >&AS_MESSAGE_LOG_FD
 # Check (using qmake) that Qt's version "matches" QT_version.
 # Must be run AFTER AT_WITH_QT. Requires autoconf 2.60.
 AC_DEFUN([AT_REQUIRE_QT_VERSION],
-[ AC_PREREQ([2.60])
+[
   if test x"$QMAKE" = x; then
     AX_INSTEAD_IF([$3], [\$QMAKE is empty. Did you invoke AT@&t@_WITH_QT before AT@&t@_REQUIRE_QT_VERSION?])
     break
