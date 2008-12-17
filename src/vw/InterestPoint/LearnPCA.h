@@ -91,20 +91,6 @@ public:
     return result;
   }
 
-  template <class ViewT>
-  inline ImageView<typename ViewT::pixel_type> get_support( float x, float y, float scale, float ori,
-                                                              ImageViewBase<ViewT> const& source, int size=DEFAULT_SUPPORT_SIZE ) {
-    float half_size = ((float)(size - 1)) / 2.0f;
-    float scaling = 1.0f / scale;
-
-    // This is mystifying - why won't the four-arg compose work?
-    return transform(source.impl(),
-		     compose(TranslateTransform(half_size, half_size),
-			     compose(ResampleTransform(scaling, scaling),
-				     RotateTransform(-ori),
-				     TranslateTransform(-x, -y))),
-		     size, size);
-  }
 };
 
 class LearnPCA {

@@ -531,9 +531,12 @@ namespace ip {
   // SURF Descriptor 64 bit or 128 bit
   struct SURFDescriptorGenerator : public DescriptorGeneratorBase<SURFDescriptorGenerator> {
     
+  private:
 
     Matrix<float,20,20> gaussian_weight;
     bool m_extended;
+
+  public:
 
     // Constructor
     SURFDescriptorGenerator( bool extended = false, int num_threads = 1 ) : DescriptorGeneratorBase<SURFDescriptorGenerator>(num_threads) {
@@ -546,6 +549,11 @@ namespace ip {
 	  gaussian_weight(x,y) = exp( -dist/21.78 );
 	}
       }
+    }
+
+    // Size of the descriptor window
+    int support_size( void ) {
+      return 21;
     }
 
     // Actually Descriptor arithmetic
@@ -616,30 +624,16 @@ namespace ip {
 	    }
 	  }
 
+	  // Normalizing on individual descriptors
+
 	}
       }
 
       return normalize(result);
     }
 
-    // This builds the window used for the descriptor
-    template <class ViewT>
-    inline ImageView<typename ViewT::pixel_type> get_support( float x, float y, float scale, float ori,
-                                                              ImageViewBase<ViewT> const& source, int size=21 ) {
-
-      float scaling = 1.0f / scale;
-
-      // Output is 21x21 pixels
-      return transform(source.impl(),
-		       compose(TranslateTransform(10, 10), 
-			       compose(ResampleTransform(scaling, scaling),
-				       RotateTransform(-ori),
-				       TranslateTransform(-x, -y))),
-		       21, 21); 
-    }
-
   };
-  
+
 }} // namespace vw::ip
 
 #endif // __VW_INTERESTPOINT_SURF_H__

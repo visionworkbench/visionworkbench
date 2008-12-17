@@ -45,12 +45,9 @@ namespace ip {
   template <class ImplT>
   class DescriptorGeneratorBase {
 
-    static const int DEFAULT_SUPPORT_SIZE = 41;
-
     int m_num_threads;
 
   public:
-
     /// \cond INTERNAL
     // Methods to access the derived type
     inline ImplT& impl() { return static_cast<ImplT&>(*this); }
@@ -68,12 +65,12 @@ namespace ip {
     template <class ViewT>
     void operator() ( ImageViewBase<ViewT> const& image, InterestPointList& points ) {
 
-
       // Traditional Single Threaded
       for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
 
 	// First we compute the support region based on the interest point 
-	ImageView<PixelGray<float> > support = get_support(*i, pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image.impl())));
+	ImageView<PixelGray<float> > support = get_support(*i, pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image.impl())),
+							   impl().support_size() );
 
 	// Next, we pass the support region and the interest point to
 	// the descriptor generator ( compute_descriptor() ) supplied
@@ -83,12 +80,18 @@ namespace ip {
 
     }
 
+    // Default suport size ( i.e. descriptor window)
+    int support_size( void ) {
+      return 41;
+    }
+
     /// Get the size x size support region around an interest point,
     /// rescaled by the scale factor and rotated by the specified
     /// angle.
     template <class ViewT>
     inline ImageView<typename ViewT::pixel_type> get_support( float x, float y, float scale, float ori,
-                                                              ImageViewBase<ViewT> const& source, int size=DEFAULT_SUPPORT_SIZE ) {
+                                                              ImageViewBase<ViewT> const& source, int size) {
+
       float half_size = ((float)(size - 1)) / 2.0f;
       float scaling = 1.0f / scale;
 
@@ -105,8 +108,8 @@ namespace ip {
     /// rotated appropriately.
     template <class ViewT>
     inline ImageView<typename ViewT::pixel_type>
-    get_support( InterestPoint const& pt, ImageViewBase<ViewT> const& source, int size=DEFAULT_SUPPORT_SIZE ) {
-      return impl().get_support(pt.x, pt.y, pt.scale, pt.orientation, source.impl(), size);
+    get_support( InterestPoint const& pt, ImageViewBase<ViewT> const& source, int size ) {
+      return get_support(pt.x, pt.y, pt.scale, pt.orientation, source.impl(), size);
     }
     
   };
@@ -132,22 +135,6 @@ namespace ip {
 
       return normalize(result);
     }
-
-    template <class ViewT>
-    inline ImageView<typename ViewT::pixel_type> get_support( float x, float y, float scale, float ori,
-                                                              ImageViewBase<ViewT> const& source, int size=DEFAULT_SUPPORT_SIZE ) {
-      float half_size = ((float)(size - 1)) / 2.0f;
-      float scaling = 1.0f / scale;
-
-      // This is mystifying - why won't the four-arg compose work?
-      return transform(source.impl(),
-                       compose(TranslateTransform(half_size, half_size),
-                               compose(ResampleTransform(scaling, scaling),
-                                       RotateTransform(-ori),
-                                       TranslateTransform(-x, -y))),
-                       size, size);
-    }
-
   };
 
   // An implementation of PCA-SIFT
@@ -195,21 +182,6 @@ namespace ip {
 	}
       }
       return result;
-    }
-
-    template <class ViewT>
-    inline ImageView<typename ViewT::pixel_type> get_support( float x, float y, float scale, float ori,
-                                                              ImageViewBase<ViewT> const& source, int size=DEFAULT_SUPPORT_SIZE ) {
-      float half_size = ((float)(size - 1)) / 2.0f;
-      float scaling = 1.0f / scale;
-
-      // This is mystifying - why won't the four-arg compose work?
-      return transform(source.impl(),
-                       compose(TranslateTransform(half_size, half_size),
-                               compose(ResampleTransform(scaling, scaling),
-                                       RotateTransform(-ori),
-                                       TranslateTransform(-x, -y))),
-                       size, size);
     }
   };
   
