@@ -38,6 +38,7 @@
 #include <vw/InterestPoint/Descriptor.h>
 #include <vw/Math.h>
 #include <vw/Image.h>
+#include <vw/Core/ThreadPool.h>
 
 #include <vector>
 #include <list>
@@ -143,6 +144,9 @@ namespace ip {
   /// compare different scales to each other
   class SURFScaleData {
   public:
+    SURFScaleData( void ) {
+    }
+
     // Fancy constructor
     SURFScaleData( boost::shared_ptr<vw::ImageView<float> > data,
 		   boost::shared_ptr<vw::ImageView<bool> > polarity,
@@ -263,14 +267,90 @@ namespace ip {
   float SURFOrientation( vw::ImageView<double> const&, int const&, int const&,
 			 float const& );  
 
+
+  template <class ViewT>
+  class SURFInterestScaleTask : public Task {
+    // Disable copyable semantics
+    SURFInterestScaleTask(SURFInterestScaleTask& copy) {}
+    void operator=(SURFInterestScaleTask& copy) {}
+
+    ViewT m_integral;
+    SURFScaleData& m_data;
+    Mutex& m_mutex;
+    unsigned m_filter_size;
+    unsigned m_sampling_step;
+    SURFParams m_params;
+    int m_id;
+
+  public:
+    SURFInterestScaleTask(ViewT const& integral, unsigned const filter_size,
+			  unsigned sampling_step, SURFParams const params,
+			  SURFScaleData& scaleData, Mutex &mutex, int id) :
+    m_integral(integral), m_filter_size(filter_size), m_sampling_step( sampling_step ), m_params(params), m_data(scaleData), m_mutex(mutex), m_id(id) {
+    }
+
+    // This actually does the work
+    void operator()() {
+      vw_out(DebugMessage, "interest_point") << "SURFInterestScaleTask Thread " << m_id << " is starting.\n";
+
+      m_data = SURFProcessScale( m_integral,
+				 m_filter_size,
+				 m_sampling_step,
+				 m_params );
+
+      vw_out(DebugMessage, "interest_point") << "SURFInterestScaleTask Thread " << m_id << " is finished.\n";
+    }
+
+    SURFScaleData results(){ return m_data; }
+  };
+
+  template <class ViewT>
+  class SURFOrientationCalcTask : public Task {
+    // Disable copyable semantics
+    SURFOrientationCalcTask(SURFOrientationCalcTask& copy) {}
+    void operator=(SURFOrientationCalcTask& copy) {}
+
+    ViewT m_integral;
+    InterestPointList& m_individual_list;
+    InterestPointList& m_main_list;
+    Mutex& m_mutex;
+    int m_id;
+
+  public:
+    SURFOrientationCalcTask(ViewT const& integral, InterestPointList& my_ip_list, 
+			    InterestPointList& main_ip_list, Mutex &mutex, int id) :
+    m_integral(integral), m_individual_list(my_ip_list), m_main_list(main_ip_list), m_mutex(mutex), m_id(id) {
+    }
+
+    void operator()(){
+      vw_out(DebugMessage, "interest_point") << "SURFOrientationCalcTask Thread " << m_id << " is starting.\n";
+
+      // Processing my individual list of interest points
+      for (InterestPointList::iterator point = m_individual_list.begin();
+	   point != m_individual_list.end(); ++point) {
+	(*point).orientation = SURFOrientation( m_integral,
+						(*point).ix, (*point).iy,
+						(*point).scale );
+      }
+
+      // Injecting my finished points into the global pile
+      {
+	Mutex::Lock lock(m_mutex);
+	m_main_list.splice(m_main_list.end(), m_individual_list);
+      } // End mutex lock's scope
+
+      vw_out(DebugMessage, "interest_point") << "SURFOrientationCalcTask Thread " << m_id << " is finished.\n";
+    }
+  };
+
   /// This class actually performs all the work. The SURF operator is
   /// actually just a red herring that is required to match the IP module's
   /// frame.
   template <class InterestT>
-  class SURFInterestPointDetector : public InterestDetectorBase<SURFInterestPointDetector<InterestT> >
+  class FH9InterestPointDetector : public InterestDetectorBase<FH9InterestPointDetector<InterestT> >
   {
 
-    SURFInterestPointDetector(SURFInterestPointDetector<InterestT> const& copy) {}
+    FH9InterestPointDetector(FH9InterestPointDetector<InterestT> const& copy) {}
 
   public:
     static const int IP_DEFAULT_SCALES = 4; // Don't play with
@@ -279,20 +359,20 @@ namespace ip {
     /// Setting max_points = 0 will disable interest point culling.
     /// Otherwies, the max_points most "interesting" points are
     /// returned.
-    SURFInterestPointDetector(int max_points = 0)
-      : m_max_points(max_points) {
+    FH9InterestPointDetector(int max_points = 0, int num_threads = 1 )
+      : m_max_points(max_points), m_num_threads(num_threads) {
       m_params = SURFParams();
     }
 
-    SURFInterestPointDetector(InterestT const& interest, int max_points = 0) 
-      : m_max_points(max_points) {
-      vw_out(DebugMessage, "interest_point") << "SURFInterestPointDetector rejected outside interest operator.\n";
+    FH9InterestPointDetector(InterestT const& interest, int max_points = 0, int num_threads = 1 ) 
+      : m_max_points(max_points), m_num_threads(num_threads) {
+      
       m_params = SURFParams( interest.threshold(), IP_DEFAULT_OCTAVES, IP_DEFAULT_SCALES );
     }
 
-    SURFInterestPointDetector(InterestT const& interest, int scales, int octaves, int max_points = 0)
-      : m_max_points(max_points) {
-      vw_out(DebugMessage, "interest_point") << "SURFInterestPointDetector rejected outside interest operator. Also, it is not recommended to change octave and scale values.\n";
+    FH9InterestPointDetector(InterestT const& interest, int scales, int octaves, int max_points, int num_threads = 1)
+      : m_max_points(max_points), m_num_threads(num_threads) {
+      
       m_params = SURFParams( interest.threshold(), octaves, scales );
     }
 
@@ -307,17 +387,6 @@ namespace ip {
       // Set SURF Params;
       m_params.setForImage( image );
       
-      /*
-      // DEBUG TEST
-      ImageView<int> test_image(10, 10);
-      for (unsigned x = 0; x < 10; x++ )
-	for (unsigned y = 0; y < 10; y++ )
-	  test_image(x,y) = 2*(x+3) + 3*(y+1);
-      ImageView<double> test_integral = IntegralImage( test_image );
-      float Dxx = XSecondDerivative( test_integral, 4, 4, 9 );
-      float Dyy = YSecondDerivative( test_integral, 4, 4, 9 );
-      */
-
       // Create Integral Image
       vw_out(InfoMessage,"interest_point") << "\tBuilding Integral Image.\n";
       ImageView<double> integral = IntegralImage( image );
@@ -326,26 +395,57 @@ namespace ip {
       // Create Interest Scales
       vw_out(InfoMessage,"interest_point") << "\tCalculating Interest Data.\n";
       std::vector<SURFScaleData> interest_scales;
-      unsigned filter_size = 3;
-      for ( unsigned octave = 0; octave < m_params.octaves; octave++ ) {
-	unsigned sampling_step = 0x2 << octave;
-	unsigned iterations = 2;
-	if ( octave == 0 )
-	  iterations = 4;
-       
-	for ( unsigned i = 0; i < iterations; i++ ) {
-	  filter_size += 6 * ( octave == 0 ? 1 : 0x2 << ( octave -1 ) );
-	  
-	  if ( filter_size + 2*sampling_step > integral.cols() ||
-	       filter_size + 2*sampling_step > integral.rows() ) {
-	    m_params.octaves--;
-	    break;
-	  }
+      {
+	unsigned filter_size = 3;
+	int id_count = 0;
+	FifoWorkQueue queue( m_num_threads );
+	Mutex mutex;
 
-	  interest_scales.push_back( SURFProcessScale( integral,
-						       filter_size,
-						       sampling_step,
-						       m_params ) );
+	// Determing how many interest scales are required
+	{
+	  int size = 4;
+	  size += m_params.octaves*2;
+	  interest_scales.resize(size);
+	}
+
+	for ( unsigned octave = 0; octave < m_params.octaves; octave++ ) {
+	  unsigned sampling_step = 0x2 << octave;
+	  unsigned iterations = 2;
+	  if ( octave == 0 )
+	    iterations = 4;
+       
+	  for ( unsigned i = 0; i < iterations; i++ ) {
+	    filter_size += 6 * ( octave == 0 ? 1 : 0x2 << ( octave -1 ) );
+	    
+	    if ( filter_size + 2*sampling_step > integral.cols() ||
+		 filter_size + 2*sampling_step > integral.rows() ) {
+	      m_params.octaves--;
+	      break;
+	    }
+	    
+	    if ( m_num_threads < 2 ) {
+	      // Single Threaded Version
+	      interest_scales[id_count] = SURFProcessScale( integral,
+							    filter_size,
+							    sampling_step,
+							    m_params );
+	    } else {
+	      // Multithread Version
+	      typedef SURFInterestScaleTask<ImageView<double> > task_type;
+	      boost::shared_ptr<task_type> task ( new task_type( integral, filter_size,
+								 sampling_step, m_params, 
+								 interest_scales[id_count],
+								 mutex, id_count ) );
+	      queue.add_task( task );
+	    }
+
+	    id_count++;
+	  }
+	}
+
+	if ( m_num_threads > 1 ) {
+
+	  queue.join_all();
 	}
       }
       
@@ -377,11 +477,44 @@ namespace ip {
       
       // Assign orientations
       vw_out(InfoMessage,"interest_point") << "\tCalculating orientation.\n";
-      for (std::list<InterestPoint>::iterator point = ip.begin();
-	   point != ip.end(); ++point) {
-	(*point).orientation = SURFOrientation( integral,
-						(*point).ix, (*point).iy,
-						(*point).scale );
+      {
+	if ( m_num_threads < 2 ) {
+	  // Single threaded edition
+	  for (std::list<InterestPoint>::iterator point = ip.begin();
+	       point != ip.end(); ++point) {
+	    (*point).orientation = SURFOrientation( integral,
+						    (*point).ix, (*point).iy,
+						    (*point).scale );
+	  }
+	} else {
+	  // Multithreaded
+
+	  // Breaking the points in lengths that can be processed individually.
+	  unsigned count = 0;
+	  std::vector<InterestPointList> ip_separated(m_num_threads);
+	  for (InterestPointList::iterator point = ip.begin();
+	       point != ip.end(); ++point) {
+	    
+	    ip_separated[count].push_back( (*point) );
+
+	    count++;
+	    count %= m_num_threads;
+	  }
+	  ip.clear();
+	  
+	  // Giving data to threads
+	  FifoWorkQueue queue( m_num_threads );
+	  Mutex mutex;
+	  typedef SURFOrientationCalcTask<ImageView<double> > task_type;
+	  for ( count = 0; count < m_num_threads; count++ ) {
+	    boost::shared_ptr<task_type> task ( new task_type( integral, ip_separated[count],
+							       ip, mutex, count ) );
+
+	    queue.add_task( task );
+	  }
+
+	  queue.join_all();
+	}
       }
       
       delete total;
@@ -390,11 +523,12 @@ namespace ip {
 
 
   protected:
+    int m_num_threads;
     int m_max_points;
     SURFParams m_params;
   };
 
-  // SURF Descriptor 64 bit
+  // SURF Descriptor 64 bit or 128 bit
   struct SURFDescriptorGenerator : public DescriptorGeneratorBase<SURFDescriptorGenerator> {
     
 
@@ -402,7 +536,7 @@ namespace ip {
     bool m_extended;
 
     // Constructor
-    SURFDescriptorGenerator( bool extended = false ) {
+    SURFDescriptorGenerator( bool extended = false, int num_threads = 1 ) : DescriptorGeneratorBase<SURFDescriptorGenerator>(num_threads) {
       m_extended = extended;
       // building gaussian weight meu = 9.5 (center of our gaussian)
       for (char x = 0; x < 20; x++ ) {

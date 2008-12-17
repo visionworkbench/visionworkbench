@@ -193,6 +193,8 @@ namespace ip {
 		     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const {
       typedef typename ListT::const_iterator IterT;
       
+      Timer *total = new Timer("Total elapsed time", DebugMessage, "interest_point");
+
       matched_ip1.clear(); matched_ip2.clear();
       if (!ip1.size() || !ip2.size()) {
 	vw_out(InfoMessage,"interest_point") << "KD-Tree: no points to match, exiting\n";
@@ -238,7 +240,9 @@ namespace ip {
           }
 	}
       }
+
       progress_callback.report_finished();
+      delete total;
     }
   };
   
@@ -265,6 +269,8 @@ namespace ip {
 		     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const {
       typedef typename ListT::const_iterator IterT;
       
+      Timer *total = new Timer("Total elapsed time", DebugMessage, "interest_point");
+
       matched_ip1.clear(); matched_ip2.clear();
       if (!ip1.size() || !ip2.size()) {
 	vw_out(InfoMessage,"interest_point") << "No points to match, exiting\n";
@@ -313,6 +319,8 @@ namespace ip {
 	  matched_ip2.push_back( ip2[match_index[i]] );
 	}
       }
+
+      delete total;
     }
   };
   

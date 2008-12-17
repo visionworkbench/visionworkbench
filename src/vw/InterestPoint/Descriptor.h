@@ -37,6 +37,8 @@
 #include <vw/InterestPoint/MatrixIO.h>
 #include <vw/InterestPoint/VectorIO.h>
 
+#include <vw/Core/ThreadPool.h>
+
 namespace vw { 
 namespace ip {
 
@@ -44,6 +46,8 @@ namespace ip {
   class DescriptorGeneratorBase {
 
     static const int DEFAULT_SUPPORT_SIZE = 41;
+
+    int m_num_threads;
 
   public:
 
@@ -53,23 +57,30 @@ namespace ip {
     inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
     /// \endcond
 
+    // Generator
+    DescriptorGeneratorBase( int num_threads = 1 ) :
+    m_num_threads(num_threads) { 
+    }
 
     // Given an image and a list of interest points, set the
     // descriptor field of the interest points using the
     // compute_descriptor() method provided by the subclass.
     template <class ViewT>
     void operator() ( ImageViewBase<ViewT> const& image, InterestPointList& points ) {
-      //vw_out(InfoMessage) << "\nComputing support and descriptor for " << points.size() << " interest points\n";
+
+
+      // Traditional Single Threaded
       for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
 
-        // First we compute the support region based on the interest point 
-        ImageView<PixelGray<float> > support = get_support(*i, pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image.impl())));
+	// First we compute the support region based on the interest point 
+	ImageView<PixelGray<float> > support = get_support(*i, pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image.impl())));
 
-        // Next, we pass the support region and the interest point to
-        // the descriptor generator ( compute_descriptor() ) supplied
-        // by the subclass.
-        i->descriptor = impl().compute_descriptor(support);
+	// Next, we pass the support region and the interest point to
+	// the descriptor generator ( compute_descriptor() ) supplied
+	// by the subclass.
+	i->descriptor = impl().compute_descriptor(support);
       }
+
     }
 
     /// Get the size x size support region around an interest point,

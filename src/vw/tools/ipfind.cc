@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
     ("lowe,l", "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
     
     // Interest point detector options
-    ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris, SURF]")
+    ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris, FH9]")
     ("log-threshold", po::value<float>(&log_threshold)->default_value(0.03), "Sets the threshold for the Laplacian of Gaussian interest operator")
     ("harris-threshold", po::value<float>(&harris_threshold)->default_value(1e-5), "Sets the threshold for the Harris interest operator")
     ("surf-threshold", po::value<float>(&surf_threshold)->default_value(0.01), "Sets the threshold for the SURF interest operator")
@@ -132,10 +132,10 @@ int main(int argc, char** argv) {
         InterestPointDetector<LogInterestOperator> detector(interest_operator, max_points);
         ip = detect_interest_points(image, detector, num_threads);
       }
-    } else if (interest_operator == "SURF") {
+    } else if (interest_operator == "FH9") {
       /// Right now we only support ScaledInterest Detection
       SURFInterestOperator interest_operator(surf_threshold);
-      SURFInterestPointDetector<SURFInterestOperator> detector(interest_operator, max_points);
+      FH9InterestPointDetector<SURFInterestOperator> detector(interest_operator, max_points, num_threads );
       ip = detector.process_image( image );
     } else {
       vw_out(0) << "Unknown interest operator: " << interest_operator << ".  Options are : [ Harris, LoG ]\n";
@@ -153,10 +153,10 @@ int main(int argc, char** argv) {
       PCASIFTDescriptorGenerator descriptor("pca_basis.exr", "pca_avg.exr");
       descriptor(image, ip);
     } else if (descriptor_generator == "SURF") {
-      SURFDescriptorGenerator descriptor;
+      SURFDescriptorGenerator descriptor( false, num_threads );
       descriptor(image, ip);
     } else if (descriptor_generator == "SURF128") { 
-      SURFDescriptorGenerator descriptor( true );
+      SURFDescriptorGenerator descriptor( true, num_threads );
       descriptor(image, ip);
     } else {
       vw_out(0) << "Unknown descriptor generator: " << descriptor_generator << "\n";
