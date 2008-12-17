@@ -50,7 +50,6 @@ AC_DEFUN([AX_PKG_GL],
   # For all other platforms, we search for static GL libraries
   # in the conventional manner.
   else
-    AX_PKG(GL, [X11], [-lGL -lGLU -lglut], [GL/gl.h GL/glu.h GL/glut.h])
+    AX_PKG(GL, [X11], [-lGL -lGLU -lglut], [GL/gl.h GL/glu.h GL/glut.h], [], [glCreateShader])
   fi
-
 ])

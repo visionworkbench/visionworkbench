@@ -1,4 +1,4 @@
-dnl Usage: AX_PKG(<name>, <dependencies>, <libraries>, <headers>[, <relative include path>])
+dnl Usage: AX_PKG(<name>, <dependencies>, <libraries>, <headers>[, <relative include path>, <required-functions>])
 AC_DEFUN([AX_PKG],
 [
   AC_ARG_WITH(translit($1,`A-Z',`a-z'),
@@ -7,9 +7,17 @@ AC_DEFUN([AX_PKG],
   )
 
   if test x"$ENABLE_VERBOSE" = "xyes"; then
-    AC_MSG_CHECKING([for package $1 in current paths])
+    if test -z "$6"; then
+      AC_MSG_CHECKING([for package $1 in current paths])
+    else
+      AC_MSG_CHECKING([for package $1 in current paths with functions ($6)])
+    fi
   else
-    AC_MSG_CHECKING([for package $1])
+    if test -z "$6"; then
+      AC_MSG_CHECKING([for package $1])
+    else
+      AC_MSG_CHECKING([for package $1 with functions ($6)])
+    fi
   fi
 
   AC_LANG_ASSERT(C++)
@@ -121,9 +129,26 @@ AC_DEFUN([AX_PKG],
             CPPFLAGS="$CPPFLAGS $OTHER_CPPFLAGS"
             LDFLAGS="$LDFLAGS $OTHER_LDFLAGS"
         fi
+
+        dnl check for the headers and libs. if found, keep going.
+        dnl otherwise, check next path
         AC_LINK_IFELSE(
           AC_LANG_PROGRAM([#include "conftest.h"],[]),
-          [ HAVE_PKG_$1=yes ; AC_MSG_RESULT([yes]) ; break ] )
+          [ HAVE_PKG_$1=yes ], [continue] )
+
+        for func in $6; do
+            echo "Checking package $1 for function $func" >&AS_MESSAGE_LOG_FD
+
+            AC_LINK_IFELSE(
+              AC_LANG_CALL([],[$func]),
+              [], [ HAVE_PKG_$1=no; echo "package $1 did not have function $func" >&AS_MESSAGE_LOG_FD ] )
+        done
+
+        if test x"$HAVE_PKG_$1" = x"yes"; then
+            AC_MSG_RESULT([yes])
+            break
+        fi
+
         TRY_ADD_CPPFLAGS=""
         TRY_ADD_LDFLAGS=""
         if test x"$ENABLE_VERBOSE" = "xyes"; then
