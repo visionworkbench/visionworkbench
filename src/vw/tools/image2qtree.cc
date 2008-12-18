@@ -107,6 +107,7 @@ static void fill_input_maps() {
   str_to_resolution_fn_map[std::string("tms")] = &vw::cartography::output::tms::compute_resolution;
   str_to_resolution_fn_map[std::string("uniview")] = &vw::cartography::output::tms::compute_resolution;
   str_to_resolution_fn_map[std::string("gmap")] = &vw::cartography::output::tms::compute_resolution;
+  str_to_resolution_fn_map[std::string("celestia")] = &vw::cartography::output::tms::compute_resolution;
 }
 
 static void get_normalize_vals(std::string filename, DiskImageResourceGDAL &file_resource) {
@@ -242,7 +243,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   if(output_metadata == "kml") {
     output_georef = output::kml::get_output_georeference(xresolution,yresolution);
     output_georef.set_datum( georeferences[0].datum() );
-  } else if(output_metadata == "tms" || output_metadata == "uniview" || output_metadata == "gmap") {
+  } else if(output_metadata != "none") {
     output_georef = output::tms::get_output_georeference(total_resolution);
     output_georef.set_datum( georeferences[0].datum() );
   }
@@ -305,7 +306,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
                       180.0 - (360.0*total_bbox.max().y())/yresolution,
                       (360.0*total_bbox.width())/xresolution,
                       (360.0*total_bbox.height())/yresolution );
-  } else if(output_metadata == "tms" || output_metadata == "uniview" || output_metadata == "gmap") {
+  } else if(output_metadata != "none") {
     total_bbox = composite.bbox();
     total_bbox.grow( BBox2i(0,0,total_resolution,total_resolution) );
     total_bbox.crop( BBox2i(0,0,total_resolution,total_resolution) );
@@ -331,7 +332,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   if(output_metadata == "kml") {
     data_bbox = composite.bbox();
     data_bbox.crop( BBox2i(0,0,total_bbox.width(),total_bbox.height()) );
-  } else if(output_metadata == "tms" || output_metadata == "uniview" || output_metadata == "gmap") {
+  } else if(output_metadata != "none") {
     data_bbox = BBox2i((int)std::floor(double(bbox.min().x())/tile_size)*tile_size,
                        (int)std::floor(double(bbox.min().y())/tile_size)*tile_size,
                        (int)std::ceil(double(bbox.width())/tile_size)*tile_size,
@@ -362,6 +363,11 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   // Google Maps specific things.
   } else if( output_metadata == "gmap" ) {
     GMapQuadTreeConfig config;
+    config.configure( quadtree );
+
+  // Celestia specific things.
+  } else if ( output_metadata == "celestia" ) {
+    CelestiaQuadTreeConfig config;
     config.configure( quadtree );
 
   } else {
@@ -409,6 +415,30 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     std::cout << "Note: You must merge the texture and terrain config files into a single file (Terrain info should go below texture info.)" << std::endl;
     std::cout << "Both output sets should be in the same directory, with the texture in a subdirectory named Texture and the terrain in a subdirectory named Terrain." << std::endl;
   }
+  else if (output_metadata == "celestia") {
+    std::string fn = output_file_name + ".ctx";
+    std::ofstream ctx( fn.c_str() );
+    ctx << "VirtualTexture\n";
+    ctx << "{\n";
+    ctx << "        ImageDirectory \"" << output_file_name << "\"\n";
+    ctx << "        BaseSplit 0\n";
+    ctx << "        TileSize " << (tile_size >> 1) << "\n";
+    ctx << "        TileType \"" << output_file_type << "\"\n";
+    ctx << "}\n";
+    ctx.close();
+
+    fn = output_file_name + ".ssc";
+    std::ofstream ssc( fn.c_str() );
+
+    ssc << "AltSurface \"" << output_file_name << "\" \"" << module_name << "\"\n";
+    ssc << "{\n";
+    ssc << "    Texture \"" << output_file_name << ".ctx" << "\"\n";
+    ssc << "}\n";
+    ssc.close();
+    std::cout << "Place " << output_file_name << ".ssc" << " in Celestia's extras dir" << std::endl;
+    std::cout << "Place " << output_file_name << ".ctx" << " and the output dir ("
+                          << output_file_name << ") in extras/textures/hires" << std::endl;
+  }
 }
 
 int main(int argc, char **argv) {
@@ -431,10 +461,10 @@ int main(int argc, char **argv) {
 
   po::options_description output_options("Output Options");
   output_options.add_options()
-    ("output-metadata,m", po::value<std::string>(&output_metadata)->default_value("none"), "Specify the output metadata type. One of [kml, tms, uniview, gmap, none]")
+    ("output-metadata,m", po::value<std::string>(&output_metadata)->default_value("none"), "Specify the output metadata type. One of [kml, tms, uniview, gmap, celestia, none]")
     ("file-type", po::value<std::string>(&output_file_type)->default_value("png"), "Output file type")
     ("channel-type", po::value<std::string>(&channel_type_str)->default_value("uint8"), "Output (and input) channel type. One of [uint8, uint16, int16, float]")
-    ("module-name", po::value<std::string>(&module_name)->default_value("marsds"), "Uniview module name (Uniview only). The module where the output will be placed")
+    ("module-name", po::value<std::string>(&module_name)->default_value("marsds"), "The module where the output will be placed. Ex: marsds for Uniview, or Sol/Mars for Celestia")
     ("terrain", "Outputs image files suitable for a Uniview terrain view. Implies output format as PNG, channel type uint16. Uniview only")
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
@@ -512,13 +542,13 @@ int main(int argc, char **argv) {
     output_file_name = prefix_from_filename(image_files[0]);
 
   if( tile_size <= 0 ) {
-    std::cerr << "Error: The tile size must be a positive number!  (You specified: " << tile_size << ".)" << std::endl << std::endl;
+    std::cerr << "Error: The tile size must be a positive number!  (You specified: " << tile_size << ")." << std::endl << std::endl;
     std::cout << usage.str();
     return 1;
   }
 
   if(str_to_resolution_fn_map.find(output_metadata) == str_to_resolution_fn_map.end()) {
-    std::cerr << "Error: Output metadata must be one of [none, kml, tms, uniview, gmap]!  (You specified: " << output_metadata << ".)" << std::endl << std::endl;
+    std::cerr << "Error: Output metadata must be one of [none, kml, tms, uniview, gmap, celestia]!  (You specified: " << output_metadata << ")." << std::endl << std::endl;
     std::cout << usage.str();
     return 1;
   }
