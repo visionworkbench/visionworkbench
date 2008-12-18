@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
     ("single-scale", "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
 
     // Descriptor generator options
-    ("descriptor-generator", po::value<std::string>(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca,SURF,SURF128]");
+    ("descriptor-generator", po::value<std::string>(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca,SURF]");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
         InterestPointDetector<LogInterestOperator> detector(interest_operator, max_points);
         ip = detect_interest_points(image, detector, num_threads);
       }
-    } else if (interest_operator == "FH9") {
+    } else if (interest_operator == "FH9" || interest_operator == "fh9") {
       /// Right now we only support ScaledInterest Detection
       SURFInterestOperator interest_operator(surf_threshold);
       FH9InterestPointDetector<SURFInterestOperator> detector(interest_operator, max_points, num_threads );
@@ -152,11 +152,8 @@ int main(int argc, char** argv) {
     } else if (descriptor_generator == "pca") {
       PCASIFTDescriptorGenerator descriptor("pca_basis.exr", "pca_avg.exr");
       descriptor(image, ip);
-    } else if (descriptor_generator == "SURF") {
-      SURFDescriptorGenerator descriptor( false, num_threads );
-      descriptor(image, ip);
-    } else if (descriptor_generator == "SURF128") { 
-      SURFDescriptorGenerator descriptor( true, num_threads );
+    } else if ( (descriptor_generator == "SURF") || (descriptor_generator == "surf") ) {
+      SURFDescriptorGenerator descriptor;
       descriptor(image, ip);
     } else {
       vw_out(0) << "Unknown descriptor generator: " << descriptor_generator << "\n";

@@ -424,7 +424,6 @@ namespace ip {
     std::vector<float> v_response(169);
     std::vector<float> angle(169);
     int measures = 0;
-    float ori = 0;
 
     for ( int i = -6; i <= 6; i++ ) {
       for ( int j = -6; j <= 6; j++ ) {
@@ -438,7 +437,7 @@ namespace ip {
 	  continue;
 
 	float distance_2 = i*i + j*j;
-	float weight = exp(-distance_2/12.5);
+	float weight = exp(-distance_2/8);
 
 	h_response[measures] =
 	  weight*HHaarWavelet( integral, ix + i*iscale, iy + j*iscale, iscale*4 );
@@ -453,8 +452,8 @@ namespace ip {
     // Fitting a slice to find the response
     const float pi_6 = 3.14159/6.0;
     const float two_pi = 3.14159*2.0;
-    float sumx, sumy, mod, greatest_mod = 0;
-    for ( float a = 0; a < two_pi; a+= 0.01) {
+    float sumx, sumy, mod, greatest_mod = 0, bestx = 0, besty = 0;
+    for ( float a = 0; a < two_pi; a+= 0.05) {
       sumx = sumy = 0;
       for ( int idx = 0; idx < measures; idx++ ) {
 	// Is it in my slice
@@ -470,11 +469,12 @@ namespace ip {
       mod = sumx*sumx + sumy*sumy;
       if ( mod > greatest_mod ) {
 	greatest_mod = mod;
-	ori = a;
+	bestx = sumx;
+	besty = sumy;
       }
     }
 
-    return ori;
+    return atan2(besty,bestx);
   }
 
 

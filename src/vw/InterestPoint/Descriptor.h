@@ -45,19 +45,13 @@ namespace ip {
   template <class ImplT>
   class DescriptorGeneratorBase {
 
-    int m_num_threads;
-
   public:
+
     /// \cond INTERNAL
     // Methods to access the derived type
     inline ImplT& impl() { return static_cast<ImplT&>(*this); }
     inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
     /// \endcond
-
-    // Generator
-    DescriptorGeneratorBase( int num_threads = 1 ) :
-    m_num_threads(num_threads) { 
-    }
 
     // Given an image and a list of interest points, set the
     // descriptor field of the interest points using the
@@ -65,19 +59,24 @@ namespace ip {
     template <class ViewT>
     void operator() ( ImageViewBase<ViewT> const& image, InterestPointList& points ) {
 
+      // Timing
+      Timer *total = new Timer("Total elapsed time", DebugMessage, "interest_point");
+
       // Traditional Single Threaded
       for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
-
+	
 	// First we compute the support region based on the interest point 
 	ImageView<PixelGray<float> > support = get_support(*i, pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image.impl())),
 							   impl().support_size() );
-
+	
 	// Next, we pass the support region and the interest point to
 	// the descriptor generator ( compute_descriptor() ) supplied
 	// by the subclass.
 	i->descriptor = impl().compute_descriptor(support);
       }
-
+ 
+      // End Timing
+      delete total;
     }
 
     // Default suport size ( i.e. descriptor window)
@@ -95,13 +94,12 @@ namespace ip {
       float half_size = ((float)(size - 1)) / 2.0f;
       float scaling = 1.0f / scale;
 
-      // This is mystifying - why won't the four-arg compose work?
       return transform(source.impl(),
                        compose(TranslateTransform(half_size, half_size),
                                compose(ResampleTransform(scaling, scaling),
                                        RotateTransform(-ori),
                                        TranslateTransform(-x, -y))),
-                       size, size);
+                       size, size );
     }
     
     /// Get the support region around an interest point, scaled and

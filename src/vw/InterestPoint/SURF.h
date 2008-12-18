@@ -291,14 +291,12 @@ namespace ip {
 
     // This actually does the work
     void operator()() {
-      vw_out(DebugMessage, "interest_point") << "SURFInterestScaleTask Thread " << m_id << " is starting.\n";
 
       m_data = SURFProcessScale( m_integral,
 				 m_filter_size,
 				 m_sampling_step,
 				 m_params );
 
-      vw_out(DebugMessage, "interest_point") << "SURFInterestScaleTask Thread " << m_id << " is finished.\n";
     }
 
     SURFScaleData results(){ return m_data; }
@@ -323,7 +321,6 @@ namespace ip {
     }
 
     void operator()(){
-      vw_out(DebugMessage, "interest_point") << "SURFOrientationCalcTask Thread " << m_id << " is starting.\n";
 
       // Processing my individual list of interest points
       for (InterestPointList::iterator point = m_individual_list.begin();
@@ -339,7 +336,6 @@ namespace ip {
 	m_main_list.splice(m_main_list.end(), m_individual_list);
       } // End mutex lock's scope
 
-      vw_out(DebugMessage, "interest_point") << "SURFOrientationCalcTask Thread " << m_id << " is finished.\n";
     }
   };
 
@@ -517,7 +513,9 @@ namespace ip {
 	}
       }
       
+      // End Timing
       delete total;
+
       return ip;
     }
 
@@ -528,27 +526,25 @@ namespace ip {
     SURFParams m_params;
   };
 
-  // SURF Descriptor 64 bit or 128 bit
+  // SURF Descriptor 64/128 bit
   struct SURFDescriptorGenerator : public DescriptorGeneratorBase<SURFDescriptorGenerator> {
-    
-  private:
 
-    Matrix<float,20,20> gaussian_weight;
     bool m_extended;
+    Matrix<float,20,20> gaussian_weight;
 
   public:
 
     // Constructor
-    SURFDescriptorGenerator( bool extended = false, int num_threads = 1 ) : DescriptorGeneratorBase<SURFDescriptorGenerator>(num_threads) {
-      m_extended = extended;
-      // building gaussian weight meu = 9.5 (center of our gaussian)
+    SURFDescriptorGenerator( bool extended=false ) : m_extended(extended) {
+
       for (char x = 0; x < 20; x++ ) {
 	for (char y = 0; y < 20; y++ ) {
-	  float dist = (float(x) - 9.5f)*(float(x) - 9.5 ) + (float(y) - 9.5)*(float(y) - 9.5 );
+	  float dist = (float(x) - 9.5)*(float(x) - 9.5) + (float(y) - 9.5)*(float(y) - 9.5);
 	  
 	  gaussian_weight(x,y) = exp( -dist/21.78 );
 	}
       }
+
     }
 
     // Size of the descriptor window
@@ -560,6 +556,7 @@ namespace ip {
     template <class ViewT>
     Vector<float> compute_descriptor (ImageViewBase<ViewT> const& support) const {
       
+      // Resizing a vector crashes Threading of the DescriptorBase
       Vector<float> result(64);
       if (m_extended)
 	result.set_size(128);
@@ -580,56 +577,68 @@ namespace ip {
       // Building the descriptor
       for ( char x = 0; x < 4; x++ ) {
 	for ( char y = 0; y < 4; y++ ) {
+
+	  int dest = (m_extended?32:16)*x +
+	    (m_extended?8:4)*y;
 	  
 	  // Summing responses
 	  for ( char ix = 0; ix < 5; ix++ ) {
 	    for ( char iy = 0; iy < 5; iy++ ) {
+	      char sx = x*5+ix;
+	      char sy = y*5+iy;
 
-	      if (m_extended) {
+	      if (!m_extended) {
+		//SURF 64 (The Orginal)
+		// Dx
+		result(dest) += h_response(sx, sy);
+
+		// |Dx|
+		result(dest + 1) += fabs(h_response(sx, sy));
+
+		// Dy
+		result(dest + 2) += v_response(sx, sy);
+	      
+		// |Dy|
+		result(dest + 3) += fabs(v_response(sx, sy));
+	      } else {
 		//SURF128
-
 		// Working the DXs
-		if ( v_response(x*5+ix, y*5+iy) > 0 ) {
-		  result(32*x + 8*y + 0) = h_response(x*5+ix, y*5+iy);
-		  result(32*x + 8*y + 1) = fabs(h_response(x*5+ix, y*5+iy));
+		if ( v_response(sx, sy) > 0 ) {
+		  result(dest + 0) = h_response(sx, sy);
+		  result(dest + 1) = fabs(h_response(sx, sy));
 		} else {
-		  result(32*x + 8*y + 2) = h_response(x*5+ix, y*5+iy);
-		  result(32*x + 8*y + 3) = fabs(h_response(x*5+ix, y*5+iy));
+		  result(dest + 2) = h_response(sx, sy);
+		  result(dest + 3) = fabs(h_response(sx, sy));
 		}
 
 		// Working the DYs
-		if ( h_response(x*5+ix, y*5+iy) > 0 ) {
-		  result(32*x + 8*y + 4) = v_response(x*5+ix, y*5+iy);
-		  result(32*x + 8*y + 5) = fabs(v_response(x*5+ix, y*5+iy));
+		if ( h_response(sx, sy) > 0 ) {
+		  result(dest + 4) = v_response(sx, sy);
+		  result(dest + 5) = fabs(v_response(sx, sy));
 		} else {
-		  result(32*x + 8*y + 6) = v_response(x*5+ix, y*5+iy);
-		  result(32*x + 8*y + 7) = fabs(v_response(x*5+ix, y*5+iy));
+		  result(dest + 6) = v_response(sx, sy);
+		  result(dest + 7) = fabs(v_response(sx, sy));
 		}
-
-	      } else {
-		//SURF 64 (The Orginal)
-
-		// Dx
-		result(16*x + 4*y) += h_response(x*5+ix, y*5+iy);
-
-		// |Dx|
-		result(16*x + 4*y + 1) += fabs(h_response(x*5+ix, y*5+iy));
-
-		// Dy
-		result(16*x + 4*y + 2) += v_response(x*5+ix, y*5+iy);
-	     
-		// |Dy|
-		result(16*x + 4*y + 3) += fabs(v_response(x*5+ix, y*5+iy));
 	      }
 	    }
 	  }
 
-	  // Normalizing on individual descriptors
-
+	  // Normalizing individual descriptors
+	  float sum = 0;
+	  for ( unsigned i = 0; i < (m_extended ? 8 : 4); i++ ) {
+	    sum += result( (m_extended?32:16)*x + (m_extended?8:4)*y + i ) *
+	      result( (m_extended?32:16)*x + (m_extended?8:4)*y + i );
+	  }
+	  sum = 1/sqrt(sum);
+	  for ( unsigned i = 0; i < (m_extended ? 8 : 4); i++ ) {
+	    result( (m_extended?32:16)*x +
+		    (m_extended?8:4)*y + i) *= sum;
+	  }
 	}
       }
 
-      return normalize(result);
+      //std::cout << result << std::endl;
+      return result;
     }
 
   };
