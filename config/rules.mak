@@ -34,4 +34,4 @@ CXXTEST_ARGS =  --error-printer
 .h.cxx:
 	$(CXXTEST_GEN) $(CXXTEST_ARGS) -o $@ $<
 
-include $(top_srcdir)/config/autotroll.mak
+include $(top_srcdir)/thirdparty/autotroll.mak
