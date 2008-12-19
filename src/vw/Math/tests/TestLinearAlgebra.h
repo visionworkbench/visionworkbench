@@ -338,6 +338,151 @@ public:
 
   }
 
+  // Test the qrd(A, Q, R) routine with double matrices
+  void test_qrd_double()
+  {
+    Matrix<double> A(4,4), Q(4,4), R(4,4);
+    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25; A(0,3) = 98;
+    A(1,0) = 327;  A(1,1) = 2; A(1,2) = 76; A(1,3) = 66;
+    A(2,0) = 234;  A(2,1) = 26; A(2,2) = 76; A(2,3) = 662;
+    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323; A(3,3) = 23;
+
+    qrd(A, Q, R);
+
+    TS_ASSERT_DELTA(std::fabs(det(Q)), 1, 0.0001);    // Q must be unitary <-> det 1
+    TS_ASSERT_DELTA( norm_1(Q*transpose(Q) - identity_matrix(4)), 0, 0.0001 ); // really unitary?
+    
+    TS_ASSERT_EQUALS(R(1, 0), 0); // R must be upper triangular
+    TS_ASSERT_EQUALS(R(2, 1), 0);
+    TS_ASSERT_EQUALS(R(2, 0), 0);
+    TS_ASSERT_EQUALS(R(3, 2), 0);
+    TS_ASSERT_EQUALS(R(3, 1), 0);
+    TS_ASSERT_EQUALS(R(3, 0), 0);
+
+    TS_ASSERT_DELTA( norm_1(A - Q*R), 0, 0.0001); // A = Q*R
+  }
+
+  // Test the qrd(A, Q, R) routine with float matrices
+  void test_qrd_float()
+  {
+    Matrix<float> A(4,4), Q(4,4), R(4,4);
+    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25; A(0,3) = 98;
+    A(1,0) = 327;  A(1,1) = 2; A(1,2) = 76; A(1,3) = 66;
+    A(2,0) = 234;  A(2,1) = 26; A(2,2) = 76; A(2,3) = 662;
+    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323; A(3,3) = 23;
+
+    qrd(A, Q, R);
+
+    TS_ASSERT_DELTA(std::fabs(det(Q)), 1, 0.0001);    // Q must be unitary <-> det 1
+    TS_ASSERT_DELTA( norm_1(Q*transpose(Q) - identity_matrix(4)), 0, 0.0001 ); // really unitary?
+    
+    TS_ASSERT_EQUALS(R(1, 0), 0); // R must be upper triangular
+    TS_ASSERT_EQUALS(R(2, 1), 0);
+    TS_ASSERT_EQUALS(R(2, 0), 0);
+    TS_ASSERT_EQUALS(R(3, 2), 0);
+    TS_ASSERT_EQUALS(R(3, 1), 0);
+    TS_ASSERT_EQUALS(R(3, 0), 0);
+
+    TS_ASSERT_DELTA( norm_1(A - Q*R), 0, 0.0003); // A = Q*R, not very precise though
+  }
+
+  // Test the qrd(A, Q, R) routine with double input and float output matrices
+  void test_qrd_double_float_float()
+  {
+    Matrix<double> A(4,4);
+    Matrix<float> Q(4,4), R(4,4);
+    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25; A(0,3) = 98;
+    A(1,0) = 327;  A(1,1) = 2; A(1,2) = 76; A(1,3) = 66;
+    A(2,0) = 234;  A(2,1) = 26; A(2,2) = 76; A(2,3) = 662;
+    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323; A(3,3) = 23;
+
+    qrd(A, Q, R);
+
+    TS_ASSERT_DELTA(std::fabs(det(Q)), 1, 0.0001);    // Q must be unitary <-> det 1
+    TS_ASSERT_DELTA( norm_1(Q*transpose(Q) - identity_matrix(4)), 0, 0.0001 ); // really unitary?
+    
+    TS_ASSERT_EQUALS(R(1, 0), 0); // R must be upper triangular
+    TS_ASSERT_EQUALS(R(2, 1), 0);
+    TS_ASSERT_EQUALS(R(2, 0), 0);
+    TS_ASSERT_EQUALS(R(3, 2), 0);
+    TS_ASSERT_EQUALS(R(3, 1), 0);
+    TS_ASSERT_EQUALS(R(3, 0), 0);
+
+    TS_ASSERT_DELTA( norm_1(A - Q*R), 0, 0.0001); // A = Q*R
+  }
+
+  // Test the rqd(A, R, Q) routine with double matrices
+  void test_rqd_double()
+  {
+    Matrix<double> A(4,4), Q(4,4), R(4,4);
+    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25; A(0,3) = 98;
+    A(1,0) = 327;  A(1,1) = 2; A(1,2) = 76; A(1,3) = 66;
+    A(2,0) = 234;  A(2,1) = 26; A(2,2) = 76; A(2,3) = 662;
+    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323; A(3,3) = 23;
+
+    rqd(A, R, Q);
+
+    TS_ASSERT_DELTA(std::fabs(det(Q)), 1, 0.0001);    // Q must be unitary <-> det 1
+    TS_ASSERT_DELTA( norm_1(Q*transpose(Q) - identity_matrix(4)), 0, 0.0001 ); // really unitary?
+    
+    TS_ASSERT_EQUALS(R(1, 0), 0); // R must be upper triangular
+    TS_ASSERT_EQUALS(R(2, 1), 0);
+    TS_ASSERT_EQUALS(R(2, 0), 0);
+    TS_ASSERT_EQUALS(R(3, 2), 0);
+    TS_ASSERT_EQUALS(R(3, 1), 0);
+    TS_ASSERT_EQUALS(R(3, 0), 0);
+
+    TS_ASSERT_DELTA( norm_1(A - R*Q), 0, 0.0001); // A = Q*R
+  }
+
+  // Test the rqd(A, R, Q) routine with float matrices
+  void test_rqd_float()
+  {
+    Matrix<float> A(4,4), Q(4,4), R(4,4);
+    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25; A(0,3) = 98;
+    A(1,0) = 327;  A(1,1) = 2; A(1,2) = 76; A(1,3) = 66;
+    A(2,0) = 234;  A(2,1) = 26; A(2,2) = 76; A(2,3) = 662;
+    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323; A(3,3) = 23;
+
+    rqd(A, R, Q);
+
+    TS_ASSERT_DELTA(std::fabs(det(Q)), 1, 0.0001);    // Q must be unitary <-> det 1
+    TS_ASSERT_DELTA( norm_1(Q*transpose(Q) - identity_matrix(4)), 0, 0.0001 ); // really unitary?
+    
+    TS_ASSERT_EQUALS(R(1, 0), 0); // R must be upper triangular
+    TS_ASSERT_EQUALS(R(2, 1), 0);
+    TS_ASSERT_EQUALS(R(2, 0), 0);
+    TS_ASSERT_EQUALS(R(3, 2), 0);
+    TS_ASSERT_EQUALS(R(3, 1), 0);
+    TS_ASSERT_EQUALS(R(3, 0), 0);
+
+    TS_ASSERT_DELTA( norm_1(A - R*Q), 0, 0.0003); // A = Q*R, not very precise though
+  }
+
+  // Test the rqd(A, R, Q) routine with double input and float output matrices
+  void test_rqd_double_float_float()
+  {
+    Matrix<double> A(4,4);
+    Matrix<float> Q(4,4), R(4,4);
+    A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25; A(0,3) = 98;
+    A(1,0) = 327;  A(1,1) = 2; A(1,2) = 76; A(1,3) = 66;
+    A(2,0) = 234;  A(2,1) = 26; A(2,2) = 76; A(2,3) = 662;
+    A(3,0) = 25;  A(3,1) = 62; A(3,2) = 323; A(3,3) = 23;
+
+    rqd(A, R, Q);
+
+    TS_ASSERT_DELTA(std::fabs(det(Q)), 1, 0.0001);    // Q must be unitary <-> det 1
+    TS_ASSERT_DELTA( norm_1(Q*transpose(Q) - identity_matrix(4)), 0, 0.0001 ); // really unitary?
+    
+    TS_ASSERT_EQUALS(R(1, 0), 0); // R must be upper triangular
+    TS_ASSERT_EQUALS(R(2, 1), 0);
+    TS_ASSERT_EQUALS(R(2, 0), 0);
+    TS_ASSERT_EQUALS(R(3, 2), 0);
+    TS_ASSERT_EQUALS(R(3, 1), 0);
+    TS_ASSERT_EQUALS(R(3, 0), 0);
+
+    TS_ASSERT_DELTA( norm_1(A - R*Q), 0, 0.0001); // A = Q*R
+  }
 
   // Test the svd(A,U,s,VT) routine with a float matrix
   void test_pseudoinverse()

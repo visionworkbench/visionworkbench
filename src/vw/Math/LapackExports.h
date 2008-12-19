@@ -58,6 +58,32 @@ namespace math {
                 f77_int  *lda, double      *s, double    *u, f77_int *ldu,
                 double     *vt, f77_int *ldvt, double *work, f77_int *lwork,
                 f77_int *iwork, f77_int *info);
+    
+
+    int sgeqrf_ (f77_int *m, f77_int *n, float *a, f77_int *lda, 
+		 float *tau, float *work, f77_int *lwork, f77_int *info);
+
+    int dgeqrf_ (f77_int *m, f77_int *n, double *a, f77_int *lda, 
+		 double *tau, double *work, f77_int *lwork, f77_int *info);
+
+    int sorgqr_(f77_int* m, f77_int* n, f77_int* k, float* a, f77_int* lda, 
+		float* tau, float* work, f77_int* lwork, f77_int* info);
+
+    int dorgqr_(f77_int* m, f77_int* n, f77_int* k, double* a, f77_int* lda, 
+		double* tau, double* work, f77_int* lwork, f77_int* info);
+
+
+    int sgerqf_ (f77_int *m, f77_int *n, float *a, f77_int *lda, 
+		 float *tau, float *work, f77_int *lwork, f77_int *info);
+
+    int dgerqf_ (f77_int *m, f77_int *n, double *a, f77_int *lda, 
+		 double *tau, double *work, f77_int *lwork, f77_int *info);
+
+    int sorgrq_(f77_int* m, f77_int* n, f77_int* k, float* a, f77_int* lda, 
+		float* tau, float* work, f77_int* lwork, f77_int* info);
+
+    int dorgrq_(f77_int* m, f77_int* n, f77_int* k, double* a, f77_int* lda, 
+		double* tau, double* work, f77_int* lwork, f77_int* info);
 
 
     int sgelsd_(const f77_int   *m, const f77_int   *n, const f77_int  *nrhs,
@@ -110,6 +136,47 @@ namespace math {
 
   static inline void gesdd(char jobz, f77_int m, f77_int n, double *a, f77_int lda, double *s, double *u, f77_int ldu, double *vt, f77_int ldvt, double *work, f77_int lwork, f77_int *iwork, f77_int *info) {
     dgesdd_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, iwork, info);
+  }
+
+  static inline void sgeqrf(f77_int m, f77_int n, float *a, f77_int lda, 
+			    float *tau, float *work, f77_int lwork, f77_int *info) {
+    sgeqrf_(&m, &n, a, &lda, tau, work, &lwork, info);
+  }
+  
+  static inline void sgeqrf(f77_int m, f77_int n, double *a, f77_int lda, 
+			    double *tau, double *work, f77_int lwork, f77_int *info) {
+    dgeqrf_(&m, &n, a, &lda, tau, work, &lwork, info);
+  }
+  
+
+  static inline void sorgqr(f77_int m, f77_int n, f77_int k, float* a, f77_int lda, 
+			    float* tau, float* work, f77_int lwork, f77_int* info) {
+    sorgqr_(&m, &n, &k, a, &lda, tau, work, &lwork, info);
+  }
+
+  static inline void sorgqr(f77_int m, f77_int n, f77_int k, double* a, f77_int lda, 
+			    double* tau, double* work, f77_int lwork, f77_int* info) {
+    dorgqr_(&m, &n, &k, a, &lda, tau, work, &lwork, info);
+  }
+  
+  static inline void sgerqf(f77_int m, f77_int n, float *a, f77_int lda, 
+			    float *tau, float *work, f77_int lwork, f77_int *info) {
+    sgerqf_(&m, &n, a, &lda, tau, work, &lwork, info);
+  }
+  
+  static inline void sgerqf(f77_int m, f77_int n, double *a, f77_int lda, 
+			    double *tau, double *work, f77_int lwork, f77_int *info) {
+    dgerqf_(&m, &n, a, &lda, tau, work, &lwork, info);
+  }
+  
+  static inline void sorgrq(f77_int m, f77_int n, f77_int k, float* a, f77_int lda, 
+			    float* tau, float* work, f77_int lwork, f77_int* info) {
+    sorgrq_(&m, &n, &k, a, &lda, tau, work, &lwork, info);
+  }
+
+  static inline void sorgrq(f77_int m, f77_int n, f77_int k, double* a, f77_int lda, 
+			    double* tau, double* work, f77_int lwork, f77_int* info) {
+    dorgrq_(&m, &n, &k, a, &lda, tau, work, &lwork, info);
   }
 
   static inline void gelsd(f77_int m, f77_int n, f77_int nrhs, float *a, f77_int lda, float *b, f77_int ldb, float *s, float rcond, f77_int *rank, float *work, f77_int lwork, f77_int* iwork, f77_int *info) {
