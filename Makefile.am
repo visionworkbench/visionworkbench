@@ -78,12 +78,17 @@ doxygen:
 doc: workbook doxygen
 
 lcov:
-	$(LCOV) --directory $(top_srcdir) --capture --output-file vw-coverage.log
-	$(GENHTML) -o $(top_srcdir)/coverage vw-coverage.log
+	$(LCOV) --capture --test-name 'Vision-Workbench-Base' --directory $(top_srcdir) --output-file vw-base.trace --initial
+	$(LCOV) --capture --test-name 'Vision-Workbench'      --directory $(top_srcdir) --output-file vw-test.trace
+	$(LCOV) -a vw-base.trace -a vw-test.trace -o vw.trace
+	$(LCOV) -e vw.trace '*/src/vw/*' -o vw.trace
+	$(LCOV) -r vw.trace '*/tests/*'  -o vw.trace
+	$(GENHTML) -o $(top_srcdir)/coverage vw.trace
 	@echo "Generated code coverage report in $(top_srcdir)/coverage"
 
 ########################################################################
 # general
 ########################################################################
+CLEANFILES = vw.trace vw-base.trace vw-test.trace
 
 include $(top_srcdir)/config/rules.mak
