@@ -89,8 +89,7 @@ AC_ARG_ENABLE(test-coverage,
 # Target Architecture
 AC_ARG_ENABLE(architecture,
   AC_HELP_STRING([--enable-architecture@<:@=ARCH@:>@], [select a target architecture @<:@x86_64@:>@]),
-  [ TARGET_ARCHITECTURE=$enableval ],
-  [ if test -z "$TARGET_ARCHITECTURE"; then echo; fi ]
+  [ TARGET_ARCHITECTURE=$enableval ]
 )
 
 if test ! -z "$TARGET_ARCHITECTURE"; then
