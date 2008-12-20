@@ -163,8 +163,11 @@ namespace math {
       set_pivot(pivot);
     }
   
-    DiscriminatorCompare(unsigned discriminator): m_discriminator(discriminator){}
-  
+    DiscriminatorCompare(unsigned discriminator)
+      : m_discriminator(discriminator){
+      set_invalid_pivot();
+    }
+
     // Unary operator. x[discriminator] < pivot[discriminator]
     bool operator()(const ContainerT& x) const {
       typename ContainerT::const_iterator input_iter = x.begin();
@@ -186,6 +189,12 @@ namespace math {
       pivot_iter = m_pivot.begin();
       std::advance(pivot_iter, m_discriminator);
     }
+
+    void set_invalid_pivot() {
+      m_pivot = ContainerT();
+      pivot_iter = m_pivot.end();
+    }
+
     void set_discriminator(unsigned new_disc){m_discriminator = new_disc;}
   };
 
