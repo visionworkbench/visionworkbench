@@ -77,6 +77,11 @@ doxygen:
 
 doc: workbook doxygen
 
+lcov:
+	$(LCOV) --directory $(top_srcdir) --capture --output-file vw-coverage.log
+	$(GENHTML) -o $(top_srcdir)/coverage vw-coverage.log
+	@echo "Generated code coverage report in $(top_srcdir)/coverage"
+
 ########################################################################
 # general
 ########################################################################

@@ -68,17 +68,23 @@ PKG_PATHS="${PKG_PATHS} ${HOME} ${HOME}/local /sw /opt /opt/local /usr/local /us
 # Debugging
 AC_ARG_ENABLE(debug,
   AC_HELP_STRING([--enable-debug@<:@=LEVEL@:>@], [generate debugging symbols @<:@no@:>@]),
-  [ ENABLE_DEBUG=$enableval ], 
+  [ ENABLE_DEBUG=$enableval ],
   [ if test -z "$ENABLE_DEBUG"; then ENABLE_DEBUG=no; fi ]
 )
 
-if test "yes" = "$ENABLE_DEBUG" || test "1" = "$ENABLE_DEBUG"; then
-   AX_CFLAGS="$AX_CFLAGS -g -DDEBUG"
-elif test "2" = "$ENABLE_DEBUG"; then
-   AX_CFLAGS="$AX_CFLAGS -g -DDEBUG -D_GLIBCXX_DEBUG"
-else
-   AX_CFLAGS="$AX_CFLAGS -DNDEBUG"
-fi
+# Optimization
+AC_ARG_ENABLE(optimize,
+  AC_HELP_STRING([--enable-optimize@<:@=LEVEL@:>@], [compiler optimization level @<:@yes@:>@]),
+  [ ENABLE_OPTIMIZE=$enableval ],
+  [ if test -z "$ENABLE_OPTIMIZE"; then ENABLE_OPTIMIZE=yes; fi ]
+)
+
+
+AC_ARG_ENABLE(test-coverage,
+  AC_HELP_STRING([--enable-test-coverage],[turn on code coverage analysis tools])
+  [ ENABLE_TEST_COVERAGE=$enableval ],
+  [ if test -z "$ENABLE_TEST_COVERAGE"; then ENABLE_TEST_COVERAGE=no; fi ]
+)
 
 # Target Architecture
 AC_ARG_ENABLE(architecture,
@@ -118,34 +124,6 @@ if test x"$USE_LIB64" = "xyes"; then
 else
   AX_LIBDIR="lib"
   AX_OTHER_LIBDIR="lib64"
-fi
-
-# Optimization
-AC_ARG_ENABLE(optimize,
-  AC_HELP_STRING([--enable-optimize@<:@=LEVEL@:>@], [compiler optimization level @<:@yes@:>@]), 
-  [ ENABLE_OPTIMIZE=$enableval ],
-  [ if test -z "$ENABLE_OPTIMIZE"; then ENABLE_OPTIMIZE=yes; fi ]
-)
-
-if test "yes" = "$ENABLE_OPTIMIZE" || test "3" = "$ENABLE_OPTIMIZE"; then
-   AX_CFLAGS="$AX_CFLAGS -O3"
-elif test "2" = "$ENABLE_OPTIMIZE"; then
-   AX_CFLAGS="$AX_CFLAGS -O2"
-elif test "1" = "$ENABLE_OPTIMIZE"; then
-   AX_CFLAGS="$AX_CFLAGS -O1"
-elif test "coreduo" = "$ENABLE_OPTIMIZE"; then
-   AX_CFLAGS="$AX_CFLAGS -O4 -march=prescott -mtune=prescott -funroll-loops -msse -msse2 -msse3 -mfpmath=sse -ftree-vectorize"
-elif test "sse3" = "$ENABLE_OPTIMIZE"; then
-   AX_CFLAGS="$AX_CFLAGS -O4 -funroll-loops -msse -msse2 -msse3 -mfpmath=sse -ftree-vectorize"
-else
-   echo 'WARNING: *** The Vision Workbench may not work properly with optimization disabled! ***'
-   AX_CFLAGS="$AX_CFLAGS -O0"
-fi
-
-CFLAGS="$CFLAGS $AX_CFLAGS"
-CXXFLAGS="$CXXFLAGS $AX_CFLAGS"
-if test "x$host_vendor" != "xapple"; then
-  LDFLAGS="$LDFLAGS -Wl,-no-undefined -Wl,-as-needed"
 fi
 
 AC_ARG_ENABLE(exceptions,
@@ -282,6 +260,51 @@ AC_PROG_INSTALL
 AX_PROG_AR
 AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
+AC_LANG(C++)
+
+dnl Check for --enable-test-coverate and add appropriate flags for gcc
+if test "$ENABLE_TEST_COVERAGE" = "yes"; then
+  #AX_TRY_CPPFLAGS([--coverage], [ENABLE_TEST_COVERAGE=yes], [ENABLE_TEST_COVERAGE=no])
+  AX_TRY_CPPFLAGS([-fprofile-arcs],  [ENABLE_TEST_COVERAGE=yes], [ENABLE_TEST_COVERAGE=no])
+  AX_TRY_CPPFLAGS([-ftest-coverage], [],                         [ENABLE_TEST_COVERAGE=no])
+
+  if test "$ENABLE_TEST_COVERAGE" = "yes"; then
+    echo "*** Enabling test coverage and debugging, and disabling optimization ***"
+    CXXFLAGS="$CXXFLAGS -fprofile-arcs -ftest-coverage"
+    LDFLAGS="-lgcov"
+    ENABLE_OPTIMIZE=no
+    ENABLE_DEBUG=yes
+  fi
+fi
+
+dnl Files --coverage generates
+AC_SUBST([MOSTLYCLEANFILES], "*.bb *.bbg *.da *.gcov *.gcda *.gcno")
+
+
+AX_TRY_CPPFLAGS([-Wl,-no-undefined], [LDFLAGS="$LDFLAGS -Wl,-no-undefined"])
+AX_TRY_CPPFLAGS([-Wl,-as-needed],    [LDFLAGS="$LDFLAGS -Wl,-as-needed"])
+
+case "$ENABLE_DEBUG" in
+    yes) AX_CFLAGS="$AX_CFLAGS -g -DDEBUG" ;;
+    1)   AX_CFLAGS="$AX_CFLAGS -g -DDEBUG" ;;
+    2)   AX_CFLAGS="$AX_CFLAGS -g -DDEBUG -D_GLIBCXX_DEBUG" ;;
+    *)   AX_CFLAGS="$AX_CFLAGS -DNDEBUG"   ;;
+esac
+
+case "$ENABLE_OPTIMIZE" in
+    yes)     AX_CFLAGS="$AX_CFLAGS -O3" ;;
+    3)       AX_CFLAGS="$AX_CFLAGS -O3" ;;
+    2)       AX_CFLAGS="$AX_CFLAGS -O2" ;;
+    1)       AX_CFLAGS="$AX_CFLAGS -O1" ;;
+    coreduo) AX_CFLAGS="$AX_CFLAGS -O4 -march=prescott -mtune=prescott -funroll-loops -msse -msse2 -msse3 -mfpmath=sse -ftree-vectorize" ;;
+    sse3)    AX_CFLAGS="$AX_CFLAGS -O4 -funroll-loops -msse -msse2 -msse3 -mfpmath=sse -ftree-vectorize" ;;
+    *)       echo 'WARNING: *** The Vision Workbench may not work properly with optimization disabled! ***'
+             AX_CFLAGS="$AX_CFLAGS -O0"
+             ;;
+esac
+
+CFLAGS="$CFLAGS $AX_CFLAGS"
+CXXFLAGS="$CXXFLAGS $AX_CFLAGS"
 
 AM_PATH_PYTHON([2.4], [HAVE_PYTHON=yes], [HAVE_PYTHON=no])
 AC_PYTHON_DEVEL([HAVE_PYTHON=yes], [HAVE_PYTHON=no])
@@ -297,7 +320,8 @@ fi
 AC_SUBST(HAVE_PYTHON)
 AC_SUBST(HAVE_SWIG)
 
-AC_LANG(C++)
+AC_CHECK_PROGS(LCOV, lcov, false)
+AC_CHECK_PROGS(GENHTML, genhtml, false)
 
 AX_CHECK_INTROSPECTION
 
