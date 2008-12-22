@@ -32,13 +32,13 @@ namespace fs = boost::filesystem;
 namespace vw {
 namespace mosaic {
 
-  std::string QuadTreeGenerator::simple_image_path( QuadTreeGenerator const& qtree, std::string const& name ) {
+  std::string QuadTreeGenerator::simple_image_path::operator()( QuadTreeGenerator const& qtree, std::string const& name ) {
     fs::path path( qtree.get_name(), fs::native );
     path /= "r" + name;
     return path.native_file_string();
   }
 
-  std::string QuadTreeGenerator::tiered_image_path( QuadTreeGenerator const& qtree, std::string const& name, int32 levels_per_directory ) {
+  std::string QuadTreeGenerator::tiered_image_path::operator()( QuadTreeGenerator const& qtree, std::string const& name, int32 levels_per_directory ) {
     fs::path path( qtree.get_name(), fs::native );
     
     std::string rname = "r" + name;
@@ -51,7 +51,7 @@ namespace mosaic {
     return path.native_file_string();
   }
 
-  std::string QuadTreeGenerator::named_tiered_image_path( QuadTreeGenerator const& qtree, std::string const& name, int32 levels_per_directory ) {
+  std::string QuadTreeGenerator::named_tiered_image_path::operator()( QuadTreeGenerator const& qtree, std::string const& name, int32 levels_per_directory ) {
     fs::path path( qtree.get_name(), fs::native );
     
     if( name.length() == 0 ) {
@@ -67,7 +67,7 @@ namespace mosaic {
     return path.native_file_string();
   }
 
-  std::vector<std::pair<std::string,vw::BBox2i> > QuadTreeGenerator::default_branch_func( QuadTreeGenerator const& qtree, std::string const& name, BBox2i const& region ) {
+  std::vector<std::pair<std::string,vw::BBox2i> > QuadTreeGenerator::default_branch_func::operator()( QuadTreeGenerator const& qtree, std::string const& name, BBox2i const& region ) {
     std::vector<std::pair<std::string,vw::BBox2i> > children;
     if( region.width() > qtree.get_tile_size() && region.height() > qtree.get_tile_size() ) {
       children.push_back( std::make_pair( name + "0", BBox2i( (region + region.min()) / 2 ) ) );
@@ -78,7 +78,7 @@ namespace mosaic {
     return children;
   }
 
-  boost::shared_ptr<ImageResource> QuadTreeGenerator::default_tile_resource_func( QuadTreeGenerator const&, TileInfo const& info, ImageFormat const& format ) {
+  boost::shared_ptr<ImageResource> QuadTreeGenerator::default_tile_resource_func::operator()( QuadTreeGenerator const&, TileInfo const& info, ImageFormat const& format ) {
     create_directories( fs::path( info.filepath, fs::native ).branch_path() );
     return boost::shared_ptr<ImageResource>( DiskImageResource::create( info.filepath+info.filetype, format ) );
   }

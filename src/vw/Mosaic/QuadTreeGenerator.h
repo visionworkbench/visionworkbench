@@ -84,9 +84,9 @@ namespace mosaic {
         m_cull_images( false ),
         m_dimensions( image.impl().cols(), image.impl().rows() ),
         m_processor( new Processor<typename ImageT::pixel_type>( this, image.impl() ) ),
-        m_image_path_func( &simple_image_path ),
-        m_branch_func( &default_branch_func ),
-        m_tile_resource_func( &default_tile_resource_func ),
+        m_image_path_func( simple_image_path() ),
+        m_branch_func( default_branch_func() ),
+        m_tile_resource_func( default_tile_resource_func() ),
         m_metadata_func(),
         m_sparse_tile_check( SparseTileCheck<ImageT>(image.impl()) )
     {}
@@ -181,19 +181,29 @@ namespace mosaic {
     }
 
     // Makes paths of the form "path/name/r0132.jpg"
-    static std::string simple_image_path( QuadTreeGenerator const& qtree, std::string const& name );
+    struct simple_image_path {
+      std::string operator()( QuadTreeGenerator const& qtree, std::string const& name );
+    };
 
     // Makes paths of the form "path/name/r01/r0132.jpg"
-    static std::string tiered_image_path( QuadTreeGenerator const& qtree, std::string const& name, int32 levels_per_directory = 3 );
+    struct tiered_image_path {
+      std::string operator()( QuadTreeGenerator const& qtree, std::string const& name, int32 levels_per_directory = 3 );
+    };
 
     // Makes paths of the form "path/name/013/0132.jpg" (and "path/name/name.jpg" for the top level)
-    static std::string named_tiered_image_path( QuadTreeGenerator const& qtree, std::string const& name, int32 levels_per_directory = 3 );
+    struct named_tiered_image_path {
+      std::string operator()( QuadTreeGenerator const& qtree, std::string const& name, int32 levels_per_directory = 3 );
+    };
 
     // The default quad-tree branching function
-    static std::vector<std::pair<std::string,BBox2i> > default_branch_func(QuadTreeGenerator const& qtree, std::string const& name, BBox2i const& region);
+    struct default_branch_func {
+      std::vector<std::pair<std::string,BBox2i> > operator()(QuadTreeGenerator const& qtree, std::string const& name, BBox2i const& region);
+    };
 
     // The default resource function, creates standard disk image resources
-    static boost::shared_ptr<ImageResource> default_tile_resource_func( QuadTreeGenerator const& qtree, TileInfo const& info, ImageFormat const& format );
+    struct default_tile_resource_func {
+      boost::shared_ptr<ImageResource> operator()( QuadTreeGenerator const& qtree, TileInfo const& info, ImageFormat const& format );
+    };
 
   protected:
     class ProcessorBase {
