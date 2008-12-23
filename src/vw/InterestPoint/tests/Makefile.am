@@ -27,9 +27,10 @@
 
 if MAKE_MODULE_INTERESTPOINT
 
-nodist_TestMatcher_SOURCES = TestMatcher.cxx
+nodist_TestMatcher_SOURCES = TestMatcher.cxx 
+nodist_TestIntegral_SOURCES = TestIntegral.cxx
 
-TESTS = TestMatcher
+TESTS = TestMatcher TestIntegral
 
 endif
 

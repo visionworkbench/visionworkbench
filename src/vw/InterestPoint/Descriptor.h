@@ -62,7 +62,6 @@ namespace ip {
       // Timing
       Timer *total = new Timer("Total elapsed time", DebugMessage, "interest_point");
 
-      // Traditional Single Threaded
       for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
 	
 	// First we compute the support region based on the interest point 

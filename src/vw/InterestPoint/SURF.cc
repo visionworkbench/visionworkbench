@@ -418,12 +418,12 @@ namespace ip {
   float SURFOrientation( vw::ImageView<double> const& integral, 
 			 int const& ix, int const& iy,
 			 float const& scale) {
-    int iscale = round(scale);
 
     std::vector<float> h_response(169);
     std::vector<float> v_response(169);
     std::vector<float> angle(169);
     int measures = 0;
+    int i_scale = round(scale);
 
     for ( int i = -6; i <= 6; i++ ) {
       for ( int j = -6; j <= 6; j++ ) {
@@ -432,17 +432,19 @@ namespace ip {
 	  continue;
 
 	// Is this still on the image?
-	if ( (ix + i*iscale - 2*iscale < 0 || iy + j*iscale - 2*iscale < 0 ) ||
-	     (ix + i*iscale + 2*iscale >= integral.cols() || iy + j*iscale + 2*iscale >= integral.rows() ) )
+	if ( (floor(float(ix) + i*scale - 2*scale) < 0 ) || 
+	     (floor(float(iy) + j*scale - 2*scale) < 0 ) ||
+	     (ceil(float(ix) + i*scale + 2*scale) + 1 >= integral.cols()) || 
+	     (ceil(float(iy) + j*scale + 2*scale) + 1 >= integral.rows()) )
 	  continue;
 
 	float distance_2 = i*i + j*j;
-	float weight = exp(-distance_2/8);
+	float weight = exp(-distance_2/8)/5.0133;
 
-	h_response[measures] =
-	  weight*HHaarWavelet( integral, ix + i*iscale, iy + j*iscale, iscale*4 );
+      	h_response[measures] =
+	  weight*HHaarWavelet( integral, ix + i*scale, iy + j*scale, scale*4 );
 	v_response[measures] =
-	  weight*VHaarWavelet( integral, ix + i*iscale, iy + j*iscale, iscale*4 );
+	  weight*VHaarWavelet( integral, ix + i*scale, iy + j*scale, scale*4 );
 	angle[measures] = atan2( v_response[measures],
 				 h_response[measures] );
 	measures++;
@@ -452,8 +454,10 @@ namespace ip {
     // Fitting a slice to find the response
     const float pi_6 = 3.14159/6.0;
     const float two_pi = 3.14159*2.0;
-    float sumx, sumy, mod, greatest_mod = 0, bestx = 0, besty = 0;
-    for ( float a = 0; a < two_pi; a+= 0.05) {
+    float sumx, sumy;
+    float mod, second_mod=0, greatest_mod=0;
+    float second_ori=0, greatest_ori=0;
+    for ( float a = 0; a < two_pi; a+= 0.5) {
       sumx = sumy = 0;
       for ( int idx = 0; idx < measures; idx++ ) {
 	// Is it in my slice
@@ -468,14 +472,146 @@ namespace ip {
 
       mod = sumx*sumx + sumy*sumy;
       if ( mod > greatest_mod ) {
+	// Storing second greatest
+	second_mod = greatest_mod;
+	second_ori = greatest_ori;
+
 	greatest_mod = mod;
-	bestx = sumx;
-	besty = sumy;
+	greatest_ori = atan2(sumy,sumx);
       }
     }
 
-    return atan2(besty,bestx);
+    return greatest_ori;
   }
 
+  // SURF Descriptor
+  Vector<float> SURFDescriptor( ImageView<double> const& integral,
+				Matrix<float,20,20> const& gaussian,
+				InterestPoint const& ip,
+				bool extended = false ) {
+
+    Vector<float> result(64);
+    Matrix<float,20,20> h_response;
+    Matrix<float,20,20> v_response;
+    float scaling = 1.0/ip.scale;
+
+    // Building Transforms
+    TransformRef txform( compose(ResampleTransform(scaling, scaling),
+				 RotateTransform(-ip.orientation),
+				 TranslateTransform(-ip.x,
+						    -ip.y) ) );
+    TransformRef rotate_only( RotateTransform(-ip.orientation) );
+
+    // Building responses
+    for ( char x = 0; x < 20; x++ ) {
+      for ( char y = 0; y < 20; y++ ) {
+	
+	// Sampling Point's location
+	Vector2 location = txform.reverse( Vector2(float(x) - 9.5,
+						   float(y) - 9.5));
+
+	int i_scale = round(ip.scale);
+	if ( location.x() + i_scale+1 < integral.cols() &&
+	     location.x() - i_scale >= 0 &&
+	     location.y() + i_scale+1 < integral.rows() &&
+	     location.y() - i_scale >= 0 ) {
+
+	  Vector2 response;
+	  
+	  // Performing Bilinear interpolation
+	  Vector2 t_l( floor(location.x()), floor(location.y()));
+	  Vector2 b_r( ceil(location.x()), ceil(location.y()));
+	  Vector2 t_r( ceil(location.x()), floor(location.y()));
+	  Vector2 b_l( floor(location.x()), ceil(location.y()));
+	
+	  // Need to extrapolate x?
+	  if ( t_l.x()-i_scale < 0 ){
+	    t_l.x()++; t_r.x()++; b_l.x()++; b_r.x()++;
+	  } else if ( t_r.x() + i_scale + 1 >= integral.cols() ) {
+	    t_l.x()--; t_r.x()--; b_l.x()--; b_r.x()--;
+	  }
+	  // Need to extrapolate y?
+	  if ( t_l.y()-i_scale < 0 ) {
+	    t_l.y()++; t_r.y()++; b_l.y()++; b_r.y()++;
+	  } else if ( b_l.y() + i_scale + 1 >= integral.rows() ) {
+	    t_l.y()--; t_r.y()--; b_l.y()--; b_r.y()--;
+	  }
+	  
+	  // Retrieving samples
+	  Matrix2x2 h_samplings;
+	  Matrix2x2 v_samplings;
+	  h_samplings(0,0) = HHaarWavelet( integral,
+					   t_l.x(), t_l.y(),
+					   2*ip.scale );
+	  v_samplings(0,0) = VHaarWavelet( integral,
+					   t_l.x(), t_l.y(),
+					   2*ip.scale );
+	  h_samplings(1,0) = HHaarWavelet( integral,
+					   t_r.x(), t_r.y(),
+					   2*ip.scale );
+	  v_samplings(1,0) = VHaarWavelet( integral,
+					   t_r.x(), t_r.y(),
+					   2*ip.scale );
+	  h_samplings(0,1) = HHaarWavelet( integral,
+					   b_l.x(), b_l.y(),
+					   2*ip.scale );
+	  v_samplings(0,1) = VHaarWavelet( integral,
+					   b_l.x(), b_l.y(),
+					   2*ip.scale );
+	  h_samplings(1,1) = HHaarWavelet( integral,
+					   b_r.x(), b_r.y(),
+					   2*ip.scale );
+	  v_samplings(1,1) = VHaarWavelet( integral,
+					   b_r.x(), b_r.y(),
+					   2*ip.scale );
+	  
+	  // Interpolating
+	  float x_change = location.x() - t_l.x();
+	  float y_change = location.y() - t_l.y();
+	  h_samplings(0,0) = h_samplings(0,0) + (h_samplings(1,0) - h_samplings(0,0))*x_change;
+	  h_samplings(0,1) = h_samplings(0,1) + (h_samplings(1,1) - h_samplings(0,1))*x_change;
+	  v_samplings(0,0) = v_samplings(0,0) + (v_samplings(1,0) - v_samplings(0,0))*x_change;
+	  v_samplings(0,1) = v_samplings(0,1) + (v_samplings(1,1) - v_samplings(0,1))*x_change;
+	  response[0] = h_samplings(0,0) + (h_samplings(0,1) - h_samplings(0,0))*y_change;
+	  response[1] = v_samplings(0,0) + (v_samplings(0,1) - v_samplings(0,0))*y_change;
+
+	  // Rotating a weighting response to window
+	  response = rotate_only.forward(response);
+	  response *= gaussian(x,y);
+	  h_response( x,y ) = response.x();
+	  v_response( x,y ) = response.y();
+	} else {
+	  h_response( x,y ) = 0;
+	  v_response( x,y ) = 0;
+	}
+      }
+    }
+
+    // Building the descriptor
+    for ( char x = 0; x < 4; x++ ) {
+      for ( char y = 0; y < 4; y++ ) { 
+	int dest = 16*x + 4*y;
+
+	// Summing responses
+	for ( char ix = 0; ix < 5; ix++ ) {
+	  for ( char iy = 0; iy < 5; iy++ ) {
+	    char sx = x*5+ix;
+	    char sy = x*5+iy;
+	    
+	    // Dx
+	    result(dest) += h_response(sx, sy);
+	    // |Dx|
+	    result(dest+1) += fabs(h_response(sx, sy));
+	    // Dy
+	    result(dest+2) += v_response(sx, sy);
+	    // |Dy|
+	    result(dest+3) += fabs(v_response(sx, sy));
+	  }
+	}
+      }
+    }
+
+    return normalize(result);
+  }
 
 }} // namespace vw::ip

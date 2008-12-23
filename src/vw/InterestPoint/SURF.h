@@ -267,6 +267,12 @@ namespace ip {
   float SURFOrientation( vw::ImageView<double> const&, int const&, int const&,
 			 float const& );  
 
+  // SURF Descriptor
+  // This calculated the descriptor of a feature
+  Vector<float> SURFDescriptor( vw::ImageView<double> const&,
+				Matrix<float,20,20> const&,
+				vw::ip::InterestPoint const& ip,
+				bool extended );
 
   template <class ViewT>
   class SURFInterestScaleTask : public Task {
@@ -339,6 +345,48 @@ namespace ip {
     }
   };
 
+  template <class ViewT>
+  class SURFDescriptorTask : public Task {
+    // Disable copyable semantics
+    SURFDescriptorTask( SURFDescriptorTask& copy ) {}
+    void operator=(SURFDescriptorTask& copy ) {}
+
+    ViewT m_integral;
+    Matrix<float,20,20> m_gauss;
+    bool m_extended;
+    InterestPointList& m_individual_list;
+    InterestPointList& m_main_list;
+    Mutex& m_mutex;
+    int m_id;
+    
+  public:
+    SURFDescriptorTask( ViewT const& integral,  
+			Matrix<float,20,20>& gauss,
+			bool extended,
+			InterestPointList& my_ip_list,
+			InterestPointList& main_ip_list, 
+			Mutex &mutex, int id) :
+    m_integral(integral), m_gauss(gauss), m_individual_list(my_ip_list), 
+      m_extended(extended), m_main_list(main_ip_list), m_mutex(mutex), m_id(id) {
+    }
+
+    void operator()(){
+      // Processing my individual list of interest points
+      for (InterestPointList::iterator point = m_individual_list.begin();
+	   point != m_individual_list.end(); ++point) {
+	(*point).descriptor = SURFDescriptor( m_integral, m_gauss,
+					      (*point), m_extended );
+					      
+      }
+
+      // Injecting my finished points into the global pile
+      {
+	Mutex::Lock lock(m_mutex);
+	m_main_list.splice(m_main_list.end(), m_individual_list);
+      }
+    }
+  };
+
   /// This class actually performs all the work. The SURF operator is
   /// actually just a red herring that is required to match the IP module's
   /// frame.
@@ -347,6 +395,7 @@ namespace ip {
   {
 
     FH9InterestPointDetector(FH9InterestPointDetector<InterestT> const& copy) {}
+    ImageView<double> m_integral;
 
   public:
     static const int IP_DEFAULT_SCALES = 4; // Don't play with
@@ -355,19 +404,19 @@ namespace ip {
     /// Setting max_points = 0 will disable interest point culling.
     /// Otherwies, the max_points most "interesting" points are
     /// returned.
-    FH9InterestPointDetector(int max_points = 0, int num_threads = 1 )
-      : m_max_points(max_points), m_num_threads(num_threads) {
+    FH9InterestPointDetector(ImageView<double> const& integral, int max_points = 0, int num_threads = 1)
+      : m_max_points(max_points), m_num_threads(num_threads), m_integral(integral) {
       m_params = SURFParams();
     }
 
-    FH9InterestPointDetector(InterestT const& interest, int max_points = 0, int num_threads = 1 ) 
-      : m_max_points(max_points), m_num_threads(num_threads) {
+    FH9InterestPointDetector(InterestT const& interest, ImageView<double> const& integral, int max_points = 0, int num_threads = 1 ) 
+      : m_max_points(max_points), m_num_threads(num_threads), m_integral(integral) {
       
       m_params = SURFParams( interest.threshold(), IP_DEFAULT_OCTAVES, IP_DEFAULT_SCALES );
     }
 
-    FH9InterestPointDetector(InterestT const& interest, int scales, int octaves, int max_points, int num_threads = 1)
-      : m_max_points(max_points), m_num_threads(num_threads) {
+    FH9InterestPointDetector(InterestT const& interest, ImageView<double> const& integral, int scales, int octaves, int max_points, int num_threads = 1 )
+      : m_max_points(max_points), m_num_threads(num_threads), m_integral(integral) {
       
       m_params = SURFParams( interest.threshold(), octaves, scales );
     }
@@ -382,12 +431,7 @@ namespace ip {
 
       // Set SURF Params;
       m_params.setForImage( image );
-      
-      // Create Integral Image
-      vw_out(InfoMessage,"interest_point") << "\tBuilding Integral Image.\n";
-      ImageView<double> integral = IntegralImage( image );
-      vw_out(DebugMessage,"interest_point") << "\tdone ( integral size " << integral.cols() << "x" << integral.rows() << " ).\n";
-
+  
       // Create Interest Scales
       vw_out(InfoMessage,"interest_point") << "\tCalculating Interest Data.\n";
       std::vector<SURFScaleData> interest_scales;
@@ -413,22 +457,22 @@ namespace ip {
 	  for ( unsigned i = 0; i < iterations; i++ ) {
 	    filter_size += 6 * ( octave == 0 ? 1 : 0x2 << ( octave -1 ) );
 	    
-	    if ( filter_size + 2*sampling_step > integral.cols() ||
-		 filter_size + 2*sampling_step > integral.rows() ) {
+	    if ( filter_size + 2*sampling_step > m_integral.cols() ||
+		 filter_size + 2*sampling_step > m_integral.rows() ) {
 	      m_params.octaves--;
 	      break;
 	    }
 	    
 	    if ( m_num_threads < 2 ) {
 	      // Single Threaded Version
-	      interest_scales[id_count] = SURFProcessScale( integral,
+	      interest_scales[id_count] = SURFProcessScale( m_integral,
 							    filter_size,
 							    sampling_step,
 							    m_params );
 	    } else {
 	      // Multithread Version
 	      typedef SURFInterestScaleTask<ImageView<double> > task_type;
-	      boost::shared_ptr<task_type> task ( new task_type( integral, filter_size,
+	      boost::shared_ptr<task_type> task ( new task_type( m_integral, filter_size,
 								 sampling_step, m_params, 
 								 interest_scales[id_count],
 								 mutex, id_count ) );
@@ -478,7 +522,7 @@ namespace ip {
 	  // Single threaded edition
 	  for (std::list<InterestPoint>::iterator point = ip.begin();
 	       point != ip.end(); ++point) {
-	    (*point).orientation = SURFOrientation( integral,
+	    (*point).orientation = SURFOrientation( m_integral,
 						    (*point).ix, (*point).iy,
 						    (*point).scale );
 	  }
@@ -503,7 +547,7 @@ namespace ip {
 	  Mutex mutex;
 	  typedef SURFOrientationCalcTask<ImageView<double> > task_type;
 	  for ( count = 0; count < m_num_threads; count++ ) {
-	    boost::shared_ptr<task_type> task ( new task_type( integral, ip_separated[count],
+	    boost::shared_ptr<task_type> task ( new task_type( m_integral, ip_separated[count],
 							       ip, mutex, count ) );
 
 	    queue.add_task( task );
@@ -527,16 +571,17 @@ namespace ip {
   };
 
   // SURF Descriptor 64/128 bit
-  struct SURFDescriptorGenerator : public DescriptorGeneratorBase<SURFDescriptorGenerator> {
+  struct SURFDescriptorGenerator {
 
     bool m_extended;
+    int m_num_threads;
     Matrix<float,20,20> gaussian_weight;
 
   public:
 
     // Constructor
-    SURFDescriptorGenerator( bool extended=false ) : m_extended(extended) {
-
+    SURFDescriptorGenerator( bool extended=false, int num_threads = 1 ) : 
+    m_extended(extended), m_num_threads(num_threads) {
       for (char x = 0; x < 20; x++ ) {
 	for (char y = 0; y < 20; y++ ) {
 	  float dist = (float(x) - 9.5)*(float(x) - 9.5) + (float(y) - 9.5)*(float(y) - 9.5);
@@ -544,101 +589,59 @@ namespace ip {
 	  gaussian_weight(x,y) = exp( -dist/21.78 );
 	}
       }
-
     }
 
-    // Size of the descriptor window
-    int support_size( void ) {
-      return 21;
-    }
-
-    // Actually Descriptor arithmetic
-    template <class ViewT>
-    Vector<float> compute_descriptor (ImageViewBase<ViewT> const& support) const {
+    // Given an image and a list of interest points, set the
+    // descriptor field of the interest points. Sorry that this
+    // doesn't fit into the Descriptor Generator Base.
+    void operator()( ImageView<double> const& integral, InterestPointList& points ) {
       
-      // Resizing a vector crashes Threading of the DescriptorBase
-      Vector<float> result(64);
-      if (m_extended)
-	result.set_size(128);
-      Matrix<float,20,20> h_response;
-      Matrix<float,20,20> v_response;
+      // Timing
+      Timer *total = new Timer("Total elapsed time", DebugMessage, "interest_point");
 
-      // Building responses
-      for ( char x = 0; x < 20; x++ ) {
-	for ( char y = 0; y < 20; y++ ) {
-	  h_response(x,y) = (support.impl()(x+1,y).v() + support.impl()(x+1,y+1).v() - 
-			     support.impl()(x,y).v() - support.impl()(x,y+1).v() )*gaussian_weight(x,y);
-
-	  v_response(x,y) = (support.impl()(x,y+1).v() + support.impl()(x+1,y+1).v() - 
-			     support.impl()(x,y).v() - support.impl()(x+1,y).v() )*gaussian_weight(x,y);
+      if ( m_num_threads < 2 ) {
+	// Single Threaded
+	for (InterestPointList::iterator i = points.begin(); 
+	     i != points.end(); ++i ) {
+	  (*i).descriptor = SURFDescriptor( integral,
+					    gaussian_weight,
+					    (*i), m_extended );
 	}
-      }
+      } else {
+	// Multithreaded
 
-      // Building the descriptor
-      for ( char x = 0; x < 4; x++ ) {
-	for ( char y = 0; y < 4; y++ ) {
-
-	  int dest = (m_extended?32:16)*x +
-	    (m_extended?8:4)*y;
+	// Breaking the points in lengths that can be processed individually.
+	unsigned count = 0;
+	std::vector<InterestPointList> ip_separated(m_num_threads);
+	for (InterestPointList::iterator i = points.begin();
+	     i != points.end(); ++i ) {
 	  
-	  // Summing responses
-	  for ( char ix = 0; ix < 5; ix++ ) {
-	    for ( char iy = 0; iy < 5; iy++ ) {
-	      char sx = x*5+ix;
-	      char sy = y*5+iy;
+	  ip_separated[count].push_back( (*i) );
 
-	      if (!m_extended) {
-		//SURF 64 (The Orginal)
-		// Dx
-		result(dest) += h_response(sx, sy);
-
-		// |Dx|
-		result(dest + 1) += fabs(h_response(sx, sy));
-
-		// Dy
-		result(dest + 2) += v_response(sx, sy);
-	      
-		// |Dy|
-		result(dest + 3) += fabs(v_response(sx, sy));
-	      } else {
-		//SURF128
-		// Working the DXs
-		if ( v_response(sx, sy) > 0 ) {
-		  result(dest + 0) = h_response(sx, sy);
-		  result(dest + 1) = fabs(h_response(sx, sy));
-		} else {
-		  result(dest + 2) = h_response(sx, sy);
-		  result(dest + 3) = fabs(h_response(sx, sy));
-		}
-
-		// Working the DYs
-		if ( h_response(sx, sy) > 0 ) {
-		  result(dest + 4) = v_response(sx, sy);
-		  result(dest + 5) = fabs(v_response(sx, sy));
-		} else {
-		  result(dest + 6) = v_response(sx, sy);
-		  result(dest + 7) = fabs(v_response(sx, sy));
-		}
-	      }
-	    }
-	  }
-
-	  // Normalizing individual descriptors
-	  float sum = 0;
-	  for ( unsigned i = 0; i < (m_extended ? 8 : 4); i++ ) {
-	    sum += result( (m_extended?32:16)*x + (m_extended?8:4)*y + i ) *
-	      result( (m_extended?32:16)*x + (m_extended?8:4)*y + i );
-	  }
-	  sum = 1/sqrt(sum);
-	  for ( unsigned i = 0; i < (m_extended ? 8 : 4); i++ ) {
-	    result( (m_extended?32:16)*x +
-		    (m_extended?8:4)*y + i) *= sum;
-	  }
+	  count++;
+	  count %= m_num_threads;
 	}
+	points.clear();
+
+	// Giving data to threads
+	FifoWorkQueue queue( m_num_threads );
+	Mutex mutex;
+	typedef SURFDescriptorTask<ImageView<double> > task_type;
+	for ( count = 0; count < m_num_threads; count++ ) {
+	  boost::shared_ptr<task_type> task ( new task_type( integral,
+							     gaussian_weight,
+							     m_extended,
+							     ip_separated[count],
+							     points,
+							     mutex, count ) );
+	  queue.add_task( task );
+	}
+	
+	queue.join_all();
       }
 
-      //std::cout << result << std::endl;
-      return result;
+      // End Timing
+      delete total;
     }
 
   };

@@ -86,7 +86,7 @@ namespace ip {
     result -= integral( top_left.x(), bottom_right.y() );
     result -= integral( bottom_right.x(), top_left.y() );
 
-    result /= (top_left.x() - bottom_right.x())*(top_left.y() - bottom_right.y());
+    //result /= (top_left.x() - bottom_right.x())*(top_left.y() - bottom_right.y());
 
     return result;
   }
@@ -126,6 +126,8 @@ namespace ip {
 				 Vector2i( x + half_lobe + 1, y - lobe + 1 ),
 				 Vector2i( x + half_lobe + lobe + 1, y + lobe ) );
     
+    derivative /= filter_size*filter_size;
+
     return derivative;
   }
 
@@ -165,6 +167,8 @@ namespace ip {
 				 Vector2i( x - lobe + 1, y + half_lobe + 1 ),
 				 Vector2i( x + lobe, y + half_lobe + lobe + 1 ) );
 
+    derivative /= filter_size*filter_size;
+
     return derivative;
   }
 
@@ -198,6 +202,8 @@ namespace ip {
 				 Vector2i( x + 1, y + 1 ),
 				 Vector2i( x + 1 + lobe, y + 1 + lobe ) );
 
+    derivative /= filter_size*filter_size;
+
     return derivative;
   }
 
@@ -206,20 +212,36 @@ namespace ip {
   // - ix        = x location to evaluate at
   // - iy        = y location to evaluate at
   // - size      = side of the square used for evaluate
-  inline float HHaarWavelet( vw::ImageView<double> const& integral, signed const& ix,
-			signed const& iy, unsigned const& size ) {
-    // This should only take 6 operations (nm the multiplication)
-    float response = 0;
-    unsigned half_size = size>>1;
-    response = -integral(ix-half_size,iy-half_size);
-    response += 2*integral(ix,iy-half_size);
-    response -= integral(ix+half_size,iy-half_size);
-    response += integral(ix-half_size,iy+half_size);
-    response -= 2*integral(ix,iy+half_size);
-    response += integral(ix+half_size,iy+half_size);
 
-    //response /= size*size;
+  // Note: Filter will be evaluated at a size nearest to a multiple of two
+  inline float HHaarWavelet( vw::ImageView<double> const& integral, float const& ix,
+			     float const& iy, float const& size ) {
 
+    float response;
+    int half_size = round( size / 2.0);
+    int i_size = half_size << 1;
+    int top = round( iy - size/2);
+    int left = round( ix - size/2); 
+
+    VW_ASSERT(left+i_size < (unsigned)integral.cols(), 
+	      vw::ArgumentErr() << "left out of bounds. "<< integral.cols() <<" : "
+	      << left+i_size << " [top left] " << top << " " << left << "\n");
+    VW_ASSERT(top+i_size < (unsigned)integral.rows(),
+	      vw::ArgumentErr() << "top out of bounds. " << integral.rows() <<" : "
+	      << top+i_size << "\n");
+    VW_ASSERT(left >= 0,
+	      vw::ArgumentErr() << "left is to low. " << 0 << " : " << left << "\n");
+    VW_ASSERT(top >= 0,
+	      vw::ArgumentErr() << "top is to low. " << 0 << " : " << top << "\n");
+
+    response = -integral(left, top);
+    response += 2*integral(left+half_size, top);
+    response -= integral(left+i_size, top);
+    response += integral(left, top+i_size);
+    response -= 2*integral(left+half_size, top+i_size);
+    response += integral(left+i_size, top+i_size);
+    
+    //response/=i_size*i_size;
     return response;
   }
 
@@ -228,20 +250,36 @@ namespace ip {
   // - ix        = x location to evaluate at
   // - iy        = y location to evaluate at
   // - size      = side of the square used for evaluate
-  inline float VHaarWavelet( vw::ImageView<double> const& integral, signed const& ix,
-		      signed const& iy, unsigned const& size ) {
-    // This should only take 6 operations (nm the multiplication)
-    float response = 0;
-    unsigned half_size = size>>1;
-    response = -integral(ix-half_size,iy-half_size);
-    response += integral(ix+half_size,iy-half_size);
-    response += 2*integral(ix-half_size,iy);
-    response -= 2*integral(ix+half_size,iy);
-    response -= integral(ix-half_size,iy+half_size);
-    response += integral(ix+half_size,iy+half_size);
 
-    //response /= size*size;
+  // Note: Filter will be evaluated at a size nearest to a multiple of two
+  inline float VHaarWavelet( vw::ImageView<double> const& integral, float const& ix,
+			     float const& iy, float const& size ) {
 
+    float response;
+    int half_size = round( size / 2.0);
+    int i_size = half_size << 1;
+    int top = round( iy - size/2);
+    int left = round( ix - size/2); 
+
+    VW_ASSERT(left+i_size < (unsigned)integral.cols(), 
+	      vw::ArgumentErr() << "left out of bounds. "<< integral.cols() <<" : "
+	      << left+i_size << " [top left] " << top << " " << left << "\n");
+    VW_ASSERT(top+i_size < (unsigned)integral.rows(),
+	      vw::ArgumentErr() << "top out of bounds. " << integral.rows() <<" : "
+	      << top+i_size << "\n");
+    VW_ASSERT(left >= 0,
+	      vw::ArgumentErr() << "left is to low. " << 0 << " : " << left << "\n");
+    VW_ASSERT(top >= 0,
+	      vw::ArgumentErr() << "top is to low. " << 0 << " : " << top << "\n");
+
+    response = -integral(left, top);
+    response += integral(left+i_size, top);
+    response += 2*integral(left, top+half_size);
+    response -= 2*integral(left+i_size, top+half_size);
+    response -= integral(left, top+i_size);
+    response += integral(left+i_size, top+i_size);
+    
+    //response/=i_size*i_size;
     return response;
   }
 
