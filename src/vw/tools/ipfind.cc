@@ -52,6 +52,7 @@ int main(int argc, char** argv) {
   int max_points;
   int tile_size;
   int num_threads;
+  ImageView<double> integral;
 
   po::options_description general_options("Options");
   general_options.add_options()
@@ -64,8 +65,8 @@ int main(int argc, char** argv) {
     ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris, FH9]")
     ("log-threshold", po::value<float>(&log_threshold)->default_value(0.03), "Sets the threshold for the Laplacian of Gaussian interest operator")
     ("harris-threshold", po::value<float>(&harris_threshold)->default_value(1e-5), "Sets the threshold for the Harris interest operator")
-    ("surf-threshold", po::value<float>(&surf_threshold)->default_value(0.01), "Sets the threshold for the SURF interest operator")
-    ("max-points", po::value<int>(&max_points)->default_value(1000), "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
+    ("surf-threshold", po::value<float>(&surf_threshold)->default_value(0.001), "Sets the threshold for the SURF interest operator")
+    ("max-points", po::value<int>(&max_points)->default_value(0), "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
     ("single-scale", "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
 
     // Descriptor generator options
@@ -111,6 +112,12 @@ int main(int argc, char** argv) {
     std::string file_prefix = prefix_from_filename(input_file_names[i]);
     DiskImageView<PixelRGB<float> > image(input_file_names[i]);
 
+    // Preparations required for any SURF code
+    if (interest_operator == "FH9" || interest_operator == "fh9" ||
+	descriptor_generator == "SURF" || descriptor_generator == "surf" ) {
+      integral = IntegralImage( image );
+    }
+
     InterestPointList ip;
     if (interest_operator == "Harris") {
       HarrisInterestOperator interest_operator(harris_threshold);
@@ -135,7 +142,7 @@ int main(int argc, char** argv) {
     } else if (interest_operator == "FH9" || interest_operator == "fh9") {
       /// Right now we only support ScaledInterest Detection
       SURFInterestOperator interest_operator(surf_threshold);
-      FH9InterestPointDetector<SURFInterestOperator> detector(interest_operator, max_points, num_threads );
+      FH9InterestPointDetector<SURFInterestOperator> detector(interest_operator, integral, max_points, num_threads );
       ip = detector.process_image( image );
     } else {
       vw_out(0) << "Unknown interest operator: " << interest_operator << ".  Options are : [ Harris, LoG ]\n";
@@ -153,8 +160,8 @@ int main(int argc, char** argv) {
       PCASIFTDescriptorGenerator descriptor("pca_basis.exr", "pca_avg.exr");
       descriptor(image, ip);
     } else if ( (descriptor_generator == "SURF") || (descriptor_generator == "surf") ) {
-      SURFDescriptorGenerator descriptor;
-      descriptor(image, ip);
+      SURFDescriptorGenerator descriptor(false, num_threads);
+      descriptor(integral, ip);
     } else {
       vw_out(0) << "Unknown descriptor generator: " << descriptor_generator << "\n";
       exit(0);
