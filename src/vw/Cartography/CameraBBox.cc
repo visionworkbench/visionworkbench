@@ -199,6 +199,12 @@ vw::BBox2 vw::cartography::camera_bbox( vw::cartography::GeoReference const& geo
   BBox2 bbox = bbox_180;
   // If the bbox_180 crosses the singularity at 180 degrees, then we
   // return the bbox_360 instead.
+  // FIXME: We do not properly handle cases where the correct bounding
+  // box includes both the prime meridian and the antimeridean but
+  // does not include the pole.  This is a highly unlikely corner
+  // case that can only occur under very particular circumstances
+  // involving camera distortion and near alignment of one side of the
+  // bounding box with the prime meridian over a pole.
   if( (bbox_180.min().x() < 180.0 && bbox_180.max().x() > 180.0) ||
       (bbox_180.min().x() < -180.0 && bbox_180.max().x() > -180.0) ) 
     bbox = bbox_360;
