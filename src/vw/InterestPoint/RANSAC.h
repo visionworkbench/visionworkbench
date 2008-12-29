@@ -99,10 +99,10 @@ namespace ip {
     double m_inlier_threshold;
 
     // Returns the number of inliers for a given threshold.
-    template <class ContainerT>
+    template <class ContainerT1, class ContainerT2>
     unsigned num_inliers(typename FittingFuncT::result_type const& H,
-                         std::vector<ContainerT> const& p1, 
-                         std::vector<ContainerT> const& p2) const {
+                         std::vector<ContainerT1> const& p1, 
+                         std::vector<ContainerT2> const& p2) const {
       unsigned result = 0;
       for (unsigned i=0; i<p1.size(); i++) {
         if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold) 
@@ -132,10 +132,10 @@ namespace ip {
   public:
 
     // Returns the list of inlier indices.
-    template <class ContainerT>
+    template <class ContainerT1, class ContainerT2>
     void inliers(typename FittingFuncT::result_type const& H,
-                 std::vector<ContainerT> const& p1,std::vector<ContainerT> const& p2,
-                 std::vector<ContainerT> &inliers1, std::vector<ContainerT> &inliers2) const {
+                 std::vector<ContainerT1> const& p1, std::vector<ContainerT2> const& p2,
+                 std::vector<ContainerT1> &inliers1, std::vector<ContainerT2> &inliers2) const {
         
       inliers1.clear();
       inliers2.clear();
@@ -149,9 +149,9 @@ namespace ip {
     }
 
     // Returns the list of inlier indices.
-    template <class ContainerT>
+    template <class ContainerT1, class ContainerT2>
     std::vector<int> inlier_indices(typename FittingFuncT::result_type const& H,
-                                     std::vector<ContainerT> const& p1,std::vector<ContainerT> const& p2) const {
+                                     std::vector<ContainerT1> const& p1,std::vector<ContainerT2> const& p2) const {
       std::vector<int> result;
       for (unsigned int i=0; i<p1.size(); i++) 
         if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold) 
@@ -162,9 +162,9 @@ namespace ip {
     RandomSampleConsensus(FittingFuncT const& fitting_func, ErrorFuncT const& error_func, double inlier_threshold)
       : m_fitting_func(fitting_func), m_error_func(error_func), m_inlier_threshold(inlier_threshold) {}
     
-    template <class ContainerT>
-    typename FittingFuncT::result_type operator()(std::vector<ContainerT> const& p1, 
-                                                  std::vector<ContainerT> const& p2,
+    template <class ContainerT1, class ContainerT2>
+    typename FittingFuncT::result_type operator()(std::vector<ContainerT1> const& p1, 
+                                                  std::vector<ContainerT2> const& p2,
                                                   int ransac_iterations = 0) {
       // check consistency
       VW_ASSERT( p1.size() == p2.size(), 
@@ -194,7 +194,8 @@ namespace ip {
         ransac_iterations = p1.size() * 2;
 
       int n = m_fitting_func.min_elements_needed_for_fit(p1[0]);
-      std::vector<ContainerT> try1(n), try2(n);
+      std::vector<ContainerT1> try1(n);
+      std::vector<ContainerT2> try2(n);
       int random_indices[n];
       for (int iteration=0; iteration < ransac_iterations; ++iteration) {
         // Get four points at random, taking care not 
@@ -246,9 +247,9 @@ namespace ip {
   };
 
   // Free function
-  template <class ContainerT, class FittingFuncT, class ErrorFuncT>
-  typename FittingFuncT::result_type ransac(std::vector<ContainerT> const& p1, 
-                                            std::vector<ContainerT> const& p2,
+  template <class ContainerT1, class ContainerT2, class FittingFuncT, class ErrorFuncT>
+  typename FittingFuncT::result_type ransac(std::vector<ContainerT1> const& p1, 
+                                            std::vector<ContainerT2> const& p2,
                                             FittingFuncT const& fitting_func, 
                                             ErrorFuncT const& error_func,
                                             double inlier_threshold = 50) {
