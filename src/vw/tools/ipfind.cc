@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
     ("lowe,l", "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
     
     // Interest point detector options
-    ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris, FH9]")
+    ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris, FH9, FH15]")
     ("log-threshold", po::value<float>(&log_threshold)->default_value(0.03), "Sets the threshold for the Laplacian of Gaussian interest operator")
     ("harris-threshold", po::value<float>(&harris_threshold)->default_value(1e-5), "Sets the threshold for the Harris interest operator")
     ("surf-threshold", po::value<float>(&surf_threshold)->default_value(0.001), "Sets the threshold for the SURF interest operator")
@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
     ("single-scale", "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
 
     // Descriptor generator options
-    ("descriptor-generator", po::value<std::string>(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca,SURF]");
+    ("descriptor-generator", po::value<std::string>(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca,SURF,SURF128]");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
@@ -111,17 +111,19 @@ int main(int argc, char** argv) {
   // Determine if interest_operator is legitimate 
   if ( !( interest_operator == "harris" ||
 	  interest_operator == "log" ||
-	  interest_operator == "fh9" ) ) {
+	  interest_operator == "fh9" ||
+	  interest_operator == "fh15" ) ) {
     vw_out(0) << "Unknown interest operator: " << interest_operator 
-	      << ". Options are : [ Harris, LoG, FH9 ]\n";
+	      << ". Options are : [ Harris, LoG, FH9, FH15 ]\n";
     exit(0);
   }
   // Determine if descriptor_generator is legitimate
   if ( !( descriptor_generator == "patch" ||
 	  descriptor_generator == "pca" ||
-	  descriptor_generator == "surf" ) ) {
+	  descriptor_generator == "surf" ||
+	  descriptor_generator == "surf128" ) ) {
     vw_out(0) << "Unkown descriptor generator: " << descriptor_generator
-	      << ". Options are : [ Patch, PCA, SURF ]\n";
+	      << ". Options are : [ Patch, PCA, SURF, SURF128 ]\n";
     exit(0);
   }
 
@@ -134,10 +136,22 @@ int main(int argc, char** argv) {
 
     // Preparations required for any SURF code
     if (interest_operator == "fh9" ||
-	descriptor_generator == "surf" ) {
-      integral = IntegralImage( image );
+	interest_operator == "fh15" ||
+	descriptor_generator == "surf" ||
+	descriptor_generator == "surf128" ) {
+
+      Timer *total = new Timer("Elapsed time for Integral", DebugMessage,
+			       "interest_point");
+      if (interest_operator != "fh15" ) 
+	integral = IntegralImage( image );
+      else
+	integral = IntegralImage( resample( image, 2,
+					    ConstantEdgeExtension(),
+					    BilinearInterpolation() ) );
+      delete total;
     }
 
+    // Detecting Interest Points
     InterestPointList ip;
     if ( interest_operator == "harris" ) {
       HarrisInterestOperator interest_operator(harris_threshold);
@@ -160,10 +174,17 @@ int main(int argc, char** argv) {
         ip = detect_interest_points(image, detector, num_threads);
       }
     } else if ( interest_operator == "fh9") {
-      /// Right now we only support ScaledInterest Detection
+      /// Currently only supporting ScaledInterest Detection
       SURFInterestOperator interest_operator(surf_threshold);
-      FH9InterestPointDetector<SURFInterestOperator> detector(interest_operator, integral, max_points, num_threads );
-      ip = detector.process_image( image );
+      FH9InterestPointDetector<SURFInterestOperator> detector(interest_operator, 
+							      max_points);
+      ip = detector.process_image( image, integral, num_threads );
+    } else if ( interest_operator == "fh15" ) { 
+      /// Currently only supporting ScaledInterest Detection
+      SURFInterestOperator interest_operator(surf_threshold);
+      FH15InterestPointDetector<SURFInterestOperator> detector(interest_operator, 
+							       max_points);
+      ip = detector.process_image( image, integral, num_threads );
     }
   
     vw_out(0) << "\t Found " << ip.size() << " points.\n";
@@ -179,7 +200,21 @@ int main(int argc, char** argv) {
     } else if ( descriptor_generator == "surf" ) {
       SURFDescriptorGenerator descriptor(false, num_threads);
       descriptor(integral, ip);
-    } 
+    } else if ( descriptor_generator == "surf128" ) {
+      SURFDescriptorGenerator descriptor(true, num_threads);
+      descriptor(integral, ip);
+    }
+
+    // SURF's FH15 follow up
+    if ( interest_operator == "fh15" ) {
+      for (InterestPointList::iterator p = ip.begin();
+	   p != ip.end(); ++p) {
+	(*p).x /= 2;
+	(*p).y /= 2;
+	(*p).ix >>= 1;
+	(*p).iy >>= 1;
+      }
+    }
 
     // If ASCII output was requested, write it out.  Otherwise stick
     // with binary output.
