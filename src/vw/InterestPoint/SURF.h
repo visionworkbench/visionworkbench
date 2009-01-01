@@ -80,8 +80,13 @@ namespace ip {
   /// SURFParams
   /// Just a fancier way to share data with the functions
   class SURFParams {
+    // This is used for converting octave and scale to an index of the
+    // interest data. It is fixed for 4 octaves and 4 scales right now
+    unsigned *indexes;
+    bool isfh15;
   public:
-    SURFParams( float thres = .1, unsigned oct = 4, unsigned scal = 4 ) {
+    SURFParams( float thres = .1, unsigned oct = 4, 
+		unsigned scal = 4, bool fh15 = false ) : isfh15(fh15) {
       cols = rows = 0;    // Remember to set this later
       threshold = thres;
       octaves = oct;
@@ -112,18 +117,23 @@ namespace ip {
     void setForImage( ImageViewBase<ViewT> const& source ) {
       ImageView<float> image = pixel_cast<PixelGray<float> >(source);
 
-      cols = image.cols();
-      rows = image.rows();
+      if (!isfh15) {
+	cols = image.cols();
+	rows = image.rows();
+      } else {
+	cols = 2*image.cols();
+	rows = 2*image.rows();
+      }
     }
 
     template <class T>
     float calcScale( T const& filter_size ) const {
-      return 1.2*float(filter_size)/9.0;
+      return 1.2*float(filter_size)/(isfh15 ? 18.0 : 9);
     }
 
     unsigned convToIndex( unsigned const& octave, unsigned const& scale ) const {
       unsigned idx = octave*scales + scale;
-      VW_DEBUG_ASSERT( idx < 16, 
+      VW_DEBUG_ASSERT( idx < scales*octaves, 
 		       vw::ArgumentErr() << "convToIndex: Incorrect octave and scale given" );
       return indexes[idx];
     }
@@ -133,10 +143,6 @@ namespace ip {
     unsigned octaves;
     unsigned scales;
     unsigned lobe_size;
-  private:
-    // This is used for converting octave and scale to an index of the
-    // interest data. It is fixed for 4 octaves and 4 scales right now
-    unsigned *indexes;
   };
 
   /// SURFScaleData
@@ -395,36 +401,44 @@ namespace ip {
   {
 
     FH9InterestPointDetector(FH9InterestPointDetector<InterestT> const& copy) {}
-    ImageView<double> m_integral;
+    int m_max_points;
+    SURFParams m_params;
 
   public:
     static const int IP_DEFAULT_SCALES = 4; // Don't play with
     static const int IP_DEFAULT_OCTAVES = 4;
 
     /// Setting max_points = 0 will disable interest point culling.
-    /// Otherwies, the max_points most "interesting" points are
+    /// Otherwise, the max_points most "interesting" points are
     /// returned.
-    FH9InterestPointDetector(ImageView<double> const& integral, int max_points = 0, int num_threads = 1)
-      : m_max_points(max_points), m_num_threads(num_threads), m_integral(integral) {
-      m_params = SURFParams();
+    FH9InterestPointDetector(int max_points = 0 )
+      : m_max_points(max_points) {
+      m_params = SURFParams( .001, IP_DEFAULT_OCTAVES, 
+			     IP_DEFAULT_SCALES );
     }
 
-    FH9InterestPointDetector(InterestT const& interest, ImageView<double> const& integral, int max_points = 0, int num_threads = 1 ) 
-      : m_max_points(max_points), m_num_threads(num_threads), m_integral(integral) {
+    FH9InterestPointDetector(InterestT const& interest, int max_points = 0 ) 
+      : m_max_points(max_points) {
       
-      m_params = SURFParams( interest.threshold(), IP_DEFAULT_OCTAVES, IP_DEFAULT_SCALES );
-    }
-
-    FH9InterestPointDetector(InterestT const& interest, ImageView<double> const& integral, int scales, int octaves, int max_points, int num_threads = 1 )
-      : m_max_points(max_points), m_num_threads(num_threads), m_integral(integral) {
-      
-      m_params = SURFParams( interest.threshold(), octaves, scales );
+      m_params = SURFParams( interest.threshold(), IP_DEFAULT_OCTAVES, 
+			     IP_DEFAULT_SCALES );
     }
 
     /// Process Image ////////////////////////////
     /// Detect interest points in the source image.
     template <class ViewT>
-    InterestPointList process_image(ImageViewBase<ViewT> const& image) {
+    InterestPointList process_image(ImageViewBase<ViewT> const& image,
+				    int num_threads=1 ) {
+      ImageView<double> integral;
+      integral = IntegralImage( image );
+
+      return process_image( image, integral, num_threads );
+    }
+
+    template <class ViewT>
+    InterestPointList process_image(ImageViewBase<ViewT> const& image,
+				    ImageView<double> const& integral,
+				    int num_threads=1 ) {
 
       // Timing
       Timer *total = new Timer("Total elapsed time", DebugMessage, "interest_point");
@@ -438,7 +452,7 @@ namespace ip {
       {
 	unsigned filter_size = 3;
 	int id_count = 0;
-	FifoWorkQueue queue( m_num_threads );
+	FifoWorkQueue queue( num_threads );
 	Mutex mutex;
 
 	// Determing how many interest scales are required
@@ -457,22 +471,22 @@ namespace ip {
 	  for ( unsigned i = 0; i < iterations; i++ ) {
 	    filter_size += 6 * ( octave == 0 ? 1 : 0x2 << ( octave -1 ) );
 	    
-	    if ( filter_size + 2*sampling_step > m_integral.cols() ||
-		 filter_size + 2*sampling_step > m_integral.rows() ) {
+	    if ( filter_size + 2*sampling_step > integral.cols() ||
+		 filter_size + 2*sampling_step > integral.rows() ) {
 	      m_params.octaves--;
 	      break;
 	    }
 	    
-	    if ( m_num_threads < 2 ) {
+	    if ( num_threads < 2 ) {
 	      // Single Threaded Version
-	      interest_scales[id_count] = SURFProcessScale( m_integral,
+	      interest_scales[id_count] = SURFProcessScale( integral,
 							    filter_size,
 							    sampling_step,
 							    m_params );
 	    } else {
 	      // Multithread Version
 	      typedef SURFInterestScaleTask<ImageView<double> > task_type;
-	      boost::shared_ptr<task_type> task ( new task_type( m_integral, filter_size,
+	      boost::shared_ptr<task_type> task ( new task_type( integral, filter_size,
 								 sampling_step, m_params, 
 								 interest_scales[id_count],
 								 mutex, id_count ) );
@@ -483,7 +497,7 @@ namespace ip {
 	  }
 	}
 
-	if ( m_num_threads > 1 ) {
+	if ( num_threads > 1 ) {
 
 	  queue.join_all();
 	}
@@ -518,11 +532,11 @@ namespace ip {
       // Assign orientations
       vw_out(InfoMessage,"interest_point") << "\tCalculating orientation.\n";
       {
-	if ( m_num_threads < 2 ) {
+	if ( num_threads < 2 ) {
 	  // Single threaded edition
 	  for (std::list<InterestPoint>::iterator point = ip.begin();
 	       point != ip.end(); ++point) {
-	    (*point).orientation = SURFOrientation( m_integral,
+	    (*point).orientation = SURFOrientation( integral,
 						    (*point).ix, (*point).iy,
 						    (*point).scale );
 	  }
@@ -531,23 +545,23 @@ namespace ip {
 
 	  // Breaking the points in lengths that can be processed individually.
 	  unsigned count = 0;
-	  std::vector<InterestPointList> ip_separated(m_num_threads);
+	  std::vector<InterestPointList> ip_separated(num_threads);
 	  for (InterestPointList::iterator point = ip.begin();
 	       point != ip.end(); ++point) {
 	    
 	    ip_separated[count].push_back( (*point) );
 
 	    count++;
-	    count %= m_num_threads;
+	    count %= num_threads;
 	  }
 	  ip.clear();
 	  
 	  // Giving data to threads
-	  FifoWorkQueue queue( m_num_threads );
+	  FifoWorkQueue queue( num_threads );
 	  Mutex mutex;
 	  typedef SURFOrientationCalcTask<ImageView<double> > task_type;
-	  for ( count = 0; count < m_num_threads; count++ ) {
-	    boost::shared_ptr<task_type> task ( new task_type( m_integral, ip_separated[count],
+	  for ( count = 0; count < num_threads; count++ ) {
+	    boost::shared_ptr<task_type> task ( new task_type( integral, ip_separated[count],
 							       ip, mutex, count ) );
 
 	    queue.add_task( task );
@@ -563,11 +577,196 @@ namespace ip {
       return ip;
     }
 
+  };
 
-  protected:
-    int m_num_threads;
+  // FH15 Version. Adds more scales. Remember to double
+  // the image before hand. Check ipfind.cc for an example.
+  template <class InterestT>
+  class FH15InterestPointDetector : public InterestDetectorBase<FH15InterestPointDetector<InterestT> >
+  {
+
+    FH15InterestPointDetector(FH9InterestPointDetector<InterestT> const& copy) {}
     int m_max_points;
     SURFParams m_params;
+
+  public:
+    static const int IP_DEFAULT_SCALES = 5;
+    static const int IP_DEFAULT_OCTAVES = 4;
+
+    /// Setting max_points = 0 will disable interest point culling.
+    /// Otherwise, the max_points most "interest" points are
+    /// returned.
+    FH15InterestPointDetector(int max_points = 0 )
+      : m_max_points(max_points) {
+      m_params = SURFParams( .001, IP_DEFAULT_OCTAVES, IP_DEFAULT_SCALES, true );
+    }
+
+    FH15InterestPointDetector(InterestT const& interest, int max_points = 0 ) 
+      : m_max_points(max_points) {
+      
+      m_params = SURFParams( interest.threshold(), IP_DEFAULT_OCTAVES, IP_DEFAULT_SCALES, true );
+    }
+
+    /// Process Image ////////////////////////////
+    /// Detect interest points in the source image.
+    template <class ViewT>
+    InterestPointList process_image(ImageViewBase<ViewT> const& image, 
+				    int num_threads=1 ) {
+      ImageView<double> integral;
+      integral = IntegralImage( resample( image, 2,
+					  ConstantEdgeExtension(),
+					  BilinearInterpolation() ) );
+
+      return process_image( image, integral, num_threads );
+    }
+
+    template <class ViewT>
+    InterestPointList process_image(ImageViewBase<ViewT> const& image,
+				    vw::ImageView<double> const& integral,
+				    int num_threads=1 ) {
+      // Timing
+      Timer *total = new Timer("Total elapsed time", DebugMessage, "interest_point");
+
+      // Set SURF Params;
+      m_params.setForImage( image );
+      
+      VW_ASSERT( (m_params.cols + 1 == integral.cols()) &&
+		 (m_params.rows + 1 == integral.rows()),
+		 vw::ArgumentErr() << "process_image: Integral doesn't match image. Integral should be "
+		 << m_params.cols << "x" << m_params.rows << "." );
+      
+      // Create Interest Scales
+      vw_out(InfoMessage,"interest_point") << "\tCalculating Interest Data.\n";
+      std::vector<SURFScaleData> interest_scales;
+      {
+	unsigned filter_size = 9;
+	int id_count = 0;
+	FifoWorkQueue queue( num_threads );
+	Mutex mutex;
+	
+	// Determing how many interest scales are required
+	{
+	  int size = 5;
+	  size += (m_params.octaves-1)*3;
+	  interest_scales.resize(size);
+	}
+
+	for ( unsigned octave = 0; octave < m_params.octaves; octave++ ) {
+	  unsigned sampling_step = 0x2 << octave;
+	  unsigned iterations = 3;
+	  if ( octave == 0 )
+	    iterations = m_params.scales;
+
+	  for ( unsigned i = 0; i < iterations; i++ ) {
+	    filter_size += 6 * ( octave == 0 ? 1 : 0x2 << ( octave - 1 ) );
+	    
+	    if ( filter_size + 2*sampling_step > integral.cols() ||
+		 filter_size + 2*sampling_step > integral.rows() ) {
+	      m_params.octaves--;
+	      break;
+	    }
+
+	    if ( num_threads < 2 ) {
+	      // Single Threads Version
+	      interest_scales[id_count] = SURFProcessScale( integral,
+							    filter_size,
+							    sampling_step,
+							    m_params );
+	    } else { 
+	      // Multithreaded Version
+	      typedef SURFInterestScaleTask<ImageView<double> > task_type;
+	      boost::shared_ptr<task_type> task ( new task_type( integral, filter_size,
+								 sampling_step, m_params,
+								 interest_scales[id_count],
+								 mutex, id_count ) );
+
+	      queue.add_task( task );
+	    }
+
+	    id_count++;
+	  }
+	}
+
+	if ( num_threads > 1 ) {
+	  
+	  queue.join_all();
+	}
+      }
+      
+      // Write Debug Images ?
+      // SURFWriteDebugImages( interest_scales, m_params );
+
+      // Locate Maximas
+      vw_out(InfoMessage,"interest_point") << "\tPerforming non-maximal suppression.\n";
+      std::list<InterestPoint> ip = SURFMaximaDetection( interest_scales,
+							 m_params );
+      vw_out(DebugMessage,"interest_point") << "\t\toutput points: " << ip.size() << std::endl;
+
+      // Subpixel refinement
+      vw_out(InfoMessage,"interest_point") << "\tPerforming sub-pixel refinement.\n";
+      SURFSubpixelRefinement( ip, interest_scales, m_params );
+      vw_out(DebugMessage,"interest_point") << "\t\toutput points: " << ip.size() << std::endl;
+
+      // Cull
+      if ( m_max_points != 0 ) {
+	vw_out(InfoMessage,"interest_point") << "\tCulling data to a " << m_max_points 
+					     << " interest points.\n";
+	int orginal_num_points = ip.size();
+	ip.sort();
+	if ( m_max_points < ip.size() ) 
+	  ip.resize( m_max_points );
+	vw_out(DebugMessage,"interest_point") << "\tdone (removed " << orginal_num_points - ip.size() 
+					      << " interest points, " << ip.size() << " remaining.).\n";
+      }
+
+      // Assign orientations
+      vw_out(InfoMessage,"interest_point") << "\tCalculating orientation.\n";
+      {
+	if ( num_threads < 2 ) {
+	  // Single threaded edition
+	  for (std::list<InterestPoint>::iterator point = ip.begin();
+	       point != ip.end(); ++point) {
+	    (*point).orientation = SURFOrientation( integral,
+						    (*point).ix, (*point).iy,
+						    (*point).scale );
+	  }
+	} else {
+	  // Multithreaded
+
+	  // Breaking the points in lengths that can be processed individually.
+	  unsigned count = 0;
+	  std::vector<InterestPointList> ip_separated(num_threads);
+	  for (InterestPointList::iterator point = ip.begin();
+	       point != ip.end(); ++point) {
+	    
+	    ip_separated[count].push_back( (*point) );
+
+	    count++;
+	    count %= num_threads;
+	  }
+	  ip.clear();
+	  
+	  // Giving data to threads
+	  FifoWorkQueue queue( num_threads );
+	  Mutex mutex;
+	  typedef SURFOrientationCalcTask<ImageView<double> > task_type;
+	  for ( count = 0; count < num_threads; count++ ) {
+	    boost::shared_ptr<task_type> task ( new task_type( integral, ip_separated[count],
+							       ip, mutex, count ) );
+
+	    queue.add_task( task );
+	  }
+
+	  queue.join_all();
+	}
+      }
+      
+      // End Timing
+      delete total;
+
+      return ip;
+    }
+
   };
 
   // SURF Descriptor 64/128 bit

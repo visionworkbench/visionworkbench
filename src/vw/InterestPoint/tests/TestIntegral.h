@@ -55,57 +55,173 @@ class TestIntegral : public CxxTest::TestSuite
   }
 
   void test_haar_filters() { 
-    ImageView<float> graffiti;
+    // Loading Image
+    ImageView<float> graffiti, gradient;
     read_image( graffiti, "sub.png" );
-    ImageView<double> integral;
-    integral = IntegralImage( graffiti );
-    
-    float first_H = HHaarWavelet( integral,
-				  49.5, 49.5, 20 );
-    float first_V = VHaarWavelet( integral,
-				  49.5, 49.5, 20 );
-    
-    ImageView<float> rotated;
-    rotated = rotate_180(graffiti);
-    integral = IntegralImage( rotated );
-    
-    TS_ASSERT_DELTA( HHaarWavelet( integral,
-				   49.5, 49.5, 20 ),
-		     -first_H, .1 );
-    TS_ASSERT_DELTA( VHaarWavelet( integral,
-				   49.5, 49.5, 20 ),
-		     -first_V, .1 );
+    read_image( gradient, "noisy_gradient_60.png" );
 
+    // Building Integrals
+    ImageView<double> integral = IntegralImage( graffiti );
+    
     float hand_response = 0;
     for ( unsigned i = 0; i < 2; i++ ) {
       for ( unsigned j = 0; j < 2; j++ ) {
 	if ( i == 0 ) {
-	  hand_response -= rotated(i,j);
+	  hand_response -= graffiti(i,j);
 	} else {
-	  hand_response += rotated(i,j);
+	  hand_response += graffiti(i,j);
 	}
       }
     }
     TS_ASSERT_DELTA( hand_response,
 		     HHaarWavelet( integral,
 				   1,1,2 ),
-		     .01 );
+		     .001 );
     
     hand_response = 0;
     for ( unsigned i = 0; i < 2; i++ ) {
       for ( unsigned j = 0; j < 2; j++ ) {
 	if ( j == 0 ) {
-	  hand_response -= rotated(i,j);
+	  hand_response -= graffiti(i,j);
 	} else {
-	  hand_response += rotated(i,j);
+	  hand_response += graffiti(i,j);
 	}
       }
     }
     TS_ASSERT_DELTA( hand_response,
 		     VHaarWavelet( integral,
 				   1, 1, 2 ),
-		     .01 );
+		     .001 );
   
+  }
+
+  void test_haar_filters2() {
+    // Load Image
+    ImageView<float> graffiti, gradient;
+    read_image( graffiti, "sub.png" );
+    read_image( gradient, "noisy_gradient_60.png" );
+    
+    // Rotating Image
+    ImageView<float> graffiti_r, gradient_r;
+    graffiti_r = rotate_180(graffiti);
+    gradient_r = rotate_180(gradient);
+
+    // Building Integrals
+    ImageView<double> int_graf, int_graf_r, int_grad, int_grad_r;
+    int_graf = IntegralImage( graffiti );
+    int_graf_r = IntegralImage( graffiti_r);
+    int_grad = IntegralImage( gradient );
+    int_grad_r = IntegralImage( gradient_r );
+    
+    std::cout << int_grad_r(10,10) << " "
+	      << int_grad_r(10.4,10) << " "
+	      << int_grad_r(11,10) << std::endl;
+
+    for ( unsigned i = 10; i < 90; i+=5 ) {
+      for ( unsigned j = 10; j < 50; j+=5 ) {
+	// Size 10
+	TS_ASSERT_DELTA( -HHaarWavelet( int_graf, i,j, 10),
+			 HHaarWavelet( int_graf_r, int_graf.cols()-1-i,
+				       int_graf.rows()-1-j, 10 ),
+			 .001 );
+	TS_ASSERT_DELTA( -VHaarWavelet( int_graf, i,j, 10),
+			 VHaarWavelet( int_graf_r, int_graf.cols()-1-i,
+				       int_graf.rows()-1-j, 10 ),
+			 .001 );
+	TS_ASSERT_DELTA( -HHaarWavelet( int_grad, i,j, 10),
+			 HHaarWavelet( int_grad_r, int_grad.cols()-1-i,
+				       int_grad.rows()-1-j, 10 ),
+			 .001 );
+	TS_ASSERT_DELTA( -VHaarWavelet( int_grad, i,j, 10),
+			 VHaarWavelet( int_grad_r, int_grad.cols()-1-i,
+				       int_grad.rows()-1-j, 10 ),
+			 .001 );
+
+	// Size 20
+	TS_ASSERT_DELTA( -HHaarWavelet( int_graf, i,j, 20),
+			 HHaarWavelet( int_graf_r, int_graf.cols()-1-i,
+				       int_graf.rows()-1-j, 20 ),
+			 .001 );
+	TS_ASSERT_DELTA( -VHaarWavelet( int_graf, i,j, 20),
+			 VHaarWavelet( int_graf_r, int_graf.cols()-1-i,
+				       int_graf.rows()-1-j, 20 ),
+			 .001 );
+	TS_ASSERT_DELTA( -HHaarWavelet( int_grad, i,j, 20),
+			 HHaarWavelet( int_grad_r, int_grad.cols()-1-i,
+				       int_grad.rows()-1-j, 20 ),
+			 .001 );
+	TS_ASSERT_DELTA( -VHaarWavelet( int_grad, i,j, 20),
+			 VHaarWavelet( int_grad_r, int_grad.cols()-1-i,
+				       int_grad.rows()-1-j, 20 ),
+			 .001 );
+
+	// Size 4
+	TS_ASSERT_DELTA( -HHaarWavelet( int_graf, i,j, 4),
+			 HHaarWavelet( int_graf_r, int_graf.cols()-1-i,
+				       int_graf.rows()-1-j, 4 ),
+			 .001 );
+	TS_ASSERT_DELTA( -VHaarWavelet( int_graf, i,j, 4),
+			 VHaarWavelet( int_graf_r, int_graf.cols()-1-i,
+				       int_graf.rows()-1-j, 4 ),
+			 .001 );
+	TS_ASSERT_DELTA( -HHaarWavelet( int_grad, i,j, 4),
+			 HHaarWavelet( int_grad_r, int_grad.cols()-1-i,
+				       int_grad.rows()-1-j, 4 ),
+			 .001 );
+	TS_ASSERT_DELTA( -VHaarWavelet( int_grad, i,j, 4),
+			 VHaarWavelet( int_grad_r, int_grad.cols()-1-i,
+				       int_grad.rows()-1-j, 4 ),
+			 .001 );
+
+	// Size 16
+	TS_ASSERT_DELTA( -HHaarWavelet( int_graf, i,j, 16),
+			 HHaarWavelet( int_graf_r, int_graf.cols()-1-i,
+				       int_graf.rows()-1-j, 16 ),
+			 .001 );
+	TS_ASSERT_DELTA( -VHaarWavelet( int_graf, i,j, 16),
+			 VHaarWavelet( int_graf_r, int_graf.cols()-1-i,
+				       int_graf.rows()-1-j, 16 ),
+			 .001 );
+	TS_ASSERT_DELTA( -HHaarWavelet( int_grad, i,j, 16),
+			 HHaarWavelet( int_grad_r, int_grad.cols()-1-i,
+				       int_grad.rows()-1-j, 16 ),
+			 .001 );
+	TS_ASSERT_DELTA( -VHaarWavelet( int_grad, i,j, 16),
+			 VHaarWavelet( int_grad_r, int_grad.cols()-1-i,
+				       int_grad.rows()-1-j, 16 ),
+			 .001 );
+      }
+    }
+  }
+
+  void test_derivative_filters () {
+    ImageView<float> graffiti;
+    read_image( graffiti, "sub.png" );
+    ImageView<double> integral;
+    integral = IntegralImage( graffiti );
+    ImageView<float> rotated;
+    rotated = rotate_180(graffiti);
+    ImageView<double> r_integral;
+    r_integral = IntegralImage( rotated );
+
+    TS_ASSERT_DELTA( XSecondDerivative( integral,
+					49, 49, 51 ), 
+		     XSecondDerivative( r_integral,
+					50, 50, 51 ),
+		     .0001 );
+
+    TS_ASSERT_DELTA( YSecondDerivative( integral,
+					49, 49, 51 ),
+		     YSecondDerivative( r_integral,
+					50, 50, 51 ),
+		     .0001 );
+
+    TS_ASSERT_DELTA( XYDerivative( integral,
+				   49, 49, 51 ),
+		     XYDerivative( r_integral,
+				   50, 50, 51 ),
+		     .0001 );
+   
   }
 };
 

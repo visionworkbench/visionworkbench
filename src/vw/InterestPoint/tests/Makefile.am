@@ -29,8 +29,9 @@ if MAKE_MODULE_INTERESTPOINT
 
 nodist_TestMatcher_SOURCES = TestMatcher.cxx 
 nodist_TestIntegral_SOURCES = TestIntegral.cxx
+nodist_TestSURF_SOURCES = TestSURF.cxx
 
-TESTS = TestMatcher TestIntegral
+TESTS = TestMatcher TestIntegral TestSURF
 
 endif
 

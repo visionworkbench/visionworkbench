@@ -209,77 +209,78 @@ namespace ip {
 
   // Horizontal Wavelet
   // - integral  = Integral used for calculations
-  // - ix        = x location to evaluate at
-  // - iy        = y location to evaluate at
+  // - x         = x location to evaluate at
+  // - y         = y location to evaluate at
   // - size      = side of the square used for evaluate
 
   // Note: Filter will be evaluated at a size nearest to a multiple of two
-  inline float HHaarWavelet( vw::ImageView<double> const& integral, float const& ix,
-			     float const& iy, float const& size ) {
+  template <class ViewT>
+  inline float HHaarWavelet( ImageViewBase<ViewT> const& integral, 
+			     float const& x, float const& y, 
+			     float const& size ) {
 
     float response;
     int half_size = round( size / 2.0);
     int i_size = half_size << 1;
-    int top = round( iy - size/2);
-    int left = round( ix - size/2); 
+    int top = round( y - size/2);
+    int left = round( x - size/2); 
 
-    VW_ASSERT(left+i_size < (unsigned)integral.cols(), 
-	      vw::ArgumentErr() << "left out of bounds. "<< integral.cols() <<" : "
+    VW_ASSERT(left+i_size < (unsigned)integral.impl().cols(), 
+	      vw::ArgumentErr() << "left out of bounds. "<< integral.impl().cols() <<" : "
 	      << left+i_size << " [top left] " << top << " " << left << "\n");
-    VW_ASSERT(top+i_size < (unsigned)integral.rows(),
-	      vw::ArgumentErr() << "top out of bounds. " << integral.rows() <<" : "
+    VW_ASSERT(top+i_size < (unsigned)integral.impl().rows(),
+	      vw::ArgumentErr() << "top out of bounds. " << integral.impl().rows() <<" : "
 	      << top+i_size << "\n");
     VW_ASSERT(left >= 0,
 	      vw::ArgumentErr() << "left is to low. " << 0 << " : " << left << "\n");
     VW_ASSERT(top >= 0,
 	      vw::ArgumentErr() << "top is to low. " << 0 << " : " << top << "\n");
 
-    response = -integral(left, top);
-    response += 2*integral(left+half_size, top);
-    response -= integral(left+i_size, top);
-    response += integral(left, top+i_size);
-    response -= 2*integral(left+half_size, top+i_size);
-    response += integral(left+i_size, top+i_size);
+    response = -integral.impl()(left, top);
+    response += 2*integral.impl()(left+half_size, top);
+    response -= integral.impl()(left+i_size, top);
+    response += integral.impl()(left, top+i_size);
+    response -= 2*integral.impl()(left+half_size, top+i_size);
+    response += integral.impl()(left+i_size, top+i_size);
     
-    //response/=i_size*i_size;
     return response;
   }
 
   // Vertical Wavelet
   // - integral  = Integral used for calculations
-  // - ix        = x location to evaluate at
-  // - iy        = y location to evaluate at
+  // - x         = x location to evaluate at
+  // - y         = y location to evaluate at
   // - size      = side of the square used for evaluate
-
   // Note: Filter will be evaluated at a size nearest to a multiple of two
-  inline float VHaarWavelet( vw::ImageView<double> const& integral, float const& ix,
-			     float const& iy, float const& size ) {
+  template <class ViewT>
+  inline float VHaarWavelet( ImageViewBase<ViewT> const& integral, 
+			     float const& x, float const& y, 
+			     float const& size ) {
 
     float response;
     int half_size = round( size / 2.0);
     int i_size = half_size << 1;
-    int top = round( iy - size/2);
-    int left = round( ix - size/2); 
+    int top = round( y - size/2);
+    int left = round( x - size/2); 
 
-    VW_ASSERT(left+i_size < (unsigned)integral.cols(), 
-	      vw::ArgumentErr() << "left out of bounds. "<< integral.cols() <<" : "
+    VW_ASSERT(left+i_size < (unsigned)integral.impl().cols(), 
+	      vw::ArgumentErr() << "left out of bounds. "<< integral.impl().cols() <<" : "
 	      << left+i_size << " [top left] " << top << " " << left << "\n");
-    VW_ASSERT(top+i_size < (unsigned)integral.rows(),
-	      vw::ArgumentErr() << "top out of bounds. " << integral.rows() <<" : "
+    VW_ASSERT(top+i_size < (unsigned)integral.impl().rows(),
+	      vw::ArgumentErr() << "top out of bounds. " << integral.impl().rows() <<" : "
 	      << top+i_size << "\n");
     VW_ASSERT(left >= 0,
 	      vw::ArgumentErr() << "left is to low. " << 0 << " : " << left << "\n");
     VW_ASSERT(top >= 0,
 	      vw::ArgumentErr() << "top is to low. " << 0 << " : " << top << "\n");
 
-    response = -integral(left, top);
-    response += integral(left+i_size, top);
-    response += 2*integral(left, top+half_size);
-    response -= 2*integral(left+i_size, top+half_size);
-    response -= integral(left, top+i_size);
-    response += integral(left+i_size, top+i_size);
+    response = -integral.impl()(left, top);
+    response += integral.impl()(left+i_size, top);
+    response += 2*integral.impl()(left, top+half_size);
+    response -= 2*integral.impl()(left+i_size, top+half_size);
+    response -= integral.impl()(left, top+i_size);
+    response += integral.impl()(left+i_size, top+i_size);
     
-    //response/=i_size*i_size;
     return response;
   }
 

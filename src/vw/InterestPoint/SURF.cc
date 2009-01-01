@@ -491,6 +491,8 @@ namespace ip {
 				bool extended = false ) {
 
     Vector<float> result(64);
+    if ( extended )
+      result.set_size(128);
     Matrix<float,20,20> h_response;
     Matrix<float,20,20> v_response;
     float scaling = 1.0/ip.scale;
@@ -590,7 +592,11 @@ namespace ip {
     // Building the descriptor
     for ( char x = 0; x < 4; x++ ) {
       for ( char y = 0; y < 4; y++ ) { 
-	int dest = 16*x + 4*y;
+	int dest;
+	if (extended)
+	  dest = 32*x + 8*y;
+	else
+	  dest = 16*x + 4*y;
 
 	// Summing responses
 	for ( char ix = 0; ix < 5; ix++ ) {
@@ -598,14 +604,41 @@ namespace ip {
 	    char sx = x*5+ix;
 	    char sy = y*5+iy;
 	    
-	    // Dx
-	    result(dest) += h_response(sx, sy);
-	    // |Dx|
-	    result(dest+1) += fabs(h_response(sx, sy));
-	    // Dy
-	    result(dest+2) += v_response(sx, sy);
-	    // |Dy|
-	    result(dest+3) += fabs(v_response(sx, sy));
+	    if (!extended) {
+	      // SURF 64
+	      // Dx
+	      result(dest) += h_response(sx, sy);
+	      // |Dx|
+	      result(dest+1) += fabs(h_response(sx, sy));
+	      // Dy
+	      result(dest+2) += v_response(sx, sy);
+	      // |Dy|
+	      result(dest+3) += fabs(v_response(sx, sy));
+	    } else {
+	      // SURF 128
+	      if ( v_response(sx, sy) >= 0 ) {
+		// Dx
+		result(dest) += h_response(sx, sy);
+		// |Dx|
+		result(dest+1) += fabs(h_response(sx, sy));
+	      } else {
+		// Dx
+		result(dest+2) += h_response(sx, sy);
+		// |Dx|
+		result(dest+3) += fabs(h_response(sx, sy));
+	      }
+	      if ( h_response(sx, sy) >= 0 ) {
+		// Dy
+		result(dest+4) += v_response(sx, sy);
+		// |Dy|
+		result(dest+5) += fabs(v_response(sx, sy));
+	      } else {
+		// Dy
+		result(dest+6) += v_response(sx, sy);
+		// |Dy|
+		result(dest+7) += fabs(v_response(sx, sy));
+	      }
+	    }
 	  }
 	}
       }
