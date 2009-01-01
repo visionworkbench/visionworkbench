@@ -596,7 +596,7 @@ namespace ip {
 	for ( char ix = 0; ix < 5; ix++ ) {
 	  for ( char iy = 0; iy < 5; iy++ ) {
 	    char sx = x*5+ix;
-	    char sy = x*5+iy;
+	    char sy = y*5+iy;
 	    
 	    // Dx
 	    result(dest) += h_response(sx, sy);
