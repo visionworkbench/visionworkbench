@@ -105,12 +105,12 @@ namespace vw {
 #define VW_IMAGE_MATH_BINARY_IP_II_FUNCTION(func,ftor)                  \
   template <class Image1T, class Image2T>                               \
   inline Image1T& func( ImageViewBase<Image1T>& image1, ImageViewBase<Image2T> const& image2 ) { \
-    apply_per_pixel( image1, image2, ftor() );                          \
+    for_each_pixel( image1, image2, ftor() );                           \
     return image1.impl();                                               \
   }                                                                     \
   template <class Image1T, class Image2T>                               \
   inline Image1T const& func( ImageViewBase<Image1T> const& image1, ImageViewBase<Image2T> const& image2 ) { \
-    apply_per_pixel( image1, image2, ftor() );                          \
+    for_each_pixel( image1, image2, ftor() );                           \
     return image1.impl();                                               \
   }
 
@@ -118,13 +118,13 @@ namespace vw {
   template <class ImageT, class ScalarT>                                \
   typename boost::disable_if< IsImageView<ScalarT>, ImageT& >::type     \
   inline func( ImageViewBase<ImageT>& image, ScalarT scalar ) {         \
-    apply_per_pixel( image, ftor<ScalarT>(scalar) );                    \
+    for_each_pixel( image, ftor<ScalarT>(scalar) );                     \
     return image.impl();                                                \
   }                                                                     \
   template <class ImageT, class ScalarT>                                \
   typename boost::disable_if< IsImageView<ScalarT>, ImageT const& >::type     \
   inline func( ImageViewBase<ImageT> const& image, ScalarT scalar ) {         \
-    apply_per_pixel( image, ftor<ScalarT>(scalar) );                    \
+    for_each_pixel( image, ftor<ScalarT>(scalar) );                     \
     return image.impl();                                                \
   }
 
