@@ -281,7 +281,7 @@ namespace math {
 
     /// Constructs a matrix of zeroes.
     Matrix() {
-      memset( core_.c_array(), 0, RowsN*ColsN*sizeof(ElemT) );
+      std::memset( core_.c_array(), 0, RowsN*ColsN*sizeof(ElemT) );
     }
 
     /// Constructs a matrix whose first element is as given.

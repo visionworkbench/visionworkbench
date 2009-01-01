@@ -54,7 +54,7 @@
 #ifndef __VW_MATH_VECTOR_H__
 #define __VW_MATH_VECTOR_H__
 
-#include <cstring>
+#include <cstring> // for memset
 #include <vector>
 
 #include <boost/utility/enable_if.hpp>
@@ -404,7 +404,7 @@ namespace math {
   template <class ElemT, int N>
   struct VectorClearImpl<Vector<ElemT,N> > {
     static void clear( Vector<ElemT,N>& v ) {
-      memset( &v(0), 0, N*sizeof(ElemT) );
+      std::memset( &v(0), 0, N*sizeof(ElemT) );
     }
   };
 
