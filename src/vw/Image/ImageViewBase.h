@@ -136,20 +136,22 @@ namespace vw {
   // Pixel iteration functions
   // *******************************************************************
 
-
   template <class ViewT, class FuncT>
   void for_each_pixel_( const ImageViewBase<ViewT> &view_, FuncT &func ) {
     const ViewT& view = view_.impl();
     typedef typename ViewT::pixel_accessor pixel_accessor;
     pixel_accessor plane_acc = view.origin();
-    for (int32 p = 0; p < view.planes(); p++, plane_acc.next_plane()) { 
+    for( int32 plane = view.planes(); plane; --plane ) { 
       pixel_accessor row_acc = plane_acc;
-      for (int32 j = 0; j < view.rows(); j++, row_acc.next_row()) {
+      for( int32 row = view.rows(); row; --row ) {
         pixel_accessor col_acc = row_acc;
-        for (int32 i = 0; i < view.cols(); i++, col_acc.next_col()) {
+        for( int32 col = view.cols(); col; --col ) {
           func( *col_acc );
+	  col_acc.next_col();
         }
-      }  
+	row_acc.next_row();
+      }
+      plane_acc.next_plane();
     }
   }
 
@@ -163,6 +165,92 @@ namespace vw {
     for_each_pixel_<ViewT,const FuncT>(view,func);
   }
 
+  template <class View1T, class View2T, class FuncT>
+  void for_each_pixel_( const ImageViewBase<View1T> &view1_, const ImageViewBase<View2T> &view2_, FuncT &func ) {
+    const View1T& view1 = view1_.impl();
+    const View2T& view2 = view2_.impl();
+    VW_ASSERT( view1.cols()==view2.cols() && view1.rows()==view2.rows() && view1.planes()==view2.planes(),
+               ArgumentErr() << "for_each_pixel_: Image arguments must have the same dimensions." );
+    typedef typename View1T::pixel_accessor pixel_accessor_1;
+    typedef typename View2T::pixel_accessor pixel_accessor_2;
+    pixel_accessor_1 plane_acc_1 = view1.origin();
+    pixel_accessor_2 plane_acc_2 = view2.origin();
+    for( int32 plane = view1.planes(); plane; --plane ) { 
+      pixel_accessor_1 row_acc_1 = plane_acc_1;
+      pixel_accessor_2 row_acc_2 = plane_acc_2;
+      for( int32 row = view1.rows(); row; --row ) {
+        pixel_accessor_1 col_acc_1 = row_acc_1;
+        pixel_accessor_2 col_acc_2 = row_acc_2;
+        for( int32 col = view1.cols(); col; --col ) {
+          func( *col_acc_1, *col_acc_2 );
+	  col_acc_1.next_col();
+	  col_acc_2.next_col();
+        }
+	row_acc_1.next_row();
+	row_acc_2.next_row();
+      }
+      plane_acc_1.next_plane();
+      plane_acc_2.next_plane();
+    }
+  }
+
+  template <class View1T, class View2T, class FuncT>
+  void for_each_pixel( const ImageViewBase<View1T> &view1, const ImageViewBase<View2T> &view2, FuncT &func ) {
+    for_each_pixel_<View1T,View2T,FuncT>(view1,view2,func);
+  }
+
+  template <class View1T, class View2T, class FuncT>
+  void for_each_pixel( const ImageViewBase<View1T> &view1, const ImageViewBase<View2T> &view2, const FuncT &func ) {
+    for_each_pixel_<View1T,View2T,const FuncT>(view1,view2,func);
+  }
+
+  template <class View1T, class View2T, class View3T, class FuncT>
+  void for_each_pixel_( const ImageViewBase<View1T> &view1_, const ImageViewBase<View2T> &view2_, const ImageViewBase<View3T> &view3_, FuncT &func ) {
+    const View1T& view1 = view1_.impl();
+    const View2T& view2 = view2_.impl();
+    const View3T& view3 = view3_.impl();
+    VW_ASSERT( view1.cols()==view2.cols() && view1.rows()==view2.rows() && view1.planes()==view2.planes() &&
+	       view1.cols()==view3.cols() && view1.rows()==view3.rows() && view1.planes()==view3.planes(),
+               ArgumentErr() << "for_each_pixel_: Image arguments must have the same dimensions." );
+    typedef typename View1T::pixel_accessor pixel_accessor_1;
+    typedef typename View2T::pixel_accessor pixel_accessor_2;
+    typedef typename View3T::pixel_accessor pixel_accessor_3;
+    pixel_accessor_1 plane_acc_1 = view1.origin();
+    pixel_accessor_2 plane_acc_2 = view2.origin();
+    pixel_accessor_3 plane_acc_3 = view3.origin();
+    for( int32 plane = view1.planes(); plane; --plane ) { 
+      pixel_accessor_1 row_acc_1 = plane_acc_1;
+      pixel_accessor_2 row_acc_2 = plane_acc_2;
+      pixel_accessor_3 row_acc_3 = plane_acc_3;
+      for( int32 row = view1.rows(); row; --row ) {
+        pixel_accessor_1 col_acc_1 = row_acc_1;
+        pixel_accessor_2 col_acc_2 = row_acc_2;
+        pixel_accessor_3 col_acc_3 = row_acc_3;
+        for( int32 col = view1.cols(); col; --col ) {
+          func( *col_acc_1, *col_acc_2, *col_acc_3 );
+	  col_acc_1.next_col();
+	  col_acc_2.next_col();
+	  col_acc_3.next_col();
+        }
+	row_acc_1.next_row();
+	row_acc_2.next_row();
+	row_acc_3.next_row();
+      }
+      plane_acc_1.next_plane();
+      plane_acc_2.next_plane();
+      plane_acc_3.next_plane();
+    }
+  }
+
+  template <class View1T, class View2T, class View3T, class FuncT>
+  void for_each_pixel( const ImageViewBase<View1T> &view1, const ImageViewBase<View2T> &view2, const ImageViewBase<View3T> &view3, FuncT &func ) {
+    for_each_pixel_<View1T,View2T,View3T,FuncT>(view1,view2,view3,func);
+  }
+
+  template <class View1T, class View2T, class View3T, class FuncT>
+  void for_each_pixel( const ImageViewBase<View1T> &view1, const ImageViewBase<View2T> &view2, const ImageViewBase<View3T> &view3, const FuncT &func ) {
+    for_each_pixel_<View1T,View2T,View3T,const FuncT>(view1,view2,view3,func);
+  }
 
   // *******************************************************************
   // The master rasterization function
