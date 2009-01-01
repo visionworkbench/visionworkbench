@@ -419,6 +419,30 @@ namespace math {
       vw_throw( ArgumentErr() << "solve_symmetric(): LAPACK driver posv could not solve equation because A is not symmetric positive definite." );
   }
 
+  /// Solve the equations X'*A'=B' where A is a symmetric positive definite
+  /// matrix, B is a matrix.
+  ///  This version of this method will modify A and B.  Upon
+  /// return, A contains its cholesky factorization, and B will
+  /// contain the result of the computation, X.  Because this method
+  /// does not copy A or b, it can perform considerably faster than
+  /// the non-nocopy method below.
+  /// IMPORTANT: B argument MUST be transpose, since LAPACK matrices
+  /// are assumed to be stacked by columns (not rows as in Vision Workbench).
+
+  template <class AMatrixT, class BMatrixT>
+  void multi_solve_symmetric_nocopy( AMatrixT & A, BMatrixT & B ) {
+    const f77_int n = A.cols();
+    const f77_int nrhs = B.rows();
+    const f77_int lda = A.cols();
+    const f77_int ldb = B.cols();
+    f77_int info;
+    posv('L',n,nrhs,&(A(0,0)), lda, &(B(0,0)), ldb, &info);
+    if (info < 0)
+      vw_throw( ArgumentErr() << "solve_symmetric(): LAPACK driver posv reported an error with argument " << -info << "." );
+    if (info > 0)
+      vw_throw( ArgumentErr() << "solve_symmetric(): LAPACK driver posv could not solve equation because A is not symmetric positive definite." );
+  }
+  
   /// Solve the equation Ax=b where A is a symmetric positive definite
   /// matrix.  This version of this method will not modify A and b.
   /// The result (x) is returned as the return value.
@@ -432,6 +456,18 @@ namespace math {
     return result;
   }
 
+  /// Solve the equations AX=B where A is a symmetric positive definite
+  /// matrix.  This version of this method will not modify A and B.
+  /// The result (X is returned as the return value.
+  template <class AMatrixT, class BMatrixT>
+  Matrix<typename PromoteType<typename AMatrixT::value_type, typename BMatrixT::value_type>::type>
+  multi_solve_symmetric( AMatrixT & A, BMatrixT & B ) {
+    typedef typename PromoteType<typename AMatrixT::value_type, typename BMatrixT::value_type>::type real_type;
+    Matrix<real_type> Abuf = A; // A symmetric ==> transpose unnecessary
+    Matrix<real_type> result = transpose(B);
+    multi_solve_symmetric_nocopy(Abuf,result);
+    return transpose(result);
+  }
 } // namespace math
 } // namespace vw
 
