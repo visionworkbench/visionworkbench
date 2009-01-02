@@ -259,26 +259,33 @@ namespace ip {
   // SURF Gradient 3D
   // This calculates the gradient, hmm... it negative
   Vector3 SURFGradient3D( std::vector<SURFScaleData> const& scaleData,
-			  vw::ip::InterestPoint const& ip,
+			  InterestPoint const& ip,
 			  SURFParams const& params );
 
   // SURF Hessian 3D
   // This calculates the hessian matrix for sub pixel correlation
   Matrix3x3 SURFHessian3D( std::vector<SURFScaleData> const& scaleData, 
-			   vw::ip::InterestPoint const& ip, 
+			   InterestPoint const& ip, 
 			   SURFParams const& params );
 
   // SURF Orientation
   // This calculates the orientation of a feature
-  float SURFOrientation( vw::ImageView<double> const&, int const&, int const&,
-			 float const& );  
+  float SURFOrientation( ImageView<double> const&, float const&, 
+			 float const&, float const& );  
 
   // SURF Descriptor
   // This calculated the descriptor of a feature
-  Vector<float> SURFDescriptor( vw::ImageView<double> const&,
+  Vector<float> SURFDescriptor( ImageView<double> const&,
 				Matrix<float,20,20> const&,
-				vw::ip::InterestPoint const& ip,
+				InterestPoint const& ip,
 				bool extended );
+
+  // SURF Descriptor
+  // This relies on InterpolationView
+  Vector<float> SURFDescriptorAlt( ImageView<double> const&,
+				   Matrix<float,20,20> const&,
+				   InterestPoint const& ip,
+				   bool extended );
 
   template <class ViewT>
   class SURFInterestScaleTask : public Task {
@@ -338,7 +345,7 @@ namespace ip {
       for (InterestPointList::iterator point = m_individual_list.begin();
 	   point != m_individual_list.end(); ++point) {
 	(*point).orientation = SURFOrientation( m_integral,
-						(*point).ix, (*point).iy,
+						(*point).x, (*point).y,
 						(*point).scale );
       }
 
@@ -537,7 +544,7 @@ namespace ip {
 	  for (std::list<InterestPoint>::iterator point = ip.begin();
 	       point != ip.end(); ++point) {
 	    (*point).orientation = SURFOrientation( integral,
-						    (*point).ix, (*point).iy,
+						    (*point).x, (*point).y,
 						    (*point).scale );
 	  }
 	} else {
@@ -727,7 +734,7 @@ namespace ip {
 	  for (std::list<InterestPoint>::iterator point = ip.begin();
 	       point != ip.end(); ++point) {
 	    (*point).orientation = SURFOrientation( integral,
-						    (*point).ix, (*point).iy,
+						    (*point).x, (*point).y,
 						    (*point).scale );
 	  }
 	} else {
@@ -802,9 +809,11 @@ namespace ip {
 	// Single Threaded
 	for (InterestPointList::iterator i = points.begin(); 
 	     i != points.end(); ++i ) {
+
 	  (*i).descriptor = SURFDescriptor( integral,
 					    gaussian_weight,
 					    (*i), m_extended );
+
 	}
       } else {
 	// Multithreaded

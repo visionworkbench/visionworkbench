@@ -416,14 +416,13 @@ namespace ip {
   // This calculates the orientationin radians according to the SURF
   // paper. Well, kinda, this implementation is a little lazy.
   float SURFOrientation( vw::ImageView<double> const& integral, 
-			 int const& ix, int const& iy,
+			 float const& x, float const& y,
 			 float const& scale) {
 
     std::vector<float> h_response(169);
     std::vector<float> v_response(169);
     std::vector<float> angle(169);
     int measures = 0;
-    int i_scale = round(scale);
 
     for ( int i = -6; i <= 6; i++ ) {
       for ( int j = -6; j <= 6; j++ ) {
@@ -432,19 +431,25 @@ namespace ip {
 	  continue;
 
 	// Is this still on the image?
-	if ( (floor(float(ix) + i*scale - 2*scale) < 0 ) || 
-	     (floor(float(iy) + j*scale - 2*scale) < 0 ) ||
-	     (ceil(float(ix) + i*scale + 2*scale) + 1 >= integral.cols()) || 
-	     (ceil(float(iy) + j*scale + 2*scale) + 1 >= integral.rows()) )
+	if ( (floor(x + i*scale - round(scale*4)/2) < 0 ) || 
+	     (floor(y + j*scale - round(scale*4)/2) < 0 ) ||
+	     (ceil(x + i*scale + round(scale*4)/2) + 1 >= integral.cols()) || 
+	     (ceil(y + j*scale + round(scale*4)/2) + 1 >= integral.rows()) )
 	  continue;
 
 	float distance_2 = i*i + j*j;
 	float weight = exp(-distance_2/8)/5.0133;
 
       	h_response[measures] =
-	  weight*HHaarWavelet( integral, ix + i*scale, iy + j*scale, scale*4 );
+	  weight*HHaarWavelet( integral, 
+			       int(round(x + i*scale)), 
+			       int(round(y + j*scale)), 
+			       round(scale*4) );
 	v_response[measures] =
-	  weight*VHaarWavelet( integral, ix + i*scale, iy + j*scale, scale*4 );
+	  weight*VHaarWavelet( integral, 
+			       int(round(x + i*scale)), 
+			       int(round(y + j*scale)), 
+			       round(scale*4) );
 	angle[measures] = atan2( v_response[measures],
 				 h_response[measures] );
 	measures++;
@@ -498,93 +503,47 @@ namespace ip {
     float scaling = 1.0/ip.scale;
 
     // Building Transforms
-    TransformRef txform( compose(ResampleTransform(scaling, scaling),
+    TransformRef txform( compose(ResampleTransform(scaling,scaling),
 				 RotateTransform(-ip.orientation),
-				 TranslateTransform(-ip.x,
-						    -ip.y) ) );
-    TransformRef rotate_only( RotateTransform(-ip.orientation) );
+				 TranslateTransform(-ip.x,-ip.y) ) );
+    TransformRef rotate_only( RotateTransform(-ip.orientation ) );
+
+    // Wrapping integral
+    InterpolationView<EdgeExtensionView<ImageView<double>, ConstantEdgeExtension>, BilinearInterpolation> wrapped_integral = interpolate( integral, BilinearInterpolation() );
 
     // Building responses
     for ( char x = 0; x < 20; x++ ) {
       for ( char y = 0; y < 20; y++ ) {
-	
+
 	// Sampling Point's location
 	Vector2 location = txform.reverse( Vector2(float(x) - 9.5,
-						   float(y) - 9.5));
+						   float(y) - 9.5) );
 
-	int i_scale = round(ip.scale);
-	if ( location.x() + i_scale+1 < integral.cols() &&
-	     location.x() - i_scale >= 0 &&
-	     location.y() + i_scale+1 < integral.rows() &&
-	     location.y() - i_scale >= 0 ) {
+	// Is this response within the image?
+	if ( location.x() + ip.scale+1 < integral.cols() &&
+	     location.x() - ip.scale >= 0 &&
+	     location.y() + ip.scale+1 < integral.rows() &&
+	     location.y() - ip.scale >= 0 ) {
 
 	  Vector2 response;
 	  
-	  // Performing Bilinear interpolation
-	  Vector2 t_l( floor(location.x()), floor(location.y()));
-	  Vector2 b_r( ceil(location.x()), ceil(location.y()));
-	  Vector2 t_r( ceil(location.x()), floor(location.y()));
-	  Vector2 b_l( floor(location.x()), ceil(location.y()));
-	
-	  // Need to extrapolate x?
-	  if ( t_l.x()-i_scale < 0 ){
-	    t_l.x()++; t_r.x()++; b_l.x()++; b_r.x()++;
-	  } else if ( t_r.x() + i_scale + 1 >= integral.cols() ) {
-	    t_l.x()--; t_r.x()--; b_l.x()--; b_r.x()--;
-	  }
-	  // Need to extrapolate y?
-	  if ( t_l.y()-i_scale < 0 ) {
-	    t_l.y()++; t_r.y()++; b_l.y()++; b_r.y()++;
-	  } else if ( b_l.y() + i_scale + 1 >= integral.rows() ) {
-	    t_l.y()--; t_r.y()--; b_l.y()--; b_r.y()--;
-	  }
-	  
-	  // Retrieving samples
-	  Matrix2x2 h_samplings;
-	  Matrix2x2 v_samplings;
-	  h_samplings(0,0) = HHaarWavelet( integral,
-					   t_l.x(), t_l.y(),
-					   2*ip.scale );
-	  v_samplings(0,0) = VHaarWavelet( integral,
-					   t_l.x(), t_l.y(),
-					   2*ip.scale );
-	  h_samplings(1,0) = HHaarWavelet( integral,
-					   t_r.x(), t_r.y(),
-					   2*ip.scale );
-	  v_samplings(1,0) = VHaarWavelet( integral,
-					   t_r.x(), t_r.y(),
-					   2*ip.scale );
-	  h_samplings(0,1) = HHaarWavelet( integral,
-					   b_l.x(), b_l.y(),
-					   2*ip.scale );
-	  v_samplings(0,1) = VHaarWavelet( integral,
-					   b_l.x(), b_l.y(),
-					   2*ip.scale );
-	  h_samplings(1,1) = HHaarWavelet( integral,
-					   b_r.x(), b_r.y(),
-					   2*ip.scale );
-	  v_samplings(1,1) = VHaarWavelet( integral,
-					   b_r.x(), b_r.y(),
-					   2*ip.scale );
-	  
-	  // Interpolating
-	  float x_change = location.x() - t_l.x();
-	  float y_change = location.y() - t_l.y();
-	  h_samplings(0,0) = h_samplings(0,0) + (h_samplings(1,0) - h_samplings(0,0))*x_change;
-	  h_samplings(0,1) = h_samplings(0,1) + (h_samplings(1,1) - h_samplings(0,1))*x_change;
-	  v_samplings(0,0) = v_samplings(0,0) + (v_samplings(1,0) - v_samplings(0,0))*x_change;
-	  v_samplings(0,1) = v_samplings(0,1) + (v_samplings(1,1) - v_samplings(0,1))*x_change;
-	  response[0] = h_samplings(0,0) + (h_samplings(0,1) - h_samplings(0,0))*y_change;
-	  response[1] = v_samplings(0,0) + (v_samplings(0,1) - v_samplings(0,0))*y_change;
+	  response[0] = HHaarWavelet( wrapped_integral,
+				      location.x(), location.y(),
+				      2*ip.scale );
+	  response[1] = VHaarWavelet( wrapped_integral,
+				      location.x(), location.y(),
+				      2*ip.scale );
 
-	  // Rotating a weighting response to window
+	  // Rotating and weighting the response
 	  response = rotate_only.forward(response);
 	  response *= gaussian(x,y);
-	  h_response( x,y ) = response.x();
-	  v_response( x,y ) = response.y();
+	  h_response(x,y) = response.x();
+	  v_response(x,y) = response.y();
+	  
 	} else {
-	  h_response( x,y ) = 0;
-	  v_response( x,y ) = 0;
+	  // well, boo..
+	  h_response(x,y) = 0;
+	  v_response(x,y) = 0;
 	}
       }
     }
@@ -645,6 +604,7 @@ namespace ip {
     }
 
     return normalize(result);
+
   }
 
 }} // namespace vw::ip

@@ -216,7 +216,7 @@ namespace ip {
   // Note: Filter will be evaluated at a size nearest to a multiple of two
   template <class ViewT>
   inline float HHaarWavelet( ImageViewBase<ViewT> const& integral, 
-			     float const& x, float const& y, 
+			     int const& x, int const& y, 
 			     float const& size ) {
 
     float response;
@@ -254,7 +254,7 @@ namespace ip {
   // Note: Filter will be evaluated at a size nearest to a multiple of two
   template <class ViewT>
   inline float VHaarWavelet( ImageViewBase<ViewT> const& integral, 
-			     float const& x, float const& y, 
+			     int const& x, int const& y, 
 			     float const& size ) {
 
     float response;
@@ -283,6 +283,94 @@ namespace ip {
     
     return response;
   }
+
+  // Horizontal Wavelet ( floating point arithmetic )
+  // - integral  = Integral used for calculations
+  // - x         = x location to evaluate at
+  // - y         = y location to evaluate at
+  // - size      = side of the square used for evaluate
+
+  // Note: This Filter requires/recommends the use of an interpolated
+  //       view of the integral
+  template <class ViewT>
+  inline float HHaarWavelet( ImageViewBase<ViewT> const& integral, 
+			     float const& x, float const& y, 
+			     float const& size ) {
+
+    VW_ASSERT( (integral.impl()(10,10) != integral.impl()(10.4,10)) ||
+	       (integral.impl()(10,10) == integral.impl()(11,10) ),
+	       vw::ArgumentErr() << "Input Integral doesn't seem to be interpolated" );
+    VW_ASSERT( (integral.impl()(10,10) != integral.impl()(10,10.4)) ||
+	       (integral.impl()(10,10) == integral.impl()(10,11) ),
+	       vw::ArgumentErr() << "Input Integral doesn't seem to be interpolated" );
+
+    float response;
+    float half_size = size / 2.0;
+    float top = y - half_size;
+    float left = x - half_size; 
+
+    response = -integral.impl()(left, top);
+    response += 2*integral.impl()(left+half_size, top);
+    response -= integral.impl()(left+size, top);
+    response += integral.impl()(left, top+size);
+    response -= 2*integral.impl()(left+half_size, top+size);
+    response += integral.impl()(left+size, top+size);
+    
+    return response;
+  }
+  // Double input
+  template <class ViewT>
+  inline float HHaarWavelet( ImageViewBase<ViewT> const& integral,
+			     double const& x, double const& y,
+			     float const& size ) {
+    return HHaarWavelet( integral, float(x), float(y),
+			 size );
+  }
+  
+
+  // Vertical Wavelet ( floating point arithmetic )
+  // - integral  = Integral used for calculations
+  // - x         = x location to evaluate at
+  // - y         = y location to evaluate at
+  // - size      = side of the square used for evaluate
+
+  // Note: This Filter requires/recommends the use of an interpolated
+  //       view of the integral
+  template <class ViewT>
+  inline float VHaarWavelet( ImageViewBase<ViewT> const& integral, 
+			     float const& x, float const& y, 
+			     float const& size ) {
+
+    VW_ASSERT( (integral.impl()(10,10) != integral.impl()(10.4,10)) ||
+	       (integral.impl()(10,10) == integral.impl()(11,10) ),
+	       vw::ArgumentErr() << "Input Integral doesn't seem to be interpolated" );
+    VW_ASSERT( (integral.impl()(10,10) != integral.impl()(10,10.4)) ||
+	       (integral.impl()(10,10) == integral.impl()(10,11) ),
+	       vw::ArgumentErr() << "Input Integral doesn't seem to be interpolated" );
+
+    float response;
+    float half_size = size / 2.0;
+    float top = y - half_size;
+    float left = x - half_size; 
+
+    response = -integral.impl()(left, top);
+    response += integral.impl()(left+size, top);
+    response += 2*integral.impl()(left, top+half_size);
+    response -= 2*integral.impl()(left+size, top+half_size);
+    response -= integral.impl()(left, top+size);
+    response += integral.impl()(left+size, top+size);
+    
+    return response;
+  }
+  // Double input
+  template <class ViewT>
+  inline float VHaarWavelet( ImageViewBase<ViewT> const& integral,
+			     double const& x, double const& y,
+			     float const& size ) {
+    return VHaarWavelet( integral, float(x), float(y),
+			 size );
+  }
+
 
 }} // end namespace vw::ip
 

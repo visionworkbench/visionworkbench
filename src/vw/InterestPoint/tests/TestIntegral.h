@@ -113,10 +113,6 @@ class TestIntegral : public CxxTest::TestSuite
     int_grad = IntegralImage( gradient );
     int_grad_r = IntegralImage( gradient_r );
     
-    std::cout << int_grad_r(10,10) << " "
-	      << int_grad_r(10.4,10) << " "
-	      << int_grad_r(11,10) << std::endl;
-
     for ( unsigned i = 10; i < 90; i+=5 ) {
       for ( unsigned j = 10; j < 50; j+=5 ) {
 	// Size 10
@@ -222,6 +218,41 @@ class TestIntegral : public CxxTest::TestSuite
 				   50, 50, 51 ),
 		     .0001 );
    
+  }
+
+  void test_interpolation_proof () { 
+    // Load Image
+    ImageView<float> gradient;
+    read_image( gradient, "noisy_gradient_60.png" );
+
+    // Building Integrals
+    ImageView<double> integral;
+    integral = IntegralImage( gradient );
+
+    // Interpolation by hand from 2 filters
+    float left, right;
+    left = HHaarWavelet( integral, int(10), int(10), 10 );
+    right = HHaarWavelet( integral, int(11), int(10), 10 );
+
+    // Wrapping Integral
+    InterpolationView<EdgeExtensionView<ImageView<double>, ConstantEdgeExtension>, BilinearInterpolation> wrapped_integral = interpolate( integral, BilinearInterpolation() );
+
+    // Calculating interpolated responses
+    float int_response;
+    int_response = -wrapped_integral(10.5-5,10-5);
+    int_response += 2*wrapped_integral(10.5,10-5);
+    int_response -= wrapped_integral(10.5+5,10-5);
+    int_response += wrapped_integral(10.5-5, 10+5);
+    int_response -= 2*wrapped_integral(10.5, 10+5);
+    int_response += wrapped_integral(10.5+5, 10+5);
+
+    TS_ASSERT_DELTA( (left+right)/2, int_response, .0001 );
+
+    // Using floating point function
+    TS_ASSERT_DELTA( (left+right)/2, 
+		     HHaarWavelet( wrapped_integral,
+				   10.5, 10.0, 10 ),
+		     .0001 );
   }
 };
 
