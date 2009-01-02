@@ -32,6 +32,8 @@
 #include <vector>
 #include <string>
 
+#include <cstring> // For memset()
+
 #include <boost/algorithm/string.hpp>
 using namespace boost;
 
@@ -362,7 +364,7 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
           uint8* dst_data = dst_row;
           for( int32 x=0; x<m_format.cols; ++x ) {
             if( *((int16*)src_data) < valid_minimum ) {
-              memset( dst_data, 0, dst_bpp );
+              std::memset( dst_data, 0, dst_bpp );
             }
             src_data += src.cstride;
             dst_data += dest.cstride;
