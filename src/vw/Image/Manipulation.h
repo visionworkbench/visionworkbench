@@ -206,8 +206,8 @@ namespace vw {
     inline Rotate180PixelAccessor& prev_col() { m_child.next_col(); return *this; }
     inline Rotate180PixelAccessor& next_row() { m_child.prev_row(); return *this; }
     inline Rotate180PixelAccessor& prev_row() { m_child.next_row(); return *this; }
-    inline Rotate180PixelAccessor& next_plane() { m_child.prev_plane(); return *this; }
-    inline Rotate180PixelAccessor& prev_plane() { m_child.next_plane(); return *this; }
+    inline Rotate180PixelAccessor& next_plane() { m_child.next_plane(); return *this; }
+    inline Rotate180PixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
     inline Rotate180PixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance(-di,-dj,dp); return *this; }
 
     inline result_type operator*() const { return *m_child; }
