@@ -116,7 +116,8 @@ _vwmath_la_LIBADD = $(PYTHON_EXTRA_LIBS) $(PKG_VW_LIBS)
 python_vwdir = ${pythondir}/vw
 pyexec_vwdir = ${pyexecdir}/vw
 
-python_vw_PYTHON = __init__.py cartography.py composite.py core.py fileio.py filter.py image.py imagealgo.py imagemanip.py imagemath.py pixel.py pixelcast.py qtree.py transform.py vwmath.py
+python_vw_PYTHON = __init__.py
+nodist_python_vw_PYTHON = cartography.py composite.py core.py fileio.py filter.py image.py imagealgo.py imagemanip.py imagemath.py pixel.py pixelcast.py qtree.py transform.py vwmath.py
 pyexec_vw_LTLIBRARIES = _cartography.la _composite.la _core.la _fileio.la _filter.la _image.la _imagealgo.la _imagemanip.la _imagemath.la _pixel.la _pixelcast.la _qtree.la _transform.la _vwmath.la
 
 .i.cpp:
