@@ -1,8 +1,8 @@
 dnl Usage: AX_PKG(<name>, <dependencies>, <libraries>, <headers>[, <relative include path>, <required-functions>])
 AC_DEFUN([AX_PKG],
 [
-  AC_ARG_WITH(translit($1,`A-Z',`a-z'),
-    AC_HELP_STRING([--with-]translit($1,`A-Z',`a-z'), [enable searching for the $1 package @<:@auto@:>@]),
+  AC_ARG_WITH(m4_tolower([[$1]]),
+    AC_HELP_STRING([--with-]m4_tolower([[$1]]), [enable searching for the $1 package @<:@auto@:>@]),
     [ HAVE_PKG_$1=$withval ]
   )
 
