@@ -392,16 +392,16 @@ fi
 
 # We seed QT_INCLUDE's cppflags with the ones qmake figured out
 ADD_QT_INCLUDE_CPPFLAGS="$ADD_QT_INCLUDE_CPPFLAGS $QT_CPPFLAGS"
-AX_PKG(QT_INCLUDE, [],           [],          [QVector])
+AX_PKG(QT_INCLUDE, [], [], [QVector])
 
 if test x"$host_vendor" = "xapple"; then
     AX_PKG(QT,         [QT_INCLUDE],   [$QT_LIBS], [])
 else
-    AX_PKG(QT_CORE,    [QT_INCLUDE],   [-lQtCore],   [QVector])
-    AX_PKG(QT_OPENGL,  [QT_INCLUDE],   [-lQtOpenGL], [QtOpenGL])
-    AX_PKG(QT_GUI,     [QT_INCLUDE],   [-lQtGui],    [QLabel])
-    AX_PKG(QT_SQL,     [QT_INCLUDE],   [-lQtSql],    [QtSql])
-    AX_PKG(QT, [QT_INCLUDE QT_CORE QT_GUI QT_OPENGL QT_SQL], [], [])
+    AX_PKG(QT_LIBS,              [], [$QT_LIBS], [])
+    AX_PKG(QT_OPENGL,  [QT_INCLUDE], [],         [QtOpenGL])
+    AX_PKG(QT_GUI,     [QT_INCLUDE], [],         [QLabel])
+    AX_PKG(QT_SQL,     [QT_INCLUDE], [],         [QtSql])
+    AX_PKG(QT, [QT_INCLUDE QT_GUI QT_OPENGL QT_SQL QT_LIBS], [], [])
 fi
 
 # These are here (instead of inside the PKG macro where they belong)
