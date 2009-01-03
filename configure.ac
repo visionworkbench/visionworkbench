@@ -278,7 +278,24 @@ AX_PKG_BOOST_LIB(THREAD, [-lboost_thread], [boost/thread/thread.hpp])
 # if they are replacing Boost threads with something else for their platform.
 AX_PKG(THREADS, [BOOST_THREAD], [], [])
 
-AX_PKG_LAPACK
+AX_PKG_ONE_OF(LAPACK,
+  APPLE_LAPACK,
+    [AX_PKG_APPLE(LAPACK, [], [-framework vecLib])],
+  CLAPACK,
+    [AX_PKG(CLAPACK, [], [-lclapack -lblas -lf2c], [])],
+  SLAPACK,
+    [AX_PKG(SLAPACK, [], [-llapack -lblas], [])],
+  FLAPACK,
+    [AX_PKG(FLAPACK, [], [-llapack -lblas -lgfortran], [])],
+  STANDALONE_LAPACK_BLAS,
+    [AX_PKG(STANDALONE_BLAS, [], [-lblas], [])
+     AX_PKG(STANDALONE_LAPACK, [], [-llapack], [])
+     AX_GROUP_PKG(STANDALONE_LAPACK_AND_BLAS, [STANDALONE_LAPACK STANDALONE_BLAS])],
+  STANDALONE_FLAPACK_FBLAS,
+    [AX_PKG(STANDALONE_F2C, [], [-lf2c], [])
+     AX_PKG(STANDALONE_FBLAS, [STANDALONE_F2C], [-lblas], [])
+     AX_PKG(STANDALONE_FLAPACK, [STANDALONE_F2C], [-llapack], [])
+     AX_GROUP_PKG(STANDALONE_FLAPACK_FBLAS, [STANDALONE_FLAPACK STANDALONE_FBLAS STANDALONE_F2C])])
 
 AX_PKG(QHULL, [], [-lqhull], [stdio.h stdlib.h string.h ctype.h math.h qhull/qhull.h])
 
@@ -309,9 +326,11 @@ AX_PKG_ONE_OF(HDF,
 )
 
 AX_PKG(X11, [], [-lXext -lX11 -lXmu -lXi -lXt], [])
-AX_PKG_GL
-#AX_PKG(GL, [X11], [-lGL -lGLU], [GL/gl.h GL/glu.h])
-#AX_PKG(GLUT, [X11 GL], [-lglut], [GL/glut.h])
+
+AX_PKG_ONE_OF(GL,
+  APPLE_GL, [AX_PKG_APPLE([GL], [], [-framework OpenGL -framework GLUT -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib])],
+  LINUX_GL, [AX_PKG(LINUX_GL, [X11], [-lGL -lGLU -lglut], [GL/gl.h GL/glu.h GL/glut.h], [], [glCreateShader])])
+
 AX_PKG(GLEW, [GL M], [-lGLEW], [GL/glew.h])
 AX_PKG(CG, [], [-lCg -lCgGL], [Cg/cg.h])
 
@@ -335,15 +354,14 @@ fi
 ADD_QT_INCLUDE_CPPFLAGS="$ADD_QT_INCLUDE_CPPFLAGS $QT_CPPFLAGS"
 AX_PKG(QT_INCLUDE, [], [], [QVector])
 
-if test x"$host_vendor" = "xapple"; then
-    AX_PKG(QT,         [QT_INCLUDE], [$QT_LIBS], [])
-else
-    AX_PKG(QT_LIBS,              [], [$QT_LIBS], [])
-    AX_PKG(QT_OPENGL,  [QT_INCLUDE], [],         [QtOpenGL])
-    AX_PKG(QT_GUI,     [QT_INCLUDE], [],         [QLabel])
-    AX_PKG(QT_SQL,     [QT_INCLUDE], [],         [QtSql])
-    AX_GROUP_PKG(QT,   [QT_INCLUDE QT_GUI QT_OPENGL QT_SQL QT_LIBS])
-fi
+AX_PKG_ONE_OF(QT,
+    APPLE_QT, [AX_PKG_APPLE(QT, [QT_INCLUDE], [$QT_LIBS])],
+    LINUX_QT,
+     [AX_PKG(QT_LIBS,              [], [$QT_LIBS], [])
+      AX_PKG(QT_OPENGL,  [QT_INCLUDE], [],         [QtOpenGL])
+      AX_PKG(QT_GUI,     [QT_INCLUDE], [],         [QLabel])
+      AX_PKG(QT_SQL,     [QT_INCLUDE], [],         [QtSql])
+      AX_GROUP_PKG(LINUX_QT, [QT_INCLUDE QT_GUI QT_OPENGL QT_SQL QT_LIBS])])
 
 # These are here (instead of inside the PKG macro where they belong)
 # for backwards compatability with older versions of automake.

@@ -19,11 +19,7 @@ AC_DEFUN([AX_GROUP_PKG],
     [ have_pkg=$withval ]
   )
 
-  m4_if([$2], [], [have_pkg=[no_deps]],
-  [m4_foreach_w(dep, m4_toupper([[$2]]),
-    [AS_IF([test x"$HAVE_PKG_]dep[" != "xyes"], [missing="$missing dep"],
-      [pkg_c="$pkg_c $PKG_]dep[_CPPFLAGS"
-       pkg_l="$pkg_l $PKG_]dep[_LIBS"])])])
+  m4_if([$2], [], [have_pkg=[no_deps]], AX_LOAD_DEPS(pkg, m4_toupper([[$2]]), missing))
 
   AS_IF(
     [test x"$have_pkg" = "xno"],      [AS_VAR_SET([bool], 0); AC_MSG_RESULT([no (disabled by user)])],
