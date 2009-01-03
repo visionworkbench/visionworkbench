@@ -85,12 +85,12 @@
 /// re-throwing an exception with a more informative data type or
 /// error message.  This purely cosmetic usage must be conditionally
 /// compiled like this:
-///  #if ! ( defined(VW_NO_EXCEPTIONS) && (VW_NO_EXCEPTIONS==1) )
+///  #if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1) )
 /// Obviously this functionality will be disabled on platforms 
 /// that do not support exceptions.
 ///
 /// Exceptions are enabled or disabled based on the value of the
-/// VW_NO_EXCEPTIONS macro defined in vw/config.h.  This value can be
+/// VW_ENABLE_EXCEPTIONS macro defined in vw/config.h.  This value can be
 /// set by passing the command line options --enable-exeptions (the
 /// default) or --disable-exceptions to the configure script prior to
 /// buliding the Vision Workbench.  This option also sets an automake
@@ -115,11 +115,11 @@
 
 #include <vw/config.h>
 
-#if defined(VW_NO_EXCEPTIONS) && (VW_NO_EXCEPTIONS==1)
-#define VW_IF_EXCEPTIONS(x)
-#else
+#if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1)
 #include <exception>
 #define VW_IF_EXCEPTIONS(x) x
+#else
+#define VW_IF_EXCEPTIONS(x)
 #endif
 
 namespace vw {
@@ -270,7 +270,7 @@ namespace vw {
   /// Sets the application-wide exception handler.  Pass zero 
   /// as an argument to reinstate the default handler.  The 
   /// default behavior is to throw the exception unless the 
-  /// VW_NO_EXCEPTIONS macro in vw/config.h was defined to 1 
+  /// VW_ENABLE_EXCEPTIONS macro in vw/config.h was defined to 0
   /// at build time, in which case the default behavior is to 
   /// print the error message at the ErrorMessage level and 
   /// to call abort().

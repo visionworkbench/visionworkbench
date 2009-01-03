@@ -93,8 +93,7 @@ void print_exception_info()
         free(dem);
     }
 
-#if defined(VW_NO_EXCEPTIONS) && (VW_NO_EXCEPTIONS== 1)
-#else
+#if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS == 1)
     // If the exception is derived from std::exception, we can
     // give more information.
       try { __throw_exception_again; }
@@ -106,7 +105,7 @@ void print_exception_info()
           fputs("\n", stderr);
         }
       catch (...) { }
-#endif // VW_NO_EXCEPTIONS
+#endif // VW_ENABLE_EXCEPTIONS
     }
   else
     fputs("terminate called without an active exception\n", stderr);

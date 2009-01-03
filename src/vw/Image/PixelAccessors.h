@@ -56,7 +56,7 @@ namespace vw {
   /// const pixel type.  It is primarily intended to be used by ImageView.
   template <class PixelT>
   class MemoryStridingPixelAccessor {
-#if defined(VW_IMAGE_BOUNDS_CHECK) && (VW_IMAGE_BOUNDS_CHECK==1)
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
     PixelT *m_base_ptr; 
     int32 m_num_pixels;
 #endif
@@ -66,7 +66,7 @@ namespace vw {
     typedef PixelT pixel_type;
     typedef PixelT& result_type;
 
-#if defined(VW_IMAGE_BOUNDS_CHECK) && (VW_IMAGE_BOUNDS_CHECK==1)
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
     MemoryStridingPixelAccessor( PixelT *ptr, 
                                  ptrdiff_t cstride, ptrdiff_t rstride, ptrdiff_t pstride,
                                  int32 cols, int32 rows, int32 planes)
@@ -90,7 +90,7 @@ namespace vw {
     }
 
     inline result_type operator*() const { 
-#if defined(VW_IMAGE_BOUNDS_CHECK) && (VW_IMAGE_BOUNDS_CHECK==1)
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       int32 delta = int32(m_ptr - m_base_ptr);
       if (delta < 0 || delta >= m_num_pixels)
         vw_throw(ArgumentErr() << "MemoryStridingPixelAccessor() - invalid index " << delta << " / " << (m_num_pixels-1) << ".");

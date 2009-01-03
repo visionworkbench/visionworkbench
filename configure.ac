@@ -1,16 +1,16 @@
 # __BEGIN_LICENSE__
-# 
+#
 # Copyright (C) 2006 United States Government as represented by the
 # Administrator of the National Aeronautics and Space Administration
 # (NASA).  All Rights Reserved.
-# 
+#
 # Copyright 2006 Carnegie Mellon University. All rights reserved.
-# 
+#
 # This software is distributed under the NASA Open Source Agreement
 # (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 # Initiative.  See the file COPYING at the top of the distribution
 # directory tree for the complete NOSA document.
-# 
+#
 # THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 # KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 # LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,9 +18,14 @@
 # A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 # THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 # DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-# 
+#
 # __END_LICENSE__
 
+##################################################
+# A few starting bits
+##################################################
+
+dnl TODO BEFORE RELEASE: update package version
 AC_INIT([NASA Vision Workbench], [2.0.alpha5], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR([m4])
@@ -28,24 +33,26 @@ AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE
 AX_CONFIG_HEADER_PREFIX([src/vw/config.h], [VW_])
 
-LIBTOOL_CURRENT=1
-LIBTOOL_REVISION=0
-LIBTOOL_AGE=0
-LIBTOOL_VERSION=$LIBTOOL_CURRENT:$LIBTOOL_REVISION:$LIBTOOL_AGE
+dnl TODO BEFORE RELEASE: update libtool version
+dnl if abi changes in any way:
+dnl     current++
+dnl     revision=0
+dnl     if new abi is backward-compatible:
+dnl         age += 1
+dnl     else:
+dnl         age = 0
+dnl else:
+dnl     revision++
+dnl (see http://sources.redhat.com/autobook/autobook/autobook_91.html)
+dnl
+dnl LIBTOOL_VERSION=current:revision:age
+LIBTOOL_VERSION=1:0:0
 AC_SUBST(LIBTOOL_VERSION)
 
-
-##################################################
-#	configuration options
-##################################################
-
 # This should be first, so everything else can use it
-AC_ARG_ENABLE(verbose,
-  AC_HELP_STRING([--enable-verbose], [verbose configuration output @<:@no@:>@]),           
-  [ ENABLE_VERBOSE=$enableval ],
-  [ if test -z $"ENABLE_VERBOSE"; then ENABLE_VERBOSE=no; fi ]
-)
+AX_ARG_ENABLE(verbose, no, [none], [verbose configuration output])
 
+# load the config.options
 if test -f config.options; then
   if test "yes" = "$ENABLE_VERBOSE" ; then
     AC_MSG_NOTICE([sourcing config.options])
@@ -54,68 +61,94 @@ if test -f config.options; then
   source config.options
 fi
 
-AC_ARG_WITH(paths,
-  AC_HELP_STRING([--with-paths=PATHS], [additional search path(s) for packages]), 
-  [ PKG_PATHS="$withval $PKG_PATHS" ]
-)
-PKG_PATHS="${PKG_PATHS} ${HOME} ${HOME}/local /sw /opt /opt/local /usr/local /usr/X11R6 /usr"
 
 
 ##################################################
-#	compilation options	    
+# Find the necessary programs
 ##################################################
 
-# Debugging
-AC_ARG_ENABLE(debug,
-  AC_HELP_STRING([--enable-debug@<:@=LEVEL@:>@], [generate debugging symbols @<:@no@:>@]),
-  [ ENABLE_DEBUG=$enableval ],
-  [ if test -z "$ENABLE_DEBUG"; then ENABLE_DEBUG=no; fi ]
-)
+# Make sure these are set so AC_PROG_CC doesn't initialize them with
+# its defaults, since we take care of setting debug and optimization
+# levels ourselves.
+CFLAGS="$CFLAGS"
+CXXFLAGS="$CXXFLAGS"
 
-# Optimization
-AC_ARG_ENABLE(optimize,
-  AC_HELP_STRING([--enable-optimize@<:@=LEVEL@:>@], [compiler optimization level @<:@yes@:>@]),
-  [ ENABLE_OPTIMIZE=$enableval ],
-  [ if test -z "$ENABLE_OPTIMIZE"; then ENABLE_OPTIMIZE=yes; fi ]
-)
+# Find the tools
+AC_PROG_CC
+AC_PROG_CXX
+AC_PROG_INSTALL
+AX_PROG_AR
+AC_PROG_LIBTOOL
+AC_PROG_MAKE_SET
+AC_LANG(C++)
+
+# Does the compiler support introspection?
+AX_CHECK_INTROSPECTION
+
+# Look for the python stuff
+AM_PATH_PYTHON([2.4], [HAVE_PYTHON=yes], [HAVE_PYTHON=no])
+AC_PYTHON_DEVEL([HAVE_PYTHON=yes], [HAVE_PYTHON=no])
+AC_PROG_SWIG([1.3.29], [HAVE_SWIG=yes], [HAVE_SWIG=no])
+
+AC_SUBST(HAVE_PYTHON)
+AC_SUBST(HAVE_SWIG)
+
+if test "$HAVE_SWIG" = "yes"; then
+    SWIG_ENABLE_CXX
+    if test "$HAVE_PYTHON" = "yes"; then
+        SWIG_PYTHON
+    fi
+fi
+
+# Check for the code coverage programs
+AC_CHECK_PROGS(LCOV, lcov, false)
+AC_CHECK_PROGS(GENHTML, genhtml, false)
+
+# We set up the include paths ourselves, so we ask autoconf to get out of the way
+DEFAULT_INCLUDES=
+AC_SUBST(DEFAULT_INCLUDES)
 
 
-AC_ARG_ENABLE(test-coverage,
-  AC_HELP_STRING([--enable-test-coverage],[turn on code coverage analysis tools])
-  [ ENABLE_TEST_COVERAGE=$enableval ],
-  [ if test -z "$ENABLE_TEST_COVERAGE"; then ENABLE_TEST_COVERAGE=no; fi ]
-)
 
-# Target Architecture
-AC_ARG_ENABLE(architecture,
-  AC_HELP_STRING([--enable-architecture@<:@=ARCH@:>@], [select a target architecture @<:@x86_64@:>@]),
-  [ TARGET_ARCHITECTURE=$enableval ]
-)
+##################################################
+# Compilation options
+##################################################
 
-if test ! -z "$TARGET_ARCHITECTURE"; then
-  AC_MSG_NOTICE([Setting target architecture to $TARGET_ARCHITECTURE])
-  AX_CFLAGS="$AX_CFLAGS -arch $TARGET_ARCHITECTURE"
-else 
-  AC_MSG_NOTICE([Setting target architecture to default])
-fi 
+# For the moment this is just a manual switch, defaulting to off.
+# Someday this should be sensibly autodetected.
+AX_ARG_ENABLE(sse,           no, [am-yes cpp-bool], [enable SSE optimizations in some places (development)])
+AX_ARG_ENABLE(exceptions,   yes, [am-yes cpp-bool], [enable the C++ exception mechanism])
+AX_ARG_ENABLE(bounds-check,  no, [am-yes cpp-bool], [enable image bounds checking (SLOW!)])
+AX_ARG_ENABLE(test-coverage, no, [none],            [turn on code coverage analysis tools])
+AX_ARG_ENABLE(debug,         no, [none],            [generate debugging symbols])
+AX_ARG_ENABLE(optimize,       3, [none],            [compiler optimization level])
+AX_ARG_ENABLE(multi-arch,    [], [none],            [build multi-arch (universal) binaries])
+AX_ARG_ENABLE(lib64,       auto, [none],            [force /lib64 instead of /lib])
+
+
+
+##################################################
+# Handle options
+##################################################
+
+# Pass apple gcc options to build a universal binary
+for arch in $ENABLE_MULTI_ARCH; do
+    AX_CFLAGS="$AX_CFLAGS -arch $arch"
+done
 
 # For 64-bit machines, we'll generally want to autodetect if lib64 exists,
 # and use it. Sometimes the user will want to force use of lib64 or lib
 # instead of the autodetection. Thus we have this command line option.
-AC_ARG_ENABLE(lib64,
-  AC_HELP_STRING([--enable-lib64], [force configure to use the lib64 directory (yes) or the lib directory (no) to find libraries @<:@autodetect@:>@]),
-  [ USE_LIB64=$enableval ],
-  [ if test -z "$USE_LIB64"; then USE_LIB64="autodetect"; fi ]
-)
-if test x"$USE_LIB64" = "xautodetect"; then
+if test x"$USE_LIB64" = "xauto"; then
   if test -d "/lib64" -o -d "/usr/lib64"; then
     USE_LIB64="yes"
   else
     USE_LIB64="no"
   fi
 fi
-# Sometimes we have /foo/lib64 and /foo/lib confusion on 64-bit machines, 
-# so we'll use possibly both if one doesn't appear for a certain 
+
+# Sometimes we have /foo/lib64 and /foo/lib confusion on 64-bit machines,
+# so we'll use possibly both if one doesn't appear for a certain
 # library path.
 if test x"$USE_LIB64" = "xyes"; then
   AX_LIBDIR="lib64"
@@ -125,145 +158,8 @@ else
   AX_OTHER_LIBDIR="lib64"
 fi
 
-AC_ARG_ENABLE(exceptions,
-  AC_HELP_STRING([--enable-exceptions@<:@=yes@:>@], [enable the C++ exception mechanism]), 
-  [ ENABLE_EXCEPTIONS=$enableval ],
-  [ if test -z "$ENABLE_EXCEPTIONS"; then ENABLE_EXCEPTIONS=yes; fi ]
-)
-
-if test "$ENABLE_EXCEPTIONS" = "yes"; then
-   no_exceptions=0
-else
-   no_exceptions=1
-fi
-
-AM_CONDITIONAL(ENABLE_EXCEPTIONS, [test "$ENABLE_EXCEPTIONS" = "yes"])
-
-AC_DEFINE_UNQUOTED(NO_EXCEPTIONS,
-                   [$no_exceptions],
-                   [Define to 1 to disable C++ exceptions.])
-
-# For the moment this is just a manual switch, defaulting to off.
-# Someday this should be sensibly autodetected.
-AC_ARG_ENABLE(sse,
-  AC_HELP_STRING([--enable-sse@<:@=no@:>@], [enable SSE optimizations in some places (development)]), 
-  [ ENABLE_SSE=$enableval ],
-  [ if test -z "$ENABLE_SSE"; then ENABLE_SSE=no; fi ]
-)
-
-if test "$ENABLE_SSE" = "yes"; then
-   enable_sse=1
-else
-   enable_sse=0
-fi
-
-AC_DEFINE_UNQUOTED(ENABLE_SSE,
-                   [$enable_sse],
-                   [Define to 1 to enable SSE optimizations.])
-
-AC_ARG_ENABLE(bounds-check,
-  AC_HELP_STRING([--enable-bounds_check@<:@=no@:>@], [enable image bounds checking (SLOW!).]),
-  [ ENABLE_BOUNDS_CHECK=$enableval ],
-  [ if test -z "$ENABLE_BOUNDS_CHECK"; then ENABLE_BOUNDS_CHECK=no; fi ]
-)
-
-if test "$ENABLE_BOUNDS_CHECK" = "yes"; then
-   enable_bounds_check=1
-else
-   enable_bounds_check=0
-fi
-
-AC_DEFINE_UNQUOTED(IMAGE_BOUNDS_CHECK,
-                   [$enable_bounds_check],
-                   [Define to 1 to enable image bounds checking (SLOW!).])
-
-# We set up the include paths ourselves, so 
-# we ask autoconf to get out of the way.
-DEFAULT_INCLUDES=
-AC_SUBST(DEFAULT_INCLUDES)
-
-
-##################################################
-#	installation options
-##################################################
-
-if test ${prefix} = NONE; then
-  if test ! -z ${PREFIX} ; then
-    prefix=${PREFIX}
-    AC_MSG_NOTICE([using installation prefix ${prefix}])
-  fi
-fi
-
-
-##################################################
-#	distribution options	    
-##################################################
-
-AC_ARG_WITH(dist-license,
-  AC_HELP_STRING([--with-dist-license=LICENSE], [special distribution license file to be included as the COPYING file in the distribution]),
-  [DIST_LICENSE=$withval]
-)
-AC_SUBST(DIST_LICENSE)
-AM_CONDITIONAL(DIST_LICENSE, [test ! -z "$DIST_LICENSE"])
-
-if test ! -z "$DIST_LICENSE" ; then
-  AC_MSG_NOTICE([using distribution license file $DIST_LICENSE])
-fi
-
-AC_ARG_WITH(dist-license-summary,
-  AC_HELP_STRING([--with-dist-license-summary=SUMMARY], [special distribution license summary file to be included in the headers of source files in the distribution]),
-  [DIST_LICENSE_SUMMARY=$withval]
-)
-AC_SUBST(DIST_LICENSE_SUMMARY)
-AM_CONDITIONAL(DIST_LICENSE_SUMMARY, [test ! -z "$DIST_LICENSE_SUMMARY"])
-
-if test ! -z "$DIST_LICENSE_SUMMARY" ; then
-  AC_MSG_NOTICE([using distribution license summary file $DIST_LICENSE_SUMMARY])
-fi
-
-AC_ARG_WITH(dist-config-options-default,
-  AC_HELP_STRING([--with-dist-config-options-default@<:@=FILE@:>@], [special distribution config.options.default file]),
-  [DIST_CONFIG_OPTIONS_DEFAULT=$withval]
-)
-AC_SUBST(DIST_CONFIG_OPTIONS_DEFAULT)
-AM_CONDITIONAL(DIST_CONFIG_OPTIONS_DEFAULT, [test ! -z "$DIST_CONFIG_OPTIONS_DEFAULT"])
-
-if test ! -z "$DIST_CONFIG_OPTIONS_DEFAULT" ; then
-  if test "yes" = "$DIST_CONFIG_OPTIONS_DEFAULT" ; then
-    DIST_CONFIG_OPTIONS_DEFAULT="config/config.options.default"
-  fi
-  AC_MSG_NOTICE([using distribution config.options.default file: $DIST_CONFIG_OPTIONS_DEFAULT])
-fi
-
-AC_ARG_WITH(dist-remove-modules,
-  AC_HELP_STRING([--with-dist-remove-modules="MODULE @<:@MODULE...@:>@"], [remove certain modules from the distribution]),
-  [DIST_REMOVE_MODULES=$withval], [DIST_REMOVE_MODULES="Geometry Python gui"]
-)
-AC_SUBST(DIST_REMOVE_MODULES)
-AM_CONDITIONAL(DIST_REMOVE_MODULES, [test ! -z "$DIST_REMOVE_MODULES"])
-
-
-##################################################
-#	package checks	    
-##################################################
-
-# Make sure these are set so AC_PROG_CC doesn't initialize them with
-# its defaults, since we take care of setting debug and optimization
-# levels ourselves.
-CFLAGS="$CFLAGS"
-CXXFLAGS="$CXXFLAGS"
-
-AC_PROG_CC
-AC_PROG_CXX
-AC_PROG_INSTALL
-AX_PROG_AR
-AC_PROG_LIBTOOL
-AC_PROG_MAKE_SET
-AC_LANG(C++)
-
-dnl Check for --enable-test-coverate and add appropriate flags for gcc
+# Check for --enable-test-coverate and add appropriate flags for gcc
 if test "$ENABLE_TEST_COVERAGE" = "yes"; then
-  #AX_TRY_CPPFLAGS([--coverage], [ENABLE_TEST_COVERAGE=yes], [ENABLE_TEST_COVERAGE=no])
   AX_TRY_CPPFLAGS([-fprofile-arcs],  [ENABLE_TEST_COVERAGE=yes], [ENABLE_TEST_COVERAGE=no])
   AX_TRY_CPPFLAGS([-ftest-coverage], [],                         [ENABLE_TEST_COVERAGE=no])
 
@@ -276,53 +172,89 @@ if test "$ENABLE_TEST_COVERAGE" = "yes"; then
   fi
 fi
 
-dnl Files --coverage generates
+# Files test-coverage and profile-arcs generate
 AC_SUBST([MOSTLYCLEANFILES], "*.bb *.bbg *.da *.gcov *.gcda *.gcno")
 
-
+# These are good if they're supported
 AX_TRY_CPPFLAGS([-Wl,-no-undefined], [LDFLAGS="$LDFLAGS -Wl,-no-undefined"])
 AX_TRY_CPPFLAGS([-Wl,-as-needed],    [LDFLAGS="$LDFLAGS -Wl,-as-needed"])
 
+# Debugging
 case "$ENABLE_DEBUG" in
-    yes) AX_CFLAGS="$AX_CFLAGS -g -DDEBUG" ;;
-    1)   AX_CFLAGS="$AX_CFLAGS -g -DDEBUG" ;;
-    2)   AX_CFLAGS="$AX_CFLAGS -g -DDEBUG -D_GLIBCXX_DEBUG" ;;
-    *)   AX_CFLAGS="$AX_CFLAGS -DNDEBUG"   ;;
+    yes|1) AX_CFLAGS="$AX_CFLAGS -g -DDEBUG" ;;
+    2)     AX_CFLAGS="$AX_CFLAGS -g -DDEBUG -D_GLIBCXX_DEBUG" ;;
+    no)    AX_CFLAGS="$AX_CFLAGS -DNDEBUG" ;;
+    *)     AC_MSG_ERROR([Unknown debug option: "$ENABLE_DEBUG"]) ;;
 esac
 
+# Optimization
 case "$ENABLE_OPTIMIZE" in
     yes)     AX_CFLAGS="$AX_CFLAGS -O3" ;;
-    3)       AX_CFLAGS="$AX_CFLAGS -O3" ;;
-    2)       AX_CFLAGS="$AX_CFLAGS -O2" ;;
-    1)       AX_CFLAGS="$AX_CFLAGS -O1" ;;
+    3|2|1)   AX_CFLAGS="$AX_CFLAGS -O$ENABLE_OPTIMIZE" ;;
     coreduo) AX_CFLAGS="$AX_CFLAGS -O4 -march=prescott -mtune=prescott -funroll-loops -msse -msse2 -msse3 -mfpmath=sse -ftree-vectorize" ;;
     sse3)    AX_CFLAGS="$AX_CFLAGS -O4 -funroll-loops -msse -msse2 -msse3 -mfpmath=sse -ftree-vectorize" ;;
-    *)       echo 'WARNING: *** The Vision Workbench may not work properly with optimization disabled! ***'
-             AX_CFLAGS="$AX_CFLAGS -O0"
-             ;;
+    no|0)    AC_MSG_WARN([*** The Vision Workbench may not work properly with optimization disabled! ***])
+             AX_CFLAGS="$AX_CFLAGS -O0" ;;
+    *)       AC_MSG_ERROR([Unknown optimize option: "$ENABLE_OPTIMIZE"]) ;;
 esac
 
 CFLAGS="$CFLAGS $AX_CFLAGS"
 CXXFLAGS="$CXXFLAGS $AX_CFLAGS"
 
-AM_PATH_PYTHON([2.4], [HAVE_PYTHON=yes], [HAVE_PYTHON=no])
-AC_PYTHON_DEVEL([HAVE_PYTHON=yes], [HAVE_PYTHON=no])
-AC_PROG_SWIG([1.3.29], [HAVE_SWIG=yes], [HAVE_SWIG=no])
 
-if test "$HAVE_SWIG" = "yes"; then
-    SWIG_ENABLE_CXX
-    if test "$HAVE_PYTHON" = "yes"; then
-        SWIG_PYTHON
-    fi
+
+##################################################
+# installation options
+##################################################
+
+if test ${prefix} = NONE; then
+  if test ! -z ${PREFIX} ; then
+    prefix="${PREFIX}"
+    AC_MSG_NOTICE([using installation prefix ${prefix}])
+  fi
 fi
 
-AC_SUBST(HAVE_PYTHON)
-AC_SUBST(HAVE_SWIG)
 
-AC_CHECK_PROGS(LCOV, lcov, false)
-AC_CHECK_PROGS(GENHTML, genhtml, false)
 
-AX_CHECK_INTROSPECTION
+##################################################
+# distribution options
+##################################################
+
+AX_ARG_WITH(dist-license,                       [], [mk am-set], [special distribution license file to be included as the COPYING file in the distribution])
+AX_ARG_WITH(dist-license-summary,               [], [mk am-set], [special distribution license summary file to be included in the headers of source files in the distribution])
+AX_ARG_WITH(dist-config-options-default,        [], [mk am-set], [special distribution config.options.default file])
+AX_ARG_WITH(dist-remove-modules, [Geometry Python gui], [mk am-set], [remove certain modules from the distribution])
+
+
+
+##################################################
+# handle distribution options
+##################################################
+
+if test ! -z "$DIST_LICENSE" ; then
+  AC_MSG_NOTICE([using distribution license file $DIST_LICENSE])
+fi
+
+if test ! -z "$DIST_LICENSE_SUMMARY" ; then
+  AC_MSG_NOTICE([using distribution license summary file $DIST_LICENSE_SUMMARY])
+fi
+
+if test ! -z "$DIST_CONFIG_OPTIONS_DEFAULT" ; then
+  if test "yes" = "$DIST_CONFIG_OPTIONS_DEFAULT" ; then
+    DIST_CONFIG_OPTIONS_DEFAULT="config/config.options.default"
+  fi
+  AC_MSG_NOTICE([using distribution config.options.default file: $DIST_CONFIG_OPTIONS_DEFAULT])
+fi
+
+
+
+##################################################
+# package checks
+##################################################
+
+PKG_PATHS_FROM_OPT="$PKG_PATHS"
+AX_ARG_WITH(pkg-paths, [], [none], [additional search path(s) for packages])
+PKG_PATHS="$PKG_PATHS $PKG_PATHS_FROM_OPT ${HOME} ${HOME}/local /sw /opt /opt/local /usr/local /usr/X11R6 /usr"
 
 if test "yes" = "$ENABLE_VERBOSE"; then
   AC_MSG_NOTICE([using PKG_PATHS=$PKG_PATHS])
@@ -339,12 +271,12 @@ AX_PKG_BOOST_LIB(FILESYSTEM_PRE_1_35, [-lboost_filesystem], [boost/filesystem/pa
 if test "$HAVE_PKG_BOOST_FILESYSTEM_PRE_1_35" = "no"; then
   echo "Checking for BOOST_FILESYSTEM 1.35 or later..."
   AX_PKG_BOOST_LIB(FILESYSTEM, [-lboost_filesystem -lboost_system], [boost/filesystem/path.hpp])
-else 
+else
   AX_PKG(BOOST_FILESYSTEM, [BOOST_FILESYSTEM_PRE_1_35], [], [])
 fi
 AX_PKG_BOOST_LIB(THREAD, [-lboost_thread], [boost/thread/thread.hpp])
 
-# This provides an easy way for users to override the threads options 
+# This provides an easy way for users to override the threads options
 # if they are replacing Boost threads with something else for their platform.
 AX_PKG(THREADS, [BOOST_THREAD], [], [])
 
@@ -434,7 +366,7 @@ AM_CONDITIONAL(HAVE_PKG_GDAL, [test "$HAVE_PKG_GDAL" = "yes"])
 
 
 ##################################################
-#	module definitions
+# module definitions
 ##################################################
 
 AX_MODULE(CORE, [src/vw/Core], [libvwCore.la], yes, [], [BOOST THREADS M], [PTHREADS])
@@ -454,7 +386,7 @@ AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], yes, [VW], [CAMERA LAPACK])
 AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], yes, [VW], [])
 if test $host_vendor = apple; then
   AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW], [GL], [CG])
-else 
+else
   AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW], [GL GLEW], [CG])
 fi
 AX_MODULE(GEOMETRY, [src/vw/Geometry], [libvwGeometry.la], yes, [VW], [], [GMP PPL APRON QHULL])
@@ -484,20 +416,14 @@ AM_CONDITIONAL(MAKE_MODULE_GUI, [test "$MAKE_MODULE_GUI" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_PYTHON, [test "$MAKE_MODULE_PYTHON" = "yes"])
 
 ##################################################
-#	library options	    
+# library options
 ##################################################
 
-if test -z $NUM_THREADS ; then NUM_THREADS=4 ; fi
-AC_ARG_WITH(num-threads,
-  AC_HELP_STRING([--with-num-threads[=4]], [set the default number of processing threads for multi-threaded operations]),
-  [NUM_THREADS=$withval])
-
-AC_DEFINE_UNQUOTED([NUM_THREADS],[$NUM_THREADS], [Define to the default number of threads that the Vision
-                                                  Workbench should spawn for multi-threaded operations.])
+AX_ARG_WITH(num-threads, [4], [cpp-int], [set the default number of processing threads for multi-threaded operations])
 AC_MSG_NOTICE([VW will use $NUM_THREADS THREADS by default])
 
 ##################################################
-#	final processing	    
+# final processing
 ##################################################
 
 VW_CPPFLAGS="-I\${top_srcdir}/src $OTHER_CPPFLAGS"
@@ -510,7 +436,7 @@ if test "yes" = "$ENABLE_VERBOSE" ; then
   AC_MSG_NOTICE([using CXXFLAGS=$CXXFLAGS])
   AC_MSG_NOTICE([using LDFLAGS=$LDFLAGS])
   AC_MSG_NOTICE([using VW_LDFLAGS=$VW_LDFLAGS])
-  AC_MSG_NOTICE([using VW_NO_EXCEPTIONS=$no_exceptions])
+  AC_MSG_NOTICE([using VW_ENABLE_EXCEPTIONS=$ENABLE_EXCEPTIONS])
 fi
 
 AC_SUBST(VW_CPPFLAGS)
@@ -518,7 +444,7 @@ AC_SUBST(VW_LDFLAGS)
 
 
 ##################################################
-#	makefiles to process	    
+# makefiles to process
 ##################################################
 
 AC_CONFIG_FILES([                       \

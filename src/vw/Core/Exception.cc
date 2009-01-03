@@ -33,17 +33,17 @@
 
 namespace {
 
-  /// The default exception handler type and object, which throws 
-  /// the exceptions its given unless VW_NO_EXCEPTIONS is 1, in 
+  /// The default exception handler type and object, which throws
+  /// the exceptions its given unless VW_ENABLE_EXCEPTIONS is 0, in
   /// which case it prints the message and calls abort().
   static class DefaultExceptionHandler : public vw::ExceptionHandler {
   public:
     virtual void handle( vw::Exception const& e ) const {
-#if defined(VW_NO_EXCEPTIONS) && (VW_NO_EXCEPTIONS==1)
+#if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1)
+      e.default_throw();
+#else
       vw::vw_out(vw::ErrorMessage) << "Fatal error: " << e.what() << std::endl;
       std::abort();
-#else
-      e.default_throw();
 #endif
     }
     virtual ~DefaultExceptionHandler() {}

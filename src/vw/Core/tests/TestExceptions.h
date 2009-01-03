@@ -37,7 +37,7 @@ class TestExceptions : public CxxTest::TestSuite
 public:
   void test_exception_hierarchy()
   {
-#if !( defined(VW_NO_EXCEPTIONS) && (VW_NO_EXCEPTIONS==1) )
+#if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1)
     TS_ASSERT_THROWS(throw Level1Err(), vw::Exception);
     TS_ASSERT_THROWS(throw Level1Err(), Level1Err);
     TS_ASSERT_THROWS(throw Level2Err(), vw::Exception);

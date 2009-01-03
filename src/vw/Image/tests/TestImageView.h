@@ -313,7 +313,7 @@ public:
 
   void testBoundsCheck()
   {
-#if defined(VW_IMAGE_BOUNDS_CHECK) && (VW_IMAGE_BOUNDS_CHECK==1)
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
     ImageView<PixelRGB<uint8> > test_img(2,2);
 
     // First, test to make sure that the operator() bounds checking is
