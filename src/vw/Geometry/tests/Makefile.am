@@ -33,10 +33,11 @@ nodist_TestSpatialTree_SOURCES = TestSpatialTree.cxx
 if HAVE_PKG_PPL
 nodist_TestConvex_SOURCES = TestConvex.cxx
 convex_tests = TestConvex
-endif
+else
 if HAVE_PKG_APRON
 nodist_TestConvex_SOURCES = TestConvex.cxx
 convex_tests = TestConvex
+endif
 endif
 
 TESTS = TestSphere TestSpatialTree $(convex_tests)

@@ -15,7 +15,7 @@ AC_DEFUN([AX_CHECK_FUNCTIONS],
 
   for func in $1; do
     m4_ifval([$5], [AC_MSG_CHECKING([$5])])
-    _AS_ECHO_LOG([Checking for $func in $LIBS])
+    echo ["Checking for $func in $LIBS"] >&AS_MESSAGE_LOG_FD
 
     AC_LINK_IFELSE(
       AC_LANG_CALL([],[$func]),
@@ -24,7 +24,8 @@ AC_DEFUN([AX_CHECK_FUNCTIONS],
         check_function_missing_libs=yes
         check_function_got_it=no
         m4_ifval([$4], [$4], [:])
-        _AS_ECHO_LOG([Could not find $func in $LIBS])
+        echo ["Could not find $func in $LIBS"] >&AS_MESSAGE_LOG_FD
+
       ]
     )
 

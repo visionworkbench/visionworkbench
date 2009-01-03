@@ -21,10 +21,9 @@ AC_DEFUN([AX_PKG_APPLE],
 
     pkg_l="$pkg_l $3"
 
-    AS_IF(
-      [test x"$have_pkg" = "xno"], [ AS_VAR_SET([bool], 0); AC_MSG_RESULT([no (disabled by user)]) ],
-      [test ! -z "$missing"],      [ bool=0; AC_MSG_RESULT([no ([missing] $missing)]) ],
-      [bool=1; AC_MSG_RESULT([yes])])
+    AS_IF([test x"$have_pkg" = "xno"], [ AS_VAR_SET([bool], 0); AC_MSG_RESULT([no (disabled by user)]) ],
+      [AS_IF([test ! -z "$missing"], [ bool=0; AC_MSG_RESULT([no ([missing] $missing)]) ],
+        [bool=1; AC_MSG_RESULT([yes])])])
     AS_VAR_POPDEF([missing])])
 
   AS_IF( [test x"$bool" = "x1"], [have_pkg=yes], [pkg_c=""; pkg_l=""; have_pkg=no])

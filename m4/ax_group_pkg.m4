@@ -21,11 +21,10 @@ AC_DEFUN([AX_GROUP_PKG],
 
   m4_if([$2], [], [have_pkg=[no_deps]], AX_LOAD_DEPS(pkg, m4_toupper([[$2]]), missing))
 
-  AS_IF(
-    [test x"$have_pkg" = "xno"],      [AS_VAR_SET([bool], 0); AC_MSG_RESULT([no (disabled by user)])],
-    [test x"$have_pkg" = "xno_deps"], [AS_VAR_SET([bool], 0); AC_MSG_RESULT([no])],
-    [test -z "$missing"],             [AS_VAR_SET([bool], 1); AC_MSG_RESULT([yes])],
-    [bool=0; AC_MSG_RESULT([no ([missing] $missing)]) ])
+  AS_IF([test x"$have_pkg" = "xno"],      [AS_VAR_SET([bool], 0); AC_MSG_RESULT([no (disabled by user)])],
+    [AS_IF([test x"$have_pkg" = "xno_deps"], [AS_VAR_SET([bool], 0); AC_MSG_RESULT([no])],
+      [AS_IF([test -z "$missing"],             [AS_VAR_SET([bool], 1); AC_MSG_RESULT([yes])],
+        [bool=0; AC_MSG_RESULT([no ([missing] $missing)]) ])])])
 
   AS_IF( [test x"$bool" = "x1"], [have_pkg=yes], [pkg_c=""; pkg_l=""; have_pkg=no])
 

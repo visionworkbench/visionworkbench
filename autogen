@@ -1,3 +1,13 @@
 #!/bin/sh
 
-autoreconf --force --verbose --install -I m4 -I thirdparty/m4
+if [[ -n "$1" && "$1" = "old" ]]; then
+    export AUTOCONF=autoconf-2.59
+    export AUTOMAKE=automake-1.6
+    export ACLOCAL=aclocal-1.6
+    export AUTOHEADER=autoheader-2.59
+    reconf=autoreconf-2.59
+else
+    reconf=autoreconf
+fi
+
+$reconf --force --verbose --install -I m4 -I thirdparty/m4
