@@ -338,11 +338,12 @@ AX_PKG_ONE_OF(HDF,
     HDF_SUBDIR, [AX_PKG(HDF_SUBDIR, [], [-ldf -lmfhdf], [mfhdf.h], [hdf])]
 )
 
-AX_PKG(X11, [], [-lXext -lX11 -lXmu -lXi -lXt], [])
-
 AX_PKG_ONE_OF(GL,
-  APPLE_GL, [AX_PKG_APPLE([GL], [], [-framework OpenGL -framework GLUT -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib])],
-  LINUX_GL, [AX_PKG(LINUX_GL, [X11], [-lGL -lGLU -lglut], [GL/gl.h GL/glu.h GL/glut.h], [], [glCreateShader])])
+  APPLE_GL,
+    [AX_PKG_APPLE([GL], [], [-framework OpenGL -framework GLUT -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib])],
+  LINUX_GL,
+    [AX_PKG(X11, [], [-lXext -lX11 -lXmu -lXi -lXt], [])
+     AX_PKG(LINUX_GL, [X11], [-lGL -lGLU -lglut], [GL/gl.h GL/glu.h GL/glut.h], [], [glCreateShader])])
 
 AX_PKG(GLEW, [GL M], [-lGLEW], [GL/glew.h])
 AX_PKG(CG, [], [-lCg -lCgGL], [Cg/cg.h])
