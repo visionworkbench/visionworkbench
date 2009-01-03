@@ -267,13 +267,11 @@ AX_PKG_BOOST_CHECK_VERSION([VW_])
 
 AC_MSG_NOTICE([VW will be built using Boost version $BOOST_VERSION])
 AX_PKG_BOOST_LIB(PROGRAM_OPTIONS, [-lboost_program_options], [boost/program_options.hpp])
-AX_PKG_BOOST_LIB(FILESYSTEM_PRE_1_35, [-lboost_filesystem], [boost/filesystem/path.hpp])
-if test "$HAVE_PKG_BOOST_FILESYSTEM_PRE_1_35" = "no"; then
-  echo "Checking for BOOST_FILESYSTEM 1.35 or later..."
-  AX_PKG_BOOST_LIB(FILESYSTEM, [-lboost_filesystem -lboost_system], [boost/filesystem/path.hpp])
-else
-  AX_PKG(BOOST_FILESYSTEM, [BOOST_FILESYSTEM_PRE_1_35], [], [])
-fi
+
+AX_PKG_ONE_OF(BOOST_FILESYSTEM,
+    BOOST_FILESYSTEM_PRE_1_35,  [AX_PKG_BOOST_LIB(FILESYSTEM_PRE_1_35,  [-lboost_filesystem], [boost/filesystem/path.hpp])],
+    BOOST_FILESYSTEM_POST_1_35, [AX_PKG_BOOST_LIB(FILESYSTEM_POST_1_35, [-lboost_filesystem -lboost_system], [boost/filesystem/path.hpp])])
+
 AX_PKG_BOOST_LIB(THREAD, [-lboost_thread], [boost/thread/thread.hpp])
 
 # This provides an easy way for users to override the threads options
@@ -305,12 +303,10 @@ AC_DEFINE_UNQUOTED([TIFF_HAS_BIGTIFF], [$tiff_has_bigtiff], [Define to 1 if libt
 AX_PKG(ILMBASE, [Z PTHREADS], [-lImath -lHalf -lIex], [Iex.h], [OpenEXR])
 AX_PKG(OPENEXR, [ILMBASE], [-lIlmImf], [ImfOutputFile.h], [OpenEXR])
 
-AX_PKG(HDF_PLAIN, [], [-ldf -lmfhdf], [mfhdf.h])
-if test "$HAVE_PKG_HDF_PLAIN" = "no"; then
-    AX_PKG(HDF, [], [-ldf -lmfhdf], [mfhdf.h], [hdf])
-else
-    AX_PKG(HDF, [HDF_PLAIN], [], [])
-fi
+AX_PKG_ONE_OF(HDF,
+    HDF_PLAIN,  [AX_PKG(HDF_PLAIN,  [], [-ldf -lmfhdf], [mfhdf.h]       )],
+    HDF_SUBDIR, [AX_PKG(HDF_SUBDIR, [], [-ldf -lmfhdf], [mfhdf.h], [hdf])]
+)
 
 AX_PKG(X11, [], [-lXext -lX11 -lXmu -lXi -lXt], [])
 AX_PKG_GL
