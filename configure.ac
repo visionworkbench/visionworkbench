@@ -172,7 +172,7 @@ if test "$ENABLE_TEST_COVERAGE" = "yes"; then
   if test "$ENABLE_TEST_COVERAGE" = "yes"; then
     echo "*** Enabling test coverage and debugging, and disabling optimization ***"
     CXXFLAGS="$CXXFLAGS -fprofile-arcs -ftest-coverage"
-    LDFLAGS="-lgcov"
+    LDFLAGS="$LDFLAGS -lgcov"
     ENABLE_OPTIMIZE=no
     ENABLE_DEBUG=yes
   fi
