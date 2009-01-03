@@ -136,13 +136,9 @@ AC_DEFUN([AX_PKG],
           AC_LANG_PROGRAM([#include "conftest.h"],[]),
           [ HAVE_PKG_$1=yes ], [continue] )
 
-        for func in $6; do
-            echo "Checking package $1 for function $func" >&AS_MESSAGE_LOG_FD
-
-            AC_LINK_IFELSE(
-              AC_LANG_CALL([],[$func]),
-              [], [ HAVE_PKG_$1=no; echo "package $1 did not have function $func" >&AS_MESSAGE_LOG_FD ] )
-        done
+        m4_ifval([$6],
+            AX_CHECK_FUNCTIONS([$6], [$LDFLAGS $LIBS], [], [ HAVE_PKG_$1=no; echo "package $1 did not have function $func" >&AS_MESSAGE_LOG_FD ])
+        )
 
         if test x"$HAVE_PKG_$1" = x"yes"; then
             AC_MSG_RESULT([yes])
