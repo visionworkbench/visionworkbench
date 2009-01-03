@@ -475,13 +475,12 @@ AM_CONDITIONAL(MAKE_MODULE_PYTHON, [test "$MAKE_MODULE_PYTHON" = "yes"])
 ##################################################
 
 if test -z $NUM_THREADS ; then NUM_THREADS=4 ; fi
-AH_TEMPLATE([NUM_THREADS],
-            [Define to the default number of threads that the Vision 
-             Workbench should spawn for multi-threaded operations.])
 AC_ARG_WITH(num-threads,
   AC_HELP_STRING([--with-num-threads[=4]], [set the default number of processing threads for multi-threaded operations]),
   [NUM_THREADS=$withval])
-AC_DEFINE_UNQUOTED([NUM_THREADS],[$NUM_THREADS])
+
+AC_DEFINE_UNQUOTED([NUM_THREADS],[$NUM_THREADS], [Define to the default number of threads that the Vision
+                                                  Workbench should spawn for multi-threaded operations.])
 AC_MSG_NOTICE([VW will use $NUM_THREADS THREADS by default])
 
 ##################################################
