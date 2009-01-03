@@ -385,7 +385,10 @@ AX_PKG(PROJ4, [], [-lproj], [projects.h])
 
 # Qt with AutoTroll.
 AT_WITH_QT([+gui +sql +opengl], [], [], [], [HAVE_PKG_QT_INCLUDE=no])
-AT_REQUIRE_QT_VERSION([4.0], [], [HAVE_PKG_QT_INCLUDE=no])
+
+if test x"$HAVE_PKG_QT_INCLUDE" != x"no"; then
+    AT_REQUIRE_QT_VERSION([4.0], [], [HAVE_PKG_QT_INCLUDE=no])
+fi
 
 # We seed QT_INCLUDE's cppflags with the ones qmake figured out
 ADD_QT_INCLUDE_CPPFLAGS="$ADD_QT_INCLUDE_CPPFLAGS $QT_CPPFLAGS"

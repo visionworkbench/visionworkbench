@@ -111,6 +111,7 @@ dnl Memo: AC_ARG_WITH(package, help-string, [if-given], [if-not-given])
   for ignored in once; do
 
   # Find Qt.
+  AC_ARG_VAR([QT_PATH], [Path to the Qt installation])
   if test -d /usr/local/Trolltech; then
     # Try to find the latest version.
     tmp_qt_paths=`echo /usr/local/Trolltech/*/bin | tr ' ' '\n' | sort -nr \
@@ -118,27 +119,34 @@ dnl Memo: AC_ARG_WITH(package, help-string, [if-given], [if-not-given])
   fi
 
   # Find qmake.
-  AC_PATH_PROGS([QMAKE], [qmake], [missing], [$QT_DIR:$QT_PATH:$PATH:$tmp_qt_paths])
+  AC_ARG_VAR([QMAKE], [Qt Makefile generator command])
+  AC_PATH_PROGS([QMAKE], [qmake qmake-qt4 qmake-qt3], [missing],
+                [$QT_DIR:$QT_PATH:$PATH:$tmp_qt_paths])
   if test x"$QMAKE" = xmissing; then
     AX_INSTEAD_IF([$5], [Cannot find qmake in your PATH. Try using --with-qt.])
     break
   fi
 
   # Find moc (Meta Object Compiler).
-  AC_PATH_PROGS([MOC], [moc], [missing], [$QT_PATH:$PATH:$tmp_qt_paths])
+  AC_ARG_VAR([MOC], [Qt Meta Object Compiler command])
+  AC_PATH_PROGS([MOC], [moc moc-qt4 moc-qt3], [missing],
+                [$QT_PATH:$PATH:$tmp_qt_paths])
   if test x"$MOC" = xmissing; then
     AX_INSTEAD_IF([$5], [Cannot find moc (Meta Object Compiler) in your PATH. Try using --with-qt.])
     break
   fi
 
   # Find uic (User Interface Compiler).
-  AC_PATH_PROGS([UIC], [uic], [missing], [$QT_PATH:$PATH:$tmp_qt_paths])
+  AC_ARG_VAR([UIC], [Qt User Interface Compiler command])
+  AC_PATH_PROGS([UIC], [uic uic-qt4 uic-qt3 uic3], [missing],
+                [$QT_PATH:$PATH:$tmp_qt_paths])
   if test x"$UIC" = xmissing; then
     AX_INSTEAD_IF([$5], [Cannot find uic (User Interface Compiler) in your PATH. Try using --with-qt.])
     break
   fi
 
   # Find rcc (Qt Resource Compiler).
+  AC_ARG_VAR([RCC], [Qt Resource Compiler command])
   AC_PATH_PROGS([RCC], [rcc], [false], [$QT_PATH:$PATH:$tmp_qt_paths])
   if test x"$UIC" = xfalse; then
     AC_MSG_WARN([Cannot find rcc (Qt Resource Compiler) in your PATH. Try using --with-qt.])
@@ -395,23 +403,27 @@ instead" >&AS_MESSAGE_LOG_FD
 # Must be run AFTER AT_WITH_QT. Requires autoconf 2.60.
 AC_DEFUN([AT_REQUIRE_QT_VERSION],
 [
-  if test x"$QMAKE" = x; then
-    AX_INSTEAD_IF([$3], [\$QMAKE is empty. Did you invoke AT@&t@_WITH_QT before AT@&t@_REQUIRE_QT_VERSION?])
-    break
-  fi
-  AC_CACHE_CHECK([for Qt's version], [at_cv_QT_VERSION],
-  [echo "$as_me:$LINENO: Running $QMAKE --version:" >&AS_MESSAGE_LOG_FD
-  $QMAKE --version >&AS_MESSAGE_LOG_FD 2>&1
-  qmake_version_sed=['/^.*\([0-9]\.[0-9]\.[0-9]\).*$/!d;s//\1/']
-  at_cv_QT_VERSION=`$QMAKE --version 2>&1 | sed "$qmake_version_sed"`])
-  if test x"$at_cv_QT_VERSION" = x; then
-    AX_INSTEAD_IF([$3], [Cannot detect Qt's version.])
-    break
-  fi
-  AC_SUBST([QT_VERSION], [$at_cv_QT_VERSION])
-  AS_VERSION_COMPARE([$QT_VERSION], [$1],
-    [AX_INSTEAD_IF([$3], [This package requires Qt $1 or above.])],
-    [$2], [$2])
+  # this is a hack to get decent flow control with 'break'
+  for ignored in once; do
+    if test x"$QMAKE" = x; then
+      AX_INSTEAD_IF([$3], [\$QMAKE is empty. Did you invoke AT@&t@_WITH_QT before AT@&t@_REQUIRE_QT_VERSION?])
+      break
+    fi
+    AC_CACHE_CHECK([for Qt's version], [at_cv_QT_VERSION],
+    [echo "$as_me:$LINENO: Running $QMAKE --version:" >&AS_MESSAGE_LOG_FD
+    $QMAKE --version >&AS_MESSAGE_LOG_FD 2>&1
+    qmake_version_sed=['/^.*\([0-9]\.[0-9]\.[0-9]\).*$/!d;s//\1/']
+    at_cv_QT_VERSION=`$QMAKE --version 2>&1 | sed "$qmake_version_sed"`])
+    if test x"$at_cv_QT_VERSION" = x; then
+      AX_INSTEAD_IF([$3], [Cannot detect Qt's version.])
+      break
+    fi
+    AC_SUBST([QT_VERSION], [$at_cv_QT_VERSION])
+    AS_VERSION_COMPARE([$QT_VERSION], [$1],
+      [AX_INSTEAD_IF([$3], [This package requires Qt $1 or above.])],
+      [$2], [$2])
+  #endhack
+  done
 ])
 
 # _AT_TWEAK_PRO_FILE(QT_VAR, VALUE)
