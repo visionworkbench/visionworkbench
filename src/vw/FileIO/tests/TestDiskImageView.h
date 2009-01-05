@@ -38,7 +38,7 @@ class TestDiskImageView : public CxxTest::TestSuite
 public:
 
   void test_disk_cache_image_view() {
-#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
+#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1 &&((defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1) || (defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1)) 
     ImageView<PixelRGB<uint8> > orig_image;
     TS_ASSERT_THROWS_NOTHING( read_image( orig_image, "rgb2x2.png" ) );
 
