@@ -125,14 +125,6 @@ AX_ARG_ENABLE(optimize,       3, [none],            [compiler optimization level
 AX_ARG_ENABLE(multi-arch,    [], [none],            [build multi-arch (universal) binaries])
 AX_ARG_ENABLE(lib64,       auto, [none],            [force /lib64 instead of /lib])
 
-# These need to be here because automake-1.6 is dumb and does not properly
-# process AM_CONDITIONALs unless the first argument is a simple string.
-AM_CONDITIONAL(ENABLE_SSE, [test x"$ENABLE_SSE" = x"yes"])
-AM_CONDITIONAL(ENABLE_EXCEPTIONS, [test x"$ENABLE_EXCEPTIONS" = x"yes"])
-AM_CONDITIONAL(ENABLE_BOUNDS_CHECK, [test x"$ENABLE_BOUNDS_CHECK" = x"yes"])
-
-
-
 ##################################################
 # Handle options
 ##################################################
@@ -207,6 +199,12 @@ esac
 CFLAGS="$CFLAGS $AX_CFLAGS"
 CXXFLAGS="$CXXFLAGS $AX_CFLAGS"
 
+# These need to be here because automake-1.6 is dumb and does not properly
+# process AM_CONDITIONALs unless the first argument is a simple string.
+AM_CONDITIONAL(ENABLE_SSE, [test x"$ENABLE_SSE" = x"yes"])
+AM_CONDITIONAL(ENABLE_EXCEPTIONS, [test x"$ENABLE_EXCEPTIONS" = x"yes"])
+AM_CONDITIONAL(ENABLE_BOUNDS_CHECK, [test x"$ENABLE_BOUNDS_CHECK" = x"yes"])
+
 
 
 ##################################################
@@ -231,13 +229,6 @@ AX_ARG_WITH(dist-license-summary,               [], [mk am-set], [special distri
 AX_ARG_WITH(dist-config-options-default,        [], [mk am-set], [special distribution config.options.default file])
 AX_ARG_WITH(dist-remove-modules, [Geometry Python gui], [mk am-set], [remove certain modules from the distribution])
 
-# These need to be here because automake-1.6 is dumb and does not properly
-# process AM_CONDITIONALs unless the first argument is a simple string.
-AM_CONDITIONAL(DIST_LICENSE, [test ! -z "$DIST_LICENSE"])
-AM_CONDITIONAL(DIST_LICENSE_SUMMARY, [test ! -z "$DIST_LICENSE_SUMMARY"])
-AM_CONDITIONAL(DIST_CONFIG_OPTIONS_DEFAULT, [test ! -z "$DIST_CONFIG_OPTIONS_DEFAULT"])
-AM_CONDITIONAL(DIST_REMOVE_MODULES, [test ! -z "$DIST_REMOVE_MODULES"])
-
 
 
 ##################################################
@@ -258,6 +249,13 @@ if test ! -z "$DIST_CONFIG_OPTIONS_DEFAULT" ; then
   fi
   AC_MSG_NOTICE([using distribution config.options.default file: $DIST_CONFIG_OPTIONS_DEFAULT])
 fi
+
+# These need to be here because automake-1.6 is dumb and does not properly
+# process AM_CONDITIONALs unless the first argument is a simple string.
+AM_CONDITIONAL(DIST_LICENSE, [test ! -z "$DIST_LICENSE"])
+AM_CONDITIONAL(DIST_LICENSE_SUMMARY, [test ! -z "$DIST_LICENSE_SUMMARY"])
+AM_CONDITIONAL(DIST_CONFIG_OPTIONS_DEFAULT, [test ! -z "$DIST_CONFIG_OPTIONS_DEFAULT"])
+AM_CONDITIONAL(DIST_REMOVE_MODULES, [test ! -z "$DIST_REMOVE_MODULES"])
 
 
 
