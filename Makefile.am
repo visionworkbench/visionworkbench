@@ -86,6 +86,9 @@ lcov:
 	$(GENHTML) -o $(top_srcdir)/coverage vw.trace
 	@echo "Generated code coverage report in $(top_srcdir)/coverage"
 
+push-lcov:
+	if test -n "$(LCOV_REMOTE_PATH)" ; then rsync -P -e ssh -r coverage/ $(LCOV_REMOTE_PATH); fi
+
 ########################################################################
 # general
 ########################################################################
