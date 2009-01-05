@@ -27,11 +27,6 @@
 
 if MAKE_MODULE_IMAGE
 
-TESTS = TestPixelMath TestPixelTypes TestImageView TestImageViewRef	\
-	TestManipulation TestPerPixelViews TestPerPixelAccessorViews			\
-	TestImageMath TestEdgeExtension TestInterpolation TestConvolution	\
-	TestFilter TestTransform TestAlgorithms TestStatistics
-
 nodist_TestPixelMath_SOURCES = TestPixelMath.cxx
 nodist_TestPixelTypes_SOURCES = TestPixelTypes.cxx
 nodist_TestImageView_SOURCES = TestImageView.cxx
@@ -47,6 +42,17 @@ nodist_TestFilter_SOURCES = TestFilter.cxx
 nodist_TestTransform_SOURCES = TestTransform.cxx
 nodist_TestAlgorithms_SOURCES = TestAlgorithms.cxx
 nodist_TestStatistics_SOURCES = TestStatistics.cxx
+
+if ENABLE_TEST_COVERAGE
+nodist_TestInstantiate_SOURCES = TestInstantiate.cxx
+instantiate = TestInstantiate
+endif
+
+TESTS = TestPixelMath TestPixelTypes TestImageView TestImageViewRef		\
+	TestManipulation TestPerPixelViews TestPerPixelAccessorViews		\
+	TestImageMath TestEdgeExtension TestInterpolation TestConvolution	\
+	TestFilter TestTransform TestAlgorithms TestStatistics $(instantiate)
+
 
 endif
 

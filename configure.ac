@@ -119,7 +119,7 @@ AC_SUBST(DEFAULT_INCLUDES)
 AX_ARG_ENABLE(sse,           no, [am-yes cpp-bool], [enable SSE optimizations in some places (development)])
 AX_ARG_ENABLE(exceptions,   yes, [am-yes cpp-bool], [enable the C++ exception mechanism])
 AX_ARG_ENABLE(bounds-check,  no, [am-yes cpp-bool], [enable image bounds checking (SLOW!)])
-AX_ARG_ENABLE(test-coverage, no, [none],            [turn on code coverage analysis tools])
+AX_ARG_ENABLE(test-coverage, no, [am-yes],          [turn on code coverage analysis tools])
 AX_ARG_ENABLE(debug,         no, [none],            [generate debugging symbols])
 AX_ARG_ENABLE(optimize,       3, [none],            [compiler optimization level])
 AX_ARG_ENABLE(multi-arch,    [], [none],            [build multi-arch (universal) binaries])
@@ -204,6 +204,7 @@ CXXFLAGS="$CXXFLAGS $AX_CFLAGS"
 AM_CONDITIONAL(ENABLE_SSE, [test x"$ENABLE_SSE" = x"yes"])
 AM_CONDITIONAL(ENABLE_EXCEPTIONS, [test x"$ENABLE_EXCEPTIONS" = x"yes"])
 AM_CONDITIONAL(ENABLE_BOUNDS_CHECK, [test x"$ENABLE_BOUNDS_CHECK" = x"yes"])
+AM_CONDITIONAL(ENABLE_TEST_COVERAGE, [test x"$ENABLE_TEST_COVERAGE" = x"yes"])
 
 
 
