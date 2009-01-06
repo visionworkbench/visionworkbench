@@ -28,6 +28,8 @@
 #ifndef __VW_INTERESTPOINT_INTEGRALIMAGE_H__
 #define __VW_INTERESTPOINT_INTEGRALIMAGE_H__
 
+#include <boost/utility/enable_if.hpp>
+#include <vw/Core/FundamentalTypes.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Math.h>
 
@@ -214,16 +216,17 @@ namespace ip {
   // - size      = side of the square used for evaluate
 
   // Note: Filter will be evaluated at a size nearest to a multiple of two
-  template <class ViewT>
-  inline float HHaarWavelet( ImageViewBase<ViewT> const& integral, 
-			     int const& x, int const& y, 
+  template <class ViewT, class NumberT>
+  typename boost::enable_if<boost::is_integral<NumberT>, float>::type
+  inline HHaarWavelet( ImageViewBase<ViewT> const& integral,
+			     NumberT const& x, NumberT const& y,
 			     float const& size ) {
 
     float response;
     int half_size = round( size / 2.0);
     int i_size = half_size << 1;
-    int top = round( y - size/2);
-    int left = round( x - size/2); 
+    int top = round( int(y) - size/2);
+    int left = round( int(x) - size/2);
 
     VW_ASSERT(left+i_size < (unsigned)integral.impl().cols(), 
 	      vw::ArgumentErr() << "left out of bounds. "<< integral.impl().cols() <<" : "
@@ -252,16 +255,17 @@ namespace ip {
   // - y         = y location to evaluate at
   // - size      = side of the square used for evaluate
   // Note: Filter will be evaluated at a size nearest to a multiple of two
-  template <class ViewT>
-  inline float VHaarWavelet( ImageViewBase<ViewT> const& integral, 
-			     int const& x, int const& y, 
+  template <class ViewT, class NumberT>
+  typename boost::enable_if<boost::is_integral<NumberT>, float>::type
+  inline VHaarWavelet( ImageViewBase<ViewT> const& integral,
+			     NumberT const& x, NumberT const& y,
 			     float const& size ) {
 
     float response;
     int half_size = round( size / 2.0);
     int i_size = half_size << 1;
-    int top = round( y - size/2);
-    int left = round( x - size/2); 
+    int top = round( int(y) - size/2);
+    int left = round( int(x) - size/2);
 
     VW_ASSERT(left+i_size < (unsigned)integral.impl().cols(), 
 	      vw::ArgumentErr() << "left out of bounds. "<< integral.impl().cols() <<" : "
@@ -292,9 +296,10 @@ namespace ip {
 
   // Note: This Filter requires/recommends the use of an interpolated
   //       view of the integral
-  template <class ViewT>
-  inline float HHaarWavelet( ImageViewBase<ViewT> const& integral, 
-			     float const& x, float const& y, 
+  template <class ViewT, class NumberT>
+  typename boost::enable_if<boost::is_floating_point<NumberT>, float>::type
+  inline HHaarWavelet( ImageViewBase<ViewT> const& integral,
+			     NumberT const& x, NumberT const& y,
 			     float const& size ) {
 
     VW_ASSERT( (integral.impl()(10,10) != integral.impl()(10.4,10)) ||
@@ -306,8 +311,8 @@ namespace ip {
 
     float response;
     float half_size = size / 2.0;
-    float top = y - half_size;
-    float left = x - half_size; 
+    float top = float(y) - half_size;
+    float left = float(x) - half_size;
 
     response = -integral.impl()(left, top);
     response += 2*integral.impl()(left+half_size, top);
@@ -318,15 +323,6 @@ namespace ip {
     
     return response;
   }
-  // Double input
-  template <class ViewT>
-  inline float HHaarWavelet( ImageViewBase<ViewT> const& integral,
-			     double const& x, double const& y,
-			     float const& size ) {
-    return HHaarWavelet( integral, float(x), float(y),
-			 size );
-  }
-  
 
   // Vertical Wavelet ( floating point arithmetic )
   // - integral  = Integral used for calculations
@@ -336,9 +332,10 @@ namespace ip {
 
   // Note: This Filter requires/recommends the use of an interpolated
   //       view of the integral
-  template <class ViewT>
-  inline float VHaarWavelet( ImageViewBase<ViewT> const& integral, 
-			     float const& x, float const& y, 
+  template <class ViewT, class NumberT>
+  typename boost::enable_if<boost::is_floating_point<NumberT>, float>::type
+  inline VHaarWavelet( ImageViewBase<ViewT> const& integral,
+			     NumberT const& x, NumberT const& y,
 			     float const& size ) {
 
     VW_ASSERT( (integral.impl()(10,10) != integral.impl()(10.4,10)) ||
@@ -350,8 +347,8 @@ namespace ip {
 
     float response;
     float half_size = size / 2.0;
-    float top = y - half_size;
-    float left = x - half_size; 
+    float top = float(y) - half_size;
+    float left = float(x) - half_size;
 
     response = -integral.impl()(left, top);
     response += integral.impl()(left+size, top);
@@ -362,15 +359,6 @@ namespace ip {
     
     return response;
   }
-  // Double input
-  template <class ViewT>
-  inline float VHaarWavelet( ImageViewBase<ViewT> const& integral,
-			     double const& x, double const& y,
-			     float const& size ) {
-    return VHaarWavelet( integral, float(x), float(y),
-			 size );
-  }
-
 
 }} // end namespace vw::ip
 
