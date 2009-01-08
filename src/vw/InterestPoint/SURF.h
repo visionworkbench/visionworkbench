@@ -280,12 +280,13 @@ namespace ip {
 				InterestPoint const& ip,
 				bool extended );
 
-  // SURF Descriptor
-  // This relies on InterpolationView
-  Vector<float> SURFDescriptorAlt( ImageView<double> const&,
-				   Matrix<float,20,20> const&,
-				   InterestPoint const& ip,
-				   bool extended );
+  // MSURF Descriptor
+  // This calculated the descriptor of a feature
+  Vector<float> MSURFDescriptor( ImageView<double> const&,
+				 Matrix<float,4,4> const&,
+				 Matrix<float,9,9> const&,
+				 InterestPoint const& ip,
+				 bool extended );
 
   template <class ViewT>
   class SURFInterestScaleTask : public Task {
@@ -389,6 +390,52 @@ namespace ip {
 	   point != m_individual_list.end(); ++point) {
 	(*point).descriptor = SURFDescriptor( m_integral, m_gauss,
 					      (*point), m_extended );
+					      
+      }
+
+      // Injecting my finished points into the global pile
+      {
+	Mutex::Lock lock(m_mutex);
+	m_main_list.splice(m_main_list.end(), m_individual_list);
+      }
+    }
+  };
+
+  template <class ViewT>
+  class MSURFDescriptorTask : public Task {
+    // Disable copyable semantics
+    MSURFDescriptorTask( MSURFDescriptorTask& copy ) {}
+    void operator=(MSURFDescriptorTask& copy ) {}
+
+    ViewT m_integral;
+    Matrix<float,4,4> m_overall_gaus;
+    Matrix<float,9,9> m_sub_region_gaus;
+    bool m_extended;
+    InterestPointList& m_individual_list;
+    InterestPointList& m_main_list;
+    Mutex& m_mutex;
+    int m_id;
+    
+  public:
+    MSURFDescriptorTask( ViewT const& integral,  
+			 Matrix<float,4,4>& overall_gaus,
+			 Matrix<float,9,9>& sub_region_gaus,
+			 bool extended,
+			 InterestPointList& my_ip_list,
+			 InterestPointList& main_ip_list, 
+			 Mutex &mutex, int id) :
+    m_integral(integral), m_overall_gaus(overall_gaus), m_sub_region_gaus(sub_region_gaus),
+      m_individual_list(my_ip_list), m_extended(extended), 
+      m_main_list(main_ip_list), m_mutex(mutex), m_id(id) {
+    }
+
+    void operator()(){
+      // Processing my individual list of interest points
+      for (InterestPointList::iterator point = m_individual_list.begin();
+	   point != m_individual_list.end(); ++point) {
+	(*point).descriptor = MSURFDescriptor( m_integral, m_overall_gaus,
+					       m_sub_region_gaus,
+					       (*point), m_extended );
 					      
       }
 
@@ -800,7 +847,19 @@ namespace ip {
     // Given an image and a list of interest points, set the
     // descriptor field of the interest points. Sorry that this
     // doesn't fit into the Descriptor Generator Base.
-    void operator()( ImageView<double> const& integral, InterestPointList& points ) {
+    
+    // Layman's implementation
+    template <class ViewT>
+    void operator()( ImageViewBase<ViewT> const& image,
+		     InterestPointList& points ) {
+      ImageView<double> integral;
+      integral = IntegralImage( image );
+
+      operator()( points, integral );
+    }
+
+    void operator()( InterestPointList& points,
+		     ImageView<double> const& integral ) {
       
       // Timing
       Timer *total = new Timer("Total elapsed time", DebugMessage, "interest_point");
@@ -852,6 +911,107 @@ namespace ip {
       delete total;
     }
 
+  };
+
+  // M-SURF 64/128 bit
+  //      This is MU-SURF except not always upright. (Orientation is being
+  // calculated) MU-SURF is described by "CenSurE: Center Surround Extremas
+  // for Realtime Feature Detection and Matching" Agrawal, Konolige, Rufus
+  // Blas
+  struct MSURFDescriptorGenerator {
+    
+    bool m_extended;
+    int m_num_threads;
+    Matrix<float,9,9> sub_region_gaus;
+    Matrix<float,4,4> overall_gaus;
+
+  public:
+
+    // Constructor
+    MSURFDescriptorGenerator( bool extended=false, int num_threads = 1 ) :
+    m_extended(extended), m_num_threads(num_threads) {
+      // Building overall_gaus, sigma = 1.5
+      for (char x = 0; x < 4; x++ ) {
+	for (char y = 0; y < 4; y++ ) {
+	  float dist = (float(x)-1.5)*(float(x)-1.5)+(float(y)-1.5)*(float(y)-1.5);
+	  overall_gaus(x,y) = exp( -dist/4.5 );
+	}
+      }
+      // Building sub_region_gaus, sigma = 2.5
+      for (char x = 0; x < 9; x++ ) {
+	for (char y = 0; y < 9; y++ ) { 
+	  float dist = (float(x)-4)*(float(x)-4)+(float(y)-4)*(float(y)-4);
+	  sub_region_gaus = exp( -dist/12.5 );
+	}
+      }
+    }
+
+    // Given an image and a list of interest points, set the
+    // descriptor field of the interest points. Sorry that this
+    // doesn't fit into the Descriptor Generator Base.
+    
+    // Layman's implementation
+    template <class ViewT>
+    void operator()( ImageViewBase<ViewT> const& image,
+		     InterestPointList& points ) {
+      ImageView<double> integral; 
+      integral = IntegralImage( image );
+
+      operator()( points, integral );
+    }
+
+    void operator()( InterestPointList& points,
+		     ImageView<double> const& integral ) {
+      
+      // Timing
+      Timer *total = new Timer("Total elapsed time", DebugMessage, "interest_point");
+
+      if ( m_num_threads < 2 ) {
+	// Single Threaded
+	for (InterestPointList::iterator i = points.begin();
+	     i != points.end(); ++i ) {
+	  (*i).descriptor = MSURFDescriptor( integral,
+					     overall_gaus,
+					     sub_region_gaus,
+					     (*i), m_extended );
+	}
+      } else {
+	// Multithreaded
+	
+	// Breaking the points in length that can be processed individually.
+	unsigned count = 0;
+	std::vector<InterestPointList> ip_separated(m_num_threads);
+	for (InterestPointList::iterator i = points.begin();
+	     i != points.end(); ++i ) {
+	  
+	  ip_separated[count].push_back( (*i) );
+
+	  count++;
+	  count %= m_num_threads;
+	}
+	points.clear();
+
+	// Giving data to threads
+	FifoWorkQueue queue( m_num_threads );
+	Mutex mutex;
+	typedef MSURFDescriptorTask<ImageView<double> > task_type;
+	for ( count = 0; count < m_num_threads; count++ ) {
+	  boost::shared_ptr<task_type> task ( new task_type( integral,
+							     overall_gaus,
+							     sub_region_gaus,
+							     m_extended,
+							     ip_separated[count],
+							     points,
+							     mutex, count ) );
+	  queue.add_task( task );
+	}
+	
+	queue.join_all();
+      }
+
+      // End Timing
+      delete total;
+    }
   };
 
 }} // namespace vw::ip

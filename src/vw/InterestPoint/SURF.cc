@@ -566,7 +566,7 @@ namespace ip {
 	    if (!extended) {
 	      // SURF 64
 	      // Dx
-	      result(dest) += h_response(sx, sy);
+	      result(dest+0) += h_response(sx, sy);
 	      // |Dx|
 	      result(dest+1) += fabs(h_response(sx, sy));
 	      // Dy
@@ -577,7 +577,7 @@ namespace ip {
 	      // SURF 128
 	      if ( v_response(sx, sy) >= 0 ) {
 		// Dx
-		result(dest) += h_response(sx, sy);
+		result(dest+0) += h_response(sx, sy);
 		// |Dx|
 		result(dest+1) += fabs(h_response(sx, sy));
 	      } else {
@@ -607,4 +607,121 @@ namespace ip {
 
   }
 
+  // MSURF Descriptor
+  Vector<float> MSURFDescriptor( ImageView<double> const& integral,
+				 Matrix<float,4,4> const& overall_gaus,
+				 Matrix<float,9,9> const& sub_region_gaus,
+				 InterestPoint const& ip,
+				 bool extended ) {
+
+    Vector<float> result(64);
+    if ( extended )
+      result.set_size(128);
+    Matrix<float,24,24> h_response;
+    Matrix<float,24,24> v_response;
+    float scaling = 1.0/ip.scale;
+
+    // Building Transforms
+    TransformRef txform( compose(ResampleTransform(scaling,scaling),
+				 RotateTransform(-ip.orientation),
+				 TranslateTransform(-ip.x,-ip.y) ) );
+    TransformRef rotate_only( RotateTransform(-ip.orientation ) );
+
+    // Wrapping integral
+    InterpolationView<EdgeExtensionView<ImageView<double>, ConstantEdgeExtension>, BilinearInterpolation> wrapped_integral = interpolate( integral, BilinearInterpolation() );
+
+    // Building responses
+    for ( char x = 0; x < 24; x++ ) {
+      for ( char y = 0; y < 24; y++ ) {
+
+	// Sampling Point's Location
+	Vector2 location = txform.reverse( Vector2(float(x) - 11.5,
+						   float(y) - 11.5) );
+
+	// Is this response within the image?
+	if ( location.x() + ip.scale+1 < integral.cols() &&
+	     location.x() - ip.scale >= 0 &&
+	     location.y() + ip.scale+1 < integral.rows() &&
+	     location.y() - ip.scale >= 0 ) {
+
+	  Vector2 response;
+	  
+	  response[0] = HHaarWavelet( wrapped_integral,
+				      location.x(), location.y(),
+				      2*ip.scale );
+	  response[1] = VHaarWavelet( wrapped_integral,
+				      location.x(), location.y(),
+				      2*ip.scale );
+
+	  // Rotating the response
+	  response = rotate_only.forward(response);
+	  h_response(x,y) = response.x();
+	  v_response(x,y) = response.y();
+	  
+	} else {
+	  // well, boo..
+	  h_response(x,y) = 0;
+	  v_response(x,y) = 0;
+	}
+      }
+    }
+
+    // Building the descriptor
+    for ( char x = 0; x < 4; x++ ) {
+      for ( char y = 0; y < 4; y++ ) {
+	int dest;
+	if (extended)
+	  dest = 32*x+8*y;
+	else
+	  dest = 16*x+4*y;
+	
+	// Summing responses
+	for ( char ix = 0; ix < 9; ix++ ) {
+	  for ( char iy = 0; iy < 9; iy++ ) {
+	    char sx = x*5+ix;
+	    char sy = y*5+iy;
+	    float mp = overall_gaus(x,y) * sub_region_gaus(ix,iy);
+
+	    if (!extended) {
+	      // MSURF 64
+	      // Dx
+	      result(dest+0) += mp * h_response(sx, sy);
+	      // |Dx|
+	      result(dest+1) += mp * fabs(h_response(sx, sy));
+	      // Dy
+	      result(dest+2) += mp * v_response(sx, sy);
+	      // |Dy|
+	      result(dest+3) += mp * fabs(v_response(sx, sy));
+	    } else {
+	      // MSURF 128
+	      if ( v_response(sx, sy) >= 0 ) {
+		// Dx
+		result(dest+0) += mp * h_response(sx, sy);
+		// |Dx|
+		result(dest+1) += mp * fabs(h_response(sx, sy));
+	      } else {
+		// Dx
+		result(dest+2) += mp * h_response(sx, sy);
+		// |Dx|
+		result(dest+3) += mp * fabs(h_response(sx, sy));
+	      }
+	      if ( h_response(sx, sy) >= 0 ) {
+		// Dy
+		result(dest+4) += mp * v_response(sx, sy);
+		// |Dy|
+		result(dest+5) += mp * fabs(v_response(sx, sy));
+	      } else {
+		// Dy
+		result(dest+6) += mp * v_response(sx, sy);
+		// |Dy|
+		result(dest+7) += mp * fabs(v_response(sx, sy));
+	      }
+	    }
+	  }
+	}
+      }
+    }
+
+    return normalize(result);
+  }
 }} // namespace vw::ip
