@@ -134,7 +134,9 @@ namespace cartography {
     /// Set this georeference to use geographic coordinates (no projection)
     void set_geographic();
 
-    /// Set this georeference to use a sinusoidal projection
+    /// Use an equirectangular projection
+    void set_equirectangular(double center_latitude = 0, double center_longitude = 0, double latitude_of_true_scale = 0, double false_easting = 0, double false_northing = 0);
+    /// Use a sinusoidal projection
     void set_sinusoidal(double center_longitude, double false_easting = 0, double false_northing = 0);
     /// Use mercator projection
     void set_mercator(double center_latitude, double center_longitude, double latitude_of_true_scale = 0, double false_easting = 0, double false_northing = 0);

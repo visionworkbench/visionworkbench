@@ -141,6 +141,14 @@ namespace cartography {
     init_proj();
   }
 
+  void GeoReference::set_equirectangular(double center_latitude, double center_longitude, double latitude_of_true_scale, double false_easting, double false_northing) {
+    std::ostringstream strm;
+    strm << "+proj=eqc +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +lat_ts=" << latitude_of_true_scale << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    m_proj_projection_str = strm.str();
+    m_is_projected = true;
+    init_proj();
+  }
+
   void GeoReference::set_sinusoidal(double center_longitude, double false_easting, double false_northing) {
     std::ostringstream strm;
     strm << "+proj=sinu +lon_0=" << center_longitude << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
