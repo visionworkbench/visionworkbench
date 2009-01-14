@@ -2056,9 +2056,9 @@ namespace math {
   }
 
   /// Create a square static identity matrix.
-  template <int SizeT>
-  inline Matrix<double,SizeT,SizeT> identity_matrix() {
-    Matrix<double,SizeT,SizeT> id;
+  template <int DimN>
+  inline Matrix<double,DimN,DimN> identity_matrix() {
+    Matrix<double,DimN,DimN> id;
     id.set_identity();
     return id;
   }
