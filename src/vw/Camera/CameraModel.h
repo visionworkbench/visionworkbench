@@ -29,10 +29,8 @@
 #ifndef __VW_CAMERA_CAMERAMODEL_H__
 #define __VW_CAMERA_CAMERAMODEL_H__
 
-#include <vw/Core/Exception.h>
-#include <vw/Math/Vector.h>
+#include <fstream>
 #include <vw/Math/Quaternion.h>
-#include <vw/Core/Log.h>
 
 namespace vw { 
 namespace camera {

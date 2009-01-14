@@ -28,6 +28,7 @@
 #define __VW_GEOMETRY_BOX_H__
 
 #include <iostream>
+#include <fstream>
 #include <limits>
 #include <vector>
 #include <math.h>
@@ -37,7 +38,6 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/BBox.h>
 #include <vw/Geometry/Shape.h>
-#include <vw/Geometry/PointListIO.h>
 
 namespace vw {
 namespace geometry {

@@ -31,6 +31,9 @@
 #ifndef __VW_IMAGE_PALETTE_H__
 #define __VW_IMAGE_PALETTE_H__
 
+#include <vw/Core/Functors.h>
+#include <vw/Image/ImageView.h>
+
 namespace vw {
 
   // A palette filter.  Loads in a palette stored as an 

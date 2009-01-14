@@ -30,10 +30,8 @@
 #ifndef __VW_CAMERAMODEL_CAHVOR_H__
 #define __VW_CAMERAMODEL_CAHVOR_H__
 
-#include <vw/Camera/CameraModel.h>
 #include <vw/Camera/CAHVModel.h>
 
-#include <vw/Image/ImageView.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
 

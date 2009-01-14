@@ -30,7 +30,6 @@
 
 #include <boost/utility/enable_if.hpp>
 
-#include <vw/Core/CompoundTypes.h>
 #include <vw/Core/Functors.h>
 #include <vw/Math/Functors.h>
 

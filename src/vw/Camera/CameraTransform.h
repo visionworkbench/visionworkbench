@@ -29,8 +29,8 @@
 #ifndef __VW_CAMERA_TRANSFORM_H__
 #define __VW_CAMERA_TRANSFORM_H__
 
+#include <vw/Camera/CameraModel.h>
 #include <vw/Image/Transform.h>
-#include <vw/Image/EdgeExtension.h>
 
 namespace vw {
 namespace camera{

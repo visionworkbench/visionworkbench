@@ -34,15 +34,12 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 
-#include <vw/Core/Debugging.h>
+#include <vw/Core/Log.h>
 #include <vw/Core/ProgressCallback.h>
-#include <vw/Math/BBox.h>
-#include <vw/Math/Vector.h>
 #include <vw/Image/ImageResource.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageIO.h>
 #include <vw/Image/Manipulation.h>
-#include <vw/Image/PixelTypes.h>
 
 namespace vw {
 

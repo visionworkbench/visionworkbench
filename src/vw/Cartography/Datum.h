@@ -29,7 +29,6 @@
 
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
-#include <vw/Image/PerPixelViews.h>
 
 // For an excellent discussion of the various concepts, terms, and 
 // issues involved in global coordinate systems, see:

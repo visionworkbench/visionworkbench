@@ -30,9 +30,6 @@
 
 #include <vw/Camera/CameraModel.h>
 #include <vw/Camera/PinholeModel.h>
-
-#include <vw/Image/ImageView.h>
-#include <vw/Image/PixelTypes.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 

@@ -23,11 +23,8 @@
 #ifndef __VW_STEREO_CORRELATE_H__
 #define __VW_STEREO_CORRELATE_H__
 
-#include <vw/Core/FundamentalTypes.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewBase.h>
-#include <vw/Math/Matrix.h>
-#include <vw/Math/LinearAlgebra.h>
 #include <vw/Stereo/DisparityMap.h>
 
 #define VW_STEREO_MISSING_PIXEL -32000

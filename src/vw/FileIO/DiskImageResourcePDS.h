@@ -33,8 +33,6 @@
 #include <string>
 #include <fstream>
 
-#include <vw/Core/Exception.h>
-#include <vw/Image/PixelTypes.h>
 #include <vw/FileIO/DiskImageResource.h>
 
 namespace vw {

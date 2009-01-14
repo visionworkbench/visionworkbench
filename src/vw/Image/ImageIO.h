@@ -29,10 +29,8 @@
 #ifndef __VW_IMAGE_IMAGEIO_H__
 #define __VW_IMAGE_IMAGEIO_H__
 
-#include <vw/Core/Exception.h>
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Core/ThreadPool.h>
-
 #include <vw/Image/ImageResource.h>
 #include <vw/Image/ImageView.h>
 

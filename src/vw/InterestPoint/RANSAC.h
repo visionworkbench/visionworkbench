@@ -60,6 +60,7 @@
 #define __VW_INTERESTPOINT_RANSAC_H__
 
 #include <vw/Math/Vector.h>
+#include <vw/Core/Log.h>
 
 namespace vw { 
 namespace ip {

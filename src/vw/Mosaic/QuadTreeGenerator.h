@@ -34,17 +34,14 @@
 #include <fstream>
 
 #include <boost/function.hpp>
-#include <vw/Math/BBox.h>
-#include <vw/Image/ImageView.h>
-#include <vw/Image/ImageViewRef.h>
-#include <vw/Image/EdgeExtension.h>
-#include <vw/Image/Manipulation.h>
-#include <vw/Image/Algorithms.h>
-#include <vw/Image/Filter.h>
-#include <vw/Image/ImageIO.h>
+
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Core/Stopwatch.h>
+#include <vw/Image/EdgeExtension.h>
 #include <vw/Mosaic/SparseTileCheck.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/ImageViewRef.h>
+
 
 namespace vw {
 namespace mosaic {

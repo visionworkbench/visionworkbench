@@ -29,11 +29,8 @@
 #ifndef _VW_CAMERA_LINESCAN_MODEL_H_
 #define _VW_CAMERA_LINESCAN_MODEL_H_
 
-#include <vw/Math/Matrix.h>
-#include <vw/Math/Vector.h>
 #include <vw/Math/Quaternion.h>
 #include <vw/Camera/CameraModel.h>
-#include <vw/Camera/Extrinsics.h>
 
 namespace vw { 
 namespace camera {

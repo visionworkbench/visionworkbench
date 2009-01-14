@@ -46,7 +46,6 @@
 #include <boost/static_assert.hpp>
 
 #include <vw/Math/Vector.h>
-#include <vw/Math/Functors.h>
 #include <vw/Geometry/Shape.h>
 #include <vw/Geometry/Box.h>
 

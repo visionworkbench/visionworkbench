@@ -28,7 +28,7 @@
 #ifndef _INTEREST_POINT_INTEREST_TRAITS_H_
 #define _INTEREST_POINT_INTEREST_TRAITS_H_
 
-#include <vw/Image.h>
+#include <vw/Image/ImageView.h>
 
 namespace vw { 
 namespace ip {

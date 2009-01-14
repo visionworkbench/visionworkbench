@@ -27,6 +27,7 @@
 #include <vw/Image/Statistics.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Image/Manipulation.h>
 
 using namespace std;
 using namespace vw;

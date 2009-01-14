@@ -31,10 +31,7 @@
 #include <boost/smart_ptr.hpp>
 #include <boost/type_traits.hpp>
 
-#include <vw/Core/Exception.h>
-
 #include <vw/Image/ImageViewBase.h>
-#include <vw/Image/ImageResource.h>
 #include <vw/Image/PixelAccessors.h>
 
 namespace vw {

@@ -36,8 +36,6 @@
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/Detector.h>
 #include <vw/InterestPoint/Descriptor.h>
-#include <vw/Math.h>
-#include <vw/Image.h>
 #include <vw/Core/ThreadPool.h>
 
 #include <vector>

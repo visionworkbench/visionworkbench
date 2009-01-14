@@ -23,9 +23,6 @@
 #ifndef __VW_CARTOGRAPHY_PROJGEOREFERENCE_H__
 #define __VW_CARTOGRAPHY_PROJGEOREFERENCE_H__
 
-#include <vw/Core/Functors.h>
-#include <vw/Math/Matrix.h>
-#include <vw/Core/Exception.h>
 #include <vw/Cartography/GeoReferenceBase.h>
 #include <vw/FileIO/DiskImageResource.h>
 

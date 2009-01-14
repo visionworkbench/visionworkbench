@@ -65,9 +65,9 @@
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/utility/result_of.hpp>
 
+#include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/VarArray.h>
 #include <vw/Core/Exception.h>
-#include <vw/Core/TypeDeduction.h>
 #include <vw/Core/Functors.h>
 #include <vw/Math/Functors.h>
 

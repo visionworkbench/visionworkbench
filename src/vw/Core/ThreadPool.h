@@ -30,7 +30,7 @@
 #define __VW_CORE_THREADPOOL_H__
 
 #include <vw/Core/Thread.h>
-#include <vw/Core/Debugging.h>
+#include <vw/Core/Log.h>
 #include <vw/Core/Exception.h>
 
 // STL

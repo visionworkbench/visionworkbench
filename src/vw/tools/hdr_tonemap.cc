@@ -35,10 +35,11 @@
 namespace po = boost::program_options;
 
 #include <vw/Image/ImageView.h>
-#include <vw/FileIO.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/ImageViewRef.h>
+#include <vw/Image/Filter.h>
+#include <vw/FileIO.h>
 
 #include <vw/HDR/CameraCurve.h>
 #include <vw/HDR/GlobalToneMap.h>

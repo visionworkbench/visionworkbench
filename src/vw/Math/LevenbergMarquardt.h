@@ -34,10 +34,10 @@
 #define __VW_MATH_OPTIMIZATION_H__
 
 // Vision Workbench
+#include <vw/Core/Log.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/LinearAlgebra.h>
-#include <vw/Core/Debugging.h>
 
 // Boost 
 #include <boost/concept_check.hpp>

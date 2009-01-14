@@ -1,10 +1,7 @@
 #ifndef __VW_STEREO_CORRELATOR_VIEW__
 #define __VW_STEREO_CORRELATOR_VIEW__
+
 #include <vw/Image/ImageViewRef.h>
-#include <vw/Image/Manipulation.h>
-#include <vw/Math/BBox.h>
-#include <vw/Core/Debugging.h>
-#include <vw/Core/ProgressCallback.h>
 #include <vw/Stereo/Correlate.h>
 #include <vw/Stereo/PyramidCorrelator.h>
 #include <vw/Stereo/DisparityMap.h>

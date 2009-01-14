@@ -26,6 +26,7 @@
 /// Functions that return information about types by ID.
 ///
 #include <vw/Image/PixelTypeInfo.h>
+#include <vw/Core/Exception.h>
 
 vw::int32 vw::channel_size( vw::ChannelTypeEnum type ) {
   switch( type ) {

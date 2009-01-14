@@ -32,7 +32,6 @@
 #include <iostream>
 #include <fstream>
 
-#include <vw/Math/Vector.h>
 #include <vw/Core/Exception.h>
 
 

@@ -38,9 +38,7 @@
 #include <boost/mpl/logical.hpp>
 
 #include <vw/Image/ImageView.h>
-#include <vw/Image/PixelTypes.h>
 #include <vw/Image/Convolution.h>
-#include <vw/Image/ImageMath.h>
 
 namespace vw {
 

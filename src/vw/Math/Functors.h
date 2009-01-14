@@ -36,10 +36,10 @@
 #include <complex>
 #include <vector>
 
-#include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/CompoundTypes.h>
+#include <vw/Core/TypeDeduction.h>
 #include <vw/Core/Functors.h>
 #include <vw/Core/Exception.h>
-#include <vw/Math/Functions.h>
 
 // The math.h header in FreeBSD (and possibly other platforms) does
 // include routines for manipulating long doubles.  We disable long

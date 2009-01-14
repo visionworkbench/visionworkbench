@@ -7,6 +7,7 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include <vw/Core/Debugging.h>
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Stereo/OptimizedCorrelator.h>

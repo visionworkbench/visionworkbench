@@ -38,10 +38,7 @@
 #include <boost/mpl/logical.hpp>
 #include <boost/utility/enable_if.hpp>
 
-#include <vw/Core/CompoundTypes.h>
-#include <vw/Math/Functions.h>
 #include <vw/Image/ImageView.h>
-#include <vw/Image/PixelAccessors.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/Manipulation.h>
 

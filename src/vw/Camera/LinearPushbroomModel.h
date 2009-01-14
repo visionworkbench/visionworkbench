@@ -30,8 +30,6 @@
 
 #include <vw/Camera/LinescanModel.h>
 #include <vw/Camera/Extrinsics.h>
-#include <vw/Math/Matrix.h>
-#include <vw/Math/Vector.h>
 #include <vw/Math/Quaternion.h>
 
 namespace vw { 

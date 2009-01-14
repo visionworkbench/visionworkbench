@@ -46,8 +46,7 @@
 
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/PixelAccessors.h>
-#include <vw/Math/BBox.h>
-#include <vw/Math/Functions.h>
+#include <vw/Core/Log.h>
 
 namespace vw {
  

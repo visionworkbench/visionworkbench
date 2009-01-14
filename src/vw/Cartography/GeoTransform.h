@@ -26,7 +26,6 @@
 #include <sstream>
 #include <string>
 
-#include <vw/Core/Exception.h>
 #include <vw/Math/Vector.h>
 #include <vw/Image/Transform.h>
 #include <vw/Cartography/GeoReference.h>

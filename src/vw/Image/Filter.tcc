@@ -32,7 +32,6 @@
 #ifndef __VW_IMAGE_FILTER_TCC__
 #define __VW_IMAGE_FILTER_TCC__
 
-#include <vw/Core/Exception.h>
 #include <vw/Math/Functions.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Image/ImageMath.h>

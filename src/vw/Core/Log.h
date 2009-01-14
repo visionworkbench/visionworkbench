@@ -40,7 +40,6 @@
 #define __VW_CORE_LOG_H__
 
 #include <vw/Core/Thread.h>
-#include <vw/Core/Exception.h>
 
 // Boost Headers
 #include <boost/algorithm/string.hpp>

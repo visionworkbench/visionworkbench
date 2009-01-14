@@ -35,7 +35,6 @@
 #include <vw/Math/Matrix.h>
 #include <vw/Math/LinearAlgebra.h>
 #include <vw/Math/Statistics.h>
-#include <vw/Math/LevenbergMarquardt.h>
 
 namespace vw { 
 namespace math {

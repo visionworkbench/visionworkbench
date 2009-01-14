@@ -33,7 +33,6 @@
 #define __VW_HDR_LOCALTONEMAP_H__
 
 #include <vw/Image/ImageView.h>
-#include <vw/Image/PixelTypes.h>
 
 namespace vw { 
 namespace hdr {

@@ -31,9 +31,6 @@
 #ifndef __VW_MATH_POSEESTIMATION_H__
 #define __VW_MATH_POSEESTIMATION_H__
 
-#include <vw/Core/Exception.h>
-#include <vw/Math/Vector.h>
-#include <vw/Math/Matrix.h>
 #include <vw/Math/Quaternion.h>
 #include <vw/Math/LinearAlgebra.h>
 

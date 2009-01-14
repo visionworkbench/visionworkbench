@@ -28,9 +28,10 @@
 #ifndef __INTEREST_DATA_H__
 #define __INTEREST_DATA_H__
 
-#include <vw/InterestPoint/InterestTraits.h>
 #include <vw/Math/Vector.h>
-#include <vw/Image/ImageView.h>
+#include <vw/Math/Functors.h>
+#include <vw/Image/ImageViewBase.h>
+#include <vw/InterestPoint/InterestTraits.h>
 
 #include <vector>
 #include <list>

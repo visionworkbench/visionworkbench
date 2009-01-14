@@ -27,10 +27,6 @@
 #ifndef __VW_CARTOGRAPHY_FILE_IO_H__
 #define __VW_CARTOGRAPHY_FILE_IO_H__
 
-#include <vw/Image/ImageView.h>
-#include <vw/FileIO/DiskImageResource.h>
-#include <vw/Cartography/GeoReference.h>
-
 namespace vw {
 namespace cartography {
 

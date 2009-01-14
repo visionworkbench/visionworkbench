@@ -48,10 +48,7 @@
 
 #include <boost/type_traits.hpp>
 
-#include <vw/Core/FundamentalTypes.h>
-#include <vw/Math/Functors.h>
-#include <vw/Image/ImageView.h>
-#include <vw/Image/Manipulation.h>
+#include <vw/Image/ImageViewBase.h>
 #include <vw/Image/PixelMask.h>
 
 namespace vw {

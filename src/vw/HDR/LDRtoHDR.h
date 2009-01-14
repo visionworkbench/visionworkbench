@@ -40,18 +40,7 @@
 #ifndef __VW_HDR_LDRTOHDR_H__
 #define __VW_HDR_LDRTOHDR_H__
 
-#include <vw/Core/Exception.h>
-#include <vw/Image/Filter.h>
-#include <vw/Image/ImageView.h>
-#include <vw/Image/PixelTypes.h>
-#include <vw/Image/Manipulation.h>
-#include <vw/Image/ImageMath.h>
-#include <vw/Image/Statistics.h>
-#include <vw/Image/Algorithms.h>
-#include <vw/FileIO.h>
-#include <vw/Math/Vector.h>
-#include <vw/Math/Matrix.h>
-#include <vw/Camera/Exif.h>
+#include <vw/Image/ImageViewRef.h>
 #include <vw/HDR/CameraCurve.h>
 
 #include <vector>

@@ -28,8 +28,7 @@
 #ifndef __VW_IMAGE_ALGORITHMS_H__
 #define __VW_IMAGE_ALGORITHMS_H__
 
-#include <vw/Core/CompoundTypes.h>
-#include <vw/Image/ImageViewBase.h>
+#include <vw/Image/ImageView.h>
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Image/Statistics.h>
 

@@ -78,7 +78,7 @@
 #ifndef __VW_MATH_CONJUGATEGRADIENT_H__
 #define __VW_MATH_CONJUGATEGRADIENT_H__
 
-#include <vw/Core/Debugging.h>
+#include <vw/Core/Log.h>
 
 #define VW_CONJGRAD_MAX_ITERS_BETWEEN_SPACER_STEPS 20
 

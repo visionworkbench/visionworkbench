@@ -29,14 +29,16 @@
 #ifndef __VW_INTERESTPOINT_LEARNPCA_H__
 #define __VW_INTERESTPOINT_LEARNPCA_H__
 
+#include <vw/Math/LinearAlgebra.h>
+#include <vw/Image/ImageMath.h>
+#include <vw/Image/ImageView.h>
+#include <vw/FileIO/DiskImageView.h>
+
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/Detector.h>
 #include <vw/InterestPoint/Descriptor.h>
 #include <vw/InterestPoint/MatrixIO.h>
 #include <vw/InterestPoint/VectorIO.h>
-#include <vw/Math/Matrix.h>
-#include <vw/Math/LinearAlgebra.h>
-#include <vw/FileIO/DiskImageView.h>
 
 #define PCA_BASIS_SIZE	20
 #define MAX_POINTS_TO_DRAW 1000

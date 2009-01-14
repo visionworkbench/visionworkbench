@@ -33,10 +33,7 @@
 #include <boost/mpl/if.hpp>
 #include <boost/utility/result_of.hpp>
 
-#include <vw/Core/Functors.h>
 #include <vw/Image/ImageViewBase.h>
-#include <vw/Image/PixelAccessors.h>
-#include <vw/Math/Vector.h>
 
 namespace vw {
 

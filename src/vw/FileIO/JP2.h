@@ -37,7 +37,6 @@
 
 #include <vw/config.h>
 #include <vw/Core/FundamentalTypes.h>
-//#include <vw/FileIO/FileMetadata.h>
 #include <vw/Math/Matrix.h>
 
 #if VW_BYTE_ORDER == VW_BIG_ENDIAN

@@ -23,9 +23,7 @@
 #ifndef __VW_CARTOGRAPHY_GEOREFERENCE_H__
 #define __VW_CARTOGRAPHY_GEOREFERENCE_H__
 
-#include <vw/Core/Exception.h>
 #include <vw/Image/ImageViewBase.h>
-#include <vw/Image/PerPixelViews.h>
 #include <vw/Cartography/Datum.h>
 
 namespace vw {

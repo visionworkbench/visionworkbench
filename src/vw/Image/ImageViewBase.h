@@ -39,10 +39,6 @@
 #include <boost/type_traits.hpp>
 #include <boost/utility/enable_if.hpp>
 
-#include <vw/Core/Exception.h>
-#include <vw/Core/FundamentalTypes.h>
-#include <vw/Core/CompoundTypes.h>
-#include <vw/Math/BBox.h>
 #include <vw/Image/ImageResource.h>
 #include <vw/Image/PixelIterator.h>
 

@@ -33,9 +33,7 @@
 #include <vw/Camera/ControlNetwork.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
-#include <vw/Math/LinearAlgebra.h>
-#include <vw/Camera/CameraModel.h>
-#include <vw/Core/Debugging.h>
+#include <vw/Core/Log.h>
 
 // Boost 
 #include <boost/numeric/ublas/matrix_sparse.hpp>

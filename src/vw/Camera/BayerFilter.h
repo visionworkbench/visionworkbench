@@ -28,9 +28,9 @@
 #ifndef __VW_CAMERA_BAYER__
 #define __VW_CAMERA_BAYER__
 
-#include <vw/Image/ImageViewBase.h>
-#include <vw/Image/ImageView.h>
+#include <vw/Core/CompoundTypes.h>
 #include <vw/Image/PixelTypes.h>
+#include <vw/Image/ImageView.h>
 #include <vw/Image/EdgeExtension.h>
 
 namespace vw {

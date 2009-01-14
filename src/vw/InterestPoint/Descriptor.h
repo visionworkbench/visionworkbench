@@ -28,16 +28,13 @@
 #ifndef __VW_INTERESTPOINT_DESCRIPTOR_H__
 #define __VW_INTERESTPOINT_DESCRIPTOR_H__
 
-#include <vw/Math/Vector.h>
-#include <vw/Math/Matrix.h>
+#include <vw/Core/Debugging.h>
 #include <vw/Image/ImageView.h>
-#include <vw/Image/PixelTypes.h>
+#include <vw/Image/Transform.h>
+#include <vw/FileIO/DiskImageResource.h>
 #include <vw/InterestPoint/InterestData.h>
-
 #include <vw/InterestPoint/MatrixIO.h>
 #include <vw/InterestPoint/VectorIO.h>
-
-#include <vw/Core/ThreadPool.h>
 
 namespace vw { 
 namespace ip {

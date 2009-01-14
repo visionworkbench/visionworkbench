@@ -30,7 +30,6 @@
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Filter.h>
-#include <vw/Image/Manipulation.h>
 #include <vector>
 #include <algorithm>
 #include <math.h>

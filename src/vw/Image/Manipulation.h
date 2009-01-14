@@ -56,7 +56,6 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/PerPixelViews.h>
-#include <vw/Math/BBox.h>
 
 namespace vw {
 

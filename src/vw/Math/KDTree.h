@@ -111,6 +111,7 @@
 #include <boost/property_map.hpp>
 
 // Std C++
+#include <iostream>
 #include <vector>
 #include <iterator>
 #include <queue>

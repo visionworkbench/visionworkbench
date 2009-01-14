@@ -37,7 +37,6 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/CompoundTypes.h>
 #include <vw/Core/Functors.h>
-#include <vw/Core/Exception.h>
 #include <vw/Math/Functions.h>
 
 namespace vw {

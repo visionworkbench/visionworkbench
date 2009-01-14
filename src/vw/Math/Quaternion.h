@@ -44,8 +44,6 @@
 
 #include <boost/math/quaternion.hpp>
 
-#include <vw/Core/Exception.h>
-
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 

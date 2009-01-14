@@ -33,7 +33,6 @@
 #include <map>
 
 #include <vw/Core/Cache.h>
-#include <vw/Core/Debugging.h>
 #include <vw/Image/ImageResourceView.h>
 #include <vw/FileIO/DiskImageResource.h>
 

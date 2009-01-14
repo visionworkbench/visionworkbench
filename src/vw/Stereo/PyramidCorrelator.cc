@@ -1,7 +1,8 @@
 #include <vw/Stereo/PyramidCorrelator.h>
 #include <vw/Stereo/OptimizedCorrelator.h>
-#include <vw/Core/FundamentalTypes.h>
-#include <vw/Core/ProgressCallback.h>
+#include <vw/Image/ImageViewRef.h>
+#include <vw/FileIO/DiskImageResource.h>
+
 
 
 std::vector<vw::BBox2i> vw::stereo::PyramidCorrelator::subdivide_bboxes(vw::ImageView<vw::PixelDisparity<float> > const& disparity_map, vw::BBox2i const& box) {

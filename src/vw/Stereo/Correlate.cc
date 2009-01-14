@@ -21,8 +21,14 @@
 // 
 // __END_LICENSE__
 #include <vw/Stereo/Correlate.h>
+#include <vw/Math/Matrix.h>
+
+#include <vw/Core/Stopwatch.h>
+#include <vw/Math/LinearAlgebra.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Interpolation.h>
+#include <vw/Image/ImageMath.h>
+#include <vw/Image/Filter.h>
 #include <math.h>
 
 namespace vw {

@@ -23,21 +23,13 @@
 #ifndef __VW_STEREO_DISPARITY_MAP_H__
 #define __VW_STEREO_DISPARITY_MAP_H__
 
-#include <vw/Math/Matrix.h>
-
+#include <vw/Core/ProgressCallback.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
-#include <vw/Image/Manipulation.h>
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Image/PerPixelAccessorViews.h>
-#include <vw/Image/Algorithms.h>
-#include <vw/Image/Filter.h>
-#include <vw/Image/Statistics.h>
-#include <vw/Image/EdgeExtension.h>
 #include <vw/Image/UtilityViews.h>
-#include <vw/Core/ProgressCallback.h>
-
-#include <vw/FileIO.h>
+#include <vw/Image/Algorithms.h>
 
 // For the PixelDisparity math.
 #include <boost/operators.hpp>

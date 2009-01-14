@@ -28,12 +28,9 @@
 #ifndef __VW_FILEIO_DISKIMAGERESOUCEHDF_H__
 #define __VW_FILEIO_DISKIMAGERESOUCEHDF_H__
 
-#include <vw/config.h>
-
 #include <string>
 #include <boost/shared_ptr.hpp>
 
-#include <vw/Image/PixelTypes.h>
 #include <vw/FileIO/DiskImageResource.h>
 
 namespace vw {

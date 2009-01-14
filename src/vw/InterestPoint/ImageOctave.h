@@ -30,10 +30,8 @@
 
 // Vision Workbench
 #include <vw/Image/ImageView.h>
-#include <vw/Math/Matrix.h>
 #include <vw/Image/Filter.h>
-#include <vw/Image/Manipulation.h>
-#include <vw/FileIO.h>
+#include <vw/FileIO/DiskImageResource.h>
 
 // STL 
 #include <vector>

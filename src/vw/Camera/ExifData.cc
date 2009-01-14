@@ -21,6 +21,7 @@
 // 
 // __END_LICENSE__
 
+#include <cstdio>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
 #include <vw/Camera/ExifData.h>

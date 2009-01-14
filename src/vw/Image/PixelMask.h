@@ -37,12 +37,8 @@
 #include <boost/static_assert.hpp>
 
 #include <vw/Image/ImageViewBase.h>
-#include <vw/Image/PixelTypes.h>
-#include <vw/Image/PixelTypeInfo.h>
 #include <vw/Image/PixelMath.h>
-#include <vw/Image/PixelAccessors.h>
 #include <vw/Image/PerPixelViews.h>
-#include <vw/Math/Vector.h>
 
 namespace vw {
 

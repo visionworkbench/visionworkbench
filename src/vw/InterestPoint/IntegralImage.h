@@ -31,7 +31,6 @@
 #include <boost/utility/enable_if.hpp>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Image/ImageView.h>
-#include <vw/Math.h>
 
 namespace vw {
 namespace ip {

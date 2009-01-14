@@ -30,6 +30,8 @@
 // Zachary Moratto
 // Kansas State University
 #include <vw/InterestPoint/SURF.h>
+#include <vw/Image/ImageMath.h>
+#include <vw/Math/LinearAlgebra.h>
 
 namespace vw {
 namespace ip {

@@ -25,6 +25,7 @@
 /// 
 /// Basic classes and structures for storing image interest points.
 /// 
+#include <fstream>
 #include <vw/InterestPoint/InterestData.h>
 
 namespace vw {

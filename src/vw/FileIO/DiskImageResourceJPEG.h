@@ -33,7 +33,6 @@
 #include <setjmp.h>
 #include <boost/shared_ptr.hpp>
 
-#include <vw/Image/PixelTypes.h>
 #include <vw/FileIO/DiskImageResource.h>
 
 

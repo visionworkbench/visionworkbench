@@ -28,16 +28,18 @@
 #ifndef __VW_INTERESTPOINT_DETECTOR_H__
 #define __VW_INTERESTPOINT_DETECTOR_H__
 
+#include <vw/Core/Debugging.h>
+#include <vw/Core/ThreadPool.h>
+#include <vw/Image/ImageViewRef.h>
+#include <vw/Image/Statistics.h>
+#include <vw/Image/Filter.h>
+
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/Extrema.h>
 #include <vw/InterestPoint/Localize.h>
-#include <vw/InterestPoint/InterestOperator.h> 
+#include <vw/InterestPoint/InterestOperator.h>
 #include <vw/InterestPoint/WeightedHistogram.h>
 #include <vw/InterestPoint/ImageOctaveHistory.h>
-#include <vw/Image/Algorithms.h>
-#include <vw/Image/Manipulation.h>
-#include <vw/Core/ThreadPool.h>
-#include <vw/FileIO.h>
 
 namespace vw {
 namespace ip {

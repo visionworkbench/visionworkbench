@@ -35,11 +35,8 @@
 #ifndef __VW_HDR_GLOBALTONEMAP_H__
 #define __VW_HDR_GLOBALTONEMAP_H__
 
-#include <vw/Image/ImageView.h>
-#include <vw/Image/PixelTypes.h>
-#include <vw/Image/PixelTypeInfo.h>
+#include <vw/Image/ImageViewBase.h>
 #include <vw/Image/PerPixelViews.h>
-#include <vw/Image/Filter.h>
 
 namespace vw { 
 namespace hdr {

@@ -41,7 +41,6 @@
 #include <boost/mpl/and.hpp>
 #include <boost/mpl/not.hpp>
 
-#include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/CompoundTypes.h>
 
 namespace vw {

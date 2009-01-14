@@ -31,14 +31,12 @@
 #define __VW_IMAGE_TRANSFORM_H__
 
 // Vision Workbench
-#include <vw/Core/Debugging.h>
-#include <vw/Math/Functions.h>
+#include <vw/Core/Log.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Interpolation.h>
-#include <vw/Image/Manipulation.h>
 
 static const double VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE = 1;
 static const double VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE = 1e10; // Ten gigapixels

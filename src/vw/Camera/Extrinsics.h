@@ -30,8 +30,6 @@
 #ifndef __VW_CAMERA_EXTRINSICS_H__
 #define __VW_CAMERA_EXTRINSICS_H__
 
-#include <vw/Math/Matrix.h>
-#include <vw/Math/Vector.h>
 #include <vw/Math/Quaternion.h>
 #include <vw/Math/LinearAlgebra.h>
 

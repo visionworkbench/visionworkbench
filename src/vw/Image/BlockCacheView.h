@@ -42,9 +42,8 @@
 #include <map>
 
 #include <vw/Core/Cache.h>
-#include <vw/Core/Debugging.h>
 #include <vw/Image/ImageResourceView.h>
-#include <vw/Image/ImageView.h>
+#include <vw/Image/ImageViewBase.h>
 
 
 namespace vw {

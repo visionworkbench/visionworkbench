@@ -28,10 +28,7 @@
 #ifndef __VW_CAMERAMODEL_PINHOLE_H__
 #define __VW_CAMERAMODEL_PINHOLE_H__
 
-#include <vw/Image/ImageView.h>
-#include <vw/Math/Vector.h>
-#include <vw/Math/Matrix.h>
-
+#include <vw/Math/Quaternion.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Camera/LensDistortion.h>
 

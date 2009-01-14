@@ -35,8 +35,9 @@
 #include <list>
 
 // Vision workbench
-#include <vw/Core/Debugging.h>
 #include <vw/Math/Vector.h>
+#include <vw/Core/Exception.h>
+#include <vw/Core/Log.h>
 
 namespace vw {
 namespace math {

@@ -21,6 +21,7 @@
 // 
 // __END_LICENSE__
 //
+#include <vw/Core/Log.h>
 #include <vw/Camera/CAHVORModel.h>
 
 using namespace std;

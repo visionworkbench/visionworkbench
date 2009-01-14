@@ -31,7 +31,7 @@
 #include <math.h>
 #include <string>
 
-#include <vw/Core/Debugging.h>
+#include <vw/Core/Log.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Thread.h>
 

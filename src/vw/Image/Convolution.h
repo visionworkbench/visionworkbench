@@ -33,8 +33,6 @@
 #include <vector>
 #include <iterator>
 
-#include <vw/Core/Exception.h>
-#include <vw/Core/TypeDeduction.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/EdgeExtension.h>

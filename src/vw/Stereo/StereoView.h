@@ -2,10 +2,8 @@
 #define __VW_STEREO_STEREOVIEW_H__
 
 #include <vw/Image/ImageViewBase.h>
-#include <vw/Stereo/DisparityMap.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Camera/CameraModel.h>
-#include <vw/Math/Vector.h>
 
 #ifdef __APPLE__
 #include <float.h>                         // for DBL_MAX

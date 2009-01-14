@@ -35,13 +35,13 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include <vw/Math/EulerAngles.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Filter.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/PerPixelAccessorViews.h>
-#include <vw/Math/EulerAngles.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <vw/Cartography/GeoReference.h>

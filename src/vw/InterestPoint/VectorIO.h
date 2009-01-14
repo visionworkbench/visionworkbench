@@ -32,7 +32,6 @@
 
 #include <vw/Math/Vector.h>
 #include <vw/Image/ImageView.h>
-#include <vw/FileIO/DiskImageResource.h>
 
 //Vector<double> alignVector;
 //write_vector(out_prefix + "-align.exr", align_vector);

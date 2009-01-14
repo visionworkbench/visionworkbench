@@ -20,7 +20,9 @@
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
 // 
 // __END_LICENSE__
+
 #include <vw/Core/Log.h>
+#include <vw/Core/Exception.h>
 
 // Boost headers
 #include <boost/thread/xtime.hpp>
