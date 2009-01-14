@@ -4,7 +4,7 @@
 
 #include <vw/GPU/GPUImage.h>
 
-#include "vw/GPU/Expressions.h"
+#include <vw/GPU/Expressions.h>
 
 
 namespace vw {

@@ -1,5 +1,5 @@
 
-#include "vw/GPU/GenericShaders.h"
+#include <vw/GPU/GenericShaders.h>
 
 namespace vw { namespace GPU {
 

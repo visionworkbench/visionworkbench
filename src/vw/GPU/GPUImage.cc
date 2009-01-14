@@ -1,6 +1,6 @@
 
-#include "GPUImage.h"
-#include "TexAlloc.h"
+#include <vw/GPU/GPUImage.h>
+#include <vw/GPU/TexAlloc.h>
 #include <vw/GPU/GPUProgram.h>
 #include <vw/GPU/Setup.h>
 #include <vw/Image/Transform.h>
