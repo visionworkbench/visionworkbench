@@ -40,3 +40,5 @@ AC_DEFUN([AX_GROUP_PKG],
   AS_VAR_POPDEF([have_pkg])
   m4_undefine([pkg])
 ])
+
+AC_DEFUN([AX_DISABLE_PKG], [AX_GROUP_PKG([$1])])

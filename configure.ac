@@ -322,13 +322,6 @@ AX_PKG(Z, [], [-lz], [zlib.h])
 AX_PKG(PNG, [], [-lpng], [png.h])
 AX_PKG(JPEG, [], [-ljpeg], [stdio.h jpeglib.h]) # jpeglib.h requires stdio.h to have been included
 
-AX_PKG(TIFF, [], [-ltiff], [tiff.h])
-tiff_has_bigtiff=0
-if test x"$HAVE_PKG_TIFF" != x"no"; then
-  AX_CHECK_FUNCTIONS(TIFFScanlineSize64, [$PKG_TIFF_LIBS], [tiff_has_bigtiff=1], [], [for BigTIFF in TIFF])
-fi
-AC_DEFINE_UNQUOTED([TIFF_HAS_BIGTIFF], [$tiff_has_bigtiff], [Define to 1 if libtiff has BigTIFF support])
-
 AX_PKG(ILMBASE, [Z PTHREADS], [-lImath -lHalf -lIex], [Iex.h], [OpenEXR])
 AX_PKG(OPENEXR, [ILMBASE], [-lIlmImf], [ImfOutputFile.h], [OpenEXR])
 
@@ -348,11 +341,15 @@ AX_PKG(GLEW, [GL M], [-lGLEW], [GL/glew.h])
 AX_PKG(CG, [], [-lCg -lCgGL], [Cg/cg.h])
 
 AX_PKG(GDAL, [], [-lgdal], [gdal.h])
-gdal_has_bigtiff=0
-if test x"$HAVE_PKG_GDAL" != x"no"; then
-  AX_CHECK_FUNCTIONS(TIFFScanlineSize64, [$PKG_GDAL_LIBS], [gdal_has_bigtiff=1], [], [for BigTIFF in GDAL])
+PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize], [TIFF])
+PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize64], [BigTIFF])
+
+if test x"$GDAL_HAS_TIFF" == "xno"; then
+  AX_PKG(TIFF, [], [-ltiff], [tiff.h])
+  PKG_CHECK_FUNCTION(TIFF, [TIFFScanlineSize64], [BigTIFF])
+else
+  AX_DISABLE_PKG(TIFF)
 fi
-AC_DEFINE_UNQUOTED([GDAL_HAS_BIGTIFF], [$gdal_has_bigtiff], [Define to 1 if libgdal has BigTIFF support])
 
 AX_PKG(PROJ4, [], [-lproj], [projects.h])
 
