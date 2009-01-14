@@ -1,0 +1,10 @@
+template vw::math::Matrix<MatrixT::value_type, vw::math::MatrixRows::value, vw::math::MatrixCols::value> vw::math::eval < MatrixT > (const vw::math::MatrixBase<MatrixT>&);
+template vw::math::Vector<VectorT::value_type, vw::math::VectorSize::value> vw::math::eval < VectorT > (const vw::math::VectorBase<VectorT>&);
+template vw::math::MatrixProxy<ContainerT::value_type, 0, 0> vw::math::matrix_proxy < ContainerT > (const ContainerT&);
+template vw::math::Matrix<vw::ProductType<Vector1T::value_type, Vector2T::value_type>::type, (vw::math::VectorSize::value ?  vw::math::VectorSize::value : 0), (vw::math::VectorSize::value ?  vw::math::VectorSize::value : 0)> vw::math::operator* < Vector1T,Vector2T > (const vw::math::VectorBase<VectorT>&, const vw::math::VectorTranspose<Vector2T>&);
+template vw::math::Matrix<vw::ProductType<Vector1T::value_type, Vector2T::value_type>::type, (vw::math::VectorSize::value ?  vw::math::VectorSize::value : 0), (vw::math::VectorSize::value ?  vw::math::VectorSize::value : 0)> vw::math::outer_prod < Vector1T,Vector2T > (const vw::math::VectorBase<VectorT>&, const vw::math::VectorBase<Vector2T>&);
+template void vw::math::print_record < ForwardIterator > (ForwardIterator, ForwardIterator);
+template vw::math::VectorProxy<ElemT, 0> vw::math::vector_proxy < DataT > (DataT*, int);
+template struct vw::math::ArgAbsFunctor::result<Args>;
+template class  vw::math::BBox<RealT, DimN>;
+template class  vw::math::BBoxBase<BBoxT, RealT, DimN>;

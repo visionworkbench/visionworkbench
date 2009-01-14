@@ -1,74 +1,220 @@
 // Types of template decl:
 //
 // [class/struct]
-//    template <class PixelT> struct ValueEdgeExtension;
-//    becomes
-//    template struct ValueEdgeExtension<PixelT>;
+//     template <class PixelT> struct ValueEdgeExtension;
+//   becomes
+//     template struct ValueEdgeExtension<PixelT>;
+//
+// [free function]
+//     template <class ImageT>
+//     EdgeExtensionView<ImageT, ConstantEdgeExtension> edge_extend(const ImageViewBase<ImageT>&);
+//   becomes
+//     template
+//     EdgeExtensionView<ImageT, ConstantEdgeExtension> edge_extend(const ImageViewBase<ImageT>&);
 
-function hasTmplArg(d)
+//var dir = "/home/mike/Work/projects/VisionWorkbench-Trace/src/vw/tools/output"
+var dir = "/home/mike/Work/projects/VisionWorkbench-Trace/src/vw"
+
+if (!String.prototype.pad)
 {
-    if (d.type.template && d.type.template.arguments)
-    {
-        var args = d.type.template.arguments;
-        for (var i in args)
-        {
-            if (args[i].isTypename)
-                return true;
-        }
-    }
-    return false;
+    String.prototype.pad = function(l, s, t){
+        return s || (s = " "), (l -= this.length) > 0 ? (s = new Array(Math.ceil(l / s.length)
+            + 1).join(s)).substr(0, t = !t ? l : t == 1 ? 0 : Math.ceil(l / 2))
+            + this + s.substr(0, l - t) : this;
+    };
 }
 
-String.prototype.pad = function(l, s, t){
-    return s || (s = " "), (l -= this.length) > 0 ? (s = new Array(Math.ceil(l / s.length)
-        + 1).join(s)).substr(0, t = !t ? l : t == 1 ? 0 : Math.ceil(l / 2))
-        + this + s.substr(0, l - t) : this;
-};
+function removeSubstring(s, t) {
+    i = s.indexOf(t);
+    r = "";
+    if (i == -1) return s;
+    r += s.substring(0,i) + removeSubstring(s.substring(i + t.length), t);
+    return r;
+}
 
-var records = []
+if (!Array.prototype.map)
+{
+  Array.prototype.map = function(fun /*, thisp*/)
+  {
+    var len = this.length;
+    if (typeof fun != "function")
+      throw new TypeError();
+
+    var res = new Array(len);
+    var thisp = arguments[1];
+    for (var i = 0; i < len; i++)
+    {
+      if (i in this)
+        res[i] = fun.call(thisp, this[i], i, this);
+    }
+
+    return res;
+  };
+}
+
+
+
+function ModuleList()
+{
+    this.modules     = {};
+
+    this.RECORD      = "Record";
+    this.FUNC_FREE   = "Free";
+    this.FUNC_MEMBER = "Member";
+
+    this.module_name = function(d) { return d.loc.file.substring(16, d.loc.file.indexOf("/", 16)); };
+
+    this.parseDecl = function(d) {
+        if ((obj = this.Func(d)) == null && (obj = this.Record(d)) == null)
+            return null;
+
+        obj.loc = "// " + d.loc.file + ":" + d.loc.line;
+        return obj;
+    }
+
+    this.Record = function(d) {
+        if (!d.type || !d.type.name || !(d.type.kind == "struct" || d.type.kind == "class"))
+            return null;
+
+        if (d.type.template && d.type.template.arguments)
+        {
+            var args = d.type.template.arguments;
+            for (var i in args)
+            {
+                if (args[i].isTypename) {
+                    return {
+                        name: d.type.name,
+                        decl: "template " + d.type.kind.pad(7, " ", 1) + d.type.name + ";",
+                        type: this.RECORD
+                    }
+                }
+            }
+        }
+        return null;
+    };
+
+    this.Func = function(d) {
+        if (!d.isFunction || !d.template || d.memberOf || !d.type.type.name)
+            return null;
+
+        var parts = d.name.split("(")
+        parts[0] += " < " + d.template.map(function(v,i,a) {return v.name}).join() + " > ";
+        var newname = removeSubstring(parts.join("("), "typename ");
+        var decl = "template " + removeSubstring(d.type.type.name, "typename ") + " " + newname + ";";
+        return {
+            name: newname,
+            decl: decl,
+            type: this.FUNC_FREE
+        };
+    };
+
+    return true;
+}
+
+
+ModuleList.prototype.add_decl = function(d) {
+    var obj = this.parseDecl(d);
+
+    if (!obj)
+        return;
+
+    var name = this.module_name(d);
+    if (this.modules[name] == null)
+        this.modules[name] = {};
+    if (this.modules[name][obj.type] == null)
+        this.modules[name][obj.type] = [];
+    this.modules[name][obj.type].push(obj);
+}
+
+var list = new ModuleList();
+
 function process_decl(d)
 {
     if (!d.name || d.name.substring(0, 4) != "vw::")
         return;
 
-    if (!d.type || !d.type.name || !(d.type.kind == "struct" || d.type.kind == "class"))
-        return;
+    //if (d.name.indexOf("compound_select_channel") == -1)
+    //    return;
+    //print(d);
+    //return;
 
-    if (!hasTmplArg(d))
-        return;
+    //if (d.name.indexOf("ArgValDifferenceFunctor::operator") == -1)
+    //    return;
 
-    records.push({
-        loc:  "// " + d.loc.file + ":" + d.loc.line,
-        module:  d.loc.file.substring(16, d.loc.file.indexOf("/", 16)),
-        name: d.type.name,
-        decl: "template " + d.type.kind.pad(7, " ", 1) + d.type.name + ";"
-    });
+    //print(d);
+    //if (d.name.indexOf("edge_extend") == -1)
+    //    return;
 
+    list.add_decl(d);
+}
+
+function sort_module_list(a,b) {
+    return a.type < b.type ? -1 :
+           a.type > b.type ?  1 :
+           a.name < b.name ? -1 :
+           a.name > b.name ?  1 :
+           0;
+}
+
+function sort_name(a,b) {
+    return a.name < b.name ? -1 :
+           a.name == b.name ? 0 :
+           1;
+}
+
+// try to back up a file before overwriting it. don't rely on this; it's fragile.
+function write_file_bak(file, data)
+{
+    var old_data;
+    try {old_data = read_file(file);}
+    catch (e) {
+        if (e.name != "Error" || e.message.substring(0,29) != "read_file: error opening file")
+            throw e;
+    }
+
+    if (old_data)
+    {
+        if (old_data != data) {
+          print("File " + file + " changed. saving backup.");
+          write_file(file + "~", old_data);
+          write_file(file, data);
+        }
+    }
+    else
+      write_file(file, data);
 }
 
 function input_end()
 {
-    records.sort(function(a,b) {
-            return a.module < b.module ? -1 :
-                   a.module > b.module ?  1 :
-                   a.name   < b.name   ? -1 :
-                   a.name   > b.name})
+    if (!dir)
+        throw Error("please set dir");
 
-    var last = "";
-    var data = "";
-    for (var d in records)
+    var fn;
+    var excl;
+
+    for (var module_name in list.modules)
     {
-        var d = records[d];
-        if (d.module != last)
-        {
-            print("Switching to " + d.module + " from " + last);
-            if (last)
-                write_file("Instantiate" + last + ".h", data);
-            last = d.module;
-            data = "";
+        var module = list.modules[module_name];
+
+        excl = "";
+        try {excl = read_file(dir + "/" + module_name + "/tests/TestInstantiateExclusion.txt")}
+        catch (e) {/* swallow. assume there aren't any exclusions. shame on me. */ }
+
+        excl = removeSubstring(excl, " ");
+
+        for (var type_name in module) {
+            var type = module[type_name];
+            type.sort(sort_name);
+            var data = "";
+            for (var d in type) {
+                var d = type[d];
+                //data += d.loc + "\n" + d.decl + "\n";
+                if (excl.indexOf(removeSubstring(d.decl, " ")) != -1) // wow. linear search, huh? lame.
+                    data += "//"
+                data += d.decl + "\n";
+            }
+            if (data.length > 0)
+              write_file_bak(dir + "/" + module_name + "/tests/TestInstantiate" + type_name + "List.hh", data);
         }
-        //data += d.loc + "\n" + d.decl + "\n";
-        data += d.decl + "\n";
     }
-    write_file("Instantiate" + last + ".h", data);
 }

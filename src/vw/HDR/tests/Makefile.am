@@ -27,9 +27,11 @@
 
 if MAKE_MODULE_HDR
 
+#nodist_TestCameraCurve_SOURCES = TestCameraCurve.cxx
+
 TESTS = #TestCameraCurve
 
-#nodist_TestCameraCurve_SOURCES = TestCameraCurve.cxx
+include $(top_srcdir)/config/instantiate.am
 
 endif
 

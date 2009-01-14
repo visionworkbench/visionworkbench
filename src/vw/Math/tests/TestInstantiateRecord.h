@@ -74,10 +74,9 @@ struct ImplT : math::LeastSquaresModelBase<ImplT> {
 
 typedef Quaternion<int> QuaternionT;
 
-#include "TestInstantiateList.hh"
+#include "TestInstantiateRecordList.hh"
 
-class TestInstantiateMath : public CxxTest::TestSuite
+class TestInstantiateMathRecord : public CxxTest::TestSuite
 {
-  public:
-  void test_inst() {}
+  public: void test_inst() {}
 };

@@ -1,0 +1,7 @@
+template struct vw::ChannelRangeHelper<T, <anonymous> >;
+template class  vw::ImageViewRefAccessor<PixelT>;
+template class  vw::MaskToAlpha<PixelT>;
+template class  vw::PixelIterator<ViewT>;
+template struct vw::PixelMask<ChildT>;
+template class  vw::PlanesToChannelsView<PixelT, ImageT>;
+template class  vw::SeparableConvolutionView<ImageT, KernelT, EdgeT>;

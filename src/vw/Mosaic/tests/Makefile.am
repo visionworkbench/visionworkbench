@@ -27,7 +27,9 @@
 
 if MAKE_MODULE_MOSAIC
 
-TESTS = 
+TESTS =
+
+include $(top_srcdir)/config/instantiate.am
 
 endif
 

@@ -33,6 +33,8 @@ nodist_TestSURF_SOURCES = TestSURF.cxx
 
 TESTS = TestMatcher TestIntegral TestSURF
 
+include $(top_srcdir)/config/instantiate.am
+
 endif
 
 ########################################################################

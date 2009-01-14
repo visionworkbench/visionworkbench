@@ -43,16 +43,12 @@ nodist_TestTransform_SOURCES = TestTransform.cxx
 nodist_TestAlgorithms_SOURCES = TestAlgorithms.cxx
 nodist_TestStatistics_SOURCES = TestStatistics.cxx
 
-if ENABLE_TEST_COVERAGE
-nodist_TestInstantiate_SOURCES = TestInstantiate.cxx
-instantiate = TestInstantiate
-endif
-
 TESTS = TestPixelMath TestPixelTypes TestImageView TestImageViewRef		\
 	TestManipulation TestPerPixelViews TestPerPixelAccessorViews		\
 	TestImageMath TestEdgeExtension TestInterpolation TestConvolution	\
-	TestFilter TestTransform TestAlgorithms TestStatistics $(instantiate)
+	TestFilter TestTransform TestAlgorithms TestStatistics
 
+include $(top_srcdir)/config/instantiate.am
 
 endif
 

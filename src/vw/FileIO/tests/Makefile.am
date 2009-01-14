@@ -27,10 +27,12 @@
 
 if MAKE_MODULE_FILEIO
 
-TESTS = TestDiskImageResource TestDiskImageView
-
 nodist_TestDiskImageResource_SOURCES = TestDiskImageResource.cxx
 nodist_TestDiskImageView_SOURCES = TestDiskImageView.cxx
+
+TESTS = TestDiskImageResource TestDiskImageView
+
+include $(top_srcdir)/config/instantiate.am
 
 endif
 

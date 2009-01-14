@@ -71,10 +71,9 @@ struct FuncT : ReturnFixedType<PixelT> {
 };
 
 
-#include "TestInstantiateList.hh"
+#include "TestInstantiateRecordList.hh"
 
-class TestInstantiateMath : public CxxTest::TestSuite
+class TestInstantiateImageRecord : public CxxTest::TestSuite
 {
-  public:
-  void test_inst() {}
+  public: void test_inst() {}
 };

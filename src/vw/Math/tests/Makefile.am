@@ -47,15 +47,12 @@ TestLinearAlgebra = TestLinearAlgebra TestGeometry	\
 	TestLevenbergMarquardt TestPoseEstimation
 endif
 
-if ENABLE_TEST_COVERAGE
-instantiate = TestInstantiate
-nodist_TestInstantiate_SOURCES = TestInstantiate.cxx
-endif
-
 TESTS = TestVector TestMatrix TestQuaternion TestBBox TestFunctions	\
         TestFunctors TestNelderMead TestKDTree $(TestLinearAlgebra)	\
-        TestEuler $(instantiate)
-        #TestConjugateGradient
+        TestEuler #TestConjugateGradient
+
+include $(top_srcdir)/config/instantiate.am
+
 endif
 
 ########################################################################

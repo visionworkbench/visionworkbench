@@ -27,11 +27,13 @@
 
 if MAKE_MODULE_CARTOGRAPHY
 
-TESTS = TestGeoReference TestGeoTransform TestPointImageManipulation
-
 nodist_TestGeoReference_SOURCES = TestGeoReference.cxx
 nodist_TestGeoTransform_SOURCES = TestGeoTransform.cxx
 nodist_TestPointImageManipulation_SOURCES = TestPointImageManipulation.cxx
+
+TESTS = TestGeoReference TestGeoTransform TestPointImageManipulation
+
+include $(top_srcdir)/config/instantiate.am
 
 endif
 

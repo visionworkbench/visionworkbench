@@ -35,14 +35,9 @@ nodist_TestThread_SOURCES = TestThread.cxx
 nodist_TestThreadPool_SOURCES = TestThreadPool.cxx
 nodist_TestLog_SOURCES = TestLog.cxx
 
-if ENABLE_TEST_COVERAGE
+TESTS = TestCompoundTypes TestFunctors TestExceptions TestThread TestThreadPool TestCache TestLog
 
-nodist_TestInstantiate_SOURCES = TestInstantiate.cxx
-instantiate = TestInstantiate
-
-endif
-
-TESTS = TestCompoundTypes TestFunctors TestExceptions TestThread TestThreadPool TestCache TestLog $(instantiate)
+include $(top_srcdir)/config/instantiate.am
 
 endif
 

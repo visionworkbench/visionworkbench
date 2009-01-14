@@ -59,10 +59,9 @@ struct ResultT
   ResultT(T a=0, T b=0, T c=0, T d=0) {}
 };
 
-#include "TestInstantiateList.hh"
+#include "TestInstantiateRecordList.hh"
 
-class TestInstantiateCore : public CxxTest::TestSuite
+class TestInstantiateCoreRecord : public CxxTest::TestSuite
 {
-  public:
-  void test_inst() {}
+  public: void test_inst() {}
 };

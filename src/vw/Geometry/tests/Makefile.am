@@ -42,6 +42,8 @@ endif
 
 TESTS = TestSphere TestSpatialTree $(convex_tests)
 
+include $(top_srcdir)/config/instantiate.am
+
 endif
 
 ########################################################################
