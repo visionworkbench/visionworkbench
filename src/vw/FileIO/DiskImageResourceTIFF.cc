@@ -308,7 +308,7 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
              ArgumentErr() << "DiskImageResourceTIFF (read) Error: Destination buffer has wrong dimensions!" );
 
   // Only support sequential reading on striped TIFFs right now.
-  if( !m_info || !(m_info->striped) || (m_info->striped && m_info->current_line > bbox.min().y()) )
+  if( !m_info || !(m_info->tif) || !(m_info->striped) || (m_info->striped && m_info->current_line > bbox.min().y()) )
     m_info->reopen_read();
 
   uint16 config = 0, bpsample = 0, nsamples = 0, photometric = 0;
