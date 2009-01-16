@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 #include <math.h>
@@ -55,13 +55,13 @@ namespace math {
     DisjointSet<int>::Elem *ds_elem;
     DisjointSet<int>::Set set1, set2;
     int i, j1, j2, k;
-    
+
     num_primitives = num_primitives_;
     prims = new EdgePrimitive*[num_primitives];
     for (i = 0; i < num_primitives; i++)
       prims[i] = prims_[i];
     qsort(prims, num_primitives, sizeof(EdgePrimitive*), edge_primitive_compare);
-    
+
     min_node = std::min(prims[0]->node1(), prims[0]->node2());
     max_node = std::max(prims[0]->node1(), prims[0]->node2());
     for (i = 1; i < num_primitives; i++) {
@@ -71,7 +71,7 @@ namespace math {
       max_node = std::max(max_node, prims[i]->node2());
     }
     num_nodes = max_node - min_node + 1;
-    
+
     node_used = new bool[num_nodes];
     for (i = 0; i < num_nodes; i++)
       node_used[i] = false;
@@ -81,7 +81,7 @@ namespace math {
       node_used[j1] = true;
       node_used[j2] = true;
     }
-    
+
     prim_used = new bool[num_primitives];
     for (i = 0; i < num_primitives; i++)
       prim_used[i] = false;
@@ -94,7 +94,7 @@ namespace math {
       else
         ds_elem[i] = 0;
     }
-    
+
     for (i = 0; i < num_primitives; i++) {
       j1 = prims[i]->node1() - min_node;
       j2 = prims[i]->node2() - min_node;
@@ -107,7 +107,7 @@ namespace math {
         num_edges[j2]++;
       }
     }
-    
+
     edges = new EdgePrimitive**[num_nodes];
     for (i = 0; i < num_nodes; i++) {
       edges[i] = new EdgePrimitive*[num_edges[i]];
@@ -123,10 +123,10 @@ namespace math {
         num_edges[j2]++;
       }
     }
-    
+
     delete[] ds_elem;
   }
-  
+
   MinimumSpanningTree::~MinimumSpanningTree() {
     int i;
     delete[] prims;
@@ -137,7 +137,7 @@ namespace math {
       delete[] edges[i];
     delete[] edges;
   }
-  
+
   void MinimumSpanningTree::apply(EdgePrimitiveFunctor &func, int start_node) {
     bool *visited;
     int i, j;
@@ -163,7 +163,7 @@ namespace math {
     }
     delete[] visited;
   }
-  
+
   //FIXME: ack! recursion!
   void MinimumSpanningTree::apply_(EdgePrimitiveFunctor &func, int node, bool *visited) {
     int next_node;
@@ -180,5 +180,5 @@ namespace math {
       }
     }
   }
-   
+
 }} // namespace vw::math

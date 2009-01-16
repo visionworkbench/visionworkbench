@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,7 +18,7 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 /// \file DisjointSet.h
@@ -35,8 +35,8 @@
 
 // Note that find(Elem) is much more efficient than find(ElemT), so it
 // is strongly recommended that you store the Elem returned by
-// insert() if you intend to find() it again later.  Also, it is possible 
-// to store multiple elements with the same value in a DisjointSet, but 
+// insert() if you intend to find() it again later.  Also, it is possible
+// to store multiple elements with the same value in a DisjointSet, but
 // if you do so then find(ElemT) becomes ambiguous.
 
 #include <list>
@@ -57,11 +57,11 @@ namespace math {
       ElemNode *parent;
       unsigned rank;
     };
-    
+
   public:
     typedef ElemNode* Elem;
     typedef ElemNode* Set;
-    
+
     DisjointSet() {}
     ~DisjointSet() {
       typename std::list<ElemNode*>::iterator i;
@@ -69,7 +69,7 @@ namespace math {
         delete *i;
       num_elems = 0;
     }
-  
+
     Elem insert(const ElemT &e) {
       ElemNode *n = new ElemNode(e);
       elems.push_back(n);
@@ -83,7 +83,7 @@ namespace math {
       num_elems++;
       return n;
     }
-    
+
     Set combine(Set s1, Set s2) {
       VW_ASSERT(s1 && !s1->parent, ArgumentErr() << "Not a valid set!");
       VW_ASSERT(s2 && !s2->parent, ArgumentErr() << "Not a valid set!");
@@ -101,7 +101,7 @@ namespace math {
       s1->rank++;
       return s1;
     }
-    
+
     Set find(Elem e) {
       VW_ASSERT(e, ArgumentErr() << "Not a valid element!");
       ElemNode *n;
@@ -128,7 +128,7 @@ namespace math {
         return 0;
       return find(n);
     }
-    
+
   private:
     std::list<ElemNode*> elems;
     unsigned num_elems;

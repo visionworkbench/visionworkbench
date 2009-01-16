@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2006 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2006 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -18,11 +18,11 @@
 // A PARTICULAR PURPOSE, OR FREEDOM FROM INFRINGEMENT, ANY WARRANTY THAT
 // THE SUBJECT SOFTWARE WILL BE ERROR FREE, OR ANY WARRANTY THAT
 // DOCUMENTATION, IF PROVIDED, WILL CONFORM TO THE SUBJECT SOFTWARE.
-// 
+//
 // __END_LICENSE__
 
 /// \file JP2.h
-/// 
+///
 /// Provides support for the JPEG2000 image file formats.
 ///
 #ifndef __VW_FILEIO_JPEG2000_H__
@@ -71,13 +71,13 @@ namespace vw
   // These classes parse jp2 and jpx files, and upgrade jp2 -> jp2-compatible jpx
   // References: jp2 file format: http://www.jpeg.org/public/15444-1annexi.pdf
   //             jpx file format: http://www.jpeg.org/public/15444-2annexm.pdf
-  
+
   // Forward declaration.
   class JP2Box;
-  
+
   typedef std::list<JP2Box*> JP2BoxList;
   typedef std::list<std::pair<uint16,bool> > JP2ReaderRequirementsList;
-  
+
 #if 0
   template <class MaskT>
   class JP2ReaderRequirements
@@ -86,7 +86,7 @@ namespace vw
     uint8* ML;
     uint16* NSF;
     uint16* NVF;
-  
+
   public:
     MaskT* FUAM;
     MaskT* DCM;
@@ -162,14 +162,14 @@ namespace vw
           std::cout << ")";
       }
     }
-    
+
     // Construct an empty Reader Requirements box with NSF_ standard features and NVF_ vendor features
     // 'free_dat_' is whether to free the data buffer when this object is destroyed
     JP2ReaderRequirements(uint8 NSF_, uint8 NVF_, bool free_dat_ = true) : free_dat(free_dat_)
     {
       uint8* d;
       uint8 i;
-      
+
       bytes = sizeof(uint8) + (2 + NSF_ + NVF_) * sizeof(uint16) + (2 + NSF_ + NVF_) * sizeof(MaskT);
       dat = new uint8[bytes];
       if(NSF_ > 0)
@@ -233,7 +233,7 @@ namespace vw
         VM[i] = (MaskT*)d; d += sizeof(MaskT);
       }
     }
-    
+
     // Destructor
     ~JP2ReaderRequirements()
     {
@@ -256,23 +256,23 @@ namespace vw
   {
   protected:
     uint32 TBox;
-  
+
   public:
     // Get box type
     uint32 box_type(void)
     {
       return TBox;
     }
-    
+
     // Get number of bytes in the body of the box (DBox)
     virtual uint64 bytes_dbox(void) = 0;
-    
+
     // Get number of bytes including the header
     virtual uint64 bytes(void) = 0;
 
     // Print with d intentations
     virtual void print(int d = 0) = 0;
-    
+
     // Serialize into buffer d, which must be large enough
     // (call bytes() and allocate buffer first)
     virtual void serialize(uint8* d) = 0;
@@ -284,13 +284,13 @@ namespace vw
 
     // Destructor
     virtual ~JP2Box() {}
-  
+
   protected:
     // Determine whether box with type 'type' is a superbox
     static bool is_superbox(uint32 type)
     {
       bool retval = false;
-    
+
       switch(type)
       {
       case 0x6A703268: // "jp2h"
@@ -307,7 +307,7 @@ namespace vw
       default:
         break;
       }
-      
+
       return retval;
     }
 
@@ -400,26 +400,26 @@ namespace vw
     {
       uint8* c;
       int j;
-      
+
       t = htonl(t);
       c = (uint8*)&t;
       for(j = 0; j < 4; j++)
         std::cout << (char)c[j];
     }
-    
+
     // Basic common print functionality for print()
     void print_basic(void)
     {
       print_type(TBox);
       std::cout << ": " << this->bytes() << "/" << this->bytes_dbox() << " bytes";
     }
-    
+
     // Basic serialization functionality for serialize()
     virtual void serialize_basic(uint8** d_)
     {
       uint64 s = this->bytes();
       uint8* d = *d_;
-    
+
       if(s > 0x00000000ffffffffULL)
       {
         *((uint32*)d) = htonl(1); d += sizeof(uint32);
@@ -431,7 +431,7 @@ namespace vw
         *((uint32*)d) = htonl(s); d += sizeof(uint32);
         *((uint32*)d) = htonl(TBox); d += sizeof(uint32);
       }
-      
+
       *d_ = d;
     }
   };
@@ -452,7 +452,7 @@ namespace vw
       uint8 ML = mask_length(requirements.cols() - 2);
       return (NSF + NVF + 2) * (sizeof(uint16) + ML) + 1;
     }
-    
+
     // Get number of bytes including the header
     virtual uint64 bytes(void)
     {
@@ -650,7 +650,7 @@ namespace vw
     {
       return requirements_row_(1);
     }
-    
+
     // Construct an empty Reader Requirements box
     JP2ReaderRequirementsBox() : JP2Box(0x72726571 /*"rreq"*/), NSF(0), NVF(0), requirements(2, 2)
     {
@@ -692,12 +692,12 @@ namespace vw
         set_requirements_row_(i, mask);
       }
     }
-    
+
     // Destructor
     ~JP2ReaderRequirementsBox() {}
-    
+
   protected:
-  
+
     // Find (64 - number of leading zeros).
     static uint8 mask_used_bits(uint64 mask)
     {
@@ -712,15 +712,15 @@ namespace vw
     // Find mask length in bytes.
     static uint8 mask_length(uint8 num_expressions)
     {
-      return (uint8)ceil((double)num_expressions / 8.0); 
+      return (uint8)ceil((double)num_expressions / 8.0);
     }
-    
+
     // Serialize mask into buffer *d_.
     //NOTE: returned mask is in host order
     static uint64 interp_mask(uint8* d, uint8 nbytes)
     {
       uint64 mask = 0;
-    
+
       switch(nbytes)
       {
       case 1:
@@ -742,13 +742,13 @@ namespace vw
 
       return mask;
     }
-    
+
     // Serialize mask of length nbytes into buffer *d_.
     //NOTE: mask is in host order
     static void serialize_mask(uint8** d_, uint8 nbytes, uint64 mask)
     {
       uint8* d = *d_;
-      
+
       switch(nbytes)
       {
       case 1:
@@ -771,7 +771,7 @@ namespace vw
         //FIXME: do something ugly
         break;
       }
-      
+
       *d_ = d;
     }
 
@@ -820,7 +820,7 @@ namespace vw
   class JP2DataBox : public JP2Box
   {
     //friend class JP2File;
-    
+
   protected:
     uint8* DBox;
     bool dbox_allocated;
@@ -828,15 +828,15 @@ namespace vw
     uint8* dbox_addon;
     bool dbox_addon_allocated;
     uint64 dbox_addon_bytes;
-    
+
   public:
-    
+
     // Get number of bytes in the body of the box (DBox)
     virtual uint64 bytes_dbox(void)
     {
       return dbox_bytes + dbox_addon_bytes;
     }
-    
+
     // Get number of bytes including the header
     virtual uint64 bytes(void)
     {
@@ -848,7 +848,7 @@ namespace vw
     {
       int i;
       uint64 j;
-      
+
       for(i = 0; i < d; i++)
         std::cout << "  ";
       print_basic();
@@ -884,13 +884,13 @@ namespace vw
       }
       std::cout << std::endl;
     }
-    
+
     // Serialize into buffer d, which must be large enough
     // (call bytes() and allocate buffer first)
     virtual void serialize(uint8* d)
     {
       serialize_basic(&d);
-     
+
       if(dbox_bytes > 0)
       {
         memcpy(d, DBox, dbox_bytes);
@@ -909,7 +909,7 @@ namespace vw
     {
       return DBox;
     }
-    
+
     // Add some data on to the payload
     // 'allocated' is whether to delete the buffer when this box is destroyed
     void addon_dbox(uint8* d, uint64 nbytes, bool allocated)
@@ -920,7 +920,7 @@ namespace vw
       dbox_addon_bytes = nbytes;
       dbox_addon_allocated = allocated;
     }
-    
+
     // Construct JP2DataBox from buffer d containing a serialized box (d includes the header)
     // Buffer d is not deleted when this box is destroyed
     JP2DataBox(uint8* d, uint64 nbytes) : JP2Box(interp_type(d)), dbox_addon(0), dbox_addon_allocated(false), dbox_addon_bytes(0)
@@ -957,7 +957,7 @@ namespace vw
       dbox_allocated = dbox_allocated_;
       dbox_bytes = s - r;
     }
-    
+
     // Destructor
     ~JP2DataBox()
     {
@@ -967,49 +967,49 @@ namespace vw
         delete[] dbox_addon;
     }
   };
-  
+
   // Generic jp2/jpx superbox
   class JP2SuperBox : public JP2Box
   {
     //friend class JP2File;
-    
+
   public:
     class JP2BoxIterator
     {
     public:
       JP2BoxList::iterator i;
       bool initialized;
-      
+
       void reset(void)
       {
         initialized = false;
       }
-      
+
       JP2BoxIterator() : initialized(false)
       {
       }
-      
+
       ~JP2BoxIterator()
       {
       }
     };
-    
+
   protected:
     JP2BoxList sub_boxes;
-    
+
   public:
     // Get number of bytes in the body of the box (DBox)
     virtual uint64 bytes_dbox(void)
     {
       JP2BoxList::iterator i;
       uint64 retval = 0;
-      
+
       for(i = sub_boxes.begin(); i != sub_boxes.end(); i++)
         retval += (*i)->bytes();
-        
+
       return retval;
     }
-    
+
     // Get number of bytes including the header
     virtual uint64 bytes(void)
     {
@@ -1021,7 +1021,7 @@ namespace vw
     {
       JP2BoxList::iterator i;
       int j;
-      
+
       for(j = 0; j < d; j++)
         std::cout << "  ";
       print_basic();
@@ -1029,16 +1029,16 @@ namespace vw
       for(i = sub_boxes.begin(); i != sub_boxes.end(); i++)
         (*i)->print(d + 1);
     }
-    
+
     // Serialize into buffer d, which must be large enough
     // (call bytes() and allocate buffer first)
     virtual void serialize(uint8* d)
     {
       JP2Box* b;
       JP2BoxList::iterator i;
-      
+
       serialize_basic(&d);
-      
+
       for(i = sub_boxes.begin(); i != sub_boxes.end(); i++)
       {
         b = *i;
@@ -1046,19 +1046,19 @@ namespace vw
         d += b->bytes();
       }
     }
-    
+
     // Find the next box with the given type (type = 0 for any box),
     // beginning at position pos (pos = beginning of file by default).
     JP2Box* find_box(uint32 type, JP2BoxIterator* pos = 0)
     {
       JP2BoxList::iterator i;
       JP2Box* b = 0;
-      
+
       if(pos && pos->initialized)
         i = pos->i;
       else
         i = sub_boxes.begin();
-        
+
       for( ; i != sub_boxes.end(); i++)
       {
         if(type == 0 || (*i)->box_type() == type)
@@ -1068,16 +1068,16 @@ namespace vw
           break;
         }
       }
-      
+
       if(pos)
       {
         pos->i = i;
         pos->initialized = true;
       }
-        
+
       return b;
     }
-    
+
     // Insert box b before all other sub-boxes.
     void insert_box_first(JP2Box* b)
     {
@@ -1095,7 +1095,7 @@ namespace vw
     {
       sub_boxes.insert(pos.i, b);
     }
-    
+
     // Insert box b after position pos.
     void insert_box_after(JP2BoxIterator& pos, JP2Box* b)
     {
@@ -1119,12 +1119,12 @@ namespace vw
     JP2SuperBox(uint32 type) : JP2Box(type)
     {
     }
-    
+
     // Destructor
     ~JP2SuperBox()
     {
       JP2BoxList::iterator i;
-      
+
       for(i = sub_boxes.begin(); i != sub_boxes.end(); i++)
         delete (*i);
       sub_boxes.clear();
@@ -1138,7 +1138,7 @@ namespace vw
       JP2Box* b;
       uint32 b_type;
       uint64 p;
-    
+
       for(p = 0; p < nbytes; p += b->bytes())
       {
         b_type = interp_type(&d[p]);
@@ -1163,7 +1163,7 @@ namespace vw
       }
     }
   };
-  
+
   // jp2/jpx file
   class JP2File : public JP2SuperBox
   {
@@ -1179,18 +1179,18 @@ namespace vw
     {
       JP2BoxList::iterator i;
       int j;
-    
+
       for(j = 0; j < d; j++)
         std::cout << "  ";
       std::cout << "Boxes:" << std::endl;
       for(i = sub_boxes.begin(); i != sub_boxes.end(); i++)
         (*i)->print(d + 1);
-        
+
       for(j = 0; j < d; j++)
         std::cout << "  ";
       std::cout << "Total " << this->bytes() << " bytes" << std::endl;
     }
-    
+
     // Serialize into buffer d, which must be large enough
     // (call bytes() and allocate buffer first)
     virtual void serialize(uint8* d)
@@ -1198,7 +1198,7 @@ namespace vw
       JP2Box* b;
       JP2BoxList::iterator i;
       uint64 p = 0;
-    
+
       for(i = sub_boxes.begin(); i != sub_boxes.end(); i++)
       {
         b = *i;
@@ -1206,7 +1206,7 @@ namespace vw
         p += b->bytes();
       }
     }
-    
+
     // Convert a jp2 file into a jp2-compatible jpx file
     int convert_to_jpx()
     {
@@ -1219,7 +1219,7 @@ namespace vw
       JP2BoxIterator pos;
       bool found_jp2, found_jpx, found_jpxb;
       uint64 i;
-      
+
       // find File Type box
       b = find_box(0x66747970); // "ftyp"
       if(!b)
@@ -1272,7 +1272,7 @@ namespace vw
         ((JP2DataBox*)b)->addon_dbox((uint8*)tmpstr, tmpstr_len, true);
         //NOTE: tmpstr will be deleted by JP2DataBox
       }
-        
+
       // Find or add Reader Requirements box
       b = find_box(0x72726571); // "rreq"
       if(!b)
@@ -1304,7 +1304,7 @@ namespace vw
         insert_box_after(pos, rr);
         //NOTE: rr will be deleted from sub_boxes list
       }
-      
+
       // find JP2 Header box
       b = find_box(0x6A703268); // "jp2h"
       if(!b)
@@ -1321,30 +1321,30 @@ namespace vw
         ((JP2SuperBox*)b)->insert_box_first(b2);
         //NOTE: b2 will be deleted by JP2SuperBox
       }
-      
+
       return 0;
     }
-    
+
     // Add boxes immediately before the Contiguous Codestream box.
     int add_boxes(const JP2BoxList& boxes)
     {
       JP2DataBox* b;
       JP2BoxIterator pos;
       JP2BoxList::const_iterator i;
-      
+
       // find Contiguous Codestream box
       pos.reset();
       b = (JP2DataBox*)find_box(0x6A703263, &pos); // "jp2c"
       if(!b)
         return -1;
-      
+
       // insert boxes immediately before Contiguous Codestream box
       for(i = boxes.begin(); i != boxes.end(); i++)
         insert_box_before(pos, *i);
-      
+
       return 0;
     }
-    
+
     // Add (fully understood, non-compound) requirements to the
     // Reader Requirements box.
     int add_requirements(const JP2ReaderRequirementsList& req)
@@ -1360,7 +1360,7 @@ namespace vw
       rr = (JP2ReaderRequirementsBox*)find_box(0x72726571); // "rreq"
       if(!rr)
         return -1;
-      
+
       // add requirements to Reader Requirements box
       for(i = req.begin(); i != req.end(); i++)
       {
@@ -1383,17 +1383,17 @@ namespace vw
           rr->add_requirements_col(mask, false);
         }
       }
-      
+
       return 0;
     }
-  
+
     // Construct JP2File from buffer d containing a serialized file
     // Buffer d is not deleted when this object is destroyed
     JP2File(uint8* d, uint64 nbytes) : JP2SuperBox(0x00000000 /*fake box type for root JP2File "box"*/)
     {
       find_child_boxes(d, nbytes);
     }
-    
+
     // Destructor
     ~JP2File()
     {
