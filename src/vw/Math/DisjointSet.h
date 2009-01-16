@@ -93,7 +93,7 @@ namespace math {
         s2->parent = s1;
         return s1;
       }
-      if (s1->rank < s2->rank) {
+      else if ((s1->rank) < (s2->rank)) {
         s1->parent = s2;
         return s2;
       }
