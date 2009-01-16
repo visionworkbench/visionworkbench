@@ -42,7 +42,7 @@ class Graph(object):
         return [i[1] for i in self.e if i[0] == v]
 
 if __name__ == '__main__':
-    (inf, outf) = os.popen2(r"grep -r '#include.*<vw' src/vw | sed -e 's#src/\(vw[^:]\+\):.*<\([^>]\+\)>#\1 \2#' | grep -v '.cc ' | grep -v '/tests' | grep -v '/GPU'")
+    (inf, outf) = os.popen2(r"grep -r '#include.*<vw' " + os.path.abspath(os.path.dirname(sys.argv[0]) + '/../src/vw') + r" | sed -e 's#^.*src/\(vw[^:]\+\):.*<\([^>]\+\)>#\1 \2#' | grep -v '.cc ' | grep -v '/tests' | grep -v '/GPU'")
     inf.close()
     g = Graph(outf)
     outf.close()
