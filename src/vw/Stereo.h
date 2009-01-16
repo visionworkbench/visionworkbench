@@ -32,6 +32,7 @@
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Stereo/StereoView.h>
 #include <vw/Stereo/OptimizedCorrelator.h>
+#include <vw/Stereo/ReferenceCorrelator.h>
 #include <vw/Stereo/PyramidCorrelator.h>
 #include <vw/Stereo/CorrelatorView.h>
 #include <vw/Stereo/SubpixelView.h>

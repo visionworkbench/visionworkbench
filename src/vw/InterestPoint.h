@@ -42,5 +42,7 @@
 #include <vw/InterestPoint/WeightedHistogram.h>
 #include <vw/InterestPoint/SURF.h>
 #include <vw/InterestPoint/IntegralImage.h>
+#include <vw/InterestPoint/LearnPCA.h>
+
 #endif // __VW_INTERESTPOINT_H__
  

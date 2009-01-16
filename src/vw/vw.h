@@ -64,4 +64,20 @@
 #include <vw/HDR.h>
 #endif
 
+#if defined(VW_HAVE_PKG_GEOMETRY) && VW_HAVE_PKG_GEOMETRY==1
+#include <vw/Geometry.h>
+#endif
+
+#if defined(VW_HAVE_PKG_GPU) && VW_HAVE_PKG_GPU==1
+#include <vw/GPU.h>
+#endif
+
+#if defined(VW_HAVE_PKG_INTERESTPOINT) && VW_HAVE_PKG_INTERESTPOINT==1
+#include <vw/InterestPoint.h>
+#endif
+
+#if defined(VW_HAVE_PKG_STEREO) && VW_HAVE_PKG_STEREO==1
+#include <vw/Stereo.h>
+#endif
+
 #endif // __VW_VW_H__

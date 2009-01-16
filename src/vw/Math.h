@@ -40,6 +40,9 @@
 #include <vw/Math/NelderMead.h>
 #include <vw/Math/EulerAngles.h>
 #include <vw/Math/Statistics.h>
+#include <vw/Math/DisjointSet.h>
+#include <vw/Math/MinimumSpanningTree.h>
+#include <vw/Math/PoseEstimation.h>
 
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
 #include <vw/Math/LinearAlgebra.h>

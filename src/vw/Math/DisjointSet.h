@@ -43,7 +43,6 @@
 
 #include <vw/Core/Exception.h>
 
-
 namespace vw {
 namespace math {
 

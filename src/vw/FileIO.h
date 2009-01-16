@@ -52,4 +52,8 @@
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #endif
 
+#if defined(VW_HAVE_PKG_HDF) && VW_HAVE_PKG_HDF==1
+#include <vw/FileIO/DiskImageResourceHDF.h>
+#endif
+
 #endif // __VW_FILEIO_H__

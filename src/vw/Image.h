@@ -54,5 +54,7 @@
 #include <vw/Image/BlockProcessor.h>
 #include <vw/Image/BlockRasterize.h>
 #include <vw/Image/Statistics.h>
+#include <vw/Image/BlockCacheView.h>
+#include <vw/Image/Palette.h>
 
 #endif // __VW_IMAGE_H__
