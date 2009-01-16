@@ -45,7 +45,7 @@ if DIST_LICENSE
 	cp $(DIST_LICENSE) $(distdir)/COPYING
 endif
 if DIST_LICENSE_SUMMARY
-	find $(distdir) -type f | config/relicense $(DIST_LICENSE_SUMMARY) -
+	find $(distdir) -type f | scripts/relicense.pl $(DIST_LICENSE_SUMMARY)
 endif
 if DIST_CONFIG_OPTIONS_DEFAULT
 	cp $(DIST_CONFIG_OPTIONS_DEFAULT) $(distdir)/config/config.options.default

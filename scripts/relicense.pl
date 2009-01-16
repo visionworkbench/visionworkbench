@@ -20,8 +20,11 @@ my %comment = (
     ".tcc"  => "//",
 );
 
-# Read the license text from __DATA__
-my @license = read_file(\*DATA);
+# Read the license text from __DATA__ by default
+my $f = \*DATA;
+$f = $ARGV[0] if @ARGV > 0;
+
+my @license = read_file($f);
 
 # process each line given on stdin
 foreach my $filename (<>) {
