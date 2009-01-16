@@ -28,9 +28,9 @@ ACLOCAL_AMFLAGS = -I m4 -I thirdparty/m4
 
 SUBDIRS = src
 
-EXTRA_DIST = config/rules.mak config/relicense config.options.example \
-	NOTES docs thirdparty/cxxtest INSTALLGUIDE
-
+EXTRA_DIST = config/rules.mak config.options.example NOTES docs \
+			 thirdparty/cxxtest INSTALLGUIDE scripts/include-graph.py \
+			 scripts/relicense.pl scripts/static-checking.js scripts/templates.js
 ########################################################################
 # special top-level rules
 ########################################################################
@@ -90,10 +90,10 @@ push-lcov:
 	if test -n "$(LCOV_REMOTE_PATH)" ; then rsync -P -e ssh -r coverage/ $(LCOV_REMOTE_PATH); fi
 
 DEHYDRA_MODULES = \
-  $(top_srcdir)/config/templates.js
+  $(top_srcdir)/scripts/templates.js
 
 DEHYDRA_ARGS = \
-  $(top_srcdir)/config/static-checking.js \
+  $(top_srcdir)/scripts/static-checking.js \
   --output-path=$(top_srcdir)/src/vw \
   --dehydra-modules=$(DEHYDRA_MODULES)
 
