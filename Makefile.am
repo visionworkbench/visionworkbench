@@ -89,6 +89,25 @@ lcov:
 push-lcov:
 	if test -n "$(LCOV_REMOTE_PATH)" ; then rsync -P -e ssh -r coverage/ $(LCOV_REMOTE_PATH); fi
 
+DEHYDRA_MODULES = \
+  $(top_srcdir)/config/templates.js
+
+DEHYDRA_ARGS = \
+  $(top_srcdir)/config/static-checking.js \
+  --output-path=$(top_srcdir)/src/vw \
+  --dehydra-modules=$(DEHYDRA_MODULES)
+
+instantiate-all:
+	echo "#include <vw/vw.h>" | \
+		$(DEHYDRA_GCC) -x c++ - -S -o /dev/null -fplugin=$(DEHYDRA_PLUGIN) -fplugin-arg='$(DEHYDRA_ARGS)' $(VW_CPPFLAGS)
+
+# This is a list of every header (eventually) included when you include vw/vw.h
+all-headers:
+	echo "#include <vw/vw.h>" | \
+	$(CXX) -x c++ -E - $(VW_CPPFLAGS) | \
+	grep '^#.*vw/' | sed -e 's#.*src/\(vw/[^"]\+\)".*#\1#' | sort -u
+
+
 ########################################################################
 # general
 ########################################################################

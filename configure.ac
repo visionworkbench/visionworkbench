@@ -465,7 +465,9 @@ fi
 
 AC_SUBST(VW_CPPFLAGS)
 AC_SUBST(VW_LDFLAGS)
-
+AC_SUBST(LCOV_REMOTE_PATH)
+AC_SUBST(DEHYDRA_GCC)
+AC_SUBST(DEHYDRA_PLUGIN)
 
 ##################################################
 # makefiles to process

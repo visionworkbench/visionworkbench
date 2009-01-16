@@ -12,9 +12,6 @@
 //     template
 //     EdgeExtensionView<ImageT, ConstantEdgeExtension> edge_extend(const ImageViewBase<ImageT>&);
 
-//var dir = "/home/mike/Work/projects/VisionWorkbench-Trace/src/vw/tools/output"
-var dir = "/home/mike/Work/projects/VisionWorkbench-Trace/src/vw"
-
 if (!String.prototype.pad)
 {
     String.prototype.pad = function(l, s, t){
@@ -62,7 +59,15 @@ function ModuleList()
     this.FUNC_FREE   = "Free";
     this.FUNC_MEMBER = "Member";
 
-    this.module_name = function(d) { return d.loc.file.substring(16, d.loc.file.indexOf("/", 16)); };
+    this.module_name = function(d) {
+        var file = d.loc.file;
+        var idx  = d.loc.file.indexOf("src/vw/");
+        if (idx == -1)
+            throw Error("Could not identify module of " + file);
+        idx += 7;
+
+        return d.loc.file.substring(idx, file.indexOf("/", idx));
+    };
 
     this.parseDecl = function(d) {
         if ((obj = this.Func(d)) == null && (obj = this.Record(d)) == null)
@@ -184,11 +189,11 @@ function write_file_bak(file, data)
       write_file(file, data);
 }
 
+if (!options['output-path'])
+    throw Error("please set OUTPUT_PATH");
+
 function input_end()
 {
-    if (!dir)
-        throw Error("please set dir");
-
     var fn;
     var excl;
 
@@ -197,7 +202,7 @@ function input_end()
         var module = list.modules[module_name];
 
         excl = "";
-        try {excl = read_file(dir + "/" + module_name + "/tests/TestInstantiateExclusion.txt")}
+        try {excl = read_file(options['output-path'] + "/" + module_name + "/tests/TestInstantiateExclusion.txt")}
         catch (e) {/* swallow. assume there aren't any exclusions. shame on me. */ }
 
         excl = removeSubstring(excl, " ");
@@ -214,7 +219,7 @@ function input_end()
                 data += d.decl + "\n";
             }
             if (data.length > 0)
-              write_file_bak(dir + "/" + module_name + "/tests/TestInstantiate" + type_name + "List.hh", data);
+              write_file_bak(options['output-path'] + "/" + module_name + "/tests/TestInstantiate" + type_name + "List.hh", data);
         }
     }
 }
