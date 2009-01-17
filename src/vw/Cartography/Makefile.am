@@ -40,6 +40,7 @@ endif
 include_HEADERS = FileIO.h GeoReferenceBase.h GeoReference.h		\
                   GeoTransform.h Datum.h PointImageManipulation.h	\
                   OrthoImageView.h GeoReferenceResourcePDS.h		\
+		  Projection.h                                          \
                   $(gdal_headers) $(camerabbox_headers)
 
 libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc	\
