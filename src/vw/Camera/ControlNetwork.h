@@ -130,7 +130,7 @@ namespace camera {
       m_row = position[1];
     }
 
-    /// Setting/Reading the measurement error for this point.
+    /// Setting/Reading the pixel error for this point.
     Vector2 sigma() const { return Vector2(m_col_sigma, m_row_sigma); }
     float sigma_magnitude() const {
       return sqrt(m_col_sigma*m_col_sigma +
@@ -150,15 +150,21 @@ namespace camera {
     int image_id() const { return m_image_id; }
     void set_image_id(int image_id) { m_image_id = image_id; }
 
-
     /// Setting/Reading the description
     std::string description() const { return m_description; }
     void set_description(std::string const& description) { m_description = description; }
 
-
     /// Setting/Reading the data & time
     std::string date_time() const { return m_date_time; }
     void set_date_time(std::string const& date_time) { m_date_time = date_time; }
+
+    /// Setting/Reading the chooser's name
+    std::string chooser() const { return m_chooserName; }
+    void set_chooser(std::string const& chooser) { m_chooserName = chooser; }
+
+    /// Setting/Reading the measure's serial number
+    std::string serial() const { return m_serialNumber; }
+    void set_serial(std::string const& serial) { m_serialNumber = serial; }
 
     /// Setting/Reading whether this control measurement should be
     /// ignored in a bundle adjustment.
@@ -168,6 +174,18 @@ namespace camera {
     /// Setting/Reading Ephemeris Time
     double ephemeris_time() const { return m_ephemeris_time; }
     void set_ephemeris_time( double const& time ) { m_ephemeris_time = time; }
+
+    /// Setting/Reading millimeter location
+    Vector2 focalplane() const { return Vector2( m_focalplane_x,
+						 m_focalplane_y ); }
+    void set_focalplane( double x, double y ) {
+      m_focalplane_x = x;
+      m_focalplane_y = y;
+    }
+    void set_focalplane( Vector2 location ) {
+      m_focalplane_x = location[0];
+      m_focalplane_y = location[1];
+    }
 
     /// File I/O
     void write_binary_measure ( std::ofstream &f );

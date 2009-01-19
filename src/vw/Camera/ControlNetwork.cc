@@ -281,6 +281,12 @@ namespace camera {
     boost::erase_all( m_modified, "\n" );
     boost::erase_all( m_modified, " " );
 
+    // Forcing file extension type
+    std::vector<std::string> tokens;
+    boost::split( tokens, filename, boost::is_any_of(".") );
+    filename = tokens[0];
+    filename = filename + ".cnet";
+
     // Opening file
     std::ofstream f( filename.c_str() );
 
@@ -338,6 +344,12 @@ namespace camera {
     m_modified = ctime( &rawtime );
     boost::erase_all( m_modified, "\n" );
     boost::erase_all( m_modified, " " );
+
+    // Forcing file extension type
+    std::vector<std::string> tokens;
+    boost::split( tokens, filename, boost::is_any_of(".") );
+    filename = tokens[0];
+    filename = filename + ".net";
 
     // Opening file
     std::ofstream f( filename.c_str() );
