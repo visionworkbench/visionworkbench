@@ -68,6 +68,7 @@ int main(int argc, char *argv[]) {
   po::options_description visible_options("Options");
   visible_options.add_options()
     ("help,h", "Display this help message")
+    ("normalize,n", "Attempt to normalize the image before display.")
     ("nodata-value", po::value<float>(&nodata_value), "Remap the DEM default value to the min altitude value.")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1000), "Cache size, in megabytes");
 
@@ -112,7 +113,7 @@ int main(int argc, char *argv[]) {
 
   // Start up the Qt GUI
   QApplication app(argc, argv);
-  MainWindow main_window(image_filename, nodata_value, vm);
+  MainWindow main_window(image_filename, nodata_value, vm.count("normalize"), vm);
   main_window.show();
   return app.exec(); 
 }

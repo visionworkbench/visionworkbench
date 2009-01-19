@@ -49,7 +49,7 @@ class MainWindow : public QMainWindow {
   po::variables_map const& m_vm;
 
 public:
-  MainWindow(std::string filename, float nodata_value, po::variables_map const& vm);
+  MainWindow(std::string filename, float nodata_value, bool do_normalize, po::variables_map const& vm);
   virtual ~MainWindow() {}
 
 private slots:

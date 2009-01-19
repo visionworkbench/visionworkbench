@@ -36,7 +36,7 @@
 
 #include <sstream>
 
-MainWindow::MainWindow(std::string input_filename, float nodata_value, po::variables_map const& vm) :
+MainWindow::MainWindow(std::string input_filename, float nodata_value, bool do_normalize, po::variables_map const& vm) :
   m_filename(input_filename), m_nodata_value(nodata_value), m_vm(vm) {
 
   // Set up the basic layout of the window and its menus
@@ -54,17 +54,19 @@ MainWindow::MainWindow(std::string input_filename, float nodata_value, po::varia
 
   // Compute the min/max
   vw::DiskImageView<float> image(m_filename);
-  float lo, hi;
-  std::cout << "\t--> Computing data range: " << std::flush;
-  if (m_vm.count("nodata-value")) {
-    vw::min_max_channel_values(vw::create_mask(image,m_nodata_value), lo, hi);
-    m_preview_widget->set_nodata_value(m_nodata_value);
-    m_preview_widget->set_data_range(lo, hi);
-  } else {
-    vw::min_max_channel_values(image, lo, hi);
-    m_preview_widget->set_data_range(lo, hi);
+  if (do_normalize) {
+    float lo = 0.0, hi = 1.0;
+    std::cout << "\t--> Computing data range: " << std::flush;
+    if (m_vm.count("nodata-value")) {
+      vw::min_max_channel_values(vw::create_mask(image,m_nodata_value), lo, hi);
+      m_preview_widget->set_nodata_value(m_nodata_value);
+      m_preview_widget->set_data_range(lo, hi);
+    } else {
+      vw::min_max_channel_values(image, lo, hi);
+      m_preview_widget->set_data_range(lo, hi);
+    }
+    std::cout << "[L: " << lo << " H: " << hi << "]\n";
   }
-  std::cout << "[L: " << lo << " H: " << hi << "]\n";
 
   // Pass the filename along to the preview widget for display.
   m_preview_widget->set_image_from_file(input_filename);

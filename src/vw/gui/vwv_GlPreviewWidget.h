@@ -25,7 +25,6 @@
 ///
 /// The Vision Workbench image viewer. 
 ///
-
 #ifndef __VWV_PREVIEW_GL_WIDGET_H__
 #define __VWV_PREVIEW_GL_WIDGET_H__
 
@@ -35,6 +34,7 @@
 #include <QPoint>
 
 // Vision Workbench
+#include <vw/Core/Thread.h>
 #include <vw/Core/Log.h>
 #include <vw/Image/ImageResource.h>
 #include <vw/Image/ImageViewRef.h>
@@ -49,6 +49,8 @@
 // STL
 #include <string>
 #include <list>
+
+#include <vw/gui/vwv_TextureCache.h>
 
 class QMouseEvent;
 class QWheelEvent;
@@ -79,7 +81,7 @@ public:
 };
 
 
-class GlPreviewWidget : public QGLWidget {
+class GlPreviewWidget : public QGLWidget, public CachedTextureRenderer {
   Q_OBJECT
 
 public:
@@ -102,6 +104,8 @@ public:
 
   virtual ~GlPreviewWidget();
 
+  virtual GLuint allocate_texture(vw::ImageView<vw::PixelRGBA<float> > const block);
+  virtual void deallocate_texture(GLuint texture_id);
 
   // Set a default size for this widget.  This is usually overridden
   // by parent views.
@@ -126,6 +130,16 @@ public:
   }
 
 public slots:
+  
+  // This timer is used by the Texture Fetch thread to inform the
+  // GlPreviewWidget when new textures are available for drawing.
+  // Timer callback is called 30 times per second.
+  void timer_callback() {
+    if (m_needs_redraw) {
+      update();
+      m_needs_redraw = false;
+    }
+  }
 
   void set_nodata_value(float nodata_value) { 
     m_nodata_value = nodata_value; 
@@ -181,19 +195,23 @@ private:
   void drawImage();
   void drawLegend(QPainter *painter);
   void updateCurrentMousePosition();
-  void deallocate_textures();
   
   // Image & OpenGL
   vw::ImageViewRef<vw::PixelRGBA<vw::float32> > m_image;
   std::vector<vw::BBox2i> m_bboxes;
   vw::ImageFormat m_true_image_format;
-  std::vector<GLuint> m_textures;
   GLuint m_glsl_program;
   bool m_draw_texture;
   bool m_show_legend;
   bool m_bilinear_filter;
   bool m_use_colormap;
-  
+
+  // Timers and updates
+  QTimer *m_timer;
+
+  // OpenGL Texturing
+  boost::shared_ptr<GlTextureCache> m_gl_texture_cache;
+
   // Adjustment mode
   enum AdjustmentMode { TransformAdjustment, GainAdjustment, OffsetAdjustment, GammaAdjustment };
   AdjustmentMode m_adjust_mode;
@@ -222,6 +240,8 @@ private:
 
   enum DisplayChannel { DisplayRGBA = 0, DisplayR, DisplayG, DisplayB, DisplayA };
   int m_display_channel;
+  int m_colorize_display;;
+  int m_hillshade_display;;
 };
 
 #endif  // __VWV_PREVIEW_GL_WIDGET_H__

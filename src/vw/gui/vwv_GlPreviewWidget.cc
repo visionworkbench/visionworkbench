@@ -39,6 +39,10 @@
 #include <GL/glu.h>
 #endif 
 
+// Cuda
+// #include <cuda_runtime.h>
+// #include <cuda_gl_interop.h>
+
 // Qt
 #include <QtGui>
 
@@ -49,6 +53,9 @@ using namespace vw;
 
 #include <vw/gui/vwv_GlPreviewWidget.h>
 
+// Prototypes for external CUDA functions
+// void cu_invert_image (float* img, int width, int height);
+
 const std::string g_FRAGMENT_PROGRAM =  
 "uniform sampler2D tex;                             \n"
 "                                                   \n"
@@ -58,6 +65,8 @@ const std::string g_FRAGMENT_PROGRAM =
 "uniform float nodata;\n"
 "uniform int use_nodata;\n"
 "uniform int display_channel;  // 0 = RGBA, 1 = R, 2 = G, 3 = B, 4 = A\n"
+"uniform int colorize_display;\n"
+"uniform int hillshade_display;\n"
 "\n"
 "void main() { \n"
 "  vec4 g = vec4(gain, gain, gain, 1.0);\n"
@@ -81,6 +90,8 @@ const std::string g_FRAGMENT_PROGRAM =
 "      final_tex = vec4(0.0,0,0,0.0);\n"
 "    } \n"
 "  }\n"
+"\n"
+"  \n"
 "  gl_FragColor = final_tex; \n"
 "}\n";
 
@@ -142,7 +153,7 @@ void check_gl_errors( void )
 // --------------------------------------------------------------
 
 GlPreviewWidget::~GlPreviewWidget() {
-  deallocate_textures();
+  m_gl_texture_cache.reset();
 }
 
 void GlPreviewWidget::size_to_fit() {
@@ -189,10 +200,151 @@ void GlPreviewWidget::normalize_image() {
 }
 
 // --------------------------------------------------------------
+//             GlPreviewWidget Setup Methods
+// --------------------------------------------------------------
+
+void GlPreviewWidget::setup() {
+  if (!QGLFormat::hasOpenGL()) {
+    vw::vw_out(0) << "This system has no OpenGL support.\nExiting\n\n";
+    exit(1);
+  }
+
+  m_nodata_value = 0;
+  m_use_nodata = 0;
+  m_image_min = 0;
+  m_image_max = 1.0;
+
+  // Set some reasonable defaults
+  m_draw_texture = true;
+  m_show_legend = false;
+  m_bilinear_filter = true;
+  m_use_colormap = false;
+  m_adjust_mode = TransformAdjustment;
+  m_display_channel = DisplayRGBA;
+  m_colorize_display = false;
+  m_hillshade_display = false;
+  
+  // Set up shader parameters
+  m_gain = 1.0;
+  m_offset = 0.0;
+  m_gamma = 1.0;
+  
+  // Set mouse tracking
+  this->setMouseTracking(true);
+
+  // Set the size policy that the widget can grow or shrink and still
+  // be useful.
+  this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+}
+
+// ------------- TextureRenderer Implementation -----------------------
+GLuint GlPreviewWidget::allocate_texture(ImageView<PixelRGBA<float> > const block) {
+  GLuint texture_id;
+  {  
+    makeCurrent();
+    glEnable( GL_TEXTURE_2D );
+    glGenTextures(1, &(texture_id) );
+    glBindTexture(GL_TEXTURE_2D, texture_id);
+    glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); 
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, 
+                 block.cols(), block.rows(), 0, 
+                 GL_RGBA, GL_FLOAT, &(block(0,0)) );
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable( GL_TEXTURE_2D );
+  }
+  return texture_id;
+}
+
+void GlPreviewWidget::deallocate_texture(GLuint texture_id) {
+  makeCurrent();
+  glEnable( GL_TEXTURE_2D );
+  glDeleteTextures(1,&(texture_id));
+  glDisable( GL_TEXTURE_2D );
+}
+
+// ---------------------------------------------------------
+
+void GlPreviewWidget::rebind_textures() {
+
+  // Deallocate any previously allocated textures
+  m_gl_texture_cache.reset(new GlTextureCache());
+
+  // The GPU has limited VRAM, so any one texture must be limited in
+  // size.  We query the GPU for its max texture size here, and choose
+  // a final texture size that is 1/4 this size.  (This leaves ample
+  // room for use to store GL_RGBA16F_ARB (16-bit float) images on the
+  // GPU.)
+  // GLint texSize; 
+  // glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texSize);
+  m_bboxes = vw::image_blocks(m_image, 512, 512);
+  
+  // Compute the max lod we need to view this image in a "standard small viewport" of 1024x1024 pixels.
+  int max_lod = std::max(int((log((m_image.cols()/512))/log(2.0))),
+                         int((log((m_image.rows()/512))/log(2.0))) );
+
+  // Never go below an lod of 0!
+  if (max_lod < 0) max_lod = 0;
+
+  // Register this texture patch with the texture cache.  The texture
+  // will be generated on demand.
+  for (unsigned i=0; i<m_bboxes.size(); ++i) {
+    for (unsigned lod=0; lod <= max_lod; ++lod) {
+      m_gl_texture_cache->register_texture(m_image, m_bboxes[i], lod, this);
+    }
+  }
+}
+
+void GlPreviewWidget::initializeGL() {  
+
+  // Set up the texture mode to replace (rather than blend...)
+  glShadeModel(GL_FLAT);
+  
+  // This is required for supporting Alpha in textures.
+  glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glEnable (GL_BLEND); 
+
+  // Set up the fragment shader.
+  const char* fragment_prog_ptr = g_FRAGMENT_PROGRAM.c_str();
+
+  // For debugging:
+  //  std::cout << "***\n" << std::string(fragment_prog_ptr) << "***\n";
+  
+  GLuint m_fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+  glShaderSource(m_fragment_shader, 1, &fragment_prog_ptr, NULL);
+  glCompileShader(m_fragment_shader);
+  print_shader_info_log(m_fragment_shader);
+  
+  m_glsl_program = glCreateProgram();
+  glAttachShader(m_glsl_program, m_fragment_shader);
+  glLinkProgram(m_glsl_program);
+  print_program_info_log(m_glsl_program);
+
+  // Now that GL is setup, we can start the Qt Timer
+  m_needs_redraw = false;
+  m_timer = new QTimer(this);
+  connect(m_timer, SIGNAL(timeout()), this, SLOT(timer_callback()));
+  m_timer->start(333);
+}
+
+void GlPreviewWidget::resizeGL(int width, int height) {
+  m_viewport_width = width;
+  m_viewport_height = height;
+  size_to_fit();
+}
+
+// --------------------------------------------------------------
 //             GlPreviewWidget Private Methods
 // --------------------------------------------------------------
 
 void GlPreviewWidget::drawImage() {
+
+  // Before we draw this frame, we will check to see whether there are
+  // any new texture to upload or delete.  If there are, we perform at
+  // least one of these operations.
+  this->process_allocation_request();
 
   // Make this context current, and store the current OpenGL state
   // before we start to modify it.
@@ -214,12 +366,17 @@ void GlPreviewWidget::drawImage() {
   glUniform1i(use_nodata_loc,m_use_nodata);
   GLint display_channel_loc = glGetUniformLocation(m_glsl_program,"display_channel");
   glUniform1i(display_channel_loc,m_display_channel);
-
+  GLint colorize_display_loc = glGetUniformLocation(m_glsl_program,"colorize_display");
+  glUniform1i(colorize_display_loc,m_colorize_display);
+  GLint hillshade_display_loc = glGetUniformLocation(m_glsl_program,"hillshade_display");
+  glUniform1i(hillshade_display_loc,m_hillshade_display);
+  glUseProgram(0);
+  
   // Set the background color and viewport.
   qglClearColor(QColor(0, 25, 50)); // Bluish-green background
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glViewport(0,0,m_viewport_width,m_viewport_height);
-
+    
   // Set up the orthographic view of the scene.  The exact extent of
   // the view onto the scene depends on the current panning and zoom
   // in the UI.
@@ -229,66 +386,107 @@ void GlPreviewWidget::drawImage() {
   glOrtho(m_current_viewport.min().x(), m_current_viewport.max().x(), 
           -m_current_viewport.max().y(), -m_current_viewport.min().y(),
           -1.0, 1.0);
-
+  
   // Set up the modelview matrix, and bind the image as the texture we
   // are about to use.
   glMatrixMode(GL_MODELVIEW);
   glPushMatrix();
   glLoadIdentity();
 
-  glEnable( GL_TEXTURE_2D );
-  for (unsigned int i=0; i < m_bboxes.size(); ++i) {
+  // Compute the current level of detail.
+  int lod = int((log((m_current_viewport.width()/m_viewport_width))/log(2.0)));
+  
+  for (unsigned i=0; i < m_bboxes.size(); ++i) {
+    if (m_current_viewport.intersects(m_bboxes[i])) {
+      
+      // Fetch the texture out of the cache.  It will be generated if
+      // necessary.  Note that this happens outside the m_gl_mutex to
+      // avoid deadlock.
+      GLuint texture_id = m_gl_texture_cache->get_texture_id(m_bboxes[i], lod);
 
-    // Bind the current texture.
-    glBindTexture( GL_TEXTURE_2D, m_textures[i] );
-    
-    // Set up bilinear or nearest neighbor filtering.
-    if (m_bilinear_filter) {
-      // When the texture area is small, bilinear filter the closest mipmap
-      glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR );
-      glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-    } else {
-      // When the texture area is small, pick the nearest neighbor in the closest mipmap
-      glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST );
-      glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+      // execute the CUDA filter, writing results to pbo
+      //float *image_ptr;
+      // cudaGLMapBufferObject( (void**)&image_ptr, m_pbos[i] );
+      // // cu_invert_image(image_ptr, m_bboxes[i].width(), m_bboxes[i].height());
+      // cudaGLUnmapBufferObject( m_pbos[i] );
+      // Bind the current texture, and load data from the pbo
+      // glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbos[i]);
+      //        glBindTexture( GL_TEXTURE_2D, m_textures[i] );
+      // glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 
+      //                 m_bboxes[i].width(), 
+      //                 m_bboxes[i].height(), 
+      //                 GL_RGBA, GL_FLOAT, 0);
+      // glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
+      if (texture_id) {
+        glUseProgram(m_glsl_program);
+
+        // Enable texturing and bind the texture ID
+        glEnable( GL_TEXTURE_2D );
+        glBindTexture( GL_TEXTURE_2D, texture_id );
+        
+        // Set up bilinear or nearest neighbor filtering.
+        if (m_bilinear_filter) {
+          // When the texture area is small, bilinear filter the closest mipmap
+          glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+          glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+        } else {
+          // When the texture area is small, pick the nearest neighbor in the closest mipmap
+          glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+          glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+        }
+
+        // Draw the texture onto a quad.
+        qglColor(Qt::white);
+        glBegin(GL_QUADS);
+        glTexCoord2d( 0.0 , 0.0); 
+        glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].min().y()) );
+        glTexCoord2d( 0.0 , 1 ); 
+        glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].max().y()) );
+        glTexCoord2d( 1.0 , 1.0 );
+        glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].max().y()) );
+        glTexCoord2d( 1.0 , 0.0 ); 
+        glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].min().y()) );
+        glEnd();
+
+        // Clean up
+        glDisable( GL_TEXTURE_2D );
+        glUseProgram(0);
+ 
+     } else {
+        // If no texture is (yet) available, we draw a dark gray quad.
+        glBegin(GL_QUADS);
+        glColor3f(0.1,0.1,0.1);
+        glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].min().y()) );
+        glColor3f(0.1,0.1,0.1);
+        glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].max().y()) );
+        glColor3f(0.1,0.1,0.1);
+        glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].max().y()) );
+        glColor3f(0.1,0.1,0.1);
+        glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].min().y()) );
+        glEnd();
+      }
     }
-    
-    // We will draw the image as a texture on this quad.
-    qglColor(Qt::white);
-    glBegin(GL_QUADS);
-    glTexCoord2d( 0.0 , 0.0); 
-    glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].min().y()) );
-    glTexCoord2d( 0.0 , 1 ); 
-    glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].max().y()) );
-    glTexCoord2d( 1.0 , 1.0 );
-    glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].max().y()) );
-    glTexCoord2d( 1.0 , 0.0 ); 
-    glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].min().y()) );
-    glEnd();
   }
 
-  // Disable texture mapping and GLSL shaders
-  glDisable( GL_TEXTURE_2D );
-  glUseProgram(0);
+  // // Draw crosshairs
+  // glLineWidth(1.0);
+  // for (unsigned i = 0; i < m_crosshairs.size(); ++i) {
+  //   Vector3 color = m_crosshairs[i].color();
+  //   glColor3f(color[0], color[1], color[2]);
+  //   glBegin(GL_LINES);
+  //   std::list<Vector2>::const_iterator iter = m_crosshairs[i].points().begin();
+  //   while (iter != m_crosshairs[i].points().end() ) {
+  //     Vector2 point = *iter;
+  //     glVertex2d( point[0]-3 , -point[1]);
+  //     glVertex2d( point[0]+3 , -point[1]);
+  //     glVertex2d( point[0], -point[1]-3);
+  //     glVertex2d( point[0], -point[1]+3);
+  //     ++iter;
+  //   }
+  //   glEnd();
+  // }    
 
-  // Draw crosshairs
-  glLineWidth(1.0);
-  for (unsigned i = 0; i < m_crosshairs.size(); ++i) {
-    Vector3 color = m_crosshairs[i].color();
-    glColor3f(color[0], color[1], color[2]);
-    glBegin(GL_LINES);
-    std::list<Vector2>::const_iterator iter = m_crosshairs[i].points().begin();
-    while (iter != m_crosshairs[i].points().end() ) {
-      Vector2 point = *iter;
-      glVertex2d( point[0]-3 , -point[1]);
-      glVertex2d( point[0]+3 , -point[1]);
-      glVertex2d( point[0], -point[1]-3);
-      glVertex2d( point[0], -point[1]+3);
-      ++iter;
-    }
-    glEnd();
-  }    
-  
   // Restore the previous OpenGL state so that we don't trample on the
   // QPainter elements of the window.
   glMatrixMode(GL_MODELVIEW);
@@ -425,133 +623,6 @@ void GlPreviewWidget::updateCurrentMousePosition() {
   float y_loc = m_current_viewport.min().y() + m_current_viewport.height() * float(lastPos.y()) / m_viewport_height;
   currentImagePos = QPoint(x_loc,y_loc);
 }
-
-
-// --------------------------------------------------------------
-//             GlPreviewWidget Setup Methods
-// --------------------------------------------------------------
-void GlPreviewWidget::setup() {
-  if (!QGLFormat::hasOpenGL()) {
-    vw::vw_out(0) << "This system has no OpenGL support.\nExiting\n\n";
-    exit(1);
-  }
-
-  m_nodata_value = 0;
-  m_use_nodata = 0;
-  m_image_min = 0;
-  m_image_max = 1.0;
-
-  // Set some reasonable defaults
-  m_draw_texture = true;
-  m_show_legend = false;
-  m_bilinear_filter = true;
-  m_use_colormap = false;
-  m_adjust_mode = TransformAdjustment;
-  m_display_channel = DisplayRGBA;
-  
-  // Set up shader parameters
-  m_gain = 1.0;
-  m_offset = 0.0;
-  m_gamma = 1.0;
-  
-  // Set mouse tracking
-  this->setMouseTracking(true);
-
-  // Set the size policy that the widget can grow or shrink and still
-  // be useful.
-  this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-}
-
-void GlPreviewWidget::deallocate_textures() {
-  makeCurrent();
-  for (unsigned i = 0; i < m_textures.size(); ++i) {
-    glDeleteTextures(1,&(m_textures[i]));
-  }
-  m_textures.clear();
-}
-
-void GlPreviewWidget::rebind_textures() {
-  makeCurrent();
-
-  // Deallocate any previously allocated textures
-  deallocate_textures();
-
-  // The GPU has limited VRAM, so any one texture must be limited in
-  // size.  We query the GPU for its max texture size here, and choose
-  // a final texture size that is 1/4 this size.  (This leaves ample
-  // room for use to store GL_RGBA16F_ARB (16-bit float) images on the
-  // GPU.)
-  GLint texSize; 
-  glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texSize);
-  m_bboxes = vw::image_blocks(m_image, 512, 512);
-  
-  // Allocate the OpenGL texture patches
-  m_textures.resize(m_bboxes.size());
-  std::cout << "\t--> Caching textures... " << std::flush;
-  for (unsigned i=0; i<m_bboxes.size(); ++i) {
-    glGenTextures(1, &(m_textures[i]) );
-    glBindTexture(GL_TEXTURE_2D, m_textures[i]);
-    
-    glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); 
-
-    // For debugging: 
-    //     glTexImage2D(GL_PROXY_TEXTURE_2D, 0, GL_RGBA16F_ARB, 
-    //                  m_image.cols(), m_image.rows(), 0, 
-    //                  GL_RGBA, GL_FLOAT, NULL);
-    //     GLint width; 
-    //     glGetTexLevelParameteriv(GL_PROXY_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &width); 
-    //     std::cout << "WIDTH: " << width << "\n";
-    //     if (width==0) { /* Can't use that texture */ }
-
-    // Grab the appropriate pixel data from our image.
-    vw::ImageView<vw::PixelRGBA<vw::float32> > block = crop(m_image, m_bboxes[i]);
-
-    // Copy the texture data over into 16-bit floating point texture
-    // memory.  This prevents the data from being clamped in the range
-    // [0,1].
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, 
-                 block.cols(), block.rows(), 0, 
-                 GL_RGBA, GL_FLOAT, &(block(0,0)) );
-  }
-  std::cout << "done.\n";
-}
-
-
-void GlPreviewWidget::initializeGL() {  
-
-  // Set up the texture mode to replace (rather than blend...)
-  glShadeModel(GL_FLAT);
-  
-  // This is required for supporting Alpha in textures.
-  glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glEnable (GL_BLEND); 
-
-  // Set up the fragment shader.
-  const char* fragment_prog_ptr = g_FRAGMENT_PROGRAM.c_str();
-
-  // For debugging:
-  //  std::cout << "***\n" << std::string(fragment_prog_ptr) << "***\n";
-  
-  GLuint m_fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(m_fragment_shader, 1, &fragment_prog_ptr, NULL);
-  glCompileShader(m_fragment_shader);
-  print_shader_info_log(m_fragment_shader);
-  
-  m_glsl_program = glCreateProgram();
-  glAttachShader(m_glsl_program, m_fragment_shader);
-  glLinkProgram(m_glsl_program);
-  print_program_info_log(m_glsl_program);
-}
-
-void GlPreviewWidget::resizeGL(int width, int height) {
-  m_viewport_width = width;
-  m_viewport_height = height;
-  size_to_fit();
-}
-
 
 // --------------------------------------------------------------
 //             GlPreviewWidget Event Handlers
