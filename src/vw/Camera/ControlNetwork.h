@@ -34,8 +34,13 @@
 #include <vector>
 #include <fstream>
 #include <iomanip>
+#include <time.h>
 
+// VW
 #include <vw/Math/Vector.h>
+
+// Boost
+#include <boost/algorithm/string.hpp>
 
 namespace vw {
 namespace camera {
@@ -45,102 +50,129 @@ namespace camera {
   /// control measure also stores the uncertainty of the measurement,
   /// and a identifier for the image from which it was derived.
   class ControlMeasure {
-    float m_col, m_row, m_col_sigma, m_row_sigma;
-    std::string m_date_time, m_description;
+    std::string m_serialNumber;
+    float m_col, m_row, m_col_sigma, m_row_sigma, m_diameter;
+    std::string m_date_time, m_description, m_chooserName;
+    double m_focalplane_x, m_focalplane_y;
     double m_ephemeris_time;
     int m_image_id;
     bool m_ignore;
 
   public:
 
-    // Constructor
-    ControlMeasure( float col, float row, float col_sigma, float row_sigma, int image_id) :
-      m_col(col), m_row(row), m_col_sigma(col_sigma), m_row_sigma(row_sigma), m_image_id(image_id) {
+    /// Control Measure Type
+    ///
+    /// Unmeasured         - This measure doesn't exist. It is a black void.
+    /// Manual             - The measure was created by a human and is not
+    ///                      quite perfect.
+    /// Estimated          - Created by a computer but has not been sub
+    ///                      pixel registered. Still subject to refinement
+    /// Automatic          - Created by a computer and sub pixel registered.
+    ///                      Unfortunately this is still subject to refinement
+    /// ValidatedManual    - Created by a human and has been validated by a
+    ///                      human.
+    /// ValidatedAutomatic - Created by a computer and has been validated by
+    ///                      a human.
+    enum ControlMeasureType { Unmeasured, Manual, Estimated, Automatic,
+			      ValidatedManual, ValidatedAutomatic };
+    ControlMeasureType m_type;
 
-      m_date_time = "not recorded";
-      m_description = "none";
+    /// Constructor
+    ControlMeasure( float col, float row, 
+		    float col_sigma, float row_sigma, 
+		    int image_id, 
+		    ControlMeasureType type = ControlMeasure::Automatic ) :
+    m_col(col), m_row(row), m_col_sigma(col_sigma), m_row_sigma(row_sigma), m_image_id(image_id), m_type(type) {
+
+      // Recording time
+      time_t rawtime;
+      time( &rawtime );
+      m_date_time = ctime( &rawtime );
+      boost::erase_all( m_date_time, "\n" );
+      boost::erase_all( m_date_time, " " );
+
+      m_serialNumber = "Null";
+      m_description = "Null";
       m_ignore = false;
 
-      m_ephemeris_time = 0;
+      m_ephemeris_time = m_focalplane_x = m_focalplane_y = m_diameter = 0;
     }
 
-    ControlMeasure() : 
-      m_col(0), m_row(0), m_col_sigma(0), m_row_sigma(0), m_image_id(0) {
+    ControlMeasure( ControlMeasureType type = ControlMeasure::Automatic ) : 
+    m_col(0), m_row(0), m_col_sigma(0), m_row_sigma(0), m_image_id(0), m_type(type) {
 
-      m_date_time = "not recorded";
-      m_description = "none";
+      // Recording time
+      time_t rawtime;
+      time( &rawtime );
+      m_date_time = ctime( &rawtime );
+      boost::erase_all( m_date_time, "\n" );
+      boost::erase_all( m_date_time, " " );
+
+      m_serialNumber = "Null";
+      m_description = "Null";
       m_ignore = false;
 
-      m_ephemeris_time = 0;
+      m_ephemeris_time = m_focalplane_x = m_focalplane_y = m_diameter = 0;
     }
 
-    /// Return the pixel location for this measurement.
+    /// Setting/Reading Type
+    ControlMeasureType type() const { return m_type; }
+    void set_type( ControlMeasureType type ) { m_type = type; }
+
+    /// Setting/Reading the pixel location for this measurement.
     Vector2 position() const { return Vector2(m_col, m_row); }
-
-    /// Set the pixel location for this measurement.
     void set_position(float col, float row) { 
       m_col = col;
       m_row = row;
     }
-
-    /// Set the pixel location for this measurement.
     void set_position(Vector2 position) { 
       m_col = position[0];
       m_row = position[1];
     }
 
-    /// Return the measurement error for this point.
+    /// Setting/Reading the measurement error for this point.
     Vector2 sigma() const { return Vector2(m_col_sigma, m_row_sigma); }
-
-    /// Set the measurement error for this point.
+    float sigma_magnitude() const {
+      return sqrt(m_col_sigma*m_col_sigma +
+		  m_row_sigma*m_row_sigma );
+    }
     void set_sigma(float col_sigma, float row_sigma) {
       m_col_sigma = col_sigma;
       m_row_sigma = row_sigma;
     }
-
-    /// Set the measurement error for this point.
     void set_sigma(Vector2 sigma) { 
       m_col_sigma = sigma[0]; 
       m_row_sigma = sigma[1];
     }
  
-    /// Return the identifier for the image from which this control
-    /// point was derived.  
+    /// Setting/Reading the identifier for the image from which this
+    /// control point was derived.  
     int image_id() const { return m_image_id; }
-
-    /// Set the identifier for the image from which this control
-    /// point was derived.  Any string value can be used here, but it
-    /// should be something that can be used to locate the original
-    /// image.
     void set_image_id(int image_id) { m_image_id = image_id; }
 
 
-    /// Return the description of this control measure.  
+    /// Setting/Reading the description
     std::string description() const { return m_description; }
-
-    /// Set the description of this control measure.  This typically
-    /// includes a description of the source imagery used and the person
-    /// or software that was used to make the measurement.
     void set_description(std::string const& description) { m_description = description; }
 
 
-    /// Query when this control measurement was made.
+    /// Setting/Reading the data & time
     std::string date_time() const { return m_date_time; }
-
-    /// Set when this control measurement was made.
     void set_date_time(std::string const& date_time) { m_date_time = date_time; }
 
-    /// Query whether this control measurement should be ignored in a bundle adjustment.
+    /// Setting/Reading whether this control measurement should be
+    /// ignored in a bundle adjustment.
     bool ignore() const { return m_ignore; }
-
-    /// Set whether this control measurement should be ignored in a bundle adjustment.
     void set_ignore(bool state) { m_ignore = state; }
      
-    /// Query what was the ephemeris time of when this pixel was taken
+    /// Setting/Reading Ephemeris Time
     double ephemeris_time() const { return m_ephemeris_time; }
-    
-    /// Set the ephemeris time of when this pixel was taken
     void set_ephemeris_time( double const& time ) { m_ephemeris_time = time; }
+
+    /// File I/O
+    void write_binary_measure ( std::ofstream &f );
+    void read_binary_measure ( std::ifstream &f );
+    void write_isis_pvl_measure ( std::ofstream &f );
 
   };
 
@@ -171,30 +203,33 @@ namespace camera {
     Vector3 m_sigma;
 
   public:
+    /// Iterators
     typedef std::vector<ControlMeasure>::iterator iterator;
     typedef std::vector<ControlMeasure>::const_iterator const_iterator;
-    
+    iterator begin() { return m_measures.begin(); }
+    iterator end() { return m_measures.end(); }
+    const_iterator begin() const { return m_measures.begin(); }
+    const_iterator end() const { return m_measures.end(); }
+
+    /// Control Point Type
     enum ControlPointType { GroundControlPoint, TiePoint };
     ControlPointType m_type;
 
     /// Constructor 
     ControlPoint(ControlPointType type = ControlPoint::TiePoint) : m_type(type) {
       m_ignore = false;
-      m_id = "not set";
+      m_id = "Null";
     }
 
+    /// Setting/Reading Type
     ControlPointType type() const { return m_type; }
     void set_type(ControlPointType type) { m_type = type; }
     
-    // Iterators
-    iterator begin() { return m_measures.begin(); }
-    iterator end() { return m_measures.end(); }
-    const_iterator begin() const { return m_measures.begin(); }
-    const_iterator end() const { return m_measures.end(); }
-
+    /// Setting/Reading ID
     std::string id() const { return m_id; }
     void set_id(std::string id) { m_id = id; }
     
+    /// Setting/Reading Ignore
     bool ignore() const { return m_ignore; }
     void set_ignore(bool ignore) { m_ignore = ignore; }
 
@@ -203,24 +238,13 @@ namespace camera {
     unsigned size() const { return m_measures.size(); }
 
     /// Associate a single control measure with this ControlPoint
-    void add_measure(ControlMeasure const& measure) { m_measures.push_back(measure); }
+    void add_measure(ControlMeasure const& measure);
 
     /// Associate multiple control measures with this ControlPoint
-    void add_measures(std::vector<ControlMeasure> const& measures) { 
-      m_measures.insert(m_measures.end(), measures.begin(), measures.end());
-    }
+    void add_measures(std::vector<ControlMeasure> const& measures);
 
     /// Remove the control point at the specified index.
-    void delete_measure(unsigned index) {
-      if (index >= this->size())
-        vw_throw(LogicErr() << "ControlPoint::delete_control_point -- index " << index << " exceeds control point dimensions.");
-
-      iterator iter = this->begin();
-      for (unsigned i=0; i<index; ++i)
-        ++iter;
-      
-      m_measures.erase(iter);
-    }
+    void delete_measure(unsigned index);
     
     /// Access a specific control measure that is associated with this control point.
     ControlMeasure& operator[] (int index) { return m_measures[index]; }
@@ -231,70 +255,97 @@ namespace camera {
 
     /// Locate a control measure that is equal to the query.  Returns
     /// this->size() if no match is found.
-    unsigned find(ControlMeasure const& query) {
-      for (unsigned i = 0; i < m_measures.size(); ++i) 
-        if (m_measures[i] == query)  
-          return i;
-      // If no matches are found, return m_measures.size() (the last index + 1)
-      return m_measures.size();
-    }
+    unsigned find(ControlMeasure const& query);
 
-    /// Set the position of the control point
+    /// Setting/Reading the position of the control point
     void set_position(double lon, double lat, double radius) {
       m_position = Vector3(lon,lat,radius);
     }
-
-    /// Set the position of the control point as [lon, lat, radius]
     void set_position(Vector3 position) { m_position = position; }
-    
-    /// Returns the position of the control point as [longitude,
-    /// latitude, radius]
     Vector3 position() const { return m_position; }
 
-    /// Set the uncertainty of the control point
+    /// Setting/Reading the uncertainty of the control point
     void set_sigma(double lon_sigma, double lat_sigma, double radius_sigma) {
       m_sigma = Vector3(lon_sigma, lat_sigma, radius_sigma);
     }
-
-    /// Set the uncertainty of the control point
     void set_sigma(Vector3 sigma) { m_sigma = sigma; }
-
     /// Returns the uncertainty of the control point as [longitude_sigma,
     /// latitude_sigma, radius_sigma]
     Vector3 sigma() const { return m_sigma; }
+
+    /// File I/O
+    void write_binary_point ( std::ofstream &f );
+    void read_binary_point ( std::ifstream &f );
+    void write_isis_pvl_point ( std::ofstream &f );
 
   };
 
   std::ostream& operator<<( std::ostream& os, ControlPoint const& point);
 
-  /// The control network contains a list of control points (either ground control
-  /// points or tie points).
+  /// The control network contains a list of control points (either
+  /// ground control points or tie points).
   ///
   /// Things to add:
-  /// - read/write controlnet file
   /// - various methods for computing error
   /// - assoc. with image list/serial number
   ///
   class ControlNetwork {
-    std::string m_description;
-    std::string m_target_body;
     std::vector<ControlPoint> m_control_points;
-
+    std::string m_targetName;         // Name of the target
+    std::string m_networkId;          // Network Id
+    std::string m_created;            // Creation Date
+    std::string m_modified;           // Data Last Modified
+    std::string m_description;        // Text description of network
+    std::string m_userName;           // The user who created the network
+    
   public:
 
+    /// Iterators
     typedef std::vector<ControlPoint>::iterator iterator;
     typedef std::vector<ControlPoint>::const_iterator const_iterator;
+    iterator begin() { return m_control_points.begin(); }
+    iterator end() { return m_control_points.end(); }
+    const_iterator begin() const { return m_control_points.begin(); }
+    const_iterator end() const { return m_control_points.end(); }
+
+    /// Control Network Type
+    ///
+    /// Singleton     - A Control network that just points out
+    ///                 interesting points.
+    /// ImageToImage  - A Control network lacking of all GCPs
+    /// ImageToGround - A Control network with mixed control
+    ///                 points (GCPs and nots)
+    enum ControlNetworkType { Singleton, ImageToImage, ImageToGround };
+    ControlNetworkType m_type;
 
     /// Constructor
-    ControlNetwork(std::string description, std::string target_body = "Unknown") :
-      m_description(description), m_target_body(target_body) {}
+    ControlNetwork(std::string id, 
+		   ControlNetworkType type = ControlNetwork::ImageToImage,
+		   std::string target_name = "Unknown",
+		   std::string descrip = "Null", std::string user_name = "VW" ) :
+    m_networkId(id), m_type(type), m_targetName(target_name), m_description(descrip), m_userName(user_name) {
+	// Recording time
+	time_t rawtime;
+	time( &rawtime );
+	m_created = ctime(&rawtime);
+	boost::erase_all( m_created, "\n" );
+	boost::erase_all( m_created, " " );
+    }
+
+    /// Setting/Reading Type
+    ControlNetworkType type() const { return m_type; }
+    void set_type( ControlNetworkType type ) { m_type = type; }
 
     /// Returns the number of control measures associated with this
     /// control point.
     unsigned size() const { return m_control_points.size(); }
 
-    /// Return the number of Control Points that are Ground Control Points (GCPs)
+    /// Return the number of Control Points that are Ground Control
+    /// Points (GCPs)
     unsigned num_ground_control_points() const { 
+      if ( m_type != ControlNetwork::ImageToGround )
+	return 0;
+
       unsigned count=0;
       for (unsigned i=0; i<this->size(); ++i) {
         if ((*this)[i].type() == ControlPoint::GroundControlPoint)
@@ -303,7 +354,9 @@ namespace camera {
       return count;
     }
 
-    unsigned num_3d_tie_points() const { 
+    /// Return the number of Control Points that are of the generic
+    /// image tie points
+    unsigned num_tie_points() const { 
       unsigned count=0;
       for (unsigned i=0; i<this->size(); ++i) {
         if ((*this)[i].type() == ControlPoint::TiePoint)
@@ -312,33 +365,17 @@ namespace camera {
       return count;
     }
 
-    // Iterators
-    iterator begin() { return m_control_points.begin(); }
-    iterator end() { return m_control_points.end(); }
-    const_iterator begin() const { return m_control_points.begin(); }
-    const_iterator end() const { return m_control_points.end(); }
+    /// Add a single Control Point
+    void add_control_point(ControlPoint const& point);
 
-    /// Associate a single control measure with this ControlPoint
-    void add_control_point(ControlPoint const& point) { m_control_points.push_back(point); }
-
-    /// Associate multiple control measures with this ControlPoint
-    void add_control_points(std::vector<ControlPoint> const& points) { 
-      m_control_points.insert(m_control_points.end(), points.begin(), points.end());
-    }
+    /// Add a vector of Control Points
+    void add_control_points(std::vector<ControlPoint> const& points);
 
     /// Remove the control point at the specified index.
-    void delete_control_point(unsigned index) {
-      if (index >= this->size())
-        vw_throw(LogicErr() << "ControlNetwork::delete_control_point -- index " << index << " exceeds control network dimensions.");
-
-      iterator iter = this->begin();
-      for (unsigned i=0; i<index; ++i)
-        ++iter;
-      
-      m_control_points.erase(iter);
-    }
+    void delete_control_point(unsigned index);
     
-    /// Access a specific control measure that is associated with this control point.
+    /// Access a specific control measure that is associated with this
+    /// control point.
     ControlPoint& operator[] (int index) { return m_control_points[index]; }
     const ControlPoint& operator[] (int index) const { return m_control_points[index]; }
 
@@ -348,74 +385,12 @@ namespace camera {
     /// Locate a control point that contains the control measure that
     /// is equal to the query.  Returns this->size() if no match is
     /// found.
-    unsigned find_measure(ControlMeasure const& query) {
-      for (unsigned i = 0; i < m_control_points.size(); ++i) 
-        if (m_control_points[i].find(query) != m_control_points[i].size()) 
-          return i;
-      // Otherwise...
-      return m_control_points.size();
-    }
+    unsigned find_measure(ControlMeasure const& query);
 
-    /// Write the current control network to a file on disk.
-    void write_control_network(std::string filename) {
-      std::ofstream ofile(filename.c_str());
-      ofile << this->size() << "\n";
-      
-      for (unsigned c=0; c < this->size(); ++c) {
-        ControlPoint& cpoint = (*this)[c];
-        ofile << std::setprecision(18) << cpoint.size() << " " << cpoint.position()[0] << " " << cpoint.position()[1] << " " << cpoint.position()[2] << " " << cpoint.sigma()[0] << " " << cpoint.sigma()[1]<< " " << cpoint.sigma()[2] << " " << cpoint.ignore() << " " << cpoint.type() << "\n";
-        for (unsigned m = 0; m < cpoint.size(); ++m) {
-          ControlMeasure& cmeasure = cpoint[m];
-          ofile << std::setprecision(18) << cmeasure.image_id() << " " << cmeasure.position()[0] << " " << cmeasure.position()[1] << " " << cmeasure.sigma()[0] << " " << cmeasure.sigma()[1] << " " << cmeasure.ignore() << " " <<  cmeasure.ephemeris_time() << "\n";
-        }
-      }
-      ofile.close();
-    }
-
-    /// Add the contents of the file on disk to the existing data in
-    /// this control network.
-    void read_control_network(std::string filename) {
-
-
-      std::ifstream ifile(filename.c_str());
-      if ( !ifile.is_open() ) 
-	vw_throw( IOErr() << "Failed to open \"" << filename << "\" as a Control Network." );
-
-      int total_control_points;
-      ifile >> total_control_points;
-
-      std::vector<ControlPoint> cpoints(total_control_points);
-      
-      unsigned num_measures;
-      Vector3 pos;
-      Vector3 pos_sigma;
-      bool ignore_point;
-      int type;
-      for (int c=0; c < total_control_points; ++c) {
-        ifile >> num_measures >> pos[0] >> pos[1] >> pos[2] >> pos_sigma[0] >> pos_sigma[1] >> pos_sigma[2] >> ignore_point >> type;
-
-        cpoints[c].set_position(pos);
-        cpoints[c].set_sigma(pos_sigma);
-        cpoints[c].set_ignore(ignore_point);
-	cpoints[c].set_type( static_cast<ControlPoint::ControlPointType>( type ));
-
-        std::vector<ControlMeasure> cmeasures(num_measures);
-        int image_id;
-        Vector2 measure_pos, measure_sigma;
-	double ephemeris;
-        bool ignore_measure;
-        for (unsigned m=0; m < num_measures; ++m) {
-          ifile >> image_id >> measure_pos[0] >> measure_pos[1] >> measure_sigma[0] >> measure_sigma[1] >> ignore_measure >> ephemeris;
-          cmeasures[m].set_image_id(image_id);
-          cmeasures[m].set_position(measure_pos);
-          cmeasures[m].set_sigma(measure_sigma);
-          cmeasures[m].set_ignore(ignore_measure);
-	  cmeasures[m].set_ephemeris_time(ephemeris);
-        }
-        cpoints[c].add_measures(cmeasures);
-      }
-      this->add_control_points(cpoints);
-    }
+    /// File I/O
+    void write_binary_control_network( std::string filename );
+    void read_binary_control_network( std::string filename );
+    void write_isis_pvl_control_network( std::string filename );
 
   };
 
