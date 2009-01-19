@@ -375,7 +375,11 @@ namespace camera {
     /// Add the contents of the file on disk to the existing data in
     /// this control network.
     void read_control_network(std::string filename) {
+
+
       std::ifstream ifile(filename.c_str());
+      if ( !ifile.is_open() ) 
+	vw_throw( IOErr() << "Failed to open \"" << filename << "\" as a Control Network." );
 
       int total_control_points;
       ifile >> total_control_points;

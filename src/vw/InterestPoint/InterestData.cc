@@ -110,6 +110,11 @@ namespace ip {
     
     std::ifstream f;
     f.open(ip_file.c_str(), std::ios::binary | std::ios::in);
+
+    // Error Handling
+    if ( !f.is_open() )
+      vw_throw( IOErr() << "Failed to open \"" << ip_file << "\" as VWIP file." );
+
     int size;
     f.read((char*)&size, sizeof(int));
     for (int i = 0; i < size; ++i) 
@@ -141,6 +146,11 @@ namespace ip {
     
     std::ifstream f;
     f.open(match_file.c_str(), std::ios::binary | std::ios::in);
+
+    // Error Handling
+    if ( !f.is_open() )
+      vw_throw( IOErr() << "Failed to open \"" << match_file << "\" as Match file." );
+
     int size1, size2;
     f.read((char*)&size1, sizeof(int));
     f.read((char*)&size2, sizeof(int));
