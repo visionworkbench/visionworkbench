@@ -326,7 +326,7 @@ void GlPreviewWidget::initializeGL() {
   m_needs_redraw = false;
   m_timer = new QTimer(this);
   connect(m_timer, SIGNAL(timeout()), this, SLOT(timer_callback()));
-  m_timer->start(333);
+  m_timer->start(33);
 }
 
 void GlPreviewWidget::resizeGL(int width, int height) {

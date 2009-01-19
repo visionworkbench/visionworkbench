@@ -181,6 +181,8 @@ GlTextureCache::GlTextureCache() {
   // Start the Texture Fetch thread
   m_texture_fetch_task.reset(new TextureFetchTask(m_outgoing_requests_mutex, m_outgoing_requests));
   m_texture_fetch_thread = new vw::Thread( m_texture_fetch_task );
+
+  m_previous_lod = 0;
 }
 
 GlTextureCache::~GlTextureCache() {
@@ -206,6 +208,15 @@ GLuint GlTextureCache::get_texture_id(vw::BBox2i bbox, int lod) {
     vw::vw_out(vw::VerboseDebugMessage) << "GlTextureCache::get_texture_id() missed bbox " 
                                         << bbox << " @ lod " << lod << ".  Generating.\n";
     vw::Mutex::Lock lock(m_outgoing_requests_mutex);
+
+    // We purge the outgoing request queue whenever there is a change
+    // in LOD so that we can immediately begin serving tiles at the
+    // new level of detail.
+    if (lod != m_previous_lod) {
+      m_outgoing_requests.clear();
+      m_previous_lod = lod;
+    }
+
     m_outgoing_requests.push_back( record );
     return 0; 
   } else {

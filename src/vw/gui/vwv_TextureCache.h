@@ -157,6 +157,7 @@ class GlTextureCache {
   vw::Thread *m_texture_fetch_thread;
   vw::Cache *m_gl_texture_cache_ptr;
   boost::shared_ptr<TextureFetchTask> m_texture_fetch_task;
+  int m_previous_lod;
 
   std::vector<boost::shared_ptr<TextureRecord> > m_texture_records;
   std::list<boost::shared_ptr<TextureRecord> > m_outgoing_requests, m_incoming_requests;
