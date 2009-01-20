@@ -170,6 +170,10 @@ function sort_name(a,b) {
 // try to back up a file before overwriting it. don't rely on this; it's fragile.
 function write_file_bak(file, data)
 {
+    if (options['no-backup']) {
+        write_file(file, data);
+        return;
+    }
     var old_data;
     try {old_data = read_file(file);}
     catch (e) {

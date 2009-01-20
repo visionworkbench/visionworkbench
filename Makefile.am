@@ -95,6 +95,7 @@ DEHYDRA_MODULES = \
 DEHYDRA_ARGS = \
   $(top_srcdir)/scripts/static-checking.js \
   --output-path=$(top_srcdir)/src/vw \
+  --no-backup \
   --dehydra-modules=$(DEHYDRA_MODULES)
 
 instantiate-all:
