@@ -38,6 +38,7 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/BBox.h>
 #include <vw/Geometry/Shape.h>
+#include <vw/Geometry/PointListIO.h>
 
 namespace vw {
 namespace geometry {
