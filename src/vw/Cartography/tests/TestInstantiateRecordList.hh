@@ -1,1 +1,1 @@
-//template class  vw::cartography::OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT>;
+template class  vw::cartography::OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT>;

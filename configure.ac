@@ -138,6 +138,10 @@ if test "$ENABLE_TEST_COVERAGE" = "yes"; then
     LDFLAGS="$LDFLAGS -lgcov"
     ENABLE_OPTIMIZE=no
     ENABLE_DEBUG=yes
+
+    if test "${CXX/ccache//}" != "$CXX"; then
+      AC_MSG_ERROR([compiler CXX ($CXX) appears to be ccache, which breaks test-coverage])
+    fi
   fi
 fi
 

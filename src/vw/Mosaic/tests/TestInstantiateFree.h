@@ -2,6 +2,8 @@
 
 using namespace vw;
 
+typedef PixelRGBA<int> PixelT;
+
 #include "TestInstantiateFreeList.hh"
 
 class TestInstantiateMosaicFree : public CxxTest::TestSuite

@@ -77,7 +77,7 @@ doxygen:
 
 doc: workbook doxygen
 
-lcov:
+coverage:
 	$(LCOV) --capture --test-name 'Vision-Workbench-Base' --directory $(top_srcdir) --output-file vw-base.trace --initial
 	$(LCOV) --capture --test-name 'Vision-Workbench'      --directory $(top_srcdir) --output-file vw-test.trace
 	$(LCOV) -a vw-base.trace -a vw-test.trace -o vw.trace
@@ -86,7 +86,7 @@ lcov:
 	$(GENHTML) -o $(top_srcdir)/coverage vw.trace
 	@echo "Generated code coverage report in $(top_srcdir)/coverage"
 
-push-lcov:
+push-coverage:
 	if test -n "$(LCOV_REMOTE_PATH)" ; then rsync -P -e ssh -r coverage/ $(LCOV_REMOTE_PATH); fi
 
 DEHYDRA_MODULES = \
@@ -98,9 +98,14 @@ DEHYDRA_ARGS = \
   --no-backup \
   --dehydra-modules=$(DEHYDRA_MODULES)
 
+# Generate instantiation files for all templates
 instantiate-all:
 	echo "#include <vw/vw.h>" | \
 		$(DEHYDRA_GCC) -x c++ - -S -o /dev/null -fplugin=$(DEHYDRA_PLUGIN) -fplugin-arg='$(DEHYDRA_ARGS)' $(VW_CPPFLAGS)
+
+# List the instantiation percentages
+instantiate-skipped:
+	@find -type f -name TestInstantiate\*List.hh -print0 | sort -z | xargs -0 -n1 awk '/^\/\//{n++}; END { printf "%5.1f%% of %4i lines skipped: %s\n", ((100*n)/NR), NR, FILENAME }'
 
 # This is a list of every header (eventually) included when you include vw/vw.h
 all-headers:
@@ -108,6 +113,10 @@ all-headers:
 	$(CXX) -x c++ -E - $(VW_CPPFLAGS) | \
 	grep '^#.*vw/' | sed -e 's#.*src/\(vw/[^"]\+\)".*#\1#' | sort -u
 
+one-ctags-file:
+	ctags -R --languages=C,C++ --exclude='*thirdparty/*' --exclude='*tests/*'
+
+.PHONY: coverage push-coverage instantiate-all instantiate-skipped all-headers one-ctags-file
 
 ########################################################################
 # general
