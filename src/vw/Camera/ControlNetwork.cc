@@ -212,7 +212,7 @@ namespace camera {
     } else {
       vw_throw( vw::NoImplErr() << "Invalid Control Point type." );
     }
-    f << "    PointType = " << m_id << "\n";
+    f << "    PointId   = " << m_id << "\n";
     f << "    Latitude  = " << m_position[1] << "\n";
     f << "    Longitude = " << m_position[0] << "\n";
     f << "    Radius    = " << m_position[2] << "\n";
@@ -354,6 +354,16 @@ namespace camera {
     boost::split( tokens, filename, boost::is_any_of(".") );
     filename = tokens[0];
     filename = filename + ".net";
+
+    // Making sure all the control points have unique IDs
+    for ( unsigned p = 0; p < m_control_points.size(); p++ ) {
+      if (m_control_points[p].id() == "Null" ||
+	  m_control_points[p].id() == "" ) {
+	std::ostringstream ostr;
+	ostr << std::setw(9) << std::setfill('0') << p;
+	m_control_points[p].set_id( ostr.str() );
+      }
+    } 
 
     // Opening file
     std::ofstream f( filename.c_str() );
