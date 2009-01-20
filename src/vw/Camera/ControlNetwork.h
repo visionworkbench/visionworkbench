@@ -359,7 +359,7 @@ namespace camera {
 		   ControlNetworkType type = ControlNetwork::ImageToImage,
 		   std::string target_name = "Unknown",
 		   std::string descrip = "Null", std::string user_name = "VW" ) :
-    m_networkId(id), m_type(type), m_targetName(target_name), m_description(descrip), m_userName(user_name) {
+    m_targetName(target_name), m_networkId(id), m_description(descrip), m_userName(user_name), m_type(type) {
 	// Recording time
 	time_t rawtime;
 	time( &rawtime );
