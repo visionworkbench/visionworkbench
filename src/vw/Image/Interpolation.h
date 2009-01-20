@@ -169,7 +169,7 @@ namespace vw {
 
   // Bicubic interpolation operator
   struct BicubicInterpolation {
-    static const int32 pixel_buffer = 1;
+    static const int32 pixel_buffer = 2;
     template <class ViewT>
     struct Interpolator {
       typedef BicubicInterpolationImpl<ViewT> type;
