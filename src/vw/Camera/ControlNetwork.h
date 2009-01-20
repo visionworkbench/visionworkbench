@@ -56,7 +56,7 @@ namespace camera {
     double m_focalplane_x, m_focalplane_y;
     double m_ephemeris_time;
     int m_image_id;
-    bool m_ignore;
+    bool m_ignore, m_pixels_dominant;
 
   public:
 
@@ -94,6 +94,7 @@ namespace camera {
       m_serialNumber = "Null";
       m_description = "Null";
       m_ignore = false;
+      m_pixels_dominant = true;
 
       m_ephemeris_time = m_focalplane_x = m_focalplane_y = m_diameter = 0;
     }
@@ -111,15 +112,16 @@ namespace camera {
       m_serialNumber = "Null";
       m_description = "Null";
       m_ignore = false;
+      m_pixels_dominant = true;
 
       m_ephemeris_time = m_focalplane_x = m_focalplane_y = m_diameter = 0;
     }
 
-    /// Setting/Reading Type
+    /// Setting/Reading control measure type
     ControlMeasureType type() const { return m_type; }
     void set_type( ControlMeasureType type ) { m_type = type; }
 
-    /// Setting/Reading the pixel location for this measurement.
+    /// Setting/Reading the pixel location
     Vector2 position() const { return Vector2(m_col, m_row); }
     void set_position(float col, float row) { 
       m_col = col;
@@ -129,6 +131,34 @@ namespace camera {
       m_col = position[0];
       m_row = position[1];
     }
+
+    /// Setting/Reading millimeter location
+    Vector2 focalplane() const { return Vector2( m_focalplane_x,
+						 m_focalplane_y ); }
+    void set_focalplane( double x, double y ) {
+      m_focalplane_x = x;
+      m_focalplane_y = y;
+    }
+    void set_focalplane( Vector2 location ) {
+      m_focalplane_x = location[0];
+      m_focalplane_y = location[1];
+    }
+
+    /// Setting/Reading dominant location (used by BA, defaults to
+    /// position)
+    Vector2 dominant() const { 
+      return m_pixels_dominant ? Vector2(m_col,m_row) : Vector2(m_focalplane_x,m_focalplane_y);
+    }
+    void set_dominant( double x, double y ) {
+      m_pixels_dominant ? m_col : m_focalplane_x = x;
+      m_pixels_dominant ? m_row : m_focalplane_y = y;
+    }
+    void set_dominant( Vector2 location ) {
+      m_pixels_dominant ? m_col : m_focalplane_x = location[0];
+      m_pixels_dominant ? m_row : m_focalplane_y = location[1];
+    }
+    bool is_pixels_dominant() { return m_pixels_dominant; }
+    void set_pixels_dominant( bool state ) { m_pixels_dominant = state; }
 
     /// Setting/Reading the pixel error for this point.
     Vector2 sigma() const { return Vector2(m_col_sigma, m_row_sigma); }
@@ -144,7 +174,7 @@ namespace camera {
       m_col_sigma = sigma[0]; 
       m_row_sigma = sigma[1];
     }
- 
+
     /// Setting/Reading the identifier for the image from which this
     /// control point was derived.  
     int image_id() const { return m_image_id; }
@@ -174,18 +204,6 @@ namespace camera {
     /// Setting/Reading Ephemeris Time
     double ephemeris_time() const { return m_ephemeris_time; }
     void set_ephemeris_time( double const& time ) { m_ephemeris_time = time; }
-
-    /// Setting/Reading millimeter location
-    Vector2 focalplane() const { return Vector2( m_focalplane_x,
-						 m_focalplane_y ); }
-    void set_focalplane( double x, double y ) {
-      m_focalplane_x = x;
-      m_focalplane_y = y;
-    }
-    void set_focalplane( Vector2 location ) {
-      m_focalplane_x = location[0];
-      m_focalplane_y = location[1];
-    }
 
     /// File I/O
     void write_binary_measure ( std::ofstream &f );

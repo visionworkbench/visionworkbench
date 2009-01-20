@@ -49,6 +49,7 @@ namespace camera {
     f.write((char*)&(m_ephemeris_time), sizeof(m_ephemeris_time));
     f.write((char*)&(m_image_id), sizeof(m_image_id));
     f.write((char*)&(m_ignore), sizeof(m_ignore));
+    f.write((char*)&(m_pixels_dominant), sizeof(m_pixels_dominant));
     f.write((char*)&(m_type), sizeof(m_type));
   }
 
@@ -70,6 +71,7 @@ namespace camera {
     f.read((char*)&(m_ephemeris_time), sizeof(m_ephemeris_time));
     f.read((char*)&(m_image_id), sizeof(m_image_id));
     f.read((char*)&(m_ignore), sizeof(m_ignore));
+    f.read((char*)&(m_pixels_dominant), sizeof(m_pixels_dominant));
     f.read((char*)&(m_type), sizeof(m_type));
   }
 
@@ -115,6 +117,8 @@ namespace camera {
     if ( m_ignore )
       f << "      Ignore         = True\n";
     f << "      Reference      = False\n";    // What is reference?
+    if ( m_pixels_dominant )
+      f << "      PixelsDominant = True\n";
     f << "    End_Group\n";
   }
 

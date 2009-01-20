@@ -558,7 +558,7 @@ namespace camera {
           int camera_idx = m_control_net[i][m].image_id();
 
           // Apply robust cost function weighting and populate the error vector
-          Vector2 unweighted_error = m_control_net[i][m].position() - m_model(i, camera_idx, 
+          Vector2 unweighted_error = m_control_net[i][m].dominant() - m_model(i, camera_idx, 
                                                                               m_model.A_parameters(camera_idx), 
                                                                               m_model.B_parameters(i));
           double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
@@ -719,7 +719,7 @@ namespace camera {
           submatrix(J, 2*idx, num_cam_params*num_cameras + i*num_pt_params, 2, num_pt_params) = J_b;
 
           // Apply robust cost function weighting and populate the error vector
-          Vector2 unweighted_error = m_control_net[i][m].position() - m_model(i, camera_idx, 
+          Vector2 unweighted_error = m_control_net[i][m].dominant() - m_model(i, camera_idx, 
                                                                               m_model.A_parameters(camera_idx), 
                                                                               m_model.B_parameters(i));
           double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
@@ -835,7 +835,7 @@ namespace camera {
           submatrix(J, 2*idx, num_cam_params*num_cameras + i*num_pt_params, 2, num_pt_params) = J_b;
 
           // Apply robust cost function weighting and populate the error vector
-          Vector2 unweighted_error = m_control_net[i][m].position() - m_model(i, camera_idx, 
+          Vector2 unweighted_error = m_control_net[i][m].dominant() - m_model(i, camera_idx, 
                                                                               m_model.A_parameters(camera_idx), 
                                                                               m_model.B_parameters(i));
 
@@ -984,7 +984,7 @@ namespace camera {
           Vector<double> pt_delta = subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params);
 
           // Apply robust cost function weighting and populate the error vector
-          Vector2 unweighted_error = m_control_net[i][m].position() - m_model(i, camera_idx,
+          Vector2 unweighted_error = m_control_net[i][m].dominant() - m_model(i, camera_idx,
                                                                               m_model.A_parameters(camera_idx)-cam_delta, 
                                                                               m_model.B_parameters(i)-pt_delta);
           double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
@@ -1157,7 +1157,7 @@ namespace camera {
           B(i,j) = m_model.B_jacobian(i,j,m_model.A_parameters(j),m_model.B_parameters(i));
 
           // Apply robust cost function weighting
-          Vector2 unweighted_error = measure_iter->position() - m_model(i,j,m_model.A_parameters(j),m_model.B_parameters(i));
+          Vector2 unweighted_error = measure_iter->dominant() - m_model(i,j,m_model.A_parameters(j),m_model.B_parameters(i));
           double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
           epsilon(i,j) = unweighted_error * weight;
 	 	            
@@ -1505,7 +1505,7 @@ namespace camera {
 
 	 
           // Apply robust cost function weighting
-          Vector2 unweighted_error = measure_iter->position() - m_model(i,j,new_a,new_b);
+          Vector2 unweighted_error = measure_iter->dominant() - m_model(i,j,new_a,new_b);
           double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
           new_epsilon(i,j) = weight * unweighted_error;
           
