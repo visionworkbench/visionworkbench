@@ -174,7 +174,7 @@ public:
     c6.grow(Vector3i(2, 2, 0));
     c6.grow(Vector3i(2, 2, 2));
     TS_ASSERT_EQUALS( c6.center(), Vector3i(0, 1, 1) );
-    TS_ASSERT_EQUALS( c6.size(), 2*std::sqrt(6) );
+    TS_ASSERT_DELTA( c6.size(), 2*std::sqrt(6), 1e-7);
 
     Convex c7;
     c7.grow(c6);
