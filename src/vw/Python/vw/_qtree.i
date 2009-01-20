@@ -161,7 +161,7 @@ the Vision Workbook 2.0 for more information.
       }
 
       void _set_simple_image_path_func() {
-        self->set_image_path_func( &vw::mosaic::QuadTreeGenerator::simple_image_path );
+        self->set_image_path_func( vw::mosaic::QuadTreeGenerator::simple_image_path() );
       }
 
       void _set_branch_func( PyObject *pyfunc, PyObject *qtree ) {
@@ -187,7 +187,7 @@ the Vision Workbook 2.0 for more information.
       }
     }
 
-    static std::string simple_image_path( QuadTreeGenerator const& qtree, std::string const& name );
+    //static std::string simple_image_path( QuadTreeGenerator const& qtree, std::string const& name );
 
     %define %instantiate_qtree_types(cname,ctype,pname,ptype,...)
       %template(QuadTreeGenerator) QuadTreeGenerator<ptype >;
@@ -217,10 +217,10 @@ the Vision Workbook 2.0 for more information.
           config.configure( self )
 
       def _set_image_path_func(self, func):
-        if func == self.simple_image_path:
-          self._set_simple_image_path_func()
-        else:
-          self._set_python_image_path_func(func,self)
+        #//if func == self.simple_image_path:
+        #//  self._set_simple_image_path_func()
+        #//else:
+        self._set_python_image_path_func(func,self)
 
       name = property(_get_name,_set_name)
       crop_bbox = property(_get_crop_bbox,_set_crop_bbox)
