@@ -254,11 +254,10 @@ namespace vw {
     template<class TaskT>
     inline Thread( boost::shared_ptr<TaskT> task ) : m_thread( TaskHelper<TaskT>(task) ) {}
 
-    /// Destroys the thread.  If the thread is still running, bad 
-    /// things will happen!  Usually you want to make sure that the 
-    /// owner of the Thread join()s it before allowing it to be 
-    /// destroyed.
-    inline ~Thread() { join(); }
+    /// Destroys the thread. User is expected to either call join() themselves,
+    /// or let the thread run free. We don't call join() here because most users
+    /// will call join(), and a second call to join() is undefined.
+    inline ~Thread() { }
 
     /// The current thread of execution blocks until this thread
     /// finishes execution of the task and all resources are reclaimed.
