@@ -35,7 +35,6 @@
 #include <fstream>
 #include <iomanip>
 #include <time.h>
-#include <iostream>
 
 // VW
 #include <vw/Math/Vector.h>
