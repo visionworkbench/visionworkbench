@@ -35,6 +35,7 @@
 #include <fstream>
 #include <iomanip>
 #include <time.h>
+#include <iostream>
 
 // VW
 #include <vw/Math/Vector.h>
@@ -209,6 +210,7 @@ namespace camera {
     void write_binary_measure ( std::ofstream &f );
     void read_binary_measure ( std::ifstream &f );
     void write_isis_pvl_measure ( std::ofstream &f );
+    void read_isis_pvl_measure( std::ifstream &f );
 
   };
 
@@ -313,6 +315,7 @@ namespace camera {
     void write_binary_point ( std::ofstream &f );
     void read_binary_point ( std::ifstream &f );
     void write_isis_pvl_point ( std::ofstream &f );
+    void read_isis_pvl_point ( std::ifstream &f );
 
   };
 
@@ -427,10 +430,15 @@ namespace camera {
     void write_binary_control_network( std::string filename );
     void read_binary_control_network( std::string filename );
     void write_isis_pvl_control_network( std::string filename );
+    void read_isis_pvl_control_network( std::string filename );
 
   };
 
   std::ostream& operator<<( std::ostream& os, ControlNetwork const& cnet);
+
+  /// I/O for ISIS Pvl file
+  void read_pvl_property( std::ostringstream& ostr,
+			  std::vector< std::string >& tokens );
 
 }} // namespace vw::camera
 

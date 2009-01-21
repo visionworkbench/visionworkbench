@@ -122,6 +122,122 @@ namespace camera {
     f << "    End_Group\n";
   }
 
+  void ControlMeasure::read_isis_pvl_measure( std::ifstream &f ) {
+    
+    std::vector<std::string> tokens;
+    std::ostringstream ostr;
+    std::istringstream converter;
+    std::string str;
+
+    // Setting defaults
+    m_diameter = 0;
+    m_date_time = "";
+    m_chooserName = "";
+    m_ignore = false;
+    m_pixels_dominant = false;
+    
+    while (1) {
+      if ( f.eof() )
+	vw_throw( vw::IOErr() << "Error reading Control Measure, unexpectly hit end of file" );
+
+      // Reading file
+      str = "";
+      std::getline( f, str );
+      boost::split( tokens, str, boost::is_any_of(" =\n") );
+
+      // Cleaning out any tokens that are just ""
+      for(std::vector<std::string>::iterator iter = tokens.begin();
+	  iter != tokens.end(); ++iter ) {
+	if ( (*iter) == "" ) {
+	  iter = tokens.erase(iter);
+	  iter--;
+	}
+      }
+
+      // Processing statement
+      if ( tokens.size() == 0 )
+	continue;
+
+      if ( tokens[0] == "End_Group" )     // End of Control Group
+	break;
+      else if ( tokens[0] == "SerialNumber" ) {
+	read_pvl_property( ostr, tokens );
+	m_serialNumber = ostr.str();
+      } else if ( tokens[0] == "MeasureType" ) {
+	read_pvl_property( ostr, tokens );
+	if ( ostr.str() == "Unmeasured" )
+	  m_type = ControlMeasure::Unmeasured;
+	else if ( ostr.str() == "Manual" )
+	  m_type = ControlMeasure::Manual;
+	else if ( ostr.str() == "Estimated" )
+	  m_type = ControlMeasure::Estimated;
+	else if ( ostr.str() == "Automatic" )
+	  m_type = ControlMeasure::Automatic;
+	else if ( ostr.str() == "ValidatedManual" )
+	  m_type = ControlMeasure::ValidatedManual;
+	else if ( ostr.str() == "ValidatedAutomatic" )
+	  m_type = ControlMeasure::ValidatedAutomatic;
+	else 
+	  vw_throw( vw::IOErr() << "Invalid Control Measure type, \""
+		    << ostr.str() << "." );
+      } else if ( tokens[0] == "Sample" ) {
+	read_pvl_property( ostr, tokens );
+	if ( ostr.str() == "Null" )
+	  m_col = 0;
+	else {
+	  converter.str( ostr.str() );
+	  converter.clear();
+	  converter >> m_col;
+	}
+      } else if ( tokens[0] == "Line" ) {
+	read_pvl_property( ostr, tokens );
+	if ( ostr.str() == "Null" )
+	  m_row = 0;
+	else {
+	  converter.str( ostr.str() );
+	  converter.clear();
+	  converter >> m_row;
+	}
+      } else if ( tokens[0] == "ErrorLine" ) {
+	read_pvl_property( ostr, tokens );
+	converter.str( ostr.str() );
+	converter.clear();
+	converter >> m_col_sigma;
+      } else if ( tokens[0] == "ErrorSample" ) {
+	read_pvl_property( ostr, tokens );
+	converter.str( ostr.str() );
+	converter.clear();
+	converter >> m_row_sigma;
+      } else if ( tokens[0] == "FocalPlaneX" ) {
+	read_pvl_property( ostr, tokens );
+	converter.str( ostr.str() );
+	converter.clear();
+	converter >> m_focalplane_x;
+      } else if ( tokens[0] == "FocalPlaneY" ) {
+	read_pvl_property( ostr, tokens );
+	converter.str( ostr.str() );
+	converter.clear();
+	converter >> m_focalplane_y;
+      } else if ( tokens[0] == "Diameter" ) {
+	read_pvl_property( ostr, tokens );
+	converter.str( ostr.str() );
+	converter.clear();
+	converter >> m_diameter;
+      } else if ( tokens[0] == "DateTime" ) {
+	read_pvl_property( ostr, tokens );
+	m_date_time = ostr.str();
+      } else if ( tokens[0] == "ChooserName" ) {
+	read_pvl_property( ostr, tokens );
+	m_chooserName = ostr.str();
+      } else if ( tokens[0] == "Ignore" ) {
+	m_ignore = true;
+      } else if ( tokens[0] == "PixelsDominant" ) {
+	m_pixels_dominant = 1;
+      }
+    }
+
+  }
+
   ////////////////////////////
   // Control Point          //
   ////////////////////////////
@@ -228,6 +344,84 @@ namespace camera {
     f << "  End_Object\n";
   }
 
+  /// Read an isis style point
+  void ControlPoint::read_isis_pvl_point ( std::ifstream &f ) {
+
+    std::vector<std::string> tokens;
+    std::ostringstream ostr;
+    std::istringstream converter;
+    std::string str;
+
+    // Setting defaults
+    m_ignore = false;
+
+    while (1) {
+      if ( f.eof() )
+	vw_throw( vw::IOErr() << "Error reading Control Point, unexpectly hit end of file" );
+
+      // Reading file
+      str = "";
+      std::getline( f, str );
+      boost::split( tokens, str, boost::is_any_of(" =\n") );
+
+      // Cleaning out any tokens that are just ""
+      for(std::vector<std::string>::iterator iter = tokens.begin();
+	  iter != tokens.end(); ++iter ) {
+	if ( (*iter) == "" ) {
+	  iter = tokens.erase(iter);
+	  iter--;
+	}
+      }
+
+      // Processing statement
+      if ( tokens.size() == 0 )
+	continue;
+
+      if ( tokens[0] == "End_Object" )     // End of Control Point
+	break;
+      else if ( tokens[0] == "PointType" ) {
+	read_pvl_property( ostr, tokens );
+	if ( ostr.str() == "Ground" ) 
+	  m_type = ControlPoint::GroundControlPoint;
+	else if ( ostr.str() == "Tie" ) 
+	  m_type = ControlPoint::TiePoint;
+	else 
+	  vw_throw( vw::IOErr() << "Invalid Control Point type, \""
+		    << ostr.str() << "." );
+      } else if ( tokens[0] == "PointId" ) {
+	read_pvl_property( ostr, tokens );
+	m_id = ostr.str();
+      } else if ( tokens[0] == "Latitude" ) {
+	read_pvl_property( ostr, tokens );
+	converter.str( ostr.str() );
+	converter.clear();
+	converter >> m_position[1];
+      } else if ( tokens[0] == "Longitude" ) {
+	read_pvl_property( ostr, tokens );
+	converter.str( ostr.str() );
+	converter.clear();
+	converter >> m_position[0];
+      } else if ( tokens[0] == "Radius" ) {
+	read_pvl_property( ostr, tokens );
+	converter.str( ostr.str() );
+	converter.clear();
+	converter >> m_position[2];
+      } else if ( tokens[0] == "Ignore" ) {
+	m_ignore = tokens[1] == "True";
+      } else if ( tokens[0] == "Group" ) {
+	if ( tokens.size() == 1 ) {
+	  vw_throw( IOErr() << "Failed to read Control Point. Contains incorrect syntax, unlabelled Group" );
+	} else if ( tokens[1] == "ControlMeasure" ) {
+	  ControlMeasure measure;
+	  measure.read_isis_pvl_measure( f );
+	  m_measures.push_back( measure );
+	} else {
+	  vw_throw( IOErr() << "Failed to read Control Point. Unkown group \"" << tokens[1] << "\" found." );
+	}
+      }
+    }
+  }
+
   ////////////////////////////
   // Control Network        //
   ////////////////////////////
@@ -318,6 +512,9 @@ namespace camera {
       vw_throw( IOErr() << "Failed to open \"" << filename
 		<< "\" as a Control Network." );
     
+    // Clearing anything left in this control network
+    m_control_points.clear();
+
     // Reading in the strings first
     std::getline( f, m_targetName, '\0' );
     std::getline( f, m_networkId, '\0' );
@@ -396,6 +593,103 @@ namespace camera {
     f.close();
   }
 
+  /// Read an isis style control network
+  void ControlNetwork::read_isis_pvl_control_network( std::string filename ) {
+    
+    // Opening file
+    std::ifstream f( filename.c_str() );
+    if ( !f.is_open() )
+      vw_throw( IOErr() << "Failed to open \"" << filename
+		<< "\" as a ISIS Control Network." );
+
+    // Clearing anything left in this control network
+    m_control_points.clear();
+
+    // Reading file
+    std::vector<std::string> tokens;
+    std::ostringstream ostr;
+    std::string str;
+    while ( !f.eof() ) {
+      // Reading file
+      str = "";
+      std::getline( f, str);
+      boost::split( tokens, str, boost::is_any_of(" =\n") );
+      
+      // Cleaning out any tokens that are just ""
+      for(std::vector<std::string>::iterator iter = tokens.begin();
+	  iter != tokens.end(); ++iter ) {
+	if ( (*iter) == "" ) {
+	  iter = tokens.erase(iter);
+	  iter--;
+	}
+      }
+
+      // Processing statement
+      if ( tokens.size() == 0 )
+	continue;
+
+      if ( tokens[0] == "End" )        // End of file
+	break;
+      else if ( tokens[0] == "NetworkId" ) {
+	read_pvl_property( ostr, tokens );
+	m_networkId = ostr.str();
+      }
+      else if ( tokens[0] == "NetworkType" ) {
+	read_pvl_property( ostr, tokens );
+	if ( ostr.str() == "Singleton" )
+	  m_type = ControlNetwork::Singleton;
+	else if ( ostr.str() == "ImageToImage" )
+	  m_type = ControlNetwork::ImageToImage;
+	else if ( ostr.str() == "ImageToGround" )
+	  m_type = ControlNetwork::ImageToGround;
+	else
+	  vw_throw( vw::IOErr() << "Invalid Control Network type, \"" 
+		    << ostr.str() << "." );
+      }
+      else if ( tokens[0] == "TargetName" ) {
+	read_pvl_property( ostr, tokens );
+	m_targetName = ostr.str();
+      }
+      else if ( tokens[0] == "UserName" ) {
+	read_pvl_property( ostr, tokens );
+	m_userName = ostr.str();
+      }
+      else if ( tokens[0] == "Created" ) {
+	read_pvl_property( ostr, tokens );
+	m_created = ostr.str();
+      }
+      else if ( tokens[0] == "LastModified" ) {
+	read_pvl_property( ostr, tokens );
+	m_modified = ostr.str();
+      }
+      else if ( tokens[0] == "Description" ) {
+	read_pvl_property( ostr, tokens );
+	m_description = ostr.str();
+      }
+      else if ( tokens[0] == "Object" ) {
+	if ( tokens.size() == 1 ) {
+	  vw_throw( IOErr() << "Failed to open \"" << filename 
+		    << "\". Contains incorrect syntax, unlabelled Object" );
+	} else if ( tokens[1] == "ControlNetwork" ) {
+	  // Start of file
+	  continue;
+	} else if ( tokens[1] == "ControlPoint" ) {
+	  ControlPoint point;
+	  point.read_isis_pvl_point( f );
+	  m_control_points.push_back( point );
+	} else if ( tokens[1] == "ControlMeasure" ) {
+	  vw_throw( IOErr() << "Failed to open \"" << filename
+		    << "\". Control Measure found out of order." );
+	} else {
+	  vw_throw( IOErr() << "Failed to open \"" << filename
+		    << "\". Unknown Object \"" << tokens[1] << "\" found." );
+	}
+      }
+    }
+
+    f.close();
+  }
+
   ////////////////////////////
   // Generic Ostream        //
   ////////////////////////////
@@ -421,6 +715,16 @@ namespace camera {
     return os;
   }
 
+  // Read a single pvl propert
+  void read_pvl_property( std::ostringstream& ostr,
+			  std::vector<std::string>& tokens ) {
+    ostr.str("");
+    for ( unsigned i = 1; i < tokens.size(); i++ )
+      if ( i > 1 )
+	ostr << " " << tokens[i];
+      else
+	ostr << tokens[i]; 
+  }
 
 
 }} // namespace vw::camera
