@@ -2065,6 +2065,21 @@ namespace math {
 
 
   // *******************************************************************
+  // Convenience functions for returning a pre-made diagonal matrix in
+  // one line of code.
+  // *******************************************************************
+
+  /// Create a square dynamic identity matrix.
+  template <class VectorT>
+  inline Matrix<typename VectorT::value_type> diagonal_matrix( VectorT const& diag ) {
+    Matrix<typename VectorT::value_type> M(diag.size(),diag.size());
+    for( unsigned i=0; i<diag.size(); ++i )
+      M(i,i) = diag(i);
+    return M;
+  }
+
+
+  // *******************************************************************
   // Assorted mathematical matrix functions.
   // *******************************************************************
   template <class Vector1T, class Vector2T>
@@ -2175,6 +2190,8 @@ namespace math {
   using math::Matrix;
   using math::MatrixBase;
   using math::MatrixProxy;
+  using math::identity_matrix;
+  using math::diagonal_matrix;
   typedef Matrix<float64,2,2> Matrix2x2;
   typedef Matrix<float64,3,3> Matrix3x3;
   typedef Matrix<float64,4,4> Matrix4x4;
