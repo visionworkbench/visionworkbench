@@ -313,7 +313,7 @@ int main( int argc, char *argv[] ) {
       ("patch-size", po::value<unsigned int>(&patch_size)->default_value(256), "Patch size for tiled output, in pixels")
       ("patch-overlap", po::value<unsigned int>(&patch_overlap)->default_value(0), "Patch overlap for tiled output, in pixels")
       ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
-      ("draft", po::value<bool>(&draft)->default_value(false), "Draft mode (no blending)")
+      ("draft", "Draft mode (no blending)")
       ("ignore-alpha", "Ignore the alpha channel of the input images, and don't write an alpha channel in output.")
       ("nodata-value", po::value<float>(&nodata_value), "Pixel value to use for nodata in input and output (when there's no alpha channel)")
       ("channel-type", po::value<std::string>(&channel_type_str), "Images' channel type. One of [uint8, uint16, int16, float].")
@@ -341,6 +341,11 @@ int main( int argc, char *argv[] ) {
       std::cerr << usage.str() << std::endl;
       return 1;
     }
+    
+    draft = false;
+    if( vm.count("draft") ) {
+      draft = true;
+    } 
     
     if( vm.count("input-files") < 1 ) {
       std::cerr << "Error: Must specify at least one input file!" << std::endl << std::endl;
