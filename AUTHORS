@@ -9,7 +9,7 @@ and energy to this effort.
 
 Matthew Hancher (CS) - Lead Developer
 Michael Broxton (CMU/NASA IPA) - Lead Developer
-
+Terry Fong (CS) - Project Manager
 
 -------------------------------------
 Contributors for Vision Workbench 1.0
@@ -22,6 +22,7 @@ Kyle Husmann (NASA Intern) - Camera, Stereo Modules, Stereo Pipeline
 Matthew Faulkner (NASA Intern) - Math, Camera Modules
 Matthew Deans (CS) - Interest Point Module
 Ian Saxton (NASA Intern) - GPU Module
+Todd Templeton (NASA Intern) - FileIO, Math Modules
 Aaron Rolett - Mosaic Module
 Kerri Cahoy (NASA Intern) - Testing
 Joey Gannon (NASA Intern) - Camera Module
