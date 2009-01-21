@@ -43,31 +43,27 @@
 #define PCA_BASIS_SIZE	20
 #define MAX_POINTS_TO_DRAW 1000
 
-using namespace std;
-using namespace vw;
-using namespace vw::ip;
-
 // Use DescriptorGeneratorBase::operator() and compute_descriptor methods to 
 // help us populate the training data matrix
 // DescriptorGeneratorBase takes care of finding the support region for
 // each interest point
-class LearnPCADataFiller : public DescriptorGeneratorBase<LearnPCADataFiller> {
+class LearnPCADataFiller : public vw::ip::DescriptorGeneratorBase<LearnPCADataFiller> {
 
 private:
-  Matrix<double> *data;
+  vw::Matrix<double> *data;
   int column;
 
 public:
   // *** TODO: Pass by ref without copy?
-  LearnPCADataFiller(Matrix<double>* training_data, unsigned int start_column) {
+  LearnPCADataFiller(vw::Matrix<double>* training_data, unsigned int start_column) {
     data = training_data;
     column = start_column;
   }
   
   template <class ViewT>
-  Vector<float> compute_descriptor (ImageViewBase<ViewT> const& support) {
+    vw::Vector<float> compute_descriptor (vw::ImageViewBase<ViewT> const& support) {
     // Create dummy return vector
-    Vector<float> result(0.0f);
+    vw::Vector<float> result(0.0f);
     
     int support_squared = support.impl().cols() * support.impl().rows();
 
@@ -101,11 +97,11 @@ private:
   std::string basis_filename;
   std::string avg_filename;
 
-  Matrix<double> training_data;
+  vw::Matrix<double> training_data;
   unsigned int training_data_size;
 
-  Matrix<float> pca_basis;
-  Vector<float> pca_avg;
+  vw::Matrix<float> pca_basis;
+  vw::Vector<float> pca_avg;
 
   int support_squared;
 
@@ -134,28 +130,28 @@ public:
     return ret;
   }
 
-  void processImage(DiskImageView<PixelRGB<uint8> > &dimage) {
+  void processImage(vw::DiskImageView<vw::PixelRGB<vw::uint8> > &dimage) {
     
     float log_threshold = 0.01;
     int tile_size = 2048;
     
     // *** TODO: let user choose interest point detector
     // Find interest points in image
-    InterestPointList ipl;
+    vw::ip::InterestPointList ipl;
 
 		// *** TODO: set this somewhere else
     int max_x_dim = 1000;
-    ImageView<PixelRGB<uint8> > image = dimage;
+    vw::ImageView<vw::PixelRGB<vw::uint8> > image = dimage;
     while(image.cols() > max_x_dim) {
       image = bin_subsample(image);
-      cout << "Reduced image to " << image.cols() << "x" << image.rows() << endl;
+      std::cout << "Reduced image to " << image.cols() << "x" << image.rows() << std::endl;
     }
-    image = gaussian_filter(image, 1);
+    image = vw::gaussian_filter(image, 1);
 
-    LogInterestOperator interest_operator(log_threshold);
-    ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator);
+    vw::ip::LogInterestOperator interest_operator(log_threshold);
+    vw::ip::ScaledInterestPointDetector<vw::ip::LogInterestOperator> detector(interest_operator);
     //ScaledInterestPointDetector<LogInterestOperator> detector;
-    cout << "Running interest point detector on " << dimage.filename() << endl;
+    std::cout << "Running interest point detector on " << dimage.filename() << std::endl;
     ipl = detector(image, tile_size);
     write_point_image("ip_" + dimage.filename(), image, ipl);
 
@@ -167,18 +163,18 @@ public:
     // Populate training data matrix
     LearnPCADataFiller fill_matrix(&training_data, interest_point_index);
     
-    cout << "Populating training matrix" << endl;
-    cout << "  Starting fill at column " << interest_point_index << endl;
-    cout << "  " << ipl.size() << " interest points" << endl;
-    cout << "  " << training_data_size << " total interest points\n" << endl;
+    std::cout << "Populating training matrix" << std::endl;
+    std::cout << "  Starting fill at column " << interest_point_index << std::endl;
+    std::cout << "  " << ipl.size() << " interest points" << std::endl;
+    std::cout << "  " << training_data_size << " total interest points\n" << std::endl;
     fill_matrix(image, ipl);
   }
 
   void runPCA() {
-    cout << "Running PCA on training data" << endl;
+    std::cout << "Running PCA on training data" << std::endl;
 
     // Compute average
-    cout << "  Computing average" << endl;
+    std::cout << "  Computing average" << std::endl;
     pca_avg.set_size(support_squared);
     for (int i = 0; i < support_squared; i++) {
       for (unsigned j = 0; j < training_data.cols(); j++) {
@@ -188,7 +184,7 @@ public:
     }
 
     // Subtract average
-    cout << "  Subtracting average" << endl;
+    std::cout << "  Subtracting average" << std::endl;
     for (int i = 0; i < support_squared; i++) {
       for (unsigned j = 0; j < training_data.cols(); j++) {
 	training_data(i, j) -= pca_avg(i);
@@ -196,48 +192,48 @@ public:
     }
 
     // Compute SVD of training data matrix
-    cout << "  Computing SVD" << endl;
-    Matrix<float> U;
-    Vector<float> E;
-    Matrix<float> VT;
+    std::cout << "  Computing SVD" << std::endl;
+    vw::Matrix<float> U;
+    vw::Vector<float> E;
+    vw::Matrix<float> VT;
     svd(training_data, U, E, VT);
 
     assert(E.size() >= PCA_BASIS_SIZE);
-    cout << "  Top " << PCA_BASIS_SIZE << " singular values from " << E.size()
-	 << " total singular values" << endl;
+    std::cout << "  Top " << PCA_BASIS_SIZE << " singular values from " << E.size()
+	 << " total singular values" << std::endl;
     for (int i = 0; i < PCA_BASIS_SIZE; i++) {
-      cout << "  " << i << ": " << E[i] << endl;
+      std::cout << "  " << i << ": " << E[i] << std::endl;
     }
 
     // Take top n eignvectors of U as PCA basis
-    Matrix<float> pca_basis = submatrix(U, 0, 0, U.rows(), 
+    vw::Matrix<float> pca_basis = submatrix(U, 0, 0, U.rows(), 
 					PCA_BASIS_SIZE);
 
-    cout << "pca_basis: " << pca_basis.rows() << " x " << pca_basis.cols() << endl;
-    cout << "pca_avg: " << pca_avg.size() << endl;
+    std::cout << "pca_basis: " << pca_basis.rows() << " x " << pca_basis.cols() << std::endl;
+    std::cout << "pca_avg: " << pca_avg.size() << std::endl;
 
-    write_matrix(basis_filename, pca_basis);
-    write_vector(avg_filename, pca_avg);
+    vw::write_matrix(basis_filename, pca_basis);
+    vw::write_vector(avg_filename, pca_avg);
   }
 
   // Draw the interest points and write as an image.
   template <class ViewT>
   void write_point_image(std::string out_file_name, 
-			 ImageViewBase<ViewT> const& src,
-			 InterestPointList const& points) {
+			 vw::ImageViewBase<ViewT> const& src,
+			 vw::ip::InterestPointList const& points) {
 
-    ImageView<PixelRGB<uint8> > viz = pixel_cast<PixelRGB<uint8> >(channel_cast_rescale<uint8>(src));
+    vw::ImageView<vw::PixelRGB<vw::uint8> > viz = vw::pixel_cast<vw::PixelRGB<vw::uint8> >(vw::channel_cast_rescale<vw::uint8>(src));
 
     // Draw points into color planes
     int n = 0;
-    for (InterestPointList::const_iterator pt = points.begin();
+    for (vw::ip::InterestPointList::const_iterator pt = points.begin();
 	 pt != points.end() && n < MAX_POINTS_TO_DRAW; ++pt, ++n) {
       // Draw a red line from the point outward along the orientation
       for (int r=0; r<(int)(8*(*pt).scale); ++r){
 	int i = (int)(0.5 + (*pt).x + r*cos((*pt).orientation));
 	int j = (int)(0.5 + (*pt).y + r*sin((*pt).orientation));
 	// red, green, blue
-	viz(i,j) = PixelRGB<uint8>(255, 0, 0);
+	viz(i,j) = vw::PixelRGB<vw::uint8>(255, 0, 0);
       }
       // Draw a green 3x3 filled square at the point to indicate center
       int i0 = (int)(0.5 + (*pt).x);
@@ -245,12 +241,12 @@ public:
       for (int j=j0-1; j<=j0+1; ++j){
 	for (int i=i0-1; i<=i0+1; ++i){
 	  // red, green, blue
-	  viz(i,j) = PixelRGB<uint8>(0, 255, 0);
+	  viz(i,j) = vw::PixelRGB<vw::uint8>(0, 255, 0);
 	}
       }
     }
 
-    write_image(out_file_name, viz);
+    vw::write_image(out_file_name, viz);
   }
 
 };
