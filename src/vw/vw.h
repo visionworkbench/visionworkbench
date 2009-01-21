@@ -64,6 +64,10 @@
 #include <vw/HDR.h>
 #endif
 
+#if defined(VW_HAVE_PKG_GEOMETRY) && VW_HAVE_PKG_GEOMETRY==1
+#include <vw/Geometry.h>
+#endif
+
 #if defined(VW_HAVE_PKG_GPU) && VW_HAVE_PKG_GPU==1
 #include <vw/GPU.h>
 #endif

@@ -80,6 +80,11 @@ hdr_subdirs = HDR
 hdr_headers = HDR.h
 endif
 
+if MAKE_MODULE_GEOMETRY
+hdr_subdirs = Geometry
+hdr_headers = Geometry.h
+endif
+
 if MAKE_MODULE_TOOLS
 tools_subdirs = tools
 endif
