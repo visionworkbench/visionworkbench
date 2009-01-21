@@ -65,7 +65,7 @@ directory, is not covered by the above-mentioned distribution
 agreement or copyright.  See the included documentation for detailed
 copyright and license information for any third-party software.  In
 addition, various pieces of the Vision Workbench depend on additional
-thrid-party libraries that the user is expected to have installed.
+third-party libraries that the user is expected to have installed.
 The specific dependencies of each component of the Vision Workbench
 are discussed section 3, "LIBRARY STRUCTURE", and information of where
 to obtain non-bundled third-party libraries is provided in section 4,
@@ -341,6 +341,6 @@ collaboration with the Adaptive Control and Evolvable Systems (ACES)
 group, and draws on their experience developing computer vision 
 techniques for autonomous vehicle control systems.
 
-The lead developers of the Vision Workbench are Laurence Edwards 
-(IRG, Project Manager), Michael Broxton (IRG), and Matthew Hancher 
-(ACES).  See the AUTHORS file for a complete list of developers.
+The lead developers of the Vision Workbench are Michael Broxton and
+Matthew Hancher.  The project manager is Terry Fong.  See the AUTHORS
+file for a complete list of developers.
