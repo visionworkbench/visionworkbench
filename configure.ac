@@ -209,13 +209,6 @@ AX_PKG_ONE_OF(LAPACK,
      AX_PKG(STANDALONE_FLAPACK, [STANDALONE_F2C], [-llapack], [])
      AX_GROUP_PKG(STANDALONE_FLAPACK_FBLAS, [STANDALONE_FLAPACK STANDALONE_FBLAS STANDALONE_F2C])])
 
-AX_PKG(QHULL, [], [-lqhull], [stdio.h stdlib.h string.h ctype.h math.h qhull/qhull.h])
-
-AX_PKG(GMP, [], [-lgmpxx -lgmp], [gmpxx.h gmp.h])
-AX_PKG(MPFR, [], [-lmpfr], [mpfr.h])
-AX_PKG(PPL, [GMP], [-lppl], [ppl.hh])
-AX_PKG(APRON, [GMP MPFR], [-lpolkag -lapron -litvmpq -litvdbl], [ap_global0.h ap_global1.h pk.h])
-
 AX_PKG(M, [], [-lm], [math.h])
 AX_PKG(Z, [], [-lz], [zlib.h])
 
