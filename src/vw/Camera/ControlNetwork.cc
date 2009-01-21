@@ -108,6 +108,8 @@ namespace camera {
       f << "      FocalPlaneX    = " << m_focalplane_x << "\n";
       f << "      FocalPlaneY    = " << m_focalplane_y << "\n";
     }
+    if ( m_ephemeris_time != 0 )
+      f << "      EphemerisTime  = " << m_ephemeris_time << "\n";
     if ( m_diameter > 0 )
       f << "      Diameter       = " << m_diameter << "\n";
     if ( m_date_time != "" )
@@ -218,6 +220,11 @@ namespace camera {
 	converter.str( ostr.str() );
 	converter.clear();
 	converter >> m_focalplane_y;
+      } else if ( tokens[0] == "EphemerisTime" ) {
+	read_pvl_property( ostr, tokens );
+	converter.str( ostr.str() );
+	converter.clear();
+	converter >> m_ephemeris_time;
       } else if ( tokens[0] == "Diameter" ) {
 	read_pvl_property( ostr, tokens );
 	converter.str( ostr.str() );
@@ -564,6 +571,7 @@ namespace camera {
 
     // Opening file
     std::ofstream f( filename.c_str() );
+    f << std::setprecision( 10 );
 
     f << "Object = ControlNetwork\n";
     f << "  NetworkId    = " << m_networkId << "\n";
