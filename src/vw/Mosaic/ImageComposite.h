@@ -458,7 +458,9 @@ void vw::mosaic::ImageComposite<PixelT>::prepare( BBox2i const& total_bbox,
 // to the given bounding box.
 template <class PixelT>
 vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox2i const& patch_bbox ) const {
+#if VW_DEBUG_LEVEL > 1
   vw_out(DebugMessage, "mosaic") << "ImageComposite compositing patch " << patch_bbox << "..." << std::endl;
+#endif
   // Compute bboxes and allocate the pyramids
   std::vector<BBox2i> bbox_pyr;
   std::vector<ImageView<pixel_type> > sum_pyr(levels);
@@ -559,7 +561,9 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox2i co
 // to the given bounding box WITHOUT blending.
 template <class PixelT>
 vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::draft_patch( BBox2i const& patch_bbox ) const {
+#if VW_DEBUG_LEVEL > 1
   vw_out(DebugMessage, "mosaic") << "ImageComposite compositing patch " << patch_bbox << "..." << std::endl;
+#endif
   ImageView<pixel_type> composite(patch_bbox.width(),patch_bbox.height());
 
   // Add each image to the composite.
