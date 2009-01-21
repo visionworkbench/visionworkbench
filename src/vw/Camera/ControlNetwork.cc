@@ -571,7 +571,7 @@ namespace camera {
 
     // Opening file
     std::ofstream f( filename.c_str() );
-    f << std::setprecision( 10 );
+    f << std::setprecision( 15 );
 
     f << "Object = ControlNetwork\n";
     f << "  NetworkId    = " << m_networkId << "\n";
