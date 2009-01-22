@@ -39,6 +39,7 @@
 #include <boost/type_traits.hpp>
 #include <boost/utility/enable_if.hpp>
 
+#include <vw/Core/ProgressCallback.h>
 #include <vw/Image/ImageResource.h>
 #include <vw/Image/PixelIterator.h>
 
@@ -133,13 +134,14 @@ namespace vw {
   // *******************************************************************
 
   template <class ViewT, class FuncT>
-  void for_each_pixel_( const ImageViewBase<ViewT> &view_, FuncT &func ) {
+  void for_each_pixel_( const ImageViewBase<ViewT> &view_, FuncT &func, const ProgressCallback &progress ) {
     const ViewT& view = view_.impl();
     typedef typename ViewT::pixel_accessor pixel_accessor;
     pixel_accessor plane_acc = view.origin();
     for( int32 plane = view.planes(); plane; --plane ) { 
       pixel_accessor row_acc = plane_acc;
-      for( int32 row = view.rows(); row; --row ) {
+      for( int32 row = 0; row<view.rows(); ++row ) {
+	progress.report_fractional_progress(row,view.rows());
         pixel_accessor col_acc = row_acc;
         for( int32 col = view.cols(); col; --col ) {
           func( *col_acc );
@@ -149,16 +151,17 @@ namespace vw {
       }
       plane_acc.next_plane();
     }
+    progress.report_finished();
   }
 
   template <class ViewT, class FuncT>
-  void for_each_pixel( const ImageViewBase<ViewT> &view, FuncT &func ) {
-    for_each_pixel_<ViewT,FuncT>(view,func);
+  void for_each_pixel( const ImageViewBase<ViewT> &view, FuncT &func, const ProgressCallback &progress = ProgressCallback::dummy_instance() ) {
+    for_each_pixel_<ViewT,FuncT>(view,func,progress);
   }
 
   template <class ViewT, class FuncT>
-  void for_each_pixel( const ImageViewBase<ViewT> &view, const FuncT &func ) {
-    for_each_pixel_<ViewT,const FuncT>(view,func);
+  void for_each_pixel( const ImageViewBase<ViewT> &view, const FuncT &func, const ProgressCallback &progress = ProgressCallback::dummy_instance() ) {
+    for_each_pixel_<ViewT,const FuncT>(view,func,progress);
   }
 
   template <class View1T, class View2T, class FuncT>
