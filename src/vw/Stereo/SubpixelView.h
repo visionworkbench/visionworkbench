@@ -153,6 +153,14 @@ namespace stereo {
                                                 m_do_h_subpixel, m_do_v_subpixel,
                                                 m_verbose);
         break;
+      case 3: // Bayes EM  Subpixel
+        subpixel_correlation_affine_2d_EM(disparity_map_patch,
+                                          left_image_patch,
+                                          right_image_patch,
+                                          m_kern_width, m_kern_height,
+                                          m_do_h_subpixel, m_do_v_subpixel,
+                                          m_verbose);
+        break;
       default:
         vw_throw(ArgumentErr() << "Unknown subpixel correlation type: " << m_do_affine_subpixel << ".");
         break;
