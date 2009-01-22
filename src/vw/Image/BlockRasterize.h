@@ -54,7 +54,7 @@ namespace vw {
       : m_child(image),
         m_block_cols(block_cols),
         m_block_rows(block_rows),
-        m_num_threads(num_threads?num_threads:(Thread::default_num_threads()))
+        m_num_threads(num_threads)
     {
       if( m_block_cols <= 0 ) m_block_cols = image.cols();
       if( m_block_rows <= 0 ) m_block_rows = (std::max)( image.rows()/m_num_threads, 1 );
@@ -81,7 +81,7 @@ namespace vw {
       RasterizeFunctor( ImageT const& src, DestT const& dest, Vector2i const& offset )
         : m_src(src), m_dest(dest), m_offset(offset) {}
       void operator()( BBox2i const& bbox ) const {
-        m_src.rasterize( crop( m_dest, bbox+m_offset ), bbox );
+        m_src.rasterize( crop( m_dest, bbox-m_offset ), bbox );
       }
     };
 
@@ -89,7 +89,7 @@ namespace vw {
     inline prerasterize_type prerasterize( BBox2i bbox ) const { return *this; }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
       RasterizeFunctor<DestT> rasterizer(m_child,dest,bbox.min());
-      BlockProcessor<RasterizeFunctor<DestT> > process(rasterizer, m_block_cols, m_block_rows);
+      BlockProcessor<RasterizeFunctor<DestT> > process(rasterizer, m_block_cols, m_block_rows, m_num_threads);
       process(bbox);
     }
     /// \endcond
