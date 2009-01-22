@@ -212,7 +212,7 @@ int main( int argc, char *argv[] ) {
 
   set_debug_level(InfoMessage);
 
-  po::options_description desc("Options");
+  po::options_description desc("Description: Outputs image of a DEM lighted as specified\n\nUsage: hillshade [options] <input file> \n\nOptions");
   desc.add_options()
     ("help", "Display this help message")
     ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
@@ -235,7 +235,7 @@ int main( int argc, char *argv[] ) {
   }
 
   if( vm.count("input-file") != 1 ) {
-    std::cout << "Error: Must specify exactly one input file!" << std::endl;
+    std::cout << "Error: Must specify exactly one input file!\n" << std::endl;
     std::cout << desc << std::endl;
     return 1;
   }

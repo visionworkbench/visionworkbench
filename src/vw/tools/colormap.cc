@@ -150,15 +150,15 @@ int main( int argc, char *argv[] ) {
 
   set_debug_level(VerboseDebugMessage-1);
   
-  po::options_description desc("Options");
+  po::options_description desc("Description: Produces a colorized image of a DEM \n\nUsage: colormap [options] <input file> \n\nOptions");
   desc.add_options()
     ("help", "Display this help message")
     ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
     ("shaded-relief-file,s", po::value<std::string>(&shaded_relief_file_name)->default_value(""), "Specify a shaded relief image (grayscale) to apply to the colorized image.")
     ("output-file,o", po::value<std::string>(&output_file_name), "Specify the output file")
     ("nodata-value", po::value<float>(&nodata_value), "Remap the DEM default value to the min altitude value.")
-    ("min", po::value<float>(&min_val), "Explicitly specify the range of the color map.")
-    ("max", po::value<float>(&max_val), "Explicitly specify the range of the color map.")
+    ("min", po::value<float>(&min_val), "Minimum height of the color map.")
+    ("max", po::value<float>(&max_val), "Maximum height of the color map.")
     ("verbose", "Verbose output");
   po::positional_options_description p;
   p.add("input-file", 1);
@@ -173,7 +173,7 @@ int main( int argc, char *argv[] ) {
   }
 
   if( vm.count("input-file") != 1 ) {
-    std::cout << "Error: Must specify exactly one input file!" << std::endl;
+    std::cout << "Error: Must specify exactly one input file!\n" << std::endl;
     std::cout << desc << std::endl;
     return 1;
   }

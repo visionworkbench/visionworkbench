@@ -444,7 +444,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
 int main(int argc, char **argv) {
   fill_input_maps();
 
-  po::options_description general_options("General Options");
+  po::options_description general_options("Description: Turns georeferenced image(s) into a quadtree with geographical metadata\n\nGeneral Options");
   general_options.add_options()
     ("output-name,o", po::value<std::string>(&output_file_name), "Specify the base output directory")
     ("quiet,q", "Quiet output")

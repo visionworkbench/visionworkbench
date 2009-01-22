@@ -306,7 +306,7 @@ int main( int argc, char *argv[] ) {
     po::options_description general_options("Options");
     general_options.add_options()
       ("help", "Display this help message")
-      ("mosaic-name,o", po::value<std::string>(&mosaic_name)->default_value("mosaic"), "Explicitly specify the input directory")
+      ("mosaic-name,o", po::value<std::string>(&mosaic_name)->default_value("mosaic"), "Specify base output directory")
       ("output-file-type,t", po::value<std::string>(&output_file_type)->default_value("tif"), "Output file type")
       ("tile-output", "Output the leaf tiles of a quadtree, instead of a single blended image.")
       ("tiled-tiff", po::value<unsigned int>(&tilesize)->default_value(0), "Output a tiled TIFF image, with given tile size (0 disables, TIFF only)")
@@ -334,7 +334,8 @@ int main( int argc, char *argv[] ) {
     po::notify( vm );
 
     std::ostringstream usage;
-    usage << "Usage: geoblend [options] <filename>..." << std::endl << std::endl;
+    usage << "Description: merges several DEMs" << std::endl << std::endl;
+    usage << "Usage: geoblend [options] <filename1> <filename2> ..." << std::endl << std::endl;
     usage << general_options << std::endl;
 
     if( vm.count("help") ) {

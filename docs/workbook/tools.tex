@@ -1,0 +1,171 @@
+\chapter{Some Tools}\label{ch:tools}
+
+VisionWorkbench also has some tools that are handy for doing cool things with graphics.  The tools live in the VisionWorkbench/src/vw/tools folder.
+
+\section{{\tt colormap}}\label{sec:colormap}
+
+The \verb#colormap# tool takes in a DEM and outputs a corresponding color-coded height image.  The colors run from blue for the lowest height value in the DEM to red for the highest value.  To adjust the image colors, use the \verb#--min# and \verb#--max# flags to set the highest and lowest values on the blue-to-red scale.  For example, suppose firstDEM.tif has heights from 0 to 100 and secondDEM.tif has heights from 0 to 120.  To compare both images using the same color scale, run \verb#colormap --max 120 firstDEM.tif#.
+
+Other command-line options for colormap are in Table~\ref{tbl:colormap}
+
+\begin{table}
+\begin{tabular}{|l|l|} \hline
+Option & Description \\ \hline \hline
+\verb#--help# & Display a help message \\ \hline
+\verb#--input-file arg# & Explicitly specify the input file \\ \hline
+\verb#-s [ --shaded-relief-file ] arg# & Specify a shaded relief image (grayscale) to apply to the colorized image \\ \hline
+\verb#-o [ --output-file ] arg# & Specify the output file \\ \hline
+\verb#--nodata-value arg# & Remap the DEM default value to the min altitude value \\ \hline
+\verb#--min arg# & Minimum height of the color map \\ \hline
+\verb#--max arg# & Maximum height of the color map \\ \hline
+\verb#--verbose# & Verbose output \\ \hline
+\end{tabular}
+\caption{Command-line options for colormap}
+\label{tbl:colormap}
+\end{table}
+
+\section{{\tt geoblend}}\label{sec:geoblend}
+
+\verb#geoblend# merges multiple DEMs into one large DEM.  By default, it blends the DEMs so that the output is smooth at the boundaries.  Disable this feature using the \verb#--draft# flag.  Other options are listed in Table~\ref{tbl:geoblend}.
+
+\begin{table}
+\begin{tabular}{|l|l|} \hline
+Option & Description \\ \hline \hline
+\verb#--help# & Display a help message \\ \hline
+\verb#-o [ --mosaic-name ] arg (=mosaic)# & Specify base output directory\\ \hline
+\verb#-t [ --output-file-type ] arg (=tif)# & Output file type\\ \hline
+\verb#--tile-output# & Output the leaf tiles of a quadtree, instead of a single blended image.\\ \hline
+\verb#--tiled-tiff arg (=0)# & Output a tiled TIFF image, with given tile size (0 disables, TIFF only)\\ \hline
+\verb#--patch-size arg (=256)# & Patch size for tiled output, in pixels\\ \hline
+\verb#--patch-overlap arg (=0)# & Patch overlap for tiled output, in pixels\\ \hline
+\verb#--cache arg (=1024)# & Cache size, in megabytes\\ \hline
+\verb#--draft# & Draft mode (no blending)\\ \hline
+\verb#--ignore-alpha# & Ignore the alpha channel of the input images, and don't write an alpha channel in output.\\ \hline
+\verb#--nodata-value arg# & Pixel value to use for nodata in input and output (when there's no alpha channel)\\ \hline
+\verb#--channel-type arg# & Images' channel type. One of [uint8, uint16, int16, float].\\ \hline
+\verb#--verbose# & Verbose output\\ \hline
+\end{tabular}
+\caption{Command-line options for geoblend}
+\label{tbl:geoblend}
+\end{table}
+
+\section{{\tt georef}}\label{sec:georef}
+
+The \verb#georef# tool lets you specify the geographical coordinates and projection method for an image taken of the surface of a planet.
+
+\begin{table}
+\begin{tabular}{|l|l|} \hline
+Option & Description \\ \hline \hline
+General Options \\ \hline
+\verb#-o [ --output-file ] arg (=output.tif)# & Specify the base output filename \\ \hline
+\verb#-q [ --quiet ]# & Quiet output \\ \hline
+\verb#-v [ --verbose ]# & Verbose output \\ \hline
+\verb#--cache arg (=1024)# & Cache size, in megabytes \\ \hline
+\verb#--help# & Display a help message \\ \hline
+Projection Options \\ \hline
+\verb#--copy arg# & Copy the projection from the given file \\ \hline
+\verb#--tfw arg# & Create a .tfw sidecar file with the given filename rather than a full copy of the image file \\ \hline
+\verb#--north arg# & The northernmost latitude in degrees \\ \hline
+\verb#--south arg# & The southernmost latitude in degrees \\ \hline
+\verb#--east arg# & The easternmost longitude in degrees \\ \hline
+\verb#--west arg# & The westernmost longitude in degrees \\ \hline
+\verb#--sinusoidal# & Assume a sinusoidal projection \\ \hline
+\verb#--mercator# & Assume a Mercator projection \\ \hline
+\verb#--transverse-mercator# & Assume a transverse Mercator projection \\ \hline
+\verb#--orthographic# & Assume an orthographic projection \\ \hline
+\verb#--stereographic# & Assume a stereographic projection \\ \hline
+\verb#--lambert-azimuthal# & Assume a Lambert azimuthal projection \\ \hline
+\verb#--utm arg# & Assume UTM projection with the given zone \\ \hline
+\verb#--proj-lat arg# & The center of projection latitude (if applicable) \\ \hline
+\verb#--proj-lon arg# & The center of projection longitude (if applicable) \\ \hline
+\verb#--proj-scale arg# & The projection scale (if applicable) \\ \hline
+\verb#--nudge-x arg# & Nudge the image, in projected coordinates \\ \hline
+\verb#--nudge-y arg# & Nudge the image, in projected coordinates \\ \hline
+\verb#--pixel-as-point# & Encode that the pixel location (0,0) is the center of the upper left hand pixel (the default, if you specify nothing, is to set the upper left hand corner of the upper left pixel as (0,0) (i.e. PixelAsArea). \\ \hline
+\end{tabular}
+\caption{Command-line options for georef}
+\label{tbl:georef}
+\end{table}
+
+\section{{\tt hillshade}}\label{sec:hillshade}
+
+The \verb#hillshade# tool takes a DEM and outputs an image of that DEM illuminated by a light from a specified location.
+
+\begin{table}
+\begin{tabular}{|l|l|} \hline
+Option & Description \\ \hline \hline
+\verb#--help# & Display a help message\\ \hline
+\verb#--input-file arg# & Explicitly specify the input file\\ \hline
+\verb#-o [ --output-file ] arg# & Specify the output file\\ \hline
+\verb#-a [ --azimuth ] arg (=0)# & Sets the direction tha the light source is coming from (in degrees).  Zero degrees is to the right, with positive degree counter-clockwise.\\ \hline
+\verb#-e [ --elevation ] arg (=45)# & Set the elevation of the light source (in degrees)\\ \hline
+\verb#-s [ --scale ] arg (=0)# & Set the scale of a pixel (in the same units as the DTM height values\\ \hline
+\verb#--nodata-value arg# & Remap the DEM default value to the min altitude value\\ \hline
+\verb#--blur arg# & Pre-blur the DEM with the specified sigma\\ \hline
+\end{tabular}
+\caption{Command-line options for hillshade}
+\label{tbl:hillshade}
+\end{table}
+
+\section{{\tt image2qtree}}\label{sec:image2qtree}
+
+\verb#image2qtree# turns a georeferenced image (or images) into a quadtree with geographical metadata.  For example, it can output a kml file for viewing in Google Earth.
+
+\begin{table}
+\begin{tabular}{|l|l|} \hline
+Option & Description \\ \hline \hline
+General Options \\ \hline
+\verb#-o [ --output-name ] arg# & Specify the base output directory\\ \hline
+\verb#-q [ --quiet ]# & Quiet output\\ \hline
+\verb#-v [ --verbose ]# & Verbose output\\ \hline
+\verb#--cache arg (=1024)# & Cache size, in megabytes\\ \hline
+\verb#--help# & Display a help message\\ \hline
+
+Input Options\\ \hline
+\verb#--force-wgs84# & Use WGS84 as the input images' geographic coordinate systems, even if they're not (old behavior)\\ \hline
+\verb#--pixel-scale arg (=1)# & Scale factor to apply to pixels\\ \hline
+\verb#--pixel-offset arg (=0)# & Offset to apply to pixels\\ \hline
+\verb#--normalize# & Normalize input images so that their full dynamic range falls in between [0,255]\\ \hline
+
+Output Options\\ \hline
+\verb#-m [ --output-metadata ] arg (=none)# & Specify the output metadata type. One of [kml, tms, uniview, gmap, celestia, none]\\ \hline
+\verb#--file-type arg (=png)# & Output file type\\ \hline
+\verb#--channel-type arg (=uint8)# & Output (and input) channel type. One of [uint8, uint16, int16, float]\\ \hline
+\verb#--module-name arg (=marsds)# & The module where the output will be placed. Ex: marsds for Uniview, or Sol/Mars for Celestia\\ \hline
+\verb#--terrain# & Outputs image files suitable for a Uniview terrain view. Implies output format as PNG, channel type uint16. Uniview only\\ \hline
+\verb#--jpeg-quality arg (=0.75)# & JPEG quality factor (0.0 to 1.0)\\ \hline
+\verb#--png-compression arg (=3)# & PNG compression level (0 to 9)\\ \hline
+\verb#--palette-file arg# & Apply a palette from the given file\\ \hline
+\verb#--palette-scale arg# & Apply a scale factor before applying the palette\\ \hline
+\verb#--palette-offset arg# & Apply an offset before applying the palette\\ \hline
+\verb#--tile-size arg (=256)# & Tile size, in pixels\\ \hline
+\verb#--max-lod-pixels arg (=1024)# & Max LoD in pixels, or -1 for none (kml only)\\ \hline
+\verb#--draw-order-offset arg (=0)# & Offset for the <drawOrder> tag for this overlay (kml only)\\ \hline
+\verb#--composite-multiband # & Composite images using multi-band blending\\ \hline
+\verb#--aspect-ratio arg (=1)# & Pixel aspect ratio (for polar overlays; should be a power of two)\\ \hline
+
+Projection Options\\ \hline
+\verb#--north arg# & The northernmost latitude in degrees\\ \hline
+\verb#--south arg# & The southernmost latitude in degrees\\ \hline
+\verb#--east arg# & The easternmost longitude in degrees\\ \hline
+\verb#--west arg# & The westernmost longitude in degrees\\ \hline
+\verb#--force-wgs84# & Assume the input images' geographic coordinate systems are WGS84, even if they're not (old behavior)\\ \hline
+\verb#--sinusoidal# & Assume a sinusoidal projection\\ \hline
+\verb#--mercator# & Assume a Mercator projection\\ \hline
+\verb#--transverse-mercator# & Assume a transverse Mercator projection\\ \hline
+\verb#--orthographic# & Assume an orthographic projection\\ \hline
+\verb#--stereographic# & Assume a stereographic projection\\ \hline
+\verb#--lambert-azimuthal# & Assume a Lambert azimuthal projection\\ \hline
+\verb#--lambert-conformal-conic# & Assume a Lambert Conformal Conic projection\\ \hline
+\verb#--utm arg# & Assume UTM projection with the given zone\\ \hline
+\verb#--proj-lat arg# & The center of projection latitude (if applicable)\\ \hline
+\verb#--proj-lon arg# & The center of projection longitude (if applicable)\\ \hline
+\verb#--proj-scale arg# & The projection scale (if applicable)\\ \hline
+\verb#--std-parallel1 arg# & Standard parallels for Lambert Conformal Conic projection\\ \hline
+\verb#--std-parallel2 arg# & Standard parallels for Lambert Conformal Conic projection\\ \hline
+\verb#--nudge-x arg# & Nudge the image, in projected coordinates\\ \hline
+\verb#--nudge-y arg# & Nudge the image, in projected coordinates\\ \hline
+\end{tabular}
+\caption{Command-line options for image2qtree}
+\label{tbl:image2qtree}
+\end{table}
