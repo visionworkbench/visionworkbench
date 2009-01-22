@@ -199,7 +199,7 @@ public:
   GLuint get_texture_id(vw::BBox2i bbox, int lod);
 };
 
-#endif __VWV_GL_PREVIEW_WIDGET_TEXTURE_H__
+#endif // __VWV_GL_PREVIEW_WIDGET_TEXTURE_H__
 
 
 
