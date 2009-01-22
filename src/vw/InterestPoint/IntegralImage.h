@@ -66,40 +66,13 @@ namespace ip {
   inline double IntegralBlock( ImageView<double> const& integral, 
 			       Vector2i const& top_left,
 			       Vector2i const& bottom_right ) {
-    VW_DEBUG_ASSERT(top_left.x() > bottom_right.x() && top_left.y() > bottom_right.y(), 
-		    vw::ArgumentErr() << "Incorrect input for IntegralBlock.\n");
-    VW_DEBUG_ASSERT(top_left.x() < (unsigned)integral.cols(), 
-		    vw::ArgumentErr() << "x0 out of bounds. "<< integral.cols() <<" : "
-		    << top_left << bottom_right << "\n");
-    VW_DEBUG_ASSERT(bottom_right.x() < (unsigned)integral.cols(), 
-		    vw::ArgumentErr() << "x1 out of bounds. "<< integral.cols() <<" : "
-		    << top_left << bottom_right << "\n");
-    VW_DEBUG_ASSERT(top_left.y() < (unsigned)integral.rows(), 
-		    vw::ArgumentErr() << "y0 out of bounds. "<< integral.rows() <<" : "
-		    << top_left << bottom_right << "\n");
-    VW_DEBUG_ASSERT(bottom_right.y() < (unsigned)integral.rows(), 
-		    vw::ArgumentErr() << "y1 out of bounds. "<< integral.rows() <<" : "
-		    << top_left << bottom_right << "\n");
-    
     double result;
     result = integral( top_left.x(), top_left.y() );
     result += integral( bottom_right.x(), bottom_right.y() );
     result -= integral( top_left.x(), bottom_right.y() );
     result -= integral( bottom_right.x(), top_left.y() );
 
-    //result /= (top_left.x() - bottom_right.x())*(top_left.y() - bottom_right.y());
-
     return result;
-  }
-
-  /// X First Derivative
-  /// - x,y         = location to center the calculation on
-  /// - filter_size = size of window for calculation
-  inline float XFirstDerivative( ImageView<double> const& integral,
-				 int const& x, int const& y,
-				 unsigned const& filter_size ) {
-    float derivative = 0;
-    return derivative;
   }
 
   /// X Second Derivative
@@ -128,17 +101,6 @@ namespace ip {
 				 Vector2i( x + half_lobe + lobe + 1, y + lobe ) );
     
     derivative /= filter_size*filter_size;
-
-    return derivative;
-  }
-
-  /// Y First Derivative
-  /// - x,y         = location to center the calculation on
-  /// - filter_size = size of window for calculation
-  inline float YFirstDerivative( ImageView<double> const& integral,
-				 int const& x, int const& y,
-				 unsigned const& filter_size ) {
-    float derivative = 0;
 
     return derivative;
   }
@@ -213,7 +175,6 @@ namespace ip {
   // - x         = x location to evaluate at
   // - y         = y location to evaluate at
   // - size      = side of the square used for evaluate
-
   // Note: Filter will be evaluated at a size nearest to a multiple of two
   template <class ViewT, class NumberT>
   typename boost::enable_if<boost::is_integral<NumberT>, float>::type
@@ -226,17 +187,6 @@ namespace ip {
     int i_size = half_size << 1;
     int top = round( int(y) - size/2);
     int left = round( int(x) - size/2);
-
-    VW_ASSERT(left+i_size < (unsigned)integral.impl().cols(), 
-	      vw::ArgumentErr() << "left out of bounds. "<< integral.impl().cols() <<" : "
-	      << left+i_size << " [top left] " << top << " " << left << "\n");
-    VW_ASSERT(top+i_size < (unsigned)integral.impl().rows(),
-	      vw::ArgumentErr() << "top out of bounds. " << integral.impl().rows() <<" : "
-	      << top+i_size << "\n");
-    VW_ASSERT(left >= 0,
-	      vw::ArgumentErr() << "left is to low. " << 0 << " : " << left << "\n");
-    VW_ASSERT(top >= 0,
-	      vw::ArgumentErr() << "top is to low. " << 0 << " : " << top << "\n");
 
     response = -integral.impl()(left, top);
     response += 2*integral.impl()(left+half_size, top);
@@ -266,17 +216,6 @@ namespace ip {
     int top = round( int(y) - size/2);
     int left = round( int(x) - size/2);
 
-    VW_ASSERT(left+i_size < (unsigned)integral.impl().cols(), 
-	      vw::ArgumentErr() << "left out of bounds. "<< integral.impl().cols() <<" : "
-	      << left+i_size << " [top left] " << top << " " << left << "\n");
-    VW_ASSERT(top+i_size < (unsigned)integral.impl().rows(),
-	      vw::ArgumentErr() << "top out of bounds. " << integral.impl().rows() <<" : "
-	      << top+i_size << "\n");
-    VW_ASSERT(left >= 0,
-	      vw::ArgumentErr() << "left is to low. " << 0 << " : " << left << "\n");
-    VW_ASSERT(top >= 0,
-	      vw::ArgumentErr() << "top is to low. " << 0 << " : " << top << "\n");
-
     response = -integral.impl()(left, top);
     response += integral.impl()(left+i_size, top);
     response += 2*integral.impl()(left, top+half_size);
@@ -292,7 +231,6 @@ namespace ip {
   // - x         = x location to evaluate at
   // - y         = y location to evaluate at
   // - size      = side of the square used for evaluate
-
   // Note: This Filter requires/recommends the use of an interpolated
   //       view of the integral
   template <class ViewT, class NumberT>
@@ -328,7 +266,6 @@ namespace ip {
   // - x         = x location to evaluate at
   // - y         = y location to evaluate at
   // - size      = side of the square used for evaluate
-
   // Note: This Filter requires/recommends the use of an interpolated
   //       view of the integral
   template <class ViewT, class NumberT>
