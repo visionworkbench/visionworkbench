@@ -80,6 +80,16 @@ namespace {
   CreateMapType *create_map = 0;
 }
 
+bool vw::DiskImageResource::default_rescale = true;
+
+void vw::DiskImageResource::set_rescale(bool rescale) {
+  m_rescale = rescale;
+}
+
+void vw::DiskImageResource::set_default_rescale(bool rescale) {
+  default_rescale = rescale;
+}
+
 namespace vw {
   namespace internal {
 

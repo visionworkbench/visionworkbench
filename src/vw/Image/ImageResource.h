@@ -41,7 +41,7 @@ namespace vw {
 
   /// Copies image pixel data from the source buffer to the destination 
   /// buffer, converting the pixel format and channel type as required.
-  void convert( ImageBuffer const& dst, ImageBuffer const& src );
+  void convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale=false );
 
 
   /// Describes the format of an image, i.e. its dimensions, pixel

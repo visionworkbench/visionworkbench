@@ -321,7 +321,7 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
       static_cast<Imf::InputFile*>(m_input_file_ptr)->readPixels (bbox.min().y(), std::min(int(bbox.min().y() + (height-1)), m_format.rows));
     }
 
-    convert( dest, src_image.buffer() );
+    convert( dest, src_image.buffer(), m_rescale );
         
   } catch (Iex::BaseExc e) {
     vw_throw( vw::IOErr() << "Failed to open " << m_filename << " using the OpenEXR image reader.\n\t" << e.what() );
@@ -342,7 +342,7 @@ void vw::DiskImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const& 
   // channels==1.
   ImageView<float> openexr_image_block( bbox.width(), bbox.height(), m_format.planes );
   ImageBuffer dst = openexr_image_block.buffer();
-  convert( dst, src );
+  convert( dst, src, m_rescale );
   
   try {      
     Imf::FrameBuffer frameBuffer;

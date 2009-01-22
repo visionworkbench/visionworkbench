@@ -277,7 +277,7 @@ public:
 
       SDendaccess( sds_id );
     }
-    convert( dstbuf, srcbuf );
+    convert( dstbuf, srcbuf, m_rescale );
   }
 
   void get_sds_fillvalue( std::string const& sds_name, float32& result ) const {

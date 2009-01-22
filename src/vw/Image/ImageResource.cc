@@ -68,17 +68,31 @@ void channel_convert_float_to_int( SrcT* src, DestT* dest ) {
   else *dest = DestT( *src * boost::integer_traits<DestT>::const_max );
 }
 
-std::map<std::pair<ChannelTypeEnum,ChannelTypeEnum>,channel_convert_func> *channel_convert_map = 0;
+std::map<std::pair<ChannelTypeEnum,ChannelTypeEnum>,channel_convert_func> *channel_convert_map = 0, *channel_convert_rescale_map = 0;
 
 class ChannelConvertMapEntry {
+  void initialize() {
+    if( !channel_convert_map )
+      channel_convert_map = new std::map<std::pair<ChannelTypeEnum,ChannelTypeEnum>,channel_convert_func>();
+    if( !channel_convert_rescale_map )
+      channel_convert_rescale_map = new std::map<std::pair<ChannelTypeEnum,ChannelTypeEnum>,channel_convert_func>();
+  }
 public:
   template <class SrcT, class DstT>
   ChannelConvertMapEntry( void (*func)(SrcT*,DstT*) ) {
-    if( !channel_convert_map )
-      channel_convert_map = new std::map<std::pair<ChannelTypeEnum,ChannelTypeEnum>,channel_convert_func>();
+    initialize();
     ChannelTypeEnum src = ChannelTypeID<SrcT>::value;
     ChannelTypeEnum dst = ChannelTypeID<DstT>::value;
     channel_convert_map->operator[]( std::make_pair(src,dst) ) = (channel_convert_func)func;
+    channel_convert_rescale_map->operator[]( std::make_pair(src,dst) ) = (channel_convert_func)func;
+  }
+  template <class SrcT, class DstT>
+  ChannelConvertMapEntry( void (*func)(SrcT*,DstT*), void (*rescale_func)(SrcT*,DstT*) ) {
+    initialize();
+    ChannelTypeEnum src = ChannelTypeID<SrcT>::value;
+    ChannelTypeEnum dst = ChannelTypeID<DstT>::value;
+    channel_convert_map->operator[]( std::make_pair(src,dst) ) = (channel_convert_func)func;
+    channel_convert_rescale_map->operator[]( std::make_pair(src,dst) ) = (channel_convert_func)rescale_func;
   }
 };
 
@@ -90,18 +104,18 @@ ChannelConvertMapEntry _conv_i8i32 ( &channel_convert_cast<int8,int32>  );
 ChannelConvertMapEntry _conv_i8u32 ( &channel_convert_cast<int8,uint32> );
 ChannelConvertMapEntry _conv_i8i64 ( &channel_convert_cast<int8,int64>  );
 ChannelConvertMapEntry _conv_i8u64 ( &channel_convert_cast<int8,uint64> );
-ChannelConvertMapEntry _conv_i8f32 ( &channel_convert_int_to_float<int8,float>  );
-ChannelConvertMapEntry _conv_i8f64 ( &channel_convert_int_to_float<int8,double> );
+ChannelConvertMapEntry _conv_i8f32 ( &channel_convert_cast<int8,float>, &channel_convert_int_to_float<int8,float>  );
+ChannelConvertMapEntry _conv_i8f64 ( &channel_convert_cast<int8,double>, &channel_convert_int_to_float<int8,double> );
 ChannelConvertMapEntry _conv_u8i8  ( &channel_convert_cast<uint8,int8>   );
 ChannelConvertMapEntry _conv_u8u8  ( &channel_convert_cast<uint8,uint8>  );
 ChannelConvertMapEntry _conv_u8i16 ( &channel_convert_cast<uint8,int16>  );
-ChannelConvertMapEntry _conv_u8u16 ( &channel_convert_uint8_to_uint16 );
+ChannelConvertMapEntry _conv_u8u16 ( &channel_convert_cast<uint8,uint16>, &channel_convert_uint8_to_uint16 );
 ChannelConvertMapEntry _conv_u8i32 ( &channel_convert_cast<uint8,int32>  );
 ChannelConvertMapEntry _conv_u8u32 ( &channel_convert_cast<uint8,uint32> );
 ChannelConvertMapEntry _conv_u8i64 ( &channel_convert_cast<uint8,int64>  );
 ChannelConvertMapEntry _conv_u8u64 ( &channel_convert_cast<uint8,uint64> );
-ChannelConvertMapEntry _conv_u8f32 ( &channel_convert_int_to_float<uint8,float>  );
-ChannelConvertMapEntry _conv_u8f64 ( &channel_convert_int_to_float<uint8,double> );
+ChannelConvertMapEntry _conv_u8f32 ( &channel_convert_cast<uint8,float>, &channel_convert_int_to_float<uint8,float>  );
+ChannelConvertMapEntry _conv_u8f64 ( &channel_convert_cast<uint8,double>, &channel_convert_int_to_float<uint8,double> );
 ChannelConvertMapEntry _conv_i16i8 ( &channel_convert_cast<int16,int8>   );
 ChannelConvertMapEntry _conv_i16u8 ( &channel_convert_cast<int16,uint8>  );
 ChannelConvertMapEntry _conv_i16i16( &channel_convert_cast<int16,int16>  );
@@ -110,18 +124,18 @@ ChannelConvertMapEntry _conv_i16i32( &channel_convert_cast<int16,int32>  );
 ChannelConvertMapEntry _conv_i16u32( &channel_convert_cast<int16,uint32> );
 ChannelConvertMapEntry _conv_i16i64( &channel_convert_cast<int16,int64>  );
 ChannelConvertMapEntry _conv_i16u64( &channel_convert_cast<int16,uint64> );
-ChannelConvertMapEntry _conv_i16f32( &channel_convert_int_to_float<int16,float>  );
-ChannelConvertMapEntry _conv_i16f64( &channel_convert_int_to_float<int16,double> );
+ChannelConvertMapEntry _conv_i16f32( &channel_convert_cast<int16,float>, &channel_convert_int_to_float<int16,float>  );
+ChannelConvertMapEntry _conv_i16f64( &channel_convert_cast<int16,double>, &channel_convert_int_to_float<int16,double> );
 ChannelConvertMapEntry _conv_u16i8 ( &channel_convert_cast<uint16,int8>   );
-ChannelConvertMapEntry _conv_u16u8 ( &channel_convert_uint16_to_uint8 );
+ChannelConvertMapEntry _conv_u16u8 ( &channel_convert_cast<uint16,uint8>, &channel_convert_uint16_to_uint8 );
 ChannelConvertMapEntry _conv_u16i16( &channel_convert_cast<uint16,int16>  );
 ChannelConvertMapEntry _conv_u16u16( &channel_convert_cast<uint16,uint16> );
 ChannelConvertMapEntry _conv_u16i32( &channel_convert_cast<uint16,int32>  );
 ChannelConvertMapEntry _conv_u16u32( &channel_convert_cast<uint16,uint32> );
 ChannelConvertMapEntry _conv_u16i64( &channel_convert_cast<uint16,int64>  );
 ChannelConvertMapEntry _conv_u16u64( &channel_convert_cast<uint16,uint64> );
-ChannelConvertMapEntry _conv_u16f32( &channel_convert_int_to_float<uint16,float>  );
-ChannelConvertMapEntry _conv_u16f64( &channel_convert_int_to_float<uint16,double> );
+ChannelConvertMapEntry _conv_u16f32( &channel_convert_cast<uint16,float>, &channel_convert_int_to_float<uint16,float>  );
+ChannelConvertMapEntry _conv_u16f64( &channel_convert_cast<uint16,double>, &channel_convert_int_to_float<uint16,double> );
 ChannelConvertMapEntry _conv_i32i8 ( &channel_convert_cast<int32,int8>   );
 ChannelConvertMapEntry _conv_i32u8 ( &channel_convert_cast<int32,uint8>  );
 ChannelConvertMapEntry _conv_i32i16( &channel_convert_cast<int32,int16>  );
@@ -130,8 +144,8 @@ ChannelConvertMapEntry _conv_i32i32( &channel_convert_cast<int32,int32>  );
 ChannelConvertMapEntry _conv_i32u32( &channel_convert_cast<int32,uint32> );
 ChannelConvertMapEntry _conv_i32i64( &channel_convert_cast<int32,int64>  );
 ChannelConvertMapEntry _conv_i32u64( &channel_convert_cast<int32,uint64> );
-ChannelConvertMapEntry _conv_i32f32( &channel_convert_int_to_float<int32,float>  );
-ChannelConvertMapEntry _conv_i32f64( &channel_convert_int_to_float<int32,double> );
+ChannelConvertMapEntry _conv_i32f32( &channel_convert_cast<int32,float>, &channel_convert_int_to_float<int32,float>  );
+ChannelConvertMapEntry _conv_i32f64( &channel_convert_cast<int32,double>, &channel_convert_int_to_float<int32,double> );
 ChannelConvertMapEntry _conv_u32i8 ( &channel_convert_cast<uint32,int8>   );
 ChannelConvertMapEntry _conv_u32u8 ( &channel_convert_cast<uint32,uint8>  );
 ChannelConvertMapEntry _conv_u32i16( &channel_convert_cast<uint32,int16>  );
@@ -140,8 +154,8 @@ ChannelConvertMapEntry _conv_u32i32( &channel_convert_cast<uint32,int32>  );
 ChannelConvertMapEntry _conv_u32u32( &channel_convert_cast<uint32,uint32> );
 ChannelConvertMapEntry _conv_u32i64( &channel_convert_cast<uint32,int64>  );
 ChannelConvertMapEntry _conv_u32u64( &channel_convert_cast<uint32,uint64> );
-ChannelConvertMapEntry _conv_u32f32( &channel_convert_int_to_float<uint32,float>  );
-ChannelConvertMapEntry _conv_u32f64( &channel_convert_int_to_float<uint32,double> );
+ChannelConvertMapEntry _conv_u32f32( &channel_convert_cast<uint32,float>, &channel_convert_int_to_float<uint32,float>  );
+ChannelConvertMapEntry _conv_u32f64( &channel_convert_cast<uint32,double>, &channel_convert_int_to_float<uint32,double> );
 ChannelConvertMapEntry _conv_i64i8 ( &channel_convert_cast<int64,int8>   );
 ChannelConvertMapEntry _conv_i64u8 ( &channel_convert_cast<int64,uint8>  );
 ChannelConvertMapEntry _conv_i64i16( &channel_convert_cast<int64,int16>  );
@@ -150,8 +164,8 @@ ChannelConvertMapEntry _conv_i64i32( &channel_convert_cast<int64,int32>  );
 ChannelConvertMapEntry _conv_i64u32( &channel_convert_cast<int64,uint32> );
 ChannelConvertMapEntry _conv_i64i64( &channel_convert_cast<int64,int64>  );
 ChannelConvertMapEntry _conv_i64u64( &channel_convert_cast<int64,uint64> );
-ChannelConvertMapEntry _conv_i64f32( &channel_convert_int_to_float<int64,float>  );
-ChannelConvertMapEntry _conv_i64f64( &channel_convert_int_to_float<int64,double> );
+ChannelConvertMapEntry _conv_i64f32( &channel_convert_cast<int64,float>, &channel_convert_int_to_float<int64,float>  );
+ChannelConvertMapEntry _conv_i64f64( &channel_convert_cast<int64,double>, &channel_convert_int_to_float<int64,double> );
 ChannelConvertMapEntry _conv_u64i8 ( &channel_convert_cast<uint64,int8>   );
 ChannelConvertMapEntry _conv_u64u8 ( &channel_convert_cast<uint64,uint8>  );
 ChannelConvertMapEntry _conv_u64i16( &channel_convert_cast<uint64,int16>  );
@@ -160,26 +174,26 @@ ChannelConvertMapEntry _conv_u64i32( &channel_convert_cast<uint64,int32>  );
 ChannelConvertMapEntry _conv_u64u32( &channel_convert_cast<uint64,uint32> );
 ChannelConvertMapEntry _conv_u64i64( &channel_convert_cast<uint64,int64>  );
 ChannelConvertMapEntry _conv_u64u64( &channel_convert_cast<uint64,uint64> );
-ChannelConvertMapEntry _conv_u64f32( &channel_convert_int_to_float<uint64,float>  );
-ChannelConvertMapEntry _conv_u64f64( &channel_convert_int_to_float<uint64,double> );
-ChannelConvertMapEntry _conv_f32i8 ( &channel_convert_float_to_int<float,int8>   );
-ChannelConvertMapEntry _conv_f32u8 ( &channel_convert_float_to_int<float,uint8>  );
-ChannelConvertMapEntry _conv_f32i16( &channel_convert_float_to_int<float,int16>  );
-ChannelConvertMapEntry _conv_f32u16( &channel_convert_float_to_int<float,uint16> );
-ChannelConvertMapEntry _conv_f32i32( &channel_convert_float_to_int<float,int32>  );
-ChannelConvertMapEntry _conv_f32u32( &channel_convert_float_to_int<float,uint32> );
-ChannelConvertMapEntry _conv_f32i64( &channel_convert_float_to_int<float,int64>  );
-ChannelConvertMapEntry _conv_f32u64( &channel_convert_float_to_int<float,uint64> );
+ChannelConvertMapEntry _conv_u64f32( &channel_convert_cast<uint64,float>, &channel_convert_int_to_float<uint64,float>  );
+ChannelConvertMapEntry _conv_u64f64( &channel_convert_cast<uint64,double>, &channel_convert_int_to_float<uint64,double> );
+ChannelConvertMapEntry _conv_f32i8 ( &channel_convert_cast<float,int8>, &channel_convert_float_to_int<float,int8>   );
+ChannelConvertMapEntry _conv_f32u8 ( &channel_convert_cast<float,uint8>, &channel_convert_float_to_int<float,uint8>  );
+ChannelConvertMapEntry _conv_f32i16( &channel_convert_cast<float,int16>, &channel_convert_float_to_int<float,int16>  );
+ChannelConvertMapEntry _conv_f32u16( &channel_convert_cast<float,uint16>, &channel_convert_float_to_int<float,uint16> );
+ChannelConvertMapEntry _conv_f32i32( &channel_convert_cast<float,int32>, &channel_convert_float_to_int<float,int32>  );
+ChannelConvertMapEntry _conv_f32u32( &channel_convert_cast<float,uint32>, &channel_convert_float_to_int<float,uint32> );
+ChannelConvertMapEntry _conv_f32i64( &channel_convert_cast<float,int64>, &channel_convert_float_to_int<float,int64>  );
+ChannelConvertMapEntry _conv_f32u64( &channel_convert_cast<float,uint64>, &channel_convert_float_to_int<float,uint64> );
 ChannelConvertMapEntry _conv_f32f32( &channel_convert_cast<float,float>  );
 ChannelConvertMapEntry _conv_f32f64( &channel_convert_cast<float,double> );
-ChannelConvertMapEntry _conv_f64i8 ( &channel_convert_float_to_int<double,int8>   );
-ChannelConvertMapEntry _conv_f64u8 ( &channel_convert_float_to_int<double,uint8>  );
-ChannelConvertMapEntry _conv_f64i16( &channel_convert_float_to_int<double,int16>  );
-ChannelConvertMapEntry _conv_f64u16( &channel_convert_float_to_int<double,uint16> );
-ChannelConvertMapEntry _conv_f64i32( &channel_convert_float_to_int<double,int32>  );
-ChannelConvertMapEntry _conv_f64u32( &channel_convert_float_to_int<double,uint32> );
-ChannelConvertMapEntry _conv_f64i64( &channel_convert_float_to_int<double,int64>  );
-ChannelConvertMapEntry _conv_f64u64( &channel_convert_float_to_int<double,uint64> );
+ChannelConvertMapEntry _conv_f64i8 ( &channel_convert_cast<double,int8>, &channel_convert_float_to_int<double,int8>   );
+ChannelConvertMapEntry _conv_f64u8 ( &channel_convert_cast<double,uint8>, &channel_convert_float_to_int<double,uint8>  );
+ChannelConvertMapEntry _conv_f64i16( &channel_convert_cast<double,int16>, &channel_convert_float_to_int<double,int16>  );
+ChannelConvertMapEntry _conv_f64u16( &channel_convert_cast<double,uint16>, &channel_convert_float_to_int<double,uint16> );
+ChannelConvertMapEntry _conv_f64i32( &channel_convert_cast<double,int32>, &channel_convert_float_to_int<double,int32>  );
+ChannelConvertMapEntry _conv_f64u32( &channel_convert_cast<double,uint32>, &channel_convert_float_to_int<double,uint32> );
+ChannelConvertMapEntry _conv_f64i64( &channel_convert_cast<double,int64>, &channel_convert_float_to_int<double,int64>  );
+ChannelConvertMapEntry _conv_f64u64( &channel_convert_cast<double,uint64>, &channel_convert_float_to_int<double,uint64> );
 ChannelConvertMapEntry _conv_f64f32( &channel_convert_cast<double,float>  );
 ChannelConvertMapEntry _conv_f64f64( &channel_convert_cast<double,double> );
 
@@ -332,7 +346,7 @@ ChannelUnpremultiplyMapEntry _unpremultiply_u64( &channel_unpremultiply_int<uint
 ChannelUnpremultiplyMapEntry _unpremultiply_f32( &channel_unpremultiply_float<float> );
 ChannelUnpremultiplyMapEntry _unpremultiply_f64( &channel_unpremultiply_float<double> );
 
-void vw::convert( ImageBuffer const& dst, ImageBuffer const& src ) {
+void vw::convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale ) {
   VW_ASSERT( dst.format.cols==src.format.cols && dst.format.rows==src.format.rows,
              ArgumentErr() << "Destination buffer has wrong size." );
   
@@ -410,7 +424,9 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src ) {
   bool add_alpha = src_channels%2==1 && dst_channels%2==0;
   bool copy_alpha = src_channels!=dst_channels && src_channels%2==0 && dst_channels%2==0;
 
-  channel_convert_func conv_func = channel_convert_map->operator[](std::make_pair(src.format.channel_type,dst.format.channel_type));
+  channel_convert_func conv_func = rescale
+    ? channel_convert_rescale_map->operator[](std::make_pair(src.format.channel_type,dst.format.channel_type))
+    : channel_convert_map->operator[](std::make_pair(src.format.channel_type,dst.format.channel_type));
   channel_set_max_func max_func = channel_set_max_map->operator[](dst.format.channel_type);
   channel_average_func avg_func = channel_average_map->operator[](dst.format.channel_type);
   channel_unpremultiply_func unpremultiply_src_func = channel_unpremultiply_map->operator[](src.format.channel_type);

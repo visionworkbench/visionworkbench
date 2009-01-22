@@ -621,7 +621,7 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
   src.cstride = ctx->cstride;
   src.rstride = src.cstride * src.format.cols;
   src.pstride = src.rstride * src.format.rows;
-  convert(dest, src);
+  convert(dest, src, m_rescale);
 }
 
 void DiskImageResourcePNG::read_reset() const {
@@ -689,7 +689,7 @@ void DiskImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox )
   dst.rstride = dst.cstride * dst.format.cols;
   dst.pstride = dst.rstride * dst.format.rows;
 
-  convert(dst, src);
+  convert(dst, src, m_rescale);
 
   // Write.
   ctx->write(dst);

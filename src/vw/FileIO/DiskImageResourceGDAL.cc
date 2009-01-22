@@ -537,7 +537,7 @@ namespace vw {
         rgba_data[i] = m_palette[index_data[i]];
       delete [] index_data;
     }
-    convert( dest, src );
+    convert( dest, src, m_rescale );
     delete [] data;
   }
 
@@ -557,7 +557,7 @@ namespace vw {
     dst.cstride = channels() * channel_size(dst.format.channel_type);
     dst.rstride = dst.format.cols * dst.cstride;
     dst.pstride = dst.format.rows * dst.rstride;
-    convert( dst, src );
+    convert( dst, src, m_rescale );
 
     GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
     for (int32 p = 0; p < dst.format.planes; p++) {

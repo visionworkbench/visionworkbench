@@ -439,7 +439,7 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
       src_buf.format.cols = dest_buf.format.cols = data_right-data_left;
       src_buf.format.rows = dest_buf.format.rows = data_bottom-data_top;
       
-      convert( dest_buf, src_buf );
+      convert( dest_buf, src_buf, m_rescale );
     }
   
   }
@@ -479,7 +479,7 @@ void vw::DiskImageResourceTIFF::write( ImageBuffer const& src, BBox2i const& bbo
   for (int32 p = 0; p < m_format.planes; p++) {
     ImageBuffer src_row = src_plane;
     for (int32 row = 0; row < bbox.height(); row++) {
-      convert( dst, src_row );
+      convert( dst, src_row, m_rescale );
       check_retval(TIFFWriteScanline(m_info->tif, (uint8*)buf, bbox.min()[1]+row, p), -1);
       src_row.data = (uint8*)src_row.data + src_row.rstride;
     }

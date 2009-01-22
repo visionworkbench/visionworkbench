@@ -345,7 +345,7 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
   src.cstride = bytes_per_pixel;
   src.rstride = bytes_per_pixel * m_format.cols;
   src.pstride = bytes_per_pixel * m_format.cols * m_format.rows;
-  convert( dest, src );
+  convert( dest, src, m_rescale );
 
   if ( m_invalid_as_alpha ) {
     // We checked earlier that the source format is as we 

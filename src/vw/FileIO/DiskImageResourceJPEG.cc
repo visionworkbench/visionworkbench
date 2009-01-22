@@ -372,7 +372,7 @@ void DiskImageResourceJPEG::read( ImageBuffer const& dest, BBox2i const& bbox) c
   src.cstride = ctx->cstride;
   src.rstride = src.cstride * src.format.cols;
   src.pstride = src.rstride * src.format.rows;
-  convert( dest, src );
+  convert( dest, src, m_rescale );
 
 }
 
@@ -442,7 +442,7 @@ void DiskImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbox )
   dst.cstride = num_channels(m_format.pixel_format) * channel_size(m_format.channel_type);
   dst.rstride = dst.cstride * m_format.cols;
   dst.pstride = dst.rstride * m_format.rows;
-  convert( dst, src );
+  convert( dst, src, m_rescale );
 
   jpeg_start_compress(&cinfo, TRUE);
   int row_stride = cinfo.image_width*cinfo.input_components;

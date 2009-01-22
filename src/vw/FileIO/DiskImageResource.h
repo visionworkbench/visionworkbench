@@ -114,10 +114,23 @@ namespace vw {
     /// file types so that you can override the default FileIO drivers. 
     static void register_default_file_types(); 
 
+    // Specify whether values should be rescaled when converting 
+    // from one channel type to another during reads or writes. 
+    // Defaults to the value of default_rescale, which defaults to 
+    // true.
+    void set_rescale(bool rescale);
+
+    // Specify a global default for rescale.  This is a dangerous 
+    // function to use, because some higher-level Vision Workbench 
+    // features rely on rescaling.  Use at your own risk.
+    static void set_default_rescale(bool rescale);
+
   protected:
-    DiskImageResource( std::string const& filename ) : m_filename(filename) {}
+    DiskImageResource( std::string const& filename ) : m_filename(filename), m_rescale(default_rescale) {}
     ImageFormat m_format;
     std::string m_filename;
+    bool m_rescale;
+    static bool default_rescale;
   };
 
 
