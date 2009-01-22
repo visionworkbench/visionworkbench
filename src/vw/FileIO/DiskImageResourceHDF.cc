@@ -243,8 +243,7 @@ public:
     return ImageFormat();
   }
 
-  void read( ImageBuffer const& dstbuf, BBox2i const& bbox ) const {
-    ImageBuffer srcbuf;
+  void read( ImageBuffer &srcbuf, ImageBuffer const& dstbuf, BBox2i const& bbox ) const {
     boost::scoped_array<uint8> buffer( new uint8[ bbox.width() * bbox.height() * resource.planes() * channel_size( resource.channel_type() ) ] );
     srcbuf.data = buffer.get();
     srcbuf.format.cols = bbox.width();
@@ -277,7 +276,6 @@ public:
 
       SDendaccess( sds_id );
     }
-    convert( dstbuf, srcbuf, m_rescale );
   }
 
   void get_sds_fillvalue( std::string const& sds_name, float32& result ) const {
@@ -563,7 +561,9 @@ void vw::DiskImageResourceHDF::open( std::string const& filename ) {
 }
 
 void vw::DiskImageResourceHDF::read( ImageBuffer const& dstbuf, BBox2i const& bbox ) const {
-  m_info->read( dstbuf, bbox );
+  ImageBuffer srcbuf;
+  m_info->read( srcbuf, dstbuf, bbox );
+  convert( dstbuf, srcbuf, m_rescale );
 }
 
 vw::DiskImageResourceHDF::sds_iterator vw::DiskImageResourceHDF::sds_begin() const {
