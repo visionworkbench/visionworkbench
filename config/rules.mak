@@ -34,4 +34,9 @@ CXXTEST_ARGS =  --error-printer
 .h.cxx:
 	$(CXXTEST_GEN) $(CXXTEST_ARGS) -o $@ $<
 
+newtest:
+	@if test -z "$(NAME)"; then echo "run make NAME=TestName [MODULE=ModuleName] newtest"; else $(top_srcdir)/scripts/create-test.sh $(NAME) $(MODULE); fi
+
+.PHONY: newtest
+
 include $(top_srcdir)/thirdparty/autotroll.mak
