@@ -307,6 +307,7 @@ namespace math {
       for( unsigned i=0; i<4; ++i ) operator[](i) = vec.impl()[i];
     }
 
+    // Construct quaternion from normalized rotation axis and angle
     template <class VectorT>
     Quaternion( VectorBase<VectorT> const& axis, ElemT angle ) {
       double ha = angle * 0.5;
@@ -314,8 +315,9 @@ namespace math {
       ElemT s = ElemT(sin(ha));
       for (unsigned i = 0; i < 3; i++)
         operator[](i+1) = s * axis.impl()[i];
-    }
+    }    
 
+    // Convert to an equivalent set of normalized rotation axis and angle
     template <class VectorT>
     void axis_angle( VectorBase<VectorT> &axis_, ElemT &angle ) const {
       VectorT & axis = axis_.impl();
@@ -330,6 +332,15 @@ namespace math {
       } else {
         axis = imag_part / norm_2(imag_part);
       }
+    }
+    
+    // Convert to an equivalent rotation vector pointing along the rotation axis
+    // with a norm_2 that corresponds to the rotation angle in radian
+    vw::Vector<value_type, 3> axis_angle() const {
+      vw::Vector<value_type, 3> axis;
+      value_type angle;
+      axis_angle(axis, angle);
+      return axis*angle;
     }
 
     template <class MatrixT>
@@ -516,6 +527,47 @@ namespace math {
   template <class QuaternionT>
   inline QuaternionT pow( QuaternionBase<QuaternionT> const& q, int n ) {
     return QuaternionImplementation::quaternion_int_pow( q.impl(), n );
+  }
+
+  // Convert a 3 component rotation vector pointing in the rotation axis' direction and with norm_2 being equal to the rotation
+  // angle (in radian) to a quaternion
+  template<class VectorT>
+  inline Quaternion<typename VectorT::value_type> axis_angle_to_quaternion(const VectorBase<VectorT>& axis_angle) {
+    typename VectorT::value_type norm2 = vw::math::norm_2(axis_angle.impl());
+    return Quaternion<typename VectorT::value_type>(axis_angle.impl()/norm2, norm2);
+  }
+
+
+  // Convert a 3 component rotation vector pointing in the rotation axis' direction and with norm_2 equal to the rotation
+  // angle (in radian) to a rotation matrix
+  template<class VectorT>
+  static inline Matrix<typename VectorT::value_type, 3, 3> axis_angle_to_matrix(const VectorBase<VectorT>& rotation_vector) {
+    typedef typename VectorT::value_type ElemT;
+
+    // from OpenCV Documentation on cvRodrigues2 
+    ElemT theta = vw::math::norm_2(rotation_vector.impl());
+    vw::Vector<ElemT, 3> r = rotation_vector.impl()/theta;
+    Matrix<ElemT, 3, 3> m;
+
+    if (theta != 0) {
+      m(0, 0) = 0;      m(0, 1) = -r.z(); m(0, 2) = r.y();
+      m(1, 0) = r.z();  m(1, 1) = 0;      m(1, 2) = -r.x();
+      m(2, 0) = -r.y(); m(2, 1) = r.x();  m(2, 2) = 0;
+      return vw::math::cos(theta)*vw::math::identity_matrix<3>() + (1 - vw::math::cos(theta)) * r * vw::math::transpose(r) + vw::math::sin(theta) * m;
+    }
+    else
+      return vw::math::identity_matrix<3>();
+  }
+  
+
+  // Convert a 3x3 rotation matrix to an equivalent rotation vector pointing along the rotation axis
+  // with a norm_2 that corresponds to the rotation angle in radian
+  template<class MatrixT>
+  inline Vector<typename MatrixT::value_type, 3> matrix_to_axis_angle(const MatrixBase<MatrixT>& q) {
+    Vector<typename MatrixT::value_type, 3> res( Quaternion<typename MatrixT::value_type>(q.impl()).axis_angle() );
+    if (res.x() < 0 && res.y() < 0 && res.z() < 0)
+      res -= 2.0*M_PI * res /vw::math::norm_2(res);
+    return res;
   }
 
 } // namespace math
