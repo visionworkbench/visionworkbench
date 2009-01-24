@@ -16,5 +16,6 @@
 //template vw::UnaryPerPixelAccessorView<vw::EdgeExtensionView<ImageT, ExtensionT>, vw::stereo::disparity::StdDevImageFunc> vw::stereo::disparity::std_dev_image < ViewT,EdgeT > (const vw::ImageViewBase<ImageT>&, int, int, EdgeT);
 //template vw::BinaryPerPixelView<ViewT, vw::PixelIndex3View, vw::stereo::disparity::TransformDisparitiesFunc<TransformT> > vw::stereo::disparity::transform_disparities < ViewT,TransformT > (const vw::ImageViewBase<ImageT>&, const TransformT&);
 //template void vw::stereo::subpixel_correlation_affine_2d < ChannelT > (vw::ImageView<vw::PixelDisparity<float> >&, const vw::ImageView<PixelT>&, const vw::ImageView<PixelT>&, int, int, bool, bool, bool);
+//template void vw::stereo::subpixel_correlation_affine_2d_EM < ChannelT > (vw::ImageView<vw::PixelDisparity<float> >&, const vw::ImageView<PixelT>&, const vw::ImageView<PixelT>&, int, int, bool, bool, bool);
 //template void vw::stereo::subpixel_correlation_affine_2d_bayesian < ChannelT > (vw::ImageView<vw::PixelDisparity<float> >&, const vw::ImageView<PixelT>&, const vw::ImageView<PixelT>&, int, int, bool, bool, bool);
 //template void vw::stereo::subpixel_correlation_parabola < ChannelT > (vw::ImageView<vw::PixelDisparity<float> >&, const vw::ImageView<PixelT>&, const vw::ImageView<PixelT>&, int, int, bool, bool, bool);

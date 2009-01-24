@@ -6,6 +6,7 @@ template QuaternionT vw::math::cosh < QuaternionT > (const vw::math::QuaternionB
 template vw::math::Vector<vw::ProductType<Vector1T::value_type, Vector2T::value_type>::type, 3> vw::math::cross_prod < Vector1T,Vector2T > (const vw::math::VectorBase<VectorT>&, const vw::math::VectorBase<Vector2T>&);
 template vw::math::Vector<VectorT::value_type, 0> vw::math::dehom < VectorT > (const vw::math::VectorBase<VectorT>&);
 template MatrixT::value_type vw::math::det < MatrixT > (const vw::math::MatrixBase<MatrixT>&);
+//template vw::math::Matrix<MatrixT::value_type, 0, 0> vw::math::diagonal_matrix < VectorT > (const VectorT&);
 template vw::ProductType<Vector1T::value_type, Vector2T::value_type>::type vw::math::dot_prod < Vector1T,Vector2T > (const vw::math::VectorBase<VectorT>&, const vw::math::VectorBase<Vector2T>&);
 template void vw::math::eigen < AMatrixT,EigenvaluesT,VMatrixT > (AMatrixT&, EigenvaluesT&, VMatrixT&);
 template void vw::math::eigen < MatrixT,EigenvaluesT > (const MatrixT&, EigenvaluesT&);

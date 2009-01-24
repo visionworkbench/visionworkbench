@@ -13,6 +13,7 @@
 //template class  vw::ip::InterestPointMatcher<MetricT, ConstraintT>;
 //template class  vw::ip::InterestPointMatcherSimple<MetricT, ConstraintT>;
 //template struct vw::ip::LogInterestOperator::ViewType<ViewT>;
+//template class  vw::ip::MSURFDescriptorTask<ViewT>;
 //template class  vw::ip::RandomSampleConsensus<FittingFuncT, ErrorFuncT>;
 //template class  vw::ip::SURFDescriptorTask<ViewT>;
 //template class  vw::ip::SURFInterestScaleTask<ViewT>;

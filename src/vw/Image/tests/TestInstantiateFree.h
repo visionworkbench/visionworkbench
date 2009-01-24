@@ -70,6 +70,8 @@ struct FuncT : ReturnFixedType<PixelT> {
   PixelT operator() (PixelT a, PixelT b = PixelT(), PixelT c = PixelT()) const {return PixelT();}
   PixelT operator() (MemoryStridingPixelAccessor<PixelT> a) const {return PixelT();}
   BBox2i operator() (BBox2i a) const {return a;}
+  void operator() (PixelT& a, vw::PixelMask<PixelT>& b) const {}
+  void operator() (PixelT& a, vw::PixelMask<PixelT>& b, PixelT& c) const {}
   BBox2i work_area() const { return BBox2i(); }
 };
 
