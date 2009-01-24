@@ -79,10 +79,16 @@ doc: workbook doxygen
 
 coverage:
 	$(LCOV) --capture --test-name 'Vision-Workbench-Base' --directory $(top_srcdir) --output-file vw-base.trace --initial
+	$(LCOV) -e vw-base.trace '*/src/vw/*' -o vw-base.trace
+	$(LCOV) -r vw-base.trace '*/tests/*'  -o vw-base.trace
+	$(LCOV) -r vw-base.trace '*/tools/*'  -o vw-base.trace
+	$(LCOV) -r vw-base.trace '*/gui/*'  -o vw-base.trace
 	$(LCOV) --capture --test-name 'Vision-Workbench'      --directory $(top_srcdir) --output-file vw-test.trace
+	$(LCOV) -e vw-test.trace '*/src/vw/*' -o vw-test.trace
+	$(LCOV) -r vw-test.trace '*/tests/*'  -o vw-test.trace
+	$(LCOV) -r vw-test.trace '*/tools/*'  -o vw-test.trace
+	$(LCOV) -r vw-test.trace '*/gui/*'  -o vw-test.trace
 	$(LCOV) -a vw-base.trace -a vw-test.trace -o vw.trace
-	$(LCOV) -e vw.trace '*/src/vw/*' -o vw.trace
-	$(LCOV) -r vw.trace '*/tests/*'  -o vw.trace
 	$(GENHTML) -o $(top_srcdir)/coverage vw.trace
 	@echo "Generated code coverage report in $(top_srcdir)/coverage"
 
