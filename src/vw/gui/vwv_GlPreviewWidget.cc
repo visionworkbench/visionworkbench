@@ -102,8 +102,8 @@ const std::string g_FRAGMENT_PROGRAM =
 
 void print_shader_info_log(GLuint obj)
 {
-  int infologLength = 0;
-  int charsWritten  = 0;
+  GLint infologLength = 0;
+  GLint charsWritten  = 0;
   char *infoLog;
 
   glGetShaderiv(obj, GL_INFO_LOG_LENGTH,&infologLength);
@@ -121,8 +121,8 @@ void print_shader_info_log(GLuint obj)
 
 void print_program_info_log(GLuint obj)
 {
-  int infologLength = 0;
-  int charsWritten  = 0;
+  GLint infologLength = 0;
+  GLint charsWritten  = 0;
   char *infoLog;
   
   glGetProgramiv(obj, GL_INFO_LOG_LENGTH,&infologLength);
