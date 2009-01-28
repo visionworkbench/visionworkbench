@@ -39,7 +39,7 @@ vwv_SOURCES = vwv.cc vwv_MainWindow.cc vwv_GlPreviewWidget.cc	\
 # These are automatically-generated sources?
 nodist_vwv_SOURCES = vwv_MainWindow.moc.cc  vwv_GlPreviewWidget.moc.cc
 
-#vwv_CXXFLAGS = $(QT_CXXFLAGS) 
+vwv_CPPFLAGS = @VW_CPPFLAGS@ @PKG_QT_CPPFLAGS@
 vwv_LDADD    = @PKG_GUI_LIBS@
 
 bin_PROGRAMS = vwv
