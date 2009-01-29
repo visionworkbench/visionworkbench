@@ -202,15 +202,15 @@ public:
     vw::Vector3 test(2.13, -812.183, 18.31);
     // rotate vector test by 90° around x axis and compare
     vw::Vector3 diff_1( vw::Vector3(2.13, -18.31, -812.183) - q_x.rotate(test) );
-    TS_ASSERT_DELTA(diff_1.x(), 0, 1e-14);
+    TS_ASSERT_DELTA(diff_1.x(), 0, 1e-12);
     TS_ASSERT_DELTA(diff_1.y(), 0, 1e-12);
-    TS_ASSERT_DELTA(diff_1.z(), 0, 1e-14);
+    TS_ASSERT_DELTA(diff_1.z(), 0, 1e-12);
 
     // Test standalone method taking nonnormalized axis with angle = |axis|
     vw::Vector3 diff_2( vw::Vector3(2.13, -18.31, -812.183) -  vw::math::axis_angle_to_quaternion(x).rotate(test));
-    TS_ASSERT_DELTA(diff_2.x(), 0, 1e-14);
+    TS_ASSERT_DELTA(diff_2.x(), 0, 1e-12);
     TS_ASSERT_DELTA(diff_2.y(), 0, 1e-12);
-    TS_ASSERT_DELTA(diff_2.z(), 0, 1e-14);
+    TS_ASSERT_DELTA(diff_2.z(), 0, 1e-12);
     
     // Test conversion back to vector using two-step method
     vw::Vector3 axis_x;
