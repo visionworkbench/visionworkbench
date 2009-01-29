@@ -21,7 +21,7 @@
 //
 // __END_LICENSE__
 
-// TestLinearPushbroomModel.h
+// TestCAHVORModel.h
 #include <cxxtest/TestSuite.h>
 
 #include <vw/Camera/CAHVORModel.h>
@@ -31,7 +31,7 @@ using namespace std;
 using namespace vw;
 using namespace vw::camera;
 
-class TestLinearPushbroomModel : public CxxTest::TestSuite
+class TestCAHVORModel : public CxxTest::TestSuite
 {
 public:
 

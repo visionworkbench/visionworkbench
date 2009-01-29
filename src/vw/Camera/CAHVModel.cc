@@ -44,18 +44,13 @@ namespace camera {
     //  frames includes the rotation R --AND-- a rotation from
     //  specifying the directions of increasing u,v,w pixels
     Matrix<double,3,3> R = pin_model.camera_pose().rotation_matrix();
-    Matrix<double,3,3> R_uvw;
-    select_row(R_uvw,0) = u;
-    select_row(R_uvw,1) = v;
-    select_row(R_uvw,2) = w;
-    Matrix<double,3,3> rot_matrix = R_uvw * R;
 
     //  Now create the components of the CAHV model...
-    Vector3 Hvec = select_row(rot_matrix,0);
-    Vector3 Vvec = select_row(rot_matrix,1);
+    Vector3 Hvec = R*u;
+    Vector3 Vvec = R*v;
       
     C = pin_model.camera_center();
-    A = select_col(transpose(rot_matrix), 2);
+    A = R*w;
     H = fH*Hvec + Hc*A;
     V = fV*Vvec + Vc*A;	      
 

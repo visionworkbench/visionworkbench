@@ -28,6 +28,7 @@
 if MAKE_MODULE_CAMERA
 
 nodist_TestCAHVORModel_SOURCES = TestCAHVORModel.cxx
+nodist_TestCAHVModel_SOURCES = TestCAHVModel.cxx
 nodist_TestLinearPushbroomModel_SOURCES = TestLinearPushbroomModel.cxx
 nodist_TestPinholeModel_SOURCES = TestPinholeModel.cxx
 nodist_TestBundleAdjust_SOURCES = TestBundleAdjust.cxx
@@ -35,7 +36,8 @@ nodist_TestExifData_SOURCES = TestExifData.cxx
 #nodist_TestLensDistortion_SOURCES = TestLensDistortion.cxx
 #nodist_TestCameraTransform_SOURCES = TestCameraTransform.cxx
 
-TESTS = TestCAHVORModel TestLinearPushbroomModel TestPinholeModel TestBundleAdjust TestExifData # TestLensDistortion TestCameraTransform
+TESTS = TestCAHVORModel TestLinearPushbroomModel TestPinholeModel \ 
+	TestBundleAdjust TestExifData TestCAHVModel # TestLensDistortion TestCameraTransform
 
 include $(top_srcdir)/config/instantiate.am
 

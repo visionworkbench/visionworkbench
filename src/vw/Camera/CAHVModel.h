@@ -84,17 +84,12 @@ namespace camera {
       pin_model.coordinate_frame(u,v,w);
 
       Matrix<double,3,3> R = pin_model.camera_pose().rotation_matrix();
-      Matrix<double,3,3> R_uvw;
-      select_row(R_uvw,0)=u;
-      select_row(R_uvw,1)=v;
-      select_row(R_uvw,2)=w;
-      Matrix<double,3,3> rot_matrix = R_uvw * R;
-      
-      Vector3 Hvec(rot_matrix[0][0], rot_matrix[0][1], rot_matrix[0][2]);
-      Vector3 Vvec(rot_matrix[1][0], rot_matrix[1][1], rot_matrix[1][2]);
+
+      Vector3 Hvec = R*u;
+      Vector3 Vvec = R*v;
 
       C = pin_model.camera_center();
-      A = Vector3(rot_matrix[2][0], rot_matrix[2][1], rot_matrix[2][2]);
+      A = R*w;
       H = fH*Hvec + Hc*A;
       V = fV*Vvec + Vc*A;	      
     }
