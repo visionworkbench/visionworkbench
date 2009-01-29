@@ -38,6 +38,7 @@
 #include <vw/Math/Quaternion.h>
 #include <vw/Math/ConjugateGradient.h>
 #include <vw/Math/NelderMead.h>
+#include <vw/Math/ParticleSwarmOptimization.h>
 #include <vw/Math/EulerAngles.h>
 #include <vw/Math/Statistics.h>
 #include <vw/Math/DisjointSet.h>
