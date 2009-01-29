@@ -147,6 +147,30 @@ namespace ip {
   /// This is a wrapper for the interest data to make it easier to
   /// compare different scales to each other
   class SURFScaleData {
+    boost::shared_ptr<vw::ImageView<float> > m_data;
+    boost::shared_ptr<vw::ImageView<bool> > m_polarity;
+    unsigned m_filter_size;
+    unsigned m_starting_offset;
+    unsigned m_sampling_step;
+    unsigned m_sampling_step_2;
+    
+    vw::Vector3i convertCoord( int const& x, int const& y) const {
+      if ( (x & 1) || (y & 1) ) // is it odd?
+	return vw::Vector3i(0,0,0);
+      int tx = x, ty = y;
+      tx -= m_starting_offset;
+      ty -= m_starting_offset;
+      if (tx < 0 || ty < 0) // Have we left our space?
+	return vw::Vector3i(0,0,0);
+      if (tx & (m_sampling_step - 1) || ty & (m_sampling_step - 1) ) // mod not equal zero
+	return vw::Vector3i(0,0,0);
+      tx = tx >> m_sampling_step_2;
+      ty = ty >> m_sampling_step_2;
+      if ( tx >= m_data->cols() || ty >= m_data->rows() )
+	return vw::Vector3i(0,0,0);
+      return vw::Vector3i(tx,ty,1);
+    }
+
   public:
     SURFScaleData( void ) {
     }
@@ -208,29 +232,6 @@ namespace ip {
       return m_filter_size;
     }
   private:
-    unsigned m_filter_size;
-    unsigned m_starting_offset;
-    unsigned m_sampling_step;
-    unsigned m_sampling_step_2;
-    boost::shared_ptr<vw::ImageView<float> > m_data;
-    boost::shared_ptr<vw::ImageView<bool> > m_polarity;
-
-    vw::Vector3i convertCoord( int const& x, int const& y) const {
-      if ( (x & 1) || (y & 1) ) // is it odd?
-	return vw::Vector3i(0,0,0);
-      int tx = x, ty = y;
-      tx -= m_starting_offset;
-      ty -= m_starting_offset;
-      if (tx < 0 || ty < 0) // Have we left our space?
-	return vw::Vector3i(0,0,0);
-      if (tx & (m_sampling_step - 1) || ty & (m_sampling_step - 1) ) // mod not equal zero
-	return vw::Vector3i(0,0,0);
-      tx = tx >> m_sampling_step_2;
-      ty = ty >> m_sampling_step_2;
-      if ( tx >= m_data->cols() || ty >= m_data->rows() )
-	return vw::Vector3i(0,0,0);
-      return vw::Vector3i(tx,ty,1);
-    }
   };
 
   /// Creates a interest scale for SURF
@@ -378,8 +379,8 @@ namespace ip {
 			InterestPointList& my_ip_list,
 			InterestPointList& main_ip_list, 
 			Mutex &mutex, int id) :
-    m_integral(integral), m_gauss(gauss), m_individual_list(my_ip_list), 
-      m_extended(extended), m_main_list(main_ip_list), m_mutex(mutex), m_id(id) {
+    m_integral(integral), m_gauss(gauss), m_extended(extended),
+    m_individual_list(my_ip_list),m_main_list(main_ip_list), m_mutex(mutex), m_id(id) {
     }
 
     void operator()(){
@@ -423,7 +424,7 @@ namespace ip {
 			 InterestPointList& main_ip_list, 
 			 Mutex &mutex, int id) :
     m_integral(integral), m_overall_gaus(overall_gaus), m_sub_region_gaus(sub_region_gaus),
-      m_individual_list(my_ip_list), m_extended(extended), 
+      m_extended(extended), m_individual_list(my_ip_list),
       m_main_list(main_ip_list), m_mutex(mutex), m_id(id) {
     }
 
@@ -876,7 +877,7 @@ namespace ip {
 	// Multithreaded
 
 	// Breaking the points in lengths that can be processed individually.
-	unsigned count = 0;
+	int count = 0;
 	std::vector<InterestPointList> ip_separated(m_num_threads);
 	for (InterestPointList::iterator i = points.begin();
 	     i != points.end(); ++i ) {
@@ -977,7 +978,7 @@ namespace ip {
 	// Multithreaded
 	
 	// Breaking the points in length that can be processed individually.
-	unsigned count = 0;
+	int count = 0;
 	std::vector<InterestPointList> ip_separated(m_num_threads);
 	for (InterestPointList::iterator i = points.begin();
 	     i != points.end(); ++i ) {
