@@ -154,7 +154,7 @@ namespace camera {
       C = Cinit;
       A = Ainit;
       H = fH*Hvec + Hc*A;
-      V = fV*Vvec + Hc*A;
+      V = fV*Vvec + Vc*A;
     }
 
     virtual ~CAHVModel() {}
