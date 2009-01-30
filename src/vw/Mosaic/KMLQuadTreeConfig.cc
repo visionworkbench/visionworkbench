@@ -59,7 +59,7 @@ namespace vw {
       
       std::vector<ImageView<PixelRGBA<float> > > pyramid(levels);
       pyramid[0].set_size( bbox.width(), bbox.height() );
-      convert( pyramid[0].buffer(), src );
+      convert( pyramid[0].buffer(), src, m_rescale );
       
       std::vector<float> kernel(2);
       kernel[0] = kernel[1] = 0.5;
