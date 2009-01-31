@@ -56,14 +56,14 @@
 ///    error: || p2 - H * p1 ||
 ///
 
-#ifndef __VW_INTERESTPOINT_RANSAC_H__
-#define __VW_INTERESTPOINT_RANSAC_H__
+#ifndef __VW_MATH_RANSAC_H__
+#define __VW_MATH_RANSAC_H__
 
 #include <vw/Math/Vector.h>
 #include <vw/Core/Log.h>
 
 namespace vw { 
-namespace ip {
+namespace math {
 
   VW_DEFINE_EXCEPTION(RANSACErr, Exception);
 
@@ -260,6 +260,6 @@ namespace ip {
     return ransac_instance(p1,p2);
   }
 
-}} // namespace vw::ip
+}} // namespace vw::math
 
-#endif // __INTERESTPOINT_RANSAC_H__
+#endif // __MATH_RANSAC_H__

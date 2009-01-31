@@ -24,7 +24,6 @@
 //template int vw::ip::make_gaussian_kernel_2d < KernelT > (KernelT&, float, int);
 //template void vw::ip::non_max_suppression < T > (std::vector<CharT, std::allocator<_CharT> >&, bool);
 //template void vw::ip::orientation_histogram < ViewT1,ViewT2 > (const vw::ImageViewBase<ImageT>&, const vw::ImageViewBase<View2T>&, std::vector<float, std::allocator<float> >&, int, int, float, unsigned int);
-//template FittingFuncT::result_type vw::ip::ransac < ContainerT1,ContainerT2,FittingFuncT,ErrorFuncT > (const std::vector<CharT, std::allocator<_CharT> >&, const std::vector<KernelT, std::allocator<_T2> >&, const FittingFuncT&, const ErrorFuncT&, double);
 //template int vw::ip::smooth_weighted_histogram < T > (std::vector<CharT, std::allocator<_CharT> >&, float);
 //template void vw::ip::weighted_histogram < ViewT1,ViewT2 > (const vw::ImageViewBase<ImageT>&, const vw::ImageViewBase<View2T>&, std::vector<float, std::allocator<float> >&, float, float, unsigned int);
 //template void vw::ip::weighted_magnitude < ViewT1,ViewT2 > (vw::ImageViewBase<ImageT>&, const vw::ImageViewBase<View2T>&, int, int, float, int);

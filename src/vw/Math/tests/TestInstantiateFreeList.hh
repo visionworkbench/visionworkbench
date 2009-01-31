@@ -201,4 +201,5 @@ template bool vw::math::vector_containment_comparison::operator< < VectorT1,Vect
 template bool vw::math::vector_containment_comparison::operator<= < VectorT1,VectorT2 > (const vw::math::VectorBase<VectorT>&, const vw::math::VectorBase<Vector2T>&);
 template bool vw::math::vector_containment_comparison::operator> < VectorT1,VectorT2 > (const vw::math::VectorBase<VectorT>&, const vw::math::VectorBase<Vector2T>&);
 template bool vw::math::vector_containment_comparison::operator>= < VectorT1,VectorT2 > (const vw::math::VectorBase<VectorT>&, const vw::math::VectorBase<Vector2T>&);
+template FittingFuncT::result_type vw::math::ransac < ContainerT1,ContainerT2,FittingFuncT,ErrorFuncT > (const std::vector<CharT, std::allocator<_CharT> >&, const std::vector<KernelT, std::allocator<_T2> >&, const FittingFuncT&, const ErrorFuncT&, double);
 //template vw::math::VectorProxy<ElemT, 0> vw::math::vector_proxy < DataT > (DataT*, int);

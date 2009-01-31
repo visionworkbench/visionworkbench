@@ -285,13 +285,13 @@ int main(int argc, char** argv) {
   std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
   Matrix<double> align_matrix;
   if (vm.count("homography")) 
-    align_matrix = ransac(ransac_ip2, ransac_ip1, 
-                          vw::math::HomographyFittingFunctor(),
-                          InterestPointErrorMetric());
+    align_matrix = vw::math::ransac(ransac_ip2, ransac_ip1, 
+				    vw::math::HomographyFittingFunctor(),
+				    vw::math::InterestPointErrorMetric());
   else
-    align_matrix = ransac(ransac_ip2, ransac_ip1, 
-                          vw::math::AffineFittingFunctor(),
-                          InterestPointErrorMetric());
+    align_matrix = vw::math::ransac(ransac_ip2, ransac_ip1, 
+				    vw::math::AffineFittingFunctor(),
+				    vw::math::InterestPointErrorMetric());
 
   vw_out(InfoMessage) << "Writing out aligned pair of images\n";
 

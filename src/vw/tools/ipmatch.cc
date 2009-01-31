@@ -186,16 +186,16 @@ int main(int argc, char** argv) {
         // of points.  Points that don't meet this geometric
         // contstraint are rejected as outliers.
         if (ransac_constraint == "similarity") {
-          RandomSampleConsensus<math::SimilarityFittingFunctor, InterestPointErrorMetric> ransac( vw::math::SimilarityFittingFunctor(),
-                                                                                                  InterestPointErrorMetric(), 
-                                                                                                  inlier_threshold ); // inlier_threshold
-          Matrix<double> H = ransac(ransac_ip1,ransac_ip2);
+	  vw::math::RandomSampleConsensus<math::SimilarityFittingFunctor, math::InterestPointErrorMetric> ransac( vw::math::SimilarityFittingFunctor(),
+														  vw::math::InterestPointErrorMetric(), 
+														  inlier_threshold ); // inlier_threshold
+          Matrix<double> H(ransac(ransac_ip1,ransac_ip2));
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
         } else if (ransac_constraint == "homography") {
-          RandomSampleConsensus<math::HomographyFittingFunctor, InterestPointErrorMetric> ransac( vw::math::HomographyFittingFunctor(),
-                                                                                                  InterestPointErrorMetric(), 
-                                                                                                  inlier_threshold ); // inlier_threshold
-          Matrix<double> H = ransac(ransac_ip1,ransac_ip2);
+	  vw::math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac( vw::math::HomographyFittingFunctor(),
+														  vw::math::InterestPointErrorMetric(), 
+														  inlier_threshold ); // inlier_threshold
+          Matrix<double> H(ransac(ransac_ip1,ransac_ip2));
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
 	} else if (ransac_constraint == "none") {
 	  for ( unsigned i = 0; i < matched_ip1.size(); ++i )
@@ -204,7 +204,7 @@ int main(int argc, char** argv) {
           std::cout << "Unknown RANSAC constraint type: " << ransac_constraint << ".  Choose one of: [similarity, homography, or none]\n";
           exit(0);
         }
-      } catch (vw::ip::RANSACErr &e) {
+      } catch (vw::math::RANSACErr &e) {
         std::cout << "RANSAC Failed: " << e.what() << "\n";
         continue;
       }
