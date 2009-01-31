@@ -9,6 +9,9 @@ AC_DEFUN([AX_PKG],
   ADD_$1_CPPFLAGS="$PKG_$1_CPPFLAGS"
   PKG_$1_CPPFLAGS=""
 
+  ADD_$1_LDFLAGS="$PKG_$1_LDFLAGS"
+  PKG_$1_LDFLAGS=""
+
   if test x"$ENABLE_VERBOSE" = "xyes"; then
     if test -z "$6"; then
       AC_MSG_CHECKING([for package $1 in current paths])
@@ -30,10 +33,8 @@ AC_DEFUN([AX_PKG],
     AC_MSG_RESULT([no (disabled by user)])
 
   else
-    if test -z "${PKG_$1_LDFLAGS}"; then
+    if test -z "${PKG_$1_LIBS}"; then
         PKG_$1_LIBS="$3"
-    else
-        PKG_$1_LIBS="${PKG_$1_LDFLAGS}"
     fi
 
     # Test for and inherit from dependencies
@@ -68,9 +69,7 @@ AC_DEFUN([AX_PKG],
         AC_MSG_RESULT([searching...])
       fi
 
-      if test -n "${PKG_$1_LDFLAGS}"; then
-        PKG_PATHS_$1="default"
-      elif test -n "${HAVE_PKG_$1}" && test "${HAVE_PKG_$1}" != "yes" && test "${HAVE_PKG_$1}" != "no"; then
+      if test -n "${HAVE_PKG_$1}" && test "${HAVE_PKG_$1}" != "yes" && test "${HAVE_PKG_$1}" != "no"; then
         PKG_PATHS_$1="${HAVE_PKG_$1}"
       else
         PKG_PATHS_$1="default ${PKG_PATHS}"
@@ -97,8 +96,9 @@ AC_DEFUN([AX_PKG],
         for header in $4 ; do
           echo "#include <$header>" >> conftest.h
         done
+
         TRY_ADD_CPPFLAGS="$ADD_$1_CPPFLAGS"
-        TRY_ADD_LDFLAGS=""
+        TRY_ADD_LDFLAGS="$ADD_$1_LDFLAGS"
 
         if test x"$ENABLE_VERBOSE" = "xyes"; then
           AC_MSG_CHECKING([for package $1 in $path])
@@ -116,15 +116,15 @@ AC_DEFUN([AX_PKG],
           fi
 
           if test -z "$5"; then
-            TRY_ADD_CPPFLAGS="-I$path/${AX_INCLUDE_DIR}"
+            TRY_ADD_CPPFLAGS="$TRY_ADD_CPPFLAGS -I$path/${AX_INCLUDE_DIR}"
           else
-            TRY_ADD_CPPFLAGS="-I$path/${AX_INCLUDE_DIR}/$5"
+            TRY_ADD_CPPFLAGS="$TRY_ADD_CPPFLAGS -I$path/${AX_INCLUDE_DIR}/$5"
           fi
 
           if test -d $path/${AX_LIBDIR}; then
-              TRY_ADD_LDFLAGS="-L$path/${AX_LIBDIR}"
+              TRY_ADD_LDFLAGS="$TRY_ADD_LDFLAGS -L$path/${AX_LIBDIR}"
           elif test x"${AX_LIBDIR}" = "xlib64"; then
-              TRY_ADD_LDFLAGS="-L$path/${AX_OTHER_LIBDIR}"
+              TRY_ADD_LDFLAGS="$TRY_ADD_LDFLAGS -L$path/${AX_OTHER_LIBDIR}"
           fi
         fi
 
@@ -153,11 +153,15 @@ AC_DEFUN([AX_PKG],
         fi
       done
 
+      # Append to CPPFLAGS, since that's the order we detected in
       PKG_$1_CPPFLAGS="$PKG_$1_CPPFLAGS $TRY_ADD_CPPFLAGS"
-      PKG_$1_LIBS="$PKG_$1_LIBS $TRY_ADD_LDFLAGS"
+      # Prepend to LIBS, because dependencies need to be listed after all users
+      PKG_$1_LIBS="$TRY_ADD_LDFLAGS $PKG_$1_LIBS"
 
+      # But append the LDFLAGS here, so we don't break detection order
       OTHER_CPPFLAGS="$OTHER_CPPFLAGS $TRY_ADD_CPPFLAGS"
       OTHER_LDFLAGS="$OTHER_LDFLAGS $TRY_ADD_LDFLAGS"
+
       CPPFLAGS="$ax_pkg_old_cppflags"
       LDFLAGS="$ax_pkg_old_ldflags"
       LIBS="$ax_pkg_old_libs"
@@ -165,7 +169,6 @@ AC_DEFUN([AX_PKG],
       if test "x$HAVE_PKG_$1" = "xno" -a "x$ENABLE_VERBOSE" != "xyes"; then
         AC_MSG_RESULT([no (not found)])
       fi
-
     fi
 
   fi
