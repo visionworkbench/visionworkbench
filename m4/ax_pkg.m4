@@ -1,5 +1,3 @@
-AC_DEFUN([AX_LOG], [echo "]$1[" >&AS_MESSAGE_LOG_FD])
-
 dnl Usage: AX_PKG(<name>, <dependencies>, <libraries>, <headers>[, <relative include path>, <required-functions>])
 AC_DEFUN([AX_PKG],
 [
@@ -66,10 +64,6 @@ AC_DEFUN([AX_PKG],
     # Otherwise we look for a path that contains the needed headers and libraries
     else
 
-      if test "x$ENABLE_VERBOSE" = "yes"; then
-        AC_MSG_RESULT([searching...])
-      fi
-
       if test -n "${HAVE_PKG_$1}" && test "${HAVE_PKG_$1}" != "yes" && test "${HAVE_PKG_$1}" != "no"; then
         PKG_PATHS_$1="${HAVE_PKG_$1}"
       else
@@ -100,10 +94,6 @@ AC_DEFUN([AX_PKG],
 
         TRY_ADD_CPPFLAGS="$ADD_$1_CPPFLAGS"
         TRY_ADD_LDFLAGS="$ADD_$1_LDFLAGS"
-
-        if test x"$ENABLE_VERBOSE" = "xyes"; then
-          AC_MSG_CHECKING([for package $1 in $path])
-        fi
 
         if test "$path" != "default"; then
           # ISIS is really stupid, and they use /foo/inc as their include file
@@ -147,9 +137,6 @@ AC_DEFUN([AX_PKG],
 
         TRY_ADD_CPPFLAGS=""
         TRY_ADD_LDFLAGS=""
-        if test x"$ENABLE_VERBOSE" = "xyes"; then
-          AC_MSG_RESULT([no])
-        fi
       done
 
       # Append to CPPFLAGS, since that's the order we detected in
@@ -165,7 +152,7 @@ AC_DEFUN([AX_PKG],
       LDFLAGS="$ax_pkg_old_ldflags"
       LIBS="$ax_pkg_old_libs"
 
-      if test "x$HAVE_PKG_$1" = "xno" -a "x$ENABLE_VERBOSE" != "xyes"; then
+      if test "x$HAVE_PKG_$1" = "xno" ; then
         AC_MSG_RESULT([no (not found)])
       fi
     fi
@@ -186,13 +173,11 @@ AC_DEFUN([AX_PKG],
   AC_SUBST(PKG_$1_LIBS)
   AC_SUBST(HAVE_PKG_$1)
 
-  if test x"$ENABLE_VERBOSE" == "xyes"; then
-    AC_MSG_NOTICE([HAVE_PKG_$1 = ${HAVE_PKG_$1}])
-    AC_MSG_NOTICE([PKG_$1_CPPFLAGS= $PKG_$1_CPPFLAGS])
-    AC_MSG_NOTICE([PKG_$1_LIBS= $PKG_$1_LIBS])
-    AC_MSG_NOTICE([CPPFLAGS= $CPPFLAGS])
-    AC_MSG_NOTICE([LDFLAGS= $LDFLAGS])
-    AC_MSG_NOTICE([OTHER_CPPFLAGS= $OTHER_CPPFLAGS])
-    AC_MSG_NOTICE([OTHER_LDFLAGS= $OTHER_LDFLAGS])
-  fi
+  AX_LOG([HAVE_PKG_]$1[ = ${HAVE_PKG_]$1[}])
+  AX_LOG([PKG_]$1[_CPPFLAGS= $PKG_]$1[_CPPFLAGS])
+  AX_LOG([PKG_]$1[_LIBS= $PKG_]$1[_LIBS])
+  AX_LOG([CPPFLAGS= $CPPFLAGS])
+  AX_LOG([LDFLAGS= $LDFLAGS])
+  AX_LOG([OTHER_CPPFLAGS= $OTHER_CPPFLAGS])
+  AX_LOG([OTHER_LDFLAGS= $OTHER_LDFLAGS])
 ])
