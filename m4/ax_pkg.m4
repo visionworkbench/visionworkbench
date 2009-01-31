@@ -6,6 +6,9 @@ AC_DEFUN([AX_PKG],
     [ HAVE_PKG_$1=$withval ]
   )
 
+  ADD_$1_CPPFLAGS="$PKG_$1_CPPFLAGS"
+  PKG_$1_CPPFLAGS=""
+
   if test x"$ENABLE_VERBOSE" = "xyes"; then
     if test -z "$6"; then
       AC_MSG_CHECKING([for package $1 in current paths])
@@ -66,9 +69,9 @@ AC_DEFUN([AX_PKG],
       fi
 
       if test -n "${PKG_$1_LDFLAGS}"; then
-        PKG_PATHS_$1=""
+        PKG_PATHS_$1="default"
       elif test -n "${HAVE_PKG_$1}" && test "${HAVE_PKG_$1}" != "yes" && test "${HAVE_PKG_$1}" != "no"; then
-        PKG_PATHS_$1=${HAVE_PKG_$1}
+        PKG_PATHS_$1="${HAVE_PKG_$1}"
       else
         PKG_PATHS_$1="default ${PKG_PATHS}"
       fi
@@ -94,7 +97,7 @@ AC_DEFUN([AX_PKG],
         for header in $4 ; do
           echo "#include <$header>" >> conftest.h
         done
-        TRY_ADD_CPPFLAGS=""
+        TRY_ADD_CPPFLAGS="$ADD_$1_CPPFLAGS"
         TRY_ADD_LDFLAGS=""
 
         if test x"$ENABLE_VERBOSE" = "xyes"; then
@@ -113,9 +116,9 @@ AC_DEFUN([AX_PKG],
           fi
 
           if test -z "$5"; then
-            TRY_ADD_CPPFLAGS="$PKG_$1_CPPFLAGS -I$path/${AX_INCLUDE_DIR}"
+            TRY_ADD_CPPFLAGS="-I$path/${AX_INCLUDE_DIR}"
           else
-            TRY_ADD_CPPFLAGS="$PKG_$1_CPPFLAGS -I$path/${AX_INCLUDE_DIR}/$5"
+            TRY_ADD_CPPFLAGS="-I$path/${AX_INCLUDE_DIR}/$5"
           fi
 
           if test -d $path/${AX_LIBDIR}; then
@@ -123,14 +126,10 @@ AC_DEFUN([AX_PKG],
           elif test x"${AX_LIBDIR}" = "xlib64"; then
               TRY_ADD_LDFLAGS="-L$path/${AX_OTHER_LIBDIR}"
           fi
-
-          CPPFLAGS="$CPPFLAGS $TRY_ADD_CPPFLAGS"
-          LDFLAGS="$LDFLAGS $TRY_ADD_LDFLAGS"
-        else
-            # search in current paths
-            CPPFLAGS="$CPPFLAGS $OTHER_CPPFLAGS"
-            LDFLAGS="$LDFLAGS $OTHER_LDFLAGS"
         fi
+
+        CPPFLAGS="$CPPFLAGS $TRY_ADD_CPPFLAGS"
+        LDFLAGS="$LDFLAGS $TRY_ADD_LDFLAGS"
 
         dnl check for the headers and libs. if found, keep going.
         dnl otherwise, check next path
