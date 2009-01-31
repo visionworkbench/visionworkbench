@@ -1,3 +1,5 @@
+AC_DEFUN([AX_LOG], [echo "]$1[" >&AS_MESSAGE_LOG_FD])
+
 dnl Usage: AX_PKG(<name>, <dependencies>, <libraries>, <headers>[, <relative include path>, <required-functions>])
 AC_DEFUN([AX_PKG],
 [
@@ -11,6 +13,13 @@ AC_DEFUN([AX_PKG],
 
   ADD_$1_LDFLAGS="$PKG_$1_LDFLAGS"
   PKG_$1_LDFLAGS=""
+
+  if test -z "$ADD_$1_CPPFLAGS"; then :; else
+    AX_LOG([APPEND: ADD_]$1[_CPPFLAGS=$ADD_]$1[_CPPFLAGS])
+  fi
+  if test -z "$ADD_$1_LDFLAGS"; then :; else
+    AX_LOG([APPEND: ADD_]$1[_LDFLAGS=$ADD_]$1[_LDFLAGS])
+  fi
 
   if test x"$ENABLE_VERBOSE" = "xyes"; then
     if test -z "$6"; then
@@ -35,6 +44,8 @@ AC_DEFUN([AX_PKG],
   else
     if test -z "${PKG_$1_LIBS}"; then
         PKG_$1_LIBS="$3"
+    else
+        AX_LOG([OVERRIDE: ]$1[ libs (]$3[) with $PKG_]$1[_LIBS])
     fi
 
     # Test for and inherit from dependencies
@@ -85,7 +96,7 @@ AC_DEFUN([AX_PKG],
 
       LIBS="$PKG_$1_LIBS $LIBS"
       for path in $PKG_PATHS_$1; do
-        echo ["SEARCH: Checking $path for $3"] >&AS_MESSAGE_LOG_FD
+        AX_LOG([SEARCH: Checking $path for $PKG_]$1[_LIBS])
 
         CPPFLAGS="$PKG_$1_CPPFLAGS $ax_pkg_old_cppflags"
         LDFLAGS="$ax_pkg_old_ldflags"
