@@ -28,7 +28,11 @@ AC_DEFUN([AX_PKG],
   # We can skip searching if we're already at "no"
   if test "no" = "$HAVE_PKG_$1"; then
     AC_MSG_RESULT([no (disabled by user)])
-
+  elif test x"${HAVE_PKG_$1#no:}" != "x$HAVE_PKG_$1"; then # read as: if has_prefix(HAVE_PKG_$1, "no:")
+    dnl { and } break AC_MSG_RESULT
+    reason="${HAVE_PKG_$1#no:}"
+    AC_MSG_RESULT([no ($reason)])
+    HAVE_PKG_$1=no
   else
     if test -z "${PKG_$1_LIBS}"; then
         PKG_$1_LIBS="$3"

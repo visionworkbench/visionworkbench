@@ -237,20 +237,20 @@ AX_PKG(GDAL, [], [-lgdal], [gdal.h])
 PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize], [TIFF])
 PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize64], [BigTIFF])
 
-if test x"$GDAL_HAS_TIFF" == "xno"; then
-  AX_PKG(TIFF, [], [-ltiff], [tiff.h])
-  PKG_CHECK_FUNCTION(TIFF, [TIFFScanlineSize64], [BigTIFF])
-else
-  AX_DISABLE_PKG(TIFF)
+if test x"$GDAL_HAS_TIFF" == "xyes"; then
+  HAVE_PKG_TIFF="no:gdal has tiff support"
 fi
+
+AX_PKG(TIFF, [], [-ltiff], [tiff.h])
+PKG_CHECK_FUNCTION(TIFF, [TIFFScanlineSize64], [BigTIFF])
 
 AX_PKG(PROJ4, [], [-lproj], [projects.h])
 
 # Qt with AutoTroll.
-AT_WITH_QT([+gui +sql +opengl], [], [], [], [HAVE_PKG_QT_INCLUDE=no])
+AT_WITH_QT([+gui +sql +opengl], [], [], [], [HAVE_PKG_QT_INCLUDE="no:missing QT"])
 
 if test x"$HAVE_PKG_QT_INCLUDE" != x"no"; then
-    AT_REQUIRE_QT_VERSION([4.0], [], [HAVE_PKG_QT_INCLUDE=no])
+    AT_REQUIRE_QT_VERSION([4.0], [], [HAVE_PKG_QT_INCLUDE="no:wrong QT version"])
 fi
 
 # We seed QT_INCLUDE's cppflags with the ones qmake figured out
