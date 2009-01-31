@@ -21,19 +21,9 @@ AC_DEFUN([AX_PKG],
     AX_LOG([APPEND: ADD_]$1[_LDFLAGS=$ADD_]$1[_LDFLAGS])
   fi
 
-  if test x"$ENABLE_VERBOSE" = "xyes"; then
-    if test -z "$6"; then
-      AC_MSG_CHECKING([for package $1 in current paths])
-    else
-      AC_MSG_CHECKING([for package $1 in current paths with functions ($6)])
-    fi
-  else
-    if test -z "$6"; then
-      AC_MSG_CHECKING([for package $1])
-    else
-      AC_MSG_CHECKING([for package $1 with functions ($6)])
-    fi
-  fi
+  m4_ifval([$6],
+    [AC_MSG_CHECKING([for package $1 with functions ($6)])],
+    [AC_MSG_CHECKING([for package $1])])
 
   AC_LANG_ASSERT(C++)
 
@@ -126,11 +116,9 @@ AC_DEFUN([AX_PKG],
             fi
           fi
 
-          if test -z "$5"; then
-            TRY_ADD_CPPFLAGS="$TRY_ADD_CPPFLAGS -I$path/${AX_INCLUDE_DIR}"
-          else
-            TRY_ADD_CPPFLAGS="$TRY_ADD_CPPFLAGS -I$path/${AX_INCLUDE_DIR}/$5"
-          fi
+          m4_ifval([$5],
+            [TRY_ADD_CPPFLAGS="$TRY_ADD_CPPFLAGS -I$path/${AX_INCLUDE_DIR}/]$5["],
+            [TRY_ADD_CPPFLAGS="$TRY_ADD_CPPFLAGS -I$path/${AX_INCLUDE_DIR}"])
 
           if test -d $path/${AX_LIBDIR}; then
               TRY_ADD_LDFLAGS="$TRY_ADD_LDFLAGS -L$path/${AX_LIBDIR}"
