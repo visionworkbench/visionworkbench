@@ -35,6 +35,7 @@
 #include <vw/Camera/CAHVORModel.h>
 #include <vw/Camera/LensDistortion.h>
 #include <vw/Camera/PinholeModel.h>
+#include <vw/Camera/PinholeModelCalibrate.h>
 #include <vw/Camera/CameraTransform.h>
 #include <vw/Camera/BayerFilter.h>
 #include <vw/Camera/Exif.h>

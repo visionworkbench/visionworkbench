@@ -29,8 +29,8 @@ if MAKE_MODULE_CAMERA
 
 if HAVE_PKG_LAPACK
 lsm_headers = Extrinsics.h LinescanModel.h LinearPushbroomModel.h	\
-              OrbitingPushbroomModel.h PinholeModel.h LensDistortion.h  \
-	      BundleAdjust.h
+              OrbitingPushbroomModel.h PinholeModel.h PinholeModelCalibrate.h \
+              LensDistortion.h BundleAdjust.h
 endif
 
 include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h		\

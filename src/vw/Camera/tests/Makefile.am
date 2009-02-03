@@ -31,12 +31,13 @@ nodist_TestCAHVORModel_SOURCES = TestCAHVORModel.cxx
 nodist_TestCAHVModel_SOURCES = TestCAHVModel.cxx
 nodist_TestLinearPushbroomModel_SOURCES = TestLinearPushbroomModel.cxx
 nodist_TestPinholeModel_SOURCES = TestPinholeModel.cxx
+nodist_TestPinholeModelCalibrate_SOURCES = TestPinholeModelCalibrate.cxx
 nodist_TestBundleAdjust_SOURCES = TestBundleAdjust.cxx
 nodist_TestExifData_SOURCES = TestExifData.cxx
 #nodist_TestLensDistortion_SOURCES = TestLensDistortion.cxx
 #nodist_TestCameraTransform_SOURCES = TestCameraTransform.cxx
 
-TESTS = TestCAHVORModel TestLinearPushbroomModel TestPinholeModel \
+TESTS = TestCAHVORModel TestLinearPushbroomModel TestPinholeModel TestPinholeModelCalibrate \ 
 	TestBundleAdjust TestExifData TestCAHVModel # TestLensDistortion TestCameraTransform
 
 include $(top_srcdir)/config/instantiate.am
