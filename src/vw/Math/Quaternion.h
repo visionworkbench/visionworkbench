@@ -534,7 +534,10 @@ namespace math {
   template<class VectorT>
   inline Quaternion<typename VectorT::value_type> axis_angle_to_quaternion(const VectorBase<VectorT>& axis_angle) {
     typename VectorT::value_type norm2 = vw::math::norm_2(axis_angle.impl());
-    return Quaternion<typename VectorT::value_type>(axis_angle.impl()/norm2, norm2);
+    if (norm2 != 0)
+      return Quaternion<typename VectorT::value_type>(axis_angle.impl()/norm2, norm2);
+    else
+      return Quaternion<typename VectorT::value_type>(1, 0, 0, 0);      
   }
 
 
