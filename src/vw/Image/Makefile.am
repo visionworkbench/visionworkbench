@@ -30,11 +30,12 @@ if MAKE_MODULE_IMAGE
 include_HEADERS = PixelIterator.h ImageViewBase.h PixelAccessors.h	\
 	ImageView.h ImageIO.h ImageViewRef.h PixelTypeInfo.h		\
 	PixelMath.h PixelTypes.h PixelMask.h ImageResource.h		\
-	ImageResourceView.h Manipulation.h PerPixelViews.h		\
-	PerPixelAccessorViews.h ImageMath.h EdgeExtension.h		\
-	Interpolation.h Convolution.h Filter.h Filter.tcc Transform.h	\
-	Statistics.h Algorithms.h EdgeExtend.h BlockProcessor.h		\
-	BlockRasterize.h BlockCacheView.h UtilityViews.h Palette.h
+	ImageResourceView.h ViewImageResource.h Manipulation.h		\
+	PerPixelViews.h PerPixelAccessorViews.h ImageMath.h		\
+	EdgeExtension.h Interpolation.h Convolution.h Filter.h		\
+	Filter.tcc Transform.h Statistics.h Algorithms.h EdgeExtend.h	\
+	BlockProcessor.h BlockRasterize.h BlockCacheView.h		\
+	UtilityViews.h Palette.h
 
 libvwImage_la_SOURCES = PixelTypeInfo.cc ImageResource.cc Filter.cc     \
 	Interpolation.cc

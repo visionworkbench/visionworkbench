@@ -255,69 +255,6 @@ namespace vw {
   template <class PixelT>
   struct IsMultiplyAccessible<ImageView<PixelT> > : public true_type {};
 
-
-  // *******************************************************************
-  // ViewImageResource
-  // *******************************************************************
-
-  /// This ImageResource can wrap any vision workbench image view so
-  /// that it can be presented as an ImageResource to other
-  /// subsystems.  Among other things, this allows us to create a
-  /// cached version of a view using BlockCacheView and
-  /// ImageResourceView. .
-  template<class ViewT>
-  class ViewImageResource : public ImageResource {
-
-  public:
-
-    ViewImageResource(ImageViewBase<ViewT> const& view, Vector2i block_size) :
-      m_view(view.impl()), m_block_size(block_size) {}
-
-    virtual ~ViewImageResource() {};
-
-    /// Returns the number of columns in an image on disk.
-    int32 cols() const { return m_view.cols(); }
-
-    /// Returns the number of rows in an image on disk.
-    int32 rows() const { return m_view.rows(); }
-
-    /// Returns the number of planes in an image on disk.
-    int32 planes() const { return m_view.planes(); }
-
-    /// Returns the pixel format of an image on disk.
-    virtual PixelFormatEnum pixel_format() const { return m_view.pixel_format(); }
-
-    /// Returns the channel type of an image on disk.
-    virtual ChannelTypeEnum channel_type() const { return m_view.channel_type(); }
-
-    /// Read the image resource at the given location into the given
-    /// buffer.  In this case, we rasterize the requested region.
-    virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const {
-      VW_ASSERT( bbox.min().x() >= 0 && bbox.min().y() >= 0 &&
-                 bbox.max().x() <= cols() && bbox.max().y() <= rows(),
-                 ArgumentErr() << "ViewImageResource::read(): bbox exceeds view dimensions." );
-      ImageView<typename ViewT::pixel_type> region = crop(m_view, bbox);
-      ImageBuffer src = region.buffer();
-      convert(dest, src);
-    }
-
-    /// Write the given buffer to the image resource at the given location.
-    virtual void write( ImageBuffer const& /*buf*/, BBox2i const& /*bbox*/ ) { 
-      vw_throw(NoImplErr() << "ViewImageResource::write() failed.  ViewImageResource is read-only."); 
-    }
-
-    /// Returns the optimal block size/alignment for partial reads or writes.
-    // 
-    // Note: For now we allow the programmer to explicitly choose a
-    // block size using the constructor, but in the future we may
-    // allow the wrapped view to choose its own optimal block size.
-    virtual Vector2i native_block_size() const { return m_block_size; }
-
-  protected:
-    ViewT m_view;
-    Vector2i m_block_size;
-  };
-
 } // namespace vw
 
 #endif // __VW_IMAGE_IMAGEVIEW_H__

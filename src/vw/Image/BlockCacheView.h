@@ -43,8 +43,8 @@
 
 #include <vw/Core/Cache.h>
 #include <vw/Image/ImageResourceView.h>
+#include <vw/Image/ViewImageResource.h>
 #include <vw/Image/ImageViewBase.h>
-
 
 namespace vw {
 
@@ -58,26 +58,24 @@ namespace vw {
     /// Constructs a BlockCacheView of the given input view
     template <class ViewT>
     BlockCacheView(ImageViewBase<ViewT> const& view, Vector2i block_size, bool cache=true )
-      : base_type( new ViewImageResource<ViewT>( view.impl(), block_size ), cache ) {}
+      : base_type( new ViewImageResource( view.impl(), block_size ), cache ) {}
 
     /// Constructs a BlockCacheView of the given input view using
     /// the specified cache area.
     template <class ViewT>
     BlockCacheView(ImageViewBase<ViewT> const& view, Vector2i block_size, Cache& cache )
-      : base_type( new ViewImageResource<ViewT>( view.impl(), block_size ), cache ) {}
+      : base_type( new ViewImageResource( view.impl(), block_size ), cache ) {}
 
     /// Constructs a BlockCacheView of the given resource.  Takes
     /// ownership of the resource object (i.e. deletes it when it's
     /// done using it).
-    template <class ViewT>
-    BlockCacheView( ViewImageResource<ViewT> *resource, bool cache=true )
+    BlockCacheView( ViewImageResource *resource, bool cache=true )
       : base_type( resource, cache ) {}
 
     /// Constructs a BlockCacheView of the given resource using the
     /// specified cache area.  Takes ownership of the resource object
     /// (i.e. deletes it when it's done using it).
-    template <class ViewT>
-    BlockCacheView( ViewImageResource<ViewT> *resource, Cache& cache )
+    BlockCacheView( ViewImageResource *resource, Cache& cache )
       : base_type( resource, cache ) {}
 
     virtual ~BlockCacheView() {}
