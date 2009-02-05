@@ -144,6 +144,7 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
     // For now, we only support reading in multi-plane, single channel
     // images.
     m_format.pixel_format = VW_PIXEL_SCALAR;
+    m_format.channel_type = VW_CHANNEL_FLOAT32;
 
     if (m_tiled) {
       Imf::TileDescription desc = static_cast<Imf::InputFile*>(m_input_file_ptr)->header().tileDescription();
