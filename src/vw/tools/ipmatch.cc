@@ -190,12 +190,14 @@ int main(int argc, char** argv) {
 														  vw::math::InterestPointErrorMetric(), 
 														  inlier_threshold ); // inlier_threshold
           Matrix<double> H(ransac(ransac_ip1,ransac_ip2));
+          std::cout << "\t--> Similarity: " << H << "\n";
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
         } else if (ransac_constraint == "homography") {
 	  vw::math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac( vw::math::HomographyFittingFunctor(),
 														  vw::math::InterestPointErrorMetric(), 
 														  inlier_threshold ); // inlier_threshold
           Matrix<double> H(ransac(ransac_ip1,ransac_ip2));
+          std::cout << "\t--> Homography: " << H << "\n";
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
 	} else if (ransac_constraint == "none") {
 	  for ( unsigned i = 0; i < matched_ip1.size(); ++i )
