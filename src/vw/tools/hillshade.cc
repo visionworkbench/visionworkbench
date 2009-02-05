@@ -52,9 +52,9 @@ using namespace vw;
 
 // Global Variables
 std::string input_file_name, output_file_name = "";
-float azimuth, elevation, scale;
-float nodata_value;
-float blur_sigma;
+double azimuth, elevation, scale;
+double nodata_value;
+double blur_sigma;
 
 
 
@@ -129,13 +129,13 @@ UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, Comput
                                                                                                        ComputeNormalsFunc (u_scale, v_scale)); 
 }
 
-class DotProdFunc : public ReturnFixedType<PixelMask<PixelGray<float> > > {
+class DotProdFunc : public ReturnFixedType<PixelMask<PixelGray<double> > > {
   Vector3 m_vec;
 public:
   DotProdFunc(Vector3 const& vec) : m_vec(vec) {}
-  PixelMask<PixelGray<float> > operator() (PixelMask<Vector3> const& pix) const {
+  PixelMask<PixelGray<double> > operator() (PixelMask<Vector3> const& pix) const {
     if (is_transparent(pix))
-      return PixelMask<PixelGray<float> >();
+      return PixelMask<PixelGray<double> >();
     else {
 //       std::cout << "Vec1 : " << pix.child() << "   " << norm_2(pix.child()) << "\n";
 //       std::cout << "Vec2 : " << m_vec << "   " << norm_2(m_vec) << "\n";
@@ -159,7 +159,7 @@ void do_hillshade(po::variables_map const& vm) {
   cartography::read_georeference(georef, input_file_name);
   
   // Select the pixel scale.
-  float u_scale, v_scale;
+  double u_scale, v_scale;
   if (scale == 0) {
     if (georef.is_projected()) {
       u_scale = georef.transform()(0,0);
@@ -182,14 +182,14 @@ void do_hillshade(po::variables_map const& vm) {
   // Compute the surface normals
   std::cout << "Loading: " << input_file_name << ".\n";
   DiskImageView<PixelT> disk_dem_file(input_file_name);
-  ImageViewRef<PixelGray<float> > input_image = channel_cast<float>(disk_dem_file);
+  ImageViewRef<PixelGray<double> > input_image = channel_cast<double>(disk_dem_file);
 
-  ImageViewRef<PixelMask<PixelGray<float> > > dem;
+  ImageViewRef<PixelMask<PixelGray<double> > > dem;
   if (vm.count("nodata-value")) {
     std::cout << "\t--> Masking pixel value: " << nodata_value << ".\n";
     dem = create_mask(input_image, nodata_value);
   } else {
-    dem = pixel_cast<PixelMask<PixelGray<float> > >(input_image);
+    dem = pixel_cast<PixelMask<PixelGray<double> > >(input_image);
   }
 
   if (vm.count("blur")) {
@@ -217,11 +217,11 @@ int main( int argc, char *argv[] ) {
     ("help", "Display this help message")
     ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
     ("output-file,o", po::value<std::string>(&output_file_name), "Specify the output file")
-    ("azimuth,a", po::value<float>(&azimuth)->default_value(0), "Sets the direction tha the light source is coming from (in degrees).  Zero degrees is to the right, with positive degree counter-clockwise.")
-    ("elevation,e", po::value<float>(&elevation)->default_value(45), "Set the elevation of the light source (in degrees).")
-    ("scale,s", po::value<float>(&scale)->default_value(0), "Set the scale of a pixel (in the same units as the DTM height values.")
-    ("nodata-value", po::value<float>(&nodata_value), "Remap the DEM default value to the min altitude value.")
-    ("blur", po::value<float>(&blur_sigma), "Pre-blur the DEM with the specified sigma.");
+    ("azimuth,a", po::value<double>(&azimuth)->default_value(0), "Sets the direction tha the light source is coming from (in degrees).  Zero degrees is to the right, with positive degree counter-clockwise.")
+    ("elevation,e", po::value<double>(&elevation)->default_value(45), "Set the elevation of the light source (in degrees).")
+    ("scale,s", po::value<double>(&scale)->default_value(0), "Set the scale of a pixel (in the same units as the DTM height values.")
+    ("nodata-value", po::value<double>(&nodata_value), "Remap the DEM default value to the min altitude value.")
+    ("blur", po::value<double>(&blur_sigma), "Pre-blur the DEM with the specified sigma.");
   po::positional_options_description p;
   p.add("input-file", 1);
 
@@ -253,19 +253,24 @@ int main( int argc, char *argv[] ) {
     
     switch(pixel_format) {
     case VW_PIXEL_GRAY:
+    case VW_PIXEL_GRAYA:
+    case VW_PIXEL_RGB:
+    case VW_PIXEL_RGBA:
       switch(channel_type) {
       case VW_CHANNEL_UINT8:  do_hillshade<PixelGray<uint8>   >(vm); break;
       case VW_CHANNEL_INT16:  do_hillshade<PixelGray<int16>   >(vm); break;
       case VW_CHANNEL_UINT16: do_hillshade<PixelGray<uint16>  >(vm); break;
+      case VW_CHANNEL_FLOAT32:do_hillshade<PixelGray<float32> >(vm); break;
+      case VW_CHANNEL_FLOAT64:do_hillshade<PixelGray<float64> >(vm); break;
       default:                do_hillshade<PixelGray<float32> >(vm); break;
       }
       break;
     default:
-      std::cout << "Error: Unsupported pixel format.  The DEM image must have only one channel.";
+      std::cout << "Error: Unsupported pixel format.\n";
       exit(0);
     }
   } catch( Exception& e ) {
-    std::cerr << "Error: " << e.what() << std::endl;
+    std::cout << "Error: " << e.what() << std::endl;
   }
  
   return 0;
