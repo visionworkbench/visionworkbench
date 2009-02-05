@@ -158,17 +158,17 @@ GlPreviewWidget::~GlPreviewWidget() {
 
 void GlPreviewWidget::size_to_fit() {
   float aspect = float(m_viewport_width) / m_viewport_height;
-  int maxdim = std::max(m_image.cols(),m_image.rows());
-  if (m_image.cols() > m_image.rows()) {
+  int maxdim = std::max(m_image_rsrc->cols(),m_image_rsrc->rows());
+  if (m_image_rsrc->cols() > m_image_rsrc->rows()) {
     float width = maxdim;
     float height = maxdim/aspect;
-    float extra = height - m_image.rows();
+    float extra = height - m_image_rsrc->rows();
     m_current_viewport = BBox2(Vector2(0.0, -extra/2), 
                                 Vector2(width, height-extra/2));
   } else {
     float width = maxdim*aspect;
     float height = maxdim;
-    float extra = width - m_image.cols();
+    float extra = width - m_image_rsrc->cols();
     m_current_viewport = BBox2(Vector2(-extra/2, 0.0), 
                                 Vector2(width-extra/2, height));
   }
@@ -182,8 +182,8 @@ void GlPreviewWidget::zoom(float scale) {
   // Check to make sure we haven't hit our zoom limits...
   if (m_current_viewport.width()/scale > 1.0 && 
       m_current_viewport.height()/scale > 1.0 &&
-      m_current_viewport.width()/scale < 4*m_image.cols() && 
-      m_current_viewport.height()/scale < 4*m_image.rows()) {
+      m_current_viewport.width()/scale < 4*m_image_rsrc->cols() && 
+      m_current_viewport.height()/scale < 4*m_image_rsrc->rows()) {
     m_current_viewport.min().x() = (m_current_viewport.min().x() - mid_x) / scale + mid_x;
     m_current_viewport.max().x() = (m_current_viewport.max().x() - mid_x) / scale + mid_x;
     m_current_viewport.min().y() = (m_current_viewport.min().y() - mid_y) / scale + mid_y;
@@ -238,7 +238,7 @@ void GlPreviewWidget::setup() {
 }
 
 // ------------- TextureRenderer Implementation -----------------------
-GLuint GlPreviewWidget::allocate_texture(ImageView<PixelRGBA<float> > const block) {
+GLuint GlPreviewWidget::allocate_texture(ViewImageResource const block) {
   GLuint texture_id;
   {  
     makeCurrent();
@@ -249,9 +249,64 @@ GLuint GlPreviewWidget::allocate_texture(ImageView<PixelRGBA<float> > const bloc
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F_ARB, 
+
+    std::cout << "This image has " << block.channels() << " channels\n";
+    std::cout << "           ond " << block.channel_type() << " channel type\n";
+
+    // We save VRAM by copying the image data over in its native
+    // number of channels.
+    GLuint texture_pixel_type;
+    GLuint source_pixel_type;
+    if (block.channels() == 1) {
+      texture_pixel_type = GL_LUMINANCE32F_ARB;
+      source_pixel_type = GL_LUMINANCE;
+    } else if (block.channels() == 2) {
+      texture_pixel_type = GL_LUMINANCE_ALPHA32F_ARB;
+      source_pixel_type = GL_LUMINANCE_ALPHA;
+    } else if (block.channels() == 3) {
+      texture_pixel_type = GL_RGB32F_ARB;
+      source_pixel_type = GL_RGB;
+    } else if (block.channels() == 4) {
+      texture_pixel_type = GL_RGBA32F_ARB;
+      source_pixel_type = GL_RGBA;
+    } else {
+      vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed." 
+               << " Unsupported number of channels (" << block.channels() << ").");
+    }
+
+    // Set the GL channel type for source data.
+    GLuint source_channel_type;
+    switch (block.channel_type()) {
+    case vw::VW_CHANNEL_UINT8: 
+      source_channel_type = GL_UNSIGNED_BYTE;
+      break;
+    case vw::VW_CHANNEL_INT8: 
+      source_channel_type = GL_BYTE;
+      break;
+    case vw::VW_CHANNEL_UINT16: 
+      source_channel_type = GL_UNSIGNED_SHORT;
+      break;
+    case vw::VW_CHANNEL_INT16: 
+      source_channel_type = GL_SHORT;
+      break;
+    case vw::VW_CHANNEL_UINT32: 
+      source_channel_type = GL_UNSIGNED_INT;
+      break;
+    case vw::VW_CHANNEL_INT32: 
+      source_channel_type = GL_INT;
+      break;
+    case vw::VW_CHANNEL_FLOAT32:
+      source_channel_type = GL_FLOAT;
+      break;
+    default:
+      vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed." 
+               << " Unsupported channel type (" << block.channel_type() << ").");
+    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, texture_pixel_type, 
                  block.cols(), block.rows(), 0, 
-                 GL_RGBA, GL_FLOAT, &(block(0,0)) );
+                 source_pixel_type, source_channel_type, block.data() );
+    
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable( GL_TEXTURE_2D );
   }
@@ -279,11 +334,11 @@ void GlPreviewWidget::rebind_textures() {
   // GPU.)
   // GLint texSize; 
   // glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texSize);
-  m_bboxes = vw::image_blocks(m_image, 512, 512);
+  m_bboxes = vw::image_blocks(*m_image_rsrc, 512, 512);
   
   // Compute the max lod we need to view this image in a "standard small viewport" of 1024x1024 pixels.
-  int max_lod = std::max(int((log((m_image.cols()/512))/log(2.0))),
-                         int((log((m_image.rows()/512))/log(2.0))) );
+  int max_lod = std::max(int((log((m_image_rsrc->cols()/512))/log(2.0))),
+                         int((log((m_image_rsrc->rows()/512))/log(2.0))) );
 
   // Never go below an lod of 0!
   if (max_lod < 0) max_lod = 0;
@@ -292,7 +347,7 @@ void GlPreviewWidget::rebind_textures() {
   // will be generated on demand.
   for (unsigned i=0; i<m_bboxes.size(); ++i) {
     for (unsigned lod=0; lod <= max_lod; ++lod) {
-      m_gl_texture_cache->register_texture(m_image, m_bboxes[i], lod, this);
+      m_gl_texture_cache->register_texture(m_image_rsrc, m_bboxes[i], lod, this);
     }
   }
 }
@@ -500,13 +555,14 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
 
   // Extract the value for the pixel currently under the mouse
   PixelRGBA<float32> pix_value;
-  if (currentImagePos.x() >= 0 && currentImagePos.x() < m_image.cols() &&
-      currentImagePos.y() >= 0 && currentImagePos.y() < m_image.rows()) {
-    pix_value = m_image(currentImagePos.x(), currentImagePos.y());
+  if (currentImagePos.x() >= 0 && currentImagePos.x() < m_image_rsrc->cols() &&
+      currentImagePos.y() >= 0 && currentImagePos.y() < m_image_rsrc->rows()) {
+    // FIXME!!
+    //    pix_value = m_image(currentImagePos.x(), currentImagePos.y());
     
-    const char* pixel_name = vw::pixel_format_name(m_true_image_format.pixel_format);
-    const char* channel_name = vw::channel_type_name(m_true_image_format.channel_type);
-    int num_channels = vw::num_channels(m_true_image_format.pixel_format);
+    const char* pixel_name = vw::pixel_format_name(m_image_rsrc->pixel_format());
+    const char* channel_name = vw::channel_type_name(m_image_rsrc->channel_type());
+    int num_channels = m_image_rsrc->channels();
     std::ostringstream pix_value_ostr;
     pix_value_ostr << "Pos: ( " << currentImagePos.x() << " " << currentImagePos.y() << " ) --> Val: [ ";
 
@@ -516,7 +572,7 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
     // code.
     bool round;
     float scale_factor;
-    switch (m_true_image_format.channel_type) {
+    switch (m_image_rsrc->channel_type()) {
     case VW_CHANNEL_INT8:
       scale_factor = ScalarTypeLimits<int8>::highest();
       round = true;
@@ -567,20 +623,22 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
       round = false;
       break;
     default:
-      vw_throw( ArgumentErr() << "vwv_GlPreviewWidget() : Unrecognized or unsupported channel type (" << m_true_image_format.channel_type << ")." );
+      vw_throw( ArgumentErr() 
+                << "vwv_GlPreviewWidget() : Unrecognized or unsupported channel type (" 
+                << m_image_rsrc->channel_type() << ")." );
       return; // never reached
     }
     
     // We don't print out the channel value for the alpha channel for
     // those pixel types that have alpha.  This is messy too, and
     // should also be replaced by a better method...
-    if (m_true_image_format.pixel_format == vw::VW_PIXEL_GRAYA ||
-        m_true_image_format.pixel_format == vw::VW_PIXEL_RGBA ||
-        m_true_image_format.pixel_format == vw::VW_PIXEL_GRAY_MASKED ||
-        m_true_image_format.pixel_format == vw::VW_PIXEL_RGB_MASKED ||
-        m_true_image_format.pixel_format == vw::VW_PIXEL_XYZ_MASKED ||
-        m_true_image_format.pixel_format == vw::VW_PIXEL_LUV_MASKED ||
-        m_true_image_format.pixel_format == vw::VW_PIXEL_LAB_MASKED) {
+    if (m_image_rsrc->pixel_format() == vw::VW_PIXEL_GRAYA ||
+        m_image_rsrc->pixel_format() == vw::VW_PIXEL_RGBA ||
+        m_image_rsrc->pixel_format() == vw::VW_PIXEL_GRAY_MASKED ||
+        m_image_rsrc->pixel_format() == vw::VW_PIXEL_RGB_MASKED ||
+        m_image_rsrc->pixel_format() == vw::VW_PIXEL_XYZ_MASKED ||
+        m_image_rsrc->pixel_format() == vw::VW_PIXEL_LUV_MASKED ||
+        m_image_rsrc->pixel_format() == vw::VW_PIXEL_LAB_MASKED) {
       num_channels -= 1;
     }
 
@@ -590,9 +648,7 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
       else
         pix_value_ostr << (pix_value[i] * scale_factor) << " ";
     }
-
     pix_value_ostr << "]";
-
 
     const int Margin = 11;
     const int Padding = 6;
@@ -600,7 +656,7 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
     textDocument.setDefaultStyleSheet("* { color: #00FF00; font-family: courier, serif; font-size: 12 }");
     std::ostringstream legend_text;
     legend_text << "<p align=\"right\">" << m_legend_status << "<br>"
-                << "[ " << m_image.cols() << " x " << m_image.rows() << " ] <br>"
+                << "[ " << m_image_rsrc->cols() << " x " << m_image_rsrc->rows() << " ] <br>"
                 << "Pixel Format: " << pixel_name << "  Channel Type: " << channel_name << "<br>"
                 << "Current Pixel Range: [ " << -m_offset << " " 
                 << ( -m_offset+(1/m_gain) ) << " ]<br>"

@@ -104,7 +104,7 @@ public:
 
   virtual ~GlPreviewWidget();
 
-  virtual GLuint allocate_texture(vw::ImageView<vw::PixelRGBA<float> > const block);
+  virtual GLuint allocate_texture(vw::ViewImageResource const block);
   virtual void deallocate_texture(GLuint texture_id);
 
   // Set a default size for this widget.  This is usually overridden
@@ -119,11 +119,8 @@ public:
   void size_to_fit();
 
   /// Replace the current image in the widget with the supplied image view.
-  template <class ViewT>
-  void set_image(vw::ImageViewBase<ViewT> const& view) {
-    m_true_image_format = view.format();
-    vw::ImageView<vw::PixelRGBA<vw::float32> > im = vw::channel_cast<vw::float32>(view.impl());
-    m_image = im;
+  void set_image(boost::shared_ptr<vw::ImageResource> const& rsrc) {
+    m_image_rsrc = rsrc;
     rebind_textures();
     update();
     size_to_fit();
@@ -156,19 +153,8 @@ public slots:
   /// Replace the current image in the widget with the image in the
   /// supplied file.
   void set_image_from_file(std::string const& filename) {
-    
-    // First, we will determine the native format of the data in the
-    // file.
-    vw::DiskImageResource *rsrc = vw::DiskImageResource::open(filename);
-    m_true_image_format = rsrc->format();
-    delete rsrc;
-
-    // Then we open it, and set it as the current image for rendering.
-    vw::DiskImageView<vw::PixelRGBA<vw::float32> > input_image(filename);
-    m_image = input_image;
-    rebind_textures();
-    update();
-    size_to_fit();
+    boost::shared_ptr<vw::ImageResource> rsrc(vw::DiskImageResource::open(filename));
+    this->set_image(rsrc);
   }
 
 protected:
@@ -197,9 +183,8 @@ private:
   void updateCurrentMousePosition();
   
   // Image & OpenGL
-  vw::ImageViewRef<vw::PixelRGBA<vw::float32> > m_image;
+  boost::shared_ptr<vw::ImageResource> m_image_rsrc;
   std::vector<vw::BBox2i> m_bboxes;
-  vw::ImageFormat m_true_image_format;
   GLuint m_glsl_program;
   bool m_draw_texture;
   bool m_show_legend;

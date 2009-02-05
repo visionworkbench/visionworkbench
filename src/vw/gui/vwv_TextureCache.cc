@@ -36,11 +36,11 @@ struct TextureRequest {
 // Allocate Texture Request 
 class AllocateTextureRequest : public TextureRequest {
   boost::shared_ptr<TextureRecordBase> m_record;
-  vw::ImageView<vw::PixelRGBA<float> > m_image;
+  vw::ViewImageResource m_image;
   CachedTextureRenderer* m_parent;
 public:
   AllocateTextureRequest( boost::shared_ptr<TextureRecordBase> texture_record, 
-                          vw::ImageView<vw::PixelRGBA<float> > const image,
+                          vw::ViewImageResource const image,
                           CachedTextureRenderer* parent) :
     m_record(texture_record), m_image(image), m_parent(parent) {}
   
@@ -69,7 +69,7 @@ public:
 // --------------------------------------------------------------
 
 GLuint CachedTextureRenderer::request_allocation(boost::shared_ptr<TextureRecordBase> texture_record, 
-                                                 vw::ImageView<vw::PixelRGBA<float> > const block) {
+                                                 vw::ViewImageResource const block) {
   vw::Mutex::Lock lock(m_incoming_request_mutex);
   m_incoming_requests.push_back( boost::shared_ptr<TextureRequest>(new AllocateTextureRequest(texture_record, block, this)) ); 
   m_needs_redraw = true;

@@ -41,20 +41,23 @@
 #include <vw/Core/Thread.h>
 #include <vw/Core/Log.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Image/ViewImageResource.h>
+#include <vw/Image/ImageResourceView.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Math/BBox.h>
+#include <vw/Math/Vector.h>
 
 // Forward Declarations
 class CachedTextureRenderer;
 class TextureFetchTask;
 class TextureRequest;
-class TextureRecord;
 
 struct TextureRecordBase {
   vw::BBox2i bbox; 
   int lod;
   GLuint texture_id;
   CachedTextureRenderer* parent;
+  virtual ~TextureRecordBase() {}
 };
 
 // --------------------------------------------------------------
@@ -71,14 +74,13 @@ protected:
 public:
 
   // These are defined in the subclass: vwv_GlPreviewWidget
-  virtual GLuint allocate_texture(vw::ImageView<vw::PixelRGBA<float> > const block) = 0;
+  virtual GLuint allocate_texture(vw::ViewImageResource const block) = 0;
   virtual void deallocate_texture(GLuint texture_id) = 0;
-
   
   virtual ~CachedTextureRenderer() { m_incoming_requests.clear(); }
 
   virtual GLuint request_allocation(boost::shared_ptr<TextureRecordBase> texture_record, 
-                                    vw::ImageView<vw::PixelRGBA<float> > const block);
+                                    vw::ViewImageResource const block);
 
   virtual void request_deallocation(boost::shared_ptr<TextureRecordBase> texture_record);
 
@@ -89,26 +91,31 @@ public:
 //                     GlTextureHandle
 // --------------------------------------------------------------
 
-class GlTextureHandle {
+struct GlTextureHandleBase {
+  virtual GLuint get_texture_id() const = 0;
+  virtual ~GlTextureHandleBase() {}
+};
+
+template <class PixelT>
+class GlTextureHandle : public GlTextureHandleBase {
   boost::shared_ptr<TextureRecordBase> m_record;
   
 public:
-  template <class ViewT>
-  GlTextureHandle(vw::ImageViewBase<ViewT> const& image, boost::shared_ptr<TextureRecordBase> record) : m_record(record) {
-
-    // Rasterize the requested block of memory.
-    vw::ImageView<typename ViewT::pixel_type> cropped = crop(image, record->bbox);
-    vw::ImageView<typename ViewT::pixel_type> block = subsample(cropped, pow(2,record->lod));
+  GlTextureHandle(vw::ImageResourceView<PixelT> const& image, 
+                  boost::shared_ptr<TextureRecordBase> record) : m_record(record) {
     
-    m_record->parent->request_allocation(record, block);
+    // Rasterize the requested block of memory.
+    vw::ImageView<PixelT> cropped = crop( image, record->bbox );
+    vw::ImageView<PixelT> block = subsample( cropped, pow(2,record->lod) );
+    m_record->parent->request_allocation( record, vw::ViewImageResource(block) );
     vw::vw_out(vw::VerboseDebugMessage) << "GlTextureHandle requesting allocation (" 
                                         << m_record->texture_id << ") -- " 
                                         << m_record->bbox << " @ " << m_record->lod << "\n";
   }
 
-  GLuint get_texture_id() const { return m_record->texture_id; }
+  virtual GLuint get_texture_id() const { return m_record->texture_id; }
 
-  ~GlTextureHandle() {
+  virtual ~GlTextureHandle() {
     vw::vw_out(vw::VerboseDebugMessage) << "-> GlTextureHandle requesting decallocation (" << m_record->texture_id << ")\n";
     m_record->parent->request_deallocation(m_record);
   }
@@ -119,25 +126,116 @@ public:
 // --------------------------------------------------------------
 
 class GlTextureGenerator {
-  vw::ImageViewRef<vw::PixelRGBA<float> > m_image;
+  boost::shared_ptr<vw::ImageResource> m_rsrc;
   boost::shared_ptr<TextureRecordBase> m_record;
 
 public:
-  typedef GlTextureHandle value_type;
+  typedef GlTextureHandleBase value_type;
   
-  template <class ViewT>
-  GlTextureGenerator( vw::ImageViewBase<ViewT> const &image, boost::shared_ptr<TextureRecordBase> record) :
-    m_image( image.impl() ), m_record(record) {}
+  GlTextureGenerator( boost::shared_ptr<vw::ImageResource> const& rsrc, 
+                      boost::shared_ptr<TextureRecordBase> record) :
+    m_rsrc( rsrc ), m_record(record) {}
 
   size_t size() const {
     return m_record->bbox.width()/pow(2,m_record->lod) * 
       m_record->bbox.height()/pow(2,m_record->lod) * 
-      m_image.planes() * m_image.channels() 
-      * 2;  // <-- The textures are stored as 16-bit half's on the GPU, so they are 2 bytes per channel
+      m_rsrc->planes() * m_rsrc->channels() 
+      * 2;  // <-- The textures are stored as 16-bit half's on the
+            // GPU, so they are 2 bytes per channel
   }
   
-  boost::shared_ptr<GlTextureHandle> generate() const {
-    return boost::shared_ptr<GlTextureHandle> ( new GlTextureHandle(m_image, m_record) );
+  boost::shared_ptr<GlTextureHandleBase> generate() const {
+    // This is yet another block of ugly run-time dispatch code.  Some
+    // day we will hopefully unify the whole ImageView/ImageResource
+    // divide.  In the meantime, here we go...
+    vw::ChannelTypeEnum channel_type = m_rsrc->channel_type();
+    vw::PixelFormatEnum pixel_format = m_rsrc->pixel_format();
+
+    switch(pixel_format) {
+    case vw::VW_PIXEL_GRAY:
+      switch(channel_type) {
+      case vw::VW_CHANNEL_UINT8:  
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGray<vw::uint8> >(m_rsrc, m_record) );
+        break;
+      case vw::VW_CHANNEL_UINT16:
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGray<vw::uint16> >(m_rsrc, m_record) );
+        break;
+      case vw::VW_CHANNEL_INT16: 
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGray<vw::int16> >(m_rsrc, m_record) );
+        break;
+      case vw::VW_CHANNEL_FLOAT32: 
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGray<vw::float32> >(m_rsrc, m_record) );
+        break;
+      default:
+        vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed. Unknown channel type: " << channel_type << ".\n");
+      }
+    case vw::VW_PIXEL_GRAYA:
+      switch(channel_type) {
+      case vw::VW_CHANNEL_UINT8:  
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGrayA<vw::uint8> >(m_rsrc, m_record) );
+        break;
+      case vw::VW_CHANNEL_UINT16:
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGrayA<vw::uint16> >(m_rsrc, m_record) );
+        break;
+      case vw::VW_CHANNEL_INT16: 
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGrayA<vw::int16> >(m_rsrc, m_record) );
+        break;
+      case vw::VW_CHANNEL_FLOAT32: 
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGrayA<vw::float32> >(m_rsrc, m_record) );
+        break;
+      default:
+        vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed. Unknown channel type: " << channel_type << ".\n");
+      }
+    case vw::VW_PIXEL_RGB:
+      switch(channel_type) {
+      case vw::VW_CHANNEL_UINT8:  
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGB<vw::uint8> >(m_rsrc, m_record) );
+        break;
+      case vw::VW_CHANNEL_UINT16:
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGB<vw::uint16> >(m_rsrc, m_record) );
+        break;
+      case vw::VW_CHANNEL_INT16: 
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGB<vw::int16> >(m_rsrc, m_record) );
+        break;
+      case vw::VW_CHANNEL_FLOAT32: 
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGB<vw::float32> >(m_rsrc, m_record) );
+        break;
+      default:
+        vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed. Unknown channel type: " << channel_type << ".\n");
+      }
+    case vw::VW_PIXEL_RGBA:
+      switch(channel_type) {
+      case vw::VW_CHANNEL_UINT8:  
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGBA<vw::uint8> >(m_rsrc, m_record) );
+        break;
+      case vw::VW_CHANNEL_UINT16:
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGBA<vw::uint16> >(m_rsrc, m_record) );
+        break;
+      case vw::VW_CHANNEL_INT16: 
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGBA<vw::int16> >(m_rsrc, m_record) );
+        break;
+      case vw::VW_CHANNEL_FLOAT32: 
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGBA<vw::float32> >(m_rsrc, m_record) );
+        break;
+      default:
+        vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed. Unknown channel type: " << channel_type << ".\n");
+      }
+
+    case vw::VW_PIXEL_SCALAR:
+      switch(channel_type) {
+      case vw::VW_CHANNEL_FLOAT32: 
+        return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::float32>(m_rsrc, m_record) );
+        break;
+      default:
+        vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed. Unknown channel type: " << channel_type << ".\n");
+      }
+
+    default: 
+      vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed.  " 
+                   << "Unknown pixel format: " << pixel_format << ".\n");
+    }
+    // Never reached
+    return boost::shared_ptr<GlTextureHandleBase>();
   }
 };
 
@@ -147,6 +245,7 @@ public:
 
 struct TextureRecord : public TextureRecordBase {
   vw::Cache::Handle<GlTextureGenerator> handle;
+  virtual ~TextureRecord() {}
 };
 
 // --------------------------------------------------------------
@@ -175,20 +274,20 @@ public:
   ~GlTextureCache();
 
   // Register a texture with the cache.    
-  template<class ViewT>
-  void register_texture(vw::ImageViewBase<ViewT> const& image, 
+  void register_texture(boost::shared_ptr<vw::ImageResource> const& rsrc, 
                         vw::BBox2i bbox, int lod, 
                         CachedTextureRenderer* parent) {
     VW_ASSERT(lod >= 0, vw::ArgumentErr() << "GlTextureGenerator : lod must be greater than or equal to 0.");
 
     vw::vw_out(vw::VerboseDebugMessage) << "GlTextureCache::register_texture() registered bbox " << bbox << " @ lod " << lod << "\n";
-    boost::shared_ptr<TextureRecord> new_record( new TextureRecord() );
+    TextureRecord* new_record = new TextureRecord();
+    boost::shared_ptr<TextureRecord> new_record_ptr(new_record);
     new_record->bbox = bbox;
     new_record->lod = lod;
     new_record->parent = parent;
     new_record->texture_id = 0;
-    new_record->handle = m_gl_texture_cache_ptr->insert( GlTextureGenerator(image, new_record) );
-    m_texture_records.push_back( new_record );
+    new_record->handle = m_gl_texture_cache_ptr->insert( GlTextureGenerator(rsrc, new_record_ptr) );
+    m_texture_records.push_back( new_record_ptr );
   }
 
   // Fetch a texture from the cache.  This is a non-blocking call that
