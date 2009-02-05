@@ -44,6 +44,7 @@
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/ImageResource.h>
 #include <vw/Image/ImageResourceView.h>
+#include <vw/Image/ViewImageResource.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/EdgeExtension.h>
