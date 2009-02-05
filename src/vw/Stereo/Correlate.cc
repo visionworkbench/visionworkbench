@@ -1118,7 +1118,7 @@ namespace stereo {
 	    
 	    }
 	    //EXPECTATION - END
-            printf("em iter = %d, expectation done!\n", em_iter);
+            //            printf("em iter = %d, expectation done!\n", em_iter);
             //TO DO: printf gamma_plane and gamma_noise 
            
 	    //MAXIMIZATION - START
@@ -1286,9 +1286,9 @@ namespace stereo {
 
             //normalize the mean of the noise
 	    mean_noise = mean_noise_tmp/sum_gamma_noise;
-            printf("mean_noise = %f, sum_gamma_noise = %f\n", mean_noise, sum_gamma_noise);
+            //            printf("mean_noise = %f, sum_gamma_noise = %f\n", mean_noise, sum_gamma_noise);
             //printf("d[0] = %f, d[1] = %f, d[2] = %f, d[3] = %f, d[4] = %f, d[5]=%f\n", d[0], d[1], d[2], d[3], d[4], d[5]);
-            printf("d[0] = %f, d[1] = %f, d[2] = %f, d[3] = %f, d[4] = %f, d[5]=%f\n", d_em[0], d_em[1], d_em[2], d_em[3], d_em[4], d_em[5]);
+            //            printf("d[0] = %f, d[1] = %f, d[2] = %f, d[3] = %f, d[4] = %f, d[5]=%f\n", d_em[0], d_em[1], d_em[2], d_em[3], d_em[4], d_em[5]);
             
             //compute the variance for noise and plane
             float var2_noise_tmp  = 0.0;
@@ -1348,10 +1348,10 @@ namespace stereo {
 	        var2_plane = 0.000001;
             }
  
-            printf("var2_noise = %f\n", var2_noise);
-            printf("var2_plane = %f\n", var2_plane);
+            //            printf("var2_noise = %f\n", var2_noise);
+            //            printf("var2_plane = %f\n", var2_plane);
             
-            printf("maximization done\n");
+            //            printf("maximization done\n");
             
 	    //MAXIMIZATION - END
             
@@ -1360,7 +1360,7 @@ namespace stereo {
             for (int k = 0; k < 6; k++){
 	        conv_error = conv_error + (d[k]-lhs(k))*(d[k]-lhs(k));
 	    }
-            printf("conv_error = %f\n", conv_error);
+            //            printf("conv_error = %f\n", conv_error);
             
             //d = lhs;
 
@@ -1369,7 +1369,7 @@ namespace stereo {
             if (in_curr_sum_I_e_val < 0){
 	        in_curr_sum_I_e_val = - in_curr_sum_I_e_val;
             }
-            printf("em_iter = %d, curr_sum_I_e_val = %f, prev_sum_I_e_val = %f\n", em_iter, in_curr_sum_I_e_val, in_prev_sum_I_e_val);
+            //            printf("em_iter = %d, curr_sum_I_e_val = %f, prev_sum_I_e_val = %f\n", em_iter, in_curr_sum_I_e_val, in_prev_sum_I_e_val);
             curr_sum_I_e_val = in_curr_sum_I_e_val; 
             
             // Termination condition

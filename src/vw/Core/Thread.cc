@@ -24,10 +24,6 @@
 #include <vw/Core/Thread.h>
 #include <vw/config.h>
 
-namespace {
-  static int num_threads = VW_NUM_THREADS;
-}
-
 namespace vw { 
 namespace thread {
 
@@ -62,13 +58,4 @@ int vw::Thread::id() {
   // Then we return the result.
   int* result = thread::vw_thread_id_ptr.get();   
   return *result;
-}
-
-
-int vw::Thread::default_num_threads() {
-  return num_threads;
-}
-
-void vw::Thread::set_default_num_threads(int threads) {
-  num_threads = threads;
 }

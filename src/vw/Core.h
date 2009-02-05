@@ -30,6 +30,8 @@
 
 #include <vw/Core/Exception.h>
 #include <vw/Core/Debugging.h>
+#include <vw/Core/Settings.h>
+#include <vw/Core/Log.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/TypeDeduction.h>
 #include <vw/Core/CompoundTypes.h>

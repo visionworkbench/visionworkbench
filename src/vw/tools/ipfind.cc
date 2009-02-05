@@ -27,6 +27,7 @@
 /// (default) or ASCII format.  The ASCII format is compatible with
 /// the popular Lowe-SIFT toolchain.
 ///
+#include <vw/Core.h>
 #include <vw/InterestPoint.h>
 #include <vw/Image.h>
 #include <vw/FileIO.h>
@@ -102,7 +103,7 @@ int main(int argc, char** argv) {
   }
 
   if (num_threads == 0) {
-    num_threads = Thread::default_num_threads();
+    num_threads = vw_settings().default_num_threads();
   }
 
   // Checking strings

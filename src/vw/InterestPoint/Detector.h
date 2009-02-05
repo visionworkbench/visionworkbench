@@ -29,6 +29,7 @@
 #define __VW_INTERESTPOINT_DETECTOR_H__
 
 #include <vw/Core/Debugging.h>
+#include <vw/Core/Settings.h>
 #include <vw/Core/ThreadPool.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Statistics.h>
@@ -137,7 +138,7 @@ namespace ip {
   /// detector.  Threads are spun off to process the image in
   /// 2048x2048 pixel blocks.
   template <class ViewT, class DetectorT>
-  InterestPointList detect_interest_points (ViewT const& view, DetectorT& detector, int num_threads = Thread::default_num_threads()) {
+  InterestPointList detect_interest_points (ViewT const& view, DetectorT& detector, int num_threads = vw_settings().default_num_threads()) {
     typedef InterestPointDetectionTask<ViewT, DetectorT> task_type;
 
     FifoWorkQueue queue(num_threads);

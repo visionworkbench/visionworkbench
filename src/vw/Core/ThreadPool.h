@@ -29,6 +29,7 @@
 #ifndef __VW_CORE_THREADPOOL_H__
 #define __VW_CORE_THREADPOOL_H__
 
+#include <vw/Core/Settings.h>
 #include <vw/Core/Thread.h>
 #include <vw/Core/Log.h>
 #include <vw/Core/Exception.h>
@@ -115,7 +116,7 @@ namespace vw {
     }
 
   public:
-    WorkQueue(int num_threads = Thread::default_num_threads() ) : m_active_workers(0), m_max_workers(num_threads) {
+    WorkQueue(int num_threads = vw_settings().default_num_threads() ) : m_active_workers(0), m_max_workers(num_threads) {
       m_running_threads.resize(num_threads);
       for (int i = 0; i < num_threads; ++i)
         m_available_thread_ids.push_back(i);
@@ -188,7 +189,7 @@ namespace vw {
     Mutex m_mutex;
   public:
 
-    FifoWorkQueue(int num_threads = Thread::default_num_threads()) : WorkQueue(num_threads) {}
+    FifoWorkQueue(int num_threads = vw_settings().default_num_threads()) : WorkQueue(num_threads) {}
 
     int size() { 
       Mutex::Lock lock(m_mutex);
@@ -225,7 +226,7 @@ namespace vw {
     Mutex m_mutex;
   public:
 
-    OrderedWorkQueue(int num_threads = Thread::default_num_threads()) : WorkQueue(num_threads) {
+    OrderedWorkQueue(int num_threads = vw_settings().default_num_threads()) : WorkQueue(num_threads) {
       m_next_index = 0;
     }
 

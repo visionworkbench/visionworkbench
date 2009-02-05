@@ -53,7 +53,7 @@ namespace vw {
   public:
     BlockProcessor( FuncT const& func, int32 block_cols, int32 block_rows, int threads = 0 )
       : m_func(func), m_block_cols(block_cols), m_block_rows(block_rows),
-        m_num_threads(threads?threads:(Settings::system_settings().default_num_threads())) {}
+        m_num_threads(threads?threads:(vw_settings().default_num_threads())) {}
 
     class BlockThread {
     public:

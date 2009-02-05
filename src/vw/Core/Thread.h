@@ -292,11 +292,6 @@ namespace vw {
       xt.nsec+=int_fast32_t(1e6*milliseconds);
       boost::thread::sleep(xt);
     }
-
-    /// Control the default number of threads spawned by various
-    /// multi-threaded processes in the Vision Workbench.
-    static int default_num_threads();
-    static void set_default_num_threads(int);
   };
 
 
