@@ -72,10 +72,36 @@ class TestCAHVModel : public CxxTest::TestSuite
 	}
       }
     }
+
+    // Running another pinhole to CAHV conversion
+    pose.set_identity();
+    PinholeModel pinhold( Vector3(10,13,12),
+			  pose, 2000, 2000, 3, -1 );
+
+    CAHVModel test_c(pinhole);
+    CAHVModel test_d;
+    test_d = pinhole;
+
+    for ( int x = 0; x < 10; x+=2 ){
+      for ( int y = 0; y < 20; y+=4 ) {
+	for ( int z = -5; z < 5; z+=3 ) {
+	  Vector3 test_point(x,y,z);
+	  Vector2 pin_px, cahv_c_px, cahv_d_px;
+	  pin_px = pinhole.point_to_pixel( test_point );
+	  cahv_c_px = test_c.point_to_pixel( test_point );
+	  cahv_d_px = test_d.point_to_pixel( test_point );
+
+	  TS_ASSERT_DELTA( pin_px[0], cahv_c_px[0], 0.0001 );
+	  TS_ASSERT_DELTA( pin_px[1], cahv_c_px[1], 0.0001 );
+	  TS_ASSERT_DELTA( pin_px[0], cahv_d_px[0], 0.0001 );
+	  TS_ASSERT_DELTA( pin_px[1], cahv_d_px[1], 0.0001 );
+	}
+      }
+    }
   }
 
   void test_CAHV_pinhole() {
-    // Building fake terrain
+    // Building fake flat terrain
     srandom((unsigned int) clock());
     std::vector<Vector3> points(100);
     for ( unsigned i = 0; i <100; i++ ){
@@ -199,8 +225,8 @@ class TestCAHVModel : public CxxTest::TestSuite
       temp = new_image_a[i] - new_image_b[i];
       sum += norm_2(temp);
 
-      TS_ASSERT_DELTA( temp[0], 0, .1 );
-      TS_ASSERT_DELTA( temp[1], 0, .1 );
+      TS_ASSERT_DELTA( temp[0], -40, .1 ); // Epipolar doesn't correct for translation
+      TS_ASSERT_DELTA( temp[1], 0, .1 );   // but it did correct rotation.
     }
     sum /= 100;
     TS_TRACE("Average error out: " + stringify(sum) + "\n");
