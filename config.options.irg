@@ -44,16 +44,9 @@ PREFIX=$HOME/local
 # Set these to the directories that contain lib/include directories
 # for packages in non-standard locations.
 
-## Use this for speed
-#HAVE_PKG_CLAPACK=no
-#HAVE_PKG_SLAPACK=/usr
-
-# Use this if it should run on every irg machine
-HAVE_PKG_CLAPACK=$IRGPKG_DIR/LAPACK
-
-
 QT_PATH=$IRGPKG_DIR/qt-4/bin
 
+HAVE_PKG_CLAPACK=$IRGPKG_DIR/LAPACK
 HAVE_PKG_BOOST=$IRGPKG_DIR/boost
 HAVE_PKG_GDAL=$IRGPKG_DIR/gdal
 HAVE_PKG_GMP=$IRGPKG_DIR/gmp
@@ -64,4 +57,3 @@ HAVE_PKG_ILMBASE=$IRGPKG_DIR/openexr
 HAVE_PKG_PNG=$IRGPKG_DIR/libpng-1.2.29
 HAVE_PKG_PPL=$IRGPKG_DIR/ppl-0.9
 HAVE_PKG_PROJ4=$IRGPKG_DIR/proj4
-HAVE_PKG_TIFF=no
