@@ -28,9 +28,10 @@
 if MAKE_MODULE_STEREO
 
 nodist_TestStereoModel_SOURCES = TestStereoModel.cxx
+nodist_TestDisparity_SOURCES = TestDisparity.cxx
 # nodist_TestCorrelator_SOURCES = TestCorrelator.cxx
 
-TESTS = TestStereoModel # TestCorrelator
+TESTS = TestStereoModel TestDisparity # TestCorrelator
 
 include $(top_srcdir)/config/instantiate.am
 
