@@ -64,7 +64,10 @@ class TestDisparity : public CxxTest::TestSuite
 	Vector3 t_disparity(result(i,j)[0],
 			    result(i,j)[1], 1);
 	Vector3 location(i,j,1);
-	Vector3 check = t_disparity + align_matrix*location;
+	Vector3 check = t_disparity + (align_matrix*location - location);
+	// Disparity map maps the relative change between
+	// images. Relative change from a transform is
+	// (align_matrix*loc - loc)
 	
 	TS_ASSERT_DELTA( check[0], map(i,j)[0], .1);
 	TS_ASSERT_DELTA( check[1], map(i,j)[1], .1);
@@ -102,9 +105,7 @@ class TestDisparity : public CxxTest::TestSuite
 	Vector3 t_disparity(result(i,j)[0],
 			    result(i,j)[1], 1);
 	Vector3 location(i,j,1);
-	Vector3 check = t_disparity + align_matrix*location;
-	std::cout << "\n" << align_matrix*location << std::endl;
-	std::cout << check << " " << map(i,j) << std::endl;
+	Vector3 check = t_disparity + (align_matrix*location-location);
 	TS_ASSERT_DELTA( check[0], map(i,j)[0], .1 );
 	TS_ASSERT_DELTA( check[1], map(i,j)[1], .1 );
       }
