@@ -43,7 +43,7 @@ class TestDisparity : public CxxTest::TestSuite
     // Adding just a translation.
     align_matrix(0,2) = 45;
     align_matrix(1,2) = -30;
-    std::cout << "\nMatrix: " << align_matrix;
+    //    std::cout << "\nMatrix: " << align_matrix;
 
     // Building disparity map
     ImageView<PixelDisparity<float> > map(5,5);
@@ -57,18 +57,13 @@ class TestDisparity : public CxxTest::TestSuite
     // Applying the inverse of the align matrix
     ImageViewRef<PixelDisparity<float> > result;
     result = disparity::transform_disparities(map, HomographyTransform(align_matrix)); 
-    
+
     // Comparing results
     for (unsigned i = 0; i < 5; i++)
       for (unsigned j = 0; j < 5; j++) {
-	Vector3 t_disparity(result(i,j)[0],
-			    result(i,j)[1], 1);
-	Vector3 location(i,j,1);
-	Vector3 check = t_disparity + (align_matrix*location - location);
-	// Disparity map maps the relative change between
-	// images. Relative change from a transform is
-	// (align_matrix*loc - loc)
-	
+	Vector3 t_disparity(result(i,j).h(), result(i,j).v(), 1);
+	Vector3 location(i,j,0);
+	Vector3 check = align_matrix*(t_disparity + location) - location;
 	TS_ASSERT_DELTA( check[0], map(i,j)[0], .1);
 	TS_ASSERT_DELTA( check[1], map(i,j)[1], .1);
       }
@@ -84,15 +79,15 @@ class TestDisparity : public CxxTest::TestSuite
     align_matrix(1,0) = 0.00788373;
     align_matrix(1,1) = .996033;
     align_matrix(1,2) = -1.93039; //Homography affine
-     std::cout << "\nMatrix: " << align_matrix;
+    //     std::cout << "\nMatrix: " << align_matrix;
 
     // Building disparity map
     ImageView<PixelDisparity<float> > map(5,5);
     for (unsigned i = 0; i < 5; i++)
       for (unsigned j = 0; j < 5; j++) {
-	map(i,j)[0] = i*5+j;
-	map(i,j)[1] = j*7+i;
-	map(i,j)[2] = 0; // non-missing pixel
+        map(i,j)[0] = i*5+j;
+        map(i,j)[1] = j*7+i;
+        map(i,j)[2] = 0; // non-missing pixel
       }
 
     // Applying the inverse of the align matrix
@@ -102,12 +97,11 @@ class TestDisparity : public CxxTest::TestSuite
     // Comparing results
     for (unsigned i = 0; i < 5; i++)
       for (unsigned j = 0; j < 5; j++) {
-	Vector3 t_disparity(result(i,j)[0],
-			    result(i,j)[1], 1);
-	Vector3 location(i,j,1);
-	Vector3 check = t_disparity + (align_matrix*location-location);
-	TS_ASSERT_DELTA( check[0], map(i,j)[0], .1 );
-	TS_ASSERT_DELTA( check[1], map(i,j)[1], .1 );
+        Vector3 t_disparity(result(i,j).h(), result(i,j).v(), 1);
+        Vector3 location(i,j,0);
+        Vector3 check = align_matrix*(location + t_disparity) - location;
+        TS_ASSERT_DELTA( check[0], map(i,j)[0], .1 );
+        TS_ASSERT_DELTA( check[1], map(i,j)[1], .1 );
       }
   }
 
