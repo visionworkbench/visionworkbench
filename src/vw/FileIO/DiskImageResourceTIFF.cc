@@ -58,15 +58,22 @@ namespace vw {
     bool striped;
 
     DiskImageResourceInfoTIFF() : tif(0), block_size(), current_line(0) {}
-    ~DiskImageResourceInfoTIFF() { 
-      if( tif ) TIFFClose(tif);
+    ~DiskImageResourceInfoTIFF() {
+      close();
     }
 
     void reopen_read() {
-      if( tif ) TIFFClose(tif);
+      close();
       tif = TIFFOpen(filename.c_str(), "r");
       if( !tif ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << filename << "\" for reading!" );
       current_line = 0;
+    }
+
+    void close() {
+      if( tif ) {
+        TIFFClose(tif);
+        tif=NULL;
+      }
     }
   };
 }
@@ -447,7 +454,8 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
   _TIFFfree(buf);
   if( plane_buf ) _TIFFfree(plane_buf);
   if( palette_buf ) _TIFFfree(palette_buf);
-//  TIFFClose(m_info->tif);
+  // Sorry .. this keeps us from incrementally reading
+  m_info->close();
 }
 
 // Write the given buffer into the disk image.
