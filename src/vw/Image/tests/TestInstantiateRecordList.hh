@@ -8,7 +8,7 @@ template class  vw::BinaryCompoundFunctor<FuncT, vw::PixelMask<ChildPixel1T>, vw
 template class  vw::BinaryInPlaceCompoundFunctor<FuncT, vw::PixelMask<ChildPixel1T>, vw::PixelMask<ChildPixel2T> >;
 template class  vw::BinaryPerPixelAccessor<Image1IterT, Image2IterT, FuncT>;
 template class  vw::BinaryPerPixelView<Image1T, Image2T, FuncT>;
-template class  vw::BlockCacheView<PixelT>;
+template class  vw::BlockCacheView<ViewT>;
 template class  vw::BlockProcessor<FuncT>;
 template class  vw::BlockRasterizeView<ImageT>;
 template class  vw::ChannelAccumulator<AccumT>;
