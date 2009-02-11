@@ -37,8 +37,21 @@
 // C Standard Library headers ( for stat(2) and getpwuid() )
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#ifdef VW_HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+
+#ifdef VW_HAVE_PWD_H
 #include <pwd.h>
+#endif
+
+#ifdef WIN32
+#define stat _stat
+typedef struct _stat struct_stat;
+#else
+typedef struct stat struct_stat;
+#endif
 
 
 // Posix time is not fully supported in the version of Boost for RHEL
@@ -205,16 +218,16 @@ void vw::Log::stat_logconf() {
 
       // Check to see if the file has changed.  If so, re-read the
       // settings.
-      struct stat stat_struct;
-      if (stat(m_logconf_filename.c_str(), &stat_struct) == 0) {
+      struct_stat statbuf;
+      if (stat(m_logconf_filename.c_str(), &statbuf) == 0) {
 #ifdef __APPLE__
-        if (stat_struct.st_mtimespec.tv_sec > m_logconf_last_modification) {
-          m_logconf_last_modification = stat_struct.st_mtimespec.tv_sec;
+        if (statbuf.st_mtimespec.tv_sec > m_logconf_last_modification) {
+          m_logconf_last_modification = statbuf.st_mtimespec.tv_sec;
           reload_logconf_rules();
         }
 #else // Linux
-        if (stat_struct.st_mtime > m_logconf_last_modification) {
-          m_logconf_last_modification = stat_struct.st_mtime;
+        if (statbuf.st_mtime > m_logconf_last_modification) {
+          m_logconf_last_modification = statbuf.st_mtime;
           reload_logconf_rules();
         }
 #endif
@@ -224,9 +237,14 @@ void vw::Log::stat_logconf() {
 }
 
 void vw::Log::set_default_logconf_filename() {
+  std::string homedir;
+#ifdef VW_HAVE_GETPWUID
   struct passwd *pw;
   pw = getpwuid( getuid() );
-  std::string homedir = pw->pw_dir; 
+  homedir = pw->pw_dir;
+#endif
+  if (homedir.empty())
+      homedir = getenv("HOME");
   m_logconf_filename = homedir + "/.vw_logconf";
 }
 

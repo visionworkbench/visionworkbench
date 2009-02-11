@@ -31,7 +31,12 @@
 #include <list>
 #include <iostream>
 
-#include <arpa/inet.h>			   // ntohl, htonl
+// ntohl, htonl
+#ifdef WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
 
 #include <boost/algorithm/string.hpp>
 

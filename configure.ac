@@ -86,6 +86,10 @@ AX_COMMON_OPTIONS
 # Does the compiler support introspection?
 AX_CHECK_INTROSPECTION
 
+# Looking for posix headers
+AC_CHECK_HEADERS([unistd.h pwd.h])
+AC_CHECK_FUNCS([getpwuid getpid])
+
 # Look for the python stuff
 AM_PATH_PYTHON([2.4], [HAVE_PYTHON=yes], [HAVE_PYTHON=no])
 AC_PYTHON_DEVEL([HAVE_PYTHON=yes], [HAVE_PYTHON=no])

@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <stdexcept>
-#include <unistd.h>
 #include <cstdlib>
 
 #include <typeinfo>
@@ -18,6 +17,10 @@
 
 #ifdef VW_HAVE_DLFCN_H
 #include <dlfcn.h>
+#endif
+
+#ifdef VW_HAVE_UNISTD_H
+#include <unistd.h>
 #endif
 
 #include "TerminationHandler.h"
@@ -52,9 +55,13 @@ void vw_terminate()
 
   if (current)
     current();
-  fprintf(stderr, "terminate() called! If you'd like to connect gdb to this process, use:\n");
+
+  fprintf(stderr, "terminate() called! You can attach a debugger.");
+#ifdef VW_HAVE_GETPID
+  fprintf(stderr, "If you'd like to connect gdb to this process, use:\n");
   fprintf(stderr, "gdb ignored %d\n", getpid());
-  fprintf(stderr, "Press 'enter' to abort...\n");
+#endif
+  fprintf(stderr, "or press 'enter' to abort...\n");
   // It's probably not safe to getchar here, but, given where we are,
   // we can't really make it worse...
   getchar();

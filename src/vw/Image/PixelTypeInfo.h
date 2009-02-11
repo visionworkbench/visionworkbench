@@ -446,7 +446,7 @@ namespace vw {
   template <class ChannelT> class PixelLab;
 
   // Forward pixel type declarations for the pixel mask wrapper
-  template <class ChildT> class PixelMask;
+  template <class ChildT> struct PixelMask;
 
   // *******************************************************************
   // Run-time pixel type manipulation routines.

@@ -127,7 +127,9 @@ configure your project's include file and library search paths
 appropriately.  Also be sure to configure your project to define the
 preprocessor symbol "NOMINMAX" to disable the non-portable Windows
 definitions of min() and max() macros, which interfere with the
-standard C++ library functions of the same names.
+standard C++ library functions of the same names. In addition, you
+will need to define the preprocessor symbol "_USE_MATH_DEFINES" to
+ensure that math.h defines constants such as M_PI.
 
 
 Configuring the Build System
