@@ -41,6 +41,7 @@ namespace po = boost::program_options;
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Filter.h>
 #include <vw/Image/PixelMask.h>
+#include <vw/Image/MaskViews.h>
 #include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>

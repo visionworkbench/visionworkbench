@@ -38,6 +38,7 @@
 #include <vw/Image/PixelMath.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/PixelMask.h>
+#include <vw/Image/MaskViews.h>
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/Image/UtilityViews.h>
