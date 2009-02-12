@@ -30,6 +30,7 @@
 #include <vw/gui/vwv_MainWindow.h>
 #include <vw/gui/vwv_GlPreviewWidget.h>
 
+#include <vw/Image/MaskViews.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Image/Statistics.h>
 #include <vw/Image/PixelMask.h>

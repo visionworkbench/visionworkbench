@@ -29,6 +29,7 @@
 #ifndef __VW_HDR_CAMERACURVE_H__
 #define __VW_HDR_CAMERACURVE_H__
 
+#include <vw/Image/PerPixelViews.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/Statistics.h>
 #include <vw/Math/Matrix.h>
