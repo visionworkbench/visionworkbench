@@ -35,7 +35,7 @@ include_HEADERS = PixelIterator.h ImageViewBase.h PixelAccessors.h	\
 	EdgeExtension.h Interpolation.h Convolution.h Filter.h		\
 	Filter.tcc Transform.h Statistics.h Algorithms.h EdgeExtend.h	\
 	BlockProcessor.h BlockRasterize.h BlockCacheView.h		\
-	UtilityViews.h Palette.h
+	UtilityViews.h Palette.h MaskViews.h
 
 libvwImage_la_SOURCES = PixelTypeInfo.cc ImageResource.cc Filter.cc     \
 	Interpolation.cc
