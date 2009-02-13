@@ -195,11 +195,11 @@ void vw::DiskImageResourceOpenEXR::set_tiled_write(int32 tile_width, int32 tile_
   }
 }
 
-void vw::DiskImageResourceOpenEXR::set_block_size(int32 block_width, int32 block_height) {
+void vw::DiskImageResourceOpenEXR::set_block_size(Vector2i const& block_size) {
   if (!m_output_file_ptr) {
     vw_throw(NoImplErr() << "DiskImageResourceOpenEXR: set_block_size() not meaningful for reading!");
   }
-  set_tiled_write(block_width, block_height);
+  set_tiled_write(block_size[0], block_size[1]);
 }
 
 void vw::DiskImageResourceOpenEXR::set_scanline_write(int32 scanlines_per_block) {
