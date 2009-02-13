@@ -64,7 +64,8 @@ namespace vw {
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
     
-    virtual Vector2i native_block_size() const;
+    virtual Vector2i block_size() const;
+    virtual void set_block_size(Vector2i const&);
 
     void set_tiled_write(int32 tile_width, int32 tile_height, bool random_tile_order = false);
     void set_scanline_write(int32 scanlines_per_block);

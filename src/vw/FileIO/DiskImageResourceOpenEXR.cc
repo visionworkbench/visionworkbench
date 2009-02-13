@@ -102,7 +102,7 @@ vw::DiskImageResourceOpenEXR::~DiskImageResourceOpenEXR() {
   }
 }
 
-vw::Vector2i vw::DiskImageResourceOpenEXR::native_block_size() const {
+vw::Vector2i vw::DiskImageResourceOpenEXR::block_size() const {
   return m_block_size;
 }
 
@@ -171,7 +171,7 @@ void vw::DiskImageResourceOpenEXR::set_tiled_write(int32 tile_width, int32 tile_
       delete static_cast<Imf::OutputFile*>(m_output_file_ptr);
   }
 
-  try {      
+  try {
     // Create the file header with the appropriate number of
     // channels.  Label the channels in order starting with "Channel 0".
     Imf::Header header (m_format.cols,m_format.rows);
@@ -193,7 +193,13 @@ void vw::DiskImageResourceOpenEXR::set_tiled_write(int32 tile_width, int32 tile_
   } catch (Iex::BaseExc e) {
     vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: Failed to create " << m_filename << ".\n\t" << e.what() );
   }
+}
 
+void vw::DiskImageResourceOpenEXR::set_block_size(int32 block_width, int32 block_height) {
+  if (!m_output_file_ptr) {
+    vw_throw(NoImplErr() << "DiskImageResourceOpenEXR: set_block_size() not meaningful for reading!");
+  }
+  set_tiled_write(block_width, block_height);
 }
 
 void vw::DiskImageResourceOpenEXR::set_scanline_write(int32 scanlines_per_block) {

@@ -123,7 +123,7 @@ vw::DiskImageResourceTIFF::DiskImageResourceTIFF( std::string const& filename,
   create( filename, format );
 }
 
-vw::Vector2i vw::DiskImageResourceTIFF::native_block_size() const {
+vw::Vector2i vw::DiskImageResourceTIFF::block_size() const {
   return m_info->block_size;
 }
 

@@ -125,20 +125,9 @@ namespace vw {
     virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
     virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
 
-    /// Set the native block size
-    ///
-    /// Be careful here -- you can set any block size here, but you
-    /// choice may lead to extremely inefficient FileIO operations.  You
-    /// can choose to pass in -1 as the width and/or the height of the
-    /// block, in which case the width and/or height is chosen by GDAL.
-    /// 
-    /// For example, if you pass in a vector of (-1,-1), the block size will be
-    /// assigned based on GDAL's best guess of the best block or strip
-    /// size. However, we override GDAL's choice for certain formats like PNG where
-    /// the best "block size" is the entire image.
-    void set_native_block_size(Vector2i block_size);
+    virtual Vector2i block_size() const;
+    virtual void set_block_size(Vector2i const&);
 
-    virtual Vector2i native_block_size() const;
     virtual void flush();
 
     // Ask GDAL if it's compiled with support for this file
@@ -173,13 +162,16 @@ namespace vw {
 
   private:
     static vw::Cache& gdal_cache();
+    void initialize_write_resource();
+    Vector2i default_block_size();
 
     std::string m_filename;
     void* m_write_dataset_ptr;
     Matrix<double,3,3> m_geo_transform;
     bool m_convert_jp2;
     std::vector<PixelRGBA<uint8> > m_palette;
-    Vector2i m_native_blocksize;
+    Vector2i m_blocksize;
+    Options m_options;
     Cache::Handle<GdalDatasetGenerator> m_dataset_cache_handle;
   };
 

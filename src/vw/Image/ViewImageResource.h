@@ -184,7 +184,10 @@ namespace vw {
     }
 
     /// Returns the optimal block size/alignment for partial reads or writes.
-    virtual Vector2i native_block_size() const { return m_block_size; }
+    virtual Vector2i block_size() const { return m_block_size; }
+
+    /// Set the preferred block size/alignment for partial reads or writes.
+    virtual void set_block_size( Vector2i const& size ) { m_block_size = size; }
 
     /// Force any changes to be written to the resource.
     virtual void flush() {}

@@ -154,7 +154,7 @@ namespace vw {
       : r( resource ),
         m_cache_ptr(&Cache::system_cache()),
         m_enable_cache(cache),
-        m_block_size( r->native_block_size() ),
+        m_block_size( r->block_size() ),
         m_rsrc_mutex( boost::shared_ptr<Mutex>(new Mutex) )
     { if(cache) initialize(); }
 
@@ -165,7 +165,7 @@ namespace vw {
       : r( resource ),
         m_cache_ptr(&cache),
         m_enable_cache(true),
-        m_block_size( r->native_block_size() ),
+        m_block_size( r->block_size() ),
         m_rsrc_mutex( boost::shared_ptr<Mutex>(new Mutex) )
     { initialize(); }
 
@@ -174,7 +174,7 @@ namespace vw {
       : r( resource ),
         m_cache_ptr(&Cache::system_cache()),
         m_enable_cache(cache),
-        m_block_size( r->native_block_size() ),
+        m_block_size( r->block_size() ),
         m_rsrc_mutex( boost::shared_ptr<Mutex>(new Mutex) )
     { if(cache) initialize(); }
 
@@ -184,7 +184,7 @@ namespace vw {
       : r( resource ),
         m_cache_ptr(&cache),
         m_enable_cache(true),
-        m_block_size( r->native_block_size() ),
+        m_block_size( r->block_size() ),
         m_rsrc_mutex( boost::shared_ptr<Mutex>(new Mutex) )
     { initialize(); }
 

@@ -203,7 +203,7 @@ namespace vw {
     // Write the image to disk in blocks.  We may need to revisit
     // the order in which these blocks are rasterized, but for now
     // it rasterizes blocks from left to right, then top to bottom.
-    Vector2i block_size = resource.native_block_size();
+    Vector2i block_size = resource.block_size();
     int total_num_blocks = ((resource.rows()-1)/block_size.y()+1) * ((resource.cols()-1)/block_size.x()+1);
     vw_out(DebugMessage,"image") << "ThreadedBlockWriter: writing " << total_num_blocks << " blocks.\n";
 
@@ -247,7 +247,7 @@ namespace vw {
     // Write the image to disk in blocks.  We may need to revisit
     // the order in which these blocks are rasterized, but for now
     // it rasterizes blocks from left to right, then top to bottom.
-    Vector2i block_size = resource.native_block_size();
+    Vector2i block_size = resource.block_size();
     int total_num_blocks = ((resource.rows()-1)/block_size.y()+1) * ((resource.cols()-1)/block_size.x()+1);
     for (int32 j = 0; j < (int32)resource.rows(); j+= block_size.y()) {
       for (int32 i = 0; i < (int32)resource.cols(); i+= block_size.x()) {

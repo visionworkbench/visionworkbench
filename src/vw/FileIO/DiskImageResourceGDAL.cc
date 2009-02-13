@@ -421,8 +421,7 @@ namespace vw {
       }
     }
 
-    // Set the native block size
-    set_native_block_size(Vector2i(-1,-1));
+    m_blocksize = default_block_size();
   }
 
   /// Bind the resource to a file for writing.
@@ -439,15 +438,26 @@ namespace vw {
     // structure for this DiskImageResource
     m_filename = filename;
     m_format = format;
-    int num_bands = std::max( format.planes, num_channels( format.pixel_format ) );
+    m_blocksize = block_size;
+    m_options = user_options;
+
+    initialize_write_resource();
+  }
+
+  void DiskImageResourceGDAL::initialize_write_resource() {
+    if (m_write_dataset_ptr) {
+      delete (GDALDataset*) m_write_dataset_ptr;
+    }
+
+    int num_bands = std::max( m_format.planes, num_channels( m_format.pixel_format ) );
 
     // returns Maybe driver, and whether it
     // found a ro driver when a rw one was requested
-    std::pair<GDALDriver *, bool> ret = gdal_get_driver(filename, true);
+    std::pair<GDALDriver *, bool> ret = gdal_get_driver(m_filename, true);
 
     if( ret.first == NULL ) {
       if( ret.second )
-        vw_throw( vw::NoImplErr() << "Could not write: " << filename << ".  Selected GDAL driver not supported." );
+        vw_throw( vw::NoImplErr() << "Could not write: " << m_filename << ".  Selected GDAL driver not supported." );
       else
         vw_throw( vw::IOErr() << "Error opening selected GDAL file I/O driver." );
     }
@@ -462,34 +472,52 @@ namespace vw {
       options = CSLSetNameValue( options, "PHOTOMETRIC", "RGB" );
     }
     // If the user has specified a block size, we set the option for it here.
-    if (block_size[0] != -1 && block_size[1] != -1) {
+    if (m_blocksize[0] != -1 && m_blocksize[1] != -1) {
       std::ostringstream x_str, y_str;
-      x_str << block_size[0];
-      y_str << block_size[1];
+      x_str << m_blocksize[0];
+      y_str << m_blocksize[1];
       options = CSLSetNameValue( options, "TILED", "YES" );
       options = CSLSetNameValue( options, "BLOCKYSIZE", x_str.str().c_str() );
       options = CSLSetNameValue( options, "BLOCKXSIZE", y_str.str().c_str() );
     }
 
-    for( std::map<std::string,std::string>::const_iterator i=user_options.begin(); i!=user_options.end(); ++i ) {
+    for( std::map<std::string,std::string>::const_iterator i=m_options.begin(); i!=m_options.end(); ++i ) {
       options = CSLSetNameValue( options, i->first.c_str(), i->second.c_str() );
     }
 
-    GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(format.channel_type);
-    GDALDataset *dataset = driver->Create( filename.c_str(), cols(), rows(), num_bands, gdal_pix_fmt, options );
+    GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(m_format.channel_type);
+    GDALDataset *dataset = driver->Create( m_filename.c_str(), cols(), rows(), num_bands, gdal_pix_fmt, options );
     CSLDestroy( options );
 
     m_write_dataset_ptr = (void*) dataset;
 
-    // Set the native block size.  If the user has not specified a
-    // block size, we go with GDAL's default.  Otherwise, we go with
-    // our own block size.
-    if (block_size[0] != -1 && block_size[1] != -1)
-      set_native_block_size(block_size);
-    else
-      set_native_block_size(Vector2i(-1,-1));
+    if (m_blocksize[0] == -1 || m_blocksize[1] == -1) {
+      m_blocksize = default_block_size();
+    }
   }
 
+  Vector2i DiskImageResourceGDAL::default_block_size() {
+    GDALDataset *dataset;
+    if (m_write_dataset_ptr)
+      dataset = static_cast<GDALDataset*>(m_write_dataset_ptr);
+    else
+      dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
+
+    if (!dataset)
+      vw_throw(LogicErr() << "DiskImageResourceGDAL: Could not get native block size.  No file is open.");
+
+    // GDAL assumes a single-row stripsize even for file formats like PNG for 
+    // which it does not support true strip access.  Thus, we check the file 
+    // driver type before accepting GDAL's suggested block size.
+    if ( dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("GTiff") ||
+         dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("ISIS3") ) {
+      GDALRasterBand *band = dataset->GetRasterBand(1);
+      int xsize, ysize;
+      band->GetBlockSize(&xsize,&ysize);
+      return Vector2i(xsize,ysize);
+    }
+    return Vector2i(cols(),rows());
+  }
 
   /// Read the disk image into the given buffer.
   void DiskImageResourceGDAL::read( ImageBuffer const& dest, BBox2i const& bbox ) const
@@ -577,48 +605,17 @@ namespace vw {
     delete [] data;
   }
 
-  // Set the native block size
+  // Set the block size
   //
   // Be careful here -- you can set any block size here, but you
-  // choice may lead to extremely inefficient FileIO operations.  You
-  // can choose to pass in -1 as the width and/or the height of the
-  // block, in which case the width and/or height is chosen by GDAL.
-  //
-  // For example, if you pass in a vector of (-1,-1), the block size will be
-  // assigned based on GDAL's best guess of the best block or strip
-  // size. However, GDAL assumes a single-row stripsize even for file
-  // formats like PNG for which it does not support true strip access.
-  // Thus, we check the file driver type before accepting GDAL's block
-  // size as our own.
-  //
-  void DiskImageResourceGDAL::set_native_block_size(Vector2i block_size) {
-    GDALDataset *dataset;
-    if (m_write_dataset_ptr)
-      dataset = static_cast<GDALDataset*>(m_write_dataset_ptr);
-    else
-      dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
-
-    if (!dataset)
-      vw_throw(LogicErr() << "DiskImageResourceGDAL: Could not set native block size.  No file is open.");
-
-    if ( dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("GTiff") ||
-         dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("ISIS3") ) {
-      GDALRasterBand *band = dataset->GetRasterBand(1);
-      int xsize, ysize;
-      band->GetBlockSize(&xsize,&ysize);
-      m_native_blocksize = Vector2i(xsize,ysize);
-    } else {
-      m_native_blocksize = Vector2i(cols(),rows());
-    }
-
-    if (block_size[0] != -1)
-      m_native_blocksize[0] = block_size[0];
-    if (block_size[1] != -1)
-      m_native_blocksize[1] = block_size[1];
+  // choice may lead to extremely inefficient FileIO operations.
+  void DiskImageResourceGDAL::set_block_size(Vector2i const& block_size) {
+    m_blocksize = block_size;
+    initialize_write_resource();
   }
 
-  Vector2i DiskImageResourceGDAL::native_block_size() const {
-    return m_native_blocksize;
+  Vector2i DiskImageResourceGDAL::block_size() const {
+    return m_blocksize;
   }
 
   void DiskImageResourceGDAL::flush() {

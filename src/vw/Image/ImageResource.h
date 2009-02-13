@@ -90,12 +90,51 @@ namespace vw {
     /// Write the given buffer to the image resource at the given location.
     virtual void write( ImageBuffer const& buf, BBox2i const& bbox ) = 0;
 
-    /// Returns the optimal block size/alignment for partial reads or writes.
-    virtual Vector2i native_block_size() const { return Vector2i(cols(),rows()); }
+    /// Returns the preferred block size/alignment for partial reads or writes.
+    virtual Vector2i block_size() const { return Vector2i(cols(),rows()); }
+
+    /// Set the preferred block size/alignment for partial reads or writes.
+    virtual void set_block_size( Vector2i const& ) { vw_throw(NoImplErr() << "This ImageResource does not support set_block_size()."); };
 
     /// Force any changes to be written to the resource.
     virtual void flush() {}
 
+  };
+
+
+  /// Acts as a proxy for an arbitrary ImageResource subclass, which is 
+  /// holds by shared pointer.  This makes it easy to operate on arbitrary 
+  /// image resources without having to worry about memory management and 
+  /// object lifetime yourself.
+  class ImageResourceRef : public ImageResource {
+    boost::shared_ptr<ImageResource> m_resource;
+  public:
+    // This constructor takes ownership over the resource it's given.
+    template <class ResourceT>
+    ImageResourceRef( ResourceT *resource ) {
+      boost::shared_ptr<ResourceT> resource_ptr( resource );
+      m_resource = resource_ptr;
+    }
+
+    ImageResourceRef( boost::shared_ptr<ImageResource> resource )
+      : m_resource( resource ) {}
+
+    ~ImageResourceRef() {}
+    
+    int32 cols() const { return m_resource->cols(); }
+    int32 rows() const { return m_resource->rows(); }
+    int32 planes() const { return m_resource->planes(); }
+
+    PixelFormatEnum pixel_format() const { return m_resource->pixel_format(); }
+    ChannelTypeEnum channel_type() const { return m_resource->channel_type(); }
+
+    void read( ImageBuffer const& buf, BBox2i const& bbox ) const { m_resource->read(buf,bbox); }
+    void write( ImageBuffer const& buf, BBox2i const& bbox ) { m_resource->write(buf, bbox); }
+
+    Vector2i block_size() const { return m_resource->block_size(); }
+    void set_block_size( Vector2i const& size ) { m_resource->set_block_size(size); }
+
+    void flush() { m_resource->flush(); }
   };
 
 

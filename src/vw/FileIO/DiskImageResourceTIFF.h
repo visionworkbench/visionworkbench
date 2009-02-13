@@ -53,7 +53,7 @@ namespace vw {
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
     
-    virtual Vector2i native_block_size() const;
+    virtual Vector2i block_size() const;
 
     virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const;
 

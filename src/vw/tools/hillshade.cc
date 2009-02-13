@@ -204,7 +204,7 @@ void do_hillshade(po::variables_map const& vm) {
   // Save the result
   std::cout << "Writing shaded relief image: " << output_file_name << "\n";
   DiskImageResourceGDAL rsrc(output_file_name, shaded_image.format());
-  rsrc.set_native_block_size(Vector2i(1024,1024));
+  rsrc.set_block_size(Vector2i(1024,1024));
   write_georeference(rsrc, georef);
   write_image(rsrc, shaded_image, TerminalProgressCallback());
 }

@@ -67,7 +67,7 @@ namespace vw {
     virtual ~BlockCacheView() {}
 
     /// Returns the cache block size currently in use.
-    Vector2i block_size() const { return this->resource()->native_block_size(); }
+    Vector2i block_size() const { return this->resource()->block_size(); }
   };
 
   template <class ViewT>
