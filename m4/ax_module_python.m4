@@ -54,16 +54,6 @@ AC_DEFUN([AX_MODULE_PYTHON],
   MAKE_MODULE_PYTHON=${ax_module_enable}
   AC_SUBST(MAKE_MODULE_PYTHON)
 
-  if test "${HAVE_PKG_PYTHON}" = "yes" ; then
-    ax_have_pkg_bool=1
-  else
-    ax_have_pkg_bool=0
-  fi
-
-  AC_DEFINE_UNQUOTED(HAVE_PKG_PYTHON,
-                     [$ax_have_pkg_bool],
-                     [Define to 1 if the PYTHON module is available.])
-
   if test "$HAVE_PKG_PYTHON_SRC" = "yes" ; then
     AX_LOG([MAKE_MODULE_PYTHON = $MAKE_MODULE_PYTHON])
     AX_LOG([HAVE_PKG_PYTHON = $HAVE_PKG_PYTHON])
