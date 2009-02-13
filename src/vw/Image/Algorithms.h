@@ -29,8 +29,6 @@
 #define __VW_IMAGE_ALGORITHMS_H__
 
 #include <vw/Image/ImageView.h>
-#include <vw/Image/ImageResource.h>
-#include <vw/Image/ViewImageResource.h>
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Image/Statistics.h>
 
@@ -473,17 +471,18 @@ namespace vw {
   /// image width and height are perfectly divisible by the bounding
   /// box width and height, respectively. This routine is useful if you
   /// want to apply an operation to a large image one region at a time.
+  /// It will operate on any object that has cols() and rows() methods.
 
-  inline std::vector<BBox2i> image_blocks(ImageResource const& image, 
-                                          int32 block_width, int32 block_height) {  
+  template <class T>
+  inline std::vector<BBox2i> image_blocks(T const& object, int32 block_width, int32 block_height) {  
     std::vector<BBox2i> bboxes;
     
     int32 j_offset = 0;
-    while ( j_offset < image.rows() ) {
-      int32 j_dim = (image.rows() - j_offset) < block_height ? (image.rows() - j_offset) : block_height;
+    while ( j_offset < object.rows() ) {
+      int32 j_dim = (object.rows() - j_offset) < block_height ? (object.rows() - j_offset) : block_height;
       int32 i_offset = 0;
-      while ( i_offset < image.cols() ) {
-        int32 i_dim = (image.cols() - i_offset) < block_width ? (image.cols() - i_offset) : block_width;      
+      while ( i_offset < object.cols() ) {
+        int32 i_dim = (object.cols() - i_offset) < block_width ? (object.cols() - i_offset) : block_width;      
         bboxes.push_back(BBox2i(i_offset,j_offset,i_dim,j_dim));
         i_offset += i_dim;
       }
@@ -491,13 +490,6 @@ namespace vw {
     }
     return bboxes;
   }
-
-  template <class ViewT>
-  std::vector<BBox2i> image_blocks(ImageViewBase<ViewT> const& image, 
-                                   int32 block_width, int32 block_height) {  
-    return image_blocks(ViewImageResource(image.impl()), block_width, block_height);
-  }
-
 
 } // namespace vw
 
