@@ -21,6 +21,7 @@
 // 
 // __END_LICENSE__
 
+#include <iomanip>
 #include <vw/Core/ProgressCallback.h>
 
 namespace {
@@ -32,14 +33,14 @@ const vw::ProgressCallback &vw::ProgressCallback::dummy_instance() {
 }
 
 void vw::TerminalProgressCallback::print_progress() const {
-  if (fabs(m_progress - m_last_reported_progress) > 0.01) {
+  if (fabs(m_progress - m_last_reported_progress) > m_step) {
     m_last_reported_progress = m_progress;
     int pi = static_cast<int>(m_progress * 60);
     std::ostringstream p;
     p << "\r" << m_pre_progress_text << "[";
     for( int i=0; i<pi; ++i ) p << "*";
     for( int i=60; i>pi; --i ) p << ".";
-    p << "] " << (int)(m_progress*100) << "%";
+    p << "] " << std::setprecision(m_precision) << std::fixed << (m_progress*100.0) << "%";
     vw_out(m_level) << p.str() << std::flush;
   }
 }

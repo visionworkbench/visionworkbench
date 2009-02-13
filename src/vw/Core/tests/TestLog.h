@@ -169,7 +169,7 @@ public:
   }
 
   void test_progress_callback() {
-     vw_out(0) << "\nTesting Logging with a progress callback\n";
+    vw_out(0) << "\nTesting Logging with a progress callback\n";
     TerminalProgressCallback pc(vw::InfoMessage, "\tTesting: ");
     for (double i = 0; i < 1.0; i+=0.01) {
       pc.report_progress(i);
@@ -177,6 +177,18 @@ public:
     }
     pc.report_finished();
   }
+
+  void test_hires_progress_callback() {
+    vw_out(0) << "\nTesting Logging with a progress callback\n";
+    TerminalProgressCallback pc(vw::InfoMessage, "\tTesting: ", 2);
+    for (int i = 0; i < 10000; ++i) {
+      pc.report_progress(i/10000.0);
+      if (i % 50 == 0)
+        Thread::sleep_ms(10);
+    }
+    pc.report_finished();
+  }
+
 
   void test_flush_and_newline() {
     vw_out(0) << "\nTesting log termination operators.\n";
