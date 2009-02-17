@@ -91,12 +91,12 @@ namespace camera {
     BundleAdjusterT& m_adjuster;
 
     #ifndef __APPLE__
-    inline string current_posix_time_string()  {
+    inline std::string current_posix_time_string()  {
       char time_string[2048];
       time_t t = time(0);
       struct tm* time_struct = localtime(&t);
       strftime(time_string, 2048, "%F %T", time_struct);
-      return string(time_string);
+      return std::string(time_string);
     }
 #else
     inline std::string current_posix_time_string() {
