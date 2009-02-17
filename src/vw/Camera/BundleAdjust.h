@@ -41,17 +41,13 @@
 #include <boost/numeric/ublas/vector_of_vector.hpp>
 #include <boost/numeric/ublas/io.hpp>
 
+#include <string>
+
 namespace vw {
 namespace camera {
   
   // CRTP Base class for Bundle Adjustment functors.
   // 
-  // The child class must implement this method:
-  //
-  //   Vector2 operator() ( Vector<double, CameraParamsN> const& a_j, Vector<double, PointParamsN> const& b_i ) const;
-  //   inline Vector<double, CameraParamsN> A_covariance ( unsigned j );
-  //   inline Vector<double, PointParamsN> B_covariance ( unsigned i );
-  //
   template <class ImplT, unsigned CameraParamsN, unsigned PointParamsN>
   struct BundleAdjustmentModelBase {
 
@@ -66,6 +62,11 @@ namespace camera {
 
     virtual ~BundleAdjustmentModelBase() {}
     
+    // Required access to camera
+    virtual Vector2 operator() ( unsigned i, unsigned j,
+			 Vector<double,camera_params_n> const& a_j,
+			 Vector<double,point_params_n> const& b_j ) const = 0;
+
     // Approximate the jacobian for small variations in the a_j
     // parameters (camera parameters). 
     inline Matrix<double, 2, CameraParamsN> A_jacobian ( unsigned i, unsigned j,
@@ -123,6 +124,18 @@ namespace camera {
       }
       return J;
     }
+
+    // Report functions
+    virtual std::string image_unit( void ) { return "pixels"; }
+    virtual std::string camera_position_unit( void ) { return "meters"; }
+    virtual std::string camera_pose_unit( void ) { return "radians"; }
+    virtual std::string gcp_unit( void ) { return "meters"; }
+    
+    // Forced on the user to define
+    virtual void image_errors(std::vector<double>&) = 0;
+    virtual void camera_position_errors(std::vector<double>&) = 0;
+    virtual void camera_pose_errors(std::vector<double>&) = 0;
+    virtual void gcp_errors(std::vector<double>&) = 0;
   };
 
 
@@ -467,6 +480,8 @@ namespace camera {
     double operator() (double delta_norm) {
       return 2.0f * pow(m_b,2) * (sqrt(1.0f + pow(delta_norm/m_b,2)) - 1.0f);
     }
+
+    std::string name_tag (void) const { return "PsudeoHuberError"; }
   };
 
   struct HuberError { 
@@ -479,15 +494,21 @@ namespace camera {
       else
         return 2*m_b*delta_norm - m_b*m_b;
     }
+
+    std::string name_tag (void) const { return "HuberError"; }
   };
 
   struct L1Error { 
     double operator() (double delta_norm) { return fabs(delta_norm); }
+    
+    std::string name_tag (void) const { return "L1Error"; }
   };
 
 
   struct L2Error { 
     double operator() (double delta_norm) { return delta_norm*delta_norm; }
+
+    std::string name_tag (void) const { return "L2Error"; }
   };
 
   struct CauchyError { 
@@ -497,6 +518,8 @@ namespace camera {
     double operator() (double delta_norm) { 
       return log(1+pow(delta_norm,2)/pow(m_sigma,2));
     }
+
+    std::string name_tag (void) const { return "CauchyError"; }
   };
 
   //--------------------------------------------------------------
@@ -592,13 +615,19 @@ namespace camera {
                 << "  Overall squared error: " << overall_norm << "  lambda: " << m_lambda << "\n";
     }
   
+    /// Set/Read Controls
+
+    double lambda() const { return m_lambda; }
     void set_lambda(double lambda) { m_lambda = lambda; }
+    unsigned control() const { return m_control; }
     void set_control(unsigned control){m_control = control;}
+    
+    /// Information Reporting
+
     int iterations() const { return m_iterations; }
+    std::string costfunction() const { return m_robust_cost_func.name_tag(); }
 
-
-
-
+    /// Compare matrices methods
 
     void compare_matrices(SparseSkylineMatrix<double> &a,
                           Matrix<double> &b, 
@@ -1050,11 +1079,7 @@ namespace camera {
 	std::cout <<"\n" << "Reference LM Iteration " << m_iterations << ":     "
                   << "  Overall Modified: " << overall_norm << "  delta: " << overall_delta << "  lambda: " << m_lambda << "   Ratio:  " << R <<  "\n";  
 	
-        // Give the bundle adjustment a model to report the error for
-        // this iteration in a manner of its choosing.
-        m_model.report_error();
-	
-        abs_tol = overall_norm;
+	abs_tol = overall_norm;
         rel_tol = overall_delta;	
 
 	if(m_control==0){
@@ -1566,11 +1591,7 @@ namespace camera {
         std::cout << "\n" << "Sparse LM Iteration " << m_iterations << ":     "
                   << "  Overall: " << overall_norm << "  delta: " << overall_delta << "  lambda: " << m_lambda <<"   Ratio:  " << R << "\n";
 	
-        // Give the bundle adjustment a model to report the error for
-        // this iteration in a manner of its choosing.
-        m_model.report_error();
-	
-        abs_tol = overall_norm;
+	abs_tol = overall_norm;
         rel_tol = fabs(overall_delta);
 	
 	if(m_control == 0){
