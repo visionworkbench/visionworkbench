@@ -1,5 +1,4 @@
 #include <vw/Image.h>
-#include <vw/Image/BlockCacheView.h>
 
 using namespace std;
 using namespace vw;

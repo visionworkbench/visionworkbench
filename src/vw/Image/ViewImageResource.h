@@ -25,8 +25,7 @@
 /// 
 /// This ImageResource can wrap any vision workbench image view so
 /// that it can be presented as an ImageResource to other
-/// subsystems.  Among other things, this allows us to create a
-/// cached version of a view using BlockCacheView.
+/// subsystems.
 ///
 #ifndef __VW_IMAGE_VIEW_IMAGERESOURCE_H__
 #define __VW_IMAGE_VIEW_IMAGERESOURCE_H__

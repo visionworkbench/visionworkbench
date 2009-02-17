@@ -33,7 +33,7 @@
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/PerPixelViews.h>
-#include <vw/Image/BlockCacheView.h>
+//#include <vw/Image/BlockCacheView.h>
 
 namespace vw {
 
@@ -307,6 +307,7 @@ namespace vw {
   /// source view.  The results are efficiently stored in four "edge
   /// location" vectors (one for each side).
   ///
+  /// XXX The following note currently appears to be false:
   /// Performance note: this algorithm stores the input view in an
   /// additional BlockCacheView<> since it scans over every pixel in
   /// the image both horizontally and vertically.  Be sure that your

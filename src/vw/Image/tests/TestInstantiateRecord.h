@@ -1,5 +1,4 @@
 #include <vw/Image.h>
-#include <vw/Image/BlockCacheView.h>
 
 // TODO: HACK for Palette
 namespace vw {

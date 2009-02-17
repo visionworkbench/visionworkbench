@@ -48,24 +48,71 @@ namespace vw {
   template <class FuncT>
   class BlockProcessor {
     FuncT m_func;
-    int32 m_block_cols, m_block_rows;
+    Vector2i m_block_size;
     int m_num_threads;
   public:
-    BlockProcessor( FuncT const& func, int32 block_cols, int32 block_rows, int threads = 0 )
-      : m_func(func), m_block_cols(block_cols), m_block_rows(block_rows),
+    BlockProcessor( FuncT const& func, Vector2i const& block_size, int threads = 0 )
+      : m_func(func), m_block_size(block_size), 
         m_num_threads(threads?threads:(vw_settings().default_num_threads())) {}
 
+    // We will construct and call one BlockThread per thread.
     class BlockThread {
     public:
-      struct Info {
+      // All the BlockThread objects share a reference to a shared Info object, 
+      // which stores information about what block should be processed next.
+      class Info {
+      public:
+        Info( FuncT const& func, BBox2i const& total_bbox, Vector2i const& block_size )
+          : m_func(func), m_total_bbox(total_bbox),
+	    m_block_bbox(round_down(total_bbox.min().x(),block_size.x()),round_down(total_bbox.min().y(),block_size.y()),block_size.x(),block_size.y()),
+	    m_block_size(block_size) {}
+
+	// Return the next block bbox to process.
+	BBox2i bbox() const {
+	  BBox2i block_bbox = m_block_bbox;
+	  block_bbox.crop( m_total_bbox );
+	  return block_bbox;
+	}
+
+	// Return the processing function.
+	FuncT const& func() const {
+	  return m_func;
+	}
+
+	// Are we finished?
+	bool complete() const {
+	  return ( m_block_bbox.min().y() >= m_total_bbox.max().y() );
+	}
+
+	// Returns the info mutex, for locking.
+	Mutex& mutex() {
+	  return m_mutex;
+	}
+
+	// Advance the block_bbox to point to the next block to process.
+	void advance() {
+	  m_block_bbox.min().x() += m_block_size.x();
+	  if( m_block_bbox.min().x() >= m_total_bbox.max().x() ) {
+	    m_block_bbox.min().x() = round_down(m_total_bbox.min().x(),m_block_size.x());
+	    m_block_bbox.min().y() += m_block_size.y();
+	    m_block_bbox.max().y() = m_block_bbox.min().y() + m_block_size.y();
+	  }
+	  m_block_bbox.max().x() = m_block_bbox.min().x() + m_block_size.x();
+	}
+	
+      private:
+        // This hideous nonsense rounds an integer value *down* to the nearest 
+        // multple of the given modulus.  It's this hideous partly because 
+        // it avoids modular arithematic on negative numbers, which is technically 
+        // implementation-defined in all but the most recent C/C++ standards.
+        static int32 round_down(int32 val, int32 mod) {
+          return val + ((val>=0) ? (-(val%mod)) : (((-val-1)%mod)-mod+1));
+        }
+
         FuncT const& m_func;
-        BBox2i total_bbox, block_bbox;
-        int32 block_cols, block_rows;
-        Mutex mutex;
-        Info( FuncT const& func, BBox2i total_bbox, int32 block_cols, int32 block_rows )
-          : m_func(func), total_bbox(total_bbox),
-            block_bbox(0,0,(std::min)(block_cols,total_bbox.width()),(std::min)(block_rows,total_bbox.height())),
-            block_cols(block_cols), block_rows(block_rows) {}
+        BBox2i m_total_bbox, m_block_bbox;
+	Vector2i m_block_size;
+        Mutex m_mutex;
       };
       
       BlockThread( Info &info ) : info(info) {}
@@ -74,18 +121,14 @@ namespace vw {
         while( true ) {
           BBox2i bbox;
           {
-            Mutex::Lock lock(info.mutex);
-            if( info.block_bbox.min().y() >= info.total_bbox.height() ) return;
-            bbox = info.block_bbox;
-            info.block_bbox.min().x() += info.block_cols;
-            if( info.block_bbox.min().x() >= info.total_bbox.width() ) {
-              info.block_bbox.min().x() = 0;
-              info.block_bbox.min().y() += info.block_rows;
-              info.block_bbox.max().y() = (std::min)( info.block_rows + info.block_bbox.min().y(), info.total_bbox.height() );
-            }
-            info.block_bbox.max().x() = (std::min)( info.block_cols + info.block_bbox.min().x(), info.total_bbox.width() );
+            // Grab the next bbox to process, and update it with the 
+            // subsequent bbox for the next thread to grab.
+            Mutex::Lock lock(info.mutex());
+            if( info.complete() ) return;
+            bbox = info.bbox();
+	    info.advance();
           }
-          info.m_func( bbox );
+          info.func()( bbox );
         }
       }
 
@@ -94,7 +137,14 @@ namespace vw {
     };
 
     inline void operator()( BBox2i bbox ) const {
-      typename BlockThread::Info info( m_func, bbox, m_block_cols, m_block_rows );
+      typename BlockThread::Info info( m_func, bbox, m_block_size );
+
+      // Avoid threads altogether in the single-threaded case.
+      // Annoyingly, this still creates an unnecessary Mutex.
+      if( m_num_threads == 1 ) {
+        BlockThread bt( info );
+        return bt();
+      }
 
       std::vector<boost::shared_ptr<BlockThread> > generators;
       std::vector<boost::shared_ptr<Thread> > threads;

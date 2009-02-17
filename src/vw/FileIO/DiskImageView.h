@@ -34,50 +34,71 @@
 
 #include <vw/Core/Cache.h>
 #include <vw/Image/ImageResourceView.h>
+#include <vw/Image/BlockRasterize.h>
 #include <vw/FileIO/DiskImageResource.h>
 
 namespace vw {
 
   /// A view of an image on disk.
   template <class PixelT>
-  class DiskImageView : public ImageResourceView<PixelT>
+  class DiskImageView : public ImageViewBase<DiskImageView<PixelT> >
   {
-    typedef ImageResourceView<PixelT> base_type;
+    typedef BlockRasterizeView<ImageResourceView<PixelT> > impl_type;
+    // This is sort of redundant, but holding both the resource and 
+    // the block rasterize view simplifies construction and access 
+    // to the underlying resource.
+    boost::shared_ptr<DiskImageResource> m_rsrc;
+    impl_type m_impl;
 
   public:
+    typedef typename impl_type::pixel_type pixel_type;
+    typedef typename impl_type::result_type result_type;
+    typedef typename impl_type::pixel_accessor pixel_accessor;
+
     /// Constructs a DiskImageView of the given file on disk.
     DiskImageView( std::string const& filename, bool cache=true )
-      : base_type( DiskImageResource::open( filename ), cache ) {}
+      : m_rsrc( DiskImageResource::open( filename ) ), m_impl( boost::shared_ptr<ImageResource>(m_rsrc), m_rsrc->block_size(), 1, cache ) {}
 
     /// Constructs a DiskImageView of the given file on disk 
     /// using the specified cache area.
     DiskImageView( std::string const& filename, Cache& cache )
-      : base_type( DiskImageResource::open( filename ), cache ) {}
+      : m_rsrc( DiskImageResource::open( filename ) ), m_impl( boost::shared_ptr<ImageResource>(m_rsrc), m_rsrc->block_size(), 1, cache ) {}
 
     /// Constructs a DiskImageView of the given resource.
     DiskImageView( boost::shared_ptr<DiskImageResource> resource, bool cache=true )
-      : base_type( resource, cache ) {}
+      : m_rsrc( resource ), m_impl( boost::shared_ptr<ImageResource>(m_rsrc), m_rsrc->block_size(), 1, cache ) {}
 
     /// Constructs a DiskImageView of the given resource using the
     /// specified cache area.
     DiskImageView( boost::shared_ptr<DiskImageResource> resource, Cache& cache )
-      : base_type( resource, cache ) {}
+      : m_rsrc( resource ), m_impl( boost::shared_ptr<ImageResource>(m_rsrc), m_rsrc->block_size(), 1, cache ) {}
 
     /// Constructs a DiskImageView of the given resource.  Takes
     /// ownership of the resource object (i.e. deletes it when it's
     /// done using it).
     DiskImageView( DiskImageResource *resource, bool cache=true )
-      : base_type( resource, cache ) {}
+      : m_rsrc( resource ), m_impl( boost::shared_ptr<ImageResource>(m_rsrc), m_rsrc->block_size(), 1, cache ) {}
 
     /// Constructs a DiskImageView of the given resource using the
     /// specified cache area.  Takes ownership of the resource object
     /// (i.e. deletes it when it's done using it).
     DiskImageView( DiskImageResource *resource, Cache& cache )
-      : base_type( resource, cache ) {}
+      : m_rsrc( resource ), m_impl( boost::shared_ptr<ImageResource>(m_rsrc), m_rsrc->block_size(), 1, cache ) {}
 
-    virtual ~DiskImageView() {}
+    ~DiskImageView() {}
+
+    int32 cols() const { return m_impl.cols(); }
+    int32 rows() const { return m_impl.rows(); }
+    int32 planes() const { return m_impl.planes(); }
+
+    pixel_accessor origin() const { return m_impl.origin(); }
+    result_type operator()( int32 x, int32 y, int32 p = 0 ) const { return m_impl(x,y,p); }
     
-    std::string filename() const { return dynamic_cast<DiskImageResource const*>(base_type::resource())->filename(); }
+    typedef typename impl_type::prerasterize_type prerasterize_type;
+    prerasterize_type prerasterize( BBox2i const& bbox ) const { return m_impl.prerasterize( bbox ); }
+    template <class DestT> void rasterize( DestT const& dest, BBox2i const& bbox ) const { m_impl.rasterize( dest, bbox ); }
+    
+    std::string filename() const { return m_rsrc->filename(); }
 
   };
 
@@ -100,13 +121,6 @@ namespace vw {
 
     inline const DiskImageView<PixelT>& view() const { return m_disk_image_view; }
   };
-
-  // Unlike most views in the Vision Workbench, DiskImageView is not a
-  // direct descendant of ImageViewBase.  This can cause a number of
-  // problems -- one is that the IsImageView<> type trait no longer
-  // works.  We define it here explicitly as a temporary workaround
-  // until we address this problem on a larger scale. -- mbroxton
-  template <class PixelT> struct IsImageView<DiskImageView<PixelT> > : public boost::true_type {};
 
   /// This is an assignable image view that stores the assigned data
   /// to a temporary file on disk, and then provides a cached
