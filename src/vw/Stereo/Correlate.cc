@@ -735,9 +735,9 @@ namespace stereo {
               
               // Disable robust cost function altogether
               //        float robust_weight = 1;
-              float two_sigma_2 = 1e-5;//1e-4;//1e-5;//1e-6;
-              float tmp_l = (*left_image_patch_ptr) -mean_l;
-              float tmp_r = right_interp_image(xx,yy)-mean_r;
+              // float two_sigma_2 = 1e-5;//1e-4;//1e-5;//1e-6;
+              // float tmp_l = (*left_image_patch_ptr) -mean_l;
+              // float tmp_r = right_interp_image(xx,yy)-mean_r;
               //              float ll = exp(-1*((tmp_l*tmp_l) + (tmp_r*tmp_r))/two_sigma_2);
              
                
