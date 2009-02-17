@@ -196,8 +196,8 @@ namespace ip {
 	unsigned data_rows = floor(float(params.rows)/float(sampling_step)) + 1;
 	
 	vw::ImageView<float> debug( data_cols, data_rows);
-	for ( unsigned sx = 0, dx = 0; sx < params.cols; sx+=sampling_step,dx++)
-	  for ( unsigned sy = 0, dy = 0; sy < params.rows; sy+=sampling_step, dy++)
+	for ( int sx = 0, dx = 0; sx < params.cols; sx+=sampling_step,dx++)
+	  for ( int sy = 0, dy = 0; sy < params.rows; sy+=sampling_step, dy++)
 	    debug(dx,dy) = scaleData[index].determinant(sx,sy);
 	
 	// Normalizing

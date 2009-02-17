@@ -327,7 +327,7 @@ namespace camera {
       f << "    Ignore    = True\n";
 
     // Rolling through measures
-    for ( int m = 0; m < size(); m++ ) {
+    for ( unsigned m = 0; m < size(); m++ ) {
       f << std::endl;
       m_measures[m].write_isis_pvl_measure( f );
     }
@@ -433,7 +433,7 @@ namespace camera {
     // Checking for GCPs (if this network supposedly doesn't contain
     // control networks)
     if ( m_type != ControlNetwork::ImageToGround )
-      for ( int p = 0; p < points.size(); p++ )
+      for ( unsigned p = 0; p < points.size(); p++ )
 	if ( points[p].type() == ControlPoint::GroundControlPoint )
 	  m_type = ControlNetwork::ImageToGround;
 
@@ -576,7 +576,7 @@ namespace camera {
     f << "  Description  = " << m_description << "\n";
 
     // Rolling through the control points
-    for ( int m = 0; m < size(); m++ ) {
+    for ( unsigned m = 0; m < size(); m++ ) {
       f << std::endl;
       m_control_points[m].write_isis_pvl_point( f );
     }

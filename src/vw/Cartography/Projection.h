@@ -20,7 +20,7 @@ namespace cartography {
     virtual ~GeoProjection() {};  
   };
 
-  static std::ostream& operator<<(std::ostream& os, const GeoProjection& projection) {
+  inline std::ostream& operator<<(std::ostream& os, const GeoProjection& projection) {
     os << "Projection       --> Name: " << projection.name;
     return os;
   }

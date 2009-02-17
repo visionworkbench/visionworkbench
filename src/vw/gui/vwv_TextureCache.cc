@@ -14,6 +14,7 @@
 // Forward Declaration
 
 struct TextureRequest {
+  virtual ~TextureRequest() {}
   virtual void process_request() = 0;
 };
 
@@ -27,7 +28,9 @@ public:
                           vw::ViewImageResource const image,
                           CachedTextureRenderer* parent) :
     m_record(texture_record), m_image(image), m_parent(parent) {}
-  
+
+  virtual ~AllocateTextureRequest() {}
+
   virtual void process_request() {
     m_record->texture_id = m_parent->allocate_texture(m_image);
   }
@@ -42,6 +45,7 @@ public:
                             CachedTextureRenderer* parent) :
     m_record(texture_record), m_parent(parent) {}
   
+  virtual ~DeallocateTextureRequest() {}
   virtual void process_request() {
     m_parent->deallocate_texture(m_record->texture_id);
     m_record->texture_id = 0;
@@ -52,12 +56,13 @@ public:
 //                     CachedTextureRenderer
 // --------------------------------------------------------------
 
-GLuint CachedTextureRenderer::request_allocation(boost::shared_ptr<TextureRecordBase> texture_record, 
-                                                 vw::ViewImageResource const block) {
+void CachedTextureRenderer::request_allocation(boost::shared_ptr<TextureRecordBase> texture_record, 
+                                               vw::ViewImageResource const block) {
   vw::Mutex::Lock lock(m_incoming_request_mutex);
   m_incoming_requests.push_back( boost::shared_ptr<TextureRequest>(new AllocateTextureRequest(texture_record, block, this)) ); 
   m_needs_redraw = true;
 }
+
 void CachedTextureRenderer::request_deallocation(boost::shared_ptr<TextureRecordBase> texture_record) {
   vw::Mutex::Lock lock(m_incoming_request_mutex);
   m_incoming_requests.push_back( boost::shared_ptr<TextureRequest>(new DeallocateTextureRequest(texture_record, this)) );

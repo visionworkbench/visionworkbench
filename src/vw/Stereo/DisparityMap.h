@@ -349,46 +349,10 @@ namespace disparity {
   }
   
 
-
-
-  //  remove_border_pixels()
-  //
-  /// Remove pixels from the disparity map that lie along the borders.
-  struct BorderPixelsFunc: public vw::ReturnFixedType<PixelDisparity<float> >  {
-
-    int m_border_size, m_image_width, m_image_height;
-
-    BorderPixelsFunc(int border_size, int image_width, int image_height) : 
-      m_border_size(border_size), m_image_width(image_width), m_image_height(image_height) {}
-
-    PixelDisparity<float> operator() (PixelDisparity<float> const& pix, Vector3 const& loc) const {
-      if ( loc[0] < m_border_size || loc[1] < m_border_size ||
-           loc[0] > m_image_width-m_border_size ||
-           loc[1] > m_image_height-m_border_size) {
-        return PixelDisparity<float>(); // Set to missing pixel
-      } 
-      return pix;
-    }
-  };
-    
-  template <class ViewT>
-  BinaryPerPixelView<ViewT, PixelIndex3View, BorderPixelsFunc> 
-  remove_border_pixels(ImageViewBase<ViewT> const& disparity_map, int border_size) {
-
-    // Note: We use the PixelIndexView and Binary per pixel filter
-    // idiom her to pass the location (in pixel coordinates) into the
-    // functor along with the pixel value at that location.
-    return BinaryPerPixelView<ViewT, PixelIndex3View, BorderPixelsFunc>(disparity_map.impl(), 
-                                                                       PixelIndex3View(disparity_map),
-                                                                       BorderPixelsFunc(border_size,
-                                                                                         disparity_map.cols(),
-                                                                                         disparity_map.rows()) );
-  }
-  
-  //  remove_outliers()
-  // 
-  /// Remove outliers from a disparity map image using a morpholical
-  /// approach. 
+  ///  remove_outliers()
+  /// 
+  /// Remove outliers from a disparity map image using a morphological
+  /// erode-like operation.
   class RemoveOutliersFunc : public ReturnFixedType<PixelDisparity<float> > 
   {
 
@@ -507,9 +471,6 @@ namespace disparity {
   }
 
 
-
-
-
   //  low_contrast_filter()
   // 
   /// Remove pixels from the disparity map that correspond to low
@@ -578,21 +539,6 @@ namespace disparity {
                                                                                                      StdDevImageFunc (kernel_width, kernel_height));
   }
 
-  class LessThanThresholdFunc: public vw::ReturnFixedType<bool> {
-    double m_threshold;
-  public:
-    LessThanThresholdFunc(double threshold) : m_threshold(threshold) {}
-
-    template <class PixelT>
-    bool operator() (PixelT const& pix) const {
-      return pix < m_threshold;
-    }
-  };
-    
-  template <class ViewT> UnaryPerPixelView<ViewT, LessThanThresholdFunc> 
-  less_than_threshold(ImageViewBase<ViewT> const& image, double threshold) {
-    return per_pixel_filter(image.impl(), LessThanThresholdFunc(threshold));
-  }
   // transform_disparities()
   //
   // This Per pixel filter applies an arbitrary transform functor to
@@ -632,26 +578,6 @@ namespace disparity {
                                                                                              PixelIndex3View(disparity_map),
                                                                                              TransformDisparitiesFunc<TransformT>(transform));
   }
-
-  
-
-//   template <class ViewT>
-//   void sparse_disparity_filter(ImageViewBase<ViewT> const& disparity_map, 
-//                                float blur_stddev, float rejection_threshold) {
-//     ImageViewRef<PixelGray<float> > test_image = disparity::missing_pixel_image(disparity_map);
-//     //    write_image("test-a.png", test_image);
-//     ImageView<float> blurred_image = gaussian_filter(select_channel(test_image,0), blur_stddev);
-//     //    write_image("test-b.png", blurred_image);
-//     ImageView<float> threshold_image = threshold(blurred_image, rejection_threshold);
-//     //    write_image("test-c.png", threshold_image);
-    
-//     for (int i = 0; i < disparity_map.cols(); i++) 
-//       for (int j = 0; j < disparity_map.rows(); j++) 
-//         if (threshold_image(i,j) == 0)
-//           disparity_map(i,j) = PixelDisparity<ChannelT>(); // Set to missing pixel
-    
-//     std::cout << " done.\n";
-//   }  
   
 } // namespace disparity
   

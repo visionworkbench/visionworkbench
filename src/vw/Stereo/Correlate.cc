@@ -738,7 +738,7 @@ namespace stereo {
               float two_sigma_2 = 1e-5;//1e-4;//1e-5;//1e-6;
               float tmp_l = (*left_image_patch_ptr) -mean_l;
               float tmp_r = right_interp_image(xx,yy)-mean_r;
-              float ll = exp(-1*((tmp_l*tmp_l) + (tmp_r*tmp_r))/two_sigma_2);
+              //              float ll = exp(-1*((tmp_l*tmp_l) + (tmp_r*tmp_r))/two_sigma_2);
              
                
               // We combine the error value with the derivative and
@@ -972,9 +972,9 @@ namespace stereo {
         Vector<float,6> d;
         d(0) = 1.0;
         d(4) = 1.0;
-        float var2_plane;  
-        float mean_noise;
-        float var2_noise;
+        // float var2_plane;  
+        // float mean_noise;
+        // float var2_noise;
         
         // Compute the derivative image patches
         CropView<ImageView<ChannelT> > left_image_patch = crop(left_image, current_window);

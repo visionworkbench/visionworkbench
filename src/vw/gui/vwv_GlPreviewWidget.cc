@@ -239,8 +239,8 @@ GLuint GlPreviewWidget::allocate_texture(ViewImageResource const block) {
 
     // We save VRAM by copying the image data over in its native
     // number of channels.
-    GLuint texture_pixel_type;
-    GLuint source_pixel_type;
+    GLuint texture_pixel_type = GL_RGBA32F_ARB;
+    GLuint source_pixel_type = GL_RGBA;
     if (block.channels() == 1) {
       texture_pixel_type = GL_LUMINANCE32F_ARB;
       source_pixel_type = GL_LUMINANCE;
@@ -259,7 +259,7 @@ GLuint GlPreviewWidget::allocate_texture(ViewImageResource const block) {
     }
 
     // Set the GL channel type for source data.
-    GLuint source_channel_type;
+    GLuint source_channel_type = GL_FLOAT;
     switch (block.channel_type()) {
     case vw::VW_CHANNEL_UINT8: 
       source_channel_type = GL_UNSIGNED_BYTE;
@@ -330,7 +330,7 @@ void GlPreviewWidget::rebind_textures() {
   // Register this texture patch with the texture cache.  The texture
   // will be generated on demand.
   for (unsigned i=0; i<m_bboxes.size(); ++i) {
-    for (unsigned lod=0; lod <= max_lod; ++lod) {
+    for (int lod=0; lod <= max_lod; ++lod) {
       m_gl_texture_cache->register_texture(m_image_rsrc, m_bboxes[i], lod, this);
     }
   }
@@ -626,7 +626,7 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
       num_channels -= 1;
     }
 
-    for (unsigned i=0; i < num_channels; ++i) {
+    for (int i=0; i < num_channels; ++i) {
       if (round)
         pix_value_ostr << llroundf(pix_value[i] * scale_factor) << " ";
       else

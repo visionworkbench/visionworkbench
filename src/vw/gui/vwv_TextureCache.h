@@ -63,8 +63,8 @@ public:
   
   virtual ~CachedTextureRenderer() { m_incoming_requests.clear(); }
 
-  virtual GLuint request_allocation(boost::shared_ptr<TextureRecordBase> texture_record, 
-                                    vw::ViewImageResource const block);
+  virtual void request_allocation(boost::shared_ptr<TextureRecordBase> texture_record, 
+                                  vw::ViewImageResource const block);
 
   virtual void request_deallocation(boost::shared_ptr<TextureRecordBase> texture_record);
 

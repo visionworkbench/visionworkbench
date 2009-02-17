@@ -211,10 +211,10 @@ namespace ip {
     int top = round( int(y) - size/2);
     int left = round( int(x) - size/2);
 
-    VW_ASSERT(left+i_size < (unsigned)integral.impl().cols(), 
+    VW_ASSERT(left+i_size < integral.impl().cols(), 
 	      vw::ArgumentErr() << "left out of bounds. "<< integral.impl().cols() <<" : "
 	      << left+i_size << " [top left] " << top << " " << left << "\n");
-    VW_ASSERT(top+i_size < (unsigned)integral.impl().rows(),
+    VW_ASSERT(top+i_size < integral.impl().rows(),
 	      vw::ArgumentErr() << "top out of bounds. " << integral.impl().rows() <<" : "
 	      << top+i_size << "\n");
     VW_ASSERT(left >= 0,
@@ -250,10 +250,10 @@ namespace ip {
     int top = round( int(y) - size/2);
     int left = round( int(x) - size/2);
 
-    VW_ASSERT(left+i_size < (unsigned)integral.impl().cols(), 
+    VW_ASSERT(left+i_size < integral.impl().cols(), 
 	      vw::ArgumentErr() << "left out of bounds. "<< integral.impl().cols() <<" : "
 	      << left+i_size << " [top left] " << top << " " << left << "\n");
-    VW_ASSERT(top+i_size < (unsigned)integral.impl().rows(),
+    VW_ASSERT(top+i_size < integral.impl().rows(),
 	      vw::ArgumentErr() << "top out of bounds. " << integral.impl().rows() <<" : "
 	      << top+i_size << "\n");
     VW_ASSERT(left >= 0,

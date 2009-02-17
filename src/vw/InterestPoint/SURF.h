@@ -289,7 +289,7 @@ namespace ip {
     SURFInterestScaleTask(ViewT const& integral, unsigned const filter_size,
 			  unsigned sampling_step, SURFParams const params,
 			  SURFScaleData& scaleData, Mutex &mutex, int id) :
-    m_integral(integral), m_filter_size(filter_size), m_sampling_step( sampling_step ), m_params(params), m_data(scaleData), m_mutex(mutex), m_id(id) {
+    m_integral(integral), m_data(scaleData), m_mutex(mutex), m_filter_size(filter_size), m_sampling_step( sampling_step ), m_params(params), m_id(id) {
     }
 
     // This actually does the work
