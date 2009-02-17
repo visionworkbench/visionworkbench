@@ -1,3 +1,10 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006, 2007 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
 template T vw::_numeric < T > (T);
 template vw::CompoundResult<FuncT, Arg1T, Arg2T>::type vw::compound_apply < FuncT,Arg1T,Arg2T > (const FuncT&, const Arg1T&, const Arg2T&);
 template vw::CompoundResult<FuncT, ArgT, void>::type vw::compound_apply < FuncT,ArgT > (const FuncT&, const ArgT&);

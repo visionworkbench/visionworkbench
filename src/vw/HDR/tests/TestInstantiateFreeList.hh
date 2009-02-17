@@ -1,3 +1,10 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006, 2007 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
 //template vw::hdr::CameraCurveFn vw::hdr::camera_curves < ViewT > (const std::vector<CharT, std::allocator<_CharT> >&, std::vector<double, std::allocator<double> >, int);
 //template vw::UnaryPerPixelView<ViewT, vw::hdr::DragoFunctor<ViewT::pixel_type> > vw::hdr::drago_tone_map < ViewT > (const vw::ImageViewBase<ImageT>&, double);
 //template vw::math::Matrix<vw::PixelChannelType<ViewT::pixel_type>::type, 0, 0> vw::hdr::generate_ldr_intensity_pairs < ViewT > (const std::vector<CharT, std::allocator<_CharT> >&, const std::vector<double, std::allocator<double> >&, int, int, int);

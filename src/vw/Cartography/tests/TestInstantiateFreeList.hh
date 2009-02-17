@@ -1,3 +1,10 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006, 2007 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
 //template vw::TransformView<vw::InterpolationView<vw::EdgeExtensionView<ViewT, vw::ZeroEdgeExtension>, vw::BilinearInterpolation>, vw::cartography::GeoTransform> vw::cartography::geo_transform < ImageT > (const vw::ImageViewBase<ImageT>&, const vw::cartography::GeoReference&, const vw::cartography::GeoReference&);
 //template vw::TransformView<vw::InterpolationView<vw::EdgeExtensionView<ViewT, vw::ZeroEdgeExtension>, vw::BilinearInterpolation>, vw::cartography::GeoTransform> vw::cartography::geo_transform < ImageT > (const vw::ImageViewBase<ImageT>&, const vw::cartography::GeoReference&, const vw::cartography::GeoReference&, vw::int32, vw::int32);
 //template vw::TransformView<vw::InterpolationView<vw::EdgeExtensionView<ImageT, ExtensionT>, vw::BilinearInterpolation>, vw::cartography::GeoTransform> vw::cartography::geo_transform < ImageT,EdgeT > (const vw::ImageViewBase<ImageT>&, const vw::cartography::GeoReference&, const vw::cartography::GeoReference&, const EdgeT&);

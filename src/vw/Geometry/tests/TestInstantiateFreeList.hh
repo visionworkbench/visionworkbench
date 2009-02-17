@@ -1,3 +1,10 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006, 2007 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
 template bool vw::geometry::operator!= < ShapeT,RealT,DimN > (const vw::geometry::ShapeBase<ShapeT, RealT, DimN>&, const vw::geometry::ShapeBase<ShapeT, RealT, DimN>&);
 template bool vw::geometry::operator!= < SphereT1,RealT1,DimN1,SphereT2,RealT2,DimN2 > (const vw::geometry::SphereBase<SphereT, RealT, DimN>&, const vw::geometry::SphereBase<SphereT2, RealT2, DimN2>&);
 template vw::geometry::Box<RealT, DimN> vw::geometry::operator* < RealT,DimN,ScalarT > (ScalarT, const vw::geometry::Box<RealT, DimN>&);

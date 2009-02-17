@@ -1,3 +1,10 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006, 2007 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
 //template vw::PixelDisparity<float> vw::stereo::compute_disparity < ChannelT > (vw::ImageView<PixelT>&, vw::ImageView<PixelT>&, int, int, int, int, int, int, int, int);
 //template double vw::stereo::compute_soad < ChannelT > (ChannelT*, ChannelT*, int, int, int, int, int, int, int, int);
 //template double vw::stereo::compute_soad < ViewT > (const vw::ImageViewBase<ImageT>&, const vw::ImageViewBase<ImageT>&, int, int, int, int, int, int, const vw::BBox2i&, const vw::BBox2i&);

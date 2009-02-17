@@ -1,3 +1,10 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006, 2007 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
 //template boost::enable_if<boost::is_integral<NumberT>, float>::type vw::ip::HHaarWavelet < ViewT,NumberT > (const vw::ImageViewBase<ImageT>&, const NumberT&, const NumberT&, const float&);
 //template boost::enable_if<boost::is_floating_point<NumberT>, float>::type vw::ip::HHaarWavelet < ViewT,NumberT > (const vw::ImageViewBase<ImageT>&, const NumberT&, const NumberT&, const float&);
 //template vw::ImageView<double> vw::ip::IntegralImage < ViewT > (const vw::ImageViewBase<ImageT>&);

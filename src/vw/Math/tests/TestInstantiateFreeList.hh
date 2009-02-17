@@ -1,3 +1,10 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006, 2007 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
 template void vw::math::complete_svd < AMatrixT,UMatrixT,SingularValuesT,VTMatrixT > (AMatrixT&, UMatrixT&, SingularValuesT&, VTMatrixT&);
 template QuaternionT vw::math::conj < QuaternionT > (const vw::math::QuaternionBase<QuaternionT>&);
 template FuncT::domain_type vw::math::conjugate_gradient < FuncT,StepT > (const FuncT&, const FuncT::domain_type&, const StepT&, int);

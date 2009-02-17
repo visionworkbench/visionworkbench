@@ -1,3 +1,10 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006, 2007 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
 //template void vw::camera::bsolve < T > (vw::math::Vector<ElemT, 0>&, vw::math::Matrix<ElemT, 0, 0>&);
 //template vw::TransformView<vw::InterpolationView<vw::EdgeExtensionView<ViewT, vw::ZeroEdgeExtension>, vw::BilinearInterpolation>, vw::camera::CameraTransform<SrcCameraT, DstCameraT> > vw::camera::camera_transform < ImageT,SrcCameraT,DstCameraT > (const vw::ImageViewBase<ImageT>&, const SrcCameraT&, const DstCameraT&);
 //template vw::TransformView<vw::InterpolationView<vw::EdgeExtensionView<ImageT, EdgeT>, vw::BilinearInterpolation>, vw::camera::CameraTransform<SrcCameraT, DstCameraT> > vw::camera::camera_transform < ImageT,SrcCameraT,DstCameraT,EdgeT > (const vw::ImageViewBase<ImageT>&, const SrcCameraT&, const DstCameraT&, const EdgeT&);

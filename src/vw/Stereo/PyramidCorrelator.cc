@@ -1,3 +1,10 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006, 2007 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
 #include <vw/Stereo/PyramidCorrelator.h>
 #include <vw/Stereo/OptimizedCorrelator.h>
 #include <vw/Image/ImageViewRef.h>

@@ -1,3 +1,10 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006, 2007 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
 template T vw::_round_if_needed < T > (boost::disable_if<boost::is_floating_point<DestT>, double>::type);
 //template T vw::_round_if_needed < T > (boost::enable_if<boost::is_floating_point<DestT>, double>::type);
 template vw::UnaryPerPixelView<ImageT, vw::math::ArgAbsFunctor> vw::abs < ImageT > (const vw::ImageViewBase<ImageT>&);
