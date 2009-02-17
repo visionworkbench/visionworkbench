@@ -37,7 +37,7 @@ nodist_TestExifData_SOURCES = TestExifData.cxx
 #nodist_TestLensDistortion_SOURCES = TestLensDistortion.cxx
 #nodist_TestCameraTransform_SOURCES = TestCameraTransform.cxx
 
-TESTS = TestCAHVORModel TestLinearPushbroomModel TestPinholeModel TestPinholeModelCalibrate \ 
+TESTS = TestCAHVORModel TestLinearPushbroomModel TestPinholeModel TestPinholeModelCalibrate \
 	TestBundleAdjust TestExifData TestCAHVModel # TestLensDistortion TestCameraTransform
 
 include $(top_srcdir)/config/instantiate.am
