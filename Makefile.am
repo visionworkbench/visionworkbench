@@ -30,7 +30,7 @@ SUBDIRS = src
 
 EXTRA_DIST = config/rules.mak config.options.example NOTES docs \
 			 thirdparty/cxxtest INSTALLGUIDE scripts/include-graph.py \
-			 scripts/relicense.pl scripts/static-checking.js scripts/templates.js
+			 scripts/relicense.pl scripts/templates.js
 ########################################################################
 # special top-level rules
 ########################################################################
@@ -99,7 +99,7 @@ DEHYDRA_MODULES = \
   $(top_srcdir)/scripts/templates.js
 
 DEHYDRA_ARGS = \
-  $(top_srcdir)/scripts/static-checking.js \
+  $(top_srcdir)/thirdparty/static-checking.js \
   --output-path=$(top_srcdir)/src/vw \
   --no-backup \
   --dehydra-modules=$(DEHYDRA_MODULES)
