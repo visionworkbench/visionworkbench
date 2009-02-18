@@ -58,8 +58,8 @@ namespace vw {
   // member (if available) from the view.
   template <class ViewT> struct ViewDataAccessor {
     static char* data(ViewT const& view) { 
-      vw_throw(NoImplErr() << "ViewDataAccessor data() failed.  " 
-               << "This view does not support direct data access.");
+      vw_throw(NoImplErr() << "ViewDataAccessor data() failed. This view does not support direct data access.");
+      return NULL; // never reached
     }
   };
     

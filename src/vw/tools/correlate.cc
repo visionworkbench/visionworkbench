@@ -89,7 +89,6 @@ int main( int argc, char *argv[] ) {
     ImageViewRef<PixelGray<float> > left = edge_extend(left_disk_image,0,0,cols,rows);
     ImageViewRef<PixelGray<float> > right = edge_extend(right_disk_image,0,0,cols,rows);
 
-    int mask_buffer = std::max(xkernel, ykernel);
     ImageViewRef<uint8> left_mask = channel_cast<uint8>(select_channel(edge_mask(left_disk_image),1));
     ImageViewRef<uint8> right_mask = channel_cast<uint8>(select_channel(edge_mask(right_disk_image),1));
 
