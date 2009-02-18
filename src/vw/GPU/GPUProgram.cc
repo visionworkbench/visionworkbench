@@ -193,7 +193,7 @@ namespace vw { namespace GPU {
   }
 
   bool GPUShader_CG::save_compiled_file(const char *file) {
-    ofstream outFile(file);
+    std::ofstream outFile(file);
     if(!outFile) {
       return false;
     }
@@ -214,7 +214,7 @@ namespace vw { namespace GPU {
   bool GPUShader_CG::load_compiled_file(const char *file) {
     InitCGContext();
     // Input File
-    ifstream inFile(file);
+    std::ifstream inFile(file);
     if(!inFile) {
       return false;
     }
@@ -230,9 +230,9 @@ namespace vw { namespace GPU {
     }
     // Read Object String
     int objectStringStart = ((int) inFile.tellg()) + 1;
-    inFile.seekg(0, ios::end);
+    inFile.seekg(0, std::ios::end);
     int objectStringLength = ((int) inFile.tellg()) - objectStringStart;
-    inFile.seekg(objectStringStart, ios::beg);
+    inFile.seekg(objectStringStart, std::ios::beg);
     char *objectString = (char*) malloc(objectStringLength + 1);
     inFile.read(objectString, objectStringLength);
     inFile.close();
@@ -436,8 +436,8 @@ namespace vw { namespace GPU {
   GPUProgram_CG* create_gpu_program_cg_string(const string& fragmentString, const vector<int>& fragmentAttributes,
 					      const string& vertexString, const vector<int>& vertexAttributes)
   {
-    auto_ptr<GPUShader_CG> vertexShader(NULL);
-    auto_ptr<GPUShader_CG> fragmentShader(NULL);
+    std::auto_ptr<GPUShader_CG> vertexShader(NULL);
+    std::auto_ptr<GPUShader_CG> fragmentShader(NULL);
     static char charBuffer1[32];
     static char charBuffer2[32];								    
     // VERTEX
@@ -511,8 +511,8 @@ namespace vw { namespace GPU {
     }
 
     //
-    auto_ptr<GPUShader_CG> vertexShader(NULL);
-    auto_ptr<GPUShader_CG> fragmentShader(NULL);									    
+    std::auto_ptr<GPUShader_CG> vertexShader(NULL);
+    std::auto_ptr<GPUShader_CG> fragmentShader(NULL);
     // Get Source Strings - Try to find in STD virtual directory, then try the real path
     string vertRawString;
     string fragRawString;
@@ -521,7 +521,7 @@ namespace vw { namespace GPU {
     bool fail = false;
     // VERTEX
     if(!vertexPath.empty()) {
-      std::map<std::string, char*>::iterator iter_map = standard_shaders_map.find((vertexPath).c_str());
+      std::map<std::string, const char*>::iterator iter_map = standard_shaders_map.find((vertexPath).c_str());
       if(iter_map != standard_shaders_map.end()) {
 	vertRawString = (*iter_map).second;
       }
@@ -548,7 +548,7 @@ namespace vw { namespace GPU {
       }
       // If necessary, read source string from file	      
       if(!fragComplete) {
-	std::map<std::string, char*>::iterator iter_map = standard_shaders_map.find((fragmentPath).c_str());
+	std::map<std::string, const char*>::iterator iter_map = standard_shaders_map.find((fragmentPath).c_str());
 	if(iter_map != standard_shaders_map.end()) {
 	  fragRawString = (*iter_map).second;
 	}
