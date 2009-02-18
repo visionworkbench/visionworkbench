@@ -18,9 +18,6 @@
 #include <vw/GPU/Setup.h>
 #include <vw/Math/Matrix.h>
 
- 
-using namespace std;
-
 namespace vw { namespace GPU {
 
   static const char* expressionShaderPath = "expression_shaders/";
@@ -39,10 +36,10 @@ namespace vw { namespace GPU {
 
  class ShaderBindings {
  public:
-   list<float> floats;
-   list<vector<float> > vectors;
+   std::list<float> floats;
+   std::list<std::vector<float> > vectors;
 
-   list<int> imageBindingList;
+   std::list<int> imageBindingList;
    int floatBindingStartIndex;
    int vectorBindingStartIndex;
    //list<matrix<float, 4, 4> > matrices;
@@ -59,14 +56,14 @@ class ShaderBuilder {
   int cImageIndex;
   int cFunctionIndex;
 
-  list<float> floatBindingList;
-  list<vector<float> > vectorBindingList;
-  list<GPUImageBase> imageBindingList;
-  list<pair<bool, Matrix<float> > > homographyBindingList;
-  map<int, int> textureBindingMap;
+  std::list<float> floatBindingList;
+  std::list<std::vector<float> > vectorBindingList;
+  std::list<GPUImageBase> imageBindingList;
+  std::list<std::pair<bool, Matrix<float> > > homographyBindingList;
+  std::map<int, int> textureBindingMap;
 
-  string bodyText;
-  string functionsText;
+  std::string bodyText;
+  std::string functionsText;
 
  public:
   ShaderBuilder() {
@@ -77,7 +74,7 @@ class ShaderBuilder {
     isCG = false;
   }
 
-  void AppendBody(const string& str) {
+  void AppendBody(const std::string& str) {
     bodyText += str;
   }
 
@@ -85,14 +82,14 @@ class ShaderBuilder {
     bodyText.resize(bodyText.size() - 1);
   }
 
-  void AppendFunctions(const string& str) {
+  void AppendFunctions(const std::string& str) {
     functionsText += str;
     functionsText += "\n\n";
   }
 
-  void AddFunctionFromFile(const string& shaderBaseName) {
+  void AddFunctionFromFile(const std::string& shaderBaseName) {
     // make path
-    string path = expressionShaderPath;
+    std::string path = expressionShaderPath;
     path += shaderBaseName;
     if(!isCG)
       path += "_gl_";
@@ -100,7 +97,7 @@ class ShaderBuilder {
       path += "_cg_";
     path += "rgba";
     // read file
-    string content;
+    std::string content;
     if(!ReadFileAsString(path, content)) {
       printf("[ShaderBuilder::AddFunctionFromFile] Couldn't find file: %s\n", path.c_str());
       exit(0);
@@ -111,7 +108,7 @@ class ShaderBuilder {
   }
 
   bool Complete() {
-    stringstream shader;
+    std::stringstream shader;
     if(!isCG) {
       for(int i=0; i <= cImageIndex; i++)
 	shader << "sampler2DRect f" << i << ";\n";
@@ -130,14 +127,14 @@ class ShaderBuilder {
 
   int BindFloat(float inFloat) { floatBindingList.push_back(inFloat); return ++cFloatIndex; }
 
-  int BindVector(vector<float>& inVector) { vectorBindingList.push_back(inVector); return ++cVectorIndex; }
+  int BindVector(std::vector<float>& inVector) { vectorBindingList.push_back(inVector); return ++cVectorIndex; }
 
   int BindFunction() { return ++cFunctionIndex; }
 
   int BindImage(GPUImageBase& image) { 
     /*
     int name = image.name();
-    map<int, int>::iterator findIter = textureBindingMap.find(name);
+    std::map<int, int>::iterator findIter = textureBindingMap.find(name);
     if(findIter == textureBindingMap.end()) {
       cImageIndex++;
       textureBindingMap[name] = cImageIndex;
@@ -150,14 +147,14 @@ class ShaderBuilder {
 
   void BindGroup(ShaderBindings& shaderBindings) {
     int i = 0;
-    for(list<float>::iterator iter = shaderBindings.floats.begin(); iter != shaderBindings.floats.end(); iter++, i++) {
+    for(std::list<float>::iterator iter = shaderBindings.floats.begin(); iter != shaderBindings.floats.end(); iter++, i++) {
       int index = BindFloat(*iter); 
       if(i == 0)
 	shaderBindings.floatBindingStartIndex = index;
     }
 
     i = 0;
-    for(list<vector<float> >::iterator iter = shaderBindings.vectors.begin(); iter != shaderBindings.vectors.end(); iter++, i++) {
+    for(std::list<std::vector<float> >::iterator iter = shaderBindings.vectors.begin(); iter != shaderBindings.vectors.end(); iter++, i++) {
       int index = BindVector(*iter);
       if(i == 0)
 	shaderBindings.vectorBindingStartIndex = index;
@@ -186,7 +183,7 @@ class ShaderBuilder {
 
  class ShaderNode_Base {
  public:
-  auto_ptr<ShaderNode_Base> previous;
+  std::auto_ptr<ShaderNode_Base> previous;
   ShaderBindings shaderBindings;
   int m_width;
   int m_height;
@@ -211,7 +208,7 @@ class ShaderBuilder {
 
 class ShaderNode_BaseTransform : public ShaderNode_Base {
  public:
-  auto_ptr<ShaderNode_Accessor> m_interpolator;
+  std::auto_ptr<ShaderNode_Accessor> m_interpolator;
  public:
   virtual ~ShaderNode_BaseTransform() { }
 
@@ -235,10 +232,10 @@ class ShaderNode_LinearTransform : public ShaderNode_BaseTransform {
 };
 
 class ShaderNode_NonlinearTransform : public ShaderNode_BaseTransform {
-  string m_shader;
+  std::string m_shader;
   ShaderBindings m_bindings;
  public:
-  ShaderNode_NonlinearTransform(ShaderNode_Base* node, const string& string, const ShaderBindings& bindings, ShaderNode_Accessor* interpolator = NULL);
+  ShaderNode_NonlinearTransform(ShaderNode_Base* node, const std::string& str, const ShaderBindings& bindings, ShaderNode_Accessor* interpolator = NULL);
 
   ~ShaderNode_NonlinearTransform() { }
 
@@ -257,16 +254,16 @@ class ShaderNode_NonlinearTransform : public ShaderNode_BaseTransform {
 
 class ShaderNode_Accessor : public ShaderNode_Base {
  public:
-  list<ShaderNode_Base*> m_input_nodes;
-  string m_shader;
+  std::list<ShaderNode_Base*> m_input_nodes;
+  std::string m_shader;
   ShaderBindings m_bindings;
-  auto_ptr<ShaderNode_Accessor> m_interpolator;
-  list<int> m_image_indices;
+  std::auto_ptr<ShaderNode_Accessor> m_interpolator;
+  std::list<int> m_image_indices;
   int m_quality;
  public:
-  ShaderNode_Accessor(list<ShaderNode_Base*>& input_nodes, const string& shader, const ShaderBindings& bindings, bool forceRasterize = false, bool isInterpolateNode = false);
+  ShaderNode_Accessor(std::list<ShaderNode_Base*>& input_nodes, const std::string& shader, const ShaderBindings& bindings, bool forceRasterize = false, bool isInterpolateNode = false);
 
-  ~ShaderNode_Accessor() { for(list<ShaderNode_Base*>::iterator iter = m_input_nodes.begin(); iter != m_input_nodes.end(); iter++) delete *iter; }
+  ~ShaderNode_Accessor() { for(std::list<ShaderNode_Base*>::iterator iter = m_input_nodes.begin(); iter != m_input_nodes.end(); iter++) delete *iter; }
 
   int RecursiveBind(ShaderBuilder& shaderBuilder);
 
@@ -280,14 +277,14 @@ class ShaderNode_Accessor : public ShaderNode_Base {
 
 class ShaderNode_PixelModifier : public ShaderNode_Base {
  public:
-  list<ShaderNode_Base*> m_input_nodes;
-  string m_shader;
+  std::list<ShaderNode_Base*> m_input_nodes;
+  std::string m_shader;
   ShaderBindings m_bindings;
-  auto_ptr<ShaderNode_Accessor> m_interpolator;
+  std::auto_ptr<ShaderNode_Accessor> m_interpolator;
  public:
-  ShaderNode_PixelModifier(list<ShaderNode_Base*>& input_nodes, const string& shader, const ShaderBindings& bindings);
+  ShaderNode_PixelModifier(std::list<ShaderNode_Base*>& input_nodes, const std::string& shader, const ShaderBindings& bindings);
 
-  ~ShaderNode_PixelModifier() { for(list<ShaderNode_Base*>::iterator iter = m_input_nodes.begin(); iter != m_input_nodes.end(); iter++) delete *iter; }
+  ~ShaderNode_PixelModifier() { for(std::list<ShaderNode_Base*>::iterator iter = m_input_nodes.begin(); iter != m_input_nodes.end(); iter++) delete *iter; }
 
   int RecursiveBind(ShaderBuilder& shaderBuilder);
 
@@ -327,14 +324,14 @@ class ShaderNode_PixelModifier : public ShaderNode_Base {
 */
  /*
  ShaderNode_Base* operator+(ShaderNode_Base* image, float scalar) {  // PixelModifier
-   list<ShaderNode_Base*> nodeList;
+   std::list<ShaderNode_Base*> nodeList;
    nodeList.push_back(image);
    ShaderBindings bindings;
    bindings.floats.push_back(scalar);
    return new ShaderNode_PixelModifier(nodeList, "PixelModifier/sum-IF", bindings);
  }
  ShaderNode_PixelModifier* operator*(ShaderNode_Base* image1, ShaderNode_Base* image2) {  // PixelModifier
-   list<ShaderNode_Base*> nodeList;
+   std::list<ShaderNode_Base*> nodeList;
    nodeList.push_back(image1);
    nodeList.push_back(image2);
    ShaderBindings bindings;
@@ -385,12 +382,12 @@ class ShaderNode_PixelModifier : public ShaderNode_Base {
   /*
 class ShaderNode_NonlinearTransform : public ShaderNode_Base {
  public:
-  string m_shader;
+  std::string m_shader;
   ShaderBindings m_bindings;
-  auto_ptr<ShaderNode_Accessor> m_interpolator;
+  std::auto_ptr<ShaderNode_Accessor> m_interpolator;
  public:
   // Image
-  ShaderNode_NonlinearTransform(ShaderNode_Image* node, string shader, ShaderBindings& bindings, ShaderNode_Accessor* interpolator = NULL) {
+  ShaderNode_NonlinearTransform(ShaderNode_Image* node, std::string shader, ShaderBindings& bindings, ShaderNode_Accessor* interpolator = NULL) {
     if(interpolator)
       m_interpolator = interpolator;
     else
@@ -400,7 +397,7 @@ class ShaderNode_NonlinearTransform : public ShaderNode_Base {
     m_bindings = bindings;
   }
   // LinearTransform
-  ShaderNode_NonlinearTransform(ShaderNode_LinearTransform* node, string shader, ShaderBindings& bindings, ShaderNode_Accessor* interpolator = NULL) {
+  ShaderNode_NonlinearTransform(ShaderNode_LinearTransform* node, std::string shader, ShaderBindings& bindings, ShaderNode_Accessor* interpolator = NULL) {
     if(interpolator)
       m_interpolator = interpolator;
     else
@@ -412,7 +409,7 @@ class ShaderNode_NonlinearTransform : public ShaderNode_Base {
     m_bindings = bindings;
   }
   // NonlinearTransform
-  ShaderNode_NonlinearTransform(ShaderNode_NonlinearTransform* node, string shader, ShaderBindings& bindings, ShaderNode_Accessor* interpolator = NULL) {
+  ShaderNode_NonlinearTransform(ShaderNode_NonlinearTransform* node, std::string shader, ShaderBindings& bindings, ShaderNode_Accessor* interpolator = NULL) {
     if(interpolator)
       m_interpolator = interpolator;
     else
@@ -424,7 +421,7 @@ class ShaderNode_NonlinearTransform : public ShaderNode_Base {
     m_bindings = bindings;
   }
   // Base: Accessor & PixelModifier
-  ShaderNode_NonlinearTransform(ShaderNode_Base* node, string shader, ShaderBindings& bindings, ShaderNode_Accessor* interpolator = NULL) {
+  ShaderNode_NonlinearTransform(ShaderNode_Base* node, std::string shader, ShaderBindings& bindings, ShaderNode_Accessor* interpolator = NULL) {
     if(interpolator)
       m_interpolator = interpolator;
     else

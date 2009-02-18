@@ -42,7 +42,7 @@ namespace GPU {
     int m_yOffset;
     bool m_isHomography;
     Matrix<float> m_homography;
-    string m_interpolation_string;
+    std::string m_interpolation_string;
     int m_interpolation_quality;
     EdgeExtensionType m_edge_extension_type;
   public:

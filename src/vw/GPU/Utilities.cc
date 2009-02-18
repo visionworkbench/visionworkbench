@@ -9,6 +9,8 @@
 #include <vw/GPU/GPUImage.h>
 #include <fstream>
 
+using std::string;
+using std::map;
 
 namespace vw { namespace GPU {
 
@@ -137,16 +139,16 @@ bool CheckFramebuffer(bool enablePrint) {
 // File I/O
 
 bool ReadFileAsString(const string& path, string& outString) {
-	ifstream file(path.c_str());
+  std::ifstream file(path.c_str());
 	if(!file)
 		return false;
 	//while(file)
 	//	outString << file;
 	
 	int length;
-	file.seekg(0, ios::end);
+	file.seekg(0, std::ios::end);
 	length = file.tellg();
-	file.seekg(0, ios::beg);
+	file.seekg(0, std::ios::beg);
 	outString.resize(length);
 	file.read((char*) outString.c_str(), length);
 

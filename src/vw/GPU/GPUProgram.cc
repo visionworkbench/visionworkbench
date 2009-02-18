@@ -22,6 +22,11 @@
  #include <vw/GPU/GPUProgram.h>
  #include <vw/GPU/Utilities.h>
 
+using std::string;
+using std::pair;
+using std::vector;
+using std::map;
+
 
 namespace vw { namespace GPU {
 

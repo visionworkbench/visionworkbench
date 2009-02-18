@@ -9,6 +9,8 @@
 #include <vw/GPU/GPUProgram.h>
 #include <vw/GPU/TexAlloc.h>
 
+using std::string;
+
 namespace vw { namespace GPU {
 
 
@@ -16,7 +18,7 @@ namespace vw { namespace GPU {
 
   GLuint g_framebuffer;
 
-  ofstream gpuLogFile;
+  std::ofstream gpuLogFile;
 
   bool loggingEnabled;
 

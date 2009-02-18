@@ -18,10 +18,6 @@
 #endif
 
 
-using namespace std;
-
-
-
 namespace vw { namespace GPU {
 
 extern GLuint g_framebuffer;
@@ -64,13 +60,13 @@ extern bool loggingEnabled;
 
  void set_gpu_memory_recycling(bool value);
 
- void set_shader_base_path(const string& path);
+ void set_shader_base_path(const std::string& path);
 
- void set_shader_assembly_cache_path(const string& path);
+ void set_shader_assembly_cache_path(const std::string& path);
 
 // Logging
 
- void gpu_log(const char* string);
+ void gpu_log(const char* str);
 
  static bool gpu_log_enabled() { return loggingEnabled; }
 

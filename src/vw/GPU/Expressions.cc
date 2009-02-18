@@ -11,6 +11,10 @@
 
 #include <vw/GPU/Expressions.h>
 
+using std::vector;
+using std::string;
+using std::stringstream;
+using std::list;
 
 namespace vw {
   namespace GPU {
