@@ -9,6 +9,8 @@
 #include <vw/GPU/GPUProgram.h>
 #include <vw/GPU/TexAlloc.h>
 
+using std::string;
+
 namespace vw { namespace GPU {
 
 
@@ -16,7 +18,7 @@ namespace vw { namespace GPU {
 
   GLuint g_framebuffer;
 
-  ofstream gpuLogFile;
+  std::ofstream gpuLogFile;
 
   bool loggingEnabled;
 
@@ -50,8 +52,8 @@ namespace vw { namespace GPU {
 
     gpu_log("Trying glutInit...");
     int argc = 1;
-    char* argv[1];
-    argv[0] = "";
+    char* argv[1] = { "" };
+
     glutInit(&argc, argv);
     gpu_log("Success\n");
 

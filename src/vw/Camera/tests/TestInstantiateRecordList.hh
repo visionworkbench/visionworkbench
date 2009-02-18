@@ -5,6 +5,9 @@
 // __END_LICENSE__
 
 
+//template class  vw::camera::<unnamed>::PinholeModelLeastSquares<Ex1T, Ex2T, Ex3T, Ex4T>;
+//template class  vw::camera::<unnamed>::PinholeModelRansacFitting<Ex1T, Ex2T, Ex3T, Ex4T>;
+//template class  vw::camera::BundleAdjustReport<BundleAdjustModelT, BundleAdjusterT>;
 //template class  vw::camera::BundleAdjustment<BundleAdjustModelT, RobustCostT>;
 //template struct vw::camera::BundleAdjustmentModelBase<ImplT, CameraParamsN, PointParamsN>;
 //template struct vw::camera::CameraTransform<SrcCameraT, DstCameraT>;

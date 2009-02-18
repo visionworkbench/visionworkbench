@@ -976,21 +976,20 @@ namespace stereo {
               if (disparity_map(x,y).missing())
                  continue;
         
-	      // Define and initialize the model params
-	      // Initialize our affine transform with the identity.  The
-	      // entries of d are laid out in row major order:
-	      // 
-	      //   | d(0) d(1) d(2) | 
-	      //   | d(3) d(4) d(5) |
-	      //   |  0    0    1   |
-	      //
-	      Vector<float,6> d;
-	      d(0) = 1.0;
-	      d(4) = 1.0;
-	      // float var2_plane;  
-	      // float mean_noise;
-	      // float var2_noise;
-
+              // Define and initialize the model params
+              // Initialize our affine transform with the identity.  The
+              // entries of d are laid out in row major order:
+              // 
+              //   | d(0) d(1) d(2) | 
+              //   | d(3) d(4) d(5) |
+              //   |  0    0    1   |
+              //
+              Vector<float,6> d;
+              d(0) = 1.0;
+              d(4) = 1.0;
+              // float var2_plane;  
+              // float mean_noise;
+              // float var2_noise;
         
               // Compute the derivative image patches
               CropView<ImageView<ChannelT> > left_image_patch = crop(left_image, current_window);

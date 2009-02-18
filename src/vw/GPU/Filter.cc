@@ -8,6 +8,7 @@
 #include <vw/GPU/Filter.h>
 #include <vector>
 
+using std::vector;
 
 namespace vw { namespace GPU {
 

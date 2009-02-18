@@ -35,7 +35,7 @@ AM_CPPFLAGS = @VW_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_GPU_LIBS@ @PKG_VW_LIBS@
 
 check_PROGRAMS = $(TESTS)
-EXTRA_DIST = $(TESTS:%=%.h)
+EXTRA_DIST = $(TESTS:%=%.h) test_images/lighthouse-1000x1000.png
 CLEANFILES = $(TESTS:%=%.cxx)
 
 include $(top_srcdir)/config/rules.mak

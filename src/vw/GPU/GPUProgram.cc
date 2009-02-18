@@ -22,6 +22,11 @@
  #include <vw/GPU/GPUProgram.h>
  #include <vw/GPU/Utilities.h>
 
+using std::string;
+using std::pair;
+using std::vector;
+using std::map;
+
 
 namespace vw { namespace GPU {
 
@@ -322,7 +327,7 @@ namespace vw { namespace GPU {
       const string* sourceString = &vertexString;
       if(vertexAttributes.size()) {
 	TokenReplacer tr;
-	for(int i=0; i < vertexAttributes.size(); i++) {
+	for(unsigned i=0; i < vertexAttributes.size(); i++) {
 	  sprintf(charBuffer1, "%i", i+1);
 	  sprintf(charBuffer2, "%i", vertexAttributes[i]);
 	  tr.AddVariable(charBuffer1, charBuffer2);
@@ -343,7 +348,7 @@ namespace vw { namespace GPU {
       if(fragmentAttributes.size()) {
 	TokenReplacer tr;
 	string variable;
-	for(int i=0; i < fragmentAttributes.size(); i++) {
+	for(unsigned i=0; i < fragmentAttributes.size(); i++) {
 	  sprintf(charBuffer1, "%i", i+1);
 	  sprintf(charBuffer2, "%i", fragmentAttributes[i]);
 	  tr.AddVariable(charBuffer1, charBuffer2);
@@ -389,7 +394,7 @@ namespace vw { namespace GPU {
     string vertexString;
     GPUVertexShader_GLSL vertexShader;
     if(!vertexPath.empty()) {
-      std::map<std::string, char*>::iterator iter_map = standard_shaders_map.find((vertexPath).c_str());
+      std::map<std::string, const char*>::iterator iter_map = standard_shaders_map.find((vertexPath).c_str());
       if(iter_map != standard_shaders_map.end()) {
 	vertexString = (*iter_map).second;
       }
@@ -401,7 +406,7 @@ namespace vw { namespace GPU {
     // Fragment File Read
     string fragmentString;
     if(!fragmentPath.empty()) {			
-      std::map<std::string, char*>::iterator iter_map = standard_shaders_map.find((fragmentPath).c_str());
+      std::map<std::string, const char*>::iterator iter_map = standard_shaders_map.find((fragmentPath).c_str());
       if(iter_map != standard_shaders_map.end()) {
 	fragmentString = (*iter_map).second;
       }
@@ -628,14 +633,14 @@ namespace vw { namespace GPU {
     buffer1[0] = 0;
     if(vertexAttributes.size()) {
       sprintf(buffer1, "< ");
-      for(int i=0; i<vertexAttributes.size(); i++)
+      for(size_t i=0; i<vertexAttributes.size(); i++)
 	sprintf(buffer1, "%s%i ", buffer1, vertexAttributes[i]);
       sprintf(buffer1, "%s>", buffer1);
     }
     buffer2[0] = 0;
     if(fragmentAttributes.size()) {
       sprintf(buffer2, "< ");
-      for(int i=0; i<fragmentAttributes.size(); i++)
+      for(size_t i=0; i<fragmentAttributes.size(); i++)
 	sprintf(buffer2, "%s%i ", buffer2, fragmentAttributes[i]);
       sprintf(buffer2, "%s>", buffer2);
     }

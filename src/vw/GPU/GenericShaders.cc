@@ -6,6 +6,7 @@
 
 
 #include <vw/GPU/GenericShaders.h>
+using std::vector;
 
 namespace vw { namespace GPU {
 

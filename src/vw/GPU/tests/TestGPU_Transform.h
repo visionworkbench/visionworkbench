@@ -8,6 +8,7 @@
 // TestTransform.h
 #include <cxxtest/TestSuite.h>
 
+#include <vw/Image/EdgeExtend.h>
 #include <vw/Image.h>
 #include <vw/GPU.h>
 

@@ -90,14 +90,16 @@ public:
     sds_info.resize( n_datasets );
     for( ::int32 i=0; i<n_datasets; ++i ) {
 
-      int32 id;
+      ::int32 id;
       if( (id = SDselect( sd_id, i )) == FAIL )
         vw_throw( IOErr() << "Unable to select SDS in HDF file \"" << filename << "\"!" );
 
       char name[65];
-      int32 dim_sizes[MAX_VAR_DIMS], data_type;
-      if( SDgetinfo( id, name, &sds_info[i].rank, dim_sizes, &data_type, &sds_info[i].n_attrs ) == FAIL )
+      ::int32 dim_sizes[MAX_VAR_DIMS], data_type, rank, n_attrs;
+      if( SDgetinfo( id, name, &rank, dim_sizes, &data_type, &n_attrs ) == FAIL )
         vw_throw( IOErr() << "Unable to read SDS info from HDF file \"" << filename << "\"!" );
+      sds_info[i].rank = rank;
+      sds_info[i].n_attrs = n_attrs;
       sds_info[i].name = name;
       sds_info[i].dim_sizes.insert( sds_info[i].dim_sizes.begin(), dim_sizes, dim_sizes+sds_info[i].rank );
       sds_info[i].type = hdf_to_vw_type( data_type );

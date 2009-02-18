@@ -22,16 +22,14 @@
 #include "Cg/cgGL.h"
 #endif
 
-using namespace std;
-
 namespace vw { namespace GPU {
 
 
-  extern string shader_base_path;
+  extern std::string shader_base_path;
 
   extern bool shader_assembly_cache_enabled;
 
-  extern string shader_assembly_cache_path;
+  extern std::string shader_assembly_cache_path;
 
 
   //########################################################################
@@ -77,7 +75,7 @@ namespace vw { namespace GPU {
   class GPUVertexShader_GLSL {
     GLhandleARB shader;
   public:
-    bool compile(const string& vertexString);
+    bool compile(const std::string& vertexString);
     // Inline	
     GPUVertexShader_GLSL() { shader = 0; }
     ~GPUVertexShader_GLSL() { if(shader) glDeleteObjectARB(shader); }
@@ -90,7 +88,7 @@ namespace vw { namespace GPU {
   class GPUFragmentShader_GLSL {
     GLhandleARB shader;
   public:
-    bool compile(const string& fragmentString);
+    bool compile(const std::string& fragmentString);
     // Inline	
     GPUFragmentShader_GLSL() { shader = 0; }
     ~GPUFragmentShader_GLSL() { if(shader) glDeleteObjectARB(shader); }
@@ -221,22 +219,22 @@ namespace vw { namespace GPU {
 
 
 
-  GPUProgram* create_gpu_program(const string& fragmentPath, const vector<int>& fragmentAttributes = vector<int>(),
-				 const string& vertexPath = "", const vector<int>& vertexAttributes = vector<int>());
+  GPUProgram* create_gpu_program(const std::string& fragmentPath, const std::vector<int>& fragmentAttributes = std::vector<int>(),
+				 const std::string& vertexPath = "", const std::vector<int>& vertexAttributes = std::vector<int>());
 
-  GPUProgram_GLSL* create_gpu_program_glsl_string(const string& fragmentString, const vector<int>& fragmentAttributes = vector<int>(),
-						  const string& vertexString = "", const vector<int>& vertexAttributes = vector<int>());
+  GPUProgram_GLSL* create_gpu_program_glsl_string(const std::string& fragmentString, const std::vector<int>& fragmentAttributes = std::vector<int>(),
+						  const std::string& vertexString = "", const std::vector<int>& vertexAttributes = std::vector<int>());
 
-  GPUProgram_GLSL* create_gpu_program_glsl(const string& fragmentPath, const vector<int>& fragmentAttributes = vector<int>(),
-					   const string& vertexPath = "", const vector<int>& vertexAttributes = vector<int>());
+  GPUProgram_GLSL* create_gpu_program_glsl(const std::string& fragmentPath, const std::vector<int>& fragmentAttributes = std::vector<int>(),
+					   const std::string& vertexPath = "", const std::vector<int>& vertexAttributes = std::vector<int>());
 
 #if defined(VW_HAVE_PKG_CG) && VW_HAVE_PKG_CG==1
 
-  GPUProgram_CG* create_gpu_program_cg_string(const string& fragmentString, const vector<int>& fragmentAttributes = vector<int>(),
-					      const string& vertexString = "", const vector<int>& vertexAttributes = vector<int>());
+  GPUProgram_CG* create_gpu_program_cg_string(const std::string& fragmentString, const std::vector<int>& fragmentAttributes = std::vector<int>(),
+					      const std::string& vertexString = "", const std::vector<int>& vertexAttributes = std::vector<int>());
 
-  GPUProgram_CG* create_gpu_program_cg(const string& fragmentPath, const vector<int>& fragmentAttributes = vector<int>(),
-				       const string& vertexPath = "", const vector<int>& vertexAttributes = vector<int>());
+  GPUProgram_CG* create_gpu_program_cg(const std::string& fragmentPath, const std::vector<int>& fragmentAttributes = std::vector<int>(),
+				       const std::string& vertexPath = "", const std::vector<int>& vertexAttributes = std::vector<int>());
 
 #endif
 

@@ -18,6 +18,8 @@
 #ifndef __VW_CORE_SETTINGS_H__
 #define __VW_CORE_SETTINGS_H__
 
+#include <vector>
+
 #include <vw/Core/Thread.h>
 
 namespace vw {

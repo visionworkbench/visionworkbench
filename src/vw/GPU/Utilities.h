@@ -44,8 +44,6 @@
 #endif
 
 
-using namespace std;
-
 namespace vw { namespace GPU {
 
 // Class: Rectangle2D
@@ -84,11 +82,11 @@ public:
 // Class: TokenReplacer
 
 class TokenReplacer {
-	map<string, string> stringMap;
+	std::map<std::string, std::string> stringMap;
 public:
-	void AddVariable(string& variableName, string& variableValue);
+	void AddVariable(std::string& variableName, std::string& variableValue);
 	void AddVariable(const char* variableName, const char*  variableValue);
-	void Replace(const string& inText, string& outText);
+	void Replace(const std::string& inText, std::string& outText);
 // INLINE
 	void Clear() {
 		stringMap.clear();
@@ -97,7 +95,7 @@ public:
 
 // File I/O
 
-bool ReadFileAsString(const string& path, string& outString);
+bool ReadFileAsString(const std::string& path, std::string& outString);
 
 // OpenGL
 

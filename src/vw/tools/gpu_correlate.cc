@@ -9,12 +9,14 @@
 using namespace vw;
 using namespace GPU;
 
+using std::vector;
+using std::string;
 
 //########################################################################
 //#  correlation_iteration - glsl_frag strings and a free function                
 //########################################################################
 
-char* glsl_frag_offset_and_difference = " \
+const char* glsl_frag_offset_and_difference = " \
 uniform sampler2DRect i1; \
 uniform sampler2DRect i2; \
 uniform float x_offset; \
@@ -28,7 +30,7 @@ void main() { \
 
 
 
-char* glsl_frag_column_sums = " \
+const char* glsl_frag_column_sums = " \
 uniform sampler2DRect i1; \
 void main() { \
  int kHalf = $1; \
@@ -40,7 +42,7 @@ void main() { \
  gl_FragColor.r = sum; \
 }";
 
-char* glsl_frag_row_sums = " \
+const char* glsl_frag_row_sums = " \
 uniform sampler2DRect i1; \
 void main() { \
  int kHalf = $1; \
@@ -52,7 +54,7 @@ void main() { \
  gl_FragColor.r = sum; \
 }";
 
-char* glsl_frag_correlation_iteration = " \
+const char* glsl_frag_correlation_iteration = " \
 uniform sampler2DRect inSums; \
 uniform sampler2DRect inBestValues; \
 uniform float dx; \
@@ -237,7 +239,7 @@ void correlation_iteration(int dx,
 
 #define MISSING_PIXEL 10000
 
-char* glsl_frag_correlation_cross_check = " \
+const char* glsl_frag_correlation_cross_check = " \
 uniform sampler2DRect inLeftBestValues; \
 uniform sampler2DRect inRightBestValues; \
 uniform float crossCheckThreshold; \
