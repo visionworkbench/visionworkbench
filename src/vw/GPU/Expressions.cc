@@ -87,7 +87,7 @@ namespace vw {
     }
     // Accessor or PixelModifier: prerasterize
     else if(dynamic_cast<ShaderNode_Accessor*>(node) || dynamic_cast<ShaderNode_PixelModifier*>(node)) {
-      previous.reset(node->Evaluate());
+      previous.reset(reinterpret_cast<ShaderNode_Base*>(node->Evaluate()));
       m_homography = inHomography;
     }
   }
@@ -180,7 +180,7 @@ namespace vw {
     }
     // Accessor or PixelModifier: prerasterize
     if(dynamic_cast<ShaderNode_Accessor*>(node) || dynamic_cast<ShaderNode_PixelModifier*>(node)) {
-      previous.reset(node->Evaluate());
+      previous.reset(reinterpret_cast<ShaderNode_Base*>(node->Evaluate()));
       return;
     }
     // Other
@@ -242,11 +242,11 @@ namespace vw {
       // Accessor is always prerasterized, transorms are only if forceRasterize is true
       if(dynamic_cast<ShaderNode_Accessor*>(*iter) || dynamic_cast<ShaderNode_Image*>(*iter)
 	 || (forceRasterize && dynamic_cast<ShaderNode_BaseTransform*>(*iter))) {
-	m_input_nodes.push_back((*iter)->Evaluate());
+	m_input_nodes.push_back(reinterpret_cast<ShaderNode_Base*>((*iter)->Evaluate()));
 	//delete (*iter);
       }
       else
-	m_input_nodes.push_back((*iter)->Evaluate());
+	m_input_nodes.push_back(reinterpret_cast<ShaderNode_Base*>((*iter)->Evaluate()));
 	
     }
     m_shader = shader;
@@ -310,7 +310,7 @@ namespace vw {
       if(transform) {
 	*iter = transform->AppendInterpolateNode();
       }
-      m_input_nodes.push_back((*iter)->Evaluate());
+      m_input_nodes.push_back(reinterpret_cast<ShaderNode_Base*>((*iter)->Evaluate()));
     }
     m_input_nodes = input_nodes;
     m_shader = shader;
