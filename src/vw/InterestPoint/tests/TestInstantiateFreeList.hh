@@ -12,7 +12,7 @@
 //template boost::enable_if<boost::is_floating_point<NumberT>, float>::type vw::ip::VHaarWavelet < ViewT,NumberT > (const vw::ImageViewBase<ImageT>&, const NumberT&, const NumberT&, const float&);
 //template InterestPointList vw::ip::crop < RealT > (const vw::ip::InterestPointList&, const vw::math::BBox<RealT, 2>&);
 //template InterestPointList vw::ip::detect_interest_points < ViewT,DetectorT > (const ViewT&, DetectorT&, int);
-//template int vw::ip::filter_1d < T1,T2 > (std::vector<CharT, std::allocator<_CharT> >&, std::vector<KernelT, std::allocator<_T2> >&, bool);
+//template int vw::ip::filter_1d < T1,T2 > (std::vector<CharT, std::allocator<_CharT> >&, std::vector<DomainT, std::allocator<_T2> >&, bool);
 //template int vw::ip::find_peaks < DataT > (vw::ip::InterestPointList&, const DataT&);
 //template int vw::ip::find_peaks < DataT,ViewT > (vw::ip::InterestPointList&, const std::vector<CharT, std::allocator<_CharT> >&, const vw::ip::ImageOctave<ViewT>&);
 //template void vw::ip::find_weighted_histogram_mode < T > (const std::vector<CharT, std::allocator<_CharT> >&, std::vector<int, std::allocator<int> >&);

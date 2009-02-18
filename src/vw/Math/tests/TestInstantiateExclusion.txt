@@ -8,3 +8,8 @@ template vw::math::VectorProxy<ElemT, 0> vw::math::vector_proxy < DataT > (DataT
 template struct vw::math::ArgAbsFunctor::result<Args>;
 template class  vw::math::BBox<RealT, DimN>;
 template class  vw::math::BBoxBase<BBoxT, RealT, DimN>;
+template vw::math::Matrix<MatrixT::value_type, 0, 0> vw::math::diagonal_matrix < VectorT > (const VectorT&);
+template vw::math::Vector<QuaternionT::value_type, 3> vw::math::matrix_to_axis_angle < MatrixT > (const vw::math::MatrixBase<MatrixT>&);
+template DomainT vw::math::particle_swarm_optimization < FuncT,DomainT > (const FuncT&, const DomainT&, const DomainT&, bool, int, unsigned int, unsigned int, double, double, double, double);
+template FittingFuncT::result_type vw::math::ransac < ContainerT1,ContainerT2,FittingFuncT,ErrorFuncT > (const std::vector<CharT, std::allocator<_CharT> >&, const std::vector<DomainT, std::allocator<_T2> >&, const FittingFuncT&, const ErrorFuncT&, double);
+template class  vw::math::RandomSampleConsensus<FittingFuncT, ErrorFuncT>;

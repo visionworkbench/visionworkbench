@@ -30,7 +30,9 @@ template boost::enable_if<vw::IsScalar<ScalarT>, vw::CompoundResult<vw::math::Va
 template boost::enable_if<vw::IsScalar<ScalarT>, vw::CompoundResult<vw::math::ArgValAtan2Functor<ScalarT>, PixelT, void>::type>::type vw::atan2 < PixelT,ScalarT > (const vw::PixelMathBase<PixelT>&, ScalarT);
 template vw::UnaryPerPixelView<ImageT, vw::math::ArgAtanhFunctor> vw::atanh < ImageT > (const vw::ImageViewBase<ImageT>&);
 template vw::CompoundResult<vw::math::ArgAtanhFunctor, PixelT, void>::type vw::atanh < PixelT > (const vw::PixelMathBase<PixelT>&);
-template vw::BlockRasterizeView<ImageT> vw::block_rasterize < ImageT > (const vw::ImageViewBase<ImageT>&, vw::int32, vw::int32, int);
+template vw::BlockRasterizeView<ImageT> vw::block_cache < ImageT > (const vw::ImageViewBase<ImageT>&, const vw::Vector2i&, int);
+template vw::BlockRasterizeView<ImageT> vw::block_cache < ImageT > (const vw::ImageViewBase<ImageT>&, const vw::Vector2i&, int, vw::Cache&);
+template vw::BlockRasterizeView<ImageT> vw::block_rasterize < ImageT > (const vw::ImageViewBase<ImageT>&, const vw::Vector2i&, int);
 template void vw::block_write_image < ImageT > (vw::ImageResource&, const vw::ImageViewBase<ImageT>&, const vw::ProgressCallback&);
 template BBox2i vw::bounding_box < ViewT > (const vw::ImageViewBase<ImageT>&);
 template vw::UnaryPerPixelView<ImageT, vw::math::ArgCbrtFunctor> vw::cbrt < ImageT > (const vw::ImageViewBase<ImageT>&);
@@ -91,6 +93,7 @@ template vw::EdgeExtensionView<ImageT, vw::ConstantEdgeExtension> vw::edge_exten
 template vw::EdgeExtensionView<ImageT, ExtensionT> vw::edge_extend < ImageT,ExtensionT > (const vw::ImageViewBase<ImageT>&, const ExtensionT&);
 template vw::EdgeExtensionView<ImageT, ExtensionT> vw::edge_extend < ImageT,ExtensionT > (const vw::ImageViewBase<ImageT>&, const vw::BBox2i&, const ExtensionT&);
 template vw::EdgeExtensionView<ImageT, ExtensionT> vw::edge_extend < ImageT,ExtensionT > (const vw::ImageViewBase<ImageT>&, ptrdiff_t, ptrdiff_t, vw::int32, vw::int32, const ExtensionT&);
+//template vw::EdgeMaskView<ViewT> vw::edge_mask < ViewT > (const vw::ImageViewBase<ImageT>&, const vw::ProgressCallback&);
 template vw::UnaryPerPixelView<ImageT, vw::math::ArgErfFunctor> vw::erf < ImageT > (const vw::ImageViewBase<ImageT>&);
 template vw::CompoundResult<vw::math::ArgErfFunctor, PixelT, void>::type vw::erf < PixelT > (const vw::PixelMathBase<PixelT>&);
 template vw::UnaryPerPixelView<ImageT, vw::math::ArgErfcFunctor> vw::erfc < ImageT > (const vw::ImageViewBase<ImageT>&);
@@ -141,7 +144,7 @@ template boost::enable_if<vw::IsScalar<ScalarT>, vw::CompoundResult<vw::math::Va
 template boost::enable_if<vw::IsScalar<ScalarT>, vw::CompoundResult<vw::math::ArgValHypotFunctor<ScalarT>, PixelT, void>::type>::type vw::hypot < PixelT,ScalarT > (const vw::PixelMathBase<PixelT>&, ScalarT);
 template vw::UnaryPerPixelView<ImageT, vw::math::ArgImagFunctor> vw::imag < ImageT > (const vw::ImageViewBase<ImageT>&);
 template vw::CompoundResult<vw::math::ArgImagFunctor, PixelT, void>::type vw::imag < PixelT > (const vw::PixelMathBase<PixelT>&);
-template std::vector<vw::math::BBox<int, 2>, std::allocator<vw::math::BBox<int, 2> > > vw::image_blocks < ViewT > (const vw::ImageViewBase<ImageT>&, vw::int32, vw::int32);
+//template std::vector<vw::math::BBox<int, 2>, std::allocator<vw::math::BBox<int, 2> > > vw::image_blocks < T > (const T&, vw::int32, vw::int32);
 template vw::InterpolationView<vw::EdgeExtensionView<ImageT, vw::ConstantEdgeExtension>, vw::BilinearInterpolation> vw::interpolate < ImageT > (const vw::ImageViewBase<ImageT>&);
 template vw::InterpolationView<vw::EdgeExtensionView<ImageT, vw::ConstantEdgeExtension>, InterpT> vw::interpolate < ImageT,InterpT > (const vw::ImageViewBase<ImageT>&, const InterpT&);
 template vw::InterpolationView<vw::EdgeExtensionView<ViewT, EdgeT>, InterpT> vw::interpolate < ImageT,InterpT,EdgeExtensionT > (const vw::ImageViewBase<ImageT>&, const InterpT&, const EdgeExtensionT&);

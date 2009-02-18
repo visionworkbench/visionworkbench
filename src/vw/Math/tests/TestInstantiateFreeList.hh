@@ -5,6 +5,8 @@
 // __END_LICENSE__
 
 
+template vw::math::Matrix<VectorT::value_type, 3, 3> vw::math::axis_angle_to_matrix < VectorT > (const vw::math::VectorBase<VectorT>&);
+template vw::math::Quaternion<VectorT::value_type> vw::math::axis_angle_to_quaternion < VectorT > (const vw::math::VectorBase<VectorT>&);
 template void vw::math::complete_svd < AMatrixT,UMatrixT,SingularValuesT,VTMatrixT > (AMatrixT&, UMatrixT&, SingularValuesT&, VTMatrixT&);
 template QuaternionT vw::math::conj < QuaternionT > (const vw::math::QuaternionBase<QuaternionT>&);
 template FuncT::domain_type vw::math::conjugate_gradient < FuncT,StepT > (const FuncT&, const FuncT::domain_type&, const StepT&, int);
@@ -98,6 +100,7 @@ template vw::math::Vector<vw::PromoteType<AMatrixT::value_type, SingularValuesT:
 template ImplT::domain_type vw::math::levenberg_marquardt < ImplT > (const vw::math::LeastSquaresModelBase<ImplT>&, const ImplT::domain_type&, const ImplT::result_type&, int&, double, double, double);
 //template vw::math::MatrixProxy<ContainerT::value_type, 0, 0> vw::math::matrix_proxy < ContainerT > (const ContainerT&);
 template vw::math::MatrixProxy<ElemT, 0, 0> vw::math::matrix_proxy < DataT > (DataT*, int, int);
+//template vw::math::Vector<QuaternionT::value_type, 3> vw::math::matrix_to_axis_angle < MatrixT > (const vw::math::MatrixBase<MatrixT>&);
 template vw::math::Matrix<vw::PromoteType<AMatrixT::value_type, SingularValuesT::value_type>::type, 0, 0> vw::math::multi_solve_symmetric < AMatrixT,BMatrixT > (AMatrixT&, BMatrixT&);
 template void vw::math::multi_solve_symmetric_nocopy < AMatrixT,BMatrixT > (AMatrixT&, BMatrixT&);
 template DomainT vw::math::nelder_mead < FuncT,DomainT > (const FuncT&, const DomainT&, int&, bool, int, double, int);
@@ -166,6 +169,7 @@ template bool vw::math::operator== < Matrix1T,Matrix2T > (const vw::math::Matrix
 template bool vw::math::operator== < QuaternionT > (const vw::math::QuaternionBase<QuaternionT>&, const vw::math::QuaternionBase<QuaternionT>&);
 template bool vw::math::operator== < Vector1T,Vector2T > (const vw::math::VectorBase<VectorT>&, const vw::math::VectorBase<Vector2T>&);
 //template vw::math::Matrix<vw::ProductType<Vector1T::value_type, Vector2T::value_type>::type, (vw::math::VectorSize::value ?  vw::math::VectorSize::value : 0), (vw::math::VectorSize::value ?  vw::math::VectorSize::value : 0)> vw::math::outer_prod < Vector1T,Vector2T > (const vw::math::VectorBase<VectorT>&, const vw::math::VectorBase<Vector2T>&);
+//template DomainT vw::math::particle_swarm_optimization < FuncT,DomainT > (const FuncT&, const DomainT&, const DomainT&, bool, int, unsigned int, unsigned int, double, double, double, double);
 template QuaternionT vw::math::pow < QuaternionT > (const vw::math::QuaternionBase<QuaternionT>&, int);
 template void vw::math::print_file < ForwardIterator > (ForwardIterator, ForwardIterator);
 //template void vw::math::print_record < ForwardIterator > (ForwardIterator, ForwardIterator);
@@ -173,6 +177,7 @@ template MatrixT::value_type vw::math::prod < MatrixT > (const vw::math::MatrixB
 template VectorT::value_type vw::math::prod < VectorT > (const vw::math::VectorBase<VectorT>&);
 template vw::math::Matrix<MatrixT::value_type, 0, 0> vw::math::pseudoinverse < AMatrixT > (AMatrixT&, double);
 template void vw::math::qrd < AMatrixT,QMatrixT,RMatrixT > (const AMatrixT&, QMatrixT&, RMatrixT&);
+//template FittingFuncT::result_type vw::math::ransac < ContainerT1,ContainerT2,FittingFuncT,ErrorFuncT > (const std::vector<CharT, std::allocator<_CharT> >&, const std::vector<DomainT, std::allocator<_T2> >&, const FittingFuncT&, const ErrorFuncT&, double);
 template QuaternionT::value_type vw::math::real < QuaternionT > (const vw::math::QuaternionBase<QuaternionT>&);
 template vw::math::VectorUnaryFunc<VectorT, vw::math::ArgRealFunctor> vw::math::real < VectorT > (const vw::math::VectorBase<VectorT>&);
 template vw::math::Quaternion<double> vw::math::relative_orientation < Matrix1T,Matrix2T > (const vw::math::MatrixBase<MatrixT>&, const vw::math::MatrixBase<Matrix2T>&);
@@ -208,5 +213,4 @@ template bool vw::math::vector_containment_comparison::operator< < VectorT1,Vect
 template bool vw::math::vector_containment_comparison::operator<= < VectorT1,VectorT2 > (const vw::math::VectorBase<VectorT>&, const vw::math::VectorBase<Vector2T>&);
 template bool vw::math::vector_containment_comparison::operator> < VectorT1,VectorT2 > (const vw::math::VectorBase<VectorT>&, const vw::math::VectorBase<Vector2T>&);
 template bool vw::math::vector_containment_comparison::operator>= < VectorT1,VectorT2 > (const vw::math::VectorBase<VectorT>&, const vw::math::VectorBase<Vector2T>&);
-template FittingFuncT::result_type vw::math::ransac < ContainerT1,ContainerT2,FittingFuncT,ErrorFuncT > (const std::vector<CharT, std::allocator<_CharT> >&, const std::vector<KernelT, std::allocator<_T2> >&, const FittingFuncT&, const ErrorFuncT&, double);
 //template vw::math::VectorProxy<ElemT, 0> vw::math::vector_proxy < DataT > (DataT*, int);
