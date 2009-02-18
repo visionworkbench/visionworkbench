@@ -76,18 +76,18 @@ AC_CHECK_FUNCS([getpwuid getpid])
 
 # Look for the python stuff
 AM_PATH_PYTHON([2.4], [HAVE_PYTHON=yes], [HAVE_PYTHON=no])
-AC_PYTHON_DEVEL([HAVE_PYTHON=yes], [HAVE_PYTHON=no])
-AC_PROG_SWIG([1.3.29], [HAVE_SWIG=yes], [HAVE_SWIG=no])
+dnl AC_PYTHON_DEVEL([HAVE_PYTHON=yes], [HAVE_PYTHON=no])
+dnl AC_PROG_SWIG([1.3.29], [HAVE_SWIG=yes], [HAVE_SWIG=no])
+dnl
+dnl AC_SUBST(HAVE_PYTHON)
+dnl AC_SUBST(HAVE_SWIG)
 
-AC_SUBST(HAVE_PYTHON)
-AC_SUBST(HAVE_SWIG)
-
-if test "$HAVE_SWIG" = "yes"; then
-    SWIG_ENABLE_CXX
-    if test "$HAVE_PYTHON" = "yes"; then
-        SWIG_PYTHON
-    fi
-fi
+dnl if test "$HAVE_SWIG" = "yes"; then
+dnl     SWIG_ENABLE_CXX
+dnl     if test "$HAVE_PYTHON" = "yes"; then
+dnl         SWIG_PYTHON
+dnl     fi
+dnl fi
 
 # Check for the code coverage programs
 AC_CHECK_PROGS(LCOV, lcov, false)
@@ -148,7 +148,7 @@ AM_CONDITIONAL(ENABLE_TEST_COVERAGE, [test x"$ENABLE_TEST_COVERAGE" = x"yes"])
 # distribution options
 ##################################################
 
-AX_ARG_WITH(dist-remove-modules, [Python Geometry gui], [mk am-set], [remove certain modules from the distribution])
+AX_ARG_WITH(dist-remove-modules, [Python gui], [mk am-set], [remove certain modules from the distribution])
 
 # These need to be here because automake-1.6 is dumb and does not properly
 # process AM_CONDITIONALs unless the first argument is a simple string.
@@ -234,25 +234,25 @@ PKG_CHECK_FUNCTION(TIFF, [TIFFScanlineSize64], [BigTIFF])
 
 AX_PKG(PROJ4, [], [-lproj], [projects.h])
 
-# Qt with AutoTroll.
-AT_WITH_QT([+gui +sql +opengl], [], [], [], [HAVE_PKG_QT_INCLUDE="no:missing QT"])
-
-if test x"$HAVE_PKG_QT_INCLUDE" != x"no"; then
-    AT_REQUIRE_QT_VERSION([4.0], [], [HAVE_PKG_QT_INCLUDE="no:wrong QT version"])
-fi
-
-# We seed QT_INCLUDE's cppflags with the ones qmake figured out
-PKG_QT_INCLUDE_CPPFLAGS="$PKG_QT_INCLUDE_CPPFLAGS $QT_CPPFLAGS"
-AX_PKG(QT_INCLUDE, [], [], [QVector])
-
-AX_PKG_ONE_OF(QT,
-    APPLE_QT, [AX_PKG_APPLE(QT, [QT_INCLUDE], [$QT_LIBS])],
-    LINUX_QT,
-     [AX_PKG(QT_LIBS,              [], [$QT_LIBS], [])
-      AX_PKG(QT_OPENGL,  [QT_INCLUDE], [],         [QtOpenGL])
-      AX_PKG(QT_GUI,     [QT_INCLUDE], [],         [QLabel])
-      AX_PKG(QT_SQL,     [QT_INCLUDE], [],         [QtSql])
-      AX_GROUP_PKG(LINUX_QT, [QT_INCLUDE QT_GUI QT_OPENGL QT_SQL QT_LIBS])])
+dnl # Qt with AutoTroll.
+dnl AT_WITH_QT([+gui +sql +opengl], [], [], [], [HAVE_PKG_QT_INCLUDE="no:missing QT"])
+dnl
+dnl if test x"$HAVE_PKG_QT_INCLUDE" != x"no"; then
+dnl     AT_REQUIRE_QT_VERSION([4.0], [], [HAVE_PKG_QT_INCLUDE="no:wrong QT version"])
+dnl fi
+dnl
+dnl # We seed QT_INCLUDE's cppflags with the ones qmake figured out
+dnl PKG_QT_INCLUDE_CPPFLAGS="$PKG_QT_INCLUDE_CPPFLAGS $QT_CPPFLAGS"
+dnl AX_PKG(QT_INCLUDE, [], [], [QVector])
+dnl
+dnl AX_PKG_ONE_OF(QT,
+dnl     APPLE_QT, [AX_PKG_APPLE(QT, [QT_INCLUDE], [$QT_LIBS])],
+dnl     LINUX_QT,
+dnl      [AX_PKG(QT_LIBS,              [], [$QT_LIBS], [])
+dnl       AX_PKG(QT_OPENGL,  [QT_INCLUDE], [],         [QtOpenGL])
+dnl       AX_PKG(QT_GUI,     [QT_INCLUDE], [],         [QLabel])
+dnl       AX_PKG(QT_SQL,     [QT_INCLUDE], [],         [QtSql])
+dnl       AX_GROUP_PKG(LINUX_QT, [QT_INCLUDE QT_GUI QT_OPENGL QT_SQL QT_LIBS])])
 
 # These are here (instead of inside the PKG macro where they belong)
 # for backwards compatability with older versions of automake.
@@ -293,9 +293,9 @@ fi
 
 
 AX_MODULE(TOOLS, [src/vw/tools], [], yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
-AX_MODULE(GUI, [src/vw/gui], [], yes, [VW], [QT BOOST_PROGRAM_OPTIONS GL])
 
-AX_MODULE_PYTHON([src/vw/Python], [no])
+dnl AX_MODULE(GUI, [src/vw/gui], [], yes, [VW], [QT BOOST_PROGRAM_OPTIONS GL])
+dnl AX_MODULE_PYTHON([src/vw/Python], [no])
 
 # These are here (instead of inside the MODULE macro where they belong)
 # for backwards compatability with older versions of automake.
