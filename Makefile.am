@@ -14,7 +14,7 @@ SUBDIRS = src
 
 EXTRA_DIST = config/rules.mak config.options.example NOTES docs \
 			 thirdparty/cxxtest INSTALLGUIDE scripts/include-graph.py \
-			 scripts/relicense.pl scripts/templates.js
+			 scripts/relicense.pl scripts/templates.js thirdparty/m4/.keep
 ########################################################################
 # special top-level rules
 ########################################################################
