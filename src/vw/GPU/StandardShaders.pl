@@ -21,7 +21,7 @@ open(OUT, ">$output_filename");
 # Print Initial Code
 print OUT "\#include <vw/GPU/StandardShaders.h>\n\n";
 print OUT "namespace vw { namespace GPU {\n\n";
-print OUT "std::map<std::string, char*> standard_shaders_map;\n\n";
+print OUT "std::map<std::string, const char*> standard_shaders_map;\n\n";
 print OUT "void init_standard_shaders() {\n";
 
 #Iterate Through Input Files, printing map insert functions

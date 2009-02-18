@@ -23,7 +23,7 @@ using namespace std;
 
 namespace vw { namespace GPU {
 
-  static char* expressionShaderPath = "expression_shaders/";
+  static const char* expressionShaderPath = "expression_shaders/";
 
   /*
     Does Rasterize() method delete the object and return a new one?
@@ -122,6 +122,7 @@ class ShaderBuilder {
       shader << "main()\n" << bodyText << ";\n" << "}\n\n" << functionsText;
     }
     printf("\n****************************************************\n%s\n\n", shader.str().c_str());
+    return true;
   }
 
   // BINDINGS

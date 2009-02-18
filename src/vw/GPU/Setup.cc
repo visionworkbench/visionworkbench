@@ -50,8 +50,8 @@ namespace vw { namespace GPU {
 
     gpu_log("Trying glutInit...");
     int argc = 1;
-    char* argv[1];
-    argv[0] = "";
+    char* argv[1] = { "" };
+
     glutInit(&argc, argv);
     gpu_log("Success\n");
 

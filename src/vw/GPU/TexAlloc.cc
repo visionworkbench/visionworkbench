@@ -69,7 +69,7 @@ namespace vw { namespace GPU {
       if(gpu_log_enabled()) {
 	if(format != realFormat || type != realType)
 	  sprintf(buffer, "+++ Creating Texture: { %s, %s, (%i x %i) } - NEW, Substituting {%s, %s }    (Total Allocated: %.2fMB)\n", 
-		  TexFormatToString(format), TexTypeToString(type), w, h, realFormat, realType, allocatedSize/1000000.0);
+		  TexFormatToString(format), TexTypeToString(type), w, h, TexFormatToString(realFormat), TexTypeToString(realType), allocatedSize/1000000.0);
 	else
 	  sprintf(buffer, "+++ Creating Texture: { %s, %s, (%i x %i) } - NEW    (Total of %.3fMB)\n", 
 		  TexFormatToString(format), TexTypeToString(type), w, h, allocatedSize/1000000.0);

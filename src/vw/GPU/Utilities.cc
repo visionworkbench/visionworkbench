@@ -35,7 +35,7 @@ void UtilityTimer::Print(double scalar) {
 	  deltaTimeNanos = (long long int) (1000000000 * scalar * (endTimeFloat - startTimeFloat));
 	}
 	else {
-		printf("Average Time, %i runs: ", averageCount);
+		printf("Average Time, %li runs: ", averageCount);
 		deltaTimeNanos = (long long int) (1000000000.0 * (scalar * averageValue));
 	}
 	int seconds = (int) (deltaTimeNanos / 1000000000);
