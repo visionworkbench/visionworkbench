@@ -219,7 +219,7 @@ AX_PKG_ONE_OF(GL,
      AX_PKG(LINUX_GL, [X11], [-lGL -lGLU -lglut], [GL/gl.h GL/glu.h GL/glut.h], [], [glCreateShader])])
 
 AX_PKG(GLEW, [GL M], [-lGLEW], [GL/glew.h])
-AX_PKG(CG, [], [-lCg -lCgGL], [Cg/cg.h])
+AX_PKG(CG, [GL], [-lCg -lCgGL], [Cg/cg.h])
 
 AX_PKG(GDAL, [], [-lgdal], [gdal.h])
 PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize], [TIFF])
