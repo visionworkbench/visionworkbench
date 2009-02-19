@@ -20,16 +20,6 @@ class TestLog : public CxxTest::TestSuite
 {
 public:
 
-  void test_system_settings() {
-    vw_out(0) << "\nTesting System Settings\n";
-
-    vw_out(0) << "\t--> DEFAULT_NUM_THREADS = " << vw_settings().default_num_threads() << "\n";
-    vw_settings().set_default_num_threads(3);
-    TS_ASSERT_EQUALS(vw_settings().default_num_threads(), 3);
-
-  }
-
-
   void test_vwrc() {
     std::ofstream ostr("./test_vwrc");
     ostr << "# Comment 1\n";
@@ -38,6 +28,7 @@ public:
     ostr << "NONEXISTENT_ENTRY 1\n";
     ostr << "\n";
     ostr << "DEFAULT_NUM_THREADS 20\n";
+    ostr << "SYSTEM_CACHE_SIZE 623\n";
     ostr << "# Comment \n";
     ostr << "\n";
     ostr << "LOGFILE console\n";
@@ -50,10 +41,13 @@ public:
     // Test to see if the settings were correctly read in
     vw_settings().set_vwrc_filename("./test_vwrc");
     TS_ASSERT_EQUALS(vw_settings().default_num_threads(), 20);
+    TS_ASSERT_EQUALS(vw_settings().system_cache_size(), 623);
 
     // Test to make sure that the API overrides the contents of vwrc
     vw_settings().set_default_num_threads(5);
+    vw_settings().set_system_cache_size(223);
     TS_ASSERT_EQUALS(vw_settings().default_num_threads(), 5);
+    TS_ASSERT_EQUALS(vw_settings().system_cache_size(), 223);
   }
 
 };

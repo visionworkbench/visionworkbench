@@ -217,8 +217,12 @@ namespace vw {
     void resize( size_t size );
     size_t max_size() { return m_max_size; }
 
-    static Cache& system_cache();
   };
+
+  /// Use this method to return a reference to the Vision Workbench
+  /// system cache.  This cache is used by default for all new
+  /// BlockImageView<>'s such as DiskImageView<>.
+  Cache& vw_system_cache();
 
 } // namespace vw
 

@@ -50,9 +50,9 @@ namespace vw {
   // ----------------------------------------------------------------
 
   enum MessageLevel {
-    ErrorMessage = 0,
-    WarningMessage = 10,
-    InfoMessage = 20,
+    InfoMessage = 0,
+    ErrorMessage = 10,
+    WarningMessage = 20,
     DebugMessage = 30,
     VerboseDebugMessage = 40,
     EveryMessage = 100
@@ -252,11 +252,6 @@ namespace vw {
     PerThreadBufferedStreamBuf() : m_buffers(), m_out(NULL) {}
     ~PerThreadBufferedStreamBuf() { sync(); }
 
-    void test() {
-      std::cout << "Call to test\n";
-    }
-
-
     void init(std::basic_streambuf<CharT,traits>* out) { m_out = out; }
   };
 
@@ -303,11 +298,6 @@ namespace vw {
       PerThreadBufferedStreamBufInit<CharT,traits>::buf()->init(out.rdbuf());
     }
 
-    void test() {
-      std::cout << "Hi there3\n";
-      this->rdbuf()->pubsync();
-      std::cout << "Hi there33\n";       
-    }
   };
 
   /// \endcond
@@ -435,7 +425,7 @@ namespace vw {
   /// The system log class manages logging to the console and to files
   /// on disk.  It supports multiple open log streams, each with their
   /// own LogRuleSet.  This class also periodically checks the
-  /// m_logconf_filename (set by default to ~/.vw_logconf) for
+  /// m_logconf_filename (set by default to ~/.vwrc) for
   /// changes.  When changes occur, the log settings are reloaded from
   /// the logconf file.
   ///
@@ -503,7 +493,7 @@ namespace vw {
     /// log_namespace.
     std::ostream& operator() (int log_level, std::string log_namespace="console");
 
-    /// Change the logconf filename (default: ~/.vw_longconf)
+    /// Change the logconf filename (default: ~/.vwrc)
     void set_logconf_filename(std::string filename) { m_logconf_filename = filename; }
 
     /// Change the logconf file poll period.  (default: 5 seconds)
@@ -543,18 +533,23 @@ namespace vw {
       m_console_log = boost::shared_ptr<LogInstance>(new LogInstance(stream) );
       m_console_log->rule_set() = rule_set;
     }
-
-    // Static method to access the singleton instance of the system
-    // log.  You should *always* use this method if you want to access
-    // Vision Workbench system log, where all Vision Workbench log
-    // messages go.
-    static Log& system_log();
   };
+
+  /// Static method to access the singleton instance of the system
+  /// log.  You should *always* use this method if you want to access
+  /// Vision Workbench system log, where all Vision Workbench log
+  /// messages go.
+  /// For example:
+  ///
+  ///     vw_log().console_log() << "Some text\n";
+  ///
+  Log& vw_log();
 
   /// The vision workbench logging operator.  Use this to generate a
   /// message in the system log using the given log_level and
   /// log_namespace.
-  std::ostream& vw_out( int log_level, std::string log_namespace = "console" );
+  std::ostream& vw_out( int log_level = vw::InfoMessage, 
+                        std::string log_namespace = "console" );
 
   /// Deprecated: Set the debug level for the system console log.  You
   /// can exercise much more fine grained control over the system log

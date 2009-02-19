@@ -137,7 +137,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
 
   DiskImageResourceJPEG::set_default_quality( jpeg_quality );
   DiskImageResourcePNG::set_default_compression_level( png_compression );
-  Cache::system_cache().resize( cache_size*1024*1024 );
+  vw_system_cache().resize( cache_size*1024*1024 );
 
   // Read in georeference info and compute total resolution.
   GeoReference output_georef;

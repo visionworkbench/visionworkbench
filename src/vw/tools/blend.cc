@@ -130,7 +130,7 @@ int main( int argc, char *argv[] ) {
       return 1;
     }
 
-    Cache::system_cache().resize( cache_size*1024*1024 );
+    vw_system_cache().resize( cache_size*1024*1024 );
 
     if( vm.count("grayscale") ) {
       do_blend<PixelGrayA<float> >();

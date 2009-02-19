@@ -32,9 +32,9 @@ namespace vw {
   /// Vision Workbench.
   ///
   /// Important Note: You should access the system settings using the
-  /// Settings::system_settings() static method, which access a
-  /// singleton instance of the system settings class.  You should not
-  /// need to create a settings object yourself!!
+  /// static vw_settings() function below, which returns a singleton
+  /// instance of the system settings class.  You should _not_ need to
+  /// create a settings object yourself!!!!
   class Settings {
 
     struct LogSetting {
@@ -44,9 +44,9 @@ namespace vw {
 
     // Vision Workbench Global Settings
     int m_default_num_threads;
-    std::vector< LogSetting > m_log_settings;
-
     bool m_default_num_threads_override;
+    size_t m_system_cache_size;
+    bool m_system_cache_size_override;
     
     // Member variables assoc. with periodically polling the log
     // configuration (logconf) file.
@@ -71,7 +71,7 @@ namespace vw {
     /// You should not create an instance of Settings on your own
     /// using this constructor.  Instead, you can access a global
     /// instance of the settings class using the static
-    /// Setting::system_settings() method below.
+    /// vw_settings() method below.
     Settings();   
 
     /// Change the vwrc filename (default: ~/.vwrc)
@@ -94,19 +94,33 @@ namespace vw {
     //                        Settings API
     // -----------------------------------------------------------------    
 
+    /// Query for the default number of threads used in block
+    /// processing operations.
     int default_num_threads();
+
+    /// Set the default number of threads used in block processing
+    /// operations.
     void set_default_num_threads(int num);
 
-    std::vector<LogSetting> log_settings();
-    // Note: you can set the log settings programmatically using the
-    // Log::system_log() object in Log.h.  It will ignore the settings
-    // in .vwrc if you have done so.
+    /// Query for the current system cache size.  Result is given in
+    /// units of megabytes.
+    size_t system_cache_size();
+
+    /// Set the current system cache size.  'size' should be in units
+    /// of megabytes.  The system cache is shared by all
+    /// BlockRasterizeView<>'s, including DiskImageView<>'s.
+    void set_system_cache_size(size_t size);
   };
   
-  // Static method to access the singleton instance of the system
-  // log.  You should *always* use this method if you want to access
-  // Vision Workbench system log, where all Vision Workbench log
-  // messages go.
+  /// Static method to access the singleton instance of the system
+  /// settings.  You should *always* use this method if you want to
+  /// access Vision Workbench system log, where all Vision Workbench
+  /// log messages go.
+  ///
+  /// For example:
+  ///
+  ///     vw_settings().set_system_cache_size(2048) 
+  ///
   Settings& vw_settings();
 
 } // namespace vw

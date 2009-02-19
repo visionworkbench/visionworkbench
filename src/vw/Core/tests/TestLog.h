@@ -138,17 +138,17 @@ public:
 
   void test_system_log() {
     std::cout << "\nTesting System Log\n";
-    Log::system_log().console_log().rule_set().add_rule(vw::EveryMessage, "test");
+    vw_log().console_log().rule_set().add_rule(vw::EveryMessage, "test");
 
     vw_out(0) << "\tTesting system log (first call)\n";
     vw_out(0,"test") << "\tTesting system log (second call)\n";
 
     boost::shared_ptr<LogInstance> new_log(new LogInstance(std::cout));
     new_log->rule_set().add_rule(vw::EveryMessage, "test");
-    Log::system_log().add(new_log);
+    vw_log().add(new_log);
     vw_out(0,"test") << "\tYou should see this message twice; once with the logging prefix and once without.\n";
 
-    Log::system_log().clear();
+    vw_log().clear();
     vw_out(0,"test") << "\tYou should see this message once.\n";
   }
 

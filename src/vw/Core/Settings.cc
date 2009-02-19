@@ -7,6 +7,7 @@
 
 #include <vw/config.h>
 #include <vw/Core/Thread.h>
+#include <vw/Core/Cache.h>
 #include <vw/Core/Settings.h>
 
 // Boost headers
@@ -27,6 +28,13 @@
 #include <pwd.h>
 #include <fstream>
 
+#ifdef WIN32
+#define stat _stat
+typedef struct _stat struct_stat;
+#else
+typedef struct stat struct_stat;
+#endif
+
 // ---------------------------------------------------
 // Create a single instance of the Settings class
 // ---------------------------------------------------
@@ -45,7 +53,6 @@ void vw::Settings::reload_vwrc() {
   std::ifstream f(m_vwrc_filename.c_str());
 
   if (f.is_open()) {
-    m_log_settings.clear();
     while (!f.eof()) {
       char c_line[2048];
       f.getline(c_line, 2048);
@@ -60,25 +67,13 @@ void vw::Settings::reload_vwrc() {
         // All lines in the file should contain exactly two tokens
         // seperated by a space.  If not, we ignore the line.
         if (tokens.size() == 2) {
-          if (boost::to_upper_copy(tokens[0]) == "DEFAULT_NUM_THREADS") {
+          if (boost::to_upper_copy(tokens[0]) == "DEFAULT_NUM_THREADS" && 
+              !m_default_num_threads_override) {
             m_default_num_threads = atoi(tokens[1].c_str());
-
-          } else if (boost::to_upper_copy(tokens[0]) == "LOGFILE") {
-            LogSetting l;
-            l.filename = tokens[1];
-
-            // LOGFILE <name> is following by entries contained in
-            // {}'s .  The closing bracket must be at the beginning of
-            // a line of its own.
-            while (line[0] != '}') {
-              f.getline(c_line, 2048);
-              line = std::string(c_line) + "\n";
-              if (line[0] != '{' && line[0] != '}') {
-                l.rules += line;
-              }
-            }
-            m_log_settings.push_back(l);
-          }
+          } else if (boost::to_upper_copy(tokens[0]) == "SYSTEM_CACHE_SIZE" &&
+                     !m_system_cache_size_override) {
+            m_system_cache_size = atoi(tokens[1].c_str());
+          } 
         }
       }
     }
@@ -114,7 +109,7 @@ void vw::Settings::stat_vwrc() {
 
       // Check to see if the file has changed.  If so, re-read the
       // settings.
-      struct stat stat_struct;
+      struct_stat stat_struct;
       if (stat(m_vwrc_filename.c_str(), &stat_struct) == 0) {
 #ifdef __APPLE__
         if (stat_struct.st_mtimespec.tv_sec > m_vwrc_last_modification) {
@@ -143,11 +138,13 @@ vw::Settings::Settings() : m_vwrc_last_polltime(0),
 
   // Set defaults
   m_default_num_threads = VW_NUM_THREADS;
+  m_system_cache_size = 1024;   // Default cache size is 1024-MB
 
   // By default, the .vwrc file has precedence, but the user can
   // override these settings by explicitly changing them using the
   // system_settings() API.
   m_default_num_threads_override = false;
+  m_system_cache_size_override = false;
 }
 
 vw::Settings& vw::vw_settings() {
@@ -173,9 +170,18 @@ void vw::Settings::set_default_num_threads(int num) {
   m_default_num_threads = num; 
 }
 
-
-std::vector<vw::Settings::LogSetting> vw::Settings::log_settings() { 
-  stat_vwrc(); 
+size_t vw::Settings::system_cache_size() { 
+  if (!m_system_cache_size_override)
+    stat_vwrc(); 
   Mutex::Lock lock(m_settings_mutex);
-  return m_log_settings;
+  return m_system_cache_size;
+}
+
+void vw::Settings::set_system_cache_size(size_t size) { 
+  {
+    Mutex::Lock lock(m_settings_mutex);
+    m_system_cache_size_override = true;
+    m_system_cache_size = size;
+  }
+  vw_system_cache().resize(size); 
 }

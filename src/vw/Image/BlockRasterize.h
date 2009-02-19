@@ -40,7 +40,7 @@ namespace vw {
       : m_child( image ),
         m_block_size( block_size ),
         m_num_threads( num_threads ),
-        m_cache_ptr( cache ? (&Cache::system_cache()) : 0 )
+        m_cache_ptr( cache ? (&vw_system_cache()) : 0 )
     {
       initialize();
     }

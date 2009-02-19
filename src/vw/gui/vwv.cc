@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Set the Vision Workbench cache size
-  Cache::system_cache().resize( cache_size*1024*1024 ); 
+  vw_system_cache().resize( cache_size*1024*1024 ); 
 
   // Check to make sure we can open the file.
   try {
