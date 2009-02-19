@@ -370,7 +370,7 @@ std::vector<int> pinholemodel_calibrate_ransac(PinholeModel& m, const std::vecto
   m = ransac(pixels, points, ransac_iter);
   
   std::vector<int> inlier_indices(ransac.inlier_indices(m, pixels, points));
-  vw::vw_out(vw::InfoMessage, "Camera") << "RANSAC classified as inliers: " << inlier_indices.size() << '/' << pixels.size() << std::endl;
+  vw::vw_out(vw::DebugMessage, "Camera") << "RANSAC classified as inliers: " << inlier_indices.size() << '/' << pixels.size() << std::endl;
   return inlier_indices;
 }
 

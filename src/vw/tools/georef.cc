@@ -114,7 +114,7 @@ int main( int argc, char *argv[] ) {
     set_debug_level(WarningMessage);
   }
 
-  Cache::system_cache().resize( cache_size*1024*1024 );
+  vw_system_cache().resize( cache_size*1024*1024 );
 
   GeoReference output_georef;
   output_georef.set_well_known_geogcs("WGS84");

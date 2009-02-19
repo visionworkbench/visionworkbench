@@ -76,15 +76,15 @@ namespace {
 // Basic stream support
 // ---------------------------------------------------
 std::ostream& vw::vw_out( int log_level, std::string log_namespace ) {
-  return Log::system_log()(log_level, log_namespace);
+  return vw_log()(log_level, log_namespace);
 }
 
 void vw::set_debug_level( int log_level ) {
-  Log::system_log().console_log().rule_set().add_rule(log_level, "console");
+  vw_log().console_log().rule_set().add_rule(log_level, "console");
 }
 
 void vw::set_output_stream( std::ostream& stream ) {
-  Log::system_log().set_console_stream(stream);
+  vw_log().set_console_stream(stream);
 }
 
 // ---------------------------------------------------
@@ -120,7 +120,7 @@ std::ostream& vw::LogInstance::operator() (int log_level, std::string log_namesp
 // Log Methods
 // ---------------------------------------------------
 void vw::Log::reload_logconf_rules() {
-  vw_out(InfoMessage, "log") << "Reloading log configuration file: " << m_logconf_filename << ".\n";
+  vw_out(DebugMessage, "log") << "Reloading log configuration file: " << m_logconf_filename << ".\n";
   
   std::ifstream f(m_logconf_filename.c_str());
   
@@ -137,35 +137,41 @@ void vw::Log::reload_logconf_rules() {
         std::vector<std::string> tokens;
         boost::split(tokens, line, boost::is_any_of(" "));
 
-        // All lines in the file should contain exactly two tokens
-        // seperated by a space.  If not, we ignore the line.
-        if (tokens.size() == 2) {
-
-          // Handle the wildcard "*" for log level.
-          int log_level;
-          if (tokens[0] == "*")
-            log_level = vw::EveryMessage;
-          else 
-            log_level = atoi(tokens[0].c_str());            
-
-          if (boost::to_lower_copy(tokens[0]) == "logfile") {
-            // If the first token is the "logfile" string, we start a
-            // new log file stream with the supplied filename.
-            if (tokens[1] == "console") {
-              vw_out(DebugMessage, "log") << "Adding rules for console.\n";
-              current_log.reset();
-            } else {
-              vw_out(DebugMessage, "log") << "Adding rules for log file: " << tokens[1] << ".\n";
-              current_log = boost::shared_ptr<LogInstance>( new LogInstance(tokens[1]) );
-              this->add(current_log);
-            }        
+        if (boost::to_upper_copy(tokens[0]) == "LOGFILE") {
+          // If the first token is the "logfile" string, we start a
+          // new log file stream with the supplied filename.
+          if (tokens[1] == "console") {
+            vw_out(DebugMessage, "log") << "Adding rules for console.\n";
+            current_log.reset();
           } else {
-            // Otherwise, we need to add the rule for the current log.
-            vw_out(DebugMessage, "log") << "Adding rule: " << tokens[0] << "   " << tokens[1] << "\n";
-            if (current_log) 
-              current_log->rule_set().add_rule(log_level, tokens[1]);
-            else 
-              m_console_log->rule_set().add_rule(log_level, tokens[1]);
+            vw_out(DebugMessage, "log") << "Adding rules for log file: " << tokens[1] << ".\n";
+            current_log = boost::shared_ptr<LogInstance>( new LogInstance(tokens[1]) );
+            this->add(current_log);
+          } 
+          
+          // LOGFILE <name> is following by entries contained in
+          // {}'s .  The closing bracket must be at the beginning of
+          // a line of its own.
+          while (line[0] != '}') {
+            f.getline(c_line, 2048);
+            line = boost::trim_copy(std::string(c_line));
+            if (line[0] != '{' && line[0] != '}' && line[0] != '#') {
+              boost::split(tokens, line, boost::is_any_of(" "));
+              
+              // Handle the wildcard "*" for log level.
+              int log_level;
+              if (tokens[0] == "*")
+                log_level = vw::EveryMessage;
+              else 
+                log_level = atoi(tokens[0].c_str());            
+              
+              // Otherwise, we need to add the rule for the current log.
+              vw_out(DebugMessage, "log") << "Adding rule: " << tokens[0] << "   " << tokens[1] << "\n";
+              if (current_log) 
+                current_log->rule_set().add_rule(log_level, tokens[1]);
+              else 
+                m_console_log->rule_set().add_rule(log_level, tokens[1]);
+            }
           }
         }
       }
@@ -229,7 +235,7 @@ void vw::Log::set_default_logconf_filename() {
 #endif
   if (homedir.empty())
       homedir = getenv("HOME");
-  m_logconf_filename = homedir + "/.vw_logconf";
+  m_logconf_filename = homedir + "/.vwrc";
 }
 
 std::ostream& vw::Log::operator() (int log_level, std::string log_namespace) { 
@@ -253,7 +259,7 @@ std::ostream& vw::Log::operator() (int log_level, std::string log_namespace) {
   return *m_multi_ostreams[ Thread::id() ];
 }
 
-vw::Log& vw::Log::system_log() {
+vw::Log& vw::vw_log() {
   system_log_once.run( init_system_log );
   return *system_log_ptr;
 }

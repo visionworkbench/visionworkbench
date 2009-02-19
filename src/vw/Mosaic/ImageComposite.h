@@ -213,7 +213,7 @@ namespace mosaic {
   public:
     typedef pixel_type result_type;
     
-    ImageComposite() : m_draft_mode(false), m_fill_holes(false), m_reuse_masks(false), m_cache(Cache::system_cache()) {}
+    ImageComposite() : m_draft_mode(false), m_fill_holes(false), m_reuse_masks(false), m_cache(vw_system_cache()) {}
 
     void insert( ImageViewRef<pixel_type> const& image, int x, int y );
 
