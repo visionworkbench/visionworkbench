@@ -123,7 +123,7 @@ AC_DEFUN([AX_PKG],
 
           if test -d $path/${AX_LIBDIR}; then
               TRY_ADD_LDFLAGS="$TRY_ADD_LDFLAGS -L$path/${AX_LIBDIR}"
-          elif test x"${AX_LIBDIR}" = "xlib64"; then
+          elif test x"${AX_OTHER_LIBDIR}" != "x"; then
               TRY_ADD_LDFLAGS="$TRY_ADD_LDFLAGS -L$path/${AX_OTHER_LIBDIR}"
           fi
         fi
