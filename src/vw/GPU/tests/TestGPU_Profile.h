@@ -243,9 +243,9 @@ GENERIC_FRAGMENT_SHADER_FUNCTION_1i2f(transform_sine_wave, period, amplitude, "U
   PixelT_CPU pixel_cpu;
 
   GPUImage<PixelT> tex;
-  read_image(tex, "tests/test_images/lighthouse-1000x1000.png");
+  read_image(tex, "test_images/lighthouse-1000x1000.png");
   ImageView<PixelT_CPU> img;
-  read_image(img, "tests/test_images/lighthouse-1000x1000.png");
+  read_image(img, "test_images/lighthouse-1000x1000.png");
   ImageView<PixelT_CPU> img_out(img.cols(), img.rows());
 
   printf("--- Image Size = %i x %i ---\n", img.cols(), img.rows());
@@ -386,7 +386,7 @@ public:
     int aaa = sizeof(UtilityTimer);
     UtilityTimer timer;
     GPUImage<PixelRGB<float> > tex(1000, 1000);
-    read_image(tex, "tests/test_images/lighthouse-1000x1000.png");
+    read_image(tex, "test_images/lighthouse-1000x1000.png");
     ImageView<PixelRGB<float> > img(1000, 1000);
     // *********** Profile Allocation / Compilation / Transfer, etc. **************
     // Allocation

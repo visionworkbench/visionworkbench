@@ -21,9 +21,10 @@ nodist_TestGPU_Statistics_SOURCES = TestGPU_Statistics.cxx
 nodist_TestGPU_Transform_SOURCES = TestGPU_Transform.cxx
 nodist_TestGPU_Algorithms_SOURCES = TestGPU_Algorithms.cxx
 
-TESTS = TestGPU_Profile TestGPU_ImageMath TestGPU_EdgeExtend TestGPU_Filter \
-TestGPU_Interpolation TestGPU_Manipulation TestGPU_Statistics TestGPU_Transform \
-TestGPU_Algorithms
+TESTS =
+#TESTS = TestGPU_Profile TestGPU_ImageMath TestGPU_EdgeExtend TestGPU_Filter \
+#TestGPU_Interpolation TestGPU_Manipulation TestGPU_Statistics TestGPU_Transform \
+#TestGPU_Algorithms
 
 endif
 
@@ -34,7 +35,9 @@ endif
 AM_CPPFLAGS = @VW_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_GPU_LIBS@ @PKG_VW_LIBS@
 
-check_PROGRAMS = $(TESTS)
+check_PROGRAMS = TestGPU_Profile TestGPU_ImageMath TestGPU_EdgeExtend TestGPU_Filter \
+                 TestGPU_Interpolation TestGPU_Manipulation TestGPU_Statistics TestGPU_Transform \
+                 TestGPU_Algorithms
 EXTRA_DIST = $(TESTS:%=%.h) test_images/lighthouse-1000x1000.png
 CLEANFILES = $(TESTS:%=%.cxx)
 

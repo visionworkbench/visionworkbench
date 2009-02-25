@@ -50,61 +50,61 @@ public:
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( copy(im) ) );
   }
 
-  void test_TransposeView()
-  {
-    ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    RemapView<ImageView<double>,2,1,2,1> rmv(im);
-    TS_ASSERT_EQUALS( rmv.cols(), 3 );
-    TS_ASSERT_EQUALS( rmv.rows(), 2 );
-    TS_ASSERT_EQUALS( rmv.planes(), 1 );
+  //void test_TransposeView()
+  //{
+  //  ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
+  //  RemapView<ImageView<double>,2,1,2,1> rmv(im);
+  //  TS_ASSERT_EQUALS( rmv.cols(), 3 );
+  //  TS_ASSERT_EQUALS( rmv.rows(), 2 );
+  //  TS_ASSERT_EQUALS( rmv.planes(), 1 );
 
-    // Test individual pixel access
-    TS_ASSERT_EQUALS( rmv(0,0), 1 );
-    TS_ASSERT_EQUALS( rmv(1,0), 3 );
-    TS_ASSERT_EQUALS( rmv(2,0), 5 );
-    TS_ASSERT_EQUALS( rmv(0,1), 2 );
-    TS_ASSERT_EQUALS( rmv(1,1), 4 );
-    TS_ASSERT_EQUALS( rmv(2,1), 6 );
+  //  // Test individual pixel access
+  //  TS_ASSERT_EQUALS( rmv(0,0), 1 );
+  //  TS_ASSERT_EQUALS( rmv(1,0), 3 );
+  //  TS_ASSERT_EQUALS( rmv(2,0), 5 );
+  //  TS_ASSERT_EQUALS( rmv(0,1), 2 );
+  //  TS_ASSERT_EQUALS( rmv(1,1), 4 );
+  //  TS_ASSERT_EQUALS( rmv(2,1), 6 );
 
-    // Test full rasterizaion
-    ImageView<double> im2 = rmv;
-    TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
-    TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
-    TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im2.cols(); ++c )
-        TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
+  //  // Test full rasterizaion
+  //  ImageView<double> im2 = rmv;
+  //  TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
+  //  TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
+  //  TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
+  //  for( int r=0; r<im2.rows(); ++r )
+  //    for( int c=0; c<im2.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
 
-    // Test partial rasterization
-    ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
-    TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
-    for( int r=0; r<im3.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
-        TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
+  //  // Test partial rasterization
+  //  ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
+  //  TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
+  //  for( int r=0; r<im3.rows(); ++r )
+  //    for( int c=0; c<im3.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
 
-    // Test the accessor / generic rasterization
-    ImageView<double> im4(rmv.cols(),rmv.rows());
-    vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
-        TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
+  //  // Test the accessor / generic rasterization
+  //  ImageView<double> im4(rmv.cols(),rmv.rows());
+  //  vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
+  //  for( int r=0; r<im2.rows(); ++r )
+  //    for( int c=0; c<im3.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
 
-    // Test the iterator
-    ImageView<double>::iterator im2i = im2.begin();
-    RemapView<ImageView<double>,2,1,2,1>::iterator rmvi = rmv.begin();
-    for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
-      TS_ASSERT_DIFFERS( rmvi, rmv.end() );
-      TS_ASSERT_EQUALS( *im2i, *rmvi );
-      TS_ASSERT_THROWS_NOTHING( ++rmvi );
-      ++im2i;
-    }
-    TS_ASSERT_EQUALS( rmvi, rmv.end() );
+  //  // Test the iterator
+  //  ImageView<double>::iterator im2i = im2.begin();
+  //  RemapView<ImageView<double>,2,1,2,1>::iterator rmvi = rmv.begin();
+  //  for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
+  //    TS_ASSERT_DIFFERS( rmvi, rmv.end() );
+  //    TS_ASSERT_EQUALS( *im2i, *rmvi );
+  //    TS_ASSERT_THROWS_NOTHING( ++rmvi );
+  //    ++im2i;
+  //  }
+  //  TS_ASSERT_EQUALS( rmvi, rmv.end() );
 
-    // Test the types
-    TS_ASSERT( has_pixel_type<double>( rmv ) );
-    TS_ASSERT( bool_trait<IsMultiplyAccessible>(rmv) );
-    TS_ASSERT( bool_trait<IsImageView>(rmv) );
-  }
+  //  // Test the types
+  //  TS_ASSERT( has_pixel_type<double>( rmv ) );
+  //  TS_ASSERT( bool_trait<IsMultiplyAccessible>(rmv) );
+  //  TS_ASSERT( bool_trait<IsImageView>(rmv) );
+  //}
 
   void test_transpose()
   {
@@ -129,61 +129,61 @@ public:
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( transpose(im) ) );
   }
 
-  void test_Rotate180View()
-  {
-    ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    RemapView<ImageView<double>,-1,-2,-1,-2> rmv(im);
-    TS_ASSERT_EQUALS( rmv.cols(), 2 );
-    TS_ASSERT_EQUALS( rmv.rows(), 3 );
-    TS_ASSERT_EQUALS( rmv.planes(), 1 );
+  //void test_Rotate180View()
+  //{
+  //  ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
+  //  RemapView<ImageView<double>,-1,-2,-1,-2> rmv(im);
+  //  TS_ASSERT_EQUALS( rmv.cols(), 2 );
+  //  TS_ASSERT_EQUALS( rmv.rows(), 3 );
+  //  TS_ASSERT_EQUALS( rmv.planes(), 1 );
 
-    // Test individual pixel access
-    TS_ASSERT_EQUALS( rmv(0,0), 6 );
-    TS_ASSERT_EQUALS( rmv(1,0), 5 );
-    TS_ASSERT_EQUALS( rmv(0,1), 4 );
-    TS_ASSERT_EQUALS( rmv(1,1), 3 );
-    TS_ASSERT_EQUALS( rmv(0,2), 2 );
-    TS_ASSERT_EQUALS( rmv(1,2), 1 );
+  //  // Test individual pixel access
+  //  TS_ASSERT_EQUALS( rmv(0,0), 6 );
+  //  TS_ASSERT_EQUALS( rmv(1,0), 5 );
+  //  TS_ASSERT_EQUALS( rmv(0,1), 4 );
+  //  TS_ASSERT_EQUALS( rmv(1,1), 3 );
+  //  TS_ASSERT_EQUALS( rmv(0,2), 2 );
+  //  TS_ASSERT_EQUALS( rmv(1,2), 1 );
 
-    // Test full rasterizaion
-    ImageView<double> im2 = rmv;
-    TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
-    TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
-    TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im2.cols(); ++c )
-        TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
+  //  // Test full rasterizaion
+  //  ImageView<double> im2 = rmv;
+  //  TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
+  //  TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
+  //  TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
+  //  for( int r=0; r<im2.rows(); ++r )
+  //    for( int c=0; c<im2.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
 
-    // Test partial rasterization
-    ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
-    TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
-    for( int r=0; r<im3.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
-        TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
+  //  // Test partial rasterization
+  //  ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
+  //  TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
+  //  for( int r=0; r<im3.rows(); ++r )
+  //    for( int c=0; c<im3.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
 
-    // Test the accessor / generic rasterization
-    ImageView<double> im4(rmv.cols(),rmv.rows());
-    vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
-        TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
+  //  // Test the accessor / generic rasterization
+  //  ImageView<double> im4(rmv.cols(),rmv.rows());
+  //  vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
+  //  for( int r=0; r<im2.rows(); ++r )
+  //    for( int c=0; c<im3.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
 
-    // Test the iterator
-    ImageView<double>::iterator im2i = im2.begin();
-    RemapView<ImageView<double>,-1,-2,-1,-2>::iterator rmvi = rmv.begin();
-    for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
-      TS_ASSERT_DIFFERS( rmvi, rmv.end() );
-      TS_ASSERT_EQUALS( *im2i, *rmvi );
-      TS_ASSERT_THROWS_NOTHING( ++rmvi );
-      ++im2i;
-    }
-    TS_ASSERT_EQUALS( rmvi, rmv.end() );
+  //  // Test the iterator
+  //  ImageView<double>::iterator im2i = im2.begin();
+  //  RemapView<ImageView<double>,-1,-2,-1,-2>::iterator rmvi = rmv.begin();
+  //  for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
+  //    TS_ASSERT_DIFFERS( rmvi, rmv.end() );
+  //    TS_ASSERT_EQUALS( *im2i, *rmvi );
+  //    TS_ASSERT_THROWS_NOTHING( ++rmvi );
+  //    ++im2i;
+  //  }
+  //  TS_ASSERT_EQUALS( rmvi, rmv.end() );
 
-    // Test the types
-    TS_ASSERT( has_pixel_type<double>( rmv ) );
-    TS_ASSERT( bool_trait<IsMultiplyAccessible>(rmv) );
-    TS_ASSERT( bool_trait<IsImageView>(rmv) );
-  }
+  //  // Test the types
+  //  TS_ASSERT( has_pixel_type<double>( rmv ) );
+  //  TS_ASSERT( bool_trait<IsMultiplyAccessible>(rmv) );
+  //  TS_ASSERT( bool_trait<IsImageView>(rmv) );
+  //}
 
   void test_rotate_180()
   {
@@ -206,61 +206,61 @@ public:
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( rotate_180(im) ) );
   }
 
-  void test_Rotate90CWView()
-  {
-    ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    RemapView<ImageView<double>,-2,1,2,-1> rmv(im);
-    TS_ASSERT_EQUALS( rmv.cols(), 3 );
-    TS_ASSERT_EQUALS( rmv.rows(), 2 );
-    TS_ASSERT_EQUALS( rmv.planes(), 1 );
+  //void test_Rotate90CWView()
+  //{
+  //  ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
+  //  RemapView<ImageView<double>,-2,1,2,-1> rmv(im);
+  //  TS_ASSERT_EQUALS( rmv.cols(), 3 );
+  //  TS_ASSERT_EQUALS( rmv.rows(), 2 );
+  //  TS_ASSERT_EQUALS( rmv.planes(), 1 );
 
-    // Test individual pixel access
-    TS_ASSERT_EQUALS( rmv(0,0), 5 );
-    TS_ASSERT_EQUALS( rmv(1,0), 3 );
-    TS_ASSERT_EQUALS( rmv(2,0), 1 );
-    TS_ASSERT_EQUALS( rmv(0,1), 6 );
-    TS_ASSERT_EQUALS( rmv(1,1), 4 );
-    TS_ASSERT_EQUALS( rmv(2,1), 2 );
+  //  // Test individual pixel access
+  //  TS_ASSERT_EQUALS( rmv(0,0), 5 );
+  //  TS_ASSERT_EQUALS( rmv(1,0), 3 );
+  //  TS_ASSERT_EQUALS( rmv(2,0), 1 );
+  //  TS_ASSERT_EQUALS( rmv(0,1), 6 );
+  //  TS_ASSERT_EQUALS( rmv(1,1), 4 );
+  //  TS_ASSERT_EQUALS( rmv(2,1), 2 );
 
-    // Test full rasterizaion
-    ImageView<double> im2 = rmv;
-    TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
-    TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
-    TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im2.cols(); ++c )
-        TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
+  //  // Test full rasterizaion
+  //  ImageView<double> im2 = rmv;
+  //  TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
+  //  TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
+  //  TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
+  //  for( int r=0; r<im2.rows(); ++r )
+  //    for( int c=0; c<im2.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
 
-    // Test partial rasterization
-    ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
-    TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
-    for( int r=0; r<im3.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
-        TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
+  //  // Test partial rasterization
+  //  ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
+  //  TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
+  //  for( int r=0; r<im3.rows(); ++r )
+  //    for( int c=0; c<im3.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
 
-    // Test the accessor / generic rasterization
-    ImageView<double> im4(rmv.cols(),rmv.rows());
-    vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
-        TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
+  //  // Test the accessor / generic rasterization
+  //  ImageView<double> im4(rmv.cols(),rmv.rows());
+  //  vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
+  //  for( int r=0; r<im2.rows(); ++r )
+  //    for( int c=0; c<im3.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
 
-    // Test the iterator
-    ImageView<double>::iterator im2i = im2.begin();
-    RemapView<ImageView<double>,-2,1,2,-1>::iterator rmvi = rmv.begin();
-    for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
-      TS_ASSERT_DIFFERS( rmvi, rmv.end() );
-      TS_ASSERT_EQUALS( *im2i, *rmvi );
-      TS_ASSERT_THROWS_NOTHING( ++rmvi );
-      ++im2i;
-    }
-    TS_ASSERT_EQUALS( rmvi, rmv.end() );
+  //  // Test the iterator
+  //  ImageView<double>::iterator im2i = im2.begin();
+  //  RemapView<ImageView<double>,-2,1,2,-1>::iterator rmvi = rmv.begin();
+  //  for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
+  //    TS_ASSERT_DIFFERS( rmvi, rmv.end() );
+  //    TS_ASSERT_EQUALS( *im2i, *rmvi );
+  //    TS_ASSERT_THROWS_NOTHING( ++rmvi );
+  //    ++im2i;
+  //  }
+  //  TS_ASSERT_EQUALS( rmvi, rmv.end() );
 
-    // Test the types
-    TS_ASSERT( has_pixel_type<double>( rmv ) );
-    TS_ASSERT( bool_trait<IsMultiplyAccessible>(rmv) );
-    TS_ASSERT( bool_trait<IsImageView>(rmv) );
-  }
+  //  // Test the types
+  //  TS_ASSERT( has_pixel_type<double>( rmv ) );
+  //  TS_ASSERT( bool_trait<IsMultiplyAccessible>(rmv) );
+  //  TS_ASSERT( bool_trait<IsImageView>(rmv) );
+  //}
 
   void test_rotate_90_cw()
   {
@@ -283,61 +283,61 @@ public:
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( rotate_90_cw(im) ) );
   }
 
-  void test_Rotate90CCWView()
-  {
-    ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    RemapView<ImageView<double>,2,-1,-2,1> rmv(im);
-    TS_ASSERT_EQUALS( rmv.cols(), 3 );
-    TS_ASSERT_EQUALS( rmv.rows(), 2 );
-    TS_ASSERT_EQUALS( rmv.planes(), 1 );
+  //void test_Rotate90CCWView()
+  //{
+  //  ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
+  //  RemapView<ImageView<double>,2,-1,-2,1> rmv(im);
+  //  TS_ASSERT_EQUALS( rmv.cols(), 3 );
+  //  TS_ASSERT_EQUALS( rmv.rows(), 2 );
+  //  TS_ASSERT_EQUALS( rmv.planes(), 1 );
 
-    // Test individual pixel access
-    TS_ASSERT_EQUALS( rmv(0,0), 2 );
-    TS_ASSERT_EQUALS( rmv(1,0), 4 );
-    TS_ASSERT_EQUALS( rmv(2,0), 6 );
-    TS_ASSERT_EQUALS( rmv(0,1), 1 );
-    TS_ASSERT_EQUALS( rmv(1,1), 3 );
-    TS_ASSERT_EQUALS( rmv(2,1), 5 );
+  //  // Test individual pixel access
+  //  TS_ASSERT_EQUALS( rmv(0,0), 2 );
+  //  TS_ASSERT_EQUALS( rmv(1,0), 4 );
+  //  TS_ASSERT_EQUALS( rmv(2,0), 6 );
+  //  TS_ASSERT_EQUALS( rmv(0,1), 1 );
+  //  TS_ASSERT_EQUALS( rmv(1,1), 3 );
+  //  TS_ASSERT_EQUALS( rmv(2,1), 5 );
 
-    // Test full rasterizaion
-    ImageView<double> im2 = rmv;
-    TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
-    TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
-    TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im2.cols(); ++c )
-        TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
+  //  // Test full rasterizaion
+  //  ImageView<double> im2 = rmv;
+  //  TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
+  //  TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
+  //  TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
+  //  for( int r=0; r<im2.rows(); ++r )
+  //    for( int c=0; c<im2.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
 
-    // Test partial rasterization
-    ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
-    TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
-    for( int r=0; r<im3.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
-        TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
+  //  // Test partial rasterization
+  //  ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
+  //  TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
+  //  for( int r=0; r<im3.rows(); ++r )
+  //    for( int c=0; c<im3.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
 
-    // Test the accessor / generic rasterization
-    ImageView<double> im4(rmv.cols(),rmv.rows());
-    vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
-        TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
+  //  // Test the accessor / generic rasterization
+  //  ImageView<double> im4(rmv.cols(),rmv.rows());
+  //  vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
+  //  for( int r=0; r<im2.rows(); ++r )
+  //    for( int c=0; c<im3.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
 
-    // Test the iterator
-    ImageView<double>::iterator im2i = im2.begin();
-    RemapView<ImageView<double>,2,-1,-2,1>::iterator rmvi = rmv.begin();
-    for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
-      TS_ASSERT_DIFFERS( rmvi, rmv.end() );
-      TS_ASSERT_EQUALS( *im2i, *rmvi );
-      TS_ASSERT_THROWS_NOTHING( ++rmvi );
-      ++im2i;
-    }
-    TS_ASSERT_EQUALS( rmvi, rmv.end() );
+  //  // Test the iterator
+  //  ImageView<double>::iterator im2i = im2.begin();
+  //  RemapView<ImageView<double>,2,-1,-2,1>::iterator rmvi = rmv.begin();
+  //  for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
+  //    TS_ASSERT_DIFFERS( rmvi, rmv.end() );
+  //    TS_ASSERT_EQUALS( *im2i, *rmvi );
+  //    TS_ASSERT_THROWS_NOTHING( ++rmvi );
+  //    ++im2i;
+  //  }
+  //  TS_ASSERT_EQUALS( rmvi, rmv.end() );
 
-    // Test the types
-    TS_ASSERT( has_pixel_type<double>( rmv ) );
-    TS_ASSERT( bool_trait<IsMultiplyAccessible>(rmv) );
-    TS_ASSERT( bool_trait<IsImageView>(rmv) );
-  }
+  //  // Test the types
+  //  TS_ASSERT( has_pixel_type<double>( rmv ) );
+  //  TS_ASSERT( bool_trait<IsMultiplyAccessible>(rmv) );
+  //  TS_ASSERT( bool_trait<IsImageView>(rmv) );
+  //}
 
   void test_rotate_90_ccw()
   {
@@ -360,61 +360,61 @@ public:
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( rotate_90_ccw(im) ) );
   }
 
-  void test_FlipVerticalView()
-  {
-    ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    RemapView<ImageView<double>,1,-2,1,-2> rmv(im);
-    TS_ASSERT_EQUALS( rmv.cols(), 2 );
-    TS_ASSERT_EQUALS( rmv.rows(), 3 );
-    TS_ASSERT_EQUALS( rmv.planes(), 1 );
+  //void test_FlipVerticalView()
+  //{
+  //  ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
+  //  RemapView<ImageView<double>,1,-2,1,-2> rmv(im);
+  //  TS_ASSERT_EQUALS( rmv.cols(), 2 );
+  //  TS_ASSERT_EQUALS( rmv.rows(), 3 );
+  //  TS_ASSERT_EQUALS( rmv.planes(), 1 );
 
-    // Test individual pixel access
-    TS_ASSERT_EQUALS( rmv(0,0), 5 );
-    TS_ASSERT_EQUALS( rmv(1,0), 6 );
-    TS_ASSERT_EQUALS( rmv(0,1), 3 );
-    TS_ASSERT_EQUALS( rmv(1,1), 4 );
-    TS_ASSERT_EQUALS( rmv(0,2), 1 );
-    TS_ASSERT_EQUALS( rmv(1,2), 2 );
+  //  // Test individual pixel access
+  //  TS_ASSERT_EQUALS( rmv(0,0), 5 );
+  //  TS_ASSERT_EQUALS( rmv(1,0), 6 );
+  //  TS_ASSERT_EQUALS( rmv(0,1), 3 );
+  //  TS_ASSERT_EQUALS( rmv(1,1), 4 );
+  //  TS_ASSERT_EQUALS( rmv(0,2), 1 );
+  //  TS_ASSERT_EQUALS( rmv(1,2), 2 );
 
-    // Test full rasterizaion
-    ImageView<double> im2 = rmv;
-    TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
-    TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
-    TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im2.cols(); ++c )
-        TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
+  //  // Test full rasterizaion
+  //  ImageView<double> im2 = rmv;
+  //  TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
+  //  TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
+  //  TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
+  //  for( int r=0; r<im2.rows(); ++r )
+  //    for( int c=0; c<im2.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
 
-    // Test partial rasterization
-    ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
-    TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
-    for( int r=0; r<im3.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
-        TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
+  //  // Test partial rasterization
+  //  ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
+  //  TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
+  //  for( int r=0; r<im3.rows(); ++r )
+  //    for( int c=0; c<im3.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
 
-    // Test the accessor / generic rasterization
-    ImageView<double> im4(rmv.cols(),rmv.rows());
-    vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
-        TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
+  //  // Test the accessor / generic rasterization
+  //  ImageView<double> im4(rmv.cols(),rmv.rows());
+  //  vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
+  //  for( int r=0; r<im2.rows(); ++r )
+  //    for( int c=0; c<im3.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
 
-    // Test the iterator
-    ImageView<double>::iterator im2i = im2.begin();
-    RemapView<ImageView<double>,1,-2,1,-2>::iterator rmvi = rmv.begin();
-    for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
-      TS_ASSERT_DIFFERS( rmvi, rmv.end() );
-      TS_ASSERT_EQUALS( *im2i, *rmvi );
-      TS_ASSERT_THROWS_NOTHING( ++rmvi );
-      ++im2i;
-    }
-    TS_ASSERT_EQUALS( rmvi, rmv.end() );
+  //  // Test the iterator
+  //  ImageView<double>::iterator im2i = im2.begin();
+  //  RemapView<ImageView<double>,1,-2,1,-2>::iterator rmvi = rmv.begin();
+  //  for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
+  //    TS_ASSERT_DIFFERS( rmvi, rmv.end() );
+  //    TS_ASSERT_EQUALS( *im2i, *rmvi );
+  //    TS_ASSERT_THROWS_NOTHING( ++rmvi );
+  //    ++im2i;
+  //  }
+  //  TS_ASSERT_EQUALS( rmvi, rmv.end() );
 
-    // Test the types
-    TS_ASSERT( has_pixel_type<double>( rmv ) );
-    TS_ASSERT( bool_trait<IsMultiplyAccessible>(rmv) );
-    TS_ASSERT( bool_trait<IsImageView>(rmv) );
-  }
+  //  // Test the types
+  //  TS_ASSERT( has_pixel_type<double>( rmv ) );
+  //  TS_ASSERT( bool_trait<IsMultiplyAccessible>(rmv) );
+  //  TS_ASSERT( bool_trait<IsImageView>(rmv) );
+  //}
 
   void test_flip_vertical()
   {
@@ -437,61 +437,61 @@ public:
     TS_ASSERT( bool_trait<IsMultiplyAccessible>( flip_vertical(im) ) );
   }
 
-  void test_FlipHorizontalView()
-  {
-    ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
-    RemapView<ImageView<double>,-1,2,-1,2> rmv(im);
-    TS_ASSERT_EQUALS( rmv.cols(), 2 );
-    TS_ASSERT_EQUALS( rmv.rows(), 3 );
-    TS_ASSERT_EQUALS( rmv.planes(), 1 );
+  //void test_FlipHorizontalView()
+  //{
+  //  ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
+  //  RemapView<ImageView<double>,-1,2,-1,2> rmv(im);
+  //  TS_ASSERT_EQUALS( rmv.cols(), 2 );
+  //  TS_ASSERT_EQUALS( rmv.rows(), 3 );
+  //  TS_ASSERT_EQUALS( rmv.planes(), 1 );
 
-    // Test individual pixel access
-    TS_ASSERT_EQUALS( rmv(0,0), 2 );
-    TS_ASSERT_EQUALS( rmv(1,0), 1 );
-    TS_ASSERT_EQUALS( rmv(0,1), 4 );
-    TS_ASSERT_EQUALS( rmv(1,1), 3 );
-    TS_ASSERT_EQUALS( rmv(0,2), 6 );
-    TS_ASSERT_EQUALS( rmv(1,2), 5 );
+  //  // Test individual pixel access
+  //  TS_ASSERT_EQUALS( rmv(0,0), 2 );
+  //  TS_ASSERT_EQUALS( rmv(1,0), 1 );
+  //  TS_ASSERT_EQUALS( rmv(0,1), 4 );
+  //  TS_ASSERT_EQUALS( rmv(1,1), 3 );
+  //  TS_ASSERT_EQUALS( rmv(0,2), 6 );
+  //  TS_ASSERT_EQUALS( rmv(1,2), 5 );
 
-    // Test full rasterizaion
-    ImageView<double> im2 = rmv;
-    TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
-    TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
-    TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im2.cols(); ++c )
-        TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
+  //  // Test full rasterizaion
+  //  ImageView<double> im2 = rmv;
+  //  TS_ASSERT_EQUALS( im2.cols(), rmv.cols() );
+  //  TS_ASSERT_EQUALS( im2.rows(), rmv.rows() );
+  //  TS_ASSERT_EQUALS( im2.planes(), rmv.planes() );
+  //  for( int r=0; r<im2.rows(); ++r )
+  //    for( int c=0; c<im2.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im2(c,r), rmv(c,r) );
 
-    // Test partial rasterization
-    ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
-    TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
-    for( int r=0; r<im3.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
-        TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
+  //  // Test partial rasterization
+  //  ImageView<double> im3(rmv.cols()-1,rmv.rows()-1);
+  //  TS_ASSERT_THROWS_NOTHING( rmv.rasterize( im3, BBox2i(1,1,rmv.cols()-1,rmv.rows()-1) ) );
+  //  for( int r=0; r<im3.rows(); ++r )
+  //    for( int c=0; c<im3.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im3(c,r), rmv(c+1,r+1) );
 
-    // Test the accessor / generic rasterization
-    ImageView<double> im4(rmv.cols(),rmv.rows());
-    vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
-    for( int r=0; r<im2.rows(); ++r )
-      for( int c=0; c<im3.cols(); ++c )
-        TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
+  //  // Test the accessor / generic rasterization
+  //  ImageView<double> im4(rmv.cols(),rmv.rows());
+  //  vw::rasterize( rmv, im4, BBox2i(0,0,rmv.cols(),rmv.rows()) );
+  //  for( int r=0; r<im2.rows(); ++r )
+  //    for( int c=0; c<im3.cols(); ++c )
+  //      TS_ASSERT_EQUALS( im4(c,r), rmv(c,r) );
 
-    // Test the iterator
-    ImageView<double>::iterator im2i = im2.begin();
-    RemapView<ImageView<double>,-1,2,-1,2>::iterator rmvi = rmv.begin();
-    for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
-      TS_ASSERT_DIFFERS( rmvi, rmv.end() );
-      TS_ASSERT_EQUALS( *im2i, *rmvi );
-      TS_ASSERT_THROWS_NOTHING( ++rmvi );
-      ++im2i;
-    }
-    TS_ASSERT_EQUALS( rmvi, rmv.end() );
+  //  // Test the iterator
+  //  ImageView<double>::iterator im2i = im2.begin();
+  //  RemapView<ImageView<double>,-1,2,-1,2>::iterator rmvi = rmv.begin();
+  //  for( int i=0; i<im2.cols()*im2.rows(); ++i ) {
+  //    TS_ASSERT_DIFFERS( rmvi, rmv.end() );
+  //    TS_ASSERT_EQUALS( *im2i, *rmvi );
+  //    TS_ASSERT_THROWS_NOTHING( ++rmvi );
+  //    ++im2i;
+  //  }
+  //  TS_ASSERT_EQUALS( rmvi, rmv.end() );
 
-    // Test the types
-    TS_ASSERT( has_pixel_type<double>( rmv ) );
-    TS_ASSERT( bool_trait<IsMultiplyAccessible>(rmv) );
-    TS_ASSERT( bool_trait<IsImageView>(rmv) );
-  }
+  //  // Test the types
+  //  TS_ASSERT( has_pixel_type<double>( rmv ) );
+  //  TS_ASSERT( bool_trait<IsMultiplyAccessible>(rmv) );
+  //  TS_ASSERT( bool_trait<IsImageView>(rmv) );
+  //}
 
   void test_flip_horizontal()
   {
