@@ -31,9 +31,23 @@
 
 #include <cstdlib>
 #include <ctime>
+#include <functional>
 
 using namespace vw;
 using namespace vw::camera;
+
+namespace {
+  template <typename T, unsigned DeltaN = 5>
+  class LessThanEqualDelta : std::binary_function <T, T, bool> {
+    public:
+      bool operator() (const T& a, const T& b) const {
+        if (a < b)
+          return true;
+        else
+          return (vw::fabs(a - b) <= ::pow(10, -int(DeltaN)));
+      }
+  };
+}
 
 class TestPinholeModelCalibrate : public CxxTest::TestSuite
 {
@@ -98,22 +112,22 @@ public:
       vw::Vector<double> serial(serialize_pinholemodel<PinholeModelSerializeIntrinsic, PinholeModelSerializeRotation, PinholeModelSerializeTranslation, PinholeModelSerializeTSAI>(m));
 
       // check if correctly serialized
-      TS_ASSERT_EQUALS(serial(0), fu);
-      TS_ASSERT_EQUALS(serial(1), fv);
-      TS_ASSERT_EQUALS(serial(2), cu);
-      TS_ASSERT_EQUALS(serial(3), cv);
+      TS_ASSERT_DELTA(serial(0), fu, 1e-10);
+      TS_ASSERT_DELTA(serial(1), fv, 1e-10);
+      TS_ASSERT_DELTA(serial(2), cu, 1e-10);
+      TS_ASSERT_DELTA(serial(3), cv, 1e-10);
       Vector3 model_rv(m.camera_pose().axis_angle());
-      TS_ASSERT_EQUALS(serial(4), model_rv.x());
-      TS_ASSERT_EQUALS(serial(5), model_rv.y());
-      TS_ASSERT_EQUALS(serial(6), model_rv.z());
+      TS_ASSERT_DELTA(serial(4), model_rv.x(), 1e-10);
+      TS_ASSERT_DELTA(serial(5), model_rv.y(), 1e-10);
+      TS_ASSERT_DELTA(serial(6), model_rv.z(), 1e-10);
       Vector3 model_cc(m.camera_center());
-      TS_ASSERT_EQUALS(serial(7), model_cc.x());
-      TS_ASSERT_EQUALS(serial(8), model_cc.y());
-      TS_ASSERT_EQUALS(serial(9), model_cc.z());
-      TS_ASSERT_EQUALS(serial(10), tsaiv(0));
-      TS_ASSERT_EQUALS(serial(11), tsaiv(1));
-      TS_ASSERT_EQUALS(serial(12), tsaiv(2));
-      TS_ASSERT_EQUALS(serial(13), tsaiv(3));
+      TS_ASSERT_DELTA(serial(7), model_cc.x(), 1e-10);
+      TS_ASSERT_DELTA(serial(8), model_cc.y(), 1e-10);
+      TS_ASSERT_DELTA(serial(9), model_cc.z(), 1e-10);
+      TS_ASSERT_DELTA(serial(10), tsaiv(0), 1e-10);
+      TS_ASSERT_DELTA(serial(11), tsaiv(1), 1e-10);
+      TS_ASSERT_DELTA(serial(12), tsaiv(2), 1e-10);
+      TS_ASSERT_DELTA(serial(13), tsaiv(3), 1e-10);
 
       // test deserialization
       PinholeModel d;
@@ -121,10 +135,10 @@ public:
       deserialize_pinholemodel<PinholeModelSerializeIntrinsic, PinholeModelSerializeRotation, PinholeModelSerializeTranslation, PinholeModelSerializeTSAI>(d, serial);
       double d_fu, d_fv, d_cu, d_cv;
       d.intrinsic_parameters(d_fu, d_fv, d_cu, d_cv);
-      TS_ASSERT_EQUALS(fu, d_fu);
-      TS_ASSERT_EQUALS(fv, d_fv);
-      TS_ASSERT_EQUALS(cu, d_cu);
-      TS_ASSERT_EQUALS(cv, d_cv);
+      TS_ASSERT_DELTA(fu, d_fu, 1e-10);
+      TS_ASSERT_DELTA(fv, d_fv, 1e-10);
+      TS_ASSERT_DELTA(cu, d_cu, 1e-10);
+      TS_ASSERT_DELTA(cv, d_cv, 1e-10);
       TS_ASSERT_DELTA(d.camera_pose().axis_angle().x(), m.camera_pose().axis_angle().x(), 1e-14);
       TS_ASSERT_DELTA(d.camera_pose().axis_angle().y(), m.camera_pose().axis_angle().y(), 1e-14);
       TS_ASSERT_DELTA(d.camera_pose().axis_angle().z(), m.camera_pose().axis_angle().z(), 1e-14);
@@ -157,18 +171,18 @@ public:
       vw::Vector<double> serial(serialize_pinholemodel<PinholeModelSerializeIntrinsic, PinholeModelSerializeRotation, PinholeModelSerializeTranslation>(m));
 
       // check if correctly serialized
-      TS_ASSERT_EQUALS(serial(0), fu);
-      TS_ASSERT_EQUALS(serial(1), fv);
-      TS_ASSERT_EQUALS(serial(2), cu);
-      TS_ASSERT_EQUALS(serial(3), cv);
+      TS_ASSERT_DELTA(serial(0), fu, 1e-10);
+      TS_ASSERT_DELTA(serial(1), fv, 1e-10);
+      TS_ASSERT_DELTA(serial(2), cu, 1e-10);
+      TS_ASSERT_DELTA(serial(3), cv, 1e-10);
       Vector3 model_rv(m.camera_pose().axis_angle());
-      TS_ASSERT_EQUALS(serial(4), model_rv.x());
-      TS_ASSERT_EQUALS(serial(5), model_rv.y());
-      TS_ASSERT_EQUALS(serial(6), model_rv.z());
+      TS_ASSERT_DELTA(serial(4), model_rv.x(), 1e-10);
+      TS_ASSERT_DELTA(serial(5), model_rv.y(), 1e-10);
+      TS_ASSERT_DELTA(serial(6), model_rv.z(), 1e-10);
       Vector3 model_cc(m.camera_center());
-      TS_ASSERT_EQUALS(serial(7), model_cc.x());
-      TS_ASSERT_EQUALS(serial(8), model_cc.y());
-      TS_ASSERT_EQUALS(serial(9), model_cc.z());
+      TS_ASSERT_DELTA(serial(7), model_cc.x(), 1e-10);
+      TS_ASSERT_DELTA(serial(8), model_cc.y(), 1e-10);
+      TS_ASSERT_DELTA(serial(9), model_cc.z(), 1e-10);
 
       // test deserialization
       PinholeModel d;
@@ -176,10 +190,10 @@ public:
       deserialize_pinholemodel<PinholeModelSerializeIntrinsic, PinholeModelSerializeRotation, PinholeModelSerializeTranslation>(d, serial);
       double d_fu, d_fv, d_cu, d_cv;
       d.intrinsic_parameters(d_fu, d_fv, d_cu, d_cv);
-      TS_ASSERT_EQUALS(fu, d_fu);
-      TS_ASSERT_EQUALS(fv, d_fv);
-      TS_ASSERT_EQUALS(cu, d_cu);
-      TS_ASSERT_EQUALS(cv, d_cv);
+      TS_ASSERT_DELTA(fu, d_fu, 1e-10);
+      TS_ASSERT_DELTA(fv, d_fv, 1e-10);
+      TS_ASSERT_DELTA(cu, d_cu, 1e-10);
+      TS_ASSERT_DELTA(cv, d_cv, 1e-10);
       TS_ASSERT_DELTA(d.camera_pose().axis_angle().x(), m.camera_pose().axis_angle().x(), 1e-14);
       TS_ASSERT_DELTA(d.camera_pose().axis_angle().y(), m.camera_pose().axis_angle().y(), 1e-14);
       TS_ASSERT_DELTA(d.camera_pose().axis_angle().z(), m.camera_pose().axis_angle().z(), 1e-14);
@@ -207,14 +221,14 @@ public:
       vw::Vector<double> serial(serialize_pinholemodel<PinholeModelSerializeIntrinsic, PinholeModelSerializeRotation>(m));
 
       // check if correctly serialized
-      TS_ASSERT_EQUALS(serial(0), fu);
-      TS_ASSERT_EQUALS(serial(1), fv);
-      TS_ASSERT_EQUALS(serial(2), cu);
-      TS_ASSERT_EQUALS(serial(3), cv);
+      TS_ASSERT_DELTA(serial(0), fu, 1e-10);
+      TS_ASSERT_DELTA(serial(1), fv, 1e-10);
+      TS_ASSERT_DELTA(serial(2), cu, 1e-10);
+      TS_ASSERT_DELTA(serial(3), cv, 1e-10);
       Vector3 model_rv(m.camera_pose().axis_angle());
-      TS_ASSERT_EQUALS(serial(4), model_rv.x());
-      TS_ASSERT_EQUALS(serial(5), model_rv.y());
-      TS_ASSERT_EQUALS(serial(6), model_rv.z());
+      TS_ASSERT_DELTA(serial(4), model_rv.x(), 1e-10);
+      TS_ASSERT_DELTA(serial(5), model_rv.y(), 1e-10);
+      TS_ASSERT_DELTA(serial(6), model_rv.z(), 1e-10);
 
       // test deserialization
       PinholeModel d;
@@ -222,10 +236,10 @@ public:
       deserialize_pinholemodel<PinholeModelSerializeIntrinsic, PinholeModelSerializeRotation>(d, serial);
       double d_fu, d_fv, d_cu, d_cv;
       d.intrinsic_parameters(d_fu, d_fv, d_cu, d_cv);
-      TS_ASSERT_EQUALS(fu, d_fu);
-      TS_ASSERT_EQUALS(fv, d_fv);
-      TS_ASSERT_EQUALS(cu, d_cu);
-      TS_ASSERT_EQUALS(cv, d_cv);
+      TS_ASSERT_DELTA(fu, d_fu, 1e-10);
+      TS_ASSERT_DELTA(fv, d_fv, 1e-10);
+      TS_ASSERT_DELTA(cu, d_cu, 1e-10);
+      TS_ASSERT_DELTA(cv, d_cv, 1e-10);
       TS_ASSERT_DELTA(d.camera_pose().axis_angle().x(), m.camera_pose().axis_angle().x(), 1e-14);
       TS_ASSERT_DELTA(d.camera_pose().axis_angle().y(), m.camera_pose().axis_angle().y(), 1e-14);
       TS_ASSERT_DELTA(d.camera_pose().axis_angle().z(), m.camera_pose().axis_angle().z(), 1e-14);
@@ -250,10 +264,10 @@ public:
       vw::Vector<double> serial(serialize_pinholemodel<PinholeModelSerializeIntrinsic>(m));
 
       // check if correctly serialized
-      TS_ASSERT_EQUALS(serial(0), fu);
-      TS_ASSERT_EQUALS(serial(1), fv);
-      TS_ASSERT_EQUALS(serial(2), cu);
-      TS_ASSERT_EQUALS(serial(3), cv);
+      TS_ASSERT_DELTA(serial(0), fu, 1e-10);
+      TS_ASSERT_DELTA(serial(1), fv, 1e-10);
+      TS_ASSERT_DELTA(serial(2), cu, 1e-10);
+      TS_ASSERT_DELTA(serial(3), cv, 1e-10);
 
       // test deserialization
       PinholeModel d;
@@ -261,10 +275,10 @@ public:
       deserialize_pinholemodel<PinholeModelSerializeIntrinsic>(d, serial);
       double d_fu, d_fv, d_cu, d_cv;
       d.intrinsic_parameters(d_fu, d_fv, d_cu, d_cv);
-      TS_ASSERT_EQUALS(fu, d_fu);
-      TS_ASSERT_EQUALS(fv, d_fv);
-      TS_ASSERT_EQUALS(cu, d_cu);
-      TS_ASSERT_EQUALS(cv, d_cv);
+      TS_ASSERT_DELTA(fu, d_fu, 1e-10);
+      TS_ASSERT_DELTA(fv, d_fv, 1e-10);
+      TS_ASSERT_DELTA(cu, d_cu, 1e-10);
+      TS_ASSERT_DELTA(cv, d_cv, 1e-10);
     }
   }
 
@@ -333,21 +347,21 @@ public:
       { 
 	pinholemodel_calibrate<PinholeModelSerializeTranslation, PinholeModelSerializeRotation>(c, pixels, points, 1000);
 	double new_mean = mean_sqr_error(c, pixels, points);
-	TS_ASSERT_LESS_THAN_EQUALS(new_mean, mean);
+	TS_ASSERT_RELATION(LessThanEqualDelta<double>, new_mean, mean);
 	mean = new_mean;
       }
 
       { 
 	pinholemodel_calibrate<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic>(c, pixels, points, 1000);
 	double new_mean = mean_sqr_error(c, pixels, points);
-	TS_ASSERT_LESS_THAN_EQUALS(new_mean, mean);
+	TS_ASSERT_RELATION(LessThanEqualDelta<double>, new_mean, mean);
 	mean = new_mean;
       }
 
       { 
 	pinholemodel_calibrate<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic, PinholeModelSerializeTSAI>(c, pixels, points, 1000);
 	double new_mean = mean_sqr_error(c, pixels, points);
-	TS_ASSERT_LESS_THAN_EQUALS(new_mean, mean);
+	TS_ASSERT_RELATION(LessThanEqualDelta<double>, new_mean, mean);
 	mean = new_mean;
       }
     }
