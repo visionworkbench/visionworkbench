@@ -439,6 +439,9 @@ namespace camera {
       
       double du = p[0] - cu;
       double dv = p[1] - cv;
+
+      VW_ASSERT(fu > 1e-100, MathErr() << "Tiny focal length will cause a NaN");
+      VW_ASSERT(fv > 1e-100, MathErr() << "Tiny focal length will cause a NaN");
       
       double x = du / fu;  // find (x, y) using similar triangles;
       double y = dv / fv;  // assumed z=1.
