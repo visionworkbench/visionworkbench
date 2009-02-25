@@ -51,6 +51,19 @@ class TestPinholeModelCalibrate : public CxxTest::TestSuite
     return mean / indices.size();
   }
 
+  double mean_sqr_error(const PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points) {
+    double mean = 0;
+    for (int i = 0; i < pixels.size(); i++)
+      mean += vw::math::norm_2_sqr(pixels[i] - m.point_to_pixel(points[i]));
+    return mean / pixels.size();
+  }
+
+  double mean_sqr_error(const PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, const std::vector<int>& indices) {
+    double mean = 0;
+    for (int j = 0; j < indices.size(); j++) 
+      mean += vw::math::norm_2_sqr(pixels[indices[j]] - m.point_to_pixel(points[indices[j]]));
+    return mean / indices.size();
+  }
 
   inline double rand(double max = 100) {
     return max*std::rand()/RAND_MAX;
@@ -269,8 +282,8 @@ public:
     TsaiLensDistortion tsai(tsaiv);
     PinholeModel m(cc, rm, fu, fv, cu, cv, u, v, w, tsai);
 
-    for (int ni = 0; ni < 3; ni++) {
-      std::vector<vw::Vector3> points; // in 3 space
+    for (int ni = 0; ni < 5; ni++) {
+      std::vector<vw::Vector3> points; // in 3D space
       std::vector<vw::Vector2> pixels; // from projection through m 
       int n = 30;
       for (int i = 0; i < n; i++) {
@@ -280,7 +293,7 @@ public:
 	pixels.push_back(m.point_to_pixel(p) + noise); 
       }
     
-      double mean = mean_error(m, pixels, points);
+      double mean = mean_sqr_error(m, pixels, points);
 
       // see if the optimizer improves the results; the mean error should decrease as 
       // the number of variables the optimizer gets to play with increases    
@@ -291,56 +304,50 @@ public:
       { 
 	PinholeModel c(m);
 	pinholemodel_calibrate<PinholeModelSerializeIntrinsic>(c, pixels, points, 1000);
-	double new_mean = mean_error(c, pixels, points);
+	double new_mean = mean_sqr_error(c, pixels, points);
 	TS_ASSERT_LESS_THAN(new_mean, mean);
       }
 
       { 
 	PinholeModel c(m);
 	pinholemodel_calibrate<PinholeModelSerializeTSAI>(c, pixels, points, 1000);
-	double new_mean = mean_error(c, pixels, points);
+	double new_mean = mean_sqr_error(c, pixels, points);
 	TS_ASSERT_LESS_THAN(new_mean, mean);
       }
 
       { 
 	PinholeModel c(m);
 	pinholemodel_calibrate<PinholeModelSerializeRotation>(c, pixels, points, 1000);
-	double new_mean = mean_error(c, pixels, points);
+	double new_mean = mean_sqr_error(c, pixels, points);
 	TS_ASSERT_LESS_THAN(new_mean, mean);
       }
 
+      PinholeModel c(m);
       { 
-	PinholeModel c(m);
 	pinholemodel_calibrate<PinholeModelSerializeTranslation>(c, pixels, points, 1000);
-	double new_mean = mean_error(c, pixels, points);
+	double new_mean = mean_sqr_error(c, pixels, points);
 	TS_ASSERT_LESS_THAN(new_mean, mean);
 	mean = new_mean;
       }
 
       { 
-	PinholeModel c(m);
 	pinholemodel_calibrate<PinholeModelSerializeTranslation, PinholeModelSerializeRotation>(c, pixels, points, 1000);
-	double new_mean = mean_error(c, pixels, points);
-	// The optimizer is making things worse in this step now.
-	// Commenting out the test for now.  Simon will look into 
-	// it further.
-	//TS_ASSERT_LESS_THAN(new_mean, mean);
+	double new_mean = mean_sqr_error(c, pixels, points);
+	TS_ASSERT_LESS_THAN_EQUALS(new_mean, mean);
 	mean = new_mean;
       }
 
       { 
-	PinholeModel c(m);
 	pinholemodel_calibrate<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic>(c, pixels, points, 1000);
-	double new_mean = mean_error(c, pixels, points);
-	TS_ASSERT_LESS_THAN(new_mean, mean);
+	double new_mean = mean_sqr_error(c, pixels, points);
+	TS_ASSERT_LESS_THAN_EQUALS(new_mean, mean);
 	mean = new_mean;
       }
 
       { 
-	PinholeModel c(m);
 	pinholemodel_calibrate<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic, PinholeModelSerializeTSAI>(c, pixels, points, 1000);
-	double new_mean = mean_error(c, pixels, points);
-	TS_ASSERT_LESS_THAN(new_mean, mean);
+	double new_mean = mean_sqr_error(c, pixels, points);
+	TS_ASSERT_LESS_THAN_EQUALS(new_mean, mean);
 	mean = new_mean;
       }
     }
