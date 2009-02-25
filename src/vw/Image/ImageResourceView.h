@@ -104,7 +104,7 @@ namespace vw {
       // On the other hand, the user has requested a scalar pixel type
       // but the file has a multi-channel pixel type, then we force a 
       // multi-plane interpretation.
-      if (PixelNumChannels<PixelT>::value == 1  && m_rsrc->channels() >= 1 && m_rsrc->planes() == 1) {
+      if (IsScalar<PixelT>::value  && m_rsrc->channels() >= 1 && m_rsrc->planes() == 1) {
 	m_planes = m_rsrc->channels();
       }
     }
