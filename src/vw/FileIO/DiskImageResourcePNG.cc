@@ -98,6 +98,8 @@ struct DiskImageResourcePNG::vw_png_context
 
   std::vector<DiskImageResourcePNG::Comment> comments;  // The PNG comments
 
+  virtual void read_comments() {}
+  
   // Cache the column stride for read/writes in bounding boxes
   int32 cstride;
 
@@ -125,6 +127,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
   // Current line we're at in the image.
   int current_line;
   boost::shared_array<uint8> scanline;
+  bool comments_loaded;
 
   // Other image data.
   int bytes_per_channel;
@@ -176,9 +179,6 @@ struct DiskImageResourcePNG::vw_png_read_context:
     // Read in the info pointer (some stuff will get changed, and we run
     // png_read_update_info).
     png_read_info(png_ptr, info_ptr);
-
-    // Fetch the comments.
-    read_comments();
 
     // Set up expansion. Palette images get expanded to RGB, grayscale
     // images of less than 8 bits per channel are expanded to 8 bits per
@@ -310,20 +310,14 @@ struct DiskImageResourcePNG::vw_png_read_context:
     }
   }
 
-private:
-  // Structures from libpng.
-  png_infop endinfo_ptr;
-
-  // Function for reading data, given to PNG.
-  static void read_data( png_structp png_ptr, png_bytep data, png_size_t length )
-  {
-    std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));;
-    fs->read( reinterpret_cast<char*>(data), length );
-  }
-
   // Fetches the comments out of the PNG when we first open it.
   void read_comments()
-  {
+  {    
+    if( comments_loaded ) return;
+    advance(outer->rows()-current_line);
+    png_read_end(png_ptr, info_ptr);
+    comments_loaded = true;
+
     png_text *text_ptr;
     int num_comments = png_get_text(png_ptr, info_ptr, &text_ptr, 0);
     comments.clear();
@@ -362,6 +356,17 @@ private:
       }
       comments.push_back( c );
     }
+  }
+
+private:
+  // Structures from libpng.
+  png_infop endinfo_ptr;
+
+  // Function for reading data, given to PNG.
+  static void read_data( png_structp png_ptr, png_bytep data, png_size_t length )
+  {
+    std::fstream *fs = static_cast<std::fstream*>(png_get_io_ptr(png_ptr));;
+    fs->read( reinterpret_cast<char*>(data), length );
   }
 };
 
@@ -613,18 +618,22 @@ void DiskImageResourcePNG::read_reset() const {
 }
 
 unsigned DiskImageResourcePNG::num_comments() const {
+  m_ctx->read_comments();
   return m_ctx->comments.size();
 }
 
 DiskImageResourcePNG::Comment const& DiskImageResourcePNG::get_comment( unsigned i ) const {
+  m_ctx->read_comments();
   return m_ctx->comments[i];
 }
 
 std::string const& DiskImageResourcePNG::get_comment_key( unsigned i ) const {
+  m_ctx->read_comments();
   return get_comment(i).key;
 }
 
 std::string const& DiskImageResourcePNG::get_comment_value( unsigned i ) const {
+  m_ctx->read_comments();
   return get_comment(i).text;
 }
 
