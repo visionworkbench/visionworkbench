@@ -200,15 +200,15 @@ AX_PKG_ONE_OF(LAPACK,
 AX_PKG(M, [], [-lm], [math.h])
 AX_PKG(Z, [], [-lz], [zlib.h])
 
-AX_PKG(PNG, [], [-lpng], [png.h])
+AX_PKG(PNG,  [Z], [-lpng], [png.h])
 AX_PKG(JPEG, [], [-ljpeg], [stdio.h jpeglib.h]) # jpeglib.h requires stdio.h to have been included
 
-AX_PKG(ILMBASE, [Z PTHREADS], [-lImath -lHalf -lIex], [Iex.h], [OpenEXR])
+AX_PKG(ILMBASE, [M Z PTHREADS], [-lImath -lHalf -lIex], [Iex.h], [OpenEXR])
 AX_PKG(OPENEXR, [ILMBASE], [-lIlmImf], [ImfOutputFile.h], [OpenEXR])
 
 AX_PKG_ONE_OF(HDF,
-    HDF_PLAIN,  [AX_PKG(HDF_PLAIN,  [], [-ldf -lmfhdf], [mfhdf.h]       )],
-    HDF_SUBDIR, [AX_PKG(HDF_SUBDIR, [], [-ldf -lmfhdf], [mfhdf.h], [hdf])]
+    HDF_PLAIN,  [AX_PKG(HDF_PLAIN,  [M JPEG], [-ldf -lmfhdf], [mfhdf.h]       )],
+    HDF_SUBDIR, [AX_PKG(HDF_SUBDIR, [M JPEG], [-ldf -lmfhdf], [mfhdf.h], [hdf])]
 )
 
 AX_PKG_ONE_OF(GL,
@@ -232,7 +232,7 @@ fi
 AX_PKG(TIFF, [], [-ltiff], [tiff.h])
 PKG_CHECK_FUNCTION(TIFF, [TIFFScanlineSize64], [BigTIFF])
 
-AX_PKG(PROJ4, [], [-lproj], [projects.h])
+AX_PKG(PROJ4, [M], [-lproj], [projects.h])
 
 # Qt with AutoTroll.
 AT_WITH_QT([+gui +sql +opengl], [], [], [], [HAVE_PKG_QT_INCLUDE="no:missing QT"])
