@@ -174,7 +174,7 @@ namespace ip {
       }
 
       // Calculating the starting offset
-      unsigned s_temp = floor(float(m_filter_size)/2.);
+      unsigned s_temp = (unsigned) floor(float(m_filter_size)/2.);
       m_starting_offset = s_temp + (m_sampling_step - (s_temp & ( m_sampling_step - 1)));
     }
 

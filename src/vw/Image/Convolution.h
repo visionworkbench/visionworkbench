@@ -131,12 +131,12 @@ namespace vw {
       if( (x >= ci) && (y >= cj) &&
 	  (x <= int(m_image.cols())-int(m_kernel.cols())+ci) &&
 	  (y <= int(m_image.rows())-int(m_kernel.rows())+cj) ) {
-        return correlate_2d_at_point( m_image.origin().advance(x-ci,y-cj,p),
-                                      m_kernel.origin(), m_kernel.cols(), m_kernel.rows() );
+        return (result_type) correlate_2d_at_point( m_image.origin().advance(x-ci,y-cj,p),
+						    m_kernel.origin(), m_kernel.cols(), m_kernel.rows() );
       }
       else {
-	return correlate_2d_at_point( edge_extend(m_image,m_edge).origin().advance(x-ci,y-cj,p),
-                                      m_kernel.origin(), m_kernel.cols(), m_kernel.rows() );
+	return (result_type) correlate_2d_at_point( edge_extend(m_image,m_edge).origin().advance(x-ci,y-cj,p),
+						    m_kernel.origin(), m_kernel.cols(), m_kernel.rows() );
       }
     }
 
@@ -221,12 +221,12 @@ namespace vw {
       if( (x >= int(ci)) && (y >= int(cj)) &&
           (x <= int(m_image.cols())-int(m_kernel2d.cols())+int(ci)) &&
           (y <= int(m_image.rows())-int(m_kernel2d.rows())+int(cj)) ) {
-        return correlate_2d_at_point( m_image.origin().advance(x-ci,y-cj,p),
-                                      m_kernel2d.origin(), m_kernel2d.cols(), m_kernel2d.rows() );
+        return (result_type) correlate_2d_at_point( m_image.origin().advance(x-ci,y-cj,p),
+						    m_kernel2d.origin(), m_kernel2d.cols(), m_kernel2d.rows() );
       }
       else {
-        return correlate_2d_at_point( edge_extend(m_image,m_edge).origin().advance(x-ci,y-cj,p),
-                                      m_kernel2d.origin(), m_kernel2d.cols(), m_kernel2d.rows() );
+        return (result_type) correlate_2d_at_point( edge_extend(m_image,m_edge).origin().advance(x-ci,y-cj,p),
+						    m_kernel2d.origin(), m_kernel2d.cols(), m_kernel2d.rows() );
       }
     }
 

@@ -93,7 +93,7 @@ namespace ip {
 				  int const& x, int const& y,
 				  unsigned const& filter_size ) {
     unsigned lobe = filter_size / 3;
-    unsigned half_lobe = floor( float(lobe) / 2.0 );
+    unsigned half_lobe = (unsigned) floor( float(lobe) / 2.0 );
     float derivative;
 
     // Adding positive left;
@@ -134,7 +134,7 @@ namespace ip {
 				  int const& x, int const& y,
 				  unsigned const& filter_size ) {
     unsigned lobe = filter_size / 3;
-    unsigned half_lobe = floor( float(lobe) / 2.0 );
+    unsigned half_lobe = (unsigned) floor( float(lobe) / 2.0 );
     float derivative;
 
     // Adding positive top;

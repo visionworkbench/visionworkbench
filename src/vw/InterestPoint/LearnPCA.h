@@ -47,7 +47,7 @@ public:
   template <class ViewT>
     vw::Vector<float> compute_descriptor (vw::ImageViewBase<ViewT> const& support) {
     // Create dummy return vector
-    vw::Vector<float> result(0.0f);
+    vw::Vector<float> result;
     
     int support_squared = support.impl().cols() * support.impl().rows();
 
