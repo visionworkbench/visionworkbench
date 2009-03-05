@@ -272,6 +272,7 @@ namespace vw {
 /// thing, but is disabled if VW_DEBUG_LEVEL is zero.  The default
 /// value for VW_DEBUG_LEVEL is defined in Debugging.h.
 #define VW_ASSERT(cond,excep) do { if(!(cond)) vw_throw( excep ); } while(0)
+#define VW_LINE_ASSERT(cond) do { if(!(cond)) vw_throw( vw::LogicErr() << "Assertion failed (" << __FILE__ << ":" << __LINE__ << "): " << #cond); } while(0)
 #if VW_DEBUG_LEVEL == 0
 #define VW_DEBUG_ASSERT(cond,excep) do {} while(0)
 #else

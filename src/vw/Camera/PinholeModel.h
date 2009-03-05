@@ -370,13 +370,12 @@ namespace camera {
       // The vectors u,v, and w must be orthonormal.
       
       /*   check for orthonormality of u,v,w              */
-      /*   maybe exceptions would be better to use here?  */
-      assert( dot_prod(m_u_direction, m_v_direction) == 0 );
-      assert( dot_prod(m_u_direction, m_w_direction) == 0 );
-      assert( dot_prod(m_v_direction, m_w_direction) == 0 );
-      assert( fabs( norm_2(m_u_direction) - 1 ) < 0.001 );
-      assert( fabs( norm_2(m_v_direction) - 1 ) < 0.001 );
-      assert( fabs( norm_2(m_w_direction) - 1 ) < 0.001 );
+      VW_LINE_ASSERT( dot_prod(m_u_direction, m_v_direction) == 0 );
+      VW_LINE_ASSERT( dot_prod(m_u_direction, m_w_direction) == 0 );
+      VW_LINE_ASSERT( dot_prod(m_v_direction, m_w_direction) == 0 );
+      VW_LINE_ASSERT( fabs( norm_2(m_u_direction) - 1 ) < 0.001 );
+      VW_LINE_ASSERT( fabs( norm_2(m_v_direction) - 1 ) < 0.001 );
+      VW_LINE_ASSERT( fabs( norm_2(m_w_direction) - 1 ) < 0.001 );
 
       Matrix<double,3,3> uvwRotation;
 
@@ -440,6 +439,9 @@ namespace camera {
       
       double du = p[0] - cu;
       double dv = p[1] - cv;
+
+      VW_ASSERT(fu > 1e-100, MathErr() << "Tiny focal length will cause a NaN");
+      VW_ASSERT(fv > 1e-100, MathErr() << "Tiny focal length will cause a NaN");
       
       double x = du / fu;  // find (x, y) using similar triangles;
       double y = dv / fv;  // assumed z=1.

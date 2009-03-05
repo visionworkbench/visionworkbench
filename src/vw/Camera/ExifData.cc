@@ -6,6 +6,8 @@
 
 
 #include <cstdio>
+#include <cstring>
+#include <cstdlib>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
 #include <vw/Camera/ExifData.h>
