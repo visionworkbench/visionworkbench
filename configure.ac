@@ -4,6 +4,11 @@ dnl the Administrator of the National Aeronautics and Space Administration.
 dnl All Rights Reserved.
 dnl __END_LICENSE__
 
+m4_pattern_forbid([^AX_])
+m4_pattern_allow([AX_CFLAGS])
+m4_pattern_allow([AX_INCLUDE_DIR])
+m4_pattern_allow([AX_LIBDIR])
+m4_pattern_allow([AX_OTHER_LIBDIR])
 
 ##################################################
 # A few starting bits
