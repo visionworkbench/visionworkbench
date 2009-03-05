@@ -28,9 +28,34 @@ namespace vw {
   // ----------------------  --------------  ---------------------------
   // ----------------------       Task       ---------------------------
   // ----------------------  --------------  ---------------------------
-  struct Task {
+  class Task {
+    Mutex m_task_mutex;
+    Condition m_finished_event;
+    volatile bool m_finished;
+
+  public:
+    Task() : m_finished(false) {}
     virtual ~Task() {}
     virtual void operator()() = 0;
+
+    // Keep track of whether task is finished
+    // WorkQueue is responsible for calling "signal_finished" after task is finished
+    bool is_finished() {
+      Mutex::Lock lock(m_task_mutex);
+      return m_finished;
+    }
+    void join() {
+      while (1) {
+        Mutex::Lock lock(m_task_mutex);
+        if (m_finished) return;
+        m_finished_event.wait(lock);
+      }
+    }
+    void signal_finished() {
+      Mutex::Lock lock(m_task_mutex);
+      m_finished = true;
+      m_finished_event.notify_all();
+    }
   };
 
   // ----------------------  --------------  ---------------------------
@@ -55,11 +80,13 @@ namespace vw {
       void operator()() { 
         // Run the initial task
         (*m_task)();
+        m_task->signal_finished();
 
         // ... and continue running tasks as long as they are available.
         while ( m_task = m_queue.get_next_task() ) {
           vw_out(DebugMessage, "thread") << "ThreadPool: reusing worker thread.\n";
           (*m_task)();
+          m_task->signal_finished();
         }
 
         m_queue.worker_thread_complete(m_thread_id); 

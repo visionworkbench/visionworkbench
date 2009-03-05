@@ -37,7 +37,7 @@ namespace vw {
                         Vector2i const& block_size,
                         int num_threads = 0,
                         bool cache = false )
-      : m_child( image ),
+      : m_child( new ImageT(image) ),
         m_block_size( block_size ),
         m_num_threads( num_threads ),
         m_cache_ptr( cache ? (&vw_system_cache()) : 0 )
@@ -49,7 +49,7 @@ namespace vw {
                         Vector2i const& block_size,
                         int num_threads,
                         Cache &cache )
-      : m_child( image ),
+      : m_child( new ImageT(image) ),
         m_block_size( block_size ),
         m_num_threads( num_threads ),
         m_cache_ptr( &cache )
@@ -57,9 +57,9 @@ namespace vw {
       initialize();
     }
 
-    inline int32 cols() const { return m_child.cols(); }
-    inline int32 rows() const { return m_child.rows(); }
-    inline int32 planes() const { return m_child.planes(); }
+    inline int32 cols() const { return m_child->cols(); }
+    inline int32 rows() const { return m_child->rows(); }
+    inline int32 planes() const { return m_child->planes(); }
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0, 0 ); }
 
     inline result_type operator()( int32 x, int32 y, int32 p = 0 ) const {
@@ -74,11 +74,11 @@ namespace vw {
         int32 ix = x/m_block_size.x(), iy = y/m_block_size.y();
         return block(ix,iy)->operator()( x-ix*m_block_size.x(), y - iy*m_block_size.y(), p );
       }
-      else return m_child(x,y,p);
+      else return (*m_child)(x,y,p);
     }
 
-    ImageT& child() { return m_child; }
-    ImageT const& child() const { return m_child; }
+    ImageT& child() { return *m_child; }
+    ImageT const& child() const { return *m_child; }
 
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i bbox ) const { 
@@ -129,21 +129,21 @@ namespace vw {
     // These objects rasterize a full block of image data to be 
     // stored in the cache.
     class BlockGenerator {
-      BlockRasterizeView const& m_view;
+      boost::shared_ptr<ImageT> m_child;
       BBox2i m_bbox;
     public:
       typedef ImageView<pixel_type> value_type;
 
-      BlockGenerator( BlockRasterizeView const& view, BBox2i const& bbox )
-        : m_view( view ), m_bbox( bbox ) {}
+      BlockGenerator( boost::shared_ptr<ImageT> const& child, BBox2i const& bbox )
+        : m_child( child ), m_bbox( bbox ) {}
 
       size_t size() const {
-        return m_bbox.width() * m_bbox.height() * m_view.planes() * sizeof(pixel_type);
+        return m_bbox.width() * m_bbox.height() * m_child->planes() * sizeof(pixel_type);
       }
 
       boost::shared_ptr<ImageView<pixel_type> > generate() const {
-        boost::shared_ptr<ImageView<pixel_type> > ptr( new ImageView<pixel_type>( m_bbox.width(), m_bbox.height(), m_view.planes() ) );
-        m_view.child().rasterize( *ptr, m_bbox );
+        boost::shared_ptr<ImageView<pixel_type> > ptr( new ImageView<pixel_type>( m_bbox.width(), m_bbox.height(), m_child->planes() ) );
+        m_child->rasterize( *ptr, m_bbox );
         return ptr;
       }
     };
@@ -169,7 +169,7 @@ namespace vw {
           for( int32 ix=0; ix<m_table_width; ++ix ) {
             BBox2i bbox( ix*m_block_size.x(), iy*m_block_size.y(), m_block_size.x(), m_block_size.y() );
             bbox.crop( view_bbox );
-            block(ix,iy) = m_cache_ptr->insert( BlockGenerator( *this, bbox ) );
+            block(ix,iy) = m_cache_ptr->insert( BlockGenerator( m_child, bbox ) );
           }
         }
       }
@@ -182,7 +182,9 @@ namespace vw {
       return (*m_block_table)[ix+iy*m_table_width];
     }
 
-    ImageT m_child;
+    // We store this by shared pointer so it doesn't move when we copy
+    // the BlockRasterizeView, since the BlockGenerators point to it.
+    boost::shared_ptr<ImageT> m_child;
     Vector2i m_block_size;
     int32 m_num_threads;
     Cache *m_cache_ptr;

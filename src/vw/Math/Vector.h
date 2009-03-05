@@ -340,27 +340,27 @@ namespace math {
   template <class DstElemT, class SrcVecT>
   struct VectorAssignImpl<Vector<DstElemT,2>,SrcVecT> {
     static void assign( Vector<DstElemT,2>& dst, SrcVecT const& src ) {
-      dst(0) = src(0);
-      dst(1) = src(1);
+      dst(0) = (DstElemT) src(0);
+      dst(1) = (DstElemT) src(1);
     }
   };
 
   template <class DstElemT, class SrcVecT>
   struct VectorAssignImpl<Vector<DstElemT,3>,SrcVecT> {
     static void assign( Vector<DstElemT,3>& dst, SrcVecT const& src ) {
-      dst(0) = src(0);
-      dst(1) = src(1);
-      dst(2) = src(2);
+      dst(0) = (DstElemT) src(0);
+      dst(1) = (DstElemT) src(1);
+      dst(2) = (DstElemT) src(2);
     }
   };
 
   template <class DstElemT, class SrcVecT>
   struct VectorAssignImpl<Vector<DstElemT,4>,SrcVecT> {
     static void assign( Vector<DstElemT,4>& dst, SrcVecT const& src ) {
-      dst(0) = src(0);
-      dst(1) = src(1);
-      dst(2) = src(2);
-      dst(3) = src(3);
+      dst(0) = (DstElemT) src(0);
+      dst(1) = (DstElemT) src(1);
+      dst(2) = (DstElemT) src(2);
+      dst(3) = (DstElemT) src(3);
     }
   };
 

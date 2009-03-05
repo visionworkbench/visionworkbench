@@ -4,6 +4,11 @@ dnl the Administrator of the National Aeronautics and Space Administration.
 dnl All Rights Reserved.
 dnl __END_LICENSE__
 
+m4_pattern_forbid([^AX_])
+m4_pattern_allow([AX_CFLAGS])
+m4_pattern_allow([AX_INCLUDE_DIR])
+m4_pattern_allow([AX_LIBDIR])
+m4_pattern_allow([AX_OTHER_LIBDIR])
 
 ##################################################
 # A few starting bits
@@ -200,15 +205,15 @@ AX_PKG_ONE_OF(LAPACK,
 AX_PKG(M, [], [-lm], [math.h])
 AX_PKG(Z, [], [-lz], [zlib.h])
 
-AX_PKG(PNG, [], [-lpng], [png.h])
+AX_PKG(PNG,  [Z], [-lpng], [png.h])
 AX_PKG(JPEG, [], [-ljpeg], [stdio.h jpeglib.h]) # jpeglib.h requires stdio.h to have been included
 
-AX_PKG(ILMBASE, [Z PTHREADS], [-lImath -lHalf -lIex], [Iex.h], [OpenEXR])
+AX_PKG(ILMBASE, [M Z PTHREADS], [-lImath -lHalf -lIex], [Iex.h], [OpenEXR])
 AX_PKG(OPENEXR, [ILMBASE], [-lIlmImf], [ImfOutputFile.h], [OpenEXR])
 
 AX_PKG_ONE_OF(HDF,
-    HDF_PLAIN,  [AX_PKG(HDF_PLAIN,  [], [-ldf -lmfhdf], [mfhdf.h]       )],
-    HDF_SUBDIR, [AX_PKG(HDF_SUBDIR, [], [-ldf -lmfhdf], [mfhdf.h], [hdf])]
+    HDF_PLAIN,  [AX_PKG(HDF_PLAIN,  [M JPEG], [-ldf -lmfhdf], [mfhdf.h]       )],
+    HDF_SUBDIR, [AX_PKG(HDF_SUBDIR, [M JPEG], [-ldf -lmfhdf], [mfhdf.h], [hdf])]
 )
 
 AX_PKG_ONE_OF(GL,
@@ -232,7 +237,7 @@ fi
 AX_PKG(TIFF, [], [-ltiff], [tiff.h])
 PKG_CHECK_FUNCTION(TIFF, [TIFFScanlineSize64], [BigTIFF])
 
-AX_PKG(PROJ4, [], [-lproj], [projects.h])
+AX_PKG(PROJ4, [M], [-lproj], [projects.h])
 
 dnl # Qt with AutoTroll.
 dnl AT_WITH_QT([+gui +sql +opengl], [], [], [], [HAVE_PKG_QT_INCLUDE="no:missing QT"])
@@ -269,26 +274,38 @@ AM_CONDITIONAL(HAVE_PKG_GDAL, [test "$HAVE_PKG_GDAL" = "yes"])
 # module definitions
 ##################################################
 
-AX_MODULE(CORE, [src/vw/Core], [libvwCore.la], yes, [], [BOOST THREADS M], [PTHREADS])
-AX_MODULE(MATH, [src/vw/Math], [libvwMath.la], yes, [CORE], [], [LAPACK])
-AX_MODULE(IMAGE, [src/vw/Image], [libvwImage.la], yes, [MATH])
-AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [], [Z PNG JPEG TIFF OPENEXR HDF GDAL])
-AX_MODULE(VW, [src/vw], [libvw.la], yes, [], [CORE MATH IMAGE], [FILEIO])
+AX_MODULE(CORE,          [src/vw/Core],          [libvwCore.la],          yes, [],      [BOOST THREADS M],  [PTHREADS])
+AX_MODULE(MATH,          [src/vw/Math],          [libvwMath.la],          yes, [CORE],  [],                 [LAPACK])
+AX_MODULE(IMAGE,         [src/vw/Image],         [libvwImage.la],         yes, [MATH])
+AX_MODULE(FILEIO,        [src/vw/FileIO],        [libvwFileIO.la],        yes, [IMAGE], [],                 [Z PNG JPEG TIFF OPENEXR HDF GDAL])
+AX_MODULE(VW,            [src/vw],               [libvw.la],              yes, [],      [CORE MATH IMAGE],  [FILEIO])
+
 if test "${MAKE_MODULE_VW}" != "yes"; then
   AC_MSG_ERROR([cannot build the Vision Workbench core modules!])
 fi
 
-AX_MODULE(CAMERA, [src/vw/Camera], [libvwCamera.la], yes, [VW])
-AX_MODULE(MOSAIC, [src/vw/Mosaic], [libvwMosaic.la], yes, [VW])
+# remove libvw.la from this. it's a convenience library that just happens to be
+# installed, but if we link against it, we create multi-path problems
+PKG_VW_LIBS_TEMP=
+for i in $PKG_VW_LIBS; do
+    case $i in
+        *libvw\.*) ;;
+        *) PKG_VW_LIBS_TEMP="$PKG_VW_LIBS_TEMP $i" ;;
+    esac
+done
+PKG_VW_LIBS="$PKG_VW_LIBS_TEMP"
+
+AX_MODULE(CAMERA,        [src/vw/Camera],        [libvwCamera.la],        yes, [VW])
+AX_MODULE(MOSAIC,        [src/vw/Mosaic],        [libvwMosaic.la],        yes, [VW])
 AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], yes, [VW])
-AX_MODULE(CARTOGRAPHY, [src/vw/Cartography], [libvwCartography.la], yes, [VW], [PROJ4], [GDAL])
-AX_MODULE(HDR, [src/vw/HDR], [libvwHDR.la], yes, [VW], [CAMERA LAPACK])
-AX_MODULE(STEREO, [src/vw/Stereo], [libvwStereo.la], yes, [VW], [])
-AX_MODULE(GEOMETRY, [src/vw/Geometry], [libvwGeometry.la], yes, [VW], [], [])
+AX_MODULE(CARTOGRAPHY,   [src/vw/Cartography],   [libvwCartography.la],   yes, [VW],    [PROJ4],            [GDAL])
+AX_MODULE(HDR,           [src/vw/HDR],           [libvwHDR.la],           yes, [VW],    [CAMERA LAPACK])
+AX_MODULE(STEREO,        [src/vw/Stereo],        [libvwStereo.la],        yes, [VW])
+AX_MODULE(GEOMETRY,      [src/vw/Geometry],      [libvwGeometry.la],      yes, [VW])
 if test $host_vendor = apple; then
-  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW], [GL], [CG])
+  AX_MODULE(GPU,         [src/vw/GPU],           [libvwGPU.la],           no,  [VW],    [GL],               [CG])
 else
-  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW], [GL GLEW], [CG])
+  AX_MODULE(GPU,         [src/vw/GPU],           [libvwGPU.la],           no,  [VW],    [GL GLEW],          [CG])
 fi
 
 

@@ -20,10 +20,6 @@ EXTRA_DIST = config/rules.mak config.options.example NOTES docs \
 # special top-level rules
 ########################################################################
 
-install-data-hook:
-	mkdir -p $(DESTDIR)$(prefix)/include/vw/
-	$(INSTALL) src/vw/config.h $(DESTDIR)$(prefix)/include/vw/
-
 dist-hook:
 	rm -rf `find $(distdir) -name '.svn'`
 if DIST_LICENSE

@@ -21,6 +21,8 @@
 // Vision Workbench
 #include <vw/Core/Log.h>
 #include <vw/Camera/BundleAdjust.h>
+#include <vw/Camera/CameraModel.h>
+#include <vw/Stereo/StereoModel.h>
 
 // Boost
 #include <boost/algorithm/string.hpp>
@@ -94,7 +96,7 @@ namespace camera {
     BundleAdjustReport(std::string const& name, 
 		       BundleAdjustModelT& model,
 		       BundleAdjusterT& adjuster,
-		       int report_lvl=10)  : bundleadjust_name(name), m_model(model), m_adjuster(adjuster), report_level(10) {
+		       int report_lvl=10)  : bundleadjust_name(name), m_model(model), m_adjuster(adjuster), report_level(report_lvl) {
       
       m_human_both.add(std::cout);
       
@@ -123,19 +125,26 @@ namespace camera {
       m_human_both << "[" << current_posix_time_string() << "]\tStarted "
 		   << bundleadjust_name << " Bundle Adjustment.\n";
       if ( report_level >= ClassicReport ) {
+	m_human_both << "Bundle Adjustment Parameters:\n";
 	m_human_both << "\tNumber Camera params: " << m_model.camera_params_n
 		 << std::endl;
 	m_human_both << "\tNumber Point params:  " << m_model.point_params_n
 		     << std::endl;
-	m_human_both << "\tCost Function:        " << m_adjuster.costfunction() 
-		     << std::endl;
+	m_human_both << "\tCost Function:        " << m_adjuster.costfunction().name_tag()
+		     << "\t" << m_adjuster.costfunction().threshold() << std::endl;
 	m_human_both << "\tInitial Lambda:       " << m_adjuster.lambda()
 		     << std::endl;
+	m_human_report << "\tA Inverse Covariance: " << m_model.A_inverse_covariance(0) << std::endl;
+	m_human_report << "\tB Inverse Covariance: " << m_model.B_inverse_covariance(0) << std::endl;
+	m_human_both << "\nStarting Error:\n";
 	generic_readings();
       }
+
+      if ( report_level >= TriangulationReport )
+	triangulation_readings();
       
       // Done
-      m_human_both << "\n";
+      m_human_both << "\n\n";
     }
     
     // This is a callback from inside the loop of iterations
@@ -143,19 +152,22 @@ namespace camera {
       m_human_both << "[" << current_posix_time_string() << "]\tFinished Iteration "
 		   << m_adjuster.iterations() << std::endl;
       
-      if ( report_level >= ClassicReport ) {
+      if ( report_level >= ClassicReport )
 	generic_readings();
 	
-	if (report_level >= TriangulationReport)
-	  triangulation_readings();
-      }
+      if ( report_level >= TriangulationReport )
+	triangulation_readings();
   
       m_human_both << "\n";
     }
     // This is a callback for just exit the loop of iterations
     void end_tie_in( void ) { 
       m_human_both << "[" << current_posix_time_string() << "]\tFinished Bundle Adjustment\n";
-      m_human_both << "\tNumber of Iterations: " << m_adjuster.iterations() - 1 << std::endl;
+      m_human_both << "\tNumber of Iterations: " << m_adjuster.iterations() - 1 << "\n\n";
+      if ( report_level >= ClassicReport )
+	generic_readings();
+      if ( report_level >= TriangulationReport )
+	triangulation_readings();
       
       // Closing all files out
       m_human_both.remove( m_human_report );
@@ -223,8 +235,8 @@ namespace camera {
       stddev_cam_pose /= camera_pose_errors.size();
       stddev_cam_pose = sqrt( stddev_cam_pose - mean_cam_pose*mean_cam_pose );
 
-      // Statistices gathering for ground control points
-      double min_gcp=0,max_gcp,mean_gcp=0,stddev_gcp=0;
+      // Statistics gathering for ground control points
+      double min_gcp=0,max_gcp=0,mean_gcp=0,stddev_gcp=0;
       if ( gcp_errors.size() != 0 ) {
 	min_gcp = *(std::min_element(gcp_errors.begin(),
 				     gcp_errors.end()));
@@ -258,8 +270,98 @@ namespace camera {
       else
 	m_human_both << "\tGCP [N/A]\n";
     }
+    
+    void stereo_errors( std::vector<double>& stereo_errors ) {
+      // Where all the measurement errors will go
+      stereo_errors.clear();
+      // Pulling out the required models and control network
+      std::vector<boost::shared_ptr<camera::CameraModel> > camera_models = m_model.adjusted_cameras();
+      boost::shared_ptr<ControlNetwork> network = m_model.control_network();
+      
+      for (unsigned i = 0; i < network->size(); ++i) {
+	for (unsigned j = 0; j+1 < (*network)[i].size(); ++j) {
+	  int cam1_index = (*network)[i][j].image_id();
+	  int cam2_index = (*network)[i][j+1].image_id();
+
+	  stereo::StereoModel sm( *camera_models[cam1_index],
+				  *camera_models[cam2_index] );
+
+	  double error;
+	  Vector3 pos = sm( (*network)[i][j].position(),
+			    (*network)[i][j+1].position(),
+			    error );
+	  stereo_errors.push_back(error);
+	}
+      }
+    }
+    void stereo_gcp_errors( std::vector<double>& stereo_gcp_errors ) {
+      // Where all the measurement errors will go
+      stereo_gcp_errors.clear();
+
+      // Pulling out the required models and control network
+      std::vector<boost::shared_ptr<camera::CameraModel> > camera_models = m_model.adjusted_cameras();
+      boost::shared_ptr<ControlNetwork> network = m_model.control_network();
+
+      for (unsigned i = 0; i < network->size(); ++i) {
+	if ((*network)[i].type() == ControlPoint::GroundControlPoint) {
+	  for (unsigned j = 0; j+1 < (*network)[i].size(); ++j) {
+	    int cam1_index = (*network)[i][j].image_id();
+	    int cam2_index = (*network)[i][j+1].image_id();
+	    
+	    stereo::StereoModel sm( *camera_models[cam1_index],
+				    *camera_models[cam2_index] );
+	    double error;
+	    Vector3 pos = sm( (*network)[i][j].position(),
+			      (*network)[i][j+1].position(),
+			      error );
+	    stereo_gcp_errors.push_back(error);
+	  }
+	}
+      }
+    }
     void triangulation_readings( void ) {
-      std::cout << "Not implemented";
+      std::vector<double> errors, gcp_errors;
+      stereo_errors( errors );
+      stereo_gcp_errors( gcp_errors );
+      
+      // Error for Statistics
+      // All points:
+      double min_tri=0,max_tri=0,mean_tri=0,stddev_tri=0;
+      min_tri = *(std::min_element(errors.begin(),
+				   errors.end()));
+      max_tri = *(std::max_element(errors.begin(),
+				   errors.end()));
+      for (unsigned i = 0; i < errors.size(); i++ )
+	mean_tri += errors[i];
+      mean_tri /= errors.size();
+      for (unsigned i = 0; i < errors.size(); i++ )
+	stddev_tri += errors[i]*errors[i];
+      stddev_tri /= errors.size();
+      stddev_tri = sqrt( stddev_tri - mean_tri*mean_tri );
+      // GCPs only"
+      double min_gcp=0,max_gcp=0,mean_gcp=0,stddev_gcp=0;
+      if ( gcp_errors.size() > 0 ) {
+	min_gcp = *(std::min_element(gcp_errors.begin(),
+				     gcp_errors.end()));
+	max_gcp = *(std::max_element(gcp_errors.begin(),
+				     gcp_errors.end()));
+	for (unsigned i = 0; i < gcp_errors.size(); i++ )
+	  mean_gcp += gcp_errors[i];
+	mean_gcp /= gcp_errors.size();
+	for (unsigned i = 0; i < gcp_errors.size(); i++ )
+	  stddev_gcp += gcp_errors[i]*gcp_errors[i];
+	stddev_gcp /= gcp_errors.size();
+	stddev_gcp = sqrt( stddev_gcp - mean_gcp*mean_gcp );
+      }
+
+      // Sharing the information now
+      m_human_both << "\tStereo Tri Error [min: " << min_tri << " mean: " << mean_tri
+		   << "\n\t                 max: " << max_tri << " dev: " << stddev_tri << "]\n";
+      if ( gcp_errors.size() > 0 ) 
+	m_human_both << "\tStereo GCP Error [min: " << min_gcp << " mean: " << mean_gcp
+		     << "\n\t                 max: " << max_gcp << " dev: " << stddev_gcp << "]\n";
+      else
+	m_human_both << "\tStereo GCP Error [N/A]\n";
     }
 
     // Public variables

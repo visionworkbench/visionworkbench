@@ -12,7 +12,7 @@
 int main( int argc, char *argv[] ) {
   try {
     VW_ASSERT( argc==3, vw::ArgumentErr() << "Invalid command-line args." );
-    vw::ImageView<float> image;
+    vw::ImageView<vw::PixelRGBA<float> > image;
     read_image( image, argv[1] );
     write_image( argv[2], image );
   }

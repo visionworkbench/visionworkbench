@@ -70,7 +70,7 @@ class NodataToMaskFunctor: public vw::UnaryReturnTemplateType<AlphaTypeFromPixel
   PixelT m_nodata_value;
 
 public:
-  NodataToMaskFunctor(float nodata_value = 0) : m_nodata_value(nodata_value) {} 
+  NodataToMaskFunctor(typename PixelChannelType<PixelT>::type nodata_value = 0) : m_nodata_value(nodata_value) {} 
 
   typename AlphaTypeFromPixelType<PixelT>::type operator() (PixelT const& pix) const {
     typedef typename AlphaTypeFromPixelType<PixelT>::type result_type;
