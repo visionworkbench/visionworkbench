@@ -9,6 +9,10 @@
 # sources
 ########################################################################
 
+TEST_LIST=TestGPU_Profile TestGPU_ImageMath TestGPU_EdgeExtend TestGPU_Filter \
+          TestGPU_Interpolation TestGPU_Manipulation TestGPU_Statistics TestGPU_Transform \
+          TestGPU_Algorithms
+
 if MAKE_MODULE_GPU
 
 nodist_TestGPU_Profile_SOURCES = TestGPU_Profile.cxx 
@@ -35,10 +39,8 @@ endif
 AM_CPPFLAGS = @VW_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_GPU_LIBS@ @PKG_VW_LIBS@
 
-check_PROGRAMS = TestGPU_Profile TestGPU_ImageMath TestGPU_EdgeExtend TestGPU_Filter \
-                 TestGPU_Interpolation TestGPU_Manipulation TestGPU_Statistics TestGPU_Transform \
-                 TestGPU_Algorithms
-EXTRA_DIST = $(TESTS:%=%.h) test_images/lighthouse-1000x1000.png
+check_PROGRAMS = $(TESTS)
+EXTRA_DIST = $(TEST_LIST:%=%.h) test_images/lighthouse-1000x1000.png
 CLEANFILES = $(TESTS:%=%.cxx)
 
 include $(top_srcdir)/config/rules.mak
