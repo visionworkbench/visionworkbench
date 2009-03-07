@@ -15,7 +15,7 @@ m4_pattern_allow([AX_OTHER_LIBDIR])
 ##################################################
 
 dnl TODO BEFORE RELEASE: update package version
-AC_INIT([NASA Vision Workbench], [2.0], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
+AC_INIT([NASA Vision Workbench], [2.0_beta2], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
@@ -35,7 +35,7 @@ dnl     revision++
 dnl (see http://sources.redhat.com/autobook/autobook/autobook_91.html)
 dnl
 dnl LIBTOOL_VERSION=current:revision:age
-LIBTOOL_VERSION=2:0:0
+LIBTOOL_VERSION=2:1:0
 AC_SUBST(LIBTOOL_VERSION)
 
 # This should be first, so everything else can use it

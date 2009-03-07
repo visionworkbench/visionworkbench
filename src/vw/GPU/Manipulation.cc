@@ -20,7 +20,7 @@ namespace vw {
 	((GPUImageBase&) image).rasterize_homography();	
 	ShaderInvocation_SetupGLState(image.width(), image.height());
 // Program - Install
-	GPUProgram* program = create_gpu_program("VWGPU_Interpolation/identity");
+	GPUProgram* program = create_gpu_program("VWGPU_Interp/identity");
 	program->install();
 // OUTPUT
 	GPUImageBase temp(image.width(), image.height(), image.format(), image.type());
@@ -51,7 +51,7 @@ namespace vw {
 	((GPUImageBase&) image).rasterize_homography();	
 	ShaderInvocation_SetupGLState(image.width(), image.height());
 // Program - Install
-	GPUProgram* program = create_gpu_program("VWGPU_Interpolation/identity");
+	GPUProgram* program = create_gpu_program("VWGPU_Interp/identity");
 	program->install();
 // OUTPUT
 	GPUImageBase temp(image.width(), image.height(), image.format(), image.type());
@@ -88,7 +88,7 @@ namespace vw {
 	((GPUImageBase&) image).rasterize_homography();	
 	ShaderInvocation_SetupGLState(image.width(), image.height());
 // Program - Install
-	GPUProgram* program = create_gpu_program("VWGPU_Interpolation/identity");
+	GPUProgram* program = create_gpu_program("VWGPU_Interp/identity");
 	program->install();
 // OUTPUT
 	GPUImageBase temp(image.width(), image.height(), image.format(), image.type());
@@ -218,7 +218,7 @@ GPUImageBase transpose(const GPUImageBase& image) {
 	int out_height = image.width();
 	ShaderInvocation_SetupGLState(out_width, out_height);
 // Program - Install
-	GPUProgram* program = create_gpu_program("VWGPU_Interpolation/identity");
+	GPUProgram* program = create_gpu_program("VWGPU_Interp/identity");
 	program->install();
 // OUTPUT
 	GPUImageBase temp(out_width, out_height, image.format(), image.type());
@@ -245,7 +245,7 @@ GPUImageBase transpose(const GPUImageBase& image) {
 // Setup
       ShaderInvocation_SetupGLState(image1);
 // Program - Install
-      GPUProgram* program = create_gpu_program("VWGPU_Interpolation/identity");
+      GPUProgram* program = create_gpu_program("VWGPU_Interp/identity");
       program->install();
 // OUTPUT
       glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, image1.target(), image1.name(), 0);	
