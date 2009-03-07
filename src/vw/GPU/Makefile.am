@@ -163,14 +163,14 @@ EXTRA_DIST= \
 	StandardShaders/VWGPU_ImageMath/tanh-1i0f.glsl \
 	StandardShaders/VWGPU_ImageMath/trunc-1i0f.cg \
 	StandardShaders/VWGPU_ImageMath/trunc-1i0f.glsl \
-	StandardShaders/VWGPU_Interpolation/identity.cg \
-	StandardShaders/VWGPU_Interpolation/identity.glsl \
-	StandardShaders/VWGPU_Interpolation/interpolation-bicubic.cg \
-	StandardShaders/VWGPU_Interpolation/interpolation-bicubic.glsl \
-	StandardShaders/VWGPU_Interpolation/interpolation-bilinear.cg \
-	StandardShaders/VWGPU_Interpolation/interpolation-bilinear.glsl \
-	StandardShaders/VWGPU_Interpolation/interpolation-nearest-pixel.cg \
-	StandardShaders/VWGPU_Interpolation/interpolation-nearest-pixel.glsl \
+	StandardShaders/VWGPU_Interp/identity.cg \
+	StandardShaders/VWGPU_Interp/identity.glsl \
+	StandardShaders/VWGPU_Interp/interpolation-bicubic.cg \
+	StandardShaders/VWGPU_Interp/interpolation-bicubic.glsl \
+	StandardShaders/VWGPU_Interp/interpolation-bilinear.cg \
+	StandardShaders/VWGPU_Interp/interpolation-bilinear.glsl \
+	StandardShaders/VWGPU_Interp/interpolation-nearest-pixel.cg \
+	StandardShaders/VWGPU_Interp/interpolation-nearest-pixel.glsl \
 	StandardShaders/VWGPU_Manipulation/PackGrayIntoRGBA.glsl \
 	StandardShaders/VWGPU_Manipulation/SelectChannel-A.glsl \
 	StandardShaders/VWGPU_Manipulation/SelectChannel-B.glsl \
