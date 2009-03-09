@@ -38,6 +38,7 @@ namespace vw {
     PixelDisparity() { m_ch[0]=m_ch[1]=0; m_ch[2]=1; }
     PixelDisparity( ChannelT const& scalar ) { m_ch[0]=m_ch[1]=scalar; m_ch[2] = 0; }
     PixelDisparity( ChannelT const& h, ChannelT const& v ) { m_ch[0]=h; m_ch[1]=v; m_ch[2]=0; }
+    PixelDisparity( ChannelT const& h, ChannelT const& v, ChannelT const& missing ) { m_ch[0]=h; m_ch[1]=v; m_ch[2]=missing; }
   
     template <class OtherT> explicit PixelDisparity( PixelDisparity<OtherT> const& other ) { m_ch[0]=other[0]; m_ch[1]=other[1]; m_ch[2]=other[2];}
 
