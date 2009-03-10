@@ -127,49 +127,41 @@ namespace stereo {
     }
 
      //disparity map up-sampling by two
-    ImageView<PixelDisparity<float> > upsample_disp_map_by_two(ImageView<PixelDisparity<float> >&disp, int up_width, int up_height) const {
-      
-      //#if 0
+    ImageView<PixelDisparity<float> > upsample_disp_map_by_two(ImageView<PixelDisparity<float> > input_disp, int up_width, int up_height) const {
+
       ImageView<PixelDisparity<float> > outDisp(up_width, up_height);	
-      ImageViewRef<PixelDisparity<float> > interpDisp = interpolate(disp);
-      		
-      int32 i, j;
-      float old_i, old_j;
-      int valid;
-      float new_disp_v, new_disp_h;
+      ImageViewRef<PixelDisparity<float> > disp = edge_extend(input_disp, 
+                                                              ConstantEdgeExtension());	
 
-      for (i = 0; i < up_width; i++) {
-	 
-  	 old_i = float(i)/2;
-         if (old_i > disp.cols()-1){
-	     old_i = disp.cols()-1;
-         }   
+      for (unsigned j = 0; j < outDisp.rows(); ++j) {
+        for (unsigned i = 0; i < outDisp.cols(); ++i) {
 
-         for (j = 0; j < up_height; j++) {
-           
-	   old_j = float(j)/2;
-              if (old_j > disp.rows()-1){
-	        old_j = disp.rows()-1;
-            }          
-            
-            new_disp_h = 2*interpDisp(old_i,old_j).h();
-            new_disp_v = 2*interpDisp(old_i,old_j).v();
-            valid =  ceil(interpDisp(old_i, old_j)[2]);
-	    
-            outDisp(i,j).v() = new_disp_v;
-            outDisp(i,j).h() = new_disp_h; 
-            outDisp(i,j)[2] = valid;
-            
-            /*          
-            if ( ((outDisp(i,j).h() == 0) || (outDisp(i,j).h() == 0)) && (valid!=0) ) { 
-               printf("i=%d, j=%d, new_v=%f, new_h=%f, old_v = %f, old_h = %f, valid=%d\n",
-		      i,j, outDisp(i,j).v(), outDisp(i,j).h(), disp(old_i, old_j).v(), disp(old_i, old_j).h(), valid);
-            }
-            */
-            
-         }
+          float x = math::impl::_floor(float(i)/2.0), y = math::impl::_floor(float(j)/2.0);
+          float normx = float(i)/2-x, normy = float(j)/2-y, norm1mx = 1.0-normx, norm1my = 1.0-normy;
+          float im_00 = disp(x,y).h();
+          float im_01 = disp(x,y+1).h();
+          float im_10 = disp(x+1,y).h();
+          float im_11 = disp(x+1,y+1).h();
+          
+          outDisp(i,j) = PixelDisparity<float>(2 * (disp(x,y).h()   * norm1mx*norm1my + 
+                                                    disp(x+1,y).h() * normx*norm1my + 
+                                                    disp(x,y+1).h() * norm1mx*normy + 
+                                                    disp(x+1,y+1).h() * normx*normy),
+
+                                               2 * (disp(x,y).v()   * norm1mx*norm1my + 
+                                                    disp(x+1,y).v() * normx*norm1my + 
+                                                    disp(x,y+1).v() * norm1mx*normy + 
+                                                    disp(x+1,y+1).v() * normx*normy), 
+                                               
+                                               ceil(
+                                                    disp(x,y).missing()   * norm1mx*norm1my + 
+                                                    disp(x+1,y).missing() * normx*norm1my + 
+                                                    disp(x,y+1).missing() * norm1mx*normy + 
+                                                    disp(x+1,y+1).missing() * normx*normy
+                                                    )
+                                               );
+        }
       }
-      //#endif
 
       #if 0
       ImageView<PixelDisparity<float> > outDisp(up_width, up_height);			
@@ -359,46 +351,49 @@ namespace stereo {
 
         printf("test2\n");
         //downsample the disparity map and the image pair
-        for (int i = 1; i < pyramid_levels; i++){
-	     printf("i = %d\n", i);
-             left_pyramid[i] = subsample_img_by_two(left_pyramid[i-1]);
-             right_pyramid[i] = subsample_img_by_two(right_pyramid[i-1]);
-             disparity_map_pyramid[i] = subsample_disp_map_by_two(disparity_map_pyramid[i-1]);
+        for (int i = 1; i < pyramid_levels; i++) {
+          left_pyramid[i] = subsample_img_by_two(left_pyramid[i-1]);
+          right_pyramid[i] = subsample_img_by_two(right_pyramid[i-1]);
+          disparity_map_pyramid[i] = subsample_disp_map_by_two(disparity_map_pyramid[i-1]);
         }
         
-        printf("test3\n");
-          
         subpixel_correlation_affine_2d_EM(disparity_map_pyramid[pyramid_levels-1],
                                           left_pyramid[pyramid_levels-1],
                                           right_pyramid[pyramid_levels-1],
                                           m_kern_width, m_kern_height,
                                           m_do_h_subpixel, m_do_v_subpixel,
-                                          m_verbose);
-	
-        printf("test4\n"); 
+                                          m_verbose);	
         disparity_map_upsampled[pyramid_levels-1] = disparity_map_pyramid[pyramid_levels-1];
-	printf("test5\n");
-        for (int i = pyramid_levels-2; i>=0; i--){
-  
-             printf("test6\n");
-             int up_width = left_pyramid[i].cols();
-             int up_height = left_pyramid[i].rows();
-             disparity_map_upsampled[i] = upsample_disp_map_by_two(disparity_map_upsampled[i+1], up_width, up_height);
-	     printf("test7\n");
 
-             printf("disp_map_width = %d\n", disparity_map_upsampled[i].cols());
-             printf("disp_map_height = %d\n", disparity_map_upsampled[i].rows());
-             printf("left_pyramid_width = %d\n", left_pyramid[i].cols());
-             printf("left_pyramid_height = %d\n", left_pyramid[i].rows());
-             
-             subpixel_correlation_affine_2d_EM(disparity_map_upsampled[i],
-                                               left_pyramid[i],
-                                               right_pyramid[i],
-                                               m_kern_width, m_kern_height,
-                                               m_do_h_subpixel, m_do_v_subpixel,
-                                               m_verbose);
-	     
-             printf("test8\n");
+        for (int i = pyramid_levels-2; i>=0; i--){
+
+          // For Debugging
+          // std::ostringstream ostr2;
+          // ostr2 << "subsamp-" << i << ".exr";
+          // write_image(ostr2.str(), disparity_map_upsampled[i+1]);
+
+          int up_width = left_pyramid[i].cols();
+          int up_height = left_pyramid[i].rows();
+          std::cout << "\n\n--> Upsampling to " << up_width << " " << up_height << "\n";
+          disparity_map_upsampled[i] = upsample_disp_map_by_two(disparity_map_upsampled[i+1], 
+                                                                up_width, up_height);
+          
+          // For Debugging
+          // std::ostringstream ostr;
+          // ostr << "upsamp-" << i << ".exr";
+          // write_image(ostr.str(), disparity_map_upsampled[i]);
+
+          printf("disp_map_width = %d\n", disparity_map_upsampled[i].cols());
+          printf("disp_map_height = %d\n", disparity_map_upsampled[i].rows());
+          printf("left_pyramid_width = %d\n", left_pyramid[i].cols());
+          printf("left_pyramid_height = %d\n", left_pyramid[i].rows());
+          
+          subpixel_correlation_affine_2d_EM(disparity_map_upsampled[i],
+                                            left_pyramid[i],
+                                            right_pyramid[i],
+                                            m_kern_width, m_kern_height,
+                                            m_do_h_subpixel, m_do_v_subpixel,
+                                            m_verbose);
 	}
 
         printf("disp_map_width = %d, height = %d\n", disparity_map_patch.cols(), disparity_map_patch.rows());
