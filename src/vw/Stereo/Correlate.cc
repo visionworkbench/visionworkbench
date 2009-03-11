@@ -911,24 +911,20 @@ namespace stereo {
                                       bool verbose) {
     
 
-    int max_em_iter = 3;
-    float max_blur_sigma = 3;//1;//2;
-    float  min_var2_plane = 0.000001;//0.00001;//0.0001;
-    float  min_var2_noise = 0.001;//0.01;//0.0001;//0.000001;//0.0001;
-    //0.000001 this works
-    int save_confidence_image = 0;//1;
-    float two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0); //4.0 works well
+      int    max_em_iter = 2;
+      float  blur_sigma = 1.5;//3;//2;//1;
+      float  min_var2_plane = 0.000001;//0.00001;//0.0001;
+      float  min_var2_noise = 0.000001; //0.001;//0.01;//0.0001;//0.000001;//0.0001;
+      int    save_confidence_image = 0;//1;
+      float  two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0); //4.0 works well
 
-    VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
+      VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
                disparity_map.rows() == left_input_image.rows(),
                ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
 
-    ImageView<float> confidence_image (left_input_image.rows(), left_input_image.cols()); 
-  
-    //Allowed variable number of blurring passes: Ara 02/11/08
-    //for (float blur_sigma = max_blur_sigma; blur_sigma >= 1.0; blur_sigma /= 2.0) {
-      for (float blur_sigma = max_blur_sigma; blur_sigma >= max_blur_sigma; blur_sigma /= 2.0) { 
-      
+      ImageView<float> confidence_image (left_input_image.rows(), left_input_image.cols()); 
+   
+      //image blurring
       ImageView<ChannelT> left_image = LogStereoPreprocessingFilter(blur_sigma)(left_input_image);
       ImageView<ChannelT> right_image = LogStereoPreprocessingFilter(blur_sigma)(right_input_image);
 
@@ -1353,15 +1349,6 @@ namespace stereo {
 		    //printf("var2_noise = %f\n", var2_noise);
 		    //printf("var2_plane = %f\n", var2_plane);
 
-		    /*
-		      if (var2_noise < 0.000001){
-		         var2_noise = 0.000001;
-		      }
-		      if (var2_plane < 0.000001){
-		         var2_plane = 0.000001;
-		      }
-		    */
-
 		    if (var2_noise < min_var2_noise){
 		      var2_noise = min_var2_noise;
 		    }
@@ -1460,8 +1447,7 @@ namespace stereo {
       }
       //printf("iter = %d, curr_sum_I_e_val = %d\n", iter, curr_sum_I_e_val);
     }
-   
-    }
+  
     /*
     //TO DO:post processing filtering stage
     int w_height = 3;
