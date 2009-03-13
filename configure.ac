@@ -251,12 +251,12 @@ PKG_QT_INCLUDE_CPPFLAGS="$PKG_QT_INCLUDE_CPPFLAGS $QT_CPPFLAGS"
 AX_PKG(QT_INCLUDE, [], [], [QVector])
 
 AX_PKG_ONE_OF(QT,
-    APPLE_QT, [AX_PKG_APPLE(QT, [QT_INCLUDE], [$QT_LIBS])],
+    APPLE_QT, [AX_PKG_APPLE(QT, [GL QT_INCLUDE], [$QT_LIBS])],
     LINUX_QT,
-     [AX_PKG(QT_LIBS,              [], [$QT_LIBS], [])
-      AX_PKG(QT_OPENGL,  [QT_INCLUDE], [],         [QtOpenGL])
-      AX_PKG(QT_GUI,     [QT_INCLUDE], [],         [QLabel])
-      AX_PKG(QT_SQL,     [QT_INCLUDE], [],         [QtSql])
+     [AX_PKG(QT_LIBS,                     [], [$QT_LIBS], [])
+      AX_PKG(QT_OPENGL,  [GL QT_INCLUDE], [], [QtOpenGL])
+      AX_PKG(QT_GUI,     [QT_INCLUDE],    [], [QLabel])
+      AX_PKG(QT_SQL,     [QT_INCLUDE],    [], [QtSql])
       AX_GROUP_PKG(LINUX_QT, [QT_INCLUDE QT_GUI QT_OPENGL QT_SQL QT_LIBS])])
 
 # These are here (instead of inside the PKG macro where they belong)

@@ -8,7 +8,7 @@ dnl __END_LICENSE__
 dnl AX_LOAD_DEPS(<pkg>, <deps>[, <missing>])
 dnl copies deps into the pkg CPPFLAGS/LIBS
 dnl missing could be a shell var name in which to store
-dnl the names of the missing deps
+dnl the names of the missing deps. missing is NOT cleared
 
 dnl this was introduced in autoconf 2.6, i think.
 m4_ifset([m4_foreach_w], [],
