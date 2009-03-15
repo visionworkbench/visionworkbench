@@ -525,7 +525,6 @@ namespace camera {
     unsigned m_control; //0 for new control, 1 for old control
     double m_lambda;
     double m_nu;
-    //unsigned m_found;
     double g_tol;
     double d_tol;
 
@@ -548,7 +547,6 @@ namespace camera {
       m_lambda = 1e-3;
       m_control = 0; //use fast control
       m_nu = 2;
-      //m_found = 0;
       g_tol = 1e-10;
       d_tol = 1e-10;
 
@@ -619,7 +617,7 @@ namespace camera {
     int iterations() const { return m_iterations; }
     RobustCostT costfunction() const { return m_robust_cost_func; }
 
-    /// Compare matrices methods
+    /// Compare matrices methods (FOR DEBUG PURPOSES)
 
     void compare_matrices(SparseSkylineMatrix<double> &a,
                           Matrix<double> &b, 
@@ -815,10 +813,6 @@ namespace camera {
     double update_reference_impl(double &abs_tol, double &rel_tol) { 
       ++m_iterations;
 
-      // Fletcher LM parameteres
-//       double rho_low = .25;
-//       double rho_high = .75;
-    
       // Here are some useful variable declarations that make the code
       // below more readable.
       unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
@@ -915,42 +909,29 @@ namespace camera {
         }
       }
 
-      // For debugging:
-      //       std::cout << "J: " << J << "\n\n";
-      //       std::cout << "epsilon: " << epsilon << "\n\n";
-      //       std::cout << "sigma: " << sigma << "\n\n";
-      //       exit(0);
-      
       // --- UPDATE STEP ----
 
       // Build up the right side of the normal equation...
       Vector<double> del_J = -1.0 * (transpose(J) * sigma * epsilon);
-      //std::cout << "\n"<< "\n" << " del_J in R. Impl:" << del_J <<"\n" <<"\n";
 
 
       // ... and the left side.  (Remembering to rescale the diagonal
       // entries of the approximated hessian by lambda)
       Matrix<double> hessian = transpose(J) * sigma * J;
-      Matrix<double> hessian_old = hessian;
-      
-      //      std::cout << " iterations: " << m_iterations << "\n";
 
-
-      // initialize m_lambda on first iteration
+      // initialize m_lambda on first iteration, ignore if user has
+      // changed it.
       double max = 0.0;
-      if (m_iterations == 1){
+      if (m_iterations == 1 && m_lambda == 1e-3){
 	for (unsigned i = 0; i < hessian.rows(); ++i){
 	  if (fabs(hessian(i,i)) > max)
 	    max = fabs(hessian(i,i));
 	}
 	m_lambda = 1e-10 * max;
-        // std::cout << "  initial lambda: " << m_lambda << "\n"; 
       }
 
-      for ( unsigned i=0; i < hessian.rows(); ++i ){
-
+      for ( unsigned i=0; i < hessian.rows(); ++i )
         hessian(i,i) +=  m_lambda;
-      }
 
       //Cholesky decomposition. Returns Cholesky matrix in lower left hand corner.
 
@@ -965,18 +946,9 @@ namespace camera {
       Matrix<double> Vinv = submatrix(hessian, num_cam_entries, num_cam_entries, num_pt_entries, num_pt_entries); 
       chol_inverse(Vinv);
       Matrix<double> Y = W * transpose(Vinv) * Vinv;
-      //std::cout << "\n" << " Y : " << Y << "\n";
-      //std::cout << "\n" << " W : " << W << "\n";
- 
       Vector<double> e = subvector(delta, 0, num_cam_entries) - W * transpose(Vinv) * Vinv * subvector(delta, num_cam_entries, num_pt_entries); 
-      //std::cout<< "\n"<< "\n " << "  vector e in REFERENCE:  " << e << "\n" << "\n";
-
       Matrix<double> S = U - Y * transpose(W);
-      //std::cout<< "\n"<< "\n " << "  Matrix S in REFERENCE:  " << S << "\n" << "\n";
-      
       solve(e, S); // using cholesky
-      //std::cout << "\n" << "\n" << "  vector delta_a in R:  " << e << "\n" << "\n"; 
-
       solve(delta, hessian);
       
       double nsq_x = 0;
@@ -991,13 +963,12 @@ namespace camera {
 
 
       // Solve for update
-      //      Vector<double> delta = least_squares(hessian, del_J);
 
       // --- EVALUATE UPDATE STEP ---
-      Vector<double> new_epsilon(num_observations);                   // Error vector
+      Vector<double> new_epsilon(num_observations);                  // Error vector
 
       idx = 0;
-      for (unsigned i = 0; i < m_control_net->size(); ++i) {       // Iterate over control points
+      for (unsigned i = 0; i < m_control_net->size(); ++i) {         // Iterate over control points
         for (unsigned m = 0; m < (*m_control_net)[i].size(); ++m) {  // Iterate over control measures
           int camera_idx = (*m_control_net)[i][m].image_id();
 
@@ -1035,19 +1006,10 @@ namespace camera {
         }
       }
 
-      //      std::cout << "new: " << norm_2(new_epsilon) << "  " << norm_2(epsilon) << "\n";
-
-      //if (norm_2(new_epsilon) < norm_2(epsilon))  {
-      
-
       //Fletcher modification
       double Splus = .5*transpose(new_epsilon) * sigma * new_epsilon; //Compute new objective
       double SS = .5*transpose(epsilon) * sigma * epsilon;            //Compute old objective
-      //double dS = -transpose(delta) * ( transpose(J) * sigma * (2* epsilon + J * delta)); // Compute predicted improvement
-      //double dS = transpose(delta) * (del_J - .5 * hessian_old * delta);
       double dS = .5 * transpose(delta) *(m_lambda * delta + del_J);
-
-      //std::cout << " dS " << dS << "\n";
 
       // WARNING: will want to replace dS later
 
@@ -1062,10 +1024,8 @@ namespace camera {
           m_model.set_B_parameters(i, m_model.B_parameters(i) - subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params));
 	
 	// Summarize the stats from this step in the iteration
-        //double overall_norm = norm_2(new_epsilon);
         double overall_norm = sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon);
 	
-	//double overall_delta = norm_2(epsilon) - norm_2(new_epsilon);
         double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon) ; 
 	
 	std::cout <<"\n" << "Reference LM Iteration " << m_iterations << ":     "
@@ -1074,34 +1034,25 @@ namespace camera {
 	abs_tol = overall_norm;
         rel_tol = overall_delta;	
 
-	if(m_control==0){
-
+	if (m_control==0){
 	  double temp = 1 - pow((2*R - 1),3);		
 	  if (temp < 1.0/3.0)
 	    temp = 1.0/3.0;
 	  
 	  m_lambda *= temp;
 	  m_nu = 2;
-
-	} else if(m_control == 1){
-
+	} else if (m_control == 1)
 	  m_lambda /= 10;
-
-	}
 	
 	return overall_delta;
       
-      } else {
+      } else { // R <= 0
 	
-	if(m_control == 0){
-	 
+	if (m_control == 0){
 	  m_lambda *= m_nu; 
 	  m_nu*=2; 
-	
-	} else if (m_control == 1){
-	  
+	} else if (m_control == 1)
 	  m_lambda *= 10;
-	}
 
 	double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon); 
 	std::cout <<"\n" << "Reference LM Iteration " << m_iterations << ":     "
@@ -1114,8 +1065,7 @@ namespace camera {
       /////////////////////////////////////////////////////////////
      /////                 SPARSE LM IMPLEMENTATION    ///////////
     /////////////////////////////////////////////////////////////
-
-    
+  
     // This is the sparse levenberg marquardt update step.  Returns
     // the average improvement in the cost function.
     double update(double &abs_tol, double &rel_tol) { 
@@ -1261,10 +1211,9 @@ namespace camera {
 
 
       //e at this point should be -g_a
-      //       std::cout <<"\n"<<"\n"<< "Vector -g in S. implementation: " << -g <<"\n"<<"\n";  
       
-      // set initial lambda
-      if (m_iterations == 1){
+      // set initial lambda, and ignore if the user has touched it
+      if (m_iterations == 1 && m_lambda == 1e-3){
 
 	double max = 0.0;
 	for (unsigned i = 0; i < U.size(); ++i)  
@@ -1278,7 +1227,6 @@ namespace camera {
 	      max = fabs(V(i).ref()(j,j));
 	  }
 	m_lambda = max * 1e-10;
-	std::cout << " initial lambda:  " << m_lambda << "\n";  
       }
       
      
@@ -1315,9 +1263,6 @@ namespace camera {
  	  Matrix<double> V_temp = V(i).ref(); 
  	  chol_inverse(V_temp); 
  	  Y(j,i) = W(j,i).ref() * transpose(V_temp) * V_temp; 
-
- 	  // std::cout << "\n" <<" Y(j,i): "<< i << "," << j << ": " << Y(j,i).ref() << "\n";  
-          // std::cout << "\n" <<" W(j,i): "<< i << "," << j << ": " << W(j,i).ref() << "\n";           
 
           // "Flatten the block structure to compute 'e'. 
           Vector<double, BundleAdjustModelT::camera_params_n> temp = Y(j,i).ref()*epsilon_b(i).ref(); 
@@ -1389,76 +1334,8 @@ namespace camera {
         }
       } 
 
-      //   std::cout <<"\n"<<"\n"<< "Matrix S in SPARSE implementation: " << S <<"\n"<<"\n";  
-
-      /*
-      // -----------------------------
-      // Here are some useful variable declarations that make the code
-      // below more readable.
-      unsigned num_points = m_model.num_points();
-      unsigned num_model_parameters = m_model.num_cameras()*num_cam_params + m_model.num_points()*num_pt_params;
-
-      unsigned num_cameras = m_model.num_cameras();
-      unsigned num_ground_control_points = m_control_net->num_ground_control_points();
-      unsigned num_observations = 2*m_model.num_pixel_observations() + 
-                                  num_cameras*num_cam_params + 
-                                  num_ground_control_points*num_pt_params;
-
-      // The core LM matrices and vectors 
-      Matrix<double> J_test(num_observations, num_model_parameters);   // Jacobian Matrix 
-      Vector<double> epsilon_test(num_observations);                   // Error vector 
-      Matrix<double> sigma_test(num_observations, num_observations);   // Sigma (uncertainty) matrix 
-
-      // Populate for testing 
-      debug_impl(J_test, sigma_test, epsilon_test); 
-
-      // Build up the right side of the normal equation... 
-      Vector<double> del_J_test = -1.0 * (transpose(J_test) * sigma_test * epsilon_test); 
-      Matrix<double> hessian_test = transpose(J_test) * sigma_test * J_test; 
-
-      // initialize m_lambda on first iteration 
-      double max_test = 0.0; 
-      double m_lambda_test; 
-      if (m_iterations == 1){ 
- 	for (unsigned i = 0; i < hessian_test.rows(); ++i){ 
- 	  if (fabs(hessian_test(i,i)) > max_test) 
- 	    max_test = fabs(hessian_test(i,i));
- 	} 
- 	m_lambda_test = 1e-10 * max_test; 
-      } 
-      for ( unsigned i=0; i < hessian_test.rows(); ++i ){ 
-	hessian_test(i,i) +=  m_lambda_test; 
-      } 
-      unsigned num_cam_entries = num_cam_params * num_cameras; 
-      unsigned num_pt_entries = num_pt_params * num_points;
-
-      std::cout << "Hessian Test is : " << hessian_test.rows() << " x " << hessian_test.cols() << "\n"; 
-
-      Matrix<double> U_test = submatrix(hessian_test, 0, 0, num_cam_entries, num_cam_entries); 
-      compare_matrices(U,U_test,"U", 1e-9); 
-
-      Matrix<double> Vinv_test = submatrix(hessian_test, num_cam_entries, num_cam_entries, num_pt_entries, num_pt_entries); 
-      compare_matrices(V,Vinv_test,"V", 1e-4); 
-
-      Matrix<double> W_test = submatrix(hessian_test, 0, num_cam_entries, num_cam_entries, num_pt_entries); 
-      compare_matrices(W,W_test,"W", 1e-6); 
-      chol_inverse(Vinv_test); 
-
-      Matrix<double> Y_test = W_test * transpose(Vinv_test) * Vinv_test; 
-      compare_matrices(Y,Y_test,"Y", 1e-6); 
-
-      Vector<double> e_test = subvector(del_J_test, 0, num_cam_entries) - W_test * transpose(Vinv_test) * Vinv_test * subvector(del_J_test, num_cam_entries, num_pt_entries); 
-      e_test *= -1; 
-      compare_vectors(e,e_test,"e", 1e-6); 
-
-      Matrix<double> S_test = U_test - Y_test * transpose(W_test); 
-      compare_matrices(S,S_test,"S", 1e-6); 
-      // -----------------------------
-      */
-      
       // Compute the LDL^T decomposition and solve using sparse methods.
       Vector<double> delta_a = sparse_solve(S, e);
-      // std::cout<< "\n" << "\n" << " delta_a in S: " << delta_a <<"\n" << "\n";
 
       subvector(delta, current_delta_length, e.size()) = delta_a;
       current_delta_length += e.size();
@@ -1471,13 +1348,10 @@ namespace camera {
         Vector<double, BundleAdjustModelT::point_params_n> temp;
         for (typename ControlPoint::const_iterator j_measure_iter = (*iter).begin(); j_measure_iter != (*iter).end(); ++j_measure_iter) {
           unsigned j = j_measure_iter->image_id();
-          //Vector<double, BundleAdjustModelT::camera_params_n> delta_a_j = subvector(delta_a, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n);
           delta_a_aux(j) =  subvector(delta_a, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n);
 
 	  temp += transpose( W(j,i).ref() ) * delta_a_aux(j).ref();
 	}
-        
-	//delta_b(i) = inverse( V(i).ref() ) * (epsilon_b(i).ref() - temp);
 
 	Vector<double> delta_temp = epsilon_b(i).ref() - temp;
 	
@@ -1488,8 +1362,7 @@ namespace camera {
 
 	subvector(delta, current_delta_length, num_pt_params) = delta_temp;
 	current_delta_length += num_pt_params;
-	
-        //std::cout << "Delta B: " << delta_b(i).ref() << "\n";
+
         ++i;
       }
       
@@ -1562,12 +1435,10 @@ namespace camera {
       }
       
       //Fletcher modification
-      double Splus = new_error_total; //Compute new objective
+      double Splus = new_error_total;     //Compute new objective
       double SS = error_total;            //Compute old objective
+      double R = (SS - Splus)/dS;         // Compute ratio
       
-      double R = (SS - Splus)/dS; // Compute ratio
-      
-      //if ((dS>0) && (SS > Splus)){
       if (R>0){
 
 	for (unsigned j=0; j<m_model.num_cameras(); ++j)
@@ -1587,7 +1458,6 @@ namespace camera {
         rel_tol = fabs(overall_delta);
 	
 	if(m_control == 0){
-
 	  double temp = 1 - pow((2*R - 1),3);
 	  if (temp < 1.0/3.0)
 	    temp = 1.0/3.0;
@@ -1596,7 +1466,6 @@ namespace camera {
 	  m_nu = 2;
 
 	} else if (m_control == 1){
-
 	  m_lambda /= 10;
 	}
 
