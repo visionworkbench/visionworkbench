@@ -254,7 +254,7 @@ dnl AX_PKG_ONE_OF(QT,
 dnl     APPLE_QT, [AX_PKG_APPLE(QT, [QT_INCLUDE], [$QT_LIBS])],
 dnl     LINUX_QT,
 dnl      [AX_PKG(QT_LIBS,              [], [$QT_LIBS], [])
-dnl       AX_PKG(QT_OPENGL,  [QT_INCLUDE], [],         [QtOpenGL])
+dnl       AX_PKG(QT_OPENGL,  [GL QT_INCLUDE], [],         [QtOpenGL])
 dnl       AX_PKG(QT_GUI,     [QT_INCLUDE], [],         [QLabel])
 dnl       AX_PKG(QT_SQL,     [QT_INCLUDE], [],         [QtSql])
 dnl       AX_GROUP_PKG(LINUX_QT, [QT_INCLUDE QT_GUI QT_OPENGL QT_SQL QT_LIBS])])
