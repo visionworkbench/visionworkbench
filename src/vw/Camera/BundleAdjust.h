@@ -485,7 +485,7 @@ namespace camera {
     double threshold(void) const { return m_b; }
   };
 
-  struct L1Error { 
+  struct L1Error {
     double operator() (double delta_norm) { return fabs(delta_norm); }
     
     std::string name_tag (void) const { return "L1Error"; }
@@ -545,7 +545,7 @@ namespace camera {
       // Set an initial value for lambda, lambda_low, and is.  These values vary as the
       // algorithm proceeds.
       m_lambda = 1e-3;
-      m_control = 0; //use fast control
+      m_control = 0; //use fast control (Fletcher), 1 = Traditional lambda / or * by 10
       m_nu = 2;
       g_tol = 1e-10;
       d_tol = 1e-10;
@@ -601,8 +601,11 @@ namespace camera {
 
       // Summarize the stats from this step in the iteration
       double overall_norm = transpose(epsilon) *  epsilon;
+      
+      /* // Taken over by Bundle Adjust Report
       std::cout << "LM Initialization             "
                 << "  Overall squared error: " << overall_norm << "  lambda: " << m_lambda << "\n";
+      */
     }
   
     /// Set/Read Controls
@@ -914,7 +917,6 @@ namespace camera {
       // Build up the right side of the normal equation...
       Vector<double> del_J = -1.0 * (transpose(J) * sigma * epsilon);
 
-
       // ... and the left side.  (Remembering to rescale the diagonal
       // entries of the approximated hessian by lambda)
       Matrix<double> hessian = transpose(J) * sigma * J;
@@ -1028,8 +1030,13 @@ namespace camera {
 	
         double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon) ; 
 	
-	std::cout <<"\n" << "Reference LM Iteration " << m_iterations << ":     "
-                  << "  Overall Modified: " << overall_norm << "  delta: " << overall_delta << "  lambda: " << m_lambda << "   Ratio:  " << R <<  "\n";  
+	/* // This has mostly been taken over by BundleAdjustReport
+	std::cout <<"\n" << "Reference LM Iteration " 
+		  << m_iterations << ":     "
+                  << "  Overall Modified: " << overall_norm << "  delta: " 
+		  << overall_delta << "  lambda: " << m_lambda 
+		  << "   Ratio:  " << R <<  "\n";  
+	*/
 	
 	abs_tol = overall_norm;
         rel_tol = overall_delta;	
@@ -1054,9 +1061,13 @@ namespace camera {
 	} else if (m_control == 1)
 	  m_lambda *= 10;
 
-	double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon); 
+	double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon);
+ 
+	/* // Taken over mostly by Bundle Adjust Report
 	std::cout <<"\n" << "Reference LM Iteration " << m_iterations << ":     "
-		  << "  \t   "  << "  delta  "<< overall_delta << "  lambda: " << m_lambda << "\t" << "   Ratio:  " << R <<"\n"; 
+		  << "  \t   "  << "  delta  "<< overall_delta << "  lambda: " 
+		  << m_lambda << "\t" << "   Ratio:  " << R <<"\n";
+	*/ 
 	return ScalarTypeLimits<double>::highest();
       }
     }
@@ -1451,9 +1462,13 @@ namespace camera {
         // Summarize the stats from this step in the iteration
         double overall_norm = sqrt(new_error_total);
         double overall_delta = sqrt(error_total) - sqrt(new_error_total);
+
+	/* Taken over mostly by Bundle Adjust Report
         std::cout << "\n" << "Sparse LM Iteration " << m_iterations << ":     "
-                  << "  Overall: " << overall_norm << "  delta: " << overall_delta << "  lambda: " << m_lambda <<"   Ratio:  " << R << "\n";
-	
+                  << "  Overall: " << overall_norm << "  delta: " << overall_delta 
+		  << "  lambda: " << m_lambda <<"   Ratio:  " << R << "\n";
+	*/
+
 	abs_tol = overall_norm;
         rel_tol = fabs(overall_delta);
 	
@@ -1480,7 +1495,10 @@ namespace camera {
 	  m_lambda *= 10;
 	}
 	double overall_delta = sqrt(error_total) - sqrt(new_error_total);
+
+	/* // Taken over mostly by Bundle Adjust Report
 	std::cout <<"\n" << "Sparse LM Iteration " << m_iterations << "  delta  "<< overall_delta << "  lambda: " << m_lambda << "   Ratio:  " << R <<"\n";
+	*/
 
 	return ScalarTypeLimits<double>::highest();
       }

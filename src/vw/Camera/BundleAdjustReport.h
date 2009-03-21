@@ -59,6 +59,7 @@ namespace camera {
     ClassicReport = 10,
     ReportFile = 20,
     BundlevisFile = 25,
+    TriangulationReportAtEnds = 27,
     TriangulationReport = 30,
     BundlevisTriangulation = 35,
     DebugErrorReport = 100,
@@ -140,7 +141,7 @@ namespace camera {
 	generic_readings();
       }
 
-      if ( report_level >= TriangulationReport )
+      if ( report_level >= TriangulationReportAtEnds )
 	triangulation_readings();
       
       // Done
@@ -166,7 +167,7 @@ namespace camera {
       m_human_both << "\tNumber of Iterations: " << m_adjuster.iterations() - 1 << "\n\n";
       if ( report_level >= ClassicReport )
 	generic_readings();
-      if ( report_level >= TriangulationReport )
+      if ( report_level >= TriangulationReportAtEnds )
 	triangulation_readings();
       
       // Closing all files out
@@ -252,6 +253,7 @@ namespace camera {
       }
       
       // Sharing now
+      m_human_both << "\tLambda: " << m_adjuster.lambda() << std::endl;
       m_human_both << "\tImage [min: " << min_image << " mean: " << mean_image
 		   << " max: " << max_image << " dev: " << stddev_image << "] "
 		   << m_model.image_unit() << std::endl;
@@ -362,6 +364,14 @@ namespace camera {
 		     << "\n\t                 max: " << max_gcp << " dev: " << stddev_gcp << "]\n";
       else
 	m_human_both << "\tStereo GCP Error [N/A]\n";
+
+      if ( report_level >= DebugErrorReport ) {
+	m_human_report << "Stereo GCP Debug Error:\n[";
+	for ( unsigned i = 0; i < gcp_errors.size(); i++ ) {
+	  m_human_report << gcp_errors[i] << ",";
+	}
+	m_human_report << "]\n";
+      }
     }
 
     // Public variables
