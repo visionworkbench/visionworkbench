@@ -117,7 +117,7 @@ class TestSURF : public CxxTest::TestSuite
 
   void test_orientation() {
     ImageView<float> gradient;
-    read_image( gradient, "noisy_gradient_60.png");
+    read_image( gradient, TEST_SRCDIR"/noisy_gradient_60.png");
     ImageView<double> integral = IntegralImage( gradient );
 
     InterestPointList ip;

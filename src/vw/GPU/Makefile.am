@@ -10,7 +10,7 @@
 ########################################################################
 
 StandardShaders.cc:
-	perl StandardShaders.pl
+	perl "${top_srcdir}/${subdir}/StandardShaders.pl"
 
 CLEANFILES = StandardShaders.cc
 

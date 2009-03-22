@@ -25,7 +25,7 @@ public:
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
     // These contortions ensure that a copy of a DiskImageView will
     // still work even after the original has gone out of scope.
-    boost::shared_ptr<DiskImageView<PixelRGB<uint8> > > v1( new DiskImageView<PixelRGB<uint8> >( "rgb2x2.png" ) );
+    boost::shared_ptr<DiskImageView<PixelRGB<uint8> > > v1( new DiskImageView<PixelRGB<uint8> >( TEST_SRCDIR"/rgb2x2.png" ) );
     boost::shared_ptr<DiskImageView<PixelRGB<uint8> > > v2( new DiskImageView<PixelRGB<uint8> >( *v1 ) );
     v1.reset();
     ImageView<PixelRGB<uint8> > image = *v2;
@@ -50,7 +50,7 @@ public:
   void test_disk_cache_image_view() {
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1 &&((defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1) || (defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1)) 
     ImageView<PixelRGB<uint8> > orig_image;
-    TS_ASSERT_THROWS_NOTHING( read_image( orig_image, "rgb2x2.png" ) );
+    TS_ASSERT_THROWS_NOTHING( read_image( orig_image, TEST_SRCDIR"/rgb2x2.png" ) );
 
     DiskCacheImageView<PixelRGB<uint8> > image = orig_image;
 
