@@ -19,26 +19,51 @@
 namespace vw {
 namespace ip {
 
-  /// Creates Integral Image
+  /// Creates Integral Image 
   template <class ViewT>
   inline ImageView<double> IntegralImage( ImageViewBase<ViewT> const& source ) {
     
-    // Allocating space for integral image
+    // Allocating space
     vw::ImageView<double> integral( source.impl().cols()+1, source.impl().rows()+1 );
     
-    // Performing cumulative sum in the x direction
-    for( signed y = 1; y < integral.rows(); ++y ) {
-      integral(0,y) = 0;  // This is only need if the integral is not zero in the beginning
-      for( signed x = 1; x < integral.cols(); ++x ) {
-	integral(x,y) = integral(x-1,y) + pixel_cast<PixelGray<double> >(source.impl()(x-1,y-1)).v();
-      }
+    typedef ImageView<double>::pixel_accessor dst_accessor;
+    typedef typename ViewT::pixel_accessor src_accessor;
+    
+    // Zero-ing the first row and col
+    dst_accessor dest_row = integral.origin();
+    *dest_row = 0;
+    for ( int i = 1; i < integral.cols(); i++ ) {
+      dest_row.next_col();
+      *dest_row = 0;
     }
+    dest_row = integral.origin();
+    for ( int i = 1; i < integral.rows(); i++ ) {
+      dest_row.next_row();
+      *dest_row = 0;
+    }
+    
+    // Pointer and pointer offset
+    int offset = integral.cols();
+    double* p;
 
-    // Performing cumulative sum in the y direction
-    for( int x = 1; x < integral.cols(); ++x ) {
-      integral(x,0) = 0;
-      for ( int y = 1; y < integral.rows(); ++y)
-	integral(x,y) += integral(x,y-1);
+    // Now filling in integral image
+    dest_row = integral.origin();
+    dest_row.advance(1,1);
+    src_accessor src_row = source.impl().origin();
+    for ( int iy = 0; iy < source.impl().rows(); iy++ ) {
+      dst_accessor dest_col = dest_row;
+      src_accessor src_col = src_row;
+      for ( int ix = 0; ix < source.impl().cols(); ix++ ) {
+	p = &(*dest_col);
+	
+	// Summing
+	*dest_col = pixel_cast<PixelGray<double> >(*src_col).v() + *(p-1) + *(p-offset) - *(p-offset-1);
+	
+	dest_col.next_col();
+      src_col.next_col();
+      }
+      dest_row.next_row();
+      src_row.next_row();
     }
 
     return integral;

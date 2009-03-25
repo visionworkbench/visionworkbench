@@ -460,10 +460,13 @@ namespace camera {
   
   struct PseudoHuberError { 
     double m_b;
-    PseudoHuberError(double b) : m_b(b) {}
+    double m_b_2;
+    PseudoHuberError(double b) : m_b(b) {
+      m_b_2 = b*b;
+    }
 
     double operator() (double delta_norm) {
-      return 2.0f * pow(m_b,2) * (sqrt(1.0f + pow(delta_norm/m_b,2)) - 1.0f);
+      return 2.0f * m_b_2* (sqrt(1.0f + delta_norm*delta_norm/m_b_2) - 1.0f);
     }
 
     std::string name_tag (void) const { return "PsudeoHuberError"; }
@@ -500,12 +503,18 @@ namespace camera {
     double threshold(void) const { return 0.0; }
   };
 
+  // Our Cauchy Error is missing a sigma^2 at the front of the log,
+  // this is okay. Now when increasing sigma the weighting on higher error
+  // is relaxed, increasing sigma increases the tail thickness of our PDF.
   struct CauchyError { 
     double m_sigma;
-    CauchyError(double sigma) : m_sigma(sigma) {}
+    double m_sigma_2;
+    CauchyError(double sigma) : m_sigma(sigma) {
+      m_sigma_2 = m_sigma*m_sigma;
+    }
 
     double operator() (double delta_norm) { 
-      return log(1+pow(delta_norm,2)/pow(m_sigma,2));
+      return log(1+delta_norm*delta_norm/m_sigma_2);
     }
 
     std::string name_tag (void) const { return "CauchyError"; }
@@ -574,7 +583,8 @@ namespace camera {
           Vector2 unweighted_error = (*m_control_net)[i][m].dominant() - m_model(i, camera_idx, 
                                                                               m_model.A_parameters(camera_idx), 
                                                                               m_model.B_parameters(i));
-          double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
+	  double mag = norm_2(unweighted_error);
+          double weight = sqrt(m_robust_cost_func(mag)) / mag;
           subvector(epsilon,2*idx,2) = unweighted_error * weight;
 
           ++idx;
@@ -744,14 +754,15 @@ namespace camera {
           Vector2 unweighted_error = (*m_control_net)[i][m].dominant() - m_model(i, camera_idx, 
                                                                               m_model.A_parameters(camera_idx), 
                                                                               m_model.B_parameters(i));
-          double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
+	  double mag = norm_2(unweighted_error);
+          double weight = sqrt(m_robust_cost_func(mag)) / mag;
           subvector(epsilon,2*idx,2) = unweighted_error * weight;
 
           // Fill in the entries of the sigma matrix with the uncertainty of the observations.
           Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = (*m_control_net)[i][m].sigma();
-          inverse_cov(0,0) = 1/pow(pixel_sigma(0),2);
-          inverse_cov(1,1) = 1/pow(pixel_sigma(1),2);
+          inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
+          inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
           submatrix(sigma, 2*idx, 2*idx, 2, 2) = inverse_cov;
 
           ++idx;
@@ -856,15 +867,15 @@ namespace camera {
           Vector2 unweighted_error = (*m_control_net)[i][m].dominant() - m_model(i, camera_idx, 
                                                                               m_model.A_parameters(camera_idx), 
                                                                               m_model.B_parameters(i));
-
-          double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
+	  double mag = norm_2(unweighted_error);
+          double weight = sqrt(m_robust_cost_func(mag)) / mag;
           subvector(epsilon,2*idx,2) = unweighted_error * weight;
 
           // Fill in the entries of the sigma matrix with the uncertainty of the observations.
           Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = (*m_control_net)[i][m].sigma();
-          inverse_cov(0,0) = 1/pow(pixel_sigma(0),2);
-          inverse_cov(1,1) = 1/pow(pixel_sigma(1),2);
+          inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
+          inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
           submatrix(sigma, 2*idx, 2*idx, 2, 2) = inverse_cov;
 
           ++idx;
@@ -981,7 +992,8 @@ namespace camera {
           Vector2 unweighted_error = (*m_control_net)[i][m].dominant() - m_model(i, camera_idx,
                                                                               m_model.A_parameters(camera_idx)-cam_delta, 
                                                                               m_model.B_parameters(i)-pt_delta);
-          double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
+	  double mag = norm_2(unweighted_error);
+          double weight = sqrt(m_robust_cost_func(mag)) / mag;
           subvector(new_epsilon,2*idx,2) = unweighted_error * weight;
 
           ++idx;
@@ -1136,13 +1148,14 @@ namespace camera {
 
           // Apply robust cost function weighting
           Vector2 unweighted_error = measure_iter->dominant() - m_model(i,j,m_model.A_parameters(j),m_model.B_parameters(i));
-          double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
+	  double mag = norm_2(unweighted_error);
+          double weight = sqrt(m_robust_cost_func(mag)) / mag;
           epsilon(i,j) = unweighted_error * weight;
 	 	            
 	  Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = measure_iter->sigma();
-          inverse_cov(0,0) = 1/pow(pixel_sigma(0),2);
-          inverse_cov(1,1) = 1/pow(pixel_sigma(1),2);
+          inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
+          inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
 	 
 	  error_total += .5 * transpose(epsilon(i,j).ref()) * inverse_cov * epsilon(i,j).ref();
           
@@ -1407,13 +1420,14 @@ namespace camera {
 	 
           // Apply robust cost function weighting
           Vector2 unweighted_error = measure_iter->dominant() - m_model(i,j,new_a,new_b);
-          double weight = sqrt(m_robust_cost_func(norm_2(unweighted_error))) / norm_2(unweighted_error);
+	  double mag = norm_2(unweighted_error);
+          double weight = sqrt(m_robust_cost_func(mag)) / mag;
           new_epsilon(i,j) = weight * unweighted_error;
           
 	  Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = measure_iter->sigma();
-          inverse_cov(0,0) = 1/pow(pixel_sigma(0),2);
-          inverse_cov(1,1) = 1/pow(pixel_sigma(1),2);
+          inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
+          inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
 	 
 	  new_error_total += .5 * transpose(new_epsilon(i,j).ref()) * inverse_cov * new_epsilon(i,j).ref();
         }
