@@ -17,12 +17,14 @@
 #include <iostream>
 #include <iomanip>
 #include <time.h>
+#include <fstream>
 
 // Vision Workbench
 #include <vw/Core/Log.h>
 #include <vw/Camera/BundleAdjust.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
+#include <vw/Cartography/PointImageManipulation.h>
 
 // Boost
 #include <boost/algorithm/string.hpp>
@@ -64,6 +66,28 @@ namespace camera {
     BundlevisTriangulation = 35,
     DebugErrorReport = 100,
     DebugJacobianReport = 110
+  };
+
+  struct TabCount {
+    int count;
+  };
+
+  std::ostream& operator<<( std::ostream& os, TabCount const& tab);
+
+  class KMLPlaceMark { 
+    std::ofstream m_output_file;
+    TabCount m_tab;
+  public:
+    KMLPlaceMark( std::string filename,
+		  std::string name );
+    void write_gcps( ControlNetwork const& cnet );
+    void write_3d_est( ControlNetwork const& cnet );
+    ~KMLPlaceMark( void );
+  protected:
+    void enter_folder( std::string, std::string);
+    void exit_folder(void);
+    void placemark( double, double, std::string,
+		    std::string, bool);
   };
 
   template <class BundleAdjustModelT, class BundleAdjusterT>
@@ -131,12 +155,16 @@ namespace camera {
 		 << std::endl;
 	m_human_both << "\tNumber Point params:  " << m_model.point_params_n
 		     << std::endl;
-	m_human_both << "\tCost Function:        " << m_adjuster.costfunction().name_tag()
-		     << "\t" << m_adjuster.costfunction().threshold() << std::endl;
+	m_human_both << "\tCost Function:        " 
+		     << m_adjuster.costfunction().name_tag()
+		     << "\t" << m_adjuster.costfunction().threshold() 
+		     << std::endl;
 	m_human_both << "\tInitial Lambda:       " << m_adjuster.lambda()
 		     << std::endl;
-	m_human_report << "\tA Inverse Covariance: " << m_model.A_inverse_covariance(0) << std::endl;
-	m_human_report << "\tB Inverse Covariance: " << m_model.B_inverse_covariance(0) << std::endl;
+	m_human_report << "\tA Inverse Covariance: " 
+		       << m_model.A_inverse_covariance(0) << std::endl;
+	m_human_report << "\tB Inverse Covariance: " 
+		       << m_model.B_inverse_covariance(0) << std::endl;
 	m_human_both << "\nStarting Error:\n";
 	generic_readings();
       }
@@ -163,8 +191,10 @@ namespace camera {
     }
     // This is a callback for just exit the loop of iterations
     void end_tie_in( void ) { 
-      m_human_both << "[" << current_posix_time_string() << "]\tFinished Bundle Adjustment\n";
-      m_human_both << "\tNumber of Iterations: " << m_adjuster.iterations() - 1 << "\n\n";
+      m_human_both << "[" << current_posix_time_string() 
+		   << "]\tFinished Bundle Adjustment\n";
+      m_human_both << "\tNumber of Iterations: " 
+		   << m_adjuster.iterations() - 1 << "\n\n";
       if ( report_level >= ClassicReport )
 	generic_readings();
       if ( report_level >= TriangulationReportAtEnds )
@@ -357,11 +387,15 @@ namespace camera {
       }
 
       // Sharing the information now
-      m_human_both << "\tStereo Tri Error [min: " << min_tri << " mean: " << mean_tri
-		   << "\n\t                 max: " << max_tri << " dev: " << stddev_tri << "]\n";
+      m_human_both << "\tStereo Tri Error [min: " << min_tri 
+		   << " mean: " << mean_tri
+		   << "\n\t                 max: " << max_tri 
+		   << " dev: " << stddev_tri << "]\n";
       if ( gcp_errors.size() > 0 ) 
-	m_human_both << "\tStereo GCP Error [min: " << min_gcp << " mean: " << mean_gcp
-		     << "\n\t                 max: " << max_gcp << " dev: " << stddev_gcp << "]\n";
+	m_human_both << "\tStereo GCP Error [min: " << min_gcp 
+		     << " mean: " << mean_gcp
+		     << "\n\t                 max: " << max_gcp 
+		     << " dev: " << stddev_gcp << "]\n";
       else
 	m_human_both << "\tStereo GCP Error [N/A]\n";
 
@@ -372,6 +406,22 @@ namespace camera {
 	}
 	m_human_report << "]\n";
       }
+    }
+    // Write KML?
+    void write_control_network_kml( bool gcps_only=true ) {
+      m_file_prefix = bundleadjust_name;
+      boost::to_lower( m_file_prefix );
+      boost::replace_all( m_file_prefix, " ", "_" );
+
+      std::ostringstream kml_filename;
+      kml_filename << m_file_prefix + ".kml";
+      KMLPlaceMark kml( kml_filename.str(), bundleadjust_name );
+
+      boost::shared_ptr<ControlNetwork> network = m_model.control_network();
+      
+      kml.write_gcps( *network );
+      if ( !gcps_only )
+	kml.write_3d_est( *network );
     }
 
     // Public variables

@@ -23,7 +23,8 @@ include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h		\
                   BundleAdjustReport.h 
 
 libvwCamera_la_SOURCES = PinholeModel.cc CAHVModel.cc CAHVORModel.cc	\
-                         Exif.cc ExifData.cc ControlNetwork.cc
+                         Exif.cc ExifData.cc ControlNetwork.cc          \
+                         BundleAdjustReport.cc
 
 libvwCamera_la_LIBADD = @MODULE_CAMERA_LIBS@
 
