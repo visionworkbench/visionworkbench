@@ -29,6 +29,11 @@
 // Boost
 #include <boost/algorithm/string.hpp>
 #include <boost/thread/xtime.hpp>
+#include <boost/bind.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/fstream.hpp>
+
 // Posix time is not fully supported in the version of Boost for RHEL
 // Workstation 4
 #ifdef __APPLE__
@@ -73,21 +78,37 @@ namespace camera {
   };
 
   std::ostream& operator<<( std::ostream& os, TabCount const& tab);
+  bool vector_sorting( Vector3 i, Vector3 j);
 
   class KMLPlaceMark { 
-    std::ofstream m_output_file;
+    boost::filesystem::ofstream m_output_file;
     TabCount m_tab;
+    std::string m_name;
+    std::string m_directory;
   public:
     KMLPlaceMark( std::string filename,
-		  std::string name );
+		  std::string name,
+		  std::string directory );
     void write_gcps( ControlNetwork const& cnet );
     void write_3d_est( ControlNetwork const& cnet );
     ~KMLPlaceMark( void );
   protected:
+    // High Level
+    void recursive_placemark_building( std::list<Vector3>&,
+				       std::string const&,
+				       float&, float&,
+				       float&, float&,
+				       int);
+    void network_link( std::string,
+		       double, double, double, double );
+    // Low Level
+    void close_kml( void );
     void enter_folder( std::string, std::string);
     void exit_folder(void);
     void placemark( double, double, std::string,
 		    std::string, bool);
+    void latlonaltbox( float, float, float, float );
+    void lod( float, float );
   };
 
   template <class BundleAdjustModelT, class BundleAdjusterT>
@@ -101,7 +122,7 @@ namespace camera {
     BundleAdjustModelT& m_model;
     BundleAdjusterT& m_adjuster;
 
-    #ifndef __APPLE__
+#ifndef __APPLE__
     inline std::string current_posix_time_string()  {
       char time_string[2048];
       time_t t = time(0);
@@ -415,7 +436,9 @@ namespace camera {
 
       std::ostringstream kml_filename;
       kml_filename << m_file_prefix + ".kml";
-      KMLPlaceMark kml( kml_filename.str(), bundleadjust_name );
+      KMLPlaceMark kml( kml_filename.str(), 
+			bundleadjust_name,
+			m_file_prefix );
 
       boost::shared_ptr<ControlNetwork> network = m_model.control_network();
       

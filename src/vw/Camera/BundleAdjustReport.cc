@@ -5,15 +5,30 @@
 // __END_LICENSE__
 
 #include <vw/Camera/BundleAdjustReport.h>
+namespace fs = boost::filesystem;
 
 namespace vw {
 namespace camera {
 
   KMLPlaceMark::KMLPlaceMark( std::string filename,
-			      std::string name ) {
-    m_output_file.open( filename.c_str(), std::ios::out);
-    m_tab.count = 0;
+			      std::string name,
+			      std::string directory="" ) {
     
+    m_tab.count = 0;
+    m_name = name;
+    m_directory = directory;
+    boost::to_lower( m_name );
+    boost::replace_all( m_name, " ", "_" );
+
+    std::ostringstream path;
+    if ( directory != "" )
+      path << directory << "/";
+    fs::path kml_path( path.str(), fs::native );
+    fs::create_directories( kml_path );
+    path << filename;
+    kml_path = path.str();
+    m_output_file.open( kml_path, std::ios::out);
+
     if (!m_output_file.good())
       vw_throw(IOErr() <<  "An error occured while trying to write KML file.");
     
@@ -91,11 +106,17 @@ namespace camera {
   }
   
   KMLPlaceMark::~KMLPlaceMark( void ) {
-    m_tab.count--;
-    m_output_file << m_tab << "</Document>\n";
-    m_output_file << m_tab << "</kml>\n";
+    close_kml();
+  }
 
-    m_output_file.close();
+  void KMLPlaceMark::close_kml( void ) {
+    if (m_output_file.is_open()) {
+      m_tab.count--;
+      m_output_file << m_tab << "</Document>\n";
+      m_output_file << m_tab << "</kml>\n";
+
+      m_output_file.close();
+    }
   }
 
   void KMLPlaceMark::write_gcps( ControlNetwork const& cnet ) {
@@ -110,10 +131,18 @@ namespace camera {
 	Vector3 llr = cartography::xyz_to_lon_lat_radius( (*iter).position() );
 
 	std::ostringstream desc;
-	desc << "&lt;h1&gt;Viewed by:&lt;/h1&gt;&lt;ol&gt;";
+	// GCP data
+	desc << "&lt;h2&gt;Ground Control Point&lt;/h2&gt;";
+	desc << "&lt;b&gt;Lon:&lt;/b&gt; " << llr.x() << " deg&lt;br&gt;";
+	desc << "&lt;b&gt;Lat:&lt;/b&gt; " << llr.y() << " deg&lt;br&gt;";
+	desc << "&lt;b&gt;Rad:&lt;/b&gt; " << llr.z() << " m&lt;br&gt;";
+	
+	// Images viewing
+	desc << "&lt;h3&gt;Viewed by:&lt;/h3&gt;&lt;ol&gt;";
 	for ( ControlPoint::const_iterator measure = (*iter).begin();
 	      measure != (*iter).end(); ++measure ) {
-	  desc << "&lt;li&gt;" << (*measure).image_id() << " " << (*measure).serial() << "&lt;/li&gt;";
+	  desc << "&lt;li&gt;" << "[" << (*measure).image_id() << "] " 
+	       << (*measure).serial() << "&lt;/li&gt;";
 	}
 	desc << "&lt;/ol&gt;";
 
@@ -134,7 +163,7 @@ namespace camera {
     enter_folder( "3D Point estimates",
 		  "Used for Bundle Adjustment in VW" );
 
-    std::list<Vector2> points; // Lon and Lat only
+    std::list<Vector3> points; // Lon, Lat, Interest
 
     unsigned count = 0;
     for ( ControlNetwork::const_iterator iter = cnet.begin();
@@ -142,56 +171,175 @@ namespace camera {
       count++;
       if ( (*iter).type() == ControlPoint::TiePoint ) {
 	Vector3 llr = cartography::xyz_to_lon_lat_radius( (*iter).position() );
-	points.push_back( Vector2(llr.x(),llr.y()) );
+	points.push_back( Vector3(llr.x(),llr.y(), 1.0/sum((*iter).sigma())) );
       }
     }
     
     // Grow a bounding box
     BBox2 total;
-    for ( std::list<Vector2>::iterator it = points.begin();
+    for ( std::list<Vector3>::iterator it = points.begin();
 	  it != points.end(); ++it )
-      total.grow( (*it) );
+      total.grow( Vector2((*it).x(),(*it).y()) );
 
     // Building tiles of smaller bounding boxes
-    Vector2 lower_corner = total.min();
-    Vector2 upper_corner = total.max();
+    Vector2f lower_corner = total.min();
+    Vector2f upper_corner = total.max();
     lower_corner.x() = floor( lower_corner.x() );
     lower_corner.y() = floor( lower_corner.y() );
     upper_corner.x() = ceil( upper_corner.x() );
     upper_corner.y() = ceil( upper_corner.y() );
    
-    for ( double lon = lower_corner.x(); lon < upper_corner.x(); lon+=9 ) {
-      for ( double lat = lower_corner.y(); lat < upper_corner.y(); lat+=9 ) {
-	std::ostringstream section_name;
-	section_name << lon << " " << lat;
-	enter_folder( section_name.str(), "" );
-	
-	// Writing region
-	m_output_file << m_tab << "<Region><LatLonAltBox><north>"<<lat+9<<"</north><south>"<<lat<<"</south><east>"
-		      <<lon+9<<"</east><west>"<<lon<<"</west></LatLonAltBox><Lod><minLodPixels>256</minLodPixels>"
-		      <<"<maxLodPixels>-1</maxLodPixels></Lod></Region>\n";
-
-	for ( std::list<Vector2>::iterator it = points.begin(); it != points.end(); ++it ) {
-	  if ( (*it).x() >= lon && (*it).x() <= (lon+9) && 
-	       (*it).y() >= lat && (*it).y() <= (lat+9) ) {
-	    placemark( (*it).x(), (*it).y(), "","", false );
-	    it = points.erase(it);
-	    it--;
-	  }
-	}
-
-	exit_folder();
-      }
-    }
+    recursive_placemark_building( points, m_name,
+				  upper_corner.y(), lower_corner.y(),
+				  upper_corner.x(), lower_corner.x(), 0 );
 
     exit_folder();
   }
   
+  void KMLPlaceMark::recursive_placemark_building( std::list<Vector3>& list,
+						   std::string const& name,
+						   float& north, float& south,
+						   float& east, float& west,
+						   int recursive_lvl) {
+    // Sub divides
+    std::vector<float> north_dv;
+    north_dv.push_back(north); north_dv.push_back(north);
+    north_dv.push_back(south+(north-south)/2);
+    north_dv.push_back( north_dv[2] );
+    std::vector<float> south_dv;
+    south_dv.push_back( north_dv[3] ); south_dv.push_back( north_dv[3] );
+    south_dv.push_back( south ); south_dv.push_back( south );
+    std::vector<float> east_dv;
+    east_dv.push_back( east ); east_dv.push_back( west + (east-west)/2 );
+    east_dv.push_back( east_dv[0] ); east_dv.push_back( east_dv[1] );
+    std::vector<float> west_dv;
+    west_dv.push_back( east_dv[1] ); west_dv.push_back( west );
+    west_dv.push_back( west_dv[0] ); west_dv.push_back( west_dv[1] );
+
+    // Checking list
+    int count = 0;
+    for ( std::list<Vector3>::iterator it = list.begin();
+	  it != list.end(); ++it )
+      count++;
+    if ( count <= 500 ) {
+      // Write a termination file
+      enter_folder("","");
+      
+      // Regioning
+      m_output_file << m_tab << "<Region>\n";
+      m_tab.count++;
+      latlonaltbox( north, south, east, west );
+      lod( 512, -1 );
+      m_tab.count--;
+      m_output_file << m_tab << "</Region>\n";
+
+      // Placemarks
+      for ( std::list<Vector3>::iterator it = list.begin();
+	    it != list.end(); ++it ) 
+	placemark( (*it).x(), (*it).y(), "", "", false );
+
+      exit_folder();
+      close_kml();
+      return;
+    } else {
+      // Write a branching file
+      list.sort( vector_sorting );
+
+      enter_folder("","");
+
+      for ( char i = 0; i < 4; i++ ) {
+	std::ostringstream link;
+	if ( recursive_lvl == 0 )
+	  link << "data/";
+	link << name << int(i) << ".kml";
+	network_link( link.str(),
+		      north_dv[i], south_dv[i],
+		      east_dv[i], west_dv[i] );
+      }
+	
+      enter_folder("","");
+
+      // Regioning
+      m_output_file << m_tab << "<Region>\n";
+      m_tab.count++;
+      latlonaltbox( north, south, east, west );
+      lod( 512, -1 );
+      m_tab.count--;
+      m_output_file << m_tab << "</Region>\n";
+
+      // Placemarks
+      count = 500;
+      std::list<Vector3>::iterator it = list.begin();
+      while ( count > 0 ) {
+	placemark( (*it).x(), (*it).y(), "", "", false );
+	it = list.erase( it );
+	count--;
+      }
+
+      exit_folder();
+      exit_folder();
+    }
+
+    // Making calls to make lower levels
+    for ( char i = 0; i < 4; i++ ) {
+      std::list<Vector3> temp;
+      for ( std::list<Vector3>::iterator it = list.begin();
+	    it != list.end(); ++it )
+	if ( (*it).y() < north_dv[i] && (*it).y() > south_dv[i] &&
+	     (*it).x() < east_dv[i] && (*it).x() > west_dv[i] ) {
+	  temp.push_back( *it );
+	  it = list.erase( it );
+	  it--;
+	}
+      if ( !temp.empty() ) {
+	std::ostringstream new_name;
+	new_name << name << int(i);
+	std::ostringstream dir;
+	if ( m_directory != "" )
+	  dir << m_directory << "/";
+	if ( recursive_lvl == 0 )
+	  dir << "data/";
+	KMLPlaceMark subsection( new_name.str() + ".kml", new_name.str(), dir.str() );
+	subsection.recursive_placemark_building( temp, new_name.str(),
+						 north_dv[i], south_dv[i],
+						 east_dv[i], west_dv[i],
+						 recursive_lvl+1 );
+      }
+    }
+
+    if ( !list.empty() )
+      std::cout << "Error! Vector not empty!\n";
+ 
+  }
+
+  void KMLPlaceMark::network_link( std::string link, 
+				   double north, double south, 
+				   double east, double west ) {
+    m_output_file << m_tab << "<NetworkLink>\n";
+    m_tab.count++;
+    m_output_file << m_tab << "<Region>\n";
+    m_tab.count++;
+    latlonaltbox( north, south,
+		  east, west );
+    lod( 512, -1 );
+    m_tab.count--;
+    m_output_file << m_tab << "</Region>\n";
+    m_output_file << m_tab << "<Link>\n";
+    m_tab.count++;
+    m_output_file << m_tab << "<href>" << link << "</href><viewRefreshMode>onRegion</viewRefreshMode>\n";
+    m_tab.count--;
+    m_output_file << m_tab << "</Link>\n";
+    m_tab.count--;
+    m_output_file << m_tab << "</NetworkLink>\n";
+  }
+
   void KMLPlaceMark::enter_folder( std::string name="", std::string desc="") {
     m_output_file << m_tab << "<Folder>\n";
     m_tab.count++;
-    m_output_file << m_tab << "<name>"<< name <<"</name>\n";
-    m_output_file << m_tab << "<description>"<< desc <<"</description>\n";
+    if ( name != "" )
+      m_output_file << m_tab << "<name>"<< name <<"</name>\n";
+    if ( desc != "" )
+      m_output_file << m_tab << "<description>"<< desc <<"</description>\n";
   }
 
   void KMLPlaceMark::exit_folder(void) {
@@ -219,10 +367,35 @@ namespace camera {
     m_output_file << m_tab << "</Placemark>\n";
   }
   
+  void KMLPlaceMark::latlonaltbox( float north, float south,
+				   float east, float west ) {
+    m_output_file << m_tab << "<LatLonAltBox>\n";
+    m_tab.count++;
+    m_output_file << m_tab << "<north>"<<north<<"</north>\n";
+    m_output_file << m_tab << "<south>"<<south<<"</south>\n";
+    m_output_file << m_tab << "<east>"<<east<<"</east>\n";
+    m_output_file << m_tab << "<west>"<<west<<"</west>\n";
+    m_tab.count--;
+    m_output_file << m_tab << "</LatLonAltBox>\n";
+  }
+
+  void KMLPlaceMark::lod( float min, float max ) {
+    m_output_file << m_tab << "<Lod>\n";
+    m_tab.count++;
+    m_output_file << m_tab << "<minLodPixels>"<<min<<"</minLodPixels>\n";
+    m_output_file << m_tab << "<maxLodPixels>"<<max<<"</maxLodPixels>\n";
+    m_tab.count--;
+    m_output_file << m_tab << "</Lod>\n";
+  }
+
   std::ostream& operator<<( std::ostream& os, TabCount const& tab) {
     for ( int i = 0; i < tab.count; i++ )
       os << "\t";
     return os;
+  }
+  
+  bool vector_sorting( Vector3 i, Vector3 j) {
+    return (i.z() > j.z());
   }
 
 }}
