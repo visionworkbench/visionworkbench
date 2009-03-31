@@ -903,8 +903,8 @@ namespace stereo {
 
   template<class ChannelT>
   void subpixel_correlation_affine_2d_EM(ImageView<PixelDisparity<float> > &disparity_map,
-                                      ImageView<ChannelT> const& left_input_image,
-                                      ImageView<ChannelT> const& right_input_image,
+					 ImageView<ChannelT> const& /*left_input_image*/left_image,
+					 ImageView<ChannelT> const& /*right_input_image*/right_image,
                                       int kern_width, int kern_height,
                                       bool do_horizontal_subpixel,
                                       bool do_vertical_subpixel,
@@ -912,23 +912,33 @@ namespace stereo {
     
 
       int    max_em_iter = 2;
-      float  blur_sigma = 1.5;//3;//2;//1;
+      //float  blur_sigma = 1;//1.5;//3;//2;
       float  min_var2_plane = 0.000001;//0.00001;//0.0001;
       float  min_var2_noise = 0.000001; //0.001;//0.01;//0.0001;//0.000001;//0.0001;
       int    save_confidence_image = 0;//1;
-      float  two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0); //4.0 works well
-
+      float  two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0); //4.0//7.0 works well
+      float  var2_disp = 0.001; 
+      /*
       VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
                disparity_map.rows() == left_input_image.rows(),
                ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
+      ImageView<float> confidence_image (left_input_image.rows(), left_input_image.cols());
+      */
+      VW_ASSERT( disparity_map.cols() == left_image.cols() &&
+               disparity_map.rows() == left_image.rows(),
+               ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
 
-      ImageView<float> confidence_image (left_input_image.rows(), left_input_image.cols()); 
+       ImageView<float> confidence_image (left_image.rows(), left_image.cols());
    
+      /*
       //image blurring
       ImageView<ChannelT> left_image = LogStereoPreprocessingFilter(blur_sigma)(left_input_image);
       ImageView<ChannelT> right_image = LogStereoPreprocessingFilter(blur_sigma)(right_input_image);
-
       printf("blur_sigma = %f\n", blur_sigma);
+      */
+
+    
+     
 
       // This is the maximum number of pixels that the solution can be
       // adjusted by affine subpixel refinement.
@@ -1065,6 +1075,7 @@ namespace stereo {
           
 		    float noise_norm_factor = 1.0/sqrt(6.28*var2_noise);
 		    float plane_norm_factor = 1.0/sqrt(6.28*var2_plane);
+                    float disp_norm_factor  = 1.0/sqrt(6.28*var2_disp);
 
 		    // Set up pixel accessors
 		    typename ImageView<float>::pixel_accessor w_row = w.origin();
@@ -1099,8 +1110,29 @@ namespace stereo {
 			//float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr);
                         float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr) - delta_x*(*I_x_ptr) - delta_y*(*I_y_ptr);
 			float temp_noise = right_interp_image(xx,yy) - mean_noise;
-               
-			float plane_prob = plane_norm_factor*exp(-1*(temp_plane*temp_plane)/(2*var2_plane));
+                        /*
+                        float temp_disp_h_top;
+                        float temp_disp_v_top;
+                        float temp_disp_h_left;
+                        float temp_disp_v_left;
+                        float a_priori_plane_prob;
+
+                        if ((x > 0) && (y > 0)){
+                            temp_disp_h_top  = d_em[2]-disparity_map(x-1,y).h();
+                            temp_disp_v_top  = d_em[5]-disparity_map(x-1,y).v();
+                            temp_disp_h_left = d_em[2]-disparity_map(x,y-1).h();
+                            temp_disp_v_left = d_em[5]-disparity_map(x,y-1).v();
+                            a_priori_plane_prob = disp_norm_factor*exp(-1*(temp_disp_h_top*temp_disp_h_top + temp_disp_v_top*temp_disp_v_top +
+                                                                           temp_disp_h_left*temp_disp_h_left + temp_disp_v_left*temp_disp_v_left)/(2*var2_disp));
+		        }
+		        else{
+			  a_priori_plane_prob = 1.0;
+                        }
+                        printf("apriori_prob = %f\n", a_priori_plane_prob);
+		       
+                        float plane_prob = a_priori_plane_prob*plane_norm_factor*exp(-1*(temp_plane*temp_plane)/(2*var2_plane));
+                        */
+                        float plane_prob = plane_norm_factor*exp(-1*(temp_plane*temp_plane)/(2*var2_plane));
 			float noise_prob = noise_norm_factor*exp(-1*(temp_noise*temp_noise)/(2*var2_noise));
 
 			float sum = plane_prob*w_plane + noise_prob*w_noise;
@@ -1448,15 +1480,16 @@ namespace stereo {
       //printf("iter = %d, curr_sum_I_e_val = %d\n", iter, curr_sum_I_e_val);
     }
   
-    /*
-    //TO DO:post processing filtering stage
-    int w_height = 3;
-    int w_width = 3;
-    float norm_factor = 1.0/(float)(4*w_height*w_height);
-    ImageView<PixelDisparity<float> > tmp_disparity_map (left_input_image.rows(), left_input_image.cols());
+     /*
+    //post processing filtering stage
+    int w_height = 1;
+    int w_width = 1;
     
-    for (int y = w_height; y<left_input_image.rows()-w_height; ++y) {
-      for (int x = w_width; x<left_input_image.cols()-w_width; ++x) {
+    float norm_factor = 1.0/(float)((2*w_height+1)*(2*w_height+1));
+    ImageView<PixelDisparity<float> > tmp_disparity_map (left_image.rows(), left_image.cols());
+    
+    for (int y = w_height; y<left_image.rows()-w_height; ++y) {
+      for (int x = w_width; x<left_image.cols()-w_width; ++x) {
         
         tmp_disparity_map(x,y).h()=0;
         tmp_disparity_map(x,y).v()=0;
@@ -1470,8 +1503,8 @@ namespace stereo {
       }
     }
 
-    for (int y=w_height; y<left_input_image.rows()-w_height; ++y) {
-      for (int x=w_width; x<left_input_image.cols()-w_width; ++x) {
+    for (int y=w_height; y<left_image.rows()-w_height; ++y) {
+      for (int x=w_width; x<left_image.cols()-w_width; ++x) {
 	disparity_map(x,y).h() = tmp_disparity_map(x,y).h();  
 	disparity_map(x,y).v() = tmp_disparity_map(x,y).v();
       }
