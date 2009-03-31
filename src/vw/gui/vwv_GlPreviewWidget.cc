@@ -219,6 +219,8 @@ void GlPreviewWidget::setup() {
   // Set the size policy that the widget can grow or shrink and still
   // be useful.
   this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+  this->setFocusPolicy(Qt::ClickFocus);
 }
 
 // ------------- TextureRenderer Implementation -----------------------
@@ -677,7 +679,6 @@ void GlPreviewWidget::paintEvent(QPaintEvent * /* event */) {
 
 void GlPreviewWidget::mousePressEvent(QMouseEvent *event) { 
   m_show_legend = true;
-  grabKeyboard();
   lastPos = event->pos();
   updateCurrentMousePosition();
 }
@@ -747,7 +748,6 @@ void GlPreviewWidget::wheelEvent(QWheelEvent *event) {
   zoom(scale);
 
   m_show_legend = true;
-  grabKeyboard();
   lastPos = event->pos();
   updateCurrentMousePosition();
 }
@@ -755,13 +755,11 @@ void GlPreviewWidget::wheelEvent(QWheelEvent *event) {
 
 void GlPreviewWidget::enterEvent(QEvent */*event*/) {
   m_show_legend = true;
-  grabKeyboard();
   update();
 }
 
 void GlPreviewWidget::leaveEvent(QEvent */*event*/) {
   m_show_legend = false;
-  releaseKeyboard();
   update();
 }
 
