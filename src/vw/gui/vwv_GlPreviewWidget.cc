@@ -53,6 +53,7 @@ const std::string g_FRAGMENT_PROGRAM =
 "uniform int hillshade_display;\n"
 "\n"
 "void main() { \n"
+"  bool alpha_selected = false; \n"
 "  vec4 g = vec4(gain, gain, gain, 1.0);\n"
 "  vec4 o = vec4(offset, offset, offset, 0.0);\n"
 "  vec4 v = vec4(gamma, gamma, gamma, 1.0);\n"
@@ -60,23 +61,27 @@ const std::string g_FRAGMENT_PROGRAM =
 "  vec4 src_tex = texture2D(tex,gl_TexCoord[0].st);\n"
 "  vec4 selected_tex = src_tex;\n"
 "  if (display_channel == 1) {\n"
-"    selected_tex = vec4(src_tex[0],src_tex[0],src_tex[0],src_tex[3]);\n"
+"    selected_tex = vec4(src_tex[0],src_tex[0],src_tex[0],1.0);\n"
 "  } else if (display_channel == 2) {\n"
-"    selected_tex = vec4(src_tex[1],src_tex[1],src_tex[1],src_tex[3]);\n"
+"    selected_tex = vec4(src_tex[1],src_tex[1],src_tex[1],1.0);\n"
 "  } else if (display_channel == 3) {\n"
-"    selected_tex = vec4(src_tex[2],src_tex[2],src_tex[2],src_tex[3]);\n"
+"    selected_tex = vec4(src_tex[2],src_tex[2],src_tex[2],1.0);\n"
 "  } else if (display_channel == 4) {\n"
+"    alpha_selected = true;            \n"
 "    selected_tex = vec4(src_tex[3],src_tex[3],src_tex[3],1.0);\n"
 "  } \n"
-"  vec4 final_tex = pow(g*(selected_tex + o), v);\n"
-"  if (use_nodata == 1) { \n"
-"    if (src_tex[0] == nodata) { \n"
-"      final_tex = vec4(0.0,0,0,0.0);\n"
-"    } \n"
-"  }\n"
-"\n"
 "  \n"
-"  gl_FragColor = final_tex; \n"
+"  if (!alpha_selected) {\n"
+"    vec4 final_tex = pow(g*(selected_tex + o), v);\n"
+"    if (use_nodata == 1) { \n"
+"      if (src_tex[0] == nodata) { \n"
+"        final_tex = vec4(0.0,0,0,0.0);\n"
+"      } \n"
+"    }\n"
+"    gl_FragColor = final_tex; \n"
+"  } else {\n"
+"    gl_FragColor = selected_tex;    \n"
+"  }\n"
 "}\n";
 
 
@@ -132,6 +137,7 @@ void check_gl_errors( void )
     std::cout << "OpenGL ERROR (" << int(errCode) << "): " << errStr << "\n";
   } 
 } 
+
 // --------------------------------------------------------------
 //               GlPreviewWidget Public Methods
 // --------------------------------------------------------------
@@ -226,76 +232,75 @@ void GlPreviewWidget::setup() {
 // ------------- TextureRenderer Implementation -----------------------
 GLuint GlPreviewWidget::allocate_texture(ViewImageResource const block) {
   GLuint texture_id;
-  {  
-    makeCurrent();
-    glEnable( GL_TEXTURE_2D );
-    glGenTextures(1, &(texture_id) );
-    glBindTexture(GL_TEXTURE_2D, texture_id);
-    glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); 
 
-    std::cout << "This image has " << block.channels() << " channels\n";
-    std::cout << "           ond " << block.channel_type() << " channel type\n";
-
-    // We save VRAM by copying the image data over in its native
-    // number of channels.
-    GLuint texture_pixel_type = GL_RGBA32F_ARB;
-    GLuint source_pixel_type = GL_RGBA;
-    if (block.channels() == 1) {
-      texture_pixel_type = GL_LUMINANCE32F_ARB;
-      source_pixel_type = GL_LUMINANCE;
-    } else if (block.channels() == 2) {
-      texture_pixel_type = GL_LUMINANCE_ALPHA32F_ARB;
-      source_pixel_type = GL_LUMINANCE_ALPHA;
-    } else if (block.channels() == 3) {
-      texture_pixel_type = GL_RGB32F_ARB;
-      source_pixel_type = GL_RGB;
-    } else if (block.channels() == 4) {
-      texture_pixel_type = GL_RGBA32F_ARB;
-      source_pixel_type = GL_RGBA;
-    } else {
-      vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed." 
-               << " Unsupported number of channels (" << block.channels() << ").");
-    }
-
-    // Set the GL channel type for source data.
-    GLuint source_channel_type = GL_FLOAT;
-    switch (block.channel_type()) {
-    case vw::VW_CHANNEL_UINT8: 
-      source_channel_type = GL_UNSIGNED_BYTE;
-      break;
-    case vw::VW_CHANNEL_INT8: 
-      source_channel_type = GL_BYTE;
-      break;
-    case vw::VW_CHANNEL_UINT16: 
-      source_channel_type = GL_UNSIGNED_SHORT;
-      break;
-    case vw::VW_CHANNEL_INT16: 
-      source_channel_type = GL_SHORT;
-      break;
-    case vw::VW_CHANNEL_UINT32: 
-      source_channel_type = GL_UNSIGNED_INT;
-      break;
-    case vw::VW_CHANNEL_INT32: 
-      source_channel_type = GL_INT;
-      break;
-    case vw::VW_CHANNEL_FLOAT32:
-      source_channel_type = GL_FLOAT;
-      break;
-    default:
-      vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed." 
-               << " Unsupported channel type (" << block.channel_type() << ").");
-    }
-
-    glTexImage2D(GL_TEXTURE_2D, 0, texture_pixel_type, 
-                 block.cols(), block.rows(), 0, 
-                 source_pixel_type, source_channel_type, block.data() );
-    
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable( GL_TEXTURE_2D );
+  makeCurrent();
+  glEnable( GL_TEXTURE_2D );
+  glGenTextures(1, &(texture_id) );
+  glBindTexture(GL_TEXTURE_2D, texture_id);
+  glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); 
+  
+  // std::cout << "This image has " << block.channels() << " channels\n";
+  // std::cout << "           ond " << block.channel_type() << " channel type\n";
+  
+  // We save VRAM by copying the image data over in its native
+  // number of channels.
+  GLuint texture_pixel_type = GL_RGBA32F_ARB;
+  GLuint source_pixel_type = GL_RGBA;
+  if (block.channels() == 1) {
+    texture_pixel_type = GL_LUMINANCE32F_ARB;
+    source_pixel_type = GL_LUMINANCE;
+  } else if (block.channels() == 2) {
+    texture_pixel_type = GL_LUMINANCE_ALPHA32F_ARB;
+    source_pixel_type = GL_LUMINANCE_ALPHA;
+  } else if (block.channels() == 3) {
+    texture_pixel_type = GL_RGB32F_ARB;
+    source_pixel_type = GL_RGB;
+  } else if (block.channels() == 4) {
+    texture_pixel_type = GL_RGBA32F_ARB;
+    source_pixel_type = GL_RGBA;
+  } else {
+    vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed." 
+             << " Unsupported number of channels (" << block.channels() << ").");
   }
+
+  // Set the GL channel type for source data.
+  GLuint source_channel_type = GL_FLOAT;
+  switch (block.channel_type()) {
+  case vw::VW_CHANNEL_UINT8: 
+    source_channel_type = GL_UNSIGNED_BYTE;
+    break;
+  case vw::VW_CHANNEL_INT8: 
+    source_channel_type = GL_BYTE;
+    break;
+  case vw::VW_CHANNEL_UINT16: 
+    source_channel_type = GL_UNSIGNED_SHORT;
+    break;
+  case vw::VW_CHANNEL_INT16: 
+    source_channel_type = GL_SHORT;
+    break;
+  case vw::VW_CHANNEL_UINT32: 
+    source_channel_type = GL_UNSIGNED_INT;
+    break;
+  case vw::VW_CHANNEL_INT32: 
+    source_channel_type = GL_INT;
+    break;
+  case vw::VW_CHANNEL_FLOAT32:
+    source_channel_type = GL_FLOAT;
+    break;
+  default:
+    vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed." 
+             << " Unsupported channel type (" << block.channel_type() << ").");
+  }
+  
+  glTexImage2D(GL_TEXTURE_2D, 0, texture_pixel_type, 
+               block.cols(), block.rows(), 0, 
+               source_pixel_type, source_channel_type, block.data() );
+  
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glDisable( GL_TEXTURE_2D );
   return texture_id;
 }
 
@@ -383,8 +388,8 @@ void GlPreviewWidget::resizeGL(int width, int height) {
 void GlPreviewWidget::drawImage() {
 
   // Before we draw this frame, we will check to see whether there are
-  // any new texture to upload or delete.  If there are, we perform at
-  // least one of these operations.
+  // any new texture to upload or delete from the texture cache.  If
+  // there are, we perform at least one of these operations.
   this->process_allocation_request();
 
   // Make this context current, and store the current OpenGL state
@@ -440,9 +445,11 @@ void GlPreviewWidget::drawImage() {
   for (unsigned i=0; i < m_bboxes.size(); ++i) {
     if (m_current_viewport.intersects(m_bboxes[i])) {
       
-      // Fetch the texture out of the cache.  It will be generated if
-      // necessary.  Note that this happens outside the m_gl_mutex to
-      // avoid deadlock.
+      // Fetch the texture out of the cache.  If the texture is not
+      // currently in the cache, a request for this texture will be
+      // generated so that it is available at some point in the
+      // future. will be generated if necessary. Note that this
+      // happens outside the m_gl_mutex to avoid deadlock.
       GLuint texture_id = m_gl_texture_cache->get_texture_id(m_bboxes[i], lod);
 
       // execute the CUDA filter, writing results to pbo
@@ -535,6 +542,9 @@ void GlPreviewWidget::drawImage() {
   glMatrixMode(GL_PROJECTION);
   glPopMatrix();
   glPopAttrib();
+
+  glFlush();
+  swapBuffers();
 }
 
 void GlPreviewWidget::drawLegend(QPainter* painter) {
@@ -543,8 +553,9 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
   PixelRGBA<float32> pix_value;
   if (currentImagePos.x() >= 0 && currentImagePos.x() < m_image_rsrc->cols() &&
       currentImagePos.y() >= 0 && currentImagePos.y() < m_image_rsrc->rows()) {
-    // FIXME!!
-    //    pix_value = m_image(currentImagePos.x(), currentImagePos.y());
+
+    ImageResourceView<PixelRGBA<float32> > view(m_image_rsrc);
+    pix_value = view(currentImagePos.x(), currentImagePos.y());
     
     const char* pixel_name = vw::pixel_format_name(m_image_rsrc->pixel_format());
     const char* channel_name = vw::channel_type_name(m_image_rsrc->channel_type());
@@ -614,10 +625,11 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
                 << m_image_rsrc->channel_type() << ")." );
       return; // never reached
     }
-    
+
     // We don't print out the channel value for the alpha channel for
     // those pixel types that have alpha.  This is messy too, and
     // should also be replaced by a better method...
+    bool has_alpha = false;
     if (m_image_rsrc->pixel_format() == vw::VW_PIXEL_GRAYA ||
         m_image_rsrc->pixel_format() == vw::VW_PIXEL_RGBA ||
         m_image_rsrc->pixel_format() == vw::VW_PIXEL_GRAY_MASKED ||
@@ -625,14 +637,22 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
         m_image_rsrc->pixel_format() == vw::VW_PIXEL_XYZ_MASKED ||
         m_image_rsrc->pixel_format() == vw::VW_PIXEL_LUV_MASKED ||
         m_image_rsrc->pixel_format() == vw::VW_PIXEL_LAB_MASKED) {
+      has_alpha = true;
       num_channels -= 1;
     }
-
+    
     for (int i=0; i < num_channels; ++i) {
       if (round)
         pix_value_ostr << llroundf(pix_value[i] * scale_factor) << " ";
       else
         pix_value_ostr << (pix_value[i] * scale_factor) << " ";
+    }
+
+    // We don't print out the channel value for the alpha channel for
+    // those pixel types that have alpha.  This is messy too, and
+    // should also be replaced by a better method...
+    if (has_alpha) {
+      pix_value_ostr << "   " << (pix_value[3] * scale_factor);
     }
     pix_value_ostr << "]";
 
