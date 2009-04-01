@@ -90,12 +90,14 @@ namespace camera {
 		  std::string name,
 		  std::string directory );
     void write_gcps( ControlNetwork const& cnet );
-    void write_3d_est( ControlNetwork const& cnet );
+    void write_3d_est( ControlNetwork const& cnet,
+		       std::vector<double>& image_errors );
     ~KMLPlaceMark( void );
   protected:
     // High Level
     void recursive_placemark_building( std::list<Vector3>&,
 				       std::string const&,
+				       double&, double&,
 				       float&, float&,
 				       float&, float&,
 				       int);
@@ -106,9 +108,12 @@ namespace camera {
     void enter_folder( std::string, std::string);
     void exit_folder(void);
     void placemark( double, double, std::string,
-		    std::string, bool);
+		    std::string, std::string );
     void latlonaltbox( float, float, float, float );
     void lod( float, float );
+    void style( std::string, std::string, 
+		float, std::string );
+    void stylemap( std::string, std::string, std::string );
   };
 
   template <class BundleAdjustModelT, class BundleAdjusterT>
@@ -443,8 +448,11 @@ namespace camera {
       boost::shared_ptr<ControlNetwork> network = m_model.control_network();
       
       kml.write_gcps( *network );
-      if ( !gcps_only )
-	kml.write_3d_est( *network );
+      if ( !gcps_only ) {
+	std::vector<double> image_errors;
+	m_model.image_errors( image_errors );
+	kml.write_3d_est( *network, image_errors );
+      }
     }
 
     // Public variables

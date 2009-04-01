@@ -40,69 +40,53 @@ namespace camera {
     
     m_output_file << m_tab << "<name>" << name << "</name>\n";
     
-    // GCP Circle
-    m_output_file << m_tab << "<Style id=\"gcp_circle\">\n";
-    m_output_file << m_tab << "\t<IconStyle>\n";
-    m_output_file << m_tab << "\t\t<scale>1.0</scale>\n";
-    m_output_file << m_tab << "\t\t<Icon>\n";
-    m_output_file << m_tab << "\t\t\t<href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href>\n";
-    m_output_file << m_tab << "\t\t</Icon>\n";
-    m_output_file << m_tab << "\t</IconStyle>\n";
-    m_output_file << m_tab << "</Style>\n";
+    // GCP Placemark Style
+    style( "gcp_circle", "",
+	   1.2, "http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png" );
+    style( "gcp_circle_highlight", "",
+	   1.4, "http://maps.google.com/mapfiles/kml/shapes/placemark_circle_highlight.png" );
+    stylemap( "gcp_placemark", "gcp_circle",
+	      "gcp_circle_highlight" );
+        
+    // Est Circle Lvl 1 (Green) Placemark
+    style( "est_circle_1", "ff00ff00",
+	   0.8, "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png" );
+    style( "est_circle_1_highlight", "ff00ff00",
+	   0.9, "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png" );
+    stylemap( "est_placemark_1", "est_circle_1",
+	      "est_circle_1_highlight" );
     
-    // GCP Circle Highlight
-    m_output_file << m_tab << "<Style id=\"gcp_circle_highlight\">\n";
-    m_output_file << m_tab << "\t<IconStyle>\n";
-    m_output_file << m_tab << "\t\t<scale>1.1</scale>\n";
-    m_output_file << m_tab << "\t\t<Icon>\n";
-    m_output_file << m_tab << "\t\t\t<href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle_highlight.png</href>\n";
-    m_output_file << m_tab << "\t\t</Icon>\n";
-    m_output_file << m_tab << "\t</IconStyle>\n";
-    m_output_file << m_tab << "</Style>\n";
-  
-    // GCP Placemark
-    m_output_file << m_tab << "<StyleMap id=\"gcp_placemark\">\n";
-    m_output_file << m_tab << "\t<Pair>\n";
-    m_output_file << m_tab << "\t\t<key>normal</key>\n";
-    m_output_file << m_tab << "\t\t<styleUrl>#gcp_circle</styleUrl>\n";
-    m_output_file << m_tab << "\t</Pair>\n";
-    m_output_file << m_tab << "\t<Pair>\n";
-    m_output_file << m_tab << "\t\t<key>highlight</key>\n";
-    m_output_file << m_tab << "\t\t<styleUrl>#gcp_circle_highlight</styleUrl>\n";
-    m_output_file << m_tab << "\t</Pair>\n";
-    m_output_file << m_tab << "</StyleMap>\n";
-    
-    // Est Circle
-    m_output_file << m_tab << "<Style id=\"est_circle\">\n";
-    m_output_file << m_tab << "\t<IconStyle>\n";
-    m_output_file << m_tab << "\t\t<scale>0.3</scale>\n";
-    m_output_file << m_tab << "\t\t<Icon>\n";
-    m_output_file << m_tab << "\t\t\t<href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle.png</href>\n";
-    m_output_file << m_tab << "\t\t</Icon>\n";
-    m_output_file << m_tab << "\t</IconStyle>\n";
-    m_output_file << m_tab << "</Style>\n";
+    // Est Circle Lvl 2 (Green-Yellow) Placemark
+    style( "est_circle_2", "ff00ff80",
+	   0.8, "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png" );
+    style( "est_circle_2_highlight", "ff00ff80",
+	   0.9, "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png" );
+    stylemap( "est_placemark_2", "est_circle_2",
+	      "est_circle_2_highlight" );
 
-    // est Circle Highlight
-    m_output_file << m_tab << "<Style id=\"est_circle_highlight\">\n";
-    m_output_file << m_tab << "\t<IconStyle>\n";
-    m_output_file << m_tab << "\t\t<scale>0.4</scale>\n";
-    m_output_file << m_tab << "\t\t<Icon>\n";
-    m_output_file << m_tab << "\t\t\t<href>http://maps.google.com/mapfiles/kml/shapes/placemark_circle_highlight.png</href>\n";
-    m_output_file << m_tab << "\t\t</Icon>\n";
-    m_output_file << m_tab << "\t</IconStyle>\n";
-    m_output_file << m_tab << "</Style>\n";
-    
-    // est Placemark
-    m_output_file << m_tab << "<StyleMap id=\"est_placemark\">\n";
-    m_output_file << m_tab << "\t<Pair>\n";
-    m_output_file << m_tab << "\t\t<key>normal</key>\n";
-    m_output_file << m_tab << "\t\t<styleUrl>#est_circle</styleUrl>\n";
-    m_output_file << m_tab << "\t</Pair>\n";
-    m_output_file << m_tab << "\t<Pair>\n";
-    m_output_file << m_tab << "\t\t<key>highlight</key>\n";
-    m_output_file << m_tab << "\t\t<styleUrl>#est_circle_highlight</styleUrl>\n";
-    m_output_file << m_tab << "\t</Pair>\n";
-    m_output_file << m_tab << "</StyleMap>\n";
+    // Est Circle Lvl 3 (Yellow) Placemark
+    style( "est_circle_3", "ff00ffff",
+	   0.8, "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png" );
+    style( "est_circle_3_highlight", "ff00ffff",
+	   0.9, "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png" );
+    stylemap( "est_placemark_3", "est_circle_3",
+	      "est_circle_3_highlight" );
+
+    // Est Circle Lvl 4 (Red-Yellow) Placemark
+    style( "est_circle_4", "ff0080ff",
+	   0.8, "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png" );
+    style( "est_circle_4_highlight", "ff0080ff",
+	   0.9, "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png" );
+    stylemap( "est_placemark_4", "est_circle_4",
+	      "est_circle_4_highlight" );
+
+    // Est Circle Lvl 5 (Red) Placemark
+    style( "est_circle_5", "ff0000ff",
+	   0.8, "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png" );
+    style( "est_circle_5_highlight", "ff0000ff",
+	   0.9, "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png" );
+    stylemap( "est_placemark_5", "est_circle_5",
+	      "est_circle_5_highlight" );
   }
   
   KMLPlaceMark::~KMLPlaceMark( void ) {
@@ -147,11 +131,11 @@ namespace camera {
 	desc << "&lt;/ol&gt;";
 
 	if ( (*iter).id() != "Null" ) {
-	  placemark( llr.x(), llr.y(), (*iter).id(), desc.str(), true );
+	  placemark( llr.x(), llr.y(), (*iter).id(), desc.str(), "gcp_placemark" );
 	} else {
 	  std::ostringstream gcp_name;
 	  gcp_name << "GCP " << count;
-	  placemark( llr.x(), llr.y(), gcp_name.str(), desc.str(), true );
+	  placemark( llr.x(), llr.y(), gcp_name.str(), desc.str(), "gcp_placemark" );
 	}
       }
     }
@@ -159,20 +143,28 @@ namespace camera {
     exit_folder();
   }
   
-  void KMLPlaceMark::write_3d_est( ControlNetwork const& cnet ) {
+  void KMLPlaceMark::write_3d_est( ControlNetwork const& cnet, 
+				   std::vector<double>& image_errors ) {
     enter_folder( "3D Point estimates",
 		  "Used for Bundle Adjustment in VW" );
 
     std::list<Vector3> points; // Lon, Lat, Interest
 
-    unsigned count = 0;
+    unsigned index = 0;
     for ( ControlNetwork::const_iterator iter = cnet.begin();
 	  iter != cnet.end(); ++iter ) {
-      count++;
-      if ( (*iter).type() == ControlPoint::TiePoint ) {
-	Vector3 llr = cartography::xyz_to_lon_lat_radius( (*iter).position() );
-	points.push_back( Vector3(llr.x(),llr.y(), 1.0/sum((*iter).sigma())) );
+      Vector3 llr = cartography::xyz_to_lon_lat_radius( (*iter).position() );
+      double mean_image_error = 0;
+      int count_measures = 0;
+      for ( ControlPoint::const_iterator m_iter = (*iter).begin();
+	    m_iter != (*iter).end(); ++m_iter ) {
+	mean_image_error += image_errors[index];
+	index++;
+	count_measures++;
       }
+      mean_image_error /= count_measures;
+      if ( (*iter).type() == ControlPoint::TiePoint )
+	points.push_back( Vector3(llr.x(),llr.y(), mean_image_error) );
     }
     
     // Grow a bounding box
@@ -188,8 +180,18 @@ namespace camera {
     lower_corner.y() = floor( lower_corner.y() );
     upper_corner.x() = ceil( upper_corner.x() );
     upper_corner.y() = ceil( upper_corner.y() );
+
+    // Finding the maximium and minimium error
+    double min = 1e20, max = -1;
+    for ( std::list<Vector3>::iterator it = points.begin();
+	  it != points.end(); ++it ) {
+      if ( (*it).z() < min )
+	min = (*it).z();
+      if ( (*it).z() > max )
+	max = (*it).z();
+    }
    
-    recursive_placemark_building( points, m_name,
+    recursive_placemark_building( points, m_name, min, max,
 				  upper_corner.y(), lower_corner.y(),
 				  upper_corner.x(), lower_corner.x(), 0 );
 
@@ -198,6 +200,7 @@ namespace camera {
   
   void KMLPlaceMark::recursive_placemark_building( std::list<Vector3>& list,
 						   std::string const& name,
+						   double& min, double& max,
 						   float& north, float& south,
 						   float& east, float& west,
 						   int recursive_lvl) {
@@ -215,6 +218,7 @@ namespace camera {
     std::vector<float> west_dv;
     west_dv.push_back( east_dv[1] ); west_dv.push_back( west );
     west_dv.push_back( west_dv[0] ); west_dv.push_back( west_dv[1] );
+    double diff = max - min;
 
     // Checking list
     int count = 0;
@@ -235,8 +239,25 @@ namespace camera {
 
       // Placemarks
       for ( std::list<Vector3>::iterator it = list.begin();
-	    it != list.end(); ++it ) 
-	placemark( (*it).x(), (*it).y(), "", "", false );
+	    it != list.end(); ++it ) {
+	std::ostringstream desc;
+	desc << "Image error: " << (*it).z();
+	if ( (*it).z() > 4*diff/5 + min )
+	  placemark( (*it).x(), (*it).y(), "", desc.str(),
+		     "est_placemark_5" );
+	else if ( (*it).z() > 3*diff/5 + min )
+	  placemark( (*it).x(), (*it).y(), "", desc.str(),
+		     "est_placemark_4" );
+	else if ( (*it).z() > 2*diff/5 + min )
+	  placemark( (*it).x(), (*it).y(), "", desc.str(),
+		     "est_placemark_3" );
+	else if ( (*it).z() > 1*diff/5 + min )
+	  placemark( (*it).x(), (*it).y(), "", desc.str(),
+		     "est_placemark_2" );
+	else
+	  placemark( (*it).x(), (*it).y(), "", desc.str(),
+		     "est_placemark_1" );
+      }
 
       exit_folder();
       close_kml();
@@ -271,7 +292,23 @@ namespace camera {
       count = 500;
       std::list<Vector3>::iterator it = list.begin();
       while ( count > 0 ) {
-	placemark( (*it).x(), (*it).y(), "", "", false );
+	std::ostringstream desc;
+	desc << "Image error: " << (*it).z();
+	if ( (*it).z() > 4*diff/5 + min )
+	  placemark( (*it).x(), (*it).y(), "", desc.str(),
+		     "est_placemark_5" );
+	else if ( (*it).z() > 3*diff/5 + min )
+	  placemark( (*it).x(), (*it).y(), "", desc.str(),
+		     "est_placemark_4" );
+	else if ( (*it).z() > 2*diff/5 + min )
+	  placemark( (*it).x(), (*it).y(), "", desc.str(),
+		     "est_placemark_3" );
+	else if ( (*it).z() > 1*diff/5 + min )
+	  placemark( (*it).x(), (*it).y(), "", desc.str(),
+		     "est_placemark_2" );
+	else
+	  placemark( (*it).x(), (*it).y(), "", desc.str(),
+		     "est_placemark_1" );
 	it = list.erase( it );
 	count--;
       }
@@ -301,6 +338,7 @@ namespace camera {
 	  dir << "data/";
 	KMLPlaceMark subsection( new_name.str() + ".kml", new_name.str(), dir.str() );
 	subsection.recursive_placemark_building( temp, new_name.str(),
+						 min, max,
 						 north_dv[i], south_dv[i],
 						 east_dv[i], west_dv[i],
 						 recursive_lvl+1 );
@@ -349,16 +387,16 @@ namespace camera {
   
   void KMLPlaceMark::placemark( double lon, double lat,
 				std::string name="",
-				std::string desc="", bool gcp=false ) {
+				std::string desc="",
+				std::string style="") {
     m_output_file << m_tab << "<Placemark>\n";
     m_tab.count++;
-    m_output_file << m_tab << "<name>"<< name <<"</name>\n";
-    m_output_file << m_tab << "<description>" << desc << "</description>\n";
-    if (gcp) {
-      m_output_file << m_tab << "<styleUrl>#gcp_placemark</styleUrl>\n";
-    } else {
-      m_output_file << m_tab << "<styleUrl>#est_placemark</styleUrl>\n";
-    }
+    if ( name != "" )
+      m_output_file << m_tab << "<name>"<< name <<"</name>\n";
+    if ( desc != "" )
+      m_output_file << m_tab << "<description>" << desc << "</description>\n";
+    if ( style != "") 
+      m_output_file << m_tab << "<styleUrl>#"<<style<<"</styleUrl>\n";
     m_output_file << m_tab << "<Point>\n";
     m_output_file << m_tab << "\t<coordinates>"<< std::setw(10) << lon <<","<< lat 
 		  <<",0</coordinates>\n";
@@ -386,6 +424,40 @@ namespace camera {
     m_output_file << m_tab << "<maxLodPixels>"<<max<<"</maxLodPixels>\n";
     m_tab.count--;
     m_output_file << m_tab << "</Lod>\n";
+  }
+
+  void KMLPlaceMark::style( std::string id, std::string color_hex,
+			    float scale, std::string image_url ) {
+    m_output_file << m_tab << "<Style id=\"" << id << "\">\n";
+    m_tab.count++;
+    m_output_file << m_tab << "<IconStyle>\n";
+    m_tab.count++;
+    if (color_hex != "" )
+      m_output_file << m_tab << "<color>" << color_hex << "</color>\n";
+    m_output_file << m_tab << "<scale>" << scale << "</scale>\n";
+    m_output_file << m_tab << "<Icon>\n";
+    m_output_file << m_tab << "\t<href>" << image_url << "</href>\n";
+    m_output_file << m_tab << "</Icon>\n";
+    m_tab.count--;
+    m_output_file << m_tab << "</IconStyle>\n";
+    m_tab.count--;
+    m_output_file << m_tab << "</Style>\n";
+  }
+
+  void KMLPlaceMark::stylemap( std::string id, std::string style_normal,
+			       std::string style_highlight ) {
+    m_output_file << m_tab << "<StyleMap id=\"" << id << "\">\n";
+    m_tab.count++;
+    m_output_file << m_tab << "<Pair>\n";
+    m_output_file << m_tab << "\t<key>normal</key>\n";
+    m_output_file << m_tab << "\t<styleUrl>#" << style_normal << "</styleUrl>\n";
+    m_output_file << m_tab << "</Pair>\n";
+    m_output_file << m_tab << "<Pair>\n";
+    m_output_file << m_tab << "\t<key>highlight</key>\n";
+    m_output_file << m_tab << "\t<styleUrl>#" << style_highlight << "</styleUrl>\n";
+    m_output_file << m_tab << "</Pair>\n";
+    m_tab.count--;
+    m_output_file << m_tab << "</StyleMap>\n";
   }
 
   std::ostream& operator<<( std::ostream& os, TabCount const& tab) {
