@@ -22,14 +22,14 @@ namespace fs = boost::filesystem;
 
 namespace vw {
 
-  // This wrapper class intercepts premultiplied alpha data being written 
-  // to a PNG resource, and implements a pyramid-based hole-filling 
-  // algorithm to extrapolate data into the alpha-masked regions of the 
+  // This wrapper class intercepts premultiplied alpha data being written
+  // to a PNG resource, and implements a pyramid-based hole-filling
+  // algorithm to extrapolate data into the alpha-masked regions of the
   // image.
-  // 
-  // This is a workaround hack for a Google Earth bug, in which GE's 
-  // rendering of semi-transparent GroundOverlays interpolates  
-  // alpha-masked (i.e. invalid) data, resulting in annoying (generally 
+  //
+  // This is a workaround hack for a Google Earth bug, in which GE's
+  // rendering of semi-transparent GroundOverlays interpolates
+  // alpha-masked (i.e. invalid) data, resulting in annoying (generally
   // black) fringes around semi-transparent images.
   class DiskImageResourcePNGAlphaHack : public DiskImageResourcePNG {
   public:
@@ -39,46 +39,46 @@ namespace vw {
     void write( ImageBuffer const& src, BBox2i const& bbox ) {
       int levels = (int) floor(((std::min)(log(bbox.width()),log(bbox.height())))/log(2));
       if( levels<2 || src.unpremultiplied || !(src.format.pixel_format==VW_PIXEL_RGBA || src.format.pixel_format==VW_PIXEL_GRAYA) )
-	return DiskImageResourcePNG::write(src,bbox);
-      
+        return DiskImageResourcePNG::write(src,bbox);
+
       std::vector<ImageView<PixelRGBA<float> > > pyramid(levels);
       pyramid[0].set_size( bbox.width(), bbox.height() );
       convert( pyramid[0].buffer(), src, m_rescale );
-      
+
       std::vector<float> kernel(2);
       kernel[0] = kernel[1] = 0.5;
       for( int i=1; i<levels; ++i ) {
-	pyramid[i] = subsample(separable_convolution_filter(pyramid[i-1],kernel,kernel,1,1,ConstantEdgeExtension()),2);
+        pyramid[i] = subsample(separable_convolution_filter(pyramid[i-1],kernel,kernel,1,1,ConstantEdgeExtension()),2);
       }
-      
+
       for( int i=levels-1; i>0; --i ) {
-	ImageView<PixelRGBA<float> > up = resample(pyramid[i],2.0,pyramid[i-1].cols(),pyramid[i-1].rows(),ConstantEdgeExtension(),BilinearInterpolation());
-	if(i>1) {
-	  for( int y=0; y<up.rows(); ++y ) {
-	    for( int x=0; x<up.cols(); ++x ) {
-	      if(pyramid[i-1](x,y).a()==0.0) {
-		pyramid[i-1](x,y) = up(x,y);
-	      }
-	    }
-	  }
-	}
-	else {
-	  for( int y=0; y<up.rows(); ++y ) {
-	    for( int x=0; x<up.cols(); ++x ) {
-	      if(pyramid[0](x,y).a()==0.0) {
-		if(up(x,y).a()!=0.0) {
-		  pyramid[0](x,y) = up(x,y) / up(x,y).a();
-		  pyramid[0](x,y).a() = 0;
-		}
-	      }
-	      else {
-		pyramid[0](x,y).r() /= pyramid[0](x,y).a();
-		pyramid[0](x,y).g() /= pyramid[0](x,y).a();
+        ImageView<PixelRGBA<float> > up = resample(pyramid[i],2.0,pyramid[i-1].cols(),pyramid[i-1].rows(),ConstantEdgeExtension(),BilinearInterpolation());
+        if(i>1) {
+          for( int y=0; y<up.rows(); ++y ) {
+            for( int x=0; x<up.cols(); ++x ) {
+              if(pyramid[i-1](x,y).a()==0.0) {
+                pyramid[i-1](x,y) = up(x,y);
+              }
+            }
+          }
+        }
+        else {
+          for( int y=0; y<up.rows(); ++y ) {
+            for( int x=0; x<up.cols(); ++x ) {
+              if(pyramid[0](x,y).a()==0.0) {
+                if(up(x,y).a()!=0.0) {
+                  pyramid[0](x,y) = up(x,y) / up(x,y).a();
+                  pyramid[0](x,y).a() = 0;
+                }
+              }
+              else {
+                pyramid[0](x,y).r() /= pyramid[0](x,y).a();
+                pyramid[0](x,y).g() /= pyramid[0](x,y).a();
               pyramid[0](x,y).b() /= pyramid[0](x,y).a();
-	      }
-	    }
-	  }
-	}
+              }
+            }
+          }
+        }
       }
 
       ImageBuffer buffer = pyramid[0].buffer();
@@ -153,11 +153,11 @@ namespace mosaic {
     std::ostringstream tag;
     tag << std::setprecision(10);
     tag << "<LatLonAltBox>"
-	<< "<north>" << bbox.min().y() << "</north>"
-	<< "<south>" << bbox.max().y() << "</south>"
-	<< "<east>" << bbox.max().x() << "</east>"
-	<< "<west>" << bbox.min().x() << "</west>"
-	<< "</LatLonAltBox>";
+        << "<north>" << bbox.min().y() << "</north>"
+        << "<south>" << bbox.max().y() << "</south>"
+        << "<east>" << bbox.max().x() << "</east>"
+        << "<west>" << bbox.min().x() << "</west>"
+        << "</LatLonAltBox>";
     return tag.str();
   }
 
@@ -165,10 +165,10 @@ namespace mosaic {
     std::ostringstream tag;
     tag << std::setprecision(10);
     tag << "  <NetworkLink>\n"
-	<< "    <name>" << name << "</name>\n"
+        << "    <name>" << name << "</name>\n"
         << "    <Region>" << kml_latlonaltbox(longlat_bbox) << "<Lod><minLodPixels>" << min_lod_pixels << "</minLodPixels><maxLodPixels>-1</maxLodPixels></Lod></Region>\n"
-	<< "    <Link><href>" << href << "</href><viewRefreshMode>onRegion</viewRefreshMode></Link>\n"
-	<< "  </NetworkLink>\n";
+        << "    <Link><href>" << href << "</href><viewRefreshMode>onRegion</viewRefreshMode></Link>\n"
+        << "  </NetworkLink>\n";
     return tag.str();
   }
 
@@ -176,12 +176,12 @@ namespace mosaic {
     std::ostringstream tag;
     tag << std::setprecision(10);
     tag << "  <GroundOverlay>\n"
-	<< "    <Region>" << kml_latlonaltbox(region_bbox) << "<Lod><minLodPixels>" << min_lod_pixels << "</minLodPixels><maxLodPixels>" << max_lod_pixels << "</maxLodPixels></Lod></Region>\n"
-	<< "    <name>" << href << "</name>\n"
-	<< "    <Icon><href>" << href << "</href></Icon>\n"
-	<< "    " << kml_latlonaltbox(image_bbox) << "\n"
-	<< "    <drawOrder>" << draw_order << "</drawOrder>\n"
-	<< "  </GroundOverlay>\n";
+        << "    <Region>" << kml_latlonaltbox(region_bbox) << "<Lod><minLodPixels>" << min_lod_pixels << "</minLodPixels><maxLodPixels>" << max_lod_pixels << "</maxLodPixels></Lod></Region>\n"
+        << "    <name>" << href << "</name>\n"
+        << "    <Icon><href>" << href << "</href></Icon>\n"
+        << "    " << kml_latlonaltbox(image_bbox) << "\n"
+        << "    <drawOrder>" << draw_order << "</drawOrder>\n"
+        << "  </GroundOverlay>\n";
     return tag.str();
   }
 
@@ -189,10 +189,10 @@ namespace mosaic {
     double width = dimensions.x(), height = dimensions.y();
     // Fractional bounding-box
     BBox2 fbb( image_bbox.min().x()/width, image_bbox.min().y()/height,
-	       image_bbox.width()/width, image_bbox.height()/height );
+               image_bbox.width()/width, image_bbox.height()/height );
     BBox2 bb( m_longlat_bbox.min().x()+fbb.min().x()*m_longlat_bbox.width(),
-	      m_longlat_bbox.max().y()-fbb.min().y()*m_longlat_bbox.height(),
-	      fbb.width()*m_longlat_bbox.width(), -fbb.height()*m_longlat_bbox.height() );
+              m_longlat_bbox.max().y()-fbb.min().y()*m_longlat_bbox.height(),
+              fbb.width()*m_longlat_bbox.width(), -fbb.height()*m_longlat_bbox.height() );
     return bb;
   }
 
@@ -211,9 +211,9 @@ namespace mosaic {
 
     if( root_node ) {
       if( ! m_title.empty() )
-	m_root_node_tags << "  <name>" << m_title << "</name>\n";
+        m_root_node_tags << "  <name>" << m_title << "</name>\n";
       if( ! m_metadata.empty() )
-	m_root_node_tags << "  <Metadata>" << m_metadata << "</Metadata>\n";
+        m_root_node_tags << "  <Metadata>" << m_metadata << "</Metadata>\n";
 
       BBox2 bbox = (qtree.get_crop_bbox().empty()) ? m_longlat_bbox : pixels_to_longlat( qtree.get_crop_bbox(), qtree.get_dimensions() );
 
@@ -230,11 +230,11 @@ namespace mosaic {
     for( unsigned i=0; i<children.size(); ++i ) {
       std::string kmlfile = qtree.image_path(children[i].first) + ".kml";
       if( exists( fs::path( kmlfile, fs::native ) ) ) {
-	num_children++;
-	kml << kml_network_link( children[i].first.substr(children[i].first.size()-1),
-				 kmlfile.substr(base_len),
-				 pixels_to_longlat( children[i].second, qtree.get_dimensions() ),
-				 qtree.get_tile_size()/2);
+        num_children++;
+        kml << kml_network_link( children[i].first.substr(children[i].first.size()-1),
+                                 kmlfile.substr(base_len),
+                                 pixels_to_longlat( children[i].second, qtree.get_dimensions() ),
+                                 qtree.get_tile_size()/2);
       }
     }
 
@@ -244,12 +244,12 @@ namespace mosaic {
     BBox2i go_bbox = (qtree.get_crop_images() ? info.image_bbox : info.region_bbox);
     if( exists( fs::path( info.filepath + info.filetype ) ) ) {
       kml << kml_ground_overlay( file_path.leaf() + info.filetype,
-				 pixels_to_longlat( info.region_bbox, qtree.get_dimensions() ),
-				 pixels_to_longlat( go_bbox, qtree.get_dimensions() ),
-				 draw_order, qtree.get_tile_size()/2, max_lod );
+                                 pixels_to_longlat( info.region_bbox, qtree.get_dimensions() ),
+                                 pixels_to_longlat( go_bbox, qtree.get_dimensions() ),
+                                 draw_order, qtree.get_tile_size()/2, max_lod );
       num_children++;
     }
-    
+
     if( root_node ) {
       kml << m_root_node_tags.str();
       num_children++;
@@ -270,25 +270,25 @@ namespace mosaic {
 
       Vector2i dims = qtree.get_dimensions();
       double aspect_ratio = 2 * (region.width()/region.height()) * ( (m_longlat_bbox.width()/dims.x()) / (m_longlat_bbox.height()/dims.y()) );
-								     
+
       double bottom_lat = m_longlat_bbox.max().y() - region.max().y()*m_longlat_bbox.height() / dims.y();
       double top_lat = m_longlat_bbox.max().y() - region.min().y()*m_longlat_bbox.height() / dims.y();
       bool top_merge = ( bottom_lat > 0 ) && ( ( 1.0 / cos(M_PI/180 * bottom_lat) ) > aspect_ratio );
       bool bottom_merge = ( top_lat < 0 ) && ( ( 1.0 / cos(M_PI/180 * top_lat) ) > aspect_ratio );
 
       if( top_merge ) {
-	children.push_back( std::make_pair( name + "4", BBox2i( region.min(), region.max() - Vector2i(0,region.height()/2) ) ) );
+        children.push_back( std::make_pair( name + "4", BBox2i( region.min(), region.max() - Vector2i(0,region.height()/2) ) ) );
       }
       else {
-	children.push_back( std::make_pair( name + "0", BBox2i( (region + region.min()) / 2 ) ) );
-	children.push_back( std::make_pair( name + "1", BBox2i( (region + Vector2i(region.max().x(),region.min().y())) / 2 ) ) );
+        children.push_back( std::make_pair( name + "0", BBox2i( (region + region.min()) / 2 ) ) );
+        children.push_back( std::make_pair( name + "1", BBox2i( (region + Vector2i(region.max().x(),region.min().y())) / 2 ) ) );
       }
       if( bottom_merge ) {
-	children.push_back( std::make_pair( name + "5", BBox2i( region.min() + Vector2i(0,region.height()/2), region.max() ) ) );
+        children.push_back( std::make_pair( name + "5", BBox2i( region.min() + Vector2i(0,region.height()/2), region.max() ) ) );
       }
       else {
-	children.push_back( std::make_pair( name + "2", BBox2i( (region + Vector2i(region.min().x(),region.max().y())) / 2 ) ) );
-	children.push_back( std::make_pair( name + "3", BBox2i( (region + region.max()) / 2 ) ) );
+        children.push_back( std::make_pair( name + "2", BBox2i( (region + Vector2i(region.min().x(),region.max().y())) / 2 ) ) );
+        children.push_back( std::make_pair( name + "3", BBox2i( (region + region.max()) / 2 ) ) );
       }
     }
     return children;
