@@ -97,7 +97,7 @@ namespace mosaic {
     std::string m_metadata;
     mutable std::ostringstream m_root_node_tags;
 
-    std::string kml_latlonaltbox( BBox2 const& longlat_bbox ) const;
+    std::string kml_latlonbox( BBox2 const& longlat_bbox, bool alt ) const;
     std::string kml_network_link( std::string const& name, std::string const& href, BBox2 const& longlat_bbox, int min_lod_pixels ) const;
     std::string kml_ground_overlay( std::string const& href, BBox2 const& region_bbox, BBox2 const& image_bbox, int draw_order, int min_lod_pixels, int max_lod_pixels ) const;
     BBox2 pixels_to_longlat( BBox2i const& image_bbox, Vector2i const& dimensions ) const;
@@ -148,16 +148,23 @@ namespace mosaic {
     qtree.set_tile_resource_func( boost::bind(&KMLQuadTreeConfigData::tile_resource_func,m_data,_1,_2,_3) );
   }
 
-  std::string KMLQuadTreeConfigData::kml_latlonaltbox( BBox2 const& longlat_bbox ) const {
+  std::string KMLQuadTreeConfigData::kml_latlonbox( BBox2 const& longlat_bbox, bool alt ) const {
     BBox2 bbox = longlat_bbox;
     std::ostringstream tag;
     tag << std::setprecision(10);
-    tag << "<LatLonAltBox>"
+
+    std::string elt;
+    if (alt)
+      elt = "LatLonAltBox";
+    else
+      elt = "LatLonBox";
+
+    tag << "<" << elt << ">"
         << "<north>" << bbox.min().y() << "</north>"
         << "<south>" << bbox.max().y() << "</south>"
         << "<east>" << bbox.max().x() << "</east>"
         << "<west>" << bbox.min().x() << "</west>"
-        << "</LatLonAltBox>";
+        << "</" << elt << ">";
     return tag.str();
   }
 
@@ -166,7 +173,7 @@ namespace mosaic {
     tag << std::setprecision(10);
     tag << "  <NetworkLink>\n"
         << "    <name>" << name << "</name>\n"
-        << "    <Region>" << kml_latlonaltbox(longlat_bbox) << "<Lod><minLodPixels>" << min_lod_pixels << "</minLodPixels><maxLodPixels>-1</maxLodPixels></Lod></Region>\n"
+        << "    <Region>" << kml_latlonbox(longlat_bbox, true) << "<Lod><minLodPixels>" << min_lod_pixels << "</minLodPixels><maxLodPixels>-1</maxLodPixels></Lod></Region>\n"
         << "    <Link><href>" << href << "</href><viewRefreshMode>onRegion</viewRefreshMode></Link>\n"
         << "  </NetworkLink>\n";
     return tag.str();
@@ -176,10 +183,10 @@ namespace mosaic {
     std::ostringstream tag;
     tag << std::setprecision(10);
     tag << "  <GroundOverlay>\n"
-        << "    <Region>" << kml_latlonaltbox(region_bbox) << "<Lod><minLodPixels>" << min_lod_pixels << "</minLodPixels><maxLodPixels>" << max_lod_pixels << "</maxLodPixels></Lod></Region>\n"
+        << "    <Region>" << kml_latlonbox(region_bbox, true) << "<Lod><minLodPixels>" << min_lod_pixels << "</minLodPixels><maxLodPixels>" << max_lod_pixels << "</maxLodPixels></Lod></Region>\n"
         << "    <name>" << href << "</name>\n"
         << "    <Icon><href>" << href << "</href></Icon>\n"
-        << "    " << kml_latlonaltbox(image_bbox) << "\n"
+        << "    " << kml_latlonbox(image_bbox, false) << "\n"
         << "    <drawOrder>" << draw_order << "</drawOrder>\n"
         << "  </GroundOverlay>\n";
     return tag.str();
