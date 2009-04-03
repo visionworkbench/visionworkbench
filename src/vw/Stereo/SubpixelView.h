@@ -108,11 +108,11 @@ namespace stereo {
     
       new_width = disp.cols()/2;
       new_height = disp.rows()/2;
-      printf("disp: new_w = %d, new_h = %d\n", new_width, new_height); 
+      //printf("disp: new_w = %d, new_h = %d\n", new_width, new_height); 
       
       ImageView<PixelDisparity<float> > outDisp(new_width, new_height);	
       ImageViewRef<PixelDisparity<float> > interpDisp = interpolate(disp);
-      printf("downsampling\n");
+      //printf("downsampling\n");
       int32 i, j;
       float new_i, new_j;
       
@@ -121,59 +121,13 @@ namespace stereo {
             
             new_i = i*2;
             new_j = j*2;
-            /*
-            outDisp(i,j).h() = 0.0f;
-            outDisp(i,j).h() += disp(new_i     , new_j    ).h();
-            outDisp(i,j).h() += disp(new_i + 1 , new_j    ).h();
-            outDisp(i,j).h() += disp(new_i     , new_j + 1).h();
-	    outDisp(i,j).h() += disp(new_i + 1 , new_j + 1).h();
-      
-            outDisp(i,j).h() /= 8;
-            
-            outDisp(i,j).v() = 0.0f;
-            outDisp(i,j).v() += disp(new_i     , new_j    ).v();
-            outDisp(i,j).v() += disp(new_i + 1 , new_j    ).v();
-            outDisp(i,j).v() += disp(new_i     , new_j + 1).v();
-	    outDisp(i,j).v() += disp(new_i + 1 , new_j + 1).v();
-
-            outDisp(i,j).v() /= 8;
-            */
+         
             outDisp(i,j).v() = interpDisp(new_i, new_j).v()/2;
             outDisp(i,j).h() = interpDisp(new_i, new_j).h()/2;
             outDisp(i,j)[2] = disp(new_i, new_j)[2];
         }
      }
 
-     /*	
-     int32 i, j;
-     int32 new_i, new_j;
-      
-     for (i = 0; i < new_width; i++) {
-	for (j = 0; j < new_height; j++) {  
-            
-            new_i = i*2;
-            new_j = j*2;
-            
-            outDisp(i,j).h() = 0.0f;
-            outDisp(i,j).h() += disp(new_i     , new_j    ).h();
-            outDisp(i,j).h() += disp(new_i + 1 , new_j    ).h();
-            outDisp(i,j).h() += disp(new_i     , new_j + 1).h();
-	    outDisp(i,j).h() += disp(new_i + 1 , new_j + 1).h();
-      
-            outDisp(i,j).h() /= 8;
-            
-            outDisp(i,j).v() = 0.0f;
-            outDisp(i,j).v() += disp(new_i     , new_j    ).v();
-            outDisp(i,j).v() += disp(new_i + 1 , new_j    ).v();
-            outDisp(i,j).v() += disp(new_i     , new_j + 1).v();
-	    outDisp(i,j).v() += disp(new_i + 1 , new_j + 1).v();
-
-            outDisp(i,j).v() /= 8;
-
-            outDisp(i,j)[2] = disp(new_i, new_j)[2];
-        }
-     }
-     */
      return outDisp;
     }
 
@@ -187,32 +141,7 @@ namespace stereo {
 
       for (unsigned j = 0; j < outDisp.rows(); ++j) {
         for (unsigned i = 0; i < outDisp.cols(); ++i) {
-
-#if 0
-         for (j = 0; j < up_height; j++) {
-           
-	   old_j = float(j)/2;
-              if (old_j > disp.rows()-1){
-	          old_j = disp.rows()-1;
-            }          
-            
-            new_disp_h = 2*interpDisp(old_i,old_j).h();
-            new_disp_v = 2*interpDisp(old_i,old_j).v();
-            valid =  ceil(interpDisp(old_i, old_j)[2]);
-	    
-            outDisp(i,j).v() = new_disp_v;
-            outDisp(i,j).h() = new_disp_h; 
-            outDisp(i,j)[2] = valid;
-            
-            /*          
-            if ( ((outDisp(i,j).h() == 0) || (outDisp(i,j).h() == 0)) && (valid!=0) ) { 
-               printf("i=%d, j=%d, new_v=%f, new_h=%f, old_v = %f, old_h = %f, valid=%d\n",
-		      i,j, outDisp(i,j).v(), outDisp(i,j).h(), disp(old_i, old_j).v(), disp(old_i, old_j).h(), valid);
-            }
-            */
-            
-         }
-#endif
+	 
           float x = math::impl::_floor(float(i)/2.0), y = math::impl::_floor(float(j)/2.0);
           float normx = float(i)/2-x, normy = float(j)/2-y, norm1mx = 1.0-normx, norm1my = 1.0-normy;
           float im_00 = disp(x,y).h();
@@ -220,65 +149,88 @@ namespace stereo {
           float im_10 = disp(x+1,y).h();
           float im_11 = disp(x+1,y+1).h();
           
-          outDisp(i,j) = PixelDisparity<float>(2 * (disp(x,y).h()   * norm1mx*norm1my + 
-                                                    disp(x+1,y).h() * normx*norm1my + 
-                                                    disp(x,y+1).h() * norm1mx*normy + 
-                                                    disp(x+1,y+1).h() * normx*normy),
+         
+          float h_val = 0;
+	  float v_val = 0;
+          int numValid = 0;
 
-                                               2 * (disp(x,y).v()   * norm1mx*norm1my + 
-                                                    disp(x+1,y).v() * normx*norm1my + 
-                                                    disp(x,y+1).v() * norm1mx*normy + 
-                                                    disp(x+1,y+1).v() * normx*normy), 
-                                               
-                                               ceil(
-                                                    disp(x,y).missing()   * norm1mx*norm1my + 
-                                                    disp(x+1,y).missing() * normx*norm1my + 
-                                                    disp(x,y+1).missing() * norm1mx*normy + 
-                                                    disp(x+1,y+1).missing() * normx*normy
-                                                    )
-                                               );
+          if (disp(x,y)[2]==0){
+	     h_val = h_val + disp(x,y).h();
+             v_val = v_val + disp(x,y).v();
+             numValid++;
+          }
+          if (disp(x+1,y)[2]==0){
+	     h_val = h_val + disp(x+1,y).h();
+             v_val = v_val + disp(x+1,y).v();
+             numValid++;
+          }
+          if (disp(x,y+1)[2]==0){
+	     h_val = h_val + disp(x,y+1).h();
+             v_val = v_val + disp(x,y+1).v();
+             numValid++;
+          }
+          if (disp(x+1,y+1)[2]==0){
+	     h_val = h_val + disp(x+1,y+1).h();
+             v_val = v_val + disp(x+1,y+1).v();
+             numValid++;
+          }
+
+          if (numValid == 0){
+	     outDisp(i,j).v() = 0;
+             outDisp(i,j).h() = 0;
+	     outDisp(i,j)[2] = 1;
+           
+          }
+          else{
+	    h_val = h_val/numValid;
+	    v_val = v_val/numValid;          
+
+	    if (disp(x,y)[2]==1){
+	      disp(x,y).h() = h_val;
+              disp(x,y).v() = v_val;
+	    }
+	    if (disp(x+1,y)[2]==1){
+	      disp(x+1,y).h() = h_val;
+              disp(x+1,y).v() = v_val;
+	    }
+	    if (disp(x,y+1)[2]==1){
+	      disp(x,y+1).h() = h_val;
+              disp(x,y+1).v() = v_val;
+	    }
+	    if (disp(x+1,y+1)[2]==1){
+	      disp(x+1,y+1).h() = h_val;
+              disp(x+1,y+1).v() = v_val;
+	    }
+         
+            outDisp(i,j).h() = 2 * (disp(x,y).h()   * norm1mx*norm1my + 
+                                    disp(x+1,y).h() * normx*norm1my + 
+                                    disp(x,y+1).h() * norm1mx*normy + 
+				    disp(x+1,y+1).h() * normx*normy);
+
+            outDisp(i,j).v() = 2 * (disp(x,y).v()   * norm1mx*norm1my + 
+                                    disp(x+1,y).v() * normx*norm1my + 
+                                    disp(x,y+1).v() * norm1mx*normy + 
+				    disp(x+1,y+1).v() * normx*normy);
+
+                        
+            outDisp(i,j)[2] =  ceil(disp(x,y).missing()   * norm1mx*norm1my + 
+                                    disp(x+1,y).missing() * normx*norm1my + 
+                                    disp(x,y+1).missing() * norm1mx*normy + 
+                                    disp(x+1,y+1).missing() * normx*normy);
+	    
+            /*
+            outDisp(i,j)[2] =  disp(x,y).missing()   * norm1mx*norm1my + 
+                               disp(x+1,y).missing() * normx*norm1my + 
+                               disp(x,y+1).missing() * norm1mx*normy + 
+                               disp(x+1,y+1).missing() * normx*normy;
+            
+            if (outDisp(i,j)[2] < 1){
+	        outDisp(i,j)[2] = 0;
+            }
+	    */
+	  }
         }
       }
-
-      #if 0
-      ImageView<PixelDisparity<float> > outDisp(up_width, up_height);			
-      int32 i, j;
-      int32 old_i, old_j;
-      int valid;
-      float new_disp_v, new_disp_h;
-
-      for (i = 0; i < up_width; i++) {
-	 
-         old_i = i/2;
-         if (old_i > disp.cols()-1){
-	     old_i = disp.cols()-1;
-         }   
-
-         for (j = 0; j < up_height; j++) {
-           
-            old_j = j/2;
-            if (old_j > disp.rows()-1){
-	        old_j = disp.rows()-1;
-            }          
-            
-            new_disp_h = 2*disp(old_i,old_j).h();
-            new_disp_v = 2*disp(old_i,old_j).v();
-            valid =  disp(old_i, old_j)[2];
-	    
-            outDisp(i,j).v() = new_disp_v;
-            outDisp(i,j).h() = new_disp_h; 
-            outDisp(i,j)[2] = valid;
-            
-            /*
-            if ( (i > 100) && (i < 104) && (j > 100) && (j < 104) ) { 
-               printf("i=%d, j=%d, new_v=%f, new_h=%f, old_v = %f, old_h = %f, valid=%d\n",
-		      i,j, outDisp(i,j).v(), outDisp(i,j).h(), disp(old_i, old_j).v(), disp(old_i, old_j).h(), valid);
-	    }
-            */
-            
-         }
-      }     
-      #endif
 
       return outDisp;
     }
@@ -433,10 +385,16 @@ namespace stereo {
           right_pyramid[i] = subsample_img_by_two(right_pyramid[i-1]);
           disparity_map_pyramid[i] = subsample_disp_map_by_two(disparity_map_pyramid[i-1]);
         }
-        
+       
+       float blur_sigma = 1.0;
+       ImageView<float> process_left_image = LogStereoPreprocessingFilter(blur_sigma)(left_pyramid[pyramid_levels-1]);
+       ImageView<float> process_right_image = LogStereoPreprocessingFilter(blur_sigma)(right_pyramid[pyramid_levels-1]);
+
         subpixel_correlation_affine_2d_EM(disparity_map_pyramid[pyramid_levels-1],
-                                          left_pyramid[pyramid_levels-1],
-                                          right_pyramid[pyramid_levels-1],
+                                          /*left_pyramid[pyramid_levels-1],
+					    right_pyramid[pyramid_levels-1],*/
+                                          process_left_image,
+                                          process_right_image,
                                           m_kern_width, m_kern_height,
                                           m_do_h_subpixel, m_do_v_subpixel,
                                           m_verbose);	
@@ -465,19 +423,59 @@ namespace stereo {
           //printf("disp_map_height = %d\n", disparity_map_upsampled[i].rows());
           //printf("left_pyramid_width = %d\n", left_pyramid[i].cols());
           //printf("left_pyramid_height = %d\n", left_pyramid[i].rows());
-          
-          subpixel_correlation_affine_2d_EM(disparity_map_upsampled[i],
-                                            left_pyramid[i],
-                                            right_pyramid[i],
+           //image blurring
+
+          if (i==0){ //largest sale of the pyramid
+	    blur_sigma = 3.0;
+          }
+          process_left_image = LogStereoPreprocessingFilter(blur_sigma)(left_pyramid[i]);
+          process_right_image = LogStereoPreprocessingFilter(blur_sigma)(right_pyramid[i]);
+
+          subpixel_correlation_affine_2d_EM(disparity_map_upsampled[i],                                      
+                                            process_left_image,
+                                            process_right_image,
                                             m_kern_width, m_kern_height,
                                             m_do_h_subpixel, m_do_v_subpixel,
                                             m_verbose);
 	}
 
-        printf("disp_map_width = %d, height = %d\n", disparity_map_patch.cols(), disparity_map_patch.rows());
-        printf("disp_map_up_width = %d, height = %d\n", disparity_map_upsampled[0].cols(), disparity_map_upsampled[0].rows());
+        //printf("disp_map_width = %d, height = %d\n", disparity_map_patch.cols(), disparity_map_patch.rows());
+        //printf("disp_map_up_width = %d, height = %d\n", disparity_map_upsampled[0].cols(), disparity_map_upsampled[0].rows());
 	
         //disparity_map_patch = disparity_map_upsampled[0];
+        
+         
+	int w_height = 1;
+	int w_width = 1;
+        int numValidPts;
+
+        for (int y = w_height; y < process_left_image.rows()-w_height; ++y) {
+           for (int x = w_width; x < process_left_image.cols()-w_width; ++x) {
+        
+              disparity_map_patch(x,y).h()=0;
+              disparity_map_patch(x,y).v()=0;
+              disparity_map_patch(x,y)[2]= disparity_map_upsampled[0](x,y)[2]; 
+              numValidPts = 0;
+            
+              for (int jj = -w_height; jj <= w_height; ++jj) {
+	         for (int ii = -w_width; ii <= w_width; ++ii) {
+		    if (disparity_map_upsampled[0](x+ii,y+jj)[2] == 0){
+		       numValidPts++;
+	               disparity_map_patch(x,y).h() = disparity_map_patch(x,y).h() + 
+                                                      disparity_map_upsampled[0](x+ii,y+jj).h();
+	               disparity_map_patch(x,y).v() = disparity_map_patch(x,y).v() + 
+                                                      disparity_map_upsampled[0](x+ii,y+jj).v();
+		    }
+	         }
+	      }
+
+              disparity_map_patch(x,y).h() = disparity_map_patch(x,y).h()/(float)numValidPts;
+              disparity_map_patch(x,y).v() = disparity_map_patch(x,y).v()/(float)numValidPts;     
+           }
+        }
+	   
+      
+        /*
         for (int i = 0; i < disparity_map_patch.cols(); i++) {
           for (int j = 0; j < disparity_map_patch.rows(); j++) {  
             
@@ -487,6 +485,7 @@ namespace stereo {
           
           }
        }
+       */
       
       }
       break;

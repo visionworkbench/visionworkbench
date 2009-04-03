@@ -23,7 +23,8 @@ include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h		\
                   BundleAdjustReport.h 
 
 libvwCamera_la_SOURCES = PinholeModel.cc CAHVModel.cc CAHVORModel.cc	\
-                         Exif.cc ExifData.cc ControlNetwork.cc
+                         Exif.cc ExifData.cc ControlNetwork.cc          \
+                         BundleAdjustReport.cc
 
 libvwCamera_la_LIBADD = @MODULE_CAMERA_LIBS@
 
@@ -36,7 +37,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
-AM_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@
+AM_LDFLAGS = @VW_LDFLAGS@ @PKG_BOOST_FILESYSTEM_LIBS@ -version-info @LIBTOOL_VERSION@
 
 SUBDIRS = . tests
 

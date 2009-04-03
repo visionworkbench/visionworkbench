@@ -24,7 +24,7 @@ endif
 # general
 ########################################################################
 
-AM_CPPFLAGS = @VW_CPPFLAGS@ -I$(top_srcdir)/thirdparty/cxxtest
+AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_FILEIO_LIBS@ @PKG_IMAGE_LIBS@ @PKG_MATH_LIBS@ @PKG_CORE_LIBS@
 
 check_PROGRAMS = $(TESTS)

@@ -51,19 +51,19 @@ public:
     const char *ex_list[] = {"img", "lbl", "pds", "cub"}; // skip the ro PDS formats
     exclude.insert(ex_list, ex_list+4);
 
-    foreach_ext("rwtest", test_extension<PixelRGB<float> >,   exclude);
-    foreach_ext("rwtest", test_extension<PixelRGB<uint8> >,   exclude);
-    foreach_ext("rwtest", test_extension<PixelRGBA<uint8> >,  exclude);
-    foreach_ext("rwtest", test_extension<PixelGray<uint8> >,  exclude);
-    foreach_ext("rwtest", test_extension<PixelGrayA<float> >, exclude);
-    foreach_ext("rwtest", test_extension<uint8>,              exclude);
-    foreach_ext("rwtest", test_extension<float>,              exclude);
+    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGB<float> >,   exclude);
+    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGB<uint8> >,   exclude);
+    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGBA<uint8> >,  exclude);
+    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelGray<uint8> >,  exclude);
+    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelGrayA<float> >, exclude);
+    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<uint8>,              exclude);
+    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<float>,              exclude);
   }
 
   void test_read_image_rgb_png_uint8() {
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
     ImageView<PixelRGB<uint8> > image;
-    TS_ASSERT_THROWS_NOTHING( read_image( image, "rgb2x2.png" ) );
+    TS_ASSERT_THROWS_NOTHING( read_image( image, TEST_SRCDIR"/rgb2x2.png" ) );
     TS_ASSERT_EQUALS( image.cols(), 2 );
     TS_ASSERT_EQUALS( image.rows(), 2 );
     TS_ASSERT_EQUALS( image.planes(), 1 );
@@ -113,7 +113,7 @@ public:
   void test_read_image_rgb_png_float() {
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
     ImageView<PixelRGB<float> > image;
-    TS_ASSERT_THROWS_NOTHING( read_image( image, "rgb2x2.png" ) );
+    TS_ASSERT_THROWS_NOTHING( read_image( image, TEST_SRCDIR"/rgb2x2.png" ) );
     TS_ASSERT_EQUALS( image.cols(), 2 );
     TS_ASSERT_EQUALS( image.rows(), 2 );
     TS_ASSERT_EQUALS( image.planes(), 1 );
@@ -164,7 +164,7 @@ public:
   void test_read_image_rgb_tif_uint8() {
 #if (defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1) || (defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1)
     ImageView<PixelRGB<uint8> > image;
-    TS_ASSERT_THROWS_NOTHING( read_image( image, "rgb2x2.tif" ) );
+    TS_ASSERT_THROWS_NOTHING( read_image( image, TEST_SRCDIR"/rgb2x2.tif" ) );
     TS_ASSERT_EQUALS( image.cols(), 2 );
     TS_ASSERT_EQUALS( image.rows(), 2 );
     TS_ASSERT_EQUALS( image.planes(), 1 );
@@ -214,7 +214,7 @@ public:
   void test_read_image_rgb_tif_float() {
 #if (defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1) || (defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1)
     ImageView<PixelRGB<float> > image;
-    TS_ASSERT_THROWS_NOTHING( read_image( image, "rgb2x2.tif" ) );
+    TS_ASSERT_THROWS_NOTHING( read_image( image, TEST_SRCDIR"/rgb2x2.tif" ) );
     TS_ASSERT_EQUALS( image.cols(), 2 );
     TS_ASSERT_EQUALS( image.rows(), 2 );
     TS_ASSERT_EQUALS( image.planes(), 1 );
@@ -266,7 +266,7 @@ public:
   void test_read_image_rgb_jpeg_uint8() {
 #if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
     ImageView<PixelRGB<uint8> > image;
-    TS_ASSERT_THROWS_NOTHING( read_image( image, "rgb2x2.jpg" ) );
+    TS_ASSERT_THROWS_NOTHING( read_image( image, TEST_SRCDIR"/rgb2x2.jpg" ) );
     TS_ASSERT_EQUALS( image.cols(), 2 );
     TS_ASSERT_EQUALS( image.rows(), 2 );
     TS_ASSERT_EQUALS( image.planes(), 1 );
@@ -288,7 +288,7 @@ public:
   void test_read_image_rgb_jpeg_float() {
 #if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
     ImageView<PixelRGB<float> > image;
-    TS_ASSERT_THROWS_NOTHING( read_image( image, "rgb2x2.jpg" ) );
+    TS_ASSERT_THROWS_NOTHING( read_image( image, TEST_SRCDIR"/rgb2x2.jpg" ) );
     TS_ASSERT_EQUALS( image.cols(), 2 );
     TS_ASSERT_EQUALS( image.rows(), 2 );
     TS_ASSERT_EQUALS( image.planes(), 1 );

@@ -20,7 +20,7 @@ public:
   void test_exif_data()
   {
     ExifData exif_data;
-    exif_data.import_data("test.jpg");
+    exif_data.import_data(TEST_SRCDIR"/test.jpg");
     //exif_data.print_debug();
     {
       double exposure;

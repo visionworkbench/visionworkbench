@@ -19,7 +19,7 @@ class TestIntegral : public CxxTest::TestSuite
 
   void test_integral_summing() {
     ImageView<float> graffiti;
-    read_image( graffiti, "sub.png" );
+    read_image( graffiti, TEST_SRCDIR"/sub.png" );
     ImageView<double> integral;
     integral = IntegralImage( graffiti );
     
@@ -41,8 +41,8 @@ class TestIntegral : public CxxTest::TestSuite
   void test_haar_filters() { 
     // Loading Image
     ImageView<float> graffiti, gradient;
-    read_image( graffiti, "sub.png" );
-    read_image( gradient, "noisy_gradient_60.png" );
+    read_image( graffiti, TEST_SRCDIR"/sub.png" );
+    read_image( gradient, TEST_SRCDIR"/noisy_gradient_60.png" );
 
     // Building Integrals
     ImageView<double> integral = IntegralImage( graffiti );
@@ -82,8 +82,8 @@ class TestIntegral : public CxxTest::TestSuite
   void test_haar_filters2() {
     // Load Image
     ImageView<float> graffiti, gradient;
-    read_image( graffiti, "sub.png" );
-    read_image( gradient, "noisy_gradient_60.png" );
+    read_image( graffiti, TEST_SRCDIR"/sub.png" );
+    read_image( gradient, TEST_SRCDIR"/noisy_gradient_60.png" );
     
     // Rotating Image
     ImageView<float> graffiti_r, gradient_r;
@@ -176,7 +176,7 @@ class TestIntegral : public CxxTest::TestSuite
 
   void test_derivative_filters () {
     ImageView<float> graffiti;
-    read_image( graffiti, "sub.png" );
+    read_image( graffiti, TEST_SRCDIR"/sub.png" );
     ImageView<double> integral;
     integral = IntegralImage( graffiti );
     ImageView<float> rotated;
@@ -207,7 +207,7 @@ class TestIntegral : public CxxTest::TestSuite
   void test_interpolation_proof () { 
     // Load Image
     ImageView<float> gradient;
-    read_image( gradient, "noisy_gradient_60.png" );
+    read_image( gradient, TEST_SRCDIR"/noisy_gradient_60.png" );
 
     // Building Integrals
     ImageView<double> integral;

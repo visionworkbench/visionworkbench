@@ -17,16 +17,23 @@
 #include <iostream>
 #include <iomanip>
 #include <time.h>
+#include <fstream>
 
 // Vision Workbench
 #include <vw/Core/Log.h>
 #include <vw/Camera/BundleAdjust.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
+#include <vw/Cartography/PointImageManipulation.h>
 
 // Boost
 #include <boost/algorithm/string.hpp>
 #include <boost/thread/xtime.hpp>
+#include <boost/bind.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/fstream.hpp>
+
 // Posix time is not fully supported in the version of Boost for RHEL
 // Workstation 4
 #ifdef __APPLE__
@@ -59,10 +66,54 @@ namespace camera {
     ClassicReport = 10,
     ReportFile = 20,
     BundlevisFile = 25,
+    TriangulationReportAtEnds = 27,
     TriangulationReport = 30,
     BundlevisTriangulation = 35,
     DebugErrorReport = 100,
     DebugJacobianReport = 110
+  };
+
+  struct TabCount {
+    int count;
+  };
+
+  std::ostream& operator<<( std::ostream& os, TabCount const& tab);
+  bool vector_sorting( Vector3 i, Vector3 j);
+
+  class KMLPlaceMark { 
+    boost::filesystem::ofstream m_output_file;
+    TabCount m_tab;
+    std::string m_name;
+    std::string m_directory;
+  public:
+    KMLPlaceMark( std::string filename,
+		  std::string name,
+		  std::string directory );
+    void write_gcps( ControlNetwork const& cnet );
+    void write_3d_est( ControlNetwork const& cnet,
+		       std::vector<double>& image_errors );
+    ~KMLPlaceMark( void );
+  protected:
+    // High Level
+    void recursive_placemark_building( std::list<Vector3>&,
+				       std::string const&,
+				       double&, double&,
+				       float&, float&,
+				       float&, float&,
+				       int);
+    void network_link( std::string,
+		       double, double, double, double );
+    // Low Level
+    void close_kml( void );
+    void enter_folder( std::string, std::string);
+    void exit_folder(void);
+    void placemark( double, double, std::string,
+		    std::string, std::string );
+    void latlonaltbox( float, float, float, float );
+    void lod( float, float );
+    void style( std::string, std::string, 
+		float, std::string );
+    void stylemap( std::string, std::string, std::string );
   };
 
   template <class BundleAdjustModelT, class BundleAdjusterT>
@@ -76,7 +127,7 @@ namespace camera {
     BundleAdjustModelT& m_model;
     BundleAdjusterT& m_adjuster;
 
-    #ifndef __APPLE__
+#ifndef __APPLE__
     inline std::string current_posix_time_string()  {
       char time_string[2048];
       time_t t = time(0);
@@ -130,17 +181,21 @@ namespace camera {
 		 << std::endl;
 	m_human_both << "\tNumber Point params:  " << m_model.point_params_n
 		     << std::endl;
-	m_human_both << "\tCost Function:        " << m_adjuster.costfunction().name_tag()
-		     << "\t" << m_adjuster.costfunction().threshold() << std::endl;
+	m_human_both << "\tCost Function:        " 
+		     << m_adjuster.costfunction().name_tag()
+		     << "\t" << m_adjuster.costfunction().threshold() 
+		     << std::endl;
 	m_human_both << "\tInitial Lambda:       " << m_adjuster.lambda()
 		     << std::endl;
-	m_human_report << "\tA Inverse Covariance: " << m_model.A_inverse_covariance(0) << std::endl;
-	m_human_report << "\tB Inverse Covariance: " << m_model.B_inverse_covariance(0) << std::endl;
+	m_human_report << "\tA Inverse Covariance: " 
+		       << m_model.A_inverse_covariance(0) << std::endl;
+	m_human_report << "\tB Inverse Covariance: " 
+		       << m_model.B_inverse_covariance(0) << std::endl;
 	m_human_both << "\nStarting Error:\n";
 	generic_readings();
       }
 
-      if ( report_level >= TriangulationReport )
+      if ( report_level >= TriangulationReportAtEnds )
 	triangulation_readings();
       
       // Done
@@ -162,11 +217,13 @@ namespace camera {
     }
     // This is a callback for just exit the loop of iterations
     void end_tie_in( void ) { 
-      m_human_both << "[" << current_posix_time_string() << "]\tFinished Bundle Adjustment\n";
-      m_human_both << "\tNumber of Iterations: " << m_adjuster.iterations() - 1 << "\n\n";
+      m_human_both << "[" << current_posix_time_string() 
+		   << "]\tFinished Bundle Adjustment\n";
+      m_human_both << "\tNumber of Iterations: " 
+		   << m_adjuster.iterations() - 1 << "\n\n";
       if ( report_level >= ClassicReport )
 	generic_readings();
-      if ( report_level >= TriangulationReport )
+      if ( report_level >= TriangulationReportAtEnds )
 	triangulation_readings();
       
       // Closing all files out
@@ -252,6 +309,7 @@ namespace camera {
       }
       
       // Sharing now
+      m_human_both << "\tLambda: " << m_adjuster.lambda() << std::endl;
       m_human_both << "\tImage [min: " << min_image << " mean: " << mean_image
 		   << " max: " << max_image << " dev: " << stddev_image << "] "
 		   << m_model.image_unit() << std::endl;
@@ -355,13 +413,46 @@ namespace camera {
       }
 
       // Sharing the information now
-      m_human_both << "\tStereo Tri Error [min: " << min_tri << " mean: " << mean_tri
-		   << "\n\t                 max: " << max_tri << " dev: " << stddev_tri << "]\n";
+      m_human_both << "\tStereo Tri Error [min: " << min_tri 
+		   << " mean: " << mean_tri
+		   << "\n\t                 max: " << max_tri 
+		   << " dev: " << stddev_tri << "]\n";
       if ( gcp_errors.size() > 0 ) 
-	m_human_both << "\tStereo GCP Error [min: " << min_gcp << " mean: " << mean_gcp
-		     << "\n\t                 max: " << max_gcp << " dev: " << stddev_gcp << "]\n";
+	m_human_both << "\tStereo GCP Error [min: " << min_gcp 
+		     << " mean: " << mean_gcp
+		     << "\n\t                 max: " << max_gcp 
+		     << " dev: " << stddev_gcp << "]\n";
       else
 	m_human_both << "\tStereo GCP Error [N/A]\n";
+
+      if ( report_level >= DebugErrorReport ) {
+	m_human_report << "Stereo GCP Debug Error:\n[";
+	for ( unsigned i = 0; i < gcp_errors.size(); i++ ) {
+	  m_human_report << gcp_errors[i] << ",";
+	}
+	m_human_report << "]\n";
+      }
+    }
+    // Write KML?
+    void write_control_network_kml( bool gcps_only=true ) {
+      m_file_prefix = bundleadjust_name;
+      boost::to_lower( m_file_prefix );
+      boost::replace_all( m_file_prefix, " ", "_" );
+
+      std::ostringstream kml_filename;
+      kml_filename << m_file_prefix + ".kml";
+      KMLPlaceMark kml( kml_filename.str(), 
+			bundleadjust_name,
+			m_file_prefix );
+
+      boost::shared_ptr<ControlNetwork> network = m_model.control_network();
+      
+      kml.write_gcps( *network );
+      if ( !gcps_only ) {
+	std::vector<double> image_errors;
+	m_model.image_errors( image_errors );
+	kml.write_3d_est( *network, image_errors );
+      }
     }
 
     // Public variables

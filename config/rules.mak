@@ -15,6 +15,8 @@ CXXTEST_DIR =   $(top_srcdir)/thirdparty/cxxtest
 CXXTEST_GEN =   $(CXXTEST_DIR)/cxxtestgen.pl
 CXXTEST_ARGS =  --error-printer
 
+TEST_CPPFLAGS = -I$(CXXTEST_DIR) -DTEST_SRCDIR="\"$(top_srcdir)/$(subdir)\""
+
 .h.cxx:
 	$(CXXTEST_GEN) $(CXXTEST_ARGS) -o $@ $<
 

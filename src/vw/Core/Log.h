@@ -449,6 +449,7 @@ namespace vw {
     Mutex m_logconf_time_mutex;
     Mutex m_logconf_file_mutex;
     Mutex m_system_log_mutex;
+    Mutex m_multi_ostreams_mutex;
     
     // The multi_ostream creates a single stream that delegates to its
     // child streams. We store one multi_ostream per thread, since

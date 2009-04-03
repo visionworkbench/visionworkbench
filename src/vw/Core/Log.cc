@@ -10,17 +10,11 @@
 
 // Boost headers
 #include <boost/thread/xtime.hpp>
-// Posix time is not fully supported in the version of Boost for RHEL
-// Workstation 4
-#ifdef __APPLE__
-#include <boost/date_time/posix_time/posix_time.hpp>
-#else
-#include <ctime>
-#endif
 
 // C Standard Library headers ( for stat(2) and getpwuid() )
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <ctime>
 
 #ifdef VW_HAVE_UNISTD_H
 #include <unistd.h>
@@ -38,9 +32,6 @@ typedef struct stat struct_stat;
 #endif
 
 
-// Posix time is not fully supported in the version of Boost for RHEL
-// Workstation 4
-#ifndef __APPLE__
 inline std::string
 current_posix_time_string()
 {
@@ -50,15 +41,6 @@ current_posix_time_string()
   strftime(time_string, 2048, "%F %T", time_struct);
   return std::string(time_string);
 }
-#else
-inline std::string
-current_posix_time_string()
-{
-  std::ostringstream time_string_stream;
-  time_string_stream << boost::posix_time::second_clock::local_time();
-  return time_string_stream.str();
-}
-#endif
 
 // ---------------------------------------------------
 // Create a single instance of the SystemLog
@@ -243,20 +225,24 @@ std::ostream& vw::Log::operator() (int log_level, std::string log_namespace) {
   // Reload the rulesets if it has.
   stat_logconf();
 
-  // Check to see if we have an ostream defined yet for this thread.
-  if(m_multi_ostreams.find( Thread::id() ) == m_multi_ostreams.end())
-    m_multi_ostreams[ Thread::id() ] = boost::shared_ptr<multi_ostream>(new multi_ostream);
+  {
+    Mutex::Lock multi_ostreams_lock(m_multi_ostreams_mutex);
 
-  // Reset and add the console log output...
-  m_multi_ostreams[ Thread::id() ]->clear();
-  m_multi_ostreams[ Thread::id() ]->add(m_console_log->operator()(log_level, log_namespace));
-  
-  // ... and the rest of the active log streams.
-  std::vector<boost::shared_ptr<LogInstance> >::iterator iter = m_logs.begin();
-  for (;iter != m_logs.end(); ++iter) 
-    m_multi_ostreams[ Thread::id() ]->add((*iter)->operator()(log_level,log_namespace));
-
-  return *m_multi_ostreams[ Thread::id() ];
+    // Check to see if we have an ostream defined yet for this thread.
+    if(m_multi_ostreams.find( Thread::id() ) == m_multi_ostreams.end())
+      m_multi_ostreams[ Thread::id() ] = boost::shared_ptr<multi_ostream>(new multi_ostream);
+    
+    // Reset and add the console log output...
+    m_multi_ostreams[ Thread::id() ]->clear();
+    m_multi_ostreams[ Thread::id() ]->add(m_console_log->operator()(log_level, log_namespace));
+    
+    // ... and the rest of the active log streams.
+    std::vector<boost::shared_ptr<LogInstance> >::iterator iter = m_logs.begin();
+    for (;iter != m_logs.end(); ++iter) 
+      m_multi_ostreams[ Thread::id() ]->add((*iter)->operator()(log_level,log_namespace));
+    
+    return *m_multi_ostreams[ Thread::id() ];
+  }
 }
 
 vw::Log& vw::vw_log() {
