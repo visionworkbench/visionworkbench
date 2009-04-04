@@ -5,10 +5,8 @@
 // __END_LICENSE__
 
 
-/// \file BundleAdjust.h
+/// \file ControlNetwork.h
 /// 
-/// Optimization classes for carrying out bundle adjustment of many
-/// camera images.
 
 #ifndef __VW_CAMERA_CONTROL_NETWORK_H__
 #define __VW_CAMERA_CONTROL_NETWORK_H__
@@ -18,7 +16,6 @@
 #include <vector>
 #include <fstream>
 #include <iomanip>
-#include <time.h>
 
 // VW
 #include <vw/Math/Vector.h>
@@ -62,44 +59,11 @@ namespace camera {
     ControlMeasureType m_type;
 
     /// Constructor
-    ControlMeasure( float col, float row, 
-		    float col_sigma, float row_sigma, 
-		    int image_id, 
-		    ControlMeasureType type = ControlMeasure::Automatic ) :
-    m_col(col), m_row(row), m_col_sigma(col_sigma), m_row_sigma(row_sigma), m_image_id(image_id), m_type(type) {
-
-      // Recording time
-      time_t rawtime;
-      time( &rawtime );
-      m_date_time = ctime( &rawtime );
-      boost::erase_all( m_date_time, "\n" );
-      boost::erase_all( m_date_time, " " );
-
-      m_serialNumber = "Null";
-      m_description = "Null";
-      m_ignore = false;
-      m_pixels_dominant = true;
-
-      m_ephemeris_time = m_focalplane_x = m_focalplane_y = m_diameter = 0;
-    }
-
-    ControlMeasure( ControlMeasureType type = ControlMeasure::Automatic ) : 
-    m_col(0), m_row(0), m_col_sigma(0), m_row_sigma(0), m_image_id(0), m_type(type) {
-
-      // Recording time
-      time_t rawtime;
-      time( &rawtime );
-      m_date_time = ctime( &rawtime );
-      boost::erase_all( m_date_time, "\n" );
-      boost::erase_all( m_date_time, " " );
-
-      m_serialNumber = "Null";
-      m_description = "Null";
-      m_ignore = false;
-      m_pixels_dominant = true;
-
-      m_ephemeris_time = m_focalplane_x = m_focalplane_y = m_diameter = 0;
-    }
+    ControlMeasure( float, float, 
+		    float, float, 
+		    int, 
+		    ControlMeasureType type = ControlMeasure::Automatic );
+    ControlMeasure( ControlMeasureType type = ControlMeasure::Automatic );
 
     /// Setting/Reading control measure type
     ControlMeasureType type() const { return m_type; }
@@ -237,10 +201,7 @@ namespace camera {
     ControlPointType m_type;
 
     /// Constructor 
-    ControlPoint(ControlPointType type = ControlPoint::TiePoint) : m_type(type) {
-      m_ignore = false;
-      m_id = "Null";
-    }
+    ControlPoint(ControlPointType type = ControlPoint::TiePoint);
 
     /// Setting/Reading Type
     ControlPointType type() const { return m_type; }
@@ -341,18 +302,11 @@ namespace camera {
     ControlNetworkType m_type;
 
     /// Constructor
-    ControlNetwork(std::string id, 
+    ControlNetwork(std::string , 
 		   ControlNetworkType type = ControlNetwork::ImageToImage,
-		   std::string target_name = "Unknown",
-		   std::string descrip = "Null", std::string user_name = "VW" ) :
-    m_targetName(target_name), m_networkId(id), m_description(descrip), m_userName(user_name), m_type(type) {
-	// Recording time
-	time_t rawtime;
-	time( &rawtime );
-	m_created = ctime(&rawtime);
-	boost::erase_all( m_created, "\n" );
-	boost::erase_all( m_created, " " );
-    }
+		   std::string target_name = "Unknown", 
+		   std::string descrip = "Null", 
+		   std::string user_name = "VW" );
 
     /// Setting/Reading Type
     ControlNetworkType type() const { return m_type; }

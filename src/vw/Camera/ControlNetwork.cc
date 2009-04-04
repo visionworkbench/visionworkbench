@@ -10,6 +10,26 @@
 
 #include <vw/Camera/ControlNetwork.h>
 
+// Time Headers
+#include <boost/thread/xtime.hpp>
+#include <ctime>
+
+#ifdef VW_HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+
+ ///////////////////////////////////
+// Global only to Control Network //
+///////////////////////////////////
+
+inline std::string current_posix_time_string() {
+  char time_string[2048];
+  time_t t = time(0);
+  struct tm* time_struct = localtime(&t);
+  strftime(time_string, 2048, "%F %T", time_struct);
+  return std::string(time_string);
+}
+
 namespace vw {
 namespace camera {
 
@@ -17,6 +37,42 @@ namespace camera {
   // Control Measure        //
   ////////////////////////////
   
+  /// Constructor
+  ControlMeasure::ControlMeasure( float col, float row, 
+				  float col_sigma, float row_sigma, 
+				  int image_id, 
+				  ControlMeasureType type ) :
+    m_col(col), m_row(row), m_col_sigma(col_sigma), m_row_sigma(row_sigma), m_image_id(image_id), m_type(type) {
+    
+    // Recording time
+    m_date_time = current_posix_time_string();
+    boost::erase_all( m_date_time, "\n" );
+    boost::erase_all( m_date_time, " " );
+    
+    m_serialNumber = "Null";
+    m_description = "Null";
+    m_ignore = false;
+    m_pixels_dominant = true;
+    
+    m_ephemeris_time = m_focalplane_x = m_focalplane_y = m_diameter = 0;
+  }
+  
+  ControlMeasure::ControlMeasure( ControlMeasureType type ) : 
+    m_col(0), m_row(0), m_col_sigma(0), m_row_sigma(0), m_image_id(0), m_type(type) {
+    
+    // Recording time
+    m_date_time = current_posix_time_string();
+    boost::erase_all( m_date_time, "\n" );
+    boost::erase_all( m_date_time, " " );
+    
+    m_serialNumber = "Null";
+    m_description = "Null";
+    m_ignore = false;
+    m_pixels_dominant = true;
+    
+    m_ephemeris_time = m_focalplane_x = m_focalplane_y = m_diameter = 0;
+  }
+
   /// Write a compressed binary style of measure
   void ControlMeasure::write_binary_measure ( std::ofstream &f ) {
     // Writing out all the strings first
@@ -233,6 +289,12 @@ namespace camera {
   // Control Point          //
   ////////////////////////////
 
+  /// Constructor 
+  ControlPoint::ControlPoint(ControlPointType type) : m_type(type) {
+    m_ignore = false;
+    m_id = "Null";
+  }
+
   /// Add a measure
   void ControlPoint::add_measure(ControlMeasure const& measure) { 
     m_measures.push_back(measure); 
@@ -417,6 +479,18 @@ namespace camera {
   // Control Network        //
   ////////////////////////////
 
+  /// Constructor
+  ControlNetwork::ControlNetwork(std::string id, 
+				 ControlNetworkType type,
+				 std::string target_name,
+				 std::string descrip, std::string user_name ) :
+    m_targetName(target_name), m_networkId(id), m_description(descrip), m_userName(user_name), m_type(type) {
+    // Recording time
+    m_created = current_posix_time_string();
+    boost::erase_all( m_created, "\n" );
+    boost::erase_all( m_created, " " );
+  }
+
   /// Add a single Control Point
   void ControlNetwork::add_control_point(ControlPoint const& point) { 
     // Checking for GCPs (if this network supposedly doesn't contain
@@ -463,10 +537,9 @@ namespace camera {
 
   /// Write a compressed binary style control network
   void ControlNetwork::write_binary_control_network( std::string filename ) {
+
     // Recording the modified time
-    time_t rawtime;
-    time( &rawtime );
-    m_modified = ctime( &rawtime );
+    m_modified = current_posix_time_string();
     boost::erase_all( m_modified, "\n" );
     boost::erase_all( m_modified, " " );
 
@@ -488,7 +561,7 @@ namespace camera {
     int size = m_control_points.size();
     f.write((char*)&(size), sizeof(size));
     // Rolling through the control points
-    for ( int p = 0; p < size; p++ )
+    for ( int p = 0; p < size; p++ ) 
       m_control_points[p].write_binary_point( f );
 
     f.close();
@@ -531,9 +604,7 @@ namespace camera {
   /// Write an isis style control network
   void ControlNetwork::write_isis_pvl_control_network( std::string filename ) {
     // Recording the modified time
-    time_t rawtime;
-    time( &rawtime );
-    m_modified = ctime( &rawtime );
+    m_modified = current_posix_time_string();
     boost::erase_all( m_modified, "\n" );
     boost::erase_all( m_modified, " " );
 
