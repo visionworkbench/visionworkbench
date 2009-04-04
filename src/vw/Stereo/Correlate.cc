@@ -905,10 +905,11 @@ namespace stereo {
   void subpixel_correlation_affine_2d_EM(ImageView<PixelDisparity<float> > &disparity_map,
 					 ImageView<ChannelT> const& /*left_input_image*/left_image,
 					 ImageView<ChannelT> const& /*right_input_image*/right_image,
-                                      int kern_width, int kern_height,
-                                      bool do_horizontal_subpixel,
-                                      bool do_vertical_subpixel,
-                                      bool verbose) {
+                                         int kern_width, int kern_height,
+                                         BBox2i region_of_interest,
+                                         bool do_horizontal_subpixel,
+                                         bool do_vertical_subpixel,
+                                         bool verbose) {
     
 
       int    max_em_iter = 2;
@@ -971,7 +972,10 @@ namespace stereo {
          double last_time = 0;
 
 
-         for (int y=kern_half_height; y<left_image.rows()-kern_half_height; ++y) {
+         for (int y=std::max(region_of_interest.min().y()-1,kern_half_height);
+              y<std::min(left_image.rows()-kern_half_height, region_of_interest.max().y()+1) ; 
+              ++y) {
+         //         for (int y=kern_half_height; y<left_image.rows()-kern_half_height; ++y) {
            if (verbose && y % 10 == 0) {
              sw.stop();
              vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y << " / " << left_image.rows() << "    (" << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time)) << " pixels/s, "<< sw.elapsed_seconds() << " s total )      \r" << std::flush;
@@ -979,7 +983,10 @@ namespace stereo {
              sw.start();
            }
 
-           for (int x=kern_half_width; x<left_image.cols()-kern_half_width; ++x) {
+      for (int x=std::max(region_of_interest.min().x()-1,kern_half_width); 
+               x<std::min(left_image.cols()-kern_half_width, region_of_interest.max().x()+1); 
+             ++x) {
+        //           for (int x=kern_half_width; x<left_image.cols()-kern_half_width; ++x) {
 
 
               BBox2i current_window(x-kern_half_width, y-kern_half_height, kern_width, kern_height);
@@ -1729,6 +1736,7 @@ namespace stereo {
                                      ImageView<uint8> const& left_image,
                                      ImageView<uint8> const& right_image,
                                      int kern_width, int kern_height,
+                                                  BBox2i region_of_interest,
                                      bool do_horizontal_subpixel,
                                      bool do_vertical_subpixel,
                                      bool verbose);
@@ -1737,6 +1745,7 @@ namespace stereo {
                                      ImageView<float> const& left_image,
                                      ImageView<float> const& right_image,
                                      int kern_width, int kern_height,
+                                                  BBox2i region_of_interest,
                                      bool do_horizontal_subpixel,
                                      bool do_vertical_subpixel,
                                      bool verbose);

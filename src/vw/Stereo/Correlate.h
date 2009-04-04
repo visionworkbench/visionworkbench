@@ -254,6 +254,7 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
                                          ImageView<ChannelT> const& left_image,
                                          ImageView<ChannelT> const& right_image,
                                          int kern_width, int kern_height,
+                                         BBox2i region_of_interest,
                                          bool do_horizontal_subpixel = true,
                                          bool do_vertical_subpixel = true,
                                          bool verbose = false);
