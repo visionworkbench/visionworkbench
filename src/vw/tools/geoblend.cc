@@ -90,9 +90,10 @@ nodata_to_mask(vw::ImageViewBase<ViewT> const& view, float nodata_value = 0 ) {
 template <class PixelT>
 class MaskToNodataFunctor: public vw::UnaryReturnTemplateType<NonAlphaTypeFromPixelType> {
   PixelT m_nodata_value;
+  typedef typename PixelChannelType<PixelT>::type channel_type;
 
 public:
-  MaskToNodataFunctor(float nodata_value = 0) : m_nodata_value(nodata_value) {} 
+  MaskToNodataFunctor(float nodata_value = 0) : m_nodata_value((channel_type)nodata_value) {} 
 
   typename NonAlphaTypeFromPixelType<PixelT>::type operator() (PixelT const& pix) const {
     typedef typename NonAlphaTypeFromPixelType<PixelT>::type result_type;
