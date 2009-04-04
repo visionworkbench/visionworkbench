@@ -22,7 +22,7 @@
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Core/Stopwatch.h>
 #include <vw/Image/EdgeExtension.h>
-#include <vw/Mosaic/SparseTileCheck.h>
+#include <vw/Image/SparseImageCheck.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
 
@@ -53,7 +53,7 @@ namespace mosaic {
     typedef boost::function<std::vector<std::pair<std::string,BBox2i> >(QuadTreeGenerator const&, std::string const&, BBox2i const&)> branch_func_type;
     typedef boost::function<boost::shared_ptr<ImageResource>(QuadTreeGenerator const&, TileInfo const&, ImageFormat const&)> tile_resource_func_type;
     typedef boost::function<void(QuadTreeGenerator const&, TileInfo const&)> metadata_func_type;
-    typedef boost::function<bool(BBox2i const&)> sparse_tile_check_type;
+    typedef boost::function<bool(BBox2i const&)> sparse_image_check_type;
 
     template <class ImageT>
     QuadTreeGenerator( ImageViewBase<ImageT> const& image, std::string const& tree_name = "output.qtree" )
@@ -69,7 +69,7 @@ namespace mosaic {
         m_branch_func( default_branch_func() ),
         m_tile_resource_func( default_tile_resource_func() ),
         m_metadata_func(),
-        m_sparse_tile_check( SparseTileCheck<ImageT>(image.impl()) )
+        m_sparse_image_check( SparseImageCheck<ImageT>(image.impl()) )
     {}
 
     virtual ~QuadTreeGenerator() {}
@@ -230,7 +230,7 @@ namespace mosaic {
 	  return image;
 	}
   
-	if( qtree->m_sparse_tile_check && ! qtree->m_sparse_tile_check(info.region_bbox) ) return image;
+	if( qtree->m_sparse_image_check && ! qtree->m_sparse_image_check(info.region_bbox) ) return image;
 
 	Vector2i scale = info.region_bbox.size() / qtree->m_tile_size;
  
@@ -311,7 +311,7 @@ namespace mosaic {
     branch_func_type m_branch_func;
     tile_resource_func_type m_tile_resource_func;
     metadata_func_type m_metadata_func;
-    sparse_tile_check_type m_sparse_tile_check;
+    sparse_image_check_type m_sparse_image_check;
   };
 
 } // namespace mosaic

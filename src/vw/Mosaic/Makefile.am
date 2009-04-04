@@ -12,9 +12,9 @@
 if MAKE_MODULE_MOSAIC
 
 include_HEADERS = QuadTreeGenerator.h ImageComposite.h	\
-	SparseTileCheck.h KMLQuadTreeConfig.h           \
-	TMSQuadTreeConfig.h UniviewQuadTreeConfig.h     \
-	GMapQuadTreeConfig.h CelestiaQuadTreeConfig.h
+	KMLQuadTreeConfig.h TMSQuadTreeConfig.h		\
+	UniviewQuadTreeConfig.h GMapQuadTreeConfig.h	\
+	CelestiaQuadTreeConfig.h
 
 libvwMosaic_la_SOURCES = QuadTreeGenerator.cc           \
 	KMLQuadTreeConfig.cc TMSQuadTreeConfig.cc       \

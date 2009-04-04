@@ -25,8 +25,8 @@
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/Transform.h>
 #include <vw/Image/Filter.h>
+#include <vw/Image/SparseImageCheck.h>
 #include <vw/FileIO/DiskImageResource.h>
-#include <vw/Mosaic/SparseTileCheck.h>
 
 namespace vw {
 namespace mosaic {
@@ -280,17 +280,18 @@ namespace mosaic {
 
   };
 
+} // namespace mosaic
   
-  // This specializes the SparseTileCheck template for the
+  // This specializes the SparseImageCheck template for the
   // ImageComposite type of ImageView.  The ImageComposite might be
   // very sparsely covered by images, so it is sometimes handy to be
   // able to check to see whether an arbitrary bbox intersects with
   // any of the the ImageComposite's source images.  
   template <class PixelT>
-  class SparseTileCheck<ImageComposite<PixelT> > {
+  class SparseImageCheck<mosaic::ImageComposite<PixelT> > {
     std::vector<BBox2i> m_src_bboxes;
   public:
-    SparseTileCheck(ImageComposite<PixelT> const& source) : m_src_bboxes(source.child_bboxes()) {}
+    SparseImageCheck(mosaic::ImageComposite<PixelT> const& source) : m_src_bboxes(source.child_bboxes()) {}
     bool operator() (BBox2i const& bbox) {
       bool result = false;
       for (unsigned int i = 0; i < m_src_bboxes.size(); ++i)
@@ -299,8 +300,6 @@ namespace mosaic {
     }
   };
 
-
-} // namespace mosaic
 } // namespace vw
 
 

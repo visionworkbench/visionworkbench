@@ -5,28 +5,27 @@
 // __END_LICENSE__
 
 
-/// \file SparseTileCheck.h
+/// \file SparseImageCheck.h
 /// 
 /// 
-#ifndef __VW_MOSAIC_SPARSE_TILE_CHECK_H__
-#define __VW_MOSAIC_SPARSE_TILE_CHECK_H__
+#ifndef __VW_IMAGE_SPARSE_IMAGE_CHECK_H__
+#define __VW_IMAGE_SPARSE_IMAGE_CHECK_H__
 
 #include <vw/Math/BBox.h>
 
 namespace vw {
-namespace mosaic {
 
   // This is the default version for most image views.  It simply
   // checks for intersection with the entire bounding box of the
   // image.
   template <class SrcViewT>
-  class SparseTileCheck {
+  class SparseImageCheck {
     BBox2i m_src_bbox;
   public:
-    SparseTileCheck(SrcViewT const& source) : m_src_bbox(0,0,source.cols(),source.rows()) {}
+    SparseImageCheck(SrcViewT const& source) : m_src_bbox(0,0,source.cols(),source.rows()) {}
     bool operator() (BBox2i const& bbox) { return bbox.intersects(m_src_bbox); }
   };
   
-}} // namespace vw::mosaic
+} // namespace vw
 
-#endif // __VW_MOSAIC_SPARSE_TILE_CHECK_H__
+#endif // __VW_IMAGE_SPARSE_IMAGE_CHECK_H__
