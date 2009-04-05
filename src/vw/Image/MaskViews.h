@@ -306,7 +306,7 @@ namespace vw {
   template <class ViewT>
   EdgeMaskView<ViewT> edge_mask( ImageViewBase<ViewT> const& v, 
                                  const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
-    return EdgeMaskView<ViewT>( v.impl(), typename ViewT::pixel_type(), progress_callback );
+    return EdgeMaskView<ViewT>( v.impl(), typename ViewT::pixel_type(), 0, progress_callback );
   }
 
   template <class ViewT>
