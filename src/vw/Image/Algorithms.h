@@ -445,6 +445,31 @@ namespace vw {
 
 
   // *******************************************************************
+  // is_transparent()
+  // *******************************************************************
+
+  template <class ImageT>
+  bool is_transparent_helper( ImageT const& image, true_type ) {
+    for( int32 y=0; y<image.rows(); ++y )
+      for( int32 x=0; x<image.cols(); ++x )
+        if( ! is_transparent(image(x,y)) ) return false;
+    return true;
+  }
+  
+  template <class ImageT>
+  bool is_transparent_helper( ImageT const& image, false_type ) {
+    return false;
+  }
+
+  /// Returns true if the given image is entirely transparent, or false if 
+  /// it is opaque or only partially transparent.
+  template <class ImageT>
+  bool is_transparent( ImageViewBase<ImageT> const& image ) {
+    return is_transparent_helper( image.impl(), typename PixelHasAlpha<typename ImageT::pixel_type>::type() );
+  }
+
+
+  // *******************************************************************
   // image_blocks()
   // *******************************************************************
 
