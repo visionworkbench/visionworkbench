@@ -14,8 +14,10 @@ if MAKE_MODULE_CARTOGRAPHY
 nodist_TestGeoReference_SOURCES = TestGeoReference.cxx
 nodist_TestGeoTransform_SOURCES = TestGeoTransform.cxx
 nodist_TestPointImageManipulation_SOURCES = TestPointImageManipulation.cxx
+nodist_TestToastTransform_SOURCES = TestToastTransform.cxx
 
-TESTS = TestGeoReference TestGeoTransform TestPointImageManipulation
+TESTS = TestGeoReference TestGeoTransform TestPointImageManipulation	\
+	TestToastTransform
 
 include $(top_srcdir)/config/instantiate.am
 
