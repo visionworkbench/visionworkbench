@@ -197,8 +197,10 @@ namespace vw {
     // EdgeMaskView( ViewT const& view, 
     //               const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) : 
     //   m_view(view, Vector2i(512,512) ) {
+
     EdgeMaskView( ViewT const& view, 
                   unmasked_pixel_type const& mask_value,
+                  int32 mask_buffer,
                   const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) : 
       m_view(view) {
     
@@ -228,6 +230,7 @@ namespace vw {
           m_left[j] = i;
           ++i;
         }
+        m_left[j] += mask_buffer;
         
         // Search from the right side
         i = m_view.impl().cols() - 1;
@@ -235,6 +238,7 @@ namespace vw {
           m_right[j] = i;
           --i;
         }
+        m_right[j] -= mask_buffer;
       }
       
       for (int i = 0; i < m_view.impl().cols(); ++i) {
@@ -245,6 +249,7 @@ namespace vw {
           m_top[i] = j;
           ++j;
         }
+        m_top[i] += mask_buffer;
         
         // Search from the right side of the image for black pixels 
         j = m_view.impl().rows() - 1;
@@ -252,6 +257,7 @@ namespace vw {
           m_bottom[i] = j;
           --j;
         }
+        m_bottom[i] -= mask_buffer;
       }
       progress_callback.report_finished();
     }
@@ -306,8 +312,9 @@ namespace vw {
   template <class ViewT>
   EdgeMaskView<ViewT> edge_mask( ImageViewBase<ViewT> const& v, 
                                  typename ViewT::pixel_type value,
+                                 int32 buffer = 0,
                                  const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
-    return EdgeMaskView<ViewT>( v.impl(), value, progress_callback );
+    return EdgeMaskView<ViewT>( v.impl(), value, buffer, progress_callback );
   }
 
 } // namespace vw
