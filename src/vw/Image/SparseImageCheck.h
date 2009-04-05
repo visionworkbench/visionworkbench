@@ -26,6 +26,12 @@ namespace vw {
     bool operator() (BBox2i const& bbox) { return bbox.intersects(m_src_bbox); }
   };
   
+  // A helper function to make it easy to test for sparisty.
+  template <class ImageT>
+    bool sparse_check( ImageT const& image, BBox2i const& bbox ) {
+    return SparseImageCheck<ImageT>(image)(bbox);
+  }
+
 } // namespace vw
 
 #endif // __VW_IMAGE_SPARSE_IMAGE_CHECK_H__

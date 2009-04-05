@@ -25,6 +25,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/Manipulation.h>
+#include <vw/Image/SparseImageCheck.h>
 
 namespace vw {
 
@@ -220,6 +221,9 @@ namespace vw {
 
     inline result_type operator() (double i, double j, int32 p = 0) const { return m_interp_func(m_image,i,j,p); }
 
+    ImageT const& child() const { return m_image; }
+    InterpT const& func() const { return m_interp_func; }
+
     /// \cond INTERNAL
     // We can make an optimization here.  If the pixels in the child
     // view cannot be repeatedly accessed without incurring any
@@ -261,6 +265,19 @@ namespace vw {
   struct IsFloatingPointIndexable<InterpolationView<ImageT, InterpT> > : public true_type {};
   /// \endcond
 	
+  template <class ImageT, class InterpT>
+  class SparseImageCheck<InterpolationView<ImageT, InterpT> > {
+    InterpolationView<ImageT, InterpT> const& m_view;
+  public:
+    SparseImageCheck(InterpolationView<ImageT, InterpT> const& view)
+      : m_view(view) {}
+    bool operator()( BBox2i const& bbox ) const {
+      if( bbox.empty() ) return false;
+      BBox2i src_bbox = bbox;
+      src_bbox.expand( InterpT::pixel_buffer );
+      return SparseImageCheck<ImageT>(m_view.child())( src_bbox );
+    }
+  };
 
   // -------------------------------------------------------------------------------
   // Functional API
