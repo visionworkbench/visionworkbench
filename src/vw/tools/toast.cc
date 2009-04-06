@@ -111,7 +111,7 @@ int main(int argc, char **argv) {
     Vector2 p1 = georef.pixel_to_lonlat(Vector2(image.cols()/2+1,image.rows()/2));
     Vector2 p2 = georef.pixel_to_lonlat(Vector2(image.cols()/2,image.rows()/2+1));
     double delta = sqrt(pow(p1.y()-p0.y(),2)+pow(p2.y()-p0.y(),2));
-    int level = round(log(180/delta/(tile_size-1))/log(2));
+    int level = (int)round(log(180/delta/(tile_size-1))/log(2));
     if( level > max_level ) max_level = level;
   }
 
@@ -146,6 +146,7 @@ int main(int argc, char **argv) {
   QuadTreeGenerator qtree( composite, output_file_name );
   ToastQuadTreeConfig tqtc;
   tqtc.configure( qtree, composite );
+  qtree.set_file_type( output_file_type );
   qtree.generate( TerminalProgressCallback() );
 
   return 0;
