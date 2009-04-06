@@ -69,6 +69,7 @@ int max_lod_pixels; // KML only.
 float pixel_scale=1.0, pixel_offset=0.0;
 double lcc_parallel1, lcc_parallel2;
 int aspect_ratio=1;
+int global_resolution=0;
 bool terrain=false;
 
 // For image stretching.
@@ -223,6 +224,8 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
       if( resolution > total_resolution ) total_resolution = resolution;
     }
   }
+
+  if( global_resolution) total_resolution = global_resolution;
 
   // Now that we have the best resolution, we can get our output_georef.
   int xresolution = total_resolution / aspect_ratio, yresolution = total_resolution;
@@ -462,7 +465,8 @@ int main(int argc, char **argv) {
     ("max-lod-pixels", po::value<int>(&max_lod_pixels)->default_value(1024), "Max LoD in pixels, or -1 for none (kml only)")
     ("draw-order-offset", po::value<int>(&draw_order_offset)->default_value(0), "Offset for the <drawOrder> tag for this overlay (kml only)")
     ("composite-multiband", "Composite images using multi-band blending")
-    ("aspect-ratio", po::value<int>(&aspect_ratio)->default_value(1), "Pixel aspect ratio (for polar overlays; should be a power of two)");
+    ("aspect-ratio", po::value<int>(&aspect_ratio)->default_value(1), "Pixel aspect ratio (for polar overlays; should be a power of two)")
+    ("global-resolution", po::value<int>(&global_resolution)->default_value(0), "Override the global pixel resolution; should be a power of two");
 
   po::options_description projection_options("Projection Options");
   projection_options.add_options()
@@ -544,13 +548,14 @@ int main(int argc, char **argv) {
   const ProgressCallback *progress = &tpc;
 
   // Set a few booleans based on input values.
-  if(vm.count("verbose"))
-  {
+  if(vm.count("verbose")) {
     set_debug_level(VerboseDebugMessage);
     progress = &ProgressCallback::dummy_instance();
   }
-  else if(vm.count("quiet"))
+  else if(vm.count("quiet")) {
     set_debug_level(WarningMessage);
+    progress = &ProgressCallback::dummy_instance();
+  }
 
   if(vm.count("terrain")) {
     terrain = true;
