@@ -18,6 +18,7 @@
 #include <vw/Mosaic/UniviewQuadTreeConfig.h>
 #include <vw/Mosaic/GMapQuadTreeConfig.h>
 #include <vw/Mosaic/CelestiaQuadTreeConfig.h>
+#include <vw/Mosaic/ToastQuadTreeConfig.h>
 #include <vw/Mosaic/ImageComposite.h>
 
 #endif // __VW_MOSAIC_H__
