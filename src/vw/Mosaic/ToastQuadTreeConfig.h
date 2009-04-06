@@ -50,7 +50,7 @@ namespace mosaic {
       for( int32 level = qtree->get_tree_levels()-1; level>=0; --level ) {
 	double progress = progress_callback.progress();
 	SubProgressCallback spc(progress_callback, progress, 1-(1-progress)/4);
-	generate_branches( level, 0, 0, 0, spc );
+	generate_branch( level, 0, 0, 0, spc );
       }
       progress_callback.report_progress(1);
     }
@@ -211,7 +211,7 @@ namespace mosaic {
       return tile;
     }
 
-    void generate_branches( int32 branch_level, int32 level, int32 x, int32 y, ProgressCallback const& progress_callback ) {
+    void generate_branch( int32 branch_level, int32 level, int32 x, int32 y, ProgressCallback const& progress_callback ) {
       progress_callback.report_progress(0);
       progress_callback.abort_if_requested();
 
@@ -233,10 +233,10 @@ namespace mosaic {
       }
 
       if( branch_level > level ) {
-	generate_branches( branch_level, level+1, 2*x,   2*y,   SubProgressCallback(progress_callback, 0.00, 0.25) );
-	generate_branches( branch_level, level+1, 2*x+1, 2*y,   SubProgressCallback(progress_callback, 0.25, 0.50) );
-	generate_branches( branch_level, level+1, 2*x,   2*y+1, SubProgressCallback(progress_callback, 0.50, 0.75) );
-	generate_branches( branch_level, level+1, 2*x+1, 2*y+1, SubProgressCallback(progress_callback, 0.75, 1.00) );
+	generate_branch( branch_level, level+1, 2*x,   2*y,   SubProgressCallback(progress_callback, 0.00, 0.25) );
+	generate_branch( branch_level, level+1, 2*x+1, 2*y,   SubProgressCallback(progress_callback, 0.25, 0.50) );
+	generate_branch( branch_level, level+1, 2*x,   2*y+1, SubProgressCallback(progress_callback, 0.50, 0.75) );
+	generate_branch( branch_level, level+1, 2*x+1, 2*y+1, SubProgressCallback(progress_callback, 0.75, 1.00) );
       }
       else {
 	fs::path path( qtree->get_name(), fs::native );
