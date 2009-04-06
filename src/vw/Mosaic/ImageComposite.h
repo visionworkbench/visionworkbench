@@ -247,12 +247,6 @@ namespace mosaic {
       return view_bbox;
     }
 
-    /// This method returns a vector with the bboxes of source images
-    /// in the ImageComposite.
-    std::vector<BBox2i> const& child_bboxes() const {
-      return bboxes;
-    }
-
     int32 planes() const {
       return 1;
     }
@@ -278,6 +272,19 @@ namespace mosaic {
       vw::rasterize( prerasterize(bbox), dest, bbox );
     }
 
+    bool sparse_check( BBox2i const& bbox ) const {
+      for (unsigned int i = 0; i < bboxes.size(); ++i) {
+	BBox2i src_bbox = bboxes[i];
+	src_bbox.crop(bbox);
+	if( ! src_bbox.empty() ) {
+	  if( vw::sparse_check( sourcerefs[i], src_bbox-bboxes[i].min() ) ) {
+	    return true;
+	  }
+	}
+      }
+      return false;
+    }
+
   };
 
 } // namespace mosaic
@@ -289,14 +296,11 @@ namespace mosaic {
   // any of the the ImageComposite's source images.  
   template <class PixelT>
   class SparseImageCheck<mosaic::ImageComposite<PixelT> > {
-    std::vector<BBox2i> m_src_bboxes;
+    mosaic::ImageComposite<PixelT> const& composite;
   public:
-    SparseImageCheck(mosaic::ImageComposite<PixelT> const& source) : m_src_bboxes(source.child_bboxes()) {}
+    SparseImageCheck(mosaic::ImageComposite<PixelT> const& source) : composite(source) {}
     bool operator() (BBox2i const& bbox) {
-      bool result = false;
-      for (unsigned int i = 0; i < m_src_bboxes.size(); ++i)
-        result = result || bbox.intersects(m_src_bboxes[i]);
-      return result;
+      return composite.sparse_check(bbox);
     }
   };
 
