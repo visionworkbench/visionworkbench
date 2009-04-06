@@ -110,6 +110,9 @@ namespace vw {
     }
 
   private:
+    DiskImageResourcePNG(DiskImageResourcePNG&);
+    DiskImageResourcePNG& operator=(DiskImageResourcePNG&);
+
     // vw_png_context is declared in the cc file, and unused elsewhere, 
     // but we have a pointer to it. So forward declare.
     struct vw_png_context;

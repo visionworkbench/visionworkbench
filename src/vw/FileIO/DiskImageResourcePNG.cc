@@ -135,10 +135,10 @@ struct DiskImageResourcePNG::vw_png_read_context:
   bool interlaced;
 
   // Open a PNG context from a file, for reading.
-  vw_png_read_context(DiskImageResourcePNG *outer):
-    vw_png_context(outer)
+  vw_png_read_context(DiskImageResourcePNG *outer) :
+    vw_png_context(outer), current_line(0), comments_loaded(false)
   {
-    m_file = boost::shared_ptr<std::fstream>( new std::fstream( outer->m_filename.c_str(), std::ios_base::in | std::ios_base::binary ) );
+    m_file.reset( new std::fstream( outer->m_filename.c_str(), std::ios_base::in | std::ios_base::binary ) );
     if(!m_file)
       vw_throw(IOErr() << "DiskImageResourcePNG: Unable to open input file " << outer->m_filename << ".");
 
@@ -164,8 +164,8 @@ struct DiskImageResourcePNG::vw_png_read_context:
       vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create info structure for file " << outer->m_filename << ".");
     }
 
-    endinfo_ptr = png_create_info_struct(png_ptr);
-    if(!endinfo_ptr) {
+    end_info_ptr = png_create_info_struct(png_ptr);
+    if(!end_info_ptr) {
       png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
       vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create info structure for file " << outer->m_filename << ".");
     }
@@ -265,15 +265,13 @@ struct DiskImageResourcePNG::vw_png_read_context:
     scanline = boost::shared_array<uint8>(new uint8[cstride * cols]);
 
     png_start_read_image(png_ptr);
-
-    current_line = 0;
   }
 
   virtual ~vw_png_read_context()
   {
     if (setjmp(err_mgr.error_return))
       vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
-    png_destroy_read_struct(&png_ptr, &info_ptr, &endinfo_ptr);
+    png_destroy_read_struct(&png_ptr, &info_ptr, &end_info_ptr);
     m_file->close();
   }
 
@@ -315,11 +313,11 @@ struct DiskImageResourcePNG::vw_png_read_context:
   {    
     if( comments_loaded ) return;
     advance(outer->rows()-current_line);
-    png_read_end(png_ptr, info_ptr);
+    png_read_end(png_ptr, end_info_ptr);
     comments_loaded = true;
 
     png_text *text_ptr;
-    int num_comments = png_get_text(png_ptr, info_ptr, &text_ptr, 0);
+    int num_comments = png_get_text(png_ptr, end_info_ptr, &text_ptr, 0);
     comments.clear();
     for ( int i=0; i<num_comments; ++i )
     {
@@ -360,7 +358,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
 
 private:
   // Structures from libpng.
-  png_infop endinfo_ptr;
+  png_infop end_info_ptr;
 
   // Function for reading data, given to PNG.
   static void read_data( png_structp png_ptr, png_bytep data, png_size_t length )
@@ -614,7 +612,7 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
 }
 
 void DiskImageResourcePNG::read_reset() const {
-  m_ctx = boost::shared_ptr<DiskImageResourcePNG::vw_png_read_context>( new DiskImageResourcePNG::vw_png_read_context( const_cast<DiskImageResourcePNG *>(this) ) );
+  m_ctx.reset( new DiskImageResourcePNG::vw_png_read_context( const_cast<DiskImageResourcePNG *>(this) ) );
 }
 
 unsigned DiskImageResourcePNG::num_comments() const {
