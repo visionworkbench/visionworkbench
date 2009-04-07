@@ -30,12 +30,14 @@ namespace vw {
   /// pixels masked.
   ///
   template <class PixelT>
-  class CreatePixelMask : public ReturnFixedType<PixelMask<PixelT> > {
+  class CreatePixelMask : public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
     PixelT m_nodata_value;
   public:
     CreatePixelMask( PixelT const& nodata_value ) : m_nodata_value(nodata_value) {}
-    PixelMask<PixelT> operator()( PixelT const& value ) const {
-      return (value==m_nodata_value) ? PixelMask<PixelT>() : PixelMask<PixelT>(value);
+    typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
+      return (value==m_nodata_value) ? 
+        typename MaskedPixelType<PixelT>::type() : 
+        typename MaskedPixelType<PixelT>::type(value);
     }
   };
 
