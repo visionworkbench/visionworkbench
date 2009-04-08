@@ -405,7 +405,18 @@ struct DiskImageResourcePNG::vw_png_write_context:
     int channels  = num_channels(outer->m_format.pixel_format);
 
     // anything else will be converted to UINT8
-    int bit_depth = outer->m_format.channel_type == VW_CHANNEL_UINT16 ? 16 : 8;
+    int bit_depth;
+    switch (outer->m_format.channel_type) {
+      case VW_CHANNEL_INT16:
+      case VW_CHANNEL_UINT16:
+      case VW_CHANNEL_FLOAT16:
+      case VW_CHANNEL_GENERIC_2_BYTE:
+        bit_depth = 16;
+        break;
+      default:
+        bit_depth = 8;
+        break;
+    }
 
     int color_type = PNG_COLOR_TYPE_GRAY;  // Set a default value to avoid compiler warnings
     switch(outer->m_format.pixel_format) {
