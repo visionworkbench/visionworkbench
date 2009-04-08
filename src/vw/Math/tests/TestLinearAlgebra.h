@@ -367,7 +367,7 @@ public:
     TS_ASSERT_EQUALS(R(3, 1), 0);
     TS_ASSERT_EQUALS(R(3, 0), 0);
 
-    TS_ASSERT_DELTA( norm_1(A - Q*R), 0, 0.0003); // A = Q*R, not very precise though
+    TS_ASSERT_DELTA( norm_1(A - Q*R), 0, 0.0005); // A = Q*R, not very precise though
   }
 
   // Test the qrd(A, Q, R) routine with double input and float output matrices
