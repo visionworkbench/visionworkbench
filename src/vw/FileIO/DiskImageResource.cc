@@ -149,6 +149,8 @@ static void register_default_file_types_impl() {
 #elif defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   if (vw::DiskImageResourceGDAL::gdal_has_support(".png"))
     vw::DiskImageResource::register_file_type( ".png", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
+  else
+    vw_throw(IOErr() << "GDAL does not have PNG support.");
 #endif
 
 #if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
