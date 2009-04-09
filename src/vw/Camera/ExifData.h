@@ -34,19 +34,19 @@ namespace camera {
     bool MotorolaOrder;
     unsigned int ExifLocation;
     
-    int process_tiff_header(unsigned char * buffer);
+    int process_tiff_header(const unsigned char * buffer);
     bool read_jpeg_sections(FILE* infile);
-    bool read_tiff_ifd(FILE* infile);
+    bool read_tiff_ifd(const std::string &filename);
     void process_exif(unsigned char * ExifSection, unsigned int length);
-    void process_exif_dir(unsigned char * DirStart, unsigned char * OffsetBase, 
+    void process_exif_dir(const unsigned char * DirStart, const unsigned char * OffsetBase, 
                           unsigned ExifLength, int NestingLevel);
-    unsigned char * dir_entry_addr(unsigned char * start, int entry);
+    const unsigned char * dir_entry_addr(const unsigned char * start, int entry);
     void Put16u(void * Short, unsigned short PutValue);
-    int Get16u(void * Short);
-    int Get32s(void * Long);
+    int Get16u(const void * Short);
+    int Get32s(const void * Long);
     void Put32u(void * Value, unsigned PutValue);
-    unsigned Get32u(void * Long);
-    double convert_any_format(void * ValuePtr, int Format);
+    unsigned Get32u(const void * Long);
+    double convert_any_format(const void * ValuePtr, int Format);
     
   public:
     ExifData() {}

@@ -12,7 +12,7 @@
 #include <vw/Core/Exception.h>
 #include <vw/Camera/ExifData.h>
 #include <boost/algorithm/string/predicate.hpp>
-
+#include <boost/iostreams/device/mapped_file.hpp>
 namespace vw {
 namespace camera {
 
@@ -66,7 +66,7 @@ void vw::camera::ExifData::Put16u(void * Short, unsigned short PutValue) {
 }
 
 // Convert a 16 bit unsigned value from file's native byte order
-int vw::camera::ExifData::Get16u(void * Short) {
+int vw::camera::ExifData::Get16u(const void * Short) {
   if (MotorolaOrder){
     return (((uint8 *)Short)[0] << 8) | ((uint8 *)Short)[1];
   } else {
@@ -75,7 +75,7 @@ int vw::camera::ExifData::Get16u(void * Short) {
 }
 
 // Convert a 32 bit signed value from file's native byte order
-int vw::camera::ExifData::Get32s(void * Long) {
+int vw::camera::ExifData::Get32s(const void * Long) {
   if (MotorolaOrder){
     return  ((( char *)Long)[0] << 24) | (((uint8 *)Long)[1] << 16)
             | (((uint8 *)Long)[2] << 8 ) | (((uint8 *)Long)[3] << 0 );
@@ -101,21 +101,21 @@ void vw::camera::ExifData::Put32u(void * Value, unsigned PutValue) {
 }
 
 // Convert a 32 bit unsigned value from file's native byte order
-unsigned vw::camera::ExifData::Get32u(void * Long) {
+unsigned vw::camera::ExifData::Get32u(const void * Long) {
   return (unsigned)Get32s(Long) & 0xffffffff;
 }
 
-double vw::camera::ExifData::convert_any_format(void * ValuePtr, int Format) {
+double vw::camera::ExifData::convert_any_format(const void * ValuePtr, int Format) {
   double Value = 0;
   int Num, Den;
 
   switch(Format) {
     case SBYTE:
-      Value = *(signed char *)ValuePtr;
+      Value = *(const signed char *)ValuePtr;
       break;
 
     case UBYTE:
-      Value = *(uint8 *)ValuePtr;
+      Value = *(const uint8 *)ValuePtr;
       break;
 
     case USHORT:
@@ -129,7 +129,7 @@ double vw::camera::ExifData::convert_any_format(void * ValuePtr, int Format) {
     case URATIONAL:
     case SRATIONAL: 
       Num = Get32s(ValuePtr);
-      Den = Get32s(4+(char *)ValuePtr);
+      Den = Get32s(4+(const char *)ValuePtr);
       if (Den == 0) {
 	Value = 0;
       } else {
@@ -147,11 +147,11 @@ double vw::camera::ExifData::convert_any_format(void * ValuePtr, int Format) {
 
     // Not sure if this is correct (never seen float used in Exif format)
     case SINGLE:
-      Value = (double)*(float *)ValuePtr;
+      Value = (double)*(const float *)ValuePtr;
       break;
 
     case DOUBLE:
-      Value = *(double *)ValuePtr;
+      Value = *(const double *)ValuePtr;
       break;
 
     default:
@@ -160,26 +160,26 @@ double vw::camera::ExifData::convert_any_format(void * ValuePtr, int Format) {
   return Value;
 }
 
-unsigned char * vw::camera::ExifData::dir_entry_addr(unsigned char * start, int entry) {
+const unsigned char * vw::camera::ExifData::dir_entry_addr(const unsigned char * start, int entry) {
   return (start + 2 + 12 * entry);
 }
 
-void vw::camera::ExifData::process_exif_dir(unsigned char * DirStart, unsigned char * OffsetBase, 
+void vw::camera::ExifData::process_exif_dir(const unsigned char * DirStart, const unsigned char * OffsetBase, 
 				unsigned ExifLength, int NestingLevel) {
   VW_ASSERT( NestingLevel <= 4, IOErr() << "Maximum directory nesting exceeded (corrupt Exif header)." );
 
   int NumDirEntries = Get16u(DirStart);
   //printf("Number of directory entries: %i\n", NumDirEntries);
 
-  uint8* DirEnd = dir_entry_addr(DirStart, NumDirEntries);
+  const uint8* DirEnd = dir_entry_addr(DirStart, NumDirEntries);
   if (DirEnd + 4 > (OffsetBase + ExifLength)) {
     VW_ASSERT( DirEnd+2 == OffsetBase+ExifLength || DirEnd == OffsetBase+ExifLength,
 	       IOErr() << "Illegally sized directory." );
   }
 
   for (int de = 0; de < NumDirEntries; de++) {
-    unsigned char * ValuePtr;
-    uint8 * DirEntry = dir_entry_addr(DirStart, de);
+    const unsigned char * ValuePtr;
+    const uint8 * DirEntry = dir_entry_addr(DirStart, de);
     
     int Tag = Get16u(DirEntry);
     int Format = Get16u(DirEntry+2);
@@ -245,7 +245,7 @@ void vw::camera::ExifData::process_exif_dir(unsigned char * DirStart, unsigned c
     switch (Tag) {
     case 0x8769:  // TAG_ExifOffset
     case 0xA005:  // TAG_InteroperabilityOffset:
-      unsigned char * SubdirStart = OffsetBase + Get32u(ValuePtr);
+      const unsigned char * SubdirStart = OffsetBase + Get32u(ValuePtr);
       if (SubdirStart < OffsetBase || SubdirStart > OffsetBase+ExifLength){
         printf("Warning: illegal exif or interop offset directory link");
       } else {
@@ -280,7 +280,7 @@ void vw::camera::ExifData::process_exif_dir(unsigned char * DirStart, unsigned c
   if (dir_entry_addr(DirStart, NumDirEntries) + 4 <= OffsetBase + ExifLength){
     unsigned Offset = Get32u(DirStart+2+12*NumDirEntries);
     if (Offset){
-      uint8* SubdirStart = OffsetBase + Offset;
+      const uint8* SubdirStart = OffsetBase + Offset;
       if ((SubdirStart > OffsetBase + ExifLength) || (SubdirStart < OffsetBase)) {
 	if ((SubdirStart > OffsetBase) && (SubdirStart < OffsetBase + ExifLength + 20)) {
 	  // let this pass silently
@@ -296,7 +296,7 @@ void vw::camera::ExifData::process_exif_dir(unsigned char * DirStart, unsigned c
   }
 }
 
-int vw::camera::ExifData::process_tiff_header(unsigned char * buffer) {
+int vw::camera::ExifData::process_tiff_header(const unsigned char * buffer) {
   // Bytes 0-1 of TIFF header indicate byte order
   if (memcmp(buffer, "II", 2) == 0) {
     MotorolaOrder = 0; //Intel order
@@ -328,26 +328,17 @@ void vw::camera::ExifData::process_exif(unsigned char * ExifSection, unsigned in
   process_exif_dir(ExifSection + 8 + first_offset, ExifSection + 8, length - 8, 0);
 }
 
-bool vw::camera::ExifData::read_tiff_ifd(FILE* infile) {
-  // Obtain file size
-  fseek(infile, 0, SEEK_END);
-  size_t lSize = ftell(infile);
-  rewind(infile);
-
-  // Read complete file into buffer (inefficient, but allows us to use same process_exif_dir function
+bool vw::camera::ExifData::read_tiff_ifd(const std::string &filename) {
+  // Memory-map the file so we can use the same process_exif_dir function
   // unchanged for both jpg and tiff).
-  unsigned char * buffer = (unsigned char *) malloc(lSize);
-  VW_ASSERT( buffer != NULL, NullPtrErr() << "Could not allocate memory.");
-
-  if (fread(buffer, 1, lSize, infile) != lSize)
-    vw_throw(IOErr() << "File changed size!");
-
+  
+  boost::iostreams::mapped_file_source tiff_file(filename.c_str());
+  const unsigned char *buffer = (const unsigned char*) tiff_file.data();
+  
   int first_offset = process_tiff_header(buffer);
-
-  process_exif_dir(buffer + first_offset, buffer, lSize, 0);
-
-  free(buffer);
-
+  
+  process_exif_dir(buffer + first_offset, buffer, tiff_file.size(), 0);
+  
   return true;
 }
 
@@ -436,7 +427,7 @@ bool vw::camera::ExifData::import_data(std::string const &filename) {
   } else if (boost::algorithm::iends_with(filename, ".tif") ||
              boost::algorithm::iends_with(filename, ".tiff")) {
     // Process TIFF IFD structure
-    ret = read_tiff_ifd(infile);
+    ret = read_tiff_ifd(filename);
   } else {
     VW_ASSERT( 0, IOErr() << "Cannot determine file type.");
   }
