@@ -1088,8 +1088,10 @@ namespace camera {
       VW_DEBUG_ASSERT(m_control_net->size() == m_model.num_points(), LogicErr() << "BundleAdjustment::update() : Number of bundles does not match the number of points in the bundle adjustment model.");
 
       // Jacobian Matrices and error values
-      boost_sparse_matrix<Matrix<double, 2, BundleAdjustModelT::camera_params_n> > A(m_model.num_points(), m_model.num_cameras());
-      boost_sparse_matrix<Matrix<double, 2, BundleAdjustModelT::point_params_n> > B(m_model.num_points(), m_model.num_cameras());
+      typedef Matrix<double, 2, BundleAdjustModelT::camera_params_n> matrix_2_camera;
+      typedef Matrix<double, 2, BundleAdjustModelT::point_params_n> matrix_2_point;
+      boost_sparse_matrix< matrix_2_camera  > A(m_model.num_points(), m_model.num_cameras());
+      boost_sparse_matrix< matrix_2_point > B(m_model.num_points(), m_model.num_cameras());
       boost_sparse_matrix<Vector2> epsilon(m_model.num_points(), m_model.num_cameras());
       boost_sparse_matrix<Vector2> new_epsilon(m_model.num_points(), m_model.num_cameras());
       
@@ -1097,14 +1099,19 @@ namespace camera {
       // boost::numeric::ublas::mapped_matrix<Vector2> Jp(m_model.num_points(), m_model.num_cameras());
            
       // Intermediate Matrices and vectors
-      boost_sparse_vector< Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> > U(m_model.num_cameras());
-      boost_sparse_vector< Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> > V(m_model.num_points());  
-      boost_sparse_matrix<Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> > W(m_model.num_cameras(), m_model.num_points());     
+      typedef Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> matrix_camera_camera;
+      typedef Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> matrix_point_point;
+      typedef Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> matrix_camera_point;
+      boost_sparse_vector< matrix_camera_camera > U(m_model.num_cameras());
+      boost_sparse_vector< matrix_point_point > V(m_model.num_points());  
+      boost_sparse_matrix< matrix_camera_point > W(m_model.num_cameras(), m_model.num_points());     
      
       // Copies of Intermediate Marices
-      boost_sparse_vector< Vector<double,BundleAdjustModelT::camera_params_n> > epsilon_a(m_model.num_cameras());
-      boost_sparse_vector< Vector<double,BundleAdjustModelT::point_params_n > > epsilon_b(m_model.num_points());
-      boost_sparse_matrix<Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> > Y(m_model.num_cameras(), m_model.num_points());
+      typedef Vector<double,BundleAdjustModelT::camera_params_n> vector_camera;
+      typedef Vector<double,BundleAdjustModelT::point_params_n> vector_point;
+      boost_sparse_vector< vector_camera > epsilon_a(m_model.num_cameras());
+      boost_sparse_vector< vector_point > epsilon_b(m_model.num_points());
+      boost_sparse_matrix< matrix_camera_point > Y(m_model.num_cameras(), m_model.num_points());
 
 
       unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
@@ -1152,9 +1159,12 @@ namespace camera {
 	    inverse_cov * static_cast<Vector2>(epsilon(i,j));
           
           // Store intermediate values
-          U(j) += transpose(A(i,j).ref()) * inverse_cov * A(i,j).ref();
-          V(i) += transpose(B(i,j).ref()) * inverse_cov * B(i,j).ref();
-          W(j,i) = transpose(A(i,j).ref()) * inverse_cov * B(i,j).ref();
+          U(j) += transpose(static_cast< vector_camera >(A(i,j))) * 
+	    inverse_cov * A(i,j);
+          V(i) += transpose(static_cast< vector_point >(B(i,j))) * 
+	    inverse_cov * B(i,j);
+          W(j,i) = transpose(static_cast<vector_camera > (A(i,j))) * 
+	    inverse_cov * B(i,j);
 
 	  epsilon_a(j) += transpose(A(i,j)) * inverse_cov * epsilon(i,j);
           epsilon_b(i) += transpose(B(i,j)) * inverse_cov * epsilon(i,j);
