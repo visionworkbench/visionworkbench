@@ -30,8 +30,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/thread/xtime.hpp>
 #include <boost/bind.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
 
 // Posix time is not fully supported in the version of Boost for RHEL

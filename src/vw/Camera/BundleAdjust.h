@@ -22,8 +22,17 @@
 // Boost 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/vector_sparse.hpp>
-#include <boost/numeric/ublas/vector_of_vector.hpp>
 #include <boost/numeric/ublas/io.hpp>
+#include <boost/version.hpp>
+#if BOOST_VERSION==103200
+// Mapped matrix exist in 1.32, but Sparse Matrix does
+#define boost_sparse_matrix boost::numeric::ublas::sparse_matrix
+#define boost_sparse_vector boost::numeric::ublas::sparse_vector
+#else
+// Sparse Matrix was renamed Mapped Matrix in later editions
+#define boost_sparse_matrix boost::numeric::ublas::mapped_matrix
+#define boost_sparse_vector boost::numeric::ublas::mapped_vector
+#endif
 
 #include <string>
 
@@ -612,10 +621,6 @@ namespace camera {
       // Summarize the stats from this step in the iteration
       double overall_norm = transpose(epsilon) *  epsilon;
       
-      /* // Taken over by Bundle Adjust Report
-      std::cout << "LM Initialization             "
-                << "  Overall squared error: " << overall_norm << "  lambda: " << m_lambda << "\n";
-      */
     }
   
     /// Set/Read Controls
@@ -650,7 +655,7 @@ namespace camera {
     }
 
     template <class ElemT>
-    void compare_matrices(boost::numeric::ublas::mapped_matrix<ElemT> &sparse,
+    void compare_matrices(boost_sparse_matrix<ElemT> &sparse,
                           Matrix<double> normal, 
                           std::string debug_text,
                           double tol) {
@@ -678,7 +683,7 @@ namespace camera {
 
     // For comparing diagonal sparse matrices
     template <class ElemT>
-    void compare_matrices(boost::numeric::ublas::mapped_vector<ElemT> &sparse,
+    void compare_matrices(boost_sparse_vector<ElemT> &sparse,
                           Matrix<double> normal, 
                           std::string debug_text,
                           double tol) {
@@ -947,7 +952,6 @@ namespace camera {
         hessian(i,i) +=  m_lambda;
 
       //Cholesky decomposition. Returns Cholesky matrix in lower left hand corner.
-
       Vector<double> delta = del_J;
 
       // Here we want to make sure that if we apply Schur methods as on p. 604, we can get the same answer as in the general delta.  
@@ -1042,14 +1046,6 @@ namespace camera {
 	
         double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon) ; 
 	
-	/* // This has mostly been taken over by BundleAdjustReport
-	std::cout <<"\n" << "Reference LM Iteration " 
-		  << m_iterations << ":     "
-                  << "  Overall Modified: " << overall_norm << "  delta: " 
-		  << overall_delta << "  lambda: " << m_lambda 
-		  << "   Ratio:  " << R <<  "\n";  
-	*/
-	
 	abs_tol = overall_norm;
         rel_tol = overall_delta;	
 
@@ -1075,11 +1071,6 @@ namespace camera {
 
 	double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon);
  
-	/* // Taken over mostly by Bundle Adjust Report
-	std::cout <<"\n" << "Reference LM Iteration " << m_iterations << ":     "
-		  << "  \t   "  << "  delta  "<< overall_delta << "  lambda: " 
-		  << m_lambda << "\t" << "   Ratio:  " << R <<"\n";
-	*/ 
 	return ScalarTypeLimits<double>::highest();
       }
     }
@@ -1097,23 +1088,23 @@ namespace camera {
       VW_DEBUG_ASSERT(m_control_net->size() == m_model.num_points(), LogicErr() << "BundleAdjustment::update() : Number of bundles does not match the number of points in the bundle adjustment model.");
 
       // Jacobian Matrices and error values
-      boost::numeric::ublas::mapped_matrix<Matrix<double, 2, BundleAdjustModelT::camera_params_n> > A(m_model.num_points(), m_model.num_cameras());
-      boost::numeric::ublas::mapped_matrix<Matrix<double, 2, BundleAdjustModelT::point_params_n> > B(m_model.num_points(), m_model.num_cameras());
-      boost::numeric::ublas::mapped_matrix<Vector2> epsilon(m_model.num_points(), m_model.num_cameras());
-      boost::numeric::ublas::mapped_matrix<Vector2> new_epsilon(m_model.num_points(), m_model.num_cameras());
+      boost_sparse_matrix<Matrix<double, 2, BundleAdjustModelT::camera_params_n> > A(m_model.num_points(), m_model.num_cameras());
+      boost_sparse_matrix<Matrix<double, 2, BundleAdjustModelT::point_params_n> > B(m_model.num_points(), m_model.num_cameras());
+      boost_sparse_matrix<Vector2> epsilon(m_model.num_points(), m_model.num_cameras());
+      boost_sparse_matrix<Vector2> new_epsilon(m_model.num_points(), m_model.num_cameras());
       
       // Data structures necessary for Fletcher modification
       // boost::numeric::ublas::mapped_matrix<Vector2> Jp(m_model.num_points(), m_model.num_cameras());
            
       // Intermediate Matrices and vectors
-      boost::numeric::ublas::mapped_vector< Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> > U(m_model.num_cameras());
-      boost::numeric::ublas::mapped_vector< Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> > V(m_model.num_points());  
-      boost::numeric::ublas::mapped_matrix<Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> > W(m_model.num_cameras(), m_model.num_points());     
+      boost_sparse_vector< Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> > U(m_model.num_cameras());
+      boost_sparse_vector< Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> > V(m_model.num_points());  
+      boost_sparse_matrix<Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> > W(m_model.num_cameras(), m_model.num_points());     
      
       // Copies of Intermediate Marices
-      boost::numeric::ublas::mapped_vector< Vector<double,BundleAdjustModelT::camera_params_n> > epsilon_a(m_model.num_cameras());
-      boost::numeric::ublas::mapped_vector< Vector<double,BundleAdjustModelT::point_params_n > > epsilon_b(m_model.num_points());
-      boost::numeric::ublas::mapped_matrix<Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> > Y(m_model.num_cameras(), m_model.num_points());
+      boost_sparse_vector< Vector<double,BundleAdjustModelT::camera_params_n> > epsilon_a(m_model.num_cameras());
+      boost_sparse_vector< Vector<double,BundleAdjustModelT::point_params_n > > epsilon_b(m_model.num_points());
+      boost_sparse_matrix<Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> > Y(m_model.num_cameras(), m_model.num_points());
 
 
       unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
@@ -1157,15 +1148,16 @@ namespace camera {
           inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
           inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
 	 
-	  error_total += .5 * transpose(epsilon(i,j).ref()) * inverse_cov * epsilon(i,j).ref();
+	  error_total += .5 * transpose(static_cast<Vector2>(epsilon(i,j))) * 
+	    inverse_cov * static_cast<Vector2>(epsilon(i,j));
           
           // Store intermediate values
           U(j) += transpose(A(i,j).ref()) * inverse_cov * A(i,j).ref();
           V(i) += transpose(B(i,j).ref()) * inverse_cov * B(i,j).ref();
           W(j,i) = transpose(A(i,j).ref()) * inverse_cov * B(i,j).ref();
 
-	  epsilon_a(j) += transpose(A(i,j).ref()) * inverse_cov * epsilon(i,j).ref();
-          epsilon_b(i) += transpose(B(i,j).ref()) * inverse_cov * epsilon(i,j).ref();
+	  epsilon_a(j) += transpose(A(i,j)) * inverse_cov * epsilon(i,j);
+          epsilon_b(i) += transpose(B(i,j)) * inverse_cov * epsilon(i,j);
 
 	  // If GCP debug?
 	  if ((*iter).type() == ControlPoint::GroundControlPoint) {
@@ -1364,8 +1356,8 @@ namespace camera {
       subvector(delta, current_delta_length, e.size()) = delta_a;
       current_delta_length += e.size();
 
-      boost::numeric::ublas::mapped_vector<Vector<double, BundleAdjustModelT::point_params_n> > delta_b(m_model.num_points());
-      boost::numeric::ublas::mapped_vector<Vector<double, BundleAdjustModelT::camera_params_n> > delta_a_aux(m_model.num_cameras());
+      boost_sparse_vector<Vector<double, BundleAdjustModelT::point_params_n> > delta_b(m_model.num_points());
+      boost_sparse_vector<Vector<double, BundleAdjustModelT::camera_params_n> > delta_a_aux(m_model.num_cameras());
 
       i = 0;
       for (typename ControlNetwork::const_iterator iter = m_control_net->begin(); iter != m_control_net->end(); ++iter) {
@@ -1429,7 +1421,8 @@ namespace camera {
           inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
           inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
 	 
-	  new_error_total += .5 * transpose(new_epsilon(i,j).ref()) * inverse_cov * new_epsilon(i,j).ref();
+	  new_error_total += .5 * transpose(static_cast<Vector2>(new_epsilon(i,j))) * 
+	    inverse_cov * static_cast<Vector2>(new_epsilon(i,j));
         }
         ++i;
       }
