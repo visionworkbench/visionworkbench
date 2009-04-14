@@ -178,6 +178,7 @@ AX_PKG_ONE_OF(BOOST_FILESYSTEM,
     BOOST_FILESYSTEM_POST_1_35, [AX_PKG_BOOST_LIB(FILESYSTEM_POST_1_35, [-lboost_filesystem -lboost_system], [boost/filesystem/path.hpp])])
 
 AX_PKG_BOOST_LIB(THREAD, [-lboost_thread], [boost/thread/thread.hpp])
+AX_PKG_BOOST_LIB(IOSTREAMS, [-lboost_iostreams], [boost/iostreams/stream_buffer.hpp])
 
 # This provides an easy way for users to override the threads options
 # if they are replacing Boost threads with something else for their platform.
@@ -295,7 +296,7 @@ for i in $PKG_VW_LIBS; do
 done
 PKG_VW_LIBS="$PKG_VW_LIBS_TEMP"
 
-AX_MODULE(CAMERA,        [src/vw/Camera],        [libvwCamera.la],        yes, [VW])
+AX_MODULE(CAMERA,        [src/vw/Camera],        [libvwCamera.la],        yes, [VW], [BOOST_IOSTREAMS])
 AX_MODULE(MOSAIC,        [src/vw/Mosaic],        [libvwMosaic.la],        yes, [VW])
 AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], yes, [VW])
 AX_MODULE(CARTOGRAPHY,   [src/vw/Cartography],   [libvwCartography.la],   yes, [VW],    [PROJ4],            [GDAL])
