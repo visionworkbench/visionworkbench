@@ -216,7 +216,6 @@ namespace vw {
 
       m_top.set_size(view.cols());
       m_bottom.set_size(view.cols());
-      m_bottom = view.rows();
 
       for (int j = 0; j < view.cols(); ++j) {
         m_top[j] = 0;
