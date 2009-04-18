@@ -225,41 +225,36 @@ namespace vw {
       // Scan over the image
       for (int j = 0; j < m_view.impl().rows(); ++j) {
         progress_callback.report_progress(float(j)/m_view.impl().rows()*0.5);
+
         // Search from the left side
         int i = 0;
-        while ( i < m_view.impl().cols() && m_view.impl()(i,j) == mask_value ) {
-          m_left[j] = i;
-          ++i;
-        }
-        m_left[j] += mask_buffer;
-        
+        while ( i < m_view.impl().cols() && m_view.impl()(i,j) == mask_value )
+          i++;
+        m_left[j] = i + mask_buffer;
+
         // Search from the right side
         i = m_view.impl().cols() - 1;
-        while ( i >= 0 && m_view.impl()(i,j) == mask_value ) {
-          m_right[j] = i;
+        while ( i >= 0 && m_view.impl()(i,j) == mask_value )
           --i;
-        }
-        m_right[j] -= mask_buffer;
+        m_right[j] = i - mask_buffer;
       }
-      
+
       for (int i = 0; i < m_view.impl().cols(); ++i) {
         progress_callback.report_progress(0.5 + float(i)/m_view.impl().cols()*0.5);
+
         // Search from the top side of the image for black pixels
         int j = 0;
-        while ( j < m_view.impl().rows() && m_view.impl()(i,j) == mask_value ) {
-          m_top[i] = j;
+        while ( j < m_view.impl().rows() && m_view.impl()(i,j) == mask_value )
           ++j;
-        }
-        m_top[i] += mask_buffer;
-        
-        // Search from the right side of the image for black pixels 
+        m_top[i] = j + mask_buffer;
+
+        // Search from the right side of the image for black pixels
         j = m_view.impl().rows() - 1;
-        while ( j >= 0 && m_view.impl()(i,j) == mask_value ) {
-          m_bottom[i] = j;
+        while ( j >= 0 && m_view.impl()(i,j) == mask_value )
           --j;
-        }
-        m_bottom[i] -= mask_buffer;
+        m_bottom[i] = j - mask_buffer;
       }
+
       progress_callback.report_finished();
     }
 
