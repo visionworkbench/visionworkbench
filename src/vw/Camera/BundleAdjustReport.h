@@ -1,3 +1,4 @@
+
 // __BEGIN_LICENSE__
 // Copyright (C) 2006, 2007 United States Government as represented by
 // the Administrator of the National Aeronautics and Space Administration.
@@ -233,6 +234,28 @@ namespace camera {
 	m_human_report.close();
       if (m_bundlevis_binary.is_open())
 	m_bundlevis_binary.close();
+
+      if ( report_level >= BundlevisTriangulation ) {
+	// Writing an image mean file (TEMPORARY)
+	std::cout << "Writing image mean\n";
+	std::ofstream image_mean_file;
+	image_mean_file.open( "image_mean.err", std::ios::binary | std::ios::out );
+	boost::shared_ptr<ControlNetwork> network = m_model.control_network();
+	int size1 = network->size();
+	image_mean_file.write((char*)&size1, sizeof(int));
+
+	// Right Now getting the data I need
+	std::vector<double> image_errors;
+	m_model.image_errors(image_errors);
+	int size2 = image_errors.size();
+	image_mean_file.write((char*)&size2, sizeof(int));
+
+	for ( unsigned i = 0; i < image_errors.size(); i++ )
+	  image_mean_file.write((char*)&(image_errors[i]),sizeof(double));
+	
+	image_mean_file.close();
+      }
+      
     }
     // This will display the current error statistics
     std::ostream& operator() ( void ) {
@@ -255,11 +278,11 @@ namespace camera {
       double max_image = *(std::max_element(image_errors.begin(),
 					    image_errors.end()));
       double mean_image=0, stddev_image=0;
-      for (unsigned i = 0; i < image_errors.size(); i++ ) 
+      for (unsigned i = 0; i < image_errors.size(); i++ ) {
 	mean_image += image_errors[i];
-      mean_image /= image_errors.size();
-      for (unsigned i = 0; i < image_errors.size(); i++ )
 	stddev_image += image_errors[i]*image_errors[i];
+      }
+      mean_image /= image_errors.size();
       stddev_image /= image_errors.size();
       stddev_image = sqrt( stddev_image - mean_image*mean_image );
       
@@ -269,11 +292,11 @@ namespace camera {
       double max_cam_position = *(std::max_element(camera_position_errors.begin(),
 						   camera_position_errors.end()));
       double mean_cam_position=0, stddev_cam_position=0;
-      for (unsigned i = 0; i < camera_position_errors.size(); i++ ) 
+      for (unsigned i = 0; i < camera_position_errors.size(); i++ ) {
 	mean_cam_position += camera_position_errors[i];
-      mean_cam_position /= camera_position_errors.size();
-      for (unsigned i = 0; i < camera_position_errors.size(); i++ )
 	stddev_cam_position += camera_position_errors[i]*camera_position_errors[i];
+      }
+      mean_cam_position /= camera_position_errors.size();
       stddev_cam_position /= camera_position_errors.size();
       stddev_cam_position = sqrt( stddev_cam_position - mean_cam_position*mean_cam_position );
       
@@ -283,11 +306,11 @@ namespace camera {
       double max_cam_pose = *(std::max_element(camera_pose_errors.begin(),
 					       camera_pose_errors.end()));
       double mean_cam_pose=0, stddev_cam_pose=0;
-      for (unsigned i = 0; i < camera_pose_errors.size(); i++ ) 
+      for (unsigned i = 0; i < camera_pose_errors.size(); i++ ) {
 	mean_cam_pose += camera_pose_errors[i];
-      mean_cam_pose /= camera_pose_errors.size();
-      for (unsigned i = 0; i < camera_pose_errors.size(); i++ )
 	stddev_cam_pose += camera_pose_errors[i]*camera_pose_errors[i];
+      }
+      mean_cam_pose /= camera_pose_errors.size();
       stddev_cam_pose /= camera_pose_errors.size();
       stddev_cam_pose = sqrt( stddev_cam_pose - mean_cam_pose*mean_cam_pose );
 
@@ -298,11 +321,11 @@ namespace camera {
 				     gcp_errors.end()));
 	max_gcp = *(std::max_element(gcp_errors.begin(),
 				     gcp_errors.end()));
-	for (unsigned i = 0; i < gcp_errors.size(); i++ ) 
+	for (unsigned i = 0; i < gcp_errors.size(); i++ ) {
 	  mean_gcp += gcp_errors[i];
-	mean_gcp /= gcp_errors.size();
-	for (unsigned i = 0; i < gcp_errors.size(); i++ )
 	  stddev_gcp += gcp_errors[i]*gcp_errors[i];
+	}
+	mean_gcp /= gcp_errors.size();
 	stddev_gcp /= gcp_errors.size();
 	stddev_gcp = sqrt( stddev_gcp - mean_gcp*mean_gcp );
       }
