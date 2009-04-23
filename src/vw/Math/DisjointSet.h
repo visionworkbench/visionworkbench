@@ -91,7 +91,7 @@ namespace math {
       ElemNode *n;
       ElemNode *s;
       ElemNode *p;
-      for (n = e; n->parent; n = n->parent);
+      for (n = e; n->parent; n = n->parent) ;
       s = n;
       for (n = e, p = e->parent; p && p != s; n = p) {
         p = n->parent;

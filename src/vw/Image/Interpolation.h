@@ -97,7 +97,7 @@ namespace vw {
       typedef BilinearInterpolationImpl<ViewT> type;
     };
     template <class ViewT>
-    static typename Interpolator<ViewT>::type interpolator( const ViewT &view ) {
+    static typename Interpolator<ViewT>::type interpolator( const ViewT& /*view*/ ) {
       return typename Interpolator<ViewT>::type();
     }
     // This function is here for backwards-compatibility and is deprecated.

@@ -46,8 +46,8 @@ namespace cartography {
 
     // These are private so that we don't accidentally call them.
     // Copying a ProjContext is bad.
-    ProjContext(ProjContext const& ctx) {}
-    ProjContext& operator=(ProjContext const& ctx) { return *this; }
+    ProjContext(ProjContext const& /*ctx*/) {}
+    ProjContext& operator=(ProjContext const& /*ctx*/) { return *this; }
 
   public:
     ProjContext(std::string const& proj4_str);
