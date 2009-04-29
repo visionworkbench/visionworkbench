@@ -24,6 +24,7 @@
 #include <map>
 
 #include <boost/program_options.hpp>
+#include <boost/algorithm/string.hpp>
 namespace po = boost::program_options;
 
 #include <vw/Core/Cache.h>
@@ -246,6 +247,12 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     GeoTransform geotx( georeferences[i], output_georef );
     ImageViewRef<PixelT> source = DiskImageView<PixelT>( image_files[i] );
 
+    bool global = boost::trim_copy(georeferences[i].proj4_str())=="+proj=longlat" &&
+      fabs(georeferences[i].lonlat_to_pixel(Vector2(-180,0)).x()) < 1 &&
+      fabs(georeferences[i].lonlat_to_pixel(Vector2(180,0)).x() - source.cols()) < 1 &&
+      fabs(georeferences[i].lonlat_to_pixel(Vector2(0,90)).y()) < 1 &&
+      fabs(georeferences[i].lonlat_to_pixel(Vector2(0,-90)).y() - source.rows()) < 1;
+
     // Do various modifications to the input image here.
     if( pixel_scale != 1.0 || pixel_offset != 0.0 )
       source = channel_cast_rescale<ChannelT>( DiskImageView<PixelT>( image_files[i] ) * pixel_scale + pixel_offset );
@@ -263,7 +270,12 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     }
 
     BBox2i bbox = geotx.forward_bbox( BBox2i(0,0,source.cols(),source.rows()) );
-    source = crop( transform( source, geotx ), bbox );
+    if (global) {
+      vw_out(0) << "\t--> Detected global overlay.  Using cylindrical edge extension to hide the seam.\n";
+      source = crop( transform( source, geotx, source.cols(), source.rows(), CylindricalEdgeExtension() ), bbox );
+    }
+    else
+      source = crop( transform( source, geotx ), bbox );
     // Images that wrap the date line must be added to the composite on both sides.
     if( bbox.max().x() > total_resolution ) {
       composite.insert( source, bbox.min().x()-total_resolution, bbox.min().y() );
@@ -451,7 +463,7 @@ int main(int argc, char **argv) {
 
   po::options_description output_options("Output Options");
   output_options.add_options()
-    ("output-metadata,m", po::value<std::string>(&output_metadata)->default_value("none"), "Specify the output metadata type. One of [kml, tms, uniview, gmap, celestia, none]")
+    ("output-metadata,m", po::value<std::string>(&output_metadata)->default_value("kml"), "Specify the output metadata type. One of [kml, tms, uniview, gmap, celestia, none]")
     ("file-type", po::value<std::string>(&output_file_type)->default_value("png"), "Output file type")
     ("channel-type", po::value<std::string>(&channel_type_str)->default_value("uint8"), "Output (and input) channel type. One of [uint8, uint16, int16, float]")
     ("module-name", po::value<std::string>(&module_name)->default_value("marsds"), "The module where the output will be placed. Ex: marsds for Uniview, or Sol/Mars for Celestia")
