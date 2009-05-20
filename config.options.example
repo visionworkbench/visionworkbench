@@ -40,6 +40,7 @@
 
 # ENABLE_DEBUG=no
 # ENABLE_OPTIMIZE=yes
+# PREFIX=/foo/bar
 
 
 ### Module Configuration
