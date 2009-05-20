@@ -100,10 +100,15 @@ static void fill_input_maps() {
 }
 
 static void get_normalize_vals(std::string filename, DiskImageResourceGDAL &file_resource) {
-  PixelRGBA<float> no_data_value( file_resource.get_no_data_value(0) );
+  
   DiskImageView<PixelRGBA<float> > min_max_file(filename);
   float new_lo, new_hi;
-  min_max_channel_values( create_mask(min_max_file,no_data_value), new_lo, new_hi );
+  if ( file_resource.has_nodata_value() ) {
+    PixelRGBA<float> no_data_value( file_resource.nodata_value() );
+    min_max_channel_values( create_mask(min_max_file,no_data_value), new_lo, new_hi );
+  } else {
+    min_max_channel_values( create_mask(min_max_file), new_lo, new_hi );
+  }
   lo_value = std::min(new_lo, lo_value);
   hi_value = std::max(new_hi, hi_value);
   std::cout << "Pixel range for \"" << filename << "\": [" << new_lo << " " << new_hi << "]    Output dynamic range: [" << lo_value << " " << hi_value << "]" << std::endl;

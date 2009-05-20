@@ -302,12 +302,29 @@ namespace vw {
       delete static_cast<GDALDataset*>(m_dataset_ptr);
   }
 
-  double DiskImageResourceGDAL::get_no_data_value(int band) {
+  bool DiskImageResourceGDAL::has_nodata_value() const {
     GDALDataset *dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
     if( dataset == NULL ) {
-      vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read no data value.  Are you sure the file is open?" );
+      vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read no data value.  "
+                << "Are you sure the file is open?" );
     }
-    return dataset->GetRasterBand(band+1)->GetNoDataValue();
+    int success;
+    dataset->GetRasterBand(1)->GetNoDataValue(&success);
+    return success;
+  }
+
+  double DiskImageResourceGDAL::nodata_value() const {
+    GDALDataset *dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
+    if( dataset == NULL ) {
+      vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read no data value.  "
+                << "Are you sure the file is open?" );
+    }
+    int success;
+    double val = dataset->GetRasterBand(1)->GetNoDataValue();
+    if (!success)
+      vw_throw( IOErr() << "DiskImageResourceGDAL: Error reading nodata value.  "
+                << "This dataset does not have a nodata value.");
+    return val;
   }
 
   /// Bind the resource to a file for reading.  Confirm that we can
