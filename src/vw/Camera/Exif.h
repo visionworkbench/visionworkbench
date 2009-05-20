@@ -4,6 +4,20 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+// Note: The following code for parsing EXIF information in the Vision
+// Workbench camera module was adapted from JHead : the EXIF Jpeg
+// header manipulation tool written by Matthias Wandel
+// (http://www.sentex.net/~mwandel/jhead/).  Here is the JHead
+// copyright notice:
+//
+//    Jhead is public domain software - that is, you can do whatever
+//    you want with it, and include it software that is licensed under
+//    the GNU or the BSD license, or whatever other licence you chose,
+//    including proprietary closed source licenses.  Although not part
+//    of the license, I do expect common courtesy, please. 
+//
+//    -Matthias Wandel
+// 
 
 #ifndef __VW_CAMERA_EXIF_H__
 #define __VW_CAMERA_EXIF_H__
@@ -145,7 +159,6 @@ namespace camera {
     void query_by_tag(const uint16 tag, double& value) const;
     void query_by_tag(const uint16 tag, std::string& value) const;
     void query_by_tag(const uint16 tag, ExifDateTime& value) const;
-
     
     // Camera info
     std::string get_make() const;
