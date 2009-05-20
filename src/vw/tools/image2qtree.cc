@@ -155,6 +155,30 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     GeoReference input_georef;
     read_georeference( input_georef, file_resource );
 
+    if(vm.count("force-lunar-datum")) {
+      const double LUNAR_RADIUS = 1737400;
+      vw_out(0) << "\t--> Using standard lunar spherical datum: " 
+                << LUNAR_RADIUS << "\n";
+      cartography::Datum datum("D_MOON",
+                               "MOON",
+                               "Reference Meridian",
+                               LUNAR_RADIUS,
+                               LUNAR_RADIUS,
+                               0.0);
+      input_georef.set_datum(datum);
+    } else if(vm.count("force-mars-datum")) {
+      const double MOLA_PEDR_EQUATORIAL_RADIUS = 3396000.0;
+      std::cout << "\t--> Using standard MOLA spherical datum: " 
+                << MOLA_PEDR_EQUATORIAL_RADIUS << "\n";
+      cartography::Datum datum("D_MARS",
+                               "MARS",
+                               "Reference Meridian",
+                               MOLA_PEDR_EQUATORIAL_RADIUS,
+                               MOLA_PEDR_EQUATORIAL_RADIUS,
+                               0.0);
+      input_georef.set_datum(datum);
+    }
+
     if(vm.count("force-wgs84")) {
       input_georef.set_well_known_geogcs("WGS84");
     }
@@ -457,6 +481,8 @@ int main(int argc, char **argv) {
   po::options_description input_options("Input Options");
   input_options.add_options()
     ("force-wgs84", "Use WGS84 as the input images' geographic coordinate systems, even if they're not (old behavior)")
+    ("force-lunar-datum", "Use the lunar spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
+    ("force-mars-datum", "Use the Mars spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
     ("pixel-scale", po::value<float>(&pixel_scale)->default_value(1.0), "Scale factor to apply to pixels")
     ("pixel-offset", po::value<float>(&pixel_offset)->default_value(0.0), "Offset to apply to pixels")
     ("normalize", "Normalize input images so that their full dynamic range falls in between [0,255].");
