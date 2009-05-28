@@ -61,8 +61,8 @@ const char *vw::channel_type_name( vw::ChannelTypeEnum format ) {
   case VW_CHANNEL_FLOAT64: return "FLOAT64";
   case VW_CHANNEL_GENERIC_1_BYTE: return "GENERIC_1_BYTE";
   case VW_CHANNEL_GENERIC_2_BYTE: return "GENERIC_2_BYTE";
-  case VW_CHANNEL_GENERIC_4_BYTE: return "GENERIC_3_BYTE";
-  case VW_CHANNEL_GENERIC_8_BYTE: return "GENERIC_4_BYTE";
+  case VW_CHANNEL_GENERIC_4_BYTE: return "GENERIC_4_BYTE";
+  case VW_CHANNEL_GENERIC_8_BYTE: return "GENERIC_8_BYTE";
   default: return "UNKNOWN";
   }
 }
