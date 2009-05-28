@@ -241,10 +241,10 @@ PKG_CHECK_FUNCTION(TIFF, [TIFFScanlineSize64], [BigTIFF])
 AX_PKG(PROJ4, [M], [-lproj], [projects.h])
 
 # Qt with AutoTroll.
-AT_WITH_QT([+gui +sql +opengl], [], [], [], [HAVE_PKG_QT_INCLUDE="no:missing QT"])
+AT_WITH_QT([+gui +sql +opengl], [], [], [HAVE_PKG_QT_INCLUDE="no:missing QT"], [])
 
 if test x"$HAVE_PKG_QT_INCLUDE" != x"no"; then
-    AT_REQUIRE_QT_VERSION([4.0], [], [HAVE_PKG_QT_INCLUDE="no:wrong QT version"])
+    AT_REQUIRE_QT_VERSION([4.0], [HAVE_PKG_QT_INCLUDE="no:wrong QT version"], [])
 fi
 
 # We seed QT_INCLUDE's cppflags with the ones qmake figured out
