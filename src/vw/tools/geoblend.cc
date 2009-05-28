@@ -379,14 +379,15 @@ int main( int argc, char *argv[] ) {
     PixelFormatEnum pixel_format = first_resource->pixel_format();
     delete first_resource;
     if (vm.count("channel-type")) {
-      if (channel_type_str == "uint8") channel_type = VW_CHANNEL_UINT8;
-      else if (channel_type_str == "int16") channel_type = VW_CHANNEL_INT16;
-      else if (channel_type_str == "uint16") channel_type = VW_CHANNEL_UINT16;
-      else if (channel_type_str == "float") channel_type = VW_CHANNEL_FLOAT32;
-      else {
-        std::cerr << "Error: Bad channel type specified." << std::endl;
-        std::cerr << usage.str() << std::endl;
-        exit(1);
+      channel_type = channel_name_to_enum(channel_type_str);
+      switch (channel_type) {
+        case VW_CHANNEL_UINT8:  case VW_CHANNEL_INT16:
+        case VW_CHANNEL_UINT16: case VW_CHANNEL_FLOAT32:
+          break;
+        default:
+          std::cerr << "Error: Bad channel type specified." << std::endl;
+          std::cerr << usage.str() << std::endl;
+          exit(1);
       }
     }
 

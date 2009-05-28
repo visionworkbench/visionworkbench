@@ -547,6 +547,7 @@ namespace vw {
   const char *channel_type_name( ChannelTypeEnum type );
   int32 num_channels( PixelFormatEnum format );
   const char *pixel_format_name( PixelFormatEnum format );
+  ChannelTypeEnum channel_name_to_enum( const std::string& name );
 
 } // namespace vw
 

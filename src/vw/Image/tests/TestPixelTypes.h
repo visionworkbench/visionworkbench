@@ -649,6 +649,51 @@ public:
     }
   }
 
+  void test_channel_name() {
+#define test1(x) TS_ASSERT_EQUALS(channel_name_to_enum(channel_type_name(x)), x)
+#define test2(x) TS_ASSERT_EQUALS(std::string(channel_type_name(channel_name_to_enum(x))), std::string(x))
+
+    test1(VW_CHANNEL_BOOL);
+    test1(VW_CHANNEL_CHAR);
+    test1(VW_CHANNEL_INT8);
+    test1(VW_CHANNEL_UINT8);
+    test1(VW_CHANNEL_INT16);
+    test1(VW_CHANNEL_UINT16);
+    test1(VW_CHANNEL_INT32);
+    test1(VW_CHANNEL_UINT32);
+    test1(VW_CHANNEL_FLOAT16);
+    test1(VW_CHANNEL_FLOAT32);
+    test1(VW_CHANNEL_INT64);
+    test1(VW_CHANNEL_UINT64);
+    test1(VW_CHANNEL_FLOAT64);
+    test1(VW_CHANNEL_GENERIC_1_BYTE);
+    test1(VW_CHANNEL_GENERIC_2_BYTE);
+    test1(VW_CHANNEL_GENERIC_4_BYTE);
+    test1(VW_CHANNEL_GENERIC_8_BYTE);
+
+    test2("BOOL");
+    test2("CHAR");
+    test2("INT8");
+    test2("UINT8");
+    test2("INT16");
+    test2("UINT16");
+    test2("INT32");
+    test2("UINT32");
+    test2("FLOAT16");
+    test2("FLOAT32");
+    test2("INT64");
+    test2("UINT64");
+    test2("FLOAT64");
+    test2("GENERIC_1_BYTE");
+    test2("GENERIC_2_BYTE");
+    test2("GENERIC_4_BYTE");
+    test2("GENERIC_8_BYTE");
+
+  #undef test2
+  #undef test1
+
+  }
+
 };
 
 
