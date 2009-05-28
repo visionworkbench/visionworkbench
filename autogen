@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [[ -n "$1" && "$1" = "old" ]]; then
+if test -n "$1" && "$1" = "old" ; then
     export AUTOCONF=autoconf-2.59
     export AUTOMAKE=automake-1.6
     export ACLOCAL=aclocal-1.6
