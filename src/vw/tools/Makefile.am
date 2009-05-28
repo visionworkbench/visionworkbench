@@ -85,7 +85,7 @@ endif
 if MAKE_MODULE_CARTOGRAPHY
 if MAKE_MODULE_MOSAIC
 if HAVE_PKG_GDAL
-cart_mos_progs = image2qtree geoblend toast
+cart_mos_progs = image2qtree geoblend image2toast
 # Generates a quadtree of some sort from a georeferenced image
 image2qtree_SOURCES = image2qtree.cc
 image2qtree_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
@@ -93,8 +93,8 @@ image2qtree_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
 geoblend_SOURCES = geoblend.cc
 geoblend_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
 # Creates a TOAST quadtree from multiple georeferenced images
-toast_SOURCES = toast.cc
-toast_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
+image2toast_SOURCES = image2toast.cc
+image2toast_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
 endif
 endif
 endif
