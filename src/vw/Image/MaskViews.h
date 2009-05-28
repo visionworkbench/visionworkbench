@@ -17,6 +17,7 @@
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/PerPixelViews.h>
+#include <vw/Image/PixelAccessors.h>
 //#include <vw/Image/BlockCacheView.h>
 
 namespace vw {
