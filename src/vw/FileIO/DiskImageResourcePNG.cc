@@ -32,6 +32,7 @@
 // originates from that function.
 #include <csetjmp>
 
+#include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/FileIO/DiskImageResourcePNG.h>
@@ -46,13 +47,6 @@ extern "C" {
     char    error_msg[ERROR_MSG_SIZE];
   };
 }
-
-static bool cpu_is_big_endian() {
-  union { vw::uint16 number; vw::uint8 bytes[2]; } short_endian_check;
-  short_endian_check.number = 1;
-  return (vw::uint8(short_endian_check.number) == short_endian_check.bytes[1]);
-}
-
 
 static void png_error_handler(png_structp png_ptr, png_const_charp error_msg)
 {
@@ -106,7 +100,7 @@ struct DiskImageResourcePNG::vw_png_context
   std::vector<DiskImageResourcePNG::Comment> comments;  // The PNG comments
 
   virtual void read_comments() {}
-  
+
   // Cache the column stride for read/writes in bounding boxes
   int32 cstride;
 
@@ -220,13 +214,14 @@ struct DiskImageResourcePNG::vw_png_read_context:
       case 16:
         bytes_per_channel = 2;
         outer->m_format.channel_type = VW_CHANNEL_UINT16;
-        
+
         // If this is a little endian machine, we need to instruct PNG to
         // swap the endianness as it reads the file.
-        if (!cpu_is_big_endian()) {
+        // (Note: this call must come AFTER png_read_info)
+#       if VW_BYTE_ORDER == VW_LITTLE_ENDIAN
           png_set_swap(png_ptr);
-        }
-        
+#       endif
+
         break;
       default:
         vw_throw(vw::ArgumentErr() << "Unknown bit depth " << bit_depth);
@@ -324,7 +319,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
 
   // Fetches the comments out of the PNG when we first open it.
   void read_comments()
-  {    
+  {
     if( comments_loaded ) return;
     advance(outer->rows()-current_line);
     png_read_end(png_ptr, end_info_ptr);
@@ -485,6 +480,15 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
     // Finally, write the info out.
     png_write_info(png_ptr, info_ptr);
+
+    // If this is a little endian machine, we need to instruct PNG to
+    // swap the endianness as it writes the file.
+    // libpng checks bit_depth in the set_swap function, so don't bother
+    // to check it here. (Note: this call must come AFTER png_write_info)
+#   if VW_BYTE_ORDER == VW_LITTLE_ENDIAN
+      png_set_swap(png_ptr);
+#   endif
+
   }
 
   virtual ~vw_png_write_context()
@@ -701,34 +705,12 @@ void DiskImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox )
   if (dst.format.channel_type != VW_CHANNEL_UINT16 &&
       dst.format.channel_type != VW_CHANNEL_INT16)
     dst.format.channel_type = VW_CHANNEL_UINT8;
-  
+
   dst.cstride = num_channels(dst.format.pixel_format) * channel_size(dst.format.channel_type);
   dst.rstride = dst.cstride * dst.format.cols;
   dst.pstride = dst.rstride * dst.format.rows;
 
   convert(dst, src, m_rescale);
-
-  // Convert the endian-ness of the data if the architecture of the
-  // machine and the endianness of the file do not match.
-  unsigned total_pixels = (unsigned)( m_format.cols * m_format.rows * m_format.planes );
-  unsigned bytes_per_pixel = 1;
-  if ( m_format.channel_type == VW_CHANNEL_UINT16 ||
-       m_format.channel_type == VW_CHANNEL_INT16 ) {
-    bytes_per_pixel = 2;
-  }
-  bytes_per_pixel *= num_channels(m_format.pixel_format);
-  if (m_format.channel_type == VW_CHANNEL_INT16 ||
-      m_format.channel_type == VW_CHANNEL_UINT16) {
-    if (!cpu_is_big_endian()) { 
-      uint8 *image_data = buf.get();
-      for ( unsigned i=0; i<total_pixels*bytes_per_pixel; i+=2 ) {
-        uint8 temp = image_data[i+1];
-        image_data[i+1] = image_data[i];
-        image_data[i] = temp;
-      }
-    }
-  }
-
 
   // Write.
   ctx->write(dst);
