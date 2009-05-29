@@ -13,8 +13,9 @@ if MAKE_MODULE_FILEIO
 
 nodist_TestDiskImageResource_SOURCES = TestDiskImageResource.cxx
 nodist_TestDiskImageView_SOURCES = TestDiskImageView.cxx
+nodist_TestEndianness_SOURCES = TestEndianness.cxx
 
-TESTS = TestDiskImageResource TestDiskImageView
+TESTS = TestDiskImageResource TestDiskImageView TestEndianness
 
 include $(top_srcdir)/config/instantiate.am
 
@@ -31,6 +32,6 @@ check_PROGRAMS = $(TESTS)
 
 EXTRA_DIST = $(TESTS:%=%.h) rgb2x2.png rgb2x2.tif rgb2x2.jpg
 
-CLEANFILES = $(TESTS:%=%.cxx) tmp.png tmp.tif rwtest.*
+CLEANFILES = $(TESTS:%=%.cxx) tmp.png tmp.tif rwtest.* test-png16.png
 
 include $(top_srcdir)/config/rules.mak
