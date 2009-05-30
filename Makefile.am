@@ -101,7 +101,7 @@ all-headers:
 	grep '^#.*vw/' | sed -e 's#.*src/\(vw/[^"]\+\)".*#\1#' | sort -u
 
 one-ctags-file:
-	ctags -R --languages=C,C++ --exclude='*thirdparty/*' --exclude='*tests/*'
+	ctags -R --languages=C,C++ --exclude='*thirdparty/*' --exclude='*tests/*' . --exclude='' thirdparty/cxxtest/cxxtest/TestSuite.h
 
 .PHONY: coverage push-coverage instantiate-all instantiate-skipped all-headers one-ctags-file
 
