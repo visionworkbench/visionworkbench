@@ -4,42 +4,51 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-
-// TestThreadPool.h
-#include <cxxtest/TestSuite.h>
-
-#include <vw/Core/Settings.h>
-#include <vw/Core/Log.h>
-
-#include <fstream>
 #include <iostream>
+#include <fstream>
+#include <sstream>
+
+#include <cxxtest/TestSuite.h>
+#include <vw/Core/Settings.h>
+#include <vw/Core/ConfigParser.h>
 
 using namespace vw;
 
-class TestLog : public CxxTest::TestSuite
+class TestSettings : public CxxTest::TestSuite
 {
 public:
 
+
   void test_vwrc() {
-    std::ofstream ostr("./test_vwrc");
-    ostr << "# Comment 1\n";
-    ostr << "# Comment 2\n";
-    ostr << "\n";
-    ostr << "NONEXISTENT_ENTRY 1\n";
-    ostr << "\n";
-    ostr << "DEFAULT_NUM_THREADS 20\n";
-    ostr << "SYSTEM_CACHE_SIZE 623\n";
-    ostr << "# Comment \n";
-    ostr << "\n";
-    ostr << "LOGFILE console\n";
-    ostr << "{\n";
-    ostr << "  * any\n";    
-    ostr << "  fileio 10\n";    
-    ostr << "}\n";
+    const char *conf = "\n\
+      # Comment 1                         \n\
+      # Comment 2                         \n\
+                                          \n\
+      [general]                           \n\
+                                          \n\
+      nonexistent_entry = 1               \n\
+      default_num_threads = 20            \n\
+      system_cache_size = 623             \n\
+      # Comment                           \n\
+                                          \n\
+      [logfile console]                   \n\
+      10 = *           # all level 10     \n\
+      30 = WMS.foo     # WMS.foo level 30 \n\
+                                          \n\
+      [logfile log.txt]                   \n\
+      *  = * wee                          \n\
+      10 = WMS.foo                        \n\
+                                          \n\
+      [logfile console]                   \n\
+      VerboseDebugMessage = *             \n\
+      ";
+
+    std::ofstream ostr(TEST_SRCDIR"/test_vwrc");
+    ostr << conf;
     ostr.close();
 
     // Test to see if the settings were correctly read in
-    vw_settings().set_vwrc_filename("./test_vwrc");
+    vw_settings().set_rc_filename(TEST_SRCDIR"/test_vwrc");
     TS_ASSERT_EQUALS(vw_settings().default_num_threads(), 20);
     TS_ASSERT_EQUALS(vw_settings().system_cache_size(), 623);
 
@@ -50,4 +59,14 @@ public:
     TS_ASSERT_EQUALS(vw_settings().system_cache_size(), 223);
   }
 
+  void test_old_vwrc() {
+    const char *conf = "\n\
+logfile console\n\
+40 *\n";
+
+    Settings s;
+    std::istringstream stream(conf);
+
+    parse_config(stream, s);
+  }
 };

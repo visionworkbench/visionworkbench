@@ -173,7 +173,6 @@ public:
     pc.report_finished();
   }
 
-
   void test_flush_and_newline() {
     vw_out(0) << "\nTesting log termination operators.\n";
     vw_out(0) << "\tTesting log line terminated by std::flush..." << std::flush;
@@ -183,5 +182,4 @@ public:
     Thread::sleep_ms(1000);
     vw_out(0) << "Finished.\n";
   }
-
 };

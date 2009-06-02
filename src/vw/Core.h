@@ -22,5 +22,6 @@
 #include <vw/Core/Functors.h>
 #include <vw/Core/Cache.h>
 #include <vw/Core/TerminationHandler.h>
+#include <vw/Core/ConfigParser.h>
 
 #endif // __VW_CORE_H__
