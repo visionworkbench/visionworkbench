@@ -32,6 +32,7 @@
 // originates from that function.
 #include <csetjmp>
 
+#include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/FileIO/DiskImageResourcePNG.h>
@@ -99,7 +100,7 @@ struct DiskImageResourcePNG::vw_png_context
   std::vector<DiskImageResourcePNG::Comment> comments;  // The PNG comments
 
   virtual void read_comments() {}
-  
+
   // Cache the column stride for read/writes in bounding boxes
   int32 cstride;
 
@@ -135,10 +136,10 @@ struct DiskImageResourcePNG::vw_png_read_context:
   bool interlaced;
 
   // Open a PNG context from a file, for reading.
-  vw_png_read_context(DiskImageResourcePNG *outer):
-    vw_png_context(outer)
+  vw_png_read_context(DiskImageResourcePNG *outer) :
+    vw_png_context(outer), current_line(0), comments_loaded(false)
   {
-    m_file = boost::shared_ptr<std::fstream>( new std::fstream( outer->m_filename.c_str(), std::ios_base::in | std::ios_base::binary ) );
+    m_file.reset( new std::fstream( outer->m_filename.c_str(), std::ios_base::in | std::ios_base::binary ) );
     if(!m_file)
       vw_throw(IOErr() << "DiskImageResourcePNG: Unable to open input file " << outer->m_filename << ".");
 
@@ -164,8 +165,8 @@ struct DiskImageResourcePNG::vw_png_read_context:
       vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create info structure for file " << outer->m_filename << ".");
     }
 
-    endinfo_ptr = png_create_info_struct(png_ptr);
-    if(!endinfo_ptr) {
+    end_info_ptr = png_create_info_struct(png_ptr);
+    if(!end_info_ptr) {
       png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
       vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create info structure for file " << outer->m_filename << ".");
     }
@@ -213,6 +214,14 @@ struct DiskImageResourcePNG::vw_png_read_context:
       case 16:
         bytes_per_channel = 2;
         outer->m_format.channel_type = VW_CHANNEL_UINT16;
+
+        // If this is a little endian machine, we need to instruct PNG to
+        // swap the endianness as it reads the file.
+        // (Note: this call must come AFTER png_read_info)
+#       if VW_BYTE_ORDER == VW_LITTLE_ENDIAN
+          png_set_swap(png_ptr);
+#       endif
+
         break;
       default:
         vw_throw(vw::ArgumentErr() << "Unknown bit depth " << bit_depth);
@@ -265,15 +274,13 @@ struct DiskImageResourcePNG::vw_png_read_context:
     scanline = boost::shared_array<uint8>(new uint8[cstride * cols]);
 
     png_start_read_image(png_ptr);
-
-    current_line = 0;
   }
 
   virtual ~vw_png_read_context()
   {
     if (setjmp(err_mgr.error_return))
       vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
-    png_destroy_read_struct(&png_ptr, &info_ptr, &endinfo_ptr);
+    png_destroy_read_struct(&png_ptr, &info_ptr, &end_info_ptr);
     m_file->close();
   }
 
@@ -312,14 +319,14 @@ struct DiskImageResourcePNG::vw_png_read_context:
 
   // Fetches the comments out of the PNG when we first open it.
   void read_comments()
-  {    
+  {
     if( comments_loaded ) return;
     advance(outer->rows()-current_line);
-    png_read_end(png_ptr, info_ptr);
+    png_read_end(png_ptr, end_info_ptr);
     comments_loaded = true;
 
     png_text *text_ptr;
-    int num_comments = png_get_text(png_ptr, info_ptr, &text_ptr, 0);
+    int num_comments = png_get_text(png_ptr, end_info_ptr, &text_ptr, 0);
     comments.clear();
     for ( int i=0; i<num_comments; ++i )
     {
@@ -360,7 +367,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
 
 private:
   // Structures from libpng.
-  png_infop endinfo_ptr;
+  png_infop end_info_ptr;
 
   // Function for reading data, given to PNG.
   static void read_data( png_structp png_ptr, png_bytep data, png_size_t length )
@@ -407,7 +414,18 @@ struct DiskImageResourcePNG::vw_png_write_context:
     int channels  = num_channels(outer->m_format.pixel_format);
 
     // anything else will be converted to UINT8
-    int bit_depth = outer->m_format.channel_type == VW_CHANNEL_UINT16 ? 16 : 8;
+    int bit_depth;
+    switch (outer->m_format.channel_type) {
+      case VW_CHANNEL_INT16:
+      case VW_CHANNEL_UINT16:
+      case VW_CHANNEL_FLOAT16:
+      case VW_CHANNEL_GENERIC_2_BYTE:
+        bit_depth = 16;
+        break;
+      default:
+        bit_depth = 8;
+        break;
+    }
 
     int color_type = PNG_COLOR_TYPE_GRAY;  // Set a default value to avoid compiler warnings
     switch(outer->m_format.pixel_format) {
@@ -462,6 +480,15 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
     // Finally, write the info out.
     png_write_info(png_ptr, info_ptr);
+
+    // If this is a little endian machine, we need to instruct PNG to
+    // swap the endianness as it writes the file.
+    // libpng checks bit_depth in the set_swap function, so don't bother
+    // to check it here. (Note: this call must come AFTER png_write_info)
+#   if VW_BYTE_ORDER == VW_LITTLE_ENDIAN
+      png_set_swap(png_ptr);
+#   endif
+
   }
 
   virtual ~vw_png_write_context()
@@ -614,7 +641,7 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
 }
 
 void DiskImageResourcePNG::read_reset() const {
-  m_ctx = boost::shared_ptr<DiskImageResourcePNG::vw_png_read_context>( new DiskImageResourcePNG::vw_png_read_context( const_cast<DiskImageResourcePNG *>(this) ) );
+  m_ctx.reset( new DiskImageResourcePNG::vw_png_read_context( const_cast<DiskImageResourcePNG *>(this) ) );
 }
 
 unsigned DiskImageResourcePNG::num_comments() const {
@@ -675,7 +702,8 @@ void DiskImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox )
   dst.format.cols = bbox.width();
   dst.unpremultiplied = true;
 
-  if (dst.format.channel_type != VW_CHANNEL_UINT16)
+  if (dst.format.channel_type != VW_CHANNEL_UINT16 &&
+      dst.format.channel_type != VW_CHANNEL_INT16)
     dst.format.channel_type = VW_CHANNEL_UINT8;
 
   dst.cstride = num_channels(dst.format.pixel_format) * channel_size(dst.format.channel_type);

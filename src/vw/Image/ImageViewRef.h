@@ -27,6 +27,7 @@
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
+#include <vw/Image/SparseImageCheck.h>
 
 namespace vw {
 
@@ -114,6 +115,7 @@ namespace vw {
     virtual pixel_type operator()( int32 i, int32 j, int32 p ) const = 0;
     virtual pixel_accessor origin() const = 0;
 
+    virtual bool sparse_check( BBox2i const& bbox ) const = 0;
     virtual void rasterize( ImageView<pixel_type> const& dest, BBox2i bbox ) const = 0;
   };
 
@@ -136,6 +138,7 @@ namespace vw {
     virtual pixel_type operator()( int32 i, int32 j, int32 p ) const { return m_view(i,j,p); }
     virtual pixel_accessor origin() const { return m_view.origin(); }
 
+    virtual bool sparse_check( BBox2i const& bbox ) const { return vw::sparse_check( m_view, bbox ); }
     virtual void rasterize( ImageView<pixel_type> const& dest, BBox2i bbox ) const { m_view.rasterize( dest, bbox ); }
 
     ViewT const& child() const { return m_view; }
@@ -189,6 +192,8 @@ namespace vw {
     inline pixel_type operator()( int32 i, int32 j, int32 p ) const { return m_view->operator()(i,j,p); }
     inline pixel_accessor origin() const { return m_view->origin(); }
 
+    inline bool sparse_check( BBox2i const& bbox ) const { return m_view->sparse_check(bbox); }
+
     /// \cond INTERNAL
     typedef CropView<ImageView<PixelT> > prerasterize_type;
 
@@ -215,6 +220,17 @@ namespace vw {
     }
     /// \endcond
   };
+
+  template <class PixelT>
+  class SparseImageCheck<ImageViewRef<PixelT> > {
+    ImageViewRef<PixelT> const& image;
+  public:
+    SparseImageCheck(ImageViewRef<PixelT> const& image) : image(image) {}
+    bool operator() (BBox2i const& bbox) {
+      return image.sparse_check(bbox);
+    }
+  };
+
 
 } // namespace vw
 

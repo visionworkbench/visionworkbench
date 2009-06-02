@@ -40,6 +40,7 @@
 
 # ENABLE_DEBUG=no
 # ENABLE_OPTIMIZE=yes
+# PREFIX=/foo/bar
 
 
 ### Module Configuration
@@ -69,3 +70,19 @@
 # directories by seperating them with whitespace.  
 
 # PKG_PATHS="/foo/bar"
+
+### Using pkg-config or *-config
+#
+# The only upstream-supported method of detecting some libraries is through the
+# (new-style) pkg-config or (old-style) *-config (ex: gdal-config) scripts.
+#
+# Our build system doesn't support this directly yet, but this is the way we
+# support using them:
+#
+# PKG_GDAL_CPPFLAGS=$(gdal-config --cflags)
+# PKG_GDAL_LIBS=$(gdal-config --libs)
+#
+# or
+#
+# PKG_PNG_CPPFLAGS=$(pkg-config --cflags libpng)
+# PKG_PNG_LIBS=$(pkg-config --libs libpng)

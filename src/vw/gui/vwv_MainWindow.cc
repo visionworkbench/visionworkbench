@@ -16,6 +16,7 @@
 
 #include <vw/Image/MaskViews.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/FileIO/DiskImageResource.h>
 #include <vw/Image/Statistics.h>
 #include <vw/Image/PixelMask.h>
 
@@ -38,11 +39,17 @@ MainWindow::MainWindow(std::string input_filename, float nodata_value, bool do_n
   setCentralWidget(m_preview_widget);
 
   vw::DiskImageView<float> image(m_filename);
-  
+    
   // Set the nodata value
+  vw::DiskImageResource *disk_dem_rsrc = vw::DiskImageResource::open(input_filename);
   if (m_vm.count("nodata-value")) {
+    std::cout << "\t--> User specified nodata value: " << m_nodata_value << ".\n";
     m_preview_widget->set_nodata_value(m_nodata_value);
-  }
+  } else if ( disk_dem_rsrc->has_nodata_value() ) {
+    m_nodata_value = disk_dem_rsrc->nodata_value();
+    std::cout << "\t--> Extracted nodata value from file: " << m_nodata_value << ".\n";
+    m_preview_widget->set_nodata_value(m_nodata_value);
+  }    
 
   // If normalization is requested, compute the min/max
   float lo = 0.0, hi = 1.0;

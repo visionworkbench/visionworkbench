@@ -20,6 +20,7 @@
 #include <vw/Cartography/OrthoImageView.h>
 #include <vw/Cartography/Projection.h>
 #include <vw/Cartography/GeoReferenceResourcePDS.h>
+#include <vw/Cartography/ToastTransform.h>
 
 #if defined(VW_HAVE_PKG_CARTOGRAPHY) && (VW_HAVE_PKG_CARTOGRAPHY==1)
 #include <vw/Cartography/CameraBBox.h>

@@ -178,6 +178,7 @@ AX_PKG_ONE_OF(BOOST_FILESYSTEM,
     BOOST_FILESYSTEM_POST_1_35, [AX_PKG_BOOST_LIB(FILESYSTEM_POST_1_35, [-lboost_filesystem -lboost_system], [boost/filesystem/path.hpp])])
 
 AX_PKG_BOOST_LIB(THREAD, [-lboost_thread], [boost/thread/thread.hpp])
+AX_PKG_BOOST_LIB(IOSTREAMS, [-lboost_iostreams], [boost/iostreams/stream_buffer.hpp])
 
 # This provides an easy way for users to override the threads options
 # if they are replacing Boost threads with something else for their platform.
@@ -240,10 +241,10 @@ PKG_CHECK_FUNCTION(TIFF, [TIFFScanlineSize64], [BigTIFF])
 AX_PKG(PROJ4, [M], [-lproj], [projects.h])
 
 dnl # Qt with AutoTroll.
-dnl AT_WITH_QT([+gui +sql +opengl], [], [], [], [HAVE_PKG_QT_INCLUDE="no:missing QT"])
+dnl AT_WITH_QT([+gui +sql +opengl], [], [], [HAVE_PKG_QT_INCLUDE="no:missing QT"], [])
 dnl
 dnl if test x"$HAVE_PKG_QT_INCLUDE" != x"no"; then
-dnl     AT_REQUIRE_QT_VERSION([4.0], [], [HAVE_PKG_QT_INCLUDE="no:wrong QT version"])
+dnl     AT_REQUIRE_QT_VERSION([4.0], [HAVE_PKG_QT_INCLUDE="no:wrong QT version"], [])
 dnl fi
 dnl
 dnl # We seed QT_INCLUDE's cppflags with the ones qmake figured out
@@ -251,12 +252,12 @@ dnl PKG_QT_INCLUDE_CPPFLAGS="$PKG_QT_INCLUDE_CPPFLAGS $QT_CPPFLAGS"
 dnl AX_PKG(QT_INCLUDE, [], [], [QVector])
 dnl
 dnl AX_PKG_ONE_OF(QT,
-dnl     APPLE_QT, [AX_PKG_APPLE(QT, [QT_INCLUDE], [$QT_LIBS])],
+dnl     APPLE_QT, [AX_PKG_APPLE(QT, [GL QT_INCLUDE], [$QT_LIBS])],
 dnl     LINUX_QT,
-dnl      [AX_PKG(QT_LIBS,              [], [$QT_LIBS], [])
-dnl       AX_PKG(QT_OPENGL,  [GL QT_INCLUDE], [],         [QtOpenGL])
-dnl       AX_PKG(QT_GUI,     [QT_INCLUDE], [],         [QLabel])
-dnl       AX_PKG(QT_SQL,     [QT_INCLUDE], [],         [QtSql])
+dnl      [AX_PKG(QT_LIBS,                     [], [$QT_LIBS], [])
+dnl       AX_PKG(QT_OPENGL,  [GL QT_INCLUDE], [], [QtOpenGL])
+dnl       AX_PKG(QT_GUI,     [QT_INCLUDE],    [], [QLabel])
+dnl       AX_PKG(QT_SQL,     [QT_INCLUDE],    [], [QtSql])
 dnl       AX_GROUP_PKG(LINUX_QT, [QT_INCLUDE QT_GUI QT_OPENGL QT_SQL QT_LIBS])])
 
 # These are here (instead of inside the PKG macro where they belong)
@@ -295,7 +296,7 @@ for i in $PKG_VW_LIBS; do
 done
 PKG_VW_LIBS="$PKG_VW_LIBS_TEMP"
 
-AX_MODULE(CAMERA,        [src/vw/Camera],        [libvwCamera.la],        yes, [VW])
+AX_MODULE(CAMERA,        [src/vw/Camera],        [libvwCamera.la],        yes, [VW], [BOOST_IOSTREAMS])
 AX_MODULE(MOSAIC,        [src/vw/Mosaic],        [libvwMosaic.la],        yes, [VW])
 AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], yes, [VW])
 AX_MODULE(CARTOGRAPHY,   [src/vw/Cartography],   [libvwCartography.la],   yes, [VW],    [PROJ4],            [GDAL])

@@ -644,6 +644,9 @@ namespace vw {
       return m_image(pt_backprojected[0], pt_backprojected[1], p);
     }
 
+    ImageT const& child() const { return m_image; }
+    TransformT const& transform() const { return m_mapper; }
+
     /// \cond INTERNAL
     typedef TransformView<typename ImageT::prerasterize_type, TransformT> prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i bbox ) const { 

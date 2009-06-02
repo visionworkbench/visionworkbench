@@ -152,3 +152,4 @@ template struct vw::ValueEdgeExtension<PixelT>;
 template struct vw::ViewDataAccessor<ViewT>;
 template class  vw::ViewImageResourceImpl<ViewT>;
 template struct vw::WeightedRGBToGrayFunctor::result<ArgsT>;
+template class  vw::SparseImageCheck<SrcViewT>;

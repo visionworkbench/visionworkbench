@@ -21,6 +21,7 @@
 #include <boost/static_assert.hpp>
 
 #include <vw/Image/PixelMath.h>
+#include <vw/Image/PixelTypeInfo.h>
 
 namespace vw {
 

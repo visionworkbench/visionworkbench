@@ -6,12 +6,12 @@
 
 
 /// \file Core/Log.h
-/// 
+///
 /// Aside from the standard basic ostream functionality, this set of
 /// classes provides:
 ///
-/// - Buffering of the log messages on a per-thread messages so that 
-///   messages form different threads are nicelely interleaved in the 
+/// - Buffering of the log messages on a per-thread messages so that
+///   messages form different threads are nicelely interleaved in the
 ///   log.
 ///
 /// Some notes on the behavior of the log.
@@ -59,7 +59,7 @@ namespace vw {
   };
 
   /// \cond INTERNAL
-  
+
   // ----------------------------------------------------------------
   //                     Utility Streams
   // ----------------------------------------------------------------
@@ -74,14 +74,14 @@ namespace vw {
     virtual int_type overflow(int_type c) { return traits::not_eof(c); }
     virtual std::streamsize xsputn(const CharT* sequence, std::streamsize num) { return num; }
   };
-  
+
   template<typename CharT, typename traits>
   class NullOutputStreamInit {
-    NullOutputBuf<CharT, traits> m_buf;      
+    NullOutputBuf<CharT, traits> m_buf;
   public:
     NullOutputBuf<CharT, traits>* buf() { return &m_buf; }
   };
-  
+
   template<typename CharT, typename traits = std::char_traits<CharT> >
   class NullOutputStream : private virtual NullOutputStreamInit<CharT, traits>,
                            public std::basic_ostream<CharT, traits> {
@@ -89,7 +89,7 @@ namespace vw {
     NullOutputStream() : NullOutputStreamInit<CharT, traits>(),
                          std::basic_ostream<CharT,traits>(NullOutputStreamInit<CharT, traits>::buf()) {}
   };
-  
+
   // Multi output stream
   template<typename CharT, typename traits = std::char_traits<CharT> >
   class MultiOutputBuf : public std::basic_streambuf<CharT, traits> {
@@ -98,23 +98,23 @@ namespace vw {
     typedef typename stream_container::iterator stream_iterator;
     stream_container m_streams;
     Mutex m_mutex;
-    
+
   protected:
     virtual std::streamsize xsputn(const CharT* sequence, std::streamsize num) {
       Mutex::Lock lock(m_mutex);
       stream_iterator current = m_streams.begin();
       stream_iterator end = m_streams.end();
-      for(; current != end; ++current) 
+      for(; current != end; ++current)
         (*current)->write(sequence, num);
       return num;
     }
-    
+
     virtual int_type overflow(int_type c) {
       Mutex::Lock lock(m_mutex);
       stream_iterator current = m_streams.begin();
       stream_iterator end = m_streams.end();
-      
-      for(; current != end; ++current) 
+
+      for(; current != end; ++current)
         (*current)->put(c);
       return c;
     }
@@ -125,29 +125,29 @@ namespace vw {
       Mutex::Lock lock(m_mutex);
       stream_iterator current = m_streams.begin();
       stream_iterator end = m_streams.end();
-      
-      for(; current != end; ++current) 
+
+      for(; current != end; ++current)
         (*current)->rdbuf()->pubsync();
       return 0;
     }
-    
+
   public:
-    void add(std::basic_ostream<CharT, traits>& stream) { 
+    void add(std::basic_ostream<CharT, traits>& stream) {
       Mutex::Lock lock(m_mutex);
-      m_streams.push_back(&stream); 
+      m_streams.push_back(&stream);
     }
     void remove(std::basic_ostream<CharT, traits>& stream) {
       Mutex::Lock lock(m_mutex);
       stream_iterator pos = std::find(m_streams.begin(),m_streams.end(), &stream);
-      if(pos != m_streams.end()) 
+      if(pos != m_streams.end())
         m_streams.erase(pos);
     }
-    void clear() {       
+    void clear() {
       Mutex::Lock lock(m_mutex);
-      m_streams.clear(); 
+      m_streams.clear();
     }
   };
-  
+
   template<typename CharT, typename traits>
   class MultiOutputStreamInit {
     MultiOutputBuf<CharT, traits> m_buf;
@@ -156,16 +156,16 @@ namespace vw {
   };
 
   template<typename CharT, typename traits = std::char_traits<CharT> >
-  class MultiOutputStream : private MultiOutputStreamInit<CharT, traits>, 
+  class MultiOutputStream : private MultiOutputStreamInit<CharT, traits>,
                             public std::basic_ostream<CharT, traits> {
   public:
-    MultiOutputStream() : MultiOutputStreamInit<CharT, traits>(), 
+    MultiOutputStream() : MultiOutputStreamInit<CharT, traits>(),
                             std::basic_ostream<CharT, traits>(MultiOutputStreamInit<CharT, traits>::buf()) {}
     void add(std::basic_ostream<CharT, traits>& str) { MultiOutputStreamInit<CharT, traits>::buf()->add(str); }
     void remove(std::basic_ostream<CharT, traits>& str) { MultiOutputStreamInit<CharT, traits>::buf()->remove(str); }
     void clear() { MultiOutputStreamInit<CharT, traits>::buf()->clear(); }
   };
-    
+
   // Some handy typedefs
   //
   // These are made to be lower case names to jive with the C++ std
@@ -173,7 +173,7 @@ namespace vw {
   // etc.)
   typedef NullOutputStream<char> null_ostream;
   typedef MultiOutputStream<char> multi_ostream;
-  
+
 
   // In order to create our own C++ streams compatible ostream object,
   // we must first define a subclass of basic_streambuf<>, which
@@ -189,7 +189,7 @@ namespace vw {
     // Characters are buffered is vectors until a newline appears at
     // the end of a line of input or flush() is called.  These vectors
     // are indexed in a std::map by thread id.
-    // 
+    //
     // TODO: This map could grow quite large if a program spawns (and
     // logs to) many, many threads.  We should think carefully about
     // cleaning up this map structure from time to time.
@@ -210,10 +210,10 @@ namespace vw {
           m_buffers[ Thread::id() ].push_back(c);
         }
       }
-      
+
       // If the last character is a newline or cairrage return, then
       // we force a call to sync().
-      if ( c == '\n' || c == '\r' ) 
+      if ( c == '\n' || c == '\r' )
         sync();
       return traits::not_eof(c);
     }
@@ -231,8 +231,8 @@ namespace vw {
       if ( buffer.size() > 0 ) {
 	int last_char_position = buffer.size()-1;
 
-	if ( buffer[last_char_position] == '\n' || 
-	     buffer[last_char_position] == '\r' ) 
+	if ( buffer[last_char_position] == '\n' ||
+	     buffer[last_char_position] == '\r' )
 	  sync();
       }
       return num;
@@ -262,10 +262,10 @@ namespace vw {
   // PerThreadBufferedStream objects.
   template<class CharT, class traits = std::char_traits<CharT> >
   class PerThreadBufferedStreamBufInit {
-    PerThreadBufferedStreamBuf<CharT, traits> m_buf;    
+    PerThreadBufferedStreamBuf<CharT, traits> m_buf;
   public:
-    PerThreadBufferedStreamBuf<CharT, traits>* buf() { 
-      return &m_buf; 
+    PerThreadBufferedStreamBuf<CharT, traits>* buf() {
+      return &m_buf;
     }
   };
 
@@ -282,18 +282,18 @@ namespace vw {
   template<class CharT, class traits = std::char_traits<CharT> >
   class PerThreadBufferedStream : private virtual PerThreadBufferedStreamBufInit<CharT, traits>,
                                   public std::basic_ostream<CharT, traits> {
-  public:    
+  public:
     // No stream specified.  Will swallow characters until one is set
     // using set_stream().
     PerThreadBufferedStream() : PerThreadBufferedStreamBufInit<CharT,traits>(),
                                 std::basic_ostream<CharT, traits>(PerThreadBufferedStreamBufInit<CharT,traits>::buf()) {}
-    
-    
+
+
     PerThreadBufferedStream(std::basic_ostream<CharT, traits>& out) : PerThreadBufferedStreamBufInit<CharT,traits>(),
                                                                       std::basic_ostream<CharT, traits>(PerThreadBufferedStreamBufInit<CharT,traits>::buf()) {
       PerThreadBufferedStreamBufInit<CharT,traits>::buf()->init(out.rdbuf());
     }
-    
+
     void set_stream(std::basic_ostream<CharT, traits>& out) {
       PerThreadBufferedStreamBufInit<CharT,traits>::buf()->init(out.rdbuf());
     }
@@ -330,11 +330,11 @@ namespace vw {
       return *this;
     }
 
-    
+
     // by default, the LogRuleSet is set up to pass "console" messages
     // at level vw::InfoMessage or higher.
     LogRuleSet() {
-      m_rules.push_back(rule_type(vw::InfoMessage, "console"));      
+      m_rules.push_back(rule_type(vw::InfoMessage, "console"));
     }
 
     virtual ~LogRuleSet() {}
@@ -344,11 +344,11 @@ namespace vw {
       m_rules.push_front(rule_type(log_level, boost::to_lower_copy(log_namespace)));
     }
 
-    void clear() { 
+    void clear() {
       Mutex::Lock lock(m_mutex);
-      m_rules.clear(); 
+      m_rules.clear();
     }
-        
+
     // You can overload this method from a subclass to change the
     // behavior of the LogRuleSet.
     virtual bool operator() (int log_level, std::string log_namespace) {
@@ -359,7 +359,7 @@ namespace vw {
         // Pass through rule for complete wildcard
         if ( vw::EveryMessage == (*it).first && (*it).second == "*" )
           return true;
-        
+
         // Pass through if the level matches and the namespace is a wildcard
         if ( log_level <= (*it).first && (*it).second == "*" )
           return true;
@@ -404,7 +404,7 @@ namespace vw {
 
     ~LogInstance() {
       m_log_stream.set_stream(std::cout);
-      if (m_log_ostream_ptr) 
+      if (m_log_ostream_ptr)
         delete static_cast<std::ofstream*>(m_log_ostream_ptr);
     }
 
@@ -424,10 +424,7 @@ namespace vw {
 
   /// The system log class manages logging to the console and to files
   /// on disk.  It supports multiple open log streams, each with their
-  /// own LogRuleSet.  This class also periodically checks the
-  /// m_logconf_filename (set by default to ~/.vwrc) for
-  /// changes.  When changes occur, the log settings are reloaded from
-  /// the logconf file.
+  /// own LogRuleSet.
   ///
   /// Important Note: You should access the system log using the
   /// Log::system_log() static method, which access a singleton
@@ -440,17 +437,10 @@ namespace vw {
     std::vector<boost::shared_ptr<LogInstance> > m_logs;
     boost::shared_ptr<LogInstance> m_console_log;
 
-    // Member variables assoc. with periodically polling the log
-    // configuration (logconf) file.
-    long m_logconf_last_polltime;
-    long m_logconf_last_modification;
-    std::string m_logconf_filename;
-    double m_logconf_poll_period;
-    Mutex m_logconf_time_mutex;
-    Mutex m_logconf_file_mutex;
+    // Member variables
     Mutex m_system_log_mutex;
     Mutex m_multi_ostreams_mutex;
-    
+
     // The multi_ostream creates a single stream that delegates to its
     // child streams. We store one multi_ostream per thread, since
     // each thread will have a different set of output streams it is
@@ -461,14 +451,8 @@ namespace vw {
     // should really use some sort of cache of shared_ptr's to
     // ostreams here.  The tricky thing is that once we return the
     // ostream, we don't know how long the thread will use it before
-    // it can be safely de-allocated.  
+    // it can be safely de-allocated.
     std::map<int, boost::shared_ptr<multi_ostream> > m_multi_ostreams;
-
-    // Private methods for checking the logconf file
-    void stat_logconf();
-    void reload_logconf_rules();
-
-    void set_default_logconf_filename();
 
     // Ensure non-copyable semantics
     Log( Log const& );
@@ -480,12 +464,7 @@ namespace vw {
     /// using this constructor.  Instead, you can access a global
     /// instance of the log class using the static Log::system_log()
     /// method below.
-    Log() : m_console_log(new LogInstance(std::cout, false)),
-            m_logconf_last_polltime(0),
-            m_logconf_last_modification(0),
-            m_logconf_poll_period(5.0) {
-      set_default_logconf_filename();
-    }
+    Log() : m_console_log(new LogInstance(std::cout, false)) { }
 
     /// The call operator returns a subclass of the basic_ostream
     /// object, which is suitable for use with the C++ << operator.
@@ -493,12 +472,6 @@ namespace vw {
     /// being managed by the system log that match the log_level and
     /// log_namespace.
     std::ostream& operator() (int log_level, std::string log_namespace="console");
-
-    /// Change the logconf filename (default: ~/.vwrc)
-    void set_logconf_filename(std::string filename) { m_logconf_filename = filename; }
-
-    /// Change the logconf file poll period.  (default: 5 seconds)
-    void set_logconf_poll_period(double period) { m_logconf_poll_period = period; }
 
     /// Add a stream to the Log manager.  You may optionally specify a
     /// LogRuleSet.
@@ -515,15 +488,15 @@ namespace vw {
 
     /// Reset the System Log; closing all of the currently open Log
     /// streams.
-    void clear() { 
+    void clear() {
       Mutex::Lock lock(m_system_log_mutex);
-      m_logs.clear(); 
+      m_logs.clear();
     }
 
     /// Return a reference to the console LogInstance.
-    LogInstance& console_log() { 
+    LogInstance& console_log() {
       Mutex::Lock lock(m_system_log_mutex);
-      return *m_console_log; 
+      return *m_console_log;
     }
 
     /// Set the output stream and LogRuleSet for the console log
@@ -549,7 +522,7 @@ namespace vw {
   /// The vision workbench logging operator.  Use this to generate a
   /// message in the system log using the given log_level and
   /// log_namespace.
-  std::ostream& vw_out( int log_level = vw::InfoMessage, 
+  std::ostream& vw_out( int log_level = vw::InfoMessage,
                         std::string log_namespace = "console" );
 
   /// Deprecated: Set the debug level for the system console log.  You

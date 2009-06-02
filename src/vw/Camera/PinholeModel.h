@@ -50,9 +50,9 @@ namespace camera {
   ///    [  0    0   1   ]
   ///
   /// with fx, fy the focal length of the system (in horizontal and
-  /// vertical pixels), and (cx, cy) the pixel coordinates of the
-  /// central pixel (the principal point on the image
-  /// plane). --Note that the default v direction is <0,-1,0>, so
+  /// vertical pixels), and (cx, cy) the pixel offset of the
+  /// principal point of the camera on the image plane. --Note that
+  /// the default v direction is <0,-1,0>, so
   /// K will be create with a POSITIVE fy term in the center; it
   /// becomes negative when multiplied with the v_direction vector).
   ///

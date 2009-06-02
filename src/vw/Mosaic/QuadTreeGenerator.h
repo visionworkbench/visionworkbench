@@ -22,7 +22,7 @@
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Core/Stopwatch.h>
 #include <vw/Image/EdgeExtension.h>
-#include <vw/Mosaic/SparseTileCheck.h>
+#include <vw/Image/SparseImageCheck.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
 
@@ -53,7 +53,16 @@ namespace mosaic {
     typedef boost::function<std::vector<std::pair<std::string,BBox2i> >(QuadTreeGenerator const&, std::string const&, BBox2i const&)> branch_func_type;
     typedef boost::function<boost::shared_ptr<ImageResource>(QuadTreeGenerator const&, TileInfo const&, ImageFormat const&)> tile_resource_func_type;
     typedef boost::function<void(QuadTreeGenerator const&, TileInfo const&)> metadata_func_type;
-    typedef boost::function<bool(BBox2i const&)> sparse_tile_check_type;
+    typedef boost::function<bool(BBox2i const&)> sparse_image_check_type;
+
+    class ProcessorBase {
+    protected:
+      QuadTreeGenerator *qtree;
+    public:
+      ProcessorBase( QuadTreeGenerator *qtree ) : qtree(qtree) {}
+      virtual ~ProcessorBase() {}
+      virtual void generate( BBox2i const& bbox, const ProgressCallback &progress_callback ) = 0;
+    };
 
     template <class ImageT>
     QuadTreeGenerator( ImageViewBase<ImageT> const& image, std::string const& tree_name = "output.qtree" )
@@ -69,10 +78,14 @@ namespace mosaic {
         m_branch_func( default_branch_func() ),
         m_tile_resource_func( default_tile_resource_func() ),
         m_metadata_func(),
-        m_sparse_tile_check( SparseTileCheck<ImageT>(image.impl()) )
+        m_sparse_image_check( SparseImageCheck<ImageT>(image.impl()) )
     {}
 
     virtual ~QuadTreeGenerator() {}
+
+    void set_processor( boost::shared_ptr<ProcessorBase> const& processor ) {
+      m_processor = processor;
+    }
 
     void generate( const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() );
     
@@ -157,8 +170,22 @@ namespace mosaic {
       m_tile_resource_func = tile_resource_func;
     }
 
+    boost::shared_ptr<ImageResource> tile_resource(TileInfo const& info, ImageFormat const& format) const {
+      return m_tile_resource_func( *this, info, format );
+    }
+
     void set_metadata_func( metadata_func_type metadata_func ) {
       m_metadata_func = metadata_func;
+    }
+
+    void make_tile_metadata( TileInfo const& info ) const {
+      if( m_metadata_func ) {
+	m_metadata_func( *this, info );
+      }
+    }
+
+    sparse_image_check_type const& sparse_image_check() const {
+      return m_sparse_image_check;
     }
 
     // Makes paths of the form "path/name/r0132.jpg"
@@ -187,15 +214,6 @@ namespace mosaic {
     };
 
   protected:
-    class ProcessorBase {
-    protected:
-      QuadTreeGenerator *qtree;
-    public:
-      ProcessorBase( QuadTreeGenerator *qtree ) : qtree(qtree) {}
-      virtual ~ProcessorBase() {}
-      virtual void generate( BBox2i const& bbox, const ProgressCallback &progress_callback ) = 0;
-    };
-
     template <class PixelT>
     class Processor : public ProcessorBase {
       ImageViewRef<PixelT> m_source;
@@ -219,18 +237,18 @@ namespace mosaic {
 	info.name = name;
 	info.region_bbox = region_bbox;
 
-	BBox2i crop_bbox(Vector2i(), qtree->m_dimensions);
+	BBox2i crop_bbox(Vector2i(), qtree->get_dimensions());
 	if( ! qtree->get_crop_bbox().empty() ) crop_bbox.crop( qtree->get_crop_bbox() );
 	info.image_bbox = info.region_bbox;
 	info.image_bbox.crop( crop_bbox );
 
 	if( info.image_bbox.empty() ) {
-	  if( ! (qtree->m_crop_images || qtree->m_cull_images) )
-	    image.set_size( qtree->m_tile_size, qtree->m_tile_size );
+	  if( ! (qtree->get_crop_images() || qtree->get_cull_images()) )
+	    image.set_size( qtree->get_tile_size(), qtree->get_tile_size() );
 	  return image;
 	}
   
-	if( qtree->m_sparse_tile_check && ! qtree->m_sparse_tile_check(info.region_bbox) ) return image;
+	if( qtree->m_sparse_image_check && ! qtree->m_sparse_image_check(info.region_bbox) ) return image;
 
 	Vector2i scale = info.region_bbox.size() / qtree->m_tile_size;
  
@@ -311,7 +329,7 @@ namespace mosaic {
     branch_func_type m_branch_func;
     tile_resource_func_type m_tile_resource_func;
     metadata_func_type m_metadata_func;
-    sparse_tile_check_type m_sparse_tile_check;
+    sparse_image_check_type m_sparse_image_check;
   };
 
 } // namespace mosaic

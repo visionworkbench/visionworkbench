@@ -112,11 +112,11 @@ namespace vw {
   // considered to be non-transparent.
   // *******************************************************************
   template <class PixelT>
-  inline typename boost::enable_if<typename PixelHasAlpha<PixelT>::type, bool>::type
+  inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename boost::enable_if<typename PixelHasAlpha<PixelT>::type, bool>::type>::type
   is_transparent(PixelT const& pixel) { return !(pixel.a()); }
 
   template <class PixelT>
-  inline typename boost::disable_if<typename PixelHasAlpha<PixelT>::type, bool>::type
+  inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename boost::disable_if<typename PixelHasAlpha<PixelT>::type, bool>::type>::type
   is_transparent(PixelT const& /*pixel*/) { return false; }
 
   template <class PixelT>
@@ -547,6 +547,7 @@ namespace vw {
   const char *channel_type_name( ChannelTypeEnum type );
   int32 num_channels( PixelFormatEnum format );
   const char *pixel_format_name( PixelFormatEnum format );
+  ChannelTypeEnum channel_name_to_enum( const std::string& name );
 
 } // namespace vw
 

@@ -215,18 +215,21 @@ namespace vw {
 
     /// Returns the pixel at the given position in the given plane.
     inline result_type operator()( int32 x, int32 y, int32 p=0 ) const {
+      typedef typename CompoundChannelType<result_type>::type channel_type;
       if( m_kernel2d.cols()==0 ) generate2DKernel();
       int32 ci = m_i_kernel.size() ? (m_i_kernel.size()-1-m_ci) : 0;
       int32 cj = m_j_kernel.size() ? (m_j_kernel.size()-1-m_cj) : 0;
       if( (x >= int(ci)) && (y >= int(cj)) &&
           (x <= int(m_image.cols())-int(m_kernel2d.cols())+int(ci)) &&
           (y <= int(m_image.rows())-int(m_kernel2d.rows())+int(cj)) ) {
-        return (result_type) correlate_2d_at_point( m_image.origin().advance(x-ci,y-cj,p),
-						    m_kernel2d.origin(), m_kernel2d.cols(), m_kernel2d.rows() );
+        return channel_cast_clamp_if_int<channel_type>(
+	  correlate_2d_at_point( m_image.origin().advance(x-ci,y-cj,p),
+				 m_kernel2d.origin(), m_kernel2d.cols(), m_kernel2d.rows() ) );
       }
       else {
-        return (result_type) correlate_2d_at_point( edge_extend(m_image,m_edge).origin().advance(x-ci,y-cj,p),
-						    m_kernel2d.origin(), m_kernel2d.cols(), m_kernel2d.rows() );
+        return channel_cast_clamp_if_int<channel_type>( 
+          correlate_2d_at_point( edge_extend(m_image,m_edge).origin().advance(x-ci,y-cj,p),
+				 m_kernel2d.origin(), m_kernel2d.cols(), m_kernel2d.rows() ) );
       }
     }
 
@@ -280,6 +283,7 @@ namespace vw {
       typedef typename SrcT::pixel_accessor SrcAccessT;
       typedef typename DestT::pixel_accessor DestAccessT;
       typedef typename DestT::pixel_type DestPixelT;
+      typedef typename CompoundChannelType<DestPixelT>::type channel_type;
 
       SrcAccessT splane = src.origin();
       DestAccessT dplane = dest.origin();
@@ -290,7 +294,7 @@ namespace vw {
           SrcAccessT scol = srow;
           DestAccessT dcol = drow;
           for( int32 x=0; x<dest.cols(); ++x ) {
-            *dcol = DestPixelT( correlate_1d_at_point( scol, kernel.rbegin(), kernel.size() ) );
+            *dcol = channel_cast_clamp_if_int<channel_type>( correlate_1d_at_point( scol, kernel.rbegin(), kernel.size() ) );
             scol.next_col();
             dcol.next_col();
           }

@@ -43,15 +43,15 @@ namespace stereo {
       //image subsampling by two
       ImageView<float> subsample_img_by_two(ImageView<float> &img) const {
       
-      //determine the new size of the image
-      printf("img: orig_w = %d, orig_h = %d\n", img.cols(), img.rows()); 
+        //determine the new size of the image
+        //      printf("img: orig_w = %d, orig_h = %d\n", img.cols(), img.rows()); 
       int new_width;
       int new_height;
     
       new_width = img.cols()/2;
       new_height = img.rows()/2;
 
-      printf("interp img: w = %d, h = %d, new_w = %d, new_h = %d\n", img.cols(), img.rows(), new_width, new_height); 
+      //      printf("interp img: w = %d, h = %d, new_w = %d, new_h = %d\n", img.cols(), img.rows(), new_width, new_height); 
      
       ImageView<float> outImg(new_width, new_height, img.planes());		
       ImageViewRef<float>  interpImg = interpolate(img);
@@ -98,137 +98,146 @@ namespace stereo {
       return outImg;
     }
 
-    //disparity map down-sampling by two
-    ImageView<PixelDisparity<float> > subsample_disp_map_by_two(ImageView<PixelDisparity<float> >&disp) const {
+    // disparity map down-sampling by two
+    ImageView<PixelDisparity<float> > subsample_disp_map_by_two(ImageView<PixelDisparity<float> >&input_disp) const {
       
-      //determine the new size of the image 
-      printf("disp: orig_w = %d, orig_h = %d\n", disp.cols(), disp.rows()); 
-      int new_width;
-      int new_height;
-    
-      new_width = disp.cols()/2;
-      new_height = disp.rows()/2;
-      //printf("disp: new_w = %d, new_h = %d\n", new_width, new_height); 
+      // determine the new size of the image 
+      int new_width = input_disp.cols()/2;
+      int new_height = input_disp.rows()/2;
       
       ImageView<PixelDisparity<float> > outDisp(new_width, new_height);	
-      ImageViewRef<PixelDisparity<float> > interpDisp = interpolate(disp);
-      //printf("downsampling\n");
-      int32 i, j;
-      float new_i, new_j;
+      ImageViewRef<PixelDisparity<float> > disp = edge_extend(input_disp, ConstantEdgeExtension() );
       
-      for (i = 0; i < new_width; i++) {
-	for (j = 0; j < new_height; j++) {  
-            
-            new_i = i*2;
-            new_j = j*2;
-         
-            outDisp(i,j).v() = interpDisp(new_i, new_j).v()/2;
-            outDisp(i,j).h() = interpDisp(new_i, new_j).h()/2;
-            outDisp(i,j)[2] = disp(new_i, new_j)[2];
-        }
-     }
+      for (int j = 0; j < outDisp.rows(); j++) {  
+        for (int i = 0; i < outDisp.cols(); i++) {
+          
+          int old_i = i*2;
+          int old_j = j*2;
+          
+          float h = disp(old_i  , old_j  ).h() + 
+                    disp(old_i  , old_j+1).h() + 
+                    disp(old_i+1, old_j  ).h() + 
+                    disp(old_i+1, old_j+1).h();
+          float v = disp(old_i  , old_j  ).v() + 
+                    disp(old_i  , old_j+1).v() + 
+                    disp(old_i+1, old_j  ).v() + 
+                    disp(old_i+1, old_j+1).v();
 
-     return outDisp;
+          int num_valid = 0;
+          if (!disp(old_i  , old_j  ).missing()) ++num_valid;
+          if (!disp(old_i+1, old_j  ).missing()) ++num_valid;
+          if (!disp(old_i  , old_j+1).missing()) ++num_valid;
+          if (!disp(old_i+1, old_j+1).missing()) ++num_valid;
+
+          if (num_valid == 0)
+            outDisp(i,j) = PixelDisparity<float>();
+          else 
+            outDisp(i,j) = PixelDisparity<float>(h/float(num_valid) / 2.0,
+                                                 v/float(num_valid) / 2.0);
+        }
+      }
+      
+      return outDisp;
     }
 
-     //disparity map up-sampling by two
- 
+    // disparity map up-sampling by two
     ImageView<PixelDisparity<float> > upsample_disp_map_by_two(ImageView<PixelDisparity<float> > input_disp, int up_width, int up_height) const {
       
       ImageView<PixelDisparity<float> > outDisp(up_width, up_height);	
-      ImageViewRef<PixelDisparity<float> > disp = edge_extend(input_disp, 
-                                                              ConstantEdgeExtension());	
+      ImageViewRef<PixelDisparity<float> > disp = edge_extend(input_disp, ConstantEdgeExtension());	
 
       for (unsigned j = 0; j < outDisp.rows(); ++j) {
         for (unsigned i = 0; i < outDisp.cols(); ++i) {
-	 
           float x = math::impl::_floor(float(i)/2.0), y = math::impl::_floor(float(j)/2.0);
-          float normx = float(i)/2-x, normy = float(j)/2-y, norm1mx = 1.0-normx, norm1my = 1.0-normy;
-          float im_00 = disp(x,y).h();
-          float im_01 = disp(x,y+1).h();
-          float im_10 = disp(x+1,y).h();
-          float im_11 = disp(x+1,y+1).h();
+
+          if ( i%2 == 0 && j%2 == 0) {
+            if (disp(x,y).missing())
+              outDisp(i,j) = PixelDisparity<float>();
+            else 
+              outDisp(i,j) = PixelDisparity<float>( 2 * disp(x,y).h(),
+                                                    2 * disp(x,y).v() );
+          }
           
-         
-          float h_val = 0;
-	  float v_val = 0;
-          int numValid = 0;
-
-          if (disp(x,y)[2]==0){
-	     h_val = h_val + disp(x,y).h();
-             v_val = v_val + disp(x,y).v();
-             numValid++;
-          }
-          if (disp(x+1,y)[2]==0){
-	     h_val = h_val + disp(x+1,y).h();
-             v_val = v_val + disp(x+1,y).v();
-             numValid++;
-          }
-          if (disp(x,y+1)[2]==0){
-	     h_val = h_val + disp(x,y+1).h();
-             v_val = v_val + disp(x,y+1).v();
-             numValid++;
-          }
-          if (disp(x+1,y+1)[2]==0){
-	     h_val = h_val + disp(x+1,y+1).h();
-             v_val = v_val + disp(x+1,y+1).v();
-             numValid++;
-          }
-
-          if (numValid == 0){
-	     outDisp(i,j).v() = 0;
-             outDisp(i,j).h() = 0;
-	     outDisp(i,j)[2] = 1;
-           
-          }
-          else{
-	    h_val = h_val/numValid;
-	    v_val = v_val/numValid;          
-
-	    if (disp(x,y)[2]==1){
-	      disp(x,y).h() = h_val;
-              disp(x,y).v() = v_val;
-	    }
-	    if (disp(x+1,y)[2]==1){
-	      disp(x+1,y).h() = h_val;
-              disp(x+1,y).v() = v_val;
-	    }
-	    if (disp(x,y+1)[2]==1){
-	      disp(x,y+1).h() = h_val;
-              disp(x,y+1).v() = v_val;
-	    }
-	    if (disp(x+1,y+1)[2]==1){
-	      disp(x+1,y+1).h() = h_val;
-              disp(x+1,y+1).v() = v_val;
-	    }
-         
-            outDisp(i,j).h() = 2 * (disp(x,y).h()   * norm1mx*norm1my + 
-                                    disp(x+1,y).h() * normx*norm1my + 
-                                    disp(x,y+1).h() * norm1mx*normy + 
-				    disp(x+1,y+1).h() * normx*normy);
-
-            outDisp(i,j).v() = 2 * (disp(x,y).v()   * norm1mx*norm1my + 
-                                    disp(x+1,y).v() * normx*norm1my + 
-                                    disp(x,y+1).v() * norm1mx*normy + 
-				    disp(x+1,y+1).v() * normx*normy);
-
-                        
-            outDisp(i,j)[2] =  ceil(disp(x,y).missing()   * norm1mx*norm1my + 
-                                    disp(x+1,y).missing() * normx*norm1my + 
-                                    disp(x,y+1).missing() * norm1mx*normy + 
-                                    disp(x+1,y+1).missing() * normx*normy);
-	    
-            /*
-            outDisp(i,j)[2] =  disp(x,y).missing()   * norm1mx*norm1my + 
-                               disp(x+1,y).missing() * normx*norm1my + 
-                               disp(x,y+1).missing() * norm1mx*normy + 
-                               disp(x+1,y+1).missing() * normx*normy;
-            
-            if (outDisp(i,j)[2] < 1){
-	        outDisp(i,j)[2] = 0;
+          else if (j%2 == 0) {
+            if (disp(x,y).missing() && disp(x+1,y).missing())
+              outDisp(i,j) = PixelDisparity<float>();
+            else {
+              if ( !disp(x,y).missing() && !disp(x+1,y).missing() ) {
+                outDisp(i,j) = PixelDisparity<float>( 2 * (0.5 * disp(x,y).h() + 0.5 * disp(x+1,y).h() ),
+                                                      2 * (0.5 * disp(x,y).v() + 0.5 * disp(x+1,y).v() ));
+              } else if (!disp(x,y).missing() && disp(x+1,y).missing() ) {
+                outDisp(i,j) = PixelDisparity<float>( 2 * disp(x,y).h(),
+                                                      2 * disp(x,y).v() );
+              } else if (disp(x,y).missing() && !disp(x+1,y).missing() ) {
+                outDisp(i,j) = PixelDisparity<float>( 2 * disp(x+1,y).h(),
+                                                      2 * disp(x+1,y).v() );
+              } 
             }
-	    */
-	  }
+          }	 
+
+          else if (i%2 == 0) {
+            if (disp(x,y).missing() && disp(x,y+1).missing())
+              outDisp(i,j) = PixelDisparity<float>();
+            else {
+              if ( !disp(x,y).missing() && !disp(x,y+1).missing() ) {
+                outDisp(i,j) = PixelDisparity<float>( 2 * (0.5 * disp(x,y).h() + 0.5 * disp(x,y+1).h() ),
+                                                      2 * (0.5 * disp(x,y).v() + 0.5 * disp(x,y+1).v() ));
+              } else if (!disp(x,y).missing() && disp(x,y+1).missing() ) {
+                outDisp(i,j) = PixelDisparity<float>( 2 * disp(x,y).h(),
+                                                      2 * disp(x,y).v() );
+              } else if (disp(x,y).missing() && !disp(x,y+1).missing() ) {
+                outDisp(i,j) = PixelDisparity<float>( 2 * disp(x,y+1).h(),
+                                                      2 * disp(x,y+1).v() );
+              } 
+            }
+          }	 
+          
+          else {
+            if ( !disp(x,y).missing() && !disp(x,y+1).missing() && !disp(x+1,y).missing() && !disp(x+1,y+1).missing() ) {
+
+              // All good pixels
+              float normx = float(i)/2.0-x, normy = float(j)/2.0-y, norm1mx = 1.0-normx, norm1my = 1.0-normy;
+              outDisp(i,j) = PixelDisparity<float>( 2 * (disp(x  ,y  ).h() * norm1mx*norm1my + 
+                                                         disp(x+1,y  ).h() * normx*norm1my + 
+                                                         disp(x  ,y+1).h() * norm1mx*normy + 
+                                                         disp(x+1,y+1).h() * normx*normy),
+                                                    2 * (disp(x  ,y  ).v() * norm1mx*norm1my + 
+                                                         disp(x+1,y  ).v() * normx*norm1my + 
+                                                         disp(x  ,y+1).v() * norm1mx*normy + 
+                                                         disp(x+1,y+1).v() * normx*normy) ); 
+
+            } else if ( disp(x,y).missing() && disp(x,y+1).missing() && disp(x+1,y).missing() && disp(x+1,y+1).missing() ) {
+
+              // no good pixels
+              outDisp(i,j) = PixelDisparity<float>();
+
+            } else {
+              // some good & some bad pixels
+              //
+              // We fudge things a little bit here by picking the
+              // first good pixel.  This isn't exactly correct, but
+              // it's close enough in the handful of cases where we
+              // are near some missing pixels, and we just need an
+              // approximately valid value.  The subpixel refinement
+              // will correct any minor mistakes we introduce here.
+              if ( !disp(x,y).missing() )
+                outDisp(i,j) = PixelDisparity<float>(2 * disp(x,y).h(),
+                                                     2 * disp(x,y).v());
+              else if ( !disp(x+1,y).missing() )
+                outDisp(i,j) = PixelDisparity<float>(2 * disp(x+1,y).h(),
+                                                     2 * disp(x+1,y).v());
+              else if ( !disp(x,y+1).missing() )
+                outDisp(i,j) = PixelDisparity<float>(2 * disp(x,y+1).h(),
+                                                     2 * disp(x,y+1).v());
+              else if ( !disp(x+1,y+1).missing() )
+                outDisp(i,j) = PixelDisparity<float>(2 * disp(x+1,y+1).h(),
+                                                     2 * disp(x+1,y+1).v());
+            }
+
+
+          }
+
+
         }
       }
 
@@ -307,17 +316,26 @@ namespace stereo {
       left_crop_bbox.min() -= Vector2i(m_kern_width, m_kern_height);
       left_crop_bbox.max() += Vector2i(m_kern_width, m_kern_height);
 
+      std::cout << "Original bbox: " << bbox << "     new left crop bbox: " << left_crop_bbox << "\n";
+
       // We crop the images to the expanded bounding box and edge
       // extend in case the new bbox extends past the image bounds.
       ImageView<float> left_image_patch, right_image_patch;
-      if (m_do_affine_subpixel > 0) { // affine subpixel does its own pre-processing
-        left_image_patch = crop(edge_extend(m_left_image,ZeroEdgeExtension()), left_crop_bbox);
-        right_image_patch = crop(edge_extend(m_right_image,ZeroEdgeExtension()), right_crop_bbox);
-      } else { // parabola subpixel does the same preprocessing as the pyramid correlator
-        left_image_patch = m_preproc_filter(crop(edge_extend(m_left_image,ZeroEdgeExtension()), left_crop_bbox));
-        right_image_patch = m_preproc_filter(crop(edge_extend(m_right_image,ZeroEdgeExtension()), right_crop_bbox));
+      if (m_do_affine_subpixel > 0) { 
+        // affine subpixel does its own pre-processing
+        left_image_patch = crop(edge_extend(m_left_image,ZeroEdgeExtension()), 
+                                left_crop_bbox);
+        right_image_patch = crop(edge_extend(m_right_image,ZeroEdgeExtension()), 
+                                 right_crop_bbox);
+      } else {                      
+        // parabola subpixel does the same preprocessing as the pyramid correlator
+        left_image_patch = m_preproc_filter(crop(edge_extend(m_left_image,ZeroEdgeExtension()), 
+                                                 left_crop_bbox));
+        right_image_patch = m_preproc_filter(crop(edge_extend(m_right_image,ZeroEdgeExtension()), 
+                                                  right_crop_bbox));
       }
-      ImageView<PixelDisparity<float> > disparity_map_patch = crop(edge_extend(m_disparity_map, ZeroEdgeExtension()), left_crop_bbox);
+      ImageView<PixelDisparity<float> > disparity_map_patch = crop(edge_extend(m_disparity_map, ZeroEdgeExtension()), 
+                                                                   left_crop_bbox);
 
       // Adjust the disparities to be relative to the cropped
       // image pixel locations
@@ -366,58 +384,60 @@ namespace stereo {
         {
 	  
         int pyramid_levels = 3;
-        //printf("test0\n");
         
         //create the pyramid first
         std::vector<ImageView<float> > left_pyramid(pyramid_levels), right_pyramid(pyramid_levels);
+        std::vector<BBox2i> regions_of_interest(pyramid_levels);
         left_pyramid[0] = channels_to_planes(left_image_patch);
         right_pyramid[0] = channels_to_planes(right_image_patch);
-	//printf("test1\n");
+        regions_of_interest[0] = BBox2i(m_kern_width,m_kern_height,
+                                        bbox.width(),bbox.height());
+        std::cout << "Base ROI: " << regions_of_interest[0] << "\n";
 
         std::vector<ImageView<PixelDisparity<float> > > disparity_map_pyramid(pyramid_levels);
         std::vector<ImageView<PixelDisparity<float> > > disparity_map_upsampled(pyramid_levels);
         disparity_map_pyramid[0] = disparity_map_patch;
 
-        //printf("test2\n");
         //downsample the disparity map and the image pair
         for (int i = 1; i < pyramid_levels; i++) {
           left_pyramid[i] = subsample_img_by_two(left_pyramid[i-1]);
           right_pyramid[i] = subsample_img_by_two(right_pyramid[i-1]);
           disparity_map_pyramid[i] = subsample_disp_map_by_two(disparity_map_pyramid[i-1]);
+          regions_of_interest[i] = BBox2i(regions_of_interest[i-1].min()/2, regions_of_interest[i-1].max()/2);
+          std::cout << "ROI " << i << " : " << regions_of_interest[i] << "\n";
         }
        
-       float blur_sigma = 1.0;
-       ImageView<float> process_left_image = LogStereoPreprocessingFilter(blur_sigma)(left_pyramid[pyramid_levels-1]);
-       ImageView<float> process_right_image = LogStereoPreprocessingFilter(blur_sigma)(right_pyramid[pyramid_levels-1]);
-
+        float blur_sigma = 1.0;
+        ImageView<float> process_left_image = LogStereoPreprocessingFilter(blur_sigma)(left_pyramid[pyramid_levels-1]);
+        ImageView<float> process_right_image = LogStereoPreprocessingFilter(blur_sigma)(right_pyramid[pyramid_levels-1]);
+        
         subpixel_correlation_affine_2d_EM(disparity_map_pyramid[pyramid_levels-1],
                                           /*left_pyramid[pyramid_levels-1],
 					    right_pyramid[pyramid_levels-1],*/
                                           process_left_image,
                                           process_right_image,
                                           m_kern_width, m_kern_height,
+                                          regions_of_interest[pyramid_levels-1],
                                           m_do_h_subpixel, m_do_v_subpixel,
-                                          m_verbose);	
+                                          m_verbose);
         disparity_map_upsampled[pyramid_levels-1] = disparity_map_pyramid[pyramid_levels-1];
 
         for (int i = pyramid_levels-2; i>=0; i--){
 
 
-          // For Debugging
-          // std::ostringstream ostr2;
-          // ostr2 << "subsamp-" << i << ".exr";
-          // write_image(ostr2.str(), disparity_map_upsampled[i+1]);
+          // // For Debugging
+          // std::ostringstream ostr1;
+          // ostr1 << "subsamp-" << bbox << "-" << i << ".exr";
+          // write_image(ostr1.str(), disparity_map_upsampled[i+1]);
 
           int up_width = left_pyramid[i].cols();
           int up_height = left_pyramid[i].rows();
-          std::cout << "\n\n--> Upsampling to " << up_width << " " << up_height << "\n";
-          disparity_map_upsampled[i] = upsample_disp_map_by_two(disparity_map_upsampled[i+1], 
-                                                                up_width, up_height);
+          disparity_map_upsampled[i] = upsample_disp_map_by_two(disparity_map_upsampled[i+1], up_width, up_height);
           
-          // For Debugging
-          // std::ostringstream ostr;
-          // ostr << "upsamp-" << i << ".exr";
-          // write_image(ostr.str(), disparity_map_upsampled[i]);
+          // // For Debugging
+          // std::ostringstream ostr2;
+          // ostr2 << "upsamp-" << bbox << "-" << i << ".exr";
+          // write_image(ostr2.str(), disparity_map_upsampled[i]);
 
           //printf("disp_map_width = %d\n", disparity_map_upsampled[i].cols());
           //printf("disp_map_height = %d\n", disparity_map_upsampled[i].rows());
@@ -425,7 +445,9 @@ namespace stereo {
           //printf("left_pyramid_height = %d\n", left_pyramid[i].rows());
            //image blurring
 
-          if (i==0){ //largest sale of the pyramid
+          // We use a slightly larger sigma at the largest level of
+          // the pyramid to produce a smooth surface and reduce noise.
+          if (i==0) { 
 	    blur_sigma = 3.0;
           }
           process_left_image = LogStereoPreprocessingFilter(blur_sigma)(left_pyramid[i]);
@@ -435,58 +457,56 @@ namespace stereo {
                                             process_left_image,
                                             process_right_image,
                                             m_kern_width, m_kern_height,
+                                            regions_of_interest[i],
                                             m_do_h_subpixel, m_do_v_subpixel,
                                             m_verbose);
+
+          // // For Debugging
+          // std::ostringstream ostr3;
+          // ostr3 << "refined-" << bbox << "-" << i << ".exr";
+          // write_image(ostr3.str(), disparity_map_upsampled[i]);
 	}
 
         //printf("disp_map_width = %d, height = %d\n", disparity_map_patch.cols(), disparity_map_patch.rows());
-        //printf("disp_map_up_width = %d, height = %d\n", disparity_map_upsampled[0].cols(), disparity_map_upsampled[0].rows());
-	
+        //printf("disp_map_up_width = %d, height = %d\n", disparity_map_upsampled[0].cols(), disparity_map_upsampled[0].rows());	
         //disparity_map_patch = disparity_map_upsampled[0];
         
          
 	int w_height = 1;
 	int w_width = 1;
         int numValidPts;
+        int missing;
 
         for (int y = w_height; y < process_left_image.rows()-w_height; ++y) {
            for (int x = w_width; x < process_left_image.cols()-w_width; ++x) {
         
-              disparity_map_patch(x,y).h()=0;
-              disparity_map_patch(x,y).v()=0;
-              disparity_map_patch(x,y)[2]= disparity_map_upsampled[0](x,y)[2]; 
-              numValidPts = 0;
+             disparity_map_patch(x,y) = PixelDisparity<float>(0,0);
+             missing = 0;
+             numValidPts = 0;
             
-              for (int jj = -w_height; jj <= w_height; ++jj) {
-	         for (int ii = -w_width; ii <= w_width; ++ii) {
-		    if (disparity_map_upsampled[0](x+ii,y+jj)[2] == 0){
-		       numValidPts++;
-	               disparity_map_patch(x,y).h() = disparity_map_patch(x,y).h() + 
-                                                      disparity_map_upsampled[0](x+ii,y+jj).h();
-	               disparity_map_patch(x,y).v() = disparity_map_patch(x,y).v() + 
-                                                      disparity_map_upsampled[0](x+ii,y+jj).v();
-		    }
-	         }
-	      }
-
-              disparity_map_patch(x,y).h() = disparity_map_patch(x,y).h()/(float)numValidPts;
-              disparity_map_patch(x,y).v() = disparity_map_patch(x,y).v()/(float)numValidPts;     
+             for (int jj = -w_height; jj <= w_height; ++jj) {
+               for (int ii = -w_width; ii <= w_width; ++ii) {
+                 
+                 // Invalidate this pixel if the average contains any missing pixel.
+                 if (disparity_map_upsampled[0](x+ii,y+jj)[2] != 0) 
+                   missing = 1;
+                 else 
+                   ++numValidPts;
+                 
+                 disparity_map_patch(x,y).h() += disparity_map_upsampled[0](x+ii,y+jj).h();
+                 disparity_map_patch(x,y).v() += disparity_map_upsampled[0](x+ii,y+jj).v();
+               }
+             }
+             
+             if (missing) {
+               disparity_map_patch(x,y) = PixelDisparity<float>();
+             } else {
+               disparity_map_patch(x,y).h() = disparity_map_patch(x,y).h()/(float)numValidPts;
+               disparity_map_patch(x,y).v() = disparity_map_patch(x,y).v()/(float)numValidPts;     
+             }
            }
         }
-	   
-      
-        /*
-        for (int i = 0; i < disparity_map_patch.cols(); i++) {
-          for (int j = 0; j < disparity_map_patch.rows(); j++) {  
-            
-	    disparity_map_patch(i,j).h() = disparity_map_upsampled[0](i,j).h();
-	    disparity_map_patch(i,j).v() = disparity_map_upsampled[0](i,j).v();
-	    disparity_map_patch(i,j)[2]  = disparity_map_upsampled[0](i,j)[2];
-          
-          }
-       }
-       */
-      
+        
       }
       break;
 

@@ -24,6 +24,7 @@
 #include <map>
 
 #include <boost/program_options.hpp>
+#include <boost/algorithm/string.hpp>
 namespace po = boost::program_options;
 
 #include <vw/Core/Cache.h>
@@ -69,6 +70,7 @@ int max_lod_pixels; // KML only.
 float pixel_scale=1.0, pixel_offset=0.0;
 double lcc_parallel1, lcc_parallel2;
 int aspect_ratio=1;
+int global_resolution=0;
 bool terrain=false;
 
 // For image stretching.
@@ -98,10 +100,15 @@ static void fill_input_maps() {
 }
 
 static void get_normalize_vals(std::string filename, DiskImageResourceGDAL &file_resource) {
-  PixelRGBA<float> no_data_value( file_resource.get_no_data_value(0) );
+  
   DiskImageView<PixelRGBA<float> > min_max_file(filename);
   float new_lo, new_hi;
-  min_max_channel_values( create_mask(min_max_file,no_data_value), new_lo, new_hi );
+  if ( file_resource.has_nodata_value() ) {
+    PixelRGBA<float> no_data_value( file_resource.nodata_value() );
+    min_max_channel_values( create_mask(min_max_file,no_data_value), new_lo, new_hi );
+  } else {
+    min_max_channel_values( create_mask(min_max_file), new_lo, new_hi );
+  }
   lo_value = std::min(new_lo, lo_value);
   hi_value = std::max(new_hi, hi_value);
   std::cout << "Pixel range for \"" << filename << "\": [" << new_lo << " " << new_hi << "]    Output dynamic range: [" << lo_value << " " << hi_value << "]" << std::endl;
@@ -152,6 +159,30 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
 
     GeoReference input_georef;
     read_georeference( input_georef, file_resource );
+
+    if(vm.count("force-lunar-datum")) {
+      const double LUNAR_RADIUS = 1737400;
+      vw_out(0) << "\t--> Using standard lunar spherical datum: " 
+                << LUNAR_RADIUS << "\n";
+      cartography::Datum datum("D_MOON",
+                               "MOON",
+                               "Reference Meridian",
+                               LUNAR_RADIUS,
+                               LUNAR_RADIUS,
+                               0.0);
+      input_georef.set_datum(datum);
+    } else if(vm.count("force-mars-datum")) {
+      const double MOLA_PEDR_EQUATORIAL_RADIUS = 3396000.0;
+      std::cout << "\t--> Using standard MOLA spherical datum: " 
+                << MOLA_PEDR_EQUATORIAL_RADIUS << "\n";
+      cartography::Datum datum("D_MARS",
+                               "MARS",
+                               "Reference Meridian",
+                               MOLA_PEDR_EQUATORIAL_RADIUS,
+                               MOLA_PEDR_EQUATORIAL_RADIUS,
+                               0.0);
+      input_georef.set_datum(datum);
+    }
 
     if(vm.count("force-wgs84")) {
       input_georef.set_well_known_geogcs("WGS84");
@@ -224,6 +255,8 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     }
   }
 
+  if( global_resolution) total_resolution = global_resolution;
+
   // Now that we have the best resolution, we can get our output_georef.
   int xresolution = total_resolution / aspect_ratio, yresolution = total_resolution;
 
@@ -243,6 +276,12 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     GeoTransform geotx( georeferences[i], output_georef );
     ImageViewRef<PixelT> source = DiskImageView<PixelT>( image_files[i] );
 
+    bool global = boost::trim_copy(georeferences[i].proj4_str())=="+proj=longlat" &&
+      fabs(georeferences[i].lonlat_to_pixel(Vector2(-180,0)).x()) < 1 &&
+      fabs(georeferences[i].lonlat_to_pixel(Vector2(180,0)).x() - source.cols()) < 1 &&
+      fabs(georeferences[i].lonlat_to_pixel(Vector2(0,90)).y()) < 1 &&
+      fabs(georeferences[i].lonlat_to_pixel(Vector2(0,-90)).y() - source.rows()) < 1;
+
     // Do various modifications to the input image here.
     if( pixel_scale != 1.0 || pixel_offset != 0.0 )
       source = channel_cast_rescale<ChannelT>( DiskImageView<PixelT>( image_files[i] ) * pixel_scale + pixel_offset );
@@ -260,7 +299,12 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     }
 
     BBox2i bbox = geotx.forward_bbox( BBox2i(0,0,source.cols(),source.rows()) );
-    source = crop( transform( source, geotx ), bbox );
+    if (global) {
+      vw_out(0) << "\t--> Detected global overlay.  Using cylindrical edge extension to hide the seam.\n";
+      source = crop( transform( source, geotx, source.cols(), source.rows(), CylindricalEdgeExtension() ), bbox );
+    }
+    else
+      source = crop( transform( source, geotx ), bbox );
     // Images that wrap the date line must be added to the composite on both sides.
     if( bbox.max().x() > total_resolution ) {
       composite.insert( source, bbox.min().x()-total_resolution, bbox.min().y() );
@@ -442,13 +486,15 @@ int main(int argc, char **argv) {
   po::options_description input_options("Input Options");
   input_options.add_options()
     ("force-wgs84", "Use WGS84 as the input images' geographic coordinate systems, even if they're not (old behavior)")
+    ("force-lunar-datum", "Use the lunar spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
+    ("force-mars-datum", "Use the Mars spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
     ("pixel-scale", po::value<float>(&pixel_scale)->default_value(1.0), "Scale factor to apply to pixels")
     ("pixel-offset", po::value<float>(&pixel_offset)->default_value(0.0), "Offset to apply to pixels")
     ("normalize", "Normalize input images so that their full dynamic range falls in between [0,255].");
 
   po::options_description output_options("Output Options");
   output_options.add_options()
-    ("output-metadata,m", po::value<std::string>(&output_metadata)->default_value("none"), "Specify the output metadata type. One of [kml, tms, uniview, gmap, celestia, none]")
+    ("output-metadata,m", po::value<std::string>(&output_metadata)->default_value("kml"), "Specify the output metadata type. One of [kml, tms, uniview, gmap, celestia, none]")
     ("file-type", po::value<std::string>(&output_file_type)->default_value("png"), "Output file type")
     ("channel-type", po::value<std::string>(&channel_type_str)->default_value("uint8"), "Output (and input) channel type. One of [uint8, uint16, int16, float]")
     ("module-name", po::value<std::string>(&module_name)->default_value("marsds"), "The module where the output will be placed. Ex: marsds for Uniview, or Sol/Mars for Celestia")
@@ -462,7 +508,8 @@ int main(int argc, char **argv) {
     ("max-lod-pixels", po::value<int>(&max_lod_pixels)->default_value(1024), "Max LoD in pixels, or -1 for none (kml only)")
     ("draw-order-offset", po::value<int>(&draw_order_offset)->default_value(0), "Offset for the <drawOrder> tag for this overlay (kml only)")
     ("composite-multiband", "Composite images using multi-band blending")
-    ("aspect-ratio", po::value<int>(&aspect_ratio)->default_value(1), "Pixel aspect ratio (for polar overlays; should be a power of two)");
+    ("aspect-ratio", po::value<int>(&aspect_ratio)->default_value(1), "Pixel aspect ratio (for polar overlays; should be a power of two)")
+    ("global-resolution", po::value<int>(&global_resolution)->default_value(0), "Override the global pixel resolution; should be a power of two");
 
   po::options_description projection_options("Projection Options");
   projection_options.add_options()
@@ -544,13 +591,14 @@ int main(int argc, char **argv) {
   const ProgressCallback *progress = &tpc;
 
   // Set a few booleans based on input values.
-  if(vm.count("verbose"))
-  {
+  if(vm.count("verbose")) {
     set_debug_level(VerboseDebugMessage);
     progress = &ProgressCallback::dummy_instance();
   }
-  else if(vm.count("quiet"))
+  else if(vm.count("quiet")) {
     set_debug_level(WarningMessage);
+    progress = &ProgressCallback::dummy_instance();
+  }
 
   if(vm.count("terrain")) {
     terrain = true;
@@ -563,14 +611,15 @@ int main(int argc, char **argv) {
   PixelFormatEnum pixel_format = first_resource->pixel_format();
   delete first_resource;
   if(vm.count("channel-type")) {
-    if(channel_type_str == "uint8") channel_type = VW_CHANNEL_UINT8;
-    else if(channel_type_str == "int16") channel_type = VW_CHANNEL_INT16;
-    else if(channel_type_str == "uint16") channel_type = VW_CHANNEL_UINT16;
-    else if(channel_type_str == "float") channel_type = VW_CHANNEL_FLOAT32;
-    else {
-      std::cerr << "Error: Channel type must be one of [uint8, uint16, int16, float]!  (You specified: " << channel_type_str << ".)" << std::endl << std::endl;
-      std::cout << usage.str();
-      return 1;
+    channel_type = channel_name_to_enum(channel_type_str);
+    switch (channel_type) {
+      case VW_CHANNEL_UINT8:  case VW_CHANNEL_INT16:
+      case VW_CHANNEL_UINT16: case VW_CHANNEL_FLOAT32:
+        break;
+      default:
+        std::cerr << "Error: Channel type must be one of [uint8, uint16, int16, float]!  (You specified: " << channel_type_str << ".)" << std::endl << std::endl;
+        std::cout << usage.str();
+        return 1;
     }
   }
 

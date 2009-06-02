@@ -6,7 +6,7 @@
 
 
 /// \file Core/Settings.h
-/// 
+///
 /// This file provides a singleton object that provides access to
 /// Vision Workbench system-wide settings.  These can be twiddled
 /// programmatically by interacting with this object, or they can be
@@ -37,30 +37,21 @@ namespace vw {
   /// create a settings object yourself!!!!
   class Settings {
 
-    struct LogSetting {
-      std::string filename;
-      std::string rules;
-    };
-
     // Vision Workbench Global Settings
     int m_default_num_threads;
     bool m_default_num_threads_override;
     size_t m_system_cache_size;
     bool m_system_cache_size_override;
-    
+
     // Member variables assoc. with periodically polling the log
     // configuration (logconf) file.
-    long m_vwrc_last_polltime;
-    long m_vwrc_last_modification;
-    std::string m_vwrc_filename;
-    double m_vwrc_poll_period;
-    Mutex m_vwrc_time_mutex;
-    Mutex m_vwrc_file_mutex;
+    long m_rc_last_polltime;
+    long m_rc_last_modification;
+    std::string m_rc_filename;
+    double m_rc_poll_period;
+    Mutex m_rc_time_mutex;
+    Mutex m_rc_file_mutex;
     Mutex m_settings_mutex;
-    
-    // Private methods for checking the logconf file
-    void stat_vwrc();
-    void reload_vwrc();
 
     // Ensure non-copyable semantics
     Settings( Settings const& );
@@ -72,27 +63,23 @@ namespace vw {
     /// using this constructor.  Instead, you can access a global
     /// instance of the settings class using the static
     /// vw_settings() method below.
-    Settings();   
+    Settings();
 
-    /// Change the vwrc filename (default: ~/.vwrc)
-    void set_vwrc_filename(std::string filename) { 
-      m_vwrc_filename = filename; 
-      m_vwrc_last_polltime = 0;
-      stat_vwrc();
-    }
+    /// Change the rc filename (default: ~/.vwrc)
+    void set_rc_filename(std::string filename);
 
-    /// Change the vwrc file poll period.  (default: 5 seconds)
+    /// Change the rc file poll period.  (default: 5 seconds)
     /// Note -- this sets the *minimum* poll time for the file.  The
     /// actual file is only polled when a setting is requested.
-    void set_vwrc_poll_period(double period) { 
-      m_vwrc_poll_period = period; 
-      m_vwrc_last_polltime = 0;
-      stat_vwrc();
-    }
+    void set_rc_poll_period(double period);
 
     // -----------------------------------------------------------------
     //                        Settings API
-    // -----------------------------------------------------------------    
+    // -----------------------------------------------------------------
+
+    // Reload the config. When this returns, the config will be reloaded.
+    // It may happen in a different thread than requested, however.
+    void reload_config();
 
     /// Query for the default number of threads used in block
     /// processing operations.
@@ -111,7 +98,7 @@ namespace vw {
     /// BlockRasterizeView<>'s, including DiskImageView<>'s.
     void set_system_cache_size(size_t size);
   };
-  
+
   /// Static method to access the singleton instance of the system
   /// settings.  You should *always* use this method if you want to
   /// access Vision Workbench system log, where all Vision Workbench
@@ -119,7 +106,7 @@ namespace vw {
   ///
   /// For example:
   ///
-  ///     vw_settings().set_system_cache_size(2048) 
+  ///     vw_settings().set_system_cache_size(2048)
   ///
   Settings& vw_settings();
 

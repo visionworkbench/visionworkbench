@@ -54,7 +54,7 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
           # Extremely annoying.
 
           ax_pkg_boost_lib=`echo $2 | awk '{print [$]1}' | sed 's/-l\([[^[:space:]-]]*\).*/lib\1/g'`
-          ax_pkg_boost_file=`ls ${PKG_BOOST_LIBDIR}/${ax_pkg_boost_lib}-*${BOOST_LIBRARIES_SUFFIX}* | head -n 1 | sed "s,^${PKG_BOOST_LIBDIR}/\(.*\),\1,"`
+          ax_pkg_boost_file=`ls ${PKG_BOOST_LIBDIR}/${ax_pkg_boost_lib}-*${BOOST_LIBRARIES_SUFFIX}${BOOST_LIBRARIES_SUFFIX:+*} | head -n 1 | sed "s,^${PKG_BOOST_LIBDIR}/\(.*\),\1,"`
 
           # The pre-suffix.
           ax_pkg_boost_presuffix=`echo ${ax_pkg_boost_file} | sed "s/${ax_pkg_boost_lib}\([[^.]]*\)${BOOST_LIBRARIES_SUFFIX}.*/\1/"`

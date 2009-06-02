@@ -28,7 +28,7 @@ namespace vw {
 
     DiskImageResourceHDF( std::string const& filename );
 
-    DiskImageResourceHDF( std::string const& filename, ImageFormat const& format ) : DiskImageResource( filename ) {
+    DiskImageResourceHDF( std::string const& filename, ImageFormat const& /*format*/ ) : DiskImageResource( filename ) {
       vw_throw( NoImplErr() << "Creating HDF files is not yet supported!" );
     }
 
@@ -42,13 +42,13 @@ namespace vw {
     
     virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const;
 
-    virtual void write( ImageBuffer const& dest, BBox2i const& bbox ) {
+    virtual void write( ImageBuffer const& /*dest*/, BBox2i const& /*bbox*/ ) {
       vw_throw( NoImplErr() << "Writing to HDF files is not yet supported!" );
     }
 
     void open( std::string const& filename );
 
-    void create( std::string const& filename, ImageFormat const& format ) {
+    void create( std::string const& /*filename*/, ImageFormat const& /*format*/ ) {
       vw_throw( NoImplErr() << "Creating HDF files is not yet supported!" );
     }
 

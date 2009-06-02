@@ -90,9 +90,10 @@ nodata_to_mask(vw::ImageViewBase<ViewT> const& view, float nodata_value = 0 ) {
 template <class PixelT>
 class MaskToNodataFunctor: public vw::UnaryReturnTemplateType<NonAlphaTypeFromPixelType> {
   PixelT m_nodata_value;
+  typedef typename PixelChannelType<PixelT>::type channel_type;
 
 public:
-  MaskToNodataFunctor(float nodata_value = 0) : m_nodata_value(nodata_value) {} 
+  MaskToNodataFunctor(float nodata_value = 0) : m_nodata_value((channel_type)nodata_value) {} 
 
   typename NonAlphaTypeFromPixelType<PixelT>::type operator() (PixelT const& pix) const {
     typedef typename NonAlphaTypeFromPixelType<PixelT>::type result_type;
@@ -378,14 +379,15 @@ int main( int argc, char *argv[] ) {
     PixelFormatEnum pixel_format = first_resource->pixel_format();
     delete first_resource;
     if (vm.count("channel-type")) {
-      if (channel_type_str == "uint8") channel_type = VW_CHANNEL_UINT8;
-      else if (channel_type_str == "int16") channel_type = VW_CHANNEL_INT16;
-      else if (channel_type_str == "uint16") channel_type = VW_CHANNEL_UINT16;
-      else if (channel_type_str == "float") channel_type = VW_CHANNEL_FLOAT32;
-      else {
-        std::cerr << "Error: Bad channel type specified." << std::endl;
-        std::cerr << usage.str() << std::endl;
-        exit(1);
+      channel_type = channel_name_to_enum(channel_type_str);
+      switch (channel_type) {
+        case VW_CHANNEL_UINT8:  case VW_CHANNEL_INT16:
+        case VW_CHANNEL_UINT16: case VW_CHANNEL_FLOAT32:
+          break;
+        default:
+          std::cerr << "Error: Bad channel type specified." << std::endl;
+          std::cerr << usage.str() << std::endl;
+          exit(1);
       }
     }
 

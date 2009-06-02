@@ -22,8 +22,17 @@
 // Boost 
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/vector_sparse.hpp>
-#include <boost/numeric/ublas/vector_of_vector.hpp>
 #include <boost/numeric/ublas/io.hpp>
+#include <boost/version.hpp>
+#if BOOST_VERSION==103200
+// Mapped matrix exist in 1.32, but Sparse Matrix does
+#define boost_sparse_matrix boost::numeric::ublas::sparse_matrix
+#define boost_sparse_vector boost::numeric::ublas::sparse_vector
+#else
+// Sparse Matrix was renamed Mapped Matrix in later editions
+#define boost_sparse_matrix boost::numeric::ublas::mapped_matrix
+#define boost_sparse_vector boost::numeric::ublas::mapped_vector
+#endif
 
 #include <string>
 
@@ -612,10 +621,6 @@ namespace camera {
       // Summarize the stats from this step in the iteration
       double overall_norm = transpose(epsilon) *  epsilon;
       
-      /* // Taken over by Bundle Adjust Report
-      std::cout << "LM Initialization             "
-                << "  Overall squared error: " << overall_norm << "  lambda: " << m_lambda << "\n";
-      */
     }
   
     /// Set/Read Controls
@@ -650,7 +655,7 @@ namespace camera {
     }
 
     template <class ElemT>
-    void compare_matrices(boost::numeric::ublas::mapped_matrix<ElemT> &sparse,
+    void compare_matrices(boost_sparse_matrix<ElemT> &sparse,
                           Matrix<double> normal, 
                           std::string debug_text,
                           double tol) {
@@ -661,12 +666,12 @@ namespace camera {
       std::cout << "Sparse size : " << s1 << " x " << s2 << "    Non-sparse size: " << normal.rows() << " x " << normal.cols() << "\n";
       for (unsigned r = 0; r < sparse.size1(); ++r) {    // rows
         for (unsigned c = 0; c < sparse.size2(); ++c) {  // cols
-          int n_cols = sparse(r,c).ref().cols();
-          int n_rows = sparse(r,c).ref().rows();
+          int n_cols = sparse(r,c).cols();
+          int n_rows = sparse(r,c).rows();
           
           for (int rr = 0; rr < n_rows; ++rr) {
             for (int cc = 0; cc < n_cols; ++cc) {
-              double s = sparse(r,c).ref()(rr,cc);
+              double s = sparse(r,c)(rr,cc);
               double n = normal(r*n_rows+rr, c*n_cols+cc);
               if ( fabs(s - n) > tol )
                 std::cout << "Mismatch MATRIX at " << r << " " << c << " " << rr << " " << cc << " : " << s << " vs. " << n << "   diff: " << (s-n) << "\n";
@@ -678,7 +683,7 @@ namespace camera {
 
     // For comparing diagonal sparse matrices
     template <class ElemT>
-    void compare_matrices(boost::numeric::ublas::mapped_vector<ElemT> &sparse,
+    void compare_matrices(boost_sparse_vector<ElemT> &sparse,
                           Matrix<double> normal, 
                           std::string debug_text,
                           double tol) {
@@ -687,12 +692,12 @@ namespace camera {
       std::cout << "Sparse size : " << sz << " x " << sz << "     Non-sparse size: " << normal.rows() << " x " << normal.cols() << "\n";
 
       for (unsigned c = 0; c < sparse.size(); ++c) { 
-        int n_cols = sparse(c).ref().cols();
-        int n_rows = sparse(c).ref().rows();
+        int n_cols = sparse(c).cols();
+        int n_rows = sparse(c).rows();
         
         for (int rr = 0; rr < n_rows; ++rr) {
           for (int cc = 0; cc < n_cols; ++cc) {
-            double s = sparse(c).ref()(rr,cc);
+            double s = sparse(c)(rr,cc);
             double n = normal(c*n_rows+rr, c*n_cols+cc);
             if ( fabs(s - n) > tol )
               std::cout << "Mismatch VECTOR at " << c << " " << rr << " " << cc << " : " << s << " vs. " << n << "    diff: " << (s-n) << "\n";
@@ -947,7 +952,6 @@ namespace camera {
         hessian(i,i) +=  m_lambda;
 
       //Cholesky decomposition. Returns Cholesky matrix in lower left hand corner.
-
       Vector<double> delta = del_J;
 
       // Here we want to make sure that if we apply Schur methods as on p. 604, we can get the same answer as in the general delta.  
@@ -1042,14 +1046,6 @@ namespace camera {
 	
         double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon) ; 
 	
-	/* // This has mostly been taken over by BundleAdjustReport
-	std::cout <<"\n" << "Reference LM Iteration " 
-		  << m_iterations << ":     "
-                  << "  Overall Modified: " << overall_norm << "  delta: " 
-		  << overall_delta << "  lambda: " << m_lambda 
-		  << "   Ratio:  " << R <<  "\n";  
-	*/
-	
 	abs_tol = overall_norm;
         rel_tol = overall_delta;	
 
@@ -1075,11 +1071,6 @@ namespace camera {
 
 	double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon);
  
-	/* // Taken over mostly by Bundle Adjust Report
-	std::cout <<"\n" << "Reference LM Iteration " << m_iterations << ":     "
-		  << "  \t   "  << "  delta  "<< overall_delta << "  lambda: " 
-		  << m_lambda << "\t" << "   Ratio:  " << R <<"\n";
-	*/ 
 	return ScalarTypeLimits<double>::highest();
       }
     }
@@ -1097,23 +1088,30 @@ namespace camera {
       VW_DEBUG_ASSERT(m_control_net->size() == m_model.num_points(), LogicErr() << "BundleAdjustment::update() : Number of bundles does not match the number of points in the bundle adjustment model.");
 
       // Jacobian Matrices and error values
-      boost::numeric::ublas::mapped_matrix<Matrix<double, 2, BundleAdjustModelT::camera_params_n> > A(m_model.num_points(), m_model.num_cameras());
-      boost::numeric::ublas::mapped_matrix<Matrix<double, 2, BundleAdjustModelT::point_params_n> > B(m_model.num_points(), m_model.num_cameras());
-      boost::numeric::ublas::mapped_matrix<Vector2> epsilon(m_model.num_points(), m_model.num_cameras());
-      boost::numeric::ublas::mapped_matrix<Vector2> new_epsilon(m_model.num_points(), m_model.num_cameras());
+      typedef Matrix<double, 2, BundleAdjustModelT::camera_params_n> matrix_2_camera;
+      typedef Matrix<double, 2, BundleAdjustModelT::point_params_n> matrix_2_point;
+      boost_sparse_matrix< matrix_2_camera  > A(m_model.num_points(), m_model.num_cameras());
+      boost_sparse_matrix< matrix_2_point > B(m_model.num_points(), m_model.num_cameras());
+      boost_sparse_matrix<Vector2> epsilon(m_model.num_points(), m_model.num_cameras());
+      boost_sparse_matrix<Vector2> new_epsilon(m_model.num_points(), m_model.num_cameras());
       
       // Data structures necessary for Fletcher modification
       // boost::numeric::ublas::mapped_matrix<Vector2> Jp(m_model.num_points(), m_model.num_cameras());
            
       // Intermediate Matrices and vectors
-      boost::numeric::ublas::mapped_vector< Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> > U(m_model.num_cameras());
-      boost::numeric::ublas::mapped_vector< Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> > V(m_model.num_points());  
-      boost::numeric::ublas::mapped_matrix<Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> > W(m_model.num_cameras(), m_model.num_points());     
+      typedef Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> matrix_camera_camera;
+      typedef Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> matrix_point_point;
+      typedef Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> matrix_camera_point;
+      boost_sparse_vector< matrix_camera_camera > U(m_model.num_cameras());
+      boost_sparse_vector< matrix_point_point > V(m_model.num_points());  
+      boost_sparse_matrix< matrix_camera_point > W(m_model.num_cameras(), m_model.num_points());     
      
       // Copies of Intermediate Marices
-      boost::numeric::ublas::mapped_vector< Vector<double,BundleAdjustModelT::camera_params_n> > epsilon_a(m_model.num_cameras());
-      boost::numeric::ublas::mapped_vector< Vector<double,BundleAdjustModelT::point_params_n > > epsilon_b(m_model.num_points());
-      boost::numeric::ublas::mapped_matrix<Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> > Y(m_model.num_cameras(), m_model.num_points());
+      typedef Vector<double,BundleAdjustModelT::camera_params_n> vector_camera;
+      typedef Vector<double,BundleAdjustModelT::point_params_n> vector_point;
+      boost_sparse_vector< vector_camera > epsilon_a(m_model.num_cameras());
+      boost_sparse_vector< vector_point > epsilon_b(m_model.num_points());
+      boost_sparse_matrix< matrix_camera_point > Y(m_model.num_cameras(), m_model.num_points());
 
 
       unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
@@ -1154,23 +1152,25 @@ namespace camera {
 	 	            
 	  Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = measure_iter->sigma();
+	  Vector2 epsilon_inst = epsilon(i,j);
           inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
           inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
-	 
-	  error_total += .5 * transpose(epsilon(i,j).ref()) * inverse_cov * epsilon(i,j).ref();
+	  error_total += .5 * transpose(epsilon_inst) * 
+	    inverse_cov * epsilon_inst;
           
           // Store intermediate values
-          U(j) += transpose(A(i,j).ref()) * inverse_cov * A(i,j).ref();
-          V(i) += transpose(B(i,j).ref()) * inverse_cov * B(i,j).ref();
-          W(j,i) = transpose(A(i,j).ref()) * inverse_cov * B(i,j).ref();
+          U(j) += transpose(static_cast< matrix_2_camera >(A(i,j))) * 
+	    inverse_cov * static_cast< matrix_2_camera >(A(i,j));
+          V(i) += transpose(static_cast< matrix_2_point >(B(i,j))) * 
+	    inverse_cov * static_cast< matrix_2_point >(B(i,j));
+          W(j,i) = transpose(static_cast< matrix_2_camera >(A(i,j))) * 
+	    inverse_cov * static_cast< matrix_2_point >(B(i,j));
 
-	  epsilon_a(j) += transpose(A(i,j).ref()) * inverse_cov * epsilon(i,j).ref();
-          epsilon_b(i) += transpose(B(i,j).ref()) * inverse_cov * epsilon(i,j).ref();
+	  epsilon_a(j) += transpose(static_cast< matrix_2_camera >(A(i,j))) * 
+	    inverse_cov * epsilon_inst;
+          epsilon_b(i) += transpose(static_cast< matrix_2_point >(B(i,j))) * 
+	    inverse_cov * epsilon_inst;
 
-	  // If GCP debug?
-	  if ((*iter).type() == ControlPoint::GroundControlPoint) {
-	    vw_out(DebugMessage, "bundle_adjustment") << "\t>" << i << " " << j << " error: " << unweighted_error << std::endl;
-	  }
 	}
         ++i;
       }
@@ -1224,12 +1224,12 @@ namespace camera {
       
       // flatten both epsilon_b and epsilon_a into a vector
       for (unsigned j = 0; j < U.size(); j++){
-	subvector(g, current_g_length, num_cam_params) = epsilon_a(j).ref();
+	subvector(g, current_g_length, num_cam_params) = static_cast<vector_camera>(epsilon_a(j));
 	current_g_length += num_cam_params;
       }
 
       for (unsigned i = 0; i < V.size(); i++){
-	subvector(g, current_g_length, num_pt_params) = epsilon_b(i).ref();
+	subvector(g, current_g_length, num_pt_params) = static_cast<vector_point>(epsilon_b(i));
 	current_g_length += num_pt_params;
       }
 
@@ -1242,13 +1242,13 @@ namespace camera {
 	double max = 0.0;
 	for (unsigned i = 0; i < U.size(); ++i)  
 	  for (unsigned j = 0; j < BundleAdjustModelT::camera_params_n; ++j){
-	    if (fabs(U(i).ref()(j,j)) > max)
-	      max = fabs(U(i).ref()(j,j));
+	    if (fabs(static_cast<matrix_camera_camera>(U(i))(j,j)) > max)
+	      max = fabs(static_cast<matrix_camera_camera>(U(i))(j,j));
 	  }
 	for (unsigned i = 0; i < V.size(); ++i) 
 	  for (unsigned j = 0; j < BundleAdjustModelT::point_params_n; ++j) {
-	    if ( fabs(V(i).ref()(j,j)) > max)
-	      max = fabs(V(i).ref()(j,j));
+	    if ( fabs(static_cast<matrix_point_point>(V(i))(j,j)) > max)
+	      max = fabs(static_cast<matrix_point_point>(V(i))(j,j));
 	  }
 	m_lambda = max * 1e-10;
       }
@@ -1258,13 +1258,13 @@ namespace camera {
       // the parameter lambda.
       for (i = 0; i < U.size(); ++i) {
         for (unsigned j = 0; j < BundleAdjustModelT::camera_params_n; ++j) {
-	  U(i).ref()(j,j) += m_lambda;
+	  static_cast<matrix_camera_camera>(U(i))(j,j) += m_lambda;
 	   //U(i).ref()(j,j) *= (1 + m_lambda); 
 	}
       }
       for (i = 0; i < V.size(); ++i) {
         for (unsigned j = 0; j < BundleAdjustModelT::point_params_n; ++j) {
-	  V(i).ref()(j,j) += m_lambda;
+	  static_cast<matrix_point_point>(V(i))(j,j) += m_lambda;
 	  //V(i).ref()(j,j) *= (1 + m_lambda);
 	}
       }
@@ -1274,7 +1274,7 @@ namespace camera {
       // scalar entries.
       Vector<double> e(m_model.num_cameras() * BundleAdjustModelT::camera_params_n);
       for (unsigned j = 0; j < epsilon_a.size(); ++j) {
-        subvector(e, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n) = epsilon_a(j).ref();
+        subvector(e, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n) = static_cast<vector_camera>(epsilon_a(j));
       }
                
       //Second Pass.  Compute Y and finish constructing e.
@@ -1284,12 +1284,12 @@ namespace camera {
           unsigned j = measure_iter->image_id(); 
 	 
           // Compute the blocks of Y 
- 	  Matrix<double> V_temp = V(i).ref(); 
+ 	  Matrix<double> V_temp = static_cast<matrix_point_point>(V(i)); 
  	  chol_inverse(V_temp); 
- 	  Y(j,i) = W(j,i).ref() * transpose(V_temp) * V_temp; 
+ 	  Y(j,i) = static_cast<matrix_camera_point>(W(j,i)) * transpose(V_temp) * V_temp; 
 
           // "Flatten the block structure to compute 'e'. 
-          Vector<double, BundleAdjustModelT::camera_params_n> temp = Y(j,i).ref()*epsilon_b(i).ref(); 
+          vector_camera temp = static_cast<matrix_camera_point>(Y(j,i))*static_cast<vector_point>(epsilon_b(i)); 
  	  subvector(e, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n) -= temp;
         } 
         ++i; 
@@ -1312,7 +1312,8 @@ namespace camera {
             unsigned k = k_measure_iter->image_id();
             
             // Compute the block entry...
-            Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> temp = -Y(j,i).ref() * transpose( W(k,i).ref() );
+            matrix_camera_camera temp = -static_cast< matrix_camera_point >(Y(j,i)) * 
+	      transpose( static_cast<matrix_camera_point>(W(k,i)) );
             // ... and "flatten" this matrix into the scalar entries of S
             for (unsigned aa = 0; aa < BundleAdjustModelT::camera_params_n; ++aa) {
               for (unsigned bb = 0; bb < BundleAdjustModelT::camera_params_n; ++bb) {
@@ -1352,7 +1353,7 @@ namespace camera {
             if (i*BundleAdjustModelT::camera_params_n + bb <= 
                 i*BundleAdjustModelT::camera_params_n + aa) {
               S(i*BundleAdjustModelT::camera_params_n + aa,
-                i*BundleAdjustModelT::camera_params_n + bb) += U(i).ref()(aa,bb);
+                i*BundleAdjustModelT::camera_params_n + bb) += static_cast<matrix_camera_camera>(U(i))(aa,bb);
 	    }
           }
         }
@@ -1364,8 +1365,8 @@ namespace camera {
       subvector(delta, current_delta_length, e.size()) = delta_a;
       current_delta_length += e.size();
 
-      boost::numeric::ublas::mapped_vector<Vector<double, BundleAdjustModelT::point_params_n> > delta_b(m_model.num_points());
-      boost::numeric::ublas::mapped_vector<Vector<double, BundleAdjustModelT::camera_params_n> > delta_a_aux(m_model.num_cameras());
+      boost_sparse_vector<vector_point > delta_b(m_model.num_points());
+      boost_sparse_vector<vector_camera> delta_a_aux(m_model.num_cameras());
 
       i = 0;
       for (typename ControlNetwork::const_iterator iter = m_control_net->begin(); iter != m_control_net->end(); ++iter) {
@@ -1374,12 +1375,12 @@ namespace camera {
           unsigned j = j_measure_iter->image_id();
           delta_a_aux(j) =  subvector(delta_a, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n);
 
-	  temp += transpose( W(j,i).ref() ) * delta_a_aux(j).ref();
+	  temp += transpose( static_cast<matrix_camera_point>(W(j,i)) ) * static_cast<vector_camera>(delta_a_aux(j));
 	}
 
-	Vector<double> delta_temp = epsilon_b(i).ref() - temp;
+	Vector<double> delta_temp = static_cast<vector_point>(epsilon_b(i)) - temp;
 	
-	Matrix<double> hessian = V(i).ref();
+	Matrix<double> hessian = static_cast<matrix_point_point>(V(i));
 		
 	solve(delta_temp, hessian);
 	delta_b(i) = delta_temp;
@@ -1412,10 +1413,10 @@ namespace camera {
           unsigned j = measure_iter->image_id();
           
           // Compute error vector
-          Vector<double, BundleAdjustModelT::camera_params_n> new_a = m_model.A_parameters(j) + subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
+          vector_camera new_a = m_model.A_parameters(j) + subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
 	  Vector<double> del_a = subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
 
-          Vector<double, BundleAdjustModelT::point_params_n> new_b = m_model.B_parameters(i) + delta_b(i).ref();
+          vector_point new_b = m_model.B_parameters(i) + static_cast<vector_point>(delta_b(i));
 
 	 
           // Apply robust cost function weighting
@@ -1426,10 +1427,12 @@ namespace camera {
           
 	  Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = measure_iter->sigma();
+	  Vector2 epsilon_inst = new_epsilon(i,j);
           inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
           inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
 	 
-	  new_error_total += .5 * transpose(new_epsilon(i,j).ref()) * inverse_cov * new_epsilon(i,j).ref();
+	  new_error_total += .5 * transpose(epsilon_inst) * 
+	    inverse_cov * epsilon_inst;
         }
         ++i;
       }
@@ -1449,10 +1452,10 @@ namespace camera {
       for (unsigned i = 0; i < V.size(); ++i) {
         if ((*m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
 
-          Vector<double, BundleAdjustModelT::point_params_n> new_b = m_model.B_parameters(i) + delta_b(i).ref();
-          Vector<double, BundleAdjustModelT::point_params_n> eps_b = m_model.B_initial(i)-new_b;
+          vector_point new_b = m_model.B_parameters(i) + static_cast<vector_point>(delta_b(i));
+          vector_point eps_b = m_model.B_initial(i)-new_b;
 	  
-	  Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> inverse_cov;
+	  matrix_point_point inverse_cov;
           inverse_cov = m_model.B_inverse_covariance(i);
           
 	  new_error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
@@ -1471,17 +1474,11 @@ namespace camera {
                                                                           BundleAdjustModelT::camera_params_n*j,
                                                                           BundleAdjustModelT::camera_params_n));
         for (unsigned i=0; i<m_model.num_points(); ++i)
-          m_model.set_B_parameters(i, m_model.B_parameters(i) + delta_b(i).ref());
+          m_model.set_B_parameters(i, m_model.B_parameters(i) + static_cast<vector_point>(delta_b(i)));
 	
         // Summarize the stats from this step in the iteration
         double overall_norm = sqrt(new_error_total);
         double overall_delta = sqrt(error_total) - sqrt(new_error_total);
-
-	/* Taken over mostly by Bundle Adjust Report
-        std::cout << "\n" << "Sparse LM Iteration " << m_iterations << ":     "
-                  << "  Overall: " << overall_norm << "  delta: " << overall_delta 
-		  << "  lambda: " << m_lambda <<"   Ratio:  " << R << "\n";
-	*/
 
 	abs_tol = overall_norm;
         rel_tol = fabs(overall_delta);

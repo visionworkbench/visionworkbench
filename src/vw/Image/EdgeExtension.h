@@ -30,6 +30,7 @@
 
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/PixelAccessors.h>
+#include <vw/Image/SparseImageCheck.h>
 #include <vw/Core/Log.h>
 
 namespace vw {
@@ -361,17 +362,32 @@ namespace vw {
 
     ImageT const& child() const { return m_image; }
     ExtensionT const& func() const { return m_extension_func; }
+    BBox2i source_bbox( BBox2i const& bbox ) const {
+      return m_extension_func.source_bbox( m_image, bbox + Vector2i( m_xoffset, m_yoffset ) );
+    }
 
     typedef EdgeExtensionView<typename ImageT::prerasterize_type,ExtensionT> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const {
-      bbox = m_extension_func.source_bbox( m_image, bbox + Vector2i( m_xoffset, m_yoffset ) );
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+      BBox2i src_bbox = source_bbox( bbox );
       // Make degenerate bboxes sane
-      if( bbox.empty() ) bbox = BBox2i(0,0,0,0);
-      vw_out(VerboseDebugMessage, "image") << "EdgeExtensionView: prerasterizing child view with bbox " << bbox << ".\n";
-      return prerasterize_type(m_image.prerasterize(bbox), m_xoffset, m_yoffset, m_cols, m_rows, m_extension_func );
+      if( src_bbox.empty() ) src_bbox = BBox2i(0,0,0,0);
+      vw_out(VerboseDebugMessage, "image") << "EdgeExtensionView: prerasterizing child view with bbox " << src_bbox << ".\n";
+      return prerasterize_type(m_image.prerasterize(src_bbox), m_xoffset, m_yoffset, m_cols, m_rows, m_extension_func );
     }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
   };
+
+  template <class ImageT, class ExtensionT>
+  class SparseImageCheck<EdgeExtensionView<ImageT, ExtensionT> > {
+    EdgeExtensionView<ImageT, ExtensionT> const& m_view;
+  public:
+    SparseImageCheck(EdgeExtensionView<ImageT, ExtensionT> const& view)
+      : m_view(view) {}
+    bool operator()( BBox2i const& bbox ) const {
+      return SparseImageCheck<ImageT>(m_view.child())( m_view.source_bbox( bbox ) );
+    }
+  };
+
 
   // *******************************************************************
   // General-purpose edge extension functions

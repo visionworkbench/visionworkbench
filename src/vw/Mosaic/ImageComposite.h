@@ -25,8 +25,8 @@
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/Transform.h>
 #include <vw/Image/Filter.h>
+#include <vw/Image/SparseImageCheck.h>
 #include <vw/FileIO/DiskImageResource.h>
-#include <vw/Mosaic/SparseTileCheck.h>
 
 namespace vw {
 namespace mosaic {
@@ -247,12 +247,6 @@ namespace mosaic {
       return view_bbox;
     }
 
-    /// This method returns a vector with the bboxes of source images
-    /// in the ImageComposite.
-    std::vector<BBox2i> const& child_bboxes() const {
-      return bboxes;
-    }
-
     int32 planes() const {
       return 1;
     }
@@ -278,29 +272,38 @@ namespace mosaic {
       vw::rasterize( prerasterize(bbox), dest, bbox );
     }
 
+    bool sparse_check( BBox2i const& bbox ) const {
+      for (unsigned int i = 0; i < bboxes.size(); ++i) {
+	BBox2i src_bbox = bboxes[i];
+	src_bbox.crop(bbox);
+	if( ! src_bbox.empty() ) {
+	  if( vw::sparse_check( sourcerefs[i], src_bbox-bboxes[i].min() ) ) {
+	    return true;
+	  }
+	}
+      }
+      return false;
+    }
+
   };
 
+} // namespace mosaic
   
-  // This specializes the SparseTileCheck template for the
+  // This specializes the SparseImageCheck template for the
   // ImageComposite type of ImageView.  The ImageComposite might be
   // very sparsely covered by images, so it is sometimes handy to be
   // able to check to see whether an arbitrary bbox intersects with
   // any of the the ImageComposite's source images.  
   template <class PixelT>
-  class SparseTileCheck<ImageComposite<PixelT> > {
-    std::vector<BBox2i> m_src_bboxes;
+  class SparseImageCheck<mosaic::ImageComposite<PixelT> > {
+    mosaic::ImageComposite<PixelT> const& composite;
   public:
-    SparseTileCheck(ImageComposite<PixelT> const& source) : m_src_bboxes(source.child_bboxes()) {}
+    SparseImageCheck(mosaic::ImageComposite<PixelT> const& source) : composite(source) {}
     bool operator() (BBox2i const& bbox) {
-      bool result = false;
-      for (unsigned int i = 0; i < m_src_bboxes.size(); ++i)
-        result = result || bbox.intersects(m_src_bboxes[i]);
-      return result;
+      return composite.sparse_check(bbox);
     }
   };
 
-
-} // namespace mosaic
 } // namespace vw
 
 

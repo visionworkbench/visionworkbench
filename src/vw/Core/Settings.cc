@@ -4,29 +4,29 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+#include <fstream>
 
 #include <vw/config.h>
 #include <vw/Core/Thread.h>
 #include <vw/Core/Cache.h>
 #include <vw/Core/Settings.h>
+#include <vw/Core/ConfigParser.h>
 
 // Boost headers
-#include <boost/algorithm/string.hpp>
-#include <boost/thread/xtime.hpp>
-// Posix time is not fully supported in the version of Boost for RHEL
-// Workstation 4
-#ifdef __APPLE__
-#include <boost/date_time/posix_time/posix_time.hpp>
-#else
-#include <ctime>
-#endif
+#include <boost/bind.hpp>
 
 // C Standard Library headers ( for stat(2) and getpwuid() )
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <ctime>
+
+#ifdef VW_HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+
+#ifdef VW_HAVE_PWD_H
 #include <pwd.h>
-#include <fstream>
+#endif
 
 #ifdef WIN32
 #define stat _stat
@@ -35,10 +35,11 @@ typedef struct _stat struct_stat;
 typedef struct stat struct_stat;
 #endif
 
-// ---------------------------------------------------
-// Create a single instance of the Settings class
-// ---------------------------------------------------
 namespace {
+
+  // ---------------------------------------------------
+  // Create a single instance of the Settings class
+  // ---------------------------------------------------
   vw::RunOnce settings_once = VW_RUNONCE_INIT;
   boost::shared_ptr<vw::Settings> system_settings_ptr;
   void init_system_settings() {
@@ -49,92 +50,99 @@ namespace {
 // ---------------------------------------------------
 // Settings Methods
 // ---------------------------------------------------
-void vw::Settings::reload_vwrc() {
-  std::ifstream f(m_vwrc_filename.c_str());
 
-  if (f.is_open()) {
-    while (!f.eof()) {
-      char c_line[2048];
-      f.getline(c_line, 2048);
-      std::string line = boost::trim_copy(std::string(c_line));
-
-      // Check to see if this line is empty or if it starts with '#',
-      // which we ignore as a comment.
-      if ( line.size() != 0 && line[0] != '#' ) {
-        std::vector<std::string> tokens;
-        boost::split(tokens, line, boost::is_any_of(" "));
-
-        // All lines in the file should contain exactly two tokens
-        // seperated by a space.  If not, we ignore the line.
-        if (tokens.size() == 2) {
-          if (boost::to_upper_copy(tokens[0]) == "DEFAULT_NUM_THREADS" && 
-              !m_default_num_threads_override) {
-            m_default_num_threads = atoi(tokens[1].c_str());
-          } else if (boost::to_upper_copy(tokens[0]) == "SYSTEM_CACHE_SIZE" &&
-                     !m_system_cache_size_override) {
-            m_system_cache_size = atoi(tokens[1].c_str());
-          } 
-        }
-      }
-    }
-  }
-}
-
-// Every m_vwrc_poll_period seconds, this method polls the
-// m_vwrc_filename to see if it exists and to see if it has been
+// Every m_rc_poll_period seconds, this method polls the
+// m_rc_filename to see if it exists and to see if it has been
 // recently modified.  If so, we reload the log ruleset from the file.
-void vw::Settings::stat_vwrc() {
+void vw::Settings::reload_config() {
+
+  // We CANNOT use the vw log infrastructure here, because it will
+  // call reload_config and deadlock!
+
   boost::xtime xt;
   boost::xtime_get(&xt, boost::TIME_UTC);
   bool needs_reloading = false;
 
   // Every five seconds, we attempt to open the log config file to see
   // if there have been any changes.  The mutex locking for querying
-  // the time is handled seperately from reading the file so that only
-  // one thread takes the performance hit of reading the vwrc file
+  // the time is handled separately from reading the file so that only
+  // one thread takes the performance hit of reading the rc file
   // during any given reload.
   {
-    Mutex::Lock time_lock(m_vwrc_time_mutex);
-    if (xt.sec - m_vwrc_last_polltime > m_vwrc_poll_period) {
-      m_vwrc_last_polltime = xt.sec;
+    Mutex::Lock time_lock(m_rc_time_mutex);
+    if (xt.sec - m_rc_last_polltime > m_rc_poll_period) {
+      m_rc_last_polltime = xt.sec;
       needs_reloading = true;
     }
   }
-  
-  if (needs_reloading) {
-    Mutex::Lock lock(m_vwrc_file_mutex);
-    FILE *f;
-    if ( (f = fopen(m_vwrc_filename.c_str(), "r")) ) {
-      fclose(f);
 
-      // Check to see if the file has changed.  If so, re-read the
-      // settings.
-      struct_stat stat_struct;
-      if (stat(m_vwrc_filename.c_str(), &stat_struct) == 0) {
+  if (needs_reloading) {
+    Mutex::Lock lock(m_rc_file_mutex);
+
+    // Check to see if the file has changed.  If so, re-read the settings.
+    struct_stat statbuf;
+    if (stat(m_rc_filename.c_str(), &statbuf) != 0)
+      return;
 #ifdef __APPLE__
-        if (stat_struct.st_mtimespec.tv_sec > m_vwrc_last_modification) {
-          m_vwrc_last_modification = stat_struct.st_mtimespec.tv_sec;
-          reload_vwrc();
-        }
-#else // Linux
-        if (stat_struct.st_mtime > m_vwrc_last_modification) {
-          m_vwrc_last_modification = stat_struct.st_mtime;
-          reload_vwrc();
-        }
+    time_t mtime = statbuf.st_mtimespec.tv_sec;
+#else // Linux / Windows
+    time_t mtime = statbuf.st_mtime;
 #endif
-      }
+    if (mtime > m_rc_last_modification) {
+      m_rc_last_modification = mtime;
+
+      // if it throws, let it bubble up.
+      parse_config_file(m_rc_filename.c_str(), *this);
     }
   }
 }
 
+void vw::Settings::set_rc_filename(std::string filename) {
 
-vw::Settings::Settings() : m_vwrc_last_polltime(0),
-                           m_vwrc_last_modification(0),
-                           m_vwrc_poll_period(5.0) {
+  // limit the scope of the lock
+  {
+    // we grab both locks in the same order that reload_config does.
+    Mutex::Lock time_lock(m_rc_time_mutex);
+    Mutex::Lock file_lock(m_rc_file_mutex);
+
+    if (filename != m_rc_filename) {
+      m_rc_last_polltime = 0;
+      m_rc_last_modification = 0;
+      m_rc_filename = filename;
+    }
+  }
+
+  // Okay, we might have changed the filename. Call reload_config() in order to
+  // re-read it. It will grab time_lock and file_lock, so we need to make sure
+  // we've released them before we re-read it (or we deadlock).
+
+  reload_config();
+}
+
+void vw::Settings::set_rc_poll_period(double period) {
+
+  // limit the scope of the lock
+  {
+    // we only need the time lock here
+    Mutex::Lock time_lock(m_rc_time_mutex);
+    m_rc_poll_period = period;
+    m_rc_last_polltime = 0;
+  }
+  reload_config();
+}
+
+vw::Settings::Settings() : m_rc_last_polltime(0),
+                           m_rc_last_modification(0),
+                           m_rc_poll_period(5.0) {
+  std::string homedir;
+#ifdef VW_HAVE_GETPWUID
   struct passwd *pw;
   pw = getpwuid( getuid() );
-  std::string homedir = pw->pw_dir; 
-  m_vwrc_filename = homedir + "/.vwrc";
+  homedir = pw->pw_dir;
+#endif
+  if (homedir.empty())
+      homedir = getenv("HOME");
+  m_rc_filename = homedir + "/.vwrc";
 
   // Set defaults
   m_default_num_threads = VW_NUM_THREADS;
@@ -155,33 +163,33 @@ vw::Settings& vw::vw_settings() {
 
 // -----------------------------------------------------------------
 //                        Settings API
-// -----------------------------------------------------------------    
+// -----------------------------------------------------------------
 
-int vw::Settings::default_num_threads() { 
+int vw::Settings::default_num_threads() {
   if (!m_default_num_threads_override)
-    stat_vwrc(); 
+    reload_config();
   Mutex::Lock lock(m_settings_mutex);
-  return m_default_num_threads; 
+  return m_default_num_threads;
 }
 
-void vw::Settings::set_default_num_threads(int num) { 
+void vw::Settings::set_default_num_threads(int num) {
   Mutex::Lock lock(m_settings_mutex);
   m_default_num_threads_override = true;
-  m_default_num_threads = num; 
+  m_default_num_threads = num;
 }
 
-size_t vw::Settings::system_cache_size() { 
+size_t vw::Settings::system_cache_size() {
   if (!m_system_cache_size_override)
-    stat_vwrc(); 
+    reload_config();
   Mutex::Lock lock(m_settings_mutex);
   return m_system_cache_size;
 }
 
-void vw::Settings::set_system_cache_size(size_t size) { 
+void vw::Settings::set_system_cache_size(size_t size) {
   {
     Mutex::Lock lock(m_settings_mutex);
     m_system_cache_size_override = true;
     m_system_cache_size = size;
   }
-  vw_system_cache().resize(size); 
+  vw_system_cache().resize(size);
 }

@@ -78,7 +78,20 @@ namespace vw {
     virtual Vector2i block_size() const { return Vector2i(cols(),rows()); }
 
     /// Set the preferred block size/alignment for partial reads or writes.
-    virtual void set_block_size( Vector2i const& ) { vw_throw(NoImplErr() << "This ImageResource does not support set_block_size()."); };
+    virtual void set_block_size( Vector2i const& ) { 
+      vw_throw(NoImplErr() << "This ImageResource does not support set_block_size()."); 
+    };
+
+    /// Query whether this ImageResource has a nodata value
+    virtual bool has_nodata_value() const { return false; }
+
+    /// Fetch this ImageResource's nodata value
+    virtual double nodata_value() const { return 0.0; }
+
+    /// Set the preferred block size/alignment for partial reads or writes.
+    virtual void set_nodata_value( double value ) { 
+      vw_throw(NoImplErr() << "This ImageResource does not support set_nodata_value()."); 
+    };
 
     /// Force any changes to be written to the resource.
     virtual void flush() {}

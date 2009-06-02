@@ -12,6 +12,8 @@
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Core/Exception.h>
 
+#include <boost/algorithm/string.hpp>
+
 vw::int32 vw::channel_size( vw::ChannelTypeEnum type ) {
   switch( type ) {
   case VW_CHANNEL_BOOL:
@@ -59,8 +61,8 @@ const char *vw::channel_type_name( vw::ChannelTypeEnum format ) {
   case VW_CHANNEL_FLOAT64: return "FLOAT64";
   case VW_CHANNEL_GENERIC_1_BYTE: return "GENERIC_1_BYTE";
   case VW_CHANNEL_GENERIC_2_BYTE: return "GENERIC_2_BYTE";
-  case VW_CHANNEL_GENERIC_4_BYTE: return "GENERIC_3_BYTE";
-  case VW_CHANNEL_GENERIC_8_BYTE: return "GENERIC_4_BYTE";
+  case VW_CHANNEL_GENERIC_4_BYTE: return "GENERIC_4_BYTE";
+  case VW_CHANNEL_GENERIC_8_BYTE: return "GENERIC_8_BYTE";
   default: return "UNKNOWN";
   }
 }
@@ -127,4 +129,50 @@ const char *vw::pixel_format_name( vw::PixelFormatEnum format ) {
   case VW_PIXEL_GENERIC_4_CHANNEL: return "VW_PIXEL_GENERIC_4_CHANNEL";
   default: return "UNKNOWN";
   }
+}
+
+vw::ChannelTypeEnum vw::channel_name_to_enum( const std::string& name ) {
+  std::string uname(name);
+  boost::to_upper(uname);
+
+  if (uname.length() < 4 || uname.length() > 15)
+    return VW_CHANNEL_UNKNOWN;
+
+  switch(uname[0]) {
+    case 'B':
+      if (uname == "BOOL") return VW_CHANNEL_BOOL;
+      break;
+    case 'C':
+      if (uname == "CHAR") return VW_CHANNEL_CHAR;
+      break;
+    case 'D':
+      if (uname == "DOUBLE") return VW_CHANNEL_FLOAT64;
+      break;
+    case 'F':
+      if (uname == "FLOAT16") return VW_CHANNEL_FLOAT16;
+      if (uname == "FLOAT64") return VW_CHANNEL_FLOAT64;
+      if (uname == "FLOAT32" || uname == "FLOAT") return VW_CHANNEL_FLOAT32;
+      break;
+    case 'G':
+      if (uname == "GENERIC_1_BYTE") return VW_CHANNEL_GENERIC_1_BYTE;
+      if (uname == "GENERIC_2_BYTE") return VW_CHANNEL_GENERIC_2_BYTE;
+      if (uname == "GENERIC_4_BYTE") return VW_CHANNEL_GENERIC_4_BYTE;
+      if (uname == "GENERIC_8_BYTE") return VW_CHANNEL_GENERIC_8_BYTE;
+      break;
+    case 'I':
+      if (uname == "INT8")  return VW_CHANNEL_INT8;
+      if (uname == "INT16") return VW_CHANNEL_INT16;
+      if (uname == "INT32" || uname == "INT") return VW_CHANNEL_INT32;
+      if (uname == "INT64") return VW_CHANNEL_INT64;
+      break;
+    case 'U':
+      if (uname == "UINT8")  return VW_CHANNEL_UINT8;
+      if (uname == "UINT16") return VW_CHANNEL_UINT16;
+      if (uname == "UINT32" || uname == "UINT") return VW_CHANNEL_UINT32;
+      if (uname == "UINT64") return VW_CHANNEL_UINT64;
+      break;
+    default:
+      break;
+  }
+  return VW_CHANNEL_UNKNOWN;
 }

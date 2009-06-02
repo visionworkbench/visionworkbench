@@ -159,7 +159,8 @@ void do_hillshade(po::variables_map const& vm) {
     u_scale = scale;
     v_scale = -scale;
   }
-  std::cout << "scale: " << u_scale << "  " << v_scale << "\n";
+  // For debugging:
+  //  std::cout << "\t--> Scale: " << u_scale << "  " << v_scale << "\n";
   
   // Set the direction of the light source.
   Vector3 light_0(1,0,0);
@@ -171,12 +172,18 @@ void do_hillshade(po::variables_map const& vm) {
   ImageViewRef<PixelGray<double> > input_image = channel_cast<double>(disk_dem_file);
 
   ImageViewRef<PixelMask<PixelGray<double> > > dem;
+  DiskImageResource *disk_dem_rsrc = DiskImageResource::open(input_file_name);
   if (vm.count("nodata-value")) {
     std::cout << "\t--> Masking pixel value: " << nodata_value << ".\n";
+    dem = create_mask(input_image, nodata_value);
+  } else if ( disk_dem_rsrc->has_nodata_value() ) {
+    nodata_value = disk_dem_rsrc->nodata_value();
+    std::cout << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
     dem = create_mask(input_image, nodata_value);
   } else {
     dem = pixel_cast<PixelMask<PixelGray<double> > >(input_image);
   }
+  delete disk_dem_rsrc;
 
   if (vm.count("blur")) {
     std::cout << "\t--> Blurring pixel with gaussian kernal.  Sigma = " << blur_sigma << "\n";
