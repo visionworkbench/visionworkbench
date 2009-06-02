@@ -14,6 +14,7 @@
 
 // Boost headers
 #include <boost/bind.hpp>
+#include <boost/thread/xtime.hpp>
 
 // C Standard Library headers ( for stat(2) and getpwuid() )
 #include <sys/types.h>

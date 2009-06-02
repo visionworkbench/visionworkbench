@@ -14,15 +14,15 @@ m4_pattern_allow([AX_OTHER_LIBDIR])
 # A few starting bits
 ##################################################
 
-dnl TODO BEFORE RELEASE: update package version
-AC_INIT([NASA Vision Workbench], [2.0_beta2], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
+dnl TODO AFTER RELEASE: update package version
+AC_INIT([NASA Vision Workbench], [2.0_beta3], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE([nostdinc])
 AX_CONFIG_HEADER_PREFIX([src/vw/config.h], [VW_])
 
-dnl TODO BEFORE RELEASE: update libtool version
+dnl TODO RIGHT AFTER RELEASE: update libtool version
 dnl if abi changes in any way:
 dnl     current++
 dnl     revision=0
@@ -35,7 +35,7 @@ dnl     revision++
 dnl (see http://sources.redhat.com/autobook/autobook/autobook_91.html)
 dnl
 dnl LIBTOOL_VERSION=current:revision:age
-LIBTOOL_VERSION=2:1:0
+LIBTOOL_VERSION=3:0:0
 AC_SUBST(LIBTOOL_VERSION)
 
 # This should be first, so everything else can use it
