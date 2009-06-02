@@ -30,7 +30,7 @@ AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_FILEIO_LIBS@ @PKG_IMAGE_LIBS@ @PKG_MATH_LIBS@ @P
 
 check_PROGRAMS = $(TESTS)
 
-EXTRA_DIST = $(TESTS:%=%.h) rgb2x2.png rgb2x2.tif rgb2x2.jpg
+EXTRA_DIST = $(TESTS:%=%.h) rgb2x2.png rgb2x2.tif rgb2x2.jpg png16.png
 
 CLEANFILES = $(TESTS:%=%.cxx) tmp.png tmp.tif rwtest.* test-png16.png
 
