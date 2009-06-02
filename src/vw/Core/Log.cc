@@ -5,14 +5,10 @@
 // __END_LICENSE__
 
 #include <vector>
-#include <deque>
 
 #include <vw/Core/Log.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Settings.h>
-
-// Boost headers
-#include <boost/thread/xtime.hpp>
 
 // C Standard Library headers ( for stat(2) and getpwuid() )
 #include <sys/types.h>
