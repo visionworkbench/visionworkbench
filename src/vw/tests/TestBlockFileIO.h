@@ -27,7 +27,7 @@ static void test_read_crop(const char *fn)
     TS_ASSERT_THROWS_NOTHING( dir = DiskImageResource::open( fn ) );
 
     fs::path crop_name(fn);
-    crop_name = crop_name.parent_path() / (std::string("cropped.") + crop_name.filename());
+    crop_name = crop_name.branch_path() / (std::string("cropped.") + crop_name.leaf());
 
     ImageView<PixelRGB<uint8> > image;
     read_image( image, *dir, BBox2i(100,100,100,100) );
