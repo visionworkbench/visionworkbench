@@ -96,6 +96,11 @@ namespace cartography {
       else
         georef.set_proj4_projection_str(strm.str());
       
+      int utm_north = 0;
+      int utm_zone = gdal_spatial_ref.GetUTMZone(&utm_north);
+      if (utm_zone)
+        georef.set_UTM(utm_zone, utm_north);
+
       // Read in the datum information
       Datum datum;
       const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");

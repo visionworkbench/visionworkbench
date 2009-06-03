@@ -57,6 +57,8 @@ namespace {
 // recently modified.  If so, we reload the log ruleset from the file.
 void vw::Settings::reload_config() {
 
+#if VW_ENABLE_CONFIG_FILE
+
   // We CANNOT use the vw log infrastructure here, because it will
   // call reload_config and deadlock!
 
@@ -96,6 +98,7 @@ void vw::Settings::reload_config() {
       parse_config_file(m_rc_filename.c_str(), *this);
     }
   }
+#endif
 }
 
 void vw::Settings::set_rc_filename(std::string filename) {

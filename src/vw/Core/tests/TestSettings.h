@@ -20,6 +20,7 @@ public:
 
 
   void test_vwrc() {
+#if VW_ENABLE_CONFIG_FILE
     const char *conf = "\n\
       # Comment 1                         \n\
       # Comment 2                         \n\
@@ -51,6 +52,7 @@ public:
     vw_settings().set_rc_filename(TEST_SRCDIR"/test_vwrc");
     TS_ASSERT_EQUALS(vw_settings().default_num_threads(), 20);
     TS_ASSERT_EQUALS(vw_settings().system_cache_size(), 623);
+#endif
 
     // Test to make sure that the API overrides the contents of vwrc
     vw_settings().set_default_num_threads(5);
