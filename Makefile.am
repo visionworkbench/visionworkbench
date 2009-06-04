@@ -12,7 +12,7 @@ ACLOCAL_AMFLAGS = -I m4 -I thirdparty/m4
 
 SUBDIRS = src
 
-EXTRA_DIST = config/rules.mak config.options.example NOTES docs \
+EXTRA_DIST = config/rules.mak config.options.example docs \
 			 thirdparty/cxxtest INSTALLGUIDE scripts/include-graph.py \
 			 scripts/relicense.pl scripts/templates.js thirdparty/m4/.keep \
 			 scripts/create-test.sh
