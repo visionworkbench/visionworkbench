@@ -617,10 +617,6 @@ namespace camera {
           ++idx;
         }
       }
-
-      // Summarize the stats from this step in the iteration
-      double overall_norm = transpose(epsilon) *  epsilon;
-      
     }
   
     /// Set/Read Controls

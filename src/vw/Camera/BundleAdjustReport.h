@@ -147,7 +147,7 @@ namespace camera {
     BundleAdjustReport(std::string const& name, 
 		       BundleAdjustModelT& model,
 		       BundleAdjusterT& adjuster,
-		       int report_lvl=10)  : bundleadjust_name(name), m_model(model), m_adjuster(adjuster), report_level(report_lvl) {
+		       int report_lvl=10)  :  m_model(model), m_adjuster(adjuster), bundleadjust_name(name), report_level(report_lvl) {
       
       m_human_both.add(std::cout);
       
