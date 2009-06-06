@@ -16,12 +16,21 @@ AX_ARG_ENABLE(debug,         no, [none],            [generate debugging symbols]
 AX_ARG_ENABLE(optimize,       3, [none],            [compiler optimization level])
 AX_ARG_ENABLE(arch-libs,     no, [none],            [force /lib64 (=64) or /lib32 (=32) instead of /lib])
 AX_ARG_ENABLE(proper-libs,  yes, [none],            [useful linker options])
+AX_ARG_ENABLE(ccache,        no, [none],            [try to use ccache, if available])
 
 
 
 ##################################################
 # Handle options
 ##################################################
+
+if test x"$ENABLE_CCACHE" = x"yes"; then
+    AC_CHECK_PROGS(CCACHE, ccache, false)
+    if test x"$CCACHE" != "xfalse"; then
+        CC="$CCACHE $CC"
+        CXX="$CCACHE $CXX"
+    fi
+fi
 
 # Sometimes we have /foo/lib64 and /foo/lib confusion on 64-bit machines,
 # so we'll use possibly both if one doesn't appear for a certain
