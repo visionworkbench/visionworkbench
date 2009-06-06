@@ -13,9 +13,13 @@ AC_DEFUN([AX_MODULE],
 
     HAVE_PKG_$1_SRC=yes
 
+    if test -n "$ENABLE_MODULE_$1"; then
+        WANT_MODULE_$1="$ENABLE_MODULE_$1"
+    fi
+
     AC_ARG_ENABLE([module-]m4_tolower([[$1]]),
       AC_HELP_STRING([--enable-module-]m4_tolower([[$1]]), [enable the $1 module @<:@$4@:>@]),
-      [ ENABLE_MODULE_$1=$enableval ],
+      [ ENABLE_MODULE_$1=$enableval; WANT_MODULE_$1=$enableval; ],
       [ if test x"$ENABLE_MODULE_$1" = x; then ENABLE_MODULE_$1=`/bin/echo -n $4 | tr [A-Z] [a-z]` ; fi ]
     )
 
@@ -95,6 +99,12 @@ AC_DEFUN([AX_MODULE],
   HAVE_PKG_$1=${ax_module_enable}
   MAKE_MODULE_$1=${ax_module_enable}
   AC_SUBST(MAKE_MODULE_$1)
+
+  if test -n "$WANT_MODULE_$1"; then
+      if test x"$MAKE_MODULE_$1" != x"$WANT_MODULE_$1"; then
+          AC_MSG_ERROR([You said ENABLE_MODULE_]$1[=$WANT_MODULE_]$1[, but I decided $MAKE_MODULE_]$1)
+      fi
+  fi
 
   if test "${HAVE_PKG_$1}" = "yes" ; then
     ax_have_pkg_bool=1
