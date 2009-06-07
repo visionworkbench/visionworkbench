@@ -27,15 +27,16 @@
 #include <vw/Camera/ExifData.h>
 #include <boost/algorithm/string/predicate.hpp>
 
-#if VW_HAVE_PKG_BOOST_FILESYSTEM_PRE_1_35
+#if VW_HAVE_PKG_BOOST_IOSTREAMS
+#include <boost/iostreams/device/mapped_file.hpp>
+#else
 // For mmap() implementation of memory mapped file in read_tiff_ifd()
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#else
-#include <boost/iostreams/device/mapped_file.hpp>
 #endif
+
 namespace vw {
 namespace camera {
 
@@ -67,6 +68,11 @@ const int BytesPerFormat[] = {0,1,1,2,4,8,1,1,2,4,8,4,8};
 // --------------------------------------------------------------
 //                   ExifData
 // --------------------------------------------------------------
+
+
+// TODO: This file probably shouldn't exist. It duplicates some functionality
+// TODO: from FileIO, and really belongs there. FileIO doesn't support a
+// TODO: general comments thing right now, though
 
 vw::camera::ExifData::~ExifData() {
   typedef std::map<unsigned int, ExifTagData>::iterator iterator;
@@ -354,7 +360,15 @@ void vw::camera::ExifData::process_exif(unsigned char * ExifSection, unsigned in
 bool vw::camera::ExifData::read_tiff_ifd(const std::string &filename) {
   // Memory-map the file so we can use the same process_exif_dir function
   // unchanged for both jpg and tiff).
-#if VW_HAVE_PKG_BOOST_FILESYSTEM_PRE_1_35
+
+#if VW_HAVE_PKG_BOOST_IOSTREAMS
+  boost::iostreams::mapped_file_source tiff_file(filename.c_str());
+  const unsigned char *buffer = (const unsigned char*) tiff_file.data();
+
+  int first_offset = process_tiff_header(buffer);
+
+  process_exif_dir(buffer + first_offset, buffer, tiff_file.size(), 0);
+#else
 // NOTE: this mmap() implementation has not been tested, but it
 // compiles. -- LJE
   int filedes = open(filename.c_str(), O_RDONLY);
@@ -362,23 +376,16 @@ bool vw::camera::ExifData::read_tiff_ifd(const std::string &filename) {
   lseek(filedes, 0, SEEK_SET);
   const unsigned char *buffer =
     (const unsigned char *) mmap(0, length, PROT_READ, MAP_PRIVATE,
-				 filedes, 0);
+                                 filedes, 0);
   close(filedes);
 
   int first_offset = process_tiff_header(buffer);
-  
+
   process_exif_dir(buffer + first_offset, buffer, length, 0);
 
   munmap((void *) buffer, length);
-#else
-  boost::iostreams::mapped_file_source tiff_file(filename.c_str());
-  const unsigned char *buffer = (const unsigned char*) tiff_file.data();
-
-  int first_offset = process_tiff_header(buffer);
-  
-  process_exif_dir(buffer + first_offset, buffer, tiff_file.size(), 0);
 #endif
-  
+
   return true;
 }
 
