@@ -86,8 +86,6 @@ AC_DEFUN([AX_PKG],
       ax_pkg_old_libs="$LIBS"
       ax_pkg_old_cppflags="$CPPFLAGS"
       ax_pkg_old_ldflags="$LDFLAGS"
-      ax_pkg_old_other_cppflags="$OTHER_CPPFLAGS"
-      ax_pkg_old_other_ldflags="$OTHER_LDFLAGS"
 
       LIBS="$PKG_$1_LIBS $LIBS"
       for path in $PKG_PATHS_$1; do
@@ -95,8 +93,6 @@ AC_DEFUN([AX_PKG],
 
         CPPFLAGS="$PKG_$1_CPPFLAGS $ax_pkg_old_cppflags"
         LDFLAGS="$ax_pkg_old_ldflags"
-        OTHER_CPPFLAGS="$ax_pkg_old_other_cppflags"
-        OTHER_LDFLAGS="$ax_pkg_old_other_ldflags"
 
         echo > conftest.h
         for header in $4 ; do
