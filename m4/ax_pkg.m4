@@ -146,22 +146,23 @@ AC_DEFUN([AX_PKG],
         TRY_ADD_LDFLAGS=""
       done
 
-      # Append to CPPFLAGS, since that's the order we detected in
-      PKG_$1_CPPFLAGS="$PKG_$1_CPPFLAGS $TRY_ADD_CPPFLAGS"
-      # Prepend to LIBS, because dependencies need to be listed after all users
-      PKG_$1_LIBS="$TRY_ADD_LDFLAGS $PKG_$1_LIBS"
+      if test "x$HAVE_PKG_$1" = "xyes" ; then
+          # Append to CPPFLAGS, since that's the order we detected in
+          PKG_$1_CPPFLAGS="$PKG_$1_CPPFLAGS $TRY_ADD_CPPFLAGS"
+          # Prepend to LIBS, because dependencies need to be listed after all users
+          PKG_$1_LIBS="$TRY_ADD_LDFLAGS $PKG_$1_LIBS"
 
-      # But append the LDFLAGS here, so we don't break detection order
-      OTHER_CPPFLAGS="$OTHER_CPPFLAGS $TRY_ADD_CPPFLAGS"
-      OTHER_LDFLAGS="$OTHER_LDFLAGS $TRY_ADD_LDFLAGS"
+          # But append the LDFLAGS here, so we don't break detection order
+          OTHER_CPPFLAGS="$OTHER_CPPFLAGS $TRY_ADD_CPPFLAGS"
+          OTHER_LDFLAGS="$OTHER_LDFLAGS $TRY_ADD_LDFLAGS"
+      else
+        AC_MSG_RESULT([no (not found)])
+      fi
 
       CPPFLAGS="$ax_pkg_old_cppflags"
       LDFLAGS="$ax_pkg_old_ldflags"
       LIBS="$ax_pkg_old_libs"
 
-      if test "x$HAVE_PKG_$1" = "xno" ; then
-        AC_MSG_RESULT([no (not found)])
-      fi
     fi
 
   fi
