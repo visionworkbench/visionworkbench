@@ -111,6 +111,7 @@ AX_ARG_ENABLE(bounds-check,  no,  [am-yes cpp-bool], [enable image bounds checki
 AX_ARG_ENABLE(test-coverage, no,  [am-yes],          [turn on code coverage analysis tools])
 AX_ARG_ENABLE(multi-arch,    [],  [none],            [build multi-arch (universal) binaries])
 AX_ARG_ENABLE(config-file,   yes, [cpp-bool],        [~/.vwrc support])
+AX_ARG_ENABLE(strict-aliasing, no, [none],           [allow strict aliasing (dangerous)])
 
 ##################################################
 # Handle options
@@ -335,13 +336,17 @@ AM_CONDITIONAL(MAKE_MODULE_GUI, [test "$MAKE_MODULE_GUI" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_PYTHON, [test "$MAKE_MODULE_PYTHON" = "yes"])
 
 
-
 ##################################################
 # final processing
 ##################################################
 
 VW_CPPFLAGS="-I\${top_srcdir}/src $OTHER_CPPFLAGS"
 VW_LDFLAGS="$OTHER_LDFLAGS"
+
+# Do this last, to make sure it's not overridden
+if test x"$ENABLE_STRICT_ALIASING" = x"no"; then
+    CXXFLAGS="$CXXFLAGS -fno-strict-aliasing"
+fi
 
 if test "yes" = "$ENABLE_VERBOSE" ; then
   AC_MSG_NOTICE([using CPPFLAGS=$CPPFLAGS])
