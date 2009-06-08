@@ -38,7 +38,13 @@ AC_DEFUN([AX_PKG_BOOST],
       if test -f "${ax_boost_base_path}/include/boost/version.hpp" ; then
         AX_LOG([Found a system-style boost])
         PKG_BOOST_INCDIR="${ax_boost_base_path}/include"
-        PKG_BOOST_LIBDIR="${ax_boost_base_path}/${AX_LIBDIR}"
+
+        if test -d "${ax_boost_base_path}/${AX_LIBDIR}"; then
+            PKG_BOOST_LIBDIR="${ax_boost_base_path}/${AX_LIBDIR}"
+        elif test x"${AX_OTHER_LIBDIR}" != "x"; then
+            PKG_BOOST_LIBDIR="${ax_boost_base_path}/${AX_OTHER_LIBDIR}"
+        fi
+
         HAVE_PKG_BOOST="yes"
       else
         # Next look for a default-style installation
@@ -48,7 +54,13 @@ AC_DEFUN([AX_PKG_BOOST],
             AX_LOG([Found a default-style boost in ${ax_boost_inc_path}])
             # At the moment we greedily accept the first one we find, regardless of version
             PKG_BOOST_INCDIR="${ax_boost_inc_path}"
-            PKG_BOOST_LIBDIR="${ax_boost_base_path}/${AX_LIBDIR}"
+
+            if test -d "${ax_boost_base_path}/${AX_LIBDIR}"; then
+                PKG_BOOST_LIBDIR="${ax_boost_base_path}/${AX_LIBDIR}"
+            elif test x"${AX_OTHER_LIBDIR}" != "x"; then
+                PKG_BOOST_LIBDIR="${ax_boost_base_path}/${AX_OTHER_LIBDIR}"
+            fi
+
             HAVE_PKG_BOOST="yes"
           fi
         done
