@@ -109,18 +109,12 @@ AC_CHECK_PROGS(GENHTML, genhtml, false)
 AX_ARG_ENABLE(sse,           no,  [am-yes cpp-bool], [enable SSE optimizations in some places (development)])
 AX_ARG_ENABLE(bounds-check,  no,  [am-yes cpp-bool], [enable image bounds checking (SLOW!)])
 AX_ARG_ENABLE(test-coverage, no,  [am-yes],          [turn on code coverage analysis tools])
-AX_ARG_ENABLE(multi-arch,    [],  [none],            [build multi-arch (universal) binaries])
 AX_ARG_ENABLE(config-file,   yes, [cpp-bool],        [~/.vwrc support])
 AX_ARG_ENABLE(strict-aliasing, no, [none],           [allow strict aliasing (dangerous)])
 
 ##################################################
 # Handle options
 ##################################################
-
-# Pass apple gcc options to build a universal binary
-for arch in $ENABLE_MULTI_ARCH; do
-    AX_CFLAGS="$AX_CFLAGS -arch $arch"
-done
 
 # Check for --enable-test-coverate and add appropriate flags for gcc
 if test "$ENABLE_TEST_COVERAGE" = "yes"; then

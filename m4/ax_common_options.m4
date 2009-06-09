@@ -17,12 +17,18 @@ AX_ARG_ENABLE(optimize,       3, [none],            [compiler optimization level
 AX_ARG_ENABLE(arch-libs,     no, [none],            [force /lib64 (=64) or /lib32 (=32) instead of /lib])
 AX_ARG_ENABLE(proper-libs,  yes, [none],            [useful linker options])
 AX_ARG_ENABLE(ccache,        no, [none],            [try to use ccache, if available])
+AX_ARG_ENABLE(multi-arch,    [], [none],            [build multi-arch (universal) binaries])
 
 
 
 ##################################################
 # Handle options
 ##################################################
+
+# Pass apple gcc options to build a universal binary
+for arch in $ENABLE_MULTI_ARCH; do
+    AX_CFLAGS="$AX_CFLAGS -arch $arch"
+done
 
 if test x"$ENABLE_CCACHE" = x"yes"; then
     AC_CHECK_PROGS(CCACHE, ccache, false)
