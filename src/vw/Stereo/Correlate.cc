@@ -912,7 +912,7 @@ namespace stereo {
                                          bool verbose) {
     
 
-      int    max_em_iter = 2;
+      unsigned max_em_iter = 2;
       //float  blur_sigma = 1;//1.5;//3;//2;
       float  min_var2_plane = 0.000001;//0.00001;//0.0001;
       float  min_var2_noise = 0.000001; //0.001;//0.01;//0.0001;//0.000001;//0.0001;

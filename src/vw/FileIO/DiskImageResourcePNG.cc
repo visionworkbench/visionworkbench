@@ -384,6 +384,12 @@ struct DiskImageResourcePNG::vw_png_write_context:
   vw_png_write_context(DiskImageResourcePNG *outer, const DiskImageResourcePNG::Options &options):
     vw_png_context(outer)
   {
+    // Set some needed values.
+    int width     = outer->m_format.cols;
+    int height    = outer->m_format.rows;
+    int channels  = num_channels(outer->m_format.pixel_format);
+    int bit_depth;
+
     m_file = boost::shared_ptr<std::fstream>( new std::fstream( outer->m_filename.c_str(), std::ios_base::out | std::ios_base::binary ) );
     if(!m_file)
       vw_throw(IOErr() << "DiskImageResourcePNG: Unable to open output file " << outer->m_filename << ".");
@@ -408,13 +414,7 @@ struct DiskImageResourcePNG::vw_png_write_context:
     // Must call this as we're using fstream and not FILE*
     png_set_write_fn(png_ptr, reinterpret_cast<voidp>(m_file.get()), write_data, flush_data);
 
-    // Set some needed values.
-    int width     = outer->m_format.cols;
-    int height    = outer->m_format.rows;
-    int channels  = num_channels(outer->m_format.pixel_format);
-
     // anything else will be converted to UINT8
-    int bit_depth;
     switch (outer->m_format.channel_type) {
       case VW_CHANNEL_INT16:
       case VW_CHANNEL_UINT16:

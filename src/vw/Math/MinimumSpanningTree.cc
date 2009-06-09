@@ -130,9 +130,9 @@ namespace math {
     j = start_node - min_node;
     if (j < 0 || j >= num_nodes)
       j = 0;
-    for (; j < num_nodes && !node_used[j]; j++);
+    for (; j < num_nodes && !node_used[j]; j++) /* seek */;
     if (j >= num_nodes)
-      for (j = 0; j < num_nodes && !node_used[j]; j++);
+      for (j = 0; j < num_nodes && !node_used[j]; j++) /* seek */;
     VW_ASSERT(j >= 0 && j < num_nodes && node_used[j], LogicErr() << "Unable to find a used node!");
     visited = new bool[num_nodes];
     for (i = 0; i < num_nodes; i++)

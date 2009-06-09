@@ -239,12 +239,12 @@ namespace vw {
     if (!(fp = fopen(filename.c_str(), "r")))
       vw_throw( IOErr() << "convert_jp2: Failed to read " << filename << "." );
 
-    for (nbytes_read = 0; fgetc(fp) != EOF; nbytes_read++);
+    for (nbytes_read = 0; fgetc(fp) != EOF; nbytes_read++) /* seek */;
     rewind(fp);
 
     d_original = new uint8[nbytes_read];
 
-    for (i = 0; i < nbytes_read && (c = fgetc(fp)) != EOF; d_original[i] = (uint8)c, i++);
+    for (i = 0; i < nbytes_read && (c = fgetc(fp)) != EOF; d_original[i] = (uint8)c, i++) /* seek */;
 
     if (!(i == nbytes_read  && fgetc(fp) == EOF))
       vw_throw( IOErr() << "convert_jp2: Size of " << filename << " has changed." );
@@ -320,7 +320,7 @@ namespace vw {
                 << "Are you sure the file is open?" );
     }
     int success;
-    double val = dataset->GetRasterBand(1)->GetNoDataValue();
+    double val = dataset->GetRasterBand(1)->GetNoDataValue(&success);
     if (!success)
       vw_throw( IOErr() << "DiskImageResourceGDAL: Error reading nodata value.  "
                 << "This dataset does not have a nodata value.");

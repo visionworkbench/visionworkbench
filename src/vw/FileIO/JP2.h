@@ -693,7 +693,7 @@ namespace vw
       uint8 i;
       uint64 m;
 
-      for(i = 64, m = 0x8000000000000000ULL; i > 0 && !(mask & m); i--, m >>= 1);
+      for(i = 64, m = 0x8000000000000000ULL; i > 0 && !(mask & m); i--, m >>= 1) /* seek */;
 
       return i;
     }
