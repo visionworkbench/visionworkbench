@@ -173,6 +173,8 @@ int main( int argc, char *argv[] ) {
     ("nodata-value", po::value<float>(&nodata_value), "Remap the DEM default value to the min altitude value.")
     ("min", po::value<float>(&min_val), "Minimum height of the color map.")
     ("max", po::value<float>(&max_val), "Maximum height of the color map.")
+    ("moon", "Set the min and max values to [-8499 10208] meters, which is suitable for covering elevations on the Moon.")
+    ("mars", "Set the min and max values to [-8208 21249] meters, which is suitable for covering elevations on Mars.")
     ("verbose", "Verbose output");
   po::positional_options_description p;
   p.add("input-file", 1);
@@ -184,6 +186,20 @@ int main( int argc, char *argv[] ) {
   if( vm.count("help") ) {
     std::cout << desc << std::endl;
     return 1;
+  }
+
+  // This is a reasonable range of elevation values to cover global
+  // lunar topography.
+  if( vm.count("moon") ) {
+    min_val = -8499;  
+    max_val = 10208;
+  }
+
+  // This is a reasonable range of elevation values to cover global
+  // mars topography.
+  if( vm.count("mars") ) {
+    min_val = -8208;
+    max_val = 21249;
   }
 
   if( vm.count("input-file") != 1 ) {

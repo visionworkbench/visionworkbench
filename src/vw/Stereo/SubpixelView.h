@@ -316,7 +316,8 @@ namespace stereo {
       left_crop_bbox.min() -= Vector2i(m_kern_width, m_kern_height);
       left_crop_bbox.max() += Vector2i(m_kern_width, m_kern_height);
 
-      std::cout << "Original bbox: " << bbox << "     new left crop bbox: " << left_crop_bbox << "\n";
+      // For debugging
+      //      std::cout << "Original bbox: " << bbox << "     new left crop bbox: " << left_crop_bbox << "\n";
 
       // We crop the images to the expanded bounding box and edge
       // extend in case the new bbox extends past the image bounds.
@@ -385,26 +386,26 @@ namespace stereo {
 	  
         int pyramid_levels = 3;
         
-        //create the pyramid first
+        // create the pyramid first
         std::vector<ImageView<float> > left_pyramid(pyramid_levels), right_pyramid(pyramid_levels);
         std::vector<BBox2i> regions_of_interest(pyramid_levels);
         left_pyramid[0] = channels_to_planes(left_image_patch);
         right_pyramid[0] = channels_to_planes(right_image_patch);
         regions_of_interest[0] = BBox2i(m_kern_width,m_kern_height,
                                         bbox.width(),bbox.height());
-        std::cout << "Base ROI: " << regions_of_interest[0] << "\n";
+        //        std::cout << "Base ROI: " << regions_of_interest[0] << "\n";
 
         std::vector<ImageView<PixelDisparity<float> > > disparity_map_pyramid(pyramid_levels);
         std::vector<ImageView<PixelDisparity<float> > > disparity_map_upsampled(pyramid_levels);
         disparity_map_pyramid[0] = disparity_map_patch;
 
-        //downsample the disparity map and the image pair
+        // downsample the disparity map and the image pair
         for (int i = 1; i < pyramid_levels; i++) {
           left_pyramid[i] = subsample_img_by_two(left_pyramid[i-1]);
           right_pyramid[i] = subsample_img_by_two(right_pyramid[i-1]);
           disparity_map_pyramid[i] = subsample_disp_map_by_two(disparity_map_pyramid[i-1]);
           regions_of_interest[i] = BBox2i(regions_of_interest[i-1].min()/2, regions_of_interest[i-1].max()/2);
-          std::cout << "ROI " << i << " : " << regions_of_interest[i] << "\n";
+          //          std::cout << "ROI " << i << " : " << regions_of_interest[i] << "\n";
         }
        
         float blur_sigma = 1.0;
