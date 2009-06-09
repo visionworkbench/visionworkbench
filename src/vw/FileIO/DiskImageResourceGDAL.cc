@@ -152,6 +152,7 @@ namespace vw {
       else if (ext == ".jpg" || ext == ".jpeg")   // JPEG JFIF
         retval.push_back("JPEG");
       else if (is_jp2(filename)) {                // JPEG 2000
+        retval.push_back("JP2KAK");               // Kakadu 
         retval.push_back("JP2ECW");
         retval.push_back("JPEG2000");
       }
