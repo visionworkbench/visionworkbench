@@ -9,6 +9,7 @@
 #include <cxxtest/TestSuite.h>
 
 #include <vw/Core/Exception.h>
+#include <vw/config.h>
 
 using namespace std;
 using namespace vw;

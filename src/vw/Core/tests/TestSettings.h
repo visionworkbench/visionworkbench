@@ -11,6 +11,7 @@
 #include <cxxtest/TestSuite.h>
 #include <vw/Core/Settings.h>
 #include <vw/Core/ConfigParser.h>
+#include <vw/config.h>
 
 using namespace vw;
 
@@ -20,7 +21,7 @@ public:
 
 
   void test_vwrc() {
-#if VW_ENABLE_CONFIG_FILE
+#if defined(VW_ENABLE_CONFIG_FILE) && VW_ENABLE_CONFIG_FILE == 1
     const char *conf = "\n\
       # Comment 1                         \n\
       # Comment 2                         \n\
@@ -52,6 +53,8 @@ public:
     vw_settings().set_rc_filename(TEST_SRCDIR"/test_vwrc");
     TS_ASSERT_EQUALS(vw_settings().default_num_threads(), 20);
     TS_ASSERT_EQUALS(vw_settings().system_cache_size(), 623);
+#else
+    TS_TRACE("Config files disabled: skipping read test!");
 #endif
 
     // Test to make sure that the API overrides the contents of vwrc
@@ -69,6 +72,7 @@ logfile console\n\
     Settings s;
     std::istringstream stream(conf);
 
+    TS_TRACE("This should print a warning:");
     parse_config(stream, s);
   }
 };

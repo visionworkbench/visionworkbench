@@ -12,6 +12,7 @@
 /// See Core/Exception.h for documentation.
 ///
 #include <vw/Core/Exception.h>
+#include <vw/config.h>
 
 #include <cstdlib>
 

@@ -21,6 +21,8 @@
 #include <sys/stat.h>
 #include <ctime>
 
+#include <vw/config.h>
+
 #ifdef VW_HAVE_UNISTD_H
 #include <unistd.h>
 #endif

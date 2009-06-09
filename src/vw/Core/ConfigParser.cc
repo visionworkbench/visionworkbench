@@ -3,7 +3,6 @@
 #include <istream>
 
 #include <boost/shared_ptr.hpp>
-#include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -56,16 +55,27 @@ void vw::parse_config(basic_istream<char>& stream, vw::Settings& settings) {
   // reload_config first.
   po::parsed_options opts(0);
 
+  po::options_description desc("All options");
+  desc.add_options()("*", "All");
+
   try {
-     opts = po::parse_config_file( stream, po::options_description(), true );
+     opts = po::parse_config_file( stream, desc );
   } catch (const po::invalid_syntax& e) {
     cerr << "Could not parse config file. Ignoring. (" << e.msg << " near \"" << e.tokens << "\")" << endl;
+  } catch (const boost::program_options::unknown_option& e) {
+      // Swallow this one. We don't care about unknown options.
+      vw_throw(LogicErr() << "We should be accepting all options. This shouldn't happen.");
   }
 
   shared_ptr<LogInstance> current_log;
   string current_logname = "console";
 
-  BOOST_FOREACH( const po::option& o, opts.options ) {
+  typedef std::vector<po::option> OptionVec;
+
+  for (OptionVec::const_iterator i=opts.options.begin(), end=opts.options.end(); i != end; ++i) {
+    const po::option& o = *i;
+
+    //cerr << "Looking at " << o.string_key << endl;
 
     try {
       if (o.string_key == "general.default_num_threads")
@@ -80,7 +90,7 @@ void vw::parse_config(basic_istream<char>& stream, vw::Settings& settings) {
         string level_s = o.string_key.substr(sep+1);
         string domain  = o.value[0];
 
-        cerr << "Logname[" << logname << "] level_s[" << level_s << "] domain[" << domain << "]" << endl;
+        //cerr << "Logname[" << logname << "] level_s[" << level_s << "] domain[" << domain << "]" << endl;
 
         if (logname.empty() || level_s.empty() || domain.empty())
           continue;
@@ -97,17 +107,18 @@ void vw::parse_config(basic_istream<char>& stream, vw::Settings& settings) {
 
         int32 level = name2level(level_s);
 
-        cerr << "Adding rule: " << level << " " << domain << "\n";
+        //cerr << "Adding rule: " << level << " " << domain << "\n";
         if (current_log)
           current_log->rule_set().add_rule(level, domain);
         else
           vw_log().console_log().rule_set().add_rule(level, domain);
       }
       else {
+        //cerr  << "Skipping " << o.string_key << endl;
         continue;
       }
     } catch (const boost::bad_lexical_cast& e) {
-      cerr << "Bad line in config file near " << o.string_key << ". skipping." << endl;
+      cerr << "Could not parse line in config file near " << o.string_key << ". skipping." << endl;
     }
   }
 
