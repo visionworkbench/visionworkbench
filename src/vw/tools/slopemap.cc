@@ -277,11 +277,11 @@ else
 
 if(vm.count("no-aspect")) output_aspect=false;
 if(vm.count("no-gradient")) output_gradient=false;
-if(!output_aspect && !output_gradient) {
-	vw_out(0) << "No output specified. Select at least one of gradient or output.\n" << endl;
+if(!output_aspect && !output_gradient && no_pretty) {
+	vw_out(0) << "No output specified. Select at least one of [gradient, output, pretty].\n" << endl;
 }
 
-if(!output_aspect || !output_gradient || vm.count("no-pretty")) output_pretty=false;
+if(vm.count("no-pretty")) output_pretty=false;
 
 
   try {
