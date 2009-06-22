@@ -85,7 +85,7 @@ Vector3 naive_horn (int x, int y, ImageView<ImageT> img, GeoReference GR) {
 	double p=( (NE+2*E+SE)-(NW+2*W+SW) )/(8*pixel_cartesian_dist(Wc,Ec, img, GR) );			
 	
 	//q: south to north
-	double q=( (NW+2*N+NE)-(SW+2*S+SW) )/(8*pixel_cartesian_dist(Nc,Sc, img, GR) );
+	double q=( (NW+2*N+NE)-(SW+2*S+SE) )/(8*pixel_cartesian_dist(Nc,Sc, img, GR) );
 	
 	//total gradient:
 	double gradient=pow(p*p+q*q, 0.5);		
