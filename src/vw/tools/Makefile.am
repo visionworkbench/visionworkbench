@@ -33,13 +33,16 @@ hillshade_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 # Converts a DEM to a simple color map
 colormap_SOURCES = colormap.cc
 colormap_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
+# Calculates aspect and gradient angle for DEM
+slopemap_SOURCES = slopemap.cc
+slopemap_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 # Adds or adjusts an image's georeferencing information
 georef_SOURCES = georef.cc
 georef_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 if HAVE_PKG_GDAL
 cart_gdal_progs = georef hillshade
 endif
-cartography_progs = colormap $(cart_gdal_progs)
+cartography_progs = colormap $(cart_gdal_progs) slopemap
 endif
 
 # Command-line tools based on the HDR module
