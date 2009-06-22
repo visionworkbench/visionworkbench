@@ -223,8 +223,8 @@ int main( int argc, char *argv[] ) {
 
   set_debug_level(InfoMessage);
 
-po::options_description desc("Description: Outputs gradient and/or aspect at each point of an input DEM with altitude values\n\nUsage: slopemap [options] <input file> \n\nOptions");
-desc.add_options()
+  po::options_description desc("Description: Outputs gradient and/or aspect at each point of an input DEM with altitude values\n\nUsage: slopemap [options] <input file> \n\nOptions");
+  desc.add_options()
     ("help", "Display this help messsage")
     ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
     ("output-prefix,o", po::value<std::string>(&output_prefix), "Specify the output prefix") //should add more description...
@@ -233,57 +233,56 @@ desc.add_options()
     ("no-gradient", "Do not output gradient")
     ("algorithm", po::value<std::string>(&algorithm)->default_value("horn"), "Choose an algorithm to calculate slope/aspect from [horn, planefit]") //could use better names
     ("no-pretty", "Do not output colored image."); 
-
-po::positional_options_description p;
+  
+  po::positional_options_description p;
   p.add("input-file", 1);
-
+  
   po::variables_map vm;
   po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
   po::notify( vm );
-
+  
   if( vm.count("help") ) {
     std::cout << desc << std::endl;
     return 1;
   }
-
+  
   if( vm.count("input-file") != 1 ) {
     std::cout << "Error: Must specify exactly one input file!\n" << std::endl;
     std::cout << desc << std::endl;
-return 1;
-}
-
+    return 1;
+  }
+  
   if( output_prefix == "" ) { output_prefix=prefix_from_filename(input_file_name);
   }
-
+  
   if( vm.count("verbose") ) {
     set_debug_level(VerboseDebugMessage);
   }
-
-
-//checking strings
-boost::to_lower(algorithm);
-if( !(  algorithm == "horn" ||
-	algorithm == "planefit" ||
-	algorithm == "" ) ) { //it's okay if it isn't set?
-	vw_out(0) << "Unknown algorithm: " << algorithm << ". Options are : [ horn, planefit ]\n";
-	exit(0);
-}
-else {
-if(algorithm=="horn")
-	use_horn=true;
-else
-	use_horn=false;
-}
-
-if(vm.count("no-aspect")) output_aspect=false;
-if(vm.count("no-gradient")) output_gradient=false;
-if(!output_aspect && !output_gradient && no_pretty) {
-	vw_out(0) << "No output specified. Select at least one of [gradient, output, pretty].\n" << endl;
-}
-
-if(vm.count("no-pretty")) output_pretty=false;
-
-
+  
+  
+  //checking strings
+  boost::to_lower(algorithm);
+  if( !(  algorithm == "horn" ||
+	  algorithm == "planefit" ||
+	  algorithm == "" ) ) { //it's okay if it isn't set?
+    vw_out(0) << "Unknown algorithm: " << algorithm << ". Options are : [ horn, planefit ]\n";
+    exit(0);
+  }
+  else {
+    if(algorithm=="horn")
+      use_horn=true;
+    else
+      use_horn=false;
+  }
+  
+  if(vm.count("no-aspect")) output_aspect=false;
+  if(vm.count("no-gradient")) output_gradient=false;
+  if(!output_aspect && !output_gradient && vm.count("no-pretty")) {
+    vw_out(0) << "No output specified. Select at least one of [gradient, output, pretty].\n" << endl;
+  }
+  
+  if(vm.count("no-pretty")) output_pretty=false;
+  
   try {
     // Get the right pixel/channel type.
     DiskImageResource *rsrc = DiskImageResource::open(input_file_name);
@@ -313,5 +312,5 @@ if(vm.count("no-pretty")) output_pretty=false;
     std::cout << "Error: " << e.what() << std::endl;
   }
   return 0;
-
+  
 }
