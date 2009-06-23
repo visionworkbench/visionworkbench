@@ -258,31 +258,32 @@ int main( int argc, char *argv[] ) {
   if( vm.count("verbose") ) {
     set_debug_level(VerboseDebugMessage);
   }
-  
-  
-  //checking strings
-  boost::to_lower(algorithm);
-  if( !(  algorithm == "horn" ||
-	  algorithm == "planefit" ||
-	  algorithm == "" ) ) { //it's okay if it isn't set?
-    vw_out(0) << "Unknown algorithm: " << algorithm << ". Options are : [ horn, planefit ]\n";
-    exit(0);
-  }
-  else {
-    if(algorithm=="horn")
-      use_horn=true;
-    else
-      use_horn=false;
-  }
-  
-  if(vm.count("no-aspect")) output_aspect=false;
-  if(vm.count("no-gradient")) output_gradient=false;
-  if(!output_aspect && !output_gradient && vm.count("no-pretty")) {
-    vw_out(0) << "No output specified. Select at least one of [gradient, output, pretty].\n" << endl;
-  }
-  
-  if(vm.count("no-pretty")) output_pretty=false;
-  
+
+
+//checking strings
+boost::to_lower(algorithm);
+if( !(  algorithm == "horn" ||
+	algorithm == "planefit" ||
+	algorithm == "" ) ) { //it's okay if it isn't set?
+	vw_out(0) << "Unknown algorithm: " << algorithm << ". Options are : [ horn, planefit ]\n";
+	exit(0);
+}
+else {
+if(algorithm=="horn")
+	use_horn=true;
+else
+	use_horn=false;
+}
+
+if(vm.count("no-aspect")) output_aspect=false;
+if(vm.count("no-gradient")) output_gradient=false;
+if(!output_aspect && !output_gradient && !output_pretty) {
+	vw_out(0) << "No output specified. Select at least one of [gradient, output, pretty].\n" << endl;
+}
+
+if(vm.count("no-pretty")) output_pretty=false;
+
+
   try {
     // Get the right pixel/channel type.
     DiskImageResource *rsrc = DiskImageResource::open(input_file_name);
