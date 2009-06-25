@@ -93,11 +93,14 @@ Vector3 naive_horn (int x, int y, ImageView<ImageT> img, GeoReference GR) {
 	//aspect: q/p=tan(angle)
 	double aspect=atan(q/p);
 
-	aspect=aspect-pi/2;
-	if(p<0) aspect=pi+aspect;
-	else aspect=pi-aspect;
+	if(p<0) aspect=aspect+pi;
+
+	aspect=2*pi-aspect+pi/2;
+	if(aspect<0) aspect=2*pi+aspect;
+	if(aspect>=2*pi) aspect=aspect-2*pi*(int)(aspect/2/pi);
 
 	if(p==0) return Vector3(0,0,0);		
+			
 		
 	return Vector3(aspect,gradient,1);
 }
