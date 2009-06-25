@@ -82,26 +82,24 @@ Vector3 naive_horn (int x, int y, ImageView<ImageT> img, GeoReference GR) {
 
 	//calculate an east-west gradient and a north-south gradient
 	//p: west to east
-	double p=( (NE+2*E+SE)-(NW+2*W+SW) )/(8*pixel_cartesian_dist(Wc,Ec, img, GR) );			
+	double p=( (NE+2*E+SE)-(NW+2*W+SW) )/(4*pixel_cartesian_dist(Wc,Ec, img, GR) );			
 	
 	//q: south to north
-	double q=( (NW+2*N+NE)-(SW+2*S+SE) )/(8*pixel_cartesian_dist(Nc,Sc, img, GR) );
+	double q=( (NW+2*N+NE)-(SW+2*S+SE) )/(4*pixel_cartesian_dist(Nc,Sc, img, GR) );
 	
 	//total gradient:
 	double gradient=pow(p*p+q*q, 0.5);		
 	
 	//aspect: q/p=tan(angle)
 	double aspect=atan(q/p);
-	double gradient_angle=atan(gradient);
 
 	aspect=aspect-pi/2;
-
-	if(p<0) aspect=aspect+pi;
-	if(aspect<0) aspect=aspect+2*pi;
+	if(p<0) aspect=pi+aspect;
+	else aspect=pi-aspect;
 
 	if(p==0) return Vector3(0,0,0);		
 		
-	return Vector3(aspect,abs(gradient_angle),1);
+	return Vector3(aspect,gradient,1);
 }
 
 template <class ImageT>
