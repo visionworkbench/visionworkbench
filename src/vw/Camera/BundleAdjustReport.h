@@ -191,6 +191,10 @@ namespace camera {
 		       << m_model.A_inverse_covariance(0) << std::endl;
 	m_human_report << "\tB Inverse Covariance: " 
 		       << m_model.B_inverse_covariance(0) << std::endl;
+	if (!m_adjuster.camera_constraint())
+	  m_human_report << "\tCamera Constraint shut off!\n"; 
+	if (!m_adjuster.gcp_constraint())
+	  m_human_report << "\tGCP Constraint shut off!\n";
 	m_human_both << "\nStarting Error:\n";
 	generic_readings();
       }
@@ -220,7 +224,7 @@ namespace camera {
       m_human_both << "[" << current_posix_time_string() 
 		   << "]\tFinished Bundle Adjustment\n";
       m_human_both << "\tNumber of Iterations: " 
-		   << m_adjuster.iterations() - 1 << "\n\n";
+		   << m_adjuster.iterations() << "\n\n";
       if ( report_level >= ClassicReport )
 	generic_readings();
       if ( report_level >= TriangulationReportAtEnds )
@@ -343,12 +347,16 @@ namespace camera {
 		   << mean_cam_pose << " max: " << max_cam_pose << " dev: "
 		   << stddev_cam_pose << "] " << m_model.camera_pose_unit()
 		   << std::endl;
+      if (!m_adjuster.camera_constraint())
+	m_human_both << "\t[NOTE: Camera Constraint Shutoff!]\n";
       if (gcp_errors.size() != 0 )
 	m_human_both << "\tGCP [min: " << min_gcp << " mean: " << mean_gcp
 		     << " max: " << max_gcp << " dev: " << stddev_gcp << "] "
 		     << m_model.gcp_unit() << std::endl;
       else
 	m_human_both << "\tGCP [N/A]\n";
+      if (!m_adjuster.gcp_constraint())
+	m_human_both << "\t[NOTE: GCP Constraint Shutoff!]\n";
     }
     
     void stereo_errors( std::vector<double>& stereo_errors ) {

@@ -548,12 +548,19 @@ namespace camera {
 
     int m_iterations;
     RobustCostT m_robust_cost_func;
+
+    bool m_use_camera_constraint;
+    bool m_use_gcp_constraint;
     
   public:
     
     BundleAdjustment(BundleAdjustModelT &model, 
-                     RobustCostT const& robust_cost_func) : 
-      m_model(model), m_robust_cost_func(robust_cost_func) {
+                     RobustCostT const& robust_cost_func,
+		     bool use_camera_constraint, 
+		     bool use_gcp_constraint ) : 
+    m_model(model), m_robust_cost_func(robust_cost_func),
+      m_use_camera_constraint(use_camera_constraint),
+      m_use_gcp_constraint(use_gcp_constraint) {
 
       m_iterations = 0;
 
@@ -577,12 +584,13 @@ namespace camera {
 
       unsigned num_cameras = m_model.num_cameras();
       unsigned num_ground_control_points = m_control_net->num_ground_control_points();
-      unsigned num_observations = 2*m_model.num_pixel_observations() +
-                                  num_cameras*num_cam_params + 
-                                  num_ground_control_points*num_pt_params;
+      unsigned num_observations = 2*m_model.num_pixel_observations();
+      if (m_use_camera_constraint)
+	num_observations += num_cameras*num_cam_params;
+      if (m_use_gcp_constraint)
+	num_observations += num_ground_control_points*num_pt_params;
 
       Vector<double> epsilon(num_observations);                   // Error vector
-
       int idx = 0;
       for (unsigned i = 0; i < m_control_net->size(); ++i) {       // Iterate over control points
         for (unsigned m = 0; m < (*m_control_net)[i].size(); ++m) {  // Iterate over control measures
@@ -601,21 +609,24 @@ namespace camera {
       }
 
       // Add rows to J and epsilon for a priori position/pose constraints...
-      for (unsigned j=0; j < num_cameras; ++j) {
-        subvector(epsilon,
-                  2*m_model.num_pixel_observations() + j*num_cam_params,
-                  num_cam_params) = m_model.A_initial(j)-m_model.A_parameters(j);
-      }
+      if (m_use_camera_constraint)
+	for (unsigned j=0; j < num_cameras; ++j) 
+	  subvector(epsilon,
+		    2*m_model.num_pixel_observations() + j*num_cam_params,
+		    num_cam_params) = m_model.A_initial(j)-m_model.A_parameters(j);
+	
 
       // ... and the position of the 3D points to J and epsilon ...
-      idx = 0;
-      for (unsigned i=0; i < m_model.num_points(); ++i) {
-        if ((*m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
-          subvector(epsilon,
-                    2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
-                    num_pt_params) = m_model.B_initial(i)-m_model.B_parameters(i);
-          ++idx;
-        }
+      if (m_use_gcp_constraint) {
+	idx = 0;
+	for (unsigned i=0; i < m_model.num_points(); ++i) {
+	  if ((*m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
+	    subvector(epsilon,
+		      2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
+		      num_pt_params) = m_model.B_initial(i)-m_model.B_parameters(i);
+	    ++idx;
+	  }
+	}
       }
     }
   
@@ -625,6 +636,8 @@ namespace camera {
     void set_lambda(double lambda) { m_lambda = lambda; }
     unsigned control() const { return m_control; }
     void set_control(unsigned control){m_control = control;}
+    bool camera_constraint() const { return m_use_camera_constraint; }
+    bool gcp_constraint() const { return m_use_gcp_constraint; }
     
     /// Information Reporting
 
@@ -632,90 +645,6 @@ namespace camera {
     RobustCostT costfunction() const { return m_robust_cost_func; }
 
     /// Compare matrices methods (FOR DEBUG PURPOSES)
-
-    void compare_matrices(SparseSkylineMatrix<double> &a,
-                          Matrix<double> &b, 
-                          std::string debug_text,
-                          double tol) {
-      std::cout << "Checking " << debug_text << "...\n";
-      
-      std::cout << "A : " << a.rows() << " x " << a.cols() << "    B : " << b.rows() << " x " << b.cols() << "\n";
-      for (unsigned r = 0; r < a.rows(); ++r) {    // rows
-        for (unsigned c = 0; c < a.cols(); ++c) {  // cols
-          double s = a(r,c);
-          double n = b(r,c);
-          if ( fabs(s - n) > tol )
-            std::cout << "Mismatch SPSKLN MATRIX at " << r << " " << c << " " << "  :  " << s << " vs. " << n << "   diff: " << (s-n) << "\n";
-        }
-      }
-    }
-
-    template <class ElemT>
-    void compare_matrices(boost_sparse_matrix<ElemT> &sparse,
-                          Matrix<double> normal, 
-                          std::string debug_text,
-                          double tol) {
-      std::cout << "Checking " << debug_text << "...\n";
-      unsigned s1 = sparse.size1();
-      unsigned s2 = sparse.size2();
-      
-      std::cout << "Sparse size : " << s1 << " x " << s2 << "    Non-sparse size: " << normal.rows() << " x " << normal.cols() << "\n";
-      for (unsigned r = 0; r < sparse.size1(); ++r) {    // rows
-        for (unsigned c = 0; c < sparse.size2(); ++c) {  // cols
-          int n_cols = sparse(r,c).cols();
-          int n_rows = sparse(r,c).rows();
-          
-          for (int rr = 0; rr < n_rows; ++rr) {
-            for (int cc = 0; cc < n_cols; ++cc) {
-              double s = sparse(r,c)(rr,cc);
-              double n = normal(r*n_rows+rr, c*n_cols+cc);
-              if ( fabs(s - n) > tol )
-                std::cout << "Mismatch MATRIX at " << r << " " << c << " " << rr << " " << cc << " : " << s << " vs. " << n << "   diff: " << (s-n) << "\n";
-            }
-          }
-        }
-      }
-    }
-
-    // For comparing diagonal sparse matrices
-    template <class ElemT>
-    void compare_matrices(boost_sparse_vector<ElemT> &sparse,
-                          Matrix<double> normal, 
-                          std::string debug_text,
-                          double tol) {
-      std::cout << "Checking " << debug_text << "...\n";
-      unsigned sz = sparse.size();
-      std::cout << "Sparse size : " << sz << " x " << sz << "     Non-sparse size: " << normal.rows() << " x " << normal.cols() << "\n";
-
-      for (unsigned c = 0; c < sparse.size(); ++c) { 
-        int n_cols = sparse(c).cols();
-        int n_rows = sparse(c).rows();
-        
-        for (int rr = 0; rr < n_rows; ++rr) {
-          for (int cc = 0; cc < n_cols; ++cc) {
-            double s = sparse(c)(rr,cc);
-            double n = normal(c*n_rows+rr, c*n_cols+cc);
-            if ( fabs(s - n) > tol )
-              std::cout << "Mismatch VECTOR at " << c << " " << rr << " " << cc << " : " << s << " vs. " << n << "    diff: " << (s-n) << "\n";
-          }
-        }
-      }
-    }
-
-    // For comparing diagonal sparse matrices
-    void compare_vectors(Vector<double> &a, Vector<double> &b, 
-                         std::string debug_text, double tol) {
-      std::cout << "Checking " << debug_text << "...\n";
-      std::cout << "A size : " << a.size() << "     B size: " << b.size() << "\n";
-
-      for (unsigned c = 0; c < a.size(); ++c) { 
-        double s = a[c];
-        double n = b[c];
-        if ( fabs(s - n) > tol )
-          std::cout << "Mismatch VW VECTOR at " << c << " : " << s << " vs. " << n << "    diff: " << (s-n) << "\n";
-      }
-    }
-
 
     void debug_impl(Matrix<double> &J, Matrix<double> &sigma, Vector<double> &epsilon) {
 
@@ -728,10 +657,11 @@ namespace camera {
 
       unsigned num_cameras = m_model.num_cameras();
       unsigned num_ground_control_points = m_control_net->num_ground_control_points();
-      unsigned num_observations = 2*m_model.num_pixel_observations() +
-                                  num_cameras*num_cam_params + 
-                                  num_ground_control_points*num_pt_params;
-
+      unsigned num_observations = 2*m_model.num_pixel_observations();
+      if (m_use_gcp_constraint)
+	num_observations += num_cameras*num_cam_params;
+      if (m_model.use_cmera_constraint)
+	num_observations += num_ground_control_points*num_pt_params;
 
       // --- SETUP STEP ----
       // Add rows to J and epsilon for the imaged pixel observations
@@ -771,52 +701,53 @@ namespace camera {
       }
       
       // Add rows to J and epsilon for a priori camera parameters...
-      for (unsigned j=0; j < num_cameras; ++j) {
-        Matrix<double> id(num_cam_params, num_cam_params);
-        id.set_identity();
-        submatrix(J,
-                  2*m_model.num_pixel_observations() + j*num_cam_params,
-                  j*num_cam_params,
-                  num_cam_params,
-                  num_cam_params) = id;
-        Vector<double> unweighted_error = m_model.A_initial(j)-m_model.A_parameters(j);
-        subvector(epsilon,
-                  2*m_model.num_pixel_observations() + j*num_cam_params,
-                  num_cam_params) = unweighted_error;
-        submatrix(sigma,
-                  2*m_model.num_pixel_observations() + j*num_cam_params,
-                  2*m_model.num_pixel_observations() + j*num_cam_params,
-                  num_cam_params, num_cam_params) = m_model.A_inverse_covariance(j);
-      }
+      if (m_use_camera_constraint)
+	for (unsigned j=0; j < num_cameras; ++j) {
+	  Matrix<double> id(num_cam_params, num_cam_params);
+	  id.set_identity();
+	  submatrix(J,
+		    2*m_model.num_pixel_observations() + j*num_cam_params,
+		    j*num_cam_params,
+		    num_cam_params,
+		    num_cam_params) = id;
+	  Vector<double> unweighted_error = m_model.A_initial(j)-m_model.A_parameters(j);
+	  subvector(epsilon,
+		    2*m_model.num_pixel_observations() + j*num_cam_params,
+		    num_cam_params) = unweighted_error;
+	  submatrix(sigma,
+		    2*m_model.num_pixel_observations() + j*num_cam_params,
+		    2*m_model.num_pixel_observations() + j*num_cam_params,
+		    num_cam_params, num_cam_params) = m_model.A_inverse_covariance(j);
+	}
 
       // ... and the position of the 3D points to J and epsilon ...
-      idx = 0;
-      for (unsigned i=0; i < m_model.num_points(); ++i) {
-        if ((*m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
-          Matrix<double> id(num_pt_params,num_pt_params);
-          id.set_identity();
-          submatrix(J,2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
-                    num_cameras*num_cam_params + idx*num_pt_params,
-                    num_pt_params,
-                    num_pt_params) = id;
-          Vector<double> unweighted_error = m_model.B_initial(i)-m_model.B_parameters(i);
-          subvector(epsilon,
-                    2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
-                    num_pt_params) = unweighted_error;
-          submatrix(sigma,
-                    2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
-                    2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
-                    num_pt_params, num_pt_params) = m_model.B_inverse_covariance(i);
-          ++idx;
-        }
+      if (m_use_gcp_constraint) {
+	idx = 0;
+	for (unsigned i=0; i < m_model.num_points(); ++i) {
+	  if ((*m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
+	    Matrix<double> id(num_pt_params,num_pt_params);
+	    id.set_identity();
+	    submatrix(J,2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
+		      num_cameras*num_cam_params + idx*num_pt_params,
+		      num_pt_params,
+		      num_pt_params) = id;
+	    Vector<double> unweighted_error = m_model.B_initial(i)-m_model.B_parameters(i);
+	    subvector(epsilon,
+		      2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
+		      num_pt_params) = unweighted_error;
+	    submatrix(sigma,
+		      2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
+		      2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
+		      num_pt_params, num_pt_params) = m_model.B_inverse_covariance(i);
+	    ++idx;
+	  }
+	}
       }
     }
-
 
     //----------------------------------------------------------------
     //              Levenberg Marquardt Update Methods
     //----------------------------------------------------------------
-
 
     // This is a simple, non-sparse, unoptimized implementation of LM
     // bundle adjustment.  It is primarily used for validation and
@@ -837,9 +768,11 @@ namespace camera {
 
       unsigned num_cameras = m_model.num_cameras();
       unsigned num_ground_control_points = m_control_net->num_ground_control_points();
-      unsigned num_observations = 2*m_model.num_pixel_observations() +
-                                  num_cameras*num_cam_params + 
-                                  num_ground_control_points*num_pt_params;
+      unsigned num_observations = 2*m_model.num_pixel_observations();
+      if (m_use_camera_constraint)
+	num_observations += num_cameras*num_cam_params;
+      if (m_use_gcp_constraint)
+	num_observations += num_ground_control_points*num_pt_params;
 
       // The core LM matrices and vectors
       Matrix<double> J(num_observations, num_model_parameters);   // Jacobian Matrix
@@ -884,44 +817,47 @@ namespace camera {
       }
       
       // Add rows to J and epsilon for a priori camera parameters...
-      for (unsigned j=0; j < num_cameras; ++j) {
-        Matrix<double> id(num_cam_params, num_cam_params);
-        id.set_identity();
-        submatrix(J,
-                  2*m_model.num_pixel_observations() + j*num_cam_params,
-                  j*num_cam_params,
-                  num_cam_params,
-                  num_cam_params) = id;
-        Vector<double> unweighted_error = m_model.A_initial(j)-m_model.A_parameters(j);
-        subvector(epsilon,
-                  2*m_model.num_pixel_observations() + j*num_cam_params,
-                  num_cam_params) = unweighted_error;
-        submatrix(sigma,
-                  2*m_model.num_pixel_observations() + j*num_cam_params,
-                  2*m_model.num_pixel_observations() + j*num_cam_params,
-                  num_cam_params, num_cam_params) = m_model.A_inverse_covariance(j);
-      }
+      if (m_use_camera_constraint)
+	for (unsigned j=0; j < num_cameras; ++j) {
+	  Matrix<double> id(num_cam_params, num_cam_params);
+	  id.set_identity();
+	  submatrix(J,
+		    2*m_model.num_pixel_observations() + j*num_cam_params,
+		    j*num_cam_params,
+		    num_cam_params,
+		    num_cam_params) = id;
+	  Vector<double> unweighted_error = m_model.A_initial(j)-m_model.A_parameters(j);
+	  subvector(epsilon,
+		    2*m_model.num_pixel_observations() + j*num_cam_params,
+		    num_cam_params) = unweighted_error;
+	  submatrix(sigma,
+		    2*m_model.num_pixel_observations() + j*num_cam_params,
+		    2*m_model.num_pixel_observations() + j*num_cam_params,
+		    num_cam_params, num_cam_params) = m_model.A_inverse_covariance(j);
+	}
 
       // ... and the position of the 3D points to J and epsilon ...
-      idx = 0;
-      for (unsigned i=0; i < m_model.num_points(); ++i) {
-        if ((*m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
-          Matrix<double> id(num_pt_params,num_pt_params);
-          id.set_identity();
-          submatrix(J,2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
-                    num_cameras*num_cam_params + idx*num_pt_params,
-                    num_pt_params,
-                    num_pt_params) = id;
-          Vector<double> unweighted_error = m_model.B_initial(i)-m_model.B_parameters(i);
-          subvector(epsilon,
-                    2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
-                    num_pt_params) = unweighted_error;
-          submatrix(sigma,
-                    2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
-                    2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
-                    num_pt_params, num_pt_params) = m_model.B_inverse_covariance(i);
-          ++idx;
-        }
+      if (m_use_gcp_constraint) {
+	idx = 0;
+	for (unsigned i=0; i < m_model.num_points(); ++i) {
+	  if ((*m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
+	    Matrix<double> id(num_pt_params,num_pt_params);
+	    id.set_identity();
+	    submatrix(J,2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
+		      num_cameras*num_cam_params + idx*num_pt_params,
+		      num_pt_params,
+		      num_pt_params) = id;
+	    Vector<double> unweighted_error = m_model.B_initial(i)-m_model.B_parameters(i);
+	    subvector(epsilon,
+		      2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
+		      num_pt_params) = unweighted_error;
+	    submatrix(sigma,
+		      2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
+		      2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
+		      num_pt_params, num_pt_params) = m_model.B_inverse_covariance(i);
+	    ++idx;
+	  }
+	}
       }
 
       // --- UPDATE STEP ----
@@ -1001,23 +937,26 @@ namespace camera {
       }
 
       // Add rows to J and epsilon for a priori position/pose constraints...
-      for (unsigned j=0; j < num_cameras; ++j) {
-        Vector<double> cam_delta = subvector(delta, num_cam_params*j, num_cam_params);
-        subvector(new_epsilon,
-                  2*m_model.num_pixel_observations() + j*num_cam_params,
-                  num_cam_params) = m_model.A_initial(j)-(m_model.A_parameters(j)-cam_delta);
-      }
+      if (m_use_camera_constraint)
+	for (unsigned j=0; j < num_cameras; ++j) {
+	  Vector<double> cam_delta = subvector(delta, num_cam_params*j, num_cam_params);
+	  subvector(new_epsilon,
+		    2*m_model.num_pixel_observations() + j*num_cam_params,
+		    num_cam_params) = m_model.A_initial(j)-(m_model.A_parameters(j)-cam_delta);
+	}
 
       // ... and the position of the 3D points to J and epsilon ...
-      idx = 0;
-      for (unsigned i=0; i < m_model.num_points(); ++i) {
-        if ((*m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
-          Vector<double> pt_delta = subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params);
-          subvector(new_epsilon,
-                    2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
-                    num_pt_params) = m_model.B_initial(i)-(m_model.B_parameters(i)-pt_delta);
-          ++idx;
-        }
+      if (m_use_gcp_constraint) {
+	idx = 0;
+	for (unsigned i=0; i < m_model.num_points(); ++i) {
+	  if ((*m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
+	    Vector<double> pt_delta = subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params);
+	    subvector(new_epsilon,
+		      2*m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
+		      num_pt_params) = m_model.B_initial(i)-(m_model.B_parameters(i)-pt_delta);
+	    ++idx;
+	  }
+	}
       }
 
       //Fletcher modification
@@ -1065,7 +1004,7 @@ namespace camera {
 	} else if (m_control == 1)
 	  m_lambda *= 10;
 
-	double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon);
+	// double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon);
  
 	return ScalarTypeLimits<double>::highest();
       }
@@ -1108,7 +1047,6 @@ namespace camera {
       boost_sparse_vector< vector_camera > epsilon_a(m_model.num_cameras());
       boost_sparse_vector< vector_point > epsilon_b(m_model.num_points());
       boost_sparse_matrix< matrix_camera_point > Y(m_model.num_cameras(), m_model.num_points());
-
 
       unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
       unsigned num_pt_params = BundleAdjustModelT::point_params_n;
@@ -1172,51 +1110,54 @@ namespace camera {
       }
 
       // Add in the camera position and pose constraint terms and covariances.
-      vw_out(DebugMessage, "bundle_adjustment") << "Camera Constraint Error:" << std::endl;
-      for (unsigned j = 0; j < U.size(); ++j) {
-        
-	Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> inverse_cov;
-        inverse_cov = m_model.A_inverse_covariance(j);
-
-        Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> C;
-        C.set_identity();
-        U(j) += transpose(C) * inverse_cov * C;
-
-        Vector<double, BundleAdjustModelT::camera_params_n> eps_a = m_model.A_initial(j)-m_model.A_parameters(j);
- 	
-	error_total += .5  * transpose(eps_a) * inverse_cov * eps_a;
-	
-	epsilon_a(j) += transpose(C) * inverse_cov * eps_a;
-        
-        // For debugging
-	vw_out(DebugMessage, "bundle_adjustment") << "\t>" << j << " error: " << eps_a << std::endl;
+      if (m_use_camera_constraint) {
+	vw_out(DebugMessage, "bundle_adjustment") << "Camera Constraint Error:" << std::endl;
+	for (unsigned j = 0; j < U.size(); ++j) {
+	  
+	  Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> inverse_cov;
+	  inverse_cov = m_model.A_inverse_covariance(j);
+	  
+	  Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> C;
+	  C.set_identity();
+	  U(j) += transpose(C) * inverse_cov * C;
+	  
+	  Vector<double, BundleAdjustModelT::camera_params_n> eps_a = m_model.A_initial(j)-m_model.A_parameters(j);
+	  
+	  error_total += .5  * transpose(eps_a) * inverse_cov * eps_a;
+	  
+	  epsilon_a(j) += transpose(C) * inverse_cov * eps_a;
+	  
+	  // For debugging
+	  vw_out(DebugMessage, "bundle_adjustment") << "\t>" << j << " error: " << eps_a << std::endl;
+	}
       }
 
       // Add in the 3D point position constraint terms and
       // covariances. We only add constraints for Ground Control
       // Points (GCPs), not for 3D tie points.
-      vw_out(DebugMessage, "bundle_adjustment") << "GCP Error: " << std::endl;
-      for (unsigned i = 0; i < V.size(); ++i) {
-        if ((*m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
-
-          Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> inverse_cov;
-          inverse_cov = m_model.B_inverse_covariance(i);
-          
-          Matrix<double, BundleAdjustModelT::point_params_n, BundleAdjustModelT::point_params_n> D;
-          D.set_identity();
-          V(i) +=  transpose(D) * inverse_cov * D;
-          
-          Vector<double, BundleAdjustModelT::point_params_n> eps_b = m_model.B_initial(i)-m_model.B_parameters(i);
-	  
-	  error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
-
-	  epsilon_b(i) += transpose(D) * inverse_cov * eps_b;
-
-          // For debugging
-	  vw_out(DebugMessage, "bundle_adjustment") << "\t>" << i << " error: " << eps_b << std::endl;
-        }
+      if (m_use_gcp_constraint) {
+	vw_out(DebugMessage, "bundle_adjustment") << "GCP Error: " << std::endl;
+	for (unsigned i = 0; i < V.size(); ++i) {
+	  if ((*m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
+	    
+	    Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> inverse_cov;
+	    inverse_cov = m_model.B_inverse_covariance(i);
+	    
+	    Matrix<double, BundleAdjustModelT::point_params_n, BundleAdjustModelT::point_params_n> D;
+	    D.set_identity();
+	    V(i) +=  transpose(D) * inverse_cov * D;
+	    
+	    Vector<double, BundleAdjustModelT::point_params_n> eps_b = m_model.B_initial(i)-m_model.B_parameters(i);
+	    
+	    error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
+	    
+	    epsilon_b(i) += transpose(D) * inverse_cov * eps_b;
+	    
+	    // For debugging
+	    vw_out(DebugMessage, "bundle_adjustment") << "\t>" << i << " error: " << eps_b << std::endl;
+	  }
+	}
       }
-
       
       // flatten both epsilon_b and epsilon_a into a vector
       for (unsigned j = 0; j < U.size(); j++){
@@ -1228,7 +1169,6 @@ namespace camera {
 	subvector(g, current_g_length, num_pt_params) = static_cast<vector_point>(epsilon_b(i));
 	current_g_length += num_pt_params;
       }
-
 
       //e at this point should be -g_a
       
@@ -1433,30 +1373,33 @@ namespace camera {
         ++i;
       }
 
-      for (unsigned j = 0; j < U.size(); ++j) {
-
-        Vector<double, BundleAdjustModelT::camera_params_n> new_a = m_model.A_parameters(j) + subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
-        Vector<double, BundleAdjustModelT::camera_params_n> eps_a = m_model.A_initial(j)-new_a;
-        
-	Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> inverse_cov;
-	inverse_cov = m_model.A_inverse_covariance(j);
-
-	new_error_total += .5 * transpose(eps_a) * inverse_cov * eps_a;
-      }
-      
-      // We only add constraints for Ground Control Points (GCPs), not for 3D tie points.
-      for (unsigned i = 0; i < V.size(); ++i) {
-        if ((*m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
-
-          vector_point new_b = m_model.B_parameters(i) + static_cast<vector_point>(delta_b(i));
-          vector_point eps_b = m_model.B_initial(i)-new_b;
+      // Camera Constraints
+      if (m_use_camera_constraint)
+	for (unsigned j = 0; j < U.size(); ++j) {
 	  
-	  matrix_point_point inverse_cov;
-          inverse_cov = m_model.B_inverse_covariance(i);
-          
-	  new_error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
-        }
-      }
+	  Vector<double, BundleAdjustModelT::camera_params_n> new_a = m_model.A_parameters(j) + subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
+	  Vector<double, BundleAdjustModelT::camera_params_n> eps_a = m_model.A_initial(j)-new_a;
+	  
+	  Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> inverse_cov;
+	  inverse_cov = m_model.A_inverse_covariance(j);
+	  
+	  new_error_total += .5 * transpose(eps_a) * inverse_cov * eps_a;
+	}
+      
+      // GCP Error
+      if (m_use_gcp_constraint)
+	for (unsigned i = 0; i < V.size(); ++i) {
+	  if ((*m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
+	    
+	    vector_point new_b = m_model.B_parameters(i) + static_cast<vector_point>(delta_b(i));
+	    vector_point eps_b = m_model.B_initial(i)-new_b;
+	    
+	    matrix_point_point inverse_cov;
+	    inverse_cov = m_model.B_inverse_covariance(i);
+	    
+	    new_error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
+	  }
+	}
       
       //Fletcher modification
       double Splus = new_error_total;     //Compute new objective
@@ -1501,7 +1444,7 @@ namespace camera {
 	} else if (m_control == 1){
 	  m_lambda *= 10;
 	}
-	double overall_delta = sqrt(error_total) - sqrt(new_error_total);
+	// double overall_delta = sqrt(error_total) - sqrt(new_error_total);
 
 	/* // Taken over mostly by Bundle Adjust Report
 	std::cout <<"\n" << "Sparse LM Iteration " << m_iterations << "  delta  "<< overall_delta << "  lambda: " << m_lambda << "   Ratio:  " << R <<"\n";
