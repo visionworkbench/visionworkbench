@@ -556,8 +556,8 @@ namespace camera {
     
     BundleAdjustment(BundleAdjustModelT &model, 
                      RobustCostT const& robust_cost_func,
-		     bool use_camera_constraint, 
-		     bool use_gcp_constraint ) : 
+		     bool use_camera_constraint=true, 
+		     bool use_gcp_constraint=true ) : 
     m_model(model), m_robust_cost_func(robust_cost_func),
       m_use_camera_constraint(use_camera_constraint),
       m_use_gcp_constraint(use_gcp_constraint) {
