@@ -26,6 +26,7 @@
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Cartography/PointImageManipulation.h>
+#include <vw/FileIO/KML.h>
 
 // Boost
 #include <boost/algorithm/string.hpp>
@@ -61,6 +62,7 @@ namespace camera {
   // Posix time is not fully supported in the version of Boost for RHEL
   // Workstation 4
 
+  // Small Tools
   enum ReportLevel {
     MinimalReport = 0,
     ClassicReport = 10,
@@ -73,49 +75,23 @@ namespace camera {
     DebugJacobianReport = 110
   };
 
-  struct TabCount {
-    int count;
-  };
-
-  std::ostream& operator<<( std::ostream& os, TabCount const& tab);
   bool vector_sorting( Vector3 i, Vector3 j);
 
-  class KMLPlaceMark { 
-    boost::filesystem::ofstream m_output_file;
-    TabCount m_tab;
-    std::string m_name;
-    std::string m_directory;
-  public:
-    KMLPlaceMark( std::string filename,
-		  std::string name,
-		  std::string directory );
-    void write_gcps( ControlNetwork const& cnet );
-    void write_3d_est( ControlNetwork const& cnet,
-		       std::vector<double>& image_errors );
-    ~KMLPlaceMark( void );
-  protected:
-    // High Level
-    void recursive_placemark_building( std::list<Vector3>&,
-				       std::string const&,
-				       double&, double&,
-				       float&, float&,
-				       float&, float&,
-				       int);
-    void network_link( std::string,
-		       double, double, double, double );
-    // Low Level
-    void close_kml( void );
-    void enter_folder( std::string, std::string);
-    void exit_folder(void);
-    void placemark( double, double, std::string,
-		    std::string, std::string );
-    void latlonaltbox( float, float, float, float );
-    void lod( float, float );
-    void style( std::string, std::string, 
-		float, std::string );
-    void stylemap( std::string, std::string, std::string );
-  };
+  void write_kml_styles( KMLFile& kml );
+  void write_gcps_kml( KMLFile& kml,
+		       ControlNetwork const& cnet );
+  void write_3d_est_kml( KMLFile& kml,
+			 ControlNetwork const& cnet,
+			 std::vector<double>& image_errors );
+  void recursive_kml_placemark( KMLFile& kml,
+				std::list<Vector3>& list,
+				std::string const& name,
+				double& min, double& max,
+				float& north, float& south,
+				float& east, float& west,
+				int recursive_lvl );
 
+  // Bundle Adjust Report Code
   template <class BundleAdjustModelT, class BundleAdjusterT>
   class BundleAdjustReport {
   private:
@@ -471,17 +447,18 @@ namespace camera {
 
       std::ostringstream kml_filename;
       kml_filename << m_file_prefix + ".kml";
-      KMLPlaceMark kml( kml_filename.str(), 
-			bundleadjust_name,
-			m_file_prefix );
+      KMLFile kml( kml_filename.str(), 
+		   bundleadjust_name,
+		   m_file_prefix );
+      write_kml_styles( kml );
 
       boost::shared_ptr<ControlNetwork> network = m_model.control_network();
       
-      kml.write_gcps( *network );
+      write_gcps_kml( kml, *network );
       if ( !gcps_only ) {
 	std::vector<double> image_errors;
 	m_model.image_errors( image_errors );
-	kml.write_3d_est( *network, image_errors );
+	write_3d_est_kml( kml, *network, image_errors );
       }
     }
 

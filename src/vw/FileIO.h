@@ -40,4 +40,6 @@
 #include <vw/FileIO/DiskImageResourceHDF.h>
 #endif
 
+#include <vw/FileIO/KML.h>
+
 #endif // __VW_FILEIO_H__
