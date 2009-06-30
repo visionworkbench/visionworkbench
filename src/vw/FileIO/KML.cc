@@ -32,7 +32,7 @@ namespace vw {
   // Constructor / Deconstructor
   KMLFile::KMLFile( std::string filename,
 		    std::string name,
-		    std::string directory="" ) : m_filename(filename), m_name(name), m_directory(directory) {
+		    std::string directory ) : m_filename(filename), m_name(name), m_directory(directory) {
     m_tab.count = 0;
     boost::to_lower( m_name );
     boost::replace_all( m_name, " ", "_" );
@@ -72,7 +72,8 @@ namespace vw {
   // Enter / Exit Folder 
   // This creates those actual folders in GE that the user can turn on
   // or off.
-  void KMLFile::enter_folder( std::string name="", std::string desc="") {
+  void KMLFile::enter_folder( std::string name, 
+			      std::string desc ) {
     open_bracket("Folder");
     if ( name != "" )
       m_output_file << m_tab << "<name>"<< name <<"</name>\n";
@@ -88,9 +89,9 @@ namespace vw {
   
   // Placemark: This creates the simple generic pushpin marker
   void KMLFile::append_placemark( double lon, double lat,
-				std::string name="",
-				std::string description="",
-				std::string style="") {
+				  std::string name,
+				  std::string description,
+				  std::string style ) {
     open_bracket("Placemark");
     if ( name != "" )
       m_output_file << m_tab << "<name>"<< name <<"</name>\n";

@@ -49,7 +49,7 @@ namespace vw {
   public:
     KMLFile( std::string filename,
 	     std::string name,
-	     std::string directory );
+	     std::string directory="" );
     ~KMLFile( void ); // Closes file out
 
     // Access internal
@@ -64,13 +64,13 @@ namespace vw {
     void close_all_brackets( void );
 
     // Low Level Functions
-    void enter_folder( std::string name, 
-		       std::string description );
+    void enter_folder( std::string name="", 
+		       std::string description="" );
     void exit_folder( void );
     void append_placemark( double lon, double lat,
-			   std::string name,
-			   std::string description,
-			   std::string style );
+			   std::string name="",
+			   std::string description="",
+			   std::string style="" );
     void append_coordinate( vw::Vector3 position,
 			    vw::Quaternion<double> pose,
 			    std::string name,
