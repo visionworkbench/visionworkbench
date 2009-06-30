@@ -91,10 +91,11 @@ namespace vw {
     void append_network( std::string link,
 			 double north, double south,
 			 double east, double west );
-    
+
+    void close_kml( void ); // If it seems the file wasn't finished, try this.
   protected:
     void open_kml( void );
-    void close_kml( void );
+    
   };
   
   // High Level Tools!
