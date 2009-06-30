@@ -91,7 +91,9 @@ namespace vw {
   void KMLFile::append_placemark( double lon, double lat,
 				  std::string name,
 				  std::string description,
-				  std::string style ) {
+				  std::string style,
+				  double altitude,
+				  bool extrude ) {
     open_bracket("Placemark");
     if ( name != "" )
       m_output_file << m_tab << "<name>"<< name <<"</name>\n";
@@ -101,8 +103,12 @@ namespace vw {
     if ( style != "") 
       m_output_file << m_tab << "<styleUrl>#"<<style<<"</styleUrl>\n";
     open_bracket("Point");
-    m_output_file << m_tab << "\t<coordinates>"<< std::setw(10) 
-		  << lon <<","<< lat <<",0</coordinates>\n";
+    if ( extrude )
+      m_output_file << m_tab << "<extrude>1</extrude>\n";
+    m_output_file << m_tab << "<altitudeMode>absolute</altitudeMode>\n";
+    m_output_file << m_tab << "<coordinates>"<< std::setw(10) 
+		  << lon <<","<< lat <<"," << altitude
+		  << "</coordinates>\n";
     close_brackets(2);
   }
 

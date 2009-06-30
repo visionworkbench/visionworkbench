@@ -70,7 +70,9 @@ namespace vw {
     void append_placemark( double lon, double lat,
 			   std::string name="",
 			   std::string description="",
-			   std::string style="" );
+			   std::string style="",
+			   double altitude=0,
+			   bool extrude=false );
     void append_coordinate( vw::Vector3 position,
 			    vw::Quaternion<double> pose,
 			    std::string name,
