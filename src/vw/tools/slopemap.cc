@@ -37,9 +37,6 @@ bool output_gradient=true;
 bool output_aspect=true;
 bool output_pretty=true;
 
-bool use_horn=true; //which is default? is this the best way?
-
-
 // Erases a file suffix if one exists and returns the base string
 static std::string prefix_from_filename(std::string const& filename) {
   std::string result=filename;
@@ -121,7 +118,7 @@ Vector3 modified_horn (int x, int y, ImageView<ImageT> img, GeoReference GR) {
 	if(dot_prod(plane_normal,center_normal) <0) plane_normal=plane_normal*-1;
 
         double dotprod=dot_prod(plane_normal,center_normal);
-	double gradient_angle=pi/2-acos(dotprod);
+	double gradient_angle=acos(dotprod);
 
 	Vector3 surface_normal_on_sphere_tangent_plane=normalize(plane_normal-dot_prod(plane_normal,center_normal)*center_normal);
 	Vector3 north(0,0,1);
