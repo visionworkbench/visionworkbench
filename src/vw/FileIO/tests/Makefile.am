@@ -35,3 +35,4 @@ EXTRA_DIST = $(TESTS:%=%.h) rgb2x2.png rgb2x2.tif rgb2x2.jpg png16.png
 CLEANFILES = $(TESTS:%=%.cxx) tmp.png tmp.tif rwtest.* test-png16.png
 
 include $(top_srcdir)/config/rules.mak
+include $(top_srcdir)/config/tests_old.am

@@ -40,3 +40,4 @@ EXTRA_DIST = $(TESTS:%=%.h) test.jpg
 CLEANFILES = $(TESTS:%=%.cxx)
 
 include $(top_srcdir)/config/rules.mak
+include $(top_srcdir)/config/tests_old.am

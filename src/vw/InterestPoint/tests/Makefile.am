@@ -33,3 +33,4 @@ EXTRA_DIST = $(TESTS:%=%.h) sub.png noisy_gradient_60.png
 CLEANFILES = $(TESTS:%=%.cxx)
 
 include $(top_srcdir)/config/rules.mak
+include $(top_srcdir)/config/tests_old.am
