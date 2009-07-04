@@ -8,21 +8,16 @@
 #include <fstream>
 #include <sstream>
 
-#include <cxxtest/TestSuite.h>
+#include <gtest/gtest.h>
 #include <vw/Core/Settings.h>
 #include <vw/Core/ConfigParser.h>
-#include <vw/config.h>
+#include <vw/tests/config_test.h>
 
 using namespace vw;
 
-class TestSettings : public CxxTest::TestSuite
-{
-public:
+TEST(Settings, HAS_CONFIG_FILE(VWrc)) {
 
-
-  void test_vwrc() {
-#if defined(VW_ENABLE_CONFIG_FILE) && VW_ENABLE_CONFIG_FILE == 1
-    const char *conf = "\n\
+  const char *conf = "\n\
       # Comment 1                         \n\
       # Comment 2                         \n\
                                           \n\
@@ -45,34 +40,38 @@ public:
       VerboseDebugMessage = *             \n\
       ";
 
-    std::ofstream ostr(TEST_SRCDIR"/test_vwrc");
-    ostr << conf;
-    ostr.close();
+  std::ofstream ostr(TEST_SRCDIR"/test_vwrc");
+  ostr << conf;
+  ostr.close();
 
-    // Test to see if the settings were correctly read in
-    vw_settings().set_rc_filename(TEST_SRCDIR"/test_vwrc");
-    TS_ASSERT_EQUALS(vw_settings().default_num_threads(), 20);
-    TS_ASSERT_EQUALS(vw_settings().system_cache_size(), 623);
-#else
-    TS_TRACE("Config files disabled: skipping read test!");
-#endif
+  // Test to see if the settings were correctly read in
+  vw_settings().set_rc_filename(TEST_SRCDIR"/test_vwrc");
+  EXPECT_EQ( 20, vw_settings().default_num_threads() );
+  EXPECT_EQ( 623, vw_settings().system_cache_size() );
 
-    // Test to make sure that the API overrides the contents of vwrc
-    vw_settings().set_default_num_threads(5);
-    vw_settings().set_system_cache_size(223);
-    TS_ASSERT_EQUALS(vw_settings().default_num_threads(), 5);
-    TS_ASSERT_EQUALS(vw_settings().system_cache_size(), 223);
-  }
+  // Test to make sure that the API overrides the contents of vwrc
+  vw_settings().set_default_num_threads(5);
+  vw_settings().set_system_cache_size(223);
+  EXPECT_EQ( 5, vw_settings().default_num_threads() );
+  EXPECT_EQ( 223, vw_settings().system_cache_size() );
+}
 
-  void test_old_vwrc() {
-    const char *conf = "\n\
-logfile console\n\
-40 *\n";
+TEST(Settings, Override) {
+  // Test to make sure that the API overrides the contents of vwrc
+  vw_settings().set_default_num_threads(5);
+  vw_settings().set_system_cache_size(223);
+  EXPECT_EQ( 5, vw_settings().default_num_threads() );
+  EXPECT_EQ( 223, vw_settings().system_cache_size() );
+}
 
-    Settings s;
-    std::istringstream stream(conf);
+TEST(Settings, OldVWrc) {
+  const char *conf = "\n\
+                      logfile console\n\
+                      40 *\n";
 
-    TS_TRACE("This should print a warning:");
-    parse_config(stream, s);
-  }
-};
+  Settings s;
+  std::istringstream stream(conf);
+
+  // This should print a warning, but not throw an exception
+  parse_config(stream, s);
+}
