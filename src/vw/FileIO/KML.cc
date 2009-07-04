@@ -11,6 +11,7 @@
 /// 
 
 // Vision Workbench
+#include <iomanip>
 #include <vw/FileIO/KML.h>
 #include <vw/Math/EulerAngles.h>
 #include <vw/Cartography/PointImageManipulation.h>

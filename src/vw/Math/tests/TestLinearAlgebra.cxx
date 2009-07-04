@@ -185,9 +185,9 @@ TEST(LinearAlgebra, SVDDouble) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   svd(A,s);
 
-  EXPECT_NEAR( 444.786309525272  , s[0], 1e-13 );
-  EXPECT_NEAR( 292.84455931980744, s[1], 1e-13 );
-  EXPECT_NEAR( 16.649412472420977, s[2], 1e-13 );
+  EXPECT_NEAR( 444.786309525272  , s[0], 1e-12 );
+  EXPECT_NEAR( 292.84455931980744, s[1], 1e-12 );
+  EXPECT_NEAR( 16.649412472420977, s[2], 1e-12 );
 }
 
 // Test the svd(A,s) routine with a mixture of float and double matrix/vectors
@@ -319,7 +319,7 @@ TEST(LinearAlgebra, QRDFloat) {
 
   EXPECT_NEAR(1, std::fabs(det(Q)), 1e-7); // Q must be unitary <-> det 1
   EXPECT_MATRIX_NEAR( identity_matrix(4), Q*transpose(Q), 1e-6 );
-  EXPECT_MATRIX_NEAR( A, Q*R, 1e-4);
+  EXPECT_MATRIX_NEAR( A, Q*R, 1e-3);
 
   // R must be upper triangular
   EXPECT_EQ(R(1, 0), 0);
@@ -460,7 +460,7 @@ TEST(LinearAlgebra, PseudoInverse) {
   // moore-penrose pseudoinverse criteria
   EXPECT_MATRIX_NEAR( A,    A*Ap*A,          1e-3 );
   EXPECT_MATRIX_NEAR( Ap,   Ap*A*Ap,         1e-7 );
-  EXPECT_MATRIX_NEAR( A*Ap, transpose(A*Ap), 1e-6 );
+  EXPECT_MATRIX_NEAR( A*Ap, transpose(A*Ap), 1e-5 );
   EXPECT_MATRIX_NEAR( Ap*A, transpose(Ap*A), 1e-5 );
 
   float Ap_expect2_[12] = {
@@ -472,7 +472,7 @@ TEST(LinearAlgebra, PseudoInverse) {
 
   ASSERT_EQ( A.cols(), Ap.rows() );
   ASSERT_EQ( A.rows(), Ap.cols() );
-  EXPECT_MATRIX_NEAR( MatrixProxy<float>(Ap_expect2_, 4, 3), Ap, 1e-8 );
+  EXPECT_MATRIX_NEAR( MatrixProxy<float>(Ap_expect2_, 4, 3), Ap, 1e-7 );
 
   A = Matrix<float>(4,3);
   A(0,0) = 23;  A(0,1) = 1; A(0,2) = 25;
