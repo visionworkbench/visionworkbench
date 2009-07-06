@@ -307,6 +307,7 @@ namespace camera {
 	  dir << "data/";
 	KMLFile subsection( new_name.str() + ".kml", 
 			    new_name.str(), dir.str() );
+	write_kml_styles( subsection );
 	recursive_kml_placemark( subsection,
 				 temp, new_name.str(),
 				 min, max,
