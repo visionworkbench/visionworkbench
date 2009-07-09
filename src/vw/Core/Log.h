@@ -270,7 +270,7 @@ namespace vw {
   };
 
   // Aside from some tricky initialization semantics, this subclass of
-  // basic_ostream is actaully fairly simple.  It passes along
+  // basic_ostream is actually fairly simple.  It passes along
   // characters to the PerThreadBufferedStreamBuf, which does the
   // actual interesting stuff.
   //
