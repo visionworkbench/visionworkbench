@@ -57,7 +57,7 @@ double nudge_x=0, nudge_y=0;
 double north_lat=90.0, south_lat=-90.0;
 double east_lon=180.0, west_lon=-180.0;
 double proj_lat=0, proj_lon=0, proj_scale=1;
-unsigned utm_zone;
+int utm_zone;
 int tile_size;
 float jpeg_quality;
 int png_compression;
@@ -223,7 +223,9 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     else if( vm.count("stereographic") ) input_georef.set_stereographic(proj_lat,proj_lon,proj_scale);
     else if( vm.count("lambert-azimuthal") ) input_georef.set_lambert_azimuthal(proj_lat,proj_lon);
     else if( vm.count("lambert-conformal-conic") ) input_georef.set_lambert_azimuthal(lcc_parallel1, lcc_parallel2, proj_lat, proj_lon);
-    else if( vm.count("utm") ) input_georef.set_UTM( utm_zone );
+    else if( vm.count("utm") ) {
+      input_georef.set_UTM( abs(utm_zone), utm_zone > 0 );
+    }
 
     if( vm.count("nudge-x") || vm.count("nudge-y") ) {
       Matrix3x3 m = input_georef.transform();
@@ -517,7 +519,6 @@ int main(int argc, char **argv) {
     ("south", po::value<double>(&south_lat), "The southernmost latitude in degrees")
     ("east", po::value<double>(&east_lon), "The easternmost longitude in degrees")
     ("west", po::value<double>(&west_lon), "The westernmost longitude in degrees")
-    ("force-wgs84", "Assume the input images' geographic coordinate systems are WGS84, even if they're not (old behavior)")
     ("sinusoidal", "Assume a sinusoidal projection")
     ("mercator", "Assume a Mercator projection")
     ("transverse-mercator", "Assume a transverse Mercator projection")
@@ -525,7 +526,7 @@ int main(int argc, char **argv) {
     ("stereographic", "Assume a stereographic projection")
     ("lambert-azimuthal", "Assume a Lambert azimuthal projection")
     ("lambert-conformal-conic", "Assume a Lambert Conformal Conic projection")
-    ("utm", po::value<unsigned>(&utm_zone), "Assume UTM projection with the given zone")
+    ("utm", po::value(&utm_zone), "Assume UTM projection with the given zone (+ for North, - for South)")
     ("proj-lat", po::value<double>(&proj_lat), "The center of projection latitude (if applicable)")
     ("proj-lon", po::value<double>(&proj_lon), "The center of projection longitude (if applicable)")
     ("proj-scale", po::value<double>(&proj_scale), "The projection scale (if applicable)")
