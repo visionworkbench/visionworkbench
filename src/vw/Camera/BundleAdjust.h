@@ -1111,7 +1111,6 @@ namespace camera {
 
       // Add in the camera position and pose constraint terms and covariances.
       if (m_use_camera_constraint) {
-	vw_out(DebugMessage, "bundle_adjustment") << "Camera Constraint Error:" << std::endl;
 	for (unsigned j = 0; j < U.size(); ++j) {
 	  
 	  Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> inverse_cov;
@@ -1127,8 +1126,6 @@ namespace camera {
 	  
 	  epsilon_a(j) += transpose(C) * inverse_cov * eps_a;
 	  
-	  // For debugging
-	  vw_out(DebugMessage, "bundle_adjustment") << "\t>" << j << " error: " << eps_a << std::endl;
 	}
       }
 
@@ -1136,7 +1133,6 @@ namespace camera {
       // covariances. We only add constraints for Ground Control
       // Points (GCPs), not for 3D tie points.
       if (m_use_gcp_constraint) {
-	vw_out(DebugMessage, "bundle_adjustment") << "GCP Error: " << std::endl;
 	for (unsigned i = 0; i < V.size(); ++i) {
 	  if ((*m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
 	    
@@ -1153,8 +1149,6 @@ namespace camera {
 	    
 	    epsilon_b(i) += transpose(D) * inverse_cov * eps_b;
 	    
-	    // For debugging
-	    vw_out(DebugMessage, "bundle_adjustment") << "\t>" << i << " error: " << eps_b << std::endl;
 	  }
 	}
       }
@@ -1174,7 +1168,6 @@ namespace camera {
       
       // set initial lambda, and ignore if the user has touched it
       if (m_iterations == 1 && m_lambda == 1e-3){
-
 	double max = 0.0;
 	for (unsigned i = 0; i < U.size(); ++i)  
 	  for (unsigned j = 0; j < BundleAdjustModelT::camera_params_n; ++j){
@@ -1192,17 +1185,19 @@ namespace camera {
      
       // "Augment" the diagonal entries of the U and V matrices with
       // the parameter lambda.
-      for (i = 0; i < U.size(); ++i) {
-        for (unsigned j = 0; j < BundleAdjustModelT::camera_params_n; ++j) {
-	  static_cast<matrix_camera_camera>(U(i))(j,j) += m_lambda;
-	   //U(i).ref()(j,j) *= (1 + m_lambda); 
-	}
+      {
+	matrix_camera_camera u_lambda;
+	u_lambda.set_identity();
+	u_lambda *= m_lambda;
+	for ( i = 0; i < U.size(); ++i )
+	  static_cast<matrix_camera_camera>(U(i)) += u_lambda;
       }
-      for (i = 0; i < V.size(); ++i) {
-        for (unsigned j = 0; j < BundleAdjustModelT::point_params_n; ++j) {
-	  static_cast<matrix_point_point>(V(i))(j,j) += m_lambda;
-	  //V(i).ref()(j,j) *= (1 + m_lambda);
-	}
+      {
+	matrix_point_point v_lambda;
+	v_lambda.set_identity();
+	v_lambda *= m_lambda;
+	for ( i = 0; i < V.size(); ++i )
+	  static_cast<matrix_point_point>(V(i)) += v_lambda;
       }
       
       // Create the 'e' vector in S * delta_a = e.  The first step is
@@ -1302,16 +1297,16 @@ namespace camera {
       current_delta_length += e.size();
 
       boost_sparse_vector<vector_point > delta_b(m_model.num_points());
-      boost_sparse_vector<vector_camera> delta_a_aux(m_model.num_cameras());
 
       i = 0;
       for (typename ControlNetwork::const_iterator iter = m_control_net->begin(); iter != m_control_net->end(); ++iter) {
-        Vector<double, BundleAdjustModelT::point_params_n> temp;
+
+        vector_point temp;
+
         for (typename ControlPoint::const_iterator j_measure_iter = (*iter).begin(); j_measure_iter != (*iter).end(); ++j_measure_iter) {
           unsigned j = j_measure_iter->image_id();
-          delta_a_aux(j) =  subvector(delta_a, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n);
 
-	  temp += transpose( static_cast<matrix_camera_point>(W(j,i)) ) * static_cast<vector_camera>(delta_a_aux(j));
+	  temp += transpose( static_cast<matrix_camera_point>(W(j,i)) ) * subvector( delta_a, j*num_cam_params, num_cam_params );
 	}
 
 	Vector<double> delta_temp = static_cast<vector_point>(epsilon_b(i)) - temp;
@@ -1325,15 +1320,6 @@ namespace camera {
 	current_delta_length += num_pt_params;
 
         ++i;
-      }
-      
-      i = 0;
-      double nsq_x = 0.0;
-      for (typename ControlNetwork::const_iterator iter = m_control_net->begin(); iter != m_control_net->end(); ++iter) {
-        for (typename ControlPoint::const_iterator measure_iter = (*iter).begin(); measure_iter != (*iter).end(); ++measure_iter) {
-          unsigned j = measure_iter->image_id();
-	  nsq_x += norm_2( m_model.A_parameters(j));
-	}nsq_x += norm_2(m_model.B_parameters(i));
       }
       
       dS = .5 * transpose(delta) *(m_lambda * delta + g);
@@ -1350,7 +1336,7 @@ namespace camera {
           
           // Compute error vector
           vector_camera new_a = m_model.A_parameters(j) + subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
-	  Vector<double> del_a = subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
+	  Vector<double> del_a = subvector(delta_a, num_cam_params*j, num_cam_params);
 
           vector_point new_b = m_model.B_parameters(i) + static_cast<vector_point>(delta_b(i));
 
@@ -1377,10 +1363,10 @@ namespace camera {
       if (m_use_camera_constraint)
 	for (unsigned j = 0; j < U.size(); ++j) {
 	  
-	  Vector<double, BundleAdjustModelT::camera_params_n> new_a = m_model.A_parameters(j) + subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
-	  Vector<double, BundleAdjustModelT::camera_params_n> eps_a = m_model.A_initial(j)-new_a;
+	  vector_camera new_a = m_model.A_parameters(j) + subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
+	  vector_camera eps_a = m_model.A_initial(j)-new_a;
 	  
-	  Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> inverse_cov;
+	  matrix_camera_camera inverse_cov;
 	  inverse_cov = m_model.A_inverse_covariance(j);
 	  
 	  new_error_total += .5 * transpose(eps_a) * inverse_cov * eps_a;

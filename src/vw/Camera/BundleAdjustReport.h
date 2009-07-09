@@ -259,11 +259,11 @@ namespace camera {
 					    image_errors.end()));
       double mean_image=0, stddev_image=0;
       for (unsigned i = 0; i < image_errors.size(); i++ ) {
-	mean_image += image_errors[i];
-	stddev_image += image_errors[i]*image_errors[i];
+	mean_image += image_errors[i]/double(image_errors.size());
+	stddev_image += image_errors[i]*image_errors[i]/double(image_errors.size());
       }
-      mean_image /= image_errors.size();
-      stddev_image /= image_errors.size();
+      //mean_image /= image_errors.size();
+      //stddev_image /= image_errors.size();
       stddev_image = sqrt( stddev_image - mean_image*mean_image );
       
       // Statistics gathering for camera_position_errors
