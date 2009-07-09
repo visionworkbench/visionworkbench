@@ -29,9 +29,12 @@ public:
 
     GeoTransform geotx(src_georef,dst_georef);
 
-//     TS_TRACE(stringify(geotx.forward(Vector2(0,0))));
-//     TS_TRACE(stringify(geotx.reverse(Vector2(0,0))));
-   }
+    Vector2 fwd = geotx.forward(Vector2(25,25)),
+            rev = geotx.reverse(Vector2(25,25));
 
-
+    TS_ASSERT_DELTA(fwd(0), 25, 1e-16);
+    TS_ASSERT_DELTA(fwd(1), 25, 1e-16);
+    TS_ASSERT_DELTA(rev(0), 25, 1e-16);
+    TS_ASSERT_DELTA(rev(1), 25, 1e-16);
+  }
 };
