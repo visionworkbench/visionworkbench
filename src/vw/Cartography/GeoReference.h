@@ -106,7 +106,7 @@ namespace cartography {
     /// True if the georeference is using a projected coordinate
     /// system.  False if no projection is used (ie. we are only using
     /// lon, lat).
-    bool is_projected() { return m_is_projected; }
+    bool is_projected() const { return m_is_projected; }
 
     /// Options include: WGS84, WGS72, NAD27, NAD83.  Note: you must
     /// call this routine before calling any of the routines below

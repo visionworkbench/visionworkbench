@@ -72,17 +72,20 @@ namespace cartography {
       int cols_max = bbox.max().x();
       Vector2 pix;
 
-      // Check the north pole.
-      pix = m_src_georef.lonlat_to_pixel( Vector2(0, 90) );
-      if (rows_min <= pix[1] && pix[1] <= rows_max &&
-          cols_min <= pix[0] && pix[0] <= cols_max)
-        r.grow( forward(pix) );
+      // TODO: Proper solution here is to detect the discontinuity points in any projection.
+      if (!m_src_georef.is_projected()) {
+        // Check the north pole.
+        pix = m_src_georef.lonlat_to_pixel( Vector2(0, 90) );
+        if (rows_min <= pix[1] && pix[1] <= rows_max &&
+            cols_min <= pix[0] && pix[0] <= cols_max)
+          r.grow( forward(pix) );
 
-      // Check the south pole.
-      pix = m_src_georef.lonlat_to_pixel( Vector2(0, -90) );
-      if (rows_min <= pix[1] && pix[1] <= rows_max &&
-          cols_min <= pix[0] && pix[0] <= cols_max)
-        r.grow( forward(pix) );
+        // Check the south pole.
+        pix = m_src_georef.lonlat_to_pixel( Vector2(0, -90) );
+        if (rows_min <= pix[1] && pix[1] <= rows_max &&
+            cols_min <= pix[0] && pix[0] <= cols_max)
+          r.grow( forward(pix) );
+      }
 
       return grow_bbox_to_int(r);
     }
@@ -96,17 +99,20 @@ namespace cartography {
       int cols_max = bbox.max().x();
       Vector2 pix;
 
-      // Check the north pole.
-      pix = m_dst_georef.lonlat_to_pixel( Vector2(0, 90) );
-      if (rows_min <= pix[1] && pix[1] < rows_max &&
-          cols_min <= pix[0] && pix[0] < cols_max)
-        r.grow( reverse(pix) );
+      // TODO: Proper solution here is to detect the discontinuity points in any projection.
+      if (!m_dst_georef.is_projected()) {
+        // Check the north pole.
+        pix = m_dst_georef.lonlat_to_pixel( Vector2(0, 90) );
+        if (rows_min <= pix[1] && pix[1] < rows_max &&
+            cols_min <= pix[0] && pix[0] < cols_max)
+          r.grow( reverse(pix) );
 
-      // Check the south pole.
-      pix = m_dst_georef.lonlat_to_pixel( Vector2(0, -90) );
-      if (rows_min <= pix[1] && pix[1] < rows_max &&
-          cols_min <= pix[0] && pix[0] < cols_max)
-        r.grow( reverse(pix) );
+        // Check the south pole.
+        pix = m_dst_georef.lonlat_to_pixel( Vector2(0, -90) );
+        if (rows_min <= pix[1] && pix[1] < rows_max &&
+            cols_min <= pix[0] && pix[0] < cols_max)
+          r.grow( reverse(pix) );
+      }
 
       return grow_bbox_to_int(r);
     }
