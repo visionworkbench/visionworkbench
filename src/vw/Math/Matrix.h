@@ -135,17 +135,15 @@ namespace math {
 
     /// Set the matrix to entirely zeros.
     void set_zero() {
-      int n=impl().rows();
-      int m=impl().cols();
-      for( int i=0; i<n; ++i )
-        for( int j=0; j<m; ++j )
+      for( unsigned i=0; i<impl().rows(); ++i )
+        for( unsigned j=0; j<impl().cols(); ++j )
           impl()(i,j) = (typename MatrixT::value_type(0));
     }
 
     // Set the entire matrix to ones
     void set_ones() {
-      for( int i=0; i<impl().rows(); ++i )
-	for( int j=0; j<impl().cols(); ++j )
+      for( unsigned i=0; i<impl().rows(); ++i )
+	for( unsigned j=0; j<impl().cols(); ++j )
 	  impl()(i,j) = (typename MatrixT::value_type(1));
     }
   };
