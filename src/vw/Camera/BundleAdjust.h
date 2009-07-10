@@ -4,7 +4,6 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-
 /// \file BundleAdjust.h
 /// 
 /// Optimization classes for carrying out bundle adjustment of many
@@ -160,8 +159,6 @@ namespace camera {
     return 1;
   };
   
-
-
   // returns cholesky factor L, D in lower left hand corner and
   // diagonal modifies in place Assumes M is positive definite
   template<class T>
@@ -174,7 +171,6 @@ namespace camera {
       submatrix(M, j, j, n-j, 1)/= sqrt(M(j,j));
     }
   };
-
   
   // solves Lx = b
   // modifies in place 
@@ -1075,13 +1071,17 @@ namespace camera {
           VW_DEBUG_ASSERT(j >=0 && j < m_model.num_cameras(), ArgumentErr() << "BundleAdjustment::update() : image index out of bounds.");
 	  
           // Store jacobian values
+	  if ( i == 106144 ) std::cout << "A Jacobian!\n";
           A(i,j) = m_model.A_jacobian(i,j,m_model.A_parameters(j),m_model.B_parameters(i));
+	  if ( i == 106144 ) std::cout << "B Jacobian!\n";
           B(i,j) = m_model.B_jacobian(i,j,m_model.A_parameters(j),m_model.B_parameters(i));
 
           // Apply robust cost function weighting
           Vector2 unweighted_error = measure_iter->dominant() - m_model(i,j,m_model.A_parameters(j),m_model.B_parameters(i));
+
 	  double mag = norm_2(unweighted_error);
           double weight = sqrt(m_robust_cost_func(mag)) / mag;
+
           epsilon(i,j) = unweighted_error * weight;
 	 	            
 	  Matrix2x2 inverse_cov;
@@ -1113,14 +1113,14 @@ namespace camera {
       if (m_use_camera_constraint) {
 	for (unsigned j = 0; j < U.size(); ++j) {
 	  
-	  Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> inverse_cov;
+	  matrix_camera_camera inverse_cov;
 	  inverse_cov = m_model.A_inverse_covariance(j);
 	  
-	  Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> C;
+	  matrix_camera_camera C;
 	  C.set_identity();
 	  U(j) += transpose(C) * inverse_cov * C;
 	  
-	  Vector<double, BundleAdjustModelT::camera_params_n> eps_a = m_model.A_initial(j)-m_model.A_parameters(j);
+	  vector_camera eps_a = m_model.A_initial(j)-m_model.A_parameters(j);
 	  
 	  error_total += .5  * transpose(eps_a) * inverse_cov * eps_a;
 	  
@@ -1136,14 +1136,14 @@ namespace camera {
 	for (unsigned i = 0; i < V.size(); ++i) {
 	  if ((*m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
 	    
-	    Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> inverse_cov;
+	    matrix_point_point inverse_cov;
 	    inverse_cov = m_model.B_inverse_covariance(i);
 	    
-	    Matrix<double, BundleAdjustModelT::point_params_n, BundleAdjustModelT::point_params_n> D;
+	    matrix_point_point D;
 	    D.set_identity();
 	    V(i) +=  transpose(D) * inverse_cov * D;
 	    
-	    Vector<double, BundleAdjustModelT::point_params_n> eps_b = m_model.B_initial(i)-m_model.B_parameters(i);
+	    vector_point eps_b = m_model.B_initial(i)-m_model.B_parameters(i);
 	    
 	    error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
 	    
@@ -1221,7 +1221,7 @@ namespace camera {
 
           // "Flatten the block structure to compute 'e'. 
           vector_camera temp = static_cast<matrix_camera_point>(Y(j,i))*static_cast<vector_point>(epsilon_b(i)); 
- 	  subvector(e, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n) -= temp;
+ 	  subvector(e, j*num_cam_params, num_cam_params) -= temp;
         } 
         ++i; 
       } 
@@ -1231,8 +1231,8 @@ namespace camera {
       // skyline structure, which makes it more efficient to solve
       // through L*D*L^T decomposition and forward/back substitution
       // below.
-      SparseSkylineMatrix<double> S(m_model.num_cameras()*BundleAdjustModelT::camera_params_n, 
-                                    m_model.num_cameras()*BundleAdjustModelT::camera_params_n);
+      SparseSkylineMatrix<double> S(m_model.num_cameras()*num_cam_params, 
+                                    m_model.num_cameras()*num_cam_params);
       
       i = 0;
       for (typename ControlNetwork::const_iterator iter = m_control_net->begin(); iter != m_control_net->end(); ++iter) {
@@ -1246,18 +1246,18 @@ namespace camera {
             matrix_camera_camera temp = -static_cast< matrix_camera_point >(Y(j,i)) * 
 	      transpose( static_cast<matrix_camera_point>(W(k,i)) );
             // ... and "flatten" this matrix into the scalar entries of S
-            for (unsigned aa = 0; aa < BundleAdjustModelT::camera_params_n; ++aa) {
-              for (unsigned bb = 0; bb < BundleAdjustModelT::camera_params_n; ++bb) {
+            for (unsigned aa = 0; aa < num_cam_params; ++aa) {
+              for (unsigned bb = 0; bb < num_cam_params; ++bb) {
                 // FIXME: This if clause is required at the moment to
                 // ensure that we do not use the += on the symmetric
                 // entries of the SparseSkylineMatrix.  These
                 // symmetric entries are shallow, hence this code
                 // would add the value twice if we're not careful
                 // here.
-                if (k*BundleAdjustModelT::camera_params_n + bb <=
-                    j*BundleAdjustModelT::camera_params_n + aa) {
-                  S(j*BundleAdjustModelT::camera_params_n + aa,
-                    k*BundleAdjustModelT::camera_params_n + bb) += temp(aa,bb);
+                if (k*num_cam_params + bb <=
+                    j*num_cam_params + aa) {
+                  S(j*num_cam_params + aa,
+                    k*num_cam_params + bb) += temp(aa,bb);
 
 		  //  S_old(j*BundleAdjustModelT::camera_params_n + aa,
                   //  k*BundleAdjustModelT::camera_params_n + bb) += temp_old(aa,bb);
@@ -1273,18 +1273,18 @@ namespace camera {
       // Augment the diagonal entries S(i,i) with U(i)
       for (unsigned i = 0; i < m_model.num_cameras(); ++i) {
         // ... and "flatten" this matrix into the scalar entries of S
-        for (unsigned aa = 0; aa < BundleAdjustModelT::camera_params_n; ++aa) {
-          for (unsigned bb = 0; bb < BundleAdjustModelT::camera_params_n; ++bb) {
+        for (unsigned aa = 0; aa < num_cam_params; ++aa) {
+          for (unsigned bb = 0; bb < num_cam_params; ++bb) {
             // FIXME: This if clause is required at the moment to
             // ensure that we do not use the += on the symmetric
             // entries of the SparseSkylineMatrix.  These
             // symmetric entries are shallow, hence this code
             // would add the value twice if we're not careful
             // here.
-            if (i*BundleAdjustModelT::camera_params_n + bb <= 
-                i*BundleAdjustModelT::camera_params_n + aa) {
-              S(i*BundleAdjustModelT::camera_params_n + aa,
-                i*BundleAdjustModelT::camera_params_n + bb) += static_cast<matrix_camera_camera>(U(i))(aa,bb);
+            if (i*num_cam_params + bb <= 
+                i*num_cam_params + aa) {
+              S(i*num_cam_params + aa,
+                i*num_cam_params + bb) += static_cast<matrix_camera_camera>(U(i))(aa,bb);
 	    }
           }
         }
@@ -1335,7 +1335,7 @@ namespace camera {
           unsigned j = measure_iter->image_id();
           
           // Compute error vector
-          vector_camera new_a = m_model.A_parameters(j) + subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
+          vector_camera new_a = m_model.A_parameters(j) + subvector(delta_a, num_cam_params*j, num_cam_params);
 	  Vector<double> del_a = subvector(delta_a, num_cam_params*j, num_cam_params);
 
           vector_point new_b = m_model.B_parameters(i) + static_cast<vector_point>(delta_b(i));
@@ -1363,7 +1363,7 @@ namespace camera {
       if (m_use_camera_constraint)
 	for (unsigned j = 0; j < U.size(); ++j) {
 	  
-	  vector_camera new_a = m_model.A_parameters(j) + subvector(delta_a, BundleAdjustModelT::camera_params_n*j, BundleAdjustModelT::camera_params_n);
+	  vector_camera new_a = m_model.A_parameters(j) + subvector(delta_a, num_cam_params*j, num_cam_params);
 	  vector_camera eps_a = m_model.A_initial(j)-new_a;
 	  
 	  matrix_camera_camera inverse_cov;
@@ -1396,8 +1396,8 @@ namespace camera {
 
 	for (unsigned j=0; j<m_model.num_cameras(); ++j)
           m_model.set_A_parameters(j, m_model.A_parameters(j) + subvector(delta_a,
-                                                                          BundleAdjustModelT::camera_params_n*j,
-                                                                          BundleAdjustModelT::camera_params_n));
+                                                                          num_cam_params*j,
+                                                                          num_cam_params));
         for (unsigned i=0; i<m_model.num_points(); ++i)
           m_model.set_B_parameters(i, m_model.B_parameters(i) + static_cast<vector_point>(delta_b(i)));
 	
