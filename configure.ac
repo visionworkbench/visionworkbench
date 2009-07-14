@@ -164,17 +164,19 @@ AM_CONDITIONAL(DIST_REMOVE_MODULES, [test ! -z "$DIST_REMOVE_MODULES"])
 AX_PKG_PTHREADS
 
 AX_PKG_BOOST
-AX_PKG_BOOST_CHECK_VERSION([VW_])
+if test x"$HAVE_PKG_BOOST" == "xyes"; then
+  AX_PKG_BOOST_CHECK_VERSION([VW_])
+  AC_MSG_NOTICE([VW will be built using Boost version $BOOST_VERSION])
 
-AC_MSG_NOTICE([VW will be built using Boost version $BOOST_VERSION])
-AX_PKG_BOOST_LIB(PROGRAM_OPTIONS, [-lboost_program_options], [boost/program_options.hpp])
+  AX_PKG_BOOST_LIB(PROGRAM_OPTIONS, [-lboost_program_options], [boost/program_options.hpp])
 
-AX_PKG_ONE_OF(BOOST_FILESYSTEM,
-    BOOST_FILESYSTEM_PRE_1_35,  [AX_PKG_BOOST_LIB(FILESYSTEM_PRE_1_35,  [-lboost_filesystem], [boost/filesystem/path.hpp])],
-    BOOST_FILESYSTEM_POST_1_35, [AX_PKG_BOOST_LIB(FILESYSTEM_POST_1_35, [-lboost_filesystem -lboost_system], [boost/filesystem/path.hpp])])
+  AX_PKG_ONE_OF(BOOST_FILESYSTEM,
+      BOOST_FILESYSTEM_PRE_1_35,  [AX_PKG_BOOST_LIB(FILESYSTEM_PRE_1_35,  [-lboost_filesystem], [boost/filesystem/path.hpp])],
+      BOOST_FILESYSTEM_POST_1_35, [AX_PKG_BOOST_LIB(FILESYSTEM_POST_1_35, [-lboost_filesystem -lboost_system], [boost/filesystem/path.hpp])])
 
-AX_PKG_BOOST_LIB(THREAD, [-lboost_thread], [boost/thread/thread.hpp])
-AX_PKG_BOOST_LIB(IOSTREAMS, [-lboost_iostreams], [boost/iostreams/stream_buffer.hpp])
+  AX_PKG_BOOST_LIB(THREAD, [-lboost_thread], [boost/thread/thread.hpp])
+  AX_PKG_BOOST_LIB(IOSTREAMS, [-lboost_iostreams], [boost/iostreams/stream_buffer.hpp])
+fi
 
 # This provides an easy way for users to override the threads options
 # if they are replacing Boost threads with something else for their platform.

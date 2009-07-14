@@ -8,19 +8,30 @@ dnl __END_LICENSE__
 # Usage: AX_PKG_BOOST
 AC_DEFUN([AX_PKG_BOOST],
 [
+  AC_ARG_WITH(boost,
+    AC_HELP_STRING([--with-boost], [enable searching for the boost package @<:@auto@:>@]),
+    [ HAVE_PKG_BOOST=$withval ]
+  )
+
   AC_MSG_CHECKING(for package BOOST)
 
   AC_LANG_ASSERT(C++)
 
   if test -n "${HAVE_PKG_BOOST}" && test "${HAVE_PKG_BOOST}" != "yes" && test "${HAVE_PKG_BOOST}" != "no" && test x"${HAVE_PKG_BOOST#no:}" == "x$HAVE_PKG_BOOST"; then
     PKG_PATHS_BOOST="${HAVE_PKG_BOOST}"
-    unset HAVE_PKG_BOOST
   else
     PKG_PATHS_BOOST="${PKG_PATHS}"
   fi
 
   # Skip testing if the user has overridden
-  if test -z ${HAVE_PKG_BOOST}; then
+  if test "no" = "$HAVE_PKG_BOOST"; then
+    AC_MSG_RESULT([no (disabled by user)])
+  elif test x"${HAVE_PKG_BOOST#no:}" != "x$HAVE_PKG_BOOST"; then # read as: if has_prefix(HAVE_PKG_BOOST, "no:")
+    dnl { and } break AC_MSG_RESULT
+    reason="${HAVE_PKG_BOOST#no:}"
+    AC_MSG_RESULT([no ($reason)])
+    HAVE_PKG_BOOST=no
+  else
 
     PKG_BOOST_CPPFLAGS=
     PKG_BOOST_LIBS=
@@ -90,9 +101,9 @@ AC_DEFUN([AX_PKG_BOOST],
     CPPFLAGS="$ax_pkg_old_cppflags"
     LDFLAGS="$ax_pkg_old_ldflags"
 
-  fi
+    AC_MSG_RESULT([$HAVE_PKG_BOOST])
 
-  AC_MSG_RESULT([$HAVE_PKG_BOOST])
+  fi
 
   if test "${HAVE_PKG_BOOST}" = "yes" ; then
     ax_have_pkg_bool=1
