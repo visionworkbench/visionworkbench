@@ -28,6 +28,7 @@
 
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
+#include <vw/FileIO/DiskImageResourcePGM.h>
 
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
 #include <vw/FileIO/DiskImageResourcePNG.h>
@@ -197,6 +198,9 @@ static void register_default_file_types_impl() {
 #if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
   vw::DiskImageResource::register_file_type( ".exr", vw::DiskImageResourceOpenEXR::type_static(), &vw::DiskImageResourceOpenEXR::construct_open, &vw::DiskImageResourceOpenEXR::construct_create );
 #endif
+
+  // Filetypes that are always supported
+  vw::DiskImageResource::register_file_type( ".pgm", vw::DiskImageResourcePGM::type_static(), &vw::DiskImageResourcePGM::construct_open, &vw::DiskImageResourcePGM::construct_create );
 
 }
 

@@ -9,8 +9,8 @@
 /// 
 /// Provides support for the PNG file format.
 ///
-#ifndef __VW_FILEIO_DISKIMAGERESOUCEPNG_H__
-#define __VW_FILEIO_DISKIMAGERESOUCEPNG_H__
+#ifndef __VW_FILEIO_DISKIMAGERESOURCEPNG_H__
+#define __VW_FILEIO_DISKIMAGERESOURCEPNG_H__
 
 #include <vw/config.h>
 
@@ -126,4 +126,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_FILEIO_DISKIMAGERESOUCEPNG_H__
+#endif // __VW_FILEIO_DISKIMAGERESOURCEPNG_H__

@@ -46,11 +46,12 @@ endif
 include_HEADERS = DiskImageResource.h DiskImageView.h JP2.h	\
 	DiskImageResourcePDS.h $(png_headers) $(jpeg_headers)	\
 	$(tiff_headers) $(openexr_headers) $(hdf_headers)	\
-	$(gdal_headers) KML.h
+	$(gdal_headers) KML.h DiskImageResourcePGM.h
 
 libvwFileIO_la_SOURCES = DiskImageResource.cc DiskImageResourcePDS.cc	\
 	$(png_sources) $(jpeg_sources) $(tiff_sources)			\
-	$(openexr_sources) $(hdf_sources) $(gdal_sources) KML.cc
+	$(openexr_sources) $(hdf_sources) $(gdal_sources) KML.cc        \
+	DiskImageResourcePGM.cc
 
 libvwFileIO_la_LIBADD = @MODULE_FILEIO_LIBS@
 
