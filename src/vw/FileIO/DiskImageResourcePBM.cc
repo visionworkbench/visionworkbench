@@ -96,34 +96,27 @@ void DiskImageResourcePBM::open( std::string const& filename ) {
   fclose(input_file);
 
   // Checking bit sanity
-  if (imax <= 0 || imax >= 255 )
+  if (m_max_value <= 0 || m_max_value >= 255 )
     vw_throw( IOErr() << "DiskImageResourcePBM: invalid bit type, Netpbm support 8 bit channel types and lower." );
 
   m_format.cols = iwidth;
   m_format.rows = iheight;
   m_format.planes = 1;
 
-  switch( m_magic ) {
-  case "P1":
-  case "P4":
+  if ( m_magic == "P1" || m_magic == "P4" ) {
     // Boolean File Type
     m_format.channel_type = VW_CHANNEL_BOOL;
     m_format.pixel_format = VW_PIXEL_GRAY;
-    break;
-  case "P2":
-  case "P5":
+  } else if ( m_magic == "P2" || m_magic == "P5" ) {
     // Grayscale image
     m_format.channel_type = VW_CHANNEL_UINT8;
     m_format.pixel_format = VW_PIXEL_GRAY;
-    break;
-  case "P3":
-  case "P6":
+  } else if ( m_magic == "P3" || m_magic == "P6" ) {
     // RGB image
     m_format.channel_type = VW_CHANNEL_UINT8;
     m_format.pixel_format = VW_PIXEL_RGB;
-  default:
+  } else
     vw_throw( IOErr() << "DiskImageResourcePBM: how'd you get here? Invalid magic number." );
-  }
 
 }
 
@@ -147,8 +140,8 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
   src.rstride = m_format.cols;
   src.pstride = num_pixels;
 
-  switch ( m_magic ) {
-  case "P1": // Bool ASCII
+  if ( m_magic == "P1" ) {
+    // Bool ASCII
     bool* image_data = new bool[num_pixels];
     bool* point = image_data;
     char buffer;
@@ -163,8 +156,8 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
     src.data = image_data;
     convert( dest, src, m_rescale );
     delete[] image_data;
-    break;
-  case "P2": // Gray uint8 ASCII
+  } else if ( m_magic == "P2" ) {
+    // Gray uint8 ASCII
     uint8* image_data = new uint8[num_pixels];
     uint8* point = image_data;
     for ( int32 i = 0; i < num_pixels; i++ ) {
@@ -175,8 +168,8 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
     src.data = image_data;
     convert( dest, src, m_rescale );
     delete[] image_data;
-    break;
-  case "P3": // RGB uint8 ASCII
+  } else if ( m_magic == "P3" ) {
+    // RGB uint8 ASCII
     uint8* image_data = new uint8[num_pixels*3];
     uint8* point = image_data;
     for ( int32 i = 0; i < num_pixels; i++ ) {
@@ -189,35 +182,39 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
     }
     normalize( image_data, num_pixels*3, m_max_value );
     src.data = image_data;
+    src.cstride = 3;
+    src.rstride = src.cstride*m_format.cols;
+    src.pstride = src.rstride*m_format.rows;
     convert( dest, src, m_rescale );
     delete[] image_data;
-    break;
-  case "P4": // Bool Binary
+  } else if ( m_magic == "P4" ) {
+    // Bool Binary
     bool* image_data = new bool[num_pixels];
     fread( image_data, sizeof(bool), num_pixels, input_file );
     src.data = image_data;
     convert( dest, src, m_rescale );
     delete[] image_data;
-    break;
-  case "P5": // Gray uint8 Binary
+  } else if ( m_magic == "P5" ) {
+    // Gray uint8 Binary
     uint8* image_data = new uint8[num_pixels];
     fread( image_data, sizeof(uint8), num_pixels, input_file );
     normalize( image_data, num_pixels, m_max_value );
     src.data = image_data;
     convert( dest, src, m_rescale );
     delete[] image_data;
-    break;
-  case "P6": // RGB uint8 Binary
+  } else if ( m_magic == "P6" ) {
+    // RGB uint8 Binary
     uint8* image_data = new uint8[num_pixels*3];
     fread( image_data, sizeof(uint8), num_pixels*3, input_file );
     normalize( image_data, num_pixels*3, m_max_value );
     src.data = image_data;
+    src.cstride = 3;
+    src.rstride = src.cstride*m_format.cols;
+    src.pstride = src.rstride*m_format.rows;
     convert( dest, src, m_rescale );
     delete[] image_data;
-    break;
-  default:
+  } else 
     vw_throw( NoImplErr() << "Unknown input channel type." );
-  }
 
   fclose(input_file);
 }
@@ -232,27 +229,41 @@ void DiskImageResourcePBM::create( std::string const& filename,
   m_filename = filename;
   m_format = format;
 
-  FILE* output_file = fopen(filename.c_str(), "w");
-  fprintf( output_file, "P5\n" );
-  fprintf( output_file, "%d\n", m_format.cols );
-  fprintf( output_file, "%d\n", m_format.rows );
+  // Deciding channel type (there are few options).
+  if ( m_format.channel_type != VW_CHANNEL_BOOL )
+    m_format.channel_type = VW_CHANNEL_UINT8;
 
-  // Converting to a PPM
-
-  switch ( m_format.channel_type ) {
-  case VW_CHANNEL_BOOL:
-    fprintf( output_file, "1\n" );
+  // Deciding pixel format
+  switch ( format.pixel_format ) {
+  case VW_PIXEL_UNKNOWN_MASKED:
+  case VW_PIXEL_SCALAR_MASKED:
+    m_format.pixel_format = VW_PIXEL_UNKNOWN_MASKED;
+    m_format.channel_type = VW_CHANNEL_BOOL;
+    m_magic = "P4";
+    m_max_value = 1;
     break;
-  case VW_CHANNEL_UINT8:
-    fprintf( output_file, "255\n" );
-    break;
-  case VW_CHANNEL_UINT16:
-    fprintf( output_file, "65535\n" );
+  case VW_PIXEL_UNKNOWN:
+  case VW_PIXEL_SCALAR:
+  case VW_PIXEL_GRAY:
+  case VW_PIXEL_GRAYA:
+  case VW_PIXEL_GRAY_MASKED:
+  case VW_PIXEL_GRAYA_MASKED:
+  case VW_PIXEL_GENERIC_1_CHANNEL:
+    m_format.pixel_format = VW_PIXEL_GRAY;
+    m_magic = "P5";
+    m_max_value = 255;
     break;
   default:
-    vw_throw( NoImplErr() << "Incorrect channel type. PBM supports only BOOL, UINT8, UINT16. Got: " << );
+    m_format.pixel_format = VW_PIXEL_RGB;
+    m_magic = "P6";
+    m_max_value = 255;
     break;
   }
+
+  FILE* output_file = fopen(filename.c_str(), "w");
+  fprintf( output_file, "%s\n", m_magic.c_str() );
+  fprintf( output_file, "%d\n", m_format.cols );
+  fprintf( output_file, "%d\n", m_format.rows );
 
   fgetpos( output_file, &m_image_data_position );
   fclose( output_file );
@@ -272,30 +283,71 @@ void DiskImageResourcePBM::write( ImageBuffer const& src,
   ImageBuffer dst;
   int32 num_pixels = m_format.cols*m_format.rows;
   dst.format = m_format;
-  dst.cstride = 1;
-  dst.rstride = cols();
-  dst.pstride = num_pixels;
-
-  if ( m_format.channel_type == VW_CHANNEL_UINT8 ) {
+  if ( m_magic == "P6" || m_magic == "P3" ) 
+    dst.cstride = 3;
+  else
+    dst.cstride = 1;
+  dst.rstride = dst.cstride*cols();
+  dst.pstride = dst.rstride*rows();
+  
+  // Ready to start writing
+  if ( m_magic == "P1" ) {
+    // Bool ASCII
+    bool* image_data = new bool[num_pixels];
+    bool* point = image_data;
+    dst.data = image_data;
+    convert( dst, src, m_rescale );
+    for ( int32 i = 0; i < num_pixels; i++ ) {
+      if ( *point == true )
+	fprintf( output_file, "1 " );
+      else
+	fprintf( output_file, "0 " );
+      point++;
+    }
+    delete[] image_data;
+  } else if ( m_magic == "P2" ) {
+    // Gray uint8 ASCII
     uint8* image_data = new uint8[num_pixels];
+    uint8* point = image_data;
     dst.data = image_data;
     convert( dst, src, m_rescale );
-    fwrite( image_data, sizeof(uint8), num_pixels, output_file );
+    for ( int32 i = 0; i < num_pixels; i++ ) {
+      fprintf( output_file, "%hu ", *point );
+      point++;
+    }
     delete[] image_data;
-  } else if ( m_format.channel_type == VW_CHANNEL_UINT16 ) {
-    uint16* image_data = new uint16[num_pixels];
+  } else if ( m_magic == "P3" ) {
+    // RGB uint8 ASCII
+    uint8* image_data = new uint8[num_pixels*3];
+    uint8* point = image_data;
     dst.data = image_data;
     convert( dst, src, m_rescale );
-    fwrite( image_data, sizeof(uint16), num_pixels, output_file );
+    for ( int32 i = 0; i < num_pixels*3; i++ ) {
+      fprintf( output_file, "%hu ", *point );
+      point++;
+    }
     delete[] image_data;
-  } else if ( m_format.channel_type == VW_CHANNEL_BOOL ) {
+  } else if ( m_magic == "P4" ) {
+    // Bool Binary
     bool* image_data = new bool[num_pixels];
     dst.data = image_data;
     convert( dst, src, m_rescale );
     fwrite( image_data, sizeof(bool), num_pixels, output_file );
     delete[] image_data;
-  } else {
-    vw_throw( NoImplErr() << "Unknown input channel type." );
+  } else if ( m_magic == "P5" ) {
+    // Gray uint8 Binary
+    uint8* image_data = new uint8[num_pixels];
+    dst.data = image_data;
+    convert( dst, src, m_rescale );
+    fwrite( image_data, sizeof(uint8), num_pixels, output_file );
+    delete[] image_data;
+  } else if ( m_magic == "P6" ) {
+    // RGB uint8 Binary
+    uint8* image_data = new uint8[num_pixels*3];
+    dst.data = image_data;
+    convert( dst, src, m_rescale );
+    fwrite( image_data, sizeof(uint8), num_pixels, output_file );
+    delete[] image_data;
   }
 
   fclose( output_file );

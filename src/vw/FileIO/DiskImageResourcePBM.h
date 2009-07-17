@@ -62,7 +62,6 @@ namespace vw {
     fpos_t m_image_data_position;
     std::string m_magic;
     int32 m_max_value;
-    void read_reset() const;
   };
 
 } // namespace VW
