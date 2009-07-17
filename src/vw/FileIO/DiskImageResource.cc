@@ -28,7 +28,7 @@
 
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
-#include <vw/FileIO/DiskImageResourcePGM.h>
+#include <vw/FileIO/DiskImageResourcePBM.h>
 
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
 #include <vw/FileIO/DiskImageResourcePNG.h>
@@ -200,7 +200,9 @@ static void register_default_file_types_impl() {
 #endif
 
   // Filetypes that are always supported
-  vw::DiskImageResource::register_file_type( ".pgm", vw::DiskImageResourcePGM::type_static(), &vw::DiskImageResourcePGM::construct_open, &vw::DiskImageResourcePGM::construct_create );
+  vw::DiskImageResource::register_file_type( ".pbm", vw::DiskImageResourcePBM::type_static(), &vw::DiskImageResourcePBM::construct_open, &vw::DiskImageResourcePBM::construct_create );
+  vw::DiskImageResource::register_file_type( ".pgm", vw::DiskImageResourcePBM::type_static(), &vw::DiskImageResourcePBM::construct_open, &vw::DiskImageResourcePBM::construct_create );
+  vw::DiskImageResource::register_file_type( ".ppm", vw::DiskImageResourcePBM::type_static(), &vw::DiskImageResourcePBM::construct_open, &vw::DiskImageResourcePBM::construct_create );
 
 }
 

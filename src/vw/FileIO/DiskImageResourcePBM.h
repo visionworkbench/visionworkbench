@@ -5,12 +5,16 @@
 // __END_LICENSE__
 
 
-/// \file DiskImageResourcePGM.h
+/// \file DiskImageResourcePBM.h
 /// 
-/// Provides support for the PGM file format.
+/// Provides support for the Netpbm format.
 ///
-#ifndef __VW_FILEIO_DISKIMAGERESOURCEPGM_H__
-#define __VW_FILEIO_DISKIMAGERESOURCEPGM_H__
+/// Supported File Types
+/// PBM - Monochrome - P1 (means in ASCII) - P4 (means in Binary)
+/// PGM - Grayscale  - P2 (ASCII) - P5 (Binary)
+/// PPM - RGB Color  - P3 (ASCII) - P5 (Binary)
+#ifndef __VW_FILEIO_DISKIMAGERESOURCEPBM_H__
+#define __VW_FILEIO_DISKIMAGERESOURCEPBM_H__
 
 #include <string>
 #include <fstream>
@@ -20,20 +24,20 @@
 
 namespace vw {
 
-  class DiskImageResourcePGM : public DiskImageResource { 
+  class DiskImageResourcePBM : public DiskImageResource { 
   public:
     
     // Standard DiskImageResource interface:
     
-    DiskImageResourcePGM( std::string const& filename ); // Reading
+    DiskImageResourcePBM( std::string const& filename ); // Reading
     
-    DiskImageResourcePGM( std::string const& filename,
+    DiskImageResourcePBM( std::string const& filename,
 			  ImageFormat const& format ); // Writing
 
-    virtual ~DiskImageResourcePGM() {}
+    virtual ~DiskImageResourcePBM() {}
 
     // Returns the type of disk image resource.
-    static std::string type_static(){ return "PGM"; }
+    static std::string type_static(){ return "PBM"; }
 
     // Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
@@ -53,13 +57,14 @@ namespace vw {
                                                 ImageFormat const& format );
 
   private:
-    DiskImageResourcePGM(DiskImageResourcePGM&);
-    DiskImageResourcePGM& operator=(DiskImageResourcePGM&);
+    DiskImageResourcePBM(DiskImageResourcePBM&);
+    DiskImageResourcePBM& operator=(DiskImageResourcePBM&);
     fpos_t m_image_data_position;
-    
+    std::string m_magic;
+    int32 m_max_value;
     void read_reset() const;
   };
 
 } // namespace VW
 
-#endif//__VW_FILEIO_DISKIMAGERESOURCEPGM_H__
+#endif//__VW_FILEIO_DISKIMAGERESOURCEPBM_H__
