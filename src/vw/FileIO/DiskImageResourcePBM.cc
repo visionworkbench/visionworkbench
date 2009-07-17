@@ -53,7 +53,7 @@ void normalize( uint8* data, uint32 count, uint8 max_value ) {
       *pointer = 255;
     else {
       uint8 temp = *pointer;
-      *pointer = uint8(float(temp)*255/float(max_value));
+      *pointer = uint8(uint16(temp)*255/uint16(max_value));
     }
     pointer++;
   }
@@ -233,42 +233,66 @@ void DiskImageResourcePBM::create( std::string const& filename,
   m_filename = filename;
   m_format = format;
 
-  // Deciding channel type (there are few options).
-  if ( m_format.channel_type != VW_CHANNEL_BOOL )
-    m_format.channel_type = VW_CHANNEL_UINT8;
-
-  // Deciding pixel format
-  switch ( format.pixel_format ) {
-  case VW_PIXEL_UNKNOWN_MASKED:
-  case VW_PIXEL_SCALAR_MASKED:
+  // Deciding output pixel format based on the file extension regardless of input type. If they choose an unknown extension, we'll guess the writing format.
+  if ( boost::algorithm::iends_with( filename, ".pbm" ) || 
+       boost::algorithm::iends_with( filename, ".PBM" ) ) {
     m_format.pixel_format = VW_PIXEL_UNKNOWN_MASKED;
     m_format.channel_type = VW_CHANNEL_BOOL;
     m_magic = "P4";
     m_max_value = 1;
-    break;
-  case VW_PIXEL_UNKNOWN:
-  case VW_PIXEL_SCALAR:
-  case VW_PIXEL_GRAY:
-  case VW_PIXEL_GRAYA:
-  case VW_PIXEL_GRAY_MASKED:
-  case VW_PIXEL_GRAYA_MASKED:
-  case VW_PIXEL_GENERIC_1_CHANNEL:
+  } else if ( boost::algorithm::iends_with( filename, ".pgm" ) ||
+	      boost::algorithm::iends_with( filename, ".PGM" )  ) {
     m_format.pixel_format = VW_PIXEL_GRAY;
+    m_format.channel_type = VW_CHANNEL_UINT8;
     m_magic = "P5";
     m_max_value = 255;
-    break;
-  default:
+  } else if ( boost::algorithm::iends_with( filename, ".ppm" ) ||
+	      boost::algorithm::iends_with( filename, ".PPM" ) ) {
     m_format.pixel_format = VW_PIXEL_RGB;
+    m_format.channel_type = VW_CHANNEL_UINT8;
     m_magic = "P6";
     m_max_value = 255;
-    break;
+  } else {
+    // Give up and guess based on image format
+
+    // Deciding channel type (there are few options).
+    if ( m_format.channel_type != VW_CHANNEL_BOOL )
+      m_format.channel_type = VW_CHANNEL_UINT8;
+    
+    // Deciding pixel format
+    switch ( format.pixel_format ) {
+    case VW_PIXEL_UNKNOWN_MASKED:
+    case VW_PIXEL_SCALAR_MASKED:
+      m_format.pixel_format = VW_PIXEL_UNKNOWN_MASKED;
+      m_format.channel_type = VW_CHANNEL_BOOL;
+      m_magic = "P4";
+      m_max_value = 1;
+      break;
+    case VW_PIXEL_UNKNOWN:
+    case VW_PIXEL_SCALAR:
+    case VW_PIXEL_GRAY:
+    case VW_PIXEL_GRAYA:
+    case VW_PIXEL_GRAY_MASKED:
+    case VW_PIXEL_GRAYA_MASKED:
+    case VW_PIXEL_GENERIC_1_CHANNEL:
+      m_format.pixel_format = VW_PIXEL_GRAY;
+      m_magic = "P5";
+      m_max_value = 255;
+      break;
+    default:
+      m_format.pixel_format = VW_PIXEL_RGB;
+      m_magic = "P6";
+      m_max_value = 255;
+      break;
+    }
+
   }
 
   FILE* output_file = fopen(filename.c_str(), "w");
   fprintf( output_file, "%s\n", m_magic.c_str() );
   fprintf( output_file, "%d\n", m_format.cols );
   fprintf( output_file, "%d\n", m_format.rows );
-  if ( m_magic != "P1" && m_magic != "P4" )
+  if ( m_magic != "P1" && m_magic != "P4" ) 
     fprintf( output_file, "%d\n", m_max_value );
   fgetpos( output_file, &m_image_data_position );
   fclose( output_file );
@@ -351,7 +375,7 @@ void DiskImageResourcePBM::write( ImageBuffer const& src,
     uint8* image_data = new uint8[num_pixels*3];
     dst.data = image_data;
     convert( dst, src, m_rescale );
-    fwrite( image_data, sizeof(uint8), num_pixels, output_file );
+    fwrite( image_data, sizeof(uint8), num_pixels*3, output_file );
     delete[] image_data;
   }
 
