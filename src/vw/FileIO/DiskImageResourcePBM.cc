@@ -33,6 +33,10 @@ using namespace vw;
 void skip_any_comments( FILE * stream ) {
   char temp;
   temp = fgetc(stream);
+  // Sometimes this can land on just being before a new line
+  while ( temp == '\n' ) 
+    temp = fgetc(stream);
+  // Clearing away comment
   while ( temp == '#' ) {
     do {
       temp = fgetc(stream);
@@ -96,8 +100,8 @@ void DiskImageResourcePBM::open( std::string const& filename ) {
   fclose(input_file);
 
   // Checking bit sanity
-  if (m_max_value <= 0 || m_max_value >= 255 )
-    vw_throw( IOErr() << "DiskImageResourcePBM: invalid bit type, Netpbm support 8 bit channel types and lower." );
+  if (m_max_value <= 0 || m_max_value > 255 )
+    vw_throw( IOErr() << "DiskImageResourcePBM: invalid bit type, Netpbm support 8 bit channel types and lower. Max requested: " << m_max_value );
 
   m_format.cols = iwidth;
   m_format.rows = iheight;
@@ -264,7 +268,8 @@ void DiskImageResourcePBM::create( std::string const& filename,
   fprintf( output_file, "%s\n", m_magic.c_str() );
   fprintf( output_file, "%d\n", m_format.cols );
   fprintf( output_file, "%d\n", m_format.rows );
-
+  if ( m_magic != "P1" && m_magic != "P4" )
+    fprintf( output_file, "%d\n", m_max_value );
   fgetpos( output_file, &m_image_data_position );
   fclose( output_file );
 }
