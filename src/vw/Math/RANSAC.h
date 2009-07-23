@@ -72,7 +72,12 @@ namespace math {
     double operator() (RelationT const& H,
                        ContainerT const& p1, 
                        ContainerT const& p2) const {
-      return vw::math::norm_2( Vector3(p2[0],p2[1],1) - H * Vector3(p1[0],p1[1],1));
+      Vector3 inter_result = H*Vector3(p1[0],p1[1],1);
+      // Re-normalizing. This conditional should only throw if H is
+      // an homography matrix
+      if ( inter_result[2] != 1 ) 
+	inter_result /= inter_result[2];
+      return vw::math::norm_2( Vector3(p2[0],p2[1],1) - inter_result);
     }
   };
 
