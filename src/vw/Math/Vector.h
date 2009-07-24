@@ -1608,6 +1608,30 @@ namespace math {
     return result;
   }
 
+  /// Maximium of elements
+  template <class VectorT>
+  inline typename VectorT::value_type max( VectorBase<VectorT> const& v ) {
+    typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
+    if( i == end ) return typename VectorT::value_type(0);
+    typename VectorT::value_type result = *(i++);
+    for( ; i != end ; ++i ) 
+      if ( *i > result )
+	result = *i;
+    return result;
+  }
+
+  /// Minimium of elements
+  template <class VectorT>
+  inline typename VectorT::value_type min( VectorBase<VectorT> const& v ) {
+    typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
+    if( i == end ) return typename VectorT::value_type(0);
+    typename VectorT::value_type result = *(i++);
+    for( ; i != end ; ++i )
+      if ( *i < result )
+	result = *i;
+    return result;
+  }
+
   /// Fill all elements with a given value
   template <class VectorT, class ValT>
   inline void fill( VectorBase<VectorT> &v, ValT const& val  ) {

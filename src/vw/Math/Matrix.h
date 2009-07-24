@@ -1885,6 +1885,32 @@ namespace math {
     return result;
   }
 
+  /// Pull out the maximium element
+  template <class MatrixT>
+  inline typename MatrixT::value_type max( MatrixBase<MatrixT> const& m ) {
+    unsigned rows = m.impl().rows(), cols = m.impl().cols();
+    if ( rows == 0 ) return typename MatrixT::value_type(0);
+    typename MatrixT::value_type result = m.impl()(0,0);
+    for ( unsigned i=0; i<rows; ++i )
+      for ( unsigned j=0; j<cols; ++j )
+	if ( m.impl()(i,j) > result )
+	  result = m.impl()(i,j);
+    return result;
+  }
+
+  /// Pull out the minimium element
+  template <class MatrixT>
+  inline typename MatrixT::value_type min( MatrixBase<MatrixT> const& m ) {
+    unsigned rows = m.impl().rows(), cols = m.impl().cols();
+    if ( rows == 0 ) return typename MatrixT::value_type(0);
+    typename MatrixT::value_type result = m.impl()(0,0);
+    for ( unsigned i=0; i<rows; ++i )
+      for ( unsigned j=0; j<cols; ++j )
+	if ( m.impl()(i,j) < result )
+	  result = m.impl()(i,j);
+    return result;
+  }
+
   /// Fill the entire matrix with the specified value
   template <class MatrixT, class ValT>
   inline void fill( MatrixBase<MatrixT> &m, ValT const& val ) {
