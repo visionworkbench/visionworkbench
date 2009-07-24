@@ -452,6 +452,25 @@ namespace math {
     multi_solve_symmetric_nocopy(Abuf,result);
     return transpose(result);
   }
+
+  // Solve for the nullspace of a Matrix A. If Ax = [0], the nullspace
+  // is an x that is not zero.
+  template <class MatrixT >
+  inline Matrix<typename MatrixT::value_type> null( MatrixBase<MatrixT> const& A ) {
+    typedef typename MatrixT::value_type value_type;
+    Matrix<value_type> U, V;
+    Vector<value_type> S;
+    complete_svd( A.impl(), U, S, V );
+    V = transpose(V);
+    unsigned max_size = std::max( A.impl().cols(),
+				  A.impl().rows() );
+    value_type tol = A.impl().cols() == 1 ? max_size*1e-9 : max_size*1e-9*max(S);
+    unsigned r = 0;
+    for ( unsigned i = 0; i < S.size(); i++ )
+      if ( S(i) > tol ) r++;
+    return submatrix(V,0,r,V.rows(),V.cols()-r);
+  }
+
 } // namespace math
 } // namespace vw
 
