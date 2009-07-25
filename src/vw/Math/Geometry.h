@@ -200,7 +200,7 @@ namespace math {
 	// - Unfortunately at this time. Error in x1 are not dealt
 	// with and I need more time to read up on other error
 	// metrics.
-	
+
 	// Flatting input & output;
 	Vector<double> input_flat( input.size()*2 );
 	Vector<double> output_flat( output.size()*2 );
@@ -226,7 +226,7 @@ namespace math {
 	Matrix3x3 result;
 	for ( unsigned i = 0; i < 3; i++ )
 	  for ( unsigned j = 0; j < 3; j++ )
-	    if ( i != 2 && j != 2 )
+	    if ( i != 2 || j != 2 )
 	      result(i,j) = result_flat( 3*i+j );
 	    else
 	      result(2,2) = 1;
