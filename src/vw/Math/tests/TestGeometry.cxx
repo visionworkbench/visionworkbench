@@ -38,6 +38,9 @@ TEST(Geometry, HomographyFittingFunctor) {
 
   // and apply it to some points
   vw::Matrix<double> B = transpose(H*transpose(A));
+  // Normalizing B (doesn't work otherwise)
+  for (unsigned i = 0; i < B.rows(); ++i) 
+    submatrix(B,i,0,1,3) /= B(i,2);
   std::vector<Vector3> p1, p2;
   for (unsigned i = 0; i < A.rows(); ++i) {
     p1.push_back(select_row(A,i));
