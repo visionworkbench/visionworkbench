@@ -14,7 +14,7 @@
 using namespace vw;
 using namespace vw::math;
 
-TEST(Geometry, HomographyFittingFunctor) {
+TEST(Geometry, DISABLED_HomographyFittingFunctor) {
   static double A_data[] = {
     0.0153, 0.9318, 1,
     0.6721, 0.6813, 1,
