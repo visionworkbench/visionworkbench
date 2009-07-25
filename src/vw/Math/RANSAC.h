@@ -224,7 +224,7 @@ namespace math {
       inliers(H_max, p1, p2, try1, try2 );
       while( try1.size() > num_old ){
         num_old = try1.size();
-        H = m_fitting_func(try1, try2);
+        H = m_fitting_func(try1, try2, H_max); // Seeding with best solution
         inliers( H, p1, p2, try1, try2 );
       }
       // For debugging
