@@ -14,7 +14,7 @@
 using namespace vw;
 using namespace vw::math;
 
-TEST(Geometry, DISABLED_HomographyFittingFunctor) {
+TEST(Geometry, HomographyFittingFunctor) {
   static double A_data[] = {
     0.0153, 0.9318, 1,
     0.6721, 0.6813, 1,
@@ -38,16 +38,25 @@ TEST(Geometry, DISABLED_HomographyFittingFunctor) {
 
   // and apply it to some points
   vw::Matrix<double> B = transpose(H*transpose(A));
+
   // Normalizing B (doesn't work otherwise)
   for (unsigned i = 0; i < B.rows(); ++i) 
     submatrix(B,i,0,1,3) /= B(i,2);
-  std::vector<Vector3> p1, p2;
+
+  std::vector<Vector3> p1, p2, p1_s, p2_s;
   for (unsigned i = 0; i < A.rows(); ++i) {
     p1.push_back(select_row(A,i));
     p2.push_back(select_row(B,i));
+    if ( i < 4 ) {
+      p1_s.push_back(select_row(A,i));
+      p2_s.push_back(select_row(B,i));
+    }
   }
 
-  EXPECT_MATRIX_NEAR(H, HomographyFittingFunctor()(p1,p2),  1e-15 );
+  // DLT version (there's a loss of precision in complete_svd)
+  EXPECT_MATRIX_NEAR(H, HomographyFittingFunctor()(p1_s,p2_s), 3e-14 );
+  // DLT & Levenberg Marquardt Version (it's better with noise and conflict)
+  EXPECT_MATRIX_NEAR(H, HomographyFittingFunctor()(p1,p2),  1e-14 );
 }
 
 TEST(Geometry, AffinityFittingFunctor) {

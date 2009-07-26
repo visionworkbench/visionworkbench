@@ -201,6 +201,18 @@ namespace math {
 	// with and I need more time to read up on other error
 	// metrics.
 
+	// Copying seed
+	Matrix<double> seed_copy = seed_input;
+	if ( seed_copy.cols() != 3 ||
+	     seed_copy.rows() != 3 ) {
+	  std::vector<ContainerT> p1_small, p2_small;
+	  for ( unsigned i = 0; i < 4; i++ ) {
+	    p1_small.push_back( p1[i] );
+	    p2_small.push_back( p2[i] );
+	  }
+	  seed_copy = HomographyFittingFunctor()(p1_small, p2_small);
+	}
+
 	// Flatting input & output;
 	Vector<double> input_flat( input.size()*2 );
 	Vector<double> output_flat( output.size()*2 );
@@ -216,7 +228,7 @@ namespace math {
 	for ( unsigned i = 0; i < 3; i++ )
 	  for ( unsigned j = 0; j < 3; j++ )
 	    if ( i != 2 || j != 2 )
-	      seed( i*3+j ) = seed_input(i,j);
+	      seed( i*3+j ) = seed_copy(i,j);
 
 	int status = 0;
 	Vector<double> result_flat = levenberg_marquardt( model, seed,
