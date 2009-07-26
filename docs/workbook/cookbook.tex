@@ -54,7 +54,7 @@ achieve it by manually creating a \verb#CameraTransform# object and
 appying it to the source image directly using the regular
 \verb#transform# function.  This is in fact exactly what happens inside 
 the convenience functions described above.  Here is a simple example, 
-assuming the CARHVOR camera model.
+assuming the CAHVOR camera model.
 \begin{verbatim}
   CAHVORModel cahvor( "my_camera_model.cahvor" );
   CAHVModel cahv = linearize_camera( cahvor, image.cols(), image.rows() );
