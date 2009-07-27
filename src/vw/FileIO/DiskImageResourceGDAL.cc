@@ -257,7 +257,7 @@ namespace vw {
     has_gml = has_gmljp2(&f);
     retval = f.convert_to_jpx();
     if (retval != 0)
-      vw_throw( IOErr() << "convert_jp2: Failed to convert " << filename << " to jp2-compatible jpx." );
+      vw_throw( IOErr() << " ; ; ; ; convert_jp2: Failed to convert " << filename << " to jp2-compatible jpx." );
     if (has_gml) {
       JP2ReaderRequirementsList req;
       // 67 is the (standard) requirement number for GMLJP2

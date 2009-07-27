@@ -229,7 +229,7 @@ vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename 
 
   // If all attempts to find a suitable file driver fails, we throw an
   // exception.
-  vw_throw( NoImplErr() << "Unsuppported file format: " << filename );
+  vw_throw( NoImplErr() << "Unsupported file format: " << filename );
   return 0; // never reached
 }
 
@@ -242,7 +242,7 @@ vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filenam
     if( i != create_map->end() )
       return i->second( filename, format );
   }
-  vw_throw( NoImplErr() << "Unsuppported file type \"" << type << "\" for filename: " << filename );
+  vw_throw( NoImplErr() << "Unsupported file type \"" << type << "\" for filename: " << filename );
   return 0; // never reached
 }
 
@@ -255,6 +255,6 @@ vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filenam
     if( i != create_map->end() )
       return i->second( filename, format );
   }
-  vw_throw( NoImplErr() << "Unsuppported file format: " << filename );
+  vw_throw( NoImplErr() << "Unsupported file format: " << filename );
   return 0; // never reached
 }
