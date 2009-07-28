@@ -54,9 +54,9 @@ TEST(Geometry, HomographyFittingFunctor) {
   }
 
   // DLT version (there's a loss of precision in complete_svd)
-  EXPECT_MATRIX_NEAR(H, HomographyFittingFunctor()(p1_s,p2_s), 3e-14 );
+  EXPECT_MATRIX_NEAR(H, HomographyFittingFunctor()(p1_s,p2_s), 4e-14 );
   // DLT & Levenberg Marquardt Version (it's better with noise and conflict)
-  EXPECT_MATRIX_NEAR(H, HomographyFittingFunctor()(p1,p2),  1e-14 );
+  EXPECT_MATRIX_NEAR(H, HomographyFittingFunctor()(p1,p2),  2e-14 );
 }
 
 TEST(Geometry, AffinityFittingFunctor) {
