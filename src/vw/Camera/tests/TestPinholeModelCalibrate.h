@@ -60,7 +60,7 @@ class TestPinholeModelCalibrate : public CxxTest::TestSuite
 
   double mean_error(const PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, const std::vector<int>& indices) {
     double mean = 0;
-    for (int j = 0; j < indices.size(); j++) 
+    for (int j = 0; j < indices.size(); j++)
       mean += vw::math::norm_2(pixels[indices[j]] - m.point_to_pixel(points[indices[j]]));
     return mean / indices.size();
   }
@@ -74,7 +74,7 @@ class TestPinholeModelCalibrate : public CxxTest::TestSuite
 
   double mean_sqr_error(const PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, const std::vector<int>& indices) {
     double mean = 0;
-    for (int j = 0; j < indices.size(); j++) 
+    for (int j = 0; j < indices.size(); j++)
       mean += vw::math::norm_2_sqr(pixels[indices[j]] - m.point_to_pixel(points[indices[j]]));
     return mean / indices.size();
   }
@@ -96,7 +96,7 @@ class TestPinholeModelCalibrate : public CxxTest::TestSuite
 public:
   void test_pinholemodel_serialize_four() {
     std::srand(std::time(0));
-    
+
     for (int i = 0; i < 10; i++) {
       Vector3 cc(rand(), rand(), rand());
       Vector3 rv(rand(), rand(), rand());
@@ -144,7 +144,7 @@ public:
       TS_ASSERT_DELTA(d.camera_pose().axis_angle().z(), m.camera_pose().axis_angle().z(), 1e-14);
       TS_ASSERT_EQUALS(d.camera_center().x(), m.camera_center().x());
       TS_ASSERT_EQUALS(d.camera_center().y(), m.camera_center().y());
-      TS_ASSERT_EQUALS(d.camera_center().z(), m.camera_center().z());   
+      TS_ASSERT_EQUALS(d.camera_center().z(), m.camera_center().z());
       Vector4 tsai_d( dynamic_cast<TsaiLensDistortion&>(*(d.lens_distortion())).distortion_parameters() );
       TS_ASSERT_EQUALS(tsai_d(0), tsaiv(0));
       TS_ASSERT_EQUALS(tsai_d(1), tsaiv(1));
@@ -155,7 +155,7 @@ public:
 
   void test_pinholemodel_serialize_three() {
     std::srand(std::time(0));
-    
+
     for (int i = 0; i < 10; i++) {
       Vector3 cc(rand(), rand(), rand());
       Vector3 rv(rand(), rand(), rand());
@@ -199,13 +199,13 @@ public:
       TS_ASSERT_DELTA(d.camera_pose().axis_angle().z(), m.camera_pose().axis_angle().z(), 1e-14);
       TS_ASSERT_EQUALS(d.camera_center().x(), m.camera_center().x());
       TS_ASSERT_EQUALS(d.camera_center().y(), m.camera_center().y());
-      TS_ASSERT_EQUALS(d.camera_center().z(), m.camera_center().z());    
+      TS_ASSERT_EQUALS(d.camera_center().z(), m.camera_center().z());
       }
     }
 
   void test_pinholemodel_serialize_two() {
     std::srand(std::time(0));
-    
+
     for (int i = 0; i < 10; i++) {
       Vector3 cc(rand(), rand(), rand());
       Vector3 rv(rand(), rand(), rand());
@@ -248,7 +248,7 @@ public:
 
   void test_pinholemodel_serialize_one() {
     std::srand(std::time(0));
-    
+
     for (int i = 0; i < 10; i++) {
       Vector3 cc(rand(), rand(), rand());
       Vector3 rv(rand(), rand(), rand());
@@ -284,7 +284,7 @@ public:
 
   void test_pinholemodel_calibrate() {
     repeatable_srand(); // initialize reproducible srand; local implementation
-    
+
     Vector3 cc(1, 1, 1);
     Vector3 rv(1, 1, 1);
     Matrix3x3 rm(vw::math::axis_angle_to_matrix(rv));
@@ -298,78 +298,78 @@ public:
 
     for (int ni = 0; ni < 5; ni++) {
       std::vector<vw::Vector3> points; // in 3D space
-      std::vector<vw::Vector2> pixels; // from projection through m 
+      std::vector<vw::Vector2> pixels; // from projection through m
       int n = 30;
       for (int i = 0; i < n; i++) {
-	Vector3 p(repeatable_rand(), repeatable_rand(), repeatable_rand());
-	points.push_back(p);
-	vw::Vector2 noise(repeatable_rand(10), repeatable_rand(10)); // add some noise!
-	pixels.push_back(m.point_to_pixel(p) + noise); 
+        Vector3 p(repeatable_rand(), repeatable_rand(), repeatable_rand());
+        points.push_back(p);
+        vw::Vector2 noise(repeatable_rand(10), repeatable_rand(10)); // add some noise!
+        pixels.push_back(m.point_to_pixel(p) + noise);
       }
-    
+
       double mean = mean_sqr_error(m, pixels, points);
 
-      // see if the optimizer improves the results; the mean error should decrease as 
-      // the number of variables the optimizer gets to play with increases    
+      // see if the optimizer improves the results; the mean error should decrease as
+      // the number of variables the optimizer gets to play with increases
       // These tests can fail on real data depending on your srand implementation without anything being actually broken
-      // - which is why a "fake" srand/rand function pair local to this class was implemented to generate 
-      // pseudo pseudo random values (i.e. sequence that is always the same) for point positions and noise - 
+      // - which is why a "fake" srand/rand function pair local to this class was implemented to generate
+      // pseudo pseudo random values (i.e. sequence that is always the same) for point positions and noise -
       // thus the test should be completely repeatable
-      { 
-	PinholeModel c(m);
-	pinholemodel_calibrate<PinholeModelSerializeIntrinsic>(c, pixels, points, 1000);
-	double new_mean = mean_sqr_error(c, pixels, points);
-	TS_ASSERT_LESS_THAN(new_mean, mean);
+      {
+        PinholeModel c(m);
+        pinholemodel_calibrate<PinholeModelSerializeIntrinsic>(c, pixels, points, 1000);
+        double new_mean = mean_sqr_error(c, pixels, points);
+        TS_ASSERT_LESS_THAN(new_mean, mean);
       }
 
-      { 
-	PinholeModel c(m);
-	pinholemodel_calibrate<PinholeModelSerializeTSAI>(c, pixels, points, 1000);
-	double new_mean = mean_sqr_error(c, pixels, points);
-	TS_ASSERT_LESS_THAN(new_mean, mean);
+      {
+        PinholeModel c(m);
+        pinholemodel_calibrate<PinholeModelSerializeTSAI>(c, pixels, points, 1000);
+        double new_mean = mean_sqr_error(c, pixels, points);
+        TS_ASSERT_LESS_THAN(new_mean, mean);
       }
 
-      { 
-	PinholeModel c(m);
-	pinholemodel_calibrate<PinholeModelSerializeRotation>(c, pixels, points, 1000);
-	double new_mean = mean_sqr_error(c, pixels, points);
-	TS_ASSERT_LESS_THAN(new_mean, mean);
+      {
+        PinholeModel c(m);
+        pinholemodel_calibrate<PinholeModelSerializeRotation>(c, pixels, points, 1000);
+        double new_mean = mean_sqr_error(c, pixels, points);
+        TS_ASSERT_LESS_THAN(new_mean, mean);
       }
 
       PinholeModel c(m);
-      { 
-	pinholemodel_calibrate<PinholeModelSerializeTranslation>(c, pixels, points, 1000);
-	double new_mean = mean_sqr_error(c, pixels, points);
-	TS_ASSERT_LESS_THAN(new_mean, mean);
-	mean = new_mean;
+      {
+        pinholemodel_calibrate<PinholeModelSerializeTranslation>(c, pixels, points, 1000);
+        double new_mean = mean_sqr_error(c, pixels, points);
+        TS_ASSERT_LESS_THAN(new_mean, mean);
+        mean = new_mean;
       }
 
-      { 
-	pinholemodel_calibrate<PinholeModelSerializeTranslation, PinholeModelSerializeRotation>(c, pixels, points, 1000);
-	double new_mean = mean_sqr_error(c, pixels, points);
-	TS_ASSERT_RELATION(LessThanEqualDelta<double>, new_mean, mean);
-	mean = new_mean;
+      {
+        pinholemodel_calibrate<PinholeModelSerializeTranslation, PinholeModelSerializeRotation>(c, pixels, points, 1000);
+        double new_mean = mean_sqr_error(c, pixels, points);
+        TS_ASSERT_RELATION(LessThanEqualDelta<double>, new_mean, mean);
+        mean = new_mean;
       }
 
-      { 
-	pinholemodel_calibrate<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic>(c, pixels, points, 1000);
-	double new_mean = mean_sqr_error(c, pixels, points);
-	TS_ASSERT_RELATION(LessThanEqualDelta<double>, new_mean, mean);
-	mean = new_mean;
+      {
+        pinholemodel_calibrate<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic>(c, pixels, points, 1000);
+        double new_mean = mean_sqr_error(c, pixels, points);
+        TS_ASSERT_RELATION(LessThanEqualDelta<double>, new_mean, mean);
+        mean = new_mean;
       }
 
-      { 
-	pinholemodel_calibrate<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic, PinholeModelSerializeTSAI>(c, pixels, points, 1000);
-	double new_mean = mean_sqr_error(c, pixels, points);
-	TS_ASSERT_RELATION(LessThanEqualDelta<double>, new_mean, mean);
-	mean = new_mean;
+      {
+        pinholemodel_calibrate<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic, PinholeModelSerializeTSAI>(c, pixels, points, 1000);
+        double new_mean = mean_sqr_error(c, pixels, points);
+        TS_ASSERT_RELATION(LessThanEqualDelta<double>, new_mean, mean);
+        mean = new_mean;
       }
     }
   }
 
   void test_pinholemodel_calibrate_ransac() {
     repeatable_srand(); // initialize reproducible srand; local implementation
-    
+
     Vector3 cc(1, 1, 1);
     Vector3 rv(1, 1, 1);
     Matrix3x3 rm(vw::math::axis_angle_to_matrix(rv));
@@ -382,69 +382,69 @@ public:
     PinholeModel m(cc, rm, fu, fv, cu, cv, u, v, w, tsai);
 
     std::vector<vw::Vector3> points; // in 3 space
-    std::vector<vw::Vector2> pixels; // from projection through m 
+    std::vector<vw::Vector2> pixels; // from projection through m
     int n = 30;
     for (int i = 0; i < n; i++) {
       Vector3 p(repeatable_rand(), repeatable_rand(), repeatable_rand());
       points.push_back(p);
       vw::Vector2 noise(repeatable_rand(20), repeatable_rand(20)); // add some noise!
-      pixels.push_back(m.point_to_pixel(p) + noise); 
+      pixels.push_back(m.point_to_pixel(p) + noise);
     }
-    
+
     double mean = mean_error(m, pixels, points);
 
     // these tests verify mainly that RANSAC actually does respect the inlier_threshold value passed in
     // (The maximum error in the image plane for a resulting camera model can be equal to inlier_threshold)
-    // and that the number of inliers is not "too small" 
+    // and that the number of inliers is not "too small"
 
     // play with these parameters to make the test more or less stringent and/or fast
     double inlier_threshold = 15;
     const int ransac_inlier_threshold = 10; // how many inliers to we require
     const int ransac_iter = 20; // number of ransac iterations
     const int lm_iter = 5; // number of levenberg marquardt iterations at every ransac iteration
-    { 
+    {
       PinholeModel c(m);
       std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeIntrinsic>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
       TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
       TS_ASSERT_LESS_THAN(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
     }
 
-    { 
+    {
       PinholeModel c(m);
       std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTSAI>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
       TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
       TS_ASSERT_LESS_THAN(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
     }
 
-    { 
+    {
       PinholeModel c(m);
       std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeRotation>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
       TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
       TS_ASSERT_LESS_THAN(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
     }
 
-    { 
+    {
       PinholeModel c(m);
       std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
       TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
       TS_ASSERT_LESS_THAN(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
     }
 
-    { 
+    {
       PinholeModel c(m);
       std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation, PinholeModelSerializeRotation>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
       TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
       TS_ASSERT_LESS_THAN(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
     }
 
-    { 
+    {
       PinholeModel c(m);
       std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
       TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
       TS_ASSERT_LESS_THAN(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
     }
 
-    { 
+    {
       PinholeModel c(m);
       std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic, PinholeModelSerializeTSAI>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
       TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
