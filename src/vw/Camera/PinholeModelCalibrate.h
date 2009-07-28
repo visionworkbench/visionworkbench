@@ -244,12 +244,12 @@ public:
   typedef vw::math::Vector<double> domain_type;
   typedef vw::math::Matrix<double> jacobian_type;
 
-  inline PinholeModelLeastSquares(PinholeModel& camera, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points) 
+  inline PinholeModelLeastSquares(PinholeModel& camera, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points)
     : vw::math::LeastSquaresModelBase<PinholeModelLeastSquares<Ex1T, Ex2T, Ex3T, Ex4T> >(), 
       m_camera(camera), m_pixels(pixels), m_points(points) 
   {}
 
-  inline result_type operator()( domain_type const& x )  const {
+  inline result_type operator()( domain_type const& x ) const {
     deserialize_pinholemodel<Ex1T, Ex2T, Ex3T, Ex4T>(m_camera, x);
 
     result_type diff(m_points.size()*2);
@@ -273,7 +273,7 @@ public:
 /// \param points Points in 3D euclidian space
 /// \param niter Maximum number of Levenberg Marquardt iterations
 template<class Ex1T, class Ex2T, class Ex3T, class Ex4T> 
-void pinholemodel_calibrate(PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, unsigned int niter = 1000) {  
+void pinholemodel_calibrate(PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, unsigned int niter = 1000) {
   typedef typename PinholeModelLeastSquares<Ex1T, Ex2T, Ex3T, Ex4T>::domain_type domain_type;
   typedef typename PinholeModelLeastSquares<Ex1T, Ex2T, Ex3T, Ex4T>::result_type result_type;
 
@@ -317,7 +317,7 @@ namespace {
 /// The RANSAC fitting functor
 template<class Ex1T, class Ex2T, class Ex3T, class Ex4T> 
 class PinholeModelRansacFitting {
-  PinholeModel m_cam;
+  const PinholeModel &m_cam;
   int m_levenberg_marquardt_iter;
 public:
   typedef PinholeModel result_type;
@@ -325,14 +325,20 @@ public:
   PinholeModelRansacFitting(const PinholeModel& cam, int levenberg_marquardt_iter) : m_cam(cam), m_levenberg_marquardt_iter(levenberg_marquardt_iter)
   {}
 
-  PinholeModel operator()(const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points) {
+  PinholeModel operator()(const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points) const {
     PinholeModel tmp_cam(m_cam);
     pinholemodel_calibrate<Ex1T, Ex2T, Ex3T, Ex4T>(tmp_cam, pixels, points, m_levenberg_marquardt_iter);
     return tmp_cam;
   }
 
+  PinholeModel operator()(const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, const PinholeModel& cam) const {
+    PinholeModel tmp_cam(cam);
+    pinholemodel_calibrate<Ex1T, Ex2T, Ex3T, Ex4T>(tmp_cam, pixels, points, m_levenberg_marquardt_iter);
+    return tmp_cam;
+  }
+
   template <class DummyT>
-  unsigned int min_elements_needed_for_fit(const DummyT& d) {
+  unsigned int min_elements_needed_for_fit(const DummyT& d) const {
     return (Ex1T::size + Ex2T::size + Ex3T::size + Ex4T::size + 1)/2;
   }
 };

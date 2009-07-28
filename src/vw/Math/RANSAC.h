@@ -84,8 +84,8 @@ namespace math {
   /// RANSAC Driver class
   template <class FittingFuncT, class ErrorFuncT>
   class RandomSampleConsensus {
-    FittingFuncT m_fitting_func;
-    ErrorFuncT m_error_func;
+    const FittingFuncT& m_fitting_func;
+    const ErrorFuncT& m_error_func;
     double m_inlier_threshold;
 
     // Returns the number of inliers for a given threshold.
@@ -103,7 +103,7 @@ namespace math {
     
     /// \cond INTERNAL  
     // Utility Function: Pick N UNIQUE, random integers in the range [0, size] 
-    inline void _vw_get_n_unique_integers(unsigned int size, unsigned n, int* samples) {
+    inline void _vw_get_n_unique_integers(unsigned int size, unsigned n, int* samples) const {
       VW_ASSERT(size >= n, ArgumentErr() << "Not enough samples (" << n << " / " << size << ")\n");
       
       for (unsigned i=0; i<n; ++i) {
@@ -155,7 +155,7 @@ namespace math {
     template <class ContainerT1, class ContainerT2>
     typename FittingFuncT::result_type operator()(std::vector<ContainerT1> const& p1, 
                                                   std::vector<ContainerT2> const& p2,
-                                                  int ransac_iterations = 0) {
+                                                  int ransac_iterations = 0) const {
       // check consistency
       VW_ASSERT( p1.size() == p2.size(), 
                  RANSACErr() << "RANSAC Error.  data vectors are not the same size." );
