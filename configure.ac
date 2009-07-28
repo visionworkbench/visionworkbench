@@ -38,15 +38,11 @@ dnl LIBTOOL_VERSION=current:revision:age
 LIBTOOL_VERSION=3:0:0
 AC_SUBST(LIBTOOL_VERSION)
 
-# This should be first, so everything else can use it
-AX_ARG_ENABLE(verbose, no, [none], [verbose configuration output])
-
 # load the config.options
 if test -f ./config.options; then
-  if test "yes" = "$ENABLE_VERBOSE" ; then
-    AC_MSG_NOTICE([sourcing ./config.options])
-    cat ./config.options
-  fi
+  AX_LOG([using config.options << EOF])
+  AX_LOG([`cat ./config.options`])
+  AX_LOG([EOF])
   source ./config.options
 fi
 
@@ -168,14 +164,11 @@ if test x"$HAVE_PKG_BOOST" == "xyes"; then
   AX_PKG_BOOST_CHECK_VERSION([VW_])
   AC_MSG_NOTICE([VW will be built using Boost version $BOOST_VERSION])
 
-  AX_PKG_BOOST_LIB(PROGRAM_OPTIONS, [-lboost_program_options], [boost/program_options.hpp])
-
-  AX_PKG_ONE_OF(BOOST_FILESYSTEM,
-      BOOST_FILESYSTEM_PRE_1_35,  [AX_PKG_BOOST_LIB(FILESYSTEM_PRE_1_35,  [-lboost_filesystem], [boost/filesystem/path.hpp])],
-      BOOST_FILESYSTEM_POST_1_35, [AX_PKG_BOOST_LIB(FILESYSTEM_POST_1_35, [-lboost_filesystem -lboost_system], [boost/filesystem/path.hpp])])
-
-  AX_PKG_BOOST_LIB(THREAD, [-lboost_thread], [boost/thread/thread.hpp])
-  AX_PKG_BOOST_LIB(IOSTREAMS, [-lboost_iostreams], [boost/iostreams/stream_buffer.hpp])
+  AX_PKG_BOOST_LIB(PROGRAM_OPTIONS, [-lboost_program_options],                   [boost/program_options.hpp])
+  AX_PKG_BOOST_LIB(SYSTEM,          [-lboost_system],                            [boost/system/error_code.hpp])
+  AX_PKG_BOOST_LIB(FILESYSTEM,      [-lboost_filesystem $PKG_BOOST_SYSTEM_LIBS], [boost/filesystem/path.hpp])
+  AX_PKG_BOOST_LIB(THREAD,          [-lboost_thread],                            [boost/thread/thread.hpp])
+  AX_PKG_BOOST_LIB(IOSTREAMS,       [-lboost_iostreams],                         [boost/iostreams/stream_buffer.hpp])
 fi
 
 # This provides an easy way for users to override the threads options
@@ -344,15 +337,13 @@ if test x"$ENABLE_STRICT_ALIASING" = x"no"; then
     CXXFLAGS="$CXXFLAGS -fno-strict-aliasing"
 fi
 
-if test "yes" = "$ENABLE_VERBOSE" ; then
-  AC_MSG_NOTICE([using CPPFLAGS=$CPPFLAGS])
-  AC_MSG_NOTICE([using VW_CPPFLAGS=$VW_CPPFLAGS])
-  AC_MSG_NOTICE([using CFLAGS=$CFLAGS])
-  AC_MSG_NOTICE([using CXXFLAGS=$CXXFLAGS])
-  AC_MSG_NOTICE([using LDFLAGS=$LDFLAGS])
-  AC_MSG_NOTICE([using VW_LDFLAGS=$VW_LDFLAGS])
-  AC_MSG_NOTICE([using VW_ENABLE_EXCEPTIONS=$ENABLE_EXCEPTIONS])
-fi
+AX_LOG([using CPPFLAGS=$CPPFLAGS])
+AX_LOG([using VW_CPPFLAGS=$VW_CPPFLAGS])
+AX_LOG([using CFLAGS=$CFLAGS])
+AX_LOG([using CXXFLAGS=$CXXFLAGS])
+AX_LOG([using LDFLAGS=$LDFLAGS])
+AX_LOG([using VW_LDFLAGS=$VW_LDFLAGS])
+AX_LOG([using VW_ENABLE_EXCEPTIONS=$ENABLE_EXCEPTIONS])
 
 AC_SUBST(VW_CPPFLAGS)
 AC_SUBST(VW_LDFLAGS)
