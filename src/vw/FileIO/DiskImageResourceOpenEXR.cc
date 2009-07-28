@@ -121,8 +121,10 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
     // Determine the number of image channels 
     Imf::ChannelList::ConstIterator iter = static_cast<Imf::InputFile*>(m_input_file_ptr)->header().channels().begin();
     int num_channels = 0;
-    while( iter++ != static_cast<Imf::InputFile*>(m_input_file_ptr)->header().channels().end() )
+    while( iter != static_cast<Imf::InputFile*>(m_input_file_ptr)->header().channels().end() ) {
       num_channels++;
+      iter++;
+    }
     m_format.planes = num_channels;
     
     // For now, we only support reading in multi-plane, single channel
