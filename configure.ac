@@ -164,11 +164,11 @@ if test x"$HAVE_PKG_BOOST" == "xyes"; then
   AX_PKG_BOOST_CHECK_VERSION([VW_])
   AC_MSG_NOTICE([VW will be built using Boost version $BOOST_VERSION])
 
-  AX_PKG_BOOST_LIB(PROGRAM_OPTIONS, [-lboost_program_options],                   [boost/program_options.hpp])
-  AX_PKG_BOOST_LIB(SYSTEM,          [-lboost_system],                            [boost/system/error_code.hpp])
-  AX_PKG_BOOST_LIB(FILESYSTEM,      [-lboost_filesystem $PKG_BOOST_SYSTEM_LIBS], [boost/filesystem/path.hpp])
-  AX_PKG_BOOST_LIB(THREAD,          [-lboost_thread],                            [boost/thread/thread.hpp])
-  AX_PKG_BOOST_LIB(IOSTREAMS,       [-lboost_iostreams],                         [boost/iostreams/stream_buffer.hpp])
+  AX_PKG_BOOST_LIB(PROGRAM_OPTIONS, [-lboost_program_options], [boost/program_options.hpp])
+  AX_PKG_BOOST_LIB(SYSTEM,          [-lboost_system],          [boost/system/error_code.hpp])
+  AX_PKG_BOOST_LIB(FILESYSTEM,      [-lboost_filesystem],      [boost/filesystem/path.hpp], [$PKG_BOOST_SYSTEM_LIBS])
+  AX_PKG_BOOST_LIB(THREAD,          [-lboost_thread],          [boost/thread/thread.hpp])
+  AX_PKG_BOOST_LIB(IOSTREAMS,       [-lboost_iostreams],       [boost/iostreams/stream_buffer.hpp])
 fi
 
 # This provides an easy way for users to override the threads options
