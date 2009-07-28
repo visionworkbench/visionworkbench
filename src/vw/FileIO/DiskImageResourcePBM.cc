@@ -165,7 +165,7 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
     uint8* image_data = new uint8[num_pixels];
     uint8* point = image_data;
     for ( int32 i = 0; i < num_pixels; i++ ) {
-      fscanf( input_file, "%hu", point );
+      fscanf( input_file, "%hhu", point );
       point++;
     }
     normalize( image_data, num_pixels, m_max_value );
@@ -177,11 +177,11 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
     uint8* image_data = new uint8[num_pixels*3];
     uint8* point = image_data;
     for ( int32 i = 0; i < num_pixels; i++ ) {
-      fscanf( input_file, "%hu", point );
+      fscanf( input_file, "%hhu", point );
       point++;
-      fscanf( input_file, "%hu", point );
+      fscanf( input_file, "%hhu", point );
       point++;
-      fscanf( input_file, "%hu", point );
+      fscanf( input_file, "%hhu", point );
       point++;
     }
     normalize( image_data, num_pixels*3, m_max_value );
