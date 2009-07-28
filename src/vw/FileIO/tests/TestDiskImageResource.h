@@ -28,10 +28,10 @@ static void test_extension(string const& fn)
 
   try {
     write_image(fn, img1);
-    read_image(img2, fn);
+    TS_ASSERT_THROWS_NOTHING(read_image(img2, fn));
   } catch (vw::NoImplErr &e) {
     // this doesn't represent a test failure, just a lack of test coverage
-    TS_WARN(string("Failed to test ") + fn + " : " + e.what());
+    //TS_WARN(string("Failed to test ") + fn + " : " + e.what());
     return;
   }
 
@@ -51,13 +51,13 @@ public:
     const char *ex_list[] = {"img", "lbl", "pds", "cub"}; // skip the ro PDS formats
     exclude.insert(ex_list, ex_list+4);
 
-    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGB<float> >,   exclude);
-    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGB<uint8> >,   exclude);
-    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGBA<uint8> >,  exclude);
-    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelGray<uint8> >,  exclude);
-    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelGrayA<float> >, exclude);
-    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<uint8>,              exclude);
-    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<float>,              exclude);
+    TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGB<float> >,   exclude));
+    TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGB<uint8> >,   exclude));
+    TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGBA<uint8> >,  exclude));
+    TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelGray<uint8> >,  exclude));
+    TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelGrayA<float> >, exclude));
+    TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<uint8>,              exclude));
+    TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<float>,              exclude));
   }
 
   void test_read_image_rgb_png_uint8() {
