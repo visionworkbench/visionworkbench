@@ -20,6 +20,7 @@
 #include <fstream>
 #include <stdio.h>
 
+#include <boost/scoped_array.hpp>
 #include <boost/algorithm/string.hpp>
 using namespace boost;
 
@@ -46,8 +47,8 @@ void skip_any_comments( FILE * stream ) {
   fseek(stream,-1,SEEK_CUR);
 }
 // Used to normalize an array of uint8s
-void normalize( uint8* data, uint32 count, uint8 max_value ) {
-  uint8* pointer = data;
+void normalize( scoped_array<uint8>& data, uint32 count, uint8 max_value ) {
+  uint8* pointer = data.get();
   for ( uint32 i = 0; i < count; i++ ) {
     if ( *pointer > max_value )
       *pointer = 255;
@@ -146,8 +147,8 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
 
   if ( m_magic == "P1" ) {
     // Bool ASCII
-    bool* image_data = new bool[num_pixels];
-    bool* point = image_data;
+    scoped_array<bool> image_data(new bool[num_pixels]);
+    bool* point = image_data.get();
     char buffer;
     for ( int32 i = 0; i < num_pixels; i++ ) {
       fscanf( input_file, "%c", &buffer );
@@ -157,25 +158,23 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
         *point = false;
       point++;
     }
-    src.data = image_data;
+    src.data = image_data.get();
     convert( dest, src, m_rescale );
-    delete[] image_data;
   } else if ( m_magic == "P2" ) {
     // Gray uint8 ASCII
-    uint8* image_data = new uint8[num_pixels];
-    uint8* point = image_data;
+    scoped_array<uint8> image_data(new uint8[num_pixels]);
+    uint8* point = image_data.get();
     for ( int32 i = 0; i < num_pixels; i++ ) {
       fscanf( input_file, "%hhu", point );
       point++;
     }
     normalize( image_data, num_pixels, m_max_value );
-    src.data = image_data;
+    src.data = image_data.get();
     convert( dest, src, m_rescale );
-    delete[] image_data;
   } else if ( m_magic == "P3" ) {
     // RGB uint8 ASCII
-    uint8* image_data = new uint8[num_pixels*3];
-    uint8* point = image_data;
+    scoped_array<uint8> image_data(new uint8[num_pixels*3]);
+    uint8* point = image_data.get();
     for ( int32 i = 0; i < num_pixels; i++ ) {
       fscanf( input_file, "%hhu", point );
       point++;
@@ -185,38 +184,34 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
       point++;
     }
     normalize( image_data, num_pixels*3, m_max_value );
-    src.data = image_data;
+    src.data = image_data.get();
     src.cstride = 3;
     src.rstride = src.cstride*m_format.cols;
     src.pstride = src.rstride*m_format.rows;
     convert( dest, src, m_rescale );
-    delete[] image_data;
   } else if ( m_magic == "P4" ) {
     // Bool Binary
-    bool* image_data = new bool[num_pixels];
-    fread( image_data, sizeof(bool), num_pixels, input_file );
-    src.data = image_data;
+    scoped_array<bool> image_data(new bool[num_pixels]);
+    fread( image_data.get(), sizeof(bool), num_pixels, input_file );
+    src.data = image_data.get();
     convert( dest, src, m_rescale );
-    delete[] image_data;
   } else if ( m_magic == "P5" ) {
     // Gray uint8 Binary
-    uint8* image_data = new uint8[num_pixels];
-    fread( image_data, sizeof(uint8), num_pixels, input_file );
+    scoped_array<uint8> image_data(new uint8[num_pixels]);
+    fread( image_data.get(), sizeof(uint8), num_pixels, input_file );
     normalize( image_data, num_pixels, m_max_value );
-    src.data = image_data;
+    src.data = image_data.get();
     convert( dest, src, m_rescale );
-    delete[] image_data;
   } else if ( m_magic == "P6" ) {
     // RGB uint8 Binary
-    uint8* image_data = new uint8[num_pixels*3];
-    fread( image_data, sizeof(uint8), num_pixels*3, input_file );
+    scoped_array<uint8> image_data(new uint8[num_pixels*3]);
+    fread( image_data.get(), sizeof(uint8), num_pixels*3, input_file );
     normalize( image_data, num_pixels*3, m_max_value );
-    src.data = image_data;
+    src.data = image_data.get();
     src.cstride = 3;
     src.rstride = src.cstride*m_format.cols;
     src.pstride = src.rstride*m_format.rows;
     convert( dest, src, m_rescale );
-    delete[] image_data;
   } else
     vw_throw( NoImplErr() << "Unknown input channel type." );
 
@@ -322,9 +317,9 @@ void DiskImageResourcePBM::write( ImageBuffer const& src,
   // Ready to start writing
   if ( m_magic == "P1" ) {
     // Bool ASCII
-    bool* image_data = new bool[num_pixels];
-    bool* point = image_data;
-    dst.data = image_data;
+    scoped_array<bool> image_data(new bool[num_pixels]);
+    bool* point = image_data.get();
+    dst.data = image_data.get();
     convert( dst, src, m_rescale );
     for ( int32 i = 0; i < num_pixels; i++ ) {
       if ( *point == true )
@@ -333,50 +328,44 @@ void DiskImageResourcePBM::write( ImageBuffer const& src,
         fprintf( output_file, "0 " );
       point++;
     }
-    delete[] image_data;
   } else if ( m_magic == "P2" ) {
     // Gray uint8 ASCII
-    uint8* image_data = new uint8[num_pixels];
-    uint8* point = image_data;
-    dst.data = image_data;
+    scoped_array<uint8> image_data(new uint8[num_pixels]);
+    uint8* point = image_data.get();
+    dst.data = point;
     convert( dst, src, m_rescale );
     for ( int32 i = 0; i < num_pixels; i++ ) {
       fprintf( output_file, "%hu ", *point );
       point++;
     }
-    delete[] image_data;
   } else if ( m_magic == "P3" ) {
     // RGB uint8 ASCII
-    uint8* image_data = new uint8[num_pixels*3];
-    uint8* point = image_data;
-    dst.data = image_data;
+    scoped_array<uint8> image_data(new uint8[num_pixels*3]);
+    uint8* point = image_data.get();
+    dst.data = point;
     convert( dst, src, m_rescale );
     for ( int32 i = 0; i < num_pixels*3; i++ ) {
       fprintf( output_file, "%hu ", *point );
       point++;
     }
-    delete[] image_data;
   } else if ( m_magic == "P4" ) {
     // Bool Binary
-    bool* image_data = new bool[num_pixels];
-    dst.data = image_data;
+    scoped_array<bool> image_data(new bool[num_pixels]);
+    dst.data = image_data.get();
     convert( dst, src, m_rescale );
-    fwrite( image_data, sizeof(bool), num_pixels, output_file );
-    delete[] image_data;
+    fwrite( image_data.get(), sizeof(bool), num_pixels, output_file );
   } else if ( m_magic == "P5" ) {
     // Gray uint8 Binary
-    uint8* image_data = new uint8[num_pixels];
-    dst.data = image_data;
+    scoped_array<uint8> image_data(new uint8[num_pixels]);
+    dst.data = image_data.get();
     convert( dst, src, m_rescale );
-    fwrite( image_data, sizeof(uint8), num_pixels, output_file );
-    delete[] image_data;
+    fwrite( image_data.get(), sizeof(uint8), num_pixels, output_file );
   } else if ( m_magic == "P6" ) {
     // RGB uint8 Binary
-    uint8* image_data = new uint8[num_pixels*3];
-    dst.data = image_data;
+    scoped_array<uint8> image_data(new uint8[num_pixels*3]);
+    dst.data = image_data.get();
     convert( dst, src, m_rescale );
-    fwrite( image_data, sizeof(uint8), num_pixels*3, output_file );
-    delete[] image_data;
+    fwrite( image_data.get(), sizeof(uint8), num_pixels*3, output_file );
   }
 
   fclose( output_file );
