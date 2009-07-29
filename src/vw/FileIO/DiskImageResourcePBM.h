@@ -56,10 +56,13 @@ namespace vw {
     static DiskImageResource* construct_create( std::string const& filename,
                                                 ImageFormat const& format );
 
+    // Use ascii modes instead of binary ones? (default is binary)
+    static void default_to_ascii(bool ascii);
+
   private:
     DiskImageResourcePBM(DiskImageResourcePBM&);
     DiskImageResourcePBM& operator=(DiskImageResourcePBM&);
-    fpos_t m_image_data_position;
+    std::streampos m_image_data_position;
     std::string m_magic;
     int32 m_max_value;
   };

@@ -18,7 +18,7 @@
 
 #include <vector>
 #include <fstream>
-#include <stdio.h>
+#include <cstdio>
 
 #include <boost/scoped_array.hpp>
 #include <boost/algorithm/string.hpp>
@@ -29,23 +29,25 @@ using namespace boost;
 #include <vw/FileIO/DiskImageResourcePBM.h>
 
 using namespace vw;
+using std::fstream;
+using std::ifstream;
+using std::ofstream;
+
+// Default PBM file creation options, and related functions.
+namespace {
 
 // Used to skip comment lines found in file
-void skip_any_comments( FILE * stream ) {
-  char temp;
-  temp = fgetc(stream);
-  // Sometimes this can land on just being before a new line
-  while ( temp == '\n' )
-    temp = fgetc(stream);
-  // Clearing away comment
-  while ( temp == '#' ) {
-    do {
-      temp = fgetc(stream);
-    } while ( temp != '\n' );
-    temp = fgetc(stream);
+// Will skip all whitespace, then skip blocks delimited by # and \n, then repeat
+void skip_any_comments( fstream& f ) {
+  while (isspace(f.peek()))
+    f.ignore();
+  while (f.peek() == '#') {
+    f.ignore(1024, '\n');
+    while (isspace(f.peek()))
+      f.ignore();
   }
-  fseek(stream,-1,SEEK_CUR);
 }
+
 // Used to normalize an array of uint8s
 void normalize( scoped_array<uint8>& data, uint32 count, uint8 max_value ) {
   uint8* pointer = data.get();
@@ -58,6 +60,14 @@ void normalize( scoped_array<uint8>& data, uint32 count, uint8 max_value ) {
     }
     pointer++;
   }
+}
+
+static bool default_ascii = false;
+
+} // end anonymous
+
+void DiskImageResourcePBM::default_to_ascii(bool ascii) {
+  default_ascii = ascii;
 }
 
 // Constructors
@@ -73,32 +83,37 @@ DiskImageResourcePBM::DiskImageResourcePBM( std::string const& filename, ImageFo
 // the file and that it has a sane pixel format.
 void DiskImageResourcePBM::open( std::string const& filename ) {
 
-  FILE* input_file = fopen(filename.c_str(), "r");
-  if (!input_file) vw_throw( vw::IOErr() << "Failed to open \"" << filename << "\"." );
+  fstream input(filename.c_str(), fstream::in|fstream::binary);
+  input.exceptions(ifstream::failbit | ifstream::badbit);
 
-  char c_line[2048];
+  if (!input) vw_throw( vw::IOErr() << "Failed to open \"" << filename << "\"." );
 
   // Reading version info
-  skip_any_comments(input_file);
-  fscanf(input_file,"%s",c_line);
-  m_magic = std::string(c_line);
+  input >> m_magic;
   if ( !(m_magic == "P6" || m_magic == "P5" || m_magic == "P4" ||
          m_magic == "P3" || m_magic == "P2" || m_magic == "P1" ) )
     vw_throw( IOErr() << "DiskImageResourcePBM: unsupported / or incorrect magic number identifer \"" << m_magic << "\"." );
 
   // Getting image width, height, and max gray value.
   int32 iwidth, iheight;
-  skip_any_comments(input_file);
-  fscanf(input_file,"%d",&iwidth);
-  skip_any_comments(input_file);
-  fscanf(input_file,"%d",&iheight);
+  skip_any_comments(input);
+  input >> iwidth;
+  skip_any_comments(input);
+  input >> iheight;
+
   if ( m_magic != "P1" && m_magic != "P4" ) {
-    skip_any_comments(input_file);
-    fscanf(input_file,"%d",&m_max_value);
+    skip_any_comments(input);
+    input >> m_max_value;
   } else
     m_max_value = 1; // Binary image
-  fgetpos(input_file, &m_image_data_position);
-  fclose(input_file);
+
+  // skip the one required whitespace
+  if (!isspace(input.get()))
+    vw_throw( IOErr() << "DiskImageResourcePBM: badly-formed file: " << filename);
+
+  m_image_data_position = input.tellg();
+
+  input.close();
 
   // Checking bit sanity
   if (m_max_value <= 0 || m_max_value > 255 )
@@ -133,89 +148,45 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
   VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in PBM read." );
 
-  FILE* input_file = fopen(m_filename.c_str(), "r");
-  if (!input_file) vw_throw( IOErr() << "Failed to open \"" << m_filename << "\"." );
-  fsetpos(input_file,&m_image_data_position);
+  fstream input(m_filename.c_str(), fstream::in|fstream::binary);
+  input.exceptions(ifstream::failbit | ifstream::badbit);
+
+  if (!input) vw_throw( IOErr() << "Failed to open \"" << m_filename << "\"." );
+  input.seekg(m_image_data_position);
 
   // Reading image data
   ImageBuffer src;
-  int32 num_pixels = m_format.cols*m_format.rows;
   src.format = m_format;
-  src.cstride = 1;
-  src.rstride = m_format.cols;
-  src.pstride = num_pixels;
+  src.cstride = num_channels(src.format.pixel_format) * channel_size(src.format.channel_type);
+  src.rstride = src.cstride * src.format.cols;
+  src.pstride = src.rstride * src.format.rows;
 
-  if ( m_magic == "P1" ) {
-    // Bool ASCII
-    scoped_array<bool> image_data(new bool[num_pixels]);
-    bool* point = image_data.get();
-    char buffer;
-    for ( int32 i = 0; i < num_pixels; i++ ) {
-      fscanf( input_file, "%c", &buffer );
-      if ( buffer == '1' )
-        *point = true;
-      else
-        *point = false;
-      point++;
+  size_t data_size = src.pstride;
+  scoped_array<uint8> image_data(new uint8[data_size]);
+
+  // TODO: P4 is broken; binary bool is packed, and we're not doing that yet
+  if ( m_magic == "P4" )
+    vw_throw( NoImplErr() << "P4 (PBM Binary) is not currently implemented" );
+
+  if ( m_magic == "P1" || m_magic == "P2" || m_magic == "P3" ) {
+    // Bool/Grey/RGB (respectively) stored as ASCII
+    uint32 buf;
+    for ( int32 i = 0; i < data_size; ++i ) {
+      input >> buf;
+      image_data[i] = buf;
     }
-    src.data = image_data.get();
-    convert( dest, src, m_rescale );
-  } else if ( m_magic == "P2" ) {
-    // Gray uint8 ASCII
-    scoped_array<uint8> image_data(new uint8[num_pixels]);
-    uint8* point = image_data.get();
-    for ( int32 i = 0; i < num_pixels; i++ ) {
-      fscanf( input_file, "%hhu", point );
-      point++;
-    }
-    normalize( image_data, num_pixels, m_max_value );
-    src.data = image_data.get();
-    convert( dest, src, m_rescale );
-  } else if ( m_magic == "P3" ) {
-    // RGB uint8 ASCII
-    scoped_array<uint8> image_data(new uint8[num_pixels*3]);
-    uint8* point = image_data.get();
-    for ( int32 i = 0; i < num_pixels; i++ ) {
-      fscanf( input_file, "%hhu", point );
-      point++;
-      fscanf( input_file, "%hhu", point );
-      point++;
-      fscanf( input_file, "%hhu", point );
-      point++;
-    }
-    normalize( image_data, num_pixels*3, m_max_value );
-    src.data = image_data.get();
-    src.cstride = 3;
-    src.rstride = src.cstride*m_format.cols;
-    src.pstride = src.rstride*m_format.rows;
-    convert( dest, src, m_rescale );
-  } else if ( m_magic == "P4" ) {
-    // Bool Binary
-    scoped_array<bool> image_data(new bool[num_pixels]);
-    fread( image_data.get(), sizeof(bool), num_pixels, input_file );
-    src.data = image_data.get();
-    convert( dest, src, m_rescale );
-  } else if ( m_magic == "P5" ) {
-    // Gray uint8 Binary
-    scoped_array<uint8> image_data(new uint8[num_pixels]);
-    fread( image_data.get(), sizeof(uint8), num_pixels, input_file );
-    normalize( image_data, num_pixels, m_max_value );
-    src.data = image_data.get();
-    convert( dest, src, m_rescale );
-  } else if ( m_magic == "P6" ) {
-    // RGB uint8 Binary
-    scoped_array<uint8> image_data(new uint8[num_pixels*3]);
-    fread( image_data.get(), sizeof(uint8), num_pixels*3, input_file );
-    normalize( image_data, num_pixels*3, m_max_value );
-    src.data = image_data.get();
-    src.cstride = 3;
-    src.rstride = src.cstride*m_format.cols;
-    src.pstride = src.rstride*m_format.rows;
-    convert( dest, src, m_rescale );
-  } else
+  } else if ( m_magic == "P4" || m_magic == "P5" || m_magic == "P6" ) {
+    // Bool/Grey/RGB (respectively) stored as Binary
+    input.read( reinterpret_cast<char*>(image_data.get()), data_size );
+  } else {
     vw_throw( NoImplErr() << "Unknown input channel type." );
+  }
 
-  fclose(input_file);
+  if ( m_magic != "P1" && m_magic != "P4" )
+    normalize( image_data, data_size, m_max_value );
+
+  src.data = image_data.get();
+  convert( dest, src, m_rescale );
 }
 
 // Bind the resource to a file for writing.
@@ -255,6 +226,10 @@ void DiskImageResourcePBM::create( std::string const& filename,
     }
   }
 
+  // TODO: P4 is broken; binary bool is packed, and we're not doing that yet
+  if ( m_magic == "P4" )
+    vw_throw( NoImplErr() << "P4 (PBM Binary) is not currently implemented" );
+
   if (m_magic == "P4") {
     m_format.pixel_format = VW_PIXEL_SCALAR;
     m_format.channel_type = VW_CHANNEL_BOOL;
@@ -269,14 +244,26 @@ void DiskImageResourcePBM::create( std::string const& filename,
     m_max_value = 255;
   }
 
-  FILE* output_file = fopen(filename.c_str(), "w");
-  fprintf( output_file, "%s\n", m_magic.c_str() );
-  fprintf( output_file, "%d\n", m_format.cols );
-  fprintf( output_file, "%d\n", m_format.rows );
+  if (default_ascii) {
+    if (m_magic == "P4")
+      m_magic = "P1";
+    else if (m_magic == "P5")
+      m_magic = "P2";
+    else if (m_magic == "P6")
+      m_magic = "P3";
+  }
+
+  fstream output(filename.c_str(), fstream::out|fstream::binary);
+  output.exceptions(ofstream::failbit | ofstream::badbit);
+
+  output << m_magic       << "\n"
+         << m_format.cols << " "
+         << m_format.rows << "\n";
+
   if ( m_magic != "P1" && m_magic != "P4" )
-    fprintf( output_file, "%d\n", m_max_value );
-  fgetpos( output_file, &m_image_data_position );
-  fclose( output_file );
+    output << m_max_value << "\n";
+
+  m_image_data_position = output.tellp();
 }
 
 // Write the given buffer into the disk image.
@@ -287,74 +274,39 @@ void DiskImageResourcePBM::write( ImageBuffer const& src,
   VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in PBM write." );
 
-  FILE* output_file = fopen(m_filename.c_str(), "a");
-  fsetpos(output_file,&m_image_data_position);
+  fstream output(m_filename.c_str(), fstream::out|fstream::binary|fstream::app);
+  output.exceptions(ofstream::failbit | ofstream::badbit);
+  output.seekp(m_image_data_position);
 
   ImageBuffer dst;
-  int32 num_pixels = m_format.cols*m_format.rows;
   dst.format = m_format;
-  if ( m_magic == "P6" || m_magic == "P3" )
-    dst.cstride = 3;
-  else
-    dst.cstride = 1;
-  dst.rstride = dst.cstride*cols();
-  dst.pstride = dst.rstride*rows();
+  dst.cstride = num_channels(dst.format.pixel_format) * channel_size(dst.format.channel_type);
+  dst.rstride = dst.cstride * dst.format.cols;
+  dst.pstride = dst.rstride * dst.format.rows;
 
-  // Ready to start writing
-  if ( m_magic == "P1" ) {
-    // Bool ASCII
-    scoped_array<bool> image_data(new bool[num_pixels]);
-    bool* point = image_data.get();
-    dst.data = image_data.get();
-    convert( dst, src, m_rescale );
-    for ( int32 i = 0; i < num_pixels; i++ ) {
-      if ( *point == true )
-        fprintf( output_file, "1 " );
-      else
-        fprintf( output_file, "0 " );
-      point++;
-    }
-  } else if ( m_magic == "P2" ) {
-    // Gray uint8 ASCII
-    scoped_array<uint8> image_data(new uint8[num_pixels]);
-    uint8* point = image_data.get();
-    dst.data = point;
-    convert( dst, src, m_rescale );
-    for ( int32 i = 0; i < num_pixels; i++ ) {
-      fprintf( output_file, "%hu ", *point );
-      point++;
-    }
-  } else if ( m_magic == "P3" ) {
-    // RGB uint8 ASCII
-    scoped_array<uint8> image_data(new uint8[num_pixels*3]);
-    uint8* point = image_data.get();
-    dst.data = point;
-    convert( dst, src, m_rescale );
-    for ( int32 i = 0; i < num_pixels*3; i++ ) {
-      fprintf( output_file, "%hu ", *point );
-      point++;
-    }
-  } else if ( m_magic == "P4" ) {
-    // Bool Binary
-    scoped_array<bool> image_data(new bool[num_pixels]);
-    dst.data = image_data.get();
-    convert( dst, src, m_rescale );
-    fwrite( image_data.get(), sizeof(bool), num_pixels, output_file );
-  } else if ( m_magic == "P5" ) {
-    // Gray uint8 Binary
-    scoped_array<uint8> image_data(new uint8[num_pixels]);
-    dst.data = image_data.get();
-    convert( dst, src, m_rescale );
-    fwrite( image_data.get(), sizeof(uint8), num_pixels, output_file );
-  } else if ( m_magic == "P6" ) {
-    // RGB uint8 Binary
-    scoped_array<uint8> image_data(new uint8[num_pixels*3]);
-    dst.data = image_data.get();
-    convert( dst, src, m_rescale );
-    fwrite( image_data.get(), sizeof(uint8), num_pixels*3, output_file );
+  size_t data_size = dst.pstride;
+
+  // TODO: P4 is broken; binary bool is packed, and we're not doing that yet
+  if ( m_magic == "P4" )
+    vw_throw( NoImplErr() << "P4 (PBM Binary) is not currently implemented" );
+
+  scoped_array<uint8> image_data(new uint8[data_size]);
+  dst.data = image_data.get();
+  convert( dst, src, m_rescale );
+
+  if ( m_magic == "P1" || m_magic == "P2" || m_magic == "P3" ) {
+    // Bool/Grey/RGB (respectively) stored as ASCII
+    if (data_size > 0)
+      output << static_cast<uint32>(image_data[0]);
+
+    for ( int32 i = 1; i < data_size; i++ )
+      output << " " << static_cast<uint32>(image_data[i]);
+  } else if ( m_magic == "P4" || m_magic == "P5" || m_magic == "P6" ) {
+    // Bool/Grey/RGB (respectively) stored as binary
+    output.write( reinterpret_cast<const char*>(image_data.get()), data_size );
+  } else {
+    vw_throw( NoImplErr() << "Unknown input channel type." );
   }
-
-  fclose( output_file );
 }
 
 // A FileIO hook to open a file for reading
