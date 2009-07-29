@@ -231,56 +231,42 @@ void DiskImageResourcePBM::create( std::string const& filename,
   // Deciding output pixel format based on the file extension regardless of input type. If they choose an unknown extension, we'll guess the writing format.
   if ( boost::algorithm::iends_with( filename, ".pbm" ) ||
        boost::algorithm::iends_with( filename, ".PBM" ) ) {
-    m_format.pixel_format = VW_PIXEL_UNKNOWN_MASKED;
-    m_format.channel_type = VW_CHANNEL_BOOL;
     m_magic = "P4";
-    m_max_value = 1;
   } else if ( boost::algorithm::iends_with( filename, ".pgm" ) ||
               boost::algorithm::iends_with( filename, ".PGM" )  ) {
-    m_format.pixel_format = VW_PIXEL_GRAY;
-    m_format.channel_type = VW_CHANNEL_UINT8;
     m_magic = "P5";
-    m_max_value = 255;
   } else if ( boost::algorithm::iends_with( filename, ".ppm" ) ||
               boost::algorithm::iends_with( filename, ".PPM" ) ) {
-    m_format.pixel_format = VW_PIXEL_RGB;
-    m_format.channel_type = VW_CHANNEL_UINT8;
     m_magic = "P6";
-    m_max_value = 255;
   } else {
     // Give up and guess based on image format
+    int channels = num_channels(m_format.pixel_format);
 
-    // Deciding channel type (there are few options).
-    if ( m_format.channel_type != VW_CHANNEL_BOOL )
-      m_format.channel_type = VW_CHANNEL_UINT8;
-
-    // Deciding pixel format
-    switch ( format.pixel_format ) {
-    case VW_PIXEL_UNKNOWN_MASKED:
-    case VW_PIXEL_SCALAR_MASKED:
-      m_format.pixel_format = VW_PIXEL_UNKNOWN_MASKED;
-      m_format.channel_type = VW_CHANNEL_BOOL;
-      m_magic = "P4";
-      m_max_value = 1;
-      break;
-    case VW_PIXEL_UNKNOWN:
-    case VW_PIXEL_SCALAR:
-    case VW_PIXEL_GRAY:
-    case VW_PIXEL_GRAYA:
-    case VW_PIXEL_GRAY_MASKED:
-    case VW_PIXEL_GRAYA_MASKED:
-    case VW_PIXEL_GENERIC_1_CHANNEL:
-      m_format.pixel_format = VW_PIXEL_GRAY;
-      m_magic = "P5";
-      m_max_value = 255;
-      break;
-    default:
-      m_format.pixel_format = VW_PIXEL_RGB;
-      m_magic = "P6";
-      m_max_value = 255;
-      break;
+    if (channels == 1) {
+      if (m_format.channel_type == VW_CHANNEL_BOOL)
+        m_magic = "P4";
+      else
+        m_magic = "P5";
     }
+    else if (channels == 3) {
+      m_magic = "P6";
+    } else {
+      vw_throw( NoImplErr() << "Unsupported number of channels: " << channels );
+    }
+  }
 
+  if (m_magic == "P4") {
+    m_format.pixel_format = VW_PIXEL_SCALAR;
+    m_format.channel_type = VW_CHANNEL_BOOL;
+    m_max_value = 1;
+  } else if (m_magic == "P5") {
+    m_format.pixel_format = VW_PIXEL_GRAY;
+    m_format.channel_type = VW_CHANNEL_UINT8;
+    m_max_value = 255;
+  } else if (m_magic == "P6") {
+    m_format.pixel_format = VW_PIXEL_RGB;
+    m_format.channel_type = VW_CHANNEL_UINT8;
+    m_max_value = 255;
   }
 
   FILE* output_file = fopen(filename.c_str(), "w");
