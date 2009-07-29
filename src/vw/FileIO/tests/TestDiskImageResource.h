@@ -310,4 +310,69 @@ public:
 #endif
   }
 
+  void test_pbm() {
+    const char pr1[] = "P1 1 2 1 0",
+               pr2[] = "P2 1 2 255 12 36",
+               pr3[] = "P3 1 2 255 42 43 44 89 88 87",
+               //pr4[] = "P4 1 2 \1\0",
+               pr5[] = "P5 1 2 255 \xC\x24",
+               pr6[] = "P6 1 2 255 \x2A\x2B\x2C\x59\x58\x57";
+
+#define WF(x, ext) do {\
+  std::fstream f ## x(TEST_SRCDIR"/test_p" #x "." ext, std::fstream::out|std::fstream::binary);\
+  f ## x << pr ## x;\
+  f ## x.close();\
+} while (0);
+
+    WF(1, "pbm");
+    WF(2, "pgm");
+    WF(3, "ppm");
+    WF(5, "pgm");
+    WF(6, "ppm");
+
+#undef WF
+
+    //ImageView<uint8> p1;
+    ImageView<PixelGray<uint8> > p2,p5;
+    ImageView<PixelRGB<uint8> >  p3,p6;
+
+    //read_image( p1, TEST_SRCDIR"/test_p1.pbm" );
+    read_image( p2, TEST_SRCDIR"/test_p2.pgm" );
+    read_image( p3, TEST_SRCDIR"/test_p3.ppm" );
+    read_image( p5, TEST_SRCDIR"/test_p5.pgm" );
+    read_image( p6, TEST_SRCDIR"/test_p6.ppm" );
+
+    TS_ASSERT_EQUALS( p2.cols(),   1 );
+    TS_ASSERT_EQUALS( p2.rows(),   2 );
+    TS_ASSERT_EQUALS( p2.planes(), 1 );
+    TS_ASSERT_EQUALS( p2(0,0).v(), 12 );
+    TS_ASSERT_EQUALS( p2(0,1).v(), 36 );
+
+    TS_ASSERT_EQUALS( p5.cols(),   1 );
+    TS_ASSERT_EQUALS( p5.rows(),   2 );
+    TS_ASSERT_EQUALS( p5.planes(), 1 );
+    TS_ASSERT_EQUALS( p5(0,0).v(), 12 );
+    TS_ASSERT_EQUALS( p5(0,1).v(), 36 );
+
+    TS_ASSERT_EQUALS( p3.cols(),   1 );
+    TS_ASSERT_EQUALS( p3.rows(),   2 );
+    TS_ASSERT_EQUALS( p3.planes(), 1 );
+    TS_ASSERT_EQUALS( p3(0,0).r(), 42 );
+    TS_ASSERT_EQUALS( p3(0,0).g(), 43 );
+    TS_ASSERT_EQUALS( p3(0,0).b(), 44 );
+    TS_ASSERT_EQUALS( p3(0,1).r(), 89 );
+    TS_ASSERT_EQUALS( p3(0,1).g(), 88 );
+    TS_ASSERT_EQUALS( p3(0,1).b(), 87 );
+
+    TS_ASSERT_EQUALS( p6.cols(),   1 );
+    TS_ASSERT_EQUALS( p6.rows(),   2 );
+    TS_ASSERT_EQUALS( p6.planes(), 1 );
+    TS_ASSERT_EQUALS( p6(0,0).r(), 42 );
+    TS_ASSERT_EQUALS( p6(0,0).g(), 43 );
+    TS_ASSERT_EQUALS( p6(0,0).b(), 44 );
+    TS_ASSERT_EQUALS( p6(0,1).r(), 89 );
+    TS_ASSERT_EQUALS( p6(0,1).g(), 88 );
+    TS_ASSERT_EQUALS( p6(0,1).b(), 87 );
+  }
+
 }; // class TestDiskImageResource
