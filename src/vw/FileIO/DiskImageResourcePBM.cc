@@ -34,7 +34,7 @@ void skip_any_comments( FILE * stream ) {
   char temp;
   temp = fgetc(stream);
   // Sometimes this can land on just being before a new line
-  while ( temp == '\n' ) 
+  while ( temp == '\n' )
     temp = fgetc(stream);
   // Clearing away comment
   while ( temp == '#' ) {
@@ -70,7 +70,7 @@ DiskImageResourcePBM::DiskImageResourcePBM( std::string const& filename, ImageFo
 
 // Bind the resource to a file for reading. Confirm that we can open
 // the file and that it has a sane pixel format.
-void DiskImageResourcePBM::open( std::string const& filename ) { 
+void DiskImageResourcePBM::open( std::string const& filename ) {
 
   FILE* input_file = fopen(filename.c_str(), "r");
   if (!input_file) vw_throw( vw::IOErr() << "Failed to open \"" << filename << "\"." );
@@ -82,7 +82,7 @@ void DiskImageResourcePBM::open( std::string const& filename ) {
   fscanf(input_file,"%s",c_line);
   m_magic = std::string(c_line);
   if ( !(m_magic == "P6" || m_magic == "P5" || m_magic == "P4" ||
-	 m_magic == "P3" || m_magic == "P2" || m_magic == "P1" ) )
+         m_magic == "P3" || m_magic == "P2" || m_magic == "P1" ) )
     vw_throw( IOErr() << "DiskImageResourcePBM: unsupported / or incorrect magic number identifer \"" << m_magic << "\"." );
 
   // Getting image width, height, and max gray value.
@@ -128,10 +128,10 @@ void DiskImageResourcePBM::open( std::string const& filename ) {
 void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  const {
 
   VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
-	     NoImplErr() << "DiskImageResourcePBM does not support partial reads." );
+             NoImplErr() << "DiskImageResourcePBM does not support partial reads." );
   VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
-	     IOErr() << "Buffer has wrong dimensions in PBM read." );
-    
+             IOErr() << "Buffer has wrong dimensions in PBM read." );
+
   FILE* input_file = fopen(m_filename.c_str(), "r");
   if (!input_file) vw_throw( IOErr() << "Failed to open \"" << m_filename << "\"." );
   fsetpos(input_file,&m_image_data_position);
@@ -152,9 +152,9 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
     for ( int32 i = 0; i < num_pixels; i++ ) {
       fscanf( input_file, "%c", &buffer );
       if ( buffer == '1' )
-	*point = true;
+        *point = true;
       else
-	*point = false;
+        *point = false;
       point++;
     }
     src.data = image_data;
@@ -217,7 +217,7 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
     src.pstride = src.rstride*m_format.rows;
     convert( dest, src, m_rescale );
     delete[] image_data;
-  } else 
+  } else
     vw_throw( NoImplErr() << "Unknown input channel type." );
 
   fclose(input_file);
@@ -225,7 +225,7 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
 
 // Bind the resource to a file for writing.
 void DiskImageResourcePBM::create( std::string const& filename,
-				   ImageFormat const& format ) {
+                                   ImageFormat const& format ) {
 
   if ( format.planes != 1 )
     vw_throw( NoImplErr() << "DiskImageResourcePBM doesn't support multi-plane images.");
@@ -234,20 +234,20 @@ void DiskImageResourcePBM::create( std::string const& filename,
   m_format = format;
 
   // Deciding output pixel format based on the file extension regardless of input type. If they choose an unknown extension, we'll guess the writing format.
-  if ( boost::algorithm::iends_with( filename, ".pbm" ) || 
+  if ( boost::algorithm::iends_with( filename, ".pbm" ) ||
        boost::algorithm::iends_with( filename, ".PBM" ) ) {
     m_format.pixel_format = VW_PIXEL_UNKNOWN_MASKED;
     m_format.channel_type = VW_CHANNEL_BOOL;
     m_magic = "P4";
     m_max_value = 1;
   } else if ( boost::algorithm::iends_with( filename, ".pgm" ) ||
-	      boost::algorithm::iends_with( filename, ".PGM" )  ) {
+              boost::algorithm::iends_with( filename, ".PGM" )  ) {
     m_format.pixel_format = VW_PIXEL_GRAY;
     m_format.channel_type = VW_CHANNEL_UINT8;
     m_magic = "P5";
     m_max_value = 255;
   } else if ( boost::algorithm::iends_with( filename, ".ppm" ) ||
-	      boost::algorithm::iends_with( filename, ".PPM" ) ) {
+              boost::algorithm::iends_with( filename, ".PPM" ) ) {
     m_format.pixel_format = VW_PIXEL_RGB;
     m_format.channel_type = VW_CHANNEL_UINT8;
     m_magic = "P6";
@@ -258,7 +258,7 @@ void DiskImageResourcePBM::create( std::string const& filename,
     // Deciding channel type (there are few options).
     if ( m_format.channel_type != VW_CHANNEL_BOOL )
       m_format.channel_type = VW_CHANNEL_UINT8;
-    
+
     // Deciding pixel format
     switch ( format.pixel_format ) {
     case VW_PIXEL_UNKNOWN_MASKED:
@@ -292,7 +292,7 @@ void DiskImageResourcePBM::create( std::string const& filename,
   fprintf( output_file, "%s\n", m_magic.c_str() );
   fprintf( output_file, "%d\n", m_format.cols );
   fprintf( output_file, "%d\n", m_format.rows );
-  if ( m_magic != "P1" && m_magic != "P4" ) 
+  if ( m_magic != "P1" && m_magic != "P4" )
     fprintf( output_file, "%d\n", m_max_value );
   fgetpos( output_file, &m_image_data_position );
   fclose( output_file );
@@ -300,25 +300,25 @@ void DiskImageResourcePBM::create( std::string const& filename,
 
 // Write the given buffer into the disk image.
 void DiskImageResourcePBM::write( ImageBuffer const& src,
-				  BBox2i const& bbox ) {
+                                  BBox2i const& bbox ) {
   VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
-	     NoImplErr() << "DiskImageResourcePBM does not support partial writes." );
+             NoImplErr() << "DiskImageResourcePBM does not support partial writes." );
   VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
-	     IOErr() << "Buffer has wrong dimensions in PBM write." );
+             IOErr() << "Buffer has wrong dimensions in PBM write." );
 
   FILE* output_file = fopen(m_filename.c_str(), "a");
   fsetpos(output_file,&m_image_data_position);
-  
+
   ImageBuffer dst;
   int32 num_pixels = m_format.cols*m_format.rows;
   dst.format = m_format;
-  if ( m_magic == "P6" || m_magic == "P3" ) 
+  if ( m_magic == "P6" || m_magic == "P3" )
     dst.cstride = 3;
   else
     dst.cstride = 1;
   dst.rstride = dst.cstride*cols();
   dst.pstride = dst.rstride*rows();
-  
+
   // Ready to start writing
   if ( m_magic == "P1" ) {
     // Bool ASCII
@@ -328,9 +328,9 @@ void DiskImageResourcePBM::write( ImageBuffer const& src,
     convert( dst, src, m_rescale );
     for ( int32 i = 0; i < num_pixels; i++ ) {
       if ( *point == true )
-	fprintf( output_file, "1 " );
+        fprintf( output_file, "1 " );
       else
-	fprintf( output_file, "0 " );
+        fprintf( output_file, "0 " );
       point++;
     }
     delete[] image_data;
@@ -389,6 +389,6 @@ DiskImageResource* DiskImageResourcePBM::construct_open( std::string const& file
 
 // A FileIO hook to open a file for writing
 DiskImageResource* DiskImageResourcePBM::construct_create( std::string const& filename,
-							   ImageFormat const& format ) {
+                                                           ImageFormat const& format ) {
   return new DiskImageResourcePBM( filename, format );
 }
