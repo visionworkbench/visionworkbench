@@ -56,6 +56,9 @@ public:
     TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGBA<uint8> >,  exclude));
     TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelGray<uint8> >,  exclude));
     TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelGrayA<float> >, exclude));
+
+    // there's no sane way to represent scalar images in ppm
+    exclude.insert("ppm");
     TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<uint8>,              exclude));
     TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<float>,              exclude));
   }
