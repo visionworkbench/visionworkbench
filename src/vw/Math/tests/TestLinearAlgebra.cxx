@@ -317,7 +317,7 @@ TEST(LinearAlgebra, QRDFloat) {
 
   qrd(A, Q, R);
 
-  EXPECT_NEAR(1, std::fabs(det(Q)), 1e-7); // Q must be unitary <-> det 1
+  EXPECT_NEAR(1, std::fabs(det(Q)), 1.2e-7); // Q must be unitary <-> det 1
   EXPECT_MATRIX_NEAR( identity_matrix(4), Q*transpose(Q), 1e-6 );
   EXPECT_MATRIX_NEAR( A, Q*R, 1e-3);
 
