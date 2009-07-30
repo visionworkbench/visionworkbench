@@ -514,7 +514,8 @@ namespace vw {
     // which it does not support true strip access.  Thus, we check the file 
     // driver type before accepting GDAL's suggested block size.
     if ( dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("GTiff") ||
-         dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("ISIS3") ) {
+         dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("ISIS3") ||
+	 dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("JP2KAK") ) {
       GDALRasterBand *band = dataset->GetRasterBand(1);
       int xsize, ysize;
       band->GetBlockSize(&xsize,&ysize);
