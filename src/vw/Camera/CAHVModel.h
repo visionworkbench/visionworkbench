@@ -99,7 +99,7 @@ namespace camera {
     /// | 0   0   0   1|
     /// 
     CAHVModel(double f, Vector2 pixel_size, 
-              double xmin, double xmax, double ymin, double ymax,
+              double xmin, double /*xmax*/, double ymin, double /*ymax*/,
               Matrix<double, 4, 4> view_matrix) {
 
       double fH = f/pixel_size.x();
@@ -148,7 +148,7 @@ namespace camera {
     //------------------------------------------------------------------
     virtual Vector2 point_to_pixel(Vector3 const& point) const;
     virtual Vector3 pixel_to_vector (Vector2 const& pix) const;
-    virtual Vector3 camera_center(Vector2 const& pix = Vector2() ) const { return C; };
+    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const { return C; };
    
     //------------------------------------------------------------------
     // Exposed Variables

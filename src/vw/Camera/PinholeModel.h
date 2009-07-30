@@ -282,11 +282,11 @@ namespace camera {
     }
 
     
-    virtual Vector3 camera_center(Vector2 const& pix = Vector2() ) const { return m_camera_center; };
+    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const { return m_camera_center; };
     void set_camera_center(Vector3 const& position) { m_camera_center = position; rebuild_camera_matrix(); }
 
     //  Pose is a rotation which moves a vector in camera coordinates into world coordinates.
-    virtual Quaternion<double> camera_pose(Vector2 const& pix = Vector2() ) const { return Quaternion<double>(m_rotation); }
+    virtual Quaternion<double> camera_pose(Vector2 const& /*pix*/ = Vector2() ) const { return Quaternion<double>(m_rotation); }
     void set_camera_pose(Quaternion<double> const& pose) { m_rotation = pose.rotation_matrix(); rebuild_camera_matrix(); }
     void set_camera_pose(Matrix<double,3,3> const& pose) { m_rotation = pose; rebuild_camera_matrix(); }
 

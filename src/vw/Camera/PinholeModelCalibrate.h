@@ -127,12 +127,12 @@ public:
   static const unsigned int size = 0; /// number of parameters this class will extract
 
   /// serialize the passed PinholeModel into a Vector of doubles
-  static inline const vw::Vector<double, size> get(const PinholeModel& m)  {
+  static inline const vw::Vector<double, size> get(const PinholeModel& /*m*/)  {
     return vw::Vector<double, size>();
   }
   
   /// Set the parameters of the PinholeModel to the values contained in the Vector
-  static inline void set(PinholeModel& m, const vw::Vector<double, size>& v) {
+  static inline void set(PinholeModel& /*m*/, const vw::Vector<double, size>& /*v*/) {
   }
 };
 } /* anonymous namespace */
@@ -298,19 +298,19 @@ void pinholemodel_calibrate(PinholeModel& m, const std::vector<vw::Vector2>& pix
 /// Convinience overload with less template parameters
 template<class Ex1T, class Ex2T, class Ex3T> 
 inline void pinholemodel_calibrate(PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, unsigned int niter = 1000) {
-  pinholemodel_calibrate<Ex1T, Ex2T, Ex3T, PinholeModelSerializeNull>(m, pixels, points);
+  pinholemodel_calibrate<Ex1T, Ex2T, Ex3T, PinholeModelSerializeNull>(m, pixels, points, niter);
 }
   
 /// Convinience overload with less template parameters
 template<class Ex1T, class Ex2T> 
 inline void pinholemodel_calibrate(PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, unsigned int niter = 1000) {
-  pinholemodel_calibrate<Ex1T, Ex2T, PinholeModelSerializeNull>(m, pixels, points);
+  pinholemodel_calibrate<Ex1T, Ex2T, PinholeModelSerializeNull>(m, pixels, points, niter);
 }
 
 /// Convinience overload with less template parameters
 template<class Ex1T> 
 inline void pinholemodel_calibrate(PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, unsigned int niter = 1000) {
-  pinholemodel_calibrate<Ex1T, PinholeModelSerializeNull>(m, pixels, points);
+  pinholemodel_calibrate<Ex1T, PinholeModelSerializeNull>(m, pixels, points, niter);
 }
 
 namespace { 
@@ -338,7 +338,7 @@ public:
   }
 
   template <class DummyT>
-  unsigned int min_elements_needed_for_fit(const DummyT& d) const {
+  unsigned int min_elements_needed_for_fit(const DummyT&) const {
     return (Ex1T::size + Ex2T::size + Ex3T::size + Ex4T::size + 1)/2;
   }
 };

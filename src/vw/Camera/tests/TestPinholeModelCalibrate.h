@@ -53,28 +53,28 @@ class TestPinholeModelCalibrate : public CxxTest::TestSuite
 {
   double mean_error(const PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points) {
     double mean = 0;
-    for (int i = 0; i < pixels.size(); i++)
+    for (uint32 i = 0; i < pixels.size(); i++)
       mean += vw::math::norm_2(pixels[i] - m.point_to_pixel(points[i]));
     return mean / pixels.size();
   }
 
   double mean_error(const PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, const std::vector<int>& indices) {
     double mean = 0;
-    for (int j = 0; j < indices.size(); j++)
+    for (uint32 j = 0; j < indices.size(); j++)
       mean += vw::math::norm_2(pixels[indices[j]] - m.point_to_pixel(points[indices[j]]));
     return mean / indices.size();
   }
 
   double mean_sqr_error(const PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points) {
     double mean = 0;
-    for (int i = 0; i < pixels.size(); i++)
+    for (uint32 i = 0; i < pixels.size(); i++)
       mean += vw::math::norm_2_sqr(pixels[i] - m.point_to_pixel(points[i]));
     return mean / pixels.size();
   }
 
   double mean_sqr_error(const PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, const std::vector<int>& indices) {
     double mean = 0;
-    for (int j = 0; j < indices.size(); j++)
+    for (uint32 j = 0; j < indices.size(); j++)
       mean += vw::math::norm_2_sqr(pixels[indices[j]] - m.point_to_pixel(points[indices[j]]));
     return mean / indices.size();
   }
@@ -84,7 +84,7 @@ class TestPinholeModelCalibrate : public CxxTest::TestSuite
   }
 
   unsigned long sequence;
-  double repeatable_srand(unsigned long init = 10) {
+  void repeatable_srand(unsigned long init = 10) {
     sequence = init;
   }
 

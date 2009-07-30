@@ -122,7 +122,7 @@ namespace camera {
   public:
     ConstantPoseInterpolation(Quaternion<double> const& pose) : m_pose(pose) {}
     
-    inline Quaternion<double> operator()(double t) const {
+    inline Quaternion<double> operator()(double /*t*/) const {
       return m_pose;
     }
   };
