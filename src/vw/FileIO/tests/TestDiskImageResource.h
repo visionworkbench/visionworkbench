@@ -24,7 +24,7 @@ using std::set;
 template <class PixelT>
 static void test_extension(string const& fn)
 {
-  ImageView<PixelT> img1(1,1), img2;
+  ImageView<PixelT> img1(4,4), img2;
 
   try {
     write_image(fn, img1);
