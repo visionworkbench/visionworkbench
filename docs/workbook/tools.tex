@@ -1,15 +1,21 @@
-\chapter{Some Tools}\label{ch:tools}
+\chapter{Tools}\label{ch:tools}
 
-VisionWorkbench also has some tools that are handy for doing cool things with graphics.  The tools live in the VisionWorkbench/src/vw/tools folder.
+VisionWorkbench has various tools that are handy for working with graphics. The tools can be found in the \verb#VisionWorkbench/src/vw/tools# folder.
 
 \section{{\tt colormap}}\label{sec:colormap}
 
-The \verb#colormap# tool takes in a DEM and outputs a corresponding color-coded height image.  The colors run from blue for the lowest height value in the DEM to red for the highest value.  To adjust the image colors, use the \verb#--min# and \verb#--max# flags to set the highest and lowest values on the blue-to-red scale.  For example, suppose firstDEM.tif has heights from 0 to 100 and secondDEM.tif has heights from 0 to 120.  To compare both images using the same color scale, run \verb#colormap --max 120 firstDEM.tif#.
+The \verb#colormap# tool visualizes the data encoded in a DEM by reading in a DEM and outputting a corresponding color-coded height image. The colors run from blue for the lowest height value to red for the highest height value.  To adjust the image colors, use flags \verb#--min# and \verb#--max# to set the highest and lowest values on the blue-to-red scale.  For example, suppose \verb#firstDEM.tif# has heights in [0,100] and \verb#secondDEM.tif# has heights in [0,120]. To visualize \verb#firstDEM.tif# using the same color scale as \verb#secondDEM.tif#, run \verb#colormap --max 120 firstDEM.tif#.
 
-Other command-line options for colormap are in Table~\ref{tbl:colormap}
+Other command-line options for colormap are listed in Table~\ref{tbl:colormap}.
 
-\begin{table}
-\begin{tabular}{|l|l|} \hline
+\begin{longtable}{|l|p{10cm}|} 
+\caption{Command-line options for colormap}
+\label{tbl:colormap}
+\endfirsthead
+\endhead
+\endfoot
+\endlastfoot
+\hline
 Option & Description \\ \hline \hline
 \verb#--help# & Display a help message \\ \hline
 \verb#--input-file arg# & Explicitly specify the input file \\ \hline
@@ -19,17 +25,46 @@ Option & Description \\ \hline \hline
 \verb#--min arg# & Minimum height of the color map \\ \hline
 \verb#--max arg# & Maximum height of the color map \\ \hline
 \verb#--verbose# & Verbose output \\ \hline
-\end{tabular}
-\caption{Command-line options for colormap}
-\label{tbl:colormap}
-\end{table}
+\end{longtable}
+
+
+\section{{\tt hillshade}}\label{sec:hillshade}
+
+An alternative visualization of the DEM data may be desired. For this, the \verb#hillshade# tool reads in a DEM and outputs an image of that DEM as though it were a three-dimensional surface, with every pixel shaded as though it were illuminated by a light from a specified location.
+
+\begin{longtable}{|l|p{11cm}|} 
+\caption{Command-line options for hillshade}
+\label{tbl:hillshade}
+\endfirsthead
+\endhead
+\endfoot
+\endlastfoot
+\hline
+Option & Description \\ \hline \hline
+\verb#--help# & Display a help message\\ \hline
+\verb#--input-file arg# & Explicitly specify the input file\\ \hline
+\verb#-o [ --output-file ] arg# & Specify the output file\\ \hline
+\verb#-a [ --azimuth ] arg (=0)# & Sets the direction tha the light source is coming from (in degrees).  Zero degrees is to the right, with positive degree counter-clockwise.\\ \hline
+\verb#-e [ --elevation ] arg (=45)# & Set the elevation of the light source (in degrees)\\ \hline
+\verb#-s [ --scale ] arg (=0)# & Set the scale of a pixel (in the same units as the DTM height values\\ \hline
+\verb#--nodata-value arg# & Remap the DEM default value to the min altitude value\\ \hline
+\verb#--blur arg# & Pre-blur the DEM with the specified sigma\\ \hline
+\end{longtable}
+
+
 
 \section{{\tt geoblend}}\label{sec:geoblend}
 
 \verb#geoblend# merges multiple DEMs into one large DEM.  By default, it blends the DEMs so that the output is smooth at the boundaries.  Disable this feature using the \verb#--draft# flag.  Other options are listed in Table~\ref{tbl:geoblend}.
 
-\begin{table}
-\begin{tabular}{|l|l|} \hline
+\begin{longtable}{|l|p{9cm}|} 
+\caption{Command-line options for geoblend}
+\label{tbl:geoblend}
+\endfirsthead
+\endhead
+\endfoot
+\endlastfoot
+\hline
 Option & Description \\ \hline \hline
 \verb#--help# & Display a help message \\ \hline
 \verb#-o [ --mosaic-name ] arg (=mosaic)# & Specify base output directory\\ \hline
@@ -44,17 +79,23 @@ Option & Description \\ \hline \hline
 \verb#--nodata-value arg# & Pixel value to use for nodata in input and output (when there's no alpha channel)\\ \hline
 \verb#--channel-type arg# & Images' channel type. One of [uint8, uint16, int16, float].\\ \hline
 \verb#--verbose# & Verbose output\\ \hline
-\end{tabular}
-\caption{Command-line options for geoblend}
-\label{tbl:geoblend}
-\end{table}
+\end{longtable}
 
 \section{{\tt georef}}\label{sec:georef}
 
-The \verb#georef# tool lets you specify the geographical coordinates and projection method for an image taken of the surface of a planet.
+The \verb#georef# tool lets you specify the geographical coordinates and projection method for an image taken of the surface of a planet. 
 
-\begin{table}
-\begin{tabular}{|l|l|} \hline
+\begin{longtable}{|l|p{8.5cm}|}
+\caption{Command-line options for georef}
+\label{tbl:georef}
+
+
+\endfirsthead
+\endhead
+\endfoot
+\endlastfoot
+\hline
+
 Option & Description \\ \hline \hline
 General Options \\ \hline
 \verb#-o [ --output-file ] arg (=output.tif)# & Specify the base output filename \\ \hline
@@ -82,37 +123,28 @@ Projection Options \\ \hline
 \verb#--nudge-x arg# & Nudge the image, in projected coordinates \\ \hline
 \verb#--nudge-y arg# & Nudge the image, in projected coordinates \\ \hline
 \verb#--pixel-as-point# & Encode that the pixel location (0,0) is the center of the upper left hand pixel (the default, if you specify nothing, is to set the upper left hand corner of the upper left pixel as (0,0) (i.e. PixelAsArea). \\ \hline
-\end{tabular}
-\caption{Command-line options for georef}
-\label{tbl:georef}
-\end{table}
-
-\section{{\tt hillshade}}\label{sec:hillshade}
-
-The \verb#hillshade# tool takes a DEM and outputs an image of that DEM illuminated by a light from a specified location.
-
-\begin{table}
-\begin{tabular}{|l|l|} \hline
-Option & Description \\ \hline \hline
-\verb#--help# & Display a help message\\ \hline
-\verb#--input-file arg# & Explicitly specify the input file\\ \hline
-\verb#-o [ --output-file ] arg# & Specify the output file\\ \hline
-\verb#-a [ --azimuth ] arg (=0)# & Sets the direction tha the light source is coming from (in degrees).  Zero degrees is to the right, with positive degree counter-clockwise.\\ \hline
-\verb#-e [ --elevation ] arg (=45)# & Set the elevation of the light source (in degrees)\\ \hline
-\verb#-s [ --scale ] arg (=0)# & Set the scale of a pixel (in the same units as the DTM height values\\ \hline
-\verb#--nodata-value arg# & Remap the DEM default value to the min altitude value\\ \hline
-\verb#--blur arg# & Pre-blur the DEM with the specified sigma\\ \hline
-\end{tabular}
-\caption{Command-line options for hillshade}
-\label{tbl:hillshade}
-\end{table}
+\end{longtable}
 
 \section{{\tt image2qtree}}\label{sec:image2qtree}
 
 \verb#image2qtree# turns a georeferenced image (or images) into a quadtree with geographical metadata.  For example, it can output a kml file for viewing in Google Earth.
 
-\begin{table}
-\begin{tabular}{|l|l|} \hline
+\begin{longtable}{|l|p{9cm}|}
+\caption{Command-line options for image2qtree}
+\label{tbl:image2qtree}
+
+
+\endfirsthead
+\multicolumn{2}{c}%
+{{\tablename\ \thetable{} -- continued from previous page}} \\
+
+\endhead
+\hline \multicolumn{2}{|r|}{{Continued on next page}} \\ \hline
+
+\endfoot
+\endlastfoot
+
+\hline
 Option & Description \\ \hline \hline
 General Options \\ \hline
 \verb#-o [ --output-name ] arg# & Specify the base output directory\\ \hline
@@ -165,7 +197,37 @@ Projection Options\\ \hline
 \verb#--std-parallel2 arg# & Standard parallels for Lambert Conformal Conic projection\\ \hline
 \verb#--nudge-x arg# & Nudge the image, in projected coordinates\\ \hline
 \verb#--nudge-y arg# & Nudge the image, in projected coordinates\\ \hline
-\end{tabular}
-\caption{Command-line options for image2qtree}
-\label{tbl:image2qtree}
-\end{table}
+\end{longtable}
+
+
+\section{{\tt slopemap}}\label{sec:slopemap} %but it won't actually be north on earth..what?
+The \verb#slopemap# tool takes in an image with geodetic coordinates and calculates the gradient angle (steepness of slope) and aspect (direction of slope) in radians of each point on a DEM. The gradient angle is calculated as the angle between the steepest slope and the horizon; the aspect is the angle clockwise between the normal of the surface and a vector pointing to north, both projected onto the tangent plane of the unelevated surface at that point. 
+
+Outputs include two georeferenced \verb#tif#s encoding \verb#float# values for aspect and gradient angle (by default), as well as one RGB image displaying a colorized representation of both gradient angle and aspect in which aspect is represented as hue and 
+gradient angle is represented as a combination of saturation and value (needs flag). The output files are named according to the command line argument \verb#output-prefix#, with corresponding suffixes of \verb#_aspect.tif#, \verb#_gradient.tif#, and \verb#_pretty.tif#
+
+The implementation calculates gradient angle and aspect by one of several methods: \verb#[ horn,# \verb#fh,# \verb#sa,# \verb#planefit ]#. \verb#planefit# refers to fitting a plane by least squares to all nine points of a 3x3 window around the point in question, weighted equally. The implementation involves using singular value decomposition to solve a homogeneous linear system of equations and is slower than the other methods. 
+
+\verb#horn#, \verb#fh#, and \verb#sa# are modified versions of finite difference methods. They correspond to modified versions of Horn's method, Fleming and Hoffer's method (also known as Ritter's method as well as the rook's case), and Sharpnack and Akin's method (also known as the queen's case). They are all variations of a similar method: approximate a west-east gradient and a south-north gradient and subsequently calculate gradient angle and aspect from that. The modification to these algorithms is that they do not require sampling from a square grid; when there is such a grid, the results are the same as the unmodified versions. There is also a flag, \verb#spherical#, that determines whether the datum is interpreted to be spherical or flat (defaults to spherical), for an additional modification, as the original algorithms assumed a flat sampling grid. 
+
+Usage: \verb#slopemap [options] <input file>#. Other command line arguments are listed in Table~\ref{tbl:slopemap}
+
+\begin{longtable}{|l|p{11cm}|} 
+\caption{Command-line options for slopemap}
+\label{tbl:slopemap}
+\endfirsthead
+\endhead
+\endfoot
+\endlastfoot
+\hline
+Options & Description\\ \hline \hline
+\verb#--help# & Display this help message\\ \hline
+\verb#--input file arg# & Explcitly specify the input file\\ \hline
+\verb#-o [ --output-prefix ]# & Output prefix\\ \hline
+\verb#--no-aspect# & Do not output aspect (\verb#[output-prefix]_aspect.tif#)\\ \hline
+\verb#--no-gradient# & Do not output gradient (\verb#[output-prefix]_gradient.tif#)\\ \hline
+\verb#--pretty# & Output colored image (\verb#[output-prefix]_pretty.tif#)\\ \hline
+\verb#--algorithm arg (=moduneven)# & Choose an algorithm to calculate slope/aspect from \verb#[ horn, fh, sa, planefit ]#. Horn: Horn's algorithm; FH: Fleming \& Hoffer's (rook's case); SA: Sharpnack \& Akin's (queen's case)\\ \hline
+\verb#--spherical arg (=1)# & Spherical/elliptical datum (recommended); otherwise, a flat grid\\ \hline
+\end{longtable}
+
