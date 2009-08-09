@@ -33,21 +33,72 @@ namespace vw {
   template <class PixelT>
   class CreatePixelMask : public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
     PixelT m_nodata_value;
+    bool m_is_threshold;
+    PixelT m_valid_min;
+    PixelT m_valid_max;
   public:
-    CreatePixelMask( PixelT const& nodata_value ) : m_nodata_value(nodata_value) {}
+    CreatePixelMask( PixelT const& nodata_value ) : m_nodata_value(nodata_value), m_is_threshold(false) {}
+    
+    CreatePixelMask( PixelT const& valid_min, PixelT const& valid_max ) : m_nodata_value(PixelT()), m_is_threshold(true), m_valid_min(valid_min), m_valid_max(valid_max) {}
+
+    // Helper to access only specific types of pixels
+    template <bool CompoundB, class Arg1T, class Arg2T>
+    struct Helper {
+      static inline bool greater_than( Arg1T const& arg1, Arg2T const& arg2 ) {
+	return true;
+      }
+      static inline bool less_than( Arg1T const& arg1, Arg2T const& arg2 ) {
+	return true;
+      }
+    };
+
+    // Specialization only for scalars that actually does something
+    template <class Arg1T, class Arg2T>
+    struct Helper<false,Arg1T,Arg2T> {
+      static inline bool greater_than( Arg1T const& arg1, Arg2T const& arg2 ) {
+	return arg1 > arg2;
+      }
+      static inline bool less_than( Arg1T const& arg1, Arg2T const& arg2 ) {
+	return arg1 < arg2;
+      }
+    };
+
     typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
-      return (value==m_nodata_value) ? 
-        typename MaskedPixelType<PixelT>::type() : 
-        typename MaskedPixelType<PixelT>::type(value);
+      if ( m_is_threshold ) {
+	if ( IsCompound<PixelT>::value )
+	  vw_throw(NoImplErr() << "CreatePixelMask() doesn't support threshold of non-scalar types.");
+
+	typedef Helper<IsCompound<PixelT>::value,PixelT,PixelT> help_func;
+	if (help_func::greater_than(value,m_valid_max))
+	  return typename MaskedPixelType<PixelT>::type();
+	if (help_func::less_than(value,m_valid_min))
+	  return typename MaskedPixelType<PixelT>::type();
+
+	return typename MaskedPixelType<PixelT>::type(value);
+      } else 
+	return (value==m_nodata_value) ? 
+	  typename MaskedPixelType<PixelT>::type() : 
+	  typename MaskedPixelType<PixelT>::type(value);
     }
   };
 
+  // Simple single value nodata
   template <class ViewT>
   UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> >
   create_mask( ImageViewBase<ViewT> const& view,
                typename ViewT::pixel_type const& value ) {
     typedef UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> > view_type;
     return view_type( view.impl(), CreatePixelMask<typename ViewT::pixel_type>(value) );
+  }
+
+  // Thresholded valid
+  template <class ViewT>
+  UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> >
+  create_mask( ImageViewBase<ViewT> const& view,
+	       typename ViewT::pixel_type const& valid_min,
+	       typename ViewT::pixel_type const& valid_max ) {
+    typedef UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> > view_type;
+    return view_type( view.impl(), CreatePixelMask<typename ViewT::pixel_type>( valid_min, valid_max ));
   }
 
   // We overload the function rather than defaulting the value
@@ -57,7 +108,6 @@ namespace vw {
   create_mask( ImageViewBase<ViewT> const& view ) {
     return create_mask( view, typename ViewT::pixel_type() );
   }
-
 
   // Indicate that create_mask is "reasonably fast" and should never
   // induce an extra rasterization step during prerasterization.
