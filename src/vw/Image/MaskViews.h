@@ -52,7 +52,7 @@ namespace vw {
       }
     };
 
-    // Specialization only for scalars that actually does something
+    // Specialization only for scalars
     template <class Arg1T, class Arg2T>
     struct Helper<false,Arg1T,Arg2T> {
       static inline bool greater_than( Arg1T const& arg1, Arg2T const& arg2 ) {
@@ -63,10 +63,21 @@ namespace vw {
       }
     };
 
+    // Specialization for compounds
+    template <class Arg1T, class Arg2T>
+    struct Helper<true,Arg1T,Arg2T> {
+      static inline bool greater_than( Arg1T const& arg1, Arg2T const& arg2 ) {
+	return arg1[0] > arg2[0];
+      }
+      static inline bool less_than( Arg1T const& arg1, Arg2T const& arg2 ) {
+	return arg1[0] < arg2[0];
+      }
+    };
+
     typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
       if ( m_is_threshold ) {
-	if ( IsCompound<PixelT>::value )
-	  vw_throw(NoImplErr() << "CreatePixelMask() doesn't support threshold of non-scalar types.");
+	if ( CompoundNumChannels<PixelT>::value > 1)
+	  vw_throw(NoImplErr() << "CreatePixelMask() doesn't support threshold of pixels with multiple channels.");
 
 	typedef Helper<IsCompound<PixelT>::value,PixelT,PixelT> help_func;
 	if (help_func::greater_than(value,m_valid_max))
