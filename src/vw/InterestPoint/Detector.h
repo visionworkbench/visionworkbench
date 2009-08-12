@@ -132,7 +132,9 @@ namespace ip {
     vw_out(DebugMessage, "interest_point") << "Running MT interest point detector.  Input image: [ " << view.impl().cols() << " x " << view.impl().rows() << " ]\n";
 
     // Process the image in 2048x2048 pixel blocks.
-    std::vector<BBox2i> bboxes = image_blocks(view.impl(), 2048, 2048);
+    std::vector<BBox2i> bboxes = image_blocks(view.impl(), 
+					      vw_settings().system_cache_size(),
+					      vw_settings().system_cache_size());
     for (unsigned i = 0; i < bboxes.size(); ++i) {
       boost::shared_ptr<task_type> task (new task_type(view, detector, bboxes[i], ip_list, mutex, i+1, bboxes.size() ) );
       queue.add_task(task);

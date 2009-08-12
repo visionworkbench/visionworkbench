@@ -15,6 +15,7 @@
 #include <vw/InterestPoint.h>
 #include <vw/Image.h>
 #include <vw/FileIO.h>
+#include <vw/Math/BBox.h>
 
 using namespace vw;
 using namespace vw::ip;
@@ -28,6 +29,76 @@ static std::string prefix_from_filename(std::string const& filename) {
   if (index != -1) 
     result.erase(index, result.size());
   return result;
+}
+
+template <class ImageT, class ValueT>
+void draw_line( ImageViewBase<ImageT>& image,
+		ValueT const& value,
+		Vector2i const& start,
+		Vector2i const& end ) {
+
+  BBox2i bound = bounding_box(image.impl());
+  if ( !bound.contains( start ) ||
+       !bound.contains( end ) ) 
+    return;
+  Vector2i delta = end - start;
+  for ( float r=0; r<1.0; r+=1/norm_2(delta) ) {
+    int i = (int)(0.5 + start.x() + r*float(delta.x()) );
+    int j = (int)(0.5 + start.y() + r*float(delta.y()) );
+    image.impl()(i,j) = value;
+  }
+}	
+
+static void write_debug_image( std::string out_file_name,
+			       std::string input_file_name,
+			       InterestPointList const& ip ) {
+  vw_out(0) << "Writing debug image: " << out_file_name << "\n";
+  DiskImageView<PixelGray<float> > image( input_file_name );
+  
+  vw_out(InfoMessage,"interest_point") << "\t > Gathering statistics:\n";
+  float min = 1e30, max = -1e30;
+  for ( InterestPointList::const_iterator point = ip.begin();
+	point != ip.end(); ++point ) {
+    if ( point->interest > max ) 
+      max = point->interest;
+    if ( point->interest < min )
+      min = point->interest;
+  }
+  float diff = max - min;
+
+  vw_out(InfoMessage,"interest_point") << "\t > Drawing raster:\n";
+  ImageView<PixelRGB<uint8> > oimage;
+  oimage = pixel_cast<PixelRGB<uint8> >(channel_cast<uint8>(image*120));
+  for ( InterestPointList::const_iterator point = ip.begin();
+	point != ip.end(); ++point ) {
+    float norm_i = (point->interest - min)/diff;
+    PixelRGB<uint8> color(0,0,0);
+    if ( norm_i < .5 ) {
+      // Form of red
+      color.r() = 255;
+      color.g() = 2*norm_i*255;
+    } else {
+      // Form of green
+      color.g() = 255;
+      color.r() = 255 - 2*(norm_i-.5)*255;
+    }
+    
+    // Marking point w/ Dot
+    oimage(point->x,point->y) = color;
+    
+    // Circling point
+    for (float a = 0; a < 6; a+=.392 ) {
+      float a_d = a + .392;
+      Vector2i start( 2*point->scale*cos(a)+point->x,
+		      2*point->scale*sin(a)+point->y );
+      Vector2i end( 2*point->scale*cos(a_d)+point->x,
+		    2*point->scale*sin(a_d)+point->y );
+      draw_line( oimage, color, start, end );
+    }
+  }
+
+  vw_out(InfoMessage,"interest_point") << "\t > Writing out image:\n";
+  write_image( out_file_name, oimage, TerminalProgressCallback(InfoMessage, "\t : "));
 }
 
 int main(int argc, char** argv) {
@@ -45,6 +116,7 @@ int main(int argc, char** argv) {
     ("num-threads", po::value<int>(&num_threads)->default_value(0), "Set the number of threads for interest point detection.  Setting the num_threads to zero causes ipfind to use the visionworkbench default number of threads.")
     ("tile-size,t", po::value<int>(&tile_size)->default_value(2048), "Specify the tile size for processing interest points. (Useful when working with large images)")
     ("lowe,l", "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
+    ("debug-image,d", "Write out debug images.")
     
     // Interest point detector options
     ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris, FH9, FH15]")
@@ -112,19 +184,27 @@ int main(int argc, char** argv) {
     exit(0);
   }
 
+  vw_settings().set_system_cache_size(tile_size);
+
   // Iterate over the input files and find interest points in each.
   for (unsigned i = 0; i < input_file_names.size(); ++i) {
 
     vw_out(0) << "Finding interest points in \"" << input_file_names[i] << "\".\n";
     std::string file_prefix = prefix_from_filename(input_file_names[i]);
-    DiskImageView<PixelRGB<float> > image(input_file_names[i]);
+    DiskImageResource *image_rsrc = DiskImageResource::open( input_file_names[i] );
+    DiskImageView<PixelGray<float> > image(image_rsrc);
+    
+    // Potentially mask image on a no data value
+    if ( image_rsrc->has_nodata_value() )
+      vw_out(DebugMessage,"interest_point") << "Image has a nodata value: " 
+					    << image_rsrc->nodata_value() << "\n";
 
     // Preparations required for any SURF code
     if (interest_operator == "fh9" ||
 	interest_operator == "fh15" ||
 	descriptor_generator == "surf" ||
 	descriptor_generator == "surf128" ) {
-
+      
       Timer *total = new Timer("Elapsed time for Integral", DebugMessage,
 			       "interest_point");
       if (interest_operator != "fh15" ) 
@@ -135,7 +215,7 @@ int main(int argc, char** argv) {
 					    BilinearInterpolation() ) );
       delete total;
     }
-
+    
     // Detecting Interest Points
     InterestPointList ip;
     if ( interest_operator == "harris" ) {
@@ -172,8 +252,43 @@ int main(int argc, char** argv) {
       ip = detector.process_image( image, integral, num_threads );
     }
   
-    vw_out(0) << "\t Found " << ip.size() << " points.\n";
+    // Removing Interest Points on nodata or within 1/px
+    if ( image_rsrc->has_nodata_value() ) {
+      float nodata_value = image_rsrc->nodata_value();
+      ImageViewRef<PixelMask<PixelGray<float> > > image_mask = create_mask(image,nodata_value);
+      BBox2i bound = bounding_box( image_mask );
+      bound.contract(1);
+      int before_size = ip.size();
+      for ( InterestPointList::iterator point = ip.begin();
+	    point != ip.end(); ++point ) {
+	
+	// To Avoid out of index issues
+	if ( !bound.contains( Vector2i(point->ix,
+				       point->iy ))) {
+	  point = ip.erase(point);
+	  point--;
+	  continue;
+	}
 
+	if ( !image_mask(point->ix,point->iy).valid() ||
+	     !image_mask(point->ix+1,point->iy+1).valid() ||
+	     !image_mask(point->ix+1,point->iy).valid() ||
+	     !image_mask(point->ix+1,point->iy-1).valid() ||
+	     !image_mask(point->ix,point->iy+1).valid() ||
+	     !image_mask(point->ix,point->iy-1).valid() ||
+	     !image_mask(point->ix-1,point->iy+1).valid() ||
+	     !image_mask(point->ix-1,point->iy).valid() ||
+	     !image_mask(point->ix-1,point->iy-1).valid() ) {
+	  point = ip.erase(point);
+	  point--;
+	  continue;
+	}
+      }
+      vw_out(InfoMessage,"interest_point") << "Removed " << before_size-ip.size() << " points close to nodata.\n";
+    }
+    
+    vw_out(0) << "\t Found " << ip.size() << " points.\n";
+  
     // Generate descriptors for interest points.
     vw_out(InfoMessage) << "\tRunning " << descriptor_generator << " descriptor generator.\n";
     if (descriptor_generator == "patch") {
@@ -207,5 +322,14 @@ int main(int argc, char** argv) {
       write_lowe_ascii_ip_file(file_prefix + ".key", ip);
     else 
       write_binary_ip_file(file_prefix + ".vwip", ip);
+
+    // Write Debug image
+    if (vm.count("debug-image")) {
+      std::string output_file_name =
+	prefix_from_filename(input_file_names[i]) + "_debug.png";
+      write_debug_image( output_file_name,
+			 input_file_names[i],
+			 ip );
+    }
   }
 }

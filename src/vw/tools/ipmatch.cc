@@ -210,7 +210,7 @@ int main(int argc, char** argv) {
       if (vm.count("debug-image")) {
         std::string matchimage_filename = 
           prefix_from_filename(input_file_names[i]) + "__" +
-          prefix_from_filename(input_file_names[j]) + ".jpg";
+          prefix_from_filename(input_file_names[j]) + ".png";
         write_match_image(matchimage_filename, 
                           input_file_names[i], input_file_names[j],
                           final_ip1, final_ip2);
