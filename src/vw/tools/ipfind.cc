@@ -158,9 +158,10 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  if (num_threads == 0) {
-    num_threads = vw_settings().default_num_threads();
-  }
+  if ( vm.count("num-threads"))
+    vw_settings().set_default_num_threads(num_threads);
+  if ( vm.count("tile-size"))
+    vw_settings().set_default_tile_size(tile_size);
 
   // Checking strings
   boost::to_lower( interest_operator );
@@ -183,8 +184,6 @@ int main(int argc, char** argv) {
 	      << ". Options are : [ Patch, PCA, SURF, SURF128 ]\n";
     exit(0);
   }
-
-  vw_settings().set_system_cache_size(tile_size);
 
   // Iterate over the input files and find interest points in each.
   for (unsigned i = 0; i < input_file_names.size(); ++i) {
@@ -222,10 +221,10 @@ int main(int argc, char** argv) {
       HarrisInterestOperator interest_operator(harris_threshold);
       if (!vm.count("single-scale")) {
         ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator, max_points);
-        ip = detect_interest_points(image, detector, num_threads);
+        ip = detect_interest_points(image, detector);
       } else {
         InterestPointDetector<HarrisInterestOperator> detector(interest_operator, max_points);
-        ip = detect_interest_points(image, detector, num_threads);
+        ip = detect_interest_points(image, detector);
       }
     } else if ( interest_operator == "log") {
       // Use a scale-space Laplacian of Gaussian feature detector. The
@@ -233,23 +232,23 @@ int main(int argc, char** argv) {
       LogInterestOperator interest_operator(log_threshold);
       if (!vm.count("single-scale")) {
         ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator, max_points);
-        ip = detect_interest_points(image, detector, num_threads);
+        ip = detect_interest_points(image, detector);
       } else {
         InterestPointDetector<LogInterestOperator> detector(interest_operator, max_points);
-        ip = detect_interest_points(image, detector, num_threads);
+        ip = detect_interest_points(image, detector);
       }
     } else if ( interest_operator == "fh9") {
       /// Currently only supporting ScaledInterest Detection
       SURFInterestOperator interest_operator(surf_threshold);
       FH9InterestPointDetector<SURFInterestOperator> detector(interest_operator, 
 							      max_points);
-      ip = detector.process_image( image, integral, num_threads );
+      ip = detector.process_image( image, integral );
     } else if ( interest_operator == "fh15" ) { 
       /// Currently only supporting ScaledInterest Detection
       SURFInterestOperator interest_operator(surf_threshold);
       FH15InterestPointDetector<SURFInterestOperator> detector(interest_operator, 
 							       max_points);
-      ip = detector.process_image( image, integral, num_threads );
+      ip = detector.process_image( image, integral );
     }
   
     // Removing Interest Points on nodata or within 1/px

@@ -42,6 +42,8 @@ namespace vw {
     bool m_default_num_threads_override;
     size_t m_system_cache_size;
     bool m_system_cache_size_override;
+    int m_default_tile_size;
+    bool m_default_tile_size_override;
 
     // Member variables assoc. with periodically polling the log
     // configuration (logconf) file.
@@ -97,6 +99,12 @@ namespace vw {
     /// of megabytes.  The system cache is shared by all
     /// BlockRasterizeView<>'s, including DiskImageView<>'s.
     void set_system_cache_size(size_t size);
+
+    /// Query for the default tile size used for block processing ops.
+    int default_tile_size();
+    
+    /// Set the default tile size to be used for block processing.
+    void set_default_tile_size(int num);
   };
 
   /// Static method to access the singleton instance of the system

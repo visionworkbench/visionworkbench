@@ -122,10 +122,10 @@ namespace ip {
   /// detector.  Threads are spun off to process the image in
   /// 2048x2048 pixel blocks.
   template <class ViewT, class DetectorT>
-  InterestPointList detect_interest_points (ViewT const& view, DetectorT& detector, int num_threads = vw_settings().default_num_threads()) {
+  InterestPointList detect_interest_points (ViewT const& view, DetectorT& detector) {
     typedef InterestPointDetectionTask<ViewT, DetectorT> task_type;
 
-    FifoWorkQueue queue(num_threads);
+    FifoWorkQueue queue(vw_settings().default_num_threads());
     InterestPointList ip_list;
     Mutex mutex;     // Used to lock access to ip_list by the child threads.
     
@@ -133,8 +133,8 @@ namespace ip {
 
     // Process the image in 2048x2048 pixel blocks.
     std::vector<BBox2i> bboxes = image_blocks(view.impl(), 
-					      vw_settings().system_cache_size(),
-					      vw_settings().system_cache_size());
+					      vw_settings().default_tile_size(),
+					      vw_settings().default_tile_size());
     for (unsigned i = 0; i < bboxes.size(); ++i) {
       boost::shared_ptr<task_type> task (new task_type(view, detector, bboxes[i], ip_list, mutex, i+1, bboxes.size() ) );
       queue.add_task(task);

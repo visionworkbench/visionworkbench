@@ -153,12 +153,14 @@ vw::Settings::Settings() : m_rc_last_polltime(0),
   // Set defaults
   m_default_num_threads = VW_NUM_THREADS;
   m_system_cache_size = 1024;   // Default cache size is 1024-MB
+  m_default_tile_size = 2048;
 
   // By default, the .vwrc file has precedence, but the user can
   // override these settings by explicitly changing them using the
   // system_settings() API.
   m_default_num_threads_override = false;
   m_system_cache_size_override = false;
+  m_default_tile_size_override = false;
 }
 
 vw::Settings& vw::vw_settings() {
@@ -198,4 +200,17 @@ void vw::Settings::set_system_cache_size(size_t size) {
     m_system_cache_size = size;
   }
   vw_system_cache().resize(size);
+}
+
+int vw::Settings::default_tile_size() { 
+  if (!m_default_tile_size)
+    reload_config();
+  Mutex::Lock lock(m_settings_mutex);
+  return m_default_tile_size;
+}
+
+void vw::Settings::set_default_tile_size(int num) {
+  Mutex::Lock lock(m_settings_mutex);
+  m_default_tile_size_override = true;
+  m_default_tile_size = num;
 }
