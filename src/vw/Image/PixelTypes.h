@@ -586,6 +586,9 @@ namespace vw {
     case 3: r()=m; g()=n; b()=hsv.v(); break;
     case 4: r()=n; g()=m; b()=hsv.v(); break;
     case 5: r()=hsv.v(); g()=m; b()=n; break;
+    default:
+      r() = 0; g() = 0; b() = 0; // prevent gcc uninitialized warning
+      vw_throw(LogicErr() << "If we get here, something is wrong.");
     }
   }
 
