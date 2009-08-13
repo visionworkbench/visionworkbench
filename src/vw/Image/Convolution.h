@@ -265,7 +265,7 @@ namespace vw {
       child_bbox.max() += Vector2i( ni?m_ci:0, nj?m_cj:0 );
       ImageView<typename ImageT::pixel_type> src_buf = edge_extend(m_image,child_bbox,m_edge);
       if( ni>0 && nj>0 ) {
-        ImageView<pixel_type> work( bbox.width(), child_bbox.height() );
+        ImageView<pixel_type> work( bbox.width(), child_bbox.height(), planes() );
         convolve_1d( src_buf, work, m_i_kernel );
         src_buf.reset(); // Free up some memory
         convolve_1d( transpose(work), transpose(dest), m_j_kernel );
@@ -285,9 +285,11 @@ namespace vw {
       typedef typename DestT::pixel_type DestPixelT;
       typedef typename CompoundChannelType<DestPixelT>::type channel_type;
 
+      VW_ASSERT( src.planes() == dest.planes(), ArgumentErr() << "convolve_1d: Images should have the same number of planes" );
+
       SrcAccessT splane = src.origin();
       DestAccessT dplane = dest.origin();
-      for( int32 p=0; p<src.planes(); ++p ) {
+      for( int32 p=0; p<dest.planes(); ++p ) {
         SrcAccessT srow = splane;
         DestAccessT drow = dplane;
         for( int32 y=0; y<dest.rows(); ++y ) {
