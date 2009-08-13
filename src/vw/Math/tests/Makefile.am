@@ -45,7 +45,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
-AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_MATH_LIBS@ @PKG_CORE_LIBS@
+AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_MATH_LIBS@
 
 check_PROGRAMS = $(TESTS)
 

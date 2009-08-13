@@ -22,7 +22,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
-AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_MOSAIC_LIBS@ @PKG_VW_LIBS@
+AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_MOSAIC_LIBS@
 
 check_PROGRAMS = $(TESTS)
 EXTRA_DIST = $(TESTS:%=%.h)
