@@ -7,7 +7,11 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include <vw/vw.h>
+#include <vw/Core.h>
+#include <vw/Image.h>
+#include <vw/FileIO.h>
+#include <vw/Cartography.h>
+#include <vw/Mosaic.h>
 
 using namespace vw;
 using namespace vw::cartography;
