@@ -130,4 +130,67 @@ public:
     TS_TRACE(stringify("d2dz2=")  + stringify(refhzz));
     */
   }
+
+  void test_StringRead() {
+    CAHVORModel c("cahvor.txt");
+
+    Vector3 C = Vector3(76,-34,20);
+    Vector3 A = normalize(Vector3(1,2,3));
+    Vector3 H = Vector3(1300,123,456);
+    Vector3 V = Vector3(345,900,157);
+    Vector3 O = normalize(Vector3(2,3,4));
+    Vector3 R = Vector3(1,-1,1);
+
+    TS_ASSERT_DELTA( C(0), c.C(0), 1e-5 );
+    TS_ASSERT_DELTA( C(1), c.C(1), 1e-5 );
+    TS_ASSERT_DELTA( C(2), c.C(2), 1e-5 );
+    TS_ASSERT_DELTA( A(0), c.A(0), 1e-5 );
+    TS_ASSERT_DELTA( A(1), c.A(1), 1e-5 );
+    TS_ASSERT_DELTA( A(2), c.A(2), 1e-5 );
+    TS_ASSERT_DELTA( H(0), c.H(0), 1e-5 );
+    TS_ASSERT_DELTA( H(1), c.H(1), 1e-5 );
+    TS_ASSERT_DELTA( H(2), c.H(2), 1e-5 );
+    TS_ASSERT_DELTA( V(0), c.V(0), 1e-5 );
+    TS_ASSERT_DELTA( V(1), c.V(1), 1e-5 );
+    TS_ASSERT_DELTA( V(2), c.V(2), 1e-5 );
+    TS_ASSERT_DELTA( O(0), c.O(0), 1e-5 );
+    TS_ASSERT_DELTA( O(1), c.O(1), 1e-5 );
+    TS_ASSERT_DELTA( O(2), c.O(2), 1e-5 );
+    TS_ASSERT_DELTA( R(0), c.R(0), 1e-5 );
+    TS_ASSERT_DELTA( R(1), c.R(1), 1e-5 );
+    TS_ASSERT_DELTA( R(2), c.R(2), 1e-5 );
+  }
+
+  void test_StringWriteRead() {
+    CAHVORModel c;
+
+    c.C = Vector3(76,-34,20);
+    c.A = normalize(Vector3(1,2,3));
+    c.H = Vector3(1300,123,456);
+    c.V = Vector3(345,900,157);
+    c.O = normalize(Vector3(2,3,4));
+    c.R = Vector3(1,-1,1);
+    c.write("cahvor2.txt");
+
+    CAHVORModel c2("cahvor2.txt");
+
+    TS_ASSERT_DELTA( c2.C(0), c.C(0), 1e-5 );
+    TS_ASSERT_DELTA( c2.C(1), c.C(1), 1e-5 );
+    TS_ASSERT_DELTA( c2.C(2), c.C(2), 1e-5 );
+    TS_ASSERT_DELTA( c2.A(0), c.A(0), 1e-5 );
+    TS_ASSERT_DELTA( c2.A(1), c.A(1), 1e-5 );
+    TS_ASSERT_DELTA( c2.A(2), c.A(2), 1e-5 );
+    TS_ASSERT_DELTA( c2.H(0), c.H(0), 1e-5 );
+    TS_ASSERT_DELTA( c2.H(1), c.H(1), 1e-5 );
+    TS_ASSERT_DELTA( c2.H(2), c.H(2), 1e-5 );
+    TS_ASSERT_DELTA( c2.V(0), c.V(0), 1e-5 );
+    TS_ASSERT_DELTA( c2.V(1), c.V(1), 1e-5 );
+    TS_ASSERT_DELTA( c2.V(2), c.V(2), 1e-5 );
+    TS_ASSERT_DELTA( c2.O(0), c.O(0), 1e-5 );
+    TS_ASSERT_DELTA( c2.O(1), c.O(1), 1e-5 );
+    TS_ASSERT_DELTA( c2.O(2), c.O(2), 1e-5 );
+    TS_ASSERT_DELTA( c2.R(0), c.R(0), 1e-5 );
+    TS_ASSERT_DELTA( c2.R(1), c.R(1), 1e-5 );
+    TS_ASSERT_DELTA( c2.R(2), c.R(2), 1e-5 );
+  }
 };
