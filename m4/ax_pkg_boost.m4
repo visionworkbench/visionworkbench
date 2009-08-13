@@ -100,6 +100,8 @@ AC_DEFUN([AX_PKG_BOOST],
 
     CPPFLAGS="$ax_pkg_old_cppflags"
     LDFLAGS="$ax_pkg_old_ldflags"
+    OTHER_CPPFLAGS="$ax_pkg_old_other_cppflags"
+    OTHER_LDFLAGS="$ax_pkg_old_other_ldflags"
 
     AC_MSG_RESULT([$HAVE_PKG_BOOST])
 
