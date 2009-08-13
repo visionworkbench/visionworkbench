@@ -132,7 +132,7 @@ public:
   }
 
   void test_StringRead() {
-    CAHVORModel c("cahvor.txt");
+    CAHVORModel c(TEST_SRCDIR"/cahvor.txt");
 
     Vector3 C = Vector3(76,-34,20);
     Vector3 A = normalize(Vector3(1,2,3));
@@ -170,9 +170,9 @@ public:
     c.V = Vector3(345,900,157);
     c.O = normalize(Vector3(2,3,4));
     c.R = Vector3(1,-1,1);
-    c.write("cahvor2.txt");
+    c.write(TEST_SRCDIR"/cahvor2.txt");
 
-    CAHVORModel c2("cahvor2.txt");
+    CAHVORModel c2(TEST_SRCDIR"/cahvor2.txt");
 
     TS_ASSERT_DELTA( c2.C(0), c.C(0), 1e-5 );
     TS_ASSERT_DELTA( c2.C(1), c.C(1), 1e-5 );
