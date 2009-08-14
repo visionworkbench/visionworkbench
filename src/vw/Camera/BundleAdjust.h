@@ -23,8 +23,8 @@
 #include <boost/numeric/ublas/vector_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
 #include <boost/version.hpp>
-#if BOOST_VERSION==103200
-// Mapped matrix exist in 1.32, but Sparse Matrix does
+#if BOOST_VERSION<=103200
+// Mapped matrix doesn't exist in 1.32, but Sparse Matrix does
 #define boost_sparse_matrix boost::numeric::ublas::sparse_matrix
 #define boost_sparse_vector boost::numeric::ublas::sparse_vector
 #else
@@ -287,9 +287,9 @@ namespace camera {
 
     const ElemT* find_element (uint32 i, uint32 j) const { 
       if (j > i) 
-        return m_matrix.find_element(j,i); 
+        return &m_matrix(j,i); 
       else
-        return m_matrix.find_element(i,j); 
+        return &m_matrix(i,j); 
     }
 
     // Some boost sparse matrix types define this method...

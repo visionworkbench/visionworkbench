@@ -170,9 +170,9 @@ public:
     // the same results as the non-optimized implementation.
     for (unsigned i=0; i < sparse_mat.rows(); ++i) {
       for (unsigned j=0; j < i; ++j) {
-        if (fabs(sparse_mat(i,j).ref() - nonsparse_mat(i,j)) > 0.00001)
+        if (fabs(sparse_mat(i,j) - nonsparse_mat(i,j)) > 0.00001)
           TS_WARN(stringify("Mismatch: ") + stringify(i) + " " + stringify(j));
-        TS_ASSERT_DELTA(sparse_mat(i,j).ref(), nonsparse_mat(i,j), 0.0001);
+        TS_ASSERT_DELTA(sparse_mat(i,j), nonsparse_mat(i,j), 0.0001);
       }
     }
 
