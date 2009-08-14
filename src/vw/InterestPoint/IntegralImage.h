@@ -231,10 +231,10 @@ namespace ip {
 			     float const& size ) {
 
     float response;
-    int half_size = round( size / 2.0);
+    int half_size = int(round( size / 2.0));
     int i_size = half_size << 1;
-    int top = round( int(y) - size/2);
-    int left = round( int(x) - size/2);
+    int top = int(round( int(y) - size/2));
+    int left = int(round( int(x) - size/2));
 
     VW_ASSERT(left+i_size < integral.impl().cols(), 
 	      vw::ArgumentErr() << "left out of bounds. "<< integral.impl().cols() <<" : "
@@ -270,10 +270,10 @@ namespace ip {
 			     float const& size ) {
 
     float response;
-    int half_size = round( size / 2.0);
+    int half_size = int(round( size / 2.0));
     int i_size = half_size << 1;
-    int top = round( int(y) - size/2);
-    int left = round( int(x) - size/2);
+    int top = int(round( int(y) - size/2));
+    int left = int(round( int(x) - size/2));
 
     VW_ASSERT(left+i_size < integral.impl().cols(), 
 	      vw::ArgumentErr() << "left out of bounds. "<< integral.impl().cols() <<" : "

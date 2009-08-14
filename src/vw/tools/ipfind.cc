@@ -76,23 +76,23 @@ static void write_debug_image( std::string out_file_name,
     if ( norm_i < .5 ) {
       // Form of red
       color.r() = 255;
-      color.g() = 2*norm_i*255;
+      color.g() = (unsigned char)(2*norm_i*255);
     } else {
       // Form of green
       color.g() = 255;
-      color.r() = 255 - 2*(norm_i-.5)*255;
+      color.r() = 255 - (unsigned char)(2*(norm_i-.5)*255);
     }
     
     // Marking point w/ Dot
-    oimage(point->x,point->y) = color;
+    oimage(point->ix,point->iy) = color;
     
     // Circling point
     for (float a = 0; a < 6; a+=.392 ) {
       float a_d = a + .392;
-      Vector2i start( 2*point->scale*cos(a)+point->x,
-		      2*point->scale*sin(a)+point->y );
-      Vector2i end( 2*point->scale*cos(a_d)+point->x,
-		    2*point->scale*sin(a_d)+point->y );
+      Vector2i start( int(2*point->scale*cos(a)+point->x),
+		      int(2*point->scale*sin(a)+point->y) );
+      Vector2i end( int(2*point->scale*cos(a_d)+point->x),
+		    int(2*point->scale*sin(a_d)+point->y) );
       draw_line( oimage, color, start, end );
     }
   }
