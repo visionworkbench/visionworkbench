@@ -16,7 +16,7 @@
 #include <vw/FileIO/DiskImageView.h>
 using namespace vw;
 
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
 namespace fs = boost::filesystem;
 
 static void test_read_crop(const char *fn)
