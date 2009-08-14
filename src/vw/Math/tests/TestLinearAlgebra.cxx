@@ -6,7 +6,7 @@
 
 
 #include <gtest/gtest.h>
-#include <vw/tests/config_test.h>
+#include <test/Helpers.h>
 #include <vw/Core/Log.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>

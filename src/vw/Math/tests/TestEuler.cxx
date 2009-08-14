@@ -8,7 +8,7 @@
 #include <cmath>
 #include <gtest/gtest.h>
 #include <vw/Math/EulerAngles.h>
-#include <vw/tests/config_test.h>
+#include <test/Helpers.h>
 
 using namespace vw;
 using namespace math;

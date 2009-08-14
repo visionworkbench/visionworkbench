@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 #include <vw/Core/Settings.h>
 #include <vw/Core/ConfigParser.h>
-#include <vw/tests/config_test.h>
+#include <test/Helpers.h>
 
 using namespace vw;
 

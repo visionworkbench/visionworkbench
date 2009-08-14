@@ -359,7 +359,6 @@ AC_CONFIG_FILES([                       \
   Makefile                              \
   src/Makefile                          \
   src/vw/Makefile                       \
-  src/vw/tests/Makefile                 \
   src/vw/tools/Makefile                 \
   src/vw/gui/Makefile                   \
   src/vw/Core/Makefile                  \

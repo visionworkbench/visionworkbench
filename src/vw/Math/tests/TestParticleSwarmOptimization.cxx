@@ -6,7 +6,7 @@
 
 
 #include <gtest/gtest.h>
-#include <vw/tests/config_test.h>
+#include <test/Helpers.h>
 #include <vw/Math/ParticleSwarmOptimization.h>
 
 using namespace vw;

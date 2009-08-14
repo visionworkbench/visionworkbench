@@ -89,7 +89,7 @@ include_HEADERS = $(core_headers) $(math_headers) $(image_headers)	\
 SUBDIRS = $(core_subdirs) $(math_subdirs) $(image_subdirs)		\
 	$(fileio_subdirs) . $(camera_subdirs) $(mosaic_subdirs)		\
 	$(stereo_subdirs) $(cartography_subdirs) $(gpu_subdirs)		\
-	$(interestpoint_subdirs) $(hdr_subdirs) $(geometry_subdirs) tests $(tools_subdirs)	\
+	$(interestpoint_subdirs) $(hdr_subdirs) $(geometry_subdirs) $(tools_subdirs)	\
 	$(gui_subdirs) $(python_subdirs)
 
 lib_LTLIBRARIES = libvw.la

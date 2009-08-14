@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 
 #include <vw/Core/Exception.h>
-#include <vw/tests/config_test.h>
+#include <test/Helpers.h>
 
 using namespace std;
 using namespace vw;
