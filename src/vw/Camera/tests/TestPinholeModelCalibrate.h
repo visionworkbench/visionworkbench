@@ -52,6 +52,7 @@ namespace {
 class TestPinholeModelCalibrate : public CxxTest::TestSuite
 {
   double mean_error(const PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points) {
+    VW_ASSERT(pixels.size() > 0, LogicErr() << "mean_error: refusing to divide by zero");
     double mean = 0;
     for (uint32 i = 0; i < pixels.size(); i++)
       mean += vw::math::norm_2(pixels[i] - m.point_to_pixel(points[i]));
@@ -59,6 +60,7 @@ class TestPinholeModelCalibrate : public CxxTest::TestSuite
   }
 
   double mean_error(const PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, const std::vector<int>& indices) {
+    VW_ASSERT(indices.size() > 0, LogicErr() << "mean_error: refusing to divide by zero");
     double mean = 0;
     for (uint32 j = 0; j < indices.size(); j++)
       mean += vw::math::norm_2(pixels[indices[j]] - m.point_to_pixel(points[indices[j]]));
@@ -66,6 +68,7 @@ class TestPinholeModelCalibrate : public CxxTest::TestSuite
   }
 
   double mean_sqr_error(const PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points) {
+    VW_ASSERT(pixels.size() > 0, LogicErr() << "mean_sqr_error: refusing to divide by zero");
     double mean = 0;
     for (uint32 i = 0; i < pixels.size(); i++)
       mean += vw::math::norm_2_sqr(pixels[i] - m.point_to_pixel(points[i]));
@@ -73,6 +76,7 @@ class TestPinholeModelCalibrate : public CxxTest::TestSuite
   }
 
   double mean_sqr_error(const PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, const std::vector<int>& indices) {
+    VW_ASSERT(indices.size() > 0, LogicErr() << "mean_sqr_error: refusing to divide by zero");
     double mean = 0;
     for (uint32 j = 0; j < indices.size(); j++)
       mean += vw::math::norm_2_sqr(pixels[indices[j]] - m.point_to_pixel(points[indices[j]]));
@@ -405,50 +409,50 @@ public:
     {
       PinholeModel c(m);
       std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeIntrinsic>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
-      TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
       TS_ASSERT_LESS_THAN(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
+      TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
     }
 
     {
       PinholeModel c(m);
       std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTSAI>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
-      TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
       TS_ASSERT_LESS_THAN(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
+      TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
     }
 
     {
       PinholeModel c(m);
       std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeRotation>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
-      TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
       TS_ASSERT_LESS_THAN(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
+      TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
     }
 
     {
       PinholeModel c(m);
       std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
-      TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
       TS_ASSERT_LESS_THAN(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
+      TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
     }
 
     {
       PinholeModel c(m);
       std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation, PinholeModelSerializeRotation>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
-      TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
       TS_ASSERT_LESS_THAN(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
+      TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
     }
 
     {
       PinholeModel c(m);
       std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
-      TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
       TS_ASSERT_LESS_THAN(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
+      TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
     }
 
     {
       PinholeModel c(m);
       std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic, PinholeModelSerializeTSAI>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
-      TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
       TS_ASSERT_LESS_THAN(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
+      TS_ASSERT_LESS_THAN(mean_error(c, pixels, points, inliers), inlier_threshold);
     }
   }
 };

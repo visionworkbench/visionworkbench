@@ -368,7 +368,7 @@ public:
 /// \parm lm_iter number of Levenberg Marquardt iterations to run at every RANSAC iteration
 /// \return indices of points and pixels RANSAC considers to be inliers
 template<class Ex1T, class Ex2T, class Ex3T, class Ex4T> 
-std::vector<int> pinholemodel_calibrate_ransac(PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, double inlier_threshold = 10, int ransac_iter = 0, double lm_iter = 100) {
+std::vector<int> pinholemodel_calibrate_ransac(PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, double inlier_threshold = 10, int ransac_iter = 0, int lm_iter = 100) {
   PinholeModelRansacFitting<Ex1T, Ex2T, Ex3T, Ex4T> fitting(m, lm_iter);
   PinholeModelRansacError error;
   
@@ -382,19 +382,19 @@ std::vector<int> pinholemodel_calibrate_ransac(PinholeModel& m, const std::vecto
 
 /// Convinience overload with less template parameters
 template<class Ex1T, class Ex2T, class Ex3T> 
-inline std::vector<int> pinholemodel_calibrate_ransac(PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, double inlier_threshold = 10, int ransac_iter = 0, double lm_iter = 100) {
+inline std::vector<int> pinholemodel_calibrate_ransac(PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, double inlier_threshold = 10, int ransac_iter = 0, int lm_iter = 100) {
   return pinholemodel_calibrate_ransac<Ex1T, Ex2T, Ex3T, PinholeModelSerializeNull>(m, pixels, points, inlier_threshold, ransac_iter, lm_iter);
 }
   
 /// Convinience overload with less template parameters
 template<class Ex1T, class Ex2T> 
-inline std::vector<int> pinholemodel_calibrate_ransac(PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, double inlier_threshold = 10, int ransac_iter = 0, double lm_iter = 100) {  
+inline std::vector<int> pinholemodel_calibrate_ransac(PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, double inlier_threshold = 10, int ransac_iter = 0, int lm_iter = 100) {  
   return pinholemodel_calibrate_ransac<Ex1T, Ex2T, PinholeModelSerializeNull>(m, pixels, points, inlier_threshold, ransac_iter, lm_iter);
 }
 
 /// Convinience overload with less template parameters
 template<class Ex1T> 
-inline std::vector<int> pinholemodel_calibrate_ransac(PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, double inlier_threshold = 10, int ransac_iter = 0, double lm_iter = 100) {
+inline std::vector<int> pinholemodel_calibrate_ransac(PinholeModel& m, const std::vector<vw::Vector2>& pixels, const std::vector<vw::Vector3>& points, double inlier_threshold = 10, int ransac_iter = 0, int lm_iter = 100) {
   return pinholemodel_calibrate_ransac<Ex1T, PinholeModelSerializeNull>(m, pixels, points, inlier_threshold, ransac_iter, lm_iter);
 }
 

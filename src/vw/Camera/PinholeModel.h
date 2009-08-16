@@ -6,7 +6,7 @@
 
 
 /// \file PinholeModel.h
-/// 
+///
 /// This file contains the pinhole camera model.
 ///
 #ifndef __VW_CAMERAMODEL_PINHOLE_H__
@@ -19,7 +19,7 @@
 #include <iostream>
 #include <fstream>
 
-namespace vw { 
+namespace vw {
 namespace camera {
 
   /// This is a simple "generic" pinhole camera model.
@@ -29,7 +29,7 @@ namespace camera {
   /// and the pose (or orientation) of the camera in world frame (m_rotation)
   /// (which is the transformation from the camera's frame to the world frame).
   /// In the default Vision Workbench camera frame, the camera's pointing vector
-  /// is the +z unit vector, and the image plane is aligned such that the 
+  /// is the +z unit vector, and the image plane is aligned such that the
   /// positive x-pixel direction (increasing image columns) is the camera frame's
   /// +x vector, and the positive y-pixel direction (increasing image
   /// rows) is the frame's -y vector.  Note that this discrepancy in y
@@ -38,7 +38,7 @@ namespace camera {
   ///
   /// --->The user can re-define the direction of increasing x-pixel,
   ///     increasing y-pixel, and pointing vector by specifying
-  ///     orthonormal vectors u,v,w. These are intended to simplify 
+  ///     orthonormal vectors u,v,w. These are intended to simplify
   ///     movement between different camera coordinate conventions,
   ///     rather than encoding the complete rotation between world
   ///     and camera coordinate frames.
@@ -91,7 +91,7 @@ namespace camera {
     Vector3 m_u_direction;
     Vector3 m_v_direction;
     Vector3 m_w_direction;
-    
+
     // Cached values for pixel_to_vector
     Matrix<double,3,3> m_inv_camera_transform;
 
@@ -99,7 +99,7 @@ namespace camera {
     //------------------------------------------------------------------
     // Constructors / Destructors
     //------------------------------------------------------------------
-    
+
     /// Initialize an empty camera model.
     PinholeModel() {
       m_u_direction = Vector3(1,0,0);
@@ -116,16 +116,16 @@ namespace camera {
       this->rebuild_camera_matrix();
 
       m_distortion_model_ptr = boost::shared_ptr<LensDistortion>(new NullLensDistortion());
-      m_distortion_model_ptr->set_parent_camera_model(this); 
+      m_distortion_model_ptr->set_parent_camera_model(this);
     }
 
     /// Initialize from a file on disk.
     PinholeModel(std::string const& filename) {
       read_file(filename);
     }
-    
+
     /// Initialize the pinhole model with explicit parameters.
-    /// 
+    ///
     /// The user supplies the basic intrinsic camera parameters:
     ///
     /// f_u : focal length (in units of pixels) in the u direction
@@ -140,7 +140,7 @@ namespace camera {
     ///
     /// If you start from a focal length in a physical unit
     /// (e.g. meters), you can find the focal length in pixels by
-    /// dividing by the pixel scale (usually in meters/pixel).  
+    /// dividing by the pixel scale (usually in meters/pixel).
     ///
     /// Remember that the VW standard frame of reference is such that
     /// (0,0) is the upper left hand corner of the image and the v
@@ -148,27 +148,27 @@ namespace camera {
     /// illustration in the VisionWorkbook.
     ///
 
-    PinholeModel(Vector3 camera_center, 
+    PinholeModel(Vector3 camera_center,
                  Matrix<double,3,3> rotation,
-                 double f_u, double f_v, 
+                 double f_u, double f_v,
                  double c_u, double c_v,
                  Vector3 u_direction,
                  Vector3 v_direction,
                  Vector3 w_direction,
                  LensDistortion const& distortion_model) : m_camera_center(camera_center),
                                                            m_rotation(rotation),
-                                                           m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v), 
-                                                           m_u_direction(u_direction), 
-                                                           m_v_direction(v_direction), 
+                                                           m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
+                                                           m_u_direction(u_direction),
+                                                           m_v_direction(v_direction),
                                                            m_w_direction(w_direction) {
       rebuild_camera_matrix();
-      
+
       m_distortion_model_ptr = distortion_model.copy();
       m_distortion_model_ptr->set_parent_camera_model(this);
     }
 
     /// Initialize the pinhole model with explicit parameters.
-    /// 
+    ///
     /// The user supplies the basic intrinsic camera parameters:
     ///
     /// f_u : focal length (in units of pixels) in the u direction
@@ -187,15 +187,15 @@ namespace camera {
     ///
     /// If you start from a focal length in a physical unit
     /// (e.g. meters), you can find the focal length in pixels by
-    /// dividing by the pixel scale (usually in meters/pixel).  
+    /// dividing by the pixel scale (usually in meters/pixel).
     ///
     /// Remember that the VW standard frame of reference is such that
     /// (0,0) is the upper left hand corner of the image and the v
     /// coordinates increase as you move down the image.
     ///
-    PinholeModel(Vector3 camera_center, 
+    PinholeModel(Vector3 camera_center,
                  Matrix<double,3,3> rotation,
-                 double f_u, double f_v, 
+                 double f_u, double f_v,
                  double c_u, double c_v,
                  LensDistortion const& distortion_model) : m_camera_center(camera_center),
                                                            m_rotation(rotation),
@@ -212,9 +212,9 @@ namespace camera {
 
 
     /// Construct a basic pinhole model with no lens distortion
-    PinholeModel(Vector3 camera_center, 
+    PinholeModel(Vector3 camera_center,
                  Matrix<double,3,3> rotation,
-                 double f_u, double f_v, 
+                 double f_u, double f_v,
                  double c_u, double c_v) : m_camera_center(camera_center),
                                            m_rotation(rotation),
                                            m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v) {
@@ -246,14 +246,14 @@ namespace camera {
 
     //  Computes the image of the point 'point' in 3D space on the
     //  image plane.  Returns a pixel location (col, row) where the
-    //  point appears in the image. 
+    //  point appears in the image.
     virtual Vector2 point_to_pixel(Vector3 const& point) const {
-      
+
       //  Multiply the pixel location by the camera matrix.
       double denominator = m_camera_matrix(2,0)*point(0) + m_camera_matrix(2,1)*point(1) + m_camera_matrix(2,2)*point(2) + m_camera_matrix(2,3);
       Vector2 pixel = Vector2( (m_camera_matrix(0,0)*point(0) + m_camera_matrix(0,1)*point(1) + m_camera_matrix(0,2)*point(2) + m_camera_matrix(0,3)) / denominator,
                                (m_camera_matrix(1,0)*point(0) + m_camera_matrix(1,1)*point(1) + m_camera_matrix(1,2)*point(2) + m_camera_matrix(1,3)) / denominator);
-      
+
       //  Apply the lens distortion model
       return m_distortion_model_ptr->get_distorted_coordinates(pixel);
     }
@@ -266,7 +266,7 @@ namespace camera {
       double z = m_extrinsics(2, 0)*point(0) + m_extrinsics(2, 1)*point(1) + m_extrinsics(2, 2)*point(2) + m_extrinsics(2,3);
       return z > 0;
     }
-    
+
 
     // Returns a (normalized) pointing vector from the camera center
     //  through the position of the pixel 'pix' on the image plane.
@@ -274,14 +274,14 @@ namespace camera {
 
       // Apply the inverse lens distortion model
       Vector2 undistorted_pix = m_distortion_model_ptr->get_undistorted_coordinates(pix);
-      
+
       // Compute the direction of the ray emanating from the camera center.
       Vector3 p(0,0,1);
       subvector(p,0,2) = undistorted_pix;
       return normalize( m_inv_camera_transform * p);
     }
 
-    
+
     virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const { return m_camera_center; };
     void set_camera_center(Vector3 const& position) { m_camera_center = position; rebuild_camera_matrix(); }
 
@@ -298,7 +298,7 @@ namespace camera {
     //  +w (pointing away from the focal point in the direction of the imaged object).
     //
     //  All three vectors must be of unit length.
-    
+
     void coordinate_frame(Vector3 &u_vec, Vector3 &v_vec, Vector3 &w_vec) const {
       u_vec = m_u_direction;
       v_vec = m_v_direction;
@@ -326,7 +326,7 @@ namespace camera {
 
     //  f_u and f_v :  focal length in horiz and vert. pixel units
     //  c_u and c_v :  principal point in pixel units
-    void intrinsic_parameters(double& f_u, double& f_v, double& c_u, double& c_v) const { 
+    void intrinsic_parameters(double& f_u, double& f_v, double& c_u, double& c_v) const {
       f_u = m_fu;  f_v = m_fv;  c_u = m_cu;  c_v = m_cv;
     }
 
@@ -338,7 +338,7 @@ namespace camera {
   private:
     /// This must be called whenever camera parameters are modified.
     void rebuild_camera_matrix() {
-      
+
       /// The intrinsic portion of the camera matrix is stored as
       ///
       ///    [  fx   0   cx  ]
@@ -348,7 +348,7 @@ namespace camera {
       /// with fx, fy the focal length of the system (in horizontal and
       /// vertical pixels), and (cx, cy) the pixel coordinates of the
       /// central pixel (the principal point on the image plane).
-      
+
       m_intrinsics(0,0) = m_fu;
       m_intrinsics(0,1) = 0;
       m_intrinsics(0,2) = m_cu;
@@ -358,17 +358,17 @@ namespace camera {
       m_intrinsics(2,0) = 0;
       m_intrinsics(2,1) = 0;
       m_intrinsics(2,2) = 1;
-      
+
       // The extrinsics are normally built as the matrix:  [ R | -R*C ].
       // To allow for user-specified coordinate frames, the
       // extrinsics are now build to include the u,v,w rotation
       //
-      //               | u_0  u_1  u_2  |  
+      //               | u_0  u_1  u_2  |
       //     Extr. =   | v_0  v_1  v_2  | * [ R | -R*C]
       //               | w_0  w_1  w_2  |
       //
       // The vectors u,v, and w must be orthonormal.
-      
+
       /*   check for orthonormality of u,v,w              */
       VW_LINE_ASSERT( dot_prod(m_u_direction, m_v_direction) == 0 );
       VW_LINE_ASSERT( dot_prod(m_u_direction, m_w_direction) == 0 );
@@ -382,11 +382,11 @@ namespace camera {
       select_row(uvwRotation,0) = m_u_direction;
       select_row(uvwRotation,1) = m_v_direction;
       select_row(uvwRotation,2) = m_w_direction;
-      
+
       Matrix<double,3,3> m_rotation_inverse = transpose(m_rotation);
       submatrix(m_extrinsics,0,0,3,3) = uvwRotation * m_rotation_inverse;
       select_col(m_extrinsics,3) = uvwRotation * -m_rotation_inverse * m_camera_center;
-      
+
       m_camera_matrix = m_intrinsics * m_extrinsics;
       m_inv_camera_transform = inverse(uvwRotation*m_rotation_inverse) * inverse(m_intrinsics);
     }
@@ -394,10 +394,10 @@ namespace camera {
   };
 
   /// TSAI Lens Distortion Model
-  /// 
-  /// For a given set of observed (distorted) pixel coordinates, return the 
+  ///
+  /// For a given set of observed (distorted) pixel coordinates, return the
   /// location where the pixel would have appeared if there were no lens distortion.
-  /// 
+  ///
   /// The equations which produce these are:
   /// (u, v) = undistorted coordinates
   /// (u', v') = observed (distorted) coordinates
@@ -436,39 +436,40 @@ namespace camera {
 
       double fu, fv, cu, cv;
       this->camera_model().intrinsic_parameters(fu, fv, cu, cv);
-      
+
       double du = p[0] - cu;
       double dv = p[1] - cv;
 
-      VW_ASSERT(fu > 1e-100, MathErr() << "Tiny focal length will cause a NaN");
-      VW_ASSERT(fv > 1e-100, MathErr() << "Tiny focal length will cause a NaN");
-      
-      double x = du / fu;  // find (x, y) using similar triangles;
-      double y = dv / fv;  // assumed z=1.
-      
+      if (fu < 1e-300 || fv < 1e-300)
+          return Vector2(HUGE_VAL, HUGE_VAL);
+
+      double x = du / fu;
+      double y = dv / fv;
+
       double x1 = m_distortion[3] / x;
       double y1 = m_distortion[2] / y;
-      
+
       double r2 = x * x + y * y;
-      
+
       double x3 = 2.0 * m_distortion[3] * x;
       double y3 = 2.0 * m_distortion[2] * y;
-      
-      double bx = r2 * (m_distortion[0] + r2 * m_distortion[1]) + x3 + y3;
-      double by = bx + r2 * y1;
-      bx += r2 * x1;
-      
+
+      double b = r2 * (m_distortion[0] + r2 * m_distortion[1]) + x3 + y3;
+
+      double bx = b + r2 * x1;
+      double by = b + r2 * y1;
+
       // Prevent divide by zero at the origin or along the x and y center line
       Vector2 result(p[0] + bx * du, p[1] + by * dv);
       if (p[0] == cu)
         result[0] =  p[0];
       if (p[1] == cv)
         result[1] =  p[1];
-      
+
       return result;
     }
-   
- 
+
+
     virtual void write(std::ostream & os) const {
       os << "k1 = " << m_distortion[0] << "\n";
       os << "k2 = " << m_distortion[1] << "\n";
@@ -486,13 +487,13 @@ namespace camera {
 //   /// Given two pinhole camera models, this method returns two new camera
 //   /// models that have been epipolar rectified.
 //   template <>
-//   void epipolar(PinholeModel<NoLensDistortion> const& src_camera0, 
-//                 PinholeModel<NoLensDistortion> const& src_camera1, 
-//                 PinholeModel<NoLensDistortion> &dst_camera0, 
+//   void epipolar(PinholeModel<NoLensDistortion> const& src_camera0,
+//                 PinholeModel<NoLensDistortion> const& src_camera1,
+//                 PinholeModel<NoLensDistortion> &dst_camera0,
 //                 PinholeModel<NoLensDistortion> &dst_camera1);
 
   inline PinholeModel linearize_camera(PinholeModel const& camera_model) {
-    std::cout << "PinholeModel::linearize_camera \n"; 
+    std::cout << "PinholeModel::linearize_camera \n";
     double fu, fv, cu, cv;
     camera_model.intrinsic_parameters(fu, fv, cu, cv);
     NullLensDistortion distortion;
@@ -521,6 +522,6 @@ namespace camera {
     return str;
   }
 
-}}	// namespace vw::camera
+}}      // namespace vw::camera
 
-#endif	//__CAMERAMODEL_CAHV_H__
+#endif  //__CAMERAMODEL_CAHV_H__
