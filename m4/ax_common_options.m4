@@ -14,6 +14,7 @@ AC_DEFUN([AX_COMMON_OPTIONS], [
 AX_ARG_ENABLE(exceptions,   yes, [am-yes cpp-bool], [enable the C++ exception mechanism])
 AX_ARG_ENABLE(debug,         no, [none],            [generate debugging symbols])
 AX_ARG_ENABLE(optimize,       3, [none],            [compiler optimization level])
+AX_ARG_ENABLE(profile,       no, [none],            [generate profiling data])
 AX_ARG_ENABLE(arch-libs,     no, [none],            [force /lib64 (=64) or /lib32 (=32) instead of /lib])
 AX_ARG_ENABLE(proper-libs,  yes, [none],            [useful linker options])
 AX_ARG_ENABLE(ccache,        no, [none],            [try to use ccache, if available])
@@ -77,6 +78,10 @@ case "$ENABLE_OPTIMIZE" in
     ignore)  ;;
     *)       AC_MSG_ERROR([Unknown optimize option: "$ENABLE_OPTIMIZE"]) ;;
 esac
+
+if test x"$ENABLE_PROFILE" = "xyes"; then
+    AX_TRY_CPPFLAGS([-pg], [AX_CFLAGS="$AX_CFLAGS -pg"], [AC_MSG_ERROR([Cannot enable profiling: compiler doesn't seem to support it])])
+fi
 
 CFLAGS="$AX_CFLAGS $CFLAGS"
 CXXFLAGS="$AX_CFLAGS $CXXFLAGS"
