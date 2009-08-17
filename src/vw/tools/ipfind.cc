@@ -53,7 +53,7 @@ static void write_debug_image( std::string out_file_name,
 			       std::string input_file_name,
 			       InterestPointList const& ip ) {
   vw_out(0) << "Writing debug image: " << out_file_name << "\n";
-  DiskImageView<PixelGray<float> > image( input_file_name );
+  DiskImageView<PixelGray<uint8> > image( input_file_name );
   
   vw_out(InfoMessage,"interest_point") << "\t > Gathering statistics:\n";
   float min = 1e30, max = -1e30;
@@ -68,7 +68,7 @@ static void write_debug_image( std::string out_file_name,
 
   vw_out(InfoMessage,"interest_point") << "\t > Drawing raster:\n";
   ImageView<PixelRGB<uint8> > oimage;
-  oimage = pixel_cast<PixelRGB<uint8> >(channel_cast<uint8>(image*120));
+  oimage = pixel_cast<PixelRGB<uint8> >(image*0.5);
   for ( InterestPointList::const_iterator point = ip.begin();
 	point != ip.end(); ++point ) {
     float norm_i = (point->interest - min)/diff;
@@ -97,8 +97,11 @@ static void write_debug_image( std::string out_file_name,
     }
   }
 
+  DiskImageResource *rsrc = DiskImageResource::create(out_file_name,
+						      oimage.format() );
   vw_out(InfoMessage,"interest_point") << "\t > Writing out image:\n";
-  write_image( out_file_name, oimage, TerminalProgressCallback(InfoMessage, "\t : "));
+  block_write_image( *rsrc, oimage, TerminalProgressCallback(InfoMessage, "\t : "));
+
 }
 
 int main(int argc, char** argv) {
@@ -220,10 +223,12 @@ int main(int argc, char** argv) {
     if ( interest_operator == "harris" ) {
       HarrisInterestOperator interest_operator(harris_threshold);
       if (!vm.count("single-scale")) {
-        ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator, max_points);
+        ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator, 
+								     max_points);
         ip = detect_interest_points(image, detector);
       } else {
-        InterestPointDetector<HarrisInterestOperator> detector(interest_operator, max_points);
+        InterestPointDetector<HarrisInterestOperator> detector(interest_operator, 
+							       max_points);
         ip = detect_interest_points(image, detector);
       }
     } else if ( interest_operator == "log") {
@@ -231,10 +236,12 @@ int main(int argc, char** argv) {
       // associated threshold is abs(interest) > interest_threshold.
       LogInterestOperator interest_operator(log_threshold);
       if (!vm.count("single-scale")) {
-        ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator, max_points);
+        ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator, 
+								  max_points);
         ip = detect_interest_points(image, detector);
       } else {
-        InterestPointDetector<LogInterestOperator> detector(interest_operator, max_points);
+        InterestPointDetector<LogInterestOperator> detector(interest_operator, 
+							    max_points);
         ip = detect_interest_points(image, detector);
       }
     } else if ( interest_operator == "fh9") {
@@ -288,6 +295,13 @@ int main(int argc, char** argv) {
     
     vw_out(0) << "\t Found " << ip.size() << " points.\n";
   
+    // Additional Culling for the entire image
+    ip.sort();
+    if ( (max_points > 0) && (ip.size() > max_points) ) {
+      ip.resize(max_points);
+      vw_out(0) << "\t Culled to " << ip.size() << " points.\n";
+    }
+
     // Generate descriptors for interest points.
     vw_out(InfoMessage) << "\tRunning " << descriptor_generator << " descriptor generator.\n";
     if (descriptor_generator == "patch") {
