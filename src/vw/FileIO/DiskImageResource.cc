@@ -215,8 +215,11 @@ vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename 
   register_default_file_types();
   if( open_map ) {
     OpenMapType::iterator i = open_map->find( file_extension( filename ) );
-    if( i != open_map->end() ) 
-      return i->second( filename );
+    if( i != open_map->end() ) {
+      DiskImageResource* rsrc = i->second( filename );
+      vw_out(DebugMessage,"fileio") << "Produce DiskImageResource of type: " << rsrc->type() << "\n";
+      return rsrc;
+    }
   }
 
   // GDAL has support for many useful file formats, and we fall back

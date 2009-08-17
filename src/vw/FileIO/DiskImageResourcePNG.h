@@ -109,6 +109,8 @@ namespace vw {
       png.write( image.buffer(), BBox2i(0,0,image.cols(),image.rows()) );
     }
 
+    virtual Vector2i block_size() const { return m_block_size; }
+
   private:
     DiskImageResourcePNG(DiskImageResourcePNG&);
     DiskImageResourcePNG& operator=(DiskImageResourcePNG&);
@@ -119,6 +121,9 @@ namespace vw {
     struct vw_png_read_context;
     struct vw_png_write_context;
 
+    // Block reading is supported. Block writing is not
+    Vector2i m_block_size;
+    
     mutable boost::shared_ptr<vw_png_context> m_ctx;
 
     void read_reset() const;
