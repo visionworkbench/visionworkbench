@@ -37,8 +37,6 @@ AC_DEFUN([AX_PKG_BOOST],
     PKG_BOOST_LIBS=
     HAVE_PKG_BOOST=no
 
-    ax_pkg_old_other_cppflags="$OTHER_CPPFLAGS"
-    ax_pkg_old_other_ldflags="$OTHER_LDFLAGS"
     ax_pkg_old_cppflags="$CPPFLAGS"
     ax_pkg_old_ldflags="$LDFLAGS"
 
@@ -74,11 +72,8 @@ AC_DEFUN([AX_PKG_BOOST],
           PKG_BOOST_LIBDIR="${ax_boost_base_path}/${AX_OTHER_LIBDIR}"
         fi
 
-        OTHER_CPPFLAGS="-I${PKG_BOOST_INCDIR} $OTHER_CPPFLAGS"
-        OTHER_LDFLAGS="-L${PKG_BOOST_LIBDIR} $OTHER_LDFLAGS"
-
-        CPPFLAGS="$ax_pkg_old_cppflags $OTHER_CPPFLAGS"
-        LDFLAGS="$ax_pkg_old_ldflags $OTHER_LDFLAGS"
+        CPPFLAGS="$ax_pkg_old_cppflags -I${PKG_BOOST_INCDIR}"
+        LDFLAGS="$ax_pkg_old_ldflags -L${PKG_BOOST_LIBDIR}"
 
         echo "#include <boost/version.hpp>" > conftest.h
 
@@ -89,8 +84,6 @@ AC_DEFUN([AX_PKG_BOOST],
           [ HAVE_PKG_BOOST=yes; break; ])
 
         HAVE_PKG_BOOST="no"
-        OTHER_CPPFLAGS="$ax_pkg_old_other_cppflags"
-        OTHER_LDFLAGS="$ax_pkg_old_other_ldflags"
         unset PKG_BOOST_INCDIR
         unset PKG_BOOST_LIBDIR
 
@@ -100,8 +93,6 @@ AC_DEFUN([AX_PKG_BOOST],
 
     CPPFLAGS="$ax_pkg_old_cppflags"
     LDFLAGS="$ax_pkg_old_ldflags"
-    OTHER_CPPFLAGS="$ax_pkg_old_other_cppflags"
-    OTHER_LDFLAGS="$ax_pkg_old_other_ldflags"
 
     AC_MSG_RESULT([$HAVE_PKG_BOOST])
 
@@ -111,6 +102,8 @@ AC_DEFUN([AX_PKG_BOOST],
     ax_have_pkg_bool=1
     PKG_BOOST_CPPFLAGS="-I${PKG_BOOST_INCDIR}"
     PKG_BOOST_LIBS="-L${PKG_BOOST_LIBDIR}"
+    OTHER_CPPFLAGS="${OTHER_CPPFLAGS} ${PKG_BOOST_CPPFLAGS}"
+    OTHER_LDFLAGS="${OTHER_LDFLAGS} ${PKG_BOOST_LIBS}"
   else
     ax_have_pkg_bool=0
   fi
