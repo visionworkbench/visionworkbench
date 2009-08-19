@@ -31,13 +31,16 @@ AC_DEFUN([AX_MODULE],
     fi
 
     ax_libs=""
+    ax_cppflags=""
 
     # Check for prerequisites
     if test "$ax_module_enable" = "yes" ; then
       for ax_dependency in $5 ; do
         ax_dependency_have="HAVE_PKG_${ax_dependency}"
         if test x"${!ax_dependency_have}" = "xyes"; then
+          ax_dep_cppflags="PKG_${ax_dependency}_CPPFLAGS"
           ax_dep_libs="PKG_${ax_dependency}_LIBS"
+          ax_cppflags="${ax_cppflags} ${!ax_dep_cppflags}"
           ax_libs="${ax_libs} ${!ax_dep_libs}"
         else
           AC_MSG_RESULT([no])
@@ -53,7 +56,9 @@ AC_DEFUN([AX_MODULE],
       for ax_dependency in $6 ; do
         ax_dependency_have="HAVE_PKG_${ax_dependency}"
         if test x"${!ax_dependency_have}" = "xyes"; then
+          ax_dep_cppflags="PKG_${ax_dependency}_CPPFLAGS"
           ax_dep_libs="PKG_${ax_dependency}_LIBS"
+          ax_cppflags="${ax_cppflags} ${!ax_dep_cppflags}"
           ax_libs="${ax_libs} ${!ax_dep_libs}"
         else
           AC_MSG_RESULT([no])
@@ -69,13 +74,17 @@ AC_DEFUN([AX_MODULE],
       for ax_dependency in $7 ; do
         ax_dependency_have="HAVE_PKG_${ax_dependency}"
         if test x"${!ax_dependency_have}" = "xyes"; then
+          ax_dep_cppflags="PKG_${ax_dependency}_CPPFLAGS"
           ax_dep_libs="PKG_${ax_dependency}_LIBS"
+          ax_cppflags="${ax_cppflags} ${!ax_dep_cppflags}"
           ax_libs="${ax_libs} ${!ax_dep_libs}"
         fi
       done
 
       # Set up the variables
-      MODULE_$1_LIBS=$ax_libs
+      PKG_$1_CPPFLAGS="$ax_cppflags"
+      MODULE_$1_CPPFLAGS="$ax_cppflags"
+      MODULE_$1_LIBS="$ax_libs"
 
       if test -z "$3"; then
         PKG_$1_LIBS="$ax_libs"
@@ -91,8 +100,12 @@ AC_DEFUN([AX_MODULE],
     ax_module_enable=no
     MODULE_$1_LIBS=
     PKG_$1_LIBS=
+    MODULE_$1_CPPFLAGS=
+    PKG_$1_CPPFLAGS=
   fi
 
+  AC_SUBST(MODULE_$1_CPPFLAGS)
+  AC_SUBST(PKG_$1_CPPFLAGS)
   AC_SUBST(MODULE_$1_LIBS)
   AC_SUBST(PKG_$1_LIBS)
 
@@ -118,6 +131,8 @@ AC_DEFUN([AX_MODULE],
   if test "$HAVE_PKG_$1_SRC" = "yes" ; then
     AX_LOG([MAKE_MODULE_]$1[ = $MAKE_MODULE_]$1)
     AX_LOG([HAVE_PKG_]$1[ = $HAVE_PKG_]$1)
+    AX_LOG([MODULE_]$1[_CPPFLAGS = $MODULE_]$1[_CPPFLAGS])
+    AX_LOG([PKG_]$1[_CPPFLAGS = $PKG_]$1[_CPPFLAGS])
     AX_LOG([MODULE_]$1[_LIBS = $MODULE_]$1[_LIBS])
     AX_LOG([PKG_]$1[_LIBS = $PKG_]$1[_LIBS])
   fi
