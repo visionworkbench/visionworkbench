@@ -47,27 +47,14 @@ AC_DEFUN([AX_PKG],
         AX_LOG([OVERRIDE: ]$1[ libs (]$3[) with $PKG_]$1[_LIBS])
     fi
 
-    # Test for and inherit from dependencies
-    for x in $2; do
-      ax_pkg_have_dep=HAVE_PKG_${x}
-      if test "${!ax_pkg_have_dep}" = "yes"; then
-        ax_pkg_dep_cxxflags="PKG_${x}_CPPFLAGS"
-        ax_pkg_dep_libs="PKG_${x}_LIBS"
-        PKG_$1_CPPFLAGS="$PKG_$1_CPPFLAGS ${!ax_pkg_dep_cxxflags}"
-        PKG_$1_LIBS="$PKG_$1_LIBS ${!ax_pkg_dep_libs}"
-        unset ax_pkg_dep_cxxflags
-        unset ax_pkg_dep_libs
-      else
-        unset PKG_$1_CPPFLAGS
-        unset PKG_$1_LIBS
-        HAVE_PKG_$1="no"
-        break
-      fi
-    done
+    AS_VAR_PUSHDEF([missing], [ax_pkg_]$1[_missing])
+    AX_LOAD_DEPS([$1], [$2], [missing])
+    AS_IF([test -n "$missing"], [AC_MSG_RESULT([no ([missing] $missing)]); HAVE_PKG_$1=no])
+    AS_VAR_POPDEF([missing])
 
     if test "x$HAVE_PKG_$1" = "xno" ; then
-      AC_MSG_RESULT([no (needs $x)])
-
+      # printed the result already
+      :
     # We skip the search if the user has been explicit about "yes"
     elif test "x$HAVE_PKG_$1" = "xyes" ; then
       AC_MSG_RESULT([yes (using user-supplied flags)])

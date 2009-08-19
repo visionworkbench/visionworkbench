@@ -4,7 +4,6 @@ dnl the Administrator of the National Aeronautics and Space Administration.
 dnl All Rights Reserved.
 dnl __END_LICENSE__
 
-
 # Usage: AX_MODULE(<name>, <directory>, <library>, <default>, <prerequisites>, <required dependencies>[, <optional dependencies>])
 AC_DEFUN([AX_MODULE],
 [
@@ -26,74 +25,21 @@ AC_DEFUN([AX_MODULE],
     AC_MSG_CHECKING([whether to build module $1])
     ax_module_enable=$ENABLE_MODULE_$1
 
-    if test "$ax_module_enable" != "yes" ; then
-      AC_MSG_RESULT([no (disabled)])
-    fi
+    # Create a variable to store missing
+    AS_VAR_PUSHDEF([missing], [ax_module_]$1[_missing])
 
-    ax_libs=""
-    ax_cppflags=""
+    # Load args 5 and 6 as required deps, and capture missing deps in missing var.
+    # If missing is populated, bail out. Then load the optional deps
+    AS_IF([test x"$ax_module_enable" != "xyes"], [AC_MSG_RESULT([no (disabled)])],
+      [AX_LOAD_DEPS([$1], [$5 $6], [missing]) dnl Load required deps
+       AS_IF([test -n "$missing"], [AC_MSG_RESULT([no ([missing] $missing)]); ax_module_enable=no],
+         [AX_LOAD_DEPS([$1], [$7]) dnl Load optional deps
+          MODULE_$1_CPPFLAGS="$PKG_$1_CPPFLAGS"
+          MODULE_$1_LIBS="$PKG_$1_LIBS"
+          m4_ifval([$3], [PKG_$1_LIBS="$PKG_$1_LIBS \$(top_builddir)/$2/$3"])
+          AC_MSG_RESULT([yes])])])
 
-    # Check for prerequisites
-    if test "$ax_module_enable" = "yes" ; then
-      for ax_dependency in $5 ; do
-        ax_dependency_have="HAVE_PKG_${ax_dependency}"
-        if test x"${!ax_dependency_have}" = "xyes"; then
-          ax_dep_cppflags="PKG_${ax_dependency}_CPPFLAGS"
-          ax_dep_libs="PKG_${ax_dependency}_LIBS"
-          ax_cppflags="${ax_cppflags} ${!ax_dep_cppflags}"
-          ax_libs="${ax_libs} ${!ax_dep_libs}"
-        else
-          AC_MSG_RESULT([no])
-          AC_MSG_NOTICE([warning: unable to build requested module $1 (needs ${ax_dependency})!])
-          ax_module_enable=no;
-          break;
-        fi
-      done
-    fi
-
-    # Check for required dependencies
-    if test "$ax_module_enable" = "yes" ; then
-      for ax_dependency in $6 ; do
-        ax_dependency_have="HAVE_PKG_${ax_dependency}"
-        if test x"${!ax_dependency_have}" = "xyes"; then
-          ax_dep_cppflags="PKG_${ax_dependency}_CPPFLAGS"
-          ax_dep_libs="PKG_${ax_dependency}_LIBS"
-          ax_cppflags="${ax_cppflags} ${!ax_dep_cppflags}"
-          ax_libs="${ax_libs} ${!ax_dep_libs}"
-        else
-          AC_MSG_RESULT([no])
-          AC_MSG_NOTICE([warning: unable to build requested module $1 (needs ${ax_dependency})!])
-          ax_module_enable=no;
-          break;
-        fi
-      done
-    fi
-
-    if test "$ax_module_enable" = "yes" ; then
-      # Check for optional dependencies
-      for ax_dependency in $7 ; do
-        ax_dependency_have="HAVE_PKG_${ax_dependency}"
-        if test x"${!ax_dependency_have}" = "xyes"; then
-          ax_dep_cppflags="PKG_${ax_dependency}_CPPFLAGS"
-          ax_dep_libs="PKG_${ax_dependency}_LIBS"
-          ax_cppflags="${ax_cppflags} ${!ax_dep_cppflags}"
-          ax_libs="${ax_libs} ${!ax_dep_libs}"
-        fi
-      done
-
-      # Set up the variables
-      PKG_$1_CPPFLAGS="$ax_cppflags"
-      MODULE_$1_CPPFLAGS="$ax_cppflags"
-      MODULE_$1_LIBS="$ax_libs"
-
-      if test -z "$3"; then
-        PKG_$1_LIBS="$ax_libs"
-      else
-        PKG_$1_LIBS="$ax_libs \$(top_builddir)/$2/$3"
-      fi
-
-      AC_MSG_RESULT([yes])
-    fi
+    AS_VAR_POPDEF([missing])
 
   else
     HAVE_PKG_$1_SRC=no
