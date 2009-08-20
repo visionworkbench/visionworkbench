@@ -14,12 +14,11 @@ namespace po = boost::program_options;
 #include <vw/Core/ConfigParser.h>
 
 using boost::shared_ptr;
-using namespace std;
 using namespace vw;
 
 namespace {
-  int32 name2level(string name) {
-    typedef map<string, MessageLevel> MapType;
+  int32 name2level(std::string name) {
+    typedef std::map<std::string, MessageLevel> MapType;
     static MapType name_map;
 
     if (name_map.empty()) {
@@ -40,7 +39,7 @@ namespace {
 }
 
 void vw::parse_config_file(const char* fn, vw::Settings& settings) {
-  ifstream file(fn);
+  std::ifstream file(fn);
 
   if (!file.is_open())
     vw_throw(IOErr() <<  "Could not open logfile: " << fn);
@@ -48,7 +47,8 @@ void vw::parse_config_file(const char* fn, vw::Settings& settings) {
   parse_config(file, settings);
 }
 
-void vw::parse_config(basic_istream<char>& stream, vw::Settings& settings) {
+void vw::parse_config(std::basic_istream<char>& stream, 
+		      vw::Settings& settings) {
 
   // DO NOT try to log with vw_log! It will cause a deadlock because we're
   // holding locks inside reload_config, and the loggers will call
@@ -59,16 +59,17 @@ void vw::parse_config(basic_istream<char>& stream, vw::Settings& settings) {
   desc.add_options()("*", "All");
 
   try {
-     opts = po::parse_config_file( stream, desc );
+    opts = po::parse_config_file( stream, desc );
   } catch (const po::invalid_syntax& e) {
-    cerr << "Could not parse config file. Ignoring. (" << e.msg << " near \"" << e.tokens << "\")" << endl;
+    std::cerr << "Could not parse config file. Ignoring. (" 
+	      << e.msg << " near \"" << e.tokens << "\")" << std::endl;
   } catch (const boost::program_options::unknown_option& e) {
       // Swallow this one. We don't care about unknown options.
       vw_throw(LogicErr() << "We should be accepting all options. This shouldn't happen.");
   }
 
   shared_ptr<LogInstance> current_log;
-  string current_logname = "console";
+  std::string current_logname = "console";
 
   typedef std::vector<po::option> OptionVec;
 
@@ -86,11 +87,11 @@ void vw::parse_config(basic_istream<char>& stream, vw::Settings& settings) {
 	settings.set_default_tile_size(boost::lexical_cast<int>(o.value[0]));
       else if (o.string_key.compare(0, 8, "logfile ") == 0) {
         size_t sep = o.string_key.find_last_of('.');
-        assert(sep != string::npos);
+        assert(sep != std::string::npos);
 
-        string logname = o.string_key.substr(8, sep-8);
-        string level_s = o.string_key.substr(sep+1);
-        string domain  = o.value[0];
+	std::string logname = o.string_key.substr(8, sep-8);
+	std::string level_s = o.string_key.substr(sep+1);
+	std::string domain  = o.value[0];
 
         //cerr << "Logname[" << logname << "] level_s[" << level_s << "] domain[" << domain << "]" << endl;
 
@@ -120,7 +121,8 @@ void vw::parse_config(basic_istream<char>& stream, vw::Settings& settings) {
         continue;
       }
     } catch (const boost::bad_lexical_cast& e) {
-      cerr << "Could not parse line in config file near " << o.string_key << ". skipping." << endl;
+      std::cerr << "Could not parse line in config file near " 
+		<< o.string_key << ". skipping." << std::endl;
     }
   }
 

@@ -10,7 +10,6 @@
 #include <vw/Core/Exception.h>
 #include <test/Helpers.h>
 
-using namespace std;
 using namespace vw;
 
 VW_DEFINE_EXCEPTION(Level1Err, vw::Exception);

@@ -10,7 +10,6 @@
 
 #include <vw/Cartography/PointImageManipulation.h>
 
-using namespace std;
 using namespace vw;
 using namespace vw::cartography;
 

@@ -15,7 +15,6 @@
 #include <vw/Camera/CameraTransform.h>
 #include <vw/Math/EulerAngles.h>
 
-using namespace std;
 using namespace vw;
 using namespace vw::camera;
 

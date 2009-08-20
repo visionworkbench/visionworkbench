@@ -10,7 +10,6 @@
 
 #include <vw/Camera/Exif.h>
 
-using namespace std;
 using namespace vw;
 using namespace vw::camera;
 

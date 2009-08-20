@@ -10,7 +10,6 @@
 
 #include <vw/Cartography/GeoReference.h>
 
-using namespace std;
 using namespace vw;
 using namespace vw::cartography;
 
@@ -164,7 +163,7 @@ public:
   }
 
   void test_utm_lonlat() {
-    vector<Vector2> ll(5), utm(5), px(5);
+    std::vector<Vector2> ll(5), utm(5), px(5);
 
     ll[0] = Vector2(170.008619281089, -43.4851542659474); // UL
     ll[1] = Vector2(170.000341300606, -43.9847965111766); // LL

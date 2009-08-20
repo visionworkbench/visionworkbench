@@ -11,7 +11,6 @@
 #include <vw/Core/Cache.h>
 #include <vw/Core/FundamentalTypes.h>
 
-using namespace std;
 using namespace vw;
 
 // A dummy BlockGenerator that generates blocks of 1-byte data.

@@ -7,7 +7,6 @@
 
 #include <vw/Image.h>
 
-using namespace std;
 using namespace vw;
 
 typedef int T;

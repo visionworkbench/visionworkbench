@@ -12,7 +12,6 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
 
-using namespace std;
 using namespace vw;
 
 class TestImageViewRef : public CxxTest::TestSuite

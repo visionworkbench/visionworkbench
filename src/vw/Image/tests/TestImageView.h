@@ -11,7 +11,6 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>
 
-using namespace std;
 using namespace vw;
 
 class TestImageView : public CxxTest::TestSuite
@@ -28,13 +27,13 @@ public:
     TS_ASSERT_EQUALS(test_double.planes(), 0);
     TS_ASSERT_EQUALS(test_double.data(), (double*)0);
 
-    ImageView<PixelRGBA<uint8> > test_rgba;
+    ImageView<PixelRGBA<vw::uint8> > test_rgba;
     TS_ASSERT_EQUALS( (bool)test_rgba, false );
     TS_ASSERT_EQUALS( !test_rgba, true );
     TS_ASSERT_EQUALS(test_rgba.cols(), 0);
     TS_ASSERT_EQUALS(test_rgba.rows(), 0);
     TS_ASSERT_EQUALS(test_rgba.planes(), 0);
-    TS_ASSERT_EQUALS(test_rgba.data(), (PixelRGBA<uint8>*)0);
+    TS_ASSERT_EQUALS(test_rgba.data(), (PixelRGBA<vw::uint8>*)0);
   }
 
   void testColsRowsConstructor()
@@ -47,13 +46,13 @@ public:
     TS_ASSERT_EQUALS(test_double.planes(), 1);
     TS_ASSERT_DIFFERS(test_double.data(), (double*)0);
 
-    ImageView<PixelRGBA<uint8> > test_rgba(3,4);
+    ImageView<PixelRGBA<vw::uint8> > test_rgba(3,4);
     TS_ASSERT_EQUALS( (bool)test_rgba, true );
     TS_ASSERT_EQUALS( !test_rgba, false );
     TS_ASSERT_EQUALS(test_rgba.cols(), 3);
     TS_ASSERT_EQUALS(test_rgba.rows(), 4);
     TS_ASSERT_EQUALS(test_rgba.planes(), 1);
-    TS_ASSERT_DIFFERS(test_rgba.data(), (PixelRGBA<uint8>*)0);
+    TS_ASSERT_DIFFERS(test_rgba.data(), (PixelRGBA<vw::uint8>*)0);
   }
 
   void testColsRowsPlanesConstructor()
@@ -66,13 +65,13 @@ public:
     TS_ASSERT_EQUALS(test_double.planes(), 2);
     TS_ASSERT_DIFFERS(test_double.data(), (double*)0);
 
-    ImageView<PixelRGBA<uint8> > test_rgba(4,3,2);
+    ImageView<PixelRGBA<vw::uint8> > test_rgba(4,3,2);
     TS_ASSERT_EQUALS( (bool)test_rgba, true );
     TS_ASSERT_EQUALS( !test_rgba, false );
     TS_ASSERT_EQUALS(test_rgba.cols(), 4);
     TS_ASSERT_EQUALS(test_rgba.rows(), 3);
     TS_ASSERT_EQUALS(test_rgba.planes(), 2);
-    TS_ASSERT_DIFFERS(test_rgba.data(), (PixelRGBA<uint8>*)0);
+    TS_ASSERT_DIFFERS(test_rgba.data(), (PixelRGBA<vw::uint8>*)0);
   }
 
   void testCopyConstructor()
@@ -86,8 +85,8 @@ public:
     TS_ASSERT_EQUALS(test2_double.planes(), 1);
     TS_ASSERT_EQUALS(test2_double.data(),test_double.data());
 
-    ImageView<PixelRGBA<uint8> > test_rgba(3,4);
-    ImageView<PixelRGBA<uint8> > test2_rgba( test_rgba );
+    ImageView<PixelRGBA<vw::uint8> > test_rgba(3,4);
+    ImageView<PixelRGBA<vw::uint8> > test2_rgba( test_rgba );
     TS_ASSERT_EQUALS( (bool)test2_rgba, true );
     TS_ASSERT_EQUALS( !test2_rgba, false );
     TS_ASSERT_EQUALS(test2_rgba.cols(), 3);
@@ -111,7 +110,7 @@ public:
     TS_ASSERT_EQUALS(test_double.rows(), 0);
     TS_ASSERT_EQUALS(test_double.data(), (double*)0);
 
-    ImageView<PixelRGBA<uint8> > test_rgba(3,4);
+    ImageView<PixelRGBA<vw::uint8> > test_rgba(3,4);
     TS_ASSERT_EQUALS( (bool)test_rgba, true );
     test_rgba.set_size(2,3);
     TS_ASSERT_EQUALS( (bool)test_rgba, true );
@@ -122,7 +121,7 @@ public:
     TS_ASSERT_EQUALS( (bool)test_rgba, false );
     TS_ASSERT_EQUALS(test_rgba.cols(), 0);
     TS_ASSERT_EQUALS(test_rgba.rows(), 0);
-    TS_ASSERT_EQUALS(test_rgba.data(), (PixelRGBA<uint8>*)0);
+    TS_ASSERT_EQUALS(test_rgba.data(), (PixelRGBA<vw::uint8>*)0);
   }
 
   void testReset()
@@ -136,14 +135,14 @@ public:
     TS_ASSERT_EQUALS(test_double.planes(), 0);
     TS_ASSERT_EQUALS(test_double.data(), (double*)0);
 
-    ImageView<PixelRGBA<uint8> > test_rgba(3,4);
+    ImageView<PixelRGBA<vw::uint8> > test_rgba(3,4);
     TS_ASSERT_EQUALS( (bool)test_rgba, true );
     test_rgba.reset();
     TS_ASSERT_EQUALS( (bool)test_rgba, false );
     TS_ASSERT_EQUALS(test_rgba.cols(), 0);
     TS_ASSERT_EQUALS(test_rgba.rows(), 0);
     TS_ASSERT_EQUALS(test_rgba.planes(), 0);
-    TS_ASSERT_EQUALS(test_rgba.data(), (PixelRGBA<uint8>*)0);
+    TS_ASSERT_EQUALS(test_rgba.data(), (PixelRGBA<vw::uint8>*)0);
   }
 
   void testRasterization()
@@ -298,11 +297,11 @@ public:
   void testBoundsCheck()
   {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-    ImageView<PixelRGB<uint8> > test_img(2,2);
+    ImageView<PixelRGB<vw::uint8> > test_img(2,2);
 
     // First, test to make sure that the operator() bounds checking is
     // working properly.
-    PixelRGB<uint8> test = test_img(0,0);
+    PixelRGB<vw::uint8> test = test_img(0,0);
     TS_ASSERT_THROWS_NOTHING ( test = test_img(1,0) );
     TS_ASSERT_THROWS_NOTHING ( test = test_img(0,1) );
     TS_ASSERT_THROWS_NOTHING ( test = test_img(1,1) );
@@ -313,7 +312,7 @@ public:
     
     // Next, test to make sure that the MemoryStridingPixelAccessor
     // bounds checking is working properly.
-    ImageView<PixelRGB<uint8> >::pixel_accessor acc = test_img.origin();
+    ImageView<PixelRGB<vw::uint8> >::pixel_accessor acc = test_img.origin();
 
     TS_ASSERT_THROWS_NOTHING( test = *acc );
 

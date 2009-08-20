@@ -12,7 +12,6 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>
 
-using namespace std;
 using namespace vw;
 
 class TestAlgorithms : public CxxTest::TestSuite

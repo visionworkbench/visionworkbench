@@ -11,9 +11,6 @@
 #include <vw/Math/Vector.h>
 #include <vw/Camera/LinearPushbroomModel.h>
 
-#include <vector>
-
-using namespace std;
 using namespace vw;
 
 class TestLinearPushbroomModel : public CxxTest::TestSuite

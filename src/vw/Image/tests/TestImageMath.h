@@ -12,7 +12,6 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
 
-using namespace std;
 using namespace vw;
 
 class TestImageMath : public CxxTest::TestSuite

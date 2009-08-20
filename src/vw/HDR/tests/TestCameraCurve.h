@@ -11,7 +11,6 @@
 #include <vw/FileIO.h>
 #include <vw/HDR/CameraCurve.h>
 
-using namespace std;
 using namespace vw;
 using namespace vw::hdr;
 

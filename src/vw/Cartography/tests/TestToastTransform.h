@@ -10,7 +10,6 @@
 
 #include <vw/Cartography/ToastTransform.h>
 
-using namespace std;
 using namespace vw;
 using namespace vw::cartography;
 

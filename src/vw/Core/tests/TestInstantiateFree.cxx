@@ -12,7 +12,6 @@
 #include <boost/type_traits.hpp>
 #include <boost/utility/enable_if.hpp>
 
-using namespace std;
 using namespace vw;
 
 typedef int T;

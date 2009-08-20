@@ -14,7 +14,6 @@
 
 #include <vector>
 
-using namespace std;
 using namespace vw;
 
 class TestFilter : public CxxTest::TestSuite
@@ -173,7 +172,7 @@ public:
 
   void test_separable_convolution_filter() {
     ImageView<double> src(2,2); src(0,0)=1; src(1,0)=2; src(0,1)=3; src(1,1)=4;
-    vector<double> krn; krn.push_back(1); krn.push_back(-1);
+    std::vector<double> krn; krn.push_back(1); krn.push_back(-1);
     SeparableConvolutionView<ImageView<double>,double,ZeroEdgeExtension> cnv( src, krn, krn );
 
     // Test rasterization

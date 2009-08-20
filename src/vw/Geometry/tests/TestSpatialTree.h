@@ -12,7 +12,6 @@
 #include <vw/Math/BBox.h>
 #include <vw/Geometry/SpatialTree.h>
 
-using namespace std;
 using namespace vw;
 using namespace vw::geometry;
 
@@ -152,7 +151,7 @@ public:
 
     if (dim <= 2)
     {
-      ostringstream os;
+      std::ostringstream os;
       const char *print_results[3] = {0, TEST_SPATIAL_TREE_PRINT_RESULT_1D, TEST_SPATIAL_TREE_PRINT_RESULT_2D};
       std::string printstr(print_results[dim]);
       t.print(os);
@@ -161,7 +160,7 @@ public:
 
     if (dim == 2)
     {
-      ostringstream os2;
+      std::ostringstream os2;
       std::string vrmlstr(TEST_SPATIAL_TREE_VRML_RESULT);
       t.write_vrml(os2);
       TS_ASSERT_EQUALS( os2.str(), vrmlstr );

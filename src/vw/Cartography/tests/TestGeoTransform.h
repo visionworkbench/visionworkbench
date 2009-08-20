@@ -11,7 +11,6 @@
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoTransform.h>
 
-using namespace std;
 using namespace vw;
 using namespace vw::cartography;
 
@@ -42,7 +41,7 @@ public:
     // This tests for a bug where forward_bbox calls latlon_to_* for a latlon
     // that is invalid for a utm zone.
 
-    vector<Vector2> utm(4);
+    std::vector<Vector2> utm(4);
     utm[0] = Vector2(419832.648, 5184829.285); // UL
     utm[1] = Vector2(419832.648, 5129329.285); // LL
     utm[2] = Vector2(469332.648, 5184829.285); // UR
@@ -81,6 +80,6 @@ public:
     // This should throw a proj.4 error because it tries to look up a lonlat
     // that is outside the utm zone
     TS_ASSERT_THROWS_ASSERT(bbox2 = geotx.reverse_bbox(BBox2i(0,0,size[0], size[1])),
-        const ArgumentErr &e, TS_ASSERT(string(e.what()).find("Proj.4 error") != string::npos));
+			    const ArgumentErr &e, TS_ASSERT(std::string(e.what()).find("Proj.4 error") != std::string::npos));
   }
 };

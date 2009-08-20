@@ -13,24 +13,23 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
 
-using namespace std;
 using namespace vw;
 
 class TestImageStatistics : public CxxTest::TestSuite
 {
-  ImageView<uint8> im8;
+  ImageView<vw::uint8> im8;
   ImageView<double> imf;
-  ImageView<PixelMask<uint8> > im8ma;
+  ImageView<PixelMask<vw::uint8> > im8ma;
   ImageView<PixelMask<double> > imfma;
-  ImageView<PixelMask<uint8> > im8mb;
+  ImageView<PixelMask<vw::uint8> > im8mb;
   ImageView<PixelMask<double> > imfmb;
-  ImageView<PixelRGB<uint8> > imrgb8;
+  ImageView<PixelRGB<vw::uint8> > imrgb8;
   ImageView<PixelRGB<double> > imrgbf;
-  ImageView<PixelRGBA<uint8> > imrgba8a;
+  ImageView<PixelRGBA<vw::uint8> > imrgba8a;
   ImageView<PixelRGBA<double> > imrgbafa;
-  ImageView<PixelRGBA<uint8> > imrgba8b;
+  ImageView<PixelRGBA<vw::uint8> > imrgba8b;
   ImageView<PixelRGBA<double> > imrgbafb;
-  ImageView<PixelRGBA<uint8> > imrgba8c;
+  ImageView<PixelRGBA<vw::uint8> > imrgba8c;
   ImageView<PixelRGBA<double> > imrgbafc;
 
   template <class T1, class T2>
@@ -55,26 +54,26 @@ public:
 
     imfma(1,0) = -1.0;
 
-    imrgb8(0,0) = PixelRGB<uint8>(24,67,89);
-    imrgb8(1,0) = PixelRGB<uint8>(119,76,228);
+    imrgb8(0,0) = PixelRGB<vw::uint8>(24,67,89);
+    imrgb8(1,0) = PixelRGB<vw::uint8>(119,76,228);
 
     imrgbf(0,0) = PixelRGB<double>(0.5,0.9,1.6);
     imrgbf(1,0) = PixelRGB<double>(-1,0,1);
 
-    imrgba8a(0,0) = PixelRGBA<uint8>(24,67,89,255);
-    imrgba8a(1,0) = PixelRGBA<uint8>(24,15,46,51);
+    imrgba8a(0,0) = PixelRGBA<vw::uint8>(24,67,89,255);
+    imrgba8a(1,0) = PixelRGBA<vw::uint8>(24,15,46,51);
 
     imrgbafa(0,0) = PixelRGBA<double>(0.5,0.9,1.6,1.0);
     imrgbafa(1,0) = PixelRGBA<double>(-0.5,0,0.5,0.5);
 
-    imrgba8b(0,0) = PixelRGBA<uint8>(24,67,89,255);
-    imrgba8b(1,0) = PixelRGBA<uint8>(20,15,100,0);
+    imrgba8b(0,0) = PixelRGBA<vw::uint8>(24,67,89,255);
+    imrgba8b(1,0) = PixelRGBA<vw::uint8>(20,15,100,0);
 
     imrgbafb(0,0) = PixelRGBA<double>(0.5,0.9,1.6,1.0);
     imrgbafb(1,0) = PixelRGBA<double>(-0.6,0,2.0,0);
 
-    imrgba8c(0,0) = PixelRGBA<uint8>(24,67,89,0);
-    imrgba8c(1,0) = PixelRGBA<uint8>(119,76,228,0);
+    imrgba8c(0,0) = PixelRGBA<vw::uint8>(24,67,89,0);
+    imrgba8c(1,0) = PixelRGBA<vw::uint8>(119,76,228,0);
 
     imrgbafc(0,0) = PixelRGBA<double>(0.5,0.9,1.6,0);
     imrgbafc(1,0) = PixelRGBA<double>(-1,0,1,0);
@@ -83,15 +82,15 @@ public:
   void test_min_pixel_value()
   {
     TS_ASSERT_EQUALS( min_pixel_value(channels_to_planes(imrgb8)), 24 );
-    TS_ASSERT( is_of_type<uint8>( min_pixel_value(channels_to_planes(imrgb8)) ) );
+    TS_ASSERT( is_of_type<vw::uint8>( min_pixel_value(channels_to_planes(imrgb8)) ) );
     TS_ASSERT_EQUALS( min_pixel_value(channels_to_planes(imrgbf)), -1.0 );
     TS_ASSERT( is_of_type<double>( min_pixel_value(channels_to_planes(imrgbf)) ) );
     TS_ASSERT_EQUALS( min_pixel_value(im8), 24 );
-    TS_ASSERT( is_of_type<uint8>( min_pixel_value(im8) ) );
+    TS_ASSERT( is_of_type<vw::uint8>( min_pixel_value(im8) ) );
     TS_ASSERT_EQUALS( min_pixel_value(imf), -1.0 );
     TS_ASSERT( is_of_type<double>( min_pixel_value(imf) ) );
     TS_ASSERT_EQUALS( min_pixel_value(im8ma), 119 );
-    TS_ASSERT( is_of_type<uint8>( min_pixel_value(im8ma) ) );
+    TS_ASSERT( is_of_type<vw::uint8>( min_pixel_value(im8ma) ) );
     TS_ASSERT_EQUALS( min_pixel_value(imfma), -1.0 );
     TS_ASSERT( is_of_type<double>( min_pixel_value(imfma) ) );
     TS_ASSERT_THROWS( min_pixel_value(im8mb), ArgumentErr );
@@ -101,15 +100,15 @@ public:
   void test_max_pixel_value()
   {
     TS_ASSERT_EQUALS( max_pixel_value(channels_to_planes(imrgb8)), 228 );
-    TS_ASSERT( is_of_type<uint8>( max_pixel_value(channels_to_planes(imrgb8)) ) );
+    TS_ASSERT( is_of_type<vw::uint8>( max_pixel_value(channels_to_planes(imrgb8)) ) );
     TS_ASSERT_EQUALS( max_pixel_value(channels_to_planes(imrgbf)), 1.6 );
     TS_ASSERT( is_of_type<double>( max_pixel_value(channels_to_planes(imrgbf)) ) );
     TS_ASSERT_EQUALS( max_pixel_value(im8), 119 );
-    TS_ASSERT( is_of_type<uint8>( max_pixel_value(im8) ) );
+    TS_ASSERT( is_of_type<vw::uint8>( max_pixel_value(im8) ) );
     TS_ASSERT_EQUALS( max_pixel_value(imf), 1.0 );
     TS_ASSERT( is_of_type<double>( max_pixel_value(imf) ) );
     TS_ASSERT_EQUALS( max_pixel_value(im8ma), 119 );
-    TS_ASSERT( is_of_type<uint8>( max_pixel_value(im8ma) ) );
+    TS_ASSERT( is_of_type<vw::uint8>( max_pixel_value(im8ma) ) );
     TS_ASSERT_EQUALS( max_pixel_value(imfma), -1.0 );
     TS_ASSERT( is_of_type<double>( max_pixel_value(imfma) ) );
     TS_ASSERT_THROWS( max_pixel_value(im8mb), ArgumentErr );
@@ -118,7 +117,7 @@ public:
 
   void test_min_max_pixel_values()
   {
-    uint8 mini, maxi;
+    vw::uint8 mini, maxi;
     double minf, maxf;
     min_max_pixel_values( channels_to_planes(imrgb8), mini, maxi );
     TS_ASSERT_EQUALS( mini, 24 );
@@ -145,21 +144,21 @@ public:
   void test_min_channel_value()
   {
     TS_ASSERT_EQUALS( min_channel_value(im8), 24 );
-    TS_ASSERT( is_of_type<uint8>( min_channel_value(im8) ) );
+    TS_ASSERT( is_of_type<vw::uint8>( min_channel_value(im8) ) );
     TS_ASSERT_EQUALS( min_channel_value(imf), -1.0 );
     TS_ASSERT( is_of_type<double>( min_channel_value(imf) ) );
     TS_ASSERT_EQUALS( min_channel_value(im8ma), 119 );
-    TS_ASSERT( is_of_type<uint8>( min_channel_value(im8ma) ) );
+    TS_ASSERT( is_of_type<vw::uint8>( min_channel_value(im8ma) ) );
     TS_ASSERT_EQUALS( min_channel_value(imfma), -1.0 );
     TS_ASSERT( is_of_type<double>( min_channel_value(imfma) ) );
     TS_ASSERT_THROWS( min_channel_value(im8mb), ArgumentErr );
     TS_ASSERT_THROWS( min_channel_value(imfmb), ArgumentErr );
     TS_ASSERT_EQUALS( min_channel_value(imrgb8), 24 );
-    TS_ASSERT( is_of_type<uint8>( min_channel_value(imrgb8) ) );
+    TS_ASSERT( is_of_type<vw::uint8>( min_channel_value(imrgb8) ) );
     TS_ASSERT_EQUALS( min_channel_value(imrgbf), -1 );
     TS_ASSERT( is_of_type<double>( min_channel_value(imrgbf) ) );
     TS_ASSERT_EQUALS( min_channel_value(imrgba8a), 15 );
-    TS_ASSERT( is_of_type<uint8>( min_channel_value(imrgba8a) ) );
+    TS_ASSERT( is_of_type<vw::uint8>( min_channel_value(imrgba8a) ) );
     TS_ASSERT_EQUALS( min_channel_value(imrgbafa), -0.5 );
     TS_ASSERT( is_of_type<double>( min_channel_value(imrgbafa) ) );
     TS_ASSERT_EQUALS( min_channel_value(imrgba8b), 0 );
@@ -171,21 +170,21 @@ public:
   void test_max_channel_value()
   {
     TS_ASSERT_EQUALS( max_channel_value(im8), 119 );
-    TS_ASSERT( is_of_type<uint8>( max_channel_value(im8) ) );
+    TS_ASSERT( is_of_type<vw::uint8>( max_channel_value(im8) ) );
     TS_ASSERT_EQUALS( max_channel_value(imf), 1.0 );
     TS_ASSERT( is_of_type<double>( max_channel_value(imf) ) );
     TS_ASSERT_EQUALS( max_channel_value(im8ma), 119 );
-    TS_ASSERT( is_of_type<uint8>( max_channel_value(im8ma) ) );
+    TS_ASSERT( is_of_type<vw::uint8>( max_channel_value(im8ma) ) );
     TS_ASSERT_EQUALS( max_channel_value(imfma), -1.0 );
     TS_ASSERT( is_of_type<double>( max_channel_value(imfma) ) );
     TS_ASSERT_THROWS( max_channel_value(im8mb), ArgumentErr );
     TS_ASSERT_THROWS( max_channel_value(imfmb), ArgumentErr );
     TS_ASSERT_EQUALS( max_channel_value(imrgb8), 228 );
-    TS_ASSERT( is_of_type<uint8>( max_channel_value(imrgb8) ) );
+    TS_ASSERT( is_of_type<vw::uint8>( max_channel_value(imrgb8) ) );
     TS_ASSERT_EQUALS( max_channel_value(imrgbf), 1.6 );
     TS_ASSERT( is_of_type<double>( max_channel_value(imrgbf) ) );
     TS_ASSERT_EQUALS( max_channel_value(imrgba8a), 255 );
-    TS_ASSERT( is_of_type<uint8>( max_channel_value(imrgba8a) ) );
+    TS_ASSERT( is_of_type<vw::uint8>( max_channel_value(imrgba8a) ) );
     TS_ASSERT_EQUALS( max_channel_value(imrgbafa), 1.6 );
     TS_ASSERT( is_of_type<double>( max_channel_value(imrgbafa) ) );
     TS_ASSERT_EQUALS( max_channel_value(imrgba8b), 255 );
@@ -196,7 +195,7 @@ public:
 
   void test_min_max_channel_values()
   {
-    uint8 mini, maxi;
+    vw::uint8 mini, maxi;
     double minf, maxf;
     min_max_channel_values(im8,mini,maxi);
     TS_ASSERT_EQUALS( mini, 24 );
@@ -508,22 +507,22 @@ public:
 
   void test_median_channel_value()
   {
-    ImageView<PixelRGBA<uint8> > image1(4,1);
-    image1(0,0) = PixelRGBA<uint8>(8,7,6,5);
-    image1(1,0) = PixelRGBA<uint8>(4,3,2,1);
-    image1(2,0) = PixelRGBA<uint8>(9,8,7,0);
-    image1(3,0) = PixelRGBA<uint8>(12,11,10,0);
+    ImageView<PixelRGBA<vw::uint8> > image1(4,1);
+    image1(0,0) = PixelRGBA<vw::uint8>(8,7,6,5);
+    image1(1,0) = PixelRGBA<vw::uint8>(4,3,2,1);
+    image1(2,0) = PixelRGBA<vw::uint8>(9,8,7,0);
+    image1(3,0) = PixelRGBA<vw::uint8>(12,11,10,0);
     TS_ASSERT_EQUALS( median_channel_value(image1), 7 );
-    TS_ASSERT( is_of_type<uint8>( median_channel_value(image1) ) );
-    ImageView<PixelMask<PixelRGB<uint8> > > image2(4,1);
-    image2(0,0) = PixelMask<PixelRGB<uint8> >(8,7,6);
-    image2(1,0) = PixelMask<PixelRGB<uint8> >(4,3,2);
-    image2(2,0) = PixelMask<PixelRGB<uint8> >(9,8,7);
+    TS_ASSERT( is_of_type<vw::uint8>( median_channel_value(image1) ) );
+    ImageView<PixelMask<PixelRGB<vw::uint8> > > image2(4,1);
+    image2(0,0) = PixelMask<PixelRGB<vw::uint8> >(8,7,6);
+    image2(1,0) = PixelMask<PixelRGB<vw::uint8> >(4,3,2);
+    image2(2,0) = PixelMask<PixelRGB<vw::uint8> >(9,8,7);
     image2(2,0).invalidate();
-    image2(3,0) = PixelMask<PixelRGB<uint8> >(12,11,10);
+    image2(3,0) = PixelMask<PixelRGB<vw::uint8> >(12,11,10);
     image2(3,0).invalidate();
     TS_ASSERT_EQUALS( median_channel_value(image2), 6 );
-    TS_ASSERT( is_of_type<uint8>( median_channel_value(image2) ) );
+    TS_ASSERT( is_of_type<vw::uint8>( median_channel_value(image2) ) );
   }
 
 };

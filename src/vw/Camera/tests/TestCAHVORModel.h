@@ -11,7 +11,6 @@
 #include <vw/Camera/CAHVORModel.h>
 #include <vw/Math/Vector.h>
 
-using namespace std;
 using namespace vw;
 using namespace vw::camera;
 
