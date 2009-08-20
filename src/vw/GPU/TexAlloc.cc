@@ -7,24 +7,22 @@
 
 #include <vw/GPU/TexAlloc.h>
 
-using namespace std;
-
 namespace vw { namespace GPU {
 
-  //#################################################################################################################
-  //                                        TexAlloc: Class Variables
-  //#################################################################################################################
+  //############################################################
+  //                  TexAlloc: Class Variables
+  //############################################################
 
   bool TexAlloc::isInit = false;
   list<TexObj*> TexAlloc::texRecycleList;
   int TexAlloc::allocatedCount = 0;
   int TexAlloc::allocatedSize = 0;
   bool TexAlloc::recylingEnabled = false;
-  map<pair<Tex_Format, Tex_Type>, pair<Tex_Format, Tex_Type> > TexAlloc::textureSubstitutesMap;
+  std::map<pair<Tex_Format, Tex_Type>, pair<Tex_Format, Tex_Type> > TexAlloc::textureSubstitutesMap;
 
-  //#################################################################################################################
-  //                                        TexAlloc: Class Functions
-  //#################################################################################################################
+  //#############################################################
+  //                  TexAlloc: Class Functions
+  //#############################################################
 
   static char buffer[512];
 
@@ -103,10 +101,7 @@ namespace vw { namespace GPU {
     }
   }
 
-
-
-  void 
-  TexAlloc::clear_recycled() {
+  void TexAlloc::clear_recycled() {
     std::list<TexObj*>::iterator iter;
     for(iter = texRecycleList.begin(); iter != texRecycleList.end(); iter++) {
       TexObj* texObj = *iter;
@@ -121,7 +116,6 @@ namespace vw { namespace GPU {
     }
     texRecycleList.clear();
   }
-
 
   void TexAlloc::generate_texture_substitutions(bool verbose) {
     textureSubstitutesMap.clear();
@@ -214,9 +208,9 @@ namespace vw { namespace GPU {
       return false;
   }
 
-  //#################################################################################################################
-  //                                        TexAlloc: Class Functions - Private
-  //#################################################################################################################
+  //###############################################################
+  //               TexAlloc: Class Functions - Private
+  //###############################################################
 
   void 
   TexAlloc::initialize_texalloc() {

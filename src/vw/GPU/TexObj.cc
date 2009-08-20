@@ -11,16 +11,14 @@
 #include <vw/GPU/Setup.h>
 #include <vw/GPU/TexAlloc.h>
 
-using namespace std;
-
 namespace vw { 
 namespace GPU {
 
 #define USE_PBO false
   
-  //#################################################################################################################
-  //                                        TexObj: Instance Functions
-  //#################################################################################################################
+  //###################################################################
+  //                     TexObj: Instance Functions
+  //###################################################################
 
   TexObj::TexObj(int w, int h, Tex_Format internalFormat, Tex_Type internalType) {
     m_refCount = 0;
@@ -110,8 +108,9 @@ namespace GPU {
     if(!m_refCount) TexAlloc::release(this);
   }
 
-  void 
-  TexObj::write(int x, int y, int w, int h, Tex_Format inputFormat, Tex_Type inputType, void* data) {
+  void TexObj::write(int x, int y, int w, int h, 
+		     Tex_Format inputFormat, 
+		     Tex_Type inputType, void* data) {
     // FORMAT
     GLuint inputFormat_gl;
     if(inputFormat == GPU_RED && m_format == GPU_RED) 
@@ -160,9 +159,9 @@ namespace GPU {
     }
   }
 
-
-  void 
-  TexObj::read(int x, int y, int w, int h, Tex_Format outputFormat, Tex_Type outputType, void* data) {
+  void TexObj::read(int x, int y, int w, int h, 
+		    Tex_Format outputFormat, 
+		    Tex_Type outputType, void* data) {
 	
     // Format
     GLuint outFormat_gl;

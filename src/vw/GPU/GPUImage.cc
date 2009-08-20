@@ -14,9 +14,6 @@
 #include <string>
 #include <vw/Math/Vector.h>
 
-
-using namespace std;
-
 namespace vw { 
 namespace GPU {
 
