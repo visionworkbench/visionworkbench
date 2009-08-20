@@ -23,7 +23,6 @@ namespace po = boost::program_options;
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
-using namespace std;
 
 //Global variables
 double pi=4*atan(1.0);
@@ -358,12 +357,13 @@ int main( int argc, char *argv[] ) {
       algorithm=PLANEFIT;
   }
 
-  if(vm.count("no-aspect"))   output_aspect=false;
-  if(vm.count("no-gradient"))   output_gradient=false;
+  if(vm.count("no-aspect")) output_aspect=false;
+  if(vm.count("no-gradient")) output_gradient=false;
   if(vm.count("pretty")) output_pretty=true;
 
   if(!output_aspect && !output_gradient && !output_pretty) {
-    vw_out(0) << "No output specified. Select at least one of [ gradient, output, pretty ].\n" << endl;
+    vw_out(0) << "No output specified. Select at least one of [ gradient, output, pretty ].\n" 
+	      << std::endl;
   }
 
   try {

@@ -34,7 +34,6 @@ namespace po = boost::program_options;
 #include <iostream>
 #include <vector>
 
-using namespace std;
 using namespace vw;
 using namespace vw::hdr;
 

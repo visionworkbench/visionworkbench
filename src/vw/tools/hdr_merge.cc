@@ -33,7 +33,6 @@ namespace po = boost::program_options;
 #include <vector>
 #include <string>
 
-using namespace std;
 using namespace vw;
 using namespace vw::hdr;
 
@@ -85,7 +84,7 @@ int main( int argc, char *argv[] ) {
     //     for (int i = 0; i < brightness_values.size(); ++i) 
     //       vw_out(0) << "BV: " << brightness_values[i] << "\n";
 
-    vector<ImageViewRef<PixelRGB<float> > > images(input_filenames.size());
+    std::vector<ImageViewRef<PixelRGB<float> > > images(input_filenames.size());
     for ( unsigned i=0; i < input_filenames.size(); ++i )
       images[i] = DiskImageView<PixelRGB<float> >(input_filenames[i]);
 
@@ -106,7 +105,8 @@ int main( int argc, char *argv[] ) {
     write_image(output_filename, HighDynamicRangeView<PixelRGB<float> > (images, curves, brightness_values) );
 
   } catch (vw::Exception &e) {
-    std::cout << argv[0] << ": a Vision Workbench error occurred: \n\t" << e.what() << "\nExiting.\n\n";  
+    std::cout << argv[0] << ": a Vision Workbench error occurred: \n\t" 
+	      << e.what() << "\nExiting.\n\n";  
     return 1;
   }  
   return 0;

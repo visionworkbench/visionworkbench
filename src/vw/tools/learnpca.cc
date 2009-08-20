@@ -8,12 +8,11 @@
 #include <iostream>
 #include <vw/InterestPoint/LearnPCA.h>
 
-using namespace std;
-
 int main(int argc, char *argv[])
 {
   if (argc < 2) {
-    cout << "learnpca <training image files...>" << endl;
+    std::cout << "learnpca <training image files...>" 
+	      << std::endl;
     return 0;
   }
 
