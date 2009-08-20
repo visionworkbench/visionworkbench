@@ -8,8 +8,6 @@
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Math/Vector.h>
 
-using namespace std;
-
 namespace vw {
 namespace stereo {
 
@@ -71,7 +69,7 @@ namespace stereo {
     error.set_size(disparity_map.cols(), disparity_map.rows());
         
     // Compute 3D position for each pixel in the disparity map
-    cout << "StereoModel: Applying camera models\n";
+    std::cout << "StereoModel: Applying camera models\n";
     for (int32 y = 0; y < disparity_map.rows(); y++) {
       if (y % 100 == 0) {
         printf("\tStereoModel computing points: %0.2f%% complete.\r", 100.0f*float(y)/disparity_map.rows());
@@ -103,11 +101,12 @@ namespace stereo {
     }  
     
     if (divergent != 0) 
-      cout << "WARNING in StereoModel: " << divergent << " rays diverged or were parallel!\n";
+      std::cout << "WARNING in StereoModel: " << divergent 
+		<< " rays diverged or were parallel!\n";
      
-    cout << "\tStereoModel computing points: Done.                  \n";
-    cout << "\tMean error = " << mean_error/double(point_count)
-         << ",  Max error = " << max_error << endl;
+    std::cout << "\tStereoModel computing points: Done.                  \n";
+    std::cout << "\tMean error = " << mean_error/double(point_count)
+	      << ",  Max error = " << max_error << std::endl;
     return xyz;
   }
 
