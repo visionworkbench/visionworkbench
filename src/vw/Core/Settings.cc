@@ -182,8 +182,10 @@ int vw::Settings::default_num_threads() {
 
 void vw::Settings::set_default_num_threads(int num) {
   Mutex::Lock lock(m_settings_mutex);
-  m_default_num_threads_override = true;
-  m_default_num_threads = num;
+  if ( num > 0 ) {
+    m_default_num_threads_override = true;
+    m_default_num_threads = num;
+  }
 }
 
 size_t vw::Settings::system_cache_size() {
