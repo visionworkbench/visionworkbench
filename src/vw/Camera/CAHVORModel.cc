@@ -10,17 +10,16 @@
 #include <vw/Camera/CAHVORModel.h>
 #include <fstream>
 
-using namespace std;
-
 // Overloaded constructor - this one reads in the file name
 // where the CAVHOR camera model is saved.
 vw::camera::CAHVORModel::CAHVORModel(std::string const& filename) {
 
   try {
-    ifstream input(filename.c_str(), ifstream::in);
-    input.exceptions(ifstream::failbit | ifstream::badbit);
+    std::ifstream input(filename.c_str(), std::ifstream::in);
+    input.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
-    vw_out(InfoMessage, "camera") << "Reading CAHVOR file: " << filename << ".\n";
+    vw_out(InfoMessage, "camera") << "Reading CAHVOR file: " 
+				  << filename << ".\n";
 
     char r1,r2;
 
@@ -58,7 +57,7 @@ vw::camera::CAHVORModel::CAHVORModel(std::string const& filename) {
       vw_throw( IOErr() << "CAHVORModel: Could not read R vector\n" );
     input >> R(0) >> R(1) >> R(2);
 
-  } catch (const ifstream::failure& e) {
+  } catch (const std::ifstream::failure& e) {
     vw_throw( IOErr() << "CAHVORModel: Could not read file: " << filename << " (" << e.what() << ")" );
   }
 
@@ -75,8 +74,8 @@ vw::camera::CAHVORModel::CAHVORModel(std::string const& filename) {
 void vw::camera::CAHVORModel::write(std::string const& filename) {
 
   try {
-    ofstream output(filename.c_str(), ofstream::out);
-    output.exceptions(ofstream::failbit | ofstream::badbit);
+    std::ofstream output(filename.c_str(), std::ofstream::out);
+    output.exceptions(std::ofstream::failbit | std::ofstream::badbit);
     output.precision(20);
 
     vw_out(InfoMessage, "camera") << "Writing CAHVOR file: " << filename << "\n";
@@ -88,7 +87,7 @@ void vw::camera::CAHVORModel::write(std::string const& filename) {
            << "O = " << O(0) << " " << O(1) << " " << O(2) << "\n"
            << "R = " << R(0) << " " << R(1) << " " << R(2) << "\n";
 
-  } catch (const ofstream::failure& e) {
+  } catch (const std::ofstream::failure& e) {
     vw_throw( IOErr() << "CAHVORModel: Could not write file: " << filename << " (" << e.what() << ")" );
   }
 }

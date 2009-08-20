@@ -9,8 +9,6 @@
 #include <vw/Camera/CAHVModel.h>
 #include <boost/algorithm/string.hpp>
 
-using namespace std;
-
 namespace vw {
 namespace camera {
 
