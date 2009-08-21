@@ -6,6 +6,7 @@
 
 
 #include <vw/Geometry/SpatialTree.h>
+#include <vw/Core/Log.h>
 
 #include <assert.h>
 #include <iostream> // debugging
@@ -14,7 +15,6 @@
 #include <limits>
 #include <deque>
 #include <queue>
-using namespace std;
 
 #define LOG_2 0.693147181
 
@@ -117,7 +117,7 @@ namespace {
       f = super_diag[i] / diag[i];
       if (f > 1) {
         p_ = (unsigned)ceil(log(f) / LOG_2);
-        p = max(p, p_);
+        p = std::max(p, p_);
       }
     }
     
@@ -240,8 +240,10 @@ namespace {
       return retval;
     }
   private:
-    deque<ApplyState> m_q;
-    priority_queue<ApplyState,vector<ApplyState>,less<ApplyState> > m_pq;
+    std::deque<ApplyState> m_q;
+    std::priority_queue<ApplyState,
+			std::vector<ApplyState>,
+			std::less<ApplyState> > m_pq;
     ApplySearchType m_type;
   };
   
@@ -341,7 +343,7 @@ namespace {
   
   class PrintFunctor : public ApplyFunctor {
   public:
-    PrintFunctor(ostream &os) : m_os(os) {}
+    PrintFunctor(std::ostream &os) : m_os(os) {}
     virtual bool should_process(const ApplyState &state) {
       process_bbox(state.tree_node->bounding_box(), state.level, "+ ");
       return true; // process box
@@ -356,16 +358,16 @@ namespace {
         m_os << "  ";
       m_os << prefix;
       m_os << "Min[" << bbox.min() << "] "
-          << "Max[" << bbox.max() << "]"
-          << endl;    
+	   << "Max[" << bbox.max() << "]"
+	   << std::endl;    
     }
-    ostream &m_os;
+    std::ostream &m_os;
   };
   
   //NOTE: this can only write a 2D projection (because VRML is 3D)
   class VRMLFunctor : public ApplyFunctor {
   public:
-    VRMLFunctor(ostream &os) : m_os(os) {
+    VRMLFunctor(std::ostream &os) : m_os(os) {
       m_selected_level = -1;
       m_z_spacing = 0.5;
       m_color[0] = 1; m_color[1] = m_color[2] = 0;
@@ -396,31 +398,31 @@ namespace {
         static const int num_colors = 7; // r,g,b, m,c,y, w
         int index = (level % num_colors);
         float z = -level * m_z_spacing;
-        m_os << "    Shape {" << endl;
-        m_os << "      appearance Appearance {" << endl;
-        m_os << "        material Material {" << endl;
-        m_os << "          emissiveColor " << (colors[index][0] * color_scale) << " " << (colors[index][1] * color_scale) << " " << (colors[index][2] * color_scale) << endl;
-        m_os << "        }" << endl;
-        m_os << "      }" << endl;
-        m_os << "      geometry IndexedLineSet {" << endl;
-        m_os << "        coord Coordinate {" << endl;
-        m_os << "          point [" << endl;
-        m_os << "            " << bbox.min()[0] << " " << bbox.min()[1] << " " << z << "," << endl;
-        m_os << "            " << bbox.min()[0] << " " << bbox.max()[1] << " " << z << "," << endl;
-        m_os << "            " << bbox.max()[0] << " " << bbox.max()[1] << " " << z << "," << endl;
-        m_os << "            " << bbox.max()[0] << " " << bbox.min()[1] << " " << z << "," << endl;
-        m_os << "          ]" << endl;
-        m_os << "        }" << endl;
-        m_os << "        coordIndex [ 0, 1, 2, 3, 0, -1, ]" << endl;
-        m_os << "      }" << endl;
-        m_os << "    }" << endl;
+        m_os << "    Shape {" << std::endl;
+        m_os << "      appearance Appearance {" << std::endl;
+        m_os << "        material Material {" << std::endl;
+        m_os << "          emissiveColor " << (colors[index][0] * color_scale) << " " << (colors[index][1] * color_scale) << " " << (colors[index][2] * color_scale) << std::endl;
+        m_os << "        }" << std::endl;
+        m_os << "      }" << std::endl;
+        m_os << "      geometry IndexedLineSet {" << std::endl;
+        m_os << "        coord Coordinate {" << std::endl;
+        m_os << "          point [" << std::endl;
+        m_os << "            " << bbox.min()[0] << " " << bbox.min()[1] << " " << z << "," << std::endl;
+        m_os << "            " << bbox.min()[0] << " " << bbox.max()[1] << " " << z << "," << std::endl;
+        m_os << "            " << bbox.max()[0] << " " << bbox.max()[1] << " " << z << "," << std::endl;
+        m_os << "            " << bbox.max()[0] << " " << bbox.min()[1] << " " << z << "," << std::endl;
+        m_os << "          ]" << std::endl;
+        m_os << "        }" << std::endl;
+        m_os << "        coordIndex [ 0, 1, 2, 3, 0, -1, ]" << std::endl;
+        m_os << "      }" << std::endl;
+        m_os << "    }" << std::endl;
       }
       else {
-        cout << "ERROR in VRMLFunctor: unable to write to output stream!" << endl;
+	vw::vw_out(0) << "ERROR in VRMLFunctor: unable to write to output stream!" << std::endl;
       }
     }
   private:
-    ostream &m_os;
+    std::ostream &m_os;
     int m_selected_level;
     float m_z_spacing;
     float m_color[3];
@@ -505,9 +507,9 @@ namespace {
   class ContainsAllFunctor : public ApplyFunctor {
   public:
     ContainsAllFunctor(const SpatialTree::VectorT *point) : m_point(point), m_alloc(true) {
-      m_prims = new list<GeomPrimitive*>;
+      m_prims = new std::list<GeomPrimitive*>;
     }
-    ContainsAllFunctor(const SpatialTree::VectorT *point, list<GeomPrimitive*> *prims)
+    ContainsAllFunctor(const SpatialTree::VectorT *point, std::list<GeomPrimitive*> *prims)
       : m_point(point), m_alloc(false), m_prims(prims) {}
     virtual ~ContainsAllFunctor() {
       if (m_alloc)
@@ -523,20 +525,20 @@ namespace {
         m_prims->push_back(prim);
       return true; // continue processing
     }
-    list<GeomPrimitive*> *get_primitives() {return m_prims;}
+    std::list<GeomPrimitive*> *get_primitives() {return m_prims;}
   private:
     const SpatialTree::VectorT *m_point;
     bool m_alloc;
-    list<GeomPrimitive*> *m_prims;
+    std::list<GeomPrimitive*> *m_prims;
   };
   
   class AllOverlapsFunctor : public ApplyFunctor {
   public:
     AllOverlapsFunctor(GeomPrimitive *overlap_prim) : m_overlap_prim(overlap_prim), m_alloc(true) {
-      m_overlaps = new list<pair<GeomPrimitive*, GeomPrimitive*> >;
+      m_overlaps = new std::list<std::pair<GeomPrimitive*, GeomPrimitive*> >;
     }
     AllOverlapsFunctor(GeomPrimitive *overlap_prim,
-                      list<pair<GeomPrimitive*, GeomPrimitive*> > *overlaps)
+		       std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > *overlaps)
                         : m_overlap_prim(overlap_prim), m_alloc(false), m_overlaps(overlaps) {}
     virtual ~AllOverlapsFunctor() {
       if (m_alloc)
@@ -549,22 +551,22 @@ namespace {
     virtual bool operator()(const ApplyState &state) {
       GeomPrimitive *prim = state.list_elem->prim;
       if (prim != m_overlap_prim && prim->bounding_box().intersects(m_overlap_prim->bounding_box()) && prim->intersects(m_overlap_prim))
-        m_overlaps->push_back(make_pair(m_overlap_prim, prim));
+        m_overlaps->push_back(std::make_pair(m_overlap_prim, prim));
       return true; // continue processing
     }
-    list<pair<GeomPrimitive*, GeomPrimitive*> > *overlaps() {return m_overlaps;}
+    std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > *overlaps() {return m_overlaps;}
   private:
     GeomPrimitive *m_overlap_prim;
     bool m_alloc;
-    list<pair<GeomPrimitive*, GeomPrimitive*> > *m_overlaps;
+    std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > *m_overlaps;
   };
   
   class OverlapPairsFunctor : public ApplyFunctor {
   public:
     OverlapPairsFunctor() : m_alloc(true) {
-      m_overlaps = new list<pair<GeomPrimitive*, GeomPrimitive*> >;
+      m_overlaps = new std::list<std::pair<GeomPrimitive*, GeomPrimitive*> >;
     }
-    OverlapPairsFunctor(list<pair<GeomPrimitive*, GeomPrimitive*> > *overlaps)
+    OverlapPairsFunctor(std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > *overlaps)
                         : m_alloc(false), m_overlaps(overlaps) {}
     virtual ~OverlapPairsFunctor() {
       if (m_alloc)
@@ -580,10 +582,10 @@ namespace {
       apply(func, state);
       return true; // continue processing
     }
-    list<pair<GeomPrimitive*, GeomPrimitive*> > *overlaps() {return m_overlaps;}
+    std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > *overlaps() {return m_overlaps;}
   private:
     bool m_alloc;
-    list<pair<GeomPrimitive*, GeomPrimitive*> > *m_overlaps;
+    std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > *m_overlaps;
   };
   
   class NodeContainsBBoxFunctor : public ApplyFunctor {
@@ -670,13 +672,13 @@ namespace {
       for (i = 0; i < state.num_quadrants; i++) {
         b.grow(state.tree_node->m_quadrant[i]->bounding_box());
         if (!state.tree_node->bounding_box().contains(state.tree_node->m_quadrant[i]->bounding_box())) {
-          m_os << "SpatialTree::check(): Child node with bbox " << state.tree_node->m_quadrant[i]->bounding_box() << " is not contained in its parent node with bbox " << state.tree_node->bounding_box() << "!" << endl;
+          m_os << "SpatialTree::check(): Child node with bbox " << state.tree_node->m_quadrant[i]->bounding_box() << " is not contained in its parent node with bbox " << state.tree_node->bounding_box() << "!" << std::endl;
           m_success = false;
         }
         v2 = prod(state.tree_node->m_quadrant[i]->bounding_box().size());
         f = state.num_quadrants * v2 / v;
         if (f < 0.95 || f > 1.05) {
-          m_os << "SpatialTree::check(): Child node with bbox " << state.tree_node->m_quadrant[i]->bounding_box() << " has volume " << v2 << ", but its parent with bbox " << state.tree_node->bounding_box() << " has volume " << v << " (" << state.num_quadrants << " * " << v2 << " / " << v << " = " << f << " != 1)!" << endl;
+          m_os << "SpatialTree::check(): Child node with bbox " << state.tree_node->m_quadrant[i]->bounding_box() << " has volume " << v2 << ", but its parent with bbox " << state.tree_node->bounding_box() << " has volume " << v << " (" << state.num_quadrants << " * " << v2 << " / " << v << " = " << f << " != 1)!" << std::endl;
           m_success = false;
         }
         for (j = i + 1; j < state.num_quadrants; j++) {
@@ -685,7 +687,7 @@ namespace {
           v2 = prod(b2.size());
           f = state.num_quadrants * v2 / v;
           if (f > 0.05) {
-            m_os << "SpatialTree::check(): Children nodes with bboxes " << state.tree_node->m_quadrant[i]->bounding_box() << " and " << state.tree_node->m_quadrant[j]->bounding_box() << " of parent node with bbox " << state.tree_node->bounding_box() << " have non-trivial intersection!" << endl;
+            m_os << "SpatialTree::check(): Children nodes with bboxes " << state.tree_node->m_quadrant[i]->bounding_box() << " and " << state.tree_node->m_quadrant[j]->bounding_box() << " of parent node with bbox " << state.tree_node->bounding_box() << " have non-trivial intersection!" << std::endl;
             m_success = false;
           }
         }
@@ -693,7 +695,7 @@ namespace {
       v2 = prod(b.size());
       f = v2 / v;
       if (f < 0.95 || f > 1.05) {
-        m_os << "SpatialTree::check(): Union of children nodes of parent node with bbox " << state.tree_node->bounding_box() << " has volume " << v2 << ", but parent node has volume " << v << "!" << endl;
+        m_os << "SpatialTree::check(): Union of children nodes of parent node with bbox " << state.tree_node->bounding_box() << " has volume " << v2 << ", but parent node has volume " << v << "!" << std::endl;
         m_success = false;
       }
       return true; // process node
@@ -701,13 +703,19 @@ namespace {
     virtual bool operator()(const ApplyState &state) {
       int i;
       if (!state.tree_node->bounding_box().contains(state.list_elem->prim->bounding_box())) {
-        m_os << "SpatialTree::check(): Primitive with bbox " << state.list_elem->prim->bounding_box() << " is not contained in tree node with bbox " << state.tree_node->bounding_box() << "!" << endl;
+        m_os << "SpatialTree::check(): Primitive with bbox " << state.list_elem->prim->bounding_box() << " is not contained in tree node with bbox " << state.tree_node->bounding_box() << "!" << std::endl;
         m_success = false;
       }
       if (state.tree_node->is_split()) {
         for (i = 0; i < state.num_quadrants; i++) {
           if (state.tree_node->m_quadrant[i]->bounding_box().contains(state.list_elem->prim->bounding_box())) {
-            m_os << "SpatialTree::check(): Primitive with bbox " << state.list_elem->prim->bounding_box() << " is in tree node with bbox " << state.tree_node->bounding_box() << ", but it is contained in this node's child with bbox " << state.tree_node->m_quadrant[i]->bounding_box() << "!" << endl;
+            m_os << "SpatialTree::check(): Primitive with bbox " 
+		 << state.list_elem->prim->bounding_box() 
+		 << " is in tree node with bbox " 
+		 << state.tree_node->bounding_box() 
+		 << ", but it is contained in this node's child with bbox " 
+		 << state.tree_node->m_quadrant[i]->bounding_box() 
+		 << "!" << std::endl;
             m_success = false;
           }
         }
@@ -717,7 +725,7 @@ namespace {
         split_bbox(state.tree_node->bounding_box(), state.num_quadrants, quadrant_bboxes);
         for (i = 0; i < state.num_quadrants; i++) {
           if (quadrant_bboxes[i].contains(state.list_elem->prim->bounding_box())) {
-            m_os << "SpatialTree::check(): Primitive with bbox " << state.list_elem->prim->bounding_box() << " is in tree node with bbox " << state.tree_node->bounding_box() << " at level " << state.level << ", but it could be contained in this node's child with bbox " << quadrant_bboxes[i] << " except that that child does not exist!" << endl;
+            m_os << "SpatialTree::check(): Primitive with bbox " << state.list_elem->prim->bounding_box() << " is in tree node with bbox " << state.tree_node->bounding_box() << " at level " << state.level << ", but it could be contained in this node's child with bbox " << quadrant_bboxes[i] << " except that that child does not exist!" << std::endl;
             m_success = false;
           }
         }
@@ -726,7 +734,7 @@ namespace {
     }
     bool success() {return m_success;}
   private:
-    ostream &m_os;
+    std::ostream &m_os;
     bool m_success;
   };
 
@@ -752,26 +760,27 @@ namespace geometry {
   }
   
   void
-  SpatialTree::contains(const VectorT &point, list<GeomPrimitive*> &prims) {
+  SpatialTree::contains(const VectorT &point, 
+			std::list<GeomPrimitive*> &prims) {
     ContainsAllFunctor func(&point, &prims);
     apply(func, m_num_quadrants, m_root_node);
   }
   
   void
-  SpatialTree::overlap_pairs(list<pair<GeomPrimitive*, GeomPrimitive*> > &overlaps) {
+  SpatialTree::overlap_pairs(std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > &overlaps) {
     OverlapPairsFunctor func(&overlaps);
     apply(func, m_num_quadrants, m_root_node);
   }
   
   void
-  SpatialTree::print(ostream &os /*= cout*/) {
+  SpatialTree::print(std::ostream &os /*= cout*/) {
     PrintFunctor func(os);
     apply(func, m_num_quadrants, m_root_node);
   }
   
   void
   SpatialTree::write_vrml(char *fn, int level) {
-    ofstream os(fn);
+    std::ofstream os(fn);
   
     if (os.fail()) {
       fprintf(stderr, "write_vrml(): cannot open output file: %s\n", fn);
@@ -783,33 +792,32 @@ namespace geometry {
     os.close();
   }
   
-  void
-  SpatialTree::write_vrml(ostream &os, int level) {
+  void SpatialTree::write_vrml(std::ostream &os, int level) {
     assert(m_num_quadrants >= 4);
     VectorT center = bounding_box().center();
   
-    os << "#VRML V2.0 utf8" << endl << "#" << endl;
-    os << "Transform {" << endl;
-    os << "  translation " << -center[0] << " " << -center[1] << " 0" << endl;
-    os << "  children [" << endl;
+    os << "#VRML V2.0 utf8" << std::endl 
+       << "#" << std::endl;
+    os << "Transform {" << std::endl;
+    os << "  translation " << -center[0] << " " 
+       << -center[1] << " 0" << std::endl;
+    os << "  children [" << std::endl;
   
     VRMLFunctor func(os);
     func.select_level(level);
     apply(func, m_num_quadrants, m_root_node);
   
-    os << "  ]" << endl;
-    os << "}" << endl;
+    os << "  ]" << std::endl;
+    os << "}" << std::endl;
   }
 
-  bool
-  SpatialTree::check(std::ostream &os /*= std::cerr*/) {
+  bool SpatialTree::check(std::ostream &os /*= std::cerr*/) {
     CheckFunctor func(os);
     apply(func, m_num_quadrants, m_root_node);
     return func.success();
   }
   
-  void
-  SpatialTree::add(GeomPrimitive *prim, int max_create_level /*= -1*/) {
+  void SpatialTree::add(GeomPrimitive *prim, int max_create_level /*= -1*/) {
     SpatialTreeNode *tree_node;
     SpatialTreeNode *first_split_tree_node;
     PrimitiveListElem *new_list_elem;

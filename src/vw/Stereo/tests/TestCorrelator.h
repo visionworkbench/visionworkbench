@@ -12,7 +12,6 @@
 #include <vw/Stereo/Correlator.h>
 #include <vw/Image/Transform.h>
 
-using namespace std;
 using namespace vw;
 using namespace vw::stereo;
 
@@ -59,7 +58,7 @@ public:
         image1(i,j) = j*image1.cols()+i;
       }
     }
-    ImageView<uint8> image2 = transform(image1, TranslateTransform(3,3), ZeroEdgeExtension(), NearestPixelInterpolation());
+    ImageView<vw::uint8> image2 = transform(image1, TranslateTransform(3,3), ZeroEdgeExtension(), NearestPixelInterpolation());
 
     ImageView<PixelDisparity<float> > disparity_map;
     disparity_map = corr(image1,image2);

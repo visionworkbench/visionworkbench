@@ -13,7 +13,6 @@
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Transform.h>
 
-using namespace std;
 using namespace vw;
 using namespace vw::stereo;
 
