@@ -25,7 +25,6 @@
 #include <vw/Camera/Exif.h>
 #include <vw/Camera/ExifData.h>
 #include <vw/Camera/BundleAdjust.h>
-#include <vw/Camera/BundleAdjustReport.h>
 #include <vw/Camera/ControlNetwork.h>
 
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1

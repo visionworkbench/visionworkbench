@@ -17,14 +17,19 @@ lsm_headers = Extrinsics.h LinescanModel.h LinearPushbroomModel.h	\
               LensDistortion.h BundleAdjust.h
 endif
 
+ba_headers = BundleAdjust.h BundleAdjustModelBase.h                     \
+             BundleAdjustReport.h BundleAdjustmentBase.h                \
+             BundleAdjustmentRef.h BundleAdjustmentSparse.h  
+
+ba_sources = BundleAdjustReport.cc
+
 include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h		\
                   CameraTransform.h Exif.h ExifData.h BayerFilter.h	\
-                  ControlNetwork.h $(lsm_headers)                       \
-                  BundleAdjustReport.h 
+                  ControlNetwork.h $(lsm_headers) $(ba_headers)     
 
 libvwCamera_la_SOURCES = PinholeModel.cc CAHVModel.cc CAHVORModel.cc	\
                          Exif.cc ExifData.cc ControlNetwork.cc          \
-                         BundleAdjustReport.cc
+                         $(ba_sources)
 
 libvwCamera_la_LIBADD = @MODULE_CAMERA_LIBS@
 

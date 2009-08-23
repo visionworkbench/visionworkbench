@@ -28,7 +28,7 @@ namespace stereo {
     std::string m_debug_prefix;
 
     /*
-     // Reduce the disparity size by a factor of two by averaging the pixels
+    // Reduce the disparity size by a factor of two by averaging the pixels
     template <class PixelDisparity>
     ImageView<PixelDisparity> subsample_by_two(ImageView<PixelDisparity> &img) {
 
