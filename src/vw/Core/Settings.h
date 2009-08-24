@@ -89,7 +89,7 @@ namespace vw {
 
     /// Set the default number of threads used in block processing
     /// operations.
-    void set_default_num_threads(int num);
+    void set_default_num_threads(unsigned num);
 
     /// Query for the current system cache size.  Result is given in
     /// units of megabytes.

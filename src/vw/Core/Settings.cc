@@ -180,12 +180,21 @@ int vw::Settings::default_num_threads() {
   return m_default_num_threads;
 }
 
-void vw::Settings::set_default_num_threads(int num) {
-  Mutex::Lock lock(m_settings_mutex);
-  if ( num > 0 ) {
-    m_default_num_threads_override = true;
-    m_default_num_threads = num;
-  }
+void vw::Settings::set_default_num_threads(unsigned num = 0) {
+
+  { // Used to contain the lock from reload_config()
+    Mutex::Lock lock(m_settings_mutex);
+    if ( num == 0 ) {
+      // Reset state
+      m_default_num_threads_override = false;
+    } else {
+      m_default_num_threads_override = true;
+      m_default_num_threads = num;
+    }
+  } 
+
+  if ( num == 0 )
+    reload_config();
 }
 
 size_t vw::Settings::system_cache_size() {
