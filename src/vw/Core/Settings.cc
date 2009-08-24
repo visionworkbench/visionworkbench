@@ -180,7 +180,7 @@ int vw::Settings::default_num_threads() {
   return m_default_num_threads;
 }
 
-void vw::Settings::set_default_num_threads(unsigned num = 0) {
+void vw::Settings::set_default_num_threads(unsigned num) {
 
   { // Used to contain the lock from reload_config()
     Mutex::Lock lock(m_settings_mutex);
