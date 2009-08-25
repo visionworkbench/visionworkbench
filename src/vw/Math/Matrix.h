@@ -42,6 +42,7 @@
 
 #include <vw/Core/Exception.h>
 #include <vw/Math/Vector.h>
+#include <vw/config.h>
 
 namespace vw {
 namespace math {
@@ -361,11 +362,17 @@ namespace math {
 
     /// Access an element
     value_type& operator()( unsigned row, unsigned col ) {
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
+      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+#endif
       return core_[row*ColsN+col];
     }
 
     /// Access an element
     value_type const& operator()( unsigned row, unsigned col ) const {
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
+      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+#endif
       return core_[row*ColsN+col];
     }
 
@@ -506,11 +513,17 @@ namespace math {
 
     /// Access an element
     value_type& operator()( unsigned row, unsigned col ) {
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
+      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+#endif
       return core_[row*m_cols+col];
     }
 
     /// Access an element
     value_type const& operator()( unsigned row, unsigned col ) const {
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
+      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+#endif
       return core_[row*m_cols+col];
     }
 
@@ -605,11 +618,17 @@ namespace math {
 
     /// Access an element
     value_type& operator()( unsigned row, unsigned col ) {
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
+      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+#endif
       return m_ptr[row*cols()+col];
     }
 
     /// Access an element
     value_type const& operator()( unsigned row, unsigned col ) const {
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
+      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+#endif
       return m_ptr[row*cols()+col];
     }
 
@@ -719,11 +738,17 @@ namespace math {
 
     /// Access an element
     value_type& operator()( unsigned row, unsigned col ) {
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
+      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+#endif
       return m_ptr[row*m_cols+col];
     }
 
     /// Access an element
     value_type const& operator()( unsigned row, unsigned col ) const {
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
+      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+#endif
       return m_ptr[row*m_cols+col];
     }
 
@@ -841,11 +866,17 @@ namespace math {
 
     /// Access an element
     reference_type operator()( unsigned row, unsigned col ) {
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
+      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+#endif
       return m_matrix(col,row);
     }
 
     /// Access an element
     const_reference_type operator()( unsigned row, unsigned col ) const {
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
+      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+#endif
       return m_matrix(col,row);
     }
 
