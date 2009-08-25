@@ -286,22 +286,22 @@ for i in $PKG_VW_LIBS; do
 done
 PKG_VW_LIBS="$PKG_VW_LIBS_TEMP"
 
-AX_MODULE(CAMERA,        [src/vw/Camera],        [libvwCamera.la],        yes, [VW],    [],                 [BOOST_IOSTREAMS])
+AX_MODULE(CAMERA,        [src/vw/Camera],        [libvwCamera.la],        yes, [VW],        [],                 [BOOST_IOSTREAMS])
 AX_MODULE(MOSAIC,        [src/vw/Mosaic],        [libvwMosaic.la],        yes, [VW])
 AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], yes, [VW])
-AX_MODULE(CARTOGRAPHY,   [src/vw/Cartography],   [libvwCartography.la],   yes, [VW],    [PROJ4],            [GDAL])
-AX_MODULE(HDR,           [src/vw/HDR],           [libvwHDR.la],           yes, [VW],    [CAMERA LAPACK])
-AX_MODULE(STEREO,        [src/vw/Stereo],        [libvwStereo.la],        yes, [VW])
+AX_MODULE(CARTOGRAPHY,   [src/vw/Cartography],   [libvwCartography.la],   yes, [VW],        [PROJ4],            [GDAL])
+AX_MODULE(HDR,           [src/vw/HDR],           [libvwHDR.la],           yes, [VW CAMERA], [LAPACK])
+AX_MODULE(STEREO,        [src/vw/Stereo],        [libvwStereo.la],        yes, [VW CAMERA])
 AX_MODULE(GEOMETRY,      [src/vw/Geometry],      [libvwGeometry.la],      yes, [VW])
 if test $host_vendor = apple; then
-  AX_MODULE(GPU,         [src/vw/GPU],           [libvwGPU.la],           no,  [VW],    [GL],               [CG])
+  AX_MODULE(GPU,         [src/vw/GPU],           [libvwGPU.la],           no,  [VW],        [GL],               [CG])
 else
-  AX_MODULE(GPU,         [src/vw/GPU],           [libvwGPU.la],           no,  [VW],    [GL GLEW],          [CG])
+  AX_MODULE(GPU,         [src/vw/GPU],           [libvwGPU.la],           no,  [VW],        [GL GLEW],          [CG])
 fi
 
 
 AX_MODULE(TOOLS, [src/vw/tools], [], yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
-AX_MODULE(GUI, [src/vw/gui], [], yes, [VW], [QT BOOST_PROGRAM_OPTIONS GL])
+AX_MODULE(GUI, [src/vw/gui], [], yes, [VW STEREO], [QT BOOST_PROGRAM_OPTIONS GL])
 
 AX_MODULE_PYTHON([src/vw/Python], [no])
 
