@@ -240,8 +240,8 @@ namespace camera {
     unsigned find(ControlMeasure const& query);
 
     /// Setting/Reading the position of the control point
-    void set_position(double lon, double lat, double radius) {
-      m_position = Vector3(lon,lat,radius);
+    void set_position(double x, double y, double z) {
+      m_position = Vector3(x,y,z);
     }
     void set_position(Vector3 position) { m_position = position; }
     Vector3 position() const { return m_position; }
