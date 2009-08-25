@@ -18,6 +18,7 @@
 #include <vw/Math/RANSAC.h>
 #include <vw/Math/Vector.h>
 #include <vw/Camera/PinholeModel.h>
+#include <vw/Math/LevenbergMarquardt.h>
 
 namespace vw { 
 namespace camera {
@@ -102,14 +103,9 @@ public:
 
   /// Serialize the passed PinholeModel into a Vector of doubles
   static inline const vw::Vector<double, size> get(const PinholeModel& m) {
-    try {
-      return dynamic_cast<vw::camera::TsaiLensDistortion&>(*m.lens_distortion()).distortion_parameters();
-    }
-    catch(const std::bad_cast& e) {
-      vw::vw_out(vw::DebugMessage, "Camera") <<  "Bad lens distortion model cast in PinholeModelSerializeTSAI::get()" << std::endl;
-    }
-
-    return vw::Vector<double, size>();
+    const vw::camera::TsaiLensDistortion* d = dynamic_cast<const vw::camera::TsaiLensDistortion*>(m.lens_distortion());
+    VW_ASSERT( d, ArgumentErr() << "Bad lens distortion model cast in PinholeModelSerializeTSAI::get()" );
+    return d->distortion_parameters();
   }
 
   /// Set the parameters of the PinholeModel to the values contained in the Vector

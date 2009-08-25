@@ -149,7 +149,7 @@ public:
       TS_ASSERT_EQUALS(d.camera_center().x(), m.camera_center().x());
       TS_ASSERT_EQUALS(d.camera_center().y(), m.camera_center().y());
       TS_ASSERT_EQUALS(d.camera_center().z(), m.camera_center().z());
-      Vector4 tsai_d( dynamic_cast<TsaiLensDistortion&>(*(d.lens_distortion())).distortion_parameters() );
+      Vector4 tsai_d( dynamic_cast<const TsaiLensDistortion*>(d.lens_distortion())->distortion_parameters() );
       TS_ASSERT_EQUALS(tsai_d(0), tsaiv(0));
       TS_ASSERT_EQUALS(tsai_d(1), tsaiv(1));
       TS_ASSERT_EQUALS(tsai_d(2), tsaiv(2));
@@ -403,9 +403,9 @@ public:
 
     // play with these parameters to make the test more or less stringent and/or fast
     double inlier_threshold = 15;
-    const int ransac_inlier_threshold = 10; // how many inliers to we require
-    const int ransac_iter = 20; // number of ransac iterations
-    const int lm_iter = 5; // number of levenberg marquardt iterations at every ransac iteration
+    const unsigned ransac_inlier_threshold = 10; // how many inliers to we require
+    const unsigned ransac_iter = 20; // number of ransac iterations
+    const unsigned lm_iter = 5; // number of levenberg marquardt iterations at every ransac iteration
     {
       PinholeModel c(m);
       std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeIntrinsic>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );

@@ -143,11 +143,11 @@ public:
                                                      0.1062035113573074,
                                                      -0.0001422458299202845,
                                                      0.00116333004552871)));
-    boost::shared_ptr<LensDistortion> distortion = pinhole.lens_distortion();
+    const LensDistortion* distortion = pinhole.lens_distortion();
 
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
-    Vector2 distorted_pix = distortion->get_distorted_coordinates(Vector2(200,200));
-    Vector2 undistorted_pix = distortion->get_undistorted_coordinates(distorted_pix);
+    Vector2 distorted_pix = distortion->distorted_coordinates(pinhole, Vector2(200,200));
+    Vector2 undistorted_pix = distortion->undistorted_coordinates(pinhole, distorted_pix);
 
     TS_ASSERT_DELTA(distorted_pix[0], 244.865, 0.1);
     TS_ASSERT_DELTA(distorted_pix[1], 244.395, 0.1);
