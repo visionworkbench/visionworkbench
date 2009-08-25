@@ -51,7 +51,7 @@ static std::string prefix_from_filename(std::string const& filename) {
 Vector3 pixel_to_cart (Vector2 pos, double alt, GeoReference GR) {
   Vector2 loc_longlat2=GR.point_to_lonlat(GR.pixel_to_point(pos));
   Vector3 loc_longlat3(loc_longlat2(0),loc_longlat2(1),alt);
-  Vector3 loc_cartesian=GR.datum().geodetic_to_cartesian(loc_longlat3); 
+  Vector3 loc_cartesian=GR.datum().geodetic_to_cartesian(loc_longlat3);
   return loc_cartesian;
 }
 
@@ -61,8 +61,8 @@ Vector3 pixel_to_cart (Vector2 pos, DiskImageView<ImageT> img, GeoReference GR) 
 }
 
 double dist_from_2pi(double n) {
-  if( abs(n+2*pi) < abs(n) ) return n+2*pi;
-  if( abs(n-2*pi) < abs(n) ) return n-2*pi;
+  if( fabs(n+2*pi) < fabs(n) ) return n+2*pi;
+  if( fabs(n-2*pi) < fabs(n) ) return n-2*pi;
   return n;
 }
 
@@ -74,14 +74,14 @@ Vector2 gradient_aspect_from_normals(Vector3 center_normal, Vector3 plane_normal
   double gradient_angle=acos(dotprod);
   Vector3 surface_normal_on_sphere_tangent_plane=normalize(plane_normal-dot_prod(plane_normal,center_normal)*center_normal);
 
-  //get projection of (0,0,1) onto sphere tangent plane. 
+  //get projection of (0,0,1) onto sphere tangent plane.
   Vector3 north(0,0,1);
   Vector3 north_projected=normalize(north-dot_prod(north,center_normal)*center_normal);
 
   //find the angle between those two
   double dotprod2=dot_prod(surface_normal_on_sphere_tangent_plane, north_projected);
 
-  //figure out which angle it is. 
+  //figure out which angle it is.
   double aspect=acos(dotprod2);
   if(dotprod2>1) { dotprod2=1; aspect=0;}
   if(dotprod2<-1) { dotprod2=-1; aspect=0;}
@@ -90,7 +90,7 @@ Vector2 gradient_aspect_from_normals(Vector3 center_normal, Vector3 plane_normal
     aspect=pi+aspect;
   else
     aspect=pi-aspect;
-  
+
   if(aspect>=2*pi)
     aspect=aspect-2*pi;
   return Vector2(aspect,gradient_angle);
@@ -98,19 +98,19 @@ Vector2 gradient_aspect_from_normals(Vector3 center_normal, Vector3 plane_normal
 
 Vector2 gradient_aspect_from_dx_dy(double& dx, double& dy) {
   //total gradient:
-  double gradient=norm_2(Vector2(dx,dy));    
+  double gradient=norm_2(Vector2(dx,dy));
   double gradient_angle=atan(gradient);
   //aspect: dy/dx=tan(angle)
   double aspect=atan(dy/dx);
   if(dx<0) aspect=aspect+pi;
   aspect=2*pi-aspect+pi/2;
   if(aspect<0) aspect=2*pi+aspect;
-  if(aspect>=2*pi) aspect=aspect-2*pi*(int)(aspect/2/pi);  
+  if(aspect>=2*pi) aspect=aspect-2*pi*(int)(aspect/2/pi);
   return Vector2(aspect,gradient_angle);
 }
 
 Vector2 gradient_aspect_from_dtheta_dphi(double rho, double theta, double phi, double& dtheta, double& dphi, Vector3 center) {
-  double r_comp=1;  
+  double r_comp=1;
   double theta_comp=dtheta/rho;
   double phi_comp=1/(rho*sin(theta))*dphi;
 
@@ -132,7 +132,7 @@ Vector2 uneven_grid (int x, int y, DiskImageView<ImageT> img, GeoReference GR) {
 
   Vector3 north=Vector3(0,0,1);
         Vector3 north_projected=normalize(north-dot_prod(north,center_normal)*center_normal);
-  
+
   //define temporary axis
   Vector3 up_normal=normalize(north_projected);        //also theta hat
   Vector3 third=normalize(cross_prod(up_normal,center_normal));     //also phi hat
@@ -145,12 +145,12 @@ Vector2 uneven_grid (int x, int y, DiskImageView<ImageT> img, GeoReference GR) {
   //rise= run*slope
   Matrix<double> rises;  //rise over vector distance
   Matrix<double> runs;  //components in either direction
-  
-  //different ways of weighting neighbors. 
+
+  //different ways of weighting neighbors.
   if(algorithm==HORN) { rises=Matrix<double>(12,1); runs=Matrix<double>(12,2); }
   if(algorithm==SA)   { rises=Matrix<double>(8,1); runs=Matrix<double>(8,2); }
   if(algorithm==FH)   { rises=Matrix<double>(4,1); runs=Matrix<double>(4,2); }
-    
+
   int ct=0;
   for(int i=-1;i<=1;i++) {
     for(int j=-1;j<=1;j++) {
@@ -164,25 +164,25 @@ Vector2 uneven_grid (int x, int y, DiskImageView<ImageT> img, GeoReference GR) {
         if(i!=0 && j!=0) //ignore diagonals
           continue;
       }
-      
+
       for(int k=0;k<repeat;k++) {
         if(!spherically_defined) {
           Vector3 neighbor=pixel_to_cart(Vector2(x+i,y+j),img,GR);
-          Vector3 neighbor_below_rescale=normalize(neighbor)*(norm_2(center_below)/dot_prod(normalize(neighbor),center_normal));  
+          Vector3 neighbor_below_rescale=normalize(neighbor)*(norm_2(center_below)/dot_prod(normalize(neighbor),center_normal));
           Vector2 lonlat=GR.pixel_to_lonlat(Vector2(x,y));
           Vector3 v=neighbor_below_rescale-center_below;
           //or, project both onto tangent plane...
           rises(ct,0)=(img(x+i,y+j)-img(x,y))/norm_2(v);
           v=normalize(v);
           runs(ct,0)=dot_prod(v,up_normal);
-          runs(ct,1)=dot_prod(v,third);        
+          runs(ct,1)=dot_prod(v,third);
         } else {
-          rises(ct,0)=(img(x+i,y+j)-img(x,y));    
+          rises(ct,0)=(img(x+i,y+j)-img(x,y));
           Vector2 neighbor_lonlat=GR.pixel_to_lonlat(Vector2(x+i,y+j));
           runs(ct,0)=(neighbor_lonlat[1]-lonlat[1])*pi/180.0;
-          runs(ct,1)=dist_from_2pi(neighbor_lonlat[0]-lonlat[0])*pi/180.0;      
-        }  
-        ct++;          
+          runs(ct,1)=dist_from_2pi(neighbor_lonlat[0]-lonlat[0])*pi/180.0;
+        }
+        ct++;
       }
     }
   }
@@ -206,19 +206,19 @@ Vector2 uneven_grid (int x, int y, DiskImageView<ImageT> img, GeoReference GR) {
     double dtheta=ans(0,0);
     double dphi=-ans(1,0);
     return gradient_aspect_from_dtheta_dphi(rho, theta, phi, dtheta, dphi, center);
-  } 
+  }
   //otherwise,
   return gradient_aspect_from_dx_dy(ans(0,1), ans(0,0));
 }
 
 template <class ImageT>
-Vector2 interpolate_plane (int x, int y, DiskImageView<ImageT> img, GeoReference GR) { 
+Vector2 interpolate_plane (int x, int y, DiskImageView<ImageT> img, GeoReference GR) {
   Matrix<double> A(9,4);
   int i=0;
-  int j=0;  
+  int j=0;
   int ct=0;
   Vector3 center_normal=pixel_to_cart(Vector2(x,y),img,GR);
-  
+
   for(i=-1;i<=1;i++) {
     for(j=-1;j<=1;j++) {
       Vector3 tmp=pixel_to_cart(Vector2(x+i,y+j),img,GR);
@@ -233,7 +233,7 @@ Vector2 interpolate_plane (int x, int y, DiskImageView<ImageT> img, GeoReference
   Matrix<double> U;
   Matrix<double> VT;
   Vector<double> s;
-  
+
   svd(A, U, s, VT);
   Vector<double> plane_normal(3);
   plane_normal(0)=VT(3,0);
@@ -243,7 +243,7 @@ Vector2 interpolate_plane (int x, int y, DiskImageView<ImageT> img, GeoReference
   center_normal=normalize(center_normal);
   plane_normal=normalize(plane_normal);
   if(dot_prod(plane_normal,center_normal) <0) plane_normal=plane_normal*-1;
-  return gradient_aspect_from_normals(center_normal, plane_normal);  
+  return gradient_aspect_from_normals(center_normal, plane_normal);
 }
 
 template <class imageT>
@@ -261,14 +261,14 @@ void do_slopemap (po::variables_map const& vm) { //not sure what the arguments a
   ImageView<double> aspect;
   ImageView<PixelHSV<double> > pretty;
 
-  if(output_gradient) 
+  if(output_gradient)
     gradient_angle.set_size(img.cols(),img.rows());
-  if(output_aspect) 
+  if(output_aspect)
     aspect.set_size(img.cols(),img.rows());
   if(output_pretty) pretty.set_size(img.cols(),img.rows());
 
   for(x=1;x<img.cols()-1;x++) {
-    for(y=1;y<img.rows()-1;y++) {  
+    for(y=1;y<img.rows()-1;y++) {
       Vector2 res;
       //these are pretty similar...
       if(algorithm==PLANEFIT) res=interpolate_plane(x,y,img,GR);
@@ -276,23 +276,23 @@ void do_slopemap (po::variables_map const& vm) { //not sure what the arguments a
 
       if(output_aspect)   aspect(x,y) = res(0);
       if(output_gradient) gradient_angle(x,y) = res(1);
-      if(output_pretty)   pretty(x,y) = PixelHSV<double>(res(0),res(1),(res(1))+0.2*abs(pi-res(0)));//(res(1)/pi*2)*abs(pi-res(0))); 
-     } 
-  }  
+      if(output_pretty)   pretty(x,y) = PixelHSV<double>(res(0),res(1),(res(1))+0.2*fabs(pi-res(0)));//(res(1)/pi*2)*fabs(pi-res(0)));
+     }
+  }
   ImageView<PixelRGB<uint8> > pretty2;
 
   if(output_pretty) {
     select_channel(pretty,0)=normalize(select_channel(pretty,0),0,2*pi,0,1);
     select_channel(pretty,1)=normalize(select_channel(pretty,1),0,pi/2,0.1,1);
     select_channel(pretty,2)=normalize(select_channel(pretty,2),0.3,0.6);
-  
+
     pretty2=pixel_cast_rescale<PixelRGB<uint8> >( copy(pretty) );
     pretty2=PixelRGB<uint8>(255,255,255)-pretty2;
   }
   //save everything to file
   if(output_gradient) write_georeferenced_image( output_prefix + "_gradient.tif" , gradient_angle, GR);
   if(output_aspect)   write_georeferenced_image( output_prefix + "_aspect.tif"   , aspect, GR);
-  if(output_pretty)   write_image( output_prefix + "_pretty.tif"   , pretty2);   
+  if(output_pretty)   write_image( output_prefix + "_pretty.tif"   , pretty2);
 }
 
 
@@ -307,7 +307,7 @@ int main( int argc, char *argv[] ) {
     ("output-prefix,o", po::value<std::string>(&output_prefix), "Specify the output prefix") //should add more description...
     ("no-aspect", "Do not output aspect")
     ("no-gradient", "Do not output gradient")
-    ("pretty", "Output colored image.") 
+    ("pretty", "Output colored image.")
     ("algorithm", po::value<std::string>(&algorithm_string)->default_value("horn"), "Choose an algorithm to calculate slope/aspect from [ horn, fh, sa, planefit ]. Horn: Horn's algorithm; FH: Fleming & Hoffer's (rook's case); SA: Sharpnack & Akin's (queen's case)")
     ("spherical", po::value<bool>(&spherically_defined)->default_value(true), "Spherical/elliptical datum (recommended); otherwise, a flat grid");
 
@@ -331,7 +331,7 @@ int main( int argc, char *argv[] ) {
   if( output_prefix == "" ) { output_prefix=prefix_from_filename(input_file_name); }
 
   if( vm.count("verbose") ) {
-    set_debug_level(VerboseDebugMessage);  
+    set_debug_level(VerboseDebugMessage);
   }
 
   //checking strings
@@ -344,7 +344,7 @@ int main( int argc, char *argv[] ) {
 
     algorithm_string == "" ) ) { //it's okay if it isn't set?
     vw_out(0) << "Unknown algorithm: " << algorithm_string << ". Options are : [ horn, fh, sa, planefit ]\n";
-    exit(0); 
+    exit(0);
   }
   else {
     if(algorithm_string=="horn")
@@ -362,8 +362,8 @@ int main( int argc, char *argv[] ) {
   if(vm.count("pretty")) output_pretty=true;
 
   if(!output_aspect && !output_gradient && !output_pretty) {
-    vw_out(0) << "No output specified. Select at least one of [ gradient, output, pretty ].\n" 
-	      << std::endl;
+    vw_out(0) << "No output specified. Select at least one of [ gradient, output, pretty ].\n"
+             << std::endl;
   }
 
   try {
@@ -372,7 +372,7 @@ int main( int argc, char *argv[] ) {
     ChannelTypeEnum channel_type = rsrc->channel_type();
     PixelFormatEnum pixel_format = rsrc->pixel_format();
     delete rsrc;
-    
+
     switch(pixel_format) {
     case VW_PIXEL_GRAY:
     case VW_PIXEL_GRAYA:
