@@ -75,7 +75,7 @@ TEST(ParticleSwarmOptimization, sinus_function) {
   SinFunction cost_functor;
   SinFunction::domain_type result = particle_swarm_optimization( cost_functor, min, max, false, 2, 100, 2000);
 
-  EXPECT_NEAR( -1.0, cost_functor(result), 1.1e-3 );
+  EXPECT_NEAR( -1.0, cost_functor(result), 2.7e-3 );
 
   double pi2 = static_cast<double>(M_PI)/2;
 
