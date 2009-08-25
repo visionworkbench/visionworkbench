@@ -8,6 +8,7 @@
 // TestLinearPushbroomModel.h
 #include <cxxtest/TestSuite.h>
 
+#include <cstdio>
 #include <vw/Camera/Exif.h>
 
 using namespace vw;

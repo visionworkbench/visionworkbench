@@ -268,7 +268,7 @@ void vw::camera::PinholeModel::rebuild_camera_matrix() {
 //                 PinholeModel<NoLensDistortion> &dst_camera0,
 //                 PinholeModel<NoLensDistortion> &dst_camera1);
 
-vw::camera::PinholeModel linearize_camera(vw::camera::PinholeModel const& camera_model) {
+vw::camera::PinholeModel vw::camera::linearize_camera(vw::camera::PinholeModel const& camera_model) {
   double fu, fv, cu, cv;
   camera_model.intrinsic_parameters(fu, fv, cu, cv);
   vw::camera::NullLensDistortion distortion;
