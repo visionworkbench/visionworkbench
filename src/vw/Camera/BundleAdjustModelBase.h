@@ -44,9 +44,9 @@ namespace camera {
     virtual ~BundleAdjustmentModelBase() {}
     
     // Required access to camera
-    virtual Vector2 operator() ( unsigned i, unsigned j,
-				 Vector<double,camera_params_n> const& a_j,
-				 Vector<double,point_params_n> const& b_j ) const = 0;
+    virtual Vector2 operator() ( unsigned i, unsigned j, 
+                                 Vector<double,camera_params_n> const& a_j,
+                                 Vector<double,point_params_n> const& b_j ) const = 0;
 
     // Approximate the jacobian for small variations in the a_j
     // parameters (camera parameters). 

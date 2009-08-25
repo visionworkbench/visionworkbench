@@ -102,18 +102,18 @@ namespace camera {
     unsigned n = M.rows();
     for(unsigned i = 0; i < n; i++){
       for(unsigned j = i; j < n; j++){
-	T sum = M(i,j);
-	for(int k = i-1; k >= 0; k--)
-	  sum -= M(i,k) * M(j,k);
+        T sum = M(i,j);
+        for(int k = i-1; k >= 0; k--)
+          sum -= M(i,k) * M(j,k);
         
-	if (i == j){
-	  if (sum <= 0.0){
-	    vw_out(0) << " Not positive definite! " << "\n";
-	    return 0;
-	  }
-	  M(i,i) = sqrt(sum);
-	}else
-	  M(j,i) = sum/M(i,i);
+        if (i == j){
+          if (sum <= 0.0){
+            vw_out(0) << " Not positive definite! " << "\n";
+            return 0;
+          }
+          M(i,i) = sqrt(sum);
+        }else
+          M(j,i) = sum/M(i,i);
       }
     }
     return 1;
@@ -129,7 +129,7 @@ namespace camera {
     for (unsigned j = 0; j < n; j++){
       
       if(j > 0)
-	submatrix(M, j, j, n-j, 1) -= submatrix(M, j, 0, n-j, j) * transpose(submatrix(M, j, 0, 1, j));
+        submatrix(M, j, j, n-j, 1) -= submatrix(M, j, 0, n-j, j) * transpose(submatrix(M, j, 0, 1, j));
       
       submatrix(M, j, j, n-j, 1)/= sqrt(M(j,j));
     }
@@ -147,11 +147,11 @@ namespace camera {
     for(unsigned i=0; i<n; i++){
       A(i,i) = 1/A(i,i);
       for(unsigned j = i+1; j < n; j++){
-	sum = 0.0;
-	 for(unsigned k = i; k < j; k++)
-	   sum -= A(j,k) * A(k,i);
-	 A(j,i) = sum/A(j,j);
-	 A(i,j) = 0;	 
+        sum = 0.0;
+        for(unsigned k = i; k < j; k++)
+          sum -= A(j,k) * A(k,i);
+        A(j,i) = sum/A(j,j);
+        A(i,j) = 0;
       }
     }
     return ret;
@@ -217,7 +217,7 @@ namespace camera {
     RobustCostT m_robust_cost_func;
 
     unsigned m_control; /* 0 = fletcher control, good for L2 cost
-			   1 = old style / * by 10s            */
+                           1 = old style / * by 10s            */
     double m_lambda;
     double m_nu;        // Used by fletcher control
     double g_tol;       // Surprisingly not used (8/22/09)
@@ -230,9 +230,9 @@ namespace camera {
   public:
     // Constructor
     BundleAdjustmentBase( BundleAdjustModelT &model,
-			  RobustCostT const& robust_cost_func,
-			  bool use_camera_constraint=true,
-			  bool use_gcp_constraint=true ) :
+                          RobustCostT const& robust_cost_func,
+                          bool use_camera_constraint=true,
+                          bool use_gcp_constraint=true ) :
     m_model(model), m_robust_cost_func(robust_cost_func),
       m_use_camera_constraint(use_camera_constraint),
       m_use_gcp_constraint(use_gcp_constraint) {
@@ -253,52 +253,52 @@ namespace camera {
       unsigned num_ground_control_points = m_control_net->num_ground_control_points();
       unsigned num_observations = 2*m_model.num_pixel_observations();
       if (m_use_camera_constraint)
-	num_observations += num_cameras*num_cam_params;
+        num_observations += num_cameras*num_cam_params;
       if (m_use_gcp_constraint)
-	num_observations += num_ground_control_points*num_pt_params;
+        num_observations += num_ground_control_points*num_pt_params;
 
       // Compute the initial error
       Vector<double> epsilon(num_observations);   // Error vector
       int idx = 0;
       int i = 0;
       for (ControlNetwork::const_iterator cpoint = m_control_net->begin();
-	   cpoint != m_control_net->end(); ++cpoint ) {
-	for (ControlPoint::const_iterator cmeasure = cpoint->begin();
-	     cmeasure != cpoint->end(); ++cmeasure ) {
-	  int camera_idx = cmeasure->image_id();
+           cpoint != m_control_net->end(); ++cpoint ) {
+        for (ControlPoint::const_iterator cmeasure = cpoint->begin();
+             cmeasure != cpoint->end(); ++cmeasure ) {
+          int camera_idx = cmeasure->image_id();
 
-	  // Apply robust cost function weighting and populate error
-	  // vector
-	  Vector2 unweighted_error = cmeasure->dominant() - m_model(i, camera_idx,
-								    m_model.A_parameters(camera_idx),
-								    m_model.B_parameters(i));
-	  double mag = norm_2(unweighted_error);
-	  double weight = sqrt(m_robust_cost_func(mag))/mag;
-	  subvector(epsilon,2*idx,2) = unweighted_error * weight;
+          // Apply robust cost function weighting and populate error
+          // vector
+          Vector2 unweighted_error = cmeasure->dominant() - 
+            m_model(i, camera_idx,m_model.A_parameters(camera_idx),
+                    m_model.B_parameters(i));
+          double mag = norm_2(unweighted_error);
+          double weight = sqrt(m_robust_cost_func(mag))/mag;
+          subvector(epsilon,2*idx,2) = unweighted_error * weight;
 
-	  ++idx;
-	}
-	i++;
+          ++idx;
+        }
+        i++;
       }
 
       // Add rows epsilon for a priori position/pose constraints ...
       if (m_use_camera_constraint)
-	for (unsigned j=0; j < num_cameras; ++j)
-	  subvector(epsilon,
-		    2*m_model.num_pixel_observations() + j*num_cam_params,
-		    num_cam_params) = m_model.A_initial(j)-m_model.A_parameters(j);
+        for (unsigned j=0; j < num_cameras; ++j)
+          subvector(epsilon,
+                    2*m_model.num_pixel_observations() + j*num_cam_params,
+                    num_cam_params) = m_model.A_initial(j)-m_model.A_parameters(j);
 
       // .. and the position of the 3D points to epsilon ...
       if (m_use_gcp_constraint) {
-	idx = 0;
-	for (unsigned i = 0; i < m_model.num_points(); ++i )
-	  if ( (*m_control_net)[i].type() == ControlPoint::GroundControlPoint ) {
-	    subvector( epsilon,
-		       2*m_model.num_pixel_observations() + num_cameras*num_cam_params +
-		       idx*num_pt_params,
-		       num_pt_params) = m_model.B_initial(i)-m_model.B_parameters(i);
-	    ++idx;
-	  }
+        idx = 0;
+        for (unsigned i = 0; i < m_model.num_points(); ++i )
+          if ( (*m_control_net)[i].type() == ControlPoint::GroundControlPoint ) {
+            subvector( epsilon,
+                       2*m_model.num_pixel_observations() + num_cameras*num_cam_params +
+                       idx*num_pt_params,
+                       num_pt_params) = m_model.B_initial(i)-m_model.B_parameters(i);
+            ++idx;
+          }
       }
     }
     
@@ -317,7 +317,7 @@ namespace camera {
     
     // This is called repeatedly
     virtual double update( double &abs_tol,
-			   double &rel_tol ) = 0;
+                           double &rel_tol ) = 0;
 
   };
 
