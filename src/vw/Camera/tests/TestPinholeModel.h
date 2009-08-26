@@ -134,7 +134,7 @@ public:
 
   void test_tsai_distortion()
   {
-        // Create an imaginary 1000x1000 pixel imager
+    // Create an imaginary 1000x1000 pixel imager
     PinholeModel pinhole( Vector3(0,0,0),                 // camera center
                           math::identity_matrix<3>(),     // camera pose
                           500,500,                        // fx, fy
@@ -154,6 +154,30 @@ public:
     TS_ASSERT_DELTA(undistorted_pix[0], 200, 0.1);
     TS_ASSERT_DELTA(undistorted_pix[1], 200, 0.1);
 #endif
+  }
+
+  void test_scale_pinhole()
+  {
+    Matrix<double,3,3> rot = vw::math::euler_to_quaternion(1.15, 0.0, -1.57, "xyz").rotation_matrix();
+    PinholeModel pinhole4(Vector3(-0.329, 0.065, -0.82),
+                          rot,
+                          605.320556640625,
+                          606.3638305664062,
+                          518.89208984375,
+                          387.5555114746094,
+                          TsaiLensDistortion(Vector4(-0.2796604335308075,
+                                                     0.1031486615538597,
+                                                     -0.0007824968779459596,
+                                                     0.0009675505571067333)));
+    PinholeModel scaled = scale_camera(pinhole4, .1);
+
+    Vector3 point = Vector3(2,-1,1) +5*pinhole4.pixel_to_vector(Vector2(500,500))+pinhole4.camera_center();
+
+    Vector2 o_return = pinhole4.point_to_pixel(point);
+    Vector2 s_return = scaled.point_to_pixel(point);
+
+    TS_ASSERT_DELTA(o_return[0],s_return[0]*10,5); // Lens distortion doesn't
+    TS_ASSERT_DELTA(o_return[1],s_return[1]*10,5); // seem to be too accurate
   }
 
 };

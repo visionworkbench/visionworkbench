@@ -311,6 +311,8 @@ namespace camera {
 //                 PinholeModel<NoLensDistortion> &dst_camera0,
 //                 PinholeModel<NoLensDistortion> &dst_camera1);
 
+  PinholeModel scale_camera(PinholeModel const& camera_model, float const& scale);
+
   PinholeModel linearize_camera(PinholeModel const& camera_model);
 
   std::ostream& operator<<(std::ostream& str, PinholeModel const& model);

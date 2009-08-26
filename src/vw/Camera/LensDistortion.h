@@ -36,6 +36,7 @@
 
 #include <vw/Math/Vector.h>
 #include <boost/shared_ptr.hpp>
+#include <string>
 
 namespace vw {
 namespace camera {
@@ -52,6 +53,8 @@ namespace camera {
       virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
       virtual void write(std::ostream & os) const = 0;
       virtual boost::shared_ptr<LensDistortion> copy() const = 0;
+
+      virtual std::string name() const = 0;
   };
 
   std::ostream & operator<<(std::ostream & os, const vw::camera::LensDistortion& ld);
@@ -70,6 +73,8 @@ namespace camera {
       os << "p1 = " << 0 << "\n";
       os << "p2 = " << 0 << "\n";
     }
+
+    std::string name() const { return "NULL"; }
   };
 
   /// TSAI Lens Distortion Model
@@ -110,6 +115,8 @@ namespace camera {
       os << "p1 = " << m_distortion[2] << "\n";
       os << "p2 = " << m_distortion[3] << "\n";
     }
+
+    std::string name() const { return "TSAI"; }
   };
 
 }} // namespace vw::camera

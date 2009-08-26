@@ -260,6 +260,36 @@ void vw::camera::PinholeModel::rebuild_camera_matrix() {
   m_inv_camera_transform = inverse(uvwRotation*m_rotation_inverse) * inverse(m_intrinsics);
 }
 
+// scale_camera
+//  Used to modify camera in the event to user resizes the image
+vw::camera::PinholeModel vw::camera::scale_camera(vw::camera::PinholeModel const& camera_model, float const& scale) {
+  double fu, fv, cu, cv;
+  camera_model.intrinsic_parameters(fu, fv, cu, cv);
+  fu *= scale;
+  fv *= scale;
+  cu *= scale;
+  cv *= scale;
+  LensDistortion *n_lens;
+  std::string distortion_name = camera_model.lens_distortion()->name();
+  if ( distortion_name == "TSAI" ) {
+    // Bit of a hack (is this not allowable?)
+    TsaiLensDistortion const *prior = static_cast<TsaiLensDistortion*>(const_cast<LensDistortion*>(camera_model.lens_distortion()));
+    Vector4 params = prior->distortion_parameters();
+    params *= scale;
+    n_lens = new TsaiLensDistortion( params );
+  } else if ( distortion_name == "NULL" ) {
+    n_lens = new NullLensDistortion();
+  } else
+    vw_throw( NoImplErr() << "Unknown distortion model named: " << distortion_name << "\n" );
+  return vw::camera::PinholeModel( camera_model.camera_center(),
+                                   camera_model.camera_pose().rotation_matrix(),
+                                   fu, fv, cu, cv,
+                                   camera_model.coordinate_frame_u_direction(),
+                                   camera_model.coordinate_frame_v_direction(),
+                                   camera_model.coordinate_frame_w_direction(),
+                                   *n_lens );
+}
+
 //   /// Given two pinhole camera models, this method returns two new camera
 //   /// models that have been epipolar rectified.
 //   template <>
