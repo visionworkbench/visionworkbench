@@ -45,10 +45,10 @@ namespace vw {
     template <bool CompoundB, class Arg1T, class Arg2T>
     struct Helper {
       static inline bool greater_than( Arg1T const& arg1, Arg2T const& arg2 ) {
-	return true;
+        return true;
       }
       static inline bool less_than( Arg1T const& arg1, Arg2T const& arg2 ) {
-	return true;
+        return true;
       }
     };
 
@@ -56,10 +56,10 @@ namespace vw {
     template <class Arg1T, class Arg2T>
     struct Helper<false,Arg1T,Arg2T> {
       static inline bool greater_than( Arg1T const& arg1, Arg2T const& arg2 ) {
-	return arg1 > arg2;
+        return arg1 > arg2;
       }
       static inline bool less_than( Arg1T const& arg1, Arg2T const& arg2 ) {
-	return arg1 < arg2;
+        return arg1 < arg2;
       }
     };
 
@@ -67,29 +67,29 @@ namespace vw {
     template <class Arg1T, class Arg2T>
     struct Helper<true,Arg1T,Arg2T> {
       static inline bool greater_than( Arg1T const& arg1, Arg2T const& arg2 ) {
-	return arg1[0] > arg2[0];
+        return arg1[0] > arg2[0];
       }
       static inline bool less_than( Arg1T const& arg1, Arg2T const& arg2 ) {
-	return arg1[0] < arg2[0];
+        return arg1[0] < arg2[0];
       }
     };
 
     typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
       if ( m_is_threshold ) {
-	if ( CompoundNumChannels<PixelT>::value > 1)
-	  vw_throw(NoImplErr() << "CreatePixelMask() doesn't support threshold of pixels with multiple channels.");
+        if ( CompoundNumChannels<PixelT>::value > 1)
+          vw_throw(NoImplErr() << "CreatePixelMask() doesn't support threshold of pixels with multiple channels.");
 
-	typedef Helper<IsCompound<PixelT>::value,PixelT,PixelT> help_func;
-	if (help_func::greater_than(value,m_valid_max))
-	  return typename MaskedPixelType<PixelT>::type();
-	if (help_func::less_than(value,m_valid_min))
-	  return typename MaskedPixelType<PixelT>::type();
+        typedef Helper<IsCompound<PixelT>::value,PixelT,PixelT> help_func;
+        if (help_func::greater_than(value,m_valid_max))
+          return typename MaskedPixelType<PixelT>::type();
+        if (help_func::less_than(value,m_valid_min))
+          return typename MaskedPixelType<PixelT>::type();
 
-	return typename MaskedPixelType<PixelT>::type(value);
+        return typename MaskedPixelType<PixelT>::type(value);
       } else
-	return (value==m_nodata_value) ?
-	  typename MaskedPixelType<PixelT>::type() :
-	  typename MaskedPixelType<PixelT>::type(value);
+        return (value==m_nodata_value) ?
+          typename MaskedPixelType<PixelT>::type() :
+          typename MaskedPixelType<PixelT>::type(value);
     }
   };
 
@@ -106,8 +106,8 @@ namespace vw {
   template <class ViewT>
   UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> >
   create_mask( ImageViewBase<ViewT> const& view,
-	       typename ViewT::pixel_type const& valid_min,
-	       typename ViewT::pixel_type const& valid_max ) {
+               typename ViewT::pixel_type const& valid_min,
+               typename ViewT::pixel_type const& valid_max ) {
     typedef UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> > view_type;
     return view_type( view.impl(), CreatePixelMask<typename ViewT::pixel_type>( valid_min, valid_max ));
   }
@@ -398,13 +398,11 @@ namespace vw {
     return view_type( view.impl(), InvertPixelMask<typename ViewT::pixel_type>());
   }
 
-  /*
-  // Invert Pixel Mask is "reasonable fast"
+  // Invert Pixel Mask is "reasonably fast"
   template <class ViewT>
   struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,InvertPixelMask<typename ViewT::pixel_type> > >
     : public IsMultiplyAccessible<ViewT> {};
 
-  */
 } // namespace vw
 
 #endif // __VW_IMAGE_MASK_VIEWS_H__
