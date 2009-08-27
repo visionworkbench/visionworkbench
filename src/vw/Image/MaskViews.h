@@ -6,10 +6,10 @@
 
 
 /// \file PixelMask.h
-/// 
+///
 /// Defines the useful pixel utility type that can wrap any existing
 /// pixel type and add mask semantics.  Any operations with an
-/// "invalid" pixel returns an invalid pixel as a result.  
+/// "invalid" pixel returns an invalid pixel as a result.
 ///
 #ifndef __VW_IMAGE_MASK_VIEWS_H__
 #define __VW_IMAGE_MASK_VIEWS_H__
@@ -38,7 +38,7 @@ namespace vw {
     PixelT m_valid_max;
   public:
     CreatePixelMask( PixelT const& nodata_value ) : m_nodata_value(nodata_value), m_is_threshold(false) {}
-    
+
     CreatePixelMask( PixelT const& valid_min, PixelT const& valid_max ) : m_nodata_value(PixelT()), m_is_threshold(true), m_valid_min(valid_min), m_valid_max(valid_max) {}
 
     // Helper to access only specific types of pixels
@@ -86,9 +86,9 @@ namespace vw {
 	  return typename MaskedPixelType<PixelT>::type();
 
 	return typename MaskedPixelType<PixelT>::type(value);
-      } else 
-	return (value==m_nodata_value) ? 
-	  typename MaskedPixelType<PixelT>::type() : 
+      } else
+	return (value==m_nodata_value) ?
+	  typename MaskedPixelType<PixelT>::type() :
 	  typename MaskedPixelType<PixelT>::type(value);
     }
   };
@@ -146,7 +146,7 @@ namespace vw {
 
   template <class ViewT>
   UnaryPerPixelView<ViewT,ApplyPixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type> >
-  apply_mask( ImageViewBase<ViewT> const& view, 
+  apply_mask( ImageViewBase<ViewT> const& view,
               typename UnmaskedPixelType<typename ViewT::pixel_type>::type const& value ) {
     typedef UnaryPerPixelView<ViewT,ApplyPixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type> > view_type;
     return view_type( view.impl(), ApplyPixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type>(value) );
@@ -169,7 +169,7 @@ namespace vw {
   // *******************************************************************
   /// copy_mask(view, mask)
   ///
-  /// Copies a mask from one image to another.  
+  /// Copies a mask from one image to another.
   ///
   template <class PixelT>
   class CopyPixelMask : public ReturnFixedType<typename MaskedPixelType<PixelT>::type> {
@@ -199,7 +199,7 @@ namespace vw {
   // *******************************************************************
   /// mask_to_alpha(view)
   ///
-  /// Converts a mask channel to an alpha channel, generating an image that 
+  /// Converts a mask channel to an alpha channel, generating an image that
   /// is transparent wherever the data is masked.
   ///
   template <class PixelT>
@@ -236,7 +236,7 @@ namespace vw {
   {
     ViewT m_view;
     //BlockCacheView<typename ViewT::pixel_type> m_view;
-  
+
     // These vectors contain the indices of the first good pixel from
     // the edge of the image on each side.
     Vector<int> m_left, m_right;
@@ -245,36 +245,36 @@ namespace vw {
     // Use the edge vectors to determine if a pixel is valid.  Note:
     // this check fails for non convex edge masks!
     inline bool valid(int32 i, int32 j) const {
-      if (i > m_left[j] && i < m_right[j] && j > m_top[i] && j < m_bottom[i]) 
+      if (i > m_left[j] && i < m_right[j] && j > m_top[i] && j < m_bottom[i])
         return true;
       else
         return false;
     }
 
-  public:  
+  public:
     typedef typename ViewT::pixel_type orig_pixel_type;
     typedef typename boost::remove_cv<typename boost::remove_reference<orig_pixel_type>::type>::type unmasked_pixel_type;
     typedef PixelMask<unmasked_pixel_type> pixel_type;
     typedef PixelMask<unmasked_pixel_type> result_type;
     typedef ProceduralPixelAccessor<EdgeMaskView> pixel_accessor;
-  
-    // EdgeMaskView( ViewT const& view, 
-    //               const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) : 
+
+    // EdgeMaskView( ViewT const& view,
+    //               const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) :
     //   m_view(view, Vector2i(512,512) ) {
 
-    EdgeMaskView( ViewT const& view, 
+    EdgeMaskView( ViewT const& view,
                   unmasked_pixel_type const& mask_value,
                   int32 mask_buffer,
-                  const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) : 
+                  const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) :
       m_view(view) {
-    
+
       m_left.set_size(view.rows());
       m_right.set_size(view.rows());
 
       for (int i = 0; i < view.rows(); ++i) {
         m_left[i] = 0;
         m_right[i] = view.cols();
-      }      
+      }
 
       m_top.set_size(view.cols());
       m_bottom.set_size(view.cols());
@@ -326,18 +326,18 @@ namespace vw {
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
-    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { 
-      if ( this->valid(i,j) ) 
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const {
+      if ( this->valid(i,j) )
         return pixel_type(m_view(i,j,p));
-      else 
+      else
         return pixel_type();
     }
-    
+
     /// \cond INTERNAL
     typedef EdgeMaskView<ViewT> prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return *this; }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { 
-      vw::rasterize( prerasterize(bbox), dest, bbox ); 
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
+      vw::rasterize( prerasterize(bbox), dest, bbox );
     }
     /// \endcond
   };
@@ -362,19 +362,49 @@ namespace vw {
   /// the image both horizontally and vertically.  Be sure that your
   /// cache is large enough to store a full row or column of blocks!!
   template <class ViewT>
-  EdgeMaskView<ViewT> edge_mask( ImageViewBase<ViewT> const& v, 
+  EdgeMaskView<ViewT> edge_mask( ImageViewBase<ViewT> const& v,
                                  const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
     return EdgeMaskView<ViewT>( v.impl(), typename ViewT::pixel_type(), 0, progress_callback );
   }
 
   template <class ViewT>
-  EdgeMaskView<ViewT> edge_mask( ImageViewBase<ViewT> const& v, 
+  EdgeMaskView<ViewT> edge_mask( ImageViewBase<ViewT> const& v,
                                  typename ViewT::pixel_type value,
                                  int32 buffer = 0,
                                  const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
     return EdgeMaskView<ViewT>( v.impl(), value, buffer, progress_callback );
   }
 
+  /// invert_mask(view)
+  ///
+  /// Given a view with pixels of type PixelMask<T>, this will toggle
+  /// all valids to invalid, and invalid to valids.
+  template <class PixelT>
+  class InvertPixelMask : public ReturnFixedType<PixelT> {
+  public:
+    InvertPixelMask(){}
+
+    PixelT operator()( PixelT const& value ) const {
+      PixelT result = value;
+      result.toggle();
+      return result;
+    }
+  };
+
+  template <class ViewT>
+  UnaryPerPixelView<ViewT,InvertPixelMask<typename ViewT::pixel_type> >
+  invert_mask( ImageViewBase<ViewT> const& view ) {
+    typedef UnaryPerPixelView<ViewT,InvertPixelMask<typename ViewT::pixel_type> > view_type;
+    return view_type( view.impl(), InvertPixelMask<typename ViewT::pixel_type>());
+  }
+
+  /*
+  // Invert Pixel Mask is "reasonable fast"
+  template <class ViewT>
+  struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,InvertPixelMask<typename ViewT::pixel_type> > >
+    : public IsMultiplyAccessible<ViewT> {};
+
+  */
 } // namespace vw
 
 #endif // __VW_IMAGE_MASK_VIEWS_H__

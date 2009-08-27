@@ -6,10 +6,10 @@
 
 
 /// \file PixelMask.h
-/// 
+///
 /// Defines the useful pixel utility type that can wrap any existing
 /// pixel type and add mask semantics.  Any operations with an
-/// "invalid" pixel returns an invalid pixel as a result.  
+/// "invalid" pixel returns an invalid pixel as a result.
 ///
 #ifndef __VW_IMAGE_PIXELMASK_H__
 #define __VW_IMAGE_PIXELMASK_H__
@@ -37,7 +37,7 @@ namespace vw {
   struct PixelMask : public PixelMathBase< PixelMask<ChildT> >
   {
     typedef typename CompoundChannelType<ChildT>::type channel_type;
-    
+
   private:
     ChildT m_child;
     channel_type m_valid;
@@ -46,8 +46,8 @@ namespace vw {
 
     // Default constructor (zero value).  Pixel is not valid by
     // default.
-    PixelMask() { 
-      m_child = ChildT(); 
+    PixelMask() {
+      m_child = ChildT();
       m_valid = ChannelRange<channel_type>::min();
     }
 
@@ -62,12 +62,12 @@ namespace vw {
 
     /// Conversion from other PixelMask<> types.
     template <class OtherT> explicit PixelMask( PixelMask<OtherT> other ) {
-      if (other.valid()) { 
+      if (other.valid()) {
         m_valid = ChannelRange<channel_type>::max();
         // We let the child's built-in conversions do their work here.
         // This will fail if there is no conversion defined from
         // OtherT to ChildT.
-        m_child = ChildT(other.child());  
+        m_child = ChildT(other.child());
       } else {
         m_valid = channel_type();
         m_child = ChildT();
@@ -98,6 +98,14 @@ namespace vw {
     /// Invalidates this pixel, setting its valid bit to 1;
     void validate() { m_valid = ChannelRange<channel_type>::max(); }
 
+    /// Switching valid to what it was not previously
+    void toggle() {
+      if ( m_valid )
+        m_valid = ChannelRange<channel_type>::min();
+      else
+        m_valid = ChannelRange<channel_type>::max();
+    }
+
     /// Returns the child pixel type
     ChildT const& child() const { return m_child; }
 
@@ -105,36 +113,36 @@ namespace vw {
     /// contexts.  This should only work for pixels that contain one
     /// data channel (plus the mask channel).  We add a
     /// BOOST_STATIC_ASSERT here to make sure that this is the case.
-    operator channel_type() const { 
+    operator channel_type() const {
        BOOST_STATIC_ASSERT(CompoundNumChannels<ChildT>::value == 1);
-       return compound_select_channel<channel_type const&>(m_child,0); 
+       return compound_select_channel<channel_type const&>(m_child,0);
     }
 
     /// Channel indexing operator.
-    inline channel_type& operator[](int i) { 
+    inline channel_type& operator[](int i) {
       if (i == CompoundNumChannels<ChildT>::value)
         return m_valid;
-      else 
+      else
         return compound_select_channel<channel_type&>(m_child,i);
      }
     /// Channel indexing operator (const overload).
-    inline channel_type const& operator[](int i) const { 
+    inline channel_type const& operator[](int i) const {
       if (i == CompoundNumChannels<ChildT>::value)
-        return m_valid; 
-      else 
+        return m_valid;
+      else
         return compound_select_channel<channel_type const&>(m_child,i);
     }
     /// Channel indexing operator.
-    inline channel_type& operator()(int i) { 
+    inline channel_type& operator()(int i) {
       if (i == CompoundNumChannels<ChildT>::value)
-        return valid; 
+        return valid;
       else
         return compound_select_channel<channel_type&>(m_child,i);
     }
     /// Channel indexing operator (const overload).
-    inline channel_type const& operator()(int i) const { 
+    inline channel_type const& operator()(int i) const {
       if (i == CompoundNumChannels<ChildT>::value)
-        return valid; 
+        return valid;
       else
         return compound_select_channel<channel_type const&>(m_child,i);
     }
@@ -144,7 +152,7 @@ namespace vw {
   // Generic Mask Manipulation Methods
   // *******************************************************************
 
-  // Overload for the pixel transparency traits class.  
+  // Overload for the pixel transparency traits class.
   template <class ChildT>
   bool is_transparent(PixelMask<ChildT> const& pixel) { return !pixel.valid(); }
 
@@ -152,7 +160,7 @@ namespace vw {
   template <class PixelT>
   bool is_valid(PixelT const& /* pixel */) { return true; }
 
-  // Overload for the pixel transparency traits class.  
+  // Overload for the pixel transparency traits class.
   template <class ChildT>
   bool is_valid(PixelMask<ChildT> const& pixel) { return pixel.valid(); }
 
@@ -194,23 +202,23 @@ namespace vw {
 
   // *******************************************************************
   // Type Traits
-  // *******************************************************************  
+  // *******************************************************************
 
-  template <class T>                                           
-  struct CompoundChannelType<PixelMask<T> > {             
+  template <class T>
+  struct CompoundChannelType<PixelMask<T> > {
     typedef typename CompoundChannelType<T>::type type;
-  };              
-  template <class T>                                               
-  struct CompoundNumChannels<PixelMask<T> > {             
-    static const int32 value = CompoundNumChannels<T>::value + 1;                             
-  };                                                                      
-  template <class OldT, class NewChT>                                   
-  struct CompoundChannelCast<PixelMask<OldT>, NewChT> { 
-    typedef PixelMask<typename CompoundChannelCast<OldT,NewChT>::type> type; 
-  };                                                                      
-  template <class OldT, class NewChT>                                   
-  struct CompoundChannelCast<PixelMask<OldT>, const NewChT> {  
-    typedef const PixelMask<typename CompoundChannelCast<OldT,NewChT>::type> type;  
+  };
+  template <class T>
+  struct CompoundNumChannels<PixelMask<T> > {
+    static const int32 value = CompoundNumChannels<T>::value + 1;
+  };
+  template <class OldT, class NewChT>
+  struct CompoundChannelCast<PixelMask<OldT>, NewChT> {
+    typedef PixelMask<typename CompoundChannelCast<OldT,NewChT>::type> type;
+  };
+  template <class OldT, class NewChT>
+  struct CompoundChannelCast<PixelMask<OldT>, const NewChT> {
+    typedef const PixelMask<typename CompoundChannelCast<OldT,NewChT>::type> type;
   };
 
   // Computes the mean value of a compound PixelMask<> type.  Not
@@ -231,7 +239,7 @@ namespace vw {
   }
 
   // These are handy for determining what the masked type is for a
-  // given pixel type.  
+  // given pixel type.
   template <class PixelT>
   struct MaskedPixelType { typedef PixelMask<PixelT> type; };
 
@@ -241,7 +249,7 @@ namespace vw {
   struct MaskedPixelType<PixelMask<ChildT> > { typedef PixelMask<ChildT> type; };
 
   // These are handy for determining what the masked type is for a
-  // given pixel type.  
+  // given pixel type.
   template <class PixelT>
   struct UnmaskedPixelType { typedef PixelT type; };
 
@@ -264,7 +272,7 @@ namespace vw {
       static inline ResultT construct( FuncT const& func, Arg1T const& arg1, Arg2T const& arg2 ) {
         ResultT result;
         for( int i=0; i<ChannelsN-1; ++i ) result[i] = func(arg1[i],arg2[i]);
-        if (arg1.valid() && arg2.valid()) 
+        if (arg1.valid() && arg2.valid())
           result.validate();
         return result;
       }
@@ -317,7 +325,7 @@ namespace vw {
   public:
     BinaryCompoundFunctor() : func() {}
     BinaryCompoundFunctor( FuncT const& func ) : func(func) {}
-    
+
     template <class ArgsT> struct result {};
 
     template <class F, class Arg1T, class Arg2T>
@@ -349,7 +357,7 @@ namespace vw {
     struct Helper {
       static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
         for( int i=0; i<ChannelsN-1; ++i ) func(arg1[i],arg2[i]);
-        if (!arg2.valid()) 
+        if (!arg2.valid())
           arg1.invalidate();
         return arg1;
       }
@@ -360,7 +368,7 @@ namespace vw {
     struct Helper<true,2,Arg1T,Arg2T> {
       static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
         func(arg1[0],arg2[0]);
-        if (!arg2.valid()) 
+        if (!arg2.valid())
           arg1.invalidate();
         return arg1;
       }
@@ -372,7 +380,7 @@ namespace vw {
       static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
         func(arg1[0],arg2[0]);
         func(arg1[1],arg2[1]);
-        if (!arg2.valid()) 
+        if (!arg2.valid())
           arg1.invalidate();
         return arg1;
       }
@@ -385,7 +393,7 @@ namespace vw {
         func(arg1[0],arg2[0]);
         func(arg1[1],arg2[1]);
         func(arg1[2],arg2[2]);
-        if (!arg2.valid()) 
+        if (!arg2.valid())
           arg1.invalidate();
         return arg1;
       }
@@ -399,7 +407,7 @@ namespace vw {
         func(arg1[1],arg2[1]);
         func(arg1[2],arg2[2]);
         func(arg1[3],arg2[3]);
-        if (!arg2.valid()) 
+        if (!arg2.valid())
           arg1.invalidate();
         return arg1;
       }
@@ -408,7 +416,7 @@ namespace vw {
   public:
     BinaryInPlaceCompoundFunctor() : func() {}
     BinaryInPlaceCompoundFunctor( FuncT const& func ) : func(func) {}
-    
+
     template <class ArgsT> struct result {};
 
     template <class F, class Arg1T, class Arg2T>
@@ -437,7 +445,7 @@ namespace vw {
       static inline ResultT construct( FuncT const& func, ArgT const& arg ) {
         ResultT result;
         for( int i=0; i<ChannelsN-1; ++i ) result[i] = func(arg[i]);
-        if (arg.valid()) 
+        if (arg.valid())
           result.validate();
         return result;
       }
@@ -490,7 +498,7 @@ namespace vw {
   public:
     UnaryCompoundFunctor() : func() {}
     UnaryCompoundFunctor( FuncT const& func ) : func(func) {}
-    
+
     template <class ArgsT> struct result {};
 
     template <class F, class ArgT>
@@ -571,7 +579,7 @@ namespace vw {
   public:
     UnaryInPlaceCompoundFunctor() : func() {}
     UnaryInPlaceCompoundFunctor( func_ref func ) : func(func) {}
-    
+
     template <class ArgsT> struct result {};
 
     /// FIXME: This seems not to respect the constness of ArgT?  Weird?
