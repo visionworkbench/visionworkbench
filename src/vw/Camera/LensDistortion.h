@@ -55,6 +55,7 @@ namespace camera {
       virtual boost::shared_ptr<LensDistortion> copy() const = 0;
 
       virtual std::string name() const = 0;
+      virtual void scale(float const& scale) = 0; // Used to scale distortion w/ image size
   };
 
   std::ostream & operator<<(std::ostream & os, const vw::camera::LensDistortion& ld);
@@ -75,6 +76,8 @@ namespace camera {
     }
 
     std::string name() const { return "NULL"; }
+
+    void scale(float const& scale) { }
   };
 
   /// TSAI Lens Distortion Model
@@ -117,6 +120,10 @@ namespace camera {
     }
 
     std::string name() const { return "TSAI"; }
+
+    void scale( float const& scale ) {
+      m_distortion *= scale;
+    }
   };
 
 }} // namespace vw::camera

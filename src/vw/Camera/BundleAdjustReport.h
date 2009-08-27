@@ -7,7 +7,7 @@
 
 
 /// \file BundleAdjustReport.h
-/// 
+///
 /// Report option for Bundle Adjustment
 
 #ifndef __VW_CAMERA_BUNDLE_ADJUST_REPORT_H_
@@ -51,13 +51,13 @@
 //    20  - Write Report file
 //    25  - Write Bundlevis file (binary state information)
 //    30  - Write Stereo Triangulation Error Max/Mean/Min
-//    35  - Write Bundlevis Stereo Triangulation Error (binary state 
+//    35  - Write Bundlevis Stereo Triangulation Error (binary state
 //          information)
 //    100 - Write Debug Error Vectors   (big human readable)
 //    110 - Write Debug Jacobian Matrix (massive human readable)
 
 namespace vw {
-namespace camera { 
+namespace camera {
 
   // Posix time is not fully supported in the version of Boost for RHEL
   // Workstation 4
@@ -99,7 +99,7 @@ namespace camera {
     std::ofstream m_human_report;
     std::ofstream m_bundlevis_binary;
     std::string   m_file_prefix;
-    
+
     BundleAdjustModelT& m_model;
     BundleAdjusterT& m_adjuster;
 
@@ -118,36 +118,36 @@ namespace camera {
       return time_string_stream.str();
     }
 #endif
-    
+
   public:
-    BundleAdjustReport(std::string const& name, 
+    BundleAdjustReport(std::string const& name,
                        BundleAdjustModelT& model,
                        BundleAdjusterT& adjuster,
                        int report_lvl=10)  :  m_model(model), m_adjuster(adjuster), bundleadjust_name(name), report_level(report_lvl) {
-      
+
       m_human_both.add(std::cout);
-      
+
       m_file_prefix = bundleadjust_name;
       boost::to_lower( m_file_prefix );
       boost::replace_all( m_file_prefix, " ", "_" );
-      
+
       // Loading up files
-      if ( report_level >= ReportFile ) { 
+      if ( report_level >= ReportFile ) {
         // Report file
         std::ostringstream human_file;
         human_file << m_file_prefix + ".report";
-        m_human_report.open( human_file.str().c_str(), 
+        m_human_report.open( human_file.str().c_str(),
                              std::ios::out );
         m_human_both.add( m_human_report );
         if ( report_level >= BundlevisFile ) {
           // Bundlevis file
           std::ostringstream bundlevis_file;
           bundlevis_file << m_file_prefix + ".bvis";
-          m_bundlevis_binary.open( bundlevis_file.str().c_str(), 
+          m_bundlevis_binary.open( bundlevis_file.str().c_str(),
                                    std::ios::out );
         }
       }
-      
+
       // Writing Report Intro
       m_human_both << "[" << current_posix_time_string() << "]\tStarted "
                    << bundleadjust_name << " Bundle Adjustment.\n";
@@ -157,18 +157,18 @@ namespace camera {
                  << std::endl;
         m_human_both << "\tNumber Point params:  " << m_model.point_params_n
                      << std::endl;
-        m_human_both << "\tCost Function:        " 
+        m_human_both << "\tCost Function:        "
                      << m_adjuster.costfunction().name_tag()
-                     << "\t" << m_adjuster.costfunction().threshold() 
+                     << "\t" << m_adjuster.costfunction().threshold()
                      << std::endl;
         m_human_both << "\tInitial Lambda:       " << m_adjuster.lambda()
                      << std::endl;
-        m_human_report << "\tA Inverse Covariance: " 
+        m_human_report << "\tA Inverse Covariance: "
                        << m_model.A_inverse_covariance(0) << std::endl;
-        m_human_report << "\tB Inverse Covariance: " 
+        m_human_report << "\tB Inverse Covariance: "
                        << m_model.B_inverse_covariance(0) << std::endl;
         if (!m_adjuster.camera_constraint())
-          m_human_report << "\tCamera Constraint shut off!\n"; 
+          m_human_report << "\tCamera Constraint shut off!\n";
         if (!m_adjuster.gcp_constraint())
           m_human_report << "\tGCP Constraint shut off!\n";
         m_human_both << "\nStarting Error:\n";
@@ -177,39 +177,39 @@ namespace camera {
 
       if ( report_level >= TriangulationReportAtEnds )
         triangulation_readings();
-      
+
       // Done
       m_human_both << "\n\n";
     }
-    
+
     // This is a callback from inside the loop of iterations
     void loop_tie_in( void ) {
       m_human_both << "[" << current_posix_time_string() << "]\tFinished Iteration "
                    << m_adjuster.iterations() << std::endl;
-      
+
       if ( report_level >= ClassicReport )
         generic_readings();
-        
+
       if ( report_level >= TriangulationReport )
         triangulation_readings();
-  
+
       m_human_both << "\n";
     }
     // This is a callback for just exit the loop of iterations
-    void end_tie_in( void ) { 
-      m_human_both << "[" << current_posix_time_string() 
+    void end_tie_in( void ) {
+      m_human_both << "[" << current_posix_time_string()
                    << "]\tFinished Bundle Adjustment\n";
-      m_human_both << "\tNumber of Iterations: " 
+      m_human_both << "\tNumber of Iterations: "
                    << m_adjuster.iterations() << "\n\n";
       if ( report_level >= ClassicReport )
         generic_readings();
       if ( report_level >= TriangulationReportAtEnds )
         triangulation_readings();
-      
+
       // Closing all files out
       m_human_both.remove( m_human_report );
       m_human_both.remove( std::cout );
-      
+
       if (m_human_report.is_open())
         m_human_report.close();
       if (m_bundlevis_binary.is_open())
@@ -232,21 +232,21 @@ namespace camera {
 
         for ( unsigned i = 0; i < image_errors.size(); i++ )
           image_mean_file.write((char*)&(image_errors[i]),sizeof(double));
-        
+
         image_mean_file.close();
       }
-      
+
     }
     // This will display the current error statistics
     std::ostream& operator() ( void ) {
       // These are for special comments to the report
       return m_human_both << "[" << current_posix_time_string() << "] : ";
     }
-    
+
     // Repeated sections of reporting
     void generic_readings( void ) {
       std::vector<double> image_errors, camera_position_errors, camera_pose_errors, gcp_errors;
-  
+
       m_model.image_errors(image_errors);
       m_model.camera_position_errors(camera_position_errors);
       m_model.camera_pose_errors(camera_pose_errors);
@@ -265,7 +265,7 @@ namespace camera {
       //mean_image /= image_errors.size();
       //stddev_image /= image_errors.size();
       stddev_image = sqrt( stddev_image - mean_image*mean_image );
-      
+
       // Statistics gathering for camera_position_errors
       double min_cam_position = *(std::min_element(camera_position_errors.begin(),
                                                    camera_position_errors.end()));
@@ -279,7 +279,7 @@ namespace camera {
       mean_cam_position /= camera_position_errors.size();
       stddev_cam_position /= camera_position_errors.size();
       stddev_cam_position = sqrt( stddev_cam_position - mean_cam_position*mean_cam_position );
-      
+
       // Statistics gathering for camera_pose_errors
       double min_cam_pose = *(std::min_element(camera_pose_errors.begin(),
                                                camera_pose_errors.end()));
@@ -309,7 +309,7 @@ namespace camera {
         stddev_gcp /= gcp_errors.size();
         stddev_gcp = sqrt( stddev_gcp - mean_gcp*mean_gcp );
       }
-      
+
       // Sharing now
       m_human_both << "\tLambda: " << m_adjuster.lambda() << std::endl;
       m_human_both << "\tImage [min: " << min_image << " mean: " << mean_image
@@ -334,14 +334,14 @@ namespace camera {
       if (!m_adjuster.gcp_constraint())
         m_human_both << "\t[NOTE: GCP Constraint Shutoff!]\n";
     }
-    
+
     void stereo_errors( std::vector<double>& stereo_errors ) {
       // Where all the measurement errors will go
       stereo_errors.clear();
       // Pulling out the required models and control network
       std::vector<boost::shared_ptr<camera::CameraModel> > camera_models = m_model.adjusted_cameras();
       boost::shared_ptr<ControlNetwork> network = m_model.control_network();
-      
+
       for (unsigned i = 0; i < network->size(); ++i) {
         for (unsigned j = 0; j+1 < (*network)[i].size(); ++j) {
           int cam1_index = (*network)[i][j].image_id();
@@ -371,7 +371,7 @@ namespace camera {
           for (unsigned j = 0; j+1 < (*network)[i].size(); ++j) {
             int cam1_index = (*network)[i][j].image_id();
             int cam2_index = (*network)[i][j+1].image_id();
-            
+
             stereo::StereoModel sm( *camera_models[cam1_index],
                                     *camera_models[cam2_index] );
             double error;
@@ -387,7 +387,7 @@ namespace camera {
       std::vector<double> errors, gcp_errors;
       stereo_errors( errors );
       stereo_gcp_errors( gcp_errors );
-      
+
       // Error for Statistics
       // All points:
       double min_tri=0,max_tri=0,mean_tri=0,stddev_tri=0;
@@ -419,14 +419,14 @@ namespace camera {
       }
 
       // Sharing the information now
-      m_human_both << "\tStereo Tri Error [min: " << min_tri 
+      m_human_both << "\tStereo Tri Error [min: " << min_tri
                    << " mean: " << mean_tri
-                   << "\n\t                 max: " << max_tri 
+                   << "\n\t                 max: " << max_tri
                    << " dev: " << stddev_tri << "]\n";
-      if ( gcp_errors.size() > 0 ) 
-        m_human_both << "\tStereo GCP Error [min: " << min_gcp 
+      if ( gcp_errors.size() > 0 )
+        m_human_both << "\tStereo GCP Error [min: " << min_gcp
                      << " mean: " << mean_gcp
-                     << "\n\t                 max: " << max_gcp 
+                     << "\n\t                 max: " << max_gcp
                      << " dev: " << stddev_gcp << "]\n";
       else
         m_human_both << "\tStereo GCP Error [N/A]\n";
@@ -447,13 +447,13 @@ namespace camera {
 
       std::ostringstream kml_filename;
       kml_filename << m_file_prefix + ".kml";
-      KMLFile kml( kml_filename.str(), 
+      KMLFile kml( kml_filename.str(),
                    bundleadjust_name,
                    m_file_prefix );
       write_kml_styles( kml );
 
       boost::shared_ptr<ControlNetwork> network = m_model.control_network();
-      
+
       write_gcps_kml( kml, *network );
       if ( !gcps_only ) {
         std::vector<double> image_errors;
