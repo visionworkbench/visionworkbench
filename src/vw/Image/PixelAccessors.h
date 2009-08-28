@@ -94,7 +94,7 @@ namespace vw {
   template <class ViewT>
   class ProceduralPixelAccessor {
     typedef typename boost::mpl::if_<IsFloatingPointIndexable<ViewT>, double, int32>::type offset_type;
-    ViewT const& m_view;
+    ViewT m_view;
     offset_type m_c, m_r;
     int32 m_p;
   public:
