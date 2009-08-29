@@ -226,7 +226,7 @@ namespace vw {
     : public IsMultiplyAccessible<ViewT> {};
 
 
- // *******************************************************************
+  // *******************************************************************
   /// EdgeMaskView
   ///
   /// Create an image with zero-valued (i.e. default contructor)
@@ -375,19 +375,17 @@ namespace vw {
     return EdgeMaskView<ViewT>( v.impl(), value, buffer, progress_callback );
   }
 
+  //******************************************************************
   /// invert_mask(view)
   ///
   /// Given a view with pixels of type PixelMask<T>, this will toggle
   /// all valids to invalid, and invalid to valids.
   template <class PixelT>
-  class InvertPixelMask : public ReturnFixedType<PixelT> {
+  class InvertPixelMask : public ReturnFixedType<PixelT const&> {
   public:
-    InvertPixelMask(){}
-
-    PixelT operator()( PixelT const& value ) const {
-      PixelT result = value;
-      result.toggle();
-      return result;
+    PixelT const& operator()( PixelT & value ) const {
+      toggle(value);
+      return value;
     }
   };
 
@@ -401,6 +399,56 @@ namespace vw {
   // Invert Pixel Mask is "reasonably fast"
   template <class ViewT>
   struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,InvertPixelMask<typename ViewT::pixel_type> > >
+    : public IsMultiplyAccessible<ViewT> {};
+
+  //*****************************************************************
+  /// validate(view)
+  ///
+  /// Given an image of PixelMasks, this will make all pixels valid
+  template <class PixelT>
+  class ValidatePixelMask : public ReturnFixedType<PixelT const&> {
+  public:
+    PixelT const& operator()( PixelT & value ) const {
+      validate(value);
+      return value;
+    }
+  };
+
+  template <class ViewT>
+  UnaryPerPixelView<ViewT,ValidatePixelMask<typename ViewT::pixel_type> >
+  validate_mask( ImageViewBase<ViewT> const& view ) {
+    typedef UnaryPerPixelView<ViewT,ValidatePixelMask<typename ViewT::pixel_type> > view_type;
+    return view_type( view.impl(), ValidatePixelMask<typename ViewT::pixel_type>());
+  }
+
+  // Validate Pixel Mask is "reasonably fast"
+  template <class ViewT>
+  struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,ValidatePixelMask<typename ViewT::pixel_type> > >
+    : public IsMultiplyAccessible<ViewT> {};
+
+  //*****************************************************************
+  /// invalidate(view)
+  ///
+  /// Given an image of PixelMasks, this will make all pixels invalid
+  template <class PixelT>
+  class InvalidatePixelMask : public ReturnFixedType<PixelT const&> {
+  public:
+    PixelT const& operator()( PixelT & value ) const {
+      invalidate(value);
+      return value;
+    }
+  };
+
+  template <class ViewT>
+  UnaryPerPixelView<ViewT,InvalidatePixelMask<typename ViewT::pixel_type> >
+  invalidate_mask( ImageViewBase<ViewT> const& view ) {
+    typedef UnaryPerPixelView<ViewT,InvalidatePixelMask<typename ViewT::pixel_type> > view_type;
+    return view_type( view.impl(), InvalidatePixelMask<typename ViewT::pixel_type>());
+  }
+
+  // Invalidate Pixel Mask is "reasonably fast"
+  template <class ViewT>
+  struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,InvalidatePixelMask<typename ViewT::pixel_type> > >
     : public IsMultiplyAccessible<ViewT> {};
 
 } // namespace vw

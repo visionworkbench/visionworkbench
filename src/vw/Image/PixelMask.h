@@ -180,8 +180,18 @@ namespace vw {
   inline void invalidate(PixelT &pixel) { return; }
 
   template <class ChildPixelT>
-  inline void invalidate(PixelMask<ChildPixelT> &pixel) { pixel.validate(); }
+  inline void invalidate(PixelMask<ChildPixelT> &pixel) { pixel.invalidate(); }
 
+  // Generic method for "toggling" a pixel (not'ing the mask bit).
+  // This is a no-op by default, but it actually calls px.validate()
+  // for PixelMask<> types.
+  template <class PixelT>
+  inline void toggle(PixelT &pixel) { return; }
+
+  template <class ChildPixelT>
+  inline void toggle(PixelMask<ChildPixelT> &pixel) { pixel.toggle(); }
+
+  // Remove mask
   template <class PixelT>
   inline PixelT& remove_mask(PixelT& pixel) { return pixel; }
 
