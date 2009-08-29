@@ -57,5 +57,10 @@ int main() {
   patch += 1.0 - select_channel(patch,3);
   write_image( "images/Walker.qtree/r12.jpg", patch );
 
+  // Complex examples
+  vw::DiskImageView<vw::PixelGray<vw::float32> > pattern("images/pattern.png");
+  write_image( "images/pattern_grassfire.jpg", normalize(vw::channel_cast<vw::float32>(grassfire(pattern))) );
+  write_image( "images/pattern_blob_index.jpg", apply_mask(normalize(vw::channel_cast<vw::float32>( blob_index(vw::create_mask(pattern,0)))),0) );
+
   return 0;
 }

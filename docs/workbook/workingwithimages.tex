@@ -577,6 +577,7 @@ Function & Description \\ \hline \hline
 \verb#normalize(im,[low],[high])# & Normalize values to the given range \\ \hline
 \verb#threshold(im,[thresh],[low],[high])# & Threshold an image to two values \\ \hline
 \verb#grassfire(im)# & Compute the grassfire image of an image \\ \hline
+\verb#blob_index(im)# & Apply index numbers to valid regions of an image \\ \hline
 \verb#bounding_box(im)# & Return the bounding box of an image \\ \hline
 \verb#nonzero_data_bounding_box(im)# & Compute the bounding box of nonzero data \\ \hline
 \verb#image_blocks(im,width,height)# & Tile an image with bounding boxes \\ \hline
@@ -627,6 +628,18 @@ grayscale image to pure black-and-white:
   image = threshold( image, 0.5 );
 \end{verbatim}
 
+\begin{figure}[hp]
+\centering
+  \subfigure[{\tt pattern} (Original)]{\includegraphics[width=1.85in]{images/pattern.png}\label{fig:complex.original}}
+  \hfill
+  \subfigure[{\tt normalize( channel\_cast<float>( grassfire(pattern)))}]{\includegraphics[width=1.85in]{images/pattern_grassfire.jpg}\label{fig:complex.grassfire}}
+  \hfill
+  \subfigure[{\tt normalize( channel\_cast<float>( blob\_index( create\_mask(pattern))))}]{\includegraphics[width=1.85in]{images/pattern_blob_index.jpg}\label{fig:complex.blobindex}}
+  \hfill
+\caption{Sample output from more complex operations.}
+\label{fig:complex}
+\end{figure}
+
 The \verb#grassfire()# algorithm, named for the algorithm that 
 it implements, is more specialized.  It takes an image and 
 efficiently computes how far each pixel is from from a pixel 
@@ -636,6 +649,13 @@ four-connected Manhattan sense, i.e. as the sum of the
 horizontal and vertical distances.  This algorithm is used in 
 a variety of applications, such as avoiding obstacles and 
 unknown terrain in path planning.
+
+The \verb#blob_index()# algorithm, applies an index value to isolated
+sections of images label valid. The determination of a pixel's
+validity is from a special pixel called PixelMask. PixelMask is
+discribed in the \emph{Pixels Types} chapter. \verb#blob_index# is
+useful algorithm for segmenting an image.
+
 
 %% The final three functions in this section relate to bounding 
 %% boxes, which are the topic of the next section.

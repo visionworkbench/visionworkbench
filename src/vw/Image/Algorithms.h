@@ -6,9 +6,9 @@
 
 
 /// \file Algorithms.h
-/// 
+///
 /// Basic algorithms operating on images.
-/// 
+///
 #ifndef __VW_IMAGE_ALGORITHMS_H__
 #define __VW_IMAGE_ALGORITHMS_H__
 
@@ -111,7 +111,7 @@ namespace vw {
     channel_type m_old_min, m_new_min;
     double m_old_to_new_ratio;
   public:
-    ChannelNormalizeFunctor( channel_type old_min, channel_type old_max, 
+    ChannelNormalizeFunctor( channel_type old_min, channel_type old_max,
                              channel_type new_min, channel_type new_max )
       : m_old_min(old_min), m_new_min(new_min)
     {
@@ -131,7 +131,7 @@ namespace vw {
     channel_type m_old_min, m_new_min;
     double m_old_to_new_ratio;
   public:
-    ChannelNormalizeRetainAlphaFunctor( channel_type old_min, channel_type old_max, 
+    ChannelNormalizeRetainAlphaFunctor( channel_type old_min, channel_type old_max,
                                         channel_type new_min, channel_type new_max )
       : m_old_min(old_min), m_new_min(new_min)
     {
@@ -216,7 +216,7 @@ namespace vw {
   // threshold()
   // *******************************************************************
 
-  // A per-pixel thresholding filter with adjustable threshold and 
+  // A per-pixel thresholding filter with adjustable threshold and
   // high and low values.
   template <class PixelT>
   class ChannelThresholdFunctor {
@@ -226,7 +226,7 @@ namespace vw {
 
     ChannelThresholdFunctor( channel_type thresh, channel_type low, channel_type high )
       : m_thresh(thresh), m_low(low), m_high(high) {}
-    
+
     template <class Args> struct result {
       typedef channel_type type;
     };
@@ -430,13 +430,13 @@ namespace vw {
         if( image(x,y)[PixelNumChannels<typename ImageT::pixel_type>::value-1] < maxval ) return false;
     return true;
   }
-  
+
   template <class ImageT>
   bool is_opaque_helper( ImageT const& image, false_type ) {
     return true;
   }
 
-  /// Returns true if the given image is entirely opaque, or false if 
+  /// Returns true if the given image is entirely opaque, or false if
   /// it is at least partially transparent.
   template <class ImageT>
   bool is_opaque( ImageViewBase<ImageT> const& image ) {
@@ -455,13 +455,13 @@ namespace vw {
         if( ! is_transparent(image(x,y)) ) return false;
     return true;
   }
-  
+
   template <class ImageT>
   bool is_transparent_helper( ImageT const& image, false_type ) {
     return false;
   }
 
-  /// Returns true if the given image is entirely transparent, or false if 
+  /// Returns true if the given image is entirely transparent, or false if
   /// it is opaque or only partially transparent.
   template <class ImageT>
   bool is_transparent( ImageViewBase<ImageT> const& image ) {
@@ -483,21 +483,267 @@ namespace vw {
   /// It will operate on any object that has cols() and rows() methods.
 
   template <class T>
-  inline std::vector<BBox2i> image_blocks(T const& object, int32 block_width, int32 block_height) {  
+  inline std::vector<BBox2i> image_blocks(T const& object, int32 block_width, int32 block_height) {
     std::vector<BBox2i> bboxes;
-    
+
     int32 j_offset = 0;
     while ( j_offset < object.rows() ) {
       int32 j_dim = (object.rows() - j_offset) < block_height ? (object.rows() - j_offset) : block_height;
       int32 i_offset = 0;
       while ( i_offset < object.cols() ) {
-        int32 i_dim = (object.cols() - i_offset) < block_width ? (object.cols() - i_offset) : block_width;      
+        int32 i_dim = (object.cols() - i_offset) < block_width ? (object.cols() - i_offset) : block_width;
         bboxes.push_back(BBox2i(i_offset,j_offset,i_dim,j_dim));
         i_offset += i_dim;
       }
       j_offset += j_dim;
     }
     return bboxes;
+  }
+
+  // ********************************************************************
+  // blob_index()
+  // ********************************************************************
+
+  /// A utility that numbers off blobs of valid pixels. So it's
+  /// important that you use pixel mask, or the entire image will be
+  /// numbered one. This is for the most part a clone of bwlabel.
+  ///
+  /// By using the BlobIndex directly, the user can access std::list
+  /// of Vector2i than list all the pixels involved in a blob. Thisis useful
+  /// for growing bounding boxes on them.
+
+  class BlobIndex {
+    uint32 m_blob_count;
+    uint32 m_optimal_count;
+    std::vector<std::list<Vector2i> > m_blob;
+
+  public:
+    // Constructor performs processing
+    template <class SourceT>
+      BlobIndex( ImageViewBase<SourceT> const& src,
+                 ImageView<uint32>& dst,
+                 bool save_pixels=false ) {
+      if ( src.impl().planes() > 1 )
+        vw_throw( NoImplErr() << "Blob index currently only works with 2D images." );
+      dst.set_size( src.impl().cols(),
+                    src.impl().rows() );
+      fill(dst,0);
+      m_blob_count = 1;
+      std::map<int,int> discrepancies;
+      m_optimal_count = 1;
+      std::map<int,int> optimal_numbering;
+
+      { // Initial Pass
+        typename SourceT::pixel_accessor s_acc = src.impl().origin();
+        typename SourceT::pixel_accessor p_s_acc = src.impl().origin(); // previous
+        typename ImageView<uint32>::pixel_accessor d_acc = dst.origin();
+        typename ImageView<uint32>::pixel_accessor p_d_acc = dst.origin(); // previous
+
+        // Top Corner
+        if ( is_valid(*s_acc) ) {
+          *d_acc = m_blob_count;
+          m_blob_count++;
+        }
+
+        // Top Row
+        s_acc.next_col();
+        d_acc.next_col();
+        for ( int32 i = 1; i < dst.cols(); i++ ) {
+          if ( is_valid(*s_acc) ) {
+            if ( is_valid(*p_s_acc) ) {
+              *d_acc = *p_d_acc;
+            } else {
+              *d_acc = m_blob_count;
+              m_blob_count++;
+            }
+          }
+          s_acc.next_col();
+          d_acc.next_col();
+          p_s_acc.next_col();
+          p_d_acc.next_col();
+        }
+      }
+
+      { // Left most columen
+        typename SourceT::pixel_accessor s_acc = src.impl().origin();
+        typename SourceT::pixel_accessor p_s_acc = src.impl().origin(); // previous
+        typename ImageView<uint32>::pixel_accessor d_acc = dst.origin();
+        typename ImageView<uint32>::pixel_accessor p_d_acc = dst.origin(); // previous
+
+        s_acc.next_row();
+        d_acc.next_row();
+        for ( int32 j = 1; j < dst.rows(); j++ ) {
+          if ( is_valid(*s_acc) ) {
+            if ( is_valid(*p_s_acc) ) {
+              *d_acc = *p_d_acc;
+            } else {
+              *d_acc = m_blob_count;
+              m_blob_count++;
+            }
+          }
+          s_acc.next_row();
+          p_s_acc.next_row();
+          d_acc.next_row();
+          p_d_acc.next_row();
+        }
+      }
+
+      { // Everything else (9 connected)
+        typename SourceT::pixel_accessor s_acc_row = src.impl().origin();
+        typename ImageView<uint32>::pixel_accessor d_acc_row = dst.origin();
+        s_acc_row.advance(1,1);
+        d_acc_row.advance(1,1);
+
+        for (int j = dst.rows()-1; j; --j ) { // Not for indexing
+          typename SourceT::pixel_accessor s_acc = s_acc_row;
+          typename SourceT::pixel_accessor p_s_acc = s_acc_row;
+          typename ImageView<uint32>::pixel_accessor d_acc = d_acc_row;
+          typename ImageView<uint32>::pixel_accessor p_d_acc = d_acc_row;
+
+          // Process
+          for ( int i = dst.cols()-1; i; --i ) {
+            if ( is_valid(*s_acc) ) {
+              // Left
+              p_s_acc.advance(-1,0);
+              p_d_acc.advance(-1,0);
+              if ( is_valid(*p_s_acc) )
+                if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) {
+                  discrepancies.insert(std::make_pair(*p_d_acc,*d_acc));
+                } else
+                  *d_acc = *p_d_acc;
+              // Upper Left
+              p_s_acc.advance(0,-1);
+              p_d_acc.advance(0,-1);
+              if ( is_valid(*p_s_acc) )
+                if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) {
+                  discrepancies.insert(std::make_pair(*p_d_acc,*d_acc));
+                } else
+                  *d_acc = *p_d_acc;
+              // Upper
+              p_s_acc.advance(1,0);
+              p_d_acc.advance(1,0);
+              if ( is_valid(*p_s_acc) )
+                if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) {
+                  discrepancies.insert(std::make_pair(*p_d_acc,*d_acc));
+                } else
+                  *d_acc = *p_d_acc;
+              // Upper Right
+              p_s_acc.advance(1,0);
+              p_d_acc.advance(1,0);
+              if ( is_valid(*p_s_acc) && (i != 1) ) {
+                if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) {
+                  discrepancies.insert(std::make_pair(*p_d_acc,*d_acc));
+                } else
+                  *d_acc = *p_d_acc;
+              }
+              // Setting if not
+              p_s_acc.advance(-1,1);
+              p_d_acc.advance(-1,1);
+              if ( *d_acc == 0 ) {
+                *d_acc = m_blob_count;
+                m_blob_count++;
+              }
+            }
+            s_acc.next_col();
+            p_s_acc.next_col();
+            d_acc.next_col();
+            p_d_acc.next_col();
+          } // end row process
+
+          s_acc_row.next_row();
+          d_acc_row.next_row();
+        }
+      }
+
+      // Working out discrepencies
+      int local_largest = 0;
+      int prev_largest = 0;
+      std::map<int,int>::iterator search_temp;
+
+      for ( std::map<int,int>::iterator iter = discrepancies.begin();
+            iter != discrepancies.end(); ++iter ) {
+        // Find largest value this current is associated with
+        local_largest = (*iter).second;
+        search_temp = discrepancies.find( local_largest );
+        while ( search_temp != discrepancies.end() ) {
+          local_largest = (*search_temp).second;
+          search_temp = discrepancies.find( local_largest );
+        }
+
+        // Assign it the largest found reference
+        (*iter).second = local_largest;
+
+        // Is this a new object. If so, number it for optimal
+        if ( prev_largest != local_largest ) {
+          prev_largest = local_largest;
+          search_temp = optimal_numbering.find(local_largest);
+          if ( search_temp == optimal_numbering.end() ) {
+            //ie. not already there
+            optimal_numbering.insert( std::make_pair(local_largest,
+                                                     m_optimal_count) );
+            m_optimal_count++;
+          }
+        }
+      }
+
+      { // Update index map to optimal numbering
+        ImageView<uint32>::pixel_accessor p_d_acc = dst.origin(); // previous
+
+        uint32 temp_int;
+        for ( int32 r = 0; r < dst.rows(); r++ ) {
+          ImageView<uint32>::pixel_accessor d_acc = p_d_acc;
+          for ( int32 c = 0; c < dst.cols(); c++ ) {
+            if ( (*d_acc) != 0 ) {
+
+              search_temp = discrepancies.find( *d_acc );
+              if ( search_temp == discrepancies.end() ) {
+                // For blobs that never had irregular surfaces
+                search_temp = optimal_numbering.find(*d_acc);
+                if ( search_temp == optimal_numbering.end() ) {
+                  optimal_numbering.insert(std::make_pair(*d_acc,m_optimal_count)); // For final numbering
+                  discrepancies.insert(std::make_pair(*d_acc,*d_acc)); // For fast track next pixel
+                  *d_acc = m_optimal_count;
+                  m_optimal_count++;
+                } else {
+                  // Already there
+                  *d_acc = (*search_temp).second;
+                }
+              } else {
+                temp_int = (*search_temp).second;
+                search_temp = optimal_numbering.find( temp_int );
+                *d_acc = (*search_temp).second;
+              }
+
+              if ( save_pixels ) {
+                if ( *d_acc > m_blob.size() )
+                  m_blob.resize( *d_acc );
+                m_blob[*d_acc-1].push_back( Vector2i(c,r) );
+              }
+            }
+            d_acc.next_col();
+          }
+          p_d_acc.next_row();
+        }
+      }
+
+      m_blob_count--;
+      m_optimal_count--;
+    }
+
+    // Access points to intersting information
+    uint32 num_blobs() const { return m_optimal_count; }
+
+    // Access to blobs
+    std::list<Vector2i> const& blob( uint32 const& index ) const { return m_blob[index]; }
+
+  };
+
+  // Simple interface
+  template <class SourceT>
+  ImageView<uint32> blob_index( ImageViewBase<SourceT> const& src ) {
+    ImageView<uint32> result( src.impl().cols(), src.impl().rows() );
+    BlobIndex( src, result );
+    return result;
   }
 
 } // namespace vw
