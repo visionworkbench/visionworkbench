@@ -581,6 +581,12 @@ public:
       TS_ASSERT( gv[0] == 5 );
       TS_ASSERT( test[0] == 5 );
       TS_ASSERT( test[3] == 255 );
+
+      gv.invalidate();
+      PixelMask<PixelRGB<vw::uint8> > test2(gv);
+      TS_ASSERT( gv[0] == 5 );
+      TS_ASSERT( test2[0] == 5 );
+      TS_ASSERT( test2[3] == 0 );
     }
 
     // Construction from scalar types

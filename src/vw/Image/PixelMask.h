@@ -62,16 +62,15 @@ namespace vw {
 
     /// Conversion from other PixelMask<> types.
     template <class OtherT> explicit PixelMask( PixelMask<OtherT> other ) {
-      if (other.valid()) {
+      // We let the child's built-in conversions do their work here.
+      // This will fail if there is no conversion defined from
+      // OtherT to ChildT.
+      m_child = ChildT(other.child());
+
+      if (other.valid())
         m_valid = ChannelRange<channel_type>::max();
-        // We let the child's built-in conversions do their work here.
-        // This will fail if there is no conversion defined from
-        // OtherT to ChildT.
-        m_child = ChildT(other.child());
-      } else {
-        m_valid = channel_type();
-        m_child = ChildT();
-      }
+      else
+        m_valid = ChannelRange<channel_type>::min();
     }
 
     /// Constructs a pixel with the given channel values (use only when child has 2 channels)

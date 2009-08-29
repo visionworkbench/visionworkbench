@@ -12,6 +12,9 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
 
+#include <vw/Image/PixelMask.h>
+#include <vw/Image/MaskViews.h>
+
 using namespace vw;
 
 class TestImageMath : public CxxTest::TestSuite
@@ -292,6 +295,53 @@ public:
     TS_ASSERT( has_pixel_type<std::complex<double> >( conj(ImageView<std::complex<double> >()) ) );
     TS_ASSERT( has_pixel_type<std::complex< long double> >( conj(ImageView<std::complex<long double> >()) ) );
     TS_ASSERT( has_pixel_type<std::complex<int> >( conj(ImageView<std::complex<int> >()) ) );
+  }
+
+  void test_pixel_mask_math() {
+    ImageView<PixelMask<PixelGray<float> > > image(2,1);
+    for ( int i = 0; i < 2; i++ )
+      image(i,0) = .5;
+    image(1,0).invalidate();
+
+    TS_ASSERT( is_valid(image(0,0)) == true );
+    TS_ASSERT( is_valid(image(1,0)) == false );
+
+    for ( int i = 0; i < 2; i++ )
+      TS_ASSERT( image(i,0) == .5 );
+
+    image += .25;
+    for ( int i = 0; i < 2; i++ )
+      TS_ASSERT( image(i,0) == .75 );
+
+    image /= 2;
+    for ( int i = 0; i < 2; i++ )
+      TS_ASSERT( image(i,0) == .375 );
+
+    image *= 2;
+    for ( int i = 0; i < 2; i++ )
+      TS_ASSERT( image(i,0) == .75 );
+
+    image -= .5;
+    for ( int i = 0; i < 2; i++ )
+      TS_ASSERT( image(i,0) == .25 );
+
+    TS_ASSERT( is_valid(image(0,0)) == true );
+    TS_ASSERT( is_valid(image(1,0)) == false );
+    image = invert_mask( image );
+    TS_ASSERT( is_valid(image(0,0)) == false );
+    TS_ASSERT( is_valid(image(1,0)) == true );
+    image = invert_mask( image );
+    TS_ASSERT( is_valid(image(0,0)) == true );
+    TS_ASSERT( is_valid(image(1,0)) == false );
+    image = validate_mask( image );
+    TS_ASSERT( is_valid(image(0,0)) == true );
+    TS_ASSERT( is_valid(image(1,0)) == true );
+    image = invalidate_mask( image );
+    TS_ASSERT( is_valid(image(0,0)) == false );
+    TS_ASSERT( is_valid(image(1,0)) == false );
+
+    for ( int i = 0; i < 2; i++ )
+      TS_ASSERT( image(i,0) == .25 );
   }
 
 #define TEST_UNARY_MATH_FUNCTION(func,arg,result)                       \
