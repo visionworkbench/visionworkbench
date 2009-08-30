@@ -1,7 +1,8 @@
 TOOLS = ../../src/vw/tools
 
 GENERATED_IMAGES = images/mural_*.jpg images/hand.jpg images/lips.jpg	\
-	images/hand-lips-blend.jpg mask.*.png images/Walker.qtree
+	images/hand-lips-blend.jpg mask.*.png images/Walker.qtree       \
+	images/pattern_*.jpg
 
 all: workbook.pdf
 

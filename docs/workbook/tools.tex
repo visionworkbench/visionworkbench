@@ -52,7 +52,6 @@ Option & Description \\ \hline \hline
 \end{longtable}
 
 
-
 \section{{\tt geoblend}}\label{sec:geoblend}
 
 \verb#geoblend# merges multiple DEMs into one large DEM.  By default, it blends the DEMs so that the output is smooth at the boundaries.  Disable this feature using the \verb#--draft# flag.  Other options are listed in Table~\ref{tbl:geoblend}.
@@ -80,6 +79,7 @@ Option & Description \\ \hline \hline
 \verb#--channel-type arg# & Images' channel type. One of [uint8, uint16, int16, float].\\ \hline
 \verb#--verbose# & Verbose output\\ \hline
 \end{longtable}
+
 
 \section{{\tt georef}}\label{sec:georef}
 
@@ -124,6 +124,7 @@ Projection Options \\ \hline
 \verb#--nudge-y arg# & Nudge the image, in projected coordinates \\ \hline
 \verb#--pixel-as-point# & Encode that the pixel location (0,0) is the center of the upper left hand pixel (the default, if you specify nothing, is to set the upper left hand corner of the upper left pixel as (0,0) (i.e. PixelAsArea). \\ \hline
 \end{longtable}
+
 
 \section{{\tt image2qtree}}\label{sec:image2qtree}
 
@@ -197,6 +198,67 @@ Projection Options\\ \hline
 \verb#--std-parallel2 arg# & Standard parallels for Lambert Conformal Conic projection\\ \hline
 \verb#--nudge-x arg# & Nudge the image, in projected coordinates\\ \hline
 \verb#--nudge-y arg# & Nudge the image, in projected coordinates\\ \hline
+\end{longtable}
+
+
+\section{{\tt ipfind}}\label{sec:ipfind}
+The \verb#ipfind# tool processes images for interest points. Interest points are features with in an image that can be reliably located across multiple images. \verb#ipfind# is a tool that is best paired with another tool, \verb#ipmatch#, described in the next Section~\ref{sec:ipmatch}. 
+
+The \verb#--interest-operator# option allows for the user to change the algorithm used to detect interest points. \verb#[LoG]# is the simplest and also the slowest, but is often pretty reliable. All method work to some extent by identify points where the image gradients all point inwardly as on a hill. They also identify the polar opposite, all gradients pointing away.
+
+The \verb#--descriptor-genetator# option allows for the user to change the algorithm use to describe an interest point. Interest points are described so that they may have a unique identity so that they maybe located in different images. \verb#[patch]# is the simplist descriptor, as it is actually the image cropped around an interest point. 
+
+The result of \verb#ipfind# is a special file called a \emph{Vision Workbench interest point file}, and it has the extension \verb#.vwip#. The \emph{Interest Point Module} (Chapter~\ref{ch:interestpoint-module}) contains routines that can open and process such files.
+
+Usage: \verb#ipfind [options] <image files>...#. Other command line arguments are listed in Table~\ref{tbl:ipfind}
+
+\begin{longtable}{|l|p{9cm}|}
+\caption{Command-line options for ipfind}
+\label{tbl:ipfind}
+\endfirsthead
+\endhead
+\endfoot
+\endlastfoot
+\hline
+Option & Description \\ \hline \hline
+\verb#--help# & Display this table\\ \hline
+\verb#--num-threads arg (=0)# & Set the number of theads for interest point detection. Setting the num\_threads to zero causes ipfind to use the visionworkbench default number of threads.\\ \hline
+\verb#-t [ --tile-size ] arg (=2048)# & Specify the tile size for processing interest points. (Useful when working with large images).\\ \hline
+\verb#-l [ --lowe]# & Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.\\ \hline
+\verb#-d [ --debug-image ]# & Write out debug images. This will highlight the found interest points.\\ \hline
+\verb#--interest-operator arg (=LoG)# & Choose an interest point metric from [LoG, Harris].\\ \hline
+\verb#--log-threshold arg (=0.03)# & Sets the threshold for the Laplacian of Gaussian interest operator.\\ \hline
+\verb#--harris-threshold arg (=1e-5)# & Sets the threshold for the Harris interest operator.\\ \hline
+\verb#--max-points arg (=0)# & Sets the maximum number of interest points you want returned. The most \"interesting\" poibts are selected.\\ \hline
+\verb#--single-scale# & Turn off scale-invariant interest point detection. This option only searches for interest points in the first octave of the scale space. This means faster operation at a cost of quality.\\ \hline
+\verb#--descriptor-generator arg (=patch)# & Choose a descriptor generator from [patch,pca].\\ \hline
+\end{longtable}
+
+
+\section{{\tt ipmatch}}\label{sec:ipmatch}
+The \verb#ipmatch# tool processes images for interest points and matches them across images pair wise. It exactly one step longer than the \verb#ipfind# tool. This tool will load up the images and their corresponding \verb#.vwip# files and will run a matching algorithm looking for interest points with similair descriptors. If a corresponding \verb#.vwip# file can not be found for an input image, \verb#ipmatch# will actually call \verb#ipfind# using the default settings to create a interest point file.
+
+To filter out mismatched interest points, a RANSAC method is used. The fitting functor used to determine if a match is valid or not can be selected via the \verb#--ransac-constraint# option. The options available are transform matrices with varing degrees of freedom.
+
+The result of \verb#ipmatch# is a special file called a \emph{Vision Workbench match file}, and it has the extension \verb#.vwip#. The \emph{Interest Point Module} (Chapter~\ref{ch:interestpoint-module}) contains routines that can open and process such files.
+
+Usage: \verb#ipmatch [options] <input file1> <input file2>#. Other command line arguments are listed in Table~\ref{tbl:ipmatch}
+
+\begin{longtable}{|l|p{9cm}|}
+\caption{Command-line options for ipmatch}
+\label{tbl:ipmatch}
+\endfirsthead
+\endhead
+\endfoot
+\endlastfoot
+\hline
+Option & Description \\ \hline \hline
+\verb#--help# & Display this table\\ \hline
+\verb#-t [ --matcher-threshold ] arg (=0.8)# & Threshold for the interest point matcher.\\ \hline
+\verb#--non-kdtree# & Use an implementation of the interest matcher that is not reliant o a KDTree algorithm.\\ \hline
+\verb#-r [ --ransac-constraint ] arg (=similarity)# & RANSAC constraint type. Choose one of: [similarity, homography, or none].\\ \hline
+\verb#-i [ --inlier-threshold ] arg (=10)# & RANSAC inlier threshold. Increase the number to allow more matches through that might agree with RANSAC.\\ \hline
+\verb#-d [ --debug-image ]# & Write out debug images. This will highlight all the matches found between two image.\\ \hline
 \end{longtable}
 
 

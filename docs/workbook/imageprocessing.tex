@@ -1015,5 +1015,87 @@ The \verb#RadialTransformAdaptor# creates a polar coordinate system
 wherein the center of the image is the origin, and a value of $r=1.0$ is
 equal to the distance from the center to the left edge of the image.
 
+\section{Pixel Mask}
+
+At this point is best to introduce a new pixel type,
+\verb#PixelMask#. It was convientantly hidden from the previous
+chapter as it is not exactly just another pixel type. It does infact
+though still have that same blue collar past of the others from
+Table~\ref{tbl:pixel-types} and that means all operations the previous
+Pixel types could do, \verb#PixelMask# can do as
+well. \verb#PixelMask# just happens to append an additional boolean
+channel value to what ever pixel type it encapsulates.
+
+\begin{table}[h]\begin{centering}
+\begin{tabular}{|c|l|l|} \hline
+Type & Description & Channels \\ \hline \hline
+\verb#PixelMask<PixelT<T> ># & Additional valid bit & One plus whatever \verb#PixelT# is \\ \hline
+\end{tabular}
+\caption{An addendum to standard Vision Workbench pixel types. {\tt PixelT} should generally be one of the types from Table~\ref{tbl:pixel-types} and {\tt T} should generally be from Table~\ref{tbl:channel-types}.}
+\label{tbl:pixel-mask}
+\end{centering}
+\end{table}
+
+This additional boolean channel is a pixel's validity. During FileIO
+the boolean channel can correctly be interpreted as determining if a
+pixel is transparent or not. This may seem as just a redundant binary
+version of an alpha channel and it can correctly be interpreted as
+this. Yet it has one ability that an alpha channel does not. The state
+of a \verb#PixelMask# being invalid is quite like the 'T' virus from
+\emph{Resident Evil} fame. It spreads to all other \verb#PixelMask#s
+it is operated with. Meaning that given an image that has bad
+pixels in it, they can be labelled as invalid and will remain so
+through all operations.
+
+A \verb#PixelMask# passes all of it access functions on to its inner
+pixel type. So that a \verb#pixel[0]# will still return a red channel
+from a pixel of type \verb#PixelMask<PixelRGB<float> >#. Yet remember
+that it adds and an additional channel. So a \verb#PixelMask#'s
+validity can be access with \verb#pixel[3]# or instead with a
+\verb#pixel.valid()#.
+
+Testing for a pixel's validity via a \verb#pixel.valid()# only works
+if a pixel is a \verb#PixelMask#. But what if a function is written
+generally for all pixels and it must test for a valid pixel like
+\verb#blob_index#? In that case, Vision Workbench provides a series of
+commands for working with a pixel validity despite the type. They are
+listed in Table~\ref{tbl:pixel-mask-functions}.
+
+\begin{table}[htb]\begin{centering}
+\begin{tabular}{|c|l|} \hline
+Function & Description \\ \hline \hline
+\verb#is_transparent(PixelT)# & Tests if a pixel is transparent. In other words, not valid. \\ \hline
+\verb#is_valid(PixelT)# & Tests as expected. \\ \hline
+\verb#validate(PixelT)# & Forces a pixel valid \emph{iff} \verb#PixelMask#. Otherwise no-op. \\ \hline
+\verb#invalidate(PixelT)# & Forces a pixel invalid \emph{iff} \verb#PixelMask# \\ \hline
+\verb#toggle(PixelT)# & Changes the state of validity \emph{iff} \verb#PixelMask# \\ \hline
+\verb#remove_mask(PixelT)# & Strips off the PixelMask wrapper and returns the inner pixel type. \\ \hline
+\end{tabular}
+\caption{Pixel type safe functions for working with a {\tt PixelMask}'s valid bit.}
+\label{tbl:pixel-mask-functions}
+\end{centering}
+\end{table}
+
+Lastly, Vision Workbench provides a number of ImageView operators
+working pixel validity. They are listed in
+Table~\ref{tbl:pixel-mask-image-ops}.
+
+\begin{table}[htb]\begin{centering}
+\begin{tabular}{|c|l|} \hline
+Function & Description \\ \hline \hline
+\verb#create_mask(im,s)# & Given a non \verb#PixelMask# view \verb#im#, returns an \verb#ImageView# of type \verb#PixelMask#. Pixels of valud \verb#s# are listed as invalid. \\ \hline 
+\verb#create_mask(im,lo,hi)# & As previously, except \verb#lo# and \verb#hi# describe the valid pixel range. Pixels outside of that range are listed as invalid. \\ \hline
+\verb#apply_mask(im,s)# & This removes the \verb#PixelMask# type, and replaces invalid pixels with a value \verb#s#. \\ \hline
+\verb#copy_mask(im,mask)# & Copies a mask from one image to another. \\ \hline
+\verb#mask_to_alpha(im)# & Convert a \verb#PixelMask# view to a view with a alpha channel. \\ \hline
+\verb#edge_mask(im)# & Searches for the edges of an image and marks the first valid pixel, invalid. \\ \hline
+\verb#invert_mask(im)# & Given an image of \verb#PixelMask#s , inverts every pixels validity. \\ \hline
+\verb#validate_mask(im)# & Forces all pixels to be valid. \\ \hline
+\verb#invalidate_mask(im)# & Forces all pixels to be invalid. \\ \hline
+\end{tabular}
+\caption{Image operations for working with {\tt PixelMasks}}
+\label{tbl:pixel-mask-image-ops}
+\end{centering}
+\end{table}
 
 %% \section{Where to Go from Here}

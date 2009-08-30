@@ -402,7 +402,7 @@ namespace vw {
     : public IsMultiplyAccessible<ViewT> {};
 
   //*****************************************************************
-  /// validate(view)
+  /// validate_mask(view)
   ///
   /// Given an image of PixelMasks, this will make all pixels valid
   template <class PixelT>
@@ -427,7 +427,7 @@ namespace vw {
     : public IsMultiplyAccessible<ViewT> {};
 
   //*****************************************************************
-  /// invalidate(view)
+  /// invalidate_mask(view)
   ///
   /// Given an image of PixelMasks, this will make all pixels invalid
   template <class PixelT>
