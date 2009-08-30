@@ -1069,7 +1069,7 @@ Function & Description \\ \hline \hline
 \verb#validate(PixelT)# & Forces a pixel valid \emph{iff} \verb#PixelMask#. Otherwise no-op. \\ \hline
 \verb#invalidate(PixelT)# & Forces a pixel invalid \emph{iff} \verb#PixelMask# \\ \hline
 \verb#toggle(PixelT)# & Changes the state of validity \emph{iff} \verb#PixelMask# \\ \hline
-\verb#remove_mask(PixelT)# & Strips off the PixelMask wrapper and returns the inner pixel type. \\ \hline
+\verb#remove_mask(PixelT)# & Strips off the \verb#PixelMask# wrapper and returns the inner pixel type. \\ \hline
 \end{tabular}
 \caption{Pixel type safe functions for working with a {\tt PixelMask}'s valid bit.}
 \label{tbl:pixel-mask-functions}
@@ -1081,7 +1081,7 @@ working pixel validity. They are listed in
 Table~\ref{tbl:pixel-mask-image-ops}.
 
 \begin{table}[htb]\begin{centering}
-\begin{tabular}{|c|l|} \hline
+\begin{tabular}{|c|p{5 in}|} \hline
 Function & Description \\ \hline \hline
 \verb#create_mask(im,s)# & Given a non \verb#PixelMask# view \verb#im#, returns an \verb#ImageView# of type \verb#PixelMask#. Pixels of valud \verb#s# are listed as invalid. \\ \hline 
 \verb#create_mask(im,lo,hi)# & As previously, except \verb#lo# and \verb#hi# describe the valid pixel range. Pixels outside of that range are listed as invalid. \\ \hline
