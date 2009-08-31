@@ -203,8 +203,7 @@ namespace camera {
       }
 
 
-      std::cout << "Past the Setup Step in Robust Ref \n" ;
-
+    
       // --- UPDATE STEP ----
 
 
@@ -214,16 +213,12 @@ namespace camera {
 
       Vector<double> del_J_robust = -1.0 * (JTS * epsilon_robust);
 
-      std::cout << "Past the Right Side in Robust Ref \n" ;
-
-
+    
 
       // also build up left side for robust
       Matrix<double> hessian_robust = JTS * J_robust;
 
-      std::cout << "Past the Left Side  in Robust Ref \n" ;
-
-
+    
       // initialize m_lambda on first iteration, ignore if user has
       // changed it.
       double max = 0.0;
@@ -258,19 +253,12 @@ namespace camera {
 
       Matrix<double> S_robust = U_robust - Y_robust * transpose(W_robust);
 
-      std::cout << "Past the U,V,W setup  in Robust Ref \n" ;
-       
-
+    
       solve(e_robust, S_robust); // using cholesky
-
-      std::cout << "Past the forward solve  in Robust Ref \n" ;
-
 
       solve(delta_robust, hessian_robust);
 
-      std::cout << "Past the backsolve in Robust Ref \n" ;
- 
-
+      
       // Solve for update
 
       // --- EVALUATE UPDATE STEP ---
