@@ -381,9 +381,9 @@ namespace vw {
   /// Given a view with pixels of type PixelMask<T>, this will toggle
   /// all valids to invalid, and invalid to valids.
   template <class PixelT>
-  class InvertPixelMask : public ReturnFixedType<PixelT const&> {
+  class InvertPixelMask : public ReturnFixedType<PixelT> {
   public:
-    PixelT const& operator()( PixelT & value ) const {
+    PixelT operator()( PixelT value ) const {
       toggle(value);
       return value;
     }
@@ -406,9 +406,9 @@ namespace vw {
   ///
   /// Given an image of PixelMasks, this will make all pixels valid
   template <class PixelT>
-  class ValidatePixelMask : public ReturnFixedType<PixelT const&> {
+  class ValidatePixelMask : public ReturnFixedType<PixelT> {
   public:
-    PixelT const& operator()( PixelT & value ) const {
+    PixelT operator()( PixelT value ) const {
       validate(value);
       return value;
     }
@@ -431,9 +431,9 @@ namespace vw {
   ///
   /// Given an image of PixelMasks, this will make all pixels invalid
   template <class PixelT>
-  class InvalidatePixelMask : public ReturnFixedType<PixelT const&> {
+  class InvalidatePixelMask : public ReturnFixedType<PixelT> {
   public:
-    PixelT const& operator()( PixelT & value ) const {
+    PixelT operator()( PixelT value ) const {
       invalidate(value);
       return value;
     }
