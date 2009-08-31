@@ -19,7 +19,8 @@ endif
 
 ba_headers = BundleAdjust.h BundleAdjustModelBase.h                     \
              BundleAdjustReport.h BundleAdjustmentBase.h                \
-             BundleAdjustmentRef.h BundleAdjustmentSparse.h
+             BundleAdjustmentRef.h BundleAdjustmentRobustRef.h          \
+             BundleAdjustmentSparse.h BundleAdjustmentRobustSparse.h  
 
 ba_sources = BundleAdjustReport.cc
 

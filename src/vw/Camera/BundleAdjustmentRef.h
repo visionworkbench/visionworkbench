@@ -258,14 +258,23 @@ namespace camera {
         }
       }
 
+      std::cout << "Past the setup step in Ref implementation \n";
+
       // --- UPDATE STEP ----
 
+      Matrix<double> JTS = transpose(J) * sigma;
+
+
       // Build up the right side of the normal equation...
-      Vector<double> del_J = -1.0 * (transpose(J) * sigma * epsilon);
+      Vector<double> del_J = -1.0 * (JTS * epsilon);
+
+      std::cout << "Past the right side in Ref implementation \n";
 
       // ... and the left side.  (Remembering to rescale the diagonal
       // entries of the approximated hessian by lambda)
-      Matrix<double> hessian = transpose(J) * sigma * J;
+      Matrix<double> hessian = JTS * J;
+
+      std::cout << "Past the left side in Ref Implementation \n";
 
       // initialize m_lambda on first iteration, ignore if user has
       // changed it.
@@ -298,8 +307,16 @@ namespace camera {
       Vector<double> e = subvector(delta, 0, num_cam_entries) - 
         W * transpose(Vinv) * Vinv * subvector(delta, num_cam_entries, num_pt_entries); 
       Matrix<double> S = U - Y * transpose(W);
+
+      std::cout << "Past U, W setup in Ref Implementation \n";
+
       solve(e, S); // using cholesky
+
+      std::cout << "Past solve(e,S) step in Ref Implementation \n";
+
       solve(delta, hessian);
+
+      std:: cout << "Past backward solve in Ref Implementation \n";
       
       double nsq_x = 0;
       for (unsigned j=0; j<this->m_model.num_cameras(); ++j){
@@ -365,11 +382,19 @@ namespace camera {
           }
         }
       }
+      
+      std::cout << "Past new error calc in Ref \n";
+
 
       //Fletcher modification
       double Splus = .5*transpose(new_epsilon) * sigma * new_epsilon; //Compute new objective
       double SS = .5*transpose(epsilon) * sigma * epsilon;            //Compute old objective
       double dS = .5 * transpose(delta) *(this->m_lambda * delta + del_J);
+
+      std::cout << "Old Objective: " << SS << "\n";
+      std::cout << "New Objective : " << Splus << "\n";
+      std:: cout << "Lambda: " << this->m_lambda << "\n";
+
 
       // WARNING: will want to replace dS later
 
