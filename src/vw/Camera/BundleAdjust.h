@@ -18,6 +18,8 @@
 #include <vw/Camera/BundleAdjustmentBase.h>
 #include <vw/Camera/BundleAdjustmentRef.h>
 #include <vw/Camera/BundleAdjustmentSparse.h>
+#include <vw/Camera/BundleAdjustmentRobustRef.h>
+#include <vw/Camera/BundleAdjustmentRobustSparse.h>
 
 // Reporter
 #include <vw/Camera/BundleAdjustReport.h>
