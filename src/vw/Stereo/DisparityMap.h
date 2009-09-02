@@ -547,21 +547,21 @@ namespace disparity {
   // the disparity map.  This is useful for removing the effect of any
   // linear warping for pre-alignment that was performed on the source
   // images prior to correlation.
-  template <class TransformT>
-  class TransformDisparitiesFunc: public ReturnFixedType<PixelDisparity<float> > {
+  template <class TransformT, class ChannelT>
+  class TransformDisparitiesFunc: public ReturnFixedType<PixelDisparity<ChannelT> > {
     TransformT m_trans;
-
-  public:
-    TransformDisparitiesFunc(TransformT const& trans) : m_trans(trans) {}
     
-    PixelDisparity<float> operator() (PixelDisparity<float> const& pix, Vector3 const& loc) const {
+  public:
+  TransformDisparitiesFunc(TransformT const& trans) : m_trans(trans) {}
+    
+    PixelDisparity<ChannelT> operator() (PixelDisparity<ChannelT> const& pix, Vector3 const& loc) const {
       if ( !pix.missing() ) {
-        
+	
         Vector2 old_point(loc[0] + pix.h(),
                           loc[1] + pix.v());
         Vector2 new_point = m_trans.reverse(old_point);       // apply the inverse transform
-        return PixelDisparity<float>(new_point[0] - loc[0],
-                                     new_point[1] - loc[1]);    
+        return PixelDisparity<ChannelT>(new_point[0] - loc[0],
+					new_point[1] - loc[1]);    
       } else {
         return pix;
       }
@@ -569,15 +569,15 @@ namespace disparity {
   };
   
   template <class ViewT, class TransformT>
-  BinaryPerPixelView<ViewT, PixelIndex3View, TransformDisparitiesFunc<TransformT> > 
+    BinaryPerPixelView<ViewT, PixelIndex3View, TransformDisparitiesFunc<TransformT, typename PixelChannelType<typename ViewT::pixel_type>::type> > 
   transform_disparities(ImageViewBase<ViewT> const& disparity_map, TransformT const& transform) {
     
     // Note: We use the PixelIndexView and Binary per pixel filter
     // idiom her to pass the location (in pixel coordinates) into the
     // functor along with the pixel value at that location.
-    return BinaryPerPixelView<ViewT, PixelIndex3View, TransformDisparitiesFunc<TransformT> >(disparity_map.impl(), 
-                                                                                             PixelIndex3View(disparity_map),
-                                                                                             TransformDisparitiesFunc<TransformT>(transform));
+    return BinaryPerPixelView<ViewT, PixelIndex3View, TransformDisparitiesFunc<TransformT, typename PixelChannelType<typename ViewT::pixel_type>::type> >(disparity_map.impl(), 
+																			  PixelIndex3View(disparity_map),
+																			  TransformDisparitiesFunc<TransformT, typename PixelChannelType<typename ViewT::pixel_type>::type>(transform));
   }
   
 } // namespace disparity
