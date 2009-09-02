@@ -103,34 +103,58 @@ namespace camera {
       vw_out(DebugMessage, "bundle_adjustment") << "Image Error: " << std::endl;
       unsigned i = 0;
       double error_total = 0; // assume this is r^T\Sigma^{-1}r
+
+
       for (typename ControlNetwork::const_iterator iter = this->m_control_net->begin(); 
-           iter != this->m_control_net->end(); ++iter) {
-        for (typename ControlPoint::const_iterator measure_iter = (*iter).begin(); 
-             measure_iter != (*iter).end(); ++measure_iter) {
+	   iter != this->m_control_net->end(); ++iter) {
+	for (typename ControlPoint::const_iterator measure_iter = (*iter).begin(); 
+	     measure_iter != (*iter).end(); ++measure_iter) {
+
+
+     
+      //for (unsigned i = 0; i < this->m_control_net->size(); ++i) {       // Iterate over control points
+      //for (unsigned m = 0; m < (*(this->m_control_net))[i].size(); 
+      //     ++m) {  // Iterate over control measures
+
+
+
 
           unsigned j = (*measure_iter).image_id();
-          VW_DEBUG_ASSERT(j >=0 && j < this->m_model.num_cameras(), 
-                          ArgumentErr() << "BundleAdjustment::update() : image index out of bounds.");
+	  //unsigned j = (*(this->m_control_net))[i][m].image_id();
+
+	   VW_DEBUG_ASSERT(j >=0 && j < this->m_model.num_cameras(), 
+	                ArgumentErr() << "BundleAdjustment::update() : image index out of bounds.");
           
           // Store jacobian values
-          if ( i == 106144 ) std::cout << "A Jacobian!\n";
+	   if ( i == 106144 ) std::cout << "A Jacobian!\n";
           A(i,j) = this->m_model.A_jacobian(i,j,this->m_model.A_parameters(j),
                                             this->m_model.B_parameters(i));
-          if ( i == 106144 ) std::cout << "B Jacobian!\n";
+	   if ( i == 106144 ) std::cout << "B Jacobian!\n";
           B(i,j) = this->m_model.B_jacobian(i,j,this->m_model.A_parameters(j),
                                             this->m_model.B_parameters(i));
 
           // Apply robust cost function weighting
-          Vector2 unweighted_error = measure_iter->dominant() - 
-            this->m_model(i,j,this->m_model.A_parameters(j),this->m_model.B_parameters(i));
+	  Vector2 unweighted_error = measure_iter->dominant() - 
+	    this->m_model(i,j,this->m_model.A_parameters(j),this->m_model.B_parameters(i));
+
+	  //Vector2 unweighted_error = (*(this->m_control_net))[i][m].dominant() - 
+	  //this->m_model(i, j, 
+	  //              this->m_model.A_parameters(j), 
+	  //              this->m_model.B_parameters(i));
 
           double mag = norm_2(unweighted_error);
           double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
 
           epsilon(i,j) = unweighted_error * weight;
+	  
+	  //  std::cout << "i: " << i << "j: " << j << "epsilon(i,j): " << unweighted_error * weight << "\n";
                             
           Matrix2x2 inverse_cov;
-          Vector2 pixel_sigma = measure_iter->sigma();
+
+	  Vector2 pixel_sigma = measure_iter->sigma();
+	  //Vector2 pixel_sigma = (*(this->m_control_net))[i][m].sigma();
+        
+
           Vector2 epsilon_inst = epsilon(i,j);
           inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
           inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
@@ -151,8 +175,12 @@ namespace camera {
             inverse_cov * epsilon_inst;
 
         }
-        ++i;
+	 ++i;
       }
+
+
+      // std::cout << "\n (new) U Matrix array prior to camera positions is: " << U << "\n";
+    
 
       // Add in the camera position and pose constraint terms and covariances.
       if (this->m_use_camera_constraint) {
@@ -173,6 +201,10 @@ namespace camera {
           
         }
       }
+      
+    
+      //   std::cout << "\n U Matrix array after camera positions is: " << U << "\n"; 
+
 
       // Add in the 3D point position constraint terms and
       // covariances. We only add constraints for Ground Control
@@ -225,8 +257,12 @@ namespace camera {
               max = fabs(static_cast<matrix_point_point>(V(i))(j,j));
           }
         this->m_lambda = max * 1e-10;
+
+	//	std::cout << "Computed lambda is: " << max*1e-10 << "\n";
+	//std::cout << "other order: " << 1e-10*max << "\n";
       }
       
+
      
       // "Augment" the diagonal entries of the U and V matrices with
       // the parameter lambda.
@@ -234,15 +270,22 @@ namespace camera {
         matrix_camera_camera u_lambda;
         u_lambda.set_identity();
         u_lambda *= this->m_lambda;
-        for ( i = 0; i < U.size(); ++i )
-          static_cast<matrix_camera_camera>(U(i)) += u_lambda;
+
+        for ( i = 0; i < U.size(); ++i ){
+	  // static_cast<matrix_camera_camera>(U(i)) += u_lambda; 
+	  U(i) += u_lambda;  
+	}
       }
+      //std::cout << "\n (new) U Matrix array after lambda adjustment " << U << "\n";
+
       {
         matrix_point_point v_lambda;
         v_lambda.set_identity();
         v_lambda *= this->m_lambda;
-        for ( i = 0; i < V.size(); ++i )
-          static_cast<matrix_point_point>(V(i)) += v_lambda;
+        for ( i = 0; i < V.size(); ++i ){
+          //static_cast<matrix_point_point>(V(i)) += v_lambda;
+	  V(i) += v_lambda;
+	}
       }
       
       // Create the 'e' vector in S * delta_a = e.  The first step is
@@ -453,6 +496,11 @@ namespace camera {
       double SS = error_total;            //Compute old objective
       double R = (SS - Splus)/dS;         // Compute ratio
       
+      std::cout << "New Objective: " << new_error_total << "\n"; 
+      std::cout << "Old Objective: " << error_total << "\n"; 
+      std::cout << "Lambda: " << this->m_lambda << "\n"; 
+
+
       if (R>0){
 
         for (unsigned j=0; j<this->m_model.num_cameras(); ++j)

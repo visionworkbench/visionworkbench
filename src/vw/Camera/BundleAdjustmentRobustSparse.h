@@ -265,14 +265,14 @@ namespace camera {
         u_lambda.set_identity();
         u_lambda *= this->m_lambda;
         for ( i = 0; i < U.size(); ++i )
-          static_cast<matrix_camera_camera>(U(i)) += u_lambda;
+          U(i) += u_lambda;
       }
       {
         matrix_point_point v_lambda;
         v_lambda.set_identity();
         v_lambda *= this->m_lambda;
         for ( i = 0; i < V.size(); ++i )
-          static_cast<matrix_point_point>(V(i)) += v_lambda;
+          V(i) += v_lambda;
       }
       
       // Create the 'e' vector in S * delta_a = e.  The first step is
