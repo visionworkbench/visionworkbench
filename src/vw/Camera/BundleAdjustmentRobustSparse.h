@@ -170,7 +170,24 @@ namespace camera {
         }
         ++i;
       }
+      // set initial lambda, and ignore if the user has touched it
+      if (this->m_iterations == 1 && this->m_lambda == 1e-3){
+        double max = 0.0;
+        for (unsigned i = 0; i < U.size(); ++i)
+          for (unsigned j = 0; j < BundleAdjustModelT::camera_params_n; ++j){
+            if (fabs(static_cast<matrix_camera_camera>(U(i))(j,j)) > max)
+              max = fabs(static_cast<matrix_camera_camera>(U(i))(j,j));
+          }
+        for (unsigned i = 0; i < V.size(); ++i)
+          for (unsigned j = 0; j < BundleAdjustModelT::point_params_n; ++j) {
+            if ( fabs(static_cast<matrix_point_point>(V(i))(j,j)) > max)
+              max = fabs(static_cast<matrix_point_point>(V(i))(j,j));
+          }
+        this->m_lambda = max * 1e-10;
+	std::cout << "lambda: " <<1e-10 * max << "\n\n"; 
+      }
 
+      
       // Add in the camera position and pose constraint terms and covariances.
       if (this->m_use_camera_constraint) {
         for (unsigned j = 0; j < U.size(); ++j) {
@@ -236,23 +253,7 @@ namespace camera {
 
       //e at this point should be -g_a
 
-      // set initial lambda, and ignore if the user has touched it
-      if (this->m_iterations == 1 && this->m_lambda == 1e-3){
-        double max = 0.0;
-        for (unsigned i = 0; i < U.size(); ++i)
-          for (unsigned j = 0; j < BundleAdjustModelT::camera_params_n; ++j){
-            if (fabs(static_cast<matrix_camera_camera>(U(i))(j,j)) > max)
-              max = fabs(static_cast<matrix_camera_camera>(U(i))(j,j));
-          }
-        for (unsigned i = 0; i < V.size(); ++i)
-          for (unsigned j = 0; j < BundleAdjustModelT::point_params_n; ++j) {
-            if ( fabs(static_cast<matrix_point_point>(V(i))(j,j)) > max)
-              max = fabs(static_cast<matrix_point_point>(V(i))(j,j));
-          }
-        this->m_lambda = max * 1e-10;
-      }
-
-
+     
       // "Augment" the diagonal entries of the U and V matrices with
       // the parameter lambda.
       {
@@ -516,11 +517,11 @@ namespace camera {
                                          static_cast<vector_point>(delta_b(i)));
 
         // Summarize the stats from this step in the iteration
-        double overall_norm = sqrt(new_robust_objective);
-        double overall_delta = sqrt(new_robust_objective) - sqrt(robust_objective);
+        //double overall_norm = sqrt(new_robust_objective);
+        //double overall_delta = sqrt(new_robust_objective) - sqrt(robust_objective);
 
-        abs_tol = overall_norm;
-        rel_tol = fabs(overall_delta);
+        abs_tol = vw::math::max(g) + vw::math::max(-g);
+        rel_tol = transpose(delta)*delta;
 
         if(this->m_control == 0){
           double temp = 1 - pow((2*R - 1),3);
@@ -534,7 +535,7 @@ namespace camera {
           this->m_lambda /= 10;
         }
 
-        return overall_delta;
+        return rel_tol;
 
       } else { // here we didn't make progress
 
