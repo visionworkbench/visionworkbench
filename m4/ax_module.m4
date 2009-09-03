@@ -7,6 +7,35 @@ dnl __END_LICENSE__
 # Usage: AX_MODULE(<name>, <directory>, <library>, <default>, <prerequisites>, <required dependencies>[, <optional dependencies>])
 AC_DEFUN([AX_MODULE],
 [
+  m4_ifdef([_AX_MODULE_PREPARE], [],
+  [
+    realpath() {
+        cd "[$]1" 2>/dev/null 1>&2 && pwd
+    }
+
+    abspath() {
+        if test ${1#/} = [$]1; then
+            echo "$PWD/[$]1"
+        else
+            echo [$]1
+        fi
+    }
+
+    var_uniq() {
+        echo -n "[$]*" | sed 's/ \+/\n/g' | sed -n 'G; s/\n/&&/; /^\(@<:@^\n@:>@*\n\).*\n\1/d; s/\n//; h; P' | tr '\n' ' '
+    }
+
+    get_rpath() {
+        for i in "[$]@"; do
+            case [$i] in
+                -L*) v="`abspath ${i#-L}`"; if test -n "$v"; then echo -n " -R$v"; fi;;
+            esac
+        done
+        echo
+    }
+    m4_define([_AX_MODULE_PREPARE], [1])
+  ])
+
   # Silently ignore modules that don't exist in this distribution
   if test -d "$srcdir/$2" ; then
 
@@ -35,6 +64,9 @@ AC_DEFUN([AX_MODULE],
        AS_IF([test -n "$missing"], [AC_MSG_RESULT([no ([missing] $missing)]); ax_module_enable=no],
          [AX_LOAD_DEPS([$1], [$7]) dnl Load optional deps
           MODULE_$1_CPPFLAGS="$PKG_$1_CPPFLAGS"
+          if test x"$ENABLE_RPATH" = "xyes"; then
+            PKG_$1_LIBS="$PKG_$1_LIBS `var_uniq \`get_rpath ${PKG_$1_LIBS}\``"
+          fi
           MODULE_$1_LIBS="$PKG_$1_LIBS"
           m4_ifval([$3], [PKG_$1_LIBS="$PKG_$1_LIBS \$(top_builddir)/$2/$3"])
           AC_MSG_RESULT([yes])])])

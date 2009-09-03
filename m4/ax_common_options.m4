@@ -19,6 +19,7 @@ AX_ARG_ENABLE(arch-libs,     no, [none],            [force /lib64 (=64) or /lib3
 AX_ARG_ENABLE(proper-libs,  yes, [none],            [useful linker options])
 AX_ARG_ENABLE(ccache,        no, [none],            [try to use ccache, if available])
 AX_ARG_ENABLE(multi-arch,    [], [none],            [build multi-arch (universal) binaries])
+AX_ARG_ENABLE(rpath,         no, [none],            [set RPATH/RUNPATH on generated binaries])
 
 
 
