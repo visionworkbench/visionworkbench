@@ -131,5 +131,5 @@ TEST(Geometry, SimilarityFittingFunctor) {
 
   // compute a fit given the points only, and compare it to the true
   // similarity.
-  EXPECT_MATRIX_NEAR( S, SimilarityFittingFunctor()(p1,p2), 1e-15 );
+  EXPECT_MATRIX_NEAR( S, SimilarityFittingFunctor()(p1,p2), 1.8e-15 );
 }
