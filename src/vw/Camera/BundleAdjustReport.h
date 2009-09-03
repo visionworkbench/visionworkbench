@@ -92,7 +92,8 @@ namespace camera {
                                 int recursive_lvl );
 
   // Bundle Adjust Report Code
-  template <class BundleAdjustModelT, class BundleAdjusterT>
+  //template <class BundleAdjustModelT, class BundleAdjusterT>
+  template <class BundleAdjusterT>
   class BundleAdjustReport {
   private:
     multi_ostream m_human_both;
@@ -100,7 +101,9 @@ namespace camera {
     std::ofstream m_bundlevis_binary;
     std::string   m_file_prefix;
 
-    BundleAdjustModelT& m_model;
+    typedef typename BundleAdjusterT::model_type ModelType;
+    ModelType& m_model;
+    //BundleAdjustModelT& m_model;
     BundleAdjusterT& m_adjuster;
 
 #ifndef __APPLE__
@@ -121,7 +124,7 @@ namespace camera {
 
   public:
     BundleAdjustReport(std::string const& name,
-                       BundleAdjustModelT& model,
+                       ModelType& model,
                        BundleAdjusterT& adjuster,
                        int report_lvl=10)  :  m_model(model), m_adjuster(adjuster), bundleadjust_name(name), report_level(report_lvl) {
 

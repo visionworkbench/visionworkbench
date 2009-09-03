@@ -302,6 +302,10 @@ namespace camera {
       }
     }
     
+    // Access to inner templates
+    typedef BundleAdjustModelT model_type;
+    typedef RobustCostT cost_type;
+
     // Operational Controls
     double lambda() const { return m_lambda; }
     void set_lambda(double lambda) { m_lambda = lambda; }
