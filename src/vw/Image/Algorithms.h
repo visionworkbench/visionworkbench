@@ -16,6 +16,10 @@
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Image/Statistics.h>
 
+/// Used in blobindex
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/connected_components.hpp>
+
 namespace vw {
 
   // *******************************************************************
@@ -513,25 +517,26 @@ namespace vw {
   /// for growing bounding boxes on them.
 
   class BlobIndex {
-    uint32 m_blob_count;
-    uint32 m_optimal_count;
-    std::vector<std::list<Vector2i> > m_blob;
+     std::vector<std::list<Vector2i> > m_blob;
+     uint m_blob_count;
 
   public:
     // Constructor performs processing
     template <class SourceT>
-      BlobIndex( ImageViewBase<SourceT> const& src,
-                 ImageView<uint32>& dst,
-                 bool save_pixels=false ) {
+    BlobIndex( ImageViewBase<SourceT> const& src,
+               ImageView<uint32>& dst,
+               bool save_pixels=false ) {
+
       if ( src.impl().planes() > 1 )
         vw_throw( NoImplErr() << "Blob index currently only works with 2D images." );
       dst.set_size( src.impl().cols(),
                     src.impl().rows() );
       fill(dst,0);
-      m_blob_count = 1;
-      std::map<int,int> discrepancies;
-      m_optimal_count = 1;
-      std::map<int,int> optimal_numbering;
+
+      // Initialize Graph used to pair blobs
+      typedef boost::adjacency_list<boost::vecS,boost::vecS,boost::undirectedS> Graph;
+      Graph connections;
+      m_blob_count=1;
 
       { // Initial Pass
         typename SourceT::pixel_accessor s_acc = src.impl().origin();
@@ -608,7 +613,7 @@ namespace vw {
               p_d_acc.advance(-1,0);
               if ( is_valid(*p_s_acc) )
                 if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) {
-                  discrepancies.insert(std::make_pair(*p_d_acc,*d_acc));
+                  boost::add_edge(*p_d_acc,*d_acc,connections);
                 } else
                   *d_acc = *p_d_acc;
               // Upper Left
@@ -616,7 +621,7 @@ namespace vw {
               p_d_acc.advance(0,-1);
               if ( is_valid(*p_s_acc) )
                 if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) {
-                  discrepancies.insert(std::make_pair(*p_d_acc,*d_acc));
+                  boost::add_edge(*p_d_acc,*d_acc,connections);
                 } else
                   *d_acc = *p_d_acc;
               // Upper
@@ -624,7 +629,7 @@ namespace vw {
               p_d_acc.advance(1,0);
               if ( is_valid(*p_s_acc) )
                 if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) {
-                  discrepancies.insert(std::make_pair(*p_d_acc,*d_acc));
+                  boost::add_edge(*p_d_acc,*d_acc,connections);
                 } else
                   *d_acc = *p_d_acc;
               // Upper Right
@@ -632,7 +637,7 @@ namespace vw {
               p_d_acc.advance(1,0);
               if ( is_valid(*p_s_acc) && (i != 1) ) {
                 if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) {
-                  discrepancies.insert(std::make_pair(*p_d_acc,*d_acc));
+                  boost::add_edge(*p_d_acc,*d_acc,connections);
                 } else
                   *d_acc = *p_d_acc;
               }
@@ -655,64 +660,20 @@ namespace vw {
         }
       }
 
-      // Working out discrepencies
-      int local_largest = 0;
-      int prev_largest = 0;
-      std::map<int,int>::iterator search_temp;
-
-      for ( std::map<int,int>::iterator iter = discrepancies.begin();
-            iter != discrepancies.end(); ++iter ) {
-        // Find largest value this current is associated with
-        local_largest = (*iter).second;
-        search_temp = discrepancies.find( local_largest );
-        while ( search_temp != discrepancies.end() ) {
-          local_largest = (*search_temp).second;
-          search_temp = discrepancies.find( local_largest );
-        }
-
-        // Assign it the largest found reference
-        (*iter).second = local_largest;
-
-        // Is this a new object. If so, number it for optimal
-        if ( prev_largest != local_largest ) {
-          prev_largest = local_largest;
-          search_temp = optimal_numbering.find(local_largest);
-          if ( search_temp == optimal_numbering.end() ) {
-            //ie. not already there
-            optimal_numbering.insert( std::make_pair(local_largest,
-                                                     m_optimal_count) );
-            m_optimal_count++;
-          }
-        }
-      }
+      // Making sure connections has vertices for all indexes made
+      add_edge(m_blob_count-1,m_blob_count-1,connections);
+      std::vector<uint32> component(boost::num_vertices(connections));
+      m_blob_count = boost::connected_components(connections, &component[0])-1;
 
       { // Update index map to optimal numbering
         ImageView<uint32>::pixel_accessor p_d_acc = dst.origin(); // previous
 
-        uint32 temp_int;
         for ( int32 r = 0; r < dst.rows(); r++ ) {
           ImageView<uint32>::pixel_accessor d_acc = p_d_acc;
           for ( int32 c = 0; c < dst.cols(); c++ ) {
             if ( (*d_acc) != 0 ) {
 
-              search_temp = discrepancies.find( *d_acc );
-              if ( search_temp == discrepancies.end() ) {
-                // For blobs that never had irregular surfaces
-                search_temp = optimal_numbering.find(*d_acc);
-                if ( search_temp == optimal_numbering.end() ) {
-                  optimal_numbering.insert(std::make_pair(*d_acc,m_optimal_count)); // For final numbering
-                  discrepancies.insert(std::make_pair(*d_acc,*d_acc)); // For fast track next pixel
-                  *d_acc = m_optimal_count;
-                  m_optimal_count++;
-                } else {
-                  // Already there
-                  *d_acc = (*search_temp).second;
-                }
-              } else {
-                temp_int = (*search_temp).second;
-                search_temp = optimal_numbering.find( temp_int );
-                *d_acc = (*search_temp).second;
-              }
+              *d_acc = component[*d_acc];
 
               if ( save_pixels ) {
                 if ( *d_acc > m_blob.size() )
@@ -725,13 +686,10 @@ namespace vw {
           p_d_acc.next_row();
         }
       }
-
-      m_blob_count--;
-      m_optimal_count--;
     }
 
     // Access points to intersting information
-    uint32 num_blobs() const { return m_optimal_count; }
+    uint32 num_blobs() const { return m_blob_count; }
 
     // Access to blobs
     std::list<Vector2i> const& blob( uint32 const& index ) const { return m_blob[index]; }
