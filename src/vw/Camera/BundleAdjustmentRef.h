@@ -80,6 +80,8 @@ namespace camera {
           // Fill in the entries of the sigma matrix with the uncertainty of the observations.
           Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = (*this->m_control_net)[i][m].sigma();
+
+
           inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
           inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
           submatrix(sigma, 2*idx, 2*idx, 2, 2) = inverse_cov;
@@ -201,14 +203,19 @@ namespace camera {
           // Fill in the entries of the sigma matrix with the uncertainty of the observations.
           Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = (*(this->m_control_net))[i][m].sigma();
-          inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
+          
+	  //	  std::cout << "pixel sigma is: " << pixel_sigma << "\n\n";
+	  
+	  inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
           inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
           submatrix(sigma, 2*idx, 2*idx, 2, 2) = inverse_cov;
-
+	  
           ++idx;
         }
       }
       
+      // std::cout << "epsilon: " << epsilon << "\n"; 
+
       // Add rows to J and epsilon for a priori camera parameters...
       if (this->m_use_camera_constraint)
         for (unsigned j=0; j < num_cameras; ++j) {
@@ -219,7 +226,7 @@ namespace camera {
                     j*num_cam_params,
                     num_cam_params,
                     num_cam_params) = id;
-          Vector<double> unweighted_error = this->m_model.A_initial(j) - 
+          Vector<double> unweighted_error = this->m_model.A_initial(j) -
             this->m_model.A_parameters(j);
           subvector(epsilon,
                     2*this->m_model.num_pixel_observations() + j*num_cam_params,
@@ -262,17 +269,23 @@ namespace camera {
 
       // --- UPDATE STEP ----
 
+   
       Matrix<double> JTS = transpose(J) * sigma;
 
 
       // Build up the right side of the normal equation...
       Vector<double> del_J = -1.0 * (JTS * epsilon);
 
+      // std::cout << "del_J: " << del_J << "\n\n";
+
+
+      // std::cout << "del_J" << del_J << "\n";
+
       std::cout << "Past the right side in Ref implementation \n";
 
       // ... and the left side.  (Remembering to rescale the diagonal
       // entries of the approximated hessian by lambda)
-      Matrix<double> hessian = JTS * J;
+       Matrix<double> hessian = JTS * J;
 
       std::cout << "Past the left side in Ref Implementation \n";
 
@@ -285,8 +298,16 @@ namespace camera {
             max = fabs(hessian(i,i));
         }
         this->m_lambda = 1e-10 * max;
-      }
 
+	std::cout << "lambda: " <<1e-10 * max << "\n\n"; 
+      }
+      
+      unsigned num_cam_entries = num_cam_params * num_cameras;
+      unsigned num_pt_entries = num_pt_params * num_points;
+
+      Matrix<double> testU = submatrix(hessian, 0, 0, num_cam_entries, num_cam_entries);
+
+     
       for ( unsigned i=0; i < hessian.rows(); ++i )
         hessian(i,i) +=  this->m_lambda;
 
@@ -295,10 +316,11 @@ namespace camera {
 
       // Here we want to make sure that if we apply Schur methods as
       // on p. 604, we can get the same answer as in the general delta.
-      unsigned num_cam_entries = num_cam_params * num_cameras;
-      unsigned num_pt_entries = num_pt_params * num_points;
-
+    
       Matrix<double> U = submatrix(hessian, 0, 0, num_cam_entries, num_cam_entries);
+      
+      //std::cout << "U: " << U << "\n\n"; 
+
       Matrix<double> W = submatrix(hessian, 0, num_cam_entries,  num_cam_entries, num_pt_entries);
       Matrix<double> Vinv = submatrix(hessian, num_cam_entries, num_cam_entries, 
                                       num_pt_entries, num_pt_entries); 
@@ -307,6 +329,9 @@ namespace camera {
       Vector<double> e = subvector(delta, 0, num_cam_entries) - 
         W * transpose(Vinv) * Vinv * subvector(delta, num_cam_entries, num_pt_entries); 
       Matrix<double> S = U - Y * transpose(W);
+
+      //std::cout << "S: " << S << "\n\n";
+
 
       std::cout << "Past U, W setup in Ref Implementation \n";
 
