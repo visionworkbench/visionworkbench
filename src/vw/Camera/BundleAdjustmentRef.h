@@ -214,6 +214,19 @@ namespace camera {
         }
       }
       
+      double max = 0.0;
+      if (this->m_iterations == 1 && this->m_lambda == 1e-3){
+        Matrix<double> hessian = transpose(J) * sigma * transpose(J);
+	for (unsigned i = 0; i < hessian.rows(); ++i){
+          if (fabs(hessian(i,i)) > max)
+            max = fabs(hessian(i,i));
+        }
+        this->m_lambda = 1e-10 * max;
+
+	std::cout << "lambda: " << 1e-10 * max << "\n\n"; 
+      }
+     
+      
       // std::cout << "epsilon: " << epsilon << "\n"; 
 
       // Add rows to J and epsilon for a priori camera parameters...
@@ -291,17 +304,7 @@ namespace camera {
 
       // initialize m_lambda on first iteration, ignore if user has
       // changed it.
-      double max = 0.0;
-      if (this->m_iterations == 1 && this->m_lambda == 1e-3){
-        for (unsigned i = 0; i < hessian.rows(); ++i){
-          if (fabs(hessian(i,i)) > max)
-            max = fabs(hessian(i,i));
-        }
-        this->m_lambda = 1e-10 * max;
-
-	std::cout << "lambda: " <<1e-10 * max << "\n\n"; 
-      }
-      
+           
       unsigned num_cam_entries = num_cam_params * num_cameras;
       unsigned num_pt_entries = num_pt_params * num_points;
 
@@ -418,7 +421,7 @@ namespace camera {
 
       std::cout << "Old Objective: " << SS << "\n";
       std::cout << "New Objective : " << Splus << "\n";
-      std:: cout << "Lambda: " << this->m_lambda << "\n";
+      std::cout << "Lambda: " << this->m_lambda << "\n";
 
 
       // WARNING: will want to replace dS later
@@ -437,13 +440,19 @@ namespace camera {
                                                    num_pt_params));
      
         // Summarize the stats from this step in the iteration
-        double overall_norm = sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon);
+	// double overall_norm = sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon);
         
-        double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - 
-          sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon) ; 
+        //double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - 
+	//sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon) ; 
         
-        abs_tol = overall_norm;
-        rel_tol = overall_delta;
+	// Note: del_J is the current gradient, already computed. 
+
+
+        abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
+        rel_tol = transpose(delta)*delta;
+
+	//std::cout << "abs_tol (inf norm of grad): " << abs_tol << "\n\n";
+	//std::cout << "rel_tol (2 norm of delta: " << abs_tol << "\n\n";
 
         if (this->m_control==0){
           double temp = 1 - pow((2*R - 1),3); 
@@ -455,7 +464,7 @@ namespace camera {
         } else if (this->m_control == 1)
           this->m_lambda /= 10;
         
-        return overall_delta;
+        return rel_tol;
       
       } else { // R <= 0
         
