@@ -14,13 +14,13 @@ if MAKE_MODULE_CAMERA
 if HAVE_PKG_LAPACK
 lsm_headers = Extrinsics.h LinescanModel.h LinearPushbroomModel.h	\
               OrbitingPushbroomModel.h PinholeModel.h PinholeModelCalibrate.h \
-              LensDistortion.h BundleAdjust.h
+              LensDistortion.h
 endif
 
 ba_headers = BundleAdjust.h BundleAdjustModelBase.h                     \
              BundleAdjustReport.h BundleAdjustmentBase.h                \
              BundleAdjustmentRef.h BundleAdjustmentRobustRef.h          \
-             BundleAdjustmentSparse.h BundleAdjustmentRobustSparse.h  
+             BundleAdjustmentSparse.h BundleAdjustmentRobustSparse.h
 
 ba_sources = BundleAdjustReport.cc
 
