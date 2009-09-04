@@ -93,9 +93,6 @@ namespace vw {
     }
 
   private:
-    // Allows RasterizeFunctor to access cache-related members.
-    template <class DestT> friend class RasterizeFunctor;
-
     // These function objects are spawned to rasterize the child image.
     // One functor is created per child thread, and they are called 
     // in succession with bounding boxes that are each contained 
@@ -125,6 +122,9 @@ namespace vw {
         else m_view.child().rasterize( crop( m_dest, bbox-m_offset ), bbox );
       }
     };
+
+    // Allows RasterizeFunctor to access cache-related members.
+    template <class DestT> friend class RasterizeFunctor;
 
     // These objects rasterize a full block of image data to be 
     // stored in the cache.
