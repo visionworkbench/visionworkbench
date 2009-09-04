@@ -220,15 +220,34 @@ AX_PKG(GLEW, [GL M], [-lGLEW], [GL/glew.h])
 AX_PKG(CG, [GL], [-lCg -lCgGL], [Cg/cg.h])
 
 AX_PKG(GDAL, [], [-lgdal], [gdal.h])
-PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize], [TIFF])
-PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize64], [BigTIFF])
 
-if test x"$GDAL_HAS_TIFF" == "xyes"; then
+# GDAL requires tiff support, but it can be internal or external.
+PKG_CHECK_FUNCTION(GDAL, [TiffScanlineSize], [External_LibTIFF])
+
+if test x"$HAVE_PKG_GDAL" = "xyes"; then
   HAVE_PKG_TIFF="no:gdal has tiff support"
+  if test x"$GDAL_HAS_EXTERNAL_LIBTIFF" = "xyes"; then
+    PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize64], [BigTIFF])
+  else
+    GDAL_HAS_BIGTIFF=yes
+  fi
+  VW_HAS_BIGTIFF="$GDAL_HAS_BIGTIFF"
 fi
 
 AX_PKG(TIFF, [], [-ltiff], [tiff.h])
-PKG_CHECK_FUNCTION(TIFF, [TIFFScanlineSize64], [BigTIFF])
+if test x"$HAVE_PKG_TIFF" = "xyes"; then
+  PKG_CHECK_FUNCTION(TIFF, [TIFFScanlineSize64], [BigTIFF])
+  VW_HAS_BIGTIFF="$TIFF_HAS_BIGTIFF"
+fi
+
+AC_MSG_CHECKING([if VW has BigTIFF support])
+if test x"$VW_HAS_BIGTIFF" = "xyes"; then
+  has_bigtiff=1
+else
+  has_bigtiff=0
+fi
+AC_DEFINE_UNQUOTED(HAS_BIGTIFF, [$has_bigtiff], [Define to 1 if VW has BigTIFF support])
+AC_MSG_RESULT([$VW_HAS_BIGTIFF])
 
 AX_PKG(PROJ4, [M], [-lproj], [projects.h])
 
