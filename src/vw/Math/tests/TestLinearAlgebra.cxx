@@ -279,7 +279,7 @@ TEST(LinearAlgebra, SVDUsVTFloat) {
   ASSERT_EQ( std::min(A.rows(), A.cols()), VT.rows() );
   ASSERT_EQ( A.cols(), VT.cols() );
 
-  EXPECT_MATRIX_NEAR( A, U * diagonal_matrix(s) * VT, 1e-4 );
+  EXPECT_MATRIX_NEAR( A, U * diagonal_matrix(s) * VT, 1.3e-4 );
 }
 
 // Test the qrd(A, Q, R) routine with double matrices
