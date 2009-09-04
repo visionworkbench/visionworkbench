@@ -141,7 +141,8 @@ namespace camera {
 
           epsilon(i,j) = unweighted_error * sqrt(mu_weight);
 
-          Vector2 epsilon_inst = epsilon(i,j);
+	  // do NOT want epsilon_inst scaled
+          Vector2 epsilon_inst = unweighted_error;
 
           robust_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
 
@@ -157,7 +158,7 @@ namespace camera {
           W(j,i) = mu_weight*transpose(static_cast< matrix_2_camera >(A(i,j))) *
             inverse_cov * static_cast< matrix_2_point >(B(i,j));
 
-
+	 
 
           // transpose(J) * epsilon is also formed right away, so we again just
           // multiply by the weight.
@@ -170,6 +171,8 @@ namespace camera {
         }
         ++i;
       }
+
+     
       // set initial lambda, and ignore if the user has touched it
       if (this->m_iterations == 1 && this->m_lambda == 1e-3){
         double max = 0.0;
@@ -184,9 +187,9 @@ namespace camera {
               max = fabs(static_cast<matrix_point_point>(V(i))(j,j));
           }
         this->m_lambda = max * 1e-10;
-	std::cout << "lambda: " <<1e-10 * max << "\n\n"; 
+	//std::cout << "lambda: " <<1e-10 * max << "\n\n"; 
       }
-
+    
       
       // Add in the camera position and pose constraint terms and covariances.
       if (this->m_use_camera_constraint) {
@@ -210,6 +213,9 @@ namespace camera {
 
         }
       }
+      // std::cout << "epsilon_a is: " << epsilon_a << "\n\n";
+      //std::cout << "epsilon_b is: " << epsilon_b << "\n\n";
+     
 
       // Add in the 3D point position constraint terms and
       // covariances. We only add constraints for Ground Control
@@ -237,7 +243,7 @@ namespace camera {
           }
         }
       }
-
+  
       // flatten both epsilon_b and epsilon_a into a vector
       for (unsigned j = 0; j < U.size(); j++){
         subvector(g, current_g_length, num_cam_params) = static_cast<vector_camera>(epsilon_a(j));
@@ -248,7 +254,7 @@ namespace camera {
         subvector(g, current_g_length, num_pt_params) = static_cast<vector_point>(epsilon_b(i));
         current_g_length += num_pt_params;
       }
-
+   
       // std::cout << "Vector g is : " << g << "\n";
 
       //e at this point should be -g_a
@@ -270,7 +276,9 @@ namespace camera {
         for ( i = 0; i < V.size(); ++i )
           V(i) += v_lambda;
       }
-
+      
+      //std::cout << "U after adding in pixels and cams (no lambda): " << U << "\n\n";
+      
       // Create the 'e' vector in S * delta_a = e.  The first step is
       // to "flatten" our block structure to a vector that contains
       // scalar entries.
@@ -370,11 +378,13 @@ namespace camera {
         }
       }
 
+      //S.print_matrix();
+
 
       // Compute the LDL^T decomposition and solve using sparse methods.
       Vector<double> delta_a = sparse_solve(S, e);
 
-      // std::cout << "Delta a is : " << delta_a << "\n";
+      //std::cout << "Delta a is : " << delta_a << "\n\n";
 
 
       subvector(delta, current_delta_length, e.size()) = delta_a;
@@ -538,6 +548,9 @@ namespace camera {
         return rel_tol;
 
       } else { // here we didn't make progress
+
+	abs_tol = vw::math::max(g) + vw::math::max(-g);
+        rel_tol = transpose(delta)*delta;
 
         if (this->m_control == 0){
           this->m_lambda *= this->m_nu;
