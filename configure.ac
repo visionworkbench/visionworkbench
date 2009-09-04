@@ -180,19 +180,22 @@ AX_PKG_ONE_OF(LAPACK,
   APPLE_LAPACK,
     [AX_PKG_APPLE(LAPACK, [], [-framework vecLib])],
   CLAPACK,
-    [AX_PKG(CLAPACK, [], [-lclapack -lblas -lf2c], [])],
+    [AX_PKG(CLAPACK, [], [-lclapack -lblas -lf2c],     [], [], [], [dgelss_])],
   SLAPACK,
-    [AX_PKG(SLAPACK, [], [-llapack -lblas], [])],
+    [AX_PKG(SLAPACK, [], [-llapack -lblas],            [], [], [], [dgelss_])],
   FLAPACK,
-    [AX_PKG(FLAPACK, [], [-llapack -lblas -lgfortran], [])],
+    [AX_PKG(FLAPACK, [], [-llapack -lblas -lgfortran], [], [], [], [dgelss_])],
+  INTEL_LAPACK,
+    [case $host_cpu in x86_64) INTEL_LAPACK_ARCH=em64t;; ia64) INTEL_LAPACK_ARCH=64;; *) INTEL_LAPACK_ARCH=32;; esac
+     AX_PKG(INTEL_LAPACK, [PTHREADS], [-lmkl -lmkl_lapack -lmkl_def -liomp5], [mkl_lapack.h], [], [$INTEL_LAPACK_ARCH], [dgelss_])],
   STANDALONE_LAPACK_BLAS,
     [AX_PKG(STANDALONE_BLAS, [], [-lblas], [])
-     AX_PKG(STANDALONE_LAPACK, [STANDALONE_BLAS], [-llapack], [])
+     AX_PKG(STANDALONE_LAPACK, [STANDALONE_BLAS], [-llapack], [], [], [], [dgelss_])
      AX_GROUP_PKG(STANDALONE_LAPACK_AND_BLAS, [STANDALONE_LAPACK STANDALONE_BLAS])],
   STANDALONE_FLAPACK_FBLAS,
     [AX_PKG(STANDALONE_F2C, [], [-lf2c], [])
      AX_PKG(STANDALONE_FBLAS, [STANDALONE_F2C], [-lblas], [])
-     AX_PKG(STANDALONE_FLAPACK, [STANDALONE_FBLAS STANDALONE_F2C], [-llapack], [])
+     AX_PKG(STANDALONE_FLAPACK, [STANDALONE_FBLAS STANDALONE_F2C], [-llapack], [], [], [], [dgelss_])
      AX_GROUP_PKG(STANDALONE_FLAPACK_FBLAS, [STANDALONE_FLAPACK STANDALONE_FBLAS STANDALONE_F2C])])
 
 AX_PKG(M, [], [-lm], [math.h])
@@ -214,7 +217,7 @@ AX_PKG_ONE_OF(GL,
     [AX_PKG_APPLE([GL], [], [-framework OpenGL -framework GLUT -Wl,-dylib_file,/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib])],
   LINUX_GL,
     [AX_PKG(X11, [], [-lXext -lX11 -lXmu -lXi -lXt], [])
-     AX_PKG(LINUX_GL, [X11], [-lGL -lGLU -lglut], [GL/gl.h GL/glu.h GL/glut.h], [], [glCreateShader])])
+     AX_PKG(LINUX_GL, [X11], [-lGL -lGLU -lglut], [GL/gl.h GL/glu.h GL/glut.h], [], [], [glCreateShader])])
 
 AX_PKG(GLEW, [GL M], [-lGLEW], [GL/glew.h])
 AX_PKG(CG, [GL], [-lCg -lCgGL], [Cg/cg.h])
