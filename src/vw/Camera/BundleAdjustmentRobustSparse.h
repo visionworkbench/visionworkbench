@@ -63,8 +63,7 @@ namespace camera {
       boost_sparse_matrix< matrix_2_camera  > A(this->m_model.num_points(), this->m_model.num_cameras());
       boost_sparse_matrix< matrix_2_point > B(this->m_model.num_points(), this->m_model.num_cameras());
       boost_sparse_matrix<Vector2> epsilon(this->m_model.num_points(), this->m_model.num_cameras());
-      boost_sparse_matrix<Vector2> new_epsilon(this->m_model.num_points(), this->m_model.num_cameras());
-
+     
       // Data structures necessary for Fletcher modification
       // boost::numeric::ublas::mapped_matrix<Vector2> Jp(m_model.num_points(), m_model.num_cameras());
 
@@ -419,9 +418,13 @@ namespace camera {
         ++i;
       }
 
-
+      //std::cout << "Delta is : " << delta << "\n\n";
 
       dS = .5 * transpose(delta) *(this->m_lambda * delta + g);
+
+      // std::cout << "dS is: " << dS << "\n\n";
+      
+      
 
       // -------------------------------
       // Compute the update error vector and predicted change
@@ -450,48 +453,51 @@ namespace camera {
 
           Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = measure_iter->sigma();
-          Vector2 epsilon_inst = new_epsilon(i,j);
+	  // Vector2 epsilon_inst = unweighted_error;
           inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
           inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
 
 
            // Populate the S_weights, mu_weights vectors
           double S_weight = transpose(unweighted_error) * inverse_cov * unweighted_error;
-          double mu_weight = (t_df + t_dim)/(t_df + S_weight);
-
-
-          new_epsilon(i,j) = sqrt(mu_weight) * unweighted_error;
-
+         
           new_robust_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
 
         }
         ++i;
       }
 
+      //  std::cout << "new robust objective after pixels: " << new_robust_objective << "\n\n";
+
       // Camera Constraints
       if (this->m_use_camera_constraint)
         for (unsigned j = 0; j < U.size(); ++j) {
 
+
+	  // note the signs here: should be +
           vector_camera new_a = this->m_model.A_parameters(j) +
             subvector(delta_a, num_cam_params*j, num_cam_params);
 
-
+	 
           matrix_camera_camera inverse_cov;
           inverse_cov = this->m_model.A_inverse_covariance(j);
 
           vector_camera eps_a = this->m_model.A_initial(j)-new_a;
 
-          double S_weight = transpose(eps_a) * inverse_cov * eps_a;
-          //double mu_weight = (t_df + t_dim)/(t_df + S_weight); // Delete?
+	  //	  std::cout << "unweighted error is: " << eps_a << "\n\n";
 
+          double S_weight = transpose(eps_a) * inverse_cov * eps_a;
+        
           new_robust_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
         }
+      //  std::cout << "new robust objective after initials: " << new_robust_objective << "\n\n";
 
       // GCP Error
       if (this->m_use_gcp_constraint)
         for (unsigned i = 0; i < V.size(); ++i) {
           if ((*this->m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
 
+	    // note the signs here: should be +
             vector_point new_b = this->m_model.B_parameters(i) +
               static_cast<vector_point>(delta_b(i));
 
@@ -501,19 +507,20 @@ namespace camera {
             vector_point eps_b = this->m_model.B_initial(i)-new_b;
 
             double S_weight = transpose(eps_b)*inverse_cov*eps_b;
-            //double mu_weight = (t_df + t_dim)/(t_df + S_weight); // Delete ?
-
+         
             new_robust_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
           }
         }
-
+      
+    
       //Fletcher modification
       double Splus = new_robust_objective;     //Compute new objective
       double SS = robust_objective;            //Compute old objective
       double R = (SS - Splus)/dS;         // Compute ratio
 
-      std::cout << "New Objective: " << new_robust_objective << "\n";
+     
       std::cout << "Old Objective: " << robust_objective << "\n";
+      std::cout << "New Objective: " << new_robust_objective << "\n";
       std::cout << "Lambda: " << this->m_lambda << "\n";
 
 

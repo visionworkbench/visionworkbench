@@ -235,6 +235,8 @@ namespace camera {
       //Cholesky decomposition. Returns Cholesky matrix in lower left hand corner.
       Vector<double> delta = del_J;
 
+      //std::cout << "delta is: " << delta << "\n\n";
+
 
       // Here we want to make sure that if we apply Schur methods as on p. 604, we can get the same answer as in the general delta.
       unsigned num_cam_entries = num_cam_params * num_cameras;
@@ -267,8 +269,7 @@ namespace camera {
 
       // Solve for update
 
-      // --- EVALUATE UPDATE STEP ---
-      Vector<double> new_epsilon(num_observations);           // Robust Error vector
+ 
 
       double new_objective = 0.0;
 
@@ -293,32 +294,32 @@ namespace camera {
           double mu_weight = (t_df + t_dim)/(t_df + S_weight);
 
 
-          // Populate the robust epsilon vector
-          subvector(new_epsilon,2*idx,2) = unweighted_error * sqrt(mu_weight);
-
+         
           new_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
 
           ++idx;
         }
       }
 
+      std::cout << "new objective after pixels: " << new_objective << "\n\n";
+
       // Add rows to J and epsilon for a priori position/pose constraints...
       if (this->m_use_camera_constraint)
         for (unsigned j=0; j < num_cameras; ++j) {
           Vector<double> cam_delta = subvector(delta, num_cam_params*j, num_cam_params);
 
-          Vector<double> unweighted_error = this->m_model.A_initial(j)- this->m_model.A_parameters(j) - cam_delta;
+          Vector<double> unweighted_error = this->m_model.A_initial(j)- (this->m_model.A_parameters(j) - cam_delta);
+
+	  //	  std::cout << "unweighted error is: " << unweighted_error << "\n\n";
 
           double S_weight = transpose(unweighted_error) * this->m_model.A_inverse_covariance(j) * unweighted_error;
           double mu_weight = (t_df + t_dim)/(t_df + S_weight);
 
-          subvector(new_epsilon,
-                    2*this->m_model.num_pixel_observations() + j*num_cam_params,
-                    num_cam_params) = unweighted_error*sqrt(mu_weight);
-
-          new_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
+	  new_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
 
         }
+
+       std::cout << "new objective after initials: " << new_objective << "\n\n";
 
       // ... and the position of the 3D points to J and epsilon ...
       if (this->m_use_gcp_constraint) {
@@ -327,15 +328,12 @@ namespace camera {
           if ((*(this->m_control_net))[i].type() == ControlPoint::GroundControlPoint) {
             Vector<double> pt_delta = subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params);
 
-            Vector<double> unweighted_error = this->m_model.B_initial(i)-this->m_model.B_parameters(i) - pt_delta;
+            Vector<double> unweighted_error = this->m_model.B_initial(i)-(this->m_model.B_parameters(i) - pt_delta);
 
             double S_weight = transpose(unweighted_error)*this->m_model.B_inverse_covariance(i)*unweighted_error;
             double mu_weight = (t_df + t_dim)/(t_df + S_weight);
 
-            subvector(new_epsilon,
-                      2*this->m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
-                      num_pt_params) = unweighted_error*sqrt(mu_weight);
-
+           
             new_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
 
             ++idx;
@@ -343,10 +341,13 @@ namespace camera {
         }
       }
 
-
+    
+       
 
       //Fletcher modification for robust case
       double dS = .5 * transpose(delta)*(this->m_lambda*delta + del_J);
+      // std::cout << "dS is: " << dS << "\n\n";
+
 
       double R = (robust_objective - new_objective)/dS;
 
@@ -363,11 +364,6 @@ namespace camera {
         for (unsigned i=0; i<this->m_model.num_points(); ++i)
           this->m_model.set_B_parameters(i, this->m_model.B_parameters(i) - subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params));
 
-        // Summarize the stats from this step in the iteration
-	// double overall_norm = sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon);
-
-        //double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon) ;
-        //double overall_delta = robust_objective - new_objective;
 
 	abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
         rel_tol = transpose(delta)*delta;
