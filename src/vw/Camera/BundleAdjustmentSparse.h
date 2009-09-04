@@ -530,7 +530,10 @@ namespace camera {
         return rel_tol;
 
       } else { // here we didn't make progress
-        
+
+        abs_tol = vw::math::max(g) + vw::math::max(-g);
+        rel_tol = transpose(delta)*delta;
+
         if (this->m_control == 0){
           this->m_lambda *= this->m_nu;
           this->m_nu*=2;

@@ -216,7 +216,7 @@ namespace camera {
       
       double max = 0.0;
       if (this->m_iterations == 1 && this->m_lambda == 1e-3){
-        Matrix<double> hessian = transpose(J) * sigma * transpose(J);
+        Matrix<double> hessian = transpose(J) * sigma * J;
 	for (unsigned i = 0; i < hessian.rows(); ++i){
           if (fabs(hessian(i,i)) > max)
             max = fabs(hessian(i,i));
@@ -308,8 +308,7 @@ namespace camera {
       unsigned num_cam_entries = num_cam_params * num_cameras;
       unsigned num_pt_entries = num_pt_params * num_points;
 
-      Matrix<double> testU = submatrix(hessian, 0, 0, num_cam_entries, num_cam_entries);
-
+      
      
       for ( unsigned i=0; i < hessian.rows(); ++i )
         hessian(i,i) +=  this->m_lambda;
@@ -467,7 +466,8 @@ namespace camera {
         return rel_tol;
       
       } else { // R <= 0
-        
+	abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
+	rel_tol = transpose(delta)*delta;
         if (this->m_control == 0){
           this->m_lambda *= this->m_nu; 
           this->m_nu*=2; 
