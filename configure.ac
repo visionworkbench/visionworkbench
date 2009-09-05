@@ -176,12 +176,17 @@ fi
 # if they are replacing Boost threads with something else for their platform.
 AX_PKG(THREADS, [BOOST_THREAD], [], [])
 
+AX_PKG(M, [], [-lm], [math.h])
+
 AX_PKG_ONE_OF(LAPACK,
   APPLE_LAPACK,
     [AX_PKG_APPLE(LAPACK, [], [-framework vecLib])],
   INTEL_LAPACK,
-    [case $host_cpu in x86_64) INTEL_LAPACK_ARCH=em64t;; ia64) INTEL_LAPACK_ARCH=64;; *) INTEL_LAPACK_ARCH=32;; esac
-     AX_PKG(INTEL_LAPACK, [PTHREADS], [-lmkl -lmkl_lapack -lmkl_def -liomp5], [mkl_lapack.h], [], [$INTEL_LAPACK_ARCH], [dgelss_])],
+    [case $host_cpu in
+       ia64)   AX_PKG(INTEL_LAPACK, [PTHREADS M], [-lmkl_lapack -lmkl -lmkl_i2p -lguide], [mkl_lapack.h], [], [64],    [dgelss_]);;
+       x86_64) AX_PKG(INTEL_LAPACK, [PTHREADS M], [-lmkl_lapack -lmkl -lguide],           [mkl_lapack.h], [], [em64t], [dgelss_]);;
+       *)      AX_PKG(INTEL_LAPACK, [PTHREADS M], [-lmkl_lapack -lmkl -lguide],           [mkl_lapack.h], [], [32],    [dgelss_]);;
+     esac],
   CLAPACK,
     [AX_PKG(CLAPACK, [], [-lclapack -lblas -lf2c],     [], [], [], [dgelss_])],
   SLAPACK,
@@ -198,7 +203,6 @@ AX_PKG_ONE_OF(LAPACK,
      AX_PKG(STANDALONE_FLAPACK, [STANDALONE_FBLAS STANDALONE_F2C], [-llapack], [], [], [], [dgelss_])
      AX_GROUP_PKG(STANDALONE_FLAPACK_FBLAS, [STANDALONE_FLAPACK STANDALONE_FBLAS STANDALONE_F2C])])
 
-AX_PKG(M, [], [-lm], [math.h])
 AX_PKG(Z, [], [-lz], [zlib.h])
 
 AX_PKG(PNG,  [Z], [-lpng], [png.h])
