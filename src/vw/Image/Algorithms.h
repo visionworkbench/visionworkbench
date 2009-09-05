@@ -569,35 +569,11 @@ namespace vw {
         }
       }
 
-      { // Left most columen
-        typename SourceT::pixel_accessor s_acc = src.impl().origin();
-        typename SourceT::pixel_accessor p_s_acc = src.impl().origin(); // previous
-        typename ImageView<uint32>::pixel_accessor d_acc = dst.origin();
-        typename ImageView<uint32>::pixel_accessor p_d_acc = dst.origin(); // previous
-
-        s_acc.next_row();
-        d_acc.next_row();
-        for ( int32 j = 1; j < dst.rows(); j++ ) {
-          if ( is_valid(*s_acc) ) {
-            if ( is_valid(*p_s_acc) ) {
-              *d_acc = *p_d_acc;
-            } else {
-              *d_acc = m_blob_count;
-              m_blob_count++;
-            }
-          }
-          s_acc.next_row();
-          p_s_acc.next_row();
-          d_acc.next_row();
-          p_d_acc.next_row();
-        }
-      }
-
       { // Everything else (9 connected)
         typename SourceT::pixel_accessor s_acc_row = src.impl().origin();
         typename ImageView<uint32>::pixel_accessor d_acc_row = dst.origin();
-        s_acc_row.advance(1,1);
-        d_acc_row.advance(1,1);
+        s_acc_row.advance(0,1);
+        d_acc_row.advance(0,1);
 
         for (int j = dst.rows()-1; j; --j ) { // Not for indexing
           typename SourceT::pixel_accessor s_acc = s_acc_row;
@@ -606,24 +582,29 @@ namespace vw {
           typename ImageView<uint32>::pixel_accessor p_d_acc = d_acc_row;
 
           // Process
-          for ( int i = dst.cols()-1; i; --i ) {
+          for ( int i = dst.cols(); i; --i ) {
             if ( is_valid(*s_acc) ) {
-              // Left
-              p_s_acc.advance(-1,0);
-              p_d_acc.advance(-1,0);
-              if ( is_valid(*p_s_acc) )
-                if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) {
-                  boost::add_edge(*p_d_acc,*d_acc,connections);
-                } else
-                  *d_acc = *p_d_acc;
-              // Upper Left
-              p_s_acc.advance(0,-1);
-              p_d_acc.advance(0,-1);
-              if ( is_valid(*p_s_acc) )
-                if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) {
-                  boost::add_edge(*p_d_acc,*d_acc,connections);
-                } else
-                  *d_acc = *p_d_acc;
+              if ( i != dst.cols() ) {
+                // Left
+                p_s_acc.advance(-1,0);
+                p_d_acc.advance(-1,0);
+                if ( is_valid(*p_s_acc) )
+                  if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) {
+                    boost::add_edge(*p_d_acc,*d_acc,connections);
+                  } else
+                    *d_acc = *p_d_acc;
+                // Upper Left
+                p_s_acc.advance(0,-1);
+                p_d_acc.advance(0,-1);
+                if ( is_valid(*p_s_acc) )
+                  if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) {
+                    boost::add_edge(*p_d_acc,*d_acc,connections);
+                  } else
+                    *d_acc = *p_d_acc;
+              } else {
+                p_s_acc.advance(-1,-1);
+                p_d_acc.advance(-1,-1);
+              }
               // Upper
               p_s_acc.advance(1,0);
               p_d_acc.advance(1,0);
@@ -635,12 +616,12 @@ namespace vw {
               // Upper Right
               p_s_acc.advance(1,0);
               p_d_acc.advance(1,0);
-              if ( is_valid(*p_s_acc) && (i != 1) ) {
-                if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) {
-                  boost::add_edge(*p_d_acc,*d_acc,connections);
-                } else
-                  *d_acc = *p_d_acc;
-              }
+              if ( i != 1 )
+                if ( is_valid(*p_s_acc) )
+                  if ( (*d_acc != 0) && (*d_acc != *p_d_acc) ) {
+                    boost::add_edge(*p_d_acc,*d_acc,connections);
+                  } else
+                    *d_acc = *p_d_acc;
               // Setting if not
               p_s_acc.advance(-1,1);
               p_d_acc.advance(-1,1);
