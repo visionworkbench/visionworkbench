@@ -122,13 +122,15 @@ public:
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
     Vector2 result4 = pinhole4.point_to_pixel(pinhole4.pixel_to_vector(Vector2(0,0))+pinhole4.camera_center(Vector2(0,0)));
 #endif
-    TS_ASSERT_EQUALS(result1, Vector2(0,0));
-    TS_ASSERT_EQUALS(result2, Vector2(0,0));
-    TS_ASSERT_DELTA(result3[0], Vector2(0,0)[0], 1e-8);
-    TS_ASSERT_DELTA(result3[1], Vector2(0,0)[1], 1e-8);
+    TS_ASSERT_DELTA(result1(0), 0, 1e-8);
+    TS_ASSERT_DELTA(result1(1), 0, 1e-8);
+    TS_ASSERT_DELTA(result2(0), 0, 1e-8);
+    TS_ASSERT_DELTA(result2(1), 0, 1e-8);
+    TS_ASSERT_DELTA(result3[0], 0, 1e-8);
+    TS_ASSERT_DELTA(result3[1], 0, 1e-8);
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
-    TS_ASSERT_DELTA(result4[0], Vector4(0,0)[0], 1e-3);
-    TS_ASSERT_DELTA(result4[1], Vector4(0,0)[1], 1e-3);
+    TS_ASSERT_DELTA(result4(0), 0, 1e-3);
+    TS_ASSERT_DELTA(result4(1), 0, 1e-3);
 #endif
   }
 
