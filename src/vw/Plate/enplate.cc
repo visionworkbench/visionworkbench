@@ -1,11 +1,9 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
-//#include <vw/Plate/Index.h>
-#include <vw/Plate/BlobIO.h>
 #include <vw/Plate/PlateFile.h>
 
 using namespace vw;
-using namespace vw::plate;
+using namespace vw::platefile;
 
 int main( int argc, char *argv[] ) {
   
@@ -15,7 +13,7 @@ int main( int argc, char *argv[] ) {
   }
 
   // Create the plate file
-  PlateFile platefile(argv[1]);
+  PlateFile platefile(argv[1], "tif");
 
   for (int n = 1; n < argc; ++n) {
     ImageView<PixelRGB<uint8> > image;

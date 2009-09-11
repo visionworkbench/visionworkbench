@@ -3,9 +3,13 @@
 
 #include <vw/Math/Vector.h>
 
+#include <vw/Plate/Index.h>
+#include <vw/Plate/BlobIO.h>
+
+#include <fstream>
 
 namespace vw {
-namespace plate {
+namespace platefile {
 
   // -------------------------------------------------------------------------
   //                            TEMPORARY TILE FILE
@@ -25,15 +29,15 @@ namespace plate {
   
   public:
 
-    static std::string unique_tempfile_name(std::string file_extension, 
-                                            std::string base_name = /tmp/vw_plate_tile_XXXXXXX) {
-      std::string filename = mktemp(base_name.c_str());
+    static std::string unique_tempfile_name(std::string file_extension) {
+      char* base_name = "/tmp/vw_plate_tile_XXXXXXX";
+      std::string filename = mktemp(base_name);
       return filename + "." + file_extension;
     }
 
     /// This constructor assumes control over an existing file on disk,
     /// and deletes it when the TemporaryTileFile object is de-allocated.
-    TemporaryFile(std::string filename) : m_filename(filename) {
+    TemporaryTileFile(std::string filename) : m_filename(filename) {
       vw_out(DebugMessage, "plate::tempfile") << "Assumed control of temporary file: " 
                                               << m_filename << "\n";
 
@@ -42,15 +46,15 @@ namespace plate {
     /// This constructor assumes control over an existing file on disk,
     /// and deletes it when the TemporaryTileFile object is de-allocated.
     template <class ViewT>
-    TemporaryFile(ImageViewBase<ViewT> const& view, std::string file_extension) : 
+    TemporaryTileFile(ImageViewBase<ViewT> const& view, std::string file_extension) : 
       m_filename(unique_tempfile_name(file_extension)) {
       write_image(m_filename, view);
       vw_out(DebugMessage, "plate::tempfile") << "Created temporary file: " 
                                               << m_filename << "\n";
     }
 
-    ~TemporaryFile() {
-      int result = unlink(m_filename);
+    ~TemporaryTileFile() {
+      int result = unlink(m_filename.c_str());
       if (result)
         vw_out(ErrorMessage, "plate::tempfile") 
           << "WARNING: unlink() failed in ~TemporaryTileFile() for filename \"" 
@@ -59,11 +63,11 @@ namespace plate {
                                               << m_filename << "\n";
     }
 
-    std::string name() const { return m_filename; }
+    std::string file_name() const { return m_filename; }
 
     /// Opens the temporary file and determines its size in bytes.
     size_t file_size() const {
-      std::ifstream istr(source_file.c_str(), std::ios::binary);
+      std::ifstream istr(m_filename.c_str(), std::ios::binary);
       
       if (!istr.is_open())
         vw_throw(IOErr() << "TempPlateFile::file_size() -- could not open \"" 
@@ -89,6 +93,7 @@ namespace plate {
   class PlateFile {
     std::string m_plate_name;
     std::string m_tile_filetype;
+    platefile::Index m_index;
   
 
   public:
@@ -96,8 +101,8 @@ namespace plate {
     PlateFile(std::string filename, std::string tile_filetype) : 
       m_plate_name(filename), m_tile_filetype(tile_filetype) {}
 
-    int name() const { return m_plate_name; }
-    int tile_filetype() const { return m_tile_filetype; }
+    std::string name() const { return m_plate_name; }
+    std::string tile_filetype() const { return m_tile_filetype; }
 
 
     void close() {}
@@ -117,15 +122,15 @@ namespace plate {
 
       // 1. Call index read_request(col,row,depth).  Returns IndexRecord.
       IndexRecord record = m_index.read_request(col, row, depth);
-      ostringstream blob_filename;
-      blob_filename << m_filename << "/plate_" << record.blob_id() << ".blob";
+      std::ostringstream blob_filename;
+      blob_filename << m_plate_name << "/plate_" << record.blob_id() << ".blob";
 
       // 2. Choose a temporary filename
       std::string tempfile = TemporaryTileFile::unique_tempfile_name(m_tile_filetype);
 
       // 3. Call BlobIO read_as_file(filename, offset, size) [ offset, size from IndexRecord ]
       Blob blob(blob_filename);
-      blob.read_to_file(tempfile, record.offset(), record.size());
+      blob.read_to_file(tempfile, record.blob_offset(), record.block_size());
       TemporaryTileFile tile(tempfile);
 
       // 4. Read data from temporary file.
@@ -137,13 +142,13 @@ namespace plate {
 
       // 1. Write data to temporary file. 
       TemporaryTileFile tile(view, m_tile_filetype);
-      std::string tile_filename = tile.filename();
-      size_t tile_size = tile.size();
+      std::string tile_filename = tile.file_name();
+      size_t tile_size = tile.file_size();
 
       // 2. Make write_request(size) to index. Returns blob id.
       int blob_id = m_index.write_request(tile_size);
-      ostringstream blob_filename;
-      blob_filename << m_filename << "/plate_" << blob_id << ".blob";
+      std::ostringstream blob_filename;
+      blob_filename << m_plate_name << "/plate_" << blob_id << ".blob";
 
       // 3. Create a blob and call write_from_file(filename).  Returns offset, size.
       Blob blob(blob_filename.str());
