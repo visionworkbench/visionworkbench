@@ -194,7 +194,7 @@ namespace platefile {
       return m_blob_locks.size();
     }
 
-    int64 max_blob_size() const { 
+    int64 max_blob_size() { 
       Mutex::Lock lock(m_mutex);
       return m_max_blob_size; 
     }

@@ -36,7 +36,7 @@ public:
       TS_ASSERT_EQUALS( blob.version(), 1 );
     
       // Write the data to the file.
-      size_t offset = blob.write(m_test_data, 20 * sizeof(int));
+      int64 offset = blob.write(m_test_data, 20 * sizeof(int));
 
       // Read it back in.
       boost::shared_array<int> m_verify_data = blob.read<int>(offset, 20 * sizeof(int));
@@ -52,7 +52,7 @@ public:
       TS_ASSERT_EQUALS( blob.version(), 1 );
     
       // Write the data to the file.
-      size_t offset = blob.write(m_test_data, 20 * sizeof(int));
+      int64 offset = blob.write(m_test_data, 20 * sizeof(int));
       
       // Read it back in.
       boost::shared_array<int> m_verify_data = blob.read<int>(offset, 20 * sizeof(int));
@@ -73,7 +73,7 @@ public:
     
     // Do one loop through the blob file, placing f1 into the file,
     // and then reading it back out and saving it as f2.
-    size_t offset, size;
+    int64 offset, size;
     blob.write_from_file(f1, offset, size);
     blob.read_to_file(f2, offset, size);
 
@@ -86,8 +86,8 @@ public:
     // Check to see if files are the same size
     istr1.seekg (0, std::ios::end);
     istr2.seekg (0, std::ios::end);
-    size_t size1 = istr1.tellg();
-    size_t size2 = istr2.tellg();
+    int64 size1 = istr1.tellg();
+    int64 size2 = istr2.tellg();
     TS_ASSERT_EQUALS(size1, size2);
 
     if (size1 == size2) {

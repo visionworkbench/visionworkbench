@@ -10,6 +10,9 @@
 #include <vw/Plate/Tree.h>
 #include <vw/Plate/Blob.h>
 
+#define VW_PLATE_INDEXRECORD_FILETYPE_SIZE 5
+#define VW_PLATE_INDEX_VERSION 1
+
 namespace vw {
 namespace platefile {
   
@@ -22,8 +25,6 @@ namespace platefile {
   // as invalid if they represent low-res tiles that need to be
   // re-renedered from higher-res tiles that have been updated.
   // -------------------------------------------------------------------
-
-  #define VW_PLATE_INDEXRECORD_FILETYPE_SIZE 5
 
   class IndexRecord {
 
@@ -104,6 +105,7 @@ namespace platefile {
 
   class Index { 
 
+    int m_index_version;
     boost::shared_ptr<BlobManager> m_blob_manager;
     boost::shared_ptr<TreeNode<IndexRecord> > m_root;
     Mutex m_mutex;
@@ -112,34 +114,64 @@ namespace platefile {
 
     /// Create a new index.  Uses default blob manager.
     Index() :
-      m_blob_manager( new BlobManager() ), 
+      m_index_version(VW_PLATE_INDEX_VERSION), m_blob_manager( new BlobManager() ), 
       m_root(boost::shared_ptr<TreeNode<IndexRecord> >( new TreeNode<IndexRecord>() )) {}
 
     /// Create a new index.  User supplies a pre-configure blob manager.
     Index( boost::shared_ptr<BlobManager> blob_manager) :
-      m_blob_manager(blob_manager), 
+      m_index_version(VW_PLATE_INDEX_VERSION), m_blob_manager(blob_manager), 
       m_root(boost::shared_ptr<TreeNode<IndexRecord> >( new TreeNode<IndexRecord>() )) {}
 
-    /// Open an existing index. 
-    Index(std::string index_filename) {
-      std::cout << "OPENING A PLATE INDEX IS NOT YET IMPLEMENTED!!!\n";
-      exit(0);
+    /// Open an existing index from a file on disk.
+    Index(std::string index_filename) : 
+      m_root(boost::shared_ptr<TreeNode<IndexRecord> >( new TreeNode<IndexRecord>() )) {
+      std::ifstream istr(index_filename.c_str(), std::ios::binary);
+      if (!istr.good())
+        vw_throw(IOErr() << "Could not open index file \"" << index_filename << "\" for reading.");
+
+      // Read the index version and supporting info
+      istr.read( (char*)&m_index_version, sizeof(m_index_version) );
+      if (m_index_version != VW_PLATE_INDEX_VERSION) 
+        vw_throw(IOErr() << "Could not open plate index.  " 
+                 << "Does not appear to have a compatible version number.");      
+
+      // Read blob manager info and create a blob manager.
+      int num_blobs;
+      int64 max_blob_size;
+      istr.read( (char*)&num_blobs, sizeof(num_blobs) );
+      istr.read( (char*)&max_blob_size, sizeof(max_blob_size) );
+      m_blob_manager = boost::shared_ptr<BlobManager>( new BlobManager(max_blob_size, 
+                                                                       num_blobs));
+
+      // Deserialize the index tree
+      m_root->deserialize(istr);
+
+      istr.close();
     }
 
     /// Save an index out to a file on disk.  This serializes the
     /// tree.
     void save(std::string const& filename) {
-      std::ofstream ostr(filename, std::ios::binary);
+      std::ofstream ostr(filename.c_str(), std::ios::binary);
+      if (!ostr.good())
+        vw_throw(IOErr() << "Could not open index file \"" << filename << "\" for writing.");
 
-      
+      // Save basic index information & version.
+      ostr.write( (char*)&m_index_version, sizeof(m_index_version) );
 
       // Save blob manager information
-      int num_blobs = m_blob_manager.num_blobs();
-      size_t max_blob_size = m_blob_manager.max_blob_size();
+      int num_blobs = m_blob_manager->num_blobs();
+      int64 max_blob_size = m_blob_manager->max_blob_size();
+      ostr.write( (char*)&num_blobs, sizeof(num_blobs) );
+      ostr.write( (char*)&max_blob_size, sizeof(max_blob_size) );
 
-      m_root.serialize(ostr);
+      // Serialize the index tree
+      m_root->serialize(ostr);
       ostr.close();
     }
+
+    int version() const { return m_index_version; }
+
 
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.
