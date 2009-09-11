@@ -192,10 +192,20 @@ namespace platefile {
       m_blob_manager->release_lock(record.blob_id()); 
       {
         Mutex::Lock lock(m_mutex);
+        std::cout << "Inserting record: " << col << " " << row << " @ " << depth << "\n";
         m_root->insert(record, col, row, depth);
+        std::cout << "done.\n\n\n";
+
       }
     }
+
+    /// Use only for debugging small trees.
+    void print() {
+      m_root->print();
+    }
+
   };
+
 
 }} // namespace vw::plate
 

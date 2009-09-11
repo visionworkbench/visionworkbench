@@ -19,12 +19,14 @@ int main( int argc, char *argv[] ) {
 
   // Open the plate file
   PlateFile platefile(argv[1]);
+  platefile.print();
 
   // Create the output directory
   std::string directory_name = argv[2];
   if ( !fs::exists(directory_name) )
     fs::create_directory(directory_name);
 
+  // The number of levels is hard-coded for now.
   int nlevels = 4;
   for (int n = 0; n < nlevels; ++n) {
     int block_cols = pow(2,n);
@@ -35,29 +37,32 @@ int main( int argc, char *argv[] ) {
         
         ImageView<PixelRGB<uint8> > tile;
         try {
+          std::cout << "\t--> Extracting: [ " << j << " " << i << " @ level " <<  n << "]\n";
           IndexRecord rec = platefile.read(tile, i, j, n);
+          if (!rec.valid())
+            vw_throw(TileNotFoundErr() << "\tTile was found, but was marked invalid.");
+          std::cout << "done.\n\n\n";
 
-          if (rec.valid()) {
           
-            std::cout << "\t--> Extracting: [ " << i << " " << j << " " <<  n << "]\n";
-            
-            std::ostringstream ostr;
-            ostr << directory_name << "/" << n;
-            if ( !fs::exists(ostr.str()) )
-              fs::create_directory(ostr.str());
-            
-            ostr << "/" << i;
-            if ( !fs::exists(ostr.str()) )
-              fs::create_directory(ostr.str());
-            
-            ostr << "/" << j << "." << rec.block_filetype();
-            std::cout << "Writing " << ostr.str() << "\n";
-            write_image(ostr.str(), tile);
+          
+          // Create the level directory (if it doesn't exist)
+          std::ostringstream ostr;
+          ostr << directory_name << "/" << n;
+          if ( !fs::exists(ostr.str()) )
+            fs::create_directory(ostr.str());
+          
+          // Create the column directory (if it doesn't exist)
+          ostr << "/" << i;
+          if ( !fs::exists(ostr.str()) )
+            fs::create_directory(ostr.str());
+          
+          // Create the file (with the row as the filename)
+          ostr << "/" << j << "." << rec.block_filetype();
+          std::cout << "Writing " << ostr.str() << "\n";
+          write_image(ostr.str(), tile);
 
-          }
-          
         } catch (TileNotFoundErr &e) {
-          // Do nothing for tiles that aren't found.
+          std::cout << e.what() << "\n";
         }
       }
     }    

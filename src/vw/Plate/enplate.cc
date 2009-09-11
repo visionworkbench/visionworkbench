@@ -29,16 +29,18 @@ int main( int argc, char *argv[] ) {
     int block_cols = ceilf(float(image.cols()) / block_size);
     int block_rows = ceilf(float(image.rows()) / block_size);
     int nlevels = ceilf(log(std::max(block_rows, block_cols))/log(2));
-    std::cout << "Rows: " << block_rows << " Cols: " << block_cols << "\n";
-    std::cout << "Nlevels = " << nlevels << "\n";
+    std::cout << "Rows: " << block_rows << " Cols: " << block_cols 
+              << "   (Block size: " << block_size << ")\n";
+    std::cout << "Number of mipmap levels = " << nlevels << "\n";
 
     // And save each block to the PlateFile
     std::vector<BBox2i>::iterator block_iter = bboxes.begin();
     for (int j = 0; j < block_rows; ++j) {
       for (int i = 0; i < block_cols; ++i) {
-        std::cout << "Adding block: [ " << i << " " << j << " " <<  nlevels << "] " << *block_iter << "\n";
+        std::cout << "Adding block: [ " << j << " " << i << " @ level " <<  nlevels << "] " << *block_iter << "\n";
         
         platefile.write(i, j, nlevels, crop(image, *block_iter));
+        platefile.print();
 
         ++block_iter;
       }

@@ -199,7 +199,12 @@ namespace platefile {
       m_index->write_complete(col, row, depth, write_record);
     }
 
+    void print() {
+      m_index->print();
+    }
+
   };
+
 
 }} // namespace vw::plate
 
