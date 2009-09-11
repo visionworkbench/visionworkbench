@@ -38,7 +38,12 @@ namespace camera {
   template <class BundleAdjustModelT, class RobustCostT>
   class BundleAdjustmentSparse : public BundleAdjustmentBase<BundleAdjustModelT, RobustCostT> {
 
+    // Need to save S for covariance calculations
+    math::SparseSkylineMatrix<double> m_S; 
+
   public:
+    math::SparseSkylineMatrix<double> S() { return m_S; }
+    void set_S(math::SparseSkylineMatrix<double> S) { m_S = S; }
 
     BundleAdjustmentSparse( BundleAdjustModelT & model,
                             RobustCostT const& robust_cost_func,
@@ -52,7 +57,7 @@ namespace camera {
     //-------------------------------------------------------------
     // This is the sparse levenberg marquardt update step.  Returns
     // the average improvement in the cost function.
-    virtual double update(double &abs_tol, double &rel_tol) { 
+    virtual double update(double &abs_tol, double &rel_tol) {
       ++this->m_iterations;
       
       VW_DEBUG_ASSERT(this->m_control_net->size() == this->m_model.num_points(), LogicErr() << "BundleAdjustment::update() : Number of bundles does not match the number of points in the bundle adjustment model.");
@@ -384,6 +389,8 @@ namespace camera {
 
       // Compute the LDL^T decomposition and solve using sparse methods.
       Vector<double> delta_a = sparse_solve(S, e);
+      // Save S; used for covariance calculations
+      this->set_S(S);
 
       subvector(delta, current_delta_length, e.size()) = delta_a;
       current_delta_length += e.size();
@@ -494,9 +501,11 @@ namespace camera {
       double SS = error_total;            //Compute old objective
       double R = (SS - Splus)/dS;         // Compute ratio
       
+      /*
       std::cout << "New Objective: " << new_error_total << "\n"; 
       std::cout << "Old Objective: " << error_total << "\n"; 
       std::cout << "Lambda: " << this->m_lambda << "\n"; 
+      */
 
 
       if (R>0){

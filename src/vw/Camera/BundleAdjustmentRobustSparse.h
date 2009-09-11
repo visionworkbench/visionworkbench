@@ -38,7 +38,12 @@ namespace camera {
   template <class BundleAdjustModelT, class RobustCostT>
   class BundleAdjustmentRobustSparse : public BundleAdjustmentBase<BundleAdjustModelT, RobustCostT> {
 
+    // Need to save S for covariance calculations
+    math::SparseSkylineMatrix<double> m_S; 
+
   public:
+    math::SparseSkylineMatrix<double> S() { return m_S; }
+    void set_S(math::SparseSkylineMatrix<double> S) { m_S = S; }
 
     BundleAdjustmentRobustSparse( BundleAdjustModelT & model,
                             RobustCostT const& robust_cost_func,
@@ -382,6 +387,8 @@ namespace camera {
 
       // Compute the LDL^T decomposition and solve using sparse methods.
       Vector<double> delta_a = sparse_solve(S, e);
+      // Save S; used for covariance calculations
+      this->set_S(S);
 
       //std::cout << "Delta a is : " << delta_a << "\n\n";
 
@@ -519,13 +526,16 @@ namespace camera {
       double R = (SS - Splus)/dS;         // Compute ratio
 
      
+      /*
       std::cout << "Old Objective: " << robust_objective << "\n";
       std::cout << "New Objective: " << new_robust_objective << "\n";
       std::cout << "Lambda: " << this->m_lambda << "\n";
+      */
 
 
       if (R>0){
 
+        //std::cout << "delta_b: " << delta_b << std::endl;
         for (unsigned j=0; j<this->m_model.num_cameras(); ++j)
           this->m_model.set_A_parameters(j, this->m_model.A_parameters(j) +
                                          subvector(delta_a, num_cam_params*j,num_cam_params));
@@ -537,8 +547,10 @@ namespace camera {
         //double overall_norm = sqrt(new_robust_objective);
         //double overall_delta = sqrt(new_robust_objective) - sqrt(robust_objective);
 
-        abs_tol = vw::math::max(g) + vw::math::max(-g);
-        rel_tol = transpose(delta)*delta;
+        //abs_tol = vw::math::max(g) + vw::math::max(-g);
+        abs_tol = 5;
+        //rel_tol = transpose(delta)*delta;
+        rel_tol = 5;
 
         if(this->m_control == 0){
           double temp = 1 - pow((2*R - 1),3);

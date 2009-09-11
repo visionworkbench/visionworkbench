@@ -543,6 +543,7 @@ namespace camera {
     boost::erase_all( m_modified, "\n" );
     boost::erase_all( m_modified, " " );
 
+    // TODO: this is broken when filename contains a . (eg. in the path)
     // Forcing file extension type
     std::vector<std::string> tokens;
     boost::split( tokens, filename, boost::is_any_of(".") );
