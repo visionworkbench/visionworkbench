@@ -159,6 +159,22 @@ void do_colorized_dem(po::variables_map const& vm) {
   }
 }
 
+void save_legend() {
+  min_val = 0.0;
+  max_val = 1.0;
+  
+  ImageView<PixelGray<float> > img(200, 500);
+  for (unsigned j = 0; j < img.rows(); ++j) {
+    float val = float(j) / img.rows();
+    for (unsigned i = 0; i < img.cols(); ++i) {
+      img(i,j) = val;
+    }
+  }
+  
+  ImageViewRef<PixelMask<PixelRGB<float> > > colorized_image = colormap(img);
+  write_image("legend.png", channel_cast_rescale<uint8>(apply_mask(colorized_image)));
+}
+
 
 int main( int argc, char *argv[] ) {
 
@@ -175,6 +191,7 @@ int main( int argc, char *argv[] ) {
     ("max", po::value<float>(&max_val), "Maximum height of the color map.")
     ("moon", "Set the min and max values to [-8499 10208] meters, which is suitable for covering elevations on the Moon.")
     ("mars", "Set the min and max values to [-8208 21249] meters, which is suitable for covering elevations on Mars.")
+    ("legend", "Generate the colormap legend.  This image is saved (without labels) as \'legend.png\'")
     ("verbose", "Verbose output");
   po::positional_options_description p;
   p.add("input-file", 1);
@@ -186,6 +203,12 @@ int main( int argc, char *argv[] ) {
   if( vm.count("help") ) {
     std::cout << desc << std::endl;
     return 1;
+  }
+
+  if( vm.count("legend") ) {
+    std::cout << "\t--> Saving legend file to disk as \'legend.png\'\n";
+    save_legend();
+    exit(0);
   }
 
   // This is a reasonable range of elevation values to cover global
