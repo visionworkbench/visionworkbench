@@ -10,25 +10,74 @@
 using namespace vw;
 using namespace vw::platefile;
 
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
+
+// Erases a file suffix if one exists and returns the base string
+static std::string prefix_from_filename(std::string const& filename) {
+  std::string result = filename;
+  int index = result.rfind(".");
+  if (index != -1) 
+    result.erase(index, result.size());
+  return result;
+}
+
 int main( int argc, char *argv[] ) {
-  
-  if (argc < 2) {
-    std::cout << "Usage: " << argv[0] << " <platefile name> <directory name>";
-    exit(0);
+ 
+  std::string output_file_name;
+  std::string plate_file_name;
+
+  po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");
+  general_options.add_options()
+    ("output-name,o", po::value<std::string>(&output_file_name), "Specify the base output directory")
+    ("help", "Display this help message");
+
+  po::options_description hidden_options("");
+  hidden_options.add_options()
+    ("plate-file", po::value<std::string>(&plate_file_name));
+
+  po::options_description options("Allowed Options");
+  options.add(general_options).add(hidden_options);
+
+  po::positional_options_description p;
+  p.add("plate-file", -1);
+
+  po::variables_map vm;
+  po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
+  po::notify( vm );
+
+  std::ostringstream usage;
+  usage << "Usage: " << argv[0] << " [options] <filename>..." <<std::endl << std::endl;
+  usage << general_options << std::endl;
+
+  if( vm.count("help") ) {
+    std::cout << usage.str();
+    return 0;
   }
 
+  if( vm.count("plate-file") != 1 ) {
+    std::cerr << "Error: must specify an input file!" << std::endl << std::endl;
+    std::cout << usage.str();
+    return 1;
+  }
+
+  if( output_file_name == "" )
+    output_file_name = prefix_from_filename(plate_file_name) + ".toast";
+
   // Open the plate file
-  PlateFile platefile(argv[1]);
-  platefile.print();
+  PlateFile platefile(plate_file_name);
+  std::cout << "Writing " << platefile.depth() << " levels of tiles to " 
+            << output_file_name << "\n";
+
+
+  // For debugging:
+  //  platefile.print();
 
   // Create the output directory
-  std::string directory_name = argv[2];
-  if ( !fs::exists(directory_name) )
-    fs::create_directory(directory_name);
+  if ( !fs::exists(output_file_name) )
+    fs::create_directory(output_file_name);
 
-  // The number of levels is hard-coded for now.
-  int nlevels = 4;
-  for (int n = 0; n < nlevels; ++n) {
+  for (int n = 0; n <= platefile.depth(); ++n) {
     int block_cols = pow(2,n);
     int block_rows = pow(2,n);
     
@@ -43,7 +92,7 @@ int main( int argc, char *argv[] ) {
           
           // Create the level directory (if it doesn't exist)
           std::ostringstream ostr;
-          ostr << directory_name << "/" << n;
+          ostr << output_file_name << "/" << n;
           if ( !fs::exists(ostr.str()) )
             fs::create_directory(ostr.str());
           

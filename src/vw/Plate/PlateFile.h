@@ -92,6 +92,7 @@ namespace platefile {
           
   };
 
+
   // -------------------------------------------------------------------------
   //                            PLATE FILE
   // -------------------------------------------------------------------------
@@ -101,6 +102,31 @@ namespace platefile {
     std::string m_plate_name;
     std::string m_tile_filetype;
     boost::shared_ptr<Index> m_index;
+    FifoWorkQueue m_queue;
+
+    // -------------------------------------------------------------------------
+    //                       PLATE FILE TASKS
+    // -------------------------------------------------------------------------
+    
+    template <class ViewT>
+    class WritePlateFileTask : public Task {
+      PlateFile *m_parent;
+      ViewT const& m_view;
+      int m_i, m_j, m_depth;
+      BBox2i m_bbox; 
+      
+    public:
+      WritePlateFileTask(PlateFile *parent, int i, int j, int depth, 
+                         ImageViewBase<ViewT> const& view, BBox2i bbox) : 
+        m_parent(parent), m_i(i), m_j(j), m_depth(depth), m_view(view.impl()), m_bbox(bbox) {}
+      
+      virtual ~WritePlateFileTask() {}
+      virtual void operator() () { 
+        std::cout << "\t    Generating block: [ " << m_j << " " << m_i 
+                  << " @ level " <<  m_depth << "] " << m_bbox << "\n";
+
+        m_parent->write(m_i, m_j, m_depth, crop(m_view, m_bbox)); }
+    };
 
   public:
   
@@ -222,10 +248,11 @@ namespace platefile {
       std::vector<BBox2i>::iterator block_iter = bboxes.begin();
       for (int j = 0; j < block_rows; ++j) {
         for (int i = 0; i < block_cols; ++i) {
-          std::cout << "Adding block: [ " << j << " " << i << " @ level " <<  nlevels << "] " 
-                    << *block_iter << "\n";
-          
-          this->write(i, j, nlevels, crop(image, *block_iter));
+          m_queue.add_task(boost::shared_ptr<Task>(new WritePlateFileTask<ViewT>(this, 
+                                                                                 i, j, nlevels,
+                                                                                 image, 
+                                                                                 *block_iter)));
+          //          this->write(i, j, nlevels, crop(image, *block_iter));
           
           // For debugging
           //  this->print();
@@ -234,20 +261,11 @@ namespace platefile {
         }
         std::cout << "\n";
       }      
+      m_queue.join_all();
     }
 
-    /// Compute the tiles in the index that overlap with a given image
-    /// bounding box at a given depth.
-    std::vector<Vector2> compute_overlap(BBox2i bbox, int depth) {
-      std::vector<Vector2> blocks;
-      
-    }
 
     void mipmap_helper(int col, int row, int depth, int block_size) {
-
-      for (int d=0; d < depth; ++d)
-        std::cout << "  ";
-      std::cout << "Processing " << col << " " << row << " @ " << depth << "\n";
 
       // Termination conditions: 
       try {
@@ -260,13 +278,10 @@ namespace platefile {
         return;
       }
 
-      std::cout << "\t--> Attempting to regenerate data.\n";
-
       // If none of the termination conditions are met, then we must
       // be at an invalid record that needs to be regenerated.
       std::vector<ImageView<PixelRGBA<uint8> > > imgs(4);
       for (unsigned i = 0; i < 4; ++i) {
-        std::cout << "\t    child " << i << " @ " << depth << "\n";
         IndexRecord record;
         try {
           record = this->read(imgs[i], col*2+(i%2), row*2+(i/2), depth+1);
@@ -277,18 +292,14 @@ namespace platefile {
         // If the record for the child is invalid, we attempt to
         // (recursively) generate it.  Then we try reading it again.
         if (!record.valid()) {
-          std::cout << "\t   Invalid!\n";
           mipmap_helper(col*2+(i%2), row*2+(i/2), depth+1, block_size);
           try {
             record = this->read(imgs[i], col*2+(i%2), row*2+(i/2), depth+1);
           } catch (TileNotFoundErr &e) {} // Do nothing... record is not found, and therefore invalid. 
         }
-        else {           std::cout << "\t   Valid!\n"; }
       }
 
-      for (int d=0; d < depth; ++d)
-        std::cout << "  ";
-      std::cout << "  Combining " << col << " " << row << " @ " << depth << "\n";
+      std::cout << "\t    Generating " << col << " " << row << " @ " << depth << "\n";
 
       
       // Piece together the tiles from the four children if this node.
@@ -305,7 +316,14 @@ namespace platefile {
       this->write(col, row, depth, new_tile);
     }
 
-    void mipmap(int block_size) { this->mipmap_helper(0,0,0,block_size); }
+    void mipmap(int block_size) { 
+      std::cout << "\t--> Building mipmap levels\n";
+      this->mipmap_helper(0,0,0,block_size); 
+    }
+
+    int depth() { 
+      return m_index->max_depth();
+    }
 
     void print() {
       m_index->print();
