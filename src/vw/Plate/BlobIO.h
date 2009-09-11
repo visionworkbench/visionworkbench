@@ -102,14 +102,43 @@ namespace platefile {
       
       return offset;
     }
+    
 
-    // void read_as_file(std::string dest_filename, size_t offset, size_t size) {
+    /// Read data out of the blob and save it as its own file on disk.
+    void read_as_file(std::string dest_file, size_t offset, size_t size) {
+      boost::shared_array<char> data = this->read<char>(offset, size);
 
-    // }
+      // Open the dest_file and write to it.
+      std::ofstream ostr(dest_file.c_str(), std::ios::binary);
 
-    // void write_from_file(std::string source_file) {
+      if (!ostr.is_open())
+        vw_throw(IOErr() << "Blob::read_as_file() -- could not open destination " 
+                 << "file for writing..");
 
-    // }
+      ostr.write(data.get(), size);
+      ostr.close();
+    }
+
+    void write_from_file(std::string source_file, size_t& offset, size_t& size) {
+
+      // Open the source_file and read data from it.
+      std::ifstream istr(source_file.c_str(), std::ios::binary);
+      
+      if (!istr.is_open())
+        vw_throw(IOErr() << "Blob::write_from_file() -- could not open source file for reading.");
+      // Seek to the end and allocate the proper number of bytes of
+      // memory, and then seek back to the beginning.
+      istr.seekg(0, std::ios_base::end);
+      size = istr.tellg();
+      istr.seekg(0, std::ios_base::beg);
+      
+      // Read the data into a temporary memory buffer.
+      boost::shared_array<char> data(new char[size]);
+      istr.read(data.get(), size);
+      istr.close();
+
+      offset = this->write<char>(data, size);
+    }
 
   };
 
