@@ -497,7 +497,7 @@ int main(int argc, char **argv) {
   po::options_description output_options("Output Options");
   output_options.add_options()
     ("output-metadata,m", po::value<std::string>(&output_metadata)->default_value("kml"), "Specify the output metadata type. One of [kml, tms, uniview, gmap, celestia, none]")
-    ("file-type", po::value<std::string>(&output_file_type)->default_value("png"), "Output file type")
+    ("file-type", po::value<std::string>(&output_file_type)->default_value("png"), "Output file type.  (Choose \'auto\' to generate jpgs in opaque areas and png images where there is transparency.)")
     ("channel-type", po::value<std::string>(&channel_type_str)->default_value("uint8"), "Output (and input) channel type. One of [uint8, uint16, int16, float]")
     ("module-name", po::value<std::string>(&module_name)->default_value("marsds"), "The module where the output will be placed. Ex: marsds for Uniview, or Sol/Mars for Celestia")
     ("terrain", "Outputs image files suitable for a Uniview terrain view. Implies output format as PNG, channel type uint16. Uniview only")

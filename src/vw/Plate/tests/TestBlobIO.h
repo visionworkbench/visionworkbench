@@ -62,7 +62,6 @@ public:
 
     }
 
-
   }
 
   void test_file_write_read() {
@@ -76,7 +75,7 @@ public:
     // and then reading it back out and saving it as f2.
     size_t offset, size;
     blob.write_from_file(f1, offset, size);
-    blob.read_as_file(f2, offset, size);
+    blob.read_to_file(f2, offset, size);
 
     // ----
 

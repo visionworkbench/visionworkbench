@@ -4,14 +4,14 @@
 #include <vector>
 #include <boost/smart_ptr.hpp>
 
+#include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
-
+#include <vw/Core/Thread.h>
+#include <vw/Plate/Tree.h>
 
 namespace vw {
 namespace platefile {
 
-  /// TileNotFound exception
-  VW_DEFINE_EXCEPTION(TileNotFoundErr, Exception);
   
   // -------------------------------------------------------------------
   //                    IndexRecord and IndexNode
@@ -42,151 +42,7 @@ namespace platefile {
     bool valid() const { return m_valid; }
   };
 
-    
-  class IndexNode {
 
-    IndexNode *m_parent;
-    std::vector<boost::shared_ptr<IndexNode> > m_children;
-    int m_depth;
-    IndexRecord m_record;
-
-    // ------------------------ Private Methods -----------------------------
-
-    // Do some quick arithmetic here to determine which child to follow
-    // in the quad tree for a given col, row, level request.
-    int compute_child_id(int col, int row, int level) {
-
-      int tile_x = col / powl(2,level-m_depth);
-      int tile_y = row / powl(2,level-m_depth);
-      int child_id;
-      if (tile_x == 0 && tile_y == 0) 
-        return 0;
-      else if (tile_x == 1 && tile_y == 0) 
-        return 1;
-      else if (tile_x == 0 && tile_y == 1) 
-        return 2;
-      else 
-        return 3;
-    }
-
-  public: 
-
-    // ------------------------ Public Methods -----------------------------
-
-    /// Use this contructor for the root of the tree.  This sets up
-    /// the correct depth (and no parent node).
-    IndexNode(): m_parent(NULL), m_depth(-1) {
-      m_children.resize(4);
-    }
-
-    /// Use this constructor if you intend to add actual record data later on.
-    IndexNode(IndexNode *parent) :
-      m_parent(parent), m_depth(parent->depth() + 1) {
-      m_children.resize(4);
-    }
-
-    /// Use this contstructor to add record data immediately.
-    IndexNode(IndexNode *parent, IndexRecord const& record) :
-      m_parent(parent), m_depth(parent->depth() + 1), m_record(record) {
-      m_children.resize(4);
-    }
-    
-    int depth() const { return m_depth; }
-
-    // Return the child of this node with the 'id' according to the
-    // following index scheme:
-    //
-    //    |---|---|
-    //    | 0 | 1 |
-    //    |---+---|
-    //    | 2 | 3 |
-    //    |---|---|
-    //
-    boost::shared_ptr<IndexNode> child(int id) const { return m_children[id]; }
-
-    // Sets the child of this node with the 'id' according to the above
-    // index scheme.
-    //
-    void set_child(int id, boost::shared_ptr<IndexNode> node) {
-      m_children[id] = node;
-    }
-
-    // Insert the child of this node, but preserves the previous child's descendents.
-    //
-    void insert_child(int id, boost::shared_ptr<IndexNode> node) {
-      
-      // First we save the old child and replace it with the new one.
-      boost::shared_ptr<IndexNode> old_child = m_children[id];
-      m_children[id] = node;
-
-      // Then, if the old child existed, we transfer the old child's
-      // children (our grandchildren) to the new child node.
-      if (old_child)
-        for (int i = 0; i < 4 ; ++i) 
-          m_children[id]->set_child(i, old_child->child(i));
-    }
-
-    // Search for a node at a given col, row, and level.
-    IndexRecord search(int col, int row, int level) {
-
-      // If we have reached the requested depth, then we must be at
-      // the node we want!  Return the IndexRecord!
-      if (m_depth == level) {
-        return m_record;
-        
-      // Otherwise, we go recurse deeper into the tree....
-      } else {
-        
-        int child_id = compute_child_id(col, row, level);
-        
-        if (m_children[child_id]) {
-
-          // If the tile is found, we dive deeper.
-          return m_children[child_id]->search(col, row, level);
-
-        } else {
-          TileNotFoundErr err;
-
-          // If not, we throw an exception.
-          vw_throw(TileNotFoundErr() << "Tile search [" << col << " " << row << " " << m_depth 
-                   << "] failed at depth " << m_depth << "\n");
-
-        }
-      }
-    }
-
-    // Insert an IndexRecord at a given position.  Intermediate nodes
-    // in the tree are created (with empty IndexRecords) in the tree
-    // along the way, as needed.
-    void insert(IndexRecord const& record, int col, int row, int level) {
-
-      // If we have reached the requested depth, then we must be at
-      // the node we want!  Return the IndexRecord!
-      if (m_depth == level) {
-
-        // TODO: This is where we could keep the history of
-        // IndexRecords for this node.  Let's add that feature
-        // someday!!
-        m_record = record;
-
-      // Otherwise, we need to recurse further into the tree....
-      } else {
-        int child_id = this->compute_child_id(col, row, level);
-        
-        // If the child we need is not yet created, we create it, add
-        //it as our child, and recurse down it.
-        if (!m_children[child_id]) {
-          boost::shared_ptr<IndexNode> node(new IndexNode(this));
-          this->set_child(child_id, node);
-        }
-         
-        m_children[child_id]->insert(record, col, row, level);
-      }
-
-      
-    }
-
-  };
 
   // -------------------------------------------------------------------
   //                            BLOB_MANAGER
