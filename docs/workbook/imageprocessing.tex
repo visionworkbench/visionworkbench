@@ -1092,6 +1092,8 @@ Function & Description \\ \hline \hline
 \verb#invert_mask(im)# & Given an image of \verb#PixelMask#s , inverts every pixels validity. \\ \hline
 \verb#validate_mask(im)# & Forces all pixels to be valid. \\ \hline
 \verb#invalidate_mask(im)# & Forces all pixels to be invalid. \\ \hline
+\verb#union_mask(im,mask)# & Unions the \verb#PixelMask# of \verb#mask# with \verb#im#, and keeping the image data in \verb#im#. \\ \hline
+\verb#intersect_mask(im,mask)# & Intersects the \verb#PixelMask# of \verb#mask# with \verb#im#, and keeping the image data in \verb#im#. \\ \hline
 \end{tabular}
 \caption{Image operations for working with {\tt PixelMasks}}
 \label{tbl:pixel-mask-image-ops}

@@ -451,6 +451,72 @@ namespace vw {
   struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,InvalidatePixelMask<typename ViewT::pixel_type> > >
     : public IsMultiplyAccessible<ViewT> {};
 
+  //******************************************************************
+  /// union_mask(view, mask)
+  ///
+  /// Unions 'mask' w/ view. View's data is returned
+  ///
+  template <class PixelT>
+  class UnionPixelMask : public ReturnFixedType<typename MaskedPixelType<PixelT>::type> {
+    typedef typename MaskedPixelType<PixelT>::type return_type;
+  public:
+    template <class MaskedPixelT>
+    return_type operator()( PixelT const& value, MaskedPixelT const& mask ) const {
+      return_type result = value;
+      if ( is_valid(value) || is_valid(mask) )
+        validate(result);
+      else
+        invalidate(result);
+      return result;
+    }
+  };
+
+  template <class ViewT, class MaskViewT>
+  BinaryPerPixelView<ViewT,MaskViewT,UnionPixelMask<typename ViewT::pixel_type> >
+  union_mask( ImageViewBase<ViewT> const& view,
+              ImageViewBase<MaskViewT> const& mask_view ) {
+    typedef BinaryPerPixelView<ViewT,MaskViewT,UnionPixelMask<typename ViewT::pixel_type> > view_type;
+    return view_type( view.impl(), mask_view.impl(), UnionPixelMask<typename ViewT::pixel_type>() );
+  }
+
+  // Is reasonably fast
+  template <class ViewT, class MaskViewT>
+  struct IsMultiplyAccessible<BinaryPerPixelView<ViewT,MaskViewT,UnionPixelMask<typename ViewT::pixel_type> > >
+    : public boost::mpl::and_<IsMultiplyAccessible<ViewT>,IsMultiplyAccessible<MaskViewT> >::type {};
+
+  //******************************************************************
+  /// intersect_mask(view, mask)
+  ///
+  /// Intersects 'mask' w/ view. View's data is returned
+  ///
+  template <class PixelT>
+  class IntersectPixelMask : public ReturnFixedType<typename MaskedPixelType<PixelT>::type> {
+    typedef typename MaskedPixelType<PixelT>::type return_type;
+  public:
+    template <class MaskedPixelT>
+    return_type operator()( PixelT const& value, MaskedPixelT const& mask ) const {
+      return_type result = value;
+      if ( is_valid(value) && is_valid(mask) )
+        validate(result);
+      else
+        invalidate(result);
+      return result;
+    }
+  };
+
+  template <class ViewT, class MaskViewT>
+  BinaryPerPixelView<ViewT,MaskViewT,IntersectPixelMask<typename ViewT::pixel_type> >
+  intersect_mask( ImageViewBase<ViewT> const& view,
+                  ImageViewBase<MaskViewT> const& mask_view ) {
+    typedef BinaryPerPixelView<ViewT,MaskViewT,IntersectPixelMask<typename ViewT::pixel_type> > view_type;
+    return view_type( view.impl(), mask_view.impl(), UnionPixelMask<typename ViewT::pixel_type>() );
+  }
+
+  // Is reasonable fast
+  template <class ViewT, class MaskViewT>
+  struct IsMultiplyAccessible<BinaryPerPixelView<ViewT,MaskViewT,IntersectPixelMask<typename ViewT::pixel_type> > >
+    : public boost::mpl::and_<IsMultiplyAccessible<ViewT>,IsMultiplyAccessible<MaskViewT> >::type {};
+
 } // namespace vw
 
 #endif // __VW_IMAGE_MASK_VIEWS_H__
