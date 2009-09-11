@@ -39,13 +39,11 @@ namespace camera {
   class BundleAdjustmentSparse : public BundleAdjustmentBase<BundleAdjustModelT, RobustCostT> {
 
     // Need to save S for covariance calculations
-    //math::SparseSkylineMatrix<double> m_S; 
+    //boost::shared_ptr<math::SparseSkylineMatrix<double> > m_S; 
 
   public:
-    /*
-    math::SparseSkylineMatrix<double> S() { return m_S; }
-    void set_S(math::SparseSkylineMatrix<double> S) { m_S = S; }
-    */
+    //math::SparseSkylineMatrix<double> S() { return *m_S; }
+    //void set_S(math::SparseSkylineMatrix<double> S) { m_S.reset(&S); }
 
     BundleAdjustmentSparse( BundleAdjustModelT & model,
                             RobustCostT const& robust_cost_func,

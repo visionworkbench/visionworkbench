@@ -39,11 +39,15 @@ namespace camera {
   class BundleAdjustmentRobustSparse : public BundleAdjustmentBase<BundleAdjustModelT, RobustCostT> {
 
     // Need to save S for covariance calculations
-    boost::shared_ptr<math::SparseSkylineMatrix<double> > m_S(1, 1); 
+    //boost::shared_ptr<math::SparseSkylineMatrix<double> > m_S; 
 
   public:
+    /*
     math::SparseSkylineMatrix<double> S() { return *m_S; }
-    void set_S(math::SparseSkylineMatrix<double> S) { m_S = &S; }
+    void set_S(math::SparseSkylineMatrix<double> S) { 
+      m_S.reset(new math::SparseSkylineMatrix<double>(S)); 
+    }
+    */
 
     BundleAdjustmentRobustSparse( BundleAdjustModelT & model,
                             RobustCostT const& robust_cost_func,
@@ -382,7 +386,6 @@ namespace camera {
         }
       }
 
-      //S.print_matrix();
 
 
       // Compute the LDL^T decomposition and solve using sparse methods.
