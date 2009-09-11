@@ -328,7 +328,8 @@ fi
 
 
 AX_MODULE(TOOLS, [src/vw/tools], [], yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
-AX_MODULE(GUI, [src/vw/gui], [], yes, [VW STEREO], [QT BOOST_PROGRAM_OPTIONS GL])
+AX_MODULE(GUI, [src/vw/gui], [], yes, [VW], [QT BOOST_PROGRAM_OPTIONS GL])
+AX_MODULE(PLATE, [src/vw/Plate], [], yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
 
 AX_MODULE_PYTHON([src/vw/Python], [no])
 
@@ -349,6 +350,7 @@ AM_CONDITIONAL(MAKE_MODULE_GPU, [test "$MAKE_MODULE_GPU" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GEOMETRY, [test "$MAKE_MODULE_GEOMETRY" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_TOOLS, [test "$MAKE_MODULE_TOOLS" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GUI, [test "$MAKE_MODULE_GUI" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_PLATE, [test "$MAKE_MODULE_PLATE" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_PYTHON, [test "$MAKE_MODULE_PYTHON" = "yes"])
 
 
@@ -388,6 +390,8 @@ AC_CONFIG_FILES([                       \
   src/vw/Makefile                       \
   src/vw/tools/Makefile                 \
   src/vw/gui/Makefile                   \
+  src/vw/Plate/Makefile                 \
+  src/vw/Plate/tests/Makefile           \
   src/vw/Core/Makefile                  \
   src/vw/Core/tests/Makefile            \
   src/vw/Math/Makefile                  \

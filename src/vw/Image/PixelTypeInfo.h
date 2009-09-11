@@ -116,8 +116,16 @@ namespace vw {
   is_transparent(PixelT const& pixel) { return !(pixel.a()); }
 
   template <class PixelT>
+  inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename boost::enable_if<typename PixelHasAlpha<PixelT>::type, bool>::type>::type
+  is_opaque(PixelT const& pixel) { return pixel.a(); }
+
+  template <class PixelT>
   inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename boost::disable_if<typename PixelHasAlpha<PixelT>::type, bool>::type>::type
   is_transparent(PixelT const& /*pixel*/) { return false; }
+
+  template <class PixelT>
+  inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename boost::disable_if<typename PixelHasAlpha<PixelT>::type, bool>::type>::type
+  is_opaque(PixelT const& /*pixel*/) { return true; }
 
   template <class PixelT>
   inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename PixelChannelType<PixelT>::type >::type

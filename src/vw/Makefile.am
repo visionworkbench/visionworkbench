@@ -73,6 +73,10 @@ if MAKE_MODULE_TOOLS
 tools_subdirs = tools
 endif
 
+if MAKE_MODULE_PLATE
+plate_subdirs = plate
+endif
+
 if MAKE_MODULE_GUI
 gui_subdirs = gui
 endif

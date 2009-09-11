@@ -155,6 +155,10 @@ namespace vw {
   template <class ChildT>
   bool is_transparent(PixelMask<ChildT> const& pixel) { return !pixel.valid(); }
 
+  // Overload for the pixel transparency traits class.  
+  template <class ChildT>
+  bool is_opaque(PixelMask<ChildT> const& pixel) { return pixel.valid(); }
+
   // A pixel validity checker.
   template <class PixelT>
   bool is_valid(PixelT const& /* pixel */) { return true; }
