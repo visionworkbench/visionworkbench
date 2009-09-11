@@ -11,7 +11,7 @@
 #include <vw/Plate/Tree.h>
 
 using namespace std;
-using namespace vw;
+using namespace vw::platefile;
 
 class TestTreeNode : public CxxTest::TestSuite {
 
@@ -40,6 +40,7 @@ public:
 
     // Test an invalid index
     TS_ASSERT_THROWS(root->insert(10,2,1,1), IndexErr);
+    TS_ASSERT_THROWS(root->insert(1,0,1,0), IndexErr);
   }
 
   void test_search() {
@@ -83,14 +84,6 @@ public:
     TS_ASSERT_THROWS(root->search(3,8,3), IndexErr);
     TS_ASSERT_THROWS(root->search(3,4,5), TileNotFoundErr);
     TS_ASSERT_THROWS(root->search(0,0,2), TileNotFoundErr);
-    
-    
   }
 
-  void test_search_for_node() {
-  }
-
-
-    
-
-}; // class TestBlobIO
+}; // class TestTree

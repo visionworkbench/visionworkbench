@@ -7,7 +7,7 @@
 
 #include <cxxtest/TestSuite.h>
 
-#include <vw/Plate/BlobIO.h>
+#include <vw/Plate/Blob.h>
 
 using namespace std;
 using namespace vw;
@@ -115,6 +115,20 @@ public:
     unlink("/tmp/foo2.blob");
   }
 
+  void test_blob_manager() {
+
+    BlobManager bm(1024, 4);
+    TS_ASSERT_EQUALS(bm.num_blobs(), 4);
+
+    std::cout << "\nTesting blob manager.  If this hangs, then there is a problem!!\n";
+    int blob_id = bm.request_lock(1024);
+
+    blob_id = bm.request_lock(1024);
+    blob_id = bm.request_lock(1024);
+    blob_id = bm.request_lock(1024);
+    bm.release_lock(0);
+    blob_id = bm.request_lock(1024);
+  }
     
 
 }; // class TestBlobIO

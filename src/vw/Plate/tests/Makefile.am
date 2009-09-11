@@ -12,10 +12,10 @@
 if MAKE_MODULE_PLATE
 
 nodist_TestBlobIO_SOURCES = TestBlobIO.cxx
-#nodist_TestIndex_SOURCES = TestIndex.cxx
+nodist_TestIndex_SOURCES = TestIndex.cxx
 nodist_TestTree_SOURCES = TestTree.cxx
 
-TESTS = TestBlobIO TestTree
+TESTS = TestBlobIO TestTree TestIndex
 
 include $(top_srcdir)/config/instantiate.am
 

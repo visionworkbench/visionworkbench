@@ -4,7 +4,7 @@
 #include <vw/Math/Vector.h>
 
 #include <vw/Plate/Index.h>
-#include <vw/Plate/BlobIO.h>
+#include <vw/Plate/Blob.h>
 
 #include <fstream>
 
