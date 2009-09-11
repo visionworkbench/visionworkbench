@@ -243,45 +243,61 @@ namespace platefile {
       
     }
 
-    void mipmap_helper(int col, int row, int depth) {
+    void mipmap_helper(int col, int row, int depth, int block_size) {
+
+      for (int d=0; d < depth; ++d)
+        std::cout << "  ";
+      std::cout << "Processing " << col << " " << row << " @ " << depth << "\n";
 
       // Termination conditions: 
-      //
-      // (1) we have reached the maximum depth.
-      if (depth >= m_index->max_depth()) 
-        return;
       try {
         IndexRecord record = m_index->read_request(col, row, depth);
-        // (2) the record is already valid
+        // (1) the record is already valid
         if (record.valid())
           return;
       } catch (TileNotFoundErr &e) {
-        // (3) the record does not exist at all.
+        // (2) the record does not exist at all.
         return;
       }
+
+      std::cout << "\t--> Attempting to regenerate data.\n";
 
       // If none of the termination conditions are met, then we must
       // be at an invalid record that needs to be regenerated.
       std::vector<ImageView<PixelRGBA<uint8> > > imgs(4);
       for (unsigned i = 0; i < 4; ++i) {
+        std::cout << "\t    child " << i << " @ " << depth << "\n";
+        IndexRecord record;
         try {
-          this->read(imgs[i], col*2+(i%1), row*2+(i/2), depth+1);
-        } catch (TileNotFoundErr &e) {
-          // If the tile was not found, we attempt to (recursively)
-          // generate it.  Then we try reading it again.  If that
-          // fails, we return a black tile.
-          mipmap_helper(col*2+(i%1), row*2+(i/2), depth+1);
-          this->read(imgs[i], col*2+(i%1), row*2+(i/2), depth+1);
+          record = this->read(imgs[i], col*2+(i%2), row*2+(i/2), depth+1);
+        } catch (TileNotFoundErr &e) { 
+          // Do nothing... record is not found, and therefore invalid. 
         }
+         
+        // If the record for the child is invalid, we attempt to
+        // (recursively) generate it.  Then we try reading it again.
+        if (!record.valid()) {
+          std::cout << "\t   Invalid!\n";
+          mipmap_helper(col*2+(i%2), row*2+(i/2), depth+1, block_size);
+          try {
+            record = this->read(imgs[i], col*2+(i%2), row*2+(i/2), depth+1);
+          } catch (TileNotFoundErr &e) {} // Do nothing... record is not found, and therefore invalid. 
+        }
+        else {           std::cout << "\t   Valid!\n"; }
       }
+
+      for (int d=0; d < depth; ++d)
+        std::cout << "  ";
+      std::cout << "  Combining " << col << " " << row << " @ " << depth << "\n";
+
       
       // Piece together the tiles from the four children if this node.
       mosaic::ImageComposite<PixelRGBA<uint8> > composite;
       composite.set_draft_mode(true);
       composite.insert(imgs[0], 0, 0);
-      composite.insert(imgs[1], imgs[0].cols(), 0);
-      composite.insert(imgs[2], 0, imgs[0].rows());
-      composite.insert(imgs[3], imgs[0].cols(), imgs[0].rows());
+      composite.insert(imgs[1], block_size, 0);
+      composite.insert(imgs[2], 0, block_size);
+      composite.insert(imgs[3], block_size, block_size);
       composite.prepare();
       
       // Subsample the image, and then write the new tile.
@@ -289,7 +305,7 @@ namespace platefile {
       this->write(col, row, depth, new_tile);
     }
 
-    void mipmap() { this->mipmap_helper(0,0,0); }
+    void mipmap(int block_size) { this->mipmap_helper(0,0,0,block_size); }
 
     void print() {
       m_index->print();

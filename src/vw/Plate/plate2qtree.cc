@@ -37,13 +37,9 @@ int main( int argc, char *argv[] ) {
         
         ImageView<PixelRGB<uint8> > tile;
         try {
-          std::cout << "\t--> Extracting: [ " << j << " " << i << " @ level " <<  n << "]\n";
           IndexRecord rec = platefile.read(tile, i, j, n);
           if (!rec.valid())
             vw_throw(TileNotFoundErr() << "\tTile was found, but was marked invalid.");
-          std::cout << "done.\n\n\n";
-
-          
           
           // Create the level directory (if it doesn't exist)
           std::ostringstream ostr;
@@ -58,12 +54,10 @@ int main( int argc, char *argv[] ) {
           
           // Create the file (with the row as the filename)
           ostr << "/" << j << "." << rec.block_filetype();
-          std::cout << "Writing " << ostr.str() << "\n";
+          std::cout << "\t--> Writing " << ostr.str() << "\n";
           write_image(ostr.str(), tile);
 
-        } catch (TileNotFoundErr &e) {
-          std::cout << e.what() << "\n";
-        }
+        } catch (TileNotFoundErr &e) {}
       }
     }    
 

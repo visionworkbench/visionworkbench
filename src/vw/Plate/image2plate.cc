@@ -154,7 +154,7 @@ int main( int argc, char *argv[] ) {
   platefile.insert(composite, tile_size);
   
   std::cout << "Generating platefile MIPMAP...\n";
-  platefile.mipmap();
+  platefile.mipmap(tile_size);
 
   std::cout << "Saving...\n";
   platefile.save();
