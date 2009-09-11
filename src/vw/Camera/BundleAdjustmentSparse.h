@@ -19,6 +19,7 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/vector_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/version.hpp>
 #if BOOST_VERSION<=103200
 // Mapped matrix doesn't exist in 1.32, but Sparse Matrix does
@@ -39,16 +40,18 @@ namespace camera {
   class BundleAdjustmentSparse : public BundleAdjustmentBase<BundleAdjustModelT, RobustCostT> {
 
     // Need to save S for covariance calculations
-    //boost::shared_ptr<math::SparseSkylineMatrix<double> > m_S; 
+    boost::shared_ptr<math::SparseSkylineMatrix<double> > m_S; 
 
   public:
-    //math::SparseSkylineMatrix<double> S() { return *m_S; }
-    //void set_S(math::SparseSkylineMatrix<double> S) { m_S.reset(&S); }
+    math::SparseSkylineMatrix<double> S() { return *m_S; }
+    void set_S(math::SparseSkylineMatrix<double> S) { 
+      m_S = boost::make_shared<math::SparseSkylineMatrix<double> >(S); 
+    }
 
     BundleAdjustmentSparse( BundleAdjustModelT & model,
                             RobustCostT const& robust_cost_func,
                             bool use_camera_constraint=true,
-                            bool use_gcp_constraint=true ) :
+                            bool use_gcp_constraint=true) :
     BundleAdjustmentBase<BundleAdjustModelT,RobustCostT>( model, robust_cost_func,
                                                           use_camera_constraint,
                                                           use_gcp_constraint ) {}
@@ -212,7 +215,7 @@ namespace camera {
           inverse_cov = this->m_model.A_inverse_covariance(j);
           
           matrix_camera_camera C;
-          C.set_identity();
+
           U(j) += transpose(C) * inverse_cov * C;
           
           vector_camera eps_a = this->m_model.A_initial(j)-this->m_model.A_parameters(j);
@@ -390,7 +393,7 @@ namespace camera {
       // Compute the LDL^T decomposition and solve using sparse methods.
       Vector<double> delta_a = sparse_solve(S, e);
       // Save S; used for covariance calculations
-      //this->set_S(S);
+      this->set_S(S);
 
       subvector(delta, current_delta_length, e.size()) = delta_a;
       current_delta_length += e.size();
