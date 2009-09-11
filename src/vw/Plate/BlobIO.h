@@ -105,7 +105,7 @@ namespace platefile {
     
 
     /// Read data out of the blob and save it as its own file on disk.
-    void read_as_file(std::string dest_file, size_t offset, size_t size) {
+    void read_to_file(std::string dest_file, size_t offset, size_t size) {
       boost::shared_array<char> data = this->read<char>(offset, size);
 
       // Open the dest_file and write to it.

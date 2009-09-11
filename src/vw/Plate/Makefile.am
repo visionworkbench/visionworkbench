@@ -11,32 +11,19 @@
 
 if MAKE_MODULE_PLATE
 
-include_HEADERS = BlobIO.h
-
+include_HEADERS = BlobIO.h Index.h
 libvwPlate_la_SOURCES = 
-
 libvwPlate_la_LIBADD = @MODULE_PLATE_LIBS@
-
 lib_LTLIBRARIES = libvwPlate.la
-
-#if ENABLE_EXCEPTIONS
-
-#
-#platetest_SOURCES = vwv.cc vwv_MainWindow.cc vwv_GlPreviewWidget.cc	\
-#	   	   	vwv_MainWindow.h vwv_GlPreviewWidget.h		\
-#	   	   	vwv_TextureCache.cc
-
-#platetest_LDADD    = @PKG_PLATE_LIBS@
-
-#bin_PROGRAMS = platetest
-
-#noinst_PROGRAMS = 
-
-#endif
 
 endif
 
-
+if ENABLE_EXCEPTIONS
+enplate_SOURCES = enplate.cc
+enplate_LDADD    = @PKG_PLATE_LIBS@
+bin_PROGRAMS = enplate
+noinst_PROGRAMS = 
+endif
 
 ########################################################################
 # general
