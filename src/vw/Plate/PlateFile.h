@@ -2,11 +2,13 @@
 #define __VW_PLATE_PLATEFILE_H__
 
 #include <vw/Math/Vector.h>
+#include <vw/Image.h>
+#include <vw/Mosaic/ImageComposite.h>
 
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Blob.h>
 
-
+#include <vector>
 #include <fstream>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
@@ -144,7 +146,7 @@ namespace platefile {
 
     // int tile_size() const {}// return m_index.tile_size(); }
 
-    // int depth() const {}// return m_index.depth(); }
+    int depth() const { return m_index->max_depth(); }
 
     // Vector<int,2>  size_in_tiles() const  {}// return m_index.size(); }
 
@@ -198,6 +200,96 @@ namespace platefile {
       IndexRecord write_record(blob_id, blob_offset, block_size, m_tile_filetype);
       m_index->write_complete(col, row, depth, write_record);
     }
+
+    /// Add an image to the plate file.
+    template <class ViewT>
+    void insert(ImageViewBase<ViewT> const& image, int tile_size) {
+
+      // chop up the image into small chunks
+      std::vector<BBox2i> bboxes = image_blocks( image.impl(), tile_size, tile_size);
+      
+      // Compute the dimensions (in blocks) of the image so that we can
+      // reshape the vector of bboxes into a "matrix" of bboxes in the
+      // code below.
+      int block_cols = ceilf(float(image.impl().cols()) / tile_size);
+      int block_rows = ceilf(float(image.impl().rows()) / tile_size);
+      int nlevels = ceilf(log(std::max(block_rows, block_cols))/log(2));
+      std::cout << "\t--> Rows: " << block_rows << " Cols: " << block_cols 
+                << "   (Block size: " << tile_size << ")\n";
+      std::cout << "\t--> Number of mipmap levels = " << nlevels << "\n";
+      
+      // And save each block to the PlateFile
+      std::vector<BBox2i>::iterator block_iter = bboxes.begin();
+      for (int j = 0; j < block_rows; ++j) {
+        for (int i = 0; i < block_cols; ++i) {
+          std::cout << "Adding block: [ " << j << " " << i << " @ level " <<  nlevels << "] " 
+                    << *block_iter << "\n";
+          
+          this->write(i, j, nlevels, crop(image, *block_iter));
+          
+          // For debugging
+          //  this->print();
+          
+          ++block_iter;
+        }
+        std::cout << "\n";
+      }      
+    }
+
+    /// Compute the tiles in the index that overlap with a given image
+    /// bounding box at a given depth.
+    std::vector<Vector2> compute_overlap(BBox2i bbox, int depth) {
+      std::vector<Vector2> blocks;
+      
+    }
+
+    void mipmap_helper(int col, int row, int depth) {
+
+      // Termination conditions: 
+      //
+      // (1) we have reached the maximum depth.
+      if (depth >= m_index->max_depth()) 
+        return;
+      try {
+        IndexRecord record = m_index->read_request(col, row, depth);
+        // (2) the record is already valid
+        if (record.valid())
+          return;
+      } catch (TileNotFoundErr &e) {
+        // (3) the record does not exist at all.
+        return;
+      }
+
+      // If none of the termination conditions are met, then we must
+      // be at an invalid record that needs to be regenerated.
+      std::vector<ImageView<PixelRGBA<uint8> > > imgs(4);
+      for (unsigned i = 0; i < 4; ++i) {
+        try {
+          this->read(imgs[i], col*2+(i%1), row*2+(i/2), depth+1);
+        } catch (TileNotFoundErr &e) {
+          // If the tile was not found, we attempt to (recursively)
+          // generate it.  Then we try reading it again.  If that
+          // fails, we return a black tile.
+          mipmap_helper(col*2+(i%1), row*2+(i/2), depth+1);
+          this->read(imgs[i], col*2+(i%1), row*2+(i/2), depth+1);
+        }
+      }
+      
+      // Piece together the tiles from the four children if this node.
+      mosaic::ImageComposite<PixelRGBA<uint8> > composite;
+      composite.set_draft_mode(true);
+      composite.insert(imgs[0], 0, 0);
+      composite.insert(imgs[1], imgs[0].cols(), 0);
+      composite.insert(imgs[2], 0, imgs[0].rows());
+      composite.insert(imgs[3], imgs[0].cols(), imgs[0].rows());
+      composite.prepare();
+      
+      // Subsample the image, and then write the new tile.
+      ImageView<PixelRGBA<uint8> > new_tile = subsample(gaussian_filter(composite, 1.0), 2);
+      this->write(col, row, depth, new_tile);
+    }
+
+    void mipmap() { this->mipmap_helper(0,0,0); }
 
     void print() {
       m_index->print();

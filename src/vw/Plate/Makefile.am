@@ -23,10 +23,13 @@ if ENABLE_EXCEPTIONS
 enplate_SOURCES = enplate.cc
 enplate_LDADD    = @PKG_PLATE_LIBS@
 
-deplate_SOURCES = deplate.cc
-deplate_LDADD    = @PKG_PLATE_LIBS@
+image2plate_SOURCES = image2plate.cc
+image2plate_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@
 
-bin_PROGRAMS = enplate deplate
+plate2qtree_SOURCES = plate2qtree.cc
+plate2qtree_LDADD    = @PKG_PLATE_LIBS@
+
+bin_PROGRAMS = enplate plate2qtree image2plate
 noinst_PROGRAMS = 
 endif
 

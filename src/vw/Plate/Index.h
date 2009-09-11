@@ -71,7 +71,8 @@ namespace platefile {
     }
 
     bool valid() const { return m_valid; }
-    void set_valid(bool valid) { m_valid = valid; }
+    void validate() { m_valid = true; }
+    void invalidate() { m_valid = false; }
 
     /// Serialize the index record as a series of bytes.
     void serialize(std::ostream &ostr) const {
@@ -106,6 +107,7 @@ namespace platefile {
   class Index { 
 
     int m_index_version;
+    int m_max_depth;
     boost::shared_ptr<BlobManager> m_blob_manager;
     boost::shared_ptr<TreeNode<IndexRecord> > m_root;
     Mutex m_mutex;
@@ -114,12 +116,14 @@ namespace platefile {
 
     /// Create a new index.  Uses default blob manager.
     Index() :
-      m_index_version(VW_PLATE_INDEX_VERSION), m_blob_manager( new BlobManager() ), 
+      m_index_version(VW_PLATE_INDEX_VERSION), m_max_depth(0), 
+      m_blob_manager( new BlobManager() ), 
       m_root(boost::shared_ptr<TreeNode<IndexRecord> >( new TreeNode<IndexRecord>() )) {}
 
     /// Create a new index.  User supplies a pre-configure blob manager.
     Index( boost::shared_ptr<BlobManager> blob_manager) :
-      m_index_version(VW_PLATE_INDEX_VERSION), m_blob_manager(blob_manager), 
+      m_index_version(VW_PLATE_INDEX_VERSION), m_max_depth(0),
+      m_blob_manager(blob_manager), 
       m_root(boost::shared_ptr<TreeNode<IndexRecord> >( new TreeNode<IndexRecord>() )) {}
 
     /// Open an existing index from a file on disk.
@@ -134,6 +138,9 @@ namespace platefile {
       if (m_index_version != VW_PLATE_INDEX_VERSION) 
         vw_throw(IOErr() << "Could not open plate index.  " 
                  << "Does not appear to have a compatible version number.");      
+
+      // Read the max depth of the index
+      istr.read( (char*)&m_max_depth, sizeof(m_max_depth) );
 
       // Read blob manager info and create a blob manager.
       int num_blobs;
@@ -158,6 +165,7 @@ namespace platefile {
 
       // Save basic index information & version.
       ostr.write( (char*)&m_index_version, sizeof(m_index_version) );
+      ostr.write( (char*)&m_max_depth, sizeof(m_max_depth) );
 
       // Save blob manager information
       int num_blobs = m_blob_manager->num_blobs();
@@ -171,7 +179,7 @@ namespace platefile {
     }
 
     int version() const { return m_index_version; }
-
+    int max_depth() const { return m_max_depth; }
 
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.
@@ -192,10 +200,9 @@ namespace platefile {
       m_blob_manager->release_lock(record.blob_id()); 
       {
         Mutex::Lock lock(m_mutex);
-        std::cout << "Inserting record: " << col << " " << row << " @ " << depth << "\n";
         m_root->insert(record, col, row, depth);
-        std::cout << "done.\n\n\n";
-
+        if (depth > m_max_depth) 
+          m_max_depth = depth;
       }
     }
 

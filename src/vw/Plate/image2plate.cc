@@ -1,21 +1,16 @@
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
-
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
-
-#include <vw/Core.h>
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
 #include <vw/Mosaic.h>
+#include <vw/Plate/PlateFile.h>
 
 using namespace vw;
-using namespace vw::cartography;
+using namespace vw::platefile;
 using namespace vw::mosaic;
+using namespace vw::cartography;
+
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
 
 // Erases a file suffix if one exists and returns the base string
 static std::string prefix_from_filename(std::string const& filename) {
@@ -26,8 +21,8 @@ static std::string prefix_from_filename(std::string const& filename) {
   return result;
 }
 
-int main(int argc, char **argv) {
-
+int main( int argc, char *argv[] ) {
+  
   std::string output_file_name;
   std::string output_file_type;
   int tile_size;
@@ -61,7 +56,7 @@ int main(int argc, char **argv) {
   po::notify( vm );
 
   std::ostringstream usage;
-  usage << "Usage: toast [options] <filename>..." <<std::endl << std::endl;
+  usage << "Usage: " << argv[0] << " [options] <filename>..." <<std::endl << std::endl;
   usage << general_options << std::endl;
 
   if( vm.count("help") ) {
@@ -76,7 +71,7 @@ int main(int argc, char **argv) {
   }
 
   if( output_file_name == "" )
-    output_file_name = prefix_from_filename(image_files[0]) + ".toast";
+    output_file_name = prefix_from_filename(image_files[0]) + ".plate";
 
   if( tile_size <= 0 || tile_size != pow(2,int(log(tile_size)/log(2))) ) {
     std::cerr << "Error: The tile size must be a power of two!  (You specified: " << tile_size << ")" << std::endl << std::endl;
@@ -118,8 +113,12 @@ int main(int argc, char **argv) {
     int level = (int)round(log(180/delta/(tile_size-1))/log(2));
     if( level > max_level ) max_level = level;
   }
-
-  int32 resolution = (1<<max_level)*(tile_size-1)+1;
+  
+  // TODO: This might be the right math if we use padding, but I'm
+  // disabling it for now so that we get a nice, even power of two
+  // size for the full image.
+  //  int32 resolution = (1<<max_level)*(tile_size-1)+1;
+  int32 resolution = (1<<max_level)*tile_size;
   std::cout << "Using " << max_level+1 << " levels. (Total resolution = " << resolution << " pixels.)" << std::endl;
 
   ImageComposite<PixelRGBA<uint8> > composite;
@@ -138,21 +137,26 @@ int main(int argc, char **argv) {
     ImageViewRef<PixelRGBA<uint8> > toast_image;
 
     if( global ) {
-      vw_out(0) << "\t--> Detected global overlay.  Using cylindrical edge extension to hide the seam.\n";
       composite.insert(transform(image,toast_tx,resolution,resolution,CylindricalEdgeExtension(),BicubicInterpolation()), 0, 0);
     }
     else {
       composite.insert(transform(image,toast_tx,resolution,resolution,ZeroEdgeExtension(),BicubicInterpolation()), 0, 0);
     }
   }
-
   composite.prepare();
-  std::cout << "Generating tile set at " << output_file_name << "." << std::endl;
-  QuadTreeGenerator qtree( composite, output_file_name );
-  ToastQuadTreeConfig tqtc;
-  tqtc.configure( qtree, composite );
-  qtree.set_file_type( output_file_type );
-  qtree.generate( TerminalProgressCallback() );
 
-  return 0;
+  // -------------------------- PLATE FILE GENERATION --------------------------------
+
+  // Create the plate file
+  PlateFile platefile(output_file_name, output_file_type);
+
+  std::cout << "\nWriting data to plate file: " << output_file_type << "\n";
+  platefile.insert(composite, tile_size);
+  
+  std::cout << "Generating platefile MIPMAP...\n";
+  platefile.mipmap();
+
+  std::cout << "Saving...\n";
+  platefile.save();
+
 }
