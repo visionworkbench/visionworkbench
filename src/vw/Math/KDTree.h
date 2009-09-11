@@ -92,7 +92,7 @@
 
 #include <boost/config.hpp>
 #include <boost/graph/adjacency_list.hpp>
-#include <boost/property_map.hpp>
+#include <boost/property_map/property_map.hpp>
 
 // Std C++
 #include <iostream>
