@@ -22,48 +22,80 @@ namespace platefile {
   // as invalid if they represent low-res tiles that need to be
   // re-renedered from higher-res tiles that have been updated.
   // -------------------------------------------------------------------
-  
+
+  #define VW_PLATE_INDEXRECORD_FILETYPE_SIZE 5
+
   class IndexRecord {
 
     int32 m_blob_id;
-    size_t m_blob_offset;
-    size_t m_block_size;
-    char m_block_filetype[5];
-    bool m_valid;
+    int64 m_blob_offset;
+    int32 m_block_size;
+    uint8 m_block_filetype[VW_PLATE_INDEXRECORD_FILETYPE_SIZE];
+    uint8 m_valid;
 
   public:
 
     IndexRecord() : m_valid(false) {}
 
-    IndexRecord(int blob_id, size_t blob_offset, 
-                size_t block_size, std::string block_filetype) :
+    IndexRecord(int32 blob_id, int64 blob_offset, 
+                int32 block_size, std::string block_filetype) :
       m_blob_id(blob_id), m_blob_offset(blob_offset), 
       m_block_size(block_size), m_valid(true) {
 
       if (block_filetype.size() > 4) 
         vw_throw(ArgumentErr() << "IndexRecord: filetype argument must be 4 characters or fewer.");
-      strncpy(m_block_filetype, block_filetype.c_str(), 5);
+      strncpy((char*)m_block_filetype, block_filetype.c_str(), 5);
 
     }
+
+    IndexRecord(std::istream &istr) {
+      this->deserialize(istr);
+    }
+
 
     int32 blob_id() const { return m_blob_id; }
     void set_blob_id(int32 blob_id) { m_blob_id = blob_id; }
     
-    size_t blob_offset() const { return m_blob_offset; }
-    void set_blob_offset(size_t blob_offset) { m_blob_offset = blob_offset; }
+    int64 blob_offset() const { return m_blob_offset; }
+    void set_blob_offset(int64 blob_offset) { m_blob_offset = blob_offset; }
 
-    size_t block_size() const { return m_block_size; }
-    void set_block_size(size_t block_size) { m_block_size = block_size; }
+    int32 block_size() const { return m_block_size; }
+    void set_block_size(int32 block_size) { m_block_size = block_size; }
 
-    std::string block_filetype() const { return m_block_filetype; }
+    std::string block_filetype() const { return (char*)m_block_filetype; }
     void set_block_filetype(std::string block_filetype) {
       if (block_filetype.size() > 4) 
         vw_throw(ArgumentErr() << "IndexRecord: filetype argument must be 4 characters or fewer.");
-      strncpy(m_block_filetype, block_filetype.c_str(), 5);
+      strncpy((char*)m_block_filetype, block_filetype.c_str(), 5);
     }
 
     bool valid() const { return m_valid; }
     void set_valid(bool valid) { m_valid = valid; }
+
+    /// Serialize the index record as a series of bytes.
+    void serialize(std::ostream &ostr) const {
+      ostr.write( (char*)&m_blob_id, sizeof(m_blob_id));
+      ostr.write( (char*)&m_blob_offset, sizeof(m_blob_offset));
+      ostr.write( (char*)&m_block_size, sizeof(m_block_size));
+      uint8 filetype_size = VW_PLATE_INDEXRECORD_FILETYPE_SIZE;
+      ostr.write( (char*)&filetype_size , sizeof(filetype_size));
+      for (int i = 0; i < filetype_size; ++i) 
+        ostr.write( (char*)&(m_block_filetype[i]), sizeof(*m_block_filetype));
+      ostr.write( (char*)&m_valid, sizeof(m_valid));
+    }
+
+    /// Deserialize the index record from a stream of bytes
+    void deserialize(std::istream &istr) {
+      istr.read( (char*)&m_blob_id, sizeof(m_blob_id) );
+      istr.read( (char*)&m_blob_offset, sizeof(m_blob_offset) );
+      istr.read( (char*)&m_block_size, sizeof(m_block_size) );
+      uint8 filetype_size;
+      istr.read( (char*)&filetype_size, sizeof(filetype_size) );
+      for (int i = 0; i < filetype_size; ++i) 
+        istr.read( (char*)&(m_block_filetype[i]), sizeof(*m_block_filetype));
+      istr.read( (char*)&m_valid, sizeof(m_valid));
+    }
+
   };
 
 

@@ -104,7 +104,6 @@ namespace platefile {
     std::string name() const { return m_plate_name; }
     std::string tile_filetype() const { return m_tile_filetype; }
 
-
     void close() {}
   
     int tile_size() const {}// return m_index.tile_size(); }
