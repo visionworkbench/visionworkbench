@@ -124,7 +124,7 @@ namespace platefile {
       ostr.close();
     }
 
-    void write_from_file(std::string source_file, int64& offset, int64& size) {
+    void write_from_file(std::string source_file, int64& offset, int32& size) {
 
       // Open the source_file and read data from it.
       std::ifstream istr(source_file.c_str(), std::ios::binary);

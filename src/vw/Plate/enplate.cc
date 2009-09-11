@@ -7,15 +7,15 @@ using namespace vw::platefile;
 
 int main( int argc, char *argv[] ) {
   
-  if (argc < 1) {
+  if (argc < 2) {
     std::cout << "Usage: " << argv[0] << " <platefile name> <image 1> ... [image N]\n";
     exit(0);
   }
 
   // Create the plate file
-  PlateFile platefile(argv[1], "tif");
+  PlateFile platefile(argv[1], "jpg");
 
-  for (int n = 1; n < argc; ++n) {
+  for (int n = 2; n < argc; ++n) {
     ImageView<PixelRGB<uint8> > image;
     read_image(image, argv[n]);
 
@@ -28,21 +28,24 @@ int main( int argc, char *argv[] ) {
     // code below.
     int block_cols = ceilf(float(image.cols()) / block_size);
     int block_rows = ceilf(float(image.rows()) / block_size);
+    int nlevels = ceilf(log(std::max(block_rows, block_cols))/log(2));
+    std::cout << "Rows: " << block_rows << " Cols: " << block_cols << "\n";
+    std::cout << "Nlevels = " << nlevels << "\n";
 
     // And save each block to the PlateFile
     std::vector<BBox2i>::iterator block_iter = bboxes.begin();
     for (int j = 0; j < block_rows; ++j) {
       for (int i = 0; i < block_cols; ++i) {
-        std::cout << "Adding block: [ " << i << " " << j << "] " << *block_iter << "\n";
-
-        platefile.write(i, j, 0, crop(image, *block_iter));
+        std::cout << "Adding block: [ " << i << " " << j << " " <<  nlevels << "] " << *block_iter << "\n";
+        
+        platefile.write(i, j, nlevels, crop(image, *block_iter));
 
         ++block_iter;
       }
       std::cout << "\n";
     }    
 
-    platefile.close();
+    platefile.save();
 
   }
 }

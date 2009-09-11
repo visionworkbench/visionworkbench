@@ -11,7 +11,7 @@
 
 if MAKE_MODULE_PLATE
 
-include_HEADERS = BlobIO.h Index.h
+include_HEADERS = Blob.h Index.h Tree.h PlateFile.h
 libvwPlate_la_SOURCES = 
 libvwPlate_la_LIBADD = @MODULE_PLATE_LIBS@
 lib_LTLIBRARIES = libvwPlate.la
@@ -19,9 +19,14 @@ lib_LTLIBRARIES = libvwPlate.la
 endif
 
 if ENABLE_EXCEPTIONS
+
 enplate_SOURCES = enplate.cc
 enplate_LDADD    = @PKG_PLATE_LIBS@
-bin_PROGRAMS = enplate
+
+deplate_SOURCES = deplate.cc
+deplate_LDADD    = @PKG_PLATE_LIBS@
+
+bin_PROGRAMS = enplate deplate
 noinst_PROGRAMS = 
 endif
 

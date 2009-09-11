@@ -73,7 +73,8 @@ public:
     
     // Do one loop through the blob file, placing f1 into the file,
     // and then reading it back out and saving it as f2.
-    int64 offset, size;
+    int64 offset;
+    int32 size;
     blob.write_from_file(f1, offset, size);
     blob.read_to_file(f2, offset, size);
 
