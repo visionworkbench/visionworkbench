@@ -55,7 +55,7 @@ namespace platefile {
 
     // Returns: the binary data in the blob.
     template <class DataT>
-    boost::shared_array<DataT> read(size_t offset, size_t size) {
+    boost::shared_array<DataT> read(int64 offset, int64 size) {
 
       // Create a new array to store the data that gets read in.
       boost::shared_array<DataT> data(new DataT[size]);
@@ -68,7 +68,7 @@ namespace platefile {
       // Seek to the end and make sure that we haven't requested more
       // bytes than are store in the file!
       istr.seekg(0, std::ios_base::end);
-      size_t end_offset = istr.tellg();
+      int64 end_offset = istr.tellg();
 
       if (end_offset - offset < size) 
         vw_throw(IOErr() << "Blob::read() failed -- read requested more bytes "
@@ -87,7 +87,7 @@ namespace platefile {
 
     // Returns: the offset where the data was written to the blob file.
     template <class DataT>
-    size_t write(boost::shared_array<DataT> data, size_t size) {
+    int64 write(boost::shared_array<DataT> data, int64 size) {
 
       // Open file, and seek to the very end.
       std::ofstream ostr(m_filename.c_str(), std::ios::app | std::ios::binary);
@@ -95,7 +95,7 @@ namespace platefile {
 
       // Store the current offset of the end of the file.  We'll
       // return that at the end of this function.
-      size_t offset = ostr.tellp();
+      int64 offset = ostr.tellp();
 
       if (!ostr.is_open())
         vw_throw(IOErr() << "Blob::write() -- could not open blob file for writing.");
@@ -110,7 +110,7 @@ namespace platefile {
     
 
     /// Read data out of the blob and save it as its own file on disk.
-    void read_to_file(std::string dest_file, size_t offset, size_t size) {
+    void read_to_file(std::string dest_file, int64 offset, int64 size) {
       boost::shared_array<char> data = this->read<char>(offset, size);
 
       // Open the dest_file and write to it.
@@ -124,7 +124,7 @@ namespace platefile {
       ostr.close();
     }
 
-    void write_from_file(std::string source_file, size_t& offset, size_t& size) {
+    void write_from_file(std::string source_file, int64& offset, int64& size) {
 
       // Open the source_file and read data from it.
       std::ifstream istr(source_file.c_str(), std::ios::binary);
@@ -177,7 +177,7 @@ namespace platefile {
 
     /// Create a new blob manager.  The max_blob_size is specified in
     /// units of megabytes.
-    BlobManager(size_t max_blob_size = 2048, int nblobs = 2) : 
+    BlobManager(int64 max_blob_size = 2048, int nblobs = 2) : 
       m_max_blob_size(max_blob_size * 1024 * 1024), m_blob_index(0) { 
 
       m_blob_locks.resize(nblobs);
@@ -194,6 +194,11 @@ namespace platefile {
       return m_blob_locks.size();
     }
 
+    int64 max_blob_size() const { 
+      Mutex::Lock lock(m_mutex);
+      return m_max_blob_size; 
+    }
+
     /// Request a blob to write to that has sufficient space to write at
     /// least 'size' bytes.  Returns the blob index of a locked blob
     /// that you have sole access to write to.
@@ -204,7 +209,7 @@ namespace platefile {
     // efficient because it blocks on write if it catches up to a blob
     // that is still locked.  We should add real blob selection logic
     // here at a later date.
-    int request_lock(size_t size) {
+    int request_lock(int64 size) {
       Mutex::Lock lock(m_mutex);
 
       // First, we check to see if the next blob is free.  If not, we

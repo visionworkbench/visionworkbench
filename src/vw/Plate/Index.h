@@ -98,7 +98,6 @@ namespace platefile {
 
   };
 
-
   // -------------------------------------------------------------------
   //                            PLATE_FILE
   // -------------------------------------------------------------------
@@ -127,9 +126,19 @@ namespace platefile {
       exit(0);
     }
 
-    void save(std::string filename) {
-      std::cout << "SAVING A PLATE INDEX IS NOT YET IMPLEMENTED!!!\n";      
-      exit(0);
+    /// Save an index out to a file on disk.  This serializes the
+    /// tree.
+    void save(std::string const& filename) {
+      std::ofstream ostr(filename, std::ios::binary);
+
+      
+
+      // Save blob manager information
+      int num_blobs = m_blob_manager.num_blobs();
+      size_t max_blob_size = m_blob_manager.max_blob_size();
+
+      m_root.serialize(ostr);
+      ostr.close();
     }
 
     /// Attempt to access a tile in the index.  Throws an
