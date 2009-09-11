@@ -39,13 +39,11 @@ namespace camera {
   class BundleAdjustmentRobustSparse : public BundleAdjustmentBase<BundleAdjustModelT, RobustCostT> {
 
     // Need to save S for covariance calculations
-    //math::SparseSkylineMatrix<double> m_S(1, 1); 
+    math::SparseSkylineMatrix<double> m_S(1, 1); 
 
   public:
-    /*
     math::SparseSkylineMatrix<double> S() { return m_S; }
     void set_S(math::SparseSkylineMatrix<double> S) { m_S = S; }
-    */
 
     BundleAdjustmentRobustSparse( BundleAdjustModelT & model,
                             RobustCostT const& robust_cost_func,
@@ -390,7 +388,7 @@ namespace camera {
       // Compute the LDL^T decomposition and solve using sparse methods.
       Vector<double> delta_a = sparse_solve(S, e);
       // Save S; used for covariance calculations
-      this->set_S(S);
+      //this->set_S(S);
 
       //std::cout << "Delta a is : " << delta_a << "\n\n";
 

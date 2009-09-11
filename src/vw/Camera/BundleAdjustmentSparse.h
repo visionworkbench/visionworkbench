@@ -392,7 +392,7 @@ namespace camera {
       // Compute the LDL^T decomposition and solve using sparse methods.
       Vector<double> delta_a = sparse_solve(S, e);
       // Save S; used for covariance calculations
-      this->set_S(S);
+      //this->set_S(S);
 
       subvector(delta, current_delta_length, e.size()) = delta_a;
       current_delta_length += e.size();
