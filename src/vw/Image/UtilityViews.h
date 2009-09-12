@@ -6,7 +6,7 @@
 
 
 /// \file UtilityViews.h
-/// 
+///
 /// Utility objects conforming to the view concept.
 ///
 #ifndef __VW_IMAGE_UTILITYVIEWS_H__
@@ -58,7 +58,7 @@ namespace vw {
   ConstantView<PixelT> constant_view( PixelT const& value, int32 cols, int32 rows, int32 planes=1 ) {
     return ConstantView<PixelT>( value, cols, rows, planes );
   }
-  
+
 
   /// PixelIndexView
   ///
@@ -72,8 +72,8 @@ namespace vw {
 
     /// Initialize from another view
     template <class ImageT>
-    PixelIndexView( ImageViewBase<ImageT> const& view ) : 
-      m_rows(view.rows()), m_cols(view.cols()), m_planes(view.planes()) {}
+    PixelIndexView( ImageViewBase<ImageT> const& view ) :
+      m_rows(view.impl().rows()), m_cols(view.impl().cols()), m_planes(view.impl().planes()) {}
 
     PixelIndexView( int32 cols, int32 rows, int32 planes = 1 )
       : m_cols(cols), m_rows(rows), m_planes(planes) {}
@@ -84,7 +84,7 @@ namespace vw {
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
-    inline result_type operator()( int32 i, int32 j, int32 /*p*/=0 ) const { 
+    inline result_type operator()( int32 i, int32 j, int32 /*p*/=0 ) const {
       return Vector2(i,j);
     }
 
@@ -122,22 +122,22 @@ namespace vw {
 
     /// Initialize from another view
     template <class ImageT>
-    PixelIndex3View( ImageViewBase<ImageT> const& view ) : 
+    PixelIndex3View( ImageViewBase<ImageT> const& view ) :
       m_rows(view.impl().rows()), m_cols(view.impl().cols()), m_planes(view.impl().planes()) {}
-    
+
     /// Initialize explicitly
-    PixelIndex3View( int rows, int cols, int planes = 1 ) : 
+    PixelIndex3View( int rows, int cols, int planes = 1 ) :
       m_rows(rows), m_cols(cols), m_planes(planes) {}
 
     inline int32 cols() const { return m_cols; }
     inline int32 rows() const { return m_rows; }
     inline int32 planes() const { return m_planes; }
-    
+
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
-    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { 
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const {
       return Vector3(i,j,p);
-    } 
+    }
 
     typedef PixelIndex3View prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i const& /*bbox*/ ) const { return *this; }
