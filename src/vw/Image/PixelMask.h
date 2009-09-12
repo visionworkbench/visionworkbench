@@ -106,6 +106,7 @@ namespace vw {
     }
 
     /// Returns the child pixel type
+    ChildT & child() { return m_child; }
     ChildT const& child() const { return m_child; }
 
     /// Automatic down-cast to the raw channel value in numeric
