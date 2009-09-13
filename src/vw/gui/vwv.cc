@@ -7,7 +7,7 @@
 
 /// \file vwv.cc
 ///
-/// The Vision Workbench image viewer. 
+/// The Vision Workbench image viewer.
 ///
 
 // Qt
@@ -32,15 +32,12 @@ using namespace vw;
 // Allows FileIO to correctly read/write unusual pixel types
 namespace vw {
   template<> struct PixelFormatID<Vector3>   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
-  template<> struct PixelFormatID<PixelDisparity<float> >   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };
 }
-
 
 void print_usage(po::options_description const& visible_options) {
-  std::cout << "\nUsage: vwv [options] <image file> \n";
-  std::cout << visible_options << std::endl;
+  vw_out(0) << "\nUsage: vwv [options] <image file> \n";
+  vw_out(0) << visible_options << std::endl;
 }
-
 
 int main(int argc, char *argv[]) {
 
@@ -78,20 +75,20 @@ int main(int argc, char *argv[]) {
   }
 
   if( vm.count("image") != 1 ) {
-    std::cout << "Error: Must specify exactly one input file!" << std::endl;
+    vw_out(0) << "Error: Must specify exactly one input file!" << std::endl;
     print_usage(visible_options);
     return 1;
   }
 
   // Set the Vision Workbench cache size
-  vw_system_cache().resize( cache_size*1024*1024 ); 
+  vw_system_cache().resize( cache_size*1024*1024 );
 
   // Check to make sure we can open the file.
   try {
     DiskImageResource *test_resource = DiskImageResource::open(image_filename);
-    std::cout << "\t--> Opening " << test_resource->filename() << "\n";
+    vw_out(0) << "\t--> Opening " << test_resource->filename() << "\n";
   } catch (IOErr &e) {
-    std::cout << "Could not open file: " << image_filename << "\n\t--> " << e.what() << "\n";
+    vw_out(0) << "Could not open file: " << image_filename << "\n\t--> " << e.what() << "\n";
     exit(0);
   }
 
@@ -99,6 +96,6 @@ int main(int argc, char *argv[]) {
   QApplication app(argc, argv);
   MainWindow main_window(image_filename, nodata_value, vm.count("normalize"), vm);
   main_window.show();
-  return app.exec(); 
+  return app.exec();
 }
 

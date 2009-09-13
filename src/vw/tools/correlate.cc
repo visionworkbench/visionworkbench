@@ -23,7 +23,6 @@ namespace po = boost::program_options;
 
 using namespace vw;
 using namespace vw::stereo;
-using namespace vw::stereo::disparity;
 
 int main( int argc, char *argv[] ) {
   try {
@@ -75,7 +74,7 @@ int main( int argc, char *argv[] ) {
       std::cout << desc << std::endl;
       return 1;
     }
-    
+
     if( vm.count("left") != 1 || vm.count("right") != 1 ) {
       std::cout << "Error: Must specify one (and only one) left and right input file!" << std::endl;
       std::cout << desc << std::endl;
@@ -98,7 +97,7 @@ int main( int argc, char *argv[] ) {
     else if (correlator_type == 2)
       corr_type = NORM_XCORR_CORRELATOR;
 
-    ImageView<PixelDisparity<float> > disparity_map;
+    ImageView<PixelMask<Vector2f> > disparity_map;
     if (vm.count("reference")>0) {
       vw::stereo::ReferenceCorrelator correlator( xoffset-xrange, xoffset+xrange,
                                                   yoffset-yrange, yoffset+yrange,
@@ -107,9 +106,9 @@ int main( int argc, char *argv[] ) {
                                                   (vm.count("hsubpix")>0),
                                                   (vm.count("vsubpix")>0),
                                                   (vm.count("affine-subpix")>0) );
-      if (log > 0) 
+      if (log > 0)
         disparity_map = correlator( left, right, stereo::LogStereoPreprocessingFilter(log));
-      else 
+      else
         disparity_map = correlator( left, right, stereo::SlogStereoPreprocessingFilter(slog));
     } else if (vm.count("pyramid")>0) {
       vw::stereo::PyramidCorrelator correlator( BBox2(Vector2(xoffset-xrange, yoffset-yrange),
@@ -122,29 +121,29 @@ int main( int argc, char *argv[] ) {
       correlator.set_debug_mode("debug");
       {
         vw::Timer corr_timer("Correlation Time");
-        if (log > 0) 
+        if (log > 0)
           disparity_map = correlator( left, right, left_mask, right_mask, stereo::LogStereoPreprocessingFilter(log));
-         else 
-           disparity_map = correlator( left, right, left_mask, right_mask, stereo::SlogStereoPreprocessingFilter(slog));
+        else
+          disparity_map = correlator( left, right, left_mask, right_mask, stereo::SlogStereoPreprocessingFilter(slog));
       }
     } else {
       vw::stereo::OptimizedCorrelator correlator( BBox2i(xoffset-xrange/2, yoffset-yrange/2, xrange, yrange),
-                                                  xkernel, 
-                                                  lrthresh, 
+                                                  xkernel,
+                                                  lrthresh,
                                                   corrscore_thresh,
                                                   cost_blur,
                                                   corr_type);
       {
         vw::Timer corr_timer("Correlation Time");
-        if (log > 0) 
+        if (log > 0)
           disparity_map = correlator( left, right, stereo::LogStereoPreprocessingFilter(log));
-        else 
+        else
           disparity_map = correlator( left, right, stereo::SlogStereoPreprocessingFilter(slog));
       }
     }
 
     // Write disparity debug images
-    BBox2 disp_range = disparity::get_disparity_range(disparity_map);
+    BBox2 disp_range = get_disparity_range(disparity_map);
     write_image( "x_disparity.png", normalize(clamp(select_channel(disparity_map,0), disp_range.min().x(), disp_range.max().x() )));
     write_image( "y_disparity.png", normalize(clamp(select_channel(disparity_map,1), disp_range.min().y(), disp_range.max().y() )));
   }
