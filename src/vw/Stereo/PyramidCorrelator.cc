@@ -24,7 +24,6 @@ PyramidCorrelator::subdivide_bboxes(ImageView<PixelMask<Vector2f> > const& dispa
     disp_range = get_disparity_range(crop(disparity_map, box_div_2));
   } catch ( std::exception &e ) {
     // There was no good pixels available
-    std::cout << "Drop empth bbox: " << e.what() << std::endl;
     return result;
   }
   double cost  = box.width()*box.height()*disp_range.width()*disp_range.height();
