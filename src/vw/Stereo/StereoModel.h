@@ -11,18 +11,18 @@
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/DisparityMap.h>
 
-namespace vw { 
+namespace vw {
 namespace stereo {
 
   class StereoModel {
 
   public:
-    
+
     //------------------------------------------------------------------
     // Constructors / Destructors
-    //------------------------------------------------------------------	
-    StereoModel(vw::camera::CameraModel const& camera_model1, 
-                vw::camera::CameraModel const& camera_model2) : 
+    //------------------------------------------------------------------
+    StereoModel(vw::camera::CameraModel const& camera_model1,
+                vw::camera::CameraModel const& camera_model2) :
       m_camera1(&camera_model1), m_camera2(&camera_model2) {}
 
     //------------------------------------------------------------------
@@ -32,8 +32,8 @@ namespace stereo {
     /// Apply a stereo model to a disparity map to produce an image of
     /// XYZ points.  Missing pixels in the disparity map will result
     /// in zero vector pixels in the point image.
-    ImageView<Vector3> operator()(ImageView<PixelDisparity<double> > const& disparity_map,
-                                  ImageView<double> &error );
+    ImageView<Vector3> operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
+                                  ImageView<double> &error ) const;
 
     /// Apply a stereo model to a single pair of image coordinates.
     /// Returns an xyz point.  The error is set to -1 if the rays were
@@ -48,7 +48,7 @@ namespace stereo {
     /// the two rays, and it is a useful test for checking when the
     /// two rays are close to parallel.
     double convergence_angle(Vector2 const& pix1, Vector2 const& pix2) const;
-  
+
   protected:
     //------------------------------------------------------------------
     // Protected Methods
@@ -73,7 +73,7 @@ namespace stereo {
 
       Vector3 errorVec = closestPointA - closestPointB;
       error = norm_2(errorVec);
-    
+
       return 0.5 * (closestPointA + closestPointB);
     }
 
@@ -82,11 +82,11 @@ namespace stereo {
     //------------------------------------------------------------------
     // Internal Variables
     //------------------------------------------------------------------
-    const vw::camera::CameraModel*		m_camera1;
-    const vw::camera::CameraModel*		m_camera2;
+    const vw::camera::CameraModel* m_camera1;
+    const vw::camera::CameraModel* m_camera2;
   };
 
-}}	// namespace vw::stereo
+}}      // namespace vw::stereo
 
-#endif	// __VW_STEREO_STEREOMODEL_H__
+#endif  // __VW_STEREO_STEREOMODEL_H__
 

@@ -14,7 +14,7 @@ template <class ScoreT>
 struct DisparityScore {
   ScoreT best, worst;
   int32 hdisp, vdisp;
-  
+
   DisparityScore() {
     best = ScalarTypeLimits<ScoreT>::highest();
     worst = ScalarTypeLimits<ScoreT>::lowest();
@@ -72,11 +72,11 @@ ImageView<float> NormXCorrCost::calculate(int dx, int dy) {
   CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > left_window(edge_extend(m_left, ZeroEdgeExtension()), this->bbox());
   CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > left_mean_window(edge_extend(m_left_mean, ZeroEdgeExtension()), this->bbox());
   CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > left_variance_window(edge_extend(m_left_variance, ZeroEdgeExtension()), this->bbox());
-  
+
   CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > right_window(edge_extend(m_right, ZeroEdgeExtension()), right_bbox);
   CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > right_mean_window(edge_extend(m_right_mean, ZeroEdgeExtension()), right_bbox);
   CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > right_variance_window(edge_extend(m_right_variance, ZeroEdgeExtension()), right_bbox);
-  
+
   ImageView<float> left_right_mean = this->box_filter(left_window * right_window);
 
   // We take the absolute value and subtract 1 here so that
@@ -93,19 +93,19 @@ ImageView<float> NormXCorrCost::calculate(int dx, int dy) {
 // ---------------------------------------------------------------------------
 //                           CORRELATE()
 // ---------------------------------------------------------------------------
-ImageView<PixelDisparity<float> > vw::stereo::correlate(boost::shared_ptr<StereoCostFunction> const& cost_function,
-                                                        BBox2i const& search_window,
-                                                        ProgressCallback const& progress) {
-  
+ImageView<PixelMask<Vector2f> > vw::stereo::correlate(boost::shared_ptr<StereoCostFunction> const& cost_function,
+                                                      BBox2i const& search_window,
+                                                      ProgressCallback const& progress) {
+
   int width = cost_function->cols();
   int height = cost_function->rows();
-  
+
   ImageView<DisparityScore<float> > result_buf(width, height);
   ImageView<float> cost_buf(width, height);
-  
+
   int current_iteration = 0;
   int total_iterations = (search_window.width() + 1) * (search_window.height() + 1);
-  
+
   BBox2i left_bbox = cost_function->bbox();
   for (int dy = search_window.min().y(); dy <= search_window.max().y(); dy++) {
     for (int dx = search_window.min().x(); dx <= search_window.max().x(); dx++) {
@@ -113,7 +113,7 @@ ImageView<PixelDisparity<float> > vw::stereo::correlate(boost::shared_ptr<Stereo
       //        vw_out(0) << "Correlating: [" << dx << "  " << dy << "]         " << left_bbox << "        " << width << " " << height << "  \n";
       CropView<ImageView<DisparityScore<float> > > result_buf_window(result_buf, left_bbox);
       CropView<ImageView<float> > cost_buf_window(cost_buf, left_bbox);
-        
+
       // Calculate cost function
       cost_buf_window = cost_function->calculate(dx,dy);
 
@@ -147,24 +147,25 @@ ImageView<PixelDisparity<float> > vw::stereo::correlate(boost::shared_ptr<Stereo
       progress.report_fractional_progress(++current_iteration, total_iterations);
       progress.abort_if_requested();
     }
-  } 
+  }
   //    vw_out(0) << "Correlating: done.                            \n";
-    
 
   // convert from the local result buffer to the return format
-  ImageView<PixelDisparity<float> > result(width, height);
-    
+  ImageView<PixelMask<Vector2f> > result(width, height);
+
   for (int x = 0; x < width; x++) {
     for (int y = 0; y < height; y++) {
-      if (result_buf(x, y).best == ScalarTypeLimits<float>::highest() || 
+      if (result_buf(x, y).best == ScalarTypeLimits<float>::highest() ||
           result_buf(x, y).best == result_buf(x, y).worst) {
-        result(x, y) = PixelDisparity<float>();
+        invalidate(result(x,y));
       } else {
-        result(x, y) = PixelDisparity<float>(result_buf(x, y).hdisp, result_buf(x, y).vdisp);
+        result(x, y)[0] = result_buf(x,y).hdisp;
+        result(x, y)[1] = result_buf(x,y).vdisp;
+        validate( result(x,y) );
       }
     }
   }
   progress.report_finished();
-  return result; 
+  return result;
 }
-  
+

@@ -33,28 +33,28 @@ public:
     pose2.set_identity();
     camera::PinholeModel pin1( pos1, pose1,
                                1, 1, 0, 0);
-    
+
     camera::PinholeModel pin2( pos2, pose2,
                                1, 1, 0, 0);
-    
+
     Vector3 point(2,0,1);
     //    TS_TRACE(stringify("Original Point: ") + stringify(point));
     Vector2 px1 = pin1.point_to_pixel(point);
     Vector2 px2 = pin2.point_to_pixel(point);
     //     TS_TRACE(stringify("PX 1: ") + stringify(px1));
     //     TS_TRACE(stringify("PX 2: ") + stringify(px2));
-    
+
     StereoModel st(pin1,pin2);
     double error;
     Vector3 pt2 = st(px1, px2, error);
-    
+
     //     TS_TRACE(stringify(pin1.camera_center(px1)));
     //     TS_TRACE(stringify(pin2.camera_center(px2)));
     //     TS_TRACE(stringify(pin1.pixel_to_vector(px1)));
     //     TS_TRACE(stringify(pin2.pixel_to_vector(px2)));
-    
+
     //     TS_TRACE(stringify("Reconstructed Point: ") + stringify(pt2));
-    
+
     TS_ASSERT_EQUALS(point[0], pt2[0]);
     TS_ASSERT_EQUALS(point[1], pt2[1]);
     TS_ASSERT_EQUALS(point[2], pt2[2]);

@@ -17,7 +17,7 @@
 namespace vw {
 namespace stereo {
 
-  enum CorrelatorType { ABS_DIFF_CORRELATOR = 0, 
+  enum CorrelatorType { ABS_DIFF_CORRELATOR = 0,
                         SQR_DIFF_CORRELATOR = 1,
                         NORM_XCORR_CORRELATOR = 2 };
 
@@ -36,7 +36,7 @@ namespace stereo {
 VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
 
   // Sign of the Laplacian of the Gaussian pre-processing
-  // 
+  //
   // Default gaussian blur standard deviation is 1.5 pixels.
   class SlogStereoPreprocessingFilter {
     float m_slog_width;
@@ -44,7 +44,7 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   public:
     typedef ImageView<uint8> result_type;
 
-    SlogStereoPreprocessingFilter(float slog_width = 1.5) : m_slog_width(slog_width) {} 
+    SlogStereoPreprocessingFilter(float slog_width = 1.5) : m_slog_width(slog_width) {}
 
     template <class ViewT>
     result_type operator()(ImageViewBase<ViewT> const& view) const {
@@ -53,45 +53,45 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
 
     static bool use_bit_image() { return true; }
   };
-  
+
   // Laplacian of Gaussian pre-processing
-  // 
+  //
   // Default gaussian blur standard deviation is 1.5 pixels.
   class LogStereoPreprocessingFilter {
     float m_log_width;
-    
+
   public:
     typedef ImageView<float> result_type;
 
     LogStereoPreprocessingFilter(float log_width = 1.5) : m_log_width(log_width) {}
-    
+
     template <class ViewT>
     result_type operator()(ImageViewBase<ViewT> const& view) const {
       return laplacian_filter(gaussian_filter(channel_cast<float>(view.impl()),m_log_width));
     }
-    
+
     static bool use_bit_image() { return false; }
   };
 
   // Gaussian blur pre-processing
-  // 
+  //
   // Default gaussian blur standard deviation is 1.5 pixels.
   class BlurStereoPreprocessingFilter {
     float m_blur_sigma;
-    
+
   public:
     typedef ImageView<float> result_type;
 
     BlurStereoPreprocessingFilter(float blur_sigma = 1.5) : m_blur_sigma(blur_sigma) {}
-    
+
     template <class ViewT>
     result_type operator()(ImageViewBase<ViewT> const& view) const {
       return gaussian_filter(channel_cast<float>(view.impl()),m_blur_sigma);
     }
-    
+
     static bool use_bit_image() { return false; }
   };
-  
+
   // No pre-processing
   class NullStereoPreprocessingFilter {
   public:
@@ -101,7 +101,7 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     result_type operator()(ImageViewBase<ViewT> const& view) const {
       return channel_cast_rescale<uint8>(view.impl());
     }
-    static bool use_bit_image() { return false; }    
+    static bool use_bit_image() { return false; }
   };
 
   class AbsDiffCostFunc {
@@ -117,7 +117,7 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     static inline int8 absdiff (const int8 val1, const int8 val2) { return abs(val1-val2); }
     static inline int16 absdiff (const int16 val1, const int16 val2) { return abs(val1-val2); }
     static inline int32 absdiff (const int32 val1, const int32 val2) { return abs(val1-val2); }
-    
+
   public:
     template <class ChannelT>
     ChannelT operator()(ChannelT const& x, ChannelT const& y) {
@@ -134,13 +134,13 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
 
   /// Compute the sum of the absolute difference between a template
   /// region taken from img1 and the window centered at (c,r) in img0.
-  template <class ChannelT>
-  inline double compute_soad(ChannelT *img0, ChannelT *img1,
+  template <class PixelT>
+  inline double compute_soad(PixelT *img0, PixelT *img1,
                              int r, int c,                   // row and column in img0
                              int hdisp, int vdisp,           // Current disparity offset from (c,r) for img1
                              int kern_width, int kern_height,// Kernel dimensions
                              int width, int height) {        // Image dimensions
-  
+
     r -= kern_height/2;
     c -= kern_width/2;
     if (r<0         || c<0       || r+kern_height>=height       || c+kern_width>=width ||
@@ -148,13 +148,13 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
       return VW_STEREO_MISSING_PIXEL;
     }
 
-    ChannelT *new_img0 = img0;
-    ChannelT *new_img1 = img1;
+    PixelT *new_img0 = img0;
+    PixelT *new_img1 = img1;
 
     new_img0 += c + r*width;
     new_img1 += (c+hdisp) + (r+vdisp)*width;
-  
-    typename CorrelatorAccumulatorType<ChannelT>::type ret = 0;
+
+    typename CorrelatorAccumulatorType<typename CompoundChannelType<PixelT>::type>::type ret = 0;
     AbsDiffCostFunc cost_fn;
     for (int rr= 0; rr< kern_height; rr++) {
      for (int cc= 0; cc< kern_width; cc++) {
@@ -169,27 +169,34 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   /// Compute the sum of the absolute difference between a template
   /// region taken from img1 and the window centered at (c,r) in img0.
   template <class ViewT>
-  inline double compute_soad(ImageViewBase<ViewT> const& img0, 
+  inline double compute_soad(ImageViewBase<ViewT> const& img0,
                              ImageViewBase<ViewT> const& img1,
                              int r, int c,                   // row and column in img0
                              int hdisp, int vdisp,           // Current disparity offset from (c,r) for img1
                              int kern_width, int kern_height,
-                             BBox2i const& left_bbox, 
+                             BBox2i const& left_bbox,
                              BBox2i const& right_bbox) {// Kernel dimensions
-  
+
     r -= kern_height/2;
     c -= kern_width/2;
-    if (r<left_bbox.min().y()         || c<left_bbox.min().x()       || r+kern_height>=left_bbox.max().y()       || c+kern_width>=left_bbox.max().x()) {
-      //      vw_out(0) << "BAD LEFT ACCESS at " << r << " " << c << "   " << img0.impl().rows() << " " << img0.impl().cols() << "\n";
+    if ( r < left_bbox.min().y()  || c<left_bbox.min().x() ||
+         r + kern_height >= left_bbox.max().y()            ||
+         c + kern_width >= left_bbox.max().x() ) {
+      //vw_out(0) << "BAD LEFT ACCESS at " << r << " " << c << "   "
+      //          << img0.impl().rows() << " " << img0.impl().cols() << "\n";
       return VW_STEREO_MISSING_PIXEL;
     }
 
-    if (r+vdisp < right_bbox.min().y() || c+hdisp<right_bbox.min().x() || r+vdisp+kern_height>=right_bbox.max().y() || c+hdisp+kern_width>=right_bbox.max().x()) {
-      //      vw_out(0) << "BAD RIGHT ACCESS at " << (r+vdisp) << " " << (c+hdisp) << "   " << img1.impl().rows() << " " << img1.impl().cols() << "\n";
+    if ( r + vdisp < right_bbox.min().y() ||
+         c + hdisp<right_bbox.min().x()   ||
+         r + vdisp+kern_height >= right_bbox.max().y() ||
+         c + hdisp+kern_width >= right_bbox.max().x() ) {
+      //vw_out(0) << "BAD RIGHT ACCESS at " << (r+vdisp) << " " << (c+hdisp) << "   "
+      //          << img1.impl().rows() << " " << img1.impl().cols() << "\n";
       return VW_STEREO_MISSING_PIXEL;
     }
 
-  
+
     typename CorrelatorAccumulatorType<typename CompoundChannelType<typename ViewT::pixel_type>::type>::type ret = 0;
     AbsDiffCostFunc cost_fn;
     for (int rr= 0; rr< kern_height; rr++) {
@@ -203,36 +210,38 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   /// For a given set of images, compute the optimal disparity (minimum
   /// SOAD) at position left_image(i,j) for the given correlation window
   /// settings.
-  /// 
+  ///
   /// The left_image and right_image must have the same dimensions, but
   /// this is only checked here if debugging is enabled.
   template <class ChannelT>
-  inline PixelDisparity<float> compute_disparity(ImageView<ChannelT> &left_image,
-                                                 ImageView<ChannelT> &right_image,
-                                                 int i, int j,
-                                                 int kern_width, int kern_height,
-                                                 int min_h_disp, int max_h_disp,
-                                                 int min_v_disp, int max_v_disp) {
+  inline PixelMask<Vector2f> compute_disparity(ImageView<ChannelT> &left_image,
+                                               ImageView<ChannelT> &right_image,
+                                               int i, int j,
+                                               int kern_width, int kern_height,
+                                               int min_h_disp, int max_h_disp,
+                                               int min_v_disp, int max_v_disp) {
 
-    const double default_soad = 1.0e10;     // Impossibly large value
-    double min_soad = default_soad;
-    PixelDisparity<float> best_disparity; // Starts as a missing pixel
+    double min_soad = 1e10;               // Impossibly large
+    PixelMask<Vector2f> best_disparity;
+    invalidate(best_disparity);
     for (int ii = min_h_disp; ii <= max_h_disp; ++ii) {
       for (int jj = min_v_disp; jj <= max_v_disp; ++jj) {
         double soad = compute_soad(&(left_image(0,0)), &(right_image(0,0)),
-                                   j, i, ii, jj,kern_width, kern_height, 
+                                   j, i, ii, jj,kern_width, kern_height,
                                    left_image.cols(), left_image.rows());
         if (soad != VW_STEREO_MISSING_PIXEL && soad < min_soad) {
           min_soad = soad;
-          best_disparity = PixelDisparity<float>(ii, jj);
+          validate( best_disparity );
+          best_disparity[0] = ii;
+          best_disparity[1] = jj;
         }
       }
     }
     return best_disparity;
   }
 
-  template <class ChannelT> 
-  void subpixel_correlation_affine_2d(ImageView<PixelDisparity<float> > &disparity_map,
+  template <class ChannelT>
+  void subpixel_correlation_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
                                       ImageView<ChannelT> const& left_image,
                                       ImageView<ChannelT> const& right_image,
                                       int kern_width, int kern_height,
@@ -240,8 +249,8 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
                                       bool do_vertical_subpixel = true,
                                       bool verbose = false);
 
-  template <class ChannelT> 
-  void subpixel_correlation_affine_2d_bayesian(ImageView<PixelDisparity<float> > &disparity_map,
+  template <class ChannelT>
+  void subpixel_correlation_affine_2d_bayesian(ImageView<PixelMask<Vector2f> > &disparity_map,
                                                ImageView<ChannelT> const& left_image,
                                                ImageView<ChannelT> const& right_image,
                                                int kern_width, int kern_height,
@@ -249,8 +258,8 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
                                                bool do_vertical_subpixel = true,
                                                bool verbose = false);
 
-  template <class ChannelT> 
-  void subpixel_correlation_affine_2d_EM(ImageView<PixelDisparity<float> > &disparity_map,
+  template <class ChannelT>
+  void subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
                                          ImageView<ChannelT> const& left_image,
                                          ImageView<ChannelT> const& right_image,
                                          int kern_width, int kern_height,
@@ -258,9 +267,9 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
                                          bool do_horizontal_subpixel = true,
                                          bool do_vertical_subpixel = true,
                                          bool verbose = false);
-  
-  template <class ChannelT> 
-  void subpixel_correlation_parabola(ImageView<PixelDisparity<float> > &disparity_map,
+
+  template <class ChannelT>
+  void subpixel_correlation_parabola(ImageView<PixelMask<Vector2f> > &disparity_map,
                                      ImageView<ChannelT> const& left_image,
                                      ImageView<ChannelT> const& right_image,
                                      int kern_width, int kern_height,
@@ -270,8 +279,8 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
 
   /// This routine cross checks L2R and R2L, placing the final version
   /// of the disparity map in L2R.
-  void cross_corr_consistency_check(ImageView<PixelDisparity<float> > &L2R, 
-                                    ImageView<PixelDisparity<float> > const& R2L,
+  void cross_corr_consistency_check(ImageView<PixelMask<Vector2f> > &L2R,
+                                    ImageView<PixelMask<Vector2f> > const& R2L,
                                     double cross_corr_threshold, bool verbose = false);
 
 }} // namespace vw::stereo

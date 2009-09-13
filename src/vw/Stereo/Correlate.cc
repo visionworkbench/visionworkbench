@@ -19,898 +19,890 @@
 #include <vw/FileIO.h>
 
 namespace vw {
-namespace stereo {  
+  namespace stereo {
 
-  /// This routine cross checks L2R and R2L, placing the final version
-  /// of the disparity map in L2R.
-  void cross_corr_consistency_check(ImageView<PixelDisparity<float> > &L2R, 
-                                    ImageView<PixelDisparity<float> > const& R2L,
-                                    double cross_corr_threshold, bool verbose) {
-    int32 xx,yy;
-    int count = 0, match_count = 0;
-  
-    if (verbose)
-      vw_out(InfoMessage, "stereo") << "\tCrosscorr threshold: " << cross_corr_threshold << "\n";
-    if (cross_corr_threshold < 0) 
-      vw_throw( vw::ArgumentErr() << "CrossCorrConsistencyCheck2D: the crosscorr threshold was less than 0." );
-  
-    for(xx = 0; xx < L2R.cols(); xx++) {     
-      for(yy = 0; yy < L2R.rows(); yy++) {
-      
-        int xOffset = (int)L2R(xx,yy).h();
-        int yOffset = (int)L2R(xx,yy).v();
-      
-        // Check to make sure we are within the image bounds
-        if(xx+xOffset < 0 || yy+yOffset < 0 ||
-           xx+xOffset >= R2L.cols() || yy+yOffset >= R2L.rows()) {
-          L2R(xx,yy) = PixelDisparity<float>();  // Default constructor is missing pixel.
-        }
+    /// This routine cross checks L2R and R2L, placing the final version
+    /// of the disparity map in L2R.
+    void cross_corr_consistency_check(ImageView<PixelMask<Vector2f> > &L2R,
+                                      ImageView<PixelMask<Vector2f> > const& R2L,
+                                      double cross_corr_threshold, bool verbose) {
+      int32 xx,yy;
+      int count = 0, match_count = 0;
 
-        // Check for missing pixels
-        else if ( L2R(xx,yy).missing() ||
-                  R2L(xx+xOffset, yy+yOffset).missing() ) {
-          L2R(xx,yy) = PixelDisparity<float>();  // Default constructor is missing pixel.
+      if (verbose)
+        vw_out(InfoMessage, "stereo") << "\tCrosscorr threshold: " << cross_corr_threshold << "\n";
+      if (cross_corr_threshold < 0)
+        vw_throw( vw::ArgumentErr() << "CrossCorrConsistencyCheck2D: the crosscorr threshold was less than 0." );
+
+      for(xx = 0; xx < L2R.cols(); xx++) {
+        for(yy = 0; yy < L2R.rows(); yy++) {
+
+          int xOffset = (int)L2R(xx,yy)[0];
+          int yOffset = (int)L2R(xx,yy)[1];
+
+          // Check to make sure we are within the image bounds
+          if(xx+xOffset < 0 || yy+yOffset < 0 ||
+             xx+xOffset >= R2L.cols() || yy+yOffset >= R2L.rows()) {
+            invalidate( L2R(xx,yy) );
+          }
+
+          // Check for missing pixels
+          else if ( !is_valid(L2R(xx,yy)) ||
+                    !is_valid(R2L(xx+xOffset, yy+yOffset)) ) {
+            invalidate(L2R(xx,yy));
+          }
+
+          // Check for correlation consistency
+          //
+          // Since the hdisp for the R2L and L2R buffers will be opposite
+          // in sign, we determine their similarity by *summing* them, rather
+          // than differencing them as you might expect.
+          else if (cross_corr_threshold >= fabs(L2R(xx,yy)[0] + R2L(xx+xOffset,yy+yOffset)[0]) &&
+                   cross_corr_threshold >= fabs(L2R(xx,yy)[1] + R2L(xx+xOffset,yy+yOffset)[1])) {
+            count++;
+            match_count++;
+          }
+
+          // Otherwise, the pixel is bad.
+          else {
+            match_count++;
+            invalidate(L2R(xx,yy));
+          }
         }
-      
-        // Check for correlation consistency
-        //
-        // Since the hdisp for the R2L and L2R buffers will be opposite 
-        // in sign, we determine their similarity by *summing* them, rather
-        // than differencing them as you might expect.
-        else if (cross_corr_threshold >= fabs(L2R(xx,yy).h() + R2L(xx+xOffset,yy+yOffset).h()) &&
-                 cross_corr_threshold >= fabs(L2R(xx,yy).v() + R2L(xx+xOffset,yy+yOffset).v())) {
-          count++;
-          match_count++;
-        }
-      
-        // Otherwise, the pixel is bad.
-        else {
-          match_count++;
-          L2R(xx,yy) = PixelDisparity<float>();  // Default constructor is missing pixel.
-        } 
       }
-    } 
-    if (verbose) 
-      vw_out(InfoMessage, "stereo") << "\tCross-correlation retained " << count << " / " << match_count << " matches (" << ((float)count/match_count*100) <<" percent).\n";
-  }
+      if (verbose)
+        vw_out(InfoMessage, "stereo") << "\tCross-correlation retained " << count << " / " << match_count << " matches (" << ((float)count/match_count*100) <<" percent).\n";
+    }
 
-  static double find_minimum(double lt, double mid, double rt) {
-    double a = (rt+lt)*0.5-mid;
-    double b = (rt-lt)*0.5;
-    return -b/(2.0*a);
-  }
+    static double find_minimum(double lt, double mid, double rt) {
+      double a = (rt+lt)*0.5-mid;
+      double b = (rt-lt)*0.5;
+      return -b/(2.0*a);
+    }
 
-  /* 
-   * Find the minimun of a 2d hyperbolic surface that is fit to the nine points 
-   * around and including the peak in the disparity map.  This gives better 
-   * subpixel resolution when both horizontal and vertical subpixel is requested.
-   * 
-   * The equation of the surface we are fitting is:
-   *    z = ax^2 + by^2 + cxy + dx + ey + f
-   */
-  template <class VectorT, class MatrixT>
-  static vw::Vector2 find_minimum_2d(vw::VectorBase<VectorT> &points, vw::MatrixBase<MatrixT> &pinvA) {
-
-    vw::Vector2 offset;
-
-    /* 
-     * First, compute the parameters of the hyperbolic surface by fitting the nine points in 'points'
-     * using a linear least squares fit.  This process is fairly fast, since we have already pre-computed
-     * the inverse of the A matrix in Ax = b.
-     */
-    vw::Vector<double> x = pinvA * points;
-  
-    /* 
-     * With these parameters, we have a closed form expression for the surface.  We compute the 
-     * derivative, and find the point where the slope is zero.  This is our maximum.
+    /*
+     * Find the minimun of a 2d hyperbolic surface that is fit to the nine points
+     * around and including the peak in the disparity map.  This gives better
+     * subpixel resolution when both horizontal and vertical subpixel is requested.
      *
-     * Max is at [x,y] where:
-     *
-     *   dz/dx = 2ax + cy + d = 0
-     *   dz/dy = 2by + cx + e = 0
-     * 
-     * Of course, we optimize this computation a bit by unrolling it by hand beforehand.
+     * The equation of the surface we are fitting is:
+     *    z = ax^2 + by^2 + cxy + dx + ey + f
      */
-    double denom = 4 * x(0) * x(1) - (x(2) * x(2));
-  
-    offset(0) = ( x(2) * x(4) - 2 * x(1) * x(3) ) / denom;
-    offset(1) = ( x(2) * x(3) - 2 * x(0) * x(4) ) / denom;
+    template <class VectorT, class MatrixT>
+    static Vector2 find_minimum_2d(VectorBase<VectorT> &points, MatrixBase<MatrixT> &pinvA) {
 
-    return offset;
-  }
+      vw::Vector2 offset;
 
-  ///-------------------------------------------------------------------------
+      /*
+       * First, compute the parameters of the hyperbolic surface by fitting the nine points in 'points'
+       * using a linear least squares fit.  This process is fairly fast, since we have already pre-computed
+       * the inverse of the A matrix in Ax = b.
+       */
+      vw::Vector<double> x = pinvA * points;
 
-  inline double huber_robust_coefficient (double delta_norm, double b) {
-    if (delta_norm < b)
-      return delta_norm*delta_norm;
-    else
-      return 2*b*delta_norm - b*b;
-  }
-  
-  inline float cauchy_robust_coefficient (float delta_norm, float b) {
-    float b_sqr = b*b;
-    return b_sqr*logf(1+delta_norm*delta_norm/b_sqr);
-  }
-  
-  inline double blake_zisserman_robust_coefficient (double delta_norm, double b) {
-    return -log(exp(-(delta_norm*delta_norm) ) + b);
-  }
+      /*
+       * With these parameters, we have a closed form expression for the surface.  We compute the
+       * derivative, and find the point where the slope is zero.  This is our maximum.
+       *
+       * Max is at [x,y] where:
+       *
+       *   dz/dx = 2ax + cy + d = 0
+       *   dz/dy = 2by + cx + e = 0
+       *
+       * Of course, we optimize this computation a bit by unrolling it by hand beforehand.
+       */
+      double denom = 4 * x(0) * x(1) - (x(2) * x(2));
 
-  inline ImageView<float> compute_gaussian_weight_image(int kern_width, int kern_height) {
+      offset(0) = ( x(2) * x(4) - 2 * x(1) * x(3) ) / denom;
+      offset(1) = ( x(2) * x(3) - 2 * x(0) * x(4) ) / denom;
 
-    int center_pix_x = kern_width/2;
-    int center_pix_y = kern_height/2;
-    //float two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0); //this works
-    float two_sigma_sqr = 2.0*pow(float(kern_width)/7.0,2.0);
-    //float norm_factor = 1.0/sqrt(3.14*two_sigma_sqr);
-
-    ImageView<float> weight(kern_width, kern_height);
-    for (int j = 0; j < kern_height; ++j) {
-      for (int i = 0; i < kern_width; ++i ) {
-        weight(i,j) = exp(-1 * (pow(i-center_pix_x,2) + pow(j-center_pix_y,2)) / two_sigma_sqr);
-        //weight(i,j) = norm_factor*exp(-1 * (pow(i-center_pix_x,2) + pow(j-center_pix_y,2)) / two_sigma_sqr);
-      }
-    }
-    return weight;
-  }
-
-  
-  inline ImageView<float> compute_spatial_weight_image(int kern_width, int kern_height, float two_sigma_sqr) {
-
-    int center_pix_x = kern_width/2;
-    int center_pix_y = kern_height/2;
-    float sum;    
-
-    sum = 0.0;
-    ImageView<float> weight(kern_width, kern_height);
-    for (int j = 0; j < kern_height; ++j) {
-      for (int i = 0; i < kern_width; ++i ) {
-        weight(i,j) = exp(-1 * (pow(i-center_pix_x,2) + pow(j-center_pix_y,2)) / two_sigma_sqr);
-        sum = sum + weight(i,j);
-      }
-    }
-   
-    for (int j = 0; j < kern_height; ++j) {
-      for (int i = 0; i < kern_width; ++i ) {
-        weight(i,j) = weight(i,j)/sum;
-      }
-    }
-       
-    return weight;
-  }
-  
-
-  inline int adjust_weight_image(ImageView<float> &weight,
-                                 ImageView<PixelDisparity<float> > const& disparity_map_patch,
-                                 ImageView<float> const& weight_template) {
-    
-    //    const float continuity_threshold_squared = 64;  // T = 8
-    int center_pix_x = weight_template.cols()/2;
-    int center_pix_y = weight_template.rows()/2;
-    PixelDisparity<float> center_pix = disparity_map_patch(center_pix_x, center_pix_y);
-
-    float sum = 0;
-    int num_good_pix = 0;
-    ImageView<float>::pixel_accessor weight_row_acc = weight.origin();
-    ImageView<float>::pixel_accessor template_row_acc = weight_template.origin();
-    ImageView<PixelDisparity<float> >::pixel_accessor disp_row_acc = disparity_map_patch.origin();
-    for (int j = 0; j < weight_template.rows(); ++j) {
-      ImageView<float>::pixel_accessor weight_col_acc = weight_row_acc;
-      ImageView<float>::pixel_accessor template_col_acc = template_row_acc;
-      ImageView<PixelDisparity<float> >::pixel_accessor disp_col_acc = disp_row_acc;
-      for (int i = 0; i < weight_template.cols(); ++i ) {
-
-        // Mask is zero if the disparity map's pixel is missing...
-        if ( (*disp_col_acc).missing()) 
-          *weight_col_acc = 0;
-
-        // ... or if there is a large discontinuity ...
-        //         if (pow( (*disp_col_acc).h()-center_pix.h(),2) + pow( (*disp_col_acc).v()-center_pix.v(),2) >= continuity_threshold_squared)
-        //           *weight_col_acc = 0;
-
-        // ... otherwise we use the weight from the weight template
-         else {
-          *weight_col_acc = *template_col_acc;
-          sum += *weight_col_acc;
-          ++num_good_pix;
-         }
-
-        disp_col_acc.next_col();
-        weight_col_acc.next_col();
-        template_col_acc.next_col();
-     }
-      disp_row_acc.next_row();
-      weight_row_acc.next_row();
-      template_row_acc.next_row();
+      return offset;
     }
 
-    // Normalize the weight image
-    if (sum == 0) 
-      vw_throw(LogicErr() << "subpixel_weight: Sum of weight image was zero.  This isn't supposed to happen!");
-    else 
-      weight /= sum;
-    return num_good_pix;
-  }
+    ///-------------------------------------------------------------------------
 
-
-  struct HuberError { 
-    double m_b;
-    HuberError(double b) : m_b(b) {}
-
-    double operator() (double delta_norm) {
-      if (delta_norm < m_b)
+    inline double huber_robust_coefficient (double delta_norm, double b) {
+      if (delta_norm < b)
         return delta_norm*delta_norm;
       else
-        return 2*m_b*delta_norm - m_b*m_b;
+        return 2*b*delta_norm - b*b;
     }
-  };
 
-  template<class ChannelT>
-  void subpixel_correlation_affine_2d(ImageView<PixelDisparity<float> > &disparity_map,
-                                      ImageView<ChannelT> const& left_input_image,
-                                      ImageView<ChannelT> const& right_input_image,
-                                      int kern_width, int kern_height,
-                                      bool do_horizontal_subpixel,
-                                      bool do_vertical_subpixel,
-                                      bool verbose) {
-    
-    VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
-               disparity_map.rows() == left_input_image.rows(),
-               ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
+    inline float cauchy_robust_coefficient (float delta_norm, float b) {
+      float b_sqr = b*b;
+      return b_sqr*logf(1+delta_norm*delta_norm/b_sqr);
+    }
 
+    inline double blake_zisserman_robust_coefficient (double delta_norm, double b) {
+      return -log(exp(-(delta_norm*delta_norm) ) + b);
+    }
 
+    inline ImageView<float> compute_gaussian_weight_image(int kern_width, int kern_height) {
 
-    for (float blur_sigma = 3; blur_sigma >= 1.0; blur_sigma /= 2.0) {
-      ImageView<ChannelT> left_image = LogStereoPreprocessingFilter(blur_sigma)(left_input_image);
-      ImageView<ChannelT> right_image = LogStereoPreprocessingFilter(blur_sigma)(right_input_image);
+      int center_pix_x = kern_width/2;
+      int center_pix_y = kern_height/2;
+      //float two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0); //this works
+      float two_sigma_sqr = 2.0*pow(float(kern_width)/7.0,2.0);
+      //float norm_factor = 1.0/sqrt(3.14*two_sigma_sqr);
 
-    // This is the maximum number of pixels that the solution can be
-    // adjusted by affine subpixel refinement.
-    float AFFINE_SUBPIXEL_MAX_TRANSLATION = kern_width/2;
-    int kern_half_height = kern_height/2;
-    int kern_half_width = kern_width/2;
-
-    // Robust cost function settings
-    const float thresh = 0.01;
-    HuberError robust_cost_fn(thresh);
-
-    int kern_pixels = kern_height * kern_width;
-    int weight_threshold = kern_pixels / 2;
-
-    // Bail out if no subpixel computation has been requested 
-    if (!do_horizontal_subpixel && !do_vertical_subpixel) return;
-
-    ImageView<float> x_deriv = derivative_filter(left_image, 1, 0);
-    ImageView<float> y_deriv = derivative_filter(left_image, 0, 1);
-    ImageView<float> weight_template = compute_gaussian_weight_image(kern_width, kern_height);
-
-    // Workspace images are allocated up here out of the tight inner
-    // loop.  We rasterize into these directly in the code below.
-    ImageView<float> w(kern_width, kern_height);
-    
-    // Iterate over all of the pixels in the disparity map except for
-    // the outer edges.
-    Stopwatch sw;
-    sw.start();
-    double last_time = 0;
+      ImageView<float> weight(kern_width, kern_height);
+      for (int j = 0; j < kern_height; ++j) {
+        for (int i = 0; i < kern_width; ++i ) {
+          weight(i,j) = exp(-1 * (pow(i-center_pix_x,2) + pow(j-center_pix_y,2)) / two_sigma_sqr);
+          //weight(i,j) = norm_factor*exp(-1 * (pow(i-center_pix_x,2) + pow(j-center_pix_y,2)) / two_sigma_sqr);
+        }
+      }
+      return weight;
+    }
 
 
-    for (int y=kern_half_height; y<left_image.rows()-kern_half_height; ++y) {
-      if (verbose && y % 10 == 0) {
-        sw.stop();
-        vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y << " / " << left_image.rows() << "    (" << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time)) << " pixels/s, "<< sw.elapsed_seconds() << " s total )      \r" << std::flush;
-        last_time = sw.elapsed_seconds();
+    inline ImageView<float> compute_spatial_weight_image(int kern_width, int kern_height, float two_sigma_sqr) {
+
+      int center_pix_x = kern_width/2;
+      int center_pix_y = kern_height/2;
+      float sum;
+
+      sum = 0.0;
+      ImageView<float> weight(kern_width, kern_height);
+      for (int j = 0; j < kern_height; ++j) {
+        for (int i = 0; i < kern_width; ++i ) {
+          weight(i,j) = exp(-1 * (pow(i-center_pix_x,2) + pow(j-center_pix_y,2)) / two_sigma_sqr);
+          sum = sum + weight(i,j);
+        }
+      }
+
+      for (int j = 0; j < kern_height; ++j) {
+        for (int i = 0; i < kern_width; ++i ) {
+          weight(i,j) = weight(i,j)/sum;
+        }
+      }
+
+      return weight;
+    }
+
+
+    inline int adjust_weight_image(ImageView<float> &weight,
+                                   ImageView<PixelMask<Vector2f> > const& disparity_map_patch,
+                                   ImageView<float> const& weight_template) {
+
+      //    const float continuity_threshold_squared = 64;  // T = 8
+      int center_pix_x = weight_template.cols()/2;
+      int center_pix_y = weight_template.rows()/2;
+      PixelMask<Vector2f> center_pix = disparity_map_patch(center_pix_x, center_pix_y);
+
+      float sum = 0;
+      int num_good_pix = 0;
+      ImageView<float>::pixel_accessor weight_row_acc = weight.origin();
+      ImageView<float>::pixel_accessor template_row_acc = weight_template.origin();
+      ImageView<PixelMask<Vector2f> >::pixel_accessor disp_row_acc = disparity_map_patch.origin();
+      for (int j = 0; j < weight_template.rows(); ++j) {
+        ImageView<float>::pixel_accessor weight_col_acc = weight_row_acc;
+        ImageView<float>::pixel_accessor template_col_acc = template_row_acc;
+        ImageView<PixelMask<Vector2f> >::pixel_accessor disp_col_acc = disp_row_acc;
+        for (int i = 0; i < weight_template.cols(); ++i ) {
+
+          // Mask is zero if the disparity map's pixel is missing...
+          if ( is_valid(*disp_col_acc) )
+            *weight_col_acc = 0;
+
+          // ... or if there is a large discontinuity ...
+          //         if (pow( (*disp_col_acc).h()-center_pix.h(),2) + pow( (*disp_col_acc).v()-center_pix.v(),2) >= continuity_threshold_squared)
+          //           *weight_col_acc = 0;
+
+          // ... otherwise we use the weight from the weight template
+          else {
+            *weight_col_acc = *template_col_acc;
+            sum += *weight_col_acc;
+            ++num_good_pix;
+          }
+
+          disp_col_acc.next_col();
+          weight_col_acc.next_col();
+          template_col_acc.next_col();
+        }
+        disp_row_acc.next_row();
+        weight_row_acc.next_row();
+        template_row_acc.next_row();
+      }
+
+      // Normalize the weight image
+      if (sum == 0)
+        vw_throw(LogicErr() << "subpixel_weight: Sum of weight image was zero.  This isn't supposed to happen!");
+      else
+        weight /= sum;
+      return num_good_pix;
+    }
+
+
+    struct HuberError {
+      double m_b;
+      HuberError(double b) : m_b(b) {}
+
+      double operator() (double delta_norm) {
+        if (delta_norm < m_b)
+          return delta_norm*delta_norm;
+        else
+          return 2*m_b*delta_norm - m_b*m_b;
+      }
+    };
+
+    template<class ChannelT>
+    void subpixel_correlation_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                        ImageView<ChannelT> const& left_input_image,
+                                        ImageView<ChannelT> const& right_input_image,
+                                        int kern_width, int kern_height,
+                                        bool do_horizontal_subpixel,
+                                        bool do_vertical_subpixel,
+                                        bool verbose) {
+
+      VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
+                 disparity_map.rows() == left_input_image.rows(),
+                 ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
+
+
+      for (float blur_sigma = 3; blur_sigma >= 1.0; blur_sigma /= 2.0) {
+        ImageView<ChannelT> left_image = LogStereoPreprocessingFilter(blur_sigma)(left_input_image);
+        ImageView<ChannelT> right_image = LogStereoPreprocessingFilter(blur_sigma)(right_input_image);
+
+        // This is the maximum number of pixels that the solution can be
+        // adjusted by affine subpixel refinement.
+        float AFFINE_SUBPIXEL_MAX_TRANSLATION = kern_width/2;
+        int kern_half_height = kern_height/2;
+        int kern_half_width = kern_width/2;
+
+        // Robust cost function settings
+        const float thresh = 0.01;
+        HuberError robust_cost_fn(thresh);
+
+        int kern_pixels = kern_height * kern_width;
+        int weight_threshold = kern_pixels / 2;
+
+        // Bail out if no subpixel computation has been requested
+        if (!do_horizontal_subpixel && !do_vertical_subpixel) return;
+
+        ImageView<float> x_deriv = derivative_filter(left_image, 1, 0);
+        ImageView<float> y_deriv = derivative_filter(left_image, 0, 1);
+        ImageView<float> weight_template = compute_gaussian_weight_image(kern_width, kern_height);
+
+        // Workspace images are allocated up here out of the tight inner
+        // loop.  We rasterize into these directly in the code below.
+        ImageView<float> w(kern_width, kern_height);
+
+        // Iterate over all of the pixels in the disparity map except for
+        // the outer edges.
+        Stopwatch sw;
         sw.start();
-      }
-      // For debugging:
-      // for (int x=279; x<280; ++x) {
-      for (int x=kern_half_width; x<left_image.cols()-kern_half_width; ++x) {
+        double last_time = 0;
 
-
-        BBox2i current_window(x-kern_half_width, y-kern_half_height, kern_width, kern_height);
-        Vector2 base_offset( -disparity_map(x,y).h() , -disparity_map(x,y).v() );          
-
-        // Skip over pixels for which we have no initial disparity estimate
-        if (disparity_map(x,y).missing())
-          continue;
-        
-        // Initialize our affine transform with the identity.  The
-        // entries of d are laid out in row major order:
-        // 
-        //   | d(0) d(1) d(2) | 
-        //   | d(3) d(4) d(5) |
-        //   |  0    0    1   |
-        //
-        Vector<float,6> d;
-        d(0) = 1.0;
-        d(4) = 1.0;
-
-        // Compute the derivative image patches
-        CropView<ImageView<ChannelT> > left_image_patch = crop(left_image, current_window);
-        CropView<ImageView<float> > I_x = crop(x_deriv, current_window);
-        CropView<ImageView<float> > I_y = crop(y_deriv, current_window);
-        
-        // Compute the base weight image
-        int good_pixels = adjust_weight_image(w, crop(disparity_map, current_window), weight_template);
-        
-        // Skip over pixels for which there are very few good matches
-        // in the neighborhood.
-        if (good_pixels < weight_threshold) {
-          disparity_map(x,y) = PixelDisparity<float>();
-          continue;
-        }
-                
-        // Iterate until a solution is found or the max number of
-        // iterations is reached.
-        for (unsigned iter = 0; iter < 10; ++iter) {
-          // First we check to see if our current subpixel translation
-          // is less than one half of the window width.  If not, then
-          // we are probably having trouble converging and we abort
-          // this pixel!!
-          if (norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION) 
-            break;
-          
-          InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
-            interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());
-          
-          float x_base = x + disparity_map(x,y).h();
-          float y_base = y + disparity_map(x,y).v();
-          //          float error_total = 0;
-
-          Matrix<float,6,6> rhs;
-          Vector<float,6> lhs;
-
-          // Set up pixel accessors
-          typename ImageView<float>::pixel_accessor w_row = w.origin();
-          typename CropView<ImageView<float> >::pixel_accessor I_x_row = I_x.origin();
-          typename CropView<ImageView<float> >::pixel_accessor I_y_row = I_y.origin();
-          typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_row = left_image_patch.origin();
-
-          for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
-            typename ImageView<float>::pixel_accessor w_ptr = w_row;
-            typename CropView<ImageView<float> >::pixel_accessor I_x_ptr = I_x_row;
-            typename CropView<ImageView<float> >::pixel_accessor I_y_ptr = I_y_row;
-            typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_ptr = left_image_patch_row;
-          
-            for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
-
-               
-              // First we compute the pixel offset for the right image
-              // and the error for the current pixel.
-              float xx = x_base + d[0] * ii + d[1] * jj + d[2];
-              float yy = y_base + d[3] * ii + d[4] * jj + d[5];
-              float I_e_val = right_interp_image(xx,yy) - (*left_image_patch_ptr) + 1e-16; 
-              //              error_total += pow(I_e_val,2);
-
-              // Apply the robust cost function.  We use a cauchy
-              // function to gently remove outliers for small errors.
-              float thresh = 1e-3;
-              
-              // Cauchy seems to work well with thresh ~= 1e-4
-              float error_value = fabsf(I_e_val);
-              float robust_weight = sqrtf(cauchy_robust_coefficient(error_value,thresh))/error_value;
-
-              
-              // Huber seems to work well with thresh >= 1e-5
-              //        float robust_weight = sqrt(huber_robust_coefficient(fabs(I_e_val),thresh))/fabs(I_e_val);
-              
-              // Disable robust cost function altogether
-              //        float robust_weight = 1;
-              
-
-            
-              // We combine the error value with the derivative and
-              // add this to the update equation.
-              float weight = robust_weight *(*w_ptr);
-	      //float weight = robust_weight;// *(*w_ptr);
-              float I_x_val = weight * (*I_x_ptr);
-              float I_y_val = weight * (*I_y_ptr);
-              float I_x_sqr = I_x_val * (*I_x_ptr);
-              float I_y_sqr = I_y_val * (*I_y_ptr);
-              float I_x_I_y = I_x_val * (*I_y_ptr);
-
-              // Left hand side
-              lhs(0) += ii * I_x_val * I_e_val;
-              lhs(1) += jj * I_x_val * I_e_val;
-              lhs(2) +=      I_x_val * I_e_val;
-              lhs(3) += ii * I_y_val * I_e_val;
-              lhs(4) += jj * I_y_val * I_e_val;
-              lhs(5) +=      I_y_val * I_e_val;
-              
-              // Right Hand Side UL
-              rhs(0,0) += ii*ii * I_x_sqr;
-              rhs(0,1) += ii*jj * I_x_sqr;
-              rhs(0,2) += ii    * I_x_sqr;
-              rhs(1,1) += jj*jj * I_x_sqr;
-              rhs(1,2) += jj    * I_x_sqr;
-              rhs(2,2) +=         I_x_sqr;
-              
-              // Right Hand Side UR
-              rhs(0,3) += ii*ii * I_x_I_y;
-              rhs(0,4) += ii*jj * I_x_I_y;
-              rhs(0,5) += ii    * I_x_I_y;
-              rhs(1,4) += jj*jj * I_x_I_y;
-              rhs(1,5) += jj    * I_x_I_y;
-              rhs(2,5) +=         I_x_I_y;
-              
-              // Right Hand Side LR
-              rhs(3,3) += ii*ii * I_y_sqr;
-              rhs(3,4) += ii*jj * I_y_sqr;
-              rhs(3,5) += ii    * I_y_sqr;
-              rhs(4,4) += jj*jj * I_y_sqr;
-              rhs(4,5) += jj    * I_y_sqr;
-              rhs(5,5) +=         I_y_sqr;
-
-              w_ptr.next_col();
-              I_x_ptr.next_col();
-              I_y_ptr.next_col();
-              left_image_patch_ptr.next_col();
-            }
-            w_row.next_row();
-            I_x_row.next_row();
-            I_y_row.next_row();
-            left_image_patch_row.next_row();
-          }          
-          lhs *= -1;
-
-          // Fill in symmetric entries
-          rhs(1,0) = rhs(0,1);
-          rhs(2,0) = rhs(0,2);
-          rhs(2,1) = rhs(1,2);
-          rhs(1,3) = rhs(0,4);
-          rhs(2,3) = rhs(0,5);
-          rhs(2,4) = rhs(1,5);
-          rhs(3,0) = rhs(0,3);
-          rhs(3,1) = rhs(1,3);
-          rhs(3,2) = rhs(2,3);
-          rhs(4,0) = rhs(0,4);
-          rhs(4,1) = rhs(1,4);
-          rhs(4,2) = rhs(2,4);
-          rhs(4,3) = rhs(3,4);
-          rhs(5,0) = rhs(0,5);
-          rhs(5,1) = rhs(1,5);
-          rhs(5,2) = rhs(2,5);
-          rhs(5,3) = rhs(3,5);
-          rhs(5,4) = rhs(4,5);
-
-
-          //           if (y == 270) {          
-          //                       ImageView<ChannelT> right_image_patch(kern_width, kern_height);
-          //                       for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
-          //                         for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
-          //                           float xx = x_base + d[0] * ii + d[1] * jj + d[2];
-          //                           float yy = y_base + d[3] * ii + d[4] * jj + d[5];
-          //                           right_image_patch(ii+kern_half_width, jj+kern_half_width) = right_interp_image(xx,yy);
-          //                         }
-          //                       }
-          //                       std::ostringstream ostr;
-          //                       ostr << x << "_" << y << "_" << int(blur_sigma) << "_" << iter;
-          //                       write_image("small/left-"+ostr.str()+".tif", left_image_patch);
-          //                       write_image("small/right-"+ostr.str()+".tif", right_image_patch);
-          //                       write_image("small/weight-"+ostr.str()+".tif", w);
-          //                     }
-
-
-          // Solves lhs = rhs * x, and stores the result in-place in lhs.
-          //           Matrix<double,6,6> pre_rhs = rhs;
-          //           Vector<double,6> pre_lhs = lhs;
-          try { 
-            solve_symmetric_nocopy(rhs,lhs);
-          } catch (ArgumentErr &e) {
-            std::cout << "Error @ " << x << " " << y << "\n";
-            //             std::cout << "Exception caught: " << e.what() << "\n";
-            //             std::cout << "PRERHS: " << pre_rhs << "\n";
-            //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
-            //             std::cout << "RHS: " << rhs << "\n";
-            //             std::cout << "LHS: " << lhs << "\n\n";
-            //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
-            //             exit(0);
+        for ( int y = kern_half_height;
+              y < left_image.rows()-kern_half_height; ++y) {
+          if (verbose && y % 10 == 0) {
+            sw.stop();
+            vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y << " / " << left_image.rows() << "    (" << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time)) << " pixels/s, "<< sw.elapsed_seconds() << " s total )      \r" << std::flush;
+            last_time = sw.elapsed_seconds();
+            sw.start();
           }
-          d += lhs;
+          // For debugging:
+          // for (int x=279; x<280; ++x) {
+          for ( int x = kern_half_width;
+                x < left_image.cols()-kern_half_width; ++x) {
 
-          //           if (y == 270) 
-          //             std::cout << "Update: " << lhs << "     " << d << "     " << sqrt(error_total) << "    " << (sqrt(lhs[2]*lhs[2]+lhs[5]*lhs[5])) << "\n";
+            BBox2i current_window(x-kern_half_width, y-kern_half_height, kern_width, kern_height);
+            Vector2f base_offset(-disparity_map(x,y).child());
 
-          // Termination condition
-          if (norm_2(lhs) < 0.01) 
-            break;
+            // Skip over pixels for which we have no initial disparity estimate
+            if ( !is_valid(disparity_map(x,y)) )
+              continue;
+
+            // Initialize our affine transform with the identity.  The
+            // entries of d are laid out in row major order:
+            //
+            //   | d(0) d(1) d(2) |
+            //   | d(3) d(4) d(5) |
+            //   |  0    0    1   |
+            //
+            Vector<float,6> d;
+            d(0) = 1.0;
+            d(4) = 1.0;
+
+            // Compute the derivative image patches
+            CropView<ImageView<ChannelT> > left_image_patch = crop(left_image, current_window);
+            CropView<ImageView<float> > I_x = crop(x_deriv, current_window);
+            CropView<ImageView<float> > I_y = crop(y_deriv, current_window);
+
+            // Compute the base weight image
+            int good_pixels = adjust_weight_image(w, crop(disparity_map, current_window), weight_template);
+
+            // Skip over pixels for which there are very few good matches
+            // in the neighborhood.
+            if (good_pixels < weight_threshold) {
+              invalidate( disparity_map(x,y) );
+              continue;
+            }
+
+            // Iterate until a solution is found or the max number of
+            // iterations is reached.
+            for (unsigned iter = 0; iter < 10; ++iter) {
+              // First we check to see if our current subpixel translation
+              // is less than one half of the window width.  If not, then
+              // we are probably having trouble converging and we abort
+              // this pixel!!
+              if (norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION)
+                break;
+
+              InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
+                interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());
+
+              float x_base = x + disparity_map(x,y)[0];
+              float y_base = y + disparity_map(x,y)[1];
+              //          float error_total = 0;
+
+              Matrix<float,6,6> rhs;
+              Vector<float,6> lhs;
+
+              // Set up pixel accessors
+              typename ImageView<float>::pixel_accessor w_row = w.origin();
+              typename CropView<ImageView<float> >::pixel_accessor I_x_row = I_x.origin();
+              typename CropView<ImageView<float> >::pixel_accessor I_y_row = I_y.origin();
+              typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_row = left_image_patch.origin();
+
+              for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+                typename ImageView<float>::pixel_accessor w_ptr = w_row;
+                typename CropView<ImageView<float> >::pixel_accessor I_x_ptr = I_x_row;
+                typename CropView<ImageView<float> >::pixel_accessor I_y_ptr = I_y_row;
+                typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_ptr = left_image_patch_row;
+
+                for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
+
+
+                  // First we compute the pixel offset for the right image
+                  // and the error for the current pixel.
+                  float xx = x_base + d[0] * ii + d[1] * jj + d[2];
+                  float yy = y_base + d[3] * ii + d[4] * jj + d[5];
+                  float I_e_val = right_interp_image(xx,yy) - (*left_image_patch_ptr) + 1e-16;
+                  //              error_total += pow(I_e_val,2);
+
+                  // Apply the robust cost function.  We use a cauchy
+                  // function to gently remove outliers for small errors.
+                  float thresh = 1e-3;
+
+                  // Cauchy seems to work well with thresh ~= 1e-4
+                  float error_value = fabsf(I_e_val);
+                  float robust_weight = sqrtf(cauchy_robust_coefficient(error_value,thresh))/error_value;
+
+
+                  // Huber seems to work well with thresh >= 1e-5
+                  //        float robust_weight = sqrt(huber_robust_coefficient(fabs(I_e_val),thresh))/fabs(I_e_val);
+
+                  // Disable robust cost function altogether
+                  //        float robust_weight = 1;
+
+
+
+                  // We combine the error value with the derivative and
+                  // add this to the update equation.
+                  float weight = robust_weight *(*w_ptr);
+                  //float weight = robust_weight;// *(*w_ptr);
+                  float I_x_val = weight * (*I_x_ptr);
+                  float I_y_val = weight * (*I_y_ptr);
+                  float I_x_sqr = I_x_val * (*I_x_ptr);
+                  float I_y_sqr = I_y_val * (*I_y_ptr);
+                  float I_x_I_y = I_x_val * (*I_y_ptr);
+
+                  // Left hand side
+                  lhs(0) += ii * I_x_val * I_e_val;
+                  lhs(1) += jj * I_x_val * I_e_val;
+                  lhs(2) +=      I_x_val * I_e_val;
+                  lhs(3) += ii * I_y_val * I_e_val;
+                  lhs(4) += jj * I_y_val * I_e_val;
+                  lhs(5) +=      I_y_val * I_e_val;
+
+                  // Right Hand Side UL
+                  rhs(0,0) += ii*ii * I_x_sqr;
+                  rhs(0,1) += ii*jj * I_x_sqr;
+                  rhs(0,2) += ii    * I_x_sqr;
+                  rhs(1,1) += jj*jj * I_x_sqr;
+                  rhs(1,2) += jj    * I_x_sqr;
+                  rhs(2,2) +=         I_x_sqr;
+
+                  // Right Hand Side UR
+                  rhs(0,3) += ii*ii * I_x_I_y;
+                  rhs(0,4) += ii*jj * I_x_I_y;
+                  rhs(0,5) += ii    * I_x_I_y;
+                  rhs(1,4) += jj*jj * I_x_I_y;
+                  rhs(1,5) += jj    * I_x_I_y;
+                  rhs(2,5) +=         I_x_I_y;
+
+                  // Right Hand Side LR
+                  rhs(3,3) += ii*ii * I_y_sqr;
+                  rhs(3,4) += ii*jj * I_y_sqr;
+                  rhs(3,5) += ii    * I_y_sqr;
+                  rhs(4,4) += jj*jj * I_y_sqr;
+                  rhs(4,5) += jj    * I_y_sqr;
+                  rhs(5,5) +=         I_y_sqr;
+
+                  w_ptr.next_col();
+                  I_x_ptr.next_col();
+                  I_y_ptr.next_col();
+                  left_image_patch_ptr.next_col();
+                }
+                w_row.next_row();
+                I_x_row.next_row();
+                I_y_row.next_row();
+                left_image_patch_row.next_row();
+              }
+              lhs *= -1;
+
+              // Fill in symmetric entries
+              rhs(1,0) = rhs(0,1);
+              rhs(2,0) = rhs(0,2);
+              rhs(2,1) = rhs(1,2);
+              rhs(1,3) = rhs(0,4);
+              rhs(2,3) = rhs(0,5);
+              rhs(2,4) = rhs(1,5);
+              rhs(3,0) = rhs(0,3);
+              rhs(3,1) = rhs(1,3);
+              rhs(3,2) = rhs(2,3);
+              rhs(4,0) = rhs(0,4);
+              rhs(4,1) = rhs(1,4);
+              rhs(4,2) = rhs(2,4);
+              rhs(4,3) = rhs(3,4);
+              rhs(5,0) = rhs(0,5);
+              rhs(5,1) = rhs(1,5);
+              rhs(5,2) = rhs(2,5);
+              rhs(5,3) = rhs(3,5);
+              rhs(5,4) = rhs(4,5);
+
+
+              //           if (y == 270) {
+              //                       ImageView<ChannelT> right_image_patch(kern_width, kern_height);
+              //                       for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+              //                         for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
+              //                           float xx = x_base + d[0] * ii + d[1] * jj + d[2];
+              //                           float yy = y_base + d[3] * ii + d[4] * jj + d[5];
+              //                           right_image_patch(ii+kern_half_width, jj+kern_half_width) = right_interp_image(xx,yy);
+              //                         }
+              //                       }
+              //                       std::ostringstream ostr;
+              //                       ostr << x << "_" << y << "_" << int(blur_sigma) << "_" << iter;
+              //                       write_image("small/left-"+ostr.str()+".tif", left_image_patch);
+              //                       write_image("small/right-"+ostr.str()+".tif", right_image_patch);
+              //                       write_image("small/weight-"+ostr.str()+".tif", w);
+              //                     }
+
+
+              // Solves lhs = rhs * x, and stores the result in-place in lhs.
+              //           Matrix<double,6,6> pre_rhs = rhs;
+              //           Vector<double,6> pre_lhs = lhs;
+              try {
+                solve_symmetric_nocopy(rhs,lhs);
+              } catch (ArgumentErr &e) {
+                std::cout << "Error @ " << x << " " << y << "\n";
+                //             std::cout << "Exception caught: " << e.what() << "\n";
+                //             std::cout << "PRERHS: " << pre_rhs << "\n";
+                //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
+                //             std::cout << "RHS: " << rhs << "\n";
+                //             std::cout << "LHS: " << lhs << "\n\n";
+                //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
+                //             exit(0);
+              }
+              d += lhs;
+
+              //           if (y == 270)
+              //             std::cout << "Update: " << lhs << "     " << d << "     " << sqrt(error_total) << "    " << (sqrt(lhs[2]*lhs[2]+lhs[5]*lhs[5])) << "\n";
+
+              // Termination condition
+              if (norm_2(lhs) < 0.01)
+                break;
+            }
+            //         std::cout << "----> " << d << "\n\n";
+
+            if ( norm_2( Vector2f(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION ||
+                 d[2] != d[2] ||  // Check to make sure the offset is not NaN...
+                 d[5] != d[5] ) { // ... ditto.
+              invalidate(disparity_map(x,y));
+            } else {
+              disparity_map(x,y)[0] += d[2];
+              disparity_map(x,y)[1] += d[5];
+            }
+          }
         }
-        //         std::cout << "----> " << d << "\n\n";
-        
-        if ( norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION || 
-             d[2] != d[2] ||  // Check to make sure the offset is not NaN...
-             d[5] != d[5] ) { // ... ditto.
-          disparity_map(x,y) = PixelDisparity<float>();
-        } else {
-          disparity_map(x,y).h() += d[2];
-          disparity_map(x,y).v() += d[5];
-        }
+
       }
+
+      if (verbose)
+        vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: done.                                         \n";
     }
 
-    }
 
-    if (verbose) 
-      vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: done.                                         \n";
-  }
+    template<class ChannelT>
+    void subpixel_correlation_affine_2d_bayesian(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                                 ImageView<ChannelT> const& left_input_image,
+                                                 ImageView<ChannelT> const& right_input_image,
+                                                 int kern_width, int kern_height,
+                                                 bool do_horizontal_subpixel,
+                                                 bool do_vertical_subpixel,
+                                                 bool verbose) {
 
- 
-  template<class ChannelT>
-  void subpixel_correlation_affine_2d_bayesian(ImageView<PixelDisparity<float> > &disparity_map,
-                                      ImageView<ChannelT> const& left_input_image,
-                                      ImageView<ChannelT> const& right_input_image,
-                                      int kern_width, int kern_height,
-                                      bool do_horizontal_subpixel,
-                                      bool do_vertical_subpixel,
-                                      bool verbose) {
-    
-    VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
-               disparity_map.rows() == left_input_image.rows(),
-               ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
+      VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
+                 disparity_map.rows() == left_input_image.rows(),
+                 ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
 
-    for (float blur_sigma = 3; blur_sigma >= 1.0; blur_sigma /= 2.0) {
-      ImageView<ChannelT> left_image = LogStereoPreprocessingFilter(blur_sigma)(left_input_image);
-      ImageView<ChannelT> right_image = LogStereoPreprocessingFilter(blur_sigma)(right_input_image);
+      for (float blur_sigma = 3; blur_sigma >= 1.0; blur_sigma /= 2.0) {
+        ImageView<ChannelT> left_image = LogStereoPreprocessingFilter(blur_sigma)(left_input_image);
+        ImageView<ChannelT> right_image = LogStereoPreprocessingFilter(blur_sigma)(right_input_image);
 
-    // This is the maximum number of pixels that the solution can be
-    // adjusted by affine subpixel refinement.
-    float AFFINE_SUBPIXEL_MAX_TRANSLATION = kern_width/2;
-    //float AFFINE_SUBPIXEL_MAX_TRANSLATION = kern_width;
-    int kern_half_height = kern_height/2;
-    int kern_half_width = kern_width/2;
+        // This is the maximum number of pixels that the solution can be
+        // adjusted by affine subpixel refinement.
+        float AFFINE_SUBPIXEL_MAX_TRANSLATION = kern_width/2;
+        //float AFFINE_SUBPIXEL_MAX_TRANSLATION = kern_width;
+        int kern_half_height = kern_height/2;
+        int kern_half_width = kern_width/2;
 
-    // Robust cost function settings
-    //const float thresh = 0.01;
-    //HuberError robust_cost_fn(thresh);
+        // Robust cost function settings
+        //const float thresh = 0.01;
+        //HuberError robust_cost_fn(thresh);
 
-    int kern_pixels = kern_height * kern_width;
-    int weight_threshold = kern_pixels / 2;
+        int kern_pixels = kern_height * kern_width;
+        int weight_threshold = kern_pixels / 2;
 
-    // Bail out if no subpixel computation has been requested 
-    if (!do_horizontal_subpixel && !do_vertical_subpixel) return;
+        // Bail out if no subpixel computation has been requested
+        if (!do_horizontal_subpixel && !do_vertical_subpixel) return;
 
-    ImageView<float> x_deriv = derivative_filter(left_image, 1, 0);
-    ImageView<float> y_deriv = derivative_filter(left_image, 0, 1);
-    ImageView<float> weight_template = compute_gaussian_weight_image(kern_width, kern_height);
-    
-    // Workspace images are allocated up here out of the tight inner
-    // loop.  We rasterize into these directly in the code below.
-    ImageView<float> w(kern_width, kern_height);
-    
-    // Iterate over all of the pixels in the disparity map except for
-    // the outer edges.
-    Stopwatch sw;
-    sw.start();
-    double last_time = 0;
+        ImageView<float> x_deriv = derivative_filter(left_image, 1, 0);
+        ImageView<float> y_deriv = derivative_filter(left_image, 0, 1);
+        ImageView<float> weight_template = compute_gaussian_weight_image(kern_width, kern_height);
 
+        // Workspace images are allocated up here out of the tight inner
+        // loop.  We rasterize into these directly in the code below.
+        ImageView<float> w(kern_width, kern_height);
 
-    for (int y=kern_half_height; y<left_image.rows()-kern_half_height; ++y) {
-      if (verbose && y % 10 == 0) {
-        sw.stop();
-        vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y << " / " << left_image.rows() << "    (" << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time)) << " pixels/s, "<< sw.elapsed_seconds() << " s total )      \r" << std::flush;
-        last_time = sw.elapsed_seconds();
+        // Iterate over all of the pixels in the disparity map except for
+        // the outer edges.
+        Stopwatch sw;
         sw.start();
-      }
-      // For debugging:
-      // for (int x=279; x<280; ++x) {
-      for (int x=kern_half_width; x<left_image.cols()-kern_half_width; ++x) {
+        double last_time = 0;
 
 
-        BBox2i current_window(x-kern_half_width, y-kern_half_height, kern_width, kern_height);
-        Vector2 base_offset( -disparity_map(x,y).h() , -disparity_map(x,y).v() );          
-
-        // Skip over pixels for which we have no initial disparity estimate
-        if (disparity_map(x,y).missing())
-          continue;
-        
-        // Initialize our affine transform with the identity.  The
-        // entries of d are laid out in row major order:
-        // 
-        //   | d(0) d(1) d(2) | 
-        //   | d(3) d(4) d(5) |
-        //   |  0    0    1   |
-        //
-        Vector<float,6> d;
-        d(0) = 1.0;
-        d(4) = 1.0;
-
-        // Compute the derivative image patches
-        CropView<ImageView<ChannelT> > left_image_patch = crop(left_image, current_window);
-        CropView<ImageView<float> > I_x = crop(x_deriv, current_window);
-        CropView<ImageView<float> > I_y = crop(y_deriv, current_window);
-        
-        // Compute the base weight image
-        int good_pixels = adjust_weight_image(w, crop(disparity_map, current_window), weight_template);
-        
-        // Skip over pixels for which there are very few good matches
-        // in the neighborhood.
-        if (good_pixels < weight_threshold) {
-          disparity_map(x,y) = PixelDisparity<float>();
-          continue;
-        }
-         
-
-        float curr_sum_I_e_val = 0.0;
-        float prev_sum_I_e_val = 0.0;
-	unsigned iter;
-        // Iterate until a solution is found or the max number of
-        // iterations is reached.
-        for (iter = 0; iter < 10; ++iter) {
-          // First we check to see if our current subpixel translation
-          // is less than one half of the window width.  If not, then
-          // we are probably having trouble converging and we abort
-          // this pixel!!
-          if (norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION) 
-            break;
-          
-          InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
-            interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());
-          
-          float x_base = x + disparity_map(x,y).h();
-          float y_base = y + disparity_map(x,y).v();
-          //          float error_total = 0;
-
-          Matrix<float,6,6> rhs;
-          Vector<float,6> lhs;
-	  
-          ImageView<float> ll_value(kern_width, kern_height);
-          float sum_error_value = 0;
-          float mean_l = 0.0;
-          float mean_r = 0.0;
-
-          // Set up pixel accessors
-          typename ImageView<float>::pixel_accessor w_row = w.origin();
-          typename CropView<ImageView<float> >::pixel_accessor I_x_row = I_x.origin();
-          typename CropView<ImageView<float> >::pixel_accessor I_y_row = I_y.origin();
-          typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_row = left_image_patch.origin();
-          
-          
-          for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
-            typename ImageView<float>::pixel_accessor w_ptr = w_row;
-            typename CropView<ImageView<float> >::pixel_accessor I_x_ptr = I_x_row;
-            typename CropView<ImageView<float> >::pixel_accessor I_y_ptr = I_y_row;
-            typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_ptr = left_image_patch_row;
-          
-            for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
-
-              // First we compute the pixel offset for the right image
-              // and the error for the current pixel.
-              float xx = x_base + d[0] * ii + d[1] * jj + d[2];
-              float yy = y_base + d[3] * ii + d[4] * jj + d[5];
-              float I_e_val = right_interp_image(xx,yy) - (*left_image_patch_ptr);// + 1e-16; 
-              //              error_total += pow(I_e_val,2);
-
-              // Apply the robust cost function.  We use a huber
-              // function to gently remove outliers for small errors,
-              // but we set a hard limit a 5 times the cost threshold
-              // to remove major (salt&pepper) noise.
-              //float thresh = 1e-3;
-                 
-              float two_sigma_2 = 1e-4;//1e-3;//1e-4;//1e-5;//1e-6;
-              
-              ll_value(jj+kern_half_height, ii+kern_half_width) =  exp(-1*(I_e_val*I_e_val)/two_sigma_2);
-              sum_error_value = sum_error_value + ll_value(jj+kern_half_height, ii+kern_half_width);
-
-              mean_l = mean_l + (*left_image_patch_ptr); 
-	      mean_r = mean_r + right_interp_image(xx,yy);
-              //printf("I_e_val = %f, ll_val = %f, kern_half_height = %d, kern_half_width = %d, sum_error_value = %f\n", 
-	      //	     I_e_val,  ll_value(jj+kern_half_height, ii+kern_half_width), kern_half_height, kern_half_width, sum_error_value);
-
-              w_ptr.next_col();
-              I_x_ptr.next_col();
-              I_y_ptr.next_col();
-              left_image_patch_ptr.next_col();
-            }
-            w_row.next_row();
-            I_x_row.next_row();
-            I_y_row.next_row();
-            left_image_patch_row.next_row();
-	    
-	  }
-          
-          mean_r = mean_r/(kern_width*kern_height);
-	  mean_l = mean_l/(kern_width*kern_height);
-          //printf("mean_l = %f, mean_r = %f\n", mean_l, mean_r);
-
-          // Set up pixel accessors
-          w_row = w.origin();
-          I_x_row = I_x.origin();
-          I_y_row = I_y.origin();
-          left_image_patch_row = left_image_patch.origin();
-	  
-          curr_sum_I_e_val = 0.0;
-          //prev_sum_I_e_val = 0.0;
-
-          for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
-            typename ImageView<float>::pixel_accessor w_ptr = w_row;
-            typename CropView<ImageView<float> >::pixel_accessor I_x_ptr = I_x_row;
-            typename CropView<ImageView<float> >::pixel_accessor I_y_ptr = I_y_row;
-            typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_ptr = left_image_patch_row;
-          
-            for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
-     
-              // First we compute the pixel offset for the right image
-              // and the error for the current pixel.
-              float xx = x_base + d[0] * ii + d[1] * jj + d[2];
-              float yy = y_base + d[3] * ii + d[4] * jj + d[5];
-              float I_e_val = right_interp_image(xx,yy) - (*left_image_patch_ptr);
-              curr_sum_I_e_val = curr_sum_I_e_val + I_e_val;             
- 
-              float robust_weight = ll_value(jj+kern_half_height, ii+kern_half_width)/sum_error_value;
-             
-              
-              // Disable robust cost function altogether
-              //        float robust_weight = 1;
-              // float two_sigma_2 = 1e-5;//1e-4;//1e-5;//1e-6;
-              // float tmp_l = (*left_image_patch_ptr) -mean_l;
-              // float tmp_r = right_interp_image(xx,yy)-mean_r;
-              //              float ll = exp(-1*((tmp_l*tmp_l) + (tmp_r*tmp_r))/two_sigma_2);
-             
-               
-              // We combine the error value with the derivative and
-              // add this to the update equation.
-              float weight = robust_weight*(*w_ptr);//*ll;
-              float I_x_val = weight * (*I_x_ptr);
-              float I_y_val = weight * (*I_y_ptr);
-              float I_x_sqr = I_x_val * (*I_x_ptr);
-              float I_y_sqr = I_y_val * (*I_y_ptr);
-              float I_x_I_y = I_x_val * (*I_y_ptr);
-
-              // Left hand side
-              lhs(0) += ii * I_x_val * I_e_val;
-              lhs(1) += jj * I_x_val * I_e_val;
-              lhs(2) +=      I_x_val * I_e_val;
-              lhs(3) += ii * I_y_val * I_e_val;
-              lhs(4) += jj * I_y_val * I_e_val;
-              lhs(5) +=      I_y_val * I_e_val;
-              
-              // Right Hand Side UL
-              rhs(0,0) += ii*ii * I_x_sqr;
-              rhs(0,1) += ii*jj * I_x_sqr;
-              rhs(0,2) += ii    * I_x_sqr;
-              rhs(1,1) += jj*jj * I_x_sqr;
-              rhs(1,2) += jj    * I_x_sqr;
-              rhs(2,2) +=         I_x_sqr;
-              
-              // Right Hand Side UR
-              rhs(0,3) += ii*ii * I_x_I_y;
-              rhs(0,4) += ii*jj * I_x_I_y;
-              rhs(0,5) += ii    * I_x_I_y;
-              rhs(1,4) += jj*jj * I_x_I_y;
-              rhs(1,5) += jj    * I_x_I_y;
-              rhs(2,5) +=         I_x_I_y;
-              
-              // Right Hand Side LR
-              rhs(3,3) += ii*ii * I_y_sqr;
-              rhs(3,4) += ii*jj * I_y_sqr;
-              rhs(3,5) += ii    * I_y_sqr;
-              rhs(4,4) += jj*jj * I_y_sqr;
-              rhs(4,5) += jj    * I_y_sqr;
-              rhs(5,5) +=         I_y_sqr;
-
-              w_ptr.next_col();
-              I_x_ptr.next_col();
-              I_y_ptr.next_col();
-              left_image_patch_ptr.next_col();
-            }
-            w_row.next_row();
-            I_x_row.next_row();
-            I_y_row.next_row();
-            left_image_patch_row.next_row();
-          }          
-          lhs *= -1;
-
-          // Fill in symmetric entries
-          rhs(1,0) = rhs(0,1);
-          rhs(2,0) = rhs(0,2);
-          rhs(2,1) = rhs(1,2);
-          rhs(1,3) = rhs(0,4);
-          rhs(2,3) = rhs(0,5);
-          rhs(2,4) = rhs(1,5);
-          rhs(3,0) = rhs(0,3);
-          rhs(3,1) = rhs(1,3);
-          rhs(3,2) = rhs(2,3);
-          rhs(4,0) = rhs(0,4);
-          rhs(4,1) = rhs(1,4);
-          rhs(4,2) = rhs(2,4);
-          rhs(4,3) = rhs(3,4);
-          rhs(5,0) = rhs(0,5);
-          rhs(5,1) = rhs(1,5);
-          rhs(5,2) = rhs(2,5);
-          rhs(5,3) = rhs(3,5);
-          rhs(5,4) = rhs(4,5);
-
-
-          //           if (y == 270) {          
-          //                       ImageView<ChannelT> right_image_patch(kern_width, kern_height);
-          //                       for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
-          //                         for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
-          //                           float xx = x_base + d[0] * ii + d[1] * jj + d[2];
-          //                           float yy = y_base + d[3] * ii + d[4] * jj + d[5];
-          //                           right_image_patch(ii+kern_half_width, jj+kern_half_width) = right_interp_image(xx,yy);
-          //                         }
-          //                       }
-          //                       std::ostringstream ostr;
-          //                       ostr << x << "_" << y << "_" << int(blur_sigma) << "_" << iter;
-          //                       write_image("small/left-"+ostr.str()+".tif", left_image_patch);
-          //                       write_image("small/right-"+ostr.str()+".tif", right_image_patch);
-          //                       write_image("small/weight-"+ostr.str()+".tif", w);
-          //                     }
-
-
-          // Solves lhs = rhs * x, and stores the result in-place in lhs.
-          //           Matrix<double,6,6> pre_rhs = rhs;
-          //           Vector<double,6> pre_lhs = lhs;
-          try { 
-            solve_symmetric_nocopy(rhs,lhs);
-          } catch (ArgumentErr &e) {
-            std::cout << "Error @ " << x << " " << y << "\n";
-            //             std::cout << "Exception caught: " << e.what() << "\n";
-            //             std::cout << "PRERHS: " << pre_rhs << "\n";
-            //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
-            //             std::cout << "RHS: " << rhs << "\n";
-            //             std::cout << "LHS: " << lhs << "\n\n";
-            //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
-            //             exit(0);
+        for (int y=kern_half_height; y<left_image.rows()-kern_half_height; ++y) {
+          if (verbose && y % 10 == 0) {
+            sw.stop();
+            vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y << " / " << left_image.rows() << "    (" << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time)) << " pixels/s, "<< sw.elapsed_seconds() << " s total )      \r" << std::flush;
+            last_time = sw.elapsed_seconds();
+            sw.start();
           }
-          d += lhs;
+          // For debugging:
+          // for (int x=279; x<280; ++x) {
+          for (int x=kern_half_width; x<left_image.cols()-kern_half_width; ++x) {
 
-          //           if (y == 270) 
-          //             std::cout << "Update: " << lhs << "     " << d << "     " << sqrt(error_total) << "    " << (sqrt(lhs[2]*lhs[2]+lhs[5]*lhs[5])) << "\n";
 
-          
-          
-          if (curr_sum_I_e_val < 0){
-	      curr_sum_I_e_val = - curr_sum_I_e_val;
+            BBox2i current_window(x-kern_half_width, y-kern_half_height, kern_width, kern_height);
+            Vector2 base_offset(-disparity_map(x,y).child());
+
+            // Skip over pixels for which we have no initial disparity estimate
+            if ( !is_valid(disparity_map(x,y)) )
+              continue;
+
+            // Initialize our affine transform with the identity.  The
+            // entries of d are laid out in row major order:
+            //
+            //   | d(0) d(1) d(2) |
+            //   | d(3) d(4) d(5) |
+            //   |  0    0    1   |
+            //
+            Vector<float,6> d;
+            d(0) = 1.0;
+            d(4) = 1.0;
+
+            // Compute the derivative image patches
+            CropView<ImageView<ChannelT> > left_image_patch = crop(left_image, current_window);
+            CropView<ImageView<float> > I_x = crop(x_deriv, current_window);
+            CropView<ImageView<float> > I_y = crop(y_deriv, current_window);
+
+            // Compute the base weight image
+            int good_pixels = adjust_weight_image(w, crop(disparity_map, current_window), weight_template);
+
+            // Skip over pixels for which there are very few good matches
+            // in the neighborhood.
+            if (good_pixels < weight_threshold) {
+              invalidate( disparity_map(x,y) );
+              continue;
+            }
+
+            float curr_sum_I_e_val = 0.0;
+            float prev_sum_I_e_val = 0.0;
+            unsigned iter;
+            // Iterate until a solution is found or the max number of
+            // iterations is reached.
+            for (iter = 0; iter < 10; ++iter) {
+              // First we check to see if our current subpixel translation
+              // is less than one half of the window width.  If not, then
+              // we are probably having trouble converging and we abort
+              // this pixel!!
+              if (norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION)
+                break;
+
+              InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
+                interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());
+
+              float x_base = x + disparity_map(x,y)[0];
+              float y_base = y + disparity_map(x,y)[1];
+              //          float error_total = 0;
+
+              Matrix<float,6,6> rhs;
+              Vector<float,6> lhs;
+
+              ImageView<float> ll_value(kern_width, kern_height);
+              float sum_error_value = 0;
+              float mean_l = 0.0;
+              float mean_r = 0.0;
+
+              // Set up pixel accessors
+              typename ImageView<float>::pixel_accessor w_row = w.origin();
+              typename CropView<ImageView<float> >::pixel_accessor I_x_row = I_x.origin();
+              typename CropView<ImageView<float> >::pixel_accessor I_y_row = I_y.origin();
+              typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_row = left_image_patch.origin();
+
+
+              for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+                typename ImageView<float>::pixel_accessor w_ptr = w_row;
+                typename CropView<ImageView<float> >::pixel_accessor I_x_ptr = I_x_row;
+                typename CropView<ImageView<float> >::pixel_accessor I_y_ptr = I_y_row;
+                typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_ptr = left_image_patch_row;
+
+                for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
+
+                  // First we compute the pixel offset for the right image
+                  // and the error for the current pixel.
+                  float xx = x_base + d[0] * ii + d[1] * jj + d[2];
+                  float yy = y_base + d[3] * ii + d[4] * jj + d[5];
+                  float I_e_val = right_interp_image(xx,yy) - (*left_image_patch_ptr);// + 1e-16;
+                  //              error_total += pow(I_e_val,2);
+
+                  // Apply the robust cost function.  We use a huber
+                  // function to gently remove outliers for small errors,
+                  // but we set a hard limit a 5 times the cost threshold
+                  // to remove major (salt&pepper) noise.
+                  //float thresh = 1e-3;
+
+                  float two_sigma_2 = 1e-4;//1e-3;//1e-4;//1e-5;//1e-6;
+
+                  ll_value(jj+kern_half_height, ii+kern_half_width) =  exp(-1*(I_e_val*I_e_val)/two_sigma_2);
+                  sum_error_value = sum_error_value + ll_value(jj+kern_half_height, ii+kern_half_width);
+
+                  mean_l = mean_l + (*left_image_patch_ptr);
+                  mean_r = mean_r + right_interp_image(xx,yy);
+                  //printf("I_e_val = %f, ll_val = %f, kern_half_height = %d, kern_half_width = %d, sum_error_value = %f\n",
+                  //             I_e_val,  ll_value(jj+kern_half_height, ii+kern_half_width), kern_half_height, kern_half_width, sum_error_value);
+
+                  w_ptr.next_col();
+                  I_x_ptr.next_col();
+                  I_y_ptr.next_col();
+                  left_image_patch_ptr.next_col();
+                }
+                w_row.next_row();
+                I_x_row.next_row();
+                I_y_row.next_row();
+                left_image_patch_row.next_row();
+
+              }
+
+              mean_r = mean_r/(kern_width*kern_height);
+              mean_l = mean_l/(kern_width*kern_height);
+              //printf("mean_l = %f, mean_r = %f\n", mean_l, mean_r);
+
+              // Set up pixel accessors
+              w_row = w.origin();
+              I_x_row = I_x.origin();
+              I_y_row = I_y.origin();
+              left_image_patch_row = left_image_patch.origin();
+
+              curr_sum_I_e_val = 0.0;
+              //prev_sum_I_e_val = 0.0;
+
+              for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+                typename ImageView<float>::pixel_accessor w_ptr = w_row;
+                typename CropView<ImageView<float> >::pixel_accessor I_x_ptr = I_x_row;
+                typename CropView<ImageView<float> >::pixel_accessor I_y_ptr = I_y_row;
+                typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_ptr = left_image_patch_row;
+
+                for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
+
+                  // First we compute the pixel offset for the right image
+                  // and the error for the current pixel.
+                  float xx = x_base + d[0] * ii + d[1] * jj + d[2];
+                  float yy = y_base + d[3] * ii + d[4] * jj + d[5];
+                  float I_e_val = right_interp_image(xx,yy) - (*left_image_patch_ptr);
+                  curr_sum_I_e_val = curr_sum_I_e_val + I_e_val;
+
+                  float robust_weight = ll_value(jj+kern_half_height, ii+kern_half_width)/sum_error_value;
+
+
+                  // Disable robust cost function altogether
+                  //        float robust_weight = 1;
+                  // float two_sigma_2 = 1e-5;//1e-4;//1e-5;//1e-6;
+                  // float tmp_l = (*left_image_patch_ptr) -mean_l;
+                  // float tmp_r = right_interp_image(xx,yy)-mean_r;
+                  //              float ll = exp(-1*((tmp_l*tmp_l) + (tmp_r*tmp_r))/two_sigma_2);
+
+
+                  // We combine the error value with the derivative and
+                  // add this to the update equation.
+                  float weight = robust_weight*(*w_ptr);//*ll;
+                  float I_x_val = weight * (*I_x_ptr);
+                  float I_y_val = weight * (*I_y_ptr);
+                  float I_x_sqr = I_x_val * (*I_x_ptr);
+                  float I_y_sqr = I_y_val * (*I_y_ptr);
+                  float I_x_I_y = I_x_val * (*I_y_ptr);
+
+                  // Left hand side
+                  lhs(0) += ii * I_x_val * I_e_val;
+                  lhs(1) += jj * I_x_val * I_e_val;
+                  lhs(2) +=      I_x_val * I_e_val;
+                  lhs(3) += ii * I_y_val * I_e_val;
+                  lhs(4) += jj * I_y_val * I_e_val;
+                  lhs(5) +=      I_y_val * I_e_val;
+
+                  // Right Hand Side UL
+                  rhs(0,0) += ii*ii * I_x_sqr;
+                  rhs(0,1) += ii*jj * I_x_sqr;
+                  rhs(0,2) += ii    * I_x_sqr;
+                  rhs(1,1) += jj*jj * I_x_sqr;
+                  rhs(1,2) += jj    * I_x_sqr;
+                  rhs(2,2) +=         I_x_sqr;
+
+                  // Right Hand Side UR
+                  rhs(0,3) += ii*ii * I_x_I_y;
+                  rhs(0,4) += ii*jj * I_x_I_y;
+                  rhs(0,5) += ii    * I_x_I_y;
+                  rhs(1,4) += jj*jj * I_x_I_y;
+                  rhs(1,5) += jj    * I_x_I_y;
+                  rhs(2,5) +=         I_x_I_y;
+
+                  // Right Hand Side LR
+                  rhs(3,3) += ii*ii * I_y_sqr;
+                  rhs(3,4) += ii*jj * I_y_sqr;
+                  rhs(3,5) += ii    * I_y_sqr;
+                  rhs(4,4) += jj*jj * I_y_sqr;
+                  rhs(4,5) += jj    * I_y_sqr;
+                  rhs(5,5) +=         I_y_sqr;
+
+                  w_ptr.next_col();
+                  I_x_ptr.next_col();
+                  I_y_ptr.next_col();
+                  left_image_patch_ptr.next_col();
+                }
+                w_row.next_row();
+                I_x_row.next_row();
+                I_y_row.next_row();
+                left_image_patch_row.next_row();
+              }
+              lhs *= -1;
+
+              // Fill in symmetric entries
+              rhs(1,0) = rhs(0,1);
+              rhs(2,0) = rhs(0,2);
+              rhs(2,1) = rhs(1,2);
+              rhs(1,3) = rhs(0,4);
+              rhs(2,3) = rhs(0,5);
+              rhs(2,4) = rhs(1,5);
+              rhs(3,0) = rhs(0,3);
+              rhs(3,1) = rhs(1,3);
+              rhs(3,2) = rhs(2,3);
+              rhs(4,0) = rhs(0,4);
+              rhs(4,1) = rhs(1,4);
+              rhs(4,2) = rhs(2,4);
+              rhs(4,3) = rhs(3,4);
+              rhs(5,0) = rhs(0,5);
+              rhs(5,1) = rhs(1,5);
+              rhs(5,2) = rhs(2,5);
+              rhs(5,3) = rhs(3,5);
+              rhs(5,4) = rhs(4,5);
+
+
+              //           if (y == 270) {
+              //                       ImageView<ChannelT> right_image_patch(kern_width, kern_height);
+              //                       for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+              //                         for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
+              //                           float xx = x_base + d[0] * ii + d[1] * jj + d[2];
+              //                           float yy = y_base + d[3] * ii + d[4] * jj + d[5];
+              //                           right_image_patch(ii+kern_half_width, jj+kern_half_width) = right_interp_image(xx,yy);
+              //                         }
+              //                       }
+              //                       std::ostringstream ostr;
+              //                       ostr << x << "_" << y << "_" << int(blur_sigma) << "_" << iter;
+              //                       write_image("small/left-"+ostr.str()+".tif", left_image_patch);
+              //                       write_image("small/right-"+ostr.str()+".tif", right_image_patch);
+              //                       write_image("small/weight-"+ostr.str()+".tif", w);
+              //                     }
+
+
+              // Solves lhs = rhs * x, and stores the result in-place in lhs.
+              //           Matrix<double,6,6> pre_rhs = rhs;
+              //           Vector<double,6> pre_lhs = lhs;
+              try {
+                solve_symmetric_nocopy(rhs,lhs);
+              } catch (ArgumentErr &e) {
+                std::cout << "Error @ " << x << " " << y << "\n";
+                //             std::cout << "Exception caught: " << e.what() << "\n";
+                //             std::cout << "PRERHS: " << pre_rhs << "\n";
+                //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
+                //             std::cout << "RHS: " << rhs << "\n";
+                //             std::cout << "LHS: " << lhs << "\n\n";
+                //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
+                //             exit(0);
+              }
+              d += lhs;
+
+              //           if (y == 270)
+              //             std::cout << "Update: " << lhs << "     " << d << "     " << sqrt(error_total) << "    " << (sqrt(lhs[2]*lhs[2]+lhs[5]*lhs[5])) << "\n";
+
+              if (curr_sum_I_e_val < 0){
+                curr_sum_I_e_val = - curr_sum_I_e_val;
+              }
+
+              // Termination condition
+              if ((prev_sum_I_e_val < curr_sum_I_e_val) && (iter > 0)) {
+                break;
+              }
+              else{
+                prev_sum_I_e_val = curr_sum_I_e_val;
+              }
+
+              //if (norm_2(lhs) < 0.01)
+              //  break;
+            }
+            //         std::cout << "----> " << d << "\n\n";
+
+            if ( norm_2( Vector2f(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION ||
+                 d[2] != d[2] ||  // Check to make sure the offset is not NaN...
+                 d[5] != d[5] ) { // ... ditto.
+              invalidate( disparity_map(x,y) );
+            } else {
+              disparity_map(x,y)[0] += d[2];
+              disparity_map(x,y)[1] += d[5];
+            }
+            //printf("iter = %d, curr_sum_I_e_val = %d\n", iter, curr_sum_I_e_val);
           }
-          //printf("iter = %d, curr_sum_I_e_val = %f, prev_sum_I_e_val = %f\n", iter, curr_sum_I_e_val, prev_sum_I_e_val);
-        
-         
+          //printf("iter = %d, curr_sum_I_e_val = %d\n", iter, curr_sum_I_e_val);
+        }
 
-          // Termination condition
-          if ((prev_sum_I_e_val < curr_sum_I_e_val) && (iter > 0)) {
-	    break;
-	  }
-          else{
-              prev_sum_I_e_val = curr_sum_I_e_val;
-	  }
-             
-          //if (norm_2(lhs) < 0.01) 
-          //  break;
-        }
-        //         std::cout << "----> " << d << "\n\n";
-        
-        if ( norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION || 
-             d[2] != d[2] ||  // Check to make sure the offset is not NaN...
-             d[5] != d[5] ) { // ... ditto.
-          disparity_map(x,y) = PixelDisparity<float>();
-        } else {
-          disparity_map(x,y).h() += d[2];
-          disparity_map(x,y).v() += d[5];
-        }
-        //printf("iter = %d, curr_sum_I_e_val = %d\n", iter, curr_sum_I_e_val);
       }
-      //printf("iter = %d, curr_sum_I_e_val = %d\n", iter, curr_sum_I_e_val);
+
+      if (verbose)
+        vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: done.                                         \n";
     }
 
-    }
 
-    if (verbose) 
-      vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: done.                                         \n";
-  }
- 
-
-  template<class ChannelT>
-  void subpixel_correlation_affine_2d_EM(ImageView<PixelDisparity<float> > &disparity_map,
-					 ImageView<ChannelT> const& /*left_input_image*/left_image,
-					 ImageView<ChannelT> const& /*right_input_image*/right_image,
-                                         int kern_width, int kern_height,
-                                         BBox2i region_of_interest,
-                                         bool do_horizontal_subpixel,
-                                         bool do_vertical_subpixel,
-                                         bool verbose) {
-    
+    template<class ChannelT>
+    void subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                           ImageView<ChannelT> const& /*left_input_image*/left_image,
+                                           ImageView<ChannelT> const& /*right_input_image*/right_image,
+                                           int kern_width, int kern_height,
+                                           BBox2i region_of_interest,
+                                           bool do_horizontal_subpixel,
+                                           bool do_vertical_subpixel,
+                                           bool verbose) {
 
       unsigned max_em_iter = 2;
       //float  blur_sigma = 1;//1.5;//3;//2;
@@ -918,19 +910,19 @@ namespace stereo {
       float  min_var2_noise = 0.000001; //0.001;//0.01;//0.0001;//0.000001;//0.0001;
       int    save_confidence_image = 0;//1;
       float  two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0); //4.0//7.0 works well
-      float  var2_disp = 0.001; 
+      float  var2_disp = 0.001;
       /*
-      VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
-               disparity_map.rows() == left_input_image.rows(),
-               ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
-      ImageView<float> confidence_image (left_input_image.rows(), left_input_image.cols());
+        VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
+        disparity_map.rows() == left_input_image.rows(),
+        ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
+        ImageView<float> confidence_image (left_input_image.rows(), left_input_image.cols());
       */
       VW_ASSERT( disparity_map.cols() == left_image.cols() &&
-               disparity_map.rows() == left_image.rows(),
-               ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
+                 disparity_map.rows() == left_image.rows(),
+                 ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
 
-       ImageView<float> confidence_image (left_image.rows(), left_image.cols());
-   
+      ImageView<float> confidence_image (left_image.rows(), left_image.cols());
+
       /*
       //image blurring
       ImageView<ChannelT> left_image = LogStereoPreprocessingFilter(blur_sigma)(left_input_image);
@@ -938,13 +930,10 @@ namespace stereo {
       printf("blur_sigma = %f\n", blur_sigma);
       */
 
-    
-     
-
       // This is the maximum number of pixels that the solution can be
       // adjusted by affine subpixel refinement.
       float AFFINE_SUBPIXEL_MAX_TRANSLATION = kern_width/2;
-  
+
       int kern_half_height = kern_height/2;
       int kern_half_width = kern_width/2;
 
@@ -952,574 +941,572 @@ namespace stereo {
 
       int weight_threshold = kern_pixels / 2;
 
-      // Bail out if no subpixel computation has been requested 
+      // Bail out if no subpixel computation has been requested
       if (!do_horizontal_subpixel && !do_vertical_subpixel) return;
 
-         ImageView<float> x_deriv = derivative_filter(left_image, 1, 0);
-         ImageView<float> y_deriv = derivative_filter(left_image, 0, 1);
+      ImageView<float> x_deriv = derivative_filter(left_image, 1, 0);
+      ImageView<float> y_deriv = derivative_filter(left_image, 0, 1);
 
-         //ImageView<float> weight_template = compute_gaussian_weight_image(kern_width, kern_height);
-         ImageView<float> weight_template = compute_spatial_weight_image(kern_width, kern_height, two_sigma_sqr);
+      //ImageView<float> weight_template = compute_gaussian_weight_image(kern_width, kern_height);
+      ImageView<float> weight_template = compute_spatial_weight_image(kern_width, kern_height, two_sigma_sqr);
 
-         // Workspace images are allocated up here out of the tight inner
-         // loop.  We rasterize into these directly in the code below.
-         ImageView<float> w(kern_width, kern_height);
-    
-         // Iterate over all of the pixels in the disparity map except for
-         // the outer edges.
-         Stopwatch sw;
-         sw.start();
-         double last_time = 0;
+      // Workspace images are allocated up here out of the tight inner
+      // loop.  We rasterize into these directly in the code below.
+      ImageView<float> w(kern_width, kern_height);
 
-
-         for (int y=std::max(region_of_interest.min().y()-1,kern_half_height);
-              y<std::min(left_image.rows()-kern_half_height, region_of_interest.max().y()+1) ; 
-              ++y) {
-         //         for (int y=kern_half_height; y<left_image.rows()-kern_half_height; ++y) {
-           if (verbose && y % 10 == 0) {
-             sw.stop();
-             vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y << " / " << left_image.rows() << "    (" << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time)) << " pixels/s, "<< sw.elapsed_seconds() << " s total )      \r" << std::flush;
-             last_time = sw.elapsed_seconds();
-             sw.start();
-           }
-
-      for (int x=std::max(region_of_interest.min().x()-1,kern_half_width); 
-               x<std::min(left_image.cols()-kern_half_width, region_of_interest.max().x()+1); 
-             ++x) {
-        //           for (int x=kern_half_width; x<left_image.cols()-kern_half_width; ++x) {
+      // Iterate over all of the pixels in the disparity map except for
+      // the outer edges.
+      Stopwatch sw;
+      sw.start();
+      double last_time = 0;
 
 
-              BBox2i current_window(x-kern_half_width, y-kern_half_height, kern_width, kern_height);
-              Vector2 base_offset( -disparity_map(x,y).h() , -disparity_map(x,y).v() );          
-
-              // Skip over pixels for which we have no initial disparity estimate
-              if (disparity_map(x,y).missing())
-                 continue;
-        
-              // Define and initialize the model params
-              // Initialize our affine transform with the identity.  The
-              // entries of d are laid out in row major order:
-              // 
-              //   | d(0) d(1) d(2) | 
-              //   | d(3) d(4) d(5) |
-              //   |  0    0    1   |
-              //
-              Vector<float,6> d;
-              d(0) = 1.0;
-              d(4) = 1.0;
-              // float var2_plane;  
-              // float mean_noise;
-              // float var2_noise;
-        
-              // Compute the derivative image patches
-              CropView<ImageView<ChannelT> > left_image_patch = crop(left_image, current_window);
-              CropView<ImageView<float> > I_x = crop(x_deriv, current_window);
-              CropView<ImageView<float> > I_y = crop(y_deriv, current_window);
-        
-              // Compute the base weight image
-              int good_pixels = adjust_weight_image(w, crop(disparity_map, current_window), weight_template);
-        
-              // Skip over pixels for which there are very few good matches
-              // in the neighborhood.
-              if (good_pixels < weight_threshold) {
-                  disparity_map(x,y) = PixelDisparity<float>();
-                  continue;
-              }
-         
-
-	      float curr_sum_I_e_val = 0.0;
-	      float prev_sum_I_e_val = 0.0;
-	      unsigned iter;
-	      d(0) = 1.0;
-	      d(1) = 0.0;
-	      d(2) = 0.0;
-	      d(3) = 0.0;
-	      d(4) = 1.0;
-	      d(5) = 0.0;
-	      // Iterate until a solution is found or the max number of
-	      // iterations is reached.
-	      for (iter = 0; iter < 10; ++iter) {
-		// First we check to see if our current subpixel translation
-		// is less than one half of the window width.  If not, then
-		// we are probably having trouble converging and we abort
-		// this pixel!!
-		if (norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION) 
-		  break;
-          
-		  InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
-		  interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());
-          
-		  float x_base = x + disparity_map(x,y).h();
-		  float y_base = y + disparity_map(x,y).v();
-		  //          float error_total = 0;
-
-		  Matrix<float,6,6> rhs;
-		  Vector<float,6> lhs;
-	          Vector<float,6> prev_lhs;
-
-		  //initial values here.
-		  ImageView<float> gamma_plane(kern_width, kern_height);
-		  ImageView<float> gamma_noise(kern_width, kern_height); 
-          
-		  //set init params - START
-		  float var2_plane = 1e-3;
-		  float mean_noise = 0.0;
-		  float var2_noise = 1e-2;
-                  float w_plane = 0.8;
-                  float w_noise = 0.2;
-		  //set init params - END
-
-        
-		  //EXPECTATION - START
-		  float in_curr_sum_I_e_val = 0.0;
-		  float in_prev_sum_I_e_val = 1000000.0;
-		  unsigned em_iter;
-		  Vector<float,6> d_em;
-		  d_em = d;
-               
-		  
-                  for (em_iter=0; em_iter<max_em_iter; em_iter++){
-          
-		    float noise_norm_factor = 1.0/sqrt(6.28*var2_noise);
-		    float plane_norm_factor = 1.0/sqrt(6.28*var2_plane);
-                    float disp_norm_factor  = 1.0/sqrt(6.28*var2_disp);
-
-		    // Set up pixel accessors
-		    typename ImageView<float>::pixel_accessor w_row = w.origin();
-		    typename CropView<ImageView<float> >::pixel_accessor I_x_row = I_x.origin();
-		    typename CropView<ImageView<float> >::pixel_accessor I_y_row = I_y.origin();
-		    typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_row = left_image_patch.origin();
-	    
-		    for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
-	    
-		      typename ImageView<float>::pixel_accessor w_ptr = w_row;
-		      typename CropView<ImageView<float> >::pixel_accessor I_x_ptr = I_x_row;
-		      typename CropView<ImageView<float> >::pixel_accessor I_y_ptr = I_y_row;
-		      typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_ptr = left_image_patch_row;
-          
-		      for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
-
-			// First we compute the pixel offset for the right image
-			// and the error for the current pixel.
-                
-			//float xx = x_base + d_em[0] * ii + d_em[1] * jj + d_em[2];
-			//float yy = y_base + d_em[3] * ii + d_em[4] * jj + d_em[5];
-                        
-                        //float delta_x = xx-x_base;
-			//float delta_y = yy-y_base;
-
-                        float xx = x_base + d[0] * ii + d[1] * jj + d[2];
-			float yy = y_base + d[3] * ii + d[4] * jj + d[5];
-                 
-                        float delta_x = d_em[0] * ii + d_em[1] * jj + d_em[2];
-			float delta_y = d_em[3] * ii + d_em[4] * jj + d_em[5];
-
-			//float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr);
-                        float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr) - delta_x*(*I_x_ptr) - delta_y*(*I_y_ptr);
-			float temp_noise = right_interp_image(xx,yy) - mean_noise;
-                        /*
-                        float temp_disp_h_top;
-                        float temp_disp_v_top;
-                        float temp_disp_h_left;
-                        float temp_disp_v_left;
-                        float a_priori_plane_prob;
-
-                        if ((x > 0) && (y > 0)){
-                            temp_disp_h_top  = d_em[2]-disparity_map(x-1,y).h();
-                            temp_disp_v_top  = d_em[5]-disparity_map(x-1,y).v();
-                            temp_disp_h_left = d_em[2]-disparity_map(x,y-1).h();
-                            temp_disp_v_left = d_em[5]-disparity_map(x,y-1).v();
-                            a_priori_plane_prob = disp_norm_factor*exp(-1*(temp_disp_h_top*temp_disp_h_top + temp_disp_v_top*temp_disp_v_top +
-                                                                           temp_disp_h_left*temp_disp_h_left + temp_disp_v_left*temp_disp_v_left)/(2*var2_disp));
-		        }
-		        else{
-			  a_priori_plane_prob = 1.0;
-                        }
-                        printf("apriori_prob = %f\n", a_priori_plane_prob);
-		       
-                        float plane_prob = a_priori_plane_prob*plane_norm_factor*exp(-1*(temp_plane*temp_plane)/(2*var2_plane));
-                        */
-                        float plane_prob = plane_norm_factor*exp(-1*(temp_plane*temp_plane)/(2*var2_plane));
-			float noise_prob = noise_norm_factor*exp(-1*(temp_noise*temp_noise)/(2*var2_noise));
-
-			float sum = plane_prob*w_plane + noise_prob*w_noise;
-			//printf("p_prob = %f, n_prob = %f, sum = %f, w = %f, u = %f\n", 
-			//       plane_prob, noise_prob, sum, *w_ptr, 1.0/(float)(kern_height*kern_width));
-    
-			gamma_plane(jj+kern_half_height, ii+kern_half_width) = plane_prob*w_plane/sum;
-			gamma_noise(jj+kern_half_height, ii+kern_half_width) = noise_prob*w_noise/sum;
-
-                        w_row.next_col();
-			I_x_ptr.next_col();
-			I_y_ptr.next_col();
-			left_image_patch_ptr.next_col();
-		      }
-	              w_row.next_row();
-		      I_x_row.next_row();
-		      I_y_row.next_row();
-		      left_image_patch_row.next_row();
-	    
-		    }
-		    //EXPECTATION - END
-		    //printf("em iter = %d, expectation done!\n", em_iter);
-            
-		    //MAXIMIZATION - START
-                    //compute the d_em vector
-                  
-		    //reset lhs and rhs
-		    for (int ii = 0; ii< 6; ii++){
-		      lhs(ii) = 0.0;
-		      for (int jj = 0; jj < 6; jj++){
-			rhs(ii, jj) = 0.0;
-		      }
-		    }
-
-		    in_curr_sum_I_e_val = 0.0;
-     
-		    float mean_noise_tmp  = 0.0;
-		    float sum_gamma_noise = 0.0;
-		    float sum_gamma_plane = 0.0;
-           
-		    // Set up pixel accessors
-		    w_row = w.origin();
-		    I_x_row = I_x.origin();
-		    I_y_row = I_y.origin();
-		    left_image_patch_row = left_image_patch.origin();
-	  
-		    for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
-		      typename ImageView<float>::pixel_accessor w_ptr = w_row;
-		      typename CropView<ImageView<float> >::pixel_accessor I_x_ptr = I_x_row;
-		      typename CropView<ImageView<float> >::pixel_accessor I_y_ptr = I_y_row;
-		      typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_ptr = left_image_patch_row;
-          
-		      for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
-     
-			// First we compute the pixel offset for the right image
-			// and the error for the current pixel.
-			float xx = x_base + d[0] * ii + d[1] * jj + d[2];
-			float yy = y_base + d[3] * ii + d[4] * jj + d[5];
-	        
-			//float xx = x_base + d_em[0] * ii + d_em[1] * jj + d_em[2];
-			//float yy = y_base + d_em[3] * ii + d_em[4] * jj + d_em[5];
-                        
-			float I_e_val = right_interp_image(xx,yy) - (*left_image_patch_ptr);
-		       
-			mean_noise_tmp = mean_noise_tmp + right_interp_image(xx,yy) *gamma_noise(jj+kern_half_height, ii+kern_half_width);
-			sum_gamma_plane = sum_gamma_plane + gamma_plane(jj+kern_half_height, ii+kern_half_width);
-			sum_gamma_noise = sum_gamma_noise + gamma_noise(jj+kern_half_height, ii+kern_half_width);
-                  
-			float robust_weight = gamma_plane(jj+kern_half_height, ii+kern_half_width);
-               
-			// We combine the error value with the derivative and
-			// add this to the update equation.
-			//float weight  = robust_weight;//*(*w_ptr);
-			//printf("gauss_weight = %f, robut_weight = %f\n", *w_ptr, robust_weight);
-			float weight  = robust_weight*(*w_ptr);
-			float I_x_val = weight * (*I_x_ptr);
-			float I_y_val = weight * (*I_y_ptr);
-			float I_x_sqr = I_x_val * (*I_x_ptr);
-			float I_y_sqr = I_y_val * (*I_y_ptr);
-			float I_x_I_y = I_x_val * (*I_y_ptr);
-
-			// Left hand side
-			lhs(0) += ii * I_x_val * I_e_val;
-			lhs(1) += jj * I_x_val * I_e_val;
-			lhs(2) +=      I_x_val * I_e_val;
-			lhs(3) += ii * I_y_val * I_e_val;
-			lhs(4) += jj * I_y_val * I_e_val;
-			lhs(5) +=      I_y_val * I_e_val;
-              
-			// Right Hand Side UL
-			rhs(0,0) += ii*ii * I_x_sqr;
-			rhs(0,1) += ii*jj * I_x_sqr;
-			rhs(0,2) += ii    * I_x_sqr;
-			rhs(1,1) += jj*jj * I_x_sqr;
-			rhs(1,2) += jj    * I_x_sqr;
-			rhs(2,2) +=         I_x_sqr;
-              
-			// Right Hand Side UR
-			rhs(0,3) += ii*ii * I_x_I_y;
-			rhs(0,4) += ii*jj * I_x_I_y;
-			rhs(0,5) += ii    * I_x_I_y;
-			rhs(1,4) += jj*jj * I_x_I_y;
-			rhs(1,5) += jj    * I_x_I_y;
-			rhs(2,5) +=         I_x_I_y;
-              
-			// Right Hand Side LR
-			rhs(3,3) += ii*ii * I_y_sqr;
-			rhs(3,4) += ii*jj * I_y_sqr;
-			rhs(3,5) += ii    * I_y_sqr;
-			rhs(4,4) += jj*jj * I_y_sqr;
-			rhs(4,5) += jj    * I_y_sqr;
-			rhs(5,5) +=         I_y_sqr;
-
-			w_ptr.next_col();
-			I_x_ptr.next_col();
-			I_y_ptr.next_col();
-			left_image_patch_ptr.next_col();
-		      }
-		      w_row.next_row();
-		      I_x_row.next_row();
-		      I_y_row.next_row();
-		      left_image_patch_row.next_row();
-		    }          
-		    lhs *= -1;
- 
-                    
-		    // Fill in symmetric entries
-		    rhs(1,0) = rhs(0,1);
-		    rhs(2,0) = rhs(0,2);
-		    rhs(2,1) = rhs(1,2);
-		    rhs(1,3) = rhs(0,4);
-		    rhs(2,3) = rhs(0,5);
-		    rhs(2,4) = rhs(1,5);
-		    rhs(3,0) = rhs(0,3);
-		    rhs(3,1) = rhs(1,3);
-		    rhs(3,2) = rhs(2,3);
-		    rhs(4,0) = rhs(0,4);
-		    rhs(4,1) = rhs(1,4);
-		    rhs(4,2) = rhs(2,4);
-		    rhs(4,3) = rhs(3,4);
-		    rhs(5,0) = rhs(0,5);
-		    rhs(5,1) = rhs(1,5);
-		    rhs(5,2) = rhs(2,5);
-		    rhs(5,3) = rhs(3,5);
-		    rhs(5,4) = rhs(4,5);
-
-
-	    //           if (y == 270) {          
-	    //                       ImageView<ChannelT> right_image_patch(kern_width, kern_height);
-	    //                       for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
-	    //                         for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
-	    //                           float xx = x_base + d[0] * ii + d[1] * jj + d[2];
-	    //                           float yy = y_base + d[3] * ii + d[4] * jj + d[5];
-	    //                           right_image_patch(ii+kern_half_width, jj+kern_half_width) = right_interp_image(xx,yy);
-	    //                         }
-	    //                       }
-	    //                       std::ostringstream ostr;
-	    //                       ostr << x << "_" << y << "_" << int(blur_sigma) << "_" << iter;
-	    //                       write_image("small/left-"+ostr.str()+".tif", left_image_patch);
-	    //                       write_image("small/right-"+ostr.str()+".tif", right_image_patch);
-	    //                       write_image("small/weight-"+ostr.str()+".tif", w);
-	    //                     }
-
-
-	    // Solves lhs = rhs * x, and stores the result in-place in lhs.
-	    //           Matrix<double,6,6> pre_rhs = rhs;
-	    //           Vector<double,6> pre_lhs = lhs;
-		    try { 
-		      solve_symmetric_nocopy(rhs,lhs);
-		    } catch (ArgumentErr &e) {
-		      std::cout << "Error @ " << x << " " << y << "\n";
-	     //             std::cout << "Exception caught: " << e.what() << "\n";
-	     //             std::cout << "PRERHS: " << pre_rhs << "\n";
-	     //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
-	     //             std::cout << "RHS: " << rhs << "\n";
-	     //             std::cout << "LHS: " << lhs << "\n\n";
-	     //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
-	     //             exit(0);
-		    }
-
-		    //normalize the mean of the noise
-		    mean_noise = mean_noise_tmp/sum_gamma_noise;
-
-		    //printf("mean_noise = %f, sum_gamma_noise = %f\n", mean_noise, sum_gamma_noise);
-		    //printf("d[0] = %f, d[1] = %f, d[2] = %f, d[3] = %f, d[4] = %f, d[5]=%f\n", d[0], d[1], d[2], d[3], d[4], d[5]);
-		    //printf("d[0] = %f, d[1] = %f, d[2] = %f, d[3] = %f, d[4] = %f, d[5]=%f\n", d_em[0], d_em[1], d_em[2], d_em[3], d_em[4], d_em[5]);
-            
-		    //compute the variance for noise and plane
-		    float var2_noise_tmp  = 0.0;
-		    float var2_plane_tmp  = 0.0;                        
-
-		    // Set up pixel accessors
-		    w_row = w.origin();
-		    I_x_row = I_x.origin();
-		    I_y_row = I_y.origin();
-		    left_image_patch_row = left_image_patch.origin();
-	  
-		    for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
-		      typename ImageView<float>::pixel_accessor w_ptr = w_row;
-		      typename CropView<ImageView<float> >::pixel_accessor I_x_ptr = I_x_row;
-		      typename CropView<ImageView<float> >::pixel_accessor I_y_ptr = I_y_row;
-		      typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_ptr = left_image_patch_row;
-          
-		      for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
-     
-			// First we compute the pixel offset for the right image
-			// and the error for the current pixel.
-			float xx = x_base + d[0] * ii + d[1] * jj + d[2];
-			float yy = y_base + d[3] * ii + d[4] * jj + d[5];
-
-			//float xx = x_base + d_em[0] * ii + d_em[1] * jj + d_em[2];
-			//float yy = y_base + d_em[3] * ii + d_em[4] * jj + d_em[5];
-		         
-                      
-                        float delta_x = d_em[0] * ii + d_em[1] * jj + d_em[2];
-			float delta_y = d_em[3] * ii + d_em[4] * jj + d_em[5];
-
-
-			float I_e_val = right_interp_image(xx,yy) - (*left_image_patch_ptr);
-			//float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr);//modified by Ara - Feb 19th
-			//float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr) - (xx-x_base)*(*I_x_ptr) - (yy-y_base)*(*I_y_ptr);
-                        float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr) - delta_x*(*I_x_ptr) - delta_y*(*I_y_ptr);
-			float temp_noise = (right_interp_image(xx,yy) - mean_noise);
-
-			in_curr_sum_I_e_val = in_curr_sum_I_e_val + I_e_val;             
-                 
-			var2_noise_tmp = var2_noise_tmp + temp_noise*temp_noise*gamma_noise(jj+kern_half_height, ii+kern_half_width);
-			var2_plane_tmp = var2_plane_tmp + temp_plane*temp_plane*gamma_plane(jj+kern_half_height, ii+kern_half_width);
-             
-			w_ptr.next_col();
-			I_x_ptr.next_col();
-			I_y_ptr.next_col();
-			left_image_patch_ptr.next_col();
-		      }
-		      w_row.next_row();
-		      I_x_row.next_row();
-		      I_y_row.next_row();
-		      left_image_patch_row.next_row();
-		    } 
-          
-		    confidence_image(x,y) = in_curr_sum_I_e_val; //added by Ara 02/11/2009 
-
-		    var2_noise = var2_noise_tmp/sum_gamma_noise;
-		    var2_plane = var2_plane_tmp/sum_gamma_plane;
-            
-		    //printf("var2_noise = %f\n", var2_noise);
-		    //printf("var2_plane = %f\n", var2_plane);
-
-		    if (var2_noise < min_var2_noise){
-		      var2_noise = min_var2_noise;
-		    }
-		    if (var2_plane < min_var2_plane){
-		      var2_plane = min_var2_plane;
-		    }
-         
-		    w_plane = sum_gamma_plane/(float)(kern_height*kern_width);
-		    w_noise = sum_gamma_noise/(float)(kern_height*kern_width);
-		    //printf("w_noise = %f, w_plane = %f\n", w_noise, w_plane); 
-		    //printf("maximization done\n");
-            
-		    //MAXIMIZATION - END
-            
-		    //Termination
-		    float conv_error = 0;
-		    for (int k = 0; k < 6; k++){
-		      //conv_error = conv_error + (d[k]-lhs(k))*(d[k]-lhs(k));
-		      conv_error = conv_error + (prev_lhs[k]-lhs[k])*(prev_lhs[k]-lhs[k]);
-		    }
-
-		    //printf("em_iter = %d, conv_error = %f\n", em_iter, conv_error);
-            
-            
-            d_em = d + lhs;
-
-            if (in_curr_sum_I_e_val < 0){
-	        in_curr_sum_I_e_val = - in_curr_sum_I_e_val;
-            }
-
-            //printf("em_iter = %d, curr_sum_I_e_val = %f, prev_sum_I_e_val = %f\n", em_iter, in_curr_sum_I_e_val, in_prev_sum_I_e_val);
-
-            curr_sum_I_e_val = in_curr_sum_I_e_val;
-            prev_lhs = lhs;   
-            
-            // Termination condition
-            if ((conv_error < 0.001) && (em_iter > 0)) {
-	        break;
-	    }
-            else{
-                in_prev_sum_I_e_val = in_curr_sum_I_e_val;
-	    }
-            
-             
-            /*
-            //d = lhs;
-            d_em = d + lhs;
-            if (in_curr_sum_I_e_val < 0){
-	        in_curr_sum_I_e_val = - in_curr_sum_I_e_val;
-            }
-            //printf("em_iter = %d, curr_sum_I_e_val = %f, prev_sum_I_e_val = %f\n", em_iter, in_curr_sum_I_e_val, in_prev_sum_I_e_val);
-            curr_sum_I_e_val = in_curr_sum_I_e_val; 
-            
-            // Termination condition
-            if ((in_prev_sum_I_e_val < in_curr_sum_I_e_val) && (em_iter > 0)) {
-	        break;
-	    }
-            else{
-                in_prev_sum_I_e_val = in_curr_sum_I_e_val;
-	    }
-            */
-
-          } //em_iter end
-
-          d += lhs;
-
-          
-          if (curr_sum_I_e_val < 0){
-	      curr_sum_I_e_val = - curr_sum_I_e_val;
-          }
-          //printf("iter = %d, curr_sum_I_e_val = %f, prev_sum_I_e_val = %f\n", iter, curr_sum_I_e_val, prev_sum_I_e_val);
-        
-
-          // Termination condition
-          if ((prev_sum_I_e_val < curr_sum_I_e_val) && (iter > 0)) {
-	    break;
-	  }
-          else{
-              prev_sum_I_e_val = curr_sum_I_e_val;
-	  }
-             
-          //if (norm_2(lhs) < 0.01) 
-          //  break;
+      for ( int y = std::max(region_of_interest.min().y()-1,kern_half_height);
+            y < std::min(left_image.rows()-kern_half_height, region_of_interest.max().y()+1) ;
+            ++y) {
+        //         for (int y=kern_half_height; y<left_image.rows()-kern_half_height; ++y) {
+        if (verbose && y % 10 == 0) {
+          sw.stop();
+          vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y << " / " << left_image.rows() << "    (" << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time)) << " pixels/s, "<< sw.elapsed_seconds() << " s total )      \r" << std::flush;
+          last_time = sw.elapsed_seconds();
+          sw.start();
         }
-        //         std::cout << "----> " << d << "\n\n";
-        
-        if ( norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION || 
-             d[2] != d[2] ||  // Check to make sure the offset is not NaN...
-             d[5] != d[5] ) { // ... ditto.
-          disparity_map(x,y) = PixelDisparity<float>();
-        } else {
-          disparity_map(x,y).h() += d[2];
-          disparity_map(x,y).v() += d[5];
+
+        for (int x=std::max(region_of_interest.min().x()-1,kern_half_width);
+             x<std::min(left_image.cols()-kern_half_width, region_of_interest.max().x()+1);
+             ++x) {
+          //           for (int x=kern_half_width; x<left_image.cols()-kern_half_width; ++x) {
+
+
+          BBox2i current_window(x-kern_half_width, y-kern_half_height, kern_width, kern_height);
+          Vector2 base_offset( -disparity_map(x,y).child() );
+
+          // Skip over pixels for which we have no initial disparity estimate
+          if ( !is_valid(disparity_map(x,y)) )
+            continue;
+
+          // Define and initialize the model params
+          // Initialize our affine transform with the identity.  The
+          // entries of d are laid out in row major order:
+          //
+          //   | d(0) d(1) d(2) |
+          //   | d(3) d(4) d(5) |
+          //   |  0    0    1   |
+          //
+          Vector<float,6> d;
+          d(0) = 1.0;
+          d(4) = 1.0;
+          // float var2_plane;
+          // float mean_noise;
+          // float var2_noise;
+
+          // Compute the derivative image patches
+          CropView<ImageView<ChannelT> > left_image_patch = crop(left_image, current_window);
+          CropView<ImageView<float> > I_x = crop(x_deriv, current_window);
+          CropView<ImageView<float> > I_y = crop(y_deriv, current_window);
+
+          // Compute the base weight image
+          int good_pixels = adjust_weight_image(w, crop(disparity_map, current_window), weight_template);
+
+          // Skip over pixels for which there are very few good matches
+          // in the neighborhood.
+          if (good_pixels < weight_threshold) {
+            invalidate(disparity_map(x,y));
+            continue;
+          }
+
+          float curr_sum_I_e_val = 0.0;
+          float prev_sum_I_e_val = 0.0;
+          unsigned iter;
+          d(0) = 1.0;
+          d(1) = 0.0;
+          d(2) = 0.0;
+          d(3) = 0.0;
+          d(4) = 1.0;
+          d(5) = 0.0;
+          // Iterate until a solution is found or the max number of
+          // iterations is reached.
+          for (iter = 0; iter < 10; ++iter) {
+            // First we check to see if our current subpixel translation
+            // is less than one half of the window width.  If not, then
+            // we are probably having trouble converging and we abort
+            // this pixel!!
+            if (norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION)
+              break;
+
+            InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
+              interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());
+
+            float x_base = x + disparity_map(x,y)[0];
+            float y_base = y + disparity_map(x,y)[1];
+            //          float error_total = 0;
+
+            Matrix<float,6,6> rhs;
+            Vector<float,6> lhs;
+            Vector<float,6> prev_lhs;
+
+            //initial values here.
+            ImageView<float> gamma_plane(kern_width, kern_height);
+            ImageView<float> gamma_noise(kern_width, kern_height);
+
+            //set init params - START
+            float var2_plane = 1e-3;
+            float mean_noise = 0.0;
+            float var2_noise = 1e-2;
+            float w_plane = 0.8;
+            float w_noise = 0.2;
+            //set init params - END
+
+
+            //EXPECTATION - START
+            float in_curr_sum_I_e_val = 0.0;
+            float in_prev_sum_I_e_val = 1000000.0;
+            unsigned em_iter;
+            Vector<float,6> d_em;
+            d_em = d;
+
+
+            for (em_iter=0; em_iter<max_em_iter; em_iter++){
+
+              float noise_norm_factor = 1.0/sqrt(6.28*var2_noise);
+              float plane_norm_factor = 1.0/sqrt(6.28*var2_plane);
+              float disp_norm_factor  = 1.0/sqrt(6.28*var2_disp);
+
+              // Set up pixel accessors
+              typename ImageView<float>::pixel_accessor w_row = w.origin();
+              typename CropView<ImageView<float> >::pixel_accessor I_x_row = I_x.origin();
+              typename CropView<ImageView<float> >::pixel_accessor I_y_row = I_y.origin();
+              typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_row = left_image_patch.origin();
+
+              for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+
+                typename ImageView<float>::pixel_accessor w_ptr = w_row;
+                typename CropView<ImageView<float> >::pixel_accessor I_x_ptr = I_x_row;
+                typename CropView<ImageView<float> >::pixel_accessor I_y_ptr = I_y_row;
+                typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_ptr = left_image_patch_row;
+
+                for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
+
+                  // First we compute the pixel offset for the right image
+                  // and the error for the current pixel.
+
+                  //float xx = x_base + d_em[0] * ii + d_em[1] * jj + d_em[2];
+                  //float yy = y_base + d_em[3] * ii + d_em[4] * jj + d_em[5];
+
+                  //float delta_x = xx-x_base;
+                  //float delta_y = yy-y_base;
+
+                  float xx = x_base + d[0] * ii + d[1] * jj + d[2];
+                  float yy = y_base + d[3] * ii + d[4] * jj + d[5];
+
+                  float delta_x = d_em[0] * ii + d_em[1] * jj + d_em[2];
+                  float delta_y = d_em[3] * ii + d_em[4] * jj + d_em[5];
+
+                  //float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr);
+                  float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr) - delta_x*(*I_x_ptr) - delta_y*(*I_y_ptr);
+                  float temp_noise = right_interp_image(xx,yy) - mean_noise;
+                  /*
+                    float temp_disp_h_top;
+                    float temp_disp_v_top;
+                    float temp_disp_h_left;
+                    float temp_disp_v_left;
+                    float a_priori_plane_prob;
+
+                    if ((x > 0) && (y > 0)){
+                    temp_disp_h_top  = d_em[2]-disparity_map(x-1,y).h();
+                    temp_disp_v_top  = d_em[5]-disparity_map(x-1,y).v();
+                    temp_disp_h_left = d_em[2]-disparity_map(x,y-1).h();
+                    temp_disp_v_left = d_em[5]-disparity_map(x,y-1).v();
+                    a_priori_plane_prob = disp_norm_factor*exp(-1*(temp_disp_h_top*temp_disp_h_top + temp_disp_v_top*temp_disp_v_top +
+                    temp_disp_h_left*temp_disp_h_left + temp_disp_v_left*temp_disp_v_left)/(2*var2_disp));
+                    }
+                    else{
+                    a_priori_plane_prob = 1.0;
+                    }
+                    printf("apriori_prob = %f\n", a_priori_plane_prob);
+
+                    float plane_prob = a_priori_plane_prob*plane_norm_factor*exp(-1*(temp_plane*temp_plane)/(2*var2_plane));
+                  */
+                  float plane_prob = plane_norm_factor*exp(-1*(temp_plane*temp_plane)/(2*var2_plane));
+                  float noise_prob = noise_norm_factor*exp(-1*(temp_noise*temp_noise)/(2*var2_noise));
+
+                  float sum = plane_prob*w_plane + noise_prob*w_noise;
+                  //printf("p_prob = %f, n_prob = %f, sum = %f, w = %f, u = %f\n",
+                  //       plane_prob, noise_prob, sum, *w_ptr, 1.0/(float)(kern_height*kern_width));
+
+                  gamma_plane(jj+kern_half_height, ii+kern_half_width) = plane_prob*w_plane/sum;
+                  gamma_noise(jj+kern_half_height, ii+kern_half_width) = noise_prob*w_noise/sum;
+
+                  w_row.next_col();
+                  I_x_ptr.next_col();
+                  I_y_ptr.next_col();
+                  left_image_patch_ptr.next_col();
+                }
+                w_row.next_row();
+                I_x_row.next_row();
+                I_y_row.next_row();
+                left_image_patch_row.next_row();
+
+              }
+              //EXPECTATION - END
+              //printf("em iter = %d, expectation done!\n", em_iter);
+
+              //MAXIMIZATION - START
+              //compute the d_em vector
+
+              //reset lhs and rhs
+              for (int ii = 0; ii< 6; ii++){
+                lhs(ii) = 0.0;
+                for (int jj = 0; jj < 6; jj++){
+                  rhs(ii, jj) = 0.0;
+                }
+              }
+
+              in_curr_sum_I_e_val = 0.0;
+
+              float mean_noise_tmp  = 0.0;
+              float sum_gamma_noise = 0.0;
+              float sum_gamma_plane = 0.0;
+
+              // Set up pixel accessors
+              w_row = w.origin();
+              I_x_row = I_x.origin();
+              I_y_row = I_y.origin();
+              left_image_patch_row = left_image_patch.origin();
+
+              for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+                typename ImageView<float>::pixel_accessor w_ptr = w_row;
+                typename CropView<ImageView<float> >::pixel_accessor I_x_ptr = I_x_row;
+                typename CropView<ImageView<float> >::pixel_accessor I_y_ptr = I_y_row;
+                typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_ptr = left_image_patch_row;
+
+                for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
+
+                  // First we compute the pixel offset for the right image
+                  // and the error for the current pixel.
+                  float xx = x_base + d[0] * ii + d[1] * jj + d[2];
+                  float yy = y_base + d[3] * ii + d[4] * jj + d[5];
+
+                  //float xx = x_base + d_em[0] * ii + d_em[1] * jj + d_em[2];
+                  //float yy = y_base + d_em[3] * ii + d_em[4] * jj + d_em[5];
+
+                  float I_e_val = right_interp_image(xx,yy) - (*left_image_patch_ptr);
+
+                  mean_noise_tmp = mean_noise_tmp + right_interp_image(xx,yy) *gamma_noise(jj+kern_half_height, ii+kern_half_width);
+                  sum_gamma_plane = sum_gamma_plane + gamma_plane(jj+kern_half_height, ii+kern_half_width);
+                  sum_gamma_noise = sum_gamma_noise + gamma_noise(jj+kern_half_height, ii+kern_half_width);
+
+                  float robust_weight = gamma_plane(jj+kern_half_height, ii+kern_half_width);
+
+                  // We combine the error value with the derivative and
+                  // add this to the update equation.
+                  //float weight  = robust_weight;//*(*w_ptr);
+                  //printf("gauss_weight = %f, robut_weight = %f\n", *w_ptr, robust_weight);
+                  float weight  = robust_weight*(*w_ptr);
+                  float I_x_val = weight * (*I_x_ptr);
+                  float I_y_val = weight * (*I_y_ptr);
+                  float I_x_sqr = I_x_val * (*I_x_ptr);
+                  float I_y_sqr = I_y_val * (*I_y_ptr);
+                  float I_x_I_y = I_x_val * (*I_y_ptr);
+
+                  // Left hand side
+                  lhs(0) += ii * I_x_val * I_e_val;
+                  lhs(1) += jj * I_x_val * I_e_val;
+                  lhs(2) +=      I_x_val * I_e_val;
+                  lhs(3) += ii * I_y_val * I_e_val;
+                  lhs(4) += jj * I_y_val * I_e_val;
+                  lhs(5) +=      I_y_val * I_e_val;
+
+                  // Right Hand Side UL
+                  rhs(0,0) += ii*ii * I_x_sqr;
+                  rhs(0,1) += ii*jj * I_x_sqr;
+                  rhs(0,2) += ii    * I_x_sqr;
+                  rhs(1,1) += jj*jj * I_x_sqr;
+                  rhs(1,2) += jj    * I_x_sqr;
+                  rhs(2,2) +=         I_x_sqr;
+
+                  // Right Hand Side UR
+                  rhs(0,3) += ii*ii * I_x_I_y;
+                  rhs(0,4) += ii*jj * I_x_I_y;
+                  rhs(0,5) += ii    * I_x_I_y;
+                  rhs(1,4) += jj*jj * I_x_I_y;
+                  rhs(1,5) += jj    * I_x_I_y;
+                  rhs(2,5) +=         I_x_I_y;
+
+                  // Right Hand Side LR
+                  rhs(3,3) += ii*ii * I_y_sqr;
+                  rhs(3,4) += ii*jj * I_y_sqr;
+                  rhs(3,5) += ii    * I_y_sqr;
+                  rhs(4,4) += jj*jj * I_y_sqr;
+                  rhs(4,5) += jj    * I_y_sqr;
+                  rhs(5,5) +=         I_y_sqr;
+
+                  w_ptr.next_col();
+                  I_x_ptr.next_col();
+                  I_y_ptr.next_col();
+                  left_image_patch_ptr.next_col();
+                }
+                w_row.next_row();
+                I_x_row.next_row();
+                I_y_row.next_row();
+                left_image_patch_row.next_row();
+              }
+              lhs *= -1;
+
+
+              // Fill in symmetric entries
+              rhs(1,0) = rhs(0,1);
+              rhs(2,0) = rhs(0,2);
+              rhs(2,1) = rhs(1,2);
+              rhs(1,3) = rhs(0,4);
+              rhs(2,3) = rhs(0,5);
+              rhs(2,4) = rhs(1,5);
+              rhs(3,0) = rhs(0,3);
+              rhs(3,1) = rhs(1,3);
+              rhs(3,2) = rhs(2,3);
+              rhs(4,0) = rhs(0,4);
+              rhs(4,1) = rhs(1,4);
+              rhs(4,2) = rhs(2,4);
+              rhs(4,3) = rhs(3,4);
+              rhs(5,0) = rhs(0,5);
+              rhs(5,1) = rhs(1,5);
+              rhs(5,2) = rhs(2,5);
+              rhs(5,3) = rhs(3,5);
+              rhs(5,4) = rhs(4,5);
+
+
+              //           if (y == 270) {
+              //                       ImageView<ChannelT> right_image_patch(kern_width, kern_height);
+              //                       for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+              //                         for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
+              //                           float xx = x_base + d[0] * ii + d[1] * jj + d[2];
+              //                           float yy = y_base + d[3] * ii + d[4] * jj + d[5];
+              //                           right_image_patch(ii+kern_half_width, jj+kern_half_width) = right_interp_image(xx,yy);
+              //                         }
+              //                       }
+              //                       std::ostringstream ostr;
+              //                       ostr << x << "_" << y << "_" << int(blur_sigma) << "_" << iter;
+              //                       write_image("small/left-"+ostr.str()+".tif", left_image_patch);
+              //                       write_image("small/right-"+ostr.str()+".tif", right_image_patch);
+              //                       write_image("small/weight-"+ostr.str()+".tif", w);
+              //                     }
+
+
+              // Solves lhs = rhs * x, and stores the result in-place in lhs.
+              //           Matrix<double,6,6> pre_rhs = rhs;
+              //           Vector<double,6> pre_lhs = lhs;
+              try {
+                solve_symmetric_nocopy(rhs,lhs);
+              } catch (ArgumentErr &e) {
+                vw_out(0) << "Error @ " << x << " " << y << "\n";
+                //             std::cout << "Exception caught: " << e.what() << "\n";
+                //             std::cout << "PRERHS: " << pre_rhs << "\n";
+                //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
+                //             std::cout << "RHS: " << rhs << "\n";
+                //             std::cout << "LHS: " << lhs << "\n\n";
+                //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
+                //             exit(0);
+              }
+
+              //normalize the mean of the noise
+              mean_noise = mean_noise_tmp/sum_gamma_noise;
+
+              //printf("mean_noise = %f, sum_gamma_noise = %f\n", mean_noise, sum_gamma_noise);
+              //printf("d[0] = %f, d[1] = %f, d[2] = %f, d[3] = %f, d[4] = %f, d[5]=%f\n", d[0], d[1], d[2], d[3], d[4], d[5]);
+              //printf("d[0] = %f, d[1] = %f, d[2] = %f, d[3] = %f, d[4] = %f, d[5]=%f\n", d_em[0], d_em[1], d_em[2], d_em[3], d_em[4], d_em[5]);
+
+              //compute the variance for noise and plane
+              float var2_noise_tmp  = 0.0;
+              float var2_plane_tmp  = 0.0;
+
+              // Set up pixel accessors
+              w_row = w.origin();
+              I_x_row = I_x.origin();
+              I_y_row = I_y.origin();
+              left_image_patch_row = left_image_patch.origin();
+
+              for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+                typename ImageView<float>::pixel_accessor w_ptr = w_row;
+                typename CropView<ImageView<float> >::pixel_accessor I_x_ptr = I_x_row;
+                typename CropView<ImageView<float> >::pixel_accessor I_y_ptr = I_y_row;
+                typename CropView<ImageView<ChannelT> >::pixel_accessor left_image_patch_ptr = left_image_patch_row;
+
+                for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
+
+                  // First we compute the pixel offset for the right image
+                  // and the error for the current pixel.
+                  float xx = x_base + d[0] * ii + d[1] * jj + d[2];
+                  float yy = y_base + d[3] * ii + d[4] * jj + d[5];
+
+                  //float xx = x_base + d_em[0] * ii + d_em[1] * jj + d_em[2];
+                  //float yy = y_base + d_em[3] * ii + d_em[4] * jj + d_em[5];
+
+
+                  float delta_x = d_em[0] * ii + d_em[1] * jj + d_em[2];
+                  float delta_y = d_em[3] * ii + d_em[4] * jj + d_em[5];
+
+
+                  float I_e_val = right_interp_image(xx,yy) - (*left_image_patch_ptr);
+                  //float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr);//modified by Ara - Feb 19th
+                  //float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr) - (xx-x_base)*(*I_x_ptr) - (yy-y_base)*(*I_y_ptr);
+                  float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr) - delta_x*(*I_x_ptr) - delta_y*(*I_y_ptr);
+                  float temp_noise = (right_interp_image(xx,yy) - mean_noise);
+
+                  in_curr_sum_I_e_val = in_curr_sum_I_e_val + I_e_val;
+
+                  var2_noise_tmp = var2_noise_tmp + temp_noise*temp_noise*gamma_noise(jj+kern_half_height, ii+kern_half_width);
+                  var2_plane_tmp = var2_plane_tmp + temp_plane*temp_plane*gamma_plane(jj+kern_half_height, ii+kern_half_width);
+
+                  w_ptr.next_col();
+                  I_x_ptr.next_col();
+                  I_y_ptr.next_col();
+                  left_image_patch_ptr.next_col();
+                }
+                w_row.next_row();
+                I_x_row.next_row();
+                I_y_row.next_row();
+                left_image_patch_row.next_row();
+              }
+
+              confidence_image(x,y) = in_curr_sum_I_e_val; //added by Ara 02/11/2009
+
+              var2_noise = var2_noise_tmp/sum_gamma_noise;
+              var2_plane = var2_plane_tmp/sum_gamma_plane;
+
+              //printf("var2_noise = %f\n", var2_noise);
+              //printf("var2_plane = %f\n", var2_plane);
+
+              if (var2_noise < min_var2_noise){
+                var2_noise = min_var2_noise;
+              }
+              if (var2_plane < min_var2_plane){
+                var2_plane = min_var2_plane;
+              }
+
+              w_plane = sum_gamma_plane/(float)(kern_height*kern_width);
+              w_noise = sum_gamma_noise/(float)(kern_height*kern_width);
+              //printf("w_noise = %f, w_plane = %f\n", w_noise, w_plane);
+              //printf("maximization done\n");
+
+              //MAXIMIZATION - END
+
+              //Termination
+              float conv_error = 0;
+              for (int k = 0; k < 6; k++){
+                //conv_error = conv_error + (d[k]-lhs(k))*(d[k]-lhs(k));
+                conv_error = conv_error + (prev_lhs[k]-lhs[k])*(prev_lhs[k]-lhs[k]);
+              }
+
+              //printf("em_iter = %d, conv_error = %f\n", em_iter, conv_error);
+
+
+              d_em = d + lhs;
+
+              if (in_curr_sum_I_e_val < 0){
+                in_curr_sum_I_e_val = - in_curr_sum_I_e_val;
+              }
+
+              //printf("em_iter = %d, curr_sum_I_e_val = %f, prev_sum_I_e_val = %f\n", em_iter, in_curr_sum_I_e_val, in_prev_sum_I_e_val);
+
+              curr_sum_I_e_val = in_curr_sum_I_e_val;
+              prev_lhs = lhs;
+
+              // Termination condition
+              if ((conv_error < 0.001) && (em_iter > 0)) {
+                break;
+              }
+              else{
+                in_prev_sum_I_e_val = in_curr_sum_I_e_val;
+              }
+
+
+              /*
+              //d = lhs;
+              d_em = d + lhs;
+              if (in_curr_sum_I_e_val < 0){
+              in_curr_sum_I_e_val = - in_curr_sum_I_e_val;
+              }
+              //printf("em_iter = %d, curr_sum_I_e_val = %f, prev_sum_I_e_val = %f\n", em_iter, in_curr_sum_I_e_val, in_prev_sum_I_e_val);
+              curr_sum_I_e_val = in_curr_sum_I_e_val;
+
+              // Termination condition
+              if ((in_prev_sum_I_e_val < in_curr_sum_I_e_val) && (em_iter > 0)) {
+              break;
+              }
+              else{
+              in_prev_sum_I_e_val = in_curr_sum_I_e_val;
+              }
+              */
+
+            } //em_iter end
+
+            d += lhs;
+
+
+            if (curr_sum_I_e_val < 0){
+              curr_sum_I_e_val = - curr_sum_I_e_val;
+            }
+            //printf("iter = %d, curr_sum_I_e_val = %f, prev_sum_I_e_val = %f\n", iter, curr_sum_I_e_val, prev_sum_I_e_val);
+
+
+            // Termination condition
+            if ((prev_sum_I_e_val < curr_sum_I_e_val) && (iter > 0)) {
+              break;
+            }
+            else{
+              prev_sum_I_e_val = curr_sum_I_e_val;
+            }
+
+            //if (norm_2(lhs) < 0.01)
+            //  break;
+          }
+          //         std::cout << "----> " << d << "\n\n";
+
+          if ( norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION ||
+               d[2] != d[2] ||  // Check to make sure the offset is not NaN...
+               d[5] != d[5] ) { // ... ditto.
+            invalidate(disparity_map(x,y));
+          } else {
+            remove_mask(disparity_map(x,y)) += Vector2f(d[2],d[5]);
+          }
+          //printf("iter = %d, curr_sum_I_e_val = %d\n", iter, curr_sum_I_e_val);
         }
         //printf("iter = %d, curr_sum_I_e_val = %d\n", iter, curr_sum_I_e_val);
       }
-      //printf("iter = %d, curr_sum_I_e_val = %d\n", iter, curr_sum_I_e_val);
-    }
-  
-     /*
-    //post processing filtering stage
-    int w_height = 1;
-    int w_width = 1;
-    
-    float norm_factor = 1.0/(float)((2*w_height+1)*(2*w_height+1));
-    ImageView<PixelDisparity<float> > tmp_disparity_map (left_image.rows(), left_image.cols());
-    
-    for (int y = w_height; y<left_image.rows()-w_height; ++y) {
+
+      /*
+      //post processing filtering stage
+      int w_height = 1;
+      int w_width = 1;
+
+      float norm_factor = 1.0/(float)((2*w_height+1)*(2*w_height+1));
+      ImageView<PixelDisparity<float> > tmp_disparity_map (left_image.rows(), left_image.cols());
+
+      for (int y = w_height; y<left_image.rows()-w_height; ++y) {
       for (int x = w_width; x<left_image.cols()-w_width; ++x) {
-        
-        tmp_disparity_map(x,y).h()=0;
-        tmp_disparity_map(x,y).v()=0;
 
-        for (int jj = -w_height; jj <= w_height; ++jj) {
-	  for (int ii = -w_width; ii <= w_width; ++ii) {
-	      tmp_disparity_map(x,y).h() = tmp_disparity_map(x,y).h() + disparity_map(x+ii,y+jj).h()*norm_factor;
-	      tmp_disparity_map(x,y).v() = tmp_disparity_map(x,y).v() + disparity_map(x+ii,y+jj).v()*norm_factor;
-	  }
-	}
+      tmp_disparity_map(x,y).h()=0;
+      tmp_disparity_map(x,y).v()=0;
+
+      for (int jj = -w_height; jj <= w_height; ++jj) {
+      for (int ii = -w_width; ii <= w_width; ++ii) {
+      tmp_disparity_map(x,y).h() = tmp_disparity_map(x,y).h() + disparity_map(x+ii,y+jj).h()*norm_factor;
+      tmp_disparity_map(x,y).v() = tmp_disparity_map(x,y).v() + disparity_map(x+ii,y+jj).v()*norm_factor;
       }
-    }
+      }
+      }
+      }
 
-    for (int y=w_height; y<left_image.rows()-w_height; ++y) {
+      for (int y=w_height; y<left_image.rows()-w_height; ++y) {
       for (int x=w_width; x<left_image.cols()-w_width; ++x) {
-	disparity_map(x,y).h() = tmp_disparity_map(x,y).h();  
-	disparity_map(x,y).v() = tmp_disparity_map(x,y).v();
+      disparity_map(x,y).h() = tmp_disparity_map(x,y).h();
+      disparity_map(x,y).v() = tmp_disparity_map(x,y).v();
       }
-    }
-    */
+      }
+      */
 
-    if (save_confidence_image == 1){
-        printf("writting the confidence image ....\n");
+      if (save_confidence_image == 1){
+        vw_out(0) << "Writing the confidence image ....\n";
         time_t rawtime;
         struct tm * timeinfo;
         time ( &rawtime );
@@ -1528,242 +1515,241 @@ namespace stereo {
         sprintf (confidence_filename, "confidence_%d_%d_%d_%d_%d.tif",
                  timeinfo->tm_mon, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
         write_image(confidence_filename, confidence_image);
-        printf("Done.\n");
-    }
-
-    if (verbose) 
-      vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: done.                                         \n";
-  }
-  
-  //#endif 
-
-  template<class ChannelT>
-  void subpixel_correlation_parabola(ImageView<PixelDisparity<float> > &disparity_map,
-                                        ImageView<ChannelT> const& left_image,
-                                        ImageView<ChannelT> const& right_image,
-                                        int kern_width, int kern_height,
-                                        bool do_horizontal_subpixel,
-                                        bool do_vertical_subpixel,
-                                        bool verbose) {
-
-    VW_ASSERT(left_image.cols() == right_image.cols() && left_image.cols() == disparity_map.cols() &&
-              left_image.rows() == right_image.rows() && left_image.rows() == disparity_map.rows(),
-              ArgumentErr() << "subpixel_correlation: input image dimensions do not agree.\n");
-
-    int height = disparity_map.rows();
-    int width = disparity_map.cols();
-
-    ChannelT *new_img0 = &(left_image(0,0));
-    ChannelT *new_img1 = &(right_image(0,0));
-  
-    // Bail out if no subpixel computation has been requested 
-    if (!do_horizontal_subpixel && !do_vertical_subpixel) return;
-  
-    // We get a considerable speedup in our 2d subpixel correlation if
-    // we go ahead and compute the pseudoinverse of the A matrix (where
-    // each row in A is [ x^2 y^2 xy x y 1] (our 2d parabolic surface)
-    // for the range of x = [-1:1] and y = [-1:1].
-    static double pinvA_data[] = { 1.0/6,  1.0/6,  1.0/6, -1.0/3, -1.0/3, -1.0/3,  1.0/6,  1.0/6,  1.0/6,
-                                   1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,
-                                   1.0/4,    0.0, -1.0/4,    0.0,    0.0,    0.0, -1.0/4,    0.0,  1.0/4,
-                                   -1.0/6, -1.0/6, -1.0/6,    0.0,    0.0,   0.0,  1.0/6,  1.0/6,  1.0/6,
-                                   -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0, 1.0/6, -1.0/6,    0.0,  1.0/6,
-                                   -1.0/9,  2.0/9, -1.0/9,  2.0/9,  5.0/9, 2.0/9, -1.0/9,  2.0/9, -1.0/9 }; 
-    vw::MatrixProxy<double,6,9> pinvA(pinvA_data);
-    for (int r = 0; r < height; r++) {
-      if (r%100 == 0) 
-        if (verbose) vw_out(InfoMessage, "stereo") << "\tPerforming sub-pixel correlation... "<< (double(r)/height * 100) << "%        \r" << std::flush;
-    
-      for (int c = 0; c < width; c++) {
-      
-        if ( !disparity_map(c,r).missing() ) {
-          int hdisp= (int)disparity_map(c,r).h();
-          int vdisp= (int)disparity_map(c,r).v();
-
-          double mid = compute_soad(new_img0, new_img1,
-                                    r, c,
-                                    hdisp,   vdisp,
-                                    kern_width, kern_height,
-                                    width, height);
-        
-          // If only horizontal subpixel resolution is requested 
-          if (do_horizontal_subpixel && !do_vertical_subpixel) {
-            double lt= compute_soad(new_img0, new_img1,
-                                    r, c,
-                                    hdisp-1, vdisp,
-                                    kern_width, kern_height,
-                                    width, height);
-            double rt= compute_soad(new_img0, new_img1,
-                                    r, c,
-                                    hdisp+1, vdisp,
-                                    kern_width, kern_height,
-                                    width, height);
-          
-            if ((mid <= lt && mid < rt) || (mid <= rt && mid < lt)) {
-              disparity_map(c,r).h() += find_minimum(lt, mid, rt);
-            } else {
-              disparity_map(c,r) = PixelDisparity<float>();
-            }
-          }
-      
-          // If only vertical subpixel resolution is requested 
-          if (do_vertical_subpixel && !do_horizontal_subpixel) {
-            double up= compute_soad(new_img0, new_img1,
-                                    r, c,
-                                    hdisp, vdisp-1,
-                                    kern_width, kern_height,
-                                    width, height);
-            double dn= compute_soad(new_img0, new_img1,
-                                    r, c,
-                                    hdisp, vdisp+1,
-                                    kern_width, kern_height,
-                                    width, height);
-          
-            if ((mid <= up && mid < dn) || (mid <= dn && mid < up)) {
-              disparity_map(c,r).v() += find_minimum(up, mid, dn);
-            } else {
-              disparity_map(c,r) = PixelDisparity<float>();
-            }
-          }
-        
-        
-          // If both vertical and horizontal subpixel resolution is requested,
-          // we try to fit a 2d hyperbolic surface using the 9 points surrounding the
-          // peak SOAD value.  
-          //
-          // We place the soad values into a vector using the following indices
-          // (i.e. index 4 is the max disparity value)
-          // 
-          //     0  3  6
-          //     1  4  7
-          //     2  5  8
-          //
-          if (do_vertical_subpixel && do_horizontal_subpixel) {
-            vw::Vector<double,9> points;
-          
-            points(0) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp-1, vdisp-1,
-                                             kern_width, kern_height,
-                                             width, height);
-            points(1) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp-1, vdisp,
-                                             kern_width, kern_height,
-                                             width, height);
-            points(2) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp-1, vdisp+1,
-                                             kern_width, kern_height,
-                                             width, height);
-            points(3) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp, vdisp-1,
-                                             kern_width, kern_height,
-                                             width, height);
-            points(4) = (double)mid;
-            points(5) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp, vdisp+1,
-                                             kern_width, kern_height,
-                                             width, height);
-            points(6) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp+1, vdisp-1,
-                                             kern_width, kern_height,
-                                             width, height);
-            points(7) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp+1, vdisp,
-                                             kern_width, kern_height,
-                                             width, height);
-            points(8) = (double)compute_soad(new_img0, new_img1,
-                                             r, c,
-                                             hdisp+1, vdisp+1,
-                                             kern_width, kern_height,
-                                             width, height);
-            
-            vw::Vector2 offset = find_minimum_2d(points, pinvA);
-          
-            // This prevents us from adding in large offsets for
-            // poorly fit data.
-            if (norm_2(offset) < 5.0) {
-              disparity_map(c,r).h() += offset(0);
-              disparity_map(c,r).v() += offset(1);
-            } else {
-              disparity_map(c,r) = PixelDisparity<float>();
-            }
-          }
-        } 
+        vw_out(0) << "Done.\n";
       }
+
+      if (verbose)
+        vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: done.                                         \n";
     }
-    if (verbose) vw_out(InfoMessage, "stereo") << "\tPerforming sub-pixel correlation... done.                 \n";
-  }
 
-  template void subpixel_correlation_affine_2d(ImageView<PixelDisparity<float> > &disparity_map,
-                                     ImageView<uint8> const& left_image,
-                                     ImageView<uint8> const& right_image,
-                                     int kern_width, int kern_height,
-                                     bool do_horizontal_subpixel,
-                                     bool do_vertical_subpixel,
-                                     bool verbose);
+    //#endif
 
-  template void subpixel_correlation_affine_2d(ImageView<PixelDisparity<float> > &disparity_map,
-                                     ImageView<float> const& left_image,
-                                     ImageView<float> const& right_image,
-                                     int kern_width, int kern_height,
-                                     bool do_horizontal_subpixel,
-                                     bool do_vertical_subpixel,
-                                     bool verbose);
+    template<class ChannelT>
+    void subpixel_correlation_parabola(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                       ImageView<ChannelT> const& left_image,
+                                       ImageView<ChannelT> const& right_image,
+                                       int kern_width, int kern_height,
+                                       bool do_horizontal_subpixel,
+                                       bool do_vertical_subpixel,
+                                       bool verbose) {
 
-   template void subpixel_correlation_affine_2d_bayesian(ImageView<PixelDisparity<float> > &disparity_map,
-                                     ImageView<uint8> const& left_image,
-                                     ImageView<uint8> const& right_image,
-                                     int kern_width, int kern_height,
-                                     bool do_horizontal_subpixel,
-                                     bool do_vertical_subpixel,
-                                     bool verbose);
+      VW_ASSERT(left_image.cols() == right_image.cols() && left_image.cols() == disparity_map.cols() &&
+                left_image.rows() == right_image.rows() && left_image.rows() == disparity_map.rows(),
+                ArgumentErr() << "subpixel_correlation: input image dimensions do not agree.\n");
 
-  template void subpixel_correlation_affine_2d_bayesian(ImageView<PixelDisparity<float> > &disparity_map,
-                                     ImageView<float> const& left_image,
-                                     ImageView<float> const& right_image,
-                                     int kern_width, int kern_height,
-                                     bool do_horizontal_subpixel,
-                                     bool do_vertical_subpixel,
-                                     bool verbose);
+      int height = disparity_map.rows();
+      int width = disparity_map.cols();
 
-  template void subpixel_correlation_affine_2d_EM(ImageView<PixelDisparity<float> > &disparity_map,
-                                     ImageView<uint8> const& left_image,
-                                     ImageView<uint8> const& right_image,
-                                     int kern_width, int kern_height,
-                                                  BBox2i region_of_interest,
-                                     bool do_horizontal_subpixel,
-                                     bool do_vertical_subpixel,
-                                     bool verbose);
+      ChannelT *new_img0 = &(left_image(0,0));
+      ChannelT *new_img1 = &(right_image(0,0));
 
-  template void subpixel_correlation_affine_2d_EM(ImageView<PixelDisparity<float> > &disparity_map,
-                                     ImageView<float> const& left_image,
-                                     ImageView<float> const& right_image,
-                                     int kern_width, int kern_height,
-                                                  BBox2i region_of_interest,
-                                     bool do_horizontal_subpixel,
-                                     bool do_vertical_subpixel,
-                                     bool verbose);
+      // Bail out if no subpixel computation has been requested
+      if (!do_horizontal_subpixel && !do_vertical_subpixel) return;
 
-  template void subpixel_correlation_parabola(ImageView<PixelDisparity<float> > &disparity_map,
-                                     ImageView<uint8> const& left_image,
-                                     ImageView<uint8> const& right_image,
-                                     int kern_width, int kern_height,
-                                     bool do_horizontal_subpixel,
-                                     bool do_vertical_subpixel,
-                                     bool verbose);
+      // We get a considerable speedup in our 2d subpixel correlation if
+      // we go ahead and compute the pseudoinverse of the A matrix (where
+      // each row in A is [ x^2 y^2 xy x y 1] (our 2d parabolic surface)
+      // for the range of x = [-1:1] and y = [-1:1].
+      static double pinvA_data[] = { 1.0/6,  1.0/6,  1.0/6, -1.0/3, -1.0/3, -1.0/3,  1.0/6,  1.0/6,  1.0/6,
+                                     1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,
+                                     1.0/4,    0.0, -1.0/4,    0.0,    0.0,    0.0, -1.0/4,    0.0,  1.0/4,
+                                     -1.0/6, -1.0/6, -1.0/6,    0.0,    0.0,   0.0,  1.0/6,  1.0/6,  1.0/6,
+                                     -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0, 1.0/6, -1.0/6,    0.0,  1.0/6,
+                                     -1.0/9,  2.0/9, -1.0/9,  2.0/9,  5.0/9, 2.0/9, -1.0/9,  2.0/9, -1.0/9 };
+      vw::MatrixProxy<double,6,9> pinvA(pinvA_data);
+      for (int r = 0; r < height; r++) {
+        if (r%100 == 0)
+          if (verbose) vw_out(InfoMessage, "stereo") << "\tPerforming sub-pixel correlation... "<< (double(r)/height * 100) << "%        \r" << std::flush;
 
-  template void subpixel_correlation_parabola(ImageView<PixelDisparity<float> > &disparity_map,
-                                     ImageView<float> const& left_image,
-                                     ImageView<float> const& right_image,
-                                     int kern_width, int kern_height,
-                                     bool do_horizontal_subpixel,
-                                     bool do_vertical_subpixel,
-                                     bool verbose);
+        for (int c = 0; c < width; c++) {
 
-}} // namespace vw::stereo
+          if ( is_valid(disparity_map(c,r)) ) {
+            int hdisp= (int)disparity_map(c,r)[0];
+            int vdisp= (int)disparity_map(c,r)[1];
+
+            double mid = compute_soad(new_img0, new_img1,
+                                      r, c,
+                                      hdisp,   vdisp,
+                                      kern_width, kern_height,
+                                      width, height);
+
+            // If only horizontal subpixel resolution is requested
+            if (do_horizontal_subpixel && !do_vertical_subpixel) {
+              double lt= compute_soad(new_img0, new_img1,
+                                      r, c,
+                                      hdisp-1, vdisp,
+                                      kern_width, kern_height,
+                                      width, height);
+              double rt= compute_soad(new_img0, new_img1,
+                                      r, c,
+                                      hdisp+1, vdisp,
+                                      kern_width, kern_height,
+                                      width, height);
+
+              if ((mid <= lt && mid < rt) || (mid <= rt && mid < lt)) {
+                disparity_map(c,r)[0] += find_minimum(lt, mid, rt);
+              } else {
+                invalidate( disparity_map(c,r) );
+              }
+            }
+
+            // If only vertical subpixel resolution is requested
+            if (do_vertical_subpixel && !do_horizontal_subpixel) {
+              double up= compute_soad(new_img0, new_img1,
+                                      r, c,
+                                      hdisp, vdisp-1,
+                                      kern_width, kern_height,
+                                      width, height);
+              double dn= compute_soad(new_img0, new_img1,
+                                      r, c,
+                                      hdisp, vdisp+1,
+                                      kern_width, kern_height,
+                                      width, height);
+
+              if ((mid <= up && mid < dn) || (mid <= dn && mid < up)) {
+                disparity_map(c,r)[1] += find_minimum(up, mid, dn);
+              } else {
+                invalidate(disparity_map(c,r));
+              }
+            }
+
+
+            // If both vertical and horizontal subpixel resolution is requested,
+            // we try to fit a 2d hyperbolic surface using the 9 points surrounding the
+            // peak SOAD value.
+            //
+            // We place the soad values into a vector using the following indices
+            // (i.e. index 4 is the max disparity value)
+            //
+            //     0  3  6
+            //     1  4  7
+            //     2  5  8
+            //
+            if (do_vertical_subpixel && do_horizontal_subpixel) {
+              vw::Vector<double,9> points;
+
+              points(0) = (double)compute_soad(new_img0, new_img1,
+                                               r, c,
+                                               hdisp-1, vdisp-1,
+                                               kern_width, kern_height,
+                                               width, height);
+              points(1) = (double)compute_soad(new_img0, new_img1,
+                                               r, c,
+                                               hdisp-1, vdisp,
+                                               kern_width, kern_height,
+                                               width, height);
+              points(2) = (double)compute_soad(new_img0, new_img1,
+                                               r, c,
+                                               hdisp-1, vdisp+1,
+                                               kern_width, kern_height,
+                                               width, height);
+              points(3) = (double)compute_soad(new_img0, new_img1,
+                                               r, c,
+                                               hdisp, vdisp-1,
+                                               kern_width, kern_height,
+                                               width, height);
+              points(4) = (double)mid;
+              points(5) = (double)compute_soad(new_img0, new_img1,
+                                               r, c,
+                                               hdisp, vdisp+1,
+                                               kern_width, kern_height,
+                                               width, height);
+              points(6) = (double)compute_soad(new_img0, new_img1,
+                                               r, c,
+                                               hdisp+1, vdisp-1,
+                                               kern_width, kern_height,
+                                               width, height);
+              points(7) = (double)compute_soad(new_img0, new_img1,
+                                               r, c,
+                                               hdisp+1, vdisp,
+                                               kern_width, kern_height,
+                                               width, height);
+              points(8) = (double)compute_soad(new_img0, new_img1,
+                                               r, c,
+                                               hdisp+1, vdisp+1,
+                                               kern_width, kern_height,
+                                               width, height);
+
+              vw::Vector2 offset = find_minimum_2d(points, pinvA);
+
+              // This prevents us from adding in large offsets for
+              // poorly fit data.
+              if (norm_2(offset) < 5.0) {
+                remove_mask(disparity_map(c,r)) += offset;
+              } else {
+                invalidate(disparity_map);
+              }
+            }
+          }
+        }
+      }
+      if (verbose) vw_out(InfoMessage, "stereo") << "\tPerforming sub-pixel correlation... done.                 \n";
+    }
+
+    template void subpixel_correlation_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                                 ImageView<uint8> const& left_image,
+                                                 ImageView<uint8> const& right_image,
+                                                 int kern_width, int kern_height,
+                                                 bool do_horizontal_subpixel,
+                                                 bool do_vertical_subpixel,
+                                                 bool verbose);
+
+    template void subpixel_correlation_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                                 ImageView<float> const& left_image,
+                                                 ImageView<float> const& right_image,
+                                                 int kern_width, int kern_height,
+                                                 bool do_horizontal_subpixel,
+                                                 bool do_vertical_subpixel,
+                                                 bool verbose);
+
+    template void subpixel_correlation_affine_2d_bayesian(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                                          ImageView<uint8> const& left_image,
+                                                          ImageView<uint8> const& right_image,
+                                                          int kern_width, int kern_height,
+                                                          bool do_horizontal_subpixel,
+                                                          bool do_vertical_subpixel,
+                                                          bool verbose);
+
+    template void subpixel_correlation_affine_2d_bayesian(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                                          ImageView<float> const& left_image,
+                                                          ImageView<float> const& right_image,
+                                                          int kern_width, int kern_height,
+                                                          bool do_horizontal_subpixel,
+                                                          bool do_vertical_subpixel,
+                                                          bool verbose);
+
+    template void subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                                    ImageView<uint8> const& left_image,
+                                                    ImageView<uint8> const& right_image,
+                                                    int kern_width, int kern_height,
+                                                    BBox2i region_of_interest,
+                                                    bool do_horizontal_subpixel,
+                                                    bool do_vertical_subpixel,
+                                                    bool verbose);
+
+    template void subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                                    ImageView<float> const& left_image,
+                                                    ImageView<float> const& right_image,
+                                                    int kern_width, int kern_height,
+                                                    BBox2i region_of_interest,
+                                                    bool do_horizontal_subpixel,
+                                                    bool do_vertical_subpixel,
+                                                    bool verbose);
+
+    template void subpixel_correlation_parabola(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                                ImageView<uint8> const& left_image,
+                                                ImageView<uint8> const& right_image,
+                                                int kern_width, int kern_height,
+                                                bool do_horizontal_subpixel,
+                                                bool do_vertical_subpixel,
+                                                bool verbose);
+
+    template void subpixel_correlation_parabola(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                                ImageView<float> const& left_image,
+                                                ImageView<float> const& right_image,
+                                                int kern_width, int kern_height,
+                                                bool do_horizontal_subpixel,
+                                                bool do_vertical_subpixel,
+                                                bool verbose);
+
+  }} // namespace vw::stereo

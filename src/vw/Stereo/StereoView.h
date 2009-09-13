@@ -18,7 +18,7 @@
 #include <values.h>                        // for DBL_MAX
 #endif
 
-namespace vw { 
+namespace vw {
 namespace stereo {
 
   // Class definition
@@ -28,20 +28,20 @@ namespace stereo {
   private:
     DisparityImageT m_disparity_map;
     StereoModel m_stereo_model;
-    
+
   public:
 
     typedef Vector3 pixel_type;
     typedef const Vector3 result_type;
     typedef ProceduralPixelAccessor<StereoView> pixel_accessor;
 
-    StereoView( DisparityImageT const& disparity_map, 
-                vw::camera::CameraModel const& camera_model1, 
-                vw::camera::CameraModel const& camera_model2) : 
+    StereoView( DisparityImageT const& disparity_map,
+                vw::camera::CameraModel const& camera_model1,
+                vw::camera::CameraModel const& camera_model2) :
       m_disparity_map(disparity_map),
       m_stereo_model(camera_model1, camera_model2) {}
 
-    StereoView( DisparityImageT const& disparity_map, 
+    StereoView( DisparityImageT const& disparity_map,
                 StereoModel const& stereo_model) :
       m_disparity_map(disparity_map),
       m_stereo_model(stereo_model) {}
@@ -52,14 +52,13 @@ namespace stereo {
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
-    inline result_type operator()( int i, int j, int p=0 ) const { 
+    inline result_type operator()( int i, int j, int p=0 ) const {
       double error;
-      if ( !m_disparity_map(i,j).missing() ) {
+      if ( is_valid(m_disparity_map(i,j)) ) {
         return m_stereo_model(Vector2( i, j ),
-                              Vector2( i + m_disparity_map(i,j).h(),
-                                       j + m_disparity_map(i,j).v() ), 
+                              Vector2( i, j )+remove_mask(m_disparity_map(i,j)),
                               error );
-      } 
+      }
       // For missing pixels in the disparity map, we return a null 3D position.
       return Vector3();
     }
@@ -69,14 +68,14 @@ namespace stereo {
     // the requested pixel is missing in the disparity map or if the
     // stereo geometry returns a bad match (e.g. if the rays
     // diverged).
-    inline double error( int i, int j, int p=0 ) const { 
-      double error;     
+    inline double error( int i, int j, int p=0 ) const {
+      double error;
       if ( !m_disparity_map(i,j).missing() ) {
         m_stereo_model(Vector2( i, j ),
                        Vector2( i + m_disparity_map(i,j).h(),
-                                j + m_disparity_map(i,j).v() ), 
+                                j + m_disparity_map(i,j).v() ),
                        error );
-        if (error >= 0) 
+        if (error >= 0)
           return error;
       }
 
@@ -113,18 +112,18 @@ namespace stereo {
     struct UniverseRadiusState {
       int rejected_points, total_points;
     };
-    
+
     Vector3 m_origin;
     double m_near_radius, m_far_radius;
     boost::shared_ptr<UniverseRadiusState> m_state;
 
   public:
-    UniverseRadiusFunc(Vector3 universe_origin, double near_radius = 0, double far_radius = DBL_MAX): 
+    UniverseRadiusFunc(Vector3 universe_origin, double near_radius = 0, double far_radius = DBL_MAX):
       m_origin(universe_origin), m_near_radius(near_radius), m_far_radius(far_radius),
       m_state( new UniverseRadiusState() ) {
       VW_ASSERT(m_near_radius >= 0 && m_far_radius >= 0,
                 vw::ArgumentErr() << "UniverseRadius: radii must be >= to zero.");
-      VW_ASSERT(m_near_radius <= m_far_radius, 
+      VW_ASSERT(m_near_radius <= m_far_radius,
                 vw::ArgumentErr() << "UniverseRadius: near radius must be <= to far radius.");
       m_state->rejected_points = m_state->total_points = 0;
     }
@@ -138,7 +137,7 @@ namespace stereo {
       m_state->total_points++;
       if (pix != Vector3() ) {
         double dist = norm_2(pix - m_origin);
-        if ((m_near_radius != 0 && dist < m_near_radius) || 
+        if ((m_near_radius != 0 && dist < m_near_radius) ||
             (m_far_radius != 0 && dist > m_far_radius)) {
           m_state->rejected_points++;
           return Vector3();
@@ -156,7 +155,7 @@ namespace stereo {
     os << "Universe Radius Limits: [ " << u.near_radius() << ", ";
     if (u.far_radius() == 0)
       os << "Inf ]\n" ;
-    else 
+    else
       os << u.far_radius() << "]\n";
     os << "\tRejected " << u.rejected_points() << "/" << u.total_points() << " vertices (" << double(u.rejected_points())/u.total_points()*100 << "%).\n";
     return os;
