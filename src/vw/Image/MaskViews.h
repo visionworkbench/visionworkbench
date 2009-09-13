@@ -509,7 +509,7 @@ namespace vw {
   intersect_mask( ImageViewBase<ViewT> const& view,
                   ImageViewBase<MaskViewT> const& mask_view ) {
     typedef BinaryPerPixelView<ViewT,MaskViewT,IntersectPixelMask<typename ViewT::pixel_type> > view_type;
-    return view_type( view.impl(), mask_view.impl(), UnionPixelMask<typename ViewT::pixel_type>() );
+    return view_type( view.impl(), mask_view.impl(), IntersectPixelMask<typename ViewT::pixel_type>() );
   }
 
   // Is reasonable fast

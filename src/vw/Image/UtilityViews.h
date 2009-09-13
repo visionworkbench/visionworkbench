@@ -73,7 +73,7 @@ namespace vw {
     /// Initialize from another view
     template <class ImageT>
     PixelIndexView( ImageViewBase<ImageT> const& view ) :
-      m_rows(view.impl().rows()), m_cols(view.impl().cols()), m_planes(view.impl().planes()) {}
+      m_cols(view.impl().cols()), m_rows(view.impl().rows()), m_planes(view.impl().planes()) {}
 
     PixelIndexView( int32 cols, int32 rows, int32 planes = 1 )
       : m_cols(cols), m_rows(rows), m_planes(planes) {}
