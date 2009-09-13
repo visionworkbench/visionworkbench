@@ -1086,7 +1086,7 @@ Function & Description \\ \hline \hline
 \verb#create_mask(im,s)# & Given a non \verb#PixelMask# view \verb#im#, returns an \verb#ImageView# of type \verb#PixelMask#. Pixels of valud \verb#s# are listed as invalid. \\ \hline 
 \verb#create_mask(im,lo,hi)# & As previously, except \verb#lo# and \verb#hi# describe the valid pixel range. Pixels outside of that range are listed as invalid. \\ \hline
 \verb#apply_mask(im,s)# & This removes the \verb#PixelMask# type, and replaces invalid pixels with a value \verb#s#. \\ \hline
-\verb#copy_mask(im,mask)# & Copies a mask from one image to another. \\ \hline
+\verb#copy_mask(im,mask)# & Copies an image \verb#mask#'s transparency on to an image \verb#im# of non-\verb#PixelMask# type. \\ \hline
 \verb#mask_to_alpha(im)# & Convert a \verb#PixelMask# view to a view with a alpha channel. \\ \hline
 \verb#edge_mask(im)# & Searches for the edges of an image and marks the first valid pixel, invalid. \\ \hline
 \verb#invert_mask(im)# & Given an image of \verb#PixelMask#s , inverts every pixels validity. \\ \hline
