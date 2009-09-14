@@ -56,6 +56,80 @@ namespace camera {
                                                           use_camera_constraint,
                                                           use_gcp_constraint ) {}
 
+   
+
+
+
+
+     // Covariance Calculator
+    // ___________________________________________________________
+    // This routine inverts a sparse matrix S, and prints the individual 
+    // covariance matrices for each camera
+
+    //  virtual void covCalc(){
+
+     /*  // camera params   */
+/*       unsigned num_cam_params = BundleAdjustModelT::camera_params_n; */
+/*       unsigned num_cameras = this->m_model.num_cameras(); */
+
+/*       unsigned inverse_size = num_cam_params * num_cameras; */
+
+/*       typedef Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> matrix_camera_camera; */
+    
+/*       // final vector of camera covariance matrices */
+/*       boost_sparse_vector< matrix_camera_camera > sparse_cov(num_cameras); */
+      
+      
+      
+/*       // Get the S matrix from the model */
+/*       math::SparseSkylineMatrix<double> S = this->S(); */
+      
+/*       std::cout << "I got S\n\n"; */
+    
+      
+/*       Matrix<double> Cov(inverse_size, inverse_size); */
+/*       Matrix<double> Id(inverse_size, inverse_size); */
+
+/*       Cov.set_identity(); */
+/*       Id.set_identity(); */
+      
+      
+/*       Vector<double> current_col(inverse_size); */
+/*       Vector<double> column_sol(inverse_size); */
+
+
+/*       // get LDL^T decomposition - S is modified in place */
+/*       //ldl_decomposition(S); */
+
+
+/*       // build up covariance column by column using  */
+/*       // the LDL^T decomposition and the helper sparse solver */
+
+/*       //for(int i = 0; i < inverse_size; i++){ */
+
+/*       //current_col = select_col(Id, i); */
+/*       //	column_sol = sparse_solve_ldl(S, current_col); */
+/*       //select_col(Cov, i) = column_sol; */
+/*       //} */
+
+/*       std::cout << "I'm in past inversion step\n\n"; */
+
+/*       //pick out covariances of individual cameras */
+/*       for(int i = 0; i < num_cameras; i++){ */
+/* 	sparse_cov(i) = submatrix(Cov, i*num_cam_params, i*num_cam_params, num_cam_params, num_cam_params);	   */
+/*       } */
+
+/*       std::cout << "I'm past extracting individual cameras\n\n";  */
+      
+/*       std::cout << "Covariance matrices for cameras are:" << sparse_cov << "\n\n"; */
+      
+      // return;
+      // }
+
+
+
+
+
     // UPDATE IMPLEMENTATION
     //-------------------------------------------------------------
     // This is the sparse levenberg marquardt update step.  Returns
@@ -201,7 +275,7 @@ namespace camera {
           }
         this->m_lambda = max * 1e-10;
 
-	std::cout << "Computed lambda is: " << max*1e-10 << "\n";
+	//	std::cout << "Computed lambda is: " << max*1e-10 << "\n";
 	//std::cout << "other order: " << 1e-10*max << "\n";
       }
       // std::cout << "\n (new) U Matrix array prior to camera positions is: " << U << "\n";
@@ -215,6 +289,7 @@ namespace camera {
           inverse_cov = this->m_model.A_inverse_covariance(j);
           
           matrix_camera_camera C;
+	  C.set_identity();
 
           U(j) += transpose(C) * inverse_cov * C;
           
@@ -228,7 +303,7 @@ namespace camera {
       }
       
     
-      //   std::cout << "\n U Matrix array after camera positions is: " << U << "\n"; 
+      //  std::cout << "\n U Matrix array after camera positions is: " << U << "\n"; 
 
 
       // Add in the 3D point position constraint terms and
@@ -268,7 +343,7 @@ namespace camera {
 
       //e at this point should be -g_a
       
-     
+      //std::cout << "\n (new) U Matrix array before lambda adjustment " << U << "\n";
      
       // "Augment" the diagonal entries of the U and V matrices with
       // the parameter lambda.
@@ -282,7 +357,7 @@ namespace camera {
 	  U(i) += u_lambda;  
 	}
       }
-      //std::cout << "\n (new) U Matrix array after lambda adjustment " << U << "\n";
+      // std::cout << "\n (new) U Matrix array after lambda adjustment " << U << "\n";
 
       {
         matrix_point_point v_lambda;
@@ -390,11 +465,15 @@ namespace camera {
         }
       } 
 
+      
+      this->set_S(S);
       // Compute the LDL^T decomposition and solve using sparse methods.
       Vector<double> delta_a = sparse_solve(S, e);
-      // Save S; used for covariance calculations
-      this->set_S(S);
 
+      //std::cout << "delta_a: " << delta_a << "\n\n";
+
+      // Save S; used for covariance calculations
+     
       subvector(delta, current_delta_length, e.size()) = delta_a;
       current_delta_length += e.size();
 
@@ -504,11 +583,11 @@ namespace camera {
       double SS = error_total;            //Compute old objective
       double R = (SS - Splus)/dS;         // Compute ratio
       
-      /*
-      std::cout << "New Objective: " << new_error_total << "\n"; 
-      std::cout << "Old Objective: " << error_total << "\n"; 
-      std::cout << "Lambda: " << this->m_lambda << "\n"; 
-      */
+      
+  /*     std::cout << "New Objective: " << new_error_total << "\n";  */
+/*       std::cout << "Old Objective: " << error_total << "\n";  */
+/*       std::cout << "Lambda: " << this->m_lambda << "\n";  */
+     
 
 
       if (R>0){
