@@ -1,0 +1,36 @@
+VWPREFIX=/opt/vw
+LIBTOOL = libtool
+CXX = g++
+
+# Basic compilation flags
+CXXFLAGS = -g -Wall -O0
+# VW include directory
+CXXFLAGS += -I$(VWPREFIX)/include
+# BOOST include directory
+CXXFLAGS += -I/usr/local/include/boost-1_39
+# CAIROMM include
+CXXFLAGS += $(shell pkg-config --cflags cairomm-1.0)
+# Linker flags
+LDFLAGS = -g
+# libs
+LIBS = -L$(VWPREFIX)/lib -lvw $(shell pkg-config --libs cairomm-1.0)
+
+PROGS = contourgen
+#HDR = contour.h
+SRC = contour.cpp FitCurves.cpp contourgen.cpp
+#SRC = contour.cpp contourgen.cpp
+
+OBJ = $(SRC:.cpp=.o)
+
+all: $(PROGS)
+
+#contourgen: contourgen.o contour.o
+contourgen: contourgen.o FitCurves.o contour.o
+		$(LIBTOOL) --mode=link $(CXX) $(LDFLAGS) $(LIBS) $(OBJ) -o $@
+
+%.o : %.cpp
+		$(CXX) $(CXXFLAGS) -c $< -o $@
+
+clean:
+		rm -f *.o *~ \#*
+
