@@ -21,8 +21,8 @@
 //
 // __END_LICENSE__
 
+/// \file make_ba_test_data.cc
 ///
-
 
 // NB: the triple-bracket comments you'll see are Vim fold markers.
 // Type ':set foldmethod=marker' in command mode to use them
