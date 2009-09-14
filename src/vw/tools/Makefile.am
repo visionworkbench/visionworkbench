@@ -118,12 +118,23 @@ gpu_correlate_SOURCES = gpu_correlate.cc
 gpu_correlate_LDADD = @PKG_GPU_LIBS@ $(COMMON_LIBS)
 endif
 
+# Bundle adjustment test programs
+if MAKE_MODULE_CAMERA
+if MAKE_MODULE_STEREO
+batest_progs = ba_test make_ba_test_data
+ba_test_SOURCES = ba_test.cc
+ba_test_LDADD = @PKG_CAMERA_LIBS@ @PKG_STEREO_LIBS@ $(COMMON_LIBS)
+make_ba_test_data_SOURCES = make_ba_test_data.cc
+make_ba_test_data_LDADD = @PKG_CAMERA_LIBS@ $(COMMON_LIBS)
+endif
+endif
+
 doc_generate_SOURCES = doc-generate.cc
 doc_generate_LDADD   = @PKG_VW_LIBS@ @PKG_MOSAIC_LIBS@
 
 bin_PROGRAMS = $(camera_progs) $(cartography_progs) $(hdr_progs)	\
                $(interestpoint_progs) $(mosaic_progs)				\
-               $(cart_mos_progs) $(stereo_progs) $(gpu_progs)
+               $(cart_mos_progs) $(stereo_progs) $(gpu_progs) $(batest_progs)
 
 noinst_PROGRAMS = doc-generate
 
