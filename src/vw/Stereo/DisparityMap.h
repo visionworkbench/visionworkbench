@@ -74,9 +74,6 @@ namespace stereo {
   /// disparity map to be masked, this view will eliminate any pixels
   /// in the disparity map that correspond to locations in the mask
   /// that contain a value of zero.
-  ///
-  /// Is this really what we want in Stereo.cc? Don't people put their
-  /// right mask in coordinates of the left? -ZMM
   template <class PixelT, class MaskViewT>
   struct DisparityMaskFunc: public vw::ReturnFixedType<PixelT>  {
 
@@ -92,11 +89,9 @@ namespace stereo {
            loc[1] < 0 || loc[1] >= m_left_mask.rows() ||
            loc[0]+pix[0] < 0 || loc[0]+pix[0] >= m_right_mask.cols() ||
            loc[1]+pix[1] < 0 || loc[1]+pix[1] >= m_right_mask.rows() ||
-           !is_valid(m_left_mask(vw::int32(loc[0]),vw::int32(loc[1]))) ||
-           !is_valid(m_right_mask(vw::int32(loc[0]+pix[0]),vw::int32(loc[1]+pix[1]))) ){
-        PixelT result;
-        invalidate(result);
-        return result;
+           m_left_mask(vw::int32(loc[0]),vw::int32(loc[1])) == 0 ||
+           m_right_mask(vw::int32(loc[0]+pix[0]),vw::int32(loc[1]+pix[1])) == 0 ){
+        return PixelT();
       } else
         return pix;
     }
