@@ -195,9 +195,9 @@ namespace math {
   //--------------------------------------------------------------
 
   /// Perform L*D*L^T decomposition on a sparse skyline symmetric
-  /// semi-definite matrix A (in place) and then solves an equation of the
-  /// form Ax=b using forward and backward substitution.
-  /// 
+  /// semi-definite matrix A (in place) and then call
+  /// forward/backward solver
+
   /// WARNING: Modifies the contents of the matrix A.
   template <class ElemT, class VectorT>
   Vector<double> sparse_solve(SparseSkylineMatrix<ElemT>& A, VectorT const& b) {
@@ -206,7 +206,58 @@ namespace math {
 
     // Compute the L*D*L^T decomposition of A
     ldl_decomposition(A);
+    Vector<double> x = sparse_solve_ldl(A, b);
+
+    return x;
+  }
+
+ //--------------------------------------------------------------
+  //            Solve Spare Skyline Linear System: AX=B, where 
+  //            X and B are matrices
+  //--------------------------------------------------------------
+
+  /// Perform L*D*L^T decomposition on a sparse skyline symmetric
+  /// semi-definite matrix A (in place) and then call
+  /// forward/backward solver
+
+  /// WARNING: Modifies the contents of the matrix A.
+  template <class ElemT, class BMatrixT>
+    Matrix<typename PromoteType<typename BMatrixT::value_type, typename BMatrixT::value_type>::type>
+    multi_sparse_solve(SparseSkylineMatrix<ElemT>& A, BMatrixT & B ) {
+    VW_ASSERT(A.cols() == A.rows(), ArgumentErr() << "multi_sparse_solve: matrix must be square and symmetric.\n");
+    VW_ASSERT(A.rows() == B.rows(), ArgumentErr() << "multi_sparse_solve: AX=B means A, B have same # of rows.\n");
+
+    Matrix<double> X(B.rows(), B.cols());
     
+    Vector<double> current_col(A.cols());
+    
+    
+    // Compute the L*D*L^T decomposition of A
+    ldl_decomposition(A);
+    
+    for(int i = 0; i < B.cols(); i++){
+      current_col = select_col(B, i);
+      select_col(X, i) = sparse_solve_ldl(A, current_col);
+    }
+    return X;
+  }
+
+
+
+  //-------------------------------------------------------------------
+  //            Solve Spare Skyline Linear System: Ax=b Given LDL^T
+  //-------------------------------------------------------------------
+
+  /// Perform L*D*L^T decomposition on a sparse skyline symmetric
+  /// semi-definite matrix A (in place) and then 
+  /// Solves an equation of the
+  /// form Ax=b using forward and backward substitution.
+  /// 
+  /// Assumes it receives LDL^T form of A
+ template <class ElemT, class VectorT>
+  Vector<double> sparse_solve_ldl(SparseSkylineMatrix<ElemT>& A, VectorT const& b) {
+    VW_ASSERT(A.cols() == A.rows(), ArgumentErr() << "sparse_solve: matrix must be square and symmetric.\n");
+      
     const std::vector<vw::uint32>& skyline = A.skyline();
     std::vector<vw::uint32> inverse_skyline(skyline.size());
     
@@ -247,6 +298,7 @@ namespace math {
 
     return x;
   }
+
 
 }} // namespace vw::math
 
