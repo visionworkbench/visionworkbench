@@ -424,7 +424,7 @@ namespace camera {
       Vector<double> delta_a = sparse_solve(S, e);
       // Save S; used for covariance calculations
     
-      std::cout << "Delta a is : " << delta_a << "\n\n";
+      // std::cout << "Delta a is : " << delta_a << "\n\n";
 
 
       subvector(delta, current_delta_length, e.size()) = delta_a;
@@ -561,9 +561,9 @@ namespace camera {
 
      
    
-      std::cout << "Old Objective: " << robust_objective << "\n";
-      std::cout << "New Objective: " << new_robust_objective << "\n";
-      std::cout << "Lambda: " << this->m_lambda << "\n";
+     /*  std::cout << "Old Objective: " << robust_objective << "\n"; */
+/*       std::cout << "New Objective: " << new_robust_objective << "\n"; */
+/*       std::cout << "Lambda: " << this->m_lambda << "\n"; */
    
 
 

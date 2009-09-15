@@ -332,7 +332,7 @@ namespace camera {
 	  U(i) += u_lambda;  
 	}
       }
-       std::cout << "\n (new) U Matrix array after lambda adjustment " << U << "\n";
+      //  std::cout << "\n (new) U Matrix array after lambda adjustment " << U << "\n";
 
       {
         matrix_point_point v_lambda;
