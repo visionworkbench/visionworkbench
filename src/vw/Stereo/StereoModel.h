@@ -8,10 +8,15 @@
 #ifndef __VW_STEREO_STEREOMODEL_H__
 #define __VW_STEREO_STEREOMODEL_H__
 
-#include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/DisparityMap.h>
 
 namespace vw {
+
+// forward declaration
+namespace camera {
+  class CameraModel;
+}
+
 namespace stereo {
 
   class StereoModel {
@@ -21,9 +26,9 @@ namespace stereo {
     //------------------------------------------------------------------
     // Constructors / Destructors
     //------------------------------------------------------------------
-    StereoModel(vw::camera::CameraModel const& camera_model1,
-                vw::camera::CameraModel const& camera_model2) :
-      m_camera1(&camera_model1), m_camera2(&camera_model2) {}
+    StereoModel(vw::camera::CameraModel const* camera_model1,
+                vw::camera::CameraModel const* camera_model2) :
+      m_camera1(camera_model1), m_camera2(camera_model2) {}
 
     //------------------------------------------------------------------
     // Public Methods

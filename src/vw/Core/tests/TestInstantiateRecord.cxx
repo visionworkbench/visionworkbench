@@ -8,8 +8,6 @@
 #include <gtest/gtest.h>
 #include <string>
 #include <vw/Core.h>
-#include <vw/Image/PixelTypes.h>
-#include <vw/Stereo/DisparityMap.h>
 #include <boost/shared_ptr.hpp>
 
 using namespace vw;

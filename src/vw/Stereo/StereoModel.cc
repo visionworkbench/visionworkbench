@@ -5,6 +5,7 @@
 // __END_LICENSE__
 
 
+#include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Math/Vector.h>
 

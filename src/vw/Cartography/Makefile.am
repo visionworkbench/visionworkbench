@@ -21,14 +21,15 @@ camerabbox_headers = CameraBBox.h
 camerabbox_sources = CameraBBox.cc
 endif
 
-include_HEADERS = FileIO.h GeoReferenceBase.h GeoReference.h		\
-                  GeoTransform.h Datum.h PointImageManipulation.h	\
-                  OrthoImageView.h GeoReferenceResourcePDS.h		\
-                  Projection.h ToastTransform.h $(gdal_headers)		\
+include_HEADERS = FileIO.h GeoReferenceBase.h GeoReference.h            \
+                  GeoTransform.h Datum.h SimplePointImageManipulation.h \
+                  PointImageManipulation.h                              \
+                  OrthoImageView.h GeoReferenceResourcePDS.h            \
+                  Projection.h ToastTransform.h $(gdal_headers)         \
                   $(camerabbox_headers)
 
-libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc	\
-                  GeoReferenceResourcePDS.cc ToastTransform.cc		\
+libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc  \
+                  GeoReferenceResourcePDS.cc ToastTransform.cc          \
                   $(gdal_sources) $(camerabbox_sources)
 
 libvwCartography_la_LIBADD = @MODULE_CARTOGRAPHY_LIBS@
