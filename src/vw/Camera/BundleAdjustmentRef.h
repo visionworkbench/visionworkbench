@@ -12,15 +12,44 @@
 #define __VW_CAMERA_BUNDLE_ADJUSTMENT_REF_H__
 
 #include <vw/Camera/BundleAdjustmentBase.h>
+#include <vw/Math/LinearAlgebra.h>
 
+// Boost 
+#include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <boost/numeric/ublas/vector_sparse.hpp>
+#include <boost/numeric/ublas/io.hpp>
+#include <boost/make_shared.hpp>
+#include <boost/version.hpp>
+
+// The sparse vectors/matrices are needed 
+// for the covariance calculation
+
+#if BOOST_VERSION<=103200
+// Mapped matrix doesn't exist in 1.32, but Sparse Matrix does
+// 
+// Unfortunately some other tests say this doesn't work
+#define boost_sparse_matrix boost::numeric::ublas::sparse_matrix
+#define boost_sparse_vector boost::numeric::ublas::sparse_vector
+#else
+// Sparse Matrix was renamed Mapped Matrix in later editions
+#define boost_sparse_matrix boost::numeric::ublas::mapped_matrix
+#define boost_sparse_vector boost::numeric::ublas::mapped_vector
+#endif
 namespace vw {
 namespace camera {
   
   template <class BundleAdjustModelT, class RobustCostT>
-  class BundleAdjustmentRef : public BundleAdjustmentBase<BundleAdjustModelT,RobustCostT> {
+    class BundleAdjustmentRef : public BundleAdjustmentBase<BundleAdjustModelT,RobustCostT> {
+ 
+
+    // Need to save S for covariance calculations
+    boost::shared_ptr<math::Matrix<double> > m_S; 
 
   public:
-
+    Matrix<double> S() { return *m_S; }
+    void set_S(math::Matrix<double> S) { 
+      m_S = boost::make_shared<math::Matrix<double> >(S); 
+    }
     BundleAdjustmentRef( BundleAdjustModelT & model,
                          RobustCostT const& robust_cost_func,
                          bool use_camera_constraint=true,
@@ -29,7 +58,55 @@ namespace camera {
                                                           use_camera_constraint,
                                                           use_gcp_constraint ) {}
     
-    // PROBABLY DELETE?
+    virtual void covCalc(){
+
+      // camera params
+      unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
+      unsigned num_cameras = this->m_model.num_cameras();
+
+      unsigned inverse_size = num_cam_params * num_cameras;
+
+      typedef Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> matrix_camera_camera;
+    
+      // final vector of camera covariance matrices
+      boost_sparse_vector< matrix_camera_camera > sparse_cov(num_cameras);
+      
+      
+      // Get the S matrix from the model
+      Matrix<double> S = this->S();
+      
+      Matrix<double> Id(inverse_size, inverse_size);
+      Id.set_identity();
+      
+      Matrix<double> Cov = multi_solve_symmetric(S, Id);
+
+      //pick out covariances of individual cameras
+      for(int i = 0; i < num_cameras; i++){
+	sparse_cov(i) = submatrix(Cov, i*num_cam_params, i*num_cam_params, num_cam_params, num_cam_params);
+      }
+
+       
+      std::cout << "Covariance matrices for cameras are:" << sparse_cov << "\n\n";
+      
+      return;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ // PROBABLY DELETE?
     //-----------------------------------------------------------
     // I'm not sure what this does
     void debug_impl(Matrix<double> &J, Matrix<double> &sigma, Vector<double> &epsilon) {
@@ -139,6 +216,7 @@ namespace camera {
       }
     }
 
+
     // UPDATE IMPLEMENTATION
     //---------------------------------------------------------------
     // This is a simple, non-sparse, unoptimized implementation of LM
@@ -228,6 +306,9 @@ namespace camera {
      
       
       // std::cout << "epsilon: " << epsilon << "\n"; 
+      //WARNING: debugging only
+
+
 
       // Add rows to J and epsilon for a priori camera parameters...
       if (this->m_use_camera_constraint)
@@ -294,13 +375,13 @@ namespace camera {
 
       // std::cout << "del_J" << del_J << "\n";
 
-      std::cout << "Past the right side in Ref implementation \n";
+      // std::cout << "Past the right side in Ref implementation \n";
 
       // ... and the left side.  (Remembering to rescale the diagonal
       // entries of the approximated hessian by lambda)
        Matrix<double> hessian = JTS * J;
 
-      std::cout << "Past the left side in Ref Implementation \n";
+       // std::cout << "Past the left side in Ref Implementation \n";
 
       // initialize m_lambda on first iteration, ignore if user has
       // changed it.
@@ -309,9 +390,9 @@ namespace camera {
       unsigned num_pt_entries = num_pt_params * num_points;
 
       
-     
+      //WARNING: debugging only (uncomment two lines below)
       for ( unsigned i=0; i < hessian.rows(); ++i )
-        hessian(i,i) +=  this->m_lambda;
+	hessian(i,i) +=  this->m_lambda;
 
       //Cholesky decomposition. Returns Cholesky matrix in lower left hand corner.
       Vector<double> delta = del_J;
@@ -321,7 +402,7 @@ namespace camera {
     
       Matrix<double> U = submatrix(hessian, 0, 0, num_cam_entries, num_cam_entries);
       
-      //std::cout << "U: " << U << "\n\n"; 
+      std::cout << "U after lambda: " << U << "\n\n"; 
 
       Matrix<double> W = submatrix(hessian, 0, num_cam_entries,  num_cam_entries, num_pt_entries);
       Matrix<double> Vinv = submatrix(hessian, num_cam_entries, num_cam_entries, 
@@ -332,18 +413,24 @@ namespace camera {
         W * transpose(Vinv) * Vinv * subvector(delta, num_cam_entries, num_pt_entries); 
       Matrix<double> S = U - Y * transpose(W);
 
+      // set S
+      this->set_S(S);
+
       //std::cout << "S: " << S << "\n\n";
 
 
-      std::cout << "Past U, W setup in Ref Implementation \n";
+      // std::cout << "Past U, W setup in Ref Implementation \n";
 
       solve(e, S); // using cholesky
 
-      std::cout << "Past solve(e,S) step in Ref Implementation \n";
+      //std::cout << "Past solve(e,S) step in Ref Implementation \n";
 
       solve(delta, hessian);
 
-      std:: cout << "Past backward solve in Ref Implementation \n";
+      
+      //std::cout<< "delta: " << delta << "\n\n";
+
+      //std:: cout << "Past backward solve in Ref Implementation \n";
       
       double nsq_x = 0;
       for (unsigned j=0; j<this->m_model.num_cameras(); ++j){
@@ -410,7 +497,7 @@ namespace camera {
         }
       }
       
-      std::cout << "Past new error calc in Ref \n";
+      //std::cout << "Past new error calc in Ref \n";
 
 
       //Fletcher modification

@@ -66,65 +66,40 @@ namespace camera {
     // This routine inverts a sparse matrix S, and prints the individual 
     // covariance matrices for each camera
 
-    //  virtual void covCalc(){
+      virtual void covCalc(){
 
-     /*  // camera params   */
-/*       unsigned num_cam_params = BundleAdjustModelT::camera_params_n; */
-/*       unsigned num_cameras = this->m_model.num_cameras(); */
+      // camera params
+      unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
+      unsigned num_cameras = this->m_model.num_cameras();
 
-/*       unsigned inverse_size = num_cam_params * num_cameras; */
+      unsigned inverse_size = num_cam_params * num_cameras;
 
-/*       typedef Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> matrix_camera_camera; */
+      typedef Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> matrix_camera_camera;
     
-/*       // final vector of camera covariance matrices */
-/*       boost_sparse_vector< matrix_camera_camera > sparse_cov(num_cameras); */
+      // final vector of camera covariance matrices
+      boost_sparse_vector< matrix_camera_camera > sparse_cov(num_cameras);
       
       
       
-/*       // Get the S matrix from the model */
-/*       math::SparseSkylineMatrix<double> S = this->S(); */
-      
-/*       std::cout << "I got S\n\n"; */
-    
-      
-/*       Matrix<double> Cov(inverse_size, inverse_size); */
-/*       Matrix<double> Id(inverse_size, inverse_size); */
-
-/*       Cov.set_identity(); */
-/*       Id.set_identity(); */
+      // Get the S matrix from the model
+      math::SparseSkylineMatrix<double> S = this->S();
       
       
-/*       Vector<double> current_col(inverse_size); */
-/*       Vector<double> column_sol(inverse_size); */
+       Matrix<double> Id(inverse_size, inverse_size);
+       Id.set_identity();
+       
+       Matrix<double> Cov = multi_sparse_solve(S, Id);
 
+   
+       //pick out covariances of individual cameras
+       for(int i = 0; i < num_cameras; i++){
+	 sparse_cov(i) = submatrix(Cov, i*num_cam_params, i*num_cam_params, num_cam_params, num_cam_params);
+       }
 
-/*       // get LDL^T decomposition - S is modified in place */
-/*       //ldl_decomposition(S); */
-
-
-/*       // build up covariance column by column using  */
-/*       // the LDL^T decomposition and the helper sparse solver */
-
-/*       //for(int i = 0; i < inverse_size; i++){ */
-
-/*       //current_col = select_col(Id, i); */
-/*       //	column_sol = sparse_solve_ldl(S, current_col); */
-/*       //select_col(Cov, i) = column_sol; */
-/*       //} */
-
-/*       std::cout << "I'm in past inversion step\n\n"; */
-
-/*       //pick out covariances of individual cameras */
-/*       for(int i = 0; i < num_cameras; i++){ */
-/* 	sparse_cov(i) = submatrix(Cov, i*num_cam_params, i*num_cam_params, num_cam_params, num_cam_params);	   */
-/*       } */
-
-/*       std::cout << "I'm past extracting individual cameras\n\n";  */
+       std::cout << "Covariance matrices for cameras are:" << sparse_cov << "\n\n";
       
-/*       std::cout << "Covariance matrices for cameras are:" << sparse_cov << "\n\n"; */
-      
-      // return;
-      // }
+       return;
+       }
 
 
 
@@ -357,7 +332,7 @@ namespace camera {
 	  U(i) += u_lambda;  
 	}
       }
-      // std::cout << "\n (new) U Matrix array after lambda adjustment " << U << "\n";
+       std::cout << "\n (new) U Matrix array after lambda adjustment " << U << "\n";
 
       {
         matrix_point_point v_lambda;

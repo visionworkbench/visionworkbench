@@ -12,15 +12,47 @@
 #define __VW_CAMERA_BUNDLE_ADJUSTMENT_ROBUST_REF_H__
 
 #include <vw/Camera/BundleAdjustmentBase.h>
+#include <vw/Math/LinearAlgebra.h>
+
+// Boost 
+#include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <boost/numeric/ublas/vector_sparse.hpp>
+#include <boost/numeric/ublas/io.hpp>
+#include <boost/make_shared.hpp>
+#include <boost/version.hpp>
+
+// The sparse vectors/matrices are needed 
+// for the covariance calculation
+
+#if BOOST_VERSION<=103200
+// Mapped matrix doesn't exist in 1.32, but Sparse Matrix does
+// 
+// Unfortunately some other tests say this doesn't work
+#define boost_sparse_matrix boost::numeric::ublas::sparse_matrix
+#define boost_sparse_vector boost::numeric::ublas::sparse_vector
+#else
+// Sparse Matrix was renamed Mapped Matrix in later editions
+#define boost_sparse_matrix boost::numeric::ublas::mapped_matrix
+#define boost_sparse_vector boost::numeric::ublas::mapped_vector
+#endif
+
 
 namespace vw {
 namespace camera {
 
   template <class BundleAdjustModelT, class RobustCostT>
   class BundleAdjustmentRobustRef : public BundleAdjustmentBase<BundleAdjustModelT,RobustCostT> {
-
+ 
+    
+    // Need to save S for covariance calculations
+    boost::shared_ptr<math::Matrix<double> > m_S; 
+  
   public:
 
+    Matrix<double> S() { return *m_S; }
+    void set_S(math::Matrix<double> S) { 
+      m_S = boost::make_shared<math::Matrix<double> >(S); 
+    }
     BundleAdjustmentRobustRef( BundleAdjustModelT & model,
                          RobustCostT const& robust_cost_func,
                          bool use_camera_constraint=true,
@@ -29,6 +61,38 @@ namespace camera {
                                                           use_camera_constraint,
                                                           use_gcp_constraint ) {}
 
+
+    virtual void covCalc(){
+      // camera params
+      unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
+      unsigned num_cameras = this->m_model.num_cameras();
+
+      unsigned inverse_size = num_cam_params * num_cameras;
+
+      typedef Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> matrix_camera_camera;
+    
+      // final vector of camera covariance matrices
+      boost_sparse_vector< matrix_camera_camera > sparse_cov(num_cameras);
+      
+      
+      // Get the S matrix from the model
+      Matrix<double> S = this->S();
+      
+      Matrix<double> Id(inverse_size, inverse_size);
+      Id.set_identity();
+      
+      Matrix<double> Cov = multi_solve_symmetric(S, Id);
+
+   
+      //pick out covariances of individual cameras
+      for(int i = 0; i < num_cameras; i++){
+	sparse_cov(i) = submatrix(Cov, i*num_cam_params, i*num_cam_params, num_cam_params, num_cam_params);
+      }
+
+          
+      std::cout << "Covariance matrices for cameras are:" << sparse_cov << "\n\n";
+      return;
+    }
 
     // UPDATE IMPLEMENTATION
     //---------------------------------------------------------------
@@ -259,6 +323,9 @@ namespace camera {
 
       // std::cout << "S is: " << S << "\n\n";
 
+      // Set S
+      this->set_S(S);
+
 
       solve(e, S); // using cholesky
 
@@ -301,7 +368,7 @@ namespace camera {
         }
       }
 
-      std::cout << "new objective after pixels: " << new_objective << "\n\n";
+      //std::cout << "new objective after pixels: " << new_objective << "\n\n";
 
       // Add rows to J and epsilon for a priori position/pose constraints...
       if (this->m_use_camera_constraint)
@@ -319,7 +386,7 @@ namespace camera {
 
         }
 
-       std::cout << "new objective after initials: " << new_objective << "\n\n";
+      // std::cout << "new objective after initials: " << new_objective << "\n\n";
 
       // ... and the position of the 3D points to J and epsilon ...
       if (this->m_use_gcp_constraint) {
@@ -353,9 +420,9 @@ namespace camera {
 
       unsigned ret = 0;
 
-      std::cout << " Old robust objective: " << robust_objective << "\n";
-      std::cout << " New robust objective: " << new_objective << "\n";
-      std::cout << " Lambda " << this->m_lambda << "\n";
+    /*   std::cout << " Old robust objective: " << robust_objective << "\n"; */
+/*       std::cout << " New robust objective: " << new_objective << "\n"; */
+/*       std::cout << " Lambda " << this->m_lambda << "\n"; */
 
       if (R > 0){
         ret = 1;

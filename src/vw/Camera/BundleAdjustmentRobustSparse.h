@@ -56,6 +56,39 @@ namespace camera {
                                                           use_camera_constraint,
                                                           use_gcp_constraint ) {}
 
+
+    virtual void covCalc(){
+ // camera params
+      unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
+      unsigned num_cameras = this->m_model.num_cameras();
+
+      unsigned inverse_size = num_cam_params * num_cameras;
+
+      typedef Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> matrix_camera_camera;
+    
+      // final vector of camera covariance matrices
+      boost_sparse_vector< matrix_camera_camera > sparse_cov(num_cameras);
+      
+      
+      
+      // Get the S matrix from the model
+      math::SparseSkylineMatrix<double> S = this->S();
+      
+      Matrix<double> Id(inverse_size, inverse_size);
+      Id.set_identity();
+      
+      Matrix<double> Cov = multi_sparse_solve(S, Id);
+      
+          
+      //pick out covariances of individual cameras
+      for(int i = 0; i < num_cameras; i++){
+	sparse_cov(i) = submatrix(Cov, i*num_cam_params, i*num_cam_params, num_cam_params, num_cam_params);
+      }
+      
+      std::cout << "Covariance matrices for cameras are:" << sparse_cov << "\n\n";
+      return;
+    }
+
     // UPDATE IMPLEMENTATION
     //-------------------------------------------------------------
     // This is the sparse levenberg marquardt update step.  Returns
@@ -385,14 +418,13 @@ namespace camera {
         }
       }
 
-
+      this->set_S(S);
 
       // Compute the LDL^T decomposition and solve using sparse methods.
       Vector<double> delta_a = sparse_solve(S, e);
       // Save S; used for covariance calculations
-      this->set_S(S);
-
-      //std::cout << "Delta a is : " << delta_a << "\n\n";
+    
+      std::cout << "Delta a is : " << delta_a << "\n\n";
 
 
       subvector(delta, current_delta_length, e.size()) = delta_a;
@@ -528,11 +560,11 @@ namespace camera {
       double R = (SS - Splus)/dS;         // Compute ratio
 
      
-      /*
+   
       std::cout << "Old Objective: " << robust_objective << "\n";
       std::cout << "New Objective: " << new_robust_objective << "\n";
       std::cout << "Lambda: " << this->m_lambda << "\n";
-      */
+   
 
 
       if (R>0){
