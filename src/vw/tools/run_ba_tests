@@ -227,7 +227,7 @@ sub run_tests {
             }
             
             # create a set of test data
-            my @make_data = ($make_data, 
+            my @make_data = ($make_data,
                              '-f', "$test_cfg_file",
                              '--data-dir', "$test_dir");
             system(@make_data) == 0 or die "@make_data failed: $!";
@@ -235,7 +235,7 @@ sub run_tests {
             my @camera_files = ();
             my $num_cameras = $test_config{"number-of-cameras"};
             foreach (0 .. $num_cameras-1) {
-                push(@camera_files, "$camera_prefix$_.$camera_ext");
+                push(@camera_files, "$test_dir/$camera_prefix$_.$camera_ext");
             }
 
             # For each bundle adjustment type
@@ -248,7 +248,7 @@ sub run_tests {
                 }
 
                 # run bundle adjustment
-                my @ba_test_opts = (
+                my @ba_test_opts = ('-d',
                     '-R',$results_dir,
                     '-D',$test_dir,
                     '-r',$ba_report_level,

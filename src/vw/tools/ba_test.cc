@@ -806,7 +806,7 @@ void adjust_bundles(BundleAdjustmentModel &ba_model,
   run_bundle_adjustment<AdjusterT>(bundle_adjuster, reporter, results_dir,
       config.max_iterations, config.save_iteration_data);
 
-  // If we want to remove outliers, do the process again
+ // If we want to remove outliers, do the process again
   if (config.remove_outliers) {
     fs::path out_file = results_dir / ProcessedCnetFile;
     fs::path cnet_file = config.data_dir / config.cnet_file;
@@ -879,11 +879,28 @@ int main(int argc, char* argv[]) {
         (ba_model, config, "Robust Sparse");
       break;
   }
-
+  
+  // Do covariance calculation:
+  // a. set lambda = 0
+  // b. run bundle adjustment for one iteration
+  // c. run adjuster.covCalc() 
+  //        covCalc will return a vector (length = numCameras)
+  //        of 6x6 covariance matrices
+  //        (may need to do this inside adjust_bundles, in which
+  //         case adjust_bundles will return a vector of covariance matrices)
+  // d. write covariance matrices to file
+  // 
+  // In results calculations:
+  // a. for each estimated camera parameter, check whether true parameter is
+  //    within 1.96 * sqrt of appropriate element of corresponding camera
+  //    covariance matrix
+ 
   // Write post-adjustment camera model files
   ba_model.write_adjusted_camera_models(config);
 
   // Write post-adjustment camera parameters and world points
+  // cam params should include estimate_sigma (sqrt of corresponding diag
+  // element of covariance matrix)
   ba_model.write_camera_params(cam_file_final);
   ba_model.write_world_points(wp_file_final);
 
