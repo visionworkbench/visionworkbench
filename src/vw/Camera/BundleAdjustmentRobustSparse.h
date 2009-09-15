@@ -19,7 +19,6 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/vector_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/version.hpp>
 #if BOOST_VERSION<=103200
 // Mapped matrix doesn't exist in 1.32, but Sparse Matrix does
@@ -45,7 +44,7 @@ namespace camera {
   public:
     math::SparseSkylineMatrix<double> S() { return *m_S; }
     void set_S(math::SparseSkylineMatrix<double> S) { 
-      m_S = boost::make_shared<math::SparseSkylineMatrix<double> >(S); 
+      m_S = boost::shared_ptr<math::SparseSkylineMatrix<double> >(S);
     }
 
     BundleAdjustmentRobustSparse( BundleAdjustModelT & model,

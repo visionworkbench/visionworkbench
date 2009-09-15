@@ -18,7 +18,6 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/vector_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/version.hpp>
 
 // The sparse vectors/matrices are needed 
@@ -48,7 +47,7 @@ namespace camera {
   public:
     Matrix<double> S() { return *m_S; }
     void set_S(math::Matrix<double> S) { 
-      m_S = boost::make_shared<math::Matrix<double> >(S); 
+      m_S = boost::shared_ptr<math::Matrix<double> >(S);
     }
     BundleAdjustmentRef( BundleAdjustModelT & model,
                          RobustCostT const& robust_cost_func,
