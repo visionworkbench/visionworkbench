@@ -23,8 +23,7 @@
 #     REVISION:  ---
 #===============================================================================
 
-use lib "~/lib";
-use File::Path qw(make_path);
+use File::Path qw(mkpath);
 use Getopt::Long;
 use Pod::Usage;
 use Statistics::Descriptive;
