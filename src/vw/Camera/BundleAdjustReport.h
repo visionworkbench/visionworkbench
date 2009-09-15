@@ -22,7 +22,6 @@
 
 // Vision Workbench
 #include <vw/Core/Log.h>
-#include <vw/Camera/BundleAdjust.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Cartography/SimplePointImageManipulation.h>
