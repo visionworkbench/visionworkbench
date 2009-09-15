@@ -202,7 +202,7 @@ namespace vw {
         for (int i = 0; i < weight_template.cols(); ++i ) {
 
           // Mask is zero if the disparity map's pixel is missing...
-          if ( is_valid(*disp_col_acc) )
+          if ( !is_valid(*disp_col_acc) )
             *weight_col_acc = 0;
 
           // ... or if there is a large discontinuity ...
@@ -298,12 +298,13 @@ namespace vw {
               y < left_image.rows()-kern_half_height; ++y) {
           if (verbose && y % 10 == 0) {
             sw.stop();
-            vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y << " / " << left_image.rows() << "    (" << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time)) << " pixels/s, "<< sw.elapsed_seconds() << " s total )      \r" << std::flush;
+            vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y << " / " << left_image.rows()
+                                          << "    (" << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time))
+                                          << " pixels/s, "<< sw.elapsed_seconds() << " s total )      \r" << std::flush;
             last_time = sw.elapsed_seconds();
             sw.start();
           }
-          // For debugging:
-          // for (int x=279; x<280; ++x) {
+
           for ( int x = kern_half_width;
                 x < left_image.cols()-kern_half_width; ++x) {
 
@@ -355,7 +356,6 @@ namespace vw {
 
               float x_base = x + disparity_map(x,y)[0];
               float y_base = y + disparity_map(x,y)[1];
-              //          float error_total = 0;
 
               Matrix<float,6,6> rhs;
               Vector<float,6> lhs;
@@ -396,8 +396,6 @@ namespace vw {
 
                   // Disable robust cost function altogether
                   //        float robust_weight = 1;
-
-
 
                   // We combine the error value with the derivative and
                   // add this to the update equation.
@@ -473,24 +471,6 @@ namespace vw {
               rhs(5,3) = rhs(3,5);
               rhs(5,4) = rhs(4,5);
 
-
-              //           if (y == 270) {
-              //                       ImageView<ChannelT> right_image_patch(kern_width, kern_height);
-              //                       for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
-              //                         for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
-              //                           float xx = x_base + d[0] * ii + d[1] * jj + d[2];
-              //                           float yy = y_base + d[3] * ii + d[4] * jj + d[5];
-              //                           right_image_patch(ii+kern_half_width, jj+kern_half_width) = right_interp_image(xx,yy);
-              //                         }
-              //                       }
-              //                       std::ostringstream ostr;
-              //                       ostr << x << "_" << y << "_" << int(blur_sigma) << "_" << iter;
-              //                       write_image("small/left-"+ostr.str()+".tif", left_image_patch);
-              //                       write_image("small/right-"+ostr.str()+".tif", right_image_patch);
-              //                       write_image("small/weight-"+ostr.str()+".tif", w);
-              //                     }
-
-
               // Solves lhs = rhs * x, and stores the result in-place in lhs.
               //           Matrix<double,6,6> pre_rhs = rhs;
               //           Vector<double,6> pre_lhs = lhs;
@@ -508,15 +488,10 @@ namespace vw {
               }
               d += lhs;
 
-              //           if (y == 270)
-              //             std::cout << "Update: " << lhs << "     " << d << "     " << sqrt(error_total) << "    " << (sqrt(lhs[2]*lhs[2]+lhs[5]*lhs[5])) << "\n";
-
               // Termination condition
               if (norm_2(lhs) < 0.01)
                 break;
             }
-            //         std::cout << "----> " << d << "\n\n";
-
             if ( norm_2( Vector2f(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION ||
                  d[2] != d[2] ||  // Check to make sure the offset is not NaN...
                  d[5] != d[5] ) { // ... ditto.
@@ -921,7 +896,7 @@ namespace vw {
                  disparity_map.rows() == left_image.rows(),
                  ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
 
-      ImageView<float> confidence_image (left_image.rows(), left_image.cols());
+      ImageView<float> confidence_image (left_image.cols(), left_image.rows());
 
       /*
       //image blurring
@@ -964,10 +939,11 @@ namespace vw {
       for ( int y = std::max(region_of_interest.min().y()-1,kern_half_height);
             y < std::min(left_image.rows()-kern_half_height, region_of_interest.max().y()+1) ;
             ++y) {
-        //         for (int y=kern_half_height; y<left_image.rows()-kern_half_height; ++y) {
         if (verbose && y % 10 == 0) {
           sw.stop();
-          vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y << " / " << left_image.rows() << "    (" << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time)) << " pixels/s, "<< sw.elapsed_seconds() << " s total )      \r" << std::flush;
+          vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y << " / " << left_image.rows() 
+                                        << "    (" << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time)) 
+                                        << " pixels/s, "<< sw.elapsed_seconds() << " s total )      \r" << std::flush;
           last_time = sw.elapsed_seconds();
           sw.start();
         }
@@ -1039,7 +1015,6 @@ namespace vw {
 
             float x_base = x + disparity_map(x,y)[0];
             float y_base = y + disparity_map(x,y)[1];
-            //          float error_total = 0;
 
             Matrix<float,6,6> rhs;
             Vector<float,6> lhs;
@@ -1056,7 +1031,6 @@ namespace vw {
             float w_plane = 0.8;
             float w_noise = 0.2;
             //set init params - END
-
 
             //EXPECTATION - START
             float in_curr_sum_I_e_val = 0.0;
@@ -1090,12 +1064,6 @@ namespace vw {
                   // First we compute the pixel offset for the right image
                   // and the error for the current pixel.
 
-                  //float xx = x_base + d_em[0] * ii + d_em[1] * jj + d_em[2];
-                  //float yy = y_base + d_em[3] * ii + d_em[4] * jj + d_em[5];
-
-                  //float delta_x = xx-x_base;
-                  //float delta_y = yy-y_base;
-
                   float xx = x_base + d[0] * ii + d[1] * jj + d[2];
                   float yy = y_base + d[3] * ii + d[4] * jj + d[5];
 
@@ -1105,34 +1073,11 @@ namespace vw {
                   //float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr);
                   float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr) - delta_x*(*I_x_ptr) - delta_y*(*I_y_ptr);
                   float temp_noise = right_interp_image(xx,yy) - mean_noise;
-                  /*
-                    float temp_disp_h_top;
-                    float temp_disp_v_top;
-                    float temp_disp_h_left;
-                    float temp_disp_v_left;
-                    float a_priori_plane_prob;
 
-                    if ((x > 0) && (y > 0)){
-                    temp_disp_h_top  = d_em[2]-disparity_map(x-1,y).h();
-                    temp_disp_v_top  = d_em[5]-disparity_map(x-1,y).v();
-                    temp_disp_h_left = d_em[2]-disparity_map(x,y-1).h();
-                    temp_disp_v_left = d_em[5]-disparity_map(x,y-1).v();
-                    a_priori_plane_prob = disp_norm_factor*exp(-1*(temp_disp_h_top*temp_disp_h_top + temp_disp_v_top*temp_disp_v_top +
-                    temp_disp_h_left*temp_disp_h_left + temp_disp_v_left*temp_disp_v_left)/(2*var2_disp));
-                    }
-                    else{
-                    a_priori_plane_prob = 1.0;
-                    }
-                    printf("apriori_prob = %f\n", a_priori_plane_prob);
-
-                    float plane_prob = a_priori_plane_prob*plane_norm_factor*exp(-1*(temp_plane*temp_plane)/(2*var2_plane));
-                  */
                   float plane_prob = plane_norm_factor*exp(-1*(temp_plane*temp_plane)/(2*var2_plane));
                   float noise_prob = noise_norm_factor*exp(-1*(temp_noise*temp_noise)/(2*var2_noise));
 
                   float sum = plane_prob*w_plane + noise_prob*w_noise;
-                  //printf("p_prob = %f, n_prob = %f, sum = %f, w = %f, u = %f\n",
-                  //       plane_prob, noise_prob, sum, *w_ptr, 1.0/(float)(kern_height*kern_width));
 
                   gamma_plane(jj+kern_half_height, ii+kern_half_width) = plane_prob*w_plane/sum;
                   gamma_noise(jj+kern_half_height, ii+kern_half_width) = noise_prob*w_noise/sum;
@@ -1149,7 +1094,6 @@ namespace vw {
 
               }
               //EXPECTATION - END
-              //printf("em iter = %d, expectation done!\n", em_iter);
 
               //MAXIMIZATION - START
               //compute the d_em vector
@@ -1187,9 +1131,6 @@ namespace vw {
                   float xx = x_base + d[0] * ii + d[1] * jj + d[2];
                   float yy = y_base + d[3] * ii + d[4] * jj + d[5];
 
-                  //float xx = x_base + d_em[0] * ii + d_em[1] * jj + d_em[2];
-                  //float yy = y_base + d_em[3] * ii + d_em[4] * jj + d_em[5];
-
                   float I_e_val = right_interp_image(xx,yy) - (*left_image_patch_ptr);
 
                   mean_noise_tmp = mean_noise_tmp + right_interp_image(xx,yy) *gamma_noise(jj+kern_half_height, ii+kern_half_width);
@@ -1200,8 +1141,6 @@ namespace vw {
 
                   // We combine the error value with the derivative and
                   // add this to the update equation.
-                  //float weight  = robust_weight;//*(*w_ptr);
-                  //printf("gauss_weight = %f, robut_weight = %f\n", *w_ptr, robust_weight);
                   float weight  = robust_weight*(*w_ptr);
                   float I_x_val = weight * (*I_x_ptr);
                   float I_y_val = weight * (*I_y_ptr);
@@ -1274,24 +1213,6 @@ namespace vw {
               rhs(5,3) = rhs(3,5);
               rhs(5,4) = rhs(4,5);
 
-
-              //           if (y == 270) {
-              //                       ImageView<ChannelT> right_image_patch(kern_width, kern_height);
-              //                       for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
-              //                         for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
-              //                           float xx = x_base + d[0] * ii + d[1] * jj + d[2];
-              //                           float yy = y_base + d[3] * ii + d[4] * jj + d[5];
-              //                           right_image_patch(ii+kern_half_width, jj+kern_half_width) = right_interp_image(xx,yy);
-              //                         }
-              //                       }
-              //                       std::ostringstream ostr;
-              //                       ostr << x << "_" << y << "_" << int(blur_sigma) << "_" << iter;
-              //                       write_image("small/left-"+ostr.str()+".tif", left_image_patch);
-              //                       write_image("small/right-"+ostr.str()+".tif", right_image_patch);
-              //                       write_image("small/weight-"+ostr.str()+".tif", w);
-              //                     }
-
-
               // Solves lhs = rhs * x, and stores the result in-place in lhs.
               //           Matrix<double,6,6> pre_rhs = rhs;
               //           Vector<double,6> pre_lhs = lhs;
@@ -1310,10 +1231,6 @@ namespace vw {
 
               //normalize the mean of the noise
               mean_noise = mean_noise_tmp/sum_gamma_noise;
-
-              //printf("mean_noise = %f, sum_gamma_noise = %f\n", mean_noise, sum_gamma_noise);
-              //printf("d[0] = %f, d[1] = %f, d[2] = %f, d[3] = %f, d[4] = %f, d[5]=%f\n", d[0], d[1], d[2], d[3], d[4], d[5]);
-              //printf("d[0] = %f, d[1] = %f, d[2] = %f, d[3] = %f, d[4] = %f, d[5]=%f\n", d_em[0], d_em[1], d_em[2], d_em[3], d_em[4], d_em[5]);
 
               //compute the variance for noise and plane
               float var2_noise_tmp  = 0.0;
@@ -1338,17 +1255,11 @@ namespace vw {
                   float xx = x_base + d[0] * ii + d[1] * jj + d[2];
                   float yy = y_base + d[3] * ii + d[4] * jj + d[5];
 
-                  //float xx = x_base + d_em[0] * ii + d_em[1] * jj + d_em[2];
-                  //float yy = y_base + d_em[3] * ii + d_em[4] * jj + d_em[5];
-
-
                   float delta_x = d_em[0] * ii + d_em[1] * jj + d_em[2];
                   float delta_y = d_em[3] * ii + d_em[4] * jj + d_em[5];
 
 
                   float I_e_val = right_interp_image(xx,yy) - (*left_image_patch_ptr);
-                  //float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr);//modified by Ara - Feb 19th
-                  //float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr) - (xx-x_base)*(*I_x_ptr) - (yy-y_base)*(*I_y_ptr);
                   float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr) - delta_x*(*I_x_ptr) - delta_y*(*I_y_ptr);
                   float temp_noise = (right_interp_image(xx,yy) - mean_noise);
 
@@ -1373,9 +1284,6 @@ namespace vw {
               var2_noise = var2_noise_tmp/sum_gamma_noise;
               var2_plane = var2_plane_tmp/sum_gamma_plane;
 
-              //printf("var2_noise = %f\n", var2_noise);
-              //printf("var2_plane = %f\n", var2_plane);
-
               if (var2_noise < min_var2_noise){
                 var2_noise = min_var2_noise;
               }
@@ -1385,8 +1293,6 @@ namespace vw {
 
               w_plane = sum_gamma_plane/(float)(kern_height*kern_width);
               w_noise = sum_gamma_noise/(float)(kern_height*kern_width);
-              //printf("w_noise = %f, w_plane = %f\n", w_noise, w_plane);
-              //printf("maximization done\n");
 
               //MAXIMIZATION - END
 
@@ -1397,16 +1303,11 @@ namespace vw {
                 conv_error = conv_error + (prev_lhs[k]-lhs[k])*(prev_lhs[k]-lhs[k]);
               }
 
-              //printf("em_iter = %d, conv_error = %f\n", em_iter, conv_error);
-
-
               d_em = d + lhs;
 
               if (in_curr_sum_I_e_val < 0){
                 in_curr_sum_I_e_val = - in_curr_sum_I_e_val;
               }
-
-              //printf("em_iter = %d, curr_sum_I_e_val = %f, prev_sum_I_e_val = %f\n", em_iter, in_curr_sum_I_e_val, in_prev_sum_I_e_val);
 
               curr_sum_I_e_val = in_curr_sum_I_e_val;
               prev_lhs = lhs;
@@ -1419,35 +1320,13 @@ namespace vw {
                 in_prev_sum_I_e_val = in_curr_sum_I_e_val;
               }
 
-
-              /*
-              //d = lhs;
-              d_em = d + lhs;
-              if (in_curr_sum_I_e_val < 0){
-              in_curr_sum_I_e_val = - in_curr_sum_I_e_val;
-              }
-              //printf("em_iter = %d, curr_sum_I_e_val = %f, prev_sum_I_e_val = %f\n", em_iter, in_curr_sum_I_e_val, in_prev_sum_I_e_val);
-              curr_sum_I_e_val = in_curr_sum_I_e_val;
-
-              // Termination condition
-              if ((in_prev_sum_I_e_val < in_curr_sum_I_e_val) && (em_iter > 0)) {
-              break;
-              }
-              else{
-              in_prev_sum_I_e_val = in_curr_sum_I_e_val;
-              }
-              */
-
             } //em_iter end
 
             d += lhs;
 
-
             if (curr_sum_I_e_val < 0){
               curr_sum_I_e_val = - curr_sum_I_e_val;
             }
-            //printf("iter = %d, curr_sum_I_e_val = %f, prev_sum_I_e_val = %f\n", iter, curr_sum_I_e_val, prev_sum_I_e_val);
-
 
             // Termination condition
             if ((prev_sum_I_e_val < curr_sum_I_e_val) && (iter > 0)) {
@@ -1460,7 +1339,6 @@ namespace vw {
             //if (norm_2(lhs) < 0.01)
             //  break;
           }
-          //         std::cout << "----> " << d << "\n\n";
 
           if ( norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION ||
                d[2] != d[2] ||  // Check to make sure the offset is not NaN...
@@ -1469,41 +1347,8 @@ namespace vw {
           } else {
             remove_mask(disparity_map(x,y)) += Vector2f(d[2],d[5]);
           }
-          //printf("iter = %d, curr_sum_I_e_val = %d\n", iter, curr_sum_I_e_val);
-        }
-        //printf("iter = %d, curr_sum_I_e_val = %d\n", iter, curr_sum_I_e_val);
-      }
-
-      /*
-      //post processing filtering stage
-      int w_height = 1;
-      int w_width = 1;
-
-      float norm_factor = 1.0/(float)((2*w_height+1)*(2*w_height+1));
-      ImageView<PixelDisparity<float> > tmp_disparity_map (left_image.rows(), left_image.cols());
-
-      for (int y = w_height; y<left_image.rows()-w_height; ++y) {
-      for (int x = w_width; x<left_image.cols()-w_width; ++x) {
-
-      tmp_disparity_map(x,y).h()=0;
-      tmp_disparity_map(x,y).v()=0;
-
-      for (int jj = -w_height; jj <= w_height; ++jj) {
-      for (int ii = -w_width; ii <= w_width; ++ii) {
-      tmp_disparity_map(x,y).h() = tmp_disparity_map(x,y).h() + disparity_map(x+ii,y+jj).h()*norm_factor;
-      tmp_disparity_map(x,y).v() = tmp_disparity_map(x,y).v() + disparity_map(x+ii,y+jj).v()*norm_factor;
-      }
-      }
-      }
-      }
-
-      for (int y=w_height; y<left_image.rows()-w_height; ++y) {
-      for (int x=w_width; x<left_image.cols()-w_width; ++x) {
-      disparity_map(x,y).h() = tmp_disparity_map(x,y).h();
-      disparity_map(x,y).v() = tmp_disparity_map(x,y).v();
-      }
-      }
-      */
+        } // X increment
+      } // Y increment
 
       if (save_confidence_image == 1){
         vw_out(0) << "Writing the confidence image ....\n";
