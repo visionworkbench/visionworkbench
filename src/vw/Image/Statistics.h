@@ -300,10 +300,11 @@ namespace vw {
     min_max_channel_values( view, min, max );
   }
 
+  /// Compute the sum of all valid pixels in the image.
   template <class ViewT>
-  typename UnmaskedPixelType<typename ViewT::pixel_type>::type
-  sum_of_pixel_values( ImageViewBase<ViewT> const& view ) {
-    typedef typename UnmaskedPixelType<typename ViewT::pixel_type>::type accum_type;
+  typename PixelChannelCast<typename UnmaskedPixelType<typename ViewT::pixel_type>::type,typename AccumulatorType<typename PixelChannelType<typename ViewT::pixel_type>::type>::type>::type
+  sum_of_pixel_values( const ImageViewBase<ViewT>& view ) {
+    typedef typename PixelChannelCast<typename UnmaskedPixelType<typename ViewT::pixel_type>::type,typename AccumulatorType<typename PixelChannelType<typename ViewT::pixel_type>::type>::type>::type accum_type;
     PixelAccumulator<Accumulator<accum_type> > accumulator;
     for_each_pixel( view, accumulator );
     return accumulator.value();

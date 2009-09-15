@@ -239,21 +239,21 @@ public:
 
   void test_sum_of_pixel_values() {
     TS_ASSERT_EQUALS( sum_of_pixel_values(im8), 143 );
-    TS_ASSERT( is_of_type<int32>( sum_of_pixel_values(im8) ) );
+    TS_ASSERT( is_of_type<vw::int32>( sum_of_pixel_values(im8) ) );
     TS_ASSERT_EQUALS( sum_of_pixel_values(imf), 0.0 );
     TS_ASSERT( is_of_type<double>( sum_of_pixel_values(imf) ) );
     TS_ASSERT_EQUALS( sum_of_pixel_values(im8ma), 119 );
-    TS_ASSERT( is_of_type<int32>( sum_of_pixel_values(im8ma) ) );
+    TS_ASSERT( is_of_type<vw::int32>( sum_of_pixel_values(im8ma) ) );
     TS_ASSERT_EQUALS( sum_of_pixel_values(imfma), -1.0 );
     TS_ASSERT( is_of_type<double>( sum_of_pixel_values(imfma) ) );
     TS_ASSERT_EQUALS( sum_of_pixel_values(im8mb), 0 );
     TS_ASSERT_EQUALS( sum_of_pixel_values(imfmb), 0.0 );
     TS_ASSERT_EQUALS( sum_of_pixel_values(imrgb8), PixelRGB<double>(143,143,317) );
-    TS_ASSERT( is_of_type<PixelRGB<int32> >( sum_of_pixel_values(imrgb8) ) );
+    TS_ASSERT( is_of_type<PixelRGB<vw::int32> >( sum_of_pixel_values(imrgb8) ) );
     TS_ASSERT_EQUALS( sum_of_pixel_values(imrgbf), PixelRGB<double>(-0.5,0.9,2.6) );
     TS_ASSERT( is_of_type<PixelRGB<double> >( sum_of_pixel_values(imrgbf) ) );
     TS_ASSERT_EQUALS( sum_of_pixel_values(imrgba8a), PixelRGBA<double>(48,82,135,306) );
-    TS_ASSERT( is_of_type<PixelRGBA<int32> >( sum_of_pixel_values(imrgba8a) ) );
+    TS_ASSERT( is_of_type<PixelRGBA<vw::int32> >( sum_of_pixel_values(imrgba8a) ) );
     TS_ASSERT_EQUALS( sum_of_pixel_values(imrgbafa), PixelRGBA<double>(0.0,0.9,2.1,1.5) );
     TS_ASSERT( is_of_type<PixelRGBA<double> >( sum_of_pixel_values(imrgbafa) ) );
     TS_ASSERT_EQUALS( sum_of_pixel_values(imrgba8b), PixelRGBA<double>(44,82,189,255) );
@@ -264,21 +264,21 @@ public:
 
   void test_sum_of_channel_values() {
     TS_ASSERT_EQUALS( sum_of_channel_values(im8), 143 );
-    TS_ASSERT( is_of_type<int32>( sum_of_channel_values(im8) ) );
+    TS_ASSERT( is_of_type<vw::int32>( sum_of_channel_values(im8) ) );
     TS_ASSERT_EQUALS( sum_of_channel_values(imf), 0.0 );
     TS_ASSERT( is_of_type<double>( sum_of_channel_values(imf) ) );
     TS_ASSERT_EQUALS( sum_of_channel_values(im8ma), 119 );
-    TS_ASSERT( is_of_type<int32>( sum_of_channel_values(im8ma) ) );
+    TS_ASSERT( is_of_type<vw::int32>( sum_of_channel_values(im8ma) ) );
     TS_ASSERT_EQUALS( sum_of_channel_values(imfma), -1.0 );
     TS_ASSERT( is_of_type<double>( sum_of_channel_values(imfma) ) );
     TS_ASSERT_EQUALS( sum_of_channel_values(im8mb), 0 );
     TS_ASSERT_EQUALS( sum_of_channel_values(imfmb), 0.0 );
     TS_ASSERT_EQUALS( sum_of_channel_values(imrgb8), 603 );
-    TS_ASSERT( is_of_type<int32>( sum_of_channel_values(imrgb8) ) );
+    TS_ASSERT( is_of_type<vw::int32>( sum_of_channel_values(imrgb8) ) );
     TS_ASSERT_EQUALS( sum_of_channel_values(imrgbf), 3.0 );
     TS_ASSERT( is_of_type<double>( sum_of_channel_values(imrgbf) ) );
     TS_ASSERT_EQUALS( sum_of_channel_values(imrgba8a), 571 );
-    TS_ASSERT( is_of_type<int32>( sum_of_channel_values(imrgba8a) ) );
+    TS_ASSERT( is_of_type<vw::int32>( sum_of_channel_values(imrgba8a) ) );
     TS_ASSERT_EQUALS( sum_of_channel_values(imrgbafa), 4.5 );
     TS_ASSERT( is_of_type<double>( sum_of_channel_values(imrgbafa) ) );
     TS_ASSERT_EQUALS( sum_of_channel_values(imrgba8b), 570 );
