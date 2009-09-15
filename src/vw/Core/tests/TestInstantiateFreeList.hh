@@ -13,4 +13,4 @@ template vw::CompoundResult<FuncT, ArgT, void>::type vw::compound_apply < FuncT,
 //template ResultT vw::compound_select_channel < ResultT,PixelT > (const PixelT&, boost::enable_if<boost::mpl::and_<boost::mpl::not_<vw::IsCompound<PixelT> >::type, boost::mpl::not_<boost::is_reference<T>::type>::type, mpl_::bool_<true>, mpl_::bool_<true>, mpl_::bool_<true> >, int>::type);
 template ResultT vw::compound_select_channel < ResultT,PixelT > (const PixelT&, boost::enable_if<boost::mpl::and_<vw::IsCompound<PixelT>, boost::mpl::not_<boost::is_reference<T>::type>::type, mpl_::bool_<true>, mpl_::bool_<true>, mpl_::bool_<true> >, int>::type);
 template boost::enable_if<vw::IsScalarOrCompound<T>, double>::type vw::mean_channel_value < T > (const T&);
-template string vw::stringify < T > (const T&);
+template std::string vw::stringify < T > (const T&);

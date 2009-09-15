@@ -42,10 +42,44 @@ if DIST_REMOVE_MODULES
 	( cd $(distdir) && autoreconf && touch src/vw/config.h.pre.in && rm -rf autom4te.cache )
 endif
 
+all-local:
+if ENABLE_TEST_COVERAGE
+	$(LCOV) --follow --capture --test-name 'Vision-Workbench-Base' --directory $(top_srcdir) --output-file vw-base.trace --initial
+	$(LCOV) --follow -e vw-base.trace '*/src/vw/*' -o vw-base.trace
+	$(LCOV) --follow -r vw-base.trace '*/tests/*'  -o vw-base.trace
+	$(LCOV) --follow -r vw-base.trace '*/tools/*'  -o vw-base.trace
+	$(LCOV) --follow -r vw-base.trace '*/gui/*'    -o vw-base.trace
+endif
+
 check-local:
 	@echo ==============================
 	@echo All tests passed successfully!
 	@echo ==============================
+if ENABLE_TEST_COVERAGE
+	$(LCOV) --follow --capture --test-name 'Vision-Workbench' --directory $(top_srcdir) --output-file vw-test.trace
+	$(LCOV) --follow -e vw-test.trace '*/src/vw/*' -o vw-test.trace
+	$(LCOV) --follow -r vw-test.trace '*/tests/*'  -o vw-test.trace
+	$(LCOV) --follow -r vw-test.trace '*/tools/*'  -o vw-test.trace
+	$(LCOV) --follow -r vw-test.trace '*/gui/*'    -o vw-test.trace
+	$(LCOV) --follow -a vw-base.trace -a vw-test.trace -o vw.trace
+	$(GENHTML) -o $(top_srcdir)/coverage vw.trace
+	@echo "Generated code coverage report in $(top_srcdir)/coverage"
+endif
+
+coverage:
+	$(LCOV) --follow --capture --test-name 'Vision-Workbench-Base' --directory $(top_srcdir) --output-file vw-base.trace --initial
+	$(LCOV) --follow -e vw-base.trace '*/src/vw/*' -o vw-base.trace
+	$(LCOV) --follow -r vw-base.trace '*/tests/*'  -o vw-base.trace
+	$(LCOV) --follow -r vw-base.trace '*/tools/*'  -o vw-base.trace
+	$(LCOV) --follow -r vw-base.trace '*/gui/*'    -o vw-base.trace
+	$(LCOV) --follow --capture --test-name 'Vision-Workbench' --directory $(top_srcdir) --output-file vw-test.trace
+	$(LCOV) --follow -e vw-test.trace '*/src/vw/*' -o vw-test.trace
+	$(LCOV) --follow -r vw-test.trace '*/tests/*'  -o vw-test.trace
+	$(LCOV) --follow -r vw-test.trace '*/tools/*'  -o vw-test.trace
+	$(LCOV) --follow -r vw-test.trace '*/gui/*'    -o vw-test.trace
+	$(LCOV) --follow -a vw-base.trace -a vw-test.trace -o vw.trace
+	$(GENHTML) -o $(top_srcdir)/coverage vw.trace
+	@echo "Generated code coverage report in $(top_srcdir)/coverage"
 
 distclean-local:
 	cd docs/workbook && $(MAKE) $(AM_MAKEFLAGS) distclean
@@ -57,21 +91,6 @@ doxygen:
 	cd src && doxygen
 
 doc: workbook doxygen
-
-coverage:
-	$(LCOV) --capture --test-name 'Vision-Workbench-Base' --directory $(top_srcdir) --output-file vw-base.trace --initial
-	$(LCOV) -e vw-base.trace '*/src/vw/*' -o vw-base.trace
-	$(LCOV) -r vw-base.trace '*/tests/*'  -o vw-base.trace
-	$(LCOV) -r vw-base.trace '*/tools/*'  -o vw-base.trace
-	$(LCOV) -r vw-base.trace '*/gui/*'  -o vw-base.trace
-	$(LCOV) --capture --test-name 'Vision-Workbench'      --directory $(top_srcdir) --output-file vw-test.trace
-	$(LCOV) -e vw-test.trace '*/src/vw/*' -o vw-test.trace
-	$(LCOV) -r vw-test.trace '*/tests/*'  -o vw-test.trace
-	$(LCOV) -r vw-test.trace '*/tools/*'  -o vw-test.trace
-	$(LCOV) -r vw-test.trace '*/gui/*'  -o vw-test.trace
-	$(LCOV) -a vw-base.trace -a vw-test.trace -o vw.trace
-	$(GENHTML) -o $(top_srcdir)/coverage vw.trace
-	@echo "Generated code coverage report in $(top_srcdir)/coverage"
 
 push-coverage:
 	if test -n "$(LCOV_REMOTE_PATH)" ; then rsync -P -e ssh -r coverage/ $(LCOV_REMOTE_PATH); fi

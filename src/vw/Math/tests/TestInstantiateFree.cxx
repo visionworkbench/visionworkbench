@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-#include <cxxtest/TestSuite.h>
+#include <gtest/gtest.h>
 //#include <string>
 #include <vw/Math.h>
 //#include <vw/Math/ConjugateGradient.h>
@@ -14,6 +14,7 @@
 //#include <vw/Image/PixelTypes.h>
 //#include <boost/type_traits.hpp>
 //#include <boost/utility/enable_if.hpp>
+#include <complex>
 
 using namespace vw;
 using namespace vw::math;
@@ -46,7 +47,7 @@ typedef VectorT SingularValuesT;
 
 typedef Vector3 BVectorT;
 
-typedef Vector<complex<double>, 3> EigenvaluesT;
+typedef Vector<std::complex<double>, 3> EigenvaluesT;
 
 typedef Matrix3x3 MatrixT;
 typedef MatrixT AMatrixT;
@@ -58,7 +59,7 @@ typedef MatrixT RMatrixT;
 typedef MatrixT UMatrixT;
 typedef MatrixT VTMatrixT;
 
-typedef Matrix<complex<double>, 3, 3> VMatrixT;
+typedef Matrix<std::complex<double>, 3, 3> VMatrixT;
 
 typedef Quaternion<int> QuaternionT;
 
@@ -87,7 +88,7 @@ typedef FuncT ImplT;
 
 typedef ConstantStepSize StepT;
 
-struct ContainerT : public vector<int> {
+struct ContainerT : public std::vector<int> {
   int rows() const {return 3;}
   int cols() const {return 3;}
 };
@@ -97,7 +98,4 @@ typedef FileT::iterator ForwardIterator;
 
 #include "TestInstantiateFreeList.hh"
 
-class TestInstantiateMathFree : public CxxTest::TestSuite
-{
-  public: void test_inst() {}
-};
+TEST(InstantiateMathFree, Inst) {}

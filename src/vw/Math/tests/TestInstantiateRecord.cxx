@@ -4,7 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-
+#include <gtest/gtest.h>
 #include <vector>
 #include <vw/Math.h>
 #include <vw/Math/DisjointSet.h>
@@ -83,7 +83,4 @@ typedef Quaternion<int> QuaternionT;
 
 #include "TestInstantiateRecordList.hh"
 
-class TestInstantiateMathRecord : public CxxTest::TestSuite
-{
-  public: void test_inst() {}
-};
+TEST(InstantiateMathRecord, Inst) {}

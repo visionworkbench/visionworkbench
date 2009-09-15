@@ -131,7 +131,7 @@ if test "$ENABLE_TEST_COVERAGE" = "yes"; then
 fi
 
 # Files test-coverage and profile-arcs generate
-AC_SUBST([MOSTLYCLEANFILES], "*.bb *.bbg *.da *.gcov *.gcda *.gcno")
+AC_SUBST([MOSTLYCLEANFILES], "*.bb *.bbg *.da *.gcov *.gcda *.gcno .*.gcov")
 
 # These need to be here because automake-1.6 is dumb and does not properly
 # process AM_CONDITIONALs unless the first argument is a simple string.

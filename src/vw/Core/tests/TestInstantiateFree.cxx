@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-#include <cxxtest/TestSuite.h>
+#include <gtest/gtest.h>
 #include <string>
 #include <vw/Core.h>
 #include <vw/Image/PixelTypes.h>
@@ -28,7 +28,4 @@ typedef PixelRGBA<int> PixelT;
 
 #include "TestInstantiateFreeList.hh"
 
-class TestInstantiateCoreFree : public CxxTest::TestSuite
-{
-  public: void test_inst() {}
-};
+TEST(InstantiateCoreFree, Inst) {}

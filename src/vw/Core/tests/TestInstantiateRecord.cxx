@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-#include <cxxtest/TestSuite.h>
+#include <gtest/gtest.h>
 #include <string>
 #include <vw/Core.h>
 #include <vw/Image/PixelTypes.h>
@@ -68,7 +68,4 @@ struct ResultT
 
 #include "TestInstantiateRecordList.hh"
 
-class TestInstantiateCoreRecord : public CxxTest::TestSuite
-{
-  public: void test_inst() {}
-};
+TEST(InstantiateCoreRecord, Inst) {}
