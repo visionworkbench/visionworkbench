@@ -23,8 +23,10 @@
 #     REVISION:  ---
 #===============================================================================
 
+use lib "./run_ba_tests_lib";
 use File::Path qw(make_path);
 use Getopt::Long;
+use Pod::Usage;
 use Statistics::Descriptive;
 use strict;
 use warnings;
@@ -41,7 +43,7 @@ my $tests_root         = 'ba_tests';
 
 ## Default number of tests to run. 
 ## Can override on the command line via -n or --num_tests
-my $num_tests          = 100;
+my $num_tests          = 1;
 
 ## A directory with this prefix will be created in $tests_root for each test
 ## plan: <prefix>0, <prefix>1, <prefix>2, etc.
@@ -377,8 +379,17 @@ sub print_result_stats {
 ## BEGIN EXECUTION
 ##
 
-GetOptions('directory|d=s' => \$tests_root,
+my $help = 0;
+my $man = 0;
+GetOptions('help|?'        => \$help,
+           'man'           => \$man,
+           'directory|d=s' => \$tests_root,
            'num_tests|n=i' => \$num_tests);
+
+pod2usage(-verbose => 99, 
+          -sections => "SYNOPSIS",
+          -noperldoc => 1) if $help;
+pod2usage(-verbose => 2, -noperldoc => 1) if $man;
 
 my $num_test_plans = 0;
 my $test_plans = read_test_plans($ARGV[0], \$num_test_plans);
@@ -393,3 +404,43 @@ print_raw_results($results);
 ## Calculate result statistics
 print_result_stats($results);
            
+
+__END__
+=head1 NAME 
+run_ba_tests: Bundle adjustment test harness
+
+=head1 SYNOPSIS 
+run_ba_tests [options] <test plan file>
+
+ Options:
+   --help | -?        brief help message
+   --man              full documentation
+   --directory | -d   Root directory for tests
+   --num_tests | -n   Number of tests to run for each test plan
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--directory | -d>
+Set the root directory for this test plan. All synthetic data and test
+results will be created in subdirectories of the specified root directory.
+
+=item B<--num_tests | -n>
+Set the number of tests to run for each test plan. Note that for each test,
+the harness will run the bundle adjustment types specified in the
+corresponding configuration variable in this program.
+
+=back
+
+=head1 DESCRIPTION
+This program runs tests of bundle adjustment as specified in the test plan
+file. The test plan file should be a TAB-SEPARATED file, with the first row
+specifying the names of the configuration values to set, and the remaining
+rows specifying distinct test plans.
+
+For each test plan, the program will run the number of tests specified on the
+command line by --num_tests or -n; if no value is specified it will default to
+the value set in the default configuration variable.
+
+=cut
