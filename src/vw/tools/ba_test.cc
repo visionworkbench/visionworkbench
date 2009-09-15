@@ -58,7 +58,7 @@ typedef std::vector<boost::shared_ptr<CameraModel> > CameraVector;
 const fs::path ConfigFileDefault      = "ba_test.cfg";
 const fs::path CameraParamsReportFile = "iterCameraParam.txt";
 const fs::path PointsReportFile       = "iterPointsParam.txt";
-const std::string CnetEditor          = "./cnet_editor";
+const std::string CnetEditor          = "cnet_editor";
 const fs::path MeanErrorsFile         = "image_mean.err";
 const fs::path ProcessedCnetFile      = "processed.cnet";
 
