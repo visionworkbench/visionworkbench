@@ -23,6 +23,7 @@
 #     REVISION:  ---
 #===============================================================================
 
+use lib "./run_ba_tests_lib";
 use File::Path qw(mkpath);
 use Getopt::Long;
 use Pod::Usage;
@@ -79,10 +80,10 @@ my $percentile_high = 75;
 ##
 
 ## Name of the data creation executable
-my $make_data          = './make_ba_test_data';
+my $make_data          = 'make_ba_test_data';
 
 ## Name of the executable that runs bundle adjustment
-my $ba_test            = './ba_test';
+my $ba_test            = 'ba_test';
 
 ## Name of the configuration file to read; don't change.
 my $ba_test_cfg        = 'ba_test.cfg';
@@ -199,7 +200,7 @@ sub run_tests {
         my $plan_dir = $tests_root."/".$data_dir_prefix.$t;
 
         if (!-e $plan_dir) {
-            make_path($plan_dir) or die "Error: failed to create $plan_dir: $!\n";
+            mkpath($plan_dir) or die "Error: failed to create $plan_dir: $!\n";
         } elsif (!-d $plan_dir) {
             die "Error: $plan_dir exists and is not a directory\n";
         }
@@ -220,7 +221,7 @@ sub run_tests {
             # create a test directory
             my $test_dir = "$plan_dir/$i";
             if (!-e $test_dir) {
-                make_path($test_dir) or die "Error: failed to create $test_dir: $!\n";
+                mkpath($test_dir) or die "Error: failed to create $test_dir: $!\n";
             } elsif (!-d $test_dir) {
                 die "Error: $test_dir exists and is not a directory\n";
             }
@@ -241,7 +242,7 @@ sub run_tests {
             foreach my $ba_type (@ba_types) {
                 my $results_dir = "$test_dir/$ba_type";
                 if (!-e $results_dir) {
-                    make_path($results_dir) or die "Error: failed to create $results_dir: $!\n";
+                    mkpath($results_dir) or die "Error: failed to create $results_dir: $!\n";
                 } elsif (!-d $results_dir) {
                     die "Error: $results_dir exists and is not a directory\n";
                 }
