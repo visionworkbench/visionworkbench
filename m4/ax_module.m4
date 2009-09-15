@@ -60,9 +60,9 @@ AC_DEFUN([AX_MODULE],
     # Load args 5 and 6 as required deps, and capture missing deps in missing var.
     # If missing is populated, bail out. Then load the optional deps
     AS_IF([test x"$ax_module_enable" != "xyes"], [AC_MSG_RESULT([no (disabled)])],
-      [AX_LOAD_DEPS([$1], [$5 $6], [missing]) dnl Load required deps
+      [AX_LOAD_DEPS([$1], [$5 $6], [missing]) # Load required deps
        AS_IF([test -n "$missing"], [AC_MSG_RESULT([no ([missing] $missing)]); ax_module_enable=no],
-         [AX_LOAD_DEPS([$1], [$7]) dnl Load optional deps
+         [AX_LOAD_DEPS([$1], [$7]) # Load optional deps
           MODULE_$1_CPPFLAGS="$PKG_$1_CPPFLAGS"
           if test x"$ENABLE_RPATH" = "xyes"; then
             PKG_$1_LIBS="$PKG_$1_LIBS `var_uniq \`get_rpath ${PKG_$1_LIBS}\``"
