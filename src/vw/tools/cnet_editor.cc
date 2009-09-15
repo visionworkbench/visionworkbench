@@ -1,6 +1,7 @@
 // boost
 #include <boost/program_options.hpp>
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
@@ -17,6 +18,15 @@ using namespace vw;
 using namespace vw::ip;
 using namespace vw::camera;
 
+#if VW_BOOST_VERSION < 103400
+std::istream& operator>>(std::istream& is, fs::path& p) {
+    std::string s;
+    is >> s;
+    p = s;
+    return is;
+}
+#endif
+
 // Main Executable
 int main( int argc, char *argv[] ) {
   std::string cnet_file;
@@ -24,11 +34,12 @@ int main( int argc, char *argv[] ) {
   fs::path output_cnet_file;
   ControlNetwork cnet("ControlNetwork Editor");
   double cutoff_sigma;
+  std::string output_cnet_file_tmp;
 
   po::options_description general_options("Options");
   general_options.add_options()
     ("cutoff_sigma,c", po::value<double>(&cutoff_sigma)->default_value(2),"This is the highend cutoff sigma.")
-    ("output_cnet_file,o", po::value<fs::path>(&output_cnet_file)->default_value("processed.cnet"), "Name of processed control network file to write out.")
+    ("output_cnet_file,o", po::value<std::string>(&output_cnet_file_tmp)->default_value("processed.cnet"), "Name of processed control network file to write out.")
     ("help,h","Brings up this.");
 
   po::options_description positional_options("Positional Options");
@@ -39,7 +50,7 @@ int main( int argc, char *argv[] ) {
   po::positional_options_description positional_options_desc;
   positional_options_desc.add("cnet", 1);
   positional_options_desc.add("image-mean",1);
-  
+
   po::options_description all_options("Allowed Options");
   all_options.add(general_options).add(positional_options);
 
@@ -58,6 +69,8 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
+  output_cnet_file = output_cnet_file_tmp;
+
   // Loading control network file
   std::vector<std::string> tokens;
   boost::split( tokens, cnet_file, boost::is_any_of(".") );
@@ -67,7 +80,7 @@ int main( int argc, char *argv[] ) {
     cnet.read_binary_control_network( cnet_file );
   } else {
     vw_throw( IOErr() << "Unknown Control Network file extension, \""
-		<< tokens[tokens.size()-1] << "\"." );
+                << tokens[tokens.size()-1] << "\"." );
   }
 
   // Alright loading image mean file
@@ -80,7 +93,7 @@ int main( int argc, char *argv[] ) {
   int error_size;
   std::list<double> image_errors;
   f.read((char*)&(error_size), sizeof(int));
-  
+
   for ( unsigned i = 0; i < error_size; i++ ) {
     double temp;
     f.read((char*)&(temp), sizeof(double));
@@ -89,9 +102,9 @@ int main( int argc, char *argv[] ) {
 
   // Collecting statistics
   double min_image = *(std::min_element(image_errors.begin(),
-					image_errors.end()));
+                                       image_errors.end()));
   double max_image = *(std::max_element(image_errors.begin(),
-					image_errors.end()));
+                                        image_errors.end()));
   double mean_image=0, stddev_image=0;
   for( std::list<double>::iterator it = image_errors.begin();
        it != image_errors.end(); it++ ) {
@@ -101,9 +114,9 @@ int main( int argc, char *argv[] ) {
   mean_image /= error_size;
   stddev_image /=  error_size;
   stddev_image = sqrt( stddev_image - mean_image*mean_image );
-  std::cout << "Image min: " << min_image << " max: " << max_image 
-	    << " mean: " << mean_image << " stddev: " << stddev_image 
-	    << std::endl;
+  std::cout << "Image min: " << min_image << " max: " << max_image
+            << " mean: " << mean_image << " stddev: " << stddev_image
+            << std::endl;
 
   // Awesome, now clipping based one std_dev
   int clipping_count = 0;
@@ -113,16 +126,16 @@ int main( int argc, char *argv[] ) {
   for ( unsigned cpi = 0; cpi < cnet.size(); cpi++ ) {
     for ( unsigned cmi = 0; cmi < cnet[cpi].size(); cmi++ ) {
       if ( image_error == image_errors.end() )
-	vw_throw( IOErr() << "Internal overflow error" );
+        vw_throw( IOErr() << "Internal overflow error" );
 
       // Do clipping
       if ( *image_error >= mean_image + stddev_image*cutoff_sigma ) {
-	clipping_count++;
-	
-	cnet[cpi].delete_measure( cmi );
-	cmi--;
+        clipping_count++;
+
+        cnet[cpi].delete_measure( cmi );
+        cmi--;
       } else
-	other_count++;
+        other_count++;
 
       image_error++;
     }
@@ -133,12 +146,12 @@ int main( int argc, char *argv[] ) {
       cp_clip_count++;
     }
   }
-  std::cout << float(clipping_count) * 100.0 / float(clipping_count + other_count) 
-	    << "% (" << clipping_count << ") of the control measures removed.\n";
-  std::cout << float(cp_clip_count) * 100.0 / float(cp_clip_count+cnet.size()) 
-	    << "% (" << cp_clip_count << ") of control points removed.\n";  
+  std::cout << float(clipping_count) * 100.0 / float(clipping_count + other_count)
+            << "% (" << clipping_count << ") of the control measures removed.\n";
+  std::cout << float(cp_clip_count) * 100.0 / float(cp_clip_count+cnet.size())
+            << "% (" << cp_clip_count << ") of control points removed.\n";
 
   std::cout << "\nWriting out new control network\n";
-  std::string outfile_str = fs::path(output_cnet_file.parent_path() / output_cnet_file.stem()).string();
+  std::string outfile_str = fs::path(output_cnet_file.branch_path() / fs::basename(output_cnet_file)).string();
   cnet.write_binary_control_network(outfile_str);
 }

@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2008 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2008 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -29,10 +29,11 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
-#include "boost/filesystem.hpp" 
-#include "boost/filesystem/fstream.hpp"    
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/fstream.hpp>
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;                   
+namespace fs = boost::filesystem;
 
 #include <vw/Camera/CAHVORModel.h>
 #include <vw/Camera/PinholeModel.h>
@@ -65,6 +66,20 @@ const fs::path ProcessedCnetFile      = "processed.cnet";
 using std::cout;
 using std::endl;
 
+#if VW_BOOST_VERSION < 103400
+std::ostream& operator<<(std::ostream& os, const fs::path& p) {
+    os << p.string();
+    return os;
+}
+
+std::istream& operator>>(std::istream& is, fs::path& p) {
+    std::string s;
+    is >> s;
+    p = s;
+    return is;
+}
+#endif
+
 /*
  * Program Options
  */
@@ -89,12 +104,12 @@ struct ProgramOptions {
   fs::path cnet_file;
   fs::path data_dir;
   fs::path results_dir;
-  fs::path config_file;
-  friend std::ostream& operator<<(std::ostream& ostr, ProgramOptions o);
+  std::string config_file;
+  friend std::ostream& operator<<(std::ostream& ostr, const ProgramOptions& o);
 };
 
 /* {{{ operator<< */
-std::ostream& operator<<(std::ostream& ostr, ProgramOptions o) {
+std::ostream& operator<<(std::ostream& ostr, const ProgramOptions& o) {
   ostr << endl << "Configured Options (read from " << o.config_file << ")" << endl;
   ostr << "----------------------------------------------------" << endl;
   ostr << "Control network file: " << o.cnet_file << endl;
@@ -153,7 +168,7 @@ std::string ba_type_to_string(BundleAdjustmentT t) {
       s = "robust_ref"; break;
     case ROBUST_SPARSE:
       s = "robust_sparse"; break;
-  } 
+  }
   return s;
 }
 /* }}} */
@@ -166,7 +181,9 @@ std::string ba_type_to_string(BundleAdjustmentT t) {
 /* {{{ parse_options */
 ProgramOptions parse_options(int argc, char* argv[]) {
   ProgramOptions opts;
-  
+
+  std::string data_dir_tmp;
+
   // Generic Options (generic_options)
   po::options_description generic_options("Options");
   generic_options.add_options()
@@ -174,22 +191,22 @@ ProgramOptions parse_options(int argc, char* argv[]) {
     ("verbose,v", "Verbose output")
     ("debug,d", "Debugging output")
     ("report-level,r",po::value<int>(&opts.report_level)->default_value(10),"Changes the detail of the Bundle Adjustment Report")
-    ("config-file,f", po::value<fs::path>(&opts.config_file)->default_value(ConfigFileDefault), 
+    ("config-file,f", po::value<std::string>(&opts.config_file)->default_value(ConfigFileDefault.string()),
         "File containing configuration options (if not given, defaults to reading ba_test.cfg in the current directory")
     ("print-config","Print configuration options and exit");
 
   std::string ba_type;
-  // Bundle adjustment options (ba_options) 
+  // Bundle adjustment options (ba_options)
   po::options_description ba_options("Bundle Adjustment Configuration");
   ba_options.add_options()
     ("bundle-adjustment-type,b",
         po::value<std::string>(&ba_type)->default_value("ref"),
         "Select bundle adjustment type (options are: \"ref\", \"sparse\", \"robust_ref\", \"robust_sparse\")")
-    ("cnet,c", 
-        po::value<fs::path>(&opts.cnet_file), 
+    ("cnet,c",
+        po::value<fs::path>(&opts.cnet_file),
         "Load a control network from a file")
-    ("lambda,l", 
-        po::value<double>(&opts.lambda), 
+    ("lambda,l",
+        po::value<double>(&opts.lambda),
         "Set the initial value of the LM parameter lambda")
     ("camera-position-sigma",
         po::value<double>(&opts.camera_position_sigma)->default_value(1.0),
@@ -200,16 +217,16 @@ ProgramOptions parse_options(int argc, char* argv[]) {
     ("gcp-sigma",
         po::value<double>(&opts.gcp_sigma)->default_value(1e-16),
         "Covariance constraint on ground control points")
-    ("save-iteration-data,s", 
-        po::bool_switch(&opts.save_iteration_data), 
+    ("save-iteration-data,s",
+        po::bool_switch(&opts.save_iteration_data),
         "Saves all camera information between iterations to <results-dir>/iterCameraParam.txt and saves point locations for all iterations in iterPointsParam.txt.")
-    ("max-iterations,i", 
-        po::value<int>(&opts.max_iterations)->default_value(30), 
+    ("max-iterations,i",
+        po::value<int>(&opts.max_iterations)->default_value(30),
         "Set the maximum number of iterations to run bundle adjustment.")
-    ("min-matches,m", 
-        po::value<int>(&opts.min_matches)->default_value(30), 
+    ("min-matches,m",
+        po::value<int>(&opts.min_matches)->default_value(30),
         "Set the minimum  number of matches between images that will be considered.")
-    ("data-dir,D", po::value<fs::path>(&opts.data_dir)->default_value("."),
+    ("data-dir,D", po::value<std::string>(&data_dir_tmp)->default_value("."),
         "Directory to read input data from")
     ("results-dir,R", po::value<fs::path>(&opts.results_dir),
         "Directory to write output data to (if not present, defaults to 'data-dir')")
@@ -243,10 +260,10 @@ ProgramOptions parse_options(int argc, char* argv[]) {
   // Positional setup for hidden options
   po::positional_options_description p;
   p.add("input-files", -1);
- 
+
   // Parse options on command line first
   po::variables_map vm;
-  po::store( po::command_line_parser( argc, argv ).options(cmdline_options).positional(p).allow_unregistered().run(), vm );
+  po::store( po::command_line_parser( argc, argv ).options(cmdline_options).positional(p).run(), vm );
 
   // Print usage message if requested
   std::ostringstream usage;
@@ -262,20 +279,21 @@ ProgramOptions parse_options(int argc, char* argv[]) {
   // Check config file exists
   fs::path cfg = boost::any_cast<fs::path>(vm["config-file"].value());
   if (!fs::exists(cfg) || !fs::is_regular_file(cfg)) {
-    std::cerr << "Error: Config file " << cfg 
+    std::cerr << "Error: Config file " << cfg
         << " does not exist or is not a regular file." << endl;
     exit(1);
   }
   */
- 
+
   // Parse options in config file
   std::ifstream config_file_istr(
-      boost::any_cast<fs::path>(vm["config-file"].value()).string().c_str(), 
+      opts.config_file.c_str(),
       std::ifstream::in);
-  po::store(po::parse_config_file(config_file_istr, config_file_options, true), vm);
+  po::store(po::parse_config_file(config_file_istr, config_file_options), vm);
   po::notify( vm );
-  
+
   opts.use_user_lambda = (vm.count("lambda") > 0) ? true : false;
+  opts.data_dir = data_dir_tmp;
 
   opts.bundle_adjustment_type = string_to_ba_type(ba_type);
 
@@ -305,7 +323,7 @@ ProgramOptions parse_options(int argc, char* argv[]) {
   // If the user provided a sd cutoff for outliers, set the remove_outliers boolean
   // even if it wasn't provided explicitly
   if (!vm["outlier-sd-cutoff"].defaulted())
-    opts.remove_outliers = true; 
+    opts.remove_outliers = true;
 
   vw::vw_log().console_log().rule_set().clear();
   vw::vw_log().console_log().rule_set().add_rule(vw::WarningMessage, "console");
@@ -324,7 +342,7 @@ void create_data_dir(fs::path dir) {
   if (fs::exists(dir) && !fs::is_directory(dir)) {
     std::cerr << "Error: " << dir << " is not a directory." << endl;
     exit(1);
-  } 
+  }
   else
     fs::create_directory(dir);
 }
@@ -337,25 +355,25 @@ boost::shared_ptr<ControlNetwork> load_control_network(fs::path const &file) {
   vw_out(DebugMessage) << "Loading control network from file: " << file << endl;
 
   // Deciding which Control Network we have
-  if ( file.extension() == ".net" ) {
+  if ( fs::extension(file) == ".net" ) {
     // An ISIS style control network
     vw_out(VerboseDebugMessage) << "\tReading ISIS control network file" << endl;
     cnet->read_isis_pvl_control_network( file.string() );
-  } else if ( file.extension() == ".cnet" ) {
+  } else if ( fs::extension(file) == ".cnet" ) {
     // A VW binary style
-    vw_out(VerboseDebugMessage) << "\tReading VisionWorkbench binary control network file" 
+    vw_out(VerboseDebugMessage) << "\tReading VisionWorkbench binary control network file"
       << endl;
     cnet->read_binary_control_network( file.string() );
   } else {
     vw_throw( IOErr() << "Unknown control network file extension, \""
-      << file.extension() << "\"." );
+      << fs::extension(file) << "\"." );
   }
   return cnet;
 }
 /* }}} load_control_network */
 
 /* {{{ load_camera_models */
-CameraVector load_camera_models(std::vector<fs::path> const &camera_files, 
+CameraVector load_camera_models(std::vector<fs::path> const &camera_files,
     fs::path const &dir)
 {
   vw_out(DebugMessage) << "Loading camera models" << endl;
@@ -365,7 +383,7 @@ CameraVector load_camera_models(std::vector<fs::path> const &camera_files,
     fs::path file = *iter;
     // If no parent path is provided for camera files, assume we read them from
     // the data directory
-    if (!file.has_parent_path()) file = dir / file;
+    if (!file.has_branch_path()) file = dir / file;
     vw_out(VerboseDebugMessage) << "\t" << file << endl;
     boost::shared_ptr<PinholeModel> cam(new PinholeModel());
     cam->read_file(file.string());
@@ -380,7 +398,7 @@ CameraVector load_camera_models(std::vector<fs::path> const &camera_files,
 static std::string prefix_from_filename(std::string const& filename) {
   std::string result = filename;
   int index = result.rfind(".");
-  if (index != -1) 
+  if (index != -1)
     result.erase(index, result.size());
   return result;
 }
@@ -413,11 +431,11 @@ class BundleAdjustmentModel : public camera::BundleAdjustmentModelBase<BundleAdj
   typedef Vector<double,3> point_vector_t;
 
   CameraVector m_cameras;
-  boost::shared_ptr<ControlNetwork> m_network; 
+  boost::shared_ptr<ControlNetwork> m_network;
 
   std::vector<camera_vector_t> a; // camera parameter adjustments
   std::vector<point_vector_t>  b; // point coordinates
-  std::vector<camera_vector_t> a_initial; 
+  std::vector<camera_vector_t> a_initial;
   std::vector<point_vector_t>  b_initial;
   int m_num_pixel_observations;
 
@@ -432,9 +450,9 @@ public:
 /* {{{ constructor */
   BundleAdjustmentModel(CameraVector const& cameras,
                         boost::shared_ptr<ControlNetwork> network,
-                        double const camera_position_sigma, 
+                        double const camera_position_sigma,
                         double const camera_pose_sigma,
-                        double const gcp_sigma) : 
+                        double const gcp_sigma) :
     m_cameras(cameras),
     m_network(network),
     a(cameras.size()),
@@ -494,11 +512,11 @@ public:
 
 /* {{{ A and B inverse covariance */
   // Return the covariance of the camera parameters for camera j.
-  inline Matrix<double,camera_params_n,camera_params_n> 
-  A_inverse_covariance ( unsigned j ) const 
+  inline Matrix<double,camera_params_n,camera_params_n>
+  A_inverse_covariance ( unsigned j ) const
   {
     Matrix<double,camera_params_n,camera_params_n> result;
-    result(0,0) = 1/pow(m_camera_position_sigma,2); 
+    result(0,0) = 1/pow(m_camera_position_sigma,2);
     result(1,1) = 1/pow(m_camera_position_sigma,2);
     result(2,2) = 1/pow(m_camera_position_sigma,2);
     result(3,3) = 1/pow(m_camera_pose_sigma,2);
@@ -509,8 +527,8 @@ public:
 
   // Return the covariance of the point parameters for point i.
   // NB: only applied to Ground Control Points
-  inline Matrix<double,point_params_n,point_params_n> 
-  B_inverse_covariance ( unsigned i ) const 
+  inline Matrix<double,point_params_n,point_params_n>
+  B_inverse_covariance ( unsigned i ) const
   {
     Matrix<double,point_params_n,point_params_n> result;
     result(0,0) = 1/pow(m_gcp_sigma,2);
@@ -534,7 +552,7 @@ public:
     boost::shared_ptr<CameraModel> cam(
         new AdjustedCameraModel(m_cameras[j], position_correction, pose_correction));
     return cam->point_to_pixel(b_i);
-  } 
+  }
 /* }}} */
 
 /* {{{ write_adjustment */
@@ -571,7 +589,7 @@ public:
         pix_errors.push_back(norm_2(pixel_error));
       }
   }
-  
+
   // Errors for camera position
   void camera_position_errors( std::vector<double>& camera_position_errors ) {
     camera_position_errors.clear();
@@ -583,7 +601,7 @@ public:
   }
 
   // Errors for camera pose
-  std::string camera_pose_units(){ return "degrees"; } 
+  std::string camera_pose_units(){ return "degrees"; }
   void camera_pose_errors( std::vector<double>& camera_pose_errors ) {
     camera_pose_errors.clear();
     for (unsigned j=0; j < this->num_cameras(); ++j) {
@@ -638,13 +656,13 @@ public:
 /* {{{ write_points_append */
   void write_points_append(fs::path const& filename, fs::path const& dir) {
     fs::ofstream ostr(dir / filename, std::ios::app);
-    for (unsigned i = 0; i < b.size(); ++i) 
+    for (unsigned i = 0; i < b.size(); ++i)
       ostr << i << "\t" << b[i][0] << "\t" << b[i][1] << "\t" << b[i][2] << endl;
   }
 /* }}} write_points_append */
 
 /* {{{ write_camera_params */
-void write_camera_params(fs::path file) 
+void write_camera_params(fs::path file)
 {
   fs::ofstream os(file);
   Vector3 c, p;
@@ -682,11 +700,11 @@ void write_world_points(fs::path file)
 void write_adjusted_camera_models(ProgramOptions config) {
   for (unsigned int i=0; i < this->num_cameras(); ++i) {
     fs::path file = config.camera_files[i];
-    file.replace_extension("adjust");
+    fs::change_extension(file, "adjust");
     fs::path results_dir = config.results_dir;
     if (config.use_ba_type_dirs)
       results_dir /= ba_type_to_string(config.bundle_adjustment_type);
-    file = results_dir / config.camera_files[i].replace_extension("adjust");
+    file = results_dir / fs::change_extension(config.camera_files[i], "adjust");
     this->write_adjustment(i, file.string());
   }
 }
@@ -696,23 +714,23 @@ void write_adjusted_camera_models(ProgramOptions config) {
 /* }}} BundleAdjustmentModel */
 
 /* {{{ remove_outliers */
-void remove_outliers(fs::path const &cnet_file, 
-                               fs::path const &cnet_out_file, 
-                               double const sd_cutoff) 
+void remove_outliers(fs::path const &cnet_file,
+                               fs::path const &cnet_out_file,
+                               double const sd_cutoff)
 {
   // Check MeanErrorsFile exists (created by bundle adjuster with report_level >= 35)
-  if (!fs::exists(MeanErrorsFile) || !fs::is_regular_file(MeanErrorsFile)) {
-    vw_throw(IOErr() << "Mean errors file '" << MeanErrorsFile << "' does not exist or is not a regular file"); 
+  if (!fs::exists(MeanErrorsFile) || fs::is_directory(MeanErrorsFile)) {
+    vw_throw(vw::IOErr() << "Mean errors file '" << MeanErrorsFile.string() << "' does not exist or is not a regular file");
   }
 
   // Check cnet_file exists
-  if (!fs::exists(cnet_file) || !fs::is_regular_file(cnet_file)) {
-    vw_throw(IOErr() << "Control network file '" << cnet_file << "' does not exist or is not a regular file"); 
+  if (!fs::exists(cnet_file) || fs::is_directory(cnet_file)) {
+    vw_throw(vw::IOErr() << "Control network file '" << cnet_file.string() << "' does not exist or is not a regular file");
   }
 
   // run cnet_editor on image mean errors file
   std::ostringstream command;
-  command << CnetEditor << " -c " << sd_cutoff << " -o " << cnet_out_file 
+  command << CnetEditor << " -c " << sd_cutoff << " -o " << cnet_out_file
     << " " << cnet_file << " " << MeanErrorsFile;
   vw_out(DebugMessage) << "Outlier removal command: " << command.str() << endl;
   int res = system(command.str().c_str());
@@ -729,8 +747,8 @@ void remove_outliers(fs::path const &cnet_file,
 
 /* {{{ run_bundle_adjustment */
 template <class AdjusterT>
-void run_bundle_adjustment(AdjusterT &adjuster, 
-        BundleAdjustReport<AdjusterT> &reporter, 
+void run_bundle_adjustment(AdjusterT &adjuster,
+        BundleAdjustReport<AdjusterT> &reporter,
         fs::path &results_dir,
         int max_iter,
         bool save)
@@ -744,21 +762,21 @@ void run_bundle_adjustment(AdjusterT &adjuster,
       adjuster.bundle_adjust_model().write_adjusted_cameras_append(CameraParamsReportFile, results_dir);
       adjuster.bundle_adjust_model().write_points_append(PointsReportFile, results_dir);
     }
-    
+
     if (adjuster.iterations() > max_iter || abs_tol < 1e-3 || rel_tol < 1e-3)
       break;
   }
 
   // if config.report_level >= 35, this will write the image errors file needed
-  // for outlier removal 
+  // for outlier removal
   reporter.end_tie_in();
 }
 /* }}} */
 
 /* {{{ adjust_bundles */
-template <class AdjusterT> 
-void adjust_bundles(BundleAdjustmentModel &ba_model, 
-        ProgramOptions const &config, std::string ba_type_str) 
+template <class AdjusterT>
+void adjust_bundles(BundleAdjustmentModel &ba_model,
+        ProgramOptions const &config, std::string ba_type_str)
 {
   AdjusterT bundle_adjuster(ba_model, L2Error());
   vw_out(DebugMessage) << "Running bundle adjustment" << endl;
@@ -781,7 +799,7 @@ void adjust_bundles(BundleAdjustmentModel &ba_model,
     clear_report_files(CameraParamsReportFile, PointsReportFile, results_dir);
 
   // Configure reporter
-  BundleAdjustReport<AdjusterT> 
+  BundleAdjustReport<AdjusterT>
       reporter(ba_type_str, ba_model, bundle_adjuster, config.report_level );
 
   // Run bundle adjustment
@@ -793,12 +811,12 @@ void adjust_bundles(BundleAdjustmentModel &ba_model,
     fs::path out_file = results_dir / ProcessedCnetFile;
     fs::path cnet_file = config.data_dir / config.cnet_file;
     remove_outliers(cnet_file, out_file, config.outlier_sd_cutoff);
-  
+
     // Load new control network with outliers removed
     boost::shared_ptr<ControlNetwork> cnet = load_control_network(out_file);
 
     // Make a new bundle adjustment model
-    BundleAdjustmentModel ba_model_no_outliers(ba_model.cameras(), cnet, 
+    BundleAdjustmentModel ba_model_no_outliers(ba_model.cameras(), cnet,
         config.camera_position_sigma, config.camera_pose_sigma, config.gcp_sigma);
 
     // Make a new adjuster
@@ -806,8 +824,8 @@ void adjust_bundles(BundleAdjustmentModel &ba_model,
     vw_out(DebugMessage) << "Running bundle adjustment with outliers removed" << endl;
 
     // Configure reporter
-    BundleAdjustReport<AdjusterT> 
-        reporter(ba_type_str + " No Outliers", ba_model_no_outliers, 
+    BundleAdjustReport<AdjusterT>
+        reporter(ba_type_str + " No Outliers", ba_model_no_outliers,
             bundle_adjuster_no_outliers, config.report_level );
 
     // Run bundle adjustment again
@@ -832,10 +850,10 @@ int main(int argc, char* argv[]) {
 
   fs::path cnet_file        = config.data_dir / config.cnet_file;
   boost::shared_ptr<ControlNetwork> cnet = load_control_network(cnet_file);
- 
+
   CameraVector camera_models = load_camera_models(config.camera_files, config.data_dir);
 
-  BundleAdjustmentModel ba_model(camera_models, cnet, 
+  BundleAdjustmentModel ba_model(camera_models, cnet,
       config.camera_position_sigma, config.camera_pose_sigma, config.gcp_sigma);
 
   // Write initial camera parameters and world points
@@ -864,10 +882,10 @@ int main(int argc, char* argv[]) {
 
   // Write post-adjustment camera model files
   ba_model.write_adjusted_camera_models(config);
- 
+
   // Write post-adjustment camera parameters and world points
   ba_model.write_camera_params(cam_file_final);
-  ba_model.write_world_points(wp_file_final); 
+  ba_model.write_world_points(wp_file_final);
 
   return 0;
 }

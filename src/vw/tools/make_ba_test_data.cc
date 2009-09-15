@@ -1,16 +1,16 @@
 // __BEGIN_LICENSE__
-// 
+//
 // Copyright (C) 2008 United States Government as represented by the
 // Administrator of the National Aeronautics and Space Administration
 // (NASA).  All Rights Reserved.
-// 
+//
 // Copyright 2008 Carnegie Mellon University. All rights reserved.
-// 
+//
 // This software is distributed under the NASA Open Source Agreement
 // (NOSA), version 1.3.  The NOSA has been approved by the Open Source
 // Initiative.  See the file COPYING at the top of the distribution
 // directory tree for the complete NOSA document.
-// 
+//
 // THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT ANY WARRANTY OF ANY
 // KIND, EITHER EXPRESSED, IMPLIED, OR STATUTORY, INCLUDING, BUT NOT
 // LIMITED TO, ANY WARRANTY THAT THE SUBJECT SOFTWARE WILL CONFORM TO
@@ -34,7 +34,8 @@
 #include <iomanip>
 #include <fstream>
 #include <boost/program_options.hpp>
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
@@ -63,6 +64,20 @@ using std::ios;
 using std::setiosflags;
 using std::setw;
 using std::setprecision;
+
+#if VW_BOOST_VERSION < 103400
+std::ostream& operator<<(std::ostream& os, const fs::path& p) {
+    os << p.string();
+    return os;
+}
+
+std::istream& operator>>(std::istream& is, fs::path& p) {
+    std::string s;
+    is >> s;
+    p = s;
+    return is;
+}
+#endif
 
 /*
  * Typedefs and constants
@@ -104,14 +119,14 @@ const std::string TrueCamFile       = "cam_ground_truth.txt";
  * Noise Parameters
  */
 /* {{{ NoiseParams */
-enum NoiseT { NONE, NORMAL, LAPLACE, STUDENT }; 
+enum NoiseT { NONE, NORMAL, LAPLACE, STUDENT };
 
 struct NoiseParams{
   NoiseT  inlierType;
   double  inlierSd;
   int     inlierDf;
   NoiseT  outlierType;
-  double  outlierSd; 
+  double  outlierSd;
   int     outlierDf;
   double  outlierFreq;
   friend std::ostream& operator<<(std::ostream& ostr, NoiseParams p);
@@ -174,7 +189,7 @@ struct ProgramOptions {
   NoiseParams camera_xyz_params;
   NoiseParams camera_euler_params;
   fs::path    data_dir;
-  fs::path    config_file;
+  std::string config_file;
   int         min_tiepoints;
   int         num_cameras;
   friend std::ostream& operator<<(std::ostream& ostr, ProgramOptions o);
@@ -205,13 +220,14 @@ std::ostream& operator<<(std::ostream& ostr, ProgramOptions o) {
 ProgramOptions parse_options(int argc, char* argv[]) {
   ProgramOptions opts;
 
+  std::string data_dir_tmp;
   // Generic Options
   po::options_description generic_opts("Options");
   generic_opts.add_options()
     ("help,?", "Display this help message")
     ("verbose,v", "Verbose output")
     ("debug,d", "Debugging output")
-    ("config-file,f", po::value<fs::path>(&opts.config_file)->default_value(ConfigFileDefault), 
+    ("config-file,f", po::value<std::string>(&opts.config_file)->default_value(ConfigFileDefault),
         "File containing configuration options (if not given, defaults to reading ba_test.cfg in the current directory")
     ("print-config","Print configuration options and exit");
 
@@ -225,43 +241,43 @@ ProgramOptions parse_options(int argc, char* argv[]) {
 
   po::options_description test_opts("Test Data Configuration");
   test_opts.add_options()
-    ("pixel-inlier-noise-type", po::value<std::string>(&pixelInlierType), 
+    ("pixel-inlier-noise-type", po::value<std::string>(&pixelInlierType),
         "Type of noise to add to inlier pixel coordinates [None, Normal, Laplace, Student]")
-    ("pixel-inlier-df", po::value<int>(&opts.pixel_params.inlierDf), 
+    ("pixel-inlier-df", po::value<int>(&opts.pixel_params.inlierDf),
         "Degrees of freedom for inlier pixel noise")
     ("pixel-inlier-sigma", po::value<double>(&opts.pixel_params.inlierSd),
         "sigma for inlier pixel noise")
     ("pixel-outlier-noise-type", po::value<std::string>(&pixelOutlierType),
         "Type of noise to add to outlier pixel coordinates [None, Normal, Laplace, Student]")
-    ("pixel-outlier-df", po::value<int>(&opts.pixel_params.outlierDf), 
+    ("pixel-outlier-df", po::value<int>(&opts.pixel_params.outlierDf),
         "Degrees of freedom for outlier pixel noise")
     ("pixel-outlier-sigma", po::value<double>(&opts.pixel_params.outlierSd),
         "sigma for outlier pixel noise")
     ("pixel-outlier-freq", po::value<double>(&opts.pixel_params.outlierFreq),
         "outlier frequency for pixel noise")
-    ("xyz-inlier-noise-type", po::value<std::string>(&xyzInlierType), 
+    ("xyz-inlier-noise-type", po::value<std::string>(&xyzInlierType),
         "Type of noise to add to inlier camera xyz coordinates [None, Normal, Laplace, Student]")
-    ("xyz-inlier-df", po::value<int>(&opts.camera_xyz_params.inlierDf), 
+    ("xyz-inlier-df", po::value<int>(&opts.camera_xyz_params.inlierDf),
         "Degrees of freedom for inlier camera xyz noise")
     ("xyz-inlier-sigma", po::value<double>(&opts.camera_xyz_params.inlierSd),
         "sigma for inlier xyz noise")
     ("xyz-outlier-noise-type", po::value<std::string>(&xyzOutlierType),
         "Type of noise to add to outlier camera xyz coordinates [None, Normal, Laplace, Student]")
-    ("xyz-outlier-df", po::value<int>(&opts.camera_xyz_params.outlierDf), 
+    ("xyz-outlier-df", po::value<int>(&opts.camera_xyz_params.outlierDf),
         "Degrees of freedom for outlier camera xyz noise")
     ("xyz-outlier-sigma", po::value<double>(&opts.camera_xyz_params.outlierSd),
         "sigma for outlier camera xyz noise")
     ("xyz-outlier-freq", po::value<double>(&opts.camera_xyz_params.outlierFreq),
         "outlier frequency for camera xyz noise")
-    ("euler-inlier-noise-type", po::value<std::string>(&eulerInlierType), 
+    ("euler-inlier-noise-type", po::value<std::string>(&eulerInlierType),
         "Type of noise to add to inlier camera euler coordinates [None, Normal, Laplace, Student]")
-    ("euler-inlier-df", po::value<int>(&opts.camera_euler_params.inlierDf), 
+    ("euler-inlier-df", po::value<int>(&opts.camera_euler_params.inlierDf),
         "Degrees of freedom for inlier camera euler noise")
     ("euler-inlier-sigma", po::value<double>(&opts.camera_euler_params.inlierSd),
         "sigma for inlier euler noise")
     ("euler-outlier-noise-type", po::value<std::string>(&eulerOutlierType),
         "Type of noise to add to outlier camera euler coordinates [None, Normal, Laplace, Student]")
-    ("euler-outlier-df", po::value<int>(&opts.camera_euler_params.outlierDf), 
+    ("euler-outlier-df", po::value<int>(&opts.camera_euler_params.outlierDf),
         "Degrees of freedom for outlier camera euler noise")
     ("euler-outlier-sigma", po::value<double>(&opts.camera_euler_params.outlierSd),
         "sigma for outlier camera euler noise")
@@ -269,7 +285,7 @@ ProgramOptions parse_options(int argc, char* argv[]) {
         "outlier frequency for camera euler noise")
     ("min-tiepoints-per-image", po::value<int>(&opts.min_tiepoints),"") // is the the same as min-matches?
     ("number-of-cameras", po::value<int>(&opts.num_cameras)->default_value(10),"")
-    ("data-dir", po::value<fs::path>(&opts.data_dir)->default_value("."),
+    ("data-dir", po::value<std::string>(&data_dir_tmp)->default_value("."),
         "Directory to write generated data files into");
 
   // Allowed options includes generic and test config options
@@ -286,8 +302,8 @@ ProgramOptions parse_options(int argc, char* argv[]) {
 
   // Parse options on command line first
   po::variables_map vm;
-  po::store(po::command_line_parser(argc, argv).options(cmdline_opts).allow_unregistered().run(), vm );
-  
+  po::store(po::command_line_parser(argc, argv).options(cmdline_opts).run(), vm );
+
   // Print usage message and exit if requested
   std::ostringstream usage;
   usage << "Usage: " << argv[0] << " [options] " << endl << endl << allowed_opts << endl;
@@ -301,16 +317,16 @@ ProgramOptions parse_options(int argc, char* argv[]) {
   // Parse options in config file
   fs::path cfg = boost::any_cast<fs::path>(vm["config-file"].value());
   if (!fs::exists(cfg) || !fs::is_regular_file(cfg)) {
-    std::cerr << "Error: Config file " << cfg 
+    std::cerr << "Error: Config file " << cfg
         << " does not exist or is not a regular file." << endl;
     exit(1);
   }
   */
-          
+
   std::ifstream config_file_istr(
-      boost::any_cast<fs::path>(vm["config-file"].value()).string().c_str(), 
+      opts.config_file.c_str(),
       std::ifstream::in);
-  po::store(po::parse_config_file(config_file_istr, config_file_opts, true), vm);
+  po::store(po::parse_config_file(config_file_istr, config_file_opts), vm);
   po::notify(vm);
 
   opts.pixel_params.inlierType         = string_to_noise_type(pixelInlierType);
@@ -319,12 +335,14 @@ ProgramOptions parse_options(int argc, char* argv[]) {
   opts.camera_xyz_params.outlierType   = string_to_noise_type(xyzOutlierType);
   opts.camera_euler_params.inlierType  = string_to_noise_type(eulerInlierType);
   opts.camera_euler_params.outlierType = string_to_noise_type(eulerOutlierType);
+  opts.data_dir                        = data_dir_tmp;
+
 
   // Print config options if requested
   if (vm.count("print-config")) {
     cout << opts << endl;
     exit(0);
-  } 
+  }
 
   vw::vw_log().console_log().rule_set().clear();
   vw::vw_log().console_log().rule_set().add_rule(vw::WarningMessage, "console");
@@ -343,7 +361,7 @@ void create_data_dir(fs::path dir) {
   if (fs::exists(dir) && !fs::is_directory(dir)) {
     std::cerr << "Error: " << dir << " is not a directory." << endl;
     exit(1);
-  } 
+  }
   else
     fs::create_directory(dir);
 }
@@ -356,13 +374,13 @@ double genUniform(double const & a, double const & b, base_rng_type & rng){
   // a must be less than b
   assert(a < b);
 
-  //  base_rng_type rng = rng;   
+  //  base_rng_type rng = rng;
   boost::uniform_real<> uni_dist(a,b);
-  boost::variate_generator<base_rng_type&, boost::uniform_real<> > uni(rng, uni_dist); 
-  
+  boost::variate_generator<base_rng_type&, boost::uniform_real<> > uni(rng, uni_dist);
+
   //rng.seed(static_cast<unsigned int>(std::time(0)));
 
-  double val; 
+  double val;
   val = uni();
 
   return val;
@@ -372,14 +390,14 @@ double genUniform(double const & a, double const & b, base_rng_type & rng){
 /* {{{ genBernoulli */
 double genBernoulli(double const & p, base_rng_type & rng){
 
-  //  base_rng_type rng = rng;   
-  
+  //  base_rng_type rng = rng;
+
   boost::bernoulli_distribution<> bern_dist(p);
   boost::variate_generator<base_rng_type&, boost::bernoulli_distribution<> > bern(rng, bern_dist);
- 
+
   //rng.seed(static_cast<unsigned int>(std::time(0)));
 
-  double val; 
+  double val;
   val = bern();
 
   return val;
@@ -389,13 +407,13 @@ double genBernoulli(double const & p, base_rng_type & rng){
 /* {{{ genExponential */
 double genExponential(double const & lambda, base_rng_type & rng){
 
-  //  base_rng_type rng = rng;   
-  
+  //  base_rng_type rng = rng;
+
   boost::exponential_distribution<> exp_dist(lambda);
   boost::variate_generator<base_rng_type&, boost::exponential_distribution<> > exp(rng, exp_dist);
   //rng.seed(static_cast<unsigned int>(std::time(0)));
 
-  double val; 
+  double val;
   val = exp();
 
   return val;
@@ -405,14 +423,14 @@ double genExponential(double const & lambda, base_rng_type & rng){
 /* {{{ genLaplace */
 double genLaplace(double const & sigma, base_rng_type & rng){
 
-  //  base_rng_type rng = rng;   
-  
+  //  base_rng_type rng = rng;
+
   double p = 0.5;
 
   double bern = genBernoulli(p, rng);
   double exp = genExponential(1/sigma, rng);
 
-  double val; 
+  double val;
   val = (bern - 0.5)*sigma*exp/(sqrt(2));
 
   return val;
@@ -422,12 +440,12 @@ double genLaplace(double const & sigma, base_rng_type & rng){
 /* {{{ genNormal */
 double genNormal(double const & mu, double const & sigma, base_rng_type & rng){
 
-  //  base_rng_type rng = rng;   
-  
+  //  base_rng_type rng = rng;
+
   boost::normal_distribution<> norm_dist(mu, sigma);
   boost::variate_generator<base_rng_type&, boost::normal_distribution<> > norm(rng, norm_dist);
- 
-  double val; 
+
+  double val;
   val = norm();
 
   return val;
@@ -437,20 +455,20 @@ double genNormal(double const & mu, double const & sigma, base_rng_type & rng){
 /* {{{ genChisquare */
 double genChisquare(int const & df, base_rng_type & rng){
 
-  //  base_rng_type rng = rng;   
-  
+  //  base_rng_type rng = rng;
+
   // Set up parameters for normal
   double mu = 0.0;
   double sigma = 1.0;
 
   double val = 0.0;
-  
+
   for (int j = 0; j < df; j++){
     double temp = genNormal(mu, sigma, rng);
     val += temp*temp;
   }
 
- 
+
   return val;
 }
 /* }}} genChisquare */
@@ -458,7 +476,7 @@ double genChisquare(int const & df, base_rng_type & rng){
 /* {{{ genStudent */
 double genStudent(int const & df, base_rng_type & rng){
 
-  //  base_rng_type rng = rng;   
+  //  base_rng_type rng = rng;
 
   // Set up parameters for normal: should be 0,1
   double mu = 0.0;
@@ -468,7 +486,7 @@ double genStudent(int const & df, base_rng_type & rng){
   double norm = genNormal(mu, sigma, rng);
   double chi = genChisquare(df, rng);
   double val  = norm/(sqrt(chi/df));
-  
+
   return val;
 }
 /* }}} genStudent */
@@ -477,7 +495,7 @@ double genStudent(int const & df, base_rng_type & rng){
 
 /* {{{ add_noise_to_vector */
 template <typename T>
-T add_noise_to_vector(T const &vec, base_rng_type &rng, NoiseParams const params) 
+T add_noise_to_vector(T const &vec, base_rng_type &rng, NoiseParams const params)
 {
   NoiseT noiseType;
   double sigma;
@@ -501,23 +519,23 @@ T add_noise_to_vector(T const &vec, base_rng_type &rng, NoiseParams const params
   }
 
   switch ( noiseType ) {
-     
+
     case NORMAL :
       for (int i = 0; i < size; i++)
         ret[i] += genNormal(0, sigma, rng);
       break;
 
-    case LAPLACE : 
+    case LAPLACE :
       for (int i = 0; i < size; i++)
         ret[i] += genLaplace(sigma, rng);
       break;
-     
-    case STUDENT :      
+
+    case STUDENT :
       for (int i = 0; i < size; i++)
         ret[i] += genLaplace(df, rng);
-      break;   
+      break;
 
-  } 
+  }
 
   return ret;
 }
@@ -525,13 +543,13 @@ T add_noise_to_vector(T const &vec, base_rng_type &rng, NoiseParams const params
 
 /* {{{ add_noise_to_camera */
 CameraParams
-add_noise_to_camera(CameraParams cp, base_rng_type &rng, 
-    NoiseParams xyz_params, NoiseParams euler_params) 
+add_noise_to_camera(CameraParams cp, base_rng_type &rng,
+    NoiseParams xyz_params, NoiseParams euler_params)
 {
 
   Vector3 xyz = cp[0];
   Vector3 euler = cp[1];
-  Vector3 noisy_xyz   = add_noise_to_vector(xyz, rng, xyz_params);    
+  Vector3 noisy_xyz   = add_noise_to_vector(xyz, rng, xyz_params);
   Vector3 noisy_euler = add_noise_to_vector(euler, rng, euler_params);
   CameraParams ret(noisy_xyz, noisy_euler);
   return ret;
@@ -605,7 +623,7 @@ void print_camera_params(CameraParamVector cp) {
   for (int i = 0; i < num_cameras; i++) {
     Vector3 position = cp[i][0];
     Vector3 pose = cp[i][1];
-    vw_out(DebugMessage) 
+    vw_out(DebugMessage)
          << "[" <<  i << "]\t"
          << setprecision(0)
          << setiosflags(ios::fixed)
@@ -616,7 +634,7 @@ void print_camera_params(CameraParamVector cp) {
          << setprecision(6)
          << setw(10) << pose[0]
          << setw(10) << pose[1]
-         << setw(10) << pose[2] << endl; 
+         << setw(10) << pose[2] << endl;
   }
 }
 /* }}} print_camera_params */
@@ -632,8 +650,8 @@ CameraVector generate_camera_models( CameraParamVector camera_params) {
 
   int num_cameras = camera_params.size();
   // focal length shd be in pixels
-  f_u = ImgXPx / CameraFoV_X * CameraElevation; 
-  f_v = ImgYPx / CameraFoV_Y * CameraElevation; 
+  f_u = ImgXPx / CameraFoV_X * CameraElevation;
+  f_v = ImgYPx / CameraFoV_Y * CameraElevation;
   //f_u = f_y = CameraFocalLength / PixelScale; // m / (m / p) = p
   c_u = c_v = 0.0;
 
@@ -673,8 +691,8 @@ RNGVector generate_xyz_rngs(base_rng_type &rng, CameraVector &cameras) {
   boost::uniform_real<> x_range(x_min, x_max);
   boost::variate_generator<base_rng_type, boost::uniform_real<> > x_rng(rng, x_range);
   rng_vec.push_back(x_rng);
-  vw::vw_out(vw::DebugMessage) 
-    << setiosflags(ios::fixed) << setprecision(0) 
+  vw::vw_out(vw::DebugMessage)
+    << setiosflags(ios::fixed) << setprecision(0)
     << "\tx_min=" << x_min << "\tx_max=" << x_max << endl;
 
   // In camera reference frame -- y coordinates just extend to the top and
@@ -684,10 +702,10 @@ RNGVector generate_xyz_rngs(base_rng_type &rng, CameraVector &cameras) {
   boost::uniform_real<> y_range(y_min, y_max);
   boost::variate_generator<base_rng_type, boost::uniform_real<> > y_rng(rng, y_range);
   rng_vec.push_back(y_rng);
-  vw::vw_out(vw::DebugMessage) 
-    << setiosflags(ios::fixed) << setprecision(0) 
+  vw::vw_out(vw::DebugMessage)
+    << setiosflags(ios::fixed) << setprecision(0)
     << "\ty_min=" << y_min << "\ty_max=" << y_max << endl;
-   
+
   // In camera reference frame -- camera elevation is 100km, so the
   // height of the surface is 0, and z value is uniformly distributed
   // around 0
@@ -696,8 +714,8 @@ RNGVector generate_xyz_rngs(base_rng_type &rng, CameraVector &cameras) {
   boost::uniform_real<> z_range(z_min, z_max);
   boost::variate_generator<base_rng_type, boost::uniform_real<> > z_rng(rng, z_range);
   rng_vec.push_back(z_rng);
-  vw::vw_out(vw::DebugMessage) 
-    << setiosflags(ios::fixed) << setprecision(0) 
+  vw::vw_out(vw::DebugMessage)
+    << setiosflags(ios::fixed) << setprecision(0)
     << "\tz_min=" << z_min << "\tz_max=" << z_max << endl;
 
   return rng_vec;
@@ -705,7 +723,7 @@ RNGVector generate_xyz_rngs(base_rng_type &rng, CameraVector &cameras) {
 /* }}} generate_xyz_rngs */
 
 /* {{{ generate_control_network */
-boost::shared_ptr<ControlNetwork> 
+boost::shared_ptr<ControlNetwork>
 generate_control_network(base_rng_type &rng, CameraVector &cameras, int &min_tiepoints)
 {
   boost::shared_ptr<ControlNetwork> control_network(new ControlNetwork("Synthetic Control Network"));
@@ -732,13 +750,13 @@ generate_control_network(base_rng_type &rng, CameraVector &cameras, int &min_tie
     for (int i = 0; i < num_cameras; i++) {
       Vector2 img_point, noisy_img_point;
       try {
-        img_point = cameras[i].point_to_pixel(world_point); 
+        img_point = cameras[i].point_to_pixel(world_point);
       }
       catch (vw::camera::PointToPixelErr()) {
         // ignore; just go back and check the next camera
         continue;
       }
-      vw_out(VerboseDebugMessage) 
+      vw_out(VerboseDebugMessage)
         << "IP (" << img_point[0] << "," << img_point[1] << ")" << endl;
 
       if (point_in_image(img_point)) {
@@ -760,8 +778,8 @@ generate_control_network(base_rng_type &rng, CameraVector &cameras, int &min_tie
 
       cp.add_measures(measures);
       control_network->add_control_point(cp);
-      vw_out(VerboseDebugMessage) << "CP " 
-        << "(" << world_point[0] << "," << world_point[1] << "," << world_point[2] << ")" 
+      vw_out(VerboseDebugMessage) << "CP "
+        << "(" << world_point[0] << "," << world_point[1] << "," << world_point[2] << ")"
         << " visible in " << measures.size() << " cameras" << endl;
     }
 
@@ -804,11 +822,11 @@ add_noise_to_control_network(boost::shared_ptr<ControlNetwork> cnet, base_rng_ty
 /* }}} add_noise_to_control_network */
 
 /* {{{ write_control_network */
-/* 
+/*
  * Writes out the control network to a tap-separated file for debugging
  */
 void write_control_network(boost::shared_ptr<ControlNetwork> cnet, int num_cameras,
-    std::string cnet_file, fs::path dir) 
+    std::string cnet_file, fs::path dir)
 {
   fs::ofstream cnetos (dir / cnet_file);
 
@@ -876,7 +894,7 @@ void write_camera_params(CameraParamVector params, std::string file, fs::path di
 /* }}} */
 
 /* {{{ write_camera_models */
-void write_camera_models(CameraVector cameras, std::string fname, fs::path dir) 
+void write_camera_models(CameraVector cameras, std::string fname, fs::path dir)
 {
   int num_cameras = cameras.size();
   for (int i = 0; i < num_cameras; i++) {
@@ -907,10 +925,10 @@ int main(int argc, char* argv[]) {
   CameraVector noisy_cameras = generate_camera_models(noisy_camera_params);
 
   // Generate random control network
-  boost::shared_ptr<ControlNetwork> 
+  boost::shared_ptr<ControlNetwork>
       cnet = generate_control_network(rng, cameras, config.min_tiepoints);
   // Add configured noise to control network
-  boost::shared_ptr<ControlNetwork> 
+  boost::shared_ptr<ControlNetwork>
       noisy_cnet = add_noise_to_control_network(cnet, rng, config.pixel_params);
 
   // Write camera model files
