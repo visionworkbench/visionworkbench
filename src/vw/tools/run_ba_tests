@@ -23,7 +23,7 @@
 #     REVISION:  ---
 #===============================================================================
 
-use lib "./run_ba_tests_lib";
+use lib "~/lib";
 use File::Path qw(make_path);
 use Getopt::Long;
 use Pod::Usage;
