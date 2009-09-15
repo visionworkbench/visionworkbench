@@ -32,6 +32,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/version.hpp>
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
@@ -138,9 +139,9 @@ std::ostream& operator<<(std::ostream& ostr, const ProgramOptions& o) {
   ostr << "Report level: " << o.report_level << endl;
   ostr << "Data directory: " << o.data_dir << endl;
   ostr << "Results directory: " << o.results_dir << endl;
-  ostr << "Use bundle adjustment type dirs? :" << std::boolalpha << o.use_ba_type_dirs << endl;
-  ostr << "Remove outliers? :" << std::boolalpha << o.remove_outliers << endl;
-  ostr << "Outlier SD cutof: " << o.outlier_sd_cutoff << endl;
+  ostr << "Use bundle adjustment type dirs? " << std::boolalpha << o.use_ba_type_dirs << endl;
+  ostr << "Remove outliers? " << std::boolalpha << o.remove_outliers << endl;
+  ostr << "Outlier SD cutoff: " << o.outlier_sd_cutoff << endl;
   return ostr;
 }
 /* }}} operator<< */
@@ -263,7 +264,7 @@ ProgramOptions parse_options(int argc, char* argv[]) {
 
   // Parse options on command line first
   po::variables_map vm;
-  po::store( po::command_line_parser( argc, argv ).options(cmdline_options).positional(p).run(), vm );
+  po::store( po::command_line_parser( argc, argv ).options(cmdline_options).allow_unregistered().positional(p).run(), vm );
 
   // Print usage message if requested
   std::ostringstream usage;
@@ -274,22 +275,17 @@ ProgramOptions parse_options(int argc, char* argv[]) {
     exit(1);
   }
 
-  /* Don't need to do this, but leaving the logic in place in case there's some reason
-   * to restore it later.
   // Check config file exists
-  fs::path cfg = boost::any_cast<fs::path>(vm["config-file"].value());
+  fs::path cfg(vm["config-file"].as<std::string>());
   if (!fs::exists(cfg) || !fs::is_regular_file(cfg)) {
     std::cerr << "Error: Config file " << cfg
         << " does not exist or is not a regular file." << endl;
     exit(1);
   }
-  */
 
   // Parse options in config file
-  std::ifstream config_file_istr(
-      opts.config_file.c_str(),
-      std::ifstream::in);
-  po::store(po::parse_config_file(config_file_istr, config_file_options), vm);
+  std::ifstream config_file_istr( cfg.string().c_str(), std::ifstream::in);
+  po::store(po::parse_config_file(config_file_istr, config_file_options, true), vm);
   po::notify( vm );
 
   opts.use_user_lambda = (vm.count("lambda") > 0) ? true : false;

@@ -302,7 +302,7 @@ ProgramOptions parse_options(int argc, char* argv[]) {
 
   // Parse options on command line first
   po::variables_map vm;
-  po::store(po::command_line_parser(argc, argv).options(cmdline_opts).run(), vm );
+  po::store(po::command_line_parser(argc, argv).options(cmdline_opts).allow_unregistered().run(), vm );
 
   // Print usage message and exit if requested
   std::ostringstream usage;
@@ -312,21 +312,18 @@ ProgramOptions parse_options(int argc, char* argv[]) {
     exit(1);
   }
 
-  /* Don't need to do this, but leaving the logic in place in case there's some reason
-   * to restore it later.
   // Parse options in config file
-  fs::path cfg = boost::any_cast<fs::path>(vm["config-file"].value());
+  fs::path cfg(vm["config-file"].as<std::string>());
   if (!fs::exists(cfg) || !fs::is_regular_file(cfg)) {
     std::cerr << "Error: Config file " << cfg
         << " does not exist or is not a regular file." << endl;
     exit(1);
   }
-  */
 
   std::ifstream config_file_istr(
       opts.config_file.c_str(),
       std::ifstream::in);
-  po::store(po::parse_config_file(config_file_istr, config_file_opts), vm);
+  po::store(po::parse_config_file(config_file_istr, config_file_opts, true), vm);
   po::notify(vm);
 
   opts.pixel_params.inlierType         = string_to_noise_type(pixelInlierType);
