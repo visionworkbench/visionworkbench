@@ -684,6 +684,7 @@ void write_world_points(fs::path file)
   vw_out(DebugMessage) << "Writing world points" << endl;
 
   int num_points = this->num_points();
+
   for (int i = 0; i < num_points; i++) {
     point_vector_t pos = this->B_parameters(i);
     os << std::setprecision(8) << pos[0] << "\t" << pos[1] << "\t" << pos[2] << endl;
@@ -784,7 +785,6 @@ void adjust_bundles(BundleAdjustmentModel &ba_model,
       type_dir += "_no_outliers";
     results_dir /= type_dir;
   }
-
 
   // Set lambda if user has requested it
   if (config.use_user_lambda)
