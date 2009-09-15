@@ -100,7 +100,8 @@ namespace platefile {
   
   class PlateFile {
     std::string m_plate_name;
-    std::string m_tile_filetype;
+    int m_default_block_size;;
+    std::string m_default_file_type;
     boost::shared_ptr<Index> m_index;
     FifoWorkQueue m_queue;
 
@@ -130,15 +131,17 @@ namespace platefile {
 
   public:
   
-    PlateFile(std::string filename, std::string tile_filetype = "jpg") : 
-      m_plate_name(filename), m_tile_filetype(tile_filetype) {
+    PlateFile(std::string filename, int default_block_size = 256, 
+              std::string default_file_type = "jpg") : 
+      m_plate_name(filename), m_default_block_size(default_block_size),
+      m_default_file_type(default_file_type) {
 
       // Plate files are stored as an index file and one or more data
       // blob files in a directory.  We create that directory here if
       // it doesn't already exist.
       if( !exists( fs::path( filename, fs::native ) ) ) {
         fs::create_directory(filename);
-        m_index = boost::shared_ptr<Index>( new Index() );
+        m_index = boost::shared_ptr<Index>( new Index(default_block_size, default_file_type) );
         vw_out(DebugMessage, "platefile") << "Creating new plate file: \"" 
                                           << filename << "\"\n";
 
@@ -149,8 +152,10 @@ namespace platefile {
           m_index = boost::shared_ptr<Index>( new Index(filename + "/plate.index") );
           vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" 
                                             << filename << "\"\n";
+          m_default_block_size = m_index->default_block_size();
+          m_default_file_type = m_index->default_file_type();
         } catch (IOErr &e) {
-          m_index = boost::shared_ptr<Index>( new Index() );
+          m_index = boost::shared_ptr<Index>( new Index(default_block_size, default_file_type) );
           vw_out(DebugMessage, "platefile") << "WARNING: Failed to re-open the plate file.  "
                                             << "Creating a new plate file from scratch.";
         }
@@ -168,7 +173,7 @@ namespace platefile {
     std::string name() const { return m_plate_name; }
 
     /// Returns the file type used to store tiles in this plate file.
-    std::string tile_filetype() const { return m_tile_filetype; }
+    std::string default_file_type() const { return m_default_file_type; }
 
     // int tile_size() const {}// return m_index.tile_size(); }
 
@@ -207,7 +212,7 @@ namespace platefile {
     void write(int col, int row, int depth, ImageViewBase<ViewT> const& view) {      
 
       // 1. Write data to temporary file. 
-      TemporaryTileFile tile(view, m_tile_filetype);
+      TemporaryTileFile tile(view, m_default_file_type);
       std::string tile_filename = tile.file_name();
       int64 tile_size = tile.file_size();
 
@@ -223,25 +228,27 @@ namespace platefile {
       blob.write_from_file(tile_filename, blob_offset, block_size);
 
       // 4. Call write_complete(col, row, depth, record)
-      IndexRecord write_record(blob_id, blob_offset, block_size, m_tile_filetype);
+      IndexRecord write_record(blob_id, blob_offset, block_size, m_default_file_type);
       m_index->write_complete(col, row, depth, write_record);
     }
 
     /// Add an image to the plate file.
     template <class ViewT>
-    void insert(ImageViewBase<ViewT> const& image, int tile_size) {
+    void insert(ImageViewBase<ViewT> const& image) {
 
       // chop up the image into small chunks
-      std::vector<BBox2i> bboxes = image_blocks( image.impl(), tile_size, tile_size);
+      std::vector<BBox2i> bboxes = image_blocks( image.impl(), 
+                                                 m_default_block_size, 
+                                                 m_default_block_size);
       
       // Compute the dimensions (in blocks) of the image so that we can
       // reshape the vector of bboxes into a "matrix" of bboxes in the
       // code below.
-      int block_cols = ceilf(float(image.impl().cols()) / tile_size);
-      int block_rows = ceilf(float(image.impl().rows()) / tile_size);
+      int block_cols = ceilf(float(image.impl().cols()) / m_default_block_size);
+      int block_rows = ceilf(float(image.impl().rows()) / m_default_block_size);
       int nlevels = ceilf(log(std::max(block_rows, block_cols))/log(2));
       std::cout << "\t--> Rows: " << block_rows << " Cols: " << block_cols 
-                << "   (Block size: " << tile_size << ")\n";
+                << "   (Block size: " << m_default_block_size << ")\n";
       std::cout << "\t--> Number of mipmap levels = " << nlevels << "\n";
       
       // And save each block to the PlateFile
@@ -265,7 +272,7 @@ namespace platefile {
     }
 
 
-    void mipmap_helper(int col, int row, int depth, int block_size) {
+    void mipmap_helper(int col, int row, int depth) {
 
       // Termination conditions: 
       try {
@@ -292,7 +299,7 @@ namespace platefile {
         // If the record for the child is invalid, we attempt to
         // (recursively) generate it.  Then we try reading it again.
         if (!record.valid()) {
-          mipmap_helper(col*2+(i%2), row*2+(i/2), depth+1, block_size);
+          mipmap_helper(col*2+(i%2), row*2+(i/2), depth+1);
           try {
             record = this->read(imgs[i], col*2+(i%2), row*2+(i/2), depth+1);
           } catch (TileNotFoundErr &e) {} // Do nothing... record is not found, and therefore invalid. 
@@ -306,9 +313,9 @@ namespace platefile {
       mosaic::ImageComposite<PixelRGBA<uint8> > composite;
       composite.set_draft_mode(true);
       composite.insert(imgs[0], 0, 0);
-      composite.insert(imgs[1], block_size, 0);
-      composite.insert(imgs[2], 0, block_size);
-      composite.insert(imgs[3], block_size, block_size);
+      composite.insert(imgs[1], m_default_block_size, 0);
+      composite.insert(imgs[2], 0, m_default_block_size);
+      composite.insert(imgs[3], m_default_block_size, m_default_block_size);
       composite.prepare();
       
       // Subsample the image, and then write the new tile.
@@ -316,9 +323,9 @@ namespace platefile {
       this->write(col, row, depth, new_tile);
     }
 
-    void mipmap(int block_size) { 
+    void mipmap() { 
       std::cout << "\t--> Building mipmap levels\n";
-      this->mipmap_helper(0,0,0,block_size); 
+      this->mipmap_helper(0,0,0); 
     }
 
     int depth() { 

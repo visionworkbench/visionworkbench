@@ -148,13 +148,13 @@ int main( int argc, char *argv[] ) {
   // -------------------------- PLATE FILE GENERATION --------------------------------
 
   // Create the plate file
-  PlateFile platefile(output_file_name, output_file_type);
+  PlateFile platefile(output_file_name, tile_size, output_file_type);
 
   std::cout << "\nWriting data to plate file: " << output_file_type << "\n";
-  platefile.insert(composite, tile_size);
+  platefile.insert(composite);
   
   std::cout << "Generating platefile MIPMAP...\n";
-  platefile.mipmap(tile_size);
+  platefile.mipmap();
 
   std::cout << "Saving...\n";
   platefile.save();

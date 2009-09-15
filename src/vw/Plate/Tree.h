@@ -1,6 +1,7 @@
 #ifndef __VW_PLATE_TREE_H__
 #define __VW_PLATE_TREE_H__
 
+#include <vw/Core/Log.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/FundamentalTypes.h>
 
@@ -141,12 +142,12 @@ namespace platefile {
     }
 
     void print_helper(int current_level) const {
-      std::cout << m_record.valid() << "\n";
+      vw_out(0) << m_record.valid() << "\n";
       for (int i = 0; i < 4; ++i) 
         if ( this->child(i) ) {
           for (int l = 0; l < current_level+1; ++l) 
-            std::cout << "  ";
-          std:: cout << "[ " << (current_level+1) 
+            vw_out(0) << "  ";
+          vw_out(0) << "[ " << (current_level+1) 
                      << " -- Child " << i << " ] - " ;
           this->child(i)->print_helper(current_level + 1);
         }
@@ -211,7 +212,7 @@ namespace platefile {
 
     /// Print the tree.  (Use only for debugging small trees....)
     void print() const { 
-      std:: cout << "[ 0 -- Child 0 ] - ";
+      vw_out(0) << "[ 0 -- Child 0 ] - ";
       this->print_helper(0); 
     }
 

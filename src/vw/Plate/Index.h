@@ -11,7 +11,7 @@
 #include <vw/Plate/Blob.h>
 
 #define VW_PLATE_INDEXRECORD_FILETYPE_SIZE 5
-#define VW_PLATE_INDEX_VERSION 1
+#define VW_PLATE_INDEX_VERSION 2
 
 namespace vw {
 namespace platefile {
@@ -108,6 +108,8 @@ namespace platefile {
 
     int m_index_version;
     int m_max_depth;
+    int m_default_block_size;
+    char m_default_file_type[4];
     boost::shared_ptr<BlobManager> m_blob_manager;
     boost::shared_ptr<TreeNode<IndexRecord> > m_root;
     Mutex m_mutex;
@@ -115,16 +117,23 @@ namespace platefile {
   public:
 
     /// Create a new index.  Uses default blob manager.
-    Index() :
+    Index(int default_block_size, std::string default_file_type) :
       m_index_version(VW_PLATE_INDEX_VERSION), m_max_depth(0), 
+      m_default_block_size(default_block_size),
       m_blob_manager( new BlobManager() ), 
-      m_root(boost::shared_ptr<TreeNode<IndexRecord> >( new TreeNode<IndexRecord>() )) {}
+      m_root(boost::shared_ptr<TreeNode<IndexRecord> >( new TreeNode<IndexRecord>() )) {
+      strncpy(m_default_file_type, default_file_type.c_str(), 4);
+    }
 
     /// Create a new index.  User supplies a pre-configure blob manager.
-    Index( boost::shared_ptr<BlobManager> blob_manager) :
-      m_index_version(VW_PLATE_INDEX_VERSION), m_max_depth(0),
+    Index( boost::shared_ptr<BlobManager> blob_manager, 
+           int default_block_size, std::string default_file_type ) :
+      m_index_version(VW_PLATE_INDEX_VERSION), m_max_depth(0), 
+      m_default_block_size(default_block_size),
       m_blob_manager(blob_manager), 
-      m_root(boost::shared_ptr<TreeNode<IndexRecord> >( new TreeNode<IndexRecord>() )) {}
+      m_root(boost::shared_ptr<TreeNode<IndexRecord> >( new TreeNode<IndexRecord>() )) {
+      strncpy(m_default_file_type, default_file_type.c_str(), 4);
+    }
 
     /// Open an existing index from a file on disk.
     Index(std::string index_filename) : 
@@ -137,10 +146,15 @@ namespace platefile {
       istr.read( (char*)&m_index_version, sizeof(m_index_version) );
       if (m_index_version != VW_PLATE_INDEX_VERSION) 
         vw_throw(IOErr() << "Could not open plate index.  " 
-                 << "Does not appear to have a compatible version number.");      
+                 << "Version " << m_index_version 
+                 << " is not compatible the current version (" 
+                 << VW_PLATE_INDEX_VERSION << ")");
 
-      // Read the max depth of the index
+      // Read the index metadata
       istr.read( (char*)&m_max_depth, sizeof(m_max_depth) );
+      istr.read( (char*)&m_default_block_size, sizeof(m_default_block_size) );
+      for (unsigned i = 0; i < 4; ++i)
+        istr.read( (char*)(m_default_file_type+i), sizeof(*m_default_file_type) );
 
       // Read blob manager info and create a blob manager.
       int num_blobs;
@@ -166,6 +180,9 @@ namespace platefile {
       // Save basic index information & version.
       ostr.write( (char*)&m_index_version, sizeof(m_index_version) );
       ostr.write( (char*)&m_max_depth, sizeof(m_max_depth) );
+      ostr.write( (char*)&m_default_block_size, sizeof(m_default_block_size) );
+      for (unsigned i = 0; i < 4; ++i)
+        ostr.write( (char*)(m_default_file_type+i), sizeof(*m_default_file_type) );
 
       // Save blob manager information
       int num_blobs = m_blob_manager->num_blobs();
@@ -180,6 +197,8 @@ namespace platefile {
 
     int version() const { return m_index_version; }
     int max_depth() const { return m_max_depth; }
+    int default_block_size() const { return m_default_block_size; }
+    std::string default_file_type() const { return m_default_file_type; }
 
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.
