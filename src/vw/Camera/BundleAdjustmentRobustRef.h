@@ -14,18 +14,18 @@
 #include <vw/Camera/BundleAdjustmentBase.h>
 #include <vw/Math/LinearAlgebra.h>
 
-// Boost 
+// Boost
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 #include <boost/numeric/ublas/vector_sparse.hpp>
 #include <boost/numeric/ublas/io.hpp>
 #include <boost/version.hpp>
 
-// The sparse vectors/matrices are needed 
+// The sparse vectors/matrices are needed
 // for the covariance calculation
 
 #if BOOST_VERSION<=103200
 // Mapped matrix doesn't exist in 1.32, but Sparse Matrix does
-// 
+//
 // Unfortunately some other tests say this doesn't work
 #define boost_sparse_matrix boost::numeric::ublas::sparse_matrix
 #define boost_sparse_vector boost::numeric::ublas::sparse_vector
@@ -41,16 +41,16 @@ namespace camera {
 
   template <class BundleAdjustModelT, class RobustCostT>
   class BundleAdjustmentRobustRef : public BundleAdjustmentBase<BundleAdjustModelT,RobustCostT> {
- 
-    
+
+
     // Need to save S for covariance calculations
-    boost::shared_ptr<math::Matrix<double> > m_S; 
-  
+    boost::shared_ptr<math::Matrix<double> > m_S;
+
   public:
 
     Matrix<double> S() { return *m_S; }
-    void set_S(math::Matrix<double> S) { 
-      m_S = boost::shared_ptr<math::Matrix<double> >(S);
+    void set_S(math::Matrix<double> S) {
+      m_S = boost::shared_ptr<math::Matrix<double> >(new math::Matrix<double>(S));
     }
     BundleAdjustmentRobustRef( BundleAdjustModelT & model,
                          RobustCostT const& robust_cost_func,
@@ -69,26 +69,26 @@ namespace camera {
       unsigned inverse_size = num_cam_params * num_cameras;
 
       typedef Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> matrix_camera_camera;
-    
+
       // final vector of camera covariance matrices
-      boost_sparse_vector< matrix_camera_camera > sparse_cov(num_cameras);
-      
-      
+      vw::Vector< matrix_camera_camera > sparse_cov(num_cameras);
+
+
       // Get the S matrix from the model
       Matrix<double> S = this->S();
-      
+
       Matrix<double> Id(inverse_size, inverse_size);
       Id.set_identity();
-      
+
       Matrix<double> Cov = multi_solve_symmetric(S, Id);
 
-   
+
       //pick out covariances of individual cameras
       for(int i = 0; i < num_cameras; i++){
-	sparse_cov(i) = submatrix(Cov, i*num_cam_params, i*num_cam_params, num_cam_params, num_cam_params);
+         sparse_cov(i) = submatrix(Cov, i*num_cam_params, i*num_cam_params, num_cam_params, num_cam_params);
       }
 
-          
+
       std::cout << "Covariance matrices for cameras are:" << sparse_cov << "\n\n";
       return;
     }
@@ -192,7 +192,7 @@ namespace camera {
       // changed it.
       double max = 0.0;
       if (this->m_iterations == 1 && this->m_lambda == 1e-3){
-	Matrix<double> hessian = transpose(J)*sigma*J;
+         Matrix<double> hessian = transpose(J)*sigma*J;
         for (unsigned i = 0; i < hessian.rows(); ++i){
           if (fabs(hessian(i,i)) > max)
             max = fabs(hessian(i,i));
@@ -271,7 +271,7 @@ namespace camera {
                       2*this->m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
                       num_pt_params, num_pt_params) = this->m_model.B_inverse_covariance(i);
 
-	    ++idx;
+             ++idx;
           }
         }
       }
@@ -291,7 +291,7 @@ namespace camera {
       Matrix<double> hessian = transpose(J) * sigma * J;
 
 
-      
+
       for ( unsigned i=0; i < hessian.rows(); ++i )
         hessian(i,i) +=  this->m_lambda;
 
@@ -306,8 +306,8 @@ namespace camera {
       unsigned num_pt_entries = num_pt_params * num_points;
 
       Matrix<double> U = submatrix(hessian, 0, 0, num_cam_entries, num_cam_entries);
-      
-      // std::cout << "U after adding in all params and lambda: " << U << "\n\n";  
+
+      // std::cout << "U after adding in all params and lambda: " << U << "\n\n";
 
       Matrix<double> W = submatrix(hessian, 0, num_cam_entries,  num_cam_entries, num_pt_entries);
       Matrix<double> Vinv = submatrix(hessian, num_cam_entries, num_cam_entries, num_pt_entries, num_pt_entries);
@@ -329,13 +329,13 @@ namespace camera {
       solve(e, S); // using cholesky
 
       solve(delta, hessian);
-      
+
 
       //std::cout << "delta is: " << delta << "\n\n";
 
       // Solve for update
 
- 
+
 
       double new_objective = 0.0;
 
@@ -360,7 +360,7 @@ namespace camera {
           double mu_weight = (t_df + t_dim)/(t_df + S_weight);
 
 
-         
+
           new_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
 
           ++idx;
@@ -376,12 +376,12 @@ namespace camera {
 
           Vector<double> unweighted_error = this->m_model.A_initial(j)- (this->m_model.A_parameters(j) - cam_delta);
 
-	  //	  std::cout << "unweighted error is: " << unweighted_error << "\n\n";
+           //       std::cout << "unweighted error is: " << unweighted_error << "\n\n";
 
           double S_weight = transpose(unweighted_error) * this->m_model.A_inverse_covariance(j) * unweighted_error;
           double mu_weight = (t_df + t_dim)/(t_df + S_weight);
 
-	  new_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
+           new_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
 
         }
 
@@ -399,7 +399,7 @@ namespace camera {
             double S_weight = transpose(unweighted_error)*this->m_model.B_inverse_covariance(i)*unweighted_error;
             double mu_weight = (t_df + t_dim)/(t_df + S_weight);
 
-           
+
             new_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
 
             ++idx;
@@ -407,8 +407,8 @@ namespace camera {
         }
       }
 
-    
-       
+
+
 
       //Fletcher modification for robust case
       double dS = .5 * transpose(delta)*(this->m_lambda*delta + del_J);
@@ -431,9 +431,9 @@ namespace camera {
           this->m_model.set_B_parameters(i, this->m_model.B_parameters(i) - subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params));
 
 
-	abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
+         abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
         rel_tol = transpose(delta)*delta;
-       
+
         if (this->m_control==0){
           double temp = 1 - pow((2*R - 1),3);
           if (temp < 1.0/3.0)
@@ -448,10 +448,10 @@ namespace camera {
 
       } else { // R <= 0
 
-	abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
+         abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
         rel_tol = transpose(delta)*delta;
-        
-	if (this->m_control == 0){
+
+         if (this->m_control == 0){
           this->m_lambda *= this->m_nu;
           this->m_nu*=2;
         } else if (this->m_control == 1)
