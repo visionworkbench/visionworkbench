@@ -5,10 +5,18 @@ dnl All Rights Reserved.
 dnl __END_LICENSE__
 
 m4_pattern_forbid([^AX_])
-m4_pattern_allow([AX_CFLAGS])
-m4_pattern_allow([AX_INCLUDE_DIR])
-m4_pattern_allow([AX_LIBDIR])
-m4_pattern_allow([AX_OTHER_LIBDIR])
+m4_pattern_allow([^AX_CFLAGS$])
+m4_pattern_allow([^AX_INCLUDE_DIR$])
+m4_pattern_allow([^AX_LIBDIR$])
+m4_pattern_allow([^AX_OTHER_LIBDIR$])
+m4_pattern_allow([^PKG_[A-Z_]+_CPPFLAGS$])
+m4_pattern_allow([^PKG_[A-Z_]+_LDFLAGS$])
+m4_pattern_allow([^PKG_[A-Z_]+_LIBS$])
+m4_pattern_allow([^PKG_PATHS$])
+m4_pattern_allow([^PKG_PATHS_[A-Z_]+$])
+m4_pattern_allow([^PKG_BOOST_INCDIR$])
+m4_pattern_allow([^PKG_BOOST_LIBDIR$])
+m4_pattern_allow([^PKG_VW_LIBS_TEMP$])
 
 ##################################################
 # A few starting bits
@@ -278,6 +286,11 @@ AX_PKG_ONE_OF(QT,
       AX_PKG(QT_SQL,     [QT_BASE], [], [QtSql])
       AX_GROUP_PKG(LINUX_QT, [QT_BASE QT_GUI QT_OPENGL QT_SQL])])
 
+PKG_CHECK_MODULES([CAIROMM], [cairomm-1.0], [
+  PKG_CAIROMM_CPPFLAGS="$PKG_CAIROMM_CPPFLAGS $CAIROMM_CFLAGS"
+  ], [HAVE_PKG_CAIROMM="no:$CAIROMM_PKG_ERRORS"])
+AX_PKG(CAIROMM, [], [$CAIROMM_LIBS], [cairomm/cairomm.h])
+
 # These are here (instead of inside the PKG macro where they belong)
 # for backwards compatability with older versions of automake.
 AM_CONDITIONAL(HAVE_PKG_LAPACK, [test "$HAVE_PKG_LAPACK" = "yes"])
@@ -287,6 +300,7 @@ AM_CONDITIONAL(HAVE_PKG_TIFF, [test "$HAVE_PKG_TIFF" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_OPENEXR, [test "$HAVE_PKG_OPENEXR" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_HDF, [test "$HAVE_PKG_HDF" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_GDAL, [test "$HAVE_PKG_GDAL" = "yes"])
+AM_CONDITIONAL(HAVE_PKG_CAIROMM, [test "$HAVE_PKG_CAIROMM" = "yes"])
 
 
 ##################################################
