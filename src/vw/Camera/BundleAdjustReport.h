@@ -26,6 +26,7 @@
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Cartography/SimplePointImageManipulation.h>
 #include <vw/FileIO/KML.h>
+#include <vw/Camera/ControlNetwork.h>
 
 // Boost
 #include <boost/algorithm/string.hpp>
@@ -349,8 +350,8 @@ namespace camera {
           int cam1_index = (*network)[i][j].image_id();
           int cam2_index = (*network)[i][j+1].image_id();
 
-          stereo::StereoModel sm( camera_models[cam1_index],
-                                  camera_models[cam2_index] );
+          stereo::StereoModel sm( camera_models[cam1_index].get(),
+                                  camera_models[cam2_index].get() );
 
           double error;
           Vector3 pos = sm( (*network)[i][j].position(),
@@ -374,8 +375,8 @@ namespace camera {
             int cam1_index = (*network)[i][j].image_id();
             int cam2_index = (*network)[i][j+1].image_id();
 
-            stereo::StereoModel sm( camera_models[cam1_index],
-                                    camera_models[cam2_index] );
+            stereo::StereoModel sm( camera_models[cam1_index].get(),
+                                    camera_models[cam2_index].get() );
             double error;
             Vector3 pos = sm( (*network)[i][j].position(),
                               (*network)[i][j+1].position(),

@@ -44,7 +44,7 @@ public:
     //     TS_TRACE(stringify("PX 1: ") + stringify(px1));
     //     TS_TRACE(stringify("PX 2: ") + stringify(px2));
 
-    StereoModel st(pin1,pin2);
+    StereoModel st(&pin1,&pin2);
     double error;
     Vector3 pt2 = st(px1, px2, error);
 
@@ -95,7 +95,7 @@ public:
 //     TS_TRACE(stringify("PX 1: ") + stringify(px1));
 //     TS_TRACE(stringify("PX 2: ") + stringify(px2));
 
-    StereoModel st(adj1,adj2);
+    StereoModel st(&adj1,&adj2);
     double error;
     Vector3 pt2 = st(px1, px2, error);
 
