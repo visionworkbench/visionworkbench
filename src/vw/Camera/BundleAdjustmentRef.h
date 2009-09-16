@@ -85,7 +85,7 @@ namespace camera {
       }
 
 
-      std::cout << "Covariance matrices for cameras are:" << sparse_cov << "\n\n";
+      //std::cout << "Covariance matrices for cameras are:" << sparse_cov << "\n\n";
 
       return;
     }
@@ -300,7 +300,7 @@ namespace camera {
         }
         this->m_lambda = 1e-10 * max;
 
-         std::cout << "lambda: " << 1e-10 * max << "\n\n";
+         //std::cout << "lambda: " << 1e-10 * max << "\n\n";
       }
 
 
@@ -358,7 +358,7 @@ namespace camera {
         }
       }
 
-      std::cout << "Past the setup step in Ref implementation \n";
+      //std::cout << "Past the setup step in Ref implementation \n";
 
       // --- UPDATE STEP ----
 
@@ -401,7 +401,7 @@ namespace camera {
 
       Matrix<double> U = submatrix(hessian, 0, 0, num_cam_entries, num_cam_entries);
 
-      std::cout << "U after lambda: " << U << "\n\n";
+      //std::cout << "U after lambda: " << U << "\n\n";
 
       Matrix<double> W = submatrix(hessian, 0, num_cam_entries,  num_cam_entries, num_pt_entries);
       Matrix<double> Vinv = submatrix(hessian, num_cam_entries, num_cam_entries,
@@ -504,9 +504,11 @@ namespace camera {
       double SS = .5*transpose(epsilon) * sigma * epsilon;            //Compute old objective
       double dS = .5 * transpose(delta) *(this->m_lambda * delta + del_J);
 
+      /*
       std::cout << "Old Objective: " << SS << "\n";
       std::cout << "New Objective : " << Splus << "\n";
       std::cout << "Lambda: " << this->m_lambda << "\n";
+      */
 
 
       // WARNING: will want to replace dS later
