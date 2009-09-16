@@ -18,6 +18,9 @@ class Graph(object):
         self.v2 = {}
 
         for line in seq:
+            line = line.strip()
+            if not line:
+                continue
             left, right = line.split()
             self.e.add((left, right))
             self.v1.add(left)
@@ -80,7 +83,7 @@ if __name__ == '__main__':
 
     with file(outfile, 'w') as f:
         if infile is None:
-            grep = Popen(['grep', '-r', '#include.*<vw', os.path.abspath(os.path.dirname(sys.argv[0]) + '/../src/vw')], stdout=PIPE)
+            grep = Popen(['grep', '-rI', '#include.*<vw', os.path.abspath(os.path.dirname(sys.argv[0]) + '/../src/vw')], stdout=PIPE)
             sed  = Popen(['sed', '-e', 's#^.*src/\(vw[^:]\+\):.*<\([^>]\+\)>#\\1 \\2#'], stdin=grep.stdout, stdout=PIPE)
             filt = Popen(['grep', '-v', '\(.cc\|/tests\|/GPU\)'], stdin=sed.stdout, stdout=PIPE)
             outf = filt.communicate()[0]
