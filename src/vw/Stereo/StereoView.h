@@ -36,8 +36,8 @@ namespace stereo {
     typedef ProceduralPixelAccessor<StereoView> pixel_accessor;
 
     StereoView( DisparityImageT const& disparity_map,
-                vw::camera::CameraModel const& camera_model1,
-                vw::camera::CameraModel const& camera_model2) :
+                vw::camera::CameraModel const* camera_model1,
+                vw::camera::CameraModel const* camera_model2) :
       m_disparity_map(disparity_map),
       m_stereo_model(camera_model1, camera_model2) {}
 
