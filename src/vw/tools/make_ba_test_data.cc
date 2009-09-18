@@ -464,7 +464,7 @@ ProgramOptions parse_options(int argc, char* argv[]) {
   // Check config file exists
   fs::path cfg(vm["config-file"].as<std::string>());
   if (!vm["config-file"].defaulted()) {
-    if (!fs::exists(cfg) || !fs::is_regular_file(cfg)) {
+    if (!fs::exists(cfg)) {
       std::cerr << "Error: Config file " << cfg
           << " does not exist or is not a regular file." << endl;
       exit(1);
