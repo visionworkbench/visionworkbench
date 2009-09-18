@@ -108,7 +108,7 @@ sub run_test {
     }
     close CONFIG;
 
-    my @make_data = ($make_data, 
+    my @make_data = ($make_data,
                      '-f', "$test_cfg_file",
                      '--data-dir', "$test_dir");
     system(@make_data) == 0 or die "@make_data failed: $!";

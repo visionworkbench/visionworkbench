@@ -129,6 +129,7 @@ make_ba_test_data_LDADD = @PKG_CAMERA_LIBS@ $(COMMON_LIBS)
 endif
 endif
 
+# Control network editor (used by ba_test)
 if MAKE_MODULE_CAMERA
 if MAKE_MODULE_INTERESTPOINT 
 cnet_editor_progs = cnet_editor
@@ -137,20 +138,15 @@ cnet_editor_LDADD = @PKG_CAMERA_LIBS@ @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
 endif
 endif
 
-if HAVE_PKG_CAIROMM
-contourgen_progs = contourgen
-contourgen_SOURCES = contour.cpp FitCurves.cpp contourgen.cc
-contourgen_CPPFLAGS = @VW_CPPFLAGS@ @PKG_CAIROMM_CPPFLAGS@
-contourgen_LDADD = $(COMMON_LIBS) @PKG_CAIROMM_LIBS@
-endif
+# Contour generation program
 
 doc_generate_SOURCES = doc-generate.cc
 doc_generate_LDADD   = @PKG_VW_LIBS@ @PKG_MOSAIC_LIBS@
 
-bin_PROGRAMS = $(camera_progs) $(cartography_progs) $(hdr_progs)              \
-               $(interestpoint_progs) $(mosaic_progs)                         \
+bin_PROGRAMS = $(camera_progs) $(cartography_progs) $(hdr_progs)	\
+               $(interestpoint_progs) $(mosaic_progs)				\
                $(cart_mos_progs) $(stereo_progs) $(gpu_progs) $(batest_progs) \
-               $(cnet_editor_progs) $(contourgen_progs)
+	       $(cnet_editor_progs)
 
 noinst_PROGRAMS = doc-generate
 

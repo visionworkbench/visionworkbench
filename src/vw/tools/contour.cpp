@@ -1,3 +1,11 @@
+/*
+ * The conrec function in this file implements the CONREC algorithm,
+ * published by Paul Bourke: http://local.wasp.uwa.edu.au/~pbourke/papers/conrec/
+ *
+ * This implementation of CONREC is based on the C++ implementation by Nicholas Yue:
+ * http://local.wasp.uwa.edu.au/~pbourke/papers/conrec/conrec_cxx.txt
+ *
+ */
 
 #include <list>
 #include <map>

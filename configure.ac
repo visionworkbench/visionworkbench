@@ -343,7 +343,7 @@ fi
 
 
 AX_MODULE(TOOLS, [src/vw/tools], [], yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
-AX_MODULE(GUI, [src/vw/gui], [], yes, [VW], [QT BOOST_PROGRAM_OPTIONS GL])
+AX_MODULE(GUI,   [src/vw/gui],   [], yes, [VW], [QT BOOST_PROGRAM_OPTIONS GL])
 AX_MODULE(PLATE, [src/vw/Plate], [], yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
 
 AX_MODULE_PYTHON([src/vw/Python], [no])
