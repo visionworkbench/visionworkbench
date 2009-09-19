@@ -710,13 +710,13 @@ TEST(KDTree, searches_after_inserts) {
   //Attempt a search on an empty tree:
   num_records = kd_A.m_nearest_neighbors(queryB, nearest_records, 4);
   EXPECT_EQ(num_records, 0);
-  EXPECT_EQ(kd_A.max_depth(), 0);
+  EXPECT_EQ(kd_A.max_depth(), 0u);
 
   //Insert vertices and the search
   kd_A.insert(recordA);
   num_records = kd_A.m_nearest_neighbors(queryB, nearest_records, 4);
   EXPECT_EQ(num_records, 1);
-  EXPECT_EQ(kd_A.max_depth(), 0);
+  EXPECT_EQ(kd_A.max_depth(), 0u);
   EXPECT_EQ(nearest_records[0][0], recordA[0]);
   EXPECT_EQ(nearest_records[0][1], recordA[1]);
 
@@ -724,7 +724,7 @@ TEST(KDTree, searches_after_inserts) {
   kd_A.insert(recordB);
   num_records = kd_A.m_nearest_neighbors(queryB, nearest_records, 1);
   EXPECT_EQ(num_records, 1);
-  EXPECT_EQ(kd_A.max_depth(), 1);
+  EXPECT_EQ(kd_A.max_depth(), 1u);
   EXPECT_EQ(nearest_records[0][0], recordB[0]);
   EXPECT_EQ(nearest_records[0][1], recordB[1]);
 
@@ -732,7 +732,7 @@ TEST(KDTree, searches_after_inserts) {
   kd_A.insert(recordC);
   num_records = kd_A.m_nearest_neighbors(queryB, nearest_records, 1);
   EXPECT_EQ(num_records, 1);
-  EXPECT_EQ(kd_A.max_depth(), 2);
+  EXPECT_EQ(kd_A.max_depth(), 2u);
   EXPECT_EQ(nearest_records[0][0], recordB[0]);
   EXPECT_EQ(nearest_records[0][1], recordB[1]);
 

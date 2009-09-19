@@ -498,16 +498,6 @@ CameraVector load_camera_models(std::vector<fs::path> const &camera_files,
 }
 /* }}} load_camera_models */
 
-/* {{{ prefix_from_filename */
-static std::string prefix_from_filename(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1)
-    result.erase(index, result.size());
-  return result;
-}
-/* }}} */
-
 /* {{{ clear_report_files */
 void clear_report_files(fs::path cam_file, fs::path point_file, fs::path dir) {
     fs::ofstream c(dir / cam_file, std::ios_base::out);
@@ -573,7 +563,7 @@ public:
     size_t camera_count = cameras.size();
     for (ControlNetwork::const_iterator i = network->begin(), end = network->end(); i != end; ++i) {
       for (ControlPoint::const_iterator j = i->begin(), end2 = i->end(); j != end2; ++j) {
-        VW_ASSERT(j->image_id() < camera_count, ArgumentErr() 
+        VW_ASSERT(j->image_id() < camera_count, ArgumentErr()
             << "Invalid control point: has image_id() larger than camera vector");
       }
     }

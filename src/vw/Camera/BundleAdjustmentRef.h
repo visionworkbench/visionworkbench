@@ -80,7 +80,7 @@ namespace camera {
       Matrix<double> Cov = multi_solve_symmetric(S, Id);
 
       //pick out covariances of individual cameras
-      for(int i = 0; i < num_cameras; i++){
+      for(unsigned i = 0; i < num_cameras; i++){
          sparse_cov(i) = submatrix(Cov, i*num_cam_params, i*num_cam_params, num_cam_params, num_cam_params);
       }
 

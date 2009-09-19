@@ -395,7 +395,7 @@ public:
       pixels.push_back(m.point_to_pixel(p) + noise);
     }
 
-    double mean = mean_error(m, pixels, points);
+    //double mean = mean_error(m, pixels, points);
 
     // these tests verify mainly that RANSAC actually does respect the inlier_threshold value passed in
     // (The maximum error in the image plane for a resulting camera model can be equal to inlier_threshold)

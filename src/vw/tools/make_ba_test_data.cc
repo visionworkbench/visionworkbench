@@ -682,6 +682,8 @@ T add_noise_to_vector(T const &vec, base_rng_type &rng, NoiseParams const params
         ret[i] += genLaplace(df, rng);
       break;
 
+    case NONE :
+      break;
   }
 
   return ret;
@@ -919,7 +921,7 @@ generate_control_network(base_rng_type &rng, CameraVector &cameras, int &min_tie
     // cameras
     if (measures.size() > 1) {
       // Increment the point counts for the appropriate cameras
-      for (int i = 0; i < measures.size(); i++) {
+      for (unsigned i = 0; i < measures.size(); i++) {
         point_counts[measures[i].image_id()]++;
       }
 
@@ -991,7 +993,7 @@ void write_control_network(boost::shared_ptr<ControlNetwork> cnet, int num_camer
     cnetos << pos[0] << "\t" << pos[1] << "\t" << pos[2] << "\t";
     for (int i = 0; i < num_cameras; i++) {
       bool match = false;
-      for (int j = 0; j < cp.size(); j++) {
+      for (unsigned j = 0; j < cp.size(); j++) {
         ControlMeasure cm = cp[j];
         if (cm.image_id() == i) {
           Vector2 cmpos = cm.position();

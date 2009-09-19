@@ -235,7 +235,7 @@ namespace math {
     // Compute the L*D*L^T decomposition of A
     ldl_decomposition(A);
     
-    for(int i = 0; i < B.cols(); i++){
+    for(unsigned i = 0; i < B.cols(); i++){
       current_col = select_col(B, i);
       select_col(X, i) = sparse_solve_ldl(A, current_col);
     }

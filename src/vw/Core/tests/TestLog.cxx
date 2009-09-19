@@ -141,7 +141,7 @@ TEST(Log, MultiThreadLog) {
       FAIL() << "Unknown message [" << typ << "]";
   }
 
-  EXPECT_EQ( 3, status.size() );
+  EXPECT_EQ( 3u, status.size() );
 
   for (Map::const_iterator i = status.begin(), end = status.end(); i != end; ++i) {
     EXPECT_EQ("Stop", i->second) << "Thread " << i->first << " out of order";

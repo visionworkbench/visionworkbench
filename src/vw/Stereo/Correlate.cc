@@ -885,7 +885,7 @@ namespace vw {
       float  min_var2_noise = 0.000001; //0.001;//0.01;//0.0001;//0.000001;//0.0001;
       int    save_confidence_image = 0;//1;
       float  two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0); //4.0//7.0 works well
-      float  var2_disp = 0.001;
+      //float  var2_disp = 0.001;
       /*
         VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
         disparity_map.rows() == left_input_image.rows(),
@@ -1044,7 +1044,7 @@ namespace vw {
 
               float noise_norm_factor = 1.0/sqrt(6.28*var2_noise);
               float plane_norm_factor = 1.0/sqrt(6.28*var2_plane);
-              float disp_norm_factor  = 1.0/sqrt(6.28*var2_disp);
+              //float disp_norm_factor  = 1.0/sqrt(6.28*var2_disp);
 
               // Set up pixel accessors
               typename ImageView<float>::pixel_accessor w_row = w.origin();

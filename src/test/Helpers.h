@@ -150,8 +150,8 @@ class VectorHelper {
 };
 
 class NearImpl {
-    double delta;
     const char *dexpr;
+    double delta;
   public:
     NearImpl(const char *dexpr = "0", double delta = 0) : dexpr(dexpr), delta(delta) {}
     template <typename ElemT>

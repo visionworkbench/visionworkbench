@@ -164,9 +164,9 @@ void save_legend() {
   max_val = 1.0;
   
   ImageView<PixelGray<float> > img(200, 500);
-  for (unsigned j = 0; j < img.rows(); ++j) {
+  for (int j = 0; j < img.rows(); ++j) {
     float val = float(j) / img.rows();
-    for (unsigned i = 0; i < img.cols(); ++i) {
+    for (int i = 0; i < img.cols(); ++i) {
       img(i,j) = val;
     }
   }

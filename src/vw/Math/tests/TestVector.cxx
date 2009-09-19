@@ -14,7 +14,7 @@ using namespace vw;
 TEST(Vector, Static) {
   // Default constructor
   Vector4f v;
-  ASSERT_EQ( 4, v.size() );
+  ASSERT_EQ( 4u, v.size() );
   EXPECT_EQ( 0, v(0) );
   EXPECT_EQ( 0, v(1) );
   EXPECT_EQ( 0, v(2) );
@@ -22,7 +22,7 @@ TEST(Vector, Static) {
 
   // Values constructor
   Vector4f v2(6,7,8,9);
-  ASSERT_EQ( 4, v2.size() );
+  ASSERT_EQ( 4u, v2.size() );
   EXPECT_EQ( 6, v2[0] );
   EXPECT_EQ( 7, v2[1] );
   EXPECT_EQ( 8, v2[2] );
@@ -37,7 +37,7 @@ TEST(Vector, Static) {
 
   // Copy constructor
   Vector4f v3(v2);
-  ASSERT_EQ( 4, v3.size() );
+  ASSERT_EQ( 4u, v3.size() );
   EXPECT_EQ( 6, v3(0) );
   EXPECT_EQ( 7, v3(1) );
   EXPECT_EQ( 8, v3(2) );
@@ -55,7 +55,7 @@ TEST(Vector, Static) {
 
 TEST(Vector, Dynamic) {
   Vector<float> v(4);
-  ASSERT_EQ( 4, v.size() );
+  ASSERT_EQ( 4u, v.size() );
   EXPECT_EQ( 0, v(0) );
   EXPECT_EQ( 0, v(1) );
   EXPECT_EQ( 0, v(2) );
@@ -72,7 +72,7 @@ TEST(Vector, Dynamic) {
   EXPECT_EQ( 9, v(3) );
 
   v.set_size(3,true);
-  ASSERT_EQ( 3, v.size() );
+  ASSERT_EQ( 3u, v.size() );
   EXPECT_EQ( 6, v(0) );
   EXPECT_EQ( 7, v(1) );
   EXPECT_EQ( 8, v(2) );
@@ -86,28 +86,28 @@ TEST(Vector, Proxy) {
   float data[] = {1,2,3,4};
 
   VectorProxy<float,4> vp1(data);
-  ASSERT_EQ( 4, vp1.size() );
+  ASSERT_EQ( 4u, vp1.size() );
   EXPECT_EQ( 1, vp1(0) );
   EXPECT_EQ( 2, vp1(1) );
   EXPECT_EQ( 3, vp1(2) );
   EXPECT_EQ( 4, vp1(3) );
 
   ASSERT_NO_THROW( (vp1=Vector4f(5,6,7,8)) );
-  ASSERT_EQ( 4, vp1.size() );
+  ASSERT_EQ( 4u, vp1.size() );
   EXPECT_EQ( 5, vp1(0) );
   EXPECT_EQ( 6, vp1(1) );
   EXPECT_EQ( 7, vp1(2) );
   EXPECT_EQ( 8, vp1(3) );
 
   VectorProxy<float> vp2(4,data);
-  ASSERT_EQ( 4, vp2.size() );
+  ASSERT_EQ( 4u, vp2.size() );
   EXPECT_EQ( 5, vp2(0) );
   EXPECT_EQ( 6, vp2(1) );
   EXPECT_EQ( 7, vp2(2) );
   EXPECT_EQ( 8, vp2(3) );
 
   ASSERT_NO_THROW( (vp2=Vector4f(1,2,3,4)) );
-  ASSERT_EQ( 4, vp1.size() );
+  ASSERT_EQ( 4u, vp1.size() );
   EXPECT_EQ( 1, vp2(0) );
   EXPECT_EQ( 2, vp2(1) );
   EXPECT_EQ( 3, vp2(2) );
@@ -117,7 +117,7 @@ TEST(Vector, Proxy) {
 TEST(Vector, SubVector) {
   Vector4f v(1,2,3,4);
   Vector<float> sv = subvector(v,2,2);
-  ASSERT_EQ( 2, sv.size() );
+  ASSERT_EQ( 2u, sv.size() );
   EXPECT_EQ( 3, sv(0) );
   EXPECT_EQ( 4, sv(1) );
   subvector(v,1,2) = Vector2f(4,5);
@@ -222,7 +222,7 @@ TEST(Vector, Norms) {
   EXPECT_DOUBLE_EQ(2.44948974278317809819, norm_2(v));
   EXPECT_EQ( 6, norm_2_sqr(v) );
   EXPECT_EQ( 2, norm_inf(v) );
-  EXPECT_EQ( 1, index_norm_inf(v) );
+  EXPECT_EQ( 1u, index_norm_inf(v) );
 
   EXPECT_EQ( 2, sum(v) );
   EXPECT_EQ( -2, prod(v) );

@@ -84,7 +84,7 @@ namespace camera {
 
 
       //pick out covariances of individual cameras
-      for(int i = 0; i < num_cameras; i++){
+      for(unsigned i = 0; i < num_cameras; i++){
          sparse_cov(i) = submatrix(Cov, i*num_cam_params, i*num_cam_params, num_cam_params, num_cam_params);
       }
 
@@ -357,7 +357,7 @@ namespace camera {
 
           // Populate the S_weights, mu_weights vectors
           double S_weight = transpose(unweighted_error) * inverse_cov * unweighted_error;
-          double mu_weight = (t_df + t_dim)/(t_df + S_weight);
+          //double mu_weight = (t_df + t_dim)/(t_df + S_weight);
 
 
 
@@ -379,7 +379,7 @@ namespace camera {
            //       std::cout << "unweighted error is: " << unweighted_error << "\n\n";
 
           double S_weight = transpose(unweighted_error) * this->m_model.A_inverse_covariance(j) * unweighted_error;
-          double mu_weight = (t_df + t_dim)/(t_df + S_weight);
+          //double mu_weight = (t_df + t_dim)/(t_df + S_weight);
 
            new_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
 
@@ -397,7 +397,7 @@ namespace camera {
             Vector<double> unweighted_error = this->m_model.B_initial(i)-(this->m_model.B_parameters(i) - pt_delta);
 
             double S_weight = transpose(unweighted_error)*this->m_model.B_inverse_covariance(i)*unweighted_error;
-            double mu_weight = (t_df + t_dim)/(t_df + S_weight);
+            //double mu_weight = (t_df + t_dim)/(t_df + S_weight);
 
 
             new_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);

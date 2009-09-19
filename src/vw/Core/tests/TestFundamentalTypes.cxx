@@ -33,10 +33,10 @@ TEST(FundamentalTypes, Ranges) {
   EXPECT_EQ( 1, smallest<vw::int16>() );
   EXPECT_EQ( 1, smallest<vw::int32>() );
   EXPECT_EQ( 1, smallest<vw::int64>() );
-  EXPECT_EQ( 1, smallest<vw::uint8>() );
-  EXPECT_EQ( 1, smallest<vw::uint16>() );
-  EXPECT_EQ( 1, smallest<vw::uint32>() );
-  EXPECT_EQ( 1, smallest<vw::uint64>() );
+  EXPECT_EQ( 1u, smallest<vw::uint8>() );
+  EXPECT_EQ( 1u, smallest<vw::uint16>() );
+  EXPECT_EQ( 1u, smallest<vw::uint32>() );
+  EXPECT_EQ( 1u, smallest<vw::uint64>() );
   //EXPECT_FLOAT_EQ( , smallest<vw::float32>() );
   //EXPECT_DOUBLE_EQ( , smallest<vw::float64>() );
 

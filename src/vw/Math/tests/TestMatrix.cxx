@@ -14,8 +14,8 @@ using namespace vw;
 TEST(Matrix, Static) {
   // Default constructor
   Matrix<float,2,3> m1;
-  ASSERT_EQ( 2, m1.rows());
-  ASSERT_EQ( 3, m1.cols());
+  ASSERT_EQ( 2u, m1.rows());
+  ASSERT_EQ( 3u, m1.cols());
   EXPECT_EQ( 0, m1(0,0));
   EXPECT_EQ( 0, m1(0,1));
   EXPECT_EQ( 0, m1(0,2));
@@ -26,8 +26,8 @@ TEST(Matrix, Static) {
   // Data pointer constructor
   float data[4] = {1,2,3,4};
   Matrix2x2f m2(data);
-  ASSERT_EQ( 2, m2.rows());
-  ASSERT_EQ( 2, m2.cols());
+  ASSERT_EQ( 2u, m2.rows());
+  ASSERT_EQ( 2u, m2.cols());
   EXPECT_EQ( 1, m2(0, 0) );
   EXPECT_EQ( 2, m2(0, 1) );
   EXPECT_EQ( 3, m2(1, 0) );
@@ -39,8 +39,8 @@ TEST(Matrix, Static) {
 
   // Copy constructor
   Matrix2x2f m3(m2);
-  ASSERT_EQ( 2, m3.rows());
-  ASSERT_EQ( 2, m3.cols());
+  ASSERT_EQ( 2u, m3.rows());
+  ASSERT_EQ( 2u, m3.cols());
   EXPECT_EQ( 1, m3(0, 0) );
   EXPECT_EQ( 2, m3(0, 1) );
   EXPECT_EQ( 3, m3(1, 0) );
@@ -48,8 +48,8 @@ TEST(Matrix, Static) {
 
   // Element value constructor
   Matrix2x2f m4(1,2,3,4);
-  ASSERT_EQ( 2, m4.rows());
-  ASSERT_EQ( 2, m4.cols());
+  ASSERT_EQ( 2u, m4.rows());
+  ASSERT_EQ( 2u, m4.cols());
   EXPECT_EQ( 1, m4(0, 0) );
   EXPECT_EQ( 2, m4(0, 1) );
   EXPECT_EQ( 3, m4(1, 0) );
@@ -77,13 +77,13 @@ TEST(Matrix, Static) {
 TEST(Matrix, Dynamic) {
   // Default constructor
   Matrix<float> m0;
-  ASSERT_EQ( 0, m0.rows() );
-  ASSERT_EQ( 0, m0.cols() );
+  ASSERT_EQ( 0u, m0.rows() );
+  ASSERT_EQ( 0u, m0.cols() );
 
   // Size constructor
   Matrix<float> m1(2,3);
-  ASSERT_EQ( 2 , m1.rows());
-  ASSERT_EQ( 3 , m1.cols());
+  ASSERT_EQ( 2u , m1.rows());
+  ASSERT_EQ( 3u , m1.cols());
   EXPECT_EQ( 0 , m1(0, 0) );
   EXPECT_EQ( 0 , m1(0, 1) );
   EXPECT_EQ( 0 , m1(0, 2) );
@@ -94,8 +94,8 @@ TEST(Matrix, Dynamic) {
   // Data pointer constructor
   float data[4] = {1,2,3,4};
   Matrix<float> m2(2,2,data);
-  ASSERT_EQ( 2, m2.rows() );
-  ASSERT_EQ( 2, m2.cols() );
+  ASSERT_EQ( 2u, m2.rows() );
+  ASSERT_EQ( 2u, m2.cols() );
   EXPECT_EQ( 1, m2(0, 0) );
   EXPECT_EQ( 2, m2(0, 1) );
   EXPECT_EQ( 3, m2(1, 0) );
@@ -107,8 +107,8 @@ TEST(Matrix, Dynamic) {
 
   // Copy constructor
   Matrix<float> m3(m2);
-  ASSERT_EQ( 2, m3.rows());
-  ASSERT_EQ( 2, m3.cols());
+  ASSERT_EQ( 2u, m3.rows());
+  ASSERT_EQ( 2u, m3.cols());
   EXPECT_EQ( 1, m3(0, 0) );
   EXPECT_EQ( 2, m3(0, 1) );
   EXPECT_EQ( 3, m3(1, 0) );
@@ -116,25 +116,25 @@ TEST(Matrix, Dynamic) {
 
   // set_size()
   EXPECT_NO_THROW(m2.set_size(2,1,true));
-  ASSERT_EQ( 2, m2.rows());
-  ASSERT_EQ( 1, m2.cols());
+  ASSERT_EQ( 2u, m2.rows());
+  ASSERT_EQ( 1u, m2.cols());
   EXPECT_EQ( 1, m2(0, 0) );
   EXPECT_EQ( 3, m2(1, 0) );
   EXPECT_NO_THROW(m2.set_size(2,2));
-  ASSERT_EQ( 2, m2.rows() );
-  ASSERT_EQ( 2, m2.cols() );
+  ASSERT_EQ( 2u, m2.rows() );
+  ASSERT_EQ( 2u, m2.cols() );
 
   // set_identity()
   EXPECT_NO_THROW(m2.set_identity());
-  ASSERT_EQ( 2, m2.rows() );
-  ASSERT_EQ( 2, m2.cols() );
+  ASSERT_EQ( 2u, m2.rows() );
+  ASSERT_EQ( 2u, m2.cols() );
   EXPECT_EQ( 1, m2(0, 0) );
   EXPECT_EQ( 0, m2(0, 1) );
   EXPECT_EQ( 0, m2(1, 0) );
   EXPECT_EQ( 1, m2(1, 1) );
   EXPECT_NO_THROW(m2.set_identity(3));
-  ASSERT_EQ( 3, m2.rows() );
-  ASSERT_EQ( 3, m2.cols() );
+  ASSERT_EQ( 3u, m2.rows() );
+  ASSERT_EQ( 3u, m2.cols() );
   EXPECT_EQ( 1, m2(0, 0) );
   EXPECT_EQ( 0, m2(0, 1) );
   EXPECT_EQ( 0, m2(0, 2) );
@@ -250,8 +250,8 @@ TEST(Matrix, SubMatrix) {
   Matrix2x2f m(1,2,3,4);
 
   Matrix<float> sm = submatrix(m,0,1,2,1);
-  ASSERT_EQ( 2, sm.rows() );
-  ASSERT_EQ( 1, sm.cols() );
+  ASSERT_EQ( 2u, sm.rows() );
+  ASSERT_EQ( 1u, sm.cols() );
   EXPECT_EQ( 2, sm(0,0) );
   EXPECT_EQ( 4, sm(1,0) );
 
@@ -262,7 +262,7 @@ TEST(Matrix, SubMatrix) {
   EXPECT_EQ( 5, m(1,1) );
 
   Vector<float> cv = select_col(m,1);
-  ASSERT_EQ( 2, int(cv.size()) );
+  ASSERT_EQ( 2u, cv.size() );
   EXPECT_EQ( 2, cv(0) );
   EXPECT_EQ( 5, cv(1) );
 
@@ -273,7 +273,7 @@ TEST(Matrix, SubMatrix) {
   EXPECT_EQ( 5, m(1,1) );
 
   Vector<float> rv = select_row(m,1);
-  ASSERT_EQ( 2, int(rv.size()) );
+  ASSERT_EQ( 2u, rv.size() );
   EXPECT_EQ( 3, rv(0) );
   EXPECT_EQ( 5, rv(1) );
 
@@ -290,20 +290,20 @@ TEST(Matrix, Products) {
 
   // Matrix*Vector
   Vector<float> r1 = m*v;
-  ASSERT_EQ( 2, r1.size() );
+  ASSERT_EQ( 2u, r1.size() );
   EXPECT_EQ( 5, r1(0) );
   EXPECT_EQ( 11, r1(1) );
 
   // Matrix*Vector
   Vector<float> r2 = transpose(transpose(v)*m);
-  ASSERT_EQ( 2, r2.size() );
+  ASSERT_EQ( 2u, r2.size() );
   EXPECT_EQ( 7, r2(0) );
   EXPECT_EQ( 10, r2(1) );
 
   // Matrix*Matrix
   Matrix<float> r3 = m*m;
-  ASSERT_EQ( 2, r3.rows() );
-  ASSERT_EQ( 2, r3.cols() );
+  ASSERT_EQ( 2u, r3.rows() );
+  ASSERT_EQ( 2u, r3.cols() );
   EXPECT_EQ( 7, r3(0,0) );
   EXPECT_EQ( 10, r3(0,1) );
   EXPECT_EQ( 15, r3(1,0) );
@@ -311,8 +311,8 @@ TEST(Matrix, Products) {
 
   // Vector*VectorTranspose (i.e. outer product)
   Matrix<float> r4 = Vector2f(1,2)*transpose(Vector2f(2,3));
-  ASSERT_EQ( 2, r4.rows() );
-  ASSERT_EQ( 2, r4.cols() );
+  ASSERT_EQ( 2u, r4.rows() );
+  ASSERT_EQ( 2u, r4.cols() );
   EXPECT_EQ( 2, r4(0,0) );
   EXPECT_EQ( 3, r4(0,1) );
   EXPECT_EQ( 4, r4(1,0) );
@@ -321,8 +321,8 @@ TEST(Matrix, Products) {
   // Matrix*Matrix self-assignment
   Matrix<float> r5 = m;
   r5 = r5*r5;
-  ASSERT_EQ( 2, r5.rows() );
-  ASSERT_EQ( 2, r5.cols() );
+  ASSERT_EQ( 2u, r5.rows() );
+  ASSERT_EQ( 2u, r5.cols() );
   EXPECT_EQ( 7, r5(0,0) );
   EXPECT_EQ( 10, r5(0,1) );
   EXPECT_EQ( 15, r5(1,0) );
@@ -331,8 +331,8 @@ TEST(Matrix, Products) {
   // Matrix*Matrix self-assignment (no temporary)
   Matrix<float> r6 = m;
   r6 = no_tmp( r6*r6 );
-  ASSERT_EQ( 2, r6.rows() );
-  ASSERT_EQ( 2, r6.cols() );
+  ASSERT_EQ( 2u, r6.rows() );
+  ASSERT_EQ( 2u, r6.cols() );
   EXPECT_EQ( 7, r6(0,0) );
   EXPECT_EQ( 22, r6(0,1) );
   EXPECT_EQ( 33, r6(1,0) );
@@ -341,8 +341,8 @@ TEST(Matrix, Products) {
   // Matrix*Matrix self-assignment
   Matrix2x2f r7 = m;
   r7 = r7*r7;
-  ASSERT_EQ( 2, r7.rows() );
-  ASSERT_EQ( 2, r7.cols() );
+  ASSERT_EQ( 2u, r7.rows() );
+  ASSERT_EQ( 2u, r7.cols() );
   EXPECT_EQ( 7, r7(0,0) );
   EXPECT_EQ( 10, r7(0,1) );
   EXPECT_EQ( 15, r7(1,0) );
@@ -351,8 +351,8 @@ TEST(Matrix, Products) {
   // Matrix*Matrix self-assignment (no temporary)
   Matrix2x2f r8 = m;
   r8 = no_tmp( r8*r8 );
-  ASSERT_EQ( 2, r8.rows() );
-  ASSERT_EQ( 2, r8.cols() );
+  ASSERT_EQ( 2u, r8.rows() );
+  ASSERT_EQ( 2u, r8.cols() );
   EXPECT_EQ( 7, r8(0,0) );
   EXPECT_EQ( 22, r8(0,1) );
   EXPECT_EQ( 33, r8(1,0) );
@@ -363,8 +363,8 @@ TEST(Matrix, Transpose) {
   Matrix2x2f m(1,2,3,4);
   Matrix<float> r = transpose(m);
 
-  ASSERT_EQ( 2, r.rows() );
-  ASSERT_EQ( 2, r.cols() );
+  ASSERT_EQ( 2u, r.rows() );
+  ASSERT_EQ( 2u, r.cols() );
   EXPECT_EQ( 1, r(0,0) );
   EXPECT_EQ( 3, r(0,1) );
   EXPECT_EQ( 2, r(1,0) );

@@ -302,7 +302,7 @@ TEST(Quaternion, AxisAngleToFromMatrix) {
     { -0.415601155986352, -0.134076370289505, 0.759495770262097 },
     { -0.312930331688783, 0.628491512746504, -0.315448931352088 },
   };
-  for (int i = 0; i < sizeof(matrix_raw)/sizeof(matrix_raw[1]); i++) {
+  for (size_t i = 0; i < sizeof(matrix_raw)/sizeof(matrix_raw[1]); i++) {
     Vector3 v(vector_raw[i]);
     Matrix3x3 m(matrix_raw[i]);
 

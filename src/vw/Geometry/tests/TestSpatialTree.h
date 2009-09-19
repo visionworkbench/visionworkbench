@@ -54,7 +54,7 @@ public:
     std::list<GeomPrimitive*>::iterator i;
     std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > overlaps;
     std::list<std::pair<GeomPrimitive*, GeomPrimitive*> >::iterator i2;
-    int j;
+    unsigned j;
 
     Vector<double,4> p0(0.1, 0.1, 0.1, 0.1), p0_(0.2, 0.2, 0.2, 0.2);
     SpatialTree t0(b);
@@ -81,12 +81,12 @@ public:
     TS_ASSERT_EQUALS( t.contains(subvector(p3, 0, dim)), &g1 );
     l.clear();
     t.contains(subvector(p3, 0, dim), l);
-    TS_ASSERT_EQUALS( l.size(), 1 );
+    TS_ASSERT_EQUALS( l.size(), 1u );
     TS_ASSERT_EQUALS( *(l.begin()), &g1 );
     TS_ASSERT_EQUALS( t.contains(subvector(p4, 0, dim)), (GeomPrimitive*)0 );
     l.clear();
     t.contains(subvector(p4, 0, dim), l);
-    TS_ASSERT_EQUALS( l.size(), 0 );
+    TS_ASSERT_EQUALS( l.size(), 0u );
 
     TestGeomPrimitive g2;
     g2.grow(subvector(p3, 0, dim));
@@ -99,13 +99,13 @@ public:
     TS_ASSERT_EQUALS( t.contains(subvector(p5, 0, dim)), &g1 );
     l.clear();
     t.contains(subvector(p5, 0, dim), l);
-    TS_ASSERT_EQUALS( l.size(), 1 );
+    TS_ASSERT_EQUALS( l.size(), 1u );
     TS_ASSERT_EQUALS( *(l.begin()), &g1 );
     gt1 = t.contains(subvector(p6, 0, dim));
     TS_ASSERT( gt1 == &g1 || gt1 == &g2 );
     l.clear();
     t.contains(subvector(p6, 0, dim), l);
-    TS_ASSERT_EQUALS( l.size(), 2 );
+    TS_ASSERT_EQUALS( l.size(), 2u );
     i = l.begin(); gt1 = *i; i++; gt2 = *i;
     TS_ASSERT( gt1 == &g1 || gt1 == &g2 );
     TS_ASSERT( gt2 == &g1 || gt2 == &g2 );
@@ -113,14 +113,14 @@ public:
     TS_ASSERT_EQUALS( t.contains(subvector(p7, 0, dim)), &g2 );
     l.clear();
     t.contains(subvector(p7, 0, dim), l);
-    TS_ASSERT_EQUALS( l.size(), 1 );
+    TS_ASSERT_EQUALS( l.size(), 1u );
     TS_ASSERT_EQUALS( *(l.begin()), &g2 );
     if (dim == 1)
     {
       TS_ASSERT_EQUALS( t.contains(subvector(p8, 0, dim)), &g1 );
       l.clear();
       t.contains(subvector(p8, 0, dim), l);
-      TS_ASSERT_EQUALS( l.size(), 1 );
+      TS_ASSERT_EQUALS( l.size(), 1u );
       TS_ASSERT_EQUALS( *(l.begin()), &g1 );
     }
     else
@@ -128,12 +128,12 @@ public:
       TS_ASSERT_EQUALS( t.contains(subvector(p8, 0, dim)), (GeomPrimitive*)0 );
       l.clear();
       t.contains(subvector(p8, 0, dim), l);
-      TS_ASSERT_EQUALS( l.size(), 0 );
+      TS_ASSERT_EQUALS( l.size(), 0u );
     }
     TS_ASSERT_EQUALS( t.contains(subvector(p9, 0, dim)), (GeomPrimitive*)0 );
     l.clear();
     t.contains(subvector(p9, 0, dim), l);
-    TS_ASSERT_EQUALS( l.size(), 0 );
+    TS_ASSERT_EQUALS( l.size(), 0u );
 
     Vector<double,4> p10(9, 9, 9, 9), p10_(9.1, 9.1, 9.1, 9.1);
     TestGeomPrimitive g3;
@@ -143,7 +143,7 @@ public:
 
     overlaps.clear();
     t.overlap_pairs(overlaps);
-    TS_ASSERT_EQUALS( overlaps.size(), 1 );
+    TS_ASSERT_EQUALS( overlaps.size(), 1u );
     i2 = overlaps.begin(); gt1 = (*i2).first; gt2 = (*i2).second;
     TS_ASSERT( gt1 == &g1 || gt1 == &g2 );
     TS_ASSERT( gt2 == &g1 || gt2 == &g2 );
@@ -174,7 +174,7 @@ public:
 
     overlaps.clear();
     t.overlap_pairs(overlaps);
-    int num_overlaps = 4;
+    unsigned num_overlaps = 4;
     GeomPrimitive *overlaps_truth[4][2] = {{&g4, &g2}, {&g4, &g1}, {&g4, &g0}, {&g2, &g1}};
     int overlaps_found[4] = {0, 0, 0, 0};
     //GeomPrimitive *prims[6] = {&g0, &g1, &g2, &g3, &g4, 0};

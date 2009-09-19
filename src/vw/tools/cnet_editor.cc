@@ -86,13 +86,13 @@ int main( int argc, char *argv[] ) {
   // Alright loading image mean file
   std::ifstream f;
   f.open( image_mean_file.c_str(), std::ios::binary | std::ios::in );
-  int read_cnet_size;
-  f.read((char*)&(read_cnet_size), sizeof(int));
+  unsigned read_cnet_size;
+  f.read((char*)&(read_cnet_size), sizeof(unsigned));
   if ( read_cnet_size != cnet.size() )
     vw_throw( IOErr() << "Image mean file doesn't seem to match Cnet" );
-  int error_size;
+  unsigned error_size;
   std::list<double> image_errors;
-  f.read((char*)&(error_size), sizeof(int));
+  f.read((char*)&(error_size), sizeof(unsigned));
 
   for ( unsigned i = 0; i < error_size; i++ ) {
     double temp;

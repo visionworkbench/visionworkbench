@@ -171,7 +171,7 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
   if ( m_magic == "P1" || m_magic == "P2" || m_magic == "P3" ) {
     // Bool/Grey/RGB (respectively) stored as ASCII
     uint32 buf;
-    for ( int32 i = 0; i < data_size; ++i ) {
+    for ( size_t i = 0; i < data_size; ++i ) {
       input >> buf;
       image_data[i] = buf;
     }
@@ -299,7 +299,7 @@ void DiskImageResourcePBM::write( ImageBuffer const& src,
     if (data_size > 0)
       output << static_cast<uint32>(image_data[0]);
 
-    for ( int32 i = 1; i < data_size; i++ )
+    for ( size_t i = 1; i < data_size; i++ )
       output << " " << static_cast<uint32>(image_data[i]);
   } else if ( m_magic == "P4" || m_magic == "P5" || m_magic == "P6" ) {
     // Bool/Grey/RGB (respectively) stored as binary

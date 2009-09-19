@@ -96,7 +96,7 @@ TEST(LinearAlgebra, LeastSquaresDynamic) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   x = least_squares(A,b);
 
-  ASSERT_EQ( 2, x.size() );
+  ASSERT_EQ( 2u, x.size() );
   EXPECT_NEAR( 0.52625521713421449830, x[0], 1e-6 );
   EXPECT_NEAR( 0.37689005929142064427, x[1], 1e-6 );
 }
@@ -114,7 +114,7 @@ TEST(LinearAlgebra, SVDFloat) {
   // Find the least squares solution to the overconstrained problem Ax=b;
   svd(A,s);
 
-  ASSERT_EQ( 4, s.size() );
+  ASSERT_EQ( 4u, s.size() );
   EXPECT_NEAR( 744.6187691721427, s[0], 1e-4 );
   EXPECT_NEAR( 336.4697156808418, s[1], 1e-4 );
   EXPECT_NEAR( 262.4879718834515, s[2], 1e-4 );

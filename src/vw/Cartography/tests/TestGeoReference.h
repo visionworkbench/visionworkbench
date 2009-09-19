@@ -205,7 +205,7 @@ public:
     utm_georef.set_pixel_interpretation(GeoReference::PixelAsPoint);
     utm_georef.set_UTM(59, false); // 59S
 
-    for (int i = 0; i < ll.size(); ++i) {
+    for (unsigned i = 0; i < ll.size(); ++i) {
       Vector2 check_point  = utm_georef.pixel_to_point(px[i]);
       Vector2 check_lonlat = utm_georef.pixel_to_lonlat(px[i]);
 
