@@ -1085,8 +1085,8 @@ int main(int argc, char* argv[]) {
   // Write binary control network files
   std::string cnet_file = fs::path(config.data_dir / CnetPrefix).string();
   std::string noisy_cnet_file = fs::path(config.data_dir / NoisyCnetPrefix).string();
-  cnet->write_binary_control_network(cnet_file);
-  noisy_cnet->write_binary_control_network(noisy_cnet_file);
+  cnet->write_binary(cnet_file);
+  noisy_cnet->write_binary(noisy_cnet_file);
 
   // Write ground truth files for world points and camera parameters
   write_world_points(cnet, TrueWPFile, config.data_dir);

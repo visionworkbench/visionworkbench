@@ -6,7 +6,7 @@
 
 
 /// \file ControlNetwork.h
-/// 
+///
 
 #ifndef __VW_CAMERA_CONTROL_NETWORK_H__
 #define __VW_CAMERA_CONTROL_NETWORK_H__
@@ -55,14 +55,14 @@ namespace camera {
     /// ValidatedAutomatic - Created by a computer and has been validated by
     ///                      a human.
     enum ControlMeasureType { Unmeasured, Manual, Estimated, Automatic,
-			      ValidatedManual, ValidatedAutomatic };
+                              ValidatedManual, ValidatedAutomatic };
     ControlMeasureType m_type;
 
     /// Constructor
-    ControlMeasure( float, float, 
-		    float, float, 
-		    int, 
-		    ControlMeasureType type = ControlMeasure::Automatic );
+    ControlMeasure( float, float,
+                    float, float,
+                    int,
+                    ControlMeasureType type = ControlMeasure::Automatic );
     ControlMeasure( ControlMeasureType type = ControlMeasure::Automatic );
 
     /// Setting/Reading control measure type
@@ -71,18 +71,18 @@ namespace camera {
 
     /// Setting/Reading the pixel location
     Vector2 position() const { return Vector2(m_col, m_row); }
-    void set_position(float col, float row) { 
+    void set_position(float col, float row) {
       m_col = col;
       m_row = row;
     }
-    void set_position(Vector2 position) { 
+    void set_position(Vector2 position) {
       m_col = position[0];
       m_row = position[1];
     }
 
     /// Setting/Reading millimeter location
     Vector2 focalplane() const { return Vector2( m_focalplane_x,
-						 m_focalplane_y ); }
+                                                 m_focalplane_y ); }
     void set_focalplane( double x, double y ) {
       m_focalplane_x = x;
       m_focalplane_y = y;
@@ -94,7 +94,7 @@ namespace camera {
 
     /// Setting/Reading dominant location (used by BA, defaults to
     /// position)
-    Vector2 dominant() const { 
+    Vector2 dominant() const {
       return m_pixels_dominant ? Vector2(m_col,m_row) : Vector2(m_focalplane_x,m_focalplane_y);
     }
     void set_dominant( double x, double y ) {
@@ -112,19 +112,19 @@ namespace camera {
     Vector2 sigma() const { return Vector2(m_col_sigma, m_row_sigma); }
     float sigma_magnitude() const {
       return sqrt(m_col_sigma*m_col_sigma +
-		  m_row_sigma*m_row_sigma );
+                  m_row_sigma*m_row_sigma );
     }
     void set_sigma(float col_sigma, float row_sigma) {
       m_col_sigma = col_sigma;
       m_row_sigma = row_sigma;
     }
-    void set_sigma(Vector2 sigma) { 
-      m_col_sigma = sigma[0]; 
+    void set_sigma(Vector2 sigma) {
+      m_col_sigma = sigma[0];
       m_row_sigma = sigma[1];
     }
 
     /// Setting/Reading the identifier for the image from which this
-    /// control point was derived.  
+    /// control point was derived.
     int image_id() const { return m_image_id; }
     void set_image_id(int image_id) { m_image_id = image_id; }
 
@@ -148,16 +148,16 @@ namespace camera {
     /// ignored in a bundle adjustment.
     bool ignore() const { return m_ignore; }
     void set_ignore(bool state) { m_ignore = state; }
-     
+
     /// Setting/Reading Ephemeris Time
     double ephemeris_time() const { return m_ephemeris_time; }
     void set_ephemeris_time( double const& time ) { m_ephemeris_time = time; }
 
     /// File I/O
-    void write_binary_measure ( std::ofstream &f );
-    void read_binary_measure ( std::ifstream &f );
-    void write_isis_pvl_measure ( std::ofstream &f );
-    void read_isis_pvl_measure( std::ifstream &f );
+    static ControlMeasure read_binary( std::ifstream &f );
+    static ControlMeasure read_isis( std::ifstream &f );
+    void write_binary( std::ofstream &f );
+    void write_isis( std::ofstream &f );
 
   };
 
@@ -166,8 +166,8 @@ namespace camera {
   inline bool operator==( ControlMeasure const& m1, ControlMeasure const& m2 ) {
     if (m1.position() == m2.position() &&
         m1.sigma() == m2.sigma() &&
-        m1.image_id() == m2.image_id() && 
-	m1.ephemeris_time() == m2.ephemeris_time() ) 
+        m1.image_id() == m2.image_id() &&
+        m1.ephemeris_time() == m2.ephemeris_time() )
       return true;
     //else
     return false;
@@ -200,17 +200,17 @@ namespace camera {
     enum ControlPointType { GroundControlPoint, TiePoint };
     ControlPointType m_type;
 
-    /// Constructor 
+    /// Constructor
     ControlPoint(ControlPointType type = ControlPoint::TiePoint);
 
     /// Setting/Reading Type
     ControlPointType type() const { return m_type; }
     void set_type(ControlPointType type) { m_type = type; }
-    
+
     /// Setting/Reading ID
     std::string id() const { return m_id; }
     void set_id(std::string id) { m_id = id; }
-    
+
     /// Setting/Reading Ignore
     bool ignore() const { return m_ignore; }
     void set_ignore(bool ignore) { m_ignore = ignore; }
@@ -227,11 +227,11 @@ namespace camera {
 
     /// Remove the control point at the specified index.
     void delete_measure(unsigned index);
-    
+
     /// Access a specific control measure that is associated with this control point.
     ControlMeasure& operator[] (int index) { return m_measures[index]; }
     const ControlMeasure& operator[] (int index) const { return m_measures[index]; }
-    
+
     /// Clear all the control measures associated with this control point.
     void clear() { m_measures.clear(); }
 
@@ -256,10 +256,10 @@ namespace camera {
     Vector3 sigma() const { return m_sigma; }
 
     /// File I/O
-    void write_binary_point ( std::ofstream &f );
-    void read_binary_point ( std::ifstream &f );
-    void write_isis_pvl_point ( std::ofstream &f );
-    void read_isis_pvl_point ( std::ifstream &f );
+    static ControlPoint read_binary( std::ifstream &f );
+    static ControlPoint read_isis( std::ifstream &f );
+    void write_binary( std::ofstream &f );
+    void write_isis( std::ofstream &f );
 
   };
 
@@ -280,7 +280,10 @@ namespace camera {
     std::string m_modified;           // Data Last Modified
     std::string m_description;        // Text description of network
     std::string m_userName;           // The user who created the network
-    
+
+    // private, only used by static read constructors below
+    ControlNetwork() {};
+
   public:
 
     /// Iterators
@@ -302,11 +305,11 @@ namespace camera {
     ControlNetworkType m_type;
 
     /// Constructor
-    ControlNetwork(std::string , 
-		   ControlNetworkType type = ControlNetwork::ImageToImage,
-		   std::string target_name = "Unknown", 
-		   std::string descrip = "Null", 
-		   std::string user_name = "VW" );
+    ControlNetwork(std::string ,
+                   ControlNetworkType type = ControlNetwork::ImageToImage,
+                   std::string target_name = "Unknown",
+                   std::string descrip = "Null",
+                   std::string user_name = "VW" );
 
     /// Setting/Reading Type
     ControlNetworkType type() const { return m_type; }
@@ -318,9 +321,9 @@ namespace camera {
 
     /// Return the number of Control Points that are Ground Control
     /// Points (GCPs)
-    unsigned num_ground_control_points() const { 
+    unsigned num_ground_control_points() const {
       if ( m_type != ControlNetwork::ImageToGround )
-	return 0;
+        return 0;
 
       unsigned count=0;
       for (unsigned i=0; i<this->size(); ++i) {
@@ -332,7 +335,7 @@ namespace camera {
 
     /// Return the number of Control Points that are of the generic
     /// image tie points
-    unsigned num_tie_points() const { 
+    unsigned num_tie_points() const {
       unsigned count=0;
       for (unsigned i=0; i<this->size(); ++i) {
         if ((*this)[i].type() == ControlPoint::TiePoint)
@@ -349,7 +352,7 @@ namespace camera {
 
     /// Remove the control point at the specified index.
     void delete_control_point(unsigned index);
-    
+
     /// Access a specific control measure that is associated with this
     /// control point.
     ControlPoint& operator[] (int index) { return m_control_points[index]; }
@@ -364,10 +367,10 @@ namespace camera {
     unsigned find_measure(ControlMeasure const& query);
 
     /// File I/O
-    void write_binary_control_network( std::string filename );
-    void read_binary_control_network( std::string filename );
-    void write_isis_pvl_control_network( std::string filename );
-    void read_isis_pvl_control_network( std::string filename );
+    static ControlNetwork read_binary( std::string filename );
+    static ControlNetwork read_isis( std::string filename );
+    void write_binary( std::string filename );
+    void write_isis( std::string filename );
 
   };
 
@@ -375,7 +378,7 @@ namespace camera {
 
   /// I/O for ISIS Pvl file
   void read_pvl_property( std::ostringstream& ostr,
-			  std::vector< std::string >& tokens );
+                          std::vector< std::string >& tokens );
 
 }} // namespace vw::camera
 
