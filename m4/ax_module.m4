@@ -9,10 +9,6 @@ AC_DEFUN([AX_MODULE],
 [
   m4_ifdef([_AX_MODULE_PREPARE], [],
   [
-    realpath() {
-        cd "[$]1" 2>/dev/null 1>&2 && pwd
-    }
-
     abspath() {
         if test ${1#/} = [$]1; then
             echo "$PWD/[$]1"
