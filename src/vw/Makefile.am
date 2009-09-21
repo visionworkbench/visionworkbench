@@ -69,12 +69,12 @@ geometry_subdirs = Geometry
 geometry_headers = Geometry.h
 endif
 
-if MAKE_MODULE_TOOLS
-tools_subdirs = tools
+if MAKE_MODULE_PLATE
+plate_subdirs = Plate
 endif
 
-if MAKE_MODULE_PLATE
-plate_subdirs = plate
+if MAKE_MODULE_TOOLS
+tools_subdirs = tools
 endif
 
 if MAKE_MODULE_GUI
