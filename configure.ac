@@ -335,6 +335,7 @@ PKG_VW_LIBS="$PKG_VW_LIBS_TEMP"
 
 AX_MODULE(CAMERA,        [src/vw/Camera],        [libvwCamera.la],        yes, [VW],        [],                 [BOOST_IOSTREAMS])
 AX_MODULE(MOSAIC,        [src/vw/Mosaic],        [libvwMosaic.la],        yes, [VW])
+AX_MODULE(PLATE,         [src/vw/Plate],         [libvwPlate.la],         yes, [VW])
 AX_MODULE(INTERESTPOINT, [src/vw/InterestPoint], [libvwInterestPoint.la], yes, [VW])
 AX_MODULE(CARTOGRAPHY,   [src/vw/Cartography],   [libvwCartography.la],   yes, [VW],        [PROJ4],            [GDAL])
 AX_MODULE(HDR,           [src/vw/HDR],           [libvwHDR.la],           yes, [VW CAMERA], [LAPACK])
