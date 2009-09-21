@@ -11,30 +11,33 @@
 
 if MAKE_MODULE_PLATE
 
-include_HEADERS = Blob.h Index.h IndexRecord.h Tree.h PlateFile.h
+protocol_headers = IndexRecord.pb.h IndexRpc.pb.h
+protocol_sources = IndexRecord.pb.cc IndexRpc.pb.cc
 
-libvwPlate_la_SOURCES = Blob.cc
+include_HEADERS = Blob.h Index.h Tree.h PlateFile.h Amqp.h $(protocol_headers)
 
+libvwPlate_la_SOURCES = Blob.cc Amqp.cc
+nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 libvwPlate_la_LIBADD = @MODULE_PLATE_LIBS@
 
 lib_LTLIBRARIES = libvwPlate.la
 
 endif
 
-#if ENABLE_EXCEPTIONS
+if ENABLE_EXCEPTIONS
 
-#enplate_SOURCES = enplate.cc
-#enplate_LDADD    = @PKG_PLATE_LIBS@
+mosaic_worker_SOURCES = mosaic_worker.cc
+mosaic_worker_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@
 
-#image2plate_SOURCES = image2plate.cc
-#image2plate_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@
+image2plate_SOURCES = image2plate.cc
+image2plate_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@
 
-#plate2qtree_SOURCES = plate2qtree.cc
-#plate2qtree_LDADD    = @PKG_PLATE_LIBS@
+plate2qtree_SOURCES = plate2qtree.cc
+plate2qtree_LDADD    = @PKG_PLATE_LIBS@
 
-#bin_PROGRAMS = plate2qtree image2plate
-#noinst_PROGRAMS = 
-#endif
+bin_PROGRAMS = plate2qtree image2plate mosaic_worker
+noinst_PROGRAMS = 
+endif
 
 ########################################################################
 # general
@@ -44,7 +47,9 @@ AM_CPPFLAGS = @VW_CPPFLAGS@
 AM_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@
 
 SUBDIRS = . tests
+CLEANFILES = $(protocol_sources) $(protocol_headers)
 
 includedir = $(prefix)/include/vw/Plate
 
 include $(top_srcdir)/config/rules.mak
+include $(top_srcdir)/thirdparty/protobuf.mak

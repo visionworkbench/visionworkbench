@@ -144,18 +144,7 @@ contourgen_progs = contourgen
 contourgen_SOURCES = contour.cpp FitCurves.cpp contourgen.cc
 contourgen_CPPFLAGS = @VW_CPPFLAGS@ @PKG_CAIROMM_CPPFLAGS@
 contourgen_LDADD = $(COMMON_LIBS) @PKG_CAIROMM_LIBS@
-
-if MAKE_MODULE_MOSAIC
-if MAKE_MODULE_CARTOGRAPHY 
-if MAKE_MODULE_PLATE
-plate_progs = image2plate plate2qtree
-image2plate_SOURCES = image2plate.cc
-image2plate_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@ $(COMMON_LIBS)
-plate2qtree_SOURCES = plate2qtree.cc
-plate2qtree_LDADD = @PKG_PLATE_LIBS@ $(COMMON_LIBS)
-endif
-endif
-endif
+endif 
 
 doc_generate_SOURCES = doc-generate.cc
 doc_generate_LDADD   = @PKG_VW_LIBS@ @PKG_MOSAIC_LIBS@
@@ -163,7 +152,7 @@ doc_generate_LDADD   = @PKG_VW_LIBS@ @PKG_MOSAIC_LIBS@
 bin_PROGRAMS = $(camera_progs) $(cartography_progs) $(hdr_progs)	\
                $(interestpoint_progs) $(mosaic_progs)				\
                $(cart_mos_progs) $(stereo_progs) $(gpu_progs) $(batest_progs) \
-               $(cnet_editor_progs) $(contourgen_progs) $(plate_progs)
+               $(cnet_editor_progs) $(contourgen_progs) 
 
 noinst_PROGRAMS = doc-generate
 

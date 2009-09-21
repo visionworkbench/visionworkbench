@@ -1,0 +1,19 @@
+package vw.plate;
+import "IndexRecord.proto";
+
+message IndexReadRequest {
+  required int32 col = 1;
+  required int32 row = 2;
+  required int32 depth = 3;
+}
+
+message IndexWriteRequest {
+  required int32 size = 1;
+}
+
+message IndexWriteComplete {
+  required int32 col = 1;
+  required int32 row = 2;
+  required int32 depth = 3;
+  required IndexRecord record = 4;
+}
