@@ -2,14 +2,11 @@
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Amqp.h>
 #include <vw/Plate/IndexRpc.pb.h>
+#include <vw/Plate/common.h>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 using namespace vw::platefile;
-
-
-#define EXCHANGE "ngt_platefile_index"
-#define QUEUE "index"
 
 int main(int argc, char** argv) {
   std::string queue_name, plate_file_name;

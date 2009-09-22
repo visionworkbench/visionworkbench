@@ -105,32 +105,8 @@ namespace platefile {
     std::string m_plate_name;
     int m_default_block_size;;
     std::string m_default_file_type;
-    boost::shared_ptr<Index> m_index;
+    boost::shared_ptr<IndexBase> m_index;
     FifoWorkQueue m_queue;
-
-    // -------------------------------------------------------------------------
-    //                       PLATE FILE TASKS
-    // -------------------------------------------------------------------------
-    
-    template <class ViewT>
-    class WritePlateFileTask : public Task {
-      PlateFile *m_parent;
-      ViewT const& m_view;
-      int m_i, m_j, m_depth;
-      BBox2i m_bbox; 
-      
-    public:
-      WritePlateFileTask(PlateFile *parent, int i, int j, int depth, 
-                         ImageViewBase<ViewT> const& view, BBox2i bbox) : 
-        m_parent(parent), m_i(i), m_j(j), m_depth(depth), m_view(view.impl()), m_bbox(bbox) {}
-      
-      virtual ~WritePlateFileTask() {}
-      virtual void operator() () { 
-        std::cout << "\t    Generating block: [ " << m_j << " " << m_i 
-                  << " @ level " <<  m_depth << "] " << m_bbox << "\n";
-
-        m_parent->write(m_i, m_j, m_depth, crop(m_view, m_bbox)); }
-    };
 
   public:
   
@@ -144,7 +120,7 @@ namespace platefile {
       // it doesn't already exist.
       if( !exists( fs::path( filename, fs::native ) ) ) {
         fs::create_directory(filename);
-        m_index = boost::shared_ptr<Index>( new Index(default_block_size, default_file_type) );
+        m_index = boost::shared_ptr<IndexBase>( new Index(default_block_size, default_file_type) );
         vw_out(DebugMessage, "platefile") << "Creating new plate file: \"" 
                                           << filename << "\"\n";
 
@@ -152,13 +128,13 @@ namespace platefile {
       // platefile that is stored there.
       } else {
         try {
-          m_index = boost::shared_ptr<Index>( new Index(filename + "/plate.index") );
+          m_index = boost::shared_ptr<IndexBase>( new Index(filename + "/plate.index") );
           vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" 
                                             << filename << "\"\n";
           m_default_block_size = m_index->default_block_size();
-          m_default_file_type = m_index->default_file_type();
+          m_default_file_type = m_index->default_block_filetype();
         } catch (IOErr &e) {
-          m_index = boost::shared_ptr<Index>( new Index(default_block_size, default_file_type) );
+          m_index = boost::shared_ptr<IndexBase>( new Index(default_block_size, default_file_type) );
           vw_out(DebugMessage, "platefile") << "WARNING: Failed to re-open the plate file.  "
                                             << "Creating a new plate file from scratch.";
         }
@@ -178,7 +154,7 @@ namespace platefile {
     /// Returns the file type used to store tiles in this plate file.
     std::string default_file_type() const { return m_default_file_type; }
 
-    // int tile_size() const {}// return m_index.tile_size(); }
+    int default_block_size() const { return m_index->default_block_size(); }
 
     int depth() const { return m_index->max_depth(); }
 
@@ -240,110 +216,10 @@ namespace platefile {
       m_index->write_complete(col, row, depth, write_record);
     }
 
-    /// Add an image to the plate file.
-    template <class ViewT>
-    void insert(ImageViewBase<ViewT> const& image) {
-
-      // chop up the image into small chunks
-      std::vector<BBox2i> bboxes = image_blocks( image.impl(), 
-                                                 m_default_block_size, 
-                                                 m_default_block_size);
-      
-      // Compute the dimensions (in blocks) of the image so that we can
-      // reshape the vector of bboxes into a "matrix" of bboxes in the
-      // code below.
-      int block_cols = ceilf(float(image.impl().cols()) / m_default_block_size);
-      int block_rows = ceilf(float(image.impl().rows()) / m_default_block_size);
-      int nlevels = ceilf(log(std::max(block_rows, block_cols))/log(2));
-      std::cout << "\t--> Rows: " << block_rows << " Cols: " << block_cols 
-                << "   (Block size: " << m_default_block_size << ")\n";
-      std::cout << "\t--> Number of mipmap levels = " << nlevels << "\n";
-      
-      // And save each block to the PlateFile
-      std::vector<BBox2i>::iterator block_iter = bboxes.begin();
-      for (int j = 0; j < block_rows; ++j) {
-        for (int i = 0; i < block_cols; ++i) {
-          m_queue.add_task(boost::shared_ptr<Task>(new WritePlateFileTask<ViewT>(this, 
-                                                                                 i, j, nlevels,
-                                                                                 image, 
-                                                                                 *block_iter)));
-          //          this->write(i, j, nlevels, crop(image, *block_iter));
-          
-          // For debugging
-          //  this->print();
-          
-          ++block_iter;
-        }
-        std::cout << "\n";
-      }      
-      m_queue.join_all();
+    // Returns true if the 
+    IndexRecord read_record(int col, int row, int depth) {
+      return m_index->read_request(col, row, depth);
     }
-
-
-    void mipmap_helper(int col, int row, int depth) {
-
-      // Termination conditions: 
-      try {
-        IndexRecord record = m_index->read_request(col, row, depth);
-        // (1) the record is already valid
-        if (record.valid())
-          return;
-      } catch (TileNotFoundErr &e) {
-        // (2) the record does not exist at all.
-        return;
-      }
-
-      // If none of the termination conditions are met, then we must
-      // be at an invalid record that needs to be regenerated.
-      std::vector<ImageView<PixelRGBA<uint8> > > imgs(4);
-      for (unsigned i = 0; i < 4; ++i) {
-        IndexRecord record;
-        try {
-          record = this->read(imgs[i], col*2+(i%2), row*2+(i/2), depth+1);
-        } catch (TileNotFoundErr &e) { 
-          // Do nothing... record is not found, and therefore invalid. 
-        }
-         
-        // If the record for the child is invalid, we attempt to
-        // (recursively) generate it.  Then we try reading it again.
-        if (!record.valid()) {
-          mipmap_helper(col*2+(i%2), row*2+(i/2), depth+1);
-          try {
-            record = this->read(imgs[i], col*2+(i%2), row*2+(i/2), depth+1);
-          } catch (TileNotFoundErr &e) {} // Do nothing... record is not found, and therefore invalid. 
-        }
-      }
-
-      std::cout << "\t    Generating " << col << " " << row << " @ " << depth << "\n";
-
-      
-      // Piece together the tiles from the four children if this node.
-      mosaic::ImageComposite<PixelRGBA<uint8> > composite;
-      composite.set_draft_mode(true);
-      composite.insert(imgs[0], 0, 0);
-      composite.insert(imgs[1], m_default_block_size, 0);
-      composite.insert(imgs[2], 0, m_default_block_size);
-      composite.insert(imgs[3], m_default_block_size, m_default_block_size);
-      composite.prepare();
-      
-      // Subsample the image, and then write the new tile.
-      ImageView<PixelRGBA<uint8> > new_tile = subsample(gaussian_filter(composite, 0.5), 2);
-      this->write(col, row, depth, new_tile);
-    }
-
-    void mipmap() { 
-      std::cout << "\t--> Building mipmap levels\n";
-      this->mipmap_helper(0,0,0); 
-    }
-
-    int depth() { 
-      return m_index->max_depth();
-    }
-
-    void print() {
-      m_index->print();
-    }
-
   };
 
 

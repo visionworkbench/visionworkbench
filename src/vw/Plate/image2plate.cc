@@ -3,6 +3,7 @@
 #include <vw/Cartography.h>
 #include <vw/Mosaic.h>
 #include <vw/Plate/PlateFile.h>
+#include <vw/Plate/ToastPlateManager.h>
 
 using namespace vw;
 using namespace vw::platefile;
@@ -28,6 +29,7 @@ int main( int argc, char *argv[] ) {
   int tile_size;
   float jpeg_quality;
   int png_compression;
+  int num_threads;
   unsigned cache_size;
   std::vector<std::string> image_files;
 
@@ -39,6 +41,7 @@ int main( int argc, char *argv[] ) {
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Soure data cache size, in megabytes")
+    ("num-threads", po::value<int>(&num_threads)->default_value(1), "Set the number of threads for interest point detection.  Setting the num_threads to zero causes ipfind to use the visionworkbench default number of threads.")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -83,6 +86,9 @@ int main( int argc, char *argv[] ) {
   DiskImageResourcePNG::set_default_compression_level( png_compression );
   vw_system_cache().resize( cache_size*1024*1024 );
 
+  if ( vm.count("num-threads"))
+    vw_settings().set_default_num_threads(num_threads);
+
   std::vector<DiskImageView<PixelRGBA<uint8> > > images;
   std::vector<GeoReference> georefs;
   int max_level = 0;
@@ -110,15 +116,14 @@ int main( int argc, char *argv[] ) {
     Vector2 p1 = georef.pixel_to_lonlat(Vector2(image.cols()/2+1,image.rows()/2));
     Vector2 p2 = georef.pixel_to_lonlat(Vector2(image.cols()/2,image.rows()/2+1));
     double delta = sqrt(pow(p1.y()-p0.y(),2)+pow(p2.y()-p0.y(),2));
-    int level = (int)round(log(180/delta/(tile_size-1))/log(2));
+    int level = (int)round(log(360/delta/(tile_size-1))/log(2));
     if( level > max_level ) max_level = level;
   }
   
-  // TODO: This might be the right math if we use padding, but I'm
-  // disabling it for now so that we get a nice, even power of two
-  // size for the full image.
-  //  int32 resolution = (1<<max_level)*(tile_size-1)+1;
-  int32 resolution = (1<<max_level)*tile_size;
+  // This is the right dimension if we create tiles that overlap by
+  // one pixel on one side.  We do this in the TOAST projection to
+  // correctly render tiles in a 3D texturing environment.
+  int32 resolution = (1<<max_level)*(tile_size-1)+1;
   std::cout << "Using " << max_level+1 << " levels. (Total resolution = " << resolution << " pixels.)" << std::endl;
 
   ImageComposite<PixelRGBA<uint8> > composite;
@@ -148,15 +153,16 @@ int main( int argc, char *argv[] ) {
   // -------------------------- PLATE FILE GENERATION --------------------------------
 
   // Create the plate file
-  PlateFile platefile(output_file_name, tile_size, output_file_type);
+  boost::shared_ptr<PlateFile> platefile = boost::shared_ptr<PlateFile>( new PlateFile(output_file_name, tile_size, output_file_type));
+  ToastPlateManager pm(platefile);
 
   std::cout << "\nWriting data to plate file: " << output_file_type << "\n";
-  platefile.insert(composite);
+  std::cout << "\t--> Building full-resolution tiles\n";
+  pm.insert(composite, max_level);
   
-  std::cout << "Generating platefile MIPMAP...\n";
-  platefile.mipmap();
+  std::cout << "\t--> Building mipmap levels\n";
+  pm.mipmap();
 
   std::cout << "Saving...\n";
-  platefile.save();
-
+  platefile->save();
 }

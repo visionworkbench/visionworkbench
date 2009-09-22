@@ -14,9 +14,10 @@ if MAKE_MODULE_PLATE
 protocol_headers = IndexRecord.pb.h IndexRpc.pb.h
 protocol_sources = IndexRecord.pb.cc IndexRpc.pb.cc
 
-include_HEADERS = Blob.h Index.h Tree.h PlateFile.h Amqp.h $(protocol_headers)
+include_HEADERS = Blob.h Index.h Tree.h PlateFile.h Amqp.h	\
+		  ToastPlateManager.h $(protocol_headers)
 
-libvwPlate_la_SOURCES = Blob.cc Amqp.cc
+libvwPlate_la_SOURCES = Blob.cc Index.cc Amqp.cc
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 libvwPlate_la_LIBADD = @MODULE_PLATE_LIBS@
 

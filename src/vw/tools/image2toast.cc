@@ -147,6 +147,8 @@ int main(int argc, char **argv) {
   }
 
   composite.prepare();
+  std::cout << "Composite dimensions: " << composite.cols() << " x " << composite.rows() << "\n";
+
   std::cout << "Generating tile set at " << output_file_name << "." << std::endl;
   QuadTreeGenerator qtree( composite, output_file_name );
   ToastQuadTreeConfig tqtc;

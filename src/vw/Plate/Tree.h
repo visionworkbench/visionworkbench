@@ -5,6 +5,8 @@
 #include <vw/Core/Exception.h>
 #include <vw/Core/FundamentalTypes.h>
 
+#include <boost/shared_array.hpp>
+
 namespace vw {
 namespace platefile {
 
