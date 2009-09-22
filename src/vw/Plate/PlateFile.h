@@ -236,6 +236,7 @@ namespace platefile {
       write_record.set_blob_offset(blob_offset);
       write_record.set_block_size(block_size);
       write_record.set_block_filetype(m_default_file_type);
+      write_record.set_valid(true);
       m_index->write_complete(col, row, depth, write_record);
     }
 
@@ -326,7 +327,7 @@ namespace platefile {
       composite.prepare();
       
       // Subsample the image, and then write the new tile.
-      ImageView<PixelRGBA<uint8> > new_tile = subsample(gaussian_filter(composite, 1.0), 2);
+      ImageView<PixelRGBA<uint8> > new_tile = subsample(gaussian_filter(composite, 0.5), 2);
       this->write(col, row, depth, new_tile);
     }
 

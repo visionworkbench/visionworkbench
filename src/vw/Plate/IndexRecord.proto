@@ -5,5 +5,5 @@ message IndexRecord {
   optional string block_filetype = 2;
   optional int32 blob_id = 3;
   optional int64 blob_offset = 4;
-  optional bool valid = 5;
+  optional bool valid = 5 [ default = false ];
 }

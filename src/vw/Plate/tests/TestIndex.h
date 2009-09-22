@@ -215,6 +215,7 @@ public:
     TS_ASSERT_EQUALS(result.blob_offset(), dummy_record0.blob_offset());
     TS_ASSERT_EQUALS(result.block_size(), dummy_record0.block_size());
     TS_ASSERT_EQUALS(result.block_filetype(), dummy_record0.block_filetype());
+    TS_ASSERT_EQUALS(result.valid(), dummy_record0.valid());
 
     result = idx2.read_request(0, 0, 1);
     TS_ASSERT_EQUALS(result.blob_id(), dummy_record1.blob_id());
