@@ -29,8 +29,8 @@ int main( int argc, char *argv[] ) {
   int tile_size;
   float jpeg_quality;
   int png_compression;
-  int num_threads;
   unsigned cache_size;
+  unsigned num_threads;
   std::vector<std::string> image_files;
 
   po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");
@@ -41,7 +41,7 @@ int main( int argc, char *argv[] ) {
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Soure data cache size, in megabytes")
-    ("num-threads", po::value<int>(&num_threads)->default_value(1), "Set the number of threads for interest point detection.  Setting the num_threads to zero causes ipfind to use the visionworkbench default number of threads.")
+    ("num-threads,t", po::value<unsigned>(&num_threads)->default_value(1), "Set number of threads (set to 0 to use system default")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -85,7 +85,6 @@ int main( int argc, char *argv[] ) {
   DiskImageResourceJPEG::set_default_quality( jpeg_quality );
   DiskImageResourcePNG::set_default_compression_level( png_compression );
   vw_system_cache().resize( cache_size*1024*1024 );
-
   if ( vm.count("num-threads"))
     vw_settings().set_default_num_threads(num_threads);
 
