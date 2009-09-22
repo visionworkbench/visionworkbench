@@ -26,6 +26,8 @@
 namespace vw {
 namespace camera {
 
+  enum ControlStorageFmt { FmtBinary, FmtIsisPvl };
+
   /// A ControlMeasure identifies a pixel in an image that corresponds
   /// to a control point.  In addition to the location of the pixel, the
   /// control measure also stores the uncertainty of the measurement,
@@ -64,6 +66,12 @@ namespace camera {
                     int,
                     ControlMeasureType type = ControlMeasure::Automatic );
     ControlMeasure( ControlMeasureType type = ControlMeasure::Automatic );
+    ControlMeasure( std::istream& f, ControlStorageFmt fmt) {
+      switch (fmt) {
+        case FmtBinary:  this->read_binary(f); break;
+        case FmtIsisPvl: this->read_isis(f);   break;
+      }
+    }
 
     /// Setting/Reading control measure type
     ControlMeasureType type() const { return m_type; }
@@ -154,10 +162,10 @@ namespace camera {
     void set_ephemeris_time( double const& time ) { m_ephemeris_time = time; }
 
     /// File I/O
-    static ControlMeasure read_binary( std::ifstream &f );
-    static ControlMeasure read_isis( std::ifstream &f );
-    void write_binary( std::ofstream &f );
-    void write_isis( std::ofstream &f );
+    void read_binary( std::istream& f );
+    void read_isis( std::istream& f );
+    void write_binary( std::ostream &f );
+    void write_isis( std::ostream &f );
 
   };
 
@@ -202,6 +210,12 @@ namespace camera {
 
     /// Constructor
     ControlPoint(ControlPointType type = ControlPoint::TiePoint);
+    ControlPoint(std::istream& f, ControlStorageFmt fmt) {
+      switch (fmt) {
+        case FmtBinary:  this->read_binary(f); break;
+        case FmtIsisPvl: this->read_isis(f);   break;
+      }
+    }
 
     /// Setting/Reading Type
     ControlPointType type() const { return m_type; }
@@ -256,10 +270,10 @@ namespace camera {
     Vector3 sigma() const { return m_sigma; }
 
     /// File I/O
-    static ControlPoint read_binary( std::ifstream &f );
-    static ControlPoint read_isis( std::ifstream &f );
-    void write_binary( std::ofstream &f );
-    void write_isis( std::ofstream &f );
+    void read_binary( std::istream& f );
+    void read_isis( std::istream& f );
+    void write_binary( std::ostream &f );
+    void write_isis( std::ostream &f );
 
   };
 
@@ -280,9 +294,6 @@ namespace camera {
     std::string m_modified;           // Data Last Modified
     std::string m_description;        // Text description of network
     std::string m_userName;           // The user who created the network
-
-    // private, only used by static read constructors below
-    ControlNetwork() {};
 
   public:
 
@@ -310,6 +321,12 @@ namespace camera {
                    std::string target_name = "Unknown",
                    std::string descrip = "Null",
                    std::string user_name = "VW" );
+    ControlNetwork(const std::string& f, ControlStorageFmt fmt) {
+      switch (fmt) {
+        case FmtBinary:  this->read_binary(f); break;
+        case FmtIsisPvl: this->read_isis(f);   break;
+      }
+    }
 
     /// Setting/Reading Type
     ControlNetworkType type() const { return m_type; }
@@ -367,8 +384,8 @@ namespace camera {
     unsigned find_measure(ControlMeasure const& query);
 
     /// File I/O
-    static ControlNetwork read_binary( std::string filename );
-    static ControlNetwork read_isis( std::string filename );
+    void read_binary( std::string filename );
+    void read_isis( std::string filename );
     void write_binary( std::string filename );
     void write_isis( std::string filename );
 

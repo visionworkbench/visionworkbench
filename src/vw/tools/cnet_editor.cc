@@ -75,9 +75,9 @@ int main( int argc, char *argv[] ) {
   std::vector<std::string> tokens;
   boost::split( tokens, cnet_file, boost::is_any_of(".") );
   if ( tokens[tokens.size()-1] == "net" ) {
-    cnet = ControlNetwork::read_isis( cnet_file );
+    cnet.read_isis( cnet_file );
   } else if ( tokens[tokens.size()-1] == "cnet" ) {
-    cnet = ControlNetwork::read_binary( cnet_file );
+    cnet.read_binary( cnet_file );
   } else {
     vw_throw( IOErr() << "Unknown Control Network file extension, \""
                 << tokens[tokens.size()-1] << "\"." );

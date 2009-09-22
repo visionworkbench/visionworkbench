@@ -74,7 +74,7 @@ namespace camera {
   }
 
   /// Write a compressed binary style of measure
-  void ControlMeasure::write_binary( std::ofstream &f ) {
+  void ControlMeasure::write_binary( std::ostream &f ) {
     // Writing out all the strings first
     f << m_serialNumber << char(0) << m_date_time << char(0)
       << m_description << char(0) << m_chooserName << char(0);
@@ -94,32 +94,29 @@ namespace camera {
   }
 
   /// Reading a compressed binary style of measure
-  ControlMeasure ControlMeasure::read_binary( std::ifstream &f ) {
-    ControlMeasure measure;
+  void ControlMeasure::read_binary( std::istream &f ) {
     // Reading in all the strings
-    std::getline( f, measure.m_serialNumber, '\0' );
-    std::getline( f, measure.m_date_time, '\0' );
-    std::getline( f, measure.m_description, '\0' );
-    std::getline( f, measure.m_chooserName, '\0' );
+    std::getline( f, m_serialNumber, '\0' );
+    std::getline( f, m_date_time, '\0' );
+    std::getline( f, m_description, '\0' );
+    std::getline( f, m_chooserName, '\0' );
     // Reading the binary data
-    f.read((char*)&(measure.m_col),             sizeof(measure.m_col));
-    f.read((char*)&(measure.m_row),             sizeof(measure.m_row));
-    f.read((char*)&(measure.m_col_sigma),       sizeof(measure.m_col_sigma));
-    f.read((char*)&(measure.m_row_sigma),       sizeof(measure.m_row_sigma));
-    f.read((char*)&(measure.m_diameter),        sizeof(measure.m_diameter));
-    f.read((char*)&(measure.m_focalplane_x),    sizeof(measure.m_focalplane_x));
-    f.read((char*)&(measure.m_focalplane_y),    sizeof(measure.m_focalplane_y));
-    f.read((char*)&(measure.m_ephemeris_time),  sizeof(measure.m_ephemeris_time));
-    f.read((char*)&(measure.m_image_id),        sizeof(measure.m_image_id));
-    f.read((char*)&(measure.m_ignore),          sizeof(measure.m_ignore));
-    f.read((char*)&(measure.m_pixels_dominant), sizeof(measure.m_pixels_dominant));
-    f.read((char*)&(measure.m_type),            sizeof(measure.m_type));
-
-    return measure;
+    f.read((char*)&(m_col),             sizeof(m_col));
+    f.read((char*)&(m_row),             sizeof(m_row));
+    f.read((char*)&(m_col_sigma),       sizeof(m_col_sigma));
+    f.read((char*)&(m_row_sigma),       sizeof(m_row_sigma));
+    f.read((char*)&(m_diameter),        sizeof(m_diameter));
+    f.read((char*)&(m_focalplane_x),    sizeof(m_focalplane_x));
+    f.read((char*)&(m_focalplane_y),    sizeof(m_focalplane_y));
+    f.read((char*)&(m_ephemeris_time),  sizeof(m_ephemeris_time));
+    f.read((char*)&(m_image_id),        sizeof(m_image_id));
+    f.read((char*)&(m_ignore),          sizeof(m_ignore));
+    f.read((char*)&(m_pixels_dominant), sizeof(m_pixels_dominant));
+    f.read((char*)&(m_type),            sizeof(m_type));
   }
 
   /// Write an isis style measure
-  void ControlMeasure::write_isis( std::ofstream &f ) {
+  void ControlMeasure::write_isis( std::ostream &f ) {
     f << "    Group = ControlMeasure\n";
     f << "      SerialNumber   = " << m_serialNumber << std::endl;
     f << "      MeasureType    = ";
@@ -167,21 +164,19 @@ namespace camera {
     f << "    End_Group\n";
   }
 
-  ControlMeasure ControlMeasure::read_isis( std::ifstream &f ) {
+  void ControlMeasure::read_isis( std::istream &f ) {
 
     std::vector<std::string> tokens;
     std::ostringstream ostr;
     std::istringstream converter;
     std::string str;
 
-    ControlMeasure measure;
-
     // Setting defaults
-    measure.m_diameter = 0;
-    measure.m_date_time = "";
-    measure.m_chooserName = "";
-    measure.m_ignore = false;
-    measure.m_pixels_dominant = false;
+    m_diameter = 0;
+    m_date_time = "";
+    m_chooserName = "";
+    m_ignore = false;
+    m_pixels_dominant = false;
 
     while (1) {
       if ( f.eof() )
@@ -209,86 +204,84 @@ namespace camera {
         break;
       else if ( tokens[0] == "SerialNumber" ) {
         read_pvl_property( ostr, tokens );
-        measure.m_serialNumber = ostr.str();
+        m_serialNumber = ostr.str();
       } else if ( tokens[0] == "MeasureType" ) {
         read_pvl_property( ostr, tokens );
         if ( ostr.str() == "Unmeasured" )
-          measure.m_type = ControlMeasure::Unmeasured;
+          m_type = ControlMeasure::Unmeasured;
         else if ( ostr.str() == "Manual" )
-          measure.m_type = ControlMeasure::Manual;
+          m_type = ControlMeasure::Manual;
         else if ( ostr.str() == "Estimated" )
-          measure.m_type = ControlMeasure::Estimated;
+          m_type = ControlMeasure::Estimated;
         else if ( ostr.str() == "Automatic" )
-          measure.m_type = ControlMeasure::Automatic;
+          m_type = ControlMeasure::Automatic;
         else if ( ostr.str() == "ValidatedManual" )
-          measure.m_type = ControlMeasure::ValidatedManual;
+          m_type = ControlMeasure::ValidatedManual;
         else if ( ostr.str() == "ValidatedAutomatic" )
-          measure.m_type = ControlMeasure::ValidatedAutomatic;
+          m_type = ControlMeasure::ValidatedAutomatic;
         else
           vw_throw( vw::IOErr() << "Invalid Control Measure type, \""
                     << ostr.str() << "." );
       } else if ( tokens[0] == "Sample" ) {
         read_pvl_property( ostr, tokens );
         if ( ostr.str() == "Null" )
-          measure.m_col = 0;
+          m_col = 0;
         else {
           converter.str( ostr.str() );
           converter.clear();
-          converter >> measure.m_col;
+          converter >> m_col;
         }
       } else if ( tokens[0] == "Line" ) {
         read_pvl_property( ostr, tokens );
         if ( ostr.str() == "Null" )
-          measure.m_row = 0;
+          m_row = 0;
         else {
           converter.str( ostr.str() );
           converter.clear();
-          converter >> measure.m_row;
+          converter >> m_row;
         }
       } else if ( tokens[0] == "ErrorLine" ) {
         read_pvl_property( ostr, tokens );
         converter.str( ostr.str() );
         converter.clear();
-        converter >> measure.m_col_sigma;
+        converter >> m_col_sigma;
       } else if ( tokens[0] == "ErrorSample" ) {
         read_pvl_property( ostr, tokens );
         converter.str( ostr.str() );
         converter.clear();
-        converter >> measure.m_row_sigma;
+        converter >> m_row_sigma;
       } else if ( tokens[0] == "FocalPlaneX" ) {
         read_pvl_property( ostr, tokens );
         converter.str( ostr.str() );
         converter.clear();
-        converter >> measure.m_focalplane_x;
+        converter >> m_focalplane_x;
       } else if ( tokens[0] == "FocalPlaneY" ) {
         read_pvl_property( ostr, tokens );
         converter.str( ostr.str() );
         converter.clear();
-        converter >> measure.m_focalplane_y;
+        converter >> m_focalplane_y;
       } else if ( tokens[0] == "EphemerisTime" ) {
         read_pvl_property( ostr, tokens );
         converter.str( ostr.str() );
         converter.clear();
-        converter >> measure.m_ephemeris_time;
+        converter >> m_ephemeris_time;
       } else if ( tokens[0] == "Diameter" ) {
         read_pvl_property( ostr, tokens );
         converter.str( ostr.str() );
         converter.clear();
-        converter >> measure.m_diameter;
+        converter >> m_diameter;
       } else if ( tokens[0] == "DateTime" ) {
         read_pvl_property( ostr, tokens );
-        measure.m_date_time = ostr.str();
+        m_date_time = ostr.str();
       } else if ( tokens[0] == "ChooserName" ) {
         read_pvl_property( ostr, tokens );
-        measure.m_chooserName = ostr.str();
+        m_chooserName = ostr.str();
       } else if ( tokens[0] == "Ignore" ) {
-        measure.m_ignore = true;
+        m_ignore = true;
       } else if ( tokens[0] == "PixelsDominant" ) {
-        measure.m_pixels_dominant = 1;
+        m_pixels_dominant = 1;
       }
     }
-
-    return measure;
   }
 
   ////////////////////////////
@@ -333,7 +326,7 @@ namespace camera {
   }
 
   /// Write a compressed binary style of point
-  void ControlPoint::write_binary( std::ofstream &f ) {
+  void ControlPoint::write_binary( std::ostream &f ) {
     // Writing out the string first
     f << m_id << char(0);
     // Writing the binary data
@@ -353,30 +346,29 @@ namespace camera {
   }
 
   /// Reading a compressed binary style of point
-  ControlPoint ControlPoint::read_binary( std::ifstream &f ) {
-    ControlPoint pt;
+  void ControlPoint::read_binary( std::istream &f ) {
     // Reading in the string first
-    std::getline( f, pt.m_id, '\0' );
+    std::getline( f, m_id, '\0' );
     // Reading in the binary data
-    f.read((char*)&(pt.m_ignore),      sizeof (pt.m_ignore));
-    f.read((char*)&(pt.m_position[0]), sizeof (pt.m_position[0]));
-    f.read((char*)&(pt.m_position[1]), sizeof (pt.m_position[1]));
-    f.read((char*)&(pt.m_position[2]), sizeof (pt.m_position[2]));
-    f.read((char*)&(pt.m_sigma[0]),    sizeof (pt.m_sigma[0]));
-    f.read((char*)&(pt.m_sigma[1]),    sizeof (pt.m_sigma[1]));
-    f.read((char*)&(pt.m_sigma[2]),    sizeof (pt.m_sigma[2]));
-    f.read((char*)&(pt.m_type),        sizeof (pt.m_type));
+    f.read((char*)&(m_ignore),      sizeof (m_ignore));
+    f.read((char*)&(m_position[0]), sizeof (m_position[0]));
+    f.read((char*)&(m_position[1]), sizeof (m_position[1]));
+    f.read((char*)&(m_position[2]), sizeof (m_position[2]));
+    f.read((char*)&(m_sigma[0]),    sizeof (m_sigma[0]));
+    f.read((char*)&(m_sigma[1]),    sizeof (m_sigma[1]));
+    f.read((char*)&(m_sigma[2]),    sizeof (m_sigma[2]));
+    f.read((char*)&(m_type),        sizeof (m_type));
     int size;
     f.read((char*)&(size),             sizeof (size));
+    m_measures.clear();
     // Reading in all the measures
     for ( int m = 0; m < size; m++ ) {
-      pt.m_measures.push_back( ControlMeasure::read_binary( f ) );
+      m_measures.push_back( ControlMeasure(f, FmtBinary) );
     }
-    return pt;
   }
 
   /// Write an isis style point
-  void ControlPoint::write_isis( std::ofstream &f ) {
+  void ControlPoint::write_isis( std::ostream &f ) {
     f << "  Object = ControlPoint\n";
     f << "    PointType = ";
     if ( m_type == ControlPoint::GroundControlPoint ) {
@@ -403,9 +395,7 @@ namespace camera {
   }
 
   /// Read an isis style point
-  ControlPoint ControlPoint::read_isis( std::ifstream &f ) {
-
-    ControlPoint pt;
+  void ControlPoint::read_isis( std::istream &f ) {
 
     std::vector<std::string> tokens;
     std::ostringstream ostr;
@@ -413,7 +403,9 @@ namespace camera {
     std::string str;
 
     // Setting defaults
-    pt.m_ignore = false;
+    m_ignore = false;
+
+    m_measures.clear();
 
     while (1) {
       if ( f.eof() )
@@ -442,43 +434,42 @@ namespace camera {
       else if ( tokens[0] == "PointType" ) {
         read_pvl_property( ostr, tokens );
         if ( ostr.str() == "Ground" )
-          pt.m_type = ControlPoint::GroundControlPoint;
+          m_type = ControlPoint::GroundControlPoint;
         else if ( ostr.str() == "Tie" )
-          pt.m_type = ControlPoint::TiePoint;
+          m_type = ControlPoint::TiePoint;
         else
           vw_throw( vw::IOErr() << "Invalid Control Point type, \""
                     << ostr.str() << "." );
       } else if ( tokens[0] == "PointId" ) {
         read_pvl_property( ostr, tokens );
-        pt.m_id = ostr.str();
+        m_id = ostr.str();
       } else if ( tokens[0] == "Latitude" ) {
         read_pvl_property( ostr, tokens );
         converter.str( ostr.str() );
         converter.clear();
-        converter >> pt.m_position[1];
+        converter >> m_position[1];
       } else if ( tokens[0] == "Longitude" ) {
         read_pvl_property( ostr, tokens );
         converter.str( ostr.str() );
         converter.clear();
-        converter >> pt.m_position[0];
+        converter >> m_position[0];
       } else if ( tokens[0] == "Radius" ) {
         read_pvl_property( ostr, tokens );
         converter.str( ostr.str() );
         converter.clear();
-        converter >> pt.m_position[2];
+        converter >> m_position[2];
       } else if ( tokens[0] == "Ignore" ) {
-        pt.m_ignore = tokens[1] == "True";
+        m_ignore = tokens[1] == "True";
       } else if ( tokens[0] == "Group" ) {
         if ( tokens.size() == 1 ) {
           vw_throw( IOErr() << "Failed to read Control Point. Contains incorrect syntax, unlabelled Group" );
         } else if ( tokens[1] == "ControlMeasure" ) {
-          pt.m_measures.push_back( ControlMeasure::read_isis( f ) );
+          m_measures.push_back( ControlMeasure( f, FmtIsisPvl ) );
         } else {
           vw_throw( IOErr() << "Failed to read Control Point. Unkown group \"" << tokens[1] << "\" found." );
         }
       }
     }
-    return pt;
   }
 
   ////////////////////////////
@@ -575,36 +566,35 @@ namespace camera {
   }
 
   /// Reading a compressed binary style control network
-  ControlNetwork ControlNetwork::read_binary( std::string filename ) {
+  void ControlNetwork::read_binary( std::string filename ) {
 
     // Opening file
     std::ifstream f( filename.c_str() );
     if ( !f.is_open() )
       vw_throw( IOErr() << "Failed to open \"" << filename << "\" as a Control Network." );
 
-    ControlNetwork net;
-
     // Reading in the strings first
-    std::getline( f, net.m_targetName, '\0' );
-    std::getline( f, net.m_networkId, '\0' );
-    std::getline( f, net.m_created, '\0' );
-    std::getline( f, net.m_modified, '\0' );
-    std::getline( f, net.m_description, '\0' );
-    std::getline( f, net.m_userName, '\0' );
+    std::getline( f, m_targetName, '\0' );
+    std::getline( f, m_networkId, '\0' );
+    std::getline( f, m_created, '\0' );
+    std::getline( f, m_modified, '\0' );
+    std::getline( f, m_description, '\0' );
+    std::getline( f, m_userName, '\0' );
 
     // Reading in the binary data
-    f.read((char*)&(net.m_type), sizeof(net.m_type));
+    f.read((char*)&(m_type), sizeof(m_type));
     int size;
     f.read((char*)&(size), sizeof(size));
 
+    // Clearing anything left in this control network
+    m_control_points.clear();
+
     // Reading in all the control points
     for ( int p = 0; p < size; p++ ) {
-      net.m_control_points.push_back( ControlPoint::read_binary( f ) );
+      m_control_points.push_back( ControlPoint( f, FmtBinary ) );
     }
 
     f.close();
-
-    return net;
   }
 
   /// Write an isis style control network
@@ -663,14 +653,15 @@ namespace camera {
   }
 
   /// Read an isis style control network
-  ControlNetwork ControlNetwork::read_isis( std::string filename ) {
+  void ControlNetwork::read_isis( std::string filename ) {
 
     // Opening file
     std::ifstream f( filename.c_str() );
     if ( !f.is_open() )
       vw_throw( IOErr() << "Failed to open \"" << filename << "\" as a ISIS Control Network." );
 
-    ControlNetwork net;
+    // Clearing anything left in this control network
+    m_control_points.clear();
 
     // Reading file
     std::vector<std::string> tokens;
@@ -699,39 +690,39 @@ namespace camera {
         break;
       else if ( tokens[0] == "NetworkId" ) {
         read_pvl_property( ostr, tokens );
-        net.m_networkId = ostr.str();
+        m_networkId = ostr.str();
       }
       else if ( tokens[0] == "NetworkType" ) {
         read_pvl_property( ostr, tokens );
         if ( ostr.str() == "Singleton" )
-          net.m_type = ControlNetwork::Singleton;
+          m_type = ControlNetwork::Singleton;
         else if ( ostr.str() == "ImageToImage" )
-          net.m_type = ControlNetwork::ImageToImage;
+          m_type = ControlNetwork::ImageToImage;
         else if ( ostr.str() == "ImageToGround" )
-          net.m_type = ControlNetwork::ImageToGround;
+          m_type = ControlNetwork::ImageToGround;
         else
           vw_throw( vw::IOErr() << "Invalid Control Network type, \""
                     << ostr.str() << "." );
       }
       else if ( tokens[0] == "TargetName" ) {
         read_pvl_property( ostr, tokens );
-        net.m_targetName = ostr.str();
+        m_targetName = ostr.str();
       }
       else if ( tokens[0] == "UserName" ) {
         read_pvl_property( ostr, tokens );
-        net.m_userName = ostr.str();
+        m_userName = ostr.str();
       }
       else if ( tokens[0] == "Created" ) {
         read_pvl_property( ostr, tokens );
-        net.m_created = ostr.str();
+        m_created = ostr.str();
       }
       else if ( tokens[0] == "LastModified" ) {
         read_pvl_property( ostr, tokens );
-        net.m_modified = ostr.str();
+        m_modified = ostr.str();
       }
       else if ( tokens[0] == "Description" ) {
         read_pvl_property( ostr, tokens );
-        net.m_description = ostr.str();
+        m_description = ostr.str();
       }
       else if ( tokens[0] == "Object" ) {
         if ( tokens.size() == 1 ) {
@@ -741,7 +732,7 @@ namespace camera {
           // Start of file
           continue;
         } else if ( tokens[1] == "ControlPoint" ) {
-          net.m_control_points.push_back( ControlPoint::read_isis( f ) );
+          m_control_points.push_back( ControlPoint( f, FmtIsisPvl  ) );
         } else if ( tokens[1] == "ControlMeasure" ) {
           vw_throw( IOErr() << "Failed to open \"" << filename
                     << "\". Control Measure found out of order." );
@@ -751,9 +742,7 @@ namespace camera {
         }
       }
     }
-
     f.close();
-    return net;
   }
 
   ////////////////////////////
