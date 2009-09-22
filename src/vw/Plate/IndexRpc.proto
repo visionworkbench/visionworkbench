@@ -1,19 +1,45 @@
 package vw.platefile;
 import "IndexRecord.proto";
 
+// ----------------------------------
+// Client --> Server Requests
+// ----------------------------------
+
 message IndexReadRequest {
+  optional string requestor = 10;
+  optional string platefile = 11;
   required int32 col = 1;
   required int32 row = 2;
   required int32 depth = 3;
 }
 
 message IndexWriteRequest {
+  optional string requestor = 10;
+  optional string platefile = 11;
   required int32 size = 1;
 }
 
 message IndexWriteComplete {
+  optional string requestor = 10;
+  optional string platefile = 11;
   required int32 col = 1;
   required int32 row = 2;
   required int32 depth = 3;
   required IndexRecord record = 4;
+}
+
+// ----------------------------------
+// Server --> Client Responses
+// ----------------------------------
+
+message IndexError {
+  required string message = 1;
+}
+
+message IndexReadResponse {
+  optional IndexRecord index_record = 10;
+}
+
+message IndexWriteResponse {
+  optional int32 blob_id = 10;
 }

@@ -16,6 +16,8 @@
 
 #include <sstream>
 
+#include <boost/shared_array.hpp>
+
 using namespace vw;
 using namespace vw::platefile;
 
@@ -31,49 +33,45 @@ void die_on_error(int x, char const *context) {
 
 void die_on_amqp_error(amqp_rpc_reply_t x, char const *context) {
   std::ostringstream msg;
-  
+
   switch (x.reply_type) {
   case AMQP_RESPONSE_NORMAL:
     return;
       
   case AMQP_RESPONSE_NONE:
-    msg << "AMQP Error: " << context << " -- missing RPC reply type.";
-    vw::vw_throw(vw::LogicErr() << msg.str());
-    break;
+    vw_out(0) << "AMQP Error: " << context << " -- missing RPC reply type.";
+    exit(1);
       
   case AMQP_RESPONSE_LIBRARY_EXCEPTION:
-    msg << "AMQP Error: " << context << " -- " 
-        << (x.library_errno ? strerror(x.library_errno) : "(end-of-stream)");
-    vw::vw_throw(vw::LogicErr() << msg.str());
-    break;
+    vw_out(0) << "AMQP Error: " << context << " -- " 
+              << (x.library_errno ? strerror(x.library_errno) : "(end-of-stream)");
+    exit(1);
       
   case AMQP_RESPONSE_SERVER_EXCEPTION:
     switch (x.reply.id) {
     case AMQP_CONNECTION_CLOSE_METHOD: {
       amqp_connection_close_t *m = (amqp_connection_close_t *) x.reply.decoded;
-      msg << "AMQP Error: " << context << " -- " 
-          << "server connection error " << m->reply_code << ", message: " 
-          << (char *) m->reply_text.bytes;
-      vw::vw_throw(vw::LogicErr() << msg.str());
-      break;
+      vw_out(0) << "AMQP Error: " << context << " -- " 
+                << "server connection error " << m->reply_code << ", message: " 
+                << (char *) m->reply_text.bytes;
+      exit(1);
     }
     case AMQP_CHANNEL_CLOSE_METHOD: {
       amqp_channel_close_t *m = (amqp_channel_close_t *) x.reply.decoded;
-      msg << "AMQP Error: " << context << " -- " 
-          << "server channel error " << m->reply_code << ", message: " 
-          << (char *) m->reply_text.bytes;
-      vw::vw_throw(vw::LogicErr() << msg.str());
-      break;
+      vw_out(0)  << "AMQP Error: " << context << " -- " 
+                 << "server channel error " << m->reply_code << ", message: " 
+                 << (char *) m->reply_text.bytes;
+      exit(1);
     }
     default:
-      msg << "AMQP Error: " << context << " -- " 
-          << "unknown server error, method id " << x.reply.id;
-      vw::vw_throw(vw::LogicErr() << msg.str());
-      break;
+      vw_out(0) << "AMQP Error: " << context << " -- " 
+                << "unknown server error, method id " << x.reply.id;
+      exit(1);
     }
     break;
   }
-  vw::vw_throw(vw::LogicErr() << "AMQP Error: unknown response type.");
+  vw_out(0) << "AMQP Error: unknown response type.";
+  exit(1);
 }
 
 // --------------------- AmqpConnection State Structure -------------------------
@@ -201,7 +199,7 @@ void AmqpConnection::basic_publish(std::string const& message,
 
 
 std::string AmqpConnection::basic_consume(std::string const& queue, 
-                                          std::string const& consumer_tag,
+                                          std::string &routing_key,
                                           bool no_ack) {
 
   amqp_basic_consume(m_state->conn, 1, amqp_cstring_bytes(queue.c_str()), 
@@ -218,7 +216,7 @@ std::string AmqpConnection::basic_consume(std::string const& queue,
     size_t body_target;
     size_t body_received;
 
-    boost::shared_ptr<char> payload;
+    boost::shared_array<char> payload;
 
     amqp_maybe_release_buffers(m_state->conn);
     result = amqp_simple_wait_frame(m_state->conn, &frame);
@@ -239,6 +237,12 @@ std::string AmqpConnection::basic_consume(std::string const& queue,
            (unsigned) d->delivery_tag,
            (int) d->exchange.len, (char *) d->exchange.bytes,
            (int) d->routing_key.len, (char *) d->routing_key.bytes);
+    
+    // copy the routing key to pass out to the caller
+    boost::shared_array<char> rk_bytes = boost::shared_array<char>(new char[d->routing_key.len + 1]);
+    strncpy(rk_bytes.get(), (char*)(d->routing_key.bytes), d->routing_key.len);
+    rk_bytes[d->routing_key.len] = '\0';
+    routing_key = rk_bytes.get();
 
     result = amqp_simple_wait_frame(m_state->conn, &frame);
     if (result <= 0)
@@ -257,7 +261,7 @@ std::string AmqpConnection::basic_consume(std::string const& queue,
 
     body_target = frame.payload.properties.body_size;
     body_received = 0;
-    payload = boost::shared_ptr<char>(new char[body_target]);
+    payload = boost::shared_array<char>(new char[body_target]);
     
     while (body_received < body_target) {
       result = amqp_simple_wait_frame(m_state->conn, &frame);
@@ -276,8 +280,7 @@ std::string AmqpConnection::basic_consume(std::string const& queue,
 
       // ... and update the number of bytes we have received
       body_received += frame.payload.body_fragment.len;
-      VW_ASSERT(body_received <= body_target, IOErr() 
-                << "AMQP packet body size exceeded header\'s body target.");
+      VW_ASSERT(body_received <= body_target, IOErr() << "AMQP packet body size exceeded header\'s body target.");
     }
     
     // Check to make sure that we have received the right number of bytes.

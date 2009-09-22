@@ -56,7 +56,7 @@ int main( int argc, char *argv[] ) {
   }
 
   if( vm.count("plate-file") != 1 ) {
-    std::cerr << "Error: must specify an input file!" << std::endl << std::endl;
+    std::cerr << "Error: must specify an input platefile!" << std::endl << std::endl;
     std::cout << usage.str();
     return 1;
   }

@@ -38,8 +38,8 @@ int main(int argc, char** argv) {
 
   conn.queue_declare("test", true, true, true);
   conn.queue_bind("test", "ngt", "jobs");
-  while(1) 
-    conn.basic_consume("test", "testtag", false);
+  //  while(1) 
+    //    conn.basic_consume("test", "testtag", false);
 
   return 0;
 }

@@ -50,8 +50,18 @@ namespace platefile {
                        std::string const& exchange, 
                        std::string const& routing_key);
 
+    template <class ProtoBufT>
+    void basic_publish_protobuf(ProtoBufT const& protobuf, 
+                                std::string const& exchange, 
+                                std::string const& routing_key) {
+      std::string message_bytes;
+      protobuf.SerializeToString(&message_bytes);
+      this->basic_publish(message_bytes, exchange, routing_key);
+    }
+    
+
     std::string basic_consume(std::string const& queue, 
-                              std::string const& consumer_tag,
+                              std::string &routing_key,
                               bool no_ack);
   };
 
