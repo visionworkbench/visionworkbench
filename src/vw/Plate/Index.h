@@ -9,7 +9,9 @@
 #include <vw/Core/Thread.h>
 #include <vw/Plate/Tree.h>
 #include <vw/Plate/Blob.h>
-#include <vw/Plate/IndexRecord.h>
+
+// Protocol Buffer
+#include <vw/Plate/IndexRecord.pb.h>
 
 #define VW_PLATE_INDEXRECORD_FILETYPE_SIZE 5
 #define VW_PLATE_INDEX_VERSION 2

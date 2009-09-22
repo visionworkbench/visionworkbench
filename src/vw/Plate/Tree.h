@@ -221,7 +221,12 @@ namespace platefile {
     void serialize(std::ostream &ostr) {
 
       // First we serialize our record data.
-      m_record.serialize(ostr);
+      int ob_size = m_record.ByteSize();
+      ostr.write((char*)(&ob_size), sizeof(ob_size));      
+      m_record.SerializeToOstream(&ostr);
+
+      std::string debug;
+      m_record.SerializeToString(&debug);
 
       // Then we serialize our children.  First we write the number of
       // children at this node.  If a child exists, we then write
@@ -246,7 +251,22 @@ namespace platefile {
         vw_throw(IOErr() << "Tree::deserialize() reached the end of the index file prematurely!");
 
       // First we de-serialize our record data.
-      m_record.deserialize(istr);
+      int ib_size;
+      istr.read((char*)(&ib_size), sizeof(ib_size));
+      boost::shared_array<char> buffer = boost::shared_array<char>(new char[ib_size]);
+      istr.read(buffer.get(), ib_size);
+
+      
+      // TODO: This code here _almost_ works, and would allow us to
+      // read the pbuffer in without the extra copy through the
+      // "buffer" object above.  Should be attempted again if this
+      // ever becomes a performance problem.
+      // google::protobuf::io::IstreamInputStream* is_istr = new google::protobuf::io::IstreamInputStream(&istr);
+      // google::protobuf::io::CodedInputStream* c_istr = new google::protobuf::io::CodedInputStream(is_istr);
+      // google::protobuf::io::CodedInputStream::Limit limit = c_istr->PushLimit(ib_size);
+      // bool worked = m_record.ParseFromCodedStream(c_istr);
+      // c_istr->PopLimit(limit);
+      bool worked = m_record.ParseFromArray(buffer.get(),  ib_size);
 
       // Next we determine how many children we will have.
       uint8 num_children;

@@ -1,4 +1,4 @@
-package vw.plate;
+package vw.platefile;
 import "IndexRecord.proto";
 
 message IndexReadRequest {

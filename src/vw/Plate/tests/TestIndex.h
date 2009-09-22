@@ -18,18 +18,20 @@ class TestIndexNode : public CxxTest::TestSuite {
 public:
 
   void test_index_record() {
-    // Make sure that a too-long filetype causes an exception.
-    TS_ASSERT_THROWS(new IndexRecord(0, 10, 1024, "tifff"), ArgumentErr);
-
 
     // Test serialization/deserialization
-    IndexRecord write_record(1, 2, 1024, "tiff");
+    IndexRecord write_record;
+    write_record.set_blob_id(1);
+    write_record.set_blob_offset(2);
+    write_record.set_block_size(1024);
+    write_record.set_block_filetype("tiff");
     std::ofstream ostr("/tmp/foo.bar", std::ios::binary);
-    write_record.serialize(ostr);
+    write_record.SerializeToOstream(&ostr);
     ostr.close();
 
     std::ifstream istr("/tmp/foo.bar", std::ios::binary);
-    IndexRecord read_record(istr);
+    IndexRecord read_record;
+    read_record.ParseFromIstream(&istr);
     istr.close();
 
     TS_ASSERT_EQUALS(write_record.blob_id(), read_record.blob_id());
@@ -44,11 +46,36 @@ public:
 
   void test_simple_index() {
 
-    IndexRecord dummy_record0(0, 9, 1024, "foo");
-    IndexRecord dummy_record1(0, 10, 1024, "tiff");
-    IndexRecord dummy_record2(0, 11, 1024, "png");
-    IndexRecord dummy_record3(0, 12, 1024, "jpg");
-    IndexRecord dummy_record4(0, 13, 1024, "tif");
+    IndexRecord dummy_record0;
+    dummy_record0.set_blob_id(0);
+    dummy_record0.set_blob_offset(9);
+    dummy_record0.set_block_size(1024);
+    dummy_record0.set_block_filetype("foo");
+
+    IndexRecord dummy_record1;
+    dummy_record1.set_blob_id(0);
+    dummy_record1.set_blob_offset(10);
+    dummy_record1.set_block_size(1024);
+    dummy_record1.set_block_filetype("tiff");
+
+    IndexRecord dummy_record2;
+    dummy_record2.set_blob_id(0);
+    dummy_record2.set_blob_offset(11);
+    dummy_record2.set_block_size(1024);
+    dummy_record2.set_block_filetype("png");
+
+    IndexRecord dummy_record3;
+    dummy_record3.set_blob_id(0);
+    dummy_record3.set_blob_offset(12);
+    dummy_record3.set_block_size(1024);
+    dummy_record3.set_block_filetype("jpg");
+
+    IndexRecord dummy_record4;
+    dummy_record4.set_blob_id(0);
+    dummy_record4.set_blob_offset(13);
+    dummy_record4.set_block_size(1024);
+    dummy_record4.set_block_filetype("tif");
+
 
     // Write some data to the Index.
     boost::shared_ptr<BlobManager> mgr( new BlobManager(2048, 3) );
@@ -102,7 +129,11 @@ public:
     TS_ASSERT_EQUALS(result.block_filetype(), dummy_record4.block_filetype());
 
     // Test re-writing (i.e. changing) an entry.
-    IndexRecord dummy_record5(0, 15, 1024, "jp2k");
+    IndexRecord dummy_record5;
+    dummy_record5.set_blob_id(0);
+    dummy_record5.set_blob_offset(15);
+    dummy_record5.set_block_size(1024);
+    dummy_record5.set_block_filetype("jp2k");
 
     dummy_record5.set_blob_id( idx.write_request(1024) );
     idx.write_complete(0, 0, 1, dummy_record5);
@@ -124,11 +155,35 @@ public:
 
   void test_index_read_write() {
 
-    IndexRecord dummy_record0(0, 9, 1024, "foo");
-    IndexRecord dummy_record1(0, 10, 1024, "tiff");
-    IndexRecord dummy_record2(0, 11, 1024, "png");
-    IndexRecord dummy_record3(0, 12, 1024, "jpg");
-    IndexRecord dummy_record4(0, 13, 1024, "tif");
+    IndexRecord dummy_record0;
+    dummy_record0.set_blob_id(0);
+    dummy_record0.set_blob_offset(9);
+    dummy_record0.set_block_size(1024);
+    dummy_record0.set_block_filetype("foo");
+
+    IndexRecord dummy_record1;
+    dummy_record1.set_blob_id(0);
+    dummy_record1.set_blob_offset(10);
+    dummy_record1.set_block_size(1024);
+    dummy_record1.set_block_filetype("tiff");
+
+    IndexRecord dummy_record2;
+    dummy_record2.set_blob_id(0);
+    dummy_record2.set_blob_offset(11);
+    dummy_record2.set_block_size(1024);
+    dummy_record2.set_block_filetype("png");
+
+    IndexRecord dummy_record3;
+    dummy_record3.set_blob_id(0);
+    dummy_record3.set_blob_offset(12);
+    dummy_record3.set_block_size(1024);
+    dummy_record3.set_block_filetype("jpg");
+
+    IndexRecord dummy_record4;
+    dummy_record4.set_blob_id(0);
+    dummy_record4.set_blob_offset(13);
+    dummy_record4.set_block_size(1024);
+    dummy_record4.set_block_filetype("tif");
 
     // Write some data to the Index.
     boost::shared_ptr<BlobManager> mgr( new BlobManager(2048, 3) );
@@ -153,7 +208,7 @@ public:
     // Now, let's save the data to disk, and then read it back.
     idx.save("/tmp/foo.index");
     Index idx2("/tmp/foo.index");
-    
+
     // Read the data back from the index
     IndexRecord result = idx2.read_request(0, 0, 0);
     TS_ASSERT_EQUALS(result.blob_id(), dummy_record0.blob_id());
@@ -185,7 +240,7 @@ public:
     TS_ASSERT_EQUALS(result.block_size(), dummy_record4.block_size());
     TS_ASSERT_EQUALS(result.block_filetype(), dummy_record4.block_filetype());
 
-    unlink("/tmp/foo.index");
+    //unlink("/tmp/foo.index");
   }
 
 }; // class TestIndex

@@ -10,7 +10,7 @@
 namespace vw {
 namespace platefile {
 
- // -------------------------------------------------------------------
+  // -------------------------------------------------------------------
   //                          INDEX_RECORD
   // 
   // The IndexRecord stores all of the metadata needed to recover an

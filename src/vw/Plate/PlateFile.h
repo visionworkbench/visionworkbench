@@ -13,6 +13,9 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
 
+// Protocol Buffer
+#include <vw/Plate/IndexRecord.pb.h>
+
 namespace fs = boost::filesystem;
 
 namespace vw {
@@ -228,7 +231,11 @@ namespace platefile {
       blob.write_from_file(tile_filename, blob_offset, block_size);
 
       // 4. Call write_complete(col, row, depth, record)
-      IndexRecord write_record(blob_id, blob_offset, block_size, m_default_file_type);
+      IndexRecord write_record;
+      write_record.set_blob_id(blob_id);
+      write_record.set_blob_offset(blob_offset);
+      write_record.set_block_size(block_size);
+      write_record.set_block_filetype(m_default_file_type);
       m_index->write_complete(col, row, depth, write_record);
     }
 
