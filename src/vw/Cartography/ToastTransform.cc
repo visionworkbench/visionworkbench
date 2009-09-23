@@ -275,19 +275,25 @@ vw::Vector2 vw::cartography::ToastTransform::reverse(vw::Vector2 const& point) c
 // We override forward_bbox so it understands to check if the image 
 // crosses the poles or not.
 vw::BBox2i vw::cartography::ToastTransform::forward_bbox( vw::BBox2i const& bbox ) const {
+
+  // If the source bounding box contains the south pole, then the dest
+  // bounding box is the entire TOAST projection space, since the
+  // south pole is mapped to the four corners of TOAST.
+  if( bbox.contains(m_georef.lonlat_to_pixel(Vector2i(0,-90))) ) {
+    return BBox2i(0,0,m_resolution,m_resolution);
+  }
+  
   BBox2 src_bbox = TransformHelper<ToastTransform,ContinuousFunction,ContinuousFunction>::forward_bbox(bbox);
-  reverse_bbox_poles( bbox, src_bbox );
   return grow_bbox_to_int(src_bbox);
 }
 
 
-// We override reverse_bbox so it understands to check if the image 
+// We override reverse_bbox so it understands to check if the image
 // crosses the poles or not.
 vw::BBox2i vw::cartography::ToastTransform::reverse_bbox( vw::BBox2i const& bbox ) const {
-  if( bbox.contains(m_georef.lonlat_to_pixel(Vector2i(0,-90))) ) {
-    return BBox2i(0,0,m_resolution,m_resolution);
-  }
+
   BBox2 src_bbox = TransformHelper<ToastTransform,ContinuousFunction,ContinuousFunction>::reverse_bbox(bbox);
+  reverse_bbox_poles( bbox, src_bbox );
   return grow_bbox_to_int(src_bbox);
 }
 
