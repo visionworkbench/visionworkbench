@@ -143,6 +143,12 @@ namespace cartography {
     /// the Datum object.
     void set_proj4_projection_str(std::string const& s);
 
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL
+    // Loads the datum and projection information from the given
+    // string in WKT ("Well-Known Text") format.
+    void set_wkt(std::string const& wkt);
+#endif
+
     /// For a given pixel coordinate, compute the position of that
     /// pixel in this georeferenced space.
     virtual Vector2 pixel_to_point(Vector2 pix) const;

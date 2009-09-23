@@ -35,23 +35,20 @@
 #include <vw/Math/Matrix.h>
 #include <vw/Core/Cache.h>
 
+// Forward declarations
+class GDALDataset;
+namespace vw {
+  class Mutex;
+}
+
 namespace vw {
 
-  class GdalDatasetHandle {
-    std::string m_filename;
-    void* m_dataset_ptr;
-    
-  public:
-    GdalDatasetHandle(std::string filename);
-    void* get_dataset() const { return m_dataset_ptr; }
-    ~GdalDatasetHandle();
-  };
-
-  // GdalDatasetGenerator
+  // GdalDatasetGenerator reopens a read-only GDAL Dataset if we have to
+  // invalidate one in our cache.
   class GdalDatasetGenerator {
     std::string m_filename;
   public:
-    typedef GdalDatasetHandle value_type;
+    typedef GDALDataset value_type;
 
     GdalDatasetGenerator( std::string filename ) : m_filename( filename ) {}
     
@@ -59,10 +56,9 @@ namespace vw {
       return 1;
     }
     
-    boost::shared_ptr<GdalDatasetHandle> generate() const {
-      return boost::shared_ptr<GdalDatasetHandle> ( new GdalDatasetHandle(m_filename) );
-    }
+    boost::shared_ptr<GDALDataset> generate() const;
   };
+
 
   class DiskImageResourceGDAL : public DiskImageResource {
   public:
@@ -72,7 +68,6 @@ namespace vw {
     DiskImageResourceGDAL( std::string const& filename )
       : DiskImageResource( filename )
     {
-      m_write_dataset_ptr = NULL;
       m_convert_jp2 = false;
       open( filename );
     }
@@ -82,7 +77,6 @@ namespace vw {
                            Vector2i block_size = Vector2i(-1,-1) )
       : DiskImageResource( filename )
     {
-      m_write_dataset_ptr = NULL;
       m_convert_jp2 = false;
       create( filename, format, block_size );
     }
@@ -93,14 +87,11 @@ namespace vw {
                            Options const& options )
       : DiskImageResource( filename )
     {
-      m_write_dataset_ptr = NULL;
       m_convert_jp2 = false;
       create( filename, format, block_size, options );
     }
     
-    virtual ~DiskImageResourceGDAL() {
-      flush();
-    }
+    virtual ~DiskImageResourceGDAL();
 
     /// Returns the type of disk image resource.
     static std::string type_static() { return "GDAL"; }
@@ -142,10 +133,20 @@ namespace vw {
     static DiskImageResource* construct_create( std::string const& filename,
                                                 ImageFormat const& format );
 
+    // These functions return pointers to internal data.  They exist
+    // to allow users to access underlying special-purpose GDAL
+    // features, but they should be used with caution.  Unlike the
+    // rest of the public interface, they are not thread-safe and if
+    // you use them you must be sure to acquire the global GDAL lock
+    // (accessed via the global_lock() function) for the duration of
+    // your use, up to and including the release of your shared
+    // pointer to the dataset.
+    boost::shared_ptr<GDALDataset> get_dataset_ptr() const;
     char **get_metadata() const;
 
-    void* get_write_dataset_ptr() const { return m_write_dataset_ptr; }
-    void* get_read_dataset_ptr() const { return (*(m_dataset_cache_handle)).get_dataset(); }
+    // Provides access to the global GDAL lock, for users who need to go
+    // tinkering around in GDAL directly for some reason.
+    static Mutex &global_lock();
 
   private:
     static vw::Cache& gdal_cache();
@@ -153,14 +154,15 @@ namespace vw {
     Vector2i default_block_size();
 
     std::string m_filename;
-    void* m_write_dataset_ptr;
-    Matrix<double,3,3> m_geo_transform;
+    boost::shared_ptr<GDALDataset> m_write_dataset_ptr;
     bool m_convert_jp2;
     std::vector<PixelRGBA<uint8> > m_palette;
     Vector2i m_blocksize;
     Options m_options;
     Cache::Handle<GdalDatasetGenerator> m_dataset_cache_handle;
   };
+
+  void UnloadGDAL();
 
 } // namespace vw
 

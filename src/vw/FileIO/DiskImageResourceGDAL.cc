@@ -28,6 +28,7 @@
 #include "gdal.h"
 #include "gdal_priv.h"
 #include "cpl_string.h"
+#include "cpl_multiproc.h"
 #include "ogr_spatialref.h"
 #include "ogr_api.h"
 
@@ -35,21 +36,44 @@
 #include <list>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Cache.h>
+#include <vw/Core/Thread.h>
 #include <vw/Image/PixelTypes.h>
 #include <boost/algorithm/string.hpp>
+
+// GDAL is not thread-safe, so we keep a global GDAL lock (pointed to
+// by gdal_mutex_ptr, below) that we hold anytime we call into the
+// GDAL library itself.  Note that the mutex, along with the GDAL
+// dataset cache, is created by the init_gdal function, so you need to
+// make sure that gdal_init_once.run(init_gdal) has been called prior
+// to anything else.
 
 // This cache of GDAL file handles allows up to 200 files to be open
 // at a time.
 namespace {
-  vw::RunOnce gdal_cache_once = VW_RUNONCE_INIT;
+  vw::RunOnce gdal_init_once = VW_RUNONCE_INIT;
   vw::Cache *gdal_cache_ptr = 0;
-  void init_gdal_cache() {
+  vw::Mutex *gdal_mutex_ptr = 0;
+  void init_gdal() {
     gdal_cache_ptr = new vw::Cache( 200 );
+    gdal_mutex_ptr = new vw::Mutex();
+    // Register all GDAL file readers and writers and open the data set.
+    GDALAllRegister();
+  }
+}
+
+void vw::UnloadGDAL() {
+  if( gdal_cache_ptr || gdal_mutex_ptr ) {
+    delete gdal_cache_ptr;
+    delete gdal_mutex_ptr;
+    GDALDumpOpenDatasets( stderr );
+    GDALDestroyDriverManager();
+    CPLDumpSharedList( NULL );
+    CPLCleanupTLS();
   }
 }
 
 vw::Cache& vw::DiskImageResourceGDAL::gdal_cache() {
-  gdal_cache_once.run( init_gdal_cache );
+  gdal_init_once.run( init_gdal );
   return *gdal_cache_ptr;
 }
 
@@ -77,6 +101,12 @@ namespace {
     return retval;
   }
 
+  class GdalCloseDatasetDeleter {
+  public:
+    void operator()(GDALDataset *dataset) {
+      GDALClose(dataset);
+    }
+  };
 }
 
 namespace vw {
@@ -130,7 +160,7 @@ namespace vw {
 
   static bool is_jp2( std::string const& filename ) {
     std::string extension = file_extension( filename );
-    return (extension == ".jp2" || extension == ".j2k");
+    return (extension == ".jp2" || extension == ".j2k" || extension == ".j2c");
   }
 
   // GDAL Support many file formats not specifically enabled here.
@@ -188,11 +218,11 @@ namespace vw {
   // whether the driver needs rw support
   static std::pair<GDALDriver*, bool> gdal_get_driver(std::string const& filename, bool need_create = false)
   {
+    // Make sure GDAL is initialized
+    gdal_init_once.run( init_gdal );
+
     bool unsupported_driver = false;
     GDALDriver *driver = NULL;
-
-    // Register the various file types with GDAL
-    GDALAllRegister();
 
     // Open the appropriate GDAL I/O driver, depending on the fileFormat
     // argument specified by the user.
@@ -223,6 +253,8 @@ namespace vw {
   }
 
   bool vw::DiskImageResourceGDAL::gdal_has_support(std::string const& filename) {
+    gdal_init_once.run(init_gdal);
+    Mutex::Lock lock(*gdal_mutex_ptr);
     std::pair<GDALDriver *, bool> ret = gdal_get_driver(filename, false);
     return bool(ret.first);
   }
@@ -289,22 +321,26 @@ namespace vw {
   }
   /// \endcond
 
-  GdalDatasetHandle::GdalDatasetHandle(std::string filename) {
-    m_filename = filename;
-    vw_out(VerboseDebugMessage, "fileio") << "GDAL Handle opening " << m_filename << "\n";
-    m_dataset_ptr = GDALOpen( m_filename.c_str(), GA_ReadOnly );
-    if ( !m_dataset_ptr )
+  boost::shared_ptr<GDALDataset> GdalDatasetGenerator::generate() const {
+    GDALDataset *dataset = (GDALDataset*) GDALOpen( m_filename.c_str(), GA_ReadOnly );
+    if ( !dataset )
       vw_throw(ArgumentErr() << "DiskImageResourceGDAL: Could not open \"" << m_filename << "\"");
+    return boost::shared_ptr<GDALDataset>(dataset, GdalCloseDatasetDeleter());
   }
 
-  GdalDatasetHandle::~GdalDatasetHandle() {
-    vw_out(VerboseDebugMessage, "fileio") << "GDAL Handle closing " << m_filename << "\n";
-    if (m_dataset_ptr)
-      delete static_cast<GDALDataset*>(m_dataset_ptr);
+  DiskImageResourceGDAL::~DiskImageResourceGDAL() {
+    flush();
+    // Ensure that the read dataset gets destroyed while we're holding
+    // the global lock.  (In the unlikely event that the user has
+    // retained a reference to it, it's alredy their responsibility to
+    // be holding the lock when they release it, too.)
+    Mutex::Lock lock(*gdal_mutex_ptr);
+    m_dataset_cache_handle.reset();
   }
 
   bool DiskImageResourceGDAL::has_nodata_value() const {
-    GDALDataset *dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
+    Mutex::Lock lock(*gdal_mutex_ptr);
+    boost::shared_ptr<GDALDataset> dataset = get_dataset_ptr();
     if( dataset == NULL ) {
       vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read no data value.  "
                 << "Are you sure the file is open?" );
@@ -315,16 +351,18 @@ namespace vw {
   }
 
   double DiskImageResourceGDAL::nodata_value() const {
-    GDALDataset *dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
+    Mutex::Lock lock(*gdal_mutex_ptr);
+    boost::shared_ptr<GDALDataset> dataset = get_dataset_ptr();
     if( dataset == NULL ) {
       vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read no data value.  "
                 << "Are you sure the file is open?" );
     }
     int success;
     double val = dataset->GetRasterBand(1)->GetNoDataValue(&success);
-    if (!success)
+    if (!success) {
       vw_throw( IOErr() << "DiskImageResourceGDAL: Error reading nodata value.  "
                 << "This dataset does not have a nodata value.");
+    }
     return val;
   }
 
@@ -332,14 +370,15 @@ namespace vw {
   /// open the file and that it has a sane pixel format.
   void DiskImageResourceGDAL::open( std::string const& filename )
   {
-    // Register all GDAL file readers and writers and open the data set.
-    GDALAllRegister();
+    // Make sure GDAL is initialized
+    gdal_init_once.run( init_gdal );
+    Mutex::Lock lock(*gdal_mutex_ptr);
 
     // Add a cache generator that can regenerate this dataset if it
     // needs to be closed due to too many open files.
     m_dataset_cache_handle = gdal_cache().insert(GdalDatasetGenerator(filename));
 
-    GDALDataset *dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
+    boost::shared_ptr<GDALDataset> dataset = get_dataset_ptr();
     if( dataset == NULL ) {
       vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read " << filename << "." );
     }
@@ -347,7 +386,6 @@ namespace vw {
     m_filename = filename;
     m_format.cols = dataset->GetRasterXSize();
     m_format.rows = dataset->GetRasterYSize();
-    double geo_transform[6];
 
     // <test code>
     vw_out(DebugMessage, "fileio") << "\n\tMetadata description: " << dataset->GetDescription() << std::endl;
@@ -365,17 +403,6 @@ namespace vw {
       dataset->GetRasterXSize() << "x" <<
       dataset->GetRasterYSize() << "x" <<
       dataset->GetRasterCount() << std::endl;
-
-    if( dataset->GetGeoTransform( geo_transform ) == CE_None ) {
-      m_geo_transform.set_identity();
-      m_geo_transform(0,0) = geo_transform[1];
-      m_geo_transform(0,1) = geo_transform[2];
-      m_geo_transform(0,2) = geo_transform[0];
-      m_geo_transform(1,0) = geo_transform[4];
-      m_geo_transform(1,1) = geo_transform[5];
-      m_geo_transform(1,2) = geo_transform[3];
-      vw_out(DebugMessage, "fileio") << "\tAffine transform: " << m_geo_transform << std::endl;
-    }
 
     // We do our best here to determine what pixel format the GDAL image is in.
     // Commented out the color interpretation checks because the reader (below)
@@ -434,6 +461,9 @@ namespace vw {
                                       Vector2i block_size,
                                       std::map<std::string,std::string> const& user_options )
   {
+    // Make sure GDAL is initialized
+    gdal_init_once.run( init_gdal );
+
     VW_ASSERT(format.planes == 1 || format.pixel_format==VW_PIXEL_SCALAR,
               NoImplErr() << "DiskImageResourceGDAL: Cannot create " << filename << "\n\t"
               << "The image cannot have both multiple channels and multiple planes.\n");
@@ -445,12 +475,13 @@ namespace vw {
     m_blocksize = block_size;
     m_options = user_options;
 
+    Mutex::Lock lock(*gdal_mutex_ptr);
     initialize_write_resource();
   }
 
   void DiskImageResourceGDAL::initialize_write_resource() {
     if (m_write_dataset_ptr) {
-      delete (GDALDataset*) m_write_dataset_ptr;
+      m_write_dataset_ptr.reset();
     }
 
     int num_bands = std::max( m_format.planes, num_channels( m_format.pixel_format ) );
@@ -467,10 +498,14 @@ namespace vw {
     }
 
     GDALDriver *driver = ret.first;
-
     char **options = NULL;
-    options = CSLSetNameValue( options, "ALPHA", "YES" );
-    options = CSLSetNameValue( options, "INTERLEAVE", "PIXEL" );
+
+    if( m_format.pixel_format == VW_PIXEL_GRAYA || m_format.pixel_format == VW_PIXEL_RGBA ) {
+      options = CSLSetNameValue( options, "ALPHA", "YES" );
+    }
+    if( m_format.pixel_format != VW_PIXEL_SCALAR ) {
+      options = CSLSetNameValue( options, "INTERLEAVE", "PIXEL" );
+    }
     if( m_format.pixel_format == VW_PIXEL_RGB || m_format.pixel_format == VW_PIXEL_RGBA ||
         m_format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL || m_format.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL) {
       options = CSLSetNameValue( options, "PHOTOMETRIC", "RGB" );
@@ -481,8 +516,8 @@ namespace vw {
       x_str << m_blocksize[0];
       y_str << m_blocksize[1];
       options = CSLSetNameValue( options, "TILED", "YES" );
-      options = CSLSetNameValue( options, "BLOCKYSIZE", x_str.str().c_str() );
-      options = CSLSetNameValue( options, "BLOCKXSIZE", y_str.str().c_str() );
+      options = CSLSetNameValue( options, "BLOCKXSIZE", x_str.str().c_str() );
+      options = CSLSetNameValue( options, "BLOCKYSIZE", y_str.str().c_str() );
     }
 
     for( std::map<std::string,std::string>::const_iterator i=m_options.begin(); i!=m_options.end(); ++i ) {
@@ -493,7 +528,7 @@ namespace vw {
     GDALDataset *dataset = driver->Create( m_filename.c_str(), cols(), rows(), num_bands, gdal_pix_fmt, options );
     CSLDestroy( options );
 
-    m_write_dataset_ptr = (void*) dataset;
+    m_write_dataset_ptr.reset( dataset, GdalCloseDatasetDeleter() );
 
     if (m_blocksize[0] == -1 || m_blocksize[1] == -1) {
       m_blocksize = default_block_size();
@@ -501,11 +536,7 @@ namespace vw {
   }
 
   Vector2i DiskImageResourceGDAL::default_block_size() {
-    GDALDataset *dataset;
-    if (m_write_dataset_ptr)
-      dataset = static_cast<GDALDataset*>(m_write_dataset_ptr);
-    else
-      dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
+    boost::shared_ptr<GDALDataset> dataset = get_dataset_ptr();
 
     if (!dataset)
       vw_throw(LogicErr() << "DiskImageResourceGDAL: Could not get native block size.  No file is open.");
@@ -515,6 +546,7 @@ namespace vw {
     // driver type before accepting GDAL's suggested block size.
     if ( dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("GTiff") ||
          dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("ISIS3") ||
+         dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("JP2ECW") ||
 	 dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("JP2KAK") ) {
       GDALRasterBand *band = dataset->GetRasterBand(1);
       int xsize, ysize;
@@ -530,15 +562,6 @@ namespace vw {
     VW_ASSERT( channels() == 1 || planes()==1,
                LogicErr() << "DiskImageResourceGDAL: cannot read an image that has both multiple channels and multiple planes." );
 
-    GDALDataset *dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
-    if (!dataset)
-      vw_throw( LogicErr() << "DiskImageResourceGDAL::read() Could not read file. No file has been opened." );
-
-    // No longer used
-    //     int             blocksize_x, blocksize_y;
-    //     int             bGotMin, bGotMax;
-    //     double          adfMinMax[2];
-
     uint8 *data = new uint8[channel_size(channel_type()) * bbox.width() * bbox.height() * planes() * channels()];
     ImageBuffer src;
     src.data = data;
@@ -549,27 +572,37 @@ namespace vw {
     src.rstride = src.cstride * src.format.cols;
     src.pstride = src.rstride * src.format.rows;
 
-    if( m_palette.size() == 0 ) {
-      for ( int32 p = 0; p < planes(); ++p ) {
-        for ( int32 c = 0; c < channels(); ++c ) {
-          GDALRasterBand  *band = dataset->GetRasterBand(c+1);
-          GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
-          band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
-                          (uint8*)src(0,0,p) + channel_size(src.format.channel_type)*c,
-                          src.format.cols, src.format.rows, gdal_pix_fmt, src.cstride, src.rstride );
+    {
+      Mutex::Lock lock(*gdal_mutex_ptr);
+
+      boost::shared_ptr<GDALDataset> dataset = get_dataset_ptr();
+      if (!dataset)
+        vw_throw( LogicErr() << "DiskImageResourceGDAL::read() Could not read file. No file has been opened." );
+
+      if( m_palette.size() == 0 ) {
+        for ( int32 p = 0; p < planes(); ++p ) {
+          for ( int32 c = 0; c < channels(); ++c ) {
+            // Only one of channels() or planes() will be nonzero.
+            GDALRasterBand  *band = dataset->GetRasterBand(c+p+1);
+            GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
+            band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
+                            (uint8*)src(0,0,p) + channel_size(src.format.channel_type)*c,
+                            src.format.cols, src.format.rows, gdal_pix_fmt, src.cstride, src.rstride );
+          }
         }
       }
+      else { // palette conversion
+        GDALRasterBand  *band = dataset->GetRasterBand(1);
+        uint8 *index_data = new uint8[bbox.width() * bbox.height()];
+        band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
+                        index_data, bbox.width(), bbox.height(), GDT_Byte, 1, bbox.width() );
+        PixelRGBA<uint8> *rgba_data = (PixelRGBA<uint8>*) data;
+        for( int i=0; i<bbox.width()*bbox.height(); ++i )
+          rgba_data[i] = m_palette[index_data[i]];
+        delete [] index_data;
+      }
     }
-    else { // palette conversion
-      GDALRasterBand  *band = dataset->GetRasterBand(1);
-      uint8 *index_data = new uint8[bbox.width() * bbox.height()];
-      band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
-                      index_data, bbox.width(), bbox.height(), GDT_Byte, 1, bbox.width() );
-      PixelRGBA<uint8> *rgba_data = (PixelRGBA<uint8>*) data;
-      for( int i=0; i<bbox.width()*bbox.height(); ++i )
-        rgba_data[i] = m_palette[index_data[i]];
-      delete [] index_data;
-    }
+
     convert( dest, src, m_rescale );
     delete [] data;
   }
@@ -578,9 +611,6 @@ namespace vw {
   // Write the given buffer into the disk image.
   void DiskImageResourceGDAL::write( ImageBuffer const& src, BBox2i const& bbox )
   {
-    // This is pretty simple since we always write 8-bit integer files.
-    // Note that we handle multi-channel images with interleaved planes.
-    // We've already ensured that either planes==1 or channels==1.
     uint8 *data = new uint8[channel_size(channel_type()) * bbox.width() * bbox.height() * planes() * channels()];
     ImageBuffer dst;
     dst.data = data;
@@ -592,14 +622,19 @@ namespace vw {
     dst.pstride = dst.format.rows * dst.rstride;
     convert( dst, src, m_rescale );
 
-    GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
-    for (int32 p = 0; p < dst.format.planes; p++) {
-      for (int32 c = 0; c < num_channels(dst.format.pixel_format); c++) {
-        GDALRasterBand *band = ((GDALDataset*)m_write_dataset_ptr)->GetRasterBand(c+1);
+    {
+      Mutex::Lock lock(*gdal_mutex_ptr);
 
-        band->RasterIO( GF_Write, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
-                        (uint8*)dst(0,0,p) + channel_size(dst.format.channel_type)*c,
-                        dst.format.cols, dst.format.rows, gdal_pix_fmt, dst.cstride, dst.rstride );
+      GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
+      // We've already ensured that either planes==1 or channels==1.
+      for (int32 p = 0; p < dst.format.planes; p++) {
+        for (int32 c = 0; c < num_channels(dst.format.pixel_format); c++) {
+          GDALRasterBand *band = get_dataset_ptr()->GetRasterBand(c+p+1);
+
+          band->RasterIO( GF_Write, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
+                          (uint8*)dst(0,0,p) + channel_size(dst.format.channel_type)*c,
+                          dst.format.cols, dst.format.rows, gdal_pix_fmt, dst.cstride, dst.rstride );
+        }
       }
     }
 
@@ -616,6 +651,7 @@ namespace vw {
   // choice may lead to extremely inefficient FileIO operations.
   void DiskImageResourceGDAL::set_block_size(Vector2i const& block_size) {
     m_blocksize = block_size;
+    Mutex::Lock lock(*gdal_mutex_ptr);
     initialize_write_resource();
   }
 
@@ -625,7 +661,8 @@ namespace vw {
 
   void DiskImageResourceGDAL::flush() {
     if (m_write_dataset_ptr) {
-      delete (GDALDataset*)m_write_dataset_ptr;
+      Mutex::Lock lock(*gdal_mutex_ptr);
+      m_write_dataset_ptr.reset();
       if (m_convert_jp2)
         convert_jp2(m_filename);
     }
@@ -633,11 +670,24 @@ namespace vw {
 
   // Provide read access to the file's metadata
   char **DiskImageResourceGDAL::get_metadata() const {
-    GDALDataset *dataset = static_cast<GDALDataset*>(get_read_dataset_ptr());
+    boost::shared_ptr<GDALDataset> dataset = get_dataset_ptr();
     if( dataset == NULL ) {
       vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read " << m_filename << "." );
     }
     return dataset->GetMetadata();
+  }
+
+  // Provides access to the underlying GDAL Dataset object.
+  boost::shared_ptr<GDALDataset> DiskImageResourceGDAL::get_dataset_ptr() const {
+    if (m_write_dataset_ptr) return m_write_dataset_ptr;
+    else return m_dataset_cache_handle;
+  }
+
+  // Provides access to the global GDAL lock, for users who need to go
+  // tinkering around in GDAL directly for some reason.
+  Mutex &DiskImageResourceGDAL::global_lock() {
+    gdal_init_once.run(init_gdal);
+    return *gdal_mutex_ptr;
   }
 
   // A FileIO hook to open a file for reading

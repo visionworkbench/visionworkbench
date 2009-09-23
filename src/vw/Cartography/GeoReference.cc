@@ -10,6 +10,8 @@
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL
 #include <vw/Cartography/GeoReferenceResourceGDAL.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
+#include "ogr_spatialref.h"
+#include "cpl_string.h"
 #endif
 
 #include <vw/Cartography/GeoReferenceResourcePDS.h>
@@ -216,6 +218,104 @@ namespace cartography {
       m_is_projected = true;
     init_proj();
   }
+
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL
+  void GeoReference::set_wkt(std::string const& wkt) {
+    const char *wkt_str = wkt.c_str();
+    char **wkt_ptr = (char**)(&wkt_str);
+
+    OGRSpatialReference gdal_spatial_ref;
+    gdal_spatial_ref.importFromWkt(wkt_ptr);
+
+    // Read projection information out of the file
+    char* proj_str_tmp;
+    gdal_spatial_ref.exportToProj4(&proj_str_tmp);
+    std::string proj4_str = proj_str_tmp;
+    CPLFree( proj_str_tmp );
+    // For debugging:
+    //      vw_out(0) << "PROJ in --> " << proj4_str << "\n";
+
+    std::vector<std::string> input_strings;
+    std::vector<std::string> output_strings;
+    std::vector<std::string> datum_strings;
+    std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
+    boost::split( input_strings, trimmed_proj4_str, boost::is_any_of(" ") ); 
+    for (unsigned int i = 0; i < input_strings.size(); ++i) {
+
+      // Pick out the parts of the projection string that pertain to
+      // map projections.  We essentially want to eliminate all of
+      // the strings that have to do with the datum, since those are
+      // handled by interacting directly with the
+      // OGRSpatialReference below. This is sort of messy, but it's
+      // the easiest way to do this, as far as I can tell.
+      if ((input_strings[i].find("+proj=") == 0) || 
+          (input_strings[i].find("+x_0=") == 0) || 
+          (input_strings[i].find("+y_0=") == 0) ||
+          (input_strings[i].find("+lon") == 0) || 
+          (input_strings[i].find("+lat") == 0) || 
+          (input_strings[i].find("+k=") == 0) || 
+          (input_strings[i].find("+lat_ts=") == 0) || 
+          (input_strings[i].find("+ns") == 0) || 
+          (input_strings[i].find("+no_cut") == 0) || 
+          (input_strings[i].find("+h=") == 0) || 
+          (input_strings[i].find("+W=") == 0) || 
+          (input_strings[i].find("+units=") == 0) ||
+          (input_strings[i].find("+zone=") == 0)) {
+        output_strings.push_back(input_strings[i]);
+      } else if ((input_strings[i].find("+ellps=") == 0) ||
+                 (input_strings[i].find("+datum=") == 0)) {
+        // We put these in the proj4_str for the Datum class.
+        datum_strings.push_back(input_strings[i]);
+      }
+    }
+    std::ostringstream strm;
+    for (unsigned int i = 0; i < output_strings.size(); ++i) {
+      strm << output_strings[i] << " ";
+    }
+    // For debugging:
+    //      vw_out(0) << "     out --> " << strm.str() << "\n";
+
+    // If the file contains no projection related information, we
+    // supply proj.4 with a "default" interpretation that the file
+    // is in geographic (unprojected) coordinates.
+    if (output_strings.size() == 0) 
+      set_proj4_projection_str("+proj=longlat");
+    else
+      set_proj4_projection_str(strm.str());
+
+    int utm_north = 0;
+    int utm_zone = gdal_spatial_ref.GetUTMZone(&utm_north);
+    if (utm_zone)
+      set_UTM(utm_zone, utm_north);
+
+    // Read in the datum information
+    Datum datum;
+    const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
+    if (datum_name) { datum.name() = datum_name; }
+    const char* spheroid_name = gdal_spatial_ref.GetAttrValue("SPHEROID");
+    if (spheroid_name) { datum.spheroid_name() = spheroid_name; }
+    const char* meridian_name = gdal_spatial_ref.GetAttrValue("PRIMEM");
+    if (meridian_name) { datum.meridian_name() = meridian_name; }
+    OGRErr e1, e2;
+    double semi_major = gdal_spatial_ref.GetSemiMajor(&e1);
+    double semi_minor = gdal_spatial_ref.GetSemiMinor(&e2);
+    if (e1 != OGRERR_FAILURE && e2 != OGRERR_FAILURE) { 
+      datum.set_semi_major_axis(semi_major);
+      datum.set_semi_minor_axis(semi_minor);
+    }
+    datum.meridian_offset() = gdal_spatial_ref.GetPrimeMeridian();
+    // Set the proj4 string for datum.
+    std::stringstream datum_proj4_ss;
+    for(unsigned i=0; i < datum_strings.size(); i++)
+      datum_proj4_ss << datum_strings[i] << ' ';
+    // Add the current proj4 string in the case that our ellipse/datum 
+    // values are empty.
+    if(boost::trim_copy(datum_proj4_ss.str()) == "")
+      datum_proj4_ss << datum.proj4_str();
+    datum.proj4_str() = boost::trim_copy(datum_proj4_ss.str());
+    set_datum(datum);
+  }
+#endif // VW_HAVE_PKG_GDAL
 
   /// For a given pixel coordinate, compute the position of that
   /// pixel in this georeferenced space.

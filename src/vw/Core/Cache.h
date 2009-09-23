@@ -110,9 +110,9 @@ namespace vw {
       }
       
       virtual ~CacheLine() {
+        Mutex::Lock cache_lock(cache().m_mutex);
         invalidate();
         VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache destroying CacheLine " << info() << "\n"; )
-        Mutex::Lock cache_lock(cache().m_mutex);
         remove();
       }
       
@@ -202,6 +202,7 @@ namespace vw {
       }
       bool valid() const { return m_line_ptr->valid(); }
       size_t size() const { return m_line_ptr->size(); }
+      void reset() { m_line_ptr.reset(); }
       void deprioritize() const { return m_line_ptr->deprioritize(); }
     };
 
