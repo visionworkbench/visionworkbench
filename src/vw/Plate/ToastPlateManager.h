@@ -63,7 +63,8 @@ namespace platefile {
 
   public:
   
-    ToastPlateManager(boost::shared_ptr<PlateFile> platefile) : m_platefile(platefile) {}
+    ToastPlateManager(boost::shared_ptr<PlateFile> platefile, int num_threads) : 
+      m_queue(num_threads), m_platefile(platefile) {}
 
     /// The destructor saves the platefile to disk. 
     ~ToastPlateManager() {}
@@ -122,6 +123,7 @@ namespace platefile {
                                                                                image, 
                                                                                bboxes[i].bbox)));
       }
+      std::cout << "\t--> Preparing to rasterize " << m_queue.size() << " image blocks.\n";
       m_queue.join_all();
     }
 

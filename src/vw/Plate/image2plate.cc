@@ -85,8 +85,6 @@ int main( int argc, char *argv[] ) {
   DiskImageResourceJPEG::set_default_quality( jpeg_quality );
   DiskImageResourcePNG::set_default_compression_level( png_compression );
   vw_system_cache().resize( cache_size*1024*1024 );
-  if ( vm.count("num-threads"))
-    vw_settings().set_default_num_threads(num_threads);
 
   std::vector<DiskImageView<PixelRGBA<uint8> > > images;
   std::vector<GeoReference> georefs;
@@ -155,15 +153,18 @@ int main( int argc, char *argv[] ) {
 
   // Create the plate file
   boost::shared_ptr<PlateFile> platefile = boost::shared_ptr<PlateFile>( new PlateFile(output_file_name, tile_size, output_file_type));
-  ToastPlateManager pm(platefile);
+  ToastPlateManager pm(platefile, num_threads);
 
   std::cout << "\nWriting data to plate file: " << output_file_type << "\n";
   std::cout << "\t--> Building full-resolution tiles\n";
-  pm.insert(composite, max_level);
+  //  pm.insert(composite, max_level);
   
   std::cout << "\t--> Building mipmap levels\n";
-  pm.mipmap();
+  //  pm.mipmap();
 
   std::cout << "Saving...\n";
-  platefile->save();
+  //  platefile->save();
+
+  //  char* foo = new char[255];
+
 }
