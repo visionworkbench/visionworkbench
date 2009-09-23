@@ -157,14 +157,12 @@ int main( int argc, char *argv[] ) {
 
   std::cout << "\nWriting data to plate file: " << output_file_type << "\n";
   std::cout << "\t--> Building full-resolution tiles\n";
-  //  pm.insert(composite, max_level);
+  pm.insert(composite, max_level);
   
   std::cout << "\t--> Building mipmap levels\n";
-  //  pm.mipmap();
+  pm.mipmap();
 
   std::cout << "Saving...\n";
-  //  platefile->save();
-
-  //  char* foo = new char[255];
+  platefile->save();
 
 }

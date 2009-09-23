@@ -297,7 +297,7 @@ PKG_CHECK_MODULES([CAIROMM], [cairomm-1.0], [
 AX_PKG(CAIROMM, [], [$CAIROMM_LIBS], [cairomm/cairomm.h])
 
 AX_PKG(RABBITMQ_C, [], [-lrabbitmq], [stdlib.h stdint.h amqp.h])
-AX_PKG(PROTOBUF, [], [-lprotobuf], [google/protobuf/stubs/common.h])
+AX_PKG(PROTOBUF, [PTHREADS], [-lprotobuf], [google/protobuf/stubs/common.h])
 AX_PKG(TCMALLOC, [], [-ltcmalloc], [])
 
 # These are here (instead of inside the PKG macro where they belong)
@@ -354,7 +354,7 @@ fi
 AX_MODULE(PLATE, [src/vw/Plate], [libvwPlate.la], no, [VW RABBITMQ_C PROTOBUF], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS TCMALLOC])
 
 AX_MODULE(TOOLS, [src/vw/tools], [], yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
-AX_MODULE(GUI,   [src/vw/gui],   [], yes, [VW], [QT BOOST_PROGRAM_OPTIONS GL])
+AX_MODULE(GUI,   [src/vw/gui],   [], no, [VW], [QT BOOST_PROGRAM_OPTIONS GL])
 
 AX_MODULE_PYTHON([src/vw/Python], [no])
 
