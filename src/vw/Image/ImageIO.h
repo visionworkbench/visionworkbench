@@ -6,8 +6,8 @@
 
 
 /// \file ImageIO.h
-/// 
-/// Functions for reading and writing image views to and from 
+///
+/// Functions for reading and writing image views to and from
 /// image resources.
 ///
 #ifndef __VW_IMAGE_IMAGEIO_H__
@@ -84,11 +84,17 @@ namespace vw {
   //
   // Only one thread can be writing to the ImageResource at any given
   // time, however several threads can be rasterizing simultaneously.
-  // 
+  //
   class ThreadedBlockWriter {
 
     boost::shared_ptr<FifoWorkQueue> m_rasterize_work_queue;
     boost::shared_ptr<OrderedWorkQueue> m_write_work_queue;
+    Mutex m_write_task_wait;
+    Condition m_write_finish_event;
+
+    // Disable copy
+    ThreadedBlockWriter(ThreadedBlockWriter& copy) {}
+    void operator=(ThreadedBlockWriter& copy) {}
 
     // ----------------------------- TASK TYPES (2) --------------------------------
 
@@ -96,14 +102,20 @@ namespace vw {
     class WriteBlockTask : public Task {
       ImageResource& m_resource;
       ImageView<PixelT> m_image_block;
-      BBox2i m_bbox; 
+      BBox2i m_bbox;
+      int m_idx;
+      Condition& m_write_finish_event;
 
     public:
-      WriteBlockTask(ImageResource& resource, ImageView<PixelT> const& image_block, BBox2i bbox) : 
-        m_resource(resource), m_image_block(image_block), m_bbox(bbox) {}
+      WriteBlockTask(ImageResource& resource, ImageView<PixelT> const& image_block, BBox2i bbox, 
+                     int idx, Condition& write_finish_event) :
+      m_resource(resource), m_image_block(image_block), m_bbox(bbox), m_idx(idx), m_write_finish_event(write_finish_event) {}
 
       virtual ~WriteBlockTask() {}
-      virtual void operator() () { m_resource.write( m_image_block.buffer(), m_bbox ); }
+      virtual void operator() () {
+        m_resource.write( m_image_block.buffer(), m_bbox );
+        m_write_finish_event.notify_all();
+      }
     };
 
     // ------
@@ -117,21 +129,25 @@ namespace vw {
       int m_index;
       int m_total_num_blocks;
       SubProgressCallback m_progress_callback;
-      
+      Condition& m_write_finish_event;
+
     public:
-      RasterizeBlockTask(ThreadedBlockWriter &parent, ImageResource& resource, ImageViewBase<ViewT> const& image, BBox2i const& bbox, int index, int total_num_blocks,
+      RasterizeBlockTask(ThreadedBlockWriter &parent, ImageResource& resource,
+                         ImageViewBase<ViewT> const& image, BBox2i const& bbox, int index, int total_num_blocks,
+                         Condition& write_finish_event,
                          const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) :
-        m_parent(parent), m_resource(resource), m_image(image.impl()), m_bbox(bbox), m_index(index), m_progress_callback(progress_callback,0.0,1.0/float(total_num_blocks)) {}
+      m_parent(parent), m_resource(resource), m_image(image.impl()), m_bbox(bbox), m_index(index),
+        m_progress_callback(progress_callback,0.0,1.0/float(total_num_blocks)), m_write_finish_event(write_finish_event) {}
 
       virtual ~RasterizeBlockTask() {}
-      virtual void operator()() { 
+      virtual void operator()() {
         // Rasterize the block
         ImageView<typename ViewT::pixel_type> image_block( crop(m_image, m_bbox) );
 
         // With rasterization complete, we queue up a request to write this block to disk.
-        boost::shared_ptr<Task> write_task ( new WriteBlockTask<typename ViewT::pixel_type>( m_resource, image_block, m_bbox) );
+        boost::shared_ptr<Task> write_task ( new WriteBlockTask<typename ViewT::pixel_type>( m_resource, image_block, m_bbox, m_index, m_write_finish_event ) );
         m_parent.add_write_task(write_task, m_index);
-        
+
         // Report progress
         m_progress_callback.report_incremental_progress(1.0);
       }
@@ -139,26 +155,50 @@ namespace vw {
 
     // ----------------------------- ------------------------ --------------------------------
 
-    void add_write_task(boost::shared_ptr<Task> task, int index) { m_write_work_queue->add_task(task, index); }
+    class WriteConditional {
+      boost::weak_ptr<OrderedWorkQueue> m_write_work_queue; // So can't maintain ownership
+      int m_number_threads;
+    public:
+      WriteConditional( boost::shared_ptr<OrderedWorkQueue> write_work_queue, int number_threads ) :
+      m_write_work_queue(write_work_queue), m_number_threads(number_threads) {}
+      bool operator()() {
+        boost::shared_ptr<OrderedWorkQueue> temp = m_write_work_queue.lock();
+        return temp->size() < m_number_threads;
+      }
+    };
+
+    void add_write_task(boost::shared_ptr<Task> task, int index) {
+      m_write_work_queue->add_task(task, index);
+
+      // Write tasks can get behind. So a lock here on adding will also
+      // put an effective hold on a rastering events so writing can
+      // catch up. The only reason why writing task events can be behind is
+      // that they are ordered. -- ZMM
+      while (1) {
+        Mutex::Lock lock(m_write_task_wait);
+        if ( m_write_work_queue->size() < vw_settings().default_num_threads() ) { return; }
+        WriteConditional write_cond( m_write_work_queue, vw_settings().default_num_threads() );
+        m_write_finish_event.wait(lock, write_cond);
+      }
+    }
     void add_rasterize_task(boost::shared_ptr<Task> task) { m_rasterize_work_queue->add_task(task); }
-    
+
   public:
-    ThreadedBlockWriter() {
+    ThreadedBlockWriter() : m_write_task_wait(), m_write_finish_event() {
       m_rasterize_work_queue = boost::shared_ptr<FifoWorkQueue>( new FifoWorkQueue() );
       m_write_work_queue = boost::shared_ptr<OrderedWorkQueue>( new OrderedWorkQueue(1) );
     }
-
 
     // Add a block to be rasterized.  You can optionally supply an
     // index, which will indicate the order in which this block should
     // be written to disk.
     template <class ViewT>
     void add_block(ImageResource& resource, ImageViewBase<ViewT> const& image, BBox2i const& bbox, int index, int total_num_blocks,
-                   const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) { 
-      boost::shared_ptr<Task> task( new RasterizeBlockTask<ViewT>(*this, resource, image, bbox, index, total_num_blocks, progress_callback) );
+                   const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
+      boost::shared_ptr<Task> task( new RasterizeBlockTask<ViewT>(*this, resource, image, bbox, index, total_num_blocks, m_write_finish_event, progress_callback) );
       this->add_rasterize_task(task);
     }
-                        
+
     void process_blocks() {
       m_rasterize_work_queue->join_all();
       m_write_work_queue->join_all();
@@ -168,7 +208,7 @@ namespace vw {
 
   /// Write an image view to a resource.
   template <class ImageT>
-  void block_write_image( ImageResource& resource, ImageViewBase<ImageT> const& image, 
+  void block_write_image( ImageResource& resource, ImageViewBase<ImageT> const& image,
                           const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
 
     VW_ASSERT( image.impl().cols() != 0 && image.impl().rows() != 0 && image.impl().planes() != 0,
@@ -176,14 +216,14 @@ namespace vw {
 
     // Set the progress meter to zero.
     progress_callback.report_progress(0);
-    if (progress_callback.abort_requested()) 
+    if (progress_callback.abort_requested())
       vw_throw( Aborted() << "Aborted by ProgressCallback" );
 
     // Set up the threaded block writer object, which will manage
     // rasterizing and writing images to disk one block (and one
     // thread) at a time.
     ThreadedBlockWriter block_writer;
-    
+
     // Write the image to disk in blocks.  We may need to revisit
     // the order in which these blocks are rasterized, but for now
     // it rasterizes blocks from left to right, then top to bottom.
@@ -193,12 +233,12 @@ namespace vw {
 
     for (int32 j = 0; j < (int32)resource.rows(); j+= block_size.y()) {
       for (int32 i = 0; i < (int32)resource.cols(); i+= block_size.x()) {
-        
+
         // Rasterize and save this image block
         BBox2i current_bbox(Vector2i(i,j),
                             Vector2i(std::min(i+block_size.x(),(int32)(resource.cols())),
                                      std::min(j+block_size.y(),(int32)(resource.rows()))));
-        
+
         // Add a task to rasterize this image block.  A seperate task
         // to write the results to disk is generated automatically
         // when rasterization is complete.
@@ -211,17 +251,17 @@ namespace vw {
         block_writer.add_block(resource, image, current_bbox, index, total_num_blocks, progress_callback );
       }
     }
-    
+
     // Start the threaded block writer and wait for all tasks to finish.
     block_writer.process_blocks();
     progress_callback.report_finished();
   }
-  
+
 
   template <class ImageT>
-  void write_image( ImageResource& resource, ImageViewBase<ImageT> const& image, 
+  void write_image( ImageResource& resource, ImageViewBase<ImageT> const& image,
                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
-    
+
     VW_ASSERT( image.impl().cols() != 0 && image.impl().rows() != 0 && image.impl().planes() != 0,
                ArgumentErr() << "write_image: cannot write an empty image to a resource" );
 
@@ -235,9 +275,9 @@ namespace vw {
     int total_num_blocks = ((resource.rows()-1)/block_size.y()+1) * ((resource.cols()-1)/block_size.x()+1);
     for (int32 j = 0; j < (int32)resource.rows(); j+= block_size.y()) {
       for (int32 i = 0; i < (int32)resource.cols(); i+= block_size.x()) {
-        
+
         // Update the progress callback.
-        if (progress_callback.abort_requested()) 
+        if (progress_callback.abort_requested())
           vw_throw( Aborted() << "Aborted by ProgressCallback" );
 
         float processed_row_blocks = float(j/block_size.y()*((resource.cols()-1)/block_size.x()+1));
