@@ -141,36 +141,31 @@ BBox2 PyramidCorrelator::compute_matching_blocks(BBox2i const& nominal_block, BB
 //  the higher level of resolution.
 std::vector<BBox2>
 PyramidCorrelator::compute_search_ranges(ImageView<PixelMask<Vector2f> > const& prev_disparity_map,
-                                         std::vector<BBox2i> nominal_blocks) {
+                                         std::vector<BBox2i> const& nominal_blocks) {
   std::vector<BBox2> search_ranges(nominal_blocks.size());
-  std::vector<int> good_pixel_vec(nominal_blocks.size());
-  std::vector<int> fixed_blocks;
+  std::vector<bool> is_good(nominal_blocks.size());
 
-  // Step two: compute the search ranges from the disparity map.
+  // Step 1: compute the search ranges from the disparity map.
   for (unsigned i = 0; i < nominal_blocks.size(); ++i) {
     ImageViewRef<PixelMask<Vector2f> > crop_disparity = crop(prev_disparity_map,(nominal_blocks[i])/2);
     try {
       search_ranges[i] = get_disparity_range(crop_disparity);
+      is_good[i]=true;
     } catch ( std::exception & e ) {
       // No good pixels available
       search_ranges[i] = BBox2i();
+      is_good[i]=false;
     }
-    bool hit=false;
-    for ( int r = 0; r < crop_disparity.rows() && !hit; r++ )
-      for ( int c = 0; c < crop_disparity.cols() && !hit; c++ )
-        if ( is_valid(crop_disparity(c,r)) ) {
-          hit = true;
-          good_pixel_vec[i] = 1;
-        }
   }
 
-  // Step two: adjust the search range or fix it if it came from a
-  // block weith zero valid pixels.
+  // Step 2: adjust the search range or fix it if it came from a
+  // block with zero valid pixels.
+  std::list<unsigned> was_corrected;
   for (unsigned r = 0; r < nominal_blocks.size(); ++r) {
 
     // Pick a reasonable search range based on neighboring tiles rather
     // than skipping out entirely here.
-    if (good_pixel_vec[r] == 0) {
+    if ( !is_good[r] ) {
       // Find adjancent tiles and use the search ranges of adjacent
       // tiles to seed us with a reasonable search range of our own.
       //
@@ -180,35 +175,30 @@ PyramidCorrelator::compute_search_ranges(ImageView<PixelMask<Vector2f> > const& 
       this_bbox.expand(1);
       bool found_one_match = false;
       for (unsigned b = 0; b < nominal_blocks.size(); ++b)
-        if (good_pixel_vec[b] != 0 && this_bbox.intersects(nominal_blocks[b])) {
+        if ( is_good[b] && this_bbox.intersects(nominal_blocks[b])) {
           if (found_one_match) {
             search_ranges[r].grow(search_ranges[b]);
           } else {
             found_one_match = true;
-            fixed_blocks.push_back(r);
+            was_corrected.push_back( r );
             search_ranges[r] = search_ranges[b];
           }
         }
     }
   }
 
-  // Set the good_pixel_vec[r] to a positive value for the fixed
-  // blocks so that the search range is adjusted correctly be the code
-  // below.
-  for (unsigned i = 0; i < fixed_blocks.size(); ++i)
-    good_pixel_vec[fixed_blocks[i]] = 1;
+  // Step 2 1/2: Mark good the search ranges that have been corrected
+  for ( std::list<unsigned>::const_iterator iter = was_corrected.begin();
+        iter != was_corrected.end(); iter++ )
+    is_good[*iter] = true;
 
-  // Step three: scale up the search range for the next pyramid
+  // Step 3: scale up the search range for the next pyramid
   // level and pad it here.
-  for (unsigned r = 0; r < nominal_blocks.size(); ++r) {
-    if (good_pixel_vec[r] != 0) {
+  for (unsigned r = 0; r < nominal_blocks.size(); ++r)
+    if ( is_good[r] ) {
       search_ranges[r] *= 2;
-      search_ranges[r].min().x() -= 2;
-      search_ranges[r].max().x() += 2;
-      search_ranges[r].min().y() -= 2;
-      search_ranges[r].max().y() += 2;
+      search_ranges[r].expand(2);
     }
-  }
 
   return search_ranges;
 }

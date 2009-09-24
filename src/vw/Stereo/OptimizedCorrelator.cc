@@ -88,8 +88,6 @@ ImageView<float> NormXCorrCost::calculate(int dx, int dy) {
 }
 
 
-
-
 // ---------------------------------------------------------------------------
 //                           CORRELATE()
 // ---------------------------------------------------------------------------
@@ -110,18 +108,12 @@ ImageView<PixelMask<Vector2f> > vw::stereo::correlate(boost::shared_ptr<StereoCo
   for (int dy = search_window.min().y(); dy <= search_window.max().y(); dy++) {
     for (int dx = search_window.min().x(); dx <= search_window.max().x(); dx++) {
       BBox2i right_bbox = cost_function->bbox() + Vector2i (dx,dy);
-      //        vw_out(0) << "Correlating: [" << dx << "  " << dy << "]         " << left_bbox << "        " << width << " " << height << "  \n";
+
       CropView<ImageView<DisparityScore<float> > > result_buf_window(result_buf, left_bbox);
       CropView<ImageView<float> > cost_buf_window(cost_buf, left_bbox);
 
       // Calculate cost function
       cost_buf_window = cost_function->calculate(dx,dy);
-
-      // For debugging
-      //
-      //         std::ostringstream ostr;
-      //         ostr << "costimage_" << dy << "_" << dx << ".tif";
-      //         write_image(ostr.str(), cost_buf_window);
 
       CropView<ImageView<DisparityScore<float> > >::pixel_accessor result_row_acc = result_buf_window.origin();
       CropView<ImageView<float> >::pixel_accessor cost_buf_row_acc = cost_buf_window.origin();
@@ -148,7 +140,6 @@ ImageView<PixelMask<Vector2f> > vw::stereo::correlate(boost::shared_ptr<StereoCo
       progress.abort_if_requested();
     }
   }
-  //    vw_out(0) << "Correlating: done.                            \n";
 
   // convert from the local result buffer to the return format
   ImageView<PixelMask<Vector2f> > result(width, height);

@@ -27,33 +27,6 @@ namespace stereo {
 
     std::string m_debug_prefix;
 
-    /*
-    // Reduce the disparity size by a factor of two by averaging the pixels
-    template <class PixelDisparity>
-    ImageView<PixelDisparity> subsample_by_two(ImageView<PixelDisparity> &img) {
-
-      //ImageView<PixelDisparity<float> >
-
-      ImageView<PixelDisparity> outImg(img.cols()/2, img.rows()/2,img.planes());
-      int32 i, j, p;
-
-      for (p = 0; p < outImg.planes() ; p++) {
-        for (i = 0; i < outImg.cols(); i++) {
-          for (j = 0; j < outImg.rows(); j++) {
-            outImg(i,j,p) = 0.0f;
-            outImg(i,j,p) += img(2*i     , 2*j    ,p);
-            outImg(i,j,p) += img(2*i + 1 , 2*j    ,p);
-            outImg(i,j,p) += img(2*i     , 2*j + 1,p);
-            outImg(i,j,p) += img(2*i + 1 , 2*j + 1,p);
-            outImg(i,j,p) /= 4;
-          }
-        }
-      }
-
-      return outImg;
-    }
-    */
-
     // Reduce the image size by a factor of two by averaging the pixels
     template <class PixelT>
     ImageView<PixelT> subsample_by_two(ImageView<PixelT> &img) {
@@ -104,7 +77,7 @@ namespace stereo {
                                   BBox2i &left_block, BBox2i &right_block);
 
     std::vector<BBox2> compute_search_ranges(ImageView<PixelMask<Vector2f> > const& prev_disparity_map,
-                                             std::vector<BBox2i> nominal_blocks);
+                                             std::vector<BBox2i> const& nominal_blocks);
 
     void write_debug_images(int n, ImageViewRef<PixelMask<Vector2f> > const& disparity_map,
                             std::vector<BBox2i> nominal_blocks);
@@ -176,12 +149,6 @@ namespace stereo {
                                              right_pyramid[n].rows());
           right_image_workarea.crop(right_image_bounds);
           if (right_image_workarea.width() == 0 || right_image_workarea.height() == 0) { continue; }
-          //           BBox2i left_image_workarea = BBox2i(Vector2i(right_image_workarea.min().x()-int(floor(search_ranges[r].min().x()))),
-          //                                                        rights_image_workarea.min().y()-int(floor(search_ranges[r].min().y()))),
-          //                                               Vector2i(right_image_workarea.max().x()-int(ceil(search_ranges[r].max().x())),
-          //                                                        right_image_workarea.max().y()-int(ceil(search_ranges[r].max().y()))));
-          //           if (left_image_workarea.width() <= 0 || left_image_workarea.height() <= 0) { continue; }
-          //           nominal_blocks[r] = left_image_workarea;
           BBox2 adjusted_search_range = compute_matching_blocks(nominal_blocks[r], search_ranges[r], left_block, right_block);
 
           //   2. Run the correlation for this level.  We pass in the
@@ -193,11 +160,8 @@ namespace stereo {
 
           // Place this block in the proper place in the complete
           // disparity map.
-          //
-          // FIXME: this is an unecessary extra copy that is done as a
-          // workaround for a constness bug. -mbroxton
-          ImageView<ChannelT> block1 = crop(edge_extend(left_pyramid[n],ReflectEdgeExtension()),left_block);
-          ImageView<ChannelT> block2 = crop(edge_extend(right_pyramid[n],ReflectEdgeExtension()),right_block);
+          ImageViewRef<ChannelT> block1 = crop(edge_extend(left_pyramid[n],ReflectEdgeExtension()),left_block);
+          ImageViewRef<ChannelT> block2 = crop(edge_extend(right_pyramid[n],ReflectEdgeExtension()),right_block);
           ImageView<PixelMask<Vector2f> > disparity_block;
 
           disparity_block = this->correlate( block1, block2,
@@ -328,15 +292,15 @@ namespace stereo {
         int dimension = std::min(left_image.impl().cols(), left_image.impl().rows());
         while (dimension > m_pyramid_min_image_dimension) { pyramid_levels++; dimension /= 2;}
       }
-      vw_out(InfoMessage, "stereo") << "Initializing pyramid correlator with " << pyramid_levels << " levels.\n";
+      vw_out(DebugMessage, "stereo") << "Initializing pyramid correlator with " << pyramid_levels << " levels.\n";
 
       // Build the image pyramid
       std::vector<ImageView<channel_type> > left_pyramid(pyramid_levels), right_pyramid(pyramid_levels);
       std::vector<ImageView<uint8> > left_masks(pyramid_levels), right_masks(pyramid_levels);
 
-      left_pyramid[0] = channels_to_planes(left_image);
-      right_pyramid[0] = channels_to_planes(right_image);
-      left_masks[0] = channels_to_planes(left_mask);
+      left_pyramid[0] = channels_to_planes(left_image);    // Is this really what we want
+      right_pyramid[0] = channels_to_planes(right_image);  // shouldn't we channel cast to
+      left_masks[0] = channels_to_planes(left_mask);       // to scalar?
       right_masks[0] = channels_to_planes(right_mask);
 
       // Produce the image pyramid

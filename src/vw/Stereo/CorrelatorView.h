@@ -114,20 +114,21 @@ namespace stereo {
       typedef CropView<ImageView<pixel_type> > prerasterize_type;
       inline prerasterize_type prerasterize(BBox2i bbox) const {
 
-        vw_out(InfoMessage, "stereo") << "CorrelatorView: rasterizing image block " << bbox << ".\n";
+        vw_out(DebugMessage, "stereo") << "CorrelatorView: rasterizing image block " << bbox << ".\n";
 
         // The area in the right image that we'll be searching is
         // determined by the bbox of the left image plus the search
         // range.
         BBox2i left_crop_bbox(bbox);
-        BBox2i right_crop_bbox(bbox.min() + m_search_range.min(),
-                             bbox.max() + m_search_range.max());
+        BBox2i right_crop_bbox( bbox.min() + m_search_range.min(),
+                                bbox.max() + m_search_range.max() );
 
         // The correlator requires the images to be the same size. The
         // search bbox will always be larger than the given left image
         // bbox, so we just make the left bbox the same size as the
         // right bbox.
-        left_crop_bbox.max() = left_crop_bbox.min() + Vector2i(right_crop_bbox.width(), right_crop_bbox.height());
+        left_crop_bbox.max() = left_crop_bbox.min() +
+          Vector2i(right_crop_bbox.width(), right_crop_bbox.height());
 
         // Finally, we must adjust both bounding boxes to account for
         // the size of the kernel itself.
@@ -137,42 +138,58 @@ namespace stereo {
         left_crop_bbox.max() += Vector2i(m_kernel_size[0], m_kernel_size[1]);
 
         // Log some helpful debugging info
-        vw_out(DebugMessage, "stereo") << "\t   search_range: " << m_search_range << std::endl;
-        vw_out(DebugMessage, "stereo") << "\t left_crop_bbox: " << left_crop_bbox << std::endl;
-        vw_out(DebugMessage, "stereo") << "\tright_crop_bbox: " << right_crop_bbox << std::endl;
+        vw_out(DebugMessage, "stereo") << "\t search_range:    "
+                                       << m_search_range << std::endl;
+        vw_out(DebugMessage, "stereo") << "\t left_crop_bbox:  "
+                                       << left_crop_bbox << std::endl;
+        vw_out(DebugMessage, "stereo") << "\t right_crop_bbox: "
+                                       << right_crop_bbox << std::endl;
 
-        // We crop the images to the expanded bounding box and edge
-        // extend in case the new bbox extends past the image bounds.
-        ImageView<ImagePixelT> cropped_left_image = crop(edge_extend(m_left_image, ZeroEdgeExtension()), left_crop_bbox);
-        ImageView<ImagePixelT> cropped_right_image = crop(edge_extend(m_right_image, ZeroEdgeExtension()), right_crop_bbox);
-        ImageView<MaskPixelT> cropped_left_mask = crop(edge_extend(m_left_mask, ZeroEdgeExtension()), left_crop_bbox);
-        ImageView<MaskPixelT> cropped_right_mask = crop(edge_extend(m_right_mask, ZeroEdgeExtension()), right_crop_bbox);
+        ImageView<pixel_type> disparity_map;
 
-        // We have all of the settings adjusted.  Now we just have to
-        // run the correlator.
-        PyramidCorrelator correlator(BBox2(0,0,m_search_range.width(),m_search_range.height()),
-                                     Vector2i(m_kernel_size[0], m_kernel_size[1]),
-                                     m_cross_corr_threshold, m_corr_score_threshold,
-                                     m_cost_blur, m_correlator_type);
+        { // Force the scope for the crops
 
-        // For debugging: this saves the disparity map at various pyramid levels to disk.
-        if (m_debug_prefix.size() != 0) {
-          std::ostringstream ostr;
-          ostr << "-" << bbox.min().x() << "-" << bbox.max().x() << "_" << bbox.min().y() << "-" << bbox.max().y() << "-";
-          correlator.set_debug_mode(m_debug_prefix + ostr.str());
-        }
+          // We crop the images to the expanded bounding box and edge
+          // extend in case the new bbox extends past the image bounds.
+          //
+          // We're not making a copy as the pyramid correlator will make its own copy
+          ImageViewRef<ImagePixelT> cropped_left_image =
+            crop(edge_extend(m_left_image, ZeroEdgeExtension()), left_crop_bbox);
+          ImageViewRef<ImagePixelT> cropped_right_image =
+            crop(edge_extend(m_right_image, ZeroEdgeExtension()), right_crop_bbox);
+          ImageViewRef<MaskPixelT> cropped_left_mask =
+            crop(edge_extend(m_left_mask, ZeroEdgeExtension()), left_crop_bbox);
+          ImageViewRef<MaskPixelT> cropped_right_mask =
+            crop(edge_extend(m_right_mask, ZeroEdgeExtension()), right_crop_bbox);
 
-        ImageView<pixel_type> disparity_map = correlator(cropped_left_image, cropped_right_image,
-                                                         cropped_left_mask, cropped_right_mask,
-                                                         m_preproc_func);
+          // We have all of the settings adjusted.  Now we just have to
+          // run the correlator.
+          PyramidCorrelator correlator(BBox2(0,0,m_search_range.width(),
+                                             m_search_range.height()),
+                                       Vector2i(m_kernel_size[0], m_kernel_size[1]),
+                                       m_cross_corr_threshold, m_corr_score_threshold,
+                                       m_cost_blur, m_correlator_type);
+
+          // For debugging: this saves the disparity map at various
+          // pyramid levels to disk.
+          if (m_debug_prefix.size() != 0) {
+            std::ostringstream ostr;
+            ostr << "-" << bbox.min().x() << "-" << bbox.max().x()
+                 << "_" << bbox.min().y() << "-" << bbox.max().y() << "-";
+            correlator.set_debug_mode(m_debug_prefix + ostr.str());
+          }
+
+          disparity_map = correlator( cropped_left_image, cropped_right_image,
+                                      cropped_left_mask, cropped_right_mask,
+                                      m_preproc_func);
+        } // Ending scope of crops
 
         // Adjust the disparities to be relative to the uncropped
         // image pixel locations
         for (int v = 0; v < disparity_map.rows(); ++v)
           for (int u = 0; u < disparity_map.cols(); ++u)
-            if (is_valid(disparity_map(u,v)) ) {
+            if (is_valid(disparity_map(u,v)) )
               remove_mask(disparity_map(u,v)) += m_search_range.min();
-            }
 
         // This may seem confusing, but we must crop here so that the
         // good pixel data is placed into the coordinates specified by
@@ -184,7 +201,8 @@ namespace stereo {
                                                                        bbox.width(), bbox.height()));
       }
 
-      template <class DestT> inline void rasterize(DestT const& dest, BBox2i bbox) const {
+      template <class DestT>
+      inline void rasterize(DestT const& dest, BBox2i bbox) const {
         vw::rasterize(prerasterize(bbox), dest, bbox);
       }
       /// \endcond

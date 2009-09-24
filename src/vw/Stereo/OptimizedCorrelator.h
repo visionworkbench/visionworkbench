@@ -70,33 +70,32 @@ namespace stereo {
       VW_ASSERT(img.impl().cols() == m_dst.cols() && img.impl().rows() == m_dst.rows(),
                 ArgumentErr() << "StereoCostFunction::box_filter() : image size (" << img.impl().cols() << " " << img.impl().rows() << ") does not match box filter size (" << m_dst.cols() << " " << m_dst.rows() << ").");
 
-      ImageView<float> src = img.impl();
-      Vector<float> cSum(src.cols());
+      Vector<float> cSum(img.impl().cols());
 
       // Seed the column sum buffer
-      for (int x = 0; x < src.cols(); x++) {
+      for (int x = 0; x < img.impl().cols(); x++) {
         cSum(x) = 0;
         for (int ky = 0; ky < kern_height; ky++) {
-          cSum(x) += src(x, ky);
+          cSum(x) += img.impl()(x, ky);
         }
       }
 
-      for (int y = 0; y < src.rows() - kern_height; y++) {
+      for (int y = 0; y < img.impl().rows() - kern_height; y++) {
         // Seed the row sum
         float rsum = 0;
         for (int i = 0; i < kern_width; i++) {
           rsum += cSum(i);
         }
 
-        for (int x = 0; x < src.cols() - kern_width; x++) {
+        for (int x = 0; x < img.impl().cols() - kern_width; x++) {
           m_dst(x + kern_width / 2, y + kern_height / 2) = rsum;
           // Update the row sum
           rsum += cSum(x + kern_width) - cSum(x);
         }
 
         // Update the column sum
-        for (int i = 0; i < src.cols(); i++) {
-          cSum(i) += src(i, y + kern_height) - src(i, y);
+        for (int i = 0; i < img.impl().cols(); i++) {
+          cSum(i) += img.impl()(i, y + kern_height) - img.impl()(i, y);
         }
       }
 
@@ -258,10 +257,6 @@ namespace stereo {
       BBox2i r2l_window(-m_search_window.max().x(), -m_search_window.max().y(),
                         m_search_window.width(), m_search_window.height());
 
-      //Run the correlator and record how long it takes to run.
-      Stopwatch timer;
-      timer.start();
-
       boost::shared_ptr<StereoCostFunction> l2r_cost, r2l_cost;
 
       if (m_correlator_type == ABS_DIFF_CORRELATOR) {
@@ -287,33 +282,8 @@ namespace stereo {
       ImageView<PixelMask<Vector2f> > result_l2r = stereo::correlate(l2r_cost_and_blur, m_search_window);
       ImageView<PixelMask<Vector2f> > result_r2l = stereo::correlate(r2l_cost_and_blur, r2l_window);
 
-      timer.stop();
-      //      double lapse__ = timer.elapsed_seconds();
-
       // Cross check the left and right disparity maps
       cross_corr_consistency_check(result_l2r, result_r2l, m_cross_correlation_threshold, false);
-
-      int matched = 0;
-      int total = 0;
-      int nn = 0;
-      for (int j = 0; j < result_l2r.rows(); j++) {
-        for (int i = 0; i < result_l2r.cols(); i++) {
-          total++;
-          if ( is_valid(result_l2r(i,j)) ) {
-            matched++;
-          }
-          nn++;
-        }
-      }
-
-      //      vw_out(InfoMessage, "stereo")
-      //      vw_out(0) << "\tCorrelation took " << lapse__ << " sec";
-      //      double nTries = (m_search_window.max().y() - m_search_window.min().y() + 1) * (m_search_window.max().x() - m_search_window.min().x() + 1);
-      //      double rate = nTries * left_image.cols() * left_image.rows() / lapse__ / 1.0e6;
-      //      vw_out(0) << "\t(" << rate << " M disparities/second)\n";
-
-      //      double score = (100.0 * matched) / total;
-      //      vw_out(0) << "\tCorrelation rate: " << score << "\n\n";
 
       return result_l2r;
     }
