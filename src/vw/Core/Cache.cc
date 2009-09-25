@@ -17,7 +17,7 @@ namespace {
   vw::RunOnce system_cache_once = VW_RUNONCE_INIT;
   vw::Cache *system_cache_ptr = 0;
   void init_system_cache() {
-    system_cache_ptr = new vw::Cache( vw::vw_settings().system_cache_size()*1024*1024 );
+    system_cache_ptr = new vw::Cache( vw::vw_settings().system_cache_size() );
   }
 }
 

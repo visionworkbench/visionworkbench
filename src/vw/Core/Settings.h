@@ -92,11 +92,11 @@ namespace vw {
     void set_default_num_threads(unsigned num = 0);
 
     /// Query for the current system cache size.  Result is given in
-    /// units of megabytes.
+    /// units of bytes.
     size_t system_cache_size();
 
     /// Set the current system cache size.  'size' should be in units
-    /// of megabytes.  The system cache is shared by all
+    /// of bytes.  The system cache is shared by all
     /// BlockRasterizeView<>'s, including DiskImageView<>'s.
     void set_system_cache_size(size_t size);
 
