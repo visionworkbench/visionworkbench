@@ -163,7 +163,7 @@ namespace vw {
       m_write_work_queue(write_work_queue), m_number_threads(number_threads) {}
       bool operator()() {
         boost::shared_ptr<OrderedWorkQueue> temp = m_write_work_queue.lock();
-        return temp->size() < m_number_threads;
+        return temp->size() <= m_number_threads;
       }
     };
 
@@ -176,7 +176,7 @@ namespace vw {
       // that they are ordered. -- ZMM
       while (1) {
         Mutex::Lock lock(m_write_task_wait);
-        if ( m_write_work_queue->size() < vw_settings().default_num_threads() ) { return; }
+        if ( m_write_work_queue->size() <= vw_settings().default_num_threads() ) { return; }
         WriteConditional write_cond( m_write_work_queue, vw_settings().default_num_threads() );
         m_write_finish_event.wait(lock, write_cond);
       }
