@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+// LATEST ///////////////////////////
 
 #include <vw/Stereo/Correlate.h>
 #include <vw/Math/Matrix.h>
@@ -128,35 +129,38 @@ namespace vw {
         return 2*b*delta_norm - b*b;
     }
 
-    inline float cauchy_robust_coefficient (float delta_norm, float b) {
+    inline float
+    cauchy_robust_coefficient (float delta_norm, float b) {
       float b_sqr = b*b;
       return b_sqr*logf(1+delta_norm*delta_norm/b_sqr);
     }
 
-    inline double blake_zisserman_robust_coefficient (double delta_norm, double b) {
+    inline double
+    blake_zisserman_robust_coefficient (double delta_norm, double b) {
       return -log(exp(-(delta_norm*delta_norm) ) + b);
     }
 
-    inline ImageView<float> compute_gaussian_weight_image(int kern_width, int kern_height) {
+    inline ImageView<float>
+    compute_gaussian_weight_image(int kern_width, int kern_height) {
 
       int center_pix_x = kern_width/2;
       int center_pix_y = kern_height/2;
-      //float two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0); //this works
       float two_sigma_sqr = 2.0*pow(float(kern_width)/7.0,2.0);
-      //float norm_factor = 1.0/sqrt(3.14*two_sigma_sqr);
 
       ImageView<float> weight(kern_width, kern_height);
       for (int j = 0; j < kern_height; ++j) {
         for (int i = 0; i < kern_width; ++i ) {
-          weight(i,j) = exp(-1 * (pow(i-center_pix_x,2) + pow(j-center_pix_y,2)) / two_sigma_sqr);
-          //weight(i,j) = norm_factor*exp(-1 * (pow(i-center_pix_x,2) + pow(j-center_pix_y,2)) / two_sigma_sqr);
+          weight(i,j) = exp(-1*((i-center_pix_x)*(i-center_pix_x) +
+                              (j-center_pix_y)*(j-center_pix_y)) / two_sigma_sqr);
         }
       }
       return weight;
     }
 
 
-    inline ImageView<float> compute_spatial_weight_image(int kern_width, int kern_height, float two_sigma_sqr) {
+    inline ImageView<float>
+    compute_spatial_weight_image(int kern_width, int kern_height,
+                                 float two_sigma_sqr) {
 
       int center_pix_x = kern_width/2;
       int center_pix_y = kern_height/2;
@@ -166,24 +170,22 @@ namespace vw {
       ImageView<float> weight(kern_width, kern_height);
       for (int j = 0; j < kern_height; ++j) {
         for (int i = 0; i < kern_width; ++i ) {
-          weight(i,j) = exp(-1 * (pow(i-center_pix_x,2) + pow(j-center_pix_y,2)) / two_sigma_sqr);
+          weight(i,j) = exp(-1*((i-center_pix_x)*(i-center_pix_x) +
+                              (j-center_pix_y)*(j-center_pix_y)) / two_sigma_sqr);
           sum = sum + weight(i,j);
         }
       }
 
-      for (int j = 0; j < kern_height; ++j) {
-        for (int i = 0; i < kern_width; ++i ) {
-          weight(i,j) = weight(i,j)/sum;
-        }
-      }
+      weight /= sum;
 
       return weight;
     }
 
 
-    inline int adjust_weight_image(ImageView<float> &weight,
-                                   ImageView<PixelMask<Vector2f> > const& disparity_map_patch,
-                                   ImageView<float> const& weight_template) {
+    inline int
+    adjust_weight_image(ImageView<float> &weight,
+                        ImageView<PixelMask<Vector2f> > const& disparity_map_patch,
+                        ImageView<float> const& weight_template) {
 
       //    const float continuity_threshold_squared = 64;  // T = 8
       int center_pix_x = weight_template.cols()/2;
@@ -510,14 +512,14 @@ namespace vw {
     }
 
 
-    template<class ChannelT>
-    void subpixel_correlation_affine_2d_bayesian(ImageView<PixelMask<Vector2f> > &disparity_map,
-                                                 ImageView<ChannelT> const& left_input_image,
-                                                 ImageView<ChannelT> const& right_input_image,
-                                                 int kern_width, int kern_height,
-                                                 bool do_horizontal_subpixel,
-                                                 bool do_vertical_subpixel,
-                                                 bool verbose) {
+    template<class ChannelT> void
+    subpixel_correlation_affine_2d_bayesian(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                            ImageView<ChannelT> const& left_input_image,
+                                            ImageView<ChannelT> const& right_input_image,
+                                            int kern_width, int kern_height,
+                                            bool do_horizontal_subpixel,
+                                            bool do_vertical_subpixel,
+                                            bool verbose) {
 
       VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
                  disparity_map.rows() == left_input_image.rows(),
@@ -869,41 +871,34 @@ namespace vw {
     }
 
 
-    template<class ChannelT>
-    void subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
-                                           ImageView<ChannelT> const& /*left_input_image*/left_image,
-                                           ImageView<ChannelT> const& /*right_input_image*/right_image,
-                                           int kern_width, int kern_height,
-                                           BBox2i region_of_interest,
-                                           bool do_horizontal_subpixel,
-                                           bool do_vertical_subpixel,
-                                           bool verbose) {
+    template<class ChannelT> void
+    subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                      ImageView<ChannelT> const& left_input_image,
+                                      ImageView<ChannelT> const& right_input_image,
+                                      int kern_width, int kern_height,
+                                      BBox2i region_of_interest,
+                                      bool do_horizontal_subpixel,
+                                      bool do_vertical_subpixel,
+                                      bool verbose) {
 
       unsigned max_em_iter = 2;
-      //float  blur_sigma = 1;//1.5;//3;//2;
-      float  min_var2_plane = 0.000001;//0.00001;//0.0001;
-      float  min_var2_noise = 0.000001; //0.001;//0.01;//0.0001;//0.000001;//0.0001;
-      int    save_confidence_image = 0;//1;
-      float  two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0); //4.0//7.0 works well
-      //float  var2_disp = 0.001;
-      /*
-        VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
-        disparity_map.rows() == left_input_image.rows(),
-        ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
-        ImageView<float> confidence_image (left_input_image.rows(), left_input_image.cols());
-      */
-      VW_ASSERT( disparity_map.cols() == left_image.cols() &&
-                 disparity_map.rows() == left_image.rows(),
+      float  blur_sigma = 1.5;
+      float  min_var2_plane = 0.000001;
+      float  min_var2_noise = 0.000001;
+      float  two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0);
+
+      VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
+                 disparity_map.rows() == left_input_image.rows(),
                  ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
 
-      ImageView<float> confidence_image (left_image.cols(), left_image.rows());
+      ImageView<float> confidence_image (left_input_image.cols(),
+                                         left_input_image.rows());
 
-      /*
       //image blurring
+      // WARNING: DO WE STILL WANT THIS?
+      //   PLEASE DO A RUN WITHOUT -ZMM
       ImageView<ChannelT> left_image = LogStereoPreprocessingFilter(blur_sigma)(left_input_image);
       ImageView<ChannelT> right_image = LogStereoPreprocessingFilter(blur_sigma)(right_input_image);
-      printf("blur_sigma = %f\n", blur_sigma);
-      */
 
       // This is the maximum number of pixels that the solution can be
       // adjusted by affine subpixel refinement.
@@ -922,7 +917,6 @@ namespace vw {
       ImageView<float> x_deriv = derivative_filter(left_image, 1, 0);
       ImageView<float> y_deriv = derivative_filter(left_image, 0, 1);
 
-      //ImageView<float> weight_template = compute_gaussian_weight_image(kern_width, kern_height);
       ImageView<float> weight_template = compute_spatial_weight_image(kern_width, kern_height, two_sigma_sqr);
 
       // Workspace images are allocated up here out of the tight inner
@@ -941,9 +935,11 @@ namespace vw {
             ++y) {
         if (verbose && y % 10 == 0) {
           sw.stop();
-          vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y << " / " << left_image.rows() 
-                                        << "    (" << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time)) 
-                                        << " pixels/s, "<< sw.elapsed_seconds() << " s total )      \r" << std::flush;
+          vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y
+                                        << " / " << left_image.rows() << "    ("
+                                        << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time))
+                                        << " pixels/s, "<< sw.elapsed_seconds()
+                                        << " s total )      \r" << std::flush;
           last_time = sw.elapsed_seconds();
           sw.start();
         }
@@ -951,10 +947,9 @@ namespace vw {
         for (int x=std::max(region_of_interest.min().x()-1,kern_half_width);
              x<std::min(left_image.cols()-kern_half_width, region_of_interest.max().x()+1);
              ++x) {
-          //           for (int x=kern_half_width; x<left_image.cols()-kern_half_width; ++x) {
 
-
-          BBox2i current_window(x-kern_half_width, y-kern_half_height, kern_width, kern_height);
+          BBox2i current_window(x-kern_half_width, y-kern_half_height,
+                                kern_width, kern_height);
           Vector2 base_offset( -disparity_map(x,y).child() );
 
           // Skip over pixels for which we have no initial disparity estimate
@@ -972,9 +967,6 @@ namespace vw {
           Vector<float,6> d;
           d(0) = 1.0;
           d(4) = 1.0;
-          // float var2_plane;
-          // float mean_noise;
-          // float var2_noise;
 
           // Compute the derivative image patches
           CropView<ImageView<ChannelT> > left_image_patch = crop(left_image, current_window);
@@ -1039,12 +1031,10 @@ namespace vw {
             Vector<float,6> d_em;
             d_em = d;
 
-
             for (em_iter=0; em_iter<max_em_iter; em_iter++){
 
               float noise_norm_factor = 1.0/sqrt(6.28*var2_noise);
               float plane_norm_factor = 1.0/sqrt(6.28*var2_plane);
-              //float disp_norm_factor  = 1.0/sqrt(6.28*var2_disp);
 
               // Set up pixel accessors
               typename ImageView<float>::pixel_accessor w_row = w.origin();
@@ -1070,7 +1060,6 @@ namespace vw {
                   float delta_x = d_em[0] * ii + d_em[1] * jj + d_em[2];
                   float delta_y = d_em[3] * ii + d_em[4] * jj + d_em[5];
 
-                  //float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr);
                   float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr) - delta_x*(*I_x_ptr) - delta_y*(*I_y_ptr);
                   float temp_noise = right_interp_image(xx,yy) - mean_noise;
 
@@ -1099,11 +1088,10 @@ namespace vw {
               //compute the d_em vector
 
               //reset lhs and rhs
-              for (int ii = 0; ii< 6; ii++){
+              for (int ii = 0; ii< 6; ii++) {
                 lhs(ii) = 0.0;
-                for (int jj = 0; jj < 6; jj++){
+                for (int jj = 0; jj < 6; jj++)
                   rhs(ii, jj) = 0.0;
-                }
               }
 
               in_curr_sum_I_e_val = 0.0;
@@ -1220,13 +1208,13 @@ namespace vw {
                 solve_symmetric_nocopy(rhs,lhs);
               } catch (ArgumentErr &e) {
                 vw_out(0) << "Error @ " << x << " " << y << "\n";
-                //             std::cout << "Exception caught: " << e.what() << "\n";
-                //             std::cout << "PRERHS: " << pre_rhs << "\n";
-                //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
-                //             std::cout << "RHS: " << rhs << "\n";
-                //             std::cout << "LHS: " << lhs << "\n\n";
-                //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
-                //             exit(0);
+                // std::cout << "Exception caught: " << e.what() << "\n";
+                // std::cout << "PRERHS: " << pre_rhs << "\n";
+                // std::cout << "PRELHS: " << pre_lhs << "\n\n";
+                // std::cout << "RHS: " << rhs << "\n";
+                // std::cout << "LHS: " << lhs << "\n\n";
+                // std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
+                // exit(0);
               }
 
               //normalize the mean of the noise
@@ -1258,7 +1246,6 @@ namespace vw {
                   float delta_x = d_em[0] * ii + d_em[1] * jj + d_em[2];
                   float delta_y = d_em[3] * ii + d_em[4] * jj + d_em[5];
 
-
                   float I_e_val = right_interp_image(xx,yy) - (*left_image_patch_ptr);
                   float temp_plane = right_interp_image(xx,yy) - (*left_image_patch_ptr) - delta_x*(*I_x_ptr) - delta_y*(*I_y_ptr);
                   float temp_noise = (right_interp_image(xx,yy) - mean_noise);
@@ -1284,12 +1271,10 @@ namespace vw {
               var2_noise = var2_noise_tmp/sum_gamma_noise;
               var2_plane = var2_plane_tmp/sum_gamma_plane;
 
-              if (var2_noise < min_var2_noise){
+              if (var2_noise < min_var2_noise)
                 var2_noise = min_var2_noise;
-              }
-              if (var2_plane < min_var2_plane){
+              if (var2_plane < min_var2_plane)
                 var2_plane = min_var2_plane;
-              }
 
               w_plane = sum_gamma_plane/(float)(kern_height*kern_width);
               w_noise = sum_gamma_noise/(float)(kern_height*kern_width);
@@ -1298,46 +1283,36 @@ namespace vw {
 
               //Termination
               float conv_error = 0;
-              for (int k = 0; k < 6; k++){
-                //conv_error = conv_error + (d[k]-lhs(k))*(d[k]-lhs(k));
+              for (int k = 0; k < 6; k++)
                 conv_error = conv_error + (prev_lhs[k]-lhs[k])*(prev_lhs[k]-lhs[k]);
-              }
 
               d_em = d + lhs;
 
-              if (in_curr_sum_I_e_val < 0){
+              if (in_curr_sum_I_e_val < 0)
                 in_curr_sum_I_e_val = - in_curr_sum_I_e_val;
-              }
 
               curr_sum_I_e_val = in_curr_sum_I_e_val;
               prev_lhs = lhs;
 
               // Termination condition
-              if ((conv_error < 0.001) && (em_iter > 0)) {
+              if ((conv_error < 0.001) && (em_iter > 0))
                 break;
-              }
-              else{
+              else
                 in_prev_sum_I_e_val = in_curr_sum_I_e_val;
-              }
 
             } //em_iter end
 
             d += lhs;
 
-            if (curr_sum_I_e_val < 0){
+            if (curr_sum_I_e_val < 0)
               curr_sum_I_e_val = - curr_sum_I_e_val;
-            }
 
             // Termination condition
-            if ((prev_sum_I_e_val < curr_sum_I_e_val) && (iter > 0)) {
+            if ((prev_sum_I_e_val < curr_sum_I_e_val) && (iter > 0))
               break;
-            }
-            else{
+            else
               prev_sum_I_e_val = curr_sum_I_e_val;
-            }
 
-            //if (norm_2(lhs) < 0.01)
-            //  break;
           }
 
           if ( norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION ||
@@ -1350,33 +1325,18 @@ namespace vw {
         } // X increment
       } // Y increment
 
-      if (save_confidence_image == 1){
-        vw_out(0) << "Writing the confidence image ....\n";
-        time_t rawtime;
-        struct tm * timeinfo;
-        time ( &rawtime );
-        timeinfo = localtime ( &rawtime );
-        char confidence_filename [100];
-        sprintf (confidence_filename, "confidence_%d_%d_%d_%d_%d.tif",
-                 timeinfo->tm_mon, timeinfo->tm_mday, timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
-        write_image(confidence_filename, confidence_image);
-        vw_out(0) << "Done.\n";
-      }
-
       if (verbose)
         vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: done.                                         \n";
     }
 
-    //#endif
-
-    template<class ChannelT>
-    void subpixel_correlation_parabola(ImageView<PixelMask<Vector2f> > &disparity_map,
-                                       ImageView<ChannelT> const& left_image,
-                                       ImageView<ChannelT> const& right_image,
-                                       int kern_width, int kern_height,
-                                       bool do_horizontal_subpixel,
-                                       bool do_vertical_subpixel,
-                                       bool verbose) {
+    template<class ChannelT> void
+    subpixel_correlation_parabola(ImageView<PixelMask<Vector2f> > &disparity_map,
+                                  ImageView<ChannelT> const& left_image,
+                                  ImageView<ChannelT> const& right_image,
+                                  int kern_width, int kern_height,
+                                  bool do_horizontal_subpixel,
+                                  bool do_vertical_subpixel,
+                                  bool verbose) {
 
       VW_ASSERT(left_image.cols() == right_image.cols() && left_image.cols() == disparity_map.cols() &&
                 left_image.rows() == right_image.rows() && left_image.rows() == disparity_map.rows(),

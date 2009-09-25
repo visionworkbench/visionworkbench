@@ -182,8 +182,6 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     if ( r < left_bbox.min().y()  || c<left_bbox.min().x() ||
          r + kern_height >= left_bbox.max().y()            ||
          c + kern_width >= left_bbox.max().x() ) {
-      //vw_out(0) << "BAD LEFT ACCESS at " << r << " " << c << "   "
-      //          << img0.impl().rows() << " " << img0.impl().cols() << "\n";
       return VW_STEREO_MISSING_PIXEL;
     }
 
@@ -191,8 +189,6 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
          c + hdisp<right_bbox.min().x()   ||
          r + vdisp+kern_height >= right_bbox.max().y() ||
          c + hdisp+kern_width >= right_bbox.max().x() ) {
-      //vw_out(0) << "BAD RIGHT ACCESS at " << (r+vdisp) << " " << (c+hdisp) << "   "
-      //          << img1.impl().rows() << " " << img1.impl().cols() << "\n";
       return VW_STEREO_MISSING_PIXEL;
     }
 

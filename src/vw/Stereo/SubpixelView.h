@@ -60,22 +60,11 @@ namespace stereo {
       g_img = gaussian_filter(img, 1.5);
       vw_out(0) << "Gaussian blurring\n";
 
-      for (vw::int32 p = 0; p < outImg.planes() ; p++) {
-        for (vw::int32 i = 0; i < outImg.cols(); i++) {
-          for (vw::int32 j = 0; j < outImg.rows(); j++) {
-
+      for (vw::int32 p = 0; p < outImg.planes(); p++)
+        for (vw::int32 i = 0; i < outImg.cols(); i++)
+          for (vw::int32 j = 0; j < outImg.rows(); j++)
             outImg(i,j,p) = g_img(2*i, 2*j, p);
-            /*
-            outImg(i,j,p) = 0.0f;
-            outImg(i,j,p) += img(2*i     , 2*j    ,p);
-            outImg(i,j,p) += img(2*i + 1 , 2*j    ,p);
-            outImg(i,j,p) += img(2*i     , 2*j + 1,p);
-            outImg(i,j,p) += img(2*i + 1 , 2*j + 1,p);
-            outImg(i,j,p) /= 4;
-            */
-          }
-        }
-      }
+
       #endif
 
       return outImg;
@@ -361,7 +350,6 @@ namespace stereo {
           right_pyramid[0] = channels_to_planes(right_image_patch);
           regions_of_interest[0] = BBox2i(m_kern_width,m_kern_height,
                                           bbox.width(),bbox.height());
-          //        std::cout << "Base ROI: " << regions_of_interest[0] << "\n";
 
           std::vector<ImageView<PixelMask<Vector2f> > > disparity_map_pyramid(pyramid_levels);
           std::vector<ImageView<PixelMask<Vector2f> > > disparity_map_upsampled(pyramid_levels);
@@ -375,15 +363,9 @@ namespace stereo {
             regions_of_interest[i] = BBox2i(regions_of_interest[i-1].min()/2, regions_of_interest[i-1].max()/2);
           }
 
-          float blur_sigma = 1.0;
-          ImageView<float> process_left_image = LogStereoPreprocessingFilter(blur_sigma)(left_pyramid[pyramid_levels-1]);
-          ImageView<float> process_right_image = LogStereoPreprocessingFilter(blur_sigma)(right_pyramid[pyramid_levels-1]);
-
           subpixel_correlation_affine_2d_EM(disparity_map_pyramid[pyramid_levels-1],
-                                            /*left_pyramid[pyramid_levels-1],
-                                              right_pyramid[pyramid_levels-1],*/
-                                            process_left_image,
-                                            process_right_image,
+                                            left_pyramid[pyramid_levels-1],
+                                            right_pyramid[pyramid_levels-1],
                                             m_kern_width, m_kern_height,
                                             regions_of_interest[pyramid_levels-1],
                                             m_do_h_subpixel, m_do_v_subpixel,
@@ -391,77 +373,26 @@ namespace stereo {
           disparity_map_upsampled[pyramid_levels-1] = disparity_map_pyramid[pyramid_levels-1];
 
           for (int i = pyramid_levels-2; i >= 0; i--) {
-            // // For Debugging
-            // std::ostringstream ostr1;
-            // ostr1 << "subsamp-" << bbox << "-" << i << ".exr";
-            // write_image(ostr1.str(), disparity_map_upsampled[i+1]);
 
             int up_width = left_pyramid[i].cols();
             int up_height = left_pyramid[i].rows();
             disparity_map_upsampled[i] = upsample_disp_map_by_two(disparity_map_upsampled[i+1], up_width, up_height);
 
-            // // For Debugging
-            // std::ostringstream ostr2;
-            // ostr2 << "upsamp-" << bbox << "-" << i << ".exr";
-            // write_image(ostr2.str(), disparity_map_upsampled[i]);
-
-            //image blurring
-
-            // We use a slightly larger sigma at the largest level of
-            // the pyramid to produce a smooth surface and reduce noise.
-            if (i==0)
-              blur_sigma = 3.0;
-
-            process_left_image = LogStereoPreprocessingFilter(blur_sigma)(left_pyramid[i]);
-            process_right_image = LogStereoPreprocessingFilter(blur_sigma)(right_pyramid[i]);
-
             subpixel_correlation_affine_2d_EM(disparity_map_upsampled[i],
-                                              process_left_image,
-                                              process_right_image,
+                                              left_pyramid[i],
+                                              right_pyramid[i],
                                               m_kern_width, m_kern_height,
                                               regions_of_interest[i],
                                               m_do_h_subpixel, m_do_v_subpixel,
                                               m_verbose);
-
-            // // For Debugging
-            // std::ostringstream ostr3;
-            // ostr3 << "refined-" << bbox << "-" << i << ".exr";
-            // write_image(ostr3.str(), disparity_map_upsampled[i]);
           }
-
-          //disparity_map_patch = disparity_map_upsampled[0];
 
           int w_height = 1;
           int w_width = 1;
           int numValidPts;
           int missing;
 
-          for (int y = w_height; y < process_left_image.rows()-w_height; ++y) {
-            for (int x = w_width; x < process_left_image.cols()-w_width; ++x) {
-
-              disparity_map_patch(x,y) = PixelMask<Vector2f>(0,0);
-              missing = 0;
-              numValidPts = 0;
-
-              for (int jj = -w_height; jj <= w_height; ++jj) {
-                for (int ii = -w_width; ii <= w_width; ++ii) {
-                  // Invalidate this pixel if the average contains any missing pixel.
-                  if ( !is_valid(disparity_map_upsampled[0](x+ii,y+jj)) )
-                    missing = 1;
-                  else
-                    ++numValidPts;
-
-                  disparity_map_patch(x,y) += disparity_map_upsampled[0](x+ii,y+jj);
-                }
-              }
-
-              if (missing) {
-                invalidate(disparity_map_patch(x,y));
-              } else {
-                disparity_map_patch(x,y) = disparity_map_patch(x,y)/(float)numValidPts;
-              }
-            }
-          }
+          disparity_map_patch = disparity_map_upsampled[0];
 
         }
         break;
