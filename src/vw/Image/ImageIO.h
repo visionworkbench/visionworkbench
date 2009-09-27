@@ -105,11 +105,12 @@ namespace vw {
 	   (job_index > m_last_job_index) ) {
 	m_block_condition.wait(lock);
       }
-      {
-	Mutex::Lock lock2(m_number_event);
-	m_count++;
-      }
       m_last_job_index = job_index;
+    }
+
+    void enter( void ) {
+      Mutex::Lock lock(m_number_event);
+      m_count++;
     }
 
     // Please call when ever a process finishes it's turn
@@ -191,6 +192,7 @@ namespace vw {
         boost::shared_ptr<Task> write_task ( new WriteBlockTask<typename ViewT::pixel_type>( m_resource, image_block, m_bbox, m_index, m_write_finish_event ) );
         
 	m_write_finish_event.wait(m_index);
+	m_write_finish_event.enter();
 	m_parent.add_write_task(write_task, m_index);
       }
     };
