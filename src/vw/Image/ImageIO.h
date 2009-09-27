@@ -80,6 +80,46 @@ namespace vw {
     write_image( dst, intermediate, bbox );
   }
 
+  class CountingSemaphore {
+    Condition m_block_condition;
+    Mutex m_block_event;
+    Mutex m_number_event;
+    int m_max;
+    int m_count;
+    int m_last_job_index;
+
+  public:
+    CountingSemaphore( void ) : m_max(1), m_count(0), m_last_job_index(0) {}
+    CountingSemaphore( int max ) : m_max(max), m_count(0), m_last_job_index(0) {}
+
+    void set_max( int max ) {
+      Mutex::Lock lock(m_number_event);
+      m_max = max;
+    }
+
+    // Call to wait for a turn until the number of threads in a area
+    // decrements
+    void wait( int job_index ) {
+      Mutex::Lock lock(m_block_event);
+      if ( (m_count > m_max) && 
+	   (job_index > m_last_job_index) ) {
+	m_block_condition.wait(lock);
+      }
+      {
+	Mutex::Lock lock2(m_number_event);
+	m_count++;
+      }
+      m_last_job_index = job_index;
+    }
+
+    // Please call when ever a process finishes it's turn
+    void release( void ) {
+      Mutex::Lock lock(m_number_event);
+      m_count--;
+      m_block_condition.notify_all();
+    }
+  };
+
   // This task generator manages the rasterizing and writing of images to disk.
   //
   // Only one thread can be writing to the ImageResource at any given
@@ -89,14 +129,13 @@ namespace vw {
 
     boost::shared_ptr<FifoWorkQueue> m_rasterize_work_queue;
     boost::shared_ptr<OrderedWorkQueue> m_write_work_queue;
-    Mutex m_write_task_wait;
-    Condition m_write_finish_event;
+    CountingSemaphore m_write_queue_limit;
 
     // Disable copy
     ThreadedBlockWriter(ThreadedBlockWriter& copy) {}
     void operator=(ThreadedBlockWriter& copy) {}
 
-    // ----------------------------- TASK TYPES (2) --------------------------------
+    // ----------------------------- TASK TYPES (2) --------------------------
 
     template <class PixelT>
     class WriteBlockTask : public Task {
@@ -104,21 +143,21 @@ namespace vw {
       ImageView<PixelT> m_image_block;
       BBox2i m_bbox;
       int m_idx;
-      Condition& m_write_finish_event;
+      CountingSemaphore& m_write_finish_event;
 
     public:
-      WriteBlockTask(ImageResource& resource, ImageView<PixelT> const& image_block, BBox2i bbox, 
-                     int idx, Condition& write_finish_event) :
+      WriteBlockTask(ImageResource& resource, ImageView<PixelT> const& image_block,
+                     BBox2i bbox, int idx, CountingSemaphore& write_finish_event) :
       m_resource(resource), m_image_block(image_block), m_bbox(bbox), m_idx(idx), m_write_finish_event(write_finish_event) {}
 
       virtual ~WriteBlockTask() {}
       virtual void operator() () {
         m_resource.write( m_image_block.buffer(), m_bbox );
-        m_write_finish_event.notify_all();
+        m_write_finish_event.release();
       }
     };
 
-    // ------
+    // -----------------------------
 
     template <class ViewT>
     class RasterizeBlockTask : public Task {
@@ -129,12 +168,13 @@ namespace vw {
       int m_index;
       int m_total_num_blocks;
       SubProgressCallback m_progress_callback;
-      Condition& m_write_finish_event;
+      CountingSemaphore& m_write_finish_event;
 
     public:
       RasterizeBlockTask(ThreadedBlockWriter &parent, ImageResource& resource,
-                         ImageViewBase<ViewT> const& image, BBox2i const& bbox, int index, int total_num_blocks,
-                         Condition& write_finish_event,
+                         ImageViewBase<ViewT> const& image, BBox2i const& bbox,
+                         int index, int total_num_blocks,
+                         CountingSemaphore& write_finish_event,
                          const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) :
       m_parent(parent), m_resource(resource), m_image(image.impl()), m_bbox(bbox), m_index(index),
         m_progress_callback(progress_callback,0.0,1.0/float(total_num_blocks)), m_write_finish_event(write_finish_event) {}
@@ -144,49 +184,27 @@ namespace vw {
         // Rasterize the block
         ImageView<typename ViewT::pixel_type> image_block( crop(m_image, m_bbox) );
 
-        // With rasterization complete, we queue up a request to write this block to disk.
-        boost::shared_ptr<Task> write_task ( new WriteBlockTask<typename ViewT::pixel_type>( m_resource, image_block, m_bbox, m_index, m_write_finish_event ) );
-        m_parent.add_write_task(write_task, m_index);
-
         // Report progress
         m_progress_callback.report_incremental_progress(1.0);
+
+        // With rasterization complete, we queue up a request to write this block to disk.
+        boost::shared_ptr<Task> write_task ( new WriteBlockTask<typename ViewT::pixel_type>( m_resource, image_block, m_bbox, m_index, m_write_finish_event ) );
+        
+	m_write_finish_event.wait(m_index);
+	m_parent.add_write_task(write_task, m_index);
       }
     };
 
-    // ----------------------------- ------------------------ --------------------------------
+    // -----------------------------
 
-    class WriteConditional {
-      boost::weak_ptr<OrderedWorkQueue> m_write_work_queue; // So can't maintain ownership
-      int m_number_threads;
-    public:
-      WriteConditional( boost::shared_ptr<OrderedWorkQueue> write_work_queue, int number_threads ) :
-      m_write_work_queue(write_work_queue), m_number_threads(number_threads) {}
-      bool operator()() {
-        boost::shared_ptr<OrderedWorkQueue> temp = m_write_work_queue.lock();
-        return temp->size() <= m_number_threads;
-      }
-    };
-
-    void add_write_task(boost::shared_ptr<Task> task, int index) {
-      m_write_work_queue->add_task(task, index);
-
-      // Write tasks can get behind. So a lock here on adding will also
-      // put an effective hold on a rastering events so writing can
-      // catch up. The only reason why writing task events can be behind is
-      // that they are ordered. -- ZMM
-      while (1) {
-        Mutex::Lock lock(m_write_task_wait);
-        if ( m_write_work_queue->size() <= vw_settings().default_num_threads() ) { return; }
-        WriteConditional write_cond( m_write_work_queue, vw_settings().default_num_threads() );
-        m_write_finish_event.wait(lock, write_cond);
-      }
-    }
+    void add_write_task(boost::shared_ptr<Task> task, int index) { m_write_work_queue->add_task(task, index); }
     void add_rasterize_task(boost::shared_ptr<Task> task) { m_rasterize_work_queue->add_task(task); }
 
   public:
-    ThreadedBlockWriter() : m_write_task_wait(), m_write_finish_event() {
+    ThreadedBlockWriter() : m_write_queue_limit() {
       m_rasterize_work_queue = boost::shared_ptr<FifoWorkQueue>( new FifoWorkQueue() );
       m_write_work_queue = boost::shared_ptr<OrderedWorkQueue>( new OrderedWorkQueue(1) );
+      m_write_queue_limit.set_max( vw_settings().default_num_threads() );
     }
 
     // Add a block to be rasterized.  You can optionally supply an
@@ -195,7 +213,7 @@ namespace vw {
     template <class ViewT>
     void add_block(ImageResource& resource, ImageViewBase<ViewT> const& image, BBox2i const& bbox, int index, int total_num_blocks,
                    const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
-      boost::shared_ptr<Task> task( new RasterizeBlockTask<ViewT>(*this, resource, image, bbox, index, total_num_blocks, m_write_finish_event, progress_callback) );
+      boost::shared_ptr<Task> task( new RasterizeBlockTask<ViewT>(*this, resource, image, bbox, index, total_num_blocks, m_write_queue_limit, progress_callback) );
       this->add_rasterize_task(task);
     }
 

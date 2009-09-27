@@ -387,11 +387,6 @@ namespace stereo {
                                               m_verbose);
           }
 
-          int w_height = 1;
-          int w_width = 1;
-          int numValidPts;
-          int missing;
-
           disparity_map_patch = disparity_map_upsampled[0];
 
         }
