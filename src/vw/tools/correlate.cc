@@ -12,17 +12,29 @@
 #endif
 
 #include <boost/program_options.hpp>
+#include <boost/filesystem/operations.hpp>
 namespace po = boost::program_options;
+namespace fs = boost::filesystem;
 
 #include <vw/Core/Debugging.h>
+#include <vw/Math.h>
 #include <vw/Image.h>
 #include <vw/FileIO.h>
+#include <vw/InterestPoint/InterestData.h>
 #include <vw/Stereo/OptimizedCorrelator.h>
 #include <vw/Stereo/ReferenceCorrelator.h>
 #include <vw/Stereo/PyramidCorrelator.h>
 
 using namespace vw;
 using namespace vw::stereo;
+
+static std::string prefix_from_filename(std::string const& filename) {
+  std::string result = filename;
+  int index = result.rfind(".");
+  if (index != -1)
+    result.erase(index, result.size());
+  return result;
+}
 
 int main( int argc, char *argv[] ) {
   try {
@@ -36,6 +48,8 @@ int main( int argc, char *argv[] ) {
     float corrscore_thresh;
     int cost_blur;
     int correlator_type;
+    bool found_alignment = false;
+    Matrix3x3 alignment;
 
     po::options_description desc("Options");
     desc.add_options()
@@ -71,14 +85,33 @@ int main( int argc, char *argv[] ) {
     po::notify( vm );
 
     if( vm.count("help") ) {
-      std::cout << desc << std::endl;
+      vw_out(0) << desc << std::endl;
       return 1;
     }
 
     if( vm.count("left") != 1 || vm.count("right") != 1 ) {
-      std::cout << "Error: Must specify one (and only one) left and right input file!" << std::endl;
-      std::cout << desc << std::endl;
+      vw_out(0) << "Error: Must specify one (and only one) left and right input file!" << std::endl;
+      vw_out(0) << desc << std::endl;
       return 1;
+    }
+
+    if ( fs::exists( prefix_from_filename( left_file_name ) + "__" +
+                     prefix_from_filename( right_file_name ) + ".match" ) ) {
+      vw_out(0) << "Found a match file. Using it to pre-align images.\n";
+      std::vector<ip::InterestPoint> matched_ip1, matched_ip2;
+      ip::read_binary_match_file( prefix_from_filename( left_file_name ) + "__" +
+                                  prefix_from_filename( right_file_name ) + ".match",
+                                  matched_ip1, matched_ip2 );
+      std::vector<Vector3> ransac_ip1 = ip::iplist_to_vectorlist(matched_ip1);
+      std::vector<Vector3> ransac_ip2 = ip::iplist_to_vectorlist(matched_ip2);
+      math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac( math::HomographyFittingFunctor(), math::InterestPointErrorMetric(), 30 );
+      alignment = ransac( ransac_ip2, ransac_ip1 );
+
+      DiskImageView<PixelGray<float> > right_disk_image( right_file_name );
+      right_file_name = "aligned_right.tif";
+      write_image( right_file_name, transform(right_disk_image, HomographyTransform(alignment)),
+                   TerminalProgressCallback(InfoMessage, "Aligning: ") );
+      found_alignment = true;
     }
 
     DiskImageView<PixelGray<float> > left_disk_image(left_file_name );
@@ -142,10 +175,14 @@ int main( int argc, char *argv[] ) {
       }
     }
 
+    ImageViewRef<PixelMask<Vector2f> > result = disparity_map;
+    if ( found_alignment )
+      result = transform_disparities(disparity_map, HomographyTransform(alignment) );
+
     // Write disparity debug images
-    BBox2 disp_range = get_disparity_range(disparity_map);
-    write_image( "x_disparity.png", normalize(clamp(select_channel(disparity_map,0), disp_range.min().x(), disp_range.max().x() )));
-    write_image( "y_disparity.png", normalize(clamp(select_channel(disparity_map,1), disp_range.min().y(), disp_range.max().y() )));
+    BBox2 disp_range = get_disparity_range(result);
+    write_image( "x_disparity.png", normalize(clamp(select_channel(apply_mask(result, disp_range.min()),0), disp_range.min().x(), disp_range.max().x() )));
+    write_image( "y_disparity.png", normalize(clamp(select_channel(apply_mask(result, disp_range.min()),1), disp_range.min().y(), disp_range.max().y() )));
   }
   catch( vw::Exception& e ) {
     std::cerr << "Error: " << e.what() << std::endl;

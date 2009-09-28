@@ -104,10 +104,12 @@ endif
 
 # Command-line tools based on the Stereo module
 if MAKE_MODULE_STEREO
+if MAKE_MODULE_INTERESTPOINT
 stereo_progs = correlate
 # Apply the block stereo correlator to two images, producing a disparity map
 correlate_SOURCES = correlate.cc
-correlate_LDADD = @PKG_STEREO_LIBS@ $(COMMON_LIBS)
+correlate_LDADD = @PKG_STEREO_LIBS@ @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
+endif
 endif
 
 # Command-line tools based on the GPU module

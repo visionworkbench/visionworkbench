@@ -8,7 +8,7 @@ The \verb#colormap# tool visualizes the data encoded in a DEM by reading in a DE
 
 Other command-line options for colormap are listed in Table~\ref{tbl:colormap}.
 
-\begin{longtable}{|l|p{10cm}|} 
+\begin{longtable}{|l|p{10cm}|}
 \caption{Command-line options for colormap}
 \label{tbl:colormap}
 \endfirsthead
@@ -27,10 +27,66 @@ Option & Description \\ \hline \hline
 \verb#--verbose# & Verbose output \\ \hline
 \end{longtable}
 
+\section{{\tt correlate}}\label{sec:correlate}
+
+The \verb#correlate# tools is mostly a demo for the Stereo Module
+(Chapter \ref{ch:stereo-module}) yet that does not necessarily make it
+boring. It allows for playing around with settings provided in the
+{\tt CorrelateView}. The user must specify 2 images taken of the same
+object (preferably aligned prior with a match file). This will then
+produce 2 output images that represent the horizontal and vertical
+disparities between the images. Again the Stereo Module demos results
+that can be created with \verb#correlate# in Figure
+\ref{fig:disparity-example}.
+
+All commands to \verb#correlate# must be explict (as there are no
+positional inputs). An example of using the tool is given below.
+
+\begin{verbatim}
+  correlate --slog 1.5 --left DSC00623.JPG --right DSC00625.JPG
+    --xkernel 25 --ykernel 25 -xrange 100 -yrange 100 --pyramid
+\end{verbatim}
+
+\begin{longtable}{|l|p{10cm}|} 
+\caption{Command-line options for correlate}
+\label{tbl:correlate}
+\endfirsthead
+\endhead
+\endfoot
+\endlastfoot
+\hline
+Option & Description \\ \hline \hline
+\verb#--help# & Display this help message \\ \hline
+\verb#--left arg# & Explicitly specify the 'left' input file \\ \hline
+\verb#--right arg# & Explicitly specify the 'right' input file \\ \hline
+\verb#--slog arg (=1)# & Apply SLoG filter with the given sigma, or 0 to disable \\ \hline
+\verb#--log arg (=0)# & Apply LoG filter with the given sigma, or 0 to disable \\ \hline
+\verb#--xoffset arg (=0)# & Overall horizontal offset between images \\ \hline
+\verb#--yoffset arg (=0)# & Overall vertical offset between images \\ \hline
+\verb#--xrange arg (=5)# & Allowed range of horizontal disparity \\ \hline
+\verb#--yrange arg (=5)# & Allowed range of vertical disparity \\ \hline
+\verb#--xkernel arg (=5)# & Horizontal correlation kernel size \\ \hline
+\verb#--ykernel arg (=5)# & Vertical correlation kernel size \\ \hline
+\verb#--lrthresh arg (=1)# & Left/right correspondence threshold \\ \hline
+\verb#--csthresh arg (=1)# & Correlation score rejection threshold (1.0 is Off -- 2.0 is Aggressive outlier rejection \\ \hline
+\verb#--cost-blur arg (=1)# & Kernel size for blurring the cost image \\ \hline
+\verb#--correlator-type arg (=0)# & 0 - Abs diff; 1 = Sq Diff; 2 - NormXCorr \\ \hline
+\verb#--hsubpix# & Enable horizontal sub-pixel correlation \\ \hline
+\verb#--vsubpix# & Enable vertical sub-pixel correlation \\ \hline
+\verb#--affine-subpix# & Enable affine adaptive sub-pixel correlation (slower, but more accurate) \\ \hline
+\verb#--reference# & Use the slower, simpler reference correlator \\ \hline
+\verb#--pyramid# & Use the pyramid based correlator \\ \hline
+\verb#--bitimage# & Force the use of the optimized bit-image correlator \\ \hline
+\verb#--nonbitimage# & Force the use of the slower, non bit-image optimized correlator \\ \hline
+\end{longtable}
 
 \section{{\tt hillshade}}\label{sec:hillshade}
 
-An alternative visualization of the DEM data may be desired. For this, the \verb#hillshade# tool reads in a DEM and outputs an image of that DEM as though it were a three-dimensional surface, with every pixel shaded as though it were illuminated by a light from a specified location.
+An alternative visualization of the DEM data may be desired. For this,
+the \verb#hillshade# tool reads in a DEM and outputs an image of that
+DEM as though it were a three-dimensional surface, with every pixel
+shaded as though it were illuminated by a light from a specified
+location.
 
 \begin{longtable}{|l|p{11cm}|} 
 \caption{Command-line options for hillshade}
