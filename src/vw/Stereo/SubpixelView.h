@@ -38,7 +38,7 @@ namespace stereo {
     typedef PixelMask<Vector2f> pixel_type;
     typedef pixel_type result_type;
     typedef ProceduralPixelAccessor<SubpixelView> pixel_accessor;
-
+      
 
     //image subsampling by two
     ImageView<float> subsample_img_by_two(ImageView<float> &img) const {
