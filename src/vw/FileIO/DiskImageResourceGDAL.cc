@@ -467,6 +467,9 @@ namespace vw {
     VW_ASSERT(format.planes == 1 || format.pixel_format==VW_PIXEL_SCALAR,
               NoImplErr() << "DiskImageResourceGDAL: Cannot create " << filename << "\n\t"
               << "The image cannot have both multiple channels and multiple planes.\n");
+    VW_ASSERT((block_size[0] == -1 || block_size[1] == -1) || (block_size[0] % 16 == 0 && block_size[1] % 16 == 0),
+              NoImplErr() << "DiskImageResourceGDAL: Cannot create " << filename << "\n\t"
+              << "Block dimensions must be a multiple of 16.\n");
 
     // Store away relevent information into the internal data
     // structure for this DiskImageResource
