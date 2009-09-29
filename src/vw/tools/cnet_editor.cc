@@ -32,14 +32,19 @@ int main( int argc, char *argv[] ) {
   std::string cnet_file;
   std::string image_mean_file;
   fs::path output_cnet_file;
+  fs::path output_deleted_index_file;
   ControlNetwork cnet("ControlNetwork Editor");
   double cutoff_sigma;
   std::string output_cnet_file_tmp;
+  std::string output_deleted_index_file_tmp;
+  fs::path data_dir;
 
   po::options_description general_options("Options");
   general_options.add_options()
     ("cutoff_sigma,c", po::value<double>(&cutoff_sigma)->default_value(2),"This is the highend cutoff sigma.")
     ("output_cnet_file,o", po::value<std::string>(&output_cnet_file_tmp)->default_value("processed.cnet"), "Name of processed control network file to write out.")
+    ("output_deleted_index_file,o", po::value<std::string>(&output_deleted_index_file_tmp)->default_value("cnet_deleted.txt"), "Name of file of indexes to deleted control points to write out.")
+    ("data_dir,d",po::value<fs::path>(&data_dir)->default_value("."), "Name of directory to write output files into.")
     ("help,h","Brings up this.");
 
   po::options_description positional_options("Positional Options");
@@ -70,6 +75,7 @@ int main( int argc, char *argv[] ) {
   }
 
   output_cnet_file = output_cnet_file_tmp;
+  output_deleted_index_file = output_deleted_index_file_tmp;
 
   // Loading control network file
   std::vector<std::string> tokens;
@@ -123,7 +129,9 @@ int main( int argc, char *argv[] ) {
   int other_count = 0;
   int cp_clip_count = 0;
   std::list<double>::iterator image_error = image_errors.begin();
-  for ( unsigned cpi = 0; cpi < cnet.size(); cpi++ ) {
+  std::vector<bool> deleted(cnet.size(), false);
+  int del_i = 0;
+  for ( unsigned cpi = 0; cpi < cnet.size(); cpi++, del_i++ ) {
     for ( unsigned cmi = 0; cmi < cnet[cpi].size(); cmi++ ) {
       if ( image_error == image_errors.end() )
         vw_throw( IOErr() << "Internal overflow error" );
@@ -144,6 +152,7 @@ int main( int argc, char *argv[] ) {
       cnet.delete_control_point( cpi );
       cpi--;
       cp_clip_count++;
+      deleted[del_i] = true;
     }
   }
   std::cout << float(clipping_count) * 100.0 / float(clipping_count + other_count)
@@ -152,6 +161,15 @@ int main( int argc, char *argv[] ) {
             << "% (" << cp_clip_count << ") of control points removed.\n";
 
   std::cout << "\nWriting out new control network\n";
-  std::string outfile_str = fs::path(output_cnet_file.branch_path() / fs::basename(output_cnet_file)).string();
+  std::string outfile_str = fs::path(data_dir / output_cnet_file.branch_path() / fs::basename(output_cnet_file)).string();
   cnet.write_binary(outfile_str);
+
+  std::cout << "\nWriting deleted index file\n";
+  std::string delindex_file_str = fs::path(data_dir / output_deleted_index_file.branch_path() / fs::basename(output_deleted_index_file)).string();
+  std::ofstream di_out(delindex_file_str.c_str());
+  int i;
+  for (i = 0; i < deleted.size()-1; i++) {
+    di_out << deleted[i] << " ";
+  }
+  di_out << deleted[i] << "\n";
 }

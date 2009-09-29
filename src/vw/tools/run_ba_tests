@@ -30,7 +30,8 @@
 #     REVISION:  ---
 #===============================================================================
 
-use lib "./run_ba_tests_lib";
+#use lib "./run_ba_tests_lib";
+use lib "/opt/vw/lib";
 use File::Path qw(mkpath);
 use Getopt::Long;
 use Pod::Usage;
@@ -87,6 +88,9 @@ my $percentile_high = 75;
 ## CONFIG VARIABLES YOU SHOULD NOT CHANGE
 ##
 
+## Set on the command line
+my $verbose = 0;
+
 ## Name of the data creation executable
 my $make_data          = 'make_ba_test_data';
 
@@ -103,6 +107,7 @@ my $wp_final_file  = "wp_final.txt";
 my $cam_true_file  = "cam_ground_truth.txt";
 my $cam_init_file  = "cam_initial.txt";
 my $cam_final_file = "cam_final.txt";
+my $cnet_deleted_index_file = "cnet_deleted";
 # must be >= 35 to generate the image errors file required for outlier removal
 my $ba_report_level = 35; 
 # Default values; generally these should be set by your test plan file
@@ -279,24 +284,65 @@ sub run_tests {
 sub read_results {
     my ($num_test_plans) = @_;
 
+    print STDERR "Reading results\n" if $verbose;
     my @results = ();
     for (my $t = 0; $t < $num_test_plans; $t++) {
+        print STDERR "  Test plan $t\n" if $verbose;
         my $plan_dir = $tests_root."/".$data_dir_prefix.$t;
         push @results, {};
         foreach my $ba_type (@ba_types) {
+            print STDERR "    $ba_type\n" if $verbose;
             my @wp_mse = ();
             my @xyz_mse = ();
             my @euler_mse = ();
 
             for (my $i = 0; $i < $num_tests; $i++) {
+                print STDERR "      Test $i\n" if $verbose; 
                 my $test_dir = "$plan_dir/$i";
                 my $results_dir = "$test_dir/$ba_type";
                 my $wp_true  = read_wp_results("$test_dir/$wp_true_file");
+                print STDERR "        Read ".scalar(@$wp_true)." ground truth values from $test_dir/$wp_true_file\n" if $verbose;
                 my $wp_init  = read_wp_results("$results_dir/$wp_init_file");
                 my $wp_final = read_wp_results("$results_dir/$wp_final_file");
+                print STDERR "        Read ".scalar(@$wp_final)." final values from $results_dir/$wp_final_file\n" if $verbose;
+
+                # If we removed outliers, we have to delete the corresponding
+                # world points from the world point files.
+                if ($ba_type =~ /_no_outliers/) {
+                  print STDERR "        Reading deleted indices from $results_dir/$cnet_deleted_index_file\n" if $verbose;
+                  open CNET_DELETED, "<$results_dir/$cnet_deleted_index_file"
+                    or die "Failed opening $results_dir/$cnet_deleted_index_file: $!\n";
+                  my $deleted = <CNET_DELETED>;
+                  chomp $deleted;
+                  my @deleted = split / /, $deleted;
+                  close CNET_DELETED;
+                  if (3*scalar(@deleted) != scalar(@$wp_true)) {
+                    die "Different number of points from cnet_deleted (".scalar(@deleted).
+                        ") and wp_ground_truth (".scalar(@$wp_true)/3 . ")\n";
+                  }
+                  print STDERR "        Found ".scalar(@deleted)." points to delete\n" if $verbose;
+                  my $del_cnt = 0;
+                  for (my $i = 0; $i <= $#deleted; $i++) {
+                    if ($deleted[$i]) {
+
+                      splice(@$wp_true, $i*3, 3);
+                      splice(@$wp_init, $i*3, 3);
+                      $del_cnt++;
+                    }
+                  }
+                  print STDERR "        Removed $del_cnt deleted ground truth points\n" if $verbose;
+                  open TEMP, ">$test_dir/wp_ground_truth_del.txt";
+                  my $i = 0;
+                  while ($i < scalar(@$wp_true)) {
+                    print TEMP join(",",$wp_true->[$i++],$wp_true->[$i++],$wp_true->[$i++]),"\n";
+                  }
+                  close TEMP;
+                }
+
                 my ($xyz_true, $euler_true)   = read_cam_results("$test_dir/$cam_true_file");
                 my ($xyz_init, $euler_init)   = read_cam_results("$results_dir/$cam_init_file");
                 my ($xyz_final, $euler_final) = read_cam_results("$results_dir/$cam_final_file");
+                print STDERR "        Calculating MSEs\n" if $verbose;
                 push @wp_mse, mse($wp_final, $wp_true);
                 push @xyz_mse, mse($xyz_final, $xyz_true);
                 push @euler_mse, mse($euler_final, $euler_true); 
@@ -392,6 +438,7 @@ my $man = 0;
 my $ba_type_str = '';
 GetOptions('help|?'        => \$help,
            'man'           => \$man,
+           'verbose|v'     => \$verbose,
            'directory|d=s' => \$tests_root,
            'num_tests|n=i' => \$num_tests,
            'pct_low|l=i'   => \$percentile_low,

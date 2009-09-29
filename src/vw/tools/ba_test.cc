@@ -24,7 +24,8 @@
 /// \file ba_test.cc
 ///
 
-/*
+/* {{{ Documentation
+ *
  *  PROGRAM:  ba_test
  *
  *  AUTHOR:   Michael Styer <michael@styer.net>
@@ -104,11 +105,7 @@
  *        same base name as the input camera model file with the extension
  *        '.adjust'.
  *
- */
-
-
-// NB: the triple-bracket comments you'll see below are Vim fold markers.
-// Type ':set foldmethod=marker' in command mode to use them.
+ * }}} */
 
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
@@ -527,6 +524,14 @@ class BundleAdjustmentModel : public camera::BundleAdjustmentModelBase<BundleAdj
   CameraVector m_cameras;
   boost::shared_ptr<ControlNetwork> m_network;
 
+  // TODO: Should BA model track ground truth points as well? Need to track
+  // which points get removed by the outlier-removal process so that the final
+  // MSE calculation will use the correct points
+  // Alternately, the outlier removal could leave the world points in the
+  // control network even when there are < 2 measures associated with them.
+  // Then writing out the final world points would skip points with < 2
+  // measures (and the constructor for the new model would have to do the same
+  // -- that might be a pain).
   std::vector<camera_vector_t> a; // camera parameter adjustments
   std::vector<point_vector_t>  b; // point coordinates
   std::vector<camera_vector_t> a_initial;
@@ -789,9 +794,9 @@ void write_camera_params(fs::path file)
 void write_world_points(fs::path file)
 {
   fs::ofstream os(file);
-  vw_out(DebugMessage) << "Writing world points" << endl;
 
   int num_points = this->num_points();
+  vw_out(DebugMessage) << "Writing " << num_points << " world points" << endl;
 
   for (int i = 0; i < num_points; i++) {
     point_vector_t pos = this->B_parameters(i);
@@ -820,8 +825,9 @@ void write_adjusted_camera_models(ProgramOptions config) {
 
 /* {{{ remove_outliers */
 void remove_outliers(fs::path const &cnet_file,
-                               fs::path const &cnet_out_file,
-                               double const sd_cutoff)
+                     fs::path const &cnet_out_file,
+                     fs::path const &data_dir,
+                     double const sd_cutoff)
 {
   // Check MeanErrorsFile exists (created by bundle adjuster with report_level >= 35)
   if (!fs::exists(MeanErrorsFile) || fs::is_directory(MeanErrorsFile)) {
@@ -835,8 +841,11 @@ void remove_outliers(fs::path const &cnet_file,
 
   // run cnet_editor on image mean errors file
   std::ostringstream command;
-  command << CnetEditor << " -c " << sd_cutoff << " -o " << cnet_out_file
-    << " " << cnet_file << " " << MeanErrorsFile;
+  command << CnetEditor << 
+    " -c " << sd_cutoff << 
+    " -o " << cnet_out_file << 
+    " -d " << data_dir <<
+    " " << cnet_file << " " << MeanErrorsFile;
   vw_out(DebugMessage) << "Outlier removal command: " << command.str() << endl;
   int res = system(command.str().c_str());
   if (res == -1) {
@@ -907,12 +916,12 @@ void adjust_bundles(BundleAdjustmentModel &ba_model,
 
  // If we want to remove outliers, do the process again
   if (config.remove_outliers) {
-    fs::path out_file = results_dir / ProcessedCnetFile;
-    fs::path cnet_file = config.data_dir / config.cnet_file;
-    remove_outliers(cnet_file, out_file, config.outlier_sd_cutoff);
+    // Remove outliers
+    fs::path cnet_file = config.data_dir/config.cnet_file;
+    remove_outliers(cnet_file, ProcessedCnetFile, results_dir, config.outlier_sd_cutoff);
 
     // Load new control network with outliers removed
-    boost::shared_ptr<ControlNetwork> cnet = load_control_network(out_file);
+    boost::shared_ptr<ControlNetwork> cnet = load_control_network(results_dir/ProcessedCnetFile);
 
     // Make a new bundle adjustment model
     BundleAdjustmentModel ba_model_no_outliers(ba_model.cameras(), cnet,
@@ -922,6 +931,10 @@ void adjust_bundles(BundleAdjustmentModel &ba_model,
     AdjusterT bundle_adjuster_no_outliers(ba_model_no_outliers, L2Error());
     vw_out(DebugMessage) << "Running bundle adjustment with outliers removed" << endl;
 
+    // Set lambda if user has requested it
+    if (config.use_user_lambda)
+      bundle_adjuster_no_outliers.set_lambda(config.lambda);
+
     // Configure reporter
     BundleAdjustReport<AdjusterT>
         reporter(ba_type_str + " No Outliers", ba_model_no_outliers,
@@ -930,10 +943,13 @@ void adjust_bundles(BundleAdjustmentModel &ba_model,
     // Run bundle adjustment again
     run_bundle_adjustment<AdjusterT>(bundle_adjuster_no_outliers, reporter, results_dir,
         config.max_iterations, config.save_iteration_data);
+
+    // Set the input BA model to the new, no-outliers model
+    ba_model = ba_model_no_outliers;
   }
 
   // remove image mean errors file
-  fs::remove(MeanErrorsFile);
+  //fs::remove(MeanErrorsFile);
 
 }
 /* }}} adjust_bundles */
