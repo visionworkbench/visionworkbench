@@ -26,7 +26,6 @@ namespace vw {
     {
       m_input_file_ptr = 0;
       m_output_file_ptr = 0;
-      m_tiled = false;
       open( filename );
     }
 
@@ -36,7 +35,6 @@ namespace vw {
     {
       m_input_file_ptr = 0;
       m_output_file_ptr = 0;
-      m_tiled = false;
       create( filename, format );
     }
     

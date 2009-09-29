@@ -111,6 +111,8 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
       delete static_cast<Imf::InputFile*>(m_input_file_ptr);
       m_input_file_ptr = new Imf::TiledInputFile(filename.c_str());
       m_tiled = true;
+    } else {
+      m_tiled = false;
     }
       
     // Find the width and height of the image 
@@ -234,8 +236,8 @@ void vw::DiskImageResourceOpenEXR::create( std::string const& filename,
   // Open the EXR file and set up the header information
   m_labels.resize(m_format.planes);
   
-  // By default, write out the image is a tiled image.
-  this->set_tiled_write(2048,2048);
+  // By default, write out the image as a tiled image.
+  this->set_tiled_write(vw_settings().default_tile_size(),vw_settings().default_tile_size());
 }
 
 // Read the disk image into the given buffer.
