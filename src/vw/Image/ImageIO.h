@@ -105,35 +105,27 @@ namespace vw {
   class CountingSemaphore {
     Condition m_block_condition;
     Mutex m_mutex;
-    int m_max, m_count, m_last_job_index;
+    int m_max, m_last_job_index;
 
   public:
     CountingSemaphore() : m_max( vw_settings().default_num_threads() ), 
-                          m_count(0), m_last_job_index(0) {}
-    CountingSemaphore( int max ) : m_max(max), m_count(0), m_last_job_index(0) {}
+                          m_last_job_index(-1) {}
+    CountingSemaphore( int max ) : m_max(max), m_last_job_index(-1) {}
       
     // Call to wait for a turn until the number of threads in a area
     // decrements.
     void wait( int job_index ) {
       Mutex::Lock lock(m_mutex);
-      while ( (m_count > m_max) ||(job_index > m_last_job_index + m_max) ) {
+      while ( job_index > m_last_job_index + m_max ) {
         m_block_condition.wait(lock);
       }
-
-      // Once this thread is finished waiting, we immediately
-      // increment m_count before we let go of the mutex so that we
-      // can keep track of how many threads are currently running.
-      // Don't forget to call release() to decrement the count when
-      // the thread is finished writing!
-      m_count++;
     }
 
     // Please call when ever a process finishes it's turn
-    void release( int job_index ) {
+    void notify() {
       {
         Mutex::Lock lock(m_mutex);
-        m_count--;
-        m_last_job_index = job_index;
+        m_last_job_index++;
       }
       m_block_condition.notify_all();
     }
@@ -173,7 +165,7 @@ namespace vw {
       virtual void operator() () {	
         vw_out(DebugMessage, "image") << "Writing block " << m_idx << " at " << m_bbox << "\n";
         m_resource.write( m_image_block.buffer(), m_bbox );
-        m_write_finish_event.release(m_idx);
+        m_write_finish_event.notify();
       }
     };
 
@@ -202,7 +194,8 @@ namespace vw {
       virtual ~RasterizeBlockTask() {}
       virtual void operator()() {
 
-	m_write_finish_event.wait(m_index);
+        m_write_finish_event.wait(m_index);
+        
         vw_out(DebugMessage, "image") << "Rasterizing block " << m_index << " at " << m_bbox << "\n";
         // Rasterize the block
         ImageView<typename ViewT::pixel_type> image_block( crop(m_image, m_bbox) );
@@ -213,7 +206,7 @@ namespace vw {
         // With rasterization complete, we queue up a request to write this block to disk.
         boost::shared_ptr<Task> write_task ( new WriteBlockTask<typename ViewT::pixel_type>( m_resource, image_block, m_bbox, m_index, m_write_finish_event ) );
         
-	m_parent.add_write_task(write_task, m_index);
+        m_parent.add_write_task(write_task, m_index);
       }
     };
 
