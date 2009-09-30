@@ -894,9 +894,6 @@ namespace vw {
       ImageView<float> confidence_image (left_input_image.cols(),
                                          left_input_image.rows());
 
-      //image blurring
-      // WARNING: DO WE STILL WANT THIS?
-      //   PLEASE DO A RUN WITHOUT -ZMM
       ImageView<ChannelT> left_image = LogStereoPreprocessingFilter(blur_sigma)(left_input_image);
       ImageView<ChannelT> right_image = LogStereoPreprocessingFilter(blur_sigma)(right_input_image);
 
