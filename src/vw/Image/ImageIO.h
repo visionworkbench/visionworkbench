@@ -80,43 +80,61 @@ namespace vw {
     write_image( dst, intermediate, bbox );
   }
 
+
+
+  // -----------------------------------------------------------------------
+  //
+  // Doing multi-threaded block rasterization and writing to disk
+  // correctly is a little tricky, because blocks almost always must
+  // be written _in order_ into the file.  If one of the rasterizing
+  // threads for an early block falls behind (which is not all that
+  // unlikely), it can cause a backup on the write queue.  Depending
+  // on the size of the blocks being rasterized, this can lead to
+  // large allocations of memory as rasterized tiles accumulate and
+  // sit waiting to be written to disk.
+  //
+  // To fix this, we need this semaphore to help us meet the following
+  // condition:
+  //
+  // We rasterize _at most_ N blocks at a time, and it will never
+  // get more than N blocks ahead of the last block that was written.
+  //
+  // Of course, one slow rasterization thread can hold up the entire
+  // process, but this is the price we pay for guranteed ordering when
+  // writing tiles.
   class CountingSemaphore {
     Condition m_block_condition;
-    Mutex m_block_event;
-    Mutex m_number_event;
-    int m_max;
-    int m_count;
-    int m_last_job_index;
+    Mutex m_mutex;
+    int m_max, m_count, m_last_job_index;
 
   public:
-    CountingSemaphore( void ) : m_max(1), m_count(0), m_last_job_index(0) {}
+    CountingSemaphore() : m_max( vw_settings().default_num_threads() ), 
+                          m_count(0), m_last_job_index(0) {}
     CountingSemaphore( int max ) : m_max(max), m_count(0), m_last_job_index(0) {}
-
-    void set_max( int max ) {
-      Mutex::Lock lock(m_number_event);
-      m_max = max;
-    }
-
+      
     // Call to wait for a turn until the number of threads in a area
-    // decrements
+    // decrements.
     void wait( int job_index ) {
-      Mutex::Lock lock(m_block_event);
-      if ( (m_count > m_max) && 
-	   (job_index > m_last_job_index) ) {
-	m_block_condition.wait(lock);
+      Mutex::Lock lock(m_mutex);
+      while ( (m_count > m_max) ||(job_index > m_last_job_index + m_max) ) {
+        m_block_condition.wait(lock);
       }
-      m_last_job_index = job_index;
-    }
 
-    void enter( void ) {
-      Mutex::Lock lock(m_number_event);
+      // Once this thread is finished waiting, we immediately
+      // increment m_count before we let go of the mutex so that we
+      // can keep track of how many threads are currently running.
+      // Don't forget to call release() to decrement the count when
+      // the thread is finished writing!
       m_count++;
     }
 
     // Please call when ever a process finishes it's turn
-    void release( void ) {
-      Mutex::Lock lock(m_number_event);
-      m_count--;
+    void release( int job_index ) {
+      {
+        Mutex::Lock lock(m_mutex);
+        m_count--;
+        m_last_job_index = job_index;
+      }
       m_block_condition.notify_all();
     }
   };
@@ -127,7 +145,7 @@ namespace vw {
   // time, however several threads can be rasterizing simultaneously.
   //
   class ThreadedBlockWriter {
-
+    
     boost::shared_ptr<FifoWorkQueue> m_rasterize_work_queue;
     boost::shared_ptr<OrderedWorkQueue> m_write_work_queue;
     CountingSemaphore m_write_queue_limit;
@@ -152,9 +170,10 @@ namespace vw {
       m_resource(resource), m_image_block(image_block), m_bbox(bbox), m_idx(idx), m_write_finish_event(write_finish_event) {}
 
       virtual ~WriteBlockTask() {}
-      virtual void operator() () {
+      virtual void operator() () {	
+        vw_out(DebugMessage, "image") << "Writing block " << m_idx << " at " << m_bbox << "\n";
         m_resource.write( m_image_block.buffer(), m_bbox );
-        m_write_finish_event.release();
+        m_write_finish_event.release(m_idx);
       }
     };
 
@@ -182,6 +201,9 @@ namespace vw {
 
       virtual ~RasterizeBlockTask() {}
       virtual void operator()() {
+
+	m_write_finish_event.wait(m_index);
+        vw_out(DebugMessage, "image") << "Rasterizing block " << m_index << " at " << m_bbox << "\n";
         // Rasterize the block
         ImageView<typename ViewT::pixel_type> image_block( crop(m_image, m_bbox) );
 
@@ -191,8 +213,6 @@ namespace vw {
         // With rasterization complete, we queue up a request to write this block to disk.
         boost::shared_ptr<Task> write_task ( new WriteBlockTask<typename ViewT::pixel_type>( m_resource, image_block, m_bbox, m_index, m_write_finish_event ) );
         
-	m_write_finish_event.wait(m_index);
-	m_write_finish_event.enter();
 	m_parent.add_write_task(write_task, m_index);
       }
     };
@@ -206,7 +226,6 @@ namespace vw {
     ThreadedBlockWriter() : m_write_queue_limit() {
       m_rasterize_work_queue = boost::shared_ptr<FifoWorkQueue>( new FifoWorkQueue() );
       m_write_work_queue = boost::shared_ptr<OrderedWorkQueue>( new OrderedWorkQueue(1) );
-      m_write_queue_limit.set_max( vw_settings().default_num_threads() );
     }
 
     // Add a block to be rasterized.  You can optionally supply an
