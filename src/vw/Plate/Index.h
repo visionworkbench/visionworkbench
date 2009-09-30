@@ -7,6 +7,7 @@
 
 #include <vw/Plate/Tree.h>
 #include <vw/Plate/Blob.h>
+#include <vw/Plate/BlobManager.h>
 
 // Protocol Buffer
 #include <vw/Plate/IndexRecord.pb.h>

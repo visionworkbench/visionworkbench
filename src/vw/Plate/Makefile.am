@@ -14,10 +14,11 @@ if MAKE_MODULE_PLATE
 protocol_headers = IndexRecord.pb.h IndexRpc.pb.h
 protocol_sources = IndexRecord.pb.cc IndexRpc.pb.cc
 
-include_HEADERS = Blob.h Index.h Tree.h PlateFile.h Amqp.h	\
-		  ToastPlateManager.h $(protocol_headers)
+include_HEADERS = Blob.h BlobManager.h Index.h Tree.h PlateFile.h	\
+		  Amqp.h ToastPlateManager.h $(protocol_headers)
 
-libvwPlate_la_SOURCES = Blob.cc Index.cc Amqp.cc
+libvwPlate_la_SOURCES = Blob.cc BlobManager.cc
+# Index.cc Amqp.cc
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 libvwPlate_la_LIBADD = @MODULE_PLATE_LIBS@
 
@@ -25,23 +26,23 @@ lib_LTLIBRARIES = libvwPlate.la
 
 endif
 
-if ENABLE_EXCEPTIONS
+# if ENABLE_EXCEPTIONS
 
-mosaic_worker_SOURCES = mosaic_worker.cc
-mosaic_worker_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@
+# mosaic_worker_SOURCES = mosaic_worker.cc
+# mosaic_worker_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@
 
-plateindex_server_SOURCES = plateindex_server.cc
-plateindex_server_LDADD    = @PKG_PLATE_LIBS@
+# plateindex_server_SOURCES = plateindex_server.cc
+# plateindex_server_LDADD    = @PKG_PLATE_LIBS@
 
-image2plate_SOURCES = image2plate.cc
-image2plate_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@
+# image2plate_SOURCES = image2plate.cc
+# image2plate_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@
 
-plate2qtree_SOURCES = plate2qtree.cc
-plate2qtree_LDADD    = @PKG_PLATE_LIBS@
+# plate2qtree_SOURCES = plate2qtree.cc
+# plate2qtree_LDADD    = @PKG_PLATE_LIBS@
 
-bin_PROGRAMS = plate2qtree image2plate mosaic_worker plateindex_server
-noinst_PROGRAMS = 
-endif
+# bin_PROGRAMS = plate2qtree image2plate mosaic_worker plateindex_server
+# noinst_PROGRAMS = 
+# endif
 
 ########################################################################
 # general

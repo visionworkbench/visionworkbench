@@ -8,6 +8,8 @@
 #include <cxxtest/TestSuite.h>
 
 #include <vw/Plate/Blob.h>
+#include <vw/Plate/BlobManager.h>
+#include <vw/Plate/IndexRecord.pb.h>
 
 using namespace std;
 using namespace vw;
@@ -15,56 +17,59 @@ using namespace vw::platefile;
 
 class TestBlobIO : public CxxTest::TestSuite
 {
-  boost::shared_array<int> m_test_data;
-  boost::shared_array<int> m_verify_data;
+  boost::shared_array<uint8> m_test_data;
+  boost::shared_array<uint8> m_verify_data;
 public:
 
   TestBlobIO() {
-    m_test_data = boost::shared_array<int>(new int[20]);
-    for (int i = 1; i < 21; ++i) {
-      m_test_data[i-1] = i;
+    m_test_data = boost::shared_array<uint8>(new uint8[20]);
+    for (int i = 0; i < 20; ++i) {
+      m_test_data[i] = i;
     }
   }
 
   void test_write_then_read()
   {
+    IndexRecord rec; 
+    rec.set_block_size(22);
     unlink("/tmp/foo.blob");
 
     // First test, creates a new blob file.
     {
       Blob blob("/tmp/foo.blob");
-      TS_ASSERT_EQUALS( blob.version(), 1 );
     
       // Write the data to the file.
-      int64 offset = blob.write(m_test_data, 20 * sizeof(int));
+      int64 offset = blob.write(rec, m_test_data, 20);
 
       // Read it back in.
-      boost::shared_array<int> m_verify_data = blob.read<int>(offset, 20 * sizeof(int));
+      boost::shared_array<uint8> m_verify_data = blob.read_data(offset);
 
       for (int i = 0; i < 20; ++i) 
         TS_ASSERT_EQUALS( m_test_data[i], m_verify_data[i] );
     }
 
 
-    // Second tests, appends to a blob file.
+    // Second test, appends to a blob file.
     {
       Blob blob("/tmp/foo.blob");
-      TS_ASSERT_EQUALS( blob.version(), 1 );
     
       // Write the data to the file.
-      int64 offset = blob.write(m_test_data, 20 * sizeof(int));
+      
+      int64 offset = blob.write(rec, m_test_data, 20);
       
       // Read it back in.
-      boost::shared_array<int> m_verify_data = blob.read<int>(offset, 20 * sizeof(int));
+      boost::shared_array<uint8> m_verify_data = blob.read_data(offset);
 
       for (int i = 0; i < 20; ++i) 
         TS_ASSERT_EQUALS( m_test_data[i], m_verify_data[i] );
-
     }
 
   }
 
   void test_file_write_read() {
+    IndexRecord rec; 
+    rec.set_block_size(22);
+
     const char* f1 = "/tmp/foo.blob";
     const char* f2 = "/tmp/foo3.blob";
     unlink(f2);
@@ -75,7 +80,7 @@ public:
     // and then reading it back out and saving it as f2.
     int64 offset;
     int32 size;
-    blob.write_from_file(f1, offset, size);
+    blob.write_from_file(f1, rec, offset, size);
     blob.read_to_file(f2, offset, size);
 
     // ----
@@ -131,5 +136,4 @@ public:
     blob_id = bm.request_lock(1024);
   }
     
-
 }; // class TestBlobIO

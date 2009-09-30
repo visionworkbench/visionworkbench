@@ -1,9 +1,16 @@
 package vw.platefile;
 
 message IndexRecord {
-  required int32 block_size = 1;
+  required uint32 block_size = 1;
   optional string block_filetype = 2;
-  optional int32 blob_id = 3;
-  optional int64 blob_offset = 4;
+  optional uint32 blob_id = 3;
+  optional uint64 blob_offset = 4;
   optional bool valid = 5 [ default = false ];
+}
+
+message BlobRecord {
+  required uint32 header_offset = 1;
+  required uint32 header_size = 2;
+  required uint32 data_offset = 3;
+  required uint32 data_size = 4;
 }

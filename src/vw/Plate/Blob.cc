@@ -8,42 +8,92 @@
 #include <fstream>
 #include <string>
 #include <boost/shared_array.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
 namespace fs = boost::filesystem;
+
+using namespace vw;
     
 // -------------------------------------------------------------------
 //                                 BLOB
 // -------------------------------------------------------------------
 
 // Constructor stores the blob filename for reading & writing
-vw::platefile::Blob::Blob(std::string filename) : m_filename(filename) {
-    
-  m_blobfile_version = 1;
-  
-  if( !exists( fs::path( filename, fs::native ) ) ) {
-        
-    // Check to see if this blob exists.  If not, we create it and
-    // write a small blob header.
-    std::ofstream ostr(filename.c_str());
-    ostr << m_blobfile_version << "\nPlatefile data blob.\n"
-         << "Created by the NASA Vision Workbench\n\n";
+vw::platefile::Blob::Blob(std::string filename) : m_blob_filename(filename) {
 
-  } else {
+  // Open the blob file (creating if necessary) for reading and writing.
+  std::ofstream ofstr(m_blob_filename.c_str(), std::ios::out | std::ios::binary);
 
-    std::ifstream istr(filename.c_str());
-    istr >> m_blobfile_version;
-    if (m_blobfile_version != 1) 
-      vw_throw(IOErr() << "Could not open plate file blob.  Does not appear to be a valid blob file.");      
+  if (!ofstr.is_open()) 
+    vw_throw(IOErr() << "Blob::Blob(): could not open or create blob file \"" << filename << "\".");
 
-  }    
+  // Measure the size of the opened file.  If the size is zero, then
+  // this must be a brand new blob file, and we need to write some
+  // basic header info to the file.
+  ofstr.seekp(0, std::ios_base::end);
+  uint64 size = ofstr.tellp();
+  if (size == 0) {
+    uint64 write_index = 0;
+    ofstr.write((char*)(&write_index), sizeof(write_index));
+  }
+  ofstr.close();
 }
 
-int vw::platefile::Blob::version() const { return m_blobfile_version; }
+vw::platefile::Blob::~Blob() {}
+
+/// read_data()
+boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset) {
+
+  
+  std::ifstream ifstr(m_blob_filename.c_str(), std::ios::in | std::ios::binary);
+  if (!ifstr.is_open()) 
+    vw_throw(IOErr() << "Blob::read_data(): could not open blob file \"" << m_blob_filename << "\".");
+
+  // Seek to the requested offset and read the header and data offset
+  ifstr.seekg(base_offset, std::ios_base::beg);
+
+  // Read the blob record
+  uint16 blob_record_size;
+  ifstr.read((char*)(&blob_record_size), sizeof(blob_record_size));
+  boost::shared_array<uint8> blob_rec_data(new uint8[blob_record_size]);
+  ifstr.read((char*)(blob_rec_data.get()), blob_record_size);
+  BlobRecord blob_record;
+  bool worked = blob_record.ParseFromArray(blob_rec_data.get(),  blob_record_size);
+  if (!worked)
+    vw_throw(IOErr() << "Blob::read_data() -- an error occurred while deserializing the header "
+             << "from the blob file.\n");
+
+  // The overall blob metadat includes the uint16 of the
+  // blob_record_size in addition to the size of the blob_record
+  // itself.  The offsets stored in the blob_record are relative to
+  // the END of the blob_record.  We compute this offset here.
+  uint32 blob_offset_metadata = sizeof(blob_record_size) + blob_record_size;
+  int32 size = blob_record.data_size();
+  uint64 offset = base_offset + blob_offset_metadata + blob_record.data_offset();
+  
+  // Allocate an array of the appropriate size to read the data.
+  boost::shared_array<uint8> data(new uint8[size]);
+  
+  ifstr.seekg(offset, std::ios_base::beg);
+  ifstr.read((char*)(data.get()), size);
+  
+  // Throw an exception if the read operation failed (after clearing the error bit)
+  if (ifstr.fail()) {
+    ifstr.clear();
+    vw_throw(IOErr() << "Blob::read() -- an error occurred while reading " 
+             << "data from the blob file.\n");
+  }
+  
+  vw::vw_out(vw::VerboseDebugMessage, "plate::blob") << "Blob::read() -- read " 
+                                                     << size << " bytes at " << offset 
+                                                     << " from " << m_blob_filename << "\n";
+  return data;
+}
 
 /// Read data out of the blob and save it as its own file on disk.
 void vw::platefile::Blob::read_to_file(std::string dest_file, int64 offset, int64 size) {
-  boost::shared_array<char> data = this->read<char>(offset, size);
+  boost::shared_array<uint8> data = this->read_data(offset);
 
   // Open the dest_file and write to it.
   std::ofstream ostr(dest_file.c_str(), std::ios::binary);
@@ -52,96 +102,7 @@ void vw::platefile::Blob::read_to_file(std::string dest_file, int64 offset, int6
     vw_throw(IOErr() << "Blob::read_as_file() -- could not open destination " 
              << "file for writing..");
 
-  ostr.write(data.get(), size);
+  ostr.write((char*)(data.get()), size);
   ostr.close();
-}
-
-void vw::platefile::Blob::write_from_file(std::string source_file, int64& offset, int32& size) {
-
-  // Open the source_file and read data from it.
-  std::ifstream istr(source_file.c_str(), std::ios::binary);
-      
-  if (!istr.is_open())
-    vw_throw(IOErr() << "Blob::write_from_file() -- could not open source file for reading.");
-  // Seek to the end and allocate the proper number of bytes of
-  // memory, and then seek back to the beginning.
-  istr.seekg(0, std::ios_base::end);
-  size = istr.tellg();
-  istr.seekg(0, std::ios_base::beg);
-      
-  // Read the data into a temporary memory buffer.
-  boost::shared_array<char> data(new char[size]);
-  istr.read(data.get(), size);
-  istr.close();
-
-  offset = this->write<char>(data, size);
-}
-
-// -------------------------------------------------------------------
-//                            BLOB_MANAGER
-// -------------------------------------------------------------------
-
-void vw::platefile::BlobManager::BlobManager::next_blob_index() {
-  // Move to the next blob
-  m_blob_index++;
-  if (m_blob_index >= m_blob_locks.size())
-    m_blob_index = 0;
-}
-
-/// Create a new blob manager.  The max_blob_size is specified in
-/// units of megabytes.
-vw::platefile::BlobManager::BlobManager(int64 max_blob_size, int nblobs) : 
-  m_max_blob_size(max_blob_size * 1024 * 1024), m_blob_index(0) { 
-  
-  m_blob_locks.resize(nblobs);
-  
-  for (int i=0; i < m_blob_locks.size(); ++i) {
-    m_blob_locks[i] = false;
-  }
-
-}
-
-/// Return the number of blobs currently in use.
-int vw::platefile::BlobManager::num_blobs() {
-  Mutex::Lock lock(m_mutex);
-  return m_blob_locks.size();
-}
-
-vw::int64 vw::platefile::BlobManager::max_blob_size() { 
-  Mutex::Lock lock(m_mutex);
-  return m_max_blob_size; 
-}
-
-/// Request a blob to write to that has sufficient space to write at
-/// least 'size' bytes.  Returns the blob index of a locked blob
-/// that you have sole access to write to.
-///
-/// size is specified in bytes.
-//
-// TODO: This is pretty simple logic, and would not be very
-// efficient because it blocks on write if it catches up to a blob
-// that is still locked.  We should add real blob selection logic
-// here at a later date.
-int vw::platefile::BlobManager::request_lock(int64 size) {
-  Mutex::Lock lock(m_mutex);
-
-  // First, we check to see if the next blob is free.  If not, we
-  // wait for a release event and recheck.
-  while(m_blob_locks[m_blob_index] != false)
-    m_blob_release_condition.wait(lock);
-  
-  // Then we lock it, increment the blob index, and return it.
-  m_blob_locks[m_blob_index] = true;      
-  int idx = m_blob_index;
-  next_blob_index();
-  return idx;
-}
-
-// Release the blob lock and update its write index (essentially
-// "committing" the write to the blob when you are finished with it.).
-int vw::platefile::BlobManager::release_lock(int blob_id) {
-  Mutex::Lock lock(m_mutex);
-  m_blob_locks[blob_id] = false;
-  m_blob_release_condition.notify_all();
 }
 
