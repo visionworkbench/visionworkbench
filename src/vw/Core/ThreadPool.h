@@ -78,18 +78,22 @@ namespace vw {
         m_queue(queue), m_task(initial_task), m_thread_id(thread_id) {}
       ~WorkerThread() {}
       void operator()() { 
-        // Run the initial task
-        (*m_task)();
-        m_task->signal_finished();
-
-        // ... and continue running tasks as long as they are available.
-        while ( m_task = m_queue.get_next_task() ) {
-          vw_out(DebugMessage, "thread") << "ThreadPool: reusing worker thread.\n";
+        do {
+          vw_out(DebugMessage, "thread") << "ThreadPool: running worker thread " << m_thread_id << "\n";
           (*m_task)();
           m_task->signal_finished();
-        }
+          
+          {
+            // We lock m_queue_mutex to prevent WorkQueue::notify() from running
+            // until we either sucessfully have grabbed the next task, or we have
+            // completely terminated the worker.
+            Mutex::Lock lock(m_queue.m_queue_mutex);
+            m_task = m_queue.get_next_task();
 
-        m_queue.worker_thread_complete(m_thread_id); 
+            if (!m_task)
+              m_queue.worker_thread_complete(m_thread_id); 
+          }
+        } while (m_task);
       }
     };
 
@@ -115,8 +119,6 @@ namespace vw {
     // method.
     // *************************************************************
     void worker_thread_complete(int worker_id) {
-      Mutex::Lock lock(m_queue_mutex);
-      
       m_active_workers--;
       vw_out(DebugMessage, "thread") << "ThreadPool: terminating worker thread " << worker_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active ]\n"; 
       
@@ -259,26 +261,24 @@ namespace vw {
     }
 
     virtual boost::shared_ptr<Task> get_next_task() { 
+      Mutex::Lock lock(m_mutex);
 
       // If there are no tasks available, we return the NULL task.
       if (m_queued_tasks.size() == 0) 
         return boost::shared_ptr<Task>();
 
-      {
-        Mutex::Lock lock(m_mutex);
-        std::map<int, boost::shared_ptr<Task> >::iterator iter = m_queued_tasks.begin();
+      std::map<int, boost::shared_ptr<Task> >::iterator iter = m_queued_tasks.begin();
 
-        // If the next task does not have the expected index, we
-        // return the NULL task.
-        if ((*iter).first != m_next_index) 
-          return boost::shared_ptr<Task>();
+      // If the next task does not have the expected index, we
+      // return the NULL task.
+      if ((*iter).first != m_next_index) 
+        return boost::shared_ptr<Task>();
 
-       
-        boost::shared_ptr<Task> task = (*iter).second;
-        m_queued_tasks.erase(m_queued_tasks.begin());
-        m_next_index++;
-        return task;
-      }
+     
+      boost::shared_ptr<Task> task = (*iter).second;
+      m_queued_tasks.erase(m_queued_tasks.begin());
+      m_next_index++;
+      return task;
     }
   };
 
