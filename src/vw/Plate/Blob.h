@@ -51,9 +51,9 @@ namespace platefile {
     /// An STL-compliant iterator for iterating over the index entries
     /// in a blob.  This can be used by Index.h to read in and rebuild
     /// the Index tree.
-    class iterator : public boost::iterator_facade<Blob::iterator, IndexRecord,
+    class iterator : public boost::iterator_facade<Blob::iterator, TileHeader,
                                                    boost::forward_traversal_tag,
-                                                   IndexRecord, int64> {
+                                                   TileHeader, int64> {
       
       // This is required for boost::iterator_facade
       friend class boost::iterator_core_access;
@@ -66,7 +66,7 @@ namespace platefile {
       // uses them to construct normal iterator methods.
       bool equal (iterator const& iter) const { return (m_current_base_offset >= iter.m_current_base_offset); }
       void increment() { m_current_base_offset = m_blob.next_base_offset(m_current_base_offset); }
-      IndexRecord const dereference() const { return m_blob.read_header<IndexRecord>(m_current_base_offset); }
+      TileHeader const dereference() const { return m_blob.read_header<TileHeader>(m_current_base_offset); }
       
     public:
       
@@ -110,10 +110,10 @@ namespace platefile {
       return size;
     }
 
-    /// Returns an iterator pointing to the first IndexRecord in the blob.
+    /// Returns an iterator pointing to the first TileHeader in the blob.
     iterator begin() { return iterator(*this, uint64(0) ); } // uint64(0) is the very first byte in the file.
 
-    /// Returns an iterator pointing one past the last IndexRecord in the blob.
+    /// Returns an iterator pointing one past the last TileHeader in the blob.
     iterator end() { return iterator(*this, this->size() ); }
 
     uint64 next_base_offset(uint64 current_base_offset) {
@@ -191,7 +191,7 @@ namespace platefile {
     boost::shared_array<uint8> read_data(vw::uint64 base_offset);
 
     /// Write a tile to the blob file. You must supply the header
-    /// (e.g. a serialized IndexRecord protobuffer) and the data as
+    /// (e.g. a serialized TileHeader protobuffer) and the data as
     /// shared_arrays.  Returns the base_offset where the data was
     /// written to the blob file.
     template <class ProtoBufT>

@@ -22,11 +22,11 @@ message BlobRecord {
 }
 
 // The IndexHeader store basic metadata for the platefile, such as the
-// default block size, file type, and map projection information.
+// default tile size, file type, and map projection information.
 // This is typically stored in the <platfile>/plate.index file.
 message IndexHeader {
   optional int32 platefile_version = 1;
-  optional uint32 default_block_size = 2;
+  optional uint32 default_tile_size = 2;
   optional string default_file_type = 3;
 }
 

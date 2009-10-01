@@ -36,7 +36,7 @@ namespace platefile {
     virtual IndexRecord read_request(int col, int row, int depth) = 0;
   
     // Writing, pt. 1: Locks a blob and returns the blob id that can
-    // be used to write a block.
+    // be used to write a tile.
     virtual int write_request(int size) = 0;
 
     // Writing, pt. 2: Supply information to update the index and
@@ -46,8 +46,8 @@ namespace platefile {
     // virtual void save(std::string const& filename) = 0;
 
     virtual int32 version() const = 0;
-    virtual int32 default_block_size() const = 0;
-    virtual std::string default_block_filetype() const = 0;
+    virtual int32 default_tile_size() const = 0;
+    virtual std::string default_tile_filetype() const = 0;
     virtual int32 max_depth() const = 0;
   };
 
@@ -65,6 +65,7 @@ namespace platefile {
 
     std::string index_filename() const;
     std::vector<std::string> blob_filenames() const;
+    void load_index(std::vector<std::string> const& blob_files);
 
   public:
 

@@ -17,7 +17,7 @@ protocol_sources = ProtoBuffers.pb.cc
 include_HEADERS = Blob.h BlobManager.h Index.h Tree.h PlateFile.h	\
 		  Amqp.h ToastPlateManager.h $(protocol_headers)
 
-libvwPlate_la_SOURCES = $(protocol_sources) Blob.cc BlobManager.cc 
+libvwPlate_la_SOURCES = $(protocol_sources) Blob.cc BlobManager.cc Index.cc
 # Index.cc Amqp.cc
 # nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 libvwPlate_la_LIBADD = @MODULE_PLATE_LIBS@

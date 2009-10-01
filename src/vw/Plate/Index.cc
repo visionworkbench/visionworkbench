@@ -4,7 +4,9 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+#include <vw/Core/Log.h>
 #include <vw/Plate/Index.h>
+using namespace vw;
 using namespace vw::platefile;
 
 #include <fstream>
@@ -49,16 +51,17 @@ std::vector<std::string> vw::platefile::Index::blob_filenames() const {
   return result;
 }
 
-void load_index(std::vector<std::string> const& blob_files) {
+void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files) {
 
   for (unsigned int i = 0; i < blob_files.size(); ++i) {
-    vw_out(0) << "Loading index entries from blob file: " << blob_files[i] << "\n";
+    vw_out(InfoMessage, "plate") << "Loading index entries from blob file: " 
+                                 << m_plate_filename << "/" << blob_files[i] << "\n";
 
-    Blob blob(blob_files[i]);
+    Blob blob(m_plate_filename + "/" + blob_files[i]);
     Blob::iterator iter = blob.begin();
     while (iter != blob.end()) {
-      IndexRecord rec = *iter;
-      this->write_complete(rec);
+      TileHeader hdr = *iter;
+      m_root->insert(hdr.index_record(), hdr.col(), hdr.row(), hdr.depth());
       ++iter;
     }
   }
