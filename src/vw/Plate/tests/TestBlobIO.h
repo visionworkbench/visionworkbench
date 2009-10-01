@@ -35,8 +35,6 @@ public:
     hdr.set_col(0);
     hdr.set_row(0);
     hdr.set_depth(0);
-    hdr.mutable_index_record()->set_blob_id(10);
-    hdr.mutable_index_record()->set_blob_offset(232);
     unlink("/tmp/foo.blob");
 
     // First test, creates a new blob file.
@@ -58,9 +56,6 @@ public:
       TS_ASSERT_EQUALS(hdr.col(), hdr2.col());
       TS_ASSERT_EQUALS(hdr.row(), hdr2.row());
       TS_ASSERT_EQUALS(hdr.depth(), hdr2.depth());
-      TS_ASSERT_EQUALS(hdr.index_record().blob_id(), hdr2.index_record().blob_id());
-      TS_ASSERT_EQUALS(hdr.index_record().blob_offset(), hdr2.index_record().blob_offset());
-      TS_ASSERT_EQUALS(hdr.index_record().blob_offset(), hdr2.index_record().blob_offset());
     }
 
 
@@ -88,8 +83,6 @@ public:
     hdr.set_col(0);
     hdr.set_row(0);
     hdr.set_depth(0);
-    hdr.mutable_index_record()->set_blob_id(10);
-    hdr.mutable_index_record()->set_blob_offset(232);
 
     const char* f1 = "/tmp/foo.blob";
     const char* f2 = "/tmp/foo3.blob";
@@ -100,9 +93,8 @@ public:
     // Do one loop through the blob file, placing f1 into the file,
     // and then reading it back out and saving it as f2.
     int64 offset;
-    int32 size;
-    blob.write_from_file(f1, hdr, offset, size);
-    blob.read_to_file(f2, offset, size);
+    blob.write_from_file(f1, hdr, offset);
+    blob.read_to_file(f2, offset);
 
     // ----
 

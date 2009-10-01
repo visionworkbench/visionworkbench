@@ -33,53 +33,59 @@ public:
     boost::shared_ptr<Blob> blob(new Blob("/tmp/foo.blob"));
 
     // First, create some entries for the blob
-    IndexRecord dummy_record0;
-    dummy_record0.set_blob_id(0);
-    dummy_record0.set_blob_offset(9);
-    dummy_record0.set_block_size(1024);
-    dummy_record0.set_block_filetype("foo");
+    TileHeader dummy_header0;
+    dummy_header0.set_col(0);
+    dummy_header0.set_row(953);
+    dummy_header0.set_depth(3);
+    dummy_header0.set_epoch(1024);
+    dummy_header0.set_filetype("foo");
 
-    IndexRecord dummy_record1;
-    dummy_record1.set_blob_id(0);
-    dummy_record1.set_blob_offset(10);
-    dummy_record1.set_block_size(1024);
-    dummy_record1.set_block_filetype("tiff");
+    TileHeader dummy_header1;
+    dummy_header1.set_col(33);
+    dummy_header1.set_row(91);
+    dummy_header1.set_depth(321);
+    dummy_header1.set_epoch(1034);
+    dummy_header1.set_filetype("bar");
 
-    IndexRecord dummy_record2;
-    dummy_record2.set_blob_id(0);
-    dummy_record2.set_blob_offset(11);
-    dummy_record2.set_block_size(1024);
-    dummy_record2.set_block_filetype("png");
+    TileHeader dummy_header2;
+    dummy_header2.set_col(22);
+    dummy_header2.set_row(1);
+    dummy_header2.set_depth(322);
+    dummy_header2.set_epoch(1054);
+    dummy_header2.set_filetype("baz");
     
     // Write some dummy data to the file with various index entries
-    int64 offset = blob->write(dummy_record0, m_test_data, 20);
-    offset = blob->write(dummy_record1, m_test_data, 20);
-    offset = blob->write(dummy_record2, m_test_data, 20);
+    int64 offset = blob->write(dummy_header0, m_test_data, 20);
+    offset = blob->write(dummy_header1, m_test_data, 20);
+    offset = blob->write(dummy_header2, m_test_data, 20);
     
     // Create an iterator
     Blob::iterator iter = blob->begin();
 
-    IndexRecord result = *iter;
-    TS_ASSERT_EQUALS(result.blob_id(), dummy_record0.blob_id());
-    TS_ASSERT_EQUALS(result.blob_offset(), dummy_record0.blob_offset());
-    TS_ASSERT_EQUALS(result.block_size(), dummy_record0.block_size());
-    TS_ASSERT_EQUALS(result.block_filetype(), dummy_record0.block_filetype());
+    TileHeader result = *iter;
+    TS_ASSERT_EQUALS(result.col(), dummy_header0.col());
+    TS_ASSERT_EQUALS(result.row(), dummy_header0.row());
+    TS_ASSERT_EQUALS(result.depth(), dummy_header0.depth());
+    TS_ASSERT_EQUALS(result.epoch(), dummy_header0.epoch());
+    TS_ASSERT_EQUALS(result.filetype(), dummy_header0.filetype());
     TS_ASSERT_DIFFERS(iter, blob->end());
 
     ++iter;
     result = *iter;
-    TS_ASSERT_EQUALS(result.blob_id(), dummy_record1.blob_id());
-    TS_ASSERT_EQUALS(result.blob_offset(), dummy_record1.blob_offset());
-    TS_ASSERT_EQUALS(result.block_size(), dummy_record1.block_size());
-    TS_ASSERT_EQUALS(result.block_filetype(), dummy_record1.block_filetype());
+    TS_ASSERT_EQUALS(result.col(), dummy_header1.col());
+    TS_ASSERT_EQUALS(result.row(), dummy_header1.row());
+    TS_ASSERT_EQUALS(result.depth(), dummy_header1.depth());
+    TS_ASSERT_EQUALS(result.epoch(), dummy_header1.epoch());
+    TS_ASSERT_EQUALS(result.filetype(), dummy_header1.filetype());
     TS_ASSERT_DIFFERS(iter, blob->end());
 
     ++iter;
     result = *iter;
-    TS_ASSERT_EQUALS(result.blob_id(), dummy_record2.blob_id());
-    TS_ASSERT_EQUALS(result.blob_offset(), dummy_record2.blob_offset());
-    TS_ASSERT_EQUALS(result.block_size(), dummy_record2.block_size());
-    TS_ASSERT_EQUALS(result.block_filetype(), dummy_record2.block_filetype());
+    TS_ASSERT_EQUALS(result.col(), dummy_header2.col());
+    TS_ASSERT_EQUALS(result.row(), dummy_header2.row());
+    TS_ASSERT_EQUALS(result.depth(), dummy_header2.depth());
+    TS_ASSERT_EQUALS(result.epoch(), dummy_header2.epoch());
+    TS_ASSERT_EQUALS(result.filetype(), dummy_header2.filetype());
     TS_ASSERT_DIFFERS(iter, blob->end());
 
     ++iter;

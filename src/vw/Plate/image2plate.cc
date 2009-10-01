@@ -29,7 +29,7 @@ static std::string prefix_from_filename(std::string const& filename) {
 }
 
 int main( int argc, char *argv[] ) {
-  
+
   std::string output_file_name;
   std::string output_file_type;
   int tile_size;
@@ -90,7 +90,7 @@ int main( int argc, char *argv[] ) {
 
   DiskImageResourceJPEG::set_default_quality( jpeg_quality );
   DiskImageResourcePNG::set_default_compression_level( png_compression );
-  vw_system_cache().resize( cache_size*1024*1024 );
+  vw_settings().set_system_cache_size( cache_size*1024*1024 );
 
   std::vector<DiskImageView<PixelRGBA<uint8> > > images;
   std::vector<GeoReference> georefs;
@@ -167,8 +167,4 @@ int main( int argc, char *argv[] ) {
   
   std::cout << "\t--> Building mipmap levels\n";
   pm.mipmap();
-
-  std::cout << "Saving...\n";
-  platefile->save();
-
 }

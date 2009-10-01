@@ -20,7 +20,7 @@
 #include <boost/filesystem/convenience.hpp>
 
 // Protocol Buffer
-#include <vw/Plate/IndexRecord.pb.h>
+#include <vw/Plate/ProtoBuffers.pb.h>
 
 namespace fs = boost::filesystem;
 
@@ -109,50 +109,43 @@ namespace platefile {
   
   class PlateFile {
     std::string m_plate_name;
-    int m_default_block_size;;
+    int m_default_tile_size;;
     std::string m_default_file_type;
     boost::shared_ptr<IndexBase> m_index;
     FifoWorkQueue m_queue;
 
   public:
   
-    PlateFile(std::string filename, int default_block_size = 256, 
+    PlateFile(std::string plate_filename, int default_tile_size = 256, 
               std::string default_file_type = "jpg") : 
-      m_plate_name(filename), m_default_block_size(default_block_size),
+      m_plate_name(plate_filename), m_default_tile_size(default_tile_size),
       m_default_file_type(default_file_type) {
 
       // Plate files are stored as an index file and one or more data
       // blob files in a directory.  We create that directory here if
       // it doesn't already exist.
-      if( !exists( fs::path( filename, fs::native ) ) ) {
-        fs::create_directory(filename);
-        m_index = boost::shared_ptr<IndexBase>( new Index(default_block_size, default_file_type) );
+      if( !exists( fs::path( plate_filename, fs::native ) ) ) {
+        fs::create_directory(plate_filename);
+        m_index = boost::shared_ptr<IndexBase>( new Index(plate_filename, 
+                                                          default_tile_size, 
+                                                          default_file_type) );
         vw_out(DebugMessage, "platefile") << "Creating new plate file: \"" 
-                                          << filename << "\"\n";
+                                          << plate_filename << "\"\n";
 
       // However, if it does exist, then we attempt to open the
       // platefile that is stored there.
       } else {
-        try {
-          m_index = boost::shared_ptr<IndexBase>( new Index(filename + "/plate.index") );
-          vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" 
-                                            << filename << "\"\n";
-          m_default_block_size = m_index->default_block_size();
-          m_default_file_type = m_index->default_block_filetype();
-        } catch (IOErr &e) {
-          m_index = boost::shared_ptr<IndexBase>( new Index(default_block_size, default_file_type) );
-          vw_out(DebugMessage, "platefile") << "WARNING: Failed to re-open the plate file.  "
-                                            << "Creating a new plate file from scratch.";
-        }
+        m_index = boost::shared_ptr<IndexBase>( new Index(plate_filename) );
+        vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" 
+                                          << plate_filename << "\"\n";
+        m_default_tile_size = m_index->default_tile_size();
+        m_default_file_type = m_index->default_tile_filetype();
       }
-
+      
     }
 
     /// The destructor saves the platefile to disk. 
-    ~PlateFile() { this->save(); }
-
-    /// Force the Platefile to save its index to disk.
-    void save() { m_index->save(m_plate_name + "/plate.index"); }
+    ~PlateFile() {}
 
     /// Returns the name of the root directory containing the plate file.
     std::string name() const { return m_plate_name; }
@@ -160,72 +153,88 @@ namespace platefile {
     /// Returns the file type used to store tiles in this plate file.
     std::string default_file_type() const { return m_default_file_type; }
 
-    int default_block_size() const { return m_index->default_block_size(); }
+    int default_tile_size() const { return m_index->default_tile_size(); }
 
     int depth() const { return m_index->max_depth(); }
 
-    // Vector<int,2>  size_in_tiles() const  {}// return m_index.size(); }
-
-    // Vector<long,2> size_in_pixels() const {}// return size_in_tiles() * tile_size(); }
-
-    /// Read an image from the specified block location in the plate file.
+    /// Read an image from the specified tile location in the plate file.
     template <class PixelT>
-    IndexRecord read(ImageView<PixelT> &view, int col, int row, int depth) {
+    TileHeader read(ImageView<PixelT> &view, int col, int row, int depth, int epoch = 0) {
 
+      TileHeader result;
+      
       // 1. Call index read_request(col,row,depth).  Returns IndexRecord.
-      IndexRecord record = m_index->read_request(col, row, depth);
+      IndexRecord record = m_index->read_request(col, row, depth, epoch);
       if (record.valid()) {
         std::ostringstream blob_filename;
         blob_filename << m_plate_name << "/plate_" << record.blob_id() << ".blob";
 
-        // 2. Choose a temporary filename
-        std::string tempfile = TemporaryTileFile::unique_tempfile_name(record.block_filetype());
-
-        // 3. Call BlobIO read_as_file(filename, offset, size) [ offset, size from IndexRecord ]
+        // 2. Open the blob file and read the header
         Blob blob(blob_filename.str());
-        blob.read_to_file(tempfile, record.blob_offset(), record.block_size());
+        TileHeader header = blob.read_header<TileHeader>(record.blob_offset());
+
+        // 3. Choose a temporary filename and call BlobIO
+        // read_as_file(filename, offset, size) [ offset, size from
+        // IndexRecord ]
+        std::string tempfile = TemporaryTileFile::unique_tempfile_name(header.filetype());
+        blob.read_to_file(tempfile, record.blob_offset());
         TemporaryTileFile tile(tempfile);
 
         // 4. Read data from temporary file.
         view = tile.read<PixelT>();
+
+        // 5. Access the tile header and return it.
+        result = blob.read_header<TileHeader>(record.blob_offset());
+        return result;
+      } else {
+        vw_throw(TileNotFoundErr() << "Tile was found, but was marked invalid.");
+        return result; // never reached
       }
-      return record;
     }
 
-    /// Write an image to the specified block location in the plate file.
+    /// Write an image to the specified tile location in the plate file.
     template <class ViewT>
-    void write(int col, int row, int depth, ImageViewBase<ViewT> const& view) {      
+    void write(ImageViewBase<ViewT> const& view, 
+               int col, int row, int depth, int epoch = 0) {      
 
       // 1. Write data to temporary file. 
       TemporaryTileFile tile(view, m_default_file_type);
       std::string tile_filename = tile.file_name();
-      int64 tile_size = tile.file_size();
+      int64 file_size = tile.file_size();
 
       // 2. Make write_request(size) to index. Returns blob id.
-      int blob_id = m_index->write_request(tile_size);
+      int blob_id = m_index->write_request(file_size);
       std::ostringstream blob_filename;
       blob_filename << m_plate_name << "/plate_" << blob_id << ".blob";
 
       // 3. Create a blob and call write_from_file(filename).  Returns offset, size.
       Blob blob(blob_filename.str());
+
+      TileHeader write_header;
+      write_header.set_col(col);
+      write_header.set_row(row);
+      write_header.set_depth(depth);
+      write_header.set_epoch(epoch);
+      write_header.set_filetype(m_default_file_type);
+
       int64 blob_offset;
-      int32 block_size;
-      blob.write_from_file(tile_filename, blob_offset, block_size);
+      blob.write_from_file(tile_filename, write_header, blob_offset);
 
       // 4. Call write_complete(col, row, depth, record)
+
       IndexRecord write_record;
       write_record.set_blob_id(blob_id);
       write_record.set_blob_offset(blob_offset);
-      write_record.set_block_size(block_size);
-      write_record.set_block_filetype(m_default_file_type);
       write_record.set_valid(true);
-      m_index->write_complete(col, row, depth, write_record);
+
+      m_index->write_complete(write_header, write_record);
     }
 
-    // Returns true if the 
-    IndexRecord read_record(int col, int row, int depth) {
-      return m_index->read_request(col, row, depth);
+
+    IndexRecord read_record(int col, int row, int depth, int epoch = 0) {
+      return m_index->read_request(col, row, depth, epoch);
     }
+
   };
 
 

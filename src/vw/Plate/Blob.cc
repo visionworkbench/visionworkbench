@@ -73,8 +73,9 @@ boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset
 }
 
 /// Read data out of the blob and save it as its own file on disk.
-void vw::platefile::Blob::read_to_file(std::string dest_file, int64 offset, int64 size) {
+void vw::platefile::Blob::read_to_file(std::string dest_file, int64 offset) {
   boost::shared_array<uint8> data = this->read_data(offset);
+  uint32 size = this->data_size(offset);
 
   // Open the dest_file and write to it.
   std::ofstream ostr(dest_file.c_str(), std::ios::binary);

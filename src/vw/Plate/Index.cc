@@ -77,6 +77,7 @@ void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files
       IndexRecord rec;
       rec.set_blob_id(current_blob_id);
       rec.set_blob_offset(iter.current_base_offset());
+      rec.set_valid(true);
       m_root->insert(rec, hdr.col(), hdr.row(), hdr.depth(), hdr.epoch());
       ++iter;
     }
@@ -88,10 +89,9 @@ void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files
 
 /// Create a new index.  User supplies a pre-configure blob manager.
 vw::platefile::Index::Index( std::string plate_filename,
-                             int default_tile_size, std::string default_file_type,
-                             boost::shared_ptr<BlobManager> blob_manager) :
+                             int default_tile_size, std::string default_file_type) :
   m_plate_filename(plate_filename),
-  m_blob_manager(blob_manager), 
+  m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )), 
   m_root(boost::shared_ptr<TreeNode<IndexRecord> >( new TreeNode<IndexRecord>() )) {
 
   // First, check to make sure the platefile directory exists.
@@ -113,7 +113,8 @@ vw::platefile::Index::Index( std::string plate_filename,
 
 /// Open an existing index from a file on disk.
 vw::platefile::Index::Index(std::string plate_filename) : 
-  m_plate_filename(plate_filename),
+  m_plate_filename(plate_filename),                                    
+  m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )),
   m_root(boost::shared_ptr<TreeNode<IndexRecord> >( new TreeNode<IndexRecord>() )) {
 
   // First, check to make sure the platefile directory exists.

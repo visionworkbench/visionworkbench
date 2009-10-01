@@ -10,7 +10,7 @@
 #include <vw/Plate/common.h>
 
 // Protocols
-#include <vw/Plate/IndexRpc.pb.h>
+#include <vw/Plate/ProtoBuffers.pb.h>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;

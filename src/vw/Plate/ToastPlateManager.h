@@ -20,7 +20,7 @@
 #include <boost/filesystem/convenience.hpp>
 
 // Protocol Buffer
-#include <vw/Plate/IndexRecord.pb.h>
+#include <vw/Plate/ProtoBuffers.pb.h>
 
 namespace fs = boost::filesystem;
 
@@ -53,10 +53,10 @@ namespace platefile {
       
       virtual ~WritePlateFileTask() {}
       virtual void operator() () { 
-        std::cout << "\t    Generating block: [ " << m_j << " " << m_i 
+        std::cout << "\t    Generating tile: [ " << m_j << " " << m_i 
                   << " @ level " <<  m_depth << "]    BBox: " << m_bbox << "\n";
 
-        m_parent->write(m_i, m_j, m_depth, crop(m_view, m_bbox)); }
+        m_parent->write(crop(m_view, m_bbox), m_i, m_j, m_depth); }
     };
 
     // The Block Entry is used to keep track of the bounding box of
@@ -72,7 +72,7 @@ namespace platefile {
     ToastPlateManager(boost::shared_ptr<PlateFile> platefile, int num_threads) : 
       m_queue(num_threads), m_platefile(platefile) {}
 
-    /// The destructor saves the platefile to disk. 
+    /// Destructor
     ~ToastPlateManager() {}
 
     /// Tiles in the TOAST projection overlap with their neighbors (
@@ -112,15 +112,15 @@ namespace platefile {
       // Do some quick sanity checks
       VW_ASSERT(image.impl().cols()==image.impl().rows(), ArgumentErr() 
                 << "TOAST Mosaic  requires a square source image.");
-      VW_ASSERT(image.impl().cols()==((m_platefile->default_block_size()-1)*
+      VW_ASSERT(image.impl().cols()==((m_platefile->default_tile_size()-1)*
                                       (1<<(max_level))+1), ArgumentErr() 
                 << "TOAST mosaic requires a source image with dimensions (tilesize-1)*2^numlevels+1.");
 
       // chop up the image into small chunks
       std::vector<BlockEntry> bboxes = wwt_image_blocks( image.impl(), 
-                                                         m_platefile->default_block_size());
+                                                         m_platefile->default_tile_size());
       
-      // And save each block to the PlateFile
+      // And save each tile to the PlateFile
       for (int i = 0; i < bboxes.size(); ++i) {
         m_queue.add_task(boost::shared_ptr<Task>(new WritePlateFileTask<ViewT>(m_platefile, 
                                                                                bboxes[i].i, 
@@ -129,7 +129,7 @@ namespace platefile {
                                                                                image, 
                                                                                bboxes[i].bbox)));
       }
-      std::cout << "\t--> Preparing to rasterize " << m_queue.size() << " image blocks.\n";
+      std::cout << "\t--> Preparing to rasterize " << m_queue.size() << " image tiles.\n";
       m_queue.join_all();
     }
 
@@ -188,7 +188,8 @@ namespace platefile {
       ImageView<PixelRGBA<uint8> > tile;
       IndexRecord rec;
       try {
-        rec = m_platefile->read(tile, x, y, level);
+        m_platefile->read(tile, x, y, level);
+        rec = m_platefile->read_record(x, y, level);
       } catch (TileNotFoundErr &e) {} // Do nothing... the IndexRecord will be invalid. 
 
       // If the tile does not exist, then we try to regenerate it by
@@ -199,7 +200,7 @@ namespace platefile {
 
         // If none of the termination conditions are met, then we must
         // be at an invalid record that needs to be regenerated.
-        int tile_size = m_platefile->default_block_size();
+        int tile_size = m_platefile->default_tile_size();
 
         // Create an image large enough to store all of the child nodes
         ImageView<PixelRGBA<uint8> > super(4*tile_size-3, 4*tile_size-3);
@@ -231,7 +232,7 @@ namespace platefile {
                                 tile_size-1, tile_size-1, 2*tile_size, 2*tile_size ), 2 );
         
         if( ! is_transparent(tile) ) 
-          m_platefile->write(x, y, level, tile);
+          m_platefile->write(tile, x, y, level);
 
       }
 
@@ -253,7 +254,7 @@ namespace platefile {
 
     void mipmap() { 
       ImageView<PixelRGBA<uint8> > tile = this->load_tile(0,0,0); 
-      m_platefile->write(0,0,0,tile);
+      m_platefile->write(tile,0,0,0);
     }
   };
 

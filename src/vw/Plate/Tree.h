@@ -177,6 +177,7 @@ namespace platefile {
 
     /// ... or use this contructor for the root of the tree.
     TreeNode(ElementT const& record, int epoch = 0) : m_max_depth(0) {
+      m_records[epoch] = record;
       m_children.resize(4);
     }
 

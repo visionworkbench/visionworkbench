@@ -71,9 +71,7 @@ namespace platefile {
 
     /// Create a new, empty index.
     Index( std::string plate_filename, 
-           int default_tile_size, std::string default_file_type,
-           boost::shared_ptr<BlobManager> blob_manager = 
-           boost::shared_ptr<BlobManager>( new BlobManager() ) );
+           int default_tile_size, std::string default_file_type);
 
     /// Open an existing index from a file on disk.
     Index(std::string plate_filename);

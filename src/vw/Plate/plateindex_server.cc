@@ -6,7 +6,7 @@
 
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Amqp.h>
-#include <vw/Plate/IndexRpc.pb.h>
+#include <vw/Plate/ProtoBuffers.pb.h>
 #include <vw/Plate/common.h>
 
 #include <boost/program_options.hpp>

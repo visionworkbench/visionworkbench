@@ -31,7 +31,7 @@ namespace platefile {
   
     std::string m_blob_filename;
 
-    BlobRecord read_blob_record(std::ifstream &ifstr, uint16 &blob_record_size) {
+    BlobRecord read_blob_record(std::ifstream &ifstr, uint16 &blob_record_size) const {
       // Read the blob record
       ifstr.read((char*)(&blob_record_size), sizeof(blob_record_size));
       boost::shared_array<uint8> blob_rec_data(new uint8[blob_record_size]);
@@ -154,7 +154,7 @@ namespace platefile {
       uint16 blob_record_size;
       BlobRecord blob_record = this->read_blob_record(ifstr, blob_record_size);
       
-      // The overall blob metadat includes the uint16 of the
+      // The overall blob metadata includes the uint16 of the
       // blob_record_size in addition to the size of the blob_record
       // itself.  The offsets stored in the blob_record are relative to
       // the END of the blob_record.  We compute this offset here.
@@ -191,6 +191,22 @@ namespace platefile {
 
     /// Returns the binary data for an entry starting at base_offset.
     boost::shared_array<uint8> read_data(vw::uint64 base_offset);
+
+    /// Returns the data size
+    uint32 data_size(uint64 base_offset) const {
+      std::ifstream ifstr(m_blob_filename.c_str(), std::ios::in | std::ios::binary);
+      if (!ifstr.is_open()) 
+        vw_throw(IOErr() << "Blob::read_header(): could not open blob file \"" 
+                 << m_blob_filename << "\".");
+
+      // Seek to the requested offset and read the header and data offset
+      ifstr.seekg(base_offset, std::ios_base::beg);
+
+      // Read the blob record
+      uint16 blob_record_size;
+      BlobRecord blob_record = this->read_blob_record(ifstr, blob_record_size);
+      return blob_record.data_size();
+    }
 
     /// Write a tile to the blob file. You must supply the header
     /// (e.g. a serialized TileHeader protobuffer) and the data as
@@ -240,12 +256,12 @@ namespace platefile {
 
 
     /// Read data out of the blob and save it as its own file on disk.
-    void read_to_file(std::string dest_file, vw::int64 offset, vw::int64 size);
+    void read_to_file(std::string dest_file, vw::int64 offset);
 
     /// Write the data file to disk, and the concatenate it into the data blob.
     template <class ProtoBufT>
     void write_from_file(std::string source_file, ProtoBufT const& header, 
-                         int64& base_offset, int32& data_size) {
+                         int64& base_offset) {
       
       // Open the source_file and read data from it.
       std::ifstream istr(source_file.c_str(), std::ios::binary);
@@ -256,7 +272,7 @@ namespace platefile {
       // Seek to the end and allocate the proper number of bytes of
       // memory, and then seek back to the beginning.
       istr.seekg(0, std::ios_base::end);
-      data_size = istr.tellg();
+      uint32 data_size = istr.tellg();
       istr.seekg(0, std::ios_base::beg);
       
       // Read the data into a temporary memory buffer.
