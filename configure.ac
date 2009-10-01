@@ -273,16 +273,20 @@ AC_MSG_RESULT([$VW_HAS_BIGTIFF])
 
 AX_PKG(PROJ4, [M], [-lproj], [projects.h])
 
-# Qt with AutoTroll.
-AT_WITH_QT([+gui +sql +opengl], [], [], [HAVE_PKG_QT_BASE="no:missing QT"], [])
+if test x"$HAVE_PKG_QT" = "xno"; then
+  AX_GROUP_PKG([QT_BASE])
+else
+  # Qt with AutoTroll.
+  AT_WITH_QT([+gui +sql +opengl], [], [], [HAVE_PKG_QT_BASE="no:missing QT"], [])
 
-if test x"$HAVE_PKG_QT_BASE" != x"no:missing QT"; then
-    AT_REQUIRE_QT_VERSION([4.0], [HAVE_PKG_QT_BASE="no:wrong QT version"], [])
+  if test x"$HAVE_PKG_QT_BASE" != x"no:missing QT"; then
+      AT_REQUIRE_QT_VERSION([4.0], [HAVE_PKG_QT_BASE="no:wrong QT version"], [])
+  fi
+
+  # We seed QT_BASE's cppflags and libs with the ones qmake figured out
+  PKG_QT_BASE_CPPFLAGS="$PKG_QT_BASE_CPPFLAGS $QT_CPPFLAGS"
+  AX_PKG(QT_BASE, [], [$QT_LIBS], [QVector])
 fi
-
-# We seed QT_BASE's cppflags and libs with the ones qmake figured out
-PKG_QT_BASE_CPPFLAGS="$PKG_QT_BASE_CPPFLAGS $QT_CPPFLAGS"
-AX_PKG(QT_BASE, [], [$QT_LIBS], [QVector])
 
 AX_PKG_ONE_OF(QT,
     APPLE_QT, [AX_PKG_APPLE(QT, [GL QT_BASE], [])],
