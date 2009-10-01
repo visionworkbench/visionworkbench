@@ -1,0 +1,108 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006, 2007 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+package vw.platefile;
+
+// ----------------------------------------------------------------------
+//               Index file & Blob file Data Structures
+// ----------------------------------------------------------------------
+
+// Each entry in the blob file is described by a BlobRecord.  This
+// allows us to save and access data and headers with variable
+// positioning and length.  BlobRecords are stored in the blob files:
+// <platefile>/plate_<#>.blob
+message BlobRecord {
+  required uint32 header_offset = 1;
+  required uint32 header_size = 2;
+  required uint32 data_offset = 3;
+  required uint32 data_size = 4;
+}
+
+// The IndexHeader store basic metadata for the platefile, such as the
+// default block size, file type, and map projection information.
+// This is typically stored in the <platfile>/plate.index file.
+message IndexHeader {
+  optional int32 platefile_version = 1;
+  optional uint32 default_block_size = 2;
+  optional string default_file_type = 3;
+}
+
+// ----------------------------------------------------------------------
+//                         Tile Data Structures
+// ----------------------------------------------------------------------
+
+// The IndexRecord stores basic metadata for locating a tile in a
+// blob.  The IndexRecord is used to store this information in a live
+// index (in main memory), and can also be stored as part of a
+// TileHeader, which is written to the blob file on disk.  Other
+// metadata about that tile is stored alongside the tile itself in the
+// blobfile in a TileRecord protobufer (see below).
+message IndexRecord {
+  required uint32 blob_id = 1;
+  required uint64 blob_offset = 2;
+  optional bool valid = 3 [ default = false ];
+}
+
+// The TileRecord store metadata about the tile itself as well as the
+// information needed to place the tile back into the index tree.  The
+// [col, row, depth, epoch] info can be used to reconstruct the index
+// by reading TileRecords in the blob files.
+message TileHeader {
+  required IndexRecord index_record = 1;
+  required int32 col = 2;
+  required int32 row = 3;
+  required int32 depth = 4;
+  optional uint64 epoch = 5 [ default = 0 ];
+  optional string filetype = 10 [ default = 'jpg' ];
+}
+
+// ----------------------------------------------------------------------
+//             Remote Procedure Calls (RPC) for Index Server
+// ----------------------------------------------------------------------
+
+
+// ----------------------------------
+// Client --> Server Requests
+// ----------------------------------
+
+message IndexReadRequest {
+  optional string requestor = 10;
+  optional string platefile = 11;
+  required int32 col = 1;
+  required int32 row = 2;
+  required int32 depth = 3;
+}
+
+message IndexWriteRequest {
+  optional string requestor = 10;
+  optional string platefile = 11;
+  required int32 size = 1;
+}
+
+message IndexWriteComplete {
+  optional string requestor = 10;
+  optional string platefile = 11;
+  required int32 col = 1;
+  required int32 row = 2;
+  required int32 depth = 3;
+  required IndexRecord record = 4;
+}
+
+// ----------------------------------
+// Server --> Client Responses
+// ----------------------------------
+
+message IndexError {
+  required string message = 1;
+}
+
+message IndexReadResponse {
+  optional IndexRecord index_record = 10;
+}
+
+message IndexWriteResponse {
+  optional int32 blob_id = 10;
+}

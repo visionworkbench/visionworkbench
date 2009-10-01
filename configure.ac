@@ -180,6 +180,7 @@ if test x"$HAVE_PKG_BOOST" == "xyes"; then
   AX_PKG_BOOST_LIB(PROGRAM_OPTIONS, [-lboost_program_options], [boost/program_options.hpp])
   AX_PKG_BOOST_LIB(SYSTEM,          [-lboost_system],          [boost/system/error_code.hpp])
   AX_PKG_BOOST_LIB(FILESYSTEM,      [-lboost_filesystem],      [boost/filesystem/path.hpp], [$PKG_BOOST_SYSTEM_LIBS])
+  AX_PKG_BOOST_LIB(REGEX,           [-lboost_regex],           [boost/regex.hpp])
   AX_PKG_BOOST_LIB(DATETIME,        [-lboost_date_time],       [boost/date_time/gregorian/gregorian_types.hpp])
   AX_PKG_BOOST_LIB(THREAD,          [-lboost_thread],          [boost/thread/thread.hpp],   [$PKG_BOOST_DATETIME_LIBS], [boost/thread/condition.hpp])
   AX_PKG_BOOST_LIB(IOSTREAMS,       [-lboost_iostreams],       [boost/iostreams/stream_buffer.hpp])
@@ -351,7 +352,7 @@ if test $host_vendor = apple; then
 else
   AX_MODULE(GPU,         [src/vw/GPU],           [libvwGPU.la],           no,  [VW],        [GL GLEW],          [CG])
 fi
-AX_MODULE(PLATE, [src/vw/Plate], [libvwPlate.la], no, [VW], [RABBITMQ_C PROTOBUF BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS], [TCMALLOC])
+AX_MODULE(PLATE, [src/vw/Plate], [libvwPlate.la], no, [VW], [RABBITMQ_C PROTOBUF BOOST_FILESYSTEM BOOST_REGEX BOOST_PROGRAM_OPTIONS THREADS], [TCMALLOC])
 
 AX_MODULE(TOOLS, [src/vw/tools], [], yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
 AX_MODULE(GUI,   [src/vw/gui],   [], no, [VW], [QT BOOST_PROGRAM_OPTIONS GL])

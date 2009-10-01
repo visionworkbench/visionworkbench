@@ -9,7 +9,7 @@
 
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/BlobManager.h>
-#include <vw/Plate/IndexRecord.pb.h>
+#include <vw/Plate/ProtoBuffers.pb.h>
 
 using namespace std;
 using namespace vw;
@@ -30,8 +30,13 @@ public:
 
   void test_write_then_read()
   {
-    IndexRecord rec; 
-    rec.set_block_size(22);
+    TileHeader hdr; 
+    hdr.set_filetype("tif");
+    hdr.set_col(0);
+    hdr.set_row(0);
+    hdr.set_depth(0);
+    hdr.mutable_index_record()->set_blob_id(10);
+    hdr.mutable_index_record()->set_blob_offset(232);
     unlink("/tmp/foo.blob");
 
     // First test, creates a new blob file.
@@ -39,13 +44,23 @@ public:
       Blob blob("/tmp/foo.blob");
     
       // Write the data to the file.
-      int64 offset = blob.write(rec, m_test_data, 20);
+      int64 offset = blob.write(hdr, m_test_data, 20);
 
-      // Read it back in.
+      // Test reading of the data
       boost::shared_array<uint8> m_verify_data = blob.read_data(offset);
 
       for (int i = 0; i < 20; ++i) 
         TS_ASSERT_EQUALS( m_test_data[i], m_verify_data[i] );
+
+      // Test Reading of the header
+      TileHeader hdr2 = blob.read_header<TileHeader>(offset);
+      TS_ASSERT_EQUALS(hdr.filetype(), hdr2.filetype());
+      TS_ASSERT_EQUALS(hdr.col(), hdr2.col());
+      TS_ASSERT_EQUALS(hdr.row(), hdr2.row());
+      TS_ASSERT_EQUALS(hdr.depth(), hdr2.depth());
+      TS_ASSERT_EQUALS(hdr.index_record().blob_id(), hdr2.index_record().blob_id());
+      TS_ASSERT_EQUALS(hdr.index_record().blob_offset(), hdr2.index_record().blob_offset());
+      TS_ASSERT_EQUALS(hdr.index_record().blob_offset(), hdr2.index_record().blob_offset());
     }
 
 
@@ -55,7 +70,7 @@ public:
     
       // Write the data to the file.
       
-      int64 offset = blob.write(rec, m_test_data, 20);
+      int64 offset = blob.write(hdr, m_test_data, 20);
       
       // Read it back in.
       boost::shared_array<uint8> m_verify_data = blob.read_data(offset);
@@ -67,8 +82,14 @@ public:
   }
 
   void test_file_write_read() {
-    IndexRecord rec; 
-    rec.set_block_size(22);
+
+    TileHeader hdr;
+    hdr.set_filetype("tif");
+    hdr.set_col(0);
+    hdr.set_row(0);
+    hdr.set_depth(0);
+    hdr.mutable_index_record()->set_blob_id(10);
+    hdr.mutable_index_record()->set_blob_offset(232);
 
     const char* f1 = "/tmp/foo.blob";
     const char* f2 = "/tmp/foo3.blob";
@@ -80,7 +101,7 @@ public:
     // and then reading it back out and saving it as f2.
     int64 offset;
     int32 size;
-    blob.write_from_file(f1, rec, offset, size);
+    blob.write_from_file(f1, hdr, offset, size);
     blob.read_to_file(f2, offset, size);
 
     // ----

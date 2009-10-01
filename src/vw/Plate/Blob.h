@@ -16,7 +16,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Log.h>
 
-#include <vw/Plate/IndexRecord.pb.h>
+#include <vw/Plate/ProtoBuffers.pb.h>
 
 namespace fs = boost::filesystem;
 

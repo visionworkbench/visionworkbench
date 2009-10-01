@@ -29,6 +29,7 @@ namespace platefile {
     TreeNode<ElementT> *m_parent;
     std::vector<boost::shared_ptr<TreeNode<ElementT> > > m_children;
     ElementT m_record;
+    int m_max_depth;
 
     // ------------------------ Private Methods -----------------------------
 
@@ -166,18 +167,18 @@ namespace platefile {
     // ------------------------ Public Methods -----------------------------
 
     /// Use this contructor for the root of the tree....
-    TreeNode() {
+    TreeNode() : m_max_depth(0) {
       m_children.resize(4);
     }
 
     /// ... or use this contructor for the root of the tree.
-    TreeNode(ElementT const& record) : m_record(record) {
+    TreeNode(ElementT const& record) : m_record(record), m_max_depth(0) {
       m_children.resize(4);
     }
 
     /// Use this contstructor to add record data immediately.
     TreeNode(TreeNode *parent, ElementT const& record) :
-      m_parent(parent), m_record(record) {
+      m_parent(parent), m_record(record), m_max_depth(0) {
       m_children.resize(4);
     }
     
@@ -205,6 +206,9 @@ namespace platefile {
     const ElementT& value() const { return m_record; }
 
 
+    /// Query max depth of tree.
+    int max_depth() const { return m_max_depth; }
+
 
     // Search for a node at a given col, row, and level.
     ElementT search(int col, int row, int level) {
@@ -216,6 +220,8 @@ namespace platefile {
     // along the way, as needed.
     void insert(ElementT const& record, int col, int row, int level) {
       this->insert_helper(record, col, row, level, 0);
+      if (level > m_max_depth)
+        m_max_depth = level;
     }
 
     /// Print the tree.  (Use only for debugging small trees....)
