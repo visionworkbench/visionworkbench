@@ -210,7 +210,12 @@ Here there be text
 
 \subsection{Pyramid-based Search Refinement}
 
-Here there be text
+Pyramid-based searches are pretty straight forward. Our first step is
+producing a gaussian pyramid of the input images. This means
+repeatedly blurring the image a small amount and then subsampling by
+2. The highest level of the pyramid is the smallest image as it has
+been subsampled the most. The top level is where we start our template
+matching.
 
 \begin{figure}[h]
 \begin{center}
@@ -220,14 +225,73 @@ Here there be text
   \label{fig:pyramid_search}
 \end{figure}
 
-Here there be text
+From the top level our search range for the kernel has been reduced
+greatly so it's processing time is very short. The disparity map
+created with the reduced imagery is then used as a seed for the next
+lower level of the pyramid. This is wonderful as the previous results
+from a higher level will have the template window searching roughly in
+the correct area and that means the search region is kept relatively
+small. Using the pyramid search, each level is used as a seed for the
+next lowest level until the bottom is reached. The result for the
+lowest level is the disparity map for the original resolution imagery.
 
 \section{Subpixel Refinement}
 \label{sec:subpixel_refinement}
 
+After disparity image is created with {\tt CorrelatorView}, it is very
+coarse and exhibits what looks like stair steps in the 3D model. This
+is because CorrelatorView has solved for the disparity using only
+whole numbers. Subpixel Refinement further polishes the disparity map
+into floating point precision. This additional step can be accessed
+can be found in {\tt <vw/Stereo/SubpixelView.h>}.
+
+\begin{verbatim}
+disparity_map = SubpixelView<LogStereoPreprocessingFilter>(disparity_map_integer,
+        left_image, right_image,
+        25, 25,          // Kernel size
+        true, true,      // Do H V subpixel
+        0,               // Subpixel mode
+        LogStereoPreprocessingFilter(1.5),
+        false);          // Verbose option
+\end{verbatim}
+
+Above is an example of code using {\tt SubpixelView}. The first few
+arguments should be pretty straight forward. It's the disparity map
+created from {\tt CorrelatorView} and then the left and right original
+images. The next two numbers are the kernel size to be used, these do
+not need to be the same as what was used in integer correlation. After
+that are two boolean conditionals that turn on horizontal and vertical
+subpixel. Normally both of those values should be true. Yet for some
+applications where speed is important, subpixel is only turned on for
+one direction.
+
+The last three are self explanatory except Subpixel mode. Stereo
+module currently has 4 different sub pixel refinement algorithms and
+with each increment they have better quality but at the cost of
+speed. Mode 0 is parabola fitting and the fastest. It discussed in the
+next subsection. Modes 1-3 are forms of affine kernel algorithms and
+are discussed in the subsection \ref{sec:affine_subpixel}. Of these
+modes, it is suggested starting out with Mode 0 and then when time is
+not important jump directly to using Mode 3.
+
+\begin{table}[htb]\begin{centering}
+\begin{tabular}{|c|c|p{3.5 in}|} \hline
+Mode & Name & Description \\ \hline \hline
+0 & \verb#Parabola Subpixel# & Simplest and fastest subpixel mode. \\ \hline
+1 & \verb#Robust Affine Subpixel# & Affine window subpixel with robust cost functions. \\ \hline
+2 & \verb#Bayes Affine Subpixel# & Affine with gaussian weighted window. \\ \hline
+3 & \verb#Bayes EM Affine Subpixel# & Affine with estimated parameters for gaussian weighted window\\ \hline
+4 & \verb#Experimental Subpixel# & Affine with estimated parameters for gamma and gaussian weighted windows that correspond to inlier and outlier models\\ \hline
+\end{tabular}
+\caption{Available Subpixel modes.}
+\label{tbl:subpixel-modes}
+\end{centering}\end{table}
+
 \subsection{Parabola Fitting in the Disparity Space Image}
+\label{sec:parabola_subpixel}
 
 \subsection{Affine-adaptive Subpixel Refinement}
+\label{sec:affine_subpixel}
 
 Text
 
