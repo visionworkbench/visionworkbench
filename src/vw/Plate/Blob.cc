@@ -1,3 +1,9 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006, 2007 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
 #include <vw/Plate/Blob.h>
 
 // Vision Workbench
@@ -20,25 +26,7 @@ using namespace vw;
 // -------------------------------------------------------------------
 
 // Constructor stores the blob filename for reading & writing
-vw::platefile::Blob::Blob(std::string filename) : m_blob_filename(filename) {
-
-  // Open the blob file (creating if necessary) for reading and writing.
-  std::ofstream ofstr(m_blob_filename.c_str(), std::ios::out | std::ios::binary);
-
-  if (!ofstr.is_open()) 
-    vw_throw(IOErr() << "Blob::Blob(): could not open or create blob file \"" << filename << "\".");
-
-  // Measure the size of the opened file.  If the size is zero, then
-  // this must be a brand new blob file, and we need to write some
-  // basic header info to the file.
-  ofstr.seekp(0, std::ios_base::end);
-  uint64 size = ofstr.tellp();
-  if (size == 0) {
-    uint64 write_index = 0;
-    ofstr.write((char*)(&write_index), sizeof(write_index));
-  }
-  ofstr.close();
-}
+vw::platefile::Blob::Blob(std::string filename) : m_blob_filename(filename) {}
 
 vw::platefile::Blob::~Blob() {}
 
@@ -55,14 +43,7 @@ boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset
 
   // Read the blob record
   uint16 blob_record_size;
-  ifstr.read((char*)(&blob_record_size), sizeof(blob_record_size));
-  boost::shared_array<uint8> blob_rec_data(new uint8[blob_record_size]);
-  ifstr.read((char*)(blob_rec_data.get()), blob_record_size);
-  BlobRecord blob_record;
-  bool worked = blob_record.ParseFromArray(blob_rec_data.get(),  blob_record_size);
-  if (!worked)
-    vw_throw(IOErr() << "Blob::read_data() -- an error occurred while deserializing the header "
-             << "from the blob file.\n");
+  BlobRecord blob_record = this->read_blob_record(ifstr, blob_record_size);
 
   // The overall blob metadat includes the uint16 of the
   // blob_record_size in addition to the size of the blob_record

@@ -1,3 +1,9 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006, 2007 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
 #ifndef __VW_PLATE_BLOBIO__
 #define __VW_PLATE_BLOBIO__
 
@@ -25,15 +31,109 @@ namespace platefile {
   
     std::string m_blob_filename;
 
+    BlobRecord read_blob_record(std::ifstream &ifstr, uint16 &blob_record_size) {
+      // Read the blob record
+      ifstr.read((char*)(&blob_record_size), sizeof(blob_record_size));
+      boost::shared_array<uint8> blob_rec_data(new uint8[blob_record_size]);
+      ifstr.read((char*)(blob_rec_data.get()), blob_record_size);
+      BlobRecord blob_record;
+      bool worked = blob_record.ParseFromArray(blob_rec_data.get(),  blob_record_size);
+      if (!worked)
+        vw_throw(IOErr() << "Blob::read_blob_record() -- an error occurred while deserializing the header "
+                 << "from the blob file.\n");
+      return blob_record;
+    }
+
   public:
+
+    // ------------------------ Blob Iterator ------------------------------
+
+    /// An STL-compliant iterator for iterating over the index entries
+    /// in a blob.  This can be used by Index.h to read in and rebuild
+    /// the Index tree.
+    class iterator : public boost::iterator_facade<Blob::iterator, IndexRecord,
+                                                   boost::forward_traversal_tag,
+                                                   IndexRecord, int64> {
+      
+      // This is required for boost::iterator_facade
+      friend class boost::iterator_core_access;
+
+      // Private variables
+      Blob& m_blob;
+      int64 m_current_base_offset;
+      
+      // Iterator methods.  The boost iterator facade takes these and
+      // uses them to construct normal iterator methods.
+      bool equal (iterator const& iter) const { return (m_current_base_offset >= iter.m_current_base_offset); }
+      void increment() { m_current_base_offset = m_blob.next_base_offset(m_current_base_offset); }
+      IndexRecord const dereference() const { return m_blob.read_header<IndexRecord>(m_current_base_offset); }
+      
+    public:
+      
+      // Constructors
+      iterator( Blob &blob, uint64 base_offset ) : m_blob(blob),
+                                                   m_current_base_offset(base_offset) {}
+      
+      // The compiler does not like the default copy constructor and 
+      // assignment operators when using the m_view variable, for some 
+      // reason, so we override them here.
+      iterator( iterator const& cpy ) : m_blob(cpy.m_blob),
+                                        m_current_base_offset(cpy.m_current_base_offset) {}
+      
+      iterator& operator=( iterator const &cpy ) {
+        m_blob = cpy.m_blob;
+        m_current_base_offset = cpy.m_current_base_offset;
+        return *this;
+      }
+      
+    };
     
-    // Constructor opens the blob file (and its journal) for reading &
-    // writing.
+    // -----------------------------------------------------------------------
+
+
+    /// Constructor
     Blob(std::string filename);
 
     /// The destructor flushes any unwritten journal entries and
     /// closes the blob and journal files.
     ~Blob();
+
+    uint64 size() const { 
+      std::ifstream ifstr(m_blob_filename.c_str(), std::ios::in | std::ios::binary);
+      if (!ifstr.is_open()) 
+        vw_throw(IOErr() << "Blob::size(): could not open blob file \"" << m_blob_filename << "\".");
+      
+      // Seek to the requested offset and read the header and data offset
+      ifstr.seekg(0, std::ios_base::end);
+      uint64 size = ifstr.tellg();
+      ifstr.close();
+      return size;
+    }
+
+    /// Returns an iterator pointing to the first IndexRecord in the blob.
+    iterator begin() { return iterator(*this, uint64(0) ); } // uint64(0) is the very first byte in the file.
+
+    /// Returns an iterator pointing one past the last IndexRecord in the blob.
+    iterator end() { return iterator(*this, this->size() ); }
+
+    uint64 next_base_offset(uint64 current_base_offset) {
+      std::ifstream ifstr(m_blob_filename.c_str(), std::ios::in | std::ios::binary);
+      if (!ifstr.is_open()) 
+        vw_throw(IOErr() << "Blob::next_base_offset(): could not open blob file \"" << m_blob_filename << "\".");
+
+      // Seek to the requested offset and read the header and data offset
+      ifstr.seekg(current_base_offset, std::ios_base::beg);
+      
+      // Read the blob record
+      uint16 blob_record_size;
+      BlobRecord blob_record = this->read_blob_record(ifstr, blob_record_size);
+
+      uint32 blob_offset_metadata = sizeof(blob_record_size) + blob_record_size;
+      uint64 next_offset = current_base_offset + blob_offset_metadata + blob_record.data_offset() + blob_record.data_size();
+
+      ifstr.close();
+      return next_offset;
+    }
 
 
     /// Returns binary index record (a serialized protobuffer) for an
@@ -50,14 +150,7 @@ namespace platefile {
 
       // Read the blob record
       uint16 blob_record_size;
-      ifstr.read((char*)(&blob_record_size), sizeof(blob_record_size));
-      boost::shared_array<uint8> blob_rec_data(new uint8[blob_record_size]);
-      ifstr.read((char*)(blob_rec_data.get()), blob_record_size);
-      BlobRecord blob_record;
-      bool worked = blob_record.ParseFromArray(blob_rec_data.get(),  blob_record_size);
-      if (!worked)
-        vw_throw(IOErr() << "Blob::read_data() -- an error occurred while deserializing the header "
-                 << "from the blob file.\n");
+      BlobRecord blob_record = this->read_blob_record(ifstr, blob_record_size);
       
       // The overall blob metadat includes the uint16 of the
       // blob_record_size in addition to the size of the blob_record
@@ -82,7 +175,7 @@ namespace platefile {
 
       // Deserialize the header
       ProtoBufT header;
-      worked = header.ParseFromArray(data.get(),  size);
+      bool worked = header.ParseFromArray(data.get(),  size);
       if (!worked)
         vw_throw(IOErr() << "Blob::read() -- an error occurred while deserializing the header "
                  << "from the blob file.\n");
@@ -90,6 +183,7 @@ namespace platefile {
       vw::vw_out(vw::VerboseDebugMessage, "plate::blob") << "Blob::read() -- read " 
                                                          << size << " bytes at " << offset
                                                          << " from " << m_blob_filename << "\n";
+      ifstr.close();
       return header;
     }
 
