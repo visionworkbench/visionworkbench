@@ -60,7 +60,7 @@ namespace platefile {
 
       // Private variables
       Blob& m_blob;
-      int64 m_current_base_offset;
+      uint64 m_current_base_offset;
       
       // Iterator methods.  The boost iterator facade takes these and
       // uses them to construct normal iterator methods.
@@ -85,6 +85,8 @@ namespace platefile {
         m_current_base_offset = cpy.m_current_base_offset;
         return *this;
       }
+
+      uint64 current_base_offset() const { return m_current_base_offset; }
       
     };
     

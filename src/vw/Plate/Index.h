@@ -41,7 +41,7 @@ namespace platefile {
 
     // Writing, pt. 2: Supply information to update the index and
     // unlock the blob id.
-    virtual void write_complete(int col, int row, int depth, IndexRecord record) = 0;
+    virtual void write_complete(TileHeader const& header, IndexRecord const& record) = 0;
 
     // virtual void save(std::string const& filename) = 0;
 
@@ -100,7 +100,7 @@ namespace platefile {
 
     // Writing, pt. 2: Supply information to update the index and
     // unlock the blob id.
-    virtual void write_complete(int col, int row, int depth, IndexRecord record);
+    virtual void write_complete(TileHeader const& header, IndexRecord const& record);
 
     /// Use only for debugging small trees.
     void print() { m_root->print(); }

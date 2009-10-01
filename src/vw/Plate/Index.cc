@@ -57,11 +57,24 @@ void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files
     vw_out(InfoMessage, "plate") << "Loading index entries from blob file: " 
                                  << m_plate_filename << "/" << blob_files[i] << "\n";
 
+    // Extract the current blob id
+    boost::regex re;
+    re.assign("(plate_)(\\d+)(\\.blob)", boost::regex_constants::icase);
+    boost::cmatch matches;
+    boost::regex_match(blob_files[i].c_str(), matches, re);
+    if (matches.size() != 4)
+      vw_throw(IOErr() << "Index::load_index() -- could not parse blob number from blob filename.");
+    std::string blob_id_str(matches[2].first, matches[2].second);
+    int current_blob_id = atoi(blob_id_str.c_str());
+    
     Blob blob(m_plate_filename + "/" + blob_files[i]);
     Blob::iterator iter = blob.begin();
     while (iter != blob.end()) {
       TileHeader hdr = *iter;
-      m_root->insert(hdr.index_record(), hdr.col(), hdr.row(), hdr.depth());
+      IndexRecord rec;
+      rec.set_blob_id(current_blob_id);
+      rec.set_blob_offset(iter.current_base_offset());
+      m_root->insert(rec, hdr.col(), hdr.row(), hdr.depth());
       ++iter;
     }
   }
@@ -195,10 +208,10 @@ int vw::platefile::Index::write_request(int size) {
 
 // Writing, pt. 2: Supply information to update the index and
 // unlock the blob id.
-void vw::platefile::Index::write_complete(int col, int row, int depth, IndexRecord record) {
+void vw::platefile::Index::write_complete(TileHeader const& header, IndexRecord const& record) {
   m_blob_manager->release_lock(record.blob_id()); 
 
   Mutex::Lock lock(m_mutex);
-  m_root->insert(record, col, row, depth);
+  m_root->insert(record, header.col(), header.row(), header.depth());
 }
 
