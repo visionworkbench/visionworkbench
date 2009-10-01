@@ -51,13 +51,16 @@ std::vector<std::string> vw::platefile::Index::blob_filenames() const {
   return result;
 }
 
+// Load index entries by iterating through TileHeaders saved in the
+// blob file.  This function essentially rebuilds an index in memory
+// using entries that had been previously saved to disk.
 void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files) {
 
   for (unsigned int i = 0; i < blob_files.size(); ++i) {
     vw_out(InfoMessage, "plate") << "Loading index entries from blob file: " 
                                  << m_plate_filename << "/" << blob_files[i] << "\n";
 
-    // Extract the current blob id
+    // Extract the current blob id as an integer.
     boost::regex re;
     re.assign("(plate_)(\\d+)(\\.blob)", boost::regex_constants::icase);
     boost::cmatch matches;
@@ -74,7 +77,7 @@ void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files
       IndexRecord rec;
       rec.set_blob_id(current_blob_id);
       rec.set_blob_offset(iter.current_base_offset());
-      m_root->insert(rec, hdr.col(), hdr.row(), hdr.depth());
+      m_root->insert(rec, hdr.col(), hdr.row(), hdr.depth(), hdr.epoch());
       ++iter;
     }
   }
@@ -195,9 +198,9 @@ vw::platefile::Index::Index(std::string plate_filename) :
 
 /// Attempt to access a tile in the index.  Throws an
 /// TileNotFoundErr if the tile cannot be found.
-IndexRecord vw::platefile::Index::read_request(int col, int row, int depth) {
+IndexRecord vw::platefile::Index::read_request(int col, int row, int depth, int epoch) {
   Mutex::Lock lock(m_mutex);
-  return m_root->search(col, row, depth);
+  return m_root->search(col, row, depth, epoch);
 }
   
 // Writing, pt. 1: Locks a blob and returns the blob id that can
@@ -212,6 +215,6 @@ void vw::platefile::Index::write_complete(TileHeader const& header, IndexRecord 
   m_blob_manager->release_lock(record.blob_id()); 
 
   Mutex::Lock lock(m_mutex);
-  m_root->insert(record, header.col(), header.row(), header.depth());
+  m_root->insert(record, header.col(), header.row(), header.depth(), header.epoch());
 }
 

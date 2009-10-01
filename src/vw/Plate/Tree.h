@@ -12,6 +12,7 @@
 #include <vw/Core/FundamentalTypes.h>
 
 #include <boost/shared_array.hpp>
+#include <map>
 
 namespace vw {
 namespace platefile {
@@ -25,10 +26,11 @@ namespace platefile {
 
   template <class ElementT>
   class TreeNode {
+    typedef std::map<vw::int32,ElementT,std::greater<vw::int32> > record_type;
 
     TreeNode<ElementT> *m_parent;
     std::vector<boost::shared_ptr<TreeNode<ElementT> > > m_children;
-    ElementT m_record;
+    record_type m_records;
     int m_max_depth;
 
     // ------------------------ Private Methods -----------------------------
@@ -84,7 +86,7 @@ namespace platefile {
     }
 
     // Search for a node at a given col, row, and level.
-    ElementT search_helper(int col, int row, int level, int current_level) {
+    ElementT search_helper(int col, int row, int level, int epoch, int current_level) {
 
       // If we have reached the requested depth, then we must be at
       // the node we want!  Return the ElementT!
@@ -95,8 +97,8 @@ namespace platefile {
         if ( level == 0 && (col !=0 || row != 0) )
           vw_throw(IndexErr() << "TreeNode: invalid index (" << col << " " << row << ").");
 
-        return m_record;
-        
+        return this->value();
+
       // Otherwise, we go recurse deeper into the tree....
       } else {
         
@@ -105,7 +107,7 @@ namespace platefile {
         if (m_children[child_id]) {
 
           // If a branch of the tree is found, we dive deeper.
-          return m_children[child_id]->search_helper(col, row, level, current_level + 1);
+          return m_children[child_id]->search_helper(col, row, level, epoch, current_level + 1);
 
         } else {
           // If not, we throw an exception.
@@ -116,7 +118,9 @@ namespace platefile {
       }
     }
 
-    void insert_helper(ElementT const& record, int col, int row, int level, int current_level) {
+    void insert_helper(ElementT const& record, 
+                       int col, int row, int level, 
+                       int epoch, int current_level) {
 
       // If we have reached the requested depth, then we must be at
       // the node we want!  Return the ElementT!
@@ -131,7 +135,7 @@ namespace platefile {
         // that were used for this node.  This would allow us to go
         // "back in time" in the journal of the blob.  Let's add that
         // feature someday!!
-        m_record = record;
+        m_records[epoch] = record;
 
       // Otherwise, we need to recurse further into the tree....
       } else {
@@ -145,13 +149,13 @@ namespace platefile {
           this->set_child(child_id, node);
         }
          
-        m_children[child_id]->insert_helper(record, col, row, level, current_level+1);
+        m_children[child_id]->insert_helper(record, col, row, level, epoch, current_level+1);
       }
 
     }
 
     void print_helper(int current_level) const {
-      vw_out(0) << m_record.valid() << "\n";
+      vw_out(0) << (*(m_records.begin())).second.valid() << "\n";
       for (int i = 0; i < 4; ++i) 
         if ( this->child(i) ) {
           for (int l = 0; l < current_level+1; ++l) 
@@ -172,13 +176,14 @@ namespace platefile {
     }
 
     /// ... or use this contructor for the root of the tree.
-    TreeNode(ElementT const& record) : m_record(record), m_max_depth(0) {
+    TreeNode(ElementT const& record, int epoch = 0) : m_max_depth(0) {
       m_children.resize(4);
     }
 
     /// Use this contstructor to add record data immediately.
-    TreeNode(TreeNode *parent, ElementT const& record) :
-      m_parent(parent), m_record(record), m_max_depth(0) {
+    TreeNode(TreeNode *parent, ElementT const& record, int epoch = 0) :
+      m_parent(parent), m_max_depth(0) {
+      m_records[epoch] = record;
       m_children.resize(4);
     }
     
@@ -201,25 +206,45 @@ namespace platefile {
       return n;
     }
 
-    /// Access the data member of this node.
-    ElementT& value() { return m_record; }
-    const ElementT& value() const { return m_record; }
+    ElementT& value_helper(int epoch) { 
 
+      // We search for the most recent record that happened before on
+      // on the queried ephoch.
+      typename record_type::iterator it = m_records.begin();
+      while (it != m_records.end()) {
+        if ((*it).first <= epoch)
+          return (*it).second;
+        ++it;
+      }
+
+      // If we reach this point, then there are no entries before
+      // the given epoch, so we return a TileNotFoundErr.
+      vw_throw(TileNotFoundErr() << "Tile could not be found for epoch " << epoch);
+    }
+
+    /// Access the data member of this node.
+    ElementT& value(int epoch = 0) { 
+      return value_helper(epoch);
+    }
+
+    const ElementT& value(int epoch = 0) const { 
+      return value_helper(epoch);
+    }
 
     /// Query max depth of tree.
     int max_depth() const { return m_max_depth; }
 
 
     // Search for a node at a given col, row, and level.
-    ElementT search(int col, int row, int level) {
-      return search_helper(col, row, level, 0);
+    ElementT search(int col, int row, int level, int epoch = 0) {
+      return search_helper(col, row, level, epoch, 0);
     }
 
     // Insert an ElementT at a given position.  Intermediate nodes
     // in the tree are created (with empty ElementTs) in the tree
     // along the way, as needed.
-    void insert(ElementT const& record, int col, int row, int level) {
-      this->insert_helper(record, col, row, level, 0);
+    void insert(ElementT const& record, int col, int row, int level, int epoch = 0) {
+      this->insert_helper(record, col, row, level, epoch, 0);
       if (level > m_max_depth)
         m_max_depth = level;
     }
@@ -231,72 +256,72 @@ namespace platefile {
     }
 
     
-    /// Serialize a tree as binary data for storage on disk.
-    void serialize(std::ostream &ostr) {
+    // /// Serialize a tree as binary data for storage on disk.
+    // void serialize(std::ostream &ostr) {
 
-      // First we serialize our record data.
-      int ob_size = m_record.ByteSize();
-      ostr.write((char*)(&ob_size), sizeof(ob_size));      
-      m_record.SerializeToOstream(&ostr);
+    //   // First we serialize our record data.
+    //   int ob_size = m_records.ByteSize();
+    //   ostr.write((char*)(&ob_size), sizeof(ob_size));      
+    //   m_records.SerializeToOstream(&ostr);
 
-      std::string debug;
-      m_record.SerializeToString(&debug);
+    //   std::string debug;
+    //   m_records.SerializeToString(&debug);
 
-      // Then we serialize our children.  First we write the number of
-      // children at this node.  If a child exists, we then write
-      // its ID, then we serialize it.  This will cause the entire
-      // child branch of the tree to be serialized in a depth-first
-      // manner.
-      uint8 num_children = uint8(this->num_children());
-      ostr.write( (char*)&num_children, sizeof(num_children) );
+    //   // Then we serialize our children.  First we write the number of
+    //   // children at this node.  If a child exists, we then write
+    //   // its ID, then we serialize it.  This will cause the entire
+    //   // child branch of the tree to be serialized in a depth-first
+    //   // manner.
+    //   uint8 num_children = uint8(this->num_children());
+    //   ostr.write( (char*)&num_children, sizeof(num_children) );
           
-      for (uint8 i=0; i < 4; ++i) {
-        if (m_children[i]) {
-          ostr.write( (char*)&i, sizeof(i) );
-          m_children[i]->serialize(ostr);
-        }
-      }
-    }
+    //   for (uint8 i=0; i < 4; ++i) {
+    //     if (m_children[i]) {
+    //       ostr.write( (char*)&i, sizeof(i) );
+    //       m_children[i]->serialize(ostr);
+    //     }
+    //   }
+    // }
 
-    /// Deserialize a tree as binary data for storage on disk.
-    void deserialize(std::istream &istr) {
+    // /// Deserialize a tree as binary data for storage on disk.
+    // void deserialize(std::istream &istr) {
 
-      if (istr.eof())
-        vw_throw(IOErr() << "Tree::deserialize() reached the end of the index file prematurely!");
+    //   if (istr.eof())
+    //     vw_throw(IOErr() << "Tree::deserialize() reached the end of the index file prematurely!");
 
-      // First we de-serialize our record data.
-      int ib_size;
-      istr.read((char*)(&ib_size), sizeof(ib_size));
-      boost::shared_array<char> buffer = boost::shared_array<char>(new char[ib_size]);
-      istr.read(buffer.get(), ib_size);
+    //   // First we de-serialize our record data.
+    //   int ib_size;
+    //   istr.read((char*)(&ib_size), sizeof(ib_size));
+    //   boost::shared_array<char> buffer = boost::shared_array<char>(new char[ib_size]);
+    //   istr.read(buffer.get(), ib_size);
 
       
-      // TODO: This code here _almost_ works, and would allow us to
-      // read the pbuffer in without the extra copy through the
-      // "buffer" object above.  Should be attempted again if this
-      // ever becomes a performance problem.
-      // google::protobuf::io::IstreamInputStream* is_istr = new google::protobuf::io::IstreamInputStream(&istr);
-      // google::protobuf::io::CodedInputStream* c_istr = new google::protobuf::io::CodedInputStream(is_istr);
-      // google::protobuf::io::CodedInputStream::Limit limit = c_istr->PushLimit(ib_size);
-      // bool worked = m_record.ParseFromCodedStream(c_istr);
-      // c_istr->PopLimit(limit);
-      bool worked = m_record.ParseFromArray(buffer.get(),  ib_size);
+    //   // TODO: This code here _almost_ works, and would allow us to
+    //   // read the pbuffer in without the extra copy through the
+    //   // "buffer" object above.  Should be attempted again if this
+    //   // ever becomes a performance problem.
+    //   // google::protobuf::io::IstreamInputStream* is_istr = new google::protobuf::io::IstreamInputStream(&istr);
+    //   // google::protobuf::io::CodedInputStream* c_istr = new google::protobuf::io::CodedInputStream(is_istr);
+    //   // google::protobuf::io::CodedInputStream::Limit limit = c_istr->PushLimit(ib_size);
+    //   // bool worked = m_records.ParseFromCodedStream(c_istr);
+    //   // c_istr->PopLimit(limit);
+    //   bool worked = m_records.ParseFromArray(buffer.get(),  ib_size);
 
-      // Next we determine how many children we will have.
-      uint8 num_children;
-      istr.read( (char*)&num_children, sizeof(num_children) );
+    //   // Next we determine how many children we will have.
+    //   uint8 num_children;
+    //   istr.read( (char*)&num_children, sizeof(num_children) );
 
-      for (uint8 i = 0; i < num_children; ++i) {
-        uint8 child_id;
-        istr.read( (char*)&child_id, sizeof(child_id) );
+    //   for (uint8 i = 0; i < num_children; ++i) {
+    //     uint8 child_id;
+    //     istr.read( (char*)&child_id, sizeof(child_id) );
         
-        // For each node that exists, we deserialize (in a depth first
-        // manner), and then save the node as our child.
-        boost::shared_ptr<TreeNode> node( new TreeNode(this, ElementT() ) );
-        node->deserialize(istr);
-        this->set_child(child_id, node);
-      }
-    }
+    //     // For each node that exists, we deserialize (in a depth first
+    //     // manner), and then save the node as our child.
+    //     boost::shared_ptr<TreeNode> node( new TreeNode(this, ElementT() ) );
+    //     node->deserialize(istr);
+    //     this->set_child(child_id, node);
+    //   }
+    // }
 
   };
 
