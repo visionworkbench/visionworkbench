@@ -37,14 +37,14 @@ int main( int argc, char *argv[] ) {
   double cutoff_sigma;
   std::string output_cnet_file_tmp;
   std::string output_deleted_index_file_tmp;
-  fs::path data_dir;
+  std::string data_dir;
 
   po::options_description general_options("Options");
   general_options.add_options()
     ("cutoff_sigma,c", po::value<double>(&cutoff_sigma)->default_value(2),"This is the highend cutoff sigma.")
     ("output_cnet_file,o", po::value<std::string>(&output_cnet_file_tmp)->default_value("processed.cnet"), "Name of processed control network file to write out.")
     ("output_deleted_index_file,o", po::value<std::string>(&output_deleted_index_file_tmp)->default_value("cnet_deleted.txt"), "Name of file of indexes to deleted control points to write out.")
-    ("data_dir,d",po::value<fs::path>(&data_dir)->default_value("."), "Name of directory to write output files into.")
+    ("data_dir,d",po::value<std::string>(&data_dir)->default_value("."), "Name of directory to write output files into.")
     ("help,h","Brings up this.");
 
   po::options_description positional_options("Positional Options");
