@@ -23,7 +23,7 @@ PyramidCorrelator::subdivide_bboxes(ImageView<PixelMask<Vector2f> > const& dispa
   try {
     disp_range = get_disparity_range(crop(disparity_map, box_div_2));
   } catch ( std::exception &e ) {
-    // There was no good pixels available
+    // There are no good pixels available
     return result;
   }
   double cost  = box.width()*box.height()*disp_range.width()*disp_range.height();
@@ -203,7 +203,23 @@ PyramidCorrelator::compute_search_ranges(ImageView<PixelMask<Vector2f> > const& 
   return search_ranges;
 }
 
-
-
-
-
+bool PyramidCorrelator::has_valid_mask_overlap( ImageView<vw::uint8> const& left_mask,
+                                                ImageView<vw::uint8> const& right_mask ) {
+  typedef ImageView<vw::uint8>::pixel_accessor PAccessor;
+  PAccessor left_row = left_mask.origin();
+  PAccessor right_row = right_mask.origin();
+  for ( vw::int32 r = left_mask.rows(); r; --r ) {
+    PAccessor left_col = left_row;
+    PAccessor right_col = right_row;
+    for ( vw::int32 c = left_mask.cols(); c; --c ) {
+      if ( *left_col == 255 &&
+           *right_col == 255 )
+        return true;
+      left_col.next_col();
+      right_col.next_col();
+    }
+    left_row.next_row();
+    right_row.next_row();
+  }
+  return false;
+}
