@@ -257,7 +257,7 @@ namespace math {
   struct AffineFittingFunctor {
     typedef vw::Matrix<double,3,3> result_type;
 
-    /// A similarity requires 3 pairs of data points to make a fit.
+    /// A affine transformation requires 3 pairs of data points to make a fit.
     template <class ContainerT>
     unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 3; }
 
@@ -316,12 +316,12 @@ namespace math {
 
 
 
-  /// This fitting functor attempts to find an affine transformation
-  /// (rotation, translation, scaling.
+  /// This fitting functor attempts to find a similarity transformation
+  /// (rotation, translation, scaling)
   struct SimilarityFittingFunctor {
     typedef vw::Matrix<double,3,3> result_type;
 
-    /// A similarity requires 3 pairs of data points to make a fit.
+    /// A similarity transformation requires 3 pairs of data points to make a fit.
     template <class ContainerT>
     unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 3; }
 
@@ -336,9 +336,9 @@ namespace math {
 
       // check consistency
       VW_ASSERT( p1.size() == p2.size(), 
-                 vw::ArgumentErr() << "Cannot compute affine transformation.  p1 and p2 are not the same size." );
+                 vw::ArgumentErr() << "Cannot compute similarity transformation.  p1 and p2 are not the same size." );
       VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
-                 vw::ArgumentErr() << "Cannot compute affine transformation.  Insufficient data.\n");
+                 vw::ArgumentErr() << "Cannot compute similarity transformation.  Insufficient data.\n");
 
       unsigned dimensions = p1[0].size()-1;
 
@@ -388,14 +388,13 @@ namespace math {
     }
   };
 
-  /// This fitting functor attempts to find an affine transformation
-  /// (rotation, translation, scaling.
+  /// This fitting functor attempts to find an translation rotation transformation
   struct TranslationRotationFittingFunctor {
     typedef vw::Matrix<double,3,3> result_type;
 
-    /// A similarity requires 3 pairs of data points to make a fit.
+    /// A translation rotation requires 2 pairs of data points to make a fit.
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 3; }
+    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 2; }
 
     /// This function can match points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
@@ -408,9 +407,9 @@ namespace math {
 
       // check consistency
       VW_ASSERT( p1.size() == p2.size(), 
-                 vw::ArgumentErr() << "Cannot compute affine transformation.  p1 and p2 are not the same size." );
+                 vw::ArgumentErr() << "Cannot compute translation rotation transformation.  p1 and p2 are not the same size." );
       VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
-                 vw::ArgumentErr() << "Cannot compute affine transformation.  Insufficient data.\n");
+                 vw::ArgumentErr() << "Cannot compute translation rotation transformation.  Insufficient data.\n");
 
       unsigned dimensions = p1[0].size()-1;
 
