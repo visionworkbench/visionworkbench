@@ -881,7 +881,7 @@ namespace vw {
                                       bool do_vertical_subpixel,
                                       bool verbose) {
 
-      unsigned max_em_iter = 10;
+      unsigned max_em_iter = 2;
       float  blur_sigma = 1.5;
       float  min_var2_plane = 0.000001;
       float  min_var2_noise = 0.000001;
