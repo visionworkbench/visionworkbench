@@ -441,6 +441,49 @@ namespace math {
       return result;
     }
   };
+  
+  /// This fitting functor attempts to find a translation transformation
+  struct TranslationFittingFunctor {
+    typedef vw::Matrix<double,3,3> result_type;
+
+    /// A transformation requires 1 pair of data points to make a fit.
+    template <class ContainerT>
+    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 1; }
+
+    /// This function can match points in any container that supports
+    /// the size() and operator[] methods.  The container is usually a
+    /// vw::Vector<>, but you could substitute other classes here as
+    /// well.
+    template <class ContainerT>
+    vw::Matrix<double> operator() (std::vector<ContainerT> const& p1, 
+                                   std::vector<ContainerT> const& p2,
+           vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
+
+      // check consistency
+      VW_ASSERT( p1.size() == p2.size(), 
+                 vw::ArgumentErr() << "Cannot compute translation rotation transformation.  p1 and p2 are not the same size." );
+      VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
+                 vw::ArgumentErr() << "Cannot compute translation rotation transformation.  Insufficient data.\n");
+
+      unsigned dimensions = p1[0].size()-1;
+
+      // Compute the center of mass of each collection of points.
+      MeanFunctor m(true);
+      ContainerT mean1 = m(p1);
+      ContainerT mean2 = m(p2);
+   
+      // Compute the translation
+      Vector<double> translation = subvector(mean2,0,2)-subvector(mean1,0,2);
+  
+      Matrix<double> result(3,3);
+      result.set_identity();
+      for (unsigned i = 0; i < result.rows(); ++i) {
+        result(i,dimensions) = translation(i);
+      }
+      return result;
+    }
+  };
+
 
 }} // namespace vw::math
 
