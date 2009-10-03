@@ -26,7 +26,7 @@ namespace po = boost::program_options;
 static std::string prefix_from_filename(std::string const& filename) {
   std::string result = filename;
   int index = result.rfind(".");
-  if (index != -1) 
+  if (index != -1)
     result.erase(index, result.size());
   return result;
 }
@@ -35,12 +35,12 @@ static std::string prefix_from_filename(std::string const& filename) {
 // poor match, so we cull those out here.
 void remove_duplicates(std::vector<InterestPoint> &ip1, std::vector<InterestPoint> &ip2) {
   std::vector<InterestPoint> new_ip1, new_ip2;
-  
+
   for (unsigned i = 0; i < ip1.size(); ++i) {
     bool bad_entry = false;
     for (unsigned j = 0; j < ip1.size(); ++j) {
-      if (i != j && 
-          ((ip1[i].x == ip1[j].x && ip1[i].y == ip1[j].y) || 
+      if (i != j &&
+          ((ip1[i].x == ip1[j].x && ip1[i].y == ip1[j].y) ||
            (ip2[i].x == ip2[j].x && ip2[i].y == ip2[j].y)) ) {
         bad_entry = true;
       }
@@ -50,17 +50,17 @@ void remove_duplicates(std::vector<InterestPoint> &ip1, std::vector<InterestPoin
       new_ip2.push_back(ip2[i]);
     }
   }
-  
+
   ip1 = new_ip1;
   ip2 = new_ip2;
 }
 
 // Draw the two images side by side with matching interest points
 // shown with lines.
-static void write_match_image(std::string out_file_name, 
+static void write_match_image(std::string out_file_name,
                               std::string const& file1,
                               std::string const& file2,
-                              std::vector<InterestPoint> matched_ip1, 
+                              std::vector<InterestPoint> matched_ip1,
                               std::vector<InterestPoint> matched_ip2) {
   // Skip image pairs with no matches.
   if (matched_ip1.size() == 0)
@@ -77,7 +77,7 @@ static void write_match_image(std::string out_file_name,
 
   // Rasterize the composite so that we can draw on it.
   ImageView<PixelRGB<uint8> > comp = composite;
-  
+
   // Draw a red line between matching interest points
   for (unsigned int i = 0; i < matched_ip1.size(); ++i) {
     Vector2 start(matched_ip1[i].x, matched_ip1[i].y);
@@ -89,7 +89,7 @@ static void write_match_image(std::string out_file_name,
         comp(i,j) = PixelRGB<uint8>(255, 0, 0);
     }
   }
-  
+
   write_image(out_file_name, comp);
 }
 
@@ -111,7 +111,7 @@ int main(int argc, char** argv) {
   po::options_description hidden_options("");
   hidden_options.add_options()
     ("input-files", po::value<std::vector<std::string> >(&input_file_names));
-  
+
   po::options_description options("Allowed Options");
   options.add(general_options).add(hidden_options);
 
@@ -140,23 +140,23 @@ int main(int argc, char** argv) {
   // Iterate over combinations of the input files and find interest points in each.
   for (unsigned i = 0; i < input_file_names.size(); ++i) {
     for (unsigned j = i+1; j < input_file_names.size(); ++j) {
-      
+
       // Read each file off disk
       std::vector<InterestPoint> ip1, ip2;
       ip1 = read_binary_ip_file(prefix_from_filename(input_file_names[i])+".vwip");
       ip2 = read_binary_ip_file(prefix_from_filename(input_file_names[j])+".vwip");
-      vw_out(0) << "Matching between " << input_file_names[i] << " (" << ip1.size() << " points) and " << input_file_names[j] << " (" << ip2.size() << " points).\n"; 
+      vw_out(0) << "Matching between " << input_file_names[i] << " (" << ip1.size() << " points) and " << input_file_names[j] << " (" << ip2.size() << " points).\n";
 
       std::vector<InterestPoint> matched_ip1, matched_ip2;
 
       if ( !vm.count("non-kdtree") ) {
-	// Run interest point matcher that uses KDTree algorithm.
-	InterestPointMatcher<L2NormMetric,NullConstraint> matcher(matcher_threshold);
-	matcher(ip1, ip2, matched_ip1, matched_ip2, false, TerminalProgressCallback());
+        // Run interest point matcher that uses KDTree algorithm.
+        InterestPointMatcher<L2NormMetric,NullConstraint> matcher(matcher_threshold);
+        matcher(ip1, ip2, matched_ip1, matched_ip2, false, TerminalProgressCallback());
       } else {
-	// Run interest point matcher that does not use KDTree algorithm.
-	InterestPointMatcherSimple<L2NormMetric,NullConstraint> matcher(matcher_threshold);
-	matcher(ip1, ip2, matched_ip1, matched_ip2, false, TerminalProgressCallback());
+        // Run interest point matcher that does not use KDTree algorithm.
+        InterestPointMatcherSimple<L2NormMetric,NullConstraint> matcher(matcher_threshold);
+        matcher(ip1, ip2, matched_ip1, matched_ip2, false, TerminalProgressCallback());
       }
 
       remove_duplicates(matched_ip1, matched_ip2);
@@ -170,22 +170,22 @@ int main(int argc, char** argv) {
         // of points.  Points that don't meet this geometric
         // contstraint are rejected as outliers.
         if (ransac_constraint == "similarity") {
-	  vw::math::RandomSampleConsensus<math::SimilarityFittingFunctor, math::InterestPointErrorMetric> ransac( vw::math::SimilarityFittingFunctor(),
-														  vw::math::InterestPointErrorMetric(), 
-														  inlier_threshold ); // inlier_threshold
+          vw::math::RandomSampleConsensus<math::SimilarityFittingFunctor, math::InterestPointErrorMetric> ransac( vw::math::SimilarityFittingFunctor(),
+                                                                                                                  vw::math::InterestPointErrorMetric(),
+                                                                                                                  inlier_threshold ); // inlier_threshold
           Matrix<double> H(ransac(ransac_ip1,ransac_ip2));
           std::cout << "\t--> Similarity: " << H << "\n";
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
         } else if (ransac_constraint == "homography") {
-	  vw::math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac( vw::math::HomographyFittingFunctor(),
-														  vw::math::InterestPointErrorMetric(), 
-														  inlier_threshold ); // inlier_threshold
+          vw::math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac( vw::math::HomographyFittingFunctor(),
+                                                                                                                  vw::math::InterestPointErrorMetric(),
+                                                                                                                  inlier_threshold ); // inlier_threshold
           Matrix<double> H(ransac(ransac_ip1,ransac_ip2));
           std::cout << "\t--> Homography: " << H << "\n";
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
-	} else if (ransac_constraint == "none") {
-	  for ( unsigned i = 0; i < matched_ip1.size(); ++i )
-	    indices.push_back(i);
+        } else if (ransac_constraint == "none") {
+          for ( unsigned i = 0; i < matched_ip1.size(); ++i )
+            indices.push_back(i);
         } else {
           std::cout << "Unknown RANSAC constraint type: " << ransac_constraint << ".  Choose one of: [similarity, homography, or none]\n";
           exit(0);
@@ -195,27 +195,27 @@ int main(int argc, char** argv) {
         continue;
       }
       vw_out(InfoMessage) << "Found " << indices.size() << " final matches.\n";
-      
+
       std::vector<InterestPoint> final_ip1, final_ip2;
       for (unsigned idx=0; idx < indices.size(); ++idx) {
         final_ip1.push_back(matched_ip1[indices[idx]]);
         final_ip2.push_back(matched_ip2[indices[idx]]);
       }
 
-      std::string output_filename = 
+      std::string output_filename =
         prefix_from_filename(input_file_names[i]) + "__" +
         prefix_from_filename(input_file_names[j]) + ".match";
       write_binary_match_file(output_filename, final_ip1, final_ip2);
 
       if (vm.count("debug-image")) {
-        std::string matchimage_filename = 
+        std::string matchimage_filename =
           prefix_from_filename(input_file_names[i]) + "__" +
           prefix_from_filename(input_file_names[j]) + ".png";
-        write_match_image(matchimage_filename, 
+        write_match_image(matchimage_filename,
                           input_file_names[i], input_file_names[j],
                           final_ip1, final_ip2);
       }
     }
   }
-}   
+}
 

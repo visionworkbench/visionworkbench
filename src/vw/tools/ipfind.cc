@@ -26,20 +26,20 @@ namespace po = boost::program_options;
 static std::string prefix_from_filename(std::string const& filename) {
   std::string result = filename;
   int index = result.rfind(".");
-  if (index != -1) 
+  if (index != -1)
     result.erase(index, result.size());
   return result;
 }
 
 template <class ImageT, class ValueT>
 void draw_line( ImageViewBase<ImageT>& image,
-		ValueT const& value,
-		Vector2i const& start,
-		Vector2i const& end ) {
+                ValueT const& value,
+                Vector2i const& start,
+                Vector2i const& end ) {
 
   BBox2i bound = bounding_box(image.impl());
   if ( !bound.contains( start ) ||
-       !bound.contains( end ) ) 
+       !bound.contains( end ) )
     return;
   Vector2i delta = end - start;
   for ( float r=0; r<1.0; r+=1/norm_2(delta) ) {
@@ -47,19 +47,19 @@ void draw_line( ImageViewBase<ImageT>& image,
     int j = (int)(0.5 + start.y() + r*float(delta.y()) );
     image.impl()(i,j) = value;
   }
-}	
+}
 
 static void write_debug_image( std::string out_file_name,
-			       std::string input_file_name,
-			       InterestPointList const& ip ) {
+                               std::string input_file_name,
+                               InterestPointList const& ip ) {
   vw_out(0) << "Writing debug image: " << out_file_name << "\n";
   DiskImageView<PixelGray<uint8> > image( input_file_name );
-  
+
   vw_out(InfoMessage,"interest_point") << "\t > Gathering statistics:\n";
   float min = 1e30, max = -1e30;
   for ( InterestPointList::const_iterator point = ip.begin();
-	point != ip.end(); ++point ) {
-    if ( point->interest > max ) 
+        point != ip.end(); ++point ) {
+    if ( point->interest > max )
       max = point->interest;
     if ( point->interest < min )
       min = point->interest;
@@ -70,7 +70,7 @@ static void write_debug_image( std::string out_file_name,
   ImageView<PixelRGB<uint8> > oimage;
   oimage = pixel_cast<PixelRGB<uint8> >(image*0.5);
   for ( InterestPointList::const_iterator point = ip.begin();
-	point != ip.end(); ++point ) {
+        point != ip.end(); ++point ) {
     float norm_i = (point->interest - min)/diff;
     PixelRGB<uint8> color(0,0,0);
     if ( norm_i < .5 ) {
@@ -82,23 +82,23 @@ static void write_debug_image( std::string out_file_name,
       color.g() = 255;
       color.r() = 255 - (unsigned char)(2*(norm_i-.5)*255);
     }
-    
+
     // Marking point w/ Dot
     oimage(point->ix,point->iy) = color;
-    
+
     // Circling point
     for (float a = 0; a < 6; a+=.392 ) {
       float a_d = a + .392;
       Vector2i start( int(2*point->scale*cos(a)+point->x),
-		      int(2*point->scale*sin(a)+point->y) );
+                      int(2*point->scale*sin(a)+point->y) );
       Vector2i end( int(2*point->scale*cos(a_d)+point->x),
-		    int(2*point->scale*sin(a_d)+point->y) );
+                    int(2*point->scale*sin(a_d)+point->y) );
       draw_line( oimage, color, start, end );
     }
   }
 
   DiskImageResource *rsrc = DiskImageResource::create(out_file_name,
-						      oimage.format() );
+                                                      oimage.format() );
   vw_out(InfoMessage,"interest_point") << "\t > Writing out image:\n";
   block_write_image( *rsrc, oimage, TerminalProgressCallback(InfoMessage, "\t : "));
 
@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
     ("tile-size,t", po::value<int>(&tile_size)->default_value(2048), "Specify the tile size for processing interest points. (Useful when working with large images)")
     ("lowe,l", "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
     ("debug-image,d", "Write out debug images.")
-    
+
     // Interest point detector options
     ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris, FH9, FH15]")
     ("log-threshold", po::value<float>(&log_threshold)->default_value(0.03), "Sets the threshold for the Laplacian of Gaussian interest operator")
@@ -135,7 +135,7 @@ int main(int argc, char** argv) {
   po::options_description hidden_options("");
   hidden_options.add_options()
     ("input-files", po::value<std::vector<std::string> >(&input_file_names));
-  
+
   po::options_description options("Allowed Options");
   options.add(general_options).add(hidden_options);
 
@@ -169,22 +169,22 @@ int main(int argc, char** argv) {
   // Checking strings
   boost::to_lower( interest_operator );
   boost::to_lower( descriptor_generator );
-  // Determine if interest_operator is legitimate 
+  // Determine if interest_operator is legitimate
   if ( !( interest_operator == "harris" ||
-	  interest_operator == "log" ||
-	  interest_operator == "fh9" ||
-	  interest_operator == "fh15" ) ) {
-    vw_out(0) << "Unknown interest operator: " << interest_operator 
-	      << ". Options are : [ Harris, LoG, FH9, FH15 ]\n";
+          interest_operator == "log" ||
+          interest_operator == "fh9" ||
+          interest_operator == "fh15" ) ) {
+    vw_out(0) << "Unknown interest operator: " << interest_operator
+              << ". Options are : [ Harris, LoG, FH9, FH15 ]\n";
     exit(0);
   }
   // Determine if descriptor_generator is legitimate
   if ( !( descriptor_generator == "patch" ||
-	  descriptor_generator == "pca" ||
-	  descriptor_generator == "surf" ||
-	  descriptor_generator == "surf128" ) ) {
+          descriptor_generator == "pca" ||
+          descriptor_generator == "surf" ||
+          descriptor_generator == "surf128" ) ) {
     vw_out(0) << "Unkown descriptor generator: " << descriptor_generator
-	      << ". Options are : [ Patch, PCA, SURF, SURF128 ]\n";
+              << ". Options are : [ Patch, PCA, SURF, SURF128 ]\n";
     exit(0);
   }
 
@@ -195,40 +195,50 @@ int main(int argc, char** argv) {
     std::string file_prefix = prefix_from_filename(input_file_names[i]);
     DiskImageResource *image_rsrc = DiskImageResource::open( input_file_names[i] );
     DiskImageView<PixelGray<float> > image(image_rsrc);
-    
+
     // Potentially mask image on a no data value
     if ( image_rsrc->has_nodata_value() )
-      vw_out(DebugMessage,"interest_point") << "Image has a nodata value: " 
-					    << image_rsrc->nodata_value() << "\n";
+      vw_out(DebugMessage,"interest_point") << "Image has a nodata value: "
+                                            << image_rsrc->nodata_value() << "\n";
 
     // Preparations required for any SURF code
     if (interest_operator == "fh9" ||
-	interest_operator == "fh15" ||
-	descriptor_generator == "surf" ||
-	descriptor_generator == "surf128" ) {
-      
+        interest_operator == "fh15" ||
+        descriptor_generator == "surf" ||
+        descriptor_generator == "surf128" ) {
+
       Timer *total = new Timer("Elapsed time for Integral", DebugMessage,
-			       "interest_point");
-      if (interest_operator != "fh15" ) 
-	integral = IntegralImage( image );
+                               "interest_point");
+      if (interest_operator != "fh15" )
+        integral = IntegralImage( image );
       else
-	integral = IntegralImage( resample( image, 2,
-					    ConstantEdgeExtension(),
-					    BilinearInterpolation() ) );
+        integral = IntegralImage( resample( image, 2,
+                                            ConstantEdgeExtension(),
+                                            BilinearInterpolation() ) );
       delete total;
     }
-    
+
+    // The max points sent to IP Detector class is applied to each
+    // tile of an image. In order to curb memory use we'll set the max
+    // size for each tile smaller (proportional to the number of
+    // tiles).
+    int number_tiles = (image.cols()/vw_settings().default_tile_size()+1) *
+      (image.rows()/vw_settings().default_tile_size()+1);
+    int tile_max_points = (float(max_points)/float(number_tiles))*2; // A little over shoot
+                                                                     // incase the tile is empty
+    if ( tile_max_points < 50 ) tile_max_points = 50;
+
     // Detecting Interest Points
     InterestPointList ip;
     if ( interest_operator == "harris" ) {
       HarrisInterestOperator interest_operator(harris_threshold);
       if (!vm.count("single-scale")) {
-        ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator, 
-								     max_points);
+        ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator,
+                                                                     tile_max_points);
         ip = detect_interest_points(image, detector);
       } else {
-        InterestPointDetector<HarrisInterestOperator> detector(interest_operator, 
-							       max_points);
+        InterestPointDetector<HarrisInterestOperator> detector(interest_operator,
+                                                               tile_max_points);
         ip = detect_interest_points(image, detector);
       }
     } else if ( interest_operator == "log") {
@@ -236,28 +246,28 @@ int main(int argc, char** argv) {
       // associated threshold is abs(interest) > interest_threshold.
       LogInterestOperator interest_operator(log_threshold);
       if (!vm.count("single-scale")) {
-        ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator, 
-								  max_points);
+        ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator,
+                                                                  tile_max_points);
         ip = detect_interest_points(image, detector);
       } else {
-        InterestPointDetector<LogInterestOperator> detector(interest_operator, 
-							    max_points);
+        InterestPointDetector<LogInterestOperator> detector(interest_operator,
+                                                            tile_max_points);
         ip = detect_interest_points(image, detector);
       }
     } else if ( interest_operator == "fh9") {
       /// Currently only supporting ScaledInterest Detection
       SURFInterestOperator interest_operator(surf_threshold);
-      FH9InterestPointDetector<SURFInterestOperator> detector(interest_operator, 
-							      max_points);
+      FH9InterestPointDetector<SURFInterestOperator> detector(interest_operator,
+                                                              tile_max_points);
       ip = detector.process_image( image, integral );
-    } else if ( interest_operator == "fh15" ) { 
+    } else if ( interest_operator == "fh15" ) {
       /// Currently only supporting ScaledInterest Detection
       SURFInterestOperator interest_operator(surf_threshold);
-      FH15InterestPointDetector<SURFInterestOperator> detector(interest_operator, 
-							       max_points);
+      FH15InterestPointDetector<SURFInterestOperator> detector(interest_operator,
+                                                               tile_max_points);
       ip = detector.process_image( image, integral );
     }
-  
+
     // Removing Interest Points on nodata or within 1/px
     if ( image_rsrc->has_nodata_value() ) {
       float nodata_value = image_rsrc->nodata_value();
@@ -266,35 +276,35 @@ int main(int argc, char** argv) {
       bound.contract(1);
       int before_size = ip.size();
       for ( InterestPointList::iterator point = ip.begin();
-	    point != ip.end(); ++point ) {
-	
-	// To Avoid out of index issues
-	if ( !bound.contains( Vector2i(point->ix,
-				       point->iy ))) {
-	  point = ip.erase(point);
-	  point--;
-	  continue;
-	}
+            point != ip.end(); ++point ) {
 
-	if ( !image_mask(point->ix,point->iy).valid() ||
-	     !image_mask(point->ix+1,point->iy+1).valid() ||
-	     !image_mask(point->ix+1,point->iy).valid() ||
-	     !image_mask(point->ix+1,point->iy-1).valid() ||
-	     !image_mask(point->ix,point->iy+1).valid() ||
-	     !image_mask(point->ix,point->iy-1).valid() ||
-	     !image_mask(point->ix-1,point->iy+1).valid() ||
-	     !image_mask(point->ix-1,point->iy).valid() ||
-	     !image_mask(point->ix-1,point->iy-1).valid() ) {
-	  point = ip.erase(point);
-	  point--;
-	  continue;
-	}
+        // To Avoid out of index issues
+        if ( !bound.contains( Vector2i(point->ix,
+                                       point->iy ))) {
+          point = ip.erase(point);
+          point--;
+          continue;
+        }
+
+        if ( !image_mask(point->ix,point->iy).valid() ||
+             !image_mask(point->ix+1,point->iy+1).valid() ||
+             !image_mask(point->ix+1,point->iy).valid() ||
+             !image_mask(point->ix+1,point->iy-1).valid() ||
+             !image_mask(point->ix,point->iy+1).valid() ||
+             !image_mask(point->ix,point->iy-1).valid() ||
+             !image_mask(point->ix-1,point->iy+1).valid() ||
+             !image_mask(point->ix-1,point->iy).valid() ||
+             !image_mask(point->ix-1,point->iy-1).valid() ) {
+          point = ip.erase(point);
+          point--;
+          continue;
+        }
       }
       vw_out(InfoMessage,"interest_point") << "Removed " << before_size-ip.size() << " points close to nodata.\n";
     }
-    
+
     vw_out(0) << "\t Found " << ip.size() << " points.\n";
-  
+
     // Additional Culling for the entire image
     ip.sort();
     if ( (max_points > 0) && (ip.size() > max_points) ) {
@@ -321,11 +331,11 @@ int main(int argc, char** argv) {
     // SURF's FH15 follow up
     if ( interest_operator == "fh15" ) {
       for (InterestPointList::iterator p = ip.begin();
-	   p != ip.end(); ++p) {
-	(*p).x /= 2;
-	(*p).y /= 2;
-	(*p).ix >>= 1;
-	(*p).iy >>= 1;
+           p != ip.end(); ++p) {
+        (*p).x /= 2;
+        (*p).y /= 2;
+        (*p).ix >>= 1;
+        (*p).iy >>= 1;
       }
     }
 
@@ -333,16 +343,16 @@ int main(int argc, char** argv) {
     // with binary output.
     if (vm.count("lowe"))
       write_lowe_ascii_ip_file(file_prefix + ".key", ip);
-    else 
+    else
       write_binary_ip_file(file_prefix + ".vwip", ip);
 
     // Write Debug image
     if (vm.count("debug-image")) {
       std::string output_file_name =
-	prefix_from_filename(input_file_names[i]) + "_debug.png";
+        prefix_from_filename(input_file_names[i]) + "_debug.png";
       write_debug_image( output_file_name,
-			 input_file_names[i],
-			 ip );
+                         input_file_names[i],
+                         ip );
     }
   }
 }
