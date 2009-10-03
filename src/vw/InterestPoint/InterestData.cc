@@ -154,6 +154,14 @@ namespace ip {
     }
     return result;
   }
-
+  
+  std::vector<InterestPoint> vectorlist_to_iplist(std::vector<Vector3> const& veclist) {                                                                                           
+    std::vector<InterestPoint> result(veclist.size());                                                                                                                             
+    for (unsigned i=0; i < veclist.size(); ++i) {                                                                                                                                  
+      result[i].x = veclist[i][0];                                                                                                                                                 
+      result[i].y = veclist[i][1];                                                                                                                                                 
+    }                                                                                                                                                                              
+    return result;                                                                                                                                                                 
+  }
   
 }} // namespace vw::ip

@@ -91,6 +91,7 @@ namespace ip {
   // vector of interest point locations.  (Useful when preping data
   // far RANSAC...)
   std::vector<Vector3> iplist_to_vectorlist(std::vector<InterestPoint> const& iplist);
+  std::vector<InterestPoint> vectorlist_to_iplist(std::vector<Vector3> const& veclist);                                                                                            
 
   // Routines for reading & writing interest point data files
   void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip);
