@@ -23,6 +23,12 @@ namespace platefile {
   /// IndexError exception
   VW_DEFINE_EXCEPTION(IndexErr, Exception);
 
+  // A subclass of TreeMapFunc can be used to iterate over a tree
+  // using the TreeNode::map() function below.
+  struct TreeMapFunc {
+    virtual ~TreeMapFunc() {}
+    virtual void operator()(int32 col, int32 row, int32 depth) = 0;
+  };
 
   template <class ElementT>
   class TreeNode {
@@ -116,6 +122,33 @@ namespace platefile {
 
         }
       }
+    }
+
+    // Recursively call a function with valid [col, row, level] entries.
+    //
+    //    |---|---|
+    //    | 0 | 1 |
+    //    |---+---|
+    //    | 2 | 3 |
+    //    |---|---|
+    //
+    void map_helper(boost::shared_ptr<TreeMapFunc> func, int col, int row, int level) {
+
+      // Call the function for the current level.
+      (*func)(col, row, level);
+
+      // Call the function for future levels.
+      if ( this->child(0) ) 
+        this->child(0)->map_helper(func, col*2, row*2, level + 1);
+
+      if ( this->child(1) ) 
+        this->child(1)->map_helper(func, col*2+1, row*2, level + 1);
+
+      if ( this->child(2) ) 
+        this->child(2)->map_helper(func, col*2, row*2+1, level + 1);
+
+      if ( this->child(3) ) 
+        this->child(3)->map_helper(func, col*2+1, row*2+1, level + 1);
     }
 
     void insert_helper(ElementT const& record, 
@@ -256,75 +289,13 @@ namespace platefile {
       this->print_helper(0); 
     }
 
-    
-    // /// Serialize a tree as binary data for storage on disk.
-    // void serialize(std::ostream &ostr) {
-
-    //   // First we serialize our record data.
-    //   int ob_size = m_records.ByteSize();
-    //   ostr.write((char*)(&ob_size), sizeof(ob_size));      
-    //   m_records.SerializeToOstream(&ostr);
-
-    //   std::string debug;
-    //   m_records.SerializeToString(&debug);
-
-    //   // Then we serialize our children.  First we write the number of
-    //   // children at this node.  If a child exists, we then write
-    //   // its ID, then we serialize it.  This will cause the entire
-    //   // child branch of the tree to be serialized in a depth-first
-    //   // manner.
-    //   uint8 num_children = uint8(this->num_children());
-    //   ostr.write( (char*)&num_children, sizeof(num_children) );
-          
-    //   for (uint8 i=0; i < 4; ++i) {
-    //     if (m_children[i]) {
-    //       ostr.write( (char*)&i, sizeof(i) );
-    //       m_children[i]->serialize(ostr);
-    //     }
-    //   }
-    // }
-
-    // /// Deserialize a tree as binary data for storage on disk.
-    // void deserialize(std::istream &istr) {
-
-    //   if (istr.eof())
-    //     vw_throw(IOErr() << "Tree::deserialize() reached the end of the index file prematurely!");
-
-    //   // First we de-serialize our record data.
-    //   int ib_size;
-    //   istr.read((char*)(&ib_size), sizeof(ib_size));
-    //   boost::shared_array<char> buffer = boost::shared_array<char>(new char[ib_size]);
-    //   istr.read(buffer.get(), ib_size);
-
-      
-    //   // TODO: This code here _almost_ works, and would allow us to
-    //   // read the pbuffer in without the extra copy through the
-    //   // "buffer" object above.  Should be attempted again if this
-    //   // ever becomes a performance problem.
-    //   // google::protobuf::io::IstreamInputStream* is_istr = new google::protobuf::io::IstreamInputStream(&istr);
-    //   // google::protobuf::io::CodedInputStream* c_istr = new google::protobuf::io::CodedInputStream(is_istr);
-    //   // google::protobuf::io::CodedInputStream::Limit limit = c_istr->PushLimit(ib_size);
-    //   // bool worked = m_records.ParseFromCodedStream(c_istr);
-    //   // c_istr->PopLimit(limit);
-    //   bool worked = m_records.ParseFromArray(buffer.get(),  ib_size);
-
-    //   // Next we determine how many children we will have.
-    //   uint8 num_children;
-    //   istr.read( (char*)&num_children, sizeof(num_children) );
-
-    //   for (uint8 i = 0; i < num_children; ++i) {
-    //     uint8 child_id;
-    //     istr.read( (char*)&child_id, sizeof(child_id) );
-        
-    //     // For each node that exists, we deserialize (in a depth first
-    //     // manner), and then save the node as our child.
-    //     boost::shared_ptr<TreeNode> node( new TreeNode(this, ElementT() ) );
-    //     node->deserialize(istr);
-    //     this->set_child(child_id, node);
-    //   }
-    // }
+    void map(boost::shared_ptr<TreeMapFunc> func) {
+      this->map_helper(func, 0, 0, 0);
+    }
 
   };
+
+
 
 }} // namespace vw
 

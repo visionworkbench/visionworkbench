@@ -28,6 +28,42 @@ static std::string prefix_from_filename(std::string const& filename) {
   return result;
 }
 
+class SaveTileFunc : public TreeMapFunc {
+  boost::shared_ptr<PlateFile> m_platefile;
+  std::string m_output_filename;
+
+public:
+  SaveTileFunc(boost::shared_ptr<PlateFile> platefile, std::string output_filename) : 
+    m_platefile(platefile), m_output_filename(output_filename) {}
+  virtual ~SaveTileFunc() {}
+
+  virtual void operator() (int32 col, int32 row, int32 level) {
+
+    try {
+      
+      // Create the level directory (if it doesn't exist)
+      std::ostringstream ostr;
+      ostr << m_output_filename << "/" << level;
+      if ( !fs::exists(ostr.str()) )
+        fs::create_directory(ostr.str());
+      
+      // Create the column directory (if it doesn't exist)
+      ostr << "/" << col;
+      if ( !fs::exists(ostr.str()) )
+        fs::create_directory(ostr.str());
+      
+      // Create the file (with the row as the filename)
+      ostr << "/" << row;
+
+      std::string output_filename = m_platefile->read_to_file(ostr.str(), col, row, level);
+      std::cout << "\t--> [ " << col << " " << row << " " << level << "] : Writing" 
+                << output_filename << "\n";
+      
+    } catch (TileNotFoundErr &e) { 
+      std::cout << "\t--> [ " << col << " " << row << " " << level << "] : Missing tile\n"; }
+  }
+};
+
 int main( int argc, char *argv[] ) {
  
   std::string output_file_name;
@@ -71,48 +107,15 @@ int main( int argc, char *argv[] ) {
     output_file_name = prefix_from_filename(plate_file_name) + ".toast";
 
   // Open the plate file
-  PlateFile platefile(plate_file_name);
-  std::cout << "Writing " << platefile.depth() << " levels of tiles to " 
+  boost::shared_ptr<PlateFile> platefile(new PlateFile(plate_file_name));
+  std::cout << "Writing " << platefile->depth() << " levels of tiles to " 
             << output_file_name << "\n";
-
-
-  // For debugging:
-  //  platefile.print();
 
   // Create the output directory
   if ( !fs::exists(output_file_name) )
     fs::create_directory(output_file_name);
 
-  for (int n = 0; n <= platefile.depth(); ++n) {
-    int block_cols = pow(2,n);
-    int block_rows = pow(2,n);
-    
-    for (int j = 0; j < block_rows; ++j) {
-      for (int i = 0; i < block_cols; ++i) {
-        
-        ImageView<PixelRGBA<uint8> > tile;
-        try {
-          TileHeader hdr = platefile.read(tile, i, j, n);
-          
-          // Create the level directory (if it doesn't exist)
-          std::ostringstream ostr;
-          ostr << output_file_name << "/" << n;
-          if ( !fs::exists(ostr.str()) )
-            fs::create_directory(ostr.str());
-          
-          // Create the column directory (if it doesn't exist)
-          ostr << "/" << i;
-          if ( !fs::exists(ostr.str()) )
-            fs::create_directory(ostr.str());
-          
-          // Create the file (with the row as the filename)
-          ostr << "/" << j << "." << hdr.filetype();
-          std::cout << "\t--> Writing " << ostr.str() << "\n";
-          write_image(ostr.str(), tile);
-
-        } catch (TileNotFoundErr &e) {}
-      }
-    }    
-
-  }
+  // Spider across the platefile, saving all valid tiles.
+  boost::shared_ptr<TreeMapFunc> func(new SaveTileFunc(platefile, output_file_name));
+  platefile->map(func);
 }

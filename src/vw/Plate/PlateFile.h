@@ -36,6 +36,7 @@ namespace platefile {
   class TemporaryTileFile {
 
     std::string m_filename;
+    bool m_delete_afterwards;
 
     // Define these as private methods to enforce TemporaryTileFile'
     // non-copyable semantics.
@@ -53,7 +54,8 @@ namespace platefile {
 
     /// This constructor assumes control over an existing file on disk,
     /// and deletes it when the TemporaryTileFile object is de-allocated.
-    TemporaryTileFile(std::string filename) : m_filename(filename) {
+    TemporaryTileFile(std::string filename, bool delete_afterwards = true) : 
+      m_filename(filename), m_delete_afterwards(delete_afterwards) {
       vw_out(DebugMessage, "plate::tempfile") << "Assumed control of temporary file: " 
                                               << m_filename << "\n";
 
@@ -70,13 +72,15 @@ namespace platefile {
     }
 
     ~TemporaryTileFile() {
-      int result = unlink(m_filename.c_str());
-      if (result)
-        vw_out(ErrorMessage, "plate::tempfile") 
-          << "WARNING: unlink() failed in ~TemporaryTileFile() for filename \"" 
-          << m_filename << "\"\n";
-      vw_out(DebugMessage, "plate::tempfile") << "Destroyed temporary file: " 
-                                              << m_filename << "\n";
+      if (m_delete_afterwards) {
+        int result = unlink(m_filename.c_str());
+        if (result)
+          vw_out(ErrorMessage, "plate::tempfile") 
+            << "WARNING: unlink() failed in ~TemporaryTileFile() for filename \"" 
+            << m_filename << "\"\n";
+        vw_out(DebugMessage, "plate::tempfile") << "Destroyed temporary file: " 
+                                                << m_filename << "\n";
+      }
     }
 
     std::string file_name() const { return m_filename; }
@@ -157,6 +161,41 @@ namespace platefile {
 
     int depth() const { return m_index->max_depth(); }
 
+    /// Read the tile header. You supply a base name (without the
+    /// file's image extension).  The image extension will be appended
+    /// automatically for you based on the filetype in the TileHeader.
+    std::string read_to_file(std::string const& base_name, 
+                             int col, int row, int depth, int epoch = 0) {
+
+      TileHeader result;
+      std::string filename = base_name;
+
+      // 1. Call index read_request(col,row,depth).  Returns IndexRecord.
+      IndexRecord record = m_index->read_request(col, row, depth, epoch);
+      if (record.valid()) {
+        std::ostringstream blob_filename;
+        blob_filename << m_plate_name << "/plate_" << record.blob_id() << ".blob";
+
+        // 2. Open the blob file and read the header
+        Blob blob(blob_filename.str());
+        TileHeader header = blob.read_header<TileHeader>(record.blob_offset());
+
+        // 3. Choose a temporary filename and call BlobIO
+        // read_as_file(filename, offset, size) [ offset, size from
+        // IndexRecord ]
+        filename += "." + header.filetype();
+        blob.read_to_file(filename, record.blob_offset());
+
+        // 4. Return the name of the file
+        return filename;
+      } else {
+        vw_throw(TileNotFoundErr() << "Tile was found, but was marked invalid.");
+        return filename; // never reached
+      }
+
+    }
+
+
     /// Read an image from the specified tile location in the plate file.
     template <class PixelT>
     TileHeader read(ImageView<PixelT> &view, int col, int row, int depth, int epoch = 0) {
@@ -235,7 +274,12 @@ namespace platefile {
       return m_index->read_request(col, row, depth, epoch);
     }
 
+    void map(boost::shared_ptr<TreeMapFunc> func) {
+      m_index->map(func);
+    }
+
   };
+
 
 
 }} // namespace vw::plate

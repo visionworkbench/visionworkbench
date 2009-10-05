@@ -49,6 +49,14 @@ namespace platefile {
     virtual int32 default_tile_size() const = 0;
     virtual std::string default_tile_filetype() const = 0;
     virtual int32 max_depth() const = 0;
+
+    /// Iterate over all nodes in a tree, calling func for each
+    /// location.  Note: this will only be implemented for local
+    /// indexes.  This function will throw an error if called on a
+    /// remote index.
+    virtual void map(boost::shared_ptr<TreeMapFunc> func) { 
+      vw_throw(NoImplErr() << "IndexBase::map() not implemented for this index type.");
+    }
   };
 
   // -------------------------------------------------------------------
@@ -103,6 +111,8 @@ namespace platefile {
 
     /// Use only for debugging small trees.
     void print() { m_root->print(); }
+
+    virtual void map(boost::shared_ptr<TreeMapFunc> func) { m_root->map(func); }
 
   };
 
