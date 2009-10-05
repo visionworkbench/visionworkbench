@@ -90,7 +90,7 @@ int main( int argc, char *argv[] ) {
     for (int j = 0; j < block_rows; ++j) {
       for (int i = 0; i < block_cols; ++i) {
         
-        ImageView<PixelRGB<uint8> > tile;
+        ImageView<PixelRGBA<uint8> > tile;
         try {
           TileHeader hdr = platefile.read(tile, i, j, n);
           

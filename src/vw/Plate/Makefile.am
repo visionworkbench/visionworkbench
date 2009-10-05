@@ -19,7 +19,8 @@ include_HEADERS = Blob.h BlobManager.h Index.h RemoteIndex.h Tree.h	\
 		  $(protocol_headers)
 
 libvwPlate_la_SOURCES = $(protocol_sources) Blob.cc BlobManager.cc	\
-			Index.cc RemoteIndex.cc Amqp.cc
+			Index.cc RemoteIndex.cc Amqp.cc			\
+			ToastPlateManager.cc
 
 libvwPlate_la_LIBADD = @MODULE_PLATE_LIBS@
 

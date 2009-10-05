@@ -7,7 +7,7 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Cartography.h>
-#include <vw/Mosaic.h>
+//#include <vw/Mosaic.h>
 #include <vw/Plate/PlateFile.h>
 #include <vw/Plate/ToastPlateManager.h>
 
@@ -48,6 +48,7 @@ int main( int argc, char *argv[] ) {
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Soure data cache size, in megabytes")
     ("num-threads,t", po::value<unsigned>(&num_threads)->default_value(1), "Set number of threads (set to 0 to use system default")
+    ("mipmap-only,m", "Skip tile generation entirely and simply run the mipmapper to generate any low res tiles that need to be created or refreshed.")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -79,6 +80,8 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
+  //------------------------- SET DEFAULT OPTIONS -----------------------------
+
   if( output_file_name == "" )
     output_file_name = prefix_from_filename(image_files[0]) + ".plate";
 
@@ -92,19 +95,34 @@ int main( int argc, char *argv[] ) {
   DiskImageResourcePNG::set_default_compression_level( png_compression );
   vw_settings().set_system_cache_size( cache_size*1024*1024 );
 
-  std::vector<DiskImageView<PixelRGBA<uint8> > > images;
-  std::vector<GeoReference> georefs;
-  int max_level = 0;
+  // Create the plate file
+  boost::shared_ptr<PlateFile> platefile = 
+    boost::shared_ptr<PlateFile>( new PlateFile(output_file_name, tile_size, output_file_type));
+  ToastPlateManager pm(platefile, num_threads);
+  std::cout << "\nOpening plate file: " << output_file_type << "\n";
 
-  std::cout << "Scanning input files...." << std::endl;
+  // Check to see if the user has requested mipmapping only.
+  if (vm.count("mipmap-only")) {
+    std::cout << "\t--> Skipping tile generation.  Generating mipmap tiles.\n";
+    pm.mipmap();
+    exit(0);
+  }
+
+  //------------------------- TILE GENERATION --------------------------------
+
   for( unsigned i=0; i<image_files.size(); ++i ) {
-    DiskImageView<PixelRGBA<uint8> > image(image_files[i]);
-    images.push_back(image);
+    std::cout << "\t--> Building full-resolution tiles for " << image_files[i] << "\n";
 
+    // Open the image.  TODO: Add logic here to switch between various
+    // run-time pixel formats.
+    DiskImageView<PixelRGBA<uint8> > image(image_files[i]);
+
+    // Load the georef.  If none is found, assume Plate Caree.
     GeoReference georef;
-    read_georeference( georef, DiskImageResourceGDAL(image_files[i]) );
+    read_georeference( georef, DiskImageResourceGDAL( image_files[i]) );
     if( georef.transform() == identity_matrix<3>() ) {
-      std::cout << "No georeferencing info found for " << image_files[i] << ".  Assuming global plate carree." << std::endl;
+      std::cout << "No georeferencing info found for " << image_files[i] 
+                << ".  Assuming global plate carree." << std::endl;
       Matrix3x3 M;
       M(0,0) = 360.0 / image.cols();
       M(0,2) = -180.0;
@@ -113,58 +131,13 @@ int main( int argc, char *argv[] ) {
       M(2,2) = 1;
       georef.set_transform( M );
     }
-    georefs.push_back(georef);
-
-    Vector2 p0 = georef.pixel_to_lonlat(Vector2(image.cols()/2,image.rows()/2));
-    Vector2 p1 = georef.pixel_to_lonlat(Vector2(image.cols()/2+1,image.rows()/2));
-    Vector2 p2 = georef.pixel_to_lonlat(Vector2(image.cols()/2,image.rows()/2+1));
-    double delta = sqrt(pow(p1.y()-p0.y(),2)+pow(p2.y()-p0.y(),2));
-    int level = (int)round(log(360/delta/(tile_size-1))/log(2));
-    if( level > max_level ) max_level = level;
+    
+    // Insert the image into the mosaic.
+    pm.insert(image, georef);
   }
-  
-  // This is the right dimension if we create tiles that overlap by
-  // one pixel on one side.  We do this in the TOAST projection to
-  // correctly render tiles in a 3D texturing environment.
-  int32 resolution = (1<<max_level)*(tile_size-1)+1;
-  std::cout << "Using " << max_level+1 << " levels. (Total resolution = " << resolution << " pixels.)" << std::endl;
-
-  ImageComposite<PixelRGBA<uint8> > composite;
-  composite.set_draft_mode(true);
-  for( unsigned i=0; i<image_files.size(); ++i ) {
-    GeoReference georef = georefs[i];
-    DiskImageView<PixelRGBA<uint8> > image = images[i];
-
-    bool global = georef.proj4_str()=="+proj=longlat" &&
-      fabs(georef.lonlat_to_pixel(Vector2(-180,0)).x()) < 1 &&
-      fabs(georef.lonlat_to_pixel(Vector2(180,0)).x() - image.cols()) < 1 &&
-      fabs(georef.lonlat_to_pixel(Vector2(0,90)).y()) < 1 &&
-      fabs(georef.lonlat_to_pixel(Vector2(0,-90)).y() - image.rows()) < 1;
-
-    ToastTransform toast_tx( georef, resolution );
-    ImageViewRef<PixelRGBA<uint8> > toast_image;
-
-    if( global ) {
-      vw_out(0) << "\t--> Detected global overlay.  Using cylindrical edge extension to hide the seam.\n";
-
-      composite.insert(transform(image,toast_tx,resolution,resolution,CylindricalEdgeExtension(),BicubicInterpolation()), 0, 0);
-    }
-    else {
-      composite.insert(transform(image,toast_tx,resolution,resolution,ZeroEdgeExtension(),BicubicInterpolation()), 0, 0);
-    }
-  }
-  composite.prepare();
 
   // -------------------------- PLATE FILE GENERATION --------------------------------
 
-  // Create the plate file
-  boost::shared_ptr<PlateFile> platefile = boost::shared_ptr<PlateFile>( new PlateFile(output_file_name, tile_size, output_file_type));
-  ToastPlateManager pm(platefile, num_threads);
-
-  std::cout << "\nWriting data to plate file: " << output_file_type << "\n";
-  std::cout << "\t--> Building full-resolution tiles\n";
-  pm.insert(composite, max_level);
-  
-  std::cout << "\t--> Building mipmap levels\n";
-  pm.mipmap();
+  std::cout << "\t--> Generating mipmap tiles\n";
+  //  pm.mipmap();
 }

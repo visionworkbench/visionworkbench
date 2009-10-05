@@ -28,6 +28,8 @@ message IndexHeader {
   optional int32 platefile_version = 1;
   optional uint32 default_tile_size = 2;
   optional string default_file_type = 3;
+  optional int32 pixel_format = 5;
+  optional int32 channel_type = 4;
 }
 
 // ----------------------------------------------------------------------
