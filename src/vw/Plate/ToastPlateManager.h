@@ -73,17 +73,23 @@ namespace platefile {
         ImageView<typename ViewT::pixel_type> old_data(new_data.cols(), new_data.rows());
         try {
           m_platefile->read(old_data, m_tile_info.i, m_tile_info.j, m_depth);
-        } catch (TileNotFoundErr &e) { /* Do nothing... we already have a default constructed empty image above! */ }
+        } catch (TileNotFoundErr &e) { 
+          // Do nothing... we already have a default constructed empty image above! 
+        }
         
         VW_ASSERT(old_data.cols() == new_data.cols() && old_data.rows() == new_data.rows(),
                   LogicErr() << "WritePlateFileTask::operator() -- new tile dimensions do not " 
                   << "match old tile dimensions.");
 
         vw::platefile::CompositeView<typename ViewT::pixel_type> composite;
-        composite.insert(new_data, 0, 0);
+        composite.insert(old_data, 0, 0);
         composite.insert(new_data, 0, 0);
         composite.prepare();
-        m_platefile->write(composite, m_tile_info.i, m_tile_info.j, m_depth); }
+
+        ImageView<typename ViewT::pixel_type> composite_tile = composite;
+        if( ! is_transparent(composite_tile) ) 
+          m_platefile->write(composite_tile, m_tile_info.i, m_tile_info.j, m_depth);
+      }
     };
 
   public:
@@ -150,15 +156,14 @@ namespace platefile {
       BBox2i input_bbox = BBox2i(0,0,image.impl().cols(),image.impl().rows());
       BBox2i output_bbox = toast_tx.forward_bbox(input_bbox);
 
-      std::cout << "\t   Placing image at level " << pyramid_level 
+      std::cout << "\t--> Placing image at level " << pyramid_level 
                 << " with bbox " << output_bbox << "\n"
-                << "\t   (Total TOAST resolution at this level =  " 
+                << "\t    (Total TOAST resolution at this level =  " 
                 << resolution << " pixels.)\n";
 
       // Create the output view and crop it to the proper size.
       ImageViewRef<typename ViewT::pixel_type> toast_view = 
         transform(image,toast_tx, ZeroEdgeExtension(),BicubicInterpolation());
-
 
       if( georef.proj4_str()=="+proj=longlat" &&
           fabs(georef.lonlat_to_pixel(Vector2(-180,0)).x()) < 1 &&
@@ -176,6 +181,7 @@ namespace platefile {
                                                      m_platefile->default_tile_size());
       
       // And save each tile to the PlateFile
+      std::cout << "\t--> Rasterizing " << tiles.size() << " image tiles.\n";
       for (int i = 0; i < tiles.size(); ++i) {
         m_queue.add_task(boost::shared_ptr<Task>(
           new WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> >(this, 
@@ -184,7 +190,6 @@ namespace platefile {
                                                                             pyramid_level, 
                                                                             toast_view)));
       }
-      std::cout << "\t--> Preparing to rasterize " << m_queue.size() << " image tiles.\n";
       m_queue.join_all();
     }
 
@@ -200,7 +205,8 @@ namespace platefile {
     // entire tree up to date.
     void mipmap() { 
       ImageView<PixelRGBA<uint8> > tile = this->load_tile(0,0,0); 
-      m_platefile->write(tile,0,0,0);
+      if (tile && !is_transparent(tile))
+        m_platefile->write(tile,0,0,0);
     }
   };
 

@@ -11,6 +11,9 @@
 #include <vw/Core/Exception.h>
 #include <vw/Core/FundamentalTypes.h>
 
+// TODO: Remove this once we fix invalidate()
+#include <vw/Plate/ProtoBuffers.pb.h>
+
 #include <boost/shared_array.hpp>
 #include <map>
 
@@ -89,6 +92,46 @@ namespace platefile {
       if (old_child)
         for (int i = 0; i < 4 ; ++i) 
           m_children[id]->set_child(i, old_child->child(i));
+    }
+
+    // Invalidate all of the nodes leading up to the specified node so
+    // that they can be regenerated on the next mipmapping pass.
+    // 
+    // TODO: I'm violating the abstraction barrier here for the sake
+    // of expediency.  However, the tree structure really ought to be
+    // kept seperate from the set_status() method of the record.
+    // Maybe we need to feed in some sort of invalidation functor to
+    // the tree structure to keep the barrier intact?
+    bool invalidate_records_helper(int col, int row, int level, int current_level) {
+      // If we have reached the requested depth, then we must be at
+      // the node we want!  Return the ElementT!
+      if (current_level == level) {
+
+        // Handle the edge case where the user has requested a tile
+        // outside of the 1x1 bounds of the root level.
+        if ( level == 0 && (col !=0 || row != 0) )
+          vw_throw(IndexErr() << "TreeNode: invalid index (" << col << " " << row << ").");
+        
+        return true;
+        
+      // Otherwise, we go recurse deeper into the tree....
+      } else {        
+        int child_id = compute_child_id(col, row, level, current_level + 1);
+        if (m_children[child_id]) {
+          
+          // If a branch of the tree is found, we dive deeper.
+          bool success = m_children[child_id]->invalidate_records_helper(col, row, level, 
+                                                                         current_level + 1);
+          if (success && m_records.size() > 0 &&
+              (*(m_records.begin())).second.status() == INDEX_RECORD_VALID)
+            (*(m_records.begin())).second.set_status(INDEX_RECORD_STALE);
+
+          return success;
+          
+        } else {
+          return false;
+        }
+      }
     }
 
     // Search for a node at a given col, row, and level.
@@ -188,7 +231,7 @@ namespace platefile {
     }
 
     void print_helper(int current_level) const {
-      vw_out(0) << (*(m_records.begin())).second.valid() << "\n";
+      vw_out(0) << (*(m_records.begin())).second.status() << "\n";
       for (int i = 0; i < 4; ++i) 
         if ( this->child(i) ) {
           for (int l = 0; l < current_level+1; ++l) 
@@ -204,12 +247,12 @@ namespace platefile {
     // ------------------------ Public Methods -----------------------------
 
     /// Use this contructor for the root of the tree....
-    TreeNode() : m_max_depth(0) {
+    TreeNode() : m_parent(0), m_max_depth(0) {
       m_children.resize(4);
     }
 
     /// ... or use this contructor for the root of the tree.
-    TreeNode(ElementT const& record, int epoch = 0) : m_max_depth(0) {
+    TreeNode(ElementT const& record, int epoch = 0) : m_parent(0), m_max_depth(0) {
       m_records[epoch] = record;
       m_children.resize(4);
     }
@@ -240,7 +283,7 @@ namespace platefile {
       return n;
     }
 
-    ElementT& value_helper(int epoch) { 
+    ElementT value_helper(int epoch) { 
 
       // We search for the most recent record that happened before on
       // on the queried ephoch.
@@ -252,16 +295,16 @@ namespace platefile {
       }
 
       // If we reach this point, then there are no entries before
-      // the given epoch, so we return a TileNotFoundErr.
-      vw_throw(TileNotFoundErr() << "Tile could not be found for epoch " << epoch);
+      // the given epoch, so we return an empty (and invalid) record.
+      return ElementT();
     }
 
     /// Access the data member of this node.
-    ElementT& value(int epoch = 0) { 
+    ElementT value(int epoch = 0) { 
       return value_helper(epoch);
     }
 
-    const ElementT& value(int epoch = 0) const { 
+    const ElementT value(int epoch = 0) const { 
       return value_helper(epoch);
     }
 
@@ -272,6 +315,11 @@ namespace platefile {
     // Search for a node at a given col, row, and level.
     ElementT search(int col, int row, int level, int epoch = 0) {
       return search_helper(col, row, level, epoch, 0);
+    }
+
+    // Search for a node at a given col, row, and level.
+    bool invalidate_records(int col, int row, int level) {
+      return invalidate_records_helper(col, row, level, 0);
     }
 
     // Insert an ElementT at a given position.  Intermediate nodes

@@ -36,6 +36,12 @@ message IndexHeader {
 //                         Tile Data Structures
 // ----------------------------------------------------------------------
 
+enum IndexRecordStatusType {
+  INDEX_RECORD_EMPTY = 1;
+  INDEX_RECORD_STALE = 2;
+  INDEX_RECORD_VALID = 3;
+}
+
 // The IndexRecord stores basic metadata for locating a tile in a
 // blob.  The IndexRecord is used to store this information in a live
 // index (in main memory), and can also be stored as part of a
@@ -45,7 +51,7 @@ message IndexHeader {
 message IndexRecord {
   required uint32 blob_id = 1;
   required uint64 blob_offset = 2;
-  optional bool valid = 3 [ default = false ];
+  optional IndexRecordStatusType status = 3 [ default = INDEX_RECORD_EMPTY ];
 }
 
 // The TileRecord store metadata about the tile itself as well as the

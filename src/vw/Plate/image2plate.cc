@@ -139,5 +139,5 @@ int main( int argc, char *argv[] ) {
   // -------------------------- PLATE FILE GENERATION --------------------------------
 
   std::cout << "\t--> Generating mipmap tiles\n";
-  //  pm.mipmap();
+  pm.mipmap();
 }

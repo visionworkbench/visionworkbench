@@ -62,10 +62,9 @@ public:
   void test_index_write_read() {
     unlink("/tmp/foo.plate/plate.index");
     std::string plate_filename = "/tmp/foo.plate";
-    boost::shared_ptr<BlobManager> mgr( new BlobManager(2048, 3) );
 
     // Write the basic data...
-    Index idx(plate_filename, 256, "tif", mgr);
+    Index idx(plate_filename, 256, "tif");
 
     // And read it back in...
     Index idx2(plate_filename);
@@ -115,14 +114,13 @@ public:
     dummy_header4.set_depth(1);
 
     // Write some data to the Index.
-    boost::shared_ptr<BlobManager> mgr( new BlobManager(2048, 3) );
-    Index idx(plate_filename, 256, "tif", mgr);
+    Index idx(plate_filename, 256, "tif");
     Blob blob(blob_filename);
 
     IndexRecord rec;
     rec.set_blob_id( idx.write_request(1024) );
     rec.set_blob_offset(blob.write(dummy_header0, m_test_data, 20));
-    rec.set_valid(1);
+    rec.set_status(INDEX_RECORD_VALID);
     idx.write_complete(dummy_header0, rec);
 
     rec.set_blob_id( idx.write_request(1024) );
@@ -206,14 +204,13 @@ public:
     dummy_header4.set_depth(1);
 
     // Write some data to the Index.
-    boost::shared_ptr<BlobManager> mgr( new BlobManager(2048, 3) );
-    Index idx(plate_filename, 256, "tif", mgr);
+    Index idx(plate_filename, 256, "tif");
     Blob blob(blob_filename);
 
     IndexRecord rec;
     rec.set_blob_id( idx.write_request(1024) );
     rec.set_blob_offset(blob.write(dummy_header0, m_test_data, 20));
-    rec.set_valid(1);
+    rec.set_status(INDEX_RECORD_VALID);
     idx.write_complete(dummy_header0, rec);
 
     rec.set_blob_id( idx.write_request(1024) );

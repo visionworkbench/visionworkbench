@@ -172,7 +172,7 @@ namespace platefile {
 
       // 1. Call index read_request(col,row,depth).  Returns IndexRecord.
       IndexRecord record = m_index->read_request(col, row, depth, epoch);
-      if (record.valid()) {
+      if (record.status() != INDEX_RECORD_EMPTY) {
         std::ostringstream blob_filename;
         blob_filename << m_plate_name << "/plate_" << record.blob_id() << ".blob";
 
@@ -189,7 +189,7 @@ namespace platefile {
         // 4. Return the name of the file
         return filename;
       } else {
-        vw_throw(TileNotFoundErr() << "Tile was found, but was marked invalid.");
+        vw_throw(TileNotFoundErr() << "Index record was found, but was marked as empty.");
         return filename; // never reached
       }
 
@@ -204,7 +204,7 @@ namespace platefile {
       
       // 1. Call index read_request(col,row,depth).  Returns IndexRecord.
       IndexRecord record = m_index->read_request(col, row, depth, epoch);
-      if (record.valid()) {
+      if (record.status() != INDEX_RECORD_EMPTY) {
         std::ostringstream blob_filename;
         blob_filename << m_plate_name << "/plate_" << record.blob_id() << ".blob";
 
@@ -226,7 +226,7 @@ namespace platefile {
         result = blob.read_header<TileHeader>(record.blob_offset());
         return result;
       } else {
-        vw_throw(TileNotFoundErr() << "Tile was found, but was marked invalid.");
+        vw_throw(TileNotFoundErr() << "Index record was found, but was marked as empty.");
         return result; // never reached
       }
     }
@@ -264,7 +264,7 @@ namespace platefile {
       IndexRecord write_record;
       write_record.set_blob_id(blob_id);
       write_record.set_blob_offset(blob_offset);
-      write_record.set_valid(true);
+      write_record.set_status(INDEX_RECORD_VALID);
 
       m_index->write_complete(write_header, write_record);
     }

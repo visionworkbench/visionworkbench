@@ -77,7 +77,7 @@ void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files
       IndexRecord rec;
       rec.set_blob_id(current_blob_id);
       rec.set_blob_offset(iter.current_base_offset());
-      rec.set_valid(true);
+      rec.set_status(INDEX_RECORD_VALID);
       m_root->insert(rec, hdr.col(), hdr.row(), hdr.depth(), hdr.epoch());
       ++iter;
     }
@@ -217,5 +217,6 @@ void vw::platefile::Index::write_complete(TileHeader const& header, IndexRecord 
 
   Mutex::Lock lock(m_mutex);
   m_root->insert(record, header.col(), header.row(), header.depth(), header.epoch());
+  m_root->invalidate_records(header.col(), header.row(), header.depth());
 }
 

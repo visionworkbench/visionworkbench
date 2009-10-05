@@ -97,27 +97,37 @@ ToastPlateManager::load_tile( int32 level, int32 x, int32 y ) {
   //     return e.tile;
   //   }
   // }
-      
-  // If none of the recursive cases match above, then we must be
-  // at the location and level that was reqested.  It's time to
-  // create the tile.
+
+
+  // First we try to access the indexrecord for this tile.  If that
+  // fails, then we must be trying to access a node in the tree that
+  // simply doesn't exist.  In this case, we create a totally empty
+  // tile and return it.
   ImageView<PixelRGBA<uint8> > tile;
   IndexRecord rec;
   try {
-    m_platefile->read(tile, x, y, level);
     rec = m_platefile->read_record(x, y, level);
-  } catch (TileNotFoundErr &e) {} // Do nothing... the IndexRecord will be invalid. 
+  } catch (TileNotFoundErr &e) {
+    return tile;
+  }
 
-  // If the tile does not exist, then we try to regenerate it by
-  // fetching our children and rebuilding this tile.
-  if (!rec.valid()) {
-    std::cout << "\t    Generating mipmap: [ " << x << " " << y << " @ " << level << " ]\n";
+  // If the record lookup succeded, we look at the current status of
+  // the tile to decide what to do next.
 
-    // If none of the termination conditions are met, then we must
-    // be at an invalid record that needs to be regenerated.
-    int tile_size = m_platefile->default_tile_size();
+
+  if (rec.status() == INDEX_RECORD_VALID) {
+
+    // CASE 1 : Valid tiles can be returned without any further processing.
+    m_platefile->read(tile, x, y, level);
+    return tile;
+
+  } else if (rec.status() == INDEX_RECORD_EMPTY || 
+             rec.status() == INDEX_RECORD_STALE) {
+    
+    // CASE 2 : Empty tiles need to be regenerated from scratch.
 
     // Create an image large enough to store all of the child nodes
+    int tile_size = m_platefile->default_tile_size();
     ImageView<PixelRGBA<uint8> > super(4*tile_size-3, 4*tile_size-3);
         
     // Iterate over the children, gathering them and (recursively)
@@ -145,10 +155,37 @@ ToastPlateManager::load_tile( int32 level, int32 x, int32 y ) {
                                                           kernel, 
                                                           NoEdgeExtension() ),
                             tile_size-1, tile_size-1, 2*tile_size, 2*tile_size ), 2 );
-        
-    if( ! is_transparent(tile) ) 
-      m_platefile->write(tile, x, y, level);
 
+    if (rec.status() == INDEX_RECORD_STALE) {
+      std::cout << "\t    [ " << x << " " << y << " @ " << level << " ] -- Regenerating tile.\n";
+
+      if( ! is_transparent(tile) ) {
+        ImageView<PixelRGBA<uint8> > old_data(tile.cols(), tile.rows());
+        try {
+          m_platefile->read(old_data, x, y, level);
+        } catch (TileNotFoundErr &e) { 
+          // Do nothing... we already have a default constructed empty image above! 
+        }
+
+        VW_ASSERT(old_data.cols() == tile.cols() && old_data.rows() == tile.rows(),
+                  LogicErr() << "WritePlateFileTask::operator() -- new tile dimensions do not " 
+                  << "match old tile dimensions.");
+        
+        vw::platefile::CompositeView<PixelRGBA<uint8> > composite;
+        composite.insert(old_data, 0, 0);
+        composite.insert(tile, 0, 0);
+        composite.prepare();
+
+        ImageView<PixelRGBA<uint8> > composite_tile = composite;
+        if( ! is_transparent(composite_tile) ) 
+          m_platefile->write(composite_tile, x, y, level);
+      }
+
+    } else {
+      std::cout << "\t    [ " << x << " " << y << " @ " << level << " ] -- Creating tile.\n";
+      if( ! is_transparent(tile) ) 
+        m_platefile->write(tile, x, y, level);
+    }
   }
 
   // TODO: Reenable cache
@@ -163,6 +200,5 @@ ToastPlateManager::load_tile( int32 level, int32 x, int32 y ) {
   // e.y = y;
   // e.tile = tile;
   // m_cache.push_front(e);
-
   return tile;
 }

@@ -56,7 +56,7 @@ public:
       ostr << "/" << row;
 
       std::string output_filename = m_platefile->read_to_file(ostr.str(), col, row, level);
-      std::cout << "\t--> [ " << col << " " << row << " " << level << "] : Writing" 
+      std::cout << "\t--> [ " << col << " " << row << " " << level << "] : Writing " 
                 << output_filename << "\n";
       
     } catch (TileNotFoundErr &e) { 
