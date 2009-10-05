@@ -84,17 +84,18 @@ namespace platefile {
     // virtual void save(std::string const& filename);
 
     virtual int version() const { return m_header.platefile_version(); }
-    virtual int max_depth() const { return m_root->max_depth(); }
+    virtual int32 max_depth() const { return m_root->max_depth(); }
     virtual int32 default_tile_size() const { return m_header.default_tile_size(); }
     virtual std::string default_tile_filetype() const { return m_header.default_file_type(); }
 
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.
-    virtual IndexRecord read_request(int col, int row, int depth, int epoch = 0);
+    virtual IndexRecord read_request(vw::int32 col, vw::int32 row, 
+                                     vw::int32 depth, vw::int32 epoch = 0);
   
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
-    virtual int write_request(int size);
+    virtual int write_request(vw::int32 size);
 
     // Writing, pt. 2: Supply information to update the index and
     // unlock the blob id.

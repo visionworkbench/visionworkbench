@@ -12,6 +12,7 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 using namespace vw::platefile;
+using namespace vw;
 
 int main(int argc, char** argv) {
   std::string queue_name, plate_file_name;
@@ -59,49 +60,69 @@ int main(int argc, char** argv) {
     std::cout << "\t--> Opening connection to AMQP broker\n";
     AmqpConnection conn;
     
-    // Create a "topic" exchange on the AMQP broker.  This, in
-    // conjunction with the queue and binding below, will match any
-    // messages that are sent using the 'indexserver.*' routing key.
-    // The routing key will be used later to determine what message type
-    // was sent.
-    std::cout << "\t--> Declaring exchange, queue, and binding.\n";
-    conn.exchange_declare(EXCHANGE, "topic", true, false);
-    conn.queue_declare(QUEUE, true, true, false);
-    conn.queue_bind(QUEUE, EXCHANGE, "index.#");
+    // Create a "topic" exchange on the AMQP broker to handle index
+    // server requests.  This, in conjunction with the queue and
+    // binding below, will match any messages that are sent using the
+    // 'index.#' routing key.  The '.*' portion of the routing
+    // key will be used later to determine what message type was sent.
+    std::cout << "\t--> Declaring \'"<< INDEX_EXCHANGE <<"\'exchange binding it to the \'"
+              << INDEX_QUEUE <<"' queue.\n";
+    conn.exchange_declare(INDEX_EXCHANGE, "topic", true, false);
+    conn.queue_declare(INDEX_QUEUE, true, true, false);
+    conn.queue_bind(INDEX_QUEUE, INDEX_EXCHANGE, "index.#");
 
     while(1) {
       std::string routing_key;
-      std::string message = conn.basic_consume(QUEUE, routing_key, false);
+      std::string message = conn.basic_consume(INDEX_QUEUE, routing_key, false);
 
       if (routing_key == "index.read_request") {
-        std::cout << "Processing \"index.read_request\"\n";
-
         IndexReadRequest r;
         r.ParseFromString(message);
-        std::cout << r.DebugString() << "\n";
+        vw_out(InfoMessage, "plate") << "Processing index.read_request: "
+                                     << r.DebugString() << "\n";
 
         // Access the data in the index
         try {
-          IndexRecord record = idx.read_request(r.col(), r.row(), r.depth());
-          IndexReadResponse read_response;
+          IndexRecord record = idx.read_request(r.col(), r.row(), r.depth(), r.epoch());
+          IndexReadReply read_response;
           *(read_response.mutable_index_record()) = record;
-          conn.basic_publish_protobuf(read_response, EXCHANGE, r.requestor() + ".read_response");
+          conn.basic_publish_protobuf(read_response, INDEX_EXCHANGE,
+                                      r.requestor() + ".read_reply");
         } catch (TileNotFoundErr &e) {
           IndexError err; 
           err.set_message(e.what());
-          conn.basic_publish_protobuf(err, EXCHANGE, r.requestor() + ".index_error");
+          conn.basic_publish_protobuf(err, INDEX_EXCHANGE, r.requestor() + ".index_error");
         }
 
       } else if (routing_key == "index.write_request") {
-        std::cout << "Processing \"index.write_request\"\n";
 
+        IndexWriteRequest r;
+        r.ParseFromString(message);
+        vw_out(InfoMessage, "plate") << "Processing index.write_request: "
+                                     << r.DebugString() << "\n";
+
+        int32 blob_id = idx.write_request(r.size());
+        IndexWriteReply response;
+        response.set_blob_id(blob_id);
+        conn.basic_publish_protobuf(response, INDEX_EXCHANGE,
+                                    r.requestor() + ".write_reply");
 
       } else if (routing_key == "index.write_complete") {
-        std::cout << "Processing \"index.complete_request\"\n";
 
+        IndexWriteComplete r;
+        r.ParseFromString(message);
+        vw_out(InfoMessage, "plate") << "Processing index.write_complete: "
+                                     << r.DebugString() << "\n";
+
+        // Access the data in the index
+        idx.write_complete(r.header(), r.record());
+        IndexSuccess response;
+        conn.basic_publish_protobuf(response, INDEX_EXCHANGE,
+                                    r.requestor() + ".write_complete");
 
       } else {
-        std::cout << "WARNING: unhandled message with routing key \"" << routing_key << "\".\n";
+        std::cout << "WARNING: unknown routing key \"" << routing_key 
+                  << "\".  Ignoring request.\n";
       }
     }
 

@@ -186,7 +186,7 @@ void AmqpConnection::queue_unbind(std::string const& queue, std::string const& e
 
 void AmqpConnection::basic_publish(std::string const& message, 
                                    std::string const& exchange, 
-                                   std::string const& routing_key) {
+                                   std::string const& routing_key) const {
 
   amqp_basic_properties_t props;
   props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
@@ -206,7 +206,7 @@ void AmqpConnection::basic_publish(std::string const& message,
 
 std::string AmqpConnection::basic_consume(std::string const& queue, 
                                           std::string &routing_key,
-                                          bool no_ack) {
+                                          bool no_ack) const {
 
   amqp_basic_consume(m_state->conn, 1, amqp_cstring_bytes(queue.c_str()), 
                                                           m_state->empty_bytes, 

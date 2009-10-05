@@ -3,9 +3,34 @@
 // the Administrator of the National Aeronautics and Space Administration.
 // All Rights Reserved.
 // __END_LICENSE__
-
 #ifndef __VW_PLATE_BLOBIO__
 #define __VW_PLATE_BLOBIO__
+
+/// \file Blob.h
+///
+/// Platefile data is stored in data "blobs" that exist as files on the
+/// filesystem.  New data is added to the data blobs whenever a new tile
+/// is written to the platefile.  To ensure data consistency (as one would
+/// have in a journaling filesystem), the new data is first written to a
+/// journal file (a sidecar that exists alongside the blob), and then it
+/// is copied from the journal file to the blob file.  In this way, the
+/// data will always be written to the blob if it is succesfully written
+/// to the journal, and if the data is not successfully written to the
+/// journal, then it does not end up corrupting the blob. (The actual
+/// process is considerably more complicated and optimized, but this is
+/// the general idea.)
+///
+/// Data in the blob is stored in stanzas with the following way:
+///
+///   [ BLOB HEADER_SIZE ]  [ uint16 ] 
+///   [ BLOB HEADER ]       [ uint8 - serialized BlobHeader protobuffer ]
+///     (contains HEADER_OFFSET, DATA_OFFSET, HEADER_SIZE, DATA_SIZE)
+///
+///   [ HEADER ]            [ uint8 - serialized IndexRecord protobuffer ] 
+///
+///   [ DATA ]              [ uint8 - N raw bytes of data ]
+///
+/// 
 
 #include <fstream>
 #include <string>

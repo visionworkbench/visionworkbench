@@ -62,32 +62,62 @@ message TileHeader {
 //             Remote Procedure Calls (RPC) for Index Server
 // ----------------------------------------------------------------------
 
-
 // ----------------------------------
 // Client --> Server Requests
 // ----------------------------------
 
+message IndexOpenRequest {
+  required string requestor = 1;
+  required string plate_filename = 10;
+  optional string mode = 11 [default = "read"]; // [ 'read' | 'readwrite' ]
+}
+
+message IndexCloseRequest {
+  required string requestor = 1;
+  required int32 platefile_id = 2;
+  required int32 secret = 3;
+}
+
+message IndexCreate {
+  required string requestor = 1;
+  required string plate_filename = 10;
+  required string projection_type = 11;
+  required int32 default_block_size = 12;
+  required string default_filetype = 13;
+}
+
 message IndexReadRequest {
-  optional string requestor = 10;
-  optional string platefile = 11;
-  required int32 col = 1;
-  required int32 row = 2;
-  required int32 depth = 3;
+  required string requestor = 1;
+  required int32 platefile_id = 2;
+  required int32 secret = 3;
+
+  required int32 col = 10;
+  required int32 row = 11;
+  required int32 depth = 12;
+  required int32 epoch = 13 [default = 0];
 }
 
 message IndexWriteRequest {
-  optional string requestor = 10;
-  optional string platefile = 11;
-  required int32 size = 1;
+  required string requestor = 1;
+  required int32 platefile_id = 2;
+  required int32 secret = 3;
+
+  required int32 size = 10;
 }
 
 message IndexWriteComplete {
-  optional string requestor = 10;
-  optional string platefile = 11;
-  required int32 col = 1;
-  required int32 row = 2;
-  required int32 depth = 3;
-  required IndexRecord record = 4;
+  required string requestor = 1;
+  required int32 platefile_id = 2;
+  required int32 secret = 3;
+
+  required TileHeader header = 10;
+  required IndexRecord record = 11;
+}
+
+message IndexDepthRequest {
+  required string requestor = 1;
+  required int32 platefile_id = 2;
+  required int32 secret = 3;
 }
 
 // ----------------------------------
@@ -95,13 +125,28 @@ message IndexWriteComplete {
 // ----------------------------------
 
 message IndexError {
-  required string message = 1;
+  required string message = 10;
 }
 
-message IndexReadResponse {
-  optional IndexRecord index_record = 10;
+message IndexOpenReply {
+  required int32 platefile_id = 10;
+  required int32 secret = 11;
+  required IndexHeader index_header = 12;
 }
 
-message IndexWriteResponse {
-  optional int32 blob_id = 10;
+message IndexReadReply {
+  required IndexRecord index_record = 10;
 }
+
+message IndexSuccess {
+  optional string message = 10;
+}
+
+message IndexWriteReply {
+  required int32 blob_id = 10;
+}
+
+message IndexDepthReply {
+  required int32 depth = 10;
+}
+

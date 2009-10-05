@@ -18,59 +18,6 @@ namespace po = boost::program_options;
 using namespace vw;
 using namespace vw::platefile;
 
-class RemoteIndex : public IndexBase {
-
-  std::string m_platefile;
-  std::string m_requestor;
-  AmqpConnection m_conn;
-
-public:
-  /// Constructor
-  RemoteIndex(std::string const& platefile, std::string const& requestor) :
-    m_platefile(platefile), m_requestor(requestor) {}
-  
-  /// Destructor
-  virtual ~RemoteIndex() {}
-  
-  /// Attempt to access a tile in the index.  Throws an
-  /// TileNotFoundErr if the tile cannot be found.
-  virtual IndexRecord read_request(int col, int row, int depth) {
-    IndexReadRequest req;
-    req.set_col(col);
-    req.set_row(col);
-    req.set_depth(col);
-    req.set_requestor(m_requestor);
-    req.set_platefile(m_platefile);
-    m_conn.basic_publish_protobuf(req, EXCHANGE, m_requestor);
-    
-    std::string routing_key;
-    std::string response = m_conn.basic_consume(QUEUE, routing_key, false);
-    if (routing_key != m_requestor + ".read_response")
-      vw_throw(LogicErr() << "Was expcting read response, but received " << routing_key << "instead.");
-
-    IndexReadResponse r;
-    r.ParseFromString(response);
-    std::cout << r.DebugString() << "\n";
-    return r.index_record();    
-  }
-  
-  // Writing, pt. 1: Locks a blob and returns the blob id that can
-  // be used to write a block.
-  virtual int write_request(int size) = 0;
-  
-  // Writing, pt. 2: Supply information to update the index and
-  // unlock the blob id.
-  virtual void write_complete(int col, int row, int depth, IndexRecord record) = 0;
-  
-  
-  virtual void save(std::string const& filename) = 0;
-  
-  
-  virtual int32 version() const = 0;
-  virtual int32 default_block_size() const = 0;
-  virtual std::string default_block_filetype() const = 0;
-  virtual int32 max_depth() const = 0;
-};
 
 
 

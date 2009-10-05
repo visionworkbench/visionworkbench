@@ -54,12 +54,12 @@ namespace platefile {
 
     void basic_publish(std::string const& message, 
                        std::string const& exchange, 
-                       std::string const& routing_key);
+                       std::string const& routing_key) const;
 
     template <class ProtoBufT>
     void basic_publish_protobuf(ProtoBufT const& protobuf, 
                                 std::string const& exchange, 
-                                std::string const& routing_key) {
+                                std::string const& routing_key) const {
       std::string message_bytes;
       protobuf.SerializeToString(&message_bytes);
       this->basic_publish(message_bytes, exchange, routing_key);
@@ -68,7 +68,7 @@ namespace platefile {
 
     std::string basic_consume(std::string const& queue, 
                               std::string &routing_key,
-                              bool no_ack);
+                              bool no_ack) const;
   };
 
 }} // namespace vw::platefile
