@@ -28,6 +28,10 @@ std::string vw::platefile::Index::index_filename() const {
   return m_plate_filename + "/plate.index";
 }
 
+std::string vw::platefile::Index::log_filename() const {
+  return m_plate_filename + "/plate.log";
+}
+
 std::vector<std::string> vw::platefile::Index::blob_filenames() const {
 
   std::vector<std::string> result;
@@ -57,9 +61,9 @@ std::vector<std::string> vw::platefile::Index::blob_filenames() const {
 void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files) {
 
   for (unsigned int i = 0; i < blob_files.size(); ++i) {
-    vw_out(InfoMessage, "plate") << "Loading index entries from blob file: " 
-                                 << m_plate_filename << "/" << blob_files[i] << "\n";
-
+    this->log() << "\t--> Loading index entries from blob file: " 
+                << m_plate_filename << "/" << blob_files[i] << "\n";
+    
     // Extract the current blob id as an integer.
     boost::regex re;
     re.assign("(plate_)(\\d+)(\\.blob)", boost::regex_constants::icase);
@@ -84,6 +88,20 @@ void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files
   }
 }
 
+void vw::platefile::Index::save_index_file() const {
+
+  // First, check to make sure the platefile directory exists.
+  if ( !fs::exists( m_plate_filename ) )
+    fs::create_directory(m_plate_filename);
+  std::ofstream ofstr( this->index_filename().c_str() );
+  if (!ofstr.is_open())
+    vw_throw(IOErr() << "Index::Index() -- Could not create index file for writing.");
+
+  // Serialize the header data.
+  m_header.SerializeToOstream(&ofstr);
+  ofstr.close();
+
+}
 
 // ------------------------ Public Methods --------------------------
 
@@ -93,22 +111,25 @@ vw::platefile::Index::Index( std::string plate_filename,
   m_plate_filename(plate_filename),
   m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )), 
   m_root(boost::shared_ptr<TreeNode<IndexRecord> >( new TreeNode<IndexRecord>() )) {
-
-  // First, check to make sure the platefile directory exists.
-  if ( !fs::exists( plate_filename ) )
-    fs::create_directory(plate_filename);
-  std::ofstream ofstr( this->index_filename().c_str() );
   
-  if (!ofstr.is_open())
-    vw_throw(IOErr() << "Index::Index() -- Could not create index file for writing.");
-
   // Set up the IndexHeader and write it to disk.
   m_header.set_platefile_version(VW_CURRENT_PLATEFILE_VERSION);
   m_header.set_default_tile_size(default_tile_size);
   m_header.set_default_file_type(default_file_type);
-  m_header.SerializeToOstream(&ofstr);
+  m_header.set_transaction_read_cursor(0);
+  m_header.set_transaction_write_cursor(1);
 
-  ofstr.close();
+  this->save_index_file();
+
+  // Create the logging facility
+  m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );
+
+  this->log() << "Created new index \"" << this->index_filename() 
+              << "\"  (version " << VW_CURRENT_PLATEFILE_VERSION <<"\n";
+  this->log() << "\t--> Tile size: " << m_header.default_tile_size()
+              << " and file type: " << m_header.default_file_type() << "\n";
+  this->log() << "\t--> Read cursor: " << m_header.transaction_read_cursor() 
+              << "   Write cursor: " << m_header.transaction_write_cursor() << "\n";
 }
 
 /// Open an existing index from a file on disk.
@@ -133,69 +154,30 @@ vw::platefile::Index::Index(std::string plate_filename) :
 
   ifstr.close();
 
-  // For testing
+  // Create the logging facility
+  m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );
+
+  this->log() << "Reopened index \"" << this->index_filename() 
+              << "\"  (version " << m_header.platefile_version() << "\n";
+  this->log() << "\t--> Tile size: " << m_header.default_tile_size()
+              << " and file type: " << m_header.default_file_type() << "\n";
+  this->log() << "\t--> Read cursor: " << m_header.transaction_read_cursor() 
+              << "   Write cursor: " << m_header.transaction_write_cursor() << "\n";
+    
+
+  // Load the actual index data
   std::vector<std::string> blob_files = this->blob_filenames();
   this->load_index(blob_files);
-
-
-  //----
-
-  // std::ifstream istr(plate_filename.c_str(), std::ios::binary);
-  // if (!istr.good())
-  //   vw_throw(IOErr() << "Could not open index file \"" << plate_filename << "\" for reading.");
-
-  // // Read the index version and supporting info
-  // istr.read( (char*)&m_index_version, sizeof(m_index_version) );
-  // if (m_index_version != VW_PLATE_INDEX_VERSION) 
-  //   vw_throw(IOErr() << "Could not open plate index.  " 
-  //            << "Version " << m_index_version 
-  //            << " is not compatible the current version (" 
-  //            << VW_PLATE_INDEX_VERSION << ")");
-
-  // // Read the index metadata
-  // istr.read( (char*)&m_max_depth, sizeof(m_max_depth) );
-  // istr.read( (char*)&m_default_tile_size, sizeof(m_default_tile_size) );
-  // // for (unsigned i = 0; i < 4; ++i)
-  // //   istr.read( (char*)(m_default_file_type+i), sizeof(*m_default_file_type) );
-
-  // // Read blob manager info and create a blob manager.
-  // int num_blobs;
-  // int64 max_blob_size;
-  // istr.read( (char*)&num_blobs, sizeof(num_blobs) );
-  // istr.read( (char*)&max_blob_size, sizeof(max_blob_size) );
-  // m_blob_manager = boost::shared_ptr<BlobManager>( new BlobManager(max_blob_size, 
-  //                                                                  num_blobs));
-
-  // // Deserialize the index tree
-  // m_root->deserialize(istr);
-
-  // istr.close();
 }
 
-// /// Save an index out to a file on disk.  This serializes the
-// /// tree.
-// void vw::platefile::Index::save(std::string const& filename) {
-//   std::ofstream ostr(filename.c_str(), std::ios::binary);
-//   if (!ostr.good())
-//     vw_throw(IOErr() << "Could not open index file \"" << filename << "\" for writing.");
+/// Use this to send data to the index's logfile like this:
+///
+///   index_instance.log() << "some text for the log...\n";
+///
+std::ostream& vw::platefile::Index::log () {
+  return (*m_log)(InfoMessage, "console");
+}
 
-//   // Save basic index information & version.
-//   ostr.write( (char*)&m_index_version, sizeof(m_index_version) );
-//   ostr.write( (char*)&m_max_depth, sizeof(m_max_depth) );
-//   ostr.write( (char*)&m_default_tile_size, sizeof(m_default_tile_size) );
-//   for (unsigned i = 0; i < 4; ++i)
-//     ostr.write( (char*)(m_default_file_type+i), sizeof(*m_default_file_type) );
-
-//   // Save blob manager information
-//   int num_blobs = m_blob_manager->num_blobs();
-//   int64 max_blob_size = m_blob_manager->max_blob_size();
-//   ostr.write( (char*)&num_blobs, sizeof(num_blobs) );
-//   ostr.write( (char*)&max_blob_size, sizeof(max_blob_size) );
-
-//   // Serialize the index tree
-//   m_root->serialize(ostr);
-//   ostr.close();
-// }
 
 /// Attempt to access a tile in the index.  Throws an
 /// TileNotFoundErr if the tile cannot be found.
@@ -220,3 +202,29 @@ void vw::platefile::Index::write_complete(TileHeader const& header, IndexRecord 
   m_root->invalidate_records(header.col(), header.row(), header.depth());
 }
 
+
+// Clients are expected to make a transaction request whenever
+// they start a self-contained chunk of mosaicking work.  .
+int32 vw::platefile::Index::transaction_request(std::string transaction_description) {
+  Mutex::Lock lock(m_mutex);
+
+  // Pick the next transaction ID, increment the cursor, and then save
+  // the cursor to a file.  (Saving to a file gurantees that we won't
+  // accidentally assign two transactions the same ID if the index
+  // server crashes and has to be restarted.
+  int32 transaction_id = m_header.transaction_write_cursor();
+  m_header.set_transaction_write_cursor(m_header.transaction_write_cursor() + 1);
+  this->save_index_file();
+  this->log() << "Transaction " << m_header.transaction_write_cursor() << " started: " 
+          << transaction_description << "\n";
+  return transaction_id;
+}
+
+// Once a chunk of work is complete, clients can "commit" their
+// work to the mosaic by issuding a transaction_complete method.
+int32 vw::platefile::Index::transaction_complete(int32 transaction_id) {
+  Mutex::Lock lock(m_mutex);
+
+  this->log() << "Transaction " << m_header.transaction_write_cursor() << " finished.\n";
+  
+}

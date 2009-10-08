@@ -21,15 +21,11 @@ ToastPlateManager::wwt_image_tiles( BBox2i const& image_bbox,
   int x = minx / (tile_size-1);
   int y = miny / (tile_size-1);
 
-  // Similarly, there's no point in searching past the end.
-  int32 maxx = (floor(image_bbox.max().x() / (tile_size-1)) + 1) * (tile_size-1);
-  int32 maxy = (floor(image_bbox.max().y() / (tile_size-1)) + 1) * (tile_size-1);
-  
   // Iterate over the bounding boxes in the entire TOAST space...
   int curx = minx;
   int cury = miny;
-  while (cury <= maxy) {
-    while (curx <= maxx) {
+  while (cury < image_bbox.max().y() - 1) {
+    while (curx < image_bbox.max().x() - 1) {
       
       TileInfo be(x, y, BBox2i(curx, cury, tile_size, tile_size));
       

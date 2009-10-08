@@ -15,12 +15,13 @@ protocol_headers = ProtoBuffers.pb.h
 protocol_sources = ProtoBuffers.pb.cc
 
 include_HEADERS = Blob.h BlobManager.h Index.h RemoteIndex.h Tree.h	\
-		  PlateFile.h Amqp.h ToastPlateManager.h		\
+		  PlateFile.h Amqp.h PlateManager.h			\
+		  ToastPlateManager.h KmlPlateManager.h			\
 		  $(protocol_headers)
 
 libvwPlate_la_SOURCES = $(protocol_sources) Blob.cc BlobManager.cc	\
 			Index.cc RemoteIndex.cc Amqp.cc			\
-			ToastPlateManager.cc
+			ToastPlateManager.cc KmlPlateManager.cc
 
 libvwPlate_la_LIBADD = @MODULE_PLATE_LIBS@
 

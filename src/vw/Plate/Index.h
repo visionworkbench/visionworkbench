@@ -10,6 +10,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Thread.h>
+#include <vw/Core/Log.h>
 
 #include <vw/Plate/Tree.h>
 #include <vw/Plate/Blob.h>
@@ -43,7 +44,13 @@ namespace platefile {
     // unlock the blob id.
     virtual void write_complete(TileHeader const& header, IndexRecord const& record) = 0;
 
-    // virtual void save(std::string const& filename) = 0;
+    // Clients are expected to make a transaction request whenever
+    // they start a self-contained chunk of mosaicking work.  .
+    virtual int32 transaction_request(std::string transaction_description) = 0;
+
+    // Once a chunk of work is complete, clients can "commit" their
+    // work to the mosaic by issuding a transaction_complete method.
+    virtual int32 transaction_complete(int32 transaction_id) = 0;
 
     virtual int32 version() const = 0;
     virtual int32 default_tile_size() const = 0;
@@ -69,9 +76,12 @@ namespace platefile {
     IndexHeader m_header;
     boost::shared_ptr<BlobManager> m_blob_manager;
     boost::shared_ptr<TreeNode<IndexRecord> > m_root;
+    boost::shared_ptr<vw::LogInstance> m_log;
     Mutex m_mutex;
 
+    void save_index_file() const;
     std::string index_filename() const;
+    std::string log_filename() const;
     std::vector<std::string> blob_filenames() const;
     void load_index(std::vector<std::string> const& blob_files);
 
@@ -86,6 +96,12 @@ namespace platefile {
 
     /// Destructor
     virtual ~Index() {}
+
+    /// Use this to send data to the index's logfile like this:
+    ///
+    ///   index_instance.log() << "some text for the log...\n";
+    ///
+    std::ostream& log ();
 
     // /// Save an index out to a file on disk.  This serializes the
     // /// tree.
@@ -108,6 +124,14 @@ namespace platefile {
     // Writing, pt. 2: Supply information to update the index and
     // unlock the blob id.
     virtual void write_complete(TileHeader const& header, IndexRecord const& record);
+
+    // Clients are expected to make a transaction request whenever
+    // they start a self-contained chunk of mosaicking work.  .
+    virtual int32 transaction_request(std::string transaction_description);
+
+    // Once a chunk of work is complete, clients can "commit" their
+    // work to the mosaic by issuding a transaction_complete method.
+    virtual int32 transaction_complete(int32 transaction_id);
 
     /// Use only for debugging small trees.
     void print() { m_root->print(); }
