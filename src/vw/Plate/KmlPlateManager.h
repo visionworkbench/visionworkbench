@@ -77,7 +77,7 @@ namespace platefile {
       // georeference by copying the datum.
       cartography::GeoReference output_georef;
       output_georef.set_datum(input_georef.datum());
-      int resolution = 1024;
+      int resolution = 256;
 
       // Right now, we only need a WGS84 output geoereference to compute 
       // the resolution. The rest of the output info will get set later.
@@ -96,44 +96,30 @@ namespace platefile {
       res_pixel[4] = Vector2 (cols/2, rows/2 - rows/4 );
       int res;
       for(int i=0; i < 5; i++) {
-        res = vw::cartography::output::kml::compute_resolution(geotx, res_pixel[i]);
+        res = cartography::output::kml::compute_resolution(geotx, res_pixel[i]);
         if( res > resolution ) resolution = res;
       }
-        
-      // Round the resolution to the nearest power of two
-      int pyramid_level = (int)ceil(log(resolution) / log(2));
+
+      // Round the resolution to the nearest power of two.  The
+      // base of the pyramid is 2^8 or 256x256 pixels.
+      int pyramid_level = (int)ceil(log(resolution) / log(2)) - 8; 
       int tile_size = m_platefile->default_tile_size();
       resolution = (1<<pyramid_level)*tile_size;
+
+      output_georef = cartography::output::kml::get_output_georeference(resolution,resolution);
+      output_georef.set_datum( input_georef.datum() );
 
       // Set up the KML transform and compute the bounding box of this
       // image in the KML projection space.
       cartography::GeoTransform kml_tx( input_georef, output_georef );
       BBox2i input_bbox = BBox2i(0,0,image.impl().cols(),image.impl().rows());
-      BBox2i bbox = kml_tx.forward_bbox(input_bbox);
-      std::cout << "\t--> Tx bbox: " << bbox << "\n";
+      BBox2i output_bbox = kml_tx.forward_bbox(input_bbox);
+      output_bbox.crop( BBox2i(0,0,resolution,resolution) );
 
-      // Compute a tighter Google Earth coordinate system aligned bounding box.
-      bbox.crop( BBox2i(0,0,resolution,resolution) );
-      BBox2i output_bbox = BBox2i( (bbox.min().x()/resolution)*resolution, 
-                                   (bbox.min().y()/resolution)*resolution, 
-                                   resolution, resolution );
-      if( ! output_bbox.contains( bbox ) ) {
-        if( output_bbox.max().x() == resolution ) output_bbox.min().x() -= resolution;
-        else output_bbox.max().x() += resolution;
-        if( output_bbox.max().y() == resolution ) output_bbox.min().y() -= resolution;
-        else output_bbox.max().y() += resolution;
-      }
-      
-      BBox2i ll_bbox = BBox2( -180.0 + (360.0*output_bbox.min().x())/resolution,
-                              180.0 - (360.0*output_bbox.max().y())/resolution,
-                              (360.0*output_bbox.width())/resolution,
-                              (360.0*output_bbox.height())/resolution );
-      
       std::cout << "\t--> Placing image at level " << pyramid_level 
                 << " with bbox " << output_bbox << "\n"
                 << "\t    (Total KML resolution at this level =  " 
                 << resolution << " pixels.)\n";
-      std::cout << "\t--> Bounding box in geographic space: " << ll_bbox << "\n";
       
       // Create the output view and crop it to the proper size.
       ImageViewRef<typename ViewT::pixel_type> kml_view = 
