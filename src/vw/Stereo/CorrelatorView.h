@@ -34,6 +34,7 @@ namespace stereo {
     int m_cost_blur;
     stereo::CorrelatorType m_correlator_type;
     std::string m_debug_prefix;
+    bool m_do_pyramid_correlator;
 
   public:
     typedef PixelMask<Vector2f> pixel_type;
@@ -43,10 +44,11 @@ namespace stereo {
     template <class ImageT, class MaskT>
     CorrelatorView(ImageViewBase<ImageT> const& left_image, ImageViewBase<ImageT> const& right_image,
                    ImageViewBase<MaskT> const& left_mask, ImageViewBase<MaskT> const& right_mask,
-                   PreProcFuncT const& preproc_func) :
+                   PreProcFuncT const& preproc_func,
+                   bool do_pyramid_correlator = true ) :
       m_left_image(left_image.impl()), m_right_image(right_image.impl()),
       m_left_mask(left_mask.impl()), m_right_mask(right_mask.impl()),
-      m_preproc_func(preproc_func) {
+      m_preproc_func(preproc_func), m_do_pyramid_correlator(do_pyramid_correlator) {
 
         // Basic assertions
         VW_ASSERT((left_image.impl().cols() == right_image.impl().cols()) &&
@@ -164,24 +166,37 @@ namespace stereo {
 
           // We have all of the settings adjusted.  Now we just have to
           // run the correlator.
-          PyramidCorrelator correlator(BBox2(0,0,m_search_range.width(),
-                                             m_search_range.height()),
-                                       Vector2i(m_kernel_size[0], m_kernel_size[1]),
-                                       m_cross_corr_threshold, m_corr_score_threshold,
-                                       m_cost_blur, m_correlator_type);
+          if ( m_do_pyramid_correlator ) {
+            PyramidCorrelator correlator(BBox2(0,0,m_search_range.width(),
+                                               m_search_range.height()),
+                                         Vector2i(m_kernel_size[0], m_kernel_size[1]),
+                                         m_cross_corr_threshold, m_corr_score_threshold,
+                                         m_cost_blur, m_correlator_type);
 
-          // For debugging: this saves the disparity map at various
-          // pyramid levels to disk.
-          if (m_debug_prefix.size() != 0) {
-            std::ostringstream ostr;
-            ostr << "-" << bbox.min().x() << "-" << bbox.max().x()
-                 << "_" << bbox.min().y() << "-" << bbox.max().y() << "-";
-            correlator.set_debug_mode(m_debug_prefix + ostr.str());
+            // For debugging: this saves the disparity map at various
+            // pyramid levels to disk.
+            if (m_debug_prefix.size() != 0) {
+              std::ostringstream ostr;
+              ostr << "-" << bbox.min().x() << "-" << bbox.max().x()
+                   << "_" << bbox.min().y() << "-" << bbox.max().y() << "-";
+              correlator.set_debug_mode(m_debug_prefix + ostr.str());
+            }
+
+            disparity_map = correlator( cropped_left_image, cropped_right_image,
+                                        cropped_left_mask, cropped_right_mask,
+                                        m_preproc_func);
+          } else {
+            OptimizedCorrelator correlator(BBox2(0,0,m_search_range.width(),
+                                                 m_search_range.height()),
+                                           m_kernel_size[0],
+                                           m_cross_corr_threshold, m_corr_score_threshold,
+                                           m_cost_blur, m_correlator_type );
+            disparity_map = disparity_mask(correlator( cropped_left_image,
+                                                       cropped_right_image,
+                                                       m_preproc_func ),
+                                           cropped_left_mask,
+                                           cropped_right_mask );
           }
-
-          disparity_map = correlator( cropped_left_image, cropped_right_image,
-                                      cropped_left_mask, cropped_right_mask,
-                                      m_preproc_func);
         } // Ending scope of crops
 
         // Adjust the disparities to be relative to the uncropped
