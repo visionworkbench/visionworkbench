@@ -34,7 +34,7 @@ ToastPlateManager::wwt_image_tiles( BBox2i const& image_bbox,
       TileInfo be(x, y, BBox2i(curx, cury, tile_size, tile_size));
       
       // ...but only add bounding boxes that overlap with the image.
-      if (image_bbox.contains(be.bbox))
+      if (image_bbox.intersects(be.bbox))
         result.push_back(be);
       
       curx += (tile_size-1);
