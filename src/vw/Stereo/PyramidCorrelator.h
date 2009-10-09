@@ -10,6 +10,8 @@
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
+#include <vw/Image/MaskViews.h>
+#include <vw/Image/Transform.h>
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Stereo/OptimizedCorrelator.h>
 
@@ -23,7 +25,7 @@ namespace stereo {
     float m_corrscore_rejection_threshold;
     int m_cost_blur;
     stereo::CorrelatorType m_correlator_type;
-    int m_pyramid_min_image_dimension;
+    int m_pyramid_levels;
 
     std::string m_debug_prefix;
 
@@ -43,6 +45,21 @@ namespace stereo {
             outImg(i,j,p) += img(2*i     , 2*j + 1,p);
             outImg(i,j,p) += img(2*i + 1 , 2*j + 1,p);
             outImg(i,j,p) /= 4;
+          }
+        }
+      }
+      return outImg;
+    }
+
+    template <class PixelT>
+    ImageView<PixelT> upsample_by_two(ImageView<PixelT> &img) {
+      ImageView<PixelT> outImg(img.cols()*2, img.rows()*2,img.planes());
+      int32 i, j, p;
+
+      for (p = 0; p < outImg.planes() ; p++) {
+        for (i = 0; i < outImg.cols(); i++) {
+          for (j = 0; j < outImg.rows(); j++) {
+            outImg(i,j,p) = img(i/2, j/2, p);
           }
         }
       }
@@ -98,13 +115,12 @@ namespace stereo {
                                                    std::vector<ImageView<uint8> > right_masks,
                                                    PreProcFilterT const& preproc_filter) {
 
-      int pyramid_levels = left_pyramid.size();
-      BBox2 initial_search_range = m_initial_search_range / pow(2, pyramid_levels-1);
+      BBox2 initial_search_range = m_initial_search_range / pow(2, m_pyramid_levels-1);
       ImageView<PixelMask<Vector2f> > disparity_map;
 
       // Refined the disparity map by searching in the local region
       // where the last good disparity value was found.
-      for (int n = pyramid_levels - 1; n >=0; --n) {
+      for (int n = m_pyramid_levels - 1; n >=0; --n) {
         std::ostringstream current_level;
         current_level << n;
         TerminalProgressCallback prog(InfoMessage,"\tLevel " + current_level.str() );
@@ -121,7 +137,7 @@ namespace stereo {
         //    pyramid, we go with the full search range.
         std::vector<BBox2> search_ranges;
         std::vector<BBox2i> nominal_blocks;
-        if (n == (pyramid_levels-1) ) {
+        if (n == (m_pyramid_levels-1) ) {
           if ( has_valid_mask_overlap(left_masks[n], right_masks[n]) )
             nominal_blocks.push_back(BBox2i(0,0,left_pyramid[n].cols(), left_pyramid[n].rows()));
           search_ranges.push_back(initial_search_range);
@@ -187,22 +203,35 @@ namespace stereo {
         // seem to work well in practice.
         int32 rm_half_kernel = 5;
         double rm_min_matches_percent = 0.5;
-        double rm_threshold = 0.0;
+        double rm_threshold = 3.0;
 
-        // At the lower levels, we want to do a little bit of
-        // disparity map clean-up to prevent spurious matches from
-        // impacting the search range estimates, but at the top level
-        // of the pyramid, we would rather return the "raw" disparity
-        // map straight from the correlator.
-        if (n != 0)
-          disparity_map = disparity_mask(disparity_clean_up(new_disparity_map,
-                                                            rm_half_kernel,
-                                                            rm_half_kernel,
-                                                            rm_threshold,
-                                                            rm_min_matches_percent),
-                                          left_masks[n], right_masks[n]);
-        else
-          disparity_map = disparity_mask(new_disparity_map, left_masks[n], right_masks[n]);
+
+        ImageView<PixelMask<Vector2f> > disparity_map_clean;
+        disparity_map_clean = disparity_mask(disparity_clean_up(new_disparity_map,
+                                                                rm_half_kernel,
+                                                                rm_half_kernel,
+                                                                rm_threshold,
+                                                                rm_min_matches_percent),
+                                             left_masks[n], right_masks[n]);
+
+        if (n == m_pyramid_levels - 1) {
+          // At the highest level of the pyramid, use the cleaned version
+          // of the disparity map just obtained (since there are no
+          // previous results to learn from)
+          disparity_map = disparity_map_clean;
+        } else if (n == 0) {
+          // At the last level, return the raw results from the correlator
+          disparity_map = new_disparity_map;
+        } else {
+          // If we have a missing pixel that correlated properly in the previous
+          // pyramid level, use the disparity found at the previous pyramid level
+          ImageView<PixelMask<Vector2f> > disparity_map_old;
+          disparity_map_old = 2*crop(edge_extend(upsample_by_two(disparity_map), ZeroEdgeExtension()), 
+                                     BBox2i(0, 0, disparity_map_clean.cols(), disparity_map_clean.rows()));
+          ImageView<PixelMask<Vector2f> > disparity_map_old_diff = invert_mask(intersect_mask(disparity_map_old, disparity_map_clean));
+          disparity_map = disparity_mask(create_mask(apply_mask(disparity_map_clean) + apply_mask(disparity_map_old_diff)), 
+                                         left_masks[n], right_masks[n]);
+        }
 
         // Debugging output at each level
         if (m_debug_prefix.size() > 0)
@@ -249,14 +278,14 @@ namespace stereo {
                       float corrscore_rejection_threshold = 1.0,
                       int cost_blur = 1,
                       stereo::CorrelatorType correlator_type = ABS_DIFF_CORRELATOR,
-                      int pyramid_min_image_dimension = 256) :
+                      int pyramid_levels = 4) :
       m_initial_search_range(initial_search_range),
       m_kernel_size(kernel_size),
       m_cross_correlation_threshold(cross_correlation_threshold),
       m_corrscore_rejection_threshold(corrscore_rejection_threshold),
       m_cost_blur(cost_blur),
       m_correlator_type(correlator_type),
-      m_pyramid_min_image_dimension(pyramid_min_image_dimension) {
+      m_pyramid_levels(pyramid_levels) {
       m_debug_prefix = "";
     }
 
@@ -291,16 +320,11 @@ namespace stereo {
       //
       // Level 0 : finest (high resolution) image
       // Level n : coarsest (low resolution) image ( n == pyramid_levels - 1 )
-      int pyramid_levels = 1;
-      if (m_pyramid_min_image_dimension != 0) {
-        int dimension = std::min(left_image.impl().cols(), left_image.impl().rows());
-        while (dimension > m_pyramid_min_image_dimension) { pyramid_levels++; dimension /= 2;}
-      }
-      vw_out(DebugMessage, "stereo") << "Initializing pyramid correlator with " << pyramid_levels << " levels.\n";
+      vw_out(DebugMessage, "stereo") << "Initializing pyramid correlator with " << m_pyramid_levels << " levels.\n";
 
       // Build the image pyramid
-      std::vector<ImageView<channel_type> > left_pyramid(pyramid_levels), right_pyramid(pyramid_levels);
-      std::vector<ImageView<uint8> > left_masks(pyramid_levels), right_masks(pyramid_levels);
+      std::vector<ImageView<channel_type> > left_pyramid(m_pyramid_levels), right_pyramid(m_pyramid_levels);
+      std::vector<ImageView<uint8> > left_masks(m_pyramid_levels), right_masks(m_pyramid_levels);
 
       left_pyramid[0] = channels_to_planes(left_image);    // Is this really what we want
       right_pyramid[0] = channels_to_planes(right_image);  // shouldn't we channel cast to
@@ -308,7 +332,7 @@ namespace stereo {
       right_masks[0] = channels_to_planes(right_mask);
 
       // Produce the image pyramid
-      for (int n = 1; n < pyramid_levels; ++n) {
+      for (int n = 1; n < m_pyramid_levels; ++n) {
         std::ostringstream ostr;
         ostr << n;
 

@@ -115,6 +115,10 @@ namespace stereo {
       /// \cond INTERNAL
       typedef CropView<ImageView<pixel_type> > prerasterize_type;
       inline prerasterize_type prerasterize(BBox2i bbox) const {
+        int num_pyramid_levels = 4;
+
+        if (!m_do_pyramid_correlator)
+          num_pyramid_levels = 1;
 
         vw_out(DebugMessage, "stereo") << "CorrelatorView: rasterizing image block " << bbox << ".\n";
 
@@ -134,10 +138,11 @@ namespace stereo {
 
         // Finally, we must adjust both bounding boxes to account for
         // the size of the kernel itself.
-        right_crop_bbox.min() -= Vector2i(m_kernel_size[0], m_kernel_size[1]);
-        right_crop_bbox.max() += Vector2i(m_kernel_size[0], m_kernel_size[1]);
-        left_crop_bbox.min() -= Vector2i(m_kernel_size[0], m_kernel_size[1]);
-        left_crop_bbox.max() += Vector2i(m_kernel_size[0], m_kernel_size[1]);
+        Vector2i kernpad = Vector2i(m_kernel_size[0], m_kernel_size[1])*pow(2,num_pyramid_levels-1)/2;
+        right_crop_bbox.min() -= kernpad;
+        right_crop_bbox.max() += kernpad;
+        left_crop_bbox.min() -= kernpad;
+        left_crop_bbox.max() += kernpad;
 
         // Log some helpful debugging info
         vw_out(DebugMessage, "stereo") << "\t search_range:    "
@@ -171,7 +176,7 @@ namespace stereo {
                                                m_search_range.height()),
                                          Vector2i(m_kernel_size[0], m_kernel_size[1]),
                                          m_cross_corr_threshold, m_corr_score_threshold,
-                                         m_cost_blur, m_correlator_type);
+                                         m_cost_blur, m_correlator_type, num_pyramid_levels);
 
             // For debugging: this saves the disparity map at various
             // pyramid levels to disk.
@@ -211,8 +216,8 @@ namespace stereo {
         // the bbox.  This allows rasterize to touch those pixels
         // using the coordinates inside the bbox.  The pixels outside
         // those coordinates are invalid, and they never get accessed.
-        return CropView<ImageView<pixel_type> > (disparity_map, BBox2i(m_kernel_size[0]-bbox.min().x(),
-                                                                       m_kernel_size[1]-bbox.min().y(),
+        return CropView<ImageView<pixel_type> > (disparity_map, BBox2i(kernpad[0]-bbox.min().x(),
+                                                                       kernpad[1]-bbox.min().y(),
                                                                        bbox.width(), bbox.height()));
       }
 

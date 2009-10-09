@@ -26,14 +26,8 @@ PyramidCorrelator::subdivide_bboxes(ImageView<PixelMask<Vector2f> > const& dispa
     // There are no good pixels available
     return result;
   }
-  double cost  = box.width()*box.height()*disp_range.width()*disp_range.height();
-
-  if (cost == 0 &&
-      disp_range.max().x() == 0 && disp_range.max().y() == 0 &&
-      disp_range.min().x() == 0 && disp_range.min().y() == 0) {
-    // Search range is zero.  Reject this bounding box.
-    return result;
-  } else if (cost < 4e5 || box.width() < 128 || box.height() < 128) {
+  if (disp_range.width()*disp_range.height() <= 4 || 
+      (box.width() < 128 && box.height() < 128)) {
     // The bounding box is small enough.
     result.push_back(box);
     return result;
