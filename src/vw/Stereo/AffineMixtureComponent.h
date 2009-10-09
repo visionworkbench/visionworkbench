@@ -8,8 +8,10 @@
 #include <vw/Math.h>
 #include <iostream>
 #include <math.h>
-#include "graphics.h"
 
+#ifdef USE_GRAPHICS
+#include "graphics.h"
+#endif
 using namespace std;
 
 namespace vw {
@@ -56,13 +58,12 @@ namespace vw {
 		       ci*px+di*py+y0);
       }
     };
-      
+    
 
       
     template<class PixelT, class PrecisionT>
       class AffineMixtureComponent : public MixtureComponentBase<AffineMixtureComponent<PixelT, PrecisionT> > {
     public:
-      //typedef typename ImageT::pixel_type PixelT;
       
       template<class ImageT>
 	AffineMixtureComponent(ImageViewBase<ImageT> const& left,
@@ -103,7 +104,13 @@ namespace vw {
 	  l_likelihood = INFINITY;
 	  
 	  debug = false;
-
+	  
+	  // numerical optimization parameter default values
+	  epsilon_inner = 1e-8;
+	  inner_loop_iter_max = 8; //20;
+	  min_det = .1; // minimum determinant of the affine transformation; this determines the ratio that the affine transform is allowed to skew the area of the window by.
+	  max_det =  1.9; // maximum determinant of the affine transformation; this determines the ratio that the affine transform is allowed to skew the area of the window by.
+	  
 	  window.min() = Vector2(0, 0);
 	  window.max() = Vector2(window_size(0), window_size(1));
 	}      
@@ -289,6 +296,19 @@ namespace vw {
 	  }
 	}
       }
+      
+      void set_max_iter(int max_iter) {
+	inner_loop_iter_max = max_iter;
+      }
+      void set_epsilon_convergence(PrecisionT epsilon) {
+	epsilon_inner = epsilon;
+      }
+      void set_min_determinant(PrecisionT p_min_det) {
+	min_det = p_min_det;
+      }
+      void set_max_determinant(PrecisionT p_max_det) {
+	max_det = p_max_det;
+      }     
     
       void fit_parameters() {
 	PrecisionT x = pos_linearize(0);
@@ -307,11 +327,7 @@ namespace vw {
 	Vector<PrecisionT, 6> soln;
 	Matrix<PrecisionT, 6, 6> hessian_temp;
 	
-	PrecisionT epsilon_inner = 1e-8;
-	const int inner_loop_iter_max = 8; //20;
-	PrecisionT min_det = .1; // minimum determinant of the affine transformation; this determines the ratio that the affine transform is allowed to skew the area of the window by.
-	PrecisionT max_det =  1.9; // maximum determinant of the affine transformation; this determines the ratio that the affine transform is allowed to skew the area of the window by.
-      
+	     
 	Vector<PrecisionT, 6> gradient_hist[inner_loop_iter_max];
 	Vector<PrecisionT, 6> state_hist[inner_loop_iter_max];
 	Matrix<PrecisionT, 6, 6> hessian_hist[inner_loop_iter_max];
@@ -366,48 +382,9 @@ namespace vw {
 				     r_window_dx, r_window_dy,
 				     r_window_dxdx, r_window_dydy,
 				     r_window_dxdy);
-	  /*
-	    { // numerically compute the gradient
-	      //fill(w_adj, .001);
-	      Vector<PrecisionT, 6> num_gradient;
-	      T = AffineTransformOrigin(M_transform_linear, M_transform_offset, Vector2(x, y));
-	      r_window = crop(transform(right_r, T), window);
-	      err = r_window - l_window;
-	      PrecisionT epsilon = 1e-4;
-	      PrecisionT error0 = sum_of_pixel_values(w_adj*err*err);
-	      for(int i = 0; i < 6; i++) {
-	      Matrix<PrecisionT, 2, 2> linear_temp = M_transform_linear;
-	      Vector<PrecisionT, 2> offset_temp = M_transform_offset;
-	      if(i < 4) {
-	      linear_temp(i%2, i/2) = M_transform_linear(i%2, i/2) + epsilon;
-	      // 0 -> (0, 0) 1 -> (1, 0) 2 -> (0, 1) 3 -> (1, 1)
-	      }
-	      else {
-	      offset_temp(i-4) = M_transform_offset(i-4) + epsilon;
-	      }
-	    
-	      T = AffineTransformOrigin(linear_temp, offset_temp, Vector2(x, y));
-	      r_window = crop(transform(right_r, T), window);
-	      err = r_window - l_window;  
-	      num_gradient(i) = (sum_of_pixel_values(w_adj*err*err) - error0)/epsilon;
-	      //cout << lx << "(" << i << ")" << ly << "(" << j << ")" << ": " << values(i, j) << endl;
-	      }
-	      T = AffineTransformOrigin(M_transform_linear, M_transform_offset, Vector2(x, y));
-	      r_window = crop(transform(right_r, T), window);
-	      err = r_window - l_window;
-
-	      //cout << "numerical: " << num_gradient << endl;
-	      //gradient = num_gradient;
-	      }
-	  */
 	  if(inner_loop_iter == 0) {
 	    initial_norm_grad = norm_2(gradient);
 	  }
-
-
-	  //cout << gradient << endl;
-	  //cout << gradient_2 << endl;
-
 
 	  if(debug) {
 	    hessian_hist[inner_loop_iter] = hess;
@@ -573,7 +550,7 @@ namespace vw {
 	      cout << "converged to " << f_value << endl;
 	      cout << "\tw/ ||g||/||g0|| = " << norm_2(gradient)/initial_norm_grad << endl;
 	    }
-	  
+	    
 	    break;
 	  }
 	}
@@ -632,6 +609,12 @@ namespace vw {
       
       AffineTransformOrigin T;
       bool l_set;
+      
+      // numerical optimization parameters
+      PrecisionT epsilon_inner;
+      int inner_loop_iter_max;
+      PrecisionT min_det;
+      PrecisionT max_det;
     };
 
 

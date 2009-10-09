@@ -15,7 +15,8 @@ include_HEADERS = Correlate.h ReferenceCorrelator.h		\
 	OptimizedCorrelator.h DisparityMap.h StereoModel.h	\
 	PyramidCorrelator.h StereoView.h CorrelatorView.h	\
 	SubpixelView.h EMSubpixelCorrelatorView.h 		\
-	GammaMixtureComponent.h GaussianMixtureComponent.h	\
+	MixtureComponent.h GammaMixtureComponent.h 		\
+	GaussianMixtureComponent.h				\
 	AffineMixtureComponent.h UniformMixtureComponent.h	\
 	EMSubpixelCorrelatorView.hpp
 

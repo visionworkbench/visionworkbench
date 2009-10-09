@@ -104,12 +104,12 @@ namespace vw {
 
 
     // EMSubpixelCorrelator::EMSubpixelCorrelator( ... )
-    template<class ImagePixelT, class DisparityPixelT, class PreProcFuncT>
+    template<class ImagePixelT>
     template <class ImageT, class DisparityT>
-    EMSubpixelCorrelatorView<ImagePixelT, DisparityPixelT, PreProcFuncT >::EMSubpixelCorrelatorView(ImageViewBase<ImageT> const& left_image, ImageViewBase<ImageT> const& right_image,
-												    ImageViewBase<DisparityT> const& course_disparity, PreProcFuncT preproc_func) :
+    EMSubpixelCorrelatorView<ImagePixelT>::EMSubpixelCorrelatorView(ImageViewBase<ImageT> const& left_image, ImageViewBase<ImageT> const& right_image,
+								    ImageViewBase<DisparityT> const& course_disparity, bool debug) :
       m_left_image(left_image.impl()), m_right_image(right_image.impl()), 
-      m_course_disparity(course_disparity.impl()), m_preproc_func(preproc_func)
+      m_course_disparity(course_disparity.impl()), m_debug(debug)
     {
       // Basic assertions
       VW_ASSERT((left_image.impl().cols() == right_image.impl().cols()) &&
@@ -125,26 +125,32 @@ namespace vw {
                 ArgumentErr() << "EMSubpixelCorrelatorView::EMSubpixelCorrelatorView(): multi-channel, multi-plane images not supported.\n");
       
       // Set some sensible default values
-      m_search_range = BBox2i(-50,-50,100,100);
       m_kernel_size = Vector2i(25, 25);
-      m_cross_corr_threshold = 2.0;
-      m_corr_score_threshold = 1.3;
-      m_cost_blur = 1;
-      m_correlator_type = ABS_DIFF_CORRELATOR;  
-
-      r_window_dx = ImageView<ImagePixelT>(m_kernel_size[0], m_kernel_size[1]);
-      r_window_dy = ImageView<ImagePixelT>(m_kernel_size[0], m_kernel_size[1]);
-      r_window_dxdx = ImageView<ImagePixelT>(m_kernel_size[0], m_kernel_size[1]);
-      r_window_dydy = ImageView<ImagePixelT>(m_kernel_size[0], m_kernel_size[1]);
-      r_window_dxdy = ImageView<ImagePixelT>(m_kernel_size[0], m_kernel_size[1]);
+      em_iter_max = 20; //20;
+      P_inlier_0 = .8;
+      P_inlier_min = 1e-5;
+      P_inlier_max = 1-1e-5;
+      sigma_p1_0 = sqrt(1e-8); // sqrt(1e-3) for apollo // sqrt(1e-8) worked best
+      sigma_p1_min = 1e-5; // 1e-3 for apollo
+      sigma_n_0 = .25; // sqrt(1e-2) for apollo      
+      sigma_n_min = 1e-4; // 1e-3 for apollo      
+      mu_n_0 = 0.;
+      epsilon_em = 1;
+      // affine model defaults
+      inner_iter_max = 8; //8
+      epsilon_inner = 1e-8; // 1e-8
+      affine_min_det = .1; //.1
+      affine_max_det = 1.9; //1.9
     }
 
+    
+    
     // prerasterize( ... ) const;
-    template <class ImagePixelT, class DisparityPixelT, class PreProcFuncT>
-    typename EMSubpixelCorrelatorView<ImagePixelT, DisparityPixelT, PreProcFuncT>::prerasterize_type
-    EMSubpixelCorrelatorView<ImagePixelT, DisparityPixelT, PreProcFuncT>::prerasterize(BBox2i bbox) const {      
+    template <class ImagePixelT>
+    typename EMSubpixelCorrelatorView<ImagePixelT>::prerasterize_type
+    EMSubpixelCorrelatorView<ImagePixelT>::prerasterize(BBox2i bbox) const {
       vw_out(InfoMessage, "stereo") << "EMSubpixelCorrelatorView: rasterizing image block " << bbox << ".\n";
-      bool subpixel_debug = false;
+      bool subpixel_debug = m_debug;
       
       // Find the range of disparity values for this patch.
       int num_good;
@@ -156,8 +162,9 @@ namespace vw {
         search_range = BBox2i();
       }      
 
-      ImageWindow window;
+      
 #ifdef USE_GRAPHICS      
+      ImageWindow window;
       if(subpixel_debug) {
 	window = create_window("disparity");
       }
@@ -256,7 +263,7 @@ namespace vw {
       m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()), 
 			disparity_map_pyramid[pyramid_levels-1], warps[pyramid_levels-1],
 			regions_of_interest[pyramid_levels-1], false , subpixel_debug && true);
-      
+      write_image("top_level_disparity.tif", disparity_map_pyramid[pyramid_levels-1]);
       disparity_map_upsampled[pyramid_levels-1] = copy(disparity_map_pyramid[pyramid_levels-1]);
       
       
@@ -265,6 +272,7 @@ namespace vw {
 	int up_height = left_pyramid[i].rows();
 	vw_out() << "processing pyramid level " << i << endl;
 	warps[i] = copy(resize(warps[i+1], up_width , up_height, ConstantEdgeExtension(), NearestPixelInterpolation())); //linear interpolation here
+	
 	disparity_map_upsampled[i] = copy(upsample_disp_map_by_two(disparity_map_upsampled[i+1], up_width, up_height));
 	
 	if(i == 0) {
@@ -274,6 +282,12 @@ namespace vw {
 	else {
 	  process_left_image = (left_pyramid[i]);
 	  process_right_image = (right_pyramid[i]);
+	}
+	
+	if(subpixel_debug) {
+	  std::stringstream stream;
+	  stream << "pyramid_level_" << i << ".tif";
+	  write_image(stream.str(), disparity_map_upsampled[i+1]);
 	}
 	
 	m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()), 
@@ -314,7 +328,7 @@ namespace vw {
       return crop(disparity_map_patch, BBox2i(m_kernel_size[0]-bbox.min().x(), 
 					      m_kernel_size[1]-bbox.min().y(), 
 					      m_left_image.cols(), 
-					      m_left_image.rows() ));
+					      m_left_image.rows()));
     }
 
 
@@ -322,24 +336,14 @@ namespace vw {
     
     // m_sub_pixel_refine
     /* this actually performs the subpixel refinement */
-    template <class ImagePixelT, class DisparityPixelT, class PreProcFuncT>
+    template <class ImagePixelT>
     template <class ImageT, class DisparityT, class AffineT>
     inline void
-    EMSubpixelCorrelatorView<ImagePixelT, DisparityPixelT, PreProcFuncT>::m_subpixel_refine(ImageViewBase<ImageT> const& left_image,
-											    ImageViewBase<ImageT> const& right_image,
-											    ImageViewBase<DisparityT> & disparity,
-											    ImageViewBase<AffineT> & affine_warps,
-											    BBox2i const& ROI, bool final, bool p_debug) const {
-      // set up some constants that should probably be external to this method:
-      int em_iter_max = 20; //20;
-      double P_inlier_0 = .8;
-      double P_inlier_min = 1e-5;
-      double P_inlier_max = 1-1e-5;
-      double sigma_p1_0 = sqrt(1e-8); // sqrt(1e-3) for apollo // sqrt(1e-8) worked best
-      double sigma_p_min = 1e-5; // 1e-3 for apollo
-      double sigma_n_0 = .25; // sqrt(1e-2) for apollo      
-      double sigma_n_min = 1e-4; // 1e-3 for apollo      
-      double mu_n_0 = 0.;
+    EMSubpixelCorrelatorView<ImagePixelT>::m_subpixel_refine(ImageViewBase<ImageT> const& left_image,
+							     ImageViewBase<ImageT> const& right_image,
+							     ImageViewBase<DisparityT> & disparity,
+							     ImageViewBase<AffineT> & affine_warps,
+							     BBox2i const& ROI, bool final, bool p_debug) const {
       
       // algorithm features to enable
       bool blur_posterior = false;
@@ -348,21 +352,20 @@ namespace vw {
       bool use_left_outliers = true;
       bool use_right_outliers = false;
       
-      bool save_states = true;
+      bool save_states = false;
             
-      double epsilon_em = 1;
+      
       double debug_view_mag = 1;
 
 
+      // set up windows for debug views
+#ifdef USE_GRAPHICS            
       ImageWindow r_window_p1_view = NULL;
       ImageWindow l_window_view = NULL;
       ImageWindow w_window_p1_view = NULL;
       ImageWindow w_window_o1_view = NULL;
       ImageWindow w_window_o2_view = NULL;
       ImageWindow errors_window_p1_view = NULL;
-      // set up windows for debug views
-
-#ifdef USE_GRAPHICS            
       if(p_debug) {
 	r_window_p1_view = create_window("r_window_p1");
 	l_window_view = create_window("l_window");  
@@ -383,12 +386,12 @@ namespace vw {
       //BBox2i debug_region(17, 12, 5, 5);
       //BBox2i debug_region(100, 30, 25, 25);
       //BBox2i debug_region(50, 25, 1000, 1000);
-      BBox2i debug_region(15, 30, 1, 1);
-      /*
-      double region_scale = 20;      
+      //BBox2i debug_region(0,0,0,0);
+      
+      double region_scale = 10;      
       BBox2i debug_region(ROI.center() - Vector2i(ROI.width()/region_scale, ROI.height()/region_scale),
 			  ROI.center() + Vector2i(ROI.width()/region_scale, ROI.height()/region_scale));
-      */
+      
       
 #ifdef USE_GRAPHICS      
       if(p_debug) {
@@ -406,7 +409,12 @@ namespace vw {
       
       AffineMixtureComponent<typename ImageT::pixel_type, double> affine_comp(laplacian_filter(gaussian_filter(left_image.impl(), 1.)), // 1.0 worked best
 									      laplacian_filter(gaussian_filter(right_image.impl(), 1.)),
-									      m_kernel_size, sigma_p1_0, sigma_p_min);
+									      m_kernel_size, sigma_p1_0, sigma_p1_min);
+      affine_comp.set_max_iter(inner_iter_max);
+      affine_comp.set_epsilon_convergence(epsilon_inner);
+      affine_comp.set_min_determinant(affine_min_det);
+      affine_comp.set_max_determinant(affine_max_det);
+      
       //GaussianMixtureComponent<typename ImageT::pixel_type, double> outlier_comp1(left_image.impl(), m_kernel_size, mu_n_0, sigma_n_0, sigma_n_min);
       //GaussianMixtureComponent<typename ImageT::pixel_type, double> outlier_comp2(left_image.impl(), m_kernel_size, mu_n_0, sigma_n_0, sigma_n_min);
       GammaMixtureComponent<typename ImageT::pixel_type, double> outlier_comp1(left_image.impl(), m_kernel_size, 1., .25, 1e-2, 1e-2); // k_0 = 1., theta_0 = .25 worked best
@@ -548,6 +556,8 @@ namespace vw {
 		outlier_comp2.print_status("outlier2.");
 	    }
 	    cout << "iter = 0" << endl;
+	    
+	    cout << "RMS error = " << sqrt(sum_of_pixel_values(pow(affine_comp.errors(),2))/affine_comp.errors().cols()/affine_comp.errors().rows()) << endl;
 #ifdef USE_GRAPHICS
 	    r_window_p1 = crop(transform(right_image.impl(), affine_comp.affine_transform()), window_box);	    
 	    show_image(r_window_p1_view, debug_view_mag*resize(r_window_p1, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation())); //, NearestPixelInterpolation()));
@@ -557,8 +567,9 @@ namespace vw {
 	    show_image(w_window_o2_view, resize(weights_outlier2, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
 	    show_image(errors_window_p1_view, debug_view_mag*resize(normalize(affine_comp.errors()), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
 	    cout << "max_error = " << max_pixel_value(affine_comp.errors()) << endl;
-#endif	    
 	    usleep((int)(1*1000*1000));
+#endif	    
+	    
 	  }
 	  
 	  affine_comp.update_posterior();
@@ -694,7 +705,7 @@ namespace vw {
 	    
 	    if(debug) {
 	      cout << "iter = " << em_iter+1 << endl;
-
+	      cout << "RMS error = " << sqrt(sum_of_pixel_values(pow(affine_comp.errors(),2))/affine_comp.errors().cols()/affine_comp.errors().rows()) << endl;
 #ifdef USE_GRAPHICS
 	      r_window_p1 = crop(transform(right_image.impl(), affine_comp.affine_transform()), window_box);	    
 
@@ -710,8 +721,9 @@ namespace vw {
 		show_image(w_window_o2_view, resize(weights_outlier2, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
 	      }
 	      show_image(errors_window_p1_view, debug_view_mag*resize(20*affine_comp.errors(), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
-#endif	      
 	      usleep((int)(.5*1000*1000));
+#endif	      
+	      
 
 	      
 	      cout << endl;
@@ -744,7 +756,7 @@ namespace vw {
 	    cout << "refined warp: " <<affine_warps.impl()(x, y) << endl;
 	  }
 	  
-	  if(final) {
+	  if(0 && final) {
 	    double P_center = weights_p1(x - window_box.min().x(),  y - window_box.min().y());
 	    if(P_1 <= .25) { // if most pixels are outliers, set this one as missing
 	      disparity.impl()(x, y).invalidate();
@@ -784,164 +796,159 @@ namespace vw {
     
     
     // operator<<( ... )
-    template <class ImagePixelT, class DisparityPixelT, class PreProcFuncT>
-    inline std::ostream& operator<<( std::ostream& os, EMSubpixelCorrelatorView<ImagePixelT, DisparityPixelT, PreProcFuncT> const& view) {
+    template <class ImagePixelT>
+    inline std::ostream& operator<<( std::ostream& os, EMSubpixelCorrelatorView<ImagePixelT> const& view) {
       os << "------------------------- EMSubpixelCorrelatorView ----------------------\n";
-      os << "\tsearch range: " << view.search_range() << "\n";
       os << "\tkernel size : " << view.kernel_size() << "\n";
-      os << "\txcorr thresh: " << view.cross_corr_threshold() << "\n";
-      os << "\tcost blur: " << view.cost_blur() << "\n";
-      os << "\tcorrelator type: " << view.correlator_type() << "\n";
-      os << "\tcorrscore rejection thresh: " << view.corr_score_threshold() << "\n";
       os << "---------------------------------------------------------------\n";
       return os;
     }
 
 
 
-    
     //image subsampling by two
-    template <class ImageT>
-    ImageT subsample_img_by_two(ImageViewBase<ImageT> const& img) {
-      
+    static ImageView<float> subsample_img_by_two(ImageView<float> &img)  {
+
       //determine the new size of the image
-      //      printf("img: orig_w = %d, orig_h = %d\n", img.cols(), img.rows()); 
-      int new_width;
-      int new_height;
-    
-      new_width = img.impl().cols()/2;
-      new_height = img.impl().rows()/2;
-	
-      //      printf("interp img: w = %d, h = %d, new_w = %d, new_h = %d\n", img.cols(), img.rows(), new_width, new_height); 
-	
-      ImageT outImg(new_width, new_height, img.impl().planes());		
-      ImageViewRef<typename ImageT::pixel_type>  interpImg = interpolate(img.impl());
-      int32 i, j, p;
-      
-      for (p = 0; p < outImg.planes() ; p++) {
-	for (i = 0; i < outImg.cols(); i++) {
-	  for (j = 0; j < outImg.rows(); j++) {
-              
-	    outImg(i,j,p) = interpImg(2*i, 2*j, p);
-	      
-	  }
-	}
-      }
+      int new_width = img.cols()/2;
+      int new_height = img.rows()/2;
+
+      ImageView<float> outImg(new_width, new_height, img.planes());
+      ImageViewRef<float> interpImg = interpolate(img);
+
+      for (vw::int32 p = 0; p < outImg.planes(); p++)
+        for (vw::int32 i = 0; i < outImg.cols(); i++)
+          for (vw::int32 j = 0; j < outImg.rows(); j++)
+            outImg(i,j,p) = interpImg(2.0*i, 2.0*j, p);
+
+      #if 0
+      ImageView<float> g_img;
+      g_img = gaussian_filter(img, 1.5);
+      vw_out(0) << "Gaussian blurring\n";
+
+      for (vw::int32 p = 0; p < outImg.planes(); p++)
+        for (vw::int32 i = 0; i < outImg.cols(); i++)
+          for (vw::int32 j = 0; j < outImg.rows(); j++)
+            outImg(i,j,p) = g_img(2*i, 2*j, p);
+
+      #endif
+
       return outImg;
     }
 
     // disparity map down-sampling by two
-    template <class PixelT>
-    ImageView<PixelT > subsample_disp_map_by_two(ImageView<PixelT> const& input_disp) {
-      // determine the new size of the image 
+    static ImageView<PixelMask<Vector2f> >
+    subsample_disp_map_by_two(ImageView<PixelMask<Vector2f> > const& input_disp)  {
+
+      // determine the new size of the image
       int new_width = input_disp.cols()/2;
       int new_height = input_disp.rows()/2;
-	
-      ImageView<PixelT> outDisp(new_width, new_height);	
-      ImageViewRef<PixelT> disp = edge_extend(input_disp, ConstantEdgeExtension() );
-	
-      for (int j = 0; j < outDisp.rows(); j++) {  
-	for (int i = 0; i < outDisp.cols(); i++) {
-	    
-	  int old_i = i*2;
-	  int old_j = j*2;
-	  typename PixelChannelType<PixelT>::type h = disp(old_i  , old_j  ).child().x() + 
-	    disp(old_i  , old_j+1).child().x() + 
-	    disp(old_i+1, old_j  ).child().x() + 
-	    disp(old_i+1, old_j+1).child().x();
-	  typename PixelChannelType<PixelT>::type v = disp(old_i  , old_j  ).child().y() + 
-	    disp(old_i  , old_j+1).child().y() + 
-	    disp(old_i+1, old_j  ).child().y() + 
-	    disp(old_i+1, old_j+1).child().y();
-	    
-	  int num_valid = 0;
-	  if (disp(old_i  , old_j  ).valid()) ++num_valid;
-	  if (disp(old_i+1, old_j  ).valid()) ++num_valid;
-	  if (disp(old_i  , old_j+1).valid()) ++num_valid;
-	  if (disp(old_i+1, old_j+1).valid()) ++num_valid;
-	    
-	  if (num_valid == 0)
-	    outDisp(i,j) = PixelT();
-	  else 
-	    outDisp(i,j) = PixelT(h/typename PixelChannelType<PixelT>::type(num_valid) / 2.0,
-						 v/typename PixelChannelType<PixelT>::type(num_valid) / 2.0);
-	}
+
+      ImageView<PixelMask<Vector2f> > outDisp(new_width, new_height);
+      ImageViewRef<PixelMask<Vector2f> > disp = edge_extend(input_disp, ConstantEdgeExtension() );
+
+      for (vw::int32 j = 0; j < outDisp.rows(); j++) {
+        for (vw::int32 i = 0; i < outDisp.cols(); i++) {
+
+          vw::int32 old_i = i*2;
+          vw::int32 old_j = j*2;
+
+          PixelMask<Vector2f> sum(0,0);
+          int num_valid = 0;
+
+          if ( is_valid(disp(old_i,old_j)) ) {
+            sum += disp(old_i,old_j);
+            num_valid++;
+          }
+          if ( is_valid(disp(old_i,old_j+1)) ) {
+            sum += disp(old_i,old_j+1);
+            num_valid++;
+          }
+          if ( is_valid(disp(old_i+1,old_j)) ) {
+            sum += disp(old_i+1,old_j);
+            num_valid++;
+          }
+          if ( is_valid(disp(old_i+1,old_j+1)) ) {
+            sum += disp(old_i+1,old_j+1);
+            num_valid++;
+          }
+
+          if (num_valid == 0)
+            invalidate( outDisp(i,j) );
+          else
+            outDisp(i,j) = sum/float(2*num_valid);
+        }
       }
-	
+
       return outDisp;
     }
-    
-    
+
     // disparity map up-sampling by two
-    template <class PixelT>
-    ImageView<PixelT > upsample_disp_map_by_two(ImageView<PixelT> const& input_disp, int up_width, int up_height) {      
-      ImageView<PixelT> outDisp(up_width, up_height);	
-      ImageViewRef<PixelT> disp = edge_extend(input_disp, ConstantEdgeExtension());	
-      
-      for (uint j = 0; j < (uint)outDisp.rows(); ++j) {
-        for (uint i = 0; i < (uint)outDisp.cols(); ++i) {
-          int x = math::impl::_floor(float(i)/2.0), y = math::impl::_floor(float(j)/2.0);
+    static ImageView<PixelMask<Vector2f> >
+    upsample_disp_map_by_two(ImageView<PixelMask<Vector2f> > const& input_disp,
+                             int up_width, int up_height) {
+
+      ImageView<PixelMask<Vector2f> > outDisp(up_width, up_height);
+      ImageViewRef<PixelMask<Vector2f> > disp = edge_extend(input_disp, ConstantEdgeExtension());
+
+      for (vw::int32 j = 0; j < outDisp.rows(); ++j) {
+        for (vw::int32 i = 0; i < outDisp.cols(); ++i) {
+          float x = math::impl::_floor(float(i)/2.0), y = math::impl::_floor(float(j)/2.0);
 
           if ( i%2 == 0 && j%2 == 0) {
-            if(!disp(x, y).valid())
-              outDisp(i,j) = PixelT();
-            else 
-              outDisp(i,j) = PixelT( 2 * disp(x,y).child().x(),
-                                                    2 * disp(x,y).child().y() );
+            if ( !is_valid(disp(x,y)) )
+              invalidate( outDisp(i,j) );
+            else
+              outDisp(i,j) = 2 * disp(x,y);
           }
-          
+
           else if (j%2 == 0) {
-            if (!disp(x,y).valid() && !disp(x+1,y).valid())
-              outDisp(i,j) = PixelT();
+            if ( !is_valid(disp(x,y)) && !is_valid(disp(x+1,y)) )
+              invalidate(outDisp(i,j));
             else {
-              if ( disp(x,y).valid() && disp(x+1,y).valid() ) {
-                outDisp(i,j) = PixelT( 2 * (0.5 * disp(x,y).child().x() + 0.5 * disp(x+1,y).child().x() ),
-                                                      2 * (0.5 * disp(x,y).child().y() + 0.5 * disp(x+1,y).child().y() ));
-              } else if (disp(x,y).valid() && !disp(x+1,y).valid() ) {
-                outDisp(i,j) = PixelT( 2 * disp(x,y).child().x(),
-                                                      2 * disp(x,y).child().y() );
-              } else if (!disp(x,y).valid() && disp(x+1,y).valid() ) {
-                outDisp(i,j) = PixelT( 2 * disp(x+1,y).child().x(),
-                                                      2 * disp(x+1,y).child().y() );
-              } 
+              if ( is_valid(disp(x,y)) && is_valid(disp(x+1,y)) ) {
+                outDisp(i,j) = disp(x,y) + disp(x+1,y);
+              } else if ( is_valid(disp(x,y)) && !is_valid(disp(x+1,y)) ) {
+                outDisp(i,j) = 2 * disp(x,y);
+              } else if ( !is_valid(disp(x,y)) && is_valid(disp(x+1,y)) ) {
+                outDisp(i,j) = 2 * disp(x+1,y);
+              }
             }
-          }	 
+          }
 
           else if (i%2 == 0) {
-            if (!disp(x,y).valid() && !disp(x,y+1).valid())
-              outDisp(i,j) = PixelT();
+            if ( !is_valid(disp(x,y)) && !is_valid(disp(x,y+1)) )
+              invalidate( outDisp(i,j) );
             else {
-              if ( disp(x,y).valid() && disp(x,y+1).valid() ) {
-                outDisp(i,j) = PixelT( 2 * (0.5 * disp(x,y).child().x() + 0.5 * disp(x,y+1).child().x() ),
-                                                      2 * (0.5 * disp(x,y).child().y() + 0.5 * disp(x,y+1).child().y() ));
-              } else if (disp(x,y).valid() && !disp(x,y+1).valid() ) {
-                outDisp(i,j) = PixelT( 2 * disp(x,y).child().x(),
-                                                      2 * disp(x,y).child().y() );
-              } else if (!disp(x,y).valid() && disp(x,y+1).valid() ) {
-                outDisp(i,j) = PixelT( 2 * disp(x,y+1).child().x(),
-                                                      2 * disp(x,y+1).child().y() );
-              } 
+              if ( is_valid(disp(x,y)) && is_valid(disp(x,y+1)) ) {
+                outDisp(i,j) = disp(x,y) + disp(x,y+1);
+              } else if ( is_valid(disp(x,y)) && !is_valid(disp(x,y+1)) ) {
+                outDisp(i,j) = 2*disp(x,y);
+              } else if ( !is_valid(disp(x,y)) && is_valid(disp(x,y+1)) ) {
+                outDisp(i,j) = 2*disp(x,y+1);
+              }
             }
-          }	 
-          
+          }
+
           else {
-            if ( disp(x,y).valid() && disp(x,y+1).valid() && disp(x+1,y).valid() && disp(x+1,y+1).valid() ) {
+            if ( is_valid(disp(x,y)) && is_valid(disp(x,y+1)) &&
+                 is_valid(disp(x+1,y)) && is_valid(disp(x+1,y+1)) ) {
 
               // All good pixels
               float normx = float(i)/2.0-x, normy = float(j)/2.0-y, norm1mx = 1.0-normx, norm1my = 1.0-normy;
-              outDisp(i,j) = PixelT( 2 * (disp(x  ,y  ).child().x() * norm1mx*norm1my + 
-                                                         disp(x+1,y  ).child().x() * normx*norm1my + 
-                                                         disp(x  ,y+1).child().x() * norm1mx*normy + 
-                                                         disp(x+1,y+1).child().x() * normx*normy),
-                                                    2 * (disp(x  ,y  ).child().y() * norm1mx*norm1my + 
-                                                         disp(x+1,y  ).child().y() * normx*norm1my + 
-                                                         disp(x  ,y+1).child().y() * norm1mx*normy + 
-                                                         disp(x+1,y+1).child().y() * normx*normy) ); 
-	      
-            } else if ( !disp(x,y).valid() && !disp(x,y+1).valid() && !disp(x+1,y).valid() && !disp(x+1,y+1).valid() ) {
+              outDisp(i,j) = PixelMask<Vector2f>( 2 * (disp(x  ,y  )[0] * norm1mx*norm1my +
+                                                       disp(x+1,y  )[0] * normx*norm1my +
+                                                       disp(x  ,y+1)[0] * norm1mx*normy +
+                                                       disp(x+1,y+1)[0] * normx*normy),
+                                                  2 * (disp(x  ,y  )[1] * norm1mx*norm1my +
+                                                       disp(x+1,y  )[1] * normx*norm1my +
+                                                       disp(x  ,y+1)[1] * norm1mx*normy +
+                                                       disp(x+1,y+1)[1] * normx*normy) );
 
+            } else if ( !is_valid(disp(x,y)) && !is_valid(disp(x,y+1)) &&
+                        !is_valid(disp(x+1,y)) && !is_valid(disp(x+1,y+1)) ) {
               // no good pixels
-              outDisp(i, j) = PixelT();
+              invalidate( outDisp(i,j) );
 
             } else {
               // some good & some bad pixels
@@ -952,28 +959,23 @@ namespace vw {
               // are near some missing pixels, and we just need an
               // approximately valid value.  The subpixel refinement
               // will correct any minor mistakes we introduce here.
-              if ( disp(x,y).valid() )
-                outDisp(i,j) = PixelT(2 * disp(x,y).child().x(),
-						 2 * disp(x,y).child().y());
-              else if ( disp(x+1,y).valid() )
-                outDisp(i,j) = PixelT(2 * disp(x+1,y).child().x(),
-						 2 * disp(x+1,y).child().y());
-              else if ( disp(x,y+1).valid() )
-                outDisp(i,j) = PixelT(2 * disp(x,y+1).child().x(),
-						 2 * disp(x,y+1).child().y());
-              else if ( disp(x+1,y+1).valid() )
-                outDisp(i,j) = PixelT(2 * disp(x+1,y+1).child().x(),
-						 2 * disp(x+1,y+1).child().y());
+              if ( is_valid(disp(x,y)) ) {
+                outDisp(i,j) = 2*disp(x,y);
+              } else if ( is_valid(disp(x+1,y)) ) {
+                outDisp(i,j) = 2*disp(x+1,y);
+              } else if ( is_valid(disp(x,y+1)) ) {
+                outDisp(i,j) = 2*disp(x,y+1);
+              } else if ( is_valid(disp(x+1,y+1)) ) {
+                outDisp(i,j) = 2*disp(x+1,y+1);
+              }
             }
-
-
           }
-
-
         }
       }
+
       return outDisp;
     }
+
   } // end namepsace stereo
 } // end namespace vw
 
