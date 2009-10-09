@@ -120,6 +120,8 @@ AX_ARG_ENABLE(bounds-check,  no,  [am-yes cpp-bool], [enable image bounds checki
 AX_ARG_ENABLE(test-coverage, no,  [am-yes],          [turn on code coverage analysis tools])
 AX_ARG_ENABLE(config-file,   yes, [cpp-bool],        [~/.vwrc support])
 AX_ARG_ENABLE(strict-aliasing, no, [none],           [allow strict aliasing (dangerous)])
+AX_ARG_ENABLE(qt-qmake,      yes, [none],            [Allow qmake detection of QT])
+
 
 ##################################################
 # Handle options
@@ -273,7 +275,6 @@ AC_MSG_RESULT([$VW_HAS_BIGTIFF])
 
 AX_PKG(PROJ4, [M], [-lproj], [projects.h])
 
-AX_ARG_ENABLE(qt-qmake, yes, [none], [Allow qmake detection of QT])
 if test "$HAVE_PKG_QT" = no; then
     ENABLE_QT_QMAKE=no
 fi
