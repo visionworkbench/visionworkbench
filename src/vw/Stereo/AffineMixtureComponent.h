@@ -599,13 +599,13 @@ namespace vw {
       BBox2i window;
       Vector2 pos_linearize; // linearization point of the minimizer
 
-      ImageView<PixelT> r_window;
-      ImageView<PixelT> l_window;
-      ImageView<PrecisionT> err;
-
       ImageView<PrecisionT> w;  // weights
       ImageView<PrecisionT> p; // posterior probabilities of data in window
       ImageView<PrecisionT> w_gaussian;  // gaussian window
+
+      ImageView<PixelT> r_window;
+      ImageView<PixelT> l_window;
+      ImageView<PrecisionT> err;
 
       AffineTransformOrigin T;
       bool l_set;
