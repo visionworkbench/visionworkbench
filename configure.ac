@@ -17,6 +17,7 @@ m4_pattern_allow([^PKG_PATHS_[A-Z_]+$])
 m4_pattern_allow([^PKG_BOOST_INCDIR$])
 m4_pattern_allow([^PKG_BOOST_LIBDIR$])
 m4_pattern_allow([^PKG_VW_LIBS_TEMP$])
+m4_pattern_allow([^PKG_ARBITRARY_QT_NEEDED_HEADERS$])
 
 ##################################################
 # A few starting bits
