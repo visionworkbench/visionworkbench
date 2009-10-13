@@ -17,12 +17,8 @@
 #include <string>
 #include <ostream>
 
-
-
-
 // For the PixelDisparity math.
 #include <boost/operators.hpp>
-
 
 namespace vw {
   namespace stereo {

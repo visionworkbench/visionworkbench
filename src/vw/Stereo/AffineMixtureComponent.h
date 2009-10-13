@@ -1,4 +1,12 @@
-#pragma once
+// __BEGIN_LICENSE__
+// Copyright (C) 2006, 2007 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
+#ifndef __VW_STEREO_AFFINE_MIXTURE_COMPONENT__
+#define __VW_STEREO_AFFINE_MIXTURE_COMPONENT__
 
 #include "MixtureComponent.h"
 
@@ -12,7 +20,6 @@
 #ifdef USE_GRAPHICS
 #include "graphics.h"
 #endif
-using namespace std;
 
 namespace vw {
   namespace stereo {
@@ -124,7 +131,7 @@ namespace vw {
         s = s0;
 
 
-        //ut << "reseting warp to: " << warp << endl;
+        //ut << "reseting warp to: " << warp << std::endl;
 
         l_set = false;
 
@@ -165,7 +172,7 @@ namespace vw {
       }
 
       void print_status(std::string const& prefix) {
-        cout << prefix << "sigma = " << s << endl;
+        std::cout << prefix << "sigma = " << s << std::endl;
       }
 
       Matrix<PrecisionT, 6, 6> const& hessian() const { return hess; }
@@ -335,7 +342,7 @@ namespace vw {
 
         PrecisionT initial_norm_grad = 0;
         if(debug) {
-          cout << "initializing..." << endl;
+          std::cout << "initializing..." << std::endl;
         }
         // initialized cropped transformations of the right window under the current value of T; and err
         T = AffineTransformOrigin(M_transform_linear, M_transform_offset, Vector2(x, y));
@@ -366,7 +373,7 @@ namespace vw {
           err = r_window - l_window;
 
           inner_loop_window_timer.stop();
-          //cout << "inner loop window setup " << 1000*inner_loop_window_timer.elapsed_seconds() << endl;
+          //std::cout << "inner loop window setup " << 1000*inner_loop_window_timer.elapsed_seconds() << std::endl;
 
 
           Stopwatch gradient_timer;
@@ -374,7 +381,7 @@ namespace vw {
 
 
           if(debug) {
-            cout << "computing gradient" << endl;
+            std::cout << "computing gradient" << std::endl;
           }
 
 
@@ -398,14 +405,14 @@ namespace vw {
             state_hist[inner_loop_iter][4] = matrix_data_offset[0];
             state_hist[inner_loop_iter][5] = matrix_data_offset[1];
           }
-          //cout << "gradient = " << gradient << endl;
+          //std::cout << "gradient = " << gradient << std::endl;
 
-          //cout << "||gradient|| = " << norm_2(gradient) << endl;
+          //std::cout << "||gradient|| = " << norm_2(gradient) << std::endl;
 
-          //cout << "hessian computed as " << hess << endl;
+          //std::cout << "hessian computed as " << hess << std::endl;
           gradient_timer.stop();
 
-          //cout << "gradient/hessian took " << 1000*gradient_timer.elapsed_seconds() << endl;
+          //std::cout << "gradient/hessian took " << 1000*gradient_timer.elapsed_seconds() << std::endl;
 
           Stopwatch lm_timer;
           // perform the update here; do line search
@@ -416,7 +423,7 @@ namespace vw {
 
 
           if(debug) {
-            cout << "solving..." << endl;
+            std::cout << "solving..." << std::endl;
           }
           soln = gradient;
           hessian_temp = hess;
@@ -425,7 +432,7 @@ namespace vw {
 
             for(int i = 0; i < 6; i++) {
               if(soln[i] != soln[i]) { // test for NaNs
-                vw_out() << "NaN in soln!" << endl;
+                vw_out() << "NaN in soln!" << std::endl;
                 soln = gradient;
                 break;
               }
@@ -434,7 +441,7 @@ namespace vw {
           }
           catch(vw::Exception &e) {
             soln = gradient;
-            //cout << "using gradient " << endl;
+            //std::cout << "using gradient " << std::endl;
           }
 
           if(debug) {
@@ -442,31 +449,31 @@ namespace vw {
           }
 
           if(debug) {
-            cout << "line searching..." << endl;
+            std::cout << "line searching..." << std::endl;
           }
           PrecisionT alpha = .1;
-          //cout << "f_value_last = " << f_value_last << endl;
-          //cout << M_transform_linear << endl;
+          //std::cout << "f_value_last = " << f_value_last << std::endl;
+          //std::cout << M_transform_linear << std::endl;
           PrecisionT matrix_data_linear_0[4];
           PrecisionT matrix_data_offset_0[2];
 
           while(true) {
             if(debug) {
-              cout << "soln = " << (soln) << endl;
+              std::cout << "soln = " << (soln) << std::endl;
             }
-            //cout << "M: " << M_transform_linear << endl;
+            //std::cout << "M: " << M_transform_linear << std::endl;
             if(norm_2_sqr(soln) < epsilon_inner*epsilon_inner) { // if we've gotten to a step size this small, there's no more improvement to be made
-              //cout << "updating" << endl;
+              //std::cout << "updating" << std::endl;
               //PrecisionT determinant = matrix_data_linear[0]*matrix_data_linear[3] - matrix_data_linear[1]*matrix_data_linear[2]; // unused
               T = AffineTransformOrigin(M_transform_linear, M_transform_offset, Vector2(x, y));
               r_window = crop(transform(right_r, T), window);
               err = r_window - l_window;
               min_step_size_hit = true;
-              //cout << "min_step_size_hit" << endl;
+              //std::cout << "min_step_size_hit" << std::endl;
               break;
             }
 
-            //cout << "trying step" << endl;
+            //std::cout << "trying step" << std::endl;
 
             // back up the current parameters
             matrix_data_linear_0[0] = matrix_data_linear[0];
@@ -486,10 +493,10 @@ namespace vw {
             matrix_data_offset[1] -= soln[5];
 
             // make sure determinant is positive (there no flips involved)
-            //cout << det(M_transform_linear) << endl;
+            //std::cout << det(M_transform_linear) << std::endl;
             PrecisionT determinant = matrix_data_linear[0]*matrix_data_linear[3] - matrix_data_linear[1]*matrix_data_linear[2];
             if(debug) {
-              cout << "det = " << determinant << endl;
+              std::cout << "det = " << determinant << std::endl;
             }
             if(determinant < min_det || determinant > max_det) {
               // restore last good parameters
@@ -500,8 +507,8 @@ namespace vw {
               matrix_data_offset[0] = matrix_data_offset_0[0];
               matrix_data_offset[1] = matrix_data_offset_0[1];
 
-              //cout << "min_det hit" << endl;
-              //cout << soln << endl;
+              //std::cout << "min_det hit" << std::endl;
+              //std::cout << soln << std::endl;
               soln *= alpha;
               continue;
             }
@@ -509,24 +516,24 @@ namespace vw {
             // update T, the right window view, and the err
             T = AffineTransformOrigin(M_transform_linear, M_transform_offset, Vector2(x, y));
 
-            //cout << "updating values" << endl;
+            //std::cout << "updating values" << std::endl;
             r_window = crop(transform(right_r, T), window);
             err = r_window - l_window;
             f_value = sum_of_pixel_values(w_adj*pow(err, 2));
-            //cout << "solved" << endl;
-            //cout << "testing: " << matrix_data_linear[0] << " " << matrix_data_linear[1] << " " << matrix_data_linear[2] << " " << matrix_data_linear[3] << " "
-            // << matrix_data_offset[0] << " " << matrix_data_offset[1] << endl;
+            //std::cout << "solved" << std::endl;
+            //std::cout << "testing: " << matrix_data_linear[0] << " " << matrix_data_linear[1] << " " << matrix_data_linear[2] << " " << matrix_data_linear[3] << " "
+            // << matrix_data_offset[0] << " " << matrix_data_offset[1] << std::endl;
 
-            //cout << "\t w/ f_value = " << f_value << endl;
+            //std::cout << "\t w/ f_value = " << f_value << std::endl;
             if(f_value < f_value_last) { // if there has been an improvement
               if(debug) {
-                cout << "improved: " << f_value_last << " -> " << f_value << endl;
+                std::cout << "improved: " << f_value_last << " -> " << f_value << std::endl;
               }
               break;
             }
             else { // there is no improvement
               f_value = f_value_last;
-              //cout << "backtracking" << endl;
+              //std::cout << "backtracking" << std::endl;
               // restore last good parameters
               matrix_data_linear[0] = matrix_data_linear_0[0];
               matrix_data_linear[1] = matrix_data_linear_0[1];
@@ -539,17 +546,17 @@ namespace vw {
               continue;
             }
           }
-          //cout << "f_value = " << f_value << endl;
+          //std::cout << "f_value = " << f_value << std::endl;
 
           lm_timer.stop();
-          //cout << "linesearch took " << 1000*lm_timer.elapsed_seconds() << endl;
+          //std::cout << "linesearch took " << 1000*lm_timer.elapsed_seconds() << std::endl;
 
           // check termination condition for inner loop
-          //cout << "delta is " << fabs(f_value_last - f_value) << endl;
+          //std::cout << "delta is " << fabs(f_value_last - f_value) << std::endl;
           if(min_step_size_hit || fabs(f_value_last - f_value) < epsilon_inner) {// if we could not improve anything after degrading to gradient descent, or improvement is too small
             if(debug) {
-              cout << "converged to " << f_value << endl;
-              cout << "\tw/ ||g||/||g0|| = " << norm_2(gradient)/initial_norm_grad << endl;
+              std::cout << "converged to " << f_value << std::endl;
+              std::cout << "\tw/ ||g||/||g0|| = " << norm_2(gradient)/initial_norm_grad << std::endl;
             }
 
             break;
@@ -570,7 +577,8 @@ namespace vw {
         l_set = true;
 
         if(l_likelihood_old + 1e-8 < l_likelihood) {
-          cout << "LIKELIHOOD WENT UP IN Affine by " <<  l_likelihood-l_likelihood_old << endl;
+          std::cout << "LIKELIHOOD WENT UP IN Affine by "
+                    <<  l_likelihood-l_likelihood_old << std::endl;
         }
 
         hess = hess/(sum_weights*s*s);
@@ -620,3 +628,5 @@ namespace vw {
 
   }
 }
+
+#endif//__VW_STEREO_AFFINE_MIXTURE_COMPONENT__

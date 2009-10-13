@@ -1,24 +1,23 @@
-#include "EMSubpixelCorrelatorView.h"
-#include "AffineMixtureComponent.h"
-#include "GaussianMixtureComponent.h"
-#include "GammaMixtureComponent.h"
-#include "UniformMixtureComponent.h"
-
-#include <vw/Math.h>
-#include <vw/Image.h>
-#include <iostream>
-
-//#define USE_GRAPHICS
-
-#ifdef USE_GRAPHICS
-#include "graphics.h"
-#endif
-
-using namespace std;
+// __BEGIN_LICENSE__
+// __END_LICENSE__
 
 #ifndef __VW_STEREO_EM_SUBPIXEL_CORRELATOR_VIEW_CPP__
 #define __VW_STEREO_EM_SUBPIXEL_CORRELATOR_VIEW_CPP__
 
+#include <vw/Stereo/EMSubpixelCorrelatorView.h>
+#include <vw/Stereo/AffineMixtureComponent.h>
+#include <vw/Stereo/GaussianMixtureComponent.h>
+#include <vw/Stereo/GammaMixtureComponent.h>
+#include <vw/Stereo/UniformMixtureComponent.h>
+
+#include <vw/Math.h>
+#include <vw/Image.h>
+#include <vw/FileIO.h>
+#include <iostream>
+
+#ifdef USE_GRAPHICS
+#include "graphics.h"
+#endif
 
 namespace vw {
   template<> struct PixelFormatID<Vector2>   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
@@ -259,7 +258,8 @@ namespace vw {
         }
       }
 
-      vw_out() << "processing pyramid level " << pyramid_levels-1 << endl;
+      vw_out(0) << "processing pyramid level "
+                << pyramid_levels-1 << std::endl;
       m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()),
                         disparity_map_pyramid[pyramid_levels-1], warps[pyramid_levels-1],
                         regions_of_interest[pyramid_levels-1], false , subpixel_debug && true);
@@ -270,7 +270,7 @@ namespace vw {
       for (int i = pyramid_levels-2; i>=0; i--){
         int up_width = left_pyramid[i].cols();
         int up_height = left_pyramid[i].rows();
-        vw_out() << "processing pyramid level " << i << endl;
+        vw_out() << "processing pyramid level " << i << std::endl;
         warps[i] = copy(resize(warps[i+1], up_width , up_height, ConstantEdgeExtension(), NearestPixelInterpolation())); //linear interpolation here
 
         disparity_map_upsampled[i] = copy(upsample_disp_map_by_two(disparity_map_upsampled[i+1], up_width, up_height));
@@ -443,13 +443,13 @@ namespace vw {
       bool debug = false;
 
       for(y = ROI.min()[1]; y < ROI.max()[1]; y++) {
-        if(debug) {
-          cout << "Processing row " << y << endl;
-        }
+        if (debug)
+          std::cout << "Processing row " << y << std::endl;
+
         if(y%10 == 0 && y != 0) {
-          vw_out() << "@ row " << y << ": average pixel took "
-                   << 1000*pixel_timer.elapsed_seconds()/(double)num_pixels
-                   << " over " <<  num_pixels << " pixels" << endl;
+          vw_out(0) << "@ row " << y << ": average pixel took "
+                    << 1000*pixel_timer.elapsed_seconds()/(double)num_pixels
+                    << " over " <<  num_pixels << " pixels" << std::endl;
         }
         for(x = ROI.min()[0]; x < ROI.max()[0]; x++) {
           if(p_debug) {
@@ -483,10 +483,10 @@ namespace vw {
           l_window = crop(edge_extend(left_image.impl(), ZeroEdgeExtension()), window_box);
 
           if(debug) {
-            cout << "course estimate = " << pos << " + " << disparity.impl()(x, y) << endl;
-          }
-          if(debug) {
-            cout << "initial warp: " <<affine_warps.impl()(x, y) << endl;
+            std::cout << "course estimate = " << pos << " + "
+                      << disparity.impl()(x, y) << std::endl;
+            std::cout << "initial warp: "
+                      << affine_warps.impl()(x, y) << std::endl;
           }
 
           affine_comp.reset(window_box, edge_extend(disparity.impl())(x, y).child().x(), edge_extend(disparity.impl())(x, y).child().y(),
@@ -499,26 +499,26 @@ namespace vw {
           double P_outlier1;
           double P_outlier2;
 
-          if(use_left_outliers || use_right_outliers) {
+          if (use_left_outliers || use_right_outliers)
             P_1 = P_inlier_0;
-          }
-          else {
-            P_1 = 1.;
-          }
 
-          if(!use_left_outliers && !use_right_outliers) {  // don't use outliers
+          else
+            P_1 = 1.;
+
+          if (!use_left_outliers && !use_right_outliers) {
+            // don't use outliers
             P_outlier1 = 0.;
             P_outlier2 = 0.;
-          }
-          else if(use_left_outliers && !use_right_outliers) { // use left outliers only
+          } else if (use_left_outliers && !use_right_outliers) {
+            // use left outliers only
             P_outlier1 = (1 - P_inlier_0);
             P_outlier2 = 0.;
-          }
-          else if(!use_left_outliers && use_right_outliers) { // use righ outliers only
+          } else if (!use_left_outliers && use_right_outliers) {
+            // use righ outliers only
             P_outlier1 = 0.;
             P_outlier2 = (1 - P_inlier_0);
-          }
-          else { // use both left and right outliers
+          } else {
+            // use both left and right outliers
             P_outlier1 = .66666*(1 - P_inlier_0);
             P_outlier2 = .33333*(1 - P_inlier_0);
           }
@@ -543,21 +543,19 @@ namespace vw {
 
           // double ll_w0, ll_w1, ll_w2; // not used
 
-          if(debug) {
-            cout << "P_1 = " << P_1 << endl;
-            cout << "P_outlier1 = " << P_outlier1 << endl;
-            cout << "P_outlier2 = " << P_outlier2 << endl;
+          if (debug) {
+            std::cout << "P_1 = " << P_1 << std::endl;
+            std::cout << "P_outlier1 = " << P_outlier1 << std::endl;
+            std::cout << "P_outlier2 = " << P_outlier2 << std::endl;
 
             affine_comp.print_status("affine.");
-            if(use_left_outliers) {
+            if(use_left_outliers)
               outlier_comp1.print_status("outlier1.");
-            }
-            if(use_right_outliers) {
-                outlier_comp2.print_status("outlier2.");
-            }
-            cout << "iter = 0" << endl;
+            if(use_right_outliers)
+              outlier_comp2.print_status("outlier2.");
+            std::cout << "iter = 0" << std::endl;
 
-            cout << "RMS error = " << sqrt(sum_of_pixel_values(pow(affine_comp.errors(),2))/affine_comp.errors().cols()/affine_comp.errors().rows()) << endl;
+            std::cout << "RMS error = " << sqrt(sum_of_pixel_values(pow(affine_comp.errors(),2))/affine_comp.errors().cols()/affine_comp.errors().rows()) << std::endl;
 #ifdef USE_GRAPHICS
             r_window_p1 = crop(transform(right_image.impl(), affine_comp.affine_transform()), window_box);
             show_image(r_window_p1_view, debug_view_mag*resize(r_window_p1, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation())); //, NearestPixelInterpolation()));
@@ -566,7 +564,7 @@ namespace vw {
             show_image(w_window_o1_view, resize(weights_outlier1, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
             show_image(w_window_o2_view, resize(weights_outlier2, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
             show_image(errors_window_p1_view, debug_view_mag*resize(normalize(affine_comp.errors()), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
-            cout << "max_error = " << max_pixel_value(affine_comp.errors()) << endl;
+            std::cout << "max_error = " << max_pixel_value(affine_comp.errors()) << std::endl;
             usleep((int)(1*1000*1000));
 #endif
 
@@ -602,28 +600,22 @@ namespace vw {
 
             // normalize the weights
             temp_sum = copy(weights_p1);
-            if(use_left_outliers) {
+            if(use_left_outliers)
               temp_sum += weights_outlier1;
-            }
-            if(use_right_outliers) {
+            if(use_right_outliers)
               temp_sum += weights_outlier2;
-            }
             weights_p1 = weights_p1/temp_sum;
-            if(use_left_outliers) {
+            if(use_left_outliers)
               weights_outlier1 = weights_outlier1/temp_sum;
-            }
-            if(use_right_outliers) {
+            if(use_right_outliers)
               weights_outlier2 = weights_outlier2/temp_sum;
-            }
 
             // compute P(inlier) and P(outlier)
             sum_weights_p1 = sum_of_pixel_values(weights_p1);
-            if(use_left_outliers) {
+            if(use_left_outliers)
               sum_weights_outlier1 = sum_of_pixel_values(weights_outlier1);
-            }
-            if(use_right_outliers) {
+            if(use_right_outliers)
               sum_weights_outlier2 = sum_of_pixel_values(weights_outlier2);
-            }
 
             P_1 = sum_weights_p1/(double)(N);
             P_1 = std::min(P_1, P_inlier_max);
@@ -687,25 +679,23 @@ namespace vw {
             }
 
             if(debug) {
-              cout << "P(center) = " << weights_p1(x - window_box.min().x(),  y - window_box.min().y()) << endl;
-              cout << "P_1 = " << P_1 << endl;
-              cout << "P_outlier1 = " << P_outlier1 << endl;
-              cout << "P_outlier2 = " << P_outlier2 << endl;
+              std::cout << "P(center) = " << weights_p1(x - window_box.min().x(),  y - window_box.min().y()) << std::endl;
+              std::cout << "P_1 = " << P_1 << std::endl;
+              std::cout << "P_outlier1 = " << P_outlier1 << std::endl;
+              std::cout << "P_outlier2 = " << P_outlier2 << std::endl;
 
               affine_comp.print_status("affine.");
-              if(use_left_outliers) {
+              if(use_left_outliers)
                 outlier_comp1.print_status("outlier1.");
-              }
-              if(use_right_outliers) {
+              if(use_right_outliers)
                 outlier_comp2.print_status("outlier2.");
-              }
 
-              cout << "f_value = " << f_value << endl;
+              std::cout << "f_value = " << f_value << std::endl;
             }
 
-            if(debug) {
-              cout << "iter = " << em_iter+1 << endl;
-              cout << "RMS error = " << sqrt(sum_of_pixel_values(pow(affine_comp.errors(),2))/affine_comp.errors().cols()/affine_comp.errors().rows()) << endl;
+            if (debug) {
+              std::cout << "iter = " << em_iter+1 << std::endl;
+              std::cout << "RMS error = " << sqrt(sum_of_pixel_values(pow(affine_comp.errors(),2))/affine_comp.errors().cols()/affine_comp.errors().rows()) << std::endl;
 #ifdef USE_GRAPHICS
               r_window_p1 = crop(transform(right_image.impl(), affine_comp.affine_transform()), window_box);
 
@@ -723,10 +713,7 @@ namespace vw {
               show_image(errors_window_p1_view, debug_view_mag*resize(20*affine_comp.errors(), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
               usleep((int)(.5*1000*1000));
 #endif
-
-
-
-              cout << endl;
+              std::cout << std::endl;
             }
 
             // check termination condition for em loop
@@ -752,8 +739,10 @@ namespace vw {
 
 
           if(debug) {
-            cout << "refined estimate = " << disparity.impl()(x, y) << endl;
-            cout << "refined warp: " <<affine_warps.impl()(x, y) << endl;
+            std::cout << "refined estimate = "
+                      << disparity.impl()(x, y) << std::endl;
+            std::cout << "refined warp: "
+                      << affine_warps.impl()(x, y) << std::endl;
           }
 
           if(0 && final) {
