@@ -221,7 +221,7 @@ namespace stereo {
           disparity_map = disparity_map_clean;
         } else if (n == 0) {
           // At the last level, return the raw results from the correlator
-          disparity_map = new_disparity_map;
+          disparity_map = disparity_mask(new_disparity_map, left_masks[n], right_masks[n]);
         } else {
           // If we have a missing pixel that correlated properly in the previous
           // pyramid level, use the disparity found at the previous pyramid level
