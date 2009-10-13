@@ -325,7 +325,6 @@ sub read_results {
                   my $wp_init_del = [];
                   my $wp_true_del = [];
                   for (my $i = 0; $i <= $#deleted; $i++) {
-                    # TODO: This is the problem: not decrementing $i when we delete a point!
                     if (not $deleted[$i]) {
                       push @$wp_init_del, @$wp_init[$i*3 .. ($i*3)+2];
                       push @$wp_true_del, @$wp_true[$i*3 .. ($i*3)+2];
