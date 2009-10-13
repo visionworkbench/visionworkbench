@@ -479,7 +479,7 @@ namespace vw {
               try {
                 solve_symmetric_nocopy(rhs,lhs);
               } catch (ArgumentErr &e) {
-                std::cout << "Error @ " << x << " " << y << "\n";
+                //             std::cout << "Error @ " << x << " " << y << "\n";
                 //             std::cout << "Exception caught: " << e.what() << "\n";
                 //             std::cout << "PRERHS: " << pre_rhs << "\n";
                 //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
@@ -820,7 +820,7 @@ namespace vw {
               try {
                 solve_symmetric_nocopy(rhs,lhs);
               } catch (ArgumentErr &e) {
-                std::cout << "Error @ " << x << " " << y << "\n";
+                //             std::cout << "Error @ " << x << " " << y << "\n";
                 //             std::cout << "Exception caught: " << e.what() << "\n";
                 //             std::cout << "PRERHS: " << pre_rhs << "\n";
                 //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
@@ -1204,7 +1204,7 @@ namespace vw {
               try {
                 solve_symmetric_nocopy(rhs,lhs);
               } catch (ArgumentErr &e) {
-                vw_out(0) << "Error @ " << x << " " << y << "\n";
+                // vw_out(0) << "Error @ " << x << " " << y << "\n";
                 // std::cout << "Exception caught: " << e.what() << "\n";
                 // std::cout << "PRERHS: " << pre_rhs << "\n";
                 // std::cout << "PRELHS: " << pre_lhs << "\n\n";
