@@ -320,17 +320,21 @@ sub read_results {
                     die "Different number of points from cnet_deleted (".scalar(@deleted).
                         ") and wp_ground_truth (".scalar(@$wp_true)/3 . ")\n";
                   }
-                  print STDERR "        Found ".scalar(@deleted)." points to delete\n" if $verbose;
-                  my $del_cnt = 0;
+                  print STDERR "        Delete array has ".scalar(@deleted)." points\n" if $verbose;
+                  my $valid_cnt = 0;
+                  my $wp_init_del = [];
+                  my $wp_true_del = [];
                   for (my $i = 0; $i <= $#deleted; $i++) {
-                    if ($deleted[$i]) {
-
-                      splice(@$wp_true, $i*3, 3);
-                      splice(@$wp_init, $i*3, 3);
-                      $del_cnt++;
+                    # TODO: This is the problem: not decrementing $i when we delete a point!
+                    if (not $deleted[$i]) {
+                      push @$wp_init_del, @$wp_init[$i*3 .. ($i*3)+2];
+                      push @$wp_true_del, @$wp_true[$i*3 .. ($i*3)+2];
+                      $valid_cnt++
                     }
                   }
-                  print STDERR "        Removed $del_cnt deleted ground truth points\n" if $verbose;
+                  $wp_init = $wp_init_del;
+                  $wp_true = $wp_true_del;
+                  print STDERR "        Now have ".(scalar(@$wp_true)/3)." ground truth points\n" if $verbose;
                   open TEMP, ">$test_dir/wp_ground_truth_del.txt";
                   my $i = 0;
                   while ($i < scalar(@$wp_true)) {
