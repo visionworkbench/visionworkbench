@@ -194,9 +194,15 @@ and by implementing a pyramid method to processing. The following
 subsections cover those improvements, but it's not required reading as
 {\tt CorrelatorView} implements them on default.
 
-\subsection{Box-filter Optimized Correlator}
+\subsection{Optimized Correlator}
 
-Here there be text
+The OptimizedCorrelator employs a boxfilter-like accumulator to significantly
+speed up the template matching process by cutting out redundant calculations
+(See figure \ref{fig:box_filter}).
+
+Its output should be identical to the ReferenceCorrelator, which does not attempt
+to optimize the template matching process in any way.  (This makes it so slow
+it should only be used for testing purposes)
 
 \begin{figure}[h]
 \begin{center}
@@ -205,8 +211,6 @@ Here there be text
   \caption{Box filter Optimization}
   \label{fig:box_filter}
 \end{figure}
-
-Here there be text
 
 \subsection{Pyramid-based Search Refinement}
 
@@ -277,18 +281,26 @@ not important jump directly to using Mode 3.
 \begin{table}[htb]\begin{centering}
 \begin{tabular}{|c|c|p{3.5 in}|} \hline
 Mode & Name & Description \\ \hline \hline
-0 & \verb#Parabola Subpixel# & Simplest and fastest subpixel mode. \\ \hline
-1 & \verb#Robust Affine Subpixel# & Affine window subpixel with robust cost functions. \\ \hline
-2 & \verb#Bayes Affine Subpixel# & Affine with gaussian weighted window. \\ \hline
-3 & \verb#Bayes EM Affine Subpixel# & Affine with estimated parameters for gaussian weighted window\\ \hline
-4 & \verb#Experimental Subpixel# & Affine with estimated parameters for gamma and gaussian weighted windows that correspond to inlier and outlier models\\ \hline
+0 & \verb#No Subpixel# & Disable subpixel correlation \\ \hline
+1 & \verb#Parabola Subpixel# & Simplest and fastest subpixel mode. \\ \hline
+2 & \verb#Bayes EM Affine Subpixel# & Affine with estimated parameters for gaussian weighted window\\ \hline
+3 & \verb#Experimental Subpixel# & Affine with estimated parameters for gamma and gaussian weighted windows that correspond to inlier and outlier models\\ \hline
 \end{tabular}
 \caption{Available Subpixel modes.}
 \label{tbl:subpixel-modes}
 \end{centering}\end{table}
 
-\subsection{Parabola Fitting in the Disparity Space Image}
+\subsection{Parabola Fitting}
 \label{sec:parabola_subpixel}
+The parabola subpixel mode estimates the subpixel disparity offset by fitting
+a paraboloid to the template matching scores of the 8 pixels around the integer
+disparity estimate.  The location of the minimum of this surface is used as the
+subpixel offset.
+
+Although this is the fastest subpixel mode, it exhibits an artifact known as "pixel-locking":
+the subpixel offsets tend to fall near the integer disparity estimates. This causes stair-step
+like patterns on surfaces that should otherwise be smooth. To avoid this problem, use
+the affine-adaptive subpixel mode (Section \ref{sec:affine_subpixel}).
 
 \subsection{Affine-adaptive Subpixel Refinement}
 \label{sec:affine_subpixel}
