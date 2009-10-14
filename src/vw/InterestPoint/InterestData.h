@@ -6,9 +6,9 @@
 
 
 /// \file InterestData.h
-/// 
+///
 /// Basic classes and structures for storing image interest points.
-/// 
+///
 #ifndef __INTEREST_DATA_H__
 #define __INTEREST_DATA_H__
 
@@ -21,7 +21,7 @@
 #include <list>
 #include <algorithm>
 
-namespace vw { 
+namespace vw {
 namespace ip {
 
   /// A class for storing information about an interest point.
@@ -60,19 +60,19 @@ namespace ip {
     /// The interest measure (could be Harris, LoG, etc.).
     float interest;
 
-    /// These are some extras for SURF
+    /// These are some extras for SURF-like implementations
     bool polarity;
     /// This is the integer location in scale space (used for indexing
     /// a vector of interest images)
     unsigned octave, scale_lvl;
 
-    /// And finally the descriptor for the interest point.  For example, 
+    /// And finally the descriptor for the interest point.  For example,
     /// PCA descriptors would have a vector of floats or doubles...
     descriptor_type descriptor;
 
     const_iterator begin() const { return descriptor.begin(); }
     const_iterator end() const { return descriptor.end(); }
-    
+
     int size() const { return descriptor.size(); }
     float operator[] (int index) { return descriptor[index]; }
 
@@ -91,7 +91,7 @@ namespace ip {
   // vector of interest point locations.  (Useful when preping data
   // far RANSAC...)
   std::vector<Vector3> iplist_to_vectorlist(std::vector<InterestPoint> const& iplist);
-  std::vector<InterestPoint> vectorlist_to_iplist(std::vector<Vector3> const& veclist);                                                                                            
+  std::vector<InterestPoint> vectorlist_to_iplist(std::vector<Vector3> const& veclist);
 
   // Routines for reading & writing interest point data files
   void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip);
@@ -99,8 +99,10 @@ namespace ip {
   std::vector<InterestPoint> read_binary_ip_file(std::string ip_file);
 
   // Routines for reading & writing interest point match files
-  void write_binary_match_file(std::string match_file, std::vector<InterestPoint> const& ip1, std::vector<InterestPoint> const& ip2);
-  void read_binary_match_file(std::string match_file, std::vector<InterestPoint> &ip1, std::vector<InterestPoint> &ip2);
+  void write_binary_match_file(std::string match_file, std::vector<InterestPoint> const& ip1,
+                               std::vector<InterestPoint> const& ip2);
+  void read_binary_match_file(std::string match_file, std::vector<InterestPoint> &ip1,
+                              std::vector<InterestPoint> &ip2);
 
   /// Select only the interest points that fall within the specified bounding box.
   template <class RealT>
@@ -124,7 +126,7 @@ namespace ip {
   ///
   /// The interest type is used to determine at compile-time which processed
   /// views should be fully rasterized. For speed in feature detection, the
-  /// source type should be ImageView<T> or a simple manipulation of it. 
+  /// source type should be ImageView<T> or a simple manipulation of it.
   /// For memory efficiency, the source type should be ImageViewRef<T>.
   ///
   /// If some other sort of shared data is needed or any of the temporaries
@@ -169,9 +171,9 @@ namespace ip {
     inline ori_type const& orientation() const { return m_ori; }
 
     /// Accessors to mutable interest image.
-    inline interest_type& interest() const { 
+    inline interest_type& interest() const {
       if (!m_interest) vw_throw(LogicErr() << "ImageInterestData::interest() Interest image has not yet been computed.");
-      return *m_interest; 
+      return *m_interest;
     }
 
     template <class ViewT>
