@@ -289,7 +289,7 @@ namespace stereo {
       // We crop the images to the expanded bounding box and edge
       // extend in case the new bbox extends past the image bounds.
       ImageView<float> left_image_patch, right_image_patch;
-      if (m_do_affine_subpixel > 0) {
+      if (m_do_affine_subpixel > 1) {
         // affine subpixel does its own pre-processing
         left_image_patch = crop(edge_extend(m_left_image,ZeroEdgeExtension()),
                                 left_crop_bbox);
