@@ -24,6 +24,14 @@
 
 #include <mfhdf.h>
 
+#ifndef H4_MAX_VAR_DIMS
+#define H4_MAX_VAR_DIMS MAX_VAR_DIMS
+#endif
+
+#ifndef H4_MAX_NC_NAME
+#define H4_MAX_NC_NAME MAX_NC_NAME
+#endif
+
 #include <vw/Core/Exception.h>
 #include <vw/Core/Debugging.h>
 
@@ -95,7 +103,7 @@ public:
         vw_throw( IOErr() << "Unable to select SDS in HDF file \"" << filename << "\"!" );
 
       char name[65];
-      ::int32 dim_sizes[MAX_VAR_DIMS], data_type, rank, n_attrs;
+      ::int32 dim_sizes[H4_MAX_VAR_DIMS], data_type, rank, n_attrs;
       if( SDgetinfo( id, name, &rank, dim_sizes, &data_type, &n_attrs ) == FAIL )
         vw_throw( IOErr() << "Unable to read SDS info from HDF file \"" << filename << "\"!" );
       sds_info[i].rank = rank;
@@ -283,7 +291,7 @@ public:
     if( sds_id == FAIL ) vw_throw( IOErr() << "Unable to select SDS in HDF file \"" << resource.filename() << "\"!" );
     std::vector<DiskImageResourceHDF::AttrInfo> attrs;
     for( int i=0; i<sds_info[sds_index].n_attrs; ++i ) {
-      char attr_name[MAX_NC_NAME];
+      char attr_name[H4_MAX_NC_NAME];
       ::int32 data_type, n_values;
       ::int32 status = SDattrinfo( sds_id, i, attr_name, &data_type, &n_values);
       if( status == FAIL ) {
