@@ -13,9 +13,8 @@ if MAKE_MODULE_INTERESTPOINT
 
 nodist_TestMatcher_SOURCES = TestMatcher.cxx 
 nodist_TestIntegral_SOURCES = TestIntegral.cxx
-nodist_TestSURF_SOURCES = TestSURF.cxx
 
-TESTS = TestMatcher TestIntegral TestSURF
+TESTS = TestMatcher TestIntegral
 
 include $(top_srcdir)/config/instantiate.am
 
