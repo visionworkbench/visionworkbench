@@ -64,7 +64,7 @@ public:
     std::string plate_filename = "/tmp/foo.plate";
 
     // Write the basic data...
-    Index idx(plate_filename, 256, "tif");
+    Index idx(plate_filename, 256, "tif", VW_PIXEL_RGB, VW_CHANNEL_UINT8);
 
     // And read it back in...
     Index idx2(plate_filename);
@@ -114,7 +114,7 @@ public:
     dummy_header4.set_depth(1);
 
     // Write some data to the Index.
-    Index idx(plate_filename, 256, "tif");
+    Index idx(plate_filename, 256, "tif", VW_PIXEL_RGB, VW_CHANNEL_UINT8);
     Blob blob(blob_filename);
 
     IndexRecord rec;
@@ -204,7 +204,7 @@ public:
     dummy_header4.set_depth(1);
 
     // Write some data to the Index.
-    Index idx(plate_filename, 256, "tif");
+    Index idx(plate_filename, 256, "tif", VW_PIXEL_RGB, VW_CHANNEL_UINT8);
     Blob blob(blob_filename);
 
     IndexRecord rec;
