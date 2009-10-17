@@ -111,7 +111,7 @@ namespace platefile {
     // cascade of MipMapping requests that will cause intermediate
     // tiles to be written (via load_tile), and ultimately bring the
     // entire tree up to date.
-    virtual void mipmap() { 
+    void mipmap() { 
       ImageView<PixelRGBA<uint8> > tile = this->load_tile(0,0,0); 
       if (tile && !is_transparent(tile))
         m_platefile->write(tile,0,0,0);

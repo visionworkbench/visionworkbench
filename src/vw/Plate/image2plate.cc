@@ -44,30 +44,62 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
 
   //------------------------- TILE GENERATION --------------------------------
 
-  for( unsigned i=0; i<image_files.size(); ++i ) {
+  for ( int i = 0; i < image_files.size(); ++i ) {
     std::cout << "\t--> Building full-resolution tiles for " << image_files[i] << "\n";
-
-    // Open the image.  TODO: Add logic here to switch between various
-    // run-time pixel formats.
-    DiskImageView<PixelRGBA<uint8> > image(image_files[i]);
-
+    
     // Load the georef.  If none is found, assume Plate Caree.
     GeoReference georef;
-    read_georeference( georef, DiskImageResourceGDAL( image_files[i]) );
+    read_georeference( georef, DiskImageResourceGDAL( image_files[i] ) );
     if( georef.transform() == identity_matrix<3>() ) {
       std::cout << "No georeferencing info found for " << image_files[i] 
                 << ".  Assuming global plate carree." << std::endl;
+      DiskImageResource *rsrc = DiskImageResource::open(image_files[i]);
       Matrix3x3 M;
-      M(0,0) = 360.0 / image.cols();
+      M(0,0) = 360.0 / rsrc->cols();
       M(0,2) = -180.0;
-      M(1,1) = -180.0 / image.rows();
+      M(1,1) = -180.0 / rsrc->rows();
       M(1,2) = 90.0;
       M(2,2) = 1;
       georef.set_transform( M );
+      delete rsrc;
     }
     
-    // Insert the image into the mosaic.
-    pm->insert(image, georef);
+    // Add the image to the mosaic.  Switch pixel and channel types
+    // depending on the channel and pixel type of the plate file.
+
+    PixelFormatEnum pixel_format = platefile->pixel_format();
+    ChannelTypeEnum channel_type = platefile->channel_type();
+
+    // Convert non-alpha channel images into images with an alpha channel for the composite.
+    switch(pixel_format) {
+    case VW_PIXEL_GRAY:
+    case VW_PIXEL_GRAYA:
+      switch(channel_type) {
+      case VW_CHANNEL_UINT8:  
+        pm->insert( DiskImageView<PixelGrayA<uint8> >(image_files[i]), georef );
+        break;
+      case VW_CHANNEL_INT16:  
+        pm->insert( DiskImageView<PixelGrayA<int16> >(image_files[i]), georef );
+        break;
+      default:
+        std::cout << "Platefile contains a channel type not supported by image2plate.\n";
+        exit(0);
+      }
+      break;
+    case VW_PIXEL_RGB:
+    case VW_PIXEL_RGBA:
+    default:
+      switch(channel_type) {
+      case VW_CHANNEL_UINT8:  
+        pm->insert( DiskImageView<PixelRGBA<uint8> >(image_files[i]), georef );
+        break;
+      default:
+        std::cout << "Platefile contains a channel type not supported by image2plate.\n";
+        exit(0);
+      }
+      break;
+    }
+
   }
 
   // -------------------------- PLATE FILE GENERATION --------------------------------
@@ -151,22 +183,40 @@ int main( int argc, char *argv[] ) {
   DiskImageResourcePNG::set_default_compression_level( png_compression );
   vw_settings().set_system_cache_size( cache_size*1024*1024 );
 
+  //-------------------------- OPEN THE PLATE FILE ------------------------------
+
+  // For new plate files, we adopt the pixel and channel type of the
+  // first image.  If the platefile already exists, then this is
+  // ignored and the native pixel and channel type of the platefile is
+  // used instead.
+  DiskImageResource *rsrc = DiskImageResource::open(image_files[0]);
+  PixelFormatEnum pixel_format = rsrc->pixel_format();
+  ChannelTypeEnum channel_type = rsrc->channel_type();
+  delete rsrc;
+
   // Create the plate file
   std::cout << "\nOpening plate file: " << output_file_name << "\n";
   boost::shared_ptr<PlateFile> platefile = 
-    boost::shared_ptr<PlateFile>( new PlateFile(output_file_name, tile_size, output_file_type));
+    boost::shared_ptr<PlateFile>( new PlateFile(output_file_name, 
+                                                tile_size, output_file_type,
+                                                pixel_format, channel_type));
 
-  // Creat the plate manager
+  // Create both platefile managers (we only end up using one... this
+  // just makes the code a little more readable.)
+  if (output_mode != "toast" && output_mode != "kml") {
+    std::cout << "Unknown mode type passed in using --mode: " << output_mode << ".  Exiting.\n";
+    exit(0);
+  }
+
+  // Add the image to the mosaic using the correct platefile manager
   if (output_mode == "toast") {
     boost::shared_ptr<ToastPlateManager> pm = 
       boost::shared_ptr<ToastPlateManager>( new ToastPlateManager(platefile, num_threads) );
     do_mosaic(platefile, pm, image_files, vm.count("mipmap-only"));
-  } else if (output_mode == "kml") {
+  } else if (output_mode == "kml")  {
     boost::shared_ptr<KmlPlateManager> pm = 
       boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile, num_threads) );
     do_mosaic(platefile, pm, image_files, vm.count("mipmap-only"));
-  } else {
-    std::cout << "Unknown mode type passed in using --mode: " << output_mode << ".  Exiting.\n";
-    exit(0);
   }
+  
 }

@@ -12,6 +12,8 @@
 #include <vw/Core/Thread.h>
 #include <vw/Core/Log.h>
 
+#include <vw/Image/PixelTypeInfo.h>
+
 #include <vw/Plate/Tree.h>
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/BlobManager.h>
@@ -53,9 +55,15 @@ namespace platefile {
     virtual int32 transaction_complete(int32 transaction_id) = 0;
 
     virtual int32 version() const = 0;
+    virtual int32 max_depth() const = 0;
+
+    virtual std::string platefile_name() const = 0;
+
     virtual int32 default_tile_size() const = 0;
     virtual std::string default_tile_filetype() const = 0;
-    virtual int32 max_depth() const = 0;
+
+    virtual PixelFormatEnum pixel_format() const = 0;
+    virtual ChannelTypeEnum channel_type() const = 0;
 
     /// Iterate over all nodes in a tree, calling func for each
     /// location.  Note: this will only be implemented for local
@@ -89,7 +97,9 @@ namespace platefile {
 
     /// Create a new, empty index.
     Index( std::string plate_filename, 
-           int default_tile_size, std::string default_file_type);
+           int default_tile_size, std::string default_file_type,
+           PixelFormatEnum default_pixel_format,
+           ChannelTypeEnum default_channel_type);
 
     /// Open an existing index from a file on disk.
     Index(std::string plate_filename);
@@ -109,8 +119,19 @@ namespace platefile {
 
     virtual int version() const { return m_header.platefile_version(); }
     virtual int32 max_depth() const { return m_root->max_depth(); }
+    
+    virtual std::string platefile_name() const { return m_plate_filename; }
+
     virtual int32 default_tile_size() const { return m_header.default_tile_size(); }
     virtual std::string default_tile_filetype() const { return m_header.default_file_type(); }
+
+    virtual PixelFormatEnum pixel_format() const { 
+      return PixelFormatEnum(m_header.pixel_format()); 
+    }
+
+    virtual ChannelTypeEnum channel_type() const {
+      return ChannelTypeEnum(m_header.channel_type());
+    }
 
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.

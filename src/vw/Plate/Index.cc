@@ -108,7 +108,9 @@ void vw::platefile::Index::save_index_file() const {
 
 /// Create a new index.  User supplies a pre-configure blob manager.
 vw::platefile::Index::Index( std::string plate_filename,
-                             int default_tile_size, std::string default_file_type) :
+                             int default_tile_size, std::string default_file_type,
+                             PixelFormatEnum default_pixel_format,
+                             ChannelTypeEnum default_channel_type) :
   m_plate_filename(plate_filename),
   m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )), 
   m_root(boost::shared_ptr<TreeNode<IndexRecord> >( new TreeNode<IndexRecord>() )) {
@@ -117,6 +119,8 @@ vw::platefile::Index::Index( std::string plate_filename,
   m_header.set_platefile_version(VW_CURRENT_PLATEFILE_VERSION);
   m_header.set_default_tile_size(default_tile_size);
   m_header.set_default_file_type(default_file_type);
+  m_header.set_pixel_format(int(default_pixel_format));
+  m_header.set_channel_type(int(default_channel_type));
   m_header.set_transaction_read_cursor(0);
   m_header.set_transaction_write_cursor(1);
 

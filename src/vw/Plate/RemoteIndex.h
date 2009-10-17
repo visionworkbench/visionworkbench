@@ -71,9 +71,15 @@ namespace platefile {
     virtual void write_complete(TileHeader const& header, IndexRecord const& record);
   
     virtual int32 version() const;
+    virtual int32 max_depth() const;
+
+    virtual std::string platefile_name() const;
+
     virtual int32 default_tile_size() const;
     virtual std::string default_tile_filetype() const;
-    virtual int32 max_depth() const;
+
+    virtual PixelFormatEnum pixel_format() const;
+    virtual ChannelTypeEnum channel_type() const;
 
   };
 

@@ -112,18 +112,15 @@ namespace platefile {
 
   
   class PlateFile {
-    std::string m_plate_name;
-    int m_default_tile_size;;
-    std::string m_default_file_type;
     boost::shared_ptr<IndexBase> m_index;
     FifoWorkQueue m_queue;
 
   public:
   
     PlateFile(std::string plate_filename, int default_tile_size = 256, 
-              std::string default_file_type = "jpg") : 
-      m_plate_name(plate_filename), m_default_tile_size(default_tile_size),
-      m_default_file_type(default_file_type) {
+              std::string default_file_type = "jpg", 
+              PixelFormatEnum default_pixel_format = VW_PIXEL_RGBA,
+              ChannelTypeEnum default_channel_type = VW_CHANNEL_UINT8) {
 
       // Plate files are stored as an index file and one or more data
       // blob files in a directory.  We create that directory here if
@@ -132,7 +129,9 @@ namespace platefile {
         fs::create_directory(plate_filename);
         m_index = boost::shared_ptr<IndexBase>( new Index(plate_filename, 
                                                           default_tile_size, 
-                                                          default_file_type) );
+                                                          default_file_type, 
+                                                          default_pixel_format,
+                                                          default_channel_type) );
         vw_out(DebugMessage, "platefile") << "Creating new plate file: \"" 
                                           << plate_filename << "\"\n";
 
@@ -142,8 +141,6 @@ namespace platefile {
         m_index = boost::shared_ptr<IndexBase>( new Index(plate_filename) );
         vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" 
                                           << plate_filename << "\"\n";
-        m_default_tile_size = m_index->default_tile_size();
-        m_default_file_type = m_index->default_tile_filetype();
       }
       
     }
@@ -152,12 +149,16 @@ namespace platefile {
     ~PlateFile() {}
 
     /// Returns the name of the root directory containing the plate file.
-    std::string name() const { return m_plate_name; }
+    std::string name() const { return m_index->platefile_name(); }
 
     /// Returns the file type used to store tiles in this plate file.
-    std::string default_file_type() const { return m_default_file_type; }
+    std::string default_file_type() const { return m_index->default_tile_filetype(); }
 
     int default_tile_size() const { return m_index->default_tile_size(); }
+
+    PixelFormatEnum pixel_format() const { return m_index->pixel_format(); }
+
+    ChannelTypeEnum channel_type() const { return m_index->channel_type(); }
 
     int depth() const { return m_index->max_depth(); }
 
@@ -174,7 +175,7 @@ namespace platefile {
       IndexRecord record = m_index->read_request(col, row, depth, epoch);
       if (record.status() != INDEX_RECORD_EMPTY) {
         std::ostringstream blob_filename;
-        blob_filename << m_plate_name << "/plate_" << record.blob_id() << ".blob";
+        blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
 
         // 2. Open the blob file and read the header
         Blob blob(blob_filename.str());
@@ -206,7 +207,7 @@ namespace platefile {
       IndexRecord record = m_index->read_request(col, row, depth, epoch);
       if (record.status() != INDEX_RECORD_EMPTY) {
         std::ostringstream blob_filename;
-        blob_filename << m_plate_name << "/plate_" << record.blob_id() << ".blob";
+        blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
 
         // 2. Open the blob file and read the header
         Blob blob(blob_filename.str());
@@ -237,14 +238,14 @@ namespace platefile {
                int col, int row, int depth, int epoch = 0) {      
 
       // 1. Write data to temporary file. 
-      TemporaryTileFile tile(view, m_default_file_type);
+      TemporaryTileFile tile(view, this->default_file_type());
       std::string tile_filename = tile.file_name();
       int64 file_size = tile.file_size();
 
       // 2. Make write_request(size) to index. Returns blob id.
       int blob_id = m_index->write_request(file_size);
       std::ostringstream blob_filename;
-      blob_filename << m_plate_name << "/plate_" << blob_id << ".blob";
+      blob_filename << this->name() << "/plate_" << blob_id << ".blob";
 
       // 3. Create a blob and call write_from_file(filename).  Returns offset, size.
       Blob blob(blob_filename.str());
@@ -254,7 +255,7 @@ namespace platefile {
       write_header.set_row(row);
       write_header.set_depth(depth);
       write_header.set_epoch(epoch);
-      write_header.set_filetype(m_default_file_type);
+      write_header.set_filetype(this->default_file_type());
 
       int64 blob_offset;
       blob.write_from_file(tile_filename, write_header, blob_offset);

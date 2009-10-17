@@ -92,14 +92,6 @@ vw::int32 vw::platefile::RemoteIndex::version() const {
   return m_index_header.platefile_version(); 
 }
 
-vw::int32 vw::platefile::RemoteIndex::default_tile_size() const { 
-  return m_index_header.default_tile_size(); 
-}
-
-std::string vw::platefile::RemoteIndex::default_tile_filetype() const { 
-  return m_index_header.default_file_type(); 
-}
-
 vw::int32 vw::platefile::RemoteIndex::max_depth() const { 
   IndexDepthRequest req;
   req.set_requestor(m_queue_name);
@@ -110,4 +102,26 @@ vw::int32 vw::platefile::RemoteIndex::max_depth() const {
   IndexDepthReply r = wait_for_response<IndexDepthReply>(m_queue_name + ".depth_reply");
   return r.depth();
 }
+
+std::string vw::platefile::RemoteIndex::platefile_name() const { 
+  return m_platefile;
+}
+
+vw::int32 vw::platefile::RemoteIndex::default_tile_size() const { 
+  return m_index_header.default_tile_size(); 
+}
+
+std::string vw::platefile::RemoteIndex::default_tile_filetype() const { 
+  return m_index_header.default_file_type(); 
+}
+
+vw::PixelFormatEnum vw::platefile::RemoteIndex::pixel_format() const {
+  return vw::PixelFormatEnum(m_index_header.pixel_format()); 
+}
+
+vw::ChannelTypeEnum vw::platefile::RemoteIndex::channel_type() const {
+  return vw::ChannelTypeEnum(m_index_header.channel_type()); 
+}
+
+
 

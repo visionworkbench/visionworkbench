@@ -372,7 +372,7 @@ int main( int argc, char *argv[] ) {
 
     if(vm.count("nodata-value")) has_nodata_value = true;
 
-    vw_system_cache().resize( cache_size*1024*1024 );
+    vw_settings().set_system_cache_size( cache_size*1024*1024 );
 
     DiskImageResource *first_resource = DiskImageResource::open(image_files[0]);
     ChannelTypeEnum channel_type = first_resource->channel_type();
