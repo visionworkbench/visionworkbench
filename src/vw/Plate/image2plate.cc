@@ -66,7 +66,6 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
     
     // Add the image to the mosaic.  Switch pixel and channel types
     // depending on the channel and pixel type of the plate file.
-
     PixelFormatEnum pixel_format = platefile->pixel_format();
     ChannelTypeEnum channel_type = platefile->channel_type();
 
@@ -208,15 +207,21 @@ int main( int argc, char *argv[] ) {
     exit(0);
   }
 
-  // Add the image to the mosaic using the correct platefile manager
-  if (output_mode == "toast") {
-    boost::shared_ptr<ToastPlateManager> pm = 
-      boost::shared_ptr<ToastPlateManager>( new ToastPlateManager(platefile, num_threads) );
-    do_mosaic(platefile, pm, image_files, vm.count("mipmap-only"));
-  } else if (output_mode == "kml")  {
-    boost::shared_ptr<KmlPlateManager> pm = 
-      boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile, num_threads) );
-    do_mosaic(platefile, pm, image_files, vm.count("mipmap-only"));
+  try {
+
+    // Add the image to the mosaic using the correct platefile manager
+    if (output_mode == "toast") {
+      boost::shared_ptr<ToastPlateManager> pm = 
+        boost::shared_ptr<ToastPlateManager>( new ToastPlateManager(platefile, num_threads) );
+      do_mosaic(platefile, pm, image_files, vm.count("mipmap-only"));
+    } else if (output_mode == "kml")  {
+      boost::shared_ptr<KmlPlateManager> pm = 
+        boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile, num_threads) );
+      do_mosaic(platefile, pm, image_files, vm.count("mipmap-only"));
+    }
+
+  } catch (vw::Exception &e) {
+    std::cout << "An error occured: " << e.what() << "\nExiting.\n\n";
   }
   
 }

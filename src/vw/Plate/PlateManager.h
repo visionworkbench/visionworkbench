@@ -7,7 +7,8 @@
 #ifndef __VW_PLATE_PLATEMANAGER_H__
 #define __VW_PLATE_PLATEMANAGER_H__
 
-#include <vw/Image.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/PixelTypes.h>
 #include <vw/Math/Vector.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/ToastTransform.h>
@@ -33,7 +34,8 @@ namespace platefile {
   // -------------------------------------------------------------------------
   //                            PLATE MANAGER
   // -------------------------------------------------------------------------
-  
+
+  template <class ImplT>
   class PlateManager {
 
   protected:
@@ -102,19 +104,74 @@ namespace platefile {
     /// Destructor
     virtual ~PlateManager() {}
 
-    // Read a previously-written tile in from disk.  Cache the most
-    // recently accessed tiles, since each will be used roughly four
-    // times.
-    virtual ImageView<PixelRGBA<uint8> > load_tile( int32 level, int32 x, int32 y ) = 0;
+    /// \cond INTERNAL
+    // Methods to access the derived type
+    inline ImplT& impl() { return static_cast<ImplT&>(*this); }
+    inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
+    /// \endcond
+
 
     // Access the tile at the top of the tree.  This will cause a
     // cascade of MipMapping requests that will cause intermediate
     // tiles to be written (via load_tile), and ultimately bring the
     // entire tree up to date.
     void mipmap() { 
-      ImageView<PixelRGBA<uint8> > tile = this->load_tile(0,0,0); 
-      if (tile && !is_transparent(tile))
-        m_platefile->write(tile,0,0,0);
+      PixelFormatEnum pixel_format = m_platefile->pixel_format();
+      ChannelTypeEnum channel_type = m_platefile->channel_type();
+
+      // It would seem that these need to be initialized here outside
+      // of the case statement, otherwise C++ complains.
+      ImageView<PixelGray<uint8> > gray8_tile; 
+      ImageView<PixelGray<int16> > gray16_tile;
+      ImageView<PixelGrayA<uint8> > graya8_tile;
+      ImageView<PixelRGBA<uint8> > rgba8_tile; 
+
+      switch(pixel_format) {
+      case VW_PIXEL_GRAY:
+        switch(channel_type) {
+        case VW_CHANNEL_UINT8:  
+          impl().load_tile(gray8_tile,0,0,0);
+          if (gray8_tile && !is_transparent(gray8_tile))
+            m_platefile->write(gray8_tile,0,0,0);
+          break;
+        case VW_CHANNEL_INT16:  
+          impl().load_tile(gray16_tile,0,0,0); 
+          if (gray16_tile && !is_transparent(gray16_tile))
+            m_platefile->write(gray16_tile,0,0,0);
+          break;
+        default:
+          std::cout << "Platefile contains a channel type not supported by image2plate.\n";
+          exit(0);
+        }
+        break;
+      case VW_PIXEL_GRAYA:
+        switch(channel_type) {
+        case VW_CHANNEL_UINT8:  
+          impl().load_tile(graya8_tile,0,0,0); 
+          if (graya8_tile && !is_transparent(graya8_tile))
+            m_platefile->write(graya8_tile,0,0,0);
+          break;
+        default:
+          std::cout << "Platefile contains a channel type not supported by image2plate.\n";
+          exit(0);
+        }
+        break;
+      case VW_PIXEL_RGB:
+      case VW_PIXEL_RGBA:
+      default:
+        switch(channel_type) {
+        case VW_CHANNEL_UINT8:  
+          impl().load_tile(rgba8_tile,0,0,0); 
+          if (rgba8_tile && !is_transparent(rgba8_tile))
+            m_platefile->write(rgba8_tile,0,0,0);
+          break;
+        default:
+          std::cout << "Platefile contains a channel type not supported by image2plate.\n";
+          exit(0);
+        }
+        break;
+      }
+      
     }
   };
 
