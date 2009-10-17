@@ -82,6 +82,7 @@ void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files
       rec.set_blob_id(current_blob_id);
       rec.set_blob_offset(iter.current_base_offset());
       rec.set_status(INDEX_RECORD_VALID);
+      rec.set_tile_size(iter.current_data_size());
       m_root->insert(rec, hdr.col(), hdr.row(), hdr.depth(), hdr.epoch());
       ++iter;
     }

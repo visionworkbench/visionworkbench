@@ -197,8 +197,8 @@ namespace platefile {
 
 
     /// Read an image from the specified tile location in the plate file.
-    template <class PixelT>
-    TileHeader read(ImageView<PixelT> &view, int col, int row, int depth, int epoch = 0) {
+    template <class ViewT>
+    TileHeader read(ViewT &view, int col, int row, int depth, int epoch = 0) {
 
       TileHeader result;
       
@@ -220,7 +220,7 @@ namespace platefile {
         TemporaryTileFile tile(tempfile);
 
         // 4. Read data from temporary file.
-        view = tile.read<PixelT>();
+        view = tile.read<typename ViewT::pixel_type>();
 
         // 5. Access the tile header and return it.
         result = blob.read_header<TileHeader>(record.blob_offset());
@@ -265,10 +265,10 @@ namespace platefile {
       write_record.set_blob_id(blob_id);
       write_record.set_blob_offset(blob_offset);
       write_record.set_status(INDEX_RECORD_VALID);
+      write_record.set_tile_size(file_size);
 
       m_index->write_complete(write_header, write_record);
     }
-
 
     IndexRecord read_record(int col, int row, int depth, int epoch = 0) {
       return m_index->read_request(col, row, depth, epoch);

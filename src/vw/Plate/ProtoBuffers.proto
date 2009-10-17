@@ -54,6 +54,7 @@ message IndexRecord {
   required uint32 blob_id = 1;
   required uint64 blob_offset = 2;
   optional IndexRecordStatusType status = 3 [ default = INDEX_RECORD_EMPTY ];
+  optional uint32 tile_size = 5;
 }
 
 // The TileRecord store metadata about the tile itself as well as the

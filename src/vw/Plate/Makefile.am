@@ -17,7 +17,7 @@ protocol_sources = ProtoBuffers.pb.cc
 include_HEADERS = Blob.h BlobManager.h Index.h RemoteIndex.h Tree.h	\
 		  PlateFile.h Amqp.h PlateManager.h			\
 		  ToastPlateManager.h KmlPlateManager.h			\
-		  $(protocol_headers)
+		  PlateView.h $(protocol_headers)
 
 libvwPlate_la_SOURCES = $(protocol_sources) Blob.cc BlobManager.cc	\
 			Index.cc RemoteIndex.cc Amqp.cc			\
@@ -43,7 +43,10 @@ image2plate_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@
 plate2qtree_SOURCES = plate2qtree.cc
 plate2qtree_LDADD    = @PKG_PLATE_LIBS@ libvwPlate.la
 
-bin_PROGRAMS = plate2qtree image2plate  mosaic_worker plateindex_server
+plate2tiles_SOURCES = plate2tiles.cc
+plate2tiles_LDADD    = @PKG_PLATE_LIBS@ libvwPlate.la
+
+bin_PROGRAMS = plate2tiles plate2qtree image2plate  mosaic_worker plateindex_server
 noinst_PROGRAMS = 
 
 endif

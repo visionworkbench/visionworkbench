@@ -112,6 +112,7 @@ namespace platefile {
       }
 
       uint64 current_base_offset() const { return m_current_base_offset; }
+      uint32 current_data_size() const { return m_blob.data_size(m_current_base_offset); }
       
     };
     
