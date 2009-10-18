@@ -69,13 +69,13 @@ namespace platefile {
     typedef CropView<TransformView<InterpolationView<EdgeExtensionView<CropView<ImageView<pixel_type> >, ConstantEdgeExtension>, BilinearInterpolation>, ResampleTransform> > prerasterize_type;
     inline prerasterize_type prerasterize(BBox2i bbox) const {
 
-      std::cout << "\nRasterizing bbox: " << bbox << "\n";
+      //std::cout << "\nRasterizing bbox: " << bbox << "\n";
       
       // Compute the bounding box at the current depth.
       int depth_difference = m_platefile->depth() - m_current_depth;
       BBox2i level_bbox = bbox / pow(2,depth_difference);
 
-      std::cout << "\tlevel bbox: " << level_bbox << "\n";
+      //      std::cout << "\tlevel bbox: " << level_bbox << "\n";
 
       // Grow that bounding box to align with tile boundaries
       BBox2i aligned_level_bbox = level_bbox;
@@ -88,7 +88,7 @@ namespace platefile {
                                               m_platefile->default_tile_size() )
                                        * m_platefile->default_tile_size() );
 
-      std::cout << "\tAligned bbox: " << aligned_level_bbox << "\n";
+      //      std::cout << "\tAligned bbox: " << aligned_level_bbox << "\n";
 
       // Create an image of the appropriate size to rasterize tiles into.
       ImageView<pixel_type> level_image(aligned_level_bbox.width(), aligned_level_bbox.height());
@@ -96,17 +96,19 @@ namespace platefile {
       // Access the tiles needed for this level and mosaic them into the level_image
       int tile_y = aligned_level_bbox.min().y() / m_platefile->default_tile_size();
       int dest_row = 0;
-      while ( tile_y < aligned_level_bbox.max().y() / m_platefile->default_tile_size() ) {
+      while ( tile_y < aligned_level_bbox.max().y() / m_platefile->default_tile_size() &&
+              tile_y < pow(2, m_current_depth) ) {
 
         int tile_x = aligned_level_bbox.min().x() / m_platefile->default_tile_size();
         int dest_col = 0;
-        while ( tile_x < aligned_level_bbox.max().x() / m_platefile->default_tile_size() ) {
+        while ( tile_x < aligned_level_bbox.max().x() / m_platefile->default_tile_size() &&
+                tile_x < pow(2, m_current_depth)) {
           BBox2i tile_bbox(dest_col, dest_row,
                            m_platefile->default_tile_size(), 
                            m_platefile->default_tile_size());
 
-          std::cout << "\t  Load " << tile_x << " " << tile_y 
-                    << " @ " << m_current_depth << "\n";
+          // std::cout << "\t  Load " << tile_x << " " << tile_y 
+          //           << " @ " << m_current_depth << "\n";
           ImageView<PixelT> tile;
           IndexRecord rec;
           try {
@@ -117,7 +119,7 @@ namespace platefile {
 
           } catch (TileNotFoundErr &e) {
             // Do nothing... we'll simply skip an empty image below
-          }
+          } 
 
           ++tile_x;
           dest_col += m_platefile->default_tile_size();
@@ -132,13 +134,13 @@ namespace platefile {
       BBox2i output_bbox( level_bbox.min().x() - aligned_level_bbox.min().x(),
                           level_bbox.min().y() - aligned_level_bbox.min().y(),
                           level_bbox.width(), level_bbox.height() );
-      std::cout << "\tlevel_bbox: " << level_bbox << "\n";
-      std::cout << "\toutput_bbox: " << output_bbox << "\n";
-      std::cout << "\tdepth_dif: " << depth_difference << "\n";;
+      // std::cout << "\tlevel_bbox: " << level_bbox << "\n";
+      // std::cout << "\toutput_bbox: " << output_bbox << "\n";
+      // std::cout << "\tdepth_dif: " << depth_difference << "\n";;
 
-      std::ostringstream ostr; 
-      ostr << "level_" << bbox.min().x() << "_" << bbox.min().y() << ".tif";
-      write_image(ostr.str(), level_image);
+      // std::ostringstream ostr; 
+      // ostr << "level_" << bbox.min().x() << "_" << bbox.min().y() << ".tif";
+      // write_image(ostr.str(), level_image);
 
       // write_image(ostr.str(), transform( crop(level_image, output_bbox), 
       //                                    ResampleTransform( pow(2, depth_difference), pow(2, depth_difference) ),

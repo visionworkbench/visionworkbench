@@ -44,7 +44,7 @@ plate2qtree_SOURCES = plate2qtree.cc
 plate2qtree_LDADD    = @PKG_PLATE_LIBS@ libvwPlate.la
 
 plate2tiles_SOURCES = plate2tiles.cc
-plate2tiles_LDADD    = @PKG_PLATE_LIBS@ libvwPlate.la
+plate2tiles_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_PLATE_LIBS@ libvwPlate.la
 
 bin_PROGRAMS = plate2tiles plate2qtree image2plate  mosaic_worker plateindex_server
 noinst_PROGRAMS = 

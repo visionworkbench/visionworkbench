@@ -45,6 +45,18 @@ namespace platefile {
 
     /// Destructor
     virtual ~KmlPlateManager() {}
+    
+    // Create a georeference object for this plate file.  The user
+    // supplies the desired level for which they want the
+    // georeference.
+    cartography::GeoReference georeference(int level) {
+      int tile_size = m_platefile->default_tile_size();
+      int resolution = (1<<level)*tile_size;
+
+      cartography::GeoReference output_georef = 
+        cartography::output::kml::get_output_georeference(resolution,resolution);
+      return output_georef;
+    }
 
     /// Compute the bounding boxes for [ tile_size x tile_size ] tiles
     /// to generate for an image with image_bbox in a TOAST
