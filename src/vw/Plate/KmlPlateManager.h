@@ -82,9 +82,9 @@ namespace platefile {
     /// Add an image to the plate file.
     template <class ViewT>
     void insert(ImageViewBase<ViewT> const& image, 
-                cartography::GeoReference const& input_georef) {
+                cartography::GeoReference const& input_georef,
+                const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
 
-      
       // We build the ouput georeference from the input image's
       // georeference by copying the datum.
       cartography::GeoReference output_georef;
@@ -128,7 +128,7 @@ namespace platefile {
       BBox2i output_bbox = kml_tx.forward_bbox(input_bbox);
       output_bbox.crop( BBox2i(0,0,resolution,resolution) );
 
-      std::cout << "\t--> Placing image at level " << pyramid_level 
+      std::cout << "\t    Placing image at level " << pyramid_level 
                 << " with bbox " << output_bbox << "\n"
                 << "\t    (Total KML resolution at this level =  " 
                 << resolution << " pixels.)\n";
@@ -154,15 +154,20 @@ namespace platefile {
 
 
       // And save each tile to the PlateFile
-      std::cout << "\t--> Rasterizing " << tiles.size() << " image tiles.\n";
+      std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n";
+      progress.report_progress(0);
       for (int i = 0; i < tiles.size(); ++i) {
         m_queue.add_task(boost::shared_ptr<Task>(
           new WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> >(m_platefile, 
                                                                             tiles[i], 
                                                                             pyramid_level, 
-                                                                            kml_view)));
+                                                                            kml_view,
+                                                                            false,
+                                                                            tiles.size(),
+                                                                            progress)));
       }
       m_queue.join_all();
+      progress.report_finished();
     }
 
     // Read a previously-written tile in from disk.  Cache the most

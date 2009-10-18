@@ -69,16 +69,21 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
     PixelFormatEnum pixel_format = platefile->pixel_format();
     ChannelTypeEnum channel_type = platefile->channel_type();
 
+    std::ostringstream status_str;
+    status_str << "\t--> " << image_files[i] << " : ";
+
     // Convert non-alpha channel images into images with an alpha channel for the composite.
     switch(pixel_format) {
     case VW_PIXEL_GRAY:
     case VW_PIXEL_GRAYA:
       switch(channel_type) {
       case VW_CHANNEL_UINT8:  
-        pm->insert( DiskImageView<PixelGrayA<uint8> >(image_files[i]), georef );
+        pm->insert( DiskImageView<PixelGrayA<uint8> >(image_files[i]), georef, 
+                    TerminalProgressCallback(InfoMessage, status_str.str()) );
         break;
       case VW_CHANNEL_INT16:  
-        pm->insert( DiskImageView<PixelGrayA<int16> >(image_files[i]), georef );
+        pm->insert( DiskImageView<PixelGrayA<int16> >(image_files[i]), georef,
+                    TerminalProgressCallback(InfoMessage, status_str.str()) );
         break;
       default:
         std::cout << "Platefile contains a channel type not supported by image2plate.\n";
@@ -90,7 +95,8 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
     default:
       switch(channel_type) {
       case VW_CHANNEL_UINT8:  
-        pm->insert( DiskImageView<PixelRGBA<uint8> >(image_files[i]), georef );
+        pm->insert( DiskImageView<PixelRGBA<uint8> >(image_files[i]), georef, 
+                    TerminalProgressCallback(InfoMessage, status_str.str()) );
         break;
       default:
         std::cout << "Platefile contains a channel type not supported by image2plate.\n";

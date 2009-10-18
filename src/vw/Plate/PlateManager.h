@@ -60,18 +60,23 @@ namespace platefile {
       TileInfo m_tile_info;
       int m_depth;
       ViewT const& m_view;
+      bool m_verbose;
+      SubProgressCallback m_progress;
       
     public:
       WritePlateFileTask(boost::shared_ptr<PlateFile> platefile, 
                          TileInfo const& tile_info, 
-                         int depth, ImageViewBase<ViewT> const& view) : 
-        m_platefile(platefile), m_tile_info(tile_info), m_depth(depth), 
-        m_view(view.impl()) {}
+                         int depth, ImageViewBase<ViewT> const& view,
+                         bool verbose, int total_num_blocks, 
+                         const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) :
+        m_platefile(platefile), m_tile_info(tile_info), m_depth(depth), m_view(view.impl()), 
+        m_verbose(verbose), m_progress(progress_callback,0.0,1.0/float(total_num_blocks)) {}
       
       virtual ~WritePlateFileTask() {}
       virtual void operator() () { 
-        std::cout << "\t    Generating tile: [ " << m_tile_info.j << " " << m_tile_info.i 
-                  << " @ level " <<  m_depth << "]    BBox: " << m_tile_info.bbox << "\n";
+        if (m_verbose) 
+          std::cout << "\t    Generating tile: [ " << m_tile_info.j << " " << m_tile_info.i 
+                    << " @ level " <<  m_depth << "]    BBox: " << m_tile_info.bbox << "\n";
 
         ImageView<typename ViewT::pixel_type> new_data = crop(m_view, m_tile_info.bbox);
         ImageView<typename ViewT::pixel_type> old_data(new_data.cols(), new_data.rows());
@@ -93,6 +98,9 @@ namespace platefile {
         ImageView<typename ViewT::pixel_type> composite_tile = composite;
         if( ! is_transparent(composite_tile) ) 
           m_platefile->write(composite_tile, m_tile_info.i, m_tile_info.j, m_depth);
+
+        // Report progress
+        m_progress.report_incremental_progress(1.0);
       }
     };
 

@@ -68,7 +68,8 @@ namespace platefile {
 
     /// Add an image to the plate file.
     template <class ViewT>
-    void insert(ImageViewBase<ViewT> const& image, cartography::GeoReference const& georef) {
+    void insert(ImageViewBase<ViewT> const& image, cartography::GeoReference const& georef,
+                const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
 
       // Compute the pyramid level at which to store this image.  The
       // number of required levels is broken down so that the very top
@@ -101,7 +102,7 @@ namespace platefile {
       BBox2i input_bbox = BBox2i(0,0,image.impl().cols(),image.impl().rows());
       BBox2i output_bbox = toast_tx.forward_bbox(input_bbox);
 
-      std::cout << "\t--> Placing image at level " << pyramid_level 
+      std::cout << "\t    Placing image at level " << pyramid_level 
                 << " with bbox " << output_bbox << "\n"
                 << "\t    (Total TOAST resolution at this level =  " 
                 << resolution << " pixels.)\n";
@@ -126,13 +127,17 @@ namespace platefile {
                                                      m_platefile->default_tile_size());
       
       // And save each tile to the PlateFile
-      std::cout << "\t--> Rasterizing " << tiles.size() << " image tiles.\n";
+      std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n";
+      progress.report_progress(0);
       for (int i = 0; i < tiles.size(); ++i) {
         m_queue.add_task(boost::shared_ptr<Task>(
           new WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> >(m_platefile, 
                                                                             tiles[i], 
                                                                             pyramid_level, 
-                                                                            toast_view)));
+                                                                            toast_view, 
+                                                                            false,
+                                                                            tiles.size(),
+                                                                            progress)));
       }
       m_queue.join_all();
     }
