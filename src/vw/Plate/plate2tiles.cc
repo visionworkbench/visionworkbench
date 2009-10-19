@@ -78,7 +78,7 @@ void do_tiles(cartography::GeoReference output_georef) {
     if( ! is_transparent(cropped_view) ) {
       DiskImageResourceGDAL rsrc(output_filename.str(), cropped_view.format(), 
                                  Vector2i(256,256));
-      write_georeference(rsrc, output_georef);
+      write_georeference(rsrc, tile_georef);
       write_image(rsrc, cropped_view, 
                   TerminalProgressCallback(InfoMessage, "\t    Writing: "));
     }

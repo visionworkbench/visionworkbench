@@ -70,7 +70,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
     ChannelTypeEnum channel_type = platefile->channel_type();
 
     std::ostringstream status_str;
-    status_str << "\t--> " << image_files[i] << " : ";
+    status_str << "\t    " << image_files[i] << " : ";
 
     // Convert non-alpha channel images into images with an alpha channel for the composite.
     switch(pixel_format) {

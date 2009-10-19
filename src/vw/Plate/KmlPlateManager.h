@@ -211,7 +211,7 @@ namespace platefile {
           for( int i=0; i<2; ++i ) {
             ImageView<PixelT> child;
             load_tile(child,level+1,2*x+i,2*y+j);
-            if( child ) crop(super,tile_size*i,tile_size*j,tile_size,tile_size) = child;	    
+            if( child ) crop(super,tile_size*i,tile_size*j,tile_size,tile_size) = child; 
           }
         }
         
