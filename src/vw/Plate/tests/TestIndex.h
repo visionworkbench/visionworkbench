@@ -203,80 +203,85 @@ public:
     dummy_header4.set_row(1);
     dummy_header4.set_depth(1);
 
-    // Write some data to the Index.
-    Index idx(plate_filename, 256, "tif", VW_PIXEL_RGB, VW_CHANNEL_UINT8);
-    Blob blob(blob_filename);
+    // Write some data to the Index. 
+    { 
+      Index idx(plate_filename, 256, "tif", VW_PIXEL_RGB, VW_CHANNEL_UINT8);
+      Blob blob(blob_filename);
 
-    IndexRecord rec;
-    rec.set_blob_id( idx.write_request(1024) );
-    rec.set_blob_offset(blob.write(dummy_header0, m_test_data, 20));
-    rec.set_status(INDEX_RECORD_VALID);
-    idx.write_complete(dummy_header0, rec);
+      IndexRecord rec;
+      rec.set_blob_id( idx.write_request(1024) );
+      rec.set_blob_offset(blob.write(dummy_header0, m_test_data, 20));
+      rec.set_status(INDEX_RECORD_VALID);
+      idx.write_complete(dummy_header0, rec);
 
-    rec.set_blob_id( idx.write_request(1024) );
-    rec.set_blob_offset(blob.write(dummy_header1, m_test_data, 20));
-    idx.write_complete(dummy_header1, rec);
+      rec.set_blob_id( idx.write_request(1024) );
+      rec.set_blob_offset(blob.write(dummy_header1, m_test_data, 20));
+      idx.write_complete(dummy_header1, rec);
+      
+      rec.set_blob_id( idx.write_request(1024) );
+      rec.set_blob_offset(blob.write(dummy_header2, m_test_data, 20));
+      idx.write_complete(dummy_header2, rec);
+      
+      rec.set_blob_id( idx.write_request(1024) );
+      rec.set_blob_offset(blob.write(dummy_header3, m_test_data, 20));
+      idx.write_complete(dummy_header3, rec);
+      
+      rec.set_blob_id( idx.write_request(1024) );
+      rec.set_blob_offset(blob.write(dummy_header4, m_test_data, 20));
+      idx.write_complete(dummy_header4, rec);
+    }
 
-    rec.set_blob_id( idx.write_request(1024) );
-    rec.set_blob_offset(blob.write(dummy_header2, m_test_data, 20));
-    idx.write_complete(dummy_header2, rec);
-
-    rec.set_blob_id( idx.write_request(1024) );
-    rec.set_blob_offset(blob.write(dummy_header3, m_test_data, 20));
-    idx.write_complete(dummy_header3, rec);
-
-    rec.set_blob_id( idx.write_request(1024) );
-    rec.set_blob_offset(blob.write(dummy_header4, m_test_data, 20));
-    idx.write_complete(dummy_header4, rec);
-    
     // Now, let's save the data to disk, and then read it back.
-    Index idx2(plate_filename);
+    {
+      Index idx2(plate_filename);
+      Blob blob(blob_filename);
 
-    // Read the data back from the index
-    IndexRecord result = idx2.read_request(0, 0, 0);
-    TileHeader hdr = blob.read_header<TileHeader>(result.blob_offset());
-    boost::shared_array<uint8> retrieved_data = blob.read_data(result.blob_offset());
-    check_data(m_test_data, retrieved_data);
-    TS_ASSERT_EQUALS(hdr.col(), dummy_header0.col());
-    TS_ASSERT_EQUALS(hdr.row(), dummy_header0.row());
-    TS_ASSERT_EQUALS(hdr.depth(), dummy_header0.depth());
-    TS_ASSERT_EQUALS(hdr.filetype(), dummy_header0.filetype());
+      // Read the data back from the index
+      IndexRecord result = idx2.read_request(0, 0, 0);
+      TileHeader hdr = blob.read_header<TileHeader>(result.blob_offset());
+      boost::shared_array<uint8> retrieved_data = blob.read_data(result.blob_offset());
+      check_data(m_test_data, retrieved_data);
+      TS_ASSERT_EQUALS(hdr.col(), dummy_header0.col());
+      TS_ASSERT_EQUALS(hdr.row(), dummy_header0.row());
+      TS_ASSERT_EQUALS(hdr.depth(), dummy_header0.depth());
+      TS_ASSERT_EQUALS(hdr.filetype(), dummy_header0.filetype());
 
-    result = idx2.read_request(0, 0, 1);
-    hdr = blob.read_header<TileHeader>(result.blob_offset());
-    retrieved_data = blob.read_data(result.blob_offset());
-    check_data(m_test_data, retrieved_data);
-    TS_ASSERT_EQUALS(hdr.col(), dummy_header1.col());
-    TS_ASSERT_EQUALS(hdr.row(), dummy_header1.row());
-    TS_ASSERT_EQUALS(hdr.depth(), dummy_header1.depth());
-    TS_ASSERT_EQUALS(hdr.filetype(), dummy_header1.filetype());
+      result = idx2.read_request(0, 0, 1);
+      hdr = blob.read_header<TileHeader>(result.blob_offset());
+      retrieved_data = blob.read_data(result.blob_offset());
+      check_data(m_test_data, retrieved_data);
+      TS_ASSERT_EQUALS(hdr.col(), dummy_header1.col());
+      TS_ASSERT_EQUALS(hdr.row(), dummy_header1.row());
+      TS_ASSERT_EQUALS(hdr.depth(), dummy_header1.depth());
+      TS_ASSERT_EQUALS(hdr.filetype(), dummy_header1.filetype());
 
-    result = idx2.read_request(1, 0, 1);
-    hdr = blob.read_header<TileHeader>(result.blob_offset());
-    retrieved_data = blob.read_data(result.blob_offset());
-    check_data(m_test_data, retrieved_data);
-    TS_ASSERT_EQUALS(hdr.col(), dummy_header2.col());
-    TS_ASSERT_EQUALS(hdr.row(), dummy_header2.row());
-    TS_ASSERT_EQUALS(hdr.depth(), dummy_header2.depth());
-    TS_ASSERT_EQUALS(hdr.filetype(), dummy_header2.filetype());
+      result = idx2.read_request(1, 0, 1);
+      hdr = blob.read_header<TileHeader>(result.blob_offset());
+      retrieved_data = blob.read_data(result.blob_offset());
+      check_data(m_test_data, retrieved_data);
+      TS_ASSERT_EQUALS(hdr.col(), dummy_header2.col());
+      TS_ASSERT_EQUALS(hdr.row(), dummy_header2.row());
+      TS_ASSERT_EQUALS(hdr.depth(), dummy_header2.depth());
+      TS_ASSERT_EQUALS(hdr.filetype(), dummy_header2.filetype());
 
-    result = idx2.read_request(0, 1, 1);
-    hdr = blob.read_header<TileHeader>(result.blob_offset());
-    retrieved_data = blob.read_data(result.blob_offset());
-    check_data(m_test_data, retrieved_data);
-    TS_ASSERT_EQUALS(hdr.col(), dummy_header3.col());
-    TS_ASSERT_EQUALS(hdr.row(), dummy_header3.row());
-    TS_ASSERT_EQUALS(hdr.depth(), dummy_header3.depth());
-    TS_ASSERT_EQUALS(hdr.filetype(), dummy_header3.filetype());
+      result = idx2.read_request(0, 1, 1);
+      hdr = blob.read_header<TileHeader>(result.blob_offset());
+      retrieved_data = blob.read_data(result.blob_offset());
+      check_data(m_test_data, retrieved_data);
+      TS_ASSERT_EQUALS(hdr.col(), dummy_header3.col());
+      TS_ASSERT_EQUALS(hdr.row(), dummy_header3.row());
+      TS_ASSERT_EQUALS(hdr.depth(), dummy_header3.depth());
+      TS_ASSERT_EQUALS(hdr.filetype(), dummy_header3.filetype());
 
-    result = idx2.read_request(1, 1, 1);
-    hdr = blob.read_header<TileHeader>(result.blob_offset());
-    retrieved_data = blob.read_data(result.blob_offset());
-    check_data(m_test_data, retrieved_data);
-    TS_ASSERT_EQUALS(hdr.col(), dummy_header4.col());
-    TS_ASSERT_EQUALS(hdr.row(), dummy_header4.row());
-    TS_ASSERT_EQUALS(hdr.depth(), dummy_header4.depth());
-    TS_ASSERT_EQUALS(hdr.filetype(), dummy_header4.filetype());
+      result = idx2.read_request(1, 1, 1);
+      hdr = blob.read_header<TileHeader>(result.blob_offset());
+      retrieved_data = blob.read_data(result.blob_offset());
+      check_data(m_test_data, retrieved_data);
+      TS_ASSERT_EQUALS(hdr.col(), dummy_header4.col());
+      TS_ASSERT_EQUALS(hdr.row(), dummy_header4.row());
+      TS_ASSERT_EQUALS(hdr.depth(), dummy_header4.depth());
+      TS_ASSERT_EQUALS(hdr.filetype(), dummy_header4.filetype());
+    }
 
     unlink(index_filename.c_str());
     unlink(blob_filename.c_str());

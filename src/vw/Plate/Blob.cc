@@ -26,24 +26,27 @@ using namespace vw;
 // -------------------------------------------------------------------
 
 // Constructor stores the blob filename for reading & writing
-vw::platefile::Blob::Blob(std::string filename) : m_blob_filename(filename) {}
+vw::platefile::Blob::Blob(std::string filename) : m_blob_filename(filename) {
+  m_fstream.reset(new std::fstream(m_blob_filename.c_str(), 
+                                   std::ios::in | std::ios::out | 
+                                   std::ios::binary | std::ios::app));
+  if (!m_fstream->is_open()) {
+    std::cout << "Blob file is not open!\n";
+    vw_throw(IOErr() << "Blob::Blob(): could not open blob file \"" << m_blob_filename << "\".");
+  }
+}
 
 vw::platefile::Blob::~Blob() {}
 
 /// read_data()
 boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset) {
 
-  
-  std::ifstream ifstr(m_blob_filename.c_str(), std::ios::in | std::ios::binary);
-  if (!ifstr.is_open()) 
-    vw_throw(IOErr() << "Blob::read_data(): could not open blob file \"" << m_blob_filename << "\".");
-
   // Seek to the requested offset and read the header and data offset
-  ifstr.seekg(base_offset, std::ios_base::beg);
+  m_fstream->seekg(base_offset, std::ios_base::beg);
 
   // Read the blob record
   uint16 blob_record_size;
-  BlobRecord blob_record = this->read_blob_record(ifstr, blob_record_size);
+  BlobRecord blob_record = this->read_blob_record(blob_record_size);
 
   // The overall blob metadat includes the uint16 of the
   // blob_record_size in addition to the size of the blob_record
@@ -56,12 +59,12 @@ boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset
   // Allocate an array of the appropriate size to read the data.
   boost::shared_array<uint8> data(new uint8[size]);
   
-  ifstr.seekg(offset, std::ios_base::beg);
-  ifstr.read((char*)(data.get()), size);
+  m_fstream->seekg(offset, std::ios_base::beg);
+  m_fstream->read((char*)(data.get()), size);
   
   // Throw an exception if the read operation failed (after clearing the error bit)
-  if (ifstr.fail()) {
-    ifstr.clear();
+  if (m_fstream->fail()) {
+    m_fstream->clear();
     vw_throw(IOErr() << "Blob::read() -- an error occurred while reading " 
              << "data from the blob file.\n");
   }

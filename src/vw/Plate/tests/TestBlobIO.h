@@ -63,8 +63,7 @@ public:
     {
       Blob blob("/tmp/foo.blob");
     
-      // Write the data to the file.
-      
+      // Write the data to the file.      
       int64 offset = blob.write(hdr, m_test_data, 20);
       
       // Read it back in.
@@ -148,5 +147,5 @@ public:
     bm.release_lock(0);
     blob_id = bm.request_lock(1024);
   }
-    
+
 }; // class TestBlobIO

@@ -3,7 +3,7 @@
 // the Administrator of the National Aeronautics and Space Administration.
 // All Rights Reserved.
 // __END_LICENSE__
-
+#include <vw/Core/ProgressCallback.h>
 #include <vw/Core/Log.h>
 #include <vw/Plate/Index.h>
 using namespace vw;
@@ -60,10 +60,16 @@ std::vector<std::string> vw::platefile::Index::blob_filenames() const {
 // using entries that had been previously saved to disk.
 void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files) {
 
+  std::cout << "Loading index\n";
+
   for (unsigned int i = 0; i < blob_files.size(); ++i) {
     this->log() << "\t--> Loading index entries from blob file: " 
                 << m_plate_filename << "/" << blob_files[i] << "\n";
     
+    
+    TerminalProgressCallback tpc(InfoMessage, "\t--> " + blob_files[i] + " : ");
+    tpc.report_progress(0);
+
     // Extract the current blob id as an integer.
     boost::regex re;
     re.assign("(plate_)(\\d+)(\\.blob)", boost::regex_constants::icase);
@@ -84,8 +90,10 @@ void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files
       rec.set_status(INDEX_RECORD_VALID);
       rec.set_tile_size(iter.current_data_size());
       m_root->insert(rec, hdr.col(), hdr.row(), hdr.depth(), hdr.epoch());
+      tpc.report_progress(float(iter.current_base_offset()) / blob.size());
       ++iter;
     }
+    tpc.report_finished();
   }
 }
 

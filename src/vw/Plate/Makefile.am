@@ -32,19 +32,19 @@ endif
 if ENABLE_EXCEPTIONS
 
 mosaic_worker_SOURCES = mosaic_worker.cc
-mosaic_worker_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@ libvwPlate.la
+mosaic_worker_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@ 
 
 plateindex_server_SOURCES = plateindex_server.cc
 plateindex_server_LDADD    = @PKG_PLATE_LIBS@ libvwPlate.la
 
 image2plate_SOURCES = image2plate.cc
-image2plate_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@ libvwPlate.la
+image2plate_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@ 
 
 plate2qtree_SOURCES = plate2qtree.cc
-plate2qtree_LDADD    = @PKG_PLATE_LIBS@ libvwPlate.la
+plate2qtree_LDADD    = @PKG_PLATE_LIBS@ 
 
 plate2tiles_SOURCES = plate2tiles.cc
-plate2tiles_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_PLATE_LIBS@ libvwPlate.la
+plate2tiles_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_PLATE_LIBS@ 
 
 bin_PROGRAMS = plate2tiles plate2qtree image2plate  mosaic_worker plateindex_server
 noinst_PROGRAMS = 
