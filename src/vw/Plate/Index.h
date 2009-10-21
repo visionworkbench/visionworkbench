@@ -34,9 +34,11 @@ namespace platefile {
     // Destructor
     virtual ~IndexBase() {}
 
+    // -------------------------- I/O ---------------------------
+
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.
-    virtual IndexRecord read_request(int col, int row, int depth, int epoch = 0) = 0;
+    virtual IndexRecord read_request(int col, int row, int depth, int transaction_id = -1) = 0;
   
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
@@ -46,13 +48,8 @@ namespace platefile {
     // unlock the blob id.
     virtual void write_complete(TileHeader const& header, IndexRecord const& record) = 0;
 
-    // Clients are expected to make a transaction request whenever
-    // they start a self-contained chunk of mosaicking work.  .
-    virtual int32 transaction_request(std::string transaction_description) = 0;
 
-    // Once a chunk of work is complete, clients can "commit" their
-    // work to the mosaic by issuding a transaction_complete method.
-    virtual int32 transaction_complete(int32 transaction_id) = 0;
+    // ----------------------- PROPERTIES  ----------------------
 
     virtual int32 version() const = 0;
     virtual int32 max_depth() const = 0;
@@ -64,6 +61,22 @@ namespace platefile {
 
     virtual PixelFormatEnum pixel_format() const = 0;
     virtual ChannelTypeEnum channel_type() const = 0;
+
+
+    // --------------------- TRANSACTIONS ------------------------
+
+    // Clients are expected to make a transaction request whenever
+    // they start a self-contained chunk of mosaicking work.  .
+    virtual int32 transaction_request(std::string transaction_description) = 0;
+
+    // Once a chunk of work is complete, clients can "commit" their
+    // work to the mosaic by issuding a transaction_complete method.
+    virtual void transaction_complete(int32 transaction_id) = 0;
+
+    virtual int32 transaction_cursor() = 0;
+
+
+    // --------------------- UTILITIES ------------------------
 
     /// Iterate over all nodes in a tree, calling func for each
     /// location.  Note: this will only be implemented for local
@@ -136,7 +149,7 @@ namespace platefile {
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.
     virtual IndexRecord read_request(vw::int32 col, vw::int32 row, 
-                                     vw::int32 depth, vw::int32 epoch = 0);
+                                     vw::int32 depth, vw::int32 transaction_id = -1);
   
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
@@ -152,7 +165,12 @@ namespace platefile {
 
     // Once a chunk of work is complete, clients can "commit" their
     // work to the mosaic by issuding a transaction_complete method.
-    virtual int32 transaction_complete(int32 transaction_id);
+    virtual void transaction_complete(int32 transaction_id);
+
+    // Return the current location of the transaction cursor.  This
+    // will be the last transaction id that refers to a coherent
+    // version of the mosaic.
+    virtual int32 transaction_cursor();
 
     /// Use only for debugging small trees.
     void print() { m_root->print(); }

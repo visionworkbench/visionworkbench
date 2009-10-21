@@ -57,6 +57,7 @@ namespace platefile {
     template <class ViewT>
     class WritePlateFileTask : public Task {
       boost::shared_ptr<PlateFile> m_platefile;
+      int m_read_transaction_id, m_write_transaction_id;
       TileInfo m_tile_info;
       int m_depth;
       ViewT const& m_view;
@@ -65,11 +66,15 @@ namespace platefile {
       
     public:
       WritePlateFileTask(boost::shared_ptr<PlateFile> platefile, 
+                         int read_transaction_id,
+                         int write_transaction_id,
                          TileInfo const& tile_info, 
                          int depth, ImageViewBase<ViewT> const& view,
                          bool verbose, int total_num_blocks, 
                          const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) :
-        m_platefile(platefile), m_tile_info(tile_info), m_depth(depth), m_view(view.impl()), 
+        m_platefile(platefile), m_read_transaction_id(read_transaction_id),
+        m_write_transaction_id(write_transaction_id),
+        m_tile_info(tile_info), m_depth(depth), m_view(view.impl()), 
         m_verbose(verbose), m_progress(progress_callback,0.0,1.0/float(total_num_blocks)) {}
       
       virtual ~WritePlateFileTask() {}
@@ -81,7 +86,7 @@ namespace platefile {
         ImageView<typename ViewT::pixel_type> new_data = crop(m_view, m_tile_info.bbox);
         ImageView<typename ViewT::pixel_type> old_data(new_data.cols(), new_data.rows());
         try {
-          m_platefile->read(old_data, m_tile_info.i, m_tile_info.j, m_depth);
+          m_platefile->read(old_data, m_tile_info.i, m_tile_info.j, m_depth, m_read_transaction_id);
         } catch (TileNotFoundErr &e) { 
           // Do nothing... we already have a default constructed empty image above! 
         }
@@ -97,7 +102,7 @@ namespace platefile {
 
         ImageView<typename ViewT::pixel_type> composite_tile = composite;
         if( ! is_transparent(composite_tile) ) 
-          m_platefile->write(composite_tile, m_tile_info.i, m_tile_info.j, m_depth);
+          m_platefile->write(composite_tile, m_tile_info.i, m_tile_info.j, m_depth, m_write_transaction_id);
 
         // Report progress
         m_progress.report_incremental_progress(1.0);

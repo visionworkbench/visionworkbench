@@ -63,7 +63,7 @@ void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files
   std::cout << "Loading index\n";
 
   for (unsigned int i = 0; i < blob_files.size(); ++i) {
-    this->log() << "\t--> Loading index entries from blob file: " 
+    this->log() << "Loading index entries from blob file: " 
                 << m_plate_filename << "/" << blob_files[i] << "\n";
     
     
@@ -89,7 +89,7 @@ void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files
       rec.set_blob_offset(iter.current_base_offset());
       rec.set_status(INDEX_RECORD_VALID);
       rec.set_tile_size(iter.current_data_size());
-      m_root->insert(rec, hdr.col(), hdr.row(), hdr.depth(), hdr.epoch());
+      m_root->insert(rec, hdr.col(), hdr.row(), hdr.depth(), hdr.transaction_id());
       tpc.report_progress(float(iter.current_base_offset()) / blob.size());
       ++iter;
     }
@@ -129,20 +129,15 @@ vw::platefile::Index::Index( std::string plate_filename,
   m_header.set_default_file_type(default_file_type);
   m_header.set_pixel_format(int(default_pixel_format));
   m_header.set_channel_type(int(default_channel_type));
-  m_header.set_transaction_read_cursor(0);
-  m_header.set_transaction_write_cursor(1);
+  m_header.set_transaction_read_cursor(0);   // Transaction 0 is the empty mosaic
+  m_header.set_transaction_write_cursor(1);  // Transaction 1 is the first valid transaction
 
   this->save_index_file();
 
   // Create the logging facility
   m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );
-
-  this->log() << "Created new index \"" << this->index_filename() 
-              << "\"  (version " << VW_CURRENT_PLATEFILE_VERSION <<"\n";
-  this->log() << "\t--> Tile size: " << m_header.default_tile_size()
-              << " and file type: " << m_header.default_file_type() << "\n";
-  this->log() << "\t--> Read cursor: " << m_header.transaction_read_cursor() 
-              << "   Write cursor: " << m_header.transaction_write_cursor() << "\n";
+  this->log() << "Created new index: \"" << this->index_filename() << "\n"
+              <<  m_header.DebugString() << "\n";
 }
 
 /// Open an existing index from a file on disk.
@@ -170,13 +165,8 @@ vw::platefile::Index::Index(std::string plate_filename) :
   // Create the logging facility
   m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );
 
-  this->log() << "Reopened index \"" << this->index_filename() 
-              << "\"  (version " << m_header.platefile_version() << "\n";
-  this->log() << "\t--> Tile size: " << m_header.default_tile_size()
-              << " and file type: " << m_header.default_file_type() << "\n";
-  this->log() << "\t--> Read cursor: " << m_header.transaction_read_cursor() 
-              << "   Write cursor: " << m_header.transaction_write_cursor() << "\n";
-    
+  this->log() << "Reopened index \"" << this->index_filename() << "\n"
+              << m_header.DebugString() << "\n";
 
   // Load the actual index data
   std::vector<std::string> blob_files = this->blob_filenames();
@@ -194,9 +184,9 @@ std::ostream& vw::platefile::Index::log () {
 
 /// Attempt to access a tile in the index.  Throws an
 /// TileNotFoundErr if the tile cannot be found.
-IndexRecord vw::platefile::Index::read_request(int col, int row, int depth, int epoch) {
+IndexRecord vw::platefile::Index::read_request(int col, int row, int depth, int transaction_id) {
   Mutex::Lock lock(m_mutex);
-  return m_root->search(col, row, depth, epoch);
+  return m_root->search(col, row, depth, transaction_id);
 }
   
 // Writing, pt. 1: Locks a blob and returns the blob id that can
@@ -211,7 +201,7 @@ void vw::platefile::Index::write_complete(TileHeader const& header, IndexRecord 
   m_blob_manager->release_lock(record.blob_id()); 
 
   Mutex::Lock lock(m_mutex);
-  m_root->insert(record, header.col(), header.row(), header.depth(), header.epoch());
+  m_root->insert(record, header.col(), header.row(), header.depth(), header.transaction_id());
   m_root->invalidate_records(header.col(), header.row(), header.depth());
 }
 
@@ -228,16 +218,58 @@ int32 vw::platefile::Index::transaction_request(std::string transaction_descript
   int32 transaction_id = m_header.transaction_write_cursor();
   m_header.set_transaction_write_cursor(m_header.transaction_write_cursor() + 1);
   this->save_index_file();
-  this->log() << "Transaction " << m_header.transaction_write_cursor() << " started: " 
-          << transaction_description << "\n";
+  this->log() << "Transaction " << transaction_id << " started: " << transaction_description << "\n";
   return transaction_id;
 }
 
 // Once a chunk of work is complete, clients can "commit" their
-// work to the mosaic by issuding a transaction_complete method.
-int32 vw::platefile::Index::transaction_complete(int32 transaction_id) {
+// work to the mosaic by issueing a transaction_complete method.
+void vw::platefile::Index::transaction_complete(int32 transaction_id) {
   Mutex::Lock lock(m_mutex);
 
-  this->log() << "Transaction " << m_header.transaction_write_cursor() << " finished.\n";
+  this->log() << "Transaction " << transaction_id << " finished.\n";
   
+  // If this ID is the next one after the current write ID, then we
+  // increment the read ID.
+  if (transaction_id == m_header.transaction_read_cursor() + 1) {
+    
+    // Update the transaction read cursor
+    m_header.set_transaction_read_cursor(transaction_id);
+    this->save_index_file();
+
+    // Replay the remaining transaction IDs to see if the next ids are outstanding.
+    bool match;
+    do {
+      match = false;
+      google::protobuf::RepeatedField<const int32>::iterator iter = m_header.complete_transaction_ids().begin();
+      while (iter != m_header.complete_transaction_ids().end()) {
+        if (*iter == m_header.transaction_read_cursor() + 1) {
+          m_header.set_transaction_read_cursor(*iter);
+          this->save_index_file();
+          match = true;
+        }
+        ++iter;
+      }
+    } while (match);
+
+  } else {
+    // This wasn't the next ID.  We store it in the queue and save it for later.
+    m_header.mutable_complete_transaction_ids()->Add(transaction_id);
+    this->save_index_file();
+
+    const int MAX_OUTSTANDING_TRANSACTION_IDS = 10;
+    if (m_header.complete_transaction_ids().size() > MAX_OUTSTANDING_TRANSACTION_IDS) 
+      vw_out(0) << "WARNING: Detected potential stall in the transaction pipeline.  "
+                << "There are " << m_header.complete_transaction_ids().size() 
+                << " completed IDs waiting in the queue.\n";
+  }
 }
+
+// Return the current location of the transaction cursor.  This
+// will be the last transaction id that refers to a coherent
+// version of the mosaic.
+int32 vw::platefile::Index::transaction_cursor() {
+  Mutex::Lock lock(m_mutex);
+  return m_header.transaction_read_cursor();
+}
+

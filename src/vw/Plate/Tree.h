@@ -135,7 +135,7 @@ namespace platefile {
     }
 
     // Search for a node at a given col, row, and level.
-    ElementT search_helper(int col, int row, int level, int epoch, int current_level) {
+    ElementT search_helper(int col, int row, int level, int transaction_id, int current_level) {
 
       // If we have reached the requested depth, then we must be at
       // the node we want!  Return the ElementT!
@@ -156,7 +156,7 @@ namespace platefile {
         if (m_children[child_id]) {
 
           // If a branch of the tree is found, we dive deeper.
-          return m_children[child_id]->search_helper(col, row, level, epoch, current_level + 1);
+          return m_children[child_id]->search_helper(col, row, level, transaction_id, current_level + 1);
 
         } else {
           // If not, we throw an exception.
@@ -196,7 +196,7 @@ namespace platefile {
 
     void insert_helper(ElementT const& record, 
                        int col, int row, int level, 
-                       int epoch, int current_level) {
+                       int transaction_id, int current_level) {
 
       // If we have reached the requested depth, then we must be at
       // the node we want!  Return the ElementT!
@@ -211,7 +211,7 @@ namespace platefile {
         // that were used for this node.  This would allow us to go
         // "back in time" in the journal of the blob.  Let's add that
         // feature someday!!
-        m_records[epoch] = record;
+        m_records[transaction_id] = record;
 
       // Otherwise, we need to recurse further into the tree....
       } else {
@@ -225,7 +225,7 @@ namespace platefile {
           this->set_child(child_id, node);
         }
          
-        m_children[child_id]->insert_helper(record, col, row, level, epoch, current_level+1);
+        m_children[child_id]->insert_helper(record, col, row, level, transaction_id, current_level+1);
       }
 
     }
@@ -252,15 +252,15 @@ namespace platefile {
     }
 
     /// ... or use this contructor for the root of the tree.
-    TreeNode(ElementT const& record, int epoch = 0) : m_parent(0), m_max_depth(0) {
-      m_records[epoch] = record;
+    TreeNode(ElementT const& record, int transaction_id = -1) : m_parent(0), m_max_depth(0) {
+      m_records[transaction_id] = record;
       m_children.resize(4);
     }
 
     /// Use this contstructor to add record data immediately.
-    TreeNode(TreeNode *parent, ElementT const& record, int epoch = 0) :
+    TreeNode(TreeNode *parent, ElementT const& record, int transaction_id = -1) :
       m_parent(parent), m_max_depth(0) {
-      m_records[epoch] = record;
+      m_records[transaction_id] = record;
       m_children.resize(4);
     }
     
@@ -283,29 +283,34 @@ namespace platefile {
       return n;
     }
 
-    ElementT value_helper(int epoch) { 
-
-      // We search for the most recent record that happened before on
-      // on the queried ephoch.
+    ElementT value_helper(int transaction_id) { 
       typename record_type::iterator it = m_records.begin();
+
+      // A transaction ID of -1 returns the most recent tile,
+      // regardless.
+      if (transaction_id == -1 && it != m_records.end())
+        return (*it).second;
+
+      // Otherwise, we search for the most recent record that happened
+      // before on on the queried ephoch.
       while (it != m_records.end()) {
-        if ((*it).first <= epoch)
+        if ((*it).first <= transaction_id)
           return (*it).second;
         ++it;
       }
 
       // If we reach this point, then there are no entries before
-      // the given epoch, so we return an empty (and invalid) record.
+      // the given transaction_id, so we return an empty (and invalid) record.
       return ElementT();
     }
 
     /// Access the data member of this node.
-    ElementT value(int epoch = 0) { 
-      return value_helper(epoch);
+    ElementT value(int transaction_id = -1) { 
+      return value_helper(transaction_id);
     }
 
-    const ElementT value(int epoch = 0) const { 
-      return value_helper(epoch);
+    const ElementT value(int transaction_id = -1) const { 
+      return value_helper(transaction_id);
     }
 
     /// Query max depth of tree.
@@ -313,8 +318,8 @@ namespace platefile {
 
 
     // Search for a node at a given col, row, and level.
-    ElementT search(int col, int row, int level, int epoch = 0) {
-      return search_helper(col, row, level, epoch, 0);
+    ElementT search(int col, int row, int level, int transaction_id = -1) {
+      return search_helper(col, row, level, transaction_id, 0);
     }
 
     // Search for a node at a given col, row, and level.
@@ -325,8 +330,8 @@ namespace platefile {
     // Insert an ElementT at a given position.  Intermediate nodes
     // in the tree are created (with empty ElementTs) in the tree
     // along the way, as needed.
-    void insert(ElementT const& record, int col, int row, int level, int epoch = 0) {
-      this->insert_helper(record, col, row, level, epoch, 0);
+    void insert(ElementT const& record, int col, int row, int level, int transaction_id = -1) {
+      this->insert_helper(record, col, row, level, transaction_id, 0);
       if (level > m_max_depth)
         m_max_depth = level;
     }

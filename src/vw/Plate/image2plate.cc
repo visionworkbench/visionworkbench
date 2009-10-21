@@ -79,10 +79,12 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
       switch(channel_type) {
       case VW_CHANNEL_UINT8:  
         pm->insert( DiskImageView<PixelGrayA<uint8> >(image_files[i]), georef, 
+                    image_files[i],
                     TerminalProgressCallback(InfoMessage, status_str.str()) );
         break;
       case VW_CHANNEL_INT16:  
         pm->insert( DiskImageView<PixelGrayA<int16> >(image_files[i]), georef,
+                    image_files[i],
                     TerminalProgressCallback(InfoMessage, status_str.str()) );
         break;
       default:
@@ -96,6 +98,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
       switch(channel_type) {
       case VW_CHANNEL_UINT8:  
         pm->insert( DiskImageView<PixelRGBA<uint8> >(image_files[i]), georef, 
+                    image_files[i],
                     TerminalProgressCallback(InfoMessage, status_str.str()) );
         break;
       default:

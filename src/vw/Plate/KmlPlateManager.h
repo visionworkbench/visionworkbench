@@ -83,6 +83,7 @@ namespace platefile {
     template <class ViewT>
     void insert(ImageViewBase<ViewT> const& image, 
                 cartography::GeoReference const& input_georef,
+                std::string description,
                 const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
 
       // We build the ouput georeference from the input image's
@@ -152,6 +153,9 @@ namespace platefile {
       std::vector<TileInfo> tiles = kml_image_tiles( output_bbox, resolution,
                                                      m_platefile->default_tile_size());
 
+      // Determine the read and write transaction ids to use for this image.
+      int read_transaction_id = m_platefile->transaction_cursor();
+      int write_transaction_id = m_platefile->transaction_request(description);
 
       // And save each tile to the PlateFile
       std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n";
@@ -159,6 +163,8 @@ namespace platefile {
       for (int i = 0; i < tiles.size(); ++i) {
         m_queue.add_task(boost::shared_ptr<Task>(
           new WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> >(m_platefile, 
+                                                                            read_transaction_id,
+                                                                            write_transaction_id,
                                                                             tiles[i], 
                                                                             pyramid_level, 
                                                                             kml_view,
@@ -167,6 +173,7 @@ namespace platefile {
                                                                             progress)));
       }
       m_queue.join_all();
+      m_platefile->transaction_complete(write_transaction_id);
       progress.report_finished();
     }
 

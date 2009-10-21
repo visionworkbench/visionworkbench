@@ -74,6 +74,55 @@ public:
     TS_ASSERT_EQUALS(idx.default_tile_filetype(), idx2.default_tile_filetype());
   }
 
+  void test_index_transactions() {
+    unlink("/tmp/foo.plate/plate.index");
+    std::string plate_filename = "/tmp/foo.plate";
+
+    // Write the basic data...
+    Index idx(plate_filename, 256, "tif", VW_PIXEL_RGB, VW_CHANNEL_UINT8);
+
+    TS_ASSERT_EQUALS(idx.transaction_cursor(), 0);
+
+    // Test one tranaction request
+    int tx1 = idx.transaction_request("Test transaction #1");
+    TS_ASSERT_EQUALS(tx1, 1);
+    TS_ASSERT_EQUALS(idx.transaction_cursor(), 0);
+
+    // And now a few more
+    int tx2 = idx.transaction_request("Test transaction #2");
+    int tx3 = idx.transaction_request("Test transaction #3");
+    int tx4 = idx.transaction_request("Test transaction #4");
+    int tx5 = idx.transaction_request("Test transaction #5");
+    int tx6 = idx.transaction_request("Test transaction #6");
+    TS_ASSERT_EQUALS(tx2, 2);
+    TS_ASSERT_EQUALS(tx3, 3);
+    TS_ASSERT_EQUALS(tx4, 4);
+    TS_ASSERT_EQUALS(tx5, 5);
+    TS_ASSERT_EQUALS(tx6, 6);
+    TS_ASSERT_EQUALS(idx.transaction_cursor(), 0);
+
+    // Now complet a transaction, but not the next one in the series.
+    idx.transaction_complete(tx6);
+    TS_ASSERT_EQUALS(idx.transaction_cursor(), 0);
+
+    // Now we complete the next one. the cursor should move forward by one.
+    idx.transaction_complete(tx1);
+    TS_ASSERT_EQUALS(idx.transaction_cursor(), 1);
+
+    // Complete more transactions in reverse order
+    idx.transaction_complete(tx3);
+    TS_ASSERT_EQUALS(idx.transaction_cursor(), 1);
+    idx.transaction_complete(tx2);
+    TS_ASSERT_EQUALS(idx.transaction_cursor(), 3);
+
+    // And the rest
+    idx.transaction_complete(tx4);
+    TS_ASSERT_EQUALS(idx.transaction_cursor(), 4);
+    idx.transaction_complete(tx5);
+    TS_ASSERT_EQUALS(idx.transaction_cursor(), 6);
+  }
+
+
 
   void test_simple_index() {
     std::string plate_filename = "/tmp/foo.plate";

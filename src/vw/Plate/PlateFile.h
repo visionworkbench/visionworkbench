@@ -65,7 +65,7 @@ namespace platefile {
     /// and deletes it when the TemporaryTileFile object is de-allocated.
     template <class ViewT>
     TemporaryTileFile(ImageViewBase<ViewT> const& view, std::string file_extension) : 
-      m_filename(unique_tempfile_name(file_extension)) {
+      m_filename(unique_tempfile_name(file_extension)), m_delete_afterwards(true) {
       write_image(m_filename, view);
       vw_out(DebugMessage, "plate::tempfile") << "Created temporary file: " 
                                               << m_filename << "\n";
@@ -166,13 +166,13 @@ namespace platefile {
     /// file's image extension).  The image extension will be appended
     /// automatically for you based on the filetype in the TileHeader.
     std::string read_to_file(std::string const& base_name, 
-                             int col, int row, int depth, int epoch = 0) {
+                             int col, int row, int depth, int transaction_id = -1) {
 
       TileHeader result;
       std::string filename = base_name;
 
       // 1. Call index read_request(col,row,depth).  Returns IndexRecord.
-      IndexRecord record = m_index->read_request(col, row, depth, epoch);
+      IndexRecord record = m_index->read_request(col, row, depth, transaction_id);
       if (record.status() != INDEX_RECORD_EMPTY) {
         std::ostringstream blob_filename;
         blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
@@ -199,12 +199,12 @@ namespace platefile {
 
     /// Read an image from the specified tile location in the plate file.
     template <class ViewT>
-    TileHeader read(ViewT &view, int col, int row, int depth, int epoch = 0) {
+    TileHeader read(ViewT &view, int col, int row, int depth, int transaction_id = -1) {
 
       TileHeader result;
       
       // 1. Call index read_request(col,row,depth).  Returns IndexRecord.
-      IndexRecord record = m_index->read_request(col, row, depth, epoch);
+      IndexRecord record = m_index->read_request(col, row, depth, transaction_id);
       if (record.status() != INDEX_RECORD_EMPTY) {
         std::ostringstream blob_filename;
         blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
@@ -235,7 +235,7 @@ namespace platefile {
     /// Write an image to the specified tile location in the plate file.
     template <class ViewT>
     void write(ImageViewBase<ViewT> const& view, 
-               int col, int row, int depth, int epoch = 0) {      
+               int col, int row, int depth, int transaction_id = -1) {      
 
       // 1. Write data to temporary file. 
       TemporaryTileFile tile(view, this->default_file_type());
@@ -254,7 +254,7 @@ namespace platefile {
       write_header.set_col(col);
       write_header.set_row(row);
       write_header.set_depth(depth);
-      write_header.set_epoch(epoch);
+      write_header.set_transaction_id(transaction_id);
       write_header.set_filetype(this->default_file_type());
 
       int64 blob_offset;
@@ -271,9 +271,30 @@ namespace platefile {
       m_index->write_complete(write_header, write_record);
     }
 
-    IndexRecord read_record(int col, int row, int depth, int epoch = 0) {
-      return m_index->read_request(col, row, depth, epoch);
+    IndexRecord read_record(int col, int row, int depth, int transaction_id = -1) {
+      return m_index->read_request(col, row, depth, transaction_id);
     }
+
+    // --------------------- TRANSACTIONS ------------------------
+
+    // Clients are expected to make a transaction request whenever
+    // they start a self-contained chunk of mosaicking work.  .
+    virtual int32 transaction_request(std::string transaction_description) {
+      return m_index->transaction_request(transaction_description);
+    }
+
+    // Once a chunk of work is complete, clients can "commit" their
+    // work to the mosaic by issuding a transaction_complete method.
+    virtual void transaction_complete(int32 transaction_id) {
+      m_index->transaction_complete(transaction_id);
+    }
+
+    virtual int32 transaction_cursor() {
+      return m_index->transaction_cursor();
+    }
+
+    
+    // ----------------------- UTILITIES --------------------------
 
     void map(boost::shared_ptr<TreeMapFunc> func) {
       m_index->map(func);

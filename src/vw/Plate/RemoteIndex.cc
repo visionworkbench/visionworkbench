@@ -44,7 +44,7 @@ vw::platefile::RemoteIndex::~RemoteIndex() {
 /// Attempt to access a tile in the index.  Throws an
 /// TileNotFoundErr if the tile cannot be found.
 vw::platefile::IndexRecord vw::platefile::RemoteIndex::read_request(int col, int row, 
-                                                                    int depth, int epoch) {
+                                                                    int depth, int transaction_id) {
   IndexReadRequest req;
   req.set_requestor(m_queue_name);
   req.set_platefile_id(m_platefile_id);
@@ -52,7 +52,7 @@ vw::platefile::IndexRecord vw::platefile::RemoteIndex::read_request(int col, int
   req.set_col(col);
   req.set_row(row);
   req.set_depth(depth);
-  req.set_epoch(epoch);
+  req.set_transaction_id(transaction_id);
   m_conn.basic_publish_protobuf(req, INDEX_EXCHANGE, m_queue_name);
 
   IndexReadReply r = wait_for_response<IndexReadReply>(m_queue_name + ".read_reply");

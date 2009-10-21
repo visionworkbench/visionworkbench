@@ -37,21 +37,21 @@ public:
     dummy_header0.set_col(0);
     dummy_header0.set_row(953);
     dummy_header0.set_depth(3);
-    dummy_header0.set_epoch(1024);
+    dummy_header0.set_transaction_id(1024);
     dummy_header0.set_filetype("foo");
 
     TileHeader dummy_header1;
     dummy_header1.set_col(33);
     dummy_header1.set_row(91);
     dummy_header1.set_depth(321);
-    dummy_header1.set_epoch(1034);
+    dummy_header1.set_transaction_id(1034);
     dummy_header1.set_filetype("bar");
 
     TileHeader dummy_header2;
     dummy_header2.set_col(22);
     dummy_header2.set_row(1);
     dummy_header2.set_depth(322);
-    dummy_header2.set_epoch(1054);
+    dummy_header2.set_transaction_id(1054);
     dummy_header2.set_filetype("baz");
     
     // Write some dummy data to the file with various index entries
@@ -66,7 +66,7 @@ public:
     TS_ASSERT_EQUALS(result.col(), dummy_header0.col());
     TS_ASSERT_EQUALS(result.row(), dummy_header0.row());
     TS_ASSERT_EQUALS(result.depth(), dummy_header0.depth());
-    TS_ASSERT_EQUALS(result.epoch(), dummy_header0.epoch());
+    TS_ASSERT_EQUALS(result.transaction_id(), dummy_header0.transaction_id());
     TS_ASSERT_EQUALS(result.filetype(), dummy_header0.filetype());
     TS_ASSERT_DIFFERS(iter, blob->end());
 
@@ -75,7 +75,7 @@ public:
     TS_ASSERT_EQUALS(result.col(), dummy_header1.col());
     TS_ASSERT_EQUALS(result.row(), dummy_header1.row());
     TS_ASSERT_EQUALS(result.depth(), dummy_header1.depth());
-    TS_ASSERT_EQUALS(result.epoch(), dummy_header1.epoch());
+    TS_ASSERT_EQUALS(result.transaction_id(), dummy_header1.transaction_id());
     TS_ASSERT_EQUALS(result.filetype(), dummy_header1.filetype());
     TS_ASSERT_DIFFERS(iter, blob->end());
 
@@ -84,7 +84,7 @@ public:
     TS_ASSERT_EQUALS(result.col(), dummy_header2.col());
     TS_ASSERT_EQUALS(result.row(), dummy_header2.row());
     TS_ASSERT_EQUALS(result.depth(), dummy_header2.depth());
-    TS_ASSERT_EQUALS(result.epoch(), dummy_header2.epoch());
+    TS_ASSERT_EQUALS(result.transaction_id(), dummy_header2.transaction_id());
     TS_ASSERT_EQUALS(result.filetype(), dummy_header2.filetype());
     TS_ASSERT_DIFFERS(iter, blob->end());
 

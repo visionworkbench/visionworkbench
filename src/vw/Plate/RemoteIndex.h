@@ -60,7 +60,7 @@ namespace platefile {
   
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.
-    virtual IndexRecord read_request(int col, int row, int depth, int epoch = 0);
+    virtual IndexRecord read_request(int col, int row, int depth, int transaction_id = -1);
   
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.

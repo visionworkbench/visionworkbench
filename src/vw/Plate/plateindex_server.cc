@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
 
         // Access the data in the index
         try {
-          IndexRecord record = idx.read_request(r.col(), r.row(), r.depth(), r.epoch());
+          IndexRecord record = idx.read_request(r.col(), r.row(), r.depth(), r.transaction_id());
           IndexReadReply read_response;
           *(read_response.mutable_index_record()) = record;
           conn.basic_publish_protobuf(read_response, INDEX_EXCHANGE,
