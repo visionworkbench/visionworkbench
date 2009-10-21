@@ -101,9 +101,6 @@ namespace stereo {
     std::vector<BBox2i> subdivide_bboxes(ImageView<PixelMask<Vector2f> > const& disparity_map,
                                          BBox2i const& box);
 
-    bool has_valid_mask_overlap( ImageView<vw::uint8> const& left_mask,
-                                 ImageView<vw::uint8> const& right_mask );
-
     // do_correlation()
     //
     // Takes an image pyramid of images and conducts dense stereo
@@ -138,11 +135,9 @@ namespace stereo {
         std::vector<BBox2> search_ranges;
         std::vector<BBox2i> nominal_blocks;
         if (n == (m_pyramid_levels-1) ) {
-          if ( has_valid_mask_overlap(left_masks[n], right_masks[n]) )
-            nominal_blocks.push_back(BBox2i(0,0,left_pyramid[n].cols(), left_pyramid[n].rows()));
+          nominal_blocks.push_back(BBox2i(0,0,left_pyramid[n].cols(), left_pyramid[n].rows()));
           search_ranges.push_back(initial_search_range);
         } else {
-          //nominal_blocks = image_blocks(left_pyramid[n], 512, 512);
           nominal_blocks = subdivide_bboxes(disparity_map,
                                             BBox2i(0,0,left_pyramid[n].cols(), left_pyramid[n].rows()));
           search_ranges = compute_search_ranges(disparity_map, nominal_blocks);
@@ -336,10 +331,13 @@ namespace stereo {
         std::ostringstream ostr;
         ostr << n;
 
+            
         left_pyramid[n] = subsample_by_two(left_pyramid[n-1]);
         right_pyramid[n] = subsample_by_two(right_pyramid[n-1]);
-        left_masks[n] = subsample_mask_by_two(left_masks[n-1]);
-        right_masks[n] = subsample_mask_by_two(right_masks[n-1]);
+        
+        int mask_padding = std::max(m_kernel_size[0], m_kernel_size[1])/2;
+        left_masks[n] = apply_mask(edge_mask(subsample_mask_by_two(left_masks[n-1]), 0, mask_padding),0);
+        right_masks[n] = apply_mask(edge_mask(subsample_mask_by_two(right_masks[n-1]), 0, mask_padding),0);
       }
 
       return do_correlation(left_pyramid, right_pyramid, left_masks, right_masks, preproc_filter);
