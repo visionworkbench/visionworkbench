@@ -58,7 +58,6 @@ public:
       TS_ASSERT_EQUALS(hdr.depth(), hdr2.depth());
     }
 
-
     // Second test, appends to a blob file.
     {
       Blob blob("/tmp/foo.blob");
@@ -72,7 +71,6 @@ public:
       for (int i = 0; i < 20; ++i) 
         TS_ASSERT_EQUALS( m_test_data[i], m_verify_data[i] );
     }
-
   }
 
   void test_file_write_read() {
