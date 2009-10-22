@@ -35,7 +35,7 @@ PyramidCorrelator::subdivide_bboxes(ImageView<PixelMask<Vector2f> > const& dispa
     subbox2.min().y() = box.min().y() + box.height()/2;
   }
 
-  bool good_size = box.width() > m_min_subregion_dim || box.height() > m_min_subregion_dim;
+  bool good_size = subbox1.width() > m_min_subregion_dim && subbox1.height() > m_min_subregion_dim;
   bool good_subregion = is_good_subregion(disparity_map, dmask, subbox1) && is_good_subregion(disparity_map, dmask, subbox2);
   bool kill_invalid = count_valid_pixels(crop(create_mask(dmask), subbox1)) == 0 || count_valid_pixels(crop(create_mask(dmask), subbox2)) == 0;
   
