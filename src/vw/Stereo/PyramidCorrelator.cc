@@ -142,12 +142,12 @@ PyramidCorrelator::compute_search_ranges(ImageView<PixelMask<Vector2f> > const& 
   // Step 1: compute the search ranges from the disparity map.
   for (unsigned i = 0; i < nominal_blocks.size(); ++i) {
     ImageViewRef<PixelMask<Vector2f> > crop_disparity = crop(prev_disparity_map,(nominal_blocks[i])/2);
-    if (count_valid_pixels(crop_disparity) > m_min_subregion_dim * m_min_subregion_dim * 0.05) {
+    if (count_valid_pixels(crop_disparity) > 20 * 20) {
       search_ranges[i] = get_disparity_range(crop_disparity);
       is_good[i]=true;
     } else {
       // Not enough good pixels available
-      search_ranges[i] = BBox2i();
+      search_ranges[i] = BBox2i(0, 0, 0, 0);
       is_good[i]=false;
     }
   }
