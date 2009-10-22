@@ -26,6 +26,7 @@ namespace stereo {
     int m_cost_blur;
     stereo::CorrelatorType m_correlator_type;
     int m_pyramid_levels;
+    int m_min_subregion_dim;
 
     std::string m_debug_prefix;
 
@@ -100,6 +101,19 @@ namespace stereo {
                             std::vector<BBox2i> nominal_blocks);
     std::vector<BBox2i> subdivide_bboxes(ImageView<PixelMask<Vector2f> > const& disparity_map,
                                          BBox2i const& box);
+
+    template <class ViewT>
+    int count_valid_pixels(ImageViewBase<ViewT> const& img) {
+      typedef typename ViewT::iterator view_iter;
+
+      int count = 0;
+      for (view_iter i = img.impl().begin(); i != img.impl().end(); i++) {
+        if (i->valid())
+          count++;
+      }
+
+      return count;
+    }
 
     // do_correlation()
     //
@@ -283,6 +297,7 @@ namespace stereo {
       m_correlator_type(correlator_type),
       m_pyramid_levels(pyramid_levels) {
       m_debug_prefix = "";
+      m_min_subregion_dim = 4 * m_kernel_size[0];
     }
 
     /// Turn on debugging output.  The debug_file_prefix string is
