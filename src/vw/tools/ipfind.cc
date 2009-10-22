@@ -204,7 +204,8 @@ int main(int argc, char** argv) {
       (image.rows()/vw_settings().default_tile_size()+1);
     int tile_max_points = (float(max_points)/float(number_tiles))*2; // A little over shoot
                                                                      // incase the tile is empty
-    if ( tile_max_points < 50 ) tile_max_points = 50;
+    if ( max_points == 0 ) tile_max_points = 0; // No culling
+    else if ( tile_max_points < 50 ) tile_max_points = 50;
 
     // Detecting Interest Points
     InterestPointList ip;
