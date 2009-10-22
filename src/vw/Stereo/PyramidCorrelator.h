@@ -297,7 +297,7 @@ namespace stereo {
       m_correlator_type(correlator_type),
       m_pyramid_levels(pyramid_levels) {
       m_debug_prefix = "";
-      m_min_subregion_dim = 5 * m_kernel_size[0];
+      m_min_subregion_dim = 128;
     }
 
     /// Turn on debugging output.  The debug_file_prefix string is
