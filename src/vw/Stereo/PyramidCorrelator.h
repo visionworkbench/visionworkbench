@@ -338,6 +338,12 @@ namespace stereo {
         right_masks[n] = subsample_mask_by_two(right_masks[n-1]);
       }
 
+      int mask_padding = std::max(m_kernel_size[0], m_kernel_size[1])/2;
+      for (int n = 0; n < m_pyramid_levels; ++n) {
+        left_masks[n] = apply_mask(edge_mask(left_masks[n], 0, mask_padding),0);
+        right_masks[n] = apply_mask(edge_mask(right_masks[n], 0, mask_padding),0);
+      }
+
       return do_correlation(left_pyramid, right_pyramid, left_masks, right_masks, preproc_filter);
     }
 
