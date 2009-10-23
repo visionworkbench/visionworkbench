@@ -13,11 +13,11 @@
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoTransform.h>
 #include <vw/Cartography/ToastTransform.h>
+#include <vw/Mosaic/ImageComposite.h>
 
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/PlateFile.h>
-#include <vw/Plate/ImageComposite.h>
 #include <vw/Plate/PlateManager.h>
 
 #include <vector>
@@ -248,9 +248,10 @@ namespace platefile {
                       LogicErr() << "WritePlateFileTask::operator() -- new tile dimensions do not " 
                       << "match old tile dimensions.");
         
-            vw::platefile::CompositeView<PixelT> composite;
+            vw::mosaic::ImageComposite<PixelT> composite;
             composite.insert(old_data, 0, 0);
             composite.insert(tile, 0, 0);
+            composite.set_draft_mode( true );
             composite.prepare();
       
             ImageView<PixelT> composite_tile = composite;

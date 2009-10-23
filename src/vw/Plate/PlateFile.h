@@ -10,7 +10,6 @@
 
 #include <vw/Math/Vector.h>
 #include <vw/Image.h>
-#include <vw/Mosaic/ImageComposite.h>
 
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Blob.h>

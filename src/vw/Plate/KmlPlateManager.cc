@@ -17,8 +17,8 @@ KmlPlateManager::kml_image_tiles( BBox2i const& image_bbox,
 
   // There's no point in starting the search before there is good
   // image data, so we adjust the start point here.
-  int32 minx = floor(image_bbox.min().x() / tile_size) * tile_size;
-  int32 miny = floor(image_bbox.min().y() / tile_size) * tile_size;
+  int32 minx = int(floor(image_bbox.min().x() / tile_size) * tile_size);
+  int32 miny = int(floor(image_bbox.min().y() / tile_size) * tile_size);
   int x = minx / tile_size;
   int y = miny / tile_size;
 
