@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+
 /// \file BundleAdjustModelBase.h
 /// 
 /// Classes used to define the bundle adjustment problem. Every

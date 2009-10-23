@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+
 /// \file BundleAdjustmentSparse.h
 ///
 /// Sparse implementation of bundle adjustment. Fast yo!
