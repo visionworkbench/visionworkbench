@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+
 /// \file BundleAdjustmentRef.h
 ///
 /// Reference implementation of bundle adjustment. Very slow!

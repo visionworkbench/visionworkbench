@@ -1,8 +1,9 @@
 // __BEGIN_LICENSE__
-// Copyright (C) 2006, 2007 United States Government as represented by
+// Copyright (C) 2006-2009 United States Government as represented by
 // the Administrator of the National Aeronautics and Space Administration.
 // All Rights Reserved.
 // __END_LICENSE__
+
 
 #include <vw/Plate/ToastPlateManager.h>
 
@@ -16,8 +17,8 @@ ToastPlateManager::wwt_image_tiles( BBox2i const& image_bbox,
 
   // There's no point in starting the search before there is good
   // image data, so we adjust the start point here.
-  int32 minx = floor(image_bbox.min().x() / (tile_size-1)) * (tile_size-1);
-  int32 miny = floor(image_bbox.min().y() / (tile_size-1)) * (tile_size-1);
+  int32 minx = int(floor(image_bbox.min().x() / (tile_size-1)) * (tile_size-1));
+  int32 miny = int(floor(image_bbox.min().y() / (tile_size-1)) * (tile_size-1));
   int x = minx / (tile_size-1);
   int y = miny / (tile_size-1);
 

@@ -7,7 +7,7 @@ support a variety of space exploration tasks, including automated
 science and engineering analysis, robot perception, and 2D/3D
 environment reconstruction, though it can also serve as a
 general-purpose image processing and machine vision framework in other
-contexts as well.  
+contexts as well.
 
 This package is composed of several modules each of which provides a
 separate C++ library.  The core library provides the basic image and
@@ -22,7 +22,7 @@ operations.  The other modules provided in this release are:
  * Camera: camera models and related types and functions
  * Cartography: tools for manipulating geospatially-referenced images
 
-Each of these modules and their dependencies are discussed in greater 
+Each of these modules and their dependencies are discussed in greater
 detail in section 3, "LIBRARY STRUCTURE".
 
 ************************************************************************
@@ -66,21 +66,21 @@ to obtain non-bundled third-party libraries is provided in section 4,
 
 The Vision Workbench software is located in the directory "src/vw/"
 and consists of a core library and several optional libraries or
-"modules".  Each module is contained in a subdirectory with the name 
+"modules".  Each module is contained in a subdirectory with the name
 name as the module.
 
 A. The Main Vision Workbench Library
 
-At the center of the Vision Workbench are three modules that are 
-in fact linked together to form a single fundamental library.  
+At the center of the Vision Workbench are three modules that are
+in fact linked together to form a single fundamental library.
 
-i. The "Core/" module provides fundamental services that are not 
-specific to image processing, such as C++ exception types and type 
+i. The "Core/" module provides fundamental services that are not
+specific to image processing, such as C++ exception types and type
 computation classes.
 
 ii. The "Image/" module provides the pixel and image types and
-functions that form the heart of the Vision Workbench, including 
-support for various color spaces, filtering operations, and other 
+functions that form the heart of the Vision Workbench, including
+support for various color spaces, filtering operations, and other
 image processing primitives.
 
 iii. The "FileIO/" module contains routines to support reading and
@@ -105,13 +105,13 @@ operations.  On top of that foundation there are higher-level types
 and algorithms for geometric computation, linear algebra,
 optimization, and statistics, and so forth.
 
-The linear algebra numerical algorithms rely on the standard low-level 
-routines provided by LAPACK (Linear Algebra Package) and BLAS (Basic 
-Linear Algebra Subprograms).  Many computers (e.g. those running OS X) 
-come with optimized implementations of LAPACK and BLAS, in which case 
-you can (and probably should) just use those.  To support other 
-platforms we provide public-domain implementations automatically 
-translated from the original Fortran and taken from the online Netlib 
+The linear algebra numerical algorithms rely on the standard low-level
+routines provided by LAPACK (Linear Algebra Package) and BLAS (Basic
+Linear Algebra Subprograms).  Many computers (e.g. those running OS X)
+come with optimized implementations of LAPACK and BLAS, in which case
+you can (and probably should) just use those.  To support other
+platforms we provide public-domain implementations automatically
+translated from the original Fortran and taken from the online Netlib
 repository.
 
 C. GPU Module
@@ -119,27 +119,27 @@ C. GPU Module
 Most modern graphics hardware includes a general-purpose graphics
 processing unit (GPU), and this module provides an interface to take
 advantage of that high-performance hardware for a variety of basic
-image-processing operations.  Under Linux it requires that you have 
-installed the OpenGL interface library GLEW.  It can optionally also 
-take advantage of the NVIDIA CG library, which provides an alternative 
+image-processing operations.  Under Linux it requires that you have
+installed the OpenGL interface library GLEW.  It can optionally also
+take advantage of the NVIDIA CG library, which provides an alternative
 low-level framework which may be preferable on some graphics hardware.
 
 D. HDR Module
 
-While the core Vision Workbench library supports working with high 
-dynamic range (HDR) image data directly, most input and output devices 
-(e.g. digital cameras and displays) only support a limited dynamic range.  
-This module provides tools for interfacing between the two worlds, by 
-generating HDR images from collections of ordinary images as well as 
-providing several methods to compress HDR images for display on ordinary 
+While the core Vision Workbench library supports working with high
+dynamic range (HDR) image data directly, most input and output devices
+(e.g. digital cameras and displays) only support a limited dynamic range.
+This module provides tools for interfacing between the two worlds, by
+generating HDR images from collections of ordinary images as well as
+providing several methods to compress HDR images for display on ordinary
 output devices.
 
 E. InterestPoint Module
 
-Interest points are points in an image that can be reliably detected and 
-tracked, such as corners or peaks.  This module provides tools for 
-locating interest points in images in a variety of ways.  It can also 
-generate local descriptors for those points using several methods which 
+Interest points are points in an image that can be reliably detected and
+tracked, such as corners or peaks.  This module provides tools for
+locating interest points in images in a variety of ways.  It can also
+generate local descriptors for those points using several methods which
 can then be used to locate corresponding points in sets of images.
 
 F. Mosaic Module
@@ -166,8 +166,8 @@ The Cartography module provides a variety of 2D and 3D mapping
 capabilities.  It allows you to georeference an image, specifying its
 projection, position within the projected space, and altitude
 reference (or "datum"), and it supports reprojecting images into the
-desired projection.  It requires the PROJ.4 cartographic projection 
-library, and also optionally depends on the GDAL library which 
+desired projection.  It requires the PROJ.4 cartographic projection
+library, and also optionally depends on the GDAL library which
 provides support for a variety of GIS file formats.
 
 I. Testing Frameworks
@@ -185,24 +185,23 @@ significant portion of the library, they are not yet fully exhaustive.
 
 A. Obtaining the Software
 
-If you are reading this text then presumably you have a copy of 
-the Vision Workbench software.  However, you can obtain the most 
-recent version from
+If you are reading this text then presumably you have a copy of
+the software.  However, you can obtain the most recent version from
 
   http://ti.arc.nasa.gov/visionworkbench
 
 Before attempting to configure, build or install the Vision Workbench
 you should obtain and install any prerequisite libraries that you
-need.  The only absolute requirement is the Boost.  The others are 
-either required to build a specific module, or will enable a 
-particular feature if available.  A complete list of dependencies 
-is shown in the table below, where each library is noted as being 
-either a required or optional dependency of one or modules.  All of 
-these libraries are distributed under some variation on the themes 
-of the MIT and BSD licenses.  See each individual library's 
+need.  The only absolute requirement is the Boost.  The others are
+either required to build a specific module, or will enable a
+particular feature if available.  A complete list of dependencies
+is shown in the table below, where each library is noted as being
+either a required or optional dependency of one or modules.  All of
+these libraries are distributed under some variation on the themes
+of the MIT and BSD licenses.  See each individual library's
 documentation for details.
 
-+------------------------------+------------------------------------+
++---------+--------------------+------------------------------------+
 | Library | Relevant Modules   | Source Website                     |
 +---------+--------------------+------------------------------------+
 | Boost   | Core, etc. (req.)  | http://www.boost.org/              |
@@ -218,7 +217,7 @@ documentation for details.
 
 In addition, the some Vision Workbench modules require other, lower
 level modules to be built.  The internal Vision Workbench dependency
-table appears below.  
+table appears below.
 
 +------+--------+-------------+
 | HDR  | Mosaic | Cartography |   Application-specific Toolkits
@@ -240,22 +239,15 @@ Once you have obtained and installed all of the prerequisite software
 the process of building the Vision Workbench itself is generally
 straightforward.  There are four steps:
 
-i. Configure the library.  This is usually as simple as running the 
-"./configure" script from within the root Vision Workbench package 
+i. Configure the library.  This is usually as simple as running the
+"./configure" script from within the root Vision Workbench package
 directory.
 
-ii. Build the library, by running "make".
+ii. Build the library by running "make".
 
-iii. Run the tests, by running "make check".
+iii. Run the tests by running "make check".
 
-iv. Install the library, by running "make install".
-
-By default the library will be installed into a directory called 
-"build/" within the Vision Workbench package tree, in a subdirectory 
-named for the particular platform you've built it for.  If you prefer 
-a more conventional installation into, for example, "/usr/local/", 
-then pass the command line argument "--prefix=/usr/local" to 
-the configure script in step i.
+iv. Install the library by running "make install".
 
 While this simple sequence will suffice for most users, the configure
 script has many options that you can use to adjust various properties,
@@ -272,9 +264,9 @@ you will need to develop software using the library are located in the
 to link your software against, are located in the "lib/" subdirectory.
 You will need to configure your software development environment as
 appropriate to locate these files.  Finally, a number of simple
-command-line tools are provided in the "bin/" directory.  These are 
-intended primarily as demo applications, but many of them are in fact 
-useful in their own right.  See the documentation for a complete list 
+command-line tools are provided in the "bin/" directory.  These are
+intended primarily as demo applications, but many of them are in fact
+useful in their own right.  See the documentation for a complete list
 of the tools.
 
 ************************************************************************
@@ -290,12 +282,6 @@ document can be found in "docs/workbook" and it can be built by
 running "make workbook".  This operation requires the latex typesetting
 package.
 
-Auto-generated API documentation is also available if you have a
-working installation of Doxygen and latex.  Running "make doxygen" at
-the top level of the source tree will generate documentation in the
-"docs/api" directory.  Running "make doc" will automatically generate 
-both the Workbook and the Doxygen documentation.
-
 ************************************************************************
 6. CONTACTS & CREDITS
 
@@ -306,7 +292,7 @@ the Vision Workbench user mailing list:
 
   vision-workbench@lists.nasa.gov
 
-To subscribe to this list, send an empty email messoge with the subject 
+To subscribe to this list, send an empty email messoge with the subject
 'subscribe' (without the quotes) to
 
   vision-workbench-request@lists.nasa.gov
@@ -316,21 +302,19 @@ to:
 
   vision-workbench-owner@lists.nasa.gov
 
-Please do NOT use this second list for technical inquiries, which 
+Please do NOT use this second list for technical inquiries, which
 should all be sent to the main vision-workbench list above.
 
 B. Credits
 
-The Vision Workbench was developed within the Autonomous Systems and 
-Robotics area of the Inteligent Systems Division at NASA's Ames 
+The Vision Workbench was developed within the Autonomous Systems and
+Robotics area of the Inteligent Systems Division at NASA's Ames
 Research Center.  It leverages the Intelligent Robotics Group's (IRG)
 extensive experience developing surface reconstruction and tools for
 planetary exploration---e.g. the Mars Pathfinder and Mars Exploration
-Rover missions---and rover autonomy.  It has also been developed in 
-collaboration with the Adaptive Control and Evolvable Systems (ACES) 
-group, and draws on their experience developing computer vision 
+Rover missions---and rover autonomy.  It has also been developed in
+collaboration with the Adaptive Control and Evolvable Systems (ACES)
+group, and draws on their experience developing computer vision
 techniques for autonomous vehicle control systems.
 
-The lead developers of the Vision Workbench are Michael Broxton and
-Matthew Hancher.  The project manager is Terry Fong.  See the AUTHORS
-file for a complete list of developers.
+See the AUTHORS file for a complete list of developers.

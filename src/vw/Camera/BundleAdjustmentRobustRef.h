@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+
 /// \file BundleAdjustmentRobustRef.h
 ///
 /// Reference implementation of robust bundle adjustment. Very slow!

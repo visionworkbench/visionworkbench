@@ -1,8 +1,9 @@
 // __BEGIN_LICENSE__
-// Copyright (C) 2006, 2007 United States Government as represented by
+// Copyright (C) 2006-2009 United States Government as represented by
 // the Administrator of the National Aeronautics and Space Administration.
 // All Rights Reserved.
 // __END_LICENSE__
+
 
 #ifndef __VW_PLATE_TOAST_PLATEMANAGER_H__
 #define __VW_PLATE_TOAST_PLATEMANAGER_H__
@@ -11,11 +12,11 @@
 #include <vw/Math/Vector.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/ToastTransform.h>
+#include <vw/Mosaic/ImageComposite.h>
 
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/PlateFile.h>
-#include <vw/Plate/ImageComposite.h>
 #include <vw/Plate/PlateManager.h>
 
 #include <vector>
@@ -287,9 +288,10 @@ namespace platefile {
                       LogicErr() << "WritePlateFileTask::operator() -- new tile dimensions do not " 
                       << "match old tile dimensions.");
         
-            vw::platefile::CompositeView<PixelT> composite;
+            vw::mosaic::ImageComposite<PixelT> composite;
             composite.insert(old_data, 0, 0);
             composite.insert(tile, 0, 0);
+            composite.set_draft_mode( true );
             composite.prepare();
 
             ImageView<PixelT> composite_tile = composite;

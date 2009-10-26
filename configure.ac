@@ -349,11 +349,11 @@ AM_CONDITIONAL(HAVE_PKG_PROTOBUF, [test "$HAVE_PKG_PROTOBUF" = "yes"])
 # module definitions
 ##################################################
 
-AX_MODULE(CORE,          [src/vw/Core],          [libvwCore.la],          yes, [],      [BOOST BOOST_PROGRAM_OPTIONS THREADS M],  [PTHREADS])
-AX_MODULE(MATH,          [src/vw/Math],          [libvwMath.la],          yes, [CORE],  [],                 [LAPACK])
+AX_MODULE(CORE,          [src/vw/Core],          [libvwCore.la],          yes, [],      [BOOST BOOST_PROGRAM_OPTIONS THREADS M], [PTHREADS])
+AX_MODULE(MATH,          [src/vw/Math],          [libvwMath.la],          yes, [CORE],  [BOOST_GRAPH],                           [LAPACK])
 AX_MODULE(IMAGE,         [src/vw/Image],         [libvwImage.la],         yes, [MATH])
-AX_MODULE(FILEIO,        [src/vw/FileIO],        [libvwFileIO.la],        yes, [IMAGE], [BOOST_FILESYSTEM],            [Z PNG JPEG TIFF OPENEXR HDF GDAL])
-AX_MODULE(VW,            [src/vw],               [libvw.la],              yes, [],      [CORE MATH IMAGE],  [FILEIO])
+AX_MODULE(FILEIO,        [src/vw/FileIO],        [libvwFileIO.la],        yes, [IMAGE], [BOOST_FILESYSTEM],                      [Z PNG JPEG TIFF OPENEXR HDF GDAL])
+AX_MODULE(VW,            [src/vw],               [libvw.la],              yes, [],      [CORE MATH IMAGE],                       [FILEIO])
 
 if test "${MAKE_MODULE_VW}" != "yes"; then
   AC_MSG_ERROR([cannot build the Vision Workbench core modules!])

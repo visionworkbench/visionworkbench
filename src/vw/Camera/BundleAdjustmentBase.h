@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+
 /// \file BundleAdjustmentBase.h
 /// 
 /// This is the generic outline for code that performs bundle

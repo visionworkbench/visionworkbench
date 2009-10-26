@@ -1,15 +1,15 @@
 // __BEGIN_LICENSE__
-// Copyright (C) 2006, 2007 United States Government as represented by
+// Copyright (C) 2006-2009 United States Government as represented by
 // the Administrator of the National Aeronautics and Space Administration.
 // All Rights Reserved.
 // __END_LICENSE__
+
 
 #ifndef __VW_PLATE_PLATEFILE_H__
 #define __VW_PLATE_PLATEFILE_H__
 
 #include <vw/Math/Vector.h>
 #include <vw/Image.h>
-#include <vw/Mosaic/ImageComposite.h>
 
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Blob.h>
