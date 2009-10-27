@@ -29,7 +29,7 @@ GPUImageBase convolution_filter(const GPUImageBase& image,
 // Program - Install
   fAttributes[0] = kernel.width();
   fAttributes[1] = kernel.height();
-  GPUProgram* program = create_gpu_program("VWGPU_Filter/convolution", fAttributes);
+  GPUProgram* program = create_gpu_program("Filter/convolution", fAttributes);
   program->install();
   // OUTPUT
   GPUImageBase temp(image.width(), image.height(), image.format(), image.type());
@@ -71,7 +71,7 @@ GPUImageBase seperable_convolution_filter(const GPUImageBase& image,
       ShaderInvocation_SetupGLState(input->width(), input->height());
 	  // Program - Install
 	  fAttributes[0] = h_kernel_size;
-	  GPUProgram* program = create_gpu_program("VWGPU_Filter/convolution-rows", fAttributes);
+	  GPUProgram* program = create_gpu_program("Filter/convolution-rows", fAttributes);
 	  program->install();
 	  // OUTPUT
 	  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, output->target(), output->name(), 0);	
@@ -93,7 +93,7 @@ GPUImageBase seperable_convolution_filter(const GPUImageBase& image,
       ShaderInvocation_SetupGLState(input->width(), input->height());
 	  // Program - Install
 	  fAttributes[0] = h_kernel_size;
-	  GPUProgram* program = create_gpu_program("VWGPU_Filter/convolution-rows", fAttributes);
+	  GPUProgram* program = create_gpu_program("Filter/convolution-rows", fAttributes);
 	  program->install();
 	  // OUTPUT
 	  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, output->target(), output->name(), 0);	

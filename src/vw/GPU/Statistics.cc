@@ -34,11 +34,11 @@ float min_channel_value(const GPUImageBase& image)
   GPUImageBase tex_StartLevel(MAX(1, POT_Dimension), MAX(1, POT_Dimension), GPU_RED, image.type());
   GPUProgram* program_Level1;
   if(image.num_channels() == 4)
-    program_Level1 = create_gpu_program("VWGPU_Statistics/min-channels-rgba");
+    program_Level1 = create_gpu_program("Statistics/min-channels-rgba");
   else if(image.num_channels() == 3)
-    program_Level1 = create_gpu_program("VWGPU_Statistics/min-channels-rgb");
+    program_Level1 = create_gpu_program("Statistics/min-channels-rgb");
   if(image.num_channels() == 1)
-    program_Level1 = create_gpu_program("VWGPU_Statistics/min-channels-r");
+    program_Level1 = create_gpu_program("Statistics/min-channels-r");
   program_Level1->install();
 
   ((GPUImageBase&) image).rasterize_homography();		
@@ -65,7 +65,7 @@ float min_channel_value(const GPUImageBase& image)
 // ITERATIONS: 1 to n
   GPUImageBase tex_PreviousLevel = tex_StartLevel;
   float output;
-  GPUProgram* program = create_gpu_program("VWGPU_Statistics/min-quad");
+  GPUProgram* program = create_gpu_program("Statistics/min-quad");
 
   for(int iLevel = 1; iLevel <= POT_Level; iLevel++) {
     program->install();
@@ -102,11 +102,11 @@ float max_channel_value(const GPUImageBase& image)
 // Reduce to 1 Channell; pad to POT dimensions; fill padded area with high value
   GPUProgram* program_Level1;
   if(image.num_channels() == 4)
-    program_Level1 = create_gpu_program("VWGPU_Statistics/max-channels-rgba");
+    program_Level1 = create_gpu_program("Statistics/max-channels-rgba");
   else if(image.num_channels() == 3)
-    program_Level1 = create_gpu_program("VWGPU_Statistics/max-channels-rgb");
+    program_Level1 = create_gpu_program("Statistics/max-channels-rgb");
   if(image.num_channels() == 1)
-    program_Level1 = create_gpu_program("VWGPU_Statistics/max-channels-r");
+    program_Level1 = create_gpu_program("Statistics/max-channels-r");
   program_Level1->install();
 
   GPUImageBase tex_StartLevel(MAX(1, POT_Dimension), MAX(1, POT_Dimension), GPU_RED, image.type());
@@ -128,7 +128,7 @@ float max_channel_value(const GPUImageBase& image)
   }
 // ITERATIONS: 1 to n
   GPUImageBase tex_PreviousLevel = tex_StartLevel;
-  GPUProgram* program = create_gpu_program("VWGPU_Statistics/max-quad");
+  GPUProgram* program = create_gpu_program("Statistics/max-quad");
 
   for(int iLevel = 1; iLevel <= POT_Level; iLevel++) {
     program->install();
@@ -166,11 +166,11 @@ float sum_channel_value(const GPUImageBase& image)
 // Reduce to 1 Channell; pad to POT dimensions; fill padded area with high value
   GPUProgram* program_Level1;
   if(image.num_channels() == 4)
-    program_Level1 = create_gpu_program("VWGPU_Statistics/sum-channels-rgba");
+    program_Level1 = create_gpu_program("Statistics/sum-channels-rgba");
   else if(image.num_channels() == 3)
-    program_Level1 = create_gpu_program("VWGPU_Statistics/sum-channels-rgb");
+    program_Level1 = create_gpu_program("Statistics/sum-channels-rgb");
   if(image.num_channels() == 1)
-    program_Level1 = create_gpu_program("VWGPU_Statistics/sum-channels-r");
+    program_Level1 = create_gpu_program("Statistics/sum-channels-r");
   program_Level1->install();
 
   GPUImageBase tex_StartLevel(MAX(1, POT_Dimension), MAX(1, POT_Dimension), GPU_RED, image.type());
@@ -192,7 +192,7 @@ float sum_channel_value(const GPUImageBase& image)
   }
 // ITERATIONS: 1 to n
   GPUImageBase tex_PreviousLevel = tex_StartLevel;
-  GPUProgram* program = create_gpu_program("VWGPU_Statistics/sum-quad");
+  GPUProgram* program = create_gpu_program("Statistics/sum-quad");
 
   for(int iLevel = 1; iLevel <= POT_Level; iLevel++) {
     program->install();

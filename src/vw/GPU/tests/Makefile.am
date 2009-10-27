@@ -11,15 +11,15 @@
 
 if MAKE_MODULE_GPU
 
-nodist_TestGPU_Profile_SOURCES = TestGPU_Profile.cxx 
-nodist_TestGPU_ImageMath_SOURCES = TestGPU_ImageMath.cxx
-nodist_TestGPU_EdgeExtend_SOURCES = TestGPU_EdgeExtend.cxx
-nodist_TestGPU_Filter_SOURCES = TestGPU_Filter.cxx
-nodist_TestGPU_Interpolation_SOURCES = TestGPU_Interpolation.cxx
-nodist_TestGPU_Manipulation_SOURCES = TestGPU_Manipulation.cxx
-nodist_TestGPU_Statistics_SOURCES = TestGPU_Statistics.cxx
-nodist_TestGPU_Transform_SOURCES = TestGPU_Transform.cxx
-nodist_TestGPU_Algorithms_SOURCES = TestGPU_Algorithms.cxx
+TestGPU_Profile_SOURCES       = TestGPU_Profile.oldtest
+TestGPU_ImageMath_SOURCES     = TestGPU_ImageMath.oldtest
+TestGPU_EdgeExtend_SOURCES    = TestGPU_EdgeExtend.oldtest
+TestGPU_Filter_SOURCES        = TestGPU_Filter.oldtest
+TestGPU_Interpolation_SOURCES = TestGPU_Interpolation.oldtest
+TestGPU_Manipulation_SOURCES  = TestGPU_Manipulation.oldtest
+TestGPU_Statistics_SOURCES    = TestGPU_Statistics.oldtest
+TestGPU_Transform_SOURCES     = TestGPU_Transform.oldtest
+TestGPU_Algorithms_SOURCES    = TestGPU_Algorithms.oldtest
 
 TESTS = TestGPU_Profile TestGPU_ImageMath TestGPU_EdgeExtend TestGPU_Filter \
 TestGPU_Interpolation TestGPU_Manipulation TestGPU_Statistics TestGPU_Transform \
@@ -35,7 +35,7 @@ AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_GPU_LIBS@
 
 check_PROGRAMS = $(TESTS)
-EXTRA_DIST = $(TESTS:%=%.h) test_images/lighthouse-1000x1000.png
+EXTRA_DIST = test_images/lighthouse-1000x1000.png
 CLEANFILES = $(TESTS:%=%.cxx)
 
 include $(top_srcdir)/config/rules.mak

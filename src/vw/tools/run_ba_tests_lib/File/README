@@ -1,0 +1,63 @@
+This file is the README for File::Path version 2.08
+
+INSTALLATION
+
+perl Makefile.PL
+make
+make test
+make install
+
+TESTING
+
+This module requires the following modules for thorough testing:
+
+  (These are core, you should be ok)
+  Cwd
+  File::Path
+  File::Spec::Functions
+  Test::More
+
+  (These are optional)
+  Test::Output
+  Test::Pod
+  Test::Pod::Coverage
+
+For more advanced testing, it is possible to run the
+eg/setup-extra-tests program as root. This will create a
+directory 'EXTRA' that contains a mixture of files and
+directories owned both by root and a specified user
+(uid or login name).
+
+  sudo perl eg/setup-extra-tests -u david
+  make test
+
+This is used to exercise parts of the code that ordinarily
+wouldn't be visited. That is, as root, some files and
+directories will be created that the user 'david', which
+will run the test suite, will not be able to remove.
+
+It would be nice to do something tricksy like this for
+Win32, which has a much richer privilege scheme.
+
+BUGS
+
+Please report all bugs on the RT queue:
+
+L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=File-Path>
+
+AUTHORS
+
+Tim Bunce and Charles Bailey.
+
+Currently maintained by David Landgren <david@landgren.net>.
+
+COPYRIGHT
+
+This module is copyright (C) Charles Bailey, Tim Bunce and
+David Landgren 1995-2008.  All rights reserved.
+
+LICENSE
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+

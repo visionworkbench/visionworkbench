@@ -11,8 +11,8 @@
 
 if MAKE_MODULE_INTERESTPOINT
 
-nodist_TestMatcher_SOURCES = TestMatcher.cxx 
-nodist_TestIntegral_SOURCES = TestIntegral.cxx
+TestMatcher_SOURCES  = TestMatcher.oldtest
+TestIntegral_SOURCES = TestIntegral.oldtest
 
 TESTS = TestMatcher TestIntegral
 
@@ -28,7 +28,7 @@ AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_INTERESTPOINT_LIBS@
 
 check_PROGRAMS = $(TESTS)
-EXTRA_DIST = $(TESTS:%=%.h) sub.png noisy_gradient_60.png
+EXTRA_DIST = sub.png noisy_gradient_60.png
 CLEANFILES = $(TESTS:%=%.cxx)
 
 include $(top_srcdir)/config/rules.mak

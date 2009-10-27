@@ -6,10 +6,8 @@
 
 
 if ENABLE_TEST_COVERAGE
-nodist_TestInstantiateRecord_SOURCES = TestInstantiateRecord.cxx
-nodist_TestInstantiateFree_SOURCES = TestInstantiateFree.cxx
-dist_TestInstantiateRecord_SOURCES = TestInstantiateRecordList.hh
-dist_TestInstantiateFree_SOURCES = TestInstantiateFreeList.hh
+dist_TestInstantiateRecord_SOURCES = TestInstantiateRecord.oldtest TestInstantiateRecordList.hh
+dist_TestInstantiateFree_SOURCES   = TestInstantiateFree.oldtest TestInstantiateFreeList.hh
 dist_noinst_DATA = TestInstantiateExclusion.txt
 TESTS+=TestInstantiateRecord TestInstantiateFree
 endif

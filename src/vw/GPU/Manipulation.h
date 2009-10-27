@@ -146,7 +146,7 @@ namespace vw {
 	  ((GPUImageBase&) image).rasterize_homography();	
       ShaderInvocation_SetupGLState(image.width(), image.height());
       // Program - Install
-      GPUProgram* program = create_gpu_program("VWGPU_Manipulation/PackGrayIntoRGBA");
+      GPUProgram* program = create_gpu_program("Manipulation/PackGrayIntoRGBA");
       program->install();
       // OUTPUT
       int outputWidth = overlap + (int) ceilf(image.width() / 2.0);
@@ -186,7 +186,7 @@ namespace vw {
       float t_x1, t_x2, t_y1, t_y2;
       float v_x1, v_x2, v_y1, v_y2;
       // 1. R-Channel	
-      GPUProgram* program = create_gpu_program("VWGPU_Manipulation/SelectChannel-R");
+      GPUProgram* program = create_gpu_program("Manipulation/SelectChannel-R");
       program->install();
       program->set_input_image("image1", 0, image);
       t_x1 = tImage_x1;
@@ -204,7 +204,7 @@ namespace vw {
       glTexCoord2f(t_x1, t_y2); 	  glVertex2f(v_x1, v_y2);
       glEnd();
       // 2. G-Channel	
-      program = create_gpu_program("VWGPU_Manipulation/SelectChannel-G");
+      program = create_gpu_program("Manipulation/SelectChannel-G");
       program->install();
       program->set_input_image("image1", 0, image);
       t_x1 = tImage_x1 + overlap;
@@ -222,7 +222,7 @@ namespace vw {
       glTexCoord2f(t_x1, t_y2); 	  glVertex2f(v_x1, v_y2);
       glEnd();
       // 3. B-Channel	
-      program = create_gpu_program("VWGPU_Manipulation/SelectChannel-B");
+      program = create_gpu_program("Manipulation/SelectChannel-B");
       program->install();
       program->set_input_image("image1", 0, image);
       t_x1 = tImage_x1;
@@ -240,7 +240,7 @@ namespace vw {
       glTexCoord2f(t_x1, t_y2); 	  glVertex2f(v_x1, v_y2);
       glEnd();
       // 4. A-Channel	
-      program = create_gpu_program("VWGPU_Manipulation/SelectChannel-A");
+      program = create_gpu_program("Manipulation/SelectChannel-A");
       program->install();
       program->set_input_image("image1", 0, image);
       t_x1 = tImage_x1 + overlap;

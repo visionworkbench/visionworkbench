@@ -11,7 +11,7 @@
 #include <fstream>
 
 #include <vw/GPU/Utilities.h>
-#include <vw/GPU/StandardShaders.h>
+#include <vw/GPU/Shaders.h>
 
 #ifdef HAVE_CONFIG_H
 #include <vw/config.h>

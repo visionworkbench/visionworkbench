@@ -11,10 +11,10 @@
 
 if MAKE_MODULE_CARTOGRAPHY
 
-nodist_TestGeoReference_SOURCES = TestGeoReference.cxx
-nodist_TestGeoTransform_SOURCES = TestGeoTransform.cxx
-nodist_TestPointImageManipulation_SOURCES = TestPointImageManipulation.cxx
-nodist_TestToastTransform_SOURCES = TestToastTransform.cxx
+TestGeoReference_SOURCES           = TestGeoReference.oldtest
+TestGeoTransform_SOURCES           = TestGeoTransform.oldtest
+TestPointImageManipulation_SOURCES = TestPointImageManipulation.oldtest
+TestToastTransform_SOURCES         = TestToastTransform.oldtest
 
 TESTS = TestGeoReference TestGeoTransform TestPointImageManipulation	\
 	TestToastTransform
@@ -31,7 +31,6 @@ AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_CARTOGRAPHY_LIBS@
 
 check_PROGRAMS = $(TESTS)
-EXTRA_DIST = $(TESTS:%=%.h)
 CLEANFILES = $(TESTS:%=%.cxx)
 
 include $(top_srcdir)/config/rules.mak

@@ -15,9 +15,9 @@ images: $(TOOLS)/doc-generate
 	$(TOOLS)/doc-generate
 
 clean:
-	rm -rf *.o *~ \#* *.aux *.log *.out $(GENERATED_IMAGES)
+	rm -rf *.o *~ *.toc \#* *.aux *.log *.out $(GENERATED_IMAGES)
 
 distclean: clean
-	rm -rf generate workbook.toc workbook.pdf .libs
+	rm -rf generate workbook.pdf .libs
 
 .PHONY: images clean distclean all

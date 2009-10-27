@@ -11,11 +11,11 @@
 
 if MAKE_MODULE_FILEIO
 
-nodist_TestDiskImageResource_SOURCES = TestDiskImageResource.cxx
-nodist_TestDiskImageView_SOURCES = TestDiskImageView.cxx
-nodist_TestEndianness_SOURCES = TestEndianness.cxx
-nodist_TestBlockFileIO_SOURCES = TestBlockFileIO.cxx
-nodist_TestExtTester_SOURCES = TestExtTester.cxx
+TestDiskImageResource_SOURCES = TestDiskImageResource.oldtest
+TestDiskImageView_SOURCES     = TestDiskImageView.oldtest
+TestEndianness_SOURCES        = TestEndianness.oldtest
+TestBlockFileIO_SOURCES       = TestBlockFileIO.oldtest
+TestExtTester_SOURCES         = TestExtTester.oldtest
 
 TESTS = TestDiskImageResource TestDiskImageView TestEndianness TestBlockFileIO TestExtTester
 
@@ -32,7 +32,7 @@ AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_FILEIO_LIBS@
 
 check_PROGRAMS = $(TESTS)
 
-EXTRA_DIST = $(TESTS:%=%.h) rgb2x2.png rgb2x2.tif rgb2x2.jpg png16.png mural.png mural.jpg
+EXTRA_DIST = rgb2x2.png rgb2x2.tif rgb2x2.jpg png16.png mural.png mural.jpg
 
 CLEANFILES = $(TESTS:%=%.cxx) tmp.png tmp.tif rwtest.* test-png16.png cropped.mural.* mural.tif
 

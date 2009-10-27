@@ -36,7 +36,7 @@ TESTS = TestVector TestMatrix TestQuaternion TestBBox TestFunctions	\
         TestFunctors TestNelderMead TestKDTree $(TestLinearAlgebra)	\
         TestEuler TestParticleSwarmOptimization
 
-include $(top_srcdir)/config/instantiate.am
+#include $(top_srcdir)/config/instantiate.am
 
 endif
 
