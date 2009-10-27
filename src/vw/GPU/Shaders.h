@@ -5,10 +5,10 @@
 // __END_LICENSE__
 
 
-// StandardShaders.h
+// Shaders.h
 
-#ifndef StandardShaders_H
-#define StandardShaders_H
+#ifndef VW_GPU_SHADERS_H
+#define VW_GPU_SHADERS_H
 
 #include <map>
 #include <string>

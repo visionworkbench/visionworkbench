@@ -76,18 +76,18 @@ namespace vw {
   // *******************************************************************
   
     /// Create a deep copy of an image. 
-    GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(copy, "VWGPU_Algorithms/copy-1i0f")
+    GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(copy, "Algorithms/copy-1i0f")
     
   // *******************************************************************
   // clamp()
   // *******************************************************************
 
   /// Clamp the values in an image to fall within the range [low,high].
-    GENERIC_FRAGMENT_SHADER_FUNCTION_1i2f(clamp, low, high, "VWGPU_Algorithms/clamp-1i2f")
+    GENERIC_FRAGMENT_SHADER_FUNCTION_1i2f(clamp, low, high, "Algorithms/clamp-1i2f")
 
   /// \cond internal
     inline GPUImageBase clamp(const GPUImageBase& image, float high) {
-      static GenericFragmentShader_1i2f shader("VWGPU_Algorithms/clamp-1i2f");
+      static GenericFragmentShader_1i2f shader("Algorithms/clamp-1i2f");
       return shader(image, 0.0, high);
     }
   /// \endcond
@@ -102,7 +102,7 @@ namespace vw {
 
   /// \cond internal
     inline GPUImageBase clamp(const GPUImageBase& image) {
-      static GenericFragmentShader_1i2f shader("VWGPU_Algorithms/clamp-1i2f");
+      static GenericFragmentShader_1i2f shader("Algorithms/clamp-1i2f");
       return shader(image, 0.0, 1.0);
     }
   /// \endcond
@@ -122,7 +122,7 @@ namespace vw {
 
   /// \cond INTERNAL
     inline GPUImageBase normalize(const GPUImageBase& image, float low, float high) {
-      static GenericFragmentShader_1i3f shader("VWGPU_Algorithms/normalize-1i3f");
+      static GenericFragmentShader_1i3f shader("Algorithms/normalize-1i3f");
       float old_min = 0.0;
       float old_max = 1.0;
       min_max_channel_values(image, old_min, old_max);

@@ -15,7 +15,7 @@ namespace vw { namespace GPU {
     ((GPUImageBase&) image).rasterize_homography();	
     ShaderInvocation_SetupGLState(image);
     // Program - Install
-    GPUProgram* program = create_gpu_program("VWGPU_Algorithms/fill-1i4f");
+    GPUProgram* program = create_gpu_program("Algorithms/fill-1i4f");
     program->install();
     glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, image.target(), image.name(), 0);
     // INPUTS
@@ -47,11 +47,11 @@ namespace vw { namespace GPU {
     GPUProgram* program;
     switch(image.num_channels()) {
     case 4:
-      program = create_gpu_program("VWGPU_Algorithms/threshold-1i3f-rgba"); break;
+      program = create_gpu_program("Algorithms/threshold-1i3f-rgba"); break;
     case 3:
-      program = create_gpu_program("VWGPU_Algorithms/threshold-1i3f-rgb"); break;
+      program = create_gpu_program("Algorithms/threshold-1i3f-rgb"); break;
     case 1:
-      program = create_gpu_program("VWGPU_Algorithms/threshold-1i3f-r"); break;
+      program = create_gpu_program("Algorithms/threshold-1i3f-r"); break;
     }
     program->install();
     // OUTPUT
