@@ -21,7 +21,8 @@ EXTRA_DIST = config/rules.mak config.options.example docs \
 ########################################################################
 
 dist-hook:
-	rm -rf `find $(distdir) -name '.svn'`
+	rm -rf `find $(distdir) -name '.svn' -o -name '.git'`
+	make -C $(distdir)/docs/workbook clean
 if DIST_LICENSE
 	cp $(DIST_LICENSE) $(distdir)/COPYING
 endif

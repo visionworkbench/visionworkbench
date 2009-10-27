@@ -18,7 +18,7 @@ COMMON_LIBS = @PKG_TOOLS_LIBS@
 if MAKE_MODULE_CAMERA
 camera_progs = print_exif bayer
 # Prints out an image's EXIF headers
-print_exif_SOURCES = print_exif.cc 
+print_exif_SOURCES = print_exif.cc
 print_exif_LDADD = @PKG_CAMERA_LIBS@ $(COMMON_LIBS)
 # Applies an inverse Bayer filter to a raw camera image
 bayer_SOURCES = bayer.cc
@@ -49,21 +49,21 @@ endif
 if MAKE_MODULE_HDR
 hdr_progs = hdr_tonemap hdr_merge
 # Merge multiple source images into an HDR image
-hdr_merge_SOURCES = hdr_merge.cc 
+hdr_merge_SOURCES = hdr_merge.cc
 hdr_merge_LDADD = @PKG_HDR_LIBS@ $(COMMON_LIBS)
 # Map an HDR image into an 8-bit dynamic range
-hdr_tonemap_SOURCES = hdr_tonemap.cc 
+hdr_tonemap_SOURCES = hdr_tonemap.cc
 hdr_tonemap_LDADD = @PKG_HDR_LIBS@ $(COMMON_LIBS)
 endif
 
 # Command-line tools based on the InterestPoint module
-if MAKE_MODULE_INTERESTPOINT 
+if MAKE_MODULE_INTERESTPOINT
 if HAVE_PKG_LAPACK
 interestpoint_progs = ipalign ipmatch ipfind learnpca
-# 
+#
 ipfind_SOURCES = ipfind.cc
 ipfind_LDADD = @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
-# 
+#
 ipalign_SOURCES = ipalign.cc
 ipalign_LDADD = @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
 #
@@ -133,7 +133,7 @@ endif
 
 # Control network editor (used by ba_test)
 if MAKE_MODULE_CAMERA
-if MAKE_MODULE_INTERESTPOINT 
+if MAKE_MODULE_INTERESTPOINT
 cnet_editor_progs = cnet_editor
 cnet_editor_SOURCES = cnet_editor.cc
 cnet_editor_LDADD = @PKG_CAMERA_LIBS@ @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
@@ -143,20 +143,21 @@ endif
 # Contour generation program
 if HAVE_PKG_CAIROMM
 contourgen_progs = contourgen
-contourgen_SOURCES = contour.cpp FitCurves.cpp contourgen.cc
+contourgen_SOURCES = contour.cpp FitCurves.cpp contourgen.cc contour.h
 contourgen_CPPFLAGS = @VW_CPPFLAGS@ @PKG_CAIROMM_CPPFLAGS@
 contourgen_LDADD = $(COMMON_LIBS) @PKG_CAIROMM_LIBS@
-endif 
+endif
 
 doc_generate_SOURCES = doc-generate.cc
 doc_generate_LDADD   = @PKG_VW_LIBS@ @PKG_MOSAIC_LIBS@
 
-bin_PROGRAMS = $(camera_progs) $(cartography_progs) $(hdr_progs)	\
-               $(interestpoint_progs) $(mosaic_progs)				\
-               $(cart_mos_progs) $(stereo_progs) $(gpu_progs) $(batest_progs) \
-               $(cnet_editor_progs) $(contourgen_progs) 
+bin_PROGRAMS = $(camera_progs) $(cartography_progs) $(hdr_progs) \
+               $(interestpoint_progs) $(mosaic_progs)            \
+               $(cart_mos_progs) $(stereo_progs) $(gpu_progs)    \
+               $(cnet_editor_progs) $(contourgen_progs)
 
-noinst_PROGRAMS = doc-generate
+noinst_PROGRAMS      = doc-generate $(batest_progs)
+dist_noinst_SCRIPTS  = ba_unit_test run_ba_tests
 
 endif
 
@@ -166,6 +167,8 @@ endif
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
 AM_LDFLAGS = @VW_LDFLAGS@
+
+EXTRA_DIST = run_ba_tests_lib ba_test.cfg.example ba_test_plan.txt.example
 
 includedir = $(prefix)/include/vw
 

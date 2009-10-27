@@ -18,7 +18,7 @@ nodist_TestIndex_SOURCES = TestIndex.cxx
 
 TESTS = TestBlobIO TestBlobIterator TestIndex # TestTree
 
-include $(top_srcdir)/config/instantiate.am
+#include $(top_srcdir)/config/instantiate.am
 
 endif
 

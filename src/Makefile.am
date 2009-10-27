@@ -11,7 +11,7 @@
 
 SUBDIRS = vw
 
-EXTRA_DIST = Doxyfile
+EXTRA_DIST = Doxyfile test/Helpers.h
 
 ########################################################################
 # general
