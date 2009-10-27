@@ -1,3 +1,84 @@
+*** RELEASE 2.0_beta4, 26 OCTOBER 2009 ***
+
+CORE
+ - Fix config file parser to compile on boost 1.32.
+ - Fix scattered tile size options by centralizing into vw::Settings.
+ - Fix discrepancy in cache_size settings about whether the value is MB or B.
+ - Fix (unlikely) threading issue in ThreadPool's notify().
+
+MATH
+ - Add a "set_ones" method for matrices, much like matlab's.
+ - Add a min()/max() method for Vector & Matrix.
+ - Add function to solve for nullspace of a Matrix (with LAPACK).
+ - Fix to perform correct homography fitting in RANSAC.
+
+IMAGE
+ - Add create_mask support for scalar pixel ranges.
+ - Fix convolution error on multi-plane images.
+ - Add blob_index for identifying connected blobs.
+ - Fix to allow Pixel math operations to work properly on PixelMask'd images.
+ - Add intersect and union for PixelMask.
+ - Fix several of the Statistics.h functions.
+ - Fix bug where raster queue in block write would get way ahead of writing
+   queue, resulting in huge memory use.
+
+FILEIO
+ - Add support for PBM/PGM/PPM-format files (All but P4 is currently supported).
+ - Add helper code for writing KML.
+ - Fix singular iterator in OpenEXR code.
+ - Add KAKADU support if GDAL supports it.
+
+CAMERA
+ - Fix compilation on very old versions of Boost.
+ - Large refactor of bundle adjustment code to encapsulate various adjustment
+   strategies.
+ - Fix to make sure calibration code runs the requested number if iterations.
+ - Fix nasty problem causing infinite-loop mis-compilations.
+ - Change api for control network reading/writing.
+
+CARTOGRAPHY
+ - Fix bad bug where UTM zones far from poles could cause transformation
+   failures.
+ - Fix so GDAL access is thread-safe.
+ - Fix bug around poles in ToastTransform.
+
+GEOMETRY
+ - Added TranslationFunctor.
+
+STEREO
+ - Removed PixelDisparity<>. Replacement is PixelMask<Vector2f>. See comments in
+   DisparityMap.h for help in porting.
+ - Fixed row/col swap bug that affected linescan images.
+ - Fixes so correlators are more resilient with images larger than memory.
+ - Fix problem with EM SubPixel correlator injecting noise.
+ - Re-numbered stereo correlators (see SubPixel.h).
+ - Added experimental, rather slow but accurate, gamma-distribution-based EM
+   SubPixel correlator.
+
+TOOLS
+ - colormap: Add support for standard Moon/Mars ranges.
+ - slopemap: New tool for generating slope maps.
+ - image2qtree: Fix to allow negative UTM override.
+ - image2qtree: Fix bad bug where UTM zones far from poles could cause
+   transformation failures.
+ - Many: Move default tile size option into vw::Settings.
+ - contourgen: new tool for generating SVG contour maps.
+ - ipfind & ipmatch: Make more resilient with large images.
+
+BUILD
+ - configure will now error if you specifically ask for a module or tool and
+   that tool is missing dependencies.
+ - Minor enhancements (ccache, profile, fat binaries, rpath).
+ - Disable strict aliasing by default, to work around (old, fixed) compiler
+   bugs.
+ - Began switching to Google Test framework. Core and Math are converted.
+ - Make Boost detection more robust.
+ - Fix build on systems where /bin/sh is dash.
+ - Support autoconf-2.64.
+
+
+
+================================================================================
 *** RELEASE 2.0_beta3, 03 JUNE 2009 ***
 
 CORE
@@ -55,6 +136,7 @@ BUILD
 
 
 
+================================================================================
 *** RELEASE 2.0.alpha4, 15 JANUARY 2008 ***
 
 This release features many improvements to the primitives found in the

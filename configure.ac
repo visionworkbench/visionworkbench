@@ -24,7 +24,7 @@ m4_pattern_allow([^PKG_ARBITRARY_QT_NEEDED_HEADERS$])
 ##################################################
 
 dnl TODO BEFORE/AFTER RELEASE: update package version
-AC_INIT([NASA Vision Workbench], [2.0_beta4_pre], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
+AC_INIT([NASA Vision Workbench], [2.0_beta4], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
@@ -44,7 +44,7 @@ dnl     revision++
 dnl (see http://sources.redhat.com/autobook/autobook/autobook_91.html)
 dnl
 dnl LIBTOOL_VERSION=current:revision:age
-LIBTOOL_VERSION=3:0:0
+LIBTOOL_VERSION=4:0:0
 AC_SUBST(LIBTOOL_VERSION)
 
 # load the config.options
