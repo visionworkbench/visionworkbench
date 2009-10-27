@@ -25,7 +25,6 @@ AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_MOSAIC_LIBS@
 
 check_PROGRAMS = $(TESTS)
-EXTRA_DIST = $(TESTS:%=%.h)
 CLEANFILES = $(TESTS:%=%.cxx)
 
 include $(top_srcdir)/config/rules.mak

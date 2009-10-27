@@ -11,9 +11,9 @@
 
 if MAKE_MODULE_STEREO
 
-nodist_TestStereoModel_SOURCES = TestStereoModel.cxx
-nodist_TestDisparity_SOURCES = TestDisparity.cxx
-# nodist_TestCorrelator_SOURCES = TestCorrelator.cxx
+TestStereoModel_SOURCES  = TestStereoModel.oldtest
+TestDisparity_SOURCES    = TestDisparity.oldtest
+# TestCorrelator_SOURCES = TestCorrelator.oldtest
 
 TESTS = TestStereoModel TestDisparity # TestCorrelator
 
@@ -29,7 +29,6 @@ AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_STEREO_LIBS@
 
 check_PROGRAMS = $(TESTS)
-EXTRA_DIST = $(TESTS:%=%.h)
 CLEANFILES = $(TESTS:%=%.cxx)
 
 include $(top_srcdir)/config/rules.mak

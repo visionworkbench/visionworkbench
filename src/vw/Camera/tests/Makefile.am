@@ -11,15 +11,15 @@
 
 if MAKE_MODULE_CAMERA
 
-nodist_TestCAHVORModel_SOURCES = TestCAHVORModel.cxx
-nodist_TestCAHVModel_SOURCES = TestCAHVModel.cxx
-nodist_TestLinearPushbroomModel_SOURCES = TestLinearPushbroomModel.cxx
-nodist_TestPinholeModel_SOURCES = TestPinholeModel.cxx
-nodist_TestPinholeModelCalibrate_SOURCES = TestPinholeModelCalibrate.cxx
-nodist_TestBundleAdjust_SOURCES = TestBundleAdjust.cxx
-nodist_TestExifData_SOURCES = TestExifData.cxx
-#nodist_TestLensDistortion_SOURCES = TestLensDistortion.cxx
-#nodist_TestCameraTransform_SOURCES = TestCameraTransform.cxx
+TestCAHVORModel_SOURCES           = TestCAHVORModel.oldtest
+TestCAHVModel_SOURCES             = TestCAHVModel.oldtest
+TestLinearPushbroomModel_SOURCES  = TestLinearPushbroomModel.oldtest
+TestPinholeModel_SOURCES          = TestPinholeModel.oldtest
+TestPinholeModelCalibrate_SOURCES = TestPinholeModelCalibrate.oldtest
+TestBundleAdjust_SOURCES          = TestBundleAdjust.oldtest
+TestExifData_SOURCES              = TestExifData.oldtest
+#TestLensDistortion_SOURCES       = TestLensDistortion.oldtest
+#TestCameraTransform_SOURCES      = TestCameraTransform.oldtest
 
 TESTS = TestCAHVORModel TestLinearPushbroomModel TestPinholeModel TestPinholeModelCalibrate \
 	TestBundleAdjust TestExifData TestCAHVModel # TestLensDistortion TestCameraTransform
@@ -36,7 +36,7 @@ AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_CAMERA_LIBS@
 
 check_PROGRAMS = $(TESTS)
-EXTRA_DIST = $(TESTS:%=%.h) test.jpg cahvor.txt
+EXTRA_DIST = test.jpg cahvor.txt
 CLEANFILES = $(TESTS:%=%.cxx)
 
 include $(top_srcdir)/config/rules.mak

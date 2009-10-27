@@ -23,7 +23,7 @@ TestFundamentalTypes_SOURCES = TestFundamentalTypes.cxx
 
 TESTS = TestCompoundTypes TestFunctors TestExceptions TestThread TestThreadPool TestSettings TestCache TestLog TestFundamentalTypes
 
-include $(top_srcdir)/config/instantiate.am
+#include $(top_srcdir)/config/instantiate.am
 
 endif
 

@@ -11,10 +11,10 @@
 
 if MAKE_MODULE_PLATE
 
-nodist_TestBlobIO_SOURCES = TestBlobIO.cxx
-nodist_TestBlobIterator_SOURCES = TestBlobIterator.cxx
-nodist_TestIndex_SOURCES = TestIndex.cxx
-#nodist_TestTree_SOURCES = TestTree.cxx
+TestBlobIO_SOURCES       = TestBlobIO.oldtest
+TestBlobIterator_SOURCES = TestBlobIterator.oldtest
+TestIndex_SOURCES        = TestIndex.oldtest
+#TestTree_SOURCES        = TestTree.oldtest
 
 TESTS = TestBlobIO TestBlobIterator TestIndex # TestTree
 
@@ -30,7 +30,6 @@ AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_IMAGE_LIBS@ @PKG_MATH_LIBS@ @PKG_CORE_LIBS@ @PKG_PLATE_LIBS@
 
 check_PROGRAMS = $(TESTS)
-EXTRA_DIST = $(TESTS:%=%.h)
 CLEANFILES = $(TESTS:%=%.cxx)
 
 include $(top_srcdir)/config/rules.mak
