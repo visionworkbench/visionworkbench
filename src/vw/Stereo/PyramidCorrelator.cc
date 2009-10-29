@@ -15,40 +15,37 @@ using namespace stereo;
 
 std::vector<vw::BBox2i>
 PyramidCorrelator::subdivide_bboxes(ImageView<PixelMask<Vector2f> > const& disparity_map,
-                                    ImageView<uint8> const& dmask,
                                     BBox2i const& box) {
-  if (count_valid_pixels(crop(create_mask(dmask), box)) == 0) {
-    return std::vector<BBox2i>();
+  std::vector<BBox2i> result;
+  BBox2i box_div_2 = box;
+  box_div_2.min() = box.min()/2;  box_div_2.max() = box.max()/2;
+  BBox2 disp_range;
+  try {
+    disp_range = get_disparity_range(crop(disparity_map, box_div_2));
+  } catch ( std::exception &e ) {
+    // There are no good pixels available
+    return result;
   }
-
-  // No need for try catch on disparity range, because subdivide_bboxes 
-  // should only be called for valid subregions
-  BBox2 disp_range = get_disparity_range(crop(disparity_map, box));
-  bool bad_range = (disp_range.width()+1) * (disp_range.height()+1) > 4;
-  
-  BBox2i subbox1 = box, subbox2 = box;
-  if (box.width() > box.height()) {
-    subbox1.max().x() = box.min().x() + box.width()/2;
-    subbox2.min().x() = box.min().x() + box.width()/2;
+  if (disp_range.width()*disp_range.height() <= 4 || 
+      (box.width() < m_min_subregion_dim && box.height() < m_min_subregion_dim)) {
+    // The bounding box is small enough.
+    result.push_back(box);
+    return result;
   } else {
-    subbox1.max().y() = box.min().y() + box.height()/2;
-    subbox2.min().y() = box.min().y() + box.height()/2;
-  }
+    BBox2i subbox1 = box, subbox2 = box;
+    if (box.width() > box.height()) {
+      subbox1.max().x() = box.min().x() + box.width()/2;
+      subbox2.min().x() = box.min().x() + box.width()/2;
+    } else {
+      subbox1.max().y() = box.min().y() + box.height()/2;
+      subbox2.min().y() = box.min().y() + box.height()/2;
+    }
 
-  bool good_size = subbox1.width() > m_min_subregion_dim && subbox1.height() > m_min_subregion_dim;
-  bool good_subregion = is_good_subregion(disparity_map, dmask, subbox1) && is_good_subregion(disparity_map, dmask, subbox2);
-  bool kill_invalid = count_valid_pixels(crop(create_mask(dmask), subbox1)) == 0 || count_valid_pixels(crop(create_mask(dmask), subbox2)) == 0;
-  
-  if (kill_invalid || (bad_range && good_size && good_subregion)) {
-    std::vector<BBox2i> r = subdivide_bboxes(disparity_map, dmask, subbox1);
-    std::vector<BBox2i> l = subdivide_bboxes(disparity_map, dmask, subbox2);
-    r.insert(r.end(), l.begin(), l.end());
-    return r;
+    result = subdivide_bboxes(disparity_map, subbox1);
+    std::vector<BBox2i> l2 = subdivide_bboxes(disparity_map, subbox2);
+    result.insert(result.end(), l2.begin(), l2.end());
+    return result;
   }
-  
-  std::vector<vw::BBox2i> result;
-  result.push_back(box);
-  return result;
 }
 
 void draw_bbox(ImageView<PixelRGB<float> > &view, BBox2i const& bbox) {
@@ -138,20 +135,64 @@ BBox2 PyramidCorrelator::compute_matching_blocks(BBox2i const& nominal_block, BB
 //  the higher level of resolution.
 std::vector<BBox2>
 PyramidCorrelator::compute_search_ranges(ImageView<PixelMask<Vector2f> > const& prev_disparity_map,
-                                         ImageView<uint8> const& dmask,
-                                         std::vector<BBox2i> const& nominal_blocks,
-                                         BBox2i const& default_search_range) {
+                                         std::vector<BBox2i> const& nominal_blocks) {
   std::vector<BBox2> search_ranges(nominal_blocks.size());
+  std::vector<bool> is_good(nominal_blocks.size());
 
-  for (unsigned i = 0; i < nominal_blocks.size(); i++) {
-    if (is_good_subregion(prev_disparity_map, dmask, nominal_blocks[i])) {
-      // get disparity range should never throw when is_good_subregion is true
-      search_ranges[i] = get_disparity_range(crop(prev_disparity_map, nominal_blocks[i]));
-      search_ranges[i].expand(2);
+  // Step 1: compute the search ranges from the disparity map.
+  for (unsigned i = 0; i < nominal_blocks.size(); ++i) {
+    ImageViewRef<PixelMask<Vector2f> > crop_disparity = crop(prev_disparity_map,(nominal_blocks[i])/2);
+    if (count_valid_pixels(crop_disparity) > 20 * 20) {
+      search_ranges[i] = get_disparity_range(crop_disparity);
+      is_good[i]=true;
     } else {
-      search_ranges[i] = default_search_range;
+      // Not enough good pixels available
+      search_ranges[i] = BBox2i(0, 0, 0, 0);
+      is_good[i]=false;
     }
   }
+
+  // Step 2: adjust the search range or fix it if it came from a
+  // block with zero valid pixels.
+  std::list<unsigned> was_corrected;
+  for (unsigned r = 0; r < nominal_blocks.size(); ++r) {
+
+    // Pick a reasonable search range based on neighboring tiles rather
+    // than skipping out entirely here.
+    if ( !is_good[r] ) {
+      // Find adjancent tiles and use the search ranges of adjacent
+      // tiles to seed us with a reasonable search range of our own.
+      //
+      // To do this test, we expand this block by 1 pixel in every
+      // direction and then test for intersections with other blocks.
+      BBox2i this_bbox = nominal_blocks[r];
+      this_bbox.expand(1);
+      bool found_one_match = false;
+      for (unsigned b = 0; b < nominal_blocks.size(); ++b)
+        if ( is_good[b] && this_bbox.intersects(nominal_blocks[b])) {
+          if (found_one_match) {
+            search_ranges[r].grow(search_ranges[b]);
+          } else {
+            found_one_match = true;
+            was_corrected.push_back( r );
+            search_ranges[r] = search_ranges[b];
+          }
+        }
+    }
+  }
+
+  // Step 2 1/2: Mark good the search ranges that have been corrected
+  for ( std::list<unsigned>::const_iterator iter = was_corrected.begin();
+        iter != was_corrected.end(); iter++ )
+    is_good[*iter] = true;
+
+  // Step 3: scale up the search range for the next pyramid
+  // level and pad it here.
+  for (unsigned r = 0; r < nominal_blocks.size(); ++r)
+    if ( is_good[r] ) {
+      search_ranges[r] *= 2;
+      search_ranges[r].expand(2);
+    }
 
   return search_ranges;
 }
