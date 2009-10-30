@@ -43,14 +43,17 @@ int mod_plate_callback(request_rec *r);
 
 /* The sample content handler */
 static int plate_handler(request_rec *r) {
-  return mod_plate_callback(r);
+  r->content_type = "text/plain";      
+  ap_rprintf(r, "hello there, bitches\n");
+  return OK;
+  //  return mod_plate_callback(r);
 }
 
 static void plate_register_hooks(apr_pool_t *p)
 {
   // TODO: Move this to a better spot.  This is probably not the best
   // place to call mod_plate_init();
-  mod_plate_init();
+  //  mod_plate_init();
   ap_hook_handler(plate_handler, NULL, NULL, APR_HOOK_MIDDLE);
 }
 

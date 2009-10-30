@@ -33,7 +33,7 @@ int image_handler(request_rec *r,
 
   // --------------  Access Plate Index -----------------
   
-  std::string plate_filename = "/tmp/TrueMarble.16km.2700x1350.plate";
+  std::string plate_filename = "/tmp/TrueMarble.16km.2700x1350_toast.plate";
   std::string index_filename = plate_filename + "/plate.index";
 
   IndexRecord idx_record;
@@ -121,53 +121,58 @@ extern "C" void mod_plate_destroy() {
 
 extern "C" int mod_plate_callback(request_rec *r) {
 
-  if (r->header_only) return OK;
+  r->content_type = "text/plain";      
+  ap_rprintf(r, "hello there\n");
+  return OK;
+ 
+  // if (r->header_only) return OK;
 
-  // First, we do a little bit of trimming to get rid of any
-  // front-slashes that are leading or trailing the path_info.
-  std::string path_info = r->path_info;
-  int start = 0, end = path_info.size();
-  if (path_info[start] == '/')
-      ++start;
-  std::string trimmed_path_info = path_info.substr(start, end-start);
 
-  // --------------  Parse the URL String -----------------
+  // // First, we do a little bit of trimming to get rid of any
+  // // front-slashes that are leading or trailing the path_info.
+  // std::string path_info = r->path_info;
+  // int start = 0, end = path_info.size();
+  // if (path_info[start] == '/')
+  //     ++start;
+  // std::string trimmed_path_info = path_info.substr(start, end-start);
 
-  // Split the path into tokens
-  std::vector<std::string> path_tokens;
-  boost::split( path_tokens, trimmed_path_info, boost::is_any_of("/") );
+  // // --------------  Parse the URL String -----------------
 
-  if (path_tokens.size() == 3) {        // Image Query [level, col, row]
+  // // Split the path into tokens
+  // std::vector<std::string> path_tokens;
+  // boost::split( path_tokens, trimmed_path_info, boost::is_any_of("/") );
+
+  // if (path_tokens.size() == 3) {        // Image Query [level, col, row]
     
-    // Split the final element into [ row, file_suffix ]
-    std::vector<std::string> final_tokens;
-    boost::split( final_tokens, 
-                  path_tokens[path_tokens.size()-1], boost::is_any_of(".") );
-    if (final_tokens.size() != 2) 
-      return error_handler(r, "Error parsing file type.  Expected an image.");
+  //   // Split the final element into [ row, file_suffix ]
+  //   std::vector<std::string> final_tokens;
+  //   boost::split( final_tokens, 
+  //                 path_tokens[path_tokens.size()-1], boost::is_any_of(".") );
+  //   if (final_tokens.size() != 2) 
+  //     return error_handler(r, "Error parsing file type.  Expected an image.");
 
 
-    // Parse the tokens
-    int depth = atoi(path_tokens[0].c_str());
-    int col = atoi(path_tokens[1].c_str());
-    int row = atoi(final_tokens[0].c_str());
-    std::string file_suffix = final_tokens[1];
-    return image_handler(r, col, row, depth, file_suffix);
+  //   // Parse the tokens
+  //   int depth = atoi(path_tokens[0].c_str());
+  //   int col = atoi(path_tokens[1].c_str());
+  //   int row = atoi(final_tokens[0].c_str());
+  //   std::string file_suffix = final_tokens[1];
+  //   return image_handler(r, col, row, depth, file_suffix);
     
-  } else if (path_tokens.size() == 1) { // WTML query
+  // } else if (path_tokens.size() == 1) { // WTML query
 
-    // Split the element into [ name, file_suffix ]
-    std::vector<std::string> final_tokens;
-    boost::split( final_tokens, 
-                  path_tokens[0], boost::is_any_of(".") );
-    if (final_tokens.size() != 2 || final_tokens[1] != "wtml")
-      return error_handler(r, "Error parsing file type. Expected a query for WTML file.\n");
+  //   // Split the element into [ name, file_suffix ]
+  //   std::vector<std::string> final_tokens;
+  //   boost::split( final_tokens, 
+  //                 path_tokens[0], boost::is_any_of(".") );
+  //   if (final_tokens.size() != 2 || final_tokens[1] != "wtml")
+  //     return error_handler(r, "Error parsing file type. Expected a query for WTML file.\n");
 
-    return wtml_handler(r, path_tokens[0]);
+  //   return wtml_handler(r, path_tokens[0]);
 
-  } else {                              // Invalid query
-    return error_handler(r, "Path must have 3 or 1 tokens.\n");
-  }
+  // } else {                              // Invalid query
+  //   return error_handler(r, "Path must have 3 or 1 tokens.\n");
+  // }
 }
 
 

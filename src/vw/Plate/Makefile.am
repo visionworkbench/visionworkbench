@@ -36,19 +36,23 @@ endif
 # ----------------
 #  mod_plate
 # ----------------
-#mod_plate_io.o:
-#	$(CXX) -I/opt/local/include/apr-1 -I$(APXS_INCLUDEDIR) @VW_CPPFLAGS@ -c mod_plate_io.cc
-
-
 if MAKE_MODPLATE
+
+#mod_plate_io.o:
+#	glibtool --mode=compile --tag=CXX $(CXX) -I/opt/local/include/apr-1 -I$(APXS_INCLUDEDIR) @VW_CPPFLAGS@ -c mod_plate_io.cc
+
+#mod_plate.la: mod_plate_io.o
+#	$(APXS) -c mod_plate.c @PKG_PLATE_LIBS@ mod_plate_io.o
+
+
 
 mod_plate_la_SOURCES = mod_plate.c mod_plate_io.cc
 mod_plate_la_CPPFLAGS = -I/opt/local/include/apr-1 -I$(APXS_INCLUDEDIR) @VW_CPPFLAGS@
-mod_plate_la_LDFLAGS = @MODULE_PLATE_LIBS@ -module
+mod_plate_la_LDFLAGS = @PKG_PLATE_LIBS@ -module
 lib_LTLIBRARIES += mod_plate.la
 
 apxs_install:
-	sudo $(APXS) -i mod_plate.la
+	sudo /opt/local/apache2/bin/apxs -i mod_plate.la
 
 endif
 
