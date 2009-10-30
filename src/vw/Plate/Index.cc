@@ -65,8 +65,8 @@ void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files
   std::cout << "Loading index\n";
 
   for (unsigned int i = 0; i < blob_files.size(); ++i) {
-    this->log() << "Loading index entries from blob file: " 
-                << m_plate_filename << "/" << blob_files[i] << "\n";
+    // this->log() << "Loading index entries from blob file: " 
+    //             << m_plate_filename << "/" << blob_files[i] << "\n";
     
     
     TerminalProgressCallback tpc(InfoMessage, "\t--> " + blob_files[i] + " : ");
@@ -82,7 +82,7 @@ void vw::platefile::Index::load_index(std::vector<std::string> const& blob_files
     std::string blob_id_str(matches[2].first, matches[2].second);
     int current_blob_id = atoi(blob_id_str.c_str());
     
-    Blob blob(m_plate_filename + "/" + blob_files[i]);
+    Blob blob(m_plate_filename + "/" + blob_files[i], true);
     Blob::iterator iter = blob.begin();
     while (iter != blob.end()) {
       TileHeader hdr = *iter;
@@ -165,10 +165,10 @@ vw::platefile::Index::Index(std::string plate_filename) :
   ifstr.close();
 
   // Create the logging facility
-  m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );
+  // m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );
 
-  this->log() << "Reopened index \"" << this->index_filename() << "\n"
-              << m_header.DebugString() << "\n";
+  // this->log() << "Reopened index \"" << this->index_filename() << "\n"
+  //             << m_header.DebugString() << "\n";
 
   // Load the actual index data
   std::vector<std::string> blob_files = this->blob_filenames();
@@ -180,6 +180,8 @@ vw::platefile::Index::Index(std::string plate_filename) :
 ///   index_instance.log() << "some text for the log...\n";
 ///
 std::ostream& vw::platefile::Index::log () {
+  if (!m_log)
+    vw_throw(LogicErr() << "Index::log() - attempted to write to log when the log wasn\'t open.");
   return (*m_log)(InfoMessage, "console");
 }
 

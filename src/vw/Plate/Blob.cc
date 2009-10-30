@@ -27,24 +27,32 @@ using namespace vw;
 // -------------------------------------------------------------------
 
 // Constructor stores the blob filename for reading & writing
-vw::platefile::Blob::Blob(std::string filename) : m_blob_filename(filename) {
+vw::platefile::Blob::Blob(std::string filename, bool readonly) : m_blob_filename(filename) {
 
   // This is an ugly hack, but it appears that with some versions of
   // glibc, it is not possible to CREATE a file at the same time as
   // you open it for reading and writing.  Instead, we open it for
   // writing here, creating it if necessary, then close and reopen it.
   // Blech.
-  std::fstream temporary_stream(m_blob_filename.c_str(),
-                                std::ios::out | std::ios::app);  
-  if (!temporary_stream.is_open()) {
-    std::cout << "Blob file could not be created!\n";
-    vw_throw(IOErr() << "Blob::Blob(): could not create blob file \"" << m_blob_filename << "\".");
+  if (!readonly) {
+    std::fstream temporary_stream(m_blob_filename.c_str(),
+                                  std::ios::out | std::ios::app);  
+    if (!temporary_stream.is_open()) {
+      std::cout << "Blob file could not be created!\n";
+      vw_throw(IOErr() << "Blob::Blob(): could not create blob file \"" << m_blob_filename << "\".");
+    }
+    temporary_stream.close();
   }
-  temporary_stream.close();
 
   // Now we open the file for real.
-  m_fstream.reset(new std::fstream(m_blob_filename.c_str(), 
-                                   std::ios::in | std::ios::out | std::ios::binary));
+  if (readonly) {
+    m_fstream.reset(new std::fstream(m_blob_filename.c_str(), 
+                                     std::ios::in | std::ios::binary));
+  } else {
+    m_fstream.reset(new std::fstream(m_blob_filename.c_str(), 
+                                     std::ios::in | std::ios::out | std::ios::binary));
+  }
+
   if (!m_fstream->is_open()) {
     std::cout << "Blob file is not open!\n";
     vw_throw(IOErr() << "Blob::Blob(): could not open blob file \"" << m_blob_filename << "\".");

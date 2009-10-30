@@ -14,7 +14,7 @@
 using namespace vw;
 using namespace vw::platefile;
 
-#define MODPLATE_DEBUG 0
+#define MODPLATE_DEBUG 1
 
 // -------------------------- Query Handlers ----------------------------
 
@@ -33,22 +33,22 @@ int image_handler(request_rec *r,
 
   // --------------  Access Plate Index -----------------
   
-  std::string plate_filename = "/tmp/TrueMarble.16km.2700x1350_toast.plate";
-  std::string index_filename = plate_filename + "/plate.index";
+  std::string plate_filename = "/big/www/htdocs/platefiles/TrueMarble.16km.2700x1350_toast.plate";
 
   IndexRecord idx_record;
   try {
-    platefile::Index idx(index_filename);
+    platefile::Index idx(plate_filename);
     idx_record = idx.read_request(col,row,depth);
     // For debugging:
     // r->content_type = "text/html";      
     // ap_rprintf(r, "<p>Index Version: %d.</p>\n", idx.version());
     // ap_rprintf(r, "<p>Index Max depth: %d.</p>\n", idx.version());
-    // ap_rprintf(r, "<p>Index Record (%d):</p>", idx_record.valid()); 
+    // ap_rprintf(r, "<p>Index Record (%d):</p>", idx_record.status()); 
+    // ap_rprintf(r, "<p>Index Record (%d):</p>", idx_record.status() != INDEX_RECORD_VALID); 
     // ap_rprintf(r, "<p>  Blob ID: %d</p>", idx_record.blob_id()); 
     // ap_rprintf(r, "<p>  Blob Offset: %d</p>", int(idx_record.blob_offset())); 
     // ap_rprintf(r, "<p>  Tile Size: %d</p>", idx_record.tile_size()); 
-    // ap_rprintf(r, "<p>  Blob File Type: %s</p>", idx_record.tile_filetype().c_str());
+    // //       ap_rprintf(r, "<p>  Blob File Type: %s</p>", idx_record.tile_filetype().c_str());
     // return OK;
     
   } catch(vw::Exception &e) {
@@ -59,7 +59,7 @@ int image_handler(request_rec *r,
 
   // ---------------- Return the image ------------------
 
-  if (!idx_record.status() != INDEX_RECORD_VALID)
+  if (idx_record.status() != INDEX_RECORD_VALID)
     return error_handler(r, "Error: the index record was not valid.");
     
   try {
@@ -70,24 +70,16 @@ int image_handler(request_rec *r,
     ostr << plate_filename << "/plate_" << idx_record.blob_id() << ".blob";
     std::string blob_filename = ostr.str();
 
-    // Open the file and compute its size.
-    std::ifstream f(blob_filename.c_str(), std::ios::binary);
-    if (!f.good())
-      return error_handler(r, "The blob file could not be opened.\n");
+    // Open the blob file and read the data.
+    Blob blob(blob_filename, true);
+    boost::shared_array<uint8> data = blob.read_data(idx_record.blob_offset());
 
-    // Seek to the proper spot, create a new array to store the data,
-    // and read in the data.
-    f.seekg(idx_record.blob_offset(), std::ios_base::beg);
-    boost::shared_array<char> data(new char[idx_record.tile_size()]);
-    
     // Read in the data and send it over the web connection.  TODO:
     // This is probably not as fast as memory mapping the blob file,
     // so this could probably be sped up.
-    f.read(data.get(), idx_record.tile_size());
     r->content_type = "image/png";      
     ap_rwrite(data.get(), idx_record.tile_size(), r);
-    f.close();
-
+    return OK;
   } catch (Exception &e) {
     return error_handler(r, "An unknown error occured.");
   }
@@ -121,58 +113,61 @@ extern "C" void mod_plate_destroy() {
 
 extern "C" int mod_plate_callback(request_rec *r) {
 
-  r->content_type = "text/plain";      
-  ap_rprintf(r, "hello there\n");
-  return OK;
- 
-  // if (r->header_only) return OK;
+  if (r->header_only) return OK;
 
+  // First, we do a little bit of trimming to get rid of any
+  // front-slashes that are leading or trailing the path_info.
+  std::string path_info = r->path_info;
+  if (path_info.size() == 0) 
+    return DECLINED;
 
-  // // First, we do a little bit of trimming to get rid of any
-  // // front-slashes that are leading or trailing the path_info.
-  // std::string path_info = r->path_info;
-  // int start = 0, end = path_info.size();
-  // if (path_info[start] == '/')
-  //     ++start;
-  // std::string trimmed_path_info = path_info.substr(start, end-start);
+  int start = 0, end = path_info.size();
+  if (path_info[start] == '/')
+      ++start;
+  std::string trimmed_path_info = path_info.substr(start, end-start);
 
-  // // --------------  Parse the URL String -----------------
+  // --------------  Parse the URL String -----------------
 
-  // // Split the path into tokens
-  // std::vector<std::string> path_tokens;
-  // boost::split( path_tokens, trimmed_path_info, boost::is_any_of("/") );
+  // Split the path into tokens
+  std::vector<std::string> path_tokens;
+  boost::split( path_tokens, trimmed_path_info, boost::is_any_of("/") );
 
-  // if (path_tokens.size() == 3) {        // Image Query [level, col, row]
+  // r->content_type = "text/plain";      
+  // ap_rprintf(r, "path info: %d\n", path_tokens.size());
+  // return OK;
+
+  // Image Query [level, col, row]
+  if (path_tokens.size() == 3 && path_tokens[path_tokens.size()-1].size() != 0) {        
     
-  //   // Split the final element into [ row, file_suffix ]
-  //   std::vector<std::string> final_tokens;
-  //   boost::split( final_tokens, 
-  //                 path_tokens[path_tokens.size()-1], boost::is_any_of(".") );
-  //   if (final_tokens.size() != 2) 
-  //     return error_handler(r, "Error parsing file type.  Expected an image.");
+    // Split the final element into [ row, file_suffix ]
+    std::vector<std::string> final_tokens;
+    boost::split( final_tokens, 
+                  path_tokens[path_tokens.size()-1], boost::is_any_of(".") );
+    if (final_tokens.size() != 2) 
+      return error_handler(r, "Error parsing file type.  Expected an image.");
 
-
-  //   // Parse the tokens
-  //   int depth = atoi(path_tokens[0].c_str());
-  //   int col = atoi(path_tokens[1].c_str());
-  //   int row = atoi(final_tokens[0].c_str());
-  //   std::string file_suffix = final_tokens[1];
-  //   return image_handler(r, col, row, depth, file_suffix);
+    // Parse the tokens
+    int depth = atoi(path_tokens[0].c_str());
+    int col = atoi(path_tokens[1].c_str());
+    int row = atoi(final_tokens[0].c_str());
+    std::string file_suffix = final_tokens[1];
+    return image_handler(r, col, row, depth, file_suffix);
     
-  // } else if (path_tokens.size() == 1) { // WTML query
+  // WTML query
+  } else if (path_tokens.size() == 1 && path_tokens[0].size() != 0) {
 
-  //   // Split the element into [ name, file_suffix ]
-  //   std::vector<std::string> final_tokens;
-  //   boost::split( final_tokens, 
-  //                 path_tokens[0], boost::is_any_of(".") );
-  //   if (final_tokens.size() != 2 || final_tokens[1] != "wtml")
-  //     return error_handler(r, "Error parsing file type. Expected a query for WTML file.\n");
+    // Split the element into [ name, file_suffix ]
+    std::vector<std::string> final_tokens;
+    boost::split( final_tokens, 
+                  path_tokens[0], boost::is_any_of(".") );
+    if (final_tokens.size() != 2 || final_tokens[1] != "wtml")
+      return error_handler(r, "Error parsing file type. Expected a query for WTML file.\n");
 
-  //   return wtml_handler(r, path_tokens[0]);
+    return wtml_handler(r, path_tokens[0]);
 
-  // } else {                              // Invalid query
-  //   return error_handler(r, "Path must have 3 or 1 tokens.\n");
-  // }
+  } else {                              // Invalid query
+    return error_handler(r, "Path must have 3 or 1 tokens.\n");
+  }
 }
 
 

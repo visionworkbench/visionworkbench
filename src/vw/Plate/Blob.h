@@ -136,7 +136,7 @@ namespace platefile {
 
 
     /// Constructor
-    Blob(std::string filename);
+    Blob(std::string filename, bool readonly = false);
 
     /// The destructor flushes any unwritten journal entries and
     /// closes the blob and journal files.

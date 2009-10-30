@@ -47,12 +47,12 @@ if MAKE_MODPLATE
 
 
 mod_plate_la_SOURCES = mod_plate.c mod_plate_io.cc
-mod_plate_la_CPPFLAGS = -I/opt/local/include/apr-1 -I$(APXS_INCLUDEDIR) @VW_CPPFLAGS@
+mod_plate_la_CPPFLAGS = $(APXS_CFLAGS) -I$(APXS_INCLUDEDIR) @VW_CPPFLAGS@
 mod_plate_la_LDFLAGS = @PKG_PLATE_LIBS@ -module
 lib_LTLIBRARIES += mod_plate.la
 
 apxs_install:
-	sudo /opt/local/apache2/bin/apxs -i mod_plate.la
+	sudo $(APXS) -i mod_plate.la
 
 endif
 
