@@ -71,7 +71,14 @@ class GlPreviewWidget : public QGLWidget, public CachedTextureRenderer {
 public:
 
   // Constructors/Destructor
-  GlPreviewWidget(QWidget *parent) : QGLWidget(parent) {
+  GlPreviewWidget(QWidget *parent, QGLFormat const& frmt) : 
+    QGLWidget(frmt, parent) {
+
+     if (!format().sampleBuffers())
+       std::cout << "\n\nCould not activate FSAA; results will be suboptimal\n\n";
+     if (!format().doubleBuffer())
+       std::cout << "\n\nCould not set double buffering; results will be suboptimal\n\n";
+
     setup();
   }
 

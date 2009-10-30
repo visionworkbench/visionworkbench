@@ -319,15 +319,16 @@ void GlPreviewWidget::rebind_textures() {
   m_gl_texture_cache.reset(new GlTextureCache());
 
   // The GPU has limited VRAM, so any one texture must be limited in
-  // size.  We query the GPU for its max texture size here, and choose
-  // a final texture size that is 1/4 this size.  (This leaves ample
-  // room for use to store GL_RGBA16F_ARB (16-bit float) images on the
-  // GPU.)
+  // size.  We can query the GPU for its max texture size here, and
+  // choose a final texture size that is 1/4 this size.  (This leaves
+  // ample room for use to store GL_RGBA16F_ARB (16-bit float) images
+  // on the GPU.)  
   // GLint texSize; 
   // glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texSize);
   m_bboxes = vw::image_blocks(*m_image_rsrc, 512, 512);
   
-  // Compute the max lod we need to view this image in a "standard small viewport" of 1024x1024 pixels.
+  // Compute the max lod we need to view this image in a "standard
+  // small viewport" of 1024x1024 pixels.
   int max_lod = std::max(int((log((m_image_rsrc->cols()/512))/log(2.0))),
                          int((log((m_image_rsrc->rows()/512))/log(2.0))) );
 
@@ -450,7 +451,7 @@ void GlPreviewWidget::drawImage() {
       // generated so that it is available at some point in the
       // future. will be generated if necessary. Note that this
       // happens outside the m_gl_mutex to avoid deadlock.
-      GLuint texture_id = m_gl_texture_cache->get_texture_id(m_bboxes[i], lod);
+      GLuint texture_id;// = m_gl_texture_cache->get_texture_id(m_bboxes[i], lod);
 
       // execute the CUDA filter, writing results to pbo
       //float *image_ptr;
@@ -466,7 +467,8 @@ void GlPreviewWidget::drawImage() {
       //                 GL_RGBA, GL_FLOAT, 0);
       // glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
-      if (texture_id) {
+      if (0) {
+        //      if (texture_id) {
         glUseProgram(m_glsl_program);
 
         // Enable texturing and bind the texture ID

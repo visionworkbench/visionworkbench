@@ -81,11 +81,11 @@ namespace platefile {
       BBox2i aligned_level_bbox = level_bbox;
       aligned_level_bbox.min() = ( (level_bbox.min() / m_platefile->default_tile_size()) 
                                   * m_platefile->default_tile_size() );
-      aligned_level_bbox.max().x() = ( ceilf( float(level_bbox.max().x()) / 
-                                              m_platefile->default_tile_size() ) 
+      aligned_level_bbox.max().x() = ( int(ceilf( float(level_bbox.max().x()) / 
+                                                  m_platefile->default_tile_size() )) 
                                        * m_platefile->default_tile_size() );
-      aligned_level_bbox.max().y() = ( ceilf( float(level_bbox.max().y()) / 
-                                              m_platefile->default_tile_size() )
+      aligned_level_bbox.max().y() = ( int(ceilf( float(level_bbox.max().y()) / 
+                                                  m_platefile->default_tile_size() ))
                                        * m_platefile->default_tile_size() );
 
       //      std::cout << "\tAligned bbox: " << aligned_level_bbox << "\n";

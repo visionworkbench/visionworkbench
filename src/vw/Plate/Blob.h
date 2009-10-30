@@ -72,6 +72,11 @@ namespace platefile {
       return blob_record;
     }
 
+    // Enforce uncopyable semantics
+    Blob( Blob const& ) {}
+    Blob& operator=( Blob const& ) {}
+    
+
   public:
 
     // ------------------------ Blob Iterator ------------------------------

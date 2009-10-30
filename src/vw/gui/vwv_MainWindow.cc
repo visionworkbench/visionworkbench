@@ -34,8 +34,15 @@ MainWindow::MainWindow(std::string input_filename, float nodata_value, bool do_n
   std::string window_title = "Vision Workbench Viewer : " + m_filename;
   this->setWindowTitle(window_title.c_str());
 
+  // Set up OpenGL context parameters
+  QGLFormat gl_frmt = QGLFormat::defaultFormat();
+  gl_frmt.setSampleBuffers(true);
+  gl_frmt.setSamples(16);
+  gl_frmt.setDoubleBuffer(true);
+  gl_frmt.setSwapInterval(1);
+
   // Set up GlPreviewWidget
-  m_preview_widget = new GlPreviewWidget(this);
+  m_preview_widget = new GlPreviewWidget(this, gl_frmt);
   setCentralWidget(m_preview_widget);
 
   vw::DiskImageView<float> image(m_filename);

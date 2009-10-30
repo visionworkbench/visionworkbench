@@ -9,6 +9,8 @@
 # sources
 ########################################################################
 
+lib_LTLIBRARIES =
+
 if MAKE_MODULE_PLATE
 
 protocol_headers = ProtoBuffers.pb.h 
@@ -27,7 +29,26 @@ nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 
 libvwPlate_la_LIBADD = @MODULE_PLATE_LIBS@
 
-lib_LTLIBRARIES = libvwPlate.la
+lib_LTLIBRARIES += libvwPlate.la 
+
+endif 
+
+# ----------------
+#  mod_plate
+# ----------------
+#mod_plate_io.o:
+#	$(CXX) -I/opt/local/include/apr-1 -I$(APXS_INCLUDEDIR) @VW_CPPFLAGS@ -c mod_plate_io.cc
+
+
+if MAKE_MODPLATE
+
+mod_plate_la_SOURCES = mod_plate.c mod_plate_io.cc
+mod_plate_la_CPPFLAGS = -I/opt/local/include/apr-1 -I$(APXS_INCLUDEDIR) @VW_CPPFLAGS@
+mod_plate_la_LDFLAGS = @MODULE_PLATE_LIBS@ -module
+lib_LTLIBRARIES += mod_plate.la
+
+apxs_install:
+	sudo $(APXS) -i mod_plate.la
 
 endif
 
@@ -42,16 +63,17 @@ plateindex_server_LDADD    = @PKG_PLATE_LIBS@ libvwPlate.la
 image2plate_SOURCES = image2plate.cc
 image2plate_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@ 
 
-plate2qtree_SOURCES = plate2qtree.cc
-plate2qtree_LDADD    = @PKG_PLATE_LIBS@ 
-
 plate2tiles_SOURCES = plate2tiles.cc
-plate2tiles_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_PLATE_LIBS@ 
+plate2tiles_LDADD    = @PKG_PLATE_LIBS@ 
 
-bin_PROGRAMS = plate2tiles plate2qtree image2plate  mosaic_worker plateindex_server
+plate2dem_SOURCES = plate2dem.cc
+plate2dem_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_PLATE_LIBS@ 
+
+bin_PROGRAMS = plate2dem plate2tiles image2plate  mosaic_worker plateindex_server
 noinst_PROGRAMS = 
 
 endif
+
 
 ########################################################################
 # general

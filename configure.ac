@@ -108,6 +108,17 @@ fi
 AC_CHECK_PROGS(LCOV, lcov, false)
 AC_CHECK_PROGS(GENHTML, genhtml, false)
 
+# Check for the Apache Extension Tool
+AC_CHECK_PROGS(APXS, apxs2 apxs, false)
+if test "$APXS" != "false"; then
+   APXS_CFLAGS="`$APXS -q CFLAGS`"
+   APXS_LDFLAGS="`$APXS -q LDFLAGS`"
+   APXS_INCLUDEDIR="`$APXS -q INCLUDEDIR`"
+   AC_SUBST(APXS_CFLAGS)
+   AC_SUBST(APXS_LDFLAGS)
+   AC_SUBST(APXS_INCLUDEDIR)
+fi
+AM_CONDITIONAL(MAKE_MODPLATE, [test "APXS" != "false"])
 
 
 ##################################################
