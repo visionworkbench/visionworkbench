@@ -83,6 +83,18 @@ namespace platefile {
     virtual PixelFormatEnum pixel_format() const;
     virtual ChannelTypeEnum channel_type() const;
 
+    // --------------------- TRANSACTIONS ------------------------
+
+    // Clients are expected to make a transaction request whenever
+    // they start a self-contained chunk of mosaicking work.  .
+    virtual int32 transaction_request(std::string transaction_description);
+
+    // Once a chunk of work is complete, clients can "commit" their
+    // work to the mosaic by issuding a transaction_complete method.
+    virtual void transaction_complete(int32 transaction_id);
+
+    virtual int32 transaction_cursor();
+
   };
 
 }} // namespace vw::plate

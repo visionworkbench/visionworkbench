@@ -137,28 +137,27 @@ message IndexDepthRequest {
 // ----------------------------------
 
 message IndexError {
-  required string message = 10;
+  required string message = 1;
 }
 
 message IndexOpenReply {
-  required int32 platefile_id = 10;
-  required int32 secret = 11;
-  required IndexHeader index_header = 12;
+  required int32 platefile_id = 1;
+  required int32 secret = 2;
 }
 
 message IndexReadReply {
-  required IndexRecord index_record = 10;
+  required IndexRecord index_record = 1;
 }
 
 message IndexSuccess {
-  optional string message = 10;
+  optional string message = 1;
 }
 
 message IndexWriteReply {
-  required int32 blob_id = 10;
+  required int32 blob_id = 1;
 }
 
 message IndexDepthReply {
-  required int32 depth = 10;
+  required int32 depth = 1;
 }
 

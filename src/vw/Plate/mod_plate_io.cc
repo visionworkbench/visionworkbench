@@ -1,14 +1,22 @@
-#include <vw/Plate/Index.h>
+
+// Vision Workbench
+#include <vw/Plate/RemoteIndex.h>
 #include <vw/Plate/PlateFile.h>
+
+// Apache and the Apache Runtime
 #include "httpd.h"
 #include "http_config.h"
 #include "http_protocol.h"
 #include "ap_config.h"
 #include "http_core.h"
+
+// STL
 #include <iostream>
 #include <fstream>
 #include <string>
 #include <vector>
+
+// Boost
 #include <boost/algorithm/string.hpp>
 
 using namespace vw;
@@ -37,7 +45,7 @@ int image_handler(request_rec *r,
 
   IndexRecord idx_record;
   try {
-    platefile::Index idx(plate_filename);
+    platefile::RemoteIndex idx(plate_filename, "foobar");
     idx_record = idx.read_request(col,row,depth);
     // For debugging:
     // r->content_type = "text/html";      

@@ -28,7 +28,6 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& platefile, std::strin
   IndexOpenReply r = wait_for_response<IndexOpenReply>(m_queue_name + ".index_open_reply");
   m_platefile_id = r.platefile_id();
   m_secret = r.secret();
-  m_index_header = r.index_header();
   vw_out(InfoMessage, "plate") << "Opened remote platefile \"" << platefile 
                                << "\"   ID: " << m_platefile_id << "  Secret: " 
                                << m_secret << "\n";
@@ -91,7 +90,8 @@ void vw::platefile::RemoteIndex::write_complete(TileHeader const& header, IndexR
   
   
 vw::int32 vw::platefile::RemoteIndex::version() const { 
-  return m_index_header.platefile_version(); 
+  vw_throw(NoImplErr() << "version() not yet implemented.");
+  return 0;
 }
 
 vw::int32 vw::platefile::RemoteIndex::max_depth() const { 
@@ -110,20 +110,43 @@ std::string vw::platefile::RemoteIndex::platefile_name() const {
 }
 
 vw::int32 vw::platefile::RemoteIndex::default_tile_size() const { 
-  return m_index_header.default_tile_size(); 
+  vw_throw(NoImplErr() << "default_tile_size() not yet implemented.");
+  return 0;
 }
 
 std::string vw::platefile::RemoteIndex::default_tile_filetype() const { 
-  return m_index_header.default_file_type(); 
+  vw_throw(NoImplErr() << "default_tile_filetype() not yet implemented.");
+  return "";
 }
 
 vw::PixelFormatEnum vw::platefile::RemoteIndex::pixel_format() const {
-  return vw::PixelFormatEnum(m_index_header.pixel_format()); 
+  vw_throw(NoImplErr() << "pixel_format() not yet implemented.");
+  return VW_PIXEL_GRAY;
 }
 
 vw::ChannelTypeEnum vw::platefile::RemoteIndex::channel_type() const {
-  return vw::ChannelTypeEnum(m_index_header.channel_type()); 
+  vw_throw(NoImplErr() << "channel_type() not yet implemented.");
+  return VW_CHANNEL_UINT8;
 }
 
+
+// --------------------- TRANSACTIONS ------------------------
+
+// Clients are expected to make a transaction request whenever
+// they start a self-contained chunk of mosaicking work.  .
+vw::int32 vw::platefile::RemoteIndex::transaction_request(std::string transaction_description) {
+  vw_throw(NoImplErr() << "transaction_request() not yet implemented.");
+  return 0;
+}
+// Once a chunk of work is complete, clients can "commit" their
+// work to the mosaic by issuding a transaction_complete method.
+void vw::platefile::RemoteIndex::transaction_complete(int32 transaction_id) {
+  vw_throw(NoImplErr() << "transaction_complete() not yet implemented.");
+}
+
+vw::int32 vw::platefile::RemoteIndex::transaction_cursor() {
+  vw_throw(NoImplErr() << "transaction_cursor() not yet implemented.");
+  return 0;
+}
 
 
