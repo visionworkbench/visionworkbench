@@ -14,9 +14,20 @@
 #include <vw/Core/Thread.h>
 #include <vw/Core/ProgressCallback.h>
 
+#include <boost/function.hpp>
+#include <boost/bind.hpp>
+#include <boost/algorithm/string.hpp>
+
 #include <gtest/gtest.h>
 
 using namespace vw;
+
+struct raii {
+  typedef boost::function<void (void)> FuncT;
+  FuncT m_leave;
+  raii(FuncT enter, FuncT leave) : m_leave(leave) {enter();};
+  ~raii() {m_leave();}
+};
 
 struct TestLogTask {
   bool m_terminate;
@@ -152,50 +163,119 @@ TEST(Log, MultiThreadLog) {
 }
 
 TEST(Log, SystemLog) {
+
+  std::ostringstream sstr;
+
+  raii fix(boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(sstr),      LogRuleSet(),  false),
+           boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(std::cout), LogRuleSet(), false));
+
   vw_log().console_log().rule_set().add_rule(vw::EveryMessage, "test");
 
   vw_out(0) << "\tTesting system log (first call)\n";
   vw_out(0,"test") << "\tTesting system log (second call)\n";
 
-  boost::shared_ptr<LogInstance> new_log(new LogInstance(std::cout));
+  boost::shared_ptr<LogInstance> new_log(new LogInstance(sstr));
   new_log->rule_set().add_rule(vw::EveryMessage, "test");
   vw_log().add(new_log);
   vw_out(0,"test") << "\tYou should see this message twice; once with the logging prefix and once without.\n";
 
   vw_log().clear();
   vw_out(0,"test") << "\tYou should see this message once.\n";
+
+  const std::string &out = sstr.str();
+  std::vector<std::string> lines;
+  boost::split(lines, out, boost::is_any_of("\n"));
+
+  EXPECT_EQ(6u, lines.size());
+  EXPECT_EQ("\tTesting system log (first call)", lines[0]);
+  EXPECT_EQ("\tTesting system log (second call)", lines[1]);
+
+  // Technically, these can arrive in any order, but in practice, it's the order the rules were added
+  EXPECT_EQ("\tYou should see this message twice; once with the logging prefix and once without.", lines[2]);
+
+  EXPECT_EQ("\tYou should see this message once.", lines[4]);
+  EXPECT_EQ("", lines[5]);
+
 }
 
 TEST(Log, ProgressCallback) {
+  std::ostringstream sstr;
+
+  raii fix(boost::bind(&vw::set_output_stream, boost::ref(sstr)),
+           boost::bind(&vw::set_output_stream, boost::ref(std::cout)));
+
   vw_out(0) << "\nTesting Logging with a progress callback\n";
   TerminalProgressCallback pc(vw::InfoMessage, "\tTesting: ");
   for (double i = 0; i < 1.0; i+=0.01) {
     pc.report_progress(i);
-    Thread::sleep_ms(10);
+    Thread::sleep_ms(0);
   }
   pc.report_finished();
+
+  const std::string &out = sstr.str();
+  EXPECT_GT(out.size(), 0u);
+  EXPECT_TRUE(boost::iends_with(out, std::string("\r\tTesting: [************************************************************] Complete!\n")));
 }
 
 TEST(Log, HiresProgressCallback) {
+  std::ostringstream sstr;
+
+  raii fix(boost::bind(&vw::set_output_stream, boost::ref(sstr)),
+           boost::bind(&vw::set_output_stream, boost::ref(std::cout)));
+
   vw_out(0) << "\nTesting Logging with a progress callback\n";
   TerminalProgressCallback pc(vw::InfoMessage, "\tTesting: ", 2);
   for (int i = 0; i < 10000; ++i) {
     pc.report_progress(i/10000.0);
     if (i % 50 == 0)
-      Thread::sleep_ms(10);
+      Thread::sleep_ms(0);
   }
   pc.report_finished();
+
+  const std::string &out = sstr.str();
+  EXPECT_GT(out.size(), 0u);
+  EXPECT_TRUE(boost::iends_with(out, std::string("\r\tTesting: [************************************************************] Complete!\n")));
 }
 
 TEST(Log, FlushAndNewline) {
-  std::ostringstream stream;
-  LogInstance log(stream);
+  std::ostringstream stream, end;
+  LogInstance log(stream, false);
 
-  log(0) << "\nTesting log termination operators.\n";
-  log(0) << "\tTesting log line terminated by std::flush..." << std::flush;
-  Thread::sleep_ms(1000);
-  log(0) << " done.\n";
-  log(0) << "\tTesting log line terminated by std::endl... done." << std::endl;
-  Thread::sleep_ms(1000);
-  log(0) << "Finished.\n";
+  // Capture the EOL character, since it differs per-platform
+  end << std::endl;
+
+  const std::string
+              s1("\nTesting log termination operators.\n"),
+              s2("\tTesting log line terminated by std::flush..."),
+              s3(" done.\n"),
+              s4("\tTesting log line terminated by std::endl... done."),
+              s5(end.str()),
+              s6("Finished.\n");
+
+  // Make sure a newline flushes
+  log(0) << s1;
+  EXPECT_EQ(s1, stream.str());
+
+  // Make sure no newline does not flush
+  log(0) << s2;
+  EXPECT_EQ(s1, stream.str());
+
+  // Explicit flush
+  log(0) << std::flush;
+  EXPECT_EQ(s1 + s2, stream.str());
+
+  // Another newline
+  log(0) << s3;
+  EXPECT_EQ(s1 + s2 + s3, stream.str());
+
+  // No newline again
+  log(0) << s4;
+  EXPECT_EQ(s1 + s2 + s3, stream.str());
+
+  // And try to flush with endl
+  log(0) << std::endl;
+  EXPECT_EQ(s1 + s2 + s3 + s4 + s5, stream.str());
+
+  log(0) << s6;
+  EXPECT_EQ(s1 + s2 + s3 + s4 + s5 + s6, stream.str());
 }
