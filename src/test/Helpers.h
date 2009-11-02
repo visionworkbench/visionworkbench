@@ -72,12 +72,12 @@ using namespace ::testing;
 
 
 template <typename ElemT>
-double value_diff(const ElemT& a, const ElemT& b) {
+inline double value_diff(const ElemT& a, const ElemT& b) {
   return std::fabs(a - b);
 }
 
 template <>
-double value_diff(const std::complex<double>& a, const std::complex<double>& b) {
+inline double value_diff(const std::complex<double>& a, const std::complex<double>& b) {
   return abs(a - b);
 }
 
