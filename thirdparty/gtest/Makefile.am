@@ -7,10 +7,13 @@ EXTRA_DIST = \
   CHANGES \
   CONTRIBUTORS \
   include/gtest/gtest-param-test.h.pump \
+  include/gtest/internal/gtest-tuple.h.pump \
   include/gtest/internal/gtest-type-util.h.pump \
   include/gtest/internal/gtest-param-util-generated.h.pump \
   make/Makefile \
   scons/SConscript \
+  scons/SConstruct \
+  scons/SConstruct.common \
   scripts/fuse_gtest_files.py \
   scripts/gen_gtest_pred_impl.py \
   scripts/test/Makefile \
@@ -18,15 +21,15 @@ EXTRA_DIST = \
 
 # MSVC project files
 EXTRA_DIST += \
+  msvc/gtest-md.sln \
   msvc/gtest.sln \
+  msvc/gtest-md.vcproj \
   msvc/gtest.vcproj \
-  msvc/gtest_color_test_.vcproj \
-  msvc/gtest_env_var_test_.vcproj \
-  msvc/gtest_environment_test.vcproj \
+  msvc/gtest_main-md.vcproj \
   msvc/gtest_main.vcproj \
-  msvc/gtest_output_test_.vcproj \
+  msvc/gtest_prod_test-md.vcproj \
   msvc/gtest_prod_test.vcproj \
-  msvc/gtest_uninitialized_test_.vcproj \
+  msvc/gtest_unittest-md.vcproj \
   msvc/gtest_unittest.vcproj
 
 # xcode project files
@@ -35,9 +38,8 @@ EXTRA_DIST += \
   xcode/Config/FrameworkTarget.xcconfig \
   xcode/Config/General.xcconfig \
   xcode/Config/ReleaseProject.xcconfig \
+  xcode/Config/StaticLibraryTarget.xcconfig \
   xcode/Config/TestTarget.xcconfig \
-  xcode/Config/InternalTestTarget.xcconfig \
-  xcode/Config/InternalPythonTestTarget.xcconfig \
   xcode/Resources/Info.plist \
   xcode/Scripts/versiongenerate.py \
   xcode/Scripts/runtests.sh \
@@ -50,6 +52,15 @@ EXTRA_DIST += \
   xcode/Samples/FrameworkSample/widget.cc \
   xcode/Samples/FrameworkSample/widget.h \
   xcode/Samples/FrameworkSample/WidgetFramework.xcodeproj/project.pbxproj
+
+# C++Builder project files
+EXTRA_DIST += \
+  codegear/gtest_all.cc \
+  codegear/gtest_link.cc \
+  codegear/gtest.cbproj \
+  codegear/gtest_main.cbproj \
+  codegear/gtest_unittest.cbproj \
+  codegear/gtest.groupproj
 
 # TODO(wan@google.com): integrate scripts/gen_gtest_pred_impl.py into
 #   the build system such that a user can specify the maximum predicate
@@ -100,6 +111,7 @@ pkginclude_internal_HEADERS = \
   include/gtest/internal/gtest-param-util.h \
   include/gtest/internal/gtest-port.h \
   include/gtest/internal/gtest-string.h \
+  include/gtest/internal/gtest-tuple.h \
   include/gtest/internal/gtest-type-util.h
 
 lib_libgtest_main_la_SOURCES = src/gtest_main.cc
@@ -161,28 +173,36 @@ TESTS += samples/sample6_unittest
 check_PROGRAMS += samples/sample6_unittest
 samples_sample6_unittest_SOURCES = samples/prime_tables.h \
                                    samples/sample6_unittest.cc
-samples_sample6_unittest_LDADD = lib/libgtest_main.la \
-                                 samples/libsamples.la
+samples_sample6_unittest_LDADD = lib/libgtest_main.la
 
 TESTS += samples/sample7_unittest
 check_PROGRAMS += samples/sample7_unittest
 samples_sample7_unittest_SOURCES = samples/prime_tables.h \
                                    samples/sample7_unittest.cc
-samples_sample7_unittest_LDADD = lib/libgtest_main.la \
-                                 samples/libsamples.la
+samples_sample7_unittest_LDADD = lib/libgtest_main.la
 
 TESTS += samples/sample8_unittest
 check_PROGRAMS += samples/sample8_unittest
 samples_sample8_unittest_SOURCES = samples/prime_tables.h \
                                    samples/sample8_unittest.cc
-samples_sample8_unittest_LDADD = lib/libgtest_main.la \
-                                 samples/libsamples.la
+samples_sample8_unittest_LDADD = lib/libgtest_main.la
+
+TESTS += samples/sample9_unittest
+check_PROGRAMS += samples/sample9_unittest
+samples_sample9_unittest_SOURCES = samples/sample9_unittest.cc
+samples_sample9_unittest_LDADD = lib/libgtest.la
+
+TESTS += samples/sample10_unittest
+check_PROGRAMS += samples/sample10_unittest
+samples_sample10_unittest_SOURCES = samples/sample10_unittest.cc
+samples_sample10_unittest_LDADD = lib/libgtest.la
 
 TESTS += test/gtest-death-test_test
 check_PROGRAMS += test/gtest-death-test_test
 test_gtest_death_test_test_SOURCES = test/gtest-death-test_test.cc
-test_gtest_death_test_test_CXXFLAGS = $(AM_CXXFLAGS) -pthread
-test_gtest_death_test_test_LDADD = -lpthread lib/libgtest_main.la
+test_gtest_death_test_test_CXXFLAGS = $(AM_CXXFLAGS) $(PTHREAD_CFLAGS)
+test_gtest_death_test_test_LDADD = $(PTHREAD_LIBS) $(PTHREAD_CFLAGS) \
+                                   lib/libgtest_main.la
 
 TESTS += test/gtest_environment_test
 check_PROGRAMS += test/gtest_environment_test
@@ -282,6 +302,41 @@ check_PROGRAMS += test/gtest_unittest
 test_gtest_unittest_SOURCES = test/gtest_unittest.cc
 test_gtest_unittest_LDADD = lib/libgtest_main.la
 
+TESTS += test/gtest-unittest-api_test
+check_PROGRAMS += test/gtest-unittest-api_test
+test_gtest_unittest_api_test_SOURCES = test/gtest-unittest-api_test.cc
+test_gtest_unittest_api_test_LDADD = lib/libgtest_main.la
+
+TESTS += test/gtest-listener_test
+check_PROGRAMS += test/gtest-listener_test
+test_gtest_listener_test_SOURCES = test/gtest-listener_test.cc
+test_gtest_listener_test_LDADD = lib/libgtest_main.la
+
+# Verifies that Google Test works when RTTI is disabled.
+TESTS += test/gtest_no_rtti_test
+check_PROGRAMS += test/gtest_no_rtti_test
+test_gtest_no_rtti_test_SOURCES = test/gtest_unittest.cc \
+                                  src/gtest-all.cc \
+                                  src/gtest_main.cc
+test_gtest_no_rtti_test_CXXFLAGS = $(AM_CXXFLAGS) -fno-rtti -DGTEST_HAS_RTTI=0
+
+# Verifies that Google Test's own TR1 tuple implementation works.
+TESTS += test/gtest-tuple_test
+check_PROGRAMS += test/gtest-tuple_test
+test_gtest_tuple_test_SOURCES = test/gtest-tuple_test.cc \
+                                src/gtest-all.cc \
+                                src/gtest_main.cc
+test_gtest_tuple_test_CXXFLAGS = $(AM_CXXFLAGS) -DGTEST_USE_OWN_TR1_TUPLE=1
+
+# Verifies that Google Test's features that use its own TR1 tuple work.
+TESTS += test/gtest_use_own_tuple_test
+check_PROGRAMS += test/gtest_use_own_tuple_test
+test_gtest_use_own_tuple_test_SOURCES = test/gtest-param-test_test.cc \
+                                        test/gtest-param-test2_test.cc \
+                                        src/gtest-all.cc
+test_gtest_use_own_tuple_test_CXXFLAGS = \
+    $(AM_CXXFLAGS) -DGTEST_USE_OWN_TR1_TUPLE=1
+
 # The following tests depend on the presence of a Python installation and are
 # keyed off of it. TODO(chandlerc@google.com): While we currently only attempt
 # to build and execute these tests if Autoconf has found Python v2.4 on the
@@ -340,6 +395,12 @@ EXTRA_DIST += test/gtest_output_test_golden_lin.txt \
               test/gtest_output_test_golden_win.txt
 TESTS += test/gtest_output_test.py
 
+check_PROGRAMS += test/gtest_shuffle_test_
+test_gtest_shuffle_test__SOURCES = test/gtest_shuffle_test_.cc
+test_gtest_shuffle_test__LDADD = lib/libgtest.la
+check_SCRIPTS += test/gtest_shuffle_test.py
+TESTS += test/gtest_shuffle_test.py
+
 check_PROGRAMS += test/gtest_throw_on_failure_test_
 test_gtest_throw_on_failure_test__SOURCES = \
   test/gtest_throw_on_failure_test_.cc \
@@ -365,7 +426,7 @@ TESTS += test/gtest_xml_outfiles_test.py
 
 check_PROGRAMS += test/gtest_xml_output_unittest_
 test_gtest_xml_output_unittest__SOURCES = test/gtest_xml_output_unittest_.cc
-test_gtest_xml_output_unittest__LDADD = lib/libgtest_main.la
+test_gtest_xml_output_unittest__LDADD = lib/libgtest.la
 check_SCRIPTS += test/gtest_xml_output_unittest.py
 TESTS += test/gtest_xml_output_unittest.py
 

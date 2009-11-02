@@ -112,6 +112,32 @@ which contains all of the source code. Here are some examples in Linux:
   tar -xvjf gtest-X.Y.Z.tar.bz2
   unzip gtest-X.Y.Z.zip
 
+Choosing a TR1 Tuple Library
+----------------------------
+Some Google Test features require the C++ Technical Report 1 (TR1)
+tuple library, which is not yet widely available with all compilers.
+The good news is that Google Test implements a subset of TR1 tuple
+that's enough for its own need, and will automatically use this when
+the compiler doesn't provide TR1 tuple.
+
+Usually you don't need to care about which tuple library Google Test
+uses.  However, if your project already uses TR1 tuple, you need to
+tell Google Test to use the same TR1 tuple library the rest of your
+project uses (this requirement is new in Google Test 1.4.0, so you may
+need to take care of it when upgrading from an earlier version), or
+the two tuple implementations will clash.  To do that, add
+
+  -DGTEST_USE_OWN_TR1_TUPLE=0
+
+to the compiler flags while compiling Google Test and your tests.
+
+If you don't want Google Test to use tuple at all, add
+
+  -DGTEST_HAS_TR1_TUPLE=0
+
+to the compiler flags.  All features using tuple will be disabled in
+this mode.
+
 Building the Source
 -------------------
 ### Linux, Mac OS X (without Xcode), and Cygwin ###
@@ -164,9 +190,16 @@ see 'gtest-config --help' for more detailed information.
   g++ $(../../my_gtest_build/scripts/gtest-config ...) ...
 
 ### Windows ###
-Open the gtest.sln file in the msvc/ folder using Visual Studio, and
-you are ready to build Google Test the same way you build any Visual
-Studio project.
+The msvc\ folder contains two solutions with Visual C++ projects. Open the
+gtest.sln or gtest-md.sln file using Visual Studio, and you are ready to
+build Google Test the same way you build any Visual Studio project. Files
+that have names ending with -md use DLL versions of Microsoft runtime
+libraries (the /MD or the /MDd compiler option). Files without that suffix
+use static versions of the runtime libraries (the /MT or the /MTd option).
+Please note that one must use the same option to compile both gtest and his
+test code. If you use Visual Studio 2005 or above, we recommend the -md
+version as /MD is the default for new projects in these versions of Visual
+Studio.
 
 ### Mac OS X (universal-binary framework) ###
 Open the gtest.xcodeproj in the xcode/ folder using Xcode. Build the "gtest"
@@ -175,10 +208,10 @@ directory (selected in the Xcode "Preferences..." -> "Building" pane and
 defaults to xcode/build). Alternatively, at the command line, enter:
 
   xcodebuild
- 
-This will build the "Release" configuration of the gtest.framework, but you can
-select the "Debug" configuration with a command line option. See the
-"xcodebuild" man page for more information.
+
+This will build the "Release" configuration of gtest.framework in your
+default build location. See the "xcodebuild" man page for more information about
+building different configurations and building in different locations.
 
 To test the gtest.framework in Xcode, change the active target to "Check" and
 then build. This target builds all of the tests and then runs them. Don't worry
@@ -186,20 +219,38 @@ if you see some errors. Xcode reports all test failures (even the intentional
 ones) as errors. However, you should see a "Build succeeded" message at the end
 of the build log. To run all of the tests from the command line, enter:
 
-  xcodebuid -target Check
+  xcodebuild -target Check
+
+Installation with xcodebuild requires specifying an installation desitination
+directory, known as the DSTROOT. Three items will be installed when using
+xcodebuild:
+
+  $DSTROOT/Library/Frameworks/gtest.framework
+  $DSTROOT/usr/local/lib/libgtest.a
+  $DSTROOT/usr/local/lib/libgtest_main.a
+
+You specify the installation directory on the command line with the other
+xcodebuild options. Here's how you would install in a user-visible location:
+
+  xcodebuild install DSTROOT=~
+
+To perform a system-wide inistall, escalate to an administrator and specify
+the file system root as the DSTROOT:
+
+  sudo xcodebuild install DSTROOT=/
+
+To uninstall gtest.framework via the command line, you need to delete the three
+items listed above. Remember to escalate to an administrator if deleting these
+from the system-wide location using the commands listed below:
+
+  sudo rm -r /Library/Frameworks/gtest.framework
+  sudo rm /usr/local/lib/libgtest.a
+  sudo rm /usr/local/lib/libgtest_main.a
 
 It is also possible to build and execute individual tests within Xcode. Each
 test has its own Xcode "Target" and Xcode "Executable". To build any of the
 tests, change the active target and the active executable to the test of
 interest and then build and run.
-
-NOTE: Several tests use a Python script to run the test executable. These can be
-run from Xcode by creating a "Custom Executable". For example, to run the Python
-script which executes the gtest_color_test, select the Project->New Custom
-Executable... menu item. When prompted, set the "Executable Name" to something
-like "run_gtest_color_test" and set the "Executable Path" to the path of the
-gtest_color_test.py script. Finally, choose "Run" from the Run menu and check
-the Console for the results.
 
 Individual tests can be built from the command line using:
 
@@ -209,21 +260,14 @@ These tests can be executed from the command line by moving to the build
 directory and then (in bash)
 
   export DYLD_FRAMEWORK_PATH=`pwd`
-  ./<test_name>  # (if it is not a python test, e.g. ./gtest_unittest)
-  # OR
-  ./<test_name>.py  # (if it is a python test, e.g. ./gtest_color_test.py)
+  ./<test_name>  # (e.g. ./gtest_unittest)
 
-To use the gtest.framework for your own tests, first, add the framework to Xcode
-project. Next, create a new executable target and add the framework to the
-"Link Binary With Libraries" build phase. Select "Edit Active Executable" from
-the "Project" menu. In the "Arguments" tab, add
-
-    "DYLD_FRAMEWORK_PATH" : "/real/framework/path"
-
-in the "Variables to be set in the environment:" list, where you replace
-"/real/framework/path" with the actual location of the gtest.framework. Now
-when you run your executable, it will load the framework and your test will
-run as expected. 
+To use gtest.framework for your own tests, first, install the framework using
+the steps described above. Then add it to your Xcode project by selecting
+Project->Add to Project... from the main menu. Next, add libgtest_main.a from
+gtest.framework/Resources directory using the same menu command. Finally,
+create a new executable target and add gtest.framework and libgtest_main.a to
+the "Link Binary With Libraries" build phase.
 
 ### Using GNU Make ###
 The make/ directory contains a Makefile that you can use to build
