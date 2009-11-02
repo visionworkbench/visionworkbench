@@ -116,17 +116,16 @@ namespace vw {
   // Model: Puts in a 3D model provided by path with a specific
   // position and pose
   void KMLFile::append_model( std::string path_to_model,
-                              vw::Vector3 position,
+                              double lon, double lat,
                               vw::Quaternion<double> pose,
                               std::string name,
                               std::string description,
-                              float scale ) {
-    cartography::XYZtoLonLatRadFunctor func;
-    Vector3 lon_lat_alt = func(position);
+                              double altitude,
+                              double scale) {
 
     // Converts from GE's default rotation which is oriented over the
     // site frame to a standard planetocentric rotation.
-    Matrix3x3 correction_rot = vw::math::euler_to_rotation_matrix((90-lon_lat_alt(1))*M_PI/180, (90+lon_lat_alt(0))*M_PI/180, 0, "xzy");
+    Matrix3x3 correction_rot = vw::math::euler_to_rotation_matrix((90-lat)*M_PI/180, (90+lon)*M_PI/180, 0, "xzy");
 
     Vector3 angles = rotation_matrix_to_euler_zxy(pose.rotation_matrix()*correction_rot);
     double heading = angles(0)*180/M_PI, tilt = angles(1)*180/M_PI, roll = angles(2)*180/M_PI;
@@ -139,9 +138,9 @@ namespace vw {
                     << description << "</description>\n";
 
     open_bracket("LookAt");
-    m_output_file << m_tab << "<longitude>" << lon_lat_alt(0) << "</longitude>\n";
-    m_output_file << m_tab << "<latitude> " << lon_lat_alt(1) << "</latitude>\n";
-    m_output_file << m_tab << "<altitude> " << lon_lat_alt(2)-3396200 << "</altitude>\n";
+    m_output_file << m_tab << "<longitude>" << lon << "</longitude>\n";
+    m_output_file << m_tab << "<latitude> " << lat << "</latitude>\n";
+    m_output_file << m_tab << "<altitude> " << altitude << "</altitude>\n";
     m_output_file << m_tab << "<range> " << 1e6 << "</range>\n";
     m_output_file << m_tab << "<tilt>" << 0 << "</tilt>\n";
     m_output_file << m_tab << "<heading>" << 0 << "</heading>\n";
@@ -151,9 +150,9 @@ namespace vw {
     m_tab.count++;
     m_output_file << m_tab << "<altitudeMode>absolute</altitudeMode>\n";
     open_bracket("Location");
-    m_output_file << m_tab << "<longitude>" << lon_lat_alt(0) << "</longitude>\n";
-    m_output_file << m_tab << "<latitude> " << lon_lat_alt(1) << "</latitude>\n";
-    m_output_file << m_tab << "<altitude> " << lon_lat_alt(2)-3396200 << "</altitude>\n";
+    m_output_file << m_tab << "<longitude>" << lon << "</longitude>\n";
+    m_output_file << m_tab << "<latitude> " << lat << "</latitude>\n";
+    m_output_file << m_tab << "<altitude> " << altitude << "</altitude>\n";
     close_bracket();
     open_bracket("Orientation");
     m_output_file << m_tab << "<heading>" << heading << "</heading>\n";

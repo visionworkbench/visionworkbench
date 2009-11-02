@@ -75,11 +75,12 @@ namespace vw {
                            double altitude=0,
                            bool extrude=false );
     void append_model( std::string path_to_model,
-                       vw::Vector3 position,
+                       double lon, double lat,
                        vw::Quaternion<double> pose,
                        std::string name,
                        std::string description,
-                       float scale );
+                       double altitude,
+                       double scale );
     void append_latlonaltbox( float north,
                               float south,
                               float east,
