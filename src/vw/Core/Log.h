@@ -502,9 +502,9 @@ namespace vw {
     /// Set the output stream and LogRuleSet for the console log
     /// instance.  This can be used to redirect the console output to
     /// a file, for example.
-    void set_console_stream(std::ostream& stream, LogRuleSet rule_set = LogRuleSet()) {
+    void set_console_stream(std::ostream& stream, LogRuleSet rule_set = LogRuleSet(), bool prepend_infostamp = true) {
       Mutex::Lock lock(m_system_log_mutex);
-      m_console_log = boost::shared_ptr<LogInstance>(new LogInstance(stream) );
+      m_console_log = boost::shared_ptr<LogInstance>(new LogInstance(stream, prepend_infostamp) );
       m_console_log->rule_set() = rule_set;
     }
   };
