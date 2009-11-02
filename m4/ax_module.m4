@@ -72,7 +72,7 @@ AC_DEFUN([AX_MODULE],
             PKG_$1_LIBS="$PKG_$1_LIBS `var_uniq \`get_rpath ${PKG_$1_LIBS}\``"
           fi
           MODULE_$1_LIBS="$PKG_$1_LIBS"
-          m4_ifval([$3], [PKG_$1_LIBS="$PKG_$1_LIBS \$(top_builddir)/$2/$3"])
+          m4_ifval([$3], [PKG_$1_LIBS="\$(top_builddir)/$2/$3 $PKG_$1_LIBS"])
           AC_MSG_RESULT([yes])])])
 
     AS_VAR_POPDEF([missing])
