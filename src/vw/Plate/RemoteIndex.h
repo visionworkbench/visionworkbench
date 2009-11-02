@@ -30,7 +30,7 @@ namespace platefile {
 
   public:
     /// Constructor
-    RemoteIndex(std::string const& platefile, std::string const& requestor);
+    RemoteIndex(int platefile_id, std::string const& requestor);
 
     /// destructor
     virtual ~RemoteIndex();

@@ -9,7 +9,7 @@
 
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Plate/Index.h>
-#include <vw/Plate/Protobuffers.pb.h>
+#include <vw/Plate/ProtoBuffers.pb.h>
 
 #include <google/protobuf/service.h>
 
@@ -17,9 +17,15 @@ namespace vw {
 namespace platefile {
 
   class IndexServiceImpl : public IndexService {
-    std::string m_root_directory;
-    Index m_index;
 
+    struct IndexServiceRecord {
+      std::string plate_name;
+      std::string plate_filename;
+      boost::shared_ptr<Index> index;
+    };
+
+    std::string m_root_directory;
+    std::vector<IndexServiceRecord> m_indices;
 
     // Private methods
     std::vector<std::string> plate_filenames(std::string const& root_directory);
@@ -28,15 +34,20 @@ namespace platefile {
 
     IndexServiceImpl(std::string root_directory);
 
-    void OpenRequest(::google::protobuf::RpcController* controller,
-                     const ::vw::platefile::IndexOpenRequest* request,
-                     ::vw::platefile::IndexOpenReply* response,
-                     ::google::protobuf::Closure* done);
+    virtual void OpenRequest(::google::protobuf::RpcController* controller,
+                             const ::vw::platefile::IndexOpenRequest* request,
+                             ::vw::platefile::IndexOpenReply* response,
+                             ::google::protobuf::Closure* done);
 
-    void ReadRequest(::google::protobuf::RpcController* controller,
-                     const ::vw::platefile::IndexReadRequest* request,
-                     ::vw::platefile::IndexReadReply* response,
-                     ::google::protobuf::Closure* done);      
+    virtual void InfoRequest(::google::protobuf::RpcController* controller,
+                             const ::vw::platefile::IndexInfoRequest* request,
+                             ::vw::platefile::IndexInfoReply* response,
+                             ::google::protobuf::Closure* done);
+
+    virtual void ReadRequest(::google::protobuf::RpcController* controller,
+                             const ::vw::platefile::IndexReadRequest* request,
+                             ::vw::platefile::IndexReadReply* response,
+                             ::google::protobuf::Closure* done);      
   };
 
 

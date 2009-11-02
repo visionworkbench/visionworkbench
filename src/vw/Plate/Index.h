@@ -127,6 +127,8 @@ namespace platefile {
     ///
     std::ostream& log ();
 
+    IndexHeader header() const { return m_header; }
+
     // /// Save an index out to a file on disk.  This serializes the
     // /// tree.
     // virtual void save(std::string const& filename);

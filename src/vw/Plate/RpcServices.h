@@ -8,7 +8,7 @@
 #define __VW_PLATE_RPC_SERVICES_H__
 
 #include <vw/Core/FundamentalTypes.h>
-#include <vw/Plate/Protobuffers.pb.h>
+#include <vw/Plate/ProtoBuffers.pb.h>
 #include <vw/Plate/Amqp.h>
 
 #include <google/protobuf/service.h>

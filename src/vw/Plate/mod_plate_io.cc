@@ -42,31 +42,36 @@ class PlateModule {
     }
   }
   
-  int image_handler(request_rec *r, 
+  int image_handler(request_rec *r, int platefile_id,
                     int col, int row, int depth, std::string file_suffix) {
 
     // --------------  Access Plate Index -----------------
 
     IndexRecord idx_record;
+    std::string plate_filename;
     try {
       //platefile::Index idx(plate_filename);
       vw_out(0) << "------------ CREATING REMOTE INDEX ----------------\n";
-      platefile::RemoteIndex idx("dummy", "foobar");
+      platefile::RemoteIndex idx(platefile_id, "foobar");
       // if (!m_index)
       //   return error_handler(r, "Error: connection is not open to remote index server.");
       vw_out(0) << "------------ ISSUING READ REQUEST ----------------\n";
       idx_record = idx.read_request(col,row,depth);
-      // For debugging:
-      r->content_type = "text/html";      
-      // ap_rprintf(r, "<p>Index Version: %d.</p>\n", idx.version());
-      // ap_rprintf(r, "<p>Index Max depth: %d.</p>\n", idx.version());
-      ap_rprintf(r, "<p>Index Record (%d):</p>", idx_record.status()); 
-      ap_rprintf(r, "<p>Index Record (%d):</p>", idx_record.status() != INDEX_RECORD_VALID); 
-      ap_rprintf(r, "<p>  Blob ID: %d</p>", idx_record.blob_id()); 
-      ap_rprintf(r, "<p>  Blob Offset: %d</p>", int(idx_record.blob_offset())); 
-      ap_rprintf(r, "<p>  Tile Size: %d</p>", idx_record.tile_size()); 
-      //       ap_rprintf(r, "<p>  Blob File Type: %s</p>", idx_record.tile_filetype().c_str());
-      return OK;
+
+      vw_out(0) << "------------ ISSUING INFO REQUEST ----------------\n";
+      plate_filename = idx.platefile_name();
+      
+      //      For debugging:
+      // r->content_type = "text/html";      
+      // ap_rprintf(r, "<p>Platefile name: %s.</p>\n", plate_filename.c_str());
+      // // ap_rprintf(r, "<p>Index Max depth: %d.</p>\n", idx.version());
+      // ap_rprintf(r, "<p>Index Record (%d):</p>", idx_record.status()); 
+      // ap_rprintf(r, "<p>Index Record (%d):</p>", idx_record.status() != INDEX_RECORD_VALID); 
+      // ap_rprintf(r, "<p>  Blob ID: %d</p>", idx_record.blob_id()); 
+      // ap_rprintf(r, "<p>  Blob Offset: %d</p>", int(idx_record.blob_offset())); 
+      // ap_rprintf(r, "<p>  Tile Size: %d</p>", idx_record.tile_size()); 
+      // //       ap_rprintf(r, "<p>  Blob File Type: %s</p>", idx_record.tile_filetype().c_str());
+      // return OK;
     
     } catch(vw::Exception &e) {
       std::ostringstream ostr;
@@ -84,7 +89,6 @@ class PlateModule {
       // should really be opened in some sort of plugin initialization
       // function rather than on each query!!
       std::ostringstream ostr;
-      std::string plate_filename = "/opt/local/apache2/htdocs/platefiles/TrueMarble.16km.2700x1350_toast.plate";
       ostr << plate_filename << "/plate_" << idx_record.blob_id() << ".blob";
       std::string blob_filename = ostr.str();
 
@@ -165,8 +169,8 @@ public:
     // ap_rprintf(r, "path info: %d\n", path_tokens.size());
     // return OK;
 
-    // Image Query [level, col, row]
-    if (path_tokens.size() == 3 && path_tokens[path_tokens.size()-1].size() != 0) {        
+    // Image Query [platefile_id, level, col, row]
+    if (path_tokens.size() == 4 && path_tokens[path_tokens.size()-1].size() != 0) {        
       vw_out(0) << "Handling IMAGE request: " << r->path_info << "\n";
     
       // Split the final element into [ row, file_suffix ]
@@ -174,15 +178,16 @@ public:
       boost::split( final_tokens, 
                     path_tokens[path_tokens.size()-1], boost::is_any_of(".") );
       if (final_tokens.size() != 2) 
-        return error_handler(r, "Error parsing file type.  Expected an image.");
+        return error_handler(r, "Error parsing file type.  Expected an image filename.");
 
       // Parse the tokens
-      int depth = atoi(path_tokens[0].c_str());
-      int col = atoi(path_tokens[1].c_str());
+      int platefile_id = atoi(path_tokens[0].c_str());
+      int depth = atoi(path_tokens[1].c_str());
+      int col = atoi(path_tokens[2].c_str());
       int row = atoi(final_tokens[0].c_str());
       std::string file_suffix = final_tokens[1];
 
-      return image_handler(r, col, row, depth, file_suffix);
+      return image_handler(r, platefile_id, col, row, depth, file_suffix);
     
       // WTML query
     } else if (path_tokens.size() == 1 && path_tokens[0].size() != 0) {

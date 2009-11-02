@@ -96,7 +96,7 @@ public:
           this->Reset();
         }
         
-        std::cout << "Response wrapper " << response_wrapper.DebugString() << "\n";
+        //        std::cout << "Response wrapper " << response_wrapper.DebugString() << "\n";
         
         WireMessage wire_response(&response_wrapper);
         m_conn.basic_publish(wire_response.serialized_bytes(), 

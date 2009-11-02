@@ -13,8 +13,8 @@
 void null_closure() {}
 
 /// Constructor
-vw::platefile::RemoteIndex::RemoteIndex(std::string const& platefile, std::string const& requestor) :
-  m_queue_name(requestor) {
+vw::platefile::RemoteIndex::RemoteIndex(int platefile_id, std::string const& requestor) :
+  m_queue_name(requestor), m_platefile_id(platefile_id) {
 
   // Set up the connection to the AmqpRpcService
   m_rpc_channel.reset( new AmqpRpcChannel(INDEX_EXCHANGE, "index", requestor) );
@@ -22,26 +22,26 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& platefile, std::strin
   m_index_service.reset ( new IndexService::Stub(m_rpc_channel.get()) );
   
   // Send an IndexOpenRequest to the AMQP index server.
-  IndexOpenRequest request;
-  request.set_plate_filename(platefile);
-  request.set_mode("readwrite");
+  // IndexOpenRequest request;
+  // request.set_plate_name(platefile);
+  // request.set_mode("readwrite");
 
-  vw_out(0) << "ISSUING IndexOpenRequest\n" << request.DebugString() << "\n";
+  // vw_out(0) << "ISSUING IndexOpenRequest\n" << request.DebugString() << "\n";
 
-  IndexOpenReply response;
-  m_index_service->OpenRequest(m_rpc_controller.get(), &request, &response, 
-                               google::protobuf::NewCallback(&null_closure));
+  // IndexOpenReply response;
+  // m_index_service->OpenRequest(m_rpc_controller.get(), &request, &response, 
+  //                              google::protobuf::NewCallback(&null_closure));
 
-  if (m_rpc_controller->Failed())
-    vw_throw(IOErr() << "OpenRequest RPC failed: " << m_rpc_controller->ErrorText());
+  // if (m_rpc_controller->Failed())
+  //   vw_throw(IOErr() << "OpenRequest RPC failed: " << m_rpc_controller->ErrorText());
 
-  vw_out(0) << "RECEIVED IndexOpenReply\n" << response.DebugString() << "\n";
+  // vw_out(0) << "RECEIVED IndexOpenReply\n" << response.DebugString() << "\n";
 
-  m_platefile_id = response.platefile_id();
-  m_secret = response.secret();
-  vw_out(InfoMessage, "plate") << "Opened remote platefile \"" << platefile 
-                               << "\"   ID: " << m_platefile_id << "  Secret: " 
-                               << m_secret << "\n";
+  //  m_platefile_id = response.platefile_id();
+  // m_secret = response.secret();
+  // vw_out(InfoMessage, "plate") << "Opened remote platefile \"" << platefile 
+  //                              << "\"   ID: " << m_platefile_id << "  Secret: " 
+  //                              << m_secret << "\n";
 }
   
 /// destructor
@@ -132,9 +132,20 @@ vw::int32 vw::platefile::RemoteIndex::max_depth() const {
 }
 
 std::string vw::platefile::RemoteIndex::platefile_name() const { 
-  vw_throw(NoImplErr() << "platefile_name() not yet implemented.");
-  return "";
-  //  return m_platefile;
+  IndexInfoRequest request;
+  vw_out(0) << "Setting to ID = " << m_platefile_id << "\n";
+   request.set_platefile_id(m_platefile_id);
+   vw_out(0) << "ISSUING IndexInfoRequest\n" << request.DebugString() << "\n";
+
+  IndexInfoReply response;
+  m_index_service->InfoRequest(m_rpc_controller.get(), &request, &response, 
+                               google::protobuf::NewCallback(&null_closure));
+
+  vw_out(0) << "RECEIVED IndexInfoResponse\n" << response.DebugString() << "\n";
+
+  if (m_rpc_controller->Failed())
+    vw_throw(IOErr() << "InfoRequest RPC failed: " << m_rpc_controller->ErrorText());
+  return response.plate_filename();
 }
 
 vw::int32 vw::platefile::RemoteIndex::default_tile_size() const { 
