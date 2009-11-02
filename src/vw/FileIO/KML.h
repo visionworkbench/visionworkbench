@@ -28,8 +28,8 @@
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
 
-namespace vw { 
- 
+namespace vw {
+
   // TabCount:
   // Used to keep track of tabbing in KML File
   struct TabCount {
@@ -49,8 +49,8 @@ namespace vw {
     std::stack<std::string> m_bracket_names;
   public:
     KMLFile( std::string filename,
-	     std::string name,
-	     std::string directory="" );
+             std::string name,
+             std::string directory="" );
     ~KMLFile( void ); // Closes file out
 
     // Access internal
@@ -65,40 +65,41 @@ namespace vw {
     void close_all_brackets( void );
 
     // Low Level Functions
-    void enter_folder( std::string name="", 
-		       std::string description="" );
+    void enter_folder( std::string name="",
+                       std::string description="" );
     void exit_folder( void );
     void append_placemark( double lon, double lat,
-			   std::string name="",
-			   std::string description="",
-			   std::string style="",
-			   double altitude=0,
-			   bool extrude=false );
-    void append_coordinate( vw::Vector3 position,
-			    vw::Quaternion<double> pose,
-			    std::string name,
-			    std::string description,
-			    float scale );
+                           std::string name="",
+                           std::string description="",
+                           std::string style="",
+                           double altitude=0,
+                           bool extrude=false );
+    void append_model( std::string path_to_model,
+                       vw::Vector3 position,
+                       vw::Quaternion<double> pose,
+                       std::string name,
+                       std::string description,
+                       float scale );
     void append_latlonaltbox( float north,
-			      float south,
-			      float east,
-			      float west );
+                              float south,
+                              float east,
+                              float west );
     void append_lod( float min, float max );
     void append_style( std::string id, std::string color_hex,
-		       float scale, std::string image_url );
-    void append_stylemap( std::string id, 
-			  std::string style_normal,
-			  std::string style_highlight );
+                       float scale, std::string image_url );
+    void append_stylemap( std::string id,
+                          std::string style_normal,
+                          std::string style_highlight );
     void append_network( std::string link,
-			 double north, double south,
-			 double east, double west );
+                         double north, double south,
+                         double east, double west );
 
     void close_kml( void ); // If it seems the file wasn't finished, try this.
   protected:
     void open_kml( void );
-    
+
   };
-  
+
   // High Level Tools!
   // Not Existing Yet!
 }

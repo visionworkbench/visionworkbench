@@ -6,9 +6,9 @@
 
 
 /// \file KML.cc
-/// 
+///
 /// An abstract base class referring to an image on disk.
-/// 
+///
 
 // Vision Workbench
 #include <iomanip>
@@ -21,7 +21,7 @@ namespace fs = boost::filesystem;
 namespace vw {
 
   // TAB COUNT ////////////////////////////////////////////////////
-  
+
   std::ostream& operator<<( std::ostream& os, TabCount const& tab) {
     for ( int i = 0; i < tab.count; i++ )
       os << "\t";
@@ -32,8 +32,8 @@ namespace vw {
 
   // Constructor / Deconstructor
   KMLFile::KMLFile( std::string filename,
-		    std::string name,
-		    std::string directory ) : m_filename(filename), m_name(name), m_directory(directory) {
+                    std::string name,
+                    std::string directory ) : m_filename(filename), m_name(name), m_directory(directory) {
     m_tab.count = 0;
     boost::to_lower( m_name );
     boost::replace_all( m_name, " ", "_" );
@@ -69,12 +69,12 @@ namespace vw {
   }
 
   // Low Level Functions
-  
-  // Enter / Exit Folder 
+
+  // Enter / Exit Folder
   // This creates those actual folders in GE that the user can turn on
   // or off.
-  void KMLFile::enter_folder( std::string name, 
-			      std::string desc ) {
+  void KMLFile::enter_folder( std::string name,
+                              std::string desc ) {
     open_bracket("Folder");
     if ( name != "" )
       m_output_file << m_tab << "<name>"<< name <<"</name>\n";
@@ -87,40 +87,40 @@ namespace vw {
   }
 
   // Append Objects
-  
+
   // Placemark: This creates the simple generic pushpin marker
   void KMLFile::append_placemark( double lon, double lat,
-				  std::string name,
-				  std::string description,
-				  std::string style,
-				  double altitude,
-				  bool extrude ) {
+                                  std::string name,
+                                  std::string description,
+                                  std::string style,
+                                  double altitude,
+                                  bool extrude ) {
     open_bracket("Placemark");
     if ( name != "" )
       m_output_file << m_tab << "<name>"<< name <<"</name>\n";
     if ( description != "" )
-      m_output_file << m_tab << "<description>" 
-		    << description << "</description>\n";
-    if ( style != "") 
+      m_output_file << m_tab << "<description>"
+                    << description << "</description>\n";
+    if ( style != "")
       m_output_file << m_tab << "<styleUrl>#"<<style<<"</styleUrl>\n";
     open_bracket("Point");
     if ( extrude )
       m_output_file << m_tab << "<extrude>1</extrude>\n";
     m_output_file << m_tab << "<altitudeMode>absolute</altitudeMode>\n";
-    m_output_file << m_tab << "<coordinates>"<< std::setw(10) 
-		  << lon <<","<< lat <<"," << altitude
-		  << "</coordinates>\n";
+    m_output_file << m_tab << "<coordinates>"<< std::setw(10)
+                  << lon <<","<< lat <<"," << altitude
+                  << "</coordinates>\n";
     close_brackets(2);
   }
 
-  // Cordinate: This is a specialized display model. This just draws a
-  // coordinate frame model at a position with pose. Coordinate vector
-  // is in ECEF.
-  void KMLFile::append_coordinate( vw::Vector3 position,
-				   vw::Quaternion<double> pose,
-				   std::string name,
-				   std::string description,
-				   float scale ) {
+  // Model: Puts in a 3D model provided by path with a specific
+  // position and pose
+  void KMLFile::append_model( std::string path_to_model,
+                              vw::Vector3 position,
+                              vw::Quaternion<double> pose,
+                              std::string name,
+                              std::string description,
+                              float scale ) {
     cartography::XYZtoLonLatRadFunctor func;
     Vector3 lon_lat_alt = func(position);
 
@@ -135,9 +135,9 @@ namespace vw {
     if ( name != "" )
       m_output_file << m_tab << "<name>"<< name <<"</name>\n";
     if ( description != "" )
-      m_output_file << m_tab << "<description>" 
-		    << description << "</description>\n";
-    
+      m_output_file << m_tab << "<description>"
+                    << description << "</description>\n";
+
     open_bracket("LookAt");
     m_output_file << m_tab << "<longitude>" << lon_lat_alt(0) << "</longitude>\n";
     m_output_file << m_tab << "<latitude> " << lon_lat_alt(1) << "</latitude>\n";
@@ -166,7 +166,7 @@ namespace vw {
     m_output_file << m_tab << "<z>" << 3000*scale << "</z>\n";
     close_bracket();
     open_bracket("Link");
-    m_output_file << m_tab << "<href>/Users/mbroxton/projects/axis.dae</href>\n";
+    m_output_file << m_tab << "<href>" << path_to_model << "</href>\n";
     close_bracket();
     m_tab.count--;
     m_output_file << m_tab << "</Model>\n";
@@ -177,7 +177,7 @@ namespace vw {
   // LatLonAltBox: This is a bounding box, that only displays contents
   // when viewer is inside box.
   void KMLFile::append_latlonaltbox( float north, float south,
-				     float east, float west ) {
+                                     float east, float west ) {
     open_bracket("LatLonAltBox");
     m_output_file << m_tab << "<north>"<<north<<"</north>\n";
     m_output_file << m_tab << "<south>"<<south<<"</south>\n";
@@ -196,7 +196,7 @@ namespace vw {
 
   // Style: Defines an Icon to use later
   void KMLFile::append_style( std::string id, std::string color_hex,
-			      float scale, std::string image_url ) {
+                              float scale, std::string image_url ) {
     m_output_file << m_tab << "<Style id=\"" << id << "\">\n";
     m_tab.count++;
     open_bracket("IconStyle");
@@ -211,9 +211,9 @@ namespace vw {
   }
 
   // StyleMap: Maps two styles together to create a bipolar icon
-  void KMLFile::append_stylemap( std::string id, 
-				 std::string style_normal,
-				 std::string style_highlight ) {
+  void KMLFile::append_stylemap( std::string id,
+                                 std::string style_normal,
+                                 std::string style_highlight ) {
     m_output_file << m_tab << "<StyleMap id=\"" << id << "\">\n";
     m_tab.count++;
     open_bracket("Pair");
@@ -231,12 +231,12 @@ namespace vw {
   // NetworkLink: Links to another KML file, this also contains an LOD
   // that conditionals the opening of the link.
   void KMLFile::append_network( std::string link,
-				double north, double south,
-				double east, double west ) {
+                                double north, double south,
+                                double east, double west ) {
     open_bracket("NetworkLink");
     open_bracket("Region");
     append_latlonaltbox( north, south,
-			 east, west );
+                         east, west );
     append_lod( 512, -1 );
     close_bracket();
     open_bracket("Link");
@@ -257,20 +257,20 @@ namespace vw {
 
     if (!m_output_file.good())
       vw_throw(IOErr() <<  "An error occured while trying to write KML file.");
-    
+
     m_output_file << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
     m_output_file << "<kml xmlns=\"http://www.opengis.net/kml/2.2\" xmlns:gx=\"http://www.google.com/kml/ext/2.2\" xmlns:kml=\"http://www.opengis.net/kml/2.2\" xmlns:atom=\"http://www.w3.org/2005/Atom\">\n";
     m_output_file << "<Document>\n";
-    
+
     m_tab.count++;
-    
+
     m_output_file << m_tab << "<name>" << m_name << "</name>\n";
   }
 
   void KMLFile::close_kml( void ) {
     if (m_output_file.is_open()) {
       if (!m_bracket_names.empty())
-	vw_throw(IOErr() << "Error on close out, there seems to be an open bracket somewhere left in the kml.");
+        vw_throw(IOErr() << "Error on close out, there seems to be an open bracket somewhere left in the kml.");
 
       m_tab.count--;
       m_output_file << m_tab << "</Document>\n";
