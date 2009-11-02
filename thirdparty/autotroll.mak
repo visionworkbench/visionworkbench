@@ -32,24 +32,24 @@ SUFFIXES += .moc.cpp .moc.cc .moc.cxx .moc.C .h .hh .ui .ui.h .ui.hh	\
 # --- #
 
 .hh.moc.cpp:
-	$(MOC) $(QT_CPPFLAGS) $< -o $@
+	$(AM_V_GEN)$(MOC) $(QT_CPPFLAGS) $< -o $@
 .h.moc.cpp:
-	$(MOC) $(QT_CPPFLAGS) $< -o $@
+	$(AM_V_GEN)$(MOC) $(QT_CPPFLAGS) $< -o $@
 
 .hh.moc.cc:
-	$(MOC) $(QT_CPPFLAGS) $< -o $@
+	$(AM_V_GEN)$(MOC) $(QT_CPPFLAGS) $< -o $@
 .h.moc.cc:
-	$(MOC) $(QT_CPPFLAGS) $< -o $@
+	$(AM_V_GEN)$(MOC) $(QT_CPPFLAGS) $< -o $@
 
 .hh.moc.cxx:
-	$(MOC) $(QT_CPPFLAGS) $< -o $@
+	$(AM_V_GEN)$(MOC) $(QT_CPPFLAGS) $< -o $@
 .h.moc.cxx:
-	$(MOC) $(QT_CPPFLAGS) $< -o $@
+	$(AM_V_GEN)$(MOC) $(QT_CPPFLAGS) $< -o $@
 
 .hh.moc.C:
-	$(MOC) $(QT_CPPFLAGS) $< -o $@
+	$(AM_V_GEN)$(MOC) $(QT_CPPFLAGS) $< -o $@
 .h.moc.C:
-	$(MOC) $(QT_CPPFLAGS) $< -o $@
+	$(AM_V_GEN)$(MOC) $(QT_CPPFLAGS) $< -o $@
 
 # --- #
 # UIC #
@@ -66,15 +66,15 @@ SUFFIXES += .moc.cpp .moc.cc .moc.cxx .moc.C .h .hh .ui .ui.h .ui.hh	\
 # --- #
 
 .qrc.qrc.cpp:
-	$(RCC) -name `echo "$<" | sed 's|^.*/\(.*\)\.qrc$$|\1|'` $< -o $@
+	$(AM_V_GEN)$(RCC) -name `echo "$<" | sed 's|^.*/\(.*\)\.qrc$$|\1|'` $< -o $@
 
 .qrc.qrc.cc:
-	$(RCC) -name `echo "$<" | sed 's|^.*/\(.*\)\.qrc$$|\1|'` $< -o $@
+	$(AM_V_GEN)$(RCC) -name `echo "$<" | sed 's|^.*/\(.*\)\.qrc$$|\1|'` $< -o $@
 
 .qrc.qrc.cxx:
-	$(RCC) -name `echo "$<" | sed 's|^.*/\(.*\)\.qrc$$|\1|'` $< -o $@
+	$(AM_V_GEN)$(RCC) -name `echo "$<" | sed 's|^.*/\(.*\)\.qrc$$|\1|'` $< -o $@
 
 .qrc.qrc.C:
-	$(RCC) -name `echo "$<" | sed 's|^.*/\(.*\)\.qrc$$|\1|'` $< -o $@
+	$(AM_V_GEN)$(RCC) -name `echo "$<" | sed 's|^.*/\(.*\)\.qrc$$|\1|'` $< -o $@
 
 DISTCLEANFILES = $(BUILT_SOURCES)

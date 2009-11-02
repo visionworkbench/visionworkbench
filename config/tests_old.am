@@ -11,4 +11,4 @@ CXXTEST_ARGS =  --error-printer
 TEST_CPPFLAGS = -I$(CXXTEST_DIR) -DTEST_SRCDIR="\"$(top_srcdir)/$(subdir)\""
 
 .oldtest.cxx:
-	$(CXXTEST_GEN) $(CXXTEST_ARGS) -o $@ $<
+	$(AM_V_GEN)$(CXXTEST_GEN) $(CXXTEST_ARGS) -o $@ $<

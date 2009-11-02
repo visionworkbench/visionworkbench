@@ -31,6 +31,8 @@ AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE([nostdinc])
 AX_CONFIG_HEADER_PREFIX([src/vw/config.h], [VW_])
 
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
+
 dnl TODO RIGHT BEFORE RELEASE: update libtool version
 dnl if abi changes in any way:
 dnl     current++

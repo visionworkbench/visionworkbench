@@ -8,4 +8,4 @@ PROTOC = protoc
 PROTOC_ARGS = -I. --cpp_out=.
 
 .proto.pb.cc :
-	$(PROTOC) $(PROTOC_ARGS) $<
+	$(AM_V_GEN)$(PROTOC) $(PROTOC_ARGS) $<
