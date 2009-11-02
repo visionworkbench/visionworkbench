@@ -113,8 +113,17 @@ void vw::Settings::set_rc_filename(std::string filename) {
     Mutex::Lock file_lock(m_rc_file_mutex);
 
     if (filename != m_rc_filename) {
-      m_rc_last_polltime = 0;
-      m_rc_last_modification = 0;
+      if (filename.empty()) {
+        // Set the last poll time and the last modification time to the death
+        // of the universe.  This is a little bit of a hack, but it lets us
+        // disable the config file without making the locking in
+        // reload_config() even more complex.
+        m_rc_last_polltime     = std::numeric_limits<long>::max();
+        m_rc_last_modification = std::numeric_limits<long>::max();
+      } else {
+        m_rc_last_polltime = 0;
+        m_rc_last_modification = 0;
+      }
       m_rc_filename = filename;
     }
   }
