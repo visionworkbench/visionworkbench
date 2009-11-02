@@ -73,8 +73,8 @@ namespace platefile {
     }
 
     // Enforce uncopyable semantics
-    Blob( Blob const& ) {}
-    Blob& operator=( Blob const& ) {}
+    Blob( Blob const& );
+    Blob& operator=( Blob const& );
     
 
   public:

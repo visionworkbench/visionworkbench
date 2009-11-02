@@ -114,7 +114,7 @@ namespace platefile {
   public:
   
     PlateManager(boost::shared_ptr<PlateFile> platefile, int num_threads) : 
-      m_queue(num_threads), m_platefile(platefile) {}
+      m_platefile(platefile), m_queue(num_threads)  {}
     
     /// Destructor
     virtual ~PlateManager() {}
