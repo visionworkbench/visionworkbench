@@ -9,25 +9,36 @@
 #include <vw/Plate/common.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 
+
+void null_closure() {}
+
 /// Constructor
 vw::platefile::RemoteIndex::RemoteIndex(std::string const& platefile, std::string const& requestor) :
-  m_platefile(platefile), m_queue_name(requestor) {
+  m_queue_name(requestor) {
 
-  // Create a queue and bind it to the index server exchange.
-  m_conn.queue_declare(requestor, true, true, false);
-  m_conn.queue_bind(requestor, INDEX_EXCHANGE, requestor + ".#");
-    
+  // Set up the connection to the AmqpRpcService
+  m_rpc_channel.reset( new AmqpRpcChannel(INDEX_EXCHANGE, "index", requestor) );
+  m_rpc_controller.reset ( new AmqpRpcController() );
+  m_index_service.reset ( new IndexService::Stub(m_rpc_channel.get()) );
+  
   // Send an IndexOpenRequest to the AMQP index server.
-  IndexOpenRequest req;
-  req.set_requestor(m_queue_name);
-  req.set_plate_filename(m_platefile);
-  req.set_mode("readwrite");
-  m_conn.basic_publish_protobuf(req, INDEX_EXCHANGE, "index.index_open_request");
+  IndexOpenRequest request;
+  request.set_plate_filename(platefile);
+  request.set_mode("readwrite");
 
-  // Wait for a response and parse the result
-  IndexOpenReply r = wait_for_response<IndexOpenReply>(m_queue_name + ".index_open_reply");
-  m_platefile_id = r.platefile_id();
-  m_secret = r.secret();
+  vw_out(0) << "ISSUING IndexOpenRequest\n" << request.DebugString() << "\n";
+
+  IndexOpenReply response;
+  m_index_service->OpenRequest(m_rpc_controller.get(), &request, &response, 
+                               google::protobuf::NewCallback(&null_closure));
+
+  if (m_rpc_controller->Failed())
+    vw_throw(IOErr() << "OpenRequest RPC failed: " << m_rpc_controller->ErrorText());
+
+  vw_out(0) << "RECEIVED IndexOpenReply\n" << response.DebugString() << "\n";
+
+  m_platefile_id = response.platefile_id();
+  m_secret = response.secret();
   vw_out(InfoMessage, "plate") << "Opened remote platefile \"" << platefile 
                                << "\"   ID: " << m_platefile_id << "  Secret: " 
                                << m_secret << "\n";
@@ -35,57 +46,70 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& platefile, std::strin
   
 /// destructor
 vw::platefile::RemoteIndex::~RemoteIndex() {
-  IndexCloseRequest req;
-  req.set_requestor(m_queue_name);
-  req.set_platefile_id(m_platefile_id);
-  req.set_secret(m_secret);
-  m_conn.basic_publish_protobuf(req, INDEX_EXCHANGE, "index.index_close_request");
+  IndexCloseRequest request;
+  request.set_platefile_id(m_platefile_id);
+  request.set_secret(m_secret);
+  //  m_conn.basic_publish_protobuf(req, INDEX_EXCHANGE, "index.index_close_request");
 }
   
 /// Attempt to access a tile in the index.  Throws an
 /// TileNotFoundErr if the tile cannot be found.
 vw::platefile::IndexRecord vw::platefile::RemoteIndex::read_request(int col, int row, 
                                                                     int depth, int transaction_id) {
-  IndexReadRequest req;
-  req.set_requestor(m_queue_name);
-  req.set_platefile_id(m_platefile_id);
-  req.set_secret(m_secret);
-  req.set_col(col);
-  req.set_row(row);
-  req.set_depth(depth);
-  req.set_transaction_id(transaction_id);
-  m_conn.basic_publish_protobuf(req, INDEX_EXCHANGE, m_queue_name);
+  IndexReadRequest request;
+  request.set_platefile_id(m_platefile_id);
+  request.set_secret(m_secret);
+  request.set_col(col);
+  request.set_row(row);
+  request.set_depth(depth);
+  request.set_transaction_id(transaction_id);
+  vw_out(0) << "ISSUING IndexReadRequest\n" << request.DebugString() << "\n";
 
-  IndexReadReply r = wait_for_response<IndexReadReply>(m_queue_name + ".read_reply");
-  return r.index_record();
+  IndexReadReply response;
+  m_index_service->ReadRequest(m_rpc_controller.get(), &request, &response, 
+                               google::protobuf::NewCallback(&null_closure));
+  if (m_rpc_controller->Failed())
+    vw_throw(IOErr() << "OpenRequest RPC failed: " << m_rpc_controller->ErrorText());
+
+  vw_out(0) << "RECEIVED IndexReadReply\n" << response.DebugString() << "\n";
+
+  return response.index_record();
 }
   
 // Writing, pt. 1: Locks a blob and returns the blob id that can
 // be used to write a tile.
 int vw::platefile::RemoteIndex::write_request(int size) {
-  IndexWriteRequest req;
-  req.set_requestor(m_queue_name);
-  req.set_platefile_id(m_platefile_id);
-  req.set_secret(m_secret);
-  req.set_size(size);
-  m_conn.basic_publish_protobuf(req, INDEX_EXCHANGE, m_queue_name);
+  vw_throw(NoImplErr() << "write_request() not yet implemented.");
+  return 0;
 
-  IndexWriteReply r = wait_for_response<IndexWriteReply>(m_queue_name + ".write_reply");
-  return r.blob_id();
+  // IndexWriteRequest request;
+  // request.set_platefile_id(m_platefile_id);
+  // request.set_secret(m_secret);
+  // request.set_size(size);
+
+  // IndexWriteReply response;
+  // m_index_service->WriteRequest(m_rpc_controller.get(), request, response, 
+  //                              protobuf::NewCallback(&null_closure));
+  // if (m_rpc_controller.failed())
+  //   vw_throw(IOErr() << "OpenRequest RPC failed: " << m_rpc_controller.ErrorText());
+
+  // return r.blob_id();
 }
   
 // Writing, pt. 2: Supply information to update the index and
 // unlock the blob id.
 void vw::platefile::RemoteIndex::write_complete(TileHeader const& header, IndexRecord const& record) {
-  IndexWriteComplete req;
-  req.set_requestor(m_queue_name);
-  req.set_platefile_id(m_platefile_id);
-  req.set_secret(m_secret);
-  *(req.mutable_header()) = header;
-  *(req.mutable_record()) = record;
-  m_conn.basic_publish_protobuf(req, INDEX_EXCHANGE, m_queue_name);    
+  vw_throw(NoImplErr() << "write_complete() not yet implemented.");
 
-  IndexSuccess r = wait_for_response<IndexSuccess>(m_queue_name + ".write_complete");
+
+  // IndexWriteComplete request;
+  // request.set_platefile_id(m_platefile_id);
+  // request.set_secret(m_secret);
+  // *(request.mutable_header()) = header;
+  // *(request.mutable_record()) = record;
+  // m_conn.basic_publish_protobuf(request, INDEX_EXCHANGE, "index.write_complete");    
+
+  // IndexSuccess r = wait_for_response<IndexSuccess>(m_queue_name + ".write_complete");
 }
   
   
@@ -95,18 +119,22 @@ vw::int32 vw::platefile::RemoteIndex::version() const {
 }
 
 vw::int32 vw::platefile::RemoteIndex::max_depth() const { 
-  IndexDepthRequest req;
-  req.set_requestor(m_queue_name);
-  req.set_platefile_id(m_platefile_id);
-  req.set_secret(m_secret);
-  m_conn.basic_publish_protobuf(req, INDEX_EXCHANGE, m_queue_name);    
+  vw_throw(NoImplErr() << "max_depth() not yet implemented.");
+  return 0;
 
-  IndexDepthReply r = wait_for_response<IndexDepthReply>(m_queue_name + ".depth_reply");
-  return r.depth();
+  // IndexDepthRequest request;
+  // request.set_platefile_id(m_platefile_id);
+  // request.set_secret(m_secret);
+  // m_conn.basic_publish_protobuf(request, INDEX_EXCHANGE, m_queue_name);    
+
+  // IndexDepthReply r = wait_for_response<IndexDepthReply>(m_queue_name + ".depth_reply");
+  // return r.depth();
 }
 
 std::string vw::platefile::RemoteIndex::platefile_name() const { 
-  return m_platefile;
+  vw_throw(NoImplErr() << "platefile_name() not yet implemented.");
+  return "";
+  //  return m_platefile;
 }
 
 vw::int32 vw::platefile::RemoteIndex::default_tile_size() const { 

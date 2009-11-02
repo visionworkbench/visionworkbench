@@ -10,6 +10,10 @@
 
 #include <string>
 #include <boost/shared_ptr.hpp>
+#include <boost/shared_array.hpp>
+
+#include <vw/Core/Log.h>
+#include <vw/Core/FundamentalTypes.h>
 
 namespace vw {
 namespace platefile {
@@ -53,23 +57,24 @@ namespace platefile {
     // Methods for sending and receiving data
     // ------------------------------------------------------
 
-    void basic_publish(std::string const& message, 
+    void basic_publish(boost::shared_array<uint8> const& message, 
+                       int32 size,
                        std::string const& exchange, 
                        std::string const& routing_key) const;
 
-    template <class ProtoBufT>
-    void basic_publish_protobuf(ProtoBufT const& protobuf, 
-                                std::string const& exchange, 
-                                std::string const& routing_key) const {
-      std::string message_bytes;
-      protobuf.SerializeToString(&message_bytes);
-      this->basic_publish(message_bytes, exchange, routing_key);
-    }
-    
+    // template <class ProtoBufT>
+    // void basic_publish_protobuf(ProtoBufT const& protobuf, 
+    //                             std::string const& exchange, 
+    //                             std::string const& routing_key) const {
+    //   boost::shared_array<uint8> message_bytes( new uint8[protobuf.ByteSize()] );
+    //   protobuf.SerializeToArray((void*)(message_bytes.get()), protobuf.ByteSize());
+    //   vw_out(0) << "SENDING " << message_bytes.size() << " bytes to " << routing_key << ".\n";
+    //   this->basic_publish(message_bytes, exchange, routing_key);
+    // }
 
-    std::string basic_consume(std::string const& queue, 
-                              std::string &routing_key,
-                              bool no_ack) const;
+    boost::shared_array<uint8> basic_consume(std::string const& queue, 
+                                             std::string &routing_key,
+                                             bool no_ack) const;
   };
 
 }} // namespace vw::platefile

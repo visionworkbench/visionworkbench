@@ -10,48 +10,23 @@
 
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Amqp.h>
+#include <vw/Plate/RpcServices.h>
 
 namespace vw {
 namespace platefile {
 
   class RemoteIndex : public IndexBase {
   
-    std::string m_platefile;
     std::string m_queue_name;
-    AmqpConnection m_conn;
+    
+    // Remote connection
+    boost::shared_ptr<AmqpRpcChannel> m_rpc_channel;
+    boost::shared_ptr<AmqpRpcController> m_rpc_controller;
+    boost::shared_ptr<IndexService> m_index_service;
   
     int32 m_platefile_id;
     int32 m_secret;
     IndexHeader m_index_header;
-
-
-    // Wait for a response from the AMQP server.  If the routing key of
-    // the response matches the expected_routing_key, then we parse and
-    // return a protobuffer of type ProtoBufT.  If we get an error or
-    // unexpeted reply, we throw an exception.
-    //
-    // TODO: Add the ability to set a wait timeout that throws a
-    // AmqpTimeoutErr exception if we wait too long.
-    //
-    // ALSO TODO: Add a send_and_wait() method that catches these
-    // exceptions and retries on failure.
-    template <class ProtoBufT>
-    ProtoBufT wait_for_response(std::string expected_routing_key) const {
-      std::string routing_key;
-      std::string response = m_conn.basic_consume(m_queue_name, routing_key, false); 
-      if (routing_key == expected_routing_key) {
-        ProtoBufT r;
-        r.ParseFromString(response);
-        return r;
-      } else if (routing_key == m_queue_name + ".index_error") {
-        IndexError r;
-        r.ParseFromString(response);
-        vw_throw(LogicErr() << "An index server error occured: " << r.message());
-      } else {
-        vw_throw(LogicErr() << "Unpected routing key: " 
-                 << routing_key << " (expected IndexOpenReply)\n");
-      }
-    }
 
   public:
     /// Constructor

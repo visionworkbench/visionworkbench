@@ -129,7 +129,7 @@ AmqpConnection::AmqpConnection(std::string const& hostname, int port) {
 }
 
 AmqpConnection::~AmqpConnection() {
-  vw_out(0) << "Closing AMQP connection.\n";
+  vw_out(InfoMessage, "platefile::amqp") << "Closing AMQP connection.\n";
   die_on_amqp_error(amqp_channel_close(m_state->conn, 1, AMQP_REPLY_SUCCESS), "Closing channel");
   die_on_amqp_error(amqp_connection_close(m_state->conn, AMQP_REPLY_SUCCESS), "Closing connection");
   amqp_destroy_connection(m_state->conn);
@@ -185,33 +185,48 @@ void AmqpConnection::queue_unbind(std::string const& queue, std::string const& e
 // Methods for sending and receiving data
 // ------------------------------------------------------
 
-void AmqpConnection::basic_publish(std::string const& message, 
+void AmqpConnection::basic_publish(boost::shared_array<uint8> const& message, 
+                                   int32 size,
                                    std::string const& exchange, 
                                    std::string const& routing_key) const {
 
-  amqp_basic_properties_t props;
-  props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
-  props.content_type = amqp_cstring_bytes("text/plain");
-  props.delivery_mode = 2; // persistent delivery mode
+  // The delivery mode flag (below) can be used to select for
+  // persistent delivery mode, which virtually gurantees that the
+  // message will get through, even if the AMQP server crashes.
+  // However, this comes at a performance penalty, so it is disabled
+  // here for now.
+  //
+  // amqp_basic_properties_t props;
+  // props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
+  // props.content_type = amqp_cstring_bytes("text/plain");
+  // props.delivery_mode = 2; // persistent delivery mode
+  amqp_bytes_t raw_data;
+  raw_data.len = size;
+  raw_data.bytes = (void*)(message.get());
+
   die_on_error(amqp_basic_publish(m_state->conn,
                                   1,
                                   amqp_cstring_bytes(exchange.c_str()),
                                   amqp_cstring_bytes(routing_key.c_str()),
                                   0,
                                   0,
-                                  &props,
-                                  amqp_cstring_bytes(message.c_str())),
+                                  NULL,
+                                  raw_data ),
                "Publishing");
 }
 
 
-std::string AmqpConnection::basic_consume(std::string const& queue, 
-                                          std::string &routing_key,
-                                          bool no_ack) const {
+boost::shared_array<uint8> AmqpConnection::basic_consume(std::string const& queue, 
+                                                         std::string &routing_key,
+                                                         bool no_ack) const {
 
-  amqp_basic_consume(m_state->conn, 1, amqp_cstring_bytes(queue.c_str()), 
-                                                          m_state->empty_bytes, 
-                                                          0, no_ack, 0);
+  amqp_basic_consume(m_state->conn, 
+                     1,  // channel
+                     amqp_cstring_bytes(queue.c_str()), 
+                     m_state->empty_bytes, 
+                     0,  // no_local
+                     no_ack, 
+                     0); // exclusive
   die_on_amqp_error(amqp_rpc_reply, "Consuming");
 
   {
@@ -223,30 +238,30 @@ std::string AmqpConnection::basic_consume(std::string const& queue,
     size_t body_target;
     size_t body_received;
 
-    boost::shared_array<char> payload;
+    boost::shared_array<uint8> payload;
 
     amqp_maybe_release_buffers(m_state->conn);
     result = amqp_simple_wait_frame(m_state->conn, &frame);
-    printf("Result %d\n", result);
+    //    printf("Result %d\n", result);
     if (result <= 0)
       vw_throw(IOErr() << "AMQP error: unknown result code.");
 
-    printf("Frame type %d, channel %d\n", frame.frame_type, frame.channel);
+    //    printf("Frame type %d, channel %d\n", frame.frame_type, frame.channel);
     if (frame.frame_type != AMQP_FRAME_METHOD)
       vw_throw(IOErr() << "AMQP error: unknown frame type.");
 
-    printf("Method %s\n", amqp_method_name(frame.payload.method.id));
+    //    printf("Method %s\n", amqp_method_name(frame.payload.method.id));
     if (frame.payload.method.id != AMQP_BASIC_DELIVER_METHOD)
       vw_throw(IOErr() << "AMQP error: unknown payload method.");
 
     d = (amqp_basic_deliver_t *) frame.payload.method.decoded;
-    printf("Delivery %u, exchange %.*s routingkey %.*s\n",
-           (unsigned) d->delivery_tag,
-           (int) d->exchange.len, (char *) d->exchange.bytes,
-           (int) d->routing_key.len, (char *) d->routing_key.bytes);
+    //    printf("Delivery %u, exchange %.*s routingkey %.*s\n",
+           // (unsigned) d->delivery_tag,
+           // (int) d->exchange.len, (char *) d->exchange.bytes,
+           // (int) d->routing_key.len, (char *) d->routing_key.bytes);
     
     // copy the routing key to pass out to the caller
-    boost::shared_array<char> rk_bytes = boost::shared_array<char>(new char[d->routing_key.len + 1]);
+    boost::shared_array<char> rk_bytes(new char[d->routing_key.len + 1]);
     strncpy(rk_bytes.get(), (char*)(d->routing_key.bytes), d->routing_key.len);
     rk_bytes[d->routing_key.len] = '\0';
     routing_key = rk_bytes.get();
@@ -256,19 +271,19 @@ std::string AmqpConnection::basic_consume(std::string const& queue,
       vw_throw(IOErr() << "AMQP error: unknown result waiting for frame.");
 
     if (frame.frame_type != AMQP_FRAME_HEADER) {
-      fprintf(stderr, "Expected header!");
+      vw_out(ErrorMessage, "platefile::amqp") << "Expected AMQP header!";
       abort();
     }
     p = (amqp_basic_properties_t *) frame.payload.properties.decoded;
     if (p->_flags & AMQP_BASIC_CONTENT_TYPE_FLAG) {
-      printf("Content-type: %.*s\n",
-             (int) p->content_type.len, (char *) p->content_type.bytes);
+      // printf("Content-type: %.*s\n",
+      //        (int) p->content_type.len, (char *) p->content_type.bytes);
     }
-    printf("----\n");
+    // printf("----\n");
 
     body_target = frame.payload.properties.body_size;
     body_received = 0;
-    payload = boost::shared_array<char>(new char[body_target]);
+    payload = boost::shared_array<uint8>( new uint8[body_target] );
     
     while (body_received < body_target) {
       result = amqp_simple_wait_frame(m_state->conn, &frame);
@@ -276,14 +291,14 @@ std::string AmqpConnection::basic_consume(std::string const& queue,
         vw_throw(IOErr() << "AMQP error: unknown result waiting for frame.");
       
       if (frame.frame_type != AMQP_FRAME_BODY) {
-        fprintf(stderr, "Expected body!");
+        vw_out(ErrorMessage, "platefile::amqp") << "Expected AMQP message body!";
         abort();
       }	  
 
       // Copy the bytes out of the payload...
-      strncpy((payload.get() + body_received), 
-              (const char*)(frame.payload.body_fragment.bytes),
-              frame.payload.body_fragment.len);
+      memcpy(((char*)(payload.get()) + body_received), 
+             (const char*)(frame.payload.body_fragment.bytes),
+             frame.payload.body_fragment.len);
 
       // ... and update the number of bytes we have received
       body_received += frame.payload.body_fragment.len;
@@ -298,9 +313,10 @@ std::string AmqpConnection::basic_consume(std::string const& queue,
     if (!no_ack)
       amqp_basic_ack(m_state->conn, 1, d->delivery_tag, 0);
 
-    std::cout << "Message payload: \"" << payload.get() << "\"\n";
+    vw_out(VerboseDebugMessage, "platefile::amqp") << "Message payload: \"" 
+                                                   << payload.get() << "\"\n";
 
-    return payload.get();
+    return payload;
   }
 
 }

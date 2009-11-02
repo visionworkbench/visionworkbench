@@ -79,57 +79,50 @@ message TileHeader {
 // ----------------------------------
 
 message IndexOpenRequest {
-  required string requestor = 1;
-  required string plate_filename = 10;
-  optional string mode = 11 [default = "read"]; // [ 'read' | 'readwrite' ]
+  required string plate_filename = 1;
+  optional string mode = 2 [default = "read"]; // [ 'read' | 'readwrite' ]
 }
 
 message IndexCloseRequest {
-  required string requestor = 1;
-  required int32 platefile_id = 2;
-  required int32 secret = 3;
+  required int32 platefile_id = 1;
+  required int32 secret = 2;
 }
 
 message IndexCreate {
-  required string requestor = 1;
-  required string plate_filename = 10;
-  required string projection_type = 11;
-  required int32 default_block_size = 12;
-  required string default_filetype = 13;
+  required string plate_filename = 1;
+  required string projection_type = 2;
+  required int32 default_block_size = 3;
+  required string default_filetype = 4;
 }
 
 message IndexReadRequest {
-  required string requestor = 1;
-  required int32 platefile_id = 2;
-  required int32 secret = 3;
+  required int32 platefile_id = 1;
+  required int32 secret = 2;
 
-  required int32 col = 10;
-  required int32 row = 11;
-  required int32 depth = 12;
-  required int32 transaction_id = 13 [default = 0];
+  required int32 col = 3;
+  required int32 row = 4;
+  required int32 depth = 5;
+  required int32 transaction_id = 6 [default = 0];
 }
 
 message IndexWriteRequest {
-  required string requestor = 1;
-  required int32 platefile_id = 2;
-  required int32 secret = 3;
+  required int32 platefile_id = 1;
+  required int32 secret = 2;
 
-  required int32 size = 10;
+  required int32 size = 3;
 }
 
 message IndexWriteComplete {
-  required string requestor = 1;
-  required int32 platefile_id = 2;
-  required int32 secret = 3;
+  required int32 platefile_id = 1;
+  required int32 secret = 2;
 
-  required TileHeader header = 10;
-  required IndexRecord record = 11;
+  required TileHeader header = 3;
+  required IndexRecord record = 4;
 }
 
 message IndexDepthRequest {
-  required string requestor = 1;
-  required int32 platefile_id = 2;
-  required int32 secret = 3;
+  required int32 platefile_id = 1;
+  required int32 secret = 2;
 }
 
 // ----------------------------------
@@ -161,3 +154,23 @@ message IndexDepthReply {
   required int32 depth = 1;
 }
 
+// ---------------------------------
+// Service definition
+// ---------------------------------
+
+message RpcRequestWrapper {
+  required string requestor = 1;
+  required string method = 2;
+  required bytes payload = 3;
+}
+
+message RpcResponseWrapper {
+  required bytes payload = 1;
+  required bool error = 2 [ default = false ];
+  optional string error_string = 3;;
+}
+
+service IndexService {
+  rpc OpenRequest (IndexOpenRequest) returns (IndexOpenReply);
+  rpc ReadRequest (IndexReadRequest) returns (IndexReadReply);
+}

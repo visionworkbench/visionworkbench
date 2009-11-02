@@ -14,9 +14,10 @@ if MAKE_MODULE_PLATE
 TestBlobIO_SOURCES       = TestBlobIO.oldtest
 TestBlobIterator_SOURCES = TestBlobIterator.oldtest
 TestIndex_SOURCES        = TestIndex.oldtest
+TestAmqp_SOURCES        = TestAmqp.oldtest
 #TestTree_SOURCES        = TestTree.oldtest
 
-TESTS = TestBlobIO TestBlobIterator TestIndex # TestTree
+TESTS = TestBlobIO TestBlobIterator TestIndex TestAmqp # TestTree
 
 #include $(top_srcdir)/config/instantiate.am
 

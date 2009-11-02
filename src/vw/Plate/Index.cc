@@ -190,7 +190,13 @@ std::ostream& vw::platefile::Index::log () {
 /// TileNotFoundErr if the tile cannot be found.
 IndexRecord vw::platefile::Index::read_request(int col, int row, int depth, int transaction_id) {
   Mutex::Lock lock(m_mutex);
-  return m_root->search(col, row, depth, transaction_id);
+  IndexRecord rec;
+  try {
+    rec = m_root->search(col, row, depth, transaction_id);
+  } catch (IndexErr &e) {
+    vw_throw(TileNotFoundErr() << "Invalid index.  Tiles do not exist at the given location.\n");
+  }
+  return rec;
 }
   
 // Writing, pt. 1: Locks a blob and returns the blob id that can

@@ -1,0 +1,64 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006-2009 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
+#include <cxxtest/TestSuite.h>
+
+#include <vw/Plate/Amqp.h>
+#include <vw/Plate/Protobuffers.pb.h>
+#include <vw/Plate/RpcServices.h>
+
+using namespace std;
+using namespace vw;
+using namespace vw::platefile;
+
+#define EXCHANGE "unittest_exchange"
+#define QUEUE "unittest_queue"
+#define ROUTING_KEY "unittest"
+
+class TestAmqp : public CxxTest::TestSuite {
+
+public:
+
+  void test_basic_amqp_io() {
+    AmqpConnection conn;
+
+    conn.exchange_declare(EXCHANGE, "direct", true, false);
+    conn.queue_declare(QUEUE, true, true, false);
+    conn.queue_bind(QUEUE, EXCHANGE, ROUTING_KEY);
+
+    IndexReadRequest request;
+    request.set_requestor("test");
+    request.set_platefile_id(23);
+    request.set_secret(48);
+
+    request.set_col(1);
+    request.set_row(2);
+    request.set_depth(3);
+    request.set_transaction_id(32);
+    //    std::cout << "\n\nRequest: " << request.DebugString() << "\n";
+
+    WireMessage msg(&request);
+    conn.basic_publish(msg.serialized_bytes(), msg.size(), EXCHANGE, ROUTING_KEY);
+    
+    std::string response_routing_key;
+    boost::shared_array<uint8> response_bytes = conn.basic_consume(QUEUE, 
+                                                                   response_routing_key, 
+                                                                   false);
+
+    WireMessage wire_response(response_bytes);
+    IndexReadRequest response = wire_response.parse_as_message<IndexReadRequest>();
+    //    std::cout << "Response: " << response.DebugString() << "\n";
+
+    TS_ASSERT_EQUALS(request.requestor(), response.requestor());
+    TS_ASSERT_EQUALS(request.platefile_id(), response.platefile_id());
+    TS_ASSERT_EQUALS(request.secret(), response.secret());
+    TS_ASSERT_EQUALS(request.col(), response.col());
+    TS_ASSERT_EQUALS(request.row(), response.row());
+    TS_ASSERT_EQUALS(request.depth(), response.depth());
+  }
+
+}; // class TestIndex

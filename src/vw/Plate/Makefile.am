@@ -19,11 +19,11 @@ protocol_sources = ProtoBuffers.pb.cc
 include_HEADERS = Blob.h BlobManager.h Index.h RemoteIndex.h Tree.h	\
 		  PlateFile.h Amqp.h PlateManager.h			\
 		  ToastPlateManager.h KmlPlateManager.h			\
-		  PlateView.h
+		  PlateView.h RpcServices.h IndexService.h
 nodist_include_HEADERS = $(protocol_headers)
 
-libvwPlate_la_SOURCES = Blob.cc BlobManager.cc	\
-			Index.cc RemoteIndex.cc Amqp.cc			\
+libvwPlate_la_SOURCES = Blob.cc BlobManager.cc Index.cc RpcServices.cc	\
+			IndexService.cc RemoteIndex.cc Amqp.cc		\
 			ToastPlateManager.cc KmlPlateManager.cc
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 
@@ -38,16 +38,10 @@ endif
 # ----------------
 if MAKE_MODPLATE
 
-#mod_plate_io.o:
-#	glibtool --mode=compile --tag=CXX $(CXX) -I/opt/local/include/apr-1 -I$(APXS_INCLUDEDIR) @VW_CPPFLAGS@ -c mod_plate_io.cc
-
-#mod_plate.la: mod_plate_io.o
-#	$(APXS) -c mod_plate.c @PKG_PLATE_LIBS@ mod_plate_io.o
-
-
-
 mod_plate_la_SOURCES = mod_plate.c mod_plate_io.cc
-mod_plate_la_CPPFLAGS = $(APXS_CFLAGS) -I$(APXS_INCLUDEDIR) @VW_CPPFLAGS@
+mod_plate_la_CPPFLAGS = -I/opt/local/include/apr-1	                \
+                        -I/opt/local/apache2/include $(APXS_CFLAGS)     \
+			-I$(APXS_INCLUDEDIR) @VW_CPPFLAGS@
 mod_plate_la_LDFLAGS = @PKG_PLATE_LIBS@ -module
 lib_LTLIBRARIES += mod_plate.la
 
@@ -58,8 +52,8 @@ endif
 
 if ENABLE_EXCEPTIONS
 
-mosaic_worker_SOURCES = mosaic_worker.cc
-mosaic_worker_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@ 
+#mosaic_worker_SOURCES = mosaic_worker.cc
+#mosaic_worker_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ @PKG_PLATE_LIBS@ 
 
 plateindex_server_SOURCES = plateindex_server.cc
 plateindex_server_LDADD    = @PKG_PLATE_LIBS@ libvwPlate.la
@@ -73,7 +67,7 @@ plate2tiles_LDADD    = @PKG_PLATE_LIBS@
 plate2dem_SOURCES = plate2dem.cc
 plate2dem_LDADD    = @PKG_CARTOGRAPHY_LIBS@ @PKG_PLATE_LIBS@ 
 
-bin_PROGRAMS = plate2dem plate2tiles image2plate  mosaic_worker plateindex_server
+bin_PROGRAMS = plate2dem plate2tiles image2plate plateindex_server
 noinst_PROGRAMS = 
 
 endif
