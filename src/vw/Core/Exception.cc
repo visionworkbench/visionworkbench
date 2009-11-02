@@ -46,4 +46,6 @@ void vw::set_exception_handler( vw::ExceptionHandler const* eh ) {
 
 void vw::vw_throw( vw::Exception const& e ) {
   _vw_exception_handler->handle( e );
+  // We cannot return.
+  std::abort();
 }
