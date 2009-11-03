@@ -13,8 +13,8 @@
 void null_closure() {}
 
 /// Constructor
-vw::platefile::RemoteIndex::RemoteIndex(int platefile_id, std::string const& requestor) :
-  m_queue_name(requestor), m_platefile_id(platefile_id) {
+vw::platefile::RemoteIndex::RemoteIndex(std::string const& requestor) :
+  m_queue_name(requestor) {
 
   // Set up the connection to the AmqpRpcService
   m_rpc_channel.reset( new AmqpRpcChannel(INDEX_EXCHANGE, "index", requestor) );
@@ -46,18 +46,20 @@ vw::platefile::RemoteIndex::RemoteIndex(int platefile_id, std::string const& req
   
 /// destructor
 vw::platefile::RemoteIndex::~RemoteIndex() {
-  IndexCloseRequest request;
-  request.set_platefile_id(m_platefile_id);
-  request.set_secret(m_secret);
+  // IndexCloseRequest request;
+  // request.set_platefile_id(m_platefile_id);
+  // request.set_secret(m_secret);
   //  m_conn.basic_publish_protobuf(req, INDEX_EXCHANGE, "index.index_close_request");
 }
   
 /// Attempt to access a tile in the index.  Throws an
 /// TileNotFoundErr if the tile cannot be found.
-vw::platefile::IndexRecord vw::platefile::RemoteIndex::read_request(int col, int row, 
-                                                                    int depth, int transaction_id) {
+vw::platefile::IndexRecord vw::platefile::RemoteIndex::read_request(int platefile_id, 
+                                                                    int col, int row, 
+                                                                    int depth, 
+                                                                    int transaction_id) {
   IndexReadRequest request;
-  request.set_platefile_id(m_platefile_id);
+  request.set_platefile_id(platefile_id);
   request.set_secret(m_secret);
   request.set_col(col);
   request.set_row(row);
@@ -131,10 +133,10 @@ vw::int32 vw::platefile::RemoteIndex::max_depth() const {
   // return r.depth();
 }
 
-std::string vw::platefile::RemoteIndex::platefile_name() const { 
+std::string vw::platefile::RemoteIndex::platefile_name(int platefile_id) const { 
   IndexInfoRequest request;
-  vw_out(0) << "Setting to ID = " << m_platefile_id << "\n";
-   request.set_platefile_id(m_platefile_id);
+  vw_out(0) << "Setting to ID = " << platefile_id << "\n";
+   request.set_platefile_id(platefile_id);
    vw_out(0) << "ISSUING IndexInfoRequest\n" << request.DebugString() << "\n";
 
   IndexInfoReply response;

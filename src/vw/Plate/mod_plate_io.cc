@@ -45,6 +45,11 @@ class PlateModule {
   int image_handler(request_rec *r, int platefile_id,
                     int col, int row, int depth, std::string file_suffix) {
 
+    std::ostringstream queue_name;
+    queue_name << "mod_plate_" << getpid() << "_" << Thread::id() << "\n";
+    vw_out(0) << "image handler called by " << Thread::id() << "\n";
+    boost::shared_ptr<platefile::RemoteIndex> m_index( new platefile::RemoteIndex(queue_name.str()) );
+
     // --------------  Access Plate Index -----------------
 
     IndexRecord idx_record;
@@ -52,14 +57,12 @@ class PlateModule {
     try {
       //platefile::Index idx(plate_filename);
       vw_out(0) << "------------ CREATING REMOTE INDEX ----------------\n";
-      platefile::RemoteIndex idx(platefile_id, "foobar");
-      // if (!m_index)
-      //   return error_handler(r, "Error: connection is not open to remote index server.");
+
       vw_out(0) << "------------ ISSUING READ REQUEST ----------------\n";
-      idx_record = idx.read_request(col,row,depth);
+      idx_record = m_index->read_request(platefile_id, col,row,depth);
 
       vw_out(0) << "------------ ISSUING INFO REQUEST ----------------\n";
-      plate_filename = idx.platefile_name();
+      plate_filename = m_index->platefile_name(platefile_id);
       
       //      For debugging:
       // r->content_type = "text/html";      
@@ -131,7 +134,9 @@ public:
   PlateModule() {
 
     // Redirect the output stream to a file.
-    m_output_stream.reset( new std::ofstream("/tmp/mod_plate.log") );
+    std::ostringstream ostr;
+    ostr << "/tmp/mod_plate_" << getpid() << ".log";
+    m_output_stream.reset( new std::ofstream(ostr.str().c_str() ) );
     vw_log().set_console_stream(*(m_output_stream.get()));
     vw_out(0) << "\n\nInitializing mod_plate module.\n";
 

@@ -15,7 +15,7 @@
 namespace vw {
 namespace platefile {
 
-  class RemoteIndex : public IndexBase {
+  class RemoteIndex {//: public IndexBase {
   
     std::string m_queue_name;
     
@@ -24,20 +24,19 @@ namespace platefile {
     boost::shared_ptr<AmqpRpcController> m_rpc_controller;
     boost::shared_ptr<IndexService> m_index_service;
   
-    int32 m_platefile_id;
     int32 m_secret;
-    IndexHeader m_index_header;
 
   public:
     /// Constructor
-    RemoteIndex(int platefile_id, std::string const& requestor);
+    RemoteIndex(std::string const& requestor);
 
     /// destructor
     virtual ~RemoteIndex();
   
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.
-    virtual IndexRecord read_request(int col, int row, int depth, int transaction_id = -1);
+    virtual IndexRecord read_request(int platefile_id, int col, int row, 
+                                     int depth, int transaction_id = -1);
   
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
@@ -45,12 +44,13 @@ namespace platefile {
   
     // Writing, pt. 2: Supply information to update the index and
     // unlock the blob id.
-    virtual void write_complete(TileHeader const& header, IndexRecord const& record);
+    virtual void write_complete(TileHeader const& header, 
+                                IndexRecord const& record);
   
     virtual int32 version() const;
     virtual int32 max_depth() const;
 
-    virtual std::string platefile_name() const;
+    virtual std::string platefile_name(int platefile_id) const;
 
     virtual int32 default_tile_size() const;
     virtual std::string default_tile_filetype() const;

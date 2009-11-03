@@ -226,8 +226,10 @@ boost::shared_array<uint8> AmqpConnection::basic_consume(std::string const& queu
                      m_state->empty_bytes, 
                      0,  // no_local
                      no_ack, 
-                     0,  // exclusive
-                     m_state->empty_table); 
+                     0);  // exclusive
+
+  // This last argument doesn't seem to exist in my version of rabbitmq-c.  Maybe it's new?
+  //                     m_state->empty_table); 
   die_on_amqp_error(amqp_rpc_reply, "Consuming");
 
   {
