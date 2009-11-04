@@ -41,8 +41,8 @@ int main( int argc, char *argv[] ) {
 
     std::string left_file_name, right_file_name;
     float log, slog;
-    int xoffset, yoffset;
-    int xrange, yrange;
+    int h_corr_min, h_corr_max;
+    int v_corr_min, v_corr_max;
     int xkernel, ykernel;
     int lrthresh;
     float corrscore_thresh;
@@ -58,10 +58,10 @@ int main( int argc, char *argv[] ) {
       ("right", po::value<std::string>(&right_file_name), "Explicitly specify the \"right\" input file")
       ("slog", po::value<float>(&slog)->default_value(1.0), "Apply SLOG filter with the given sigma, or 0 to disable")
       ("log", po::value<float>(&log)->default_value(0.0), "Apply LOG filter with the given sigma, or 0 to disable")
-      ("xoffset", po::value<int>(&xoffset)->default_value(0), "Overall horizontal offset between images")
-      ("yoffset", po::value<int>(&yoffset)->default_value(0), "Overall vertical offset between images")
-      ("xrange", po::value<int>(&xrange)->default_value(5), "Allowed range of horizontal disparity")
-      ("yrange", po::value<int>(&yrange)->default_value(5), "Allowed range of vertical disparity")
+      ("h-corr-min", po::value<int>(&h_corr_min)->default_value(0), "Minimum horizontal disparity")
+      ("h-corr-max", po::value<int>(&h_corr_max)->default_value(0), "Maximum horizontal disparity")
+      ("v-corr-min", po::value<int>(&v_corr_min)->default_value(5), "Minimum vertical disparity")
+      ("v-corr-max", po::value<int>(&v_corr_max)->default_value(5), "Maximum vertical disparity")
       ("xkernel", po::value<int>(&xkernel)->default_value(15), "Horizontal correlation kernel size")
       ("ykernel", po::value<int>(&ykernel)->default_value(15), "Vertical correlation kernel size")
       ("lrthresh", po::value<int>(&lrthresh)->default_value(2), "Left/right correspondence threshold")
@@ -132,8 +132,8 @@ int main( int argc, char *argv[] ) {
 
     ImageView<PixelMask<Vector2f> > disparity_map;
     if (vm.count("reference")>0) {
-      vw::stereo::ReferenceCorrelator correlator( xoffset-xrange, xoffset+xrange,
-                                                  yoffset-yrange, yoffset+yrange,
+      vw::stereo::ReferenceCorrelator correlator( h_corr_min, h_corr_max,
+                                                  v_corr_min, v_corr_max,
                                                   xkernel, ykernel,
                                                   true, lrthresh,
                                                   (vm.count("hsubpix")>0),
@@ -144,8 +144,8 @@ int main( int argc, char *argv[] ) {
       else
         disparity_map = correlator( left, right, stereo::SlogStereoPreprocessingFilter(slog));
     } else if (vm.count("pyramid")>0) {
-      vw::stereo::PyramidCorrelator correlator( BBox2(Vector2(xoffset-xrange, yoffset-yrange),
-                                                      Vector2(xoffset+xrange, yoffset+yrange)),
+      vw::stereo::PyramidCorrelator correlator( BBox2(Vector2(h_corr_min, v_corr_min),
+                                                      Vector2(h_corr_max, v_corr_max)),
                                                 Vector2i(xkernel, ykernel),
                                                 lrthresh,
                                                 corrscore_thresh,
@@ -160,7 +160,8 @@ int main( int argc, char *argv[] ) {
           disparity_map = correlator( left, right, left_mask, right_mask, stereo::SlogStereoPreprocessingFilter(slog));
       }
     } else {
-      vw::stereo::OptimizedCorrelator correlator( BBox2i(xoffset-xrange/2, yoffset-yrange/2, xrange, yrange),
+      vw::stereo::OptimizedCorrelator correlator( BBox2i(Vector2(h_corr_min, v_corr_min),
+                                                         Vector2(h_corr_max, v_corr_max)),
                                                   xkernel,
                                                   lrthresh,
                                                   corrscore_thresh,
