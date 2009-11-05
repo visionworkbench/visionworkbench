@@ -133,8 +133,9 @@ namespace camera {
       Vector<double> epsilon(num_observations);            // Modified error vector for Robust algorithm
 
       double t_df = 4;                                            // Degrees of freedom for data (can be modified later)
-      double t_dim = 2;                                           // dimension of pixels
-
+      double t_dim_pixel = 2;                                           // dimension of pixels
+      double t_dim_cam = 6;                                       // dimension of camera params
+      double t_dim_pt = 3;                                        // dimension of world point
 
       Matrix<double> sigma(num_observations, num_observations);   // Sigma (uncertainty) matrix
 
@@ -171,9 +172,9 @@ namespace camera {
 
           // Populate the S_weights, mu_weights vectors
           double S_weight = transpose(unweighted_error) * inverse_cov * unweighted_error;
-          double mu_weight = (t_df + t_dim)/(t_df + S_weight);
+          double mu_weight = (t_df + t_dim_pixel)/(t_df + S_weight);
 
-          robust_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
+          robust_objective += 0.5*(t_df + t_dim_pixel)*log(1 + S_weight/t_df);
 
 
           // Populate the robust epsilon vector
@@ -211,9 +212,9 @@ namespace camera {
           Vector<double> unweighted_error = this->m_model.A_initial(j)-this->m_model.A_parameters(j);
 
           double S_weight = transpose(unweighted_error) * (this->m_model.A_inverse_covariance(j)) * unweighted_error;
-          double mu_weight = (t_df + t_dim)/(t_df + S_weight);
+          double mu_weight = (t_df + t_dim_cam)/(t_df + S_weight);
 
-          robust_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
+          robust_objective += 0.5*(t_df + t_dim_cam)*log(1 + S_weight/t_df);
 
           // Here the J is modified exactly as J was
           submatrix(J,
@@ -249,9 +250,9 @@ namespace camera {
             // Here the J is modified exactly as J was
 
             double S_weight = transpose(unweighted_error) * this->m_model.B_inverse_covariance(i) * unweighted_error;
-            double mu_weight = (t_df + t_dim)/(t_df + S_weight);
+            double mu_weight = (t_df + t_dim_pt)/(t_df + S_weight);
 
-            robust_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
+            robust_objective += 0.5*(t_df + t_dim_pt)*log(1 + S_weight/t_df);
 
 
             submatrix(J, 2*this->m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
@@ -362,7 +363,7 @@ namespace camera {
 
 
 
-          new_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
+          new_objective += 0.5*(t_df + t_dim_pixel)*log(1 + S_weight/t_df);
 
           ++idx;
         }
@@ -382,7 +383,7 @@ namespace camera {
           double S_weight = transpose(unweighted_error) * this->m_model.A_inverse_covariance(j) * unweighted_error;
           //double mu_weight = (t_df + t_dim)/(t_df + S_weight);
 
-           new_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
+           new_objective += 0.5*(t_df + t_dim_cam)*log(1 + S_weight/t_df);
 
         }
 
@@ -401,7 +402,7 @@ namespace camera {
             //double mu_weight = (t_df + t_dim)/(t_df + S_weight);
 
 
-            new_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
+            new_objective += 0.5*(t_df + t_dim_pt)*log(1 + S_weight/t_df);
 
             ++idx;
           }

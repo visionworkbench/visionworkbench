@@ -136,7 +136,9 @@ namespace camera {
 
 
       double t_df = 4;                                            // Degrees of freedom for data (can be modified later)
-      double t_dim = 2;                                           // dimension of pixels
+      double t_dim_pixel = 2;                                           // dimension of pixels
+      double t_dim_cam   = 6;                                           // dimension of cameras
+      double t_dim_pt    = 3;                                           // dimension of world points
 
       // Fletcher LM parameteres
       double dS = 0; //Predicted improvement for Fletcher modification
@@ -177,14 +179,14 @@ namespace camera {
           inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
 
           double S_weight = transpose(unweighted_error) * inverse_cov * unweighted_error;
-          double mu_weight = (t_df + t_dim)/(t_df + S_weight);
+          double mu_weight = (t_df + t_dim_pixel)/(t_df + S_weight);
 
           epsilon(i,j) = unweighted_error * sqrt(mu_weight);
 
           // do NOT want epsilon_inst scaled
           Vector2 epsilon_inst = unweighted_error;
 
-          robust_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
+          robust_objective += 0.5*(t_df + t_dim_pixel)*log(1 + S_weight/t_df);
 
 
           // Store intermediate values
@@ -244,9 +246,9 @@ namespace camera {
           vector_camera eps_a = this->m_model.A_initial(j)-this->m_model.A_parameters(j);
 
           double S_weight = transpose(eps_a) * inverse_cov * eps_a;
-          double mu_weight = (t_df + t_dim)/(t_df + S_weight);
+          double mu_weight = (t_df + t_dim_cam)/(t_df + S_weight);
 
-          robust_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
+          robust_objective += 0.5*(t_df + t_dim_cam)*log(1 + S_weight/t_df);
 
           U(j) += mu_weight*transpose(C) * inverse_cov * C;
           epsilon_a(j) += mu_weight*transpose(C) * inverse_cov * eps_a;
@@ -273,9 +275,9 @@ namespace camera {
             vector_point eps_b = this->m_model.B_initial(i)-this->m_model.B_parameters(i);
 
             double S_weight = transpose(eps_b) * inverse_cov * eps_b;
-            double mu_weight = (t_df + t_dim)/(t_df + S_weight);
+            double mu_weight = (t_df + t_dim_pt)/(t_df + S_weight);
 
-            robust_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
+            robust_objective += 0.5*(t_df + t_dim_pt)*log(1 + S_weight/t_df);
 
             V(i) +=  mu_weight*transpose(D) * inverse_cov * D;
             epsilon_b(i) += mu_weight*transpose(D) * inverse_cov * eps_b;
@@ -502,7 +504,7 @@ namespace camera {
            // Populate the S_weights, mu_weights vectors
           double S_weight = transpose(unweighted_error) * inverse_cov * unweighted_error;
 
-          new_robust_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
+          new_robust_objective += 0.5*(t_df + t_dim_pixel)*log(1 + S_weight/t_df);
 
         }
         ++i;
@@ -529,7 +531,7 @@ namespace camera {
 
           double S_weight = transpose(eps_a) * inverse_cov * eps_a;
 
-          new_robust_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
+          new_robust_objective += 0.5*(t_df + t_dim_cam)*log(1 + S_weight/t_df);
         }
       //  std::cout << "new robust objective after initials: " << new_robust_objective << "\n\n";
 
@@ -549,7 +551,7 @@ namespace camera {
 
             double S_weight = transpose(eps_b)*inverse_cov*eps_b;
 
-            new_robust_objective += 0.5*(t_df + t_dim)*log(1 + S_weight/t_df);
+            new_robust_objective += 0.5*(t_df + t_dim_pt)*log(1 + S_weight/t_df);
           }
         }
 
