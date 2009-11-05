@@ -205,7 +205,7 @@ namespace camera {
     }
 
     virtual Quaternion<double> camera_pose(Vector2 const& pix) const {
-      return m_camera->camera_pose(pix)*m_rotation_inverse;      
+      return m_rotation*m_camera->camera_pose(pix);      
     }
 
     void write(std::string filename) {
