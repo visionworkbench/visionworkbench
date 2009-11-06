@@ -128,6 +128,7 @@ namespace vw {
 
       // Set some sensible default values
       m_kernel_size = Vector2i(25, 25);
+      pyramid_levels = 3;
       em_iter_max = 20; //20;
       P_inlier_0 = .8;
       P_inlier_min = 1e-5;
@@ -220,7 +221,6 @@ namespace vw {
       }
 
 
-      int pyramid_levels = 3;
       double blur_sigma_progressive = .5; // 3*sigma = 1.5 pixels
       // create the pyramid first
       std::vector<ImageView<ImagePixelT> > left_pyramid(pyramid_levels), right_pyramid(pyramid_levels);

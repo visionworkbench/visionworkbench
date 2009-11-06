@@ -101,10 +101,6 @@ namespace vw {
           r_image_dx = convolution_filter(right_r, dx_kernel);
           r_image_dy = convolution_filter(right_r, dy_kernel);
 
-          r_image_dxdx = convolution_filter(r_image_dx, dx_kernel);
-          r_image_dydy = convolution_filter(r_image_dy, dy_kernel);
-          r_image_dxdy = convolution_filter(r_image_dx, dy_kernel);
-
           l_likelihood = INFINITY;
 
           debug = false;
@@ -197,24 +193,17 @@ namespace vw {
       inline void m_compute_gradient_hessian(Vector<PrecisionT, 6> &gradient, Matrix<double, 6, 6> &hessian,
                                              int x, int y,
                                              ImageView<PrecisionT> const &weights, ImageView<PixelT> const &err,
-                                             ImageView<PixelT> const &r_window_dx, ImageView<PixelT> const &r_window_dy,
-                                             ImageView<PixelT> const &r_window_dxdx, ImageView<PixelT> const &r_window_dydy,
-                                             ImageView<PixelT> const &r_window_dxdy) const
+                                             ImageView<PixelT> const &r_window_dx, ImageView<PixelT> const &r_window_dy) const
       {
         int kernel_height = err.rows();
         int kernel_width = err.cols();
 
         typename ImageView<PrecisionT>::pixel_accessor weights_iter = weights.origin();
         typename ImageView<PixelT>::pixel_accessor err_iter = err.origin();
-
+	
         typename ImageView<PixelT>::pixel_accessor dx_iter = r_window_dx.origin();
         typename ImageView<PixelT>::pixel_accessor dy_iter = r_window_dy.origin();
-        typename ImageView<PixelT>::pixel_accessor dxdx_iter = r_window_dxdx.origin();
-        typename ImageView<PixelT>::pixel_accessor dydy_iter = r_window_dydy.origin();
-        typename ImageView<PixelT>::pixel_accessor dxdy_iter = r_window_dxdy.origin();
-
-
-
+	
         fill(gradient, 0);
         hessian.set_zero();
         int i, j;
@@ -231,25 +220,17 @@ namespace vw {
             PrecisionT cache_w = *weights_iter;
             PrecisionT cache_e = *err_iter;
             PrecisionT cache_dx = *dx_iter;
-            PrecisionT cache_dy = *dy_iter;
-            
-	    PrecisionT cache_dxdx = *dxdx_iter;
-            PrecisionT cache_dydy = *dydy_iter;
-            PrecisionT cache_dxdy = *dxdy_iter;
-	    /*
-	    // ignore second order terms to turn this into a Gauss-Newton algorithm
-	    PrecisionT cache_dxdx = 0;
-            PrecisionT cache_dydy = 0;
-	    PrecisionT cache_dxdy = 0;
-	    */
-	    PrecisionT cache_a = cache_e*cache_dxdx + cache_dx*cache_dx;
-            PrecisionT cache_b = cache_e*cache_dxdy + cache_dx*cache_dy;
-            PrecisionT cache_c = cache_e*cache_dydy + cache_dy*cache_dy;
+            PrecisionT cache_dy = *dy_iter;            
+
+	    // these are implemented directly below, but commented out here as a reference
+	    //PrecisionT cache_a = cache_dx*cache_dx;
+            //PrecisionT cache_b = cache_dx*cache_dy;
+            //PrecisionT cache_c = cache_dy*cache_dy;
 	    
             PrecisionT cache_w_cache_e = cache_w*cache_e;
-            PrecisionT cache_w_cache_a = cache_w*cache_a;
-            PrecisionT cache_w_cache_b = cache_w*cache_b;
-            PrecisionT cache_w_cache_c = cache_w*cache_c;
+            PrecisionT cache_w_cache_a = cache_w*cache_dx*cache_dx;
+            PrecisionT cache_w_cache_b = cache_w*cache_dx*cache_dy;
+            PrecisionT cache_w_cache_c = cache_w*cache_dy*cache_dy;
 
             gradient(0) += cache_w_cache_e*tx*cache_dx; // lhs(0) += tx * dx_val * de_val; // a
             gradient(1) += cache_w_cache_e*tx*cache_dy; // lhs(3) += tx * dy_val * e_val;  // c
@@ -270,8 +251,8 @@ namespace vw {
             hessian(1, 2) += cache_w_cache_b*txty;
 
             hessian(1, 3) += cache_w_cache_c*txty;
-            hessian(1, 4) += cache_w*cache_b*tx;
-            hessian(1, 5) += cache_w*cache_c*tx;
+            hessian(1, 4) += cache_w_cache_b*tx;
+            hessian(1, 5) += cache_w_cache_c*tx;
 
             hessian(2, 2) += cache_w_cache_a*tyty;
             hessian(2, 3) += cache_w_cache_b*tyty;
@@ -291,9 +272,6 @@ namespace vw {
             err_iter.next_col();
             dx_iter.next_col();
             dy_iter.next_col();
-            dxdx_iter.next_col();
-            dydy_iter.next_col();
-            dxdy_iter.next_col();
           }
 
         }
@@ -327,11 +305,7 @@ namespace vw {
         ImageView<PixelT> r_window_dx(window.width(), window.height());
         ImageView<PixelT> r_window_dy(window.width(), window.height());
 
-        ImageView<PixelT> r_window_dxdx(window.width(), window.height());
-        ImageView<PixelT> r_window_dydy(window.width(), window.height());
-        ImageView<PixelT> r_window_dxdy(window.width(), window.height());
-
-        Vector<PrecisionT, 6> gradient;
+	Vector<PrecisionT, 6> gradient;
         Vector<PrecisionT, 6> soln;
         Matrix<PrecisionT, 6, 6> hessian_temp;
 
@@ -365,11 +339,7 @@ namespace vw {
           // compute the transformed derivatives
           r_window_dx = crop(transform(r_image_dx, T), window);
           r_window_dy = crop(transform(r_image_dy, T), window);
-          r_window_dxdx = crop(transform(r_image_dxdx, T), window);
-          r_window_dydy = crop(transform(r_image_dydy, T), window);
-          r_window_dxdy = crop(transform(r_image_dxdy, T), window);
-
-
+          
           err = r_window - l_window;
 
           inner_loop_window_timer.stop();
@@ -387,9 +357,8 @@ namespace vw {
 
           m_compute_gradient_hessian(gradient, hess, 0, 0,
                                      w_adj, err,
-                                     r_window_dx, r_window_dy,
-                                     r_window_dxdx, r_window_dydy,
-                                     r_window_dxdy);
+                                     r_window_dx, r_window_dy);
+                                     
           if(inner_loop_iter == 0) {
             initial_norm_grad = norm_2(gradient);
           }
@@ -595,7 +564,7 @@ namespace vw {
       PrecisionT sqrt_2_pi;
       PrecisionT l_likelihood;
 
-      ImageView<PixelT> r_image_dx, r_image_dy, r_image_dxdx, r_image_dydy, r_image_dxdy;
+      ImageView<PixelT> r_image_dx, r_image_dy;
 
       Matrix<PrecisionT, 6, 6> hess;
       PrecisionT matrix_data_linear[4];

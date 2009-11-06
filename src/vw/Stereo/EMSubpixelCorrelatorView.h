@@ -31,7 +31,7 @@ namespace vw {
     static ImageView<PixelMask<Vector2f> >
       upsample_disp_map_by_two(ImageView<PixelMask<Vector2f> > const& input_disp,
                                int up_width, int up_height);
-
+    
     template <class ImagePixelT>
       class EMSubpixelCorrelatorView : public ImageViewBase<EMSubpixelCorrelatorView<ImagePixelT> > {
     public:
@@ -54,8 +54,8 @@ namespace vw {
 	  return temp;
 	}
       };
-
       
+      void set_pyramid_levels(int levels) { pyramid_levels = levels; }
       // EM parameter setters
       void set_kernel_size(Vector2i size) { m_kernel_size = size; }
       void set_em_iter_max(int iter) { em_iter_max = iter; }
@@ -99,6 +99,9 @@ namespace vw {
       // Image references
       ImageViewRef<ImagePixelT> m_left_image, m_right_image;
       ImageViewRef<disparity_pixel> m_course_disparity;
+
+      // global settings
+      int pyramid_levels;
 
       // EM settings
       Vector2i m_kernel_size;
