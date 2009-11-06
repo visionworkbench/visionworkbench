@@ -20,7 +20,7 @@
 #include <iostream>
 
 #ifdef USE_GRAPHICS
-#include "graphics.h"
+#include <vw/gui/Graphics.h>
 #endif
 
 namespace vw {
@@ -47,7 +47,7 @@ namespace vw {
           weight(i,j) = weight(i, j)/sum;
         }
       }
-
+      
       return weight;
     }
 
@@ -107,12 +107,11 @@ namespace vw {
 
 
     // EMSubpixelCorrelator::EMSubpixelCorrelator( ... )
-    template<class ImagePixelT>
-    template <class ImageT, class DisparityT>
+    template<class ImagePixelT>    template <class ImageT, class DisparityT>
     EMSubpixelCorrelatorView<ImagePixelT>::EMSubpixelCorrelatorView(ImageViewBase<ImageT> const& left_image, ImageViewBase<ImageT> const& right_image,
-                                                                    ImageViewBase<DisparityT> const& course_disparity, bool debug) :
+                                                                    ImageViewBase<DisparityT> const& course_disparity, int debug) :
       m_left_image(left_image.impl()), m_right_image(right_image.impl()),
-      m_course_disparity(course_disparity.impl()), m_debug(debug)
+      m_course_disparity(course_disparity.impl()), debug_level(debug)
     {
       // Basic assertions
       VW_ASSERT((left_image.impl().cols() == right_image.impl().cols()) &&
@@ -144,6 +143,7 @@ namespace vw {
       epsilon_inner = 1e-8; // 1e-8
       affine_min_det = .1; //.1
       affine_max_det = 1.9; //1.9
+      debug_region = BBox2i(-1,-1, 0,0);
     }
 
 
@@ -153,8 +153,7 @@ namespace vw {
     typename EMSubpixelCorrelatorView<ImagePixelT>::prerasterize_type
     EMSubpixelCorrelatorView<ImagePixelT>::prerasterize(BBox2i bbox) const {
       vw_out(InfoMessage, "stereo") << "EMSubpixelCorrelatorView: rasterizing image block " << bbox << ".\n";
-      bool subpixel_debug = m_debug;
-
+      
       // Find the range of disparity values for this patch.
       // int num_good; // not used
       BBox2i search_range;
@@ -168,8 +167,8 @@ namespace vw {
 
 #ifdef USE_GRAPHICS
       ImageWindow window;
-      if(subpixel_debug) {
-        window = create_window("disparity");
+      if(debug_level >= 0) {
+        window = vw_create_window("disparity");
       }
 #endif
 
@@ -196,22 +195,26 @@ namespace vw {
       // We crop the images to the expanded bounding box and edge
       // extend in case the new bbox extends past the image bounds.
       ImageView<ImagePixelT> left_image_patch, right_image_patch;
-      ImageView<pixel_type> disparity_map_patch;
+      ImageView<disparity_pixel> disparity_map_patch_in;
+      ImageView<result_type> disparity_map_patch_out;
 
+      
       left_image_patch = crop(edge_extend(m_left_image, ZeroEdgeExtension()),
                               left_crop_bbox);
       right_image_patch = crop(edge_extend(m_right_image, ZeroEdgeExtension()),
                                right_crop_bbox);
-      disparity_map_patch = pixel_cast<pixel_type>(crop(edge_extend(m_course_disparity, ZeroEdgeExtension()),
-                                                        left_crop_bbox));
-
+      disparity_map_patch_in = crop(edge_extend(m_course_disparity, ZeroEdgeExtension()),
+				    left_crop_bbox);
+      disparity_map_patch_out.set_size(disparity_map_patch_in.cols(), disparity_map_patch_in.rows());
+      
+      
       // Adjust the disparities to be relative to the cropped
       // image pixel locations
-      for (int v = 0; v < disparity_map_patch.rows(); ++v) {
-        for (int u = 0; u < disparity_map_patch.cols(); ++u) {
-          if (disparity_map_patch(u,v).valid())  {
-            disparity_map_patch(u,v).child().x() -= search_range.min().x();
-            disparity_map_patch(u,v).child().y() -= search_range.min().y();
+      for (int v = 0; v < disparity_map_patch_in.rows(); ++v) {
+        for (int u = 0; u < disparity_map_patch_in.cols(); ++u) {
+          if (disparity_map_patch_in(u,v).valid())  {
+            disparity_map_patch_in(u,v).child().x() -= search_range.min().x();
+            disparity_map_patch_in(u,v).child().y() -= search_range.min().y();
           }
         }
       }
@@ -230,9 +233,9 @@ namespace vw {
       regions_of_interest[0] = BBox2i(m_kernel_size[0], m_kernel_size[1],
                                       bbox.width(),bbox.height());
 
-      std::vector<ImageView<pixel_type> > disparity_map_pyramid(pyramid_levels);
-      std::vector<ImageView<pixel_type> > disparity_map_upsampled(pyramid_levels);
-      disparity_map_pyramid[0] = disparity_map_patch;
+      std::vector<ImageView<disparity_pixel> > disparity_map_pyramid(pyramid_levels);
+      std::vector<ImageView<disparity_pixel> > disparity_map_upsampled(pyramid_levels);
+      disparity_map_pyramid[0] = disparity_map_patch_in;
 
       // downsample the disparity map and the image pair
       for (int i = 1; i < pyramid_levels; i++) {
@@ -244,9 +247,10 @@ namespace vw {
       }
 
 #ifdef USE_GRAPHICS
-      if(subpixel_debug) {
+      vw_initialize_graphics(0, NULL);
+      if(debug_level >= 0) {
         for(int i = 0; i < pyramid_levels; i++) {
-          show_image(window, left_pyramid[i]);
+          vw_show_image(window, left_pyramid[i]);
           usleep((int)(.2*1000*1000));
         }
       }
@@ -264,12 +268,17 @@ namespace vw {
 
       vw_out(0) << "processing pyramid level "
                 << pyramid_levels-1 << std::endl;
+      
       m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()),
-                        disparity_map_pyramid[pyramid_levels-1], warps[pyramid_levels-1],
-                        regions_of_interest[pyramid_levels-1], false , subpixel_debug && true);
-      write_image("top_level_disparity.tif", disparity_map_pyramid[pyramid_levels-1]);
+                        disparity_map_pyramid[pyramid_levels-1], disparity_map_pyramid[pyramid_levels-1],
+			warps[pyramid_levels-1],regions_of_interest[pyramid_levels-1], false, debug_level == pyramid_levels-1);
       disparity_map_upsampled[pyramid_levels-1] = copy(disparity_map_pyramid[pyramid_levels-1]);
-
+      
+      if(debug_level >= 0) {
+	std::stringstream stream;
+	stream << "pyramid_level_" << pyramid_levels-1 << ".tif";
+	write_image(stream.str(), disparity_map_pyramid[pyramid_levels-1]);
+      }
 
       for (int i = pyramid_levels-2; i>=0; i--){
         int up_width = left_pyramid[i].cols();
@@ -288,67 +297,68 @@ namespace vw {
           process_right_image = (right_pyramid[i]);
         }
 
-        if(subpixel_debug) {
-          std::stringstream stream;
-          stream << "pyramid_level_" << i << ".tif";
-          write_image(stream.str(), disparity_map_upsampled[i+1]);
-        }
-
-        m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()),
-                          disparity_map_upsampled[i], warps[i],
-                          regions_of_interest[i], i == 0, subpixel_debug && i == 0);
-#ifdef USE_GRAPHICS
-        if(subpixel_debug) {
-          show_image(window, resize(.5 + select_plane(channels_to_planes(disparity_map_upsampled[i])/6., 0), 400, 400, ZeroEdgeExtension(), NearestPixelInterpolation()));
-          usleep(2*1000*1000);
-        }
-#endif
+        
+	if(i == 0) {	  
+	  m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()),
+			    disparity_map_upsampled[i], disparity_map_patch_out, warps[i],
+			    regions_of_interest[i], true, debug_level == i);
+	}
+	else {	  
+	  m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()),
+			    disparity_map_upsampled[i], disparity_map_upsampled[i], warps[i],
+			    regions_of_interest[i], false, debug_level == i);
+	  if(debug_level >= 0) {
+	    std::stringstream stream;
+	    stream << "pyramid_level_" << i << ".tif";
+	    write_image(stream.str(), disparity_map_upsampled[i]);
+	  }	  
+	}
       }
 
-      disparity_map_patch = disparity_map_upsampled[0];
-
 #ifdef USE_GRAPHICS
-      if(subpixel_debug) {
-        show_image(window, .5 + select_plane(channels_to_planes(disparity_map_patch)/6., 0));
+      if(debug_level >= 0) {
+        vw_show_image(window, .5 + select_plane(channels_to_planes(disparity_map_patch_out)/6., 0));
         usleep(10*1000*1000);
       }
 #endif
 
       // Undo the above adjustment
-      for (int v = 0; v < disparity_map_patch.rows(); ++v) {
-        for (int u = 0; u < disparity_map_patch.cols(); ++u) {
-          if (disparity_map_patch(u,v).valid())  {
-            disparity_map_patch(u,v).child().x() += search_range.min().x();
-            disparity_map_patch(u,v).child().y() += search_range.min().y();
+      for (int v = 0; v < disparity_map_patch_out.rows(); ++v) {
+        for (int u = 0; u < disparity_map_patch_out.cols(); ++u) {
+          if (disparity_map_patch_out(u,v).valid())  {
+            disparity_map_patch_out(u,v).child().x() += search_range.min().x();
+            disparity_map_patch_out(u,v).child().y() += search_range.min().y();
           }
         }
       }
 
 #ifdef USE_GRAPHICS
-      if(subpixel_debug) {
-        destroy_window(window);
+      if(debug_level >= 0 ) {
+        vw_destroy_window(window);
       }
 #endif
-      return crop(disparity_map_patch, BBox2i(m_kernel_size[0]-bbox.min().x(),
-                                              m_kernel_size[1]-bbox.min().y(),
-                                              m_left_image.cols(),
-                                              m_left_image.rows()));
+      
+      return crop(disparity_map_patch_out, BBox2i(m_kernel_size[0]-bbox.min().x(),
+						  m_kernel_size[1]-bbox.min().y(),
+						  m_left_image.cols(),
+						  m_left_image.rows()));
     }
 
-
-
+    
+    
 
     // m_sub_pixel_refine
     /* this actually performs the subpixel refinement */
     template <class ImagePixelT>
-    template <class ImageT, class DisparityT, class AffineT>
+    template <class ImageT, class DisparityT1, class DisparityT2, class AffineT>
     inline void
     EMSubpixelCorrelatorView<ImagePixelT>::m_subpixel_refine(ImageViewBase<ImageT> const& left_image,
                                                              ImageViewBase<ImageT> const& right_image,
-                                                             ImageViewBase<DisparityT> & disparity,
+                                                             ImageViewBase<DisparityT1> & disparity_in,
+							     ImageViewBase<DisparityT2> & disparity_out,
                                                              ImageViewBase<AffineT> & affine_warps,
                                                              BBox2i const& ROI, bool final, bool p_debug) const {
-
+      
       // algorithm features to enable
       bool blur_posterior = false;
       double blur_posterior_sigma = 1.5;
@@ -371,36 +381,23 @@ namespace vw {
       ImageWindow w_window_o2_view = NULL;
       ImageWindow errors_window_p1_view = NULL;
       if(p_debug) {
-        r_window_p1_view = create_window("r_window_p1");
-        l_window_view = create_window("l_window");
-        w_window_p1_view = create_window("weights_p1");
+        r_window_p1_view = vw_create_window("r_window_p1");
+        l_window_view = vw_create_window("l_window");
+        w_window_p1_view = vw_create_window("weights_p1");
         if(use_left_outliers) {
-          w_window_o1_view = create_window("weights_outlier1");
+          w_window_o1_view = vw_create_window("weights_outlier1");
         }
         if(use_right_outliers) {
-          w_window_o2_view = create_window("weights_outlier2");
+          w_window_o2_view = vw_create_window("weights_outlier2");
         }
-        errors_window_p1_view = create_window("errors_p1");
+        errors_window_p1_view = vw_create_window("errors_p1");
       }
 #endif
 
-      //TODO: this debug region should be passed in rather then set here
-      //BBox2i debug_region(45, 45, 1000, 1000); // in left ref
-      //BBox2i debug_region(40, 30, 1000, 1000); // in right ref
-      //BBox2i debug_region(17, 12, 5, 5);
-      //BBox2i debug_region(100, 30, 25, 25);
-      //BBox2i debug_region(50, 25, 1000, 1000);
-      //BBox2i debug_region(0,0,0,0);
-
-      double region_scale = 10;
-      BBox2i debug_region(ROI.center() - Vector2i(ROI.width()/region_scale, ROI.height()/region_scale),
-                          ROI.center() + Vector2i(ROI.width()/region_scale, ROI.height()/region_scale));
-
-
 #ifdef USE_GRAPHICS
       if(p_debug) {
-        show_image(l_window_view, debug_view_mag*left_image.impl());
-        show_image(r_window_p1_view, debug_view_mag*right_image.impl());
+        vw_show_image(l_window_view, debug_view_mag*left_image.impl());
+        vw_show_image(r_window_p1_view, debug_view_mag*right_image.impl());
         usleep(1*1000*1000);
       }
 #endif
@@ -447,29 +444,25 @@ namespace vw {
       bool debug = false;
 
       for(y = ROI.min()[1]; y < ROI.max()[1]; y++) {
-        if (debug)
-          std::cout << "Processing row " << y << std::endl;
-
-        if(y%10 == 0 && y != 0) {
+	if(y%10 == 0 && y != 0) {
           vw_out(0) << "@ row " << y << ": average pixel took "
                     << 1000*pixel_timer.elapsed_seconds()/(double)num_pixels
                     << " over " <<  num_pixels << " pixels" << std::endl;
         }
         for(x = ROI.min()[0]; x < ROI.max()[0]; x++) {
-          if(p_debug) {
-            if(x - ROI.min()[0] >= debug_region.min()[0] &&
-               x - ROI.min()[0] < debug_region.max()[0] &&
-               y - ROI.min()[1] >= debug_region.min()[1] &&
-               y - ROI.min()[1] < debug_region.max()[1]) {
-              debug = true;
-            }
+	  pos = Vector2(x, y);
+	  
+	  if(p_debug) {
+	    if(debug_region.contains(pos - ROI.min())) {
+	      debug = true;
+	    }
             else {
               debug = false;
             }
           }
-          pos = Vector2(x, y);
-
-          if(!disparity.impl()(x, y).valid()) { // skip missing pixels in the course map
+	  
+          if(!disparity_in.impl()(x, y).valid()) { // skip missing pixels in the course map
+	    disparity_out.impl()(x, y).invalidate();
             continue;
           }
 
@@ -480,20 +473,20 @@ namespace vw {
             continue;
           }
 
-          //adjust_weight_image(w_gaussian,  crop(edge_extend(disparity.impl()), window_box), weight_template);
+          //adjust_weight_image(w_gaussian,  crop(edge_extend(disparity_in.impl()), window_box), weight_template);
           w_gaussian = weight_template;
 
           pixel_timer.start();
           l_window = crop(edge_extend(left_image.impl(), ZeroEdgeExtension()), window_box);
 
           if(debug) {
-            std::cout << "course estimate = " << pos << " + "
-                      << disparity.impl()(x, y) << std::endl;
-            std::cout << "initial warp: "
+            vw_out(0) << "course estimate = " << pos << " + "
+                      << disparity_in.impl()(x, y) << std::endl;
+            vw_out(0) << "initial warp: "
                       << affine_warps.impl()(x, y) << std::endl;
           }
 
-          affine_comp.reset(window_box, edge_extend(disparity.impl())(x, y).child().x(), edge_extend(disparity.impl())(x, y).child().y(),
+          affine_comp.reset(window_box, edge_extend(disparity_in.impl())(x, y).child().x(), edge_extend(disparity_in.impl())(x, y).child().y(),
                             affine_warps.impl()(x, y),
                             w_gaussian);
           outlier_comp1.reset(window_box, w_gaussian);
@@ -548,27 +541,27 @@ namespace vw {
           // double ll_w0, ll_w1, ll_w2; // not used
 
           if (debug) {
-            std::cout << "P_1 = " << P_1 << std::endl;
-            std::cout << "P_outlier1 = " << P_outlier1 << std::endl;
-            std::cout << "P_outlier2 = " << P_outlier2 << std::endl;
+            vw_out(0) << "P_1 = " << P_1 << std::endl;
+            vw_out(0) << "P_outlier1 = " << P_outlier1 << std::endl;
+            vw_out(0) << "P_outlier2 = " << P_outlier2 << std::endl;
 
             affine_comp.print_status("affine.");
             if(use_left_outliers)
               outlier_comp1.print_status("outlier1.");
             if(use_right_outliers)
               outlier_comp2.print_status("outlier2.");
-            std::cout << "iter = 0" << std::endl;
+            vw_out(0) << "iter = 0" << std::endl;
 
-            std::cout << "RMS error = " << sqrt(sum_of_pixel_values(pow(affine_comp.errors(),2))/affine_comp.errors().cols()/affine_comp.errors().rows()) << std::endl;
+            vw_out(0) << "RMS error = " << sqrt(sum_of_pixel_values(pow(affine_comp.errors(),2))/affine_comp.errors().cols()/affine_comp.errors().rows()) << std::endl;
 #ifdef USE_GRAPHICS
             r_window_p1 = crop(transform(right_image.impl(), affine_comp.affine_transform()), window_box);
-            show_image(r_window_p1_view, debug_view_mag*resize(r_window_p1, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation())); //, NearestPixelInterpolation()));
-            show_image(l_window_view, debug_view_mag*resize(l_window, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
-            show_image(w_window_p1_view, resize(affine_comp.weights(), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
-            show_image(w_window_o1_view, resize(weights_outlier1, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
-            show_image(w_window_o2_view, resize(weights_outlier2, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
-            show_image(errors_window_p1_view, debug_view_mag*resize(normalize(affine_comp.errors()), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
-            std::cout << "max_error = " << max_pixel_value(affine_comp.errors()) << std::endl;
+            vw_show_image(r_window_p1_view, debug_view_mag*resize(r_window_p1, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation())); //, NearestPixelInterpolation()));
+            vw_show_image(l_window_view, debug_view_mag*resize(l_window, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
+            vw_show_image(w_window_p1_view, resize(affine_comp.weights(), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
+            vw_show_image(w_window_o1_view, resize(weights_outlier1, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
+            vw_show_image(w_window_o2_view, resize(weights_outlier2, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
+            vw_show_image(errors_window_p1_view, debug_view_mag*resize(normalize(affine_comp.errors()), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
+            vw_out(0) << "max_error = " << max_pixel_value(affine_comp.errors()) << std::endl;
             usleep((int)(1*1000*1000));
 #endif
 
@@ -683,41 +676,40 @@ namespace vw {
             }
 
             if(debug) {
-              std::cout << "P(center) = " << weights_p1(x - window_box.min().x(),  y - window_box.min().y()) << std::endl;
-              std::cout << "P_1 = " << P_1 << std::endl;
-              std::cout << "P_outlier1 = " << P_outlier1 << std::endl;
-              std::cout << "P_outlier2 = " << P_outlier2 << std::endl;
-
+              vw_out(0) << "P(center) = " << weights_p1(x - window_box.min().x(),  y - window_box.min().y()) << std::endl;
+              vw_out(0) << "P_1 = " << P_1 << std::endl;
+              vw_out(0) << "P_outlier1 = " << P_outlier1 << std::endl;
+	      
               affine_comp.print_status("affine.");
               if(use_left_outliers)
                 outlier_comp1.print_status("outlier1.");
               if(use_right_outliers)
                 outlier_comp2.print_status("outlier2.");
 
-              std::cout << "f_value = " << f_value << std::endl;
+              vw_out(0) << "f_value = " << f_value << std::endl;
             }
 
             if (debug) {
-              std::cout << "iter = " << em_iter+1 << std::endl;
-              std::cout << "RMS error = " << sqrt(sum_of_pixel_values(pow(affine_comp.errors(),2))/affine_comp.errors().cols()/affine_comp.errors().rows()) << std::endl;
+              vw_out(0) << "iter = " << em_iter+1 << std::endl;
+              vw_out(0) << "RMS error = " << sqrt(sum_of_pixel_values(pow(affine_comp.errors(),2))/affine_comp.errors().cols()/affine_comp.errors().rows()) << std::endl;
 #ifdef USE_GRAPHICS
               r_window_p1 = crop(transform(right_image.impl(), affine_comp.affine_transform()), window_box);
 
               double norm = 1.; //std::max<double>(max_pixel_value(outlier_comp1.prob()), max_pixel_value(affine_comp.prob()));
-              cout << "normalization constant = " << norm << endl;
-              show_image(r_window_p1_view, debug_view_mag*resize(r_window_p1, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation())); //, NearestPixelInterpolation()));
-              show_image(l_window_view, debug_view_mag*resize(l_window, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
-              show_image(w_window_p1_view, resize((affine_comp.weights()/norm), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
+              vw_out(0) << "normalization constant = " << norm << std::endl;
+              vw_show_image(r_window_p1_view, debug_view_mag*resize(r_window_p1, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation())); //, NearestPixelInterpolation()));
+              vw_show_image(l_window_view, debug_view_mag*resize(l_window, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
+              vw_show_image(w_window_p1_view, resize((affine_comp.weights()/norm), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
               if(use_left_outliers) {
-                show_image(w_window_o1_view, resize((outlier_comp1.weights()/norm), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
+                vw_show_image(w_window_o1_view, resize((outlier_comp1.weights()/norm), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
               }
               if(use_right_outliers) {
-                show_image(w_window_o2_view, resize(weights_outlier2, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
+                vw_show_image(w_window_o2_view, resize(weights_outlier2, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
               }
-              show_image(errors_window_p1_view, debug_view_mag*resize(20*affine_comp.errors(), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
+              vw_show_image(errors_window_p1_view, debug_view_mag*resize(20*affine_comp.errors(), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
               usleep((int)(.5*1000*1000));
 #endif
-              std::cout << std::endl;
+              vw_out(0) << std::endl;
             }
 
             // check termination condition for em loop
@@ -727,41 +719,43 @@ namespace vw {
           } // end em loop
           em_timer.stop();
 
-          //cout << "EM converged in " << em_iter << " iterations (" << 1000*em_timer.elapsed_seconds() << ")" <<  endl;
+          //vw_out(0) << "EM converged in " << em_iter << " iterations (" << 1000*em_timer.elapsed_seconds() << ")" <<  std::endl;
 
           pos = Vector2(x, y);
           cor_pos = affine_comp.affine_transform().reverse(pos);
           Vector2f delta = (cor_pos - pos);
-
-          disparity.impl()(x, y).child().x() = delta.x();
-          disparity.impl()(x, y).child().y() = delta.y();
-          //disparity.impl()(x, y).cov_h() = affine_comp.hessian()(4, 4);
-          //disparity.impl()(x, y).cov_hv() = affine_comp.hessian()(4, 5);
-          //disparity.impl()(x, y).cov_v() = affine_comp.hessian()(5, 5);
-
-          affine_warps.impl()(x, y) = affine_comp.affine_transform_mat();
+	  
+	  disparity_out.impl()(x, y).validate();
+          disparity_out.impl()(x, y).child().x() = delta.x();
+          disparity_out.impl()(x, y).child().y() = delta.y();
+	  if(disparity_out.impl()(x, y).child().size() == 5) { // if the disparity map given has space for uncertainty, output that as well
+	    disparity_out.impl()(x, y).child()(2) = affine_comp.hessian()(4, 4);
+	    disparity_out.impl()(x, y).child()(3) = affine_comp.hessian()(4, 5);
+	    disparity_out.impl()(x, y).child()(4) = affine_comp.hessian()(5, 5);
+	  }
+	  affine_warps.impl()(x, y) = affine_comp.affine_transform_mat();
 
 
           if(debug) {
-            std::cout << "refined estimate = "
-                      << disparity.impl()(x, y) << std::endl;
-            std::cout << "refined warp: "
+            vw_out(0) << "refined estimate = "
+                      << disparity_out.impl()(x, y) << std::endl;
+            vw_out(0) << "refined warp: "
                       << affine_warps.impl()(x, y) << std::endl;
           }
 
           if(0 && final) {
             double P_center = weights_p1(x - window_box.min().x(),  y - window_box.min().y());
             if(P_1 <= .25) { // if most pixels are outliers, set this one as missing
-              disparity.impl()(x, y).invalidate();
+              disparity_out.impl()(x, y).invalidate();
             }
             else if(P_1 <= .5){ // if at least half are inliers, decide based on the actual center pixel weight
               if(P_center <= .95) {
-                disparity.impl()(x, y).invalidate();
+                disparity_out.impl()(x, y).invalidate();
               }
             }
             else if(P_1 <= .95) {
               if(P_center <= .75) {
-                disparity.impl()(x, y).invalidate();
+                disparity_out.impl()(x, y).invalidate();
               }
             }
           }
@@ -772,16 +766,16 @@ namespace vw {
 
 #ifdef USE_GRAPHICS
       if(p_debug) {
-        destroy_window(r_window_p1_view);
-        destroy_window(l_window_view);
-        destroy_window(w_window_p1_view);
+        vw_destroy_window(r_window_p1_view);
+        vw_destroy_window(l_window_view);
+        vw_destroy_window(w_window_p1_view);
         if(use_left_outliers) {
-          destroy_window(w_window_o1_view);
+          vw_destroy_window(w_window_o1_view);
         }
         if(use_right_outliers) {
-          destroy_window(w_window_o2_view);
+          vw_destroy_window(w_window_o2_view);
         }
-        destroy_window(errors_window_p1_view);
+        vw_destroy_window(errors_window_p1_view);
       }
 #endif
     }

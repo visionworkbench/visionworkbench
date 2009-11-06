@@ -17,10 +17,6 @@
 #include <iostream>
 #include <math.h>
 
-#ifdef USE_GRAPHICS
-#include "graphics.h"
-#endif
-
 namespace vw {
   namespace stereo {
     class AffineTransformOrigin : public TransformHelper<AffineTransformOrigin,ConvexFunction,ConvexFunction> {
@@ -236,15 +232,20 @@ namespace vw {
             PrecisionT cache_e = *err_iter;
             PrecisionT cache_dx = *dx_iter;
             PrecisionT cache_dy = *dy_iter;
-            PrecisionT cache_dxdx = *dxdx_iter;
+            
+	    PrecisionT cache_dxdx = *dxdx_iter;
             PrecisionT cache_dydy = *dydy_iter;
             PrecisionT cache_dxdy = *dxdy_iter;
-
-            PrecisionT cache_a = cache_e*cache_dxdx + cache_dx*cache_dx;
+	    /*
+	    // ignore second order terms to turn this into a Gauss-Newton algorithm
+	    PrecisionT cache_dxdx = 0;
+            PrecisionT cache_dydy = 0;
+	    PrecisionT cache_dxdy = 0;
+	    */
+	    PrecisionT cache_a = cache_e*cache_dxdx + cache_dx*cache_dx;
             PrecisionT cache_b = cache_e*cache_dxdy + cache_dx*cache_dy;
             PrecisionT cache_c = cache_e*cache_dydy + cache_dy*cache_dy;
-
-
+	    
             PrecisionT cache_w_cache_e = cache_w*cache_e;
             PrecisionT cache_w_cache_a = cache_w*cache_a;
             PrecisionT cache_w_cache_b = cache_w*cache_b;
@@ -285,8 +286,7 @@ namespace vw {
             hessian(4, 5) += cache_w_cache_b;
 
             hessian(5, 5) += cache_w_cache_c;
-
-
+	    
             weights_iter.next_col();
             err_iter.next_col();
             dx_iter.next_col();
