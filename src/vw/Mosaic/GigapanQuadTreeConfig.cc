@@ -40,8 +40,11 @@ namespace mosaic {
   void GigapanQuadTreeConfig::configure( QuadTreeGenerator& qtree ) const {
     qtree.set_image_path_func( &image_path );
     qtree.set_cull_images( true );
-    qtree.set_branch_func( boost::bind(&GigapanQuadTreeConfigData::branch_func,m_data,_1,_2,_3) );
     qtree.set_metadata_func( boost::bind(&GigapanQuadTreeConfigData::metadata_func,m_data,_1,_2) );
+    
+    if (m_data->m_longlat_bbox.width() != 0 || m_data->m_longlat_bbox.height() != 0) {
+      qtree.set_branch_func( boost::bind(&GigapanQuadTreeConfigData::branch_func,m_data,_1,_2,_3) );
+    }
   }
 
   void GigapanQuadTreeConfig::set_longlat_bbox( BBox2 const& bbox ) {
