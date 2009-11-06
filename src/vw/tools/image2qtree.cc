@@ -97,6 +97,8 @@ static void fill_input_maps() {
   str_to_resolution_fn_map[std::string("uniview")] = &vw::cartography::output::tms::compute_resolution;
   str_to_resolution_fn_map[std::string("gmap")] = &vw::cartography::output::tms::compute_resolution;
   str_to_resolution_fn_map[std::string("celestia")] = &vw::cartography::output::tms::compute_resolution;
+  str_to_resolution_fn_map[std::string("gigapan")] = &vw::cartography::output::tms::compute_resolution;
+  str_to_resolution_fn_map[std::string("gigapan-noproj")] = NULL;
 }
 
 static void get_normalize_vals(std::string filename, DiskImageResourceGDAL &file_resource) {
@@ -121,6 +123,11 @@ void do_normal_mosaic(po::variables_map const& vm, const ProgressCallback *progr
     quadtree.set_tile_size( tile_size );
     quadtree.set_file_type( output_file_type );
 
+    if (output_metadata == "gigapan-noproj") {
+      GigapanQuadTreeConfig config;
+      config.configure( quadtree );
+    }
+
     quadtree.generate( *progress );
 }
 
@@ -132,7 +139,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   // If we're not outputting any special sort of mosaic (just a regular old
   // quadtree, no georeferencing, no metadata), we use a different
   // function.
-  if(output_metadata == "none") {
+  if(output_metadata == "none" || output_metadata == "gigapan-noproj") {
     if(image_files.size() != 1) {
       std::cerr << "Error: can only have 1 image as input when not creating a geo-referenced quadtree." << std::endl;
       std::cerr << "       (Use the `blend' program to create a quadtree with multiple images.)" << std::endl;
@@ -339,7 +346,14 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
                       180.0 - (360.0*total_bbox.max().y())/yresolution,
                       (360.0*total_bbox.width())/xresolution,
                       (360.0*total_bbox.height())/yresolution );
-  } else if(output_metadata != "none") {
+  } else if (output_metadata == "gigapan") {
+    total_bbox = bbox; 
+    bbox.crop( BBox2i(0,0,xresolution,yresolution) );
+    ll_bbox = BBox2( -180.0 + (360.0*total_bbox.min().x())/xresolution,
+                      180.0 - (360.0*total_bbox.max().y())/yresolution,
+                      (360.0*total_bbox.width())/xresolution,
+                      (360.0*total_bbox.height())/yresolution );
+  }  else if(output_metadata != "none") {
     total_bbox = composite.bbox();
     total_bbox.grow( BBox2i(0,0,total_resolution,total_resolution) );
     total_bbox.crop( BBox2i(0,0,total_resolution,total_resolution) );
@@ -362,7 +376,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   }
 
   // Data bbox.
-  if(output_metadata == "kml") {
+  if(output_metadata == "kml" || output_metadata == "gigapan") {
     data_bbox = composite.bbox();
     data_bbox.crop( BBox2i(0,0,total_bbox.width(),total_bbox.height()) );
   } else if(output_metadata != "none") {
@@ -375,7 +389,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
 
   QuadTreeGenerator quadtree( composite, output_file_name );
 
- // KML specific things. 
+  // KML specific things. 
   if( output_metadata == "kml" ) {
     KMLQuadTreeConfig config;
     config.set_longlat_bbox( ll_bbox );
@@ -403,11 +417,17 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     CelestiaQuadTreeConfig config;
     config.configure( quadtree );
 
+  // Gigapan specific things
+  } else if ( output_metadata == "gigapan" ) {
+    GigapanQuadTreeConfig config;
+    config.set_longlat_bbox( ll_bbox );
+    config.configure( quadtree );
+  
+  // Unreachable
   } else {
-    // Unreachable
     vw_throw(LogicErr() << "Unreachable statement reached: bad value for output_metadata (value was " << output_metadata << ")");
   }
-    
+
   quadtree.set_crop_bbox(data_bbox);
   if( vm.count("crop") ) quadtree.set_crop_images(true);
   quadtree.set_tile_size(tile_size);
@@ -447,8 +467,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     conf.close();
     std::cout << "Note: You must merge the texture and terrain config files into a single file (Terrain info should go below texture info.)" << std::endl;
     std::cout << "Both output sets should be in the same directory, with the texture in a subdirectory named Texture and the terrain in a subdirectory named Terrain." << std::endl;
-  }
-  else if (output_metadata == "celestia") {
+  } else if (output_metadata == "celestia") {
     std::string fn = output_file_name + ".ctx";
     std::ofstream ctx( fn.c_str() );
     ctx << "VirtualTexture\n";
@@ -471,7 +490,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     std::cout << "Place " << output_file_name << ".ssc" << " in Celestia's extras dir" << std::endl;
     std::cout << "Place " << output_file_name << ".ctx" << " and the output dir ("
                           << output_file_name << ") in extras/textures/hires" << std::endl;
-  }
+  } 
 }
 
 int main(int argc, char **argv) {

@@ -12,14 +12,16 @@
 if MAKE_MODULE_MOSAIC
 
 include_HEADERS = QuadTreeGenerator.h ImageComposite.h	\
-	KMLQuadTreeConfig.h TMSQuadTreeConfig.h		\
-	UniviewQuadTreeConfig.h GMapQuadTreeConfig.h	\
-	CelestiaQuadTreeConfig.h ToastQuadTreeConfig.h
+	KMLQuadTreeConfig.h TMSQuadTreeConfig.h \
+	UniviewQuadTreeConfig.h GMapQuadTreeConfig.h \
+	CelestiaQuadTreeConfig.h ToastQuadTreeConfig.h \
+  GigapanQuadTreeConfig.h
 
 libvwMosaic_la_SOURCES = QuadTreeGenerator.cc KMLQuadTreeConfig.cc	\
-	TMSQuadTreeConfig.cc UniviewQuadTreeConfig.cc			\
-	GMapQuadTreeConfig.cc CelestiaQuadTreeConfig.cc
-
+	TMSQuadTreeConfig.cc UniviewQuadTreeConfig.cc \
+	GMapQuadTreeConfig.cc CelestiaQuadTreeConfig.cc \
+  GigapanQuadTreeConfig.cc
+ 
 libvwMosaic_la_LIBADD = @MODULE_MOSAIC_LIBS@
 
 lib_LTLIBRARIES = libvwMosaic.la
