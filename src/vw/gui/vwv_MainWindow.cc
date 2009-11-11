@@ -22,7 +22,10 @@
 
 #include <sstream>
 
-MainWindow::MainWindow(std::string input_filename, float nodata_value, bool do_normalize, po::variables_map const& vm) :
+MainWindow::MainWindow(std::string input_filename, 
+                       float nodata_value, 
+                       bool do_normalize, 
+                       po::variables_map const& vm) :
   m_filename(input_filename), m_nodata_value(nodata_value), m_vm(vm) {
 
   // Set up the basic layout of the window and its menus

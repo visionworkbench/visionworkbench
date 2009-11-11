@@ -11,8 +11,6 @@
 //                     TextureRequest
 // --------------------------------------------------------------
 
-// Forward Declaration
-
 struct TextureRequest {
   virtual ~TextureRequest() {}
   virtual void process_request() = 0;
@@ -28,7 +26,6 @@ public:
                           vw::ViewImageResource const image,
                           CachedTextureRenderer* parent) :
     m_record(texture_record), m_image(image), m_parent(parent) {}
-
   virtual ~AllocateTextureRequest() {}
 
   virtual void process_request() {
@@ -44,8 +41,8 @@ public:
   DeallocateTextureRequest( boost::shared_ptr<TextureRecordBase> texture_record,
                             CachedTextureRenderer* parent) :
     m_record(texture_record), m_parent(parent) {}
-  
   virtual ~DeallocateTextureRequest() {}
+
   virtual void process_request() {
     m_parent->deallocate_texture(m_record->texture_id);
     m_record->texture_id = 0;
@@ -69,7 +66,7 @@ void CachedTextureRenderer::request_deallocation(boost::shared_ptr<TextureRecord
   m_needs_redraw = true;
 }
   
-void CachedTextureRenderer::process_allocation_request() {
+void CachedTextureRenderer::process_allocation_requests() {
   vw::Mutex::Lock lock(m_incoming_request_mutex);
   
   boost::shared_ptr<TextureRequest> r;
@@ -111,7 +108,7 @@ public:
       }
       
       if (found) {
-        // Force thet texture to regenerate.  Doing so will cause a
+        // Force the texture to regenerate.  Doing so will cause a
         // texture allocation request to be generated, and may cause
         // one or more texture deallocation requests to be produced as
         // well.
@@ -137,7 +134,7 @@ boost::shared_ptr<TextureRecord> GlTextureCache::get_record(vw::BBox2i bbox, int
   bool found = false;
   typedef std::vector<boost::shared_ptr<TextureRecord> >::iterator iter_type;
   
-  // Smallest allowable LOD
+  // Level 0 is the smallest allowable LOD
   if (lod < 0) lod = 0;
   
   // Search for a matching texture record.
@@ -194,8 +191,9 @@ GLuint GlTextureCache::get_texture_id(vw::BBox2i bbox, int lod) {
   // texture and then send a message to the requestor to tell it to
   // retry drawing the screen.
   if ( record->texture_id == 0 ) {
-    vw::vw_out(vw::VerboseDebugMessage) << "GlTextureCache::get_texture_id() missed bbox " 
-                                        << bbox << " @ lod " << lod << ".  Generating.\n";
+    vw::vw_out(vw::VerboseDebugMessage, "vwv") << "GlTextureCache::get_texture_id() "
+                                               << "missed bbox " 
+                                               << bbox << " @ lod " << lod << ".  Generating.\n";
     vw::Mutex::Lock lock(m_outgoing_requests_mutex);
 
     // We purge the outgoing request queue whenever there is a change
@@ -209,10 +207,10 @@ GLuint GlTextureCache::get_texture_id(vw::BBox2i bbox, int lod) {
     m_outgoing_requests.push_back( record );
     return 0; 
   } else {
-    vw::vw_out(vw::VerboseDebugMessage) << "GlTextureCache::get_texture_id() found bbox " 
-                                        << bbox << " @ lod " << lod << ".\n";
-    GLuint texture_id = record->texture_id;
-    return texture_id;
+    vw::vw_out(vw::DebugMessage, "vwv") << "GlTextureCache::get_texture_id() found tile " 
+                                        << bbox << " @ lod " << lod << ". [texture_id = " 
+                                        << record->texture_id << "]\n";
+    return record->texture_id;
   }
 }
 

@@ -25,7 +25,7 @@ void vw::TerminalProgressCallback::print_progress() const {
     for( int i=0; i<pi; ++i ) p << "*";
     for( int i=60; i>pi; --i ) p << ".";
     p << "] " << std::setprecision(m_precision) << std::fixed << (m_progress*100.0) << "%";
-    vw_out(m_level) << p.str() << std::flush;
+    std::cerr << p.str() << std::flush;
   }
 }
 

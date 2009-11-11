@@ -97,9 +97,9 @@ void vw::platefile::IndexServiceImpl::InfoRequest(::google::protobuf::RpcControl
 }
 
 void vw::platefile::IndexServiceImpl::ReadRequest(::google::protobuf::RpcController* controller,
-                                   const ::vw::platefile::IndexReadRequest* request,
-                                   ::vw::platefile::IndexReadReply* response,
-                                   ::google::protobuf::Closure* done) {
+                                                  const ::vw::platefile::IndexReadRequest* request,
+                                                  ::vw::platefile::IndexReadReply* response,
+                                                  ::google::protobuf::Closure* done) {
 
   if (request->platefile_id() < 0 || request->platefile_id() >= m_indices.size()) {
     controller->SetFailed("Invalid Platefile ID.");

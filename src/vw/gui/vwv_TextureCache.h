@@ -26,10 +26,12 @@
 #include <vw/Core/Log.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ViewImageResource.h>
+#include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageResourceView.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Math/BBox.h>
 #include <vw/Math/Vector.h>
+#include <vw/FileIO.h>
 
 // Forward Declarations
 class CachedTextureRenderer;
@@ -68,7 +70,7 @@ public:
 
   virtual void request_deallocation(boost::shared_ptr<TextureRecordBase> texture_record);
 
-  virtual void process_allocation_request();
+  virtual void process_allocation_requests();
 };
 
 // --------------------------------------------------------------
@@ -85,11 +87,19 @@ class GlTextureHandle : public GlTextureHandleBase {
   boost::shared_ptr<TextureRecordBase> m_record;
   
 public:
-  GlTextureHandle(vw::ImageResourceView<PixelT> const& image, 
+  GlTextureHandle(vw::ImageResourceView<PixelT> image, 
                   boost::shared_ptr<TextureRecordBase> record) : m_record(record) {
-    
+
     // Rasterize the requested block of memory.
     vw::ImageView<PixelT> cropped = crop( image, record->bbox );
+
+    // For debugging:
+    //
+    // std::ostringstream ostr;
+    // ostr << "debug_" << record->lod << "_" << record->bbox.min().x() << "_" 
+    //      << record->bbox.min().y() << ".tif";
+    // vw::write_image(ostr.str(), cropped);
+
     vw::ImageView<PixelT> block = subsample( cropped, pow(2,record->lod) );
     m_record->parent->request_allocation( record, vw::ViewImageResource(block) );
     vw::vw_out(vw::VerboseDebugMessage) << "GlTextureHandle requesting allocation (" 
@@ -240,9 +250,16 @@ class GlTextureCache {
   vw::Thread *m_texture_fetch_thread;
   vw::Cache *m_gl_texture_cache_ptr;
   boost::shared_ptr<TextureFetchTask> m_texture_fetch_task;
-  int m_previous_lod;
 
+  // We purge the outgoing request queue whenever there is a change
+  // in LOD so that we can immediately begin serving tiles at the
+  // new level of detail.  We keep track of the previous LOD here.
+  int m_previous_lod;
+  
   std::vector<boost::shared_ptr<TextureRecord> > m_texture_records;
+
+  // Communication to/from the texture caching thread is handled using
+  // a pair of request queues.  These queues are locked with a mutex.
   std::list<boost::shared_ptr<TextureRecord> > m_outgoing_requests, m_incoming_requests;
   vw::Mutex m_outgoing_requests_mutex, m_incoming_request_mutex;
  

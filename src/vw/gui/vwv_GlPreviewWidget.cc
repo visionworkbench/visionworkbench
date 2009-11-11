@@ -23,22 +23,16 @@
 #include <GL/glu.h>
 #endif 
 
-// Cuda
-// #include <cuda_runtime.h>
-// #include <cuda_gl_interop.h>
-
 // Qt
 #include <QtGui>
 
 // Vision Workbench
 #include <vw/Image.h>
 #include <vw/FileIO.h>
-using namespace vw;
-
+#include <vw/gui/TileGenerator.h>
 #include <vw/gui/vwv_GlPreviewWidget.h>
-
-// Prototypes for external CUDA functions
-// void cu_invert_image (float* img, int width, int height);
+using namespace vw;
+using namespace vw::gui;
 
 const std::string g_FRAGMENT_PROGRAM =  
 "uniform sampler2D tex;                             \n"
@@ -348,17 +342,9 @@ void GlPreviewWidget::initializeGL() {
 
   // Set up the texture mode to replace (rather than blend...)
   glShadeModel(GL_FLAT);
-  
-  // This is required for supporting Alpha in textures.
-  glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glEnable (GL_BLEND); 
 
   // Set up the fragment shader.
   const char* fragment_prog_ptr = g_FRAGMENT_PROGRAM.c_str();
-
-  // For debugging:
-  //  std::cout << "***\n" << std::string(fragment_prog_ptr) << "***\n";
-  
   GLuint m_fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
   glShaderSource(m_fragment_shader, 1, &fragment_prog_ptr, NULL);
   glCompileShader(m_fragment_shader);
@@ -387,16 +373,15 @@ void GlPreviewWidget::resizeGL(int width, int height) {
 // --------------------------------------------------------------
 
 void GlPreviewWidget::drawImage() {
-
-  // Before we draw this frame, we will check to see whether there are
-  // any new texture to upload or delete from the texture cache.  If
-  // there are, we perform at least one of these operations.
-  this->process_allocation_request();
-
   // Make this context current, and store the current OpenGL state
   // before we start to modify it.
   makeCurrent();
   glPushAttrib(GL_ALL_ATTRIB_BITS);
+
+  // Before we draw this frame, we will check to see whether there are
+  // any new texture to upload or delete from the texture cache.  If
+  // there are, we perform at least one of these operations.
+  this->process_allocation_requests();
   
   // Activate our GLSL fragment program and set up the uniform
   // variables in the shader
@@ -440,11 +425,26 @@ void GlPreviewWidget::drawImage() {
   glPushMatrix();
   glLoadIdentity();
 
-  // Compute the current level of detail.
-  int lod = int((log((m_current_viewport.width()/m_viewport_width))/log(2.0)));
-  
-  for (unsigned i=0; i < m_bboxes.size(); ++i) {
-    if (m_current_viewport.intersects(m_bboxes[i])) {
+  // This is required for supporting Alpha in textures.
+  glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glEnable (GL_BLEND); 
+
+  // Compute the current level of detail (limit to a minimum tile
+  // level of 0 and maximum size that depends on how many tiles the
+  // file contains.)
+  int TILE_SIZE = 256;
+  int MAX_LEVEL = log(2048 / TILE_SIZE) / log(2);
+  int level = MAX_LEVEL - (m_current_viewport.width() / TILE_SIZE - pow(2,MAX_LEVEL));
+  if (level < 0) level = 0;
+  if (level > MAX_LEVEL) level = MAX_LEVEL;
+  std::cout << "--> LEVEL = " << level << "   " << m_current_viewport.width() << "\n";
+
+  std::list<TileLocator> tiles = bbox_to_tiles(TILE_SIZE, m_current_viewport, level, MAX_LEVEL);
+  std::list<TileLocator>::iterator tile_iter = tiles.begin();
+  while (tile_iter != tiles.end()) {
+    BBox2i texture_bbox = tile_to_bbox(TILE_SIZE, tile_iter->col, tile_iter->row, tile_iter->level, MAX_LEVEL);
+    if (tile_iter->is_valid()) {
+      //      std::cout << "Tile: " << tile_iter->col << " " << tile_iter->row << " " << tile_iter->level << "  BBOX: " << texture_bbox << "\n";
       
       // Fetch the texture out of the cache.  If the texture is not
       // currently in the cache, a request for this texture will be
@@ -452,72 +452,122 @@ void GlPreviewWidget::drawImage() {
       // future. will be generated if necessary. Note that this
       // happens outside the m_gl_mutex to avoid deadlock.
       GLuint texture_id;// = m_gl_texture_cache->get_texture_id(m_bboxes[i], lod);
-
-      // execute the CUDA filter, writing results to pbo
-      //float *image_ptr;
-      // cudaGLMapBufferObject( (void**)&image_ptr, m_pbos[i] );
-      // // cu_invert_image(image_ptr, m_bboxes[i].width(), m_bboxes[i].height());
-      // cudaGLUnmapBufferObject( m_pbos[i] );
-      // Bind the current texture, and load data from the pbo
-      // glBindBuffer(GL_PIXEL_UNPACK_BUFFER, m_pbos[i]);
-      //        glBindTexture( GL_TEXTURE_2D, m_textures[i] );
-      // glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 
-      //                 m_bboxes[i].width(), 
-      //                 m_bboxes[i].height(), 
-      //                 GL_RGBA, GL_FLOAT, 0);
-      // glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-
-      if (0) {
-        //      if (texture_id) {
-        glUseProgram(m_glsl_program);
-
-        // Enable texturing and bind the texture ID
-        glEnable( GL_TEXTURE_2D );
-        glBindTexture( GL_TEXTURE_2D, texture_id );
+      
+      // if (texture_id) {
+      //   glUseProgram(m_glsl_program);
+      
+      //   // Enable texturing and bind the texture ID
+      //   glEnable( GL_TEXTURE_2D );
+      //   glBindTexture( GL_TEXTURE_2D, texture_id );
         
-        // Set up bilinear or nearest neighbor filtering.
-        if (m_bilinear_filter) {
-          // When the texture area is small, bilinear filter the closest mipmap
-          glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-          glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-        } else {
-          // When the texture area is small, pick the nearest neighbor in the closest mipmap
-          glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-          glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-        }
-
-        // Draw the texture onto a quad.
-        qglColor(Qt::white);
-        glBegin(GL_QUADS);
-        glTexCoord2d( 0.0 , 0.0); 
-        glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].min().y()) );
-        glTexCoord2d( 0.0 , 1 ); 
-        glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].max().y()) );
-        glTexCoord2d( 1.0 , 1.0 );
-        glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].max().y()) );
-        glTexCoord2d( 1.0 , 0.0 ); 
-        glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].min().y()) );
-        glEnd();
-
-        // Clean up
-        glDisable( GL_TEXTURE_2D );
-        glUseProgram(0);
- 
-     } else {
+      //   // Set up bilinear or nearest neighbor filtering.
+      //   if (m_bilinear_filter) {
+      //     // When the texture area is small, bilinear filter the closest mipmap
+      //     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+      //     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+      //   } else {
+      //     // When the texture area is small, pick the nearest neighbor in the closest mipmap
+      //     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+      //     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+      //   }
+        
+      //   // Draw the texture onto a quad.
+      //   qglColor(Qt::white);
+      //   glBegin(GL_QUADS);
+      //   glTexCoord2d( 0.0 , 0.0); 
+      //   glVertex2d( texture_bbox.min().x() , -(texture_bbox.min().y()) );
+      //   glTexCoord2d( 0.0 , 1 ); 
+      //   glVertex2d( texture_bbox.min().x() , -(texture_bbox.max().y()) );
+      //   glTexCoord2d( 1.0 , 1.0 );
+      //   glVertex2d( texture_bbox.max().x() , -(texture_bbox.max().y()) );
+      //   glTexCoord2d( 1.0 , 0.0 ); 
+      //   glVertex2d( texture_bbox.max().x() , -(texture_bbox.min().y()) );
+      //   glEnd();
+        
+      //   // Clean up
+      //   glDisable( GL_TEXTURE_2D );
+      //   glUseProgram(0);
+        
+      // } else {
         // If no texture is (yet) available, we draw a dark gray quad.
         glBegin(GL_QUADS);
-        glColor3f(0.1,0.1,0.1);
-        glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].min().y()) );
-        glColor3f(0.1,0.1,0.1);
-        glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].max().y()) );
-        glColor3f(0.1,0.1,0.1);
-        glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].max().y()) );
-        glColor3f(0.1,0.1,0.1);
-        glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].min().y()) );
+        glColor3f(1.0,0.0,0.0);
+        glVertex2d( texture_bbox.min().x() , -(texture_bbox.min().y()) );
+        glColor3f(1.0,0.0,0.0);
+        glVertex2d( texture_bbox.min().x() , -(texture_bbox.max().y()) );
+        glColor3f(1.0,0.0,0.0);
+        glVertex2d( texture_bbox.max().x() , -(texture_bbox.max().y()) );
+        glColor3f(1.0,0.0,0.0);
+        glVertex2d( texture_bbox.max().x() , -(texture_bbox.min().y()) );
         glEnd();
-      }
+      // }
     }
+
+    // Move onto the next tile
+    ++tile_iter;
   }
+  std::cout << "\n";
+  
+  // for (unsigned i=0; i < m_bboxes.size(); ++i) {
+  //   if (m_current_viewport.intersects(m_bboxes[i])) {
+      
+  //     // Fetch the texture out of the cache.  If the texture is not
+  //     // currently in the cache, a request for this texture will be
+  //     // generated so that it is available at some point in the
+  //     // future. will be generated if necessary. Note that this
+  //     // happens outside the m_gl_mutex to avoid deadlock.
+  //     GLuint texture_id;// = m_gl_texture_cache->get_texture_id(m_bboxes[i], lod);
+
+  //     if (texture_id) {
+  //       glUseProgram(m_glsl_program);
+
+  //       // Enable texturing and bind the texture ID
+  //       glEnable( GL_TEXTURE_2D );
+  //       glBindTexture( GL_TEXTURE_2D, texture_id );
+        
+  //       // Set up bilinear or nearest neighbor filtering.
+  //       if (m_bilinear_filter) {
+  //         // When the texture area is small, bilinear filter the closest mipmap
+  //         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+  //         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+  //       } else {
+  //         // When the texture area is small, pick the nearest neighbor in the closest mipmap
+  //         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+  //         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+  //       }
+
+  //       // Draw the texture onto a quad.
+  //       qglColor(Qt::white);
+  //       glBegin(GL_QUADS);
+  //       glTexCoord2d( 0.0 , 0.0); 
+  //       glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].min().y()) );
+  //       glTexCoord2d( 0.0 , 1 ); 
+  //       glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].max().y()) );
+  //       glTexCoord2d( 1.0 , 1.0 );
+  //       glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].max().y()) );
+  //       glTexCoord2d( 1.0 , 0.0 ); 
+  //       glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].min().y()) );
+  //       glEnd();
+
+  //       // Clean up
+  //       glDisable( GL_TEXTURE_2D );
+  //       glUseProgram(0);
+ 
+  //    } else {
+  //       // If no texture is (yet) available, we draw a dark gray quad.
+  //       glBegin(GL_QUADS);
+  //       glColor3f(0.1,0.1,0.1);
+  //       glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].min().y()) );
+  //       glColor3f(0.1,0.1,0.1);
+  //       glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].max().y()) );
+  //       glColor3f(0.1,0.1,0.1);
+  //       glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].max().y()) );
+  //       glColor3f(0.1,0.1,0.1);
+  //       glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].min().y()) );
+  //       glEnd();
+  //     }
+  //   }
+  // }
 
   // // Draw crosshairs
   // glLineWidth(1.0);
@@ -544,9 +594,6 @@ void GlPreviewWidget::drawImage() {
   glMatrixMode(GL_PROJECTION);
   glPopMatrix();
   glPopAttrib();
-
-  glFlush();
-  swapBuffers();
 }
 
 void GlPreviewWidget::drawLegend(QPainter* painter) {
@@ -697,6 +744,7 @@ void GlPreviewWidget::paintEvent(QPaintEvent * /* event */) {
   drawImage();
   if (m_show_legend)
     drawLegend(&painter);
+  swapBuffers();
 }
 
 void GlPreviewWidget::mousePressEvent(QMouseEvent *event) { 
@@ -763,10 +811,16 @@ void GlPreviewWidget::mouseDoubleClickEvent(QMouseEvent * /*event*/) {
 }
 
 void GlPreviewWidget::wheelEvent(QWheelEvent *event) {
-  int num_degrees = event->delta() / 8;
-  float num_ticks = num_degrees / 15;
+  int num_degrees = event->delta();
+  float num_ticks = float(num_degrees) / 360;
+  
+  float mag = fabs(num_ticks/200.0);
+  float scale = 1;
+  if (num_ticks > 0) 
+    scale = 1+mag;
+  else if (num_ticks < 0)
+    scale = 1-mag;
 
-  float scale = pow(2,num_ticks/5);
   zoom(scale);
 
   m_show_legend = true;

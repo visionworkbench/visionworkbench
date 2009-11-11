@@ -96,6 +96,12 @@ int main(int argc, char *argv[]) {
   QApplication app(argc, argv);
   MainWindow main_window(image_filename, nodata_value, vm.count("normalize"), vm);
   main_window.show();
-  return app.exec();
+  try {
+    app.exec();
+  } catch (vw::Exception &e) {
+    vw_out(0) << "An unexpected error occurred: " << e.what() << "\nExiting\n\n";
+  }
+
+  return 0;
 }
 

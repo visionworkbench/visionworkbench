@@ -106,7 +106,7 @@ message IndexReadRequest {
   required int32 col = 3;
   required int32 row = 4;
   required int32 depth = 5;
-  required int32 transaction_id = 6 [default = 0];
+  required int32 transaction_id = 6 [default = -1];
 }
 
 message IndexWriteRequest {
@@ -177,7 +177,7 @@ message RpcRequestWrapper {
 message RpcResponseWrapper {
   required bytes payload = 1;
   required bool error = 2 [ default = false ];
-  optional string error_string = 3;;
+  optional string error_string = 3;
 }
 
 service IndexService {
