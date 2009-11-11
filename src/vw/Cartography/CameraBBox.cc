@@ -173,6 +173,7 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
   // Did we fail to find scale?
   if ( scale == -1 ) {
     Vector2 pix(cols,rows);
+    pix = pix / 2;
     Vector2 pix2 = pix + Vector2(1,1);
 
     bool test_intersect, test_intersect2;
