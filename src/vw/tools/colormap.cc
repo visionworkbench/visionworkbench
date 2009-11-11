@@ -182,7 +182,7 @@ int main( int argc, char *argv[] ) {
   
   po::options_description desc("Description: Produces a colorized image of a DEM \n\nUsage: colormap [options] <input file> \n\nOptions");
   desc.add_options()
-    ("help", "Display this help message")
+    ("help,h", "Display this help message")
     ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
     ("shaded-relief-file,s", po::value<std::string>(&shaded_relief_file_name)->default_value(""), "Specify a shaded relief image (grayscale) to apply to the colorized image.")
     ("output-file,o", po::value<std::string>(&output_file_name), "Specify the output file")

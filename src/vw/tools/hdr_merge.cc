@@ -44,7 +44,7 @@ int main( int argc, char *argv[] ) {
     
     po::options_description desc("Options");
     desc.add_options()
-      ("help", "Display this help message")
+      ("help,h", "Display this help message")
       ("input-filenames,i", po::value<std::vector<std::string> >(&input_filenames), "Specify the input files")
       ("output-filename,o", po::value<std::string>(&output_filename)->default_value("merged_hdr_image.exr"), "Specify the output filename")
       ("exposure-ratio,e", po::value<float>(&exposure_ratio), "Manually specified exposure ratio for the images (e.g. for increasing power of 2 expoures, you would use a exposure-ratio of 2.0).")

@@ -208,7 +208,7 @@ int main( int argc, char *argv[] ) {
 
   po::options_description desc("Description: Outputs image of a DEM lighted as specified\n\nUsage: hillshade [options] <input file> \n\nOptions");
   desc.add_options()
-    ("help", "Display this help message")
+    ("help,h", "Display this help message")
     ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
     ("output-file,o", po::value<std::string>(&output_file_name), "Specify the output file")
     ("azimuth,a", po::value<double>(&azimuth)->default_value(0), "Sets the direction tha the light source is coming from (in degrees).  Zero degrees is to the right, with positive degree counter-clockwise.")

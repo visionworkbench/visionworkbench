@@ -309,7 +309,7 @@ int main( int argc, char *argv[] ) {
 
   po::options_description desc("Description: Outputs gradient and/or aspect at each point of an input DEM with altitude values\n\nUsage: slopemap [options] <input file> \n\nOptions");
   desc.add_options()
-    ("help", "Display this help messsage")
+    ("help,h", "Display this help messsage")
     ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
     ("output-prefix,o", po::value<std::string>(&output_prefix), "Specify the output prefix") //should add more description...
     ("no-aspect", "Do not output aspect")

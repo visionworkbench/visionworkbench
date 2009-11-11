@@ -123,7 +123,7 @@ int main(int argc, char** argv) {
 
   po::options_description general_options("Options");
   general_options.add_options()
-    ("help", "Display this help message")
+    ("help,h", "Display this help message")
     ("verbose", "Verbose output")
     ("debug-images,d", "Produce additional debugging images as well as the aligned image.")
     ("tile-size,t", po::value<int>(&tile_size)->default_value(2048), "Specify the tile size for detecting interest points.")

@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Soure data cache size, in megabytes")
-    ("help", "Display this help message");
+    ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
   hidden_options.add_options()

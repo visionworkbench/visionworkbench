@@ -502,7 +502,7 @@ int main(int argc, char **argv) {
     ("quiet,q", "Quiet output")
     ("verbose,v", "Verbose output")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
-    ("help", "Display this help message");
+    ("help,h", "Display this help message");
 
   po::options_description input_options("Input Options");
   input_options.add_options()

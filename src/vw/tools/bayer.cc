@@ -29,7 +29,7 @@ int main( int argc, char *argv[] ) {
 
   po::options_description desc("Options");
   desc.add_options()
-    ("help", "Display this help message")
+    ("help,h", "Display this help message")
     ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
     ("output-file,o", po::value<std::string>(&output_file_name)->default_value("output.png"), "Specify the output file");
   po::positional_options_description p;

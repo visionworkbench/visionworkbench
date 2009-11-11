@@ -45,7 +45,7 @@ int main( int argc, char *argv[] ) {
 
     po::options_description desc("Options");
     desc.add_options()
-      ("help", "Display this help message")
+      ("help,h", "Display this help message")
       ("input-filename", po::value<std::string>(&input_filename), "Specify the input filename.")
       ("output-filename,o", po::value<std::string>(&output_filename)->default_value("tonemap.png"), "Specify the output filename.")
       ("bias,b", po::value<float>(&bias)->default_value(vw::hdr::DRAGO_DEFAULT_BIAS), "Drago Tonemapping Parameter.  (The default of 0.85 works well for most images)")

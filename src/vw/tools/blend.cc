@@ -90,7 +90,7 @@ int main( int argc, char *argv[] ) {
   try {
     po::options_description desc("Options");
     desc.add_options()
-      ("help", "Display this help message")
+      ("help,h", "Display this help message")
       ("input-dir", po::value<std::string>(&mosaic_name), 
        "Explicitly specify the input directory")
       ("file-type", po::value<std::string>(&file_type)->default_value("png"), 

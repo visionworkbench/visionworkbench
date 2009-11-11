@@ -53,7 +53,7 @@ int main( int argc, char *argv[] ) {
 
     po::options_description desc("Options");
     desc.add_options()
-      ("help", "Display this help message")
+      ("help,h", "Display this help message")
       ("left", po::value<std::string>(&left_file_name), "Explicitly specify the \"left\" input file")
       ("right", po::value<std::string>(&right_file_name), "Explicitly specify the \"right\" input file")
       ("slog", po::value<float>(&slog)->default_value(1.0), "Apply SLOG filter with the given sigma, or 0 to disable")
