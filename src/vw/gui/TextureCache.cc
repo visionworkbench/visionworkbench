@@ -209,30 +209,35 @@ GLuint vw::gui::GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_
     if ( !rec )
       vw_throw(platefile::TileNotFoundErr() << "invalid record. regenerating...");
 
-    std::cout << "FOUND texture record @ " << tile_info.col
-              << " " << tile_info.row 
-              << " " << tile_info.level << "\n";
+    // For debugging:
+    //
+    // std::cout << "FOUND texture record @ " << tile_info.col
+    //           << " " << tile_info.row 
+    //           << " " << tile_info.level << "\n";
 
     // If it is, we use it to regenerate the texture ID and satisfy the request.
-    return 0;// (*(rec->handle)).get_texture_id();
+    return (*(rec->handle)).texture_id();
 
   } catch (platefile::TileNotFoundErr &e) {
 
-    std::cout << "CREATING texture record @ " << tile_info.col
-              << " " << tile_info.row 
-              << " " << tile_info.level << "\n";
+    // For Debugging:
+    //
+    // std::cout << "CREATING texture record @ " << tile_info.col
+    //           << " " << tile_info.row 
+    //           << " " << tile_info.level << "\n";
 
     // If it isn't, we need to add an entry to the cache and then
     // cause it to be generated.
     TextureRecord* new_record = new TextureRecord();
     boost::shared_ptr<TextureRecord> new_record_ptr(new_record);
     new_record->texture_id = 0;
-    // new_record->handle = m_gl_texture_cache_ptr->insert( GlTextureGenerator(m_generator, 
-    //                                                                         new_record_ptr) );
+    new_record->handle = m_gl_texture_cache_ptr->insert( GlTextureGenerator(m_generator,
+                                                                            tile_info,
+                                                                            new_record_ptr) );
 
     // Place this cache handle into the tree for later access.
     m_texture_records->insert( new_record_ptr, tile_info.col, tile_info.row, tile_info.level );
-    return 0;// (*(new_record_ptr->handle)).get_texture_id();
+    return (*(new_record_ptr->handle)).texture_id();
 
   } catch (platefile::IndexErr &e) {
 
@@ -241,27 +246,6 @@ GLuint vw::gui::GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_
 
   }
   return 0; // never reached
-
-
-
-  // GLuint texture_id;
-  // glEnable( GL_TEXTURE_2D );
-  // glGenTextures(1, &(texture_id) );
-  // glBindTexture(GL_TEXTURE_2D, texture_id);
-  // glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
-  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  // glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); 
-  // GLuint texture_pixel_type = GL_RGBA32F_ARB;
-  // GLuint source_pixel_type = GL_RGBA;
-  // GLuint source_channel_type = GL_FLOAT;
-  // glTexImage2D(GL_TEXTURE_2D, 0, texture_pixel_type, 
-  //              tile.cols(), tile.rows(), 0, 
-  //              source_pixel_type, source_channel_type, tile.data() );  
-  // glBindTexture(GL_TEXTURE_2D, 0);
-  // glDisable( GL_TEXTURE_2D );
-  // return texture_id;
-
 
 
 

@@ -16,6 +16,7 @@
 
 #include <vw/Image/ImageResource.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Image/Manipulation.h>
 
 namespace vw {
 

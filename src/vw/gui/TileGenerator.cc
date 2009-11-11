@@ -58,7 +58,7 @@ std::list<TileLocator> vw::gui::bbox_to_tiles(int32 tile_size, BBox2i bbox, int 
 }
 
 
-ImageView<PixelRGBA<float> > DummyTileGenerator::generate_tile(TileLocator const& tile_info) {
+boost::shared_ptr<ViewImageResource> DummyTileGenerator::generate_tile(TileLocator const& tile_info) {
   ImageView<PixelRGBA<float> > tile(m_tile_size, m_tile_size);
   for (unsigned j = 0; j < m_tile_size; ++j){
     for (unsigned i = 0; i < m_tile_size; ++i){
@@ -68,5 +68,6 @@ ImageView<PixelRGBA<float> > DummyTileGenerator::generate_tile(TileLocator const
         tile(i,j) = PixelRGBA<float>(0.0,0.0,0.0,1.0);
     }
   }
-  return tile;
+  boost::shared_ptr<ViewImageResource> result( new ViewImageResource(tile) );
+  return result;
 }

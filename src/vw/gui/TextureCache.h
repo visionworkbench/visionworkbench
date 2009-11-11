@@ -73,172 +73,239 @@ namespace gui {
   //   virtual void process_allocation_requests();
   // };
 
-  // // --------------------------------------------------------------
-  // //                     GlTextureHandle
-  // // --------------------------------------------------------------
+  // --------------------------------------------------------------
+  //                     GlTextureHandle
+  // --------------------------------------------------------------
 
-  // struct GlTextureHandleBase {
-  //   virtual GLuint get_texture_id() const = 0;
-  //   virtual ~GlTextureHandleBase() {}
-  // };
+  struct GlTextureHandleBase {
+    virtual GLuint texture_id() const = 0;
+    virtual ~GlTextureHandleBase() {}
+  };
 
-  // template <class PixelT>
-  // class GlTextureHandle : public GlTextureHandleBase {
-  //   boost::shared_ptr<TextureRecordBase> m_record;
+  class GlTextureHandle : public GlTextureHandleBase {
+    boost::shared_ptr<TextureRecordBase> m_record;
   
-  // public:
-  //   GlTextureHandle(vw::ImageResourceView<PixelT> image, 
-  //                   boost::shared_ptr<TextureRecordBase> record) : m_record(record) {
+  public:
+    GlTextureHandle(boost::shared_ptr<TileGenerator> generator, 
+                    TileLocator tile_info,
+                    boost::shared_ptr<TextureRecordBase> record) : m_record(record) {
 
-  //     // Rasterize the requested block of memory.
-  //     vw::ImageView<PixelT> cropped = crop( image, record->bbox );
+      // Extract the tile from the generator.
+      boost::shared_ptr<ViewImageResource> tile = generator->generate_tile(tile_info);
 
-  //     // For debugging:
-  //     //
-  //     // std::ostringstream ostr;
-  //     // ostr << "debug_" << record->lod << "_" << record->bbox.min().x() << "_" 
-  //     //      << record->bbox.min().y() << ".tif";
-  //     // vw::write_image(ostr.str(), cropped);
+      // For debugging:
+      //
+      // std::ostringstream ostr;
+      // ostr << "debug_" << record->lod << "_" << record->bbox.min().x() << "_" 
+      //      << record->bbox.min().y() << ".tif";
+      // vw::write_image(ostr.str(), tile);
 
-  //     vw::ImageView<PixelT> block = subsample( cropped, pow(2,record->lod) );
-  //     m_record->parent->request_allocation( record, vw::ViewImageResource(block) );
-  //     vw::vw_out(vw::VerboseDebugMessage) << "GlTextureHandle requesting allocation (" 
-  //                                         << m_record->texture_id << ") -- " 
-  //                                         << m_record->bbox << " @ " << m_record->lod << "\n";
-  //   }
+      //      m_record->parent->request_allocation( record, vw::ViewImageResource(block) );
+      // vw::vw_out(vw::VerboseDebugMessage) << "GlTextureHandle requesting allocation (" 
+      //                                     << m_record->texture_id << ") -- " 
+      //                                     << m_record->bbox << " @ " << m_record->lod << "\n";
 
-  //   virtual GLuint get_texture_id() const { return m_record->texture_id; }
+      GLuint texture_id;
+      glEnable( GL_TEXTURE_2D );
+      glGenTextures(1, &(texture_id) );
+      glBindTexture(GL_TEXTURE_2D, texture_id);
+      glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); 
+      GLuint texture_pixel_type = GL_RGBA32F_ARB;
+      GLuint source_pixel_type = GL_RGBA;
+      if (tile->channels() == 1) {
+        texture_pixel_type = GL_LUMINANCE32F_ARB;
+        source_pixel_type = GL_LUMINANCE;
+      } else if (tile->channels() == 2) {
+        texture_pixel_type = GL_LUMINANCE_ALPHA32F_ARB;
+        source_pixel_type = GL_LUMINANCE_ALPHA;
+      } else if (tile->channels() == 3) {
+        texture_pixel_type = GL_RGB32F_ARB;
+        source_pixel_type = GL_RGB;
+      } else if (tile->channels() == 4) {
+        texture_pixel_type = GL_RGBA32F_ARB;
+        source_pixel_type = GL_RGBA;
+      } else {
+        vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed." 
+                 << " Unsupported number of channels (" << tile->channels() << ").");
+      }
 
-  //   virtual ~GlTextureHandle() {
-  //     vw::vw_out(vw::VerboseDebugMessage) << "-> GlTextureHandle requesting decallocation (" << m_record->texture_id << ")\n";
-  //     m_record->parent->request_deallocation(m_record);
-  //   }
-  // };
+      GLuint source_channel_type = GL_FLOAT;
+      switch (tile->channel_type()) {
+      case vw::VW_CHANNEL_UINT8: 
+        source_channel_type = GL_UNSIGNED_BYTE;
+        break;
+      case vw::VW_CHANNEL_INT8: 
+        source_channel_type = GL_BYTE;
+        break;
+      case vw::VW_CHANNEL_UINT16: 
+        source_channel_type = GL_UNSIGNED_SHORT;
+        break;
+      case vw::VW_CHANNEL_INT16: 
+        source_channel_type = GL_SHORT;
+        break;
+      case vw::VW_CHANNEL_UINT32: 
+        source_channel_type = GL_UNSIGNED_INT;
+        break;
+      case vw::VW_CHANNEL_INT32: 
+        source_channel_type = GL_INT;
+        break;
+      case vw::VW_CHANNEL_FLOAT32:
+        source_channel_type = GL_FLOAT;
+        break;
+      default:
+        vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed." 
+                 << " Unsupported channel type (" << tile->channel_type() << ").");
+      }
 
-  // // --------------------------------------------------------------
-  // //                     GlTextureGenerator
-  // // --------------------------------------------------------------
+      glTexImage2D(GL_TEXTURE_2D, 0, texture_pixel_type, 
+                   tile->cols(), tile->rows(), 0, 
+                   source_pixel_type, source_channel_type, tile->data() );  
+      glBindTexture(GL_TEXTURE_2D, 0);
+      glDisable( GL_TEXTURE_2D );
+      m_record->texture_id = texture_id;
+    }
 
-  // class GlTextureGenerator {
-  //   boost::shared_ptr<vw::ImageResource> m_rsrc;
-  //   boost::shared_ptr<TextureRecordBase> m_record;
+    virtual GLuint texture_id() const { return m_record->texture_id; }
 
-  // public:
-  //   typedef GlTextureHandleBase value_type;
+    virtual ~GlTextureHandle() {
+      // vw::vw_out(vw::VerboseDebugMessage) << "-> GlTextureHandle requesting decallocation (" << m_record->texture_id << ")\n";
+      // m_record->parent->request_deallocation(m_record);
+      
+      // glEnable( GL_TEXTURE_2D );
+      // glDeleteTextures(1,&(m_record->texture_id));
+      // m_record->texture_id = 0;
+      // glDisable( GL_TEXTURE_2D );
+    }
+  };
+
+  // --------------------------------------------------------------
+  //                     GlTextureGenerator
+  // --------------------------------------------------------------
+
+  class GlTextureGenerator {
+    boost::shared_ptr<TileGenerator> m_generator;
+    TileLocator m_tile_info;
+    boost::shared_ptr<TextureRecordBase> m_record;
+
+  public:
+    typedef GlTextureHandleBase value_type;
   
-  //   GlTextureGenerator( boost::shared_ptr<vw::ImageResource> const& rsrc, 
-  //                       boost::shared_ptr<TextureRecordBase> record) :
-  //     m_rsrc( rsrc ), m_record(record) {}
+    GlTextureGenerator( boost::shared_ptr<TileGenerator> const& generator,
+                        TileLocator const& tile_info, 
+                        boost::shared_ptr<TextureRecordBase> record) :
+      m_generator( generator ), m_tile_info(tile_info), m_record(record) {}
 
-  //   size_t size() const {
-  //     return m_record->bbox.width()/pow(2,m_record->lod) * 
-  //       m_record->bbox.height()/pow(2,m_record->lod) * 
-  //       m_rsrc->planes() * m_rsrc->channels() 
-  //       * 2;  // <-- The textures are stored as 16-bit half's on the
-  //             // GPU, so they are 2 bytes per channel
-  //   }
+    size_t size() const {
+      return m_generator->tile_size() * m_generator->tile_size();
+    }
   
-  //   boost::shared_ptr<GlTextureHandleBase> generate() const {
-  //     // This is yet another block of ugly run-time dispatch code.  Some
-  //     // day we will hopefully unify the whole ImageView/ImageResource
-  //     // divide.  In the meantime, here we go...
-  //     vw::ChannelTypeEnum channel_type = m_rsrc->channel_type();
-  //     vw::PixelFormatEnum pixel_format = m_rsrc->pixel_format();
+    boost::shared_ptr<GlTextureHandleBase> generate() const {
+      return boost::shared_ptr<GlTextureHandleBase> ( 
+          new GlTextureHandle(m_generator, m_tile_info, m_record) );
+    }
+    //   // This is yet another block of ugly run-time dispatch code.  Some
+    //   // day we will hopefully unify the whole ImageView/ImageResource
+    //   // divide.  In the meantime, here we go...
+    //   vw::ChannelTypeEnum channel_type = m_generator->channel_type();
+    //   vw::PixelFormatEnum pixel_format = m_generator->pixel_format();
 
-  //     switch(pixel_format) {
-  //     case vw::VW_PIXEL_GRAY:
-  //       switch(channel_type) {
-  //       case vw::VW_CHANNEL_UINT8:  
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGray<vw::uint8> >(m_rsrc, m_record) );
-  //         break;
-  //       case vw::VW_CHANNEL_UINT16:
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGray<vw::uint16> >(m_rsrc, m_record) );
-  //         break;
-  //       case vw::VW_CHANNEL_INT16: 
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGray<vw::int16> >(m_rsrc, m_record) );
-  //         break;
-  //       case vw::VW_CHANNEL_FLOAT32: 
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGray<vw::float32> >(m_rsrc, m_record) );
-  //         break;
-  //       default:
-  //         vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed. Unknown channel type: " << channel_type << ".\n");
-  //       }
-  //     case vw::VW_PIXEL_GRAYA:
-  //       switch(channel_type) {
-  //       case vw::VW_CHANNEL_UINT8:  
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGrayA<vw::uint8> >(m_rsrc, m_record) );
-  //         break;
-  //       case vw::VW_CHANNEL_UINT16:
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGrayA<vw::uint16> >(m_rsrc, m_record) );
-  //         break;
-  //       case vw::VW_CHANNEL_INT16: 
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGrayA<vw::int16> >(m_rsrc, m_record) );
-  //         break;
-  //       case vw::VW_CHANNEL_FLOAT32: 
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGrayA<vw::float32> >(m_rsrc, m_record) );
-  //         break;
-  //       default:
-  //         vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed. Unknown channel type: " << channel_type << ".\n");
-  //       }
-  //     case vw::VW_PIXEL_RGB:
-  //       switch(channel_type) {
-  //       case vw::VW_CHANNEL_UINT8:  
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGB<vw::uint8> >(m_rsrc, m_record) );
-  //         break;
-  //       case vw::VW_CHANNEL_UINT16:
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGB<vw::uint16> >(m_rsrc, m_record) );
-  //         break;
-  //       case vw::VW_CHANNEL_INT16: 
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGB<vw::int16> >(m_rsrc, m_record) );
-  //         break;
-  //       case vw::VW_CHANNEL_FLOAT32: 
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGB<vw::float32> >(m_rsrc, m_record) );
-  //         break;
-  //       default:
-  //         vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed. Unknown channel type: " << channel_type << ".\n");
-  //       }
-  //     case vw::VW_PIXEL_RGBA:
-  //       switch(channel_type) {
-  //       case vw::VW_CHANNEL_UINT8:  
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGBA<vw::uint8> >(m_rsrc, m_record) );
-  //         break;
-  //       case vw::VW_CHANNEL_UINT16:
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGBA<vw::uint16> >(m_rsrc, m_record) );
-  //         break;
-  //       case vw::VW_CHANNEL_INT16: 
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGBA<vw::int16> >(m_rsrc, m_record) );
-  //         break;
-  //       case vw::VW_CHANNEL_FLOAT32: 
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGBA<vw::float32> >(m_rsrc, m_record) );
-  //         break;
-  //       default:
-  //         vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed. Unknown channel type: " << channel_type << ".\n");
-  //       }
+    //   switch(pixel_format) {
+    //   case vw::VW_PIXEL_GRAY:
+    //     switch(channel_type) {
+    //     case vw::VW_CHANNEL_UINT8:  
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGray<vw::uint8> >(m_rsrc, m_record) );
+    //       break;
+    //     case vw::VW_CHANNEL_UINT16:
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGray<vw::uint16> >(m_rsrc, m_record) );
+    //       break;
+    //     case vw::VW_CHANNEL_INT16: 
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGray<vw::int16> >(m_rsrc, m_record) );
+    //       break;
+    //     case vw::VW_CHANNEL_FLOAT32: 
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGray<vw::float32> >(m_rsrc, m_record) );
+    //       break;
+    //     default:
+    //       vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed. Unknown channel type: " << channel_type << ".\n");
+    //     }
+    //   case vw::VW_PIXEL_GRAYA:
+    //     switch(channel_type) {
+    //     case vw::VW_CHANNEL_UINT8:  
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGrayA<vw::uint8> >(m_rsrc, m_record) );
+    //       break;
+    //     case vw::VW_CHANNEL_UINT16:
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGrayA<vw::uint16> >(m_rsrc, m_record) );
+    //       break;
+    //     case vw::VW_CHANNEL_INT16: 
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGrayA<vw::int16> >(m_rsrc, m_record) );
+    //       break;
+    //     case vw::VW_CHANNEL_FLOAT32: 
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelGrayA<vw::float32> >(m_rsrc, m_record) );
+    //       break;
+    //     default:
+    //       vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed. Unknown channel type: " << channel_type << ".\n");
+    //     }
+    //   case vw::VW_PIXEL_RGB:
+    //     switch(channel_type) {
+    //     case vw::VW_CHANNEL_UINT8:  
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGB<vw::uint8> >(m_rsrc, m_record) );
+    //       break;
+    //     case vw::VW_CHANNEL_UINT16:
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGB<vw::uint16> >(m_rsrc, m_record) );
+    //       break;
+    //     case vw::VW_CHANNEL_INT16: 
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGB<vw::int16> >(m_rsrc, m_record) );
+    //       break;
+    //     case vw::VW_CHANNEL_FLOAT32: 
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGB<vw::float32> >(m_rsrc, m_record) );
+    //       break;
+    //     default:
+    //       vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed. Unknown channel type: " << channel_type << ".\n");
+    //     }
+    //   case vw::VW_PIXEL_RGBA:
+    //     switch(channel_type) {
+    //     case vw::VW_CHANNEL_UINT8:  
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGBA<vw::uint8> >(m_rsrc, m_record) );
+    //       break;
+    //     case vw::VW_CHANNEL_UINT16:
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGBA<vw::uint16> >(m_rsrc, m_record) );
+    //       break;
+    //     case vw::VW_CHANNEL_INT16: 
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGBA<vw::int16> >(m_rsrc, m_record) );
+    //       break;
+    //     case vw::VW_CHANNEL_FLOAT32: 
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::PixelRGBA<vw::float32> >(m_rsrc, m_record) );
+    //       break;
+    //     default:
+    //       vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed. Unknown channel type: " << channel_type << ".\n");
+    //     }
 
-  //     case vw::VW_PIXEL_SCALAR:
-  //       switch(channel_type) {
-  //       case vw::VW_CHANNEL_FLOAT32: 
-  //         return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::float32>(m_rsrc, m_record) );
-  //         break;
-  //       default:
-  //         vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed. Unknown channel type: " << channel_type << ".\n");
-  //       }
+    //   case vw::VW_PIXEL_SCALAR:
+    //     switch(channel_type) {
+    //     case vw::VW_CHANNEL_FLOAT32: 
+    //       return boost::shared_ptr<GlTextureHandleBase> ( new GlTextureHandle<vw::float32>(m_rsrc, m_record) );
+    //       break;
+    //     default:
+    //       vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed. Unknown channel type: " << channel_type << ".\n");
+    //     }
 
-  //     default: 
-  //       vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed.  " 
-  //                    << "Unknown pixel format: " << pixel_format << ".\n");
-  //     }
-  //     // Never reached
-  //     return boost::shared_ptr<GlTextureHandleBase>();
-  //   }
-  // };
+    //   default: 
+    //     vw::vw_throw(vw::IOErr() << "GlTextureHandle: generate() failed.  " 
+    //                  << "Unknown pixel format: " << pixel_format << ".\n");
+    //   }
+    //   // Never reached
+    //   return boost::shared_ptr<GlTextureHandleBase>();
+    // }
+  };
 
   // --------------------------------------------------------------
   //                     TextureRecord
   // --------------------------------------------------------------
 
   struct TextureRecord : public TextureRecordBase {
-    //  vw::Cache::Handle<GlTextureGenerator> handle;
+    vw::Cache::Handle<GlTextureGenerator> handle;
     virtual ~TextureRecord() {}
   };
 

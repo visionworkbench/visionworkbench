@@ -434,10 +434,9 @@ void GlPreviewWidget::drawImage() {
   // file contains.)
   int TILE_SIZE = 256;
   int MAX_LEVEL = log(2048 / TILE_SIZE) / log(2);
-  int level = MAX_LEVEL - (m_current_viewport.width() / TILE_SIZE - pow(2,MAX_LEVEL));
+  int level = MAX_LEVEL - log(float(m_current_viewport.width()) / m_viewport_width) / log(2.0);
   if (level < 0) level = 0;
   if (level > MAX_LEVEL) level = MAX_LEVEL;
-  std::cout << "--> LEVEL = " << level << "   " << m_current_viewport.width() << "\n";
 
   std::list<TileLocator> tiles = bbox_to_tiles(TILE_SIZE, m_current_viewport, level, MAX_LEVEL);
   std::list<TileLocator>::iterator tile_iter = tiles.begin();

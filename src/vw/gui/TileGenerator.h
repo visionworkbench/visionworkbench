@@ -11,6 +11,7 @@
 #include <vw/Math/BBox.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>
+#include <vw/Image/ViewImageResource.h>
 
 namespace vw {
 namespace gui {
@@ -35,7 +36,9 @@ namespace gui {
   class TileGenerator {
   public:
     virtual ~TileGenerator() {}
-    virtual ImageView<PixelRGBA<float> > generate_tile(TileLocator const& tile_info) = 0;
+    virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info) = 0;
+
+    virtual int tile_size() const = 0;
 
     static boost::shared_ptr<TileGenerator> create(std::string filename) {
       // If ends in .plate, then assume platefile.
@@ -51,7 +54,8 @@ namespace gui {
     DummyTileGenerator(int tile_size) : m_tile_size(tile_size) {}
     virtual ~DummyTileGenerator() {}
 
-    virtual ImageView<PixelRGBA<float> > generate_tile(TileLocator const& tile_info);
+    virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
+    virtual int tile_size() const { return m_tile_size; }
   };
 
   // class PlatefileTileGenerator {
