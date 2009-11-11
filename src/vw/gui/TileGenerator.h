@@ -12,6 +12,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ViewImageResource.h>
+#include <vw/Plate/PlateFile.h>
 
 namespace vw {
 namespace gui {
@@ -33,43 +34,82 @@ namespace gui {
   // --------------------------------------------------------------------------
   //                              TILE GENERATOR
   // --------------------------------------------------------------------------
+
   class TileGenerator {
   public:
     virtual ~TileGenerator() {}
     virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info) = 0;
 
+    virtual int cols() const = 0;
+    virtual int rows() const = 0;
+    virtual PixelFormatEnum pixel_format() const = 0;
+    virtual ChannelTypeEnum channel_type() const = 0;
     virtual int tile_size() const = 0;
-
-    static boost::shared_ptr<TileGenerator> create(std::string filename) {
-      // If ends in .plate, then assume platefile.
-      
-      // Otherwise, assume an image.
-    }
+    
+    // Use this method to generate the correct type of TileGenerator
+    // for a given filename.
+    static boost::shared_ptr<TileGenerator> create(std::string filename);
   };
 
-  class DummyTileGenerator : public TileGenerator {
+  // --------------------------------------------------------------------------
+  //                         TEST PATTERN TILE GENERATOR
+  // --------------------------------------------------------------------------
+
+  class TestPatternTileGenerator : public TileGenerator {
     int m_tile_size;
 
   public:
-    DummyTileGenerator(int tile_size) : m_tile_size(tile_size) {}
-    virtual ~DummyTileGenerator() {}
+    TestPatternTileGenerator(int tile_size) : m_tile_size(tile_size) {}
+    virtual ~TestPatternTileGenerator() {}
 
     virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
-    virtual int tile_size() const { return m_tile_size; }
+
+    virtual int cols() const;
+    virtual int rows() const;
+    virtual PixelFormatEnum pixel_format() const;
+    virtual ChannelTypeEnum channel_type() const;
+    virtual int tile_size() const;
   };
 
-  // class PlatefileTileGenerator {
-  //   boost::shared_ptr<PlateFile> m_platefile;
+  // --------------------------------------------------------------------------
+  //                         PLATE FILE TILE GENERATOR
+  // --------------------------------------------------------------------------
 
-  // public:
-  //   PlatefileTileGenerator(std::string platefile_name) :
-  //     m_platefile(new PlateFile(platefile_name) {}
-  //   virtual ~PlatefileTileGenerator() {}
+  class PlatefileTileGenerator : public TileGenerator {
+    boost::shared_ptr<vw::platefile::PlateFile> m_platefile;
 
-  //   virtual ImageView<PixelRGBA<float> > generate_tile(TileLocator const& index) { 
+  public:
+    PlatefileTileGenerator(std::string platefile_name);
+    virtual ~PlatefileTileGenerator() {}
 
-  //   }
-  // };
+    virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
+
+    virtual int cols() const;
+    virtual int rows() const;
+    virtual PixelFormatEnum pixel_format() const;
+    virtual ChannelTypeEnum channel_type() const;
+    virtual int tile_size() const;
+  };
+
+  // --------------------------------------------------------------------------
+  //                             IMAGE TILE GENERATOR
+  // --------------------------------------------------------------------------
+
+  class ImageTileGenerator : public TileGenerator {
+    std::string m_filename;
+
+  public:
+    ImageTileGenerator(std::string filename) : m_filename(filename) {}
+    virtual ~ImageTileGenerator() {}
+
+    virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
+
+    virtual int cols() const;
+    virtual int rows() const;
+    virtual PixelFormatEnum pixel_format() const;
+    virtual ChannelTypeEnum channel_type() const;
+    virtual int tile_size() const;
+  };
 
 
 }} // namespace vw::gui

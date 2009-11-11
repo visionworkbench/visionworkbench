@@ -23,7 +23,7 @@ vwv_SOURCES = vwv.cc MainWindow.cc GlPreviewWidget.cc	\
 # These are automatically-generated sources?
 nodist_vwv_SOURCES = MainWindow.moc.cc  GlPreviewWidget.moc.cc
 
-vwv_LDADD    = @PKG_GUI_LIBS@
+vwv_LDADD    = @PKG_GUI_LIBS@ @PKG_PLATE_LIBS@
 
 bin_PROGRAMS = vwv
 

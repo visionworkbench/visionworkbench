@@ -135,13 +135,14 @@ public:
 //                     GlTextureCache
 // --------------------------------------------------------------
 
-vw::gui::GlTextureCache::GlTextureCache() {
+vw::gui::GlTextureCache::GlTextureCache(boost::shared_ptr<TileGenerator> tile_generator) :
+  m_tile_generator(tile_generator) {
 
   // Create the texture cache
   int gl_texture_cache_size = 128 * 1024 * 1024; // Use 128-MB of texture cache
   m_gl_texture_cache_ptr = new vw::Cache( gl_texture_cache_size );
 
-  m_generator.reset( new vw::gui::DummyTileGenerator(256) );
+  // Start the texture fetch thread
   m_texture_fetch_task.reset(new TextureFetchTask(m_request_mutex, 
                                                   m_requests));
   m_texture_fetch_thread = new vw::Thread( m_texture_fetch_task );
@@ -217,7 +218,7 @@ GLuint vw::gui::GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_
     boost::shared_ptr<TextureRecord> new_record_ptr(new_record);
     new_record->texture_id = 0;
     new_record->requestor = requestor;
-    new_record->handle = m_gl_texture_cache_ptr->insert( GlTextureGenerator(m_generator,
+    new_record->handle = m_gl_texture_cache_ptr->insert( GlTextureGenerator(m_tile_generator,
                                                                             tile_info,
                                                                             new_record_ptr) );
     

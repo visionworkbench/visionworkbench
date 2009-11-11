@@ -130,7 +130,7 @@ namespace gui {
   // --------------------------------------------------------------
 
   class GlTextureGenerator {
-    boost::shared_ptr<TileGenerator> m_generator;
+    boost::shared_ptr<TileGenerator> m_tile_generator;
     TileLocator m_tile_info;
     boost::shared_ptr<TextureRecordBase> m_record;
 
@@ -140,17 +140,17 @@ namespace gui {
     GlTextureGenerator( boost::shared_ptr<TileGenerator> const& generator,
                         TileLocator const& tile_info, 
                         boost::shared_ptr<TextureRecordBase> record) :
-      m_generator( generator ), m_tile_info(tile_info), m_record(record) {
+      m_tile_generator( generator ), m_tile_info(tile_info), m_record(record) {
     }
 
     size_t size() const {
-      int size =  m_generator->tile_size() * m_generator->tile_size();
+      int size =  m_tile_generator->tile_size() * m_tile_generator->tile_size();
       return size;
     }
   
     boost::shared_ptr<GlTextureHandleBase> generate() const {
       return boost::shared_ptr<GlTextureHandleBase> ( 
-          new GlTextureHandle(m_generator, m_tile_info, m_record) );
+          new GlTextureHandle(m_tile_generator, m_tile_info, m_record) );
     }
   };
 
@@ -189,12 +189,12 @@ namespace gui {
     vw::Thread *m_texture_fetch_thread;
 
     // Shared ptr to the texture generator
-    boost::shared_ptr<TileGenerator> m_generator;
+    boost::shared_ptr<TileGenerator> m_tile_generator;
 
   public:
 
     // Constructor/destructor
-    GlTextureCache();
+    GlTextureCache(boost::shared_ptr<TileGenerator> tile_generator);
     ~GlTextureCache();
 
     // Fetch a texture from the cache.  This is a non-blocking call that

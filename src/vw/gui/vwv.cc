@@ -83,15 +83,6 @@ int main(int argc, char *argv[]) {
   // Set the Vision Workbench cache size
   vw_settings().set_system_cache_size( cache_size*1024*1024 );
 
-  // Check to make sure we can open the file.
-  try {
-    DiskImageResource *test_resource = DiskImageResource::open(image_filename);
-    vw_out(0) << "\t--> Opening " << test_resource->filename() << "\n";
-  } catch (IOErr &e) {
-    vw_out(0) << "Could not open file: " << image_filename << "\n\t--> " << e.what() << "\n";
-    exit(0);
-  }
-
   // Start up the Qt GUI
   QApplication app(argc, argv);
   vw::gui::MainWindow main_window(image_filename, nodata_value, vm.count("normalize"), vm);

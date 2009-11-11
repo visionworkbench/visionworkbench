@@ -142,17 +142,17 @@ GlPreviewWidget::~GlPreviewWidget() {
 
 void GlPreviewWidget::size_to_fit() {
   float aspect = float(m_viewport_width) / m_viewport_height;
-  int maxdim = std::max(m_image_rsrc->cols(),m_image_rsrc->rows());
-  if (m_image_rsrc->cols() > m_image_rsrc->rows()) {
+  int maxdim = std::max(m_tile_generator->cols(),m_tile_generator->rows());
+  if (m_tile_generator->cols() > m_tile_generator->rows()) {
     float width = maxdim;
     float height = maxdim/aspect;
-    float extra = height - m_image_rsrc->rows();
+    float extra = height - m_tile_generator->rows();
     m_current_viewport = BBox2(Vector2(0.0, -extra/2), 
                                 Vector2(width, height-extra/2));
   } else {
     float width = maxdim*aspect;
     float height = maxdim;
-    float extra = width - m_image_rsrc->cols();
+    float extra = width - m_tile_generator->cols();
     m_current_viewport = BBox2(Vector2(-extra/2, 0.0), 
                                 Vector2(width-extra/2, height));
   }
@@ -166,8 +166,8 @@ void GlPreviewWidget::zoom(float scale) {
   // Check to make sure we haven't hit our zoom limits...
   if (m_current_viewport.width()/scale > 1.0 && 
       m_current_viewport.height()/scale > 1.0 &&
-      m_current_viewport.width()/scale < 4*m_image_rsrc->cols() && 
-      m_current_viewport.height()/scale < 4*m_image_rsrc->rows()) {
+      m_current_viewport.width()/scale < 4*m_tile_generator->cols() && 
+      m_current_viewport.height()/scale < 4*m_tile_generator->rows()) {
     m_current_viewport.min().x() = (m_current_viewport.min().x() - mid_x) / scale + mid_x;
     m_current_viewport.max().x() = (m_current_viewport.max().x() - mid_x) / scale + mid_x;
     m_current_viewport.min().y() = (m_current_viewport.min().y() - mid_y) / scale + mid_y;
@@ -186,42 +186,6 @@ void GlPreviewWidget::normalize_image() {
 // --------------------------------------------------------------
 //             GlPreviewWidget Setup Methods
 // --------------------------------------------------------------
-
-void GlPreviewWidget::setup() {
-  if (!QGLFormat::hasOpenGL()) {
-    vw::vw_out(0) << "This system has no OpenGL support.\nExiting\n\n";
-    exit(1);
-  }
-
-  m_nodata_value = 0;
-  m_use_nodata = 0;
-  m_image_min = 0;
-  m_image_max = 1.0;
-
-  // Set some reasonable defaults
-  m_draw_texture = true;
-  m_show_legend = false;
-  m_bilinear_filter = true;
-  m_use_colormap = false;
-  m_adjust_mode = TransformAdjustment;
-  m_display_channel = DisplayRGBA;
-  m_colorize_display = false;
-  m_hillshade_display = false;
-  
-  // Set up shader parameters
-  m_gain = 1.0;
-  m_offset = 0.0;
-  m_gamma = 1.0;
-  
-  // Set mouse tracking
-  this->setMouseTracking(true);
-
-  // Set the size policy that the widget can grow or shrink and still
-  // be useful.
-  this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
-  this->setFocusPolicy(Qt::ClickFocus);
-}
 
 // ------------- TextureRenderer Implementation -----------------------
 GLuint GlPreviewWidget::allocate_texture(boost::shared_ptr<ViewImageResource> tile) {
@@ -306,37 +270,6 @@ void GlPreviewWidget::deallocate_texture(GLuint texture_id) {
 }
 
 // ---------------------------------------------------------
-
-void GlPreviewWidget::rebind_textures() {
-
-  // Deallocate any previously allocated textures
-  m_gl_texture_cache.reset(new GlTextureCache());
-
-  // The GPU has limited VRAM, so any one texture must be limited in
-  // size.  We can query the GPU for its max texture size here, and
-  // choose a final texture size that is 1/4 this size.  (This leaves
-  // ample room for use to store GL_RGBA16F_ARB (16-bit float) images
-  // on the GPU.)  
-  // GLint texSize; 
-  // glGetIntegerv(GL_MAX_TEXTURE_SIZE, &texSize);
-  m_bboxes = vw::image_blocks(*m_image_rsrc, 512, 512);
-  
-  // Compute the max lod we need to view this image in a "standard
-  // small viewport" of 1024x1024 pixels.
-  int max_lod = std::max(int((log((m_image_rsrc->cols()/512))/log(2.0))),
-                         int((log((m_image_rsrc->rows()/512))/log(2.0))) );
-
-  // Never go below an lod of 0!
-  if (max_lod < 0) max_lod = 0;
-
-  // Register this texture patch with the texture cache.  The texture
-  // will be generated on demand.
-  // for (unsigned i=0; i<m_bboxes.size(); ++i) {
-  //   for (int lod=0; lod <= max_lod; ++lod) {
-  //     m_gl_texture_cache->register_texture(m_image_rsrc, m_bboxes[i], lod, this);
-  //   }
-  // }
-}
 
 void GlPreviewWidget::initializeGL() {  
 
@@ -516,15 +449,15 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
 
   // Extract the value for the pixel currently under the mouse
   PixelRGBA<float32> pix_value;
-  if (currentImagePos.x() >= 0 && currentImagePos.x() < m_image_rsrc->cols() &&
-      currentImagePos.y() >= 0 && currentImagePos.y() < m_image_rsrc->rows()) {
+  if (currentImagePos.x() >= 0 && currentImagePos.x() < m_tile_generator->cols() &&
+      currentImagePos.y() >= 0 && currentImagePos.y() < m_tile_generator->rows()) {
 
-    ImageResourceView<PixelRGBA<float32> > view(m_image_rsrc);
-    pix_value = view(currentImagePos.x(), currentImagePos.y());
+    //    ImageResourceView<PixelRGBA<float32> > view(m_tile_generator);
+    //    pix_value = view(currentImagePos.x(), currentImagePos.y());
     
-    const char* pixel_name = vw::pixel_format_name(m_image_rsrc->pixel_format());
-    const char* channel_name = vw::channel_type_name(m_image_rsrc->channel_type());
-    int num_channels = m_image_rsrc->channels();
+    const char* pixel_name = vw::pixel_format_name(m_tile_generator->pixel_format());
+    const char* channel_name = vw::channel_type_name(m_tile_generator->channel_type());
+    int num_channels = 4;// m_tile_generator->channels(); // FIXME!!
     std::ostringstream pix_value_ostr;
     pix_value_ostr << "Pos: ( " << currentImagePos.x() << " " << currentImagePos.y() << " ) --> Val: [ ";
 
@@ -534,7 +467,7 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
     // code.
     bool round;
     float scale_factor;
-    switch (m_image_rsrc->channel_type()) {
+    switch (m_tile_generator->channel_type()) {
     case VW_CHANNEL_INT8:
       scale_factor = ScalarTypeLimits<int8>::highest();
       round = true;
@@ -587,7 +520,7 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
     default:
       vw_throw( ArgumentErr() 
                 << "vwv_GlPreviewWidget() : Unrecognized or unsupported channel type (" 
-                << m_image_rsrc->channel_type() << ")." );
+                << m_tile_generator->channel_type() << ")." );
       return; // never reached
     }
 
@@ -595,13 +528,13 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
     // those pixel types that have alpha.  This is messy too, and
     // should also be replaced by a better method...
     bool has_alpha = false;
-    if (m_image_rsrc->pixel_format() == vw::VW_PIXEL_GRAYA ||
-        m_image_rsrc->pixel_format() == vw::VW_PIXEL_RGBA ||
-        m_image_rsrc->pixel_format() == vw::VW_PIXEL_GRAY_MASKED ||
-        m_image_rsrc->pixel_format() == vw::VW_PIXEL_RGB_MASKED ||
-        m_image_rsrc->pixel_format() == vw::VW_PIXEL_XYZ_MASKED ||
-        m_image_rsrc->pixel_format() == vw::VW_PIXEL_LUV_MASKED ||
-        m_image_rsrc->pixel_format() == vw::VW_PIXEL_LAB_MASKED) {
+    if (m_tile_generator->pixel_format() == vw::VW_PIXEL_GRAYA ||
+        m_tile_generator->pixel_format() == vw::VW_PIXEL_RGBA ||
+        m_tile_generator->pixel_format() == vw::VW_PIXEL_GRAY_MASKED ||
+        m_tile_generator->pixel_format() == vw::VW_PIXEL_RGB_MASKED ||
+        m_tile_generator->pixel_format() == vw::VW_PIXEL_XYZ_MASKED ||
+        m_tile_generator->pixel_format() == vw::VW_PIXEL_LUV_MASKED ||
+        m_tile_generator->pixel_format() == vw::VW_PIXEL_LAB_MASKED) {
       has_alpha = true;
       num_channels -= 1;
     }
@@ -627,7 +560,8 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
     textDocument.setDefaultStyleSheet("* { color: #00FF00; font-family: courier, serif; font-size: 12 }");
     std::ostringstream legend_text;
     legend_text << "<p align=\"right\">" << m_legend_status << "<br>"
-                << "[ " << m_image_rsrc->cols() << " x " << m_image_rsrc->rows() << " ] <br>"
+                << "[ " << m_tile_generator->cols() << " x " 
+                << m_tile_generator->rows() << " ] <br>"
                 << "Pixel Format: " << pixel_name << "  Channel Type: " << channel_name << "<br>"
                 << "Current Pixel Range: [ " << -m_offset << " " 
                 << ( -m_offset+(1/m_gain) ) << " ]<br>"
@@ -730,7 +664,9 @@ void GlPreviewWidget::wheelEvent(QWheelEvent *event) {
   int num_degrees = event->delta();
   float num_ticks = float(num_degrees) / 360;
   
-  float mag = fabs(num_ticks/200.0);
+  // 100.0 chosen arbitrarily here as a reasonable scale factor giving
+  // good sensitivy of the mousewheel.
+  float mag = fabs(num_ticks/100.0);  
   float scale = 1;
   if (num_ticks > 0) 
     scale = 1+mag;
@@ -839,12 +775,3 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
   }
 }
 
-void GlPreviewWidget::add_crosshairs(std::list<Vector2> const& points, Vector3 const& color) {
-  m_crosshairs.push_back(PointList(points, color));
-  update();
-}
-
-void GlPreviewWidget::clear_crosshairs() {
-  m_crosshairs.clear(); 
-  update();
-}

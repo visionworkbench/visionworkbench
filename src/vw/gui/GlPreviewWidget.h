@@ -74,26 +74,51 @@ namespace gui {
     public:
 
     // Constructors/Destructor
-    GlPreviewWidget(QWidget *parent, QGLFormat const& frmt) : 
+    GlPreviewWidget(QWidget *parent, std::string filename, QGLFormat const& frmt) : 
       QGLWidget(frmt, parent) {
-
+      
+      // Verify that our OpenGL formatting options stuck
+      if (!QGLFormat::hasOpenGL()) {
+        vw::vw_out(0) << "This system has no OpenGL support.\nExiting\n\n";
+        exit(1);
+      }
       if (!format().sampleBuffers())
         std::cout << "\n\nCould not activate FSAA; results will be suboptimal\n\n";
       if (!format().doubleBuffer())
         std::cout << "\n\nCould not set double buffering; results will be suboptimal\n\n";
 
-      setup();
-    }
+      // Set default values
+      m_nodata_value = 0;
+      m_use_nodata = 0;
+      m_image_min = 0;
+      m_image_max = 1.0;
 
-    GlPreviewWidget(QWidget *parent, std::string filename) : QGLWidget(parent) {
-      setup();
-      set_image_from_file(filename);
-    }
+      // Set some reasonable defaults
+      m_draw_texture = true;
+      m_show_legend = false;
+      m_bilinear_filter = true;
+      m_use_colormap = false;
+      m_adjust_mode = TransformAdjustment;
+      m_display_channel = DisplayRGBA;
+      m_colorize_display = false;
+      m_hillshade_display = false;
+  
+      // Set up shader parameters
+      m_gain = 1.0;
+      m_offset = 0.0;
+      m_gamma = 1.0;
+  
+      // Set mouse tracking
+      this->setMouseTracking(true);
+      
+      // Set the size policy that the widget can grow or shrink and still
+      // be useful.
+      this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+      this->setFocusPolicy(Qt::ClickFocus);
 
-    template <class ViewT>
-    GlPreviewWidget(QWidget *parent, vw::ImageViewBase<ViewT> const& view) : QGLWidget(parent) {
-      setup();
-      set_image(view);
+      m_tile_generator = TileGenerator::create(filename);
+      m_gl_texture_cache.reset( new GlTextureCache(m_tile_generator) );
+      size_to_fit();
     }
 
     virtual ~GlPreviewWidget();
@@ -108,17 +133,7 @@ namespace gui {
     // Image Manipulation Methods
     void zoom(float scale);
     void normalize_image();
-    void add_crosshairs(std::list<vw::Vector2> const& points, vw::Vector3 const& color);
-    void clear_crosshairs(); 
     void size_to_fit();
-
-    /// Replace the current image in the widget with the supplied image view.
-    void set_image(boost::shared_ptr<vw::ImageResource> const& rsrc) {
-      m_image_rsrc = rsrc;
-      rebind_textures();
-      update();
-      size_to_fit();
-    }
 
   public slots:
   
@@ -144,20 +159,11 @@ namespace gui {
         normalize_image();
     }
 
-    /// Replace the current image in the widget with the image in the
-    /// supplied file.
-    void set_image_from_file(std::string const& filename) {
-      boost::shared_ptr<vw::ImageResource> rsrc(vw::DiskImageResource::open(filename));
-      this->set_image(rsrc);
-    }
-
   protected:
 
     // Setup
-    void setup();
     void initializeGL();
     void resizeGL(int width, int height);
-    void rebind_textures();
 
     // Event handlers
     void paintEvent(QPaintEvent *event);
@@ -177,8 +183,6 @@ namespace gui {
     void updateCurrentMousePosition();
   
     // Image & OpenGL
-    boost::shared_ptr<vw::ImageResource> m_image_rsrc;
-    std::vector<vw::BBox2i> m_bboxes;
     GLuint m_glsl_program;
     bool m_draw_texture;
     bool m_show_legend;
@@ -188,11 +192,13 @@ namespace gui {
     // Timers and updates
     QTimer *m_timer;
 
-    // OpenGL Texturing
+    // Image tiles and the texture cache
+    boost::shared_ptr<TileGenerator> m_tile_generator;
     boost::shared_ptr<GlTextureCache> m_gl_texture_cache;
 
     // Adjustment mode
-    enum AdjustmentMode { TransformAdjustment, GainAdjustment, OffsetAdjustment, GammaAdjustment };
+    enum AdjustmentMode { TransformAdjustment, GainAdjustment, 
+                          OffsetAdjustment, GammaAdjustment };
     AdjustmentMode m_adjust_mode;
 
     // Mouse positions and legend information
@@ -213,9 +219,6 @@ namespace gui {
     float m_gain;
     float m_offset;
     float m_gamma;
-
-    // Crosshair overlays
-    std::vector<PointList> m_crosshairs;
 
     enum DisplayChannel { DisplayRGBA = 0, DisplayR, DisplayG, DisplayB, DisplayA };
     int m_display_channel;

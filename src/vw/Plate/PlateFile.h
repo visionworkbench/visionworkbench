@@ -9,7 +9,8 @@
 #define __VW_PLATE_PLATEFILE_H__
 
 #include <vw/Math/Vector.h>
-#include <vw/Image.h>
+#include <vw/Image/ImageView.h>
+#include <vw/FileIO/DiskImageResource.h>
 
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Blob.h>

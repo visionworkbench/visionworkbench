@@ -46,37 +46,34 @@ MainWindow::MainWindow(std::string input_filename,
   gl_frmt.setSwapInterval(1);
 
   // Set up GlPreviewWidget
-  m_preview_widget = new GlPreviewWidget(this, gl_frmt);
+  m_preview_widget = new GlPreviewWidget(this, input_filename, gl_frmt);
   setCentralWidget(m_preview_widget);
 
-  vw::DiskImageView<float> image(m_filename);
+  // vw::DiskImageView<float> image(m_filename);
     
-  // Set the nodata value
-  vw::DiskImageResource *disk_dem_rsrc = vw::DiskImageResource::open(input_filename);
-  if (m_vm.count("nodata-value")) {
-    std::cout << "\t--> User specified nodata value: " << m_nodata_value << ".\n";
-    m_preview_widget->set_nodata_value(m_nodata_value);
-  } else if ( disk_dem_rsrc->has_nodata_value() ) {
-    m_nodata_value = disk_dem_rsrc->nodata_value();
-    std::cout << "\t--> Extracted nodata value from file: " << m_nodata_value << ".\n";
-    m_preview_widget->set_nodata_value(m_nodata_value);
-  }    
+  // // Set the nodata value
+  // vw::DiskImageResource *disk_dem_rsrc = vw::DiskImageResource::open(input_filename);
+  // if (m_vm.count("nodata-value")) {
+  //   std::cout << "\t--> User specified nodata value: " << m_nodata_value << ".\n";
+  //   m_preview_widget->set_nodata_value(m_nodata_value);
+  // } else if ( disk_dem_rsrc->has_nodata_value() ) {
+  //   m_nodata_value = disk_dem_rsrc->nodata_value();
+  //   std::cout << "\t--> Extracted nodata value from file: " << m_nodata_value << ".\n";
+  //   m_preview_widget->set_nodata_value(m_nodata_value);
+  // }    
 
-  // If normalization is requested, compute the min/max
-  float lo = 0.0, hi = 1.0;
-  if (do_normalize) {
-    std::cout << "\t--> Computing data range: " << std::flush;
-    if (m_vm.count("nodata-value")) {
-      vw::min_max_channel_values(vw::create_mask(image,m_nodata_value), lo, hi);
-    } else {
-      vw::min_max_channel_values(image, lo, hi);
-    }
-    std::cout << "[L: " << lo << " H: " << hi << "]\n";
-  }
-  m_preview_widget->set_data_range(lo, hi);
-
-  // Pass the filename along to the preview widget for display.
-  m_preview_widget->set_image_from_file(input_filename);
+  // // If normalization is requested, compute the min/max
+  // float lo = 0.0, hi = 1.0;
+  // if (do_normalize) {
+  //   std::cout << "\t--> Computing data range: " << std::flush;
+  //   if (m_vm.count("nodata-value")) {
+  //     vw::min_max_channel_values(vw::create_mask(image,m_nodata_value), lo, hi);
+  //   } else {
+  //     vw::min_max_channel_values(image, lo, hi);
+  //   }
+  //   std::cout << "[L: " << lo << " H: " << hi << "]\n";
+  // }
+  // m_preview_widget->set_data_range(lo, hi);
 
   // Maximize the main window
   this->showMaximized();
