@@ -13,6 +13,7 @@
 #include <vw/config.h>
 #include <vw/gui/MainWindow.h>
 #include <vw/gui/GlPreviewWidget.h>
+using namespace vw::gui;
 
 #include <vw/Image/MaskViews.h>
 #include <vw/FileIO/DiskImageView.h>

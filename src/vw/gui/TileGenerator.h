@@ -20,7 +20,7 @@ namespace gui {
     int row;
     int level;
 
-    bool is_valid() {
+    bool is_valid() const {
       return (col >= 0 && row >= 0 && col < pow(2, level) && row < pow(2, level));
     }
   };
@@ -44,7 +44,7 @@ namespace gui {
     }
   };
 
-  class DummyTileGenerator {
+  class DummyTileGenerator : public TileGenerator {
     int m_tile_size;
 
   public:

@@ -381,7 +381,7 @@ void GlPreviewWidget::drawImage() {
   // Before we draw this frame, we will check to see whether there are
   // any new texture to upload or delete from the texture cache.  If
   // there are, we perform at least one of these operations.
-  this->process_allocation_requests();
+  //  this->process_allocation_requests();
   
   // Activate our GLSL fragment program and set up the uniform
   // variables in the shader

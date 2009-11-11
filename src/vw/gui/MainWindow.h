@@ -20,43 +20,50 @@
 using namespace boost;
 namespace po = boost::program_options;
 
+// Forward declarations
 class QAction;
 class QLabel;
 class QTabWidget;
-class GlPreviewWidget;
 
-class MainWindow : public QMainWindow {
-  Q_OBJECT
+namespace vw {
+namespace gui {
 
-  std::string m_filename;
-  float m_nodata_value;
-  po::variables_map const& m_vm;
+  class GlPreviewWidget;
 
-public:
-  MainWindow(std::string filename, float nodata_value, bool do_normalize, po::variables_map const& vm);
-  virtual ~MainWindow() {}
+  class MainWindow : public QMainWindow {
+    Q_OBJECT
 
-private slots:
-  void about();
-  void update_status_bar(std::string const& s);
+    std::string m_filename;
+    float m_nodata_value;
+    po::variables_map const& m_vm;
 
-protected:
-  void keyPressEvent(QKeyEvent *event);
+  public:
+    MainWindow(std::string filename, float nodata_value, bool do_normalize, po::variables_map const& vm);
+    virtual ~MainWindow() {}
 
-private:
-  void create_actions();
-  void create_menus();
-  void create_status_bar();
+  private slots:
+    void about();
+    void update_status_bar(std::string const& s);
 
-  GlPreviewWidget *m_preview_widget;
+  protected:
+    void keyPressEvent(QKeyEvent *event);
 
-  QMenu *file_menu;
-  QMenu *edit_menu;
-  QMenu *help_menu;
+  private:
+    void create_actions();
+    void create_menus();
+    void create_status_bar();
 
-  QLabel *status_label;
-  QAction *about_action;
-  QAction *exit_action;
-};
+    GlPreviewWidget *m_preview_widget;
+
+    QMenu *file_menu;
+    QMenu *edit_menu;
+    QMenu *help_menu;
+
+    QLabel *status_label;
+    QAction *about_action;
+    QAction *exit_action;
+  };
+
+}} // namespace vw::gui
 
 #endif // __VWV_MAINWINDOW_H__
