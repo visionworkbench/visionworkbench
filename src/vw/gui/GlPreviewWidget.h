@@ -34,7 +34,7 @@
 #include <string>
 #include <list>
 
-#include <vw/gui/vwv_TextureCache.h>
+#include <vw/gui/TextureCache.h>
 
 class QMouseEvent;
 class QWheelEvent;

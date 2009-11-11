@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-#include <vw/gui/vwv_TextureCache.h>
+#include <vw/gui/TextureCache.h>
 
 // --------------------------------------------------------------
 //                     TextureRequest

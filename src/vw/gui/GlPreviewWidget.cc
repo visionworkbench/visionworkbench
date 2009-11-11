@@ -30,7 +30,7 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/gui/TileGenerator.h>
-#include <vw/gui/vwv_GlPreviewWidget.h>
+#include <vw/gui/GlPreviewWidget.h>
 using namespace vw;
 using namespace vw::gui;
 

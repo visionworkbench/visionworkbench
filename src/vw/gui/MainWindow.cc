@@ -11,8 +11,8 @@
 ///
 #include <QtGui>
 #include <vw/config.h>
-#include <vw/gui/vwv_MainWindow.h>
-#include <vw/gui/vwv_GlPreviewWidget.h>
+#include <vw/gui/MainWindow.h>
+#include <vw/gui/GlPreviewWidget.h>
 
 #include <vw/Image/MaskViews.h>
 #include <vw/FileIO/DiskImageView.h>

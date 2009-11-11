@@ -16,12 +16,12 @@ CLEANFILES = *.moc.cc
 if ENABLE_EXCEPTIONS
 
 # Graphical tools based on the core modules
-vwv_SOURCES = vwv.cc vwv_MainWindow.cc vwv_GlPreviewWidget.cc	\
-	      vwv_MainWindow.h vwv_GlPreviewWidget.h		\
-	      vwv_TextureCache.cc TileGenerator.cc
+vwv_SOURCES = vwv.cc MainWindow.cc GlPreviewWidget.cc	\
+	      MainWindow.h GlPreviewWidget.h		\
+	      TextureCache.cc TileGenerator.cc
 
 # These are automatically-generated sources?
-nodist_vwv_SOURCES = vwv_MainWindow.moc.cc  vwv_GlPreviewWidget.moc.cc
+nodist_vwv_SOURCES = MainWindow.moc.cc  GlPreviewWidget.moc.cc
 
 vwv_LDADD    = @PKG_GUI_LIBS@
 

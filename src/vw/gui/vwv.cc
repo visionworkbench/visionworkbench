@@ -27,7 +27,7 @@ namespace po = boost::program_options;
 #include <vw/Stereo.h>
 using namespace vw;
 
-#include <vw/gui/vwv_MainWindow.h>
+#include <vw/gui/MainWindow.h>
 
 // Allows FileIO to correctly read/write unusual pixel types
 namespace vw {
