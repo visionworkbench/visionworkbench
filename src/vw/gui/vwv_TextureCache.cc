@@ -183,10 +183,10 @@ GlTextureCache::~GlTextureCache() {
   delete m_gl_texture_cache_ptr;
 }
 
-GLuint GlTextureCache::get_texture_id(TileLocator const& tile_info) {    
+GLuint GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_info) {    
 
-  DummyTileGenerator gen(256);
-  ImageView<PixelRGBA<float> > tile = gen.generate_tile(tile_info);
+  vw::gui::DummyTileGenerator gen(256);
+  vw::ImageView<vw::PixelRGBA<float> > tile = gen.generate_tile(tile_info);
 
   GLuint texture_id;
   glEnable( GL_TEXTURE_2D );
@@ -200,8 +200,8 @@ GLuint GlTextureCache::get_texture_id(TileLocator const& tile_info) {
   GLuint source_pixel_type = GL_RGBA;
   GLuint source_channel_type = GL_FLOAT;
   glTexImage2D(GL_TEXTURE_2D, 0, texture_pixel_type, 
-               block.cols(), block.rows(), 0, 
-               source_pixel_type, source_channel_type, block.data() );  
+               tile.cols(), tile.rows(), 0, 
+               source_pixel_type, source_channel_type, tile.data() );  
   glBindTexture(GL_TEXTURE_2D, 0);
   glDisable( GL_TEXTURE_2D );
   return texture_id;
