@@ -224,7 +224,7 @@ void GlPreviewWidget::setup() {
 }
 
 // ------------- TextureRenderer Implementation -----------------------
-GLuint GlPreviewWidget::allocate_texture(ViewImageResource const block) {
+GLuint GlPreviewWidget::allocate_texture(boost::shared_ptr<ViewImageResource> tile) {
   GLuint texture_id;
 
   makeCurrent();
@@ -236,33 +236,33 @@ GLuint GlPreviewWidget::allocate_texture(ViewImageResource const block) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); 
   
-  // std::cout << "This image has " << block.channels() << " channels\n";
-  // std::cout << "           ond " << block.channel_type() << " channel type\n";
+  // std::cout << "This image has " << tile->channels() << " channels\n";
+  // std::cout << "           ond " << tile->channel_type() << " channel type\n";
   
   // We save VRAM by copying the image data over in its native
   // number of channels.
   GLuint texture_pixel_type = GL_RGBA32F_ARB;
   GLuint source_pixel_type = GL_RGBA;
-  if (block.channels() == 1) {
+  if (tile->channels() == 1) {
     texture_pixel_type = GL_LUMINANCE32F_ARB;
     source_pixel_type = GL_LUMINANCE;
-  } else if (block.channels() == 2) {
+  } else if (tile->channels() == 2) {
     texture_pixel_type = GL_LUMINANCE_ALPHA32F_ARB;
     source_pixel_type = GL_LUMINANCE_ALPHA;
-  } else if (block.channels() == 3) {
+  } else if (tile->channels() == 3) {
     texture_pixel_type = GL_RGB32F_ARB;
     source_pixel_type = GL_RGB;
-  } else if (block.channels() == 4) {
+  } else if (tile->channels() == 4) {
     texture_pixel_type = GL_RGBA32F_ARB;
     source_pixel_type = GL_RGBA;
   } else {
     vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed." 
-             << " Unsupported number of channels (" << block.channels() << ").");
+             << " Unsupported number of channels (" << tile->channels() << ").");
   }
 
   // Set the GL channel type for source data.
   GLuint source_channel_type = GL_FLOAT;
-  switch (block.channel_type()) {
+  switch (tile->channel_type()) {
   case vw::VW_CHANNEL_UINT8: 
     source_channel_type = GL_UNSIGNED_BYTE;
     break;
@@ -286,12 +286,12 @@ GLuint GlPreviewWidget::allocate_texture(ViewImageResource const block) {
     break;
   default:
     vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed." 
-             << " Unsupported channel type (" << block.channel_type() << ").");
+             << " Unsupported channel type (" << tile->channel_type() << ").");
   }
   
   glTexImage2D(GL_TEXTURE_2D, 0, texture_pixel_type, 
-               block.cols(), block.rows(), 0, 
-               source_pixel_type, source_channel_type, block.data() );
+               tile->cols(), tile->rows(), 0, 
+               source_pixel_type, source_channel_type, tile->data() );
   
   glBindTexture(GL_TEXTURE_2D, 0);
   glDisable( GL_TEXTURE_2D );
@@ -381,7 +381,7 @@ void GlPreviewWidget::drawImage() {
   // Before we draw this frame, we will check to see whether there are
   // any new texture to upload or delete from the texture cache.  If
   // there are, we perform at least one of these operations.
-  //  this->process_allocation_requests();
+  this->process_allocation_requests();
   
   // Activate our GLSL fragment program and set up the uniform
   // variables in the shader
@@ -443,14 +443,13 @@ void GlPreviewWidget::drawImage() {
   while (tile_iter != tiles.end()) {
     BBox2i texture_bbox = tile_to_bbox(TILE_SIZE, tile_iter->col, tile_iter->row, tile_iter->level, MAX_LEVEL);
     if (tile_iter->is_valid()) {
-      //      std::cout << "Tile: " << tile_iter->col << " " << tile_iter->row << " " << tile_iter->level << "  BBOX: " << texture_bbox << "\n";
-      
+
       // Fetch the texture out of the cache.  If the texture is not
       // currently in the cache, a request for this texture will be
       // generated so that it is available at some point in the
       // future. will be generated if necessary. Note that this
       // happens outside the m_gl_mutex to avoid deadlock.
-      GLuint texture_id = m_gl_texture_cache->get_texture_id(*tile_iter);
+      GLuint texture_id = m_gl_texture_cache->get_texture_id(*tile_iter, this);
       
       if (texture_id) {
         glUseProgram(m_glsl_program);

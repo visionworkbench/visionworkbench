@@ -68,10 +68,8 @@ namespace gui {
   };
 
 
-  class GlPreviewWidget : public QGLWidget { //, public CachedTextureRenderer {
+  class GlPreviewWidget : public QGLWidget, public CachedTextureRenderer {
     Q_OBJECT
-
-    bool m_needs_redraw; // DELETME
 
     public:
 
@@ -100,7 +98,7 @@ namespace gui {
 
     virtual ~GlPreviewWidget();
 
-    virtual GLuint allocate_texture(vw::ViewImageResource const block);
+    virtual GLuint allocate_texture(boost::shared_ptr<ViewImageResource> tile);
     virtual void deallocate_texture(GLuint texture_id);
 
     // Set a default size for this widget.  This is usually overridden
