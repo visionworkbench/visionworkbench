@@ -32,6 +32,7 @@
 #include <vw/Math/BBox.h>
 #include <vw/Math/Vector.h>
 #include <vw/FileIO.h>
+#include <vw/gui/TileGenerator.h>
 
 // Forward Declarations
 class CachedTextureRenderer;
@@ -274,29 +275,29 @@ public:
   GlTextureCache();
   ~GlTextureCache();
 
-  // Register a texture with the cache.    
-  void register_texture(boost::shared_ptr<vw::ImageResource> const& rsrc, 
-                        vw::BBox2i bbox, int lod, 
-                        CachedTextureRenderer* parent) {
-    VW_ASSERT(lod >= 0, vw::ArgumentErr() << "GlTextureGenerator : lod must be greater than or equal to 0.");
+  // // Register a texture with the cache.    
+  // void register_texture(boost::shared_ptr<vw::ImageResource> const& rsrc, 
+  //                       vw::BBox2i bbox, int lod, 
+  //                       CachedTextureRenderer* parent) {
+  //   VW_ASSERT(lod >= 0, vw::ArgumentErr() << "GlTextureGenerator : lod must be greater than or equal to 0.");
 
-    vw::vw_out(vw::VerboseDebugMessage) << "GlTextureCache::register_texture() registered bbox " << bbox << " @ lod " << lod << "\n";
-    TextureRecord* new_record = new TextureRecord();
-    boost::shared_ptr<TextureRecord> new_record_ptr(new_record);
-    new_record->bbox = bbox;
-    new_record->lod = lod;
-    new_record->parent = parent;
-    new_record->texture_id = 0;
-    new_record->handle = m_gl_texture_cache_ptr->insert( GlTextureGenerator(rsrc, new_record_ptr) );
-    m_texture_records.push_back( new_record_ptr );
-  }
+  //   vw::vw_out(vw::VerboseDebugMessage) << "GlTextureCache::register_texture() registered bbox " << bbox << " @ lod " << lod << "\n";
+  //   TextureRecord* new_record = new TextureRecord();
+  //   boost::shared_ptr<TextureRecord> new_record_ptr(new_record);
+  //   new_record->bbox = bbox;
+  //   new_record->lod = lod;
+  //   new_record->parent = parent;
+  //   new_record->texture_id = 0;
+  //   new_record->handle = m_gl_texture_cache_ptr->insert( GlTextureGenerator(rsrc, new_record_ptr) );
+  //   m_texture_records.push_back( new_record_ptr );
+  // }
 
   // Fetch a texture from the cache.  This is a non-blocking call that
   // will immediately return the GL texture id of the texture *if it
   // is available*.  If the texture is not available, this function
   // will add it to the queue to be rendered by the texture fetch
   // thread and return 0 immediately.
-  GLuint get_texture_id(vw::BBox2i bbox, int lod);
+  GLuint get_texture_id(vw::gui::TileLocator const& tile_info);
 };
 
 #endif // __VWV_GL_PREVIEW_WIDGET_TEXTURE_H__

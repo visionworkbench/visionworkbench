@@ -331,11 +331,11 @@ void GlPreviewWidget::rebind_textures() {
 
   // Register this texture patch with the texture cache.  The texture
   // will be generated on demand.
-  for (unsigned i=0; i<m_bboxes.size(); ++i) {
-    for (int lod=0; lod <= max_lod; ++lod) {
-      m_gl_texture_cache->register_texture(m_image_rsrc, m_bboxes[i], lod, this);
-    }
-  }
+  // for (unsigned i=0; i<m_bboxes.size(); ++i) {
+  //   for (int lod=0; lod <= max_lod; ++lod) {
+  //     m_gl_texture_cache->register_texture(m_image_rsrc, m_bboxes[i], lod, this);
+  //   }
+  // }
 }
 
 void GlPreviewWidget::initializeGL() {  
@@ -451,141 +451,59 @@ void GlPreviewWidget::drawImage() {
       // generated so that it is available at some point in the
       // future. will be generated if necessary. Note that this
       // happens outside the m_gl_mutex to avoid deadlock.
-      GLuint texture_id;// = m_gl_texture_cache->get_texture_id(m_bboxes[i], lod);
+      GLuint texture_id = m_gl_texture_cache->get_texture_id(*tile_iter);
       
-      // if (texture_id) {
-      //   glUseProgram(m_glsl_program);
+      if (texture_id) {
+        glUseProgram(m_glsl_program);
       
-      //   // Enable texturing and bind the texture ID
-      //   glEnable( GL_TEXTURE_2D );
-      //   glBindTexture( GL_TEXTURE_2D, texture_id );
+        // Enable texturing and bind the texture ID
+        glEnable( GL_TEXTURE_2D );
+        glBindTexture( GL_TEXTURE_2D, texture_id );
         
-      //   // Set up bilinear or nearest neighbor filtering.
-      //   if (m_bilinear_filter) {
-      //     // When the texture area is small, bilinear filter the closest mipmap
-      //     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-      //     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-      //   } else {
-      //     // When the texture area is small, pick the nearest neighbor in the closest mipmap
-      //     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-      //     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-      //   }
+        // Set up bilinear or nearest neighbor filtering.
+        if (m_bilinear_filter) {
+          // When the texture area is small, bilinear filter the closest mipmap
+          glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+          glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+        } else {
+          // When the texture area is small, pick the nearest neighbor in the closest mipmap
+          glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
+          glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+        }
         
-      //   // Draw the texture onto a quad.
-      //   qglColor(Qt::white);
-      //   glBegin(GL_QUADS);
-      //   glTexCoord2d( 0.0 , 0.0); 
-      //   glVertex2d( texture_bbox.min().x() , -(texture_bbox.min().y()) );
-      //   glTexCoord2d( 0.0 , 1 ); 
-      //   glVertex2d( texture_bbox.min().x() , -(texture_bbox.max().y()) );
-      //   glTexCoord2d( 1.0 , 1.0 );
-      //   glVertex2d( texture_bbox.max().x() , -(texture_bbox.max().y()) );
-      //   glTexCoord2d( 1.0 , 0.0 ); 
-      //   glVertex2d( texture_bbox.max().x() , -(texture_bbox.min().y()) );
-      //   glEnd();
-        
-      //   // Clean up
-      //   glDisable( GL_TEXTURE_2D );
-      //   glUseProgram(0);
-        
-      // } else {
-        // If no texture is (yet) available, we draw a dark gray quad.
+        // Draw the texture onto a quad.
+        qglColor(Qt::white);
         glBegin(GL_QUADS);
-        glColor3f(1.0,0.0,0.0);
+        glTexCoord2d( 0.0 , 0.0); 
         glVertex2d( texture_bbox.min().x() , -(texture_bbox.min().y()) );
-        glColor3f(1.0,0.0,0.0);
+        glTexCoord2d( 0.0 , 1 ); 
         glVertex2d( texture_bbox.min().x() , -(texture_bbox.max().y()) );
-        glColor3f(1.0,0.0,0.0);
+        glTexCoord2d( 1.0 , 1.0 );
         glVertex2d( texture_bbox.max().x() , -(texture_bbox.max().y()) );
-        glColor3f(1.0,0.0,0.0);
+        glTexCoord2d( 1.0 , 0.0 ); 
         glVertex2d( texture_bbox.max().x() , -(texture_bbox.min().y()) );
         glEnd();
-      // }
+        
+        // Clean up
+        glDisable( GL_TEXTURE_2D );
+        glUseProgram(0);
+        
+      } else {
+        // If no texture is (yet) available, we draw a dark gray quad.
+        glBegin(GL_QUADS);
+        glColor3f(0.0,0.3,0.0);
+        glVertex2d( texture_bbox.min().x() , -(texture_bbox.min().y()) );
+        glVertex2d( texture_bbox.min().x() , -(texture_bbox.max().y()) );
+        glVertex2d( texture_bbox.max().x() , -(texture_bbox.max().y()) );
+        glVertex2d( texture_bbox.max().x() , -(texture_bbox.min().y()) );
+        glEnd();
+      }
     }
 
     // Move onto the next tile
     ++tile_iter;
   }
-  std::cout << "\n";
-  
-  // for (unsigned i=0; i < m_bboxes.size(); ++i) {
-  //   if (m_current_viewport.intersects(m_bboxes[i])) {
-      
-  //     // Fetch the texture out of the cache.  If the texture is not
-  //     // currently in the cache, a request for this texture will be
-  //     // generated so that it is available at some point in the
-  //     // future. will be generated if necessary. Note that this
-  //     // happens outside the m_gl_mutex to avoid deadlock.
-  //     GLuint texture_id;// = m_gl_texture_cache->get_texture_id(m_bboxes[i], lod);
-
-  //     if (texture_id) {
-  //       glUseProgram(m_glsl_program);
-
-  //       // Enable texturing and bind the texture ID
-  //       glEnable( GL_TEXTURE_2D );
-  //       glBindTexture( GL_TEXTURE_2D, texture_id );
-        
-  //       // Set up bilinear or nearest neighbor filtering.
-  //       if (m_bilinear_filter) {
-  //         // When the texture area is small, bilinear filter the closest mipmap
-  //         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
-  //         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-  //       } else {
-  //         // When the texture area is small, pick the nearest neighbor in the closest mipmap
-  //         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-  //         glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
-  //       }
-
-  //       // Draw the texture onto a quad.
-  //       qglColor(Qt::white);
-  //       glBegin(GL_QUADS);
-  //       glTexCoord2d( 0.0 , 0.0); 
-  //       glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].min().y()) );
-  //       glTexCoord2d( 0.0 , 1 ); 
-  //       glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].max().y()) );
-  //       glTexCoord2d( 1.0 , 1.0 );
-  //       glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].max().y()) );
-  //       glTexCoord2d( 1.0 , 0.0 ); 
-  //       glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].min().y()) );
-  //       glEnd();
-
-  //       // Clean up
-  //       glDisable( GL_TEXTURE_2D );
-  //       glUseProgram(0);
- 
-  //    } else {
-  //       // If no texture is (yet) available, we draw a dark gray quad.
-  //       glBegin(GL_QUADS);
-  //       glColor3f(0.1,0.1,0.1);
-  //       glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].min().y()) );
-  //       glColor3f(0.1,0.1,0.1);
-  //       glVertex2d( m_bboxes[i].min().x() , -(m_bboxes[i].max().y()) );
-  //       glColor3f(0.1,0.1,0.1);
-  //       glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].max().y()) );
-  //       glColor3f(0.1,0.1,0.1);
-  //       glVertex2d( m_bboxes[i].max().x() , -(m_bboxes[i].min().y()) );
-  //       glEnd();
-  //     }
-  //   }
-  // }
-
-  // // Draw crosshairs
-  // glLineWidth(1.0);
-  // for (unsigned i = 0; i < m_crosshairs.size(); ++i) {
-  //   Vector3 color = m_crosshairs[i].color();
-  //   glColor3f(color[0], color[1], color[2]);
-  //   glBegin(GL_LINES);
-  //   std::list<Vector2>::const_iterator iter = m_crosshairs[i].points().begin();
-  //   while (iter != m_crosshairs[i].points().end() ) {
-  //     Vector2 point = *iter;
-  //     glVertex2d( point[0]-3 , -point[1]);
-  //     glVertex2d( point[0]+3 , -point[1]);
-  //     glVertex2d( point[0], -point[1]-3);
-  //     glVertex2d( point[0], -point[1]+3);
-  //     ++iter;
-  //   }
-  //   glEnd();
-  // }    
+  //  std::cout << "\n";
 
   // Restore the previous OpenGL state so that we don't trample on the
   // QPainter elements of the window.

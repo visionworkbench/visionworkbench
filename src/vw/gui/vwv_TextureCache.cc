@@ -183,34 +183,56 @@ GlTextureCache::~GlTextureCache() {
   delete m_gl_texture_cache_ptr;
 }
 
-GLuint GlTextureCache::get_texture_id(vw::BBox2i bbox, int lod) {    
-  boost::shared_ptr<TextureRecord> record = this->get_record(bbox, lod);
+GLuint GlTextureCache::get_texture_id(TileLocator const& tile_info) {    
+
+  DummyTileGenerator gen(256);
+  ImageView<PixelRGBA<float> > tile = gen.generate_tile(tile_info);
+
+  GLuint texture_id;
+  glEnable( GL_TEXTURE_2D );
+  glGenTextures(1, &(texture_id) );
+  glBindTexture(GL_TEXTURE_2D, texture_id);
+  glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); 
+  GLuint texture_pixel_type = GL_RGBA32F_ARB;
+  GLuint source_pixel_type = GL_RGBA;
+  GLuint source_channel_type = GL_FLOAT;
+  glTexImage2D(GL_TEXTURE_2D, 0, texture_pixel_type, 
+               block.cols(), block.rows(), 0, 
+               source_pixel_type, source_channel_type, block.data() );  
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glDisable( GL_TEXTURE_2D );
+  return texture_id;
+
+  // boost::shared_ptr<TextureRecord> record = this->get_record(bbox, lod);
   
-  // If the cache handle is invalid, we push the texture request
-  // onto the stack.  The TextureFetchThread will regenerate this
-  // texture and then send a message to the requestor to tell it to
-  // retry drawing the screen.
-  if ( record->texture_id == 0 ) {
-    vw::vw_out(vw::VerboseDebugMessage, "vwv") << "GlTextureCache::get_texture_id() "
-                                               << "missed bbox " 
-                                               << bbox << " @ lod " << lod << ".  Generating.\n";
-    vw::Mutex::Lock lock(m_outgoing_requests_mutex);
+  // // If the cache handle is invalid, we push the texture request
+  // // onto the stack.  The TextureFetchThread will regenerate this
+  // // texture and then send a message to the requestor to tell it to
+  // // retry drawing the screen.
+  // if ( record->texture_id == 0 ) {
+  //   vw::vw_out(vw::VerboseDebugMessage, "vwv") << "GlTextureCache::get_texture_id() "
+  //                                              << "missed bbox " 
+  //                                              << bbox << " @ lod " << lod << ".  Generating.\n";
+  //   vw::Mutex::Lock lock(m_outgoing_requests_mutex);
 
-    // We purge the outgoing request queue whenever there is a change
-    // in LOD so that we can immediately begin serving tiles at the
-    // new level of detail.
-    if (lod != m_previous_lod) {
-      m_outgoing_requests.clear();
-      m_previous_lod = lod;
-    }
+  //   // We purge the outgoing request queue whenever there is a change
+  //   // in LOD so that we can immediately begin serving tiles at the
+  //   // new level of detail.
+  //   if (lod != m_previous_lod) {
+  //     m_outgoing_requests.clear();
+  //     m_previous_lod = lod;
+  //   }
 
-    m_outgoing_requests.push_back( record );
-    return 0; 
-  } else {
-    vw::vw_out(vw::DebugMessage, "vwv") << "GlTextureCache::get_texture_id() found tile " 
-                                        << bbox << " @ lod " << lod << ". [texture_id = " 
-                                        << record->texture_id << "]\n";
-    return record->texture_id;
-  }
+  //   m_outgoing_requests.push_back( record );
+  //   return 0; 
+  // } else {
+  //   vw::vw_out(vw::DebugMessage, "vwv") << "GlTextureCache::get_texture_id() found tile " 
+  //                                       << bbox << " @ lod " << lod << ". [texture_id = " 
+  //                                       << record->texture_id << "]\n";
+  //   return record->texture_id;
+  // }
 }
 

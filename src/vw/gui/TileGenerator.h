@@ -70,6 +70,56 @@ namespace gui {
     return results;
   }
 
+  // --------------------------------------------------------------------------
+  //                              TILE GENERATOR
+  // --------------------------------------------------------------------------
+  class TileGenerator {
+  public:
+    virtual ~TileGenerator() {}
+    virtual ImageView<PixelRGBA<float> > generate_tile(TileLocator const& tile_info) = 0;
+
+    static boost::shared_ptr<TileGenerator> create(std::string filename) {
+      // If ends in .plate, then assume platefile.
+      
+      // Otherwise, assume an image.
+    }
+  };
+
+  class DummyTileGenerator {
+    int m_tile_size;
+
+  public:
+    DummyTileGenerator(int tile_size) : m_tile_size(tile_size) {}
+    virtual ~DummyTileGenerator() {}
+
+    virtual ImageView<PixelRGBA<float> > generate_tile(TileLocator const& tile_info) { 
+      ImageView<PixelRGBA<float> > tile(m_tile_size, m_tile_size);
+      for (unsigned j = 0; j < m_tile_size; ++j){
+        for (unsigned i = 0; i < m_tile_size; ++i){
+          if (abs(i - j) < 10)
+            tile(i,j) = PixelRGBA<float>(1.0,0.0,0.0,1.0);
+          else 
+            tile(i,j) = PixelRGBA<float>(0.0,0.0,0.0,1.0);
+        }
+      }
+      return tile;
+    }
+  };
+
+  // class PlatefileTileGenerator {
+  //   boost::shared_ptr<PlateFile> m_platefile;
+
+  // public:
+  //   PlatefileTileGenerator(std::string platefile_name) :
+  //     m_platefile(new PlateFile(platefile_name) {}
+  //   virtual ~PlatefileTileGenerator() {}
+
+  //   virtual ImageView<PixelRGBA<float> > generate_tile(TileLocator const& index) { 
+
+  //   }
+  // };
+
+
 }} // namespace vw::gui
 
 #endif // __VW_GUI_TILEGENERATOR_H__
