@@ -27,9 +27,12 @@ namespace gui {
     }
   };
 
-  BBox2i tile_to_bbox(int32 tile_size, int col, int row, int level, int max_level);
+  // Given a tile index, return the bounding box of that tile coverage
+  // in the bottom (i.e. highest resolution) level of the source image
+  // pyramid.
+  BBox2i tile_to_bbox(Vector2i tile_size, int col, int row, int level, int max_level);
   
-  std::list<TileLocator> bbox_to_tiles(int32 tile_size, BBox2i bbox, int level, int max_level);
+  std::list<TileLocator> bbox_to_tiles(Vector2i tile_size, BBox2i bbox, int level, int max_level);
 
   // --------------------------------------------------------------------------
   //                              TILE GENERATOR
@@ -44,7 +47,8 @@ namespace gui {
     virtual int rows() const = 0;
     virtual PixelFormatEnum pixel_format() const = 0;
     virtual ChannelTypeEnum channel_type() const = 0;
-    virtual int tile_size() const = 0;
+    virtual Vector2i tile_size() const = 0;
+    virtual int32 num_levels() const = 0;
     
     // Use this method to generate the correct type of TileGenerator
     // for a given filename.
@@ -68,7 +72,8 @@ namespace gui {
     virtual int rows() const;
     virtual PixelFormatEnum pixel_format() const;
     virtual ChannelTypeEnum channel_type() const;
-    virtual int tile_size() const;
+    virtual Vector2i tile_size() const;
+    virtual int32 num_levels() const;
   };
 
   // --------------------------------------------------------------------------
@@ -88,7 +93,8 @@ namespace gui {
     virtual int rows() const;
     virtual PixelFormatEnum pixel_format() const;
     virtual ChannelTypeEnum channel_type() const;
-    virtual int tile_size() const;
+    virtual Vector2i tile_size() const;
+    virtual int32 num_levels() const;
   };
 
   // --------------------------------------------------------------------------
@@ -97,9 +103,10 @@ namespace gui {
 
   class ImageTileGenerator : public TileGenerator {
     std::string m_filename;
+    boost::shared_ptr<DiskImageResource> m_rsrc;
 
   public:
-    ImageTileGenerator(std::string filename) : m_filename(filename) {}
+    ImageTileGenerator(std::string filename);
     virtual ~ImageTileGenerator() {}
 
     virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
@@ -108,7 +115,8 @@ namespace gui {
     virtual int rows() const;
     virtual PixelFormatEnum pixel_format() const;
     virtual ChannelTypeEnum channel_type() const;
-    virtual int tile_size() const;
+    virtual Vector2i tile_size() const;
+    virtual int32 num_levels() const;
   };
 
 

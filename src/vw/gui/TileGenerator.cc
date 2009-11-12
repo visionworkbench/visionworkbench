@@ -5,6 +5,8 @@
 // __END_LICENSE__
 
 #include <vw/gui/TileGenerator.h>
+#include <vw/image/ViewImageResource.h>
+#include <vw/image/ImageResourceView.h>
 using namespace vw;
 using namespace vw::gui;
 
@@ -15,17 +17,16 @@ namespace fs = boost::filesystem;
 //                                Utility Functions
 // --------------------------------------------------------------------------------
 
-BBox2i vw::gui::tile_to_bbox(int32 tile_size, int col, int row, int level, int max_level) {
+BBox2i vw::gui::tile_to_bbox(Vector2i tile_size, int col, int row, int level, int max_level) {
   if (col < 0 || row < 0 || col >= pow(2, max_level) || row >= pow(2, max_level) ) {
     return BBox2i();
   } else {
-    BBox2i result(tile_size*col, tile_size*row, tile_size, tile_size);
+    BBox2i result(tile_size[0]*col, tile_size[1]*row, tile_size[0], tile_size[1]);
     return result * pow(2,max_level - level);
   }
 }
   
-std::list<TileLocator> vw::gui::bbox_to_tiles(int32 tile_size, BBox2i bbox, int level, int max_level) {
-
+std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, int level, int max_level) {
   std::list<TileLocator> results;
 
   // Compute the bounding box at the current level.
@@ -33,20 +34,21 @@ std::list<TileLocator> vw::gui::bbox_to_tiles(int32 tile_size, BBox2i bbox, int 
 
   // Grow that bounding box to align with tile boundaries
   BBox2i aligned_level_bbox = level_bbox;
-  aligned_level_bbox.min() = ( (level_bbox.min() / tile_size) * tile_size );
-  aligned_level_bbox.max().x() = ( int(ceilf( float(level_bbox.max().x()) / tile_size ))
-                                   * tile_size );
-  aligned_level_bbox.max().y() = ( int(ceilf( float(level_bbox.max().y()) / tile_size ))
-                                   * tile_size );
+  aligned_level_bbox.min().x() = ( (level_bbox.min().x() / tile_size[0]) * tile_size[0] );
+  aligned_level_bbox.min().y() = ( (level_bbox.min().y() / tile_size[1]) * tile_size[1] );
+  aligned_level_bbox.max().x() = ( int(ceilf( float(level_bbox.max().x()) / tile_size[0] ))
+                                   * tile_size[0] );
+  aligned_level_bbox.max().y() = ( int(ceilf( float(level_bbox.max().y()) / tile_size[1] ))
+                                   * tile_size[1] );
 
-  int tile_y = aligned_level_bbox.min().y() / tile_size;
+  int tile_y = aligned_level_bbox.min().y() / tile_size[1];
   int dest_row = 0;
-  while ( tile_y < aligned_level_bbox.max().y() / tile_size ) {
+  while ( tile_y < aligned_level_bbox.max().y() / tile_size[1] ) {
       
-    int tile_x = aligned_level_bbox.min().x() / tile_size;
+    int tile_x = aligned_level_bbox.min().x() / tile_size[0];
     int dest_col = 0;
-    while ( tile_x < aligned_level_bbox.max().x() / tile_size ) {
-      BBox2i tile_bbox(dest_col, dest_row, tile_size, tile_size);
+    while ( tile_x < aligned_level_bbox.max().x() / tile_size[0] ) {
+      BBox2i tile_bbox(dest_col, dest_row, tile_size[0], tile_size[1]);
       TileLocator loc;
       loc.col = tile_x;
       loc.row = tile_y;
@@ -54,10 +56,10 @@ std::list<TileLocator> vw::gui::bbox_to_tiles(int32 tile_size, BBox2i bbox, int 
       results.push_back(loc);
         
       ++tile_x;
-      dest_col += tile_size;
+      dest_col += tile_size[0];
     }
     ++tile_y;
-    dest_row += tile_size;
+    dest_row += tile_size[1];
   }
   return results;
 }
@@ -82,7 +84,6 @@ boost::shared_ptr<TileGenerator> TileGenerator::create(std::string filename) {
     
   // Otherwise, assume an image.
   } else {
-    vw_out(0) << "\t--> Loading image: " << filename << ".\n";
     return boost::shared_ptr<TileGenerator>( new ImageTileGenerator(filename) );
   }
 }
@@ -110,7 +111,12 @@ int TestPatternTileGenerator::cols() const { return 2048; }
 int TestPatternTileGenerator::rows() const { return 2048; }
 PixelFormatEnum TestPatternTileGenerator::pixel_format() const { return VW_PIXEL_RGBA; }
 ChannelTypeEnum TestPatternTileGenerator::channel_type() const { return VW_CHANNEL_FLOAT32; }
-int TestPatternTileGenerator::tile_size() const { return m_tile_size; }
+Vector2i TestPatternTileGenerator::tile_size() const { 
+  return Vector2i(m_tile_size, m_tile_size); 
+}
+int32 TestPatternTileGenerator::num_levels() const {
+  return 4;
+}
 
 // --------------------------------------------------------------------------
 //                         PLATE FILE TILE GENERATOR
@@ -123,26 +129,183 @@ PlatefileTileGenerator::PlatefileTileGenerator(std::string platefile_name) :
 }
 
 boost::shared_ptr<ViewImageResource> PlatefileTileGenerator::generate_tile(TileLocator const& tile_info) {
+
+  std::cout << "Request to generate platefile tile " << tile_info.col << " " << tile_info.row << " @ " << tile_info.level << "\n";
   
+  try {
+    switch (this->pixel_format()) {
+    case VW_PIXEL_GRAY:
+    case VW_PIXEL_GRAYA:
+      if (this->channel_type() == VW_CHANNEL_UINT8) {
+        ImageView<PixelGrayA<uint8> > tile;
+        m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
+        return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
+      } if (this->channel_type() == VW_CHANNEL_INT16) {
+        ImageView<PixelGrayA<int16> > tile;
+        m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
+        return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
+      } if (this->channel_type() == VW_CHANNEL_UINT16) {
+        ImageView<PixelGrayA<uint16> > tile;
+        m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
+        return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
+      } if (this->channel_type() == VW_CHANNEL_FLOAT32) {
+        ImageView<PixelGrayA<float> > tile;
+        m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
+        return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
+      } else {
+        std::cout << "This platefile has a channel type that is not yet support by vwv.\n";
+        std::cout << "Exiting...\n\n";
+        exit(0);
+      }
+      
+      break;
+      
+    case VW_PIXEL_RGB:
+    case VW_PIXEL_RGBA:
+      if (this->channel_type() == VW_CHANNEL_UINT8) {
+        ImageView<PixelRGBA<uint8> > tile;
+        m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
+        return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
+      } if (this->channel_type() == VW_CHANNEL_FLOAT32) {
+        ImageView<PixelRGBA<float> > tile;
+        m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
+        return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
+      } else {
+        std::cout << "This platefile has a channel type that is not yet support by vwv.\n";
+        std::cout << "Exiting...\n\n";
+        exit(0);
+      }
+      
+      break;
+      
+    default:
+      std::cout << "This platefile has a pixel format that is not yet support by vwv.\n";
+      std::cout << "Exiting...\n\n";
+      exit(0);
+    }
+
+  } catch (platefile::TileNotFoundErr &e) {
+    ImageView<PixelGrayA<uint8> > blank_tile(1,1);
+    return boost::shared_ptr<ViewImageResource>( new ViewImageResource(blank_tile) );    
+  }
+  
+  vw_throw(NoImplErr() << "Unsupported pixel format or channel type in TileGenerator.\n");
+}
+
+int PlatefileTileGenerator::cols() const {
+  return this->tile_size()[0] * pow(2, m_platefile->depth());
+}
+
+int PlatefileTileGenerator::rows() const {
+  return this->tile_size()[1] * pow(2, m_platefile->depth());
+}
+
+PixelFormatEnum PlatefileTileGenerator::pixel_format() const {
+  return m_platefile->pixel_format();
+}
+
+ChannelTypeEnum PlatefileTileGenerator::channel_type() const {
+  return m_platefile->channel_type();
+}
+
+Vector2i PlatefileTileGenerator::tile_size() const {
+  return Vector2i(m_platefile->default_tile_size(),
+                  m_platefile->default_tile_size());
+}
+
+int32 PlatefileTileGenerator::num_levels() const {
+  return m_platefile->depth();
+}
+
+
+// --------------------------------------------------------------------------
+//                             IMAGE TILE GENERATOR
+// --------------------------------------------------------------------------
+
+ImageTileGenerator::ImageTileGenerator(std::string filename) : 
+  m_filename(filename), m_rsrc( DiskImageResource::open(filename) ) {
+  vw_out(0) << "\t--> Loading image: " << filename << ".\n";
+}
+
+
+// This little template makes the code below much cleaner.
+template <class PixelT>
+boost::shared_ptr<ViewImageResource> do_image_tilegen(boost::shared_ptr<ImageResource> rsrc,
+                                                      BBox2i tile_bbox, 
+                                                      int level, int max_levels) {
+  ImageView<PixelT> tile(tile_bbox.width(), tile_bbox.height());
+  rsrc->read(tile.buffer(), tile_bbox);
+  ImageView<PixelT> reduced_tile = subsample(tile, pow(2,max_levels - level));
+  return boost::shared_ptr<ViewImageResource>( new ViewImageResource(reduced_tile) );
+}
+
+boost::shared_ptr<ViewImageResource> ImageTileGenerator::generate_tile(TileLocator const& tile_info) {
+  
+  // Compute the bounding box of the image and the tile that is being
+  // requested.  The bounding box of the tile depends on the pyramid
+  // level we are looking at.
+  BBox2i image_bbox(0,0,m_rsrc->cols(),m_rsrc->rows());
+  BBox2i tile_bbox = tile_to_bbox(this->tile_size(), tile_info.col, 
+                                  tile_info.row, tile_info.level, this->num_levels());
+
+  // Check to make sure the image intersects the bounding box.  Print
+  // an error to screen and return an empty tile if it does not.
+  if (!image_bbox.intersects(tile_bbox)) {
+    vw_out() << "WARNING in ImageTileGenerator: a tile was requested that doesn't exist.";
+    ImageView<PixelGray<uint8> > blank_tile(this->tile_size()[0], this->tile_size()[1]);
+    return boost::shared_ptr<ViewImageResource>( new ViewImageResource(blank_tile) );
+  }
+
+  // Make sure we don't access any pixels outside the image boundary
+  // by cropping the tile to the image dimensions.
+  tile_bbox.crop(image_bbox);
+
   switch (this->pixel_format()) {
   case VW_PIXEL_GRAY:
+    if (this->channel_type() == VW_CHANNEL_UINT8) {
+      return do_image_tilegen<PixelGray<uint8> >(m_rsrc, tile_bbox, 
+                                                 tile_info.level, this->num_levels());
+    } else if (this->channel_type() == VW_CHANNEL_INT16) {
+      return do_image_tilegen<PixelGray<int16> >(m_rsrc, tile_bbox, 
+                                                 tile_info.level, this->num_levels());
+    } else if (this->channel_type() == VW_CHANNEL_UINT16) {
+      return do_image_tilegen<PixelGray<uint16> >(m_rsrc, tile_bbox, 
+                                                  tile_info.level, this->num_levels());
+    } else if (this->channel_type() == VW_CHANNEL_FLOAT32) {
+      return do_image_tilegen<PixelGray<float> >(m_rsrc, tile_bbox, 
+                                                  tile_info.level, this->num_levels());
+    } else {
+      std::cout << "This platefile has a channel type that is not yet support by vwv.\n";
+      std::cout << "Exiting...\n\n";
+      exit(0);
+  }    
+  break;
+
   case VW_PIXEL_GRAYA:
     if (this->channel_type() == VW_CHANNEL_UINT8) {
-      ImageView<PixelGrayA<uint8> > tile;
-      m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
-      return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
-    } if (this->channel_type() == VW_CHANNEL_INT16) {
-      ImageView<PixelGrayA<int16> > tile;
-      m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
-      return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
-    } if (this->channel_type() == VW_CHANNEL_UINT16) {
-      ImageView<PixelGrayA<uint16> > tile;
-      m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
-      return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
-    } if (this->channel_type() == VW_CHANNEL_FLOAT32) {
-      ImageView<PixelGrayA<float> > tile;
-      m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
-      return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
+      return do_image_tilegen<PixelGrayA<uint8> >(m_rsrc, tile_bbox, 
+                                                  tile_info.level, this->num_levels());
+    } else if (this->channel_type() == VW_CHANNEL_INT16) {
+      return do_image_tilegen<PixelGrayA<int16> >(m_rsrc, tile_bbox, 
+                                                  tile_info.level, this->num_levels());
+    } else if (this->channel_type() == VW_CHANNEL_UINT16) {
+      return do_image_tilegen<PixelGrayA<uint16> >(m_rsrc, tile_bbox, 
+                                                   tile_info.level, this->num_levels());
+    } else if (this->channel_type() == VW_CHANNEL_FLOAT32) {
+      return do_image_tilegen<PixelGrayA<float> >(m_rsrc, tile_bbox, 
+                                                  tile_info.level, this->num_levels());
+    } else {
+      std::cout << "This platefile has a channel type that is not yet support by vwv.\n";
+      std::cout << "Exiting...\n\n";
+      exit(0);
+      }
+      
+    break;
+
+  case VW_PIXEL_RGB:
+    if (this->channel_type() == VW_CHANNEL_UINT8) {
+      return do_image_tilegen<PixelRGB<uint8> >(m_rsrc, tile_bbox, 
+                                                tile_info.level, this->num_levels());
     } else {
       std::cout << "This platefile has a channel type that is not yet support by vwv.\n";
       std::cout << "Exiting...\n\n";
@@ -151,16 +314,10 @@ boost::shared_ptr<ViewImageResource> PlatefileTileGenerator::generate_tile(TileL
       
     break;
 
-  case VW_PIXEL_RGB:
   case VW_PIXEL_RGBA:
     if (this->channel_type() == VW_CHANNEL_UINT8) {
-      ImageView<PixelRGBA<uint8> > tile;
-      m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
-      return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
-    } if (this->channel_type() == VW_CHANNEL_FLOAT32) {
-      ImageView<PixelRGBA<float> > tile;
-      m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
-      return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
+      return do_image_tilegen<PixelRGBA<uint8> >(m_rsrc, tile_bbox, 
+                                                 tile_info.level, this->num_levels());
     } else {
       std::cout << "This platefile has a channel type that is not yet support by vwv.\n";
       std::cout << "Exiting...\n\n";
@@ -175,53 +332,32 @@ boost::shared_ptr<ViewImageResource> PlatefileTileGenerator::generate_tile(TileL
     exit(0);
   }
   
-  vw_throw(NoImplErr() << "Unsupported pixel format or channel type in TileGenerator.\n");
-}
-
-int PlatefileTileGenerator::cols() const {
-  return this->tile_size() * pow(2, m_platefile->depth());
-}
-
-int PlatefileTileGenerator::rows() const {
-  return this->tile_size() * pow(2, m_platefile->depth());
-}
-
-PixelFormatEnum PlatefileTileGenerator::pixel_format() const {
-  return m_platefile->pixel_format();
-}
-
-ChannelTypeEnum PlatefileTileGenerator::channel_type() const {
-  return m_platefile->channel_type();
-}
-
-int PlatefileTileGenerator::tile_size() const {
-  return m_platefile->default_tile_size();
-}
-
-
-// --------------------------------------------------------------------------
-//                             IMAGE TILE GENERATOR
-// --------------------------------------------------------------------------
-
-boost::shared_ptr<ViewImageResource> ImageTileGenerator::generate_tile(TileLocator const& tile_info) {
+  vw_throw(NoImplErr() << "Unsupported pixel format or channel type in TileGenerator.\n");  
 
 }
 
 int ImageTileGenerator::cols() const {
+  return m_rsrc->cols();
 }
 
 int ImageTileGenerator::rows() const {
-
+  return m_rsrc->rows();
 }
 
 PixelFormatEnum ImageTileGenerator::pixel_format() const {
-
+  return m_rsrc->pixel_format();
 }
 
 ChannelTypeEnum ImageTileGenerator::channel_type() const {
-
+  return m_rsrc->channel_type();
 }
 
-int ImageTileGenerator::tile_size() const {
+Vector2i ImageTileGenerator::tile_size() const {
+  return m_rsrc->block_size();
+}
 
+int32 ImageTileGenerator::num_levels() const {
+  int32 max_dimension = std::max(this->cols(), this->rows());
+  int32 max_tilesize = std::max(this->tile_size()[0], this->tile_size()[1]);
+  return ceil(log(float(max_dimension) / max_tilesize) / log(2));
 }

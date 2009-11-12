@@ -74,53 +74,7 @@ namespace gui {
     public:
 
     // Constructors/Destructor
-    GlPreviewWidget(QWidget *parent, std::string filename, QGLFormat const& frmt) : 
-      QGLWidget(frmt, parent) {
-      
-      // Verify that our OpenGL formatting options stuck
-      if (!QGLFormat::hasOpenGL()) {
-        vw::vw_out(0) << "This system has no OpenGL support.\nExiting\n\n";
-        exit(1);
-      }
-      if (!format().sampleBuffers())
-        std::cout << "\n\nCould not activate FSAA; results will be suboptimal\n\n";
-      if (!format().doubleBuffer())
-        std::cout << "\n\nCould not set double buffering; results will be suboptimal\n\n";
-
-      // Set default values
-      m_nodata_value = 0;
-      m_use_nodata = 0;
-      m_image_min = 0;
-      m_image_max = 1.0;
-
-      // Set some reasonable defaults
-      m_draw_texture = true;
-      m_show_legend = false;
-      m_bilinear_filter = true;
-      m_use_colormap = false;
-      m_adjust_mode = TransformAdjustment;
-      m_display_channel = DisplayRGBA;
-      m_colorize_display = false;
-      m_hillshade_display = false;
-  
-      // Set up shader parameters
-      m_gain = 1.0;
-      m_offset = 0.0;
-      m_gamma = 1.0;
-  
-      // Set mouse tracking
-      this->setMouseTracking(true);
-      
-      // Set the size policy that the widget can grow or shrink and still
-      // be useful.
-      this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-      this->setFocusPolicy(Qt::ClickFocus);
-
-      m_tile_generator = TileGenerator::create(filename);
-      m_gl_texture_cache.reset( new GlTextureCache(m_tile_generator) );
-      size_to_fit();
-    }
-
+    GlPreviewWidget(QWidget *parent, std::string filename, QGLFormat const& frmt);
     virtual ~GlPreviewWidget();
 
     virtual GLuint allocate_texture(boost::shared_ptr<ViewImageResource> tile);

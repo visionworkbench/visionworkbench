@@ -136,6 +136,54 @@ void check_gl_errors( void )
 //               GlPreviewWidget Public Methods
 // --------------------------------------------------------------
 
+GlPreviewWidget::GlPreviewWidget(QWidget *parent, std::string filename, QGLFormat const& frmt) : 
+  QGLWidget(frmt, parent) {
+  
+  // Verify that our OpenGL formatting options stuck
+  if (!QGLFormat::hasOpenGL()) {
+    vw::vw_out(0) << "This system has no OpenGL support.\nExiting\n\n";
+    exit(1);
+  }
+  if (!format().sampleBuffers())
+    std::cout << "\n\nCould not activate FSAA; results will be suboptimal\n\n";
+  if (!format().doubleBuffer())
+    std::cout << "\n\nCould not set double buffering; results will be suboptimal\n\n";
+  
+  // Set default values
+  m_nodata_value = 0;
+  m_use_nodata = 0;
+  m_image_min = 0;
+  m_image_max = 1.0;
+
+  // Set some reasonable defaults
+  m_draw_texture = true;
+  m_show_legend = false;
+  m_bilinear_filter = true;
+  m_use_colormap = false;
+  m_adjust_mode = TransformAdjustment;
+  m_display_channel = DisplayRGBA;
+  m_colorize_display = false;
+  m_hillshade_display = false;
+  
+  // Set up shader parameters
+  m_gain = 1.0;
+  m_offset = 0.0;
+  m_gamma = 1.0;
+  
+  // Set mouse tracking
+  this->setMouseTracking(true);
+      
+  // Set the size policy that the widget can grow or shrink and still
+  // be useful.
+  this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+  this->setFocusPolicy(Qt::ClickFocus);
+
+  m_tile_generator = TileGenerator::create(filename);
+  m_gl_texture_cache.reset( new GlTextureCache(m_tile_generator) );
+  size_to_fit();
+}
+
+
 GlPreviewWidget::~GlPreviewWidget() {
   m_gl_texture_cache.reset();
 }
@@ -365,17 +413,21 @@ void GlPreviewWidget::drawImage() {
   // Compute the current level of detail (limit to a minimum tile
   // level of 0 and maximum size that depends on how many tiles the
   // file contains.)
-  int TILE_SIZE = 256;
-  int MAX_LEVEL = log(2048 / TILE_SIZE) / log(2);
-  int level = MAX_LEVEL - log(float(m_current_viewport.width()) / m_viewport_width) / log(2.0);
-  if (level < 0) level = 0;
-  if (level > MAX_LEVEL) level = MAX_LEVEL;
+  Vector2i tile_size = m_tile_generator->tile_size();
+  BBox2i image_bbox(0,0,m_tile_generator->cols(),m_tile_generator->rows());
 
-  std::list<TileLocator> tiles = bbox_to_tiles(TILE_SIZE, m_current_viewport, level, MAX_LEVEL);
+  int max_level = m_tile_generator->num_levels();
+  int level = max_level - log(float(m_current_viewport.width()) / m_viewport_width) / log(2.0)+1;
+  if (level < 0) level = 0;
+  if (level > max_level) level = max_level;
+
+  std::list<TileLocator> tiles = bbox_to_tiles(tile_size, m_current_viewport, level, max_level);
   std::list<TileLocator>::iterator tile_iter = tiles.begin();
+
   while (tile_iter != tiles.end()) {
-    BBox2i texture_bbox = tile_to_bbox(TILE_SIZE, tile_iter->col, tile_iter->row, tile_iter->level, MAX_LEVEL);
-    if (tile_iter->is_valid()) {
+    BBox2i texture_bbox = tile_to_bbox(tile_size, tile_iter->col, tile_iter->row, tile_iter->level, max_level);
+    texture_bbox.crop(image_bbox);
+    if (tile_iter->is_valid() && image_bbox.width() > 0 && image_bbox.height() > 0) {
 
       // Fetch the texture out of the cache.  If the texture is not
       // currently in the cache, a request for this texture will be
@@ -420,9 +472,9 @@ void GlPreviewWidget::drawImage() {
         glUseProgram(0);
         
       } else {
-        // If no texture is (yet) available, we draw a dark gray quad.
+        // If no texture is (yet) available, we draw a dark blue quad.
         glBegin(GL_QUADS);
-        glColor3f(0.0,0.3,0.0);
+        glColor3f(0.0,0.0,0.1);
         glVertex2d( texture_bbox.min().x() , -(texture_bbox.min().y()) );
         glVertex2d( texture_bbox.min().x() , -(texture_bbox.max().y()) );
         glVertex2d( texture_bbox.max().x() , -(texture_bbox.max().y()) );
@@ -609,15 +661,17 @@ void GlPreviewWidget::mouseMoveEvent(QMouseEvent *event) {
     float x_diff = float(event->x() - lastPos.x()) / m_viewport_width;
     float y_diff = float(event->y() - lastPos.y()) / m_viewport_height;
     float ticks;
+    float width = m_current_viewport.width();
+    float height = m_current_viewport.height();
 
     std::ostringstream s; 
     switch (m_adjust_mode) {
 
     case TransformAdjustment:
-      m_current_viewport.min().x() -= x_diff * m_current_viewport.width();
-      m_current_viewport.min().y() -= y_diff * m_current_viewport.height();
-      m_current_viewport.max().x() -= x_diff * m_current_viewport.width();
-      m_current_viewport.max().y() -= y_diff * m_current_viewport.height();
+      m_current_viewport.min().x() -= x_diff * width;
+      m_current_viewport.min().y() -= y_diff * height;
+      m_current_viewport.max().x() -= x_diff * width;
+      m_current_viewport.max().y() -= y_diff * height;
       break;
 
     case GainAdjustment:

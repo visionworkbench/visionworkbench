@@ -144,7 +144,7 @@ namespace gui {
     }
 
     size_t size() const {
-      int size =  m_tile_generator->tile_size() * m_tile_generator->tile_size();
+      int size =  m_tile_generator->tile_size()[0] * m_tile_generator->tile_size()[1];
       return size;
     }
   
@@ -196,6 +196,11 @@ namespace gui {
     // Constructor/destructor
     GlTextureCache(boost::shared_ptr<TileGenerator> tile_generator);
     ~GlTextureCache();
+
+    // Get a handle on the generator being used to produce tiles.
+    boost::shared_ptr<TileGenerator> tile_generator() const {
+      return m_tile_generator;
+    }
 
     // Fetch a texture from the cache.  This is a non-blocking call that
     // will immediately return the GL texture id of the texture *if it

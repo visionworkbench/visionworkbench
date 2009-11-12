@@ -139,20 +139,20 @@ vw::gui::GlTextureCache::GlTextureCache(boost::shared_ptr<TileGenerator> tile_ge
   m_tile_generator(tile_generator) {
 
   // Create the texture cache
-  int gl_texture_cache_size = 128 * 1024 * 1024; // Use 128-MB of texture cache
+  int gl_texture_cache_size = 128 * 1024 * 1024 * 4; // Use 128-MB of
+                                                     // texture cache
+                                                     // assuming an 8-bit
+                                                     // RGBA image.
   m_gl_texture_cache_ptr = new vw::Cache( gl_texture_cache_size );
 
   // Start the texture fetch thread
-  m_texture_fetch_task.reset(new TextureFetchTask(m_request_mutex, 
-                                                  m_requests));
+  m_texture_fetch_task.reset(new TextureFetchTask(m_request_mutex, m_requests));
   m_texture_fetch_thread = new vw::Thread( m_texture_fetch_task );
 
   // Create the texture record tree for storing cache handles and
   // other useful texture-related metadata.
   m_texture_records.reset( new platefile::TreeNode<boost::shared_ptr<TextureRecord> >() );
   m_previous_level = 0;
-
-  
 }
 
 vw::gui::GlTextureCache::~GlTextureCache() {
