@@ -35,16 +35,17 @@ namespace vw {
     };
     
     boost::shared_ptr<data> m_data;
+    bool m_use_cpu_time;
     
   public:
-    static unsigned long long microtime();
+    static unsigned long long microtime(bool use_cpu_time = false);
     
-    Stopwatch() : m_data(new data()) {}
+    Stopwatch(bool use_cpu_time = false) : m_data(new data()), m_use_cpu_time(use_cpu_time) {}
     
     void start() {
       Mutex::Lock lock(m_data->m_mutex);
       if (!(m_data->m_startdepth++)) {
-        m_data->m_last_start= microtime();
+        m_data->m_last_start= microtime(m_use_cpu_time);
       }
     }
 
@@ -52,7 +53,7 @@ namespace vw {
       Mutex::Lock lock(m_data->m_mutex);
       if (!--(m_data->m_startdepth)) {
         m_data->m_numstops++;
-        m_data->m_total_elapsed += microtime() - m_data->m_last_start;
+        m_data->m_total_elapsed += microtime(m_use_cpu_time) - m_data->m_last_start;
       }
     }
 
@@ -83,7 +84,8 @@ namespace vw {
     std::map<std::string, Stopwatch> m_stopwatches;
 
   public:
-    StopwatchSet() : m_construction_time(Stopwatch::microtime()) {}
+    StopwatchSet() : 
+      m_construction_time(Stopwatch::microtime()) {}
 
     // Find or create stopwatch named "name"
     Stopwatch get(const std::string &name) {
@@ -144,6 +146,11 @@ namespace vw {
       : m_stopwatch(stopwatch_get(name)) {
       m_stopwatch.start();
     }
+    // This must be overloaded to prevent ambiguity
+    ScopedWatch(const char * name)
+      : m_stopwatch(stopwatch_get(name)) {
+      m_stopwatch.start();
+    }
     ~ScopedWatch() {
       m_stopwatch.stop();
     }
@@ -152,7 +159,3 @@ namespace vw {
 } // namespace vw
 
 #endif
-
-
-
-  

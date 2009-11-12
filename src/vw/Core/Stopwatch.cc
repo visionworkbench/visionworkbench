@@ -36,14 +36,23 @@ using std::vector;
 namespace vw {
 
   // Stopwatch
-  unsigned long long Stopwatch::microtime() {
+  unsigned long long Stopwatch::microtime(bool use_cpu_time) {
 #ifdef WIN32
-    return ((long long)GetTickCount() * 1000); 
+    if (use_cpu_time) {
+      // TODO: Find the analogous function for "clock()" for windows
+      throw NoImplError();
+    } else {
+      return ((long long)GetTickCount() * 1000);
+    }
 #else
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    return ((long long) tv.tv_sec * (long long) 1000000 +
-            (long long) tv.tv_usec);
+    if (use_cpu_time) {
+      return ((long long)clock() * 1000000 / CLOCKS_PER_SEC); 
+    } else {
+      struct timeval tv;
+      gettimeofday(&tv, NULL);
+      return ((long long) tv.tv_sec * (long long) 1000000 +
+              (long long) tv.tv_usec);
+    }
 #endif
   }
 
