@@ -92,8 +92,8 @@ namespace mosaic {
       fs::path json_path = change_extension( file_path, ".json" );
 
       json << "{" << std::endl
-           << "  width: " << qtree.get_dimensions()[0] << std::endl
-           << "  height: " << qtree.get_dimensions()[1] << std::endl
+           << "  width: " << qtree.get_dimensions()[0] << "," << std::endl
+           << "  height: " << qtree.get_dimensions()[1] << "," << std::endl
            << "  nlevels: " << qtree.get_tree_levels() << std::endl
            << "}" << std::endl;
 
