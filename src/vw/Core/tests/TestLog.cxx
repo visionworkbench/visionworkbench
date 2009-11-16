@@ -36,14 +36,18 @@ struct TestLogTask {
   TestLogTask(LogInstance &log, std::string ns) : m_terminate(false), m_log(log), m_ns(ns) {}
 
   void operator()() {
-    m_log(0,m_ns) << "Start " << Thread::id() << std::endl;
+    const std::string start("Start " + vw::stringify(Thread::id()) + "\n"),
+                        tick("Tick " + vw::stringify(Thread::id()) + "\n"),
+                        stop("Stop " + vw::stringify(Thread::id()) + "\n");
+
+    m_log(0,m_ns) << start;
 
     while( !m_terminate ) {
       Thread::sleep_ms(100);
-      m_log(0,m_ns) << "Tick " << Thread::id() << std::endl;
+      m_log(0,m_ns) << tick;
     }
 
-    m_log(0,m_ns) << "Stop " << Thread::id() << std::endl;
+    m_log(0,m_ns) << stop;
   }
 
   void kill() { m_terminate = true; }
@@ -109,25 +113,30 @@ TEST(Log, MultiThreadLog) {
 
   LogInstance log(stream, false);
   log.rule_set().add_rule(vw::EveryMessage, "log test");
-  boost::shared_ptr<TestLogTask> task1( new TestLogTask(log,"log test") );
-  boost::shared_ptr<TestLogTask> task2( new TestLogTask(log,"log test") );
-  boost::shared_ptr<TestLogTask> task3( new TestLogTask(log,"log test") );
-  Thread thread1(task1);
-  Thread thread2(task2);
-  Thread thread3(task3);
+
+  typedef boost::shared_ptr<TestLogTask> TheTask;
+  typedef boost::shared_ptr<vw::Thread>  TheThread;
+  std::vector<std::pair<TheTask, TheThread> > threads(100);
+
+  for (size_t i = 0; i < threads.size(); ++i) {
+      TheTask task(   new TestLogTask(log,"log test") );
+    TheThread thread( new Thread(task) );
+    threads[i] = std::make_pair(task, thread);
+  }
 
   Thread::sleep_ms(100);
 
-  task1->kill();
-  task2->kill();
-  task3->kill();
+  for (size_t i = 0; i < threads.size(); ++i) {
+    threads[i].first->kill();
+  }
 
-  thread1.join();
-  thread2.join();
-  thread3.join();
+  for (size_t i = 0; i < threads.size(); ++i) {
+    threads[i].second->join();
+  }
 
   std::istringstream rd;
-  rd.str(stream.str());
+  std::string buf = stream.str();
+  rd.str(buf);
 
   std::string typ;
   int id;
@@ -153,7 +162,7 @@ TEST(Log, MultiThreadLog) {
       FAIL() << "Unknown message [" << typ << "]";
   }
 
-  EXPECT_EQ( 3u, status.size() );
+  EXPECT_EQ( threads.size(), status.size() );
 
   for (Map::const_iterator i = status.begin(), end = status.end(); i != end; ++i) {
     EXPECT_EQ("Stop", i->second) << "Thread " << i->first << " out of order";
