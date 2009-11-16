@@ -31,7 +31,6 @@ public:
     conn.queue_bind(QUEUE, EXCHANGE, ROUTING_KEY);
 
     IndexReadRequest request;
-    request.set_requestor("test");
     request.set_platefile_id(23);
     request.set_secret(48);
 
@@ -53,7 +52,6 @@ public:
     IndexReadRequest response = wire_response.parse_as_message<IndexReadRequest>();
     //    std::cout << "Response: " << response.DebugString() << "\n";
 
-    TS_ASSERT_EQUALS(request.requestor(), response.requestor());
     TS_ASSERT_EQUALS(request.platefile_id(), response.platefile_id());
     TS_ASSERT_EQUALS(request.secret(), response.secret());
     TS_ASSERT_EQUALS(request.col(), response.col());
