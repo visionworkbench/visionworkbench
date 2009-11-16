@@ -74,6 +74,9 @@ m4_undivert(AX_DIVERSION_PROCESS_OPTIONS)
 CFLAGS="$CFLAGS"
 CXXFLAGS="$CXXFLAGS"
 
+# Disable static libraries by default
+AM_DISABLE_STATIC
+
 # Find the tools
 AC_PROG_CC
 AC_PROG_CXX
