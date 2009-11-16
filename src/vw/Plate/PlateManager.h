@@ -155,8 +155,7 @@ namespace platefile {
             m_platefile->write(gray16_tile,0,0,0);
           break;
         default:
-          std::cout << "Platefile contains a channel type not supported by image2plate.\n";
-          exit(0);
+          vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
         }
         break;
       case VW_PIXEL_GRAYA:
@@ -167,8 +166,7 @@ namespace platefile {
             m_platefile->write(graya8_tile,0,0,0);
           break;
         default:
-          std::cout << "Platefile contains a channel type not supported by image2plate.\n";
-          exit(0);
+          vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
         }
         break;
       case VW_PIXEL_RGB:
@@ -181,8 +179,7 @@ namespace platefile {
             m_platefile->write(rgba8_tile,0,0,0);
           break;
         default:
-          std::cout << "Platefile contains a channel type not supported by image2plate.\n";
-          exit(0);
+          vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
         }
         break;
       }

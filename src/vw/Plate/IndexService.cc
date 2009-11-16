@@ -39,9 +39,8 @@ vw::platefile::IndexServiceImpl::IndexServiceImpl(std::string root_directory) :
   std::cout << "Starting Index Service\n";
   std::vector<std::string> platefiles = plate_filenames(root_directory);
   if (platefiles.size() < 1) {
-    std::cout << "Error: could not find any platefiles in the root directory."
-              << "\nExiting.\n\n";
-    exit(1);
+    vw_throw(ArgumentErr() << "Error: could not find any platefiles in the root directory."
+                           << "\nExiting.\n\n");
   }
   
   for (int i = 0 ; i<platefiles.size(); ++i) {

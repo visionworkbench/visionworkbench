@@ -46,39 +46,33 @@ void die_on_amqp_error(amqp_rpc_reply_t x, char const *context) {
     return;
       
   case AMQP_RESPONSE_NONE:
-    vw_out(0) << "AMQP Error: " << context << " -- missing RPC reply type.";
-    exit(1);
-      
+    vw_throw(IOErr() << "AMQP Error: " << context << " -- missing RPC reply type.");
+
   case AMQP_RESPONSE_LIBRARY_EXCEPTION:
-    vw_out(0) << "AMQP Error: " << context << " -- " 
-              << (x.library_errno ? strerror(x.library_errno) : "(end-of-stream)");
-    exit(1);
-      
+    vw_throw(IOErr() << "AMQP Error: " << context << " -- "
+                     << (x.library_errno ? strerror(x.library_errno) : "(end-of-stream)"));
+
   case AMQP_RESPONSE_SERVER_EXCEPTION:
     switch (x.reply.id) {
     case AMQP_CONNECTION_CLOSE_METHOD: {
       amqp_connection_close_t *m = (amqp_connection_close_t *) x.reply.decoded;
-      vw_out(0) << "AMQP Error: " << context << " -- " 
-                << "server connection error " << m->reply_code << ", message: " 
-                << (char *) m->reply_text.bytes;
-      exit(1);
+      vw_throw(IOErr() << "AMQP Error: " << context << " -- "
+                       << "server connection error " << m->reply_code << ", message: "
+                       << (char *) m->reply_text.bytes);
     }
     case AMQP_CHANNEL_CLOSE_METHOD: {
       amqp_channel_close_t *m = (amqp_channel_close_t *) x.reply.decoded;
-      vw_out(0)  << "AMQP Error: " << context << " -- " 
-                 << "server channel error " << m->reply_code << ", message: " 
-                 << (char *) m->reply_text.bytes;
-      exit(1);
+      vw_throw(IOErr()  << "AMQP Error: " << context << " -- "
+                        << "server channel error " << m->reply_code << ", message: "
+                        << (char *) m->reply_text.bytes);
     }
     default:
-      vw_out(0) << "AMQP Error: " << context << " -- " 
-                << "unknown server error, method id " << x.reply.id;
-      exit(1);
+      vw_throw(IOErr() << "AMQP Error: " << context << " -- "
+                       << "unknown server error, method id " << x.reply.id);
     }
     break;
   }
-  vw_out(0) << "AMQP Error: unknown response type.";
-  exit(1);
+  vw_throw(IOErr() << "AMQP Error: unknown response type.");
 }
 
 // --------------------- AmqpConnection State Structure -------------------------
@@ -119,6 +113,8 @@ AmqpConnection::AmqpConnection(std::string const& hostname, int port) {
   // Open a socket and establish an amqp connection
   die_on_error(m_state->sockfd = amqp_open_socket(hostname.c_str(), port), "Opening socket");
   m_state->conn = amqp_new_connection();
+  if (! m_state->conn)
+    vw_throw(IOErr() << "Failed to open an amqp connection");
   amqp_set_sockfd(m_state->conn, m_state->sockfd);
 
   // Login to the Amqp Server

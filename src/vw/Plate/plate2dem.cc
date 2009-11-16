@@ -157,8 +157,7 @@ int main( int argc, char *argv[] ) {
         do_tiles<PixelGray<int16> >(pm.georeference(platefile->depth()));
         break;
       default:
-        std::cout << "Platefile contains a channel type not supported by image2plate.\n";
-        exit(0);
+        vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
       }
       break;
     case VW_PIXEL_GRAYA:
@@ -167,8 +166,7 @@ int main( int argc, char *argv[] ) {
         do_tiles<PixelGrayA<uint8> >(pm.georeference(platefile->depth()));
         break;
       default:
-        std::cout << "Platefile contains a channel type not supported by image2plate.\n";
-        exit(0);
+        vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
       }
       break;
     case VW_PIXEL_RGB:
@@ -179,8 +177,7 @@ int main( int argc, char *argv[] ) {
         do_tiles<PixelRGBA<uint8> >(pm.georeference(platefile->depth()));
         break;
       default:
-        std::cout << "Platefile contains a channel type not supported by image2plate.\n";
-        exit(0);
+        vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
       }
       break;
     }

@@ -89,8 +89,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
                     TerminalProgressCallback(InfoMessage, status_str.str()) );
         break;
       default:
-        std::cout << "Platefile contains a channel type not supported by image2plate.\n";
-        exit(0);
+        vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
       }
       break;
     case VW_PIXEL_RGB:
@@ -103,8 +102,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
                     TerminalProgressCallback(InfoMessage, status_str.str()) );
         break;
       default:
-        std::cout << "Platefile contains a channel type not supported by image2plate.\n";
-        exit(0);
+        vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
       }
       break;
     }
@@ -213,8 +211,7 @@ int main( int argc, char *argv[] ) {
   // Create both platefile managers (we only end up using one... this
   // just makes the code a little more readable.)
   if (output_mode != "toast" && output_mode != "kml") {
-    std::cout << "Unknown mode type passed in using --mode: " << output_mode << ".  Exiting.\n";
-    exit(0);
+    vw_throw(ArgumentErr() << "Unknown mode type passed in using --mode: " << output_mode << ".  Exiting.\n");
   }
 
   try {
