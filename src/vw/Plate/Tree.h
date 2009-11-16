@@ -58,8 +58,6 @@ namespace platefile {
       tile_x %= 2;
       tile_y %= 2;
 
-      int child_id;
-
       // For debugging
       // std::cout << "Adding at " << tile_x << " " << tile_y << "   " 
       //           << col << " " << row << "  " << level << " " << current_level << "\n";
@@ -159,13 +157,11 @@ namespace platefile {
           // If a branch of the tree is found, we dive deeper.
           return m_children[child_id]->search_helper(col, row, level, transaction_id, current_level + 1);
 
-        } else {
-          // If not, we throw an exception.
-          vw_throw(TileNotFoundErr() << "Tile search [" << col << " " << row << " " 
-                   << current_level << "] failed at depth " << current_level << "\n");
-
         }
       }
+      // If not, we throw an exception.
+      vw_throw(TileNotFoundErr() << "Tile search [" << col << " " << row << " " 
+               << current_level << "] failed at depth " << current_level << "\n");
     }
 
     // Recursively call a function with valid [col, row, level] entries.

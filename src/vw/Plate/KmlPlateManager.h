@@ -161,7 +161,7 @@ namespace platefile {
       // And save each tile to the PlateFile
       std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n";
       progress.report_progress(0);
-      for (int i = 0; i < tiles.size(); ++i) {
+      for (size_t i = 0; i < tiles.size(); ++i) {
         m_queue.add_task(boost::shared_ptr<Task>(
           new WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> >(m_platefile, 
                                                                             read_transaction_id,

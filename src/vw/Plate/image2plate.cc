@@ -45,7 +45,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
 
   //------------------------- TILE GENERATION --------------------------------
 
-  for ( int i = 0; i < image_files.size(); ++i ) {
+  for ( unsigned i = 0; i < image_files.size(); ++i ) {
     std::cout << "\t--> Building full-resolution tiles for " << image_files[i] << "\n";
     
     // Load the georef.  If none is found, assume Plate Caree.

@@ -30,14 +30,14 @@ vw::platefile::BlobManager::BlobManager(int64 max_blob_size, int nblobs) :
   
   m_blob_locks.resize(nblobs);
   
-  for (int i=0; i < m_blob_locks.size(); ++i) {
+  for (unsigned i=0; i < m_blob_locks.size(); ++i) {
     m_blob_locks[i] = false;
   }
 
 }
 
 /// Return the number of blobs currently in use.
-int vw::platefile::BlobManager::num_blobs() {
+unsigned vw::platefile::BlobManager::num_blobs() {
   Mutex::Lock lock(m_mutex);
   return m_blob_locks.size();
 }
@@ -67,14 +67,14 @@ int vw::platefile::BlobManager::request_lock(int64 size) {
   
   // Then we lock it, increment the blob index, and return it.
   m_blob_locks[m_blob_index] = true;      
-  int idx = m_blob_index;
+  unsigned idx = m_blob_index;
   next_blob_index();
   return idx;
 }
 
 // Release the blob lock and update its write index (essentially
 // "committing" the write to the blob when you are finished with it.).
-int vw::platefile::BlobManager::release_lock(int blob_id) {
+void vw::platefile::BlobManager::release_lock(int blob_id) {
   Mutex::Lock lock(m_mutex);
   m_blob_locks[blob_id] = false;
   m_blob_release_condition.notify_all();

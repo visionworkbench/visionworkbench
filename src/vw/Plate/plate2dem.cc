@@ -53,7 +53,7 @@ void do_tiles(cartography::GeoReference output_georef) {
   std::vector<BBox2i> crop_bboxes = image_blocks(crop(plate_view, output_bbox), 
                                                  tile_size, tile_size);
   
-  for (int i = 0; i < crop_bboxes.size(); ++i) {
+  for (unsigned i = 0; i < crop_bboxes.size(); ++i) {
     // The crop bboxes start at (0,0), and we want them to start at
     // the upper left corner of the output_bbox.  
     crop_bboxes[i].min() += output_bbox.min();

@@ -30,7 +30,7 @@ namespace platefile {
   class BlobManager {
     vw::int64 m_max_blob_size;
     std::vector<bool> m_blob_locks;
-    int m_blob_index;
+    unsigned m_blob_index;
     vw::Mutex m_mutex;
     vw::Condition m_blob_release_condition;
 
@@ -43,7 +43,7 @@ namespace platefile {
     BlobManager(vw::int64 max_blob_size = 2048, int nblobs = 2);
 
     /// Return the number of blobs currently in use.
-    int num_blobs();
+    unsigned num_blobs();
 
     vw::int64 max_blob_size();
 
@@ -61,7 +61,7 @@ namespace platefile {
 
     // Release the blob lock and update its write index (essentially
     // "committing" the write to the blob when you are finished with it.).
-    int release_lock(int blob_id);
+    void release_lock(int blob_id);
   };
 
 

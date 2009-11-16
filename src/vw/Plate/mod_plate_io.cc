@@ -243,7 +243,7 @@ extern "C" void mod_plate_destroy() {
 }
 
 extern "C" int mod_plate_callback(request_rec *r) {
-  mod_plate().apache_module_callback(r);
+  return mod_plate().apache_module_callback(r);
 }
 
 
