@@ -59,7 +59,8 @@ class PlateModule {
       vw_out(0) << "------------ CREATING REMOTE INDEX ----------------\n";
 
       vw_out(0) << "------------ ISSUING READ REQUEST ----------------\n";
-      idx_record = m_index->read_request(platefile_id, col,row,depth);
+      // Transaction_id = -1, returns the most recent tile available.
+      idx_record = m_index->read_request(platefile_id, col, row, depth, -1);
 
       vw_out(0) << "------------ ISSUING INFO REQUEST ----------------\n";
       plate_filename = m_index->platefile_name(platefile_id);

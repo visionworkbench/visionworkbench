@@ -135,6 +135,9 @@ namespace platefile {
 
     // Search for a node at a given col, row, and level.
     ElementT search_helper(int col, int row, int level, int transaction_id, int current_level) {
+      // For debugging:
+      // std::cout << "Call to search_helper(" << col << " " << row << " " << level << " " 
+      //           << transaction_id << " " << current_level << ")\n";
 
       // If we have reached the requested depth, then we must be at
       // the node we want!  Return the ElementT!
@@ -145,7 +148,7 @@ namespace platefile {
         if ( level == 0 && (col !=0 || row != 0) )
           vw_throw(IndexErr() << "TreeNode: invalid index (" << col << " " << row << ").");
 
-        return this->value();
+        return this->value(transaction_id);
 
       // Otherwise, we go recurse deeper into the tree....
       } else {
@@ -155,8 +158,13 @@ namespace platefile {
         if (m_children[child_id]) {
 
           // If a branch of the tree is found, we dive deeper.
-          return m_children[child_id]->search_helper(col, row, level, transaction_id, current_level + 1);
+          return m_children[child_id]->search_helper(col, row, level, 
+                                                     transaction_id, current_level + 1);
 
+        } else {
+          // If not, we throw an exception.
+          vw_throw(TileNotFoundErr() << "Tile search [" << col << " " << row << " " 
+                   << current_level << "] failed at depth " << current_level << "\n");
         }
       }
       // If not, we throw an exception.
@@ -218,7 +226,7 @@ namespace platefile {
         // If the child we need is not yet created, we create it, add
         // it as our child, and recurse down it.
         if (!m_children[child_id]) {
-          boost::shared_ptr<TreeNode> node( new TreeNode(this, ElementT() ) );
+          boost::shared_ptr<TreeNode> node( new TreeNode(this, ElementT(), transaction_id ) );
           this->set_child(child_id, node);
         }
          
@@ -243,19 +251,20 @@ namespace platefile {
 
     // ------------------------ Public Methods -----------------------------
 
-    /// Use this contructor for the root of the tree....
+    /// Use this constructor for the root of the tree....
     TreeNode() : m_parent(0), m_max_depth(0) {
+      m_records[0] = ElementT();
       m_children.resize(4);
     }
 
     /// ... or use this contructor for the root of the tree.
-    TreeNode(ElementT const& record, int transaction_id = -1) : m_parent(0), m_max_depth(0) {
+    TreeNode(ElementT const& record, int transaction_id) : m_parent(0), m_max_depth(0) {
       m_records[transaction_id] = record;
       m_children.resize(4);
     }
 
     /// Use this contstructor to add record data immediately.
-    TreeNode(TreeNode *parent, ElementT const& record, int transaction_id = -1) :
+    TreeNode(TreeNode *parent, ElementT const& record, int transaction_id) :
       m_parent(parent), m_max_depth(0) {
       m_records[transaction_id] = record;
       m_children.resize(4);
@@ -283,8 +292,8 @@ namespace platefile {
     ElementT value_helper(int transaction_id) { 
       typename record_type::iterator it = m_records.begin();
 
-      // A transaction ID of -1 returns the most recent tile,
-      // regardless.
+      // A transaction ID of -1 indicates that we should return the
+      // most recent tile, regardless of its transaction id.
       if (transaction_id == -1 && it != m_records.end())
         return (*it).second;
 
@@ -298,15 +307,17 @@ namespace platefile {
 
       // If we reach this point, then there are no entries before
       // the given transaction_id, so we return an empty (and invalid) record.
-      return ElementT();
+      vw_throw(TileNotFoundErr() << "Tiles exist at this location, but none before transaction_id=" 
+               << transaction_id << "\n");
+      return ElementT(); // never reached
     }
 
     /// Access the data member of this node.
-    ElementT value(int transaction_id = -1) { 
+    ElementT value(int transaction_id) { 
       return value_helper(transaction_id);
     }
 
-    const ElementT value(int transaction_id = -1) const { 
+    const ElementT value(int transaction_id) const { 
       return value_helper(transaction_id);
     }
 
@@ -314,8 +325,10 @@ namespace platefile {
     int max_depth() const { return m_max_depth; }
 
 
-    // Search for a node at a given col, row, and level.
-    ElementT search(int col, int row, int level, int transaction_id = -1) {
+    // Search for a node at a given col, row, and level.  Note: a
+    // transaction ID of -1 indicates that we should return the
+    // most recent tile, regardless of its transaction id.
+    ElementT search(int col, int row, int level, int transaction_id) {
       return search_helper(col, row, level, transaction_id, 0);
     }
 
@@ -327,7 +340,7 @@ namespace platefile {
     // Insert an ElementT at a given position.  Intermediate nodes
     // in the tree are created (with empty ElementTs) in the tree
     // along the way, as needed.
-    void insert(ElementT const& record, int col, int row, int level, int transaction_id = -1) {
+    void insert(ElementT const& record, int col, int row, int level, int transaction_id) {
       this->insert_helper(record, col, row, level, transaction_id, 0);
       if (level > m_max_depth)
         m_max_depth = level;

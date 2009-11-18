@@ -182,7 +182,8 @@ namespace platefile {
     // recently accessed tiles, since each will be used roughly four
     // times.
     template <class PixelT>
-    void load_tile( vw::ImageView<PixelT> &tile, int32 level, int32 x, int32 y ) {
+    void load_tile( vw::ImageView<PixelT> &tile, int32 level, int32 x, int32 y, 
+                    int read_transaction_id, int write_transaction_id ) {
     
       // First we try to access the indexrecord for this tile.  If that
       // fails, then we must be trying to access a node in the tree that
@@ -191,7 +192,7 @@ namespace platefile {
       tile.reset();
       IndexRecord rec;
       try {
-        rec = m_platefile->read_record(x, y, level);
+        rec = m_platefile->read_record(x, y, level, write_transaction_id);
       } catch (TileNotFoundErr &e) {
         return;
       }
@@ -201,7 +202,7 @@ namespace platefile {
       if (rec.status() == INDEX_RECORD_VALID) {
 
         // CASE 1 : Valid tiles can be returned without any further processing.
-        m_platefile->read(tile, x, y, level);
+        m_platefile->read(tile, x, y, level, write_transaction_id);
         return;
 
       } else if (rec.status() == INDEX_RECORD_EMPTY || 
@@ -218,7 +219,7 @@ namespace platefile {
         for( int j=0; j<2; ++j ) {
           for( int i=0; i<2; ++i ) {
             ImageView<PixelT> child;
-            load_tile(child,level+1,2*x+i,2*y+j);
+            load_tile(child,level+1,2*x+i,2*y+j,read_transaction_id,write_transaction_id);
             if( child ) crop(super,tile_size*i,tile_size*j,tile_size,tile_size) = child; 
           }
         }
@@ -239,7 +240,7 @@ namespace platefile {
           if( ! is_transparent(tile) ) {
             ImageView<PixelT> old_data(tile.cols(), tile.rows());
             try {
-              m_platefile->read(old_data, x, y, level);
+              m_platefile->read(old_data, x, y, level, read_transaction_id);
             } catch (TileNotFoundErr &e) { 
               // Do nothing... we already have a default constructed empty image above! 
             }
@@ -262,7 +263,7 @@ namespace platefile {
         } else {
           std::cout << "\t    [ " << x << " " << y << " @ " << level << " ] -- Creating tile.\n";
           if( ! is_transparent(tile) ) 
-            m_platefile->write(tile, x, y, level);
+            m_platefile->write(tile, x, y, level,write_transaction_id);
         }
       }
 

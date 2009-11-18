@@ -21,6 +21,7 @@ namespace gui {
     int col;
     int row;
     int level;
+    int transaction_id;
 
     bool is_valid() const {
       return (col >= 0 && row >= 0 && col < pow(2, level) && row < pow(2, level));
@@ -32,7 +33,8 @@ namespace gui {
   // pyramid.
   BBox2i tile_to_bbox(Vector2i tile_size, int col, int row, int level, int max_level);
   
-  std::list<TileLocator> bbox_to_tiles(Vector2i tile_size, BBox2i bbox, int level, int max_level);
+  std::list<TileLocator> bbox_to_tiles(Vector2i tile_size, BBox2i bbox, int level, 
+                                       int max_level, int transaction_id);
 
   // --------------------------------------------------------------------------
   //                              TILE GENERATOR

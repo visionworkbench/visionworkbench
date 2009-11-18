@@ -199,7 +199,7 @@ public:
     rec.set_blob_offset(blob.write(dummy_header1, m_test_data, 20));
     idx.write_complete(dummy_header1, rec);
 
-    IndexRecord result = idx.read_request(0, 0, 1);
+    IndexRecord result = idx.read_request(0, 0, 1, -1);
     TS_ASSERT_EQUALS(result.blob_id(), rec.blob_id());
     TS_ASSERT_EQUALS(result.blob_offset(), rec.blob_offset());
 
@@ -211,7 +211,7 @@ public:
     dummy_header5.set_depth(1);
     TS_ASSERT_THROWS(idx.write_complete(dummy_header5, rec), IndexErr);
 
-    TS_ASSERT_THROWS(idx.read_request(0, 0, 2), TileNotFoundErr);
+    TS_ASSERT_THROWS(idx.read_request(0, 0, 2, -1), TileNotFoundErr);
   }
 
   void test_index_read_write() {
@@ -286,7 +286,7 @@ public:
       Blob blob(blob_filename);
 
       // Read the data back from the index
-      IndexRecord result = idx2.read_request(0, 0, 0);
+      IndexRecord result = idx2.read_request(0, 0, 0, -1);
       TileHeader hdr = blob.read_header<TileHeader>(result.blob_offset());
       boost::shared_array<uint8> retrieved_data = blob.read_data(result.blob_offset());
       check_data(m_test_data, retrieved_data);
@@ -295,7 +295,7 @@ public:
       TS_ASSERT_EQUALS(hdr.depth(), dummy_header0.depth());
       TS_ASSERT_EQUALS(hdr.filetype(), dummy_header0.filetype());
 
-      result = idx2.read_request(0, 0, 1);
+      result = idx2.read_request(0, 0, 1, -1);
       hdr = blob.read_header<TileHeader>(result.blob_offset());
       retrieved_data = blob.read_data(result.blob_offset());
       check_data(m_test_data, retrieved_data);
@@ -304,7 +304,7 @@ public:
       TS_ASSERT_EQUALS(hdr.depth(), dummy_header1.depth());
       TS_ASSERT_EQUALS(hdr.filetype(), dummy_header1.filetype());
 
-      result = idx2.read_request(1, 0, 1);
+      result = idx2.read_request(1, 0, 1, -1);
       hdr = blob.read_header<TileHeader>(result.blob_offset());
       retrieved_data = blob.read_data(result.blob_offset());
       check_data(m_test_data, retrieved_data);
@@ -313,7 +313,7 @@ public:
       TS_ASSERT_EQUALS(hdr.depth(), dummy_header2.depth());
       TS_ASSERT_EQUALS(hdr.filetype(), dummy_header2.filetype());
 
-      result = idx2.read_request(0, 1, 1);
+      result = idx2.read_request(0, 1, 1, -1);
       hdr = blob.read_header<TileHeader>(result.blob_offset());
       retrieved_data = blob.read_data(result.blob_offset());
       check_data(m_test_data, retrieved_data);
@@ -322,7 +322,7 @@ public:
       TS_ASSERT_EQUALS(hdr.depth(), dummy_header3.depth());
       TS_ASSERT_EQUALS(hdr.filetype(), dummy_header3.filetype());
 
-      result = idx2.read_request(1, 1, 1);
+      result = idx2.read_request(1, 1, 1, -1);
       hdr = blob.read_header<TileHeader>(result.blob_offset());
       retrieved_data = blob.read_data(result.blob_offset());
       check_data(m_test_data, retrieved_data);

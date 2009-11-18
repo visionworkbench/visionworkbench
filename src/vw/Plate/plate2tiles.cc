@@ -56,7 +56,8 @@ public:
       // Create the file (with the row as the filename)
       ostr << "/" << row;
 
-      std::string output_filename = m_platefile->read_to_file(ostr.str(), col, row, level);
+      // transaction_id = -1 returns the latest tile available
+      std::string output_filename = m_platefile->read_to_file(ostr.str(), col, row, level, -1);
       std::cout << "\t--> [ " << col << " " << row << " " << level << "] : Writing " 
                 << output_filename << "\n";
       

@@ -202,6 +202,9 @@ namespace gui {
       return m_tile_generator;
     }
 
+    // Clear all entries from the texture cache.
+    void clear();
+
     // Fetch a texture from the cache.  This is a non-blocking call that
     // will immediately return the GL texture id of the texture *if it
     // is available*.  If the texture is not available, this function

@@ -52,6 +52,17 @@ namespace platefile {
     };
 
     // -------------------------------------------------------------------------
+    //                       FIND_NEAREST_TILE
+    // -------------------------------------------------------------------------
+
+    // // This function searches up the quad tree, looking for the
+    // // highest resolution tiel that is available.  Once it finds this
+    // // tile, it crops and supersamples the appropriate region and
+    // // returns it.
+    // template <class PixelT>
+    // ImageView<PixelT> find_nearest_tile()
+
+    // -------------------------------------------------------------------------
     //                       PLATE FILE TASKS
     // -------------------------------------------------------------------------
     
@@ -83,28 +94,68 @@ namespace platefile {
         if (m_verbose) 
           std::cout << "\t    Generating tile: [ " << m_tile_info.j << " " << m_tile_info.i 
                     << " @ level " <<  m_depth << "]    BBox: " << m_tile_info.bbox << "\n";
-
         ImageView<typename ViewT::pixel_type> new_data = crop(m_view, m_tile_info.bbox);
-        ImageView<typename ViewT::pixel_type> old_data(new_data.cols(), new_data.rows());
-        try {
-          m_platefile->read(old_data, m_tile_info.i, m_tile_info.j, m_depth, m_read_transaction_id);
-        } catch (TileNotFoundErr &e) { 
-          // Do nothing... we already have a default constructed empty image above! 
-        }
+
+        // No computation is done here.  This is a shallow copy.
+        ImageView<typename ViewT::pixel_type> composite_tile = new_data;
         
-        VW_ASSERT(old_data.cols() == new_data.cols() && old_data.rows() == new_data.rows(),
-                  LogicErr() << "WritePlateFileTask::operator() -- new tile dimensions do not " 
-                  << "match old tile dimensions.");
+        // If the new_data is not transparent, then we need to go
+        // fetch the existing data so that we can composite the two
+        // tiles.  This search begins at the current level, but if no
+        // tile exists at that level, then we search up the tree for a
+        // lower resolution tile that we can safely supersample and
+        // crop.
+        if( ! is_opaque(new_data) ) {
+          bool found = false;
+          IndexRecord closest_record;
+          int search_depth = m_depth;
+          int search_col = m_tile_info.i;
+          int search_row = m_tile_info.j;
 
-        vw::mosaic::ImageComposite<typename ViewT::pixel_type> composite;
-        composite.insert(old_data, 0, 0);
-        composite.insert(new_data, 0, 0);
-        composite.set_draft_mode( true );
-        composite.prepare();
+          // Search up the tree, looking for the nearest tile that
+          // exists on top of which we can composite the new data.
+          while (!found && search_depth >= 0) {
+            try {
+              closest_record = m_platefile->read_record(search_col, search_row, 
+                                                        m_depth, m_read_transaction_id);
+              found = true;
+            } catch (TileNotFoundErr &e) { 
+              // If the tile is not found, the search continues at the next level
+              --search_depth;
+              search_col /= 2;
+              search_row /= 2;
+            }
+          }
+          
+          //          if (search_depth >= 0) {
+          if (search_depth == m_depth) {
+            ImageView<typename ViewT::pixel_type> old_data(new_data.cols(), new_data.rows());
+            m_platefile->read(old_data, m_tile_info.i, m_tile_info.j, 
+                              search_depth, m_read_transaction_id);
+            
+            // Supersample and crop
 
-        ImageView<typename ViewT::pixel_type> composite_tile = composite;
+            
+            VW_ASSERT(old_data.cols() == new_data.cols() && old_data.rows() == new_data.rows(),
+                      LogicErr() << "WritePlateFileTask::operator() -- " 
+                      << "new tile dimensions do not match old tile dimensions.");
+
+            vw::mosaic::ImageComposite<typename ViewT::pixel_type> composite;
+            composite.insert(old_data, 0, 0);
+            composite.insert(new_data, 0, 0);
+            composite.set_draft_mode( true );
+            composite.prepare();
+            composite_tile = composite;
+          } else { // if (search_depth >= 0) {
+            // std::cout << "Didn't find tile: [ " << m_tile_info.i << " " 
+            //           << m_tile_info.j << " @ " << m_depth << "]         but did at [" 
+            //           << search_col << " " << search_row << " @ " << search_depth << "]\n";
+          }
+        }
+
         if( ! is_transparent(composite_tile) ) 
-          m_platefile->write(composite_tile, m_tile_info.i, m_tile_info.j, m_depth, m_write_transaction_id);
+          m_platefile->write(composite_tile, m_tile_info.i, m_tile_info.j, 
+                             m_depth, m_write_transaction_id);
 
         // Report progress
         m_progress.report_incremental_progress(1.0);
@@ -130,7 +181,7 @@ namespace platefile {
     // cascade of MipMapping requests that will cause intermediate
     // tiles to be written (via load_tile), and ultimately bring the
     // entire tree up to date.
-    void mipmap() { 
+    void mipmap(int read_transaction_id, int write_transaction_id) { 
       PixelFormatEnum pixel_format = m_platefile->pixel_format();
       ChannelTypeEnum channel_type = m_platefile->channel_type();
 
@@ -148,19 +199,19 @@ namespace platefile {
       case VW_PIXEL_GRAY:
         switch(channel_type) {
         case VW_CHANNEL_UINT8:  
-          impl().load_tile(gray8_tile,0,0,0);
-          if (gray8_tile && !is_transparent(gray8_tile))
-            m_platefile->write(gray8_tile,0,0,0);
+          // impl().load_tile(gray8_tile,0,0,0,read_transaction_id,write_transaction_id);
+          // if (gray8_tile && !is_transparent(gray8_tile))
+          //   m_platefile->write(gray8_tile,0,0,0,write_transaction_id);
           break;
         case VW_CHANNEL_INT16:  
-          impl().load_tile(gray16_tile,0,0,0); 
-          if (gray16_tile && !is_transparent(gray16_tile))
-            m_platefile->write(gray16_tile,0,0,0);
+          // impl().load_tile(gray16_tile,0,0,0,read_transaction_id,write_transaction_id); 
+          // if (gray16_tile && !is_transparent(gray16_tile))
+          //   m_platefile->write(gray16_tile,0,0,0,write_transaction_id);
           break;
         case VW_CHANNEL_FLOAT32:  
-          impl().load_tile(gray_float32_tile,0,0,0); 
-          if (gray_float32_tile && !is_transparent(gray_float32_tile))
-            m_platefile->write(gray_float32_tile,0,0,0);
+          // impl().load_tile(gray_float32_tile,0,0,0,read_transaction_id,write_transaction_id); 
+          // if (gray_float32_tile && !is_transparent(gray_float32_tile))
+          //   m_platefile->write(gray_float32_tile,0,0,0,write_transaction_id);
           break;
         default:
           vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
@@ -169,14 +220,14 @@ namespace platefile {
       case VW_PIXEL_GRAYA:
         switch(channel_type) {
         case VW_CHANNEL_UINT8:  
-          impl().load_tile(graya8_tile,0,0,0); 
-          if (graya8_tile && !is_transparent(graya8_tile))
-            m_platefile->write(graya8_tile,0,0,0);
+          // impl().load_tile(graya8_tile,0,0,0,read_transaction_id,write_transaction_id); 
+          // if (graya8_tile && !is_transparent(graya8_tile))
+          //   m_platefile->write(graya8_tile,0,0,0,write_transaction_id);
           break;
         case VW_CHANNEL_FLOAT32:  
-          impl().load_tile(graya_float32_tile,0,0,0); 
+          impl().load_tile(graya_float32_tile,0,0,0,read_transaction_id,write_transaction_id); 
           if (graya_float32_tile && !is_transparent(graya_float32_tile))
-            m_platefile->write(graya_float32_tile,0,0,0);
+            m_platefile->write(graya_float32_tile,0,0,0,write_transaction_id);
           break;
         default:
           vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
@@ -187,14 +238,14 @@ namespace platefile {
       default:
         switch(channel_type) {
         case VW_CHANNEL_UINT8:  
-          impl().load_tile(rgba8_tile,0,0,0); 
-          if (rgba8_tile && !is_transparent(rgba8_tile))
-            m_platefile->write(rgba8_tile,0,0,0);
+          // impl().load_tile(rgba8_tile,0,0,0,read_transaction_id,write_transaction_id); 
+          // if (rgba8_tile && !is_transparent(rgba8_tile))
+          //   m_platefile->write(rgba8_tile,0,0,0,write_transaction_id);
           break;
         case VW_CHANNEL_UINT16:  
-          impl().load_tile(rgba16_tile,0,0,0); 
-          if (rgba16_tile && !is_transparent(rgba16_tile))
-            m_platefile->write(rgba16_tile,0,0,0);
+          // impl().load_tile(rgba16_tile,0,0,0,read_transaction_id,write_transaction_id); 
+          // if (rgba16_tile && !is_transparent(rgba16_tile))
+          //   m_platefile->write(rgba16_tile,0,0,0,write_transaction_id);
           break;
         default:
           vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");

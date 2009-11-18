@@ -112,9 +112,11 @@ namespace platefile {
           ImageView<PixelT> tile;
           IndexRecord rec;
           try {
-            rec = m_platefile->read_record(tile_x, tile_y, m_current_depth);
+            // transaction_id = -1 returns the latest tile available
+            rec = m_platefile->read_record(tile_x, tile_y, m_current_depth, -1);
 
-            m_platefile->read(tile, tile_x, tile_y, m_current_depth, 0);
+            // transaction_id = -1 returns the latest tile available
+            m_platefile->read(tile, tile_x, tile_y, m_current_depth, -1);
             crop(level_image, tile_bbox) = tile;
 
           } catch (TileNotFoundErr &e) {

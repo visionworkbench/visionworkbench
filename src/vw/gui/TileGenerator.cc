@@ -28,7 +28,7 @@ BBox2i vw::gui::tile_to_bbox(Vector2i tile_size, int col, int row, int level, in
   }
 }
   
-std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, int level, int max_level) {
+std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, int level, int max_level, int transaction_id) {
   std::list<TileLocator> results;
 
   // Compute the bounding box at the current level.
@@ -55,6 +55,7 @@ std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, i
       loc.col = tile_x;
       loc.row = tile_y;
       loc.level = level;
+      loc.transaction_id = transaction_id;
       results.push_back(loc);
         
       ++tile_x;
@@ -174,7 +175,7 @@ template<class PixelT>
 Vector2 minmax_impl(TileLocator const& tile_info,
                     boost::shared_ptr<vw::platefile::PlateFile> platefile) {
   ImageView<PixelT> tile;
-  platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
+  platefile->read(tile, tile_info.col, tile_info.row, tile_info.level, tile_info.transaction_id);
   typename PixelChannelType<PixelT>::type min, max;
   min_max_channel_values(alpha_to_mask(tile), min, max);
   Vector2 result(min, max);
@@ -200,7 +201,7 @@ Vector2 PlatefileTileGenerator::minmax() {
 // std::string sample_impl(TileLocator const& tile_info,
 //                         Vector2 const& px_loc) {
 //   ImageView<PixelT> tile;
-//   platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
+//   platefile->read(tile, tile_info.col, tile_info.row, tile_info.level, tile_info.transaction_id);
 //   VW_ASSERT(px_loc[0] >= 0 && px_loc[0] < tile.cols() &&
 //             px_loc[1] >= 0 && px_loc[1] < tile.rows(),
 //             ArgumentErr() << "sample_impl() invalid pixel location");
@@ -228,7 +229,7 @@ template <class PixelT>
 boost::shared_ptr<ViewImageResource> generate_tile_impl(TileLocator const& tile_info,
                                       boost::shared_ptr<vw::platefile::PlateFile> platefile) {
   ImageView<PixelT> tile;
-  platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
+  platefile->read(tile, tile_info.col, tile_info.row, tile_info.level, tile_info.transaction_id);
   return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
 }
 

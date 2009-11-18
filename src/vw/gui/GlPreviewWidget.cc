@@ -169,6 +169,7 @@ GlPreviewWidget::GlPreviewWidget(QWidget *parent, std::string filename, QGLForma
   m_gain = 1.0;
   m_offset = 0.0;
   m_gamma = 1.0;
+  m_current_transaction_id = -1;
   
   // Set mouse tracking
   this->setMouseTracking(true);
@@ -415,8 +416,9 @@ void GlPreviewWidget::drawImage() {
   int level = max_level - log(float(m_current_viewport.width()) / m_viewport_width) / log(2.0)+1;
   if (level < 0) level = 0;
   if (level > max_level) level = max_level;
+  m_current_level = level;
 
-  std::list<TileLocator> tiles = bbox_to_tiles(tile_size, m_current_viewport, level, max_level);
+  std::list<TileLocator> tiles = bbox_to_tiles(tile_size, m_current_viewport, level, max_level, m_current_transaction_id);
   std::list<TileLocator>::iterator tile_iter = tiles.begin();
 
   while (tile_iter != tiles.end()) {
@@ -610,7 +612,8 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
     std::ostringstream legend_text;
     legend_text << "<p align=\"right\">" << m_legend_status << "<br>"
                 << "[ " << m_tile_generator->cols() << " x " 
-                << m_tile_generator->rows() << " ] <br>"
+                << m_tile_generator->rows() << " @ " << m_current_level << " ] (t_id = " 
+                << m_current_transaction_id << ")<br>"
                 << "Pixel Format: " << pixel_name << "  Channel Type: " << channel_name << "<br>"
                 << "Current Pixel Range: [ " << -m_offset << " " 
                 << ( -m_offset+(1/m_gain) ) << " ]<br>"
@@ -747,11 +750,15 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
   std::ostringstream s; 
   
   switch (event->key()) {
-  case Qt::Key_Plus:   // Zoom inxo
-    zoom(2.0);
+  case Qt::Key_Plus:   // Increase transaction id
+    m_current_transaction_id++;
+    m_gl_texture_cache->clear();
+    update();
     break;
-  case Qt::Key_Minus:  // Zoom out
-    zoom(0.5);
+  case Qt::Key_Minus:  // Decrease transaction id
+    m_current_transaction_id--;
+    m_gl_texture_cache->clear();
+    update();
     break;
   case Qt::Key_F:  // Size to fit
     size_to_fit();

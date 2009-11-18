@@ -217,7 +217,6 @@ namespace vw {
 
     void resize( size_t size );
     size_t max_size() { return m_max_size; }
-
   };
 
   /// Use this method to return a reference to the Vision Workbench

@@ -176,6 +176,8 @@ namespace gui {
     float m_gain;
     float m_offset;
     float m_gamma;
+    int m_current_transaction_id;
+    int m_current_level;
 
     enum DisplayChannel { DisplayRGBA = 0, DisplayR, DisplayG, DisplayB, DisplayA };
     int m_display_channel;

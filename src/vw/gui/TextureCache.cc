@@ -166,6 +166,15 @@ vw::gui::GlTextureCache::~GlTextureCache() {
   delete m_gl_texture_cache_ptr;
 }
 
+void vw::gui::GlTextureCache::clear() {
+  Mutex::Lock lock(m_request_mutex);
+  m_requests.clear();
+
+  // Delete all of the existing texture records
+  m_texture_records.reset( new platefile::TreeNode<boost::shared_ptr<TextureRecord> >() );
+  m_previous_level = 0;
+}
+
 GLuint vw::gui::GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_info,
                                                CachedTextureRenderer* requestor) {    
   // Bail early if the tile_info request is totally invalid.

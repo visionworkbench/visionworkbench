@@ -39,7 +39,10 @@ namespace platefile {
 
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.
-    virtual IndexRecord read_request(int col, int row, int depth, int transaction_id = -1) = 0;
+    ///
+    /// A transaction ID of -1 indicates that we should return the
+    /// most recent tile, regardless of its transaction id.
+    virtual IndexRecord read_request(int col, int row, int depth, int transaction_id) = 0;
   
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
@@ -151,8 +154,11 @@ namespace platefile {
 
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.
+    ///
+    /// A transaction ID of -1 indicates that we should return the
+    /// most recent tile, regardless of its transaction id.
     virtual IndexRecord read_request(vw::int32 col, vw::int32 row, 
-                                     vw::int32 depth, vw::int32 transaction_id = -1);
+                                     vw::int32 depth, vw::int32 transaction_id);
   
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.

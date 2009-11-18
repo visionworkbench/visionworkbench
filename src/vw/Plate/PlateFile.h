@@ -167,7 +167,7 @@ namespace platefile {
     /// file's image extension).  The image extension will be appended
     /// automatically for you based on the filetype in the TileHeader.
     std::string read_to_file(std::string const& base_name, 
-                             int col, int row, int depth, int transaction_id = -1) {
+                             int col, int row, int depth, int transaction_id) {
 
       TileHeader result;
       std::string filename = base_name;
@@ -200,7 +200,7 @@ namespace platefile {
 
     /// Read an image from the specified tile location in the plate file.
     template <class ViewT>
-    TileHeader read(ViewT &view, int col, int row, int depth, int transaction_id = -1) {
+    TileHeader read(ViewT &view, int col, int row, int depth, int transaction_id) {
 
       TileHeader result;
       
@@ -236,7 +236,7 @@ namespace platefile {
     /// Write an image to the specified tile location in the plate file.
     template <class ViewT>
     void write(ImageViewBase<ViewT> const& view, 
-               int col, int row, int depth, int transaction_id = -1) {      
+               int col, int row, int depth, int transaction_id) {      
 
       // 1. Write data to temporary file. 
       TemporaryTileFile tile(view, this->default_file_type());
@@ -272,7 +272,12 @@ namespace platefile {
       m_index->write_complete(write_header, write_record);
     }
 
-    IndexRecord read_record(int col, int row, int depth, int transaction_id = -1) {
+
+    /// Read a record out of the platefile.  
+    ///
+    /// A transaction ID of -1 indicates that we should return the
+    /// most recent tile, regardless of its transaction id.
+    IndexRecord read_record(int col, int row, int depth, int transaction_id) {
       return m_index->read_request(col, row, depth, transaction_id);
     }
 
