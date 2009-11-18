@@ -227,6 +227,36 @@ namespace vw {
 
 
   // *******************************************************************
+  /// alpha_to_mask(view)
+  ///
+  /// Converts an channel to a mask channel, generating an image that
+  /// is transparent wherever the data has an alpha value of 0.
+  ///
+  template <class PixelT>
+  class AlphaToMask : public ReturnFixedType<typename MaskedPixelType<typename PixelWithoutAlpha<PixelT>::type>::type> {
+  public:
+    typedef typename MaskedPixelType<typename PixelWithoutAlpha<PixelT>::type>::type result_type;
+    result_type operator()( PixelT const& pixel ) const {
+      if (is_transparent(pixel)) return result_type();
+      else return result_type(non_alpha_channels(pixel));
+    }
+  };
+
+  template <class ViewT>
+  UnaryPerPixelView<ViewT,AlphaToMask<typename ViewT::pixel_type> >
+  alpha_to_mask( ImageViewBase<ViewT> const& view ) {
+    typedef UnaryPerPixelView<ViewT,AlphaToMask<typename ViewT::pixel_type> > view_type;
+    return view_type( view.impl(), AlphaToMask<typename ViewT::pixel_type>() );
+  }
+
+  // Indicate that alpha_to_mask is "reasonably fast" and should never
+  // induce an extra rasterization step during prerasterization.
+  template <class ViewT>
+  struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,AlphaToMask<typename ViewT::pixel_type> > >
+    : public IsMultiplyAccessible<ViewT> {};
+
+
+  // *******************************************************************
   /// EdgeMaskView
   ///
   /// Create an image with zero-valued (i.e. default contructor)
