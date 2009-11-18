@@ -250,16 +250,16 @@ GLuint GlPreviewWidget::allocate_texture(boost::shared_ptr<ViewImageResource> ti
   GLuint source_pixel_type = GL_RGBA;
 
   if (tile->channels() == 1) {
-    texture_pixel_type = GL_LUMINANCE16F_ARB;
+    texture_pixel_type = GL_LUMINANCE32F_ARB;
     source_pixel_type = GL_LUMINANCE;
   } else if (tile->channels() == 2) {
-    texture_pixel_type = GL_LUMINANCE_ALPHA16F_ARB;
+    texture_pixel_type = GL_LUMINANCE_ALPHA32F_ARB;
     source_pixel_type = GL_LUMINANCE_ALPHA;
   } else if (tile->channels() == 3) {
-    texture_pixel_type = GL_RGB16F_ARB;
+    texture_pixel_type = GL_RGB32F_ARB;
     source_pixel_type = GL_RGB;
   } else if (tile->channels() == 4) {
-    texture_pixel_type = GL_RGBA16F_ARB;
+    texture_pixel_type = GL_RGBA32F_ARB;
     source_pixel_type = GL_RGBA;
   } else {
     vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed." 

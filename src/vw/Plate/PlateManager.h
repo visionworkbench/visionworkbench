@@ -142,6 +142,7 @@ namespace platefile {
       ImageView<PixelGrayA<uint8> > graya8_tile;
       ImageView<PixelGrayA<float> > graya_float32_tile;
       ImageView<PixelRGBA<uint8> > rgba8_tile; 
+      ImageView<PixelRGBA<uint16> > rgba16_tile; 
 
       switch(pixel_format) {
       case VW_PIXEL_GRAY:
@@ -189,6 +190,11 @@ namespace platefile {
           impl().load_tile(rgba8_tile,0,0,0); 
           if (rgba8_tile && !is_transparent(rgba8_tile))
             m_platefile->write(rgba8_tile,0,0,0);
+          break;
+        case VW_CHANNEL_UINT16:  
+          impl().load_tile(rgba16_tile,0,0,0); 
+          if (rgba16_tile && !is_transparent(rgba16_tile))
+            m_platefile->write(rgba16_tile,0,0,0);
           break;
         default:
           vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");

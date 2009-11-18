@@ -165,10 +165,17 @@ vw::platefile::Index::Index(std::string plate_filename) :
   ifstr.close();
 
   // Create the logging facility
-  // m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );
-
-  // this->log() << "Reopened index \"" << this->index_filename() << "\n"
-  //             << m_header.DebugString() << "\n";
+  try {
+    m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );
+    this->log() << "Reopened index \"" << this->index_filename() << "\n"
+                << m_header.DebugString() << "\n";
+  } catch (IOErr &e) {
+    // If we fail to open the log, then it's ok for now.  However, the
+    // program _will_ crash if we try to do something with the index
+    // that generates a log message.
+    vw_out(WarningMessage, "plate") << "WARNING: could not open index log file. "
+                                    << "Proceed with caution.";
+  }
 
   // Load the actual index data
   std::vector<std::string> blob_files = this->blob_filenames();

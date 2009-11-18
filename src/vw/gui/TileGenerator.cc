@@ -156,6 +156,8 @@ PlatefileTileGenerator::PlatefileTileGenerator(std::string platefile_name) :
     case VW_PIXEL_RGBA:                                                              \
       if (this->channel_type() == VW_CHANNEL_UINT8) {                                \
         return func<PixelRGBA<uint8> >(arg1, arg2);                                  \
+      } else if (this->channel_type() == VW_CHANNEL_UINT16) {                        \
+        return func<PixelRGBA<uint16> >(arg1, arg2);                                 \
       } else {                                                                       \
         std::cout << "This platefile has a channel type that is not yet support by vwv.\n"; \
         std::cout << "Exiting...\n\n";                                               \
@@ -349,7 +351,7 @@ boost::shared_ptr<ViewImageResource> ImageTileGenerator::generate_tile(TileLocat
       return do_image_tilegen<PixelGrayA<float> >(m_rsrc, tile_bbox, 
                                                   tile_info.level, this->num_levels());
     } else {
-      std::cout << "This platefile has a channel type that is not yet support by vwv.\n";
+      std::cout << "This image has a channel type that is not yet support by vwv.\n";
       std::cout << "Exiting...\n\n";
       exit(0);
       }
@@ -360,8 +362,11 @@ boost::shared_ptr<ViewImageResource> ImageTileGenerator::generate_tile(TileLocat
     if (this->channel_type() == VW_CHANNEL_UINT8) {
       return do_image_tilegen<PixelRGB<uint8> >(m_rsrc, tile_bbox, 
                                                 tile_info.level, this->num_levels());
+    } else if (this->channel_type() == VW_CHANNEL_UINT16) {
+      return do_image_tilegen<PixelRGB<uint16> >(m_rsrc, tile_bbox, 
+                                                tile_info.level, this->num_levels());
     } else {
-      std::cout << "This platefile has a channel type that is not yet support by vwv.\n";
+      std::cout << "This image has a channel type that is not yet support by vwv.\n";
       std::cout << "Exiting...\n\n";
       exit(0);
     }
@@ -372,8 +377,11 @@ boost::shared_ptr<ViewImageResource> ImageTileGenerator::generate_tile(TileLocat
     if (this->channel_type() == VW_CHANNEL_UINT8) {
       return do_image_tilegen<PixelRGBA<uint8> >(m_rsrc, tile_bbox, 
                                                  tile_info.level, this->num_levels());
+    } else if (this->channel_type() == VW_CHANNEL_UINT16) {
+      return do_image_tilegen<PixelRGBA<uint16> >(m_rsrc, tile_bbox, 
+                                                  tile_info.level, this->num_levels());
     } else {
-      std::cout << "This platefile has a channel type that is not yet support by vwv.\n";
+      std::cout << "This image has a channel type that is not yet support by vwv.\n";
       std::cout << "Exiting...\n\n";
       exit(0);
     }
@@ -381,7 +389,7 @@ boost::shared_ptr<ViewImageResource> ImageTileGenerator::generate_tile(TileLocat
     break;
 
   default:
-    std::cout << "This platefile has a pixel format that is not yet support by vwv.\n";
+    std::cout << "This image has a pixel format that is not yet support by vwv.\n";
     std::cout << "Exiting...\n\n";
     exit(0);
   }

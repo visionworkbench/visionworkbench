@@ -146,6 +146,10 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
         pm->insert( DiskImageView<PixelRGB<uint8> >(image_files[i]), georef, image_files[i],
                     TerminalProgressCallback(InfoMessage, status_str.str()) );
         break;
+      case VW_CHANNEL_UINT16:  
+        pm->insert( DiskImageView<PixelRGB<uint16> >(image_files[i]), georef, image_files[i],
+                    TerminalProgressCallback(InfoMessage, status_str.str()) );
+        break;
       default:
         std::cout << "Platefile contains a channel type not supported by image2plate.\n";
         exit(0);
@@ -318,7 +322,7 @@ int main( int argc, char *argv[] ) {
       do_mosaic(platefile, pm, vm, image_files);
     }
 
-  } catch (vw::Exception &e) {
+  }  catch (vw::Exception &e) {
     std::cout << "An error occured: " << e.what() << "\nExiting.\n\n";
   }
   
