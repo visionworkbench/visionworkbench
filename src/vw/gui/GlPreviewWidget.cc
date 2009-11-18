@@ -208,8 +208,8 @@ void GlPreviewWidget::size_to_fit() {
 }
 
 void GlPreviewWidget::zoom(float scale) {
-  float mid_x = m_current_viewport.min().x() + m_current_viewport.width()/2;
-  float mid_y = m_current_viewport.min().y() + m_current_viewport.height()/2;
+  float mid_x = currentImagePos.x();
+  float mid_y = currentImagePos.y();
   
   // Check to make sure we haven't hit our zoom limits...
   if (m_current_viewport.width()/scale > 1.0 && 
@@ -225,20 +225,13 @@ void GlPreviewWidget::zoom(float scale) {
   m_show_legend = false;
 }
 
-void GlPreviewWidget::normalize_image() {
-  m_offset = -m_image_min;
-  m_gain = 1/(m_image_max-m_image_min);
-  update();
-}
-
 // --------------------------------------------------------------
 //             GlPreviewWidget Setup Methods
 // --------------------------------------------------------------
 
-// ------------- TextureRenderer Implementation -----------------------
 GLuint GlPreviewWidget::allocate_texture(boost::shared_ptr<ViewImageResource> tile) {
   GLuint texture_id;
-
+  
   makeCurrent();
   glEnable( GL_TEXTURE_2D );
   glGenTextures(1, &(texture_id) );
@@ -255,17 +248,18 @@ GLuint GlPreviewWidget::allocate_texture(boost::shared_ptr<ViewImageResource> ti
   // number of channels.
   GLuint texture_pixel_type = GL_RGBA32F_ARB;
   GLuint source_pixel_type = GL_RGBA;
+
   if (tile->channels() == 1) {
-    texture_pixel_type = GL_LUMINANCE32F_ARB;
+    texture_pixel_type = GL_LUMINANCE16F_ARB;
     source_pixel_type = GL_LUMINANCE;
   } else if (tile->channels() == 2) {
-    texture_pixel_type = GL_LUMINANCE_ALPHA32F_ARB;
+    texture_pixel_type = GL_LUMINANCE_ALPHA16F_ARB;
     source_pixel_type = GL_LUMINANCE_ALPHA;
   } else if (tile->channels() == 3) {
-    texture_pixel_type = GL_RGB32F_ARB;
+    texture_pixel_type = GL_RGB16F_ARB;
     source_pixel_type = GL_RGB;
   } else if (tile->channels() == 4) {
-    texture_pixel_type = GL_RGBA32F_ARB;
+    texture_pixel_type = GL_RGBA16F_ARB;
     source_pixel_type = GL_RGBA;
   } else {
     vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed." 
@@ -274,6 +268,7 @@ GLuint GlPreviewWidget::allocate_texture(boost::shared_ptr<ViewImageResource> ti
 
   // Set the GL channel type for source data.
   GLuint source_channel_type = GL_FLOAT;
+
   switch (tile->channel_type()) {
   case vw::VW_CHANNEL_UINT8: 
     source_channel_type = GL_UNSIGNED_BYTE;
@@ -500,16 +495,18 @@ void GlPreviewWidget::drawImage() {
 void GlPreviewWidget::drawLegend(QPainter* painter) {
 
   // Extract the value for the pixel currently under the mouse
-  PixelRGBA<float32> pix_value;
   if (currentImagePos.x() >= 0 && currentImagePos.x() < m_tile_generator->cols() &&
       currentImagePos.y() >= 0 && currentImagePos.y() < m_tile_generator->rows()) {
 
-    //    ImageResourceView<PixelRGBA<float32> > view(m_tile_generator);
-    //    pix_value = view(currentImagePos.x(), currentImagePos.y());
+    float raw_pixels[4];
+    glReadPixels(lastPos.x(),m_viewport_height-lastPos.y(),
+                 1,1,GL_RGBA,GL_FLOAT,&raw_pixels);
+    PixelRGBA<float32> pix_value(raw_pixels[0], raw_pixels[1], raw_pixels[2], raw_pixels[3]);
     
     const char* pixel_name = vw::pixel_format_name(m_tile_generator->pixel_format());
     const char* channel_name = vw::channel_type_name(m_tile_generator->channel_type());
-    int num_channels = 4;// m_tile_generator->channels(); // FIXME!!
+    int num_channels = vw::num_channels(m_tile_generator->pixel_format());
+
     std::ostringstream pix_value_ostr;
     pix_value_ostr << "Pos: ( " << currentImagePos.x() << " " << currentImagePos.y() << " ) --> Val: [ ";
 
@@ -768,7 +765,7 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
     update();
     break;
   case Qt::Key_R:  // Normalize the image
-    normalize_image();
+    this->normalize();
     update();
     break;
   case Qt::Key_G:  // Gain adjustment mode

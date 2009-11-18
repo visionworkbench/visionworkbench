@@ -86,7 +86,6 @@ namespace gui {
 
     // Image Manipulation Methods
     void zoom(float scale);
-    void normalize_image();
     void size_to_fit();
 
   public slots:
@@ -106,11 +105,15 @@ namespace gui {
       m_use_nodata = 1; 
     }
 
-    void set_data_range(float lo, float hi) { 
-      m_image_min = lo; 
-      m_image_max = hi; 
-      if (m_image_max > 1.0 || m_image_min < 0.0)
-        normalize_image();
+    void normalize() {
+      std::cout << "CALLING NORMALIZE!\n";
+      Vector2 result = m_tile_generator->minmax();
+      std::cout << "Got result = " << result << "\n";
+      m_image_min = result[0];
+      m_image_max = result[1];
+      m_offset = -m_image_min;
+      m_gain = 1/(m_image_max-m_image_min);
+      update();
     }
 
   protected:

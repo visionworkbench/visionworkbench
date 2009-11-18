@@ -107,10 +107,10 @@ namespace gui {
       // texture on the graphics card.  This will be done on the next
       // rendering pass.
       m_record->requestor->request_allocation( record, tile );
-      vw::vw_out(vw::VerboseDebugMessage) << "GlTextureHandle requesting allocation (" 
-                                          << m_record->texture_id << ") -- [ " 
-                                          << tile_info.col << " " << tile_info.row 
-                                          << " ] @ " << tile_info.level << "\n";
+      vw::vw_out(vw::VerboseDebugMessage, "gui") << "GlTextureHandle requesting allocation (" 
+                                                 << m_record->texture_id << ") -- [ " 
+                                                 << tile_info.col << " " << tile_info.row 
+                                                 << " ] @ " << tile_info.level << "\n";
     }
 
     virtual GLuint texture_id() const { return m_record->texture_id; }

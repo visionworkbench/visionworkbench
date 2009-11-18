@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
   visible_options.add_options()
     ("help,h", "Display this help message")
     ("normalize,n", "Attempt to normalize the image before display.")
-    ("nodata-value", po::value<float>(&nodata_value), "Remap the DEM default value to the min altitude value.")
+    ("nodata-value", po::value<float>(&nodata_value), "Choose a \"nodata\" value in the image to treat as transparent.")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1000), "Cache size, in megabytes");
 
   po::options_description positional_options("Positional Options");

@@ -5,8 +5,10 @@
 // __END_LICENSE__
 
 #include <vw/gui/TileGenerator.h>
-#include <vw/image/ViewImageResource.h>
-#include <vw/image/ImageResourceView.h>
+#include <vw/Image/ViewImageResource.h>
+#include <vw/Image/ImageResourceView.h>
+#include <vw/Image/Statistics.h>
+#include <vw/Image/MaskViews.h>
 using namespace vw;
 using namespace vw::gui;
 
@@ -107,6 +109,13 @@ boost::shared_ptr<ViewImageResource> TestPatternTileGenerator::generate_tile(Til
   return result;
 }
 
+Vector2 TestPatternTileGenerator::minmax() { return Vector2(0.0, 1.0); }
+
+PixelRGBA<float32> TestPatternTileGenerator::sample(int x, int y) {
+  PixelRGBA<float32> result;
+  return result;
+}
+
 int TestPatternTileGenerator::cols() const { return 2048; }
 int TestPatternTileGenerator::rows() const { return 2048; }
 PixelFormatEnum TestPatternTileGenerator::pixel_format() const { return VW_PIXEL_RGBA; }
@@ -128,62 +137,107 @@ PlatefileTileGenerator::PlatefileTileGenerator(std::string platefile_name) :
             << m_platefile->depth() << " levels.\n";
 }
 
+
+#define VW_DELEGATE_BY_PIXEL_TYPE(func, arg1, arg2)                                  \
+  switch (this->pixel_format()) {                                                    \
+  case VW_PIXEL_GRAY:                                                                \
+  case VW_PIXEL_GRAYA:                                                               \
+      if (this->channel_type() == VW_CHANNEL_UINT8) {                                \
+        return func<PixelGrayA<uint8> >(arg1, arg2);                                 \
+      } else if (this->channel_type() == VW_CHANNEL_FLOAT32) {                       \
+        return func<PixelGrayA<float> >(arg1, arg2);                                 \
+      } else {                                                                       \
+        std::cout << "This platefile has a channel type that is not yet support by vwv.\n"; \
+        std::cout << "Exiting...\n\n";                                               \
+        exit(0);                                                                     \
+      }                                                                              \
+      break;                                                                         \
+    case VW_PIXEL_RGB:                                                               \
+    case VW_PIXEL_RGBA:                                                              \
+      if (this->channel_type() == VW_CHANNEL_UINT8) {                                \
+        return func<PixelRGBA<uint8> >(arg1, arg2);                                  \
+      } else {                                                                       \
+        std::cout << "This platefile has a channel type that is not yet support by vwv.\n"; \
+        std::cout << "Exiting...\n\n";                                               \
+        exit(0);                                                                     \
+      }                                                                              \
+      break;                                                                         \
+    default:                                                                         \
+      std::cout << "This platefile has a pixel format that is not yet support by vwv.\n"; \
+      std::cout << "Exiting...\n\n";                                                 \
+      exit(0);                                                                       \
+    }                                                                                \
+
+template<class PixelT>
+Vector2 minmax_impl(TileLocator const& tile_info,
+                    boost::shared_ptr<vw::platefile::PlateFile> platefile) {
+  ImageView<PixelT> tile;
+  platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
+  typename PixelChannelType<PixelT>::type min, max;
+  min_max_channel_values(alpha_to_mask(tile), min, max);
+  Vector2 result(min, max);
+  std::cout << "Here is the original answer: " << result << "\n";
+  result /= ChannelRange<typename PixelChannelType<PixelT>::type>::max();
+  std::cout << "NEW MIN AND MAX: " << result << "\n";
+  return result;
+}
+
+Vector2 PlatefileTileGenerator::minmax() {
+  try {
+    TileLocator loc;
+    loc.col = 0;
+    loc.row = 0;
+    loc.level = 0;
+    VW_DELEGATE_BY_PIXEL_TYPE(minmax_impl, loc, m_platefile)
+  } catch (platefile::TileNotFoundErr &e) {
+    return Vector2(0,1);
+  }
+}
+
+// template<class PixelT>
+// std::string sample_impl(TileLocator const& tile_info,
+//                         Vector2 const& px_loc) {
+//   ImageView<PixelT> tile;
+//   platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
+//   VW_ASSERT(px_loc[0] >= 0 && px_loc[0] < tile.cols() &&
+//             px_loc[1] >= 0 && px_loc[1] < tile.rows(),
+//             ArgumentErr() << "sample_impl() invalid pixel location");
+//   return tile(px_loc[0], px_loc[1]);
+// }
+
+PixelRGBA<float32> PlatefileTileGenerator::sample(int x, int y) {
+  // TileLocator tile_loc;
+  // tile_loc.col = floor(x/this->tile_size[0]);
+  // tile_loc.row = floor(y/this->tile_size[1]);
+  // tile_loc.level = this->num_levels();
+  // px_loc = Vector2(x % this->tile_size[0], 
+  //                  y % this->tile_size[1]);
+
+  try {
+    return PixelRGBA<float32>();
+    //    VW_DELEGATE_BY_PIXEL_TYPE(sample_tile_impl, tile_loc, px_loc)
+  } catch (platefile::TileNotFoundErr &e) {
+    ImageView<PixelGrayA<uint8> > blank_tile(1,1);
+    return PixelRGBA<float32>();
+  }
+}
+
+template <class PixelT>
+boost::shared_ptr<ViewImageResource> generate_tile_impl(TileLocator const& tile_info,
+                                      boost::shared_ptr<vw::platefile::PlateFile> platefile) {
+  ImageView<PixelT> tile;
+  platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
+  return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
+}
+
 boost::shared_ptr<ViewImageResource> PlatefileTileGenerator::generate_tile(TileLocator const& tile_info) {
 
-  vw_out(DebugMessage, "gui") << "Request to generate platefile tile " << tile_info.col << " " << tile_info.row << " @ " << tile_info.level << "\n";
+  vw_out(DebugMessage, "gui") << "Request to generate platefile tile " 
+                              << tile_info.col << " " << tile_info.row 
+                              << " @ " << tile_info.level << "\n";
   
   try {
-    switch (this->pixel_format()) {
-    case VW_PIXEL_GRAY:
-    case VW_PIXEL_GRAYA:
-      if (this->channel_type() == VW_CHANNEL_UINT8) {
-        ImageView<PixelGrayA<uint8> > tile;
-        m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
-        return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
-      } if (this->channel_type() == VW_CHANNEL_INT16) {
-        ImageView<PixelGrayA<int16> > tile;
-        m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
-        return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
-      } if (this->channel_type() == VW_CHANNEL_UINT16) {
-        ImageView<PixelGrayA<uint16> > tile;
-        m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
-        return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
-      } if (this->channel_type() == VW_CHANNEL_FLOAT32) {
-        ImageView<PixelGrayA<float> > tile;
-        m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
-        return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
-      } else {
-        std::cout << "This platefile has a channel type that is not yet support by vwv.\n";
-        std::cout << "Exiting...\n\n";
-        exit(0);
-      }
-      
-      break;
-      
-    case VW_PIXEL_RGB:
-    case VW_PIXEL_RGBA:
-      if (this->channel_type() == VW_CHANNEL_UINT8) {
-        ImageView<PixelRGBA<uint8> > tile;
-        m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
-        return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
-      } if (this->channel_type() == VW_CHANNEL_FLOAT32) {
-        ImageView<PixelRGBA<float> > tile;
-        m_platefile->read(tile, tile_info.col, tile_info.row, tile_info.level);
-        return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
-      } else {
-        std::cout << "This platefile has a channel type that is not yet support by vwv.\n";
-        std::cout << "Exiting...\n\n";
-        exit(0);
-      }
-      
-      break;
-      
-    default:
-      std::cout << "This platefile has a pixel format that is not yet support by vwv.\n";
-      std::cout << "Exiting...\n\n";
-      exit(0);
-    }
-
+    VW_DELEGATE_BY_PIXEL_TYPE(generate_tile_impl, tile_info, m_platefile)
   } catch (platefile::TileNotFoundErr &e) {
     ImageView<PixelGrayA<uint8> > blank_tile(1,1);
     return boost::shared_ptr<ViewImageResource>( new ViewImageResource(blank_tile) );    
@@ -335,6 +389,16 @@ boost::shared_ptr<ViewImageResource> ImageTileGenerator::generate_tile(TileLocat
   vw_throw(NoImplErr() << "Unsupported pixel format or channel type in TileGenerator.\n");  
 
 }
+
+Vector2 ImageTileGenerator::minmax() {
+  return Vector2(0,1.0); // TODO: Implement this properly
+}
+
+PixelRGBA<float32> ImageTileGenerator::sample(int x, int y) {
+  PixelRGBA<float32> result; // TODO: Implement this properly
+  return result;
+}
+
 
 int ImageTileGenerator::cols() const {
   return m_rsrc->cols();
