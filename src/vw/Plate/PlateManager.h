@@ -138,7 +138,9 @@ namespace platefile {
       // of the case statement, otherwise C++ complains.
       ImageView<PixelGray<uint8> > gray8_tile; 
       ImageView<PixelGray<int16> > gray16_tile;
+      ImageView<PixelGray<float> > gray_float32_tile; 
       ImageView<PixelGrayA<uint8> > graya8_tile;
+      ImageView<PixelGrayA<float> > graya_float32_tile;
       ImageView<PixelRGBA<uint8> > rgba8_tile; 
 
       switch(pixel_format) {
@@ -154,6 +156,11 @@ namespace platefile {
           if (gray16_tile && !is_transparent(gray16_tile))
             m_platefile->write(gray16_tile,0,0,0);
           break;
+        case VW_CHANNEL_FLOAT32:  
+          impl().load_tile(gray_float32_tile,0,0,0); 
+          if (gray_float32_tile && !is_transparent(gray_float32_tile))
+            m_platefile->write(gray_float32_tile,0,0,0);
+          break;
         default:
           vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
         }
@@ -164,6 +171,11 @@ namespace platefile {
           impl().load_tile(graya8_tile,0,0,0); 
           if (graya8_tile && !is_transparent(graya8_tile))
             m_platefile->write(graya8_tile,0,0,0);
+          break;
+        case VW_CHANNEL_FLOAT32:  
+          impl().load_tile(graya_float32_tile,0,0,0); 
+          if (graya_float32_tile && !is_transparent(graya_float32_tile))
+            m_platefile->write(graya_float32_tile,0,0,0);
           break;
         default:
           vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
