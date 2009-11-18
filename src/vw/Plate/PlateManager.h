@@ -198,21 +198,21 @@ namespace platefile {
       switch(pixel_format) {
       case VW_PIXEL_GRAY:
         switch(channel_type) {
-        case VW_CHANNEL_UINT8:  
-          // impl().load_tile(gray8_tile,0,0,0,read_transaction_id,write_transaction_id);
-          // if (gray8_tile && !is_transparent(gray8_tile))
-          //   m_platefile->write(gray8_tile,0,0,0,write_transaction_id);
-          break;
-        case VW_CHANNEL_INT16:  
-          // impl().load_tile(gray16_tile,0,0,0,read_transaction_id,write_transaction_id); 
-          // if (gray16_tile && !is_transparent(gray16_tile))
-          //   m_platefile->write(gray16_tile,0,0,0,write_transaction_id);
-          break;
-        case VW_CHANNEL_FLOAT32:  
-          // impl().load_tile(gray_float32_tile,0,0,0,read_transaction_id,write_transaction_id); 
-          // if (gray_float32_tile && !is_transparent(gray_float32_tile))
-          //   m_platefile->write(gray_float32_tile,0,0,0,write_transaction_id);
-          break;
+        // case VW_CHANNEL_UINT8:  
+        //   // impl().load_tile(gray8_tile,0,0,0,read_transaction_id,write_transaction_id);
+        //   // if (gray8_tile && !is_transparent(gray8_tile))
+        //   //   m_platefile->write(gray8_tile,0,0,0,write_transaction_id);
+        //   break;
+        // case VW_CHANNEL_INT16:  
+        //   // impl().load_tile(gray16_tile,0,0,0,read_transaction_id,write_transaction_id); 
+        //   // if (gray16_tile && !is_transparent(gray16_tile))
+        //   //   m_platefile->write(gray16_tile,0,0,0,write_transaction_id);
+        //   break;
+        // case VW_CHANNEL_FLOAT32:  
+        //   // impl().load_tile(gray_float32_tile,0,0,0,read_transaction_id,write_transaction_id); 
+        //   // if (gray_float32_tile && !is_transparent(gray_float32_tile))
+        //   //   m_platefile->write(gray_float32_tile,0,0,0,write_transaction_id);
+        //   break;
         default:
           vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
         }
@@ -220,9 +220,9 @@ namespace platefile {
       case VW_PIXEL_GRAYA:
         switch(channel_type) {
         case VW_CHANNEL_UINT8:  
-          // impl().load_tile(graya8_tile,0,0,0,read_transaction_id,write_transaction_id); 
-          // if (graya8_tile && !is_transparent(graya8_tile))
-          //   m_platefile->write(graya8_tile,0,0,0,write_transaction_id);
+          impl().load_tile(graya8_tile,0,0,0,read_transaction_id,write_transaction_id); 
+          if (graya8_tile && !is_transparent(graya8_tile))
+            m_platefile->write(graya8_tile,0,0,0,write_transaction_id);
           break;
         case VW_CHANNEL_FLOAT32:  
           impl().load_tile(graya_float32_tile,0,0,0,read_transaction_id,write_transaction_id); 
@@ -238,14 +238,14 @@ namespace platefile {
       default:
         switch(channel_type) {
         case VW_CHANNEL_UINT8:  
-          // impl().load_tile(rgba8_tile,0,0,0,read_transaction_id,write_transaction_id); 
-          // if (rgba8_tile && !is_transparent(rgba8_tile))
-          //   m_platefile->write(rgba8_tile,0,0,0,write_transaction_id);
+          impl().load_tile(rgba8_tile,0,0,0,read_transaction_id,write_transaction_id); 
+          if (rgba8_tile && !is_transparent(rgba8_tile))
+            m_platefile->write(rgba8_tile,0,0,0,write_transaction_id);
           break;
         case VW_CHANNEL_UINT16:  
-          // impl().load_tile(rgba16_tile,0,0,0,read_transaction_id,write_transaction_id); 
-          // if (rgba16_tile && !is_transparent(rgba16_tile))
-          //   m_platefile->write(rgba16_tile,0,0,0,write_transaction_id);
+          impl().load_tile(rgba16_tile,0,0,0,read_transaction_id,write_transaction_id); 
+          if (rgba16_tile && !is_transparent(rgba16_tile))
+            m_platefile->write(rgba16_tile,0,0,0,write_transaction_id);
           break;
         default:
           vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");

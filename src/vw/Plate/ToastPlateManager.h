@@ -144,7 +144,6 @@ namespace platefile {
                                                                             progress)));
       }
       m_queue.join_all();
-      m_platefile->transaction_complete(write_transaction_id);
       progress.report_finished();
     }
 

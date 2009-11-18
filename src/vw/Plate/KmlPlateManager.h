@@ -84,7 +84,7 @@ namespace platefile {
     template <class ViewT>
     void insert(ImageViewBase<ViewT> const& image, 
                 cartography::GeoReference const& input_georef,
-                std::string description,
+                int read_transaction_id, int write_transaction_id,
                 const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
 
       // We build the ouput georeference from the input image's
@@ -154,10 +154,6 @@ namespace platefile {
       std::vector<TileInfo> tiles = kml_image_tiles( output_bbox, resolution,
                                                      m_platefile->default_tile_size());
 
-      // Determine the read and write transaction ids to use for this image.
-      int read_transaction_id = m_platefile->transaction_cursor();
-      int write_transaction_id = m_platefile->transaction_request(description);
-
       // And save each tile to the PlateFile
       std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n";
       progress.report_progress(0);
@@ -174,7 +170,6 @@ namespace platefile {
                                                                             progress)));
       }
       m_queue.join_all();
-      m_platefile->transaction_complete(write_transaction_id);
       progress.report_finished();
     }
 
@@ -257,7 +252,7 @@ namespace platefile {
       
             ImageView<PixelT> composite_tile = composite;
             if( ! is_transparent(composite_tile) ) 
-              m_platefile->write(composite_tile, x, y, level);
+              m_platefile->write(composite_tile, x, y, level, write_transaction_id);
           }
       
         } else {

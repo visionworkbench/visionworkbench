@@ -113,14 +113,16 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
     case VW_PIXEL_GRAY:
       switch(channel_type) {
       case VW_CHANNEL_UINT8:  
-        // if (has_nodata_value)
-        //   pm->insert(mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]), 
-        //                                        nodata_value)), georef, image_files[i],
-        //              TerminalProgressCallback(InfoMessage, status_str.str()) );
-        // else
-        //   pm->insert( DiskImageView<PixelGray<uint8> >(image_files[i]), georef, image_files[i],
-        //               TerminalProgressCallback(InfoMessage, status_str.str()) );
-          break;
+        if (has_nodata_value)
+          pm->insert(mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]), 
+                                               nodata_value)), 
+                     georef, read_transaction_id, write_transaction_id,
+                     TerminalProgressCallback(InfoMessage, status_str.str()) );
+        else
+          pm->insert( DiskImageView<PixelGray<uint8> >(image_files[i]), 
+                      georef, read_transaction_id, write_transaction_id,
+                      TerminalProgressCallback(InfoMessage, status_str.str()) );
+        break;
       case VW_CHANNEL_FLOAT32:  
         if (has_nodata_value)
           pm->insert(mask_to_alpha(create_mask(DiskImageView<PixelGray<float> >(image_files[i]), 
@@ -140,8 +142,9 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
     case VW_PIXEL_GRAYA:
       switch(channel_type) {
       case VW_CHANNEL_UINT8:  
-        // pm->insert( DiskImageView<PixelGrayA<uint8> >(image_files[i]), georef, image_files[i],
-        //             TerminalProgressCallback(InfoMessage, status_str.str()) );
+        pm->insert( DiskImageView<PixelGrayA<uint8> >(image_files[i]), 
+                    georef, read_transaction_id, write_transaction_id, 
+                    TerminalProgressCallback(InfoMessage, status_str.str()) );
         break;
       default:
         std::cout << "Platefile contains a channel type not supported by image2plate.\n";
@@ -152,12 +155,9 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
     case VW_PIXEL_RGB:
       switch(channel_type) {
       case VW_CHANNEL_UINT8:  
-        // pm->insert( DiskImageView<PixelRGB<uint8> >(image_files[i]), georef, image_files[i],
-        //             TerminalProgressCallback(InfoMessage, status_str.str()) );
-        break;
-      case VW_CHANNEL_UINT16:  
-        // pm->insert( DiskImageView<PixelRGB<uint16> >(image_files[i]), georef, image_files[i],
-        //             TerminalProgressCallback(InfoMessage, status_str.str()) );
+         pm->insert( DiskImageView<PixelRGB<uint8> >(image_files[i]), 
+                     georef, read_transaction_id, write_transaction_id, 
+                     TerminalProgressCallback(InfoMessage, status_str.str()) );
         break;
       default:
         std::cout << "Platefile contains a channel type not supported by image2plate.\n";
@@ -168,8 +168,9 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
     case VW_PIXEL_RGBA:
       switch(channel_type) {
       case VW_CHANNEL_UINT8:  
-        // pm->insert( DiskImageView<PixelRGBA<uint8> >(image_files[i]), georef, image_files[i],
-        //             TerminalProgressCallback(InfoMessage, status_str.str()) );
+        pm->insert( DiskImageView<PixelRGBA<uint8> >(image_files[i]), 
+                    georef, read_transaction_id, write_transaction_id, 
+                    TerminalProgressCallback(InfoMessage, status_str.str()) );
         break;
       default:
         vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
@@ -181,28 +182,11 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
 
     std::cout << "\t--> Generating mipmap tiles\n";
     pm->mipmap(read_transaction_id, write_transaction_id);
+    platefile->transaction_complete(write_transaction_id);
   }
 }
 
 int main( int argc, char *argv[] ) {
-
-  // DiskImageResource *rsrc = DiskImageResource::open("E0201081-lev1.cub");
-  // double nodata_value;
-  // bool has_nodata_value = false;
-  // if ( rsrc->has_nodata_value() ) {
-  //   has_nodata_value = true;
-  //   nodata_value = rsrc->nodata_value();
-  //   std::cout << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
-  // }
-  // delete rsrc;
-  // std::cout << "Nodata: " << nodata_value << "\n";
-
-  // ImageView<PixelGrayA<float> > img;
-  // read_image(img, "test/0/0/0.tif");
-  // float lo, hi;
-  // min_max_channel_values(alpha_to_mask(img), lo, hi);
-  // std::cout << "Range of pixel values: " << lo << " " << hi << "\n";
-  
 
   std::string output_file_name;
   std::string output_file_type;
@@ -323,9 +307,9 @@ int main( int argc, char *argv[] ) {
         boost::shared_ptr<ToastPlateManager>( new ToastPlateManager(platefile, num_threads) );
       do_mosaic(platefile, pm, vm, image_files);
     }  else if (output_mode == "kml")  {
-      // boost::shared_ptr<KmlPlateManager> pm = 
-      //   boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile, num_threads) );
-      // do_mosaic(platefile, pm, vm, image_files);
+      boost::shared_ptr<KmlPlateManager> pm = 
+        boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile, num_threads) );
+      do_mosaic(platefile, pm, vm, image_files);
     }
 
   }  catch (vw::Exception &e) {

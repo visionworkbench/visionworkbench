@@ -223,8 +223,27 @@ ImageView<PixelT> ToastPlateManager::load_tile_impl( int32 level, int32 x, int32
 namespace vw { 
 namespace platefile {
 
+
+template 
+ImageView<PixelGrayA<uint8> > ToastPlateManager::load_tile_impl<PixelGrayA<uint8> >( int32 level, int32 x, int32 y, 
+                                                                 int read_transaction_id, 
+                                                                 int write_transaction_id );
+
 template 
 ImageView<PixelGrayA<float> > ToastPlateManager::load_tile_impl<PixelGrayA<float> >( int32 level, int32 x, int32 y, 
                                                                  int read_transaction_id, 
                                                                  int write_transaction_id );
+
+template
+ImageView<PixelRGBA<uint8> > ToastPlateManager::load_tile_impl<PixelRGBA<uint8> >( int32 level, int32 x, int32 y, 
+                                                                 int read_transaction_id, 
+                                                                 int write_transaction_id );
+
+
+template 
+ImageView<PixelRGBA<uint16> > ToastPlateManager::load_tile_impl<PixelRGBA<uint16> >( int32 level, int32 x, int32 y, 
+                                                                 int read_transaction_id, 
+                                                                 int write_transaction_id );
+
+
 }}
