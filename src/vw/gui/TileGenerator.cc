@@ -130,7 +130,7 @@ PlatefileTileGenerator::PlatefileTileGenerator(std::string platefile_name) :
 
 boost::shared_ptr<ViewImageResource> PlatefileTileGenerator::generate_tile(TileLocator const& tile_info) {
 
-  std::cout << "Request to generate platefile tile " << tile_info.col << " " << tile_info.row << " @ " << tile_info.level << "\n";
+  vw_out(DebugMessage, "gui") << "Request to generate platefile tile " << tile_info.col << " " << tile_info.row << " @ " << tile_info.level << "\n";
   
   try {
     switch (this->pixel_format()) {
