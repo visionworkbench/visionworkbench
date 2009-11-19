@@ -195,7 +195,8 @@ GLuint vw::gui::GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_
     // First, see if the texture record is already in the cache.
     boost::shared_ptr<TextureRecord> rec = m_texture_records->search(tile_info.col, 
                                                                      tile_info.row, 
-                                                                     tile_info.level);
+                                                                     tile_info.level,
+                                                                     tile_info.transaction_id);
 
     // If the shared pointer for this record is empty, then this node
     // was generated as part of a branch that supports a leaf node,
@@ -232,7 +233,7 @@ GLuint vw::gui::GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_
                                                                             new_record_ptr) );
     
     // Place this cache handle into the tree for later access.
-    m_texture_records->insert( new_record_ptr, tile_info.col, tile_info.row, tile_info.level );
+    m_texture_records->insert( new_record_ptr, tile_info.col, tile_info.row, tile_info.level, tile_info.transaction_id );
 
     Mutex::Lock lock(m_request_mutex);
     m_requests.push_back( new_record_ptr );
