@@ -389,14 +389,15 @@ namespace camera {
       std::vector<double> errors, gcp_errors;
       stereo_errors( errors );
       stereo_gcp_errors( gcp_errors );
+      std::sort( errors.begin(), errors.end() );
+      std::sort( gcp_errors.begin(), gcp_errors.end() );
 
       // Error for Statistics
       // All points:
-      double min_tri=0,max_tri=0,mean_tri=0,stddev_tri=0;
-      min_tri = *(std::min_element(errors.begin(),
-                                   errors.end()));
-      max_tri = *(std::max_element(errors.begin(),
-                                   errors.end()));
+      double min_tri=0,max_tri=0,mean_tri=0,stddev_tri=0,med_tri=0;
+      min_tri = errors[0];
+      max_tri = errors[errors.size()-1];
+      med_tri = errors[errors.size()/2];
       for (unsigned i = 0; i < errors.size(); i++ )
         mean_tri += errors[i];
       mean_tri /= errors.size();
@@ -405,12 +406,11 @@ namespace camera {
       stddev_tri /= errors.size();
       stddev_tri = sqrt( stddev_tri - mean_tri*mean_tri );
       // GCPs only"
-      double min_gcp=0,max_gcp=0,mean_gcp=0,stddev_gcp=0;
+      double min_gcp=0,max_gcp=0,mean_gcp=0,stddev_gcp=0,med_gcp=0;
       if ( gcp_errors.size() > 0 ) {
-        min_gcp = *(std::min_element(gcp_errors.begin(),
-                                     gcp_errors.end()));
-        max_gcp = *(std::max_element(gcp_errors.begin(),
-                                     gcp_errors.end()));
+        min_gcp = gcp_errors[0];
+        max_gcp = gcp_errors[gcp_errors.size()-1];
+        med_gcp = gcp_errors[gcp_errors.size()/2];
         for (unsigned i = 0; i < gcp_errors.size(); i++ )
           mean_gcp += gcp_errors[i];
         mean_gcp /= gcp_errors.size();
@@ -424,12 +424,14 @@ namespace camera {
       m_human_both << "\tStereo Tri Error [min: " << min_tri
                    << " mean: " << mean_tri
                    << "\n\t                 max: " << max_tri
-                   << " dev: " << stddev_tri << "]\n";
+                   << " dev: " << stddev_tri << " med: "
+                   << med_tri << "]\n";
       if ( gcp_errors.size() > 0 )
         m_human_both << "\tStereo GCP Error [min: " << min_gcp
                      << " mean: " << mean_gcp
                      << "\n\t                 max: " << max_gcp
-                     << " dev: " << stddev_gcp << "]\n";
+                     << " dev: " << stddev_gcp << " med: "
+                     << med_gcp << "]\n";
       else
         m_human_both << "\tStereo GCP Error [N/A]\n";
 
