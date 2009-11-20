@@ -63,13 +63,16 @@ plateindex_server_LDADD   = libvwPlate.la @MODULE_PLATE_LIBS@
 image2plate_SOURCES = image2plate.cc
 image2plate_LDADD   = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ libvwPlate.la @MODULE_PLATE_LIBS@
 
+tiles2plate_SOURCES = tiles2plate.cc
+tiles2plate_LDADD = libvwPlate.la @MODULE_PLATE_LIBS@
+
 plate2tiles_SOURCES = plate2tiles.cc
 plate2tiles_LDADD    = libvwPlate.la @MODULE_PLATE_LIBS@
 
 plate2dem_SOURCES = plate2dem.cc
 plate2dem_LDADD    = @PKG_CARTOGRAPHY_LIBS@ libvwPlate.la @MODULE_PLATE_LIBS@
 
-bin_PROGRAMS = plate2dem plate2tiles image2plate plateindex_server
+bin_PROGRAMS = plate2dem plate2tiles tiles2plate image2plate plateindex_server
 
 endif
 
