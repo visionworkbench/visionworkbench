@@ -10,6 +10,8 @@
 /// Converts a plate file to a nested set of directories and tiles on
 /// disk.
 
+#include <sstream>
+
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Plate/PlateFile.h>
@@ -29,14 +31,14 @@ static std::string prefix_from_filename(std::string const& filename) {
   return result;
 }
 
-class SaveTileFunc : public TreeMapFunc {
+class ToastSaveTileFunc : public TreeMapFunc {
   boost::shared_ptr<PlateFile> m_platefile;
   std::string m_output_filename;
 
 public:
-  SaveTileFunc(boost::shared_ptr<PlateFile> platefile, std::string output_filename) : 
+  ToastSaveTileFunc(boost::shared_ptr<PlateFile> platefile, std::string output_filename) : 
     m_platefile(platefile), m_output_filename(output_filename) {}
-  virtual ~SaveTileFunc() {}
+  virtual ~ToastSaveTileFunc() {}
 
   virtual void operator() (int32 col, int32 row, int32 level) {
 
@@ -66,13 +68,70 @@ public:
   }
 };
 
+class GigapanSaveTileFunc : public TreeMapFunc {
+  boost::shared_ptr<PlateFile> m_platefile;
+  std::string m_output_filename;
+
+public:
+  GigapanSaveTileFunc(boost::shared_ptr<PlateFile> platefile, std::string output_filename) :
+    m_platefile(platefile), m_output_filename(output_filename) {}
+  virtual ~GigapanSaveTileFunc() {}
+
+  virtual void operator() (int32 col, int32 row, int32 level) {
+    try {
+      std::stringstream filename_stream;
+      std::stringstream directory_stream;
+
+      directory_stream << m_output_filename << '/';
+
+      filename_stream << 'r';
+
+      for (int32 l = level - 1; l >= 0; l--) {
+        uint32 bit = 1 << l;
+        int index = 0;
+        if ( col & bit )
+          index = 1;
+        if ( row & bit )
+          index += 2;
+
+        filename_stream << index;
+      }
+
+      std::string filename = filename_stream.str();
+
+      int size = filename.size();
+      while ( (size > 3) && filename.size() >= 3 ) {
+        directory_stream << filename.substr(0, 3);
+        filename.erase(0, 3);
+
+        if ( !fs::exists(directory_stream.str()) )
+          fs::create_directory( directory_stream.str() );
+
+        directory_stream << '/';
+      }
+
+      filename = directory_stream.str() + filename_stream.str();
+
+      // transaction_id = -1 returns the latest tile available
+      std::string output_filename = m_platefile->read_to_file(filename, col, row, level, -1);
+      std::cout << "\t--> [ " << col << " " << row << " " << level << "] : Writing "
+                << output_filename << "\n";
+
+    } catch (TileNotFoundErr &e) {
+      std::cout << "\t--> [ " << col << " " << row << " " << level << "] : Missing tile\n";
+    }
+  }
+};
+
 int main( int argc, char *argv[] ) {
  
   std::string output_file_name;
+  std::string output_format;
   std::string plate_file_name;
 
   po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");
   general_options.add_options()
+    ("output-format,f", po::value<std::string>(&output_format)->default_value("toast"), "Output tree format")
     ("output-name,o", po::value<std::string>(&output_file_name), "Specify the base output directory")
     ("help", "Display this help message");
 
@@ -106,6 +165,10 @@ int main( int argc, char *argv[] ) {
     return 0;
   }
 
+  if( output_format != "toast" && output_format != "gigapan" ) {
+    vw_throw(ArgumentErr() << "Unknown format passed in using --output-format: " << output_format);
+  }
+
   if( vm.count("plate-file") != 1 ) {
     std::cerr << "Error: must specify an input platefile!" << std::endl << std::endl;
     std::cout << usage.str();
@@ -125,6 +188,11 @@ int main( int argc, char *argv[] ) {
     fs::create_directory(output_file_name);
 
   // Spider across the platefile, saving all valid tiles.
-  boost::shared_ptr<TreeMapFunc> func(new SaveTileFunc(platefile, output_file_name));
-  platefile->map(func);
+  if ( output_format == "toast" ) {
+    boost::shared_ptr<TreeMapFunc> func(new ToastSaveTileFunc(platefile, output_file_name));
+    platefile->map(func);
+  } else if ( output_format == "gigapan" ) {
+    boost::shared_ptr<TreeMapFunc> func(new GigapanSaveTileFunc(platefile, output_file_name));
+    platefile->map(func);
+  }
 }
