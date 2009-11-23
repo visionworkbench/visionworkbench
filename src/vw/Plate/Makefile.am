@@ -18,15 +18,16 @@ protocol_sources = ProtoBuffers.pb.cc
 
 BUILT_SOURCES = $(protocol_sources)
 
-include_HEADERS = Blob.h BlobManager.h Index.h RemoteIndex.h Tree.h	\
-		  PlateFile.h Amqp.h PlateManager.h			\
-		  ToastPlateManager.h KmlPlateManager.h			\
+include_HEADERS = Blob.h BlobManager.h Index.h LocalIndex.h		\
+		  RemoteIndex.h Tree.h PlateFile.h Amqp.h		\
+		  PlateManager.h ToastPlateManager.h KmlPlateManager.h	\
 		  PlateView.h RpcServices.h IndexService.h
 nodist_include_HEADERS = $(protocol_headers)
 
-libvwPlate_la_SOURCES = Blob.cc BlobManager.cc Index.cc RpcServices.cc	\
-			IndexService.cc RemoteIndex.cc Amqp.cc		\
-			ToastPlateManager.cc KmlPlateManager.cc
+libvwPlate_la_SOURCES = Blob.cc BlobManager.cc Index.cc LocalIndex.cc	\
+			RemoteIndex.cc PlateFile.cc RpcServices.cc	\
+			IndexService.cc Amqp.cc ToastPlateManager.cc	\
+			KmlPlateManager.cc
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 
 libvwPlate_la_LIBADD  = @MODULE_PLATE_LIBS@

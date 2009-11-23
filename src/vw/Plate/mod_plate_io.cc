@@ -45,10 +45,12 @@ class PlateModule {
   int image_handler(request_rec *r, int platefile_id,
                     int col, int row, int depth, std::string file_suffix) {
 
+    std::string url = ""; // XXXX FIXME!
+
     std::ostringstream queue_name;
     queue_name << "mod_plate_" << getpid() << "_" << Thread::id() << "\n";
     vw_out(0) << "image handler called by " << Thread::id() << "\n";
-    boost::shared_ptr<platefile::RemoteIndex> m_index( new platefile::RemoteIndex(queue_name.str()) );
+    boost::shared_ptr<platefile::Index> m_index = Index::construct_open(url);
 
     // --------------  Access Plate Index -----------------
 
@@ -60,10 +62,10 @@ class PlateModule {
 
       vw_out(0) << "------------ ISSUING READ REQUEST ----------------\n";
       // Transaction_id = -1, returns the most recent tile available.
-      idx_record = m_index->read_request(platefile_id, col, row, depth, -1);
+      idx_record = m_index->read_request(col, row, depth, -1);
 
       vw_out(0) << "------------ ISSUING INFO REQUEST ----------------\n";
-      plate_filename = m_index->platefile_name(platefile_id);
+      plate_filename = m_index->platefile_name();
       
       //      For debugging:
       // r->content_type = "text/html";      
@@ -104,7 +106,7 @@ class PlateModule {
       // This is probably not as fast as memory mapping the blob file,
       // so this could probably be sped up.
       r->content_type = "image/png";      
-      ap_rwrite(data.get(), idx_record.tile_size(), r);
+      //      ap_rwrite(data.get(), idx_record.tile_size(), r);  // XXX FIXME!!
       return OK;
     } catch (Exception &e) {
       return error_handler(r, "An unknown error occured.");

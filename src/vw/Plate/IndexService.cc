@@ -45,7 +45,7 @@ vw::platefile::IndexServiceImpl::IndexServiceImpl(std::string root_directory) :
   
   for (unsigned i = 0 ; i<platefiles.size(); ++i) {
     std::cout << "\t--> Loading: " << root_directory << "/" << platefiles[i] << "\n";
-    boost::shared_ptr<Index> idx(new Index(root_directory + "/" + platefiles[i]));
+    boost::shared_ptr<Index> idx = Index::construct_open(root_directory + "/" + platefiles[i]);
     IndexServiceRecord rec;
     rec.plate_name = platefiles[i];
     rec.plate_filename = root_directory + "/" + platefiles[i];
@@ -63,7 +63,6 @@ void vw::platefile::IndexServiceImpl::OpenRequest(::google::protobuf::RpcControl
   for (unsigned i = 0 ; i<m_indices.size(); ++i) {
     if (m_indices[i].plate_name == request->plate_name()) {
       //      response->set_platefile_id((*iter).second.id);
-      response->set_secret(0);
       done->Run();
       return;
     }
@@ -88,7 +87,7 @@ void vw::platefile::IndexServiceImpl::InfoRequest(::google::protobuf::RpcControl
   }
  
   boost::shared_ptr<Index> idx = m_indices[request->platefile_id()].index;
-  *(response->mutable_header()) = idx->header();
+  *(response->mutable_header()) = idx->info();
   response->set_plate_name(m_indices[request->platefile_id()].plate_name);
   response->set_plate_filename(m_indices[request->platefile_id()].plate_filename);
   

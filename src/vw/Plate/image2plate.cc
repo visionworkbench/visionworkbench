@@ -188,8 +188,8 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
 
 int main( int argc, char *argv[] ) {
 
-  std::string output_file_name;
-  std::string output_file_type;
+  std::string url;
+  std::string tile_filetype;
   std::string output_mode;
   int tile_size;
   float jpeg_quality;
@@ -200,9 +200,11 @@ int main( int argc, char *argv[] ) {
 
   po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");
   general_options.add_options()
-    ("output-name,o", po::value<std::string>(&output_file_name), "Specify the base output directory")
-    ("file-type", po::value<std::string>(&output_file_type), "Output file type (png is used by default)")
-    ("mode,m", po::value<std::string>(&output_mode)->default_value("toast"), "Output mode [toast, kml]")
+    ("output-name,o", po::value<std::string>(&url), "Specify the URL of the platefile.")
+    ("file-type", po::value<std::string>(&tile_filetype), 
+     "Output file type (png is used by default)")
+    ("mode,m", po::value<std::string>(&output_mode)->default_value("toast"), 
+     "Output mode [toast, kml]")
     ("tile-size", po::value<int>(&tile_size)->default_value(256), "Tile size, in pixels")
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
@@ -248,8 +250,8 @@ int main( int argc, char *argv[] ) {
 
   //------------------------- SET DEFAULT OPTIONS -----------------------------
 
-  if( output_file_name == "" )
-    output_file_name = prefix_from_filename(image_files[0]) + "_" + output_mode + ".plate";
+  if( url == "" )
+    url = prefix_from_filename(image_files[0]) + "_" + output_mode + ".plate";
 
   if( tile_size <= 0 || tile_size != pow(2,int(log(tile_size)/log(2))) ) {
     std::cerr << "Error: The tile size must be a power of two!  (You specified: " << tile_size << ")" << std::endl << std::endl;
@@ -281,27 +283,26 @@ int main( int argc, char *argv[] ) {
   // Choose an appropriate default file type
   if (!vm.count("file-type")) {
     if (channel_type == VW_CHANNEL_FLOAT32)
-      output_file_type = "tif";
+      tile_filetype = "tif";
     else 
-      output_file_type = "png";
+      tile_filetype = "png";
   }
 
-  // Create the plate file
-  std::cout << "\nOpening plate file: " << output_file_name << "\n";
-  boost::shared_ptr<PlateFile> platefile = 
-    boost::shared_ptr<PlateFile>( new PlateFile(output_file_name, 
-                                                tile_size, output_file_type,
-                                                pixel_format, channel_type));
-  
   // Create both platefile managers (we only end up using one... this
   // just makes the code a little more readable.)
   if (output_mode != "toast" && output_mode != "kml") {
     vw_throw(ArgumentErr() << "Unknown mode type passed in using --mode: " << output_mode << ".  Exiting.\n");
   }
-  
   try {
+
+    boost::shared_ptr<PlateFile> platefile = 
+      boost::shared_ptr<PlateFile>( new PlateFile(url, output_mode, "",
+                                                  tile_size, tile_filetype,
+                                                  pixel_format, channel_type));
+  
     
     // Add the image to the mosaic using the correct platefile manager
+    std::cout << "\nOpening plate file: " << url << "\n";
     if (output_mode == "toast") {
       boost::shared_ptr<ToastPlateManager> pm = 
         boost::shared_ptr<ToastPlateManager>( new ToastPlateManager(platefile, num_threads) );

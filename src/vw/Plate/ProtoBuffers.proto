@@ -7,7 +7,7 @@
 package vw.platefile;
 
 // ----------------------------------------------------------------------
-//               Index file & Blob file Data Structures
+//                     Blob file Data Structures
 // ----------------------------------------------------------------------
 
 // Each entry in the blob file is described by a BlobRecord.  This
@@ -19,43 +19,6 @@ message BlobRecord {
   required uint32 header_size = 2;
   required uint32 data_offset = 3;
   required uint32 data_size = 4;
-}
-
-// The IndexHeader store basic metadata for the platefile, such as the
-// default tile size, file type, and map projection information.
-// This is typically stored in the <platfile>/plate.index file.
-message IndexHeader {
-  optional int32 platefile_version = 1;
-  optional uint32 default_tile_size = 2;
-  optional string default_file_type = 3;
-  optional int32 pixel_format = 4;
-  optional int32 channel_type = 5;
-  optional int32 transaction_read_cursor = 6 [default = 0];
-  optional int32 transaction_write_cursor = 7 [default = 1];
-  repeated int32 complete_transaction_ids = 8 [packed = true];
-}
-
-// ----------------------------------------------------------------------
-//                         Tile Data Structures
-// ----------------------------------------------------------------------
-
-enum IndexRecordStatusType {
-  INDEX_RECORD_EMPTY = 1;
-  INDEX_RECORD_STALE = 2;
-  INDEX_RECORD_VALID = 3;
-}
-
-// The IndexRecord stores basic metadata for locating a tile in a
-// blob.  The IndexRecord is used to store this information in a live
-// index (in main memory), and can also be stored as part of a
-// TileHeader, which is written to the blob file on disk.  Other
-// metadata about that tile is stored alongside the tile itself in the
-// blobfile in a TileRecord protobufer (see below).
-message IndexRecord {
-  required uint32 blob_id = 1;
-  required uint64 blob_offset = 2;
-  optional IndexRecordStatusType status = 3 [ default = INDEX_RECORD_EMPTY ];
-  optional uint32 tile_size = 5;
 }
 
 // The TileRecord store metadata about the tile itself as well as the
@@ -71,6 +34,45 @@ message TileHeader {
 }
 
 // ----------------------------------------------------------------------
+//                      Index Data Structures
+// ----------------------------------------------------------------------
+
+enum IndexRecordStatusType {
+  INDEX_RECORD_EMPTY = 1;
+  INDEX_RECORD_STALE = 2;
+  INDEX_RECORD_VALID = 3;
+}
+
+// The IndexHeader store basic metadata for the platefile, such as the
+// default tile size, file type, and map projection information.
+// This is typically stored in the <platfile>/plate.index file.
+message IndexHeader {
+  optional string type = 1;
+  optional string description = 2;
+  optional uint32 tile_size = 3;
+  optional string tile_filetype = 4;
+  optional int32 pixel_format = 5;
+  optional int32 channel_type = 6;
+  optional int32 version = 10 [default = 1];
+  optional int32 transaction_read_cursor = 11 [default = 0];
+  optional int32 transaction_write_cursor = 12 [default = 1];
+  repeated int32 complete_transaction_ids = 13 [packed = true];
+}
+
+// The IndexRecord stores basic metadata for locating a tile in a
+// blob.  The IndexRecord is used to store this information in a live
+// index (in main memory), and can also be stored as part of a
+// TileHeader, which is written to the blob file on disk.  Other
+// metadata about that tile is stored alongside the tile itself in the
+// blobfile in a TileRecord protobufer (see below).
+message IndexRecord {
+  required uint32 blob_id = 1;
+  required uint64 blob_offset = 2;
+  optional IndexRecordStatusType status = 3 [ default = INDEX_RECORD_EMPTY ];
+}
+
+
+// ----------------------------------------------------------------------
 //             Remote Procedure Calls (RPC) for Index Server
 // ----------------------------------------------------------------------
 
@@ -80,7 +82,6 @@ message TileHeader {
 
 message IndexOpenRequest {
   required string plate_name = 1;
-  optional string mode = 2 [default = "read"]; // [ 'read' | 'readwrite' ]
 }
 
 message IndexCloseRequest {
@@ -92,33 +93,27 @@ message IndexInfoRequest {
   required int32 platefile_id = 1;
 }
 
-message IndexCreate {
-  required string plate_filename = 1;
-  required string projection_type = 2;
-  required int32 default_block_size = 3;
-  required string default_filetype = 4;
+message IndexCreateRequest {
+  required IndexHeader index_header = 1;
 }
 
 message IndexReadRequest {
   required int32 platefile_id = 1;
-  required int32 secret = 2;
 
   required int32 col = 3;
   required int32 row = 4;
   required int32 depth = 5;
-  required int32 transaction_id = 6 [default = -1];
+  required int32 transaction_id = 6;
 }
 
 message IndexWriteRequest {
   required int32 platefile_id = 1;
-  required int32 secret = 2;
 
   required int32 size = 3;
 }
 
 message IndexWriteComplete {
   required int32 platefile_id = 1;
-  required int32 secret = 2;
 
   required TileHeader header = 3;
   required IndexRecord record = 4;
@@ -126,7 +121,6 @@ message IndexWriteComplete {
 
 message IndexDepthRequest {
   required int32 platefile_id = 1;
-  required int32 secret = 2;
 }
 
 // ----------------------------------
@@ -139,7 +133,11 @@ message IndexError {
 
 message IndexOpenReply {
   required int32 platefile_id = 1;
-  required int32 secret = 2;
+  required IndexHeader index_header = 2;
+}
+
+message IndexCreateReply {
+  required int32 platefile_id = 1;
 }
 
 message IndexInfoReply {
@@ -182,6 +180,7 @@ message RpcResponseWrapper {
 
 service IndexService {
   rpc OpenRequest (IndexOpenRequest) returns (IndexOpenReply);
+  rpc CreateRequest (IndexCreateRequest) returns (IndexCreateReply);
   rpc InfoRequest (IndexInfoRequest) returns (IndexInfoReply);
   rpc ReadRequest (IndexReadRequest) returns (IndexReadReply);
 }

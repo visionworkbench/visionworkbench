@@ -113,38 +113,19 @@ namespace platefile {
 
   
   class PlateFile {
-    boost::shared_ptr<IndexBase> m_index;
+    boost::shared_ptr<Index> m_index;
     FifoWorkQueue m_queue;
 
   public:
+
+    // Open an existing platefile
+    PlateFile(std::string url);
   
-    PlateFile(std::string plate_filename, int default_tile_size = 256, 
-              std::string default_file_type = "jpg", 
-              PixelFormatEnum default_pixel_format = VW_PIXEL_RGBA,
-              ChannelTypeEnum default_channel_type = VW_CHANNEL_UINT8) {
-
-      // Plate files are stored as an index file and one or more data
-      // blob files in a directory.  We create that directory here if
-      // it doesn't already exist.
-      if( !exists( fs::path( plate_filename, fs::native ) ) ) {
-        fs::create_directory(plate_filename);
-        m_index = boost::shared_ptr<IndexBase>( new Index(plate_filename, 
-                                                          default_tile_size, 
-                                                          default_file_type, 
-                                                          default_pixel_format,
-                                                          default_channel_type) );
-        vw_out(DebugMessage, "platefile") << "Creating new plate file: \"" 
-                                          << plate_filename << "\"\n";
-
-      // However, if it does exist, then we attempt to open the
-      // platefile that is stored there.
-      } else {
-        m_index = boost::shared_ptr<IndexBase>( new Index(plate_filename) );
-        vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" 
-                                          << plate_filename << "\"\n";
-      }
-      
-    }
+    // Create a new platefile
+    PlateFile(std::string url, std::string type, std::string description,
+              int tile_size = 256, std::string tile_filetype = "jpg", 
+              PixelFormatEnum pixel_format = VW_PIXEL_RGBA,
+              ChannelTypeEnum channel_type = VW_CHANNEL_UINT8);
 
     /// The destructor saves the platefile to disk. 
     ~PlateFile() {}
@@ -153,9 +134,9 @@ namespace platefile {
     std::string name() const { return m_index->platefile_name(); }
 
     /// Returns the file type used to store tiles in this plate file.
-    std::string default_file_type() const { return m_index->default_tile_filetype(); }
+    std::string default_file_type() const { return m_index->tile_filetype(); }
 
-    int default_tile_size() const { return m_index->default_tile_size(); }
+    int default_tile_size() const { return m_index->tile_size(); }
 
     PixelFormatEnum pixel_format() const { return m_index->pixel_format(); }
 
@@ -267,7 +248,7 @@ namespace platefile {
       write_record.set_blob_id(blob_id);
       write_record.set_blob_offset(blob_offset);
       write_record.set_status(INDEX_RECORD_VALID);
-      write_record.set_tile_size(file_size);
+      //      write_record.set_tile_size(file_size);  // ????
 
       m_index->write_complete(write_header, write_record);
     }
@@ -298,7 +279,6 @@ namespace platefile {
     virtual int32 transaction_cursor() {
       return m_index->transaction_cursor();
     }
-
     
     // ----------------------- UTILITIES --------------------------
 

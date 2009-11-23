@@ -233,7 +233,8 @@ GLuint vw::gui::GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_
                                                                             new_record_ptr) );
     
     // Place this cache handle into the tree for later access.
-    m_texture_records->insert( new_record_ptr, tile_info.col, tile_info.row, tile_info.level, tile_info.transaction_id );
+    m_texture_records->insert( new_record_ptr, tile_info.col, tile_info.row, 
+                               tile_info.level, tile_info.transaction_id );
 
     Mutex::Lock lock(m_request_mutex);
     m_requests.push_back( new_record_ptr );

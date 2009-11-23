@@ -18,6 +18,7 @@ namespace po = boost::program_options;
 using namespace vw::platefile;
 using namespace vw;
 
+// A dummy method for passing to the RPC calls below.
 void null_closure() {}
 
 // -----------------------------------------------------------------------------
@@ -67,8 +68,8 @@ public:
                                                                         false);
         WireMessage wire_request(request_bytes);
         RpcRequestWrapper request_wrapper = wire_request.parse_as_message<RpcRequestWrapper>();
-        std::cout << "[RPC] " << request_wrapper.method() 
-                  << " from " << request_wrapper.requestor() << "\n";
+        std::cout << "[RPC: " << request_wrapper.method() 
+                  << "from " << request_wrapper.requestor() << "]\n";
         
         // Step 2 : Delegate the message to the proper method on the service.
         const google::protobuf::MethodDescriptor* method = 
@@ -95,8 +96,6 @@ public:
           response_wrapper.set_error_string(this->ErrorText());
           this->Reset();
         }
-        
-        //        std::cout << "Response wrapper " << response_wrapper.DebugString() << "\n";
         
         WireMessage wire_response(&response_wrapper);
         m_conn.basic_publish(wire_response.serialized_bytes(), 
@@ -178,7 +177,8 @@ int main(int argc, char** argv) {
 
   po::options_description general_options("Runs a mosaicking daemon that listens for mosaicking requests coming in over the AMQP bus..\n\nGeneral Options:");
   general_options.add_options()
-    ("queue_name,q", po::value<std::string>(&queue_name)->default_value(""), "Specify the name of the AMQP queue to create and listen to for mosaicking requests. (Defaults to the \"ngt_mosaic_worker\" queue.")
+    ("queue_name,q", po::value<std::string>(&queue_name)->default_value(INDEX_QUEUE), 
+     "Specify the name of the AMQP queue to create and listen to for mosaicking requests. (Defaults to the \"ngt_mosaic_worker\" queue.")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -212,7 +212,7 @@ int main(int argc, char** argv) {
   }
   
   std::cout << "Initializing the index server.\n";
-  IndexServer server(INDEX_EXCHANGE, INDEX_QUEUE);
+  IndexServer server(INDEX_EXCHANGE, queue_name);
 
   std::cout << "\t--> Exporting service.\n";
   boost::shared_ptr<google::protobuf::Service> service( new IndexServiceImpl(root_directory) );
