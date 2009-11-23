@@ -28,11 +28,11 @@ namespace platefile {
     typedef PixelT result_type;
     typedef ProceduralPixelAccessor<PlateView> pixel_accessor;
 
-    PlateView(std::string plate_filename) {
+    PlateView(std::string url) {
       
       // Open the platefile
-      m_platefile.reset( new PlateFile(plate_filename) );
-      vw_out(InfoMessage, "plate") << "PlateView -- opened platefile \"" << plate_filename << "\"\n";
+      m_platefile.reset( new PlateFile(url) );
+      vw_out(InfoMessage, "plate") << "PlateView -- opened platefile \"" << url << "\"\n";
       m_current_depth = m_platefile->depth();
     }
 
