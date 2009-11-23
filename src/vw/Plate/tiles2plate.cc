@@ -290,7 +290,7 @@ int main( int argc, char *argv[] ) {
   try {
     std::cout << "Opening plate file: " << output_file_name << std::endl;
     boost::shared_ptr<PlateFile> platefile =
-      boost::shared_ptr<PlateFile>( new PlateFile(output_file_name,
+      boost::shared_ptr<PlateFile>( new PlateFile(output_file_name, "gigapan", "",
                                                   tile_size, output_file_type,
                                                   pixel_format, channel_type) );
 

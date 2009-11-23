@@ -13,6 +13,7 @@
 #include <vw/FileIO/DiskImageResource.h>
 
 #include <vw/Plate/Index.h>
+#include <vw/Plate/LocalIndex.h>
 #include <vw/Plate/Blob.h>
 
 #include <vector>
@@ -118,14 +119,46 @@ namespace platefile {
 
   public:
 
-    // Open an existing platefile
-    PlateFile(std::string url);
-  
-    // Create a new platefile
-    PlateFile(std::string url, std::string type, std::string description,
+    PlateFile(std::string url, std::string type = "", std::string description = "",
               int tile_size = 256, std::string tile_filetype = "jpg", 
               PixelFormatEnum pixel_format = VW_PIXEL_RGBA,
-              ChannelTypeEnum channel_type = VW_CHANNEL_UINT8);
+              ChannelTypeEnum channel_type = VW_CHANNEL_UINT8) {
+
+      // Plate files are stored as an index file and one or more data
+      // blob files in a directory.  We create that directory here if
+      // it doesn't already exist.
+      if( !exists( fs::path( url, fs::native ) ) ) {
+        fs::create_directory(url);
+
+        IndexHeader hdr;
+        hdr.set_type(type);
+        hdr.set_description(description);
+        hdr.set_tile_size(tile_size);
+        hdr.set_tile_filetype(tile_filetype);
+        hdr.set_pixel_format(pixel_format);
+        hdr.set_channel_type(channel_type);
+
+        m_index = boost::shared_ptr<Index>( new LocalIndex(url, hdr) );
+        vw_out(DebugMessage, "platefile") << "Creating new plate file: \"" << url << "\"\n";
+
+      // However, if it does exist, then we attempt to open the
+      // platefile that is stored there.
+      } else {
+        m_index = boost::shared_ptr<Index>( new LocalIndex(url) );
+        vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" << url << "\"\n";
+      }
+      
+    }
+
+
+    // // Open an existing platefile
+    // PlateFile(std::string url);
+  
+    // // Create a new platefile
+    // PlateFile(std::string url, std::string type, std::string description,
+    //           int tile_size = 256, std::string tile_filetype = "jpg", 
+    //           PixelFormatEnum pixel_format = VW_PIXEL_RGBA,
+    //           ChannelTypeEnum channel_type = VW_CHANNEL_UINT8);
 
     /// The destructor saves the platefile to disk. 
     ~PlateFile() {}
