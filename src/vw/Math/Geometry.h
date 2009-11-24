@@ -312,7 +312,7 @@ namespace math {
       Matrix<double> S(dim+1,dim+1);
       S.set_identity();
 
-      for (unsigned i = 0; i < dfree; ++i) {
+      for (int i = 0; i < dfree; ++i) {
         S(i/(dim+1), i%(dim+1)) = x(i);
       }
 
