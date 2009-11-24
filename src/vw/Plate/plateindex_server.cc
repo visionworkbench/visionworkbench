@@ -58,29 +58,29 @@ public:
 
     while(1) {
 
+      // Step 1 : Wait for an incoming message.
+      std::string routing_key;
+      std::cout << "\n\nWaiting for message...\n";
+      boost::shared_array<uint8> request_bytes = m_conn.basic_consume(m_queue, 
+                                                                      routing_key, 
+                                                                      false);
+      WireMessage wire_request(request_bytes);
+      RpcRequestWrapper request_wrapper = wire_request.parse_as_message<RpcRequestWrapper>();
+      std::cout << "[RPC: " << request_wrapper.method() 
+                << " from " << request_wrapper.requestor() << "]\n";
+
+      // Step 2 : Delegate the message to the proper method on the service.
+      const google::protobuf::MethodDescriptor* method = 
+        m_service->GetDescriptor()->FindMethodByName(request_wrapper.method());
+      
+      boost::shared_ptr<google::protobuf::Message> 
+        request(m_service->GetRequestPrototype(method).New());
+      
+      boost::shared_ptr<google::protobuf::Message> 
+        response(m_service->GetResponsePrototype(method).New());
+      
       try {
 
-        // Step 1 : Wait for an incoming message.
-        std::string routing_key;
-        std::cout << "\n\nWaiting for message...\n";
-        boost::shared_array<uint8> request_bytes = m_conn.basic_consume(m_queue, 
-                                                                        routing_key, 
-                                                                        false);
-        WireMessage wire_request(request_bytes);
-        RpcRequestWrapper request_wrapper = wire_request.parse_as_message<RpcRequestWrapper>();
-        std::cout << "[RPC: " << request_wrapper.method() 
-                  << "from " << request_wrapper.requestor() << "]\n";
-        
-        // Step 2 : Delegate the message to the proper method on the service.
-        const google::protobuf::MethodDescriptor* method = 
-          m_service->GetDescriptor()->FindMethodByName(request_wrapper.method());
-        
-        boost::shared_ptr<google::protobuf::Message> 
-          request(m_service->GetRequestPrototype(method).New());
-        
-        boost::shared_ptr<google::protobuf::Message> 
-          response(m_service->GetResponsePrototype(method).New());
-        
         request->ParseFromString(request_wrapper.payload());
         std::cout << "Request:\n" << request->DebugString() << "\n";
         m_service->CallMethod(method, this, request.get(), response.get(), 
@@ -91,9 +91,13 @@ public:
         RpcResponseWrapper response_wrapper;
         response_wrapper.set_payload(response->SerializeAsString());
         response_wrapper.set_error(false);
+
+        // If the RPC generated an error, we pass it along here. 
         if (this->Failed()) {
           response_wrapper.set_error(true);
-          response_wrapper.set_error_string(this->ErrorText());
+          RpcErrorInfo msg;
+          msg.set_type("Rpc Error");
+          msg.set_message(this->ErrorText());
           this->Reset();
         }
         
@@ -104,7 +108,22 @@ public:
       
 
       } catch (vw::Exception &e) {
-        std::cout << "WARNING: A server error occurred: " << e.what() << "\n";
+
+        RpcResponseWrapper response_wrapper;
+        response_wrapper.set_payload("");
+
+        // If an exception occurred on the plateindex_server, we pass
+        // it along to the requestor as well.
+        RpcErrorInfo msg;
+        msg.set_type(e.name());
+        msg.set_message(e.what());
+        response_wrapper.set_error(true);
+        *(response_wrapper.mutable_error_info()) = msg;
+
+        WireMessage wire_response(&response_wrapper);
+        m_conn.basic_publish(wire_response.serialized_bytes(), 
+                             wire_response.size(),
+                             m_exchange, request_wrapper.requestor() );
       } 
 
     }    
@@ -151,6 +170,12 @@ public:
     m_failed_reason = reason;
   }
 
+  void SetFailed(std::string type, std::string description) {
+
+  }
+
+
+
   // If true, indicates that the client canceled the RPC, so the server may
   // as well give up on replying to it.  The server should still call the
   // final "done" callback.
@@ -177,7 +202,7 @@ int main(int argc, char** argv) {
 
   po::options_description general_options("Runs a mosaicking daemon that listens for mosaicking requests coming in over the AMQP bus..\n\nGeneral Options:");
   general_options.add_options()
-    ("queue_name,q", po::value<std::string>(&queue_name)->default_value(INDEX_QUEUE), 
+    ("queue_name,q", po::value<std::string>(&queue_name)->default_value("index"), 
      "Specify the name of the AMQP queue to create and listen to for mosaicking requests. (Defaults to the \"ngt_mosaic_worker\" queue.")
     ("help", "Display this help message");
 
@@ -211,10 +236,7 @@ int main(int argc, char** argv) {
     return 1;
   }
   
-  std::cout << "Initializing the index server.\n";
   IndexServer server(INDEX_EXCHANGE, queue_name);
-
-  std::cout << "\t--> Exporting service.\n";
   boost::shared_ptr<google::protobuf::Service> service( new IndexServiceImpl(root_directory) );
   server.export_with_routing_key(service, "index");
 

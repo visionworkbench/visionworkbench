@@ -47,16 +47,22 @@ enum IndexRecordStatusType {
 // default tile size, file type, and map projection information.
 // This is typically stored in the <platfile>/plate.index file.
 message IndexHeader {
-  optional string type = 1;
-  optional string description = 2;
-  optional uint32 tile_size = 3;
-  optional string tile_filetype = 4;
-  optional int32 pixel_format = 5;
-  optional int32 channel_type = 6;
-  optional int32 version = 10 [default = 1];
+
+  // "Public" Metadata
+  required int32 platefile_id = 1;   // a unique number that identifies this platefile
+  optional uint32 tile_size = 2;     // tile width/heigh in pixels 
+  optional string tile_filetype = 3; // file type [e.g. tif, png, or jpg]
+  optional int32 pixel_format = 4;   // see vw/Image/PixelTypeInfo.h
+  optional int32 channel_type = 5;   // see vw/Image/PixelTypeInfo.h
+  optional string type = 6;          // platefile type [ toast, kml, or gigapan ]
+  optional string description = 7;   // textual description
+
+  // Privately Managed Metadata
+  optional int32 version = 10 [default = 1];  
   optional int32 transaction_read_cursor = 11 [default = 0];
   optional int32 transaction_write_cursor = 12 [default = 1];
   repeated int32 complete_transaction_ids = 13 [packed = true];
+
 }
 
 // The IndexRecord stores basic metadata for locating a tile in a
@@ -84,22 +90,17 @@ message IndexOpenRequest {
   required string plate_name = 1;
 }
 
-message IndexCloseRequest {
-  required int32 platefile_id = 1;
-  required int32 secret = 2;
+message IndexCreateRequest {
+  required string plate_name = 1;
+  required IndexHeader index_header = 2;
 }
 
 message IndexInfoRequest {
   required int32 platefile_id = 1;
 }
 
-message IndexCreateRequest {
-  required IndexHeader index_header = 1;
-}
-
 message IndexReadRequest {
   required int32 platefile_id = 1;
-
   required int32 col = 3;
   required int32 row = 4;
   required int32 depth = 5;
@@ -108,15 +109,27 @@ message IndexReadRequest {
 
 message IndexWriteRequest {
   required int32 platefile_id = 1;
-
   required int32 size = 3;
 }
 
 message IndexWriteComplete {
   required int32 platefile_id = 1;
-
   required TileHeader header = 3;
   required IndexRecord record = 4;
+}
+
+message IndexTransactionRequest {
+  required int32 platefile_id = 1;
+  required string description = 2;
+}
+
+message IndexTransactionComplete {
+  required int32 platefile_id = 1;
+  required int32 transaction_id = 2;
+}
+
+message IndexTransactionCursorRequest {
+  required int32 platefile_id = 1;
 }
 
 message IndexDepthRequest {
@@ -127,23 +140,19 @@ message IndexDepthRequest {
 // Server --> Client Responses
 // ----------------------------------
 
-message IndexError {
-  required string message = 1;
+message RpcErrorMessage {
+  required string type = 1;
+  required string message = 2;
 }
 
 message IndexOpenReply {
-  required int32 platefile_id = 1;
-  required IndexHeader index_header = 2;
-}
-
-message IndexCreateReply {
-  required int32 platefile_id = 1;
+  required IndexHeader index_header = 1;
 }
 
 message IndexInfoReply {
-  required string plate_name = 1;
-  required string plate_filename = 2;
-  required IndexHeader header = 3;
+  required string short_plate_filename = 1;
+  required string full_plate_filename = 2;
+  required IndexHeader index_header = 3;
 }
 
 message IndexReadReply {
@@ -158,6 +167,15 @@ message IndexWriteReply {
   required int32 blob_id = 1;
 }
 
+
+message IndexTransactionReply {
+  required int32 transaction_id = 1;
+}
+
+message IndexTransactionCursorReply {
+  required int32 transaction_id = 1;
+}
+
 message IndexDepthReply {
   required int32 depth = 1;
 }
@@ -165,6 +183,15 @@ message IndexDepthReply {
 // ---------------------------------
 // Service definition
 // ---------------------------------
+
+message RpcErrorInfo {
+  required string type = 1;
+  required string message = 2;
+}
+
+message RpcNullMessage {
+  required int32 dummy = 1 [ default = 0];  // dummy parameter (empty message)
+}
 
 message RpcRequestWrapper {
   required string requestor = 1;
@@ -175,12 +202,18 @@ message RpcRequestWrapper {
 message RpcResponseWrapper {
   required bytes payload = 1;
   required bool error = 2 [ default = false ];
-  optional string error_string = 3;
+  optional RpcErrorInfo error_info = 3;
 }
 
 service IndexService {
   rpc OpenRequest (IndexOpenRequest) returns (IndexOpenReply);
-  rpc CreateRequest (IndexCreateRequest) returns (IndexCreateReply);
+  rpc CreateRequest (IndexCreateRequest) returns (IndexOpenReply);
   rpc InfoRequest (IndexInfoRequest) returns (IndexInfoReply);
   rpc ReadRequest (IndexReadRequest) returns (IndexReadReply);
+  rpc WriteRequest (IndexWriteRequest) returns (IndexWriteReply);
+  rpc WriteComplete (IndexWriteRequest) returns (RpcNullMessage);
+  rpc TransactionRequest (IndexTransactionRequest) returns (IndexTransactionReply);
+  rpc TransactionComplete (IndexTransactionComplete) returns (RpcNullMessage);
+  rpc TransactionCursor (IndexTransactionCursorRequest) returns (IndexTransactionCursorReply);
+  rpc DepthRequest (IndexDepthRequest) returns (IndexDepthReply);
 }

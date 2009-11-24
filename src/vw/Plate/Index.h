@@ -71,7 +71,7 @@ namespace platefile {
 
     // ----------------------- PROPERTIES  ----------------------
 
-    virtual IndexHeader info() const = 0;
+    virtual IndexHeader index_header() const = 0;
 
     virtual int32 version() const = 0;
     virtual int32 max_depth() const = 0;

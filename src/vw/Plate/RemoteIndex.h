@@ -49,7 +49,7 @@ namespace platefile {
     virtual void write_complete(TileHeader const& header, 
                                 IndexRecord const& record);
 
-    virtual IndexHeader info() const;
+    virtual IndexHeader index_header() const;
   
     virtual int32 version() const;
     virtual int32 max_depth() const;

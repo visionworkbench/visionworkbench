@@ -18,18 +18,24 @@ namespace platefile {
 
   class IndexServiceImpl : public IndexService {
 
+
     struct IndexServiceRecord {
-      std::string plate_name;
-      std::string plate_filename;
+      std::string short_plate_filename;
+      std::string full_plate_filename;
+      IndexHeader index_header;
       boost::shared_ptr<Index> index;
     };
 
     std::string m_root_directory;
-    std::vector<IndexServiceRecord> m_indices;
+
+    typedef std::map<int32, IndexServiceRecord> index_list_type;
+    index_list_type m_indices;
 
     // Private methods
-    std::vector<std::string> plate_filenames(std::string const& root_directory);
-
+    std::vector<std::string> glob_plate_filenames(std::string const& root_directory);
+    IndexServiceRecord add_index(std::string root_directory, std::string plate_filename,
+                                 boost::shared_ptr<Index> index);
+      
   public:
 
     IndexServiceImpl(std::string root_directory);
@@ -38,6 +44,11 @@ namespace platefile {
                              const ::vw::platefile::IndexOpenRequest* request,
                              ::vw::platefile::IndexOpenReply* response,
                              ::google::protobuf::Closure* done);
+
+    virtual void CreateRequest(::google::protobuf::RpcController* controller,
+                               const ::vw::platefile::IndexCreateRequest* request,
+                               ::vw::platefile::IndexOpenReply* response,
+                               ::google::protobuf::Closure* done);
 
     virtual void InfoRequest(::google::protobuf::RpcController* controller,
                              const ::vw::platefile::IndexInfoRequest* request,
@@ -48,6 +59,36 @@ namespace platefile {
                              const ::vw::platefile::IndexReadRequest* request,
                              ::vw::platefile::IndexReadReply* response,
                              ::google::protobuf::Closure* done);      
+
+    virtual void WriteRequest(::google::protobuf::RpcController* controller,
+                              const ::vw::platefile::IndexWriteRequest* request,
+                              ::vw::platefile::IndexWriteReply* response,
+                              ::google::protobuf::Closure* done);      
+
+    virtual void WriteComplete(::google::protobuf::RpcController* controller,
+                               const ::vw::platefile::IndexWriteComplete* request,
+                               ::vw::platefile::RpcNullMessage* response,
+                               ::google::protobuf::Closure* done);      
+
+    virtual void TransactionRequest(::google::protobuf::RpcController* controller,
+                                    const ::vw::platefile::IndexTransactionRequest* request,
+                                    ::vw::platefile::IndexTransactionReply* response,
+                                    ::google::protobuf::Closure* done);      
+
+    virtual void TransactionComplete(::google::protobuf::RpcController* controller,
+                                     const ::vw::platefile::IndexTransactionComplete* request,
+                                     ::vw::platefile::RpcNullMessage* response,
+                                     ::google::protobuf::Closure* done);      
+
+    virtual void TransactionCursor(::google::protobuf::RpcController* controller,
+                                   const ::vw::platefile::IndexTransactionCursorRequest* request,
+                                   ::vw::platefile::IndexTransactionCursorReply* response,
+                                   ::google::protobuf::Closure* done);      
+    
+    virtual void DepthRequest(::google::protobuf::RpcController* controller,
+                              const ::vw::platefile::IndexDepthRequest* request,
+                              ::vw::platefile::IndexDepthReply* response,
+                              ::google::protobuf::Closure* done);      
   };
 
 

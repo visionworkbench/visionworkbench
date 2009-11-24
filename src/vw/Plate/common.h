@@ -9,6 +9,5 @@
 #define __VW_PLATE_COMMON_H__
 
 #define INDEX_EXCHANGE "ngt_platefile_index"
-#define INDEX_QUEUE "index"
 
 #endif

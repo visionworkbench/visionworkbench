@@ -60,8 +60,10 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
   WireMessage wire_response(response_bytes);
   RpcResponseWrapper response_wrapper = wire_response.parse_as_message<RpcResponseWrapper>();
   if (response_wrapper.error()) {
-    vw_out(0) << "There was an error string\n";
-    controller->SetFailed(response_wrapper.error_string());
+    vw_out(0) << "WARNING: an RPC error occured.  Type = " 
+              << response_wrapper.error_info().type()
+              << "  Description = " << response_wrapper.error_info().message() << "\n";
+    controller->SetFailed(response_wrapper.error_info().message());
   }
   response->ParseFromString(response_wrapper.payload());
   vw_out(0) << "Response:\n" << response->DebugString() << "\n\n";
