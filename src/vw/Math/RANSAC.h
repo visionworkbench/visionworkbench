@@ -63,23 +63,37 @@ namespace math {
     }
   };
 
-  /// This metric can be used to measure the error between a interest
-  /// point p2 and a second interest point p1 that is transformed by a
-  /// 3x3 matrix H.  This is predominately used when matching interest
-  /// points using RANSAC.
-  struct InterestPointErrorMetric {
+  template <int dim>
+  struct HomogeneousL2NormErrorMetric {
     template <class RelationT, class ContainerT>
     double operator() (RelationT const& H,
                        ContainerT const& p1, 
                        ContainerT const& p2) const {
-      Vector3 inter_result = H*Vector3(p1[0],p1[1],1);
+      Vector<double, dim+1> p1_h, p2_h;
+
+      for (unsigned i = 0; i < dim; i++) {
+        p1_h[i] = p1[i];
+        p2_h[i] = p2[i];
+      }
+
+      p1_h[dim] = 1;
+      p2_h[dim] = 1;
+
+      Vector3 inter_result = H*p1_h;
       // Re-normalizing. This conditional should only throw if H is
       // an homography matrix
-      if ( inter_result[2] != 1 ) 
-	inter_result /= inter_result[2];
-      return vw::math::norm_2( Vector3(p2[0],p2[1],1) - inter_result);
+      if ( inter_result[dim] != 1 ) 
+        inter_result /= inter_result[dim];
+
+      return vw::math::norm_2(p2_h - inter_result);
     }
   };
+
+  /// This metric can be used to measure the error between a interest
+  /// point p2 and a second interest point p1 that is transformed by a
+  /// 3x3 matrix H.  This is predominately used when matching interest
+  /// points using RANSAC.
+  typedef HomogeneousL2NormErrorMetric<2> InterestPointErrorMetric;
 
   /// RANSAC Driver class
   template <class FittingFuncT, class ErrorFuncT>
