@@ -241,18 +241,16 @@ namespace math {
     }
   };
 
-
-
-  /// This fitting functor attempts to find an affine transformation
-  /// (rotation, translation, scaling, and skewing -- 6 degrees of
-  /// freedom) that transforms point p1 to match points p2.  This fit
+  /// This fitting functor attempts to find an affine transformation in RN
+  /// (rotation, translation, scaling, and skewing) This fit
   /// is optimal in a least squares sense.
-  struct AffineFittingFunctor {
-    typedef vw::Matrix<double,3,3> result_type;
+  template <int dim>
+  struct AffineFittingFunctorN {
+    typedef vw::Matrix<double,dim+1,dim+1> result_type;
 
-    /// A affine transformation requires 3 pairs of data points to make a fit.
+    /// A affine transformation requires dim*(dim+1) pairs of data points to make a fit.
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 3; }
+    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return dim*(dim+1); }
 
     /// This function can match points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
@@ -270,44 +268,63 @@ namespace math {
                  vw::ArgumentErr() << "Cannot compute affine transformation.  Insufficient data.\n");
       
 
-      Vector<double> y(p1.size()*2); 
-      Vector<double> x(6);
-      Matrix<double> A(p1.size()*2, 6);
+      int dfree = dim * (dim + 1); // Number of parameters that we're solving for
+
+      Vector<double> y(p1.size()*dim); 
+      Vector<double> x(dfree);
+      Matrix<double> A(p1.size()*dim, dfree);
 
       // Formulate a linear least squares problem to find the
-      // components of the similarity matrix: 
-      //       | s00 s01 s02 |
-      //  S =  | s10 s11 s12 |
-      //       | 0   0   1   |
+      // components of the similarity matrix (shown for R2 below):
+      //       | x0 x1 x2 |
+      //  S =  | x3 x4 x5 |
+      //       | x6 x7 x8 |
+      //       |  0  0  1 |
       //
+      // Least Squares problem:
+      //
+      // Ax = y
+      //
+      // x[0:8] represents the components of the similarity matrix, above
+      // 
+      // A is defined as follows:
+      //
+      // A(row i)     = | p1[i][0] p1[i][1]        1        0        0        0 |
+      // A(row i + 1) = |        0        0        0 p1[i][0] p1[i][1]        1 |
+      //
+      // y is defined as follows:
+      //
+      // y(row i)     = | p2[i][0] |
+      // y(row i + 1) = | p2[i][1] |
+      
       for (unsigned i = 0; i < p1.size(); ++i) {
-        A(i*2,0) = p1[i][0];
-        A(i*2,1) = p1[i][1];
-        A(i*2,4) = 1;
-        A(i*2+1,2) = p1[i][0];
-        A(i*2+1,3) = p1[i][1];
-        A(i*2+1,5) = 1;
-        
-        y(i*2) = p2[i][0];
-        y(i*2+1) = p2[i][1];
+        for (unsigned j = 0; j < dim; ++j) {
+          unsigned row = i*dim+j;
+          for (unsigned l = 0; l < dim + 1; ++l) {
+            A(row, j*(dim+1)+l) = l == dim + 1 ? 1 : p1[i][l];
+          }
+          y(row) = p2[i][j];
+        }
       }
-
+        
       x = least_squares(A,y);
 
-      Matrix<double> S(3,3);
+      Matrix<double> S(dim+1,dim+1);
       S.set_identity();
-      S(0,0) = x(0);
-      S(0,1) = x(1);
-      S(1,0) = x(2);
-      S(1,1) = x(3);
-      S(0,2) = x(4);
-      S(1,2) = x(5);
+
+      for (unsigned i = 0; i < dfree; ++i) {
+        S(i/(dim+1), i%(dim+1)) = x(i);
+      }
 
       return S;
     }
   };
 
-
+  /// This fitting functor attempts to find an affine transformation
+  /// (rotation, translation, scaling, and skewing -- 6 degrees of
+  /// freedom) that transforms point p1 to match points p2.  This fit
+  /// is optimal in a least squares sense.
+  typedef AffineFittingFunctorN<2> AffineFittingFunctor;
 
   /// This fitting functor attempts to find a similarity transformation
   /// (rotation, translation, scaling)

@@ -91,6 +91,43 @@ TEST(Geometry, AffinityFittingFunctor) {
   EXPECT_MATRIX_NEAR( S, AffineFittingFunctor()(p1,p2), 1e-14 );
 }
 
+TEST(Geometry, AffinityFittingFunctorN) {
+
+  static double A_data[] = {
+    0.0153, 0.9318, 0.2345, 1,
+    0.6721, 0.6813, 0.1234, 1,
+    0.3046, 0.6822, 0.6543, 1,
+    0.8600, 0.7468, 0.1652, 1,
+    0.5252, 0.8381, 0.5089, 1,
+    0.7095, 0.1897, 0.2258, 1,
+    0.6979, 0.8537, 0.0461, 1,
+    0.4186, 0.2026, 0.1419, 1,
+    0.8318, 0.4289, 0.6408, 1,
+    0.3475, 0.3354, 0.2868, 1,
+    0.7025, 0.2123, 0.2339, 1,
+    0.4944, 0.9446, 0.1233, 1,
+    0.7193, 0.6551, 0.3655, 1,
+    0.5491, 0.4076, 0.1014, 1 };
+  vw::MatrixProxy<double,14,4> A(A_data);
+
+  static double S_data[] = {
+    1.1567,  0.5916,  0.5557, -0.7443,
+    0.2814,  1.0851,  0.0225, 0.3333,
+    0.9074,  0.4688,  0.7468, 0.8321,
+         0,       0,       0, 1.0000};
+
+  vw::MatrixProxy<double,4,4> S(S_data);
+
+  vw::Matrix<double> B = transpose(S*transpose(A));
+  std::vector<Vector4> p1, p2;
+  for (unsigned i = 0; i < A.rows(); ++i) {
+    p1.push_back(select_row(A,i));
+    p2.push_back(select_row(B,i));
+  }
+
+  EXPECT_MATRIX_NEAR( S, AffineFittingFunctorN<3>()(p1,p2), 1e-14 );
+}
+
 TEST(Geometry, SimilarityFittingFunctor) {
   static double A_data[] = {
     0.0153, 0.9318, 1,
