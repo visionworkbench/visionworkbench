@@ -23,7 +23,7 @@ namespace platefile {
 
     // Remote connection
     boost::shared_ptr<AmqpRpcChannel> m_rpc_channel;
-    boost::shared_ptr<AmqpRpcController> m_rpc_controller;
+    boost::shared_ptr<AmqpRpcClient> m_rpc_controller;
     boost::shared_ptr<IndexService> m_index_service;
   
   public:

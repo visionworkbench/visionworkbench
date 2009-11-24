@@ -15,7 +15,7 @@ using namespace vw::platefile;
 #include <boost/algorithm/string/split.hpp>
  
 // A dummy method for passing to the RPC calls below.
-void null_closure() {}
+static void null_closure() {}
 
 // Parse a URL with the format: pf://<exchange>/<platefile name>.plate
 void parse_url(std::string const& url, std::string &exchange, std::string &platefile_name) {
@@ -58,7 +58,7 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url) {
 
   // Set up the connection to the AmqpRpcService
   m_rpc_channel.reset( new AmqpRpcChannel(INDEX_EXCHANGE, exchange, requestor.str()) );
-  m_rpc_controller.reset ( new AmqpRpcController() );
+  m_rpc_controller.reset ( new AmqpRpcClient() );
   m_index_service.reset ( new IndexService::Stub(m_rpc_channel.get()) );
   
   // Send an IndexOpenRequest to the AMQP index server.
@@ -101,7 +101,7 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url, IndexHeader inde
 
   // Set up the connection to the AmqpRpcService
   m_rpc_channel.reset( new AmqpRpcChannel(exchange, "index", requestor.str()) );
-  m_rpc_controller.reset ( new AmqpRpcController() );
+  m_rpc_controller.reset ( new AmqpRpcClient() );
   m_index_service.reset ( new IndexService::Stub(m_rpc_channel.get()) );
   
   // Send an IndexCreateRequest to the AMQP index server.

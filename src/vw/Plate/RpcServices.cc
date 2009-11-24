@@ -4,10 +4,14 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+#include <vw/Core/Exception.h>
 #include <vw/Plate/RpcServices.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 
 #include <google/protobuf/descriptor.h>
+
+// A dummy method for passing to the RPC calls below.
+static void null_closure() {}
 
 // -----------------------------------------------------------------------
 //                           AmqpRpcChannel
@@ -69,4 +73,83 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
   vw_out(0) << "Response:\n" << response->DebugString() << "\n\n";
 
   done->Run();
+}
+
+// -----------------------------------------------------------------------------
+//                                AmqpRpcServer
+// -----------------------------------------------------------------------------
+
+void vw::platefile::AmqpRpcServer::run() {
+
+  while(1) {
+    
+    // Step 1 : Wait for an incoming message.
+    std::string routing_key;
+    std::cout << "\n\nWaiting for message...\n";
+    boost::shared_array<uint8> request_bytes = m_conn.basic_consume(m_queue, 
+                                                                    routing_key, 
+                                                                    false);
+    WireMessage wire_request(request_bytes);
+    RpcRequestWrapper request_wrapper = wire_request.parse_as_message<RpcRequestWrapper>();
+    std::cout << "[RPC: " << request_wrapper.method() 
+              << " from " << request_wrapper.requestor() << "]\n";
+
+    // Step 2 : Delegate the message to the proper method on the service.
+    const google::protobuf::MethodDescriptor* method = 
+      m_service->GetDescriptor()->FindMethodByName(request_wrapper.method());
+      
+    boost::shared_ptr<google::protobuf::Message> 
+      request(m_service->GetRequestPrototype(method).New());
+      
+    boost::shared_ptr<google::protobuf::Message> 
+      response(m_service->GetResponsePrototype(method).New());
+      
+    try {
+
+      request->ParseFromString(request_wrapper.payload());
+      std::cout << "Request:\n" << request->DebugString() << "\n";
+      m_service->CallMethod(method, this, request.get(), response.get(), 
+                            google::protobuf::NewCallback(&null_closure));
+      std::cout << "Response:\n" << response->DebugString() << "\n\n";
+        
+      // Step 3 : Return the result.
+      RpcResponseWrapper response_wrapper;
+      response_wrapper.set_payload(response->SerializeAsString());
+      response_wrapper.set_error(false);
+
+      // If the RPC generated an error, we pass it along here. 
+      if (this->Failed()) {
+        response_wrapper.set_error(true);
+        RpcErrorInfo msg;
+        msg.set_type("Rpc Error");
+        msg.set_message(this->ErrorText());
+        this->Reset();
+      }
+        
+      WireMessage wire_response(&response_wrapper);
+      m_conn.basic_publish(wire_response.serialized_bytes(), 
+                           wire_response.size(),
+                           m_exchange, request_wrapper.requestor() );
+      
+
+    } catch (vw::Exception &e) {
+
+      RpcResponseWrapper response_wrapper;
+      response_wrapper.set_payload("");
+
+      // If an exception occurred on the plateindex_server, we pass
+      // it along to the requestor as well.
+      RpcErrorInfo msg;
+      msg.set_type(e.name());
+      msg.set_message(e.what());
+      response_wrapper.set_error(true);
+      *(response_wrapper.mutable_error_info()) = msg;
+
+      WireMessage wire_response(&response_wrapper);
+      m_conn.basic_publish(wire_response.serialized_bytes(), 
+                           wire_response.size(),
+                           m_exchange, request_wrapper.requestor() );
+    } 
+
+  }    
 }
