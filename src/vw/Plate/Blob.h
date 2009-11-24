@@ -221,6 +221,9 @@ namespace platefile {
     /// Returns the binary data for an entry starting at base_offset.
     boost::shared_array<uint8> read_data(vw::uint64 base_offset);
 
+    /// Returns the parameters necessary to call sendfile(2)
+    void read_sendfile(vw::uint64 base_offset, std::string& filename, vw::uint64& offset, vw::uint64& size);
+
     /// Returns the data size
     uint32 data_size(uint64 base_offset) const {
 

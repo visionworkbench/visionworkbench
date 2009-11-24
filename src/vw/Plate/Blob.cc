@@ -62,9 +62,7 @@ vw::platefile::Blob::Blob(std::string filename, bool readonly) : m_blob_filename
 
 vw::platefile::Blob::~Blob() {}
 
-/// read_data()
-boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset) {
-
+void vw::platefile::Blob::read_sendfile(vw::uint64 base_offset, std::string& filename, vw::uint64& offset, vw::uint64& size) {
   // Seek to the requested offset and read the header and data offset
   m_fstream->seekg(base_offset, std::ios_base::beg);
 
@@ -72,27 +70,39 @@ boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset
   uint16 blob_record_size;
   BlobRecord blob_record = this->read_blob_record(blob_record_size);
 
-  // The overall blob metadat includes the uint16 of the
+  // The overall blob metadata includes the uint16 of the
   // blob_record_size in addition to the size of the blob_record
   // itself.  The offsets stored in the blob_record are relative to
   // the END of the blob_record.  We compute this offset here.
   uint32 blob_offset_metadata = sizeof(blob_record_size) + blob_record_size;
-  int32 size = blob_record.data_size();
-  uint64 offset = base_offset + blob_offset_metadata + blob_record.data_offset();
-  
+
+  size     = blob_record.data_size();
+  offset   = base_offset + blob_offset_metadata + blob_record.data_offset();
+  filename = m_blob_filename;
+
+}
+
+/// read_data()
+boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset) {
+
+  vw::uint64 offset, size;
+  std::string dontcare;
+
+  read_sendfile(base_offset, dontcare, offset, size);
+
   // Allocate an array of the appropriate size to read the data.
   boost::shared_array<uint8> data(new uint8[size]);
-  
+
   m_fstream->seekg(offset, std::ios_base::beg);
   m_fstream->read((char*)(data.get()), size);
-  
+
   // Throw an exception if the read operation failed (after clearing the error bit)
   if (m_fstream->fail()) {
     m_fstream->clear();
     vw_throw(IOErr() << "Blob::read() -- an error occurred while reading " 
              << "data from the blob file.\n");
   }
-  
+
   vw::vw_out(vw::VerboseDebugMessage, "plate::blob") << "Blob::read() -- read " 
                                                      << size << " bytes at " << offset 
                                                      << " from " << m_blob_filename << "\n";
