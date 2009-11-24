@@ -200,7 +200,7 @@ message RpcRequestWrapper {
 }
 
 message RpcResponseWrapper {
-  required bytes payload = 1;
+  optional bytes payload = 1;
   required bool error = 2 [ default = false ];
   optional RpcErrorInfo error_info = 3;
 }

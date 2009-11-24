@@ -111,21 +111,22 @@ void vw::platefile::AmqpRpcServer::run() {
       m_service->CallMethod(method, this, request.get(), response.get(), 
                             google::protobuf::NewCallback(&null_closure));
       std::cout << "Response:\n" << response->DebugString() << "\n\n";
-        
+
       // Step 3 : Return the result.
       RpcResponseWrapper response_wrapper;
-      response_wrapper.set_payload(response->SerializeAsString());
-      response_wrapper.set_error(false);
 
-      // If the RPC generated an error, we pass it along here. 
-      if (this->Failed()) {
+      if (!this->Failed()) {
+        response_wrapper.set_error(false);
+        response_wrapper.set_payload(response->SerializeAsString());
+      } else {
+        // If the RPC generated an error, we pass it along here.
         response_wrapper.set_error(true);
         RpcErrorInfo msg;
         msg.set_type("Rpc Error");
         msg.set_message(this->ErrorText());
         this->Reset();
       }
-        
+
       WireMessage wire_response(&response_wrapper);
       m_conn.basic_publish(wire_response.serialized_bytes(), 
                            wire_response.size(),
