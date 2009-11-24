@@ -146,6 +146,9 @@ namespace vw {
     /// Returns the error message text as a std::string.
     std::string desc() const { return m_desc.str(); }
 
+    /// Returns a string version of this exception's type.
+    virtual std::string name() const { return "Exception"; }
+
     VW_IF_EXCEPTIONS( virtual void default_throw() const { throw *this; } )
 
   protected:
@@ -190,26 +193,28 @@ namespace vw {
 
   /// Macro for quickly creating a hierarchy of exceptions, all of
   /// which share the same functionality.
-  #define VW_DEFINE_EXCEPTION(name,base)                              \
-  struct name : public base {                                         \
-    name() VW_IF_EXCEPTIONS(throw()) : base() {}                      \
-    name(std::string const& s) VW_IF_EXCEPTIONS(throw()) : base(s) {} \
-    name( name const& e ) VW_IF_EXCEPTIONS(throw()) : base( e ) {}    \
-    virtual ~name() VW_IF_EXCEPTIONS(throw()) {}                      \
-                                                                      \
-    inline name& operator=( name const& e ) VW_IF_EXCEPTIONS(throw()) { \
-      base::operator=( e );                                           \
-      return *this;                                                   \
-    }                                                                 \
-                                                                      \
-    template <class T>                                                \
-    name& operator<<( T const& t ) { m_desc << t; return *this; }     \
-                                                                      \
-    name& set( std::string const& s ) { m_desc.str(s);  return *this; } \
-                                                                      \
-    name& reset() { m_desc.str("");  return *this; }                  \
-                                                                      \
-    VW_IF_EXCEPTIONS(virtual void default_throw() const { throw *this; }) \
+  #define VW_DEFINE_EXCEPTION(exception_type,base)                                          \
+  struct exception_type : public base {                                                     \
+    exception_type() VW_IF_EXCEPTIONS(throw()) : base() {}                                  \
+    exception_type(std::string const& s) VW_IF_EXCEPTIONS(throw()) : base(s) {}             \
+    exception_type( exception_type const& e ) VW_IF_EXCEPTIONS(throw()) : base( e ) {}      \
+    virtual ~exception_type() VW_IF_EXCEPTIONS(throw()) {}                                  \
+                                                                                            \
+    virtual std::string name() const { return #exception_type; }                            \
+                                                                                            \
+    inline exception_type& operator=( exception_type const& e ) VW_IF_EXCEPTIONS(throw()) { \
+      base::operator=( e );                                                                 \
+      return *this;                                                                         \
+    }                                                                                       \
+                                                                                            \
+    template <class T>                                                                      \
+    exception_type& operator<<( T const& t ) { m_desc << t; return *this; }                 \
+                                                                                            \
+    exception_type& set( std::string const& s ) { m_desc.str(s);  return *this; }           \
+                                                                                            \
+    exception_type& reset() { m_desc.str("");  return *this; }                              \
+                                                                                            \
+    VW_IF_EXCEPTIONS(virtual void default_throw() const { throw *this; })                   \
   }
 
   /// Invalid function argument exception

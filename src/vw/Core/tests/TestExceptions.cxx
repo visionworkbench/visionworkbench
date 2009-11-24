@@ -16,6 +16,15 @@ VW_DEFINE_EXCEPTION(Level1Err, vw::Exception);
 VW_DEFINE_EXCEPTION(Level2Err, Level1Err);
 
 TEST(Exceptions, HAS_EXCEPTIONS(Hierarchy)) {
+  
+  // Test exception names
+  Level1Err l1;
+  Level2Err l2;
+  l1 << "Test message1.";
+  l2 << "Test message2.";
+  EXPECT_EQ(l1.name() , "Level1Err" );
+  EXPECT_EQ(l2.name() , "Level2Err" );
+
   EXPECT_THROW(throw Level1Err(), vw::Exception);
   EXPECT_THROW(throw Level1Err(), Level1Err);
   EXPECT_THROW(throw Level2Err(), vw::Exception);
