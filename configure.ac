@@ -90,6 +90,9 @@ AX_COMMON_OPTIONS
 # Does the compiler support introspection?
 AX_CHECK_INTROSPECTION
 
+# Does the compiler support noreturn?
+AX_CHECK_FUNCTION_ATTRIBUTE([noreturn])
+
 # Looking for posix headers
 AC_CHECK_HEADERS([unistd.h pwd.h])
 AC_CHECK_FUNCS([getpwuid getpid])

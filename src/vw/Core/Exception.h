@@ -106,6 +106,12 @@
 #define VW_IF_EXCEPTIONS(x)
 #endif
 
+#if defined(VW_COMPILER_HAS_ATTRIBUTE_NORETURN) && (VW_COMPILER_HAS_ATTRIBUTE_NORETURN==1)
+#define NORETURN __attribute__((noreturn))
+#else
+#define NORETURN
+#endif
+
 namespace vw {
 
   /// The core exception class.  
@@ -268,7 +274,7 @@ namespace vw {
   /// Throws an exception via the Vision Workbench error 
   /// handling mechanism, which may not actually involvle 
   /// throwing an exception in the usual C++ sense.
-  void vw_throw( Exception const& e );
+  void vw_throw( Exception const& e ) NORETURN;
 
 } // namespace vw
 
