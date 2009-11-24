@@ -210,7 +210,7 @@ int main( int argc, char *argv[] ) {
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Soure data cache size, in megabytes")
     ("num-threads,t", po::value<unsigned>(&num_threads)->default_value(1), "Set number of threads (set to 0 to use system default")
-    ("mipmap-only,m", "Skip tile generation entirely and simply run the mipmapper to generate any low res tiles that need to be created or refreshed.")
+    ("mipmap-only", "Skip tile generation entirely and simply run the mipmapper to generate any low res tiles that need to be created or refreshed.")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
