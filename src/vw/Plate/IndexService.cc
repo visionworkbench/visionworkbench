@@ -57,7 +57,7 @@ IndexServiceImpl::IndexServiceImpl(std::string root_directory) :
 
   // Search for all platefiles in the given root_directory.  A
   // platefile is any directory ending in *.plate.
-  std::vector<std::string> platefiles = glob_plate_filenames(root_directory);
+  std::vector<std::string> platefiles = glob_plate_filenames(fs::system_complete(root_directory));
   if (platefiles.size() < 1) 
     vw_throw(ArgumentErr() << "Error: could not find any platefiles in the root directory.");
   
