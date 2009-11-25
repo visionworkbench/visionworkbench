@@ -240,12 +240,7 @@ GLuint vw::gui::GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_
     m_requests.push_back( new_record_ptr );
     return 0;
 
-  } catch (platefile::IndexErr &e) {
-
-    // If the tile request was invalid, we return a null texture pointer.
-    return 0;
-
-  }
+  } 
 
   return 0; // never reached
 }

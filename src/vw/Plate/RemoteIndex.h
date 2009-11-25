@@ -20,6 +20,8 @@ namespace platefile {
     std::string m_queue_name;
     int m_platefile_id;
     IndexHeader m_index_header;
+    std::string m_short_plate_filename;
+    std::string m_full_plate_filename;
 
     // Remote connection
     boost::shared_ptr<AmqpRpcChannel> m_rpc_channel;

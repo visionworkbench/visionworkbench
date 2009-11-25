@@ -22,7 +22,6 @@ namespace platefile {
     struct IndexServiceRecord {
       std::string short_plate_filename;
       std::string full_plate_filename;
-      IndexHeader index_header;
       boost::shared_ptr<Index> index;
     };
 
@@ -36,6 +35,10 @@ namespace platefile {
     IndexServiceRecord add_index(std::string root_directory, std::string plate_filename,
                                  boost::shared_ptr<Index> index);
       
+    /// Fetch an IndexServiceRecord for a given platefile_id, or throw an
+    /// exception if no record is found.
+    IndexServiceRecord get_index_record_for_platefile_id(int platefile_id);
+
   public:
 
     IndexServiceImpl(std::string root_directory);

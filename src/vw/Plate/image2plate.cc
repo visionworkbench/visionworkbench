@@ -71,8 +71,6 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
     // Determine the read and write transaction ids to use for this image.
     int read_transaction_id = platefile->transaction_cursor();
     int write_transaction_id = platefile->transaction_request(image_files[i]);
-    std::cout << "    Read cursor : " << read_transaction_id << "\n";
-    std::cout << "    Write cursor : " << write_transaction_id << "\n";
 
     std::ostringstream status_str;
     status_str << "\t    " << image_files[i] << " : ";

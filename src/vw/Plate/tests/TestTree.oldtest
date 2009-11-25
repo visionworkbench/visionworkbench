@@ -39,8 +39,8 @@ public:
     TS_ASSERT_EQUALS(root->child(3)->child(3)->value(0), 20);
 
     // Test an invalid index
-    TS_ASSERT_THROWS(root->insert(10,2,1,1,0), IndexErr);
-    TS_ASSERT_THROWS(root->insert(1,0,1,0,0), IndexErr);
+    TS_ASSERT_THROWS(root->insert(10,2,1,1,0), TileNotFoundErr); // IndexErr
+    TS_ASSERT_THROWS(root->insert(1,0,1,0,0), TileNotFoundErr);  // IndexErr
   }
 
   void test_search() {
@@ -81,7 +81,7 @@ public:
 
     // Test searches on nodes that should be invalid
     TS_ASSERT_THROWS(root->search(3,4,3,0), TileNotFoundErr);
-    TS_ASSERT_THROWS(root->search(3,8,3,0), IndexErr);
+    TS_ASSERT_THROWS(root->search(3,8,3,0), TileNotFoundErr); // IndexErr
     TS_ASSERT_THROWS(root->search(3,4,5,0), TileNotFoundErr);
     TS_ASSERT_THROWS(root->search(0,0,2,0), TileNotFoundErr);
   }

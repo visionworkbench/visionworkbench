@@ -32,7 +32,6 @@ public:
 
     IndexReadRequest request;
     request.set_platefile_id(23);
-    request.set_secret(48);
 
     request.set_col(1);
     request.set_row(2);
@@ -53,7 +52,6 @@ public:
     //    std::cout << "Response: " << response.DebugString() << "\n";
 
     TS_ASSERT_EQUALS(request.platefile_id(), response.platefile_id());
-    TS_ASSERT_EQUALS(request.secret(), response.secret());
     TS_ASSERT_EQUALS(request.col(), response.col());
     TS_ASSERT_EQUALS(request.row(), response.row());
     TS_ASSERT_EQUALS(request.depth(), response.depth());

@@ -7,7 +7,7 @@
 
 #include <cxxtest/TestSuite.h>
 
-#include <vw/Plate/Index.h>
+#include <vw/Plate/LocalIndex.h>
 
 using namespace std;
 using namespace vw;
@@ -64,14 +64,19 @@ public:
     std::string plate_filename = "/tmp/foo.plate";
 
     // Write the basic data...
-    Index idx(plate_filename, 256, "tif", VW_PIXEL_RGB, VW_CHANNEL_UINT8);
+    IndexHeader rec;
+    rec.set_tile_size(256);
+    rec.set_tile_filetype("tif");
+    rec.set_pixel_format(VW_PIXEL_RGB);
+    rec.set_channel_type(VW_CHANNEL_UINT8);
+    LocalIndex idx(plate_filename, rec);
 
     // And read it back in...
-    Index idx2(plate_filename);
+    LocalIndex idx2(plate_filename);
     
     TS_ASSERT_EQUALS(idx.version(), idx2.version());
-    TS_ASSERT_EQUALS(idx.default_tile_size(), idx2.default_tile_size());
-    TS_ASSERT_EQUALS(idx.default_tile_filetype(), idx2.default_tile_filetype());
+    TS_ASSERT_EQUALS(idx.tile_size(), idx2.tile_size());
+    TS_ASSERT_EQUALS(idx.tile_filetype(), idx2.tile_filetype());
   }
 
   void test_index_transactions() {
@@ -79,7 +84,12 @@ public:
     std::string plate_filename = "/tmp/foo.plate";
 
     // Write the basic data...
-    Index idx(plate_filename, 256, "tif", VW_PIXEL_RGB, VW_CHANNEL_UINT8);
+    IndexHeader rec;
+    rec.set_tile_size(256);
+    rec.set_tile_filetype("tif");
+    rec.set_pixel_format(VW_PIXEL_RGB);
+    rec.set_channel_type(VW_CHANNEL_UINT8);
+    LocalIndex idx(plate_filename, rec);
 
     TS_ASSERT_EQUALS(idx.transaction_cursor(), 0);
 
@@ -163,7 +173,12 @@ public:
     dummy_header4.set_depth(1);
 
     // Write some data to the Index.
-    Index idx(plate_filename, 256, "tif", VW_PIXEL_RGB, VW_CHANNEL_UINT8);
+    IndexHeader hdr;
+    hdr.set_tile_size(256);
+    hdr.set_tile_filetype("tif");
+    hdr.set_pixel_format(VW_PIXEL_RGB);
+    hdr.set_channel_type(VW_CHANNEL_UINT8);
+    LocalIndex idx(plate_filename, hdr);
     Blob blob(blob_filename);
 
     IndexRecord rec;
@@ -205,11 +220,11 @@ public:
 
     // Now let's try some invalid reads/writes
     dummy_header5.set_col(10);
-    TS_ASSERT_THROWS(idx.write_complete(dummy_header5, rec), IndexErr);
+    TS_ASSERT_THROWS(idx.write_complete(dummy_header5, rec), TileNotFoundErr);
     dummy_header5.set_col(0);
     dummy_header5.set_row(2);
     dummy_header5.set_depth(1);
-    TS_ASSERT_THROWS(idx.write_complete(dummy_header5, rec), IndexErr);
+    TS_ASSERT_THROWS(idx.write_complete(dummy_header5, rec), TileNotFoundErr);
 
     TS_ASSERT_THROWS(idx.read_request(0, 0, 2, -1), TileNotFoundErr);
   }
@@ -254,7 +269,12 @@ public:
 
     // Write some data to the Index. 
     { 
-      Index idx(plate_filename, 256, "tif", VW_PIXEL_RGB, VW_CHANNEL_UINT8);
+      IndexHeader hdr;
+      hdr.set_tile_size(256);
+      hdr.set_tile_filetype("tif");
+      hdr.set_pixel_format(VW_PIXEL_RGB);
+      hdr.set_channel_type(VW_CHANNEL_UINT8);
+      LocalIndex idx(plate_filename, hdr);
       Blob blob(blob_filename);
 
       IndexRecord rec;
@@ -282,7 +302,7 @@ public:
 
     // Now, let's save the data to disk, and then read it back.
     {
-      Index idx2(plate_filename);
+      LocalIndex idx2(plate_filename);
       Blob blob(blob_filename);
 
       // Read the data back from the index

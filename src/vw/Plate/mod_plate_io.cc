@@ -25,6 +25,7 @@
 #include <boost/regex.hpp>
 #include <boost/foreach.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "mod_plate_io.h"
 
@@ -111,8 +112,8 @@ int handle_image(request_rec *r, const std::string& url) {
   IndexRecord idx_record;
   std::string plate_filename;
   try {
-    idx_record     = m_index->read_request(id,col,row,level);
-    plate_filename = m_index->platefile_name(id);
+    idx_record     = m_index->read_request(col,row,level,-1);
+    plate_filename = m_index->platefile_name();
   } catch(vw::Exception &e) {
     vw_throw(ServerError() << "Could not read plate index: " << e.what());
   }
@@ -208,7 +209,7 @@ int PlateModule::operator()(request_rec *r) const {
   //out << "]" << std::endl;
   //return OK;
 
-  typedef boost::function<int (request_rec*, const std::string& url) Handler;
+  typedef boost::function<int (request_rec*, const std::string& url)> Handler;
   static const Handler Handlers[] = {handle_image, handle_wtml};
 
   BOOST_FOREACH(const Handler h, Handlers) {

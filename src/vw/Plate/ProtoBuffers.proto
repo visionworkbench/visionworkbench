@@ -49,7 +49,10 @@ enum IndexRecordStatusType {
 message IndexHeader {
 
   // "Public" Metadata
-  required int32 platefile_id = 1;   // a unique number that identifies this platefile
+  //
+  // You should set these values before passing an IndexHeader along
+  // to the Index::construct_create() method.
+  //
   optional uint32 tile_size = 2;     // tile width/heigh in pixels 
   optional string tile_filetype = 3; // file type [e.g. tif, png, or jpg]
   optional int32 pixel_format = 4;   // see vw/Image/PixelTypeInfo.h
@@ -58,6 +61,11 @@ message IndexHeader {
   optional string description = 7;   // textual description
 
   // Privately Managed Metadata
+  //
+  // These values are managed privately be the actual index class. You
+  // should never need to set these yourself.
+  //
+  required int32 platefile_id = 1;   // a unique number that identifies this platefile
   optional int32 version = 10 [default = 1];  
   optional int32 transaction_read_cursor = 11 [default = 0];
   optional int32 transaction_write_cursor = 12 [default = 1];
@@ -146,7 +154,9 @@ message RpcErrorMessage {
 }
 
 message IndexOpenReply {
-  required IndexHeader index_header = 1;
+  required string short_plate_filename = 1;
+  required string full_plate_filename = 2;
+  required IndexHeader index_header = 3;
 }
 
 message IndexInfoReply {
@@ -190,7 +200,7 @@ message RpcErrorInfo {
 }
 
 message RpcNullMessage {
-  required int32 dummy = 1 [ default = 0];  // dummy parameter (empty message)
+  optional int32 dummy = 1 [ default = 0];  // dummy parameter (empty message)
 }
 
 message RpcRequestWrapper {
@@ -211,7 +221,7 @@ service IndexService {
   rpc InfoRequest (IndexInfoRequest) returns (IndexInfoReply);
   rpc ReadRequest (IndexReadRequest) returns (IndexReadReply);
   rpc WriteRequest (IndexWriteRequest) returns (IndexWriteReply);
-  rpc WriteComplete (IndexWriteRequest) returns (RpcNullMessage);
+  rpc WriteComplete (IndexWriteComplete) returns (RpcNullMessage);
   rpc TransactionRequest (IndexTransactionRequest) returns (IndexTransactionReply);
   rpc TransactionComplete (IndexTransactionComplete) returns (RpcNullMessage);
   rpc TransactionCursor (IndexTransactionCursorRequest) returns (IndexTransactionCursorReply);

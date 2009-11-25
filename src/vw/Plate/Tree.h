@@ -13,6 +13,7 @@
 #include <vw/Core/FundamentalTypes.h>
 
 // TODO: Remove this once we fix invalidate()
+#include <vw/Plate/Exception.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 
 #include <boost/shared_array.hpp>
@@ -20,12 +21,6 @@
 
 namespace vw {
 namespace platefile {
-
-  /// TileNotFound exception
-  VW_DEFINE_EXCEPTION(TileNotFoundErr, Exception);
-
-  /// IndexError exception
-  VW_DEFINE_EXCEPTION(IndexErr, Exception);
 
   // A subclass of TreeMapFunc can be used to iterate over a tree
   // using the TreeNode::map() function below.
@@ -54,7 +49,8 @@ namespace platefile {
 
       if (tile_x >= pow(2, current_level) ||
           tile_y >= pow(2, current_level))
-        vw_throw(IndexErr() << "TreeNode: invalid index (" << col << " " << row << " at level " << level << ").");
+        vw_throw(TileNotFoundErr() << "TreeNode: invalid index (" 
+                 << col << " " << row << " at level " << level << ").");
       tile_x %= 2;
       tile_y %= 2;
 
@@ -109,7 +105,7 @@ namespace platefile {
         // Handle the edge case where the user has requested a tile
         // outside of the 1x1 bounds of the root level.
         if ( level == 0 && (col !=0 || row != 0) )
-          vw_throw(IndexErr() << "TreeNode: invalid index (" << col << " " << row << ").");
+          vw_throw(TileNotFoundErr() << "TreeNode: invalid index (" << col << " " << row << ").");
         
         return true;
         
@@ -146,7 +142,7 @@ namespace platefile {
         // Handle the edge case where the user has requested a tile
         // outside of the 1x1 bounds of the root level.
         if ( level == 0 && (col !=0 || row != 0) )
-          vw_throw(IndexErr() << "TreeNode: invalid index (" << col << " " << row << ").");
+          vw_throw(TileNotFoundErr() << "TreeNode: invalid index (" << col << " " << row << ").");
 
         return this->value(transaction_id);
 
@@ -210,7 +206,7 @@ namespace platefile {
         // Handle the edge case where the user has requested a tile
         // outside of the 1x1 bounds of the root level.
         if ( level == 0 && (col !=0 || row != 0) )
-          vw_throw(IndexErr() << "TreeNode: invalid index (" << col << " " << row << ").");
+          vw_throw(TileNotFoundErr() << "TreeNode: invalid index (" << col << " " << row << ").");
 
         // TODO: This is where we could keep the history of ElementTs
         // that were used for this node.  This would allow us to go

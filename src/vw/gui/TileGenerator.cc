@@ -74,6 +74,7 @@ std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, i
 // --------------------------------------------------------------------------
 
 boost::shared_ptr<TileGenerator> TileGenerator::create(std::string filename) {
+
   // If ends in .plate, then assume platefile.
   if ( fs::extension(filename) == ".plate") {
 

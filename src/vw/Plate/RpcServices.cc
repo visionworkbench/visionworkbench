@@ -5,13 +5,66 @@
 // __END_LICENSE__
 
 #include <vw/Core/Exception.h>
+#include <vw/Plate/Exception.h>
 #include <vw/Plate/RpcServices.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
+using namespace vw;
 
 #include <google/protobuf/descriptor.h>
 
 // A dummy method for passing to the RPC calls below.
 static void null_closure() {}
+
+// -----------------------------------------------------------------------
+//                             WireMessage
+// -----------------------------------------------------------------------
+
+/// A handy utility class for serializing/deserializing protocol
+/// buffers over the wire.  Store the buffer as a stream of bytes with
+/// the size of the message at the beginning of the stream.
+class WireMessage {
+  
+  typedef int32 size_type;
+  
+  boost::shared_array<uint8> m_serialized_bytes;
+  size_type m_size;
+  
+  uint8* message_start() const {
+    return (m_serialized_bytes.get() + sizeof(size_type));
+  }
+  
+public:
+  
+  WireMessage(const google::protobuf::Message* message) {
+    m_serialized_bytes.reset( new uint8[sizeof(size_type) + message->ByteSize()] );
+    
+    // Store the size at the beginning of the byte stream.
+    m_size = message->ByteSize() + sizeof(size_type); 
+    ((size_type*)(m_serialized_bytes.get()))[0] = m_size;
+    
+    message->SerializeToArray((void*)(message_start()), message->ByteSize());
+  }
+  
+  WireMessage(boost::shared_array<uint8> const& serialized_bytes) {
+    m_serialized_bytes = serialized_bytes;
+    m_size = *( (size_type*)(m_serialized_bytes.get()) );
+  }
+  
+  boost::shared_array<uint8> serialized_bytes() const { return m_serialized_bytes; }
+  size_type size() const { return m_size + sizeof(size_type); }
+  
+  template <class MessageT> 
+  MessageT parse_as_message() {
+    MessageT message;
+    message.ParseFromArray((void*)(message_start()), m_size);
+    return message;
+  }
+  
+  void parse(google::protobuf::Message* message) {
+    message->ParseFromArray((void*)(message_start()), m_size);
+  }
+  
+};
 
 // -----------------------------------------------------------------------
 //                           AmqpRpcChannel
@@ -38,7 +91,7 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
                                                google::protobuf::Message* response,
                                                google::protobuf::Closure* done) {
     
-  vw_out(0) << "[RPC] : " << method->name() << "\n";
+  vw_out(0) << "[RPC --> " << method->name() << "]\n";
   vw_out(0) << "Request:\n" << request->DebugString() << "\n";
 
   // Serialize the message and pass it to AMQP to be transferred.
@@ -51,6 +104,7 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
   request_wrapper.set_payload(request->SerializeAsString());
 
   WireMessage wire_request(&request_wrapper);
+  std::cout << "--> sending " << wire_request.size() << " bytes " << request_wrapper.DebugString() << "\n";
   m_conn.basic_publish(wire_request.serialized_bytes(), 
                        wire_request.size(),
                        m_exchange, m_request_routing_key);
@@ -63,15 +117,45 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
 
   WireMessage wire_response(response_bytes);
   RpcResponseWrapper response_wrapper = wire_response.parse_as_message<RpcResponseWrapper>();
+
+  // Handle errors and exceptions. 
+  //
+  // I'll admit that this code is a little messy, and leaves something
+  // to be desired.  Ideally we would write a general purpose method
+  // that can regenerate an exception based on its name and
+  // description strings so that we don't have to add additional code
+  // here whenever we create a new PlatefileErr subclass.
+  //
   if (response_wrapper.error()) {
-    vw_out(0) << "WARNING: an RPC error occured.  Type = " 
+
+    // For debugging:
+    vw_out(0) << "[RPC ERROR]  Type = " 
               << response_wrapper.error_info().type()
               << "  Description = " << response_wrapper.error_info().message() << "\n";
-    controller->SetFailed(response_wrapper.error_info().message());
-  }
-  response->ParseFromString(response_wrapper.payload());
-  vw_out(0) << "Response:\n" << response->DebugString() << "\n\n";
+    
+    if (response_wrapper.error_info().type() == "TileNotFoundErr") {
+      vw_throw(TileNotFoundErr() << response_wrapper.error_info().message());
 
+    } else if (response_wrapper.error_info().type() == "InvalidPlatefileErr") {
+      vw_throw(InvalidPlatefileErr() << response_wrapper.error_info().message());      
+
+    } else if (response_wrapper.error_info().type() == "PlatefileCreationErr") {
+      vw_throw(PlatefileCreationErr() << response_wrapper.error_info().message());      
+
+    } else {
+      vw_out(0) << "WARNING!! Unknown exception in RPC message:\n\t" 
+                << "Type = " << response_wrapper.error_info().type() << "\n\t"
+                << "Description = " << response_wrapper.error_info().message() << "\n";
+
+      vw_throw(RpcErr() << "RPC error. Remote system threw this error: " 
+               << response_wrapper.error_info().type() << " with this description: " 
+               << response_wrapper.error_info().message());
+    }
+
+  } else {
+    response->ParseFromString(response_wrapper.payload());
+    vw_out(0) << "Response:\n" << response->DebugString() << "\n\n";
+  }
   done->Run();
 }
 
@@ -82,75 +166,85 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
 void vw::platefile::AmqpRpcServer::run() {
 
   while(1) {
-    
-    // Step 1 : Wait for an incoming message.
-    std::string routing_key;
     std::cout << "\n\nWaiting for message...\n";
+    
+    // --------------------------------------
+    // Step 1 : Wait for an incoming message.
+    // --------------------------------------
+    std::string routing_key;
     boost::shared_array<uint8> request_bytes = m_conn.basic_consume(m_queue, 
                                                                     routing_key, 
                                                                     false);
     WireMessage wire_request(request_bytes);
     RpcRequestWrapper request_wrapper = wire_request.parse_as_message<RpcRequestWrapper>();
+    std::cout << "--> received " << wire_request.size() << " bytes : " << request_wrapper.DebugString() << "\n";
+
     std::cout << "[RPC: " << request_wrapper.method() 
               << " from " << request_wrapper.requestor() << "]\n";
 
-    // Step 2 : Delegate the message to the proper method on the service.
+    // -------------------------------------------------------------
+    // Step 2 : Instantiate the proper messages and delegate them to
+    // the proper method on the service.
+    // -------------------------------------------------------------
     const google::protobuf::MethodDescriptor* method = 
       m_service->GetDescriptor()->FindMethodByName(request_wrapper.method());
       
     boost::shared_ptr<google::protobuf::Message> 
       request(m_service->GetRequestPrototype(method).New());
-      
     boost::shared_ptr<google::protobuf::Message> 
       response(m_service->GetResponsePrototype(method).New());
-      
+
     try {
 
-      request->ParseFromString(request_wrapper.payload());
+      // Attempt to parse the actual request message from the
+      // request_wrapper.
+      if (!request->ParseFromString(request_wrapper.payload()))
+        vw_throw(IOErr() << "Error parsing request from request_wrapper message.\n");
+
+      // For debugging: 
       std::cout << "Request:\n" << request->DebugString() << "\n";
+
       m_service->CallMethod(method, this, request.get(), response.get(), 
                             google::protobuf::NewCallback(&null_closure));
+
+      // For debugging: 
       std::cout << "Response:\n" << response->DebugString() << "\n\n";
 
+      // ---------------------------
       // Step 3 : Return the result.
+      // ---------------------------
       RpcResponseWrapper response_wrapper;
-
-      if (!this->Failed()) {
-        response_wrapper.set_error(false);
-        response_wrapper.set_payload(response->SerializeAsString());
-      } else {
-        // If the RPC generated an error, we pass it along here.
-        response_wrapper.set_error(true);
-        RpcErrorInfo msg;
-        msg.set_type("Rpc Error");
-        msg.set_message(this->ErrorText());
-        this->Reset();
-      }
+      response_wrapper.set_error(false);
+      response_wrapper.set_payload(response->SerializeAsString());
 
       WireMessage wire_response(&response_wrapper);
       m_conn.basic_publish(wire_response.serialized_bytes(), 
                            wire_response.size(),
                            m_exchange, request_wrapper.requestor() );
-      
+
+    } catch (PlatefileErr &e) {
+
+      RpcResponseWrapper response_wrapper;
+
+      // If an exception occurred on the plateindex_server, we pass it
+      // along to the requestor by setting the RpcErrorInfo portion of
+      // the RpcResponseWrapper.
+      RpcErrorInfo err;
+      err.set_type(e.name());
+      err.set_message(e.what());
+      response_wrapper.set_error(true);
+      *(response_wrapper.mutable_error_info()) = err;
+
+      WireMessage wire_response(&response_wrapper);
+      m_conn.basic_publish(wire_response.serialized_bytes(), 
+                           wire_response.size(),
+                           m_exchange, request_wrapper.requestor() );
 
     } catch (vw::Exception &e) {
 
-      RpcResponseWrapper response_wrapper;
-      response_wrapper.set_payload("");
+      vw_out(0) << "WARNING!! Uncaught Vision Workbench Exception:\n\t" << e.what() << "\n";
 
-      // If an exception occurred on the plateindex_server, we pass
-      // it along to the requestor as well.
-      RpcErrorInfo msg;
-      msg.set_type(e.name());
-      msg.set_message(e.what());
-      response_wrapper.set_error(true);
-      *(response_wrapper.mutable_error_info()) = msg;
-
-      WireMessage wire_response(&response_wrapper);
-      m_conn.basic_publish(wire_response.serialized_bytes(), 
-                           wire_response.size(),
-                           m_exchange, request_wrapper.requestor() );
-    } 
+    }
 
   }    
 }

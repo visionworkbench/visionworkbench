@@ -18,8 +18,8 @@ protocol_sources = ProtoBuffers.pb.cc
 
 BUILT_SOURCES = $(protocol_sources)
 
-include_HEADERS = Blob.h BlobManager.h Index.h LocalIndex.h		\
-		  RemoteIndex.h Tree.h PlateFile.h Amqp.h		\
+include_HEADERS = Exception.h Blob.h BlobManager.h Index.h		\
+		  LocalIndex.h RemoteIndex.h Tree.h PlateFile.h Amqp.h	\
 		  PlateManager.h ToastPlateManager.h KmlPlateManager.h	\
 		  PlateView.h RpcServices.h IndexService.h
 nodist_include_HEADERS = $(protocol_headers)

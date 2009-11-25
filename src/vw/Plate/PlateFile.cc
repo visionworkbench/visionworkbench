@@ -9,8 +9,9 @@ using namespace vw::platefile;
 using namespace vw;
 
 PlateFile::PlateFile(std::string url) {
-    m_index = boost::shared_ptr<Index>( new LocalIndex(url) );
-    vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" << url << "\"\n";
+  //    m_index = boost::shared_ptr<Index>( new LocalIndex(url) );
+  m_index = Index::construct_open(url);
+  vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" << url << "\"\n";
 }
 
 PlateFile::PlateFile(std::string url, std::string type, std::string description,
@@ -31,13 +32,14 @@ PlateFile::PlateFile(std::string url, std::string type, std::string description,
     hdr.set_pixel_format(pixel_format);
     hdr.set_channel_type(channel_type);
 
-    m_index = boost::shared_ptr<Index>( new LocalIndex(url, hdr) );
+    m_index = Index::construct_create(url, hdr);
     vw_out(DebugMessage, "platefile") << "Creating new plate file: \"" << url << "\"\n";
 
     // However, if it does exist, then we attempt to open the
     // platefile that is stored there.
   } else {
-    m_index = boost::shared_ptr<Index>( new LocalIndex(url) );
+    m_index = Index::construct_open(url);
+    //    m_index = boost::shared_ptr<Index>( new LocalIndex(url) );
     vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" << url << "\"\n";
   }
       

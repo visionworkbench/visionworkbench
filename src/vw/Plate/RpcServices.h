@@ -19,57 +19,6 @@ namespace vw {
 namespace platefile {
 
   // -----------------------------------------------------------------------
-  //                             WireMessage
-  // -----------------------------------------------------------------------
-
-  /// A handy utility class for serializing/deserializing protocol
-  /// buffers over the wire.  Store the buffer as a stream of bytes with
-  /// the size of the message at the beginning of the stream.
-  class WireMessage {
-  
-    typedef int32 size_type;
-  
-    boost::shared_array<uint8> m_serialized_bytes;
-    size_type m_size;
-  
-    uint8* message_start() const {
-      return (m_serialized_bytes.get() + sizeof(size_type));
-    }
-  
-  public:
-  
-    WireMessage(const google::protobuf::Message* message) {
-      m_serialized_bytes.reset( new uint8[sizeof(size_type) + message->ByteSize()] );
-
-      // Store the size at the beginning of the byte stream.
-      m_size = message->ByteSize() + sizeof(size_type); 
-      ((size_type*)(m_serialized_bytes.get()))[0] = m_size;
-
-      message->SerializeToArray((void*)(message_start()), message->ByteSize());
-    }
-  
-    WireMessage(boost::shared_array<uint8> const& serialized_bytes) {
-      m_serialized_bytes = serialized_bytes;
-      m_size = *( (size_type*)(m_serialized_bytes.get()) );
-    }
-
-    boost::shared_array<uint8> serialized_bytes() const { return m_serialized_bytes; }
-    size_type size() const { return m_size + sizeof(size_type); }
-
-    template <class MessageT> 
-    MessageT parse_as_message() {
-      MessageT message;
-      message.ParseFromArray((void*)(message_start()), m_size);
-      return message;
-    }
-  
-    void parse(google::protobuf::Message* message) {
-      message->ParseFromArray((void*)(message_start()), m_size);
-    }
-  
-  };
-
-  // -----------------------------------------------------------------------
   //                           AmqpRpcClient
   // -----------------------------------------------------------------------
 
@@ -96,11 +45,15 @@ namespace platefile {
     // be called before a call has finished.  If Failed() returns true, the
     // contents of the response message are undefined.
     virtual bool Failed() const {
+      vw_throw(NoImplErr() << "AmqpRpcClient::Failed() has not been implemented.  "
+               << "Use normal exception throwing/catching to handle RPC errors.");
       return m_failed;
     }
 
     // If Failed() is true, returns a human-readable description of the error.
     virtual std::string ErrorText() const {
+      vw_throw(NoImplErr() << "AmqpRpcClient::ErrorText() has not been implemented.  "
+               << "Use normal exception throwing/catching to handle RPC errors.");
       return m_failed_reason;
     }
 
@@ -131,6 +84,8 @@ namespace platefile {
     // should incorporate it into your response protocol buffer and should
     // NOT call SetFailed().
     virtual void SetFailed(const std::string& reason) {
+      vw_throw(NoImplErr() << "AmqpRpcClient::SetFailed() has not been implemented.  "
+               << "Use normal exception throwing/catching to handle RPC errors.");
       m_failed = true;
       m_failed_reason = reason;
     }
@@ -202,11 +157,15 @@ namespace platefile {
     // be called before a call has finished.  If Failed() returns true, the
     // contents of the response message are undefined.
     virtual bool Failed() const {
+      vw_throw(NoImplErr() << "AmqpRpcServer::Failed() has not been implemented.  "
+               << "Use normal exception throwing/catching to handle RPC errors.");
       return m_failed;
     }
   
     // If Failed() is true, returns a human-readable description of the error.
     virtual std::string ErrorText() const {
+      vw_throw(NoImplErr() << "AmqpRpcServer::ErrorText() has not been implemented.  "
+               << "Use normal exception throwing/catching to handle RPC errors.");
       return m_failed_reason;
     }
 
@@ -225,6 +184,8 @@ namespace platefile {
     // should incorporate it into your response protocol buffer and should
     // NOT call SetFailed().
     virtual void SetFailed(const std::string& reason) {
+      vw_throw(NoImplErr() << "AmqpRpcServer::SetFailed() has not been implemented.  "
+               << "Use normal exception throwing/catching to handle RPC errors.");
       m_failed = true;
       m_failed_reason = reason;
     }
