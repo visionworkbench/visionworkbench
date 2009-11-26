@@ -79,7 +79,7 @@ namespace math {
       p1_h[dim] = 1;
       p2_h[dim] = 1;
 
-      Vector3 inter_result = H*p1_h;
+      Vector<double, dim+1> inter_result = H*p1_h;
       // Re-normalizing. This conditional should only throw if H is
       // an homography matrix
       if ( inter_result[dim] != 1 ) 

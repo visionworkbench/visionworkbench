@@ -301,7 +301,7 @@ namespace math {
         for (unsigned j = 0; j < dim; ++j) {
           unsigned row = i*dim+j;
           for (unsigned l = 0; l < dim + 1; ++l) {
-            A(row, j*(dim+1)+l) = l == dim + 1 ? 1 : p1[i][l];
+            A(row, j*(dim+1)+l) = l == dim ? 1 : p1[i][l];
           }
           y(row) = p2[i][j];
         }
