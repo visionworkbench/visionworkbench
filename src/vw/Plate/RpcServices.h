@@ -221,6 +221,7 @@ namespace platefile {
 
     std::string m_exchange, m_request_routing_key, m_response_queue;
     AmqpConnection m_conn;
+    vw::Mutex m_mutex;
 
   public:
   

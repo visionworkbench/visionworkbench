@@ -109,6 +109,8 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url, IndexHeader inde
 
   m_index_header = response.index_header();
   m_platefile_id = m_index_header.platefile_id();
+  m_short_plate_filename = response.short_plate_filename();
+  m_full_plate_filename = response.full_plate_filename();
   vw_out(InfoMessage, "plate") << "Created remote platefile \"" << platefile_name
                                << "\"   ID: " << m_platefile_id << "\n";
 }
@@ -176,6 +178,7 @@ vw::int32 vw::platefile::RemoteIndex::version() const {
 }
 
 std::string vw::platefile::RemoteIndex::platefile_name() const { 
+  std::cout << "** Call to platefile_name() : " << m_full_plate_filename << "\n";
   return m_full_plate_filename;
 }
 

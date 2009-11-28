@@ -34,7 +34,7 @@ void die_on_error(int x, char const *context) {
   if (x < 0) {
     std::ostringstream msg;
     msg << "AMQP Error: " << context << " -- " << strerror(-x);
-    vw::vw_throw(vw::LogicErr() << msg.str());
+    vw::vw_throw(vw::IOErr() << msg.str());
   }
 }
 
@@ -75,7 +75,9 @@ void die_on_amqp_error(amqp_rpc_reply_t x, char const *context) {
   vw_throw(IOErr() << "AMQP Error: unknown response type.");
 }
 
-// --------------------- AmqpConnection State Structure -------------------------
+// ------------------------------------------------------------------------------
+//                       AmqpConnection State Structure
+// ------------------------------------------------------------------------------
 
 struct vw::platefile::AmqpConnectionState {
   int sockfd;
@@ -84,7 +86,7 @@ struct vw::platefile::AmqpConnectionState {
   // -- Workaround --
   // 
   // These are standins fro AMQP_EMPTY_BYTES and AMQP_EMPTY_TABLE from
-  // amqp.h. Those don't seem to work properly in C++, so we sub in
+  // amqp.h, which don't seem to work properly in C++.  We sub in
   // these, which do the same thing, instead.
   amqp_table_t empty_table;
   amqp_bytes_t empty_bytes;
@@ -93,20 +95,22 @@ struct vw::platefile::AmqpConnectionState {
     empty_table.num_entries=0;
     empty_table.entries = NULL;
 
-
     empty_bytes.len = 0;
     empty_bytes.bytes = NULL;
   }  
 };
 
-// --------------------- AmqpConnection Implementation --------------------------
+// ------------------------------------------------------------------------------
+//                   AmqpConnection Implementation
+// ------------------------------------------------------------------------------
 
 
-// ------------------------------------------------------
+// ------------------------
 // Constructor / destructor
-// ------------------------------------------------------
+// ------------------------
  
 AmqpConnection::AmqpConnection(std::string const& hostname, int port) {
+  Mutex::Lock lock(m_mutex);
   
   m_state = boost::shared_ptr<AmqpConnectionState>(new AmqpConnectionState());
 
@@ -125,6 +129,8 @@ AmqpConnection::AmqpConnection(std::string const& hostname, int port) {
 }
 
 AmqpConnection::~AmqpConnection() {
+  Mutex::Lock lock(m_mutex);
+
   vw_out(InfoMessage, "platefile::amqp") << "Closing AMQP connection.\n";
   die_on_amqp_error(amqp_channel_close(m_state->conn, 1, AMQP_REPLY_SUCCESS), "Closing channel");
   die_on_amqp_error(amqp_connection_close(m_state->conn, AMQP_REPLY_SUCCESS), "Closing connection");
@@ -139,6 +145,8 @@ AmqpConnection::~AmqpConnection() {
 
 void AmqpConnection::queue_declare(std::string const& queue_name, bool durable, 
                                    bool exclusive, bool auto_delete) {
+  Mutex::Lock lock(m_mutex);
+
   amqp_queue_declare_ok_t *r = amqp_queue_declare(m_state->conn, 1, 
                                                   amqp_cstring_bytes(queue_name.c_str()),
                                                   0, 0, 0, 1,
@@ -149,6 +157,8 @@ void AmqpConnection::queue_declare(std::string const& queue_name, bool durable,
 void AmqpConnection::exchange_declare(std::string const& exchange_name, 
                                       std::string const& exchange_type, 
                                       bool durable, bool auto_delete) {
+  Mutex::Lock lock(m_mutex);
+
   amqp_exchange_declare(m_state->conn, 1, 
                         amqp_cstring_bytes(exchange_name.c_str()), 
                         amqp_cstring_bytes(exchange_type.c_str()),
@@ -158,6 +168,8 @@ void AmqpConnection::exchange_declare(std::string const& exchange_name,
 
 void AmqpConnection::queue_bind(std::string const& queue, std::string const& exchange, 
                                 std::string const& routing_key) {
+  Mutex::Lock lock(m_mutex);
+
   amqp_queue_bind(m_state->conn, 1, 
                   amqp_cstring_bytes(queue.c_str()), 
                   amqp_cstring_bytes(exchange.c_str()), 
@@ -168,6 +180,8 @@ void AmqpConnection::queue_bind(std::string const& queue, std::string const& exc
 
 void AmqpConnection::queue_unbind(std::string const& queue, std::string const& exchange, 
                                   std::string const& routing_key) {
+  Mutex::Lock lock(m_mutex);
+
   amqp_queue_unbind(m_state->conn, 1, 
                     amqp_cstring_bytes(queue.c_str()), 
                     amqp_cstring_bytes(exchange.c_str()), 
@@ -184,7 +198,8 @@ void AmqpConnection::queue_unbind(std::string const& queue, std::string const& e
 void AmqpConnection::basic_publish(boost::shared_array<uint8> const& message, 
                                    int32 size,
                                    std::string const& exchange, 
-                                   std::string const& routing_key) const {
+                                   std::string const& routing_key) {
+  Mutex::Lock lock(m_mutex);
 
   // The delivery mode flag (below) can be used to select for
   // persistent delivery mode, which virtually gurantees that the
@@ -214,7 +229,8 @@ void AmqpConnection::basic_publish(boost::shared_array<uint8> const& message,
 
 boost::shared_array<uint8> AmqpConnection::basic_consume(std::string const& queue, 
                                                          std::string &routing_key,
-                                                         bool no_ack) const {
+                                                         bool no_ack) {
+  Mutex::Lock lock(m_mutex);
 
   amqp_basic_consume(m_state->conn, 
                      1,  // channel
@@ -302,7 +318,8 @@ boost::shared_array<uint8> AmqpConnection::basic_consume(std::string const& queu
 
       // ... and update the number of bytes we have received
       body_received += frame.payload.body_fragment.len;
-      VW_ASSERT(body_received <= body_target, IOErr() << "AMQP packet body size exceeded header\'s body target.");
+      VW_ASSERT(body_received <= body_target, 
+                IOErr() << "AMQP packet body size exceeded header\'s body target.");
     }
     
     // Check to make sure that we have received the right number of bytes.

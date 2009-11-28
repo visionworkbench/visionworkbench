@@ -27,7 +27,7 @@ class WireMessage {
   typedef int32 size_type;
   
   boost::shared_array<uint8> m_serialized_bytes;
-  size_type m_size;
+  size_type m_payload_size;
   
   uint8* message_start() const {
     return (m_serialized_bytes.get() + sizeof(size_type));
@@ -39,29 +39,29 @@ public:
     m_serialized_bytes.reset( new uint8[sizeof(size_type) + message->ByteSize()] );
     
     // Store the size at the beginning of the byte stream.
-    m_size = message->ByteSize() + sizeof(size_type); 
-    ((size_type*)(m_serialized_bytes.get()))[0] = m_size;
+    m_payload_size = message->ByteSize();
+    ((size_type*)(m_serialized_bytes.get()))[0] = m_payload_size;
     
     message->SerializeToArray((void*)(message_start()), message->ByteSize());
   }
   
   WireMessage(boost::shared_array<uint8> const& serialized_bytes) {
     m_serialized_bytes = serialized_bytes;
-    m_size = *( (size_type*)(m_serialized_bytes.get()) );
+    m_payload_size = *( (size_type*)(m_serialized_bytes.get()) );
   }
   
   boost::shared_array<uint8> serialized_bytes() const { return m_serialized_bytes; }
-  size_type size() const { return m_size + sizeof(size_type); }
+  size_type size() const { return m_payload_size + sizeof(size_type); }
   
   template <class MessageT> 
   MessageT parse_as_message() {
     MessageT message;
-    message.ParseFromArray((void*)(message_start()), m_size);
+    message.ParseFromArray((void*)(message_start()), m_payload_size);
     return message;
   }
   
   void parse(google::protobuf::Message* message) {
-    message->ParseFromArray((void*)(message_start()), m_size);
+    message->ParseFromArray((void*)(message_start()), m_payload_size);
   }
   
 };
@@ -90,6 +90,8 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
                                                const google::protobuf::Message* request,
                                                google::protobuf::Message* response,
                                                google::protobuf::Closure* done) {
+
+  Mutex::Lock lock(m_mutex);
     
   vw_out(0) << "[RPC --> " << method->name() << "]\n";
   vw_out(0) << "Request:\n" << request->DebugString() << "\n";
@@ -104,7 +106,6 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
   request_wrapper.set_payload(request->SerializeAsString());
 
   WireMessage wire_request(&request_wrapper);
-  std::cout << "--> sending " << wire_request.size() << " bytes " << request_wrapper.DebugString() << "\n";
   m_conn.basic_publish(wire_request.serialized_bytes(), 
                        wire_request.size(),
                        m_exchange, m_request_routing_key);
@@ -129,8 +130,7 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
   if (response_wrapper.error()) {
 
     // For debugging:
-    vw_out(0) << "[RPC ERROR]  Type = " 
-              << response_wrapper.error_info().type()
+    vw_out(0) << "[RPC ERROR]  Type = " << response_wrapper.error_info().type()
               << "  Description = " << response_wrapper.error_info().message() << "\n";
     
     if (response_wrapper.error_info().type() == "TileNotFoundErr") {
@@ -166,20 +166,17 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
 void vw::platefile::AmqpRpcServer::run() {
 
   while(1) {
-    std::cout << "\n\nWaiting for message...\n";
+    vw_out(0) << "\n\nWaiting for message...\n";
     
     // --------------------------------------
     // Step 1 : Wait for an incoming message.
     // --------------------------------------
     std::string routing_key;
-    boost::shared_array<uint8> request_bytes = m_conn.basic_consume(m_queue, 
-                                                                    routing_key, 
-                                                                    false);
+    boost::shared_array<uint8> request_bytes = m_conn.basic_consume(m_queue, routing_key, false);
     WireMessage wire_request(request_bytes);
     RpcRequestWrapper request_wrapper = wire_request.parse_as_message<RpcRequestWrapper>();
-    std::cout << "--> received " << wire_request.size() << " bytes : " << request_wrapper.DebugString() << "\n";
 
-    std::cout << "[RPC: " << request_wrapper.method() 
+    vw_out(0) << "[RPC: " << request_wrapper.method() 
               << " from " << request_wrapper.requestor() << "]\n";
 
     // -------------------------------------------------------------
@@ -202,13 +199,13 @@ void vw::platefile::AmqpRpcServer::run() {
         vw_throw(IOErr() << "Error parsing request from request_wrapper message.\n");
 
       // For debugging: 
-      std::cout << "Request:\n" << request->DebugString() << "\n";
+      vw_out(0) << "Request:\n" << request->DebugString() << "\n";
 
       m_service->CallMethod(method, this, request.get(), response.get(), 
                             google::protobuf::NewCallback(&null_closure));
 
       // For debugging: 
-      std::cout << "Response:\n" << response->DebugString() << "\n\n";
+      vw_out(0) << "Response:\n" << response->DebugString() << "\n\n";
 
       // ---------------------------
       // Step 3 : Return the result.

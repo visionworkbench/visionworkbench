@@ -23,6 +23,7 @@ namespace platefile {
 
   class AmqpConnection {
     boost::shared_ptr<AmqpConnectionState> m_state;
+    vw::Mutex m_mutex;
     
   public: 
 
@@ -60,21 +61,11 @@ namespace platefile {
     void basic_publish(boost::shared_array<uint8> const& message, 
                        int32 size,
                        std::string const& exchange, 
-                       std::string const& routing_key) const;
-
-    // template <class ProtoBufT>
-    // void basic_publish_protobuf(ProtoBufT const& protobuf, 
-    //                             std::string const& exchange, 
-    //                             std::string const& routing_key) const {
-    //   boost::shared_array<uint8> message_bytes( new uint8[protobuf.ByteSize()] );
-    //   protobuf.SerializeToArray((void*)(message_bytes.get()), protobuf.ByteSize());
-    //   vw_out(0) << "SENDING " << message_bytes.size() << " bytes to " << routing_key << ".\n";
-    //   this->basic_publish(message_bytes, exchange, routing_key);
-    // }
+                       std::string const& routing_key);
 
     boost::shared_array<uint8> basic_consume(std::string const& queue, 
                                              std::string &routing_key,
-                                             bool no_ack) const;
+                                             bool no_ack);
   };
 
 }} // namespace vw::platefile

@@ -122,15 +122,15 @@ void IndexServiceImpl::CreateRequest(::google::protobuf::RpcController* controll
                                      ::google::protobuf::Closure* done) {
 
   std::string url = m_root_directory + "/" + request->plate_name();
-  if( exists( fs::path( url, fs::native ) ) ) {
-    vw_throw(PlatefileCreationErr() << "A platefile by that name already exists.");
-    return;
-  }
 
   boost::shared_ptr<Index> idx;
   try {
-    fs::create_directory(url);
-    idx = Index::construct_create(url, request->index_header());
+    if (!exists( fs::path( url, fs::native ) ) ) {
+      fs::create_directory(url);
+      idx = Index::construct_create(url, request->index_header());
+    } else {
+      idx = Index::construct_open(url);
+    }
   } catch (IOErr &e) {
     vw_throw(PlatefileCreationErr() << e.what());
     return;

@@ -229,8 +229,12 @@ PixelRGBA<float32> PlatefileTileGenerator::sample(int x, int y) {
 template <class PixelT>
 boost::shared_ptr<ViewImageResource> generate_tile_impl(TileLocator const& tile_info,
                                       boost::shared_ptr<vw::platefile::PlateFile> platefile) {
-  ImageView<PixelT> tile;
-  platefile->read(tile, tile_info.col, tile_info.row, tile_info.level, tile_info.transaction_id);
+  ImageView<PixelT> tile(1,1);
+  try {
+    platefile->read(tile, tile_info.col, tile_info.row, tile_info.level, tile_info.transaction_id);
+  } catch (vw::IOErr &e) {
+    std::cout << "WARNING: AMQP ERROR -- " << e.what() << "\n";
+  }
   return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
 }
 
