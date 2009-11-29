@@ -44,15 +44,10 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url) {
   std::string platefile_name;
   parse_url(url, routing_key, platefile_name);
 
-  // Start by generating a unique queue name based on our hostname, PID, and thread ID.
-  char hostname[255];
-  gethostname(hostname, 255);
-  std::ostringstream requestor;
-  requestor << "remote_index_" << hostname << "_" << getpid() << "_" << Thread::id();
-  m_queue_name = requestor.str();
+  m_queue_name = AmqpRpcClient::UniqueQueueName(std::string("remote_index_") + platefile_name);
 
   // Set up the connection to the AmqpRpcService
-  m_rpc_channel.reset( new AmqpRpcChannel(INDEX_EXCHANGE, routing_key, requestor.str()) );
+  m_rpc_channel.reset( new AmqpRpcChannel(INDEX_EXCHANGE, routing_key, m_queue_name) );
   m_rpc_controller.reset ( new AmqpRpcClient() );
   m_index_service.reset ( new IndexService::Stub(m_rpc_channel.get()) );
   
@@ -81,15 +76,10 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url, IndexHeader inde
   std::string platefile_name;
   parse_url(url, routing_key, platefile_name);
 
-  // Start by generating a unique queue name
-  char hostname[255];
-  gethostname(hostname, 255);
-  std::ostringstream requestor;
-  requestor << "remote_index_" << hostname << "_" << getpid() << "_" << Thread::id();
-  m_queue_name = requestor.str();
+  m_queue_name = AmqpRpcClient::UniqueQueueName(std::string("remote_index_") + platefile_name);
 
   // Set up the connection to the AmqpRpcService
-  m_rpc_channel.reset( new AmqpRpcChannel(INDEX_EXCHANGE, routing_key, requestor.str()) );
+  m_rpc_channel.reset( new AmqpRpcChannel(INDEX_EXCHANGE, routing_key, m_queue_name) );
   m_rpc_controller.reset ( new AmqpRpcClient() );
   m_index_service.reset ( new IndexService::Stub(m_rpc_channel.get()) );
   

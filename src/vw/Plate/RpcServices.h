@@ -73,6 +73,11 @@ namespace platefile {
       return m_timeout_millis;
     }
 
+    // Returns a good private queue name. Identifier should be something unique
+    // to the service, like "remote_index" or "mod_plate"
+    static std::string UniqueQueueName(const std::string identifier);
+
+
     // Server-side methods ---------------------------------------------
 
     // These calls may be made from the server side only.  Their results

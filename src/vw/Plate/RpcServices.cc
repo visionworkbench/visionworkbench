@@ -8,6 +8,7 @@
 #include <vw/Plate/Exception.h>
 #include <vw/Plate/RpcServices.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
+#include <vw/Core/Stopwatch.h>
 using namespace vw;
 
 #include <google/protobuf/descriptor.h>
@@ -244,4 +245,13 @@ void vw::platefile::AmqpRpcServer::run() {
     }
 
   }    
+}
+
+std::string vw::platefile::AmqpRpcClient::UniqueQueueName(const std::string identifier) {
+  // Start by generating a unique queue name based on our hostname, PID, and thread ID.
+  char hostname[255];
+  gethostname(hostname, 255);
+  std::ostringstream requestor;
+  requestor << identifier << "_" << hostname << "_" << getpid() << "_" << Thread::id() << vw::Stopwatch::microtime(false);
+  return requestor.str();
 }
