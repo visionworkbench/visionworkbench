@@ -26,6 +26,7 @@
 #include <boost/foreach.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/function.hpp>
 
 #include "mod_plate_io.h"
 
@@ -265,11 +266,15 @@ extern "C" int mod_plate_handler(request_rec *r) {
     return HTTP_NOT_FOUND;
   } catch (const ServerError& e) {
     // Something screwed up, but we controlled it
-    ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r, "Server Error: %s", e.what());
+    ap_log_rerror(APLOG_MARK, APLOG_ERR, 0, r,  "Server Error [recovered]: %s", e.what());
+    return HTTP_INTERNAL_SERVER_ERROR;
+  } catch (const Exception& e) {
+    // Something screwed up worse...
+    ap_log_rerror(APLOG_MARK, APLOG_CRIT, 0, r, "Server Error [uncaught vw::Exception]: %s", e.what());
     return HTTP_INTERNAL_SERVER_ERROR;
   } catch (const std::exception &e) {
     // Something we don't understand broke. Eek.
-    ap_log_rerror(APLOG_MARK, APLOG_ALERT, 0, r, "Really Bad Server Error: %s", e.what());
+    ap_log_rerror(APLOG_MARK, APLOG_ALERT, 0, r, "Server Error [uncaught std::exception]: %s", e.what());
     return HTTP_INTERNAL_SERVER_ERROR;
   }
 }
