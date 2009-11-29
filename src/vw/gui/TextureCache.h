@@ -31,7 +31,7 @@
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Math/BBox.h>
 #include <vw/gui/TileGenerator.h>
-#include <vw/plate/Tree.h>
+#include <vw/Plate/Tree.h>
 
 namespace vw {
 namespace gui {

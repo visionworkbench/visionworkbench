@@ -35,7 +35,7 @@ endif
 # general
 ########################################################################
 
-AM_CPPFLAGS = @VW_CPPFLAGS@
+AM_CPPFLAGS = @VW_CPPFLAGS@ @PKG_GUI_CPPFLAGS@ @PKG_PLATE_CPPFLAGS@
 AM_LDFLAGS = @VW_LDFLAGS@
 
 includedir = $(prefix)/include/vw
