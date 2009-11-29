@@ -8,6 +8,7 @@
 #define __VW_PLATE_RPC_SERVICES_H__
 
 #include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/Exception.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 #include <vw/Plate/Amqp.h>
 
@@ -243,6 +244,53 @@ namespace platefile {
                             const google::protobuf::Message* request,
                             google::protobuf::Message* response,
                             google::protobuf::Closure* done);
+  };
+
+  /// A handy utility class for serializing/deserializing protocol
+  /// buffers over the wire.  Store the buffer as a stream of bytes with
+  /// the size of the message at the beginning of the stream.
+  class WireMessage {
+
+    typedef int32 size_type;
+
+    boost::shared_array<uint8> m_serialized_bytes;
+    size_type m_payload_size;
+
+    uint8* message_start() const {
+      return (m_serialized_bytes.get() + sizeof(size_type));
+    }
+
+    public:
+
+    WireMessage(const google::protobuf::Message* message) {
+      m_serialized_bytes.reset( new uint8[sizeof(size_type) + message->ByteSize()] );
+
+      // Store the size at the beginning of the byte stream.
+      m_payload_size = message->ByteSize();
+      ((size_type*)(m_serialized_bytes.get()))[0] = m_payload_size;
+
+      message->SerializeToArray((void*)(message_start()), message->ByteSize());
+    }
+
+    WireMessage(boost::shared_array<uint8> const& serialized_bytes) {
+      m_serialized_bytes = serialized_bytes;
+      m_payload_size = *( (size_type*)(m_serialized_bytes.get()) );
+    }
+
+    boost::shared_array<uint8> serialized_bytes() const { return m_serialized_bytes; }
+    size_type size() const { return m_payload_size + sizeof(size_type); }
+
+    template <class MessageT>
+      MessageT parse_as_message() {
+        MessageT message;
+        message.ParseFromArray((void*)(message_start()), m_payload_size);
+        return message;
+      }
+
+    void parse(google::protobuf::Message* message) {
+      message->ParseFromArray((void*)(message_start()), m_payload_size);
+    }
+
   };
 
 }} // namespace vw::platefile
