@@ -157,6 +157,38 @@ void IndexServiceImpl::InfoRequest(::google::protobuf::RpcController* controller
   done->Run();
 }
 
+void IndexServiceImpl::ListRequest(::google::protobuf::RpcController* controller,
+                                   const IndexListRequest* request,
+                                   IndexListReply* response,
+                                   ::google::protobuf::Closure* done) {
+
+  for (index_list_type::const_iterator i = m_indices.begin(), end = m_indices.end(); i != end; ++i) {
+
+    IndexServiceRecord rec = i->second;
+
+#define should_filter_out(field) \
+    request->has_ ## field() && rec.index->index_header().has_ ## field() && request->field() != rec.index->index_header().field()
+
+    if (should_filter_out(tile_filetype))
+      continue;
+
+    if (should_filter_out(pixel_format))
+      continue;
+
+    if (should_filter_out(channel_type))
+      continue;
+
+    if (should_filter_out(type))
+      continue;
+
+#undef should_filter_out
+
+    response->add_platefile_id(i->first);
+  }
+
+  done->Run();
+}
+
 void IndexServiceImpl::ReadRequest(::google::protobuf::RpcController* controller,
                                    const IndexReadRequest* request,
                                    IndexReadReply* response,

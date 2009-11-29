@@ -8,6 +8,8 @@
 #ifndef __VW_PLATE_COMMON_H__
 #define __VW_PLATE_COMMON_H__
 
-#define INDEX_EXCHANGE "ngt_platefile_index"
+#define INDEX_NAMESPACE    "ngt.platefile"
+#define INDEX_EXCHANGE     INDEX_NAMESPACE ".index"
+#define INDEX_MGR_EXCHANGE INDEX_NAMESPACE ".mgr"
 
 #endif

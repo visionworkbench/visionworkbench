@@ -224,7 +224,7 @@ void vw::platefile::AmqpRpcServer::run() {
 
       RpcResponseWrapper response_wrapper;
 
-      // If an exception occurred on the plateindex_server, we pass it
+      // If an exception occurred on the index_server, we pass it
       // along to the requestor by setting the RpcErrorInfo portion of
       // the RpcResponseWrapper.
       RpcErrorInfo err;

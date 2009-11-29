@@ -103,6 +103,14 @@ message IndexCreateRequest {
   required IndexHeader index_header = 2;
 }
 
+// If given, the arguments act as filters
+message IndexListRequest {
+  optional string tile_filetype = 1; // file type [e.g. tif, png, or jpg]
+  optional int32 pixel_format   = 2; // see vw/Image/PixelTypeInfo.h
+  optional int32 channel_type   = 3; // see vw/Image/PixelTypeInfo.h
+  optional string type          = 4; // platefile type [ toast, kml, or gigapan ]
+}
+
 message IndexInfoRequest {
   required int32 platefile_id = 1;
 }
@@ -165,6 +173,10 @@ message IndexInfoReply {
   required IndexHeader index_header = 3;
 }
 
+message IndexListReply {
+  repeated int32 platefile_id = 1;
+}
+
 message IndexReadReply {
   required IndexRecord index_record = 1;
 }
@@ -176,7 +188,6 @@ message IndexSuccess {
 message IndexWriteReply {
   required int32 blob_id = 1;
 }
-
 
 message IndexTransactionReply {
   required int32 transaction_id = 1;
@@ -226,4 +237,9 @@ service IndexService {
   rpc TransactionComplete (IndexTransactionComplete) returns (RpcNullMessage);
   rpc TransactionCursor (IndexTransactionCursorRequest) returns (IndexTransactionCursorReply);
   rpc DepthRequest (IndexDepthRequest) returns (IndexDepthReply);
+  rpc ListRequest (IndexListRequest) returns (IndexListReply);
+}
+
+service IndexManagerService {
+  rpc ListRequest (IndexListRequest) returns (IndexListReply);
 }

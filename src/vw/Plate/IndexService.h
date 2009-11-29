@@ -58,6 +58,11 @@ namespace platefile {
                              ::vw::platefile::IndexInfoReply* response,
                              ::google::protobuf::Closure* done);
 
+    virtual void ListRequest(::google::protobuf::RpcController* controller,
+                             const ::vw::platefile::IndexListRequest* request,
+                             ::vw::platefile::IndexListReply* response,
+                             ::google::protobuf::Closure* done);
+
     virtual void ReadRequest(::google::protobuf::RpcController* controller,
                              const ::vw::platefile::IndexReadRequest* request,
                              ::vw::platefile::IndexReadReply* response,
