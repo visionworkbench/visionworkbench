@@ -117,6 +117,23 @@ namespace platefile {
   //                                AmqpRpcServer
   // -----------------------------------------------------------------------------
 
+  class NetworkMonitor {
+    size_t m_total_bytes;
+    size_t m_recent_bytes;
+
+    int32 m_total_requests;
+    int32 m_recent_requests;
+
+  public:
+    
+    NetworkMonitor() : 
+      m_total_bytes(0), m_recent_bytes(0), m_total_requests(0), m_recent_requests(0) {}
+    
+    virtual ~NetworkMonitor() {}
+
+    void note_request(int32 num_bytes);
+  };
+
   class AmqpRpcServer : public google::protobuf::RpcController {
     std::string m_exchange;
     std::string m_queue;

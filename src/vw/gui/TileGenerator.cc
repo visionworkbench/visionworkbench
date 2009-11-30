@@ -135,8 +135,9 @@ int32 TestPatternTileGenerator::num_levels() const {
 
 PlatefileTileGenerator::PlatefileTileGenerator(std::string platefile_name) :
   m_platefile(new vw::platefile::PlateFile(platefile_name)) {
+  m_depth = m_platefile->depth();
   std::cout << "\t--> Loading platefile \"" << platefile_name << "\" with " 
-            << m_platefile->depth() << " levels.\n";
+            << m_depth << " levels.\n";
 }
 
 
@@ -255,11 +256,11 @@ boost::shared_ptr<ViewImageResource> PlatefileTileGenerator::generate_tile(TileL
 }
 
 int PlatefileTileGenerator::cols() const {
-  return this->tile_size()[0] * pow(2, m_platefile->depth());
+  return this->tile_size()[0] * pow(2, m_depth);
 }
 
 int PlatefileTileGenerator::rows() const {
-  return this->tile_size()[1] * pow(2, m_platefile->depth());
+  return this->tile_size()[1] * pow(2, m_depth);
 }
 
 PixelFormatEnum PlatefileTileGenerator::pixel_format() const {
@@ -276,7 +277,7 @@ Vector2i PlatefileTileGenerator::tile_size() const {
 }
 
 int32 PlatefileTileGenerator::num_levels() const {
-  return m_platefile->depth();
+  return m_depth;
 }
 
 

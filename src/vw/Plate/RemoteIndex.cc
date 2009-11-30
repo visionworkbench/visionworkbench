@@ -168,7 +168,6 @@ vw::int32 vw::platefile::RemoteIndex::version() const {
 }
 
 std::string vw::platefile::RemoteIndex::platefile_name() const { 
-  std::cout << "** Call to platefile_name() : " << m_full_plate_filename << "\n";
   return m_full_plate_filename;
 }
 

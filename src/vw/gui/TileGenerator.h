@@ -88,6 +88,7 @@ namespace gui {
 
   class PlatefileTileGenerator : public TileGenerator {
     boost::shared_ptr<vw::platefile::PlateFile> m_platefile;
+    int m_depth;
 
   public:
     PlatefileTileGenerator(std::string platefile_name);

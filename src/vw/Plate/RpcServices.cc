@@ -43,8 +43,8 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
 
   Mutex::Lock lock(m_mutex);
     
-  vw_out(0) << "[RPC --> " << method->name() << "]\n";
-  vw_out(0) << "Request:\n" << request->DebugString() << "\n";
+  //  vw_out(0) << "[RPC --> " << method->name() << "]\n";
+  //  vw_out(0) << "Request:\n" << request->DebugString() << "\n";
 
   // Serialize the message and pass it to AMQP to be transferred.
   // The WireMessege class saves the size of the message at the
@@ -80,8 +80,8 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
   if (response_wrapper.error()) {
 
     // For debugging:
-    vw_out(0) << "[RPC ERROR]  Type = " << response_wrapper.error_info().type()
-              << "  Description = " << response_wrapper.error_info().message() << "\n";
+    // vw_out(0) << "[RPC ERROR]  Type = " << response_wrapper.error_info().type()
+    //           << "  Description = " << response_wrapper.error_info().message() << "\n";
     
     if (response_wrapper.error_info().type() == "TileNotFoundErr") {
       vw_throw(TileNotFoundErr() << response_wrapper.error_info().message());
@@ -104,7 +104,7 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
 
   } else {
     response->ParseFromString(response_wrapper.payload());
-    vw_out(0) << "Response:\n" << response->DebugString() << "\n\n";
+    //    vw_out(0) << "Response:\n" << response->DebugString() << "\n\n";
   }
   done->Run();
 }
@@ -116,8 +116,6 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
 void vw::platefile::AmqpRpcServer::run() {
 
   while(1) {
-    vw_out(0) << "\n\nWaiting for message...\n";
-    
     // --------------------------------------
     // Step 1 : Wait for an incoming message.
     // --------------------------------------
@@ -149,13 +147,13 @@ void vw::platefile::AmqpRpcServer::run() {
         vw_throw(IOErr() << "Error parsing request from request_wrapper message.\n");
 
       // For debugging: 
-      vw_out(0) << "Request:\n" << request->DebugString() << "\n";
+      //      vw_out(0) << "Request:\n" << request->DebugString() << "\n";
 
       m_service->CallMethod(method, this, request.get(), response.get(), 
                             google::protobuf::NewCallback(&null_closure));
 
       // For debugging: 
-      vw_out(0) << "Response:\n" << response->DebugString() << "\n\n";
+      //      vw_out(0) << "Response:\n" << response->DebugString() << "\n\n";
 
       // ---------------------------
       // Step 3 : Return the result.
