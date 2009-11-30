@@ -17,5 +17,9 @@
 #include <vw/Geometry/Sphere.h>
 #include <vw/Geometry/SpatialTree.h>
 #include <vw/Geometry/PointListIO.h>
+#include <vw/Geometry/ATrans.h>
+#include <vw/Geometry/Frame.h>
+#include <vw/Geometry/TreeNode.h>
+#include <vw/Geometry/FrameTreeNode.h>
 
 #endif // __VW_GEOMETRY_H__
