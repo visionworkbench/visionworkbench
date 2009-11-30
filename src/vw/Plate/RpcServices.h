@@ -11,6 +11,7 @@
 #include <vw/Core/Exception.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 #include <vw/Plate/Amqp.h>
+#include <vw/Plate/Exception.h>
 
 #include <google/protobuf/service.h>
 
@@ -300,7 +301,9 @@ namespace platefile {
     template <class MessageT>
       MessageT parse_as_message() {
         MessageT message;
-        message.ParseFromArray((void*)(message_start()), m_payload_size);
+        bool success = message.ParseFromArray((void*)(message_start()), m_payload_size);
+        if (!success)
+          vw_throw(vw::platefile::RpcErr() << "Could not deserialize message.");
         return message;
       }
 

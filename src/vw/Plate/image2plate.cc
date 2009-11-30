@@ -10,7 +10,7 @@
 #include <vw/Cartography.h>
 #include <vw/Plate/PlateFile.h>
 #include <vw/Plate/ToastPlateManager.h>
-#include <vw/Plate/KmlPlateManager.h>
+//#include <vw/Plate/KmlPlateManager.h>
 
 using namespace vw;
 using namespace vw::platefile;
@@ -56,21 +56,8 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
                po::variables_map const& vm,
                std::vector<std::string> const& image_files) {
 
-  // Check to see if the user has requested mipmapping only.
-  if (vm.count("mipmap-only")) {
-    std::cout << "\t--> Skipping tile generation.  Generating mipmap tiles.\n";
-    pm->mipmap(platefile->transaction_cursor(), platefile->transaction_cursor());
-    exit(0);
-  }
-
-  //------------------------- TILE GENERATION --------------------------------
-
   for ( unsigned i = 0; i < image_files.size(); ++i ) {
     std::cout << "\t--> Building full-resolution tiles for " << image_files[i] << "\n";
-
-    // Determine the read and write transaction ids to use for this image.
-    int read_transaction_id = platefile->transaction_cursor();
-    int write_transaction_id = platefile->transaction_request(image_files[i]);
 
     std::ostringstream status_str;
     status_str << "\t    " << image_files[i] << " : ";
@@ -113,23 +100,19 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
       case VW_CHANNEL_UINT8:  
         if (has_nodata_value)
           pm->insert(mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]), 
-                                               nodata_value)), 
-                     georef, read_transaction_id, write_transaction_id,
+                                               nodata_value)), image_files[i], georef,
                      TerminalProgressCallback(InfoMessage, status_str.str()) );
         else
-          pm->insert( DiskImageView<PixelGray<uint8> >(image_files[i]), 
-                      georef, read_transaction_id, write_transaction_id,
+          pm->insert( DiskImageView<PixelGray<uint8> >(image_files[i]), image_files[i], georef,
                       TerminalProgressCallback(InfoMessage, status_str.str()) );
         break;
       case VW_CHANNEL_FLOAT32:  
         if (has_nodata_value)
           pm->insert(mask_to_alpha(create_mask(DiskImageView<PixelGray<float> >(image_files[i]), 
-                                               nodata_value)), 
-                     georef, read_transaction_id, write_transaction_id,
+                                               nodata_value)), image_files[i], georef,
                      TerminalProgressCallback(InfoMessage, status_str.str()) );
         else
-          pm->insert( DiskImageView<PixelGray<float> >(image_files[i]),
-                      georef, read_transaction_id, write_transaction_id, 
+          pm->insert( DiskImageView<PixelGray<float> >(image_files[i]), image_files[i], georef,
                       TerminalProgressCallback(InfoMessage, status_str.str()) );
           break;
       default:
@@ -137,24 +120,24 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
       }
       break;
 
-    case VW_PIXEL_GRAYA:
-      switch(channel_type) {
-      case VW_CHANNEL_UINT8:  
-        pm->insert( DiskImageView<PixelGrayA<uint8> >(image_files[i]), 
-                    georef, read_transaction_id, write_transaction_id, 
-                    TerminalProgressCallback(InfoMessage, status_str.str()) );
-        break;
-      default:
-        std::cout << "Platefile contains a channel type not supported by image2plate.\n";
-        exit(0);
-      }
-      break;
+    // case VW_PIXEL_GRAYA:
+    //   switch(channel_type) {
+    //   case VW_CHANNEL_UINT8:  
+    //     pm->insert( DiskImageView<PixelGrayA<uint8> >(image_files[i]), 
+    //                 georef, read_transaction_id, write_transaction_id, 
+    //                 TerminalProgressCallback(InfoMessage, status_str.str()) );
+    //     break;
+    //   default:
+    //     std::cout << "Platefile contains a channel type not supported by image2plate.\n";
+    //     exit(0);
+    //   }
+    //   break;
 
     case VW_PIXEL_RGB:
       switch(channel_type) {
       case VW_CHANNEL_UINT8:  
          pm->insert( DiskImageView<PixelRGB<uint8> >(image_files[i]), 
-                     georef, read_transaction_id, write_transaction_id, 
+                     image_files[i], georef, 
                      TerminalProgressCallback(InfoMessage, status_str.str()) );
         break;
       default:
@@ -163,24 +146,20 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
       }
       break;
 
-    case VW_PIXEL_RGBA:
-      switch(channel_type) {
-      case VW_CHANNEL_UINT8:  
-        pm->insert( DiskImageView<PixelRGBA<uint8> >(image_files[i]), 
-                    georef, read_transaction_id, write_transaction_id, 
-                    TerminalProgressCallback(InfoMessage, status_str.str()) );
-        break;
-      default:
-        vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
-      }
-      break;
+    // case VW_PIXEL_RGBA:
+    //   switch(channel_type) {
+    //   case VW_CHANNEL_UINT8:  
+    //     pm->insert( DiskImageView<PixelRGBA<uint8> >(image_files[i]), 
+    //                 georef, read_transaction_id, write_transaction_id, 
+    //                 TerminalProgressCallback(InfoMessage, status_str.str()) );
+    //     break;
+    //   default:
+    //     vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
+    //   }
+    //   break;
     default:
       std::cout << "Platefile contains a pixel type not supported by image2plate.\n";
     }
-
-    std::cout << "\t--> Generating mipmap tiles\n";
-    pm->mipmap(read_transaction_id, write_transaction_id);
-    platefile->transaction_complete(write_transaction_id);
   }
 }
 
@@ -208,7 +187,6 @@ int main( int argc, char *argv[] ) {
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Soure data cache size, in megabytes")
     ("num-threads,t", po::value<unsigned>(&num_threads)->default_value(1), "Set number of threads (set to 0 to use system default")
-    ("mipmap-only", "Skip tile generation entirely and simply run the mipmapper to generate any low res tiles that need to be created or refreshed.")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -306,9 +284,9 @@ int main( int argc, char *argv[] ) {
         boost::shared_ptr<ToastPlateManager>( new ToastPlateManager(platefile, num_threads) );
       do_mosaic(platefile, pm, vm, image_files);
     }  else if (output_mode == "kml")  {
-      boost::shared_ptr<KmlPlateManager> pm = 
-        boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile, num_threads) );
-      do_mosaic(platefile, pm, vm, image_files);
+      // boost::shared_ptr<KmlPlateManager> pm = 
+      //   boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile, num_threads) );
+      // do_mosaic(platefile, pm, vm, image_files);
     }
 
   }  catch (vw::Exception &e) {

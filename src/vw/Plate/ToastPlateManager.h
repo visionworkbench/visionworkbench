@@ -69,8 +69,8 @@ namespace platefile {
 
     /// Add an image to the plate file.
     template <class ViewT>
-    void insert(ImageViewBase<ViewT> const& image, cartography::GeoReference const& georef,
-                int read_transaction_id, int write_transaction_id,
+    void insert(ImageViewBase<ViewT> const& image, std::string const& description,
+                cartography::GeoReference const& georef,
                 const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
 
       // Compute the pyramid level at which to store this image.  The
@@ -128,8 +128,30 @@ namespace platefile {
       std::vector<TileInfo> tiles = wwt_image_tiles( output_bbox, resolution,
                                                      m_platefile->default_tile_size());
 
+      // Obtain a transaction ID for this image.  To do so, we must
+      // create a list of root tiles that we will be writing so that
+      // the index can go ahead and mark those tiles a "being
+      // processed."  Marking tiles as part of a transaction_request
+      // is an atomic operation on the index, and is critical for
+      // ensuring that concurrent image mosaics don't trample on each
+      // other by informing the index which tiles will be (eventually)
+      // modified under this transaction id.
+      std::vector<TileHeader> tile_headers;
+      for (size_t i = 0; i < tiles.size(); ++i) {
+        TileHeader hdr;
+        hdr.set_col(tiles[i].i);
+        hdr.set_row(tiles[i].j);
+        hdr.set_depth(pyramid_level);
+        tile_headers.push_back(hdr);
+      }      
+      int read_transaction_id = m_platefile->transaction_cursor();
+      int write_transaction_id = m_platefile->transaction_request(description, tile_headers);
+      // this->mipmap(read_transaction_id, write_transaction_id);
+      // exit(0);
+
       // And save each tile to the PlateFile
-      std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n";
+      std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.  " 
+                << "Transaction ID: " << write_transaction_id << "\n";
       progress.report_progress(0);
       for (size_t i = 0; i < tiles.size(); ++i) {
         m_queue.add_task(boost::shared_ptr<Task>(
@@ -145,6 +167,11 @@ namespace platefile {
       }
       m_queue.join_all();
       progress.report_finished();
+
+      // Mipmap the tiles.
+      std::cout << "\t--> Generating mipmap tiles\n";
+      this->mipmap(read_transaction_id, write_transaction_id, pyramid_level);
+      m_platefile->transaction_complete(write_transaction_id);
     }
 
 
@@ -153,8 +180,8 @@ namespace platefile {
     // times.
     template <class PixelT>
     void load_tile( vw::ImageView<PixelT> &tile, int32 level, int32 x, int32 y, 
-                    int read_transaction_id, int write_transaction_id ) {
-      tile = this->load_tile_impl<PixelT>(level, x, y, read_transaction_id, write_transaction_id);
+                    int read_transaction_id, int write_transaction_id, int max_depth ) {
+      tile = this->load_tile_impl<PixelT>(level, x, y, read_transaction_id, write_transaction_id, max_depth);
     }
 
     // Ok. This is one of those really annoying and esoteric c++
@@ -165,7 +192,8 @@ namespace platefile {
     // the function arguments.  
     template <class PixelT>
     ImageView<PixelT> load_tile_impl( int32 level, int32 x, int32 y, 
-                                      int read_transaction_id, int write_transaction_id );
+                                      int read_transaction_id, int write_transaction_id, 
+                                      int max_depth );
   };
 
 

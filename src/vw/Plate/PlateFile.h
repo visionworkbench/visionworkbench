@@ -4,6 +4,91 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+/// \file PlateFile.h
+///
+/// Once written, tiles in the plate file are never deleted.  New tiles
+/// can supercede old ones, but all of the data remains in the blob files,
+/// and the index maintains a sorted list of pointers to previous versions
+/// of a tile.  The sorting key for tiles is a field in each index entry
+/// called 'transaction_id', which works much like a timestamp to keep
+/// track of the order with which tiles were added to the platefile
+/// system.
+///
+/// transaction_id is not simply a timestamp.  Instead, it is a unique
+/// integer assigned to each new image that is added to the mosaic.
+/// transaction_ids are incremented as each new image is added.
+///
+/// READING TILES using the transaction_id
+/// --------------------------------------
+///
+/// Read requests can come from the mod_plate apache module (in response
+/// to a web request) or from a mosaicking client (in the process of
+/// compositing new tiles in the mosaic).  In both cases, it is important
+/// for a read request to return tiles from a consistent version of the
+/// mosaic.  In other words, we don't want to read tiles from a region
+/// where tiles are being actively written -- doing so would result in a
+/// patchwork of new and old tiles, and that would look very bad(tm).
+///
+/// transaction_ids allow you to go back to the latest consistent version
+/// (or any previous version) of the mosaic.  Each read request can
+/// specify an transaction_id, thereby forcing the server to access the
+/// index as it would have appeared ON OR BEFORE the requested
+/// transaction_id.  The index server keeps track of the latest "complete"
+/// transaction ID (lets call it the transaction_cursor), and will furnish
+/// that to clients if they are simply interested in accessing the latest
+/// complete version of the mosaic.
+///
+///
+/// WRITING TILES using the transaction_id
+/// --------------------------------------
+///
+/// transaction_id's are assigned on a per-image (i.e. per transaction)
+/// basis in the mosaic.  Prior to writing any tiles, the mosaicking
+/// client is expected to send a TRANSACTION_REQUEST message to obtain a
+/// transaction_id from the index server.  (Note to self: that request
+/// should contain some indentifying information that is written to the
+/// index log so that we can reconstruct what happened later if the
+/// transaction fails.)  The index server doles these out in increasing
+/// order so that each client gets a unique transaction id, and that these
+/// ids are issued in the order that they were requested.
+///
+/// Mosaicking clients should also request the transaction_id pointed to
+/// by the transaction_cursor (see above) so that it has a consistent
+/// version of the mosaic to use for its read requests during compositing.
+/// Both the read_transaction_id and write_transaction_id are stored for
+/// use in subsequent mosaicking steps.
+///
+/// When the mosaicking client completes its work for a given transaction,
+/// it is expected to send a TRANSACTION_COMPLETE message to inform the
+/// index server of its succesful completion.  The index server uses this
+/// information to update the transaction_cursor that can be used for read
+/// requests.
+///
+///
+/// CAVEATS
+/// -------
+///
+/// - What happens if a mosaicking client fails in mid-mosaic and never
+///   issues a TRANSACTION_COMPLETE message?
+///
+///   This is bad!!  The transaction_cursor will get stuck waiting for the
+///   half-finished transaction ID.
+///
+///   Possbile solutions: keep track of the number of completed
+///  transactions, and force the transaction ID to complete if more than
+///   a certain number of transaction have elapsed.  (i.e. assume it has
+///   failed and note this failure in the index server log.)
+///
+///   (But then we should make sure that a TRANSACTION_COMPLETE message
+///   that comes back from the dead doesn't somehow mess up the
+///   transaction_cursor!)
+///
+/// - What happens to the transaction_cursor if the index server crashes?
+///
+///   Transactions updates don't happen very often.  We can afford to
+///   write the new transaction cursor location to the index file on
+///   disk before we actually update it in the live index.
+///
 
 #ifndef __VW_PLATE_PLATEFILE_H__
 #define __VW_PLATE_PLATEFILE_H__
@@ -245,7 +330,6 @@ namespace platefile {
       write_record.set_blob_id(blob_id);
       write_record.set_blob_offset(blob_offset);
       write_record.set_status(INDEX_RECORD_VALID);
-      //      write_record.set_tile_size(file_size);  // ????
 
       m_index->write_complete(write_header, write_record);
     }
@@ -263,8 +347,9 @@ namespace platefile {
 
     // Clients are expected to make a transaction request whenever
     // they start a self-contained chunk of mosaicking work.  .
-    virtual int32 transaction_request(std::string transaction_description) {
-      return m_index->transaction_request(transaction_description);
+    virtual int32 transaction_request(std::string transaction_description,
+                                      std::vector<TileHeader> const& tile_headers) {
+      return m_index->transaction_request(transaction_description, tile_headers);
     }
 
     // Once a chunk of work is complete, clients can "commit" their

@@ -181,7 +181,7 @@ namespace platefile {
     // cascade of MipMapping requests that will cause intermediate
     // tiles to be written (via load_tile), and ultimately bring the
     // entire tree up to date.
-    void mipmap(int read_transaction_id, int write_transaction_id) { 
+    void mipmap(int read_transaction_id, int write_transaction_id, int max_depth) { 
       PixelFormatEnum pixel_format = m_platefile->pixel_format();
       ChannelTypeEnum channel_type = m_platefile->channel_type();
 
@@ -220,12 +220,12 @@ namespace platefile {
       case VW_PIXEL_GRAYA:
         switch(channel_type) {
         case VW_CHANNEL_UINT8:  
-          impl().load_tile(graya8_tile,0,0,0,read_transaction_id,write_transaction_id); 
+          impl().load_tile(graya8_tile,0,0,0,read_transaction_id,write_transaction_id,max_depth); 
           if (graya8_tile && !is_transparent(graya8_tile))
             m_platefile->write(graya8_tile,0,0,0,write_transaction_id);
           break;
         case VW_CHANNEL_FLOAT32:  
-          impl().load_tile(graya_float32_tile,0,0,0,read_transaction_id,write_transaction_id); 
+          impl().load_tile(graya_float32_tile,0,0,0,read_transaction_id,write_transaction_id,max_depth); 
           if (graya_float32_tile && !is_transparent(graya_float32_tile))
             m_platefile->write(graya_float32_tile,0,0,0,write_transaction_id);
           break;
@@ -238,12 +238,12 @@ namespace platefile {
       default:
         switch(channel_type) {
         case VW_CHANNEL_UINT8:  
-          impl().load_tile(rgba8_tile,0,0,0,read_transaction_id,write_transaction_id); 
+          impl().load_tile(rgba8_tile,0,0,0,read_transaction_id,write_transaction_id,max_depth); 
           if (rgba8_tile && !is_transparent(rgba8_tile))
             m_platefile->write(rgba8_tile,0,0,0,write_transaction_id);
           break;
         case VW_CHANNEL_UINT16:  
-          impl().load_tile(rgba16_tile,0,0,0,read_transaction_id,write_transaction_id); 
+          impl().load_tile(rgba16_tile,0,0,0,read_transaction_id,write_transaction_id,max_depth); 
           if (rgba16_tile && !is_transparent(rgba16_tile))
             m_platefile->write(rgba16_tile,0,0,0,write_transaction_id);
           break;

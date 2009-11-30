@@ -197,7 +197,8 @@ namespace platefile {
 
     void insert_helper(ElementT const& record, 
                        int col, int row, int level, 
-                       int transaction_id, int current_level) {
+                       int transaction_id, int current_level,
+                       bool insert_at_all_levels) {
 
       // If we have reached the requested depth, then we must be at
       // the node we want!  Return the ElementT!
@@ -207,11 +208,7 @@ namespace platefile {
         // outside of the 1x1 bounds of the root level.
         if ( level == 0 && (col !=0 || row != 0) )
           vw_throw(TileNotFoundErr() << "TreeNode: invalid index (" << col << " " << row << ").");
-
-        // TODO: This is where we could keep the history of ElementTs
-        // that were used for this node.  This would allow us to go
-        // "back in time" in the journal of the blob.  Let's add that
-        // feature someday!!
+        // Add the record for the given transaction ID.
         m_records[transaction_id] = record;
 
       // Otherwise, we need to recurse further into the tree....
@@ -225,8 +222,16 @@ namespace platefile {
           boost::shared_ptr<TreeNode> node( new TreeNode(this, ElementT(), transaction_id ) );
           this->set_child(child_id, node);
         }
-         
-        m_children[child_id]->insert_helper(record, col, row, level, transaction_id, current_level+1);
+ 
+        // Insert the record at this level if requested.  Right now this is mostly a
+        // special feature used by the transaction_request() code in
+        // LocalIndex to "prime" the tree with empty index entries.
+        if (insert_at_all_levels)
+          m_records[transaction_id] = record;
+        
+        m_children[child_id]->insert_helper(record, col, row, level, 
+                                            transaction_id, current_level+1,
+                                            insert_at_all_levels);
       }
 
     }
@@ -336,8 +341,10 @@ namespace platefile {
     // Insert an ElementT at a given position.  Intermediate nodes
     // in the tree are created (with empty ElementTs) in the tree
     // along the way, as needed.
-    void insert(ElementT const& record, int col, int row, int level, int transaction_id) {
-      this->insert_helper(record, col, row, level, transaction_id, 0);
+    void insert(ElementT const& record, int col, int row, 
+                int level, int transaction_id,
+                bool insert_at_all_levels = false) {
+      this->insert_helper(record, col, row, level, transaction_id, 0, insert_at_all_levels);
       if (level > m_max_depth)
         m_max_depth = level;
     }

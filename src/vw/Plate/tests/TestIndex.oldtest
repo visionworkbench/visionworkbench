@@ -94,16 +94,17 @@ public:
     TS_ASSERT_EQUALS(idx.transaction_cursor(), 0);
 
     // Test one tranaction request
-    int tx1 = idx.transaction_request("Test transaction #1");
+    std::vector<TileHeader> empty_tileheader_list; 
+    int tx1 = idx.transaction_request("Test transaction #1", empty_tileheader_list);
     TS_ASSERT_EQUALS(tx1, 1);
     TS_ASSERT_EQUALS(idx.transaction_cursor(), 0);
 
     // And now a few more
-    int tx2 = idx.transaction_request("Test transaction #2");
-    int tx3 = idx.transaction_request("Test transaction #3");
-    int tx4 = idx.transaction_request("Test transaction #4");
-    int tx5 = idx.transaction_request("Test transaction #5");
-    int tx6 = idx.transaction_request("Test transaction #6");
+    int tx2 = idx.transaction_request("Test transaction #2", empty_tileheader_list);
+    int tx3 = idx.transaction_request("Test transaction #3", empty_tileheader_list);
+    int tx4 = idx.transaction_request("Test transaction #4", empty_tileheader_list);
+    int tx5 = idx.transaction_request("Test transaction #5", empty_tileheader_list);
+    int tx6 = idx.transaction_request("Test transaction #6", empty_tileheader_list);
     TS_ASSERT_EQUALS(tx2, 2);
     TS_ASSERT_EQUALS(tx3, 3);
     TS_ASSERT_EQUALS(tx4, 4);
@@ -130,6 +131,43 @@ public:
     TS_ASSERT_EQUALS(idx.transaction_cursor(), 4);
     idx.transaction_complete(tx5);
     TS_ASSERT_EQUALS(idx.transaction_cursor(), 6);
+  }
+
+
+  void test_index_transactions_with_mipmap() {
+    unlink("/tmp/foo.plate/plate.index");
+    std::string plate_filename = "/tmp/foo.plate";
+
+    // Write the basic data...
+    IndexHeader rec;
+    rec.set_tile_size(256);
+    rec.set_tile_filetype("tif");
+    rec.set_pixel_format(VW_PIXEL_RGB);
+    rec.set_channel_type(VW_CHANNEL_UINT8);
+    LocalIndex idx(plate_filename, rec);
+
+    TS_ASSERT_EQUALS(idx.transaction_cursor(), 0);
+
+    // Test a tranaction request that has one root tile passed to it.
+    // This should cause IndexRecords to be created for this
+    // transaction ID at higher levels of the quad tree, but these
+    // entries will be invalid (in a real platefile, they will get
+    // filled in by the mipmapper).
+    std::vector<TileHeader> tileheader_list; 
+    TileHeader hdr;
+    hdr.set_col(0);
+    hdr.set_row(0);
+    hdr.set_depth(1);
+    tileheader_list.push_back(hdr);
+    int tx1 = idx.transaction_request("Test transaction #1", tileheader_list);
+    TS_ASSERT_EQUALS(tx1, 1);
+    TS_ASSERT_EQUALS(idx.transaction_cursor(), 0);
+
+    // Check to make sure that the 0,0,0 tile has an invalid
+    // IndexRecord.  Invalid IndexRecords have a blob_id of -1.
+    IndexRecord rec2 = idx.read_request(0, 0, 0, tx1);
+    TS_ASSERT_EQUALS(rec2.blob_id(), -1);
+    TS_ASSERT_EQUALS(rec2.blob_offset(), 0);
   }
 
 
@@ -184,7 +222,6 @@ public:
     IndexRecord rec;
     rec.set_blob_id( idx.write_request(1024) );
     rec.set_blob_offset(blob.write(dummy_header0, m_test_data, 20));
-    rec.set_status(INDEX_RECORD_VALID);
     idx.write_complete(dummy_header0, rec);
 
     rec.set_blob_id( idx.write_request(1024) );
@@ -280,7 +317,6 @@ public:
       IndexRecord rec;
       rec.set_blob_id( idx.write_request(1024) );
       rec.set_blob_offset(blob.write(dummy_header0, m_test_data, 20));
-      rec.set_status(INDEX_RECORD_VALID);
       idx.write_complete(dummy_header0, rec);
 
       rec.set_blob_id( idx.write_request(1024) );

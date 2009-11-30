@@ -38,6 +38,10 @@ public:
     root->insert(30, 3, 3, 3, 0);
     TS_ASSERT_EQUALS(root->child(3)->child(3)->value(0), 20);
 
+    // Try overwriting some values
+    root->insert(101, 0, 0, 1, 0);
+    TS_ASSERT_EQUALS(root->child(0)->value(0), 101);
+
     // Test an invalid index
     TS_ASSERT_THROWS(root->insert(10,2,1,1,0), TileNotFoundErr); // IndexErr
     TS_ASSERT_THROWS(root->insert(1,0,1,0,0), TileNotFoundErr);  // IndexErr

@@ -195,10 +195,13 @@ vw::ChannelTypeEnum vw::platefile::RemoteIndex::channel_type() const {
 
 // Clients are expected to make a transaction request whenever
 // they start a self-contained chunk of mosaicking work.  .
-vw::int32 vw::platefile::RemoteIndex::transaction_request(std::string transaction_description) {
+vw::int32 vw::platefile::RemoteIndex::transaction_request(std::string transaction_description,
+                                                          std::vector<TileHeader> const& tile_headers) {
   IndexTransactionRequest request;
   request.set_platefile_id(m_platefile_id);
   request.set_description(transaction_description);
+  for (int i = 0; i < tile_headers.size(); ++i)
+    *(request.mutable_tile_headers()->Add()) = tile_headers[i];
   
   IndexTransactionReply response;
   m_index_service->TransactionRequest(m_rpc_controller.get(), &request, &response, 

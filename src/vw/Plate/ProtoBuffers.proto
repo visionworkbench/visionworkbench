@@ -41,6 +41,7 @@ enum IndexRecordStatusType {
   INDEX_RECORD_EMPTY = 1;
   INDEX_RECORD_STALE = 2;
   INDEX_RECORD_VALID = 3;
+  INDEX_RECORD_PRIMED = 4;
 }
 
 // The IndexHeader store basic metadata for the platefile, such as the
@@ -80,8 +81,8 @@ message IndexHeader {
 // metadata about that tile is stored alongside the tile itself in the
 // blobfile in a TileRecord protobufer (see below).
 message IndexRecord {
-  required uint32 blob_id = 1;
-  required uint64 blob_offset = 2;
+  optional int32 blob_id = 1 [default = -1];
+  optional uint64 blob_offset = 2 [default = 0];
   optional IndexRecordStatusType status = 3 [ default = INDEX_RECORD_EMPTY ];
 }
 
@@ -137,6 +138,7 @@ message IndexWriteComplete {
 message IndexTransactionRequest {
   required int32 platefile_id = 1;
   required string description = 2;
+  repeated TileHeader tile_headers = 3;
 }
 
 message IndexTransactionComplete {

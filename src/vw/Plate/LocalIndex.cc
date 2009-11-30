@@ -225,7 +225,8 @@ void vw::platefile::LocalIndex::write_complete(TileHeader const& header, IndexRe
 
 // Clients are expected to make a transaction request whenever
 // they start a self-contained chunk of mosaicking work.  .
-int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_description) {
+int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_description,
+                                                     std::vector<TileHeader> const& tile_headers) {
   Mutex::Lock lock(m_mutex);
 
   // Pick the next transaction ID, increment the cursor, and then save
@@ -236,6 +237,26 @@ int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_des
   m_header.set_transaction_write_cursor(m_header.transaction_write_cursor() + 1);
   this->save_index_file();
   this->log() << "Transaction " << transaction_id << " started: " << transaction_description << "\n";
+
+  // Using the list of requested tile_headers, we go to the index and
+  // create empty index entries (that will be filled in during the
+  // course of this transaction).  These empty entries help us to keep
+  // track of which tiles are "pending" in the mosaic, which is useful
+  // information to know when multiple clients are adding images to
+  // the mosaic at the same time.
+  //
+  // Note that "pending" tiles are marked with "empty" IndexRecord
+  // structures that have the blob_id set to -1.  This is messy, I
+  // know, but it helps us to economize on memory usage for large
+  // index trees.
+  for (int i = 0; i < tile_headers.size(); ++i) {
+    IndexRecord empty_record;
+    empty_record.set_status(INDEX_RECORD_PRIMED);
+    // m_root->insert(empty_record, tile_headers[i].col(), tile_headers[i].row(), 
+    //                tile_headers[i].depth(), transaction_id,
+    //                true );  // insert_at_all_levels = true
+  }
+
   return transaction_id;
 }
 

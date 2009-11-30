@@ -67,7 +67,13 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
                                                                    false); 
 
   WireMessage wire_response(response_bytes);
-  RpcResponseWrapper response_wrapper = wire_response.parse_as_message<RpcResponseWrapper>();
+  RpcResponseWrapper response_wrapper;
+  try {
+    response_wrapper = wire_response.parse_as_message<RpcResponseWrapper>();
+  } catch (RpcErr &e) {
+    std::cout << "WARNING: An RPC error occurred: " << e.what() << "\n";
+  }
+
 
   // Handle errors and exceptions. 
   //
