@@ -252,12 +252,24 @@ int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_des
   for (int i = 0; i < tile_headers.size(); ++i) {
     IndexRecord empty_record;
     empty_record.set_status(INDEX_RECORD_PRIMED);
-    // m_root->insert(empty_record, tile_headers[i].col(), tile_headers[i].row(), 
-    //                tile_headers[i].depth(), transaction_id,
-    //                true );  // insert_at_all_levels = true
+    m_root->insert(empty_record, tile_headers[i].col(), tile_headers[i].row(), 
+                   tile_headers[i].depth(), transaction_id,
+                   true );  // insert_at_all_levels = true
   }
 
   return transaction_id;
+}
+
+// Clients are expected to make a transaction request whenever
+// they start a self-contained chunk of mosaicking work.  .
+void vw::platefile::LocalIndex::root_complete(int transaction_id,
+                                              std::vector<TileHeader> const& tile_headers) {
+  Mutex::Lock lock(m_mutex);
+
+  for (int i = 0; i < tile_headers.size(); ++i) {
+    m_root->clean_branch(tile_headers[i].col(), tile_headers[i].row(), 
+                         tile_headers[i].depth(), transaction_id);
+  }
 }
 
 // Once a chunk of work is complete, clients can "commit" their

@@ -106,7 +106,6 @@ namespace platefile {
         // outside of the 1x1 bounds of the root level.
         if ( level == 0 && (col !=0 || row != 0) )
           vw_throw(TileNotFoundErr() << "TreeNode: invalid index (" << col << " " << row << ").");
-        
         return true;
         
       // Otherwise, we go recurse deeper into the tree....
@@ -118,9 +117,10 @@ namespace platefile {
           bool success = m_children[child_id]->invalidate_records_helper(col, row, level, 
                                                                          current_level + 1);
           if (success && m_records.size() > 0 &&
-              (*(m_records.begin())).second.status() == INDEX_RECORD_VALID)
+              (*(m_records.begin())).second.status() == INDEX_RECORD_VALID || 
+              (*(m_records.begin())).second.status() == INDEX_RECORD_PRIMED )
             (*(m_records.begin())).second.set_status(INDEX_RECORD_STALE);
-
+          
           return success;
           
         } else {
@@ -236,6 +236,50 @@ namespace platefile {
 
     }
 
+
+    /// XXX : This is an abstraction violation!!
+    void clean_branch_helper(int col, int row, int level, int transaction_id, int current_level) {
+
+      // If we have reached the requested depth, then we must be at
+      // the node we want!  Return the ElementT!
+      if (current_level == level) {
+
+        // Handle the edge case where the user has requested a tile
+        // outside of the 1x1 bounds of the root level.
+        if ( level == 0 && (col !=0 || row != 0) )
+          vw_throw(TileNotFoundErr() << "TreeNode: invalid index (" << col << " " << row << ").");
+
+        try {
+          ElementT val = this->value(transaction_id);
+          if (val.status() == INDEX_RECORD_PRIMED) 
+            m_records.erase(transaction_id);
+        } catch (TileNotFoundErr &e) {
+          // do nothing if the value is not found... there is no need to erase it.
+        }
+
+      // Otherwise, we go recurse deeper into the tree....
+      } else {
+        
+        int child_id = compute_child_id(col, row, level, current_level + 1);
+        
+        if (m_children[child_id]) {
+
+          // If a branch of the tree is found, we dive deeper.
+          m_children[child_id]->clean_branch_helper(col, row, level, 
+                                                    transaction_id, current_level + 1);
+
+          try {
+            ElementT val = this->value(transaction_id);
+            if (val.status() == INDEX_RECORD_PRIMED) 
+              m_records.erase(transaction_id);
+          } catch (TileNotFoundErr &e) {
+            // do nothing if the value is not found
+          }
+
+        } 
+      }
+    }
+
     void print_helper(int current_level) const {
       vw_out(0) << (*(m_records.begin())).second.status() << "\n";
       for (int i = 0; i < 4; ++i) 
@@ -331,6 +375,13 @@ namespace platefile {
     // most recent tile, regardless of its transaction id.
     ElementT search(int col, int row, int level, int transaction_id) {
       return search_helper(col, row, level, transaction_id, 0);
+    }
+
+    // Search for a node at a given col, row, and level.  Note: a
+    // transaction ID of -1 indicates that we should return the
+    // most recent tile, regardless of its transaction id.
+    void clean_branch(int col, int row, int level, int transaction_id) {
+      clean_branch_helper(col, row, level, transaction_id, 0);
     }
 
     // Search for a node at a given col, row, and level.

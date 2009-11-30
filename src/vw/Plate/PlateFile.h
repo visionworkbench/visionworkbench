@@ -352,6 +352,12 @@ namespace platefile {
       return m_index->transaction_request(transaction_description, tile_headers);
     }
 
+    /// Called right before the beginning of the mipmapping pass
+    virtual void root_complete(int transaction_id,
+                          std::vector<TileHeader> const& tile_headers) {
+      m_index->root_complete(transaction_id, tile_headers);
+    }
+
     // Once a chunk of work is complete, clients can "commit" their
     // work to the mosaic by issuding a transaction_complete method.
     virtual void transaction_complete(int32 transaction_id) {

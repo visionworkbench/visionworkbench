@@ -135,16 +135,6 @@ ImageView<PixelT> ToastPlateManager::load_tile_impl( int32 level, int32 x, int32
     m_platefile->read(tile, x, y, level, write_transaction_id);
     return tile;
 
-
-  // If the record lookup succeded, but the tile was not valid, AND if
-  // the tile we were looking for was at the max_depth, then that tile
-  // must have been transparent or missing for some other reason.  We
-  // don't generate mipmap tiles at max_depth (or beyond), so we
-  // simply return an empty tile here.
-  } else if (level == max_depth || rec.status() == INDEX_RECORD_PRIMED) {
-
-    return tile;
-
   } else if (rec.status() == INDEX_RECORD_EMPTY || 
              rec.status() == INDEX_RECORD_STALE) {
     

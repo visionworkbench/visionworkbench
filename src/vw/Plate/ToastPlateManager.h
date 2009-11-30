@@ -168,6 +168,11 @@ namespace platefile {
       m_queue.join_all();
       progress.report_finished();
 
+      // Signal the end of root tile generation and the beginning of
+      // mipmapping.  This allows the index to sweep up any remaining
+      // "PRIMED" tiles that may still be sitting around.
+      m_platefile->root_complete(write_transaction_id, tile_headers);
+
       // Mipmap the tiles.
       std::cout << "\t--> Generating mipmap tiles\n";
       this->mipmap(read_transaction_id, write_transaction_id, pyramid_level);
