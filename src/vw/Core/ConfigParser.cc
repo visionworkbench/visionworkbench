@@ -92,6 +92,8 @@ void vw::parse_config(std::basic_istream<char>& stream,
         settings.set_system_cache_size(boost::lexical_cast<size_t>(o.value[0]));
       else if (o.string_key == "general.default_tile_size")
 	settings.set_default_tile_size(boost::lexical_cast<int>(o.value[0]));
+      else if (o.string_key == "general.tmp_directory")
+	settings.set_tmp_directory(o.value[0]);
       else if (o.string_key.compare(0, 8, "logfile ") == 0) {
         size_t sep = o.string_key.find_last_of('.');
         assert(sep != std::string::npos);

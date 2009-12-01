@@ -44,6 +44,8 @@ namespace vw {
     bool m_system_cache_size_override;
     int m_default_tile_size;
     bool m_default_tile_size_override;
+    std::string m_tmp_directory;
+    bool m_tmp_directory_override;
 
     // Member variables assoc. with periodically polling the log
     // configuration (logconf) file.
@@ -105,6 +107,12 @@ namespace vw {
     
     /// Set the default tile size to be used for block processing.
     void set_default_tile_size(int num);
+
+    /// Query for the directory being used to store temporary files.
+    std::string tmp_directory();
+    
+    /// Set the directory to be used for storing temporary files.
+    void set_tmp_directory(std::string const& path);
   };
 
   /// Static method to access the singleton instance of the system
