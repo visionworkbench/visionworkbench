@@ -98,20 +98,17 @@ VW_DEFINE_SINGLETON_FUNC(index, IndexService,        create_idx);
 VW_DEFINE_SINGLETON_FUNC(mgr,   IndexManagerService, create_mgr);
 
 
-void PlateInfo(int32 id) {
-  IndexInfoRequest request;
-  IndexInfoReply   reply;
+void PlateInfo(const std::string& name) {
 
-  request.set_platefile_id(id);
-  index_mutable().InfoRequest(&client_mutable(), &request, &reply, google::protobuf::NewCallback(&null_closure));
+  boost::shared_ptr<Index> index = Index::construct_open(std::string("pf://index/") + name);
+  const IndexHeader& hdr = index->index_header();
 
   vw_out(0) << "Platefile: "
-            << "ID["   << id << "]"
-            << "Name[" << reply.short_plate_filename() << "]"
-            << "Filename[" << reply.full_plate_filename() << "]"
-            << "Description[" << (reply.index_header().has_description() ? reply.index_header().description() : "No Description") << "]"
+            << "ID["          << hdr.platefile_id()      << "] "
+            << "Name["        << fs::path(name).leaf()   << "] "
+            << "Filename["    << index->platefile_name() << "] "
+            << "Description[" << (hdr.has_description() ? hdr.description() : "No Description") << "]"
             << std::endl;
-  //entry.index       = Index::construct_open(std::string("pf://index/") + entry.shortname);
 }
 
 void ListPlates() {
@@ -121,20 +118,20 @@ void ListPlates() {
 
   mgr_mutable().ListRequest(&client_mutable(), &request, &reply, google::protobuf::NewCallback(&null_closure));
 
-  vw_out(0) << "Got IDS:" << std::endl;
-  std::copy(reply.platefile_id().begin(), reply.platefile_id().end(), std::ostream_iterator<int32>(vw_out(0), " "));
+  vw_out(0) << "Got Plates:" << std::endl;
+  std::copy(reply.platefile_names().begin(), reply.platefile_names().end(), std::ostream_iterator<std::string>(vw_out(0), " "));
   vw_out(0) << std::endl;
 
-  std::for_each(reply.platefile_id().begin(), reply.platefile_id().end(), boost::bind(&PlateInfo, _1));
+  std::for_each(reply.platefile_names().begin(), reply.platefile_names().end(), boost::bind(&PlateInfo, _1));
 }
 
 int main(int argc, char** argv) {
 
-  vw::int32 id;
+  std::string name;
 
   po::options_description general_options("Runs a query against the index manager, or a specified platefile id");
   general_options.add_options()
-    ("platefile,p", po::value(&id), "Run an info request against this platefile id.")
+    ("platefile,p", po::value(&name), "Run an info request against this platefile id.")
     ("help", "Display this help message");
 
   po::options_description options("Allowed Options");
@@ -145,7 +142,7 @@ int main(int argc, char** argv) {
   po::notify( vm );
 
   std::ostringstream usage;
-  usage << "Usage: " << argv[0] << " [-p <platefile_id>]" << std::endl;
+  usage << "Usage: " << argv[0] << " [-p <platefile_name>]" << std::endl;
   usage << general_options << std::endl;
 
   if( vm.count("help") ) {
@@ -155,7 +152,7 @@ int main(int argc, char** argv) {
 
   if (vm.count("platefile")) {
     // Run IndexInfoRequest
-    PlateInfo(id);
+    PlateInfo(name);
   } else {
     // Run IndexListRequest
     ListPlates();

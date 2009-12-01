@@ -176,7 +176,7 @@ message IndexInfoReply {
 }
 
 message IndexListReply {
-  repeated int32 platefile_id = 1;
+  repeated string platefile_names = 1;
 }
 
 message IndexReadReply {

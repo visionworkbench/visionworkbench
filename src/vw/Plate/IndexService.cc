@@ -183,7 +183,7 @@ void IndexServiceImpl::ListRequest(::google::protobuf::RpcController* controller
 
 #undef should_filter_out
 
-    response->add_platefile_id(i->first);
+    response->add_platefile_names(rec.short_plate_filename);
   }
 
   done->Run();

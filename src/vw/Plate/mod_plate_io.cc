@@ -290,20 +290,17 @@ void PlateModule::sync_index_cache() {
     m_index_mgr_service->ListRequest(m_client.get(), &request, &id_list, google::protobuf::NewCallback(&null_closure));
   }
 
-  BOOST_FOREACH( const int32& id, id_list.platefile_id() ) {
-    IndexInfoRequest request;
-    IndexInfoReply   reply;
+  BOOST_FOREACH( const std::string& name, id_list.platefile_names() ) {
+    boost::shared_ptr<Index> index = Index::construct_open(std::string("pf://index/") + name);
 
-    request.set_platefile_id(id);
-    m_index_service->InfoRequest(m_client.get(), &request, &reply, google::protobuf::NewCallback(&null_closure));
+    const IndexHeader& hdr = index->index_header();
 
     IndexCacheEntry entry;
-    entry.shortname   = reply.short_plate_filename();
-    entry.filename    = reply.full_plate_filename();
-    entry.description = reply.index_header().has_description() ? reply.index_header().description() : "No Description";
-    entry.index       = Index::construct_open(std::string("pf://index/") + entry.shortname);
+    entry.shortname   = fs::path(name).leaf();
+    entry.filename    = name;
+    entry.description = hdr.has_description() ? hdr.description() : "No Description";
 
-    index_cache[id] = entry;
+    index_cache[hdr.platefile_id()] = entry;
 
     vw_out(InfoMessage, "plate") << "Adding " << entry.filename << " to index cache" << std::endl;
   }

@@ -33,7 +33,7 @@ void IndexManagerServiceImpl::ListRequest(::google::protobuf::RpcController* con
 #endif
 
 #warning This is fake data
-  response->add_platefile_id(0);
-  response->add_platefile_id(1);
+  response->add_platefile_names("1135_1136-DRG-CONTOUR_toast.plate");
+
   done->Run();
 }

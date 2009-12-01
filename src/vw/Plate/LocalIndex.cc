@@ -249,7 +249,7 @@ int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_des
   // structures that have the blob_id set to -1.  This is messy, I
   // know, but it helps us to economize on memory usage for large
   // index trees.
-  for (int i = 0; i < tile_headers.size(); ++i) {
+  for (size_t i = 0; i < tile_headers.size(); ++i) {
     IndexRecord empty_record;
     empty_record.set_status(INDEX_RECORD_PRIMED);
     m_root->insert(empty_record, tile_headers[i].col(), tile_headers[i].row(), 
@@ -266,7 +266,7 @@ void vw::platefile::LocalIndex::root_complete(int transaction_id,
                                               std::vector<TileHeader> const& tile_headers) {
   Mutex::Lock lock(m_mutex);
 
-  for (int i = 0; i < tile_headers.size(); ++i) {
+  for (size_t i = 0; i < tile_headers.size(); ++i) {
     m_root->clean_branch(tile_headers[i].col(), tile_headers[i].row(), 
                          tile_headers[i].depth(), transaction_id);
   }
