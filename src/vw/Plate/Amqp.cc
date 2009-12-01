@@ -109,7 +109,7 @@ struct vw::platefile::AmqpConnectionState {
 // Constructor / destructor
 // ------------------------
  
-AmqpConnection::AmqpConnection(std::string const& hostname, int port) {
+AmqpConnection::AmqpConnection(std::string const& hostname, int port, vw::int64 timeout) : m_timeout(timeout) {
   Mutex::Lock lock(m_mutex);
   
   m_state = boost::shared_ptr<AmqpConnectionState>(new AmqpConnectionState());
@@ -226,7 +226,101 @@ void AmqpConnection::basic_publish(boost::shared_array<uint8> const& message,
                "Publishing");
 }
 
+bool operator<(const struct timeval& t1, const struct timeval& t2) {
+  if (t1.tv_sec < t2.tv_sec)
+    return true;
+  if (t1.tv_sec > t2.tv_sec)
+    return false;
+  return (t1.tv_sec < t2.tv_sec);
+}
 
+static boost::shared_array<uint8> pump_queue(amqp_connection_state_t& conn, amqp_frame_t &header) {
+  int result;
+
+  amqp_maybe_release_buffers(conn);
+  result = amqp_simple_wait_frame(conn, &header);
+
+  VW_ASSERT(result > 0,                             AMQPAssertion() << "AMQP error: unknown result waiting for frame.");
+  VW_ASSERT(header.frame_type == AMQP_FRAME_HEADER, AMQPAssertion() << "Expected AMQP header!");
+
+  size_t body_size = header.payload.properties.body_size;
+  boost::shared_array<uint8> payload(new uint8[body_size]);
+
+  size_t body_read = 0;
+  amqp_frame_t frame;
+
+  while (body_read < body_size) {
+    result = amqp_simple_wait_frame(conn, &frame);
+
+    VW_ASSERT(result > 0,
+        AMQPAssertion() << "AMQP error: unknown result waiting for frame.");
+    VW_ASSERT(frame.frame_type == AMQP_FRAME_BODY,
+        AMQPAssertion() << "Expected AMQP message body!");
+    VW_ASSERT(body_read + frame.payload.body_fragment.len <= body_size,
+        AMQPAssertion() << "AMQP packet body size does not match header\'s body target.");
+
+    // Copy the bytes out of the payload...
+    memcpy(((char*)(payload.get()) + body_read),
+        (const char*)(frame.payload.body_fragment.bytes),
+        frame.payload.body_fragment.len);
+
+    // ... and update the number of bytes we have received
+    body_read += frame.payload.body_fragment.len;
+  }
+
+  return payload;
+}
+
+// timeout in ms
+boost::shared_array<uint8> AmqpConnection::basic_get(std::string const& queue, bool no_ack) {
+
+  Mutex::Lock lock(m_mutex);
+
+  struct timeval current, stop;
+  amqp_rpc_reply_t reply;
+
+  const amqp_bytes_t queue_b = amqp_cstring_bytes(queue.c_str());
+
+  if (m_timeout == -1) {
+    stop.tv_sec = std::numeric_limits<time_t>::max();
+  } else {
+    gettimeofday(&stop, NULL);
+
+    time_t sec = m_timeout / 1000;
+    stop.tv_sec  +=  sec;
+    stop.tv_usec += (m_timeout - (sec * 1000)) * 1000;
+  }
+
+  while (1) {
+    gettimeofday(&current, NULL);
+
+    if (! (current < stop) ) // too lazy to define all cmp
+      vw_throw(AMQPTimeout() << "basic_get timed out");
+
+    amqp_maybe_release_buffers(m_state->conn);
+    reply = amqp_basic_get(m_state->conn, 1, queue_b, no_ack);
+    die_on_amqp_error(reply, "Getting");
+
+    if (reply.reply.id == AMQP_BASIC_GET_EMPTY_METHOD) {
+      usleep(1000); // yield for a bit
+      continue;
+    }
+    if (reply.reply.id == AMQP_BASIC_GET_OK_METHOD)
+      break;
+
+    vw_throw(AMQPAssertion() << "Illegal AMQP response");
+  }
+
+  //amqp_basic_get_ok_t* get_ok = static_cast<amqp_basic_get_ok_t*>(reply.reply.decoded);
+
+  amqp_frame_t header;
+  return pump_queue(m_state->conn, header);
+}
+
+#if 0
+// XXX: Fix this before uncommenting: consume starts a delivery process on the
+// server every time it's called. It's designed to be used with a callback and
+// a message queue pumper.
 boost::shared_array<uint8> AmqpConnection::basic_consume(std::string const& queue, 
                                                          std::string &routing_key,
                                                          bool no_ack) {
@@ -337,3 +431,4 @@ boost::shared_array<uint8> AmqpConnection::basic_consume(std::string const& queu
   }
 
 }
+#endif

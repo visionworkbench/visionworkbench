@@ -14,9 +14,17 @@
 
 #include <vw/Core/Log.h>
 #include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/Exception.h>
 
 namespace vw {
 namespace platefile {
+
+  VW_DEFINE_EXCEPTION(AMQPErr,       IOErr);
+  VW_DEFINE_EXCEPTION(AMQPTimeout,   AMQPErr);
+
+  // This exception denotes a potentially desynchronizing AMQP error. Safest
+  // recovery mechanism is to recreate the connection.
+  VW_DEFINE_EXCEPTION(AMQPAssertion, AMQPErr);
 
   // Forward declaration
   struct AmqpConnectionState;
@@ -24,16 +32,18 @@ namespace platefile {
   class AmqpConnection {
     boost::shared_ptr<AmqpConnectionState> m_state;
     vw::Mutex m_mutex;
-    
-  public: 
+    vw::int64 m_timeout;
+
+  public:
 
     // ------------------------------------------------------
     // Constructor / destructor
     // ------------------------------------------------------
 
     /// Open a new connection to the AMQP server.  This connection
-    /// terminates automatically when this object is destroyed.
-    AmqpConnection(std::string const& hostname = "localhost", int port = 5672);
+    /// terminates automatically when this object is destroyed. 
+    //Timeout is in ms, -1 means forever.
+    AmqpConnection(std::string const& hostname = "localhost", int port = 5672, vw::int64 timeout = 1000);
 
     /// Closes the AMQP connection and destroys this object.
     ~AmqpConnection();
@@ -63,9 +73,12 @@ namespace platefile {
                        std::string const& exchange, 
                        std::string const& routing_key);
 
-    boost::shared_array<uint8> basic_consume(std::string const& queue, 
-                                             std::string &routing_key,
-                                             bool no_ack);
+    boost::shared_array<uint8> basic_get(std::string const& queue,
+                                          bool no_ack = false);
+
+    //boost::shared_array<uint8> basic_consume(std::string const& queue, 
+    //                                         std::string &routing_key,
+    //                                         bool no_ack);
   };
 
 }} // namespace vw::platefile

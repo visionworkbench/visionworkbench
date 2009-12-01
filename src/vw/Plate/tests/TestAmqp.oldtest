@@ -41,11 +41,8 @@ public:
 
     WireMessage msg(&request);
     conn.basic_publish(msg.serialized_bytes(), msg.size(), EXCHANGE, ROUTING_KEY);
-    
-    std::string response_routing_key;
-    boost::shared_array<uint8> response_bytes = conn.basic_consume(QUEUE, 
-                                                                   response_routing_key, 
-                                                                   false);
+
+    boost::shared_array<uint8> response_bytes = conn.basic_get(QUEUE);
 
     WireMessage wire_response(response_bytes);
     IndexReadRequest response = wire_response.parse_as_message<IndexReadRequest>();
