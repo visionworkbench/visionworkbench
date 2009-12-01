@@ -76,7 +76,7 @@ namespace cartography {
           return Vector3();
 
         Vector3 result;
-        subvector(result, 0, 2) = m_georef.point_to_lonlat(m_georef.pixel_to_point(loc));
+        subvector(result, 0, 2) = m_georef.pixel_to_lonlat(loc);
         result.z() = alt;
 
         return result;
