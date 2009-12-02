@@ -37,16 +37,16 @@ namespace platefile {
   //                            PLATE MANAGER
   // -------------------------------------------------------------------------
   
-  class KmlPlateManager : public PlateManager<KmlPlateManager> {
+  class KmlPlateManager {
+
+    boost::shared_ptr<PlateFile> m_platefile;
+    FifoWorkQueue m_queue;
 
   public:
   
     KmlPlateManager(boost::shared_ptr<PlateFile> platefile, int num_threads) : 
-      PlateManager<KmlPlateManager>(platefile, num_threads) {}
+      m_platefile(platefile), m_queue(num_threads)  {}
 
-    /// Destructor
-    virtual ~KmlPlateManager() {}
-    
     // Create a georeference object for this plate file.  The user
     // supplies the desired level for which they want the
     // georeference.

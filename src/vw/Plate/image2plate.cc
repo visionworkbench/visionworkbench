@@ -30,138 +30,41 @@ static std::string prefix_from_filename(std::string const& filename) {
 }
 
 // --------------------------------------------------------------------------
-//                           PREPROCESSING FILTERS
-// --------------------------------------------------------------------------
-
-// Normalize - stretches the dynamic range of an image
-
-// Bit shift - compresses 12-bit data to 8-bit data.  Only works on
-// 16-bit images.  Other image types cause an exception to be thrown.
-
-// Mask nodata - creates an alpha channel based on an image's "nodata"
-// value, or a user-supplied nodata value.
-
-// Edge mask - creates a mask channel for pixels along the image edge
-// with a given value.
-
-
-
-// --------------------------------------------------------------------------
 //                                DO_MOSAIC
 // --------------------------------------------------------------------------
 
-template <class PlateManagerT>
+template <class ViewT>
 void do_mosaic(boost::shared_ptr<PlateFile> platefile, 
-               boost::shared_ptr<PlateManagerT> pm, 
-               po::variables_map const& vm,
-               std::vector<std::string> const& image_files) {
+               ImageViewBase<ViewT> const& view,
+               std::string filename, GeoReference const& georef, 
+               std::string output_mode, int num_threads) {
 
-  for ( unsigned i = 0; i < image_files.size(); ++i ) {
-    std::cout << "\t--> Building full-resolution tiles for " << image_files[i] << "\n";
+  std::ostringstream status_str;
+  status_str << "\t    " << filename << " : ";
 
-    std::ostringstream status_str;
-    status_str << "\t    " << image_files[i] << " : ";
+  if (output_mode == "toast") {
 
-    // Load the pixel type, channel type, and nodata value, and
-    // georeferencing info for this image.
-    DiskImageResource *rsrc = DiskImageResource::open(image_files[i]);
-    PixelFormatEnum pixel_format = rsrc->pixel_format();
-    ChannelTypeEnum channel_type = rsrc->channel_type();
-
-    double nodata_value;
-    bool has_nodata_value = false;
-    if ( rsrc->has_nodata_value() ) {
-      has_nodata_value = true;
-      nodata_value = rsrc->nodata_value();
-      std::cout << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
-    }
-
-    // Load the georef.  If none is found, assume Plate Caree.
-    GeoReference georef;
-    read_georeference( georef, DiskImageResourceGDAL( image_files[i] ) );
-    if( georef.transform() == identity_matrix<3>() ) {
-      std::cout << "No georeferencing info found for " << image_files[i]
-                << ".  Assuming global plate carree." << std::endl;
-      Matrix3x3 M;
-      M(0,0) = 360.0 / rsrc->cols();
-      M(0,2) = -180.0;
-      M(1,1) = -180.0 / rsrc->rows();
-      M(1,2) = 90.0;
-      M(2,2) = 1;
-      georef.set_transform( M );
-    }
-    delete rsrc;
+    boost::shared_ptr<ToastPlateManager<typename ViewT::pixel_type> > pm( 
+        new ToastPlateManager<typename ViewT::pixel_type> (platefile, num_threads) );
     
-    
-    // Dispatch to the compositer based on the pixel type of this mosaic.
-    switch(pixel_format) {
-    case VW_PIXEL_GRAY:
-      switch(channel_type) {
-      case VW_CHANNEL_UINT8:  
-        if (has_nodata_value)
-          pm->insert(mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]), 
-                                               nodata_value)), image_files[i], georef,
-                     TerminalProgressCallback(InfoMessage, status_str.str()) );
-        else
-          pm->insert( DiskImageView<PixelGray<uint8> >(image_files[i]), image_files[i], georef,
-                      TerminalProgressCallback(InfoMessage, status_str.str()) );
-        break;
-      // case VW_CHANNEL_FLOAT32:  
-      //   if (has_nodata_value)
-      //     pm->insert(mask_to_alpha(create_mask(DiskImageView<PixelGray<float> >(image_files[i]), 
-      //                                          nodata_value)), image_files[i], georef,
-      //                TerminalProgressCallback(InfoMessage, status_str.str()) );
-      //   else
-      //     pm->insert( DiskImageView<PixelGray<float> >(image_files[i]), image_files[i], georef,
-      //                 TerminalProgressCallback(InfoMessage, status_str.str()) );
-      //     break;
-      default:
-        vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
-      }
-      break;
+    pm->insert(view.impl(), filename, georef,
+               TerminalProgressCallback(InfoMessage, status_str.str()) );
 
-    // case VW_PIXEL_GRAYA:
-    //   switch(channel_type) {
-    //   case VW_CHANNEL_UINT8:  
-    //     pm->insert( DiskImageView<PixelGrayA<uint8> >(image_files[i]), 
-    //                 georef, read_transaction_id, write_transaction_id, 
-    //                 TerminalProgressCallback(InfoMessage, status_str.str()) );
-    //     break;
-    //   default:
-    //     std::cout << "Platefile contains a channel type not supported by image2plate.\n";
-    //     exit(0);
-    //   }
-    //   break;
+  }  else if (output_mode == "kml")  {
 
-    case VW_PIXEL_RGB:
-      switch(channel_type) {
-      case VW_CHANNEL_UINT8:  
-         pm->insert( DiskImageView<PixelRGB<uint8> >(image_files[i]), 
-                     image_files[i], georef, 
-                     TerminalProgressCallback(InfoMessage, status_str.str()) );
-        break;
-      default:
-        std::cout << "Platefile contains a channel type not supported by image2plate.\n";
-        exit(0);
-      }
-      break;
+    // boost::shared_ptr<KmlPlateManager> pm = 
+    //   boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile, num_threads) );
 
-    // case VW_PIXEL_RGBA:
-    //   switch(channel_type) {
-    //   case VW_CHANNEL_UINT8:  
-    //     pm->insert( DiskImageView<PixelRGBA<uint8> >(image_files[i]), 
-    //                 georef, read_transaction_id, write_transaction_id, 
-    //                 TerminalProgressCallback(InfoMessage, status_str.str()) );
-    //     break;
-    //   default:
-    //     vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
-    //   }
-    //   break;
-    default:
-      std::cout << "Platefile contains a pixel type not supported by image2plate.\n";
-    }
+    // pm->insert(view.impl(), filename, georef,
+    //            TerminalProgressCallback(InfoMessage, status_str.str()) );
+
   }
+
 }
+
+// --------------------------------------------------------------------------
+//                                    MAIN
+// --------------------------------------------------------------------------
 
 int main( int argc, char *argv[] ) {
 
@@ -271,22 +174,78 @@ int main( int argc, char *argv[] ) {
   }
   try {
 
+    std::cout << "\nOpening plate file: " << url << "\n";
     boost::shared_ptr<PlateFile> platefile = 
       boost::shared_ptr<PlateFile>( new PlateFile(url, output_mode, "",
                                                   tile_size, tile_filetype,
                                                   pixel_format, channel_type));
   
+
+    // Process each image individually
+    for ( unsigned i = 0; i < image_files.size(); ++i ) {
+      std::cout << "\t--> Building full-resolution tiles for " << image_files[i] << "\n";
+
+      // Load the pixel type, channel type, and nodata value, and
+      // georeferencing info for this image.
+      DiskImageResource *rsrc = DiskImageResource::open(image_files[i]);
+      
+      double nodata_value;
+      bool has_nodata_value = false;
+      if ( rsrc->has_nodata_value() ) {
+        has_nodata_value = true;
+        nodata_value = rsrc->nodata_value();
+        std::cout << "\t    Extracted nodata value from file: " << nodata_value << ".\n";
+      }
+
+      // Load the georef.  If none is found, assume Plate Caree.
+      GeoReference georef;
+      read_georeference( georef, DiskImageResourceGDAL( image_files[i] ) );
+      if( georef.transform() == identity_matrix<3>() ) {
+        std::cout << "\t    No georeferencing info found for " << image_files[i]
+                  << ".  Assuming global plate carree." << std::endl;
+        Matrix3x3 M;
+        M(0,0) = 360.0 / rsrc->cols();
+        M(0,2) = -180.0;
+        M(1,1) = -180.0 / rsrc->rows();
+        M(1,2) = 90.0;
+        M(2,2) = 1;
+        georef.set_transform( M );
+      }
+      delete rsrc;
     
-    // Add the image to the mosaic using the correct platefile manager
-    std::cout << "\nOpening plate file: " << url << "\n";
-    if (output_mode == "toast") {
-      boost::shared_ptr<ToastPlateManager> pm = 
-        boost::shared_ptr<ToastPlateManager>( new ToastPlateManager(platefile, num_threads) );
-      do_mosaic(platefile, pm, vm, image_files);
-    }  else if (output_mode == "kml")  {
-      // boost::shared_ptr<KmlPlateManager> pm = 
-      //   boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile, num_threads) );
-      // do_mosaic(platefile, pm, vm, image_files);
+      // Dispatch to the compositer based on the pixel type of this mosaic.
+      switch(platefile->pixel_format()) {
+      case VW_PIXEL_GRAYA:
+        switch(platefile->channel_type()) {
+        case VW_CHANNEL_UINT8:  
+          if (has_nodata_value)
+            do_mosaic(platefile, 
+                      mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]), 
+                                                nodata_value)),
+                      image_files[i], georef, output_mode, num_threads);
+          else
+            do_mosaic(platefile, DiskImageView<PixelGrayA<uint8> >(image_files[i]), 
+                      image_files[i], georef, output_mode, num_threads);
+          break;
+        default:
+          vw_throw(ArgumentErr() << "Image contains a channel type not supported by image2plate.\n");
+        }
+        break;
+
+      case VW_PIXEL_RGBA:
+        switch(platefile->channel_type()) {
+        case VW_CHANNEL_UINT8:  
+          do_mosaic(platefile, DiskImageView<PixelRGBA<uint8> >(image_files[i]), 
+                    image_files[i], georef, output_mode, num_threads);
+          break;
+        default:
+          std::cout << "Platefile contains a channel type not supported by image2plate.\n";
+          exit(0);
+        }
+        break;
+      default:
+        std::cout << "Image contains a pixel type not supported by image2plate.\n";
+      }
     }
 
   }  catch (vw::Exception &e) {

@@ -147,18 +147,11 @@ namespace platefile {
                         int transaction_id,
                         const ProgressCallback &progress_callback);
 
-  template ImageView<PixelGray<uint8> > 
-  composite_mosaic_tile<PixelGray<uint8> >(boost::shared_ptr<PlateFile> platefile, 
-                                           ImageView<PixelGray<uint8> > tile,
-                                           int col, int row, int level,
-                                           int transaction_id,
-                                           const ProgressCallback &progress_callback);
-
-  template ImageView<PixelRGB<uint8> > 
-  composite_mosaic_tile<PixelRGB<uint8> >(boost::shared_ptr<PlateFile> platefile, 
-                                          ImageView<PixelRGB<uint8> > tile,
-                                          int col, int row, int level,
-                                          int transaction_id,
-                                          const ProgressCallback &progress_callback);
+  template ImageView<PixelRGBA<uint8> > 
+  composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
+                        ImageView<PixelRGBA<uint8> > tile,
+                        int col, int row, int level,
+                        int transaction_id,
+                        const ProgressCallback &progress_callback);
 
 }}

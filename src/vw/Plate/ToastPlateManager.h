@@ -35,37 +35,98 @@ namespace platefile {
   // -------------------------------------------------------------------------
   //                            PLATE MANAGER
   // -------------------------------------------------------------------------
-  
-  class ToastPlateManager : public PlateManager<ToastPlateManager> {
 
-  public:
+  template <class PixelT>
+  class ToastPlateManager {
+
+    // Private variables
+
+    boost::shared_ptr<PlateFile> m_platefile;
+    FifoWorkQueue m_queue;
+
+    struct CacheEntry {
+      int32 level, x, y, transaction_id;
+      ImageView<PixelT> tile;
+    };
+    typedef std::list<CacheEntry> cache_t;
+    cache_t m_cache;
+
+
+    // Private methods
+    
+    // Compute the bounding boxes for [ tile_size x tile_size ] tiles
+    // to generate for an image with image_bbox in a TOAST
+    // projection space that is [ resolution x resolution ] pixels in
+    // size.
+    
+    // NOTE: Tiles in the TOAST projection overlap with their
+    // neighbors ( the last row and last column of pixels is the same
+    // as the top row and left column of the next images.)  This
+    // means that these bounding boxes are a little funny.  This
+    // function computes those bounding boxes for the tiles at the
+    // bottom of the pyramid so that there is the proper amount of
+    // overlap.
+    
+    // TODO: This function is slow and not very smart -- it computes
+    // all possible bounding boxes before selecting down to the
+    // possible handful that overlap with the image_bbox.  It could
+    // be made to go MUCH faster by being smart about its search.
+    std::vector<TileInfo> wwt_image_tiles( BBox2i const& image_bbox, 
+                                           int32 const resolution,
+                                           int32 const tile_size) {
+      std::vector<TileInfo> result;
+      
+      // There's no point in starting the search before there is good
+      // image data, so we adjust the start point here.
+      int32 minx = int(floor(image_bbox.min().x() / (tile_size-1)) * (tile_size-1));
+      int32 miny = int(floor(image_bbox.min().y() / (tile_size-1)) * (tile_size-1));
+      int x = minx / (tile_size-1);
+      int y = miny / (tile_size-1);
+
+      // Iterate over the bounding boxes in the entire TOAST space...
+      int curx = minx;
+      int cury = miny;
+      while (cury < image_bbox.max().y() - 1) {
+        while (curx < image_bbox.max().x() - 1) {
+      
+          TileInfo be(x, y, BBox2i(curx, cury, tile_size, tile_size));
+      
+          // ...but only add bounding boxes that overlap with the image.
+          if (image_bbox.intersects(be.bbox))
+            result.push_back(be);
+      
+          curx += (tile_size-1);
+          ++x;
+        }
+        curx = minx;
+        x = minx / (tile_size-1);
+        cury += (tile_size-1);
+        ++y;
+      }
+      return result;
+    }
+ 
+    // Read a previously-written tile in from disk.  Cache the most
+    // recently accessed tiles, since each will be used roughly four
+    // times.
+    void load_tile( vw::ImageView<PixelT> &tile, int32 level, int32 x, int32 y, 
+                    int write_transaction_id, int max_depth ) {
+      tile = this->load_tile_impl(level, x, y, write_transaction_id, max_depth);
+    }
+
+    // Ok. This is one of those really annoying and esoteric c++
+    // template problems: we can't call load_tile_impl<> directly from
+    // the CRTP superclass because the template appears in the return
+    // type of this method.  Instead, we add the extra layer of
+    // indirection (load_tile<>, above), which has the return value in
+    // the function arguments.  
+    ImageView<PixelT> load_tile_impl( int32 level, int32 x, int32 y, 
+                                      int write_transaction_id, int max_depth );
+
+ public:
   
     ToastPlateManager(boost::shared_ptr<PlateFile> platefile, int num_threads) : 
-      PlateManager<ToastPlateManager>(platefile, num_threads) {}
-
-    /// Destructor
-    virtual ~ToastPlateManager() {}
-
-    /// Compute the bounding boxes for [ tile_size x tile_size ] tiles
-    /// to generate for an image with image_bbox in a TOAST
-    /// projection space that is [ resolution x resolution ] pixels in
-    /// size.
-    ///
-    /// NOTE: Tiles in the TOAST projection overlap with their
-    /// neighbors ( the last row and last column of pixels is the same
-    /// as the top row and left column of the next images.)  This
-    /// means that these bounding boxes are a little funny.  This
-    /// function computes those bounding boxes for the tiles at the
-    /// bottom of the pyramid so that there is the proper amount of
-    /// overlap.
-    ///
-    /// TODO: This function is slow and not very smart -- it computes
-    /// all possible bounding boxes before selecting down to the
-    /// possible handful that overlap with the image_bbox.  It could
-    /// be made to go MUCH faster by being smart about its search.
-    std::vector<TileInfo> wwt_image_tiles( BBox2i const& image_bbox, 
-                                              int32 const resolution,
-                                              int32 const tile_size);
+      m_platefile(platefile), m_queue(num_threads)  {}
 
     /// Add an image to the plate file.
     template <class ViewT>
@@ -144,16 +205,16 @@ namespace platefile {
         hdr.set_depth(pyramid_level);
         tile_headers.push_back(hdr);
       }      
-      int write_transaction_id = m_platefile->transaction_request(description, tile_headers);
+      int transaction_id = m_platefile->transaction_request(description, tile_headers);
 
       // And save each tile to the PlateFile
       std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.  " 
-                << "Transaction ID: " << write_transaction_id << "\n";
+                << "Transaction ID: " << transaction_id << "\n";
       progress.report_progress(0);
       for (size_t i = 0; i < tiles.size(); ++i) {
         m_queue.add_task(boost::shared_ptr<Task>(
           new WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> >(m_platefile, 
-                                                                            write_transaction_id,
+                                                                            transaction_id,
                                                                             tiles[i], 
                                                                             pyramid_level, 
                                                                             toast_view, 
@@ -167,33 +228,22 @@ namespace platefile {
       // Signal the end of root tile generation and the beginning of
       // mipmapping.  This allows the index to sweep up any remaining
       // "LOCKED" tiles that may still be sitting around.
-      m_platefile->root_complete(write_transaction_id, tile_headers);
+      m_platefile->root_complete(transaction_id, tile_headers);
 
       // Mipmap the tiles.
       std::cout << "\t--> Generating mipmap tiles\n";
-      this->mipmap(write_transaction_id, pyramid_level);
-      m_platefile->transaction_complete(write_transaction_id);
+      this->mipmap(transaction_id, pyramid_level);
+      m_platefile->transaction_complete(transaction_id);
     }
 
 
-    // Read a previously-written tile in from disk.  Cache the most
-    // recently accessed tiles, since each will be used roughly four
-    // times.
-    template <class PixelT>
-    void load_tile( vw::ImageView<PixelT> &tile, int32 level, int32 x, int32 y, 
-                    int write_transaction_id, int max_depth ) {
-      tile = this->load_tile_impl<PixelT>(level, x, y, write_transaction_id, max_depth);
+    void mipmap(int transaction_id, int max_depth) {
+      ImageView<PixelT> tile;
+      this->load_tile(tile, 0, 0, 0, transaction_id, max_depth); 
+      if (tile && !is_transparent(tile))
+        m_platefile->write(tile, 0, 0, 0, transaction_id);
     }
 
-    // Ok. This is one of those really annoying and esoteric c++
-    // template problems: we can't call load_tile_impl<> directly from
-    // the CRTP superclass because the template appears in the return
-    // type of this method.  Instead, we add the extra layer of
-    // indirection (load_tile<>, above), which has the return value in
-    // the function arguments.  
-    template <class PixelT>
-    ImageView<PixelT> load_tile_impl( int32 level, int32 x, int32 y, 
-                                      int write_transaction_id, int max_depth );
   };
 
 
