@@ -6,47 +6,14 @@
 
 
 #include <vw/Cartography/CameraBBox.h>
-#include <vw/Cartography/PointImageManipulation.h>
 
 using namespace vw;
-
-Vector2 geospatial_intersect( Vector2 pix,
-                              cartography::GeoReference const& georef,
-                              boost::shared_ptr<camera::CameraModel> camera_model,
-                              double z_scale, bool& did_intersect ) {
-  Vector3 ccenter = camera_model->camera_center( pix );
-  Vector3 cpoint = camera_model->pixel_to_vector( pix );
-  ccenter.z() *= z_scale;
-  cpoint.z() *= z_scale;
-  cpoint = normalize( cpoint );
-
-  double radius_2 = georef.datum().semi_major_axis()*
-    georef.datum().semi_major_axis();
-  double alpha = - dot_prod(ccenter,cpoint);
-  Vector3 projection = ccenter + alpha * cpoint;
-  if( norm_2_sqr(projection) > radius_2 ) {  // the ray does not intersect the sphere
-    did_intersect = false;
-    return Vector2();
-  } else {
-    did_intersect = true;
-  }
-
-  alpha -= sqrt( radius_2 -
-                 norm_2_sqr(projection) );
-  Vector3 intersection = ccenter + alpha * cpoint;
-  intersection.z() /= z_scale;
-
-  Vector3 llr = georef.datum().cartesian_to_geodetic( intersection );
-  Vector2 geospatial_point = georef.lonlat_to_point( Vector2( llr.x(),
-                                                              llr.y() ) );
-  return geospatial_point;
-}
 
 // Compute the bounding box in points (georeference space) that is
 // defined by georef. Scale is MPP as georeference space is in meters.
 BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
-                                        boost::shared_ptr<camera::CameraModel> camera_model,
-                                        int32 cols, int32 rows, float &scale ) {
+                                boost::shared_ptr<camera::CameraModel> camera_model,
+                                int32 cols, int32 rows, float &scale ) {
 
   double semi_major_axis = georef.datum().semi_major_axis();
   double semi_minor_axis = georef.datum().semi_minor_axis();
@@ -80,9 +47,7 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
         scale = current_scale;
     }
     last_geospatial_point = geospatial_point;
-
     georeference_space_bbox.grow( geospatial_point );
-
     last_valid = true;
   }
   // Bottom row
@@ -106,9 +71,7 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
         scale = current_scale;
     }
     last_geospatial_point = geospatial_point;
-
     georeference_space_bbox.grow( geospatial_point );
-
     last_valid = true;
   }
   // Left side
@@ -132,12 +95,7 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
         scale = current_scale;
     }
     last_geospatial_point = geospatial_point;
-
     georeference_space_bbox.grow( geospatial_point );
-
-    //bbox_180.grow( lonlat );
-    //lonlat.x() += 360.0;
-    //bbox_360.grow( lonlat );
     last_valid = true;
   }
   // Right side
@@ -162,9 +120,7 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
         scale = current_scale;
     }
     last_geospatial_point = geospatial_point;
-
     georeference_space_bbox.grow( geospatial_point );
-
     last_valid = true;
   }
 
@@ -200,14 +156,14 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
   // involving camera distortion and near alignment of one side of the
   // bounding box with the prime meridian over a pole.
   // if( (bbox_180.min().x() < 180.0 && bbox_180.max().x() > 180.0) ||
-//       (bbox_180.min().x() < -180.0 && bbox_180.max().x() > -180.0) )
-//     bbox = bbox_360;
-//   if( pole ) {
-//     bbox.min().x() = -180;
-//     bbox.max().x() = 180;
-//     if( bbox.min().y() > -bbox.max().y() ) bbox.max().y() = 90;
-//     else bbox.min().y() = -90;
-//   }
+  //       (bbox_180.min().x() < -180.0 && bbox_180.max().x() > -180.0) )
+  //     bbox = bbox_360;
+  //   if( pole ) {
+  //     bbox.min().x() = -180;
+  //     bbox.max().x() = 180;
+  //     if( bbox.min().y() > -bbox.max().y() ) bbox.max().y() = 90;
+  //     else bbox.min().y() = -90;
+  //   }
 
   return bbox;
 
