@@ -107,7 +107,7 @@ static void write_debug_image( std::string out_file_name,
 int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
   std::string interest_operator, descriptor_generator;
-  float harris_threshold, log_threshold, surf_threshold;
+  float harris_threshold, log_threshold;
   int max_points;
   int tile_size;
   int num_threads;
