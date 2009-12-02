@@ -37,7 +37,7 @@ namespace vw {
     DiskImageResourcePNGAlphaHack( std::string const& filename, ImageFormat const& format ) : DiskImageResourcePNG(filename,format) {}
 
     void write( ImageBuffer const& src, BBox2i const& bbox ) {
-      int levels = (int) floor(((std::min)(log(bbox.width()),log(bbox.height())))/log(2));
+      int levels = (int) floor(((std::min)(log((double)bbox.width()),log((double)bbox.height())))/log(2.));
       if( levels<2 || src.unpremultiplied || !(src.format.pixel_format==VW_PIXEL_RGBA || src.format.pixel_format==VW_PIXEL_GRAYA) )
         return DiskImageResourcePNG::write(src,bbox);
 

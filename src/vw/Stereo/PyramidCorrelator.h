@@ -126,7 +126,7 @@ namespace stereo {
                                                    std::vector<ImageView<uint8> > right_masks,
                                                    PreProcFilterT const& preproc_filter) {
 
-      BBox2 initial_search_range = m_initial_search_range / pow(2, m_pyramid_levels-1);
+      BBox2 initial_search_range = m_initial_search_range / pow(2.0, m_pyramid_levels-1);
       ImageView<PixelMask<Vector2f> > disparity_map;
 
       // Refined the disparity map by searching in the local region

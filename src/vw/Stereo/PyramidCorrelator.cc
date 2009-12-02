@@ -22,7 +22,7 @@ PyramidCorrelator::subdivide_bboxes(ImageView<PixelMask<Vector2f> > const& dispa
   BBox2 disp_range;
   try {
     disp_range = get_disparity_range(crop(disparity_map, box_div_2));
-  } catch ( std::exception &e ) {
+  } catch ( std::exception &/*e*/ ) {
     // There are no good pixels available
     return result;
   }
@@ -78,7 +78,7 @@ void PyramidCorrelator::write_debug_images(int n, ImageViewRef<PixelMask<Vector2
   BBox2 disp_range;
   try {
     disp_range = get_disparity_range(disparity_map);
-  } catch ( std::exception & e ) {
+  } catch ( std::exception & /*e*/ ) {
     // There was no good pixels
     disp_range = BBox2();
   }

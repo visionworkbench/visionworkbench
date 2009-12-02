@@ -242,7 +242,7 @@ namespace cartography {
         Vector2 y_vector = tx.forward( pixel+Vector2(0,1) ) - pos;
         double degrees_per_pixel = (std::min)( norm_2(x_vector), norm_2(y_vector) );
         double pixels_per_circumference = 360.0 / degrees_per_pixel;
-        int scale_exponent = (int) ceil( log(pixels_per_circumference)/log(2) );
+        int scale_exponent = (int) ceil( log(pixels_per_circumference)/log(2.0) );
         if (scale_exponent >= 31) scale_exponent = 30;
         return 1 << scale_exponent;
       }
@@ -254,7 +254,7 @@ namespace cartography {
       // Returns the number of pixels per planetary circumference, 
       // rounding up to a power of two.
       template <class TransformT>
-      inline int compute_resolution( TransformT const& tx, Vector2 const& pixel ) {
+      inline int32 compute_resolution( TransformT const& tx, Vector2 const& pixel ) {
         // It's exactly the same as the one for KML.
         return vw::cartography::output::kml::compute_resolution(tx, pixel);
       }

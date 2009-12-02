@@ -11,6 +11,7 @@
 ///
 
 #ifdef _MSC_VER
+#pragma warning(disable:4005)
 #pragma warning(disable:4244)
 #pragma warning(disable:4267)
 #pragma warning(disable:4996)
@@ -302,7 +303,7 @@ void DiskImageResourceJPEG::read( ImageBuffer const& dest, BBox2i const& bbox) c
              ArgumentErr() << "DiskImageResourceJPEG (read) Error: Destination buffer has wrong dimensions!" );
 
   const int start_row = bbox.min().y();
-  const int end_row = bbox.max().y();
+  const unsigned int end_row = bbox.max().y();
 
   // If we're starting from the beginning, or if we don't have an open
   // decompress context, restart from the beginning of the file.

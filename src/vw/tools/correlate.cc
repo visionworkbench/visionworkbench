@@ -104,7 +104,7 @@ int main( int argc, char *argv[] ) {
                                   matched_ip1, matched_ip2 );
       std::vector<Vector3> ransac_ip1 = ip::iplist_to_vectorlist(matched_ip1);
       std::vector<Vector3> ransac_ip2 = ip::iplist_to_vectorlist(matched_ip2);
-      math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac( math::HomographyFittingFunctor(), math::InterestPointErrorMetric(), 30 );
+      vw::math::RandomSampleConsensus<vw::math::HomographyFittingFunctor, vw::math::InterestPointErrorMetric> ransac( vw::math::HomographyFittingFunctor(), vw::math::InterestPointErrorMetric(), 30 );
       alignment = ransac( ransac_ip2, ransac_ip1 );
 
       DiskImageView<PixelGray<float> > right_disk_image( right_file_name );

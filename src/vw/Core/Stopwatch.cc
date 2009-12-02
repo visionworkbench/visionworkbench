@@ -23,6 +23,7 @@
 
 // VisionWorkbench includes
 #include <vw/Core/Debugging.h>
+#include <vw/Core/Exception.h>
 
 // Self
 #include <vw/Core/Stopwatch.h>
@@ -40,7 +41,7 @@ namespace vw {
 #ifdef WIN32
     if (use_cpu_time) {
       // TODO: Find the analogous function for "clock()" for windows
-      throw NoImplError();
+      throw NoImplErr();
     } else {
       return ((long long)GetTickCount() * 1000);
     }

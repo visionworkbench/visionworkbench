@@ -479,7 +479,7 @@ namespace vw {
               //           Vector<double,6> pre_lhs = lhs;
               try {
                 solve_symmetric_nocopy(rhs,lhs);
-              } catch (ArgumentErr &e) {
+              } catch (ArgumentErr &/*e*/) {
                 //             std::cout << "Error @ " << x << " " << y << "\n";
                 //             std::cout << "Exception caught: " << e.what() << "\n";
                 //             std::cout << "PRERHS: " << pre_rhs << "\n";
@@ -820,7 +820,7 @@ namespace vw {
               //           Vector<double,6> pre_lhs = lhs;
               try {
                 solve_symmetric_nocopy(rhs,lhs);
-              } catch (ArgumentErr &e) {
+              } catch (ArgumentErr &/*e*/) {
                 //             std::cout << "Error @ " << x << " " << y << "\n";
                 //             std::cout << "Exception caught: " << e.what() << "\n";
                 //             std::cout << "PRERHS: " << pre_rhs << "\n";
@@ -928,7 +928,7 @@ namespace vw {
       double last_time = 0;
 
 
-      for ( int y = std::max(region_of_interest.min().y()-1,kern_half_height);
+      for ( int y = std::max<int>(region_of_interest.min().y()-1,kern_half_height);
             y < std::min(left_image.rows()-kern_half_height, region_of_interest.max().y()+1) ;
             ++y) {
         if (verbose && y % 10 == 0) {
@@ -942,8 +942,8 @@ namespace vw {
           sw.start();
         }
 
-        for (int x=std::max(region_of_interest.min().x()-1,kern_half_width);
-             x<std::min(left_image.cols()-kern_half_width, region_of_interest.max().x()+1);
+        for (int x=std::max<int>(region_of_interest.min().x()-1,kern_half_width);
+             x<std::min<int>(left_image.cols()-kern_half_width, region_of_interest.max().x()+1);
              ++x) {
 
           BBox2i current_window(x-kern_half_width, y-kern_half_height,
@@ -1204,7 +1204,7 @@ namespace vw {
               //           Vector<double,6> pre_lhs = lhs;
               try {
                 solve_symmetric_nocopy(rhs,lhs);
-              } catch (ArgumentErr &e) {
+              } catch (ArgumentErr &/*e*/) {
                 // vw_out(0) << "Error @ " << x << " " << y << "\n";
                 // std::cout << "Exception caught: " << e.what() << "\n";
                 // std::cout << "PRERHS: " << pre_rhs << "\n";

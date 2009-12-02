@@ -113,7 +113,7 @@ double vw::camera::ExifView::get_f_number() const {
   try { 
     query_by_tag(EXIF_FNumber, value); 
     return value;
-  } catch (ExifErr &e) {
+  } catch (ExifErr &/*e*/) {
     query_by_tag(EXIF_ApertureValue, value); 
     return pow(2.0, value * 0.5);
   }
@@ -124,7 +124,7 @@ double vw::camera::ExifView::get_exposure_time() const {
   try { 
     query_by_tag(EXIF_ExposureTime, value); 
     return value;
-  } catch (ExifErr &e) {
+  } catch (ExifErr &/*e*/) {
     query_by_tag(EXIF_ShutterSpeedValue, value); 
     return pow(2.0, -value);
   }
@@ -135,7 +135,7 @@ double vw::camera::ExifView::get_iso() const {
   try { 
     query_by_tag(EXIF_ISOSpeedRatings, value); 
     return value;
-  } catch (ExifErr &e) {
+  } catch (ExifErr &/*e*/) {
     query_by_tag(EXIF_ExposureIndex, value); 
     return value;
   }
@@ -148,7 +148,7 @@ double vw::camera::ExifView::get_focal_length_35mm_equiv() const {
   try { 
     query_by_tag(EXIF_FocalLengthIn35mmFilm, value); // 0 if unknown
     if (value > 0) return value;
-  } catch (ExifErr &e) {}
+  } catch (ExifErr &/*e*/) {}
 
   // Compute from various other statistics
   double focal_length;
@@ -189,7 +189,7 @@ double vw::camera::ExifView::get_aperture_value() const {
   try { 
     query_by_tag(EXIF_ApertureValue, value); 
     return value;
-  } catch (ExifErr &e) {
+  } catch (ExifErr &/*e*/) {
     query_by_tag(EXIF_FNumber, value); 
     return 2 * log(value)/log(2.);  // log2(value) = log(value)/log(2)
   }
@@ -200,7 +200,7 @@ double vw::camera::ExifView::get_time_value() const {
   try { 
     query_by_tag(EXIF_ShutterSpeedValue, value); 
     return value;
-  } catch (ExifErr &e) {
+  } catch (ExifErr &/*e*/) {
     query_by_tag(EXIF_ExposureTime, value); 
     return log(1/value)/log(2.); // log2(value) = log(value)/log(2)
   }
@@ -230,13 +230,13 @@ double vw::camera::ExifView::get_luminance_value() const {
   try{
     query_by_tag(EXIF_BrightnessValue, Bv);
     return Bv;
-  } catch (ExifErr &e) { 
+  } catch (ExifErr &/*e*/) { 
     try {
       double Av = get_aperture_value();
       double Tv = get_time_value();
       double Sv = get_film_speed_value();
       return (Av + Tv - Sv);
-    } catch (ExifErr &e) {
+    } catch (ExifErr &/*e*/) {
       vw_throw(ExifErr() << "Insufficient EXIF information to compute brightness value.");
       return 0; // never reached
     }
@@ -261,7 +261,7 @@ double vw::camera::ExifView::get_average_luminance() const {
     double S = get_iso();
     double B = (A*A*K)/(T*S);
     return B;
-  } catch (ExifErr &e) {
+  } catch (ExifErr &/*e*/) {
     vw_throw(ExifErr() << "Insufficient EXIF information to compute average scene luminance.");
     return 0; // never reached
   }

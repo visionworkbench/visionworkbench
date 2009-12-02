@@ -68,7 +68,7 @@ namespace math {
       double scale = 0;
       for ( unsigned i = 0; i < num_points; i++ )
         scale += norm_2( subvector(pts_int[i],0,dimension-1) );
-      scale = num_points*sqrt(2)/scale;
+      scale = num_points*sqrt(2.)/scale;
       scalar *= scale;
       scalar(dimension-1,dimension-1) = 1;
       return scalar*translation;

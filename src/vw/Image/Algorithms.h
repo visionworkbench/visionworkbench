@@ -518,7 +518,7 @@ namespace vw {
 
   class BlobIndex {
      std::vector<std::list<Vector2i> > m_blob;
-     uint m_blob_count;
+     uint32 m_blob_count;
 
   public:
     // Constructor performs processing

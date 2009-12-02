@@ -19,6 +19,8 @@
 #include <vw/Core/Exception.h>
 #include <vw/Core/Thread.h>
 
+#include <vw/config.h>
+
 namespace vw {
 
   /// The base class for progress monitoring.
@@ -135,7 +137,7 @@ namespace vw {
 
   public:
     TerminalProgressCallback( MessageLevel level = InfoMessage, std::string pre_progress_text = "", uint32_t precision = 0) :
-      m_level(level), m_pre_progress_text(pre_progress_text), m_last_reported_progress(-1), m_precision(precision), m_step(::pow(10, -(int32_t(precision)+2)))  {}
+      m_level(level), m_pre_progress_text(pre_progress_text), m_last_reported_progress(-1), m_precision(precision), m_step(::pow(10., -(int32_t(precision)+2)))  {}
     virtual ~TerminalProgressCallback() {}
 
     TerminalProgressCallback( const TerminalProgressCallback& copy ) : ProgressCallback(copy) {

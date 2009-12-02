@@ -28,7 +28,7 @@ namespace mosaic {
       }
     }
 
-    int max_val = int(::pow(2, name.length())) >> 1;
+    int max_val = int(::pow(2., (int)name.length())) >> 1;
 
     std::ostringstream oss;
     if (name.length() == 0) {

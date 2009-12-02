@@ -296,12 +296,13 @@ struct DiskImageResourcePNG::vw_png_read_context:
   {
     if(current_line != 0)
       vw_throw(IOErr() << "DiskImageResourcePNG: cannot read entire file unless line marker set at beginning.");
-    png_bytep row_pointers[outer->m_format.rows];
+
+    boost::scoped_array<png_bytep> row_pointers( new png_bytep[outer->m_format.rows] );
     if (setjmp(err_mgr.error_return))
       vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     for(int i=0; i < outer->m_format.rows; i++)
       row_pointers[i] = static_cast<png_bytep>(dst.get()) + i * outer->m_format.cols * cstride;
-    png_read_image(png_ptr, row_pointers);
+    png_read_image(png_ptr, row_pointers.get());
     current_line = outer->m_format.rows;
   }
 
@@ -504,13 +505,15 @@ struct DiskImageResourcePNG::vw_png_write_context:
   // to the file. Closing happens when the context is destroyed.
   void write(const ImageBuffer &buf) const
   {
-    png_bytep row_pointers[outer->m_format.rows];
+
+    boost::scoped_array<png_bytep> row_pointers( new png_bytep[outer->m_format.rows] );
+
     if (setjmp(err_mgr.error_return))
       vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     for(int i=0; i < outer->m_format.rows; i++)
       row_pointers[i] = reinterpret_cast<uint8*>(buf.data) + i * cstride * outer->m_format.cols;
 
-    png_write_image(png_ptr, row_pointers);
+    png_write_image(png_ptr, row_pointers.get());
   }
 
 private:

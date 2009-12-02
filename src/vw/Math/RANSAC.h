@@ -200,11 +200,12 @@ namespace math {
       int n = m_fitting_func.min_elements_needed_for_fit(p1[0]);
       std::vector<ContainerT1> try1(n);
       std::vector<ContainerT2> try2(n);
-      int random_indices[n];
+      boost::scoped_array<int> random_indices(new int[n]);
+
       for (int iteration=0; iteration < ransac_iterations; ++iteration) {
         // Get four points at random, taking care not 
         // to select the same point twice.
-        _vw_get_n_unique_integers(p1.size(), n, random_indices);
+        _vw_get_n_unique_integers(p1.size(), n, random_indices.get());
 
         for (int i=0; i < n; ++i) {
           try1[i] = p1[random_indices[i]];
