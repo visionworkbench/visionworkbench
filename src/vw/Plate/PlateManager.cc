@@ -1,31 +1,32 @@
 #include <vw/Plate/PlateManager.h>
 
-template <class ViewT>
-void vw::platefile::WritePlateFileTask<ViewT>::operator() () { 
-  if (m_verbose) 
-    std::cout << "\t    Generating tile: [ " << m_tile_info.j << " " << m_tile_info.i 
-              << " @ level " <<  m_depth << "]    BBox: " << m_tile_info.bbox << "\n";
-  ImageView<typename ViewT::pixel_type> new_data = crop(m_view, m_tile_info.bbox);
-
+template <class PixelT>
+vw::ImageView<PixelT> vw::platefile::composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
+                                          ImageView<PixelT> tile,
+                                          int col, int row, int level,
+                                          int transaction_id,
+                                          const ProgressCallback &progress_callback) {
+  
   // If this tile contains no data at all, then we bail early without
   // doing anything.
-  if (is_transparent(new_data)) {
-    m_progress.report_incremental_progress(1.0);
-    return;
+  if (is_transparent(tile)) {
+    progress_callback.report_incremental_progress(1.0);
+    return tile;
   }
   
-  // If this tile is opaque, then we can plate it directly into the
-  // mosaic.
+  // Store the result.  This first assignment is a shallow copy.
+  ImageView<PixelT> result_tile = tile;
+
+  // If this tile is opaque, then we can add it directly into the
+  // mosaic without any compositing.
   //
   // XXX TODO: Take care of cases where an opaque tile masks other
   // tiles at higher resolutions in the pyramid.
-  if(is_opaque(new_data) ) {
+  if(is_opaque(tile) ) {
 
-    m_platefile->write(new_data, m_tile_info.i, m_tile_info.j, 
-                       m_depth, m_write_transaction_id);
+    platefile->write(tile, col, row, level, transaction_id);
 
-
-  // If the new_data is not transparent, then we need to go
+  // If the tile is not transparent, then we need to go
   // fetch the existing data so that we can composite the two
   // tiles.  This search begins at the current level, but if no
   // tile exists at that level, then we search up the tree for a
@@ -33,19 +34,18 @@ void vw::platefile::WritePlateFileTask<ViewT>::operator() () {
   // crop.
   } else {
 
-    std::cout << "\t--> This tile is NOT opaque!\n";
     bool found = false;
     IndexRecord closest_record;
-    int search_depth = m_depth;
-    int search_col = m_tile_info.i;
-    int search_row = m_tile_info.j;
+    int search_level = level;
+    int search_col = col;
+    int search_row = row;
 
     // Search up the tree, looking for the nearest VALID tile that
     // exists on top of which we can composite the new data.
-    while (!found && search_depth >= 0) {
+    while (!found && search_level >= 0) {
       try {
-        closest_record = m_platefile->read_record(search_col, search_row, 
-                                                  search_depth, m_write_transaction_id-1);
+        closest_record = platefile->read_record(search_col, search_row, 
+                                                  search_level, transaction_id-1);
 
         // Mosaicking must happen strictly in order of transaction
         // ID.  Here we check to see if the underlying data tile is
@@ -55,25 +55,23 @@ void vw::platefile::WritePlateFileTask<ViewT>::operator() () {
         // try again to obtain the lock.
         while (closest_record.status() == INDEX_RECORD_LOCKED) {
           vw_out(0) << "WAITING for tile [ " << search_col << " " << search_row 
-                    << " @ " << m_depth << "]\n";
+                    << " @ " << search_level << "]\n";
           sleep(5.0);
-          closest_record = m_platefile->read_record(search_col, search_row, 
-                                                    search_depth, m_write_transaction_id-1);
+          closest_record = platefile->read_record(search_col, search_row, 
+                                                    search_level, transaction_id-1);
         }
-
-        std::cout << "\t    Found potential match: " << closest_record.DebugString() << "\n";
 
         // If we find a valid tile, the search is over.
         if (closest_record.status() == INDEX_RECORD_VALID) {
           found = true;
         } else {
-          --search_depth;
+          --search_level;
           search_col /= 2;
           search_row /= 2;
         }
       } catch (TileNotFoundErr &e) {
         // If the tile is not found, the search continues at the next level
-        --search_depth;
+        --search_level;
         search_col /= 2;
         search_row /= 2;
       }
@@ -82,54 +80,59 @@ void vw::platefile::WritePlateFileTask<ViewT>::operator() () {
     // If no tile was found, then we can safely place the raw data
     // into the mosaic directly.
     if (!found) {
-      m_platefile->write(new_data, m_tile_info.i, m_tile_info.j, 
-                         m_depth, m_write_transaction_id);
+
+      platefile->write(tile, col, row, level, transaction_id);
 
     } else {
 
-      ImageView<typename ViewT::pixel_type> old_data(new_data.cols(), new_data.rows());
-      m_platefile->read(old_data, search_col, search_row, 
-                        search_depth, m_write_transaction_id-1);
+      ImageView<PixelT> old_tile(tile.cols(), tile.rows());
+      platefile->read(old_tile, search_col, search_row, search_level, transaction_id-1);
 
       // If we found a valid tile at a lower resolution in the
       // pyramid, it needs to be supersampled and cropped before we
       // can use it here.
-      if (search_depth != m_depth) {
-        std::cout << "Didn't find tile: [ " << m_tile_info.i << " " 
-                  << m_tile_info.j << " @ " << m_depth << "]         but did at [" 
-                  << search_col << " " << search_row << " @ " << search_depth << "]\n";
-        std::cout << "Tile dimensions : " <<old_data.cols() << " " << old_data.rows() << "\n";
+      if (search_level != level) {
+
+        int level_diff = level - search_level;
+        int scaling_factor = pow(2,level_diff);
+        int subtile_u = col - search_col * scaling_factor;
+        int subtile_v = row - search_row * scaling_factor;
+        BBox2i subtile_bbox(old_tile.cols() * subtile_u,
+                            old_tile.rows() * subtile_v,
+                            old_tile.cols(), old_tile.rows());
+        
+        std::cout << "Didn't find tile: [ " << col << " " 
+                  << row << " @ " << level << "]         but did at [" 
+                  << search_col << " " << search_row << " @ " << search_level << "]\n";
+        std::cout << "Tile dimensions : " <<old_tile.cols() << " " << old_tile.rows() << "\n";
+        std::cout << "Subtile : " << subtile_u << " " << subtile_v << "   " << subtile_bbox << "\n";
+        // Scale up and interpolate the old_tile, then crop out the
+        // subtile that we need.
+        ImageView<PixelT> subtile = 
+          crop(transform(old_tile, ResampleTransform(scaling_factor, scaling_factor), 
+                         ConstantEdgeExtension(), BicubicInterpolation()),
+               subtile_bbox);
+        
+        // Replace the old data
+        old_tile = subtile;
       }
 
       // Create the image composite and render to an image view
-      if (search_depth != m_depth) 
-        std::cout << "creating mosaic\n";
-      vw::mosaic::ImageComposite<typename ViewT::pixel_type> composite;
-      composite.insert(old_data, 0, 0);
-      composite.insert(new_data, 0, 0);
+      vw::mosaic::ImageComposite<PixelT> composite;
+      composite.insert(old_tile, 0, 0);
+      composite.insert(tile, 0, 0);
       composite.set_draft_mode( true );
       composite.prepare();
-
-      if (search_depth != m_depth) 
-        std::cout << "rendering mosaic " << composite.cols() << " " << composite.rows() << "\n";
-      ImageView<typename ViewT::pixel_type> composite_tile = composite;
-      if (search_depth != m_depth) 
-        std::cout << "rendered " << composite_tile.cols() << " " << composite_tile.rows() << "\n";
+      result_tile = composite;
       
       // Write the result to the platefile
-      if (search_depth != m_depth) 
-        std::cout << "writing data\n";
-      m_platefile->write(composite_tile, m_tile_info.i, m_tile_info.j, 
-                         m_depth, m_write_transaction_id);
-
-      if (search_depth != m_depth)
-        std::cout << "done.\n";
+      platefile->write(result_tile, col, row, level, transaction_id);
     }
   }
 
-
   // Report progress
-  m_progress.report_incremental_progress(1.0);
+  progress_callback.report_incremental_progress(1.0);
+  return result_tile;
 }
 
 
@@ -137,13 +140,25 @@ void vw::platefile::WritePlateFileTask<ViewT>::operator() () {
 namespace vw { 
 namespace platefile {
 
-  template
-  void vw::platefile::WritePlateFileTask<ImageViewRef<PixelGrayA<uint8> > >::operator() ();
+  template ImageView<PixelGrayA<uint8> > 
+  composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
+                        ImageView<PixelGrayA<uint8> > tile,
+                        int col, int row, int level,
+                        int transaction_id,
+                        const ProgressCallback &progress_callback);
 
-  template
-  void vw::platefile::WritePlateFileTask<ImageViewRef<PixelGray<uint8> > >::operator() ();
+  template ImageView<PixelGray<uint8> > 
+  composite_mosaic_tile<PixelGray<uint8> >(boost::shared_ptr<PlateFile> platefile, 
+                                           ImageView<PixelGray<uint8> > tile,
+                                           int col, int row, int level,
+                                           int transaction_id,
+                                           const ProgressCallback &progress_callback);
 
-  template
-  void vw::platefile::WritePlateFileTask<ImageViewRef<PixelRGB<uint8> > >::operator() ();
+  template ImageView<PixelRGB<uint8> > 
+  composite_mosaic_tile<PixelRGB<uint8> >(boost::shared_ptr<PlateFile> platefile, 
+                                          ImageView<PixelRGB<uint8> > tile,
+                                          int col, int row, int level,
+                                          int transaction_id,
+                                          const ProgressCallback &progress_callback);
 
 }}

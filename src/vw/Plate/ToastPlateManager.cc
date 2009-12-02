@@ -126,6 +126,9 @@ ImageView<PixelT> ToastPlateManager::load_tile_impl( int32 level, int32 x, int32
     return tile;
   }
 
+  // STEP 1 : Combining and subsampling to create a new tile
+  // 
+
   // If the record lookup succeded, we look at the current status of
   // the tile to decide what to do next.
   if (rec.status() == INDEX_RECORD_VALID) {
@@ -170,54 +173,84 @@ ImageView<PixelT> ToastPlateManager::load_tile_impl( int32 level, int32 x, int32
                                                           NoEdgeExtension() ),
                             tile_size-1, tile_size-1, 2*tile_size, 2*tile_size ), 2 );
 
-    if (rec.status() == INDEX_RECORD_STALE) {
-      // Regenerate a tile by overlaying it on top of the existing tile.
-      std::cout << "\t    [ " << x << " " << y << " @ " << level << " ] -- Regenerating tile.\n";
 
-      if( ! is_transparent(tile) ) {
-        ImageView<PixelT> old_data(tile.cols(), tile.rows());
-        try {
-
-          // Mipmapping must happen strictly in order of transaction
-          // ID.  Here we check to see if the underlying data tile is
-          // available yet.  It may be "locked" by another mipmapping
-          // session running on a different instance of image2plate.
-          // If that's the case, we sleep for a short time and then
-          // try again.
-          IndexRecord old_rec = m_platefile->read_record(x, y, level, write_transaction_id-1);
-          while (old_rec.status() == INDEX_RECORD_LOCKED) {
-            vw_out(0) << "WAITING for tile [ " << x << " " << y << " @ " << level << "]\n";
-            sleep(5.0);
-            old_rec = m_platefile->read_record(x, y, level, write_transaction_id-1);
-          }
-          m_platefile->read(old_data, x, y, level, write_transaction_id - 1);
-        } catch (TileNotFoundErr &e) { 
-          // Do nothing... we already have a default constructed empty image above! 
-        }
-
-        VW_ASSERT(old_data.cols() == tile.cols() && old_data.rows() == tile.rows(),
-                  LogicErr() << "WritePlateFileTask::operator() -- new tile dimensions do not " 
-                  << "match old tile dimensions.");
-        
-        vw::mosaic::ImageComposite<PixelT> composite;
-        composite.insert(old_data, 0, 0);
-        composite.insert(tile, 0, 0);
-        composite.set_draft_mode( true );
-        composite.prepare();
-
-        ImageView<PixelT> composite_tile = composite;
-        if( ! is_transparent(composite_tile) ) 
-          m_platefile->write(composite_tile, x, y, level, write_transaction_id);
-      }
-
-    } else {
-      // Create a new tile from scratch.
-      if( ! is_transparent(tile) ) {
-        std::cout << "\t    [ " << x << " " << y << " @ " << level << " ] -- Creating tile.\n";
-        m_platefile->write(tile, x, y, level, write_transaction_id);
-      }
-    }
+    // STEP 2 : MIPMAPPING
+    // 
+    // The composite_mosaic_tile() function looks for any tiles at
+    // equal or lower resolution in the mosaic, and composites this
+    // tile on top of those tiles, supersampling the low-res tile if
+    // necessary.
+    return composite_mosaic_tile(m_platefile, tile, x, y, level, write_transaction_id);
   }
+  //   // Next we need to assess whether there is a tile
+  //   try {
+  //     IndexRecord old_rec = m_platefile->read_record(x, y, level, write_transaction_id-1);
+
+  //     // Mipmapping must happen strictly in order of transaction
+  //     // ID.  Here we check to see if the underlying data tile is
+  //     // available yet.  It may be "locked" by another mipmapping
+  //     // session running on a different instance of image2plate.
+  //     // If that's the case, we sleep for a short time and then
+  //     // try again.
+  //     while (old_rec.status() == INDEX_RECORD_LOCKED) {
+  //       vw_out(0) << "WAITING for tile [ " << x << " " << y << " @ " << level << "]\n";
+  //       sleep(5.0);
+  //       old_rec = m_platefile->read_record(x, y, level, write_transaction_id-1);
+  //     }
+  //   } catch (TileNotFoundErr &e) { 
+  //     // Do nothing... we already have a default constructed empty image above! 
+  //   }
+
+  //   if (old_rec.status() != INDEX_RECORD_VALID) {
+  //     // Regenerate a tile by overlaying it on top of the existing tile.
+  //     std::cout << "\t    [ " << x << " " << y << " @ " << level << " ] -- Regenerating tile.\n";
+
+  //     ImageView<PixelT> old_data(tile.cols(), tile.rows());
+  //     m_platefile->read(old_data, x, y, level, write_transaction_id - 1);
+
+  //     if( ! is_transparent(tile) ) {
+  //       try {
+
+  //         // Mipmapping must happen strictly in order of transaction
+  //         // ID.  Here we check to see if the underlying data tile is
+  //         // available yet.  It may be "locked" by another mipmapping
+  //         // session running on a different instance of image2plate.
+  //         // If that's the case, we sleep for a short time and then
+  //         // try again.
+  //         IndexRecord old_rec = m_platefile->read_record(x, y, level, write_transaction_id-1);
+  //         while (old_rec.status() == INDEX_RECORD_LOCKED) {
+  //           vw_out(0) << "WAITING for tile [ " << x << " " << y << " @ " << level << "]\n";
+  //           sleep(5.0);
+  //           old_rec = m_platefile->read_record(x, y, level, write_transaction_id-1);
+  //         }
+  //         m_platefile->read(old_data, x, y, level, write_transaction_id - 1);
+  //       } catch (TileNotFoundErr &e) { 
+  //         // Do nothing... we already have a default constructed empty image above! 
+  //       }
+
+  //       VW_ASSERT(old_data.cols() == tile.cols() && old_data.rows() == tile.rows(),
+  //                 LogicErr() << "WritePlateFileTask::operator() -- new tile dimensions do not " 
+  //                 << "match old tile dimensions.");
+        
+  //       vw::mosaic::ImageComposite<PixelT> composite;
+  //       composite.insert(old_data, 0, 0);
+  //       composite.insert(tile, 0, 0);
+  //       composite.set_draft_mode( true );
+  //       composite.prepare();
+
+  //       ImageView<PixelT> composite_tile = composite;
+  //       if( ! is_transparent(composite_tile) ) 
+  //         m_platefile->write(composite_tile, x, y, level, write_transaction_id);
+  //     }
+
+  //   } else {
+  //     // Create a new tile from scratch.
+  //     if( ! is_transparent(tile) ) {
+  //       std::cout << "\t    [ " << x << " " << y << " @ " << level << " ] -- Creating tile.\n";
+  //       m_platefile->write(tile, x, y, level, write_transaction_id);
+  //     }
+  //   }
+  // }
 
   // TODO: Reenable cache
   //
@@ -231,6 +264,9 @@ ImageView<PixelT> ToastPlateManager::load_tile_impl( int32 level, int32 x, int32
   // e.y = y;
   // e.tile = tile;
   // m_cache.push_front(e);
+
+  vw_out(0) << "WARNING: Encountered a LOCKED tile while mipmapping. "
+            <<"This isn\'t supposed to happen!\n";
   return tile;
 }
 

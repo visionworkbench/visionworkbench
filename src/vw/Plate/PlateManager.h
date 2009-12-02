@@ -32,6 +32,14 @@ namespace fs = boost::filesystem;
 namespace vw {
 namespace platefile {
 
+  template <class PixelT>
+  ImageView<PixelT> composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
+                                          ImageView<PixelT> tile,
+                                          int col, int row, int level,
+                                          int transaction_id,
+                                          const ProgressCallback &progress_callback = ProgressCallback::dummy_instance());
+
+
   // The Tile Entry is used to keep track of the bounding box of
   // tiles and their location in the grid.
   struct TileInfo {
@@ -66,7 +74,21 @@ namespace platefile {
       m_verbose(verbose), m_progress(progress_callback,0.0,1.0/float(total_num_blocks)) {}
       
     virtual ~WritePlateFileTask() {}
-    virtual void operator() ();
+    virtual void operator() () {
+      if (m_verbose) 
+        std::cout << "\t    Generating tile: [ " << m_tile_info.j << " " << m_tile_info.i 
+                  << " @ level " <<  m_depth << "]    BBox: " << m_tile_info.bbox << "\n";
+
+      // Generate the tile from the image data
+      ImageView<typename ViewT::pixel_type> tile = crop(m_view, m_tile_info.bbox);
+      
+      // Composite into the mosaic. The composite_mosaic_tile() function
+      // looks for any tiles at equal or lower resolution in the mosaic,
+      // and composites this tile on top of those tiles, supersampling the
+      // low-res tile if necessary.
+      composite_mosaic_tile(m_platefile, tile, m_tile_info.i, m_tile_info.j, m_depth, 
+                            m_write_transaction_id, m_progress);
+    }
   };
 
 
