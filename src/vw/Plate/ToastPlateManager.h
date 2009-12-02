@@ -110,8 +110,8 @@ namespace platefile {
     // recently accessed tiles, since each will be used roughly four
     // times.
     void load_tile( vw::ImageView<PixelT> &tile, int32 level, int32 x, int32 y, 
-                    int write_transaction_id, int max_depth ) {
-      tile = this->load_tile_impl(level, x, y, write_transaction_id, max_depth);
+                    int transaction_id, int max_depth ) {
+      tile = this->load_tile_impl(level, x, y, transaction_id, max_depth);
     }
 
     // Ok. This is one of those really annoying and esoteric c++
@@ -121,7 +121,7 @@ namespace platefile {
     // indirection (load_tile<>, above), which has the return value in
     // the function arguments.  
     ImageView<PixelT> load_tile_impl( int32 level, int32 x, int32 y, 
-                                      int write_transaction_id, int max_depth );
+                                      int transaction_id, int max_depth );
 
  public:
   

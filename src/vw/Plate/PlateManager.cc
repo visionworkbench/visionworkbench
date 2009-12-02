@@ -101,11 +101,11 @@ vw::ImageView<PixelT> vw::platefile::composite_mosaic_tile(boost::shared_ptr<Pla
                             old_tile.rows() * subtile_v,
                             old_tile.cols(), old_tile.rows());
         
-        std::cout << "Didn't find tile: [ " << col << " " 
-                  << row << " @ " << level << "]         but did at [" 
-                  << search_col << " " << search_row << " @ " << search_level << "]\n";
-        std::cout << "Tile dimensions : " <<old_tile.cols() << " " << old_tile.rows() << "\n";
-        std::cout << "Subtile : " << subtile_u << " " << subtile_v << "   " << subtile_bbox << "\n";
+        // std::cout << "Didn't find tile: [ " << col << " " 
+        //           << row << " @ " << level << "]         but did at [" 
+        //           << search_col << " " << search_row << " @ " << search_level << "]\n";
+        // std::cout << "Tile dimensions : " <<old_tile.cols() << " " << old_tile.rows() << "\n";
+        // std::cout << "Subtile : " << subtile_u << " " << subtile_v << "   " << subtile_bbox << "\n";
         // Scale up and interpolate the old_tile, then crop out the
         // subtile that we need.
         ImageView<PixelT> subtile = 

@@ -16,72 +16,73 @@ using namespace vw;
 // the function arguments.  
 template <class PixelT>
 ImageView<PixelT> ToastPlateManager<PixelT>::load_tile_impl( int32 level, int32 x, int32 y, 
-                                                             int write_transaction_id, 
+                                                             int transaction_id, 
                                                              int max_depth ) {
   int32 num_tiles = 1 << level;
   if( x==-1 ) {
     if( y==-1 ) {
       return load_tile_impl(level, num_tiles-1, num_tiles-1, 
-                                    write_transaction_id, max_depth);
+                                    transaction_id, max_depth);
     }
     if( y==num_tiles ) {
       return load_tile_impl(level, num_tiles-1, 0, 
-                                    write_transaction_id, max_depth);
+                                    transaction_id, max_depth);
     }
     ImageView<PixelT> tile = load_tile_impl(level, 0, num_tiles-1-y, 
-                                                    write_transaction_id, max_depth);
+                                                    transaction_id, max_depth);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
   if( x==num_tiles ) {
     if( y==-1 ) {
       return load_tile_impl(level, 0, num_tiles-1, 
-                                    write_transaction_id, max_depth);
+                                    transaction_id, max_depth);
     }
     if( y==num_tiles ) {
-      return load_tile_impl(level, 0, 0, write_transaction_id, max_depth);
+      return load_tile_impl(level, 0, 0, transaction_id, max_depth);
     }
     ImageView<PixelT> tile = load_tile_impl(level, num_tiles-1, num_tiles-1-y, 
-                                                    write_transaction_id, max_depth);
+                                                    transaction_id, max_depth);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
   if( y==-1 ) {
     ImageView<PixelT> tile = load_tile_impl(level, num_tiles-1-x, 0, 
-                                                    write_transaction_id, max_depth);
+                                                    transaction_id, max_depth);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
   if( y==num_tiles ) {
     ImageView<PixelT> tile = load_tile_impl(level, num_tiles-1-x, num_tiles-1, 
-                                                    write_transaction_id, max_depth);
+                                                    transaction_id, max_depth);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
    
   // Check the cache
-  // for( typename cache_t::iterator i=m_cache.begin(); i!=m_cache.end(); ++i ) {
-  //   if( i->level==level && i->x==x && i->y==y && i->transaction_id = write_transaction_id ) {
-  //     CacheEntry e = *i;
-  //     m_cache.erase(i);
-  //     m_cache.push_front(e);
-  //     return e.tile;
-  //   }
-  // }
+  for( typename cache_t::iterator i=m_cache.begin(); i!=m_cache.end(); ++i ) {
+    if( i->level==level && i->x==x && i->y==y && i->transaction_id == transaction_id ) {
+      CacheEntry e = *i;
+      m_cache.erase(i);
+      m_cache.push_front(e);
+      return e.tile;
+    }
+  }
 
   // First we try to access the indexrecord for this tile.  If
   // that fails, then we must be trying to access a node in the
   // tree that simply doesn't exist.  In this case, we create a
   // totally empty tile and return it.  Note that we are looking
-  // for the tile using the write_transaction_id here because we
+  // for the tile using the transaction_id here because we
   // want to read tiles that have just been inserted in this round
   // of processing.
   ImageView<PixelT> tile;
   IndexRecord rec;
+  bool found_record = true;
   try {
-    rec = m_platefile->read_record(x, y, level, write_transaction_id);
+    rec = m_platefile->read_record(x, y, level, transaction_id);
   } catch (TileNotFoundErr &e) {
-    return tile;
+    found_record = false;
   }
 
   // STEP 1 : Combining and subsampling to create a new tile
@@ -89,14 +90,13 @@ ImageView<PixelT> ToastPlateManager<PixelT>::load_tile_impl( int32 level, int32 
 
   // If the record lookup succeded, we look at the current status of
   // the tile to decide what to do next.
-  if (rec.status() == INDEX_RECORD_VALID) {
+  if (found_record && rec.status() == INDEX_RECORD_VALID) {
 
     // CASE 1 : Valid tiles can be returned without any further processing.
-    m_platefile->read(tile, x, y, level, write_transaction_id);
-    return tile;
+    m_platefile->read(tile, x, y, level, transaction_id);
 
-  } else if (rec.status() == INDEX_RECORD_EMPTY || 
-             rec.status() == INDEX_RECORD_STALE) {
+  } else if (found_record && (rec.status() == INDEX_RECORD_EMPTY || 
+                              rec.status() == INDEX_RECORD_STALE)) {
     
     // CASE 2 : Empty tiles need to be regenerated from scratch.
 
@@ -109,7 +109,7 @@ ImageView<PixelT> ToastPlateManager<PixelT>::load_tile_impl( int32 level, int32 
     for( int j=-1; j<3; ++j ) {
       for( int i=-1; i<3; ++i ) {
         ImageView<PixelT> child = load_tile_impl(level+1,2*x+i,2*y+j,
-                                                 write_transaction_id, max_depth);
+                                                 transaction_id, max_depth);
         if( child ) crop(super,(tile_size-1)*(i+1),(tile_size-1)*(j+1),tile_size,tile_size) = child;	    
       }
     }
@@ -125,7 +125,7 @@ ImageView<PixelT> ToastPlateManager<PixelT>::load_tile_impl( int32 level, int32 
     kernel[1] = kernel[3] = 0.2135;
     kernel[2] = 0.6418;
 
-    tile = subsample( crop( separable_convolution_filter( super, 
+    ImageView<PixelT> new_tile = subsample( crop( separable_convolution_filter( super, 
                                                           kernel, 
                                                           kernel, 
                                                           NoEdgeExtension() ),
@@ -138,20 +138,20 @@ ImageView<PixelT> ToastPlateManager<PixelT>::load_tile_impl( int32 level, int32 
     // tile on top of those tiles, supersampling the low-res tile if
     // necessary.
     vw_out(0) << "\t    [ " << x << " " << y << " @ " << level << " ] -- Mipmapping tile.\n";
-    return composite_mosaic_tile(m_platefile, tile, x, y, level, write_transaction_id);
+    tile = composite_mosaic_tile(m_platefile, new_tile, x, y, level, transaction_id);
   }
 
-  // Save it in the cache.  The cache size of 1024 tiles was chosen
+  // Save the tile in the cache.  The cache size of 1024 tiles was chosen
   // somewhat arbitrarily.
-  // if( m_cache.size() >= 1024 )
-  //   m_cache.pop_back();
-  // CacheEntry e;
-  // e.level = level;
-  // e.x = x;
-  // e.y = y;
-  // e.transaction_id = write_transaction_id;
-  // e.tile = tile;
-  // m_cache.push_front(e);
+  if( m_cache.size() >= 1024 )
+    m_cache.pop_back();
+  CacheEntry e;
+  e.level = level;
+  e.x = x;
+  e.y = y;
+  e.transaction_id = transaction_id;
+  e.tile = tile;
+  m_cache.push_front(e);
 
   return tile;
 }
@@ -162,12 +162,12 @@ namespace platefile {
 
   template 
   ImageView<PixelGrayA<uint8> > ToastPlateManager<PixelGrayA<uint8> >::load_tile_impl( int32 level, int32 x, int32 y, 
-                                                                                       int write_transaction_id, 
+                                                                                       int transaction_id, 
                                                                                        int max_depth);
 
   template
   ImageView<PixelRGBA<uint8> > ToastPlateManager<PixelRGBA<uint8> >::load_tile_impl( int32 level, int32 x, int32 y, 
-                                                                                     int write_transaction_id,
+                                                                                     int transaction_id,
                                                                                      int max_depth );
   
 }}
