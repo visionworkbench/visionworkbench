@@ -9,12 +9,11 @@ dnl Usage: AX_PKG(<name>, <dependencies>, <libraries>, <headers>[, <relative inc
 AC_DEFUN([AX_PKG],
 [
 
-  AC_DIVERT_PUSH(AX_DIVERSION_PROCESS_OPTIONS)dnl
+  m4_divert_once(4200, [dnl
   AC_ARG_WITH(m4_tolower([[$1]]),
     AC_HELP_STRING([--with-]m4_tolower([[$1]]), [enable searching for the $1 package @<:@auto@:>@]),
     [ HAVE_PKG_$1=$withval ]
-  )
-  AC_DIVERT_POP()dnl
+  )])
 
   ADD_$1_CPPFLAGS="$PKG_$1_CPPFLAGS"
   PKG_$1_CPPFLAGS=""

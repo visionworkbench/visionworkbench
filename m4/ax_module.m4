@@ -38,7 +38,7 @@ AC_DEFUN([AX_MODULE],
 
     HAVE_PKG_$1_SRC=yes
 
-    AC_DIVERT_PUSH(AX_DIVERSION_PROCESS_OPTIONS)dnl
+    m4_divert_once(4200, [dnl
       # Silently ignore modules that don't exist in this distribution
       # I'm diverting the output, so i need to do this twice.
       if test -d "$srcdir/$2" ; then
@@ -53,7 +53,7 @@ AC_DEFUN([AX_MODULE],
           [ if test x"$ENABLE_MODULE_$1" = x; then ENABLE_MODULE_$1=`/bin/echo -n $4 | tr [A-Z] [a-z]` ; fi ]
         )
       fi
-    AC_DIVERT_POP()dnl
+    ])
 
     AC_MSG_CHECKING([whether to build module $1])
     ax_module_enable=$ENABLE_MODULE_$1

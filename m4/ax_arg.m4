@@ -23,7 +23,7 @@ AC_DEFUN([AX_ARG],
   m4_define([type],  [m4_toupper([[$1]])])dnl WITH or ENABLE
   AS_VAR_PUSHDEF([value], [m4_if(type, [WITH], [], type[_])[]m4_toupper([[$2]])])dnl
 
-  AC_DIVERT_PUSH(AX_DIVERSION_PROCESS_OPTIONS)dnl
+  m4_divert_once(4200, [dnl
   dnl switch between AC_ARG_(WITH|ENABLE), since I don't think you can indirect
   m4_if(type, [WITH],
     dnl WITH case.
@@ -36,8 +36,7 @@ AC_DEFUN([AX_ARG],
     [AC_ARG_ENABLE(lower,
     AC_HELP_STRING([--][]m4_if(yes, [$3], disable, enable)-lower, [$5][ ]m4_ifval([$3],[@<:@$3@:>@])),
     [ value=[$enableval] ],
-    [ AS_VAR_SET_IF([value], [], [value="[$3]"]) ])])
-  AC_DIVERT_POP()dnl
+    [ AS_VAR_SET_IF([value], [], [value="[$3]"]) ])])])
 
   dnl if the tag is none, generate no configure code here
   m4_bmatch([$4], [none], [], [dnl

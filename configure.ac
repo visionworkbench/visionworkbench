@@ -59,8 +59,7 @@ fi
 
 dnl Process all the --with and --enable options here, so the variables are
 dnl available later
-m4_define(AX_DIVERSION_PROCESS_OPTIONS, 42)
-m4_undivert(AX_DIVERSION_PROCESS_OPTIONS)
+m4_divert(4201)
 
 
 
