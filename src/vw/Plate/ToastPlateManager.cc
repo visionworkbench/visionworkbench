@@ -9,7 +9,7 @@
 using namespace vw::platefile;
 using namespace vw;
 
-std::vector<ToastPlateManager::TileInfo> 
+std::vector<vw::platefile::TileInfo> 
 ToastPlateManager::wwt_image_tiles( BBox2i const& image_bbox, 
                                      int32 const resolution,
                                      int32 const tile_size) {
@@ -54,46 +54,45 @@ ToastPlateManager::wwt_image_tiles( BBox2i const& image_bbox,
 // the function arguments.  
 template <class PixelT>
 ImageView<PixelT> ToastPlateManager::load_tile_impl( int32 level, int32 x, int32 y, 
-                                                     int read_transaction_id, 
                                                      int write_transaction_id, 
                                                      int max_depth ) {
   int32 num_tiles = 1 << level;
   if( x==-1 ) {
     if( y==-1 ) {
       return load_tile_impl<PixelT>(level, num_tiles-1, num_tiles-1, 
-                                    read_transaction_id, write_transaction_id, max_depth);
+                                    write_transaction_id, max_depth);
     }
     if( y==num_tiles ) {
       return load_tile_impl<PixelT>(level, num_tiles-1, 0, 
-                                    read_transaction_id, write_transaction_id, max_depth);
+                                    write_transaction_id, max_depth);
     }
     ImageView<PixelT> tile = load_tile_impl<PixelT>(level, 0, num_tiles-1-y, 
-                                                    read_transaction_id, write_transaction_id, max_depth);
+                                                    write_transaction_id, max_depth);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
   if( x==num_tiles ) {
     if( y==-1 ) {
       return load_tile_impl<PixelT>(level, 0, num_tiles-1, 
-                                    read_transaction_id, write_transaction_id, max_depth);
+                                    write_transaction_id, max_depth);
     }
     if( y==num_tiles ) {
-      return load_tile_impl<PixelT>(level, 0, 0, read_transaction_id, write_transaction_id, max_depth);
+      return load_tile_impl<PixelT>(level, 0, 0, write_transaction_id, max_depth);
     }
     ImageView<PixelT> tile = load_tile_impl<PixelT>(level, num_tiles-1, num_tiles-1-y, 
-                                                    read_transaction_id, write_transaction_id, max_depth);
+                                                    write_transaction_id, max_depth);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
   if( y==-1 ) {
     ImageView<PixelT> tile = load_tile_impl<PixelT>(level, num_tiles-1-x, 0, 
-                                                    read_transaction_id, write_transaction_id, max_depth);
+                                                    write_transaction_id, max_depth);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
   if( y==num_tiles ) {
     ImageView<PixelT> tile = load_tile_impl<PixelT>(level, num_tiles-1-x, num_tiles-1, 
-                                                    read_transaction_id, write_transaction_id, max_depth);
+                                                    write_transaction_id, max_depth);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
@@ -149,7 +148,7 @@ ImageView<PixelT> ToastPlateManager::load_tile_impl( int32 level, int32 x, int32
     for( int j=-1; j<3; ++j ) {
       for( int i=-1; i<3; ++i ) {
         ImageView<PixelT> child = load_tile_impl<PixelT>(level+1,2*x+i,2*y+j,
-                                                         read_transaction_id,write_transaction_id, max_depth);
+                                                         write_transaction_id, max_depth);
         if( child ) crop(super,(tile_size-1)*(i+1),(tile_size-1)*(j+1),tile_size,tile_size) = child;	    
       }
     }
@@ -178,7 +177,20 @@ ImageView<PixelT> ToastPlateManager::load_tile_impl( int32 level, int32 x, int32
       if( ! is_transparent(tile) ) {
         ImageView<PixelT> old_data(tile.cols(), tile.rows());
         try {
-          m_platefile->read(old_data, x, y, level, read_transaction_id);
+
+          // Mipmapping must happen strictly in order of transaction
+          // ID.  Here we check to see if the underlying data tile is
+          // available yet.  It may be "locked" by another mipmapping
+          // session running on a different instance of image2plate.
+          // If that's the case, we sleep for a short time and then
+          // try again.
+          IndexRecord old_rec = m_platefile->read_record(x, y, level, write_transaction_id-1);
+          while (old_rec.status() == INDEX_RECORD_LOCKED) {
+            vw_out(0) << "WAITING for tile [ " << x << " " << y << " @ " << level << "]\n";
+            sleep(5.0);
+            old_rec = m_platefile->read_record(x, y, level, write_transaction_id-1);
+          }
+          m_platefile->read(old_data, x, y, level, write_transaction_id - 1);
         } catch (TileNotFoundErr &e) { 
           // Do nothing... we already have a default constructed empty image above! 
         }
@@ -229,26 +241,22 @@ namespace platefile {
 
 template 
 ImageView<PixelGrayA<uint8> > ToastPlateManager::load_tile_impl<PixelGrayA<uint8> >( int32 level, int32 x, int32 y, 
-                                                                                     int read_transaction_id, 
                                                                                      int write_transaction_id, 
                                                                                      int max_depth);
 
 template 
 ImageView<PixelGrayA<float> > ToastPlateManager::load_tile_impl<PixelGrayA<float> >( int32 level, int32 x, int32 y, 
-                                                                                     int read_transaction_id, 
                                                                                      int write_transaction_id,
                                                                                      int max_depth);
 
 template
 ImageView<PixelRGBA<uint8> > ToastPlateManager::load_tile_impl<PixelRGBA<uint8> >( int32 level, int32 x, int32 y, 
-                                                                                   int read_transaction_id, 
                                                                                    int write_transaction_id,
                                                                                    int max_depth );
 
 
 template 
 ImageView<PixelRGBA<uint16> > ToastPlateManager::load_tile_impl<PixelRGBA<uint16> >( int32 level, int32 x, int32 y, 
-                                                                                     int read_transaction_id, 
                                                                                      int write_transaction_id,
                                                                                      int max_depth );
 

@@ -251,7 +251,7 @@ int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_des
   // index trees.
   for (size_t i = 0; i < tile_headers.size(); ++i) {
     IndexRecord empty_record;
-    empty_record.set_status(INDEX_RECORD_PRIMED);
+    empty_record.set_status(INDEX_RECORD_LOCKED);
     m_root->insert(empty_record, tile_headers[i].col(), tile_headers[i].row(), 
                    tile_headers[i].depth(), transaction_id,
                    true );  // insert_at_all_levels = true

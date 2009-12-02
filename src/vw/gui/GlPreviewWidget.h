@@ -145,6 +145,7 @@ namespace gui {
     bool m_show_legend;
     bool m_bilinear_filter;
     bool m_use_colormap;
+    bool m_show_tile_boundaries;
 
     // Timers and updates
     QTimer *m_timer;

@@ -144,10 +144,7 @@ namespace platefile {
         hdr.set_depth(pyramid_level);
         tile_headers.push_back(hdr);
       }      
-      int read_transaction_id = m_platefile->transaction_cursor();
       int write_transaction_id = m_platefile->transaction_request(description, tile_headers);
-      // this->mipmap(read_transaction_id, write_transaction_id);
-      // exit(0);
 
       // And save each tile to the PlateFile
       std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.  " 
@@ -156,12 +153,11 @@ namespace platefile {
       for (size_t i = 0; i < tiles.size(); ++i) {
         m_queue.add_task(boost::shared_ptr<Task>(
           new WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> >(m_platefile, 
-                                                                            read_transaction_id,
                                                                             write_transaction_id,
                                                                             tiles[i], 
                                                                             pyramid_level, 
                                                                             toast_view, 
-                                                                            false,
+                                                                            false, // verbose
                                                                             tiles.size(),
                                                                             progress)));
       }
@@ -170,12 +166,12 @@ namespace platefile {
 
       // Signal the end of root tile generation and the beginning of
       // mipmapping.  This allows the index to sweep up any remaining
-      // "PRIMED" tiles that may still be sitting around.
+      // "LOCKED" tiles that may still be sitting around.
       m_platefile->root_complete(write_transaction_id, tile_headers);
 
       // Mipmap the tiles.
       std::cout << "\t--> Generating mipmap tiles\n";
-      this->mipmap(read_transaction_id, write_transaction_id, pyramid_level);
+      this->mipmap(write_transaction_id, pyramid_level);
       m_platefile->transaction_complete(write_transaction_id);
     }
 
@@ -185,8 +181,8 @@ namespace platefile {
     // times.
     template <class PixelT>
     void load_tile( vw::ImageView<PixelT> &tile, int32 level, int32 x, int32 y, 
-                    int read_transaction_id, int write_transaction_id, int max_depth ) {
-      tile = this->load_tile_impl<PixelT>(level, x, y, read_transaction_id, write_transaction_id, max_depth);
+                    int write_transaction_id, int max_depth ) {
+      tile = this->load_tile_impl<PixelT>(level, x, y, write_transaction_id, max_depth);
     }
 
     // Ok. This is one of those really annoying and esoteric c++
@@ -197,8 +193,7 @@ namespace platefile {
     // the function arguments.  
     template <class PixelT>
     ImageView<PixelT> load_tile_impl( int32 level, int32 x, int32 y, 
-                                      int read_transaction_id, int write_transaction_id, 
-                                      int max_depth );
+                                      int write_transaction_id, int max_depth );
   };
 
 

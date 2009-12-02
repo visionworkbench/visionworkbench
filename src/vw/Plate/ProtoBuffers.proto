@@ -41,7 +41,7 @@ enum IndexRecordStatusType {
   INDEX_RECORD_EMPTY = 1;
   INDEX_RECORD_STALE = 2;
   INDEX_RECORD_VALID = 3;
-  INDEX_RECORD_PRIMED = 4;
+  INDEX_RECORD_LOCKED = 4;
 }
 
 // The IndexHeader store basic metadata for the platefile, such as the
@@ -141,6 +141,12 @@ message IndexTransactionRequest {
   repeated TileHeader tile_headers = 3;
 }
 
+message IndexRootComplete {
+  required int32 platefile_id = 1;
+  required int32 transaction_id = 2;
+  repeated TileHeader tile_headers = 3;
+}
+
 message IndexTransactionComplete {
   required int32 platefile_id = 1;
   required int32 transaction_id = 2;
@@ -236,6 +242,7 @@ service IndexService {
   rpc WriteRequest (IndexWriteRequest) returns (IndexWriteReply);
   rpc WriteComplete (IndexWriteComplete) returns (RpcNullMessage);
   rpc TransactionRequest (IndexTransactionRequest) returns (IndexTransactionReply);
+  rpc RootComplete (IndexRootComplete) returns (RpcNullMessage);
   rpc TransactionComplete (IndexTransactionComplete) returns (RpcNullMessage);
   rpc TransactionCursor (IndexTransactionCursorRequest) returns (IndexTransactionCursorReply);
   rpc DepthRequest (IndexDepthRequest) returns (IndexDepthReply);

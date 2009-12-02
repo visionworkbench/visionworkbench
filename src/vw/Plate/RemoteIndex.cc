@@ -209,6 +209,20 @@ vw::int32 vw::platefile::RemoteIndex::transaction_request(std::string transactio
   return response.transaction_id();
 }
 
+/// Called right before the beginning of the mipmapping pass
+void vw::platefile::RemoteIndex::root_complete(int32 transaction_id,
+                                               std::vector<TileHeader> const& tile_headers) {
+  IndexRootComplete request;
+  request.set_platefile_id(m_platefile_id);
+  request.set_transaction_id(transaction_id);
+  for (int i = 0; i < tile_headers.size(); ++i)
+    *(request.mutable_tile_headers()->Add()) = tile_headers[i];
+  
+  RpcNullMessage response;
+  m_index_service->RootComplete(m_rpc_controller.get(), &request, &response, 
+                                google::protobuf::NewCallback(&null_closure));
+}
+
 // Once a chunk of work is complete, clients can "commit" their
 // work to the mosaic by issuding a transaction_complete method.
 void vw::platefile::RemoteIndex::transaction_complete(int32 transaction_id) {

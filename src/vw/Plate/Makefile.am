@@ -30,8 +30,8 @@ nodist_include_HEADERS = $(protocol_headers)
 
 libvwPlate_la_SOURCES = Blob.cc BlobManager.cc Index.cc LocalIndex.cc	\
 			RemoteIndex.cc PlateFile.cc RpcServices.cc	\
-			IndexService.cc Amqp.cc ToastPlateManager.cc	\
-			IndexManagerService.cc
+			IndexService.cc Amqp.cc PlateManager.cc		\
+			ToastPlateManager.cc IndexManagerService.cc
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 
 libvwPlate_la_LIBADD  = @MODULE_PLATE_LIBS@

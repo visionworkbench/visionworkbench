@@ -164,6 +164,7 @@ GlPreviewWidget::GlPreviewWidget(QWidget *parent, std::string filename, QGLForma
   m_display_channel = DisplayRGBA;
   m_colorize_display = false;
   m_hillshade_display = false;
+  m_show_tile_boundaries = false;
   
   // Set up shader parameters
   m_gain = 1.0;
@@ -467,6 +468,25 @@ void GlPreviewWidget::drawImage() {
         // Clean up
         glDisable( GL_TEXTURE_2D );
         glUseProgram(0);
+
+        // Optional: draw a border around the texture
+        if (m_show_tile_boundaries) {
+          qglColor(Qt::blue);
+          glBegin(GL_LINES);
+          glVertex2d( texture_bbox.min().x() , -(texture_bbox.min().y()) );
+          glVertex2d( texture_bbox.min().x() , -(texture_bbox.max().y()) );
+
+          glVertex2d( texture_bbox.min().x() , -(texture_bbox.max().y()) );
+          glVertex2d( texture_bbox.max().x() , -(texture_bbox.max().y()) );
+
+          glVertex2d( texture_bbox.max().x() , -(texture_bbox.max().y()) );
+          glVertex2d( texture_bbox.max().x() , -(texture_bbox.min().y()) );
+
+          glVertex2d( texture_bbox.max().x() , -(texture_bbox.min().y()) );
+          glVertex2d( texture_bbox.min().x() , -(texture_bbox.min().y()) );
+          glEnd();
+        }          
+
         
       } else {
         // If no texture is (yet) available, we draw a dark blue quad.
@@ -477,6 +497,25 @@ void GlPreviewWidget::drawImage() {
         glVertex2d( texture_bbox.max().x() , -(texture_bbox.max().y()) );
         glVertex2d( texture_bbox.max().x() , -(texture_bbox.min().y()) );
         glEnd();
+
+        // Optional: draw a border around the texture
+        if (m_show_tile_boundaries) {
+          qglColor(Qt::red);
+          glBegin(GL_LINES);
+          glVertex2d( texture_bbox.min().x() , -(texture_bbox.min().y()) );
+          glVertex2d( texture_bbox.min().x() , -(texture_bbox.max().y()) );
+
+          glVertex2d( texture_bbox.min().x() , -(texture_bbox.max().y()) );
+          glVertex2d( texture_bbox.max().x() , -(texture_bbox.max().y()) );
+
+          glVertex2d( texture_bbox.max().x() , -(texture_bbox.max().y()) );
+          glVertex2d( texture_bbox.max().x() , -(texture_bbox.min().y()) );
+
+          glVertex2d( texture_bbox.max().x() , -(texture_bbox.min().y()) );
+          glVertex2d( texture_bbox.min().x() , -(texture_bbox.min().y()) );
+          glEnd();
+        }          
+
       }
     }
 
@@ -769,6 +808,10 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
     break;
   case Qt::Key_C:  // Activate colormap
     m_use_colormap = !m_use_colormap;
+    update();
+    break;
+  case Qt::Key_T:  // Activate tile boundaries
+    m_show_tile_boundaries = !m_show_tile_boundaries;
     update();
     break;
   case Qt::Key_R:  // Normalize the image

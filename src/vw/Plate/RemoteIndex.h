@@ -73,9 +73,7 @@ namespace platefile {
 
     /// Called right before the beginning of the mipmapping pass
     virtual void root_complete(int32 transaction_id,
-                               std::vector<TileHeader> const& tile_headers) {
-      vw_throw(NoImplErr() << "root_complete() not implemented for remote index.");
-    }
+                               std::vector<TileHeader> const& tile_headers);
 
     // Once a chunk of work is complete, clients can "commit" their
     // work to the mosaic by issuding a transaction_complete method.

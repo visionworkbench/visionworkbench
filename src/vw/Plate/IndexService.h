@@ -83,6 +83,11 @@ namespace platefile {
                                     ::vw::platefile::IndexTransactionReply* response,
                                     ::google::protobuf::Closure* done);      
 
+    virtual void RootComplete(::google::protobuf::RpcController* controller,
+                              const ::vw::platefile::IndexRootComplete* request,
+                              ::vw::platefile::RpcNullMessage* response,
+                              ::google::protobuf::Closure* done);      
+
     virtual void TransactionComplete(::google::protobuf::RpcController* controller,
                                      const ::vw::platefile::IndexTransactionComplete* request,
                                      ::vw::platefile::RpcNullMessage* response,

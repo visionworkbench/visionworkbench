@@ -118,7 +118,7 @@ namespace platefile {
                                                                          current_level + 1);
           if (success && m_records.size() > 0 &&
               (*(m_records.begin())).second.status() == INDEX_RECORD_VALID || 
-              (*(m_records.begin())).second.status() == INDEX_RECORD_PRIMED )
+              (*(m_records.begin())).second.status() == INDEX_RECORD_LOCKED )
             (*(m_records.begin())).second.set_status(INDEX_RECORD_STALE);
           
           return success;
@@ -251,7 +251,7 @@ namespace platefile {
 
         try {
           ElementT val = this->value(transaction_id);
-          if (val.status() == INDEX_RECORD_PRIMED) 
+          if (val.status() == INDEX_RECORD_LOCKED) 
             m_records.erase(transaction_id);
         } catch (TileNotFoundErr &e) {
           // do nothing if the value is not found... there is no need to erase it.
@@ -270,7 +270,7 @@ namespace platefile {
 
           try {
             ElementT val = this->value(transaction_id);
-            if (val.status() == INDEX_RECORD_PRIMED) 
+            if (val.status() == INDEX_RECORD_LOCKED) 
               m_records.erase(transaction_id);
           } catch (TileNotFoundErr &e) {
             // do nothing if the value is not found

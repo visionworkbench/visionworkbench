@@ -106,15 +106,15 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
           pm->insert( DiskImageView<PixelGray<uint8> >(image_files[i]), image_files[i], georef,
                       TerminalProgressCallback(InfoMessage, status_str.str()) );
         break;
-      case VW_CHANNEL_FLOAT32:  
-        if (has_nodata_value)
-          pm->insert(mask_to_alpha(create_mask(DiskImageView<PixelGray<float> >(image_files[i]), 
-                                               nodata_value)), image_files[i], georef,
-                     TerminalProgressCallback(InfoMessage, status_str.str()) );
-        else
-          pm->insert( DiskImageView<PixelGray<float> >(image_files[i]), image_files[i], georef,
-                      TerminalProgressCallback(InfoMessage, status_str.str()) );
-          break;
+      // case VW_CHANNEL_FLOAT32:  
+      //   if (has_nodata_value)
+      //     pm->insert(mask_to_alpha(create_mask(DiskImageView<PixelGray<float> >(image_files[i]), 
+      //                                          nodata_value)), image_files[i], georef,
+      //                TerminalProgressCallback(InfoMessage, status_str.str()) );
+      //   else
+      //     pm->insert( DiskImageView<PixelGray<float> >(image_files[i]), image_files[i], georef,
+      //                 TerminalProgressCallback(InfoMessage, status_str.str()) );
+      //     break;
       default:
         vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
       }
