@@ -328,7 +328,7 @@ namespace math {
   public:
     typedef std::pair<ValT,ValT> value_type;
 
-    MinMaxAccumulator() : m_valid(false) {}
+    MinMaxAccumulator() : m_minval(0), m_maxval(0), m_valid(false) {}
 
     void operator()( ValT const& arg ) {
       if ( ! m_valid ) {
