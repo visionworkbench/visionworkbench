@@ -53,7 +53,8 @@ vw::ImageView<PixelT> vw::platefile::composite_mosaic_tile(boost::shared_ptr<Pla
         // session running on a different instance of image2plate.
         // If that's the case, we sleep for a short time and then
         // try again to obtain the lock.
-        while (closest_record.status() == INDEX_RECORD_LOCKED) {
+        while (closest_record.status() == INDEX_RECORD_LOCKED || 
+               closest_record.status() == INDEX_RECORD_STALE) {
           vw_out(0) << "WAITING for tile [ " << search_col << " " << search_row 
                     << " @ " << search_level << "]\n";
           sleep(5.0);

@@ -63,7 +63,7 @@ namespace platefile {
   template <class ViewT>
   class WritePlateFileTask : public Task {
     boost::shared_ptr<PlateFile> m_platefile;
-    int m_write_transaction_id;
+    int m_transaction_id;
     TileInfo m_tile_info;
     int m_depth;
     ViewT const& m_view;
@@ -72,12 +72,12 @@ namespace platefile {
       
   public:
     WritePlateFileTask(boost::shared_ptr<PlateFile> platefile, 
-                       int write_transaction_id,
+                       int transaction_id,
                        TileInfo const& tile_info, 
                        int depth, ImageViewBase<ViewT> const& view,
                        bool verbose, int total_num_blocks, 
                        const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) :
-      m_platefile(platefile), m_write_transaction_id(write_transaction_id),
+      m_platefile(platefile), m_transaction_id(transaction_id),
       m_tile_info(tile_info), m_depth(depth), m_view(view.impl()), 
       m_verbose(verbose), m_progress(progress_callback,0.0,1.0/float(total_num_blocks)) {}
       
@@ -95,7 +95,7 @@ namespace platefile {
       // and composites this tile on top of those tiles, supersampling the
       // low-res tile if necessary.
       composite_mosaic_tile(m_platefile, tile, m_tile_info.i, m_tile_info.j, m_depth, 
-                            m_write_transaction_id, m_progress);
+                            m_transaction_id, m_progress);
     }
   };
 

@@ -108,8 +108,7 @@ ImageView<PixelT> ToastPlateManager<PixelT>::load_tile_impl( int32 level, int32 
     // regenerating them if necessary.
     for( int j=-1; j<3; ++j ) {
       for( int i=-1; i<3; ++i ) {
-        ImageView<PixelT> child = load_tile_impl(level+1,2*x+i,2*y+j,
-                                                 transaction_id, max_depth);
+        ImageView<PixelT> child = load_tile_impl(level+1,2*x+i,2*y+j,transaction_id, max_depth);
         if( child ) crop(super,(tile_size-1)*(i+1),(tile_size-1)*(j+1),tile_size,tile_size) = child;	    
       }
     }

@@ -89,13 +89,9 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url, IndexHeader inde
   index_header_info.set_platefile_id(0);  // this takes care of 'required' property, which is not set yet
   *(request.mutable_index_header()) = index_header_info;
 
-  vw_out(0) << "ISSUING IndexCreateRequest\n" << request.DebugString() << "\n";
-
   IndexOpenReply response;
   m_index_service->CreateRequest(m_rpc_controller.get(), &request, &response, 
                                  google::protobuf::NewCallback(&null_closure));
-
-  vw_out(0) << "RECEIVED IndexCreateReply\n" << response.DebugString() << "\n";
 
   m_index_header = response.index_header();
   m_platefile_id = m_index_header.platefile_id();
