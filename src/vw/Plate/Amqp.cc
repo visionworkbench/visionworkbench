@@ -109,7 +109,7 @@ struct vw::platefile::AmqpConnectionState {
 // Constructor / destructor
 // ------------------------
  
-AmqpConnection::AmqpConnection(std::string const& hostname, int port, vw::int64 timeout) : m_timeout(timeout) {
+AmqpConnection::AmqpConnection(std::string const& hostname, int port) {
   Mutex::Lock lock(m_mutex);
   
   m_state = boost::shared_ptr<AmqpConnectionState>(new AmqpConnectionState());
@@ -234,11 +234,11 @@ bool operator<(const struct timeval& t1, const struct timeval& t2) {
   return (t1.tv_sec < t2.tv_sec);
 }
 
-static boost::shared_array<uint8> pump_queue(amqp_connection_state_t& conn, amqp_frame_t &header) {
-  int result;
+static boost::shared_array<uint8> pump_queue(amqp_connection_state_t& conn, 
+                                             amqp_frame_t &header) {
 
   amqp_maybe_release_buffers(conn);
-  result = amqp_simple_wait_frame(conn, &header);
+  int result = amqp_simple_wait_frame(conn, &header);
 
   VW_ASSERT(result > 0,                             AMQPAssertion() << "AMQP error: unknown result waiting for frame.");
   VW_ASSERT(header.frame_type == AMQP_FRAME_HEADER, AMQPAssertion() << "Expected AMQP header!");
@@ -272,30 +272,45 @@ static boost::shared_array<uint8> pump_queue(amqp_connection_state_t& conn, amqp
 }
 
 // timeout in ms
-boost::shared_array<uint8> AmqpConnection::basic_get(std::string const& queue, bool no_ack) {
+boost::shared_array<uint8> AmqpConnection::basic_get(std::string const& queue, 
+                                                     bool no_ack,
+                                                     vw::int64 timeout, 
+                                                     int retries) {
 
   Mutex::Lock lock(m_mutex);
 
   struct timeval current, stop;
+  int num_tries = 0;
   amqp_rpc_reply_t reply;
 
   const amqp_bytes_t queue_b = amqp_cstring_bytes(queue.c_str());
 
-  if (m_timeout == -1) {
+  if (timeout == -1) {
     stop.tv_sec = std::numeric_limits<time_t>::max();
   } else {
     gettimeofday(&stop, NULL);
 
-    time_t sec = m_timeout / 1000;
+    time_t sec = timeout / 1000;
     stop.tv_sec  +=  sec;
-    stop.tv_usec += (m_timeout - (sec * 1000)) * 1000;
+    stop.tv_usec += (timeout - (sec * 1000)) * 1000;
   }
 
   while (1) {
     gettimeofday(&current, NULL);
 
-    if (! (current < stop) ) // too lazy to define all cmp
-      vw_throw(AMQPTimeout() << "basic_get timed out");
+    if (! (current < stop) ) { // too lazy to define all cmp
+
+      // Reset the timer and increment the number of tries
+      gettimeofday(&stop, NULL);
+      time_t sec = timeout / 1000;
+      stop.tv_sec  +=  sec;
+      stop.tv_usec += (timeout - (sec * 1000)) * 1000;
+      ++num_tries;
+
+      // Have we run out of retries?  If so, bail!
+      if (num_tries == retries)
+        vw_throw(AMQPTimeout() << "basic_get timed out");
+    }
 
     amqp_maybe_release_buffers(m_state->conn);
     reply = amqp_basic_get(m_state->conn, 1, queue_b, no_ack);
@@ -317,7 +332,7 @@ boost::shared_array<uint8> AmqpConnection::basic_get(std::string const& queue, b
   return pump_queue(m_state->conn, header);
 }
 
-#if 0
+#if 1
 // XXX: Fix this before uncommenting: consume starts a delivery process on the
 // server every time it's called. It's designed to be used with a callback and
 // a message queue pumper.

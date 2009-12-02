@@ -148,8 +148,8 @@ namespace platefile {
     AmqpRpcServer(std::string exchange, std::string queue) :
       m_exchange(exchange), m_queue(queue) {
       
-      m_conn.exchange_declare(exchange, "direct", true, false);
-      m_conn.queue_declare(queue, true, true, false);
+      m_conn.exchange_declare(exchange, "direct", false, false);
+      m_conn.queue_declare(queue, false, true, false);
       
       this->Reset();
     }

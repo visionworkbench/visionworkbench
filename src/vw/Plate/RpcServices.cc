@@ -28,8 +28,8 @@ vw::platefile::AmqpRpcChannel::AmqpRpcChannel(std::string const& exchange,
   m_response_queue(response_queue) {
   
   // Create a queue and bind it to the index server exchange.
-  m_conn.exchange_declare(exchange, "direct", true, false);
-  m_conn.queue_declare(response_queue, true, true, false);
+  m_conn.exchange_declare(exchange, "direct", false, false);
+  m_conn.queue_declare(response_queue, false, true, true);
   m_conn.queue_bind(response_queue, exchange, response_queue);
 }
 
@@ -61,7 +61,9 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
                        m_exchange, m_request_routing_key);
   
   // Wait for a response, and pass it along to the callback.
-  boost::shared_array<uint8> response_bytes = m_conn.basic_get(m_response_queue);
+  boost::shared_array<uint8> response_bytes = m_conn.basic_get(m_response_queue,
+                                                               true,
+                                                               5000);
 
   WireMessage wire_response(response_bytes);
   RpcResponseWrapper response_wrapper;
@@ -122,7 +124,9 @@ void vw::platefile::AmqpRpcServer::run() {
     // --------------------------------------
     // Step 1 : Wait for an incoming message.
     // --------------------------------------
-    boost::shared_array<uint8> request_bytes = m_conn.basic_get(m_queue);
+    //    boost::shared_array<uint8> request_bytes = m_conn.basic_get(m_queue, true, -1);
+    std::string routing_key;
+    boost::shared_array<uint8> request_bytes = m_conn.basic_consume(m_queue, routing_key, true);
     WireMessage wire_request(request_bytes);
     RpcRequestWrapper request_wrapper = wire_request.parse_as_message<RpcRequestWrapper>();
 

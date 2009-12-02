@@ -32,7 +32,6 @@ namespace platefile {
   class AmqpConnection {
     boost::shared_ptr<AmqpConnectionState> m_state;
     vw::Mutex m_mutex;
-    vw::int64 m_timeout;
 
   public:
 
@@ -43,7 +42,7 @@ namespace platefile {
     /// Open a new connection to the AMQP server.  This connection
     /// terminates automatically when this object is destroyed. 
     //Timeout is in ms, -1 means forever.
-    AmqpConnection(std::string const& hostname = "localhost", int port = 5672, vw::int64 timeout = 1000);
+    AmqpConnection(std::string const& hostname = "localhost", int port = 5672);
 
     /// Closes the AMQP connection and destroys this object.
     ~AmqpConnection();
@@ -74,11 +73,13 @@ namespace platefile {
                        std::string const& routing_key);
 
     boost::shared_array<uint8> basic_get(std::string const& queue,
-                                          bool no_ack = false);
+                                         bool no_ack = true,       // Warning: false doesn't work!
+                                         vw::int64 timeout = 5000, // milliseconds
+                                         int retries = 3);
 
-    //boost::shared_array<uint8> basic_consume(std::string const& queue, 
-    //                                         std::string &routing_key,
-    //                                         bool no_ack);
+    boost::shared_array<uint8> basic_consume(std::string const& queue, 
+                                             std::string &routing_key,
+                                             bool no_ack);
   };
 
 }} // namespace vw::platefile
