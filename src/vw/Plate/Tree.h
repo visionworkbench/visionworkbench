@@ -97,9 +97,10 @@ namespace platefile {
     // kept seperate from the set_status() method of the record.
     // Maybe we need to feed in some sort of invalidation functor to
     // the tree structure to keep the barrier intact?
-    bool invalidate_records_helper(int col, int row, int level, int current_level) {
+    bool invalidate_records_helper(int col, int row, int level, 
+                                   int transaction_id, int current_level) {
       // If we have reached the requested depth, then we must be at
-      // the node we want!  Return the ElementT!
+      // the node we want!  
       if (current_level == level) {
 
         // Handle the edge case where the user has requested a tile
@@ -110,17 +111,26 @@ namespace platefile {
         
       // Otherwise, we go recurse deeper into the tree....
       } else {        
+
         int child_id = compute_child_id(col, row, level, current_level + 1);
         if (m_children[child_id]) {
           
           // If a branch of the tree is found, we dive deeper.
           bool success = m_children[child_id]->invalidate_records_helper(col, row, level, 
+                                                                         transaction_id,
                                                                          current_level + 1);
-          if (success && m_records.size() > 0 &&
-              (*(m_records.begin())).second.status() == INDEX_RECORD_VALID || 
-              (*(m_records.begin())).second.status() == INDEX_RECORD_LOCKED )
-            (*(m_records.begin())).second.set_status(INDEX_RECORD_STALE);
           
+          // If a record for this transaction ID doesn't exist yet, we
+          // add an empty one and mark it LOCKED.
+          if (m_records.find(transaction_id) == m_records.end()) {
+            ElementT rec;
+            rec.set_status(INDEX_RECORD_LOCKED);
+            m_records[transaction_id] = rec;
+
+          // Otherwise, we mark the record as STALE
+          } else {
+            m_records[transaction_id].set_status(INDEX_RECORD_STALE);
+          }
           return success;
           
         } else {
@@ -385,8 +395,8 @@ namespace platefile {
     }
 
     // Search for a node at a given col, row, and level.
-    bool invalidate_records(int col, int row, int level) {
-      return invalidate_records_helper(col, row, level, 0);
+    bool invalidate_records(int col, int row, int level, int transaction_id) {
+      return invalidate_records_helper(col, row, level, transaction_id, 0);
     }
 
     // Insert an ElementT at a given position.  Intermediate nodes

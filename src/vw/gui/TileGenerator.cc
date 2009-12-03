@@ -9,8 +9,11 @@
 #include <vw/Image/ImageResourceView.h>
 #include <vw/Image/Statistics.h>
 #include <vw/Image/MaskViews.h>
+#include <vw/Plate/ProtoBuffers.pb.h>
+
 using namespace vw;
 using namespace vw::gui;
+using namespace vw::platefile;
 
 #include <boost/filesystem.hpp>
 namespace fs = boost::filesystem;
@@ -232,9 +235,44 @@ boost::shared_ptr<ViewImageResource> generate_tile_impl(TileLocator const& tile_
                                       boost::shared_ptr<vw::platefile::PlateFile> platefile) {
   ImageView<PixelT> tile(1,1);
   try {
-    platefile->read(tile, tile_info.col, tile_info.row, tile_info.level, tile_info.transaction_id);
+
+    IndexRecord rec = platefile->read_record(tile_info.col, tile_info.row, 
+                                             tile_info.level, tile_info.transaction_id);
+     
+    if (rec.status() == INDEX_RECORD_EMPTY) {
+      
+      ImageView<PixelRGBA<uint8> > empty_tile(1,1);
+      empty_tile(0,0) = PixelRGBA<uint8>(0,0,255,255);
+      return boost::shared_ptr<ViewImageResource>( new ViewImageResource(empty_tile) );    
+
+    } else if (rec.status() == INDEX_RECORD_LOCKED) {
+
+      ImageView<PixelRGBA<uint8> > locked_tile(1,1);
+      locked_tile(0,0) = PixelRGBA<uint8>(255,0,0,255);
+      return boost::shared_ptr<ViewImageResource>( new ViewImageResource(locked_tile) );    
+
+    } else if (rec.status() == INDEX_RECORD_STALE) {
+
+      ImageView<PixelRGBA<uint8> > stale_tile(1,1);
+      stale_tile(0,0) = PixelRGBA<uint8>(0,255,0,255);
+      return boost::shared_ptr<ViewImageResource>( new ViewImageResource(stale_tile) );    
+
+    } else if (rec.status() == INDEX_RECORD_VALID) {    
+
+      platefile->read(tile, tile_info.col, tile_info.row, 
+                      tile_info.level, tile_info.transaction_id);
+
+    }
+
+  } catch (platefile::TileNotFoundErr &e) {
+
+    ImageView<PixelGrayA<uint8> > blank_tile(1,1);
+    return boost::shared_ptr<ViewImageResource>( new ViewImageResource(blank_tile) );    
+
   } catch (vw::IOErr &e) {
+
     std::cout << "WARNING: AMQP ERROR -- " << e.what() << "\n";
+
   }
   return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
 }
@@ -245,13 +283,9 @@ boost::shared_ptr<ViewImageResource> PlatefileTileGenerator::generate_tile(TileL
                               << tile_info.col << " " << tile_info.row 
                               << " @ " << tile_info.level << "\n";
   
-  try {
-    VW_DELEGATE_BY_PIXEL_TYPE(generate_tile_impl, tile_info, m_platefile)
-  } catch (platefile::TileNotFoundErr &e) {
-    ImageView<PixelGrayA<uint8> > blank_tile(1,1);
-    return boost::shared_ptr<ViewImageResource>( new ViewImageResource(blank_tile) );    
-  }
-  
+  VW_DELEGATE_BY_PIXEL_TYPE(generate_tile_impl, tile_info, m_platefile)
+    
+  // If we get to here, then there was no support for the pixel format.
   vw_throw(NoImplErr() << "Unsupported pixel format or channel type in TileGenerator.\n");
 }
 

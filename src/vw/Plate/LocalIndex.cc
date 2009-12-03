@@ -219,7 +219,7 @@ void vw::platefile::LocalIndex::write_complete(TileHeader const& header, IndexRe
 
   Mutex::Lock lock(m_mutex);
   m_root->insert(record, header.col(), header.row(), header.depth(), header.transaction_id());
-  m_root->invalidate_records(header.col(), header.row(), header.depth());
+  m_root->invalidate_records(header.col(), header.row(), header.depth(), header.transaction_id());
 }
 
 
@@ -244,11 +244,6 @@ int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_des
   // track of which tiles are "pending" in the mosaic, which is useful
   // information to know when multiple clients are adding images to
   // the mosaic at the same time.
-  //
-  // Note that "pending" tiles are marked with "empty" IndexRecord
-  // structures that have the blob_id set to -1.  This is messy, I
-  // know, but it helps us to economize on memory usage for large
-  // index trees.
   for (size_t i = 0; i < tile_headers.size(); ++i) {
     IndexRecord empty_record;
     empty_record.set_status(INDEX_RECORD_LOCKED);

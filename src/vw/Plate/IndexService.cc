@@ -121,19 +121,46 @@ void IndexServiceImpl::CreateRequest(::google::protobuf::RpcController* controll
                                      IndexOpenReply* response,
                                      ::google::protobuf::Closure* done) {
 
-  std::string url = m_root_directory + "/" + request->plate_name();
+  // Try OPEN: the index may already exist and be open.  If so, we do
+  // nothing but return the necessary info in the IndexOpenReply.
+  index_list_type::iterator iter = m_indices.begin();
+  while (iter != m_indices.end()) {
+    if ( (*iter).second.short_plate_filename == request->plate_name() ) {
 
+      // If we find a matching short_plate_filename in m_indices, then
+      // we return the index header.
+      response->set_short_plate_filename( (*iter).second.short_plate_filename );
+      response->set_full_plate_filename( (*iter).second.full_plate_filename );
+      *(response->mutable_index_header()) = (*iter).second.index->index_header();
+      done->Run();    
+      return;
+
+    }
+    ++iter;
+  }
+
+
+  // If the index is not already open...
+  std::string url = m_root_directory + "/" + request->plate_name();
   boost::shared_ptr<Index> idx;
   try {
     if (!exists( fs::path( url, fs::native ) ) ) {
+
+      // CREATE: If there was no index already open by that name, and
+      // no platefile on disk, then we try to create it.
       fs::create_directory(url);
       idx = Index::construct_create(url, request->index_header());
+
     } else {
+
+      // REOPEN: If a platefile actually does appear to exist on disk,
+      // but we had not previously opened it, we open it here.
       idx = Index::construct_open(url);
+
     }
   } catch (IOErr &e) {
     vw_throw(PlatefileCreationErr() << e.what());
-    return;
+    return; // never reached
   }
 
   IndexServiceRecord rec = this->add_index(m_root_directory, request->plate_name(), idx);

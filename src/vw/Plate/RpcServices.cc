@@ -133,8 +133,8 @@ void vw::platefile::AmqpRpcServer::run() {
     WireMessage wire_request(request_bytes);
     RpcRequestWrapper request_wrapper = wire_request.parse_as_message<RpcRequestWrapper>();
 
-    // vw_out(0) << "[RPC: " << request_wrapper.method() 
-    //           << " from " << request_wrapper.requestor() << "]\n";
+    vw_out(0) << "[RPC: " << request_wrapper.method() 
+              << " from " << request_wrapper.requestor() << "]\n";
 
     // -------------------------------------------------------------
     // Step 2 : Instantiate the proper messages and delegate them to

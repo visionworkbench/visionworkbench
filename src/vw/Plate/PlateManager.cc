@@ -23,7 +23,10 @@ vw::ImageView<PixelT> vw::platefile::composite_mosaic_tile(boost::shared_ptr<Pla
   // XXX TODO: Take care of cases where an opaque tile masks other
   // tiles at higher resolutions in the pyramid.
   if(is_opaque(tile) ) {
-
+    
+    // TODO: This is where we could strip the tile of its alpha
+    // channel to save space in the placefile.  This will require a
+    // view that strips off the alpha channel.
     platefile->write(tile, col, row, level, transaction_id);
 
   // If the tile is not transparent, then we need to go

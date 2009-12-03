@@ -45,7 +45,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
   if (output_mode == "toast") {
 
     boost::shared_ptr<ToastPlateManager<typename ViewT::pixel_type> > pm( 
-        new ToastPlateManager<typename ViewT::pixel_type> (platefile, num_threads) );
+                                                                         new ToastPlateManager<typename ViewT::pixel_type> (platefile, num_threads) );
     
     pm->insert(view.impl(), filename, georef,
                TerminalProgressCallback(InfoMessage, status_str.str()) );

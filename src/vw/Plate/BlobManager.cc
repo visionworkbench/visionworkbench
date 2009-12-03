@@ -119,15 +119,6 @@ int vw::platefile::BlobManager::request_lock(int64 size) {
     vw_throw(BlobLimitErr() << "Unable to create more blob files. " 
              << "The blob limit has been reached.");
   
-  std::cout << "LOCK ACQUIRED [ " << next_available_blob << " ]: ";
-  for (int i = 0; i < m_blob_locks.size(); ++i) {
-    if (m_blob_locks[i].locked)
-      std::cout << " x ";
-    else 
-      std::cout << " o ";
-  }
-  std::cout << "\n";
-
   // Then we lock it, increment the blob index, and return it.
   m_blob_locks[next_available_blob].locked = true;  
   return next_available_blob;
