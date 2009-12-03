@@ -38,7 +38,7 @@ AC_DEFUN([AX_MODULE],
 
     HAVE_PKG_$1_SRC=yes
 
-    m4_divert_once(4200, [dnl
+    m4_divert_once([DEFAULTS], [dnl
       # Silently ignore modules that don't exist in this distribution
       # I'm diverting the output, so i need to do this twice.
       if test -d "$srcdir/$2" ; then
@@ -46,14 +46,14 @@ AC_DEFUN([AX_MODULE],
         if test -n "$ENABLE_MODULE_$1"; then
             WANT_MODULE_$1="$ENABLE_MODULE_$1"
         fi
-
-        AC_ARG_ENABLE([module-]m4_tolower([[$1]]),
-          AC_HELP_STRING([--enable-module-]m4_tolower([[$1]]), [enable the $1 module @<:@$4@:>@]),
-          [ ENABLE_MODULE_$1=$enableval; WANT_MODULE_$1=$enableval; ],
-          [ if test x"$ENABLE_MODULE_$1" = x; then ENABLE_MODULE_$1=`/bin/echo -n $4 | tr [A-Z] [a-z]` ; fi ]
-        )
       fi
     ])
+
+    AC_ARG_ENABLE([module-]m4_tolower([[$1]]),
+      AC_HELP_STRING([--enable-module-]m4_tolower([[$1]]), [enable the $1 module @<:@$4@:>@]),
+      [ ENABLE_MODULE_$1=$enableval; WANT_MODULE_$1=$enableval; ],
+      [ if test x"$ENABLE_MODULE_$1" = x; then ENABLE_MODULE_$1=`/bin/echo -n $4 | tr [A-Z] [a-z]` ; fi ]
+    )
 
     AC_MSG_CHECKING([whether to build module $1])
     ax_module_enable=$ENABLE_MODULE_$1

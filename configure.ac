@@ -49,6 +49,7 @@ dnl LIBTOOL_VERSION=current:revision:age
 LIBTOOL_VERSION=4:0:0
 AC_SUBST(LIBTOOL_VERSION)
 
+m4_divert_text([DEFAULTS], [dnl
 # load the config.options
 if test -f ./config.options; then
   AX_LOG([using config.options << EOF])
@@ -56,12 +57,7 @@ if test -f ./config.options; then
   AX_LOG([EOF])
   source ./config.options
 fi
-
-dnl Process all the --with and --enable options here, so the variables are
-dnl available later
-m4_divert(4201)
-
-
+])
 
 ##################################################
 # Find the necessary programs
