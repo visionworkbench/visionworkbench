@@ -48,7 +48,7 @@ public:
     blob_id2 = bm.request_lock(1024);
     int blob_id3 = bm.request_lock(1024);
     int blob_id4 = bm.request_lock(1024);
-    
+
     TS_ASSERT_THROWS(int blob_id5 = bm.request_lock(1024), BlobLimitErr);
   }
 

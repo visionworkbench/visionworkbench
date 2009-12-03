@@ -61,7 +61,7 @@ int vw::platefile::BlobManager::get_next_available_blob() {
   // create a new one here, stick it on the end, and return that new
   // blob_id.  (Unless we have reached max_blobs, in which case we
   // return -1.)
-  if (m_blob_locks.size() > m_max_blobs) {
+  if (m_blob_locks.size() >= m_max_blobs) {
     return -1;
   } else {
     BlobRecord rec;
