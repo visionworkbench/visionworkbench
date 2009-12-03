@@ -97,6 +97,9 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
     } else if (response_wrapper.error_info().type() == "PlatefileCreationErr") {
       vw_throw(PlatefileCreationErr() << response_wrapper.error_info().message());      
 
+    } else if (response_wrapper.error_info().type() == "BlobLimitErr") {
+      vw_throw(BlobLimitErr() << response_wrapper.error_info().message());      
+
     } else {
       vw_out(0) << "WARNING!! Unknown exception in RPC message:\n\t" 
                 << "Type = " << response_wrapper.error_info().type() << "\n\t"
@@ -130,8 +133,8 @@ void vw::platefile::AmqpRpcServer::run() {
     WireMessage wire_request(request_bytes);
     RpcRequestWrapper request_wrapper = wire_request.parse_as_message<RpcRequestWrapper>();
 
-    vw_out(0) << "[RPC: " << request_wrapper.method() 
-              << " from " << request_wrapper.requestor() << "]\n";
+    // vw_out(0) << "[RPC: " << request_wrapper.method() 
+    //           << " from " << request_wrapper.requestor() << "]\n";
 
     // -------------------------------------------------------------
     // Step 2 : Instantiate the proper messages and delegate them to

@@ -39,6 +39,14 @@ namespace platefile {
   ///
   VW_DEFINE_EXCEPTION(InvalidPlatefileErr, PlatefileErr);
 
+  /// BlobLimitErr exception 
+  ///
+  /// This exception is thrown whenever the maximum number of blobs is
+  /// reached.  This shouldn't ever really happen in practice unless
+  /// something is wrong.
+  ///
+  VW_DEFINE_EXCEPTION(BlobLimitErr, PlatefileErr);
+
   /// InvalidPlatefileErr exception 
   ///
   /// This exception is thrown by the IndexService when an error

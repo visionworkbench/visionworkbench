@@ -10,16 +10,11 @@
 
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
-#include <vw/Core/Thread.h>
 #include <vw/Core/Log.h>
 
 #include <vw/Image/PixelTypeInfo.h>
 
 #include <vw/Plate/Tree.h>
-#include <vw/Plate/Blob.h>
-#include <vw/Plate/BlobManager.h>
-
-// Protocol Buffer
 #include <vw/Plate/ProtoBuffers.pb.h>
 
 #define VW_PLATE_INDEX_VERSION 2

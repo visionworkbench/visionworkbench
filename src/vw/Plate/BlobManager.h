@@ -28,23 +28,36 @@ namespace platefile {
   ///
   /// The BlobManager is thread safe.
   class BlobManager {
+    
+    struct BlobRecord {
+      bool locked;
+      uint64 current_blob_offset;
+    };
+
     vw::int64 m_max_blob_size;
-    std::vector<bool> m_blob_locks;
-    unsigned m_blob_index;
+    int m_max_blobs;
+    std::vector<BlobRecord> m_blob_locks;
+    int m_blob_index;
     vw::Mutex m_mutex;
     vw::Condition m_blob_release_condition;
 
-    void next_blob_index();
+    // A method to poll for an available blob.  Returns -1 if there
+    // are no blobs available.  
+    int get_next_available_blob();
+    
+    // Helper function for incrementing blob ids, and wrapping around the end.
+    void increment_blob_index(int &blob_index);  
 
   public:
 
     /// Create a new blob manager.  The max_blob_size is specified in
     /// units of megabytes.
-    BlobManager(vw::int64 max_blob_size = 2048, int nblobs = 2);
+    BlobManager(vw::int64 max_blob_size = 2048, int initial_nblobs = 1, int max_blobs = 128);
 
     /// Return the number of blobs currently in use.
     unsigned num_blobs();
 
+    /// Return the max size of a blob (in megabytes)
     vw::int64 max_blob_size();
 
     /// Request a blob to write to that has sufficient space to write at
@@ -60,8 +73,12 @@ namespace platefile {
     int request_lock(vw::int64 size);
 
     // Release the blob lock and update its write index (essentially
-    // "committing" the write to the blob when you are finished with it.).
-    void release_lock(int blob_id);
+    // "committing" the write to the blob when you are finished with
+    // it.).  The blob_offset is used to roughly gauge how full the
+    // blob is.  Once the blob_offset moves past max_blob_size defined
+    // above, this blob is considered "full" and is no longer offered
+    // when locks are requested.
+    void release_lock(int blob_id, uint64 blob_offset);
   };
 
 

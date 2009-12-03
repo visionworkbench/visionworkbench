@@ -215,7 +215,7 @@ int vw::platefile::LocalIndex::write_request(int size) {
 // Writing, pt. 2: Supply information to update the index and
 // unlock the blob id.
 void vw::platefile::LocalIndex::write_complete(TileHeader const& header, IndexRecord const& record) {
-  m_blob_manager->release_lock(record.blob_id()); 
+  m_blob_manager->release_lock(record.blob_id(), record.blob_offset()); 
 
   Mutex::Lock lock(m_mutex);
   m_root->insert(record, header.col(), header.row(), header.depth(), header.transaction_id());
