@@ -25,13 +25,13 @@ BUILT_SOURCES = $(protocol_sources)
 include_HEADERS = Exception.h Blob.h BlobManager.h Index.h		\
 		  LocalIndex.h RemoteIndex.h Tree.h PlateFile.h Amqp.h	\
 		  PlateManager.h ToastPlateManager.h KmlPlateManager.h	\
-		  PlateView.h RpcServices.h IndexService.h IndexManagerService.h
+		  PlateView.h RpcServices.h IndexService.h
 nodist_include_HEADERS = $(protocol_headers)
 
 libvwPlate_la_SOURCES = Blob.cc BlobManager.cc Index.cc LocalIndex.cc	\
 			RemoteIndex.cc PlateFile.cc RpcServices.cc	\
 			IndexService.cc Amqp.cc PlateManager.cc		\
-			ToastPlateManager.cc IndexManagerService.cc
+			ToastPlateManager.cc
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 
 libvwPlate_la_LIBADD  = @MODULE_PLATE_LIBS@
@@ -65,9 +65,6 @@ if ENABLE_EXCEPTIONS
 index_server_SOURCES = index_server.cc
 index_server_LDADD   = $(PLATE_LOCAL_LIBS)
 
-index_mgr_server_SOURCES = index_mgr_server.cc
-index_mgr_server_LDADD   = $(PLATE_LOCAL_LIBS)
-
 image2plate_SOURCES = image2plate.cc
 image2plate_LDADD   = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(PLATE_LOCAL_LIBS)
 
@@ -83,7 +80,7 @@ plate2dem_LDADD    = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
 index_client_SOURCES = index_client.cc
 index_client_LDADD = $(PLATE_LOCAL_LIBS)
 
-bin_PROGRAMS = plate2dem plate2tiles tiles2plate image2plate index_server index_mgr_server index_client
+bin_PROGRAMS = plate2dem plate2tiles tiles2plate image2plate index_server index_client
 
 endif
 

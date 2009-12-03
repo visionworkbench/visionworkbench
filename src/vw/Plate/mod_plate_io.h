@@ -7,10 +7,9 @@
 extern "C" {
 #endif
 
-void mod_plate_init();
-void mod_plate_destroy();
 int  mod_plate_handler(request_rec *r);
 int  mod_plate_status(request_rec *r, int flags);
+void mod_plate_child_init(apr_pool_t *pchild, server_rec *s);
 
 #ifdef __cplusplus
 }

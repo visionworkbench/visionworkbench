@@ -248,7 +248,3 @@ service IndexService {
   rpc DepthRequest (IndexDepthRequest) returns (IndexDepthReply);
   rpc ListRequest (IndexListRequest) returns (IndexListReply);
 }
-
-service IndexManagerService {
-  rpc ListRequest (IndexListRequest) returns (IndexListReply);
-}

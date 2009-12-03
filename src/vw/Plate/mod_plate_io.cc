@@ -58,20 +58,20 @@ class PlateModule {
       boost::shared_ptr<Index> index;
     };
 
-    const IndexCacheEntry get_index(int32 platefile_id) const;
+    typedef std::map<int32, IndexCacheEntry> IndexCache;
+
+    const IndexCache& get_index() const { return index_cache; }
     const boost::shared_ptr<Blob> get_blob(const std::string& plate_filename, uint32 blob_id) const;
 
   private:
     boost::shared_ptr<AmqpRpcClient>       m_client;
     boost::shared_ptr<IndexService>        m_index_service;
-    boost::shared_ptr<IndexManagerService> m_index_mgr_service;
 
     typedef std::map<std::string, boost::shared_ptr<Blob> > BlobCache;
-    typedef std::map<int32, IndexCacheEntry> IndexCache;
 
     mutable BlobCache  blob_cache;
     mutable IndexCache index_cache;
-    void sync_index_cache();
+    void sync_index_cache() const;
 };
 
 namespace {
@@ -109,6 +109,18 @@ struct raii {
   ~raii() {m_leave();}
 };
 
+// XXX: This is so wrong, and makes me feel dirty. Why doesn't apache have a arg parser?
+std::string get_nocache_value(const request_rec* r) {
+  boost::smatch match;
+  if (r->args) {
+    boost::regex nocache_regex("^(.*&)?nocache=(\\d)(&.*)?$");
+    if (boost::regex_search(std::string(r->args), match, nocache_regex))
+      return match[2];
+  }
+  return "";
+}
+
+
 // ---------------------------------------------------
 //                 Content Handlers
 // ---------------------------------------------------
@@ -117,7 +129,7 @@ int handle_image(request_rec *r, const std::string& url) {
   static const boost::regex match_regex("/(\\d+)/(\\d+)/(\\d+)/(\\d+)\\.(\\w+)$");
 
   boost::smatch match;
-  if (!boost::regex_match(url, match, match_regex))
+  if (!boost::regex_search(url, match, match_regex))
     return DECLINED;
 
   int id    = boost::lexical_cast<int>(match[1]),
@@ -126,9 +138,17 @@ int handle_image(request_rec *r, const std::string& url) {
       row   = boost::lexical_cast<int>(match[4]);
   std::string format = boost::lexical_cast<std::string>(match[5]);
 
-  ap_log_rerror(APLOG_MARK, APLOG_INFO, 0, r, "Served Image: id[%i] level[%i] col[%i] row[%i] format[%s]", id, level, col, row, format.c_str());
+  vw_out(DebugMessage, "plate.apache") << "Serving Image: id["  << id
+                                                 << "] level["  << level
+                                                 << "] col["    << col
+                                                 << "] row["    << row
+                                                 << "] format[" << format << "]" << std::endl;
 
-  PlateModule::IndexCacheEntry index = mod_plate().get_index(id);
+  PlateModule::IndexCache::const_iterator index_i = mod_plate().get_index().find(id);
+  if (index_i == mod_plate().get_index().end())
+    vw_throw(BadRequest() << "No such platefile [id = " << id << "]");
+
+  const PlateModule::IndexCacheEntry& index = index_i->second;
 
   // --------------  Access Plate Index -----------------
 
@@ -147,6 +167,16 @@ int handle_image(request_rec *r, const std::string& url) {
   // Okay, we've gotten this far without error. Set content type now, so HTTP
   // HEAD returns the correct file type
   r->content_type = "image/png";
+
+  std::string nocache = get_nocache_value(r);
+  if (nocache.empty()) {
+    if (level <= 7)
+      apr_table_set(r->headers_out, "Cache-Control", "max-age=604800");
+    else
+      apr_table_set(r->headers_out, "Cache-Control", "max-age=1200");
+  }
+  else
+    apr_table_set(r->headers_out, "Cache-Control", "no-cache");
 
   // This is as far as we can go without making the request heavyweight. Bail
   // out on a header request now.
@@ -171,7 +201,7 @@ int handle_image(request_rec *r, const std::string& url) {
   // Open the blob as an apache file with raii (so it goes away when we return)
   raii file_opener(
       boost::bind(apr_file_open, &fd, filename.c_str(), APR_READ|APR_FOPEN_SENDFILE_ENABLED, 0, r->pool),
-      boost::bind(apr_file_close, fd));
+      boost::bind(apr_file_close, boost::ref(fd)));
 
   // Use sendfile (if available) to send the proper tile data
   size_t sent;
@@ -182,31 +212,103 @@ int handle_image(request_rec *r, const std::string& url) {
 
 }
 
+class WTMLImageSet : public std::map<std::string, std::string> {
+  typedef std::map<std::string, std::string> Map;
+  typedef std::set<std::string> Child;
+  Child child_keys;
+
+  public:
+    WTMLImageSet(const std::string& url_prefix, const PlateModule::IndexCacheEntry& layer) {
+      const IndexHeader& hdr = layer.index->index_header();
+
+      (*this)["Generic"]            = "False";
+      (*this)["DataSetType"]        = "Planet";
+      (*this)["BandPass"]           = "Visible";
+      (*this)["BaseTileLevel"]      = "0";
+      (*this)["BaseDegreesPerTile"] = "360";
+      (*this)["FileType"]           = std::string(".") + hdr.tile_filetype();
+      (*this)["BottomsUp"]          = "False";
+      (*this)["Projection"]         = "Toast";
+      (*this)["QuadTreeMap"]        = "0123";
+      (*this)["CenterX"]            = "0";
+      (*this)["CenterY"]            = "0";
+      (*this)["OffsetX"]            = "0";
+      (*this)["OffsetY"]            = "0";
+      (*this)["Rotation"]           = "0";
+      (*this)["Sparse"]             = "False";
+      (*this)["ElevationModel"]     = "False";
+      (*this)["StockSet"]           = "False";
+
+      const std::string url2 = url_prefix + "p/" + vw::stringify(hdr.platefile_id());
+
+      (*this)["Name"]         = layer.description;
+      (*this)["Url"]          = url2 + "/{1}/{2}/{3}." + hdr.tile_filetype();
+      (*this)["ThumbnailUrl"] = url2 + "/0/0/0."       + hdr.tile_filetype();
+
+      child_keys.insert("ThumbnailUrl");
+      child_keys.insert("Credits");
+    }
+
+    void serializeToOstream(std::ostream& o) {
+      o << "<ImageSet";
+      for (Map::const_iterator i = this->begin(), end = this->end(); i != end; ++i) {
+        if (child_keys.count(i->first) == 0)
+          o << " " << i->first << "='" << i->second << "'";
+      }
+      o << ">" << std::endl;
+
+      BOOST_FOREACH( const std::string& key, child_keys ) {
+        o << "\t<" << key << ">" << (*this)[key] << "</" << key << ">" << std::endl;
+      }
+      o << "</ImageSet>" << std::endl;
+    }
+};
+
 int handle_wtml(request_rec *r, const std::string& url) {
   static const boost::regex match_regex("/(\\w+\\.wtml)$");
 
   boost::smatch match;
-  if (!boost::regex_match(url, match, match_regex))
+  if (!boost::regex_search(url, match, match_regex))
     return DECLINED;
 
   std::string filename = boost::lexical_cast<std::string>(match[1]);
 
-  r->content_type = "text/plain";
+  r->content_type = "application/xml";
 
   if (r->header_only)
     return OK;
 
   apache_stream out(r);
-  ap_log_rerror(APLOG_MARK, APLOG_INFO, 0, r, "Served WTML: %s", filename.c_str());
+  vw_out(DebugMessage, "plate.apache") << "Served WTML[" << filename << "]" << std::endl;
+
+  //WTMLImageSet lalt, mdim2, mdim1, mola;
+
+  //lalt["Name"]       = "Lunar Topography (LALT)";
+  //lalt["TileLevels"] = "7";
+
+  //r->headers_out
+  //APR_DECLARE(void) apr_table_set(apr_table_t *t, const char *key, const char *val);
+
+  std::string nocache = get_nocache_value(r);
 
   out
-    << "<?xml version='1.0' encoding='UTF-8'?>" << std::endl
-    << "<Folder Name='ARC Test Data' Group='View'>" << std::endl
-    << "  <ImageSet Generic='False' DataSetType='Earth' BandPass='Visible' Name='Bluemarble' Url='http://localhost:31337/plate_example/{1}/{2}/{3}.png' BaseTileLevel='0' TileLevels='2' BaseDegreesPerTile='360' FileType='.png' BottomsUp='False' Projection='Toast' QuadTreeMap='0123' CenterX='0' CenterY='0' OffsetX='0' OffsetY='0' Rotation='0' Sparse='False' ElevationModel='False' StockSet='False'>" << std::endl
-    << "    <ThumbnailUrl>http://localhost:31337/plate_example/0/0/0.png</ThumbnailUrl>" << std::endl
-    << "    <Credits>NASA</Credits>" << std::endl
-    << "  </ImageSet>" << std::endl
-    << "</Folder>" << std::endl;
+    << "<?xml version='1.0' encoding='UTF-8'?>"              << std::endl
+    << "<Folder Name='Ames Planetary Content' Group='View'>" << std::endl << std::endl;
+
+  typedef std::pair<int32, PlateModule::IndexCacheEntry> id_cache;
+
+  std::ostringstream prefix;
+  prefix << ap_http_scheme(r) << "://" << ap_get_server_name(r) << ":" << ap_get_server_port(r) << "/wwt/";
+
+  BOOST_FOREACH( const id_cache& e, mod_plate().get_index() ) {
+    WTMLImageSet img(prefix.str(), e.second);
+    if (!nocache.empty()) {
+      img["Url"]          += "?nocache=" + nocache;
+      img["ThumbnailUrl"] += "?nocache=" + nocache;
+    }
+    img.serializeToOstream(out);
+  }
+  out << "</Folder>" << std::endl;
 
   return OK;
 }
@@ -227,28 +329,16 @@ PlateModule::PlateModule() {
                             new AmqpRpcChannel(INDEX_EXCHANGE, "index", queue_name),
                             google::protobuf::Service::STUB_OWNS_CHANNEL) );
 
-  m_index_mgr_service.reset ( new IndexManagerService::Stub(
-                                new AmqpRpcChannel(INDEX_MGR_EXCHANGE, "index_mgr", queue_name),
-                                google::protobuf::Service::STUB_OWNS_CHANNEL) );
+  sync_index_cache();
 
-  vw_out(0) << "Initializing mod_plate module.";
+  vw_out(DebugMessage, "plate.apache") << "child startup" << std::endl;
 }
 
 PlateModule::~PlateModule() {}
 
 int PlateModule::operator()(request_rec *r) const {
 
-
   const std::string url(r->path_info);
-
-  //apache_stream out(r);
-  //r->content_type = "text/plain";
-  //out << url << std::endl;
-  //out << "path[" << url << "] pathinfo[" << path_tokens.size() << "]" << std::endl;
-  //out << "token[";
-  //std::copy(path_tokens.begin(), path_tokens.end(), std::ostream_iterator<std::string>(out, "]\ntoken["));
-  //out << "]" << std::endl;
-  //return OK;
 
   typedef boost::function<int (request_rec*, const std::string& url)> Handler;
   static const Handler Handlers[] = {handle_image, handle_wtml};
@@ -282,47 +372,32 @@ const boost::shared_ptr<Blob> PlateModule::get_blob(const std::string& plate_fil
   return ret;
 }
 
-void PlateModule::sync_index_cache() {
+void PlateModule::sync_index_cache() const {
+  IndexListRequest request;
   IndexListReply id_list;
 
-  {
-    IndexListRequest request;
-    m_index_mgr_service->ListRequest(m_client.get(), &request, &id_list, google::protobuf::NewCallback(&null_closure));
-  }
+  m_index_service->ListRequest(m_client.get(), &request, &id_list, google::protobuf::NewCallback(&null_closure));
 
   BOOST_FOREACH( const std::string& name, id_list.platefile_names() ) {
-    boost::shared_ptr<Index> index = Index::construct_open(std::string("pf://index/") + name);
-
-    const IndexHeader& hdr = index->index_header();
 
     IndexCacheEntry entry;
-    entry.shortname   = fs::path(name).leaf();
-    entry.filename    = name;
-    entry.description = hdr.has_description() ? hdr.description() : "No Description";
+
+    entry.index = Index::construct_open(std::string("pf://index/") + name);
+    const IndexHeader& hdr = entry.index->index_header();
+
+    entry.shortname   = name;
+    entry.filename    = entry.index->platefile_name();
+    entry.description = (hdr.has_description() && ! hdr.description().empty()) ? hdr.description() : entry.shortname;
 
     index_cache[hdr.platefile_id()] = entry;
 
-    vw_out(InfoMessage, "plate") << "Adding " << entry.filename << " to index cache" << std::endl;
+    vw_out(DebugMessage, "plate") << "Adding " << entry.shortname << " to index cache" << std::endl;
   }
-}
-
-const PlateModule::IndexCacheEntry PlateModule::get_index(int32 platefile_id) const {
-
-  IndexCache::const_iterator index = index_cache.find(platefile_id);
-  if (index != index_cache.end())
-    return index->second;
-
-  vw_throw(BadRequest() << "No such platefile [id = " << platefile_id << "]");
 }
 
 // --------------------- Apache C++ Entry Points ------------------------
 
-extern "C" void mod_plate_init() {
-  // call the singleton to make sure it exists
-  static_cast<void>(mod_plate());
-}
-
-extern "C" void mod_plate_destroy() {
+void mod_plate_destroy() {
   kill_mod_plate();
 }
 
@@ -355,4 +430,8 @@ extern "C" int mod_plate_status(request_rec *r, int flags) {
   if (flags & AP_STATUS_SHORT)
     return OK;
   return mod_plate().status(r, flags);
+}
+
+extern "C" void mod_plate_child_init(apr_pool_t *pchild, server_rec *s) {
+  static_cast<void>(mod_plate());
 }

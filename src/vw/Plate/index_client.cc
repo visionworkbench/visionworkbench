@@ -1,7 +1,6 @@
 
 //// Vision Workbench
 #include <vw/Plate/IndexService.h>
-#include <vw/Plate/IndexManagerService.h>
 #include <vw/Plate/RpcServices.h>
 #include <vw/Plate/common.h>
 
@@ -84,18 +83,8 @@ boost::shared_ptr<IndexService> create_idx() {
         google::protobuf::Service::STUB_OWNS_CHANNEL) );
 }
 
-boost::shared_ptr<IndexManagerService> create_mgr() {
-  return boost::shared_ptr<IndexManagerService>(
-      new IndexManagerService::Stub(
-        new AmqpRpcChannel(INDEX_MGR_EXCHANGE, "index_mgr", queue_name()),
-        google::protobuf::Service::STUB_OWNS_CHANNEL) );
-}
-
-
-
 VW_DEFINE_SINGLETON(client, AmqpRpcClient);
-VW_DEFINE_SINGLETON_FUNC(index, IndexService,        create_idx);
-VW_DEFINE_SINGLETON_FUNC(mgr,   IndexManagerService, create_mgr);
+VW_DEFINE_SINGLETON_FUNC(index, IndexService, create_idx);
 
 
 void PlateInfo(const std::string& name) {
@@ -116,7 +105,7 @@ void ListPlates() {
   IndexListRequest request;
   IndexListReply   reply;
 
-  mgr_mutable().ListRequest(&client_mutable(), &request, &reply, google::protobuf::NewCallback(&null_closure));
+  index_mutable().ListRequest(&client_mutable(), &request, &reply, google::protobuf::NewCallback(&null_closure));
 
   vw_out(0) << "Got Plates:" << std::endl;
   std::copy(reply.platefile_names().begin(), reply.platefile_names().end(), std::ostream_iterator<std::string>(vw_out(0), " "));

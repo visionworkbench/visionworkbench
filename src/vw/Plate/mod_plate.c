@@ -20,8 +20,8 @@ static void plate_register_hooks(apr_pool_t *p)
     return;
   }
 
-  mod_plate_init();
   ap_hook_handler(mod_plate_handler, NULL, NULL, APR_HOOK_MIDDLE);
+  ap_hook_child_init(mod_plate_child_init, NULL, NULL, APR_HOOK_MIDDLE);
   APR_OPTIONAL_HOOK(ap, status_hook, mod_plate_status, NULL, NULL, APR_HOOK_MIDDLE);
 }
 
@@ -35,4 +35,3 @@ module AP_MODULE_DECLARE_DATA plate_module = {
   NULL,                  /* table of config file commands       */
   plate_register_hooks  /* register hooks                      */
 };
-
