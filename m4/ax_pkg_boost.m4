@@ -8,10 +8,11 @@ dnl __END_LICENSE__
 # Usage: AX_PKG_BOOST
 AC_DEFUN([AX_PKG_BOOST],
 [
+  m4_divert_once([INIT_PREPARE], [dnl
   AC_ARG_WITH(boost,
     AC_HELP_STRING([--with-boost], [enable searching for the boost package @<:@auto@:>@]),
     [ HAVE_PKG_BOOST=$withval ]
-  )
+  )])
 
   AC_MSG_CHECKING(for package BOOST)
 

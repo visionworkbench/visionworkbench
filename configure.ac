@@ -49,7 +49,7 @@ dnl LIBTOOL_VERSION=current:revision:age
 LIBTOOL_VERSION=4:0:0
 AC_SUBST(LIBTOOL_VERSION)
 
-m4_divert_text([DEFAULTS], [dnl
+m4_divert_text([INIT_PREPARE], [dnl
 # load the config.options
 if test -f ./config.options; then
   AX_LOG([using config.options << EOF])

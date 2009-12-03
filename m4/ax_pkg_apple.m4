@@ -15,10 +15,11 @@ AC_DEFUN([AX_PKG_APPLE],
   AS_VAR_PUSHDEF([pkg_l], [PKG_]pkg[_LIBS])
   AS_VAR_PUSHDEF([bool], [ax_pkg_apple_have_pkg_bool])
 
+  m4_divert_once([INIT_PREPARE], [dnl
   AC_ARG_WITH([apple_]m4_tolower([[$1]]),
     AC_HELP_STRING([--with-apple_]m4_tolower([[$1]]), [enable searching for the APPLE_$1 package @<:@auto@:>@]),
     [ HAVE_PKG_pkg=$withval ]
-  )
+  )])
 
   AC_MSG_CHECKING(for package pkg)
 
