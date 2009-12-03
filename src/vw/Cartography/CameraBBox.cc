@@ -9,6 +9,41 @@
 
 using namespace vw;
 
+// Return map projected point location (the intermediate between LLA
+// and Pixel)
+Vector2
+cartography::geospatial_intersect( Vector2 pix,
+                                   cartography::GeoReference const& georef,
+                                   boost::shared_ptr<camera::CameraModel> camera_model,
+                                   double z_scale, bool& did_intersect ) {
+  Vector3 ccenter = camera_model->camera_center( pix );
+  Vector3 cpoint = camera_model->pixel_to_vector( pix );
+  ccenter.z() *= z_scale;
+  cpoint.z() *= z_scale;
+  cpoint = normalize( cpoint );
+
+  double radius_2 = georef.datum().semi_major_axis()*
+    georef.datum().semi_major_axis();
+  double alpha = - dot_prod(ccenter,cpoint);
+  Vector3 projection = ccenter + alpha * cpoint;
+  if( norm_2_sqr(projection) > radius_2 ) {  // the ray does not intersect the sphere
+    did_intersect = false;
+    return Vector2();
+  } else {
+    did_intersect = true;
+  }
+
+  alpha -= sqrt( radius_2 -
+                 norm_2_sqr(projection) );
+  Vector3 intersection = ccenter + alpha * cpoint;
+  intersection.z() /= z_scale;
+
+  Vector3 llr = georef.datum().cartesian_to_geodetic( intersection );
+  Vector2 geospatial_point = georef.lonlat_to_point( Vector2( llr.x(),
+                                                              llr.y() ) );
+  return geospatial_point;
+}
+
 // Compute the bounding box in points (georeference space) that is
 // defined by georef. Scale is MPP as georeference space is in meters.
 BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,

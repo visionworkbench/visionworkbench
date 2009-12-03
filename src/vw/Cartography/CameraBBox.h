@@ -29,34 +29,7 @@ namespace cartography {
   Vector2 geospatial_intersect( Vector2 pix,
                                 GeoReference const& georef,
                                 boost::shared_ptr<camera::CameraModel> camera_model,
-                                double z_scale, bool& did_intersect ) {
-    Vector3 ccenter = camera_model->camera_center( pix );
-    Vector3 cpoint = camera_model->pixel_to_vector( pix );
-    ccenter.z() *= z_scale;
-    cpoint.z() *= z_scale;
-    cpoint = normalize( cpoint );
-
-    double radius_2 = georef.datum().semi_major_axis()*
-      georef.datum().semi_major_axis();
-    double alpha = - dot_prod(ccenter,cpoint);
-    Vector3 projection = ccenter + alpha * cpoint;
-    if( norm_2_sqr(projection) > radius_2 ) {  // the ray does not intersect the sphere
-      did_intersect = false;
-      return Vector2();
-    } else {
-      did_intersect = true;
-    }
-
-    alpha -= sqrt( radius_2 -
-                   norm_2_sqr(projection) );
-    Vector3 intersection = ccenter + alpha * cpoint;
-    intersection.z() /= z_scale;
-
-    Vector3 llr = georef.datum().cartesian_to_geodetic( intersection );
-    Vector2 geospatial_point = georef.lonlat_to_point( Vector2( llr.x(),
-                                                                llr.y() ) );
-    return geospatial_point;
-  }
+                                double z_scale, bool& did_intersect );
 
   // Define an LMA model to solve for an intersection ...
   template <class DEMImageT>
@@ -294,7 +267,7 @@ namespace cartography {
                             boost::shared_ptr<vw::camera::CameraModel> camera_model,
                             int32 cols, int32 rows ) {
     float scale;
-    return camera_bbox( dem_image.impl(), georef, camera_model, cols, rows, scale );
+    return camera_bbox<DEMImageT>( dem_image.impl(), georef, camera_model, cols, rows, scale );
   }
 
 } // namespace cartography
