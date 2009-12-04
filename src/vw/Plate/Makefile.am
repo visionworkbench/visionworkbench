@@ -49,11 +49,11 @@ if MAKE_MODPLATE
 mod_plate_la_SOURCES = mod_plate.c mod_plate_io.cc
 mod_plate_la_CPPFLAGS = @APXS_CFLAGS@ @VW_CPPFLAGS@
 mod_plate_la_LIBADD = $(PLATE_LOCAL_LIBS)
-mod_plate_la_LDFLAGS = @APXS_LDFLAGS@ -module
-lib_LTLIBRARIES += mod_plate.la
+mod_plate_la_LDFLAGS = @APXS_LDFLAGS@ -module -rpath $(APXS_INSTALLDIR) -avoid-version
+noinst_LTLIBRARIES = mod_plate.la
 
 apxs_install:
-	sudo $(APXS) -i mod_plate.la
+	$(APXS) -i mod_plate.la
 
 endif
 

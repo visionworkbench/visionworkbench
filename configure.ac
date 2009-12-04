@@ -116,6 +116,7 @@ AC_CHECK_PROGS(APXS, apxs2 apxs, false)
 if test "$APXS" != "false"; then
    APXS_CFLAGS="`$APXS -q CFLAGS` -I`$APXS -q INCLUDEDIR`"
    APXS_LDFLAGS="`$APXS -q LDFLAGS`"
+   APXS_INSTALLDIR="`$APXS -q LIBEXECDIR`"
    APR_CONFIG=`$APXS -q APR_CONFIG`
    APU_CONFIG=`$APXS -q APU_CONFIG`
    APXS_CFLAGS="$APXS_CFLAGS `$APR_CONFIG --cppflags --includes` `$APU_CONFIG --includes`"
@@ -123,6 +124,7 @@ if test "$APXS" != "false"; then
 
    AC_SUBST(APXS_CFLAGS)
    AC_SUBST(APXS_LDFLAGS)
+   AC_SUBST(APXS_INSTALLDIR)
 fi
 AM_CONDITIONAL(MAKE_MODPLATE, [test "APXS" != "false"])
 
