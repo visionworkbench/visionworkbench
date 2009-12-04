@@ -64,9 +64,13 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
                        m_exchange, m_request_routing_key);
   
   // Wait for a response, and pass it along to the callback.
-  boost::shared_array<uint8> response_bytes = m_conn.basic_get(m_response_queue,
-                                                               true,
-                                                               5000);
+  // boost::shared_array<uint8> response_bytes = m_conn.basic_get(m_response_queue,
+  //                                                              true,
+  //                                                              5000);
+  std::string routing_key;
+  boost::shared_array<uint8> response_bytes = m_conn.basic_consume(m_response_queue, 
+                                                                   routing_key, true);
+
 
   WireMessage wire_response(response_bytes);
   RpcResponseWrapper response_wrapper;
