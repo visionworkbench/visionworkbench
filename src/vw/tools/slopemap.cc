@@ -22,7 +22,7 @@
 #include <vw/FileIO/DiskImageView.h>
 
 /*
-Implements modified versions of finite difference algorithms + fitting a plane to 9 points of a 3x3 window
+Implements modified versions of finite difference opt.algorithms + fitting a plane to 9 points of a 3x3 window
 */
 
 namespace po = boost::program_options;
@@ -33,16 +33,18 @@ using namespace vw::cartography;
 
 //Global variables
 double pi=4*atan(1.0);
-std::string input_file_name, output_prefix, algorithm_string = "";
-
-bool output_gradient=true;
-bool output_aspect=true;
-bool output_pretty=false; //probably more for debugging purposes than for anything else
 
 enum Algorithm { HORN, SA, FH, PLANEFIT };
-Algorithm algorithm;
 
-bool spherically_defined=false;
+struct Options {
+  std::string input_file_name;
+  std::string output_prefix;
+  bool output_gradient;
+  bool output_aspect;
+  bool output_pretty; //probably more for debugging purposes than for anything else
+  Algorithm algorithm;
+  bool spherically_defined;
+};
 
 // Erases a file suffix if one exists and returns the base string
 static std::string prefix_from_filename(std::string const& filename) {
@@ -131,7 +133,7 @@ Vector2 gradient_aspect_from_dtheta_dphi(double rho, double theta, double phi, d
 }
 
 template <class ImageT>
-Vector2 uneven_grid (int x, int y, DiskImageView<ImageT> img, GeoReference GR) {
+Vector2 uneven_grid (const ::Options& opt, int x, int y, DiskImageView<ImageT> img, GeoReference GR) {
 
   Vector3 center=pixel_to_cart(Vector2(x,y),img,GR);
   Vector3 center_normal=normalize(center);
@@ -154,26 +156,26 @@ Vector2 uneven_grid (int x, int y, DiskImageView<ImageT> img, GeoReference GR) {
   Matrix<double> runs;  //components in either direction
 
   //different ways of weighting neighbors.
-  if(algorithm==HORN) { rises=Matrix<double>(12,1); runs=Matrix<double>(12,2); }
-  if(algorithm==SA)   { rises=Matrix<double>(8,1); runs=Matrix<double>(8,2); }
-  if(algorithm==FH)   { rises=Matrix<double>(4,1); runs=Matrix<double>(4,2); }
+  if(opt.algorithm==HORN) { rises=Matrix<double>(12,1); runs=Matrix<double>(12,2); }
+  if(opt.algorithm==SA)   { rises=Matrix<double>(8,1); runs=Matrix<double>(8,2); }
+  if(opt.algorithm==FH)   { rises=Matrix<double>(4,1); runs=Matrix<double>(4,2); }
 
   int ct=0;
   for(int i=-1;i<=1;i++) {
     for(int j=-1;j<=1;j++) {
       if(i==0 && j==0) continue;
       int repeat=1;
-      if(algorithm==HORN) {
+      if(opt.algorithm==HORN) {
         if(i==0 && j!=0 || i!=0 && j==0) //for horn, weight direct neighbors twice
           repeat=2;
       }
-      if(algorithm==FH) {
+      if(opt.algorithm==FH) {
         if(i!=0 && j!=0) //ignore diagonals
           continue;
       }
 
       for(int k=0;k<repeat;k++) {
-        if(!spherically_defined) {
+        if(!opt.spherically_defined) {
           Vector3 neighbor=pixel_to_cart(Vector2(x+i,y+j),img,GR);
           Vector3 neighbor_below_rescale=normalize(neighbor)*(norm_2(center_below)/dot_prod(normalize(neighbor),center_normal));
           Vector2 lonlat=GR.pixel_to_lonlat(Vector2(x,y));
@@ -206,7 +208,7 @@ Vector2 uneven_grid (int x, int y, DiskImageView<ImageT> img, GeoReference GR) {
 
   Matrix<double> ans=VtVinv*transpose(runs)*rises;
 
-  if(spherically_defined) {
+  if(opt.spherically_defined) {
     double rho=norm_2(center);
     double phi=lon/180.0*pi;
     double theta=(-lat+90.0)/180.0*pi;
@@ -254,12 +256,12 @@ Vector2 interpolate_plane (int x, int y, DiskImageView<ImageT> img, GeoReference
 }
 
 template <class imageT>
-void do_slopemap (po::variables_map const& vm) { //not sure what the arguments are
+void do_slopemap (const ::Options &opt) { //not sure what the arguments are
 
   GeoReference GR;
-  read_georeference( GR, input_file_name );
+  read_georeference( GR, opt.input_file_name );
 
-  DiskImageView<imageT> img(input_file_name);
+  DiskImageView<imageT> img(opt.input_file_name);
 
   int x;
   int y;
@@ -268,27 +270,27 @@ void do_slopemap (po::variables_map const& vm) { //not sure what the arguments a
   ImageView<double> aspect;
   ImageView<PixelHSV<double> > pretty;
 
-  if(output_gradient)
+  if(opt.output_gradient)
     gradient_angle.set_size(img.cols(),img.rows());
-  if(output_aspect)
+  if(opt.output_aspect)
     aspect.set_size(img.cols(),img.rows());
-  if(output_pretty) pretty.set_size(img.cols(),img.rows());
+  if(opt.output_pretty) pretty.set_size(img.cols(),img.rows());
 
   for(x=1;x<img.cols()-1;x++) {
     for(y=1;y<img.rows()-1;y++) {
       Vector2 res;
       //these are pretty similar...
-      if(algorithm==PLANEFIT) res=interpolate_plane(x,y,img,GR);
-      else res=uneven_grid(x,y,img,GR);
+      if(opt.algorithm==PLANEFIT) res=interpolate_plane(x,y,img,GR);
+      else res=uneven_grid(opt, x,y,img,GR);
 
-      if(output_aspect)   aspect(x,y) = res(0);
-      if(output_gradient) gradient_angle(x,y) = res(1);
-      if(output_pretty)   pretty(x,y) = PixelHSV<double>(res(0),res(1),(res(1))+0.2*fabs(pi-res(0)));//(res(1)/pi*2)*fabs(pi-res(0)));
+      if(opt.output_aspect)   aspect(x,y) = res(0);
+      if(opt.output_gradient) gradient_angle(x,y) = res(1);
+      if(opt.output_pretty)   pretty(x,y) = PixelHSV<double>(res(0),res(1),(res(1))+0.2*fabs(pi-res(0)));//(res(1)/pi*2)*fabs(pi-res(0)));
      }
   }
   ImageView<PixelRGB<uint8> > pretty2;
 
-  if(output_pretty) {
+  if(opt.output_pretty) {
     select_channel(pretty,0)=normalize(select_channel(pretty,0),0,2*pi,0,1);
     select_channel(pretty,1)=normalize(select_channel(pretty,1),0,pi/2,0.1,1);
     select_channel(pretty,2)=normalize(select_channel(pretty,2),0.3,0.6);
@@ -297,9 +299,9 @@ void do_slopemap (po::variables_map const& vm) { //not sure what the arguments a
     pretty2=PixelRGB<uint8>(255,255,255)-pretty2;
   }
   //save everything to file
-  if(output_gradient) write_georeferenced_image( output_prefix + "_gradient.tif" , gradient_angle, GR);
-  if(output_aspect)   write_georeferenced_image( output_prefix + "_aspect.tif"   , aspect, GR);
-  if(output_pretty)   write_image( output_prefix + "_pretty.tif"   , pretty2);
+  if(opt.output_gradient) write_georeferenced_image( opt.output_prefix + "_gradient.tif" , gradient_angle, GR);
+  if(opt.output_aspect)   write_georeferenced_image( opt.output_prefix + "_aspect.tif"   , aspect, GR);
+  if(opt.output_pretty)   write_image( opt.output_prefix + "_pretty.tif"   , pretty2);
 }
 
 
@@ -307,16 +309,19 @@ int main( int argc, char *argv[] ) {
 
   set_debug_level(InfoMessage);
 
+  ::Options opt;
+  std::string algorithm_string;
+
   po::options_description desc("Description: Outputs gradient and/or aspect at each point of an input DEM with altitude values\n\nUsage: slopemap [options] <input file> \n\nOptions");
   desc.add_options()
     ("help,h", "Display this help messsage")
-    ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
-    ("output-prefix,o", po::value<std::string>(&output_prefix), "Specify the output prefix") //should add more description...
+    ("input-file", po::value<std::string>(&opt.input_file_name), "Explicitly specify the input file")
+    ("output-prefix,o", po::value<std::string>(&opt.output_prefix), "Specify the output prefix") //should add more description...
     ("no-aspect", "Do not output aspect")
     ("no-gradient", "Do not output gradient")
     ("pretty", "Output colored image.")
-    ("algorithm", po::value<std::string>(&algorithm_string)->default_value("horn"), "Choose an algorithm to calculate slope/aspect from [ horn, fh, sa, planefit ]. Horn: Horn's algorithm; FH: Fleming & Hoffer's (rook's case); SA: Sharpnack & Akin's (queen's case)")
-    ("spherical", po::value<bool>(&spherically_defined)->default_value(true), "Spherical/elliptical datum (recommended); otherwise, a flat grid");
+    ("opt.algorithm", po::value<std::string>(&algorithm_string)->default_value("horn"), "Choose an algorithm to calculate slope/aspect from [ horn, fh, sa, planefit ]. Horn: Horn's algorithm; FH: Fleming & Hoffer's (rook's case); SA: Sharpnack & Akin's (queen's case)")
+    ("spherical", po::value<bool>(&opt.spherically_defined)->default_value(true), "Spherical/elliptical datum (recommended); otherwise, a flat grid");
 
   po::positional_options_description p;
   p.add("input-file", 1);
@@ -335,7 +340,7 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  if( output_prefix == "" ) { output_prefix=prefix_from_filename(input_file_name); }
+  if( opt.output_prefix == "" ) { opt.output_prefix=prefix_from_filename(opt.input_file_name); }
 
   if( vm.count("verbose") ) {
     set_debug_level(VerboseDebugMessage);
@@ -350,32 +355,32 @@ int main( int argc, char *argv[] ) {
     algorithm_string == "planefit" ||
 
     algorithm_string == "" ) ) { //it's okay if it isn't set?
-    vw_out(0) << "Unknown algorithm: " << algorithm_string << ". Options are : [ horn, fh, sa, planefit ]\n";
+    vw_out(0) << "Unknown opt.algorithm: " << algorithm_string << ". Options are : [ horn, fh, sa, planefit ]\n";
     exit(0);
   }
   else {
     if(algorithm_string=="horn")
-      algorithm=HORN;
+      opt.algorithm=HORN;
     else if(algorithm_string=="fh")
-      algorithm=FH;
+      opt.algorithm=FH;
     else if(algorithm_string=="sa")
-      algorithm=SA;
+      opt.algorithm=SA;
     else if(algorithm_string=="planefit")
-      algorithm=PLANEFIT;
+      opt.algorithm=PLANEFIT;
   }
 
-  if(vm.count("no-aspect")) output_aspect=false;
-  if(vm.count("no-gradient")) output_gradient=false;
-  if(vm.count("pretty")) output_pretty=true;
+  opt.output_aspect   = !(vm.count("no-aspect"));
+  opt.output_gradient = !(vm.count("no-gradient"));
+  opt.output_pretty   = vm.count("pretty");
 
-  if(!output_aspect && !output_gradient && !output_pretty) {
+  if(!opt.output_aspect && !opt.output_gradient && !opt.output_pretty) {
     vw_out(0) << "No output specified. Select at least one of [ gradient, output, pretty ].\n"
              << std::endl;
   }
 
   try {
     // Get the right pixel/channel type.
-    DiskImageResource *rsrc = DiskImageResource::open(input_file_name);
+    DiskImageResource *rsrc = DiskImageResource::open(opt.input_file_name);
     ChannelTypeEnum channel_type = rsrc->channel_type();
     PixelFormatEnum pixel_format = rsrc->pixel_format();
     delete rsrc;
@@ -386,12 +391,12 @@ int main( int argc, char *argv[] ) {
     case VW_PIXEL_RGB:
     case VW_PIXEL_RGBA:
       switch(channel_type) {
-      case VW_CHANNEL_UINT8:  do_slopemap<PixelGray<uint8>   >(vm); break;
-      case VW_CHANNEL_INT16:  do_slopemap<PixelGray<int16>   >(vm); break;
-      case VW_CHANNEL_UINT16: do_slopemap<PixelGray<uint16>  >(vm); break;
-      case VW_CHANNEL_FLOAT32:do_slopemap<PixelGray<float32> >(vm); break;
-      case VW_CHANNEL_FLOAT64:do_slopemap<PixelGray<float64> >(vm); break;
-      default:                do_slopemap<PixelGray<float32> >(vm); break;
+      case VW_CHANNEL_UINT8:  do_slopemap<PixelGray<uint8>   >(opt); break;
+      case VW_CHANNEL_INT16:  do_slopemap<PixelGray<int16>   >(opt); break;
+      case VW_CHANNEL_UINT16: do_slopemap<PixelGray<uint16>  >(opt); break;
+      case VW_CHANNEL_FLOAT32:do_slopemap<PixelGray<float32> >(opt); break;
+      case VW_CHANNEL_FLOAT64:do_slopemap<PixelGray<float64> >(opt); break;
+      default:                do_slopemap<PixelGray<float32> >(opt); break;
       }
       break;
     default:
