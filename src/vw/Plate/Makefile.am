@@ -59,9 +59,6 @@ endif
 
 if ENABLE_EXCEPTIONS
 
-#mosaic_worker_SOURCES = mosaic_worker.cc
-#mosaic_worker_LDADD   = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(PLATE_LOCAL_LIBS)
-
 index_server_SOURCES = index_server.cc
 index_server_LDADD   = $(PLATE_LOCAL_LIBS)
 
@@ -80,7 +77,11 @@ plate2dem_LDADD    = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
 index_client_SOURCES = index_client.cc
 index_client_LDADD = $(PLATE_LOCAL_LIBS)
 
-bin_PROGRAMS = plate2dem plate2tiles tiles2plate image2plate index_server index_client
+amqp_perftest_SOURCES = amqp_perftest.cc
+amqp_perftest_LDADD = $(PLATE_LOCAL_LIBS)
+
+bin_PROGRAMS = plate2dem plate2tiles tiles2plate image2plate	\
+	       index_server index_client amqp_perftest
 
 endif
 

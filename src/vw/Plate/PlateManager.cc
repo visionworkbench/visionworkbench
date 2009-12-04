@@ -48,7 +48,7 @@ vw::ImageView<PixelT> vw::platefile::composite_mosaic_tile(boost::shared_ptr<Pla
     while (!found && search_level >= 0) {
       try {
         closest_record = platefile->read_record(search_col, search_row, 
-                                                  search_level, transaction_id-1);
+                                                search_level, transaction_id-1);
 
         // Mosaicking must happen strictly in order of transaction
         // ID.  Here we check to see if the underlying data tile is
