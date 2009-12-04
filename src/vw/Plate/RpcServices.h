@@ -145,8 +145,9 @@ namespace platefile {
     boost::shared_ptr<google::protobuf::Service> m_service;
     
   public:
-    AmqpRpcServer(std::string exchange, std::string queue) :
-      m_exchange(exchange), m_queue(queue) {
+    AmqpRpcServer(std::string exchange, std::string queue, 
+                  std::string hostname = "localhost", int port = 5672 ) :
+      m_conn(hostname, port), m_exchange(exchange), m_queue(queue) {
       
       m_conn.exchange_declare(exchange, "direct", false, false);
       m_conn.queue_declare(queue, false, true, false);
@@ -251,7 +252,9 @@ namespace platefile {
   
     AmqpRpcChannel(std::string const& exchange, 
                    std::string const& request_routing_key, 
-                   std::string const& response_queue);
+                   std::string const& response_queue, 
+                   std::string hostname = "localhost", 
+                   int port = 5672 );
 
     ~AmqpRpcChannel() {}
 

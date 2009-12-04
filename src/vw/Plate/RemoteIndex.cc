@@ -13,12 +13,14 @@ using namespace vw::platefile;
 
 #include <unistd.h>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/lexical_cast.hpp>
  
 // A dummy method for passing to the RPC calls below.
 static void null_closure() {}
 
 // Parse a URL with the format: pf://<exchange>/<platefile name>.plate
-void parse_url(std::string const& url, std::string &exchange, std::string &platefile_name) {
+void parse_url(std::string const& url, std::string &hostname, int &port, 
+               std::string &exchange, std::string &platefile_name) {
     if (url.find("pf://") != 0) {
       vw_throw(vw::ArgumentErr() << "RemoteIndex::parse_url() -- this does not appear to be a well-formed URL: " << url);
     } else {
@@ -27,11 +29,42 @@ void parse_url(std::string const& url, std::string &exchange, std::string &plate
       std::vector<std::string> split_vec;
       boost::split( split_vec, substr, boost::is_any_of("/") );
 
-      if (split_vec.size() != 2) 
-        vw_throw(vw::ArgumentErr() << "RemoteIndex::parse_url() -- could not parse exchange and platefile_name from URL string: " << url);
-      
-      exchange = split_vec[0];
-      platefile_name = split_vec[1];
+      // No hostname was specified: pf://<routing_key>/<platefilename>.plate
+      if (split_vec.size() == 2) {
+        hostname = "localhost"; // default to localhost
+        port = 5672;            // default rabbitmq port
+
+        exchange = split_vec[0];
+        platefile_name = split_vec[1];
+
+      // No hostname was specified: pf://<ip address>:<port>/<routing_key>/<platefilename>.plate
+      } else if (split_vec.size() == 3) {
+
+        exchange = split_vec[1];
+        platefile_name = split_vec[2];
+
+        std::vector<std::string> host_port_vec;
+        boost::split( host_port_vec, split_vec[0], boost::is_any_of(":") );
+        
+        if (host_port_vec.size() == 1) {
+
+          hostname = host_port_vec[0];
+          port = 5672;            // default rabbitmq port
+
+        } else if (host_port_vec.size() == 2) {
+
+          hostname = host_port_vec[0];
+          port = boost::lexical_cast<int>(host_port_vec[1]);
+
+        } else {
+          vw_throw(vw::ArgumentErr() << "RemoteIndex::parse_url() -- " 
+                   << "could not parse hostname and port from URL string: " << url);
+        }
+
+      } else {
+        vw_throw(vw::ArgumentErr() << "RemoteIndex::parse_url() -- "
+                 << "could not parse URL string: " << url);
+      }
     }
 
 }
@@ -40,14 +73,17 @@ void parse_url(std::string const& url, std::string &exchange, std::string &plate
 vw::platefile::RemoteIndex::RemoteIndex(std::string const& url) {
 
   // Parse the URL string into a separate 'exchange' and 'platefile_name' field.
+  std::string hostname;
+  int port;
   std::string routing_key;
   std::string platefile_name;
-  parse_url(url, routing_key, platefile_name);
+  parse_url(url, hostname, port, routing_key, platefile_name);
 
   m_queue_name = AmqpRpcClient::UniqueQueueName(std::string("remote_index_") + platefile_name);
 
   // Set up the connection to the AmqpRpcService
-  m_rpc_channel.reset( new AmqpRpcChannel(INDEX_EXCHANGE, routing_key, m_queue_name) );
+  m_rpc_channel.reset( new AmqpRpcChannel(INDEX_EXCHANGE, routing_key, m_queue_name,
+                                          hostname, port) );
   m_rpc_controller.reset ( new AmqpRpcClient() );
   m_index_service.reset ( new IndexService::Stub(m_rpc_channel.get()) );
   
@@ -72,21 +108,25 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url, IndexHeader inde
   m_index_header(index_header_info) {
 
   // Parse the URL string into a separate 'exchange' and 'platefile_name' field.
+  std::string hostname;
+  int port;
   std::string routing_key;
   std::string platefile_name;
-  parse_url(url, routing_key, platefile_name);
+  parse_url(url, hostname, port, routing_key, platefile_name);
 
   m_queue_name = AmqpRpcClient::UniqueQueueName(std::string("remote_index_") + platefile_name);
 
   // Set up the connection to the AmqpRpcService
-  m_rpc_channel.reset( new AmqpRpcChannel(INDEX_EXCHANGE, routing_key, m_queue_name) );
+  m_rpc_channel.reset( new AmqpRpcChannel(INDEX_EXCHANGE, routing_key, m_queue_name,
+                                          hostname, port) );
   m_rpc_controller.reset ( new AmqpRpcClient() );
   m_index_service.reset ( new IndexService::Stub(m_rpc_channel.get()) );
   
   // Send an IndexCreateRequest to the AMQP index server.
   IndexCreateRequest request;
   request.set_plate_name(platefile_name);
-  index_header_info.set_platefile_id(0);  // this takes care of 'required' property, which is not set yet
+  index_header_info.set_platefile_id(0);  // this takes care of this 'required' 
+                                          // protobuf property, which is not set yet
   *(request.mutable_index_header()) = index_header_info;
 
   IndexOpenReply response;

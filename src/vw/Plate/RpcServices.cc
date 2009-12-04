@@ -22,7 +22,10 @@ static void null_closure() {}
   
 vw::platefile::AmqpRpcChannel::AmqpRpcChannel(std::string const& exchange, 
                                               std::string const& request_routing_key, 
-                                              std::string const& response_queue) : 
+                                              std::string const& response_queue,
+                                              std::string hostname, 
+                                              int port ) :
+  m_conn(hostname, port),
   m_exchange(exchange),
   m_request_routing_key(request_routing_key),
   m_response_queue(response_queue) {

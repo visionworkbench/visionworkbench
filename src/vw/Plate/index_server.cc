@@ -24,11 +24,17 @@ using namespace vw;
 
 int main(int argc, char** argv) {
   std::string queue_name, root_directory;
+  std::string hostname;
+  int port;
 
   po::options_description general_options("Runs a mosaicking daemon that listens for mosaicking requests coming in over the AMQP bus..\n\nGeneral Options:");
   general_options.add_options()
     ("queue_name,q", po::value<std::string>(&queue_name)->default_value("index"), 
      "Specify the name of the AMQP queue to create and listen to for mosaicking requests. (Defaults to the \"ngt_mosaic_worker\" queue.")
+    ("hostname,h", po::value<std::string>(&hostname)->default_value("localhost"), 
+     "Specify the hostname of the AMQP server to use for remote procedure calls (RPCs).")
+    ("port,p", po::value<int>(&port)->default_value(5672), 
+     "Specify the port of the AMQP server to use for remote procedure calls (RPCs).")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -61,7 +67,7 @@ int main(int argc, char** argv) {
     return 1;
   }
   
-  AmqpRpcServer server(INDEX_EXCHANGE, queue_name);
+  AmqpRpcServer server(INDEX_EXCHANGE, queue_name, hostname, port);
   boost::shared_ptr<google::protobuf::Service> service( new IndexServiceImpl(root_directory) );
   server.export_with_routing_key(service, "index");
   
