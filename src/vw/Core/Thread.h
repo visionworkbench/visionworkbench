@@ -5,8 +5,8 @@
 // __END_LICENSE__
 
 
-/// \file Core/Threads.h
-/// 
+/// \file Core/Thread.h
+///
 /// A very simple, abstracted threading system.  Currently this is
 /// simply built on top of Boost threads, but its abstracted so that
 /// it's easy to port the Vision Workbench to environments where Boost
@@ -87,21 +87,20 @@ namespace vw {
   public:
     inline Mutex() {}
 
+    void lock()   { boost::mutex::lock(); }
+    void unlock() { boost::mutex::unlock(); }
+
     // A scoped lock class, used to lock and unlock a Mutex.
-    //
-    // TODO: This should inherit privately from
-    // boost::mutex::scoped_lock, but this causes a compilation error
-    // when the Condition class below tries to get access to the
-    // members of scoped_lock.  I'm stumped how to fix this at the
-    // moment, but we should do this at some point. -mbroxton
-    class Lock : public boost::mutex::scoped_lock {
+    class Lock : private boost::unique_lock<Mutex> {
 
       // Ensure non-copyable semantics
       Lock( Lock const& );
       Lock& operator=( Lock const& );
 
     public:
-      inline Lock( Mutex &mutex ) : boost::mutex::scoped_lock( mutex ) {}
+      inline Lock( Mutex &mutex ) : boost::unique_lock<Mutex>( mutex ) {}
+      void lock()   { boost::unique_lock<Mutex>::lock(); }
+      void unlock() { boost::unique_lock<Mutex>::unlock(); }
     };
   };
 
@@ -117,21 +116,20 @@ namespace vw {
   public:
     inline RecursiveMutex() {}
 
+    void lock()   { boost::recursive_mutex::lock(); }
+    void unlock() { boost::recursive_mutex::unlock(); }
+
     // A scoped lock class, used to lock and unlock a Mutex.
-    //
-    // TODO: This should inherit privately from
-    // boost::mutex::scoped_lock, but this causes a compilation error
-    // when the Condition class below tries to get access to the
-    // members of scoped_lock.  I'm stumped how to fix this at the
-    // moment, but we should do this at some point. -mbroxton
-    class Lock : public boost::recursive_mutex::scoped_lock {
+    class Lock : private boost::unique_lock<RecursiveMutex> {
 
       // Ensure non-copyable semantics
       Lock( Lock const& );
       Lock& operator=( Lock const& );
 
     public:
-      inline Lock( RecursiveMutex &mutex ) : boost::recursive_mutex::scoped_lock( mutex ) {}
+      inline Lock( RecursiveMutex &mutex ) : boost::unique_lock<RecursiveMutex>( mutex ) {}
+      void lock()   { boost::unique_lock<RecursiveMutex>::lock(); }
+      void unlock() { boost::unique_lock<RecursiveMutex>::unlock(); }
     };
   };
 
@@ -177,7 +175,7 @@ namespace vw {
         milliseconds -= 1000;
       }
       xt.nsec+=1e6*milliseconds;
-      return boost::condition::wait(lock, xt);
+      return boost::condition::timed_wait(lock, xt);
     }
 
     template<typename LockT, typename Pred> 
@@ -189,7 +187,7 @@ namespace vw {
         milliseconds -= 1000;
       }
       xt.nsec+=1e6*milliseconds;
-      return boost::condition::wait(lock, xt, pred);
+      return boost::condition::timed_wait(lock, xt, pred);
     }
   };
 
