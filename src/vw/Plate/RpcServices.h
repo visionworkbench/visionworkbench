@@ -147,7 +147,7 @@ namespace platefile {
   public:
     AmqpRpcServer(std::string exchange, std::string queue, 
                   std::string hostname = "localhost", int port = 5672 ) :
-      m_conn(hostname, port), m_exchange(exchange), m_queue(queue) {
+      m_exchange(exchange), m_queue(queue), m_conn(hostname, port) {
       
       m_conn.exchange_declare(exchange, "direct", false, false);
       m_conn.queue_declare(queue, false, true, false);
