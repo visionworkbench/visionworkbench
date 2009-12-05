@@ -328,6 +328,7 @@ PlateModule::PlateModule() {
   // Create the necessary services
   std::string queue_name = AmqpRpcClient::UniqueQueueName("mod_plate");
 
+  // XXX: The rabbitmq host needs to be an apache configuration variable or something
   m_client.reset  ( new AmqpRpcClient() );
   m_index_service.reset ( new IndexService::Stub(
                             new AmqpRpcChannel(INDEX_EXCHANGE, "index", queue_name, "198.10.124.5"),
@@ -386,7 +387,8 @@ void PlateModule::sync_index_cache() const {
 
     IndexCacheEntry entry;
 
-    entry.index = Index::construct_open(std::string("pf://index/") + name);
+    // XXX: The rabbitmq host needs to be an apache configuration variable or something
+    entry.index = Index::construct_open(std::string("pf://198.10.124.5/index/") + name);
     const IndexHeader& hdr = entry.index->index_header();
 
     entry.shortname   = name;
