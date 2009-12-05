@@ -33,6 +33,11 @@ namespace platefile {
     boost::shared_ptr<AmqpConnectionState> m_state;
     vw::Mutex m_mutex;
 
+    std::list<boost::shared_array<uint8> > m_incoming_message_queue;
+    vw::Mutex m_queue_mutex;
+    vw::Condition m_queue_updated_event;
+    boost::shared_ptr<Thread> thread;
+
   public:
 
     // ------------------------------------------------------
