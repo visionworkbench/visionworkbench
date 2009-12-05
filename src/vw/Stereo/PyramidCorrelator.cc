@@ -15,6 +15,7 @@ using namespace stereo;
 
 std::vector<vw::BBox2i>
 PyramidCorrelator::subdivide_bboxes(ImageView<PixelMask<Vector2f> > const& disparity_map,
+                                    ImageView<PixelMask<uint32> > const& valid_pad,
                                     BBox2i const& box) {
   std::vector<BBox2i> result;
   BBox2i box_div_2 = box;
@@ -23,9 +24,14 @@ PyramidCorrelator::subdivide_bboxes(ImageView<PixelMask<Vector2f> > const& dispa
   try {
     disp_range = get_disparity_range(crop(disparity_map, box_div_2));
   } catch ( std::exception &/*e*/ ) {
-    // There are no good pixels available
-    return result;
+    // If there are no good pixels, don't add this box
+    if (count_valid_pixels(crop(valid_pad, box_div_2)) == 0)
+      return result;
+
+    // Return a large bbox so that we keep dividing
+    disp_range = BBox2();
   }
+
   if (disp_range.width()*disp_range.height() <= 4 || 
       (box.width() < m_min_subregion_dim && box.height() < m_min_subregion_dim)) {
     // The bounding box is small enough.
@@ -41,8 +47,8 @@ PyramidCorrelator::subdivide_bboxes(ImageView<PixelMask<Vector2f> > const& dispa
       subbox2.min().y() = box.min().y() + box.height()/2;
     }
 
-    result = subdivide_bboxes(disparity_map, subbox1);
-    std::vector<BBox2i> l2 = subdivide_bboxes(disparity_map, subbox2);
+    result = subdivide_bboxes(disparity_map, valid_pad, subbox1);
+    std::vector<BBox2i> l2 = subdivide_bboxes(disparity_map, valid_pad, subbox2);
     result.insert(result.end(), l2.begin(), l2.end());
     return result;
   }

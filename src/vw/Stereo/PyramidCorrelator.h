@@ -12,6 +12,7 @@
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/Transform.h>
+#include <vw/Image/Filter.h>
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Stereo/OptimizedCorrelator.h>
 
@@ -100,6 +101,7 @@ namespace stereo {
     void write_debug_images(int n, ImageViewRef<PixelMask<Vector2f> > const& disparity_map,
                             std::vector<BBox2i> nominal_blocks);
     std::vector<BBox2i> subdivide_bboxes(ImageView<PixelMask<Vector2f> > const& disparity_map,
+                                         ImageView<PixelMask<uint32> > const& valid_pad,
                                          BBox2i const& box);
 
     template <class ViewT>
@@ -152,8 +154,19 @@ namespace stereo {
           nominal_blocks.push_back(BBox2i(0,0,left_pyramid[n].cols(), left_pyramid[n].rows()));
           search_ranges.push_back(initial_search_range);
         } else {
-          //nominal_blocks = image_blocks(left_pyramid[n], 512, 512);
-          nominal_blocks = subdivide_bboxes(disparity_map,
+          std::vector<vw::uint32> x_kern(m_kernel_size.x()), y_kern(m_kernel_size.y());
+          std::fill(x_kern.begin(), x_kern.end(), 1);
+          std::fill(y_kern.begin(), y_kern.end(), 1);
+
+          // valid_pad masks all the pixels already masked by disparity_map, with the addition 
+          // of a m_kernel_size/2 pad around each pixel.  This is used to prevent 
+          // subdivide_bboxes from rejecting subregions that may actually later get filled
+          // with valid pixels at a higher scale (which helps prevent 'cutting' into the
+          // disparity map)
+          ImageViewRef<uint32> valid = apply_mask(copy_mask(ConstantView<uint32>(1, disparity_map.cols(), disparity_map.rows()), disparity_map));
+          ImageView<PixelMask<uint32> > valid_pad = create_mask(separable_convolution_filter(valid, x_kern, y_kern));
+          
+          nominal_blocks = subdivide_bboxes(disparity_map, valid_pad,
                                             BBox2i(0,0,left_pyramid[n].cols(), left_pyramid[n].rows()));
           search_ranges = compute_search_ranges(disparity_map, nominal_blocks);
         }
