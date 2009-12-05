@@ -14,7 +14,7 @@ if MAKE_MODULE_CORE
 include_HEADERS = Exception.h FundamentalTypes.h TypeDeduction.h	\
 	VarArray.h Functors.h CompoundTypes.h Debugging.h Thread.h	\
 	ThreadPool.h Cache.h ProgressCallback.h Stopwatch.h Settings.h	\
-	Log.h TerminationHandler.h ConfigParser.h
+	Log.h TerminationHandler.h ConfigParser.h ThreadQueue.h
 
 libvwCore_la_SOURCES = Debugging.cc Exception.cc Thread.cc Cache.cc	\
 	ProgressCallback.cc Stopwatch.cc Settings.cc Log.cc		\

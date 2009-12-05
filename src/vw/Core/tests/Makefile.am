@@ -20,8 +20,9 @@ TestSettings_SOURCES         = TestSettings.cxx
 TestCache_SOURCES            = TestCache.cxx
 TestLog_SOURCES              = TestLog.cxx
 TestFundamentalTypes_SOURCES = TestFundamentalTypes.cxx
+TestThreadQueue_SOURCES      = TestThreadQueue.cxx
 
-TESTS = TestCompoundTypes TestFunctors TestExceptions TestThread TestThreadPool TestSettings TestCache TestLog TestFundamentalTypes
+TESTS = TestCompoundTypes TestFunctors TestExceptions TestThread TestThreadPool TestSettings TestCache TestLog TestFundamentalTypes TestThreadQueue
 
 #include $(top_srcdir)/config/instantiate.am
 
