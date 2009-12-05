@@ -435,5 +435,13 @@ extern "C" int mod_plate_status(request_rec *r, int flags) {
 }
 
 extern "C" void mod_plate_child_init(apr_pool_t *pchild, server_rec *s) {
-  static_cast<void>(mod_plate());
+  try {
+    static_cast<void>(mod_plate());
+  } catch (const Exception& e) {
+    ap_log_error(APLOG_MARK, APLOG_ALERT, 0, s, "Could not start mod_plate child! [uncaught vw::Exception]: %s", e.what());
+  } catch (const std::exception& e) {
+    ap_log_error(APLOG_MARK, APLOG_ALERT, 0, s, "Could not start mod_plate child! [uncaught std::exception]: %s", e.what());
+  } catch (...) {
+    ap_log_error(APLOG_MARK, APLOG_ALERT, 0, s, "Could not start mod_plate child! [uncaught unknown exception]");
+  }
 }
