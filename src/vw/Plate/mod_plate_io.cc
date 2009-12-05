@@ -62,6 +62,7 @@ class PlateModule {
 
     const IndexCache& get_index() const { return index_cache; }
     const boost::shared_ptr<Blob> get_blob(const std::string& plate_filename, uint32 blob_id) const;
+    void sync_index_cache() const;
 
   private:
     boost::shared_ptr<AmqpRpcClient>       m_client;
@@ -71,7 +72,6 @@ class PlateModule {
 
     mutable BlobCache  blob_cache;
     mutable IndexCache index_cache;
-    void sync_index_cache() const;
 };
 
 namespace {
@@ -279,6 +279,8 @@ int handle_wtml(request_rec *r, const std::string& url) {
 
   if (r->header_only)
     return OK;
+
+  mod_plate().sync_index_cache();
 
   apache_stream out(r);
   vw_out(DebugMessage, "plate.apache") << "Served WTML[" << filename << "]" << std::endl;
