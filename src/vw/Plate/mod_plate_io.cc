@@ -328,7 +328,7 @@ PlateModule::PlateModule() {
 
   m_client.reset  ( new AmqpRpcClient() );
   m_index_service.reset ( new IndexService::Stub(
-                            new AmqpRpcChannel(INDEX_EXCHANGE, "index", queue_name),
+                            new AmqpRpcChannel(INDEX_EXCHANGE, "index", queue_name, "198.10.124.5"),
                             google::protobuf::Service::STUB_OWNS_CHANNEL) );
 
   sync_index_cache();
