@@ -226,7 +226,6 @@ class WTMLImageSet : public std::map<std::string, std::string> {
       (*this)["BandPass"]           = "Visible";
       (*this)["BaseTileLevel"]      = "0";
       (*this)["BaseDegreesPerTile"] = "360";
-      (*this)["FileType"]           = std::string(".") + hdr.tile_filetype();
       (*this)["BottomsUp"]          = "False";
       (*this)["Projection"]         = "Toast";
       (*this)["QuadTreeMap"]        = "0123";
@@ -235,13 +234,16 @@ class WTMLImageSet : public std::map<std::string, std::string> {
       (*this)["OffsetX"]            = "0";
       (*this)["OffsetY"]            = "0";
       (*this)["Rotation"]           = "0";
-      (*this)["Sparse"]             = "False";
+      (*this)["Sparse"]             = "True";
       (*this)["ElevationModel"]     = "False";
       (*this)["StockSet"]           = "False";
 
+      (*this)["Name"]         = layer.description;
+      (*this)["FileType"]     = std::string(".") + hdr.tile_filetype();
+      (*this)["TileLevels"]   = layer.index->max_depth();
+
       const std::string url2 = url_prefix + "p/" + vw::stringify(hdr.platefile_id());
 
-      (*this)["Name"]         = layer.description;
       (*this)["Url"]          = url2 + "/{1}/{2}/{3}." + hdr.tile_filetype();
       (*this)["ThumbnailUrl"] = url2 + "/0/0/0."       + hdr.tile_filetype();
 
