@@ -122,6 +122,7 @@ message IndexReadRequest {
   required int32 row = 4;
   required int32 depth = 5;
   required int32 transaction_id = 6;
+  required bool exact_transaction_match = 7;
 }
 
 message IndexWriteRequest {

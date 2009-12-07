@@ -140,7 +140,7 @@ namespace platefile {
     }
 
     // Search for a node at a given col, row, and level.
-    ElementT search_helper(int col, int row, int level, int transaction_id, int current_level) {
+    ElementT search_helper(int col, int row, int level, int transaction_id, bool exact_transaction_match, int current_level) {
       // For debugging:
       // std::cout << "Call to search_helper(" << col << " " << row << " " << level << " " 
       //           << transaction_id << " " << current_level << ")\n";
@@ -154,7 +154,7 @@ namespace platefile {
         if ( level == 0 && (col !=0 || row != 0) )
           vw_throw(TileNotFoundErr() << "TreeNode: invalid index (" << col << " " << row << ").");
 
-        return this->value(transaction_id);
+        return this->value(transaction_id, exact_transaction_match);
 
       // Otherwise, we go recurse deeper into the tree....
       } else {
@@ -165,7 +165,8 @@ namespace platefile {
 
           // If a branch of the tree is found, we dive deeper.
           return m_children[child_id]->search_helper(col, row, level, 
-                                                     transaction_id, current_level + 1);
+                                                     transaction_id, exact_transaction_match, 
+                                                     current_level + 1);
 
         } else {
           // If not, we throw an exception.
@@ -260,7 +261,7 @@ namespace platefile {
           vw_throw(TileNotFoundErr() << "TreeNode: invalid index (" << col << " " << row << ").");
 
         try {
-          ElementT val = this->value(transaction_id);
+          ElementT val = this->value(transaction_id, false);
           if (val.status() == INDEX_RECORD_LOCKED) 
             m_records.erase(transaction_id);
         } catch (TileNotFoundErr &e) {
@@ -279,7 +280,7 @@ namespace platefile {
                                                     transaction_id, current_level + 1);
 
           try {
-            ElementT val = this->value(transaction_id);
+            ElementT val = this->value(transaction_id, false);
             if (val.status() == INDEX_RECORD_LOCKED) 
               m_records.erase(transaction_id);
           } catch (TileNotFoundErr &e) {
@@ -344,7 +345,7 @@ namespace platefile {
       return n;
     }
 
-    ElementT value_helper(int transaction_id) { 
+    ElementT value_helper(int transaction_id, bool exact_transaction_match) { 
       typename record_type::iterator it = m_records.begin();
 
       // A transaction ID of -1 indicates that we should return the
@@ -355,8 +356,13 @@ namespace platefile {
       // Otherwise, we search for the most recent record that happened
       // before on on the queried ephoch.
       while (it != m_records.end()) {
-        if ((*it).first <= transaction_id)
-          return (*it).second;
+        if (exact_transaction_match) {
+          if ((*it).first == transaction_id)
+            return (*it).second;
+        } else {
+          if ((*it).first <= transaction_id)
+            return (*it).second;
+        }
         ++it;
       }
 
@@ -368,12 +374,12 @@ namespace platefile {
     }
 
     /// Access the data member of this node.
-    ElementT value(int transaction_id) { 
-      return value_helper(transaction_id);
+    ElementT value(int transaction_id, bool exact_transaction_match) { 
+      return value_helper(transaction_id, exact_transaction_match);
     }
 
-    const ElementT value(int transaction_id) const { 
-      return value_helper(transaction_id);
+    const ElementT value(int transaction_id, bool exact_transaction_match) const { 
+      return value_helper(transaction_id, exact_transaction_match);
     }
 
     /// Query max depth of tree.
@@ -383,8 +389,8 @@ namespace platefile {
     // Search for a node at a given col, row, and level.  Note: a
     // transaction ID of -1 indicates that we should return the
     // most recent tile, regardless of its transaction id.
-    ElementT search(int col, int row, int level, int transaction_id) {
-      return search_helper(col, row, level, transaction_id, 0);
+    ElementT search(int col, int row, int level, int transaction_id, bool exact_transaction_match) {
+      return search_helper(col, row, level, transaction_id, exact_transaction_match, 0);
     }
 
     // Search for a node at a given col, row, and level.  Note: a

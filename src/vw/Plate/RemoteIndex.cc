@@ -149,13 +149,14 @@ vw::platefile::RemoteIndex::~RemoteIndex() {}
 /// Attempt to access a tile in the index.  Throws an
 /// TileNotFoundErr if the tile cannot be found.
 vw::platefile::IndexRecord vw::platefile::RemoteIndex::read_request(int col, int row, int depth, 
-                                                                    int transaction_id) {
+                                                                    int transaction_id, bool exact_transaction_match) {
   IndexReadRequest request;
   request.set_platefile_id(m_platefile_id);
   request.set_col(col);
   request.set_row(row);
   request.set_depth(depth);
   request.set_transaction_id(transaction_id);
+  request.set_exact_transaction_match(exact_transaction_match);
 
   IndexReadReply response;
   m_index_service->ReadRequest(m_rpc_controller.get(), &request, &response, 

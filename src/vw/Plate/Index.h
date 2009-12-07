@@ -52,9 +52,16 @@ namespace platefile {
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.
     ///
+    /// By default, this call to read will return a tile with the MOST
+    /// RECENT transaction_id <= to the transaction_id you specify
+    /// here in the function arguments (if a tile exists).  However,
+    /// setting exact_transaction_match = true will force the
+    /// PlateFile to search for a tile that has the EXACT SAME
+    /// transaction_id as the one that you specify.
+    ///
     /// A transaction ID of -1 indicates that we should return the
     /// most recent tile, regardless of its transaction id.
-    virtual IndexRecord read_request(int col, int row, int depth, int transaction_id) = 0;
+    virtual IndexRecord read_request(int col, int row, int depth, int transaction_id, bool exact_transaction_match = false) = 0;
   
     /// Writing, pt. 1: Locks a blob and returns the blob id that can
     /// be used to write a tile.

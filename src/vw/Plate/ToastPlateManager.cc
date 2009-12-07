@@ -80,7 +80,7 @@ ImageView<PixelT> ToastPlateManager<PixelT>::load_tile_impl( int32 level, int32 
   IndexRecord rec;
   bool found_record = true;
   try {
-    rec = m_platefile->read_record(x, y, level, transaction_id);
+    rec = m_platefile->read_record(x, y, level, transaction_id, true);  // exact_transaction_match = true
   } catch (TileNotFoundErr &e) {
     found_record = false;
   }
@@ -93,7 +93,7 @@ ImageView<PixelT> ToastPlateManager<PixelT>::load_tile_impl( int32 level, int32 
   if (found_record && rec.status() == INDEX_RECORD_VALID) {
 
     // CASE 1 : Valid tiles can be returned without any further processing.
-    m_platefile->read(tile, x, y, level, transaction_id);
+    m_platefile->read(tile, x, y, level, transaction_id, true);          // exact_transaction_match = true
 
   } else if (found_record && (rec.status() == INDEX_RECORD_EMPTY || 
                               rec.status() == INDEX_RECORD_STALE)) {
@@ -137,7 +137,7 @@ ImageView<PixelT> ToastPlateManager<PixelT>::load_tile_impl( int32 level, int32 
     // tile on top of those tiles, supersampling the low-res tile if
     // necessary.
     vw_out(0) << "\t    [ " << x << " " << y << " @ " << level << " ] -- Mipmapping tile.\n";
-    tile = composite_mosaic_tile(m_platefile, new_tile, x, y, level, transaction_id);
+    tile = composite_mosaic_tile(m_platefile, new_tile, x, y, level, max_depth, transaction_id);
   }
 
   // Save the tile in the cache.  The cache size of 1024 tiles was chosen

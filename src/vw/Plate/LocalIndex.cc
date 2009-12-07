@@ -200,9 +200,9 @@ std::ostream& vw::platefile::LocalIndex::log () {
 
 /// Attempt to access a tile in the index.  Throws an
 /// TileNotFoundErr if the tile cannot be found.
-IndexRecord vw::platefile::LocalIndex::read_request(int col, int row, int depth, int transaction_id) {
+IndexRecord vw::platefile::LocalIndex::read_request(int col, int row, int depth, int transaction_id, bool exact_transaction_match) {
   Mutex::Lock lock(m_mutex);
-  IndexRecord rec = m_root->search(col, row, depth, transaction_id);
+  IndexRecord rec = m_root->search(col, row, depth, transaction_id, exact_transaction_match);
   return rec;
 }
   

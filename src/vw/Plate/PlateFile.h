@@ -270,14 +270,24 @@ namespace platefile {
     }
 
 
-    /// Read an image from the specified tile location in the plate file.
+    /// Read an image from the specified tile location in the plate file.  
+    ///
+    /// By default, this call to read will return a tile with the MOST
+    /// RECENT transaction_id <= to the transaction_id you specify
+    /// here in the function arguments (if a tile exists).  However,
+    /// setting exact_transaction_match = true will force the
+    /// PlateFile to search for a tile that has the EXACT SAME
+    /// transaction_id as the one that you specify.
+    ///
+    /// A transaction ID of -1 indicates that we should return the
+    /// most recent tile, regardless of its transaction id.
     template <class ViewT>
-    TileHeader read(ViewT &view, int col, int row, int depth, int transaction_id) {
+    TileHeader read(ViewT &view, int col, int row, int depth, int transaction_id, bool exact_transaction_match = false) {
 
       TileHeader result;
       
       // 1. Call index read_request(col,row,depth).  Returns IndexRecord.
-      IndexRecord record = m_index->read_request(col, row, depth, transaction_id);
+      IndexRecord record = m_index->read_request(col, row, depth, transaction_id, exact_transaction_match);
       if (record.status() != INDEX_RECORD_EMPTY) {
         std::ostringstream blob_filename;
         blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
@@ -346,10 +356,17 @@ namespace platefile {
 
     /// Read a record out of the platefile.  
     ///
+    /// By default, this call to read will return a tile with the MOST
+    /// RECENT transaction_id <= to the transaction_id you specify
+    /// here in the function arguments (if a tile exists).  However,
+    /// setting exact_transaction_match = true will force the
+    /// PlateFile to search for a tile that has the EXACT SAME
+    /// transaction_id as the one that you specify.
+    ///
     /// A transaction ID of -1 indicates that we should return the
     /// most recent tile, regardless of its transaction id.
-    IndexRecord read_record(int col, int row, int depth, int transaction_id) {
-      return m_index->read_request(col, row, depth, transaction_id);
+    IndexRecord read_record(int col, int row, int depth, int transaction_id, bool exact_transaction_match = false) {
+      return m_index->read_request(col, row, depth, transaction_id, exact_transaction_match);
     }
 
     // --------------------- TRANSACTIONS ------------------------

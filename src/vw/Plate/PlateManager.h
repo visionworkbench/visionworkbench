@@ -53,7 +53,7 @@ namespace platefile {
   ImageView<PixelT> composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
                                           ImageView<PixelT> tile,
                                           int col, int row, int level,
-                                          int transaction_id,
+                                          int max_depth, int transaction_id,
                                           const ProgressCallback &progress_callback = ProgressCallback::dummy_instance());
 
   // -------------------------------------------------------------------------
@@ -95,7 +95,7 @@ namespace platefile {
       // and composites this tile on top of those tiles, supersampling the
       // low-res tile if necessary.
       composite_mosaic_tile(m_platefile, tile, m_tile_info.i, m_tile_info.j, m_depth, 
-                            m_transaction_id, m_progress);
+                            m_depth, m_transaction_id, m_progress);
     }
   };
 

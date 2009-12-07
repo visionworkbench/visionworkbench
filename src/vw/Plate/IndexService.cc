@@ -229,7 +229,8 @@ void IndexServiceImpl::ReadRequest(::google::protobuf::RpcController* controller
   IndexRecord record = rec.index->read_request(request->col(), 
                                                request->row(), 
                                                request->depth(), 
-                                               request->transaction_id());
+                                               request->transaction_id(),
+                                               request->exact_transaction_match());
   *(response->mutable_index_record()) = record;
   done->Run();
 }
