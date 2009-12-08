@@ -248,9 +248,10 @@ namespace math {
   struct AffineFittingFunctorN {
     typedef vw::Matrix<double,dim+1,dim+1> result_type;
 
-    /// A affine transformation requires dim*(dim+1) pairs of data points to make a fit.
+    /// A affine transformation has dim*(dim+1) degrees of freedom so we need
+    /// dim*(dim+1)/dim pairs of data points to make a fit.
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return dim*(dim+1); }
+    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return dim+1; }
 
     /// This function can match points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
@@ -328,8 +329,9 @@ namespace math {
 
   /// This fitting functor attempts to find a similarity transformation
   /// (rotation, translation, scaling)
-  struct SimilarityFittingFunctor {
-    typedef vw::Matrix<double,3,3> result_type;
+  template <int dim>
+  struct SimilarityFittingFunctorN {
+    typedef vw::Matrix<double,dim+1,dim+1> result_type;
 
     /// A similarity transformation requires 3 pairs of data points to make a fit.
     template <class ContainerT>
@@ -350,8 +352,6 @@ namespace math {
       VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
                  vw::ArgumentErr() << "Cannot compute similarity transformation.  Insufficient data.\n");
 
-      unsigned dimensions = p1[0].size()-1;
-
       // Compute the center of mass of each collection of points.
       MeanFunctor m(true);
       ContainerT mean1 = m(p1);
@@ -368,11 +368,11 @@ namespace math {
       double scale_factor = dist2/dist1;
           
       // Compute the rotation
-      Matrix<double> H(dimensions, dimensions);
+      Matrix<double> H(dim, dim);
       for (unsigned i = 0; i < p1.size(); ++i) {
-        Matrix<double> a(dimensions,1);
-        Matrix<double> b(dimensions,1);
-        for (unsigned d = 0; d < dimensions; ++d) {
+        Matrix<double> a(dim,1);
+        Matrix<double> b(dim,1);
+        for (unsigned d = 0; d < dim; ++d) {
           a(d,0) = p1[i][d]-mean1[d];
           b(d,0) = p2[i][d]-mean2[d];
         }
@@ -386,21 +386,24 @@ namespace math {
       Matrix<double> R = transpose(VT)*transpose(U);
     
       // Compute the translation
-      Vector<double> translation = subvector(mean2,0,2)-scale_factor*R*subvector(mean1,0,2);
+      Vector<double> translation = subvector(mean2,0,dim)-scale_factor*R*subvector(mean1,0,dim);
   
-      Matrix<double> result(3,3);
-      submatrix(result,0,0,dimensions,dimensions) = scale_factor*R;
+      Matrix<double> result(dim+1,dim+1);
+      submatrix(result,0,0,dim,dim) = scale_factor*R;
       for (unsigned i = 0; i < result.rows(); ++i) {
-        result(i,dimensions) = translation(i);
+        result(i,dim) = translation(i);
       }
-      result(dimensions,dimensions) = 1;
+      result(dim,dim) = 1;
       return result;
     }
   };
 
+  typedef SimilarityFittingFunctorN<2> SimilarityFittingFunctor;
+
   /// This fitting functor attempts to find a translation and rotation transformation
-  struct TranslationRotationFittingFunctor {
-    typedef vw::Matrix<double,3,3> result_type;
+  template <int dim>
+  struct TranslationRotationFittingFunctorN {
+    typedef vw::Matrix<double,dim+1,dim+1> result_type;
 
     /// A transformation requires 2 pairs of data points to make a fit.
     template <class ContainerT>
@@ -421,19 +424,17 @@ namespace math {
       VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
                  vw::ArgumentErr() << "Cannot compute translation rotation transformation.  Insufficient data.\n");
 
-      unsigned dimensions = p1[0].size()-1;
-
       // Compute the center of mass of each collection of points.
       MeanFunctor m(true);
       ContainerT mean1 = m(p1);
       ContainerT mean2 = m(p2);
 
       // Compute the rotation
-      Matrix<double> H(dimensions, dimensions);
+      Matrix<double> H(dim, dim);
       for (unsigned i = 0; i < p1.size(); ++i) {
-        Matrix<double> a(dimensions,1);
-        Matrix<double> b(dimensions,1);
-        for (unsigned d = 0; d < dimensions; ++d) {
+        Matrix<double> a(dim,1);
+        Matrix<double> b(dim,1);
+        for (unsigned d = 0; d < dim; ++d) {
           a(d,0) = p1[i][d]-mean1[d];
           b(d,0) = p2[i][d]-mean2[d];
         }
@@ -447,23 +448,26 @@ namespace math {
       Matrix<double> R = transpose(VT)*transpose(U);
     
       // Compute the translation
-      Vector<double> translation = subvector(mean2,0,2)-R*subvector(mean1,0,2);
+      Vector<double> translation = subvector(mean2,0,dim)-R*subvector(mean1,0,dim);
   
-      Matrix<double> result(3,3);
-      submatrix(result,0,0,dimensions,dimensions) = R;
+      Matrix<double> result(dim+1,dim+1);
+      submatrix(result,0,0,dim,dim) = R;
       for (unsigned i = 0; i < result.rows(); ++i) {
-        result(i,dimensions) = translation(i);
+        result(i,dim) = translation(i);
       }
-      result(dimensions,dimensions) = 1;
+      result(dim,dim) = 1;
       return result;
     }
   };
+
+  typedef TranslationRotationFittingFunctorN<2> TranslationRotationFittingFunctor;
   
   /// This fitting functor attempts to find a translation transformation
-  struct TranslationFittingFunctor {
-    typedef vw::Matrix<double,3,3> result_type;
+  template <int dim>
+  struct TranslationFittingFunctorN {
+    typedef vw::Matrix<double,dim+1,dim+1> result_type;
 
-    /// A transformation requires 1 pair of data points to make a fit.
+    /// A translation transformation needs 1 pair to make a fit
     template <class ContainerT>
     unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 1; }
 
@@ -478,11 +482,9 @@ namespace math {
 
       // check consistency
       VW_ASSERT( p1.size() == p2.size(), 
-                 vw::ArgumentErr() << "Cannot compute translation rotation transformation.  p1 and p2 are not the same size." );
+                 vw::ArgumentErr() << "Cannot compute translation transformation.  p1 and p2 are not the same size." );
       VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
-                 vw::ArgumentErr() << "Cannot compute translation rotation transformation.  Insufficient data.\n");
-
-      unsigned dimensions = p1[0].size()-1;
+                 vw::ArgumentErr() << "Cannot compute translation transformation.  Insufficient data.\n");
 
       // Compute the center of mass of each collection of points.
       MeanFunctor m(true);
@@ -490,17 +492,18 @@ namespace math {
       ContainerT mean2 = m(p2);
    
       // Compute the translation
-      Vector<double> translation = subvector(mean2,0,2)-subvector(mean1,0,2);
+      Vector<double> translation = subvector(mean2,0,dim)-subvector(mean1,0,dim);
   
-      Matrix<double> result(3,3);
+      Matrix<double> result(dim+1,dim+1);
       result.set_identity();
-      for (unsigned i = 0; i < result.rows(); ++i) {
-        result(i,dimensions) = translation(i);
+      for (unsigned i = 0; i < dim; ++i) {
+        result(i,dim) = translation(i);
       }
       return result;
     }
   };
 
+  typedef TranslationFittingFunctorN<2> TranslationFittingFunctor;
 
 }} // namespace vw::math
 

@@ -10,6 +10,7 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Geometry.h>
+#include <vw/Math/EulerAngles.h>
 
 using namespace vw;
 using namespace vw::math;
@@ -128,6 +129,89 @@ TEST(Geometry, AffinityFittingFunctorN) {
   EXPECT_MATRIX_NEAR( S, AffineFittingFunctorN<3>()(p1,p2), 1e-14 );
 }
 
+TEST(Geometry, SimilarityFittingFunctorN) {
+
+  static double A_data[] = {
+    0.0153, 0.9318, 0.2345, 1,
+    0.6721, 0.6813, 0.1234, 1,
+    0.3046, 0.6822, 0.6543, 1,
+    0.8600, 0.7468, 0.1652, 1,
+    0.5252, 0.8381, 0.5089, 1,
+    0.7095, 0.1897, 0.2258, 1,
+    0.6979, 0.8537, 0.0461, 1,
+    0.4186, 0.2026, 0.1419, 1,
+    0.8318, 0.4289, 0.6408, 1,
+    0.3475, 0.3354, 0.2868, 1,
+    0.7025, 0.2123, 0.2339, 1,
+    0.4944, 0.9446, 0.1233, 1,
+    0.7193, 0.6551, 0.3655, 1,
+    0.5491, 0.4076, 0.1014, 1 };
+  vw::MatrixProxy<double,14,4> A(A_data);
+
+  double s = 2.23;
+  double xrot = 0.325;
+  double yrot = 0.122;
+  double zrot = 0.644;
+  double dx = 5.6;
+  double dy = 8.3;
+  double dz = 2.1;
+
+  Matrix4x4 S;
+
+  submatrix(S, 0, 0, 3, 3) = (s * identity_matrix(3)) * euler_to_rotation_matrix(xrot, yrot, zrot, "xyz");
+  select_col(S, 3) = Vector4(dx, dy, dz, 1);
+
+  vw::Matrix<double> B = transpose(S*transpose(A));
+  std::vector<Vector4> p1, p2;
+  for (unsigned i = 0; i < A.rows(); ++i) {
+    p1.push_back(select_row(A,i));
+    p2.push_back(select_row(B,i));
+  }
+
+  EXPECT_MATRIX_NEAR( S, SimilarityFittingFunctorN<3>()(p1,p2), 1e-14 );
+}
+
+TEST(Geometry, TranslationRotationFittingFunctorN) {
+
+  static double A_data[] = {
+    0.0153, 0.9318, 0.2345, 1,
+    0.6721, 0.6813, 0.1234, 1,
+    0.3046, 0.6822, 0.6543, 1,
+    0.8600, 0.7468, 0.1652, 1,
+    0.5252, 0.8381, 0.5089, 1,
+    0.7095, 0.1897, 0.2258, 1,
+    0.6979, 0.8537, 0.0461, 1,
+    0.4186, 0.2026, 0.1419, 1,
+    0.8318, 0.4289, 0.6408, 1,
+    0.3475, 0.3354, 0.2868, 1,
+    0.7025, 0.2123, 0.2339, 1,
+    0.4944, 0.9446, 0.1233, 1,
+    0.7193, 0.6551, 0.3655, 1,
+    0.5491, 0.4076, 0.1014, 1 };
+  vw::MatrixProxy<double,14,4> A(A_data);
+
+  double xrot = 0.325;
+  double yrot = 0.122;
+  double zrot = 0.644;
+  double dx = 5.6;
+  double dy = 8.3;
+  double dz = 2.1;
+
+  Matrix4x4 S;
+
+  submatrix(S, 0, 0, 3, 3) = euler_to_rotation_matrix(xrot, yrot, zrot, "xyz");
+  select_col(S, 3) = Vector4(dx, dy, dz, 1);
+
+  vw::Matrix<double> B = transpose(S*transpose(A));
+  std::vector<Vector4> p1, p2;
+  for (unsigned i = 0; i < A.rows(); ++i) {
+    p1.push_back(select_row(A,i));
+    p2.push_back(select_row(B,i));
+  }
+
+  EXPECT_MATRIX_NEAR( S, SimilarityFittingFunctorN<3>()(p1,p2), 1e-14 );
+}
+
 TEST(Geometry, SimilarityFittingFunctor) {
   static double A_data[] = {
     0.0153, 0.9318, 1,
@@ -171,7 +255,7 @@ TEST(Geometry, SimilarityFittingFunctor) {
   EXPECT_MATRIX_NEAR( S, SimilarityFittingFunctor()(p1,p2), 1.8e-15 );
 }
 
-TEST(Geometry, TranslationRotationFunctor) {
+TEST(Geometry, TranslationRotationFittingFunctor) {
   static double A_data[] = {
     0.0153, 0.9318, 1,
     0.6721, 0.6813, 1,
@@ -210,10 +294,10 @@ TEST(Geometry, TranslationRotationFunctor) {
 
   // compute a fit given the points only, and compare it to the true
   // similarity.
-  EXPECT_MATRIX_NEAR( S, SimilarityFittingFunctor()(p1,p2), 1.8e-15 );
+  EXPECT_MATRIX_NEAR( S, TranslationRotationFittingFunctor()(p1,p2), 1.8e-15 );
 }
 
-TEST(Geometry, TranslationFunctor) {
+TEST(Geometry, TranslationFittingFunctor) {
   static double A_data[] = {
     0.0153, 0.9318, 1,
     0.6721, 0.6813, 1,
@@ -247,5 +331,44 @@ TEST(Geometry, TranslationFunctor) {
 
   // compute a fit given the points only, and compare it to the true
   // similarity.
-  EXPECT_MATRIX_NEAR( S, SimilarityFittingFunctor()(p1,p2), 1.8e-15 );
+  EXPECT_MATRIX_NEAR( S, TranslationFittingFunctor()(p1,p2), 1.8e-15 );
+}
+
+TEST(Geometry, TranslationFittingFunctorN) {
+  static double A_data[] = {
+    0.0153, 0.9318, 0.2153, 1,
+    0.6721, 0.6813, 0.4356, 1,
+    0.3046, 0.6822, 0.7646, 1,
+    0.8600, 0.7468, 0.5863, 1,
+    0.5252, 0.8381, 0.2958, 1,
+    0.7095, 0.1897, 0.9185, 1,
+    0.6979, 0.8537, 0.3456, 1,
+    0.4186, 0.2026, 0.1124, 1,
+    0.8318, 0.4289, 0.7593, 1,
+    0.5417, 0.3784, 0.4567, 1 };
+
+  vw::MatrixProxy<double,10,4> A(A_data);
+
+  // Create a translation matrix
+  double dx = 4.2;
+  double dy = 2.9;
+  double dz = 3.1;
+
+  Matrix4x4 S;
+  S.set_identity();
+  S(0,3) = dx;
+  S(1,3) = dy;
+  S(2,3) = dz;
+
+  // and apply it to some points
+  vw::Matrix<double> B = transpose(S*transpose(A));
+  std::vector<Vector4> p1, p2;
+  for (unsigned i = 0; i < A.rows(); ++i) {
+    p1.push_back(select_row(A,i));
+    p2.push_back(select_row(B,i));
+  }
+
+  // compute a fit given the points only, and compare it to the true
+  // similarity.
+  EXPECT_MATRIX_NEAR( S, TranslationFittingFunctorN<3>()(p1,p2), 1.8e-15 );
 }
