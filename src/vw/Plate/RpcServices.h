@@ -9,6 +9,7 @@
 
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
+#include <vw/Core/Thread.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 #include <vw/Plate/Amqp.h>
 #include <vw/Plate/Exception.h>
@@ -120,19 +121,37 @@ namespace platefile {
 
   class NetworkMonitor {
     size_t m_total_bytes;
-    size_t m_recent_bytes;
-
-    int32 m_total_requests;
-    int32 m_recent_requests;
+    int32 m_total_queries;
+    vw::Mutex m_mutex;
 
   public:
     
     NetworkMonitor() : 
-      m_total_bytes(0), m_recent_bytes(0), m_total_requests(0), m_recent_requests(0) {}
+      m_total_bytes(0), m_total_queries(0) {}
     
     virtual ~NetworkMonitor() {}
 
-    void note_request(int32 num_bytes);
+    void record_query(size_t num_bytes) {
+      Mutex::Lock lock(m_mutex);
+      ++m_total_queries;
+      m_total_bytes += num_bytes;
+    }
+
+    size_t bytes_processed() { 
+      Mutex::Lock lock(m_mutex);
+      return m_total_bytes; 
+    }
+
+    int queries_processed() { 
+      Mutex::Lock lock(m_mutex);
+      return m_total_queries; 
+    };
+
+    void reset() {
+      Mutex::Lock lock(m_mutex);
+      m_total_bytes = 0;
+      m_total_queries = 0;
+    }
   };
 
   class AmqpRpcServer : public google::protobuf::RpcController {
@@ -141,13 +160,18 @@ namespace platefile {
     AmqpConnection m_conn;
     bool m_failed;
     std::string m_failed_reason;
-  
+    NetworkMonitor m_stats;
+    bool m_terminate;
+    bool m_debug;
+
     boost::shared_ptr<google::protobuf::Service> m_service;
     
   public:
     AmqpRpcServer(std::string exchange, std::string queue, 
-                  std::string hostname = "localhost", int port = 5672 ) :
-      m_exchange(exchange), m_queue(queue), m_conn(hostname, port) {
+                  std::string hostname = "localhost", int port = 5672, 
+                  bool debug = false) :
+      m_exchange(exchange), m_queue(queue), m_conn(hostname, port), 
+      m_terminate(false), m_debug(debug) {
       
       m_conn.exchange_declare(exchange, "direct", false, false);
       m_conn.queue_declare(queue, false, true, false);
@@ -167,6 +191,23 @@ namespace platefile {
 
     /// Run the server run loop
     void run();
+
+    /// Shut down the server
+    void shutdown() { m_terminate = true; }
+
+    /// Return statistics about number of messages processed per second.
+    int queries_processed() {
+      return m_stats.queries_processed();
+    }
+
+    /// Return statistics about number of messages processed per second.
+    size_t bytes_processed() {
+      return m_stats.bytes_processed();
+    }
+
+    void reset_stats() {
+      m_stats.reset();
+    }
 
     // ------------------ RpcController Methods ---------------------
 

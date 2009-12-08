@@ -7,6 +7,7 @@
 
 
 #include <vw/Plate/Blob.h>
+#include <vw/Plate/Exception.h>
 
 // Vision Workbench
 #include <vw/Core/Exception.h>
@@ -40,7 +41,8 @@ vw::platefile::Blob::Blob(std::string filename, bool readonly) : m_blob_filename
                                   std::ios::out | std::ios::app);  
     if (!temporary_stream.is_open()) {
       std::cout << "Blob file could not be created!\n";
-      vw_throw(IOErr() << "Blob::Blob(): could not create blob file \"" << m_blob_filename << "\".");
+      vw_throw(BlobIoErr() << "Blob::Blob(): could not create blob file \"" 
+               << m_blob_filename << "\".");
     }
     temporary_stream.close();
   }
@@ -56,7 +58,8 @@ vw::platefile::Blob::Blob(std::string filename, bool readonly) : m_blob_filename
 
   if (!m_fstream->is_open()) {
     std::cout << "Blob file is not open!\n";
-    vw_throw(IOErr() << "Blob::Blob(): could not open blob file \"" << m_blob_filename << "\".");
+    vw_throw(BlobIoErr() << "Blob::Blob(): could not open blob file \"" 
+             << m_blob_filename << "\".");
   }
 }
 

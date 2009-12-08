@@ -97,6 +97,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/FileIO/DiskImageResource.h>
 
+#include <vw/Plate/Exception.h>
 #include <vw/Plate/Index.h>
 #include <vw/Plate/LocalIndex.h>
 #include <vw/Plate/Blob.h>
@@ -320,6 +321,15 @@ namespace platefile {
     void write(ImageViewBase<ViewT> const& view, 
                int col, int row, int depth, int transaction_id) {      
 
+      // 0. Create a write_header
+
+      TileHeader write_header;
+      write_header.set_col(col);
+      write_header.set_row(row);
+      write_header.set_depth(depth);
+      write_header.set_transaction_id(transaction_id);
+      write_header.set_filetype(this->default_file_type());
+
       // 1. Write data to temporary file. 
       TemporaryTileFile tile(view, this->default_file_type());
       std::string tile_filename = tile.file_name();
@@ -330,27 +340,29 @@ namespace platefile {
       std::ostringstream blob_filename;
       blob_filename << this->name() << "/plate_" << blob_id << ".blob";
 
-      // 3. Create a blob and call write_from_file(filename).  Returns offset, size.
-      Blob blob(blob_filename.str());
+      // 3. Create a blob and call write_from_file(filename).  Returns
+      // offset, size.  If this fails, we need to catch the error,
+      // unlock the Blob using a write_complete, and then re-throw the
+      // exception.
+      try { 
+        Blob blob(blob_filename.str());
+        int64 blob_offset;
+        blob.write_from_file(tile_filename, write_header, blob_offset);
 
-      TileHeader write_header;
-      write_header.set_col(col);
-      write_header.set_row(row);
-      write_header.set_depth(depth);
-      write_header.set_transaction_id(transaction_id);
-      write_header.set_filetype(this->default_file_type());
+        // 4. Call write_complete(col, row, depth, record)
+        IndexRecord write_record;
+        write_record.set_blob_id(blob_id);
+        write_record.set_blob_offset(blob_offset);
+        write_record.set_status(INDEX_RECORD_VALID);
+        
+        m_index->write_complete(write_header, write_record);
 
-      int64 blob_offset;
-      blob.write_from_file(tile_filename, write_header, blob_offset);
+      } catch (BlobIoErr &e) {
+        IndexRecord null_record;
+        m_index->write_complete(write_header, null_record);
+        vw_throw(e);
+      }
 
-      // 4. Call write_complete(col, row, depth, record)
-
-      IndexRecord write_record;
-      write_record.set_blob_id(blob_id);
-      write_record.set_blob_offset(blob_offset);
-      write_record.set_status(INDEX_RECORD_VALID);
-
-      m_index->write_complete(write_header, write_record);
     }
 
 

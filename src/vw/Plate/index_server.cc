@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+#include <vw/Core/Stopwatch.h>
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Amqp.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
@@ -17,6 +18,25 @@
 namespace po = boost::program_options;
 using namespace vw::platefile;
 using namespace vw;
+
+// -----------------------------------------------------------------------------
+//                                  MAIN LOOP
+// -----------------------------------------------------------------------------
+
+class ServerTask {
+  boost::shared_ptr<AmqpRpcServer> m_server;
+  
+public:
+  
+  ServerTask(boost::shared_ptr<AmqpRpcServer> server) : m_server(server) {}
+  
+  void operator()() {
+    std::cout << "\t--> Listening for messages.\n";
+    m_server->run();
+  }
+  
+  void kill() { m_server->shutdown(); }
+};
 
 // -----------------------------------------------------------------------------
 //                                  MAIN
@@ -35,6 +55,7 @@ int main(int argc, char** argv) {
      "Specify the hostname of the AMQP server to use for remote procedure calls (RPCs).")
     ("port,p", po::value<int>(&port)->default_value(5672), 
      "Specify the port of the AMQP server to use for remote procedure calls (RPCs).")
+    ("debug", "Output debug messages.")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -67,12 +88,35 @@ int main(int argc, char** argv) {
     return 1;
   }
   
-  AmqpRpcServer server(INDEX_EXCHANGE, queue_name, hostname, port);
+
+  // Create the server
+  boost::shared_ptr<AmqpRpcServer> server(new AmqpRpcServer(INDEX_EXCHANGE, 
+                                                            queue_name, 
+                                                            hostname, port,
+                                                            vm.count("debug") ));
   boost::shared_ptr<google::protobuf::Service> service( new IndexServiceImpl(root_directory) );
-  server.export_with_routing_key(service, "index");
-  
-  std::cout << "\t--> Listening for messages.\n";
-  server.run();
+  server->export_with_routing_key(service, "index");
+
+  // Start the server task in another thread
+  boost::shared_ptr<ServerTask> server_task( new ServerTask(server) );
+  Thread server_thread( server_task );
+
+  long long t0 = Stopwatch::microtime();
+
+  std::cout << "\n\n";
+  while(1) {
+    int queries = server->queries_processed();
+    size_t bytes = server->bytes_processed();
+    server->reset_stats();
+
+    float dt = float(Stopwatch::microtime() - t0) / 1e6;
+    t0 = Stopwatch::microtime();
+
+    std::cout << "[index_server] : " 
+              << float(queries/dt) << " qps    "
+              << float(bytes/dt)/1000.0 << " kB/sec                          \r" << std::flush;
+    sleep(1.0);
+  }
   
   return 0;
 }

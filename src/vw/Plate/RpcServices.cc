@@ -130,7 +130,7 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
 
 void vw::platefile::AmqpRpcServer::run() {
 
-  while(1) {
+  while(!m_terminate) {
     // --------------------------------------
     // Step 1 : Wait for an incoming message.
     // --------------------------------------
@@ -140,8 +140,13 @@ void vw::platefile::AmqpRpcServer::run() {
     WireMessage wire_request(request_bytes);
     RpcRequestWrapper request_wrapper = wire_request.parse_as_message<RpcRequestWrapper>();
 
-    vw_out(0) << "[RPC: " << request_wrapper.method() 
-              << " from " << request_wrapper.requestor() << "]\n";
+    // Record statistics
+    m_stats.record_query(request_wrapper.ByteSize());
+
+    if (m_debug) {
+      vw_out(0) << "[RPC: " << request_wrapper.method() 
+                << " from " << request_wrapper.requestor() << "]\n";
+    }
 
     // -------------------------------------------------------------
     // Step 2 : Instantiate the proper messages and delegate them to
