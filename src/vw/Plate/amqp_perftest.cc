@@ -6,6 +6,9 @@
 
 #include <vw/Plate/Amqp.h>
 #include <vw/Core/Stopwatch.h>
+#include <vw/Core/ThreadQueue.h>
+#include <csignal>
+
 using namespace vw;
 
 #include <boost/program_options.hpp>
@@ -13,27 +16,30 @@ namespace po = boost::program_options;
 using namespace vw::platefile;
 using namespace vw;
 
-void run_client(std::string exchange, std::string client_queue, bool use_get) {
+void run_client(std::string exchange, std::string client_queue) {
   std::cout << "Running client...\n";
 
-  AmqpConnection m_conn;
+  boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
+  AmqpChannel chan(conn);
 
-  // Create a queue and bind it to the index server exchange.
-  m_conn.exchange_declare(exchange, "direct", false, false);  // not durable, no autodelete
-  m_conn.queue_declare(client_queue, false, true, true);  // not durable, exclusive, auto-delete
-  m_conn.queue_bind(client_queue, exchange, client_queue);
-  
+  chan.exchange_declare(exchange, "direct", false, false);  // not durable, no autodelete
+  chan.queue_declare(client_queue, false, true, true);  // not durable, exclusive, auto-delete
+  chan.queue_bind(client_queue, exchange, client_queue);
+
   int msgs = 0;
   long long t0 = Stopwatch::microtime();
 
+
+  ThreadQueue<NativeMessage> q;
+  boost::shared_ptr<AmqpConsumer> c = chan.basic_consume(client_queue, boost::bind(&ThreadQueue<NativeMessage>::push, boost::ref(q), _1));
+
+  NativeMessage result;
   while (1) {
-    boost::shared_array<uint8> result;
-    if (use_get) {
-      result = m_conn.basic_get(client_queue, true, -1);
-    } else { 
-      std::string routing_key;
-      result = m_conn.basic_consume(client_queue, routing_key, true);
+    if (!q.timed_wait_pop(result, 3000)) {
+      vw_out(0) << "No messages for 5 seconds" << std::endl;
+      break;
     }
+
     ++msgs;
 
     float diff = (Stopwatch::microtime() - t0) / 1e6;
@@ -45,22 +51,31 @@ void run_client(std::string exchange, std::string client_queue, bool use_get) {
   }
 }
 
+bool go = true;
 
-void run_server(std::string exchange, std::string client_queue, int msg_size) {
+void sighandle(int sig) {
+  signal(sig, SIG_IGN);
+  go = false;
+  signal(sig, sighandle);
+}
+
+void run_server(const std::string exchange, const std::string client_queue, const std::string& msg_text) {
   std::cout << "Running server...\n";
+  signal(SIGINT, sighandle);
 
-  AmqpConnection m_conn;
+  boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
+  AmqpChannel chan(conn);
 
   // Create a queue and bind it to the index server exchange.
-  m_conn.exchange_declare(exchange, "direct", false, false);
+  chan.exchange_declare(exchange, "direct", false, false);
 
   // Set up the message
-  boost::shared_array<uint8> msg ( new uint8[msg_size] );
+  NativeMessage msg( new vw::VarArray<uint8>(msg_text.size()) );
+  std::copy(msg_text.begin(), msg_text.end(), msg->begin());
 
-  while(1) {
-    m_conn.basic_publish(msg, msg_size, exchange, client_queue);
+  while(go) {
+    chan.basic_publish(msg, exchange, client_queue);
   }
-  
 }
 
 
@@ -90,11 +105,11 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  if( vm.count("server") ) 
-    run_server("ptest_exchange", "ptest_queue", 4);
+  if( vm.count("server") )
+    run_server("ptest_exchange", "ptest_queue", "test");
 
-  if( vm.count("client") ) 
-    run_client("ptest_exchange", "ptest_queue", vm.count("get"));
+  if( vm.count("client") )
+    run_client("ptest_exchange", "ptest_queue");
 
   return 0;
 }

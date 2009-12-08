@@ -16,7 +16,7 @@
 #include <amqp_framing.h>
 
 #include <unistd.h>
-#include <assert.h>
+#include <fcntl.h>
 
 #include <vw/Core/Exception.h>
 #include <vw/Core/Log.h>
@@ -24,147 +24,276 @@
 #include <sstream>
 
 #include <boost/shared_array.hpp>
+#include <cerrno>
 
 using namespace vw;
 using namespace vw::platefile;
 
-// --------------------- AmqpConsumeTask --------------------------
+namespace {
+
+  const amqp_bytes_t amqp_string(const std::string& s);
+  std::string amqp_bytes(const amqp_bytes_t& s);
+  void die_on_amqp_error(amqp_rpc_reply_t x, char const *context);
+  void die_on_error(int x, char const *context);
+  NativeMessage pump_queue(amqp_connection_state_t conn);
+  void set_nonblock(int fd, bool yes);
+}
+
+AmqpConnection::AmqpConnection(std::string const& hostname, int port) {
+
+  m_state.reset(amqp_new_connection(), amqp_destroy_connection);
+  if (!m_state.get())
+    vw_throw(IOErr() << "Failed to create amqp state object");
+
+  // Open a socket and establish an amqp connection
+  int fd = amqp_open_socket(hostname.c_str(), port);
+  if (fd < 0)
+    vw_throw(IOErr() << "Failed to open AMQP socket.");
+
+  amqp_set_sockfd(m_state.get(), fd);
+
+  // Login to the Amqp Server
+  die_on_amqp_error(amqp_login(m_state.get(), "/", 0, 131072, 0, AMQP_SASL_METHOD_PLAIN,
+                               "guest", "guest"), "Logging in");
+
+  // 0 is reserved
+  m_used_channels.insert(0);
+}
+
+AmqpConnection::~AmqpConnection() {
+  Mutex::Lock lock(m_state_mutex);
+
+  die_on_amqp_error(amqp_connection_close(m_state.get(), AMQP_REPLY_SUCCESS), "Closing connection");
+  die_on_error(close(amqp_get_sockfd(m_state.get())), "Closing socket");
+}
+
+// CALL THIS WITH THE m_state_mutex LOCK ALREADY HELD.
+int16 AmqpConnection::get_channel(int16 channel) {
+  if (channel == -1) {
+    if(m_used_channels.empty())
+      channel = 1;
+    else
+      channel = *m_used_channels.rbegin() + 1; // largest elt in set
+  }
+
+  if (m_used_channels.count(channel) != 0)
+    vw_throw(LogicErr() << "Channel " << channel << "is already in use");
+
+  m_used_channels.insert(channel);
+  return channel;
+}
+
+
+AmqpChannel::AmqpChannel(boost::shared_ptr<AmqpConnection> conn, int16 channel)
+    : m_conn(conn) {
+
+  Mutex::Lock lock(m_conn->m_state_mutex);
+
+  m_channel = m_conn->get_channel(channel);
+  amqp_channel_open(m_conn->m_state.get(), m_channel);
+  die_on_amqp_error(amqp_rpc_reply, "Opening channel");
+
+}
+
+AmqpChannel::~AmqpChannel() {
+  Mutex::Lock lock(m_conn->m_state_mutex);
+  die_on_amqp_error(amqp_channel_close(m_conn->m_state.get(), m_channel, AMQP_REPLY_SUCCESS), "Closing channel");
+}
+
+void AmqpChannel::exchange_declare(std::string const& exchange_name,
+                                   std::string const& exchange_type,
+                                   bool durable, bool auto_delete) {
+  Mutex::Lock lock(m_conn->m_state_mutex);
+  amqp_exchange_declare(m_conn->m_state.get(), m_channel, amqp_string(exchange_name),
+                        amqp_string(exchange_type), 0, durable, auto_delete, amqp_table_t());
+  die_on_amqp_error(amqp_rpc_reply, "Declaring Exchange");
+}
+
+void AmqpChannel::queue_declare(std::string const& queue_name, bool durable,
+                                bool exclusive, bool auto_delete) {
+  Mutex::Lock lock(m_conn->m_state_mutex);
+
+  amqp_queue_declare(m_conn->m_state.get(), m_channel, amqp_string(queue_name), 0,
+                     durable, exclusive, auto_delete, amqp_table_t());
+  die_on_amqp_error(amqp_rpc_reply, "Declaring queue");
+}
+
+void AmqpChannel::queue_bind(std::string const& queue, std::string const& exchange,
+                             std::string const& routing_key) {
+  Mutex::Lock(m_conn->m_state_mutex);
+
+  amqp_queue_bind(m_conn->m_state.get(), m_channel, amqp_string(queue),
+                  amqp_string(exchange), amqp_string(routing_key), amqp_table_t());
+  die_on_amqp_error(amqp_rpc_reply, "Binding queue");
+}
+
+void AmqpChannel::queue_unbind(std::string const& queue, std::string const& exchange,
+                               std::string const& routing_key) {
+  Mutex::Lock lock(m_conn->m_state_mutex);
+
+  amqp_queue_unbind(m_conn->m_state.get(), m_channel, amqp_string(queue),
+                    amqp_string(exchange), amqp_string(routing_key), amqp_table_t());
+  die_on_amqp_error(amqp_rpc_reply, "Unbinding queue");
+}
+
+void AmqpChannel::basic_publish(NativeMessage const message,
+                                std::string const& exchange, std::string const& routing_key) {
+  Mutex::Lock lock(m_conn->m_state_mutex);
+
+  amqp_bytes_t raw_data;
+  raw_data.len   = message->size();
+  raw_data.bytes = reinterpret_cast<void*>(message->begin());
+
+  int ret = amqp_basic_publish(m_conn->m_state.get(), m_channel, amqp_string(exchange),
+                               amqp_string(routing_key), 0, 0, NULL, raw_data);
+  die_on_error(ret, "Publishing");
+}
+
+bool AmqpChannel::basic_get(std::string const& queue, NativeMessage& message) {
+
+  Mutex::Lock lock(m_conn->m_state_mutex);
+
+  amqp_rpc_reply_t reply;
+  while (true) {
+    amqp_maybe_release_buffers(m_conn->m_state.get());
+    reply = amqp_basic_get(m_conn->m_state.get(), m_channel, amqp_string(queue), 0);
+    die_on_amqp_error(reply, "Getting");
+
+    if (reply.reply.id == AMQP_BASIC_GET_EMPTY_METHOD) {
+      usleep(100000); // yield for a bit
+      continue;
+    }
+    if (reply.reply.id == AMQP_BASIC_GET_OK_METHOD)
+      break;
+
+    vw_throw(AMQPAssertion() << "Illegal AMQP response");
+  }
+
+  message = pump_queue(m_conn->m_state.get());
+  return true;
+}
+
+namespace vw {
+  namespace platefile {
 
 class AmqpConsumeTask {
-  std::string m_queue;
-  bool m_no_ack;
-  bool terminate;
-  std::list<boost::shared_array<uint8> > m_queue;
-  Mutex &m_mutex;
-  Condition &m_condition;
+  public:
+    typedef boost::shared_ptr<AmqpConnection> Connection;
+    typedef boost::function<void (NativeMessage)> Callback;
 
-public:
-  AmqpConsumeTask(std::string queue_name, bool no_ack, 
-                  std::list<boost::shared_array<uint8> > &queue, 
-                  Mutex &mutex, Condition &cond) : 
-    m_queue_name(queue_name), m_no_ack(no_ack), terminate(false), 
-    m_queue(queue), m_mutex(mutex), m_condition(cond) {}
+    // XXX: This should really hold a channel, and not a connection...
+    Connection m_conn;
+    int16 m_chan;
+    Callback m_callback;
+    std::string m_queue;
+    std::string m_consumer_tag;
+    bool go;
 
-  void operator()() {
-    
-    /// XXXX: We are now accessing AMQP from TWO threads!  We should
-    /// think carefully about this!
-    amqp_basic_consume(m_state->conn, 
-                       1,  // channel
-                       amqp_cstring_bytes(m_queue.c_str()), 
-                       m_state->empty_bytes, 
-                       0,  // no_local
-                       m_no_ack, 
-                       0);  // exclusive
+    AmqpConsumeTask(Connection conn, int16 channel_id, const Callback& callback,
+                    std::string queue_name, std::string consumer_tag)
+        : m_conn(conn), m_chan(channel_id), m_callback(callback), m_queue(queue_name),
+          m_consumer_tag(consumer_tag), go(true) {
+    }
 
-    // This last argument doesn't seem to exist in my version of rabbitmq-c.  Maybe it's new?
-    // TODO: This is necessary to support AMQP 0.9.1, but we don't use that yet
-    //                     m_state->empty_table); 
-    die_on_amqp_error(amqp_rpc_reply, "Consuming");
-      
-    while (!terminate) {
-      amqp_frame_t frame;
-      int result;
-      
-      amqp_basic_deliver_t *d;
-      amqp_basic_properties_t *p;
-      size_t body_target;
-      size_t body_received;
-      
-      boost::shared_array<uint8> payload;
-        
-      amqp_maybe_release_buffers(m_state->conn);
-      result = amqp_simple_wait_frame(m_state->conn, &frame);
-      //    printf("Result %d\n", result);
-      if (result <= 0)
-        vw_throw(IOErr() << "AMQP error: unknown result code.");
-        
-        //    printf("Frame type %d, channel %d\n", frame.frame_type, frame.channel);
-        if (frame.frame_type != AMQP_FRAME_METHOD)
-          vw_throw(IOErr() << "AMQP error: unknown frame type.");
-        
-        //    printf("Method %s\n", amqp_method_name(frame.payload.method.id));
-        if (frame.payload.method.id != AMQP_BASIC_DELIVER_METHOD)
-          vw_throw(IOErr() << "AMQP error: unknown payload method.");
-        
-        d = (amqp_basic_deliver_t *) frame.payload.method.decoded;
-        //    printf("Delivery %u, exchange %.*s routingkey %.*s\n",
-        // (unsigned) d->delivery_tag,
-        // (int) d->exchange.len, (char *) d->exchange.bytes,
-        // (int) d->routing_key.len, (char *) d->routing_key.bytes);
-    
-        // copy the routing key to pass out to the caller
-        // boost::shared_array<char> rk_bytes(new char[d->routing_key.len + 1]);
-        // strncpy(rk_bytes.get(), (char*)(d->routing_key.bytes), d->routing_key.len);
-        // rk_bytes[d->routing_key.len] = '\0';
-        // routing_key = rk_bytes.get();
+    void kill() {go = false;}
 
-        result = amqp_simple_wait_frame(m_state->conn, &frame);
-        if (result <= 0)
-          vw_throw(IOErr() << "AMQP error: unknown result waiting for frame.");
-        
-        if (frame.frame_type != AMQP_FRAME_HEADER) {
-          vw_out(ErrorMessage, "platefile::amqp") << "Expected AMQP header!";
-          abort();
-        }
-        p = (amqp_basic_properties_t *) frame.payload.properties.decoded;
-        if (p->_flags & AMQP_BASIC_CONTENT_TYPE_FLAG) {
-          // printf("Content-type: %.*s\n",
-          //        (int) p->content_type.len, (char *) p->content_type.bytes);
-        }
-        // printf("----\n");
-        
-        body_target = frame.payload.properties.body_size;
-        body_received = 0;
-        payload = boost::shared_array<uint8>( new uint8[body_target] );
-        
-        while (body_received < body_target) {
-          result = amqp_simple_wait_frame(m_state->conn, &frame);
-          if (result <= 0)
-            vw_throw(IOErr() << "AMQP error: unknown result waiting for frame.");
-          
-          if (frame.frame_type != AMQP_FRAME_BODY) {
-            vw_out(ErrorMessage, "platefile::amqp") << "Expected AMQP message body!";
-            abort();
-          }	  
-          
-          // Copy the bytes out of the payload...
-          memcpy(((char*)(payload.get()) + body_received), 
-                 (const char*)(frame.payload.body_fragment.bytes),
-                 frame.payload.body_fragment.len);
+    void operator()() const {
+      int fd;
 
-          // ... and update the number of bytes we have received
-          body_received += frame.payload.body_fragment.len;
-          VW_ASSERT(body_received <= body_target, 
-                    IOErr() << "AMQP packet body size exceeded header\'s body target.");
-        }
-    
-        // Check to make sure that we have received the right number of bytes.
-        if (body_received != body_target) {
-          vw_throw(IOErr() << "AMQP packet body size does not match header\'s body target.");
-        }
-        
-        if (!no_ack)
-          amqp_basic_ack(m_state->conn, 1, d->delivery_tag, 0);
-        
-        vw_out(VerboseDebugMessage, "platefile::amqp") << "Message payload: \"" 
-                                                   << payload.get() << "\"\n";
-        
-        // Put data into queue, and notify the condition variable to
-        // wake up any thread that is listening for new data.
-        { 
-          Mutex::Lock lock(m_mutex);
-          m_queue.push_back(result);
-        }
-        m_condition.notify_one();
-
+      {
+        // XXX: This is so evil. Turning on nonblock here prevents rabbitmq-c
+        // from failing on rpc, but will break if someone tries to start
+        // another capture thread
+        Mutex::Lock lock(m_conn->m_state_mutex);
+        fd = amqp_get_sockfd(m_conn->m_state.get());
       }
+
+      fd_set fds;
+      struct timeval tv;
+      int ret;
+      amqp_frame_t method;
+      NativeMessage msg;
+
+      while(go) {
+        FD_ZERO(&fds);
+        FD_SET(fd, &fds);
+        tv.tv_sec = 0;
+        tv.tv_usec = 100000;
+
+        ret = select(fd+1, &fds, NULL, NULL, &tv);
+
+        if (ret == -1)
+          vw_throw(IOErr() << "select() failed: " << strerror(errno));
+        else if (ret == 0)
+          continue; // timeout
+        else {
+          Mutex::Lock lock(m_conn->m_state_mutex);
+          set_nonblock(fd, true);
+
+          amqp_maybe_release_buffers(m_conn->m_state.get());
+          ret = amqp_simple_wait_frame(m_conn->m_state.get(), &method);
+          if (ret == EAGAIN || ret == EWOULDBLOCK)
+            continue;
+
+          VW_ASSERT(method.frame_type == AMQP_FRAME_METHOD, AMQPAssertion() << "Expected a method frame");
+          VW_ASSERT(method.payload.method.id == AMQP_BASIC_DELIVER_METHOD, AMQPAssertion() << "Expected a deliver method");
+
+          msg = pump_queue(m_conn->m_state.get());
+          set_nonblock(fd, false);
+        }
+        m_callback(msg);
+      }
+
+      {
+        Mutex::Lock lock(m_conn->m_state_mutex);
+
+        int flags = fcntl(fd,F_GETFL,0);
+        if (flags == -1)
+          vw_throw(IOErr() << "Couldn't read socket flags");
+
+        if (fcntl(fd, F_SETFL, flags & (~O_NONBLOCK)) < 0)
+          vw_throw(IOErr() << "Couldn't make amqp socket blocking again");
+      }
+
     }
 };
 
+}} // namespace vw::platefile
 
-// --------------------- Error Handling --------------------------
- 
+boost::shared_ptr<AmqpConsumer> AmqpChannel::basic_consume(std::string const& queue,
+                                                           boost::function<void (NativeMessage)> callback) {
+  Mutex::Lock lock(m_conn->m_state_mutex);
+
+  amqp_basic_consume_ok_t *reply = amqp_basic_consume(m_conn->m_state.get(), m_channel, amqp_string(queue), amqp_string(""), 0, 0, 0);
+  die_on_amqp_error(amqp_rpc_reply, "Starting Consumer");
+
+  boost::shared_ptr<AmqpConsumeTask> task(new AmqpConsumeTask(m_conn, m_channel, callback, queue, amqp_bytes(reply->consumer_tag)));
+  boost::shared_ptr<vw::Thread> thread(new vw::Thread(task));
+
+  return boost::shared_ptr<AmqpConsumer>( new AmqpConsumer(task, thread));
+}
+
+AmqpConsumer::AmqpConsumer(boost::shared_ptr<AmqpConsumeTask> task, boost::shared_ptr<vw::Thread> thread)
+        : m_task(task), m_thread(thread) {}
+
+AmqpConsumer::~AmqpConsumer() {
+  m_task->kill();
+  m_thread->join();
+}
+
+namespace {
+
+const amqp_bytes_t amqp_string(const std::string& s) {
+  amqp_bytes_t ret;
+  ret.len = s.size();
+  ret.bytes = const_cast<void*>(reinterpret_cast<const void*>(s.c_str()));
+  return ret;
+}
+
+std::string amqp_bytes(const amqp_bytes_t& s) {
+  return std::string(reinterpret_cast<char*>(s.bytes), s.len);
+}
+
 void die_on_error(int x, char const *context) {
   if (x < 0) {
     std::ostringstream msg;
@@ -179,7 +308,7 @@ void die_on_amqp_error(amqp_rpc_reply_t x, char const *context) {
   switch (x.reply_type) {
   case AMQP_RESPONSE_NORMAL:
     return;
-      
+
   case AMQP_RESPONSE_NONE:
     vw_throw(IOErr() << "AMQP Error: " << context << " -- missing RPC reply type.");
 
@@ -210,167 +339,9 @@ void die_on_amqp_error(amqp_rpc_reply_t x, char const *context) {
   vw_throw(IOErr() << "AMQP Error: unknown response type.");
 }
 
-// ------------------------------------------------------------------------------
-//                       AmqpConnection State Structure
-// ------------------------------------------------------------------------------
+NativeMessage pump_queue(amqp_connection_state_t conn) {
 
-struct vw::platefile::AmqpConnectionState {
-  int sockfd;
-  amqp_connection_state_t conn;
-
-  // -- Workaround --
-  // 
-  // These are standins fro AMQP_EMPTY_BYTES and AMQP_EMPTY_TABLE from
-  // amqp.h, which don't seem to work properly in C++.  We sub in
-  // these, which do the same thing, instead.
-  amqp_table_t empty_table;
-  amqp_bytes_t empty_bytes;
-
-  AmqpConnectionState() {
-    empty_table.num_entries=0;
-    empty_table.entries = NULL;
-
-    empty_bytes.len = 0;
-    empty_bytes.bytes = NULL;
-  }  
-};
-
-// ------------------------------------------------------------------------------
-//                   AmqpConnection Implementation
-// ------------------------------------------------------------------------------
-
-
-// ------------------------
-// Constructor / destructor
-// ------------------------
- 
-AmqpConnection::AmqpConnection(std::string const& hostname, int port) {
-  Mutex::Lock lock(m_mutex);
-  
-  m_state = boost::shared_ptr<AmqpConnectionState>(new AmqpConnectionState());
-
-  // Open a socket and establish an amqp connection
-  die_on_error(m_state->sockfd = amqp_open_socket(hostname.c_str(), port), "Opening socket");
-  m_state->conn = amqp_new_connection();
-  if (! m_state->conn)
-    vw_throw(IOErr() << "Failed to open an amqp connection");
-  amqp_set_sockfd(m_state->conn, m_state->sockfd);
-
-  // Login to the Amqp Server
-  die_on_amqp_error(amqp_login(m_state->conn, "/", 0, 131072, 0, AMQP_SASL_METHOD_PLAIN, 
-                               "guest", "guest"), "Logging in");
-  amqp_channel_open(m_state->conn, 1);
-  die_on_amqp_error(amqp_rpc_reply, "Opening channel");
-}
-
-AmqpConnection::~AmqpConnection() {
-  Mutex::Lock lock(m_mutex);
-
-  vw_out(InfoMessage, "platefile::amqp") << "Closing AMQP connection.\n";
-  die_on_amqp_error(amqp_channel_close(m_state->conn, 1, AMQP_REPLY_SUCCESS), "Closing channel");
-  die_on_amqp_error(amqp_connection_close(m_state->conn, AMQP_REPLY_SUCCESS), "Closing connection");
-  amqp_destroy_connection(m_state->conn);
-  die_on_error(close(m_state->sockfd), "Closing socket");
-}
-
-
-// ------------------------------------------------------
-// Methods for modifying exchanges, queues, and bindings.  
-// ------------------------------------------------------
-
-void AmqpConnection::queue_declare(std::string const& queue_name, bool durable, 
-                                   bool exclusive, bool auto_delete) {
-  Mutex::Lock lock(m_mutex);
-
-  amqp_queue_declare_ok_t *r = amqp_queue_declare(m_state->conn, 1, 
-                                                  amqp_cstring_bytes(queue_name.c_str()),
-                                                  0, 0, 0, 1,
-                                                  m_state->empty_table);
-  die_on_amqp_error(amqp_rpc_reply, "Declaring queue");
-}
-
-void AmqpConnection::exchange_declare(std::string const& exchange_name, 
-                                      std::string const& exchange_type, 
-                                      bool durable, bool auto_delete) {
-  Mutex::Lock lock(m_mutex);
-
-  amqp_exchange_declare(m_state->conn, 1, 
-                        amqp_cstring_bytes(exchange_name.c_str()), 
-                        amqp_cstring_bytes(exchange_type.c_str()),
-			0, durable, auto_delete, m_state->empty_table);
-  die_on_amqp_error(amqp_rpc_reply, "Declaring exchange");
-}
-
-void AmqpConnection::queue_bind(std::string const& queue, std::string const& exchange, 
-                                std::string const& routing_key) {
-  Mutex::Lock lock(m_mutex);
-
-  amqp_queue_bind(m_state->conn, 1, 
-                  amqp_cstring_bytes(queue.c_str()), 
-                  amqp_cstring_bytes(exchange.c_str()), 
-                  amqp_cstring_bytes(routing_key.c_str()),
-		  m_state->empty_table);
-  die_on_amqp_error(amqp_rpc_reply, "Binding queue");
-}
-
-void AmqpConnection::queue_unbind(std::string const& queue, std::string const& exchange, 
-                                  std::string const& routing_key) {
-  Mutex::Lock lock(m_mutex);
-
-  amqp_queue_unbind(m_state->conn, 1, 
-                    amqp_cstring_bytes(queue.c_str()), 
-                    amqp_cstring_bytes(exchange.c_str()), 
-                    amqp_cstring_bytes(routing_key.c_str()),
-                    m_state->empty_table);
-  die_on_amqp_error(amqp_rpc_reply, "Unbinding queue");
-}
-
-
-// ------------------------------------------------------
-// Methods for sending and receiving data
-// ------------------------------------------------------
-
-void AmqpConnection::basic_publish(boost::shared_array<uint8> const& message, 
-                                   int32 size,
-                                   std::string const& exchange, 
-                                   std::string const& routing_key) {
-  Mutex::Lock lock(m_mutex);
-
-  // The delivery mode flag (below) can be used to select for
-  // persistent delivery mode, which virtually gurantees that the
-  // message will get through, even if the AMQP server crashes.
-  // However, this comes at a performance penalty, so it is disabled
-  // here for now.
-  //
-  // amqp_basic_properties_t props;
-  // props._flags = AMQP_BASIC_CONTENT_TYPE_FLAG | AMQP_BASIC_DELIVERY_MODE_FLAG;
-  // props.content_type = amqp_cstring_bytes("text/plain");
-  // props.delivery_mode = 2; // persistent delivery mode
-  amqp_bytes_t raw_data;
-  raw_data.len = size;
-  raw_data.bytes = (void*)(message.get());
-
-  die_on_error(amqp_basic_publish(m_state->conn,
-                                  1,
-                                  amqp_cstring_bytes(exchange.c_str()),
-                                  amqp_cstring_bytes(routing_key.c_str()),
-                                  0,
-                                  0,
-                                  NULL,
-                                  raw_data ),
-               "Publishing");
-}
-
-bool operator<(const struct timeval& t1, const struct timeval& t2) {
-  if (t1.tv_sec < t2.tv_sec)
-    return true;
-  if (t1.tv_sec > t2.tv_sec)
-    return false;
-  return (t1.tv_sec < t2.tv_sec);
-}
-
-static boost::shared_array<uint8> pump_queue(amqp_connection_state_t& conn, 
-                                             amqp_frame_t &header) {
+  amqp_frame_t header;
 
   amqp_maybe_release_buffers(conn);
   int result = amqp_simple_wait_frame(conn, &header);
@@ -379,7 +350,7 @@ static boost::shared_array<uint8> pump_queue(amqp_connection_state_t& conn,
   VW_ASSERT(header.frame_type == AMQP_FRAME_HEADER, AMQPAssertion() << "Expected AMQP header!");
 
   size_t body_size = header.payload.properties.body_size;
-  boost::shared_array<uint8> payload(new uint8[body_size]);
+  NativeMessage payload( new vw::VarArray<uint8>(body_size) );
 
   size_t body_read = 0;
   amqp_frame_t frame;
@@ -395,8 +366,8 @@ static boost::shared_array<uint8> pump_queue(amqp_connection_state_t& conn,
         AMQPAssertion() << "AMQP packet body size does not match header\'s body target.");
 
     // Copy the bytes out of the payload...
-    memcpy(((char*)(payload.get()) + body_read),
-        (const char*)(frame.payload.body_fragment.bytes),
+    memcpy(payload->begin() + body_read,
+        frame.payload.body_fragment.bytes,
         frame.payload.body_fragment.len);
 
     // ... and update the number of bytes we have received
@@ -406,229 +377,18 @@ static boost::shared_array<uint8> pump_queue(amqp_connection_state_t& conn,
   return payload;
 }
 
-// timeout in ms
-boost::shared_array<uint8> AmqpConnection::basic_get(std::string const& queue, 
-                                                     bool no_ack,
-                                                     vw::int64 timeout, 
-                                                     int retries) {
+void set_nonblock(int fd, bool yes) {
+  int flags = fcntl(fd,F_GETFL,0);
+  if (flags == -1)
+    vw_throw(IOErr() << "Couldn't read socket flags");
 
-  Mutex::Lock lock(m_mutex);
+  if (yes)
+    flags |= O_NONBLOCK;
+  else
+    flags &= ~O_NONBLOCK;
 
-  struct timeval current, stop;
-  int num_tries = 0;
-  amqp_rpc_reply_t reply;
-
-  const amqp_bytes_t queue_b = amqp_cstring_bytes(queue.c_str());
-
-  if (timeout == -1) {
-    stop.tv_sec = std::numeric_limits<time_t>::max();
-  } else {
-    gettimeofday(&stop, NULL);
-
-    time_t sec = timeout / 1000;
-    stop.tv_sec  +=  sec;
-    stop.tv_usec += (timeout - (sec * 1000)) * 1000;
-  }
-
-  while (1) {
-    gettimeofday(&current, NULL);
-
-    if (! (current < stop) ) { // too lazy to define all cmp
-
-      // Reset the timer and increment the number of tries
-      gettimeofday(&stop, NULL);
-      time_t sec = timeout / 1000;
-      stop.tv_sec  +=  sec;
-      stop.tv_usec += (timeout - (sec * 1000)) * 1000;
-      ++num_tries;
-
-      // Have we run out of retries?  If so, bail!
-      if (num_tries == retries)
-        vw_throw(AMQPTimeout() << "basic_get timed out");
-    }
-
-    amqp_maybe_release_buffers(m_state->conn);
-    reply = amqp_basic_get(m_state->conn, 1, queue_b, no_ack);
-    die_on_amqp_error(reply, "Getting");
-
-    if (reply.reply.id == AMQP_BASIC_GET_EMPTY_METHOD) {
-      usleep(1000); // yield for a bit
-      continue;
-    }
-    if (reply.reply.id == AMQP_BASIC_GET_OK_METHOD)
-      break;
-
-    vw_throw(AMQPAssertion() << "Illegal AMQP response");
-  }
-
-  //amqp_basic_get_ok_t* get_ok = static_cast<amqp_basic_get_ok_t*>(reply.reply.decoded);
-
-  amqp_frame_t header;
-  return pump_queue(m_state->conn, header);
+  if (fcntl(fd, F_SETFL, flags) < 0)
+    vw_throw(IOErr() << "Couldn't make amqp socket non-blocking");
 }
 
-
-void AmqpConnection::start_consume_thread(std::string const& queue_name, bool no_ack) {
-  AmqpConsumeTask task( queue_name, no_ack, m_incoming_message_queue, 
-                        m_queue_mutex, m_queue_updated_event);
-  thread.reset(new Thread( task ))
-}
-
-/// Call this method to clear the consume queue.  It may be a good
-/// idea to call this before calling the wait_for_message() method
-/// below.
-void AmqpConsumeTask::clear_consume_queue() {
-  Mutex::Lock lock(m_queue_mutex);
-  m_queue.clear();
-}
-
-boost::shared_array<uint8> AmqpConsumeTask::wait_for_message(vw::int64 timeout, int retries) {
-  
-  // Set up the timout
-  struct timeval current, stop;
-  if (timeout == -1) {
-    stop.tv_sec = std::numeric_limits<time_t>::max();
-  } else {
-    gettimeofday(&stop, NULL);
-
-    time_t sec = timeout / 1000;
-    stop.tv_sec  +=  sec;
-    stop.tv_usec += (timeout - (sec * 1000)) * 1000;
-  }
-
-  gettimeofday(&current, NULL);
-
-
-  Mutex::Lock lock(m_queue_mutex);
-  while (m_incoming_message_queue.empty() && current < stop) {
-    // Wait for something to happen to the queue, but break out to
-    // recheck the timeout every second.
-    m_queue_updated_event.timed_wait(m_queue_mutex, 1.0); 
-  }
-  
-  // If the queue is STILL empty, then we must have timed out.
-  if (m_incoming_message_queue.empty())
-    vw_throw(AMQPTimeout() << "wait_for_message() timed out");
-
-  // Otherwise, there is data, and we pull the first element off the queue.
-  boost::shared_array<uint8> result = m_incoming_message_queue.front();
-  m_incoming_message_queue.pop_front();
-  return result;
-
- }
-
-// #if 1
-// // XXX: Fix this before uncommenting: consume starts a delivery process on the
-// // server every time it's called. It's designed to be used with a callback and
-// // a message queue pumper.
-// boost::shared_array<uint8> AmqpConnection::basic_consume(std::string const& queue, 
-//                                                          std::string &routing_key,
-//                                                          bool no_ack) {
-//   Mutex::Lock lock(m_mutex);
-
-//   amqp_basic_consume(m_state->conn, 
-//                      1,  // channel
-//                      amqp_cstring_bytes(queue.c_str()), 
-//                      m_state->empty_bytes, 
-//                      0,  // no_local
-//                      no_ack, 
-//                      0);  // exclusive
-
-//   // This last argument doesn't seem to exist in my version of rabbitmq-c.  Maybe it's new?
-//   // TODO: This is necessary to support AMQP 0.9.1, but we don't use that yet
-//   //                     m_state->empty_table); 
-//   die_on_amqp_error(amqp_rpc_reply, "Consuming");
-
-//   {
-//     amqp_frame_t frame;
-//     int result;
-
-//     amqp_basic_deliver_t *d;
-//     amqp_basic_properties_t *p;
-//     size_t body_target;
-//     size_t body_received;
-
-//     boost::shared_array<uint8> payload;
-
-//     amqp_maybe_release_buffers(m_state->conn);
-//     result = amqp_simple_wait_frame(m_state->conn, &frame);
-//     //    printf("Result %d\n", result);
-//     if (result <= 0)
-//       vw_throw(IOErr() << "AMQP error: unknown result code.");
-
-//     //    printf("Frame type %d, channel %d\n", frame.frame_type, frame.channel);
-//     if (frame.frame_type != AMQP_FRAME_METHOD)
-//       vw_throw(IOErr() << "AMQP error: unknown frame type.");
-
-//     //    printf("Method %s\n", amqp_method_name(frame.payload.method.id));
-//     if (frame.payload.method.id != AMQP_BASIC_DELIVER_METHOD)
-//       vw_throw(IOErr() << "AMQP error: unknown payload method.");
-
-//     d = (amqp_basic_deliver_t *) frame.payload.method.decoded;
-//     //    printf("Delivery %u, exchange %.*s routingkey %.*s\n",
-//            // (unsigned) d->delivery_tag,
-//            // (int) d->exchange.len, (char *) d->exchange.bytes,
-//            // (int) d->routing_key.len, (char *) d->routing_key.bytes);
-    
-//     // copy the routing key to pass out to the caller
-//     boost::shared_array<char> rk_bytes(new char[d->routing_key.len + 1]);
-//     strncpy(rk_bytes.get(), (char*)(d->routing_key.bytes), d->routing_key.len);
-//     rk_bytes[d->routing_key.len] = '\0';
-//     routing_key = rk_bytes.get();
-
-//     result = amqp_simple_wait_frame(m_state->conn, &frame);
-//     if (result <= 0)
-//       vw_throw(IOErr() << "AMQP error: unknown result waiting for frame.");
-
-//     if (frame.frame_type != AMQP_FRAME_HEADER) {
-//       vw_out(ErrorMessage, "platefile::amqp") << "Expected AMQP header!";
-//       abort();
-//     }
-//     p = (amqp_basic_properties_t *) frame.payload.properties.decoded;
-//     if (p->_flags & AMQP_BASIC_CONTENT_TYPE_FLAG) {
-//       // printf("Content-type: %.*s\n",
-//       //        (int) p->content_type.len, (char *) p->content_type.bytes);
-//     }
-//     // printf("----\n");
-
-//     body_target = frame.payload.properties.body_size;
-//     body_received = 0;
-//     payload = boost::shared_array<uint8>( new uint8[body_target] );
-    
-//     while (body_received < body_target) {
-//       result = amqp_simple_wait_frame(m_state->conn, &frame);
-//       if (result <= 0)
-//         vw_throw(IOErr() << "AMQP error: unknown result waiting for frame.");
-      
-//       if (frame.frame_type != AMQP_FRAME_BODY) {
-//         vw_out(ErrorMessage, "platefile::amqp") << "Expected AMQP message body!";
-//         abort();
-//       }	  
-
-//       // Copy the bytes out of the payload...
-//       memcpy(((char*)(payload.get()) + body_received), 
-//              (const char*)(frame.payload.body_fragment.bytes),
-//              frame.payload.body_fragment.len);
-
-//       // ... and update the number of bytes we have received
-//       body_received += frame.payload.body_fragment.len;
-//       VW_ASSERT(body_received <= body_target, 
-//                 IOErr() << "AMQP packet body size exceeded header\'s body target.");
-//     }
-    
-//     // Check to make sure that we have received the right number of bytes.
-//     if (body_received != body_target) {
-//       vw_throw(IOErr() << "AMQP packet body size does not match header\'s body target.");
-//     }
-
-//     if (!no_ack)
-//       amqp_basic_ack(m_state->conn, 1, d->delivery_tag, 0);
-
-//     vw_out(VerboseDebugMessage, "platefile::amqp") << "Message payload: \"" 
-//                                                    << payload.get() << "\"\n";
-
-//     return payload;
-//   }
-
-// }
-// #endif
+} // namespace anonymous

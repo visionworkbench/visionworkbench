@@ -79,20 +79,20 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url) {
   std::string platefile_name;
   parse_url(url, hostname, port, routing_key, platefile_name);
 
-  m_queue_name = AmqpRpcClient::UniqueQueueName(std::string("remote_index_") + platefile_name);
+  std::string queue_name = AmqpRpcClient::UniqueQueueName(std::string("remote_index_") + platefile_name);
 
   // Set up the connection to the AmqpRpcService
-  m_rpc_channel.reset( new AmqpRpcChannel(INDEX_EXCHANGE, routing_key, m_queue_name,
-                                          hostname, port) );
-  m_rpc_controller.reset ( new AmqpRpcClient() );
-  m_index_service.reset ( new IndexService::Stub(m_rpc_channel.get()) );
-  
+  boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(hostname, port));
+  m_rpc_controller.reset( new AmqpRpcClient(conn, INDEX_EXCHANGE, queue_name) );
+  m_index_service.reset ( new IndexService::Stub(m_rpc_controller->channel().get() ) );
+  m_rpc_controller->bind_service(m_index_service, routing_key);
+
   // Send an IndexOpenRequest to the AMQP index server.
   IndexOpenRequest request;
   request.set_plate_name(platefile_name);
 
   IndexOpenReply response;
-  m_index_service->OpenRequest(m_rpc_controller.get(), &request, &response, 
+  m_index_service->OpenRequest(m_rpc_controller.get(), &request, &response,
                                google::protobuf::NewCallback(&null_closure));
 
   m_index_header = response.index_header();
@@ -114,14 +114,14 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url, IndexHeader inde
   std::string platefile_name;
   parse_url(url, hostname, port, routing_key, platefile_name);
 
-  m_queue_name = AmqpRpcClient::UniqueQueueName(std::string("remote_index_") + platefile_name);
+  std::string queue_name = AmqpRpcClient::UniqueQueueName(std::string("remote_index_") + platefile_name);
 
   // Set up the connection to the AmqpRpcService
-  m_rpc_channel.reset( new AmqpRpcChannel(INDEX_EXCHANGE, routing_key, m_queue_name,
-                                          hostname, port) );
-  m_rpc_controller.reset ( new AmqpRpcClient() );
-  m_index_service.reset ( new IndexService::Stub(m_rpc_channel.get()) );
-  
+  boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(hostname, port));
+  m_rpc_controller.reset( new AmqpRpcClient(conn, INDEX_EXCHANGE, queue_name) );
+  m_index_service.reset ( new IndexService::Stub(m_rpc_controller->channel().get() ) );
+  m_rpc_controller->bind_service(m_index_service, routing_key);
+
   // Send an IndexCreateRequest to the AMQP index server.
   IndexCreateRequest request;
   request.set_plate_name(platefile_name);
@@ -237,7 +237,7 @@ vw::int32 vw::platefile::RemoteIndex::transaction_request(std::string transactio
   IndexTransactionRequest request;
   request.set_platefile_id(m_platefile_id);
   request.set_description(transaction_description);
-  for (int i = 0; i < tile_headers.size(); ++i)
+  for (size_t i = 0; i < tile_headers.size(); ++i)
     *(request.mutable_tile_headers()->Add()) = tile_headers[i];
   
   IndexTransactionReply response;
@@ -252,7 +252,7 @@ void vw::platefile::RemoteIndex::root_complete(int32 transaction_id,
   IndexRootComplete request;
   request.set_platefile_id(m_platefile_id);
   request.set_transaction_id(transaction_id);
-  for (int i = 0; i < tile_headers.size(); ++i)
+  for (size_t i = 0; i < tile_headers.size(); ++i)
     *(request.mutable_tile_headers()->Add()) = tile_headers[i];
   
   RpcNullMessage response;

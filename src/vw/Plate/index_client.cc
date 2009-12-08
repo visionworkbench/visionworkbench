@@ -78,16 +78,18 @@ std::string queue_name() {
   return AmqpRpcClient::UniqueQueueName("index_client");
 }
 
-boost::shared_ptr<IndexService> create_idx() {
-  return boost::shared_ptr<IndexService>(
-      new IndexService::Stub(
-        new AmqpRpcChannel(INDEX_EXCHANGE, "index", queue_name()),
-        google::protobuf::Service::STUB_OWNS_CHANNEL) );
-}
+struct RPC {
+  boost::shared_ptr<AmqpRpcClient> client;
+  boost::shared_ptr<IndexService>  service;
+  RPC() {
+    boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
+    client.reset(  new AmqpRpcClient(conn, INDEX_EXCHANGE, queue_name()) );
+    service.reset( new IndexService::Stub(client->channel().get() ) );
+    client->bind_service(service, "index");
+  }
+};
 
-VW_DEFINE_SINGLETON(client, AmqpRpcClient);
-VW_DEFINE_SINGLETON_FUNC(index, IndexService, create_idx);
-
+VW_DEFINE_SINGLETON(rpc, RPC);
 
 void PlateInfo(const std::string& name) {
 
@@ -107,7 +109,7 @@ void ListPlates() {
   IndexListRequest request;
   IndexListReply   reply;
 
-  index_mutable().ListRequest(&client_mutable(), &request, &reply, google::protobuf::NewCallback(&null_closure));
+  rpc_mutable().service->ListRequest(rpc_mutable().client.get(), &request, &reply, google::protobuf::NewCallback(&null_closure));
 
   vw_out(0) << "Got Plates:" << std::endl;
   std::copy(reply.platefile_names().begin(), reply.platefile_names().end(), std::ostream_iterator<std::string>(vw_out(0), " "));

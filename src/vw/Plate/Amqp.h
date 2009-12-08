@@ -11,13 +11,22 @@
 #include <string>
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_array.hpp>
+#include <boost/utility.hpp>
+#include <boost/function.hpp>
 
 #include <vw/Core/Log.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
+#include <vw/Core/VarArray.h>
+
+#include <set>
+
+#include <amqp.h>
 
 namespace vw {
 namespace platefile {
+
+  typedef boost::shared_ptr<vw::VarArray<uint8> > NativeMessage;
 
   VW_DEFINE_EXCEPTION(AMQPErr,       IOErr);
   VW_DEFINE_EXCEPTION(AMQPTimeout,   AMQPErr);
@@ -26,65 +35,66 @@ namespace platefile {
   // recovery mechanism is to recreate the connection.
   VW_DEFINE_EXCEPTION(AMQPAssertion, AMQPErr);
 
-  // Forward declaration
-  struct AmqpConnectionState;
+  // Forward declaration because amqp.h is gross
+  class AmqpChannel;
+  class AmqpConsumer;
+  class AmqpConsumeTask;
 
-  class AmqpConnection {
-    boost::shared_ptr<AmqpConnectionState> m_state;
-    vw::Mutex m_mutex;
+  typedef boost::remove_pointer<amqp_connection_state_t>::type AmqpConnectionState;
 
-    std::list<boost::shared_array<uint8> > m_incoming_message_queue;
-    vw::Mutex m_queue_mutex;
-    vw::Condition m_queue_updated_event;
-    boost::shared_ptr<Thread> thread;
+  class AmqpConnection : private boost::noncopyable {
+    private:
+      // Any access (read or write) to m_state needs to hold the m_state_mutex lock
+      boost::shared_ptr<AmqpConnectionState> m_state;
+      vw::Mutex m_state_mutex;
+      std::set<int16> m_used_channels;
 
-  public:
+      /// Allocates a communications channel number. Meant to be called by
+      ///     AmqpChannel's constructor. Grab the m_state_mutex BEFORE you call this.
+      /// @param channel Request a specific channel number. -1 for don't care.
+      //                 Requesting a particular one will throw if it's already used.
+      int16 get_channel(int16 channel = -1);
 
-    // ------------------------------------------------------
-    // Constructor / destructor
-    // ------------------------------------------------------
+      friend class AmqpChannel;
+      friend class AmqpConsumeTask;
 
-    /// Open a new connection to the AMQP server.  This connection
-    /// terminates automatically when this object is destroyed. 
-    //Timeout is in ms, -1 means forever.
-    AmqpConnection(std::string const& hostname = "localhost", int port = 5672);
+    public:
+      /// Open a new connection to the AMQP server.  This connection
+      /// terminates automatically when this object is destroyed.
+      AmqpConnection(std::string const& hostname = "localhost", int port = 5672);
 
-    /// Closes the AMQP connection and destroys this object.
-    ~AmqpConnection();
+      /// Closes the AMQP connection and destroys this object.
+      ~AmqpConnection();
 
-    // ------------------------------------------------------
-    // Methods for modifying exchanges, queues, and bindings.  
-    // ------------------------------------------------------
-    void queue_declare(std::string const& queue_name, bool durable, 
-                       bool exclusive, bool auto_delete);
+  };
 
-    void exchange_declare(std::string const& exchange_name, 
-                          std::string const& exchange_type = "direct", 
-                          bool durable = false, bool auto_delete = false);
+  class AmqpChannel : private boost::noncopyable {
+    private:
+      boost::shared_ptr<AmqpConnection> m_conn;
+      int16 m_channel;
 
-    void queue_bind(std::string const& queue, std::string const& exchange, 
-                    std::string const& routing_key);
+    public:
+      AmqpChannel(boost::shared_ptr<AmqpConnection> conn, int16 channel = -1);
+      virtual ~AmqpChannel();
 
-    void queue_unbind(std::string const& queue, std::string const& exchange, 
-                      std::string const& routing_key);
+      void exchange_declare(std::string const& exchange_name, std::string const& exchange_type, bool durable, bool auto_delete);
+      void queue_declare(std::string const& queue_name, bool durable, bool exclusive, bool auto_delete);
+      void queue_bind(std::string const& queue, std::string const& exchange, std::string const& routing_key);
+      void queue_unbind(std::string const& queue, std::string const& exchange, std::string const& routing_key);
 
-    // ------------------------------------------------------
-    // Methods for sending and receiving data
-    // ------------------------------------------------------
+      void basic_publish(NativeMessage const message, std::string const& exchange, std::string const& routing_key);
 
-    void basic_publish(boost::shared_array<uint8> const& message, 
-                       int32 size,
-                       std::string const& exchange, 
-                       std::string const& routing_key);
+      boost::shared_ptr<AmqpConsumer> basic_consume(std::string const& queue, boost::function<void (NativeMessage)> callback);
+      bool basic_get(std::string const& queue, NativeMessage& message);
+  };
 
-    boost::shared_array<uint8> basic_get(std::string const& queue,
-                                         bool no_ack = true,       // Warning: false doesn't work!
-                                         vw::int64 timeout = 5000, // milliseconds
-                                         int retries = 3);
-
-    boost::shared_array<uint8> basic_consume(std::string const& queue, 
-                                             std::string &routing_key,
-                                             bool no_ack);
+  class AmqpConsumer : private boost::noncopyable {
+    private:
+      boost::shared_ptr<AmqpConsumeTask> m_task;
+      boost::shared_ptr<Thread> m_thread;
+    public:
+      AmqpConsumer(boost::shared_ptr<AmqpConsumeTask> task, boost::shared_ptr<vw::Thread> thread);
+      ~AmqpConsumer();
   };
 
 }} // namespace vw::platefile

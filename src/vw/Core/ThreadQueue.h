@@ -75,6 +75,14 @@ class ThreadQueue : private boost::noncopyable {
       m_queue.pop();
       return true;
     }
+
+    void flush() {
+      Mutex::Lock lock(m_mutex);
+      T temp;
+      while (!m_queue.empty()) {
+        wait_pop(temp);
+      }
+    }
 };
 
 } // namespace vw

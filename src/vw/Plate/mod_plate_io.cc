@@ -65,8 +65,8 @@ class PlateModule {
     void sync_index_cache() const;
 
   private:
-    boost::shared_ptr<AmqpRpcClient>       m_client;
-    boost::shared_ptr<IndexService>        m_index_service;
+    boost::shared_ptr<AmqpRpcClient> m_client;
+    boost::shared_ptr<IndexService>  m_index_service;
 
     typedef std::map<std::string, boost::shared_ptr<Blob> > BlobCache;
 
@@ -329,10 +329,11 @@ PlateModule::PlateModule() {
   std::string queue_name = AmqpRpcClient::UniqueQueueName("mod_plate");
 
   // XXX: The rabbitmq host needs to be an apache configuration variable or something
-  m_client.reset  ( new AmqpRpcClient() );
-  m_index_service.reset ( new IndexService::Stub(
-                            new AmqpRpcChannel(INDEX_EXCHANGE, "index", queue_name, "198.10.124.5"),
-                            google::protobuf::Service::STUB_OWNS_CHANNEL) );
+  boost::shared_ptr<AmqpConnection> conn(new AmqpConnection("198.10.124.5"));
+
+  m_client.reset( new AmqpRpcClient(conn, INDEX_EXCHANGE, queue_name) );
+  m_index_service.reset ( new IndexService::Stub(m_client->channel().get() ) );
+  m_client->bind_service(m_index_service, "index");
 
   sync_index_cache();
 
