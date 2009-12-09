@@ -21,7 +21,7 @@ using namespace vw;
 // --------------------------------------------------------------
 
 void run_client(std::string exchange, std::string client_queue, 
-                const std::string server_queue, int message_size) {
+                const std::string server_queue, int message_size, bool rtt) {
   std::cout << "Running client...\n";
 
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
@@ -62,7 +62,8 @@ void run_client(std::string exchange, std::string client_queue,
     }
 
     // Echo the message back to the server
-    chan.basic_publish(*(result.get()), exchange, server_queue);
+    if (rtt)
+      chan.basic_publish(*(result.get()), exchange, server_queue);
 
     ++msgs;
 
@@ -88,7 +89,7 @@ void sighandle(int sig) {
 // --------------------------------------------------------------
 
 void run_server(const std::string exchange, const std::string client_queue, 
-                const std::string server_queue, int message_size) {
+                const std::string server_queue, int message_size, bool rtt) {
   std::cout << "Running server...\n";
 
   signal(SIGINT, sighandle);
@@ -116,25 +117,27 @@ void run_server(const std::string exchange, const std::string client_queue,
   while(go) {
     chan.basic_publish(msg, exchange, client_queue);
 
-    if (!q.timed_wait_pop(result, 3000)) {
-      vw_out(0) << "No messages for 5 seconds" << std::endl;
-      break;
-    }
-
-    // Verify message
-    if (result->size() != msg.size()) {
-      std::cout << "Error -- unexpected echo message size : " << result->size() << "\n";
-    }
-
-    for (int i = 0; i < result->size(); ++i) {
-      bool bad = false;
-      if ( (*result)[i] != msg[i] ) {
-        std::cout << "      Bad byte: " << int((*result)[i]) << "\n";
-        bad = true;
+    if (rtt) {
+      if (!q.timed_wait_pop(result, 3000)) {
+        vw_out(0) << "No messages for 5 seconds" << std::endl;
+        break;
       }
-      
-      if (bad)
-        std::cout << "Error -- corrupt message payload.\n";
+
+      // Verify message
+      if (result->size() != msg.size()) {
+        std::cout << "Error -- unexpected echo message size : " << result->size() << "\n";
+      }
+
+      for (int i = 0; i < result->size(); ++i) {
+        bool bad = false;
+        if ( (*result)[i] != msg[i] ) {
+          std::cout << "      Bad byte: " << int((*result)[i]) << "\n";
+          bad = true;
+        }
+        
+        if (bad)
+          std::cout << "Error -- corrupt message payload.\n";
+      }
     }
   }
 }
@@ -151,6 +154,7 @@ int main(int argc, char** argv) {
   general_options.add_options()
     ("client", "Act as client.")
     ("server", "Act as server.")
+    ("rtt", "Measure round trip messages/sec instead of one way messages/sec.")
     ("message-size", po::value<int>(&message_size)->default_value(5), "Message size in bytes")
     ("help", "Display this help message");
 
@@ -168,10 +172,12 @@ int main(int argc, char** argv) {
   }
 
   if( vm.count("server") )
-    run_server("ptest_exchange", "ptest_client_queue", "ptest_server_queue", message_size);
+    run_server("ptest_exchange", "ptest_client_queue", "ptest_server_queue", 
+               message_size, vm.count("rtt"));
 
   if( vm.count("client") )
-    run_client("ptest_exchange", "ptest_client_queue", "ptest_server_queue", message_size);
+    run_client("ptest_exchange", "ptest_client_queue", "ptest_server_queue", 
+               message_size, vm.count("rtt"));
 
   return 0;
 }
