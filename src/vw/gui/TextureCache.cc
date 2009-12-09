@@ -196,7 +196,8 @@ GLuint vw::gui::GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_
     boost::shared_ptr<TextureRecord> rec = m_texture_records->search(tile_info.col, 
                                                                      tile_info.row, 
                                                                      tile_info.level,
-                                                                     tile_info.transaction_id);
+                                                                     tile_info.transaction_id, 
+                                                                     false);
 
     // If the shared pointer for this record is empty, then this node
     // was generated as part of a branch that supports a leaf node,
