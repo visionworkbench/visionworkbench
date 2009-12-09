@@ -50,9 +50,9 @@ void run_client(std::string exchange, std::string client_queue,
       std::cout << "Error -- unexpected message size : " << result->size() << "\n";
     }
 
-    for (int i = 0; i < result->size(); ++i) {
+    for (unsigned i = 0; i < result->size(); ++i) {
       bool bad = false;
-      if ( (*result)[i] != i ) {
+      if ( (*result)[i] != i % 256 ) {
         std::cout << "      Bad byte: " << int((*result)[i]) << "\n";
         bad = true;
       }
@@ -109,8 +109,8 @@ void run_server(const std::string exchange, const std::string client_queue,
 
   // Set up the message
   ByteArray msg(message_size);
-  for (int i = 0; i < message_size; ++i) {
-    msg[i] = i;
+  for (unsigned i = 0; i < message_size; ++i) {
+    msg[i] = i % 256;
   }
 
   SharedByteArray result;
