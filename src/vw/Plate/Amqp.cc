@@ -35,7 +35,7 @@ namespace {
   std::string amqp_bytes(const amqp_bytes_t& s);
   void die_on_amqp_error(amqp_rpc_reply_t x, char const *context);
   void die_on_error(int x, char const *context);
-  NativeMessage pump_queue(amqp_connection_state_t conn);
+  SharedByteArray pump_queue(amqp_connection_state_t conn);
   void set_nonblock(int fd, bool yes);
 }
 
@@ -136,20 +136,20 @@ void AmqpChannel::queue_unbind(std::string const& queue, std::string const& exch
   die_on_amqp_error(amqp_rpc_reply, "Unbinding queue");
 }
 
-void AmqpChannel::basic_publish(NativeMessage const message,
+void AmqpChannel::basic_publish(ByteArray const& message,
                                 std::string const& exchange, std::string const& routing_key) {
   Mutex::Lock lock(m_conn->m_state_mutex);
 
   amqp_bytes_t raw_data;
-  raw_data.len   = message->size();
-  raw_data.bytes = reinterpret_cast<void*>(message->begin());
+  raw_data.len   = message.size();
+  raw_data.bytes = const_cast<void*>(reinterpret_cast<const void*>(message.begin()));
 
   int ret = amqp_basic_publish(m_conn->m_state.get(), m_channel, amqp_string(exchange),
                                amqp_string(routing_key), 0, 0, NULL, raw_data);
   die_on_error(ret, "Publishing");
 }
 
-bool AmqpChannel::basic_get(std::string const& queue, NativeMessage& message) {
+bool AmqpChannel::basic_get(std::string const& queue, SharedByteArray& message) {
 
   Mutex::Lock lock(m_conn->m_state_mutex);
 
@@ -179,7 +179,7 @@ namespace vw {
 class AmqpConsumeTask {
   public:
     typedef boost::shared_ptr<AmqpConnection> Connection;
-    typedef boost::function<void (NativeMessage)> Callback;
+    typedef boost::function<void (SharedByteArray)> Callback;
 
     // XXX: This should really hold a channel, and not a connection...
     Connection m_conn;
@@ -212,7 +212,7 @@ class AmqpConsumeTask {
       struct timeval tv;
       int ret;
       amqp_frame_t method;
-      NativeMessage msg;
+      SharedByteArray msg;
 
       while(go) {
         FD_ZERO(&fds);
@@ -261,7 +261,7 @@ class AmqpConsumeTask {
 }} // namespace vw::platefile
 
 boost::shared_ptr<AmqpConsumer> AmqpChannel::basic_consume(std::string const& queue,
-                                                           boost::function<void (NativeMessage)> callback) {
+                                                           boost::function<void (SharedByteArray)> callback) {
   Mutex::Lock lock(m_conn->m_state_mutex);
 
   amqp_basic_consume_ok_t *reply = amqp_basic_consume(m_conn->m_state.get(), m_channel, amqp_string(queue), amqp_string(""), 0, 0, 0);
@@ -339,7 +339,7 @@ void die_on_amqp_error(amqp_rpc_reply_t x, char const *context) {
   vw_throw(IOErr() << "AMQP Error: unknown response type.");
 }
 
-NativeMessage pump_queue(amqp_connection_state_t conn) {
+SharedByteArray pump_queue(amqp_connection_state_t conn) {
 
   amqp_frame_t header;
 
@@ -350,7 +350,7 @@ NativeMessage pump_queue(amqp_connection_state_t conn) {
   VW_ASSERT(header.frame_type == AMQP_FRAME_HEADER, AMQPAssertion() << "Expected AMQP header!");
 
   size_t body_size = header.payload.properties.body_size;
-  NativeMessage payload( new vw::VarArray<uint8>(body_size) );
+  SharedByteArray payload( new ByteArray(body_size) );
 
   size_t body_read = 0;
   amqp_frame_t frame;

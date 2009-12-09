@@ -26,7 +26,8 @@
 namespace vw {
 namespace platefile {
 
-  typedef boost::shared_ptr<vw::VarArray<uint8> > NativeMessage;
+  typedef vw::VarArray<uint8> ByteArray;
+  typedef boost::shared_ptr<ByteArray> SharedByteArray;
 
   VW_DEFINE_EXCEPTION(AMQPErr,       IOErr);
   VW_DEFINE_EXCEPTION(AMQPTimeout,   AMQPErr);
@@ -82,10 +83,10 @@ namespace platefile {
       void queue_bind(std::string const& queue, std::string const& exchange, std::string const& routing_key);
       void queue_unbind(std::string const& queue, std::string const& exchange, std::string const& routing_key);
 
-      void basic_publish(NativeMessage const message, std::string const& exchange, std::string const& routing_key);
+      void basic_publish(ByteArray const& message, std::string const& exchange, std::string const& routing_key);
 
-      boost::shared_ptr<AmqpConsumer> basic_consume(std::string const& queue, boost::function<void (NativeMessage)> callback);
-      bool basic_get(std::string const& queue, NativeMessage& message);
+      boost::shared_ptr<AmqpConsumer> basic_consume(std::string const& queue, boost::function<void (SharedByteArray)> callback);
+      bool basic_get(std::string const& queue, SharedByteArray& message);
   };
 
   class AmqpConsumer : private boost::noncopyable {

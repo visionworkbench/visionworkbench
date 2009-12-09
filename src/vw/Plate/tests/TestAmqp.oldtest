@@ -11,6 +11,7 @@
 #include <vw/Plate/ProtoBuffers.pb.h>
 #include <vw/Plate/RpcServices.h>
 #include <vw/Plate/IndexService.h>
+#include <google/protobuf/stubs/common.h>
 
 using namespace std;
 using namespace vw;
@@ -20,7 +21,10 @@ using namespace vw::platefile;
 #define QUEUE "unittest_queue"
 #define ROUTING_KEY "unittest"
 
-struct null_closure {};
+namespace {
+  void null_closure() {}
+  using google::protobuf::NewCallback;
+}
 
 
 class TestAmqp : public CxxTest::TestSuite {
@@ -44,15 +48,17 @@ public:
     request.set_transaction_id(32);
     request.set_exact_transaction_match(true);
 
-    WireMessage msg(&request);
-    chan.basic_publish(msg.serialized_bytes(), EXCHANGE, ROUTING_KEY);
+    ByteArray msg;
+    AmqpRpcEndpoint::serialize_message(request, msg);
 
-    NativeMessage response_bytes;
+    chan.basic_publish(msg, EXCHANGE, ROUTING_KEY);
+
+    SharedByteArray response_bytes;
     if (!chan.basic_get(QUEUE, response_bytes))
       vw_throw(IOErr() << "Basic.Get failed");
 
-    WireMessage wire_response(response_bytes);
-    IndexReadRequest response = wire_response.parse_as_message<IndexReadRequest>();
+    IndexReadRequest response;
+    AmqpRpcEndpoint::parse_message(*response_bytes.get(), response);
 
     TS_ASSERT_EQUALS(request.platefile_id(), response.platefile_id());
     TS_ASSERT_EQUALS(request.col(), response.col());

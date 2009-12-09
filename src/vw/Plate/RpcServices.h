@@ -36,53 +36,6 @@ namespace platefile {
                               google::protobuf::Closure* done);
   };
 
-  /// A handy utility class for serializing/deserializing protocol
-  /// buffers over the wire.  Store the buffer as a stream of bytes with
-  /// the size of the message at the beginning of the stream.
-  class WireMessage {
-    private:
-      typedef int32 size_type;
-      size_type m_payload_size;
-
-      // XXX: VarArray only supports deep-copy. D'oh. Having a shared_array
-      // inside a shared_ptr is lame. Revisit this.
-      typedef vw::VarArray<uint8> ContainerT;
-      NativeMessage data;
-
-      uint8* message_start() const {
-        return (data->begin() + sizeof(size_type));
-      }
-    public:
-      WireMessage(const google::protobuf::Message* message)
-        : m_payload_size(message->ByteSize()), data(new ContainerT(sizeof(size_type) + m_payload_size)) {
-
-          reinterpret_cast<size_type*>(data->begin())[0] = htonl(m_payload_size);
-          message->SerializeToArray((void*)(message_start()), message->ByteSize());
-      }
-
-      WireMessage(NativeMessage const& serialized_bytes) {
-        data = serialized_bytes;
-        m_payload_size = ntohl(reinterpret_cast<size_type*>(data->begin())[0]);
-      }
-
-      NativeMessage serialized_bytes() const { return data; }
-      size_type size() const { return data->size(); }
-
-      template <class MessageT>
-        MessageT parse_as_message() {
-          MessageT message;
-          bool success = message.ParseFromArray(reinterpret_cast<void*>(message_start()), m_payload_size);
-          if (!success)
-            vw_throw(vw::platefile::RpcErr() << "Could not deserialize message.");
-          return message;
-        }
-
-      void parse(google::protobuf::Message* message) {
-        message->ParseFromArray(reinterpret_cast<void*>(message_start()), m_payload_size);
-      }
-
-  };
-
   class NetworkMonitor {
     size_t m_total_bytes;
     int32 m_total_queries;
@@ -129,7 +82,7 @@ namespace platefile {
       std::string m_routing_key;
       boost::shared_ptr<AmqpConsumer> m_consumer;
 
-      vw::ThreadQueue<NativeMessage> messages;
+      vw::ThreadQueue<boost::shared_ptr<ByteArray> > messages;
 
     public:
       AmqpRpcEndpoint(boost::shared_ptr<AmqpConnection> conn, std::string exchange, std::string queue)
@@ -145,15 +98,29 @@ namespace platefile {
         unbind_service();
       }
 
+      static void serialize_message(const ::google::protobuf::Message& message, ByteArray& bytes) {
+        bytes.resize(message.ByteSize(), false);
+        message.SerializeToArray(bytes.begin(), message.ByteSize());
+      }
+
+      template <typename MessageT>
+      static void parse_message(const ByteArray& bytes, MessageT& message) {
+        if (!message.ParseFromArray(bytes.begin(), bytes.size()))
+          vw_throw(vw::platefile::RpcErr() << "Could not parse bytes into a message.");
+      }
+
       void send_message(const ::google::protobuf::Message& message) {
-        WireMessage msg(&message);
+        ByteArray raw;
+        serialize_message(message, raw);
+        // XXX: this flushes out the message queue. this might not be a good
+        // idea- what if the caller just hasn't processed the message yet?
         messages.flush();
-        m_channel->basic_publish( msg.serialized_bytes(), m_exchange, m_routing_key);
+        m_channel->basic_publish(raw, m_exchange, m_routing_key);
       }
 
       template <typename MessageT>
       void get_message(MessageT& message, vw::int32 timeout = -1) {
-        NativeMessage response_bytes;
+        SharedByteArray response_bytes;
 
         if (timeout == -1)
           this->messages.wait_pop(response_bytes);
@@ -163,7 +130,7 @@ namespace platefile {
           }
         }
 
-        message = WireMessage(response_bytes).parse_as_message<MessageT>();
+        parse_message(*response_bytes.get(), message);
       }
 
 
@@ -175,7 +142,7 @@ namespace platefile {
         m_service = service;
         m_routing_key = routing_key;
         m_channel->queue_bind(m_queue, m_exchange, routing_key);
-        m_consumer = m_channel->basic_consume(m_queue, boost::bind(&vw::ThreadQueue<NativeMessage>::push, boost::ref(messages), _1));
+        m_consumer = m_channel->basic_consume(m_queue, boost::bind(&vw::ThreadQueue<SharedByteArray>::push, boost::ref(messages), _1));
       }
 
       void unbind_service() {

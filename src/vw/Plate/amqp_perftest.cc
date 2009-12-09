@@ -30,10 +30,10 @@ void run_client(std::string exchange, std::string client_queue) {
   long long t0 = Stopwatch::microtime();
 
 
-  ThreadQueue<NativeMessage> q;
-  boost::shared_ptr<AmqpConsumer> c = chan.basic_consume(client_queue, boost::bind(&ThreadQueue<NativeMessage>::push, boost::ref(q), _1));
+  ThreadQueue<SharedByteArray> q;
+  boost::shared_ptr<AmqpConsumer> c = chan.basic_consume(client_queue, boost::bind(&ThreadQueue<SharedByteArray>::push, boost::ref(q), _1));
 
-  NativeMessage result;
+  SharedByteArray result;
   while (1) {
     if (!q.timed_wait_pop(result, 3000)) {
       vw_out(0) << "No messages for 5 seconds" << std::endl;
@@ -70,8 +70,8 @@ void run_server(const std::string exchange, const std::string client_queue, cons
   chan.exchange_declare(exchange, "direct", false, false);
 
   // Set up the message
-  NativeMessage msg( new vw::VarArray<uint8>(msg_text.size()) );
-  std::copy(msg_text.begin(), msg_text.end(), msg->begin());
+  ByteArray msg(msg_text.size());
+  std::copy(msg_text.begin(), msg_text.end(), msg.begin());
 
   while(go) {
     chan.basic_publish(msg, exchange, client_queue);

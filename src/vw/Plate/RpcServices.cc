@@ -29,9 +29,6 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
     vw_throw(LogicErr() << "AmqpRpcChannel::CallMethod(): Unknown RpcController");
 
   // Serialize the message and pass it to AMQP to be transferred.
-  // The WireMessege class saves the size of the message at the
-  // beginning so that we know how many byets to parse through
-  // when it reaches the other side.
   RpcRequestWrapper request_wrapper;
   request_wrapper.set_requestor(real_controller->queue_name());
   request_wrapper.set_method(method->name());
