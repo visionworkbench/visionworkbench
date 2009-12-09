@@ -89,25 +89,4 @@ public:
     TS_ASSERT_EQUALS(r2.ByteSize(), r1.ByteSize());
   }
 
-  void test_rpc_message() {
-    boost::shared_ptr<AmqpConnection> c1( new AmqpConnection() );
-    boost::shared_ptr<AmqpConnection> c2( new AmqpConnection() );
-
-    boost::shared_ptr<AmqpRpcServer> server( new AmqpRpcServer(c1, EXCHANGE, QUEUE"1") );
-    boost::shared_ptr<AmqpRpcClient> client( new AmqpRpcClient(c2, EXCHANGE, 
-                                                               QUEUE"2", "server") );
-
-    boost::shared_ptr<IndexService> srv_s( new IndexServiceImpl(TEST_SRCDIR) );
-    boost::shared_ptr<IndexService> srv_c( new IndexService::Stub(client.get() ) );
-
-    server->bind_service(srv_s, "server");
-    client->bind_service(srv_c, "client");
-
-    IndexListRequest request;
-    request.set_type("toast");
-    IndexListReply   reply;
-
-    srv_c->ListRequest( client.get(), &request, &reply, NewCallback(&null_closure) );
-  }
-
 }; // class TestIndex

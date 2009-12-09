@@ -161,6 +161,10 @@ message IndexDepthRequest {
   required int32 platefile_id = 1;
 }
 
+message IndexTestRequest {
+  required int64 value = 1;
+}
+
 // ----------------------------------
 // Server --> Client Responses
 // ----------------------------------
@@ -210,6 +214,10 @@ message IndexDepthReply {
   required int32 depth = 1;
 }
 
+message IndexTestReply {
+  required int64 value = 1;
+}
+
 // ---------------------------------
 // Service definition
 // ---------------------------------
@@ -248,4 +256,5 @@ service IndexService {
   rpc TransactionCursor (IndexTransactionCursorRequest) returns (IndexTransactionCursorReply);
   rpc DepthRequest (IndexDepthRequest) returns (IndexDepthReply);
   rpc ListRequest (IndexListRequest) returns (IndexListReply);
+  rpc TestRequest (IndexTestRequest) returns (IndexTestReply);
 }

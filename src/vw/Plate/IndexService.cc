@@ -355,3 +355,14 @@ void IndexServiceImpl::DepthRequest(::google::protobuf::RpcController* controlle
   done->Run();
 }
 
+void IndexServiceImpl::TestRequest(::google::protobuf::RpcController* controller,
+                                    const IndexTestRequest* request,
+                                    IndexTestReply* response,
+                                    ::google::protobuf::Closure* done) {
+
+  // access the data in the index.  Return the data on success, or
+  // notify the remote client of our failure if we did not succeed.
+  response->set_value(request->value());
+  done->Run();
+}
+

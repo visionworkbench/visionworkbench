@@ -80,8 +80,11 @@ index_client_LDADD = $(PLATE_LOCAL_LIBS)
 amqp_perftest_SOURCES = amqp_perftest.cc
 amqp_perftest_LDADD = $(PLATE_LOCAL_LIBS)
 
+index_perftest_SOURCES = index_perftest.cc
+index_perftest_LDADD = $(PLATE_LOCAL_LIBS)
+
 bin_PROGRAMS = plate2dem plate2tiles tiles2plate image2plate	\
-	       index_server index_client amqp_perftest
+	       index_server index_client amqp_perftest index_perftest
 
 endif
 
