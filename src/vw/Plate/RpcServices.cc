@@ -33,7 +33,6 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
   request_wrapper.set_requestor(real_controller->queue_name());
   request_wrapper.set_method(method->name());
   request_wrapper.set_payload(request->SerializeAsString());
-  vw_out(0) << "Request[" << request_wrapper.DebugString() << "]" << std::endl;
 
   RpcResponseWrapper response_wrapper;
   real_controller->send_message(request_wrapper);

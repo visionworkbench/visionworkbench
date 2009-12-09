@@ -110,6 +110,7 @@ namespace platefile {
       }
 
       void send_message(const ::google::protobuf::Message& message) {
+        vw_out(0) << "Sending[" << message.DebugString() << "]" << std::endl;
         ByteArray raw;
         serialize_message(message, raw);
         // XXX: this flushes out the message queue. this might not be a good
@@ -131,6 +132,7 @@ namespace platefile {
         }
 
         parse_message(*response_bytes.get(), message);
+        vw_out(0) << "Received[" << message.DebugString() << "]" << std::endl;
       }
 
 
