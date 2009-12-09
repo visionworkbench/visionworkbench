@@ -20,11 +20,9 @@ using namespace vw;
 //                           CLIENT
 // --------------------------------------------------------------
 
-void run_client(std::string exchange, std::string client_queue, int message_size) {
+void run_client(std::string exchange, std::string client_queue, 
+                const std::string server_queue, int message_size) {
   std::cout << "Running client...\n";
-  
-  // Initialize random number generator with a known seed value (0).
-  srandom(0);
 
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
   AmqpChannel chan(conn);
@@ -63,6 +61,9 @@ void run_client(std::string exchange, std::string client_queue, int message_size
         std::cout << "Error -- corrupt message payload.\n";
     }
 
+    // Echo the message back to the server
+    chan.basic_publish(*(result.get()), exchange, server_queue);
+
     ++msgs;
 
     float diff = (Stopwatch::microtime() - t0) / 1e6;
@@ -86,7 +87,8 @@ void sighandle(int sig) {
 //                           SERVER
 // --------------------------------------------------------------
 
-void run_server(const std::string exchange, const std::string client_queue, int message_size) {
+void run_server(const std::string exchange, const std::string client_queue, 
+                const std::string server_queue, int message_size) {
   std::cout << "Running server...\n";
 
   signal(SIGINT, sighandle);
@@ -96,6 +98,13 @@ void run_server(const std::string exchange, const std::string client_queue, int 
 
   // Create a queue and bind it to the index server exchange.
   chan.exchange_declare(exchange, "direct", false, false);
+  chan.queue_declare(server_queue, false, true, true);  // not durable, exclusive, auto-delete
+  chan.queue_bind(server_queue, exchange, server_queue);
+
+  ThreadQueue<SharedByteArray> q;
+  boost::shared_ptr<AmqpConsumer> c = chan.basic_consume(server_queue, 
+                                                         boost::bind(&ThreadQueue<SharedByteArray>::push, 
+                                                                     boost::ref(q), _1));
 
   // Set up the message
   ByteArray msg(message_size);
@@ -103,8 +112,30 @@ void run_server(const std::string exchange, const std::string client_queue, int 
     msg[i] = i;
   }
 
+  SharedByteArray result;
   while(go) {
     chan.basic_publish(msg, exchange, client_queue);
+
+    if (!q.timed_wait_pop(result, 3000)) {
+      vw_out(0) << "No messages for 5 seconds" << std::endl;
+      break;
+    }
+
+    // Verify message
+    if (result->size() != msg.size()) {
+      std::cout << "Error -- unexpected echo message size : " << result->size() << "\n";
+    }
+
+    for (int i = 0; i < result->size(); ++i) {
+      bool bad = false;
+      if ( (*result)[i] != msg[i] ) {
+        std::cout << "      Bad byte: " << int((*result)[i]) << "\n";
+        bad = true;
+      }
+      
+      if (bad)
+        std::cout << "Error -- corrupt message payload.\n";
+    }
   }
 }
 
@@ -137,10 +168,10 @@ int main(int argc, char** argv) {
   }
 
   if( vm.count("server") )
-    run_server("ptest_exchange", "ptest_queue", message_size);
+    run_server("ptest_exchange", "ptest_client_queue", "ptest_server_queue", message_size);
 
   if( vm.count("client") )
-    run_client("ptest_exchange", "ptest_queue", message_size);
+    run_client("ptest_exchange", "ptest_client_queue", "ptest_server_queue", message_size);
 
   return 0;
 }
