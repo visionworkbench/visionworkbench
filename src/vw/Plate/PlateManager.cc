@@ -81,12 +81,12 @@ vw::ImageView<PixelT> vw::platefile::composite_mosaic_tile(boost::shared_ptr<Pla
         search_row /= 2;
       }
     }
-      
+
     // If no tile was found, then we can safely place the raw data
     // into the mosaic directly.
     if (!found) {
 
-      platefile->write(tile, col, row, level, transaction_id);
+        platefile->write(tile, col, row, level, transaction_id);
 
     } else {
 

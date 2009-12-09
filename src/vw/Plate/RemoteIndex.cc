@@ -83,9 +83,9 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url) {
 
   // Set up the connection to the AmqpRpcService
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(hostname, port));
-  m_rpc_controller.reset( new AmqpRpcClient(conn, INDEX_EXCHANGE, queue_name) );
-  m_index_service.reset ( new IndexService::Stub(m_rpc_controller->channel().get() ) );
-  m_rpc_controller->bind_service(m_index_service, routing_key);
+  m_rpc_controller.reset( new AmqpRpcClient(conn, INDEX_EXCHANGE, queue_name, routing_key) );
+  m_index_service.reset ( new IndexService::Stub(m_rpc_controller.get() ) );
+  m_rpc_controller->bind_service(m_index_service, queue_name);
 
   // Send an IndexOpenRequest to the AMQP index server.
   IndexOpenRequest request;
@@ -118,9 +118,9 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url, IndexHeader inde
 
   // Set up the connection to the AmqpRpcService
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(hostname, port));
-  m_rpc_controller.reset( new AmqpRpcClient(conn, INDEX_EXCHANGE, queue_name) );
-  m_index_service.reset ( new IndexService::Stub(m_rpc_controller->channel().get() ) );
-  m_rpc_controller->bind_service(m_index_service, routing_key);
+  m_rpc_controller.reset( new AmqpRpcClient(conn, INDEX_EXCHANGE, queue_name, routing_key) );
+  m_index_service.reset ( new IndexService::Stub(m_rpc_controller.get() ) );
+  m_rpc_controller->bind_service(m_index_service, queue_name);
 
   // Send an IndexCreateRequest to the AMQP index server.
   IndexCreateRequest request;

@@ -189,6 +189,8 @@ void IndexServiceImpl::ListRequest(::google::protobuf::RpcController* controller
                                    IndexListReply* response,
                                    ::google::protobuf::Closure* done) {
 
+  std::cout << "RECEIVED ListRequest message : " << request->DebugString() << "\n";
+
   for (index_list_type::const_iterator i = m_indices.begin(), end = m_indices.end(); i != end; ++i) {
 
     IndexServiceRecord rec = i->second;
@@ -212,6 +214,9 @@ void IndexServiceImpl::ListRequest(::google::protobuf::RpcController* controller
 
     response->add_platefile_names(rec.short_plate_filename);
   }
+
+  response->add_platefile_names("test");
+  std::cout << "SENDING ListRequest response : " << response->DebugString() << "\n";
 
   done->Run();
 }

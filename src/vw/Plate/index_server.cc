@@ -89,7 +89,8 @@ int main(int argc, char** argv) {
   }
 
   boost::shared_ptr<AmqpConnection> connection( new AmqpConnection(hostname, port) );
-  boost::shared_ptr<AmqpRpcServer> server( new AmqpRpcServer(connection, INDEX_EXCHANGE, queue_name, vm.count("debug")) );
+  boost::shared_ptr<AmqpRpcServer> server( new AmqpRpcServer(connection, INDEX_EXCHANGE, 
+                                                             queue_name, vm.count("debug")) );
   boost::shared_ptr<google::protobuf::Service> service( new IndexServiceImpl(root_directory) );
   server->bind_service(service, "index");
 

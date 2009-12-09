@@ -24,18 +24,6 @@
 namespace vw {
 namespace platefile {
 
-  class AmqpRpcChannel : public vw::platefile::AmqpChannel,  public google::protobuf::RpcChannel {
-    public:
-      AmqpRpcChannel(boost::shared_ptr<AmqpConnection> conn, int16 channel = -1):
-        AmqpChannel(conn, channel) {};
-
-      virtual void CallMethod(const google::protobuf::MethodDescriptor* method,
-                              google::protobuf::RpcController* controller,
-                              const google::protobuf::Message* request,
-                              google::protobuf::Message* response,
-                              google::protobuf::Closure* done);
-  };
-
   class NetworkMonitor {
     size_t m_total_bytes;
     int32 m_total_queries;
@@ -75,7 +63,7 @@ namespace platefile {
 
     protected:
 
-      boost::shared_ptr<AmqpRpcChannel> m_channel;
+      boost::shared_ptr<AmqpChannel> m_channel;
       boost::shared_ptr<google::protobuf::Service> m_service;
       std::string m_exchange;
       std::string m_queue;
@@ -85,8 +73,9 @@ namespace platefile {
       vw::ThreadQueue<boost::shared_ptr<ByteArray> > messages;
 
     public:
-      AmqpRpcEndpoint(boost::shared_ptr<AmqpConnection> conn, std::string exchange, std::string queue)
-        : m_channel(new AmqpRpcChannel(conn)), m_exchange(exchange), m_queue(queue) {
+    AmqpRpcEndpoint(boost::shared_ptr<AmqpConnection> conn, std::string exchange, std::string queue)
+      : m_channel(new AmqpChannel(conn)), 
+        m_exchange(exchange), m_queue(queue) {
 
         m_channel->exchange_declare(exchange, "direct", false, false);
         m_channel->queue_declare(queue, false, true, true);
@@ -109,14 +98,13 @@ namespace platefile {
           vw_throw(vw::platefile::RpcErr() << "Could not parse bytes into a message.");
       }
 
-      void send_message(const ::google::protobuf::Message& message) {
-        vw_out(0) << "Sending[" << message.DebugString() << "]" << std::endl;
+    void send_message(const ::google::protobuf::Message& message, std::string routing_key) {
         ByteArray raw;
         serialize_message(message, raw);
         // XXX: this flushes out the message queue. this might not be a good
         // idea- what if the caller just hasn't processed the message yet?
         messages.flush();
-        m_channel->basic_publish(raw, m_exchange, m_routing_key);
+        m_channel->basic_publish(raw, m_exchange, routing_key);
       }
 
       template <typename MessageT>
@@ -130,14 +118,12 @@ namespace platefile {
             vw_throw(AMQPTimeout() << "Timeout");
           }
         }
-
         parse_message(*response_bytes.get(), message);
-        vw_out(0) << "Received[" << message.DebugString() << "]" << std::endl;
       }
 
 
       void bind_service(boost::shared_ptr<google::protobuf::Service> service,
-          std::string routing_key) {
+                        std::string routing_key) {
         if (m_consumer)
           vw_throw(vw::ArgumentErr() << "AmqpRpcEndpoint::bind_service(): unbind your service before you start another one");
 
@@ -156,7 +142,7 @@ namespace platefile {
         }
       }
 
-      boost::shared_ptr<AmqpRpcChannel> channel() {
+      boost::shared_ptr<AmqpChannel> channel() {
         return m_channel;
       }
 
@@ -193,12 +179,25 @@ namespace platefile {
       }
   };
 
-  class AmqpRpcClient : public AmqpRpcEndpoint {
-    public:
-      AmqpRpcClient(boost::shared_ptr<AmqpConnection> conn, std::string exchange, std::string queue) :
-        AmqpRpcEndpoint(conn, exchange, queue) {}
+  class AmqpRpcClient : public AmqpRpcEndpoint,
+                        public google::protobuf::RpcChannel {
 
-      virtual ~AmqpRpcClient() {}
+    // Routing key to use when callmethod is called.  Basically this
+    // is the routing key to address message to the server.
+    std::string m_request_routing_key;
+
+  public:
+    AmqpRpcClient(boost::shared_ptr<AmqpConnection> conn, std::string exchange, 
+                  std::string queue, std::string request_routing_key) :
+      AmqpRpcEndpoint(conn, exchange, queue), m_request_routing_key(request_routing_key) {}
+    
+    virtual ~AmqpRpcClient() {}
+
+    virtual void CallMethod(const google::protobuf::MethodDescriptor* method,
+                            google::protobuf::RpcController* controller,
+                            const google::protobuf::Message* request,
+                            google::protobuf::Message* response,
+                            google::protobuf::Closure* done);
 
       // Returns a good private queue name. Identifier should be something unique
       // to the service, like "remote_index" or "mod_plate"
@@ -207,34 +206,38 @@ namespace platefile {
 
 
   class AmqpRpcServer : public AmqpRpcEndpoint {
-      NetworkMonitor m_stats;
-      bool m_terminate;
-      bool m_debug;
-    public:
-      AmqpRpcServer(boost::shared_ptr<AmqpConnection> conn, std::string exchange, std::string queue, bool debug = false) :
-        AmqpRpcEndpoint(conn, exchange, queue), m_terminate(false), m_debug(debug) {}
+    NetworkMonitor m_stats;
+    std::string m_request_routing_key;
+    bool m_terminate;
+    bool m_debug;
 
-      virtual ~AmqpRpcServer() {}
+  public:
 
-      /// Run the server run loop
-      void run();
-
-      /// Shut down the server
-      void shutdown() { m_terminate = true; }
-
-      /// Return statistics about number of messages processed per second.
-      int queries_processed() {
-        return m_stats.queries_processed();
-      }
-
-      /// Return statistics about number of messages processed per second.
-      size_t bytes_processed() {
-        return m_stats.bytes_processed();
-      }
-
-      void reset_stats() {
-        m_stats.reset();
-      }
+    AmqpRpcServer(boost::shared_ptr<AmqpConnection> conn, std::string exchange, 
+                  std::string queue, bool debug = false) :
+      AmqpRpcEndpoint(conn, exchange, queue), m_terminate(false), m_debug(debug) {}
+    
+    virtual ~AmqpRpcServer() {}
+    
+    /// Run the server run loop
+    void run();
+    
+    /// Shut down the server
+    void shutdown() { m_terminate = true; }
+    
+    /// Return statistics about number of messages processed per second.
+    int queries_processed() {
+      return m_stats.queries_processed();
+    }
+    
+    /// Return statistics about number of messages processed per second.
+    size_t bytes_processed() {
+      return m_stats.bytes_processed();
+    }
+    
+    void reset_stats() {
+      m_stats.reset();
+    }
   };
 
 }} // namespace vw::platefile

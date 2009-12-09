@@ -331,9 +331,9 @@ PlateModule::PlateModule() {
   // XXX: The rabbitmq host needs to be an apache configuration variable or something
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection("198.10.124.5"));
 
-  m_client.reset( new AmqpRpcClient(conn, INDEX_EXCHANGE, queue_name) );
-  m_index_service.reset ( new IndexService::Stub(m_client->channel().get() ) );
-  m_client->bind_service(m_index_service, "index");
+  m_client.reset( new AmqpRpcClient(conn, INDEX_EXCHANGE, queue_name, "index") );
+  m_index_service.reset ( new IndexService::Stub(m_client.get() ) );
+  m_client->bind_service(m_index_service, queue_name);
 
   sync_index_cache();
 

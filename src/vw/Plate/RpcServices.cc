@@ -16,17 +16,105 @@ using namespace vw;
 // A dummy method for passing to the RPC calls below.
 static void null_closure() {}
 
+// -----------------------------------------------------------------------------
+//                                AmqpRpcServer
+// -----------------------------------------------------------------------------
+
+void vw::platefile::AmqpRpcServer::run() {
+
+  while(!m_terminate) {
+
+    // --------------------------------------
+    // Step 1 : Wait for an incoming message.
+    // --------------------------------------
+    RpcRequestWrapper request_wrapper;
+    try {
+      this->get_message(request_wrapper);
+      if (m_debug) {
+        vw_out(0) << "[RPC: " << request_wrapper.method() 
+                  << " from " << request_wrapper.requestor() << "]\n";
+      }
+    } catch (const vw::platefile::RpcErr&e) {
+      vw_out(0) << "Invalid RPC method, ignoring." << std::endl;
+      continue;
+    }
+
+    // Record statistics
+    m_stats.record_query(request_wrapper.ByteSize());
+
+    // -------------------------------------------------------------
+    // Step 2 : Instantiate the proper messages and delegate them to
+    // the proper method on the service.
+    // -------------------------------------------------------------
+    const google::protobuf::MethodDescriptor* method =
+      m_service->GetDescriptor()->FindMethodByName(request_wrapper.method());
+
+    boost::shared_ptr<google::protobuf::Message>
+      request(m_service->GetRequestPrototype(method).New());
+    boost::shared_ptr<google::protobuf::Message>
+      response(m_service->GetResponsePrototype(method).New());
+
+    try {
+
+      RpcResponseWrapper response_wrapper;
+      // Attempt to parse the actual request message from the
+      // request_wrapper.
+      if (!request->ParseFromString(request_wrapper.payload()))
+        vw_throw(IOErr() << "Error parsing request from request_wrapper message.\n");
+
+      // For debugging:
+      //      std::cout << "Request: " << request->DebugString() << "\n";
+
+      m_service->CallMethod(method, this, request.get(), response.get(),
+                            google::protobuf::NewCallback(&null_closure));
+
+      //      std::cout << "Response: " << response->DebugString() << "\n\n";
+
+      // ---------------------------
+      // Step 3 : Return the result.
+      // ---------------------------
+      response_wrapper.set_error(false);
+      response_wrapper.set_payload(response->SerializeAsString());
+      this->send_message(response_wrapper, request_wrapper.requestor());
+
+    } catch (PlatefileErr &e) {
+
+      RpcResponseWrapper response_wrapper;
+      // If an exception occurred on the index_server, we pass it
+      // along to the requestor by setting the RpcErrorInfo portion of
+      // the RpcResponseWrapper.
+      RpcErrorInfo err;
+      err.set_type(e.name());
+      err.set_message(e.what());
+      response_wrapper.set_error(true);
+      *(response_wrapper.mutable_error_info()) = err;
+
+      this->send_message(response_wrapper, request_wrapper.requestor());
+
+    } catch (vw::Exception &e) {
+      vw_out(0) << "WARNING!! Uncaught Vision Workbench Exception:\n\t" << e.what() << "\n";
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+//                                AmqpRpcClient
+// -----------------------------------------------------------------------------
+
 // Client side RPC implementation using AMQP as the message
 // passing interface.
-void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDescriptor* method,
-                                               google::protobuf::RpcController* controller,
-                                               const google::protobuf::Message* request,
-                                               google::protobuf::Message* response,
-                                               google::protobuf::Closure* done) {
+void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDescriptor* method,
+                                              google::protobuf::RpcController* controller,
+                                              const google::protobuf::Message* request,
+                                              google::protobuf::Message* response,
+                                              google::protobuf::Closure* done) {
 
   AmqpRpcEndpoint* real_controller = dynamic_cast<AmqpRpcEndpoint*>(controller);
   if (!real_controller)
-    vw_throw(LogicErr() << "AmqpRpcChannel::CallMethod(): Unknown RpcController");
+    vw_throw(LogicErr() << "AmqpRpcClient::CallMethod(): Unknown RpcController");
+
+  // For debugging:
+  //  std::cout << "Request: " << request->DebugString() << "\n";
 
   // Serialize the message and pass it to AMQP to be transferred.
   RpcRequestWrapper request_wrapper;
@@ -35,7 +123,7 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
   request_wrapper.set_payload(request->SerializeAsString());
 
   RpcResponseWrapper response_wrapper;
-  real_controller->send_message(request_wrapper);
+  real_controller->send_message(request_wrapper, m_request_routing_key);
   real_controller->get_message(response_wrapper);
 
   // Handle errors and exceptions.
@@ -76,84 +164,11 @@ void vw::platefile::AmqpRpcChannel::CallMethod(const google::protobuf::MethodDes
 
   } else {
     response->ParseFromString(response_wrapper.payload());
+
+    // For debugging:
     //    vw_out(0) << "Response:\n" << response->DebugString() << "\n\n";
   }
   done->Run();
-}
-
-// -----------------------------------------------------------------------------
-//                                AmqpRpcServer
-// -----------------------------------------------------------------------------
-
-void vw::platefile::AmqpRpcServer::run() {
-
-  while(!m_terminate) {
-    // --------------------------------------
-    // Step 1 : Wait for an incoming message.
-    // --------------------------------------
-    RpcRequestWrapper request_wrapper;
-    try {
-      this->get_message(request_wrapper);
-      if (m_debug) {
-        vw_out(0) << "[RPC: " << request_wrapper.method() 
-                  << " from " << request_wrapper.requestor() << "]\n";
-      }
-    } catch (const vw::platefile::RpcErr&e) {
-      vw_out(0) << "Invalid RPC method, ignoring." << std::endl;
-      continue;
-    }
-
-    // Record statistics
-    m_stats.record_query(request_wrapper.ByteSize());
-
-    // -------------------------------------------------------------
-    // Step 2 : Instantiate the proper messages and delegate them to
-    // the proper method on the service.
-    // -------------------------------------------------------------
-    const google::protobuf::MethodDescriptor* method =
-      m_service->GetDescriptor()->FindMethodByName(request_wrapper.method());
-
-    boost::shared_ptr<google::protobuf::Message>
-      request(m_service->GetRequestPrototype(method).New());
-    boost::shared_ptr<google::protobuf::Message>
-      response(m_service->GetResponsePrototype(method).New());
-
-    try {
-
-      RpcResponseWrapper response_wrapper;
-      // Attempt to parse the actual request message from the
-      // request_wrapper.
-      if (!request->ParseFromString(request_wrapper.payload()))
-        vw_throw(IOErr() << "Error parsing request from request_wrapper message.\n");
-
-      m_service->CallMethod(method, this, request.get(), response.get(),
-                            google::protobuf::NewCallback(&null_closure));
-
-      // ---------------------------
-      // Step 3 : Return the result.
-      // ---------------------------
-      response_wrapper.set_error(false);
-      response_wrapper.set_payload(response->SerializeAsString());
-      this->send_message(response_wrapper);
-
-    } catch (PlatefileErr &e) {
-
-      RpcResponseWrapper response_wrapper;
-      // If an exception occurred on the index_server, we pass it
-      // along to the requestor by setting the RpcErrorInfo portion of
-      // the RpcResponseWrapper.
-      RpcErrorInfo err;
-      err.set_type(e.name());
-      err.set_message(e.what());
-      response_wrapper.set_error(true);
-      *(response_wrapper.mutable_error_info()) = err;
-
-      this->send_message(response_wrapper);
-
-    } catch (vw::Exception &e) {
-      vw_out(0) << "WARNING!! Uncaught Vision Workbench Exception:\n\t" << e.what() << "\n";
-    }
-  }
 }
 
 std::string vw::platefile::AmqpRpcClient::UniqueQueueName(const std::string identifier) {

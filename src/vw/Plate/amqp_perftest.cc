@@ -16,8 +16,15 @@ namespace po = boost::program_options;
 using namespace vw::platefile;
 using namespace vw;
 
-void run_client(std::string exchange, std::string client_queue) {
+// --------------------------------------------------------------
+//                           CLIENT
+// --------------------------------------------------------------
+
+void run_client(std::string exchange, std::string client_queue, int message_size) {
   std::cout << "Running client...\n";
+  
+  // Initialize random number generator with a known seed value (0).
+  srandom(0);
 
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
   AmqpChannel chan(conn);
@@ -29,15 +36,31 @@ void run_client(std::string exchange, std::string client_queue) {
   int msgs = 0;
   long long t0 = Stopwatch::microtime();
 
-
   ThreadQueue<SharedByteArray> q;
-  boost::shared_ptr<AmqpConsumer> c = chan.basic_consume(client_queue, boost::bind(&ThreadQueue<SharedByteArray>::push, boost::ref(q), _1));
+  boost::shared_ptr<AmqpConsumer> c = chan.basic_consume(client_queue, 
+                                                         boost::bind(&ThreadQueue<SharedByteArray>::push, 
+                                                                     boost::ref(q), _1));
 
   SharedByteArray result;
   while (1) {
     if (!q.timed_wait_pop(result, 3000)) {
       vw_out(0) << "No messages for 5 seconds" << std::endl;
       break;
+    }
+
+    if (result->size() != message_size) {
+      std::cout << "Error -- unexpected message size : " << result->size() << "\n";
+    }
+
+    for (int i = 0; i < result->size(); ++i) {
+      bool bad = false;
+      if ( (*result)[i] != i ) {
+        std::cout << "      Bad byte: " << int((*result)[i]) << "\n";
+        bad = true;
+      }
+      
+      if (bad)
+        std::cout << "Error -- corrupt message payload.\n";
     }
 
     ++msgs;
@@ -51,7 +74,7 @@ void run_client(std::string exchange, std::string client_queue) {
   }
 }
 
-bool go = true;
+volatile bool go = true;
 
 void sighandle(int sig) {
   signal(sig, SIG_IGN);
@@ -59,8 +82,13 @@ void sighandle(int sig) {
   signal(sig, sighandle);
 }
 
-void run_server(const std::string exchange, const std::string client_queue, const std::string& msg_text) {
+// --------------------------------------------------------------
+//                           SERVER
+// --------------------------------------------------------------
+
+void run_server(const std::string exchange, const std::string client_queue, int message_size) {
   std::cout << "Running server...\n";
+
   signal(SIGINT, sighandle);
 
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
@@ -70,14 +98,15 @@ void run_server(const std::string exchange, const std::string client_queue, cons
   chan.exchange_declare(exchange, "direct", false, false);
 
   // Set up the message
-  ByteArray msg(msg_text.size());
-  std::copy(msg_text.begin(), msg_text.end(), msg.begin());
+  ByteArray msg(message_size);
+  for (int i = 0; i < message_size; ++i) {
+    msg[i] = i;
+  }
 
   while(go) {
     chan.basic_publish(msg, exchange, client_queue);
   }
 }
-
 
 // -----------------------------------------------------------------------------
 //                                  MAIN
@@ -85,11 +114,13 @@ void run_server(const std::string exchange, const std::string client_queue, cons
 
 int main(int argc, char** argv) {
 
+  int message_size;
+
   po::options_description general_options("AMQP Performance Test Program");
   general_options.add_options()
     ("client", "Act as client.")
     ("server", "Act as server.")
-    ("get", "Use basic_get() instead of basic_consume().")
+    ("message-size", po::value<int>(&message_size)->default_value(5), "Message size in bytes")
     ("help", "Display this help message");
 
   po::variables_map vm;
@@ -106,10 +137,10 @@ int main(int argc, char** argv) {
   }
 
   if( vm.count("server") )
-    run_server("ptest_exchange", "ptest_queue", "test");
+    run_server("ptest_exchange", "ptest_queue", message_size);
 
   if( vm.count("client") )
-    run_client("ptest_exchange", "ptest_queue");
+    run_client("ptest_exchange", "ptest_queue", message_size);
 
   return 0;
 }
