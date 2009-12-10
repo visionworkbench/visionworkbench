@@ -25,77 +25,83 @@ void vw::platefile::AmqpRpcServer::run() {
 
   while(!m_terminate) {
 
-    // --------------------------------------
-    // Step 1 : Wait for an incoming message.
-    // --------------------------------------
-    RpcRequestWrapper request_wrapper;
     try {
-      this->get_message(request_wrapper);
-      if (m_debug) {
-        vw_out(0) << "[RPC: " << request_wrapper.method() 
-                  << " from " << request_wrapper.requestor() << "]\n";
+
+      // --------------------------------------
+      // Step 1 : Wait for an incoming message.
+      // --------------------------------------
+      RpcRequestWrapper request_wrapper;
+      try {
+        this->get_message(request_wrapper);
+        if (m_debug) 
+          vw_out(0) << "[RPC: " << request_wrapper.method() 
+                    << " from " << request_wrapper.requestor() 
+                    << "  SEQ: " << request_wrapper.sequence_number() << "]\n";
+      } catch (const vw::platefile::RpcErr&e) {
+        vw_out(0) << "Invalid RPC method, ignoring." << std::endl;
+        continue;
       }
-    } catch (const vw::platefile::RpcErr&e) {
-      vw_out(0) << "Invalid RPC method, ignoring." << std::endl;
-      continue;
-    }
 
-    // Record statistics
-    m_stats.record_query(request_wrapper.ByteSize());
+      // Record statistics
+      m_stats.record_query(request_wrapper.ByteSize());
 
-    // -------------------------------------------------------------
-    // Step 2 : Instantiate the proper messages and delegate them to
-    // the proper method on the service.
-    // -------------------------------------------------------------
-    const google::protobuf::MethodDescriptor* method =
-      m_service->GetDescriptor()->FindMethodByName(request_wrapper.method());
+      // -------------------------------------------------------------
+      // Step 2 : Instantiate the proper messages and delegate them to
+      // the proper method on the service.
+      // -------------------------------------------------------------
+      const google::protobuf::MethodDescriptor* method =
+        m_service->GetDescriptor()->FindMethodByName(request_wrapper.method());
 
-    boost::shared_ptr<google::protobuf::Message>
-      request(m_service->GetRequestPrototype(method).New());
-    boost::shared_ptr<google::protobuf::Message>
-      response(m_service->GetResponsePrototype(method).New());
+      boost::shared_ptr<google::protobuf::Message>
+        request(m_service->GetRequestPrototype(method).New());
+      boost::shared_ptr<google::protobuf::Message>
+        response(m_service->GetResponsePrototype(method).New());
 
-    try {
+      try {
 
-      RpcResponseWrapper response_wrapper;
-      // Attempt to parse the actual request message from the
-      // request_wrapper.
-      if (!request->ParseFromString(request_wrapper.payload()))
-        vw_throw(IOErr() << "Error parsing request from request_wrapper message.\n");
+        RpcResponseWrapper response_wrapper;
+        // Attempt to parse the actual request message from the
+        // request_wrapper.
+        if (!request->ParseFromString(request_wrapper.payload()))
+          vw_throw(IOErr() << "Error parsing request from request_wrapper message.\n");
 
-      // For debugging:
-      //      std::cout << "Request: " << request->DebugString() << "\n";
+        // For debugging:
+        //      std::cout << "Request: " << request->DebugString() << "\n";
 
-      m_service->CallMethod(method, this, request.get(), response.get(),
-                            google::protobuf::NewCallback(&null_closure));
+        m_service->CallMethod(method, this, request.get(), response.get(),
+                              google::protobuf::NewCallback(&null_closure));
 
-      //      std::cout << "Response: " << response->DebugString() << "\n";
+        //      std::cout << "Response: " << response->DebugString() << "\n";
 
-      // ---------------------------
-      // Step 3 : Return the result.
-      // ---------------------------
-      response_wrapper.set_error(false);
-      response_wrapper.set_payload(response->SerializeAsString());
-      this->send_message(response_wrapper, request_wrapper.requestor());
+        // ---------------------------
+        // Step 3 : Return the result.
+        // ---------------------------
+        response_wrapper.set_sequence_number(request_wrapper.sequence_number());
+        response_wrapper.set_error(false);
+        response_wrapper.set_payload(response->SerializeAsString());
+        this->send_message(response_wrapper, request_wrapper.requestor());
 
-    } catch (PlatefileErr &e) {
+      } catch (PlatefileErr &e) {
 
-      RpcResponseWrapper response_wrapper;
-      // If an exception occurred on the index_server, we pass it
-      // along to the requestor by setting the RpcErrorInfo portion of
-      // the RpcResponseWrapper.
-      RpcErrorInfo err;
-      err.set_type(e.name());
-      err.set_message(e.what());
-      response_wrapper.set_error(true);
-      *(response_wrapper.mutable_error_info()) = err;
+        RpcResponseWrapper response_wrapper;
+        // If an exception occurred on the index_server, we pass it
+        // along to the requestor by setting the RpcErrorInfo portion of
+        // the RpcResponseWrapper.
+        RpcErrorInfo err;
+        err.set_type(e.name());
+        err.set_message(e.what());
+        response_wrapper.set_sequence_number(request_wrapper.sequence_number());
+        response_wrapper.set_error(true);
+        *(response_wrapper.mutable_error_info()) = err;
 
-      this->send_message(response_wrapper, request_wrapper.requestor());
+        this->send_message(response_wrapper, request_wrapper.requestor());
+      }
 
     } catch (vw::Exception &e) {
       vw_out(0) << "WARNING!! Uncaught Vision Workbench Exception:\n\t" << e.what() << "\n";
     }
-  }
+
+  } // while
 }
 
 // -----------------------------------------------------------------------------
@@ -124,8 +130,48 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
   request_wrapper.set_payload(request->SerializeAsString());
 
   RpcResponseWrapper response_wrapper;
-  real_controller->send_message(request_wrapper, m_request_routing_key);
-  real_controller->get_message(response_wrapper);
+  int ntries = 0;
+  bool success = false;
+
+  // Try to send the message up to three times.
+  int request_seq;
+  while (!success && ntries < m_max_tries) {
+
+    // Set the sequence number and send the message.
+    request_seq = ++m_sequence_number;
+    request_wrapper.set_sequence_number(request_seq);
+    real_controller->send_message(request_wrapper, m_request_routing_key);
+
+    // Try to get the message.  If we succed, check the sequence number.
+    try {
+      real_controller->get_message(response_wrapper, 1000);
+      
+      // Grab packets off of the queue until a sequence number match
+      // is found.  This may end up timing out if the queue empties
+      // and no message with the desired sequence number ever appears.
+      while (response_wrapper.sequence_number() != request_seq) {
+        vw_out(0) << "WARNING: CallMethod() sequence number did not match.  ("
+                  << request_seq << " != " << response_wrapper.sequence_number() 
+                  << ").  Retrying...\n";
+        real_controller->get_message(response_wrapper, 2000);
+      }
+      
+      // If the sequence number does appear, then we declare victory
+      // and continue onward to parse the result.
+      if (response_wrapper.sequence_number() == request_seq)
+        success = true;
+
+    } catch (AMQPTimeout &e) {
+      // If we timed out, increment the number of tries and loop back
+      // to the beginning.
+      ++ntries;
+      if (ntries > m_max_tries) 
+        vw_throw(AMQPTimeout() << "CallMethod timed out completely after " 
+                 << m_max_tries << " tries.");
+
+      vw_out(0) << "WARNING: CallMethod() timed out.  Executing retry #" << ntries << ".\n";
+    }
+  }
 
   // Handle errors and exceptions.
   //

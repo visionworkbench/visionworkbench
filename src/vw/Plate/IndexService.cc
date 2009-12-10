@@ -326,6 +326,21 @@ void IndexServiceImpl::TransactionComplete(::google::protobuf::RpcController* co
   done->Run();
 }
 
+void IndexServiceImpl::TransactionFailed(::google::protobuf::RpcController* controller,
+                                         const IndexTransactionFailed* request,
+                                         RpcNullMessage* response,
+                                         ::google::protobuf::Closure* done) {
+
+  // Fetch the index service record 
+  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
+    
+  // Access the data in the index.  Return the data on success, or
+  // notify the remote client of our failure if we did not succeed.
+  rec.index->transaction_complete(request->transaction_id());
+  // This message has no response.
+  done->Run();
+}
+
 void IndexServiceImpl::TransactionCursor(::google::protobuf::RpcController* controller,
                                          const IndexTransactionCursorRequest* request,
                                          IndexTransactionCursorReply* response,

@@ -93,6 +93,11 @@ namespace platefile {
                                      ::vw::platefile::RpcNullMessage* response,
                                      ::google::protobuf::Closure* done);      
 
+    virtual void TransactionFailed(::google::protobuf::RpcController* controller,
+                                   const ::vw::platefile::IndexTransactionFailed* request,
+                                   ::vw::platefile::RpcNullMessage* response,
+                                   ::google::protobuf::Closure* done);      
+
     virtual void TransactionCursor(::google::protobuf::RpcController* controller,
                                    const ::vw::platefile::IndexTransactionCursorRequest* request,
                                    ::vw::platefile::IndexTransactionCursorReply* response,

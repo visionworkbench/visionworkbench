@@ -153,6 +153,11 @@ message IndexTransactionComplete {
   required int32 transaction_id = 2;
 }
 
+message IndexTransactionFailed {
+  required int32 platefile_id = 1;
+  required int32 transaction_id = 2;
+}
+
 message IndexTransactionCursorRequest {
   required int32 platefile_id = 1;
 }
@@ -232,15 +237,17 @@ message RpcNullMessage {
 }
 
 message RpcRequestWrapper {
-  required string requestor = 1;
-  required string method = 2;
-  required bytes payload = 3;
+  required uint32 sequence_number = 1;
+  required string requestor = 2;
+  required string method = 3;
+  required bytes payload = 4;
 }
 
 message RpcResponseWrapper {
-  optional bytes payload = 1;
-  required bool error = 2 [ default = false ];
-  optional RpcErrorInfo error_info = 3;
+  required uint32 sequence_number = 1;
+  optional bytes payload = 2;
+  required bool error = 3 [ default = false ];
+  optional RpcErrorInfo error_info = 4;
 }
 
 service IndexService {
@@ -253,6 +260,7 @@ service IndexService {
   rpc TransactionRequest (IndexTransactionRequest) returns (IndexTransactionReply);
   rpc RootComplete (IndexRootComplete) returns (RpcNullMessage);
   rpc TransactionComplete (IndexTransactionComplete) returns (RpcNullMessage);
+  rpc TransactionFailed (IndexTransactionFailed) returns (RpcNullMessage);
   rpc TransactionCursor (IndexTransactionCursorRequest) returns (IndexTransactionCursorReply);
   rpc DepthRequest (IndexDepthRequest) returns (IndexDepthReply);
   rpc ListRequest (IndexListRequest) returns (IndexListReply);

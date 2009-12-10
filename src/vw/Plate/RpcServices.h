@@ -185,10 +185,18 @@ namespace platefile {
     // is the routing key to address message to the server.
     std::string m_request_routing_key;
 
+    // This sequence number is used to make sure that we receive
+    // packets back in the order that we send them!
+    vw::uint32 m_sequence_number;
+    int m_max_tries;
+
   public:
     AmqpRpcClient(boost::shared_ptr<AmqpConnection> conn, std::string exchange,
                   std::string queue, std::string request_routing_key, uint32 exchange_count = 1) :
-      AmqpRpcEndpoint(conn, exchange, queue, exchange_count), m_request_routing_key(request_routing_key) {}
+      AmqpRpcEndpoint(conn, exchange, queue, exchange_count), 
+      m_request_routing_key(request_routing_key),
+      m_sequence_number(0), 
+      m_max_tries(3) {}  // Retry timed out AMQP tests 3 times...
 
     virtual ~AmqpRpcClient() {}
 
