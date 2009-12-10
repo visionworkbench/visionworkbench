@@ -26,9 +26,10 @@ class ThreadQueue : private boost::noncopyable {
     Condition m_cond;
   public:
     void push(T const& data) {
-      Mutex::Lock lock(m_mutex);
-      m_queue.push(data);
-      lock.unlock();
+      {
+        Mutex::Lock lock(m_mutex);
+        m_queue.push(data);
+      }
 
       // notify AFTER we release the lock, so we don't wake up a thread just to
       // have it run into a lock
@@ -51,6 +52,13 @@ class ThreadQueue : private boost::noncopyable {
       m_queue.pop();
       return true;
     }
+
+    // Returns the number of messages waiting in the queue.
+    int size() const {
+      Mutex::Lock lock(m_mutex);
+      return m_queue.size();
+    }  
+
 
     // Wait for data forever
     void wait_pop(T& data) {
@@ -78,9 +86,8 @@ class ThreadQueue : private boost::noncopyable {
 
     void flush() {
       Mutex::Lock lock(m_mutex);
-      T temp;
       while (!m_queue.empty()) {
-        wait_pop(temp);
+        m_queue.pop();
       }
     }
 };

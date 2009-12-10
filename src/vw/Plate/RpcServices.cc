@@ -69,7 +69,7 @@ void vw::platefile::AmqpRpcServer::run() {
       m_service->CallMethod(method, this, request.get(), response.get(),
                             google::protobuf::NewCallback(&null_closure));
 
-      //      std::cout << "Response: " << response->DebugString() << "\n\n";
+      //      std::cout << "Response: " << response->DebugString() << "\n";
 
       // ---------------------------
       // Step 3 : Return the result.
@@ -209,18 +209,15 @@ void AmqpRpcEndpoint::send_message(const ::google::protobuf::Message& message, s
 }
 
 void AmqpRpcEndpoint::send_bytes(ByteArray const& message, std::string routing_key) {
-  // XXX: this flushes out the message queue. this might not be a good
-  // idea- what if the caller just hasn't processed the message yet?
-  messages.flush();
   m_channel->basic_publish(message, m_exchange + "_" + vw::stringify(m_next_exchange++), routing_key);
   m_next_exchange %= m_exchange_count;
 }
 
 void AmqpRpcEndpoint::get_bytes(SharedByteArray& bytes, vw::int32 timeout) {
   if (timeout == -1)
-    this->messages.wait_pop(bytes);
+    this->m_incoming_messages.wait_pop(bytes);
   else {
-    if (!this->messages.timed_wait_pop(bytes, timeout)) {
+    if (!this->m_incoming_messages.timed_wait_pop(bytes, timeout)) {
       vw_throw(AMQPTimeout() << "Timeout");
     }
   }
@@ -235,7 +232,7 @@ void AmqpRpcEndpoint::bind_service(boost::shared_ptr<google::protobuf::Service> 
   m_routing_key = routing_key;
   for (uint32 i = 0; i < m_exchange_count; ++i)
     m_channel->queue_bind(m_queue, m_exchange + "_" + vw::stringify(i), routing_key);
-  m_consumer = m_channel->basic_consume(m_queue, boost::bind(&vw::ThreadQueue<SharedByteArray>::push, boost::ref(messages), _1));
+  m_consumer = m_channel->basic_consume(m_queue, boost::bind(&vw::ThreadQueue<SharedByteArray>::push, boost::ref(m_incoming_messages), _1));
 }
 
 void AmqpRpcEndpoint::unbind_service() {

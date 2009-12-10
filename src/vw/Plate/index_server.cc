@@ -104,6 +104,7 @@ int main(int argc, char** argv) {
   while(1) {
     int queries = server->queries_processed();
     size_t bytes = server->bytes_processed();
+    int n_outstanding_messages = server->incoming_message_queue_size();
     server->reset_stats();
 
     float dt = float(Stopwatch::microtime() - t0) / 1e6;
@@ -111,7 +112,9 @@ int main(int argc, char** argv) {
 
     std::cout << "[index_server] : "
               << float(queries/dt) << " qps    "
-              << float(bytes/dt)/1000.0 << " kB/sec                          \r" << std::flush;
+              << float(bytes/dt)/1000.0 << " kB/sec    " 
+              << n_outstanding_messages << " outstanding messages                          \r" 
+              << std::flush;
     sleep(1.0);
   }
 

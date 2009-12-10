@@ -72,7 +72,7 @@ namespace platefile {
       uint32 m_exchange_count;
       uint32 m_next_exchange;
 
-      vw::ThreadQueue<boost::shared_ptr<ByteArray> > messages;
+      vw::ThreadQueue<boost::shared_ptr<ByteArray> > m_incoming_messages;
 
     public:
     AmqpRpcEndpoint(boost::shared_ptr<AmqpConnection> conn, std::string exchange, std::string queue, uint32 exchange_count);
@@ -107,6 +107,10 @@ namespace platefile {
 
       const std::string queue_name() {
         return m_queue;
+      }
+  
+      int incoming_message_queue_size() const {
+        return m_incoming_messages.size();
       }
 
       virtual void Reset() { }
@@ -153,7 +157,7 @@ namespace platefile {
         m_routing_key = routing_key;
         for (uint32 i = 0; i < m_exchange_count; ++i)
           m_channel->queue_bind(m_queue, m_exchange + "_" + vw::stringify(i), routing_key);
-        m_consumer = m_channel->basic_consume(m_queue, boost::bind(&vw::ThreadQueue<SharedByteArray>::push, boost::ref(messages), _1));
+        m_consumer = m_channel->basic_consume(m_queue, boost::bind(&vw::ThreadQueue<SharedByteArray>::push, boost::ref(m_incoming_messages), _1));
       }
   };
 
