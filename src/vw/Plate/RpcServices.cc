@@ -79,7 +79,11 @@ void vw::platefile::AmqpRpcServer::run() {
         response_wrapper.set_sequence_number(request_wrapper.sequence_number());
         response_wrapper.set_error(false);
         response_wrapper.set_payload(response->SerializeAsString());
-        this->send_message(response_wrapper, request_wrapper.requestor());
+
+        // If the requestor field was blank, then we simply don't send
+        // a response at all.  Otherwise, we do.
+        if (request_wrapper.requestor() != "")
+          this->send_message(response_wrapper, request_wrapper.requestor());
 
       } catch (PlatefileErr &e) {
 
@@ -165,9 +169,11 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
       // If we timed out, increment the number of tries and loop back
       // to the beginning.
       ++ntries;
-      if (ntries > m_max_tries) 
+      if (ntries >= m_max_tries) {
+        std::cout << "**** THROWING MAX TRIES TIMEOUT!!!\n";
         vw_throw(AMQPTimeout() << "CallMethod timed out completely after " 
                  << m_max_tries << " tries.");
+      }
 
       vw_out(0) << "WARNING: CallMethod() timed out.  Executing retry #" << ntries << ".\n";
     }
