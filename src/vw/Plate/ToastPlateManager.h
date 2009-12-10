@@ -204,12 +204,14 @@ namespace platefile {
         hdr.set_row(tiles[i].j);
         hdr.set_depth(pyramid_level);
         tile_headers.push_back(hdr);
-      }      
+      }
       int transaction_id = m_platefile->transaction_request(description, tile_headers);
-
+      int platefile_id = m_platefile->index_header().platefile_id();
+      
       // And save each tile to the PlateFile
-      std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.  " 
-                << "Transaction ID: " << transaction_id << "\n";
+      std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n" 
+                << "\t    Platefile ID: " << platefile_id << "\n"
+                << "\t    Transaction ID: " << transaction_id << "\n";
       progress.report_progress(0);
       for (size_t i = 0; i < tiles.size(); ++i) {
         m_queue.add_task(boost::shared_ptr<Task>(

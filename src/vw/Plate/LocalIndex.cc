@@ -178,7 +178,7 @@ vw::platefile::LocalIndex::LocalIndex(std::string plate_filename) :
     // If we fail to open the log, then it's ok for now.  However, the
     // program _will_ crash if we try to do something with the index
     // that generates a log message.
-    vw_out(WarningMessage, "plate") << "WARNING: could not open index log file. "
+    vw_out(WarningMessage, "plate") << "\nWARNING: could not open index log file. "
                                     << "Proceed with caution.";
   }
 
@@ -323,6 +323,8 @@ void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id) {
 // Once a chunk of work is complete, clients can "commit" their
 // work to the mosaic by issuing a transaction_complete method.
 void vw::platefile::LocalIndex::transaction_failed(int32 transaction_id) {
+
+  vw_out(0) << "\nWARNING: Transaction failed -- " << transaction_id << "\n";
 
   // Update the list of failed transactions in the index header
   m_header.mutable_failed_transaction_ids()->Add(transaction_id);

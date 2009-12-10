@@ -336,7 +336,8 @@ void IndexServiceImpl::TransactionFailed(::google::protobuf::RpcController* cont
     
   // Access the data in the index.  Return the data on success, or
   // notify the remote client of our failure if we did not succeed.
-  rec.index->transaction_complete(request->transaction_id());
+  rec.index->transaction_failed(request->transaction_id());
+
   // This message has no response.
   done->Run();
 }

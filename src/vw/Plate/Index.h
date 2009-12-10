@@ -101,6 +101,9 @@ namespace platefile {
     /// work to the mosaic by issuding a transaction_complete method.
     virtual void transaction_complete(int32 transaction_id) = 0;
 
+    // If a transaction fails, we may need to clean up the mosaic.  
+    virtual void transaction_failed(int32 transaction_id) = 0;
+
     virtual int32 transaction_cursor() = 0;
 
     // --------------------- UTILITIES ------------------------

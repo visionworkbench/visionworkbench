@@ -83,6 +83,9 @@ namespace platefile {
     virtual void root_complete(int32 transaction_id,
                                std::vector<TileHeader> const& tile_headers);
 
+    // If a transaction fails, we may need to clean up the mosaic.  
+    virtual void transaction_failed(int32 transaction_id);
+
     // Once a chunk of work is complete, clients can "commit" their
     // work to the mosaic by issuding a transaction_complete method.
     virtual void transaction_complete(int32 transaction_id);

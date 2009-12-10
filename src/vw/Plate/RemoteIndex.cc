@@ -272,6 +272,17 @@ void vw::platefile::RemoteIndex::transaction_complete(int32 transaction_id) {
                                        google::protobuf::NewCallback(&null_closure));
 }
 
+// If a transaction fails, we may need to clean up the mosaic.  
+void vw::platefile::RemoteIndex::transaction_failed(int32 transaction_id) {
+  IndexTransactionFailed request;
+  request.set_platefile_id(m_platefile_id);
+  request.set_transaction_id(transaction_id);
+  
+  RpcNullMessage response;
+  m_index_service->TransactionFailed(m_rpc_controller.get(), &request, &response, 
+                                     google::protobuf::NewCallback(&null_closure));
+}
+
 vw::int32 vw::platefile::RemoteIndex::transaction_cursor() {
   IndexTransactionCursorRequest request;
   request.set_platefile_id(m_platefile_id);

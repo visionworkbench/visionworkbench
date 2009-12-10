@@ -225,6 +225,9 @@ namespace platefile {
     /// Returns the name of the root directory containing the plate file.
     std::string name() const { return m_index->platefile_name(); }
 
+    /// Returns the name of the root directory containing the plate file.
+    IndexHeader index_header() const { return m_index->index_header(); }
+
     /// Returns the file type used to store tiles in this plate file.
     std::string default_file_type() const { return m_index->tile_filetype(); }
 
@@ -400,6 +403,11 @@ namespace platefile {
     // work to the mosaic by issuding a transaction_complete method.
     virtual void transaction_complete(int32 transaction_id) {
       m_index->transaction_complete(transaction_id);
+    }
+
+    // If a transaction fails, we may need to clean up the mosaic.  
+    virtual void transaction_failed(int32 transaction_id) {
+      m_index->transaction_failed(transaction_id);
     }
 
     virtual int32 transaction_cursor() {
