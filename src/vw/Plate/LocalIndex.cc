@@ -268,46 +268,74 @@ void vw::platefile::LocalIndex::root_complete(int transaction_id,
 }
 
 // Once a chunk of work is complete, clients can "commit" their
-// work to the mosaic by issueing a transaction_complete method.
+// work to the mosaic by issuing a transaction_complete method.
 void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id) {
   Mutex::Lock lock(m_mutex);
 
-  this->log() << "Transaction " << transaction_id << " finished.\n";
-  
-  // If this ID is the next one after the current write ID, then we
-  // increment the read ID.
-  if (transaction_id == m_header.transaction_read_cursor() + 1) {
+  // XXXXXX FIXME: The read cursor should only get updated in a more
+  // subtle way (see code below), however we need to find a way of
+  // sorting and deleting transaction cursors from the
+  // complete_transaction_ids in the index_header data structure.
+
+  // Update the transaction read cursor
+  m_header.set_transaction_read_cursor(transaction_id);
+  this->save_index_file();
+
+  // // If this ID is the next one after the current write ID, then we
+  // // increment the read ID.
+  // if (transaction_id == m_header.transaction_read_cursor() + 1) {
     
-    // Update the transaction read cursor
-    m_header.set_transaction_read_cursor(transaction_id);
+  //   // Update the transaction read cursor
+  //   m_header.set_transaction_read_cursor(transaction_id);
+  //   this->save_index_file();
+
+  //   // Replay the remaining transaction IDs to see if the next ids are outstanding.
+  //   bool match;
+  //   do {
+  //     match = false;
+  //     google::protobuf::RepeatedField<const int32>::iterator iter = m_header.complete_transaction_ids().begin();
+  //     while (iter != m_header.complete_transaction_ids().end()) {
+  //       if (*iter == m_header.transaction_read_cursor() + 1) {
+  //         m_header.set_transaction_read_cursor(*iter);
+  //         this->save_index_file();
+  //         match = true;
+  //       }
+  //       ++iter;
+  //     }
+  //   } while (match);
+
+  // } else {
+
+  //   // This wasn't the next ID.  We store it in the queue and save it for later.
+  //   m_header.mutable_complete_transaction_ids()->Add(transaction_id);
+  //   this->save_index_file();
+
+  //   const int MAX_OUTSTANDING_TRANSACTION_IDS = 10;
+  //   if (m_header.complete_transaction_ids().size() > MAX_OUTSTANDING_TRANSACTION_IDS) 
+  //     vw_out(0) << "WARNING: Detected potential stall in the transaction pipeline.  "
+  //               << "There are " << m_header.complete_transaction_ids().size() 
+  //               << " completed IDs waiting in the queue.\n";
+  // }
+  this->log() << "Transaction " << transaction_id << " complete.\n";
+
+}
+
+// Once a chunk of work is complete, clients can "commit" their
+// work to the mosaic by issuing a transaction_complete method.
+void vw::platefile::LocalIndex::transaction_failed(int32 transaction_id) {
+
+  // Update the list of failed transactions in the index header
+  m_header.mutable_failed_transaction_ids()->Add(transaction_id);
     this->save_index_file();
 
-    // Replay the remaining transaction IDs to see if the next ids are outstanding.
-    bool match;
-    do {
-      match = false;
-      google::protobuf::RepeatedField<const int32>::iterator iter = m_header.complete_transaction_ids().begin();
-      while (iter != m_header.complete_transaction_ids().end()) {
-        if (*iter == m_header.transaction_read_cursor() + 1) {
-          m_header.set_transaction_read_cursor(*iter);
-          this->save_index_file();
-          match = true;
-        }
-        ++iter;
-      }
-    } while (match);
+  // Erase all index entries related to this transaction_id in the
+  // live (in memory) index.
+  m_root->erase_transaction(transaction_id);
+  this->log() << "ERROR: Transaction " << transaction_id << " failed.\n";
 
-  } else {
-    // This wasn't the next ID.  We store it in the queue and save it for later.
-    m_header.mutable_complete_transaction_ids()->Add(transaction_id);
-    this->save_index_file();
-
-    const int MAX_OUTSTANDING_TRANSACTION_IDS = 10;
-    if (m_header.complete_transaction_ids().size() > MAX_OUTSTANDING_TRANSACTION_IDS) 
-      vw_out(0) << "WARNING: Detected potential stall in the transaction pipeline.  "
-                << "There are " << m_header.complete_transaction_ids().size() 
-                << " completed IDs waiting in the queue.\n";
-  }
+  // Now that we have cleaned things up, we mark the transaction as
+  // complete, which moves the transaction_cursor forward.
+  this->transaction_complete(transaction_id);
 }
 
 // Return the current location of the transaction cursor.  This

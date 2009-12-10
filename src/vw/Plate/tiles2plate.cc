@@ -294,9 +294,6 @@ int main( int argc, char *argv[] ) {
                                                   tile_size, output_file_type,
                                                   pixel_format, channel_type) );
 
-    int32 read_transaction_id = platefile->transaction_cursor();
-
-
     // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     // XXX NOTE TO TED:  
     //

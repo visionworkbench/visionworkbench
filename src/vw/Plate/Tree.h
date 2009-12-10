@@ -291,6 +291,37 @@ namespace platefile {
       }
     }
 
+    // XXX: ABSTRACTION VIOLATION - this needs to be factored out into
+    // the index when I have time.
+    // 
+    // Traverses any branches of the tree that contain entries with
+    // the given transaction id and delete them!  This assumes that
+    // all entries that need to be deleted are connected back up to
+    // the root node where we begin.
+    void erase_transaction_helper(int col, int row, int level, int transaction_id) {
+
+      // Call the function for the current level.
+      if (m_records.find(transaction_id) != m_records.end()) {
+
+        // Delete this transaction id.
+        m_records.erase(transaction_id);
+
+        // Call the function for future levels.
+        if ( this->child(0) ) 
+          this->child(0)->erase_transaction_helper(col*2, row*2, level + 1, transaction_id);
+        
+        if ( this->child(1) ) 
+          this->child(1)->erase_transaction_helper(col*2+1, row*2, level + 1, transaction_id);
+        
+        if ( this->child(2) ) 
+          this->child(2)->erase_transaction_helper(col*2, row*2+1, level + 1, transaction_id);
+        
+        if ( this->child(3) ) 
+          this->child(3)->erase_transaction_helper(col*2+1, row*2+1, level + 1, transaction_id);
+      
+      }
+    }
+
     void print_helper(int current_level) const {
       vw_out(0) << (*(m_records.begin())).second.status() << "\n";
       for (int i = 0; i < 4; ++i) 
@@ -424,6 +455,10 @@ namespace platefile {
 
     void map(boost::shared_ptr<TreeMapFunc> func) {
       this->map_helper(func, 0, 0, 0);
+    }
+
+    void erase_transaction(int transaction_id) {
+      this->erase_transaction_helper(0, 0, 0, transaction_id);
     }
 
   };

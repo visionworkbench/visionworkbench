@@ -71,6 +71,7 @@ message IndexHeader {
   optional int32 transaction_read_cursor = 11 [default = 0];
   optional int32 transaction_write_cursor = 12 [default = 1];
   repeated int32 complete_transaction_ids = 13 [packed = true];
+  repeated int32 failed_transaction_ids = 14 [packed = true];
 
 }
 

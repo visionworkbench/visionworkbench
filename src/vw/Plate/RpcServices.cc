@@ -170,7 +170,6 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
       // to the beginning.
       ++ntries;
       if (ntries >= m_max_tries) {
-        std::cout << "**** THROWING MAX TRIES TIMEOUT!!!\n";
         vw_throw(AMQPTimeout() << "CallMethod timed out completely after " 
                  << m_max_tries << " tries.");
       }
