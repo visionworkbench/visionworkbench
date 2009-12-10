@@ -41,7 +41,7 @@ namespace {
   void die_on_amqp_error(amqp_rpc_reply_t x, const std::string& context);
   void die_on_error(int x, const std::string& context);
   SharedByteArray pump_queue(amqp_connection_state_t conn);
-  void select_helper(int fd, vw::int32 timeout, const std::string& context);
+  bool select_helper(int fd, vw::int32 timeout, const std::string& context);
   void vw_simple_wait_frame(amqp_connection_state_t conn, amqp_frame_t *frame,
                             vw::int32 timeout, const std::string& context);
 }
@@ -219,7 +219,9 @@ class AmqpConsumeTask {
 
       while (go) {
         // Waiting for frames. We don't want to hold the lock while we do that, so select here.
-        select_helper(fd, 100, "select() for a method frame");
+        // Small timeout so it shuts down fast.
+        if (!select_helper(fd, 100, "select() for a method frame"))
+          continue;
 
         SharedByteArray msg;
         {
@@ -363,7 +365,7 @@ SharedByteArray pump_queue(amqp_connection_state_t conn) {
   return payload;
 }
 
-void select_helper(int fd, vw::int32 timeout, const std::string& context) {
+bool select_helper(int fd, vw::int32 timeout, const std::string& context) {
   // Darn, out of data. Let's try to get some.
   fd_set fds;
   struct timeval tv;
@@ -378,7 +380,8 @@ void select_helper(int fd, vw::int32 timeout, const std::string& context) {
   if (result == -1)
     die_on_error(errno, context + ":" "select() failed");
   else if (result == 0)
-    vw_throw(AMQPTimeout() << context << ": select() timed out");
+    return false;
+  return true;
 }
 
 } // namespace
@@ -440,43 +443,46 @@ void vw_simple_wait_frame(amqp_connection_state_t state, amqp_frame_t *frame, vw
     return;
   }
 
-  // We're out of frames. Let's get some!
-  // Do we have unframed data from a previous read? Deal with it.
-  while (amqp_data_in_buffer(state)) {
-    amqp_bytes_t buffer;
-    buffer.len = state->sock_inbound_limit - state->sock_inbound_offset;
-    buffer.bytes = ((char *) state->sock_inbound_buffer.bytes) + state->sock_inbound_offset;
+  while (1) {
+    // We're out of frames. Let's get some!
+    // Do we have unframed data from a previous read? Deal with it.
+    while (amqp_data_in_buffer(state)) {
+      amqp_bytes_t buffer;
+      buffer.len = state->sock_inbound_limit - state->sock_inbound_offset;
+      buffer.bytes = ((char *) state->sock_inbound_buffer.bytes) + state->sock_inbound_offset;
 
-    // Try to frame the data
-    int result = amqp_handle_input(state, buffer, frame);
+      // Try to frame the data
+      int result = amqp_handle_input(state, buffer, frame);
 
-    die_on_error(result, "Processing Read Frame");
-    if (result == 0)
-      vw_throw(AMQPErr() << "AMQP Error: EOF on socket");
+      die_on_error(result, "Processing Read Frame");
+      if (result == 0)
+        vw_throw(AMQPErr() << "AMQP Error: EOF on socket");
 
-    state->sock_inbound_offset += result;
+      state->sock_inbound_offset += result;
 
-    if (frame->frame_type != 0) {
-      /* Complete frame was read. Return it. */
-      return;
+      if (frame->frame_type != 0) {
+        /* Complete frame was read. Return it. */
+        return;
+      }
     }
+
+    // Darn, out of data. Let's try to get some.
+    if (!select_helper(state->sockfd, timeout, context))
+      vw_throw(AMQPTimeout() << context << ": timed out");
+
+    // Won't block because we select()'d, and we know it's primed.
+    int result = read(state->sockfd,
+                      state->sock_inbound_buffer.bytes,
+                      state->sock_inbound_buffer.len);
+
+    if (result < 0)
+      die_on_error(errno, context + ":" + "read() failed");
+    else if (result == 0)
+      vw_throw(AMQPEof() << "Socket closed");
+
+    state->sock_inbound_limit = result;
+    state->sock_inbound_offset = 0;
   }
-
-  // Darn, out of data. Let's try to get some.
-  select_helper(state->sockfd, timeout, context);
-
-  // Won't block because we select()'d, and we know it's primed.
-  int result = read(state->sockfd,
-                    state->sock_inbound_buffer.bytes,
-                    state->sock_inbound_buffer.len);
-
-  if (result < 0)
-    die_on_error(errno, context + ":" + "read() failed");
-  else if (result == 0)
-    vw_throw(AMQPEof() << "Socket closed");
-
-  state->sock_inbound_limit = result;
-  state->sock_inbound_offset = 0;
 }
 
 } // namespace anonymous
