@@ -54,6 +54,32 @@ namespace vw {
 	  return temp;
 	}
       };
+
+      struct ExtractUncertaintyFunctor : public vw::ReturnFixedType<Vector3f>  {
+	Vector3f operator()(PixelMask<Vector<float, 5> > const & in) const {
+	  Vector3f temp(subvector(in.child(), 2, 3));
+	  return temp;
+	}
+      };
+
+      struct SpectralRadiusUncertaintyFunctor : public vw::ReturnFixedType<float> {
+	float operator()(Vector<float, 3> const & in) const {
+	  // assume a covariance matric of the form
+	  // / a  b \
+	  // \ b  c /
+	  
+	  double a = in[0];
+	  double b = in[1];
+	  double c = in[2];
+	  
+	  // compute the eigen values of the matrix
+	  double desc = sqrt(a*a + 4*b*b - 2*a*c + c*c);
+	  double e_1 = .5*(a+c - desc);
+	  double e_2 = .5*(a+c + desc);	  
+			   
+	  return sqrt(std::max<float>(e_1, e_2));
+	}
+      };
       
       void set_pyramid_levels(int levels) { pyramid_levels = levels; }
       // EM parameter setters

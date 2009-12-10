@@ -222,29 +222,39 @@ namespace vw {
 
 
       double blur_sigma_progressive = .5; // 3*sigma = 1.5 pixels
+      
       // create the pyramid first
       std::vector<ImageView<ImagePixelT> > left_pyramid(pyramid_levels), right_pyramid(pyramid_levels);
       std::vector<BBox2i> regions_of_interest(pyramid_levels);
       std::vector<ImageView<Matrix2x2> > warps(pyramid_levels);
-
-
+      std::vector<ImageView<disparity_pixel> > disparity_map_pyramid(pyramid_levels);
+      
+      
+      // initialize the pyramid at level 0
       left_pyramid[0] = channels_to_planes(left_image_patch);
       right_pyramid[0] = channels_to_planes(right_image_patch);
+      disparity_map_pyramid[0] = disparity_map_patch_in;
       regions_of_interest[0] = BBox2i(m_kernel_size[0], m_kernel_size[1],
                                       bbox.width(),bbox.height());
+      
 
-      std::vector<ImageView<disparity_pixel> > disparity_map_pyramid(pyramid_levels);
-      std::vector<ImageView<disparity_pixel> > disparity_map_upsampled(pyramid_levels);
-      disparity_map_pyramid[0] = disparity_map_patch_in;
-
-      // downsample the disparity map and the image pair
-      for (int i = 1; i < pyramid_levels; i++) {
+      // downsample the disparity map and the image pair to initialize the intermediate levels
+      for(int i = 1; i < pyramid_levels; i++) {
         left_pyramid[i] = subsample(gaussian_filter(left_pyramid[i-1], blur_sigma_progressive), 2);
         right_pyramid[i] = subsample(gaussian_filter(right_pyramid[i-1], blur_sigma_progressive), 2);
-
+	
         disparity_map_pyramid[i] = subsample_disp_map_by_two(disparity_map_pyramid[i-1]);
         regions_of_interest[i] = BBox2i(regions_of_interest[i-1].min()/2, regions_of_interest[i-1].max()/2);
       }
+      
+      // initialize warps at the lowest resolution level
+      warps[pyramid_levels-1].set_size(left_pyramid[pyramid_levels-1].cols(),
+				       left_pyramid[pyramid_levels-1].rows());
+      for(int y = 0; y < warps[pyramid_levels-1].rows(); y++) {
+        for(int x = 0; x < warps[pyramid_levels-1].cols(); x++) {
+          warps[pyramid_levels-1](x, y).set_identity();
+        }
+      }      
 
 #ifdef USE_GRAPHICS
       vw_initialize_graphics(0, NULL);
@@ -255,66 +265,40 @@ namespace vw {
         }
       }
 #endif
-
-      ImageView<ImagePixelT> process_left_image = (left_pyramid[pyramid_levels-1]);
-      ImageView<ImagePixelT> process_right_image = (right_pyramid[pyramid_levels-1]);
-
-      warps[pyramid_levels-1].set_size(process_left_image.cols(), process_left_image.rows());
-      for(int y = 0; y < warps[pyramid_levels-1].rows(); y++) {
-        for(int x = 0; x < warps[pyramid_levels-1].cols(); x++) {
-          warps[pyramid_levels-1](x, y).set_identity();
-        }
-      }
-
-      vw_out(0) << "processing pyramid level "
-                << pyramid_levels-1 << std::endl;
       
-      m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()),
-                        disparity_map_pyramid[pyramid_levels-1], disparity_map_pyramid[pyramid_levels-1],
-			warps[pyramid_levels-1],regions_of_interest[pyramid_levels-1], false, debug_level == pyramid_levels-1);
-      disparity_map_upsampled[pyramid_levels-1] = copy(disparity_map_pyramid[pyramid_levels-1]);
-      
-      if(debug_level >= 0) {
-	std::stringstream stream;
-	stream << "pyramid_level_" << pyramid_levels-1 << ".tif";
-	write_image(stream.str(), disparity_map_pyramid[pyramid_levels-1]);
-      }
-
-      for (int i = pyramid_levels-2; i>=0; i--){
-        int up_width = left_pyramid[i].cols();
-        int up_height = left_pyramid[i].rows();
-        vw_out() << "processing pyramid level " << i << std::endl;
-        warps[i] = copy(resize(warps[i+1], up_width , up_height, ConstantEdgeExtension(), NearestPixelInterpolation())); //linear interpolation here
-
-        disparity_map_upsampled[i] = copy(upsample_disp_map_by_two(disparity_map_upsampled[i+1], up_width, up_height));
-
-        if(i == 0) {
-          process_left_image = channels_to_planes(left_image_patch);
-          process_right_image = channels_to_planes(right_image_patch);
-        }
-        else {
-          process_left_image = (left_pyramid[i]);
-          process_right_image = (right_pyramid[i]);
-        }
-
-        
-	if(i == 0) {	  
+      // go up the pyramid; first run refinement, then upsample result for the next level
+      for(int i = pyramid_levels-1; i >=0; i--) {
+	vw_out(0) << "processing pyramid level "
+		  << i << " of " << pyramid_levels-1 << std::endl;
+	
+	if(debug_level >= 0) {
+	  std::stringstream stream;
+	  stream << "pyramid_level_" << i << ".tif";
+	  write_image(stream.str(), disparity_map_pyramid[i]);
+	}
+	
+	ImageView<ImagePixelT> process_left_image = left_pyramid[i];
+	ImageView<ImagePixelT> process_right_image = right_pyramid[i];
+	
+	if(i > 0) { // in this case take refine the upsampled disparity map from the previous level,
+	  // and upsample for the next level
 	  m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()),
-			    disparity_map_upsampled[i], disparity_map_patch_out, warps[i],
+			    disparity_map_pyramid[i], disparity_map_pyramid[i], warps[i],
+			    regions_of_interest[i], false, debug_level == i);
+	  
+	  // upsample the warps and the refined map for the next level of processing
+	  int up_width = left_pyramid[i-1].cols();
+	  int up_height = left_pyramid[i-1].rows();
+	  warps[i-1] = copy(resize(warps[i], up_width , up_height, ConstantEdgeExtension(), NearestPixelInterpolation())); //upsample affine transforms
+	  disparity_map_pyramid[i-1] = copy(upsample_disp_map_by_two(disparity_map_pyramid[i], up_width, up_height));
+	}
+	else { // here there is no next level so we refine directly to the output patch
+	  m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()),
+			    disparity_map_pyramid[i], disparity_map_patch_out, warps[i],
 			    regions_of_interest[i], true, debug_level == i);
 	}
-	else {	  
-	  m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()),
-			    disparity_map_upsampled[i], disparity_map_upsampled[i], warps[i],
-			    regions_of_interest[i], false, debug_level == i);
-	  if(debug_level >= 0) {
-	    std::stringstream stream;
-	    stream << "pyramid_level_" << i << ".tif";
-	    write_image(stream.str(), disparity_map_upsampled[i]);
-	  }	  
-	}
       }
-
+      
 #ifdef USE_GRAPHICS
       if(debug_level >= 0) {
         vw_show_image(window, .5 + select_plane(channels_to_planes(disparity_map_patch_out)/6., 0));
@@ -415,6 +399,7 @@ namespace vw {
       affine_comp.set_epsilon_convergence(epsilon_inner);
       affine_comp.set_min_determinant(affine_min_det);
       affine_comp.set_max_determinant(affine_max_det);
+      //affine_comp.set_debug(true);
 
       //GaussianMixtureComponent<typename ImageT::pixel_type, double> outlier_comp1(left_image.impl(), m_kernel_size, mu_n_0, sigma_n_0, sigma_n_min);
       //GaussianMixtureComponent<typename ImageT::pixel_type, double> outlier_comp2(left_image.impl(), m_kernel_size, mu_n_0, sigma_n_0, sigma_n_min);
@@ -742,8 +727,8 @@ namespace vw {
             vw_out(0) << "refined warp: "
                       << affine_warps.impl()(x, y) << std::endl;
           }
-
-          if(0 && final) {
+	  
+          if(final) {
             double P_center = weights_p1(x - window_box.min().x(),  y - window_box.min().y());
             if(P_1 <= .25) { // if most pixels are outliers, set this one as missing
               disparity_out.impl()(x, y).invalidate();
