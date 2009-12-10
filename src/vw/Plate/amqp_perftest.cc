@@ -5,7 +5,6 @@
 // __END_LICENSE__
 
 #include <vw/Plate/RpcServices.h>
-#include <vw/Plate/Amqp.h>
 #include <vw/Core/Stopwatch.h>
 #include <vw/Core/ThreadQueue.h>
 #include <csignal>

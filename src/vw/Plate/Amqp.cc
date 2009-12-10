@@ -26,6 +26,11 @@
 #include <boost/shared_array.hpp>
 #include <cerrno>
 
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
+
 using namespace vw;
 using namespace vw::platefile;
 
@@ -49,6 +54,9 @@ AmqpConnection::AmqpConnection(std::string const& hostname, int port) {
   int fd = amqp_open_socket(hostname.c_str(), port);
   if (fd < 0)
     vw_throw(IOErr() << "Failed to open AMQP socket.");
+
+  int flag = 1;
+  die_on_error(setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int)), "Setting TCP_NODELAY");
 
   amqp_set_sockfd(m_state.get(), fd);
 
@@ -156,7 +164,7 @@ bool AmqpChannel::basic_get(std::string const& queue, SharedByteArray& message) 
   amqp_rpc_reply_t reply;
   while (true) {
     amqp_maybe_release_buffers(m_conn->m_state.get());
-    reply = amqp_basic_get(m_conn->m_state.get(), m_channel, amqp_string(queue), 0);
+    reply = amqp_basic_get(m_conn->m_state.get(), m_channel, amqp_string(queue), 1);
     die_on_amqp_error(reply, "Getting");
 
     if (reply.reply.id == AMQP_BASIC_GET_EMPTY_METHOD) {
@@ -264,7 +272,7 @@ boost::shared_ptr<AmqpConsumer> AmqpChannel::basic_consume(std::string const& qu
                                                            boost::function<void (SharedByteArray)> callback) {
   Mutex::Lock lock(m_conn->m_state_mutex);
 
-  amqp_basic_consume_ok_t *reply = amqp_basic_consume(m_conn->m_state.get(), m_channel, amqp_string(queue), amqp_string(""), 0, 0, 0);
+  amqp_basic_consume_ok_t *reply = amqp_basic_consume(m_conn->m_state.get(), m_channel, amqp_string(queue), amqp_string(""), 0, 1, 0);
   die_on_amqp_error(amqp_rpc_reply, "Starting Consumer");
 
   boost::shared_ptr<AmqpConsumeTask> task(new AmqpConsumeTask(m_conn, m_channel, callback, queue, amqp_bytes(reply->consumer_tag)));
