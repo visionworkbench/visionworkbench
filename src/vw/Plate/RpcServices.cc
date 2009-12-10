@@ -10,6 +10,7 @@
 #include <vw/Plate/ProtoBuffers.pb.h>
 #include <vw/Core/Stopwatch.h>
 using namespace vw;
+using namespace vw::platefile;
 
 #include <google/protobuf/descriptor.h>
 
@@ -178,4 +179,71 @@ std::string vw::platefile::AmqpRpcClient::UniqueQueueName(const std::string iden
   std::ostringstream requestor;
   requestor << identifier << "_" << hostname << "_" << getpid() << "_" << Thread::id() << vw::Stopwatch::microtime(false);
   return requestor.str();
+}
+
+
+
+AmqpRpcEndpoint::AmqpRpcEndpoint(boost::shared_ptr<AmqpConnection> conn, std::string exchange, std::string queue, uint32 exchange_count)
+  : m_channel(new AmqpChannel(conn)), m_exchange(exchange), m_queue(queue), m_exchange_count(exchange_count), m_next_exchange(0) {
+
+  for (uint32 i = 0; i < m_exchange_count; ++i)
+    m_channel->exchange_declare(exchange + "_" + vw::stringify(i), "direct", false, false);
+  m_channel->queue_declare(queue, false, true, true);
+
+  this->Reset();
+}
+
+AmqpRpcEndpoint::~AmqpRpcEndpoint() {
+  unbind_service();
+}
+
+void AmqpRpcEndpoint::serialize_message(const ::google::protobuf::Message& message, ByteArray& bytes) {
+  bytes.resize(message.ByteSize(), false);
+  message.SerializeToArray(bytes.begin(), message.ByteSize());
+}
+
+void AmqpRpcEndpoint::send_message(const ::google::protobuf::Message& message, std::string routing_key) {
+  ByteArray raw;
+  serialize_message(message, raw);
+  send_bytes(raw, routing_key);
+}
+
+void AmqpRpcEndpoint::send_bytes(ByteArray const& message, std::string routing_key) {
+  // XXX: this flushes out the message queue. this might not be a good
+  // idea- what if the caller just hasn't processed the message yet?
+  messages.flush();
+  m_channel->basic_publish(message, m_exchange + "_" + vw::stringify(m_next_exchange++), routing_key);
+  m_next_exchange %= m_exchange_count;
+}
+
+void AmqpRpcEndpoint::get_bytes(SharedByteArray& bytes, vw::int32 timeout) {
+  if (timeout == -1)
+    this->messages.wait_pop(bytes);
+  else {
+    if (!this->messages.timed_wait_pop(bytes, timeout)) {
+      vw_throw(AMQPTimeout() << "Timeout");
+    }
+  }
+}
+
+void AmqpRpcEndpoint::bind_service(boost::shared_ptr<google::protobuf::Service> service,
+                  std::string routing_key) {
+  if (m_consumer)
+    vw_throw(vw::ArgumentErr() << "AmqpRpcEndpoint::bind_service(): unbind your service before you start another one");
+
+  m_service = service;
+  m_routing_key = routing_key;
+  for (uint32 i = 0; i < m_exchange_count; ++i)
+    m_channel->queue_bind(m_queue, m_exchange + "_" + vw::stringify(i), routing_key);
+  m_consumer = m_channel->basic_consume(m_queue, boost::bind(&vw::ThreadQueue<SharedByteArray>::push, boost::ref(messages), _1));
+}
+
+void AmqpRpcEndpoint::unbind_service() {
+  if (m_consumer) {
+    m_consumer.reset();
+    for (uint32 i = 0; i < m_exchange_count; ++i)
+      m_channel->queue_unbind(m_queue, m_exchange + "_" + vw::stringify(i), m_routing_key);
+    m_routing_key = "";
+    m_service.reset();
+  }
 }

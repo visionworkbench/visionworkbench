@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+#include <vw/Plate/RpcServices.h>
 #include <vw/Plate/Amqp.h>
 #include <vw/Core/Stopwatch.h>
 #include <vw/Core/ThreadQueue.h>
@@ -21,28 +22,22 @@ using namespace vw;
 // --------------------------------------------------------------
 
 void run_client(std::string exchange, std::string client_queue,
-                const std::string server_queue, int message_size, bool rtt) {
+                const std::string server_queue, unsigned message_size, bool rtt, unsigned exchanges) {
   std::cerr << "Running client...\n";
 
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
-  AmqpChannel chan(conn);
-
-  chan.exchange_declare(exchange, "direct", false, false);  // not durable, no autodelete
-  chan.queue_declare(client_queue, false, true, true);  // not durable, exclusive, auto-delete
-  chan.queue_bind(client_queue, exchange, client_queue);
+  AmqpRpcDumbClient client(conn, exchange, client_queue, exchanges);
+  client.bind_service(client_queue);
 
   int msgs = 0;
   long long t0 = Stopwatch::microtime();
 
-  ThreadQueue<SharedByteArray> q;
-  boost::shared_ptr<AmqpConsumer> c = chan.basic_consume(client_queue,
-                                                         boost::bind(&ThreadQueue<SharedByteArray>::push,
-                                                                     boost::ref(q), _1));
-
   uint8 frame_seq = 0;
   SharedByteArray result;
   while (1) {
-    if (!q.timed_wait_pop(result, 3000)) {
+    try {
+      client.get_bytes(result, 3000);
+    } catch (const AMQPTimeout&) {
       vw_out(0) << "No messages for 3 seconds" << std::endl;
       break;
     }
@@ -70,11 +65,9 @@ void run_client(std::string exchange, std::string client_queue,
       frame_seq++;
     }
 
-
-
     // Echo the message back to the server
     if (rtt)
-      chan.basic_publish(*(result.get()), exchange, server_queue);
+      client.send_bytes(*(result.get()), server_queue);
 
     ++msgs;
 
@@ -100,23 +93,14 @@ void sighandle(int sig) {
 // --------------------------------------------------------------
 
 void run_server(const std::string exchange, const std::string client_queue,
-                const std::string server_queue, int message_size, bool rtt, unsigned batch) {
+                const std::string server_queue, unsigned message_size, bool rtt, unsigned batch, unsigned exchanges) {
   std::cerr << "Running server...\n";
 
   signal(SIGINT, sighandle);
 
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
-  AmqpChannel chan(conn);
-
-  // Create a queue and bind it to the index server exchange.
-  chan.exchange_declare(exchange, "direct", false, false);
-  chan.queue_declare(server_queue, false, true, true);  // not durable, exclusive, auto-delete
-  chan.queue_bind(server_queue, exchange, server_queue);
-
-  ThreadQueue<SharedByteArray> q;
-  boost::shared_ptr<AmqpConsumer> c = chan.basic_consume(server_queue,
-                                                         boost::bind(&ThreadQueue<SharedByteArray>::push,
-                                                                     boost::ref(q), _1));
+  AmqpRpcDumbClient server(conn, exchange, server_queue, exchanges);
+  server.bind_service(server_queue);
 
   // Set up the message
   ByteArray msg(message_size);
@@ -130,9 +114,9 @@ void run_server(const std::string exchange, const std::string client_queue,
   long long msgs = 0;
 
   while(go) {
-    for (int i = 0; i < batch; ++i) {
+    for (unsigned i = 0; i < batch; ++i) {
       msg[0] = frame_seq++;
-      chan.basic_publish(msg, exchange, client_queue);
+      server.send_bytes(msg, client_queue);
       msgs++;
     }
     float diff = (Stopwatch::microtime() - t0) / 1e6;
@@ -143,7 +127,9 @@ void run_server(const std::string exchange, const std::string client_queue,
     }
 
     if (rtt) {
-      if (!q.timed_wait_pop(result, 3000)) {
+      try {
+        server.get_bytes(result, 3000);
+      } catch (const AMQPTimeout&) {
         vw_out(0) << "No ACKs for 3 seconds" << std::endl;
         break;
       }
@@ -153,7 +139,7 @@ void run_server(const std::string exchange, const std::string client_queue,
         std::cerr << "Error -- unexpected echo message size : " << result->size() << "\n";
       }
 
-      for (int i = 1; i < result->size(); ++i) {
+      for (unsigned i = 1; i < result->size(); ++i) {
         bool bad = false;
         if ( (*result)[i] != msg[i] ) {
           std::cerr << "      Bad byte: " << int((*result)[i]) << "\n";
@@ -173,16 +159,18 @@ void run_server(const std::string exchange, const std::string client_queue,
 
 int main(int argc, char** argv) {
 
-  int message_size;
+  unsigned message_size;
   unsigned batch;
+  unsigned exchanges;
 
   po::options_description general_options("AMQP Performance Test Program");
   general_options.add_options()
     ("client", "Act as client.")
     ("server", "Act as server.")
-    ("batch",  po::value(&batch)->default_value(1), "How many messages to publish before checking for responses (server-only)")
+    ("batch",     po::value(&batch)->default_value(1), "How many messages to publish before checking for responses (server-only)")
+    ("exchanges", po::value(&exchanges)->default_value(1), "How many exchanges should we stripe across?")
     ("rtt", "Measure round trip messages/sec instead of one way messages/sec.")
-    ("message-size", po::value<int>(&message_size)->default_value(5), "Message size in bytes")
+    ("message-size", po::value(&message_size)->default_value(5), "Message size in bytes")
     ("help", "Display this help message");
 
   po::variables_map vm;
@@ -200,11 +188,11 @@ int main(int argc, char** argv) {
 
   if( vm.count("server") )
     run_server("ptest_exchange", "ptest_client_queue", "ptest_server_queue",
-               message_size, vm.count("rtt"), batch);
+               message_size, vm.count("rtt"), batch, exchanges);
 
   if( vm.count("client") )
     run_client("ptest_exchange", "ptest_client_queue", "ptest_server_queue",
-               message_size, vm.count("rtt"));
+               message_size, vm.count("rtt"), exchanges);
 
   return 0;
 }
