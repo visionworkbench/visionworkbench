@@ -1,7 +1,8 @@
 #include <vw/Plate/PlateManager.h>
 
 template <class PixelT>
-vw::ImageView<PixelT> vw::platefile::composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
+vw::ImageView<PixelT> 
+vw::platefile::PlateCompositor<PixelT>::composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
                                                            ImageView<PixelT> tile,
                                                            int col, int row, int level,
                                                            int max_depth, int transaction_id,
@@ -47,8 +48,13 @@ vw::ImageView<PixelT> vw::platefile::composite_mosaic_tile(boost::shared_ptr<Pla
     // exists on top of which we can composite the new data.
     while (!found && search_level >= 0) {
       try {
-        closest_record = platefile->read_record(search_col, search_row, 
-                                                search_level, transaction_id-1);
+        
+        bool was_in_cache = this->restore_record(closest_record, search_col, search_row, 
+                                                 search_level, transaction_id-1);
+        
+        if (!was_in_cache)
+          closest_record = platefile->read_record(search_col, search_row, 
+                                                  search_level, transaction_id-1);
 
         // Mosaicking must happen strictly in order of transaction
         // ID.  Here we check to see if the underlying data tile is
@@ -59,22 +65,42 @@ vw::ImageView<PixelT> vw::platefile::composite_mosaic_tile(boost::shared_ptr<Pla
         while (search_level + 10 > max_depth &&
                (closest_record.status() == INDEX_RECORD_LOCKED || 
                 closest_record.status() == INDEX_RECORD_STALE)) {
-          vw_out(0) << "WAITING for tile [ " << search_col << " " << search_row 
+          vw_out(0) << "\nWAITING for tile [ " << search_col << " " << search_row 
                     << " @ " << search_level << "]\n";
           sleep(5.0);
           closest_record = platefile->read_record(search_col, search_row, 
                                                   search_level, transaction_id-1);
         }
 
+        // Save the tile in the cache if it VALID or EMPTY
+        if (closest_record.status() == INDEX_RECORD_VALID ||
+            closest_record.status() == INDEX_RECORD_EMPTY) {
+
+          this->save_record(closest_record, search_col, search_row, 
+                            search_level, transaction_id-1);
+
+        }
+
         // If we find a valid tile, the search is over.
         if (closest_record.status() == INDEX_RECORD_VALID) {
+
           found = true;
+          
         } else {
           --search_level;
           search_col /= 2;
           search_row /= 2;
         }
+
       } catch (TileNotFoundErr &e) {
+
+        // Save the invalid index record to the cache.  It will become
+        // an EMPTY record, but that will result in the same behavior
+        // of found = false.
+        IndexRecord not_found;
+        this->save_record(not_found, search_col, search_row, 
+                          search_level, transaction_id-1);
+
         // If the tile is not found, the search continues at the next level
         --search_level;
         search_col /= 2;
@@ -86,7 +112,8 @@ vw::ImageView<PixelT> vw::platefile::composite_mosaic_tile(boost::shared_ptr<Pla
     // into the mosaic directly.
     if (!found) {
 
-        platefile->write(tile, col, row, level, transaction_id);
+      // Write the un-composited tile to disk
+      platefile->write(tile, col, row, level, transaction_id);
 
     } else {
 
@@ -146,14 +173,14 @@ namespace vw {
 namespace platefile {
 
   template ImageView<PixelGrayA<uint8> > 
-  composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
+  PlateCompositor<PixelGrayA<uint8> >::composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
                         ImageView<PixelGrayA<uint8> > tile,
                         int col, int row, int level,
                         int max_depth, int transaction_id,
                         const ProgressCallback &progress_callback);
 
   template ImageView<PixelRGBA<uint8> > 
-  composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
+  PlateCompositor<PixelRGBA<uint8> >::composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
                         ImageView<PixelRGBA<uint8> > tile,
                         int col, int row, int level,
                         int max_depth, int transaction_id,

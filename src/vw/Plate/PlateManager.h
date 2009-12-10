@@ -45,16 +45,55 @@ namespace platefile {
   //                              TILE COMPOSITING
   // -------------------------------------------------------------------------
 
-  // Composite into the mosaic. The composite_mosaic_tile() function
-  // looks for any tiles at equal or lower resolution in the mosaic,
-  // and composites this tile on top of those tiles, supersampling the
-  // low-res tile if necessary.
   template <class PixelT>
-  ImageView<PixelT> composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
-                                          ImageView<PixelT> tile,
-                                          int col, int row, int level,
-                                          int max_depth, int transaction_id,
-                                          const ProgressCallback &progress_callback = ProgressCallback::dummy_instance());
+  class PlateCompositor {
+    
+    struct RecordCacheEntry {
+      int32 level, x, y, transaction_id;
+      IndexRecord record;
+    };
+    typedef std::list<RecordCacheEntry> record_cache_t;
+    record_cache_t m_record_cache;
+
+    // Save the tile in the cache.  The cache size of 10000 records was chosen
+    // somewhat arbitrarily.
+    void save_record(IndexRecord record, int32 x, int32 y, int32 level, int32 transaction_id) {
+      if( m_record_cache.size() >= 10000 )
+        m_record_cache.pop_back();
+      RecordCacheEntry e;
+      e.level = level;
+      e.x = x;
+      e.y = y;
+      e.transaction_id = transaction_id;
+      e.record = record;
+      m_record_cache.push_front(e);
+    }
+
+    bool restore_record(IndexRecord &record, int32 x, int32 y, int32 level, int32 transaction_id) {
+      for( typename record_cache_t::iterator i=m_record_cache.begin(); i!=m_record_cache.end(); ++i ) {
+        if( i->level==level && i->x==x && i->y==y && i->transaction_id == transaction_id ) {
+          RecordCacheEntry e = *i;
+          m_record_cache.erase(i);
+          record = e.record;
+          return true;
+        }
+      }
+      return false;
+    }
+
+  public:
+
+    // Composite into the mosaic. The composite_mosaic_tile() function
+    // looks for any tiles at equal or lower resolution in the mosaic,
+    // and composites this tile on top of those tiles, supersampling the
+    // low-res tile if necessary.
+    ImageView<PixelT> composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
+                                            ImageView<PixelT> tile,
+                                            int col, int row, int level,
+                                            int max_depth, int transaction_id,
+                                            const ProgressCallback &progress_callback = ProgressCallback::dummy_instance());
+
+  };
 
   // -------------------------------------------------------------------------
   //                            WRITE PLATEFILE TASK
@@ -69,6 +108,7 @@ namespace platefile {
     ViewT const& m_view;
     bool m_verbose;
     SubProgressCallback m_progress;
+    PlateCompositor<typename ViewT::pixel_type> m_compositor;
       
   public:
     WritePlateFileTask(boost::shared_ptr<PlateFile> platefile, 
@@ -94,8 +134,8 @@ namespace platefile {
       // looks for any tiles at equal or lower resolution in the mosaic,
       // and composites this tile on top of those tiles, supersampling the
       // low-res tile if necessary.
-      composite_mosaic_tile(m_platefile, tile, m_tile_info.i, m_tile_info.j, m_depth, 
-                            m_depth, m_transaction_id, m_progress);
+      m_compositor.composite_mosaic_tile(m_platefile, tile, m_tile_info.i, m_tile_info.j, 
+                                         m_depth, m_depth, m_transaction_id, m_progress);
     }
   };
 

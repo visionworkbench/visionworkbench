@@ -137,7 +137,8 @@ ImageView<PixelT> ToastPlateManager<PixelT>::load_tile_impl( int32 level, int32 
     // tile on top of those tiles, supersampling the low-res tile if
     // necessary.
     vw_out(0) << "\t    [ " << x << " " << y << " @ " << level << " ] -- Mipmapping tile.\n";
-    tile = composite_mosaic_tile(m_platefile, new_tile, x, y, level, max_depth, transaction_id);
+    tile = m_compositor.composite_mosaic_tile(m_platefile, new_tile, x, y, 
+                                              level, max_depth, transaction_id);
   }
 
   // Save the tile in the cache.  The cache size of 1024 tiles was chosen

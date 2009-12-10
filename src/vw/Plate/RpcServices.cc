@@ -33,7 +33,7 @@ void vw::platefile::AmqpRpcServer::run() {
       RpcRequestWrapper request_wrapper;
       try {
         this->get_message(request_wrapper);
-        if (m_debug) 
+        if (m_debug)
           vw_out(0) << "[RPC: " << request_wrapper.method() 
                     << " from " << request_wrapper.requestor() 
                     << "  SEQ: " << request_wrapper.sequence_number() << "]\n";
@@ -66,7 +66,7 @@ void vw::platefile::AmqpRpcServer::run() {
           vw_throw(IOErr() << "Error parsing request from request_wrapper message.\n");
 
         // For debugging:
-        //      std::cout << "Request: " << request->DebugString() << "\n";
+        //        std::cout << "Request: " << request->DebugString() << "\n";
 
         m_service->CallMethod(method, this, request.get(), response.get(),
                               google::protobuf::NewCallback(&null_closure));

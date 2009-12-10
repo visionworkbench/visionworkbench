@@ -51,6 +51,7 @@ namespace platefile {
     typedef std::list<CacheEntry> cache_t;
     cache_t m_cache;
 
+    PlateCompositor<PixelT> m_compositor;
 
     // Private methods
     
