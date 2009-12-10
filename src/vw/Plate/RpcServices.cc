@@ -181,7 +181,7 @@ std::string vw::platefile::AmqpRpcClient::UniqueQueueName(const std::string iden
   return requestor.str();
 }
 
-
+vw::int32 AmqpRpcEndpoint::m_default_timeout = -1;
 
 AmqpRpcEndpoint::AmqpRpcEndpoint(boost::shared_ptr<AmqpConnection> conn, std::string exchange, std::string queue, uint32 exchange_count)
   : m_channel(new AmqpChannel(conn)), m_exchange(exchange), m_queue(queue), m_exchange_count(exchange_count), m_next_exchange(0) {
@@ -214,6 +214,9 @@ void AmqpRpcEndpoint::send_bytes(ByteArray const& message, std::string routing_k
 }
 
 void AmqpRpcEndpoint::get_bytes(SharedByteArray& bytes, vw::int32 timeout) {
+  if (timeout == -2)
+    timeout = m_default_timeout;
+
   if (timeout == -1)
     this->m_incoming_messages.wait_pop(bytes);
   else {

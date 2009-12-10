@@ -62,6 +62,7 @@ namespace platefile {
   class AmqpRpcEndpoint : public google::protobuf::RpcController {
 
     protected:
+      static int32 m_default_timeout;
 
       boost::shared_ptr<AmqpChannel> m_channel;
       boost::shared_ptr<google::protobuf::Service> m_service;
@@ -79,27 +80,38 @@ namespace platefile {
 
       virtual ~AmqpRpcEndpoint();
 
+      /// Serializes a protobuf message into an array of bytes, ready for transport
       static void serialize_message(const ::google::protobuf::Message& message, ByteArray& bytes);
 
+      /// Parse an array of bytes into a protobuf message.
       template <typename MessageT>
       static void parse_message(const ByteArray& bytes, MessageT& message) {
         if (!message.ParseFromArray(bytes.begin(), bytes.size()))
           vw_throw(vw::platefile::RpcErr() << "Could not parse bytes into a message.");
       }
 
+      /// Serialize and send a protobuf message along a specified AMQP route
       void send_message(const ::google::protobuf::Message& message, std::string routing_key);
 
+      /// Read and deserialize a protobuf message from the wire.
+      /// For timeout, -2 means "use default", -1 means "none", and anything
+      ///    else means "timeout" milliseconds
       template <typename MessageT>
-      void get_message(MessageT& message, vw::int32 timeout = -1) {
+      void get_message(MessageT& message, vw::int32 timeout = -2) {
         SharedByteArray bytes;
         get_bytes(bytes, timeout);
         parse_message(*bytes.get(), message);
       }
 
+      // Send an array of bytes along a specified AMQP route
       void send_bytes(ByteArray const& message, std::string routing_key);
 
-      void get_bytes(SharedByteArray& bytes, vw::int32 timeout = -1);
+      // Get an array of bytes from the incoming queue.
+      /// For timeout, -2 means "use default", -1 means "none", and anything
+      ///    else means "timeout" milliseconds
+      void get_bytes(SharedByteArray& bytes, vw::int32 timeout = -2);
 
+      // Bind an rpc service to a specified routing key
       void bind_service(boost::shared_ptr<google::protobuf::Service> service,
                         std::string routing_key);
 
@@ -114,6 +126,11 @@ namespace platefile {
       }
 
       virtual void Reset() { }
+
+      // Change the default global timeout. -1 means "no timeout"
+      static void set_default_timeout(vw::int32 timeout = -1) {
+          m_default_timeout = timeout;
+      }
 
     protected:
       // These functions are not used. Bail out if someone tries.
