@@ -29,8 +29,9 @@ namespace platefile {
   typedef vw::VarArray<uint8> ByteArray;
   typedef boost::shared_ptr<ByteArray> SharedByteArray;
 
-  VW_DEFINE_EXCEPTION(AMQPErr,       IOErr);
-  VW_DEFINE_EXCEPTION(AMQPTimeout,   AMQPErr);
+  VW_DEFINE_EXCEPTION(AMQPErr,     IOErr);
+  VW_DEFINE_EXCEPTION(AMQPTimeout, AMQPErr);
+  VW_DEFINE_EXCEPTION(AMQPEof,     AMQPErr);
 
   // This exception denotes a potentially desynchronizing AMQP error. Safest
   // recovery mechanism is to recreate the connection.

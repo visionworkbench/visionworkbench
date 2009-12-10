@@ -38,10 +38,12 @@ namespace {
 
   const amqp_bytes_t amqp_string(const std::string& s);
   std::string amqp_bytes(const amqp_bytes_t& s);
-  void die_on_amqp_error(amqp_rpc_reply_t x, char const *context);
-  void die_on_error(int x, char const *context);
+  void die_on_amqp_error(amqp_rpc_reply_t x, const std::string& context);
+  void die_on_error(int x, const std::string& context);
   SharedByteArray pump_queue(amqp_connection_state_t conn);
-  void set_nonblock(int fd, bool yes);
+  void select_helper(int fd, vw::int32 timeout, const std::string& context);
+  void vw_simple_wait_frame(amqp_connection_state_t conn, amqp_frame_t *frame,
+                            vw::int32 timeout, const std::string& context);
 }
 
 AmqpConnection::AmqpConnection(std::string const& hostname, int port) {
@@ -207,62 +209,40 @@ class AmqpConsumeTask {
 
     void operator()() const {
       int fd;
-
       {
-        // XXX: This is so evil. Turning on nonblock here prevents rabbitmq-c
-        // from failing on rpc, but will break if someone tries to start
-        // another capture thread
-        Mutex::Lock lock(m_conn->m_state_mutex);
+        // This isn't totally safe, because technically the socket could be
+        // changed from under us. That would break so much of the rest of the
+        // library, though, that I'm not too worried.
+        Mutex::Lock(m_conn->m_state_mutex);
         fd = amqp_get_sockfd(m_conn->m_state.get());
       }
 
-      fd_set fds;
-      struct timeval tv;
-      int ret;
-      amqp_frame_t method;
-      SharedByteArray msg;
+      while (go) {
+        // Waiting for frames. We don't want to hold the lock while we do that, so select here.
+        select_helper(fd, 100, "select() for a method frame");
 
-      while(go) {
-        FD_ZERO(&fds);
-        FD_SET(fd, &fds);
-        tv.tv_sec = 0;
-        tv.tv_usec = 100000;
+        SharedByteArray msg;
+        {
+          // Okay, we should have some data. Lock!
+          Mutex::Lock(m_conn->m_state_mutex);
 
-        ret = select(fd+1, &fds, NULL, NULL, &tv);
-
-        if (ret == -1)
-          vw_throw(IOErr() << "select() failed: " << strerror(errno));
-        else if (ret == 0)
-          continue; // timeout
-        else {
-          Mutex::Lock lock(m_conn->m_state_mutex);
-          set_nonblock(fd, true);
-
+          // XXX: Calling maybe_release a lot keeps our memory usage down, but
+          // perhaps we don't need to call it so often. Not clear on tradeoff.
           amqp_maybe_release_buffers(m_conn->m_state.get());
-          ret = amqp_simple_wait_frame(m_conn->m_state.get(), &method);
-          if (ret == EAGAIN || ret == EWOULDBLOCK)
-            continue;
 
+          amqp_frame_t method;
+          vw_simple_wait_frame(m_conn->m_state.get(), &method, 1000, "Waiting for a method frame");
+
+          // Make sure we aren't confused somehow
           VW_ASSERT(method.frame_type == AMQP_FRAME_METHOD, AMQPAssertion() << "Expected a method frame");
           VW_ASSERT(method.payload.method.id == AMQP_BASIC_DELIVER_METHOD, AMQPAssertion() << "Expected a deliver method");
 
+          // Grab the rest of the message
           msg = pump_queue(m_conn->m_state.get());
-          set_nonblock(fd, false);
         }
+        // We got some data. Release the lock and call the callback.
         m_callback(msg);
       }
-
-      {
-        Mutex::Lock lock(m_conn->m_state_mutex);
-
-        int flags = fcntl(fd,F_GETFL,0);
-        if (flags == -1)
-          vw_throw(IOErr() << "Couldn't read socket flags");
-
-        if (fcntl(fd, F_SETFL, flags & (~O_NONBLOCK)) < 0)
-          vw_throw(IOErr() << "Couldn't make amqp socket blocking again");
-      }
-
     }
 };
 
@@ -272,7 +252,9 @@ boost::shared_ptr<AmqpConsumer> AmqpChannel::basic_consume(std::string const& qu
                                                            boost::function<void (SharedByteArray)> callback) {
   Mutex::Lock lock(m_conn->m_state_mutex);
 
-  amqp_basic_consume_ok_t *reply = amqp_basic_consume(m_conn->m_state.get(), m_channel, amqp_string(queue), amqp_string(""), 0, 1, 0);
+  amqp_basic_consume_ok_t *reply =
+    amqp_basic_consume(m_conn->m_state.get(), m_channel, amqp_string(queue), amqp_string(""), 0, 1, 0);
+
   die_on_amqp_error(amqp_rpc_reply, "Starting Consumer");
 
   boost::shared_ptr<AmqpConsumeTask> task(new AmqpConsumeTask(m_conn, m_channel, callback, queue, amqp_bytes(reply->consumer_tag)));
@@ -302,7 +284,7 @@ std::string amqp_bytes(const amqp_bytes_t& s) {
   return std::string(reinterpret_cast<char*>(s.bytes), s.len);
 }
 
-void die_on_error(int x, char const *context) {
+void die_on_error(int x, const std::string& context) {
   if (x < 0) {
     std::ostringstream msg;
     msg << "AMQP Error: " << context << " -- " << strerror(-x);
@@ -310,7 +292,7 @@ void die_on_error(int x, char const *context) {
   }
 }
 
-void die_on_amqp_error(amqp_rpc_reply_t x, char const *context) {
+void die_on_amqp_error(amqp_rpc_reply_t x, const std::string& context) {
   std::ostringstream msg;
 
   switch (x.reply_type) {
@@ -347,14 +329,12 @@ void die_on_amqp_error(amqp_rpc_reply_t x, char const *context) {
   vw_throw(IOErr() << "AMQP Error: unknown response type.");
 }
 
+// Called with the m_state_mutex lock already held
 SharedByteArray pump_queue(amqp_connection_state_t conn) {
 
   amqp_frame_t header;
+  vw_simple_wait_frame(conn, &header, 1000, "Waiting for a header frame");
 
-  amqp_maybe_release_buffers(conn);
-  int result = amqp_simple_wait_frame(conn, &header);
-
-  VW_ASSERT(result > 0,                             AMQPAssertion() << "AMQP error: unknown result waiting for frame.");
   VW_ASSERT(header.frame_type == AMQP_FRAME_HEADER, AMQPAssertion() << "Expected AMQP header!");
 
   size_t body_size = header.payload.properties.body_size;
@@ -364,10 +344,8 @@ SharedByteArray pump_queue(amqp_connection_state_t conn) {
   amqp_frame_t frame;
 
   while (body_read < body_size) {
-    result = amqp_simple_wait_frame(conn, &frame);
+    vw_simple_wait_frame(conn, &frame, 1000, "Waiting for a body frame");
 
-    VW_ASSERT(result > 0,
-        AMQPAssertion() << "AMQP error: unknown result waiting for frame.");
     VW_ASSERT(frame.frame_type == AMQP_FRAME_BODY,
         AMQPAssertion() << "Expected AMQP message body!");
     VW_ASSERT(body_read + frame.payload.body_fragment.len <= body_size,
@@ -385,18 +363,120 @@ SharedByteArray pump_queue(amqp_connection_state_t conn) {
   return payload;
 }
 
-void set_nonblock(int fd, bool yes) {
-  int flags = fcntl(fd,F_GETFL,0);
-  if (flags == -1)
-    vw_throw(IOErr() << "Couldn't read socket flags");
+void select_helper(int fd, vw::int32 timeout, const std::string& context) {
+  // Darn, out of data. Let's try to get some.
+  fd_set fds;
+  struct timeval tv;
 
-  if (yes)
-    flags |= O_NONBLOCK;
-  else
-    flags &= ~O_NONBLOCK;
+  FD_ZERO(&fds);
+  FD_SET(fd, &fds);
+  tv.tv_sec = timeout / 1000;
+  tv.tv_usec = (timeout - (tv.tv_sec * 1000)) * 1000;
 
-  if (fcntl(fd, F_SETFL, flags) < 0)
-    vw_throw(IOErr() << "Couldn't make amqp socket non-blocking");
+  int result = select(fd+1, &fds, NULL, NULL, &tv);
+
+  if (result == -1)
+    die_on_error(errno, context + ":" "select() failed");
+  else if (result == 0)
+    vw_throw(AMQPTimeout() << context << ": select() timed out");
+}
+
+} // namespace
+
+// These definitions are copied from amqp_private.h. They have to be in the
+// global scope here. This is a terrible, evil thing to do. This should be
+// removed as soon as a non-blocking solution is available from upstream.
+typedef enum amqp_connection_state_enum_ {
+  CONNECTION_STATE_IDLE = 0,
+  CONNECTION_STATE_WAITING_FOR_HEADER,
+  CONNECTION_STATE_WAITING_FOR_BODY,
+  CONNECTION_STATE_WAITING_FOR_PROTOCOL_HEADER
+} amqp_connection_state_enum;
+
+typedef struct amqp_link_t_ {
+      struct amqp_link_t_ *next;
+        void *data;
+} amqp_link_t;
+
+struct amqp_connection_state_t_ {
+  amqp_pool_t frame_pool;
+  amqp_pool_t decoding_pool;
+
+  amqp_connection_state_enum state;
+
+  int channel_max;
+  int frame_max;
+  int heartbeat;
+  amqp_bytes_t inbound_buffer;
+
+  size_t inbound_offset;
+  size_t target_size;
+
+  amqp_bytes_t outbound_buffer;
+
+  int sockfd;
+  amqp_bytes_t sock_inbound_buffer;
+  size_t sock_inbound_offset;
+  size_t sock_inbound_limit;
+
+  amqp_link_t *first_queued_frame;
+  amqp_link_t *last_queued_frame;
+};
+
+
+namespace {
+
+void vw_simple_wait_frame(amqp_connection_state_t state, amqp_frame_t *frame, vw::int32 timeout, const std::string& context) {
+
+  // If we already have frames in the queue (perhaps processed on a previous
+  // call) return one of those
+  if (state->first_queued_frame != NULL) {
+    amqp_frame_t *f = (amqp_frame_t *) state->first_queued_frame->data;
+    state->first_queued_frame = state->first_queued_frame->next;
+    if (state->first_queued_frame == NULL) {
+      state->last_queued_frame = NULL;
+    }
+    *frame = *f;
+    return;
+  }
+
+  // We're out of frames. Let's get some!
+  // Do we have unframed data from a previous read? Deal with it.
+  while (amqp_data_in_buffer(state)) {
+    amqp_bytes_t buffer;
+    buffer.len = state->sock_inbound_limit - state->sock_inbound_offset;
+    buffer.bytes = ((char *) state->sock_inbound_buffer.bytes) + state->sock_inbound_offset;
+
+    // Try to frame the data
+    int result = amqp_handle_input(state, buffer, frame);
+
+    die_on_error(result, "Processing Read Frame");
+    if (result == 0)
+      vw_throw(AMQPErr() << "AMQP Error: EOF on socket");
+
+    state->sock_inbound_offset += result;
+
+    if (frame->frame_type != 0) {
+      /* Complete frame was read. Return it. */
+      return;
+    }
+  }
+
+  // Darn, out of data. Let's try to get some.
+  select_helper(state->sockfd, timeout, context);
+
+  // Won't block because we select()'d, and we know it's primed.
+  int result = read(state->sockfd,
+                    state->sock_inbound_buffer.bytes,
+                    state->sock_inbound_buffer.len);
+
+  if (result < 0)
+    die_on_error(errno, context + ":" + "read() failed");
+  else if (result == 0)
+    vw_throw(AMQPEof() << "Socket closed");
+
+  state->sock_inbound_limit = result;
+  state->sock_inbound_offset = 0;
 }
 
 } // namespace anonymous
