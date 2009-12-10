@@ -22,7 +22,7 @@ using namespace vw;
 
 void run_client(std::string exchange, std::string client_queue,
                 const std::string server_queue, int message_size, bool rtt) {
-  std::cout << "Running client...\n";
+  std::cerr << "Running client...\n";
 
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
   AmqpChannel chan(conn);
@@ -39,27 +39,38 @@ void run_client(std::string exchange, std::string client_queue,
                                                          boost::bind(&ThreadQueue<SharedByteArray>::push,
                                                                      boost::ref(q), _1));
 
+  uint8 frame_seq = 0;
   SharedByteArray result;
   while (1) {
     if (!q.timed_wait_pop(result, 3000)) {
-      vw_out(0) << "No messages for 5 seconds" << std::endl;
+      vw_out(0) << "No messages for 3 seconds" << std::endl;
       break;
     }
 
     if (result->size() != message_size) {
-      std::cout << "Error -- unexpected message size : " << result->size() << "\n";
+      std::cerr << "Error -- unexpected message size : " << result->size() << "\n";
     }
 
-    for (unsigned i = 0; i < result->size(); ++i) {
+    for (unsigned i = 1; i < result->size(); ++i) {
       bool bad = false;
       if ( (*result)[i] != i % 256 ) {
-        std::cout << "      Bad byte: " << int((*result)[i]) << "\n";
+        std::cerr << "      Bad byte: " << int((*result)[i]) << "\n";
         bad = true;
       }
 
       if (bad)
-        std::cout << "Error -- corrupt message payload.\n";
+        std::cerr << "Error -- corrupt message payload.\n";
+
     }
+
+    if ((*result)[0] != frame_seq) {
+      std::cerr << "Out of order message [expected " << uint32(frame_seq) << " got " << uint32((*result)[0]) << "]" << std::endl;
+      frame_seq = (*result)[0];
+    } else {
+      frame_seq++;
+    }
+
+
 
     // Echo the message back to the server
     if (rtt)
@@ -89,8 +100,8 @@ void sighandle(int sig) {
 // --------------------------------------------------------------
 
 void run_server(const std::string exchange, const std::string client_queue,
-                const std::string server_queue, int message_size, bool rtt) {
-  std::cout << "Running server...\n";
+                const std::string server_queue, int message_size, bool rtt, unsigned batch) {
+  std::cerr << "Running server...\n";
 
   signal(SIGINT, sighandle);
 
@@ -109,7 +120,8 @@ void run_server(const std::string exchange, const std::string client_queue,
 
   // Set up the message
   ByteArray msg(message_size);
-  for (unsigned i = 0; i < message_size; ++i) {
+  uint8 frame_seq = 0;
+  for (unsigned i = 1; i < message_size; ++i) {
     msg[i] = i % 256;
   }
 
@@ -118,8 +130,11 @@ void run_server(const std::string exchange, const std::string client_queue,
   long long msgs = 0;
 
   while(go) {
-    chan.basic_publish(msg, exchange, client_queue);
-    msgs++;
+    for (int i = 0; i < batch; ++i) {
+      msg[0] = frame_seq++;
+      chan.basic_publish(msg, exchange, client_queue);
+      msgs++;
+    }
     float diff = (Stopwatch::microtime() - t0) / 1e6;
     if (diff > 1.0) {
       std::cout << "sent messages / second : " << (msgs/diff) << "\n";
@@ -129,24 +144,24 @@ void run_server(const std::string exchange, const std::string client_queue,
 
     if (rtt) {
       if (!q.timed_wait_pop(result, 3000)) {
-        vw_out(0) << "No messages for 5 seconds" << std::endl;
+        vw_out(0) << "No ACKs for 3 seconds" << std::endl;
         break;
       }
 
       // Verify message
       if (result->size() != msg.size()) {
-        std::cout << "Error -- unexpected echo message size : " << result->size() << "\n";
+        std::cerr << "Error -- unexpected echo message size : " << result->size() << "\n";
       }
 
-      for (int i = 0; i < result->size(); ++i) {
+      for (int i = 1; i < result->size(); ++i) {
         bool bad = false;
         if ( (*result)[i] != msg[i] ) {
-          std::cout << "      Bad byte: " << int((*result)[i]) << "\n";
+          std::cerr << "      Bad byte: " << int((*result)[i]) << "\n";
           bad = true;
         }
 
         if (bad)
-          std::cout << "Error -- corrupt message payload.\n";
+          std::cerr << "Error -- corrupt message payload.\n";
       }
     }
   }
@@ -159,11 +174,13 @@ void run_server(const std::string exchange, const std::string client_queue,
 int main(int argc, char** argv) {
 
   int message_size;
+  unsigned batch;
 
   po::options_description general_options("AMQP Performance Test Program");
   general_options.add_options()
     ("client", "Act as client.")
     ("server", "Act as server.")
+    ("batch",  po::value(&batch)->default_value(1), "How many messages to publish before checking for responses (server-only)")
     ("rtt", "Measure round trip messages/sec instead of one way messages/sec.")
     ("message-size", po::value<int>(&message_size)->default_value(5), "Message size in bytes")
     ("help", "Display this help message");
@@ -183,7 +200,7 @@ int main(int argc, char** argv) {
 
   if( vm.count("server") )
     run_server("ptest_exchange", "ptest_client_queue", "ptest_server_queue",
-               message_size, vm.count("rtt"));
+               message_size, vm.count("rtt"), batch);
 
   if( vm.count("client") )
     run_client("ptest_exchange", "ptest_client_queue", "ptest_server_queue",
