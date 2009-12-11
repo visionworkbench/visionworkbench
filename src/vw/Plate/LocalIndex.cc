@@ -289,10 +289,13 @@ void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id) {
   static const int MAX_OUTSTANDING_TRANSACTION_IDS = 256;
   Mutex::Lock lock(m_mutex);
 
-  // We handle the incoming id without inserting it in the heap, if we can (in
-  // order to avoid a re-heapify)
+  VW_ASSERT( transaction_id > m_header.transaction_read_cursor(),
+          LogicErr() << "We got a transaction_complete() with an id less than the read_cursor(). Ack!");
+
   this->log() << "Transaction " << transaction_id << " complete.\n";
 
+  // We handle the incoming id without inserting it in the heap, if we can (in
+  // order to avoid a re-heapify)
   // Is this the next transaction we're waiting for?
   if (transaction_id == m_header.transaction_read_cursor() + 1) {
     // It is! Update the transaction read cursor

@@ -417,8 +417,8 @@ void PlateModule::sync_index_cache() const {
 
         entry.shortname   = name;
         entry.filename    = entry.index->platefile_name();
-        entry.description = (hdr.has_description() && ! hdr.description().empty()) ? hdr.description() : entry.shortname;
         entry.read_cursor = entry.index->transaction_cursor();
+        entry.description = (hdr.has_description() && ! hdr.description().empty()) ? hdr.description() : entry.shortname + "." + vw::stringify(entry.read_cursor);
         id                = hdr.platefile_id();
     } catch (const vw::Exception& e) {
         vw_out(ErrorMessage, "plate.apache") << "Tried to add " << name << " to the index cache, but failed: " << e.what() << std::endl;
