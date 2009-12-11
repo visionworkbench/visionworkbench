@@ -187,7 +187,7 @@ int handle_image(request_rec *r, const std::string& url) {
   vw::uint64 offset, size;
 
   if (idx_record.status() != INDEX_RECORD_VALID && idx_record.status() != INDEX_RECORD_STALE) {
-      vw_out(DebugMessage, "plate.apache") << "Returning null tile [status=" << idx_record.status() << "]" << std::endl;
+      vw_out(DebugMessage, "plate.apache") << "Returning null tile [record=" << idx_record.DebugString() << "]" << std::endl;
 
       filename = "/big/platefiles/null.png";
       offset = 0;
@@ -404,6 +404,8 @@ const boost::shared_ptr<Blob> PlateModule::get_blob(const std::string& plate_fil
 void PlateModule::sync_index_cache() const {
   IndexListRequest request;
   IndexListReply id_list;
+
+  index_cache.clear();
 
   m_index_service->ListRequest(m_client.get(), &request, &id_list, google::protobuf::NewCallback(&null_closure));
 
