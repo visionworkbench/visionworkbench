@@ -138,7 +138,7 @@ int handle_image(request_rec *r, const std::string& url) {
       row   = boost::lexical_cast<int>(match[4]);
   std::string format = boost::lexical_cast<std::string>(match[5]);
 
-  vw_out(DebugMessage, "plate.apache") << "Serving Image: id["  << id
+  vw_out(DebugMessage, "plate.apache") << "Request Image: id["  << id
                                                  << "] level["  << level
                                                  << "] col["    << col
                                                  << "] row["    << row
@@ -187,6 +187,8 @@ int handle_image(request_rec *r, const std::string& url) {
   vw::uint64 offset, size;
 
   if (idx_record.status() != INDEX_RECORD_VALID && idx_record.status() != INDEX_RECORD_STALE) {
+      vw_out(DebugMessage, "plate.apache") << "Returning null tile [status=" << idx_record.status() << "]" << std::endl;
+
       filename = "/big/platefiles/null.png";
       offset = 0;
       apr_finfo_t info;

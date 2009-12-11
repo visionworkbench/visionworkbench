@@ -215,7 +215,6 @@ void IndexServiceImpl::ListRequest(::google::protobuf::RpcController* controller
     response->add_platefile_names(rec.short_plate_filename);
   }
 
-  response->add_platefile_names("test");
   //  std::cout << "SENDING ListRequest response : " << response->DebugString() << "\n";
 
   done->Run();
