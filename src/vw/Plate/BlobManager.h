@@ -32,6 +32,26 @@ namespace platefile {
     struct BlobRecord {
       bool locked;
       uint64 current_blob_offset;
+      time_t lock_time;
+
+      BlobRecord() : locked(false), current_blob_offset(0) {}
+
+      void lock() {
+        this->locked = true;
+        this->lock_time = time(0);
+      }
+
+      void unlock_if_timeout() {
+        time_t now = time(0);
+        if (this->locked && now - lock_time > 60) { // 60 second timeout
+          this->locked = false;
+        }
+      }
+      
+      void unlock(int current_blob_offset) {
+        this->current_blob_offset = current_blob_offset;
+        this->locked = false;
+      }
     };
 
     vw::int64 m_max_blob_size;
@@ -39,7 +59,6 @@ namespace platefile {
     std::vector<BlobRecord> m_blob_locks;
     int m_blob_index;
     vw::Mutex m_mutex;
-    vw::Condition m_blob_release_condition;
 
     // A method to poll for an available blob.  Returns -1 if there
     // are no blobs available.  
@@ -48,11 +67,14 @@ namespace platefile {
     // Helper function for incrementing blob ids, and wrapping around the end.
     void increment_blob_index(int &blob_index);  
 
+    // Helper function for checking whether a blob lock has timed out.
+    void check_timeout(int blob_index);
+
   public:
 
     /// Create a new blob manager.  The max_blob_size is specified in
     /// units of megabytes.
-    BlobManager(vw::int64 max_blob_size = 2048, int initial_nblobs = 1, int max_blobs = 128);
+    BlobManager(vw::int64 max_blob_size = 2048, int initial_nblobs = 1, int max_blobs = 16384);
 
     /// Return the number of blobs currently in use.
     unsigned num_blobs();

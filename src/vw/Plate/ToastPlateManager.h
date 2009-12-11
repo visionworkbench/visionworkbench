@@ -206,13 +206,27 @@ namespace platefile {
         hdr.set_depth(pyramid_level);
         tile_headers.push_back(hdr);
       }
-      int transaction_id = m_platefile->transaction_request(description, tile_headers);
       int platefile_id = m_platefile->index_header().platefile_id();
-      
-      // And save each tile to the PlateFile
+      int transaction_id = m_platefile->transaction_request(description, tile_headers);
       std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n" 
                 << "\t    Platefile ID: " << platefile_id << "\n"
                 << "\t    Transaction ID: " << transaction_id << "\n";
+
+
+      // For debugging: 
+      // 
+      // // Test: terminate clients half the time
+      // srandom(time(0));
+      // float r = float(random()) / (powf(2.0,31)-1.0);
+      
+      // if (r > 0.2) {
+      //   vw_out(0) << "\n\n***********************************************************\n";
+      //   vw_out(0) << "                          FAILING...\n";
+      //   vw_out(0) << "***********************************************************\n";
+      //   vw_throw( IOErr() << "terminating randomly....");
+      // }
+
+      // Add each tile.W
       progress.report_progress(0);
       for (size_t i = 0; i < tiles.size(); ++i) {
         m_queue.add_task(boost::shared_ptr<Task>(

@@ -290,12 +290,11 @@ void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id) {
   Mutex::Lock lock(m_mutex);
 
   VW_ASSERT( transaction_id > m_header.transaction_read_cursor(),
-          LogicErr() << "We got a transaction_complete() with an id less than the read_cursor(). Ack!");
-
-  this->log() << "Transaction " << transaction_id << " complete.\n";
+             LogicErr() << "We got a transaction_complete() with an id less than the read_cursor(). Ack!");
 
   // We handle the incoming id without inserting it in the heap, if we can (in
   // order to avoid a re-heapify)
+
   // Is this the next transaction we're waiting for?
   if (transaction_id == m_header.transaction_read_cursor() + 1) {
     // It is! Update the transaction read cursor
@@ -327,13 +326,14 @@ void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id) {
 
   // If we got this far. we updated the read cursor at least once, so save it.
   this->save_index_file();
+
+  this->log() << "Transaction " << transaction_id << " complete.  "
+              << "[ read_cursor = " << m_header.transaction_read_cursor() << " ]\n";
 }
 
 // Once a chunk of work is complete, clients can "commit" their
 // work to the mosaic by issuing a transaction_complete method.
 void vw::platefile::LocalIndex::transaction_failed(int32 transaction_id) {
-
-  vw_out(0) << "\nWARNING: Transaction failed -- " << transaction_id << "\n";
 
   // Update the list of failed transactions in the index header
   m_header.mutable_failed_transaction_ids()->Add(transaction_id);

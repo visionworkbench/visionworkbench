@@ -242,6 +242,7 @@ class AmqpConsumeTask {
           // Grab the rest of the message
           msg = pump_queue(m_conn->m_state.get());
         }
+
         // We got some data. Release the lock and call the callback.
         m_callback(msg);
       }

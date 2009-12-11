@@ -250,6 +250,7 @@ int main( int argc, char *argv[] ) {
 
   }  catch (vw::Exception &e) {
     std::cout << "An error occured: " << e.what() << "\nExiting.\n\n";
+    exit(1);
   }
   
 }

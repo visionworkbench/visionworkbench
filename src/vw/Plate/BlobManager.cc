@@ -24,6 +24,13 @@ void vw::platefile::BlobManager::increment_blob_index(int &blob_index) {
     blob_index = 0;
 }
 
+// Move to the next blob, wrapping around if we reach the end.
+void vw::platefile::BlobManager::check_timeout(int blob_index) {
+  if ( m_blob_locks[blob_index].locked ) {
+    
+  }
+}
+
 // A method to poll for an available blob.  Returns -1 if there
 // are no blobs available.  
 int vw::platefile::BlobManager::get_next_available_blob() {
@@ -31,6 +38,11 @@ int vw::platefile::BlobManager::get_next_available_blob() {
   // Move the starting point for our search forward one so that we
   // don't always return the same general set of blobs.
   increment_blob_index(m_blob_index);
+  
+  // Blobs should only stay locked for a split second.  If they remain
+  // locked for much longer than that, then there is a very good
+  // chance the mosaicking client that requested the lock has died.
+  m_blob_locks[m_blob_index].unlock_if_timeout();
 
   // If the next blob_id happens to be unlocked and not full, then we
   // return it immediately.
@@ -42,6 +54,7 @@ int vw::platefile::BlobManager::get_next_available_blob() {
   // we can tell when we've wrapped all the way around..
   int starting_blob = m_blob_index;
   increment_blob_index(m_blob_index);
+  m_blob_locks[m_blob_index].unlock_if_timeout();
 
   while (m_blob_index != starting_blob) {
 
@@ -54,6 +67,7 @@ int vw::platefile::BlobManager::get_next_available_blob() {
 
     // Otherwise, we increment m_blob_index and try again.
     increment_blob_index(m_blob_index);
+    m_blob_locks[m_blob_index].unlock_if_timeout();
   }
 
   // If we have reached this point, then no valid blobs were found.
@@ -120,7 +134,7 @@ int vw::platefile::BlobManager::request_lock(int64 size) {
              << "The blob limit has been reached.");
   
   // Then we lock it, increment the blob index, and return it.
-  m_blob_locks[next_available_blob].locked = true;  
+  m_blob_locks[next_available_blob].lock();
   return next_available_blob;
 }
 
@@ -128,8 +142,6 @@ int vw::platefile::BlobManager::request_lock(int64 size) {
 // "committing" the write to the blob when you are finished with it.).
 void vw::platefile::BlobManager::release_lock(int blob_id, uint64 blob_offset) {
   Mutex::Lock lock(m_mutex);
-  m_blob_locks[blob_id].current_blob_offset = blob_offset;
-  m_blob_locks[blob_id].locked = false;
-  m_blob_release_condition.notify_all();
+  m_blob_locks[blob_id].unlock(blob_offset);
 }
 

@@ -32,13 +32,13 @@ void vw::platefile::AmqpRpcServer::run() {
       // --------------------------------------
       RpcRequestWrapper request_wrapper;
       try {
-        this->get_message(request_wrapper);
+        this->get_message(request_wrapper, -1);
         if (m_debug)
           vw_out(0) << "[RPC: " << request_wrapper.method() 
                     << " from " << request_wrapper.requestor() 
                     << "  SEQ: " << request_wrapper.sequence_number() << "]\n";
       } catch (const vw::platefile::RpcErr&e) {
-        vw_out(0) << "Invalid RPC method, ignoring." << std::endl;
+        vw_out(0) << "Invalid RPC, ignoring." << std::endl;
         continue;
       }
 
@@ -49,19 +49,23 @@ void vw::platefile::AmqpRpcServer::run() {
       // Step 2 : Instantiate the proper messages and delegate them to
       // the proper method on the service.
       // -------------------------------------------------------------
-      const google::protobuf::MethodDescriptor* method =
-        m_service->GetDescriptor()->FindMethodByName(request_wrapper.method());
-
-      boost::shared_ptr<google::protobuf::Message>
-        request(m_service->GetRequestPrototype(method).New());
-      boost::shared_ptr<google::protobuf::Message>
-        response(m_service->GetResponsePrototype(method).New());
-
+      
       try {
 
-        RpcResponseWrapper response_wrapper;
+        const google::protobuf::MethodDescriptor* method =
+          m_service->GetDescriptor()->FindMethodByName(request_wrapper.method());
+
+        if (method == NULL)
+          vw_throw(RpcErr() << "Unrecognized RPC method: " << request_wrapper.method());
+
+        boost::shared_ptr<google::protobuf::Message>
+          request(m_service->GetRequestPrototype(method).New());
+        boost::shared_ptr<google::protobuf::Message>
+          response(m_service->GetResponsePrototype(method).New());
+
         // Attempt to parse the actual request message from the
         // request_wrapper.
+        RpcResponseWrapper response_wrapper;
         if (!request->ParseFromString(request_wrapper.payload()))
           vw_throw(IOErr() << "Error parsing request from request_wrapper message.\n");
 
@@ -70,8 +74,6 @@ void vw::platefile::AmqpRpcServer::run() {
 
         m_service->CallMethod(method, this, request.get(), response.get(),
                               google::protobuf::NewCallback(&null_closure));
-
-        //      std::cout << "Response: " << response->DebugString() << "\n";
 
         // ---------------------------
         // Step 3 : Return the result.
@@ -148,7 +150,7 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
 
     // Try to get the message.  If we succed, check the sequence number.
     try {
-      real_controller->get_message(response_wrapper, 1000);
+      real_controller->get_message(response_wrapper, 15000);   // 15 seconds
       
       // Grab packets off of the queue until a sequence number match
       // is found.  This may end up timing out if the queue empties
@@ -157,7 +159,7 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
         vw_out(0) << "WARNING: CallMethod() sequence number did not match.  ("
                   << request_seq << " != " << response_wrapper.sequence_number() 
                   << ").  Retrying...\n";
-        real_controller->get_message(response_wrapper, 2000);
+        real_controller->get_message(response_wrapper, 15000); // 15 seconds
       }
       
       // If the sequence number does appear, then we declare victory
