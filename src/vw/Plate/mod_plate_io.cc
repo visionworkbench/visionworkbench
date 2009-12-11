@@ -309,7 +309,10 @@ int handle_wtml(request_rec *r, const std::string& url) {
   typedef std::pair<int32, PlateModule::IndexCacheEntry> id_cache;
 
   std::ostringstream prefix;
-  prefix << ap_http_scheme(r) << "://" << ap_get_server_name(r) << ":" << ap_get_server_port(r) << "/wwt/";
+  prefix << ap_http_scheme(r) << "://" << r->server->server_hostname;
+  if (r->server->port != 80)
+      prefix << ":" << r->server->port;
+  prefix << "/wwt/";
 
   BOOST_FOREACH( const id_cache& e, mod_plate().get_index() ) {
     WTMLImageSet img(prefix.str(), e.second);
