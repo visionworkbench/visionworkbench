@@ -35,7 +35,7 @@ public:
     IndexHeader hdr = idx->index_header();
     TS_ASSERT_EQUALS(hdr.type(), "toast");
     TS_ASSERT_EQUALS(hdr.version(), 2);
-    TS_ASSERT_EQUALS(hdr.tile_size(), 256);
+    TS_ASSERT_EQUALS(hdr.tile_size(), 256u);
     TS_ASSERT_EQUALS(hdr.tile_filetype(), "png");
     TS_ASSERT_EQUALS(hdr.pixel_format(), VW_PIXEL_RGBA);
     TS_ASSERT_EQUALS(hdr.channel_type(), VW_CHANNEL_UINT8);

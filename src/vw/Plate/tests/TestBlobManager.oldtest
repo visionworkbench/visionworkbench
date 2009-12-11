@@ -22,7 +22,7 @@ public:
 
     // Initial blobs = 1, max_blobs = 4;
     BlobManager bm(1024, 1, 4);
-    TS_ASSERT_EQUALS(bm.num_blobs(), 1);
+    TS_ASSERT_EQUALS(bm.num_blobs(), 1u);
     
     // Test basic lock with one blob_id
     std::cout << "\nTesting blob manager.  If this hangs, then there is a problem!!\n";

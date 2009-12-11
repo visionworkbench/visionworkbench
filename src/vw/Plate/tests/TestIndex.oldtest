@@ -167,7 +167,7 @@ public:
     // IndexRecord.  Invalid IndexRecords have a blob_id of -1.
     IndexRecord rec2 = idx.read_request(0, 0, 0, tx1);
     TS_ASSERT_EQUALS(rec2.blob_id(), -1);
-    TS_ASSERT_EQUALS(rec2.blob_offset(), 0);
+    TS_ASSERT_EQUALS(rec2.blob_offset(), 0u);
   }
 
 
