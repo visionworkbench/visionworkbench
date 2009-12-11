@@ -39,7 +39,6 @@ using namespace vw::platefile;
 
 VW_DEFINE_EXCEPTION(PlateException, Exception);
 VW_DEFINE_EXCEPTION(BadRequest,  PlateException);
-VW_DEFINE_EXCEPTION(NoSuchTile,  PlateException);
 VW_DEFINE_EXCEPTION(ServerError, PlateException);
 
 static void null_closure() {}
@@ -155,14 +154,13 @@ int handle_image(request_rec *r, const std::string& url) {
   IndexRecord idx_record;
   try {
     idx_record = index.index->read_request(col,row,level,-1);
-  } catch(vw::Exception &e) {
+  } catch(const TileNotFoundErr &) {
+      throw;
+  } catch(const vw::Exception &e) {
     vw_throw(ServerError() << "Could not read plate index: " << e.what());
   }
 
   // ---------------- Return the image ------------------
-
-  if (idx_record.status() != INDEX_RECORD_VALID)
-    vw_throw(NoSuchTile() << "The index record was not valid, or just not there.");
 
   // Okay, we've gotten this far without error. Set content type now, so HTTP
   // HEAD returns the correct file type
@@ -187,14 +185,23 @@ int handle_image(request_rec *r, const std::string& url) {
   std::string filename;
   vw::uint64 offset, size;
 
-  try {
-    // Grab a blob from the blob cache by filename
-    boost::shared_ptr<Blob> blob = mod_plate().get_blob(index.filename, idx_record.blob_id());
-    // And calculate the sendfile(2) parameters
-    blob->read_sendfile(idx_record.blob_offset(), filename, offset, size);
+  if (idx_record.status() != INDEX_RECORD_VALID && idx_record.status() != INDEX_RECORD_STALE) {
+      filename = "/big/platefiles/null.png";
+      offset = 0;
+      apr_finfo_t info;
+      apr_stat(&info, filename.c_str(), APR_FINFO_SIZE, r->pool);
+      size = info.size;
+  } else {
 
-  } catch (vw::Exception &e) {
-    vw_throw(ServerError() << "Could not load blob data: " << e.what());
+    try {
+      // Grab a blob from the blob cache by filename
+      boost::shared_ptr<Blob> blob = mod_plate().get_blob(index.filename, idx_record.blob_id());
+      // And calculate the sendfile(2) parameters
+      blob->read_sendfile(idx_record.blob_offset(), filename, offset, size);
+
+    } catch (vw::Exception &e) {
+      vw_throw(ServerError() << "Could not load blob data: " << e.what());
+    }
   }
 
   apr_file_t *fd = 0;
@@ -240,7 +247,7 @@ class WTMLImageSet : public std::map<std::string, std::string> {
 
       (*this)["Name"]         = layer.description;
       (*this)["FileType"]     = std::string(".") + hdr.tile_filetype();
-      (*this)["TileLevels"]   = layer.index->max_depth();
+      (*this)["TileLevels"]   = boost::lexical_cast<std::string>(layer.index->max_depth());
 
       const std::string url2 = url_prefix + "p/" + vw::stringify(hdr.platefile_id());
 
@@ -270,7 +277,7 @@ int handle_wtml(request_rec *r, const std::string& url) {
   static const boost::regex match_regex("/(\\w+\\.wtml)$");
 
   boost::smatch match;
-  if (!boost::regex_search(url, match, match_regex))
+  if (!boost::regex_match(url, match, match_regex))
     return DECLINED;
 
   std::string filename = boost::lexical_cast<std::string>(match[1]);
@@ -322,8 +329,11 @@ PlateModule::PlateModule() {
   // Disable the config file
   vw::vw_settings().set_rc_filename("");
 
+  LogRuleSet rules;
+  rules.add_rule(EveryMessage, "plate.apache");
+
   // And log to stderr, which will go to the apache error log
-  vw_log().set_console_stream(std::cerr, vw::LogRuleSet(), false);
+  vw_log().set_console_stream(std::cerr, rules, false);
 
   // Create the necessary services
   std::string queue_name = AmqpRpcClient::UniqueQueueName("mod_plate");
@@ -345,6 +355,9 @@ PlateModule::PlateModule() {
 PlateModule::~PlateModule() {}
 
 int PlateModule::operator()(request_rec *r) const {
+
+    if (!r->path_info)
+        return DECLINED;
 
   const std::string url(r->path_info);
 
@@ -389,18 +402,24 @@ void PlateModule::sync_index_cache() const {
   BOOST_FOREACH( const std::string& name, id_list.platefile_names() ) {
 
     IndexCacheEntry entry;
+    int32 id;
 
-    // XXX: The rabbitmq host needs to be an apache configuration variable or something
-    entry.index = Index::construct_open(std::string("pf://198.10.124.5/index/") + name);
-    const IndexHeader& hdr = entry.index->index_header();
+    try {
+        // XXX: The rabbitmq host needs to be an apache configuration variable or something
+        entry.index = Index::construct_open(std::string("pf://198.10.124.5/index/") + name);
+        const IndexHeader& hdr = entry.index->index_header();
 
-    entry.shortname   = name;
-    entry.filename    = entry.index->platefile_name();
-    entry.description = (hdr.has_description() && ! hdr.description().empty()) ? hdr.description() : entry.shortname;
+        entry.shortname   = name;
+        entry.filename    = entry.index->platefile_name();
+        entry.description = (hdr.has_description() && ! hdr.description().empty()) ? hdr.description() : entry.shortname;
+        id                = hdr.platefile_id();
+    } catch (const vw::Exception& e) {
+        vw_out(ErrorMessage, "plate.apache") << "Tried to add " << name << " to the index cache, but failed: " << e.what() << std::endl;
+        continue;
+    }
 
-    index_cache[hdr.platefile_id()] = entry;
-
-    vw_out(DebugMessage, "plate") << "Adding " << entry.shortname << " to index cache" << std::endl;
+    index_cache[id] = entry;
+    vw_out(DebugMessage, "plate.apache") << "Adding " << entry.shortname << " to index cache" << std::endl;
   }
 }
 
@@ -417,7 +436,7 @@ extern "C" int mod_plate_handler(request_rec *r) {
     // Client sent a request that was formatted badly
     ap_log_rerror(APLOG_MARK, APLOG_NOTICE, 0, r, "Bad Request: %s", e.what());
     return HTTP_BAD_REQUEST;
-  } catch (const NoSuchTile& e) {
+  } catch (const TileNotFoundErr& e) {
     // Valid format, but not there
     return HTTP_NOT_FOUND;
   } catch (const ServerError& e) {

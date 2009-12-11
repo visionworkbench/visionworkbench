@@ -52,7 +52,7 @@ mod_plate_la_LIBADD = $(PLATE_LOCAL_LIBS)
 mod_plate_la_LDFLAGS = @APXS_LDFLAGS@ -module -rpath $(APXS_INSTALLDIR) -avoid-version
 noinst_LTLIBRARIES = mod_plate.la
 
-apxs_install:
+apxs_install: mod_plate.la
 	$(APXS) -i mod_plate.la
 
 endif
