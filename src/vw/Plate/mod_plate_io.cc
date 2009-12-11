@@ -154,7 +154,8 @@ int handle_image(request_rec *r, const std::string& url) {
 
   IndexRecord idx_record;
   try {
-    idx_record = index.index->read_request(col,row,level,index.read_cursor);
+      /// XXX: This doubles the number of amqp messages
+    idx_record = index.index->read_request(col,row,level,index.index->transaction_cursor());
   } catch(const TileNotFoundErr &) {
       throw;
   } catch(const vw::Exception &e) {
