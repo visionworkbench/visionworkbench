@@ -55,6 +55,7 @@ class PlateModule {
       std::string filename;
       std::string description;
       boost::shared_ptr<Index> index;
+      int read_cursor;
     };
 
     typedef std::map<int32, IndexCacheEntry> IndexCache;
@@ -153,7 +154,7 @@ int handle_image(request_rec *r, const std::string& url) {
 
   IndexRecord idx_record;
   try {
-    idx_record = index.index->read_request(col,row,level,-1);
+    idx_record = index.index->read_request(col,row,level,index.read_cursor);
   } catch(const TileNotFoundErr &) {
       throw;
   } catch(const vw::Exception &e) {
@@ -244,6 +245,8 @@ class WTMLImageSet : public std::map<std::string, std::string> {
       (*this)["Sparse"]             = "True";
       (*this)["ElevationModel"]     = "False";
       (*this)["StockSet"]           = "False";
+      // XXX: This is wrong for non-mars!
+      (*this)["DemUrl"]             = "http://www.wworldwidetelescope.ccom/wwtweb/marsdem.aaspx?q={0},{1},{2},T";
 
       (*this)["Name"]         = layer.description;
       (*this)["FileType"]     = std::string(".") + hdr.tile_filetype();
@@ -415,6 +418,7 @@ void PlateModule::sync_index_cache() const {
         entry.shortname   = name;
         entry.filename    = entry.index->platefile_name();
         entry.description = (hdr.has_description() && ! hdr.description().empty()) ? hdr.description() : entry.shortname;
+        entry.read_cursor = entry.index->transaction_cursor();
         id                = hdr.platefile_id();
     } catch (const vw::Exception& e) {
         vw_out(ErrorMessage, "plate.apache") << "Tried to add " << name << " to the index cache, but failed: " << e.what() << std::endl;
@@ -422,7 +426,7 @@ void PlateModule::sync_index_cache() const {
     }
 
     index_cache[id] = entry;
-    vw_out(DebugMessage, "plate.apache") << "Adding " << entry.shortname << " to index cache" << std::endl;
+    vw_out(DebugMessage, "plate.apache") << "Adding " << entry.shortname << " to index cache [cursor=" << entry.read_cursor << "]" << std::endl;
   }
 }
 
