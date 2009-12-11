@@ -82,9 +82,6 @@ AC_PROG_MAKE_SET
 AC_LANG(C++)
 AX_COMMON_OPTIONS
 
-# Does the compiler support introspection?
-AX_CHECK_INTROSPECTION
-
 # Does the compiler support noreturn?
 AX_CHECK_FUNCTION_ATTRIBUTE([noreturn])
 
