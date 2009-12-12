@@ -55,7 +55,7 @@ if test -f ./config.options; then
   AX_LOG([using config.options << EOF])
   AX_LOG([`cat ./config.options`])
   AX_LOG([EOF])
-  source ./config.options
+  . ./config.options
 fi
 ])
 
@@ -192,7 +192,7 @@ AM_CONDITIONAL(DIST_REMOVE_MODULES, [test ! -z "$DIST_REMOVE_MODULES"])
 AX_PKG_PTHREADS
 
 AX_PKG_BOOST
-if test x"$HAVE_PKG_BOOST" == "xyes"; then
+if test x"$HAVE_PKG_BOOST" = "xyes"; then
   AX_PKG_BOOST_CHECK_VERSION([VW_])
   AC_MSG_NOTICE([VW will be built using Boost version $BOOST_VERSION])
 

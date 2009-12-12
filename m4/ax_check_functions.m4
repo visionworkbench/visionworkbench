@@ -40,7 +40,7 @@ AC_DEFUN([AX_CHECK_FUNCTIONS],
   done
 
   m4_ifval([$3], [
-      if test x"$check_function_missing_libs" == x"no"; then
+      if test x"$check_function_missing_libs" = x"no"; then
         $3
       fi
   ])
